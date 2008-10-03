@@ -1,0 +1,73 @@
+=============================================
+= INDI Drivers Knowledge Base
+=============================================
+
+Introduction
+============
+
+The goal of the INDI Drivers Knowledge Base is to establish a repository that addresses driver-specific issues and problems. 
+
+You can find more up to date information on INDI drivers from the following sources:
+
+1. INDI Device Profiles: http://indi.sf.net/devices.html
+2. INDI Wiki: http://wiki.kde.org/tiki-index.php?page=indi
+
+
+Telescopes
+==========
+
+	+ Meade
+		- Slew Precision:
+			Meade scopes do not report back a successful slew (Meade claim they do, but they don't). Normally, the user hears a beep when slew is complete. However, clients and scripts need to know when the slew is over. Furthermore, you can't hear any beeps if you're controlling the telescope remotely! The solution to this is to continously monitor the target coordinates against the telescope's current coordinate during slew. When the two coordinates are 'close enough', we declare a successful slew. This 'close enough' value was hardcoded in previous versions in INDI, but they are user-adjustable now. The default value for RA and DEC is 3 arcminutes. Setting the values too low might result in endless busy state during slew. Set the values to reflect your instruments precision capabilities. The 3 arcminute value is the average value determined from experience. Please not that the Slew Precision parameter has NO EFFECT what so ever on your telescope slew accuracy or precision, it is merely used to indicate when a successful slew is completed.
+
+		- Track Precision:
+			Tracking is indentical to slewing for sidereal objects. For non-sidereal objects (e.g. planets), the telescope need to continously follow the object as it crosses the sky. For LX200 Classic telescopes, it is possible to ask the scope to track a specific solar system object. However, in all other models, such facitliy does not exist. It is therefore neccesary to manually track non-sideral objects. But continiously issuing 'slew' commands will result in jerky scope motion. To compensate for that, we set an upper limit for the difference between our target coordinates and the current telescope coordinates. If this limit is exceeded, then we tell the scope to slew. The default values for track precision are 3 arcminutes. If you set the values too low, your telescope motion will be jerky and unstable. If you set the values too high, the object might move significantly in the eye piece, if not completely out of it. 
+	+ Celestron
+	+ Meade-Compatible
+		For all Meade-Compatible telescopes, use the lx200basic driver to obtain basic control over your particular controller. It is not recommended to use other LX200* drivers as your controller might or might not support Meade's command set. 
+	+ DCS
+
+CCDs
+====
+
+	+ FLI (Finger Lakes Instruments)
+
+		- FLI driver require read and write access to your USB subsystem. There are two methods to accomplish this:
+		 1. Run fliccd driver as root or setuid your fliccd (chmod +s fliccd).
+		 2. Allow your user write privileges to the USB sub system by mounting /proc/bus/usb with the proper user and group permissions.
+
+	+ SBIG (Santa Barbara ....)
+	+ Apogee
+
+
+Focusers
+========
+
+	+ Meade LX200GPS Microfocuser
+	+ Meade 1206 Primary Mirror Focuser
+	+ JMI NGF Series
+	+ JMI MOTOFOCUS
+	+ Robo Focus
+
+
+Filter Wheels
+=============
+
+	+ FLI Filter Wheel
+	+ SBIG CWF
+	+ TruTechnology Filter Wheel
+
+Video
+=====
+
+	+ Video 4 Linux I, II
+	+ Philips Webcam
+	+ SBIG STV
+	+ Meade Lunar Planetary Imager (Experimental)
+
+		- Exposure: You need to have Kernel 2.6.16+ if you want to take long exposures (1 second or more) with the LPI. To obtain long exposures under 2.6.16+, you need to modify a module paramter for the SN9Cxxx drivers. As root, perform the following:
+
+		[root@localhost #] cd /sys/class/video4linux/video0
+        	[root@localhost #] echo 16 > frame_timeout
+
+		This will increase the timeout for the driver to up to 16 seconds. You can experiment with different values, but 16 seconds is Meade's LPI 'advertised' limit.
