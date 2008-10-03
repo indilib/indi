@@ -107,9 +107,9 @@ set(AltaU_SRCS
    
 add_library(apogeeu SHARED ${AltaU_SRCS})
 
-target_link_libraries(apogeeu ${USB_LIBRARIES})
+target_link_libraries(apogeeu ${LIBUSB_LIBRARIES})
 
-install(TARGETS apogeeu LIBRARY DESTINATION bin )
+install(TARGETS apogeeu LIBRARY DESTINATION lib )
 
  ########### libapogeeAltaE ###########
 set(AltaE_SRCS
@@ -124,8 +124,8 @@ set(AltaE_SRCS
    
 add_library(apogeee SHARED ${AltaE_SRCS})
 
-target_link_libraries(apogeee ${USB_LIBRARIES})
+target_link_libraries(apogeee ${LIBUSB_LIBRARIES})
 
-install(TARGETS apogeee LIBRARY DESTINATION bin )
+install(TARGETS apogeee LIBRARY DESTINATION lib )
 
 install( FILES libapogee.h DESTINATION ${INCLUDE_INSTALL_DIR}/libapogee COMPONENT Devel)
