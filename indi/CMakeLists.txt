@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 2.6)
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
 set(DATA_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/share/indi/")
 set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
+set(INCLUDE_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/include")
 
 MESSAGE( STATUS "BIN_INSTALL_DIR: " ${BIN_INSTALL_DIR} )
 
@@ -84,6 +85,12 @@ if (NOVA_FOUND)
 endif (NOVA_FOUND)
 
 install(TARGETS indiserver RUNTIME DESTINATION bin )
+
+######################################
+########### INDI Static Library ######
+######################################
+add_library(indi STATIC ${indimain_SRCS} ${libindicom_SRCS} ${liblilxml_SRCS})
+install(TARGETS indi ARCHIVE DESTINATION lib)
 
 #####################################
 ########## TELESCOPE GROUP ##########
@@ -488,3 +495,7 @@ install(TARGETS indi_eval RUNTIME DESTINATION bin )
 #################################################################################
 
 install( FILES drivers.xml DESTINATION ${DATA_INSTALL_DIR})
+
+install( FILES indiapi.h indidevapi.h base64.h eventloop.h ${CMAKE_SOURCE_DIR}/libs/lilxml.h
+ ${CMAKE_SOURCE_DIR}/libs/indicom.h DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
+ 
