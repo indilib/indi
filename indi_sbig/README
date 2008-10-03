@@ -1,0 +1,42 @@
+SBIG INDI Driver
+================
+
+This package provides the INDI driver for Santa Barbra Instruments Group line of CCDs & Filter Wheels.
+
+Requirtments
+============
+
++ INDI >= v0.6 (http://indi.sf.net)
+
+	You need to install both indi and indi-devel to build this package.
+	
++ cfitsio
+
+	cfitsio-devel is required to compile support for FITS.
+	
++ libusb
+
+	libusb is required.
+	
++ SBIG Universal Driver for Linux (http://indi.sf.net)
+
+	SBIG Universal driver along with fxload and the CCD firmware is required.
+	
+Installation
+============
+
+	See INSTALL
+	
+How to Use
+==========
+
+	You can use the SBIG INDI Driver in any INDI-compatible client such as KStars or Xephem. 
+	
+	To run the driver from the command line:
+	
+	$ indiserver indi_sbig_ccd
+	
+	You can then connect to the driver from any client, the default port is 7624.
+	If you're using KStars, the driver will be automatically listed in KStars' Device Manager,
+	no further configuration is necessary.
+	 
