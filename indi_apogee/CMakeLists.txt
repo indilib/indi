@@ -18,8 +18,6 @@ macro_optional_find_package(Nova)
 macro_bool_to_01(NOVA_FOUND HAVE_NOVA_H)
 macro_log_feature(NOVA_FOUND "libnova" "A general purpose, double precision, Celestial Mechanics, Astrometry and Astrodynamics library" "http://libnova.sourceforge.net" FALSE "0.12.1" "Needed by KStars.")
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
-
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_SOURCE_DIR})
 include_directories( ${CFITSIO_INCLUDE_DIR})
