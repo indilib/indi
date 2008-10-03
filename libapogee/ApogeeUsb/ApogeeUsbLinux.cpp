@@ -571,9 +571,11 @@ APN_USB_TYPE ApnUsbStopCI( unsigned short PostStopCount )
 //		return APN_USB_ERR_OPEN;
 //	}
      
- 
-	DownloadCountPostStop = (unsigned int)&PostStopCount; 
- 
+    //JM: This fails to compile on x86_64 platforms
+	//DownloadCountPostStop = (unsigned int)&PostStopCount;
+	//JM: Temporary solution:
+	DownloadCountPostStop = (unsigned int) PostStopCount;
+	
 	Success = usb_control_msg(g_hSysDriver,
                                USB_DIR_OUT | USB_TYPE_VENDOR | USB_RECIP_DEVICE,  VND_APOGEE_STOP_IMAGE,
                                  DownloadCountPostStop,
