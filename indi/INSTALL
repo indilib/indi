@@ -1,0 +1,21 @@
+INDI Library Setup v0.5
+=======================
+
+1) ./configure
+2) make
+3) su -c 'make install'
+   Enter root password when prompted.
+   
+Refer to README for instructions on running indiserver and device drivers.
+
+Refer to README.drivers for driver-specific information.
+
+
+INDI SVN Setup
+==============
+
+If you checkout INDI from the SVN, follow the instructions above. But before ./configure, type in:
+
+make -f Makefile.cvs
+
+That's it!

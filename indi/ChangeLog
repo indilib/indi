@@ -1,0 +1,66 @@
+From 0.5 to 1.0
+
+        # Devices:
+                + Davis Weahter (Monitor & Pro)
+
+
+From 0.4 to 0.5
+
+	# Devices:
+		+ True Technology Filter Wheel
+		+ SBIG STV
+
+	# Features:
+	     + Added INDI Observer pattern to enable flexible inter-driver communication.
+             + getINDI now supports BLOBs.
+	     + LX200 Drivers use client timestamp to update the telescope internal clock. The old behavior was to use to system's time.
+	     + Added a new INDI Standard Property: UTC_OFFSET.
+	     + Dropping threaded INDI server in favor of the slightly better non-threaded version due to performance considerations.
+
+	# Bugs
+	     + SBIG CCD driver was updated to fix problems with CFITSIO.
+	     + Updated TTY API to include error reporting, in addition to fixing a few bugs.
+	     + Fixed INDI Mac OSX Crash.
+
+	# Known Issues
+	     + Astrophysics Mount driver (apmount) is not working. It is currently under new development and is intented to be released in the next version as it matures.
+             + Meade LPI exposure is locked to 1 second. The Video4Linux support for timed exposures is limited. A fix should be available in the next release.
+             + The SBIG driver does not allow autoguiding. When one selects the guider CCD, any exposure on the imaging CCD is cancelled and vice-versa.
+
+From v0.3 to v0.4:
+
+	# Devices:
+
+		+ SBIG CCD
+		+ SBIG CFW
+		+ RoboFocus
+		+ FLI Precision Focuser
+		+ Orion Atlas / Sky Scan
+		
+	# Other:
+		+ Added more API documentation and revised existing documentation for accuracy and consistency.
+		+ Fixed UTC correction bug in LX200 driver.
+		+ Fixed pallete selection in V4L 2 drivers.
+		+ Fixed bug in eventloop that can cause IE timers to crash.
+		+ Added variable focus speed for Meade Autostar and GPS.
+		+ Added CFITSIO, a mature and robust FITS library.
+		+ New RS232 API for common access routines.
+
+From v0.2 to v0.3:
+
+	# Devices:
+		+ Apogee CCD (Experimental)
+		+ SkyCommander
+		+ Temma Takahashi
+		+ FLI Filter Wheel
+		+ Meade Lunar Planetary Imager (Experimental)
+		+ Astrophysics AP
+
+	# Other:
+		+ Support for Video 4 Linux 2
+		+ Multi-threaded INDI server
+		+ Binary transfer via BLOB
+		+ INDI scripting tools
+		+ Various bug fixing
+
+INDI Library v1.0 conforms to INDI wire protocol v1.6
