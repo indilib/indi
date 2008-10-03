@@ -1,0 +1,31 @@
+#!/usr/bin/make -f
+clean::
+	dh_testdir
+	dh_clean
+	rm -rf debian/tmp 
+
+d:=debian/apogee
+version:=1.9
+
+install: 
+	mkdir -p $(d)
+	cmake -DCMAKE_INSTALL_PREFIX=$(d) .
+	make install
+
+binary-indep: install
+	dh_testdir
+	dh_testroot
+	dh_installdocs
+	dh_installchangelogs
+	dh_compress
+	dh_fixperms
+	dh_installdeb
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb
+
+binary-arch:
+	# nothing to do
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary

@@ -24,6 +24,13 @@ indi/cmake_modules/MacroBoolTo01.cmake -text
 indi/cmake_modules/MacroLogFeature.cmake -text
 indi/cmake_modules/MacroOptionalFindPackage.cmake -text
 indi/config.h.cmake -text
+indi/debian/changelog -text
+indi/debian/compat -text
+indi/debian/control -text
+indi/debian/copyright -text
+indi/debian/postinst.ex -text
+indi/debian/postrm.ex -text
+indi/debian/rules -text
 indi/drivers.xml -text
 indi/drivers/ccd/fli_ccd.c -text
 indi/drivers/filter_wheel/fli_wheel.c -text
