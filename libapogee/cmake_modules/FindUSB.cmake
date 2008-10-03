@@ -1,39 +1,53 @@
-# - Try to find the freetype library
-# Once done this defines
+# - Try to find LIBUSB
+# Once done this will define
 #
-#  LIBUSB_FOUND - system has libusb
-#  LIBUSB_INCLUDE_DIR - the libusb include directory
-#  LIBUSB_LIBRARIES - Link these to use libusb
+#  LIBUSB_FOUND - system has LIBUSB
+#  LIBUSB_INCLUDE_DIR - the LIBUSB include directory
+#  LIBUSB_LIBRARIES - Link these to use LIBUSB
 
-# Copyright (c) 2006, Laurent Montel, <montel@kde.org>
+# Copyright (c) 2006, Jasem Mutlaq <mutlaqja@ikarustech.com>
+# Based on FindLibfacile by Carsten Niehaus, <cniehaus@gmx.de>
 #
 # Redistribution and use is allowed according to the terms of the BSD license.
 # For details see the accompanying COPYING-CMAKE-SCRIPTS file.
-
 
 if (LIBUSB_INCLUDE_DIR AND LIBUSB_LIBRARIES)
 
   # in cache already
   set(LIBUSB_FOUND TRUE)
+  message(STATUS "Found LIBUSB: ${LIBUSB_LIBRARIES}")
+
 
 else (LIBUSB_INCLUDE_DIR AND LIBUSB_LIBRARIES)
-  IF (NOT WIN32)
-    # use pkg-config to get the directories and then use these values
-    # in the FIND_PATH() and FIND_LIBRARY() calls
-    INCLUDE(UsePkgConfig)
 
-    PKGCONFIG(libusb _libUSBIncDir _libUSBLinkDir _libUSBLinkFlags _libUSBCflags)
-  ENDIF(NOT WIN32)
+  find_path(LIBUSB_INCLUDE_DIR usb.h
+    ${_obIncDir}
+    ${GNUWIN32_DIR}/include
+  )
 
-  FIND_PATH(LIBUSB_INCLUDE_DIR usb.h
-    PATHS ${_libUSBIncDir} )
+  find_library(LIBUSB_LIBRARIES NAMES usb
+    PATHS
+    ${_obLinkDir}
+    ${GNUWIN32_DIR}/lib
+  )
 
-  FIND_LIBRARY(LIBUSB_LIBRARIES NAMES usb 
-    PATHS ${_libUSBLinkDir} )
+  if(LIBUSB_INCLUDE_DIR AND LIBUSB_LIBRARIES)
+    set(LIBUSB_FOUND TRUE)
+  else (LIBUSB_INCLUDE_DIR AND LIBUSB_LIBRARIES)
+    set(LIBUSB_FOUND FALSE)
+  endif(LIBUSB_INCLUDE_DIR AND LIBUSB_LIBRARIES)
 
-  include(FindPackageHandleStandardArgs)
-  FIND_PACKAGE_HANDLE_STANDARD_ARGS(LIBUSB DEFAULT_MSG LIBUSB_LIBRARIES LIBUSB_INCLUDE_DIR)
 
-  MARK_AS_ADVANCED(LIBUSB_INCLUDE_DIR LIBUSB_LIBRARIES)
+  if (LIBUSB_FOUND)
+    if (NOT LIBUSB_FIND_QUIETLY)
+      message(STATUS "Found LIBUSB: ${LIBUSB_LIBRARIES}")
+    endif (NOT LIBUSB_FIND_QUIETLY)
+  else (LIBUSB_FOUND)
+    if (LIBUSB_FIND_REQUIRED)
+      message(FATAL_ERROR "LIBUSB not found.")
+    endif (LIBUSB_FIND_REQUIRED)
+  endif (LIBUSB_FOUND)
+
+  mark_as_advanced(LIBUSB_INCLUDE_DIR LIBUSB_LIBRARIES)
 
 endif (LIBUSB_INCLUDE_DIR AND LIBUSB_LIBRARIES)
