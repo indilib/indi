@@ -4,28 +4,36 @@
 #ifndef LIBAPOGEE_H
 #define LIBAPOGEE_H
 
-extern "C" int ApnGlueOpen(unsigned int id);
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-extern "C" void ApnGlueGetMaxValues (double *exptime, int *roiw, int *roih, int *osw,
+int ApnGlueOpen(unsigned int id);
+
+void ApnGlueGetMaxValues (double *exptime, int *roiw, int *roih, int *osw,
     int *osh, int *binw, int *binh, int *shutter, double *mintemp);
 
-extern "C" int ApnGlueSetExpGeom (int roiw, int roih, int osw, int osh, int binw,
+int ApnGlueSetExpGeom (int roiw, int roih, int osw, int osh, int binw,
     int binh, int roix, int roiy, int *impixw, int *impixh, char whynot[]);
 
-extern "C" void ApnGlueExpAbort(void);
+void ApnGlueExpAbort(void);
 
-extern "C" int ApnGlueStartExp (double *exptime, int shutter);
+int ApnGlueStartExp (double *exptime, int shutter);
 
-extern "C" int ApnGlueExpDone(void);
+int ApnGlueExpDone(void);
 
-extern "C" int ApnGlueReadPixels (unsigned short *buf, int nbuf, char whynot[]);
+int ApnGlueReadPixels (unsigned short *buf, int nbuf, char whynot[]);
 
-extern "C" void ApnGlueSetTemp (double C);
+void ApnGlueSetTemp (double C);
 
-extern "C" int ApnGlueGetTemp (double *Cp);
+int ApnGlueGetTemp (double *Cp);
 
-extern "C" void ApnGlueSetFan (int speed);
+void ApnGlueSetFan (int speed);
 
-extern "C" void ApnGlueGetName(char **sensor, char **camera);
+void ApnGlueGetName(char **sensor, char **camera);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
