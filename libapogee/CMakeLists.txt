@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 2.4.7)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
 set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
@@ -95,6 +95,16 @@ set(AltaCommon_SRCS
 
 add_definitions("-O2 -g -fpic -DWall -DLINUX -DALTA_STANDALONE -DHAVE_STRERROR")
 
+IF(UNIX AND NOT WIN32 AND NOT APPLE)
+ IF(CMAKE_SIZEOF_VOID_P MATCHES "8")
+     SET(LIB_POSTFIX "64" CACHE STRING "suffix for 32/64 dir placement")
+     MARK_AS_ADVANCED(LIB_POSTFIX)
+ ENDIF(CMAKE_SIZEOF_VOID_P MATCHES "8")
+ENDIF(UNIX AND NOT WIN32 AND NOT APPLE)
+IF(NOT DEFINED LIB_POSTFIX)
+   SET(LIB_POSTFIX "")
+ENDIF(NOT DEFINED LIB_POSTFIX)
+
 ########### libapogeeAltaU ###########
 set(AltaU_SRCS
    ${CMAKE_SOURCE_DIR}/libapogee.cpp
@@ -109,7 +119,7 @@ add_library(apogeeu SHARED ${AltaU_SRCS})
 
 target_link_libraries(apogeeu ${LIBUSB_LIBRARIES})
 
-install(TARGETS apogeeu LIBRARY DESTINATION lib )
+install(TARGETS apogeeu LIBRARY DESTINATION lib${LIB_POSTFIX} )
 
  ########### libapogeeAltaE ###########
 set(AltaE_SRCS
@@ -126,6 +136,7 @@ add_library(apogeee SHARED ${AltaE_SRCS})
 
 target_link_libraries(apogeee ${LIBUSB_LIBRARIES})
 
-install(TARGETS apogeee LIBRARY DESTINATION lib )
+install(TARGETS apogeee LIBRARY DESTINATION lib${LIB_POSTFIX} )
 
 install( FILES libapogee.h DESTINATION ${INCLUDE_INSTALL_DIR}/libapogee COMPONENT Devel)
+
