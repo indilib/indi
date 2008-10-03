@@ -1,0 +1,28 @@
+Apogee CCD Library
+==================
+
+This archive contains the standalone version of the Apogee
+ALTA device drivers for Linux. In order to use this library
+you will need to provide code to allocate memory for the 
+image data, and routines to save the images to disk, and/or
+display them. A more fully featured driver package is 
+available from http://www.randomfactory.com/downloads.
+
+This package is primarily intended for developers wishing
+to add ALTA camera control options to other packages
+(e.g. Kstars/INDI), the library includes a set of 
+INDI compatible. entry points, the ApnGlue??? routines.
+
+Dependencies
+============
+
+The code requires the standard GNU gcc build tools.
+Both C and C++ compilers are needed. External
+dependencies include the libcurl package (ALTA-E
+model cameras), and libusb (ALTA-U model cameras).
+
+Installation
+============
+
+	See INSTALL
+	 

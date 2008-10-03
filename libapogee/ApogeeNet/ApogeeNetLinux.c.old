@@ -1,0 +1,157 @@
+#include <sys/types.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <netinet/in.h>
+#include "WWWLib.h"
+#include "WWWHTTP.h"
+#include "WWWInit.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
+
+int *InternetOpen( char *app, int imode, int dum1, int dum2, int dum3);
+HTChunk *InternetOpenUrl( int g_hSession, char *szUrl, int dum1, int dum2, int  iflags, int dum3 );
+int InternetReadFile(HTChunk *hService, char *lpBuffer, int dwBytesAvailable, int *dwBytesRead);
+int InternetCloseHandle( HTChunk *hService );
+
+char * cwd;
+char * absolute_uri;
+HTRequest * libwww_request;
+int    libwww_opened = 0;
+
+PRIVATE int printer (const char * fmt, va_list pArgs)
+{
+    return (vfprintf(stdout, fmt, pArgs));
+}
+
+PRIVATE int tracer (const char * fmt, va_list pArgs)
+{
+    return (vfprintf(stderr, fmt, pArgs));
+}
+
+PRIVATE int terminate_handler (HTRequest * request, HTResponse * response,
+			       void * param, int status) 
+{
+    HTChunk * chunk = (HTChunk *) HTRequest_context(request);
+
+    /* Check for status */
+    HTPrint("Load resulted in status %d\n", status);
+
+#if 0
+    if (status == HT_LOADED && chunk && HTChunk_data(chunk))
+	HTPrint("%s", HTChunk_data(chunk));
+#endif
+
+    /* Remember to delete our chunk of data */
+    if (chunk) HTChunk_delete(chunk);
+	
+    /* We are done with this request */
+    HTRequest_delete(request);
+
+   
+	/* Terminate libwww */
+	HTProfile_delete();
+
+
+    return HT_OK;
+}
+
+
+
+int *InternetOpen( char *app, int imode, int dum1, int dum2, int dum3) 
+{
+   if (libwww_opened == 0) {
+
+    /* Set up the application's event loop. We use the 
+       example event loop that comes with the Library.  */
+    HTEventInit();
+
+    /* Initialize libwww core */
+    HTLibInit(app, "1.0");
+
+    /* Turn on TRACE so we can see what is going on */
+    HTSetTraceMessageMask("sop");
+
+    /* Register the default set of messages and dialog functions */
+    HTAlertInit(); 
+
+    HTProfile_newPreemptiveClient("ApogeeNET", "1.0");
+
+    /* Need our own trace and print functions */
+    HTPrint_setCallback(printer);
+    HTTrace_setCallback(tracer);
+
+    /* Add our own filter to handle termination */
+/*    HTNet_addAfter(terminate_handler, NULL, NULL, HT_ALL, HT_FILTER_LAST); */
+
+  }
+  return 1;
+
+}
+
+HTChunk * InternetOpenUrl( int g_hSession, char *szUrl, int dum1, int dum2, int  iflags, int dum3 )
+{
+    char *string;
+
+    HTRequest * request = NULL;
+    HTChunk * chunk = NULL;
+    int arg = 0;
+    
+    HTProfile_newPreemptiveClient("ApogeeNET", "1.0");
+    
+
+    HTAlert_setInteractive(NO);
+
+    cwd = HTGetCurrentDirectoryURL();
+    absolute_uri = HTParse(szUrl, cwd, PARSE_ALL);
+    libwww_request = HTRequest_new();
+
+     /* Set up the request and pass it to the Library */
+    HTRequest_setOutputFormat(libwww_request, WWW_SOURCE);
+
+    chunk = HTLoadToChunk(absolute_uri, libwww_request);
+    HTEventList_loop (libwww_request);
+
+    /* get the data */
+    string = HTChunk_data(chunk);
+    return chunk;
+
+
+}
+
+int InternetReadFile( HTChunk * chunk, char *lpBuffer, int dwBytesAvailable, int *dwBytesRead) 
+{
+     lpBuffer = HTChunk_toCString(chunk);
+     dwBytesAvailable = strlen(lpBuffer);
+     dwBytesRead = strlen(lpBuffer);
+}
+
+
+
+
+
+
+
+int InternetCloseHandle( HTChunk * chunk) 
+{
+
+   HTChunk_delete(chunk);
+   HTRequest_delete(libwww_request);
+   HT_FREE(absolute_uri);
+   HT_FREE(cwd);
+   return 0;
+}
+
+
+#ifdef __cplusplus
+}
+#endif
+
+
+
+
+
+
