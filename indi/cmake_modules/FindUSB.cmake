@@ -39,15 +39,15 @@ else (LIBUSB_INCLUDE_DIR AND LIBUSB_LIBRARIES)
 
 
   if (LIBUSB_FOUND)
-    if (NOT LIBUSB_FIND_QUIETLY)
+    if (NOT USB_FIND_QUIETLY)
       message(STATUS "Found LIBUSB: ${LIBUSB_LIBRARIES}")
-    endif (NOT LIBUSB_FIND_QUIETLY)
+    endif (NOT USB_FIND_QUIETLY)
   else (LIBUSB_FOUND)
-    if (LIBUSB_FIND_REQUIRED)
-      message(FATAL_ERROR "LIBUSB not found.")
-    endif (LIBUSB_FIND_REQUIRED)
+    if (USB_FIND_REQUIRED)
+      message(FATAL_ERROR "LIBUSB not found. Please install libusb-devel and try again.")
+    endif (USB_FIND_REQUIRED)
   endif (LIBUSB_FOUND)
-
-  mark_as_advanced(LIBUSB_INCLUDE_DIR LIBUSB_LIBRARIES)
+   
+mark_as_advanced(LIBUSB_INCLUDE_DIR LIBUSB_LIBRARIES)
 
 endif (LIBUSB_INCLUDE_DIR AND LIBUSB_LIBRARIES)
