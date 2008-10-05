@@ -117,6 +117,8 @@ set(AltaU_SRCS
    
 add_library(apogeeu SHARED ${AltaU_SRCS})
 
+set_target_properties(apogeeu PROPERTIES VERSION 1.9 SOVERSION 1)
+
 target_link_libraries(apogeeu ${LIBUSB_LIBRARIES})
 
 install(TARGETS apogeeu LIBRARY DESTINATION lib${LIB_POSTFIX} )
@@ -133,6 +135,8 @@ set(AltaE_SRCS
    )
    
 add_library(apogeee SHARED ${AltaE_SRCS})
+
+set_target_properties(apogeee PROPERTIES VERSION 1.9 SOVERSION 1)
 
 target_link_libraries(apogeee ${LIBUSB_LIBRARIES})
 
