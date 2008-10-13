@@ -21,7 +21,6 @@ if (CFITSIO_INCLUDE_DIR AND CFITSIO_LIBRARIES)
 else (CFITSIO_INCLUDE_DIR AND CFITSIO_LIBRARIES)
 
   find_path(CFITSIO_INCLUDE_DIR fitsio.h
-    PATH_SUFFIXES libcfitsio libcfitsio0
     ${_obIncDir}
     ${GNUWIN32_DIR}/include
   )
@@ -45,7 +44,7 @@ else (CFITSIO_INCLUDE_DIR AND CFITSIO_LIBRARIES)
     endif (NOT CFitsio_FIND_QUIETLY)
   else (CFITSIO_FOUND)
     if (CFitsio_FIND_REQUIRED)
-      message(FATAL_ERROR "CFITSIO not found. KStars will compile CFITSIO.")
+      message(FATAL_ERROR "CFITSIO not found. Please install libcfitsio0-devel. http://indi.sf.net")
     endif (CFitsio_FIND_REQUIRED)
   endif (CFITSIO_FOUND)
 
