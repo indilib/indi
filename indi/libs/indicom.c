@@ -40,6 +40,13 @@
 #include <errno.h>
 #include <stdarg.h>
 
+#include <config.h>
+
+#ifdef HAVE_NOVA_H
+#include <libnova.h>
+#endif
+
+
 #include "indicom.h"
 #ifdef _WIN32
 #undef CX
@@ -62,9 +69,10 @@ const char * SolarSystem[] = { "Mercury", "Venus", "Moon", "Mars", "Jupiter", "S
 
 void getSexComponents(double value, int *d, int *m, int *s);
 
-#ifdef HAVE_NOVA_H
+
 int extractISOTime(char *timestr, struct ln_date *iso_date)
 {
+  #ifdef HAVE_NOVA_H	
   struct tm utm;
 
   if (strptime(timestr, "%Y/%m/%dT%H:%M:%S", &utm))
@@ -78,10 +86,11 @@ int extractISOTime(char *timestr, struct ln_date *iso_date)
 	ln_get_date_from_tm(&utm, iso_date);
    	return (0);
   }
-
-   return (-1);
+  #endif
+  
+  return (-1);
 }
-#endif
+
 
 /* sprint the variable a in sexagesimal format into out[].
  * w is the number of spaces for the whole part.

@@ -43,11 +43,6 @@
 #define INDICOM_H
 
 #include <time.h>
-#include <config.h>
-
-#ifdef HAVE_NOVA_H
-#include <libnova.h>
-#endif
 
 #define J2000 2451545.0
 #define ERRMSG_SIZE 1024
@@ -56,6 +51,8 @@
 
 extern const char * Direction[];
 extern const char * SolarSystem[];
+
+struct ln_date;
 
 /* TTY Error Codes */
 enum TTY_ERROR { TTY_OK=0, TTY_READ_ERROR=-1, TTY_WRITE_ERROR=-2, TTY_SELECT_ERROR=-3, TTY_TIME_OUT=-4, TTY_PORT_FAILURE=-5, TTY_PARAM_ERROR=-6, TTY_ERRNO = -7};
@@ -172,14 +169,12 @@ int fs_sexa (char *out, double a, int w, int fracbase);
  */
 int f_scansexa (const char *str0, double *dp);
 
-#ifdef HAVE_NOVA_H
 /** \brief Extract ISO 8601 time and store it in a tm struct.
     \param timestr a string containing date and time in ISO 8601 format.
     \param iso_date a pointer to a \e ln_date structure to store the extracted time and date (libnova).
     \return 0 on success, -1 on failure.
 */
 int extractISOTime(char *timestr, struct ln_date *iso_date);
-#endif
 
 void getSexComponents(double value, int *d, int *m, int *s);
 

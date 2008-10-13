@@ -33,6 +33,10 @@
 /* Config parameters */
 #include <config.h>
 
+#ifdef HAVE_NOVA_H
+#include <libnova.h>
+#endif
+    
 #ifndef _WIN32
 #include <termios.h>
 #endif
