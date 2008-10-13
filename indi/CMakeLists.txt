@@ -24,18 +24,19 @@ include (MacroBoolTo01)
 include (CheckIncludeFiles)
 
 macro_optional_find_package(USB)
-macro_log_feature(LIBUSB_FOUND "libusb" "User level access to USB devices" "http://libusb.sourceforge.net/" FALSE "" "Provides KStars INDI support.")
+macro_log_feature(LIBUSB_FOUND "libusb" "User level access to USB devices" "http://indi.sf.net" FALSE "" "Provides support for USB based drivers in INDI.")
 
 macro_optional_find_package(CFitsio)
 macro_bool_to_01(CFITSIO_FOUND HAVE_CFITSIO_H)
-macro_log_feature(CFITSIO_FOUND "libcfitsio" "A library for reading and writing data files in FITS (Flexible Image Transport System) data format" "http://heasarc.gsfc.nasa.gov/docs/software/fitsio/fitsio.html" FALSE "3.03" "Gives KStars support for FITS images.")
+macro_log_feature(CFITSIO_FOUND "libcfitsio" "A library for reading and writing data files in FITS (Flexible Image Transport System) data format" "http://indi.sf.net" FALSE "3.03" "Provides INDI with FITS I/O support.")
+
 
 macro_optional_find_package(FLI)
-macro_log_feature(FLI_FOUND "libfli" "Finger Lakes Instrument Library" "http://indi.sourceforge.net/" FALSE "1.71" "Gives KStars support for controlling FLI CCDS & Filter Wheels.")
+macro_log_feature(FLI_FOUND "libfli" "Finger Lakes Instrument Library" "http://indi.sourceforge.net/" FALSE "1.71" "Provides INDI with support for controlling FLI CCDS & Filter Wheels.")
 
 macro_optional_find_package(Nova)
 macro_bool_to_01(NOVA_FOUND HAVE_NOVA_H)
-macro_log_feature(NOVA_FOUND "libnova" "A general purpose, double precision, Celestial Mechanics, Astrometry and Astrodynamics library" "http://libnova.sourceforge.net" FALSE "0.12.1" "Needed by KStars.")
+macro_log_feature(NOVA_FOUND "libnova" "A general purpose, double precision, Celestial Mechanics, Astrometry and Astrodynamics library" "http://indi.sf.net" FALSE "0.12.1" "Provides INDI with astrodynamics library.")
 
 check_include_files(linux/videodev2.h HAVE_LINUX_VIDEODEV2_H)
 check_include_files(termios.h TERMIOS_FOUND)
