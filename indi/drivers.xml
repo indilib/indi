@@ -1,15 +1,3 @@
-<ScopeDrivers>
-	<driver>indi_lx200basic</driver>
-	<driver>indi_lx200autostar</driver>
-	<driver>indi_lx200classic</driver>
-	<driver>indi_lx200gps</driver>
-	<driver>indi_lx200_16</driver>
-	<driver>indi_celestron_gps</driver>
-	<driver>indi_temma</driver>
-	<driver>indi_skycommander</driver>
-	<driver>indi_intelliscope</driver>
-	<driver>indi_orion_atlas</driver>
-</ScopeDrivers>
 <devGroup group="Telescopes">
 	<device label="LX200 Basic" focal_length="" aperture="">
 		<driver>indi_lx200basic</driver>
