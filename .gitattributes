@@ -146,6 +146,14 @@ indi_sbig/cmake_modules/MacroBoolTo01.cmake -text
 indi_sbig/cmake_modules/MacroLogFeature.cmake -text
 indi_sbig/cmake_modules/MacroOptionalFindPackage.cmake -text
 indi_sbig/config.h.cmake -text
+indi_sbig/debian/changelog -text
+indi_sbig/debian/compat -text
+indi_sbig/debian/control -text
+indi_sbig/debian/copyright -text
+indi_sbig/debian/postinst.ex -text
+indi_sbig/debian/postrm.ex -text
+indi_sbig/debian/rules -text
+indi_sbig/indi_sbig.xml -text
 indi_sbig/sbigcam.cpp -text
 indi_sbig/sbigcam.h -text
 indi_sbig/sbigudrv.h -text

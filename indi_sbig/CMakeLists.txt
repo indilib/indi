@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 2.6)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
+set(DATA_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/share/indi/")
 set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
 
 Include (CheckCXXSourceCompiles)
@@ -44,4 +45,4 @@ endif (NOVA_FOUND)
 
 install(TARGETS indi_sbig_ccd RUNTIME DESTINATION bin )
 
- 
+install(FILES indi_sbig.xml DESTINATION ${DATA_INSTALL_DIR})

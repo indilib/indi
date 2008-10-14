@@ -10,11 +10,13 @@
 # Redistribution and use is allowed according to the terms of the BSD license.
 # For details see the accompanying COPYING-CMAKE-SCRIPTS file.
 
+
 if (SBIG_LIBRARIES)
 
   # in cache already
   set(SBIG_FOUND TRUE)
- message(STATUS "Found SBIG: ${SBIG_LIBRARIES}")
+  message(STATUS "Found SBIG: ${SBIG_LIBRARIES}")
+
 
 else (SBIG_LIBRARIES)
 
@@ -24,9 +26,23 @@ else (SBIG_LIBRARIES)
     ${GNUWIN32_DIR}/lib
   )
 
-  include(FindPackageHandleStandardArgs)
-  FIND_PACKAGE_HANDLE_STANDARD_ARGS(SBIG DEFAULT_MSG SBIG_LIBRARIES )
+  if(SBIG_LIBRARIES)
+    set(SBIG_FOUND TRUE)
+  else (SBIG_LIBRARIES)
+    set(SBIG_FOUND FALSE)
+  endif(SBIG_LIBRARIES)
+
+
+  if (SBIG_FOUND)
+    if (NOT SBIG_FIND_QUIETLY)
+      message(STATUS "Found SBIG: ${SBIG_LIBRARIES}")
+    endif (NOT SBIG_FIND_QUIETLY)
+  else (SBIG_FOUND)
+    if (SBIG_FIND_REQUIRED)
+      message(FATAL_ERROR "SBIG not found. Please install SBIG >= v2.0.0 and try again.")
+    endif (SBIG_FIND_REQUIRED)
+  endif (SBIG_FOUND)
    
-  mark_as_advanced(SBIG_LIBRARIES)
+mark_as_advanced(SBIG_LIBRARIES)
 
 endif (SBIG_LIBRARIES)
