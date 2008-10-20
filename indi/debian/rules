@@ -4,28 +4,53 @@ clean::
 	dh_clean
 	rm -rf debian/tmp 
 
-d:=debian/indi
+d:=debian/tmp
 version:=0.6
+DEB_HOST_ARCH=$(shell /usr/bin/dpkg-architecture -qDEB_HOST_ARCH)
 
-install: 
+build: 
 	mkdir -p $(d)
-	cmake -DCMAKE_INSTALL_PREFIX=$(d) .
-	make install
 
-binary-indep: install
+	# binary package
+	if [ "$(DEB_HOST_ARCH)" = "i386" ]; then \
+		echo 'usr/lib/lib*.a' >> debian/indi.install; \
+	else \
+		echo 'usr/lib64/lib*.a' >> debian/indi.install; \
+	fi
+
+	cmake -DCMAKE_INSTALL_PREFIX=$(d)/usr .
+
+install: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k 
+	dh_installdirs
+	make install
+	ln -sf /usr/bin/indi_lx200generic $(d)/usr/bin/indi_lx200classic
+	ln -sf /usr/bin/indi_lx200generic $(d)/usr/bin/indi_lx200autostar
+	ln -sf /usr/bin/indi_lx200generic $(d)/usr/bin/indi_lx200_16
+	ln -sf /usr/bin/indi_lx200generic $(d)/usr/bin/indi_lx200gps
+	ln -sf /usr/bin/indi_lx200generic $(d)/usr/bin/indi_lx200ap
+
+binary-indep:
+	# nothing to do
+
+binary-arch: build install
 	dh_testdir
 	dh_testroot
 	dh_installdocs
 	dh_installchangelogs
+	dh_install -s --sourcedir=debian/tmp
+	dh_link -s
 	dh_compress
 	dh_fixperms
 	dh_installdeb
 	dh_gencontrol
-	dh_md5sums
-	dh_builddeb
-
-binary-arch:
-	# nothing to do
+	dh_installdeb -s
+	dh_shlibdeps -s
+	dh_gencontrol -s
+	dh_md5sums -s
+	dh_builddeb -s
 
 binary: binary-indep binary-arch
 .PHONY: build clean binary-indep binary-arch binary

@@ -16,7 +16,7 @@ indi/README.stv -text
 indi/TODO -text
 indi/base64.c -text
 indi/base64.h -text
-indi/cmake_modules/FindCFitsio.cmake -text
+indi/cmake_modules/FindCFITSIO.cmake -text
 indi/cmake_modules/FindFLI.cmake -text
 indi/cmake_modules/FindNova.cmake -text
 indi/cmake_modules/FindUSB.cmake -text
@@ -28,6 +28,11 @@ indi/debian/changelog -text
 indi/debian/compat -text
 indi/debian/control -text
 indi/debian/copyright -text
+indi/debian/indi-dev.dirs -text
+indi/debian/indi-dev.install -text
+indi/debian/indi.dirs -text
+indi/debian/indi.install -text
+indi/debian/indi.links -text
 indi/debian/postinst.ex -text
 indi/debian/postrm.ex -text
 indi/debian/rules -text

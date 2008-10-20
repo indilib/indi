@@ -23,10 +23,12 @@ include (MacroLogFeature)
 include (MacroBoolTo01)
 include (CheckIncludeFiles)
 
+find_package(ZLIB REQUIRED)
+
 macro_optional_find_package(USB)
 macro_log_feature(LIBUSB_FOUND "libusb" "User level access to USB devices" "http://indi.sf.net" FALSE "" "Provides support for USB based drivers in INDI.")
 
-macro_optional_find_package(CFitsio)
+macro_optional_find_package(CFITSIO)
 macro_bool_to_01(CFITSIO_FOUND HAVE_CFITSIO_H)
 macro_log_feature(CFITSIO_FOUND "libcfitsio" "A library for reading and writing data files in FITS (Flexible Image Transport System) data format" "http://indi.sf.net" FALSE "3.03" "Provides INDI with FITS I/O support.")
 
@@ -114,8 +116,6 @@ set(lx200basic_SRCS
    ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200basic.cpp )
 
 add_executable(indi_lx200basic ${lx200basic_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
-
-#target_link_libraries(indi_lx200basic  ${KDE4_KDECORE_LIBS})
 
 if (NOVA_FOUND)
   target_link_libraries(indi_lx200basic ${NOVA_LIBRARIES})
