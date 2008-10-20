@@ -12,5 +12,5 @@ Description: Finger Lakes Instrument library is used by applications to control 
 
 Package: libfli1-dev
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: libfli1, ${shlibs:Depends}, ${misc:Depends}
 Description: This contains development headers for the Finger Lakes Instruments library.

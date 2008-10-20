@@ -388,8 +388,6 @@ libfli/debian/changelog -text
 libfli/debian/compat -text
 libfli/debian/control -text
 libfli/debian/copyright -text
-libfli/debian/libfli1-dev.install -text
-libfli/debian/libfli1.install -text
 libfli/debian/postinst.ex -text
 libfli/debian/postrm.ex -text
 libfli/debian/rules -text
