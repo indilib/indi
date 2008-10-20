@@ -1,0 +1,6 @@
+usr/include/libcfitsio3/drvrsmem.h
+usr/include/libcfitsio3/fitsio2.h
+usr/include/libcfitsio3/longnam.h
+usr/include/libcfitsio3/fitsio.h
+usr/lib/libcfitsio.a
+usr/lib/pkgconfig/cfitsio.pc
