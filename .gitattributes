@@ -368,8 +368,6 @@ libapogee/debian/changelog -text
 libapogee/debian/compat -text
 libapogee/debian/control -text
 libapogee/debian/copyright -text
-libapogee/debian/libapogee1-dev.install -text
-libapogee/debian/libapogee1.install -text
 libapogee/debian/postinst.ex -text
 libapogee/debian/postrm.ex -text
 libapogee/debian/rules -text
