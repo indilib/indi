@@ -4,12 +4,12 @@ clean::
 	dh_clean
 	rm -rf debian/tmp 
 
-d:=debian/indi_sbig
+d:=debian/tmp
 version:=1.0
 
 install: 
 	mkdir -p $(d)
-	cmake -DCMAKE_INSTALL_PREFIX=$(d) .
+	cmake -DCMAKE_INSTALL_PREFIX=$(d)/usr .
 	make install
 
 binary-indep: install

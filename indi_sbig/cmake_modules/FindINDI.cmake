@@ -26,7 +26,7 @@ else (INDI_INCLUDE_DIR AND INDI_LIBRARIES)
     ${GNUWIN32_DIR}/include
   )
 
-  find_library(INDI_LIBRARIES NAMES libindi.a
+  find_library(INDI_LIBRARIES NAMES indi
     PATHS
     ${_obLinkDir}
     ${GNUWIN32_DIR}/lib
@@ -45,7 +45,7 @@ else (INDI_INCLUDE_DIR AND INDI_LIBRARIES)
     endif (NOT INDI_FIND_QUIETLY)
   else (INDI_FOUND)
     if (INDI_FIND_REQUIRED)
-      message(FATAL_ERROR "INDI not found. Cannot compile SBIG CCD Driver.")
+      message(FATAL_ERROR "indi-devel not found. Cannot compile SBIG CCD Driver. Please install indi-devel and try again. http://indi.sf.net")
     endif (INDI_FIND_REQUIRED)
   endif (INDI_FOUND)
 

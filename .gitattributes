@@ -142,7 +142,7 @@ indi_sbig/COPYING.LIB -text
 indi_sbig/ChangeLog -text
 indi_sbig/INSTALL -text
 indi_sbig/README -text
-indi_sbig/cmake_modules/FindCFitsio.cmake -text
+indi_sbig/cmake_modules/FindCFITSIO.cmake -text
 indi_sbig/cmake_modules/FindINDI.cmake -text
 indi_sbig/cmake_modules/FindNova.cmake -text
 indi_sbig/cmake_modules/FindSBIG.cmake -text

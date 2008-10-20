@@ -1,11 +1,11 @@
-Source: indi_sbig
+Source: indi-sbig
 Section: Development/Libraries
 Priority: extra
 Maintainer: Jasem Mutlaq <mutlaqja@ikarustech.com>
-Build-Depends: debhelper (>= 5), indi, libcfitsio0-devel
+Build-Depends: debhelper (>= 5), indi-dev, libcfitsio0-dev
 Standards-Version: 3.7.2
 
-Package: indi_sbig
+Package: indi-sbig
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: INDI SBIG CCD Driver. This driver is compatible with any INDI client such as KStars or Xephem.

@@ -36,8 +36,22 @@ else (NOVA_INCLUDE_DIR AND NOVA_LIBRARIES)
  check_cxx_source_compiles("#include <libnova.h> 
  int main() { ln_get_date_from_tm(NULL, NULL); return 0; }" NOVA_FUNCTION_COMPILE)
 
- include(FindPackageHandleStandardArgs)
- FIND_PACKAGE_HANDLE_STANDARD_ARGS(Nova DEFAULT_MSG NOVA_LIBRARIES NOVA_INCLUDE_DIR NOVA_FUNCTION_COMPILE)
- mark_as_advanced(NOVA_INCLUDE_DIR NOVA_LIBRARIES)
+   if(NOVA_INCLUDE_DIR AND NOVA_LIBRARIES AND NOVA_FUNCTION_COMPILE)
+    set(NOVA_FOUND TRUE)
+  else (NOVA_INCLUDE_DIR AND NOVA_LIBRARIES AND NOVA_FUNCTION_COMPILE)
+    set(NOVA_FOUND FALSE)
+  endif(NOVA_INCLUDE_DIR AND NOVA_LIBRARIES AND NOVA_FUNCTION_COMPILE)
 
+  if (NOVA_FOUND)
+    if (NOT Nova_FIND_QUIETLY)
+      message(STATUS "Found NOVA: ${NOVA_LIBRARIES}")
+    endif (NOT Nova_FIND_QUIETLY)
+  else (NOVA_FOUND)
+    if (Nova_FIND_REQUIRED)
+      message(FATAL_ERROR "libnova not found. Please install libnova0-devel. http://indi.sf.net")
+    endif (Nova_FIND_REQUIRED)
+  endif (NOVA_FOUND)
+
+  mark_as_advanced(NOVA_INCLUDE_DIR NOVA_LIBRARIES)
+  
 endif (NOVA_INCLUDE_DIR AND NOVA_LIBRARIES AND NOVA_FUNCTION_COMPILE)
