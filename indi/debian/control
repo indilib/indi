@@ -1,16 +1,16 @@
-Source: indi
+Source: libindi
 Section: Development/Libraries
 Priority: extra
 Maintainer: Jasem Mutlaq <mutlaqja@ikarustech.com>
 Build-Depends: debhelper (>= 5)
 Standards-Version: 3.7.2
 
-Package: indi
+Package: libindi0
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: INDI is an Instrument Neutral Distributed Interface control protocol for astronomical devices, which provides a framework that decouples low level hardware drivers from high level front end clients. Clients that use the device drivers are completely unaware of the device capabilities and communicate with the device drivers and build a completely dynamic GUI based on the services provided by the device.
 
-Package: indi-dev
+Package: libindi0-dev
 Architecture: any
 Depends: indi, ${shlibs:Depends}, ${misc:Depends}
 Description: Development headers for INDI Library

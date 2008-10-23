@@ -28,11 +28,11 @@ indi/debian/changelog -text
 indi/debian/compat -text
 indi/debian/control -text
 indi/debian/copyright -text
-indi/debian/indi-dev.dirs -text
-indi/debian/indi-dev.install -text
-indi/debian/indi.dirs -text
-indi/debian/indi.install -text
-indi/debian/indi.links -text
+indi/debian/libindi0-dev.dirs -text
+indi/debian/libindi0-dev.install -text
+indi/debian/libindi0.dirs -text
+indi/debian/libindi0.install -text
+indi/debian/libindi0.links -text
 indi/debian/postinst.ex -text
 indi/debian/postrm.ex -text
 indi/debian/rules -text

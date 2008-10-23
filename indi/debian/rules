@@ -13,9 +13,9 @@ build:
 
 	# binary package
 	if [ "$(DEB_HOST_ARCH)" = "i386" ]; then \
-		echo 'usr/lib/lib*.a' >> debian/indi.install; \
+		echo 'usr/lib/lib*' >> debian/indi.install; \
 	else \
-		echo 'usr/lib64/lib*.a' >> debian/indi.install; \
+		echo 'usr/lib64/lib*' >> debian/indi.install; \
 	fi
 
 	cmake -DCMAKE_INSTALL_PREFIX=$(d)/usr .
@@ -44,6 +44,7 @@ binary-arch: build install
 	dh_link -s
 	dh_compress
 	dh_fixperms
+	dh_makeshlibs
 	dh_installdeb
 	dh_gencontrol
 	dh_installdeb -s
