@@ -1,0 +1,60 @@
+# Name:      99-sbig.rules 
+# Version:   1.7
+# Author:    Jan Soldan (JS) jsoldan AT asu DOT cas DOT cz
+# Author:    Roland B. Roberts (RR) roland AT astrofoto DOT org
+# Author:    Jasem Mutlaq (JM) mutlaqja AT ikarustech DOT com
+
+# Description: This script defines the udev rules for SBIG USB CCD cameras.
+
+# History:
+
+# 2008-10-13: Updating script for SUSE 11. Forcing permission change since MODE="0XXX" has no effect.
+# 2007-12-20: Tested on SUSE 10.3 & Kubuntu 7.10, works okay (JM).
+# 2007-11-04: revison.
+# 2007-08-01: tested with KUbuntu 7.04, works fine.
+#
+# 2007-05-10: pure udev only, tested on Suse 10.2 & 10.1.
+#
+# 2006-08-23: Simplified according to Roland B. Roberts recommendation and
+#             talk to Matt Longmire (stfga.bin gate array for ST-402 family 
+#             cameras).
+#
+#
+#             File locations for all distributions of Linux kernels 2.6:
+#             ============================================================
+#             1) /usr/lib/libsbigudrv.so
+#             2) All *.hex & *.bin files in: /lib/firmware 
+#             3) Attention:
+#                ----------
+#                JS still needs the following line inside the /etc/fstab 
+#                for Suse 10.1 & 10.2:
+#                usbfs /proc/bus/usb/ usbfs defaults 0 0
+#
+#             Note for ST-402 family cameras - SBIG ST-402/1603/3200 cameras:
+#             ============================================================
+#	      We have moved the stfga.bin file to the recommended /dev/firmware 
+#             directory. If not there, the ST-402 family cams. will not work 
+#             properly. There may be a lot of RX_TIMEOUT errors during the readout 
+#             of the CCD chip! You have to hear sound of several shutter clicks 
+#             when you establish link to the camera for the _first_ time. 
+#             If not, the stfga.bin gate array was not uploaded!
+#
+# 2006-08-20: The version 1.0 released.
+#
+#=================================
+# SUSE 11/Others
+#=================================
+# SBIG ST-7/8/9/10/2K cameras
+SUBSYSTEM=="usb", ACTION=="add", SYSFS{idVendor}=="0d97", SYSFS{idProduct}=="0001" , ENV{DEVTYPE}="usb_device", \
+RUN+="/sbin/fxload -I /lib/firmware/sbigucam.hex -D $env{DEVNAME}"
+RUN+="/bin/chmod 0666 $env{DEVNAME}"
+
+# SBIG ST-L cameras
+SUBSYSTEM=="usb", ACTION=="add", SYSFS{idVendor}=="0d97", SYSFS{idProduct}=="0002" , ENV{DEVTYPE}="usb_device", \
+RUN+="/sbin/fxload -I /lib/firmware/sbiglcam.hex -D $env{DEVNAME}"
+RUN+="/bin/chmod 0666 $env{DEVNAME}"
+
+# SBIG ST-402/1603/3200 cameras
+SUBSYSTEM=="usb", ACTION=="add", SYSFS{idVendor}=="0d97", SYSFS{idProduct}=="0003" , ENV{DEVTYPE}="usb_device", \
+RUN+="/sbin/fxload -I /lib/firmware/sbigfcam.hex -D $env{DEVNAME}"
+RUN+="/bin/chmod 0666 $env{DEVNAME}"

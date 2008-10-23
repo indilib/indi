@@ -699,6 +699,7 @@ libnova/utility.c -text
 libnova/venus.c -text
 libnova/vsop87.c -text
 sbig/10-sbig.rules -text
+sbig/99-sbig.rules -text
 sbig/INSTALLED_FILES -text
 sbig/debian/changelog -text
 sbig/debian/compat -text
@@ -707,6 +708,8 @@ sbig/debian/copyright -text
 sbig/debian/postinst.ex -text
 sbig/debian/postrm.ex -text
 sbig/debian/rules -text
+sbig/debian/sbig.dirs -text
+sbig/debian/sbig.install -text
 sbig/sbig_install_drivers.py -text
 sbig/sbig_load.sh -text
 sbig/sbig_perm.sh -text

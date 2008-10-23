@@ -70,9 +70,9 @@ os.popen("echo " + arch_dir + major_minor_lib + " >> INSTALLED_FILES")
 os.popen("echo " + arch_dir + so_lib + " >> INSTALLED_FILES")
 os.popen("echo " + arch_dir + major_lib + " >> INSTALLED_FILES")
 
-# 2. Copy 10-sbig.rules file to the /etc/udev/rules.d directory:
+# 2. Copy 99-sbig.rules file to the /etc/udev/rules.d directory:
 dirName  = build_dir + "/etc/udev/rules.d/"
-fileName = "10-sbig.rules"
+fileName = "99-sbig.rules"
 shutil.copyfile(fileName, dirName + fileName)
 
 # 3. Copy *.hex, *.bin and sbig_dev_permission.py files to the /lib/firmware directory.
@@ -94,12 +94,6 @@ fileName = "sbigucam.hex"
 shutil.copyfile(fileName, dirName + fileName)
 fileName = "stfga.bin"
 shutil.copyfile(fileName, dirName + fileName)
-fileName = "sbig_load.sh"
-shutil.copyfile(fileName, dirName + fileName)
-shutil.copymode(fileName, dirName + fileName)
-fileName = "sbig_perm.sh"
-shutil.copyfile(fileName, dirName + fileName)
-shutil.copymode(fileName, dirName + fileName)
 
-print "SBIG linux universal driver installation OK."		
+print "SBIG Linux universal driver installation OK."		
 #====================================================================
