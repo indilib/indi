@@ -60,6 +60,7 @@ binary-arch: build install
 	dh_fixperms
 	dh_installdeb
 	dh_gencontrol
+	dh_makeshlibs
 	dh_installdeb -s
 	dh_shlibdeps -s
 	dh_gencontrol -s
