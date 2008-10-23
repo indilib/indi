@@ -1,0 +1,11 @@
+Source: indi-apogee
+Section: Development/Libraries
+Priority: extra
+Maintainer: Jasem Mutlaq <mutlaqja@ikarustech.com>
+Build-Depends: debhelper (>= 5)
+Standards-Version: 3.7.2
+
+Package: indi-apogee
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: INDI Apogee Ulta CCD Driver. This driver is compatible with any INDI client such as KStars or Xephem.

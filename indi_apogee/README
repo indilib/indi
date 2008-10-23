@@ -29,11 +29,11 @@ Installation
 How to Use
 ==========
 
-	You can use the Apogee INDI Driver in any INDI-compatible client such as KStars or Xephem. 
+	You can use the Apogee Ulta INDI Driver in any INDI-compatible client such as KStars or Xephem. 
 	
 	To run the driver from the command line:
 	
-	$ indiserver indi_apogee_ccd
+	$ indiserver indi_apogeeu_ccd
 	
 	You can then connect to the driver from any client, the default port is 7624.
 	If you're using KStars, the driver will be automatically listed in KStars' Device Manager,
