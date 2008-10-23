@@ -6,30 +6,9 @@ clean::
 
 d:=debian/tmp
 version:=1.7
-DEB_HOST_ARCH=$(shell /usr/bin/dpkg-architecture -qDEB_HOST_ARCH)
 
 build:
 	mkdir -p $(d)
-
-	# Header files
-	echo 'usr/include/*.h' > debian/libfli1-dev.install; \
-
-	# binary package
-	if [ "$(DEB_HOST_ARCH)" = "i386" ]; then \
-		echo 'usr/lib' > debian/libfli1.dirs; \
-		echo 'usr/lib/libfli.so.1.7' > debian/libfli1.install; \
-		echo 'usr/lib/libfli.so.1.7 usr/lib/libfli.so.1' > debian/libfli1.links; \
-		echo 'usr/lib/libfli.so.1 usr/lib/libfli.so' > debian/libfli1-dev.links; \
-		echo 'usr/lib' >> debian/libfli1-dev.dirs; \
-	 else \
-		echo 'usr/lib64' > debian/libfli1.dirs; \
-		echo 'usr/lib64/libfli.so.1.7' >> debian/libfli1.install; \
-		echo 'usr/lib64/libfli.so.1.7 usr/lib64/libfli.so.1' > debian/libfli1.links; \
-		echo 'usr/lib64/libfli.so.1 usr/lib64/libfli.so' > debian/libfli1-dev.links; \
-		echo 'usr/include/libfli1' > debian/libfli1-dev.dirs; \
-		echo 'usr/lib64' >> debian/libfli1-dev.dirs; \
-	fi
-
 	cmake -DCMAKE_INSTALL_PREFIX=$(d)/usr .
 
 install: build
