@@ -1,0 +1,12 @@
+LIBNOVA INSTALL
+===============
+
+You must have CMake >= 2.6 in order to build this package.
+
+1) $ tar -xzf libnova.tar.gz
+2) $ mkdir libnova_build
+3) $ cd libnova_build
+4) $ cmake -DCMAKE_INSTALL_PREFIX=/usr . ../libnova
+5) $ su -c 'make install' or sudo make install
+   
+That's it!

@@ -1,0 +1,16 @@
+Source: libnova0
+Section: Development/Libraries
+Priority: extra
+Maintainer: Jasem Mutlaq <mutlaqja@ikarustech.com>
+Build-Depends: debhelper (>= 5)
+Standards-Version: 3.7.2
+
+Package: libnova0
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: libnova is a general purpose, double precision, Celestial Mechanics, Astrometry and Astrodynamics library. The intended audience of libnova is C / C++ programmers, astronomers and anyone else interested in calculating positions of astronomical objects or celestial mechanics.
+
+Package: libnova0-dev
+Architecture: any
+Depends: libnova0, ${shlibs:Depends}, ${misc:Depends}
+Description: libnova is a general purpose, double precision, Celestial Mechanics, Astrometry and Astrodynamics library. The intended audience of libnova is C / C++ programmers, astronomers and anyone else interested in calculating positions of astronomical objects or celestial mechanics. This package includes development headers for libnova library
