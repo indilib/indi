@@ -356,10 +356,6 @@ libapogee/INSTALL -text
 libapogee/LICENSE -text
 libapogee/README -text
 libapogee/apogee-test.h -text
-libapogee/cmake_modules/FindAPOGEE.cmake -text
-libapogee/cmake_modules/FindCFitsio.cmake -text
-libapogee/cmake_modules/FindINDI.cmake -text
-libapogee/cmake_modules/FindNova.cmake -text
 libapogee/cmake_modules/FindUSB.cmake -text
 libapogee/cmake_modules/MacroBoolTo01.cmake -text
 libapogee/cmake_modules/MacroLogFeature.cmake -text
