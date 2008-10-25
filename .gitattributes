@@ -627,11 +627,6 @@ libnova/airmass.c -text
 libnova/angular_separation.c -text
 libnova/apparent_position.c -text
 libnova/asteroid.c -text
-libnova/cmake_modules/FindAPOGEE.cmake -text
-libnova/cmake_modules/FindCFitsio.cmake -text
-libnova/cmake_modules/FindINDI.cmake -text
-libnova/cmake_modules/FindNova.cmake -text
-libnova/cmake_modules/FindUSB.cmake -text
 libnova/cmake_modules/MacroBoolTo01.cmake -text
 libnova/cmake_modules/MacroLogFeature.cmake -text
 libnova/cmake_modules/MacroOptionalFindPackage.cmake -text
