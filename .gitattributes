@@ -30,6 +30,7 @@ indi/debian/control -text
 indi/debian/copyright -text
 indi/debian/libindi0-dev.dirs -text
 indi/debian/libindi0-dev.install -text
+indi/debian/libindi0-dev.links -text
 indi/debian/libindi0.dirs -text
 indi/debian/libindi0.install -text
 indi/debian/libindi0.links -text

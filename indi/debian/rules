@@ -10,14 +10,6 @@ DEB_HOST_ARCH=$(shell /usr/bin/dpkg-architecture -qDEB_HOST_ARCH)
 
 build: 
 	mkdir -p $(d)
-
-	# binary package
-	if [ "$(DEB_HOST_ARCH)" = "i386" ]; then \
-		echo 'usr/lib/lib*' >> debian/indi.install; \
-	else \
-		echo 'usr/lib64/lib*' >> debian/indi.install; \
-	fi
-
 	cmake -DCMAKE_INSTALL_PREFIX=$(d)/usr .
 
 install: build

@@ -12,5 +12,5 @@ Description: INDI is an Instrument Neutral Distributed Interface control protoco
 
 Package: libindi0-dev
 Architecture: any
-Depends: indi, ${shlibs:Depends}, ${misc:Depends}
+Depends: libindi0, ${shlibs:Depends}, ${misc:Depends}
 Description: Development headers for INDI Library

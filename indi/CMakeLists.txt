@@ -1,21 +1,14 @@
 cmake_minimum_required(VERSION 2.4.7)
 
+set(INDI_VERSION "0.6")
+set(INDI_SOVERSION "0")
+
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
 set(DATA_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/share/indi/")
 set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
 set(INCLUDE_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/include")
 
 MESSAGE( STATUS "BIN_INSTALL_DIR: " ${BIN_INSTALL_DIR} )
-
-IF(UNIX AND NOT WIN32 AND NOT APPLE)
- IF(CMAKE_SIZEOF_VOID_P MATCHES "8")
-     SET(LIB_POSTFIX "64" CACHE STRING "suffix for 32/64 dir placement")
-     MARK_AS_ADVANCED(LIB_POSTFIX)
- ENDIF(CMAKE_SIZEOF_VOID_P MATCHES "8")
-ENDIF(UNIX AND NOT WIN32 AND NOT APPLE)
-IF(NOT DEFINED LIB_POSTFIX)
-   SET(LIB_POSTFIX "")
-ENDIF(NOT DEFINED LIB_POSTFIX)
 
 Include (CheckCXXSourceCompiles)
 include (MacroOptionalFindPackage)
@@ -100,10 +93,29 @@ endif (NOVA_FOUND)
 install(TARGETS indiserver RUNTIME DESTINATION bin )
 
 ######################################
-########### INDI Static Library ######
+######## INDI Static Library #########
 ######################################
-add_library(indi STATIC ${indimain_SRCS} ${libindicom_SRCS} ${liblilxml_SRCS})
-install(TARGETS indi ARCHIVE DESTINATION lib${LIB_POSTFIX})
+add_library(indidriver STATIC ${indimain_SRCS})
+install(TARGETS indidriver ARCHIVE DESTINATION lib${LIB_POSTFIX})
+
+######################################
+######## INDI Shared Library #########
+######################################
+add_library(indi SHARED ${libindicom_SRCS} ${liblilxml_SRCS})
+target_link_libraries(indi m z)
+
+if (NOVA_FOUND)
+target_link_libraries(indi ${NOVA_LIBRARIES})
+endif(NOVA_FOUND)
+if (CFITSIO_FOUND)
+target_link_libraries(indi ${CFITSIO_LIBRARIES})
+endif(CFITSIO_FOUND)
+if (FLI_FOUND)
+target_link_libraries(indi ${FLI_LIBRARIES})
+endif(FLI_FOUND)
+
+install(TARGETS indi LIBRARY DESTINATION lib${LIB_POSTFIX})
+set_target_properties(indi PROPERTIES VERSION ${INDI_VERSION} SOVERSION ${INDI_SOVERSION})
 
 #####################################
 ########## TELESCOPE GROUP ##########

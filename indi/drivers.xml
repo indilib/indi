@@ -101,20 +101,10 @@
 	</device>
 </devGroup>
 <devGroup group="CCDs">
-	<device label="SBIG CCD">
-		<name>SBIG</name>
-		<driver>indi_sbig_ccd</driver>
-		<version>1.0</version>
-	</device>
 	<device label="FLI CCD">
 		<name>Intelliscope</name>
 		<driver>indi_fli_ccd</driver>
 		<version>1.0</version>
-	</device>
-	<device label="Apogee Alta">
-		<name>Apogee CCD</name>
-		<driver>indi_apogee_alta</driver>
-	  	<version>0.2</version>
 	</device>
 </devGroup>
 <devGroup group="Focusers">
