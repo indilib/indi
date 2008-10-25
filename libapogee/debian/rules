@@ -10,33 +10,6 @@ DEB_HOST_ARCH=$(shell /usr/bin/dpkg-architecture -qDEB_HOST_ARCH)
 
 build:
 	mkdir -p $(d)
-
-	# Header files
-	echo 'usr/include/libapogee/*.h' > debian/libapogee1-dev.install; \
-
-	# binary package for lib and lib64. It's retarted and I can't figure out to use variable subsitution here.
-	if [ "$(DEB_HOST_ARCH)" = "i386" ]; then \
-		echo 'usr/lib' > debian/libapogee1.dirs; \
-		echo 'usr/lib/libapogeee.so.1.9' > debian/libapogee1.install; \
-		echo 'usr/lib/libapogeeu.so.1.9' >> debian/libapogee1.install; \
-		echo 'usr/lib/libapogeee.so.1.9 usr/lib/libapogeee.so.1' > debian/libapogee1.links; \
-		echo 'usr/lib/libapogeee.so.1 usr/lib/libapogeee.so' > debian/libapogee1-dev.links; \
-		echo 'usr/lib/libapogeeu.so.1.9 usr/lib/libapogeeu.so.1' >> debian/libapogee1.links; \
-		echo 'usr/lib/libapogeeu.so.1 usr/lib/libapogeeu.so' >> debian/libapogee1-dev.links; \
-		echo 'usr/include/libapogee' > debian/libapogee1-dev.dirs; \
-		echo 'usr/lib' >> debian/libapogee1-dev.dirs; \
-	 else \
-		echo 'usr/lib64' > debian/libapogee1.dirs; \
-		echo 'usr/lib64/libapogeee.so.1.9' > debian/libapogee1.install; \
-		echo 'usr/lib64/libapogeeu.so.1.9' >> debian/libapogee1.install; \
-		echo 'usr/lib64/libapogeee.so.1.9 usr/lib64/libapogeee.so.1' > debian/libapogee1.links; \
-		echo 'usr/lib64/libapogeee.so.1 usr/lib64/libapogeee.so' > debian/libapogee1-dev.links; \
-		echo 'usr/lib64/libapogeeu.so.1.9 usr/lib64/libapogeeu.so.1' >> debian/libapogee1.links; \
-		echo 'usr/lib64/libapogeeu.so.1 usr/lib64/libapogeeu.so' >> debian/libapogee1-dev.links; \
-		echo 'usr/include/libapogee' > debian/libapogee1-dev.dirs; \
-		echo 'usr/lib64' >> debian/libapogee1-dev.dirs; \
-	fi
-
 	cmake -DCMAKE_INSTALL_PREFIX=$(d)/usr .
 
 install: build

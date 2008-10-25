@@ -372,6 +372,12 @@ libapogee/debian/changelog -text
 libapogee/debian/compat -text
 libapogee/debian/control -text
 libapogee/debian/copyright -text
+libapogee/debian/libapogee1-dev.dirs -text
+libapogee/debian/libapogee1-dev.install -text
+libapogee/debian/libapogee1-dev.links -text
+libapogee/debian/libapogee1.dirs -text
+libapogee/debian/libapogee1.install -text
+libapogee/debian/libapogee1.links -text
 libapogee/debian/postinst.ex -text
 libapogee/debian/postrm.ex -text
 libapogee/debian/rules -text
