@@ -11,14 +11,14 @@ include (MacroBoolTo01)
 include (CheckIncludeFiles)
 
 find_package(USB REQUIRED)
-find_package(CFitsio REQUIRED)
+find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
 find_package(SBIG REQUIRED)
 find_package(ZLIB REQUIRED)
 
 macro_optional_find_package(Nova)
 macro_bool_to_01(NOVA_FOUND HAVE_NOVA_H)
-macro_log_feature(NOVA_FOUND "libnova" "A general purpose, double precision, Celestial Mechanics, Astrometry and Astrodynamics library" "http://libnova.sourceforge.net" FALSE "0.12.1" "Needed by KStars.")
+macro_log_feature(NOVA_FOUND "libnova" "A general purpose, double precision, Celestial Mechanics, Astrometry and Astrodynamics library" "http://libnova.sourceforge.net" FALSE "0.12.1" "Needed by INDI.")
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 
@@ -38,7 +38,7 @@ set(indisbig_SRCS
    
 add_executable(indi_sbig_ccd ${indisbig_SRCS})
 
-target_link_libraries(indi_sbig_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${SBIG_LIBRARIES} z)
+target_link_libraries(indi_sbig_ccd ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${SBIG_LIBRARIES} z)
 
 if (NOVA_FOUND)
   target_link_libraries(indi_sbig_ccd ${NOVA_LIBRARIES})

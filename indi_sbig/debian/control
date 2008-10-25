@@ -2,7 +2,7 @@ Source: indi-sbig
 Section: Development/Libraries
 Priority: extra
 Maintainer: Jasem Mutlaq <mutlaqja@ikarustech.com>
-Build-Depends: debhelper (>= 5), indi-dev, libcfitsio0-dev
+Build-Depends: debhelper (>= 5)
 Standards-Version: 3.7.2
 
 Package: indi-sbig
