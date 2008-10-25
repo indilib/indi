@@ -39,7 +39,7 @@ set(indiapogeeu_SRCS
 
 add_executable(indi_apogeeu_ccd ${indiapogeeu_SRCS})
 
-target_link_libraries(indi_apogeeu_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${APOGEE_LIBRARIES} z)
+target_link_libraries(indi_apogeeu_ccd ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${APOGEE_LIBRARIES} z)
 
 if (NOVA_FOUND)
   target_link_libraries(indi_apogeeu_ccd ${NOVA_LIBRARIES})
