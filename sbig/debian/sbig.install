@@ -3,3 +3,4 @@ lib/firmware/sbigfcam.hex
 lib/firmware/sbiglcam.hex
 lib/firmware/sbigucam.hex
 lib/firmware/stfga.bin
+usr/lib/libsbigudrv.so.2.0.0

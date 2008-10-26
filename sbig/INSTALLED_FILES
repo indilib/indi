@@ -1,5 +1,0 @@
-/etc/udev/rules.d/99-sbig.rules
-/lib/firmware/sbigfcam.hex
-/lib/firmware/sbiglcam.hex
-/lib/firmware/sbigucam.hex
-/lib/firmware/stfga.bin

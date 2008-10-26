@@ -704,9 +704,8 @@ libnova/uranus.c -text
 libnova/utility.c -text
 libnova/venus.c -text
 libnova/vsop87.c -text
-sbig/10-sbig.rules -text
 sbig/99-sbig.rules -text
-sbig/INSTALLED_FILES -text
+sbig/CMakeLists.txt -text
 sbig/debian/changelog -text
 sbig/debian/compat -text
 sbig/debian/control -text
@@ -716,9 +715,7 @@ sbig/debian/postrm.ex -text
 sbig/debian/rules -text
 sbig/debian/sbig.dirs -text
 sbig/debian/sbig.install -text
-sbig/sbig_install_drivers.py -text
-sbig/sbig_load.sh -text
-sbig/sbig_perm.sh -text
+sbig/debian/sbig.links -text
 sbig/sbigfcam.hex -text
 sbig/sbiglcam.hex -text
 sbig/sbigucam.hex -text

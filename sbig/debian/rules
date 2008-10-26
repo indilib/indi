@@ -10,31 +10,8 @@ DEB_HOST_ARCH   ?= $(shell dpkg-architecture -qDEB_HOST_ARCH)
 
 install: 
 	mkdir -p $(d)
-	mkdir -p $(d)/etc/udev/rules.d
-	mkdir -p $(d)/lib/firmware
-	mkdir -p $(d)/var/lib/dpkg/info
-	cp 99-sbig.rules $(d)/etc/udev/rules.d
-	cp sbigfcam.hex $(d)/lib/firmware
-	cp sbiglcam.hex $(d)/lib/firmware
-	cp sbigucam.hex $(d)/lib/firmware
-	cp stfga.bin $(d)/lib/firmware
-
-	# binary package
-	if [ "$(DEB_HOST_ARCH)" = "i386" ]; then \
-		mkdir -p $(d)/usr/lib; \
-		cp libsbigudrv32.so $(d)/usr/lib/libsbigudrv.so.2.0.0; \
-		echo 'usr/lib' >> debian/sbig.dirs; \
-		echo 'usr/lib/libsbigudrv.so.2.0.0' >> debian/sbig.install; \
-		echo 'usr/lib/libsbigudrv.so.2.0.0 usr/lib/libsbigudrv.so.2' > debian/sbig.links; \
-		echo 'usr/lib/libsbigudrv.so.2 usr/lib/libsbigudrv.so' >> debian/sbig.links; \
-	 else \
-		mkdir -p $(d)/usr/lib64; \
-		cp libsbigudrv64.so $(d)/usr/lib64/libsbigudrv.so.2.0.0; \
-		echo 'usr/lib64' >> debian/sbig.dirs; \
-		echo 'usr/lib64/libsbigudrv.so.2.0.0' >> debian/sbig.install; \
-		echo 'usr/lib64/libsbigudrv.so.2.0.0 usr/lib64/libsbigudrv.so.2' > debian/sbig.links; \
-		echo 'usr/lib64/libsbigudrv.so.2 usr/lib64/libsbigudrv.so' >> debian/sbig.links; \
-	fi
+	cmake -DCMAKE_INSTALL_PREFIX=/usr  .
+	make DESTDIR=%(d) install
 
 binary-indep: install
 	dh_testdir
