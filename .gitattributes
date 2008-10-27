@@ -164,6 +164,8 @@ indi_sbig/debian/changelog -text
 indi_sbig/debian/compat -text
 indi_sbig/debian/control -text
 indi_sbig/debian/copyright -text
+indi_sbig/debian/indi-sbig.dirs -text
+indi_sbig/debian/indi-sbig.install -text
 indi_sbig/debian/postinst.ex -text
 indi_sbig/debian/postrm.ex -text
 indi_sbig/debian/rules -text
