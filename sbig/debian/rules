@@ -11,7 +11,7 @@ DEB_HOST_ARCH   ?= $(shell dpkg-architecture -qDEB_HOST_ARCH)
 install: 
 	mkdir -p $(d)
 	cmake -DCMAKE_INSTALL_PREFIX=/usr  .
-	make DESTDIR=%(d) install
+	make DESTDIR=$(d) install
 
 binary-indep: install
 	dh_testdir
