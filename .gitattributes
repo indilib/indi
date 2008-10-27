@@ -22,7 +22,7 @@ indi-apogee/debian/copyright -text
 indi-apogee/debian/postinst.ex -text
 indi-apogee/debian/postrm.ex -text
 indi-apogee/debian/rules -text
-indi-apogee/indi_apogeeu.xml -text
+indi-apogee/indi_apogee.xml -text
 indi-apogee/indialta.c -text
 indi-sbig/.cproject -text
 indi-sbig/.project -text

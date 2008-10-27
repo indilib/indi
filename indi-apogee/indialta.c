@@ -136,11 +136,15 @@ typedef enum
 static INumber  ExposureSettingsN[N_EV] = 
 {
     {"OSW",      "Overscan width",    "%4.0f", 0, 0, 0,   0.0, 0,0,0},
-    {"OSH",      "Overscan height",   "%4.0f", 0, 0, 0,   0.0 ,0,0,0},
-    {"Shutter",  "1 to open shutter, else 0", "%2.0f", 0, 0, 0,   1.0 ,0,0,0},
+    {"OSH",      "Overscan height",   "%4.0f", 0, 0, 0,   0.0 ,0,0,0}
+    /*{"Shutter",  "1 to open shutter, else 0", "%2.0f", 0, 0, 1,   1.0 ,0,0,0},*/
 };
 static INumberVectorProperty ExposureSettingsNP = {MYDEV, "ExpValues", "Exposure settings", EXPOSE_GROUP, IP_WO, 0, IPS_IDLE, ExposureSettingsN, NARRAY(ExposureSettingsN), "", 0};
 
+/* Shutter Switch */
+static ISwitch  ShutterS[2] = {{"SHUTTER_ON" , "Open" , ISS_ON, 0, 0},{"SHUTTER_OFF", "Closed", ISS_OFF, 0, 0}};
+
+ISwitchVectorProperty ShutterSP		= { MYDEV, "SHUTTER" , "Shutter", EXPOSE_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, ShutterS, NARRAY(ShutterS), "", 0};
 
 /**********************************************************************************************/
 /*********************************** GROUP: Image Settings ************************************/
@@ -222,7 +226,6 @@ typedef enum {	/* N.B. order must match array below */
 static IBLOB FitsB[N_B] = {{"Img", "Image", ".fits", 0, 0, 0, 0, 0, 0, 0}};
 static IBLOBVectorProperty FitsBP = {MYDEV, "Pixels", "Image data", DATA_GROUP, IP_RO, 0, IPS_IDLE, FitsB, NARRAY(FitsB), "", 0};
 
-
 /* Function prototypes */
 static void getStartConditions(void);
 static void expTO (void *vp);
@@ -239,72 +242,6 @@ void ISGetProperties (char const *dev)
 
         if (dev && strcmp (MYDEV, dev))
 	    return;
-
-	# if 0
-	if (!inited) 
-	{
-	    int roiw, roih, osw, osh, binw, binh, shutter;
-	    double exptime, mintemp;
-	    char whynot[1024];
-
-	    /* connect to the camera, wait if not yet ready */
-	    camconnect();
-
-	    /* get hardware max values */
-	    ApnGlueGetMaxValues (&exptime, &roiw, &roih, &osw, &osh, &binw,
-						&binh, &shutter, &mintemp);
-	    MaxValuesNP.np[EXP_MV].value = exptime;
-	    MaxValuesNP.np[ROIW_MV].value = roiw;
-	    MaxValuesNP.np[ROIH_MV].value = roih;
-	    MaxValuesNP.np[OSW_MV].value = osw;
-	    MaxValuesNP.np[OSH_MV].value = osh;
-	    MaxValuesNP.np[BINW_MV].value = binw;
-	    MaxValuesNP.np[BINH_MV].value = binh;
-	    MaxValuesNP.np[SHUTTER_MV].value = shutter;
-	    MaxValuesNP.np[MINTEMP_MV].value = mintemp;
-
-	    /* use max values to set up a default geometry */
-	    //ExposureSettingsNP.np[EXP_EV].value = 1.0;
-	    ExposureRN.np[0].value = 1.0;
-
-	    //ExposureSettingsNP.np[ROIX_EV].value = 0;
-	    //ExposureSettingsNP.np[ROIY_EV].value = 0;
-	    FrameNP.np[CCD_X].value = 0;
-	    FrameNP.np[CCD_Y].value = 0;
-		
-	    //ExposureSettingsNP.np[ROIW_EV].value = roiw;
-	    //ExposureSettingsNP.np[ROIH_EV].value = roih;
-	    FrameNP.np[CCD_W] = roiw;
-	    FrameNP.np[CCD_H] = rowih;
-
-	    //ExposureSettingsNP.np[BINW_EV].value = 1;
-	    //ExposureSettingsNP.np[BINH_EV].value = 1;
-	    BinningNP.np[CCD_HBIN].value = 1;
-	    BinningNP.np[CCD_VBIN].value = 1;
- 
-	    ExposureSettingsNP.np[OSW_EV].value = 0;
-	    ExposureSettingsNP.np[OSH_EV].value = 0;
-	    ExposureSettingsNP.np[SHUTTER_EV].value = 1;
-
-	    if (ApnGlueSetExpGeom (roiw, roih, 0, 0, 1, 1, 0, 0, &impixw, &impixh, whynot) < 0)
-	    {
-		fprintf (stderr, "Can't even set up %dx%d image geo: %s\n",
-							    roiw, roih, whynot);
-		exit(1);
-	    }
-
-	    /* start cooler to our TemperatureWNP default */
-	    ApnGlueSetTemp (TemperatureWNP.np[T_STEMP].value);
-
-	    /* init and start cooler reading timer */
-	    coolerTO(NULL);
-
-	    /* init fans to our FanSpeedSP switch default */
-	    ApnGlueSetFan (IUFindOnSwitch(&FanSpeedSP) - FanSpeedS);
-
-	    inited = 1;
-	}
-	#endif
 
 	/* Communication Group */
 	IDDefSwitch(&ConnectSP, NULL);
@@ -386,6 +323,15 @@ void ISNewSwitch (const char *dev, const char *name, ISState *states, char *name
 		return;
 	}
 
+	if (!strcmp(name, ShutterSP.name))
+	{
+		if (IUUpdateSwitch(&ShutterSP, states, names, n) < 0)
+				return;
+		
+		ShutterSP.s = IPS_OK;
+		IDSetSwitch(&ShutterSP, NULL);
+	}
+
 }
 
 void ISNewNumber (const char * dev, const char *name, double *doubles, char *names[], int n)
@@ -399,12 +345,12 @@ void ISNewNumber (const char * dev, const char *name, double *doubles, char *nam
 		return;
 	}
 
-	if (!strcmp (name, ExposureWNP.name)) 
+	if (!strcmp (name, ExposureWNP.name))
 	{
 		if (IUUpdateNumber(&ExposureWNP, doubles, names, n) < 0)
 			return;
 
-	            if (ExposureWNP.s == IPS_BUSY) 
+	            if (ExposureWNP.s == IPS_BUSY)
 		    {
 			/* abort current exposure */
 			if (expTID) 
@@ -427,7 +373,7 @@ void ISNewNumber (const char * dev, const char *name, double *doubles, char *nam
 			 */
 			double expsec = ExposureWNP.np[0].value;
 			int expms = (int)ceil(expsec*1000);
-			int wantshutter = (int)ExposureSettingsNP.np[SHUTTER_EV].value;
+			int wantshutter = (ShutterS[0].s == ISS_ON) ? 1 : 0;
 
 			if (ApnGlueStartExp (&expsec, wantshutter) < 0) 
 			{
@@ -961,7 +907,6 @@ static int camconnect()
  
 	    ExposureSettingsNP.np[OSW_EV].value = 0;
 	    ExposureSettingsNP.np[OSH_EV].value = 0;
-	    ExposureSettingsNP.np[SHUTTER_EV].value = 1;
 
 	    if (ApnGlueSetExpGeom (roiw, roih, 0, 0, 1, 1, 0, 0, &impixw, &impixh, whynot) < 0)
 	    {
@@ -983,6 +928,7 @@ static int camconnect()
 	    ApnGlueSetFan (IUFindOnSwitch(&FanSpeedSP) - FanSpeedS);
 
 	/* Expose Group */
+	IDDefSwitch(&ShutterSP, NULL);
 	IDDefNumber(&ExposureWNP, NULL);
 	IDDefNumber(&ExposureRNP, NULL);
 
@@ -1016,6 +962,7 @@ void reset_all_properties()
 	ExposureSettingsNP.s	= IPS_IDLE;
 	FanSpeedSP.s		= IPS_IDLE;
 	FitsBP.s		= IPS_IDLE;
+	ShutterSP.s		= IPS_IDLE;
 	
 	IDSetSwitch(&ConnectSP, NULL);
 	IDSetNumber(&TemperatureWNP, NULL);
@@ -1028,5 +975,6 @@ void reset_all_properties()
 	IDSetNumber(&ExposureSettingsNP, NULL);
 	IDSetSwitch(&FanSpeedSP, NULL);
 	IDSetBLOB(&FitsBP, NULL);
+	IDSetSwitch(&ShutterSP, NULL);
 }
 

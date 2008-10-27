@@ -1,24 +1,24 @@
 Apogee INDI Driver
 ==================
 
-This package provides the INDI driver for Apgoee Alta U line of CCDs.
+This package provides the INDI driver for Apgoee Alta (U & E) line of CCDs.
 
 Requirtments
 ============
 
-+ INDI >= v0.6 (http://indi.sf.net)
++ libindi0 >= v0.6 (http://indi.sf.net)
 
-	You need to install both indi and indi-devel to build this package.
+	You need to install both libindi0 and libindi0-devel to build this package.
 	
-+ cfitsio
++ libcfitsio >= 3.0
 
-	cfitsio-devel is required to compile support for FITS.
+	libcfitsio3 is required to compile support for FITS.
 	
 + libusb
 
 	libusb-devel is required.
 	
-+ libapogee (http://indi.sf.net)
++ libapogee >= 2.2 (http://indi.sf.net)
 
 	
 Installation
@@ -29,12 +29,18 @@ Installation
 How to Use
 ==========
 
-	You can use the Apogee Ulta INDI Driver in any INDI-compatible client such as KStars or Xephem. 
+	You can use the Apogee Alta (U & E) INDI Driver in any INDI-compatible client such as KStars or Xephem. 
 	
 	To run the driver from the command line:
 	
+	For Alta-U:
+
 	$ indiserver indi_apogeeu_ccd
+
+	For Alta-E:
 	
+	$ indiserver indi_apogeee_ccd
+
 	You can then connect to the driver from any client, the default port is 7624.
 	If you're using KStars, the driver will be automatically listed in KStars' Device Manager,
 	no further configuration is necessary.

@@ -15,6 +15,7 @@ find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
 find_package(APOGEE REQUIRED)
 find_package(ZLIB REQUIRED)
+find_package(CURL REQUIRED)
 
 macro_optional_find_package(Nova)
 macro_bool_to_01(NOVA_FOUND HAVE_NOVA_H)
@@ -30,21 +31,23 @@ if (NOVA_FOUND)
     include_directories(${NOVA_INCLUDE_DIR})
 endif (NOVA_FOUND)
 
-### N.B. This package only employs the USB version (AltaU) model ###
-
 ########### Apogee ###########
-set(indiapogeeu_SRCS
+set(indiapogee_SRCS
    ${CMAKE_SOURCE_DIR}/indialta.c
    )
 
-add_executable(indi_apogeeu_ccd ${indiapogeeu_SRCS})
+add_executable(indi_apogeeu_ccd ${indiapogee_SRCS})
+add_executable(indi_apogeee_ccd ${indiapogee_SRCS})
 
-target_link_libraries(indi_apogeeu_ccd ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${APOGEE_LIBRARIES} z)
+target_link_libraries(indi_apogeeu_ccd ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${APOGEEU_LIBRARIES} z)
+target_link_libraries(indi_apogeee_ccd ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${APOGEEE_LIBRARIES} ${CURL_LIBRARIES} z)
 
 if (NOVA_FOUND)
   target_link_libraries(indi_apogeeu_ccd ${NOVA_LIBRARIES})
+  target_link_libraries(indi_apogeee_ccd ${NOVA_LIBRARIES})
 endif (NOVA_FOUND)
 
 install(TARGETS indi_apogeeu_ccd RUNTIME DESTINATION bin )
+install(TARGETS indi_apogeee_ccd RUNTIME DESTINATION bin )
 
-install(FILES indi_apogeeu.xml DESTINATION ${DATA_INSTALL_DIR})
+install(FILES indi_apogee.xml DESTINATION ${DATA_INSTALL_DIR})

@@ -1,7 +1,0 @@
-<devGroup group="CCDs">
-	<device label="Apogee Ulta">
-		<name>Apogee Ulta</name>
-		<driver>indi_apogeeu_ccd</driver>
-		<version>1.0</version>
-	</device>
-</devGroup>
