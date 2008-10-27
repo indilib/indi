@@ -4,6 +4,9 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
 set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
 set(INCLUDE_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/include")
 
+set(APOGEE_VERSION "2.2")
+set(APOGEE_SOVERSION "2")
+
 Include (CheckCXXSourceCompiles)
 include (MacroOptionalFindPackage)
 include (MacroLogFeature)
@@ -107,7 +110,7 @@ set(AltaU_SRCS
    
 add_library(apogeeu SHARED ${AltaU_SRCS})
 
-set_target_properties(apogeeu PROPERTIES VERSION 1.9 SOVERSION 1)
+set_target_properties(apogeeu PROPERTIES VERSION ${APOGEE_VERSION} SOVERSION ${APOGEE_SOVERSION})
 
 target_link_libraries(apogeeu ${LIBUSB_LIBRARIES})
 
@@ -126,7 +129,7 @@ set(AltaE_SRCS
    
 add_library(apogeee SHARED ${AltaE_SRCS})
 
-set_target_properties(apogeee PROPERTIES VERSION 1.9 SOVERSION 1)
+set_target_properties(apogeee PROPERTIES VERSION ${APOGEE_VERSION} SOVERSION ${APOGEE_SOVERSION})
 
 target_link_libraries(apogeee ${LIBUSB_LIBRARIES})
 

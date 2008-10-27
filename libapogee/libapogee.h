@@ -4,6 +4,9 @@
 #ifndef LIBAPOGEE_H
 #define LIBAPOGEE_H
 
+#define APOGEE_USB_ONLY	0
+#define APOGEE_ETH_ONLY 1
+
 #ifdef __cplusplus
 extern "C" {
 #endif

@@ -22,9 +22,41 @@ static void checkalta();
 int
 ApnGlueOpen(unsigned int id)
 {
-	alta = (CApnCamera *)new CApnCamera();
-	if (!alta->InitDriver(id,80,0) || !alta->ResetSystem())
-	    return (-1);
+	char *ipaddress;
+	unsigned int uaddr=0;
+	unsigned int ip[4];
+
+	switch (id)
+	{
+		// USB
+		case APOGEE_USB_ONLY:
+			uaddr = 1;
+			break;
+
+		// Ethernet
+		case APOGEE_ETH_ONLY:
+			ipaddress = getenv("APOGEE_ALTA_IP");
+        		if (ipaddress == NULL) 
+				return (-1);
+
+		// Try Ehternet, if not then USB
+		default:
+			ipaddress = getenv("APOGEE_ALTA_IP");
+        		if (ipaddress == NULL) 
+			{
+            			uaddr = 1;
+        		}
+			else 
+			{
+            			sscanf(ipaddress,"%d.%d.%d.%d",ip,ip+1,ip+2,ip+3);
+            			uaddr = ip[0]*256*256*256 + ip[1]*256*256 + ip[2]*256 + ip[3];
+        		}
+			break;
+	}
+
+        alta = (CApnCamera *)new CApnCamera();
+        if (!alta->InitDriver(uaddr,80,0) || !alta->ResetSystem())
+            return (-1);
 
 	alta->write_LedState (0, Apn_LedState_Expose);
 	alta->write_LedState (1, Apn_LedState_AtTemp);

@@ -1,7 +1,7 @@
 Apogee INSTALL
 ==============
 
-You must have CMake >= 2.6 in order to build this package.
+You must have CMake >= 2.4.7 in order to build this package.
 
 1) $ tar -xzf libapogee.tar.gz
 2) $ mkdir libapogee_build
