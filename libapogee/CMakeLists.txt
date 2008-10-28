@@ -131,7 +131,7 @@ add_library(apogeee SHARED ${AltaE_SRCS})
 
 set_target_properties(apogeee PROPERTIES VERSION ${APOGEE_VERSION} SOVERSION ${APOGEE_SOVERSION})
 
-target_link_libraries(apogeee ${LIBUSB_LIBRARIES})
+target_link_libraries(apogeee ${LIBUSB_LIBRARIES} ${CURL_LIBRARIES})
 
 install(TARGETS apogeee LIBRARY DESTINATION lib${LIB_POSTFIX} )
 
