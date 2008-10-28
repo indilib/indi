@@ -15,7 +15,6 @@ find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
 find_package(APOGEE REQUIRED)
 find_package(ZLIB REQUIRED)
-find_package(CURL REQUIRED)
 
 macro_optional_find_package(Nova)
 macro_bool_to_01(NOVA_FOUND HAVE_NOVA_H)
@@ -40,7 +39,7 @@ add_executable(indi_apogeeu_ccd ${indiapogee_SRCS})
 add_executable(indi_apogeee_ccd ${indiapogee_SRCS})
 
 target_link_libraries(indi_apogeeu_ccd ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${APOGEEU_LIBRARIES} z)
-target_link_libraries(indi_apogeee_ccd ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${APOGEEE_LIBRARIES} ${CURL_LIBRARIES} z)
+target_link_libraries(indi_apogeee_ccd ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${APOGEEE_LIBRARIES} z)
 
 if (NOVA_FOUND)
   target_link_libraries(indi_apogeeu_ccd ${NOVA_LIBRARIES})

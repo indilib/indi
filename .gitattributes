@@ -19,6 +19,8 @@ indi-apogee/debian/changelog -text
 indi-apogee/debian/compat -text
 indi-apogee/debian/control -text
 indi-apogee/debian/copyright -text
+indi-apogee/debian/indi-apogee.dirs -text
+indi-apogee/debian/indi-apogee.install -text
 indi-apogee/debian/postinst.ex -text
 indi-apogee/debian/postrm.ex -text
 indi-apogee/debian/rules -text
