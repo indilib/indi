@@ -1,8 +1,12 @@
-From 0.5 to 1.0
+From 0.5 to 0.6
 
         # Devices:
-                + Davis Weahter (Monitor & Pro)
-
+                + Astrophysics mount is now working.
+                + Apogee driver is now working.
+        # Features:
+                + New libindi structure to streamline development.
+                + Drivers using Standard Property _REQUEST WO to make requests. This facilitates scripting and automation of drivers.
+                + Updated inter-driver communication with INDI SNOOP.
 
 From 0.4 to 0.5
 
