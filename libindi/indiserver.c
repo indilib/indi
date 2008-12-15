@@ -166,7 +166,7 @@ static int sendClientMsg (ClInfo *cp);
 static int sendDriverMsg (DvrInfo *cp);
 static void crackBLOB (char *enableBLOB, BLOBHandling *bp);
 static void traceMsg (XMLEle *root);
-static char *tstamp (char *s);
+static char *indi_tstamp (char *s);
 static void logDMsg (XMLEle *root, const char *dev);
 static void Bye(void);
 
@@ -256,7 +256,7 @@ logStartup(int ac, char *av[])
 {
 	int i;
 
-	fprintf (stderr, "%s: startup: ", tstamp(NULL));
+	fprintf (stderr, "%s: startup: ", indi_tstamp(NULL));
 	for (i = 0; i < ac; i++)
 	    fprintf (stderr, "%s ", av[i]);
 	fprintf (stderr, "\n");
@@ -331,17 +331,17 @@ startLocalDvr (DvrInfo *dp)
 
 	/* build three pipes: r, w and error*/
 	if (pipe (rp) < 0) {
-	    fprintf (stderr, "%s: read pipe: %s\n", tstamp(NULL),
+	    fprintf (stderr, "%s: read pipe: %s\n", indi_tstamp(NULL),
 							    strerror(errno));
 	    Bye();
 	}
 	if (pipe (wp) < 0) {
-	    fprintf (stderr, "%s: write pipe: %s\n", tstamp(NULL), 
+	    fprintf (stderr, "%s: write pipe: %s\n", indi_tstamp(NULL),
 							    strerror(errno));
 	    Bye();
 	}
 	if (pipe (ep) < 0) {
-	    fprintf (stderr, "%s: stderr pipe: %s\n", tstamp(NULL),
+	    fprintf (stderr, "%s: stderr pipe: %s\n", indi_tstamp(NULL),
 							    strerror(errno));
 	    Bye();
 	}
@@ -349,7 +349,7 @@ startLocalDvr (DvrInfo *dp)
 	/* fork&exec new process */
 	pid = fork();
 	if (pid < 0) {
-	    fprintf (stderr, "%s: fork: %s\n", tstamp(NULL), strerror(errno));
+	    fprintf (stderr, "%s: fork: %s\n", indi_tstamp(NULL), strerror(errno));
 	    Bye();
 	}
 	if (pid == 0) {
@@ -365,7 +365,7 @@ startLocalDvr (DvrInfo *dp)
 
 	    /* go -- should never return */
 	    execlp (dp->name, dp->name, NULL);
-	    fprintf (stderr, "%s: Driver %s: execlp: %s\n", tstamp(NULL),
+	    fprintf (stderr, "%s: Driver %s: execlp: %s\n", indi_tstamp(NULL),
 						dp->name, strerror(errno));
 	    _exit (1);	/* parent will notice EOF shortly */
 	}
@@ -401,7 +401,7 @@ startLocalDvr (DvrInfo *dp)
 
 	if (verbose > 0)
 	    fprintf (stderr, "%s: Driver %s: pid=%d rfd=%d wfd=%d efd=%d\n",
-		    tstamp(NULL), dp->name, dp->pid, dp->rfd, dp->wfd, dp->efd);
+		    indi_tstamp(NULL), dp->name, dp->pid, dp->rfd, dp->wfd, dp->efd);
 }
 
 /* start the given remote INDI driver connection.
@@ -435,7 +435,7 @@ startRemoteDvr (DvrInfo *dp)
 	dp->sprops = (Snoopee*) malloc (1);	/* seed for realloc */
 	dp->nsprops = 0;
 	dp->nsent = 0;
-	
+
 	/* N.B. storing name now is key to limiting outbound traffic to this
 	 * dev.
 	 */
@@ -453,7 +453,7 @@ startRemoteDvr (DvrInfo *dp)
 	mp->count++;
 
 	if (verbose > 0)
-	    fprintf (stderr, "%s: Driver %s: socket=%d\n", tstamp(NULL),
+	    fprintf (stderr, "%s: Driver %s: socket=%d\n", indi_tstamp(NULL),
 							    dp->name, sockfd);
 }
 
@@ -507,10 +507,10 @@ indiListen ()
 
 	/* make socket endpoint */
 	if ((sfd = socket (AF_INET, SOCK_STREAM, 0)) < 0) {
-	    fprintf (stderr, "%s: socket: %s\n", tstamp(NULL), strerror(errno));
+	    fprintf (stderr, "%s: socket: %s\n", indi_tstamp(NULL), strerror(errno));
 	    Bye();
 	}
-	
+
 	/* bind to given port for any IP address */
 	memset (&serv_socket, 0, sizeof(serv_socket));
 	serv_socket.sin_family = AF_INET;
@@ -521,18 +521,18 @@ indiListen ()
 	#endif
 	serv_socket.sin_port = htons ((unsigned short)port);
 	if (setsockopt(sfd,SOL_SOCKET,SO_REUSEADDR,&reuse,sizeof(reuse)) < 0){
-	    fprintf (stderr, "%s: setsockopt: %s\n", tstamp(NULL),
+	    fprintf (stderr, "%s: setsockopt: %s\n", indi_tstamp(NULL),
 							    strerror(errno));
 	    Bye();
 	}
 	if (bind(sfd,(struct sockaddr*)&serv_socket,sizeof(serv_socket)) < 0){
-	    fprintf (stderr, "%s: bind: %s\n", tstamp(NULL), strerror(errno));
+	    fprintf (stderr, "%s: bind: %s\n", indi_tstamp(NULL), strerror(errno));
 	    Bye();
 	}
 
 	/* willing to accept connections with a backlog of 5 pending */
 	if (listen (sfd, 5) < 0) {
-	    fprintf (stderr, "%s: listen: %s\n", tstamp(NULL), strerror(errno));
+	    fprintf (stderr, "%s: listen: %s\n", indi_tstamp(NULL), strerror(errno));
 	    Bye();
 	}
 
@@ -540,7 +540,7 @@ indiListen ()
 	lsocket = sfd;
 	if (verbose > 0)
 	    fprintf (stderr, "%s: listening to port %d on fd %d\n",
-	    					tstamp(NULL), port, sfd);
+	    					indi_tstamp(NULL), port, sfd);
 }
 
 /* service traffic from clients and drivers */
@@ -592,7 +592,7 @@ indiRun(void)
 	/* wait for action */
 	s = select (maxfd+1, &rs, &ws, NULL, NULL);
 	if (s < 0) {
-	    fprintf (stderr, "%s: select(%d): %s\n", tstamp(NULL), maxfd+1,
+	    fprintf (stderr, "%s: select(%d): %s\n", indi_tstamp(NULL), maxfd+1,
 							    strerror(errno));
 	    Bye();
 	}
@@ -681,7 +681,7 @@ newClient()
 	    socklen_t len = sizeof(addr);
 	    getpeername(s, (struct sockaddr*)&addr, &len);
 	    fprintf(stderr,"%s: Client %d: new arrival from %s:%d - welcome!\n",
-			    tstamp(NULL), cp->s, inet_ntoa(addr.sin_addr),
+			    indi_tstamp(NULL), cp->s, inet_ntoa(addr.sin_addr),
 							ntohs(addr.sin_port));
 	}
 }
@@ -701,10 +701,10 @@ readFromClient (ClInfo *cp)
 	nr = read (cp->s, buf, sizeof(buf));
 	if (nr <= 0) {
 	    if (nr < 0)
-		fprintf (stderr, "%s: Client %d: read: %s\n", tstamp(NULL),
+		fprintf (stderr, "%s: Client %d: read: %s\n", indi_tstamp(NULL),
 							cp->s, strerror(errno));
 	    else if (verbose > 0)
-		fprintf (stderr, "%s: Client %d: read EOF\n", tstamp(NULL),
+		fprintf (stderr, "%s: Client %d: read EOF\n", indi_tstamp(NULL),
 									cp->s);
 	    shutdownClient (cp);
 	    return (-1);
@@ -722,11 +722,11 @@ readFromClient (ClInfo *cp)
 		Msg *mp;
 
 		if (verbose > 2) {
-		    fprintf (stderr, "%s: Client %d: read ",tstamp(NULL),cp->s);
+		    fprintf (stderr, "%s: Client %d: read ",indi_tstamp(NULL),cp->s);
 		    traceMsg (root);
 		} else if (verbose > 1) {
 		    fprintf (stderr, "%s: Client %d: read <%s device='%s' name='%s'>\n",
-				    tstamp(NULL), cp->s, tagXMLEle(root),
+				    indi_tstamp(NULL), cp->s, tagXMLEle(root),
 				    findXMLAttValu (root, "device"),
 				    findXMLAttValu (root, "name"));
 		}
@@ -764,7 +764,7 @@ readFromClient (ClInfo *cp)
 		delXMLEle (root);
 
 	    } else if (err[0]) {
-		char *ts = tstamp(NULL);
+		char *ts = indi_tstamp(NULL);
 		fprintf (stderr, "%s: Client %d: XML error: %s\n", ts,
 								cp->s, err);
 		fprintf (stderr, "%s: Client %d: XML read: %.*s\n", ts,
@@ -791,12 +791,12 @@ readFromDriver (DvrInfo *dp)
 	/* read driver */
 	nr = read (dp->rfd, buf, sizeof(buf));
 	if (nr <= 0) {
-	    if (nr < 0) 
-		fprintf (stderr, "%s: Driver %s: stdin %s\n", tstamp(NULL),
+	    if (nr < 0)
+		fprintf (stderr, "%s: Driver %s: stdin %s\n", indi_tstamp(NULL),
 						    dp->name, strerror(errno));
 	    else
 		fprintf (stderr, "%s: Driver %s: stdin EOF\n",
-							tstamp(NULL), dp->name);
+							indi_tstamp(NULL), dp->name);
 	    restartDvr (dp);
 	    return (-1);
 	}
@@ -813,11 +813,11 @@ readFromDriver (DvrInfo *dp)
 		Msg *mp;
 
 		if (verbose > 2) {
-		    fprintf(stderr, "%s: Driver %s: read ", tstamp(0),dp->name);
+		    fprintf(stderr, "%s: Driver %s: read ", indi_tstamp(0),dp->name);
 		    traceMsg (root);
 		} else if (verbose > 1) {
 		    fprintf (stderr, "%s: Driver %s: read <%s device='%s' name='%s'>\n",
-				    tstamp(NULL), dp->name, tagXMLEle(root),
+				    indi_tstamp(NULL), dp->name, tagXMLEle(root),
 				    findXMLAttValu (root, "device"),
 				    findXMLAttValu (root, "name"));
 		}
@@ -866,7 +866,7 @@ readFromDriver (DvrInfo *dp)
 		delXMLEle (root);
 
 	    } else if (err[0]) {
-		char *ts = tstamp(NULL);
+		char *ts = indi_tstamp(NULL);
 		fprintf (stderr, "%s: Driver %s: XML error: %s\n", ts,
 								dp->name, err);
 		fprintf (stderr, "%s: Driver %s: XML read: %.*s\n", ts,
@@ -892,12 +892,12 @@ stderrFromDriver (DvrInfo *dp)
 	/* read more */
 	nr = read (dp->efd, exbuf+nexbuf, sizeof(exbuf)-nexbuf);
 	if (nr <= 0) {
-	    if (nr < 0) 
-		fprintf (stderr, "%s: Driver %s: stderr %s\n", tstamp(NULL),
+	    if (nr < 0)
+		fprintf (stderr, "%s: Driver %s: stderr %s\n", indi_tstamp(NULL),
 						    dp->name, strerror(errno));
 	    else
 		fprintf (stderr, "%s: Driver %s: stderr EOF\n",
-							tstamp(NULL), dp->name);
+							indi_tstamp(NULL), dp->name);
 	    restartDvr (dp);
 	    return (-1);
 	}
@@ -906,7 +906,7 @@ stderrFromDriver (DvrInfo *dp)
 	/* prefix each whole line to our stderr, save extra for next time */
 	for (i = 0; i < nexbuf; i++) {
 	    if (exbuf[i] == '\n') {
-		fprintf (stderr, "%s: Driver %s: %.*s\n", tstamp(NULL),
+		fprintf (stderr, "%s: Driver %s: %.*s\n", indi_tstamp(NULL),
 							    dp->name, i, exbuf);
 		i++;				  /* count including nl */
 		nexbuf -= i;			  /* remove from nexbuf */
@@ -942,8 +942,8 @@ shutdownClient (ClInfo *cp)
 	cp->active = 0;
 
 	if (verbose > 0)
-	    fprintf (stderr, "%s: Client %d: shut down complete - bye!\n", 
-							tstamp(NULL), cp->s);
+	    fprintf (stderr, "%s: Client %d: shut down complete - bye!\n",
+							indi_tstamp(NULL), cp->s);
 }
 
 /* close down the given driver and restart */
@@ -975,7 +975,7 @@ restartDvr (DvrInfo *dp)
 		freeMsg (mp);
 	delFQ (dp->msgq);
 
-	fprintf (stderr, "%s: Driver %s: restart #%d\n", tstamp(NULL),
+	fprintf (stderr, "%s: Driver %s: restart #%d\n", indi_tstamp(NULL),
 						    dp->name, ++dp->restarts);
 	startDvr (dp);
 }
@@ -1007,7 +1007,7 @@ q2RDrivers (const char *dev, Msg *mp, XMLEle *root)
 	    pushFQ (dp->msgq, mp);
 	    if (verbose > 1)
 		fprintf (stderr, "%s: Driver %s: queuing responsible for <%s device='%s' name='%s'>\n",
-				    tstamp(NULL), dp->name, tagXMLEle(root),
+				    indi_tstamp(NULL), dp->name, tagXMLEle(root),
 				    findXMLAttValu (root, "device"),
 				    findXMLAttValu (root, "name"));
 	}
@@ -1035,7 +1035,7 @@ q2SDrivers (int isblob, const char *dev, const char *name, Msg *mp, XMLEle *root
 	    pushFQ (dp->msgq, mp);
 	    if (verbose > 1) {
 		fprintf (stderr, "%s: Driver %s: queuing snooped <%s device='%s' name='%s'>\n",
-				    tstamp(NULL), dp->name, tagXMLEle(root),
+				    indi_tstamp(NULL), dp->name, tagXMLEle(root),
 				    findXMLAttValu (root, "device"),
 				    findXMLAttValu (root, "name"));
 	    }
@@ -1072,7 +1072,7 @@ addSDevice (DvrInfo *dp, const char *dev, const char *name)
 	sp->blob = B_NEVER;
 
 	if (verbose)
-	    fprintf (stderr, "%s: Driver %s: snooping on %s.%s\n", tstamp(NULL),
+	    fprintf (stderr, "%s: Driver %s: snooping on %s.%s\n", indi_tstamp(NULL),
 							dp->name, dev, name);
 }
 
@@ -1081,7 +1081,7 @@ addSDevice (DvrInfo *dp, const char *dev, const char *name)
 static Snoopee *
 findSDevice (DvrInfo *dp, const char *dev, const char *name)
 {
-	int i; 
+	int i;
 
 	for (i = 0; i < dp->nsprops; i++) {
 	    Snoopee *sp = &dp->sprops[i];
@@ -1120,7 +1120,7 @@ q2Clients (ClInfo *notme, int isblob, const char *dev, const char *name, Msg *mp
 	    if (ql > maxqsiz) {
 		if (verbose)
 		    fprintf (stderr, "%s: Client %d: %d bytes behind, shutting down\n",
-						    tstamp(NULL), cp->s, ql);
+						    indi_tstamp(NULL), cp->s, ql);
 		shutdownClient (cp);
 		shutany++;
 		continue;
@@ -1131,7 +1131,7 @@ q2Clients (ClInfo *notme, int isblob, const char *dev, const char *name, Msg *mp
 	    pushFQ (cp->msgq, mp);
 	    if (verbose > 1)
 		fprintf (stderr, "%s: Client %d: queuing <%s device='%s' name='%s'>\n",
-				    tstamp(NULL), cp->s, tagXMLEle(root),
+				    indi_tstamp(NULL), cp->s, tagXMLEle(root),
 				    findXMLAttValu (root, "device"),
 				    findXMLAttValu (root, "name"));
 	}
@@ -1181,7 +1181,7 @@ setMsgStr (Msg *mp, char *str)
 	strcpy (mp->cp, str);
 }
 
-/* return pointer to one new nulled Msg 
+/* return pointer to one new nulled Msg
  */
 static Msg *
 newMsg (void)
@@ -1223,9 +1223,9 @@ sendClientMsg (ClInfo *cp)
 	if (nw <= 0) {
 	    if (nw == 0)
 		fprintf (stderr, "%s: Client %d: write returned 0\n",
-						    tstamp(NULL), cp->s);
+						    indi_tstamp(NULL), cp->s);
 	    else
-		fprintf (stderr, "%s: Client %d: write: %s\n", tstamp(NULL),
+		fprintf (stderr, "%s: Client %d: write: %s\n", indi_tstamp(NULL),
 						    cp->s, strerror(errno));
 	    shutdownClient (cp);
 	    return (-1);
@@ -1234,10 +1234,10 @@ sendClientMsg (ClInfo *cp)
 	/* trace */
 	if (verbose > 2) {
 	    fprintf(stderr, "%s: Client %d: sending msg copy %d nq %d:\n%.*s\n",
-				tstamp(NULL), cp->s, mp->count, nFQ(cp->msgq),
+				indi_tstamp(NULL), cp->s, mp->count, nFQ(cp->msgq),
 				nw, &mp->cp[cp->nsent]);
 	} else if (verbose > 1) {
-	    fprintf(stderr, "%s: Client %d: sending %.50s\n", tstamp(NULL),
+	    fprintf(stderr, "%s: Client %d: sending %.50s\n", indi_tstamp(NULL),
 						    cp->s, &mp->cp[cp->nsent]);
 	}
 
@@ -1280,9 +1280,9 @@ sendDriverMsg (DvrInfo *dp)
 	if (nw <= 0) {
 	    if (nw == 0)
 		fprintf (stderr, "%s: Driver %s: write returned 0\n",
-						    tstamp(NULL), dp->name);
+						    indi_tstamp(NULL), dp->name);
 	    else
-		fprintf (stderr, "%s: Driver %s: write: %s\n", tstamp(NULL),
+		fprintf (stderr, "%s: Driver %s: write: %s\n", indi_tstamp(NULL),
 						    dp->name, strerror(errno));
 	    restartDvr (dp);
 	    return (-1);
@@ -1291,10 +1291,10 @@ sendDriverMsg (DvrInfo *dp)
 	/* trace */
 	if (verbose > 2) {
 	    fprintf(stderr, "%s: Driver %s: sending msg copy %d nq %d:\n%.*s\n",
-			    tstamp(NULL), dp->name, mp->count, nFQ(dp->msgq),
+			    indi_tstamp(NULL), dp->name, mp->count, nFQ(dp->msgq),
 			    nw, &mp->cp[dp->nsent]);
 	} else if (verbose > 1) {
-	    fprintf(stderr, "%s: Driver %s: sending %.50s\n", tstamp(NULL),
+	    fprintf(stderr, "%s: Driver %s: sending %.50s\n", indi_tstamp(NULL),
 						dp->name, &mp->cp[dp->nsent]);
 	}
 
@@ -1439,7 +1439,7 @@ traceMsg (XMLEle *root)
  * N.B. if use our buffer, be sure to use before calling again
  */
 static char *
-tstamp (char *s)
+indi_tstamp (char *s)
 {
 	static char sbuf[64];
 	struct tm *tp;
@@ -1472,14 +1472,14 @@ logDMsg (XMLEle *root, const char *dev)
 	ts = findXMLAttValu (root, "timestamp");
 	if (!ts[0])
 	{
-	    tstamp (stamp);
+	    indi_tstamp (stamp);
 	    ts = stamp;
 	}
 
 	/* append to log file, name is date portion of time stamp */
 	sprintf (logfn, "%s/%.10s.islog", ldir, ts);
 	fp = fopen (logfn, "a");
-	if (!fp) 
+	if (!fp)
 	    return;	/* oh well */
 	fprintf (fp, "%s: %s: %s\n", ts, dev, ms);
 	fclose (fp);
@@ -1489,7 +1489,7 @@ logDMsg (XMLEle *root, const char *dev)
 static void
 Bye()
 {
-	fprintf (stderr, "%s: good bye\n", tstamp(NULL));
+	fprintf (stderr, "%s: good bye\n", indi_tstamp(NULL));
 	exit(1);
 }
 
