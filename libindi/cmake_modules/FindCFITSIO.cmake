@@ -4,6 +4,9 @@
 #  CFITSIO_FOUND - system has CFITSIO
 #  CFITSIO_INCLUDE_DIR - the CFITSIO include directory
 #  CFITSIO_LIBRARIES - Link these to use CFITSIO
+#  CFITSIO_VERSION_STRING - Human readable version number of cfitsio
+#  CFITSIO_VERSION_MAJOR  - Major version number of cfitsio
+#  CFITSIO_VERSION_MINOR  - Minor version number of cfitsio
 
 # Copyright (c) 2006, Jasem Mutlaq <mutlaqja@ikarustech.com>
 # Based on FindLibfacile by Carsten Niehaus, <cniehaus@gmx.de>
@@ -21,7 +24,7 @@ if (CFITSIO_INCLUDE_DIR AND CFITSIO_LIBRARIES)
 else (CFITSIO_INCLUDE_DIR AND CFITSIO_LIBRARIES)
 
   find_path(CFITSIO_INCLUDE_DIR fitsio.h
-    PATH_SUFFIXES libcfitsio3
+    PATH_SUFFIXES libcfitsio3 cfitsio
     ${_obIncDir}
     ${GNUWIN32_DIR}/include
   )
@@ -40,12 +43,20 @@ else (CFITSIO_INCLUDE_DIR AND CFITSIO_LIBRARIES)
 
 
   if (CFITSIO_FOUND)
+
+    # Find the version of the cfitsio header
+    execute_process(COMMAND egrep CFITSIO_VERSION ${CFITSIO_INCLUDE_DIR}/fitsio.h
+                    OUTPUT_VARIABLE CFITSIO_VERSION_STRING)
+    STRING(REGEX REPLACE "[^0-9.]" "" CFITSIO_VERSION_STRING ${CFITSIO_VERSION_STRING})
+    STRING(REGEX REPLACE "^([0-9]+)[.]([0-9]+)" "\\1" CFITSIO_VERSION_MAJOR ${CFITSIO_VERSION_STRING})
+    STRING(REGEX REPLACE "^([0-9]+)[.]([0-9]+)" "\\2" CFITSIO_VERSION_MINOR ${CFITSIO_VERSION_STRING})
+
     if (NOT CFITSIO_FIND_QUIETLY)
-      message(STATUS "Found CFITSIO: ${CFITSIO_LIBRARIES}")
+      message(STATUS "Found CFITSIO ${CFITSIO_VERSION_STRING}: ${CFITSIO_LIBRARIES}")
     endif (NOT CFITSIO_FIND_QUIETLY)
   else (CFITSIO_FOUND)
     if (CFITSIO_FIND_REQUIRED)
-      message(FATAL_ERROR "CFITSIO not found. Please install libcfitsio3 and try again. http://indi.sf.net")
+      message(STATUS "CFITSIO not found.")
     endif (CFITSIO_FIND_REQUIRED)
   endif (CFITSIO_FOUND)
 

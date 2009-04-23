@@ -22,6 +22,11 @@ macro_optional_find_package(USB)
 macro_log_feature(LIBUSB_FOUND "libusb" "User level access to USB devices" "http://indi.sf.net" FALSE "" "Provides support for USB based drivers in INDI.")
 
 macro_optional_find_package(CFITSIO)
+
+if ((NOT CFITSIO_FOUND) OR (CFITSIO_VERSION_MAJOR LESS 3))
+  message(FATAL_ERROR "CFITSIO version too old, Please install cfitsio 3.x and try again. http://indi.sf.net")
+endif ((NOT CFITSIO_FOUND) OR (CFITSIO_VERSION_MAJOR LESS 3))
+
 macro_bool_to_01(CFITSIO_FOUND HAVE_CFITSIO_H)
 macro_log_feature(CFITSIO_FOUND "libcfitsio" "A library for reading and writing data files in FITS (Flexible Image Transport System) data format" "http://indi.sf.net" FALSE "3.03" "Provides INDI with FITS I/O support.")
 
@@ -146,7 +151,7 @@ set(lx200generic_SRCS
    ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200gps.cpp
    ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200generic.cpp
    ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200classic.cpp
-   ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200apdriver.c 
+   ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200apdriver.c
    ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200ap.cpp )
 
 add_executable(indi_lx200generic ${lx200generic_SRCS}  ${liblilxml_SRCS} ${libindicom_SRCS})
@@ -159,9 +164,9 @@ endif (NOVA_FOUND)
 
 install(TARGETS indi_lx200generic RUNTIME DESTINATION bin )
 
-file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/make_lx200generic_symlink.cmake 
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/make_lx200generic_symlink.cmake
 "exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic ${BUILD_ROOT}${BIN_INSTALL_DIR}/indi_lx200classic)\n
-exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic ${BUILD_ROOT}${BIN_INSTALL_DIR}/indi_lx200autostar)\n 
+exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic ${BUILD_ROOT}${BIN_INSTALL_DIR}/indi_lx200autostar)\n
 exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic ${BUILD_ROOT}${BIN_INSTALL_DIR}/indi_lx200_16)\n
 exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic ${BUILD_ROOT}${BIN_INSTALL_DIR}/indi_lx200gps)\n
 exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic ${BUILD_ROOT}${BIN_INSTALL_DIR}/indi_lx200ap)\n
@@ -521,4 +526,4 @@ install( FILES drivers.xml DESTINATION ${DATA_INSTALL_DIR})
 
 install( FILES indiapi.h indidevapi.h base64.h eventloop.h ${CMAKE_SOURCE_DIR}/libs/lilxml.h
  ${CMAKE_SOURCE_DIR}/libs/indicom.h DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
- 
+
