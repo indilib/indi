@@ -535,13 +535,6 @@ libindi/README.stv -text
 libindi/TODO -text
 libindi/base64.c -text
 libindi/base64.h -text
-libindi/cmake_modules/FindCFITSIO.cmake -text
-libindi/cmake_modules/FindFLI.cmake -text
-libindi/cmake_modules/FindNova.cmake -text
-libindi/cmake_modules/FindUSB.cmake -text
-libindi/cmake_modules/MacroBoolTo01.cmake -text
-libindi/cmake_modules/MacroLogFeature.cmake -text
-libindi/cmake_modules/MacroOptionalFindPackage.cmake -text
 libindi/config.h.cmake -text
 libindi/debian/changelog -text
 libindi/debian/compat -text
