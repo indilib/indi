@@ -38,7 +38,6 @@ indi-qsi/cmake_modules/MacroBoolTo01.cmake -text
 indi-qsi/cmake_modules/MacroLogFeature.cmake -text
 indi-qsi/cmake_modules/MacroOptionalFindPackage.cmake -text
 indi-qsi/config.h.cmake -text
-indi-qsi/drivers.xml -text
 indi-qsi/indi_qsi.xml -text
 indi-qsi/qsi_ccd.cc -text
 indi-sbig/.cproject -text
