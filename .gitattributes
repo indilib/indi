@@ -1,5 +1,4 @@
 * text=auto !eol
-/FindCFITSIO.cmake -text
 /FindFLI.cmake -text
 /FindNova.cmake -text
 /FindUSB.cmake -text
