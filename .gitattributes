@@ -36,14 +36,6 @@ indi-apogee/indialta.c -text
 indi-qsi/AUTHORS -text
 indi-qsi/INSTALL -text
 indi-qsi/README -text
-indi-qsi/cmake_modules/FindCFITSIO.cmake -text
-indi-qsi/cmake_modules/FindINDI.cmake -text
-indi-qsi/cmake_modules/FindNova.cmake -text
-indi-qsi/cmake_modules/FindQSIAPI.cmake -text
-indi-qsi/cmake_modules/FindUSB.cmake -text
-indi-qsi/cmake_modules/MacroBoolTo01.cmake -text
-indi-qsi/cmake_modules/MacroLogFeature.cmake -text
-indi-qsi/cmake_modules/MacroOptionalFindPackage.cmake -text
 indi-qsi/config.h.cmake -text
 indi-qsi/indi_qsi.xml -text
 indi-qsi/qsi_ccd.cc -text
