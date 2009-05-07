@@ -2,6 +2,7 @@
 cmake_modules/FindAPOGEE.cmake -text
 cmake_modules/FindCFITSIO.cmake -text
 cmake_modules/FindFLI.cmake -text
+cmake_modules/FindINDI.cmake -text
 cmake_modules/FindNova.cmake -text
 cmake_modules/FindQSIAPI.cmake -text
 cmake_modules/FindUSB.cmake -text
