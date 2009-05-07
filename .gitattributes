@@ -1,4 +1,11 @@
 * text=auto !eol
+cmake_modules/FindCFITSIO.cmake -text
+cmake_modules/FindFLI.cmake -text
+cmake_modules/FindNova.cmake -text
+cmake_modules/FindUSB.cmake -text
+cmake_modules/MacroBoolTo01.cmake -text
+cmake_modules/MacroLogFeature.cmake -text
+cmake_modules/MacroOptionalFindPackage.cmake -text
 indi-apogee/.cproject -text
 indi-apogee/.project -text
 indi-apogee/AUTHORS -text
