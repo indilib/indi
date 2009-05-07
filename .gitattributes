@@ -16,14 +16,6 @@ indi-apogee/COPYING.LIB -text
 indi-apogee/ChangeLog -text
 indi-apogee/INSTALL -text
 indi-apogee/README -text
-indi-apogee/cmake_modules/FindAPOGEE.cmake -text
-indi-apogee/cmake_modules/FindCFITSIO.cmake -text
-indi-apogee/cmake_modules/FindINDI.cmake -text
-indi-apogee/cmake_modules/FindNova.cmake -text
-indi-apogee/cmake_modules/FindUSB.cmake -text
-indi-apogee/cmake_modules/MacroBoolTo01.cmake -text
-indi-apogee/cmake_modules/MacroLogFeature.cmake -text
-indi-apogee/cmake_modules/MacroOptionalFindPackage.cmake -text
 indi-apogee/debian/changelog -text
 indi-apogee/debian/compat -text
 indi-apogee/debian/control -text
