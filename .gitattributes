@@ -250,10 +250,6 @@ libapogee/INSTALL -text
 libapogee/LICENSE -text
 libapogee/README -text
 libapogee/apogee-test.h -text
-libapogee/cmake_modules/FindUSB.cmake -text
-libapogee/cmake_modules/MacroBoolTo01.cmake -text
-libapogee/cmake_modules/MacroLogFeature.cmake -text
-libapogee/cmake_modules/MacroOptionalFindPackage.cmake -text
 libapogee/debian/changelog -text
 libapogee/debian/compat -text
 libapogee/debian/control -text
