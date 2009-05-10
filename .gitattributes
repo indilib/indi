@@ -1,0 +1,22 @@
+* text=auto !eol
+indi-knro/.cvsignore -text
+indi-knro/Authors -text
+indi-knro/CMakeLists.txt -text
+indi-knro/ChangeLog -text
+indi-knro/Readme -text
+indi-knro/copying.lib -text
+indi-knro/encoder.cpp -text
+indi-knro/encoder.h -text
+indi-knro/indi_knro.xml -text
+indi-knro/install -text
+indi-knro/inverter.cpp -text
+indi-knro/knro.cpp -text
+indi-knro/knro.h -text
+indi-knro/knro_common.h -text
+indi-knro/ogg_util.cpp -text
+indi-knro/ogg_util.h -text
+indi-knro/polling.cpp -text
+indi-knro/sounds/alarm1.ogg -text
+indi-knro/sounds/alarm2.ogg -text
+indi-knro/sounds/calibration_error.ogg -text
+indi-knro/sounds/slew_error.ogg -text

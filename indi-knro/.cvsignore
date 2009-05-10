@@ -1,0 +1,17 @@
+*.kidl
+*_skel.cpp
+Makefile
+Makefile.in
+Makefile.rules.in
+autom4te.cache
+config.h
+config.log
+config.status
+libtool
+stamp-h1
+aclocal.m4
+config.h.in
+configure
+indi.kdevelop.pcs
+indi.kdevses
+doc

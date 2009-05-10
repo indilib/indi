@@ -1,0 +1,45 @@
+KNRO INDI Driver
+==================
+
+This package provides the INDI driver for Kuwait National Radio Observatory Control System, including:
+
+  + AMCI Absolute SSI Encoders (Alt & Az)
+  + VS1SP Industrial Inverter (Alt & Az)
+  + Weather Station (TODO)
+  + Primary system control
+
+
+Requirtments
+============
+
++ libindi0 >= v0.6 (http://indi.sf.net)
+
+	You need to install both libindi0 and libindi0-devel to build this package.
+	
++ libcfitsio >= 3.0
+
+	libcfitsio3 is required to compile support for FITS.
+	
++ libusb
+
+	libusb-devel is required.
+	
+
+	
+Installation
+============
+
+	See INSTALL
+	
+How to Use
+==========
+
+	You can use the KNRO INDI Driver in any INDI-compatible client such as KStars or Xephem. 
+	
+	To run the driver from the command line:
+	
+	$ indiserver indi_knro
+	
+	You can then connect to the driver from any client, the default port is 7624.
+	If you're using KStars, the driver will be automatically listed in KStars' Device Manager,
+	no further configuration is necessary.
