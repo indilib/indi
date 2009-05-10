@@ -23,8 +23,9 @@ if (CFITSIO_INCLUDE_DIR AND CFITSIO_LIBRARIES)
 
 else (CFITSIO_INCLUDE_DIR AND CFITSIO_LIBRARIES)
 
+  # JM: Packages from different distributions have different suffixes
   find_path(CFITSIO_INCLUDE_DIR fitsio.h
-    PATH_SUFFIXES libcfitsio3 cfitsio
+    PATH_SUFFIXES libcfitsio3 libcfitsio0 cfitsio
     ${_obIncDir}
     ${GNUWIN32_DIR}/include
   )
