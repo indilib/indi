@@ -1,5 +1,4 @@
 * text=auto !eol
-indi-knro/.cvsignore -text
 indi-knro/Authors -text
 indi-knro/CMakeLists.txt -text
 indi-knro/ChangeLog -text
