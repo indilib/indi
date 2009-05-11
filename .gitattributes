@@ -1,4 +1,5 @@
 * text=auto !eol
+cmake_modules/FindALUT.cmake -text
 cmake_modules/FindAPOGEE.cmake -text
 cmake_modules/FindCFITSIO.cmake -text
 cmake_modules/FindFLI.cmake -text
@@ -6,6 +7,7 @@ cmake_modules/FindINDI.cmake -text
 cmake_modules/FindNova.cmake -text
 cmake_modules/FindQSIAPI.cmake -text
 cmake_modules/FindUSB.cmake -text
+cmake_modules/FindVorbis.cmake -text
 cmake_modules/MacroBoolTo01.cmake -text
 cmake_modules/MacroLogFeature.cmake -text
 cmake_modules/MacroOptionalFindPackage.cmake -text
