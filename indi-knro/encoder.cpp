@@ -4,7 +4,7 @@
     Communication: RS485 Link, Binary
 
     Copyright (C) 2009 Jasem Mutlaq (mutlaqja@ikarustech.com)
-    				   Bader Almithan (bq8000@hotmail.com)
+    		       Bader Almithen (bq8000@hotmail.com)
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -76,16 +76,16 @@ knroEncoder::~knroEncoder()
 void knroEncoder::init()
 {
 
-  IUFillNumber(&EncoderAbsPosN[0], "Value" , "", "%g", 0., 500000., 0., 0.);
+  IUFillNumber(&EncoderAbsPosN[0], "Value" , "", "%d", 0., 500000., 0., 0.);
+  IUFillNumber(&EncoderAbsPosN[1], "Angle" , "", "%g", 0., 360., 0., 0.);
+
   IUFillText(&PortT[0], "PORT", "Port", "Dev1");
 
   if (type == AZ_ENCODER)
   {
   	IUFillNumberVector(&EncoderAbsPosNP, EncoderAbsPosN, NARRAY(EncoderAbsPosN), mydev, "Absolute Az", "", ENCODER_GROUP, IP_RO, 0, IPS_OK);
   
-  IUFillTextVector(&PortTP, PortT, NARRAY(PortT), mydev, "DEVICE_PORT", "Ports", COMM_GROUP, IP_RW, 0, IPS_IDLE);
-
-
+	IUFillTextVector(&PortTP, PortT, NARRAY(PortT), mydev, "DEVICE_PORT", "Ports", COMM_GROUP, IP_RW, 0, IPS_IDLE);
   }
   else
   	IUFillNumberVector(&EncoderAbsPosNP, EncoderAbsPosN, NARRAY(EncoderAbsPosN), mydev, "Absolute Alt", "", ENCODER_GROUP, IP_RO, 0, IPS_OK);

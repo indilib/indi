@@ -4,7 +4,7 @@
     Communication: RS485 Link, Binary
 
     Copyright (C) 2009 Jasem Mutlaq (mutlaqja@ikarustech.com)
-    				   Bader Almithan (bq8000@hotmail.com)
+    		       Bader Almithen (bq8000@hotmail.com)
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -21,7 +21,7 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     Change Log:
-    2009-04-26: Creating encoder class (BA)
+    2009-04-26: Creating encoder class (JM)
 
 */
 
@@ -64,7 +64,7 @@ private:
         // INDI Properties
 
 	// Encoder Absolute Position
-        INumber EncoderAbsPosN[1];
+        INumber EncoderAbsPosN[2];
 	INumberVectorProperty EncoderAbsPosNP;
 	
 	// Encoder Port number
