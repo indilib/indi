@@ -622,9 +622,6 @@ libnova/airmass.c -text
 libnova/angular_separation.c -text
 libnova/apparent_position.c -text
 libnova/asteroid.c -text
-libnova/cmake_modules/MacroBoolTo01.cmake -text
-libnova/cmake_modules/MacroLogFeature.cmake -text
-libnova/cmake_modules/MacroOptionalFindPackage.cmake -text
 libnova/comet.c -text
 libnova/debian/changelog -text
 libnova/debian/compat -text
