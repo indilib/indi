@@ -23,9 +23,9 @@ macro_log_feature(LIBUSB_FOUND "libusb" "User level access to USB devices" "http
 
 macro_optional_find_package(CFITSIO)
 
-if ((NOT CFITSIO_FOUND) OR (CFITSIO_VERSION_MAJOR LESS 3))
+if (NOT CFITSIO_FOUND OR CFITSIO_VERSION_MAJOR LESS 3)
   message(FATAL_ERROR "CFITSIO version too old, Please install cfitsio 3.x and try again. http://indi.sf.net")
-endif ((NOT CFITSIO_FOUND) OR (CFITSIO_VERSION_MAJOR LESS 3))
+endif (NOT CFITSIO_FOUND OR CFITSIO_VERSION_MAJOR LESS 3)
 
 macro_bool_to_01(CFITSIO_FOUND HAVE_CFITSIO_H)
 macro_log_feature(CFITSIO_FOUND "libcfitsio" "A library for reading and writing data files in FITS (Flexible Image Transport System) data format" "http://indi.sf.net" FALSE "3.03" "Provides INDI with FITS I/O support.")
