@@ -27,6 +27,11 @@ else (ALUT_FOUND STREQUAL "NO")
  message (STATUS "Found Alut: " ${ALUT_LIBRARY})
 endif(ALUT_FOUND STREQUAL "NO")
 
+
+if (NOT VORBIS_FOUND)
+ message (FATAL_ERROR "Vorbis library was not found on this system. Please install Vorbis development files.")
+endif (NOT VORBIS_FOUND)
+
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_SOURCE_DIR})
 include_directories( ${INDI_INCLUDE_DIR})
