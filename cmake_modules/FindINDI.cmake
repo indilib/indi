@@ -51,7 +51,7 @@ else (INDI_INCLUDE_DIR AND INDI_LIBRARIES AND INDI_DRIVER_LIBRARIES)
     endif (NOT INDI_FIND_QUIETLY)
   else (INDI_FOUND)
     if (INDI_FIND_REQUIRED)
-      message(FATAL_ERROR "indi-devel not found. Cannot compile Apogee CCD Driver. Please install indi-devel and try again. http://indi.sf.net")
+      message(FATAL_ERROR "indi-devel not found. Cannot compile INDI drivers. Please install indi-devel and try again. http://indi.sf.net")
     endif (INDI_FIND_REQUIRED)
   endif (INDI_FOUND)
 
