@@ -6,6 +6,7 @@ cmake_modules/FindFLI.cmake -text
 cmake_modules/FindINDI.cmake -text
 cmake_modules/FindNova.cmake -text
 cmake_modules/FindQSIAPI.cmake -text
+cmake_modules/FindSBIG.cmake -text
 cmake_modules/FindUSB.cmake -text
 cmake_modules/FindVorbis.cmake -text
 cmake_modules/MacroBoolTo01.cmake -text
