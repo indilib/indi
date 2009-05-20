@@ -23,6 +23,13 @@ else (LIB_64)
 exec_program(cp ARGS ${CMAKE_SOURCE_DIR}/libsbigudrv32.so ${CMAKE_BINARY_DIR}/libsbigudrv.so.${SBIG_VERSION})
 endif(LIB_64)
 
+# Make sure symbolic links are installed
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/make_sbig_symlink.cmake "
+exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${LIB_INSTALL_DIR}${LIB_POSTFIX}/libsbigudrv.so.${SBIG_VERSION} ${LIB_INSTALL_DIR}${LIB_POSTFIX}/libsbigudrv.so.${SBIG_SOVERSION})\n
+exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${LIB_INSTALL_DIR}${LIB_POSTFIX}/libsbigudrv.so.${SBIG_SOVERSION} ${LIB_INSTALL_DIR}${LIB_POSTFIX}/libsbigudrv.so)\n
+")
+
 install( FILES ${CMAKE_BINARY_DIR}/libsbigudrv.so.${SBIG_VERSION} DESTINATION ${LIB_INSTALL_DIR}${LIB_POSTFIX})
 install( FILES sbigucam.hex sbiglcam.hex sbigfcam.hex stfga.bin DESTINATION ${FIRMWARE_INSTALL_DIR})
 install( FILES 99-sbig.rules DESTINATION ${RULES_INSTALL_DIR})
+install( SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_sbig_symlink.cmake)
