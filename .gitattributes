@@ -1,4 +1,5 @@
 * text=auto !eol
+indi-knro/.project -text
 indi-knro/Authors -text
 indi-knro/CMakeLists.txt -text
 indi-knro/ChangeLog -text
