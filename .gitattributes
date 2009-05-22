@@ -709,6 +709,8 @@ sbig/debian/rules -text
 sbig/debian/sbig.dirs -text
 sbig/debian/sbig.install -text
 sbig/debian/sbig.links -text
+sbig/libsbigudrv32.so -text
+sbig/libsbigudrv64.so -text
 sbig/sbigfcam.hex -text
 sbig/sbiglcam.hex -text
 sbig/sbigucam.hex -text
