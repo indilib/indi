@@ -16,6 +16,7 @@ find_package(INDI REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(ALUT REQUIRED)
 find_package(Vorbis REQUIRED)
+find_package(MODBUS REQUIRED)
 
 macro_optional_find_package(Nova)
 macro_bool_to_01(NOVA_FOUND HAVE_NOVA_H)
