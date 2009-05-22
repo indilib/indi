@@ -28,6 +28,7 @@
 #define BASIC_GROUP		"Main Control"
 #define TELESCOPE_GROUP	"Telescope Control"
 #define ENCODER_GROUP	"Encoder"
+#define INVERTER_GROUP	"Inverter"
 #define SITE_GROUP		"Site"
 #define OPTIONS_GROUP	"Options"
 

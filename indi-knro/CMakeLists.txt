@@ -38,6 +38,7 @@ include_directories( ${CMAKE_SOURCE_DIR})
 include_directories( ${INDI_INCLUDE_DIR})
 include_directories( ${CFITSIO_INCLUDE_DIR})
 include_directories( ${ALUT_INCLUDE_DIR})
+include_directories( ${MODBUS_INCLUDE_DIR})
 
 
 if (NOVA_FOUND)
@@ -48,6 +49,7 @@ endif (NOVA_FOUND)
 set(indiknro_SRCS
    ${CMAKE_SOURCE_DIR}/knro.cpp
    ${CMAKE_SOURCE_DIR}/encoder.cpp
+   ${CMAKE_SOURCE_DIR}/inverter.cpp
    ${CMAKE_SOURCE_DIR}/polling.cpp
    ${CMAKE_SOURCE_DIR}/ogg_util.cpp
    )

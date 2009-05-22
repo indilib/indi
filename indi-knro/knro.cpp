@@ -139,6 +139,9 @@ knroObservatory::knroObservatory()
   AzEncoder = new knroEncoder(knroEncoder::AZ_ENCODER);
   AltEncoder = new knroEncoder(knroEncoder::ALT_ENCODER);
 
+  AzInverter = new knroInverter(knroInverter::AZ_INVERTER);
+  AltInverter = new knroInverter(knroInverter::ALT_INVERTER);
+  
   init_properties();
 
   #ifndef SIMULATION
@@ -335,6 +338,10 @@ void knroObservatory::ISGetProperties(const char *dev)
 	// Encoder Group
 	AzEncoder->ISGetProperties();
         AltEncoder->ISGetProperties();
+	
+	// Inverter Group
+	AzInverter->ISGetProperties();
+	AltInverter->ISGetProperties();
 	
 /* FOR SIMULATION ONLY */
 	//IDDefSwitch(&AZEncSP, NULL);

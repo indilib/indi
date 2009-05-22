@@ -36,14 +36,111 @@
 
 #include <indicom.h>
 
-// For Astro Library Routines
-#include "astrolib/geolocation.h"
-#include "astrolib/skypoint.h"
-#include "astrolib/julian_day.h"
-#include "astrolib/sidereal_time.h"
+#include "inverter.h"
 
-#include "knro.h"
 
-#define POLL_CALIBRATION	1000
+/****************************************************************
+**
+**
+*****************************************************************/
+knroInverter::knroInverter(inverterType new_type)
+{
 
-extern const char * mydev;
+  // Default value
+  type = AZ_INVERTER;
+
+  set_type(new_type);
+
+  init();
+
+
+
+}
+
+/****************************************************************
+**
+**
+*****************************************************************/
+knroInverter::~knroInverter()
+{
+
+
+
+
+}
+
+/****************************************************************
+**
+**
+*****************************************************************/
+void knroInverter::init()
+{
+
+    IUFillSwitch(&MotionControlS[0], "FORWARD", "Forward", ISS_OFF);
+    IUFillSwitch(&MotionControlS[1], "REVERSE", "Reverse", ISS_OFF);
+    IUFillSwitch(&MotionControlS[2], "STOP", "Stop", ISS_OFF);
+    IUFillNumber(&InverterSpeedN[0], "SPEED", "Hz", "%10.6m",  0., 50., 1., 0.);    
+    IUFillText(&PortT[0], "PORT", "Port", "Dev1");
+    
+  if (type == AZ_INVERTER)
+  {
+  	IUFillTextVector(&PortTP, PortT, NARRAY(PortT), mydev, "AZ_INVERTER_PORT", "AZ Port", INVERTER_GROUP, IP_RW, 0, IPS_IDLE);
+  	IUFillSwitchVector(&MotionControlSP, MotionControlS, NARRAY(MotionControlS), mydev, "AZ_MOTION_CONTROL", "Az Motion", INVERTER_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillNumberVector(&InverterSpeedNP, InverterSpeedN, NARRAY(InverterSpeedN), mydev, "AZ_SPEED" , "Az Speed", INVERTER_GROUP, IP_RW, 0, IPS_IDLE);	
+  }
+  else
+  {
+  	IUFillTextVector(&PortTP, PortT, NARRAY(PortT), mydev, "ALT_INVERTER_PORT", "ALT Port", INVERTER_GROUP, IP_RW, 0, IPS_IDLE);
+  	IUFillSwitchVector(&MotionControlSP, MotionControlS, NARRAY(MotionControlS), mydev, "ALT_MOTION_CONTROL", "Alt Motion", INVERTER_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+  	IUFillNumberVector(&InverterSpeedNP, InverterSpeedN, NARRAY(InverterSpeedN), mydev, "ALT_SPEED" , "Az Speed", INVERTER_GROUP, IP_RW, 0, IPS_IDLE);  	
+  }
+ 
+}
+
+/****************************************************************
+**
+**
+*****************************************************************/
+void knroInverter::move_forward()
+{
+	
+	
+	
+	
+	
+}
+
+/****************************************************************
+**
+**
+*****************************************************************/
+void knroInverter::move_reverse()
+{
+	
+	
+	
+	
+	
+}
+
+/****************************************************************
+**
+**
+*****************************************************************/
+void knroInverter::stop()
+{
+	
+	
+	
+	
+	
+	
+	
+}
+      
+void knroInverter::ISGetProperties()
+{
+   IDDefSwitch(&MotionControlSP, NULL);
+   IDDefNumber(&InverterSpeedNP, NULL);
+   IDDefText(&PortTP, NULL);
+}

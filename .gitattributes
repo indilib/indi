@@ -10,6 +10,7 @@ indi-knro/encoder.h -text
 indi-knro/indi_knro.xml -text
 indi-knro/install -text
 indi-knro/inverter.cpp -text
+indi-knro/inverter.h -text
 indi-knro/knro.cpp -text
 indi-knro/knro.h -text
 indi-knro/knro_common.h -text

@@ -27,6 +27,7 @@
 #include <stdio.h>
 
 #include "encoder.h"
+#include "inverter.h"
 
 using std::string;
 
@@ -62,7 +63,10 @@ class knroObservatory
 
    knroEncoder *AltEncoder;
    knroEncoder *AzEncoder;
-  
+
+   knroInverter *AltInverter;
+   knroInverter *AzInverter;
+   
     /************************/
     /* FOR SIMULATION ONLY */
     ISwitch AZEncS[2];
