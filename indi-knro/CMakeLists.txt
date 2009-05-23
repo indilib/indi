@@ -14,13 +14,13 @@ find_package(USB REQUIRED)
 find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
 find_package(ZLIB REQUIRED)
-find_package(ALUT REQUIRED)
-find_package(Vorbis REQUIRED)
 find_package(MODBUS REQUIRED)
 
 macro_optional_find_package(Nova)
 macro_bool_to_01(NOVA_FOUND HAVE_NOVA_H)
 macro_log_feature(NOVA_FOUND "libnova" "A general purpose, double precision, Celestial Mechanics, Astrometry and Astrodynamics library" "http://libnova.sourceforge.net" FALSE "0.12.1" "Needed by INDI.")
+
+find_package(ALUT REQUIRED)
 
 if (ALUT_FOUND STREQUAL "NO")
  message (FATAL_ERROR "Alut library was not found on this system. Please install Alut development files.")
@@ -28,6 +28,7 @@ else (ALUT_FOUND STREQUAL "NO")
  message (STATUS "Found Alut: " ${ALUT_LIBRARY})
 endif(ALUT_FOUND STREQUAL "NO")
 
+find_package(Vorbis REQUIRED)
 
 if (NOT VORBIS_FOUND)
  message (FATAL_ERROR "Vorbis library was not found on this system. Please install Vorbis development files.")
@@ -58,7 +59,7 @@ add_executable(indi_knro ${indiknro_SRCS})
 
 # openal alut vorbis vorbisfile
 
-target_link_libraries(indi_knro ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${ALUT_LIBRARY} ${VORBIS_LIBRARY} ${VORBISFILE_LIBRARY} z pthread)
+target_link_libraries(indi_knro ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${MODBUS_LIBRARIES} ${CFITSIO_LIBRARIES} ${ALUT_LIBRARY} ${VORBIS_LIBRARY} ${VORBISFILE_LIBRARY} z pthread)
 
 if (NOVA_FOUND)
   target_link_libraries(indi_knro ${NOVA_LIBRARIES})

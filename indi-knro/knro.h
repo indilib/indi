@@ -77,15 +77,13 @@ class knroObservatory
 
     /* Switches */
     ISwitch ConnectS[2];
-    ISwitch AZSlewSpeedS[3];
-    ISwitch ALTSlewSpeedS[3];
-    ISwitch MovementNSS[2];
-    ISwitch MovementWES[2];
     ISwitch AbortSlewS[1];
     ISwitch StopAllS[1];
     ISwitch OnCoordSetS[1];
     ISwitch ParkS[1];
     ISwitch DebugS[2];
+    ISwitch SimulationS[2];
+    
 
     /* Texts */
     IText PortT[1];
@@ -104,15 +102,12 @@ class knroObservatory
     
     /* Switch vectors */
     ISwitchVectorProperty ConnectSP;				/* Connection switch */
-    ISwitchVectorProperty AZSlewSpeedSP;			/* Slew Speed */
-    ISwitchVectorProperty ALTSlewSpeedSP;			/* Slew Speed */
-    ISwitchVectorProperty MovementNSSP;				/* North/South */
-    ISwitchVectorProperty MovementWESP;				/* West/East */
     ISwitchVectorProperty AbortSlewSP;				/* Abort Slew */
     ISwitchVectorProperty StopAllSP;				/* Stop All, exactly like Abort Slew */
     ISwitchVectorProperty OnCoordSetSP;				/* What happens when new coords are set */
     ISwitchVectorProperty ParkSP;				/* Park Telescope */
     ISwitchVectorProperty DebugSP;				/* Debugging Switch */
+    ISwitchVectorProperty SimulationSP;				/* Simulation Switch */
 
     /* Text Vectors */
     ITextVectorProperty PortTP;
@@ -200,37 +195,25 @@ class knroObservatory
     static int NS_ZERO_OFFSET;
 
     /* Functions */
+    
+    /* Init observatory */
+    void init_knro();
+    
     /* Safety checks functions */
     void check_safety();
 
     /* Error log functions */
     const char *get_knro_error_string(knroErrCode code);
 
-    /* Telescope Motion Control functions */
-    void update_alt_speed();
-    void update_az_speed();
-    void update_alt_dir(NSDirection newDir);
-    void update_az_dir(WEDirection newDir);
-
     /* Send command buffer to NI card */
     void execute_slew();
 
-    /* Move telescope in AZ/ALT */
-    void move_telescope_ns();
-    void move_telescope_we();
-
-    /* Mode sidereally using PWM */
-    void start_sidereal();
-    void stop_sidereal();
-
-    /* Disengage tracking */
-    void disable_tracking();
-
     /* Modular stop functions */
     knroErrCode stop_all();
-    knroErrCode stop_telescope();
-    knroErrCode stop_ns();
-    knroErrCode stop_we();
+    
+    /* Simulation */
+    void enable_simulation();
+    void disable_simulation();    
 
     void park_telescope(bool is_emergency=false);
     void terminate_parking();
@@ -311,6 +294,9 @@ class knroObservatory
 
     /* Encoder Check File */
     FILE *en_record;
+    
+    /* Simulation */
+    bool simulation;
 
 };
 
