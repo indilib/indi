@@ -520,8 +520,14 @@ void knroObservatory::ISNewSwitch (const char *dev, const char *name, ISState *s
 		return;
 	}
 	
+	
 	AzInverter->ISNewSwitch(dev, name, states, names, n);
 	AltInverter->ISNewSwitch(dev, name, states, names, n);
+	
+	AzEncoder->ISNewSwitch(dev, name, states, names, n);
+	AltEncoder->ISNewSwitch(dev, name, states, names, n);
+	
+	
 
 }
 
@@ -537,6 +543,9 @@ void knroObservatory::ISNewText (const char *dev, const char *name, char *texts[
 	// Call respective functions for Inverters
 	AzInverter->ISNewText(dev, name, texts, names, n);
 	AltInverter->ISNewText(dev, name, texts, names, n);
+	
+	AzEncoder->ISNewText(dev, name, texts, names, n);
+	AltEncoder->ISNewText(dev, name, texts, names, n);
 	
 	
 	// If we're not connected, we return
@@ -670,6 +679,9 @@ void knroObservatory::ISNewNumber (const char *dev, const char *name, double val
 	// Call respective functions for inverter
 	AzInverter->ISNewNumber(dev, name, values, names, n);
 	AltInverter->ISNewNumber(dev, name, values, names, n);
+	
+	AzEncoder->ISNewNumber(dev, name, values, names, n);
+	AltEncoder->ISNewNumber(dev, name, values, names, n);
 }
 
 /**************************************************************************************
@@ -702,6 +714,9 @@ void knroObservatory::reset_all_properties(bool reset_to_idle)
 	AzInverter->reset_all_properties(reset_to_idle);
 	AltInverter->reset_all_properties(reset_to_idle);
 	
+	AzEncoder->reset_all_properties(reset_to_idle);
+	AltEncoder->reset_all_properties(reset_to_idle);
+	
 }
 
 /**************************************************************************************
@@ -710,7 +725,7 @@ void knroObservatory::reset_all_properties(bool reset_to_idle)
 void knroObservatory::init_knro()
 {
 	// For now, make sure that both inverters are connected
-	if (AzInverter->connect() && AltInverter->connect())
+	if (AzInverter->connect() && AltInverter->connect() && AzEncoder->connect() && AltEncoder->connect())
 	{
 		ConnectSP. s = IPS_OK;
 		
@@ -988,6 +1003,8 @@ void knroObservatory::enable_simulation()
 	// Simulate all the devices
 	AzInverter->enable_simulation();	
 	AltInverter->enable_simulation();
+	AzEncoder->enable_simulation();	
+	AltEncoder->enable_simulation();
 	
 	SimulationSP.s = IPS_OK;
 	IDSetSwitch(&SimulationSP, "KNRO simulation is enabled.");
@@ -1007,6 +1024,8 @@ void knroObservatory::disable_simulation()
 	// Simulate all the devices
 	AzInverter->disable_simulation();
 	AltInverter->disable_simulation();
+	AzEncoder->disable_simulation();	
+	AltEncoder->disable_simulation();
 	
 	SimulationSP.s = IPS_OK;
 	IDSetSwitch(&SimulationSP, "KNRO simulation is disabled.");

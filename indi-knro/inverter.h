@@ -97,8 +97,12 @@ private:
 	ITextVectorProperty PortTP;
 	IText PortT[1];
 
+	// Test Function
+	ISwitch TestS[1];
+	ISwitchVectorProperty TestSP;
+	
 	// Functions
-	void init();
+	void init_properties();
 	bool check_drive_connection();
 
 	// Variable

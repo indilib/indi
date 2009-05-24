@@ -4,7 +4,6 @@
     Communication: RS485 Link, Binary
 
     Copyright (C) 2009 Jasem Mutlaq (mutlaqja@ikarustech.com)
-    		       Bader Almithen (bq8000@hotmail.com)
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -34,50 +33,72 @@
 #include <errno.h>
 #include <sys/time.h>
 
-#include <memory>
+#include <string>
 
 #include <indidevapi.h>
 #include <indicom.h>
 
 #include "knro_common.h"
 
+using namespace std;
+
 class knroEncoder
 {
 
 public:
 
-        enum encoderType { AZ_ENCODER, ALT_ENCODER };
+    enum encoderType { AZ_ENCODER, ALT_ENCODER };
 
 	knroEncoder(encoderType new_type);
 	~knroEncoder();
 
-      void ISGetProperties();
-      unsigned int get_abs_encoder_count() { return abs_encoder_count; }
-      double get_current_angel() { return current_angle; }
+    unsigned int get_abs_encoder_count() { return abs_encoder_count; }
+    double get_current_angel() { return current_angle; }
 
-      void setType(encoderType new_type) { type = new_type; }
-      encoderType getType() { return type; }
+    void set_type(encoderType new_type);
+    encoderType get_type() { return type; }
+      
+    bool connect();
+    void disconnect();
+    
+    // Simulation
+    void enable_simulation ();
+    void disable_simulation();
+    
+    // Standard INDI interface fucntions
+    void ISGetProperties();
+    void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+ 	void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+ 	void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+ 	
+    void reset_all_properties(bool reset_to_idle=false);
 
-     
 private: 
 
-        // INDI Properties
-
-	// Encoder Absolute Position
-        INumber EncoderAbsPosN[2];
-	INumberVectorProperty EncoderAbsPosNP;
+		// INDI Properties
+		// Encoder Absolute Position
+		INumber EncoderAbsPosN[2];
+		INumberVectorProperty EncoderAbsPosNP;
 	
-	// Encoder Port number
-	ITextVectorProperty PortTP;
-	IText PortT[1];
+		// Encoder Port number
+		ITextVectorProperty PortTP;
+		IText PortT[1];
 
-	// Functions
-	void init();
+		// Functions
+		void init_properties();
+		bool init_encoder();
+		bool check_drive_connection();
 
-	// Variable 
-	unsigned int abs_encoder_count;
-	double current_angle;
-	encoderType type;
+		// Variables
+		string type_name;
+		string default_port;
+		
+		int connection_status; 
+		bool simulation;
+		
+		unsigned int abs_encoder_count;
+		double current_angle;
+		encoderType type;
 
 
 };

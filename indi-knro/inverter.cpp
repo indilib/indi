@@ -57,7 +57,7 @@ knroInverter::knroInverter(inverterType new_type) : SLAVE_ADDRESS(0x01), SPEED_M
   
   set_type(new_type);
 
-  init();
+  init_properties();
 
 }
 
@@ -101,7 +101,7 @@ void knroInverter::set_type(inverterType new_type)
 **
 **
 *****************************************************************/
-void knroInverter::init()
+void knroInverter::init_properties()
 {
 
     IUFillText(&PortT[0], "PORT", "Port", default_port.c_str());
@@ -109,7 +109,12 @@ void knroInverter::init()
     IUFillSwitch(&MotionControlS[1], forward_motion.c_str(), "", ISS_OFF);
     IUFillSwitch(&MotionControlS[2], reverse_motion.c_str(), "", ISS_OFF);
   	
-    IUFillNumber(&InverterSpeedN[0], "SPEED", "Hz", "%g",  0., 50., 1., 0.);    
+    IUFillNumber(&InverterSpeedN[0], "SPEED", "Hz", "%g",  0., 50., 1., 0.);
+    
+    // Remove Later
+    IUFillSwitch(&TestS[0], "Switch to Local", "", ISS_OFF);
+    IUFillSwitchVector(&TestSP, TestS, NARRAY(TestS), mydev, string(type_name + string(" test")).c_str(), "",
+     INVERTER_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
     
   if (type == AZ_INVERTER)
   {
@@ -180,7 +185,8 @@ bool knroInverter::connect()
 *****************************************************************/   
 void knroInverter::disconnect()
 {
-	
+	if (simulation)
+		connection_status = -1;
 	
 	
 	
@@ -200,10 +206,9 @@ bool knroInverter::test_address()
 	if (!check_drive_connection())
 		return false;
 		
-
 	ret = force_single_coil(&mb_param, SLAVE_ADDRESS, 0x21, 1);
-	
-	if (ret != 1)
+
+   if (ret != 1)
    {
      IDLog("Command: Set drive in local mode. ERROR force_single_coil (%d)\n", ret);
      IDLog("Slave = %d, address = %d, value = %d (0x%X)\n", SLAVE_ADDRESS, 0x21, 1, 1);
@@ -496,6 +501,7 @@ void knroInverter::ISGetProperties()
    IDDefSwitch(&MotionControlSP, NULL);
    IDDefNumber(&InverterSpeedNP, NULL);
    IDDefText(&PortTP, NULL);
+   IDDefSwitch(&TestSP, NULL);
 }
 
 /****************************************************************
@@ -531,7 +537,6 @@ void knroInverter::ISNewNumber (const char *dev, const char *name, double values
 *****************************************************************/
 void knroInverter::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-	
 	// Device Port Text
 	if (!strcmp(PortTP.name, name))
 	{
@@ -542,11 +547,7 @@ void knroInverter::ISNewText (const char *dev, const char *name, char *texts[], 
 		IDSetText(&PortTP, NULL);
 		return;
 	}
-	
-	
-	
 }
-
 
 /****************************************************************
 **
@@ -554,6 +555,25 @@ void knroInverter::ISNewText (const char *dev, const char *name, char *texts[], 
 *****************************************************************/
 void knroInverter::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
+	if (!strcmp(TestSP.name, name))
+	{
+		IUResetSwitch(&TestSP);
+		
+		
+		if (test_address())
+		{
+			TestSP.s = IPS_OK;
+			IDSetSwitch(&TestSP, "Test function called. Check Local/Remote light on the %s inverter", type_name.c_str());
+		}
+		else
+		{
+			TestSP.s = IPS_ALERT;
+			IDSetSwitch(&TestSP, "Test function failed. Check driver log for more details.");
+		}
+		
+		return;
+	}
+		
 	if (!strcmp(MotionControlSP.name, name))
 	{
 		if (IUUpdateSwitch(&MotionControlSP, states, names, n) < 0)
@@ -618,12 +638,18 @@ void knroInverter::reset_all_properties(bool reset_to_idle)
 		MotionControlSP.s = IPS_IDLE;
 		InverterSpeedNP.s = IPS_IDLE;
 		PortTP.s 		  = IPS_IDLE;
+		
+		// Remove Later
+		TestSP.s		  = IPS_IDLE;
 	}
 	
 	IUResetSwitch(&MotionControlSP);
 	IDSetSwitch(&MotionControlSP, NULL);
 	IDSetNumber(&InverterSpeedNP, NULL);
 	IDSetText(&PortTP, NULL);
+	
+	// Remove later
+	IDSetSwitch(&TestSP, NULL);
 	
 }
 
@@ -650,6 +676,9 @@ void knroInverter::disable_simulation()
 	if (!simulation) 
 		return;
 		
+	 // Disconnect
+	 disconnect();
+	 
 	 simulation = false;
 	  
 	 IDMessage(mydev, "Caution: %s drive simulation is disabled.", type_name.c_str());
