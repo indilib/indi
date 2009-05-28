@@ -577,6 +577,16 @@ libindi/drivers/video/v4lphilips.cpp -text
 libindi/drivers/video/v4lphilips.h -text
 libindi/eventloop.c -text
 libindi/eventloop.h -text
+libindi/examples/Makefile -text
+libindi/examples/README -text
+libindi/examples/ccdpreview.txt -text
+libindi/examples/ngc1316o.fits -text
+libindi/examples/tutorial_ccdpreview.c -text
+libindi/examples/tutorial_dome.c -text
+libindi/examples/tutorial_one.c -text
+libindi/examples/tutorial_rain.c -text
+libindi/examples/tutorial_three.c -text
+libindi/examples/tutorial_two.c -text
 libindi/fq.c -text
 libindi/fq.h -text
 libindi/indiapi.h -text

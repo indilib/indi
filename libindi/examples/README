@@ -1,0 +1,67 @@
+*************************************************
+* INDI Developers Manual
+* Chapter 8: Tutorial
+**************************************************
+
+Introduction
+--------------
+
+The tutorials included in the INDI Library can be used with any INDI compatible client. The following instructions are provided to test the drivers with KStars. If you are running a different client, refer to your client documentation.
+
+Tutorials
+----------
+
+Four tutorials are presented to introduce developers to the INDI architecture. 
+
+tutorial_one: We construct a most basic (and useless) device driver to illustate basic INDI structures.
+tutorial_two:  We create a simple simulator. We will use a few handy utility functions provided by INDI like timers, string <---> number conversion, and more.
+tutorial_three:  We create a simple device, and establish a data channel with the client to transmit a FITS file. 
+
+tutorial_dome and tutorial_rain are part of the inter-driver communication tutorial. 
+
+Usage
+--------
+
+1. Run 'make' in the current directory. (This assumes that you built INDI in the src directory, refer to README there).
+ 
+------------------------------------------------------------------------------------------
+
+2. Run KStars (v1.1 or above is required)
+
+Under KStars, click on the "device" menu, then click on the "device manager". Click on the "client" tab and then click on the "add" button.
+
+A dialog box will be displayed with three fields: name, host, and port. 
+
+You can enter anything in the name field, for example "my device" or "tutorial". 
+
+Enter "127.0.0.1" in the host name and "8000" in the port entry (without the quotes). This device will be saved in your client menu. So you only to do #2 once.
+
+------------------------------------------------------------------------------------------
+
+3. In the src/examples directory, run each tutorial 
+
+$ indiserver -v -p 8000 ./tutorial_NUM
+
+where num is the tutorial number (tutorial_one, tutorial_two, or tutorial_three).
+
+For the inter-driver communications tutorial, type instead:
+
+$ indiserver -v -p 8000 ./tutorial_dome ./tutorial_rain
+
+------------------------------------------------------------------------------------------
+
+4. In KStars, go the device menu --> device manager --> client and select the host you added in step #2 and hit connect.
+
+------------------------------------------------------------------------------------------
+
+5. The connection icon should be changed to connected, otherwise, an error message will be displayed.
+
+------------------------------------------------------------------------------------------
+
+6. Close the device manager, and open the INDI Control Panel in the device menu. You can control your device from there.
+
+
+
+
+
+

@@ -1,0 +1,22 @@
+The CCDPreview
+
+The 16 or more bit data read from a CCD chip has to be converted to 8bit in order to be displayed. CCDPreview transfers the whole high accuracy data to the indi client and lets the user adjust the parameters of this conversion. The way the image is converted depends on the client. For example there could be sliders for brightness, contrast, gamma or a simple bitshift slider or two spinbuttons for lower and upper cutoff values. All details of the conversion exist inside the client only and the indi driver does not care about them at all.  CCDPreview allows to send parts of the preview image of arbitrary length that are joined on the client side. So the whole image data needs to be sent only once and the preview can be kept up to date during a longer readout sequence. A "maximum good data" value can be set so that saturated pixels can be marked.
+
+Control structure:
+There must be an INumberVectorProperty named "CCDPREVIEW_CTRL" it must contain
+INumber Elements with the Names "WIDTH", "HEIGHT", "BYTESPERPIXEL", "PIXELORDER" and "MAXGOODDATA".
+"WIDTH": the width of the image
+Allowed values are positive integers up to 65635.
+"HEIGHT": the height of the image
+Allowed values are positive integers up to 65635.
+"BYTESPERPIXEL": the number of bytes per Pixel:
+Allowed values are {1,2,3,4}. The byteorder is lowest byte first.
+"PIXELORDER": determines how the pixels are fed from the stream into the image.
+Set it to 1 if you have got a normal CCD.
+Allowed values are {1,2}. (1) The first pixel received is written to the upper left corner of the preview, the second one right next to it and so on, when a line is finished the next line below is started.
+(2) The first pixel received is written to the upper left corner of the preview, the second one to the lower right corner. The third one right next to the first one, the fourth one left next to the second one and so on. Pixelorder 2 is usefull for CCDs that are read out from two sides simultaneously.
+"MAXGOODDATA": the maximum good data value. Allowed values are non negative integers up to 4294967295.
+Every pixel with a value higher than MAXGOODDATA is marked as defective in the preview (e.g. by red color). So the observer can directly see whether there are saturated pixels.
+
+Usage:
+Before transferring any new image you have to call IDSetNumber on "CCDPREVIEW_CTRL" in order to reset the preview. You can send data to the preview using an arbitrary blob. But you have to set its .format property to ".ccdpreview" (or ".ccdpreview.z" for compressed data). The uncompressed length of each blob must be a multiple of BYTESPERPIXEL. For reasons of bandwidth and protocol overhead it does not make sense to transfer blobs much shorter than 1KByte.
