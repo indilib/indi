@@ -577,7 +577,6 @@ libindi/drivers/video/v4lphilips.cpp -text
 libindi/drivers/video/v4lphilips.h -text
 libindi/eventloop.c -text
 libindi/eventloop.h -text
-libindi/examples/Makefile -text
 libindi/examples/README -text
 libindi/examples/ccdpreview.txt -text
 libindi/examples/ngc1316o.fits -text

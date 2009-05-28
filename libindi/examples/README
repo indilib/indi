@@ -22,7 +22,7 @@ tutorial_dome and tutorial_rain are part of the inter-driver communication tutor
 Usage
 --------
 
-1. Run 'make' in the current directory. (This assumes that you built INDI in the src directory, refer to README there).
+1. Running cmake in the libindi directory should build the examples binary as well.
  
 ------------------------------------------------------------------------------------------
 
@@ -59,9 +59,4 @@ $ indiserver -v -p 8000 ./tutorial_dome ./tutorial_rain
 ------------------------------------------------------------------------------------------
 
 6. Close the device manager, and open the INDI Control Panel in the device menu. You can control your device from there.
-
-
-
-
-
 
