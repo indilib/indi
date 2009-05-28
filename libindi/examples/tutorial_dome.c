@@ -38,20 +38,28 @@
 #include "indidevapi.h"
 #include "eventloop.h"
 #include "indicom.h"
-#include "observer.h"
 
 #define mydev           "Dome"
 
 #define MAIN_GROUP	"Main"
-
-void check_rain(const char *dev, const char *name, IDState driver_state, IPState *states, char *names[], int n);
+#define SNOOP_GROUP     "Snooped"
 
 /* Connect/Disconnect */
 static ISwitch PowerS[]          	= {{"CONNECT" , "Connect" , ISS_OFF, 0, 0},{"DISCONNECT", "Disconnect", ISS_ON, 0, 0}};
 static ISwitchVectorProperty PowerSP	= { mydev, "CONNECTION" , "Connection", MAIN_GROUP, IP_RW, ISR_1OFMANY, 60, IPS_IDLE, PowerS, NARRAY(PowerS), "", 0};
 
+/* Dome Open/Close */
 static ISwitch DomeS[]           	= {{"Open", "", ISS_ON, 0, 0}, {"Close", "", ISS_OFF, 0, 0}};
 static ISwitchVectorProperty DomeSP	= { mydev, "Dome Status", "", MAIN_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, DomeS , NARRAY(DomeS), "", 0};
+
+/* The property we're trying to fetch from the rain driver. It's a carbon copy of the property define in rain.c, we initilize its structure here like any
+   other local property, but we don't define it to client, it's only used internally within the driver. 
+
+   MAKE SURE to set the property's device name to the device we're snooping on! If you copy/paste the property definition from the snooped driver
+   don't forget to remove "mydev" and replace it with the driver name.
+*/
+static ILight RainL[]			= {{"Status", "", IPS_IDLE, 0, 0}};
+static ILightVectorProperty RainLP	= { "Rain", "Rain Alert", "", SNOOP_GROUP, IPS_IDLE, RainL , NARRAY(RainL), "", 0};
 
 void ISGetProperties (const char *dev)
 { 
@@ -59,14 +67,38 @@ void ISGetProperties (const char *dev)
   IDDefSwitch(&PowerSP, NULL);
   IDDefSwitch(&DomeSP, NULL);
 
-  IOSubscribeProperty("Rain", "Rain Alert", IPT_LIGHT, IDT_ALL, check_rain);
+  /* Let's listen for Rain Alert property in the device Rain */
+  IDSnoopDevice("Rain", "Rain Alert");
 }
 
-void ISNewBLOB (const char *dev, const char *name, int sizes[], char *blobs[], char *formats[], char *names[], int n)
+void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n) {}
+
+void ISSnoopDevice (XMLEle *root)
 {
-  dev=dev;name=name;sizes=sizes;blobs=blobs;formats=formats;names=names;n=n;
+
+  IPState old_state = RainL[0].s;
+
+  /* If the "Rain Alert" property gets updated in the Rain device, we will receive a notification. We need to process the new values of Rain Alert and update the local version
+     of the property.*/
+  if (IUSnoopLight(root, &RainLP) == 0)
+  {
+
+    // If the dome is connected and rain is Alert */
+    if (PowerSP.s == IPS_OK && RainL[0].s == IPS_ALERT)
+    {
+	// If dome is open, then close it */
+	if (DomeS[0].s == ISS_ON)
+		closeDome();
+	else
+		IDMessage(mydev, "Rain Alert Detected! Dome is already closed.");
+    }
+    else if (old_state == IPS_ALERT && RainL[0].s != IPS_ALERT)
+		IDMessage(mydev, "Rain threat passed. Opening the dome is now safe.");
+
+  }
+
 }
-  
+
 void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
 	/* ignore if not ours */
@@ -76,7 +108,7 @@ void ISNewSwitch (const char *dev, const char *name, ISState *states, char *name
 	/* Connection */
 	if (!strcmp (name, PowerSP.name))
 	{
-	  if (IUUpdateSwitches(&PowerSP, states, names, n) < 0)
+	  if (IUUpdateSwitch(&PowerSP, states, names, n) < 0)
 		return;
 
    	  PowerSP.s = IPS_OK;
@@ -102,13 +134,24 @@ void ISNewSwitch (const char *dev, const char *name, ISState *states, char *name
 		  return;
 	  }
 	  
-	  if (IUUpdateSwitches(&DomeSP, states, names, n) < 0)
+	  if (IUUpdateSwitch(&DomeSP, states, names, n) < 0)
 		return;
 
 	DomeSP.s = IPS_BUSY;
 
 	if (DomeS[0].s == ISS_ON)
+	{
+		if (RainL[0].s == IPS_ALERT)
+		{
+			DomeSP.s = IPS_ALERT;
+			DomeS[0].s = ISS_OFF;
+			DomeS[1].s = ISS_ON;
+			IDSetSwitch(&DomeSP, "It is raining, cannot open dome.");
+			return;
+		}
+				
 		IDSetSwitch(&DomeSP, "Dome is opening.");
+	}
 	else
 		IDSetSwitch(&DomeSP, "Dome is closing.");
 
@@ -128,21 +171,16 @@ void ISNewSwitch (const char *dev, const char *name, ISState *states, char *name
 
 void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
- 
        /* ignore if not ours */ 
        if (dev && strcmp (mydev, dev))
          return;
 
 	/* suppress warning */
 	n=n; dev=dev; name=name; names=names; texts=texts;
-	
 }
 
 
-void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
-{
-       
-}
+void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n) {}
 
 void closeDome()
 {
@@ -161,42 +199,4 @@ void closeDome()
 	
 	
 }
-
-/* This is the callback function called by INDI when a new state from the rain collector driver is recieved.
-   Please note that the prototype of this function is specific for SWITCH properties. There are unique callback 
-   prototypes defined for all property types in the INDI API */
-void check_rain(const char *dev, const char *name, IDState driver_state, IPState *states, char *names[], int n)
-{
-
-	switch (driver_state)
-	{
-		case IDS_DEFINED:
-			IDMessage(mydev, "Property %s was defined.", name);
-			break;
-
-		case IDS_UPDATED:
-			IDMessage(mydev, "Property %s was updated. The rain collector alert is %s.", name, (states[0] == IPS_ALERT) ? "Alert!" : "Ok");
-			
-			/* Only do stuff if we're online */
-			if (PowerSP.s == IPS_OK && states[0] == IPS_ALERT)
-			{
-				if (DomeS[0].s == ISS_ON)
-					closeDome();
-				else
-					IDMessage(mydev, "Rain Alert Detected! Dome is already closed.");
-			}
-			
-			break;
-
-		case IDS_DELETED:
-			IDMessage(mydev, "Property %s was deleted.", name);
-			break;
-			
-		case IDS_DIED:
-			IDMessage(mydev, "Property %s is dead along with its driver %s.", name, dev);
-			break;
-	}
-
-}
-
 

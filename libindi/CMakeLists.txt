@@ -521,6 +521,78 @@ endif (NOVA_FOUND)
 install(TARGETS indi_eval RUNTIME DESTINATION bin )
 
 #################################################################################
+## Build Examples. Not installation
+########### Tutorial one ##############
+set(tutorialone_SRCS
+	${indimain_SRCS}
+	${CMAKE_SOURCE_DIR}/examples/tutorial_one.c
+   )
+
+add_executable(tutorial_one ${tutorialone_SRCS}  ${liblilxml_SRCS} ${libindicom_SRCS})
+
+target_link_libraries(tutorial_one  m)
+
+if (NOVA_FOUND)
+  target_link_libraries(tutorial_one ${NOVA_LIBRARIES})
+endif (NOVA_FOUND)
+
+########### Tutorial two ##############
+set(tutorialtwo_SRCS
+	${indimain_SRCS}
+	${CMAKE_SOURCE_DIR}/examples/tutorial_two.c
+   )
+
+add_executable(tutorial_two ${tutorialtwo_SRCS}  ${liblilxml_SRCS} ${libindicom_SRCS})
+
+target_link_libraries(tutorial_two  m)
+
+if (NOVA_FOUND)
+  target_link_libraries(tutorial_two ${NOVA_LIBRARIES})
+endif (NOVA_FOUND)
+
+########### Tutorial three ##############
+set(tutorialthree_SRCS
+	${indimain_SRCS}
+	${CMAKE_SOURCE_DIR}/examples/tutorial_three.c
+   )
+
+add_executable(tutorial_three ${tutorialthree_SRCS}  ${liblilxml_SRCS} ${libindicom_SRCS})
+
+target_link_libraries(tutorial_three m z)
+
+if (NOVA_FOUND)
+  target_link_libraries(tutorial_three ${NOVA_LIBRARIES})
+endif (NOVA_FOUND)
+
+########### Tutorial dome ##############
+set(tutorialdome_SRCS
+	${indimain_SRCS}
+	${CMAKE_SOURCE_DIR}/examples/tutorial_dome.c
+   )
+
+add_executable(tutorial_dome ${tutorialdome_SRCS}  ${liblilxml_SRCS} ${libindicom_SRCS})
+
+target_link_libraries(tutorial_dome  m)
+
+if (NOVA_FOUND)
+  target_link_libraries(tutorial_dome ${NOVA_LIBRARIES})
+endif (NOVA_FOUND)
+
+########### Tutorial rain ##############
+set(tutorialrain_SRCS
+	${indimain_SRCS}
+	${CMAKE_SOURCE_DIR}/examples/tutorial_rain.c
+   )
+
+add_executable(tutorial_rain ${tutorialrain_SRCS}  ${liblilxml_SRCS} ${libindicom_SRCS})
+
+target_link_libraries(tutorial_rain  m)
+
+if (NOVA_FOUND)
+  target_link_libraries(tutorial_rain ${NOVA_LIBRARIES})
+endif (NOVA_FOUND)
+
+#################################################################################
 
 install( FILES drivers.xml DESTINATION ${DATA_INSTALL_DIR})
 

@@ -214,7 +214,7 @@ void ISNewSwitch (const char *dev, const char *name, ISState *states, char *name
 	
 		if (sp)
 		{
-	    		IUResetSwitches(&connectSP);
+	    		IUResetSwitch(&connectSP);
 	    		sp->s = states[0];
 	    		connectTelescope();
 		}
@@ -308,9 +308,10 @@ void mountSim (void *p)
 	IEAddTimer (POLLMS, mountSim, NULL);
 }
 
-void ISNewBLOB (const char *dev, const char *name, int sizes[], char *blobs[], char *formats[], char *names[], int n)
-{
-}
+/* Note that we must define ISNewBLOB and ISSnoopDevice even if we don't use them, otherwise, the driver will NOT compile */
+void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n) {}
+void ISSnoopDevice (XMLEle *root) {}
+
 
 static void connectTelescope ()
 {

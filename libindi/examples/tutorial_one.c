@@ -40,7 +40,6 @@
 #define MAIN_GROUP	"Main Control"				/* Group name */
 
 /* Function protptypes */
-void ISInit(void);
 void connectDevice(void);
 
 /*INDI controls */
@@ -79,39 +78,13 @@ static ISwitchVectorProperty PowerSP    = {
 								, 0};				/* auxiluary, set to 0 for now */
 
 
-/* void ISInit()
- Initilize variables, allocate memory...etc
- For this simple tutorial, we're just going to set isInit to 1 and return
-*/
-void ISInit()
-{
-  static int isInit=0;
-
- /* Did we already initialize? If yes, then return */
- if (isInit)
-  return;
-      
- isInit = 1;
-
-}
-
 /* void ISGetProperties (const char *dev)
 *  INDI will call this function when the client inquires about the device properties.
 *  Here we will use IDxxx functions to define new properties to the client */
 void ISGetProperties (const char *dev)
 { 
-
-   /* #1 Let's make sure everything has been initialized properly */
-   ISInit();
-  
-  /* #2 Let's make sure that the client is asking for the properties of our device, otherwise ignore */
-  if (dev && strcmp (mydev, dev))
-    return;
-    
-  /* #3 Tell the client to create a new Switch property PowerSP */
-  IDDefSwitch(&PowerSP, NULL);
-  
-  
+  /* Tell the client to create a new Switch property PowerSP */
+  IDDefSwitch(&PowerSP, NULL); 
 }
   
 /* void ISNewSwitch(...)
@@ -126,27 +99,18 @@ void ISGetProperties (const char *dev)
 */
 void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-
-        /* #1 Let's make sure everything has been initialized properly */
-        ISInit();
-	
-	/* #2 Let's make sure that the client is asking to update the properties of our device, otherwise ignore */
-	if (dev && strcmp (dev, mydev))
-	    return;
-	    
-      /* #3 Now let's check if the property the client wants to change is the PowerSP (name: CONNECTION) property*/
+      /* Let's check if the property the client wants to change is the PowerSP (name: CONNECTION) property*/
      if (!strcmp (name, PowerSP.name))
      {
           /* If the clients wants to update this property, let's perform the following */
 	  
 	  /* A. We update the switches by sending their names and updated states IUUpdateSwitches function. If there is an error, we return */
-	  if (IUUpdateSwitches(&PowerSP, states, names, n) < 0) return;
+	  if (IUUpdateSwitch(&PowerSP, states, names, n) < 0) return;
 	  
 	  /* B. We try to establish a connection to our device */
    	  connectDevice();
 	  return;
      }
-
 }
 
 /* void ISNewText(...)
@@ -183,9 +147,10 @@ void ISNewNumber (const char *dev, const char *name, double values[], char *name
         return;
 }
 
-void ISNewBLOB (const char *dev, const char *name, int sizes[], char *blobs[], char *formats[], char *names[], int n)
-{
-}
+/* Note that we must define ISNewBLOB and ISSnoopDevice even if we don't use them, otherwise, the driver will NOT compile */
+void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n) {}
+void ISSnoopDevice (XMLEle *root) {}
+
 
 /* void connectDevice(void)
  * This function is called when the state of PowerSP is changed in the ISNewSwitch() function.

@@ -4,7 +4,7 @@
 # Project related configuration options
 #---------------------------------------------------------------------------
 PROJECT_NAME           = "Instrument Neutral Distributed Interface INDI"
-PROJECT_NUMBER         = 0.6
+PROJECT_NUMBER         = 0.7
 OUTPUT_DIRECTORY       = /home/jasem/Projects/doc
 CREATE_SUBDIRS         = NO
 OUTPUT_LANGUAGE        = English
@@ -70,7 +70,7 @@ WARN_LOGFILE           =
 #---------------------------------------------------------------------------
 # configuration options related to the input files
 #---------------------------------------------------------------------------
-INPUT                  = /home/jasem/Projects/libindi
+INPUT                  = /home/jasem/Projects/trunk/libindi
 FILE_PATTERNS          = *.c \
                          *.cc \
                          *.cxx \
@@ -102,16 +102,13 @@ FILE_PATTERNS          = *.c \
                          *.xpm \
                          *.dox
 RECURSIVE              = YES
-EXCLUDE                = /home/jasem/Projects/libindi/drivers \
-                         /home/jasem/Projects/libindi/tools \
-                         /home/jasem/Projects/libindi/libs/fli \
-                         /home/jasem/Projects/libindi/libs/webcam \
-                         /home/jasem/Projects/libindi/base64.c \
-                         /home/jasem/Projects/libindi/base64.h \
-                         /home/jasem/Projects/libindi/fq.c \
-                         /home/jasem/Projects/libindi/fq.h \
-                         /home/jasem/Projects/libindi/indidrivermain.c \
-                         /home/jasem/Projects/libindi/indiserver.c
+EXCLUDE                = /home/jasem/Projects/trunk/libindi/drivers \
+                         /home/jasem/Projects/trunk/libindi/tools \
+                         /home/jasem/Projects/trunk/libindi/libs/webcam \
+                         /home/jasem/Projects/trunk/libindi/libs/base64.c \
+                         /home/jasem/Projects/trunk/libindi/libs/fq.c \
+                         /home/jasem/Projects/trunk/libindi/indidrivermain.c \
+                         /home/jasem/Projects/trunk/libindi/indiserver.c
 EXCLUDE_SYMLINKS       = NO
 EXCLUDE_PATTERNS       = 
 EXAMPLE_PATH           = 

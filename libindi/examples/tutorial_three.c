@@ -85,10 +85,10 @@ void ISGetProperties (const char *dev)
   
 }
 
-void ISNewBLOB (const char *dev, const char *name, int sizes[], char *blobs[], char *formats[], char *names[], int n)
-{
-   // We're not expecting any BLOBs from the client, nothing to do
-}
+/* Note that we must define ISNewBLOB and ISSnoopDevice even if we don't use them, otherwise, the driver will NOT compile */
+void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n) {}
+void ISSnoopDevice (XMLEle *root) {}
+
   
 void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
@@ -99,7 +99,7 @@ void ISNewSwitch (const char *dev, const char *name, ISState *states, char *name
 	/* Connection */
 	if (!strcmp (name, PowerSP.name))
 	{
-	  IUUpdateSwitches(&PowerSP, states, names, n);
+	  IUUpdateSwitch(&PowerSP, states, names, n);
    	  PowerSP.s = IPS_OK;
           if (PowerS[0].s == ISS_ON)
           	IDSetSwitch(&PowerSP, "CCD Simulator is online.");
