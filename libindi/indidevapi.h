@@ -238,7 +238,7 @@ extern void IDSetBLOB (const IBLOBVectorProperty *b, const char *msg, ...)
 
 /**
  * \defgroup d2dnFunctions IDNew Functions: Functions drivers call to tell drivers of new values for existing properties. Added in libindi v0.7, these functions enable drivers
- to act as clients. In order for driver A to set a new value for a property X in driver B, driver A must be snooping on property X in driver B.
+ to act as clients.
  */
 /*@{*/
 
