@@ -1130,6 +1130,10 @@ q2Clients (ClInfo *notme, int isblob, const char *dev, const char *name, Msg *mp
 	ClInfo *cp;
 	int ql;
 
+	/* Don't send newXXX messages to clients, for now */
+	if (strstr(tagXMLEle(root), "new"))
+		return 0;
+
 	/* queue message to each interested client */
 	for (cp = clinfo; cp < &clinfo[nclinfo]; cp++) {
 	    /* cp in use? notme? want this dev/name? blob? */
