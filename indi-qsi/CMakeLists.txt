@@ -10,13 +10,13 @@ include (MacroLogFeature)
 include (MacroBoolTo01)
 include (CheckIncludeFiles)
 
-macro_optional_find_package(QSIAPI)
-macro_log_feature(QSI_FOUND "libqsiapi" "Quantum Scientific Imaging Library" "http://www.qsimaging.com" FALSE "4.6.1" "Provides API for controlling QSI CCDS & Filter Wheels.")
+#macro_optional_find_package(QSIAPI)
+#macro_log_feature(QSI_FOUND "libqsiapi" "Quantum Scientific Imaging Library" "http://www.qsimaging.com" FALSE "4.6.1" "Provides API for controlling QSI CCDS & Filter Wheels.")
 
 find_package(USB REQUIRED)
 find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
-#find_package(QSI REQUIRED)
+find_package(QSI REQUIRED)
 find_package(ZLIB REQUIRED)
 
 macro_optional_find_package(Nova)
