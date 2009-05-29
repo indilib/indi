@@ -567,6 +567,108 @@ IDSetBLOB (const IBLOBVectorProperty *bvp, const char *fmt, ...)
   fflush (stdout);
 }
 
+/* tell driver to update an existing text vector property */
+void
+IDNewText (const ITextVectorProperty *tvp, const char *fmt, ...)
+{
+	int i;
+
+	xmlv1();
+	printf ("<newTextVector\n");
+	printf ("  device='%s'\n", tvp->device);
+	printf ("  name='%s'\n", tvp->name);
+	printf ("  state='%s'\n", pstateStr(tvp->s));
+	printf ("  timeout='%g'\n", tvp->timeout);
+	printf ("  timestamp='%s'\n", timestamp());
+	if (fmt) {
+	    va_list ap;
+	    va_start (ap, fmt);
+	    printf ("  message='");
+	    vprintf (fmt, ap);
+	    printf ("'\n");
+	    va_end (ap);
+	}
+	printf (">\n");
+
+	for (i = 0; i < tvp->ntp; i++) {
+	    IText *tp = &tvp->tp[i];
+	    printf ("  <oneText name='%s'>\n", tp->name);
+	    printf ("      %s\n", tp->text ? tp->text : "");
+	    printf ("  </oneText>\n");
+	}
+
+	printf ("</newTextVector>\n");
+	fflush (stdout);
+}
+
+/* tell driver to update an existing numeric vector property */
+void
+IDNewNumber (const INumberVectorProperty *nvp, const char *fmt, ...)
+{
+	int i;
+
+	xmlv1();
+	printf ("<newNumberVector\n");
+	printf ("  device='%s'\n", nvp->device);
+	printf ("  name='%s'\n", nvp->name);
+	printf ("  state='%s'\n", pstateStr(nvp->s));
+	printf ("  timeout='%g'\n", nvp->timeout);
+	printf ("  timestamp='%s'\n", timestamp());
+	if (fmt) {
+	    va_list ap;
+	    va_start (ap, fmt);
+	    printf ("  message='");
+	    vprintf (fmt, ap);
+	    printf ("'\n");
+	    va_end (ap);
+	}
+	printf (">\n");
+
+	for (i = 0; i < nvp->nnp; i++) {
+	    INumber *np = &nvp->np[i];
+	    printf ("  <oneNumber name='%s'>\n", np->name);
+	    printf ("      %.20g\n", np->value);
+	    printf ("  </oneNumber>\n");
+	}
+
+	printf ("</newNumberVector>\n");
+	fflush (stdout);
+}
+
+/* tell driver to update an existing switch vector property */
+void
+IDNewSwitch (const ISwitchVectorProperty *svp, const char *fmt, ...)
+{
+	int i;
+
+	xmlv1();
+	printf ("<newSwitchVector\n");
+	printf ("  device='%s'\n", svp->device);
+	printf ("  name='%s'\n", svp->name);
+	printf ("  state='%s'\n", pstateStr(svp->s));
+	printf ("  timeout='%g'\n", svp->timeout);
+	printf ("  timestamp='%s'\n", timestamp());
+	if (fmt) {
+	    va_list ap;
+	    va_start (ap, fmt);
+	    printf ("  message='");
+	    vprintf (fmt, ap);
+	    printf ("'\n");
+	    va_end (ap);
+	}
+	printf (">\n");
+
+	for (i = 0; i < svp->nsp; i++) {
+	    ISwitch *sp = &svp->sp[i];
+	    printf ("  <oneSwitch name='%s'>\n", sp->name);
+	    printf ("      %s\n", sstateStr(sp->s));
+	    printf ("  </oneSwitch>\n");
+	}
+
+	printf ("</newSwitchVector>\n");
+	fflush (stdout);
+}
+
 /* tell client to update min/max elements of an existing number vector property */
 void IUUpdateMinMax(const INumberVectorProperty *nvp)
 {

@@ -44,6 +44,9 @@
 #define MAIN_GROUP	"Main"
 #define SNOOP_GROUP     "Snooped"
 
+void turnRainAlertOn();
+void closeDome();
+
 /* Connect/Disconnect */
 static ISwitch PowerS[]          	= {{"CONNECT" , "Connect" , ISS_OFF, 0, 0},{"DISCONNECT", "Disconnect", ISS_ON, 0, 0}};
 static ISwitchVectorProperty PowerSP	= { mydev, "CONNECTION" , "Connection", MAIN_GROUP, IP_RW, ISR_1OFMANY, 60, IPS_IDLE, PowerS, NARRAY(PowerS), "", 0};
@@ -69,6 +72,7 @@ void ISGetProperties (const char *dev)
 
   /* Let's listen for Rain Alert property in the device Rain */
   IDSnoopDevice("Rain", "Rain Alert");
+
 }
 
 void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n) {}
@@ -114,7 +118,13 @@ void ISNewSwitch (const char *dev, const char *name, ISState *states, char *name
    	  PowerSP.s = IPS_OK;
 
 	  if (PowerS[0].s == ISS_ON)
+	  {
 		IDSetSwitch(&PowerSP, "Dome is online.");
+
+		/* Check if Rain Alert is already on upon connecting */
+		if (RainL[0].s == IPS_ALERT && DomeS[0].s == ISS_ON)
+			closeDome();
+	  }
 	else
 	{
 		PowerSP.s = IPS_IDLE;

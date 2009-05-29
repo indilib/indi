@@ -57,15 +57,35 @@ static ILightVectorProperty RainLP	= { mydev, "Rain Alert", "", MAIN_GROUP, IPS_
 static ISwitch RainS[]           	= {{"On", "", ISS_OFF, 0, 0}, {"Off", "", ISS_ON, 0, 0}};
 static ISwitchVectorProperty RainSP	= { mydev, "Control Rain", "", MAIN_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, RainS , NARRAY(RainS), "", 0};
 
+static ISwitch DomeControlS[]          		= {{"Open", "", ISS_OFF, 0, 0}, {"Close", "", ISS_OFF, 0, 0}};
+static ISwitchVectorProperty DomeControlSP	= { mydev, "Control Dome", "", MAIN_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, DomeControlS , NARRAY(DomeControlS), "", 0};
+
+/* The property we're trying to fetch from the dome driver. It's a carbon copy of the property define in dome.c, we initilize its structure here like any
+   other local property, but we don't define it to client, it's only used internally within the driver. 
+
+   MAKE SURE to set the property's device name to the device we're snooping on! If you copy/paste the property definition from the snooped driver
+   don't forget to remove "mydev" and replace it with the driver name.
+*/
+
+/* Dome Open/Close */
+static ISwitch DomeS[]           	= {{"Open", "", ISS_ON, 0, 0}, {"Close", "", ISS_OFF, 0, 0}};
+static ISwitchVectorProperty DomeSP	= { "Dome", "Dome Status", "", MAIN_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, DomeS , NARRAY(DomeS), "", 0};
+
 void ISGetProperties (const char *dev)
 { 
   /* MAIN_GROUP */
   IDDefSwitch(&PowerSP, NULL);
   IDDefLight(&RainLP, NULL);
   IDDefSwitch(&RainSP, NULL);
+  IDDefSwitch(&DomeControlSP, NULL);
+
+  /* Let's listen for Dome Status property in the device Dome */
+  IDSnoopDevice("Rain", "Dome Status");
 }
 
 void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n) {}
+
+/* While we can listen to changes in Dome Status property as they come from the dome driver, we're not interested to know that information for now */
 void ISSnoopDevice (XMLEle *root) {}
   
 void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
@@ -122,7 +142,24 @@ void ISNewSwitch (const char *dev, const char *name, ISState *states, char *name
 	 
 	   return;
 	}
-			
+
+	/* Control Dome */
+	if (!strcmp (name, DomeControlSP.name))
+	{
+	  if (IUUpdateSwitch(&DomeControlSP, states, names, n) < 0)
+		return;
+
+	   DomeControlSP.s = IPS_OK;
+
+	   /* Update the local copy of Dome Status property then send it over to the dome driver */
+	   DomeS[0].s = DomeControlS[0].s;
+	   DomeS[1].s = DomeControlS[1].s;
+
+	   IDSetSwitch(&DomeControlSP, "Sending control command over to Dome driver...");
+	   IDNewSwitch(&DomeSP, NULL);
+
+	   return;
+	 }
 }
 
 void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
