@@ -80,7 +80,7 @@ void ISGetProperties (const char *dev)
   IDDefSwitch(&DomeControlSP, NULL);
 
   /* Let's listen for Dome Status property in the device Dome */
-  IDSnoopDevice("Rain", "Dome Status");
+/*  IDSnoopDevice("Rain", "Dome Status");*/
 }
 
 void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n) {}
