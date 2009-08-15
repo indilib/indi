@@ -237,44 +237,6 @@ extern void IDSetBLOB (const IBLOBVectorProperty *b, const char *msg, ...)
 /*@}*/
 
 /**
- * \defgroup d2dnFunctions IDNew Functions: Functions drivers call to tell drivers of new values for existing properties. Added in libindi v0.7, these functions enable drivers
- to act as clients.
- */
-/*@{*/
-
-/** \brief Tell driver to update an existing text vector property.
-    \param t pointer to the vector text property.
-    \param msg message in printf style to send to the driver. May be NULL.
-*/
-extern void IDNewText (const ITextVectorProperty *t, const char *msg, ...)
-#ifdef __GNUC__
-        __attribute__ ( ( format( printf, 2, 3 ) ) )
-#endif
-;
-
-/** \brief Tell driver to update an existing number vector property.
-    \param n pointer to the vector number property.
-    \param msg message in printf style to send to the driver. May be NULL.
-*/
-extern void IDNewNumber (const INumberVectorProperty *n, const char *msg, ...)
-#ifdef __GNUC__
-        __attribute__ ( ( format( printf, 2, 3 ) ) )
-#endif
-;
-
-/** \brief Tell client to update an existing switch vector property.
-    \param s pointer to the vector switch property.
-    \param msg message in printf style to send to the client. May be NULL.
-*/
-extern void IDNewSwitch (const ISwitchVectorProperty *s, const char *msg, ...)
-#ifdef __GNUC__
-        __attribute__ ( ( format( printf, 2, 3 ) ) )
-#endif
-;
-
-/*@}*/
-
-/**
  * \defgroup d2duFunctions ID Functions: Functions to delete properties, and log messages locally or remotely.
  */
 /*@{*/

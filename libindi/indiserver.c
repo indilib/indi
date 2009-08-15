@@ -1020,30 +1020,8 @@ static void
 q2SDrivers (int isblob, const char *dev, const char *name, Msg *mp, XMLEle *root)
 {
 	DvrInfo *dp;
-	int snoop_redirect=0;
 
-	if (strstr(tagXMLEle(root), "new"))
-		snoop_redirect=1;
-
-	for (dp = dvrinfo; dp < &dvrinfo[ndvrinfo]; dp++) 
-        {
-    	   if (snoop_redirect && !strcmp(dp->dev, dev))
-	   {
-		    /* ok: queue message to this device */
-		    mp->count++;
-		    pushFQ (dp->msgq, mp);
-
-		    if (verbose > 1)
-		    {
-			fprintf (stderr, "%s: Driver %s: queuing snooped <%s device='%s' name='%s'>\n",
-				    indi_tstamp(NULL), dp->name, tagXMLEle(root),
-				    findXMLAttValu (root, "device"),
-				    findXMLAttValu (root, "name"));
-		    }
-		    return;
-    	   }
-	   else
-	   {
+	for (dp = dvrinfo; dp < &dvrinfo[ndvrinfo]; dp++) {
 	    Snoopee *sp = findSDevice (dp, dev, name);
 
 	    /* nothing for dp if not snooping for dev/name or wrong BLOB mode */
@@ -1055,15 +1033,12 @@ q2SDrivers (int isblob, const char *dev, const char *name, Msg *mp, XMLEle *root
 	    /* ok: queue message to this device */
 	    mp->count++;
 	    pushFQ (dp->msgq, mp);
-	    if (verbose > 1) 
-            {
+	    if (verbose > 1) {
 		fprintf (stderr, "%s: Driver %s: queuing snooped <%s device='%s' name='%s'>\n",
 				    indi_tstamp(NULL), dp->name, tagXMLEle(root),
 				    findXMLAttValu (root, "device"),
 				    findXMLAttValu (root, "name"));
 	    }
-           }
-
 	}
 }
 
@@ -1129,10 +1104,6 @@ q2Clients (ClInfo *notme, int isblob, const char *dev, const char *name, Msg *mp
 	int shutany = 0;
 	ClInfo *cp;
 	int ql;
-
-	/* Don't send newXXX messages to clients, for now */
-	if (strstr(tagXMLEle(root), "new"))
-		return 0;
 
 	/* queue message to each interested client */
 	for (cp = clinfo; cp < &clinfo[nclinfo]; cp++) {
