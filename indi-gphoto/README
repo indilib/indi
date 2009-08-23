@@ -17,7 +17,9 @@ Requirtments
 + libgphoto2 >= 2.4 (>=2.4.7 is needed for bulb-mode supprot)
 
 	libgphoto2 is required
-	
+
++ libpthread
+	libpthread is required
 Installation
 ============
 

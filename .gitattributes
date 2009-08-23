@@ -3,6 +3,7 @@ cmake_modules/FindALUT.cmake -text
 cmake_modules/FindAPOGEE.cmake -text
 cmake_modules/FindCFITSIO.cmake -text
 cmake_modules/FindFLI.cmake -text
+cmake_modules/FindGPHOTO2.cmake -text
 cmake_modules/FindINDI.cmake -text
 cmake_modules/FindMODBUS.cmake -text
 cmake_modules/FindNova.cmake -text
@@ -34,6 +35,7 @@ indi-apogee/indi_apogee.xml -text
 indi-apogee/indialta.c -text
 indi-gphoto/AUTHORS -text
 indi-gphoto/CMakeLists.txt -text
+indi-gphoto/COPYING.LIB -text
 indi-gphoto/INSTALL -text
 indi-gphoto/README -text
 indi-gphoto/gphoto_ccd.c -text
