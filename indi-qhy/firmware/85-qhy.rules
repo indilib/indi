@@ -1,0 +1,37 @@
+# Udev rules for QHY CCD cameras
+# QHY2,  QHY5, QHY6 and QHY8
+# Clive Rogers.  2 May 2009
+
+# Camera inserted.
+# Vendorid & Prodid: QHY VOTI
+
+ACTION!="add", GOTO="qhy_vidpid_end"
+SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", GOTO="qhy_vidpid_test"
+SUBSYSTEM!="usb_device", GOTO="qhy_vidpid_end"
+
+LABEL="qhy_vidpid_test"
+
+SYSFS{idVendor}=="1618", SYSFS{idProduct}=="0412", RUN+="/sbin/fxload -t fx2 -D $ENV{DEVNAME} -I /lib/firmware/qhy2.hex"
+SYSFS{idVendor}=="1618", SYSFS{idProduct}=="0901", RUN+="/sbin/fxload -t fx2 -D $ENV{DEVNAME} -I /lib/firmware/qhy5loader.hex"
+SYSFS{idVendor}=="1618", SYSFS{idProduct}=="0901", RUN+="/sbin/fxload -t fx2 -D $ENV{DEVNAME} -I /lib/firmware/qhy5.hex"
+SYSFS{idVendor}=="1618", SYSFS{idProduct}=="0259", RUN+="/sbin/fxload -t fx2 -D $ENV{DEVNAME} -I /lib/firmware/qhy6.hex"
+SYSFS{idVendor}=="1618", SYSFS{idProduct}=="6000", RUN+="/sbin/fxload -t fx2 -D $ENV{DEVNAME} -I /lib/firmware/qhy8.hex"
+
+LABEL="qhy_vidpid_end"
+
+# This is the ID presented once the firmware has been loaded.
+# idVendor and idProduct match Cypress FX2 USB chips.
+
+ACTION!="add", GOTO="qhy-rules-end"
+SUBSYSTEMS=="usb", GOTO="qhy-vipi"
+GOTO="qhy-rules-end"
+
+LABEL="qhy-vipi"
+
+ATTRS{modalias}=="usb:v16c0p081e*",OWNER="root", GROUP="video", MODE="0660", SYMLINK+="qhy2"
+ATTRS{modalias}=="usb:v16c0p296d*",OWNER="root", GROUP="video", MODE="0660", SYMLINK+="qhy5"
+ATTRS{modalias}=="usb:v16c0p081d*",OWNER="root", GROUP="video", MODE="0660", SYMLINK+="qhy6"
+ATTRS{modalias}=="usb:v16c0p2972*",OWNER="root", GROUP="video", MODE="0660", SYMLINK+="qhy8"
+
+LABEL="qhy-rules-end"
+

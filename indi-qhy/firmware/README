@@ -1,0 +1,25 @@
+This firmware is copyright Tom Van den Eede
+
+It must be loaded before you can use the QHY5 camera.
+
+This is done by identifying the qhy5 camera via lsusb:
+
+1) run lsusb
+
+2) identify the camera it has ID 1618:0901 and find the bus and device:
+Bus 008 Device 093: ID 1618:0901
+
+3) load the bootloader via fxload
+	fxload -t fx2 -I qhy5loader.hex -D /dev/bus/usb/008/093
+
+4) load the firmware
+	fxload -t fx2 -I qhy5.hex -D /dev/bus/usb/008/093
+
+5) verify that the camera has initialized via lsusb (ID: 16c0:296d)
+Bus 008 Device 094: ID 16c0:296d 
+
+Also included is a udev control file courtesy of Clive Rogers.
+install in your udev dir (usually /etc/udev/rules.d)
+and copy the 2 hex files to /lib/firmware
+The camera should be auto-detected when plugged in, and the firmware automatically loaded
+
