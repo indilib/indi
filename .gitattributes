@@ -32,6 +32,15 @@ indi-apogee/debian/postrm.ex -text
 indi-apogee/debian/rules -text
 indi-apogee/indi_apogee.xml -text
 indi-apogee/indialta.c -text
+indi-gphoto/AUTHORS -text
+indi-gphoto/CMakeLists.txt -text
+indi-gphoto/INSTALL -text
+indi-gphoto/README -text
+indi-gphoto/gphoto_ccd.c -text
+indi-gphoto/gphoto_driver.c -text
+indi-gphoto/gphoto_driver.h -text
+indi-gphoto/gphoto_readimage.c -text
+indi-gphoto/gphoto_readimage.h -text
 indi-qhy/AUTHORS -text
 indi-qhy/CMakeLists.txt -text
 indi-qhy/COPYING.LIB -text
