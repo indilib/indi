@@ -64,6 +64,8 @@ struct _gphoto_driver {
 	gphoto_widget		*iso_widget;
 	gphoto_widget		*exposure_widget;
 	gphoto_widget		*bulb_widget;
+	char			bulb_port[256];
+	int			bulb_fd;
 
 	int			exposure_cnt;
 	double			*exposure;
@@ -286,7 +288,11 @@ static void *stop_bulb(void *arg)
 			if (timeleft < 0) {
 				//shut off bulb mode
 				dprintf("Closing shutter\n");
-				set_widget_num(gphoto, gphoto->bulb_widget, FALSE);
+				if (gphoto->bulb_widget) {
+					set_widget_num(gphoto, gphoto->bulb_widget, FALSE);
+				} else {
+					close(gphoto->bulb_fd);
+				}
 				gphoto->command |= DSLR_CMD_DONE;
 				pthread_cond_signal(&gphoto->signal);
 			} else if (timeleft < 5000) {
@@ -401,8 +407,8 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec)
 		set_widget_num(gphoto, gphoto->format_widget, gphoto->format);
 
 	if (exptime_msec > 5000) {
-		if (! gphoto->bulb_widget ||
-		    (idx = find_bulb_exposure(gphoto, gphoto->exposure_widget)) == -1)
+		if ((! gphoto->bulb_port[0] && ! gphoto->bulb_widget) ||
+  		    (idx = find_bulb_exposure(gphoto, gphoto->exposure_widget)) == -1)
 		{
 			fprintf(stderr, "Warning: Bulb mode isn't supported.  exposure limited to maximum camera exposure\n");
 		} else {
@@ -417,7 +423,16 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec)
 				gphoto->bulb_end.tv_sec ++;
 				gphoto->bulb_end.tv_usec -= 1000000;
 			}
-			set_widget_num(gphoto, gphoto->bulb_widget, TRUE);
+			if (gphoto->bulb_port[0]) {
+				gphoto->bulb_fd = open(gphoto->bulb_port, O_RDWR, O_NONBLOCK);
+				if(gphoto->bulb_fd < 0) {
+					fprintf(stderr, "Failed to open serial port: %s\n", gphoto->bulb_port);
+					pthread_mutex_unlock(&gphoto->mutex);
+					return 1;
+				}
+			} else {
+				set_widget_num(gphoto, gphoto->bulb_widget, TRUE);
+			}
 			gphoto->command = DSLR_CMD_BULB_CAPTURE;
 			pthread_cond_signal(&gphoto->signal);
 			pthread_mutex_unlock(&gphoto->mutex);
@@ -548,7 +563,7 @@ int gphoto_get_iso_current(gphoto_driver *gphoto)
 	return gphoto->iso_widget->value.num;
 }
 
-gphoto_driver *gphoto_open()
+gphoto_driver *gphoto_open(const char *shutter_release_port)
 {
 	gphoto_driver *gphoto;
 	gphoto_widget *widget;
@@ -599,6 +614,12 @@ gphoto_driver *gphoto_open()
 	}
 	gphoto->iso = -1;
 	gphoto->bulb_widget = find_widget(gphoto, "bulb");
+
+	if(shutter_release_port) {
+		strncpy(gphoto->bulb_port, shutter_release_port, sizeof(gphoto->bulb_port));
+		dprintf("Using external shutter-release cable\n");
+	}
+	gphoto->bulb_fd = -1;
 
 	dprintf("Gphoto initialized\n");
 	pthread_mutex_init(&gphoto->mutex, NULL);
@@ -686,6 +707,7 @@ void show_help()
 	printf("\t\t-c/--count <count>                specify how many sequential images to take\n");
 	printf("\t\t-i/--iso <iso>                    choose iso (use --list to query values)\n");
 	printf("\t\t-m/--format <format #>            choose format (use --list to query values)\n");
+	printf("\t\t-p/--port <path to serial port>   choose a serial port to use for shutter release control\n");
 	printf("\t\t-l/--list                         show available iso and format values\n");
 	printf("\t\t-d/--debug                        enable debugging\n");
 	printf("\t\t-h//-help                         show this message\n");
@@ -700,6 +722,7 @@ int main (int argc,char **argv)
 	int count = 0;
 	int list = 0;
 	char *iso = NULL;
+	char *port = NULL;
 	int format = -1;
 	unsigned int exposure = 100;
 	char basename[256] = "image";
@@ -713,13 +736,14 @@ int main (int argc,char **argv)
 		{"iso", required_argument, NULL, 'i'},
 		{"list", no_argument, NULL, 'l'},
 		{"format", required_argument, NULL, 'm'},
+		{"port", required_argument, NULL, 'p'},
 		{0, 0, 0, 0}
 	};
 
 	while (1) {
 		char c;
 		c = getopt_long (argc, argv, 
-                     "c:de:f:hi:lm:",
+                     "c:de:f:hi:lm:p:",
                      long_options, NULL);
 		if(c == EOF)
 			break;
@@ -748,11 +772,14 @@ int main (int argc,char **argv)
 		case 'm':
 			format = strtol(optarg, NULL, 0);
 			break;
+		case 'p':
+			port = optarg;
+			break;
 		}
 	}
 
 
-	if(! (gphoto = gphoto_open())) {
+	if(! (gphoto = gphoto_open(port))) {
 		printf("Could not open the DSLR device\n");
 		return -1;
 	}

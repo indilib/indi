@@ -74,6 +74,9 @@ enum { ON_S, OFF_S };
 static ISwitch ConnectS[]          	= {{"CONNECT" , "Connect" , ISS_OFF, 0, 0},{"DISCONNECT", "Disconnect", ISS_ON, 0, 0}};
 ISwitchVectorProperty ConnectSP		= { MYDEV, "CONNECTION" , "Connection", COMM_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, ConnectS, NARRAY(ConnectS), "", 0};
 
+static IText PortT[]	          	= {{"PORT" , "Port" , 0, 0, 0, 0}};
+ITextVectorProperty PortTP		= { MYDEV, "SHUTTER_PORT" , "Shutter Release", COMM_GROUP, IP_RW, 0, IPS_IDLE, PortT, NARRAY(PortT), "", 0};
+
 /**********************************************************************************************/
 /*********************************** GROUP: Expose ********************************************/
 /**********************************************************************************************/
@@ -143,6 +146,7 @@ void ISGetProperties (char const *dev)
 
 	/* Communication Group */
 	IDDefSwitch(&ConnectSP, NULL);
+	IDDefText(&PortTP, NULL);
 
 	if (ConnectS[ON_S].s == ISS_ON) {
 		IDDefNumber(&ExposureNP, NULL);
@@ -283,14 +287,29 @@ void ISNewNumber (const char * dev, const char *name, double *doubles, char *nam
 }
 
 void
-ISNewText (const char *dev, const char *name, char *texts[], char *names[],
-int n)
+ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-  INDI_UNUSED(dev);
-  INDI_UNUSED(name);
-  INDI_UNUSED(texts);
-  INDI_UNUSED(names);
-  INDI_UNUSED(n);
+	IText *tp;
+
+	INDI_UNUSED(n);
+
+	if (strcmp (dev, MYDEV))
+	    return;
+
+	// suppress warning
+	n=n;
+
+	if (!strcmp(name, PortTP.name) )
+	{
+	  PortTP.s = IPS_OK;
+	  tp = IUFindText( &PortTP, names[0] );
+	  if (!tp)
+	   return;
+
+	  IUSaveText(&PortTP.tp[0], texts[0]);
+	  IDSetText (&PortTP, NULL);
+	  return;
+	}
 }
 
 void
@@ -469,11 +488,15 @@ static int camconnect()
 	int setidx;
 	const char **options;
 	int max_opts;
+	const char *port = NULL;
 
 	if (gphotodrv)
 		return 0;
 
-	if (! (gphotodrv = gphoto_open())) {
+	if(PortTP.tp[0].text && strlen(PortTP.tp[0].text)) {
+		port = PortTP.tp[0].text;
+	}
+	if (! (gphotodrv = gphoto_open(port))) {
 		IDLog ("Can not open camera: power ok?\n");
 		ConnectS[ON_S].s = ISS_OFF;
 		ConnectS[OFF_S].s = ISS_ON;
