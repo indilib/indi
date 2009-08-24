@@ -43,6 +43,7 @@ indi-gphoto/gphoto_driver.c -text
 indi-gphoto/gphoto_driver.h -text
 indi-gphoto/gphoto_readimage.c -text
 indi-gphoto/gphoto_readimage.h -text
+indi-gphoto/indi_gphoto.xml -text
 indi-qhy/AUTHORS -text
 indi-qhy/CMakeLists.txt -text
 indi-qhy/COPYING.LIB -text
@@ -53,6 +54,7 @@ indi-qhy/firmware/LICENSE -text
 indi-qhy/firmware/README -text
 indi-qhy/firmware/qhy5.hex -text
 indi-qhy/firmware/qhy5loader.hex -text
+indi-qhy/indi_qhy.xml -text
 indi-qhy/qhy5_driver.c -text
 indi-qhy/qhy5_driver.h -text
 indi-qhy/qhy_ccd.c -text
