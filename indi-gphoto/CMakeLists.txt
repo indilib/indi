@@ -2,8 +2,7 @@ cmake_minimum_required(VERSION 2.4.7)
 PROJECT(indi_gphoto_ccd C)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
-set(DATA_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/share/indi/")
-set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
+set(DATA_INSTALL_DIR "share/indi/")
 
 Include (CheckCSourceCompiles)
 include (MacroOptionalFindPackage)
@@ -26,7 +25,7 @@ include_directories( ${INDI_INCLUDE_DIR})
 include_directories( ${CFITSIO_INCLUDE_DIR})
 include_directories( ${LIBGPHOTO2_INCLUDE_DIR})
 
-########### QHY ###########
+########### Gphoto ###########
 set(indigphoto_SRCS
    ${CMAKE_SOURCE_DIR}/gphoto_ccd.c
    ${CMAKE_SOURCE_DIR}/gphoto_driver.c

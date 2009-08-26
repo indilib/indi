@@ -2,8 +2,9 @@ cmake_minimum_required(VERSION 2.4.7)
 PROJECT(indi_qhy_ccd C)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
-set(DATA_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/share/indi/")
-set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
+set(DATA_INSTALL_DIR "share/indi/")
+set(FIRMWARE_INSTALL_DIR "/lib/firmware")
+set(UDEVRULES_INSTALL_DIR "/etc/udev/rules.d")
 
 Include (CheckCSourceCompiles)
 include (MacroOptionalFindPackage)
@@ -43,4 +44,8 @@ endif (NOVA_FOUND)
 
 install(TARGETS indi_qhy_ccd RUNTIME DESTINATION bin )
 
-install(FILES indi_qhy.xml DESTINATION ${DATA_INSTALL_DIR})
+install(FILES indi_qhy.xml DESTINATION ${DATA_INSTALL_DIR} )
+
+install(FILES firmware/qhy5.hex DESTINATION ${FIRMWARE_INSTALL_DIR})
+install(FILES firmware/qhy5loader.hex DESTINATION ${FIRMWARE_INSTALL_DIR})
+install(FILES firmware/85-qhy.rules DESTINATION ${UDEVRULES_INSTALL_DIR})

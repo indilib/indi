@@ -13,6 +13,7 @@ LABEL="qhy_vidpid_test"
 
 SYSFS{idVendor}=="1618", SYSFS{idProduct}=="0412", RUN+="/sbin/fxload -t fx2 -D $ENV{DEVNAME} -I /lib/firmware/qhy2.hex"
 SYSFS{idVendor}=="1618", SYSFS{idProduct}=="0901", RUN+="/sbin/fxload -t fx2 -D $ENV{DEVNAME} -I /lib/firmware/qhy5loader.hex"
+SYSFS{idVendor}=="1618", SYSFS{idProduct}=="0901", RUN+="/bin/sleep 5"
 SYSFS{idVendor}=="1618", SYSFS{idProduct}=="0901", RUN+="/sbin/fxload -t fx2 -D $ENV{DEVNAME} -I /lib/firmware/qhy5.hex"
 SYSFS{idVendor}=="1618", SYSFS{idProduct}=="0259", RUN+="/sbin/fxload -t fx2 -D $ENV{DEVNAME} -I /lib/firmware/qhy6.hex"
 SYSFS{idVendor}=="1618", SYSFS{idProduct}=="6000", RUN+="/sbin/fxload -t fx2 -D $ENV{DEVNAME} -I /lib/firmware/qhy8.hex"
