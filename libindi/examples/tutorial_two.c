@@ -25,6 +25,22 @@
 #include <unistd.h>
 #include <sys/time.h>
 
+#include <sys/time.h>
+#include <time.h>
+
+void show_runtime(int state) {
+	static struct timeval tv;
+	struct timeval tv1;
+	double x, y;
+
+	if (state) {
+		gettimeofday(&tv, NULL);
+	} else {
+		gettimeofday(&tv1, NULL);
+		fprintf(stderr, "Ran for: %fmsec\n", (double)(tv1.tv_sec * 1000.0 + tv1.tv_usec / 1000.0) - (double)(tv.tv_sec * 1000.0 + tv.tv_usec / 1000.0));
+	}
+}
+
 /* INDI Core headers */
 
 /* indidevapi.h contains API declerations */
@@ -87,6 +103,17 @@ static INumberVectorProperty eqNP = {  mydev, "EQUATORIAL_EOD_COORD", "Equatoria
 #define 	currentRA			eqN[0].value					/* scope's current simulated RA, rads. Handy macro to right ascension from eqN[] */
 #define     currentDec		eqN[1].value					/* scope's current simulated Dec, rads. Handy macro to declination from eqN[] */
 
+/********************************************
+ Property: Movement (Arrow keys on handset). North/South
+*********************************************/
+static ISwitch MovementNSS[]       = {{"MOTION_NORTH", "North", ISS_OFF, 0, 0}, {"MOTION_SOUTH", "South", ISS_OFF, 0, 0}};
+ISwitchVectorProperty MovementNSSP      = { mydev, "TELESCOPE_MOTION_NS", "North/South", MAIN_GROUP, IP_RW, ISR_ATMOST1, 0, IPS_IDLE, MovementNSS, NARRAY(MovementNSS), "", 0};
+
+/********************************************
+ Property: Movement (Arrow keys on handset). West/East
+*********************************************/
+static ISwitch MovementWES[]       = {{"MOTION_WEST", "West", ISS_OFF, 0, 0}, {"MOTION_EAST", "East", ISS_OFF, 0, 0}};
+ISwitchVectorProperty MovementWESP      = { mydev, "TELESCOPE_MOTION_WE", "West/East", MAIN_GROUP, IP_RW, ISR_ATMOST1, 0, IPS_IDLE, MovementWES, NARRAY(MovementWES), "", 0};
 
 /* Initlization routine */
 static void mountInit()
@@ -98,7 +125,7 @@ static void mountInit()
 	
 	/* start timer to simulate mount motion
 	   The timer will call function mountSim after POLLMS milliseconds */
-	IEAddTimer (POLLMS, mountSim, NULL);
+	//IEAddTimer (POLLMS, mountSim, NULL);
 
 	inited = 1;
 	
@@ -112,6 +139,8 @@ void ISGetProperties (const char *dev)
 
 	IDDefSwitch (&connectSP, NULL);
 	IDDefNumber (&eqNP, NULL);
+	IDDefSwitch (&MovementNSSP, NULL);
+	IDDefSwitch (&MovementWESP, NULL);
 	
 }
 
@@ -219,6 +248,25 @@ void ISNewSwitch (const char *dev, const char *name, ISState *states, char *name
 	    		connectTelescope();
 		}
 	}
+	else if (! strcmp(name, MovementNSSP.name)) {
+		sp = IUFindSwitch (&MovementNSSP, names[0]);
+		if (sp) {
+			IUResetSwitch(&MovementNSSP);
+			sp->s = states[0];
+			show_runtime(sp->s);
+			IDSetSwitch (&MovementNSSP, "Toggle North/South.");
+		}
+	}
+	else if (! strcmp(name, MovementWESP.name)) {
+		sp = IUFindSwitch (&MovementWESP, names[0]);
+		if (sp) {
+			IUResetSwitch(&MovementWESP);
+			sp->s = states[0];
+			show_runtime(sp->s);
+			IDSetSwitch (&MovementWESP, "Toggle West/East.");
+		}
+	}
+	
 	
 }
 

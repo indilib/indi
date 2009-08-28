@@ -168,6 +168,18 @@ static ISwitch MovementWES[]       = {{"MOTION_WEST", "West", ISS_OFF, 0, 0}, {"
 ISwitchVectorProperty MovementWESP      = { mydev, "TELESCOPE_MOTION_WE", "West/East", MOTION_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, MovementWES, NARRAY(MovementWES), "", 0};
 
 /********************************************
+ Property: Timed Guide movement. North/South
+*********************************************/
+static INumber GuideNSN[]       = {{"TIMED_GUIDE_N", "North (sec)", "%g", 0, 10, 0.001, 0, 0, 0}, {"TIMED_GUIDE_S", "South (sec)", "%g", 0, 10, 0.001, 0, 0, 0}};
+INumberVectorProperty GuideNSNP      = { mydev, "TELESCOPE_TIMED_GUIDE_NS", "Guide North/South", MOTION_GROUP, IP_RW, 0, IPS_IDLE, GuideNSN, NARRAY(GuideNSN), "", 0};
+
+/********************************************
+ Property: Timed Guide movement. West/East
+*********************************************/
+static INumber GuideWEN[]       = {{"TIMED_GUIDE_W", "West (sec)", "%g", 0, 10, 0.001, 0, 0, 0}, {"TIMED_GUIDE_E", "East (sec)", "%g", 0, 10, 0.001, 0, 0, 0}};
+INumberVectorProperty GuideWENP      = { mydev, "TELESCOPE_TIMED_GUIDE_WE", "Guide West/East", MOTION_GROUP, IP_RW, 0, IPS_IDLE, GuideWEN, NARRAY(GuideWEN), "", 0};
+
+/********************************************
  Property: Slew Accuracy
  Desciption: How close the scope have to be with
 	     respect to the requested coords for 
@@ -179,6 +191,16 @@ INumber SlewAccuracyN[] = {
     {"SlewkDEC", "Dec (arcmin)", "%g", 0., 60., 1., 3.0, 0, 0, 0},
 };
 INumberVectorProperty SlewAccuracyNP = {mydev, "Slew Accuracy", "", MOTION_GROUP, IP_RW, 0, IPS_IDLE, SlewAccuracyN, NARRAY(SlewAccuracyN), "", 0};
+
+/********************************************
+ Property: Use pulse-guide commands
+ Desciption: Set to on if this mount can support
+             pulse guide commands.  There appears to
+             be no way to query this information from
+             the mount
+*********************************************/
+static ISwitch UsePulseCmdS[]		= {{ "Off", "", ISS_ON, 0, 0} , { "On", "", ISS_OFF, 0, 0}};
+static ISwitchVectorProperty UsePulseCmdSP= { mydev, "Use Pulse Cmd", "", MOTION_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, UsePulseCmdS, NARRAY(UsePulseCmdS), "", 0};
 
 /**********************************************************************************************/
 /************************************** GROUP: Focus ******************************************/
@@ -278,7 +300,10 @@ void changeLX200GenericDeviceName(const char * newName)
   strcpy(TrackingFreqNP.device , newName );
   strcpy(MovementNSSP.device , newName );
   strcpy(MovementWESP.device , newName );
+  strcpy(GuideNSNP.device , newName );
+  strcpy(GuideWENP.device , newName );
   strcpy(SlewAccuracyNP.device, newName);
+  strcpy(UsePulseCmdSP.device, newName);
 
   // FOCUS_GROUP
   strcpy(FocusModeSP.device , newName );
@@ -433,6 +458,8 @@ LX200Generic::LX200Generic()
    simulation     = false;
    currentSet     = 0;
    fd             = -1;
+   GuideNSTID     = 0;
+   GuideWETID     = 0;
 
    // Children call parent routines, this is the default
    IDLog("INDI Library v%g\n", INDI_LIBV);
@@ -474,7 +501,10 @@ void LX200Generic::ISGetProperties(const char *dev)
   IDDefSwitch (&TrackModeSP, NULL);
   IDDefSwitch (&MovementNSSP, NULL);
   IDDefSwitch (&MovementWESP, NULL);
+  IDDefNumber (&GuideNSNP, NULL );
+  IDDefNumber (&GuideWENP, NULL );
   IDDefNumber (&SlewAccuracyNP, NULL);
+  IDDefSwitch (&UsePulseCmdSP, NULL);
 
   // FOCUS_GROUP
   IDDefSwitch(&FocusModeSP, NULL);
@@ -880,6 +910,116 @@ void LX200Generic::ISNewNumber (const char *dev, const char *name, double values
 
 	}
 
+	if (!strcmp(name, GuideNSNP.name))
+	{
+	  int direction;
+	  int duration_msec;
+	  int use_pulse_cmd;
+	  if (checkPower(&GuideNSNP))
+	   return;
+	  if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+	  {
+		handleError(&GuideNSNP, err, "Can't guide while moving");
+		return;
+	  }
+	  if (GuideNSNP.s == IPS_BUSY)
+	  {
+		// Already guiding so stop before restarting timer
+		HaltMovement(fd, LX200_NORTH);
+		HaltMovement(fd, LX200_SOUTH);
+	  }
+	  if (GuideNSTID) {
+		IERmTimer(GuideNSTID);
+		GuideNSTID = 0;
+	  }
+	  IUUpdateNumber(&GuideNSNP, values, names, n);
+
+	  if (GuideNSNP.np[0].value > 0) {
+		duration_msec = GuideNSNP.np[0].value * 1000;
+		direction = LX200_NORTH;
+	  } else {
+		duration_msec = GuideNSNP.np[1].value * 1000;
+		direction = LX200_SOUTH;
+	  }
+	  if (duration_msec <= 0) {
+		GuideNSNP.s = IPS_IDLE;
+		IDSetNumber (&GuideNSNP, NULL);
+		return;
+	  }
+	  use_pulse_cmd = getOnSwitch(&UsePulseCmdSP);
+	  // fprintf(stderr, "Using %s mode to move %dmsec %s\n",
+	  //         use_pulse_cmd ? "Pulse" : "Legacy",
+	  //         duration_msec, direction == LX200_NORTH ? "North" : "South");
+	  if (use_pulse_cmd) {
+		SendPulseCmd(fd, direction, duration_msec);
+	  } else {
+		if ( ( err = setSlewMode(fd, LX200_SLEW_GUIDE) < 0) )
+		{
+			handleError(&SlewModeSP, err, "Setting slew mode");
+			return;
+		}
+		MoveTo(fd, direction);
+	  }
+	  GuideNSTID = IEAddTimer (duration_msec, guideTimeout, (void *)direction);
+	  GuideNSNP.s = IPS_BUSY;
+	  IDSetNumber(&GuideNSNP, NULL);
+	}
+	if (!strcmp(name, GuideWENP.name))
+	{
+	  int direction;
+	  int duration_msec;
+	  int use_pulse_cmd;
+
+	  if (checkPower(&GuideWENP))
+	   return;
+	  if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+	  {
+		handleError(&GuideWENP, err, "Can't guide while moving");
+		return;
+	  }
+	  if (GuideWENP.s == IPS_BUSY)
+	  {
+		// Already guiding so stop before restarting timer
+		HaltMovement(fd, LX200_WEST);
+		HaltMovement(fd, LX200_EAST);
+	  }
+	  if (GuideWETID) {
+		IERmTimer(GuideWETID);
+		GuideWETID = 0;
+	  }
+	  IUUpdateNumber(&GuideWENP, values, names, n);
+
+	  if (GuideWENP.np[0].value > 0) {
+		duration_msec = GuideWENP.np[0].value * 1000;
+		direction = LX200_WEST;
+	  } else {
+		duration_msec = GuideWENP.np[1].value * 1000;
+		direction = LX200_EAST;
+	  }
+	  if (duration_msec <= 0) {
+		GuideWENP.s = IPS_IDLE;
+		IDSetNumber (&GuideWENP, NULL);
+		return;
+	  }
+	  use_pulse_cmd = getOnSwitch(&UsePulseCmdSP);
+	  // fprintf(stderr, "Using %s mode to move %dmsec %s\n",
+	  //         use_pulse_cmd ? "Pulse" : "Legacy",
+          //         duration_msec, direction == LX200_WEST ? "West" : "East");
+	  
+	  if (use_pulse_cmd) {
+		SendPulseCmd(fd, direction, duration_msec);
+	  } else {
+		if ( ( err = setSlewMode(fd, LX200_SLEW_GUIDE) < 0) )
+		{
+			handleError(&SlewModeSP, err, "Setting slew mode");
+			return;
+		}
+		MoveTo(fd, direction);
+	  }
+	  GuideWETID = IEAddTimer (duration_msec, guideTimeout, (void *)direction);
+	  GuideWENP.s = IPS_BUSY;
+	  IDSetNumber(&GuideWENP, NULL);
+	}
 }
 
 void LX200Generic::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
@@ -956,6 +1096,29 @@ void LX200Generic::ISNewSwitch (const char *dev, const char *name, ISState *stat
 		IDSetSwitch(&AbortSlewSP, "Slew aborted.");
 		IDSetSwitch(&MovementNSSP, NULL);
 		IDSetSwitch(&MovementWESP, NULL);
+		IDSetNumber(&EquatorialCoordsWNP, NULL);
+	    }
+	    else if (GuideNSNP.s == IPS_BUSY || GuideWENP.s == IPS_BUSY)
+	    {
+		GuideNSNP.s  = GuideWENP.s =  IPS_IDLE; 
+		GuideNSN[0].value = GuideNSN[1].value = 0.0;
+		GuideWEN[0].value = GuideWEN[1].value = 0.0;
+		if (GuideNSTID) {
+			IERmTimer(GuideNSTID);
+			GuideNSTID = 0;
+		}
+		if (GuideWETID) {
+			IERmTimer(GuideWETID);
+			GuideNSTID = 0;
+		}
+
+		AbortSlewSP.s = IPS_OK;
+		EquatorialCoordsWNP.s       = IPS_IDLE;
+		IUResetSwitch(&AbortSlewSP);
+
+		IDSetSwitch(&AbortSlewSP, "Guide aborted.");
+		IDSetNumber(&GuideNSNP, NULL);
+		IDSetNumber(&GuideWENP, NULL);
 		IDSetNumber(&EquatorialCoordsWNP, NULL);
 	    }
 	    else
@@ -1096,6 +1259,11 @@ void LX200Generic::ISNewSwitch (const char *dev, const char *name, ISState *stat
 	{
 	  if (checkPower(&MovementNSSP))
 	   return;
+	  if (GuideNSNP.s == IPS_BUSY || GuideWENP.s == IPS_BUSY)
+	  {
+              handleError(&MovementNSSP, err, "Can't move while guiding");
+	      return;
+	  }
 
 	 int last_move=-1;
          int current_move = -1;
@@ -1144,6 +1312,11 @@ void LX200Generic::ISNewSwitch (const char *dev, const char *name, ISState *stat
 	{
 	  if (checkPower(&MovementWESP))
 	   return;
+	  if (GuideNSNP.s == IPS_BUSY || GuideWENP.s == IPS_BUSY)
+	  {
+              handleError(&MovementWESP, err, "Can't move while guiding");
+	      return;
+	  }
 
 	 int last_move=-1;
          int current_move = -1;
@@ -1237,7 +1410,19 @@ void LX200Generic::ISNewSwitch (const char *dev, const char *name, ISState *stat
 	  return;
 	}
 
+        // Pulse-Guide command support
+	if (!strcmp (name, UsePulseCmdSP.name))
+	{
+	  if (checkPower(&UsePulseCmdSP))
+	   return;
 
+	  IUResetSwitch(&UsePulseCmdSP);
+	  IUUpdateSwitch(&UsePulseCmdSP, states, names, n);
+
+	  UsePulseCmdSP.s = IPS_OK;
+	  IDSetSwitch(&UsePulseCmdSP, NULL);
+	  return;
+	}
 }
 
 void LX200Generic::handleError(ISwitchVectorProperty *svp, int err, const char *msg)
@@ -1421,6 +1606,44 @@ void LX200Generic::updateFocusTimer(void *p)
 	    break;
      }
 
+}
+
+void LX200Generic::guideTimeout(void *p)
+{
+    int direction = (int)p;
+    int use_pulse_cmd;
+
+    use_pulse_cmd = telescope->getOnSwitch(&UsePulseCmdSP);
+    if (direction == -1)
+    {
+	HaltMovement(telescope->fd, LX200_NORTH);
+	HaltMovement(telescope->fd, LX200_SOUTH);
+	HaltMovement(telescope->fd, LX200_EAST);
+	HaltMovement(telescope->fd, LX200_WEST);
+	IERmTimer(telescope->GuideNSTID);
+	IERmTimer(telescope->GuideWETID);
+	
+    }
+    else if (! use_pulse_cmd)
+    {
+	HaltMovement(telescope->fd, direction);
+    }
+    if (direction == LX200_NORTH || direction == LX200_SOUTH || direction == -1)
+    {
+        GuideNSNP.np[0].value = 0;
+        GuideNSNP.np[1].value = 0;
+	GuideNSNP.s = IPS_IDLE;
+	telescope->GuideNSTID = 0;
+	IDSetNumber(&GuideNSNP, NULL);
+    }
+    if (direction == LX200_WEST || direction == LX200_EAST || direction == -1)
+    {
+        GuideWENP.np[0].value = 0;
+        GuideWENP.np[1].value = 0;
+	GuideWENP.s = IPS_IDLE;
+	telescope->GuideWETID = 0;
+	IDSetNumber(&GuideWENP, NULL);
+    }
 }
 
 void LX200Generic::ISPoll()
@@ -1754,7 +1977,6 @@ int LX200Generic::checkPower(INumberVectorProperty *np)
   
   if (ConnectSP.s != IPS_OK)
   {
-    
     if (!strcmp(np->label, ""))
     	IDMessage (thisDevice, "Cannot change property %s while the telescope is offline.", np->name);
     else

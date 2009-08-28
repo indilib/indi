@@ -140,6 +140,8 @@ int HaltMovement(int fd, int direction);
 int selectTrackingMode(int fd, int trackMode);
 /* Select Astro-Physics tracking mode */
 int selectAPTrackingMode(int fd, int trackMode);
+/* Send Pulse-Guide command (timed guide move), two valid directions can be stacked */
+int SendPulseCmd(int fd, int direction, int duration_msec);
 
 /**************************************************************************
  Other Commands
@@ -1192,6 +1194,25 @@ int MoveTo(int fd, int direction)
     default:
     break;
   }
+  
+  tcflush(fd, TCIFLUSH);
+  return 0;
+}
+
+int SendPulseCmd(int fd, int direction, int duration_msec)
+{
+  int nbytes_write=0;
+  char cmd[20];
+  switch (direction)
+  {
+    case LX200_NORTH: sprintf(cmd, "#:Mgn%04d#", duration_msec); break;
+    case LX200_SOUTH: sprintf(cmd, "#:Mgs%04d#", duration_msec); break;
+    case LX200_EAST:  sprintf(cmd, "#:Mge%04d#", duration_msec); break;
+    case LX200_WEST:  sprintf(cmd, "#:Mgw%04d#", duration_msec); break;
+    default: return 1;
+  }
+  
+  tty_write_string(fd, cmd, &nbytes_write);
   
   tcflush(fd, TCIFLUSH);
   return 0;

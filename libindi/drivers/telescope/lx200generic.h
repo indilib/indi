@@ -61,7 +61,10 @@ class LX200Generic
  void mountSim();
 
  static void updateFocusTimer(void *p);
+ static void guideTimeout(void *p);
  int    fd;
+ int    GuideNSTID;
+ int    GuideWETID;
 
  protected:
   int timeFormat;
@@ -76,6 +79,7 @@ class LX200Generic
   char   thisDevice[64];
   int    currentSet;
   int    lastSet;
+  
 
 };
 

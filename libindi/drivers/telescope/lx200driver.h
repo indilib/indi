@@ -222,12 +222,14 @@ int Sync(int fd, char *matchedObject);
 int abortSlew(int fd);
 /* Move into one direction, two valid directions can be stacked */
 int MoveTo(int fd, int direction);
-/* Half movement in a particular direction */
+/* Halt movement in a particular direction */
 int HaltMovement(int fd, int direction);
 /* Select the tracking mode */
 int selectTrackingMode(int fd, int trackMode);
 /* Select Astro-Physics tracking mode */
 int selectAPTrackingMode(int fd, int trackMode);
+/* Send Pulse-Guide command (timed guide move), two valid directions can be stacked */
+int SendPulseCmd(int fd, int direction, int duration_msec);
 
 /**************************************************************************
  Other Commands
