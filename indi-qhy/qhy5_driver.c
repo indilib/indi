@@ -129,6 +129,46 @@ int qhy5_read_exposure(qhy5_driver *qhy5)
 	return 0;
 }
 
+int qhy5_timed_move(qhy5_driver *qhy5, int direction, int duration_msec)
+{
+	unsigned int ret;
+	int duration[2] = {-1, -1};
+	int cmd;
+
+	if (! (direction & (QHY_NORTH | QHY_SOUTH | QHY_EAST | QHY_WEST))) {
+		fprintf(stderr, "No direction specified to qhy5_timed_move\n");
+		return 1;
+	}
+	if (duration == 0) {
+		//cancel quiding
+		if ((direction & (QHY_NORTH | QHY_SOUTH)) &&
+		    (direction & (QHY_EAST | QHY_WEST)))
+		{
+			cmd = 0x18;
+		} else if(direction & (QHY_NORTH | QHY_SOUTH)) {
+			cmd = 0x21;
+		} else {
+			cmd = 0x22;
+		}
+		return ctrl_msg(qhy5->handle, 0xc2, cmd, 0, 0, (char *)&ret, sizeof(ret));
+	}
+	if (direction &= QHY_NORTH) {
+		cmd &= 0x20;
+		duration[1] = duration_msec;
+	} else if (direction &= QHY_SOUTH) {
+		cmd &= 0x40;
+		duration[1] = duration_msec;
+	}
+	if (direction &= QHY_EAST) {
+		cmd &= 0x10;
+		duration[0] = duration_msec;
+	} else if (direction &= QHY_WEST) {
+		cmd &= 0x80;
+		duration[0] = duration_msec;
+	}
+	return ctrl_msg(qhy5->handle, 0x42, cmd, 0, 0, (char *)&duration, sizeof(duration));
+}
+
 void *qhy5_get_row(qhy5_driver *qhy5, int row)
 {
 	return qhy5->image + 1558 * row + qhy5->offh + 20;
@@ -209,12 +249,14 @@ qhy5_driver *qhy5_open()
 	struct usb_dev_handle *handle;
 	qhy5_driver *qhy5;
 	usb_init();
+#if 0
  	if ((handle = locate_device(0x16c0, 0x296d))==0) 
 	{
 		printf("Could not open the QHY5 device\n");
 		usb_close(handle);
 		return NULL;
 	}
+#endif
 	qhy5 = calloc(sizeof(qhy5_driver), 1);
 	qhy5->handle = handle;
 	return qhy5;

@@ -51,6 +51,7 @@
 #define COMM_GROUP	"Communication"
 #define EXPOSE_GROUP	"Expose"
 #define IMAGE_GROUP	"Image Settings"
+#define MOTION_GROUP	"Motion Control"
 #define DATA_GROUP      "Data Channel"
 
 #define	MAXEXPERR	10		/* max err in exp time we allow, secs */
@@ -141,6 +142,21 @@ static INumber  MaxValuesN[N_MV] = {
 };
 static INumberVectorProperty MaxValuesNP = {MYDEV, "MaxValues", "Maximum camera settings", IMAGE_GROUP, IP_RO, 0, IPS_IDLE, MaxValuesN, NARRAY(MaxValuesN), "", 0};
 
+
+static int GuideNSTID = 0;
+static int GuideWETID = 0;
+/********************************************
+ Property: Timed Guide movement. North/South
+*********************************************/
+static INumber GuideNSN[]       = {{"TIMED_GUIDE_N", "North (sec)", "%g", 0, 10, 0.001, 0, 0, 0}, {"TIMED_GUIDE_S", "South (sec)", "%g", 0, 10, 0.001, 0, 0, 0}};
+INumberVectorProperty GuideNSNP      = { MYDEV, "TELESCOPE_TIMED_GUIDE_NS", "Guide North/South", MOTION_GROUP, IP_RW, 0, IPS_IDLE, GuideNSN, NARRAY(GuideNSN), "", 0};
+
+/********************************************
+ Property: Timed Guide movement. West/East
+*********************************************/
+static INumber GuideWEN[]       = {{"TIMED_GUIDE_W", "West (sec)", "%g", 0, 10, 0.001, 0, 0, 0}, {"TIMED_GUIDE_E", "East (sec)", "%g", 0, 10, 0.001, 0, 0, 0}};
+INumberVectorProperty GuideWENP      = { MYDEV, "TELESCOPE_TIMED_GUIDE_WE", "Guide West/East", MOTION_GROUP, IP_RW, 0, IPS_IDLE, GuideWEN, NARRAY(GuideWEN), "", 0};
+
 /********************************************
  Property: Compress FITS
 *********************************************/
@@ -162,6 +178,7 @@ static IBLOBVectorProperty FitsBP = {MYDEV, "Pixels", "Image data", DATA_GROUP, 
 /* Function prototypes */
 static void getStartConditions(void);
 static void expTO (void *vp);
+static void guideTimeout(void *p);
 static void addFITSKeywords(fitsfile *fptr);
 static void uploadFile(const void *memptr, size_t memsize);
 /*static void sendFITS (char *fits, int nfits);*/
@@ -186,6 +203,10 @@ void ISGetProperties (char const *dev)
 		IDDefNumber (&BinningNP, NULL);
 		IDDefNumber (&GainNP, NULL);
 		IDDefNumber (&MaxValuesNP, NULL);
+ 
+		/* Motion */ 
+		IDDefNumber (&GuideNSNP, NULL );
+		IDDefNumber (&GuideWENP, NULL );
 
 		/* Data */
 		IDDefSwitch(&CompressSP, NULL);
@@ -261,13 +282,12 @@ void ISNewNumber (const char * dev, const char *name, double *doubles, char *nam
 		if (IUUpdateNumber(&ExposureNP, doubles, names, n) < 0)
 			return;
 
-	            if (ExposureNP.s == IPS_BUSY)
-		    {
+	        if (ExposureNP.s == IPS_BUSY)
+		{
 			/* Already exposing, what can we do? */
 			IDMessage(MYDEV, "QHY5 is already exposing.  Can't abort.");
 
-		    } else 
-		    {
+		} else {
 			/* start new exposure with last ExpValues settings.
 			 * ExpGo goes busy. set timer to read when done
 			 */
@@ -276,9 +296,9 @@ void ISNewNumber (const char * dev, const char *name, double *doubles, char *nam
 
 			if (qhy5_start_exposure(qhydrv, expms) < 0) 
 			{
-			    ExposureNP.s = IPS_ALERT;
-			    IDSetNumber (&ExposureNP, "Error starting exposure");
-			    return;
+				ExposureNP.s = IPS_ALERT;
+				IDSetNumber (&ExposureNP, "Error starting exposure");
+				return;
 			}
 
 			getStartConditions();
@@ -287,10 +307,10 @@ void ISNewNumber (const char * dev, const char *name, double *doubles, char *nam
 
 			ExposureNP.s = IPS_BUSY;
 			IDSetNumber (&ExposureNP, "Starting %g sec exp, %d x %d", expsec, impixw, impixh);
-		    }
+		}
 
-		   return;
-	    }
+		return;
+	}
 
 	if (!strcmp (name, FrameNP.name) || !strcmp (name, BinningNP.name) || !strcmp(name, GainNP.name))
 	{
@@ -339,6 +359,74 @@ void ISNewNumber (const char * dev, const char *name, double *doubles, char *nam
 		}
 
 		return;
+	}
+	if (!strcmp(name, GuideNSNP.name))
+	{
+		int direction;
+		int duration_msec;
+		int use_pulse_cmd;
+
+		if (GuideNSNP.s == IPS_BUSY)
+		{
+			// Already guiding so stop before restarting timer
+			qhy5_timed_move(qhydrv, QHY_NORTH, 0);
+		}
+		if (GuideNSTID) {
+			IERmTimer(GuideNSTID);
+			GuideNSTID = 0;
+		}
+		IUUpdateNumber(&GuideNSNP, doubles, names, n);
+
+		if (GuideNSNP.np[0].value > 0) {
+			duration_msec = GuideNSNP.np[0].value * 1000;
+			direction = QHY_NORTH;
+		} else {
+			duration_msec = GuideNSNP.np[1].value * 1000;
+			direction = QHY_SOUTH;
+		}
+		if (duration_msec <= 0) {
+			GuideNSNP.s = IPS_IDLE;
+			IDSetNumber (&GuideNSNP, NULL);
+			return;
+		}
+		qhy5_timed_move(qhydrv, direction, duration_msec);
+		GuideNSTID = IEAddTimer (duration_msec, guideTimeout, (void *)direction);
+		GuideNSNP.s = IPS_BUSY;
+		IDSetNumber(&GuideNSNP, NULL);
+	}
+	if (!strcmp(name, GuideWENP.name))
+	{
+		int direction;
+		int duration_msec;
+		int use_pulse_cmd;
+
+		if (GuideWENP.s == IPS_BUSY)
+		{
+			// Already guiding so stop before restarting timer
+			qhy5_timed_move(qhydrv, QHY_WEST, 0);
+		}
+		if (GuideWETID) {
+			IERmTimer(GuideWETID);
+			GuideWETID = 0;
+		}
+		IUUpdateNumber(&GuideWENP, doubles, names, n);
+
+		if (GuideWENP.np[0].value > 0) {
+			duration_msec = GuideWENP.np[0].value * 1000;
+			direction = QHY_WEST;
+		} else {
+			duration_msec = GuideWENP.np[1].value * 1000;
+			direction = QHY_EAST;
+		}
+		if (duration_msec <= 0) {
+			GuideWENP.s = IPS_IDLE;
+			IDSetNumber (&GuideWENP, NULL);
+			return;
+		}
+		qhy5_timed_move(qhydrv, direction, duration_msec);
+		GuideWETID = IEAddTimer (duration_msec, guideTimeout, (void *)direction);
+		GuideWENP.s = IPS_BUSY;
+		IDSetNumber(&GuideWENP, NULL);
 	}
 }
 
@@ -493,6 +581,35 @@ static void expTO (void *vp)
 	free(memptr);
 }
 
+void guideTimeout(void *p)
+{
+    int direction = (int)p;
+
+    if (direction == -1)
+    {
+	qhy5_timed_move(qhydrv, QHY_NORTH | QHY_EAST, 0);
+	IERmTimer(GuideNSTID);
+	IERmTimer(GuideWETID);
+	
+    }
+    if (direction == QHY_NORTH || direction == QHY_SOUTH || direction == -1)
+    {
+        GuideNSNP.np[0].value = 0;
+        GuideNSNP.np[1].value = 0;
+	GuideNSNP.s = IPS_IDLE;
+	GuideNSTID = 0;
+	IDSetNumber(&GuideNSNP, NULL);
+    }
+    if (direction == QHY_WEST || direction == QHY_EAST || direction == -1)
+    {
+        GuideWENP.np[0].value = 0;
+        GuideWENP.np[1].value = 0;
+	GuideWENP.s = IPS_IDLE;
+	GuideWETID = 0;
+	IDSetNumber(&GuideWENP, NULL);
+    }
+}
+
 void addFITSKeywords(fitsfile *fptr)
 {
   int status=0;
@@ -610,6 +727,10 @@ static int camconnect()
 	IDDefNumber (&GainNP, NULL);
 	IDDefNumber (&MaxValuesNP, NULL);
 
+	/* Motion */ 
+	IDDefNumber (&GuideNSNP, NULL );
+	IDDefNumber (&GuideWENP, NULL );
+
 	/* Data */
 	IDDefSwitch(&CompressSP, NULL);
 	IDDefBLOB(&FitsBP, NULL);
@@ -627,6 +748,8 @@ void reset_all_properties()
 	ExposureNP.s		= IPS_IDLE;
 	MaxValuesNP.s 		= IPS_IDLE;
 	FitsBP.s		= IPS_IDLE;
+	GuideNSNP.s		= IPS_IDLE;
+	GuideWENP.s		= IPS_IDLE;
 	
 	qhy5_close(qhydrv);
 	qhydrv = NULL;
@@ -637,6 +760,8 @@ void reset_all_properties()
 	IDSetNumber(&GainNP, NULL);
 	IDSetNumber(&ExposureNP, NULL);
 	IDSetNumber(&MaxValuesNP, NULL);
+	IDSetNumber(&GuideNSNP, NULL);
+	IDSetNumber(&GuideWENP, NULL);
 	IDSetSwitch(&CompressSP, NULL);
 	IDSetBLOB(&FitsBP, NULL);
 }
