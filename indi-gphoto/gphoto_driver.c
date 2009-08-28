@@ -199,6 +199,10 @@ static int set_widget_num(gphoto_driver *gphoto, gphoto_widget *widget, int valu
 	int			ret;
 	const char		*ptr;
 
+	if (! widget) {
+		fprintf(stderr, "Invalid widget specified to set_widget_num\n");
+		return 1;
+	}
 	switch(widget->type) {
 	case GP_WIDGET_TOGGLE:
 		ret = gp_widget_set_value (widget->child, &value);
@@ -555,11 +559,15 @@ void gphoto_set_format(gphoto_driver *gphoto, int format)
 
 int gphoto_get_format_current(gphoto_driver *gphoto)
 {
+	if (! gphoto->format_widget)
+		return 0;
 	return gphoto->format_widget->value.num;
 }
 
 int gphoto_get_iso_current(gphoto_driver *gphoto)
 {
+	if (! gphoto->iso_widget)
+		return 0;
 	return gphoto->iso_widget->value.num;
 }
 
