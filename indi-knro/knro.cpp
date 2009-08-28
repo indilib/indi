@@ -54,9 +54,9 @@ using namespace std;
 auto_ptr<knroObservatory> KNRO_observatory(0);		/* Autoptr to observatory */
 
 #ifdef SIMULATION
-const int POLLMS = 500;	
+const int POLLMS = 1000;	
 #else
-const int POLLMS = 100;						/* Status loop runs every 100 ms or 10 Hz */
+const int POLLMS = 500;						/* Status loop runs every 500 ms or 5 Hz */
 #endif
 
 pthread_mutex_t knroObservatory::encoder_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -549,12 +549,12 @@ void knroObservatory::ISNewText (const char *dev, const char *name, char *texts[
 	
 	
 	// If we're not connected, we return
-	if (is_connected() == false)
+	/*if (is_connected() == false)
 	{
 		IDMessage(mydev, "KNRO is offline. Please connect before issuing any commands.");
 		reset_all_properties();
 		return;
-	}
+	}*/
 	
 	
   
@@ -725,7 +725,8 @@ void knroObservatory::reset_all_properties(bool reset_to_idle)
 void knroObservatory::init_knro()
 {
 	// For now, make sure that both inverters are connected
-	if (AzInverter->connect() && AltInverter->connect() && AzEncoder->connect() && AltEncoder->connect())
+	//if (AzInverter->connect() && AltInverter->connect() && AzEncoder->connect() && AltEncoder->connect())
+	if (AzEncoder->connect())
 	{
 		ConnectSP. s = IPS_OK;
 		
@@ -1030,4 +1031,5 @@ void knroObservatory::disable_simulation()
 	SimulationSP.s = IPS_OK;
 	IDSetSwitch(&SimulationSP, "KNRO simulation is disabled.");
 }
+
 

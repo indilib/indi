@@ -36,6 +36,10 @@
 
 #include "encoder.h"
 
+const int ENCODER_READ_BUFFER = 16;
+const int ENCODER_ERROR_BUFFER = 128;
+const int ENCODER_CMD_LEN = 4;
+
 /****************************************************************
 **
 **
@@ -43,14 +47,20 @@
 knroEncoder::knroEncoder(encoderType new_type)
 {
 
-  // Default value
-  type = AZ_ENCODER;
-
   connection_status = -1;
   
   simulation = false;
   
   set_type(new_type);
+
+  // As per RS485 AMCI Manual
+  // ASCII g
+  encoder_command[0] = (char) 0x67 ;
+  // Parameter id is one byte to be filled by dispatch_command function
+  // Carriage Return
+  encoder_command[2] = (char) 0x0D ;
+  // Line Feed
+  encoder_command[3] = (char) 0x0A ;
 
   init_properties();
 
@@ -77,10 +87,13 @@ knroEncoder::~knroEncoder()
 void knroEncoder::init_properties()
 {
 
-  IUFillNumber(&EncoderAbsPosN[0], "Value" , "", "%d", 0., 500000., 0., 0.);
+  IUFillNumber(&EncoderAbsPosN[0], "Value" , "", "%g", 0., 16777216., 0., 0.);
   IUFillNumber(&EncoderAbsPosN[1], "Angle" , "", "%g", 0., 360., 0., 0.);
 
-  IUFillText(&PortT[0], "PORT", "Port", default_port.c_str());
+   IUFillSwitch(&UpdateCountS[0], "Update Count", "", ISS_OFF);
+   IUFillSwitchVector(&UpdateCountSP, UpdateCountS, NARRAY(UpdateCountS), mydev, "Update", "", ENCODER_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+   IUFillText(&PortT[0], "PORT", "Port", default_port.c_str());
 
   if (type == AZ_ENCODER)
   {
@@ -92,7 +105,8 @@ void knroEncoder::init_properties()
     	IUFillTextVector(&PortTP, PortT, NARRAY(PortT), mydev, "ALTITUDE_ENCODER_PORT", "Altitude", ENCODER_GROUP, IP_RW, 0, IPS_IDLE);
     	IUFillNumberVector(&EncoderAbsPosNP, EncoderAbsPosN, NARRAY(EncoderAbsPosN), mydev, "Absolute Alt", "", ENCODER_GROUP, IP_RO, 0, IPS_OK);
   }
-   
+
+  
 }
 
 /****************************************************************
@@ -103,6 +117,7 @@ void knroEncoder::ISGetProperties()
 {
    IDDefNumber(&EncoderAbsPosNP, NULL);
    IDDefText(&PortTP, NULL);
+   IDDefSwitch(&UpdateCountSP, NULL);
 }
 
 /****************************************************************
@@ -114,12 +129,13 @@ void knroEncoder::reset_all_properties(bool reset_to_idle)
 	if (reset_to_idle)
 	{
 		EncoderAbsPosNP.s 	= IPS_IDLE;
-		PortTP.s			= IPS_IDLE;
+		PortTP.s		= IPS_IDLE;
+		UpdateCountSP.s		= IPS_IDLE;
 	}
 	
 	IDSetNumber(&EncoderAbsPosNP, NULL);
 	IDSetText(&PortTP, NULL);
-	
+	IDSetSwitch(&UpdateCountSP, NULL);
 }
 
 /****************************************************************
@@ -149,19 +165,29 @@ void knroEncoder::set_type(encoderType new_type)
 bool knroEncoder::connect()
 {
 	
+   if (check_drive_connection())
+		return true;
+
     if (simulation)
     {
     	IDMessage(mydev, "%s Encoder: Simulating connecting to port %s.", type_name.c_str(), PortT[0].text);
         connection_status = 0;
+	return true;
     }
-    /*else if ( (connection_status = modbus_connect(&mb_param)) == -1)
+
+
+    if (tty_connect(PortT[0].text, 9600, 8, 0, 1, &fd) != TTY_OK)
     {
-       IDMessage(mydev, "%s drive: Connection failed to inverter @ port %s", type_name.c_str(), PortT[0].text);
-       IDLog("%s drive: Connection failed to inverter @ port %s\n", type_name.c_str(), PortT[0].text);
-       return false;
-    }*/
-    
-	return init_encoder();
+	EncoderAbsPosNP.s = IPS_ALERT;
+	IDSetNumber (&EncoderAbsPosNP, "Error connecting to port %s. Make sure you have BOTH read and write permission to the port.", PortT[0].text);
+	return false;
+    }
+
+    connection_status = 0;
+    EncoderAbsPosNP.s = IPS_OK;
+    IDSetNumber (&EncoderAbsPosNP, "%s encoder is online. Retrieving positional data...", type_name.c_str());
+
+    return init_encoder();
 	
 }
 
@@ -171,8 +197,9 @@ bool knroEncoder::connect()
 *****************************************************************/   
 bool knroEncoder::init_encoder()
 {
-	if (!check_drive_connection())
-		return false;
+	
+   if (!check_drive_connection())
+	return false;
 		   
    // Enable speed mode
    if (simulation)
@@ -180,10 +207,9 @@ bool knroEncoder::init_encoder()
 		IDMessage(mydev, "%s Encoder: Simulating encoder init.", type_name.c_str());
    }
    else
-   //FIXME add real code
-   		return false;
-   		
-   	return true;
+		update_encoder_count();
+   	
+   return true;
 	
 }
 
@@ -193,8 +219,8 @@ bool knroEncoder::init_encoder()
 *****************************************************************/   
 void knroEncoder::disconnect()
 {
-	if (simulation)
-		connection_status = -1;
+	connection_status = -1;
+	tty_disconnect(fd);
 }
 
 /****************************************************************
@@ -267,7 +293,11 @@ void knroEncoder::ISNewText (const char *dev, const char *name, char *texts[], c
 			return;
 
 		PortTP.s = IPS_OK;
-		IDSetText(&PortTP, NULL);
+		IDSetText(&PortTP, "Disconnecting... Please reconnect when ready.");
+
+		disconnect();
+
+		
 		return;
 	}
 	
@@ -279,8 +309,105 @@ void knroEncoder::ISNewText (const char *dev, const char *name, char *texts[], c
 *****************************************************************/
 void knroEncoder::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-	
-	
-	
-	
+	if (!strcmp(UpdateCountSP.name, name))
+	{
+		IUResetSwitch(&UpdateCountSP);
+		UpdateCountSP.s = IPS_OK;
+
+		update_encoder_count();
+
+		IDSetSwitch(&UpdateCountSP, NULL);
+
+		return;
+	}
 }
+
+bool knroEncoder::dispatch_command(encoderCommand command)
+{
+   char encoder_error[ENCODER_ERROR_BUFFER];
+   encoder_command[1] = command;
+   int err_code = 0, nbytes_written =0;
+
+   if  ( (err_code = tty_write(fd, encoder_command, ENCODER_CMD_LEN, &nbytes_written) != TTY_OK))
+   {
+	tty_error_msg(err_code, encoder_error, ENCODER_ERROR_BUFFER);
+	IDLog("TTY error detected: %s\n", encoder_error);
+   	return false;
+   }
+
+   return true;
+}
+
+knroEncoder::encoderError knroEncoder::get_encoder_value(encoderCommand command, char * response, double & encoder_value)
+{
+	unsigned short big_endian_short;
+	unsigned short big_endian_int;
+
+	// Command Response is as following:
+	// Command Code - Paramter Echo - Requested Data  - Error Code - Delimiter
+	//    1 byte    -     1 byte    - 1,2, or 4 bytes -   1 byte   -   2 bytes
+	switch (command)
+	{
+
+		case NUM_OF_TURNS:
+
+		memcpy(&big_endian_short, response + 2, 2);
+
+		// Now convert big endian to little endian
+		encoder_value = big_endian_short >> 8 | big_endian_short << 8;
+
+		break;
+
+		case POSITION_VALUE:
+
+		memcpy(&big_endian_int, response + 2, 4);
+		  
+		// Now convert big endian to little endian
+		encoder_value = (big_endian_int >>24) | ((big_endian_int <<8) & 0x00FF0000) | ((big_endian_int >>8) & 0x0000FF00) | (big_endian_int<<24);
+
+		break;
+	}
+
+	return NO_ERROR;
+}
+
+void knroEncoder::update_encoder_count()
+{
+	if (simulation || !check_drive_connection())
+		return;
+
+	char encoder_read[ENCODER_READ_BUFFER];
+	char encoder_error[ENCODER_ERROR_BUFFER];
+
+        int nbytes_read =0;
+        int err_code = 0;
+
+
+	if (dispatch_command(POSITION_VALUE) == false)
+	{
+		IDLog("Error dispatching command to encoder...\n");
+		return;
+	}
+
+	if ( (err_code = tty_read_section(fd, encoder_read, (char) 0x0A, 5, &nbytes_read)) != TTY_OK)
+	{
+		tty_error_msg(err_code, encoder_error, ENCODER_ERROR_BUFFER);
+		IDLog("TTY error detected: %s\n", encoder_error);
+   		return;
+	}
+
+//		IDLog("Received response from encoder %d bytes long and is #%s#\n", nbytes_read, test_string);
+
+	if ( (err_code = get_encoder_value(POSITION_VALUE, encoder_read, EncoderAbsPosN[0].value)) != NO_ERROR)
+	{
+		IDLog("Encoder error is %d\n", err_code);
+		return;
+	}
+
+	IDSetNumber(&EncoderAbsPosNP, NULL);
+
+//	IDLog("We got encoder test value of %d\n", test_value);
+
+}
+
+

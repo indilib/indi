@@ -71,10 +71,10 @@ public:
     // Standard INDI interface fucntions
     void ISGetProperties();
     void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
- 	void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
- 	void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+    void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+    void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
  	
- 	void reset_all_properties(bool reset_to_idle=false);
+    void reset_all_properties(bool reset_to_idle=false);
      
 private: 
 
@@ -117,11 +117,14 @@ private:
 	
 	modbus_param_t mb_param;
 	
-	const uint SLAVE_ADDRESS;
+	uint SLAVE_ADDRESS;
 	const uint SPEED_MODE_ADDRESS;
 	const uint NETWORK_COMMAND_SOURCE_ADDRESS;
 	const uint MOTION_CONTROL_ADDRESS;
 	const uint DRIVE_ENABLE_ADDRESS;
+	const uint REMOTE_ENABLE_ADDRESS;
+	const uint FORWARD_ADDRESS;	
+        const uint REVERSE_ADDRESS;
 	const uint HZ_HOLD_ADDRESS;
 	
 	// Stop, Forward, Reverse

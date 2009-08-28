@@ -44,8 +44,7 @@
 * N.B. Make sure that the stating address are correct since Modbus ref 17, for example, should be addressed as 16.
 * Not sure if libmodbus takes care of that or not.
 *****************************************************************/
-knroInverter::knroInverter(inverterType new_type) : SLAVE_ADDRESS(0x01), SPEED_MODE_ADDRESS(0x03), NETWORK_COMMAND_SOURCE_ADDRESS(0x23),
- MOTION_CONTROL_ADDRESS(0x4E), DRIVE_ENABLE_ADDRESS(0x52), HZ_HOLD_ADDRESS(0x9C4D)
+knroInverter::knroInverter(inverterType new_type) : SPEED_MODE_ADDRESS(3), REMOTE_ENABLE_ADDRESS(34), NETWORK_COMMAND_SOURCE_ADDRESS(35), MOTION_CONTROL_ADDRESS(78), DRIVE_ENABLE_ADDRESS(82), FORWARD_ADDRESS(79), REVERSE_ADDRESS(89),  HZ_HOLD_ADDRESS(40013)
 {
 
   // Initially, not connected
@@ -67,10 +66,7 @@ knroInverter::knroInverter(inverterType new_type) : SLAVE_ADDRESS(0x01), SPEED_M
 *****************************************************************/
 knroInverter::~knroInverter()
 {
-
-
-
-
+	disconnect();
 }
 
 /****************************************************************
@@ -86,14 +82,18 @@ void knroInverter::set_type(inverterType new_type)
   	type_name = string("Azimuth");
   	forward_motion = string("East");
   	reverse_motion = string("West");
-  	default_port = string("/dev/ttyUSB0");
+  	default_port = string("192.168.1.3");
+
+	SLAVE_ADDRESS = 1;
   }
   else
   {
     type_name = string("Altitude");
     forward_motion = string("Up");
     reverse_motion = string("Down"); 
-    default_port = string("/dev/ttyUSB1");
+    default_port = string("192.168.1.3");
+    
+    SLAVE_ADDRESS = 2;
   }
 }
 
@@ -156,9 +156,12 @@ bool knroInverter::check_drive_connection()
 *****************************************************************/   
 bool knroInverter::connect()
 {
-	
+	if (check_drive_connection())
+		return true;
+
 	// 19200 baud is default, no parity, 8 bits, 1 stop bit
-	modbus_init_rtu(&mb_param, PortT[0].text, 19200, "none", 8, 1);
+	//modbus_init_rtu(&mb_param, PortT[0].text, 19200, "none", 8, 1);
+	modbus_init_tcp(&mb_param, PortT[0].text, 502);
 	
 	// Enable debug
     modbus_set_debug(&mb_param, TRUE);
@@ -185,10 +188,9 @@ bool knroInverter::connect()
 *****************************************************************/   
 void knroInverter::disconnect()
 {
-	if (simulation)
-		connection_status = -1;
+	connection_status = -1;
 	
-	
+	modbus_close(&mb_param);
 	
 }
 
@@ -197,26 +199,45 @@ void knroInverter::disconnect()
 ** We're going to test if addressing works as expected
 * by placing the drive in local mode. Modbus ref 33 corresponds to
 * 0x21. 0x22 is to place drive is remote mode, while 0x20 is reserved.
+
+Test works fine. JM @ 2009-07-26
 *****************************************************************/
 bool knroInverter::test_address()
 {
-	
-	int ret;
-	
-	if (!check_drive_connection())
-		return false;
-		
-	ret = force_single_coil(&mb_param, SLAVE_ADDRESS, 0x21, 1);
+   int ret=0;
 
+        uint8_t *tab_rp_status;
+        tab_rp_status = (uint8_t *) malloc(1 * sizeof(uint8_t));
+        memset(tab_rp_status, 0, 1 * sizeof(uint8_t));
+
+
+   tab_rp_status[0]=0;
+   
+
+   IDLog("Forcing multiple coils\n");
+
+   ret = force_multiple_coils(&mb_param, SLAVE_ADDRESS, SPEED_MODE_ADDRESS, 1, tab_rp_status);
+
+   IDLog("Done.. waiting to see result...\n");
+	
    if (ret != 1)
    {
-     IDLog("Command: Set drive in local mode. ERROR force_single_coil (%d)\n", ret);
-     IDLog("Slave = %d, address = %d, value = %d (0x%X)\n", SLAVE_ADDRESS, 0x21, 1, 1);
+     IDLog("Command: READ drive in local mode. ERROR read_coil_status (%d)\n", ret);
+     IDLog("Slave = %d, address = %d, value = %d (0x%X)\n", SLAVE_ADDRESS, SPEED_MODE_ADDRESS, 1, 1);
+        free(tab_rp_status);                                           
      return false;
    }
-   
-   return true;
-	
+
+   tab_rp_status[0]=0;
+
+   ret = read_coil_status(&mb_param, SLAVE_ADDRESS, SPEED_MODE_ADDRESS, 1, tab_rp_status);
+
+
+   IDLog("Read Coil 0x%d: %d\n", SPEED_MODE_ADDRESS+1, tab_rp_status[0]);
+
+        free(tab_rp_status);                                           
+
+   return true;	
 }
 
 /****************************************************************
@@ -353,7 +374,8 @@ bool knroInverter::set_speed(float newHz)
     
     cerr << "Speed bits after processing are: " << bits << endl;
     IDLog("Hz_Speed_Register[0] = %d - Hz_Speed_Register[1] = %d\n", Hz_Speed_Register[0], Hz_Speed_Register[1]);
-      
+
+    IDLog("****** STARTING WRITING PROCESS ******\n");      
     if (simulation)
     {
     	ret = 2;
@@ -361,13 +383,31 @@ bool knroInverter::set_speed(float newHz)
 	}
 	else
 		ret = preset_multiple_registers(&mb_param, SLAVE_ADDRESS, HZ_HOLD_ADDRESS, 2, Hz_Speed_Register);
-		
+	
+	
+    IDLog("****** END WRITING PROCESS ******\n");      
     if (ret != 2)
     {
       IDLog("set_speed ERROR! preset_multiple_registers (%d)\n", ret);
       IDLog("Slave = %d, address = %d, nb = %d\n", SLAVE_ADDRESS, HZ_HOLD_ADDRESS, 2);
       return false;
     }                    
+
+    Hz_Speed_Register[0] = 0;
+    Hz_Speed_Register[1] = 0;
+
+    IDLog("****** STARTING READ PROCESS ******\n");      
+    ret = read_holding_registers(&mb_param, SLAVE_ADDRESS, HZ_HOLD_ADDRESS, 2, Hz_Speed_Register);
+    IDLog("****** END READ PROCESS ******\n");      
+
+    if (ret != 2)
+    {
+      IDLog("set_speed ERROR! read_holding_registers (%d)\n", ret);
+      IDLog("Slave = %d, address = %d, nb = %d\n", SLAVE_ADDRESS, HZ_HOLD_ADDRESS, 2);
+      return false;
+    }                    
+
+    IDLog("** READING ** Hz_Speed_Register[0] = %d - Hz_Speed_Register[1] = %d\n", Hz_Speed_Register[0], Hz_Speed_Register[1]);
 
     return true;
 	
@@ -381,11 +421,16 @@ bool knroInverter::enable_drive()
 {
 	
 	int ret;
+	uint8_t inverter_send[1];
+	uint8_t inverter_read[1];
 	
 	if (!check_drive_connection())
 		return false;
-			
-	stop();
+
+	inverter_send[0] = 1;			
+	inverter_read[0] = 0;
+
+	//stop();
 
 	if (simulation)
 	{
@@ -393,15 +438,22 @@ bool knroInverter::enable_drive()
 		IDMessage(mydev, "%s drive: Simulating enabling drive.", type_name.c_str());
 	}
 	else
-		ret = force_single_coil(&mb_param, SLAVE_ADDRESS, DRIVE_ENABLE_ADDRESS, 1);
+		ret = force_multiple_coils(&mb_param, SLAVE_ADDRESS, DRIVE_ENABLE_ADDRESS, 1, inverter_send);
 	
-	if (ret != 1)
+   if (ret != 1)
    {
      IDLog("Command: Enable Drive. ERROR force_single_coil (%d)\n", ret);
      IDLog("Slave = %d, address = %d, value = %d (0x%X)\n", SLAVE_ADDRESS, DRIVE_ENABLE_ADDRESS, 1, 1);
      return false;
    }
    
+    if (!simulation)
+   {
+	   // Make sure it's OK   
+	   ret = read_coil_status(&mb_param, SLAVE_ADDRESS, DRIVE_ENABLE_ADDRESS, 1, inverter_read);
+	   IDLog("Drive Enable (82) Coil Status: %s\n", (inverter_read[0] == 0) ? "Off" : "On");
+   }
+
    return true;
 	
 }
@@ -413,10 +465,12 @@ bool knroInverter::enable_drive()
 bool knroInverter::disable_drive()
 {
 	int ret;
+	uint8_t inverter_send[1];
 	
 	if (!check_drive_connection())
 		return false;
-				
+
+	inverter_send[0] = 0;							
 	stop();
 
 	if (simulation)
@@ -425,9 +479,9 @@ bool knroInverter::disable_drive()
 		IDMessage(mydev, "%s drive: Simulating disabling drive.", type_name.c_str());
 	}
 	else
-		ret = force_single_coil(&mb_param, SLAVE_ADDRESS, DRIVE_ENABLE_ADDRESS, 0);
+		ret = force_multiple_coils(&mb_param, SLAVE_ADDRESS, DRIVE_ENABLE_ADDRESS, 1, inverter_send);
 	
-	if (ret != 1)
+   if (ret != 1)
    {
      IDLog("Command: Disable Drive. ERROR force_single_coil (%d)\n", ret);
      IDLog("Slave = %d, address = %d, value = %d (0x%X)\n", SLAVE_ADDRESS, DRIVE_ENABLE_ADDRESS, 0, 0);
@@ -444,21 +498,30 @@ bool knroInverter::disable_drive()
 bool knroInverter::init_drive()
 {
 	int ret;
-	
+	uint8_t inverter_send[1];
+	uint8_t inverter_read[1];
+
 	if (!check_drive_connection())
 		return false;
-		   
+	
+
+   //FIXME REMOVE THIS!!!
+	return true;
+	   
    // Ensure that drive is disabled first	
-   disable_drive();
+   //disable_drive();
    
-   // Enable speed mode
+   inverter_send[0] = 1;
+   inverter_read[0] = 0;
+
+   // Enable speed mode. Coil 3
    if (simulation)
    {
 		ret = 1;
 		IDMessage(mydev, "%s drive: Simulating setting motion mode to SPEED.", type_name.c_str());
    }
    else
-   	ret = force_single_coil(&mb_param, SLAVE_ADDRESS, SPEED_MODE_ADDRESS, 1);
+   	ret = force_multiple_coils(&mb_param, SLAVE_ADDRESS, SPEED_MODE_ADDRESS, 1, inverter_send);
                     
    if (ret != 1)
    {
@@ -466,9 +529,15 @@ bool knroInverter::init_drive()
      IDLog("Slave = %d, address = %d, value = %d (0x%X)\n", SLAVE_ADDRESS, SPEED_MODE_ADDRESS, 1, 1);
      return false;
    }
-   
-   
-  // Set Command Source
+
+   if (!simulation)
+   {
+	   // Make sure it's OK   
+	   ret = read_coil_status(&mb_param, SLAVE_ADDRESS, SPEED_MODE_ADDRESS, 1, inverter_read);
+	   IDLog("Speed Mode (3) Coil Status: %s\n", (inverter_read[0] == 0) ? "Off" : "On");
+   }
+
+  // Set Command Source. Coil 35
   // The inverter operates in network mode. We ask the VS1SP to read the command source data from the registers values corresponding to the current operating mode
   // which is network. This will enable the drive to pull the target frequency (Hz) value from the holding registers.
   if (simulation)
@@ -477,15 +546,28 @@ bool knroInverter::init_drive()
 		IDMessage(mydev, "%s drive: Simulating setting command source for Network registers.", type_name.c_str());
    }
    else
-  		ret = force_single_coil(&mb_param, SLAVE_ADDRESS, NETWORK_COMMAND_SOURCE_ADDRESS, 1);
+  		ret = force_multiple_coils(&mb_param, SLAVE_ADDRESS, NETWORK_COMMAND_SOURCE_ADDRESS, 1, inverter_send);
                     
    if (ret != 1)
    {
      IDLog("Command: Set Network Command Source. ERROR force_single_coil (%d)\n", ret);
-     IDLog("Slave = %d, address = %d, value = %d (0x%X)\n", SLAVE_ADDRESS, NETWORK_COMMAND_SOURCE_ADDRESS, 1, 1);
+     IDLog("Slave = %d, address = %d, value = %d (0x%X)\n", SLAVE_ADDRESS, NETWORK_COMMAND_SOURCE_ADDRESS, inverter_send[0], inverter_send[0]);
      return false;
    }
                                      
+
+   if (!simulation)
+   {
+	   // Make sure it's OK   
+	   ret = read_coil_status(&mb_param, SLAVE_ADDRESS, NETWORK_COMMAND_SOURCE_ADDRESS, 1, inverter_read);
+	   IDLog("Network Source (35) Coil Status: %s\n", (inverter_read[0] == 0) ? "Off" : "On");
+
+
+	   // For safety, always set the speed to 0 Hz initially
+	   set_speed(0);       
+   }
+
+
 
    // Now the drive is ready to be used
    return enable_drive();
@@ -544,7 +626,10 @@ void knroInverter::ISNewText (const char *dev, const char *name, char *texts[], 
 			return;
 
 		PortTP.s = IPS_OK;
-		IDSetText(&PortTP, NULL);
+		IDSetText(&PortTP, "Disconnecting... Please reconnect when ready");
+
+		disconnect();
+
 		return;
 	}
 }

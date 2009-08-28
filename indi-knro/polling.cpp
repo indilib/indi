@@ -44,6 +44,12 @@
 void knroObservatory::ISPoll()
 {
 
+	
+	//AzEncoder->update_encoder_count();
+	//AltEncoder->update_encoder_count();
+
+
+
 #if 0
 
 	if (is_connected() == false)
