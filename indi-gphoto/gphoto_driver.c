@@ -673,6 +673,64 @@ int gphoto_close(gphoto_driver *gphoto)
 	return 0;
 }
 
+static show_widgets(CameraWidget *widget, char *prefix) {
+	int 	ret, n, i;
+	char	*newprefix;
+	const char *label, *name, *uselabel;
+	CameraWidgetType	type;
+
+	gp_widget_get_label (widget, &label);
+	ret = gp_widget_get_name (widget, &name);
+	gp_widget_get_type (widget, &type);
+
+	if (strlen(name))
+		uselabel = name;
+	else
+		uselabel = label;
+
+	n = gp_widget_count_children (widget);
+
+	newprefix = malloc(strlen(prefix)+1+strlen(uselabel)+1);
+	if (!newprefix)
+		return;
+	sprintf(newprefix,"%s/%s",prefix,uselabel);
+
+	if ((type != GP_WIDGET_WINDOW) && (type != GP_WIDGET_SECTION))
+		fprintf(stderr, "\t%s\n",newprefix);
+	for (i=0; i<n; i++) {
+		CameraWidget *child;
+	
+		ret = gp_widget_get_child (widget, i, &child);
+		if (ret != GP_OK)
+			continue;
+		show_widgets (child, newprefix);
+	}
+	free(newprefix);
+}
+
+void gphoto_show_options(gphoto_driver *gphoto)
+{
+	int max, ret, i;
+	const char **values;
+	CameraWidget *widget, *child;
+
+	ret = gp_camera_get_config (gphoto->camera, &widget, gphoto->context);
+	max = gp_widget_count_children(widget);
+	fprintf(stderr, "Available options\n");
+	show_widgets(widget, "");
+
+	values = gphoto_get_formats(gphoto, &max);
+	fprintf(stderr, "Available image formats:\n");
+	for(i = 0; i < max; i++) {
+		fprintf(stderr, "\t%3d: %s\n", i, values[i]);
+	}
+	fprintf(stderr, "Available ISO:\n");
+	values = gphoto_get_iso(gphoto, &max);
+	for(i = 0; i < max; i++) {
+		fprintf(stderr, "\t%s\n", values[i]);
+	}
+}
+
 void gphoto_get_buffer(gphoto_driver *gphoto, const char **buffer, size_t *size)
 {
 	gp_file_get_data_and_size(gphoto->camerafile, buffer, (unsigned long *)size);
@@ -792,17 +850,7 @@ int main (int argc,char **argv)
 		return -1;
 	}
 	if (list) {
-		int max;
-		const char **values = gphoto_get_formats(gphoto, &max);
-		printf("Available image formats:\n");
-		for(i = 0; i < max; i++) {
-			printf("\t%3d: %s\n", i, values[i]);
-		}
-		printf("Available ISO:\n");
-		values = gphoto_get_iso(gphoto, NULL);
-		for(i = 0; values[i]; i++) {
-			printf("\t%s\n", values[i]);
-		}
+		gphoto_show_options(gphoto);
 		gphoto_close(gphoto);
 		return 0;
 	}

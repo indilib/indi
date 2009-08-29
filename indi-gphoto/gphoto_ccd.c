@@ -505,6 +505,9 @@ static int camconnect()
 		return -1;
 	}
 
+	// This is just for debugging.  It should be removed in the future
+	gphoto_show_options(gphotodrv);
+
 	if (FormatS)
 		free(FormatS);
 	setidx = gphoto_get_format_current(gphotodrv);
