@@ -249,14 +249,13 @@ qhy5_driver *qhy5_open()
 	struct usb_dev_handle *handle;
 	qhy5_driver *qhy5;
 	usb_init();
-#if 0
+
  	if ((handle = locate_device(0x16c0, 0x296d))==0) 
 	{
 		printf("Could not open the QHY5 device\n");
-		usb_close(handle);
 		return NULL;
 	}
-#endif
+
 	qhy5 = calloc(sizeof(qhy5_driver), 1);
 	qhy5->handle = handle;
 	return qhy5;
