@@ -1,7 +1,6 @@
 <devGroup group="Telescopes">
 	<device label="KNRO">
-		<name>KNRO</name>
-		<driver>indi_knro</driver>
+		<driver name='KNRO'>indi_knro</driver>
 		<version>1.0</version>
 	</device>
 </devGroup>
