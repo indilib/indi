@@ -31,7 +31,7 @@
 #include <fcntl.h>
 #include <termios.h>
 
-#define mydev       "OrionAtlas"
+#define mydev       "Orion Atlas"
 #define ATLAS_DEBUG 1
 #define POLLMS 5000
 

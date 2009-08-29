@@ -1,7 +1,7 @@
 <devGroup group="CCDs">
 	<device label="SBIG CCD">
-		<name>SBIG</name>
-		<driver>indi_sbig_ccd</driver>
+		<driver name="SBIG">indi_sbig_ccd</driver>
 		<version>1.0</version>
 	</device>
 </devGroup>
+
