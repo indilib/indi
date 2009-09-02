@@ -86,13 +86,22 @@ enum {
 };
 
 static int debug = 0;
-#define dprintf if(debug) printf
 
 static void errordumper(GPLogLevel level, const char *domain, const char *format,
                  va_list args, void *data) {
 	if (debug) {
-		vfprintf(stdout, format, args);
-		fprintf(stdout, "\n");
+		vfprintf(stderr, format, args);
+		fprintf(stderr, "\n");
+	}
+}
+
+static void dprintf(const char *format, ...) {
+	va_list args;
+
+	if (debug) {
+		va_start(args, format);
+		vfprintf(stderr, format, args);
+		va_end(args);
 	}
 }
 
@@ -389,8 +398,11 @@ static void download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
 	result = gp_camera_file_delete(gphoto->camera, fn->folder, fn->name,
 			gphoto->context);
 	dprintf("  Retval: %d\n", result);
-	if(fd >= 0)
-		close(fd);
+	if(fd >= 0) {
+		// This will close the file descriptor
+		gp_file_free(gphoto->camerafile);
+		gphoto->camerafile = NULL;
+	}
 }
 
 int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec)
@@ -734,6 +746,14 @@ void gphoto_show_options(gphoto_driver *gphoto)
 void gphoto_get_buffer(gphoto_driver *gphoto, const char **buffer, size_t *size)
 {
 	gp_file_get_data_and_size(gphoto->camerafile, buffer, (unsigned long *)size);
+}
+
+void gphoto_free_buffer(gphoto_driver *gphoto)
+{
+	if (gphoto->camerafile) {
+		gp_file_free(gphoto->camerafile);
+		gphoto->camerafile = NULL;
+	}
 }
 
 const char *gphoto_get_file_extension(gphoto_driver *gphoto)

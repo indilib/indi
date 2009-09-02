@@ -369,7 +369,6 @@ static void expTO (void *vp)
 	    return;
 	}
 
-
 	if(TransferS[FITS_S].s == ISS_ON) {
 		int fd;
 		FILE *rawFH;
@@ -383,6 +382,8 @@ static void expTO (void *vp)
 		fd = mkstemp(tmpfile);
 		gphoto_read_exposure_fd(gphotodrv, fd);
 		if (fd == -1) {
+			ExposureNP.s = IPS_ALERT;
+			IDSetNumber (&ExposureNP, "Exposure failed to save image...");
 			IDLog("gphoto can't write to disk\n");
 			unlink(tmpfile);
 			// Still need to read exposure, even though we can't send it
@@ -392,12 +393,16 @@ static void expTO (void *vp)
 		   strcasecmp(gphoto_get_file_extension(gphotodrv), "jpeg") == 0)
 		{
 			if (read_jpeg(tmpfile, &memptr, &memsize)) {
-				IDLog("gphoto failed to read image from dcraw\n");
+				ExposureNP.s = IPS_ALERT;
+				IDSetNumber (&ExposureNP, "Exposure failed to parse jpeg.");
+				IDLog("gphoto failed to read jpeg image\n");
 				unlink(tmpfile);
 				return;
 			}
 		} else {
 			if (read_dcraw(tmpfile, &memptr, &memsize)) {
+				ExposureNP.s = IPS_ALERT;
+				IDSetNumber (&ExposureNP, "Exposure failed to parse raw image.");
 				IDLog("gphoto failed to read image from dcraw\n");
 				unlink(tmpfile);
 				return;
@@ -410,7 +415,6 @@ static void expTO (void *vp)
 		gphoto_get_buffer(gphotodrv, (const char **)&memptr, &memsize);
 		strcpy(ext, gphoto_get_file_extension(gphotodrv));
 	}
-	ExposureNP.s = IPS_OK;
 	IDSetNumber (&ExposureNP, "Exposure complete, downloading image...");
 
 	printf("size: %d\n", memsize);
@@ -418,8 +422,14 @@ static void expTO (void *vp)
 	fwrite(memptr, memsize, 1, h);
 	fclose(h);
 	uploadFile(memptr, memsize, ext);
-	if(memptr)
-		free(memptr);
+	ExposureNP.s = IPS_OK;
+	IDSetNumber (&ExposureNP, NULL);
+	if(memptr) {
+		if(TransferS[FITS_S].s == ISS_ON)
+			free(memptr);
+		else
+			gphoto_free_buffer(gphotodrv);
+	}
 }
 
 void addFITSKeywords(fitsfile *fptr)
@@ -444,16 +454,20 @@ void uploadFile(const void *fitsData, size_t totalBytes, const char *ext)
    
    if (fitsData == NULL || compressedData == NULL)
    {
-     if (compressedData) free(compressedData);
+     if (compressedData)
+       free(compressedData);
+     IDMessage(MYDEV, "Error: Ran out of memory compressing image\n");
      IDLog("Error! low memory. Unable to initialize fits buffers.\n");
      return;
    }
    
    /* #2 Compress it */ 
-   r = compress2(compressedData, &compressedBytes, fitsData, totalBytes, 9);
+   r = compress2(compressedData, &compressedBytes, fitsData, totalBytes, 5);
    if (r != Z_OK)
    {
  	/* this should NEVER happen */
+        ExposureNP.s = IPS_ALERT;
+        IDMessage(MYDEV, "Error: Failed to compress image\n");
  	IDLog("internal error - compression failed: %d\n", r);
 	return;
    }

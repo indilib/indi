@@ -16,6 +16,7 @@ extern int gphoto_get_iso_current(gphoto_driver *gphoto);
 extern gphoto_driver *gphoto_open(const char *shutter_release_port);
 extern int gphoto_close(gphoto_driver *gphoto);
 extern void gphoto_get_buffer(gphoto_driver *gphoto, const char **buffer, size_t *size);
+extern void gphoto_free_buffer(gphoto_driver *gphoto);
 extern const char *gphoto_get_file_extension(gphoto_driver *gphoto);
 extern void gphoto_show_options(gphoto_driver *gphoto);
 #endif
