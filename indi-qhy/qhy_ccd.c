@@ -362,7 +362,7 @@ void ISNewNumber (const char * dev, const char *name, double *doubles, char *nam
 	}
 	if (!strcmp(name, GuideNSNP.name))
 	{
-		int direction;
+		long direction;
 		int duration_msec;
 		int use_pulse_cmd;
 
@@ -396,7 +396,7 @@ void ISNewNumber (const char * dev, const char *name, double *doubles, char *nam
 	}
 	if (!strcmp(name, GuideWENP.name))
 	{
-		int direction;
+		long direction;
 		int duration_msec;
 		int use_pulse_cmd;
 
@@ -499,7 +499,7 @@ static void expTO (void *vp)
 	    return;
 	}
 	memsize = 5760; //impixw * impixh * (type == TBYTE ? 1 : 2) + 4096;
-	IDLog("Reading exposure %d x %d (memsize: %d)\n", impixw, impixh, memsize);
+	IDLog("Reading exposure %d x %d (memsize: %lu)\n", impixw, impixh, (unsigned long)memsize);
 	if (qhy5_read_exposure(qhydrv)) {
 		double expsec = ExposureNP.np[0].value;
 		int expms = (int)ceil(expsec*1000);
@@ -537,17 +537,17 @@ static void expTO (void *vp)
 	}
 
 	if(! (memptr = malloc(memsize))) {
-		IDLog("Error: Failed to allocate memorey: %d\n", memsize);
+		IDLog("Error: Failed to allocate memorey: %lu\n", (unsigned long)memsize);
 		return;
 	}
 	fits_create_memfile(&fptr, &memptr, &memsize, 2880, realloc, &status);
 	if (status)
 	{
-		IDLog("Error: Failed to create memfile (memsize: %d)\n", memsize);
+		IDLog("Error: Failed to create memfile (memsize: %lu)\n", (unsigned long)memsize);
 		fits_report_error(stderr, status);  /* print out any error messages */
 		return;
 	}
-	IDLog("New memsize: %d\n", memsize);
+	IDLog("New memsize: %lu\n", (unsigned long)memsize);
 	/* Create the primary array image (16-bit unsigned short integer pixels */
   	fits_create_img(fptr, (binw * binh > 1 ? USHORT_IMG : BYTE_IMG), naxis, naxes, &status);
 	if (status)
@@ -573,7 +573,7 @@ static void expTO (void *vp)
 	ExposureNP.s = IPS_OK;
 	IDSetNumber (&ExposureNP, "Exposure complete, downloading FITS...");
 
-	printf("size: %d\n", memsize);
+	printf("size: %lu\n", (unsigned long)memsize);
 	FILE *h = fopen("test.fits", "w+");
 	fwrite(memptr, memsize, 1, h);
 	fclose(h);
@@ -583,7 +583,7 @@ static void expTO (void *vp)
 
 void guideTimeout(void *p)
 {
-    int direction = (int)p;
+    long direction = (long)p;
 
     if (direction == -1)
     {

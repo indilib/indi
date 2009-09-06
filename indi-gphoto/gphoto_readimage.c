@@ -32,7 +32,7 @@ enum {
 };
 
 void *tstrealloc(void *ptr, size_t size) {
-	fprintf(stderr, "Realloc: %d\n", size);
+	fprintf(stderr, "Realloc: %lu\n", (unsigned long)size);
 	return realloc(ptr, size);
 }
 
@@ -128,7 +128,7 @@ int read_ppm(FILE *handle, struct dcraw_header *header, void **memptr, size_t *m
 	*memptr = malloc(*memsize);
 	fits_create_memfile(&fptr, memptr, memsize, 2880, &tstrealloc, &status);
 	if (status) {
-		fprintf(stderr, "Error: Failed to create memfile (memsize: %d)\n", *memsize);
+		fprintf(stderr, "Error: Failed to create memfile (memsize: %lu)\n", *(unsigned long *)memsize);
 		fits_report_error(stderr, status);  /* print out any error messages */
 		goto err_release;
 	}
@@ -346,7 +346,7 @@ int read_jpeg(const char *filename, void **memptr, size_t *memsize )
 	*memptr = malloc(*memsize);
 	fits_create_memfile(&fptr, memptr, memsize, 2880, &tstrealloc, &status);
 	if (status) {
-		fprintf(stderr, "Error: Failed to create memfile (memsize: %d)\n", *memsize);
+		fprintf(stderr, "Error: Failed to create memfile (memsize: %lu)\n", *(unsigned long *)memsize);
 		fits_report_error(stderr, status);  /* print out any error messages */
 		goto err_release;
 	}

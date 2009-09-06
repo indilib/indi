@@ -417,7 +417,7 @@ static void expTO (void *vp)
 	}
 	IDSetNumber (&ExposureNP, "Exposure complete, downloading image...");
 
-	printf("size: %d\n", memsize);
+	printf("size: %lu\n", (unsigned long)memsize);
 	FILE *h = fopen("test.fits", "w+");
 	fwrite(memptr, memsize, 1, h);
 	fclose(h);
