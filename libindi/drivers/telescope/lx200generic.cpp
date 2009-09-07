@@ -912,7 +912,7 @@ void LX200Generic::ISNewNumber (const char *dev, const char *name, double values
 
 	if (!strcmp(name, GuideNSNP.name))
 	{
-	  int direction;
+	  long direction;
 	  int duration_msec;
 	  int use_pulse_cmd;
 	  if (checkPower(&GuideNSNP))
@@ -966,7 +966,7 @@ void LX200Generic::ISNewNumber (const char *dev, const char *name, double values
 	}
 	if (!strcmp(name, GuideWENP.name))
 	{
-	  int direction;
+	  long direction;
 	  int duration_msec;
 	  int use_pulse_cmd;
 
@@ -1610,7 +1610,7 @@ void LX200Generic::updateFocusTimer(void *p)
 
 void LX200Generic::guideTimeout(void *p)
 {
-    int direction = (int)p;
+    long direction = (long)p;
     int use_pulse_cmd;
 
     use_pulse_cmd = telescope->getOnSwitch(&UsePulseCmdSP);
