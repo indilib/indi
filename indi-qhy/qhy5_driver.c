@@ -139,7 +139,7 @@ int qhy5_timed_move(qhy5_driver *qhy5, int direction, int duration_msec)
 		fprintf(stderr, "No direction specified to qhy5_timed_move\n");
 		return 1;
 	}
-	if (duration == 0) {
+	if (duration_msec == 0) {
 		//cancel quiding
 		if ((direction & (QHY_NORTH | QHY_SOUTH)) &&
 		    (direction & (QHY_EAST | QHY_WEST)))
