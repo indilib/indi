@@ -61,7 +61,7 @@ static INumber ExposeTimeN[]    = {{ "CCD_EXPOSURE_VALUE", "Duration (s)", "%5.2
 static INumberVectorProperty ExposeTimeNP = { mydev, "CCD_EXPOSURE", "Expose", COMM_GROUP, IP_RW, 60, IPS_IDLE, ExposeTimeN, NARRAY(ExposeTimeN), "", 0};
  
 /* Temperature control */
- static INumber TemperatureN[]	  = { {"TEMPERATURE", "Temperature", "%+06.2f", -30., 40., 1., 0., 0, 0, 0}};
+ static INumber TemperatureN[]	  = { {"CCD_TEMPERATURE_VALUE", "Temperature", "%+06.2f", -30., 40., 1., 0., 0, 0, 0}};
  static INumberVectorProperty TemperatureNP = { mydev, "CCD_TEMPERATURE", "Temperature (C)", COMM_GROUP, IP_RW, 60, IPS_IDLE, TemperatureN, NARRAY(TemperatureN), "", 0};
 
 /* BLOB for sending image */
