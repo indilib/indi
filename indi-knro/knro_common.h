@@ -29,6 +29,7 @@
 #define TELESCOPE_GROUP	"Telescope Control"
 #define ENCODER_GROUP	"Encoder"
 #define INVERTER_GROUP	"Inverter"
+#define SPECTROMETER_GROUP "Spectrometer"
 #define SITE_GROUP		"Site"
 #define OPTIONS_GROUP	"Options"
 

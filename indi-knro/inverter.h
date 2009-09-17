@@ -60,9 +60,6 @@ public:
       
       bool connect();
       void disconnect();
-
-    // TODO remove later
-    bool test_address();
     
     // Simulation
     void enable_simulation ();
@@ -96,10 +93,6 @@ private:
 	// Inverter Port
 	ITextVectorProperty PortTP;
 	IText PortT[1];
-
-	// Test Function
-	ISwitch TestS[1];
-	ISwitchVectorProperty TestSP;
 	
 	// Functions
 	void init_properties();

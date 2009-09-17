@@ -51,6 +51,7 @@ set(indiknro_SRCS
    ${CMAKE_SOURCE_DIR}/knro.cpp
    ${CMAKE_SOURCE_DIR}/encoder.cpp
    ${CMAKE_SOURCE_DIR}/inverter.cpp
+   ${CMAKE_SOURCE_DIR}/spectrometer.cpp
    ${CMAKE_SOURCE_DIR}/polling.cpp
    ${CMAKE_SOURCE_DIR}/ogg_util.cpp
    )

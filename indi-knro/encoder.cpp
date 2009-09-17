@@ -31,6 +31,7 @@
 #include <time.h>
 #include <errno.h>
 #include <sys/time.h>
+#include <termios.h>
 
 #include <indicom.h>
 
@@ -135,7 +136,7 @@ void knroEncoder::reset_all_properties(bool reset_to_idle)
 	
 	IDSetNumber(&EncoderAbsPosNP, NULL);
 	IDSetText(&PortTP, NULL);
-	IDSetSwitch(&UpdateCountSP, NULL);
+//	IDSetSwitch(&UpdateCountSP, NULL);
 }
 
 /****************************************************************
@@ -197,7 +198,7 @@ bool knroEncoder::connect()
 *****************************************************************/   
 bool knroEncoder::init_encoder()
 {
-	
+
    if (!check_drive_connection())
 	return false;
 		   
@@ -293,11 +294,8 @@ void knroEncoder::ISNewText (const char *dev, const char *name, char *texts[], c
 			return;
 
 		PortTP.s = IPS_OK;
-		IDSetText(&PortTP, "Disconnecting... Please reconnect when ready.");
+		IDSetText(&PortTP, "Please reconnect when ready.");
 
-		disconnect();
-
-		
 		return;
 	}
 	
@@ -328,6 +326,8 @@ bool knroEncoder::dispatch_command(encoderCommand command)
    encoder_command[1] = command;
    int err_code = 0, nbytes_written =0;
 
+   tcflush(fd, TCIOFLUSH);
+
    if  ( (err_code = tty_write(fd, encoder_command, ENCODER_CMD_LEN, &nbytes_written) != TTY_OK))
    {
 	tty_error_msg(err_code, encoder_error, ENCODER_ERROR_BUFFER);
@@ -342,6 +342,9 @@ knroEncoder::encoderError knroEncoder::get_encoder_value(encoderCommand command,
 {
 	unsigned short big_endian_short;
 	unsigned short big_endian_int;
+
+	unsigned int encoder_position;
+	unsigned char my[4];
 
 	// Command Response is as following:
 	// Command Code - Paramter Echo - Requested Data  - Error Code - Delimiter
@@ -360,10 +363,22 @@ knroEncoder::encoderError knroEncoder::get_encoder_value(encoderCommand command,
 
 		case POSITION_VALUE:
 
-		memcpy(&big_endian_int, response + 2, 4);
+		my[0] = response[5];
+		my[1] = response[4];
+		my[2] = response[3];
+		my[3] = response[2];
+
+/*		memcpy(&big_endian_int, response + 2, 4);
 		  
 		// Now convert big endian to little endian
-		encoder_value = (big_endian_int >>24) | ((big_endian_int <<8) & 0x00FF0000) | ((big_endian_int >>8) & 0x0000FF00) | (big_endian_int<<24);
+		encoder_position = (big_endian_int >>24) | ((big_endian_int <<8) & 0x00FF0000) | ((big_endian_int >>8) & 0x0000FF00) | (big_endian_int<<24);*/
+
+		memcpy(&encoder_position, my, 4);
+
+		if (encoder_position > EncoderAbsPosN[0].max)
+			break;
+
+		encoder_value = encoder_position;
 
 		break;
 	}
@@ -377,17 +392,22 @@ void knroEncoder::update_encoder_count()
 		return;
 
 	char encoder_read[ENCODER_READ_BUFFER];
+	char encoder_junk[ENCODER_READ_BUFFER];
 	char encoder_error[ENCODER_ERROR_BUFFER];
 
         int nbytes_read =0;
         int err_code = 0;
 
 
+	IDLog("About to dispatch command for position value\n");
+
 	if (dispatch_command(POSITION_VALUE) == false)
 	{
 		IDLog("Error dispatching command to encoder...\n");
 		return;
 	}
+
+	IDLog("About to READ from encoder\n");
 
 	if ( (err_code = tty_read_section(fd, encoder_read, (char) 0x0A, 5, &nbytes_read)) != TTY_OK)
 	{
@@ -396,7 +416,18 @@ void knroEncoder::update_encoder_count()
    		return;
 	}
 
-//		IDLog("Received response from encoder %d bytes long and is #%s#\n", nbytes_read, test_string);
+
+	IDLog("Received response from encoder %d bytes long and is #%s#\n", nbytes_read, encoder_read);
+	for (int i=0; i < nbytes_read; i++)
+		IDLog("Byte #%d=0x%X --- %d\n", i, ((unsigned char) encoder_read[i]), ((unsigned char) encoder_read[i]));
+
+
+	if ( ((unsigned char) encoder_read[0]) != 0x47)
+	{
+		//IDLog("Invalid encoder response!\n");
+		tcflush(fd, TCIOFLUSH);
+		return;
+	}
 
 	if ( (err_code = get_encoder_value(POSITION_VALUE, encoder_read, EncoderAbsPosN[0].value)) != NO_ERROR)
 	{
@@ -404,9 +435,11 @@ void knroEncoder::update_encoder_count()
 		return;
 	}
 
+	tcflush(fd, TCIOFLUSH);
+
 	IDSetNumber(&EncoderAbsPosNP, NULL);
 
-//	IDLog("We got encoder test value of %d\n", test_value);
+	IDLog("We got encoder test value of %g\n", EncoderAbsPosN[0].value);
 
 }
 

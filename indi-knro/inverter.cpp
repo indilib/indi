@@ -82,7 +82,7 @@ void knroInverter::set_type(inverterType new_type)
   	type_name = string("Azimuth");
   	forward_motion = string("East");
   	reverse_motion = string("West");
-  	default_port = string("192.168.1.3");
+  	default_port = string("192.168.1.2");
 
 	SLAVE_ADDRESS = 1;
   }
@@ -91,7 +91,7 @@ void knroInverter::set_type(inverterType new_type)
     type_name = string("Altitude");
     forward_motion = string("Up");
     reverse_motion = string("Down"); 
-    default_port = string("192.168.1.3");
+    default_port = string("192.168.1.2");
     
     SLAVE_ADDRESS = 2;
   }
@@ -110,12 +110,7 @@ void knroInverter::init_properties()
     IUFillSwitch(&MotionControlS[2], reverse_motion.c_str(), "", ISS_OFF);
   	
     IUFillNumber(&InverterSpeedN[0], "SPEED", "Hz", "%g",  0., 50., 1., 0.);
-    
-    // Remove Later
-    IUFillSwitch(&TestS[0], "Switch to Local", "", ISS_OFF);
-    IUFillSwitchVector(&TestSP, TestS, NARRAY(TestS), mydev, string(type_name + string(" test")).c_str(), "",
-     INVERTER_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-    
+       
   if (type == AZ_INVERTER)
   {
   	IUFillTextVector(&PortTP, PortT, NARRAY(PortT), mydev, "AZ_INVERTER_PORT", "Az Port", INVERTER_GROUP, IP_RW, 0, IPS_IDLE);
@@ -159,6 +154,7 @@ bool knroInverter::connect()
 	if (check_drive_connection())
 		return true;
 
+	IDLog("In connect with port[0] %s\n", PortT[0].text);
 	// 19200 baud is default, no parity, 8 bits, 1 stop bit
 	//modbus_init_rtu(&mb_param, PortT[0].text, 19200, "none", 8, 1);
 	modbus_init_tcp(&mb_param, PortT[0].text, 502);
@@ -178,8 +174,18 @@ bool knroInverter::connect()
        return false;
     }
     
-	return init_drive();
-	
+	if (init_drive())
+	{
+		MotionControlSP.s = IPS_OK;
+		IDSetSwitch(&MotionControlSP, "%s inverter is online and ready for use.", type_name.c_str());
+		return true;
+	}
+	else
+	{
+		MotionControlSP.s = IPS_ALERT;
+		IDSetSwitch(&MotionControlSP, "%s inverter failed to initialize. Please check power and cabling.", type_name.c_str());
+		return false;
+	}
 }
 
 /****************************************************************
@@ -192,52 +198,6 @@ void knroInverter::disconnect()
 	
 	modbus_close(&mb_param);
 	
-}
-
-/****************************************************************
-**
-** We're going to test if addressing works as expected
-* by placing the drive in local mode. Modbus ref 33 corresponds to
-* 0x21. 0x22 is to place drive is remote mode, while 0x20 is reserved.
-
-Test works fine. JM @ 2009-07-26
-*****************************************************************/
-bool knroInverter::test_address()
-{
-   int ret=0;
-
-        uint8_t *tab_rp_status;
-        tab_rp_status = (uint8_t *) malloc(1 * sizeof(uint8_t));
-        memset(tab_rp_status, 0, 1 * sizeof(uint8_t));
-
-
-   tab_rp_status[0]=0;
-   
-
-   IDLog("Forcing multiple coils\n");
-
-   ret = force_multiple_coils(&mb_param, SLAVE_ADDRESS, SPEED_MODE_ADDRESS, 1, tab_rp_status);
-
-   IDLog("Done.. waiting to see result...\n");
-	
-   if (ret != 1)
-   {
-     IDLog("Command: READ drive in local mode. ERROR read_coil_status (%d)\n", ret);
-     IDLog("Slave = %d, address = %d, value = %d (0x%X)\n", SLAVE_ADDRESS, SPEED_MODE_ADDRESS, 1, 1);
-        free(tab_rp_status);                                           
-     return false;
-   }
-
-   tab_rp_status[0]=0;
-
-   ret = read_coil_status(&mb_param, SLAVE_ADDRESS, SPEED_MODE_ADDRESS, 1, tab_rp_status);
-
-
-   IDLog("Read Coil 0x%d: %d\n", SPEED_MODE_ADDRESS+1, tab_rp_status[0]);
-
-        free(tab_rp_status);                                           
-
-   return true;	
 }
 
 /****************************************************************
@@ -438,21 +398,22 @@ bool knroInverter::enable_drive()
 		IDMessage(mydev, "%s drive: Simulating enabling drive.", type_name.c_str());
 	}
 	else
-		ret = force_multiple_coils(&mb_param, SLAVE_ADDRESS, DRIVE_ENABLE_ADDRESS, 1, inverter_send);
+        {
+ 	        ret = read_coil_status(&mb_param, SLAVE_ADDRESS, DRIVE_ENABLE_ADDRESS, 1, inverter_read);
+
+		if (inverter_read[0] != 1)
+		{
+			ret = force_multiple_coils(&mb_param, SLAVE_ADDRESS, DRIVE_ENABLE_ADDRESS, 1, inverter_send);
 	
-   if (ret != 1)
-   {
-     IDLog("Command: Enable Drive. ERROR force_single_coil (%d)\n", ret);
-     IDLog("Slave = %d, address = %d, value = %d (0x%X)\n", SLAVE_ADDRESS, DRIVE_ENABLE_ADDRESS, 1, 1);
-     return false;
-   }
+			if (ret != 1)
+			{
+			     IDLog("Command: Enable Drive. ERROR force_single_coil (%d)\n", ret);
+			     IDLog("Slave = %d, address = %d, value = %d (0x%X)\n", SLAVE_ADDRESS, DRIVE_ENABLE_ADDRESS, 1, 1);
+			     return false;
+			}
+		}
+	}
    
-    if (!simulation)
-   {
-	   // Make sure it's OK   
-	   ret = read_coil_status(&mb_param, SLAVE_ADDRESS, DRIVE_ENABLE_ADDRESS, 1, inverter_read);
-	   IDLog("Drive Enable (82) Coil Status: %s\n", (inverter_read[0] == 0) ? "Off" : "On");
-   }
 
    return true;
 	
@@ -504,10 +465,6 @@ bool knroInverter::init_drive()
 	if (!check_drive_connection())
 		return false;
 	
-
-   //FIXME REMOVE THIS!!!
-	return true;
-	   
    // Ensure that drive is disabled first	
    //disable_drive();
    
@@ -521,21 +478,26 @@ bool knroInverter::init_drive()
 		IDMessage(mydev, "%s drive: Simulating setting motion mode to SPEED.", type_name.c_str());
    }
    else
-   	ret = force_multiple_coils(&mb_param, SLAVE_ADDRESS, SPEED_MODE_ADDRESS, 1, inverter_send);
-                    
-   if (ret != 1)
    {
-     IDLog("Command: Enable Speed Mode. ERROR force_single_coil (%d)\n", ret);
-     IDLog("Slave = %d, address = %d, value = %d (0x%X)\n", SLAVE_ADDRESS, SPEED_MODE_ADDRESS, 1, 1);
-     return false;
+	// Only force a coil when needed, otherwise, the inverter starts throwing ILLEGAL FUNCTION error
+	// for no apparent reason
+
+        ret = read_coil_status(&mb_param, SLAVE_ADDRESS, SPEED_MODE_ADDRESS, 1, inverter_read);
+
+	if (inverter_read[0] != 1)
+	{
+	   	ret = force_multiple_coils(&mb_param, SLAVE_ADDRESS, SPEED_MODE_ADDRESS, 1, inverter_send);
+                    
+	        if (ret != 1)
+		{
+		     IDLog("Command: Enable Speed Mode. ERROR force_single_coil (%d)\n", ret);
+		     IDLog("Slave = %d, address = %d, value = %d (0x%X)\n", SLAVE_ADDRESS, SPEED_MODE_ADDRESS, 1, 1);
+		     return false;
+	        }
+	}
    }
 
-   if (!simulation)
-   {
-	   // Make sure it's OK   
-	   ret = read_coil_status(&mb_param, SLAVE_ADDRESS, SPEED_MODE_ADDRESS, 1, inverter_read);
-	   IDLog("Speed Mode (3) Coil Status: %s\n", (inverter_read[0] == 0) ? "Off" : "On");
-   }
+	//IDLog("Speed Mode (3) Coil Status: %s\n", (inverter_read[0] == 0) ? "Off" : "On");
 
   // Set Command Source. Coil 35
   // The inverter operates in network mode. We ask the VS1SP to read the command source data from the registers values corresponding to the current operating mode
@@ -546,28 +508,25 @@ bool knroInverter::init_drive()
 		IDMessage(mydev, "%s drive: Simulating setting command source for Network registers.", type_name.c_str());
    }
    else
-  		ret = force_multiple_coils(&mb_param, SLAVE_ADDRESS, NETWORK_COMMAND_SOURCE_ADDRESS, 1, inverter_send);
-                    
-   if (ret != 1)
    {
-     IDLog("Command: Set Network Command Source. ERROR force_single_coil (%d)\n", ret);
-     IDLog("Slave = %d, address = %d, value = %d (0x%X)\n", SLAVE_ADDRESS, NETWORK_COMMAND_SOURCE_ADDRESS, inverter_send[0], inverter_send[0]);
-     return false;
+		ret = read_coil_status(&mb_param, SLAVE_ADDRESS, NETWORK_COMMAND_SOURCE_ADDRESS, 1, inverter_read);
+
+		if (inverter_read[0] != 1)
+		{
+	  		ret = force_multiple_coils(&mb_param, SLAVE_ADDRESS, NETWORK_COMMAND_SOURCE_ADDRESS, 1, inverter_send);
+                    
+		   if (ret != 1)
+		   {
+		     IDLog("Command: Set Network Command Source. ERROR force_single_coil (%d)\n", ret);
+		     IDLog("Slave = %d, address = %d, value = %d (0x%X)\n", SLAVE_ADDRESS, NETWORK_COMMAND_SOURCE_ADDRESS, inverter_send[0], inverter_send[0]);
+		     return false;
+		   }
+
+		   // For safety, always set the speed to 0 Hz initially
+	   	   set_speed(0);       
+		}
    }
                                      
-
-   if (!simulation)
-   {
-	   // Make sure it's OK   
-	   ret = read_coil_status(&mb_param, SLAVE_ADDRESS, NETWORK_COMMAND_SOURCE_ADDRESS, 1, inverter_read);
-	   IDLog("Network Source (35) Coil Status: %s\n", (inverter_read[0] == 0) ? "Off" : "On");
-
-
-	   // For safety, always set the speed to 0 Hz initially
-	   set_speed(0);       
-   }
-
-
 
    // Now the drive is ready to be used
    return enable_drive();
@@ -583,7 +542,6 @@ void knroInverter::ISGetProperties()
    IDDefSwitch(&MotionControlSP, NULL);
    IDDefNumber(&InverterSpeedNP, NULL);
    IDDefText(&PortTP, NULL);
-   IDDefSwitch(&TestSP, NULL);
 }
 
 /****************************************************************
@@ -626,9 +584,7 @@ void knroInverter::ISNewText (const char *dev, const char *name, char *texts[], 
 			return;
 
 		PortTP.s = IPS_OK;
-		IDSetText(&PortTP, "Disconnecting... Please reconnect when ready");
-
-		disconnect();
+		IDSetText(&PortTP, "Please reconnect when ready.");
 
 		return;
 	}
@@ -640,24 +596,6 @@ void knroInverter::ISNewText (const char *dev, const char *name, char *texts[], 
 *****************************************************************/
 void knroInverter::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-	if (!strcmp(TestSP.name, name))
-	{
-		IUResetSwitch(&TestSP);
-		
-		
-		if (test_address())
-		{
-			TestSP.s = IPS_OK;
-			IDSetSwitch(&TestSP, "Test function called. Check Local/Remote light on the %s inverter", type_name.c_str());
-		}
-		else
-		{
-			TestSP.s = IPS_ALERT;
-			IDSetSwitch(&TestSP, "Test function failed. Check driver log for more details.");
-		}
-		
-		return;
-	}
 		
 	if (!strcmp(MotionControlSP.name, name))
 	{
@@ -723,18 +661,12 @@ void knroInverter::reset_all_properties(bool reset_to_idle)
 		MotionControlSP.s = IPS_IDLE;
 		InverterSpeedNP.s = IPS_IDLE;
 		PortTP.s 		  = IPS_IDLE;
-		
-		// Remove Later
-		TestSP.s		  = IPS_IDLE;
 	}
 	
 	IUResetSwitch(&MotionControlSP);
 	IDSetSwitch(&MotionControlSP, NULL);
 	IDSetNumber(&InverterSpeedNP, NULL);
 	IDSetText(&PortTP, NULL);
-	
-	// Remove later
-	IDSetSwitch(&TestSP, NULL);
 	
 }
 
