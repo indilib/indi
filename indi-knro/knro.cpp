@@ -736,12 +736,13 @@ void knroObservatory::init_knro()
 {
 	//FIXME disable spectrometer simulation
 	spectrometer->enable_simulation();
-	AzInverter->enable_simulation();
-	AltInverter->enable_simulation();
+	//AzInverter->enable_simulation();
+	//AltInverter->enable_simulation();
 
 	// For now, make sure that both inverters are connected
 //	if (AzInverter->connect() && AltInverter->connect() && AzEncoder->connect() && AltEncoder->connect())
-	if (AzInverter->connect() && AltInverter->connect() && spectrometer->connect())
+	if (spectrometer->connect())
+//	if (AzInverter->connect() && AltInverter->connect() && spectrometer->connect())
 	{
 		ConnectSP. s = IPS_OK;
 		
