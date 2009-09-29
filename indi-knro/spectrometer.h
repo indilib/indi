@@ -57,6 +57,7 @@ public:
                                SPEC_OFFSET,     // Spectral DC Offset
                                RECV_FREQ,       // Receive Frequency
                                READ_CHANNEL,    // Read Channel Value
+			       BANDWIDTH,	// Bandwidth
 			       RESET		// Reset All
 			     };
 
@@ -133,6 +134,7 @@ private:
     bool check_spectrometer_connection();
     bool dispatch_command(SpectrometerCommand command);
     int get_on_switch(ISwitchVectorProperty *sp);
+    bool reset();
 
     // Variables
     string type_name;

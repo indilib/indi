@@ -160,8 +160,6 @@ void knroSpectrometer::ISGetProperties()
    IDDefSwitch(&BandwidthSP, NULL);
    IDDefSwitch(&CommandSP, NULL);
    IDDefSwitch(&ResetSP, NULL);
-
-
 }
 
 /****************************************************************
@@ -204,11 +202,6 @@ void knroSpectrometer::reset_all_properties(bool reset_to_idle)
 *****************************************************************/   
 bool knroSpectrometer::connect()
 {
-	
-   int err_code = 0, nbytes_written =0, nbytes_read=0;
-   char response[4];
-   char err_msg[SPECTROMETER_ERROR_BUFFER];
-
    if (check_spectrometer_connection())
 		return true;
 
@@ -219,7 +212,6 @@ bool knroSpectrometer::connect()
 	return true;
     }
 
-
     IDLog("Attempting to connect to spectrometer....\n");
 
     if (tty_connect(PortT[0].text, 2400, 8, 0, 1, &fd) != TTY_OK)
@@ -229,27 +221,10 @@ bool knroSpectrometer::connect()
 	return false;
     }
 
-
-   IDLog("Attempting to write to spectrometer....\n");
-
-   dispatch_command(RESET);
-
-   IDLog("Attempting to read from spectrometer....\n");
-
-   // Read echo from spectrometer, we're expecting R000
-   if ( (err_code = tty_read(fd, response, SPECTROMETER_CMD_REPLY, 5, &nbytes_read)) != TTY_OK)
-   {
-		tty_error_msg(err_code, err_msg, 32);
-		IDLog("TTY error detected: %s\n", err_msg);
-   		return false;
-   }
-
-   IDLog("Reponse from Spectrometer: #%c# #%c# #%c# #%c#\n", response[0], response[1], response[2], response[3]);
-
-   if (strstr(response, "R000"))
-   {
-	IDLog("Echo test passed.\n");
-	connection_status = 0;
+    // We perform initial handshake check by resetting all parameter and watching for echo reply
+    if (reset() == true)
+    {
+        connection_status = 0;
         PortTP.s = IPS_OK;
         IDSetText (&PortTP, "Spectrometer is online. Retrieving preliminary data...");
         return init_spectrometer();
@@ -262,7 +237,7 @@ bool knroSpectrometer::connect()
         IDSetText (&PortTP, "Spectrometer echo test failed. Please recheck connection to spectrometer and try again.");
 	return false;
    }
-
+	
 }
 
 /****************************************************************
@@ -348,8 +323,78 @@ bool knroSpectrometer::check_spectrometer_connection()
 *****************************************************************/
 void knroSpectrometer::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
+  static double cont_offset=0;
+  static double spec_offset=0;
+  
+        // IF Gain
+	if (!strcmp(IFGainNP.name, name))
+	{
+	  double last_value = IFGainN[0].value;
+	  
+	  if (IUUpdateNumber(&IFGainNP, values, names, n) < 0)
+	    return;
+	  
+	  if (dispatch_command(IF_GAIN) == false)
+	  {
+	    IFGainN[0].value = last_value;
+	    IFGainNP.s = IPS_ALERT;
+	    IDSetNumber(&IFGainNP, "Error dispatching IF gain command to spectrometer. Check logs.");
+	    return;
+	  }
+	  
+	  IFGainNP.s = IPS_OK;
+	  IDSetNumber(&IFGainNP, NULL);
+	 
+	  return;
+	}
 	
-	
+	// DC Offset
+	if (!strcmp(DCOffsetNP.name, name))
+	{
+	  
+	  if (IUUpdateNumber(&DCOffsetNP, values, names, n) < 0)
+	    return;
+	  
+	  // Check which offset change, if none, return gracefully
+	  if (DCOffsetN[CONTINUUM_CHANNEL].value != cont_offset)
+	  {
+	     if (dispatch_command(CONT_OFFSET) == false)
+	    {
+	      DCOffsetN[CONTINUUM_CHANNEL].value = cont_offset;
+	      DCOffsetNP.s = IPS_ALERT;
+	      IDSetNumber(&DCOffsetNP, "Error dispatching continuum DC offset command to spectrometer. Check logs.");
+	      return;
+	    }
+	    
+	    cont_offset = DCOffsetN[CONTINUUM_CHANNEL].value;
+	    DCOffsetNP.s = IPS_OK;
+	    IDSetNumber(&DCOffsetNP, NULL);
+	    return;
+	  }
+	  
+	  if (DCOffsetN[SPECTRAL_CHANNEL].value != spec_offset)
+	  {
+	     if (dispatch_command(SPEC_OFFSET) == false)
+	    {
+	      DCOffsetN[SPECTRAL_CHANNEL].value = spec_offset;
+	      DCOffsetNP.s = IPS_ALERT;
+	      IDSetNumber(&DCOffsetNP, "Error dispatching spectral DC offset command to spectrometer. Check logs.");
+	      return;
+	    }
+	    
+	    spec_offset = DCOffsetN[SPECTRAL_CHANNEL].value;
+	    DCOffsetNP.s = IPS_OK;
+	    IDSetNumber(&DCOffsetNP, NULL);
+	    return;
+	  }
+
+	  // No Change, return
+	  DCOffsetNP.s = IPS_OK;
+	  IDSetNumber(&DCOffsetNP, NULL);
+	 
+	  return;
+	}
+    
 }
 
 /****************************************************************
@@ -414,20 +459,136 @@ void knroSpectrometer::ISNewSwitch (const char *dev, const char *name, ISState *
 		return;
 	}
 
-	// Testing
+	// Continuum Gain Control
 	if (!strcmp(ContGainSP.name, name))
 	{
-
+	        int last_switch = get_on_switch(&ContGainSP);
+		
 		if (IUUpdateSwitch(&ContGainSP, states, names, n) < 0)
 			return;
 
-		ContGainSP.s = IPS_OK;
+		if (dispatch_command(CONT_GAIN) == false)
+		{
+		  ContGainSP.s = IPS_ALERT;
+		  IUResetSwitch(&ContGainSP);
+		  ContGainS[last_switch].s = ISS_ON;
+		  IDSetSwitch(&ContGainSP, "Error dispatching continuum gain command to spectrometer. Check logs.");
+		  return;
+		}
 
-		IDSetSwitch(&ContGainSP, "Switch #%d was selected.", get_on_switch(&ContGainSP) + 1);
+		ContGainSP.s = IPS_OK;
+		IDSetSwitch(&ContGainSP, NULL);
+
+		return;
+	}
+	
+	// Spectral Gain Control
+	if (!strcmp(SpecGainSP.name, name))
+	{
+	        int last_switch = get_on_switch(&SpecGainSP);
+		
+		if (IUUpdateSwitch(&SpecGainSP, states, names, n) < 0)
+			return;
+
+		if (dispatch_command(SPEC_GAIN) == false)
+		{
+		  SpecGainSP.s = IPS_ALERT;
+		  IUResetSwitch(&SpecGainSP);
+		  SpecGainS[last_switch].s = ISS_ON;
+		  IDSetSwitch(&SpecGainSP, "Error dispatching spectral gain command to spectrometer. Check logs.");
+		  return;
+		}
+
+		SpecGainSP.s = IPS_OK;
+		IDSetSwitch(&SpecGainSP, NULL);
+		
+		return;
+	}
+	
+	// Continuum Integration Control
+	if (!strcmp(ContIntegrationSP.name, name))
+	{
+	        int last_switch = get_on_switch(&ContIntegrationSP);
+		
+		if (IUUpdateSwitch(&ContIntegrationSP, states, names, n) < 0)
+			return;
+
+		if (dispatch_command(CONT_TIME) == false)
+		{
+		  ContIntegrationSP.s = IPS_ALERT;
+		  IUResetSwitch(&ContIntegrationSP);
+		  ContIntegrationS[last_switch].s = ISS_ON;
+		  IDSetSwitch(&ContIntegrationSP, "Error dispatching continuum integration command to spectrometer. Check logs.");
+		  return;
+		}
+
+		ContIntegrationSP.s = IPS_OK;
+		IDSetSwitch(&ContIntegrationSP, NULL);
+
+		return;
+	}
+	
+	// Spectral Integration Control
+	if (!strcmp(SpecIntegrationSP.name, name))
+	{
+	        int last_switch = get_on_switch(&SpecIntegrationSP);
+		
+		if (IUUpdateSwitch(&SpecIntegrationSP, states, names, n) < 0)
+			return;
+
+		if (dispatch_command(SPEC_TIME) == false)
+		{
+		  SpecIntegrationSP.s = IPS_ALERT;
+		  IUResetSwitch(&SpecIntegrationSP);
+		  SpecIntegrationS[last_switch].s = ISS_ON;
+		  IDSetSwitch(&SpecIntegrationSP, "Error dispatching spectral integration command to spectrometer. Check logs.");
+		  return;
+		}
+
+		SpecIntegrationSP.s = IPS_OK;
+		IDSetSwitch(&SpecIntegrationSP, NULL);
+
+		return;
+	}
+	
+	// Bandwidth Control
+	if (!strcmp(BandwidthSP.name, name))
+	{
+	        int last_switch = get_on_switch(&BandwidthSP);
+		
+		if (IUUpdateSwitch(&BandwidthSP, states, names, n) < 0)
+			return;
+
+		if (dispatch_command(BANDWIDTH) == false)
+		{
+		  BandwidthSP.s = IPS_ALERT;
+		  IUResetSwitch(&BandwidthSP);
+		  BandwidthS[last_switch].s = ISS_ON;
+		  IDSetSwitch(&BandwidthSP, "Error dispatching bandwidth change command to spectrometer. Check logs.");
+		  return;
+		}
+
+		BandwidthSP.s = IPS_OK;
+		IDSetSwitch(&BandwidthSP, NULL);
 
 		return;
 	}
 
+
+	if (!strcmp(ResetSP.name, name))
+	{
+	    if (reset() == true)
+	    {
+	      ResetSP.s = IPS_OK;
+	      IDSetSwitch(&ResetSP, NULL);
+	    }
+	    else
+	    {
+	      ResetSP.s = IPS_ALERT;
+	      IDSetSwitch(&ResetSP, "Error dispatching reset parameter command to spectrometer. Check logs.");
+	    }
+	    return;
+	}
 }
 
 bool knroSpectrometer::dispatch_command(SpectrometerCommand command_type)
@@ -524,6 +685,17 @@ bool knroSpectrometer::dispatch_command(SpectrometerCommand command_type)
 		command[3] = hex[0];
 		break;
 		
+		
+	// Bandwidth
+	case BANDWIDTH:
+		command[1] = 'B';
+		command[2] = '0';
+		command[3] = '0';
+		final_value = get_on_switch(&BandwidthSP);
+		sprintf(hex, "%x", final_value);
+		command[3] = hex[0];
+		break;
+
        // Reset
        case RESET:
 		command[1] = 'R';
@@ -555,4 +727,34 @@ int knroSpectrometer::get_on_switch(ISwitchVectorProperty *sp)
  return -1;
 }
 
+bool knroSpectrometer::reset()
+{
+   int err_code = 0, nbytes_written =0, nbytes_read=0;
+   char response[4];
+   char err_msg[SPECTROMETER_ERROR_BUFFER];
 
+    IDLog("Attempting to write to spectrometer....\n");
+
+   dispatch_command(RESET);
+
+   IDLog("Attempting to read from spectrometer....\n");
+
+   // Read echo from spectrometer, we're expecting R000
+   if ( (err_code = tty_read(fd, response, SPECTROMETER_CMD_REPLY, 5, &nbytes_read)) != TTY_OK)
+   {
+		tty_error_msg(err_code, err_msg, 32);
+		IDLog("TTY error detected: %s\n", err_msg);
+   		return false;
+   }
+
+   IDLog("Reponse from Spectrometer: #%c# #%c# #%c# #%c#\n", response[0], response[1], response[2], response[3]);
+
+   if (strstr(response, "R000"))
+   {
+	IDLog("Echo test passed.\n");
+	return true;
+   }
+
+   IDLog("Echo test failed.\n");
+   return false;
+}
