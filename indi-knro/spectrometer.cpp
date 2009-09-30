@@ -682,7 +682,7 @@ bool knroSpectrometer::dispatch_command(SpectrometerCommand command_type)
 		command[3] = '0';
 		final_value = get_on_switch(&CommandSP);
 		sprintf(hex, "%x", final_value);
-		command[3] = hex[0];
+		command[4] = hex[0];
 		break;
 		
 		
@@ -693,7 +693,7 @@ bool knroSpectrometer::dispatch_command(SpectrometerCommand command_type)
 		command[3] = '0';
 		final_value = get_on_switch(&BandwidthSP);
 		sprintf(hex, "%x", final_value);
-		command[3] = hex[0];
+		command[4] = hex[0];
 		break;
 
        // Reset

@@ -688,6 +688,8 @@ void knroObservatory::ISNewNumber (const char *dev, const char *name, double val
 	
 	AzEncoder->ISNewNumber(dev, name, values, names, n);
 	AltEncoder->ISNewNumber(dev, name, values, names, n);
+
+	spectrometer->ISNewNumber(dev, name, values, names, n);
 }
 
 /**************************************************************************************
@@ -735,7 +737,7 @@ void knroObservatory::reset_all_properties(bool reset_to_idle)
 void knroObservatory::init_knro()
 {
 	//FIXME disable spectrometer simulation
-	spectrometer->enable_simulation();
+//	spectrometer->enable_simulation();
 	//AzInverter->enable_simulation();
 	//AltInverter->enable_simulation();
 
