@@ -172,8 +172,8 @@ static INumber PixelSizeN[] 	= {
 static INumberVectorProperty PixelSizeNP = { mydev, "Pixel Size (µm)", "", DATA_GROUP, IP_RO, 0, IPS_IDLE, PixelSizeN, NARRAY(PixelSizeN), "", 0};
 
 /* BLOB for sending image */
-static IBLOB imageB = {"CCD1", "Feed", "", 0, 0, 0, 0, 0, 0, 0};
-static IBLOBVectorProperty imageBP = {mydev, "Video", "Video", COMM_GROUP,
+static IBLOB imageB = {"FITS_BLOB", "FITS", "", 0, 0, 0, 0, 0, 0, 0};
+static IBLOBVectorProperty imageBP = {mydev, "CCD_FITS_BLOB", "BLOB", COMM_GROUP,
   IP_RO, 0, IPS_IDLE, &imageB, 1, "", 0};
 
 /* send client definitions of all properties */

@@ -223,8 +223,8 @@ static ISwitchVectorProperty FanSpeedSP = {MYDEV, "FanSpeed", "Set fans speed", 
 typedef enum {	/* N.B. order must match array below */
     IMG_B, N_B
 } PixelsIndex;
-static IBLOB FitsB[N_B] = {{"Img", "Image", ".fits", 0, 0, 0, 0, 0, 0, 0}};
-static IBLOBVectorProperty FitsBP = {MYDEV, "Pixels", "Image data", DATA_GROUP, IP_RO, 0, IPS_IDLE, FitsB, NARRAY(FitsB), "", 0};
+static IBLOB FitsB[N_B] = {{"FITS_BLOB", "FITS", ".fits", 0, 0, 0, 0, 0, 0, 0}};
+static IBLOBVectorProperty FitsBP = {MYDEV, "CCD_FITS_BLOB", "BLOB", DATA_GROUP, IP_RO, 0, IPS_IDLE, FitsB, NARRAY(FitsB), "", 0};
 
 /* Function prototypes */
 static void getStartConditions(void);
