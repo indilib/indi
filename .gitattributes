@@ -21,5 +21,3 @@ indi-knro/sounds/alarm1.ogg -text
 indi-knro/sounds/alarm2.ogg -text
 indi-knro/sounds/calibration_error.ogg -text
 indi-knro/sounds/slew_error.ogg -text
-indi-knro/spectrometer.cpp -text
-indi-knro/spectrometer.h -text
