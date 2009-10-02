@@ -105,8 +105,10 @@ indi-sbig/sbigcam.h -text
 indi-sbig/sbigudrv.h -text
 indi-spectracyber/.project -text
 indi-spectracyber/Authors -text
+indi-spectracyber/CMakeLists.txt -text
 indi-spectracyber/ChangeLog -text
 indi-spectracyber/Readme -text
+indi-spectracyber/copying.lib -text
 indi-spectracyber/indi_spectracyber.xml -text
 indi-spectracyber/install -text
 indi-spectracyber/spectracyber.cpp -text
