@@ -103,6 +103,14 @@ indi-sbig/indi_sbig.xml -text
 indi-sbig/sbigcam.cpp -text
 indi-sbig/sbigcam.h -text
 indi-sbig/sbigudrv.h -text
+indi-spectracyber/.project -text
+indi-spectracyber/Authors -text
+indi-spectracyber/ChangeLog -text
+indi-spectracyber/Readme -text
+indi-spectracyber/indi_spectracyber.xml -text
+indi-spectracyber/install -text
+indi-spectracyber/spectracyber.cpp -text
+indi-spectracyber/spectracyber.h -text
 libapogee/.cproject -text
 libapogee/.project -text
 libapogee/AUTHORS -text
