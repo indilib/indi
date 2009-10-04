@@ -54,11 +54,11 @@ void show_runtime(int state) {
 
 /* Definitions */
 
-#define	mydev			"Telescope Simulator"			/* Device name */
-#define 	MAIN_GROUP		"Main Control"					/* Group name */
-#define	SLEWRATE		1							/* slew rate, degrees/s */
-#define	POLLMS			250							/* poll period, ms */
-#define 	SIDRATE			0.004178						/* sidereal rate, degrees/s */
+#define	mydev		"Telescope Simulator"		/* Device name */
+#define MAIN_GROUP	"Main Control"			/* Group name */
+#define	SLEWRATE	1				/* slew rate, degrees/s */
+#define	POLLMS		250				/* poll period, ms */
+#define SIDRATE		0.004178			/* sidereal rate, degrees/s */
 
 /* Function protptypes */
 static void connectTelescope (void);
@@ -77,7 +77,7 @@ static ISwitch connectS[] = {
 
 static ISwitchVectorProperty connectSP = { mydev, "CONNECTION", "Connection",  MAIN_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE,  connectS, NARRAY(connectS), "", 0 };
 
-/* Equatorial position. EQUATORIAL_COORD is one of INDI's reserved Standard  Properties */
+/* Equatorial position. EQUATORIAL_EOD_COORD is one of INDI's reserved Standard  Properties */
 static INumber eqN[] = {
                                 /* 1st member is Right ascension */
     				{"RA"				/* 1st Number name */
@@ -95,13 +95,19 @@ static INumber eqN[] = {
     				{"DEC", "Dec D:M:S", "%10.6m", -90., 90., 0., 0., 0, 0, 0}
 };
 
-static INumberVectorProperty eqNP = {  mydev, "EQUATORIAL_EOD_COORD", "Equatorial JNow",  MAIN_GROUP , IP_RW, 0, IPS_IDLE,  eqN, NARRAY(eqN), "", 0};
+static INumberVectorProperty eqNP = {  mydev, "EQUATORIAL_EOD_COORD", "Equatorial JNow",  MAIN_GROUP , IP_RO, 0, IPS_IDLE,  eqN, NARRAY(eqN), "", 0};
+
+
+/* Equatorial EOD Coord Request. This property is for requesting changes to target equatorial coordinates. However, the CURRENT coordinates are reported in EQUATORIAL_EOD_COORDS above.*/
+static INumber eqNR[] = {{"RA_REQUEST" ,"RA  H:M:S" , "%10.6m" ,0. , 24., 0., 0., 0, 0, 0},
+			 {"DEC_REQUEST", "Dec D:M:S", "%10.6m", -90., 90., 0., 0., 0, 0, 0}};
+static INumberVectorProperty eqNPR = {  mydev, "EQUATORIAL_EOD_COORD_REQUEST", "Equatorial Request",  MAIN_GROUP , IP_RW, 0, IPS_IDLE,  eqNR, NARRAY(eqNR), "", 0};
 
 /* Property naming convention. All property names are lower case with a postfix to indicate their type. connectS is a switch, 
  * connectSP is a switch vector. eqN is a number, eqNP is a number property, and so on. While this is not strictly required, it makes the code easier to read. */
 
-#define 	currentRA			eqN[0].value					/* scope's current simulated RA, rads. Handy macro to right ascension from eqN[] */
-#define     currentDec		eqN[1].value					/* scope's current simulated Dec, rads. Handy macro to declination from eqN[] */
+#define	currentRA	eqN[0].value		/* scope's current simulated RA, rads. Handy macro to right ascension from eqN[] */
+#define	currentDec	eqN[1].value		/* scope's current simulated Dec, rads. Handy macro to declination from eqN[] */
 
 /********************************************
  Property: Movement (Arrow keys on handset). North/South
@@ -125,7 +131,7 @@ static void mountInit()
 	
 	/* start timer to simulate mount motion
 	   The timer will call function mountSim after POLLMS milliseconds */
-	//IEAddTimer (POLLMS, mountSim, NULL);
+	IEAddTimer (POLLMS, mountSim, NULL);
 
 	inited = 1;
 	
@@ -139,6 +145,7 @@ void ISGetProperties (const char *dev)
 
 	IDDefSwitch (&connectSP, NULL);
 	IDDefNumber (&eqNP, NULL);
+	IDDefNumber (&eqNPR, NULL);
 	IDDefSwitch (&MovementNSSP, NULL);
 	IDDefSwitch (&MovementWESP, NULL);
 	
@@ -159,7 +166,7 @@ void ISNewNumber (const char *dev, const char *name, double values[], char *name
 	if (strcmp (dev, mydev))
 	    return;
 
-	if (!strcmp (name, eqNP.name)) {
+	if (!strcmp (name, eqNPR.name)) {
 	    /* new equatorial target coords */
 	    double newra = 0, newdec = 0;
 	    int i, nset;
@@ -167,7 +174,7 @@ void ISNewNumber (const char *dev, const char *name, double values[], char *name
 	    /* Check connectSP, if it is idle, then return */
 	    if (connectSP.s == IPS_IDLE)
 	    {
-		eqNP.s = IPS_IDLE;
+		eqNPR.s = IPS_IDLE;
 		IDSetNumber(&eqNP, "Telescope is offline.");
 		return;
 	    }
@@ -175,16 +182,16 @@ void ISNewNumber (const char *dev, const char *name, double values[], char *name
 	    for (nset = i = 0; i < n; i++) 
 	    {
 	        /* Find numbers with the passed names in the eqNP property */
-		INumber *eqp = IUFindNumber (&eqNP, names[i]);
+		INumber *eqp = IUFindNumber (&eqNPR, names[i]);
 		
 		/* If the number found is Right ascension (eqN[0]) then process it */
-		if (eqp == &eqN[0])
+		if (eqp == &eqNR[0])
 		{
 		    newra = (values[i]);
 		    nset += newra >= 0 && newra <= 24;
 		}
 		/* Otherwise, if the number found is Declination (eqN[1]) then process it */ 
-		else if (eqp == &eqN[1]) {
+		else if (eqp == &eqNR[1]) {
 		    newdec = (values[i]);
 		    nset += newdec >= -90 && newdec <= 90;
 		}
@@ -197,6 +204,7 @@ void ISNewNumber (const char *dev, const char *name, double values[], char *name
 		
 		/* Set the mount state to BUSY */
 		eqNP.s = IPS_BUSY;
+		eqNPR.s = IPS_BUSY;
 		
 		/* Set the new target coordinates */
 		targetRA = newra;
@@ -206,13 +214,14 @@ void ISNewNumber (const char *dev, const char *name, double values[], char *name
 		fs_sexa (r, targetRA, 2, 3600);
 		fs_sexa (d, targetDEC, 3, 3600);
 		
-		IDSetNumber(&eqNP, "Moving to RA Dec %s %s", r, d);
+		IDSetNumber(&eqNP, NULL);
+		IDSetNumber(&eqNPR, "Moving to RA Dec %s %s", r, d);
 	    }
 	    /* We didn't process the two number correctly, report an error */
 	    else 
 	    {
-	        /* Set property state to idle */
-		eqNP.s = IPS_IDLE;
+	        /* Set property state to ALERT */
+		eqNPR.s = IPS_ALERT;
 		
 		IDSetNumber(&eqNP, "RA or Dec absent or bogus.");
 	    }
@@ -295,8 +304,8 @@ void mountSim (void *p)
 	ltv = tv;
 	da = SLEWRATE*dt;
 
-	/* Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly */
-	switch (eqNP.s)
+	/* Process per current state. We check the state of EQUATORIAL_EOD_COORDS_REQUEST and act acoordingly */
+	switch (eqNPR.s)
 	{
 	
 	/* #1 State is idle, update telesocpe at sidereal rate */
@@ -337,7 +346,9 @@ void mountSim (void *p)
 	    if (nlocked == 2)
 	    {
 		eqNP.s = IPS_OK;
-		IDSetNumber(&eqNP, "Now tracking");
+		eqNPR.s = IPS_OK;
+		IDSetNumber(&eqNP, NULL);
+		IDSetNumber(&eqNPR, "Now tracking");
 	    } else
 		IDSetNumber(&eqNP, NULL);
 
