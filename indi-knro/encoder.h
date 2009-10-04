@@ -98,6 +98,7 @@ private:
     bool check_drive_connection();
     bool dispatch_command(encoderCommand command);
     encoderError get_encoder_value(encoderCommand command, char * response, double & encoder_value);
+    bool openEncoderServer (const char * host, int indi_port);
 
     // Variables
     string type_name;
@@ -110,8 +111,8 @@ private:
     double current_angle;
     encoderType type;
 
-    int fd;
     char encoder_command[4];
+    FILE *fp;
 
 };
 

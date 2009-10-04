@@ -142,8 +142,6 @@ knroObservatory::knroObservatory()
   AzInverter = new knroInverter(knroInverter::AZ_INVERTER);
   AltInverter = new knroInverter(knroInverter::ALT_INVERTER);
 
-  spectrometer = new knroSpectrometer();
-  
   init_properties();
 
   #ifndef SIMULATION
@@ -312,8 +310,6 @@ void knroObservatory::ISGetProperties(const char *dev)
 	AzInverter->ISGetProperties();
 	AltInverter->ISGetProperties();
 
-	spectrometer->ISGetProperties();
-	
 /* FOR SIMULATION ONLY */
 	//IDDefSwitch(&AZEncSP, NULL);
 	//IDDefSwitch(&ALTEncSP, NULL);
@@ -531,9 +527,6 @@ void knroObservatory::ISNewSwitch (const char *dev, const char *name, ISState *s
 	AzEncoder->ISNewSwitch(dev, name, states, names, n);
 	AltEncoder->ISNewSwitch(dev, name, states, names, n);
 	
-	spectrometer->ISNewSwitch(dev, name, states, names, n);
-	
-
 }
 
 /**************************************************************************************
@@ -552,8 +545,6 @@ void knroObservatory::ISNewText (const char *dev, const char *name, char *texts[
 	AzEncoder->ISNewText(dev, name, texts, names, n);
 	AltEncoder->ISNewText(dev, name, texts, names, n);
 	
-	spectrometer->ISNewText(dev, name, texts, names, n);
-
 	// If we're not connected, we return
 	/*if (is_connected() == false)
 	{
@@ -689,7 +680,6 @@ void knroObservatory::ISNewNumber (const char *dev, const char *name, double val
 	AzEncoder->ISNewNumber(dev, name, values, names, n);
 	AltEncoder->ISNewNumber(dev, name, values, names, n);
 
-	spectrometer->ISNewNumber(dev, name, values, names, n);
 }
 
 /**************************************************************************************
@@ -725,10 +715,7 @@ void knroObservatory::reset_all_properties(bool reset_to_idle)
 	AzEncoder->reset_all_properties(reset_to_idle);
 	AltEncoder->reset_all_properties(reset_to_idle);
 
-	spectrometer->reset_all_properties(reset_to_idle);
 
-
-	
 }
 
 /**************************************************************************************
@@ -737,14 +724,11 @@ void knroObservatory::reset_all_properties(bool reset_to_idle)
 void knroObservatory::init_knro()
 {
 	//FIXME disable spectrometer simulation
-//	spectrometer->enable_simulation();
 	//AzInverter->enable_simulation();
 	//AltInverter->enable_simulation();
 
 	// For now, make sure that both inverters are connected
-//	if (AzInverter->connect() && AltInverter->connect() && AzEncoder->connect() && AltEncoder->connect())
-	if (spectrometer->connect())
-//	if (AzInverter->connect() && AltInverter->connect() && spectrometer->connect())
+	if (AzInverter->connect() && AltInverter->connect() && AzEncoder->connect() && AltEncoder->connect())
 	{
 		ConnectSP. s = IPS_OK;
 		

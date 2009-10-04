@@ -23,15 +23,22 @@
 
 */
 
+#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <stdarg.h>
-#include <math.h>
+#include <signal.h>
+#include <string.h>
+#include <errno.h>
 #include <unistd.h>
 #include <time.h>
-#include <errno.h>
+#include <fcntl.h>
 #include <sys/time.h>
-#include <termios.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <arpa/inet.h>
 
 #include <indicom.h>
 
@@ -62,6 +69,8 @@ knroEncoder::knroEncoder(encoderType new_type)
   encoder_command[2] = (char) 0x0D ;
   // Line Feed
   encoder_command[3] = (char) 0x0A ;
+
+  fp = NULL;
 
   init_properties();
 
@@ -150,12 +159,12 @@ void knroEncoder::set_type(encoderType new_type)
 	 if (type == AZ_ENCODER)
 	 {
 	 		type_name = string("Azimuth");
-	 		default_port = string("/dev/ttyUSB0");
+	 		default_port = string("192.168.1.4");
 	 }
 	 else
 	 {
 	 		type_name = string("Altitude");
-	 		default_port = string("/dev/ttyUSB1");
+	 		default_port = string("192.168.1.5");
 	 }		
 }
 
@@ -177,12 +186,14 @@ bool knroEncoder::connect()
     }
 
 
-    if (tty_connect(PortT[0].text, 9600, 8, 0, 1, &fd) != TTY_OK)
+    /*if (tty_connect(PortT[0].text, 9600, 8, 0, 1, &fd) != TTY_OK)
     {
 	EncoderAbsPosNP.s = IPS_ALERT;
 	IDSetNumber (&EncoderAbsPosNP, "Error connecting to port %s. Make sure you have BOTH read and write permission to the port.", PortT[0].text);
 	return false;
-    }
+    }*/
+
+    openEncoderServer(default_port.c_str(), 10001);
 
     connection_status = 0;
     EncoderAbsPosNP.s = IPS_OK;
@@ -221,7 +232,6 @@ bool knroEncoder::init_encoder()
 void knroEncoder::disconnect()
 {
 	connection_status = -1;
-	tty_disconnect(fd);
 }
 
 /****************************************************************
@@ -326,14 +336,15 @@ bool knroEncoder::dispatch_command(encoderCommand command)
    encoder_command[1] = command;
    int err_code = 0, nbytes_written =0;
 
-   tcflush(fd, TCIOFLUSH);
-
-   if  ( (err_code = tty_write(fd, encoder_command, ENCODER_CMD_LEN, &nbytes_written) != TTY_OK))
+   /*if  ( (err_code = tty_write(fd, encoder_command, ENCODER_CMD_LEN, &nbytes_written) != TTY_OK))
    {
 	tty_error_msg(err_code, encoder_error, ENCODER_ERROR_BUFFER);
 	IDLog("TTY error detected: %s\n", encoder_error);
    	return false;
-   }
+   }*/
+
+   nbytes_written = fwrite(encoder_command, 1, ENCODER_CMD_LEN, fp);
+
 
    return true;
 }
@@ -409,12 +420,14 @@ void knroEncoder::update_encoder_count()
 
 	IDLog("About to READ from encoder\n");
 
-	if ( (err_code = tty_read_section(fd, encoder_read, (char) 0x0A, 5, &nbytes_read)) != TTY_OK)
+	/*if ( (err_code = tty_read_section(fd, encoder_read, (char) 0x0A, 5, &nbytes_read)) != TTY_OK)
 	{
 		tty_error_msg(err_code, encoder_error, ENCODER_ERROR_BUFFER);
 		IDLog("TTY error detected: %s\n", encoder_error);
    		return;
-	}
+	}*/
+
+	nbytes_read = fread(encoder_read, 1, 9, fp);
 
 
 	IDLog("Received response from encoder %d bytes long and is #%s#\n", nbytes_read, encoder_read);
@@ -424,8 +437,7 @@ void knroEncoder::update_encoder_count()
 
 	if ( ((unsigned char) encoder_read[0]) != 0x47)
 	{
-		//IDLog("Invalid encoder response!\n");
-		tcflush(fd, TCIOFLUSH);
+		IDLog("Invalid encoder response!\n");
 		return;
 	}
 
@@ -435,12 +447,50 @@ void knroEncoder::update_encoder_count()
 		return;
 	}
 
-	tcflush(fd, TCIOFLUSH);
-
 	IDSetNumber(&EncoderAbsPosNP, NULL);
 
 	IDLog("We got encoder test value of %g\n", EncoderAbsPosN[0].value);
 
 }
 
+bool knroEncoder::openEncoderServer (const char * host, int indi_port)
+{
+	struct sockaddr_in serv_addr;
+	struct hostent *hp;
+	int sockfd;
+
+	/* lookup host address */
+	hp = gethostbyname (host);
+	if (!hp)
+	{
+	    fprintf (stderr, "gethostbyname(%s): %s\n", host, strerror(errno));
+	    return false;
+	}
+
+	/* create a socket to the INDI server */
+	(void) memset ((char *)&serv_addr, 0, sizeof(serv_addr));
+	serv_addr.sin_family = AF_INET;
+	serv_addr.sin_addr.s_addr =  ((struct in_addr *)(hp->h_addr_list[0]))->s_addr;
+	serv_addr.sin_port = htons(indi_port);
+	if ((sockfd = socket (AF_INET, SOCK_STREAM, 0)) < 0)
+	{
+	    fprintf (stderr, "socket(%s,%d): %s\n", host, indi_port,strerror(errno));
+	    return false;
+	}
+
+	/* connect */
+	if (::connect (sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr))<0)
+	{
+	    fprintf (stderr, "connect(%s,%d): %s\n", host,indi_port,strerror(errno));
+	}
+
+	fp = fdopen (sockfd, "r+");
+	if (!fp)
+	    return false;
+
+	IDLog("Successfully connected to a server!\n");
+
+	/* ok */
+	return true;
+}
 
