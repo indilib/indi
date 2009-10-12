@@ -39,6 +39,7 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <termios.h>
 
 #include <indicom.h>
 
@@ -70,8 +71,6 @@ knroEncoder::knroEncoder(encoderType new_type)
   // Line Feed
   encoder_command[3] = (char) 0x0A ;
 
-  fp = NULL;
-
   init_properties();
 
 
@@ -101,19 +100,20 @@ void knroEncoder::init_properties()
   IUFillNumber(&EncoderAbsPosN[1], "Angle" , "", "%g", 0., 360., 0., 0.);
 
    IUFillSwitch(&UpdateCountS[0], "Update Count", "", ISS_OFF);
-   IUFillSwitchVector(&UpdateCountSP, UpdateCountS, NARRAY(UpdateCountS), mydev, "Update", "", ENCODER_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
    IUFillText(&PortT[0], "PORT", "Port", default_port.c_str());
 
   if (type == AZ_ENCODER)
   {
     	IUFillNumberVector(&EncoderAbsPosNP, EncoderAbsPosN, NARRAY(EncoderAbsPosN), mydev, "Absolute Az", "", ENCODER_GROUP, IP_RO, 0, IPS_OK);
     	IUFillTextVector(&PortTP, PortT, NARRAY(PortT), mydev, "AZIMUTH_ENCODER_PORT", "Azimuth", ENCODER_GROUP, IP_RW, 0, IPS_IDLE);
+        IUFillSwitchVector(&UpdateCountSP, UpdateCountS, NARRAY(UpdateCountS), mydev, "Update Az", "", ENCODER_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
   }
   else
   {
     	IUFillTextVector(&PortTP, PortT, NARRAY(PortT), mydev, "ALTITUDE_ENCODER_PORT", "Altitude", ENCODER_GROUP, IP_RW, 0, IPS_IDLE);
     	IUFillNumberVector(&EncoderAbsPosNP, EncoderAbsPosN, NARRAY(EncoderAbsPosN), mydev, "Absolute Alt", "", ENCODER_GROUP, IP_RO, 0, IPS_OK);
+        IUFillSwitchVector(&UpdateCountSP, UpdateCountS, NARRAY(UpdateCountS), mydev, "Update Alt", "", ENCODER_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
   }
 
   
@@ -193,7 +193,14 @@ bool knroEncoder::connect()
 	return false;
     }*/
 
-    openEncoderServer(default_port.c_str(), 10001);
+    IDLog("Attempting to communicate with encoder...\n");
+
+    if (openEncoderServer(default_port.c_str(), 10001) == false)
+    {
+	    EncoderAbsPosNP.s = IPS_ALERT;
+	    IDSetNumber (&EncoderAbsPosNP, "connection to %s encoder failed. Please insure encoder is online.", type_name.c_str());
+	    return false;
+    }
 
     connection_status = 0;
     EncoderAbsPosNP.s = IPS_OK;
@@ -232,6 +239,8 @@ bool knroEncoder::init_encoder()
 void knroEncoder::disconnect()
 {
 	connection_status = -1;
+	tty_disconnect(sockfd);
+	sockfd=-1;
 }
 
 /****************************************************************
@@ -336,14 +345,14 @@ bool knroEncoder::dispatch_command(encoderCommand command)
    encoder_command[1] = command;
    int err_code = 0, nbytes_written =0;
 
-   /*if  ( (err_code = tty_write(fd, encoder_command, ENCODER_CMD_LEN, &nbytes_written) != TTY_OK))
+   if  ( (err_code = tty_write(sockfd, encoder_command, ENCODER_CMD_LEN, &nbytes_written) != TTY_OK))
    {
 	tty_error_msg(err_code, encoder_error, ENCODER_ERROR_BUFFER);
 	IDLog("TTY error detected: %s\n", encoder_error);
    	return false;
-   }*/
+   }
 
-   nbytes_written = fwrite(encoder_command, 1, ENCODER_CMD_LEN, fp);
+/*   nbytes_written = fwrite(encoder_command, 1, ENCODER_CMD_LEN, fp);*/
 
 
    return true;
@@ -409,7 +418,6 @@ void knroEncoder::update_encoder_count()
         int nbytes_read =0;
         int err_code = 0;
 
-
 	IDLog("About to dispatch command for position value\n");
 
 	if (dispatch_command(POSITION_VALUE) == false)
@@ -420,15 +428,33 @@ void knroEncoder::update_encoder_count()
 
 	IDLog("About to READ from encoder\n");
 
-	/*if ( (err_code = tty_read_section(fd, encoder_read, (char) 0x0A, 5, &nbytes_read)) != TTY_OK)
+//	if ( (err_code = tty_read_section(sockfd, encoder_read, (char) 0x0A, 5, &nbytes_read)) != TTY_OK)
+	if ( (err_code = tty_read(sockfd, encoder_read, 9, 5, &nbytes_read)) != TTY_OK)
 	{
 		tty_error_msg(err_code, encoder_error, ENCODER_ERROR_BUFFER);
 		IDLog("TTY error detected: %s\n", encoder_error);
    		return;
+	}
+
+	/*for (int i=0; i < ENCODER_READ_BUFFER; i++)
+	{
+		nbytes_read += fread(encoder_read+i, 1, 1, fp);
+		IDLog("FREAD - Byte #%d=0x%X --- %d\n", i, ((unsigned char) encoder_read[i]), ((unsigned char) encoder_read[i]));
+
+		// If encountering line feed 0xA, then break;
+		if (encoder_read[i] == 0xA)
+			break;
+
 	}*/
 
-	nbytes_read = fread(encoder_read, 1, 9, fp);
+	
+	tcflush(sockfd, TCIOFLUSH);
 
+	if (nbytes_read == 0)
+	{
+		IDLog("Error, unable to read. Check connection.\n");
+		return;
+	}
 
 	IDLog("Received response from encoder %d bytes long and is #%s#\n", nbytes_read, encoder_read);
 	for (int i=0; i < nbytes_read; i++)
@@ -457,7 +483,6 @@ bool knroEncoder::openEncoderServer (const char * host, int indi_port)
 {
 	struct sockaddr_in serv_addr;
 	struct hostent *hp;
-	int sockfd;
 
 	/* lookup host address */
 	hp = gethostbyname (host);
@@ -482,11 +507,12 @@ bool knroEncoder::openEncoderServer (const char * host, int indi_port)
 	if (::connect (sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr))<0)
 	{
 	    fprintf (stderr, "connect(%s,%d): %s\n", host,indi_port,strerror(errno));
+	    return false;
 	}
 
-	fp = fdopen (sockfd, "r+");
+	/*fp = fdopen (sockfd, "r+");
 	if (!fp)
-	    return false;
+	    return false;*/
 
 	IDLog("Successfully connected to a server!\n");
 

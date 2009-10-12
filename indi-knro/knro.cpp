@@ -350,9 +350,10 @@ void knroObservatory::ISNewSwitch (const char *dev, const char *name, ISState *s
 			return;
 
 		if (is_connected() == true)
-			init_knro();
+			connect();
 		else
 		{
+			disconnect();
 			stop_all();
 			//TODO
 			//park_alert.stop();
@@ -721,7 +722,7 @@ void knroObservatory::reset_all_properties(bool reset_to_idle)
 /**************************************************************************************
 **
 // ***************************************************************************************/
-void knroObservatory::init_knro()
+void knroObservatory::connect()
 {
 	//FIXME disable spectrometer simulation
 	//AzInverter->enable_simulation();
@@ -744,8 +745,18 @@ void knroObservatory::init_knro()
 		ConnectS[1].s = ISS_ON;
 		ConnectSP. s = IPS_ALERT;
 		IDSetSwitch(&ConnectSP, "Due to the above errors, KNRO is offline.");
+
 	}
 }
+
+void knroObservatory::disconnect()
+{
+	AzInverter->disconnect();
+	AltInverter->disconnect();
+	AltEncoder->disconnect();
+	AzEncoder->disconnect();
+}
+
 			
 /**************************************************************************************
 **

@@ -82,7 +82,7 @@ void knroInverter::set_type(inverterType new_type)
   	type_name = string("Azimuth");
   	forward_motion = string("East");
   	reverse_motion = string("West");
-  	default_port = string("192.168.1.2");
+  	default_port = string("192.168.1.3");
 
 	SLAVE_ADDRESS = 1;
   }
@@ -91,7 +91,7 @@ void knroInverter::set_type(inverterType new_type)
     type_name = string("Altitude");
     forward_motion = string("Up");
     reverse_motion = string("Down"); 
-    default_port = string("192.168.1.2");
+    default_port = string("192.168.1.3");
     
     SLAVE_ADDRESS = 2;
   }

@@ -196,8 +196,9 @@ class knroObservatory
 
     /* Functions */
     
-    /* Init observatory */
-    void init_knro();
+    /* connect observatory */
+    void connect();
+    void disconnect();
     
     /* Safety checks functions */
     void check_safety();

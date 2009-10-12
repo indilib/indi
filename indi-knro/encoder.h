@@ -112,7 +112,8 @@ private:
     encoderType type;
 
     char encoder_command[4];
-    FILE *fp;
+    int sockfd;
+    /*FILE *fp;*/
 
 };
 
