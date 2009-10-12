@@ -85,6 +85,10 @@ public:
 
 private: 
 
+    // Connect
+    ISwitch ConnectS[2];
+    ISwitchVectorProperty ConnectSP;				
+
     // Spectrometer Port number
     ITextVectorProperty PortTP;
     IText PortT[1];

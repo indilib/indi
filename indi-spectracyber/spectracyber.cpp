@@ -135,6 +135,10 @@ SpectraCyber::~SpectraCyber()
 void SpectraCyber::init_properties()
 {
 
+  IUFillSwitch(&ConnectS[0], "CONNECT", "Connect", ISS_OFF);
+  IUFillSwitch(&ConnectS[1], "DISCONNECT", "Disconnect", ISS_ON);
+  IUFillSwitchVector(&ConnectSP, ConnectS, NARRAY(ConnectS), mydev, "CONNECTION", "Connection", BASIC_GROUP, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
    default_port = string("/dev/ttyUSB0");
    IUFillText(&PortT[0], "PORT", "Port", default_port.c_str());
    IUFillTextVector(&PortTP, PortT, NARRAY(PortT), mydev, "SPECTROMETER_PORT", "Spectrometer", BASIC_GROUP, IP_RW, 0, IPS_IDLE);
@@ -204,6 +208,7 @@ void SpectraCyber::init_properties()
 *****************************************************************/
 void SpectraCyber::ISGetProperties()
 {
+   IDDefSwitch(&ConnectSP, NULL);
    IDDefText(&PortTP, NULL);
    IDDefSwitch(&CommandSP, NULL);
    IDDefSwitch(&ResetSP, NULL);
@@ -226,6 +231,7 @@ void SpectraCyber::reset_all_properties(bool reset_to_idle)
 {
 	if (reset_to_idle)
 	{
+		ConnectSP.s		= IPS_IDLE;
 		PortTP.s		= IPS_IDLE;
 		IFGainNP.s		= IPS_IDLE;
 		ContGainSP.s		= IPS_IDLE;
@@ -239,6 +245,7 @@ void SpectraCyber::reset_all_properties(bool reset_to_idle)
 		ResetSP.s		= IPS_IDLE;
 	}
 	
+	IDSetSwitch(&ConnectSP, NULL);
 	IDSetText(&PortTP, NULL);
         IDSetNumber(&IFGainNP, NULL);
 	IDSetSwitch(&ContGainSP, NULL);
@@ -272,8 +279,8 @@ bool SpectraCyber::connect()
 
     if (tty_connect(PortT[0].text, 2400, 8, 0, 1, &fd) != TTY_OK)
     {
-	PortTP.s = IPS_ALERT;
-	IDSetText (&PortTP, "Error connecting to port %s. Make sure you have BOTH read and write permission to the port.", PortT[0].text);
+	ConnectSP.s = IPS_ALERT;
+	IDSetSwitch (&ConnectSP, "Error connecting to port %s. Make sure you have BOTH read and write permission to the port.", PortT[0].text);
 	return false;
     }
 
@@ -281,16 +288,16 @@ bool SpectraCyber::connect()
     if (reset() == true)
     {
         connection_status = 0;
-        PortTP.s = IPS_OK;
-        IDSetText (&PortTP, "Spectrometer is online. Retrieving preliminary data...");
+        ConnectSP.s = IPS_OK;
+        IDSetSwitch (&ConnectSP, "Spectrometer is online. Retrieving preliminary data...");
         return init_spectrometer();
    }
    else
    {
 	IDLog("Echo test failed.\n");
 	connection_status = -1;
-        PortTP.s = IPS_ALERT;
-        IDSetText (&PortTP, "Spectrometer echo test failed. Please recheck connection to spectrometer and try again.");
+        ConnectSP.s = IPS_ALERT;
+        IDSetSwitch (&ConnectSP, "Spectrometer echo test failed. Please recheck connection to spectrometer and try again.");
 	return false;
    }
 	
@@ -466,7 +473,7 @@ void SpectraCyber::ISNewText (const char *name, char *texts[], char *names[], in
 			return;
 
 		PortTP.s = IPS_OK;
-		IDSetText(&PortTP, "Please reconnect when ready.");
+		IDSetText(&PortTP, "Port updated.");
 
 		return;
 	}
@@ -482,6 +489,12 @@ void SpectraCyber::ISNewSwitch (const char *name, ISState *states, char *names[]
    int err_code = 0, nbytes_written =0, nbytes_read=0;
    char response[SPECTROMETER_CMD_REPLY];
    char err_msg[SPECTROMETER_ERROR_BUFFER];
+
+	if (!strcmp(ConnectSP.name, name))
+	{
+		connect();
+		return;
+	}
 
 	if (!strcmp(CommandSP.name, name))
 	{
