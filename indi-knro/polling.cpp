@@ -43,146 +43,24 @@
 ***************************************************************************************/
 void knroObservatory::ISPoll()
 {
+    double delta_az=0;
 
-	
-	//AzEncoder->update_encoder_count();
-	//AltEncoder->update_encoder_count();
+    AzEncoder->update_encoder_count();
+    //AltEncoder->update_encoder_count();
 
+     if (is_connected() == false)
+	return;
 
-
-#if 0
-
-	if (is_connected() == false)
-		return;
-
-	double JD=0, SD=0, delta_ra=0, dome_delta;
-        dms SD_Time;
-	SkyPoint requested_coords;
-
-	/***********************************************************************************************************
-	************************************************** NOTE ****************************************************
-	************************************************************************************************************
-	***************************************** NORTH is POSITIVE COUNT ******************************************
-        ***************************************** WEST is NEGATIVE COUNT *******************************************
-	************************************************************************************************************
-	************************************************** NOTE ****************************************************
-        ************************************************************************************************************/
-
-	/***************************************************************
-	// #1: Get encoder counts
-	****************************************************************/
-	/* Update Encoder Values */
-	pthread_mutex_lock( &encoder_mutex );
-	EncoderPosN[EQ_DEC].value = ns_encoder_count;
-	EncoderPosN[EQ_RA].value = we_encoder_count;
-	EncoderPosN[2].value = dome_encoder_count;
-
-	EncoderAbsPosN[EQ_DEC].value = ns_absolute_position;
-	EncoderAbsPosN[EQ_RA].value = we_absolute_position;
-	EncoderAbsPosN[2].value = dome_absolute_position;
-
-	// Calculate Dome Angle
-	dome_delta = ( (int) ((dome_absolute_position / DOME_TPD) + DOME_HOME_DEVIATION)) % 360;
-	if (dome_delta < 0)
-		dome_delta += 360;
-	EncoderAbsPosN[3].value = dome_delta;
-
-	//IDLog("We got encoder values of %g and %g\n", EncoderPosN[0].value, EncoderPosN[1].value);
-	pthread_mutex_unlock( &encoder_mutex );
-	/****************************************************************/
-
-	// Update Dome Az
-	currentDomeAz = EncoderAbsPosN[3].value;
-	IDSetNumber(&DomeAzNP, NULL);
-
-	#ifdef SIMULATION
-	if (MovementNSSP.s == IPS_BUSY)
-	{
-		if (MovementNSS[UJARI_NORTH].s == ISS_ON)
-			ns_absolute_position += current_dec_rate;
-		else
-			ns_absolute_position -= current_dec_rate;
-	}
-	
-	if (MovementWESP.s == IPS_BUSY)
-	{
-		if (MovementWES[UJARI_WEST].s == ISS_ON)
-			we_absolute_position -= current_ra_rate;
-		else
-			we_absolute_position += current_ra_rate;
-	}
-	#endif
-	
-	/***************************************************************
-	// #2: Setup JD & LST
-	****************************************************************/
-	JD = ln_get_julian_from_sys();				// Current Julian Day
-	SD = ln_get_mean_sidereal_time(JD);			// Current Mean Sideral Time
-	SD_Time.setH(SD + observatory.lng()->Hours());		// Current Local Apparent Sideral Time
-	/* Store LST */
-	currentLST = SD_Time.Hours();
-
-	/***************************************************************
-	// #3: Calculate current RA, DEC
-	****************************************************************/
-	// Calculate HA, DEC
-	currentHA = ( (EncoderAbsPosN[EQ_RA].value) / (15.0 * RA_CPD));
-	currentDEC = (EncoderAbsPosN[EQ_DEC].value) / DEC_CPD + currentLat;
-
-	rawRA   = currentLST + currentHA;
-        rawDEC  = currentDEC;
-
-        // Correction derived from Excel
-	//currentDEC -= (-0.02 * currentHA * currentHA) + (0.001 * currentHA) + 0.027;
-
-	// Check if we want to apply TPoint
-	if (TPointS[0].s == ISS_ON)
-		standard_model.apply_model(currentHA, currentDEC);
-
-	// Calculate RA
-	currentRA  = currentLST + currentHA;
-
-	// 2008-03-17 ROUGH CORRECTION
-	currentRA += currentHA / 68.1818;
-	
-	if (currentRA > 24.)
-		currentRA -= 24.;
-	else if (currentRA < 0.)
-		currentRA += 24.;
-	
-	if (currentDEC > 90.)
-		currentDEC = 180. - currentDEC;
-	else if (currentDEC < -90.)
-		currentDEC = -180. - currentDEC;
-	/****************************************************************/
-
-	/***************************************************************
-	// #4: Calculate current Alt
-	****************************************************************/
-	requested_coords.setRA(currentRA);
-	requested_coords.setDec(currentDEC);
-	requested_coords.EquatorialToHorizontal(&SD_Time, observatory.lat());
-	/* Store Current Alt */
-	currentAlt = requested_coords.alt()->Degrees();
-
-	/***************************************************************
-	// #5: Check Safety
-	****************************************************************/
-	check_safety();
-
-	/***************************************************************
-	// #6: Set all properties
-	****************************************************************/
-	IDSetNumber(&EquatorialCoordsNP, NULL);
-	IDSetNumber(&EncoderPosNP, NULL);
-	IDSetNumber(&EncoderAbsPosNP, NULL);
-	//IDLog("We've got SD (Hours) = %g and we_absolute_position = %d\n", SD_Time.Hours(), we_absolute_position);
-
-	delta_ra = currentRA - targetRA;
+	currentAz = AzEncoder->get_current_angle();
+      
+	IDSetNumber(&HorizontalCoordsNRP, NULL);
+      
+        delta_az = currentAz - targetAz;
+	 
 	/***************************************************************
 	// #7: Check Status of Equatorial Coord Request
 	****************************************************************/
-	switch(EquatorialCoordsNP.s)
+	switch(HorizontalCoordsNWP.s)
 	{
 		case IPS_IDLE:
 			break;
@@ -191,52 +69,56 @@ void knroObservatory::ISPoll()
 			break;
 
 		case IPS_BUSY:
+		      
 			switch (slew_stage)
 			{
 				case SLEW_NONE:
 				break;
 
 				case SLEW_NOW:
+				  
+				    #if 0
 					// If declination is done, stop n/s
-					if (is_dec_done())
-						stop_ns();
-					else if (targetDEC - currentDEC > 0)
+					if (is_alt_done())
+						stop_alt();
+					else if (targetAlt - currentAlt > 0)
 					{
-						update_ns_speed();
-						update_ns_dir(UJARI_NORTH);
+						update_alt_speed();
+						update_alt_dir(KNRO_NORTH);
 					}
 					else
 					{
-						update_ns_speed();
-						update_ns_dir(UJARI_SOUTH);
+						update_alt_speed();
+						update_alt_dir(KNRO_SOUTH);
 					}
-
-					// if right ascension is done, stop w/e
-					//IDMessage(mydev, "The delta RA is %g", delta_ra);
-					if (is_ra_done())
+  
+				    #endif
+					
+					if (is_az_done())
 					{
-						//IDMessage(mydev, "Yup RA is done!");
-						stop_we(); 
+						stop_az(); 
 					}
-					else if ( (delta_ra > 0 && delta_ra < 12) || (delta_ra > -24 && delta_ra < -12))
+					else if ( (delta_az > 0 && delta_az < 180) || (delta_az > -360 && delta_az < -180))
 					{
-						update_we_speed();
-						update_we_dir(UJARI_WEST);
+						update_az_speed();
+						update_az_dir(KNRO_WEST);
 					}
 					else
 					{
-						update_we_speed();
-						update_we_dir(UJARI_EAST);
+						update_az_speed();
+						update_az_dir(KNRO_EAST);
 					}
 
 					// if both ns and we are stopped, we're done and engage tracking.
-					if (MovementNSSP.s == IPS_IDLE && MovementWESP.s == IPS_IDLE && DomeWESP.s != IPS_BUSY)
+					//if (MovementNSSP.s == IPS_IDLE && MovementWESP.s == IPS_IDLE)
+					if (!AzInverter->is_in_motion() && !AltInverter->is_in_motion())
 					{
 
-						if (slew_complete.is_playing() == false)
-							slew_complete.play();
+						//if (slew_complete.is_playing() == false)
+							//slew_complete.play();
 
 						// If we're parking, finish off here
+						#if 0
 						if (ParkSP.s == IPS_BUSY || ParkSP.s == IPS_ALERT)
 						{
 							ParkSP.s = IPS_OK;
@@ -258,18 +140,27 @@ void knroObservatory::ISPoll()
 							return;
 						}
 
+						#endif
+						
+						// FIXME Make sure to check whether on_set_coords is set to SLEW or TRACK
+						// Because when slewing, we're done here, but if there is tracking, then
+						// We go to that mode
 						slew_stage = SLEW_TRACK;
-						start_sidereal();
-						IDSetNumber(&EquatorialCoordsNP, "Slew complete. Engaging tracking...");
-						char RAStr[32], DecStr[32];
-						fs_sexa(RAStr, rawRA, 2, 3600);
-						fs_sexa(DecStr, rawDEC, 2, 3600);
-						if (UJARI_DEBUG)
-							IDMessage(mydev, "Raw RA: %s , Raw DEC: %s", RAStr, DecStr);
+						HorizontalCoordsNWP.s = IPS_OK;
+						HorizontalCoordsNRP.s = IPS_OK;
+						IDSetNumber(&HorizontalCoordsNWP, "Slew complete. Engaging tracking...");
+						IDSetNumber(&HorizontalCoordsNRP, NULL);
+						
+						char AzStr[32], AltStr[32];
+						fs_sexa(AzStr, currentAz, 2, 3600);
+						fs_sexa(AltStr, currentAlt, 2, 3600);
+						//if (UJARI_DEBUG)
+						//	IDMessage(mydev, "Raw RA: %s , Raw DEC: %s", RAStr, DecStr);
 					}
 					break;
 
 				case SLEW_TRACK:
+				        #if 0
 					if (is_dec_done())
 						stop_ns();
 					else if (targetDEC - currentDEC > 0)
@@ -300,6 +191,7 @@ void knroObservatory::ISPoll()
 						update_we_speed();
 						update_we_dir(UJARI_EAST);
 					}*/
+					#endif
 					break;
 					
 			}
@@ -309,6 +201,8 @@ void knroObservatory::ISPoll()
 			break;
 	}
 
+  return;
+  
 
 	// TEMP ONLY, write encoder values
 	#if 0
@@ -322,7 +216,7 @@ void knroObservatory::ISPoll()
 		fputs( full_line, en_record);
 		last_abs_ra= EncoderAbsPosN[EQ_RA].value;
    	}
-	#endif
+	
 
 	/*if (DomeWESP.s == IPS_BUSY)
 	{

@@ -25,15 +25,20 @@
 
 #include <pthread.h>
 #include <stdio.h>
+#include <list>
 
 #include "encoder.h"
 #include "inverter.h"
 
 using std::string;
+using std::list;
 
 // Handy macros
-#define currentAZ		HorizontalCoordsN[EQ_AZ].value
-#define currentALT		HorizontalCoordsN[EQ_ALT].value
+#define currentAz		HorizontalCoordsNR[0].value
+#define currentAlt		HorizontalCoordsNR[1].value
+#define targetAz		HorizontalCoordsNW[0].value
+#define targetAlt		HorizontalCoordsNW[1].value
+
 #define currentLat 		GeoCoordsN[0].value
 #define currentLong     	GeoCoordsN[1].value
 #define slewAZTolerance		SlewPrecisionN[0].value
@@ -83,16 +88,18 @@ class knroObservatory
     ISwitch ParkS[1];
     ISwitch DebugS[2];
     ISwitch SimulationS[2];
-    
+    ISwitch MovementNSS[2];
+    ISwitch MovementWES[2];
 
     /* Texts */
     IText PortT[1];
 
     /* Lights */
-    ILight AltSafetyL[1];
+    ILight AzSafetyL[1];
 
     /* Numbers */
-   INumber HorizontalCoordsN[2];
+   INumber HorizontalCoordsNR[2];
+   INumber HorizontalCoordsNW[2];
    INumber GeoCoordsN[2];
    INumber UTCOffsetN[1];
    INumber SlewPrecisionN[2];
@@ -108,30 +115,31 @@ class knroObservatory
     ISwitchVectorProperty ParkSP;				/* Park Telescope */
     ISwitchVectorProperty DebugSP;				/* Debugging Switch */
     ISwitchVectorProperty SimulationSP;				/* Simulation Switch */
+    ISwitchVectorProperty MovementNSSP;				/* North/South Movement */
+    ISwitchVectorProperty MovementWESP;				/* West/East Movement */
 
     /* Text Vectors */
     ITextVectorProperty PortTP;
 
     /* Light Vectors */
-    ILightVectorProperty AltSafetyLP;
+    ILightVectorProperty AzSafetyLP;
 
     /* Number vectors */
-    INumberVectorProperty HorizontalCoordsNP;
+    INumberVectorProperty HorizontalCoordsNRP;
+    INumberVectorProperty HorizontalCoordsNWP;
     INumberVectorProperty GeoCoordsNP;
     INumberVectorProperty UTCOffsetNP;
     INumberVectorProperty SlewPrecisionNP;
     INumberVectorProperty TrackPrecisionNP;
 
-    /* BLOB vectors */
-    
     /* Other */
 
     enum SlewSpeed { SLOW_SPEED = 0 , MEDIUM_SPEED, FAST_SPEED };
     enum SlewStages { SLEW_NONE, SLEW_NOW, SLEW_TRACK };
-    enum EqCoords { EQ_AZ = 0, EQ_ALT =1 };
-    enum NSDirection { KNRO_NORTH = 0, KNRO_SOUTH = 1};
-    enum WEDirection { KNRO_WEST = 0, KNRO_EAST = 1 };
-    enum knroErrCode { SUCCESS = 0, BELOW_HORIZON_ERROR = -1, SAFETY_LIMIT_ERROR = -2, UNKNOWN_ERROR = -3};
+    enum HorzCoords { KNRO_AZ = 0, KNRO_ALT =1 };
+    enum AltDirection { KNRO_NORTH = 0, KNRO_SOUTH = 1};
+    enum AzDirection { KNRO_WEST = 0, KNRO_EAST = 1 };
+    enum knroErrCode { SUCCESS = 0, BELOW_HORIZON_ERROR = -1, SAFETY_LIMIT_ERROR = -2, INVERTER_ERROR=-3, UNKNOWN_ERROR = -4};
 
     // ============
     // Slew Regions
@@ -142,20 +150,17 @@ class knroObservatory
     // we hit our target. The values are somewhat arbitrary for now, they will be finely tuned depending on how
     // the telescope behaves.
 
-    static const double NS_FAST_REGION   = 30.0;
-    static const double NS_MEDIUM_REGION = 5.0;
-    static const double NS_SLOW_REGION   = 2.0;
+    static const double ALT_FAST_REGION   = 30;
+    static const double ALT_MEDIUM_REGION = 20;
+    static const double ALT_SLOW_REGION   = 10;
 
-    static const double WE_FAST_REGION   = 2.0;
-    static const double WE_MEDIUM_REGION = 0.33;
-    static const double WE_SLOW_REGION   = 0.13;
+    static const double AZ_FAST_REGION   = 30;
+    static const double AZ_MEDIUM_REGION = 15;
+    static const double AZ_SLOW_REGION   = 5;
 
-    // =========================================================
-    static const double MAXIMUM_HOUR_ANGLE = 2.67;
-    // =========================================================
-
-    static const double MINIMUM_SAFE_ALT = 40.0;
-
+    #if 0
+    // FIXME This was applicable for Ujari. Update for KNRO
+    
     // Saftey Zones (%). We warn if ALT reaches 60 degrees
     // and we enter danger is alt reaches 52 degrees
     static const double ALT_DANGER_ZONE  = 42.0;
@@ -163,39 +168,31 @@ class knroObservatory
     // We reach critical Alt of 45 degrees at which the telescope
     // will automatically go to HOME position.
     static const double ALT_CRITICAL_ZONE = 37.0;
-
-    // =========================================================
+    #endif
+    
+    // Three basic speeds in Hz
+    static const float KNRO_FAST = 50.0;
+    static const float KNRO_MEDIUM = 25.0;
+    static const float KNRO_SLOW = 10.0;
 
     // ================
     // Tolerance levels
     // The tolerance level is defined as the angular seperation, in arc minutes, between the requested
-    // coords and the current coords before we can declare that the slew is successful. BEI 12 bit encoder
-    // reports 400 counts/degree in ALT, and 60 counts/degree in AZ giving it a theorotical resolution
-    // 15 arcsec in ALT, and 1 arcmin in AZ. 
-    // Given the telescope mechanics, I'd be more than happy to settle for
-    // an accuracy of 20 arc minutes. This value will be finely tuned as actual telescope testing goes on.
+    // coords and the current coords before we can declare that the slew is successful. 
 
-   static const double SLEW_AZ_TOLERANCE  = 1.0;
-   static const double SLEW_ALT_TOLERANCE = 1.0;
+   static const double SLEW_AZ_TOLERANCE  = 30.0;
+   static const double SLEW_ALT_TOLERANCE = 30.0;
 
-    static const double TRACK_AZ_TOLERANCE  = 1.0;
-    static const double TRACK_ALT_TOLEAZNCE = 1.0;
+    static const double TRACK_AZ_TOLERANCE  = 30.0;
+    static const double TRACK_ALT_TOLEAZNCE = 30.0;
 
     // ================
     // Update Rate: 10 Hz
     static const int update_period = 100000;
     // ================
-
-    // ALT counts per degree
-    static const double ALT_CPD = 564.08;
-    //static const double AZ_CPD = 389.0;
-    static const double AZ_CPD = 392.9;
     
-    static int WE_ZERO_OFFSET;
-    static int NS_ZERO_OFFSET;
-
     /* Functions */
-    
+ 
     /* connect observatory */
     void connect();
     void disconnect();
@@ -206,51 +203,39 @@ class knroObservatory
     /* Error log functions */
     const char *get_knro_error_string(knroErrCode code);
 
-    /* Send command buffer to NI card */
+    /* Send command buffer to inverter */
     void execute_slew();
 
     /* Modular stop functions */
     knroErrCode stop_all();
+    void stop_az();
+    void stop_alt();
     
     /* Simulation */
     void enable_simulation();
     void disable_simulation();    
 
-    void park_telescope(bool is_emergency=false);
+    void park_telescope();
     void terminate_parking();
 
     void play_calibration_error();
 
-    /* Return true if telescope is within tolerance limits */
+    /* Return true if telescope is within tolerance limits in Az */
     bool is_az_done();
+    /* Return true if telescope is within tolerance limits in Alt */
     bool is_alt_done();
-
-    /* Encoder Thread Functions */
-    static void * init_encoders(void * arg);
-    static void sync_calibration(void *arg);
+    void update_alt_speed();
+    void update_alt_dir(AltDirection dir);
+    void update_az_speed();
+    void update_az_dir(AzDirection dir);
 
     /* General functions */
     void init_properties();
-    void init_encoder_thread();
-    void reset_all_properties(bool reset_to_idle=false);
-
-    /* Was the speed changed? */
-    bool az_speed_change;
-    bool alt_speed_change;
+    void reset_all_properties();
 
     /* Coordinates & Time */
-    double targetAZ;
     double lastAZ;
-    double targetALT;
-    double currentAlt;
-    double targetObjectAz;
-    double currentLST;
-    double currentHA;
-
-    double rawAZ;
-    double rawALT;
-
-
+   
     /* Timing variables */
     static const int MAXIMUM_IDLE_TIME = 1800;			// Maximum 30 minutes idle time
     time_t last_execute_time;
@@ -258,22 +243,6 @@ class knroObservatory
 
     /* Type of active slew stage */
     SlewStages slew_stage;
-
-    /* Encoder relative and absolute counts */
-    //static unsigned int ns_encoder_count;
-    //static unsigned int we_encoder_count;
-
-    unsigned int alt_absolute_position;
-    unsigned int az_absolute_position;
-
-    static unsigned int encoder_error;
-
-    /* Threading variables */
-    pthread_t encoder_thread;
-    static pthread_mutex_t encoder_mutex;
-
-    /* Location data */
-    //GeoLocation observatory;
 
     /* Simulation Rates */
     static const int ALT_RATE_FAST = 1000;
@@ -292,12 +261,14 @@ class knroObservatory
     OggFile slew_complete;
     OggFile slew_error;
     OggFile calibration_error;*/
-
-    /* Encoder Check File */
-    FILE *en_record;
-    
+ 
     /* Simulation */
     bool simulation;
+    
+    list <ISwitchVectorProperty *> switch_list;
+    list <INumberVectorProperty *> number_list;
+    list <ITextVectorProperty *> text_list;
+    list <ILightVectorProperty *> light_list;
 
 };
 

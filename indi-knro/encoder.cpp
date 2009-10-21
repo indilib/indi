@@ -49,6 +49,12 @@ const int ENCODER_READ_BUFFER = 16;
 const int ENCODER_ERROR_BUFFER = 128;
 const int ENCODER_CMD_LEN = 4;
 
+const double AZ_TPD = 202.5;
+const int AZ_HOME = 376790;
+
+//AZ_MIN 304770  - Degrees 85.6494
+//AZ_MAX 377160  - Degrees 88.1728
+
 /****************************************************************
 **
 **
@@ -134,14 +140,12 @@ void knroEncoder::ISGetProperties()
 **
 **
 *****************************************************************/
-void knroEncoder::reset_all_properties(bool reset_to_idle)
+void knroEncoder::reset_all_properties()
 {
-	if (reset_to_idle)
-	{
 		EncoderAbsPosNP.s 	= IPS_IDLE;
 		PortTP.s		= IPS_IDLE;
 		UpdateCountSP.s		= IPS_IDLE;
-	}
+	
 	
 	IDSetNumber(&EncoderAbsPosNP, NULL);
 	IDSetText(&PortTP, NULL);
@@ -417,8 +421,9 @@ void knroEncoder::update_encoder_count()
 
         int nbytes_read =0;
         int err_code = 0;
+	int counter=0;
 
-	IDLog("About to dispatch command for position value\n");
+	//IDLog("About to dispatch command for position value\n");
 
 	if (dispatch_command(POSITION_VALUE) == false)
 	{
@@ -426,39 +431,48 @@ void knroEncoder::update_encoder_count()
 		return;
 	}
 
-	IDLog("About to READ from encoder\n");
+	//IDLog("About to READ from encoder\n");
 
 //	if ( (err_code = tty_read_section(sockfd, encoder_read, (char) 0x0A, 5, &nbytes_read)) != TTY_OK)
-	if ( (err_code = tty_read(sockfd, encoder_read, 9, 5, &nbytes_read)) != TTY_OK)
+
+	/*if ( (err_code = tty_read(sockfd, encoder_read, 9, 5, &nbytes_read)) != TTY_OK)
 	{
 		tty_error_msg(err_code, encoder_error, ENCODER_ERROR_BUFFER);
 		IDLog("TTY error detected: %s\n", encoder_error);
    		return;
-	}
-
-	/*for (int i=0; i < ENCODER_READ_BUFFER; i++)
-	{
-		nbytes_read += fread(encoder_read+i, 1, 1, fp);
-		IDLog("FREAD - Byte #%d=0x%X --- %d\n", i, ((unsigned char) encoder_read[i]), ((unsigned char) encoder_read[i]));
-
-		// If encountering line feed 0xA, then break;
-		if (encoder_read[i] == 0xA)
-			break;
-
 	}*/
+
+	for (int i=0; i < ENCODER_READ_BUFFER; i++)
+	{
+	  if ( (err_code = tty_read(sockfd, encoder_read+counter, 1, 1, &nbytes_read)) != TTY_OK)
+	  {
+		tty_error_msg(err_code, encoder_error, ENCODER_ERROR_BUFFER);
+		IDLog("TTY error detected: %s\n", encoder_error);
+   		return;
+	  }
+	   
+          IDLog("Byte #%d=0x%X --- %d\n", i, ((unsigned char) encoder_read[counter]), ((unsigned char) encoder_read[counter]));
+
+	   // If encountering line feed 0xA, then break;
+	   if (encoder_read[counter] == 0xA)
+	        break;
+	   if (encoder_read[0] == 0x47)
+		counter++;
+	   
+	}
 
 	
 	tcflush(sockfd, TCIOFLUSH);
 
-	if (nbytes_read == 0)
+	if (counter == 0)
 	{
 		IDLog("Error, unable to read. Check connection.\n");
 		return;
 	}
 
-	IDLog("Received response from encoder %d bytes long and is #%s#\n", nbytes_read, encoder_read);
-	for (int i=0; i < nbytes_read; i++)
-		IDLog("Byte #%d=0x%X --- %d\n", i, ((unsigned char) encoder_read[i]), ((unsigned char) encoder_read[i]));
+	//IDLog("Received response from encoder %d bytes long and is #%s#\n", nbytes_read, encoder_read);
+	//for (int i=0; i < nbytes_read; i++)
+		//IDLog("Byte #%d=0x%X --- %d\n", i, ((unsigned char) encoder_read[i]), ((unsigned char) encoder_read[i]));
 
 
 	if ( ((unsigned char) encoder_read[0]) != 0x47)
@@ -473,10 +487,17 @@ void knroEncoder::update_encoder_count()
 		return;
 	}
 
+	if (type == AZ_ENCODER)
+	{
+	 		current_angle = (AZ_HOME - EncoderAbsPosN[0].value) / AZ_TPD + 90.0;
+			if (current_angle > 360) current_angle -= 360;
+			else if (current_angle < 0) current_angle += 360;
+			EncoderAbsPosN[1].value = current_angle;
+	}
+	
 	IDSetNumber(&EncoderAbsPosNP, NULL);
 
-	IDLog("We got encoder test value of %g\n", EncoderAbsPosN[0].value);
-
+	IDLog("We got encoder test value of %g, Degree %g\n", EncoderAbsPosN[0].value, EncoderAbsPosN[1].value);
 }
 
 bool knroEncoder::openEncoderServer (const char * host, int indi_port)

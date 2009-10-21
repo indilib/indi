@@ -61,6 +61,7 @@ public:
       bool connect();
       void disconnect();
     
+    bool is_in_motion();
     // Simulation
     void enable_simulation ();
     void disable_simulation();
@@ -71,7 +72,7 @@ public:
     void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
     void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
  	
-    void reset_all_properties(bool reset_to_idle=false);
+    void reset_all_properties();
      
 private: 
 

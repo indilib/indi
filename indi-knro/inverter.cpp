@@ -211,6 +211,10 @@ bool knroInverter::move_forward()
 	if (!check_drive_connection())
 		return false;
 	
+	// Already moving forward
+	if (Motion_Control_Coils[INVERTER_FORWARD] == 1)
+	    return true;
+	
 	Motion_Control_Coils[INVERTER_STOP] = 0;
 	Motion_Control_Coils[INVERTER_FORWARD] = 1;
 	Motion_Control_Coils[INVERTER_REVERSE] = 0;
@@ -225,12 +229,20 @@ bool knroInverter::move_forward()
 		
     if (ret != 3)
     {
-       IDLog("Forward Command ERROR. force_multiple_coils (%d)\n", ret);
-       IDLog("Slave = %d, address = %d, nb = %d\n", SLAVE_ADDRESS, MOTION_CONTROL_ADDRESS, 3);
-       return false;
+	IDLog("Forward Command ERROR. force_multiple_coils (%d)\n", ret);
+	IDLog("Slave = %d, address = %d, nb = %d\n", SLAVE_ADDRESS, MOTION_CONTROL_ADDRESS, 3);
+	Motion_Control_Coils[INVERTER_FORWARD] = 0;
+	MotionControlSP.s = IPS_ALERT;
+	IUResetSwitch(&MotionControlSP);
+	MotionControlS[INVERTER_STOP].s = ISS_ON;
+	IDSetSwitch(&MotionControlSP, "Error: %s drive failed to move %s", type_name.c_str(), forward_motion.c_str());
+	return false;
     }
 
-   return true;
+    MotionControlSP.s = IPS_BUSY;
+    IDSetSwitch(&MotionControlSP, "%s drive is moving %s", type_name.c_str(), forward_motion.c_str());
+	
+    return true;
    
 }
 
@@ -244,6 +256,9 @@ bool knroInverter::move_reverse()
 	
 	if (!check_drive_connection())
 		return false;
+	
+	if (Motion_Control_Coils[INVERTER_REVERSE] == 1)
+	  return true;
 	
 	Motion_Control_Coils[INVERTER_STOP] = 0;
 	Motion_Control_Coils[INVERTER_FORWARD] = 0;
@@ -259,10 +274,18 @@ bool knroInverter::move_reverse()
 		
     if (ret != 3)
     {
-       IDLog("Reverse Command ERROR. force_multiple_coils (%d)\n", ret);
-       IDLog("Slave = %d, address = %d, nb = %d\n", SLAVE_ADDRESS, MOTION_CONTROL_ADDRESS, 3);
+	IDLog("Reverse Command ERROR. force_multiple_coils (%d)\n", ret);
+	IDLog("Slave = %d, address = %d, nb = %d\n", SLAVE_ADDRESS, MOTION_CONTROL_ADDRESS, 3);
+	Motion_Control_Coils[INVERTER_REVERSE] = 0;
+	MotionControlSP.s = IPS_ALERT;
+	IUResetSwitch(&MotionControlSP);
+	MotionControlS[INVERTER_STOP].s = ISS_ON;
+	IDSetSwitch(&MotionControlSP, "Error: %s drive failed to move %s", type_name.c_str(), reverse_motion.c_str());
        return false;
-    }	
+    }
+	
+    MotionControlSP.s = IPS_BUSY;
+    IDSetSwitch(&MotionControlSP, "%s drive is moving %s", type_name.c_str(), reverse_motion.c_str());
 	
 	return true;
 }
@@ -294,11 +317,15 @@ bool knroInverter::stop()
     {
        IDLog("Stop Command ERROR force_multiple_coils (%d)\n", ret);
        IDLog("Slave = %d, address = %d, nb = %d\n", SLAVE_ADDRESS, MOTION_CONTROL_ADDRESS, 3);
+       MotionControlSP.s = IPS_ALERT;
+       IDSetSwitch(&MotionControlSP, "Error stopping motion for %s drive", type_name.c_str());
        return false;
     }
     
+    MotionControlSP.s = IPS_OK;
+    IDSetSwitch(&MotionControlSP, "%s motion stopped", type_name.c_str());
+			
     return true;
-	
 }
 
 /****************************************************************
@@ -332,6 +359,7 @@ bool knroInverter::set_speed(float newHz)
     Hz_Speed_Register[0] = 0;
     Hz_Speed_Register[1] = ((bits & mask) >> 16).to_ulong();
     
+    cerr << "Requested Speed is: " << newHz << endl;
     cerr << "Speed bits after processing are: " << bits << endl;
     IDLog("Hz_Speed_Register[0] = %d - Hz_Speed_Register[1] = %d\n", Hz_Speed_Register[0], Hz_Speed_Register[1]);
 
@@ -368,6 +396,8 @@ bool knroInverter::set_speed(float newHz)
     }                    
 
     IDLog("** READING ** Hz_Speed_Register[0] = %d - Hz_Speed_Register[1] = %d\n", Hz_Speed_Register[0], Hz_Speed_Register[1]);
+    
+    InverterSpeedN[0].value = newHz;
 
     return true;
 	
@@ -603,33 +633,9 @@ void knroInverter::ISNewSwitch (const char *dev, const char *name, ISState *stat
 			return;
 			
 		if (MotionControlS[INVERTER_STOP].s == ISS_ON)
-		{
-			if (stop() != false)
-			{
-				MotionControlSP.s = IPS_OK;
-				IDSetSwitch(&MotionControlSP, "%s motion stopped", type_name.c_str());
-			}
-			else
-			{
-				MotionControlSP.s = IPS_ALERT;
-				IDSetSwitch(&MotionControlSP, "Error stopping motion for %s drive", type_name.c_str());
-			}
-		}
+		  stop();
 		else if (MotionControlS[INVERTER_FORWARD].s == ISS_ON)
-		{
-			if (move_forward() != false)
-			{
-				MotionControlSP.s = IPS_BUSY;
-				IDSetSwitch(&MotionControlSP, "%s drive is moving %s", type_name.c_str(), forward_motion.c_str());
-			}
-			else
-			{
-				MotionControlSP.s = IPS_ALERT;
-				IUResetSwitch(&MotionControlSP);
-				MotionControlS[INVERTER_STOP].s = ISS_ON;
-				IDSetSwitch(&MotionControlSP, "Error: %s drive failed to move %s", type_name.c_str(), forward_motion.c_str());
-			}
-		}
+		  move_forward();
 		else if (MotionControlS[INVERTER_REVERSE].s == ISS_ON)
 		{
 			if (move_reverse() != false)
@@ -653,16 +659,13 @@ void knroInverter::ISNewSwitch (const char *dev, const char *name, ISState *stat
 **
 **
 *****************************************************************/
-void knroInverter::reset_all_properties(bool reset_to_idle)
+void knroInverter::reset_all_properties()
 {
 	
-	if (reset_to_idle)
-	{
 		MotionControlSP.s = IPS_IDLE;
 		InverterSpeedNP.s = IPS_IDLE;
 		PortTP.s 		  = IPS_IDLE;
-	}
-	
+
 	IUResetSwitch(&MotionControlSP);
 	IDSetSwitch(&MotionControlSP, NULL);
 	IDSetNumber(&InverterSpeedNP, NULL);
@@ -701,4 +704,13 @@ void knroInverter::disable_simulation()
 	 IDMessage(mydev, "Caution: %s drive simulation is disabled.", type_name.c_str());
 	 IDLog("Caution: %s drive simulation is disabled.\n", type_name.c_str());
 }
+
+bool knroInverter::is_in_motion()
+{
+  if (Motion_Control_Coils[INVERTER_FORWARD] == 1 || Motion_Control_Coils[INVERTER_REVERSE] == 1)
+    return true;
+  else
+    return false;
+}
+
     

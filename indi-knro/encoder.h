@@ -56,7 +56,7 @@ public:
     ~knroEncoder();
 
     unsigned int get_abs_encoder_count() { return abs_encoder_count; }
-    double get_current_angel() { return current_angle; }
+    double get_current_angle() { return current_angle; }
 
     void set_type(encoderType new_type);
     encoderType get_type() { return type; }
@@ -77,7 +77,7 @@ public:
     void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
     void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
  	
-    void reset_all_properties(bool reset_to_idle=false);
+    void reset_all_properties();
 
 private: 
     // INDI Properties
