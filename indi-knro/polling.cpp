@@ -45,13 +45,16 @@ void knroObservatory::ISPoll()
 {
     double delta_az=0;
 
+    if (simulation)
+	return;
+
     AzEncoder->update_encoder_count();
     //AltEncoder->update_encoder_count();
 
      if (is_connected() == false)
 	return;
 
-	currentAz = AzEncoder->get_current_angle();
+	currentAz = AzEncoder->get_angle();
       
 	IDSetNumber(&HorizontalCoordsNRP, NULL);
       

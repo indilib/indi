@@ -181,14 +181,14 @@ void knroObservatory::init_properties()
   /**************************************************************************/
   IUFillNumber(&HorizontalCoordsNR[0], "AZ",  "Az  H:M:S", "%10.6m",  0., 24., 0., 0.);
   IUFillNumber(&HorizontalCoordsNR[1], "ALT", "Alt D:M:S", "%10.6m", -90., 90., 0., 0.);
-  IUFillNumberVector(&HorizontalCoordsNRP, HorizontalCoordsNR, NARRAY(HorizontalCoordsNR), mydev, "Horizontal_EOD_COORD", "Horizontal Coords", BASIC_GROUP, IP_RO, 120, IPS_IDLE);
+  IUFillNumberVector(&HorizontalCoordsNRP, HorizontalCoordsNR, NARRAY(HorizontalCoordsNR), mydev, "HORIZONTAL_COORD", "Horizontal Coords", BASIC_GROUP, IP_RO, 120, IPS_IDLE);
   number_list.push_back(&HorizontalCoordsNRP);
   /**************************************************************************/
   
   /**************************************************************************/
   IUFillNumber(&HorizontalCoordsNW[0], "AZ",  "Az  H:M:S", "%10.6m",  0., 24., 0., 0.);
   IUFillNumber(&HorizontalCoordsNW[1], "ALT", "Alt D:M:S", "%10.6m", -90., 90., 0., 0.);
-  IUFillNumberVector(&HorizontalCoordsNWP, HorizontalCoordsNW, NARRAY(HorizontalCoordsNW), mydev, "Horizontal_EOD_COORD_REQUEST", "Horizontal Request", BASIC_GROUP, IP_RW, 120, IPS_IDLE);
+  IUFillNumberVector(&HorizontalCoordsNWP, HorizontalCoordsNW, NARRAY(HorizontalCoordsNW), mydev, "HORIZONTAL_COORD_REQUEST", "Horizontal Request", BASIC_GROUP, IP_RW, 120, IPS_IDLE);
   number_list.push_back(&HorizontalCoordsNWP);
   /**************************************************************************/
 
@@ -781,10 +781,6 @@ void knroObservatory::reset_all_properties()
 // ***************************************************************************************/
 void knroObservatory::connect()
 {
-	//FIXME disable spectrometer simulation
-	//AzInverter->enable_simulation();
-	//AltInverter->enable_simulation();
-
 	// For now, make sure that both inverters are connected
 	if (AzInverter->connect() && AltInverter->connect() && AzEncoder->connect())
 	{
@@ -796,7 +792,7 @@ void knroObservatory::connect()
 		
 		IDSetSwitch(&ConnectSP, "KNRO is online.");
 		
-		currentAz = AzEncoder->get_current_angle();
+		currentAz = AzEncoder->get_angle();
 		IDSetNumber(&HorizontalCoordsNWP, NULL);
 	}
 	else

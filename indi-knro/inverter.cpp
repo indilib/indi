@@ -156,20 +156,21 @@ bool knroInverter::connect()
 	if (check_drive_connection())
 		return true;
 
+    if (simulation)
+    {
+    	IDMessage(mydev, "%s drive: Simulating connecting to port %s.", type_name.c_str(), PortT[0].text);
+        connection_status = 0;
+	return true;
+    }
 	
 	// 19200 baud is default, no parity, 8 bits, 1 stop bit
 	//modbus_init_rtu(&mb_param, PortT[0].text, 19200, "none", 8, 1);
 	modbus_init_tcp(&mb_param, PortT[0].text, 502);
 	
 	// Enable debug
-    modbus_set_debug(&mb_param, FALSE);
+	modbus_set_debug(&mb_param, FALSE);
     
-    if (simulation)
-    {
-    	IDMessage(mydev, "%s drive: Simulating connecting to port %s.", type_name.c_str(), PortT[0].text);
-        connection_status = 0;
-    }
-    else if ( (connection_status = modbus_connect(&mb_param)) == -1)
+    if ( (connection_status = modbus_connect(&mb_param)) == -1)
     {
        IDMessage(mydev, "%s drive: Connection failed to inverter @ port %s", type_name.c_str(), PortT[0].text);
        if (debug)
@@ -177,18 +178,18 @@ bool knroInverter::connect()
        return false;
     }
     
-	if (init_drive())
-	{
+    if (init_drive())
+    {
 		MotionControlSP.s = IPS_OK;
 		IDSetSwitch(&MotionControlSP, "%s inverter is online and ready for use.", type_name.c_str());
 		return true;
-	}
-	else
-	{
+    }
+    else
+    {
 		MotionControlSP.s = IPS_ALERT;
 		IDSetSwitch(&MotionControlSP, "%s inverter failed to initialize. Please check power and cabling.", type_name.c_str());
 		return false;
-	}
+    }
 }
 
 /****************************************************************

@@ -56,7 +56,7 @@ public:
     ~knroEncoder();
 
     unsigned int get_abs_encoder_count() { return abs_encoder_count; }
-    double get_current_angle() { return current_angle; }
+    double get_angle() { return current_angle; }
 
     void set_type(encoderType new_type);
     encoderType get_type() { return type; }
