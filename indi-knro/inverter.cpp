@@ -52,6 +52,8 @@ knroInverter::knroInverter(inverterType new_type) : SPEED_MODE_ADDRESS(3), REMOT
   
   // Default value
   type = AZ_INVERTER;
+  
+  debug = false;
   simulation = false;
   
   set_type(new_type);
@@ -80,8 +82,8 @@ void knroInverter::set_type(inverterType new_type)
   if (type == AZ_INVERTER)
   {
   	type_name = string("Azimuth");
-  	forward_motion = string("East");
-  	reverse_motion = string("West");
+  	forward_motion = string("Forward");
+  	reverse_motion = string("Reverse");
   	default_port = string("192.168.1.3");
 
 	SLAVE_ADDRESS = 1;
@@ -89,8 +91,8 @@ void knroInverter::set_type(inverterType new_type)
   else
   {
     type_name = string("Altitude");
-    forward_motion = string("Up");
-    reverse_motion = string("Down"); 
+    forward_motion = string("Forward");
+    reverse_motion = string("Reverse"); 
     default_port = string("192.168.1.3");
     
     SLAVE_ADDRESS = 2;
@@ -154,13 +156,13 @@ bool knroInverter::connect()
 	if (check_drive_connection())
 		return true;
 
-	IDLog("In connect with port[0] %s\n", PortT[0].text);
+	
 	// 19200 baud is default, no parity, 8 bits, 1 stop bit
 	//modbus_init_rtu(&mb_param, PortT[0].text, 19200, "none", 8, 1);
 	modbus_init_tcp(&mb_param, PortT[0].text, 502);
 	
 	// Enable debug
-    modbus_set_debug(&mb_param, TRUE);
+    modbus_set_debug(&mb_param, FALSE);
     
     if (simulation)
     {
@@ -170,7 +172,8 @@ bool knroInverter::connect()
     else if ( (connection_status = modbus_connect(&mb_param)) == -1)
     {
        IDMessage(mydev, "%s drive: Connection failed to inverter @ port %s", type_name.c_str(), PortT[0].text);
-       IDLog("%s drive: Connection failed to inverter @ port %s\n", type_name.c_str(), PortT[0].text);
+       if (debug)
+	 IDLog("%s drive: Connection failed to inverter @ port %s\n", type_name.c_str(), PortT[0].text);
        return false;
     }
     
@@ -229,8 +232,11 @@ bool knroInverter::move_forward()
 		
     if (ret != 3)
     {
-	IDLog("Forward Command ERROR. force_multiple_coils (%d)\n", ret);
-	IDLog("Slave = %d, address = %d, nb = %d\n", SLAVE_ADDRESS, MOTION_CONTROL_ADDRESS, 3);
+	if (debug)
+	{
+	  IDLog("Forward Command ERROR. force_multiple_coils (%d)\n", ret);
+	  IDLog("Slave = %d, address = %d, nb = %d\n", SLAVE_ADDRESS, MOTION_CONTROL_ADDRESS, 3);
+	}
 	Motion_Control_Coils[INVERTER_FORWARD] = 0;
 	MotionControlSP.s = IPS_ALERT;
 	IUResetSwitch(&MotionControlSP);
@@ -274,7 +280,8 @@ bool knroInverter::move_reverse()
 		
     if (ret != 3)
     {
-	IDLog("Reverse Command ERROR. force_multiple_coils (%d)\n", ret);
+	
+        IDLog("Reverse Command ERROR. force_multiple_coils (%d)\n", ret);
 	IDLog("Slave = %d, address = %d, nb = %d\n", SLAVE_ADDRESS, MOTION_CONTROL_ADDRESS, 3);
 	Motion_Control_Coils[INVERTER_REVERSE] = 0;
 	MotionControlSP.s = IPS_ALERT;
@@ -315,8 +322,8 @@ bool knroInverter::stop()
 	
     if (ret != 3)
     {
-       IDLog("Stop Command ERROR force_multiple_coils (%d)\n", ret);
-       IDLog("Slave = %d, address = %d, nb = %d\n", SLAVE_ADDRESS, MOTION_CONTROL_ADDRESS, 3);
+	 IDLog("Stop Command ERROR force_multiple_coils (%d)\n", ret);
+	 IDLog("Slave = %d, address = %d, nb = %d\n", SLAVE_ADDRESS, MOTION_CONTROL_ADDRESS, 3);
        MotionControlSP.s = IPS_ALERT;
        IDSetSwitch(&MotionControlSP, "Error stopping motion for %s drive", type_name.c_str());
        return false;
@@ -359,11 +366,15 @@ bool knroInverter::set_speed(float newHz)
     Hz_Speed_Register[0] = 0;
     Hz_Speed_Register[1] = ((bits & mask) >> 16).to_ulong();
     
-    cerr << "Requested Speed is: " << newHz << endl;
-    cerr << "Speed bits after processing are: " << bits << endl;
-    IDLog("Hz_Speed_Register[0] = %d - Hz_Speed_Register[1] = %d\n", Hz_Speed_Register[0], Hz_Speed_Register[1]);
+    if (debug)
+    {
+      cerr << "Requested Speed is: " << newHz << endl;
+      cerr << "Speed bits after processing are: " << bits << endl;
+      IDLog("Hz_Speed_Register[0] = %d - Hz_Speed_Register[1] = %d\n", Hz_Speed_Register[0], Hz_Speed_Register[1]);
 
-    IDLog("****** STARTING WRITING PROCESS ******\n");      
+      IDLog("****** STARTING WRITING PROCESS ******\n");      
+    }
+    
     if (simulation)
     {
     	ret = 2;
@@ -372,8 +383,9 @@ bool knroInverter::set_speed(float newHz)
 	else
 		ret = preset_multiple_registers(&mb_param, SLAVE_ADDRESS, HZ_HOLD_ADDRESS, 2, Hz_Speed_Register);
 	
-	
-    IDLog("****** END WRITING PROCESS ******\n");      
+    if (debug)
+      IDLog("****** END WRITING PROCESS ******\n");      
+    
     if (ret != 2)
     {
       IDLog("set_speed ERROR! preset_multiple_registers (%d)\n", ret);
@@ -384,9 +396,11 @@ bool knroInverter::set_speed(float newHz)
     Hz_Speed_Register[0] = 0;
     Hz_Speed_Register[1] = 0;
 
-    IDLog("****** STARTING READ PROCESS ******\n");      
+    if (debug)
+      IDLog("****** STARTING READ PROCESS ******\n");      
     ret = read_holding_registers(&mb_param, SLAVE_ADDRESS, HZ_HOLD_ADDRESS, 2, Hz_Speed_Register);
-    IDLog("****** END READ PROCESS ******\n");      
+    if (debug)
+      IDLog("****** END READ PROCESS ******\n");      
 
     if (ret != 2)
     {
@@ -395,7 +409,8 @@ bool knroInverter::set_speed(float newHz)
       return false;
     }                    
 
-    IDLog("** READING ** Hz_Speed_Register[0] = %d - Hz_Speed_Register[1] = %d\n", Hz_Speed_Register[0], Hz_Speed_Register[1]);
+    if (debug)
+      IDLog("** READING ** Hz_Speed_Register[0] = %d - Hz_Speed_Register[1] = %d\n", Hz_Speed_Register[0], Hz_Speed_Register[1]);
     
     InverterSpeedN[0].value = newHz;
 
@@ -662,9 +677,9 @@ void knroInverter::ISNewSwitch (const char *dev, const char *name, ISState *stat
 void knroInverter::reset_all_properties()
 {
 	
-		MotionControlSP.s = IPS_IDLE;
-		InverterSpeedNP.s = IPS_IDLE;
-		PortTP.s 		  = IPS_IDLE;
+	MotionControlSP.s = IPS_IDLE;
+	InverterSpeedNP.s = IPS_IDLE;
+	PortTP.s 		  = IPS_IDLE;
 
 	IUResetSwitch(&MotionControlSP);
 	IDSetSwitch(&MotionControlSP, NULL);

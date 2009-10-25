@@ -53,7 +53,7 @@ using namespace std;
 
 auto_ptr<knroObservatory> KNRO_observatory(0);		/* Autoptr to observatory */
 
-const int POLLMS = 2000;				/* Status loop runs every 2000 ms or 0.5 Hz */
+const int POLLMS = 1000;				/* Status loop runs every 2000 ms or 0.5 Hz */
 
 /**************************************************************************************
 **
@@ -137,6 +137,11 @@ knroObservatory::knroObservatory()
   AltInverter = new knroInverter(knroInverter::ALT_INVERTER);
 
   init_properties();
+  
+  if (KNRO_DEBUG)
+	enable_debug();
+  else
+	disable_debug();
 
 }
 
@@ -174,15 +179,15 @@ void knroObservatory::init_properties()
   /**************************************************************************/
 
   /**************************************************************************/
-  IUFillNumber(&HorizontalCoordsNR[0], "AZ",  "AZ  H:M:S", "%10.6m",  0., 24., 0., 0.);
-  IUFillNumber(&HorizontalCoordsNR[1], "ALT", "ALT D:M:S", "%10.6m", -90., 90., 0., 0.);
+  IUFillNumber(&HorizontalCoordsNR[0], "AZ",  "Az  H:M:S", "%10.6m",  0., 24., 0., 0.);
+  IUFillNumber(&HorizontalCoordsNR[1], "ALT", "Alt D:M:S", "%10.6m", -90., 90., 0., 0.);
   IUFillNumberVector(&HorizontalCoordsNRP, HorizontalCoordsNR, NARRAY(HorizontalCoordsNR), mydev, "Horizontal_EOD_COORD", "Horizontal Coords", BASIC_GROUP, IP_RO, 120, IPS_IDLE);
   number_list.push_back(&HorizontalCoordsNRP);
   /**************************************************************************/
   
   /**************************************************************************/
-  IUFillNumber(&HorizontalCoordsNW[0], "AZ",  "AZ  H:M:S", "%10.6m",  0., 24., 0., 0.);
-  IUFillNumber(&HorizontalCoordsNW[1], "ALT", "ALT D:M:S", "%10.6m", -90., 90., 0., 0.);
+  IUFillNumber(&HorizontalCoordsNW[0], "AZ",  "Az  H:M:S", "%10.6m",  0., 24., 0., 0.);
+  IUFillNumber(&HorizontalCoordsNW[1], "ALT", "Alt D:M:S", "%10.6m", -90., 90., 0., 0.);
   IUFillNumberVector(&HorizontalCoordsNWP, HorizontalCoordsNW, NARRAY(HorizontalCoordsNW), mydev, "Horizontal_EOD_COORD_REQUEST", "Horizontal Request", BASIC_GROUP, IP_RW, 120, IPS_IDLE);
   number_list.push_back(&HorizontalCoordsNWP);
   /**************************************************************************/
@@ -216,7 +221,7 @@ void knroObservatory::init_properties()
   /**************************************************************************/
   IUFillSwitch(&MovementWES[KNRO_WEST], "MOTION_WEST", "West", ISS_OFF);
   IUFillSwitch(&MovementWES[KNRO_EAST], "MOTION_EAST", "East", ISS_OFF);
-  IUFillSwitchVector(&MovementWESP, MovementWES, NARRAY(MovementWES), mydev, "TELESCOPE_MOTION_WE", "North/South", TELESCOPE_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+  IUFillSwitchVector(&MovementWESP, MovementWES, NARRAY(MovementWES), mydev, "TELESCOPE_MOTION_WE", "West/East", TELESCOPE_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
   switch_list.push_back(&MovementWESP);
   /**************************************************************************/
   
@@ -233,15 +238,15 @@ void knroObservatory::init_properties()
   /**************************************************************************/
  
   /**************************************************************************/
-  IUFillNumber(&SlewPrecisionN[0], "SlewAZ",  "AZ (arcmin)", "%10.6m",  0., 10., 0.1, 0.8);
-  IUFillNumber(&SlewPrecisionN[1], "SlewALT", "ALT (arcmin)", "%10.6m", 0., 10., 0.1, 0.8);
+  IUFillNumber(&SlewPrecisionN[0], "SlewAZ",  "Az (arcmin)", "%10.6m",  0., 90., 1, 25);
+  IUFillNumber(&SlewPrecisionN[1], "SlewALT", "Alt (arcmin)", "%10.6m", 0., 90., 1, 25);
   IUFillNumberVector(&SlewPrecisionNP, SlewPrecisionN, NARRAY(SlewPrecisionN), mydev, "Slew Precision", "", OPTIONS_GROUP, IP_RW, 0, IPS_IDLE);
   number_list.push_back(&SlewPrecisionNP);
   /**************************************************************************/
 
   /**************************************************************************/
-  IUFillNumber(&TrackPrecisionN[0], "TrackAZ", "AZ (arcmin)", "%10.6m",  0., 0.1, 1., 1.0);
-  IUFillNumber(&TrackPrecisionN[1], "TrackALT", "ALT (arcmin)", "%10.6m", 0., 0.1, 1., 1.0);
+  IUFillNumber(&TrackPrecisionN[0], "TrackAZ", "Az (arcmin)", "%10.6m",  0., 90, 1., 25);
+  IUFillNumber(&TrackPrecisionN[1], "TrackALT", "Alt (arcmin)", "%10.6m", 0., 90, 1., 25);
   IUFillNumberVector(&TrackPrecisionNP, TrackPrecisionN, NARRAY(TrackPrecisionN), mydev, "Tracking Precision", "", OPTIONS_GROUP, IP_RW, 0, IPS_IDLE);
   number_list.push_back(&TrackPrecisionNP);
   /**************************************************************************/
@@ -392,14 +397,17 @@ void knroObservatory::ISNewSwitch (const char *dev, const char *name, ISState *s
 			return;
 
 		IUResetSwitch(&AbortSlewSP);
+		
 		if ( (error_code = stop_all()) != SUCCESS)
 		{
 			AbortSlewSP.s = IPS_ALERT;
 			IDSetSwitch(&AbortSlewSP, "%s", get_knro_error_string(error_code));
-			
 		}
 		else
+		{
+			AbortSlewSP.s = IPS_OK;
 			IDSetSwitch(&AbortSlewSP, "Aborting All Motion.");
+		}
 
 		return;
 	}
@@ -419,7 +427,10 @@ void knroObservatory::ISNewSwitch (const char *dev, const char *name, ISState *s
 			
 		}
 		else
+		{
+		        StopAllSP.s = IPS_OK;
 			IDSetSwitch(&StopAllSP, "Aborting All Motion.");
+		}
 
 		return;
 	}
@@ -460,16 +471,127 @@ void knroObservatory::ISNewSwitch (const char *dev, const char *name, ISState *s
 
 		DebugSP.s = IPS_OK;
 		IDSetSwitch(&DebugSP, NULL);
+	
+		if (DebugS[0].s == ISS_ON)
+		{
+		  AzInverter->enable_debug();
+		  AltInverter->enable_debug();
+		  AzEncoder->enable_debug();
+		  AltEncoder->enable_debug();
+		}
+		else
+		{
+		  AzInverter->disable_debug();
+		  AltInverter->disable_debug();
+		  AzEncoder->disable_debug();
+		  AltEncoder->disable_debug();
+		}
+	
 		return;
 	}
 	
+	
+	// ===================================
+	// Alt Movement Switch
+	// ===================================
+	if (!strcmp(MovementNSSP.name, name))
+	{
+	  if (!strcmp(names[0], "MOTION_NORTH"))
+	  {
+	    // Check if it's north already
+	    if (MovementNSS[KNRO_NORTH].s == ISS_ON)
+	      return;
+	    
+	    IUResetSwitch(&MovementNSSP);
+	    
+	    if (AltInverter->move_forward())
+	    {
+	      IUUpdateSwitch(&MovementNSSP, states, names, n);
+	      MovementNSSP.s = IPS_BUSY;
+	      IDSetSwitch(&MovementNSSP, "Moving upward with speed %g Hz...", AltInverter->get_speed());
+	    }
+	    else
+	    {
+	      MovementNSSP.s = IPS_ALERT;
+	      IDSetSwitch(&MovementNSSP, "Moving upward failed. Check logs.");
+	    }
+	  }
+	  else
+	  {
+	     // Check if it's south already
+	    if (MovementNSS[KNRO_SOUTH].s == ISS_ON)
+	      return;
+	    
+	    IUResetSwitch(&MovementNSSP);
+	    
+	    if (AltInverter->move_reverse())
+	    {
+	      IUUpdateSwitch(&MovementNSSP, states, names, n);
+	      MovementNSSP.s = IPS_BUSY;
+	      IDSetSwitch(&MovementNSSP, "Moving downward with speed %g Hz...", AltInverter->get_speed());
+	    }
+	    else
+	    {
+	      MovementNSSP.s = IPS_ALERT;
+	      IDSetSwitch(&MovementNSSP, "Moving downward failed. Check logs.");
+	    }
+	  }
+	    return;
+	}
+
+	// ===================================
+	// Az Movement Switch
+	// ===================================
+	if (!strcmp(MovementWESP.name, name))
+	{
+	  if (!strcmp(names[0], "MOTION_WEST"))
+	  {
+	    // Check if it's west already
+	    if (MovementWES[KNRO_WEST].s == ISS_ON)
+	      return;
+	    
+	    IUResetSwitch(&MovementWESP);
+	    
+	    if (AzInverter->move_reverse())
+	    {
+	      IUUpdateSwitch(&MovementWESP, states, names, n);
+	      MovementWESP.s = IPS_BUSY;
+	      IDSetSwitch(&MovementWESP, "Moving westard with speed %g Hz...", AzInverter->get_speed());
+	    }
+	    else
+	    {
+	      MovementWESP.s = IPS_ALERT;
+	      IDSetSwitch(&MovementWESP, "Moving westward failed. Check logs.");
+	    }
+	  }
+	  else
+	  {
+	     // Check if it's east already
+	    if (MovementWES[KNRO_EAST].s == ISS_ON)
+	      return;
+	    
+	    IUResetSwitch(&MovementWESP);
+	    
+	    if (AzInverter->move_forward())
+	    {
+	      IUUpdateSwitch(&MovementWESP, states, names, n);
+	      MovementWESP.s = IPS_BUSY;
+	      IDSetSwitch(&MovementWESP, "Moving eastward with speed %g Hz...", AzInverter->get_speed());
+	    }
+	    else
+	    {
+	      MovementWESP.s = IPS_ALERT;
+	      IDSetSwitch(&MovementWESP, "Moving eastward failed. Check logs.");
+	    }
+	  }
+	    return;
+	}
 	
 	AzInverter->ISNewSwitch(dev, name, states, names, n);
 	AltInverter->ISNewSwitch(dev, name, states, names, n);
 	
 	AzEncoder->ISNewSwitch(dev, name, states, names, n);
 	AltEncoder->ISNewSwitch(dev, name, states, names, n);
-	
 }
 
 /**************************************************************************************
@@ -714,6 +836,8 @@ knroObservatory::knroErrCode knroObservatory::stop_all()
       HorizontalCoordsNRP.s	= IPS_IDLE;
       HorizontalCoordsNWP.s	= IPS_IDLE;
       
+      IUResetSwitch(&MovementNSSP);
+      IUResetSwitch(&MovementWESP);
       IDSetSwitch(&MovementNSSP, NULL);
       IDSetSwitch(&MovementWESP, NULL);
       IDSetNumber(&HorizontalCoordsNRP, NULL);
@@ -998,4 +1122,20 @@ void knroObservatory::stop_alt()
   AltInverter->stop();  
 }
 
+void knroObservatory::enable_debug()
+{
+  AzInverter->enable_debug();
+  AltInverter->enable_debug();
+  AzEncoder->enable_debug();
+  AltEncoder->enable_debug();
+}
 
+void knroObservatory::disable_debug()
+{
+  AzInverter->disable_debug();
+  AltInverter->disable_debug();
+  AzEncoder->disable_debug();
+  AltEncoder->disable_debug();
+}
+
+ 

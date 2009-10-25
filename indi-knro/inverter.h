@@ -66,6 +66,9 @@ public:
     void enable_simulation ();
     void disable_simulation();
     
+    void enable_debug() { debug = true; modbus_set_debug(&mb_param, debug); }
+    void disable_debug() { debug = false; modbus_set_debug(&mb_param, debug);}
+    
     // Standard INDI interface fucntions
     void ISGetProperties();
     void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
@@ -103,6 +106,7 @@ private:
 	int connection_status; 
 	inverterType type;
 	bool simulation;
+	bool debug;
 	
 	string type_name;
 	string forward_motion;

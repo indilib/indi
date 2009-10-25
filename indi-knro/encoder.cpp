@@ -55,6 +55,10 @@ const int AZ_HOME = 376790;
 //AZ_MIN 304770  - Degrees 85.6494
 //AZ_MAX 377160  - Degrees 88.1728
 
+// Limits to keep wrong values out.
+const int AZ_MAX_COUNT = 400000;
+const int AZ_MIN_COUNT = 300000;
+
 /****************************************************************
 **
 **
@@ -63,6 +67,8 @@ knroEncoder::knroEncoder(encoderType new_type)
 {
 
   connection_status = -1;
+  
+  debug = false;
   
   simulation = false;
   
@@ -195,9 +201,10 @@ bool knroEncoder::connect()
 	EncoderAbsPosNP.s = IPS_ALERT;
 	IDSetNumber (&EncoderAbsPosNP, "Error connecting to port %s. Make sure you have BOTH read and write permission to the port.", PortT[0].text);
 	return false;
-    }*/
+  }*/
 
-    IDLog("Attempting to communicate with encoder...\n");
+    if (debug)
+      IDLog("Attempting to communicate with encoder...\n");
 
     if (openEncoderServer(default_port.c_str(), 10001) == false)
     {
@@ -258,7 +265,9 @@ void knroEncoder::enable_simulation ()
 		
 	 simulation = true;
 	 IDMessage(mydev, "Notice: %s encoder simulation is enabled.", type_name.c_str());
-	 IDLog("Notice: %s drive encoder is enabled.\n", type_name.c_str());
+	
+	 if (debug)
+	  IDLog("Notice: %s drive encoder is enabled.\n", type_name.c_str());
 }
 
 /****************************************************************
@@ -276,7 +285,9 @@ void knroEncoder::disable_simulation()
 	 simulation = false;
 	  
 	 IDMessage(mydev, "Caution: %s encoder simulation is disabled.", type_name.c_str());
-	 IDLog("Caution: %s drive encoder is disabled.\n", type_name.c_str());
+	
+	 if (debug)
+	  IDLog("Caution: %s drive encoder is disabled.\n", type_name.c_str());
 }
     
 /****************************************************************
@@ -352,7 +363,8 @@ bool knroEncoder::dispatch_command(encoderCommand command)
    if  ( (err_code = tty_write(sockfd, encoder_command, ENCODER_CMD_LEN, &nbytes_written) != TTY_OK))
    {
 	tty_error_msg(err_code, encoder_error, ENCODER_ERROR_BUFFER);
-	IDLog("TTY error detected: %s\n", encoder_error);
+	if (debug)
+	      IDLog("TTY error detected: %s\n", encoder_error);
    	return false;
    }
 
@@ -399,9 +411,9 @@ knroEncoder::encoderError knroEncoder::get_encoder_value(encoderCommand command,
 
 		memcpy(&encoder_position, my, 4);
 
-		if (encoder_position > EncoderAbsPosN[0].max)
-			break;
-
+		if (encoder_position > AZ_MAX_COUNT || encoder_position < AZ_MIN_COUNT)
+		  break;
+		
 		encoder_value = encoder_position;
 
 		break;
@@ -427,7 +439,8 @@ void knroEncoder::update_encoder_count()
 
 	if (dispatch_command(POSITION_VALUE) == false)
 	{
-		IDLog("Error dispatching command to encoder...\n");
+		if (debug)
+		  IDLog("Error dispatching command to encoder...\n");
 		return;
 	}
 
@@ -447,11 +460,13 @@ void knroEncoder::update_encoder_count()
 	  if ( (err_code = tty_read(sockfd, encoder_read+counter, 1, 1, &nbytes_read)) != TTY_OK)
 	  {
 		tty_error_msg(err_code, encoder_error, ENCODER_ERROR_BUFFER);
-		IDLog("TTY error detected: %s\n", encoder_error);
+		if (debug)
+		  IDLog("TTY error detected: %s\n", encoder_error);
    		return;
 	  }
 	   
-          IDLog("Byte #%d=0x%X --- %d\n", i, ((unsigned char) encoder_read[counter]), ((unsigned char) encoder_read[counter]));
+	  if (debug)
+	    IDLog("Byte #%d=0x%X --- %d\n", i, ((unsigned char) encoder_read[counter]), ((unsigned char) encoder_read[counter]));
 
 	   // If encountering line feed 0xA, then break;
 	   if (encoder_read[counter] == 0xA)
@@ -466,7 +481,8 @@ void knroEncoder::update_encoder_count()
 
 	if (counter == 0)
 	{
-		IDLog("Error, unable to read. Check connection.\n");
+		if (debug)
+		  IDLog("Error, unable to read. Check connection.\n");
 		return;
 	}
 
@@ -477,13 +493,15 @@ void knroEncoder::update_encoder_count()
 
 	if ( ((unsigned char) encoder_read[0]) != 0x47)
 	{
-		IDLog("Invalid encoder response!\n");
+		if (debug)
+		  IDLog("Invalid encoder response!\n");
 		return;
 	}
 
 	if ( (err_code = get_encoder_value(POSITION_VALUE, encoder_read, EncoderAbsPosN[0].value)) != NO_ERROR)
 	{
-		IDLog("Encoder error is %d\n", err_code);
+		if (debug)
+		  IDLog("Encoder error is %d\n", err_code);
 		return;
 	}
 
@@ -497,7 +515,8 @@ void knroEncoder::update_encoder_count()
 	
 	IDSetNumber(&EncoderAbsPosNP, NULL);
 
-	IDLog("We got encoder test value of %g, Degree %g\n", EncoderAbsPosN[0].value, EncoderAbsPosN[1].value);
+	if (debug)
+	  IDLog("We got encoder test value of %g, Degree %g\n", EncoderAbsPosN[0].value, EncoderAbsPosN[1].value);
 }
 
 bool knroEncoder::openEncoderServer (const char * host, int indi_port)
@@ -535,7 +554,8 @@ bool knroEncoder::openEncoderServer (const char * host, int indi_port)
 	if (!fp)
 	    return false;*/
 
-	IDLog("Successfully connected to a server!\n");
+	if (debug)
+	  IDLog("Successfully connected to a server!\n");
 
 	/* ok */
 	return true;

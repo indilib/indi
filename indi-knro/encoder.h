@@ -71,6 +71,9 @@ public:
     void enable_simulation ();
     void disable_simulation();
     
+    void enable_debug() { debug = true; }
+    void disable_debug() { debug = false; }
+    
     // Standard INDI interface fucntions
     void ISGetProperties();
     void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
@@ -106,6 +109,7 @@ private:
 		
     int connection_status; 
     bool simulation;
+    bool debug;
 		
     unsigned int abs_encoder_count;
     double current_angle;

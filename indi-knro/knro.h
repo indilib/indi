@@ -64,6 +64,9 @@ class knroObservatory
 
  inline bool is_connected() { return ((ConnectS[0].s == ISS_ON) ? true : false); }
 
+ void enable_debug();
+ void disable_debug();
+ 
  private:
 
    knroEncoder *AltEncoder;
@@ -173,18 +176,7 @@ class knroObservatory
     // Three basic speeds in Hz
     static const float KNRO_FAST = 50.0;
     static const float KNRO_MEDIUM = 25.0;
-    static const float KNRO_SLOW = 10.0;
-
-    // ================
-    // Tolerance levels
-    // The tolerance level is defined as the angular seperation, in arc minutes, between the requested
-    // coords and the current coords before we can declare that the slew is successful. 
-
-   static const double SLEW_AZ_TOLERANCE  = 30.0;
-   static const double SLEW_ALT_TOLERANCE = 30.0;
-
-    static const double TRACK_AZ_TOLERANCE  = 30.0;
-    static const double TRACK_ALT_TOLEAZNCE = 30.0;
+    static const float KNRO_SLOW = 7;
 
     // ================
     // Update Rate: 10 Hz
