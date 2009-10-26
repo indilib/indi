@@ -53,7 +53,7 @@ using namespace std;
 
 auto_ptr<knroObservatory> KNRO_observatory(0);		/* Autoptr to observatory */
 
-const int POLLMS = 1000;				/* Status loop runs every 2000 ms or 0.5 Hz */
+const int POLLMS = 2000;				/* Status loop runs every 500 ms or 2 Hz */
 
 /**************************************************************************************
 **
@@ -283,6 +283,8 @@ void knroObservatory::init_properties()
 
   slew_stage = SLEW_NONE;
 
+  // TODO Set it to parking Az??
+  initialAz = 0;
 }
 
 /**************************************************************************************
@@ -442,6 +444,8 @@ void knroObservatory::ISNewSwitch (const char *dev, const char *name, ISState *s
 		if (IUUpdateSwitch(&ParkSP, states, names, n) < 0)
 			return;
 
+		check_slew_state();
+		
 		park_telescope();
 
 		return;
@@ -502,19 +506,9 @@ void knroObservatory::ISNewSwitch (const char *dev, const char *name, ISState *s
 	    if (MovementNSS[KNRO_NORTH].s == ISS_ON)
 	      return;
 	    
-	    IUResetSwitch(&MovementNSSP);
-	    
-	    if (AltInverter->move_forward())
-	    {
-	      IUUpdateSwitch(&MovementNSSP, states, names, n);
-	      MovementNSSP.s = IPS_BUSY;
-	      IDSetSwitch(&MovementNSSP, "Moving upward with speed %g Hz...", AltInverter->get_speed());
-	    }
-	    else
-	    {
-	      MovementNSSP.s = IPS_ALERT;
-	      IDSetSwitch(&MovementNSSP, "Moving upward failed. Check logs.");
-	    }
+	    check_slew_state();
+	      
+	    update_alt_dir(KNRO_NORTH);
 	  }
 	  else
 	  {
@@ -522,21 +516,12 @@ void knroObservatory::ISNewSwitch (const char *dev, const char *name, ISState *s
 	    if (MovementNSS[KNRO_SOUTH].s == ISS_ON)
 	      return;
 	    
-	    IUResetSwitch(&MovementNSSP);
+	    check_slew_state();
 	    
-	    if (AltInverter->move_reverse())
-	    {
-	      IUUpdateSwitch(&MovementNSSP, states, names, n);
-	      MovementNSSP.s = IPS_BUSY;
-	      IDSetSwitch(&MovementNSSP, "Moving downward with speed %g Hz...", AltInverter->get_speed());
-	    }
-	    else
-	    {
-	      MovementNSSP.s = IPS_ALERT;
-	      IDSetSwitch(&MovementNSSP, "Moving downward failed. Check logs.");
-	    }
-	  }
+	    update_alt_dir(KNRO_SOUTH);
+		    
 	    return;
+	 }
 	}
 
 	// ===================================
@@ -550,19 +535,9 @@ void knroObservatory::ISNewSwitch (const char *dev, const char *name, ISState *s
 	    if (MovementWES[KNRO_WEST].s == ISS_ON)
 	      return;
 	    
-	    IUResetSwitch(&MovementWESP);
+	    check_slew_state();
 	    
-	    if (AzInverter->move_reverse())
-	    {
-	      IUUpdateSwitch(&MovementWESP, states, names, n);
-	      MovementWESP.s = IPS_BUSY;
-	      IDSetSwitch(&MovementWESP, "Moving westard with speed %g Hz...", AzInverter->get_speed());
-	    }
-	    else
-	    {
-	      MovementWESP.s = IPS_ALERT;
-	      IDSetSwitch(&MovementWESP, "Moving westward failed. Check logs.");
-	    }
+	    update_az_dir(KNRO_WEST);
 	  }
 	  else
 	  {
@@ -570,19 +545,10 @@ void knroObservatory::ISNewSwitch (const char *dev, const char *name, ISState *s
 	    if (MovementWES[KNRO_EAST].s == ISS_ON)
 	      return;
 	    
-	    IUResetSwitch(&MovementWESP);
+	    check_slew_state();
 	    
-	    if (AzInverter->move_forward())
-	    {
-	      IUUpdateSwitch(&MovementWESP, states, names, n);
-	      MovementWESP.s = IPS_BUSY;
-	      IDSetSwitch(&MovementWESP, "Moving eastward with speed %g Hz...", AzInverter->get_speed());
-	    }
-	    else
-	    {
-	      MovementWESP.s = IPS_ALERT;
-	      IDSetSwitch(&MovementWESP, "Moving eastward failed. Check logs.");
-	    }
+	    update_az_dir(KNRO_EAST);
+	    
 	  }
 	    return;
 	}
@@ -807,9 +773,11 @@ void knroObservatory::connect()
 
 void knroObservatory::disconnect()
 {
+	stop_all();
+	
 	AzInverter->disconnect();
 	AltInverter->disconnect();
-	//AltEncoder->disconnect();
+	AltEncoder->disconnect();
 	AzEncoder->disconnect();
 }
 
@@ -822,23 +790,15 @@ knroObservatory::knroErrCode knroObservatory::stop_all()
    // TODO
    //park_alert.stop();
 
-   bool az_stop = AzInverter->stop();
-   bool alt_stop = AltInverter->stop();
+   bool az_stop = stop_az();
+   bool alt_stop = stop_alt();
    
    if (az_stop && alt_stop)
    {
-      MovementNSSP.s		= IPS_IDLE;
-      MovementWESP.s		= IPS_IDLE;
       HorizontalCoordsNRP.s	= IPS_IDLE;
       HorizontalCoordsNWP.s	= IPS_IDLE;
-      
-      IUResetSwitch(&MovementNSSP);
-      IUResetSwitch(&MovementWESP);
-      IDSetSwitch(&MovementNSSP, NULL);
-      IDSetSwitch(&MovementWESP, NULL);
       IDSetNumber(&HorizontalCoordsNRP, NULL);
       IDSetNumber(&HorizontalCoordsNWP, NULL);
-   
       return SUCCESS;
    }
    
@@ -856,6 +816,10 @@ void  knroObservatory::park_telescope()
 	ParkS[0].s = ISS_ON;
 
 	ParkSP.s = IPS_BUSY;
+	
+	targetAz = 0;
+	// FIXME todo 
+	//targetAlt = ??;
 	IDSetSwitch(&ParkSP, "Parking telescope, please stand by...");
 
 	execute_slew();
@@ -891,6 +855,7 @@ void knroObservatory::execute_slew()
 	fs_sexa(AltStr, targetAlt, 2, 3600);
 
 	slew_stage = SLEW_NOW;
+	initialAz  = currentAz;
 	
 	HorizontalCoordsNWP.s = IPS_BUSY;
 	HorizontalCoordsNRP.s = IPS_BUSY;
@@ -1058,12 +1023,15 @@ void knroObservatory::update_az_speed()
   double delta_az=0, current_az_speed=0;
   
   //currentAz = AzEncoder->get_current_angle();
-  delta_az = currentAz - targetAz;
+  delta_az = fabs(currentAz - targetAz);
   current_az_speed = AzInverter->get_speed();
   
+  if (delta_az > 180)
+    delta_az = 360 - delta_az;
+    
 //  IDLog("currentAz:  %g ## targetAz: %g ## DeltaAz is %g ## Current Speed is: %g\n", currentAz, targetAz, delta_az, current_az_speed);
   
-  if (fabs(delta_az) <= AZ_SLOW_REGION)
+  if (delta_az <= AZ_SLOW_REGION)
   {
     if (current_az_speed != KNRO_SLOW)
       if (AzInverter->set_speed(KNRO_SLOW) == false)
@@ -1073,7 +1041,7 @@ void knroObservatory::update_az_speed()
       }
     
   }
-  else if (fabs(delta_az) <= AZ_MEDIUM_REGION)
+  else if (delta_az <= AZ_MEDIUM_REGION)
   {
     if (current_az_speed != KNRO_MEDIUM)
       if (AzInverter->set_speed(KNRO_MEDIUM) == false)
@@ -1099,23 +1067,71 @@ void knroObservatory::update_az_dir(AzDirection dir)
   switch (dir)
   {
     case KNRO_EAST:
-      AzInverter->move_forward();
+      if (MovementWES[KNRO_EAST].s == ISS_ON)
+	  return;
+      if (AzInverter->move_forward())
+	{
+	  IUResetSwitch(&MovementWESP);
+	  MovementWESP.s = IPS_BUSY;
+	  MovementWES[KNRO_EAST].s = ISS_ON; 
+	  IDSetSwitch(&MovementWESP, "Moving eastward with speed %g Hz...", AzInverter->get_speed());
+	  IDSetSwitch(&MovementWESP, NULL);
+	}
+	else
+	{
+	        MovementWESP.s = IPS_ALERT;
+		IDSetSwitch(&MovementWESP, "Moving eastward failed. Check logs.");
+	}
       break;
   
     case KNRO_WEST:
-      AzInverter->move_reverse();
+      if (MovementWES[KNRO_WEST].s == ISS_ON)
+	  return;
+      if (AzInverter->move_reverse())
+	{
+ 	 IUResetSwitch(&MovementWESP);
+	 MovementWESP.s = IPS_BUSY;
+	 MovementWES[KNRO_WEST].s = ISS_ON;
+	 IDSetSwitch(&MovementWESP, "Moving westward with speed %g Hz...", AzInverter->get_speed());
+	 IDSetSwitch(&MovementWESP, NULL);
+	}
+	else
+	{
+	        MovementWESP.s = IPS_ALERT;
+		IDSetSwitch(&MovementWESP, "Moving westward failed. Check logs.");
+	}
+
       break;
   }
+
 }
 
-void knroObservatory::stop_az()
+bool knroObservatory::stop_az()
 {
-  AzInverter->stop();
+  if (MovementWESP.s == IPS_BUSY)
+  {
+      if (AzInverter->stop())
+      {
+	IUResetSwitch(&MovementWESP);
+	MovementWESP.s = IPS_IDLE;
+	IDSetSwitch(&MovementWESP, "Stopping azimuth motion.");
+	return true;
+      }
+      else
+      {
+	MovementWESP.s = IPS_ALERT;
+	IDSetSwitch(&MovementWESP, "Stopping azimuth motion failed. Check logs.");
+	return false;
+      }
+  }
+  
+  return true;
 }
 
-void knroObservatory::stop_alt()
+bool knroObservatory::stop_alt()
 {
-  AltInverter->stop();  
+  // FIXME do as above!!
+  return AltInverter->stop();  
 }
 
 void knroObservatory::enable_debug()
@@ -1135,3 +1151,16 @@ void knroObservatory::disable_debug()
 }
 
  
+void knroObservatory::check_slew_state()
+{ 
+    // Check if we're slewing or tracking
+    // TODO check for tracking later..etc.
+    if (HorizontalCoordsNWP.s == IPS_BUSY)
+    {
+      slew_stage = SLEW_NONE;
+      HorizontalCoordsNWP.s = IPS_IDLE;
+      HorizontalCoordsNRP.s = IPS_IDLE;
+      IDSetNumber(&HorizontalCoordsNWP, "Automatic slew interrupted by motion command.");
+      IDSetNumber(&HorizontalCoordsNRP, NULL);
+    }   
+}

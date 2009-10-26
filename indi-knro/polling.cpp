@@ -101,50 +101,53 @@ void knroObservatory::ISPoll()
 					{
 						stop_az(); 
 					}
-					else if ( (delta_az > 0 && delta_az < 180) || (delta_az > -360 && delta_az < -180))
+					else if ((delta_az > 0 && delta_az < 180) || (delta_az > -360 && delta_az < -180))
+
 					{
 						update_az_speed();
-						update_az_dir(KNRO_WEST);
+
+						// Telescope moving west, but we need to avoid hitting limit switch which is @ 90
+						if (initialAz > 90 && targetAz < 90)
+							update_az_dir(KNRO_EAST);
+						else
+						// Otherwise proceed normally
+							update_az_dir(KNRO_WEST);
 					}
 					else
 					{
 						update_az_speed();
-						update_az_dir(KNRO_EAST);
+						// Telescope moving east, but we need to avoid hitting limit switch which is @ 90
+						if (initialAz < 90 && targetAz > 90)
+							update_az_dir(KNRO_WEST);
+						else
+							update_az_dir(KNRO_EAST);
 					}
 
 					// if both ns and we are stopped, we're done and engage tracking.
-					//if (MovementNSSP.s == IPS_IDLE && MovementWESP.s == IPS_IDLE)
-					if (!AzInverter->is_in_motion() && !AltInverter->is_in_motion())
+					if (MovementNSSP.s == IPS_IDLE && MovementWESP.s == IPS_IDLE)
 					{
 
 						//if (slew_complete.is_playing() == false)
 							//slew_complete.play();
 
 						// If we're parking, finish off here
-						#if 0
-						if (ParkSP.s == IPS_BUSY || ParkSP.s == IPS_ALERT)
+						
+						if (ParkSP.s == IPS_BUSY)
 						{
+						        IUResetSwitch(&ParkSP);
 							ParkSP.s = IPS_OK;
-							EquatorialCoordsNP.s = IPS_IDLE;
-							IUResetSwitch(&ParkSP);
+							HorizontalCoordsNWP.s = IPS_OK;
+							HorizontalCoordsNRP.s = IPS_OK;
+							
 							slew_stage = SLEW_NONE;
 
-							if (park_alert.is_playing())
-							{
-								time(&last_execute_time);
-								park_alert.stop();
-							}
-
-							if (calibration_error.is_playing())
-								calibration_error.stop();
-
-							IDSetSwitch(&ParkSP, "Telescope park complete. Please lock the telescope now.");
-							IDSetNumber(&EquatorialCoordsNP, NULL);
+							IDSetSwitch(&ParkSP, "Telescope park complete.");
+							IDSetNumber(&HorizontalCoordsNWP, NULL);
+							IDSetNumber(&HorizontalCoordsNRP, NULL);
+						
 							return;
 						}
 
-						#endif
-						
 						// FIXME Make sure to check whether on_set_coords is set to SLEW or TRACK
 						// Because when slewing, we're done here, but if there is tracking, then
 						// We go to that mode

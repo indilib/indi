@@ -191,6 +191,7 @@ class knroObservatory
     
     /* Safety checks functions */
     void check_safety();
+    void check_slew_state();
 
     /* Error log functions */
     const char *get_knro_error_string(knroErrCode code);
@@ -200,8 +201,8 @@ class knroObservatory
 
     /* Modular stop functions */
     knroErrCode stop_all();
-    void stop_az();
-    void stop_alt();
+    bool stop_az();
+    bool stop_alt();
     
     /* Simulation */
     void enable_simulation();
@@ -227,6 +228,7 @@ class knroObservatory
 
     /* Coordinates & Time */
     double lastAZ;
+    double initialAz;
    
     /* Timing variables */
     static const int MAXIMUM_IDLE_TIME = 1800;			// Maximum 30 minutes idle time
