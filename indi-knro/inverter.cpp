@@ -379,7 +379,7 @@ bool knroInverter::set_speed(float newHz)
     if (simulation)
     {
     	ret = 2;
-    	IDMessage(mydev, "%s drive: Simulating set speed command. High register value: 0x%X", type_name.c_str(), Hz_Speed_Register[1]);
+    	IDMessage(mydev, "%s drive: Simulating set speed command.", type_name.c_str());
 	}
 	else
 		ret = preset_multiple_registers(&mb_param, SLAVE_ADDRESS, HZ_HOLD_ADDRESS, 2, Hz_Speed_Register);
@@ -398,8 +398,9 @@ bool knroInverter::set_speed(float newHz)
     Hz_Speed_Register[1] = 0;
 
     if (debug)
-      IDLog("****** STARTING READ PROCESS ******\n");      
-    ret = read_holding_registers(&mb_param, SLAVE_ADDRESS, HZ_HOLD_ADDRESS, 2, Hz_Speed_Register);
+      IDLog("****** STARTING READ PROCESS ******\n");  
+    if (!simulation)    
+	    ret = read_holding_registers(&mb_param, SLAVE_ADDRESS, HZ_HOLD_ADDRESS, 2, Hz_Speed_Register);
     if (debug)
       IDLog("****** END READ PROCESS ******\n");      
 
@@ -407,6 +408,8 @@ bool knroInverter::set_speed(float newHz)
     {
       IDLog("set_speed ERROR! read_holding_registers (%d)\n", ret);
       IDLog("Slave = %d, address = %d, nb = %d\n", SLAVE_ADDRESS, HZ_HOLD_ADDRESS, 2);
+      InverterSpeedNP.s = IPS_ALERT;
+      IDSetNumber(&InverterSpeedNP, "Error: could not update speed for %s drive.", type_name.c_str());
       return false;
     }                    
 
@@ -414,6 +417,8 @@ bool knroInverter::set_speed(float newHz)
       IDLog("** READING ** Hz_Speed_Register[0] = %d - Hz_Speed_Register[1] = %d\n", Hz_Speed_Register[0], Hz_Speed_Register[1]);
     
     InverterSpeedN[0].value = newHz;
+    InverterSpeedNP.s = IPS_OK;
+    IDSetNumber(&InverterSpeedNP, "%s drive speed updated to %g Hz.", type_name.c_str(), InverterSpeedN[0].value);
 
     return true;
 	
@@ -598,19 +603,8 @@ void knroInverter::ISNewNumber (const char *dev, const char *name, double values
 {
 	if (!strcmp(InverterSpeedNP.name, name))
 	{
-		if (set_speed(values[0]))
-		{
-			if (IUUpdateNumber(&InverterSpeedNP, values, names, n) < 0)
-				return;
-				
-				InverterSpeedNP.s = IPS_OK;
-				IDSetNumber(&InverterSpeedNP, "%s drive speed updated to %g Hz.", type_name.c_str(), InverterSpeedN[0].value);
-		}
-		else
-		{
-				InverterSpeedNP.s = IPS_ALERT;
-				IDSetNumber(&InverterSpeedNP, "Error: could not update speed for %s drive.", type_name.c_str());
-		}
+		set_speed(values[0]);
+		
 
 		return;
 	}

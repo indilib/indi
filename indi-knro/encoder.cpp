@@ -59,6 +59,9 @@ const int AZ_HOME = 376790;
 const int AZ_MAX_COUNT = 400000;
 const int AZ_MIN_COUNT = 300000;
 
+// 500ms sleep for encoder thread
+const int ENCODER_POLLMS = 500000;
+
 /****************************************************************
 **
 **
@@ -71,7 +74,9 @@ knroEncoder::knroEncoder(encoderType new_type)
   debug = false;
   
   simulation = false;
-  
+  simulated_forward = true;
+  simulated_speed = 2;
+
   set_type(new_type);
 
   // As per RS485 AMCI Manual
@@ -84,8 +89,6 @@ knroEncoder::knroEncoder(encoderType new_type)
   encoder_command[3] = (char) 0x0A ;
 
   init_properties();
-
-
 
 }
 
@@ -111,20 +114,17 @@ void knroEncoder::init_properties()
   IUFillNumber(&EncoderAbsPosN[0], "Value" , "", "%g", 0., 16777216., 0., 0.);
   IUFillNumber(&EncoderAbsPosN[1], "Angle" , "", "%g", 0., 360., 0., 0.);
 
-   IUFillSwitch(&UpdateCountS[0], "Update Count", "", ISS_OFF);
    IUFillText(&PortT[0], "PORT", "Port", default_port.c_str());
 
   if (type == AZ_ENCODER)
   {
     	IUFillNumberVector(&EncoderAbsPosNP, EncoderAbsPosN, NARRAY(EncoderAbsPosN), mydev, "Absolute Az", "", ENCODER_GROUP, IP_RO, 0, IPS_OK);
     	IUFillTextVector(&PortTP, PortT, NARRAY(PortT), mydev, "AZIMUTH_ENCODER_PORT", "Azimuth", ENCODER_GROUP, IP_RW, 0, IPS_IDLE);
-        IUFillSwitchVector(&UpdateCountSP, UpdateCountS, NARRAY(UpdateCountS), mydev, "Update Az", "", ENCODER_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
   }
   else
   {
     	IUFillTextVector(&PortTP, PortT, NARRAY(PortT), mydev, "ALTITUDE_ENCODER_PORT", "Altitude", ENCODER_GROUP, IP_RW, 0, IPS_IDLE);
     	IUFillNumberVector(&EncoderAbsPosNP, EncoderAbsPosN, NARRAY(EncoderAbsPosN), mydev, "Absolute Alt", "", ENCODER_GROUP, IP_RO, 0, IPS_OK);
-        IUFillSwitchVector(&UpdateCountSP, UpdateCountS, NARRAY(UpdateCountS), mydev, "Update Alt", "", ENCODER_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
   }
 
@@ -139,7 +139,6 @@ void knroEncoder::ISGetProperties()
 {
    IDDefNumber(&EncoderAbsPosNP, NULL);
    IDDefText(&PortTP, NULL);
-   IDDefSwitch(&UpdateCountSP, NULL);
 }
 
 /****************************************************************
@@ -150,12 +149,10 @@ void knroEncoder::reset_all_properties()
 {
 		EncoderAbsPosNP.s 	= IPS_IDLE;
 		PortTP.s		= IPS_IDLE;
-		UpdateCountSP.s		= IPS_IDLE;
 	
 	
 	IDSetNumber(&EncoderAbsPosNP, NULL);
 	IDSetText(&PortTP, NULL);
-//	IDSetSwitch(&UpdateCountSP, NULL);
 }
 
 /****************************************************************
@@ -236,8 +233,6 @@ bool knroEncoder::init_encoder()
    {
 		IDMessage(mydev, "%s Encoder: Simulating encoder init.", type_name.c_str());
    }
-   else
-		update_encoder_count();
    	
    return true;
 	
@@ -341,17 +336,7 @@ void knroEncoder::ISNewText (const char *dev, const char *name, char *texts[], c
 *****************************************************************/
 void knroEncoder::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-	if (!strcmp(UpdateCountSP.name, name))
-	{
-		IUResetSwitch(&UpdateCountSP);
-		UpdateCountSP.s = IPS_OK;
 
-		update_encoder_count();
-
-		IDSetSwitch(&UpdateCountSP, NULL);
-
-		return;
-	}
 }
 
 bool knroEncoder::dispatch_command(encoderCommand command)
@@ -422,11 +407,8 @@ knroEncoder::encoderError knroEncoder::get_encoder_value(encoderCommand command,
 	return NO_ERROR;
 }
 
-void knroEncoder::update_encoder_count()
+void * knroEncoder::update_encoder(void)
 {
-	if (simulation || !check_drive_connection())
-		return;
-
 	char encoder_read[ENCODER_READ_BUFFER];
 	char encoder_junk[ENCODER_READ_BUFFER];
 	char encoder_error[ENCODER_ERROR_BUFFER];
@@ -437,23 +419,49 @@ void knroEncoder::update_encoder_count()
 
 	//IDLog("About to dispatch command for position value\n");
 
+	if (simulation)
+	{
+		EncoderAbsPosN[0].value = 330770;
+
+	}
+
+	while (1)
+	{
+
+	if (simulation || !check_drive_connection())
+	{
+		if (simulation)
+		{
+			
+				if (simulated_forward)
+					EncoderAbsPosN[0].value -= simulated_speed;
+				else
+					EncoderAbsPosN[0].value += simulated_speed;
+
+				if (type == AZ_ENCODER)
+				{
+			 		current_angle = (AZ_HOME - EncoderAbsPosN[0].value) / AZ_TPD + 90.0;
+					if (current_angle > 360) current_angle -= 360;
+					else if (current_angle < 0) current_angle += 360;
+					EncoderAbsPosN[1].value = current_angle;
+				}
+
+				IDSetNumber(&EncoderAbsPosNP, NULL);
+		}
+
+		usleep(ENCODER_POLLMS);
+		continue;
+	      
+        }
+
 	if (dispatch_command(POSITION_VALUE) == false)
 	{
 		if (debug)
 		  IDLog("Error dispatching command to encoder...\n");
-		return;
+                usleep(ENCODER_POLLMS);
+		continue;
+
 	}
-
-	//IDLog("About to READ from encoder\n");
-
-//	if ( (err_code = tty_read_section(sockfd, encoder_read, (char) 0x0A, 5, &nbytes_read)) != TTY_OK)
-
-	/*if ( (err_code = tty_read(sockfd, encoder_read, 9, 5, &nbytes_read)) != TTY_OK)
-	{
-		tty_error_msg(err_code, encoder_error, ENCODER_ERROR_BUFFER);
-		IDLog("TTY error detected: %s\n", encoder_error);
-   		return;
-	}*/
 
 	for (int i=0; i < ENCODER_READ_BUFFER; i++)
 	{
@@ -462,7 +470,7 @@ void knroEncoder::update_encoder_count()
 		tty_error_msg(err_code, encoder_error, ENCODER_ERROR_BUFFER);
 		if (debug)
 		  IDLog("TTY error detected: %s\n", encoder_error);
-   		return;
+   		break;
 	  }
 	   
 	  if (debug)
@@ -476,33 +484,30 @@ void knroEncoder::update_encoder_count()
 	   
 	}
 
-	
 	tcflush(sockfd, TCIOFLUSH);
 
 	if (counter == 0)
 	{
 		if (debug)
 		  IDLog("Error, unable to read. Check connection.\n");
-		return;
+                usleep(ENCODER_POLLMS);
+		continue;
 	}
-
-	//IDLog("Received response from encoder %d bytes long and is #%s#\n", nbytes_read, encoder_read);
-	//for (int i=0; i < nbytes_read; i++)
-		//IDLog("Byte #%d=0x%X --- %d\n", i, ((unsigned char) encoder_read[i]), ((unsigned char) encoder_read[i]));
-
 
 	if ( ((unsigned char) encoder_read[0]) != 0x47)
 	{
 		if (debug)
 		  IDLog("Invalid encoder response!\n");
-		return;
+                usleep(ENCODER_POLLMS);
+		continue;
 	}
 
 	if ( (err_code = get_encoder_value(POSITION_VALUE, encoder_read, EncoderAbsPosN[0].value)) != NO_ERROR)
 	{
 		if (debug)
 		  IDLog("Encoder error is %d\n", err_code);
-		return;
+                usleep(ENCODER_POLLMS);
+		continue;
 	}
 
 	if (type == AZ_ENCODER)
@@ -517,6 +522,18 @@ void knroEncoder::update_encoder_count()
 
 	if (debug)
 	  IDLog("We got encoder test value of %g, Degree %g\n", EncoderAbsPosN[0].value, EncoderAbsPosN[1].value);
+
+        usleep(ENCODER_POLLMS);
+
+     }
+
+    return 0;
+
+}
+
+void * knroEncoder::update_helper(void *context)
+{
+  return ((knroEncoder *)context)->update_encoder();
 }
 
 bool knroEncoder::openEncoderServer (const char * host, int indi_port)

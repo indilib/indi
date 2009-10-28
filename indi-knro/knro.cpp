@@ -53,7 +53,10 @@ using namespace std;
 
 auto_ptr<knroObservatory> KNRO_observatory(0);		/* Autoptr to observatory */
 
-const int POLLMS = 2000;				/* Status loop runs every 500 ms or 2 Hz */
+const int POLLMS = 500;				/* Status loop runs every 500 ms or 2 Hz */
+
+pthread_mutex_t knroObservatory::az_encoder_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t knroObservatory::alt_encoder_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /**************************************************************************************
 **
@@ -174,7 +177,7 @@ void knroObservatory::init_properties()
   
   /**************************************************************************/
   IUFillSwitch(&ParkS[0], "PARK", "Park Telescope", ISS_OFF);
-  IUFillSwitchVector(&ParkSP, ParkS, NARRAY(ParkS), mydev, "PARK", "Park", BASIC_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+  IUFillSwitchVector(&ParkSP, ParkS, NARRAY(ParkS), mydev, "TELESCOPE_PARK", "Park", BASIC_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
   switch_list.push_back(&ParkSP);
   /**************************************************************************/
 
@@ -758,8 +761,9 @@ void knroObservatory::connect()
 		
 		IDSetSwitch(&ConnectSP, "KNRO is online.");
 		
-		currentAz = AzEncoder->get_angle();
-		IDSetNumber(&HorizontalCoordsNWP, NULL);
+		pthread_create( &az_encoder_thread, NULL, &knroEncoder::update_helper, AzEncoder);
+		//pthread_create( &alt_encoder_thread, NULL, &knroEncoder::update_helper, AltEncoder);
+
 	}
 	else
 	{
@@ -779,6 +783,9 @@ void knroObservatory::disconnect()
 	AltInverter->disconnect();
 	AltEncoder->disconnect();
 	AzEncoder->disconnect();
+
+	pthread_cancel(az_encoder_thread);
+	//pthread_cancel(alt_encoder_thread);
 }
 
 			
@@ -1039,7 +1046,10 @@ void knroObservatory::update_az_speed()
 	stop_all();
 	IDMessage(mydev, "Error in changing Az inverter speed. Checks logs.");
       }
-    
+    if (simulation)
+       AzEncoder->simulate_slow();
+
+
   }
   else if (delta_az <= AZ_MEDIUM_REGION)
   {
@@ -1049,16 +1059,20 @@ void knroObservatory::update_az_speed()
 	stop_all();
 	IDMessage(mydev, "Error in changing Az inverter speed. Checks logs.");
       }
+    if (simulation)
+       AzEncoder->simulate_medium();
   }
   else
   {
+
     if (current_az_speed != KNRO_FAST)
       if (AzInverter->set_speed(KNRO_FAST) == false)
       {
 	stop_all();
 	IDMessage(mydev, "Error in changing Az inverter speed. Checks logs.");
       }
-    
+    if (simulation)
+       AzEncoder->simulate_fast();    
   }
 }
 
@@ -1076,6 +1090,9 @@ void knroObservatory::update_az_dir(AzDirection dir)
 	  MovementWES[KNRO_EAST].s = ISS_ON; 
 	  IDSetSwitch(&MovementWESP, "Moving eastward with speed %g Hz...", AzInverter->get_speed());
 	  IDSetSwitch(&MovementWESP, NULL);
+
+	  if (simulation)
+	       AzEncoder->simulate_forward();
 	}
 	else
 	{
@@ -1094,6 +1111,10 @@ void knroObservatory::update_az_dir(AzDirection dir)
 	 MovementWES[KNRO_WEST].s = ISS_ON;
 	 IDSetSwitch(&MovementWESP, "Moving westward with speed %g Hz...", AzInverter->get_speed());
 	 IDSetSwitch(&MovementWESP, NULL);
+
+	  if (simulation)
+	      AzEncoder->simulate_reverse();
+
 	}
 	else
 	{
@@ -1115,6 +1136,8 @@ bool knroObservatory::stop_az()
 	IUResetSwitch(&MovementWESP);
 	MovementWESP.s = IPS_IDLE;
 	IDSetSwitch(&MovementWESP, "Stopping azimuth motion.");
+	  if (simulation)
+	       AzEncoder->simulate_stop();
 	return true;
       }
       else

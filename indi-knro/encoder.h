@@ -65,7 +65,8 @@ public:
     void disconnect();
 
     // Update
-    void update_encoder_count();
+    static void * update_helper(void *context);
+	
     
     // Simulation
     void enable_simulation ();
@@ -82,6 +83,14 @@ public:
  	
     void reset_all_properties();
 
+    // Simulation
+    void simulate_forward() { simulated_forward = true; }
+    void simulate_reverse() { simulated_forward = false; }
+    void simulate_stop() { simulated_speed = 0; }
+    void simulate_slow() { simulated_speed = 15; }
+    void simulate_medium() { simulated_speed = 25; }
+    void simulate_fast() { simulated_speed = 50; }
+
 private: 
     // INDI Properties
     // Encoder Absolute Position
@@ -92,16 +101,18 @@ private:
     ITextVectorProperty PortTP;
     IText PortT[1];
 
-    ISwitch UpdateCountS[1];
-    ISwitchVectorProperty UpdateCountSP;
-
     // Functions
     void init_properties();
     bool init_encoder();
+    void * update_encoder(void);
     bool check_drive_connection();
     bool dispatch_command(encoderCommand command);
     encoderError get_encoder_value(encoderCommand command, char * response, double & encoder_value);
     bool openEncoderServer (const char * host, int indi_port);
+
+
+    bool simulated_forward;
+    int  simulated_speed;
 
     // Variables
     string type_name;

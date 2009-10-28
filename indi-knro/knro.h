@@ -153,36 +153,19 @@ class knroObservatory
     // we hit our target. The values are somewhat arbitrary for now, they will be finely tuned depending on how
     // the telescope behaves.
 
-    static const double ALT_FAST_REGION   = 30;
     static const double ALT_MEDIUM_REGION = 20;
     static const double ALT_SLOW_REGION   = 10;
 
-    static const double AZ_FAST_REGION   = 30;
     static const double AZ_MEDIUM_REGION = 15;
     static const double AZ_SLOW_REGION   = 5;
 
-    #if 0
-    // FIXME This was applicable for Ujari. Update for KNRO
-    
-    // Saftey Zones (%). We warn if ALT reaches 60 degrees
-    // and we enter danger is alt reaches 52 degrees
-    static const double ALT_DANGER_ZONE  = 42.0;
-    static const double ALT_WARNING_ZONE = 50.0;
-    // We reach critical Alt of 45 degrees at which the telescope
-    // will automatically go to HOME position.
-    static const double ALT_CRITICAL_ZONE = 37.0;
-    #endif
     
     // Three basic speeds in Hz
     static const float KNRO_FAST = 50.0;
     static const float KNRO_MEDIUM = 25.0;
     static const float KNRO_SLOW = 7;
 
-    // ================
-    // Update Rate: 10 Hz
-    static const int update_period = 100000;
-    // ================
-    
+   
     /* Functions */
  
     /* connect observatory */
@@ -238,18 +221,12 @@ class knroObservatory
     /* Type of active slew stage */
     SlewStages slew_stage;
 
-    /* Simulation Rates */
-    static const int ALT_RATE_FAST = 1000;
-    static const int ALT_RATE_MEDIUM = 500;
-    static const int ALT_RATE_SLOW = 10;
-    static const int AZ_RATE_FAST  = 295;
-    static const int AZ_RATE_MEDIUM  = 147;
-    static const int AZ_RATE_SLOW  = 10;
-
-    /* Current simulation AZ & ALT rates */
-    int current_az_rate;
-    int current_alt_rate;
-    
+   /* Threading variables */
+    pthread_t az_encoder_thread;
+    pthread_t alt_encoder_thread;
+    static pthread_mutex_t az_encoder_mutex;
+    static pthread_mutex_t alt_encoder_mutex;
+   
     /* Warning sounds */
     /*OggFile park_alert;
     OggFile slew_complete;

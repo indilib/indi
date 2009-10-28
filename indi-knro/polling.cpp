@@ -45,20 +45,14 @@ void knroObservatory::ISPoll()
 {
     double delta_az=0;
 
-    if (simulation)
-	return;
-
-    AzEncoder->update_encoder_count();
-    //AltEncoder->update_encoder_count();
-
      if (is_connected() == false)
 	return;
 
-	currentAz = AzEncoder->get_angle();
+     currentAz = AzEncoder->get_angle();
       
-	IDSetNumber(&HorizontalCoordsNRP, NULL);
-      
-        delta_az = currentAz - targetAz;
+     IDSetNumber(&HorizontalCoordsNRP, NULL);
+
+     delta_az = currentAz - targetAz;
 	 
 	/***************************************************************
 	// #7: Check Status of Equatorial Coord Request
