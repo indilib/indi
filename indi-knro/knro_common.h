@@ -24,6 +24,10 @@
 #ifndef KNRO_COMMON_H
 #define KNRO_COMMON_H
 
+/* How much difference between old and new values of encoder are significant enough to report.
+   Only values greater that below are logged and sent to clients */
+#define ENCODER_NOISE_TOLERANCE	50
+
 #define COMM_GROUP		"Communication"
 #define BASIC_GROUP		"Main Control"
 #define TELESCOPE_GROUP	"Telescope Control"

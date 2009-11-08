@@ -104,6 +104,7 @@ private:
     // Functions
     void init_properties();
     bool init_encoder();
+    void calculate_angle();
     void * update_encoder(void);
     bool check_drive_connection();
     bool dispatch_command(encoderCommand command);

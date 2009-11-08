@@ -153,17 +153,21 @@ class knroObservatory
     // we hit our target. The values are somewhat arbitrary for now, they will be finely tuned depending on how
     // the telescope behaves.
 
-    static const double ALT_MEDIUM_REGION = 20;
-    static const double ALT_SLOW_REGION   = 10;
+    static const double ALT_MEDIUM_REGION = 5;
+    static const double ALT_SLOW_REGION   = 2;
 
     static const double AZ_MEDIUM_REGION = 15;
     static const double AZ_SLOW_REGION   = 5;
 
     
     // Three basic speeds in Hz
-    static const float KNRO_FAST = 50.0;
-    static const float KNRO_MEDIUM = 25.0;
-    static const float KNRO_SLOW = 7;
+    static const float AZ_KNRO_FAST = 50.0;
+    static const float AZ_KNRO_MEDIUM = 25.0;
+    static const float AZ_KNRO_SLOW = 7;
+    
+    static const float ALT_KNRO_FAST = 50.0;
+    static const float ALT_KNRO_MEDIUM = 40.0;
+    static const float ALT_KNRO_SLOW = 15;
 
    
     /* Functions */

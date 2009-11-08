@@ -48,9 +48,9 @@ void knroObservatory::ISPoll()
      if (is_connected() == false)
 	return;
 
-     currentAz = AzEncoder->get_angle();
-      
-     IDSetNumber(&HorizontalCoordsNRP, NULL);
+    currentAz   = AzEncoder->get_angle();
+    currentAlt  = AltEncoder->get_angle();
+    IDSetNumber(&HorizontalCoordsNRP, NULL);
 
      delta_az = currentAz - targetAz;
 	 
@@ -74,11 +74,11 @@ void knroObservatory::ISPoll()
 
 				case SLEW_NOW:
 				  
-				    #if 0
+				    
 					// If declination is done, stop n/s
 					if (is_alt_done())
 						stop_alt();
-					else if (targetAlt - currentAlt > 0)
+					else if (currentAlt - targetAlt > 0)
 					{
 						update_alt_speed();
 						update_alt_dir(KNRO_NORTH);
@@ -89,8 +89,6 @@ void knroObservatory::ISPoll()
 						update_alt_dir(KNRO_SOUTH);
 					}
   
-				    #endif
-					
 					if (is_az_done())
 					{
 						stop_az(); 

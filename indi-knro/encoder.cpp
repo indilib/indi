@@ -10,7 +10,7 @@
     License as published by the Free Software Foundation; either
     version 2.1 of the License, or (at your option) any later version.
 
-    This library is distributed in the hope that it will be useful,
+      This library is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
     Lesser General Public License for more details.
@@ -59,8 +59,19 @@ const int AZ_HOME = 376790;
 const int AZ_MAX_COUNT = 400000;
 const int AZ_MIN_COUNT = 300000;
 
+const double ALT_TPD = 225.9;
+const int ALT_HOME = 243310;
+
+const int ALT_MAX_COUNT = 250000;
+const int ALT_MIN_COUNT = 200000;
+
+//ALT_MAX (90) 234357
+//ALT MIN (20) 
+
 // 500ms sleep for encoder thread
-const int ENCODER_POLLMS = 500000;
+//const int ENCODER_POLLMS = 3000000;
+const int ENCODER_POLLMS = 10000;
+const int SIMULATED_ENCODER_POLLMS = 100000;
 
 /****************************************************************
 **
@@ -75,7 +86,7 @@ knroEncoder::knroEncoder(encoderType new_type)
   
   simulation = false;
   simulated_forward = true;
-  simulated_speed = 2;
+  simulated_speed = 0;
 
   set_type(new_type);
 
@@ -112,7 +123,7 @@ void knroEncoder::init_properties()
 {
 
   IUFillNumber(&EncoderAbsPosN[0], "Value" , "", "%g", 0., 16777216., 0., 0.);
-  IUFillNumber(&EncoderAbsPosN[1], "Angle" , "", "%g", 0., 360., 0., 0.);
+  IUFillNumber(&EncoderAbsPosN[1], "Angle" , "", "%.2f", 0., 360., 0., 0.);
 
    IUFillText(&PortT[0], "PORT", "Port", default_port.c_str());
 
@@ -362,10 +373,9 @@ bool knroEncoder::dispatch_command(encoderCommand command)
 knroEncoder::encoderError knroEncoder::get_encoder_value(encoderCommand command, char * response, double & encoder_value)
 {
 	unsigned short big_endian_short;
-	unsigned short big_endian_int;
+	unsigned int big_endian_int;
 
-	unsigned int encoder_position;
-	unsigned char my[4];
+	unsigned int encoder_position=0;
 
 	// Command Response is as following:
 	// Command Code - Paramter Echo - Requested Data  - Error Code - Delimiter
@@ -384,21 +394,37 @@ knroEncoder::encoderError knroEncoder::get_encoder_value(encoderCommand command,
 
 		case POSITION_VALUE:
 
-		my[0] = response[5];
-		my[1] = response[4];
-		my[2] = response[3];
-		my[3] = response[2];
-
-/*		memcpy(&big_endian_int, response + 2, 4);
-		  
+		memcpy(&big_endian_int, response + 2, 4);
 		// Now convert big endian to little endian
-		encoder_position = (big_endian_int >>24) | ((big_endian_int <<8) & 0x00FF0000) | ((big_endian_int >>8) & 0x0000FF00) | (big_endian_int<<24);*/
+		encoder_position = (big_endian_int >>24) | ((big_endian_int <<8) & 0x00FF0000) | ((big_endian_int >>8) & 0x0000FF00) | (big_endian_int<<24);
 
-		memcpy(&encoder_position, my, 4);
-
-		if (encoder_position > AZ_MAX_COUNT || encoder_position < AZ_MIN_COUNT)
-		  break;
+		if (debug)
+		{
+		  IDLog("Big Endian INT: %d - Current encoder position is: %d\n", big_endian_int, encoder_position);
+		  IDLog("response[0]: %d , response[1]: %d , response[2]: %d , response[3]: %d\n", response[0], response[1], response[2], response[3]);
+		}
 		
+		
+		if (type == AZ_ENCODER)
+		{
+		  if (encoder_position > AZ_MAX_COUNT || encoder_position < AZ_MIN_COUNT)
+		    break;
+		}
+		else
+		{
+		  if (encoder_position > ALT_MAX_COUNT || encoder_position < ALT_MIN_COUNT)
+		    break;
+		}
+		
+		  //TODO add ALT_ENCODER check
+		  
+		  // Reject ridicislous values
+		  if ( (encoder_value != 0) && fabs(encoder_value - encoder_position) > 2000)
+		  {
+		  if (debug)
+		      IDLog("Rejecting large change. Old value: %g - new Value: %d\n", encoder_value, encoder_position);
+		  break;
+		  }
 		encoder_value = encoder_position;
 
 		break;
@@ -416,18 +442,22 @@ void * knroEncoder::update_encoder(void)
         int nbytes_read =0;
         int err_code = 0;
 	int counter=0;
+	double new_encoder_value=0;
 
 	//IDLog("About to dispatch command for position value\n");
 
 	if (simulation)
 	{
-		EncoderAbsPosN[0].value = 330770;
-
+		if (type == AZ_ENCODER)
+		  EncoderAbsPosN[0].value = 330770;
+		else
+		  EncoderAbsPosN[0].value = 239101;
 	}
 
 	while (1)
 	{
 
+	counter=0;
 	if (simulation || !check_drive_connection())
 	{
 		if (simulation)
@@ -438,15 +468,11 @@ void * knroEncoder::update_encoder(void)
 				else
 					EncoderAbsPosN[0].value += simulated_speed;
 
-				if (type == AZ_ENCODER)
-				{
-			 		current_angle = (AZ_HOME - EncoderAbsPosN[0].value) / AZ_TPD + 90.0;
-					if (current_angle > 360) current_angle -= 360;
-					else if (current_angle < 0) current_angle += 360;
-					EncoderAbsPosN[1].value = current_angle;
-				}
+				calculate_angle();
 
 				IDSetNumber(&EncoderAbsPosNP, NULL);
+				
+				usleep(SIMULATED_ENCODER_POLLMS);
 		}
 
 		usleep(ENCODER_POLLMS);
@@ -502,7 +528,7 @@ void * knroEncoder::update_encoder(void)
 		continue;
 	}
 
-	if ( (err_code = get_encoder_value(POSITION_VALUE, encoder_read, EncoderAbsPosN[0].value)) != NO_ERROR)
+	if ( (err_code = get_encoder_value(POSITION_VALUE, encoder_read, new_encoder_value)) != NO_ERROR)
 	{
 		if (debug)
 		  IDLog("Encoder error is %d\n", err_code);
@@ -510,16 +536,13 @@ void * knroEncoder::update_encoder(void)
 		continue;
 	}
 
-	if (type == AZ_ENCODER)
+	if (fabs(EncoderAbsPosN[0].value - new_encoder_value) > ENCODER_NOISE_TOLERANCE)
 	{
-	 		current_angle = (AZ_HOME - EncoderAbsPosN[0].value) / AZ_TPD + 90.0;
-			if (current_angle > 360) current_angle -= 360;
-			else if (current_angle < 0) current_angle += 360;
-			EncoderAbsPosN[1].value = current_angle;
+	    EncoderAbsPosN[0].value = new_encoder_value;
+	    calculate_angle();
+	    IDSetNumber(&EncoderAbsPosNP, NULL);
 	}
 	
-	IDSetNumber(&EncoderAbsPosNP, NULL);
-
 	if (debug)
 	  IDLog("We got encoder test value of %g, Degree %g\n", EncoderAbsPosN[0].value, EncoderAbsPosN[1].value);
 
@@ -529,6 +552,24 @@ void * knroEncoder::update_encoder(void)
 
     return 0;
 
+}
+
+void knroEncoder::calculate_angle()
+{
+  	if (type == AZ_ENCODER)
+	{
+	 		current_angle = (AZ_HOME - EncoderAbsPosN[0].value) / AZ_TPD + 90.0;
+			if (current_angle > 360) current_angle -= 360;
+			else if (current_angle < 0) current_angle += 360;
+			EncoderAbsPosN[1].value = current_angle;
+	}
+	else
+	{
+	 		current_angle = 90.0 - fabs((ALT_HOME - EncoderAbsPosN[0].value) / ALT_TPD);
+			if (current_angle > 90) current_angle -= 90;
+			else if (current_angle < 0) current_angle += 90;
+			EncoderAbsPosN[1].value = current_angle;
+	}  
 }
 
 void * knroEncoder::update_helper(void *context)
