@@ -233,10 +233,14 @@ class knroObservatory
    
     /* Warning sounds */
     /*OggFile park_alert;
-    OggFile slew_complete;
-    OggFile slew_error;
+    
+
     OggFile calibration_error;*/
  
+    OggFile slew_complete;
+    OggFile slew_error;
+    OggFile slew_busy;
+
     /* Simulation */
     bool simulation;
     

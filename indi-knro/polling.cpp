@@ -132,6 +132,9 @@ void knroObservatory::ISPoll()
 							HorizontalCoordsNRP.s = IPS_OK;
 							
 							slew_stage = SLEW_NONE;
+							slew_busy.stop();
+							slew_complete.play();
+
 
 							IDSetSwitch(&ParkSP, "Telescope park complete.");
 							IDSetNumber(&HorizontalCoordsNWP, NULL);
@@ -143,6 +146,8 @@ void knroObservatory::ISPoll()
 						// FIXME Make sure to check whether on_set_coords is set to SLEW or TRACK
 						// Because when slewing, we're done here, but if there is tracking, then
 						// We go to that mode
+						slew_busy.stop();
+						slew_complete.play();
 						slew_stage = SLEW_TRACK;
 						HorizontalCoordsNWP.s = IPS_OK;
 						HorizontalCoordsNRP.s = IPS_OK;

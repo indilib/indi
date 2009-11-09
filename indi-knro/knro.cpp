@@ -237,14 +237,14 @@ void knroObservatory::init_properties()
  
   /**************************************************************************/
   IUFillNumber(&SlewPrecisionN[0], "SlewAZ",  "Az (arcmin)", "%10.6m",  0., 90., 1, 25);
-  IUFillNumber(&SlewPrecisionN[1], "SlewALT", "Alt (arcmin)", "%10.6m", 0., 90., 1, 25);
+  IUFillNumber(&SlewPrecisionN[1], "SlewALT", "Alt (arcmin)", "%10.6m", 0., 90., 1, 10);
   IUFillNumberVector(&SlewPrecisionNP, SlewPrecisionN, NARRAY(SlewPrecisionN), mydev, "Slew Precision", "", OPTIONS_GROUP, IP_RW, 0, IPS_IDLE);
   number_list.push_back(&SlewPrecisionNP);
   /**************************************************************************/
 
   /**************************************************************************/
   IUFillNumber(&TrackPrecisionN[0], "TrackAZ", "Az (arcmin)", "%10.6m",  0., 90, 1., 25);
-  IUFillNumber(&TrackPrecisionN[1], "TrackALT", "Alt (arcmin)", "%10.6m", 0., 90, 1., 25);
+  IUFillNumber(&TrackPrecisionN[1], "TrackALT", "Alt (arcmin)", "%10.6m", 0., 90, 1., 10);
   IUFillNumberVector(&TrackPrecisionNP, TrackPrecisionN, NARRAY(TrackPrecisionN), mydev, "Tracking Precision", "", OPTIONS_GROUP, IP_RW, 0, IPS_IDLE);
   number_list.push_back(&TrackPrecisionNP);
   /**************************************************************************/
@@ -271,11 +271,16 @@ void knroObservatory::init_properties()
   park_alert.set_looping( true );
   park_alert.load_file("/usr/share/media/alarm1.ogg");
   slew_complete.load_file("/usr/share/media/slew_complete.ogg");
-  slew_error.load_file("/usr/share/media/slew_error.ogg");
+
   calibAZtion_error.set_looping(true);
   calibAZtion_error.load_file("/usr/share/media/calibration_error.ogg");
 
 #endif
+
+  slew_complete.load_file("/usr/share/indi/slew_complete.ogg");
+  slew_error.load_file("/usr/share/indi/slew_error.ogg");
+  slew_busy.load_file("/usr/share/indi/slew_busy.ogg");
+  slew_busy.set_looping(true);
 
   simulation = false;
 
@@ -649,6 +654,7 @@ void knroObservatory::ISNewNumber (const char *dev, const char *name, double val
 	else
 	{
 	        HorizontalCoordsNWP.s = IPS_ALERT;
+		slew_error.play();
 		if (newALT < KNRO_MINIMUM_ALT)
 		  IDSetNumber(&HorizontalCoordsNWP, "Error: requested coordinates are below KNRO minimum altitude limit of %d degrees.", KNRO_MINIMUM_ALT);
 		else
@@ -808,6 +814,8 @@ knroObservatory::knroErrCode knroObservatory::stop_all()
    // TODO
    //park_alert.stop();
 
+   slew_busy.stop();
+
    // No need to do anything if we're stopped already
    if (!AzInverter->is_in_motion() && !AltInverter->is_in_motion())
      return SUCCESS;
@@ -891,6 +899,8 @@ void knroObservatory::execute_slew()
 	
 	IDSetNumber(&HorizontalCoordsNWP, "Slewing to Az: %s Alt: %s ...", AzStr, AltStr );
 	IDSetNumber(&HorizontalCoordsNRP, NULL);
+
+	slew_busy.play();
 }
 
 /**************************************************************************************

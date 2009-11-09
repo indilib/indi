@@ -71,7 +71,7 @@ const int ALT_MIN_COUNT = 200000;
 // 500ms sleep for encoder thread
 //const int ENCODER_POLLMS = 3000000;
 const int ENCODER_POLLMS = 10000;
-const int SIMULATED_ENCODER_POLLMS = 100000;
+const int SIMULATED_ENCODER_POLLMS = 250000;
 
 /****************************************************************
 **

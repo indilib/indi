@@ -38,6 +38,9 @@
 
 #include "inverter.h"
 
+const int ERROR_MAX_COUNT = 3;
+const int ERROR_TIMEOUT = 100000;
+
 /****************************************************************
 **
 **
@@ -225,32 +228,38 @@ bool knroInverter::move_forward()
 	
 	if (simulation)
 	{
-		ret = 3;
 		IDMessage(mydev, "%s drive: Simulating forward command.", type_name.c_str());
+		MotionControlSP.s = IPS_BUSY;
+		IDSetSwitch(&MotionControlSP, "%s drive is moving %s", type_name.c_str(), forward_motion.c_str());
+		return true;
 	}
-	else		
-		ret = force_multiple_coils(&mb_param, SLAVE_ADDRESS, MOTION_CONTROL_ADDRESS, 3, Motion_Control_Coils);
-		
-    if (ret != 3)
-    {
+
+	for (int i=0; i < ERROR_MAX_COUNT; i++)
+	{
+	   ret = force_multiple_coils(&mb_param, SLAVE_ADDRESS, MOTION_CONTROL_ADDRESS, 3, Motion_Control_Coils);
+	
+           if (ret == 3)
+	   {
+		    MotionControlSP.s = IPS_BUSY;
+		    IDSetSwitch(&MotionControlSP, "%s drive is moving %s", type_name.c_str(), forward_motion.c_str());
+		    return true;
+ 	   }
+
+	   usleep(ERROR_TIMEOUT);
+        }
+	   
 	if (debug)
 	{
 	  IDLog("Forward Command ERROR. force_multiple_coils (%d)\n", ret);
 	  IDLog("Slave = %d, address = %d, nb = %d\n", SLAVE_ADDRESS, MOTION_CONTROL_ADDRESS, 3);
 	}
+
 	Motion_Control_Coils[INVERTER_FORWARD] = 0;
 	MotionControlSP.s = IPS_ALERT;
 	IUResetSwitch(&MotionControlSP);
 	MotionControlS[INVERTER_STOP].s = ISS_ON;
 	IDSetSwitch(&MotionControlSP, "Error: %s drive failed to move %s", type_name.c_str(), forward_motion.c_str());
 	return false;
-    }
-
-    MotionControlSP.s = IPS_BUSY;
-    IDSetSwitch(&MotionControlSP, "%s drive is moving %s", type_name.c_str(), forward_motion.c_str());
-	
-    return true;
-   
 }
 
 /****************************************************************
@@ -273,29 +282,39 @@ bool knroInverter::move_reverse()
 	
 	if (simulation)
 	{
-		ret = 3;
-		IDMessage(mydev, "%s drive: Simulating reverse command.", type_name.c_str());
+	    IDMessage(mydev, "%s drive: Simulating reverse command.", type_name.c_str());
+	    MotionControlSP.s = IPS_BUSY;
+	    IDSetSwitch(&MotionControlSP, "%s drive is moving %s", type_name.c_str(), reverse_motion.c_str());
+	    return true;
 	}
-	else 
-		ret = force_multiple_coils(&mb_param, SLAVE_ADDRESS, MOTION_CONTROL_ADDRESS, 3, Motion_Control_Coils);
+
+	for (int i=0; i < ERROR_MAX_COUNT; i++)
+	{
+	       ret = force_multiple_coils(&mb_param, SLAVE_ADDRESS, MOTION_CONTROL_ADDRESS, 3, Motion_Control_Coils);
 		
-    if (ret != 3)
-    {
-	
-        IDLog("Reverse Command ERROR. force_multiple_coils (%d)\n", ret);
-	IDLog("Slave = %d, address = %d, nb = %d\n", SLAVE_ADDRESS, MOTION_CONTROL_ADDRESS, 3);
+	       if (ret == 3)
+	       {
+		    MotionControlSP.s = IPS_BUSY;
+		    IDSetSwitch(&MotionControlSP, "%s drive is moving %s", type_name.c_str(), reverse_motion.c_str());
+		    return true;
+		}
+
+  	        usleep(ERROR_TIMEOUT);
+        }
+
+	if (debug)
+	{
+	        IDLog("Reverse Command ERROR. force_multiple_coils (%d)\n", ret);
+		IDLog("Slave = %d, address = %d, nb = %d\n", SLAVE_ADDRESS, MOTION_CONTROL_ADDRESS, 3);
+	}
+
 	Motion_Control_Coils[INVERTER_REVERSE] = 0;
 	MotionControlSP.s = IPS_ALERT;
 	IUResetSwitch(&MotionControlSP);
 	MotionControlS[INVERTER_STOP].s = ISS_ON;
 	IDSetSwitch(&MotionControlSP, "Error: %s drive failed to move %s", type_name.c_str(), reverse_motion.c_str());
        return false;
-    }
-	
-    MotionControlSP.s = IPS_BUSY;
-    IDSetSwitch(&MotionControlSP, "%s drive is moving %s", type_name.c_str(), reverse_motion.c_str());
-	
-	return true;
+ 
 }
 
 /****************************************************************
@@ -314,26 +333,31 @@ bool knroInverter::stop()
 	Motion_Control_Coils[INVERTER_REVERSE] = 0;
 	
 	if (simulation)
-    {
-    	ret = 3;
-    	IDMessage(mydev, "%s drive: Simulating stop command.", type_name.c_str());
-    }
-    else		
-		ret = force_multiple_coils(&mb_param, SLAVE_ADDRESS, MOTION_CONTROL_ADDRESS, 3, Motion_Control_Coils);
+        {
+	    	IDMessage(mydev, "%s drive: Simulating stop command.", type_name.c_str());
+		MotionControlSP.s = IPS_OK;
+		IDSetSwitch(&MotionControlSP, "%s motion stopped", type_name.c_str());
+		return true;
+	}
+
+	for (int i=0; i < ERROR_MAX_COUNT; i++)
+	{
+	    ret = force_multiple_coils(&mb_param, SLAVE_ADDRESS, MOTION_CONTROL_ADDRESS, 3, Motion_Control_Coils);
 	
-    if (ret != 3)
-    {
-	 IDLog("Stop Command ERROR force_multiple_coils (%d)\n", ret);
-	 IDLog("Slave = %d, address = %d, nb = %d\n", SLAVE_ADDRESS, MOTION_CONTROL_ADDRESS, 3);
-       MotionControlSP.s = IPS_ALERT;
-       IDSetSwitch(&MotionControlSP, "Error stopping motion for %s drive", type_name.c_str());
-       return false;
-    }
-    
-    MotionControlSP.s = IPS_OK;
-    IDSetSwitch(&MotionControlSP, "%s motion stopped", type_name.c_str());
-			
-    return true;
+	    if (ret == 3)
+	    {
+		MotionControlSP.s = IPS_OK;
+		IDSetSwitch(&MotionControlSP, "%s motion stopped", type_name.c_str());
+		return true;
+	    }
+	   usleep(ERROR_TIMEOUT);
+	}
+
+	IDLog("Stop Command ERROR force_multiple_coils (%d)\n", ret);
+	IDLog("Slave = %d, address = %d, nb = %d\n", SLAVE_ADDRESS, MOTION_CONTROL_ADDRESS, 3);
+        MotionControlSP.s = IPS_ALERT;
+        IDSetSwitch(&MotionControlSP, "Error stopping motion for %s drive", type_name.c_str());
+        return false;
 }
 
 /****************************************************************
@@ -373,54 +397,52 @@ bool knroInverter::set_speed(float newHz)
       cerr << "Speed bits after processing are: " << bits << endl;
       IDLog("Hz_Speed_Register[0] = %d - Hz_Speed_Register[1] = %d\n", Hz_Speed_Register[0], Hz_Speed_Register[1]);
 
-      IDLog("****** STARTING WRITING PROCESS ******\n");      
     }
     
     if (simulation)
     {
-    	ret = 2;
-    	IDMessage(mydev, "%s drive: Simulating set speed command.", type_name.c_str());
-	}
-	else
-		ret = preset_multiple_registers(&mb_param, SLAVE_ADDRESS, HZ_HOLD_ADDRESS, 2, Hz_Speed_Register);
+	IDMessage(mydev, "%s drive: Simulating set speed command.", type_name.c_str());
+	InverterSpeedN[0].value = newHz;
+	InverterSpeedNP.s = IPS_OK;
+	IDSetNumber(&InverterSpeedNP, "%s drive speed updated to %g Hz.", type_name.c_str(), InverterSpeedN[0].value);
+	return true;
+    }
+
+	for (int i=0; i < ERROR_MAX_COUNT; i++)
+	{
+
+	ret = preset_multiple_registers(&mb_param, SLAVE_ADDRESS, HZ_HOLD_ADDRESS, 2, Hz_Speed_Register);
 	
-    if (debug)
-      IDLog("****** END WRITING PROCESS ******\n");      
+	if (ret == 2)
+	{
+	    Hz_Speed_Register[0] = 0;
+    	    Hz_Speed_Register[1] = 0;
+
+	    for (int j=0; i < ERROR_MAX_COUNT; j++)
+   	    {
+		    ret = read_holding_registers(&mb_param, SLAVE_ADDRESS, HZ_HOLD_ADDRESS, 2, Hz_Speed_Register);
+		    if (ret == 2)
+		    {
+			if (debug)
+			      IDLog("** READING ** Hz_Speed_Register[0] = %d - Hz_Speed_Register[1] = %d\n", Hz_Speed_Register[0], Hz_Speed_Register[1]);
     
-    if (ret != 2)
-    {
-      IDLog("set_speed ERROR! preset_multiple_registers (%d)\n", ret);
-      IDLog("Slave = %d, address = %d, nb = %d\n", SLAVE_ADDRESS, HZ_HOLD_ADDRESS, 2);
-      return false;
-    }                    
+			InverterSpeedN[0].value = newHz;
+			InverterSpeedNP.s = IPS_OK;
+			IDSetNumber(&InverterSpeedNP, "%s drive speed updated to %g Hz.", type_name.c_str(), InverterSpeedN[0].value);
+			return true;
+		    }
 
-    Hz_Speed_Register[0] = 0;
-    Hz_Speed_Register[1] = 0;
+		   usleep(ERROR_TIMEOUT);
+	   }
+       }
+       usleep(ERROR_TIMEOUT);
+      }
 
-    if (debug)
-      IDLog("****** STARTING READ PROCESS ******\n");  
-    if (!simulation)    
-	    ret = read_holding_registers(&mb_param, SLAVE_ADDRESS, HZ_HOLD_ADDRESS, 2, Hz_Speed_Register);
-    if (debug)
-      IDLog("****** END READ PROCESS ******\n");      
-
-    if (ret != 2)
-    {
-      IDLog("set_speed ERROR! read_holding_registers (%d)\n", ret);
+      IDLog("set_speed ERROR! read or write holding_registers (%d)\n", ret);
       IDLog("Slave = %d, address = %d, nb = %d\n", SLAVE_ADDRESS, HZ_HOLD_ADDRESS, 2);
       InverterSpeedNP.s = IPS_ALERT;
       IDSetNumber(&InverterSpeedNP, "Error: could not update speed for %s drive.", type_name.c_str());
       return false;
-    }                    
-
-    if (debug)
-      IDLog("** READING ** Hz_Speed_Register[0] = %d - Hz_Speed_Register[1] = %d\n", Hz_Speed_Register[0], Hz_Speed_Register[1]);
-    
-    InverterSpeedN[0].value = newHz;
-    InverterSpeedNP.s = IPS_OK;
-    IDSetNumber(&InverterSpeedNP, "%s drive speed updated to %g Hz.", type_name.c_str(), InverterSpeedN[0].value);
-
-    return true;
 	
 }
 
@@ -441,28 +463,27 @@ bool knroInverter::enable_drive()
 	inverter_send[0] = 1;			
 	inverter_read[0] = 0;
 
-	//stop();
-
 	if (simulation)
 	{
-		ret = 1;
 		IDMessage(mydev, "%s drive: Simulating enabling drive.", type_name.c_str());
+		return true;
 	}
-	else
-        {
- 	        ret = read_coil_status(&mb_param, SLAVE_ADDRESS, DRIVE_ENABLE_ADDRESS, 1, inverter_read);
 
-		if (inverter_read[0] != 1)
+        ret = read_coil_status(&mb_param, SLAVE_ADDRESS, DRIVE_ENABLE_ADDRESS, 1, inverter_read);
+
+	if (inverter_read[0] != 1)
+	{
+		for (int i=0; i < ERROR_MAX_COUNT; i++)
 		{
 			ret = force_multiple_coils(&mb_param, SLAVE_ADDRESS, DRIVE_ENABLE_ADDRESS, 1, inverter_send);
-	
-			if (ret != 1)
-			{
-			     IDLog("Command: Enable Drive. ERROR force_single_coil (%d)\n", ret);
-			     IDLog("Slave = %d, address = %d, value = %d (0x%X)\n", SLAVE_ADDRESS, DRIVE_ENABLE_ADDRESS, 1, 1);
-			     return false;
-			}
+			if (ret == 1)
+				return true;
+			usleep(ERROR_TIMEOUT);
 		}
+
+	     IDLog("Command: Enable Drive. ERROR force_single_coil (%d)\n", ret);
+	     IDLog("Slave = %d, address = %d, value = %d (0x%X)\n", SLAVE_ADDRESS, DRIVE_ENABLE_ADDRESS, 1, 1);
+	     return false;
 	}
    
 
@@ -487,20 +508,22 @@ bool knroInverter::disable_drive()
 
 	if (simulation)
 	{
-		ret = 1;
 		IDMessage(mydev, "%s drive: Simulating disabling drive.", type_name.c_str());
+		return true;
 	}
-	else
+
+	for (int i=0; i < ERROR_MAX_COUNT; i++)
+	{
 		ret = force_multiple_coils(&mb_param, SLAVE_ADDRESS, DRIVE_ENABLE_ADDRESS, 1, inverter_send);
 	
-   if (ret != 1)
-   {
+  	        if (ret == 1)
+			return true;
+		usleep(ERROR_TIMEOUT);
+	}
+
      IDLog("Command: Disable Drive. ERROR force_single_coil (%d)\n", ret);
      IDLog("Slave = %d, address = %d, value = %d (0x%X)\n", SLAVE_ADDRESS, DRIVE_ENABLE_ADDRESS, 0, 0);
      return false;
-   }
-	
-	return true;
 }
 
 /****************************************************************
