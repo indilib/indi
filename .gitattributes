@@ -5,6 +5,7 @@ cmake_modules/FindCFITSIO.cmake -text
 cmake_modules/FindFLI.cmake -text
 cmake_modules/FindGPHOTO2.cmake -text
 cmake_modules/FindINDI.cmake -text
+cmake_modules/FindMEADE.cmake -text
 cmake_modules/FindMODBUS.cmake -text
 cmake_modules/FindNova.cmake -text
 cmake_modules/FindQSI.cmake -text
