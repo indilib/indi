@@ -83,13 +83,14 @@ ISwitchVectorProperty ConnectSP = {
 };
 
 /* Function prototypes */
-static int camconnect(void);
+void connectDevice(void);
+static int dsi_scanbus();
 
 /* send client definitions of all properties */
 void
 ISGetProperties (char const *dev)
 {
-    if (dev && strcmp (MYDEV, dev))
+    if (dev && strcmp(MYDEV, dev))
         return;
 
     /* Communication Group */
@@ -97,29 +98,82 @@ ISGetProperties (char const *dev)
 }
 
 void
-ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+{
+    /* Let's check if the property the client wants to change is the ConnectSP
+       (name: CONNECTION) property*/
+    if (!strcmp(name, ConnectSP.name)) {
+        /* We update the switches by sending their names and updated states
+           IUUpdateSwitches function, if something goes wrong, we return */
+        if (IUUpdateSwitch(&ConnectSP, states, names, n) < 0)
+            return;
+
+        /* We try to establish a connection to our device */
+        connectDevice();
+        return;
+    }
+}
+
+void
+ISNewNumber(const char * dev, const char *name, double *doubles, char *names[], int n)
 {
 }
 
 void
-ISNewNumber (const char * dev, const char *name, double *doubles, char *names[], int n)
+ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+{
+}
+void
+ISNewBLOB(const char *dev, const char *name, int sizes[],
+          int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
 {
 }
 
 void
-ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-}
-void
-ISNewBLOB (const char *dev, const char *name, int sizes[],
-           int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
-{
-}
-
-void
-ISSnoopDevice (XMLEle *root)
+ISSnoopDevice(XMLEle *root)
 {
     INDI_UNUSED(root);
+}
+
+void
+connectDevice(void)
+{
+    /* Now we check the state of CONNECT, the 1st member of
+       the ConnectSP property we defined earliar */
+    switch (ConnectS[0].s) {
+        /* If CONNECT is on, then try to establish a connection to the device */
+        case ISS_ON:
+
+            /* The IDLog function is a very useful function that will log time-stamped
+               messages to stderr. This function is invaluable to debug your drivers.
+               It operates like printf */
+            IDLog ("Establishing a connection to %s...\n", MYDEV);
+
+            /* Change the state of the ConnectSP (CONNECTION) property to OK */
+            ConnectSP.s = IPS_OK;
+
+            dsi_scanbus();
+
+            /* Tell the client to update the states of the ConnectSP
+               property, and send a message to inform successful connection */
+            IDSetSwitch(&ConnectSP, "Connection to %s is successful.", MYDEV);
+            break;
+
+            /* If CONNECT is off (which is the same thing as DISCONNECT being on),
+               then try to disconnect the device */
+        case ISS_OFF:
+
+            IDLog ("Terminating connection to %s...\n", MYDEV);
+
+            /* The device is disconnected, change the state to IDLE */
+            ConnectSP.s = IPS_IDLE;
+
+            /* Tell the client to update the states of the ConnectSP property,
+               and send a message to inform successful disconnection */
+            IDSetSwitch(&ConnectSP, "%s has been disconneced.", MYDEV);
+
+            break;
+    }
 }
 
 static int dsi_scanbus()
