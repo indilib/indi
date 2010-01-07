@@ -47,40 +47,80 @@
 /* operational info */
 #define MYDEV "Meade DSI"			/* Device name we call ourselves */
 
-#define COMM_GROUP	"Communication"
-#define EXPOSE_GROUP	"Expose"
-#define IMAGE_GROUP	"Image Settings"
-#define DATA_GROUP      "Data Channel"
+#define MAIN_CONN_GROUP	"Main Connect"
 
 typedef struct node node_t;
 
+typedef struct indidsi_device indidsi_t;
+
 struct node {
     node_t *next, *prev;
-    dsi_camera_t *dsi;
+    indidsi_t *indidsi;
 };
 
 static node_t *first = 0;
 
-static int dsi_camera_count = 0;
-static int dis_camera_list_size = 0;
-static dsi_camera_t **dsi_camera_list = 0;
-
-/**********************************************************************************************/
-/************************************ GROUP: Communication ************************************/
-/**********************************************************************************************/
-
-/********************************************
- Property: Connection
-*********************************************/
+/* Property: Connection */
 enum { ON_S, OFF_S };
 static ISwitch ConnectS[] = {
     {"CONNECT" , "Connect" , ISS_OFF, 0, 0},
     {"DISCONNECT", "Disconnect", ISS_ON, 0, 0}
 };
 ISwitchVectorProperty ConnectSP = {
-    MYDEV, "CONNECTION" , "Connection", COMM_GROUP, IP_RW,
+    MYDEV, "CONNECTION" , "Connection", MAIN_CONN_GROUP, IP_RW,
     ISR_1OFMANY, 0, IPS_IDLE, ConnectS, NARRAY(ConnectS), "", 0
 };
+
+struct indidsi_device {
+    dsi_camera_t *dsi;
+    ITextVectorProperty desc;
+};
+
+indidsi_t *
+dsi_create(dsi_camera_t *dsi) {
+    indidsi_t *indidsi;
+    /* This is our prototype with the static field names that we do NOT
+       deallocate. */
+    static const IText desc[] = {
+        {"CHIP_NAME", "Chip", 0, 0, 0, 0},
+        {"CAMERA_NAME", "Name", 0, 0, 0, 0}
+    };
+    IText *desc_cp;
+
+    indidsi = calloc(1, sizeof(indidsi_t));
+    indidsi->dsi = dsi;
+
+    strncpy(indidsi->desc.device, MYDEV, sizeof(indidsi->desc.device));
+    strncpy(indidsi->desc.name, "DESCRIPTION", sizeof(indidsi->desc.name));
+    strncpy(indidsi->desc.label, "Description", sizeof(indidsi->desc.label));
+    strncpy(indidsi->desc.group, dsi_get_serial_number(dsi), sizeof(indidsi->desc.group));
+    indidsi->desc.p         = IP_RW;
+    indidsi->desc.timeout   = 0;
+    indidsi->desc.s         = IPS_IDLE;
+
+    indidsi->desc.tp = calloc(NARRAY(desc), sizeof(IText));
+    memcpy(indidsi->desc.tp, desc, NARRAY(desc)*sizeof(IText));
+    indidsi->desc.tp[0].text = strdup(dsi_get_chip_name(indidsi->dsi));
+    indidsi->desc.tp[0].tvp  = &(indidsi->desc);
+    indidsi->desc.tp[1].text = strdup(dsi_get_camera_name(indidsi->dsi));
+    indidsi->desc.tp[1].tvp  = &(indidsi->desc);
+    indidsi->desc.ntp       = NARRAY(desc);
+
+    /* indidsi->desc.timestamp = 0; */
+    indidsi->desc.aux       = 0;
+
+    return indidsi;
+}
+
+void
+indidsi_destroy(indidsi_t *indidsi) {
+    free(indidsi->desc.tp[0].text);
+    free(indidsi->desc.tp[1].text);
+    free(indidsi->desc.tp);
+    dsi_close(indidsi->dsi);
+    free(indidsi);
+    return;
+}
 
 /* Function prototypes */
 void connectDevice(void);
@@ -138,6 +178,8 @@ ISSnoopDevice(XMLEle *root)
 void
 connectDevice(void)
 {
+    node_t *node;
+
     /* Now we check the state of CONNECT, the 1st member of
        the ConnectSP property we defined earliar */
     switch (ConnectS[0].s) {
@@ -147,7 +189,7 @@ connectDevice(void)
             /* The IDLog function is a very useful function that will log time-stamped
                messages to stderr. This function is invaluable to debug your drivers.
                It operates like printf */
-            IDLog ("Establishing a connection to %s...\n", MYDEV);
+            IDLog("Establishing a connection to %s...\n", MYDEV);
 
             /* Change the state of the ConnectSP (CONNECTION) property to OK */
             ConnectSP.s = IPS_OK;
@@ -157,7 +199,17 @@ connectDevice(void)
             /* Tell the client to update the states of the ConnectSP
                property, and send a message to inform successful connection */
             IDSetSwitch(&ConnectSP, "Connection to %s is successful.", MYDEV);
+
+            IDLog("first = %p\n", first);
+
+            for (node = first; node != 0; node = node->next) {
+                IDLog("defining new description for %s\n", node->indidsi->desc.tp[0].text);
+                IDDefText(&(node->indidsi->desc), "hello!");
+            }
+
             break;
+
+
 
             /* If CONNECT is off (which is the same thing as DISCONNECT being on),
                then try to disconnect the device */
@@ -171,6 +223,16 @@ connectDevice(void)
             /* Tell the client to update the states of the ConnectSP property,
                and send a message to inform successful disconnection */
             IDSetSwitch(&ConnectSP, "%s has been disconneced.", MYDEV);
+
+
+            /* FIXME: Alas, simple descriptions won't work because property
+               names are effectively device-global.  So we really need to
+               dynamically assign property names based on the device
+               sequence.  We're back to arrays instead of lists. */
+            for (node = first; node != 0; node = node->next) {
+                indidsi_destroy(node->indidsi);
+                IDDelete(MYDEV, "DESCRIPTION", "bye, bye.");
+            }
 
             break;
     }
@@ -193,8 +255,8 @@ static int dsi_scanbus()
     if (first != 0) {
         node_t *node = first;
         while (node != 0) {
-            dsi_close(node->dsi);
-            node->dsi = 0;
+            indidsi_destroy(node->indidsi);
+            node->indidsi = 0;
             node = node->next;
             node->prev->next = 0;
             node->prev = 0;
@@ -210,17 +272,19 @@ static int dsi_scanbus()
             if ((  (dev->descriptor.idVendor = 0x156c))
                 && (dev->descriptor.idProduct == 0x0101)) {
 
-                IDLog("Found device %04x:%04x at usb:%s,%s\n",
+                IDLog("indi_meadedsi found device %04x:%04x at usb:%s,%s\n",
                       dev->descriptor.idVendor, dev->descriptor.idProduct,
                       bus->dirname, dev->filename);
 
                 /* Found a DSI device, open it and add it to our list. */
                 snprintf(device, 100, "usb:%s,%s", bus->dirname, dev->filename);
+                IDLog("trying to open device %s\n", device);
                 dsi_camera_t *dsi = dsi_open(device);
+                IDLog("opened new DSI camera, dsi=%p\n", dsi);
                 if (dsi != 0) {
-                    if (!first) {
+                    if (first == 0) {
                         first = calloc(1, sizeof(node_t));
-                        first->dsi = dsi;
+                        first->indidsi = dsi_create(dsi);
                     } else {
                         node_t *node = first;
                         while (node->next != 0) {
@@ -228,12 +292,13 @@ static int dsi_scanbus()
                         }
                         node->next = calloc(1, sizeof(node_t));
                         node->next->prev = node;
-                        node->next->dsi = dsi;
+                        node->next->indidsi = dsi_create(dsi);
                     }
                 }
             }
         }
     }
+
     /* At this point, 'first' points to the first node in a list of DSI
        devices that we found and we should have found all of them that are
        plugged in. */
