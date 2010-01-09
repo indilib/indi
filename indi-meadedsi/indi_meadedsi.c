@@ -66,60 +66,191 @@ static ISwitch ConnectS[] = {
     {"CONNECT" , "Connect" , ISS_OFF, 0, 0},
     {"DISCONNECT", "Disconnect", ISS_ON, 0, 0}
 };
+
 ISwitchVectorProperty ConnectSP = {
     MYDEV, "CONNECTION" , "Connection", MAIN_CONN_GROUP, IP_RW,
     ISR_1OFMANY, 0, IPS_IDLE, ConnectS, NARRAY(ConnectS), "", 0
 };
 
-struct indidsi_device {
+static int device_count = 0;
+
+struct indidsi_device
+{
     dsi_camera_t *dsi;
+    char *group;
+    ITextVectorProperty name;
     ITextVectorProperty desc;
+
 };
 
+void
+init_itextvector(ITextVectorProperty *itvp, const char *device,
+                 const char *name, const char *label,
+                 const char *group, IPerm perm, double timeout,
+                 IPState state, IText *itext, int itext_length,
+                 const char *timestamp, void *aux);
+
+/* FIXME: Should be abstracted out as list management with simpler
+ * add/remove/find opererations.  Do I want to do the whole glib thing as that
+ * adds a dependence that may be undesirable for INDI.
+ */
+
+/**
+ * Create and insert a new node into a double-linked list after the given
+ * node.  Helper function for linked-list management.
+ *
+ * @param node The node to be inserted after.
+ *
+ * @return Pointer to the newly allocated node.
+ *
+ */
+static node_t *
+node_create_and_insert_after(node_t *node)
+{
+    node_t *new_node = calloc(1, sizeof(node_t));
+    new_node->next = 0;
+    new_node->prev = node;
+    if (node)
+        node->next = new_node;
+    return new_node;
+}
+
+/**
+ * Removed linked-list node from list and deallocates its storage.  Helper
+ * function on linked-list management.
+ *
+ * @param node The node to be removed.
+ *
+ * @return Pointer to next node.
+ */
+static node_t *
+node_destroy_and_relink(node_t *node)
+{
+    node_t *next;
+    if (!node)
+        return 0;
+    if (node->next)
+        node->next->prev = node->prev;
+    if (node->prev)
+        node->prev->next = node->next;
+    next = node->next;
+    node->next = node->prev = 0;
+    free(node);
+    return next;
+}
+
+/**
+ * Create a new INDI DSI "group" which references a single physical device.
+ *
+ * @param dsi Pointer to an already connected DSI device which will be
+ * presented to the client.
+ *
+ * @return Pointer to the INDI DSI device for communicating with the client.
+ */
+IText *
+init_itext(IText *itext,
+           const char *name, const char *label, const char *text,
+           ITextVectorProperty *tvp, void *aux0, void *aux1)
+{
+    strncpy(itext->name, name, MAXINDINAME);
+    strncpy(itext->label, label, MAXINDILABEL);
+    itext->text = strdup(text);
+    itext->tvp  = tvp;
+    itext->aux0 = aux0;
+    itext->aux1 = aux1;
+    return itext;
+}
+
 indidsi_t *
-dsi_create(dsi_camera_t *dsi) {
+dsi_create(dsi_camera_t *dsi)
+{
     indidsi_t *indidsi;
-    /* This is our prototype with the static field names that we do NOT
-       deallocate. */
-    static const IText desc[] = {
-        {"CHIP_NAME", "Chip", 0, 0, 0, 0},
-        {"CAMERA_NAME", "Name", 0, 0, 0, 0}
-    };
-    IText *desc_cp;
+    int bytes_needed;
 
     indidsi = calloc(1, sizeof(indidsi_t));
     indidsi->dsi = dsi;
 
-    strncpy(indidsi->desc.device, MYDEV, sizeof(indidsi->desc.device));
-    strncpy(indidsi->desc.name, "DESCRIPTION", sizeof(indidsi->desc.name));
-    strncpy(indidsi->desc.label, "Description", sizeof(indidsi->desc.label));
-    strncpy(indidsi->desc.group, dsi_get_serial_number(dsi), sizeof(indidsi->desc.group));
-    indidsi->desc.p         = IP_RW;
-    indidsi->desc.timeout   = 0;
-    indidsi->desc.s         = IPS_IDLE;
+    /* Okay, figure out the camera type and make it human readable. */
+    bytes_needed = snprintf(0, 0, "%d: %s", device_count, dsi_get_camera_class_name(indidsi->dsi));
+    indidsi->group = malloc(bytes_needed+1);
+    snprintf(indidsi->group, bytes_needed, "%d: %s",
+             device_count, dsi_get_camera_class_name(indidsi->dsi));
 
-    indidsi->desc.tp = calloc(NARRAY(desc), sizeof(IText));
-    memcpy(indidsi->desc.tp, desc, NARRAY(desc)*sizeof(IText));
-    indidsi->desc.tp[0].text = strdup(dsi_get_chip_name(indidsi->dsi));
-    indidsi->desc.tp[0].tvp  = &(indidsi->desc);
-    indidsi->desc.tp[1].text = strdup(dsi_get_camera_name(indidsi->dsi));
-    indidsi->desc.tp[1].tvp  = &(indidsi->desc);
-    indidsi->desc.ntp       = NARRAY(desc);
+    IDLog("new physical device, %s\n", indidsi->group);
 
-    /* indidsi->desc.timestamp = 0; */
-    indidsi->desc.aux       = 0;
+    indidsi->desc.tp = calloc(3, sizeof(IText));
+    init_itext(indidsi->desc.tp+0,
+               "CAMERA_TYPE", "Camera Type",
+               dsi_get_camera_class_name(indidsi->dsi),
+               &(indidsi->desc), 0, 0);
+    init_itext(indidsi->desc.tp+1,
+               "CHIP_NAME", "Chip Name",
+               dsi_get_chip_name(indidsi->dsi),
+               &(indidsi->desc), 0, 0);
+    init_itext(indidsi->desc.tp+2,
+               "SERIAL_NO", "Serial No.",
+               dsi_get_serial_number(indidsi->dsi),
+               &(indidsi->desc), 0, 0);
+
+    init_itextvector(&(indidsi->desc), MYDEV, "DESCRIPTION", "Description",
+                     indidsi->group, IP_RO, 0, IPS_IDLE, indidsi->desc.tp, 3, 0, 0);
 
     return indidsi;
 }
 
 void
-indidsi_destroy(indidsi_t *indidsi) {
-    free(indidsi->desc.tp[0].text);
-    free(indidsi->desc.tp[1].text);
-    free(indidsi->desc.tp);
-    dsi_close(indidsi->dsi);
-    free(indidsi);
-    return;
+init_itextvector(ITextVectorProperty *itvp, const char *device,
+                const char *name, const char *label,
+                const char *group, IPerm perm, double timeout,
+                IPState state, IText *itext, int itext_length,
+                const char *timestamp, void *aux)
+{
+    if (itvp == 0)
+        return;
+
+    if (device == 0)
+        itvp->device[0] = 0;
+    else
+        strncpy(itvp->device, device, MAXINDIDEVICE);
+
+    if (label == 0)
+        itvp->name[0] = 0;
+    else
+        strncpy(itvp->name, name, MAXINDINAME);
+
+    if (label == 0)
+        itvp->label[0] = 0;
+    else
+        strncpy(itvp->label, label, MAXINDILABEL);
+
+    if (group == 0)
+        itvp->group[0] = 0;
+    else
+        strncpy(itvp->group, group, MAXINDIGROUP);
+
+    itvp->p         = IP_RO;
+    itvp->timeout   = 0;
+    itvp->s         = IPS_IDLE;
+    itvp->tp        = itext;
+    itvp->ntp       = itext_length;
+
+   if (timestamp == 0)
+        itvp->timestamp[0] = 0;
+    else
+        strncpy(itvp->timestamp, timestamp, MAXINDITSTAMP);
+
+   itvp->aux       = aux;
+}
+
+void
+indidsi_destroy(indidsi_t *indidsi)
+{
+   free(indidsi->desc.tp[0].text);
+   free(indidsi->desc.tp[1].text);
+   free(indidsi->desc.tp);
+   dsi_close(indidsi->dsi);
+   free(indidsi);
+   return;
 }
 
 /* Function prototypes */
@@ -163,9 +294,10 @@ void
 ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
 }
+
 void
 ISNewBLOB(const char *dev, const char *name, int sizes[],
-          int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+         int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
 {
 }
 
@@ -224,21 +356,24 @@ connectDevice(void)
                and send a message to inform successful disconnection */
             IDSetSwitch(&ConnectSP, "%s has been disconneced.", MYDEV);
 
-
             /* FIXME: Alas, simple descriptions won't work because property
                names are effectively device-global.  So we really need to
                dynamically assign property names based on the device
                sequence.  We're back to arrays instead of lists. */
-            for (node = first; node != 0; node = node->next) {
-                indidsi_destroy(node->indidsi);
+            node = first;
+            while (node) {
                 IDDelete(MYDEV, "DESCRIPTION", "bye, bye.");
-            }
 
+                indidsi_destroy(node->indidsi);
+                node = node_destroy_and_relink(node);
+            }
+            first = 0;
             break;
     }
 }
 
-static int dsi_scanbus()
+static int
+dsi_scanbus()
 {
     struct usb_bus *bus;
     struct usb_device *dev;
@@ -256,11 +391,7 @@ static int dsi_scanbus()
         node_t *node = first;
         while (node != 0) {
             indidsi_destroy(node->indidsi);
-            node->indidsi = 0;
-            node = node->next;
-            node->prev->next = 0;
-            node->prev = 0;
-            first = node;
+            node = node_destroy_and_relink(node);
         }
     }
 
@@ -282,18 +413,19 @@ static int dsi_scanbus()
                 dsi_camera_t *dsi = dsi_open(device);
                 IDLog("opened new DSI camera, dsi=%p\n", dsi);
                 if (dsi != 0) {
-                    if (first == 0) {
-                        first = calloc(1, sizeof(node_t));
-                        first->indidsi = dsi_create(dsi);
+                    node_t *node = first;
+                    if (node == 0) {
+                        IDLog("assigning to first\n");
+                        first = node = node_create_and_insert_after(first);
                     } else {
-                        node_t *node = first;
+                        /* Ugly way of "keeping track" of last! */
+                        IDLog("walking node list from first to last\n");
                         while (node->next != 0) {
                             node = node->next;
                         }
-                        node->next = calloc(1, sizeof(node_t));
-                        node->next->prev = node;
-                        node->next->indidsi = dsi_create(dsi);
                     }
+                    node->indidsi = dsi_create(dsi);
+                    IDLog("added new node %p with %p\n", node, node->indidsi);
                 }
             }
         }
