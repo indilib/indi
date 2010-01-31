@@ -95,7 +95,7 @@ static void errordumper(GPLogLevel level, const char *domain, const char *format
 	}
 }
 
-static void dprintf(const char *format, ...) {
+static void gp_dprintf(const char *format, ...) {
 	va_list args;
 
 	if (debug) {
@@ -288,7 +288,7 @@ static void *stop_bulb(void *arg)
 		timeout_set = 0;
 		// All camera opertions take place with the mutex held, so we are thread-safe
 		pthread_cond_timedwait(&gphoto->signal, &gphoto->mutex, &timeout);
-		dprintf("timeout expired\n");
+		gp_dprintf("timeout expired\n");
 		if (! (gphoto->command & DSLR_CMD_DONE) && (gphoto->command & DSLR_CMD_BULB_CAPTURE)) {
 			result = gp_camera_wait_for_event(gphoto->camera, 1, &event, &data, gphoto->context);
 			switch (event) {
@@ -297,10 +297,10 @@ static void *stop_bulb(void *arg)
 			}
 			gettimeofday(&curtime, NULL);
 			timeleft = ((gphoto->bulb_end.tv_sec - curtime.tv_sec)*1000)+((gphoto->bulb_end.tv_usec - curtime.tv_usec)/1000);
-			dprintf("Time left: %ld\n", timeleft);
+			gp_dprintf("Time left: %ld\n", timeleft);
 			if (timeleft < 0) {
 				//shut off bulb mode
-				dprintf("Closing shutter\n");
+				gp_dprintf("Closing shutter\n");
 				if (gphoto->bulb_widget) {
 					set_widget_num(gphoto, gphoto->bulb_widget, FALSE);
 				} else {
@@ -389,15 +389,15 @@ static void download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
 	} else {
 		result = gp_file_new_from_fd(&gphoto->camerafile, fd);
 	}
-	dprintf("  Retval: %d\n", result);
-	dprintf("Downloading %s/%s\n", fn->folder, fn->name);
+	gp_dprintf("  Retval: %d\n", result);
+	gp_dprintf("Downloading %s/%s\n", fn->folder, fn->name);
 	result = gp_camera_file_get(gphoto->camera, fn->folder, fn->name,
 		     GP_FILE_TYPE_NORMAL, gphoto->camerafile, gphoto->context);
-	dprintf("  Retval: %d\n", result);
-	dprintf("Deleting.\n");
+	gp_dprintf("  Retval: %d\n", result);
+	gp_dprintf("Deleting.\n");
 	result = gp_camera_file_delete(gphoto->camera, fn->folder, fn->name,
 			gphoto->context);
-	dprintf("  Retval: %d\n", result);
+	gp_dprintf("  Retval: %d\n", result);
 	if(fd >= 0) {
 		// This will close the file descriptor
 		gp_file_free(gphoto->camerafile);
@@ -412,9 +412,9 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec)
 		fprintf(stderr, "No exposure widget.  Can't expose\n");
 		return 1;
 	}
-	dprintf("Starting exposure\n");
+	gp_dprintf("Starting exposure\n");
 	pthread_mutex_lock(&gphoto->mutex);
-	dprintf("  Mutex locked\n");
+	gp_dprintf("  Mutex locked\n");
 
 	if (gphoto->iso >= 0)
 		set_widget_num(gphoto, gphoto->iso_widget, gphoto->iso);
@@ -429,7 +429,7 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec)
 			fprintf(stderr, "Warning: Bulb mode isn't supported.  exposure limited to maximum camera exposure\n");
 		} else {
 			//Bulb mode is supported
-			dprintf("Using bulb mode\n");
+			gp_dprintf("Using bulb mode\n");
 		
 			set_widget_num(gphoto, gphoto->exposure_widget, idx);
 		
@@ -452,18 +452,18 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec)
 			gphoto->command = DSLR_CMD_BULB_CAPTURE;
 			pthread_cond_signal(&gphoto->signal);
 			pthread_mutex_unlock(&gphoto->mutex);
-			dprintf("Exposure started\n");
+			gp_dprintf("Exposure started\n");
 			return 0;
 		}
 	}
 	// Not using bulb mode
 	idx = find_exposure_setting(gphoto, gphoto->exposure_widget, exptime_msec);
-	dprintf("Using exposure time: %s\n", gphoto->exposure_widget->choices[idx]);
+	gp_dprintf("Using exposure time: %s\n", gphoto->exposure_widget->choices[idx]);
 	set_widget_num(gphoto, gphoto->exposure_widget, idx);
 	gphoto->command = DSLR_CMD_CAPTURE;
 	pthread_cond_signal(&gphoto->signal);
 	pthread_mutex_unlock(&gphoto->mutex);
-	dprintf("Exposure started\n");
+	gp_dprintf("Exposure started\n");
 	return 0;
 }
 
@@ -475,7 +475,7 @@ int gphoto_read_exposure_fd(gphoto_driver *gphoto, int fd)
 	int result;
 
 	// Wait for exposure to complete
-	dprintf("Reading exposure\n");
+	gp_dprintf("Reading exposure\n");
 	pthread_mutex_lock(&gphoto->mutex);
 	if (gphoto->camerafile) {
 		gp_file_free(gphoto->camerafile);
@@ -483,7 +483,7 @@ int gphoto_read_exposure_fd(gphoto_driver *gphoto, int fd)
 	}
 	if(! gphoto->command & DSLR_CMD_DONE)
 		pthread_cond_wait(&gphoto->signal, &gphoto->mutex);
-	dprintf("Exposure complete\n");
+	gp_dprintf("Exposure complete\n");
 	if (gphoto->command & DSLR_CMD_CAPTURE) {
 		download_image(gphoto, &gphoto->camerapath, fd);
 		gphoto->command = 0;
@@ -504,7 +504,7 @@ int gphoto_read_exposure_fd(gphoto_driver *gphoto, int fd)
 		}
 		switch (event) {
 		case GP_EVENT_FILE_ADDED:
-			dprintf("Captured an image\n");
+			gp_dprintf("Captured an image\n");
 			fn = (CameraFilePath*)data;
 			download_image(gphoto, fn, fd);
 			//Set exposure back to original value
@@ -514,7 +514,7 @@ int gphoto_read_exposure_fd(gphoto_driver *gphoto, int fd)
 			return 0;
 			break;
 		default:
-			dprintf("Got unexpected message: %d\n", event);
+			gp_dprintf("Got unexpected message: %d\n", event);
 		}
 		pthread_mutex_unlock(&gphoto->mutex);
 		usleep(500 * 1000);
@@ -591,7 +591,7 @@ gphoto_driver *gphoto_open(const char *shutter_release_port)
 	GPContext *canoncontext = create_context();
 	int result;
 
-	dprintf("Opening gphoto\n");
+	gp_dprintf("Opening gphoto\n");
 	gp_log_add_func(GP_LOG_ERROR, errordumper, NULL);
 	gp_camera_new(&canon);
 
@@ -600,10 +600,10 @@ gphoto_driver *gphoto_open(const char *shutter_release_port)
 	 * is partly why it takes so long.
 	 * (Marcus: the ptp2 driver does this by default currently.)
 	 */
-	dprintf("Camera init.  Takes about 10 seconds.\n");
+	gp_dprintf("Camera init.  Takes about 10 seconds.\n");
 	result = gp_camera_init(canon, canoncontext);
 	if (result != GP_OK) {
-		dprintf("  Retval: %d\n", result);
+		gp_dprintf("  Retval: %d\n", result);
 		return NULL;
 	}
 
@@ -637,17 +637,17 @@ gphoto_driver *gphoto_open(const char *shutter_release_port)
 
 	if(shutter_release_port) {
 		strncpy(gphoto->bulb_port, shutter_release_port, sizeof(gphoto->bulb_port));
-		dprintf("Using external shutter-release cable\n");
+		gp_dprintf("Using external shutter-release cable\n");
 	}
 	gphoto->bulb_fd = -1;
 
-	dprintf("Gphoto initialized\n");
+	gp_dprintf("Gphoto initialized\n");
 	pthread_mutex_init(&gphoto->mutex, NULL);
 	pthread_cond_init(&gphoto->signal, NULL);
 	pthread_mutex_lock(&gphoto->mutex);
 	pthread_create(&gphoto->thread, NULL, stop_bulb, gphoto);
 	pthread_cond_wait(&gphoto->signal, &gphoto->mutex);
-	dprintf("Blub-stop thread enabled\n");
+	gp_dprintf("Blub-stop thread enabled\n");
 	pthread_mutex_unlock(&gphoto->mutex);
 	return gphoto;
 }
