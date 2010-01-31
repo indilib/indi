@@ -111,7 +111,7 @@ int qhy5_start_exposure(qhy5_driver *qhy5, unsigned int exposure)
 int qhy5_read_exposure(qhy5_driver *qhy5)
 {
 	int result;
-	dprintf("Reading %08x bytes\n", qhy5->imagesize);
+	dprintf("Reading %08x bytes\n", (unsigned int)qhy5->imagesize);
 	result = usb_bulk_read(qhy5->handle, 0x82, qhy5->image, qhy5->imagesize, 20000);
 	if (result == qhy5->imagesize) {
 		dprintf( "Bytes: %d\n", result);
@@ -123,7 +123,7 @@ int qhy5_read_exposure(qhy5_driver *qhy5)
 		}
 */
 	} else {
-		printf("Failed to read image. Got: %d, expected %d\n", result, qhy5->imagesize);
+		printf("Failed to read image. Got: %d, expected %u\n", result, (unsigned int)qhy5->imagesize);
 		return 1;
 	}
 	return 0;
