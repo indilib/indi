@@ -1,8 +1,16 @@
 cmake_minimum_required(VERSION 2.4.7)
 
+
+##################  INDI version  ################################
 set(INDI_VERSION "0.6")
 set(INDI_SOVERSION "0")
 
+set(CMAKE_INDI_VERSION_MAJOR 0)
+set(CMAKE_INDI_VERSION_MINOR 6)
+set(CMAKE_INDI_VERSION_RELEASE 1)
+set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
+
+##################  Paths  ################################
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
 set(DATA_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/share/indi/")
 set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
@@ -10,6 +18,14 @@ set(INCLUDE_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/include")
 
 MESSAGE( STATUS "BIN_INSTALL_DIR: " ${BIN_INSTALL_DIR} )
 
+##################  setup install directories  ################################
+set (LIB_SUFFIX "" CACHE STRING "Define suffix of directory name (32/64)" )
+set (LIB_DESTINATION "${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}" CACHE STRING "Library directory name")
+## the following are directories where stuff will be installed to
+set(INCLUDE_INSTALL_DIR      "${CMAKE_INSTALL_PREFIX}/include/" CACHE PATH "The subdirectory to the header prefix")
+set(PKGCONFIG_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}/pkgconfig/" CACHE STRING "Base directory for pkgconfig files")
+
+##################  Includes  ################################
 Include (CheckCXXSourceCompiles)
 include (MacroOptionalFindPackage)
 include (MacroLogFeature)
@@ -598,4 +614,7 @@ install( FILES drivers.xml DESTINATION ${DATA_INSTALL_DIR})
 
 install( FILES indiapi.h indidevapi.h base64.h eventloop.h ${CMAKE_SOURCE_DIR}/libs/lilxml.h
  ${CMAKE_SOURCE_DIR}/libs/indicom.h DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libindi.pc.cmake ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc @ONLY)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc DESTINATION ${PKGCONFIG_INSTALL_PREFIX})
 
