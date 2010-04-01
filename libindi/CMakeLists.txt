@@ -383,7 +383,7 @@ set(stv_SRCS
 
 add_executable(indi_sbig_stv ${stv_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
 
-target_link_libraries(indi_sbig_stv z ${NOVA_LIBRARIES} ${CFITSIO_LIBRARIES})
+target_link_libraries(indi_sbig_stv z m ${NOVA_LIBRARIES} ${CFITSIO_LIBRARIES})
 
 install(TARGETS indi_sbig_stv RUNTIME DESTINATION bin )
 

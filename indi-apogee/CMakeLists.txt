@@ -38,8 +38,8 @@ set(indiapogee_SRCS
 add_executable(indi_apogeeu_ccd ${indiapogee_SRCS})
 add_executable(indi_apogeee_ccd ${indiapogee_SRCS})
 
-target_link_libraries(indi_apogeeu_ccd ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${APOGEEU_LIBRARIES} z)
-target_link_libraries(indi_apogeee_ccd ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${APOGEEE_LIBRARIES} z)
+target_link_libraries(indi_apogeeu_ccd ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${APOGEEU_LIBRARIES} z m)
+target_link_libraries(indi_apogeee_ccd ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${APOGEEE_LIBRARIES} z m)
 
 if (NOVA_FOUND)
   target_link_libraries(indi_apogeeu_ccd ${NOVA_LIBRARIES})
