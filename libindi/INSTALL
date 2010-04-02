@@ -1,5 +1,5 @@
-INDI Library Setup 1.0
-======================
+INDI Library Setup 0.6.1
+========================
 
 You must have CMake >= 2.4.7 in order to build this package.
 
