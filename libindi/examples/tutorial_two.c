@@ -99,8 +99,8 @@ static INumberVectorProperty eqNP = {  mydev, "EQUATORIAL_EOD_COORD", "Equatoria
 
 
 /* Equatorial EOD Coord Request. This property is for requesting changes to target equatorial coordinates. However, the CURRENT coordinates are reported in EQUATORIAL_EOD_COORDS above.*/
-static INumber eqNR[] = {{"RA_REQUEST" ,"RA  H:M:S" , "%10.6m" ,0. , 24., 0., 0., 0, 0, 0},
-			 {"DEC_REQUEST", "Dec D:M:S", "%10.6m", -90., 90., 0., 0., 0, 0, 0}};
+static INumber eqNR[] = {{"RA" ,"RA  H:M:S" , "%10.6m" ,0. , 24., 0., 0., 0, 0, 0},
+			 {"DEC", "Dec D:M:S", "%10.6m", -90., 90., 0., 0., 0, 0, 0}};
 static INumberVectorProperty eqNPR = {  mydev, "EQUATORIAL_EOD_COORD_REQUEST", "Equatorial Request",  MAIN_GROUP , IP_RW, 0, IPS_IDLE,  eqNR, NARRAY(eqNR), "", 0};
 
 /* Property naming convention. All property names are lower case with a postfix to indicate their type. connectS is a switch, 
