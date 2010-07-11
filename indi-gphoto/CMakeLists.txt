@@ -3,6 +3,7 @@ PROJECT(indi_gphoto_ccd C)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
 set(DATA_INSTALL_DIR "share/indi/")
+SET(CMAKE_C_FLAGS "-Wall" )
 
 Include (CheckCSourceCompiles)
 include (MacroOptionalFindPackage)

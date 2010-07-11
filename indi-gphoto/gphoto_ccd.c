@@ -131,7 +131,6 @@ static IBLOBVectorProperty FitsBP = {MYDEV, "Pixels", "Image data", DATA_GROUP, 
 /* Function prototypes */
 static void getStartConditions(void);
 static void expTO (void *vp);
-static void addFITSKeywords(fitsfile *fptr);
 static void uploadFile(const void *fitsData, size_t totalBytes, const char *ext);
 /*static void sendFITS (char *fits, int nfits);*/
 static int camconnect(void);
@@ -348,13 +347,7 @@ getStartConditions()
 static void expTO (void *vp)
 {
 	INDI_UNUSED(vp);
-	int zero = 0;
-	int type = TUSHORT;
-  	long  fpixel = 1, naxis = 2;
-  	long naxes[2];
 	char ext[16];
-	unsigned short *fits;
-	int i, fd;
 	void *memptr = NULL;
 	size_t memsize;
   
@@ -371,11 +364,7 @@ static void expTO (void *vp)
 
 	if(TransferS[FITS_S].s == ISS_ON) {
 		int fd;
-		FILE *rawFH;
 		char tmpfile[] = "/tmp/indi_XXXXXX";
-		char cmd[256], tmpstr[256];
-		char *buffer;
-		int impixw, impixh;
 		// Convert to FITS
 
 		//dcraw can't read from stdin, so we need to write to disk then read it back
@@ -432,21 +421,11 @@ static void expTO (void *vp)
 	}
 }
 
-void addFITSKeywords(fitsfile *fptr)
-{
-  int status=0;
-
-  /* TODO add other data later */
-  fits_write_date(fptr, &status);
-}
-
 void uploadFile(const void *fitsData, size_t totalBytes, const char *ext)
 {
    unsigned char *compressedData;
    int r=0;
-   unsigned int i =0, nr = 0;
    uLongf compressedBytes=0;
-   struct stat stat_p; 
 
    
    compressedBytes = sizeof(char) * totalBytes + totalBytes / 64 + 16 + 3;

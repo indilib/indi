@@ -325,7 +325,6 @@ int read_jpeg(const char *filename, void **memptr, size_t *memsize )
 	JSAMPROW row_pointer[1] = {NULL};
 	
 	FILE *infile = fopen( filename, "rb" );
-	unsigned long location = 0;
 	int i = 0;
 	
 	if ( !infile )

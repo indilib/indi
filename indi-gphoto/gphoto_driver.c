@@ -481,7 +481,7 @@ int gphoto_read_exposure_fd(gphoto_driver *gphoto, int fd)
 		gp_file_free(gphoto->camerafile);
 		gphoto->camerafile = NULL;
 	}
-	if(! gphoto->command & DSLR_CMD_DONE)
+	if(! (gphoto->command & DSLR_CMD_DONE))
 		pthread_cond_wait(&gphoto->signal, &gphoto->mutex);
 	gp_dprintf("Exposure complete\n");
 	if (gphoto->command & DSLR_CMD_CAPTURE) {
@@ -685,7 +685,7 @@ int gphoto_close(gphoto_driver *gphoto)
 	return 0;
 }
 
-static show_widgets(CameraWidget *widget, char *prefix) {
+static void show_widgets(CameraWidget *widget, char *prefix) {
 	int 	ret, n, i;
 	char	*newprefix;
 	const char *label, *name, *uselabel;
@@ -724,7 +724,7 @@ void gphoto_show_options(gphoto_driver *gphoto)
 {
 	int max, ret, i;
 	const char **values;
-	CameraWidget *widget, *child;
+	CameraWidget *widget;
 
 	ret = gp_camera_get_config (gphoto->camera, &widget, gphoto->context);
 	max = gp_widget_count_children(widget);
