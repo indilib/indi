@@ -16,5 +16,5 @@ extern int qhy5_set_params(qhy5_driver *handle, int width, int height, int binw,
 extern qhy5_driver *qhy5_open();
 extern int qhy5_close(qhy5_driver *handle);
 extern int qhy5_query_capabilities(qhy5_driver *handle, int *width, int *height, int *binw, int *binh, int *gain);
-
+extern int qhy5_timed_move(qhy5_driver *qhy5, int direction, int duration_msec);
 #endif

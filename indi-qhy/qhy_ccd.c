@@ -364,7 +364,6 @@ void ISNewNumber (const char * dev, const char *name, double *doubles, char *nam
 	{
 		long direction;
 		int duration_msec;
-		int use_pulse_cmd;
 
 		if (GuideNSNP.s == IPS_BUSY)
 		{
@@ -398,7 +397,6 @@ void ISNewNumber (const char * dev, const char *name, double *doubles, char *nam
 	{
 		long direction;
 		int duration_msec;
-		int use_pulse_cmd;
 
 		if (GuideWENP.s == IPS_BUSY)
 		{
@@ -479,12 +477,11 @@ static void expTO (void *vp)
 	INDI_UNUSED(vp);
 	int binw = BinningNP.np[CCD_HBIN].value;
 	int binh = BinningNP.np[CCD_VBIN].value;
-	int zero = 0;
 	int type = (binw * binh > 1) ? TUSHORT : TBYTE;
-  	long  fpixel = 1, naxis = 2;
+  	long  naxis = 2;
   	long naxes[2] = {impixw,impixh};
-	unsigned short *fits;
-	int i, fd, status = 0;
+	int status = 0;
+	int i;
 	void *memptr;
 	size_t memsize;
   
@@ -556,6 +553,9 @@ static void expTO (void *vp)
 		fits_report_error(stderr, status);  /* print out any error messages */
 		return;
 	}
+
+        addFITSKeywords(fptr);
+
 	for(i = 0; i < impixh; i ++)
 	{
 		void *ptr = qhy5_get_row(qhydrv, i);
@@ -622,9 +622,7 @@ void uploadFile(const void *fitsData, size_t totalBytes)
 {
    unsigned char *compressedData;
    int r=0;
-   unsigned int i =0, nr = 0;
    uLongf compressedBytes=0;
-   struct stat stat_p; 
 
    if (CompressS[ON_S].s == ISS_ON)
    {
@@ -669,7 +667,7 @@ void uploadFile(const void *fitsData, size_t totalBytes)
 static int camconnect()
 {
 	int roiw, roih, binw, binh, gain;
-        double exptime;
+        double exptime = 0.1;
 
 	if (qhydrv)
 		return 0;

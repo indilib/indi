@@ -5,6 +5,8 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
 set(DATA_INSTALL_DIR "share/indi/")
 set(FIRMWARE_INSTALL_DIR "/lib/firmware")
 set(UDEVRULES_INSTALL_DIR "/etc/udev/rules.d")
+SET(CMAKE_C_FLAGS "-Wall" )
+SET(CMAKE_C_FLAGS_DEBUG "-Werror" )
 
 Include (CheckCSourceCompiles)
 include (MacroOptionalFindPackage)

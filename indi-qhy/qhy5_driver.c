@@ -133,7 +133,7 @@ int qhy5_timed_move(qhy5_driver *qhy5, int direction, int duration_msec)
 {
 	unsigned int ret;
 	int duration[2] = {-1, -1};
-	int cmd;
+	int cmd = 0x00;
 
 	if (! (direction & (QHY_NORTH | QHY_SOUTH | QHY_EAST | QHY_WEST))) {
 		fprintf(stderr, "No direction specified to qhy5_timed_move\n");
@@ -153,17 +153,17 @@ int qhy5_timed_move(qhy5_driver *qhy5, int direction, int duration_msec)
 		return ctrl_msg(qhy5->handle, 0xc2, cmd, 0, 0, (char *)&ret, sizeof(ret));
 	}
 	if (direction &= QHY_NORTH) {
-		cmd &= 0x20;
+		cmd |= 0x20;
 		duration[1] = duration_msec;
 	} else if (direction &= QHY_SOUTH) {
-		cmd &= 0x40;
+		cmd |= 0x40;
 		duration[1] = duration_msec;
 	}
 	if (direction &= QHY_EAST) {
-		cmd &= 0x10;
+		cmd |= 0x10;
 		duration[0] = duration_msec;
 	} else if (direction &= QHY_WEST) {
-		cmd &= 0x80;
+		cmd |= 0x80;
 		duration[0] = duration_msec;
 	}
 	return ctrl_msg(qhy5->handle, 0x42, cmd, 0, 0, (char *)&duration, sizeof(duration));
