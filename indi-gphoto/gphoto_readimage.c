@@ -82,6 +82,14 @@ static unsigned int read_uint( FILE *fp )
 	return( atoi( buf ) );
 }
 
+void addFITSKeywords(fitsfile *fptr)
+{
+  int status=0;
+
+  /* TODO add other data later */
+  fits_write_date(fptr, &status);
+}
+
 int read_ppm(FILE *handle, struct dcraw_header *header, void **memptr, size_t *memsize)
 {
 	char prefix[] = {0, 0};
@@ -139,6 +147,8 @@ int read_ppm(FILE *handle, struct dcraw_header *header, void **memptr, size_t *m
 		fits_report_error(stderr, status);  /* print out any error messages */
 		goto err_release;
 	}
+
+        addFITSKeywords(fptr);
 
 	ppm = malloc(width * bpp * (naxis == 2 ? 1 : 3));
 	if (naxis == 3) {
