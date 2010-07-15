@@ -1,11 +1,15 @@
 cmake_minimum_required(VERSION 2.4.7)
-PROJECT(indi_gphoto_ccd C)
+#PROJECT(indi_gphoto_ccd C)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
 set(DATA_INSTALL_DIR "share/indi/")
+
+SET(CMAKE_CXX_FLAGS "-Wall" )
+SET(CMAKE_CXX_FLAGS_DEBUG "-Werror" )
 SET(CMAKE_C_FLAGS "-Wall" )
 SET(CMAKE_C_FLAGS_DEBUG "-Werror" )
 
+Include (CheckCXXSourceCompiles)
 Include (CheckCSourceCompiles)
 include (MacroOptionalFindPackage)
 include (MacroLogFeature)
@@ -29,7 +33,7 @@ include_directories( ${LIBGPHOTO2_INCLUDE_DIR})
 
 ########### Gphoto ###########
 set(indigphoto_SRCS
-   ${CMAKE_SOURCE_DIR}/gphoto_ccd.c
+   ${CMAKE_SOURCE_DIR}/gphoto_ccd.cpp
    ${CMAKE_SOURCE_DIR}/gphoto_driver.c
    ${CMAKE_SOURCE_DIR}/gphoto_readimage.c
    )

@@ -31,28 +31,21 @@
 #include <sys/time.h>
 #include <time.h>
 
-
-#include <gphoto2/gphoto2.h>
 #include <pthread.h>
 
 #include "gphoto_driver.h"
 
-typedef struct {
-	CameraWidget		*parent;
-	CameraWidget		*child;
-	CameraWidgetType	type;
-	union {
-		int		bool;
-		char		num;
-	} value;
-	int			choice_cnt;
-	const char		**choices;
-} gphoto_widget;
+
+struct _gphoto_widget_list {
+	struct _gphoto_widget_list	*next;
+	gphoto_widget			*widget;
+};
 
 struct _gphoto_driver {
 	Camera			*camera;
 	GPContext		*context;
 	CameraFile		*camerafile;
+	CameraWidget		*config;
 	CameraFilePath		camerapath;
 	int			command;
 	struct timeval		bulb_end;
@@ -72,6 +65,9 @@ struct _gphoto_driver {
 
 	int			iso;
 	int			format;
+
+	gphoto_widget_list	*widgets;
+	gphoto_widget_list	*iter;
 
 	pthread_mutex_t		mutex;
 	pthread_t		thread;
@@ -126,19 +122,35 @@ static GPContext* create_context() {
 	return context;
 }
 
+static const char *widget_name(CameraWidget *widget) {
+	const char *name = NULL;
+	int ret;
+	if(! widget)
+		return NULL;
+	ret = gp_widget_get_name(widget, &name);
+	if (ret < GP_OK) {
+		ret = gp_widget_get_label(widget, &name);
+		if (ret < GP_OK)
+			return NULL;
+	}
+	return name;
+}
 /*
  * This function looks up a label or key entry of
  * a configuration widget.
  * The functions descend recursively, so you can just
  * specify the last component.
  */
-
-static int lookup_widget(CameraWidget*widget, const char *key, CameraWidget **child) {
+static const char *lookup_widget(CameraWidget *config, const char *key, CameraWidget **widget) {
 	int ret;
-	ret = gp_widget_get_child_by_name (widget, key, child);
+	/*
+	 * Grab name from widget instead of from 'key' because it will be invariant
+	 * as long as the widget is valid
+	 */
+	ret = gp_widget_get_child_by_name (config, key, widget);
 	if (ret < GP_OK)
-		ret = gp_widget_get_child_by_label (widget, key, child);
-	return ret;
+		gp_widget_get_child_by_label (config, key, widget);
+	return widget_name(*widget);
 }
 
 static int read_widget(gphoto_widget *widget)
@@ -148,25 +160,35 @@ static int read_widget(gphoto_widget *widget)
 	int ret;
 
 	switch(widget->type) {
+	case GP_WIDGET_TEXT:
+		ret = gp_widget_get_value (widget->widget, &widget->value.text);
+		break;
+	case GP_WIDGET_RANGE:
+		ret = gp_widget_get_value (widget->widget, &widget->value.num);
+		gp_widget_get_range(widget->widget, &widget->min, &widget->max, &widget->step);
+		break;
 	case GP_WIDGET_TOGGLE:
-		ret = gp_widget_get_value (widget->child, &widget->value.bool);
+		ret = gp_widget_get_value (widget->widget, &widget->value.toggle);
 		break;
 	case GP_WIDGET_RADIO:
 	case GP_WIDGET_MENU:
-		ret = gp_widget_get_value (widget->child, &ptr);
+		ret = gp_widget_get_value (widget->widget, &ptr);
                 if (ret != GP_OK)
 			return ret;
 		if (! widget->choices) {
-			widget->choice_cnt = gp_widget_count_choices (widget->child);
+			widget->choice_cnt = gp_widget_count_choices (widget->widget);
 			widget->choices = calloc(sizeof(char *), widget->choice_cnt + 1);
 			for ( i=0; i<widget->choice_cnt; i++) {
 				const char *choice;
-				ret = gp_widget_get_choice (widget->child, i, &choice);
+				ret = gp_widget_get_choice (widget->widget, i, &choice);
 				if (strcmp(choice, ptr) == 0)
-					widget->value.num = i;
+					widget->value.index = i;
 				widget->choices[i] = choice;
 			}
 		}
+		break;
+	case GP_WIDGET_DATE:
+		ret = gp_widget_get_value (widget->widget, &widget->value.date);
 		break;
 	default:
 		fprintf(stderr, "WARNING: Widget type: %d is unsupported\n", widget->type);
@@ -175,22 +197,16 @@ static int read_widget(gphoto_widget *widget)
 }
 
 static gphoto_widget *find_widget (gphoto_driver *gphoto, const char *name) {
-	gphoto_widget *widget = calloc(sizeof(gphoto_widget), 1);
-	int			ret;
+	gphoto_widget	*widget = calloc(sizeof(gphoto_widget), 1);
+	int		ret;
 
-	ret = gp_camera_get_config (gphoto->camera, &widget->parent, gphoto->context);
-	if (ret < GP_OK) {
-		fprintf (stderr, "camera_get_config failed: %d\n", ret);
-		free(widget);
-		return NULL;
-	}
-	ret = lookup_widget (widget->parent, name, &widget->child);
-	if (ret < GP_OK) {
+	widget->name = lookup_widget (gphoto->config, name, &widget->widget);
+	if (! widget->name) {
 		/*fprintf (stderr, "lookup widget failed: %d\n", ret);*/
 		goto out;
 	}
 
-	ret = gp_widget_get_type (widget->child, &widget->type);
+	ret = gp_widget_get_type (widget->widget, &widget->type);
 	if (ret < GP_OK) {
 		fprintf (stderr, "widget get type failed: %d\n", ret);
 		goto out;
@@ -198,7 +214,6 @@ static gphoto_widget *find_widget (gphoto_driver *gphoto, const char *name) {
 	read_widget(widget);
 	return widget;
 out:
-	gp_widget_free (widget->parent);
 	free(widget);
 	return NULL;
 }
@@ -214,19 +229,19 @@ static int set_widget_num(gphoto_driver *gphoto, gphoto_widget *widget, int valu
 	}
 	switch(widget->type) {
 	case GP_WIDGET_TOGGLE:
-		ret = gp_widget_set_value (widget->child, &value);
+		ret = gp_widget_set_value (widget->widget, &value);
 		break;
 	case GP_WIDGET_RADIO:
 	case GP_WIDGET_MENU:
-		ret = gp_widget_get_choice (widget->child, value, &ptr);
-		ret = gp_widget_set_value (widget->child, ptr);
+		ret = gp_widget_get_choice (widget->widget, value, &ptr);
+		ret = gp_widget_set_value (widget->widget, ptr);
 		break;
 	default:
 		fprintf(stderr, "Widget type: %d is unsupported\n", widget->type);
 		return 1;
 	}
         if (ret == GP_OK) {
-                ret = gp_camera_set_config (gphoto->camera, widget->parent, gphoto->context);
+                ret = gp_camera_set_config (gphoto->camera, gphoto->config, gphoto->context);
                 if (ret != GP_OK)
                         fprintf(stderr, "Failed to set new configuration value\n");
         }
@@ -330,12 +345,12 @@ static void *stop_bulb(void *arg)
 static void reset_settings(gphoto_driver *gphoto)
 {
 	if (gphoto->iso >= 0)
-		set_widget_num(gphoto, gphoto->iso_widget, gphoto->iso_widget->value.num);
+		set_widget_num(gphoto, gphoto->iso_widget, gphoto->iso_widget->value.index);
 
 	if (gphoto->format >= 0)
-		set_widget_num(gphoto, gphoto->format_widget, gphoto->format_widget->value.num);
+		set_widget_num(gphoto, gphoto->format_widget, gphoto->format_widget->value.index);
 
-	set_widget_num(gphoto, gphoto->exposure_widget, gphoto->exposure_widget->value.num);
+	set_widget_num(gphoto, gphoto->exposure_widget, gphoto->exposure_widget->value.index);
 }
 
 int find_bulb_exposure(gphoto_driver *gphoto, gphoto_widget *widget)
@@ -573,14 +588,14 @@ int gphoto_get_format_current(gphoto_driver *gphoto)
 {
 	if (! gphoto->format_widget)
 		return 0;
-	return gphoto->format_widget->value.num;
+	return gphoto->format_widget->value.index;
 }
 
 int gphoto_get_iso_current(gphoto_driver *gphoto)
 {
 	if (! gphoto->iso_widget)
 		return 0;
-	return gphoto->iso_widget->value.num;
+	return gphoto->iso_widget->value.index;
 }
 
 gphoto_driver *gphoto_open(const char *shutter_release_port)
@@ -610,6 +625,13 @@ gphoto_driver *gphoto_open(const char *shutter_release_port)
 	gphoto = calloc(sizeof(gphoto_driver), 1);
 	gphoto->camera = canon;
 	gphoto->context = canoncontext;
+
+	result = gp_camera_get_config (gphoto->camera, &gphoto->config, gphoto->context);
+	if (result < GP_OK) {
+		fprintf (stderr, "camera_get_config failed: %d\n", result);
+		free(gphoto);
+		return NULL;
+	}
 
 	// Set 'capture=1' for Canon DSLRs.  Won't harm other cameras
 	if ((widget = find_widget(gphoto, "capture"))) {
@@ -676,6 +698,13 @@ int gphoto_close(gphoto_driver *gphoto)
 	if (gphoto->bulb_widget)
 		widget_free(gphoto->bulb_widget);
 
+	while(gphoto->widgets) {
+		gphoto_widget_list *next = gphoto->widgets->next;
+		widget_free(gphoto->widgets->widget);
+		free(gphoto->widgets);
+		gphoto->widgets = next;
+	}
+
 	result = gp_camera_exit (gphoto->camera, gphoto->context);
 	if (result != GP_OK) {
 		fprintf(stderr, "WARNING: Could not close camera connection.\n");
@@ -685,61 +714,143 @@ int gphoto_close(gphoto_driver *gphoto)
 	return 0;
 }
 
-static void show_widgets(CameraWidget *widget, char *prefix) {
+gphoto_widget *gphoto_get_widget_info(gphoto_driver *gphoto, gphoto_widget_list **iter)
+{
+	gphoto_widget *widget;
+
+	if(! *iter)
+		return NULL;
+	widget = (*iter)->widget;
+	read_widget(widget);
+	*iter=(*iter)->next;
+	return widget;
+}
+
+void show_widget(gphoto_widget *widget, char *prefix) {
+	int i;
+	struct tm *tm;
+	switch(widget->type) {
+	case GP_WIDGET_TEXT:
+		fprintf(stderr, "%sValue: %s\n", prefix, widget->value.text);
+		break;
+	case GP_WIDGET_RANGE:
+		fprintf(stderr, "%sMin:   %f\n", prefix, widget->min);
+		fprintf(stderr, "%sMax:   %f\n", prefix, widget->max);
+		fprintf(stderr, "%sStep:  %f\n", prefix, widget->step);
+		fprintf(stderr, "%sValue: %f\n", prefix, widget->value.num);
+		break;
+	case GP_WIDGET_TOGGLE:
+		fprintf(stderr, "%sValue: %s\n", prefix, widget->value.toggle ? "On" : "Off");
+		break;
+	case GP_WIDGET_RADIO:
+	case GP_WIDGET_MENU:
+		for(i = 0; i < widget->choice_cnt; i++)
+			fprintf(stderr, "%s%s %3d: %s\n",
+				prefix,
+				i == widget->value.index ? "*" : " ",
+				i,
+				widget->choices[i]);
+		break;
+	case GP_WIDGET_DATE:
+		tm = gmtime((time_t *)&widget->value.date);
+		fprintf(stderr, "%sValue: %s\n", prefix, asctime(tm));
+		break;
+	default:
+		break;
+	}
+}
+
+#define GPHOTO_MATCH_WIDGET(widget1, widget2) (widget2 && widget1 == widget2->widget)
+static void find_all_widgets(gphoto_driver *gphoto, CameraWidget *widget,
+                            char *prefix)
+{
 	int 	ret, n, i;
-	char	*newprefix;
-	const char *label, *name, *uselabel;
+	char	*newprefix = NULL;
+	const char *uselabel;
 	CameraWidgetType	type;
 
-	gp_widget_get_label (widget, &label);
-	ret = gp_widget_get_name (widget, &name);
+	uselabel = widget_name(widget);
 	gp_widget_get_type (widget, &type);
-
-	if (strlen(name))
-		uselabel = name;
-	else
-		uselabel = label;
 
 	n = gp_widget_count_children (widget);
 
-	newprefix = malloc(strlen(prefix)+1+strlen(uselabel)+1);
-	if (!newprefix)
-		return;
-	sprintf(newprefix,"%s/%s",prefix,uselabel);
+	if(prefix) {
+		newprefix = malloc(strlen(prefix)+1+strlen(uselabel)+1);
+		if (!newprefix)
+			return;
+		sprintf(newprefix,"%s/%s",prefix,uselabel);
+	}
 
-	if ((type != GP_WIDGET_WINDOW) && (type != GP_WIDGET_SECTION))
-		fprintf(stderr, "\t%s\n",newprefix);
+	if ((type != GP_WIDGET_WINDOW) && (type != GP_WIDGET_SECTION)) {
+		gphoto_widget_list *list;
+		CameraWidget *parent = NULL;
+
+		if(newprefix) {
+			fprintf(stderr, "\t%s\n",newprefix);
+			free(newprefix);
+		}
+		if (GPHOTO_MATCH_WIDGET(widget, gphoto->iso_widget)
+		    || GPHOTO_MATCH_WIDGET(widget, gphoto->format_widget)
+		    || GPHOTO_MATCH_WIDGET(widget, gphoto->exposure_widget)
+		    || GPHOTO_MATCH_WIDGET(widget, gphoto->bulb_widget))
+		{
+			return;
+		}
+		list = calloc(1, sizeof(gphoto_widget_list));
+		list->widget = calloc(sizeof(gphoto_widget), 1);
+		list->widget->widget = widget;
+		list->widget->type   = type;
+		list->widget->name   = uselabel;
+		gp_widget_get_parent(widget, &parent);
+		if(parent)
+			list->widget->parent = widget_name(parent);
+		if(! gphoto->widgets) {
+			gphoto->widgets = list;
+		} else {
+			gphoto->iter->next = list;
+		}
+		gphoto->iter = list;
+		return;
+	}
+
 	for (i=0; i<n; i++) {
 		CameraWidget *child;
 	
 		ret = gp_widget_get_child (widget, i, &child);
 		if (ret != GP_OK)
 			continue;
-		show_widgets (child, newprefix);
+		find_all_widgets (gphoto, child, newprefix);
 	}
-	free(newprefix);
+	if(newprefix)
+		free(newprefix);
+}
+
+gphoto_widget_list *gphoto_find_all_widgets(gphoto_driver *gphoto)
+{
+	find_all_widgets(gphoto, gphoto->config, NULL);
+	return gphoto->widgets;
 }
 
 void gphoto_show_options(gphoto_driver *gphoto)
 {
-	int max, ret, i;
-	const char **values;
-	CameraWidget *widget;
-
-	ret = gp_camera_get_config (gphoto->camera, &widget, gphoto->context);
-	max = gp_widget_count_children(widget);
-	fprintf(stderr, "Available options\n");
-	show_widgets(widget, "");
-
-	values = gphoto_get_formats(gphoto, &max);
-	fprintf(stderr, "Available image formats:\n");
-	for(i = 0; i < max; i++) {
-		fprintf(stderr, "\t%3d: %s\n", i, values[i]);
+	find_all_widgets(gphoto, gphoto->config, NULL);
+	if(gphoto->widgets) {
+		gphoto_widget_list *list = gphoto->widgets;
+		fprintf(stderr, "Available options\n");
+		while(list) {
+			fprintf(stderr, "\t%s:\n", list->widget->name);
+			read_widget(list->widget);
+			show_widget(list->widget, "\t\t");
+			list = list->next;
+		}
 	}
-	fprintf(stderr, "Available ISO:\n");
-	values = gphoto_get_iso(gphoto, &max);
-	for(i = 0; i < max; i++) {
-		fprintf(stderr, "\t%s\n", values[i]);
+	if(gphoto->format_widget) {
+		fprintf(stderr, "Available image formats:\n");
+		show_widget(gphoto->format_widget, "\t");
+	}
+	if(gphoto->iso_widget) {
+		fprintf(stderr, "Available ISO:\n");
+		show_widget(gphoto->iso_widget, "\t");
 	}
 }
 
