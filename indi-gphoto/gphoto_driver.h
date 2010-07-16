@@ -7,6 +7,7 @@ typedef struct {
 	CameraWidgetType	type;
 	const char		*name;
 	const char		*parent;
+	int			readonly;
 	union {
 		int		toggle;
 		char		index;
@@ -44,4 +45,8 @@ extern const char *gphoto_get_file_extension(gphoto_driver *gphoto);
 extern void gphoto_show_options(gphoto_driver *gphoto);
 extern gphoto_widget_list *gphoto_find_all_widgets(gphoto_driver *gphoto);
 extern gphoto_widget *gphoto_get_widget_info(gphoto_driver *gphoto, gphoto_widget_list **iter);
+extern int gphoto_set_widget_num(gphoto_driver *gphoto, gphoto_widget *widget, float value);
+extern int gphoto_set_widget_text(gphoto_driver *gphoto, gphoto_widget *widget, const char *str);
+extern int gphoto_read_widget(gphoto_widget *widget);
+extern int gphoto_widget_changed(gphoto_widget *widget);
 #endif

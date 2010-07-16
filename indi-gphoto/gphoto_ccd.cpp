@@ -49,8 +49,6 @@ extern "C" {
 
 #include "gphoto_ccd.h"
 
-using namespace std;
-
 //auto_ptr<GPhotoCam> gphoto_cam(0);
 GPhotoCam *gphoto_cam = NULL;
 
@@ -153,17 +151,23 @@ IUFillBLOBVector(IBLOBVectorProperty *bp, IBLOB *b, int nbp, const char *dev,
 GPhotoCam::GPhotoCam()
 {
 	gphotodrv = NULL;
+	on_off[0] = strdup("On");
+	on_off[1] = strdup("Off");
 	InitVars();
 }
 
 GPhotoCam::~GPhotoCam()
 {
+	free(on_off[0]);
+	free(on_off[1]);
+	expTID = 0;
 }
 
 void GPhotoCam::ISGetProperties(void)
 {
 	IDDefSwitch(&mConnectSP, NULL);
 	IDDefText(&mPortTP, NULL);
+	IDDefSwitch(&mExtendedSP, NULL);
 
 	if (mConnectS[ON_S].s == ISS_ON) {
 		IDDefNumber(&mExposureNP, NULL);
@@ -207,6 +211,23 @@ void GPhotoCam::ISNewSwitch (const char *name, ISState *states, char *names[], i
 
 		return;
 	}		
+	if (!strcmp(name, mExtendedSP.name))
+	{
+		states[0] = ISS_ON;
+		if (IUUpdateSwitch(&mExtendedSP, states, names, n) < 0)
+				return;
+		if (mConnectS[ON_S].s == ISS_ON)
+		{
+			if (! optTID)
+			{
+				ShowExtendedOptions();
+			} else {
+				UpdateExtendedOptions(true);
+			}
+		}
+		IDSetSwitch(&mExtendedSP, NULL);
+		return;
+	}
 	
 	if (mConnectS[ON_S].s != ISS_ON)
 	{
@@ -249,6 +270,35 @@ void GPhotoCam::ISNewSwitch (const char *name, ISState *states, char *names[], i
 		IUUpdateSwitch(&mTransferSP, states, names, n);
 		mTransferSP.s = IPS_OK;
 		IDSetSwitch(&mTransferSP, NULL);
+	}
+	if(CamOptions.find(name) != CamOptions.end())
+	{
+		cam_opt *opt = CamOptions[name];
+		if (opt->widget->type != GP_WIDGET_RADIO
+		    && opt->widget->type != GP_WIDGET_MENU
+		    && opt->widget->type != GP_WIDGET_TOGGLE)
+		{
+			IDMessage(MYDEV, "ERROR: Property '%s'is not a switch (%d)", name, opt->widget->type);
+			return;
+		}
+		if (opt->widget->readonly) {
+			IDSetSwitch(&opt->prop.sw, "WARNING: Property %s is read-only", name);
+			return;
+		}
+		if (IUUpdateSwitch(&opt->prop.sw, states, names, n) < 0)
+			return;
+		if (opt->widget->type == GP_WIDGET_TOGGLE) {
+			gphoto_set_widget_num(gphotodrv, opt->widget, opt->item.sw[ON_S].s == ISS_ON);
+		} else {
+			for ( i = 0; i < opt->prop.sw.nsp; i++) {
+				if (opt->item.sw[i].s == ISS_ON) {
+					gphoto_set_widget_num(gphotodrv, opt->widget, i);
+					break;
+				}
+			}
+		}
+		opt->prop.sw.s = IPS_OK;
+		IDSetSwitch(&opt->prop.sw, NULL);
 	}
 }
 
@@ -296,6 +346,24 @@ GPhotoCam::ISNewNumber (const char *name, double *doubles, char *names[], int n)
 
 		return;
 	}
+	if(CamOptions.find(name) != CamOptions.end())
+	{
+		cam_opt *opt = CamOptions[name];
+		if (opt->widget->type != GP_WIDGET_RANGE)
+		{
+			IDMessage(MYDEV, "ERROR: Property '%s'is not a number", name);
+			return;
+		}
+		if (opt->widget->readonly) {
+			IDSetNumber(&opt->prop.num, "WARNING: Property %s is read-only", name);
+			return;
+		}
+		if (IUUpdateNumber(&opt->prop.num, doubles, names, n) < 0)
+			return;
+		gphoto_set_widget_num(gphotodrv, opt->widget, doubles[0]);
+		opt->prop.num.s = IPS_OK;
+		IDSetNumber(&opt->prop.num, NULL);
+	}
 
 }
 
@@ -318,6 +386,46 @@ GPhotoCam::ISNewText (const char *name, char *texts[], char *names[], int n)
 	  IDSetText (&mPortTP, NULL);
 	  return;
 	}
+	if(CamOptions.find(name) != CamOptions.end())
+	{
+		cam_opt *opt = CamOptions[name];
+		if (opt->widget->type != GP_WIDGET_TEXT)
+		{
+			IDMessage(MYDEV, "ERROR: Property '%s'is not a string", name);
+			return;
+		}
+		if (opt->widget->readonly) {
+			IDSetText(&opt->prop.text, "WARNING: Property %s is read-only", name);
+			return;
+		}
+		if (IUUpdateText(&opt->prop.text, texts, names, n) < 0)
+			return;
+		gphoto_set_widget_text(gphotodrv, opt->widget, texts[0]);
+		opt->prop.num.s = IPS_OK;
+		IDSetText(&opt->prop.text, NULL);
+	}
+}
+void    
+GPhotoCam::UpdateExtendedOptions (void *p)
+{
+        GPhotoCam *cam = (GPhotoCam *)p;
+        cam->UpdateExtendedOptions();
+}               
+void
+GPhotoCam::UpdateExtendedOptions (bool force)
+{
+	map<string, cam_opt *>::iterator it;
+	if(! expTID) {
+		for ( it = CamOptions.begin() ; it != CamOptions.end(); it++ )
+		{
+			cam_opt *opt = (*it).second;
+			if(force || gphoto_widget_changed(opt->widget)) {
+				gphoto_read_widget(opt->widget);
+				UpdateWidget(opt);
+			}
+		}
+	}
+	optTID = IEAddTimer (1000, GPhotoCam::UpdateExtendedOptions, this);
 }
 
 /* save conditions at start of exposure */
@@ -469,43 +577,116 @@ GPhotoCam::create_switch(const char *basestr, const char **options, int max_opts
 	return sw;
 }
 
-typedef struct {
-	union {
-		INumber	num;
-		ISwitch	*sw;
-		IText	text;
-	} item;
-	union {
-		INumberVectorProperty	num;
-		ISwitchVectorProperty	sw;
-		ITextVectorProperty	text;
-	} prop;
-} cam_opt;
+void
+GPhotoCam::UpdateWidget(cam_opt *opt)
+{
+	struct tm *tm;
+
+	switch(opt->widget->type) {
+	case GP_WIDGET_RADIO:
+	case GP_WIDGET_MENU:
+		for (int i = 0; i < opt->widget->choice_cnt; i++)
+			opt->item.sw[i].s = opt->widget->value.index == i ? ISS_ON : ISS_OFF;
+		IDSetSwitch(&opt->prop.sw, NULL);
+		break;
+	case GP_WIDGET_TEXT:
+		free(opt->item.text.text);
+		opt->item.text.text = strdup(opt->widget->value.text);
+		IDSetText(&opt->prop.text, NULL);
+		break;
+	case GP_WIDGET_TOGGLE:
+		if(opt->widget->value.toggle) {
+			opt->item.sw[0].s = ISS_ON;
+			opt->item.sw[0].s = ISS_OFF;
+		} else {
+			opt->item.sw[0].s = ISS_OFF;
+			opt->item.sw[0].s = ISS_ON;
+		}
+		IDSetSwitch(&opt->prop.sw, NULL);
+		break;
+	case GP_WIDGET_RANGE:
+		opt->item.num.value = opt->widget->value.num;
+		IDSetNumber(&opt->prop.num, NULL);
+		break;
+	case GP_WIDGET_DATE:
+		free(opt->item.text.text);
+		tm = gmtime((time_t *)&opt->widget->value.date);
+		opt->item.text.text = strdup(asctime(tm));
+		IDSetText(&opt->prop.text, NULL);
+		break;
+	default:
+		delete opt;
+		return;
+	}
+}
 
 void
 GPhotoCam::AddWidget(gphoto_widget *widget)
 {
-	cam_opt *opt = (cam_opt *)calloc(sizeof(cam_opt), 1);
+	IPerm perm;
+	struct tm *tm;
+
+	if(! widget)
+		return;
+
+	perm = widget->readonly ? IP_RO : IP_RW;
+
+	cam_opt *opt = new cam_opt();
+	opt->widget = widget;
+
 	switch(widget->type) {
 	case GP_WIDGET_RADIO:
 	case GP_WIDGET_MENU:
 		opt->item.sw = create_switch(widget->name, widget->choices, widget->choice_cnt, widget->value.index);
 		IUFillSwitchVector(&opt->prop.sw, opt->item.sw, widget->choice_cnt, MYDEV,
-			widget->name, widget->name, widget->parent, IP_RO, ISR_1OFMANY, 60, IPS_IDLE);
+			widget->name, widget->name, widget->parent, perm, ISR_1OFMANY, 60, IPS_IDLE);
 		IDDefSwitch(&opt->prop.sw, NULL);
 		break;
 	case GP_WIDGET_TEXT:
 		IUFillText(&opt->item.text, widget->name, widget->name, widget->value.text);
 		IUFillTextVector(&opt->prop.text, &opt->item.text, 1, MYDEV,
-			widget->name, widget->name, widget->parent, IP_RO, 60, IPS_IDLE);
+			widget->name, widget->name, widget->parent, perm, 60, IPS_IDLE);
 		IDDefText(&opt->prop.text, NULL);
 		break;
 	case GP_WIDGET_TOGGLE:
+		opt->item.sw = create_switch(widget->name, (const char **)on_off, 2, widget->value.toggle ? 0 : 1);
+		IUFillSwitchVector(&opt->prop.sw, opt->item.sw, 2, MYDEV,
+			widget->name, widget->name, widget->parent, perm, ISR_1OFMANY, 60, IPS_IDLE);
+		IDDefSwitch(&opt->prop.sw, NULL);
+		break;
 	case GP_WIDGET_RANGE:
+		IUFillNumber(&opt->item.num, widget->name, widget->name, "%5.2f",
+			widget->min, widget->max, widget->step, widget->value.num);
+		IUFillNumberVector(&opt->prop.num, &opt->item.num, 1, MYDEV,
+			widget->name, widget->name, widget->parent, perm, 60, IPS_IDLE);
+		break;
 	case GP_WIDGET_DATE:
+		tm = gmtime((time_t *)&widget->value.date);
+		IUFillText(&opt->item.text, widget->name, widget->name, asctime(tm));
+		IUFillTextVector(&opt->prop.text, &opt->item.text, 1, MYDEV,
+			widget->name, widget->name, widget->parent, perm, 60, IPS_IDLE);
+		IDDefText(&opt->prop.text, NULL);
+		break;
 	default:
-		free(opt);
+		delete opt;
+		return;
 	}
+	
+	CamOptions[widget->name] = opt;
+	
+}
+
+void
+GPhotoCam::ShowExtendedOptions(void)
+{
+	gphoto_widget_list *iter;
+
+	iter = gphoto_find_all_widgets(gphotodrv);
+	while(iter) {
+		gphoto_widget *widget = gphoto_get_widget_info(gphotodrv, &iter);
+		AddWidget(widget);
+	}
+	optTID = IEAddTimer (1000, GPhotoCam::UpdateExtendedOptions, this);
 }
 
 /* wait forever trying to open camera
@@ -517,9 +698,7 @@ GPhotoCam::Connect()
 	const char **options;
 	int max_opts;
 	const char *port = NULL;
-	gphoto_widget_list *iter;
 
-	iter = NULL;
 	if (gphotodrv)
 		return 0;
 
@@ -542,7 +721,6 @@ GPhotoCam::Connect()
 		free(mFormatS);
 	setidx = gphoto_get_format_current(gphotodrv);
 	options = gphoto_get_formats(gphotodrv, &max_opts);
-	IDLog("Setting %d options\n", max_opts);
 	mFormatS = create_switch("FORMAT", options, max_opts, setidx);
 	mFormatSP.sp = mFormatS;
 	mFormatSP.nsp = max_opts;
@@ -566,14 +744,9 @@ GPhotoCam::Connect()
 	/* Data */
 	IDDefBLOB(&mFitsBP, NULL);
 
-#ifdef SHOW_ALL_OPTIONS
-	iter = gphoto_find_all_widgets(gphotodrv);
-	while(iter) {
-		gphoto_widget *widget = gphoto_get_widget_info(gphotodrv, &iter);
-		fprintf(stderr, "%s -> %s\n", widget->parent, widget->name);
-		AddWidget(widget);
-	}
-#endif
+	if(mExtendedS[0].s == ISS_ON)
+		ShowExtendedOptions();
+
 	return 0;
 
 }
@@ -605,14 +778,18 @@ void GPhotoCam::InitVars(void)
 	/**********************************************************************************************/
 	/************************************ GROUP: Communication ************************************/
 	/**********************************************************************************************/
-  	IUFillSwitch(&mConnectS[0], "CONNECT" , "Connect" , ISS_OFF);
-  	IUFillSwitch(&mConnectS[1], "DISCONNECT", "Disconnect", ISS_ON);
+  	IUFillSwitch(&mConnectS[ON_S], "CONNECT" , "Connect" , ISS_OFF);
+  	IUFillSwitch(&mConnectS[OFF_S], "DISCONNECT", "Disconnect", ISS_ON);
   	IUFillSwitchVector(&mConnectSP, mConnectS, NARRAY(mConnectS), MYDEV,
 		"CONNECTION" , "Connection", COMM_GROUP, IP_RW, ISR_1OFMANY,
 		0, IPS_IDLE);
 	IUFillText(&mPortT[0], "PORT" , "Port", "");
 	IUFillTextVector(&mPortTP, mPortT, NARRAY(mPortT), MYDEV,
 		"SHUTTER_PORT" , "Shutter Release", COMM_GROUP, IP_RW,
+		0, IPS_IDLE);
+  	IUFillSwitch(&mExtendedS[0], "SHOW" , "Show" , ISS_OFF);
+  	IUFillSwitchVector(&mExtendedSP, mExtendedS, NARRAY(mExtendedS), MYDEV,
+		"CAM_PROPS" , "Cam Props", COMM_GROUP, IP_RW, ISR_1OFMANY,
 		0, IPS_IDLE);
 	/**********************************************************************************************/
 	/*********************************** GROUP: Expose ********************************************/

@@ -153,7 +153,12 @@ static const char *lookup_widget(CameraWidget *config, const char *key, CameraWi
 	return widget_name(*widget);
 }
 
-static int read_widget(gphoto_widget *widget)
+int gphoto_widget_changed(gphoto_widget *widget)
+{
+	return gp_widget_changed(widget->widget);
+}
+
+int gphoto_read_widget(gphoto_widget *widget)
 {
 	const char *ptr;
 	int i;
@@ -211,17 +216,18 @@ static gphoto_widget *find_widget (gphoto_driver *gphoto, const char *name) {
 		fprintf (stderr, "widget get type failed: %d\n", ret);
 		goto out;
 	}
-	read_widget(widget);
+	gphoto_read_widget(widget);
 	return widget;
 out:
 	free(widget);
 	return NULL;
 }
 
-static int set_widget_num(gphoto_driver *gphoto, gphoto_widget *widget, int value)
+int gphoto_set_widget_num(gphoto_driver *gphoto, gphoto_widget *widget, float value)
 {
-	int			ret;
-	const char		*ptr;
+	int		ret;
+	int		ival = value;
+	const char	*ptr;
 
 	if (! widget) {
 		fprintf(stderr, "Invalid widget specified to set_widget_num\n");
@@ -229,17 +235,38 @@ static int set_widget_num(gphoto_driver *gphoto, gphoto_widget *widget, int valu
 	}
 	switch(widget->type) {
 	case GP_WIDGET_TOGGLE:
-		ret = gp_widget_set_value (widget->widget, &value);
+		ret = gp_widget_set_value (widget->widget, &ival);
 		break;
 	case GP_WIDGET_RADIO:
 	case GP_WIDGET_MENU:
-		ret = gp_widget_get_choice (widget->widget, value, &ptr);
+		ret = gp_widget_get_choice (widget->widget, ival, &ptr);
 		ret = gp_widget_set_value (widget->widget, ptr);
+		break;
+	case GP_WIDGET_RANGE:
+		ret = gp_widget_set_value (widget->widget, &value);
 		break;
 	default:
 		fprintf(stderr, "Widget type: %d is unsupported\n", widget->type);
 		return 1;
 	}
+        if (ret == GP_OK) {
+                ret = gp_camera_set_config (gphoto->camera, gphoto->config, gphoto->context);
+                if (ret != GP_OK)
+                        fprintf(stderr, "Failed to set new configuration value\n");
+        }
+
+	return ret;
+}
+
+int gphoto_set_widget_text(gphoto_driver *gphoto, gphoto_widget *widget, const char *str)
+{
+	int		ret;
+
+	if (! widget || widget->type != GP_WIDGET_TEXT) {
+		fprintf(stderr, "Invalid widget specified to set_widget_text\n");
+		return 1;
+	}
+	ret = gp_widget_set_value (widget->widget, str);
         if (ret == GP_OK) {
                 ret = gp_camera_set_config (gphoto->camera, gphoto->config, gphoto->context);
                 if (ret != GP_OK)
@@ -317,7 +344,7 @@ static void *stop_bulb(void *arg)
 				//shut off bulb mode
 				gp_dprintf("Closing shutter\n");
 				if (gphoto->bulb_widget) {
-					set_widget_num(gphoto, gphoto->bulb_widget, FALSE);
+					gphoto_set_widget_num(gphoto, gphoto->bulb_widget, FALSE);
 				} else {
 					close(gphoto->bulb_fd);
 				}
@@ -345,12 +372,12 @@ static void *stop_bulb(void *arg)
 static void reset_settings(gphoto_driver *gphoto)
 {
 	if (gphoto->iso >= 0)
-		set_widget_num(gphoto, gphoto->iso_widget, gphoto->iso_widget->value.index);
+		gphoto_set_widget_num(gphoto, gphoto->iso_widget, gphoto->iso_widget->value.index);
 
 	if (gphoto->format >= 0)
-		set_widget_num(gphoto, gphoto->format_widget, gphoto->format_widget->value.index);
+		gphoto_set_widget_num(gphoto, gphoto->format_widget, gphoto->format_widget->value.index);
 
-	set_widget_num(gphoto, gphoto->exposure_widget, gphoto->exposure_widget->value.index);
+	gphoto_set_widget_num(gphoto, gphoto->exposure_widget, gphoto->exposure_widget->value.index);
 }
 
 int find_bulb_exposure(gphoto_driver *gphoto, gphoto_widget *widget)
@@ -432,10 +459,10 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec)
 	gp_dprintf("  Mutex locked\n");
 
 	if (gphoto->iso >= 0)
-		set_widget_num(gphoto, gphoto->iso_widget, gphoto->iso);
+		gphoto_set_widget_num(gphoto, gphoto->iso_widget, gphoto->iso);
 
 	if (gphoto->format >= 0)
-		set_widget_num(gphoto, gphoto->format_widget, gphoto->format);
+		gphoto_set_widget_num(gphoto, gphoto->format_widget, gphoto->format);
 
 	if (exptime_msec > 5000) {
 		if ((! gphoto->bulb_port[0] && ! gphoto->bulb_widget) ||
@@ -446,7 +473,7 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec)
 			//Bulb mode is supported
 			gp_dprintf("Using bulb mode\n");
 		
-			set_widget_num(gphoto, gphoto->exposure_widget, idx);
+			gphoto_set_widget_num(gphoto, gphoto->exposure_widget, idx);
 		
 			gettimeofday(&gphoto->bulb_end, NULL);
 			gphoto->bulb_end.tv_usec += exptime_msec * 1000;
@@ -462,7 +489,7 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec)
 					return 1;
 				}
 			} else {
-				set_widget_num(gphoto, gphoto->bulb_widget, TRUE);
+				gphoto_set_widget_num(gphoto, gphoto->bulb_widget, TRUE);
 			}
 			gphoto->command = DSLR_CMD_BULB_CAPTURE;
 			pthread_cond_signal(&gphoto->signal);
@@ -474,7 +501,7 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec)
 	// Not using bulb mode
 	idx = find_exposure_setting(gphoto, gphoto->exposure_widget, exptime_msec);
 	gp_dprintf("Using exposure time: %s\n", gphoto->exposure_widget->choices[idx]);
-	set_widget_num(gphoto, gphoto->exposure_widget, idx);
+	gphoto_set_widget_num(gphoto, gphoto->exposure_widget, idx);
 	gphoto->command = DSLR_CMD_CAPTURE;
 	pthread_cond_signal(&gphoto->signal);
 	pthread_mutex_unlock(&gphoto->mutex);
@@ -635,7 +662,7 @@ gphoto_driver *gphoto_open(const char *shutter_release_port)
 
 	// Set 'capture=1' for Canon DSLRs.  Won't harm other cameras
 	if ((widget = find_widget(gphoto, "capture"))) {
-		set_widget_num(gphoto, widget, TRUE);
+		gphoto_set_widget_num(gphoto, widget, TRUE);
 		widget_free(widget);
 	}
 
@@ -721,7 +748,7 @@ gphoto_widget *gphoto_get_widget_info(gphoto_driver *gphoto, gphoto_widget_list 
 	if(! *iter)
 		return NULL;
 	widget = (*iter)->widget;
-	read_widget(widget);
+	gphoto_read_widget(widget);
 	*iter=(*iter)->next;
 	return widget;
 }
@@ -809,6 +836,7 @@ static void find_all_widgets(gphoto_driver *gphoto, CameraWidget *widget,
 		} else {
 			gphoto->iter->next = list;
 		}
+		gp_widget_get_readonly(widget, &list->widget->readonly);
 		gphoto->iter = list;
 		return;
 	}
@@ -839,7 +867,7 @@ void gphoto_show_options(gphoto_driver *gphoto)
 		fprintf(stderr, "Available options\n");
 		while(list) {
 			fprintf(stderr, "\t%s:\n", list->widget->name);
-			read_widget(list->widget);
+			gphoto_read_widget(list->widget);
 			show_widget(list->widget, "\t\t");
 			list = list->next;
 		}
