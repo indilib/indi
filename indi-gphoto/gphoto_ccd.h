@@ -1,4 +1,3 @@
-#define SHOW_ALL_OPTIONS
 #include <map>
 #include <string>
 #include <cstring>
@@ -67,6 +66,7 @@ private:
 	void AddWidget(gphoto_widget *widget);
 	void UpdateWidget(cam_opt *opt);
 	void ShowExtendedOptions(void);
+	void HideExtendedOptions(void);
 private:
 	gphoto_driver *gphotodrv;
 	map<string, cam_opt *> CamOptions;
@@ -82,7 +82,7 @@ private:
 	ISwitchVectorProperty mConnectSP;
 	IText mPortT[1];
 	ITextVectorProperty mPortTP;
-	ISwitch mExtendedS[1];
+	ISwitch mExtendedS[2];
 	ISwitchVectorProperty mExtendedSP;
 
 	INumber mExposureN[1];

@@ -213,16 +213,20 @@ void GPhotoCam::ISNewSwitch (const char *name, ISState *states, char *names[], i
 	}		
 	if (!strcmp(name, mExtendedSP.name))
 	{
-		states[0] = ISS_ON;
 		if (IUUpdateSwitch(&mExtendedSP, states, names, n) < 0)
 				return;
 		if (mConnectS[ON_S].s == ISS_ON)
 		{
-			if (! optTID)
+			if (mExtendedS[ON_S].s == ISS_ON)
 			{
-				ShowExtendedOptions();
+				if (! optTID)
+				{
+					ShowExtendedOptions();
+				} else {
+					UpdateExtendedOptions(true);
+				}
 			} else {
-				UpdateExtendedOptions(true);
+				HideExtendedOptions();
 			}
 		}
 		IDSetSwitch(&mExtendedSP, NULL);
@@ -689,6 +693,36 @@ GPhotoCam::ShowExtendedOptions(void)
 	optTID = IEAddTimer (1000, GPhotoCam::UpdateExtendedOptions, this);
 }
 
+void
+GPhotoCam::HideExtendedOptions(void)
+{
+	if (optTID) {
+		IERmTimer(optTID);
+		optTID = 0;
+	}
+
+	while (CamOptions.begin() != CamOptions.end()) {
+		cam_opt *opt = (*CamOptions.begin()).second;
+		IDDelete(MYDEV, (*CamOptions.begin()).first.c_str(), NULL);
+
+		switch(opt->widget->type) {
+		case GP_WIDGET_RADIO:
+		case GP_WIDGET_MENU:
+		case GP_WIDGET_TOGGLE:
+			free(opt->item.sw);
+			break;
+		case GP_WIDGET_TEXT:
+		case GP_WIDGET_DATE:
+			free(opt->item.text.text);
+			break;
+		default:
+			break;
+		}
+
+		delete opt;
+		CamOptions.erase(CamOptions.begin());
+	}
+}
 /* wait forever trying to open camera
  */
 int
@@ -754,6 +788,8 @@ GPhotoCam::Connect()
 void
 GPhotoCam::Reset()
 {
+	HideExtendedOptions();
+
 	mConnectSP.s		= IPS_IDLE;
 	mIsoSP.s			= IPS_IDLE;
 	mFormatSP.s		= IPS_IDLE;
@@ -764,12 +800,17 @@ GPhotoCam::Reset()
 	gphoto_close(gphotodrv);	
 	gphotodrv = NULL;
 
-	IDSetSwitch(&mConnectSP, NULL);
-	IDSetSwitch(&mIsoSP, NULL);
-	IDSetSwitch(&mFormatSP, NULL);
-	IDSetSwitch(&mTransferSP, NULL);
-	IDSetNumber(&mExposureNP, NULL);
-	IDSetBLOB(&mFitsBP, NULL);
+	IDDelete(MYDEV, mIsoSP.name, NULL);
+	IDDelete(MYDEV, mFormatSP.name, NULL);
+	IDDelete(MYDEV, mTransferSP.name, NULL);
+	IDDelete(MYDEV, mExposureNP.name, NULL);
+	IDDelete(MYDEV, mFitsBP.name, NULL);
+	//IDSetSwitch(&mConnectSP, NULL);
+	//IDSetSwitch(&mIsoSP, NULL);
+	//IDSetSwitch(&mFormatSP, NULL);
+	//IDSetSwitch(&mTransferSP, NULL);
+	//IDSetNumber(&mExposureNP, NULL);
+	//IDSetBLOB(&mFitsBP, NULL);
 }
 
 void GPhotoCam::InitVars(void)
@@ -787,7 +828,8 @@ void GPhotoCam::InitVars(void)
 	IUFillTextVector(&mPortTP, mPortT, NARRAY(mPortT), MYDEV,
 		"SHUTTER_PORT" , "Shutter Release", COMM_GROUP, IP_RW,
 		0, IPS_IDLE);
-  	IUFillSwitch(&mExtendedS[0], "SHOW" , "Show" , ISS_OFF);
+  	IUFillSwitch(&mExtendedS[ON_S], "SHOW" , "Show" , ISS_OFF);
+  	IUFillSwitch(&mExtendedS[OFF_S], "HIDE" , "Hide" , ISS_OFF);
   	IUFillSwitchVector(&mExtendedSP, mExtendedS, NARRAY(mExtendedS), MYDEV,
 		"CAM_PROPS" , "Cam Props", COMM_GROUP, IP_RW, ISR_1OFMANY,
 		0, IPS_IDLE);
