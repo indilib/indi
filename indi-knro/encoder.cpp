@@ -50,7 +50,7 @@ const int ENCODER_ERROR_BUFFER = 128;
 const int ENCODER_CMD_LEN = 4;
 
 const double AZ_TPD = 202.5;
-const int AZ_HOME = 376790;
+const int AZ_HOME = 266593;
 
 //AZ_MIN 304770  - Degrees 85.6494
 //AZ_MAX 377160  - Degrees 88.1728
@@ -60,7 +60,9 @@ const int AZ_MAX_COUNT = 400000;
 const int AZ_MIN_COUNT = 300000;
 
 const double ALT_TPD = 225.9;
-const int ALT_HOME = 243310;
+//const int ALT_HOME = 243310;
+const int ALT_HOME =256814 ;
+
 
 const int ALT_MAX_COUNT = 250000;
 const int ALT_MIN_COUNT = 200000;
@@ -400,11 +402,12 @@ knroEncoder::encoderError knroEncoder::get_encoder_value(encoderCommand command,
 
 		if (debug)
 		{
-		  IDLog("Big Endian INT: %d - Current encoder position is: %d\n", big_endian_int, encoder_position);
+		  IDLog("**** %s encoder ****** - Big Endian INT: %d - Current encoder position is: %d\n", type_name.c_str(), big_endian_int, encoder_position);
 		  IDLog("response[0]: %d , response[1]: %d , response[2]: %d , response[3]: %d\n", response[0], response[1], response[2], response[3]);
 		}
 		
-		
+		#if 0
+		// TODO FIXME Enable this back after calibration is done!!!!!
 		if (type == AZ_ENCODER)
 		{
 		  if (encoder_position > AZ_MAX_COUNT || encoder_position < AZ_MIN_COUNT)
@@ -417,6 +420,8 @@ knroEncoder::encoderError knroEncoder::get_encoder_value(encoderCommand command,
 		}
 		
 		  //TODO add ALT_ENCODER check
+
+		#endif
 		  
 		  // Reject ridicislous values
 		  if ( (encoder_value != 0) && fabs(encoder_value - encoder_position) > 2000)
@@ -544,7 +549,8 @@ void * knroEncoder::update_encoder(void)
 	}
 	
 	if (debug)
-	  IDLog("We got encoder test value of %g, Degree %g\n", EncoderAbsPosN[0].value, EncoderAbsPosN[1].value);
+	  //IDLog("We got encoder test value of %g, Degree %g\n", EncoderAbsPosN[0].value, EncoderAbsPosN[1].value);
+	  IDLog("We got encoder test value of %g, Degree %g\n", new_encoder_value, EncoderAbsPosN[1].value);
 
         usleep(ENCODER_POLLMS);
 
@@ -558,7 +564,7 @@ void knroEncoder::calculate_angle()
 {
   	if (type == AZ_ENCODER)
 	{
-	 		current_angle = (AZ_HOME - EncoderAbsPosN[0].value) / AZ_TPD + 90.0;
+	 		current_angle = (AZ_HOME - EncoderAbsPosN[0].value) / AZ_TPD + 180.0;
 			if (current_angle > 360) current_angle -= 360;
 			else if (current_angle < 0) current_angle += 360;
 			EncoderAbsPosN[1].value = current_angle;
