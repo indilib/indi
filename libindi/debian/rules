@@ -1,4 +1,15 @@
 #!/usr/bin/make -f
+
+include /usr/share/cdbs/1/class/cmake.mk
+include /usr/share/cdbs/1/rules/debhelper.mk
+
+install/libindi0::
+	ln -sf indi_lx200generic $(DEB_DESTDIR)/usr/bin/indi_lx200classic
+	ln -sf indi_lx200generic $(DEB_DESTDIR)/usr/bin/indi_lx200autostar
+	ln -sf indi_lx200generic $(DEB_DESTDIR)/usr/bin/indi_lx200_16
+	ln -sf indi_lx200generic $(DEB_DESTDIR)/usr/bin/indi_lx200gps
+	ln -sf indi_lx200generic $(DEB_DESTDIR)/usr/bin/indi_lx200ap
+#!/usr/bin/make -f
 clean::
 	dh_testdir
 	dh_clean

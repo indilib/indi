@@ -1,2 +1,2 @@
-usr/include/libindi/*.h
-usr/lib/libindidriver.a
+debian/tmp/usr/include/libindi/*.h
+debian/tmp/usr/lib/libindidriver.a

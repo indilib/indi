@@ -2,10 +2,9 @@ Source: libindi
 Section: libs
 Priority: extra
 Maintainer: Ubuntu MOTU Developers <ubuntu-motu@lists.ubuntu.com>
-XSBC-Original-Maintainer: Jasem Mutlaq <mutlaqja@ikarustech.com>
 Build-Depends: debhelper (>= 6), cdbs, cmake, libnova-dev, libcfitsio3-dev, zlib1g-dev, libusb-dev, libfli-dev
 Standards-Version: 3.8.0
-Homepage: http://indi.sourceforge.net/
+Homepage: http://www.indilib.org/
 
 Package: libindi0
 Architecture: any
@@ -20,7 +19,7 @@ Description: Instrument Neutral Distributed Interface for astronomical devices
  .
  This package contains the library and the binaries it uses.
 
-Package: libindi-dev
+Package: libindi0-dev
 Section: libdevel
 Architecture: any
 Depends: libindi0 (= ${binary:Version}), ${shlibs:Depends}, ${misc:Depends}
@@ -33,4 +32,3 @@ Description: Development headers for INDI Library
  completely dynamic GUI based on the services provided by the device.
  .
  This package contains the development files.
-
