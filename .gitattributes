@@ -580,14 +580,9 @@ libindi/debian/changelog -text
 libindi/debian/compat -text
 libindi/debian/control -text
 libindi/debian/copyright -text
-libindi/debian/libindi0-dev.dirs -text
+libindi/debian/indi0.install -text
 libindi/debian/libindi0-dev.install -text
-libindi/debian/libindi0-dev.links -text
-libindi/debian/libindi0.dirs -text
 libindi/debian/libindi0.install -text
-libindi/debian/libindi0.links -text
-libindi/debian/postinst.ex -text
-libindi/debian/postrm.ex -text
 libindi/debian/rules -text
 libindi/drivers.xml -text
 libindi/drivers/ccd/fli_ccd.c -text

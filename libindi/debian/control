@@ -17,7 +17,7 @@ Description: Instrument Neutral Distributed Interface for astronomical devices
  capabilities and communicate with the device drivers and build a
  completely dynamic GUI based on the services provided by the device.
  .
- This package contains the library and the binaries it uses.
+ This package contains the library.
 
 Package: libindi0-dev
 Section: libdevel
@@ -32,3 +32,17 @@ Description: Development headers for INDI Library
  completely dynamic GUI based on the services provided by the device.
  .
  This package contains the development files.
+
+Package: indi0
+Section: science
+Architecture: any
+Depends: libindi0 (= ${binary:Version}), ${shlibs:Depends}, ${misc:Depends}
+Description: Development headers for INDI Library
+ INDI is Instrument Neutral Distributed Interface control panel for
+ astronomical devices, which provides a framework that decouples low
+ level hardware drivers from high level front end clients. Clients
+ that use the device drivers are completely unaware of the device
+ capabilities and communicate with the device drivers and build a
+ completely dynamic GUI based on the services provided by the device.
+ .
+ This package contains the server and drivers used by client applications.
