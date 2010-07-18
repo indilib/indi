@@ -2,9 +2,7 @@ cmake_minimum_required(VERSION 2.4.7)
 
 
 ##################  INDI version  ################################
-set(INDI_VERSION "0.6")
 set(INDI_SOVERSION "0")
-
 set(CMAKE_INDI_VERSION_MAJOR 0)
 set(CMAKE_INDI_VERSION_MINOR 6)
 set(CMAKE_INDI_VERSION_RELEASE 1)
@@ -136,7 +134,7 @@ target_link_libraries(indi ${FLI_LIBRARIES})
 endif(FLI_FOUND)
 
 install(TARGETS indi LIBRARY DESTINATION lib${LIB_POSTFIX})
-set_target_properties(indi PROPERTIES VERSION ${INDI_VERSION} SOVERSION ${INDI_SOVERSION})
+set_target_properties(indi PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION})
 
 #####################################
 ########## TELESCOPE GROUP ##########
@@ -199,6 +197,7 @@ set(celestrongps_SRCS
 add_executable(indi_celestron_gps ${celestrongps_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
 
 target_link_libraries(indi_celestron_gps m )
+
 
 if (NOVA_FOUND)
   target_link_libraries(indi_celestron_gps ${NOVA_LIBRARIES})

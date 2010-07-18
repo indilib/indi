@@ -1,3 +1,7 @@
+From 0.6 to 0.6.1
+
+	# Updating drivers.xml to comply to new XML structure for group and devices metadata descriptions.
+
 From 0.5 to 0.6
 
         # Devices:

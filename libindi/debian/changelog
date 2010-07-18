@@ -1,3 +1,27 @@
+libindi (0.6.1-0ubuntu1) lucid; urgency=low
+
+  * New upstream release.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sun, 18 Jul 2010 08:51:33 -0700
+
+libindi (0.6-0ubuntu2) lucid; urgency=low
+
+  * rebuild rest of main for armel armv7/thumb2 optimization;
+    UbuntuSpec:mobile-lucid-arm-gcc-v7-thumb2
+
+ -- Alexander Sack <asac@ubuntu.com>  Sat, 06 Mar 2010 13:34:55 +0100
+
+libindi (0.6-0ubuntu1) jaunty; urgency=low
+
+  * Update packaging for upload
+
+ -- Jonathan Riddell <jriddell@ubuntu.com>  Fri, 13 Feb 2009 20:26:22 +0000
+
+libindi (0.6) gutsy; urgency=low
+
+  * Initial release
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Fri, 3 Oct 2008 21:00:00 +0300
 libindi (0.6) gutsy; urgency=low
 
   * Initial release
