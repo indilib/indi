@@ -648,7 +648,6 @@ libindi/indiapi.h -text
 libindi/indidevapi.h -text
 libindi/indidrivermain.c -text
 libindi/indiserver.c -text
-libindi/libindi.pc.cmake -text
 libindi/libs/indicom.c -text
 libindi/libs/indicom.h -text
 libindi/libs/lilxml.c -text
