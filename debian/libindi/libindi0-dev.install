@@ -1,0 +1,2 @@
+debian/tmp/usr/include/libindi/*.h
+debian/tmp/usr/lib/libindidriver.a

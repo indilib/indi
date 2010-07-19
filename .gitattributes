@@ -15,6 +15,14 @@ cmake_modules/FindVorbis.cmake -text
 cmake_modules/MacroBoolTo01.cmake -text
 cmake_modules/MacroLogFeature.cmake -text
 cmake_modules/MacroOptionalFindPackage.cmake -text
+debian/libindi/changelog -text
+debian/libindi/compat -text
+debian/libindi/control -text
+debian/libindi/copyright -text
+debian/libindi/indi.install -text
+debian/libindi/libindi0-dev.install -text
+debian/libindi/libindi0.install -text
+debian/libindi/rules -text
 indi-apogee/.cproject -text
 indi-apogee/.project -text
 indi-apogee/AUTHORS -text

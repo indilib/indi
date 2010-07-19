@@ -1,0 +1,69 @@
+libindi (0.6.2-0ubuntu1) maverick; urgency=low
+
+  * New upstream release.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sun, 18 Jul 2010 09:59:57 +0300
+
+libindi (0.6.1-0ubuntu2) maverick; urgency=low
+
+  * Install pkg-config file
+  * Install libindi.so.0
+  * Point to full LGPL text in debian/copyright
+
+ -- Jonathan Riddell <jriddell@ubuntu.com>  Fri, 11 Jun 2010 12:16:05 +0100
+
+libindi (0.6.1-0ubuntu1) maverick; urgency=low
+
+  * New upstream release
+  * Remove .svn dir from debian/
+  * Remove dh-make templates for debian/
+
+ -- Scott Kitterman <scott@kitterman.com>  Fri, 11 Jun 2010 00:35:17 -0400
+
+libindi (0.6-0ubuntu2) lucid; urgency=low
+
+  * rebuild rest of main for armel armv7/thumb2 optimization;
+    UbuntuSpec:mobile-lucid-arm-gcc-v7-thumb2
+
+ -- Alexander Sack <asac@ubuntu.com>  Sat, 06 Mar 2010 13:34:55 +0100
+
+libindi (0.6-0ubuntu1) jaunty; urgency=low
+
+  * Update packaging for upload
+
+ -- Jonathan Riddell <jriddell@ubuntu.com>  Fri, 13 Feb 2009 20:26:22 +0000
+
+libindi (0.6) gutsy; urgency=low
+
+  * Initial release
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Fri, 3 Oct 2008 21:00:00 +0300
+libindi (0.6.1-0ubuntu1) lucid; urgency=low
+
+  * New upstream release.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sun, 18 Jul 2010 08:51:33 -0700
+
+libindi (0.6-0ubuntu2) lucid; urgency=low
+
+  * rebuild rest of main for armel armv7/thumb2 optimization;
+    UbuntuSpec:mobile-lucid-arm-gcc-v7-thumb2
+
+ -- Alexander Sack <asac@ubuntu.com>  Sat, 06 Mar 2010 13:34:55 +0100
+
+libindi (0.6-0ubuntu1) jaunty; urgency=low
+
+  * Update packaging for upload
+
+ -- Jonathan Riddell <jriddell@ubuntu.com>  Fri, 13 Feb 2009 20:26:22 +0000
+
+libindi (0.6) gutsy; urgency=low
+
+  * Initial release
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Fri, 3 Oct 2008 21:00:00 +0300
+libindi (0.6) gutsy; urgency=low
+
+  * Initial release
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Fri, 3 Oct 2008 21:00:00 +0300
