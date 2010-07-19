@@ -576,14 +576,6 @@ libindi/TODO -text
 libindi/base64.c -text
 libindi/base64.h -text
 libindi/config.h.cmake -text
-libindi/debian/changelog -text
-libindi/debian/compat -text
-libindi/debian/control -text
-libindi/debian/copyright -text
-libindi/debian/indi0.install -text
-libindi/debian/libindi0-dev.install -text
-libindi/debian/libindi0.install -text
-libindi/debian/rules -text
 libindi/drivers.xml -text
 libindi/drivers/ccd/fli_ccd.c -text
 libindi/drivers/filter_wheel/fli_wheel.c -text
