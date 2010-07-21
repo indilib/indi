@@ -438,6 +438,11 @@ knroEncoder::encoderError knroEncoder::get_encoder_value(encoderCommand command,
 	return NO_ERROR;
 }
 
+void   knroEncoder::update_client(void)
+{
+	IDSetNumber(&EncoderAbsPosNP, NULL);
+}
+
 void * knroEncoder::update_encoder(void)
 {
 	char encoder_read[ENCODER_READ_BUFFER];
@@ -467,7 +472,6 @@ void * knroEncoder::update_encoder(void)
 	{
 		if (simulation)
 		{
-			
 				if (simulated_forward)
 					EncoderAbsPosN[0].value -= simulated_speed;
 				else
@@ -475,9 +479,8 @@ void * knroEncoder::update_encoder(void)
 
 				calculate_angle();
 
-				IDSetNumber(&EncoderAbsPosNP, NULL);
-				
 				usleep(SIMULATED_ENCODER_POLLMS);
+
 		}
 
 		usleep(ENCODER_POLLMS);
@@ -545,7 +548,6 @@ void * knroEncoder::update_encoder(void)
 	{
 	    EncoderAbsPosN[0].value = new_encoder_value;
 	    calculate_angle();
-	    IDSetNumber(&EncoderAbsPosNP, NULL);
 	}
 	
 	if (debug)

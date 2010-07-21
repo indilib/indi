@@ -48,6 +48,8 @@ void knroObservatory::ISPoll()
      if (is_connected() == false)
 	return;
 
+    AzEncoder->update_client();
+    AltEncoder->update_client();
     currentAz   = AzEncoder->get_angle();
     currentAlt  = AltEncoder->get_angle();
     IDSetNumber(&HorizontalCoordsNRP, NULL);

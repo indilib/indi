@@ -82,6 +82,7 @@ public:
     void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
  	
     void reset_all_properties();
+    void   update_client(void);
 
     // Simulation
     void simulate_forward() { simulated_forward = true; }
@@ -128,8 +129,7 @@ private:
     encoderType type;
 
     char encoder_command[4];
-    int sockfd;
-    /*FILE *fp;*/
+    int sockfd;  
 
 };
 
