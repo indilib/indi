@@ -167,8 +167,8 @@ bool knroInverter::connect()
     }
 	
 	// 19200 baud is default, no parity, 8 bits, 1 stop bit
-	//modbus_init_rtu(&mb_param, PortT[0].text, 19200, "none", 8, 1);
-	modbus_init_tcp(&mb_param, PortT[0].text, 502);
+	//modbus_init_rtu(&mb_param, SLAVE_ADDRESS, PortT[0].text, 19200, "none", 8, 1);
+	modbus_init_tcp(&mb_param, PortT[0].text, 502, SLAVE_ADDRESS);
 	
 	// Enable debug
 	modbus_set_debug(&mb_param, FALSE);
