@@ -766,16 +766,6 @@ libnova/venus.c -text
 libnova/vsop87.c -text
 sbig/99-sbig.rules -text
 sbig/CMakeLists.txt -text
-sbig/debian/changelog -text
-sbig/debian/compat -text
-sbig/debian/control -text
-sbig/debian/copyright -text
-sbig/debian/postinst.ex -text
-sbig/debian/postrm.ex -text
-sbig/debian/rules -text
-sbig/debian/sbig.dirs -text
-sbig/debian/sbig.install -text
-sbig/debian/sbig.links -text
 sbig/libsbigudrv32.so -text
 sbig/libsbigudrv64.so -text
 sbig/sbigfcam.hex -text
