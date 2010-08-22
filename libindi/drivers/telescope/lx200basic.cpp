@@ -162,7 +162,7 @@ LX200Basic::LX200Basic()
    IDLog("Initilizing from LX200 Basic device...\n");
    IDLog("Driver Version: 2007-09-28\n");
  
-   //enableSimulation(true);  
+   enable_simulation(false);  
 }
 
 /**************************************************************************************
@@ -341,7 +341,7 @@ void LX200Basic::ISNewNumber (const char *dev, const char *name, double values[]
 	   IDLog("We received JNow RA %s - DEC %s\n", RAStr, DecStr);
            #endif
 	   
-	   if ( (error_code = setObjectRA(fd, newRA)) < 0 || ( error_code = setObjectDEC(fd, newDEC)) < 0)
+	   if (!simulation && ( (error_code = setObjectRA(fd, newRA)) < 0 || ( error_code = setObjectDEC(fd, newDEC)) < 0))
 	   {
 	     handle_error(&EquatorialCoordsWNP, error_code, "Setting RA/DEC");
 	     return;
@@ -573,7 +573,7 @@ static void retry_connection(void * p)
 ***************************************************************************************/
 void LX200Basic::ISPoll()
 {	
-	if (is_connected() == false)
+	if (is_connected() == false || simulation)
 	 return;
 
         double dx, dy;
@@ -683,7 +683,7 @@ bool LX200Basic::process_coords()
 	     usleep(100000);
 	  }
 
-	  if ((error_code = Slew(fd)))
+	  if ( !simulation && (error_code = Slew(fd)))
 	  {
 	    slew_error(error_code);
 	    return false;
@@ -715,7 +715,7 @@ bool LX200Basic::process_coords()
 
 	  if (dx >= (TrackAccuracyN[0].value/(60.0*15.0)) || (dy >= TrackAccuracyN[1].value/60.0)) 
 	  {
-          	if ((error_code = Slew(fd)))
+          	if ( !simulation && (error_code = Slew(fd)))
 	  	{
 	    		slew_error(error_code);
 	    		return false;
@@ -750,10 +750,16 @@ bool LX200Basic::process_coords()
           lastSet = LX200_SYNC;
 	  EquatorialCoordsWNP.s = IPS_IDLE;
 	   
-	  if ( ( error_code = Sync(fd, syncString) < 0) )
+	  if ( !simulation && ( error_code = Sync(fd, syncString) < 0) )
 	  {
 	        IDSetNumber( &EquatorialCoordsWNP , "Synchronization failed.");
 		return false;
+	  }
+
+	  if (simulation)
+	  {
+             EquatorialCoordsRN[0].value = EquatorialCoordsWN[0].value;
+             EquatorialCoordsRN[1].value = EquatorialCoordsWN[1].value;
 	  }
 
 	  EquatorialCoordsWNP.s = IPS_OK;
