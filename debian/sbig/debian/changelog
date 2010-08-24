@@ -1,0 +1,11 @@
+sbig (2.0.0-0ubuntu1) jaunty; urgency=low
+
+  * Update packaging for Ubuntu
+
+ -- Jonathan Riddell <jriddell@ubuntu.com>  Fri, 13 Feb 2009 23:46:34 +0000
+
+sbig (2.0.0) gutsy; urgency=low
+
+  * Initial release
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Fri, 21 Dec 2007 04:31:56 +0300

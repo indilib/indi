@@ -23,6 +23,14 @@ debian/libindi/indi.install -text
 debian/libindi/libindi0-dev.install -text
 debian/libindi/libindi0.install -text
 debian/libindi/rules -text
+debian/sbig/debian/changelog -text
+debian/sbig/debian/compat -text
+debian/sbig/debian/control -text
+debian/sbig/debian/copyright -text
+debian/sbig/debian/libsbigudrv2-dev.links -text
+debian/sbig/debian/libsbigudrv2.install -text
+debian/sbig/debian/libsbigudrv2.links -text
+debian/sbig/debian/rules -text
 indi-apogee/.cproject -text
 indi-apogee/.project -text
 indi-apogee/AUTHORS -text

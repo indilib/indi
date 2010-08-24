@@ -1,0 +1,35 @@
+Source: sbig
+Section: libs
+Priority: extra
+Maintainer: Ubuntu MOTU Developers <ubuntu-motu@lists.ubuntu.com>
+XSBC-Original-Maintainer: Jasem Mutlaq <mutlaqja@ikarustech.com>
+Build-Depends: debhelper (>= 6), cdbs, cmake, libusb-dev
+Standards-Version: 3.8.0
+
+Package: libsbigudrv2
+Architecture: i386 amd64
+Depends: ${shlibs:Depends}, ${misc:Depends}, fxload
+Description: Santa Barbra Instrument Group (SBIG) Universal Library Driver
+ The Official Santa Barbra Instrument Group (SBIG) Universal Library
+ Driver is used by applications to access and control the USB,
+ Parallel Port, and Ethernet versions of the CCD cameras and filter
+ wheels including SBIG ST-7/8/9/10/2K cameras, ST-L cameras, and
+ ST-402/1603/3200 cameras. The firmware is included for all classes of
+ cameras.
+
+Package: libsbigudrv2-dev
+Architecture: i386 amd64
+Depends: ${shlibs:Depends}, ${misc:Depends}, libsbigudrv2 (= ${source:Version})
+Section: libdevel
+Replaces: libsbigudrv-dev
+Conflicts: libsbigudrv-dev
+Description: Santa Barbra Instrument Group (SBIG) Universal Library Driver
+ The Official Santa Barbra Instrument Group (SBIG) Universal Library
+ Driver is used by applications to access and control the USB,
+ Parallel Port, and Ethernet versions of the CCD cameras and filter
+ wheels including SBIG ST-7/8/9/10/2K cameras, ST-L cameras, and
+ ST-402/1603/3200 cameras. The firmware is included for all classes of
+ cameras.
+ .
+ This package contains the development files.
+
