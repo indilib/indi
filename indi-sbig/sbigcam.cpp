@@ -962,8 +962,9 @@ void SbigCam::InitVars()
 	IUFillSwitch(&m_icfw_type_s[5], CFW6_NAME_S, CFW6_LABEL_S, ISS_OFF);
 	IUFillSwitch(&m_icfw_type_s[6], CFW7_NAME_S, CFW7_LABEL_S, ISS_OFF);
 	IUFillSwitch(&m_icfw_type_s[7], CFW8_NAME_S, CFW8_LABEL_S, ISS_OFF);
-	#ifdef	 USE_CFW_AUTO
 	IUFillSwitch(&m_icfw_type_s[8], CFW9_NAME_S, CFW9_LABEL_S, ISS_OFF);
+	#ifdef	 USE_CFW_AUTO
+	IUFillSwitch(&m_icfw_type_s[9], CFW10_NAME_S, CFW10_LABEL_S, ISS_OFF);
 	#endif
   IUFillSwitchVector(&m_icfw_type_sp, 
 									m_icfw_type_s, 
@@ -2687,6 +2688,9 @@ void SbigCam::CfwUpdateProperties(CFWResults cfwr)
 		case 	CFWSEL_CFWL:
 					sprintf(str, "%s", "CFW - L");			
 					break;
+		case	CFWSEL_CFW9:
+					sprintf(str, "%s", "CFW - 9");
+					break ;
 		default:
 					sprintf(str, "%s", "Unknown");
 					bClear = true;	
@@ -2738,9 +2742,11 @@ int SbigCam::GetCfwSelType()
 		}else if(!strcmp(p->name, CFW7_NAME_S)){
 				type = CFWSEL_CFW10_SERIAL;
 		}else if(!strcmp(p->name, CFW8_NAME_S)){
-				type = CFWSEL_CFWL;		
-		#ifdef	 USE_CFW_AUTO
+				type = CFWSEL_CFWL;
 		}else if(!strcmp(p->name, CFW9_NAME_S)){
+				type = CFWSEL_CFW9;
+		#ifdef	 USE_CFW_AUTO
+		}else if(!strcmp(p->name, CFW10_NAME_S)){
 				type = CFWSEL_AUTO;
 		#endif
 		}

@@ -336,12 +336,14 @@ const double		DEF_EXP_TIME		= 1.0;
 #define			CFW7_LABEL_S						"CFW-10 SA"
 #define			CFW8_NAME_S						"CFW8"
 #define			CFW8_LABEL_S						"CFW-L"
+#define			CFW9_NAME_S						"CFW9"
+#define			CFW9_LABEL_S						"CFW-9"
 #ifdef	 USE_CFW_AUTO
-	#define			CFW9_NAME_S						"CFW9"
-	#define			CFW9_LABEL_S						"CFW-Auto"
-	const int		MAX_CFW_TYPES = 9;		
+	#define			CFW10_NAME_S						"CFW10"
+	#define			CFW10_LABEL_S						"CFW-Auto"
+	const int		MAX_CFW_TYPES = 10;		
 #else
-	const int		MAX_CFW_TYPES = 8;			
+	const int		MAX_CFW_TYPES = 9;			
 #endif
 
 #define			CFW_TYPE_NAME_SP				"CFW_TYPE"

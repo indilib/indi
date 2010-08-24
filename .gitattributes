@@ -106,15 +106,6 @@ indi-sbig/ChangeLog -text
 indi-sbig/INSTALL -text
 indi-sbig/README -text
 indi-sbig/config.h.cmake -text
-indi-sbig/debian/changelog -text
-indi-sbig/debian/compat -text
-indi-sbig/debian/control -text
-indi-sbig/debian/copyright -text
-indi-sbig/debian/indi-sbig.dirs -text
-indi-sbig/debian/indi-sbig.install -text
-indi-sbig/debian/postinst.ex -text
-indi-sbig/debian/postrm.ex -text
-indi-sbig/debian/rules -text
 indi-sbig/indi_sbig.xml -text
 indi-sbig/sbigcam.cpp -text
 indi-sbig/sbigcam.h -text
