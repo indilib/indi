@@ -1,0 +1,17 @@
+<defSwitchVector device="My Device" name="CONNECTION" label="Connection" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="60">
+    <defSwitch name="CONNECT" label="Connect">
+Off
+    </defSwitch>
+    <defSwitch name="DISCONNECT" label="Disconnect">
+On
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="My Device" name="Slew Accuracy" label="" group="Main Control" state="Idle" perm="rw" timeout="0" timestamp="2010-09-02T23:50:48">
+    <defNumber name="SlewRA" label="RA (arcmin)" format="%10.6m" min="0" max="60" step="1">
+3
+    </defNumber>
+    <defNumber name="SlewDEC" label="Dec (arcmin)" format="%10.6m" min="0" max="60" step="1">
+3
+    </defNumber>
+</defNumberVector>
+

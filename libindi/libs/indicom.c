@@ -23,14 +23,6 @@
 
 */
 
-/* needed for sincos() in math.h */
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-#ifdef _WIN32
-#define CX _CX
-#define CY _CY
-#endif
 #include <stdlib.h>
 #include <math.h>
 #include <stdio.h>
@@ -46,18 +38,10 @@
 #include <libnova.h>
 #endif
 
-
 #include "indicom.h"
 #ifdef _WIN32
 #undef CX
 #undef CY
-#endif
-const char * Direction[] = { "North", "West", "East", "South", "All"};
-const char * SolarSystem[] = { "Mercury", "Venus", "Moon", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto"};
-
-/* make it compile on solaris */
-#ifndef M_PI
-#define M_PI 3.14159265358979323846264338327950288419716939937510582097494459
 #endif
 
 #ifndef _WIN32
@@ -66,6 +50,8 @@ const char * SolarSystem[] = { "Mercury", "Venus", "Moon", "Mars", "Jupiter", "S
 #define PARITY_EVEN    1
 #define PARITY_ODD     2
 #endif
+
+#include "indidevapi.h"
 
 void getSexComponents(double value, int *d, int *m, int *s);
 
@@ -643,3 +629,5 @@ void tty_error_msg(int err_code, char *err_msg, int err_msg_len)
 
    }	
 }
+
+

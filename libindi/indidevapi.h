@@ -410,28 +410,28 @@ extern IText   *IUFindText  (const ITextVectorProperty *tp, const char *name);
 
 /** \brief Find an INumber member in a number text property.
 *
-* \param tp a pointer to a number vector property.
+* \param np a pointer to a number vector property.
 * \param name the name of the member to search for.
 * \return a pointer to an INumber member on match, or NULL if nothing is found.
 */
-extern INumber *IUFindNumber(const INumberVectorProperty *tp, const char *name);
+extern INumber *IUFindNumber(const INumberVectorProperty *np, const char *name);
 
 /** \brief Find an ISwitch member in a vector switch property.
 *
-* \param tp a pointer to a switch vector property.
+* \param sp a pointer to a switch vector property.
 * \param name the name of the member to search for.
 * \return a pointer to an ISwitch member on match, or NULL if nothing is found.
 */
-extern ISwitch *IUFindSwitch(const ISwitchVectorProperty *tp, const char *name);
+extern ISwitch *IUFindSwitch(const ISwitchVectorProperty *sp, const char *name);
 
 /** \brief Returns the first ON switch it finds in the vector switch property.
 
 *   \note This is only valid for ISR_1OFMANY mode. That is, when only one switch out of many is allowed to be ON. Do not use this function if you can have multiple ON switches in the same vector property.
 *        
-* \param tp a pointer to a switch vector property.
+* \param sp a pointer to a switch vector property.
 * \return a pointer to the \e first ON ISwitch member if found. If all switches are off, NULL is returned. 
 */
-extern ISwitch *IUFindOnSwitch (const ISwitchVectorProperty *tp);
+extern ISwitch *IUFindOnSwitch (const ISwitchVectorProperty *sp);
 
 /** \brief Reset all switches in a switch vector property to OFF.
 *
@@ -704,6 +704,27 @@ extern void ISSnoopDevice (XMLEle *root);
 
 /* Handy readability macro to avoid unused variables warnings */
 #define INDI_UNUSED(x) (void) x
+
+extern int crackDN (XMLEle *root, char **dev, char **name, char msg[]);
+extern int isPropDefined(const char *property_name);
+extern int crackIPState (const char *str, IPState *ip);
+extern int crackISState (const char *str, ISState *ip);
+extern int crackIPerm (const char *str, IPerm *ip);
+extern int crackISRule (const char *str, ISRule *ip);
+extern void xmlv1(void);
+extern const char *pstateStr(IPState s);
+extern const char *sstateStr(ISState s);
+extern const char *ruleStr(ISRule r);
+extern const char *permStr(IPerm p);
+extern int readConfig(const char *filename, const char *dev, char errmsg[]);
+extern void IUSaveDefaultConfig(const char *source_config, const char *dest_config, const char *dev);
+extern FILE * IUGetConfigFP(const char *filename, const char *dev, char errmsg[]);
+extern void IUSaveConfigTag(FILE *fp, int ctag);
+extern void IUSaveConfigNumber (FILE *fp, const INumberVectorProperty *nvp);
+extern void IUSaveConfigText (FILE *fp, const ITextVectorProperty *tvp);
+extern void IUSaveConfigSwitch (FILE *fp, const ISwitchVectorProperty *svp);
+extern void IUSaveConfigBLOB (FILE *fp, const IBLOBVectorProperty *bvp);
+
 
 #ifdef __cplusplus
 }

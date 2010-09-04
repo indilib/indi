@@ -12,3 +12,5 @@
 
 /* Define if you have libnova.h */
 #cmakedefine   HAVE_NOVA_H 1
+
+

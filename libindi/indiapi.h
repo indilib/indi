@@ -73,7 +73,7 @@ You can find information on INDI development in the <a href="http://indi.sf.net"
 
 
 /* INDI Library version */
-#define INDI_LIBV	0.6
+#define INDI_LIBV	0.7
 
 /*******************************************************************************
  * Manifest constants

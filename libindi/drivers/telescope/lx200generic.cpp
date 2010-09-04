@@ -337,6 +337,7 @@ void changeAllDeviceNames(const char *newName)
 void ISInit()
 {
   static int isInit=0;
+  char *envDev = getenv("INDIDEV");
 
  if (isInit)
   return;
@@ -354,11 +355,19 @@ void ISInit()
   if (strstr(me, "indi_lx200classic"))
   {
      fprintf(stderr , "initilizaing from LX200 classic device...\n");
-     // 1. mydev = device_name
-     changeAllDeviceNames("LX200 Classic");
-     // 2. device = sub_class
+
      telescope = new LX200Classic();
-     telescope->setCurrentDeviceName("LX200 Classic");
+     if (envDev != NULL)
+     {
+         changeAllDeviceNames(envDev);
+         telescope->setCurrentDeviceName(envDev);
+     }
+     else
+     {
+        // 1. mydev = device_name
+        changeAllDeviceNames("LX200 Classic");
+        telescope->setCurrentDeviceName("LX200 Classic");
+     }
 
      MaxReticleFlashRate = 3;
   }
@@ -366,11 +375,24 @@ void ISInit()
   else if (strstr(me, "indi_lx200gps"))
   {
      fprintf(stderr , "initilizaing from LX200 GPS device...\n");
-     // 1. mydev = device_name
-     changeAllDeviceNames("LX200 GPS");
+
      // 2. device = sub_class
      telescope = new LX200GPS();
-     telescope->setCurrentDeviceName("LX200 GPS");
+
+     if (envDev != NULL)
+     {
+         // 1. mydev = device_name
+         changeAllDeviceNames(envDev);
+         telescope->setCurrentDeviceName(envDev);
+     }
+     else
+     {
+         // 1. mydev = device_name
+         changeAllDeviceNames("LX200 GPS");
+         telescope->setCurrentDeviceName("LX200 GPS");
+     }
+
+
 
      MaxReticleFlashRate = 9;
   }
@@ -378,11 +400,21 @@ void ISInit()
   {
 
     IDLog("Initilizaing from LX200 16 device...\n");
-    // 1. mydev = device_name
-    changeAllDeviceNames("LX200 16");
+
     // 2. device = sub_class
    telescope = new LX200_16();
-   telescope->setCurrentDeviceName("LX200 16");
+
+   if (envDev != NULL)
+   {
+       // 1. mydev = device_name
+       changeAllDeviceNames(envDev);
+       telescope->setCurrentDeviceName(envDev);
+   }
+   else
+   {
+       changeAllDeviceNames("LX200 16");
+       telescope->setCurrentDeviceName("LX200 16");
+   }
 
    MaxReticleFlashRate = 3;
  }
@@ -390,11 +422,21 @@ void ISInit()
  {
    fprintf(stderr , "initilizaing from autostar device...\n");
   
-   // 1. change device name
-   changeAllDeviceNames("LX200 Autostar");
    // 2. device = sub_class
    telescope = new LX200Autostar();
-   telescope->setCurrentDeviceName("LX200 Autostar");
+
+   if (envDev != NULL)
+   {
+       // 1. change device name
+       changeAllDeviceNames(envDev);
+       telescope->setCurrentDeviceName(envDev);
+   }
+   else
+   {
+       // 1. change device name
+       changeAllDeviceNames("LX200 Autostar");
+       telescope->setCurrentDeviceName("LX200 Autostar");
+   }
 
    MaxReticleFlashRate = 9;
  }
@@ -402,11 +444,23 @@ void ISInit()
  {
    fprintf(stderr , "initilizaing from ap device...\n");
   
-   // 1. change device name
-   changeAllDeviceNames("LX200 Astro-Physics");
+
    // 2. device = sub_class
    telescope = new LX200AstroPhysics();
-   telescope->setCurrentDeviceName("LX200 Astro-Physics");
+
+   if (envDev != NULL)
+   {
+       // 1. change device name
+       changeAllDeviceNames(envDev);
+       telescope->setCurrentDeviceName(envDev);
+   }
+   else
+   {
+       // 1. change device name
+       changeAllDeviceNames("LX200 Astro-Physics");
+        telescope->setCurrentDeviceName("LX200 Astro-Physics");
+    }
+
 
    MaxReticleFlashRate = 9;
  }
@@ -414,7 +468,20 @@ void ISInit()
  else
  {
   telescope = new LX200Generic();
-  telescope->setCurrentDeviceName("LX200 Generic");
+
+  if (envDev != NULL)
+  {
+      // 1. change device name
+      changeAllDeviceNames(envDev);
+      telescope->setCurrentDeviceName(envDev);
+  }
+  else
+  {
+      // 1. change device name
+      changeAllDeviceNames("LX200 Generic");
+      telescope->setCurrentDeviceName("LX200 Generic");
+  }
+
  }
 
 }

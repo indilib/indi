@@ -2,7 +2,7 @@
     INDI
     Copyright (C) 2003-2006 Elwood C. Downey
 
-			Modified by Jasem Mutlaq (2003-2006)
+                        Updated by Jasem Mutlaq (2003-2010)
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -45,20 +45,13 @@
 #include "eventloop.h"
 #include "indidevapi.h"
 #include "indicom.h"
+#include "indidrivermain.h"
+
+#define MAXRBUF 4096
 
 static void usage(void);
-static void clientMsgCB(int fd, void *arg);
 static int dispatch (XMLEle *root, char msg[]);
-static int crackDN (XMLEle *root, char **dev, char **name, char msg[]);
-static int isPropDefined(const char *property_name);
-static int crackIPState (const char *str, IPState *ip);
-static int crackISState (const char *str, ISState *ip);
-static void xmlv1(void);
-const char *pstateStr(IPState s);
-const char *sstateStr(ISState s);
-const char *ruleStr(ISRule r);
-const char *permStr(IPerm p);
-
+static void clientMsgCB(int fd, void *arg);
 
 static int nroCheck;			/* # of elements in roCheck */
 static int verbose;			/* chatty */
@@ -121,7 +114,7 @@ main (int ac, char *av[])
 }
 
 /* Return 1 is property is already cached, 0 otherwise */
-static int isPropDefined(const char *property_name)
+int isPropDefined(const char *property_name)
 {
   int i=0;
   
@@ -204,6 +197,8 @@ IDDefNumber (const INumberVectorProperty *n, const char *fmt, ...)
 	printf ("  perm='%s'\n", permStr(n->p));
 	printf ("  timeout='%g'\n", n->timeout);
 	printf ("  timestamp='%s'\n", timestamp());
+
+
 	if (fmt) {
 	    va_list ap;
 	    va_start (ap, fmt);
@@ -214,8 +209,11 @@ IDDefNumber (const INumberVectorProperty *n, const char *fmt, ...)
 	}
 	printf (">\n");
 
+
 	for (i = 0; i < n->nnp; i++) {
+
 	    INumber *np = &n->np[i];
+
 	    printf ("  <defNumber\n");
 	    printf ("    name='%s'\n", np->name);
 	    printf ("    label='%s'\n", np->label);
@@ -224,6 +222,7 @@ IDDefNumber (const INumberVectorProperty *n, const char *fmt, ...)
 	    printf ("    max='%.20g'\n", np->max);
 	    printf ("    step='%.20g'>\n", np->step);
 	    printf ("      %.20g\n", np->value);
+
 	    printf ("  </defNumber>\n");
 	}
 
@@ -594,28 +593,6 @@ void IUUpdateMinMax(const INumberVectorProperty *nvp)
 
   printf ("</setNumberVector>\n");
   fflush (stdout);
-}
-
-/* send client a message for a specific device or at large if !dev */
-void
-IDMessage (const char *dev, const char *fmt, ...)
-{
-
-        xmlv1();
-	printf ("<message\n");
-	if (dev)
-	    printf (" device='%s'\n", dev);
-	printf ("  timestamp='%s'\n", timestamp());
-	if (fmt) {
-	    va_list ap;
-	    va_start (ap, fmt);
-	    printf ("  message='");
-	    vprintf (fmt, ap);
-	    printf ("'\n");
-	    va_end (ap);
-	}
-	printf ("/>\n");
-	fflush (stdout);
 }
 
 /* tell Client to delete the property with given name on given device, or
@@ -1575,116 +1552,385 @@ dispatch (XMLEle *root, char msg[])
 	return(1);
 }
 
-/* pull out device and name attributes from root.
- * return 0 if ok else -1 with reason in msg[].
- */
-static int
-crackDN (XMLEle *root, char **dev, char **name, char msg[])
+int readConfig(const char *filename, const char *dev, char errmsg[])
 {
-	XMLAtt *ap;
+    char configFileName[MAXRBUF], configDefaultFileName[MAXRBUF];
+    char *rname, *rdev;
+    XMLEle *root = NULL, *fproot = NULL;
+    LilXML *lp = newLilXML();
 
-	ap = findXMLAtt (root, "device");
-	if (!ap) {
-	    sprintf (msg, "%s requires 'device' attribute", tagXMLEle(root));
-	    return (-1);
-	}
-	*dev = valuXMLAtt(ap);
+    FILE *fp = NULL;
 
-	ap = findXMLAtt (root, "name");
-	if (!ap) {
-	    sprintf (msg, "%s requires 'name' attribute", tagXMLEle(root));
-	    return (-1);
-	}
-	*name = valuXMLAtt(ap);
+    if (filename)
+         strncpy(configFileName, filename, MAXRBUF);
+     else
+    {
+        if (getenv("INDICONFIG"))
+            strncpy(configFileName, getenv("INDICONFIG"), MAXRBUF);
+        else
+           snprintf(configFileName, MAXRBUF, "%s/.indi/%s_config.xml", getenv("HOME"), dev);
 
-	return (0);
+    }
+
+    fp = fopen(configFileName, "r");
+    if (fp == NULL)
+    {
+         snprintf(errmsg, MAXRBUF, "Unable to read config file. Error loading file %s: %s\n", filename, strerror(errno));
+         return -1;
+    }
+
+    fproot = readXMLFile(fp, lp, errmsg);
+
+    if (fproot == NULL)
+    {
+        snprintf(errmsg, MAXRBUF, "Unable to parse config XML: %s", errmsg);
+        return -1;
+    }
+
+    for (root = nextXMLEle (fproot, 1); root != NULL; root = nextXMLEle (fproot, 0))
+    {
+
+        /* pull out device and name */
+        if (crackDN (root, &rdev, &rname, errmsg) < 0)
+            return -1;
+
+        // It doesn't belong to our device??
+        if (strcmp(dev, rdev))
+            continue;
+
+        dispatch(root, errmsg);
+
+    }
+
+    fclose(fp);
+    delXMLEle(fproot);
+    delXMLEle(root);
+    delLilXML(lp);
+
+    return (0);
+
 }
+
+
+void IUSaveDefaultConfig(const char *source_config, const char *dest_config, const char *dev)
+{
+
+    char configFileName[MAXRBUF], configDefaultFileName[MAXRBUF];
+
+    if (source_config)
+         strncpy(configFileName, source_config, MAXRBUF);
+     else
+    {
+        if (getenv("INDICONFIG"))
+           strncpy(configFileName, getenv("INDICONFIG"), MAXRBUF);
+        else
+           snprintf(configFileName, MAXRBUF, "%s/.indi/%s_config.xml", getenv("HOME"), dev);
+
+    }
+
+     if (dest_config)
+         strncpy(configDefaultFileName, dest_config, MAXRBUF);
+     else if (getenv("INDICONFIG"))
+         snprintf(configDefaultFileName, MAXRBUF, "%s.default", getenv("INDICONFIG"));
+     else
+        snprintf(configDefaultFileName, MAXRBUF, "%s/.indi/%s_config.xml.default", getenv("HOME"), dev);
+
+  // If the default doesn't exist, create it.
+  if (access(configDefaultFileName, F_OK))
+  {
+    FILE *fpin = fopen(configFileName, "r");
+      if(fpin != NULL)
+      {
+        FILE *fpout = fopen(configDefaultFileName, "w");
+        if(fpout != NULL)
+        {
+          int ch = 0;
+          while((ch = getc(fpin)) != EOF)
+            putc(ch, fpout);
+
+          fclose(fpin);
+          fclose(fpout);
+       }
+    }
+  }
+
+}
+
 
 /* return static string corresponding to the given property or light state */
 const char *
 pstateStr (IPState s)
 {
-	switch (s) {
-	case IPS_IDLE:  return ("Idle");
-	case IPS_OK:    return ("Ok");
-	case IPS_BUSY:  return ("Busy");
-	case IPS_ALERT: return ("Alert");
-	default:
-	    fprintf (stderr, "Impossible IPState %d\n", s);
-	    exit(1);
-	}
+        switch (s) {
+        case IPS_IDLE:  return ("Idle");
+        case IPS_OK:    return ("Ok");
+        case IPS_BUSY:  return ("Busy");
+        case IPS_ALERT: return ("Alert");
+        default:
+            fprintf (stderr, "Impossible IPState %d\n", s);
+            exit(1);
+        }
 }
 
 /* crack string into IPState.
  * return 0 if ok, else -1
  */
-static int
+int
 crackIPState (const char *str, IPState *ip)
 {
-	     if (!strcmp (str, "Idle"))  *ip = IPS_IDLE;
-	else if (!strcmp (str, "Ok"))    *ip = IPS_OK;
-	else if (!strcmp (str, "Busy"))  *ip = IPS_BUSY;
-	else if (!strcmp (str, "Alert")) *ip = IPS_ALERT;
-	else return (-1);
-	return (0);
+             if (!strcmp (str, "Idle"))  *ip = IPS_IDLE;
+        else if (!strcmp (str, "Ok"))    *ip = IPS_OK;
+        else if (!strcmp (str, "Busy"))  *ip = IPS_BUSY;
+        else if (!strcmp (str, "Alert")) *ip = IPS_ALERT;
+        else return (-1);
+        return (0);
 }
 
 /* crack string into ISState.
  * return 0 if ok, else -1
  */
-static int
+int
 crackISState (const char *str, ISState *ip)
 {
-	     if (!strcmp (str, "On"))  *ip = ISS_ON;
-	else if (!strcmp (str, "Off")) *ip = ISS_OFF;
-	else return (-1);
-	return (0);
+             if (!strcmp (str, "On"))  *ip = ISS_ON;
+        else if (!strcmp (str, "Off")) *ip = ISS_OFF;
+        else return (-1);
+        return (0);
+}
+
+int
+crackIPerm (const char *str, IPerm *ip)
+{
+             if (!strcmp (str, "rw"))  *ip = IP_RW;
+        else if (!strcmp (str, "ro")) *ip = IP_RO;
+        else if (!strcmp (str, "wo")) *ip = IP_WO;
+        else return (-1);
+        return (0);
+}
+
+int crackISRule (const char *str, ISRule *ip)
+{
+    if (!strcmp (str, "OneOfMany"))  *ip = ISR_1OFMANY;
+    else if (!strcmp (str, "AtMostOne")) *ip = ISR_ATMOST1;
+    else if (!strcmp (str, "AnyOfMany")) *ip = ISR_NOFMANY;
+    else return (-1);
+  return (0);
 }
 
 /* return static string corresponding to the given switch state */
 const char *
 sstateStr (ISState s)
 {
-	switch (s) {
-	case ISS_ON:  return ("On");
-	case ISS_OFF: return ("Off");
-	default:
-	    fprintf (stderr, "Impossible ISState %d\n", s);
-	    exit(1);
-	}
+        switch (s) {
+        case ISS_ON:  return ("On");
+        case ISS_OFF: return ("Off");
+        default:
+            fprintf (stderr, "Impossible ISState %d\n", s);
+            exit(1);
+        }
 }
 
 /* return static string corresponding to the given Rule */
 const char *
 ruleStr (ISRule r)
 {
-	switch (r) {
-	case ISR_1OFMANY: return ("OneOfMany");
-	case ISR_ATMOST1: return ("AtMostOne");
-	case ISR_NOFMANY: return ("AnyOfMany");
-	default:
-	    fprintf (stderr, "Impossible ISRule %d\n", r);
-	    exit(1);
-	}
+        switch (r) {
+        case ISR_1OFMANY: return ("OneOfMany");
+        case ISR_ATMOST1: return ("AtMostOne");
+        case ISR_NOFMANY: return ("AnyOfMany");
+        default:
+            fprintf (stderr, "Impossible ISRule %d\n", r);
+            exit(1);
+        }
 }
 
 /* return static string corresponding to the given IPerm */
 const char *
 permStr (IPerm p)
 {
-	switch (p) {
-	case IP_RO: return ("ro");
-	case IP_WO: return ("wo");
-	case IP_RW: return ("rw");
-	default:
-	    fprintf (stderr, "Impossible IPerm %d\n", p);
-	    exit(1);
-	}
+        switch (p) {
+        case IP_RO: return ("ro");
+        case IP_WO: return ("wo");
+        case IP_RW: return ("rw");
+        default:
+            fprintf (stderr, "Impossible IPerm %d\n", p);
+            exit(1);
+        }
 }
 
 /* print the boilerplate comment introducing xml */
-static void
+void
 xmlv1()
 {
-	printf ("<?xml version='1.0'?>\n");
+        printf ("<?xml version='1.0'?>\n");
 }
+
+/* send client a message for a specific device or at large if !dev */
+void
+IDMessage (const char *dev, const char *fmt, ...)
+{
+
+        xmlv1();
+        printf ("<message\n");
+        if (dev)
+            printf (" device='%s'\n", dev);
+        printf ("  timestamp='%s'\n", timestamp());
+        if (fmt) {
+            va_list ap;
+            va_start (ap, fmt);
+            printf ("  message='");
+            vprintf (fmt, ap);
+            printf ("'\n");
+            va_end (ap);
+        }
+        printf ("/>\n");
+        fflush (stdout);
+}
+
+/* pull out device and name attributes from root.
+ * return 0 if ok else -1 with reason in msg[].
+ */
+int
+crackDN (XMLEle *root, char **dev, char **name, char msg[])
+{
+        XMLAtt *ap;
+
+        ap = findXMLAtt (root, "device");
+        if (!ap) {
+            sprintf (msg, "%s requires 'device' attribute", tagXMLEle(root));
+            return (-1);
+        }
+        *dev = valuXMLAtt(ap);
+
+        ap = findXMLAtt (root, "name");
+        if (!ap) {
+            sprintf (msg, "%s requires 'name' attribute", tagXMLEle(root));
+            return (-1);
+        }
+        *name = valuXMLAtt(ap);
+
+        return (0);
+}
+
+FILE * IUGetConfigFP(const char *filename, const char *dev, char errmsg[])
+{
+    char configFileName[MAXRBUF];
+    FILE *fp = NULL;
+
+    if (filename)
+         strncpy(configFileName, filename, MAXRBUF);
+     else
+    {
+        if (getenv("INDICONFIG"))
+            strncpy(configFileName, getenv("INDICONFIG"), MAXRBUF);
+        else
+           snprintf(configFileName, MAXRBUF, "%s/.indi/%s_config.xml", getenv("HOME"), dev);
+
+    }
+
+     fp = fopen(configFileName, "w");
+     if (fp == NULL)
+     {
+          snprintf(errmsg, MAXRBUF, "Unable to read config file. Error loading file %s: %s\n", filename, strerror(errno));
+          return NULL;
+     }
+
+     return fp;
+}
+
+void IUSaveConfigTag(FILE *fp, int ctag)
+{
+    if (!fp)
+        return;
+
+    /* Opening tag */
+    if (ctag == 0)
+        fprintf(fp, "<INDIDevice>\n");
+    /* Closing tag */
+    else
+       fprintf(fp, "</INDIDevice>\n");
+}
+
+void IUSaveConfigNumber (FILE *fp, const INumberVectorProperty *nvp)
+{
+    int i;
+
+    fprintf (fp, "<newNumberVector device='%s' name='%s'>\n", nvp->device, nvp->name);
+
+    for (i = 0; i < nvp->nnp; i++)
+    {
+        INumber *np = &nvp->np[i];
+        fprintf (fp, "  <oneNumber name='%s'>\n", np->name);
+        fprintf (fp, "      %.20g\n", np->value);
+        fprintf (fp, "  </oneNumber>\n");
+    }
+
+    fprintf (fp, "</newNumberVector>\n");
+}
+
+void IUSaveConfigText (FILE *fp, const ITextVectorProperty *tvp)
+{
+    int i;
+
+    fprintf (fp, "<newTextVector device='%s' name='%s'>\n", tvp->device, tvp->name);
+
+    for (i = 0; i < tvp->ntp; i++)
+    {
+        IText *tp = &tvp->tp[i];
+        fprintf (fp, "  <oneText name='%s'>\n", tp->name);
+        fprintf (fp, "      %s\n", tp->text ? tp->text : "");
+        fprintf (fp, "  </oneText>\n");
+    }
+
+    fprintf (fp, "</newTextVector>\n");
+
+}
+
+void IUSaveConfigSwitch (FILE *fp, const ISwitchVectorProperty *svp)
+{
+    int i;
+
+    fprintf (fp, "<newSwitchVector device='%s' name='%s'>\n", svp->device, svp->name);
+
+    for (i = 0; i < svp->nsp; i++)
+    {
+        ISwitch *sp = &svp->sp[i];
+        fprintf (fp, "  <oneSwitch name='%s'>\n", sp->name);
+        fprintf (fp, "      %s\n", sstateStr(sp->s));
+        fprintf (fp, "  </oneSwitch>\n");
+    }
+
+    fprintf (fp, "</newSwitchVector>\n");
+
+}
+
+void IUSaveConfigBLOB (FILE *fp, const IBLOBVectorProperty *bvp)
+{
+    int i;
+
+    fprintf (fp, "<newBLOBVector device='%s' name='%s'>\n", bvp->device, bvp->name);
+
+    for (i = 0; i < bvp->nbp; i++)
+    {
+        IBLOB *bp = &bvp->bp[i];
+        unsigned char *encblob;
+        int j, l;
+
+        fprintf (fp, "  <oneBLOB\n");
+        fprintf (fp, "    name='%s'\n", bp->name);
+        fprintf (fp, "    size='%d'\n", bp->size);
+        fprintf (fp, "    format='%s'>\n", bp->format);
+
+        encblob = malloc (4*bp->bloblen/3+4);
+        l = to64frombits(encblob, bp->blob, bp->bloblen);
+        for (j = 0; j < l; j += 72)
+            fprintf (fp, "%.72s\n", encblob+j);
+        free (encblob);
+
+        fprintf (fp, "  </oneBLOB>\n");
+    }
+
+    fprintf (fp, "</newBLOBVector>\n");
+
+}
+
