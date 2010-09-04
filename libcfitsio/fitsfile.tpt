@@ -1,8 +1,0 @@
-xtension = 'bintable'
-naxis2 = 20
-TTYPE1 = 'SIZE' / comment here
-TFORM1 = 1J / my first column
-TTYPE2 = 'DISTANCE'
-TFORM2 = 1E / my second column
-mykey = 16 / this is my comment
-
