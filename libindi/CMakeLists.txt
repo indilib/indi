@@ -95,7 +95,7 @@ set (indimain_SRCS
 	${CMAKE_SOURCE_DIR}/eventloop.c
     )
 
-set (indibasedevice_SRCS
+set (indibase_SRCS
         ${CMAKE_SOURCE_DIR}/libs/indibasedevice.cpp
     )
 
@@ -118,7 +118,7 @@ install(TARGETS indiserver RUNTIME DESTINATION bin )
 ######################################
 ######## INDI Static Library #########
 ######################################
-add_library(indidriver STATIC ${indimain_SRCS} ${indibasedevice_SRCS})
+add_library(indidriver STATIC ${indimain_SRCS} ${indibase_SRCS})
 install(TARGETS indidriver ARCHIVE DESTINATION lib${LIB_POSTFIX})
 
 ######################################
@@ -586,7 +586,7 @@ endif (NOVA_FOUND)
 ########### Tutorial four ##############
 set(tutorialfour_SRCS
         ${indimain_SRCS}
-        ${indibasedevice_SRCS}
+        ${indibase_SRCS}
         ${CMAKE_SOURCE_DIR}/examples/tutorial_four.cpp
    )
 
@@ -631,8 +631,8 @@ endif (NOVA_FOUND)
 
 install( FILES drivers.xml DESTINATION ${DATA_INSTALL_DIR})
 
-install( FILES indiapi.h indidevapi.h base64.h eventloop.h ${CMAKE_SOURCE_DIR}/libs/lilxml.h
- ${CMAKE_SOURCE_DIR}/libs/indibasedevice.h ${CMAKE_SOURCE_DIR}/libs/indicom.h DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
+install( FILES indiapi.h indidevapi.h base64.h eventloop.h ${CMAKE_SOURCE_DIR}/libs/lilxml.h ${CMAKE_SOURCE_DIR}/libs/indibasedevice.h
+ ${CMAKE_SOURCE_DIR}/libs/indicom.h DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libindi.pc.cmake ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc DESTINATION ${PKGCONFIG_INSTALL_PREFIX})

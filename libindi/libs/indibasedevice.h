@@ -7,7 +7,7 @@
 #include "indiapi.h"
 #include "indidevapi.h"
 
-#define MAXRBUF 4096
+#define MAXRBUF 2048
 
 class INDIBaseDevice
 {

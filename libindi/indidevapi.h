@@ -516,6 +516,13 @@ extern void IUFillNumber(INumber *np, const char *name, const char * label, cons
 */
 extern void IUFillText(IText *tp, const char *name, const char * label, const char *initialText);
 
+/** \brief Assign attributes for a BLOB property. The BLOB's data and auxiliary elements will be set to NULL.
+    \param sp pointer a BLOB property to fill
+    \param name the BLOB name
+    \param label the BLOB label
+    \param format the BLOB format.
+*/
+extern void IUFillBLOB(IBLOB *bp, const char *name, const char * label, const char *format);
 
 /** \brief Assign attributes for a switch vector property. The vector's auxiliary elements will be set to NULL.
     \param svp pointer a switch vector property to fill
@@ -571,6 +578,21 @@ extern void IUFillNumberVector(INumberVectorProperty *nvp, INumber *np, int nnp,
     \param s the vector property initial state.
 */
 extern void IUFillTextVector(ITextVectorProperty *tvp, IText *tp, int ntp, const char * dev, const char *name, const char *label, const char* group, IPerm p, double timeout, IPState s);
+
+/** \brief Assign attributes for a BLOB vector property. The vector's auxiliary elements will be set to NULL.
+    \param bvp pointer a BLOB vector property to fill
+    \param bp pointer to an array of BLOBs
+    \param nbp the dimension of bp
+    \param dev the device name this vector property belongs to
+    \param name the vector property name
+    \param label the vector property label
+    \param group the vector property group
+    \param p the vector property permission
+    \param timeout vector property timeout in seconds
+    \param s the vector property initial state.
+*/
+extern void IUFillBLOBVector(IBLOBVectorProperty *bvp, IBLOB *bp, int nbp, const char * dev, const char *name, const char *label, const char* group, IPerm p, double timeout, IPState s);
+
 
 /** \brief Update a snooped number vector property from the given XML root element.
     \param root XML root elememnt containing the snopped property content

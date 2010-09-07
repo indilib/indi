@@ -904,8 +904,8 @@ IUSaveText (IText *tp, const char *newtext)
 
 void IUFillSwitch(ISwitch *sp, const char *name, const char * label, ISState s)
 {
-  strcpy(sp->name, name);
-  strcpy(sp->label, label);
+  strncpy(sp->name, name, MAXINDINAME);
+  strncpy(sp->label, label, MAXINDILABEL);
   sp->s = s;
   sp->svp = NULL;
   sp->aux = NULL;
@@ -913,8 +913,8 @@ void IUFillSwitch(ISwitch *sp, const char *name, const char * label, ISState s)
 
 void IUFillLight(ILight *lp, const char *name, const char * label, IPState s)
 {
-  strcpy(lp->name, name);
-  strcpy(lp->label, label);
+  strncpy(lp->name, name, MAXINDINAME);
+  strncpy(lp->label, label, MAXINDILABEL);
   lp->s = s;
   lp->lvp = NULL;
   lp->aux = NULL;
@@ -924,9 +924,9 @@ void IUFillLight(ILight *lp, const char *name, const char * label, IPState s)
 void IUFillNumber(INumber *np, const char *name, const char * label, const char *format, double min, double max, double step, double value)
 {
 
-  strcpy(np->name, name);
-  strcpy(np->label, label);
-  strcpy(np->format, format);
+  strncpy(np->name, name, MAXINDINAME);
+  strncpy(np->label, label, MAXINDILABEL);
+  strncpy(np->format, format, MAXINDIFORMAT);
   
   np->min	= min;
   np->max	= max;
@@ -940,8 +940,8 @@ void IUFillNumber(INumber *np, const char *name, const char * label, const char 
 void IUFillText(IText *tp, const char *name, const char * label, const char *initialText)
 {
 
-  strcpy(tp->name, name);
-  strcpy(tp->label, label);
+  strncpy(tp->name, name, MAXINDINAME);
+  strncpy(tp->label, label, MAXINDILABEL);
   tp->text = NULL;
   tp->tvp  = NULL;
   tp->aux0 = NULL;
@@ -951,12 +951,26 @@ void IUFillText(IText *tp, const char *name, const char * label, const char *ini
 
 }
 
+void IUFillBLOB(IBLOB *bp, const char *name, const char * label, const char *format)
+{
+    strncpy(bp->name, name, MAXINDINAME);
+    strncpy(bp->label, label, MAXINDILABEL);
+    strncpy(bp->format, label, MAXINDIBLOBFMT);
+    bp->blob     = 0;
+    bp->bloblen  = 0;
+    bp->size     = 0;
+    bp->bvp      = 0;
+    bp->aux0     = 0;
+    bp->aux1     = 0;
+    bp->aux2     = 0;
+}
+
 void IUFillSwitchVector(ISwitchVectorProperty *svp, ISwitch *sp, int nsp, const char * dev, const char *name, const char *label, const char *group, IPerm p, ISRule r, double timeout, IPState s)
 {
-  strcpy(svp->device, dev);
-  strcpy(svp->name, name);
-  strcpy(svp->label, label);
-  strcpy(svp->group, group);
+  strncpy(svp->device, dev, MAXINDIDEVICE);
+  strncpy(svp->name, name, MAXINDINAME);
+  strncpy(svp->label, label, MAXINDILABEL);
+  strncpy(svp->group, group, MAXINDIGROUP);
   strcpy(svp->timestamp, "");
   
   svp->p	= p;
@@ -969,11 +983,11 @@ void IUFillSwitchVector(ISwitchVectorProperty *svp, ISwitch *sp, int nsp, const 
 
 void IUFillLightVector(ILightVectorProperty *lvp, ILight *lp, int nlp, const char * dev, const char *name, const char *label, const char *group, IPState s)
 {
-  strcpy(lvp->device, dev);
-  strcpy(lvp->name, name);
-  strcpy(lvp->label, label);
-  strcpy(lvp->group, group);
-  strcpy(lvp->timestamp, "");
+    strncpy(lvp->device, dev, MAXINDIDEVICE);
+    strncpy(lvp->name, name, MAXINDINAME);
+    strncpy(lvp->label, label, MAXINDILABEL);
+    strncpy(lvp->group, group, MAXINDIGROUP);
+    strcpy(lvp->timestamp, "");
   
   lvp->s	= s;
   lvp->lp	= lp;
@@ -983,11 +997,11 @@ void IUFillLightVector(ILightVectorProperty *lvp, ILight *lp, int nlp, const cha
 void IUFillNumberVector(INumberVectorProperty *nvp, INumber *np, int nnp, const char * dev, const char *name, const char *label, const char* group, IPerm p, double timeout, IPState s)
 {
   
-  strcpy(nvp->device, dev);
-  strcpy(nvp->name, name);
-  strcpy(nvp->label, label);
-  strcpy(nvp->group, group);
-  strcpy(nvp->timestamp, "");
+ strncpy(nvp->device, dev, MAXINDIDEVICE);
+ strncpy(nvp->name, name, MAXINDINAME);
+ strncpy(nvp->label, label, MAXINDILABEL);
+ strncpy(nvp->group, group, MAXINDIGROUP);
+ strcpy(nvp->timestamp, "");
   
   nvp->p	= p;
   nvp->timeout	= timeout;
@@ -999,17 +1013,33 @@ void IUFillNumberVector(INumberVectorProperty *nvp, INumber *np, int nnp, const 
 
 void IUFillTextVector(ITextVectorProperty *tvp, IText *tp, int ntp, const char * dev, const char *name, const char *label, const char* group, IPerm p, double timeout, IPState s)
 {
-  strcpy(tvp->device, dev);
-  strcpy(tvp->name, name);
-  strcpy(tvp->label, label);
-  strcpy(tvp->group, group);
-  strcpy(tvp->timestamp, "");
+    strncpy(tvp->device, dev, MAXINDIDEVICE);
+    strncpy(tvp->name, name, MAXINDINAME);
+    strncpy(tvp->label, label, MAXINDILABEL);
+    strncpy(tvp->group, group, MAXINDIGROUP);
+    strcpy(tvp->timestamp, "");
   
   tvp->p	= p;
   tvp->timeout	= timeout;
   tvp->s	= s;
   tvp->tp	= tp;
   tvp->ntp	= ntp;
+
+}
+
+void IUFillBLOBVector(IBLOBVectorProperty *bvp, IBLOB *bp, int nbp, const char * dev, const char *name, const char *label, const char* group, IPerm p, double timeout, IPState s)
+{
+    strncpy(bvp->device, dev, MAXINDIDEVICE);
+    strncpy(bvp->name, name, MAXINDINAME);
+    strncpy(bvp->label, label, MAXINDILABEL);
+    strncpy(bvp->group, group, MAXINDIGROUP);
+    strcpy(bvp->timestamp, "");
+
+  bvp->p	= p;
+  bvp->timeout	= timeout;
+  bvp->s	= s;
+  bvp->bp	= bp;
+  bvp->nbp	= nbp;
 
 }
 
