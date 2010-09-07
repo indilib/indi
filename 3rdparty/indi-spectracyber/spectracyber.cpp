@@ -35,23 +35,59 @@
 #include <memory>
 #include <indicom.h>
 
+#include <libnova/libnova.h>
+
 #include "spectracyber.h"
 
 #define mydev		"SpectraCyber"
 #define BASIC_GROUP	"Main Control"
 #define OPTIONS_GROUP	"Options"
 
+#define current_freq FreqN[0].value
+#define CONT_CHANNEL 0
+#define SPEC_CHANNEL 1
+
+
+const int POLLMS = 1000;
+
 const int SPECTROMETER_READ_BUFFER = 16;
 const int SPECTROMETER_ERROR_BUFFER = 128;
 const int SPECTROMETER_CMD_LEN = 5;
 const int SPECTROMETER_CMD_REPLY = 4;
 
+const double SPECTROMETER_MIN_FREQ = 46.4;
+const double SPECTROMETER_REST_FREQ = 48.6;
+const double SPECTROMETER_MAX_FREQ = 51.2;
+
+const unsigned int SPECTROMETER_OFFSET = 0x050;
+
+const char * contFMT=".ascii_cont";
+const char * specFMT=".ascii_spec";
+
+
 // We declare an auto pointer to spectrometer.
 auto_ptr<SpectraCyber> spectracyber(0);
 
+void ISPoll(void *p);
+
+
 void ISInit()
 {
-	if(spectracyber.get() == 0) spectracyber.reset(new SpectraCyber());
+   static int isInit =0;
+
+   if (isInit == 1)
+       return;
+
+    isInit = 1;
+    if(spectracyber.get() == 0) spectracyber.reset(new SpectraCyber());
+    IEAddTimer(POLLMS, ISPoll, NULL);
+
+}
+
+void ISPoll(void *p)
+{
+    spectracyber->ISPoll();
+    IEAddTimer(POLLMS, ISPoll, NULL);
 }
 
 void ISGetProperties(const char *dev)
@@ -107,12 +143,14 @@ SpectraCyber::SpectraCyber()
 
   connection_status = -1;
   
-  simulation = false;
+  simulation = debug = false;
   
   init_properties();
 
   // Command pre-limeter 
   command[0] = '!';
+
+  srand( time(NULL));
 
 }
 
@@ -187,10 +225,10 @@ void SpectraCyber::init_properties()
   IUFillSwitch(&BandwidthS[1], "30", "", ISS_OFF);
   IUFillSwitchVector(&BandwidthSP, BandwidthS, NARRAY(BandwidthS), mydev, "Bandwidth (Khz)", "", OPTIONS_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-  // Commands
-  IUFillSwitch(&CommandS[0], "Read Continuum", "", ISS_OFF);
-  IUFillSwitch(&CommandS[1], "Read Spectral", "", ISS_OFF);
-  IUFillSwitchVector(&CommandSP, CommandS, NARRAY(CommandS), mydev, "Commands", "", BASIC_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+  // ChannelS
+  IUFillSwitch(&ChannelS[0], "Continuum", "", ISS_ON);
+  IUFillSwitch(&ChannelS[1], "Spectral", "", ISS_OFF);
+  IUFillSwitchVector(&ChannelSP, ChannelS, NARRAY(ChannelS), mydev, "Channels", "", BASIC_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
   // Channel Value
   IUFillNumber(&ChannelValueN[0], "Value", "", "%g",  0., 10, 0.1, 0.);
@@ -198,8 +236,38 @@ void SpectraCyber::init_properties()
 
   // Reset
   IUFillSwitch(&ResetS[0], "Reset", "", ISS_OFF);
-  IUFillSwitchVector(&ResetSP, ResetS, NARRAY(ResetS), mydev, "Parameters", "", BASIC_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-  
+  IUFillSwitchVector(&ResetSP, ResetS, NARRAY(ResetS), mydev, "Parameters", "", OPTIONS_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+  // Current Frequency
+  IUFillNumber(&FreqN[0], "Value", "", "%.3f",  46.4, 51.2, 0.1, 46.6);
+  IUFillNumberVector(&FreqNP, FreqN, NARRAY(FreqN), mydev, "Freq (Mhz)", "", BASIC_GROUP, IP_RW, 0, IPS_IDLE);
+
+  // Scan Range and Rate
+  IUFillNumber(&ScanN[0], "Low (Khz)", "", "%g",  -2000., 0., 100., -2000.);
+  IUFillNumber(&ScanN[1], "High (Khz)", "", "%g",  0, 2000., 100., 2000.);
+  IUFillNumber(&ScanN[2], "Step (5 Khz)", "", "%g",  1., 4., 1., 1.);
+  IUFillNumberVector(&ScanNP, ScanN, NARRAY(ScanN), mydev, "Scan Options", "", BASIC_GROUP, IP_RW, 0, IPS_IDLE);
+
+  // Scan command
+  IUFillSwitch(&ScanS[0], "Start", "", ISS_OFF);
+  IUFillSwitch(&ScanS[1], "Stop", "", ISS_ON);
+  IUFillSwitchVector(&ScanSP, ScanS, NARRAY(ScanS), mydev, "Scan", "", BASIC_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+  // Simulation
+  IUFillSwitch(&SimulationS[0], "Enable", "", ISS_OFF);
+  IUFillSwitch(&SimulationS[1], "Disable", "", ISS_ON);
+  IUFillSwitchVector(&SimulationSP, SimulationS, NARRAY(SimulationS), mydev, "Simulation", "", OPTIONS_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+  IUFillSwitch(&DebugS[0], "Enable", "", ISS_OFF);
+  IUFillSwitch(&DebugS[1], "Disable", "", ISS_ON);
+  IUFillSwitchVector(&DebugSP, DebugS, NARRAY(DebugS), mydev, "Debug", "", OPTIONS_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+  // Data Stream
+  IUFillBLOB(&DataStreamB[0], "Stream", "JD Value Freq", "");
+  IUFillBLOBVector(&DataStreamBP, DataStreamB, NARRAY(DataStreamB), mydev, "Data", "", BASIC_GROUP, IP_RO, 360., IPS_IDLE);
+
+  DataStreamB[0].blob = (char *) malloc(MAXBLEN * sizeof(char));
+
 }
 
 /****************************************************************
@@ -210,9 +278,12 @@ void SpectraCyber::ISGetProperties()
 {
    IDDefSwitch(&ConnectSP, NULL);
    IDDefText(&PortTP, NULL);
-   IDDefSwitch(&CommandSP, NULL);
-   IDDefSwitch(&ResetSP, NULL);
-   IDDefNumber(&ChannelValueNP, NULL);
+
+   IDDefNumber(&FreqNP, NULL);
+   IDDefNumber(&ScanNP, NULL);
+   IDDefSwitch(&ChannelSP, NULL);
+   IDDefSwitch(&ScanSP, NULL);
+   IDDefBLOB(&DataStreamBP, NULL);
 
    IDDefNumber(&IFGainNP, NULL);
    IDDefSwitch(&ContGainSP, NULL);
@@ -221,6 +292,9 @@ void SpectraCyber::ISGetProperties()
    IDDefSwitch(&SpecIntegrationSP, NULL);
    IDDefNumber(&DCOffsetNP, NULL);
    IDDefSwitch(&BandwidthSP, NULL);
+   IDDefSwitch(&ResetSP, NULL);
+   IDDefSwitch(&SimulationSP, NULL);
+   IDDefSwitch(&DebugSP, NULL);
 }
 
 /****************************************************************
@@ -240,9 +314,12 @@ void SpectraCyber::reset_all_properties(bool reset_to_idle)
 		SpecIntegrationSP.s     = IPS_IDLE;
 		DCOffsetNP.s		= IPS_IDLE;
 		BandwidthSP.s 		= IPS_IDLE;
-		CommandSP.s 		= IPS_IDLE;
+                ChannelSP.s 		= IPS_IDLE;
 		ChannelValueNP.s 	= IPS_IDLE;
 		ResetSP.s		= IPS_IDLE;
+                FreqNP.s                = IPS_IDLE;
+                ScanNP.s                = IPS_IDLE;
+                ScanSP.s                = IPS_IDLE;
 	}
 	
 	IDSetSwitch(&ConnectSP, NULL);
@@ -254,9 +331,12 @@ void SpectraCyber::reset_all_properties(bool reset_to_idle)
 	IDSetSwitch(&SpecIntegrationSP, NULL);
 	IDSetNumber(&DCOffsetNP, NULL);
 	IDSetSwitch(&BandwidthSP, NULL);
-	IDSetSwitch(&CommandSP, NULL);
+        IDSetSwitch(&ChannelSP, NULL);
 	IDSetNumber(&ChannelValueNP, NULL);
 	IDSetSwitch(&ResetSP, NULL);
+        IDSetNumber(&FreqNP, NULL);
+        IDSetNumber(&ScanNP, NULL);
+        IDSetSwitch(&ScanSP, NULL);
 }
 
 /****************************************************************
@@ -265,17 +345,21 @@ void SpectraCyber::reset_all_properties(bool reset_to_idle)
 *****************************************************************/   
 bool SpectraCyber::connect()
 {
-   if (check_spectrometer_connection())
+   if (is_connected())
 		return true;
 
     if (simulation)
     {
-    	IDMessage(mydev, "%s Spectrometer: Simulating connecting to port %s.", type_name.c_str(), PortT[0].text);
         connection_status = 0;
+        IUResetSwitch(&ConnectSP);
+        ConnectS[0].s = ISS_ON;
+        ConnectSP.s = IPS_OK;
+        IDSetSwitch(&ConnectSP, "%s Spectrometer: Simulating connecting to port %s.", type_name.c_str(), PortT[0].text);
 	return true;
     }
 
-    IDLog("Attempting to connect to spectrometer....\n");
+    if (debug)
+        IDLog("Attempting to connect to spectrometer....\n");
 
     if (tty_connect(PortT[0].text, 2400, 8, 0, 1, &fd) != TTY_OK)
     {
@@ -294,7 +378,8 @@ bool SpectraCyber::connect()
    }
    else
    {
-	IDLog("Echo test failed.\n");
+        if (debug)
+            IDLog("Echo test failed.\n");
 	connection_status = -1;
         ConnectSP.s = IPS_ALERT;
         IDSetSwitch (&ConnectSP, "Spectrometer echo test failed. Please recheck connection to spectrometer and try again.");
@@ -310,13 +395,13 @@ bool SpectraCyber::connect()
 bool SpectraCyber::init_spectrometer()
 {
 
-   if (!check_spectrometer_connection())
+   if (!is_connected())
 	return false;
 		   
    // Enable speed mode
    if (simulation)
    {
-		IDMessage(mydev, "%s Spectrometer: Simulating encoder init.", type_name.c_str());
+                IDMessage(mydev, "%s Spectrometer: Simulating spectrometer init.", type_name.c_str());
    }
    	
    return true;
@@ -337,43 +422,61 @@ void SpectraCyber::disconnect()
 **
 **
 *****************************************************************/
-void SpectraCyber::enable_simulation ()
+void SpectraCyber::enable_simulation (bool to_enable)
 {
-	if (simulation)
+        if (simulation == to_enable)
 		return;
 		
-	 simulation = true;
-	 IDMessage(mydev, "Notice: spectrometer simulation is enabled.");
-	 IDLog("Notice: spectrometer simulation is enabled.\n");
+         simulation = to_enable;
+
+         if (to_enable)
+         {
+            IDMessage(mydev, "Notice: spectrometer simulation is enabled.");
+            if (debug)
+                IDLog("Notice: spectrometer simulation is enabled.\n");
+        }
+        else
+        {
+            IDMessage(mydev, "Caution: spectrometer simulation is disabled.");
+            if (debug)
+                IDLog("Caution: spectrometer simulation is disabled.\n");
+        }
+
+
 }
 
 /****************************************************************
 **
 **
 *****************************************************************/
-void SpectraCyber::disable_simulation()
+void SpectraCyber::enable_debug (bool to_enable)
 {
-	if (!simulation) 
-		return;
-		
-	 // Disconnect
-	 disconnect();
-	 
-	 simulation = false;
-	  
-	 IDMessage(mydev, "Caution: spectrometer simulation is disabled.");
-	 IDLog("Caution: spectrometer simulation is disabled.\n");
+        if (debug == to_enable)
+                return;
+
+         debug = to_enable;
+
+         if (to_enable)
+         {
+            IDMessage(mydev, "Notice: spectrometer debug is enabled.");
+            IDLog("Notice: spectrometer debug is enabled.\n");
+        }
+        else
+        {
+            IDMessage(mydev, "Notice: spectrometer debug is disabled.");
+            IDLog("Notice: spectrometer debug is disabled.\n");
+        }
+
+
 }
+
     
 /****************************************************************
 **
 **
 *****************************************************************/
-bool SpectraCyber::check_spectrometer_connection()
+bool SpectraCyber::is_connected()
 {
-	if (simulation)
-		return true;
-	
 	if (connection_status == -1)
 		return false;
 		
@@ -457,6 +560,26 @@ void SpectraCyber::ISNewNumber (const char *name, double values[], char *names[]
 	 
 	  return;
 	}
+
+        // Freq Change
+        if (!strcmp(FreqNP.name, name))
+        {
+
+            update_freq(values[0]);
+            return;
+        }
+
+        // Scan Options
+
+        if (!strcmp(ScanNP.name, name))
+        {
+            if (IUUpdateNumber(&ScanNP, values, names, n) < 0)
+              return;
+
+            ScanNP.s = IPS_OK;
+            IDSetNumber(&ScanNP, NULL);
+            return;
+        }
     
 }
 
@@ -486,47 +609,93 @@ void SpectraCyber::ISNewText (const char *name, char *texts[], char *names[], in
 *****************************************************************/
 void SpectraCyber::ISNewSwitch (const char *name, ISState *states, char *names[], int n)
 {
-   int err_code = 0, nbytes_written =0, nbytes_read=0;
-   char response[SPECTROMETER_CMD_REPLY];
-   char err_msg[SPECTROMETER_ERROR_BUFFER];
-
 	if (!strcmp(ConnectSP.name, name))
 	{
 		connect();
 		return;
 	}
 
-	if (!strcmp(CommandSP.name, name))
-	{
-		if (IUUpdateSwitch(&CommandSP, states, names, n) < 0)
-			return;
+        // ===================================
+        // Simulation Switch
+        if (!strcmp(SimulationSP.name, name))
+        {
+                if (IUUpdateSwitch(&SimulationSP, states, names, n) < 0)
+                        return;
 
-		dispatch_command(READ_CHANNEL);
+                if (SimulationS[0].s == ISS_ON)
+                        enable_simulation(true);
+                else
+                        enable_simulation(false);
 
-		IUResetSwitch(&CommandSP);
+                SimulationSP.s = IPS_OK;
+                IDSetSwitch(&SimulationSP, NULL);
 
-		if ( (err_code = tty_read(fd, response, SPECTROMETER_CMD_REPLY, 5, &nbytes_read)) != TTY_OK)
-		{
-			tty_error_msg(err_code, err_msg, 32);
-			IDLog("TTY error detected: %s\n", err_msg);
-			CommandSP.s = IPS_ALERT;
-			IDSetSwitch(&CommandSP, "Command failed. TTY error detected: %s", err_msg);
-			return;
-		}
+                return;
+        }
 
-		IDLog("Reponse from Spectrometer: #%s#\n", response);
+        // ===================================
+        // Debug Switch
+        if (!strcmp(DebugSP.name, name))
+        {
+                if (IUUpdateSwitch(&DebugSP, states, names, n) < 0)
+                        return;
 
-		int result=0;
-	        sscanf(response, "D%x", &result);
+                if (DebugS[0].s == ISS_ON)
+                        enable_debug(true);
+                else
+                        enable_debug(false);
 
-		// We divide by 409.5 to scale the value to 0 - 10 VDC range
-		ChannelValueN[0].value = result / 409.5;
-		CommandSP.s = IPS_OK;
-		IDSetSwitch(&CommandSP, NULL);
-		IDSetNumber(&ChannelValueNP, NULL);
+                DebugSP.s = IPS_OK;
+                IDSetSwitch(&DebugSP, NULL);
 
-		return;
-	}
+                return;
+        }
+
+        // Scan
+        if (!strcmp(ScanSP.name, name))
+        {
+
+            if (IUUpdateSwitch(&ScanSP, states, names, n) < 0)
+                    return;
+
+            if (ScanS[1].s == ISS_ON)
+            {
+                if (ScanSP.s == IPS_BUSY)
+                {
+                    ScanSP.s        = IPS_IDLE;
+                    FreqNP.s        = IPS_IDLE;
+                    DataStreamBP.s  = IPS_IDLE;
+
+                    IDSetNumber(&FreqNP, NULL);
+                    IDSetBLOB(&DataStreamBP, NULL);
+                    IDSetSwitch(&ScanSP, "Scan stopped.");
+                    return;
+                }
+
+                ScanSP.s = IPS_OK;
+                IDSetSwitch(&ScanSP, NULL);
+                return;
+            }
+
+            ScanSP.s        = IPS_BUSY;
+            DataStreamBP.s  = IPS_BUSY;
+
+            // Compute starting freq  = base_freq - low
+            if (ChannelS[SPEC_CHANNEL].s == ISS_ON)
+            {
+                start_freq = SPECTROMETER_REST_FREQ - abs( (int) ScanN[0].value)/1000.;
+                target_freq = SPECTROMETER_REST_FREQ + abs( (int) ScanN[1].value)/1000.;
+                sample_rate = ScanN[2].value * 5;
+                FreqN[0].value = start_freq;
+                FreqNP.s        = IPS_BUSY;
+                IDSetNumber(&FreqNP, NULL);
+                IDSetSwitch(&ScanSP, "Starting spectral scan from %g MHz to %g MHz in steps of %g KHz...", start_freq, target_freq,sample_rate);
+            }
+            else
+                IDSetSwitch(&ScanSP, "Starting continuum scan @ %g MHz...", FreqN[0].value);
+
+            return;
+        }
 
 	// Continuum Gain Control
 	if (!strcmp(ContGainSP.name, name))
@@ -643,7 +812,29 @@ void SpectraCyber::ISNewSwitch (const char *name, ISState *states, char *names[]
 		return;
 	}
 
+        // Channel selection
+        if (!strcmp(ChannelSP.name, name))
+        {
+            static int lastChannel;
 
+            lastChannel = get_on_switch(&ChannelSP);
+
+            if (IUUpdateSwitch(&ChannelSP, states, names, n) < 0)
+                    return;
+
+            ChannelSP.s = IPS_OK;
+            if (ScanSP.s == IPS_BUSY && lastChannel != get_on_switch(&ChannelSP))
+            {
+                abort_scan();
+                IDSetSwitch(&ChannelSP, "Scan aborted due to change of channel selection.");
+            }
+            else
+              IDSetSwitch(&ChannelSP, NULL);
+
+            return;
+        }
+
+        // Reset
 	if (!strcmp(ResetSP.name, name))
 	{
 	    if (reset() == true)
@@ -744,12 +935,29 @@ bool SpectraCyber::dispatch_command(SpectrometerCommand command_type)
 		command[4] = hex[2];
 		break;
 
+        // FREQ
+        case RECV_FREQ:
+               command[1] = 'F';
+               // Each value increment is 5 Khz. Range is 050h to 3e8h.
+               // 050h corresponds to 46.4 Mhz (min), 3e8h to 51.2 Mhz (max)
+               // To compute the desired received freq, we take the diff (target - min) / 0.005
+               // 0.005 Mhz = 5 Khz
+               // Then we add the diff to 050h (80 in decimal) to get the final freq.
+               // e.g. To set 50.00 Mhz, diff = 50 - 46.4 = 4.4 / 0.005 = 880 = 370h
+               //      Freq = 370h + 050h (or 800 + 80) = 3c0h = 960
+               final_value = (int) ((FreqN[0].value - FreqN[0].min) / 0.005 + SPECTROMETER_OFFSET) ;
+               sprintf(hex, "%03x", final_value);
+               command[2] = hex[0];
+               command[3] = hex[1];
+               command[4] = hex[2];
+               break;
+
 	// Read Channel
 	case READ_CHANNEL:
 		command[1] = 'D';
 		command[2] = '0';
 		command[3] = '0';
-		final_value = get_on_switch(&CommandSP);
+                final_value = get_on_switch(&ChannelSP);
 		sprintf(hex, "%x", final_value);
 		command[3] = hex[0];
 		break;
@@ -774,13 +982,17 @@ bool SpectraCyber::dispatch_command(SpectrometerCommand command_type)
 		break;
    }
 		
+   if (debug)
+        IDLog("Dispatching command #%s#\n", command);
 
-   IDLog("Dispatching command #%s#\n", command);
+   if (simulation)
+       return true;
 
    if  ( (err_code = tty_write(fd, command, SPECTROMETER_CMD_LEN, &nbytes_written) != TTY_OK))
    {
 	tty_error_msg(err_code, spectrometer_error, SPECTROMETER_ERROR_BUFFER);
-	IDLog("TTY error detected: %s\n", spectrometer_error);
+        if (debug)
+            IDLog("TTY error detected: %s\n", spectrometer_error);
    	return false;
    }
 
@@ -796,34 +1008,216 @@ int SpectraCyber::get_on_switch(ISwitchVectorProperty *sp)
  return -1;
 }
 
+
+bool SpectraCyber::update_freq(double nFreq)
+{
+    double last_value = FreqN[0].value;
+
+    if (nFreq < FreqN[0].min || nFreq > FreqN[0].max)
+        return false;
+
+    FreqN[0].value = nFreq;
+
+    if (dispatch_command(RECV_FREQ) == false)
+    {
+        FreqN[0].value = last_value;
+        FreqNP.s = IPS_ALERT;
+        IDSetNumber(&FreqNP, "Error dispatching RECV FREQ command to spectrometer. Check logs.");
+        return false;
+    }
+
+    if (ScanSP.s != IPS_BUSY)
+        FreqNP.s = IPS_OK;
+
+    IDSetNumber(&FreqNP, NULL);
+    //IDSetNumber(&FreqNP, "%.3f Mhz", FreqN[0].value);
+    return true;
+}
+
+
+
 bool SpectraCyber::reset()
 {
    int err_code = 0, nbytes_written =0, nbytes_read=0;
    char response[4];
    char err_msg[SPECTROMETER_ERROR_BUFFER];
 
-    IDLog("Attempting to write to spectrometer....\n");
+    if (debug)
+        IDLog("Attempting to write to spectrometer....\n");
 
    dispatch_command(RESET);
 
-   IDLog("Attempting to read from spectrometer....\n");
+   if (debug)
+       IDLog("Attempting to read from spectrometer....\n");
 
    // Read echo from spectrometer, we're expecting R000
    if ( (err_code = tty_read(fd, response, SPECTROMETER_CMD_REPLY, 5, &nbytes_read)) != TTY_OK)
    {
 		tty_error_msg(err_code, err_msg, 32);
-		IDLog("TTY error detected: %s\n", err_msg);
+                if (debug)
+                    IDLog("TTY error detected: %s\n", err_msg);
    		return false;
    }
 
-   IDLog("Reponse from Spectrometer: #%c# #%c# #%c# #%c#\n", response[0], response[1], response[2], response[3]);
+   if (debug)
+       IDLog("Reponse from Spectrometer: #%c# #%c# #%c# #%c#\n", response[0], response[1], response[2], response[3]);
 
    if (strstr(response, "R000"))
    {
-	IDLog("Echo test passed.\n");
+       if (debug)
+            IDLog("Echo test passed.\n");
+        FreqN[0].value = SPECTROMETER_MIN_FREQ;
+        IFGainN[0].value = 10.0;
+        DCOffsetN[0].value = DCOffsetN[1].value = 0;
+        IUResetSwitch(&BandwidthSP);
+        BandwidthS[0].s = ISS_ON;
+        IUResetSwitch(&ContIntegrationSP);
+        ContIntegrationS[0].s = ISS_ON;
+        IUResetSwitch(&SpecIntegrationSP);
+        SpecIntegrationS[0].s = ISS_ON;
+        IUResetSwitch(&ContGainSP);
+        IUResetSwitch(&SpecGainSP);
+        ContGainS[0].s = ISS_ON;
+        SpecGainS[0].s = ISS_ON;
+
+        IDSetNumber(&FreqNP, NULL);
+        IDSetNumber(&DCOffsetNP, NULL);
+        IDSetSwitch(&BandwidthSP, NULL);
+        IDSetSwitch(&ContIntegrationSP, NULL);
+        IDSetSwitch(&SpecIntegrationSP, NULL);
+        IDSetSwitch(&ContGainSP, NULL);
+        IDSetSwitch(&SpecGainSP, NULL);
+
 	return true;
    }
 
-   IDLog("Echo test failed.\n");
+   if (debug)
+       IDLog("Echo test failed.\n");
    return false;
+}
+
+void SpectraCyber::ISPoll()
+{
+   if (!is_connected())
+       return;
+
+
+   switch(ScanSP.s)
+   {
+
+      case IPS_BUSY:
+         if (ChannelS[CONT_CHANNEL].s == ISS_ON)
+             break;
+
+         if (current_freq >= target_freq)
+         {
+            ScanSP.s = IPS_OK;
+            FreqNP.s = IPS_OK;
+
+            IDSetNumber(&FreqNP, NULL);
+            IDSetSwitch(&ScanSP, "Scan complete.");
+            return;
+         }
+
+         if (update_freq(current_freq) == false)
+         {
+             abort_scan();
+             return;
+         }
+
+         current_freq += sample_rate / 1000.;
+         break;
+    }
+
+
+   switch (DataStreamBP.s)
+   {
+      case IPS_BUSY:
+       if (ScanSP.s != IPS_BUSY)
+       {
+           DataStreamBP.s = IPS_IDLE;
+           IDSetBLOB(&DataStreamBP, NULL);
+           break;
+       }
+
+       if (read_channel() == false)
+       {
+           DataStreamBP.s = IPS_ALERT;
+
+           if (ScanSP.s == IPS_BUSY)
+               abort_scan();
+
+           IDSetBLOB(&DataStreamBP, NULL);
+       }
+
+
+       JD = ln_get_julian_from_sys();
+
+       // Continuum
+       if (ChannelS[0].s == ISS_ON)
+           strncpy(DataStreamB[0].format, contFMT, MAXINDIBLOBFMT);
+       else
+           strncpy(DataStreamB[0].format, specFMT, MAXINDIBLOBFMT);
+
+
+       snprintf(bLine, MAXBLEN, "%.8f %.3f %.3f", JD, chanValue, current_freq);
+
+       DataStreamB[0].bloblen = DataStreamB[0].size = strlen(bLine);
+       memcpy(DataStreamB[0].blob, bLine, DataStreamB[0].bloblen);
+
+       //IDLog("\nSTRLEN: %d -- BLOB:'%s'\n", strlen(bLine), (char *) DataStreamB[0].blob);
+
+       IDSetBLOB(&DataStreamBP, NULL);
+
+      break;
+
+
+
+  }
+
+
+}
+
+void SpectraCyber::abort_scan()
+{
+    FreqNP.s = IPS_IDLE;
+    ScanSP.s = IPS_ALERT;
+
+    IUResetSwitch(&ScanSP);
+    ScanS[1].s = ISS_ON;
+
+    IDSetNumber(&FreqNP, NULL);
+    IDSetSwitch(&ScanSP, "Scan aborted due to errors.");
+}
+
+bool SpectraCyber::read_channel()
+{
+    int err_code = 0, nbytes_written =0, nbytes_read=0;
+    char response[SPECTROMETER_CMD_REPLY];
+    char err_msg[SPECTROMETER_ERROR_BUFFER];
+
+    if (simulation)
+    {
+         chanValue = ((double )rand())/( (double) RAND_MAX) * 10.0;
+         return true;
+    }
+
+    dispatch_command(READ_CHANNEL);
+    if ( (err_code = tty_read(fd, response, SPECTROMETER_CMD_REPLY, 5, &nbytes_read)) != TTY_OK)
+    {
+            tty_error_msg(err_code, err_msg, 32);
+            if (debug)
+                IDLog("TTY error detected: %s\n", err_msg);
+            return false;
+    }
+
+    if (debug)
+        IDLog("Reponse from Spectrometer: #%s#\n", response);
+
+    int result=0;
+    sscanf(response, "D%x", &result);
+    // We divide by 409.5 to scale the value to 0 - 10 VDC range
+    chanValue = result / 409.5;
+
+    return true;
 }

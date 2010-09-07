@@ -43,6 +43,8 @@
 
 using namespace std;
 
+#define MAXBLEN 32
+
 class SpectraCyber
 {
 
@@ -72,8 +74,10 @@ public:
     void disconnect();
 
     // Simulation
-    void enable_simulation ();
-    void disable_simulation();
+    void enable_simulation (bool to_enable);
+    void enable_debug(bool to_enable);
+
+    bool is_connected();
     
     // Standard INDI interface fucntions
     void ISGetProperties();
@@ -82,6 +86,8 @@ public:
     void ISNewSwitch (const char *name, ISState *states, char *names[], int n);
  	
     void reset_all_properties(bool reset_to_idle=false);
+    bool update_freq(double nFreq);
+    void ISPoll();
 
 private: 
 
@@ -92,6 +98,18 @@ private:
     // Spectrometer Port number
     ITextVectorProperty PortTP;
     IText PortT[1];
+
+    // Current Frequency
+    INumber FreqN[1];
+    INumberVectorProperty FreqNP;
+
+    // Scan Range and Rate
+    INumber ScanN[3];
+    INumberVectorProperty ScanNP;
+
+    // Scan command
+    ISwitch ScanS[2];
+    ISwitchVectorProperty ScanSP;
 
     // IF 70 Mhz Gain
     INumber IFGainN[1];
@@ -117,9 +135,9 @@ private:
     INumber DCOffsetN[2];
     INumberVectorProperty DCOffsetNP;
 
-    // Commands
-    ISwitch CommandS[2];
-    ISwitchVectorProperty CommandSP;
+    // Channels
+    ISwitch ChannelS[2];
+    ISwitchVectorProperty ChannelSP;
 
    // Bandwidth
    ISwitch BandwidthS[2];
@@ -133,10 +151,22 @@ private:
    ISwitch ResetS[1];
    ISwitchVectorProperty ResetSP;
 
+   // Simulation
+   ISwitch SimulationS[2];
+   ISwitchVectorProperty SimulationSP;
+
+    ISwitch DebugS[2];
+    ISwitchVectorProperty DebugSP;
+
+   // Stream Blob
+   IBLOB DataStreamB[1];
+   IBLOBVectorProperty DataStreamBP;
+
     // Functions
     void init_properties();
     bool init_spectrometer();
-    bool check_spectrometer_connection();
+    void abort_scan();
+    bool read_channel();
     bool dispatch_command(SpectrometerCommand command);
     int get_on_switch(ISwitchVectorProperty *sp);
     bool reset();
@@ -146,10 +176,13 @@ private:
     string default_port;
 		
     int connection_status; 
-    bool simulation;
+    bool simulation, debug;
 		
     int fd;
+    char bLine[MAXBLEN];
     char command[5];
+    double start_freq, target_freq, sample_rate, JD, chanValue;
+
 
 };
 
