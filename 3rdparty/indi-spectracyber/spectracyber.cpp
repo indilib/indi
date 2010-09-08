@@ -243,8 +243,8 @@ void SpectraCyber::init_properties()
   IUFillNumberVector(&FreqNP, FreqN, NARRAY(FreqN), mydev, "Freq (Mhz)", "", BASIC_GROUP, IP_RW, 0, IPS_IDLE);
 
   // Scan Range and Rate
-  IUFillNumber(&ScanN[0], "Low (Khz)", "", "%g",  -2000., 0., 100., -2000.);
-  IUFillNumber(&ScanN[1], "High (Khz)", "", "%g",  0, 2000., 100., 2000.);
+  IUFillNumber(&ScanN[0], "Low (Khz)", "", "%g",  -2000., 0., 100., -600.);
+  IUFillNumber(&ScanN[1], "High (Khz)", "", "%g",  0, 2000., 100., 600.);
   IUFillNumber(&ScanN[2], "Step (5 Khz)", "", "%g",  1., 4., 1., 1.);
   IUFillNumberVector(&ScanNP, ScanN, NARRAY(ScanN), mydev, "Scan Options", "", BASIC_GROUP, IP_RW, 0, IPS_IDLE);
 
