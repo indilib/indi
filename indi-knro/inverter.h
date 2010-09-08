@@ -66,8 +66,8 @@ public:
     void enable_simulation ();
     void disable_simulation();
     
-    void enable_debug() { debug = true; modbus_set_debug(&mb_param, debug); }
-    void disable_debug() { debug = false; modbus_set_debug(&mb_param, debug);}
+    void enable_debug() { debug = true; if (mb_param != NULL) modbus_set_debug(mb_param, debug); }
+    void disable_debug() { debug = false; if (mb_param != NULL) modbus_set_debug(mb_param, debug);}
     
     // Standard INDI interface fucntions
     void ISGetProperties();
@@ -113,7 +113,8 @@ private:
 	string reverse_motion;
 	string default_port;
 	
-	modbus_param_t mb_param;
+	//modbus_param_t mb_param;
+        modbus_t * mb_param;
 	
 	uint SLAVE_ADDRESS;
 	const uint SPEED_MODE_ADDRESS;

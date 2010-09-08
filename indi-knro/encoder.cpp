@@ -50,28 +50,21 @@ const int ENCODER_ERROR_BUFFER = 128;
 const int ENCODER_CMD_LEN = 4;
 
 const double AZ_TPD = 202.5;
-const int AZ_HOME = 266593;
-
-//AZ_MIN 304770  - Degrees 85.6494
-//AZ_MAX 377160  - Degrees 88.1728
+const int AZ_HOME_TICKS = 221329;
 
 // Limits to keep wrong values out.
 const int AZ_MAX_COUNT = 400000;
 const int AZ_MIN_COUNT = 300000;
 
 const double ALT_TPD = 225.9;
-//const int ALT_HOME = 243310;
-const int ALT_HOME =256814 ;
+const int ALT_HOME_TICKS = 256282;
+const double ALT_HOME_DEGREES = 89.4032;
 
-
-const int ALT_MAX_COUNT = 250000;
+const int ALT_MAX_COUNT = 260000;
 const int ALT_MIN_COUNT = 200000;
 
-//ALT_MAX (90) 234357
-//ALT MIN (20) 
 
-// 500ms sleep for encoder thread
-//const int ENCODER_POLLMS = 3000000;
+// 1000ms sleep for encoder thread
 const int ENCODER_POLLMS = 10000;
 const int SIMULATED_ENCODER_POLLMS = 250000;
 
@@ -566,16 +559,16 @@ void knroEncoder::calculate_angle()
 {
   	if (type == AZ_ENCODER)
 	{
-	 		current_angle = (AZ_HOME - EncoderAbsPosN[0].value) / AZ_TPD + 180.0;
+	 		current_angle = (AZ_HOME_TICKS - EncoderAbsPosN[0].value) / AZ_TPD;
 			if (current_angle > 360) current_angle -= 360;
 			else if (current_angle < 0) current_angle += 360;
 			EncoderAbsPosN[1].value = current_angle;
 	}
 	else
 	{
-	 		current_angle = 90.0 - fabs((ALT_HOME - EncoderAbsPosN[0].value) / ALT_TPD);
-			if (current_angle > 90) current_angle -= 90;
-			else if (current_angle < 0) current_angle += 90;
+	 		current_angle = ALT_HOME_DEGREES - fabs((ALT_HOME_TICKS - EncoderAbsPosN[0].value) / ALT_TPD);
+			if (current_angle > ALT_HOME_DEGREES) current_angle -= ALT_HOME_DEGREES;
+			else if (current_angle < 0) current_angle += ALT_HOME_DEGREES;
 			EncoderAbsPosN[1].value = current_angle;
 	}  
 }

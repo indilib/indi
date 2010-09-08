@@ -100,8 +100,8 @@ void knroObservatory::ISPoll()
 					{
 						update_az_speed();
 
-						// Telescope moving west, but we need to avoid hitting limit switch which is @ 90
-						if (initialAz > 90 && targetAz < 90)
+                                                // Telescope moving west, but we need to avoid hitting limit switch which is @ 0
+                                                if (initialAz < 180 && targetAz > 180)
 							update_az_dir(KNRO_EAST);
 						else
 						// Otherwise proceed normally
@@ -110,8 +110,8 @@ void knroObservatory::ISPoll()
 					else
 					{
 						update_az_speed();
-						// Telescope moving east, but we need to avoid hitting limit switch which is @ 90
-						if (initialAz < 90 && targetAz > 90)
+                                                // Telescope moving east, but we need to avoid hitting limit switch which is @ 0
+                                                if (initialAz > 180 && targetAz < 180)
 							update_az_dir(KNRO_WEST);
 						else
 							update_az_dir(KNRO_EAST);

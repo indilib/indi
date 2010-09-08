@@ -58,6 +58,7 @@ knroInverter::knroInverter(inverterType new_type) : SPEED_MODE_ADDRESS(3), REMOT
   
   debug = false;
   simulation = false;
+  mb_param = NULL;
   
   set_type(new_type);
 
@@ -151,7 +152,7 @@ bool knroInverter::check_drive_connection()
 }
 
 /****************************************************************
-**
+** 
 **
 *****************************************************************/   
 bool knroInverter::connect()
@@ -168,12 +169,14 @@ bool knroInverter::connect()
 	
 	// 19200 baud is default, no parity, 8 bits, 1 stop bit
 	//modbus_init_rtu(&mb_param, SLAVE_ADDRESS, PortT[0].text, 19200, "none", 8, 1);
-	modbus_init_tcp(&mb_param, PortT[0].text, 502, SLAVE_ADDRESS);
+	//modbus_init_tcp(&mb_param, PortT[0].text, 502, SLAVE_ADDRESS);
+	mb_param = modbus_new_tcp(PortT[0].text, 502);
+	modbus_set_slave(mb_param, SLAVE_ADDRESS);
 	
 	// Enable debug
-	modbus_set_debug(&mb_param, FALSE);
+	modbus_set_debug(mb_param, FALSE);
     
-    if ( (connection_status = modbus_connect(&mb_param)) == -1)
+    if ( (connection_status = modbus_connect(mb_param)) == -1)
     {
        IDMessage(mydev, "%s drive: Connection failed to inverter @ port %s", type_name.c_str(), PortT[0].text);
        if (debug)
@@ -203,7 +206,8 @@ void knroInverter::disconnect()
 {
 	connection_status = -1;
 	
-	modbus_close(&mb_param);
+	modbus_close(mb_param);
+	modbus_free(mb_param);
 	
 }
 
@@ -236,7 +240,7 @@ bool knroInverter::move_forward()
 
 	for (int i=0; i < ERROR_MAX_COUNT; i++)
 	{
-	   ret = force_multiple_coils(&mb_param, SLAVE_ADDRESS, MOTION_CONTROL_ADDRESS, 3, Motion_Control_Coils);
+	   ret = modbus_write_bits(mb_param, MOTION_CONTROL_ADDRESS, 3, Motion_Control_Coils);
 	
            if (ret == 3)
 	   {
@@ -290,7 +294,7 @@ bool knroInverter::move_reverse()
 
 	for (int i=0; i < ERROR_MAX_COUNT; i++)
 	{
-	       ret = force_multiple_coils(&mb_param, SLAVE_ADDRESS, MOTION_CONTROL_ADDRESS, 3, Motion_Control_Coils);
+	       ret = modbus_write_bits(mb_param, MOTION_CONTROL_ADDRESS, 3, Motion_Control_Coils);
 		
 	       if (ret == 3)
 	       {
@@ -342,7 +346,7 @@ bool knroInverter::stop()
 
 	for (int i=0; i < ERROR_MAX_COUNT; i++)
 	{
-	    ret = force_multiple_coils(&mb_param, SLAVE_ADDRESS, MOTION_CONTROL_ADDRESS, 3, Motion_Control_Coils);
+	    ret = modbus_write_bits(mb_param, MOTION_CONTROL_ADDRESS, 3, Motion_Control_Coils);
 	
 	    if (ret == 3)
 	    {
@@ -411,7 +415,7 @@ bool knroInverter::set_speed(float newHz)
 	for (int i=0; i < ERROR_MAX_COUNT; i++)
 	{
 
-	ret = preset_multiple_registers(&mb_param, SLAVE_ADDRESS, HZ_HOLD_ADDRESS, 2, Hz_Speed_Register);
+	ret = modbus_write_registers(mb_param, HZ_HOLD_ADDRESS, 2, Hz_Speed_Register);
 	
 	if (ret == 2)
 	{
@@ -420,7 +424,7 @@ bool knroInverter::set_speed(float newHz)
 
 	    for (int j=0; i < ERROR_MAX_COUNT; j++)
    	    {
-		    ret = read_holding_registers(&mb_param, SLAVE_ADDRESS, HZ_HOLD_ADDRESS, 2, Hz_Speed_Register);
+		    ret = modbus_read_registers(mb_param, HZ_HOLD_ADDRESS, 2, Hz_Speed_Register);
 		    if (ret == 2)
 		    {
 			if (debug)
@@ -469,13 +473,13 @@ bool knroInverter::enable_drive()
 		return true;
 	}
 
-        ret = read_coil_status(&mb_param, SLAVE_ADDRESS, DRIVE_ENABLE_ADDRESS, 1, inverter_read);
+        ret = modbus_read_bits(mb_param, DRIVE_ENABLE_ADDRESS, 1, inverter_read);
 
 	if (inverter_read[0] != 1)
 	{
 		for (int i=0; i < ERROR_MAX_COUNT; i++)
 		{
-			ret = force_multiple_coils(&mb_param, SLAVE_ADDRESS, DRIVE_ENABLE_ADDRESS, 1, inverter_send);
+			ret = modbus_write_bits(mb_param, DRIVE_ENABLE_ADDRESS, 1, inverter_send);
 			if (ret == 1)
 				return true;
 			usleep(ERROR_TIMEOUT);
@@ -514,7 +518,7 @@ bool knroInverter::disable_drive()
 
 	for (int i=0; i < ERROR_MAX_COUNT; i++)
 	{
-		ret = force_multiple_coils(&mb_param, SLAVE_ADDRESS, DRIVE_ENABLE_ADDRESS, 1, inverter_send);
+		ret = modbus_write_bits(mb_param, DRIVE_ENABLE_ADDRESS, 1, inverter_send);
 	
   	        if (ret == 1)
 			return true;
@@ -556,11 +560,11 @@ bool knroInverter::init_drive()
 	// Only force a coil when needed, otherwise, the inverter starts throwing ILLEGAL FUNCTION error
 	// for no apparent reason
 
-        ret = read_coil_status(&mb_param, SLAVE_ADDRESS, SPEED_MODE_ADDRESS, 1, inverter_read);
+        ret = modbus_read_bits(mb_param, SPEED_MODE_ADDRESS, 1, inverter_read);
 
 	if (inverter_read[0] != 1)
 	{
-	   	ret = force_multiple_coils(&mb_param, SLAVE_ADDRESS, SPEED_MODE_ADDRESS, 1, inverter_send);
+	   	ret = modbus_write_bits(mb_param, SPEED_MODE_ADDRESS, 1, inverter_send);
                     
 	        if (ret != 1)
 		{
@@ -583,11 +587,11 @@ bool knroInverter::init_drive()
    }
    else
    {
-		ret = read_coil_status(&mb_param, SLAVE_ADDRESS, NETWORK_COMMAND_SOURCE_ADDRESS, 1, inverter_read);
+		ret = modbus_read_bits(mb_param, NETWORK_COMMAND_SOURCE_ADDRESS, 1, inverter_read);
 
 		if (inverter_read[0] != 1)
 		{
-	  		ret = force_multiple_coils(&mb_param, SLAVE_ADDRESS, NETWORK_COMMAND_SOURCE_ADDRESS, 1, inverter_send);
+	  		ret = modbus_write_bits(mb_param, NETWORK_COMMAND_SOURCE_ADDRESS, 1, inverter_send);
                     
 		   if (ret != 1)
 		   {

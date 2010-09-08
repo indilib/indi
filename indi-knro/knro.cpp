@@ -854,8 +854,8 @@ void  knroObservatory::park_telescope()
 
 	ParkSP.s = IPS_BUSY;
 	
-	targetAz = 0;
-	targetAlt = 90.0;
+	targetAz = 180;
+	targetAlt = 89.4032;
 	
 	IDSetSwitch(&ParkSP, "Parking telescope, please stand by...");
 
