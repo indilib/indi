@@ -58,6 +58,7 @@ const int SPECTROMETER_CMD_REPLY = 4;
 const double SPECTROMETER_MIN_FREQ = 46.4;
 const double SPECTROMETER_REST_FREQ = 48.6;
 const double SPECTROMETER_MAX_FREQ = 51.2;
+const double SPECTROMETER_RF_FREQ = 1371.805;
 
 const unsigned int SPECTROMETER_OFFSET = 0x050;
 
@@ -239,7 +240,8 @@ void SpectraCyber::init_properties()
   IUFillSwitchVector(&ResetSP, ResetS, NARRAY(ResetS), mydev, "Parameters", "", OPTIONS_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
   // Current Frequency
-  IUFillNumber(&FreqN[0], "Value", "", "%.3f",  46.4, 51.2, 0.1, 46.6);
+  IUFillNumber(&FreqN[0], "Value", "", "%.3f",  SPECTROMETER_RF_FREQ+SPECTROMETER_MIN_FREQ, SPECTROMETER_RF_FREQ+SPECTROMETER_MAX_FREQ ,
+               0.1, SPECTROMETER_RF_FREQ+SPECTROMETER_REST_FREQ);
   IUFillNumberVector(&FreqNP, FreqN, NARRAY(FreqN), mydev, "Freq (Mhz)", "", BASIC_GROUP, IP_RW, 0, IPS_IDLE);
 
   // Scan Range and Rate
@@ -315,11 +317,11 @@ void SpectraCyber::reset_all_properties(bool reset_to_idle)
 		DCOffsetNP.s		= IPS_IDLE;
 		BandwidthSP.s 		= IPS_IDLE;
                 ChannelSP.s 		= IPS_IDLE;
-		ChannelValueNP.s 	= IPS_IDLE;
 		ResetSP.s		= IPS_IDLE;
                 FreqNP.s                = IPS_IDLE;
                 ScanNP.s                = IPS_IDLE;
                 ScanSP.s                = IPS_IDLE;
+                DataStreamBP.s          = IPS_IDLE;
 	}
 	
 	IDSetSwitch(&ConnectSP, NULL);
@@ -332,11 +334,11 @@ void SpectraCyber::reset_all_properties(bool reset_to_idle)
 	IDSetNumber(&DCOffsetNP, NULL);
 	IDSetSwitch(&BandwidthSP, NULL);
         IDSetSwitch(&ChannelSP, NULL);
-	IDSetNumber(&ChannelValueNP, NULL);
 	IDSetSwitch(&ResetSP, NULL);
         IDSetNumber(&FreqNP, NULL);
         IDSetNumber(&ScanNP, NULL);
         IDSetSwitch(&ScanSP, NULL);
+        IDSetBLOB(&DataStreamBP, NULL);
 }
 
 /****************************************************************
@@ -651,6 +653,14 @@ void SpectraCyber::ISNewSwitch (const char *name, ISState *states, char *names[]
                 return;
         }
 
+
+        if (is_connected() == false)
+        {
+            reset_all_properties(true);
+            IDMessage(mydev, "Spectrometer is offline. Connect before issiung any commands.");
+            return;
+        }
+
         // Scan
         if (!strcmp(ScanSP.name, name))
         {
@@ -683,8 +693,8 @@ void SpectraCyber::ISNewSwitch (const char *name, ISState *states, char *names[]
             // Compute starting freq  = base_freq - low
             if (ChannelS[SPEC_CHANNEL].s == ISS_ON)
             {
-                start_freq = SPECTROMETER_REST_FREQ - abs( (int) ScanN[0].value)/1000.;
-                target_freq = SPECTROMETER_REST_FREQ + abs( (int) ScanN[1].value)/1000.;
+                start_freq = (SPECTROMETER_RF_FREQ + SPECTROMETER_REST_FREQ) - abs( (int) ScanN[0].value)/1000.;
+                target_freq = (SPECTROMETER_RF_FREQ + SPECTROMETER_REST_FREQ) + abs( (int) ScanN[1].value)/1000.;
                 sample_rate = ScanN[2].value * 5;
                 FreqN[0].value = start_freq;
                 FreqNP.s        = IPS_BUSY;
