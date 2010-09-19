@@ -31,6 +31,8 @@
 
 #include <config.h>
 
+#include <indibaseclient.h>
+
 /* INDI Common Library Routines */
 #include "indicom.h"
 
@@ -128,6 +130,8 @@ MyScope::MyScope()
 {
     IDLog("Initilizing from My Scope device...\n");
 
+    myClient = new INDIBaseClient();
+
     init_properties();
 
  }
@@ -150,7 +154,9 @@ void MyScope::init_properties()
     if (skel)
         buildSkeleton(skel);
     else
-        IDLog("No skeleton file was specified. Set environment variable INDISKEL to the skeleton path and try again.");
+        IDLog("No skeleton file was specified. Set environment variable INDISKEL to the skeleton path and try again.\n");
+
+    myClient->connect();
 
 }
 

@@ -25,6 +25,8 @@
 #include "indicom.h"
 #include "indibasedevice.h"
 
+class INDIBaseClient;
+
 class MyScope : public INDIBaseDevice
 {
  public:
@@ -39,6 +41,8 @@ class MyScope : public INDIBaseDevice
 private:
  void init_properties();
  void connect_telescope();
+
+ INDIBaseClient *myClient;
 
 };
 
