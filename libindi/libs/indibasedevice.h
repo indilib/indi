@@ -36,12 +36,18 @@ protected:
     char deviceName[MAXINDINAME];
 
     bool loadConfig(bool ignoreConnection = false);
+    int buildProp(XMLEle *root, char *errmsg);
     bool saveConfig();
     bool loadDefaultConfig();
     void setDebug(bool enable);
     void setSimulation(bool enable);
     bool isDebug();
     bool isSimulation();
+
+    int setAnyCmd (XMLEle *root, char * errmsg);
+    int processBlob(IBLOB *blobEL, XMLEle *ep, char * errmsg);
+    int setBLOB(IBLOBVectorProperty *pp, XMLEle * root, char * errmsg);
+    //int setValue (INDI_P *pp, XMLEle *root, char * errmsg);
 
 private:
 
@@ -73,6 +79,8 @@ private:
 
     bool pDebug;
     bool pSimulation;
+
+    friend class INDIBaseClient;
 
 };
 

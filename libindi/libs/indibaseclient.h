@@ -17,6 +17,8 @@ using namespace std;
 class INDIBaseClient
 {
 public:
+    enum { INDI_DEVICE_NOT_FOUND=-1, INDI_PROPERTY_INVALID=-2, INDI_PROPERTY_DUPLICATED = -3, INDI_DISPATCH_ERROR=-4 };
+
     INDIBaseClient();
     virtual ~INDIBaseClient();
 
@@ -30,7 +32,21 @@ public:
 
 protected:
 
-
+    int dispatchCommand(XMLEle *root, char* errmsg);
+    int delPropertyCmd (XMLEle *root, char * errmsg);
+    int removeDevice( const char * devName, char * errmsg );
+    INDIBaseDevice * findDev( const char * devName, char * errmsg);
+    INDIBaseDevice * addDevice (XMLEle *dep, char * errmsg);
+    INDIBaseDevice * findDev (XMLEle *root, int create, char * errmsg);
+    int messageCmd (XMLEle *root, char * errmsg);
+    void checkMsg (XMLEle *root, INDIBaseDevice *dp);
+    void doMsg (XMLEle *msg, INDIBaseDevice *dp);
+    void sendNewText (ITextVectorProperty *pp);
+    void sendNewNumber (INumberVectorProperty *pp);
+    void sendNewSwitch (ISwitchVectorProperty *pp, ISwitch *lp);
+    void startBlob( const char *devName, const char *propName, const char *timestamp);
+    void sendOneBlob( const char *blobName, unsigned int blobSize, const char *blobFormat, unsigned char * blobBuffer);
+    void finishBlob();
 
 private:
 
