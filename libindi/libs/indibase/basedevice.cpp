@@ -3,7 +3,6 @@
 #include <errno.h>
 #include <zlib.h>
 
-#include "indidrivermain.h"
 #include "basedevice.h"
 #include "indicom.h"
 #include "base64.h"

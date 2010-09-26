@@ -7,7 +7,6 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
-#include "indidrivermain.h"
 #include "baseclient.h"
 #include "basedevice.h"
 #include "indicom.h"
