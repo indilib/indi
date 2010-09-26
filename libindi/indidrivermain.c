@@ -45,13 +45,13 @@
 #include "eventloop.h"
 #include "indidevapi.h"
 #include "indicom.h"
-#include "indidrivermain.h"
 
 #define MAXRBUF 4096
 
 static void usage(void);
 static int dispatch (XMLEle *root, char msg[]);
 static void clientMsgCB(int fd, void *arg);
+static int isPropDefined(const char *property_name);
 
 static int nroCheck;			/* # of elements in roCheck */
 static int verbose;			/* chatty */
@@ -703,70 +703,6 @@ int
 IEDeferLoop0 (int maxms, int *flagp)
 {
 	return (deferLoop0 (maxms, flagp));
-}
-
-/* find a member of an IText vector, else NULL */
-IText *
-IUFindText  (const ITextVectorProperty *tvp, const char *name)
-{
-	int i;
-
-	for (i = 0; i < tvp->ntp; i++)
-	    if (strcmp (tvp->tp[i].name, name) == 0)
-		return (&tvp->tp[i]);
-	fprintf (stderr, "No IText '%s' in %s.%s\n",name,tvp->device,tvp->name);
-	return (NULL);
-}
-
-/* find a member of an INumber vector, else NULL */
-INumber *
-IUFindNumber(const INumberVectorProperty *nvp, const char *name)
-{
-	int i;
-
-	for (i = 0; i < nvp->nnp; i++)
-	    if (strcmp (nvp->np[i].name, name) == 0)
-		return (&nvp->np[i]);
-	fprintf(stderr,"No INumber '%s' in %s.%s\n",name,nvp->device,nvp->name);
-	return (NULL);
-}
-
-/* find a member of an ISwitch vector, else NULL */
-ISwitch *
-IUFindSwitch(const ISwitchVectorProperty *svp, const char *name)
-{
-	int i;
-
-	for (i = 0; i < svp->nsp; i++)
-	    if (strcmp (svp->sp[i].name, name) == 0)
-		return (&svp->sp[i]);
-	fprintf(stderr,"No ISwitch '%s' in %s.%s\n",name,svp->device,svp->name);
-	return (NULL);
-}
-
-/* find an ON member of an ISwitch vector, else NULL.
- * N.B. user must make sense of result with ISRule in mind.
- */
-ISwitch *
-IUFindOnSwitch(const ISwitchVectorProperty *svp)
-{
-	int i;
-
-	for (i = 0; i < svp->nsp; i++)
-	    if (svp->sp[i].s == ISS_ON)
-		return (&svp->sp[i]);
-	/*fprintf(stderr, "No ISwitch On in %s.%s\n", svp->device, svp->name);*/
-	return (NULL);
-}
-
-/* Set all switches to off */
-void 
-IUResetSwitch(ISwitchVectorProperty *svp)
-{
-  int i;
-  
-  for (i = 0; i < svp->nsp; i++)
-    svp->sp[i].s = ISS_OFF;
 }
 
 /* Update property switches in accord with states and names. */
@@ -1687,113 +1623,7 @@ void IUSaveDefaultConfig(const char *source_config, const char *dest_config, con
 }
 
 
-/* return static string corresponding to the given property or light state */
-const char *
-pstateStr (IPState s)
-{
-        switch (s) {
-        case IPS_IDLE:  return ("Idle");
-        case IPS_OK:    return ("Ok");
-        case IPS_BUSY:  return ("Busy");
-        case IPS_ALERT: return ("Alert");
-        default:
-            fprintf (stderr, "Impossible IPState %d\n", s);
-            exit(1);
-        }
-}
 
-/* crack string into IPState.
- * return 0 if ok, else -1
- */
-int
-crackIPState (const char *str, IPState *ip)
-{
-             if (!strcmp (str, "Idle"))  *ip = IPS_IDLE;
-        else if (!strcmp (str, "Ok"))    *ip = IPS_OK;
-        else if (!strcmp (str, "Busy"))  *ip = IPS_BUSY;
-        else if (!strcmp (str, "Alert")) *ip = IPS_ALERT;
-        else return (-1);
-        return (0);
-}
-
-/* crack string into ISState.
- * return 0 if ok, else -1
- */
-int
-crackISState (const char *str, ISState *ip)
-{
-             if (!strcmp (str, "On"))  *ip = ISS_ON;
-        else if (!strcmp (str, "Off")) *ip = ISS_OFF;
-        else return (-1);
-        return (0);
-}
-
-int
-crackIPerm (const char *str, IPerm *ip)
-{
-             if (!strcmp (str, "rw"))  *ip = IP_RW;
-        else if (!strcmp (str, "ro")) *ip = IP_RO;
-        else if (!strcmp (str, "wo")) *ip = IP_WO;
-        else return (-1);
-        return (0);
-}
-
-int crackISRule (const char *str, ISRule *ip)
-{
-    if (!strcmp (str, "OneOfMany"))  *ip = ISR_1OFMANY;
-    else if (!strcmp (str, "AtMostOne")) *ip = ISR_ATMOST1;
-    else if (!strcmp (str, "AnyOfMany")) *ip = ISR_NOFMANY;
-    else return (-1);
-  return (0);
-}
-
-/* return static string corresponding to the given switch state */
-const char *
-sstateStr (ISState s)
-{
-        switch (s) {
-        case ISS_ON:  return ("On");
-        case ISS_OFF: return ("Off");
-        default:
-            fprintf (stderr, "Impossible ISState %d\n", s);
-            exit(1);
-        }
-}
-
-/* return static string corresponding to the given Rule */
-const char *
-ruleStr (ISRule r)
-{
-        switch (r) {
-        case ISR_1OFMANY: return ("OneOfMany");
-        case ISR_ATMOST1: return ("AtMostOne");
-        case ISR_NOFMANY: return ("AnyOfMany");
-        default:
-            fprintf (stderr, "Impossible ISRule %d\n", r);
-            exit(1);
-        }
-}
-
-/* return static string corresponding to the given IPerm */
-const char *
-permStr (IPerm p)
-{
-        switch (p) {
-        case IP_RO: return ("ro");
-        case IP_WO: return ("wo");
-        case IP_RW: return ("rw");
-        default:
-            fprintf (stderr, "Impossible IPerm %d\n", p);
-            exit(1);
-        }
-}
-
-/* print the boilerplate comment introducing xml */
-void
-xmlv1()
-{
-        printf ("<?xml version='1.0'?>\n");
-}
 
 /* send client a message for a specific device or at large if !dev */
 void
@@ -1815,31 +1645,6 @@ IDMessage (const char *dev, const char *fmt, ...)
         }
         printf ("/>\n");
         fflush (stdout);
-}
-
-/* pull out device and name attributes from root.
- * return 0 if ok else -1 with reason in msg[].
- */
-int
-crackDN (XMLEle *root, char **dev, char **name, char msg[])
-{
-        XMLAtt *ap;
-
-        ap = findXMLAtt (root, "device");
-        if (!ap) {
-            sprintf (msg, "%s requires 'device' attribute", tagXMLEle(root));
-            return (-1);
-        }
-        *dev = valuXMLAtt(ap);
-
-        ap = findXMLAtt (root, "name");
-        if (!ap) {
-            sprintf (msg, "%s requires 'name' attribute", tagXMLEle(root));
-            return (-1);
-        }
-        *name = valuXMLAtt(ap);
-
-        return (0);
 }
 
 FILE * IUGetConfigFP(const char *filename, const char *dev, char errmsg[])

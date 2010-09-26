@@ -96,8 +96,8 @@ set (indimain_SRCS
     )
 
 set (indibase_SRCS
-        ${CMAKE_SOURCE_DIR}/libs/indibasedevice.cpp
-        ${CMAKE_SOURCE_DIR}/libs/indibaseclient.cpp
+        ${CMAKE_SOURCE_DIR}/libs/indibase/basedevice.cpp
+        ${CMAKE_SOURCE_DIR}/libs/indibase/baseclient.cpp
     )
 
 ######################################
@@ -632,8 +632,8 @@ endif (NOVA_FOUND)
 
 install( FILES drivers.xml DESTINATION ${DATA_INSTALL_DIR})
 
-install( FILES indiapi.h indidevapi.h base64.h eventloop.h ${CMAKE_SOURCE_DIR}/libs/lilxml.h ${CMAKE_SOURCE_DIR}/libs/indibasedevice.h
- ${CMAKE_SOURCE_DIR}/libs/indibaseclient.h ${CMAKE_SOURCE_DIR}/libs/indicom.h DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
+install( FILES indiapi.h indidevapi.h base64.h eventloop.h ${CMAKE_SOURCE_DIR}/libs/lilxml.h ${CMAKE_SOURCE_DIR}/libs/indibase/basedevice.h
+ ${CMAKE_SOURCE_DIR}/libs/indibase/baseclient.h ${CMAKE_SOURCE_DIR}/libs/indicom.h DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libindi.pc.cmake ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc DESTINATION ${PKGCONFIG_INSTALL_PREFIX})

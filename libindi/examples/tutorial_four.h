@@ -23,11 +23,9 @@
 
 #include "indidevapi.h"
 #include "indicom.h"
-#include "indibasedevice.h"
+#include "indibase/basedevice.h"
 
-class INDIBaseClient;
-
-class MyScope : public INDIBaseDevice
+class MyScope : public INDI::BaseDevice
 {
  public:
  MyScope();
@@ -42,7 +40,7 @@ private:
  void init_properties();
  void connect_telescope();
 
- INDIBaseClient *myClient;
+ INDI::BaseClient *myClient;
 
 };
 

@@ -402,27 +402,43 @@ both prudent and efficient to do so.</P>
 
 /** \brief Find an IText member in a vector text property.
 *
-* \param tp a pointer to a text vector property.
+* \param tvp a pointer to a text vector property.
 * \param name the name of the member to search for.
 * \return a pointer to an IText member on match, or NULL if nothing is found.
 */
-extern IText   *IUFindText  (const ITextVectorProperty *tp, const char *name);
+extern IText   *IUFindText  (const ITextVectorProperty *tvp, const char *name);
 
 /** \brief Find an INumber member in a number text property.
 *
-* \param np a pointer to a number vector property.
+* \param nvp a pointer to a number vector property.
 * \param name the name of the member to search for.
 * \return a pointer to an INumber member on match, or NULL if nothing is found.
 */
-extern INumber *IUFindNumber(const INumberVectorProperty *np, const char *name);
+extern INumber *IUFindNumber(const INumberVectorProperty *nvp, const char *name);
 
 /** \brief Find an ISwitch member in a vector switch property.
 *
-* \param sp a pointer to a switch vector property.
+* \param svp a pointer to a switch vector property.
 * \param name the name of the member to search for.
 * \return a pointer to an ISwitch member on match, or NULL if nothing is found.
 */
-extern ISwitch *IUFindSwitch(const ISwitchVectorProperty *sp, const char *name);
+extern ISwitch *IUFindSwitch(const ISwitchVectorProperty *svp, const char *name);
+
+/** \brief Find an ILight member in a vector Light property.
+*
+* \param lvp a pointer to a Light vector property.
+* \param name the name of the member to search for.
+* \return a pointer to an ILight member on match, or NULL if nothing is found.
+*/
+extern ILight *IUFindLight(const ILightVectorProperty *lvp, const char *name);
+
+/** \brief Find an IBLOB member in a vector BLOB property.
+*
+* \param bvp a pointer to a BLOB vector property.
+* \param name the name of the member to search for.
+* \return a pointer to an IBLOB member on match, or NULL if nothing is found.
+*/
+extern IBLOB *IUFindBLOB(const IBLOBVectorProperty *bvp, const char *name);
 
 /** \brief Returns the first ON switch it finds in the vector switch property.
 
@@ -728,7 +744,6 @@ extern void ISSnoopDevice (XMLEle *root);
 #define INDI_UNUSED(x) (void) x
 
 extern int crackDN (XMLEle *root, char **dev, char **name, char msg[]);
-extern int isPropDefined(const char *property_name);
 extern int crackIPState (const char *str, IPState *ip);
 extern int crackISState (const char *str, ISState *ip);
 extern int crackIPerm (const char *str, IPerm *ip);

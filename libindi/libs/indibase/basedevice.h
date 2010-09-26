@@ -6,14 +6,17 @@
 
 #include "indiapi.h"
 #include "indidevapi.h"
+#include "indibase.h"
 
 #define MAXRBUF 2048
 
-class INDIBaseDevice
+class INDI::BaseDevice
 {
 public:
-    INDIBaseDevice();
-    virtual ~INDIBaseDevice();
+    BaseDevice();
+    virtual ~BaseDevice();
+
+    enum { INDI_DEVICE_NOT_FOUND=-1, INDI_PROPERTY_INVALID=-2, INDI_PROPERTY_DUPLICATED = -3, INDI_DISPATCH_ERROR=-4 };
 
     INumberVectorProperty * getNumber(const char *name);
     ITextVectorProperty * getText(const char *name);
@@ -21,33 +24,46 @@ public:
     ILightVectorProperty * getLight(const char *name);
     IBLOBVectorProperty * getBLOB(const char *name);
 
+    int removeProperty(const char *name);
+
     void buildSkeleton(const char *filename);
 
     bool isConnected();
     void setConnected(bool status);
 
+    void setDeviceName(const char *dev);
+    const char *deviceName();
+
+    void addMessage(const char *msg);
+    const char *message() { return messageQueue.c_str(); }
+
 protected:
 
     virtual void ISGetProperties (const char *dev);
-    virtual void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n) =0;
-    virtual void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n) =0;
+    virtual void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n) {}
+    virtual void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n) {}
     virtual void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
 
-    char deviceName[MAXINDINAME];
-
-    bool loadConfig(bool ignoreConnection = false);
     int buildProp(XMLEle *root, char *errmsg);
+
+    // Configuration
+    bool loadConfig(bool ignoreConnection = false);
     bool saveConfig();
     bool loadDefaultConfig();
+
+    // Simulatin & Debug
     void setDebug(bool enable);
     void setSimulation(bool enable);
     bool isDebug();
     bool isSimulation();
 
-    int setAnyCmd (XMLEle *root, char * errmsg);
-    int processBlob(IBLOB *blobEL, XMLEle *ep, char * errmsg);
+    // handle SetXXX commands from client
+    int setValue (XMLEle *root, char * errmsg);
+    int processBLOB(IBLOB *blobEL, XMLEle *ep, char * errmsg);
+    void virtual BLOBReceived(unsigned char *buffer, unsigned long size, const char *format) {}
     int setBLOB(IBLOBVectorProperty *pp, XMLEle * root, char * errmsg);
-    //int setValue (INDI_P *pp, XMLEle *root, char * errmsg);
+
+    char deviceID[MAXINDINAME];
 
 private:
 
@@ -80,7 +96,10 @@ private:
     bool pDebug;
     bool pSimulation;
 
-    friend class INDIBaseClient;
+
+    std::string messageQueue;
+
+    friend class INDI::BaseClient;
 
 };
 

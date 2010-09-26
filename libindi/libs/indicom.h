@@ -48,7 +48,6 @@
 #define ERRMSG_SIZE 1024
 #define INDI_DEBUG
 
-
 extern const char * Direction[];
 extern const char * SolarSystem[];
 

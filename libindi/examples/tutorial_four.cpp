@@ -31,7 +31,7 @@
 
 #include <config.h>
 
-#include <indibaseclient.h>
+#include "indibase/baseclient.h"
 
 /* INDI Common Library Routines */
 #include "indicom.h"
@@ -130,7 +130,7 @@ MyScope::MyScope()
 {
     IDLog("Initilizing from My Scope device...\n");
 
-    myClient = new INDIBaseClient();
+    myClient = new INDI::BaseClient();
 
     init_properties();
 
@@ -167,7 +167,7 @@ void MyScope::ISGetProperties(const char *dev)
 {
     static int configLoaded = 0;
 
-    INDIBaseDevice::ISGetProperties(dev);
+    INDI::BaseDevice::ISGetProperties(dev);
 
     if (configLoaded == 0)
     {
@@ -182,7 +182,7 @@ void MyScope::ISGetProperties(const char *dev)
 void MyScope::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
 	// Ignore if not ours 
-        if (strcmp (dev, deviceName))
+        if (strcmp (dev, deviceID))
 	    return;
 }
 
@@ -193,7 +193,7 @@ void MyScope::ISNewNumber (const char *dev, const char *name, double values[], c
 {
 	
 	// Ignore if not ours
-        if (strcmp (dev, deviceName))
+        if (strcmp (dev, deviceID))
 	    return;
 
         INumberVectorProperty *nvp = getNumber(name);
@@ -218,7 +218,7 @@ void MyScope::ISNewNumber (const char *dev, const char *name, double values[], c
 void MyScope::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
 	// ignore if not ours //
-        if (strcmp (dev, deviceName))
+        if (strcmp (dev, deviceID))
 	    return;
 
         ISwitchVectorProperty *svp = getSwitch(name);
@@ -233,7 +233,7 @@ void MyScope::ISNewSwitch (const char *dev, const char *name, ISState *states, c
             return;
         }
 
-        INDIBaseDevice::ISNewSwitch(dev, name, states, names, n);
+        INDI::BaseDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
 

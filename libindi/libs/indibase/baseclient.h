@@ -7,6 +7,7 @@
 
 #include "indiapi.h"
 #include "indidevapi.h"
+#include "indibase.h"
 
 class INDIBaseDevice;
 
@@ -14,18 +15,24 @@ class INDIBaseDevice;
 
 using namespace std;
 
-class INDIBaseClient
+class INDI::BaseClient
 {
 public:
     enum { INDI_DEVICE_NOT_FOUND=-1, INDI_PROPERTY_INVALID=-2, INDI_PROPERTY_DUPLICATED = -3, INDI_DISPATCH_ERROR=-4 };
 
-    INDIBaseClient();
-    virtual ~INDIBaseClient();
+    BaseClient();
+    virtual ~BaseClient();
 
     void setServer(string serverAddress, unsigned int port);
-    void addDevice(string deviceName);
+
+    // Add devices to watch.
+    void addDevice(const char * deviceName);
+
+    // Connect to INDI server
     bool connect();
-    INDIBaseDevice * getDevice(string deviceName);
+
+    // Return instance of BaseDevice
+    INDI::BaseDevice * getDevice(const char * deviceName);
 
     // Update
     static void * listenHelper(void *context);
@@ -33,14 +40,22 @@ public:
 protected:
 
     int dispatchCommand(XMLEle *root, char* errmsg);
-    int delPropertyCmd (XMLEle *root, char * errmsg);
+
+    // Remove devices & properties
     int removeDevice( const char * devName, char * errmsg );
-    INDIBaseDevice * findDev( const char * devName, char * errmsg);
-    INDIBaseDevice * addDevice (XMLEle *dep, char * errmsg);
-    INDIBaseDevice * findDev (XMLEle *root, int create, char * errmsg);
+    int delPropertyCmd (XMLEle *root, char * errmsg);
+
+    // Process devices
+    INDI::BaseDevice * findDev( const char * devName, char * errmsg);
+    INDI::BaseDevice * addDevice (XMLEle *dep, char * errmsg);
+    INDI::BaseDevice * findDev (XMLEle *root, int create, char * errmsg);
+
+    // Process messages
     int messageCmd (XMLEle *root, char * errmsg);
-    void checkMsg (XMLEle *root, INDIBaseDevice *dp);
-    void doMsg (XMLEle *msg, INDIBaseDevice *dp);
+    void checkMsg (XMLEle *root, INDI::BaseDevice *dp);
+    void doMsg (XMLEle *msg, INDI::BaseDevice *dp);
+
+    // Send newXXX to driver
     void sendNewText (ITextVectorProperty *pp);
     void sendNewNumber (INumberVectorProperty *pp);
     void sendNewSwitch (ISwitchVectorProperty *pp, ISwitch *lp);
@@ -50,19 +65,22 @@ protected:
 
 private:
 
+    // Listen to INDI server and process incoming messages
+    void listenINDI();
+
+    // Thread for listenINDI()
     pthread_t listen_thread;
-    vector<INDIBaseDevice *> cDevices;
+
+    vector<INDI::BaseDevice *> cDevices;
     vector<string> cDeviceNames;
+
     string cServer;
     unsigned int cPort;
 
-    void listenINDI();
-
+    // Parse & FILE buffers for IO
     LilXML *lillp;			/* XML parser context */
     FILE *svrwfp;			/* FILE * to talk to server */
     FILE *svrrfp;			/* FILE * to read from server */
-
-
 
 };
 
