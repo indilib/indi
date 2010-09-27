@@ -174,6 +174,8 @@ void MyScope::ISGetProperties(const char *dev)
       loadConfig(true);
       configLoaded = 1;
     }
+
+    myClient->disconnect();
 }
 
 /**************************************************************************************
@@ -254,6 +256,8 @@ void MyScope::connect_telescope()
         setConnected(true);
         IDSetSwitch(svp, "Connecting.... telescope is online.");
         IDLog("Connecting.... telescope is online.\n");
+
+
     }
     else
     {

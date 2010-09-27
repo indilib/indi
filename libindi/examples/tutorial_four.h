@@ -23,9 +23,9 @@
 
 #include "indidevapi.h"
 #include "indicom.h"
-#include "indibase/basedevice.h"
+#include "indibase/defaultdevice.h"
 
-class MyScope : public INDI::BaseDevice
+class MyScope : public INDI::DefaultDevice
 {
  public:
  MyScope();

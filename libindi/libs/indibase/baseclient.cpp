@@ -18,15 +18,13 @@ INDI::BaseClient::BaseClient()
     cServer = "localhost";
     cPort   = 7624;
 
-    lillp = newLilXML();
-
 }
 
 
 INDI::BaseClient::~BaseClient()
 {
 
-    delLilXML(lillp);
+    disconnect();
 
 }
 
@@ -46,7 +44,6 @@ bool INDI::BaseClient::connect()
 {
     struct sockaddr_in serv_addr;
     struct hostent *hp;
-    int sockfd;
 
     /* lookup host address */
     hp = gethostbyname(cServer.c_str());
@@ -89,6 +86,17 @@ bool INDI::BaseClient::connect()
     return true;
 }
 
+void INDI::BaseClient::disconnect()
+{
+    char errmsg[MAXRBUF];
+    removeDevice(NULL, errmsg);
+    delLilXML(lillp);
+    pthread_cancel(listen_thread);
+    close(sockfd);
+    fclose(svrwfp);
+    fclose(svrrfp);
+}
+
 INDI::BaseDevice * INDI::BaseClient::getDevice(const char * deviceName)
 {
     vector<INDI::BaseDevice *>::const_iterator devi;
@@ -120,6 +128,8 @@ void INDI::BaseClient::listenINDI()
     }
 
     fflush (svrwfp);
+
+    lillp = newLilXML();
 
     /* read from server, exit if find all requested properties */
     while (1)
@@ -154,7 +164,7 @@ void INDI::BaseClient::listenINDI()
             }
             else if (msg[0])
             {
-               fprintf (stderr, "Bad XML from %s/%d: %s\n", cServer.c_str(), cPort, msg);
+               fprintf (stderr, "Bad XML from %s/%d: %s\n%s\n", cServer.c_str(), cPort, msg, buffer);
                exit(2);
             }
         }
@@ -221,17 +231,27 @@ int INDI::BaseClient::delPropertyCmd (XMLEle *root, char * errmsg)
 
 int INDI::BaseClient::removeDevice( const char * devName, char * errmsg )
 {
-    std::vector<INDI::BaseDevice *>::const_iterator devicei;
-    int i=0;
+    std::vector<INDI::BaseDevice *>::iterator devicei = cDevices.begin();
 
-    for (i=0, devicei = cDevices.begin(); devicei != cDevices.end(); i++, devicei++)
+    if (devName == NULL)
     {
-        if (!strcmp(devName, (*devicei)->deviceName()))
-        {
-            cDevices.erase(cDevices.begin()+i);
-            delete (*devicei);
+        // FIXME this is not safe, use smart pointers instead.
+        cDevices.erase(cDevices.begin(), cDevices.end());
+        //delete (*devicei);
+        //devicei++;
+        return 0;
+    }
+
+    while (devicei != cDevices.end())
+    {
+      if (!strcmp(devName, (*devicei)->deviceName()))
+      {
+          cDevices.erase(devicei);
+           //delete (*devicei);
             return 0;
-        }
+      }
+
+      devicei++;
     }
 
     snprintf(errmsg, MAXRBUF, "Device %s not found", devName);
@@ -273,6 +293,10 @@ INDI::BaseDevice * INDI::BaseClient::addDevice (XMLEle *dep, char * errmsg)
 
     dp = new INDI::BaseDevice();
     dp->setDeviceName(device_name);
+
+    cDevices.push_back(dp);
+
+    newDevice();
 
     /* ok */
     return dp;

@@ -18,6 +18,7 @@ namespace INDI
 {
     class BaseDevice;
     class BaseClient;
+    class DefaultDevice;
 }
 
 #endif // INDIBASE_H

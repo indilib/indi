@@ -28,11 +28,13 @@ public:
     // Add devices to watch.
     void addDevice(const char * deviceName);
 
-    // Connect to INDI server
+    // Connect/Disconnect to/from INDI server
     bool connect();
+    void disconnect();
 
     // Return instance of BaseDevice
     INDI::BaseDevice * getDevice(const char * deviceName);
+    const vector<INDI::BaseDevice *> & getDevices() const { return cDevices; }
 
     // Update
     static void * listenHelper(void *context);
@@ -49,6 +51,9 @@ protected:
     INDI::BaseDevice * findDev( const char * devName, char * errmsg);
     INDI::BaseDevice * addDevice (XMLEle *dep, char * errmsg);
     INDI::BaseDevice * findDev (XMLEle *root, int create, char * errmsg);
+
+    // Notifications
+    virtual void newDevice() {}
 
     // Process messages
     int messageCmd (XMLEle *root, char * errmsg);
@@ -78,6 +83,7 @@ private:
     unsigned int cPort;
 
     // Parse & FILE buffers for IO
+    int sockfd;
     LilXML *lillp;			/* XML parser context */
     FILE *svrwfp;			/* FILE * to talk to server */
     FILE *svrrfp;			/* FILE * to read from server */

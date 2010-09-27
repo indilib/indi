@@ -10,8 +10,7 @@
 INDI::BaseDevice::BaseDevice()
 {
     lp = newLilXML();
-    pDebug = false;
-    pSimulation = false;
+
 }
 
 
@@ -100,35 +99,9 @@ IBLOBVectorProperty * INDI::BaseDevice::getBLOB(const char *name)
     return NULL;
 }
 
-void INDI::BaseDevice::ISGetProperties (const char *dev)
-{
-    std::vector<pOrder>::const_iterator orderi;
+void INDI::BaseDevice::ISGetProperties (const char *dev) {}
 
-    for (orderi = pAll.begin(); orderi != pAll.end(); orderi++)
-    {
-        switch ( (*orderi).type)
-        {
-        case INDI_NUMBER:
-             IDDefNumber(static_cast<INumberVectorProperty *>((*orderi).p) , NULL);
-             break;
-        case INDI_TEXT:
-             IDDefText(static_cast<ITextVectorProperty *>((*orderi).p) , NULL);
-             break;
-        case INDI_SWITCH:
-             IDDefSwitch(static_cast<ISwitchVectorProperty *>((*orderi).p) , NULL);
-             break;
-        case INDI_LIGHT:
-             IDDefLight(static_cast<ILightVectorProperty *>((*orderi).p) , NULL);
-             break;
-        case INDI_BLOB:
-             IDDefBLOB(static_cast<IBLOBVectorProperty *>((*orderi).p) , NULL);
-             break;
-        }
-    }
-
-}
-
-int INDI::BaseDevice::removeProperty(const char *name)
+void * INDI::BaseDevice::getProperty(const char *name, pType & type)
 {
     std::vector<pOrder>::const_iterator orderi;
 
@@ -147,7 +120,68 @@ int INDI::BaseDevice::removeProperty(const char *name)
             nvp = static_cast<INumberVectorProperty *>((*orderi).p);
             if (!strcmp(name, nvp->name))
             {
-                 pAll.erase(pAll.begin()+i);
+                type = INDI_NUMBER;
+                return (*orderi).p;
+            }
+
+             break;
+        case INDI_TEXT:
+             tvp = static_cast<ITextVectorProperty *>((*orderi).p);
+             if (!strcmp(name, tvp->name))
+             {
+                 type = INDI_TEXT;
+                 return (*orderi).p;
+             }
+             break;
+        case INDI_SWITCH:
+             svp = static_cast<ISwitchVectorProperty *>((*orderi).p);
+             if (!strcmp(name, svp->name))
+             {
+                 type = INDI_SWITCH;
+                 return (*orderi).p;
+             }
+             break;
+        case INDI_LIGHT:
+             lvp = static_cast<ILightVectorProperty *>((*orderi).p);
+             if (!strcmp(name, lvp->name))
+             {
+                 type = INDI_LIGHT;
+                 return (*orderi).p;
+             }
+             break;
+        case INDI_BLOB:
+             bvp = static_cast<IBLOBVectorProperty *>((*orderi).p);
+             if (!strcmp(name, bvp->name))
+             {
+                 type = INDI_BLOB;
+                 return (*orderi).p;
+             }
+             break;
+        }
+    }
+
+    return NULL;
+}
+
+int INDI::BaseDevice::removeProperty(const char *name)
+{
+    std::vector<pOrder>::iterator orderi;
+
+    INumberVectorProperty *nvp;
+    ITextVectorProperty *tvp;
+    ISwitchVectorProperty *svp;
+    ILightVectorProperty *lvp;
+    IBLOBVectorProperty *bvp;
+
+    for (orderi = pAll.begin(); orderi != pAll.end(); orderi++)
+    {
+        switch ( (*orderi).type)
+        {
+        case INDI_NUMBER:
+            nvp = static_cast<INumberVectorProperty *>((*orderi).p);
+            if (!strcmp(name, nvp->name))
+            {
+                 pAll.erase(orderi);
                  delete (nvp);
                  return 0;
              }
@@ -156,7 +190,7 @@ int INDI::BaseDevice::removeProperty(const char *name)
              tvp = static_cast<ITextVectorProperty *>((*orderi).p);
              if (!strcmp(name, tvp->name))
              {
-                  pAll.erase(pAll.begin()+i);
+                  pAll.erase(orderi);
                   delete (tvp);
                   return 0;
               }
@@ -165,7 +199,7 @@ int INDI::BaseDevice::removeProperty(const char *name)
              svp = static_cast<ISwitchVectorProperty *>((*orderi).p);
              if (!strcmp(name, svp->name))
              {
-                  pAll.erase(pAll.begin()+i);
+                  pAll.erase(orderi);
                   delete (svp);
                   return 0;
               }
@@ -174,7 +208,7 @@ int INDI::BaseDevice::removeProperty(const char *name)
              lvp = static_cast<ILightVectorProperty *>((*orderi).p);
              if (!strcmp(name, lvp->name))
              {
-                  pAll.erase(pAll.begin()+i);
+                  pAll.erase(orderi);
                   delete (lvp);
                   return 0;
               }
@@ -183,7 +217,7 @@ int INDI::BaseDevice::removeProperty(const char *name)
              bvp = static_cast<IBLOBVectorProperty *>((*orderi).p);
              if (!strcmp(name, bvp->name))
              {
-                  pAll.erase(pAll.begin()+i);
+                  pAll.erase(orderi);
                   delete (bvp);
                   return 0;
               }
@@ -221,64 +255,9 @@ void INDI::BaseDevice::buildSkeleton(const char *filename)
     for (root = nextXMLEle (fproot, 1); root != NULL; root = nextXMLEle (fproot, 0))
             buildProp(root, errmsg);
 
-    /**************************************************************************/
-    DebugSP = getSwitch("DEBUG");
-    if (!DebugSP)
-    {
-        DebugSP = new ISwitchVectorProperty;
-        IUFillSwitch(&DebugS[0], "ENABLE", "Enable", ISS_OFF);
-        IUFillSwitch(&DebugS[1], "DISABLE", "Disable", ISS_ON);
-        IUFillSwitchVector(DebugSP, DebugS, NARRAY(DebugS), deviceID, "DEBUG", "Debug", "Options", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-        pSwitches.push_back(DebugSP);
-        pOrder debo = {INDI_SWITCH, DebugSP};
-        pAll.push_back(debo);
-    }
-    else
-    {
-        ISwitch *sp = IUFindSwitch(DebugSP, "ENABLE");
-        if (sp)
-            if (sp->s == ISS_ON)
-                pDebug = true;
-    }
-    /**************************************************************************/
+
 
     /**************************************************************************/
-    SimulationSP = getSwitch("SIMULATION");
-    if (!SimulationSP)
-    {
-        SimulationSP = new ISwitchVectorProperty;
-        IUFillSwitch(&SimulationS[0], "ENABLE", "Enable", ISS_OFF);
-        IUFillSwitch(&SimulationS[1], "DISABLE", "Disable", ISS_ON);
-        IUFillSwitchVector(SimulationSP, SimulationS, NARRAY(SimulationS), deviceID, "SIMULATION", "Simulation", "Options", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-        pSwitches.push_back(SimulationSP);
-        pOrder simo = {INDI_SWITCH, SimulationSP};
-        pAll.push_back(simo);
-    }
-    else
-    {
-        ISwitch *sp = IUFindSwitch(SimulationSP, "ENABLE");
-        if (sp)
-            if (sp->s == ISS_ON)
-                pSimulation = true;
-    }
-
-    /**************************************************************************/
-
-    /**************************************************************************/
-    ConfigProcessSP = getSwitch("CONFIG_PROCESS");
-    if (!ConfigProcessSP)
-    {
-        ConfigProcessSP = new ISwitchVectorProperty;
-        IUFillSwitch(&ConfigProcessS[0], "CONFIG_LOAD", "Load", ISS_OFF);
-        IUFillSwitch(&ConfigProcessS[1], "CONFIG_SAVE", "Save", ISS_OFF);
-        IUFillSwitch(&ConfigProcessS[2], "CONFIG_DEFAULT", "Default", ISS_OFF);
-        IUFillSwitchVector(ConfigProcessSP, ConfigProcessS, NARRAY(ConfigProcessS), deviceID, "CONFIG_PROCESS", "Configuration", "Options", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-        pSwitches.push_back(ConfigProcessSP);
-        pOrder cpono = {INDI_SWITCH, ConfigProcessSP};
-        pAll.push_back(cpono);
-    }
-    /**************************************************************************/
-
 
 }
 
@@ -289,6 +268,7 @@ int INDI::BaseDevice::buildProp(XMLEle *root, char *errmsg)
     ISRule rule;
     XMLEle *ep = NULL;
     char *rtag, *rname, *rdev;
+    pType type;
     double timeout=0;
 
     rtag = tagXMLEle(root);
@@ -304,6 +284,9 @@ int INDI::BaseDevice::buildProp(XMLEle *root, char *errmsg)
         else
             strncpy(deviceID, rdev, MAXINDINAME);
     }
+
+    if (getProperty(rname, type) != NULL)
+        return 0;
 
     if (crackIPerm(findXMLAttValu(root, "perm"), &perm) < 0)
     {
@@ -653,254 +636,10 @@ void INDI::BaseDevice::setConnected(bool status)
     }
 
     svp->s = IPS_OK;
-
-    loadConfig();
-}
-
-bool INDI::BaseDevice::loadConfig(bool ignoreConnection)
-{
-    char errmsg[MAXRBUF];
-    bool pResult = false;
-
-    if (ignoreConnection || isConnected() )
-        pResult = readConfig(NULL, deviceID, errmsg) == 0 ? true : false;
-
-   if (pResult && ignoreConnection)
-       IDMessage(deviceID, "Configuration successfully loaded.");
-
-   IUSaveDefaultConfig(NULL, NULL, deviceID);
-
-   return pResult;
-}
-
-void INDI::BaseDevice::setDebug(bool enable)
-{
-    if (pDebug == enable)
-    {
-        DebugSP->s = IPS_OK;
-        IDSetSwitch(DebugSP, NULL);
-        return;
-    }
-
-    if (!DebugSP)
-        return;
-
-    IUResetSwitch(DebugSP);
-
-    if (enable)
-    {
-        ISwitch *sp = IUFindSwitch(DebugSP, "ENABLE");
-        if (sp)
-        {
-            sp->s = ISS_ON;
-            IDMessage(deviceID, "Debug is enabled.");
-        }
-    }
-    else
-    {
-        ISwitch *sp = IUFindSwitch(DebugSP, "DISABLE");
-        if (sp)
-        {
-            sp->s = ISS_ON;
-            IDMessage(deviceID, "Debug is disabled.");
-        }
-    }
-
-    pDebug = enable;
-    DebugSP->s = IPS_OK;
-    IDSetSwitch(DebugSP, NULL);
-
-}
-
-void INDI::BaseDevice::setSimulation(bool enable)
-{
-   if (pSimulation == enable)
-   {
-       SimulationSP->s = IPS_OK;
-       IDSetSwitch(SimulationSP, NULL);
-       return;
-   }
-
-   if (!SimulationSP)
-       return;
-
-   IUResetSwitch(SimulationSP);
-
-   if (enable)
-   {
-       ISwitch *sp = IUFindSwitch(SimulationSP, "ENABLE");
-       if (sp)
-       {
-           IDMessage(deviceID, "Simulation is enabled.");
-           sp->s = ISS_ON;
-       }
-   }
-   else
-   {
-       ISwitch *sp = IUFindSwitch(SimulationSP, "DISABLE");
-       if (sp)
-       {
-           sp->s = ISS_ON;
-           IDMessage(deviceID, "Simulation is disabled.");
-       }
-   }
-
-   pSimulation = enable;
-   SimulationSP->s = IPS_OK;
-   IDSetSwitch(SimulationSP, NULL);
-
-}
-
-bool INDI::BaseDevice::isDebug()
-{
-  return pDebug;
-}
-
-bool INDI::BaseDevice::isSimulation()
-{
- return pSimulation;
-}
-
-void INDI::BaseDevice::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-
-    // ignore if not ours //
-    if (strcmp (dev, deviceID))
-        return;
-
-    ISwitchVectorProperty *svp = getSwitch(name);
-
-    if (!svp)
-        return;
-
-    if (!strcmp(svp->name, "DEBUG"))
-    {
-        IUUpdateSwitch(svp, states, names, n);
-        ISwitch *sp = IUFindOnSwitch(svp);
-        if (!sp)
-            return;
-
-        if (!strcmp(sp->name, "ENABLE"))
-            setDebug(true);
-        else
-            setDebug(false);
-        return;
-    }
-
-    if (!strcmp(svp->name, "SIMULATION"))
-    {
-        IUUpdateSwitch(svp, states, names, n);
-        ISwitch *sp = IUFindOnSwitch(svp);
-        if (!sp)
-            return;
-
-        if (!strcmp(sp->name, "ENABLE"))
-            setSimulation(true);
-        else
-            setSimulation(false);
-        return;
-    }
-
-    if (!strcmp(svp->name, "CONFIG_PROCESS"))
-    {
-        IUUpdateSwitch(svp, states, names, n);
-        ISwitch *sp = IUFindOnSwitch(svp);
-        IUResetSwitch(svp);
-        bool pResult = false;
-        if (!sp)
-            return;
-
-        if (!strcmp(sp->name, "CONFIG_LOAD"))
-            pResult = loadConfig(true);
-        else if (!strcmp(sp->name, "CONFIG_SAVE"))
-            pResult = saveConfig();
-        else if (!strcmp(sp->name, "CONFIG_DEFAULT"))
-            pResult = loadDefaultConfig();
-
-        if (pResult)
-            svp->s = IPS_OK;
-        else
-            svp->s = IPS_ALERT;
-
-        IDSetSwitch(svp, NULL);
-    }
-
 }
 
 
-bool INDI::BaseDevice::saveConfig()
-{
-    std::vector<pOrder>::const_iterator orderi;
-    ISwitchVectorProperty *svp=NULL;
-    char errmsg[MAXRBUF];
-    FILE *fp = NULL;
-
-    fp = IUGetConfigFP(NULL, deviceID, errmsg);
-
-    if (fp == NULL)
-    {
-        IDMessage(deviceID, "Error saving configuration. %s", errmsg);
-        return false;
-    }
-
-    IUSaveConfigTag(fp, 0);
-
-    for (orderi = pAll.begin(); orderi != pAll.end(); orderi++)
-    {
-        switch ( (*orderi).type)
-        {
-        case INDI_NUMBER:
-             IUSaveConfigNumber(fp, static_cast<INumberVectorProperty *> ((*orderi).p));
-             break;
-        case INDI_TEXT:
-             IUSaveConfigText(fp, static_cast<ITextVectorProperty *> ((*orderi).p));
-             break;
-        case INDI_SWITCH:
-             svp = static_cast<ISwitchVectorProperty *> ((*orderi).p);
-             /* Never save CONNECTION property. Don't save switches with no switches on if the rule is one of many */
-             if (!strcmp(svp->name, "CONNECTION") || (svp->r == ISR_1OFMANY && !IUFindOnSwitch(svp)))
-                 continue;
-             IUSaveConfigSwitch(fp, svp);
-             break;
-        case INDI_BLOB:
-             IUSaveConfigBLOB(fp, static_cast<IBLOBVectorProperty *> ((*orderi).p));
-             break;
-        }
-    }
-
-    IUSaveConfigTag(fp, 1);
-
-    fclose(fp);
-
-    IUSaveDefaultConfig(NULL, NULL, deviceID);
-
-    IDMessage(deviceID, "Configuration successfully saved.");
-
-    return true;
-}
-
-bool INDI::BaseDevice::loadDefaultConfig()
-{
-    char configDefaultFileName[MAXRBUF];
-    char errmsg[MAXRBUF];
-    bool pResult = false;
-
-    if (getenv("INDICONFIG"))
-        snprintf(configDefaultFileName, MAXRBUF, "%s.default", getenv("INDICONFIG"));
-    else
-        snprintf(configDefaultFileName, MAXRBUF, "%s/.indi/%s_config.xml.default", getenv("HOME"), deviceID);
-
-    IDLog("Requesting to load default config with: %s\n", configDefaultFileName);
-
-    pResult = readConfig(configDefaultFileName, deviceID, errmsg) == 0 ? true : false;
-
-    if (pResult)
-        IDMessage(deviceID, "Default configuration loaded.");
-    else
-        IDMessage(deviceID, "Error loading default configuraiton. %s", errmsg);
-
-    return pResult;
-}
+void INDI::BaseDevice::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n) {}
 
 /*
  * return 0 if ok else -1 with reason in errmsg

@@ -52,6 +52,8 @@
 #define PARITY_ODD     2
 #endif
 
+#define MAXRBUF         2048
+
 #include "indidevapi.h"
 
 void getSexComponents(double value, int *d, int *m, int *s);
@@ -1135,3 +1137,14 @@ IUResetSwitch(ISwitchVectorProperty *svp)
     svp->sp[i].s = ISS_OFF;
 }
 
+/* save malloced copy of newtext in tp->text, reusing if not first time */
+void
+IUSaveText (IText *tp, const char *newtext)
+{
+        /* seed for realloc */
+        if (tp->text == NULL)
+            tp->text = malloc (1);
+
+        /* copy in fresh string */
+        tp->text = strcpy (realloc (tp->text, strlen(newtext)+1), newtext);
+}

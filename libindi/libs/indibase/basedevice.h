@@ -17,6 +17,7 @@ public:
     virtual ~BaseDevice();
 
     enum { INDI_DEVICE_NOT_FOUND=-1, INDI_PROPERTY_INVALID=-2, INDI_PROPERTY_DUPLICATED = -3, INDI_DISPATCH_ERROR=-4 };
+    enum pType { INDI_NUMBER, INDI_SWITCH, INDI_TEXT, INDI_LIGHT, INDI_BLOB };
 
     INumberVectorProperty * getNumber(const char *name);
     ITextVectorProperty * getText(const char *name);
@@ -26,10 +27,12 @@ public:
 
     int removeProperty(const char *name);
 
+    void * getProperty(const char *name, pType & type);
+
     void buildSkeleton(const char *filename);
 
     bool isConnected();
-    void setConnected(bool status);
+    virtual void setConnected(bool status);
 
     void setDeviceName(const char *dev);
     const char *deviceName();
@@ -46,16 +49,6 @@ protected:
 
     int buildProp(XMLEle *root, char *errmsg);
 
-    // Configuration
-    bool loadConfig(bool ignoreConnection = false);
-    bool saveConfig();
-    bool loadDefaultConfig();
-
-    // Simulatin & Debug
-    void setDebug(bool enable);
-    void setSimulation(bool enable);
-    bool isDebug();
-    bool isSimulation();
 
     // handle SetXXX commands from client
     int setValue (XMLEle *root, char * errmsg);
@@ -67,7 +60,7 @@ protected:
 
 private:
 
-    enum pType { INDI_NUMBER, INDI_SWITCH, INDI_TEXT, INDI_LIGHT, INDI_BLOB };
+
 
     typedef struct
     {
@@ -81,25 +74,14 @@ private:
     std::vector<ILightVectorProperty *> pLights;
     std::vector<IBLOBVectorProperty *> pBlobs;
 
-    ISwitch DebugS[2];
-    ISwitch SimulationS[2];
-    ISwitch ConfigProcessS[3];
-
-    ISwitchVectorProperty *DebugSP;
-    ISwitchVectorProperty *SimulationSP;
-    ISwitchVectorProperty *ConfigProcessSP;
-
     LilXML *lp;
 
     std::vector<pOrder> pAll;
 
-    bool pDebug;
-    bool pSimulation;
-
-
     std::string messageQueue;
 
     friend class INDI::BaseClient;
+    friend class INDI::DefaultDevice;
 
 };
 

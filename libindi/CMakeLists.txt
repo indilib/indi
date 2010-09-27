@@ -91,6 +91,7 @@ set(libwebcam_SRCS
 	)
 
 set (indimain_SRCS
+        ${CMAKE_SOURCE_DIR}/indidriver.c
 	${CMAKE_SOURCE_DIR}/indidrivermain.c
 	${CMAKE_SOURCE_DIR}/eventloop.c
     )
@@ -99,6 +100,12 @@ set (indibase_SRCS
         ${CMAKE_SOURCE_DIR}/libs/indibase/basedevice.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/baseclient.cpp
     )
+
+set (indidefaultdevice_SRCS
+        ${CMAKE_SOURCE_DIR}/libs/indibase/basedevice.cpp
+        ${CMAKE_SOURCE_DIR}/libs/indibase/defaultdevice.cpp
+    )
+
 
 ######################################
 ########### INDI SERVER ##############
@@ -116,11 +123,6 @@ endif (NOVA_FOUND)
 
 install(TARGETS indiserver RUNTIME DESTINATION bin )
 
-######################################
-######## INDI Static Library #########
-######################################
-add_library(indidriver STATIC ${indimain_SRCS} ${indibase_SRCS})
-install(TARGETS indidriver ARCHIVE DESTINATION lib${LIB_POSTFIX})
 
 ######################################
 ######## INDI Shared Library #########
@@ -140,6 +142,26 @@ endif(FLI_FOUND)
 
 install(TARGETS indi LIBRARY DESTINATION lib${LIB_POSTFIX})
 set_target_properties(indi PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION})
+
+
+######################################
+######## INDI Static Library #########
+######################################
+add_library(indidriver STATIC ${indimain_SRCS})
+install(TARGETS indidriver ARCHIVE DESTINATION lib${LIB_POSTFIX})
+
+##############################################
+######## INDI Default Device Library #########
+##############################################
+add_library(indidefaultdevice STATIC ${indimain_SRCS} ${indidefaultdevice_SRCS})
+install(TARGETS indidefaultdevice ARCHIVE DESTINATION lib${LIB_POSTFIX})
+
+##############################################
+######## INDI Client Library #########
+##############################################
+add_library(indiclient STATIC ${indibase_SRCS})
+target_link_libraries(indiclient indi)
+install(TARGETS indiclient ARCHIVE DESTINATION lib${LIB_POSTFIX})
 
 #####################################
 ########## TELESCOPE GROUP ##########
@@ -587,13 +609,12 @@ endif (NOVA_FOUND)
 ########### Tutorial four ##############
 set(tutorialfour_SRCS
         ${indimain_SRCS}
-        ${indibase_SRCS}
         ${CMAKE_SOURCE_DIR}/examples/tutorial_four.cpp
    )
 
 add_executable(tutorial_four ${tutorialfour_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
 
-target_link_libraries(tutorial_four m z pthread)
+target_link_libraries(tutorial_four indidefaultdevice indiclient m z pthread)
 
 if (NOVA_FOUND)
   target_link_libraries(tutorial_four ${NOVA_LIBRARIES})
@@ -632,8 +653,9 @@ endif (NOVA_FOUND)
 
 install( FILES drivers.xml DESTINATION ${DATA_INSTALL_DIR})
 
-install( FILES indiapi.h indidevapi.h base64.h eventloop.h ${CMAKE_SOURCE_DIR}/libs/lilxml.h ${CMAKE_SOURCE_DIR}/libs/indibase/basedevice.h
- ${CMAKE_SOURCE_DIR}/libs/indibase/baseclient.h ${CMAKE_SOURCE_DIR}/libs/indicom.h DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
+install( FILES indiapi.h indidevapi.h base64.h eventloop.h ${CMAKE_SOURCE_DIR}/libs/lilxml.h ${CMAKE_SOURCE_DIR}/libs/indibase/indibase.h
+${CMAKE_SOURCE_DIR}/libs/indibase/basedevice.h  ${CMAKE_SOURCE_DIR}/libs/indibase/baseclient.h ${CMAKE_SOURCE_DIR}/libs/indicom.h
+ DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libindi.pc.cmake ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc DESTINATION ${PKGCONFIG_INSTALL_PREFIX})

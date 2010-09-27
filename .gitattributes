@@ -476,6 +476,8 @@ libindi/fq.c -text
 libindi/fq.h -text
 libindi/indiapi.h -text
 libindi/indidevapi.h -text
+libindi/indidriver.c -text
+libindi/indidriver.h -text
 libindi/indidrivermain.c -text
 libindi/indiserver.c -text
 libindi/libindi.pc.cmake -text
@@ -483,6 +485,8 @@ libindi/libs/indibase/baseclient.cpp -text
 libindi/libs/indibase/baseclient.h -text
 libindi/libs/indibase/basedevice.cpp -text
 libindi/libs/indibase/basedevice.h -text
+libindi/libs/indibase/defaultdevice.cpp -text
+libindi/libs/indibase/defaultdevice.h -text
 libindi/libs/indibase/indibase.h -text
 libindi/libs/indicom.c -text
 libindi/libs/indicom.h -text

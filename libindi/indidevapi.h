@@ -753,14 +753,6 @@ extern const char *pstateStr(IPState s);
 extern const char *sstateStr(ISState s);
 extern const char *ruleStr(ISRule r);
 extern const char *permStr(IPerm p);
-extern int readConfig(const char *filename, const char *dev, char errmsg[]);
-extern void IUSaveDefaultConfig(const char *source_config, const char *dest_config, const char *dev);
-extern FILE * IUGetConfigFP(const char *filename, const char *dev, char errmsg[]);
-extern void IUSaveConfigTag(FILE *fp, int ctag);
-extern void IUSaveConfigNumber (FILE *fp, const INumberVectorProperty *nvp);
-extern void IUSaveConfigText (FILE *fp, const ITextVectorProperty *tvp);
-extern void IUSaveConfigSwitch (FILE *fp, const ISwitchVectorProperty *svp);
-extern void IUSaveConfigBLOB (FILE *fp, const IBLOBVectorProperty *bvp);
 
 
 #ifdef __cplusplus
