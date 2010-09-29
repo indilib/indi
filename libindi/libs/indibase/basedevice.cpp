@@ -4,11 +4,13 @@
 #include <zlib.h>
 
 #include "basedevice.h"
+#include "baseclient.h"
 #include "indicom.h"
 #include "base64.h"
 
-INDI::BaseDevice::BaseDevice()
+INDI::BaseDevice::BaseDevice(INDI::BaseClient *cManager)
 {
+    clientManager = cManager;
     lp = newLilXML();
 
 }
@@ -557,6 +559,8 @@ else if (!strcmp (rtag, "defBLOBVector"))
 
             if (na)
             {
+                strncpy(bp[n].name, valuXMLAtt(na), MAXINDINAME);
+
                 na = findXMLAtt (ep, "label");
                 if (na)
                     strncpy(bp[n].label, valuXMLAtt(na),MAXINDILABEL);
@@ -566,6 +570,7 @@ else if (!strcmp (rtag, "defBLOBVector"))
                     strncpy(bp[n].label, valuXMLAtt(na),MAXINDIBLOBFMT);
 
                 // Initialize everything to zero
+
                 bp[n].blob    = NULL;
                 bp[n].size    = 0;
                 bp[n].bloblen = 0;
@@ -789,7 +794,7 @@ int INDI::BaseDevice::setValue (XMLEle *root, char * errmsg)
         return setBLOB(bvp, root, errmsg);
     }
 
-    return (0);
+    return -1;
 }
 
 /* Set BLOB vector. Process incoming data stream
@@ -803,10 +808,8 @@ int INDI::BaseDevice::setBLOB(IBLOBVectorProperty *bvp, XMLEle * root, char * er
 
     for (ep = nextXMLEle(root,1); ep; ep = nextXMLEle(root,0))
     {
-
         if (strcmp(tagXMLEle(ep), "oneBLOB") == 0)
         {
-
             blobEL = IUFindBLOB(bvp, findXMLAttValu (ep, "name"));
 
             if (blobEL)
@@ -820,7 +823,7 @@ int INDI::BaseDevice::setBLOB(IBLOBVectorProperty *bvp, XMLEle * root, char * er
         }
     }
 
-    return (0);
+    return -1;
 }
 
 /* Process incoming data stream
@@ -903,7 +906,10 @@ int INDI::BaseDevice::processBLOB(IBLOB *blobEL, XMLEle *ep, char * errmsg)
         memcpy(dataBuffer, blobBuffer, dataSize);
     }
 
-    BLOBReceived(dataBuffer, dataSize, dataFormat);
+    if (clientManager)
+        clientManager->newBLOB(deviceID, dataBuffer, dataSize, dataFormat);
+
+    newBLOB(dataBuffer, dataSize, dataFormat);
 
     free (blobBuffer);
     return (0);

@@ -36,8 +36,14 @@ public:
     INDI::BaseDevice * getDevice(const char * deviceName);
     const vector<INDI::BaseDevice *> & getDevices() const { return cDevices; }
 
+    void setBLOBMode(BLOBHandling blobH);
+
     // Update
     static void * listenHelper(void *context);
+
+    // Notifications
+    virtual void newDevice() {}
+    virtual void newBLOB(const char *deviceName, unsigned char *buffer, unsigned long size, const char *format) {}
 
 protected:
 
@@ -51,9 +57,6 @@ protected:
     INDI::BaseDevice * findDev( const char * devName, char * errmsg);
     INDI::BaseDevice * addDevice (XMLEle *dep, char * errmsg);
     INDI::BaseDevice * findDev (XMLEle *root, int create, char * errmsg);
-
-    // Notifications
-    virtual void newDevice() {}
 
     // Process messages
     int messageCmd (XMLEle *root, char * errmsg);

@@ -90,7 +90,9 @@ void INDI::BaseClient::disconnect()
 {
     char errmsg[MAXRBUF];
     removeDevice(NULL, errmsg);
-    delLilXML(lillp);
+    if (lillp)
+        delLilXML(lillp);
+    lillp = NULL;
     pthread_cancel(listen_thread);
     close(sockfd);
     fclose(svrwfp);
@@ -114,7 +116,7 @@ void * INDI::BaseClient::listenHelper(void *context)
 
 void INDI::BaseClient::listenINDI()
 {
-    char msg[1024];
+    char msg[MAXRBUF];
     char buffer[MAXRBUF];
     int n=0, err_code=0;
 
@@ -291,7 +293,7 @@ INDI::BaseDevice * INDI::BaseClient::addDevice (XMLEle *dep, char * errmsg)
 
     device_name = valuXMLAtt(ap);
 
-    dp = new INDI::BaseDevice();
+    dp = new INDI::BaseDevice(this);
     dp->setDeviceName(device_name);
 
     cDevices.push_back(dp);
@@ -460,6 +462,24 @@ void INDI::BaseClient::finishBlob()
     fprintf(svrwfp, "</newBLOBVector>\n");
     fflush(svrwfp);
 
+}
+
+void INDI::BaseClient::setBLOBMode(BLOBHandling blobH)
+{
+    switch (blobH)
+    {
+    case B_NEVER:
+        fprintf(svrwfp, "<enableBLOB>Never</enableBLOB>\n");
+        break;
+    case B_ALSO:
+        fprintf(svrwfp, "<enableBLOB>Also</enableBLOB>\n");
+        break;
+    case B_ONLY:
+        fprintf(svrwfp, "<enableBLOB>Only</enableBLOB>\n");
+        break;
+    }
+
+    fflush(svrwfp);
 }
 
 

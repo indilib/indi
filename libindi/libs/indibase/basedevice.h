@@ -13,7 +13,7 @@
 class INDI::BaseDevice
 {
 public:
-    BaseDevice();
+    BaseDevice(INDI::BaseClient *cManager=NULL);
     virtual ~BaseDevice();
 
     enum { INDI_DEVICE_NOT_FOUND=-1, INDI_PROPERTY_INVALID=-2, INDI_PROPERTY_DUPLICATED = -3, INDI_DISPATCH_ERROR=-4 };
@@ -53,7 +53,7 @@ protected:
     // handle SetXXX commands from client
     int setValue (XMLEle *root, char * errmsg);
     int processBLOB(IBLOB *blobEL, XMLEle *ep, char * errmsg);
-    void virtual BLOBReceived(unsigned char *buffer, unsigned long size, const char *format) {}
+    virtual void newBLOB(unsigned char *buffer, unsigned long size, const char *format) {}
     int setBLOB(IBLOBVectorProperty *pp, XMLEle * root, char * errmsg);
 
     char deviceID[MAXINDINAME];
@@ -79,6 +79,8 @@ private:
     std::vector<pOrder> pAll;
 
     std::string messageQueue;
+
+    INDI::BaseClient *clientManager;
 
     friend class INDI::BaseClient;
     friend class INDI::DefaultDevice;
