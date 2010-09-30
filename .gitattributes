@@ -18,6 +18,10 @@
 3rdparty/indi-apogee/debian/rules -text
 3rdparty/indi-apogee/indi_apogee.xml -text
 3rdparty/indi-apogee/indialta.c -text
+3rdparty/indi-maxdomeii/maxdomeii.cpp -text
+3rdparty/indi-maxdomeii/maxdomeii.h -text
+3rdparty/indi-maxdomeii/maxdomeiidriver.c -text
+3rdparty/indi-maxdomeii/maxdomeiidriver.h -text
 3rdparty/indi-sbig/.cproject -text
 3rdparty/indi-sbig/.project -text
 3rdparty/indi-sbig/AUTHORS -text
