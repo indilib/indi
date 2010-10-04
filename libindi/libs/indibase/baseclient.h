@@ -43,7 +43,12 @@ public:
 
     // Notifications
     virtual void newDevice() {}
-    virtual void newBLOB(const char *deviceName, unsigned char *buffer, unsigned long size, const char *format) {}
+    virtual void newBLOB(IBLOB *bp) {}
+    virtual void newSwitch(ISwitchVectorProperty *svp) {}
+    virtual void newNumber(INumberVectorProperty *nvp) {}
+    virtual void newText(ITextVectorProperty *tvp) {}
+    virtual void newLight(ILightVectorProperty *lvp) {}
+
 
 protected:
 

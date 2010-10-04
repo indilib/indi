@@ -95,8 +95,12 @@ void INDI::BaseClient::disconnect()
     lillp = NULL;
     pthread_cancel(listen_thread);
     close(sockfd);
-    fclose(svrwfp);
-    fclose(svrrfp);
+    if (svrwfp)
+        fclose(svrwfp);
+    svrwfp = NULL;
+    if (svrrfp)
+        fclose(svrrfp);
+    svrrfp = NULL;
 }
 
 INDI::BaseDevice * INDI::BaseClient::getDevice(const char * deviceName)

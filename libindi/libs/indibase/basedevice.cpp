@@ -714,6 +714,9 @@ int INDI::BaseDevice::setValue (XMLEle *root, char * errmsg)
           if (findXMLAtt(ep, "max"))
               np->max = atof(findXMLAttValu(ep, "max"));
        }
+
+       if (clientManager)
+           clientManager->newNumber(nvp);
     }
     else if (!strcmp(rtag, "setTextVector"))
     {
@@ -735,6 +738,9 @@ int INDI::BaseDevice::setValue (XMLEle *root, char * errmsg)
 
            IUSaveText(tp, pcdataXMLEle(ep));
        }
+
+       if (clientManager)
+           clientManager->newText(tvp);
     }
     else if (!strcmp(rtag, "setSwitchVector"))
     {
@@ -758,6 +764,9 @@ int INDI::BaseDevice::setValue (XMLEle *root, char * errmsg)
            if (crackISState(pcdataXMLEle(ep), &swState) == 0)
                sp->s = swState;
         }
+
+       if (clientManager)
+           clientManager->newSwitch(svp);
     }
     else if (!strcmp(rtag, "setLightVector"))
     {
@@ -778,6 +787,10 @@ int INDI::BaseDevice::setValue (XMLEle *root, char * errmsg)
            if (crackIPState(pcdataXMLEle(ep), &lState) == 0)
                lp->s = lState;
         }
+
+       if (clientManager)
+           clientManager->newLight(lvp);
+
     }
     else if (!strcmp(rtag, "setBLOBVector"))
     {
@@ -856,6 +869,8 @@ int INDI::BaseDevice::processBLOB(IBLOB *blobEL, XMLEle *ep, char * errmsg)
 
     dataFormat = valuXMLAtt(ap);
 
+    strncpy(blobEL->format, dataFormat, MAXINDIFORMAT);
+
     baseBuffer = (char *) malloc ( (3*pcdatalenXMLEle(ep)/4) * sizeof (char));
 
     if (baseBuffer == NULL)
@@ -882,9 +897,9 @@ int INDI::BaseDevice::processBLOB(IBLOB *blobEL, XMLEle *ep, char * errmsg)
 
     if (strstr(dataFormat, ".z"))
     {
-
         dataFormat[strlen(dataFormat)-2] = '\0';
         dataBuffer = (unsigned char *) realloc (dataBuffer,  (dataSize * sizeof(unsigned char)));
+
         if (baseBuffer == NULL)
         {
                 free (blobBuffer);
@@ -899,17 +914,21 @@ int INDI::BaseDevice::processBLOB(IBLOB *blobEL, XMLEle *ep, char * errmsg)
             free (blobBuffer);
             return -1;
         }
+        blobEL->size = dataSize;
     }
     else
     {
         dataBuffer = (unsigned char *) realloc (dataBuffer,  (dataSize * sizeof(unsigned char)));
         memcpy(dataBuffer, blobBuffer, dataSize);
+        blobEL->size = dataSize;
     }
 
-    if (clientManager)
-        clientManager->newBLOB(deviceID, dataBuffer, dataSize, dataFormat);
+    blobEL->blob = dataBuffer;
 
-    newBLOB(dataBuffer, dataSize, dataFormat);
+    if (clientManager)
+        clientManager->newBLOB(blobEL);
+
+   // newBLOB(dataBuffer, dataSize, dataFormat);
 
     free (blobBuffer);
     return (0);
