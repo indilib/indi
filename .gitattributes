@@ -23,3 +23,9 @@ indi-knro/sounds/calibration_error.ogg -text
 indi-knro/sounds/slew_busy.ogg -text
 indi-knro/sounds/slew_complete.ogg -text
 indi-knro/sounds/slew_error.ogg -text
+knroSpecControl/knroSpecControl.pro -text
+knroSpecControl/knroSpecControl.pro.user -text
+knroSpecControl/main.cpp -text
+knroSpecControl/mainwindow.cpp -text
+knroSpecControl/mainwindow.h -text
+knroSpecControl/mainwindow.ui -text
