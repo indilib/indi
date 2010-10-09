@@ -57,7 +57,7 @@ const int AZ_MAX_COUNT = 400000;
 const int AZ_MIN_COUNT = 300000;
 
 const double ALT_TPD = 225.9;
-const int ALT_HOME_TICKS = 256282;
+const int ALT_HOME_TICKS = 260041;
 const double ALT_HOME_DEGREES = 89.4032;
 
 const int ALT_MAX_COUNT = 260000;
