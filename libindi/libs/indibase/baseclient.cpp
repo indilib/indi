@@ -13,6 +13,8 @@
 
 #include <errno.h>
 
+#define MAXINDIBUF 64
+
 INDI::BaseClient::BaseClient()
 {
     cServer = "localhost";
@@ -121,7 +123,7 @@ void * INDI::BaseClient::listenHelper(void *context)
 void INDI::BaseClient::listenINDI()
 {
     char msg[MAXRBUF];
-    char buffer[MAXRBUF];
+    char buffer[MAXINDIBUF];
     int n=0, err_code=0;
 
     if (cDeviceNames.empty())
@@ -140,7 +142,7 @@ void INDI::BaseClient::listenINDI()
     /* read from server, exit if find all requested properties */
     while (1)
     {
-        n = fread(buffer, 1, MAXRBUF, svrrfp);
+        n = fread(buffer, 1, MAXINDIBUF, svrrfp);
 
         if (n ==0)
         {
@@ -203,7 +205,7 @@ int INDI::BaseClient::dispatchCommand(XMLEle *root, char * errmsg)
              !strcmp (tagXMLEle(root), "setSwitchVector") ||
              !strcmp (tagXMLEle(root), "setLightVector") ||
              !strcmp (tagXMLEle(root), "setBLOBVector"))
-        return dp->setValue(root, errmsg);
+            return dp->setValue(root, errmsg);
 
     return INDI_DISPATCH_ERROR;
 }

@@ -692,7 +692,10 @@ int INDI::BaseDevice::setValue (XMLEle *root, char * errmsg)
     {
         INumberVectorProperty *nvp = getNumber(name);
         if (nvp == NULL)
+        {
+            snprintf(errmsg, MAXRBUF, "INDI: Could not find property %s in %s", name, deviceID);
             return -1;
+        }
 
         if (stateSet)
             nvp->s = state;
