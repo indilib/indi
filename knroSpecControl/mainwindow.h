@@ -8,6 +8,7 @@
 
 class QProcess;
 class QTemporaryFile;
+class QDataStream;
 
 namespace Ui {
     class MainWindow;
@@ -29,6 +30,7 @@ private:
     Ui::MainWindow *ui;
     QProcess *kstProcess;
     QTemporaryFile *specTempFile;
+    QDataStream *out;
     QString currentSMode;
     bool BLOBDirty;
 

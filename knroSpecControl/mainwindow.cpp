@@ -1,12 +1,18 @@
+#include <cstdlib>
+#include <unistd.h>
+
 #include <QDebug>
 #include <QProcess>
 #include <QTime>
 #include <QTemporaryFile>
+#include <QDataStream>
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
 #include <libindi/basedevice.h>
+
+#define MAX_FILENAME_LEN    1024
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -20,6 +26,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     specTempFile = new QTemporaryFile();
 
+    out = new QDataStream();
+
     QObject::connect(ui->connectB, SIGNAL(clicked()), this, SLOT(connectServer()));
     QObject::connect(ui->disconnectB, SIGNAL(clicked()), this, SLOT(disconnectServer()));
     QObject::connect(this, SIGNAL(modeUpdated(int)), this, SLOT(updateModeButtons(int)));
@@ -28,9 +36,9 @@ MainWindow::MainWindow(QWidget *parent) :
 
 MainWindow::~MainWindow()
 {
-    delete ui;
-    delete specTempFile;
+    kstProcess->kill();
     delete kstProcess;
+    delete specTempFile;
 }
 
 void MainWindow::connectServer()
@@ -46,7 +54,8 @@ void MainWindow::connectServer()
     ui->disconnectB->setFont(df);
 
 
-    INDI::BaseClient::connect();
+    if (INDI::BaseClient::connect() == false)
+        ui->msgQueue->append(QString("KNRO: connection to server on port 7624 is refused..."));
 
 }
 
@@ -86,21 +95,33 @@ void MainWindow::newBLOB(IBLOB *bp)
 
   //qDebug() << "elapsed time is " << bTime.elapsed() << " ms with format " << bp->format << endl;
 
+
     if (currentSMode != QString(bp->format) || BLOBDirty)
     {
         BLOBDirty = false;
         currentSMode = QString(bp->format);
-        specTempFile->close();
-        QFile::remove(specTempFile->fileName());
+        //specTempFile->close();
+        //if (!specTempFile->fileName().isEmpty())
+          //  QFile::remove(specTempFile->fileName());
+
+        delete (specTempFile);
+
+        specTempFile = new QTemporaryFile();
         kstProcess->kill();
         kstProcess->waitForFinished();
 
-        specTempFile->setFileTemplate(QString("/tmp/XXXXXX%1").arg(bp->format));
+       qDebug() << "Current format mode is: " << currentSMode << endl;
+
+        specTempFile->setFileTemplate(QString("/tmp/XXXXXX%1").arg(currentSMode));
+
+        //specTempFile->setFileName(file_template);
         if (specTempFile->open() == false)
         {
             qDebug() << "Failed to open temp file!" << endl;
             return;
         }
+
+        out->setDevice(specTempFile);
 
         qDebug() << "We create a new temp file " << specTempFile->fileName() << endl;
 
@@ -113,20 +134,21 @@ void MainWindow::newBLOB(IBLOB *bp)
 
     }
 
-   QDataStream out(specTempFile);
+    //processEvents();
+
     for (nr=0; nr < bp->size; nr += n)
-        n = out.writeRawData( (const char *) (bp->blob+nr), bp->size - nr);
+        n = out->writeRawData( static_cast<const char *>(bp->blob) + nr, bp->size - nr);
 
-    out.writeRawData( (const char *) "\n" , 1);
+    out->writeRawData( (const char *) "\n" , 1);
     specTempFile->flush();
-
 
 
     if (kstProcess->state() == QProcess::NotRunning)
     {
+       // qDebug() << "in process not running yet..." << endl;
         QStringList argList;
 
-        if (QString(bp->format) == ".ascii_cont")
+        if (currentSMode == ".ascii_cont")
         {
             kstProcess->start(QString("kst -x 1 -y 2 %1").arg(specTempFile->fileName()));
             ui->msgQueue->append(QString("KNRO: Starting continuum channel monitor..."));
