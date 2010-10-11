@@ -890,8 +890,8 @@ bool SpectraCyber::dispatch_command(SpectrometerCommand command_type)
 		command[2] = '0';
 		command[3] = '0';
 		final_value = get_on_switch(&ContGainSP);
-		sprintf(hex, "%x", final_value);
-		command[4] = hex[0];
+                sprintf(hex, "%d", final_value);
+                command[4] = hex[0];
 		break;
 
        // Continuum Integration
@@ -900,8 +900,8 @@ bool SpectraCyber::dispatch_command(SpectrometerCommand command_type)
 		command[2] = '0';
 		command[3] = '0';
 		final_value = get_on_switch(&ContIntegrationSP);
-		sprintf(hex, "%x", final_value);
-		command[4] = hex[0];
+                sprintf(hex, "%d", final_value);
+                command[4] = hex[0];
 		break;
 
        // Spectral Gain
@@ -910,8 +910,9 @@ bool SpectraCyber::dispatch_command(SpectrometerCommand command_type)
 		command[2] = '0';
 		command[3] = '0';
 		final_value = get_on_switch(&SpecGainSP);
-		sprintf(hex, "%x", final_value);
-		command[4] = hex[0];
+                sprintf(hex, "%d", final_value);
+                command[4] = hex[0];
+
 		break;
 
 
@@ -921,8 +922,8 @@ bool SpectraCyber::dispatch_command(SpectrometerCommand command_type)
 		command[2] = '0';
 		command[3] = '0';
 		final_value = get_on_switch(&SpecIntegrationSP);
-		sprintf(hex, "%x", final_value);
-		command[4] = hex[0];
+                sprintf(hex, "%d", final_value);
+                command[4] = hex[0];
 		break;
 
 	// Continuum DC Offset
@@ -953,10 +954,14 @@ bool SpectraCyber::dispatch_command(SpectrometerCommand command_type)
                // To compute the desired received freq, we take the diff (target - min) / 0.005
                // 0.005 Mhz = 5 Khz
                // Then we add the diff to 050h (80 in decimal) to get the final freq.
-               // e.g. To set 50.00 Mhz, diff = 50 - 46.4 = 4.4 / 0.005 = 880 = 370h
-               //      Freq = 370h + 050h (or 800 + 80) = 3c0h = 960
+               // e.g. To set 50.00 Mhz, diff = 50 - 46.4 = 3.6 / 0.005 = 800 = 320h
+               //      Freq = 320h + 050h (or 800 + 80) = 370h = 880 decimal
+
                final_value = (int) ((FreqN[0].value - FreqN[0].min) / 0.005 + SPECTROMETER_OFFSET) ;
                sprintf(hex, "%03x", final_value);
+               if (debug)
+                   IDLog("Required Freq is: %.3f --- Min Freq is: %.3f --- Spec Offset is: %d -- Final Value (Dec): %d --- Final Value (Hex): %s\n",
+                         FreqN[0].value, FreqN[0].min, SPECTROMETER_OFFSET, final_value, hex);
                command[2] = hex[0];
                command[3] = hex[1];
                command[4] = hex[2];
@@ -968,10 +973,8 @@ bool SpectraCyber::dispatch_command(SpectrometerCommand command_type)
 		command[2] = '0';
 		command[3] = '0';
                 final_value = get_on_switch(&ChannelSP);
-		sprintf(hex, "%x", final_value);
-		command[3] = hex[0];
+                command[4] = (final_value == 0) ? '0' : '1';
 		break;
-		
 		
 	// Bandwidth
 	case BANDWIDTH:
@@ -979,8 +982,8 @@ bool SpectraCyber::dispatch_command(SpectrometerCommand command_type)
 		command[2] = '0';
 		command[3] = '0';
 		final_value = get_on_switch(&BandwidthSP);
-		sprintf(hex, "%x", final_value);
-		command[3] = hex[0];
+                //sprintf(hex, "%x", final_value);
+                command[4] = (final_value == 0) ? '0' : '1';
 		break;
 
        // Reset
@@ -1043,8 +1046,6 @@ bool SpectraCyber::update_freq(double nFreq)
     //IDSetNumber(&FreqNP, "%.3f Mhz", FreqN[0].value);
     return true;
 }
-
-
 
 bool SpectraCyber::reset()
 {
