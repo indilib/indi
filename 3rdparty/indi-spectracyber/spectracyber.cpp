@@ -62,6 +62,9 @@ const double SPECTROMETER_RF_FREQ = 1371.805;
 
 const unsigned int SPECTROMETER_OFFSET = 0x050;
 
+/* 90 Khz Rest Correction */
+const double SPECTROMETER_REST_CORRECTION = 0.090;
+
 const char * contFMT=".ascii_cont";
 const char * specFMT=".ascii_spec";
 
@@ -957,7 +960,7 @@ bool SpectraCyber::dispatch_command(SpectrometerCommand command_type)
                // e.g. To set 50.00 Mhz, diff = 50 - 46.4 = 3.6 / 0.005 = 800 = 320h
                //      Freq = 320h + 050h (or 800 + 80) = 370h = 880 decimal
 
-               final_value = (int) ((FreqN[0].value - FreqN[0].min) / 0.005 + SPECTROMETER_OFFSET) ;
+               final_value = (int) ((FreqN[0].value + SPECTROMETER_REST_CORRECTION - FreqN[0].min) / 0.005 + SPECTROMETER_OFFSET);
                sprintf(hex, "%03x", final_value);
                if (debug)
                    IDLog("Required Freq is: %.3f --- Min Freq is: %.3f --- Spec Offset is: %d -- Final Value (Dec): %d --- Final Value (Hex): %s\n",
@@ -1043,6 +1046,9 @@ bool SpectraCyber::update_freq(double nFreq)
         FreqNP.s = IPS_OK;
 
     IDSetNumber(&FreqNP, NULL);
+
+    // Delay 0.5s for INT
+    usleep(500000);
     //IDSetNumber(&FreqNP, "%.3f Mhz", FreqN[0].value);
     return true;
 }
