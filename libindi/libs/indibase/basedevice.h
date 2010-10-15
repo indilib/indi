@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <map>
+#include <string>
 
 #include "indiapi.h"
 #include "indidevapi.h"
@@ -13,7 +14,7 @@
 class INDI::BaseDevice
 {
 public:
-    BaseDevice(INDI::BaseClient *cManager=NULL);
+    BaseDevice();
     virtual ~BaseDevice();
 
     enum { INDI_DEVICE_NOT_FOUND=-1, INDI_PROPERTY_INVALID=-2, INDI_PROPERTY_DUPLICATED = -3, INDI_DISPATCH_ERROR=-4 };
@@ -38,7 +39,10 @@ public:
     const char *deviceName();
 
     void addMessage(const char *msg);
+
     const char *message() { return messageQueue.c_str(); }
+
+    void setMediator(INDI::BaseMediator *med) { mediator = med; }
 
 protected:
 
@@ -60,8 +64,6 @@ protected:
 
 private:
 
-
-
     typedef struct
     {
         pType type;
@@ -80,7 +82,7 @@ private:
 
     std::string messageQueue;
 
-    INDI::BaseClient *clientManager;
+    INDI::BaseMediator *mediator;
 
     friend class INDI::BaseClient;
     friend class INDI::DefaultDevice;

@@ -8,11 +8,10 @@
 #include "indicom.h"
 #include "base64.h"
 
-INDI::BaseDevice::BaseDevice(INDI::BaseClient *cManager)
+INDI::BaseDevice::BaseDevice()
 {
-    clientManager = cManager;
+    mediator = NULL;
     lp = newLilXML();
-
 }
 
 
@@ -288,7 +287,7 @@ int INDI::BaseDevice::buildProp(XMLEle *root, char *errmsg)
     }
 
     if (getProperty(rname, type) != NULL)
-        return 0;
+        return INDI::BaseClient::INDI_PROPERTY_DUPLICATED;
 
     if (crackIPerm(findXMLAttValu(root, "perm"), &perm) < 0)
     {
@@ -662,7 +661,10 @@ int INDI::BaseDevice::setValue (XMLEle *root, char * errmsg)
 
     ap = findXMLAtt (root, "name");
     if (!ap)
+    {
+        snprintf(errmsg, MAXRBUF, "INDI: <%s> unable to find name attribute", tagXMLEle(root));
         return (-1);
+    }
 
     name = valuXMLAtt(ap);
 
@@ -718,8 +720,10 @@ int INDI::BaseDevice::setValue (XMLEle *root, char * errmsg)
               np->max = atof(findXMLAttValu(ep, "max"));
        }
 
-       if (clientManager)
-           clientManager->newNumber(nvp);
+       if (mediator)
+           mediator->newNumber(nvp);
+
+       return 0;
     }
     else if (!strcmp(rtag, "setTextVector"))
     {
@@ -742,8 +746,10 @@ int INDI::BaseDevice::setValue (XMLEle *root, char * errmsg)
            IUSaveText(tp, pcdataXMLEle(ep));
        }
 
-       if (clientManager)
-           clientManager->newText(tvp);
+       if (mediator)
+           mediator->newText(tvp);
+
+       return 0;
     }
     else if (!strcmp(rtag, "setSwitchVector"))
     {
@@ -768,8 +774,10 @@ int INDI::BaseDevice::setValue (XMLEle *root, char * errmsg)
                sp->s = swState;
         }
 
-       if (clientManager)
-           clientManager->newSwitch(svp);
+       if (mediator)
+           mediator->newSwitch(svp);
+
+       return 0;
     }
     else if (!strcmp(rtag, "setLightVector"))
     {
@@ -791,8 +799,10 @@ int INDI::BaseDevice::setValue (XMLEle *root, char * errmsg)
                lp->s = lState;
         }
 
-       if (clientManager)
-           clientManager->newLight(lvp);
+       if (mediator)
+           mediator->newLight(lvp);
+
+       return 0;
 
     }
     else if (!strcmp(rtag, "setBLOBVector"))
@@ -810,6 +820,7 @@ int INDI::BaseDevice::setValue (XMLEle *root, char * errmsg)
         return setBLOB(bvp, root, errmsg);
     }
 
+    snprintf(errmsg, MAXRBUF, "INDI: <%s> Unable to process tag", tagXMLEle(root));
     return -1;
 }
 
@@ -928,8 +939,8 @@ int INDI::BaseDevice::processBLOB(IBLOB *blobEL, XMLEle *ep, char * errmsg)
 
     blobEL->blob = dataBuffer;
 
-    if (clientManager)
-        clientManager->newBLOB(blobEL);
+    if (mediator)
+        mediator->newBLOB(blobEL);
 
    // newBLOB(dataBuffer, dataSize, dataFormat);
 

@@ -40,8 +40,6 @@ private:
  void init_properties();
  void connect_telescope();
 
- INDI::BaseClient *myClient;
-
 };
 
 #endif

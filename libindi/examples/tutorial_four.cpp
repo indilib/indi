@@ -130,8 +130,6 @@ MyScope::MyScope()
 {
     IDLog("Initilizing from My Scope device...\n");
 
-    myClient = new INDI::BaseClient();
-
     init_properties();
 
  }
@@ -156,8 +154,6 @@ void MyScope::init_properties()
     else
         IDLog("No skeleton file was specified. Set environment variable INDISKEL to the skeleton path and try again.\n");
 
-    myClient->connect();
-
 }
 
 /**************************************************************************************
@@ -175,7 +171,6 @@ void MyScope::ISGetProperties(const char *dev)
       configLoaded = 1;
     }
 
-    myClient->disconnect();
 }
 
 /**************************************************************************************

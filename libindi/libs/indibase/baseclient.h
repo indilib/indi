@@ -15,7 +15,7 @@ class INDIBaseDevice;
 
 using namespace std;
 
-class INDI::BaseClient
+class INDI::BaseClient : public INDI::BaseMediator
 {
 public:
     enum { INDI_DEVICE_NOT_FOUND=-1, INDI_PROPERTY_INVALID=-2, INDI_PROPERTY_DUPLICATED = -3, INDI_DISPATCH_ERROR=-4 };
@@ -23,7 +23,7 @@ public:
     BaseClient();
     virtual ~BaseClient();
 
-    void setServer(string serverAddress, unsigned int port);
+    void setServer(const char * hostname, unsigned int port);
 
     // Add devices to watch.
     void addDevice(const char * deviceName);
@@ -36,19 +36,10 @@ public:
     INDI::BaseDevice * getDevice(const char * deviceName);
     const vector<INDI::BaseDevice *> & getDevices() const { return cDevices; }
 
-    void setBLOBMode(BLOBHandling blobH);
+    void setBLOBMode(BLOBHandling blobH, const char *dev = NULL, const char *prop = NULL);
 
     // Update
     static void * listenHelper(void *context);
-
-    // Notifications
-    virtual void newDevice() {}
-    virtual void newBLOB(IBLOB *bp) {}
-    virtual void newSwitch(ISwitchVectorProperty *svp) {}
-    virtual void newNumber(INumberVectorProperty *nvp) {}
-    virtual void newText(ITextVectorProperty *tvp) {}
-    virtual void newLight(ILightVectorProperty *lvp) {}
-
 
 protected:
 

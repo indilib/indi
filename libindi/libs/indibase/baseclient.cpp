@@ -30,9 +30,9 @@ INDI::BaseClient::~BaseClient()
 
 }
 
-void INDI::BaseClient::setServer(string serverAddress, unsigned int port)
+void INDI::BaseClient::setServer(const char * hostname, unsigned int port)
 {
-    cServer = serverAddress;
+    cServer = hostname;
     cPort   = port;
 
 }
@@ -163,7 +163,7 @@ void INDI::BaseClient::listenINDI()
                      // Silenty ignore property duplication errors
                      if (err_code != INDI_PROPERTY_DUPLICATED)
                      {
-                         //std::cerr << "Dispatch command error: " << msg << endl;
+                         IDLog("Dispatch command error: %s\n", msg);
                          prXMLEle (stderr, root, 0);
                      }
                 }
@@ -241,22 +241,13 @@ int INDI::BaseClient::removeDevice( const char * devName, char * errmsg )
 {
     std::vector<INDI::BaseDevice *>::iterator devicei = cDevices.begin();
 
-    if (devName == NULL)
-    {
-        // FIXME this is not safe, use smart pointers instead.
-        cDevices.erase(cDevices.begin(), cDevices.end());
-        //delete (*devicei);
-        //devicei++;
-        return 0;
-    }
-
     while (devicei != cDevices.end())
     {
-      if (!strcmp(devName, (*devicei)->deviceName()))
+      if (devName == NULL || !strcmp(devName, (*devicei)->deviceName()))
       {
           cDevices.erase(devicei);
-           //delete (*devicei);
-            return 0;
+          delete (*devicei);
+          return 0;
       }
 
       devicei++;
@@ -299,7 +290,8 @@ INDI::BaseDevice * INDI::BaseClient::addDevice (XMLEle *dep, char * errmsg)
 
     device_name = valuXMLAtt(ap);
 
-    dp = new INDI::BaseDevice(this);
+    dp = new INDI::BaseDevice();
+    dp->setMediator(this);
     dp->setDeviceName(device_name);
 
     cDevices.push_back(dp);
@@ -470,18 +462,31 @@ void INDI::BaseClient::finishBlob()
 
 }
 
-void INDI::BaseClient::setBLOBMode(BLOBHandling blobH)
+void INDI::BaseClient::setBLOBMode(BLOBHandling blobH, const char *dev, const char *prop)
 {
+    char blobOpenTag[64];
+
+    if (dev)
+    {
+        if (prop)
+            snprintf(blobOpenTag, 64, "<enableBLOB device='%s' name='%s'>", dev, prop);
+        else
+            snprintf(blobOpenTag, 64, "<enableBLOB device='%s'>", dev);
+    }
+    else
+        snprintf(blobOpenTag, 64, "<enableBLOB>", dev, prop);
+
+
     switch (blobH)
     {
     case B_NEVER:
-        fprintf(svrwfp, "<enableBLOB>Never</enableBLOB>\n");
+        fprintf(svrwfp, "%sNever</enableBLOB>\n", blobOpenTag);
         break;
     case B_ALSO:
-        fprintf(svrwfp, "<enableBLOB>Also</enableBLOB>\n");
+        fprintf(svrwfp, "%sAlso</enableBLOB>\n", blobOpenTag);
         break;
     case B_ONLY:
-        fprintf(svrwfp, "<enableBLOB>Only</enableBLOB>\n");
+        fprintf(svrwfp, "%sOnly</enableBLOB>\n", blobOpenTag);
         break;
     }
 
