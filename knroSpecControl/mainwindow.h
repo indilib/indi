@@ -26,6 +26,10 @@ protected:
     virtual void newDevice();
     virtual void newBLOB(IBLOB *bp);
     virtual void newSwitch(ISwitchVectorProperty *svp);
+    virtual void newNumber(INumberVectorProperty *nvp) {}
+    virtual void newText(ITextVectorProperty *tvp) {}
+    virtual void newLight(ILightVectorProperty *lvp) {}
+
 private:
     Ui::MainWindow *ui;
     QProcess *kstProcess;

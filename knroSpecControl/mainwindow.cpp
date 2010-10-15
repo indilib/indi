@@ -44,6 +44,14 @@ MainWindow::~MainWindow()
 void MainWindow::connectServer()
 {
     qDebug() << "Connecting ...." << endl;
+    bool portOK=false;
+    int serverPort = ui->serverPort->text().toInt(&portOK);
+
+    if (portOK == false)
+    {
+        ui->msgQueue->append(QString("KNRO: %1 is an invalid port, please try again...").arg(ui->serverPort->text()));
+        return;
+    }
 
     QFont cf = ui->connectB->font();
     cf.setBold(true);
@@ -53,9 +61,12 @@ void MainWindow::connectServer()
     df.setBold(false);
     ui->disconnectB->setFont(df);
 
+    // in KNRO Lab, we preselected port 8000 for Spectracyber driver. In the XML file under /usr/share/indi, the port is also specified.
+    // User may still change it, but 8000 is default
+    setServer("localhost", serverPort);
 
     if (INDI::BaseClient::connect() == false)
-        ui->msgQueue->append(QString("KNRO: connection to server on port 7624 is refused..."));
+        ui->msgQueue->append(QString("KNRO: connection to server on port %1 is refused...").arg(ui->serverPort->text()));
 
 }
 
@@ -73,6 +84,10 @@ void MainWindow::disconnectServer()
 
     INDI::BaseClient::disconnect();
 
+    BLOBDirty = true;
+
+    ui->msgQueue->append(QString("Disconnecting..."));
+
 }
 
 void MainWindow::newDevice()
@@ -80,7 +95,7 @@ void MainWindow::newDevice()
     std::vector<INDI::BaseDevice *>::const_iterator devicei;
 
     for (devicei = getDevices().begin(); devicei != getDevices().end(); devicei++)
-            ui->msgQueue->append(QString("We received device %1.").arg((*devicei)->deviceName()));
+            ui->msgQueue->append(QString("Connection to %1 is successful.").arg((*devicei)->deviceName()));
 
     setBLOBMode(B_ALSO);
 
@@ -88,21 +103,12 @@ void MainWindow::newDevice()
 
 void MainWindow::newBLOB(IBLOB *bp)
 {
-   // IDLog("We recieved BLOB for device %s and size %ld and format %s\n", deviceName, size, format);
    int nr=0,n=0;
-
-  //static QTime bTime;
-
-  //qDebug() << "elapsed time is " << bTime.elapsed() << " ms with format " << bp->format << endl;
-
 
     if (currentSMode != QString(bp->format) || BLOBDirty)
     {
         BLOBDirty = false;
         currentSMode = QString(bp->format);
-        //specTempFile->close();
-        //if (!specTempFile->fileName().isEmpty())
-          //  QFile::remove(specTempFile->fileName());
 
         delete (specTempFile);
 
@@ -110,11 +116,8 @@ void MainWindow::newBLOB(IBLOB *bp)
         kstProcess->kill();
         kstProcess->waitForFinished();
 
-       qDebug() << "Current format mode is: " << currentSMode << endl;
-
         specTempFile->setFileTemplate(QString("/tmp/XXXXXX%1").arg(currentSMode));
 
-        //specTempFile->setFileName(file_template);
         if (specTempFile->open() == false)
         {
             qDebug() << "Failed to open temp file!" << endl;
@@ -122,19 +125,7 @@ void MainWindow::newBLOB(IBLOB *bp)
         }
 
         out->setDevice(specTempFile);
-
-        qDebug() << "We create a new temp file " << specTempFile->fileName() << endl;
-
-        if (kstProcess->state() == QProcess::NotRunning)
-            qDebug() << "kst process is now NOT running" << endl;
-        else if (kstProcess->state() == QProcess::Starting)
-            qDebug() << "kst process is now starting" << endl;
-        else if (kstProcess->state() == QProcess::Running)
-            qDebug() << "kst process is now running..." << endl;
-
     }
-
-    //processEvents();
 
     for (nr=0; nr < bp->size; nr += n)
         n = out->writeRawData( static_cast<const char *>(bp->blob) + nr, bp->size - nr);
@@ -145,7 +136,6 @@ void MainWindow::newBLOB(IBLOB *bp)
 
     if (kstProcess->state() == QProcess::NotRunning)
     {
-       // qDebug() << "in process not running yet..." << endl;
         QStringList argList;
 
         if (currentSMode == ".ascii_cont")
@@ -165,8 +155,6 @@ void MainWindow::newBLOB(IBLOB *bp)
         kstProcess->waitForStarted();
 
     }
-
-    //bTime.restart();
 }
 
 void MainWindow::updateModeButtons(int specMode)
