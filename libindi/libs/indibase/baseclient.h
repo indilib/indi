@@ -9,8 +9,6 @@
 #include "indidevapi.h"
 #include "indibase.h"
 
-class INDIBaseDevice;
-
 #define MAXRBUF 2048
 
 using namespace std;
@@ -32,9 +30,9 @@ public:
     bool connect();
     void disconnect();
 
-    // Return instance of BaseDevice
-    INDI::BaseDevice * getDevice(const char * deviceName);
-    const vector<INDI::BaseDevice *> & getDevices() const { return cDevices; }
+    // Return instance of DefaultDevice
+    INDI::DefaultDevice * getDevice(const char * deviceName);
+    const vector<INDI::DefaultDevice *> & getDevices() const { return cDevices; }
 
     void setBLOBMode(BLOBHandling blobH, const char *dev = NULL, const char *prop = NULL);
 
@@ -50,14 +48,14 @@ protected:
     int delPropertyCmd (XMLEle *root, char * errmsg);
 
     // Process devices
-    INDI::BaseDevice * findDev( const char * devName, char * errmsg);
-    INDI::BaseDevice * addDevice (XMLEle *dep, char * errmsg);
-    INDI::BaseDevice * findDev (XMLEle *root, int create, char * errmsg);
+    INDI::DefaultDevice * findDev( const char * devName, char * errmsg);
+    INDI::DefaultDevice * addDevice (XMLEle *dep, char * errmsg);
+    INDI::DefaultDevice * findDev (XMLEle *root, int create, char * errmsg);
 
     // Process messages
     int messageCmd (XMLEle *root, char * errmsg);
-    void checkMsg (XMLEle *root, INDI::BaseDevice *dp);
-    void doMsg (XMLEle *msg, INDI::BaseDevice *dp);
+    void checkMsg (XMLEle *root, INDI::DefaultDevice *dp);
+    void doMsg (XMLEle *msg, INDI::DefaultDevice *dp);
 
     // Send newXXX to driver
     void sendNewText (ITextVectorProperty *pp);
@@ -75,7 +73,7 @@ private:
     // Thread for listenINDI()
     pthread_t listen_thread;
 
-    vector<INDI::BaseDevice *> cDevices;
+    vector<INDI::DefaultDevice *> cDevices;
     vector<string> cDeviceNames;
 
     string cServer;

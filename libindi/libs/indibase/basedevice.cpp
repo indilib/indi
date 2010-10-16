@@ -100,8 +100,6 @@ IBLOBVectorProperty * INDI::BaseDevice::getBLOB(const char *name)
     return NULL;
 }
 
-void INDI::BaseDevice::ISGetProperties (const char *dev) {}
-
 void * INDI::BaseDevice::getProperty(const char *name, pType & type)
 {
     std::vector<pOrder>::const_iterator orderi;
@@ -251,7 +249,7 @@ void INDI::BaseDevice::buildSkeleton(const char *filename)
         return;
     }
 
-   // prXMLEle(stderr, fproot, 0);
+    //prXMLEle(stderr, fproot, 0);
 
     for (root = nextXMLEle (fproot, 1); root != NULL; root = nextXMLEle (fproot, 0))
             buildProp(root, errmsg);
@@ -302,7 +300,6 @@ int INDI::BaseDevice::buildProp(XMLEle *root, char *errmsg)
         IDLog("Error extracting %s state (%s)", rname, findXMLAttValu(root, "state"));
         return -1;
     }
-
 
     if (!strcmp (rtag, "defNumberVector"))
     {
@@ -641,9 +638,6 @@ void INDI::BaseDevice::setConnected(bool status)
 
     svp->s = IPS_OK;
 }
-
-
-void INDI::BaseDevice::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n) {}
 
 /*
  * return 0 if ok else -1 with reason in errmsg

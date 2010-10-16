@@ -157,13 +157,13 @@ void MyScope::init_properties()
 }
 
 /**************************************************************************************
-** Define LX200 Basic properties to clients.
+** Define Basic properties to clients.
 ***************************************************************************************/
 void MyScope::ISGetProperties(const char *dev)
 {
     static int configLoaded = 0;
 
-    INDI::BaseDevice::ISGetProperties(dev);
+    INDI::DefaultDevice::ISGetProperties(dev);
 
     if (configLoaded == 0)
     {
@@ -230,7 +230,7 @@ void MyScope::ISNewSwitch (const char *dev, const char *name, ISState *states, c
             return;
         }
 
-        INDI::BaseDevice::ISNewSwitch(dev, name, states, names, n);
+        INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
 

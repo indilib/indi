@@ -1,3 +1,4 @@
+<INDIDriver>
 <defSwitchVector device="My Device" name="CONNECTION" label="Connection" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="60">
     <defSwitch name="CONNECT" label="Connect">
 Off
@@ -14,4 +15,4 @@ On
 3
     </defNumber>
 </defNumberVector>
-
+</INDIDriver>
