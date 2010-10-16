@@ -39,7 +39,6 @@ public:
     const char *deviceName();
 
     void addMessage(const char *msg);
-
     const char *message() { return messageQueue.c_str(); }
 
     void setMediator(INDI::BaseMediator *med) { mediator = med; }
@@ -47,10 +46,10 @@ public:
 
 protected:
 
-    virtual void ISGetProperties (const char *dev) =0;
-    virtual void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n) =0;
-    virtual void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n) = 0;
-    virtual void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n) =0;
+    //virtual void ISGetProperties (const char *dev) =0;
+    //virtual void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n) =0;
+    //virtual void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n) = 0;
+    //virtual void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n) =0;
 
     int buildProp(XMLEle *root, char *errmsg);
 

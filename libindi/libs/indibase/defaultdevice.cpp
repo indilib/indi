@@ -14,15 +14,14 @@ INDI::DefaultDevice::DefaultDevice()
     pSimulation = false;
 }
 
-bool INDI::DefaultDevice::loadConfig(bool ignoreConnection)
+bool INDI::DefaultDevice::loadConfig()
 {
     char errmsg[MAXRBUF];
     bool pResult = false;
 
-    if (ignoreConnection || isConnected() )
-        pResult = readConfig(NULL, deviceID, errmsg) == 0 ? true : false;
+    pResult = readConfig(NULL, deviceID, errmsg) == 0 ? true : false;
 
-   if (pResult && ignoreConnection)
+   if (pResult)
        IDMessage(deviceID, "Configuration successfully loaded.");
 
    IUSaveDefaultConfig(NULL, NULL, deviceID);
@@ -92,7 +91,8 @@ bool INDI::DefaultDevice::loadDefaultConfig()
     else
         snprintf(configDefaultFileName, MAXRBUF, "%s/.indi/%s_config.xml.default", getenv("HOME"), deviceID);
 
-    IDLog("Requesting to load default config with: %s\n", configDefaultFileName);
+    if (pDebug)
+        IDLog("Requesting to load default config with: %s\n", configDefaultFileName);
 
     pResult = readConfig(configDefaultFileName, deviceID, errmsg) == 0 ? true : false;
 
@@ -154,7 +154,7 @@ void INDI::DefaultDevice::ISNewSwitch (const char *dev, const char *name, ISStat
             return;
 
         if (!strcmp(sp->name, "CONFIG_LOAD"))
-            pResult = loadConfig(true);
+            pResult = loadConfig();
         else if (!strcmp(sp->name, "CONFIG_SAVE"))
             pResult = saveConfig();
         else if (!strcmp(sp->name, "CONFIG_DEFAULT"))

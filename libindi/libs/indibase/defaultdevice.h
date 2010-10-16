@@ -21,7 +21,7 @@ protected:
     virtual void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n) {}
 
     // Configuration
-    bool loadConfig(bool ignoreConnection = false);
+    bool loadConfig();
     bool saveConfig();
     bool loadDefaultConfig();
 

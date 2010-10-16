@@ -154,6 +154,9 @@ void MyScope::init_properties()
     else
         IDLog("No skeleton file was specified. Set environment variable INDISKEL to the skeleton path and try again.\n");
 
+    // Optional: Add aux controls for configuration, debug & simulation
+    addAuxControls();
+
 }
 
 /**************************************************************************************
@@ -167,7 +170,7 @@ void MyScope::ISGetProperties(const char *dev)
 
     if (configLoaded == 0)
     {
-      loadConfig(true);
+      loadConfig();
       configLoaded = 1;
     }
 
@@ -198,7 +201,7 @@ void MyScope::ISNewNumber (const char *dev, const char *name, double values[], c
         if (!nvp)
             return;
 
-        if (!strcmp(nvp->name, "Tracking Accuracy"))
+        if (!strcmp(nvp->name, "Slew Accuracy"))
         {
             IUUpdateNumber(nvp, values, names, n);
             nvp->s = IPS_OK;

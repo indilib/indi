@@ -1071,7 +1071,11 @@ IDMessage (const char *dev, const char *fmt, ...)
 FILE * IUGetConfigFP(const char *filename, const char *dev, char errmsg[])
 {
     char configFileName[MAXRBUF];
+    char configDir[MAXRBUF];
+    struct stat st;
     FILE *fp = NULL;
+
+    snprintf(configDir, MAXRBUF, "%s/.indi/", getenv("HOME"));
 
     if (filename)
          strncpy(configFileName, filename, MAXRBUF);
@@ -1080,14 +1084,23 @@ FILE * IUGetConfigFP(const char *filename, const char *dev, char errmsg[])
         if (getenv("INDICONFIG"))
             strncpy(configFileName, getenv("INDICONFIG"), MAXRBUF);
         else
-           snprintf(configFileName, MAXRBUF, "%s/.indi/%s_config.xml", getenv("HOME"), dev);
+           snprintf(configFileName, MAXRBUF, "%s%s_config.xml", configDir, dev);
 
     }
+
+     if(stat(configDir,&st) != 0)
+     {
+         if (mkdir(configDir, S_IRWXU|S_IRWXG|S_IROTH|S_IXOTH) < 0)
+         {
+             snprintf(errmsg, MAXRBUF, "Unable to create config directory. Error %s: %s\n", configDir, strerror(errno));
+             return NULL;
+         }
+     }
 
      fp = fopen(configFileName, "w");
      if (fp == NULL)
      {
-          snprintf(errmsg, MAXRBUF, "Unable to read config file. Error loading file %s: %s\n", filename, strerror(errno));
+          snprintf(errmsg, MAXRBUF, "Unable to open config file. Error loading file %s: %s\n", configFileName, strerror(errno));
           return NULL;
      }
 
@@ -1101,10 +1114,10 @@ void IUSaveConfigTag(FILE *fp, int ctag)
 
     /* Opening tag */
     if (ctag == 0)
-        fprintf(fp, "<INDIDevice>\n");
+        fprintf(fp, "<INDIDriver>\n");
     /* Closing tag */
     else
-       fprintf(fp, "</INDIDevice>\n");
+       fprintf(fp, "</INDIDriver>\n");
 }
 
 void IUSaveConfigNumber (FILE *fp, const INumberVectorProperty *nvp)
