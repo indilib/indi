@@ -24,7 +24,7 @@ public:
     void setServer(const char * hostname, unsigned int port);
 
     // Add devices to watch.
-    void addDevice(const char * deviceName);
+    void watchDevice(const char * deviceName);
 
     // Connect/Disconnect to/from INDI server
     bool connect();

@@ -24,6 +24,8 @@ public:
     virtual void newNumber(INumberVectorProperty *nvp) =0;
     virtual void newText(ITextVectorProperty *tvp) =0;
     virtual void newLight(ILightVectorProperty *lvp) =0;
+
+    virtual void serverDisconnected() =0;
 };
 
 #endif // INDIBASE_H

@@ -37,7 +37,7 @@ void INDI::BaseClient::setServer(const char * hostname, unsigned int port)
 
 }
 
-void INDI::BaseClient::addDevice(const char * deviceName)
+void INDI::BaseClient::watchDevice(const char * deviceName)
 {
     cDeviceNames.push_back(deviceName);
 }
@@ -150,7 +150,9 @@ void INDI::BaseClient::listenINDI()
                 perror ("read");
             else
                 fprintf (stderr,"INDI server %s/%d disconnected\n", cServer.c_str(), cPort);
-            exit (2);
+
+            serverDisconnected();
+            return;
         }
 
         for (int i=0; i < n; i++)
@@ -173,7 +175,7 @@ void INDI::BaseClient::listenINDI()
             else if (msg[0])
             {
                fprintf (stderr, "Bad XML from %s/%d: %s\n%s\n", cServer.c_str(), cPort, msg, buffer);
-               exit(2);
+               return;
             }
         }
     }
