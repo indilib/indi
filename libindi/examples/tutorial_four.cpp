@@ -28,6 +28,8 @@
 #include <unistd.h>
 #include <time.h>
 #include <memory>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include <config.h>
 
@@ -147,10 +149,18 @@ MyScope::~MyScope()
 ***************************************************************************************/
 void MyScope::init_properties()
 {
+    // This is the default driver skeleton file location
+    // Convention is: drivername_sk_xml
+    // Default location is /usr/share/indi
+    const char *skelFileName = "/usr/share/indi/tutorial_four_sk.xml";
+    struct stat st;
+
 
     char *skel = getenv("INDISKEL");
     if (skel)
         buildSkeleton(skel);
+    else if (stat(skelFileName,&st) == 0)
+        buildSkeleton(skelFileName);
     else
         IDLog("No skeleton file was specified. Set environment variable INDISKEL to the skeleton path and try again.\n");
 
