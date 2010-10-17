@@ -107,6 +107,7 @@ class knroObservatory
    INumber UTCOffsetN[1];
    INumber SlewPrecisionN[2];
    INumber TrackPrecisionN[2];
+   INumber EquatorialCoordsWN[2];
 
     /* BLOBs */
     
@@ -134,6 +135,7 @@ class knroObservatory
     INumberVectorProperty UTCOffsetNP;
     INumberVectorProperty SlewPrecisionNP;
     INumberVectorProperty TrackPrecisionNP;
+    INumberVectorProperty EquatorialCoordsWNP;
 
     /* Other */
 
