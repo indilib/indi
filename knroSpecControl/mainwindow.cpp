@@ -6,13 +6,14 @@
 #include <QTime>
 #include <QTemporaryFile>
 #include <QDataStream>
-
+#include <QTimer>
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
 #include <libindi/basedevice.h>
 
 #define MAX_FILENAME_LEN    1024
+#define TIMEOUT             10000
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -21,6 +22,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
 
     BLOBDirty = false;
+    deviceReceived = false;
 
     kstProcess = new QProcess();
 
@@ -31,6 +33,7 @@ MainWindow::MainWindow(QWidget *parent) :
     QObject::connect(ui->connectB, SIGNAL(clicked()), this, SLOT(connectServer()));
     QObject::connect(ui->disconnectB, SIGNAL(clicked()), this, SLOT(disconnectServer()));
     QObject::connect(this, SIGNAL(modeUpdated(int)), this, SLOT(updateModeButtons(int)));
+    QObject::connect(this, SIGNAL(serverConnectionUpdated(bool)), this, SLOT(updateConnectionButtons(bool)));
 
 }
 
@@ -47,19 +50,14 @@ void MainWindow::connectServer()
     bool portOK=false;
     int serverPort = ui->serverPort->text().toInt(&portOK);
 
+    // We're only interested in this device
+    watchDevice("SpectraCyber");
+
     if (portOK == false)
     {
         ui->msgQueue->append(QString("KNRO: %1 is an invalid port, please try again...").arg(ui->serverPort->text()));
         return;
     }
-
-    QFont cf = ui->connectB->font();
-    cf.setBold(true);
-    ui->connectB->setFont(cf);
-
-    QFont df = ui->disconnectB->font();
-    df.setBold(false);
-    ui->disconnectB->setFont(df);
 
     // in KNRO Lab, we preselected port 8000 for Spectracyber driver. In the XML file under /usr/share/indi, the port is also specified.
     // User may still change it, but 8000 is default
@@ -67,6 +65,12 @@ void MainWindow::connectServer()
 
     if (INDI::BaseClient::connect() == false)
         ui->msgQueue->append(QString("KNRO: connection to server on port %1 is refused...").arg(ui->serverPort->text()));
+    else
+    {
+        ui->msgQueue->append(QString("KNRO: connection to server on port %1 is successful. Waiting for device construction.").arg(ui->serverPort->text()));
+        emit serverConnectionUpdated(true);
+        QTimer::singleShot(TIMEOUT, this, SLOT(validateDeviceReception()));
+    }
 
 }
 
@@ -74,19 +78,14 @@ void MainWindow::disconnectServer()
 {
     qDebug() << "Disconnecting ..." << endl;
 
-    QFont cf = ui->connectB->font();
-    cf.setBold(false);
-    ui->connectB->setFont(cf);
-
-    QFont df = ui->disconnectB->font();
-    df.setBold(true);
-    ui->disconnectB->setFont(df);
-
     INDI::BaseClient::disconnect();
 
     BLOBDirty = true;
+    deviceReceived = false;
 
     ui->msgQueue->append(QString("Disconnecting..."));
+
+    emit serverConnectionUpdated(false);
 
 }
 
@@ -95,9 +94,11 @@ void MainWindow::newDevice()
     std::vector<INDI::BaseDevice *>::const_iterator devicei;
 
     for (devicei = getDevices().begin(); devicei != getDevices().end(); devicei++)
-            ui->msgQueue->append(QString("Connection to %1 is successful.").arg((*devicei)->deviceName()));
+            ui->msgQueue->append(QString("Successful received and constructed %1 device.").arg((*devicei)->deviceName()));
 
     setBLOBMode(B_ALSO);
+
+    deviceReceived = true;
 
 }
 
@@ -184,8 +185,48 @@ void MainWindow::updateModeButtons(int specMode)
 
 }
 
+void MainWindow::updateConnectionButtons(bool status)
+{
+    if (status)
+    {
+        QFont cf = ui->connectB->font();
+        cf.setBold(true);
+        ui->connectB->setFont(cf);
+
+        QFont df = ui->disconnectB->font();
+        df.setBold(false);
+        ui->disconnectB->setFont(df);
+    }
+    else
+    {
+        QFont cf = ui->connectB->font();
+        cf.setBold(false);
+        ui->connectB->setFont(cf);
+
+        QFont df = ui->disconnectB->font();
+        df.setBold(true);
+        ui->disconnectB->setFont(df);
+    }
+}
+
 void MainWindow::newSwitch(ISwitchVectorProperty *svp)
 {
     if (QString("Scan") == QString(svp->name))
         BLOBDirty = true;
+}
+
+void MainWindow::serverDisconnected()
+{
+    ui->msgQueue->append(QString("KNRO: INDI server disconnected. Please try again..."));
+    emit serverConnectionUpdated(false);
+}
+
+void MainWindow::validateDeviceReception()
+{
+    if (deviceReceived)
+        return;
+
+    ui->msgQueue->append(QString("KNRO: Timeout error. No device was constructed. Please try again..."));
+    emit serverConnectionUpdated(false);
+
 }

@@ -29,6 +29,7 @@ protected:
     virtual void newNumber(INumberVectorProperty *nvp) {}
     virtual void newText(ITextVectorProperty *tvp) {}
     virtual void newLight(ILightVectorProperty *lvp) {}
+    virtual void serverDisconnected();
 
 private:
     Ui::MainWindow *ui;
@@ -37,14 +38,18 @@ private:
     QDataStream *out;
     QString currentSMode;
     bool BLOBDirty;
+    bool deviceReceived;
 
 public slots:
     void connectServer();
     void disconnectServer();
     void updateModeButtons(int specMode);
+    void updateConnectionButtons(bool status);
+    void validateDeviceReception();
 
 signals:
     void modeUpdated(int specMode);
+    void serverConnectionUpdated(bool status);
 };
 
 #endif // MAINWINDOW_H
