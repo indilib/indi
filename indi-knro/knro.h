@@ -26,6 +26,7 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <list>
+#include <libnova.h>
 
 #include "encoder.h"
 #include "inverter.h"
@@ -250,6 +251,9 @@ class knroObservatory
     list <INumberVectorProperty *> number_list;
     list <ITextVectorProperty *> text_list;
     list <ILightVectorProperty *> light_list;
+
+    ln_hrz_posn HorObjectCoords;
+    ln_lnlat_posn observer;
 
 };
 

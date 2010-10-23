@@ -88,7 +88,7 @@ public:
     void simulate_forward() { simulated_forward = true; }
     void simulate_reverse() { simulated_forward = false; }
     void simulate_stop() { simulated_speed = 0; }
-    void simulate_slow() { simulated_speed = 15; }
+    void simulate_slow() { simulated_speed = 10; }
     void simulate_medium() { simulated_speed = 25; }
     void simulate_fast() { simulated_speed = 50; }
 

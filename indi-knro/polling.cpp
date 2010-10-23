@@ -38,12 +38,17 @@
 #include "ogg_util.h"
 
 #include "knro.h"
+
+#define RA_TOLERANCE 0.01
+#define DEC_TOLERANCE 0.01
+
 /**************************************************************************************
 **
 ***************************************************************************************/
 void knroObservatory::ISPoll()
 {
-    double delta_az=0;
+    double delta_az=0, newRA, newDEC;
+    ln_equ_posn EqObjectCoords;
 
      if (is_connected() == false)
 	return;
@@ -54,10 +59,29 @@ void knroObservatory::ISPoll()
     currentAlt  = AltEncoder->get_angle();
     IDSetNumber(&HorizontalCoordsNRP, NULL);
 
+    // Convert to Libnova odd Azimuth convention where Az=0 is due south.
+    HorObjectCoords.az = currentAz - 180;
+    if (HorObjectCoords.az < 0)
+        HorObjectCoords.az += 360;
+    HorObjectCoords.alt = currentAlt;
+
+    ln_get_equ_from_hrz (&HorObjectCoords, &observer, ln_get_julian_from_sys(), &EqObjectCoords);
+
+    newRA  = EqObjectCoords.ra/15.0;
+    newDEC = EqObjectCoords.dec;
+
+    if (fabs(EquatorialCoordsWNP.np[0].value - newRA)  >= RA_TOLERANCE ||
+        fabs(EquatorialCoordsWNP.np[1].value - newDEC) >= DEC_TOLERANCE)
+    {
+        EquatorialCoordsWNP.np[0].value = newRA;
+        EquatorialCoordsWNP.np[1].value = newDEC;
+        IDSetNumber(&EquatorialCoordsWNP, NULL);
+    }
+
      delta_az = currentAz - targetAz;
 	 
 	/***************************************************************
-	// #7: Check Status of Equatorial Coord Request
+        // Check Status of Horizontal Coord Request
 	****************************************************************/
 	switch(HorizontalCoordsNWP.s)
 	{
@@ -132,6 +156,7 @@ void knroObservatory::ISPoll()
 							ParkSP.s = IPS_OK;
 							HorizontalCoordsNWP.s = IPS_OK;
 							HorizontalCoordsNRP.s = IPS_OK;
+                                                        EquatorialCoordsWNP.s = IPS_OK;
 							
 							slew_stage = SLEW_NONE;
 							slew_busy.stop();
@@ -156,11 +181,6 @@ void knroObservatory::ISPoll()
 						IDSetNumber(&HorizontalCoordsNWP, "Slew complete. Engaging tracking...");
 						IDSetNumber(&HorizontalCoordsNRP, NULL);
 						
-						char AzStr[32], AltStr[32];
-						fs_sexa(AzStr, currentAz, 2, 3600);
-						fs_sexa(AltStr, currentAlt, 2, 3600);
-						//if (UJARI_DEBUG)
-						//	IDMessage(mydev, "Raw RA: %s , Raw DEC: %s", RAStr, DecStr);
 					}
 					break;
 
@@ -209,96 +229,5 @@ void knroObservatory::ISPoll()
   return;
   
 
-	// TEMP ONLY, write encoder values
-	#if 0
-	if (en_record != NULL && (MovementWESP.s == IPS_BUSY || MovementNSSP.s == IPS_BUSY))
-	{
-		static double last_abs_ra= EncoderAbsPosN[EQ_RA].value;
-		char LST_str[32], full_line[512];
-		fs_sexa(LST_str, currentLST, 2, 3600);
 
-		snprintf(full_line, sizeof(full_line), "%s	%g	%g	%g	%g	%g\n", LST_str, EncoderAbsPosN[EQ_RA].value, EncoderPosN[EQ_RA].value, (EncoderAbsPosN[EQ_RA].value - last_abs_ra) ,EncoderAbsPosN[EQ_DEC].value, EncoderPosN[EQ_DEC].value);
-		fputs( full_line, en_record);
-		last_abs_ra= EncoderAbsPosN[EQ_RA].value;
-   	}
-	
-
-	/*if (DomeWESP.s == IPS_BUSY)
-	{
-		static double last_abs_dome= EncoderAbsPosN[2].value;
-		char LST_str[32], full_line[512];
-		//fs_sexa(LST_str, currentLST, 2, 3600);
-
-		snprintf(full_line, sizeof(full_line), "%g	%g\n", EncoderAbsPosN[2].value, EncoderAbsPosN[2].value - last_abs_dome);
-		IDLog("%s", full_line);
-		//fputs(full_line, en_record);
-		last_abs_dome= EncoderAbsPosN[2].value;
-   	}*/
-
-	/***************************************************************
-	// #8: Check Status of Equatorial Coord Request
-	****************************************************************/
-	time_t delta;
-	time(&now);
-	delta= now - last_execute_time;
-
-	if (EquatorialCoordsNP.s == IPS_IDLE && ParkSP.s == IPS_IDLE && MovementNSSP.s == IPS_IDLE && MovementWESP.s == IPS_IDLE && fabs(currentDEC - currentLat) > 1)
-	{
-		// Play alert 10 seconds before starting park
-		if (delta > (MAXIMUM_IDLE_TIME - 10) && !park_alert.is_playing() && is_connected() == true)
-		{
-			
-			park_alert.play();
-			IDMessage(mydev, "The telescope has been idle for more than %d minutes. Initiating automatic shutdown procedure in 10 seconds.", MAXIMUM_IDLE_TIME/60);
-		}
-		else if (delta > MAXIMUM_IDLE_TIME)
-			park_telescope(true);
-	}
-
-	if (SDSP.s == IPS_BUSY)
-	{
-		SDRateN[0].value = fabs((lastRA - currentRA) * 15.0) / delta;
-		IDSetNumber(&SDRateNP, NULL);
-	}
-
-	/***************************************************************
-	// #8: Check Dome
-	****************************************************************/
-	static double last_dome_az=0;
-	dome_delta= fabs(targetDomeAz - currentDomeAz);
-
-	switch (DomeAzNP.s)
-	{
-		case IPS_IDLE:
-		case IPS_OK:
-			// Only if AutoDome is On
-			if (AutoDomeS[0].s == ISS_ON)
-			{
-				if (dome_delta > DOME_TOLERANCE)
-				{
-					sync_dome(targetDomeAz);
-					return;
-				}
-			}
-			if (fabs(last_dome_az - currentDomeAz) >= 1)
-			{
-				last_dome_az = currentDomeAz;
-				IDSetNumber(&DomeAzNP, NULL);
-			}
-			break;
-		case IPS_ALERT:
-			break;
-
-		case IPS_BUSY:
-			if (dome_delta <= DOME_TOLERANCE)
-			{
-				stop_dome();
-				DomeAzNP.s = IPS_OK;
-			}
-			IDSetNumber(&DomeAzNP, NULL);
-			break;
-	}
-
-#endif
-	
 }

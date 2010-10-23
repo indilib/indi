@@ -452,9 +452,9 @@ void * knroEncoder::update_encoder(void)
 	if (simulation)
 	{
 		if (type == AZ_ENCODER)
-		  EncoderAbsPosN[0].value = 330770;
+                  EncoderAbsPosN[0].value = 221329;
 		else
-		  EncoderAbsPosN[0].value = 239101;
+                  EncoderAbsPosN[0].value = 260041;
 	}
 
 	while (1)

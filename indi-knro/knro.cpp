@@ -695,6 +695,12 @@ void knroObservatory::ISNewNumber (const char *dev, const char *name, double val
 			return;
 
 		GeoCoordsNP.s = IPS_OK;
+
+                observer.lat = GeoCoordsN[0].value;
+                observer.lng = GeoCoordsN[1].value;
+                if (observer.lng > 180)
+                    observer.lng -= 360;
+
 		IDSetNumber(&GeoCoordsNP, "Geographical location updated.");
 
 		return;
@@ -919,9 +925,11 @@ void knroObservatory::execute_slew()
 	
 	HorizontalCoordsNWP.s = IPS_BUSY;
 	HorizontalCoordsNRP.s = IPS_BUSY;
+        EquatorialCoordsWNP.s = IPS_BUSY;
 	
 	IDSetNumber(&HorizontalCoordsNWP, "Slewing to Az: %s Alt: %s ...", AzStr, AltStr );
 	IDSetNumber(&HorizontalCoordsNRP, NULL);
+        IDSetNumber(&EquatorialCoordsWNP, NULL);
 
 	slew_busy.play();
 }
