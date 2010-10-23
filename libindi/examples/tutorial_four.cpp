@@ -189,27 +189,29 @@ void MyScope::ISGetProperties(const char *dev)
 /**************************************************************************************
 ** Process Text properties
 ***************************************************************************************/
-void MyScope::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+bool MyScope::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
 	// Ignore if not ours 
         if (strcmp (dev, deviceID))
-	    return;
+            return false;
+
+        return false;
 }
 
 /**************************************************************************************
 **
 ***************************************************************************************/
-void MyScope::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+bool MyScope::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
 	
 	// Ignore if not ours
         if (strcmp (dev, deviceID))
-	    return;
+            return false;
 
         INumberVectorProperty *nvp = getNumber(name);
 
         if (!nvp)
-            return;
+            return false;
 
         if (!strcmp(nvp->name, "Slew Accuracy"))
         {
@@ -217,33 +219,37 @@ void MyScope::ISNewNumber (const char *dev, const char *name, double values[], c
             nvp->s = IPS_OK;
             IDSetNumber(nvp, NULL);
 
-            return;
+            return true;
         }
 
+        return false;
 }
 
 /**************************************************************************************
 **
 ***************************************************************************************/
-void MyScope::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool MyScope::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
 	// ignore if not ours //
         if (strcmp (dev, deviceID))
-	    return;
+            return false;
+
+        if (INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n) == true)
+            return true;
 
         ISwitchVectorProperty *svp = getSwitch(name);
 
         if (!svp)
-            return;
+            return false;
 
         if (!strcmp(svp->name, "CONNECTION"))
         {
             IUUpdateSwitch(svp, states, names, n);
             connect_telescope();
-            return;
+            return true;
         }
 
-        INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
+
 }
 
 

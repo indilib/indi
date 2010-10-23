@@ -67,7 +67,7 @@ IDDelete (const char *dev, const char *name, const char *fmt, ...)
  * name ignored if NULL or empty.
  */
 void
-IDSnoopDevice (const char *snooped_device_name, char *snooped_property_name)
+IDSnoopDevice (const char *snooped_device_name, const char *snooped_property_name)
 {
 	xmlv1();
 	if (snooped_property_name && snooped_property_name[0])

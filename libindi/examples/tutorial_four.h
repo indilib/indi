@@ -32,9 +32,9 @@ class MyScope : public INDI::DefaultDevice
  ~MyScope();
 
  virtual void ISGetProperties (const char *dev);
- virtual void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
- virtual void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
- virtual void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+ virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+ virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+ virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
 
 private:
  void init_properties();

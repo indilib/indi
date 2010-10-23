@@ -28,7 +28,9 @@ else (INDI_INCLUDE_DIR AND INDI_LIBRARIES AND INDI_DRIVER_LIBRARIES)
 
  find_path(INDI_DATA_DIR drivers.xml
     PATH_SUFFIXES indi
-    ${_obIncDir}
+    /usr
+    /usr/local
+    /opt
     ${GNUWIN32_DIR}/share
   )
 

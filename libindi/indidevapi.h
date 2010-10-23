@@ -301,7 +301,7 @@ typedef enum
     \param snooped_device name of the device to snoop.
     \param snooped_property name of the snooped property in the device.
 */
-extern void IDSnoopDevice (const char *snooped_device, char *snooped_property);
+extern void IDSnoopDevice (const char *snooped_device, const char *snooped_property);
 
 /** \brief Function a Driver calls to control whether they will receive BLOBs from snooped devices.
     \param snooped_device_name name of the device to snoop.

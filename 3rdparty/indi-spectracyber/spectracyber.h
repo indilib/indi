@@ -40,12 +40,13 @@
 
 #include <indidevapi.h>
 #include <indicom.h>
+#include <defaultdevice.h>
 
 using namespace std;
 
-#define MAXBLEN 32
+#define MAXBLEN 64
 
-class SpectraCyber
+class SpectraCyber : public INDI::DefaultDevice
 {
 
 public:
@@ -80,87 +81,30 @@ public:
     bool is_connected();
     
     // Standard INDI interface fucntions
-    void ISGetProperties();
-    void ISNewNumber (const char *name, double values[], char *names[], int n);
-    void ISNewText (const char *name, char *texts[], char *names[], int n);
-    void ISNewSwitch (const char *name, ISState *states, char *names[], int n);
+    virtual void ISGetProperties(const char *dev);
+    virtual bool ISNewNumber (const char *name, double values[], char *names[], int n);
+    virtual bool ISNewText (const char *name, char *texts[], char *names[], int n);
+    virtual bool ISNewSwitch (const char *name, ISState *states, char *names[], int n);
  	
-    void reset_all_properties(bool reset_to_idle=false);
+    //void reset_all_properties(bool reset_to_idle=false);
     bool update_freq(double nFreq);
     void ISPoll();
 
+    void ISSnoopDevice (XMLEle *root);
+
 private: 
 
-    // Connect
-    ISwitch ConnectS[2];
-    ISwitchVectorProperty ConnectSP;				
 
-    // Spectrometer Port number
-    ITextVectorProperty PortTP;
-    IText PortT[1];
+    ISwitchVectorProperty *ConnectSP;
+    INumberVectorProperty *FreqNP;
+    INumberVectorProperty *ScanNP;
+    ISwitchVectorProperty *ScanSP;
+    ISwitchVectorProperty *ChannelSP;
+    IBLOBVectorProperty *DataStreamBP;
 
-    // Current Frequency
-    INumber FreqN[1];
-    INumberVectorProperty FreqNP;
-
-    // Scan Range and Rate
-    INumber ScanN[3];
-    INumberVectorProperty ScanNP;
-
-    // Scan command
-    ISwitch ScanS[2];
-    ISwitchVectorProperty ScanSP;
-
-    // IF 70 Mhz Gain
-    INumber IFGainN[1];
-    INumberVectorProperty IFGainNP;
-
-    // Continuum Gain
-    ISwitch ContGainS[6];
-    ISwitchVectorProperty ContGainSP;
-
-    // Continuum Integration
-    ISwitch ContIntegrationS[3];
-    ISwitchVectorProperty ContIntegrationSP;
-
-    // Spectral Gain
-    ISwitch SpecGainS[6];
-    ISwitchVectorProperty SpecGainSP;
-
-    // Spectral Integration
-    ISwitch SpecIntegrationS[3];
-    ISwitchVectorProperty SpecIntegrationSP;
-
-    // DC Offsets
-    INumber DCOffsetN[2];
-    INumberVectorProperty DCOffsetNP;
-
-    // Channels
-    ISwitch ChannelS[2];
-    ISwitchVectorProperty ChannelSP;
-
-   // Bandwidth
-   ISwitch BandwidthS[2];
-   ISwitchVectorProperty BandwidthSP;
-
-   // 12 bit binary read value
-   INumber ChannelValueN[1];
-   INumberVectorProperty ChannelValueNP;
-
-   // Reset Options
-   ISwitch ResetS[1];
-   ISwitchVectorProperty ResetSP;
-
-   // Simulation
-   ISwitch SimulationS[2];
-   ISwitchVectorProperty SimulationSP;
-
-    ISwitch DebugS[2];
-    ISwitchVectorProperty DebugSP;
-
-   // Stream Blob
-   IBLOB DataStreamB[1];
-   IBLOBVectorProperty DataStreamBP;
+    // Snooping On
+    INumber EquatorialCoordsWN[2];
+    INumberVectorProperty EquatorialCoordsWNP;
 
     // Functions
     void init_properties();
@@ -171,12 +115,13 @@ private:
     int get_on_switch(ISwitchVectorProperty *sp);
     bool reset();
 
+
     // Variables
     string type_name;
     string default_port;
 		
     int connection_status; 
-    bool simulation, debug;
+    //bool simulation, debug;
 		
     int fd;
     char bLine[MAXBLEN];

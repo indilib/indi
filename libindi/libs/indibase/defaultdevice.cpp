@@ -104,30 +104,30 @@ bool INDI::DefaultDevice::loadDefaultConfig()
     return pResult;
 }
 
-void INDI::DefaultDevice::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool INDI::DefaultDevice::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
 
     // ignore if not ours //
     if (strcmp (dev, deviceID))
-        return;
+        return false;
 
     ISwitchVectorProperty *svp = getSwitch(name);
 
     if (!svp)
-        return;
+        return false;
 
     if (!strcmp(svp->name, "DEBUG"))
     {
         IUUpdateSwitch(svp, states, names, n);
         ISwitch *sp = IUFindOnSwitch(svp);
         if (!sp)
-            return;
+            return false;
 
         if (!strcmp(sp->name, "ENABLE"))
             setDebug(true);
         else
             setDebug(false);
-        return;
+        return true;
     }
 
     if (!strcmp(svp->name, "SIMULATION"))
@@ -135,13 +135,13 @@ void INDI::DefaultDevice::ISNewSwitch (const char *dev, const char *name, ISStat
         IUUpdateSwitch(svp, states, names, n);
         ISwitch *sp = IUFindOnSwitch(svp);
         if (!sp)
-            return;
+            return false;
 
         if (!strcmp(sp->name, "ENABLE"))
             setSimulation(true);
         else
             setSimulation(false);
-        return;
+        return true;
     }
 
     if (!strcmp(svp->name, "CONFIG_PROCESS"))
@@ -151,7 +151,7 @@ void INDI::DefaultDevice::ISNewSwitch (const char *dev, const char *name, ISStat
         IUResetSwitch(svp);
         bool pResult = false;
         if (!sp)
-            return;
+            return false;
 
         if (!strcmp(sp->name, "CONFIG_LOAD"))
             pResult = loadConfig();
@@ -166,7 +166,10 @@ void INDI::DefaultDevice::ISNewSwitch (const char *dev, const char *name, ISStat
             svp->s = IPS_ALERT;
 
         IDSetSwitch(svp, NULL);
+        return true;
     }
+
+    return false;
 
 }
 
@@ -320,10 +323,7 @@ bool INDI::DefaultDevice::isSimulation()
 
 void INDI::DefaultDevice::setConnected(bool status)
 {
-
     INDI::BaseDevice::setConnected(status);
-
-    loadConfig();
 }
 
 void INDI::DefaultDevice::ISGetProperties (const char *dev)
@@ -352,4 +352,43 @@ void INDI::DefaultDevice::ISGetProperties (const char *dev)
         }
     }
 
+}
+
+void INDI::DefaultDevice::resetProperties()
+{
+    std::vector<INumberVectorProperty *>::const_iterator numi;
+    std::vector<ISwitchVectorProperty *>::const_iterator switchi;
+    std::vector<ITextVectorProperty *>::const_iterator texti;
+    std::vector<ILightVectorProperty *>::const_iterator lighti;
+    std::vector<IBLOBVectorProperty *>::const_iterator blobi;
+
+    for ( numi = pNumbers.begin(); numi != pNumbers.end(); numi++)
+    {
+        (*numi)->s = IPS_IDLE;
+        IDSetNumber( (*numi), NULL);
+    }
+
+   for ( switchi = pSwitches.begin(); switchi != pSwitches.end(); switchi++)
+   {
+       (*switchi)->s = IPS_IDLE;
+       IDSetSwitch( (*switchi), NULL);
+   }
+
+   for ( texti = pTexts.begin(); texti != pTexts.end(); texti++)
+   {
+      (*texti)->s = IPS_IDLE;
+      IDSetText( (*texti), NULL);
+   }
+
+   for ( lighti = pLights.begin(); lighti != pLights.end(); lighti++)
+   {
+       (*lighti)->s = IPS_IDLE;
+       IDSetLight( (*lighti), NULL);
+   }
+
+   for ( blobi = pBlobs.begin(); blobi != pBlobs.end(); blobi++)
+   {
+       (*blobi)->s = IPS_IDLE;
+       IDSetBLOB( (*blobi), NULL);
+   }
 }

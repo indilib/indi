@@ -46,13 +46,7 @@ public:
 
 protected:
 
-    //virtual void ISGetProperties (const char *dev) =0;
-    //virtual void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n) =0;
-    //virtual void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n) = 0;
-    //virtual void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n) =0;
-
     int buildProp(XMLEle *root, char *errmsg);
-
 
     // handle SetXXX commands from client
     int setValue (XMLEle *root, char * errmsg);
