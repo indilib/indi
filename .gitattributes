@@ -42,6 +42,7 @@
 3rdparty/indi-spectracyber/Readme -text
 3rdparty/indi-spectracyber/copying.lib -text
 3rdparty/indi-spectracyber/indi_spectracyber.xml -text
+3rdparty/indi-spectracyber/indi_spectracyber_sk.xml -text
 3rdparty/indi-spectracyber/install -text
 3rdparty/indi-spectracyber/spectracyber.cpp -text
 3rdparty/indi-spectracyber/spectracyber.h -text
