@@ -94,7 +94,7 @@ void MainWindow::newDevice()
     std::vector<INDI::BaseDevice *>::const_iterator devicei;
 
     for (devicei = getDevices().begin(); devicei != getDevices().end(); devicei++)
-            ui->msgQueue->append(QString("Successful received and constructed %1 device.").arg((*devicei)->deviceName()));
+            ui->msgQueue->append(QString("KNRO: Successfully received and constructed %1 device.").arg((*devicei)->deviceName()));
 
     setBLOBMode(B_ALSO);
 
