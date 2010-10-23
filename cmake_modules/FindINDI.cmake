@@ -4,8 +4,10 @@
 #  INDI_FOUND - system has INDI
 #  INDI_INCLUDE_DIR - the INDI include directory
 #  INDI_LIBRARIES - Link these to use INDI
+#  INDI_DEVICE_LIBRARY - The indi default device library
+#  INDI_DATA_DIR - INDI shared data dir.
 
-# Copyright (c) 2006, Jasem Mutlaq <mutlaqja@ikarustech.com>
+# Copyright (c) 2010, Jasem Mutlaq <mutlaqja@ikarustech.com>
 # Based on FindLibfacile by Carsten Niehaus, <cniehaus@gmx.de>
 #
 # Redistribution and use is allowed according to the terms of the BSD license.
@@ -70,6 +72,6 @@ else (INDI_INCLUDE_DIR AND INDI_LIBRARIES AND INDI_DRIVER_LIBRARIES)
     endif (INDI_FIND_REQUIRED)
   endif (INDI_FOUND)
 
-  mark_as_advanced(INDI_INCLUDE_DIR INDI_LIBRARIES INDI_DRIVER_LIBRARIES INDI_DATA_DIR)
+  mark_as_advanced(INDI_INCLUDE_DIR INDI_LIBRARIES INDI_DRIVER_LIBRARIES INDI_DEVICE_LIBRARIES INDI_DATA_DIR)
 
 endif (INDI_INCLUDE_DIR AND INDI_LIBRARIES AND INDI_DRIVER_LIBRARIES)
