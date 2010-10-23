@@ -40,6 +40,13 @@ else (INDI_INCLUDE_DIR AND INDI_LIBRARIES AND INDI_DRIVER_LIBRARIES)
     ${GNUWIN32_DIR}/lib
   )
 
+  find_library(INDI_DEVICE_LIBRARIES NAMES indidefaultdevice
+    PATHS
+    ${_obLinkDir}
+    ${GNUWIN32_DIR}/lib
+  )
+
+
   find_library(INDI_LIBRARIES NAMES indi
     PATHS
     ${_obLinkDir}
@@ -59,7 +66,7 @@ else (INDI_INCLUDE_DIR AND INDI_LIBRARIES AND INDI_DRIVER_LIBRARIES)
     endif (NOT INDI_FIND_QUIETLY)
   else (INDI_FOUND)
     if (INDI_FIND_REQUIRED)
-      message(FATAL_ERROR "indi-devel not found. Cannot compile INDI drivers. Please install indi-devel and try again. http://indi.sf.net")
+      message(FATAL_ERROR "indi-devel not found. Cannot compile INDI drivers. Please install indi-devel and try again. http://www.indilib.org")
     endif (INDI_FIND_REQUIRED)
   endif (INDI_FOUND)
 
