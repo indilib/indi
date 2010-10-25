@@ -69,6 +69,9 @@ const unsigned char COMM_FILL = 0x20;
 #define FILTER_TIMEOUT			15					/* 15 Seconds before timeout */
 #define FIRST_FILTER			1
 
+#define DEBUG_ON                        0
+#define SIMULATION_ON                   0
+
 
 /*INDI controls */
 
@@ -165,14 +168,22 @@ void ISNewSwitch (const char *dev, const char *name, ISState *states, char *name
 		unsigned char type = 0x03;
 		unsigned char chksum = COMM_INIT + type + COMM_FILL;
 		/*char filter_command[5] = { COMM_PRE, COMM_INIT, type, COMM_FILL, chksum };*/
-		char filter_command[CMD_SIZE];
+                unsigned char filter_command[CMD_SIZE];
 		snprintf(filter_command, CMD_SIZE,  "%c%c%c%c%c", COMM_PRE, COMM_INIT, type, COMM_FILL, chksum);
 
 		if (checkPowerS(&HomeSP))
 			return;
 
-		err = tty_write(fd, filter_command, CMD_SIZE, &nbytes);
-		
+                if (!SIMULATION_ON)
+                    err = tty_write(fd, filter_command, CMD_SIZE, &nbytes);
+
+
+                if (DEBUG_ON)
+                {
+                    IDLog("Home Search Command (int): #%d#%d#%d#%d#%d#\n",COMM_PRE, COMM_INIT, type, COMM_FILL, chksum);
+                    IDLog("Home Search Command (char): #%c#%c#%c#%c#%c#\n",COMM_PRE, COMM_INIT, type, COMM_FILL, chksum);
+                }
+
 		/* Send Home Command */
 		if (err != TTY_OK)
 		{
@@ -246,12 +257,11 @@ void ISNewNumber (const char *dev, const char *name, double values[], char *name
 			
 			targetFilter = values[0];
 			int nbytes=0;
-			char type = 0x01;
-			char chksum = COMM_INIT + type + (char) targetFilter;
+                        unsigned char type = 0x01;
+                        unsigned char chksum = COMM_INIT + type + (unsigned char) targetFilter;
 			/*char filter_command[5] = { COMM_PRE, COMM_INIT, type, targetFilter, chksum };*/
-			char filter_command[CMD_SIZE];
+                        unsigned char filter_command[CMD_SIZE];
 
-			snprintf(filter_command, CMD_SIZE,  "%c%c%c%c%c", COMM_PRE, COMM_INIT, type, COMM_FILL, chksum);
 
 			if (targetFilter < FilterPositionN[0].min || targetFilter > FilterPositionN[0].max)
 			{
@@ -261,7 +271,18 @@ void ISNewNumber (const char *dev, const char *name, double values[], char *name
 			}
 
 			IUUpdateNumber(&FilterPositionNP, values, names, n);
-			err = tty_write(fd, filter_command, CMD_SIZE, &nbytes);
+
+                        snprintf(filter_command, CMD_SIZE,  "%c%c%c%c%c", COMM_PRE, COMM_INIT, type, targetFilter, chksum);
+
+                        if (DEBUG_ON)
+                        {
+                            IDLog("Filter Position Command (int): #%d#%d#%d#%d#%d#\n",COMM_PRE, COMM_INIT, type, targetFilter, chksum);
+                            IDLog("Filter Position Command (char): #%c#%c#%c#%c#%c#\n",COMM_PRE, COMM_INIT, type, targetFilter, chksum);
+                        }
+
+                        if (!SIMULATION_ON)
+                            err = tty_write(fd, filter_command, CMD_SIZE, &nbytes);
+
 
 			FilterPositionNP.s = IPS_OK;
 			IDSetNumber(&FilterPositionNP, "Setting current filter to slot %d", targetFilter);
@@ -384,6 +405,13 @@ void connectFilter()
 	switch (PowerS[0].s)
 	{
 		case ISS_ON:
+                        if (SIMULATION_ON)
+                        {
+                            PowerSP.s = IPS_OK;
+                            IDSetSwitch(&PowerSP, "Simulated Filter Wheel is online.");
+                            return;
+                        }
+
 			if ( (err = tty_connect(PortT[0].text, 9600, 8, 0, 1, &fd)) != TTY_OK)
 			{
 				PowerSP.s = IPS_ALERT;
@@ -393,11 +421,19 @@ void connectFilter()
 				return;
 			}
 
+
 			PowerSP.s = IPS_OK;
 			IDSetSwitch(&PowerSP, "Filter Wheel is online. True Technology filter wheel suffers from several bugs. Please refer to http://indi.sf.net/profiles/trutech.html for more details.");
 			break;
 		
 		case ISS_OFF:
+                        if (SIMULATION_ON)
+                        {
+                          PowerSP.s = IPS_OK;
+                          IDSetSwitch(&PowerSP, "Simulated Filter Wheel is offline.");
+                          return;
+                        }
+
 			if ( (err = tty_disconnect(fd)) != TTY_OK)
 			{
 				PowerSP.s = IPS_ALERT;
