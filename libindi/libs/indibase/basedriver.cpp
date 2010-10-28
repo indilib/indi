@@ -3,19 +3,19 @@
 #include <errno.h>
 #include <zlib.h>
 
-#include "basedevice.h"
+#include "basedriver.h"
 #include "baseclient.h"
 #include "indicom.h"
 #include "base64.h"
 
-INDI::BaseDevice::BaseDevice()
+INDI::BaseDriver::BaseDriver()
 {
     mediator = NULL;
     lp = newLilXML();
 }
 
 
-INDI::BaseDevice::~BaseDevice()
+INDI::BaseDriver::~BaseDriver()
 {
     std::vector<INumberVectorProperty *>::const_iterator numi;
     std::vector<ISwitchVectorProperty *>::const_iterator switchi;
@@ -42,7 +42,7 @@ INDI::BaseDevice::~BaseDevice()
         delete (*blobi);
 }
 
-INumberVectorProperty * INDI::BaseDevice::getNumber(const char *name)
+INumberVectorProperty * INDI::BaseDriver::getNumber(const char *name)
 {
     std::vector<INumberVectorProperty *>::const_iterator numi;
 
@@ -54,7 +54,7 @@ INumberVectorProperty * INDI::BaseDevice::getNumber(const char *name)
 
 }
 
-ITextVectorProperty * INDI::BaseDevice::getText(const char *name)
+ITextVectorProperty * INDI::BaseDriver::getText(const char *name)
 {
     std::vector<ITextVectorProperty *>::const_iterator texti;
 
@@ -65,7 +65,7 @@ ITextVectorProperty * INDI::BaseDevice::getText(const char *name)
     return NULL;
 }
 
-ISwitchVectorProperty * INDI::BaseDevice::getSwitch(const char *name)
+ISwitchVectorProperty * INDI::BaseDriver::getSwitch(const char *name)
 {
     std::vector<ISwitchVectorProperty *>::const_iterator switchi;
 
@@ -77,7 +77,7 @@ ISwitchVectorProperty * INDI::BaseDevice::getSwitch(const char *name)
 
 }
 
-ILightVectorProperty * INDI::BaseDevice::getLight(const char *name)
+ILightVectorProperty * INDI::BaseDriver::getLight(const char *name)
 {
     std::vector<ILightVectorProperty *>::const_iterator lighti;
 
@@ -89,7 +89,7 @@ ILightVectorProperty * INDI::BaseDevice::getLight(const char *name)
 
 }
 
-IBLOBVectorProperty * INDI::BaseDevice::getBLOB(const char *name)
+IBLOBVectorProperty * INDI::BaseDriver::getBLOB(const char *name)
 {
     std::vector<IBLOBVectorProperty *>::const_iterator blobi;
 
@@ -100,7 +100,7 @@ IBLOBVectorProperty * INDI::BaseDevice::getBLOB(const char *name)
     return NULL;
 }
 
-void * INDI::BaseDevice::getProperty(const char *name, pType & type)
+void * INDI::BaseDriver::getProperty(const char *name, INDI_TYPE & type)
 {
     std::vector<pOrder>::const_iterator orderi;
 
@@ -162,7 +162,7 @@ void * INDI::BaseDevice::getProperty(const char *name, pType & type)
     return NULL;
 }
 
-int INDI::BaseDevice::removeProperty(const char *name)
+int INDI::BaseDriver::removeProperty(const char *name)
 {
     std::vector<pOrder>::iterator orderi;
 
@@ -227,7 +227,7 @@ int INDI::BaseDevice::removeProperty(const char *name)
     return INDI_PROPERTY_INVALID;
 }
 
-void INDI::BaseDevice::buildSkeleton(const char *filename)
+void INDI::BaseDriver::buildSkeleton(const char *filename)
 {
     char errmsg[MAXRBUF];
     FILE *fp = NULL;
@@ -260,14 +260,14 @@ void INDI::BaseDevice::buildSkeleton(const char *filename)
 
 }
 
-int INDI::BaseDevice::buildProp(XMLEle *root, char *errmsg)
+int INDI::BaseDriver::buildProp(XMLEle *root, char *errmsg)
 {
     IPerm perm;
     IPState state;
     ISRule rule;
     XMLEle *ep = NULL;
     char *rtag, *rname, *rdev;
-    pType type;
+    INDI_TYPE type;
     double timeout=0;
 
     rtag = tagXMLEle(root);
@@ -592,7 +592,7 @@ return (0);
 
 }
 
-bool INDI::BaseDevice::isConnected()
+bool INDI::BaseDriver::isConnected()
 {
     ISwitchVectorProperty *svp = getSwitch("CONNECTION");
     if (!svp)
@@ -610,7 +610,7 @@ bool INDI::BaseDevice::isConnected()
 
 }
 
-void INDI::BaseDevice::setConnected(bool status)
+void INDI::BaseDriver::setConnected(bool status)
 {
     ISwitch *sp = NULL;
     ISwitchVectorProperty *svp = getSwitch("CONNECTION");
@@ -642,7 +642,7 @@ void INDI::BaseDevice::setConnected(bool status)
 /*
  * return 0 if ok else -1 with reason in errmsg
  */
-int INDI::BaseDevice::setValue (XMLEle *root, char * errmsg)
+int INDI::BaseDriver::setValue (XMLEle *root, char * errmsg)
 {
     XMLAtt *ap;
     XMLEle *ep;
@@ -821,7 +821,7 @@ int INDI::BaseDevice::setValue (XMLEle *root, char * errmsg)
 /* Set BLOB vector. Process incoming data stream
  * Return 0 if okay, -1 if error
 */
-int INDI::BaseDevice::setBLOB(IBLOBVectorProperty *bvp, XMLEle * root, char * errmsg)
+int INDI::BaseDriver::setBLOB(IBLOBVectorProperty *bvp, XMLEle * root, char * errmsg)
 {
 
     XMLEle *ep;
@@ -850,7 +850,7 @@ int INDI::BaseDevice::setBLOB(IBLOBVectorProperty *bvp, XMLEle * root, char * er
 /* Process incoming data stream
  * Return 0 if okay, -1 if error
 */
-int INDI::BaseDevice::processBLOB(IBLOB *blobEL, XMLEle *ep, char * errmsg)
+int INDI::BaseDriver::processBLOB(IBLOB *blobEL, XMLEle *ep, char * errmsg)
 {
     XMLAtt *ap = NULL;
     int blobSize=0, r=0;
@@ -942,17 +942,17 @@ int INDI::BaseDevice::processBLOB(IBLOB *blobEL, XMLEle *ep, char * errmsg)
     return (0);
 }
 
-void INDI::BaseDevice::setDeviceName(const char *dev)
+void INDI::BaseDriver::setDeviceName(const char *dev)
 {
     strncpy(deviceID, dev, MAXINDINAME);
 }
 
-const char * INDI::BaseDevice::deviceName()
+const char * INDI::BaseDriver::deviceName()
 {
     return deviceID;
 }
 
-void INDI::BaseDevice::addMessage(const char *msg)
+void INDI::BaseDriver::addMessage(const char *msg)
 {
     messageQueue.append(msg);
 }

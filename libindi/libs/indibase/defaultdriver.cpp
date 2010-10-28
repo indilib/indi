@@ -3,23 +3,23 @@
 #include <errno.h>
 #include <zlib.h>
 
-#include "defaultdevice.h"
+#include "defaultdriver.h"
 #include "indicom.h"
 #include "base64.h"
 
 
-INDI::DefaultDevice::DefaultDevice()
+INDI::DefaultDriver::DefaultDriver()
 {
     pDebug = false;
     pSimulation = false;
 }
 
-bool INDI::DefaultDevice::loadConfig()
+bool INDI::DefaultDriver::loadConfig()
 {
     char errmsg[MAXRBUF];
     bool pResult = false;
 
-    pResult = readConfig(NULL, deviceID, errmsg) == 0 ? true : false;
+    pResult = IUReadConfig(NULL, deviceID, errmsg) == 0 ? true : false;
 
    if (pResult)
        IDMessage(deviceID, "Configuration successfully loaded.");
@@ -29,7 +29,7 @@ bool INDI::DefaultDevice::loadConfig()
    return pResult;
 }
 
-bool INDI::DefaultDevice::saveConfig()
+bool INDI::DefaultDriver::saveConfig()
 {
     std::vector<pOrder>::const_iterator orderi;
     ISwitchVectorProperty *svp=NULL;
@@ -80,7 +80,7 @@ bool INDI::DefaultDevice::saveConfig()
     return true;
 }
 
-bool INDI::DefaultDevice::loadDefaultConfig()
+bool INDI::DefaultDriver::loadDefaultConfig()
 {
     char configDefaultFileName[MAXRBUF];
     char errmsg[MAXRBUF];
@@ -94,7 +94,7 @@ bool INDI::DefaultDevice::loadDefaultConfig()
     if (pDebug)
         IDLog("Requesting to load default config with: %s\n", configDefaultFileName);
 
-    pResult = readConfig(configDefaultFileName, deviceID, errmsg) == 0 ? true : false;
+    pResult = IUReadConfig(configDefaultFileName, deviceID, errmsg) == 0 ? true : false;
 
     if (pResult)
         IDMessage(deviceID, "Default configuration loaded.");
@@ -104,7 +104,7 @@ bool INDI::DefaultDevice::loadDefaultConfig()
     return pResult;
 }
 
-bool INDI::DefaultDevice::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool INDI::DefaultDriver::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
 
     // ignore if not ours //
@@ -173,7 +173,7 @@ bool INDI::DefaultDevice::ISNewSwitch (const char *dev, const char *name, ISStat
 
 }
 
-void INDI::DefaultDevice::addAuxControls()
+void INDI::DefaultDriver::addAuxControls()
 {
     /**************************************************************************/
     DebugSP = getSwitch("DEBUG");
@@ -233,7 +233,7 @@ void INDI::DefaultDevice::addAuxControls()
 
 }
 
-void INDI::DefaultDevice::setDebug(bool enable)
+void INDI::DefaultDriver::setDebug(bool enable)
 {
     if (pDebug == enable)
     {
@@ -272,7 +272,7 @@ void INDI::DefaultDevice::setDebug(bool enable)
 
 }
 
-void INDI::DefaultDevice::setSimulation(bool enable)
+void INDI::DefaultDriver::setSimulation(bool enable)
 {
    if (pSimulation == enable)
    {
@@ -311,22 +311,22 @@ void INDI::DefaultDevice::setSimulation(bool enable)
 
 }
 
-bool INDI::DefaultDevice::isDebug()
+bool INDI::DefaultDriver::isDebug()
 {
   return pDebug;
 }
 
-bool INDI::DefaultDevice::isSimulation()
+bool INDI::DefaultDriver::isSimulation()
 {
  return pSimulation;
 }
 
-void INDI::DefaultDevice::setConnected(bool status)
+void INDI::DefaultDriver::setConnected(bool status)
 {
-    INDI::BaseDevice::setConnected(status);
+    INDI::BaseDriver::setConnected(status);
 }
 
-void INDI::DefaultDevice::ISGetProperties (const char *dev)
+void INDI::DefaultDriver::ISGetProperties (const char *dev)
 {
     std::vector<pOrder>::const_iterator orderi;
 
@@ -354,7 +354,7 @@ void INDI::DefaultDevice::ISGetProperties (const char *dev)
 
 }
 
-void INDI::DefaultDevice::resetProperties()
+void INDI::DefaultDriver::resetProperties()
 {
     std::vector<INumberVectorProperty *>::const_iterator numi;
     std::vector<ISwitchVectorProperty *>::const_iterator switchi;

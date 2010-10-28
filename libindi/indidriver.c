@@ -939,7 +939,7 @@ dispatch (XMLEle *root, char msg[])
         return(1);
 }
 
-int readConfig(const char *filename, const char *dev, char errmsg[])
+int IUReadConfig(const char *filename, const char *dev, char errmsg[])
 {
     char configFileName[MAXRBUF], configDefaultFileName[MAXRBUF];
     char *rname, *rdev;

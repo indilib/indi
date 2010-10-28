@@ -97,13 +97,13 @@ set (indimain_SRCS
     )
 
 set (indibase_SRCS
-        ${CMAKE_SOURCE_DIR}/libs/indibase/basedevice.cpp
+        ${CMAKE_SOURCE_DIR}/libs/indibase/basedriver.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/baseclient.cpp
     )
 
 set (indidefaultdevice_SRCS
-        ${CMAKE_SOURCE_DIR}/libs/indibase/basedevice.cpp
-        ${CMAKE_SOURCE_DIR}/libs/indibase/defaultdevice.cpp
+        ${CMAKE_SOURCE_DIR}/libs/indibase/basedriver.cpp
+        ${CMAKE_SOURCE_DIR}/libs/indibase/defaultdriver.cpp
     )
 
 
@@ -151,10 +151,10 @@ add_library(indidriver STATIC ${indimain_SRCS})
 install(TARGETS indidriver ARCHIVE DESTINATION lib${LIB_POSTFIX})
 
 ##############################################
-######## INDI Default Device Library #########
+######## INDI Default Driver Library #########
 ##############################################
-add_library(indidefaultdevice STATIC ${indimain_SRCS} ${indidefaultdevice_SRCS})
-install(TARGETS indidefaultdevice ARCHIVE DESTINATION lib${LIB_POSTFIX})
+add_library(indidefaultdriver STATIC ${indimain_SRCS} ${indidefaultdevice_SRCS})
+install(TARGETS indidefaultdriver ARCHIVE DESTINATION lib${LIB_POSTFIX})
 
 ##############################################
 ######## INDI Client Library #########
@@ -614,7 +614,7 @@ set(tutorialfour_SRCS
 
 add_executable(tutorial_four ${tutorialfour_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
 
-target_link_libraries(tutorial_four indidefaultdevice indiclient m z pthread)
+target_link_libraries(tutorial_four indidefaultdriver indiclient m z pthread)
 
 if (NOVA_FOUND)
   target_link_libraries(tutorial_four ${NOVA_LIBRARIES})
@@ -654,7 +654,7 @@ endif (NOVA_FOUND)
 install( FILES drivers.xml DESTINATION ${DATA_INSTALL_DIR})
 
 install( FILES indiapi.h indidevapi.h base64.h eventloop.h indidriver.h ${CMAKE_SOURCE_DIR}/libs/lilxml.h ${CMAKE_SOURCE_DIR}/libs/indibase/indibase.h
-${CMAKE_SOURCE_DIR}/libs/indibase/basedevice.h  ${CMAKE_SOURCE_DIR}/libs/indibase/defaultdevice.h
+${CMAKE_SOURCE_DIR}/libs/indibase/basedriver.h  ${CMAKE_SOURCE_DIR}/libs/indibase/defaultdriver.h
 ${CMAKE_SOURCE_DIR}/libs/indibase/baseclient.h ${CMAKE_SOURCE_DIR}/libs/indicom.h
  DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
 

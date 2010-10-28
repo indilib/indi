@@ -176,7 +176,7 @@ void MyScope::ISGetProperties(const char *dev)
 {
     static int configLoaded = 0;
 
-    INDI::DefaultDevice::ISGetProperties(dev);
+    INDI::DefaultDriver::ISGetProperties(dev);
 
     if (configLoaded == 0)
     {
@@ -234,7 +234,7 @@ bool MyScope::ISNewSwitch (const char *dev, const char *name, ISState *states, c
         if (strcmp (dev, deviceID))
             return false;
 
-        if (INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n) == true)
+        if (INDI::DefaultDriver::ISNewSwitch(dev, name, states, names, n) == true)
             return true;
 
         ISwitchVectorProperty *svp = getSwitch(name);

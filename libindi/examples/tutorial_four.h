@@ -1,6 +1,6 @@
 /*
-    LX200 Basic Driver
-    Copyright (C) 2005 Jasem Mutlaq (mutlaqja@ikarustech.com)
+    Tutorial Four
+    Copyright (C) 2010 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -23,9 +23,9 @@
 
 #include "indidevapi.h"
 #include "indicom.h"
-#include "indibase/defaultdevice.h"
+#include "indibase/defaultdriver.h"
 
-class MyScope : public INDI::DefaultDevice
+class MyScope : public INDI::DefaultDriver
 {
  public:
  MyScope();

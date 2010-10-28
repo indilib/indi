@@ -8,7 +8,7 @@
 #include <netdb.h>
 
 #include "baseclient.h"
-#include "basedevice.h"
+#include "basedriver.h"
 #include "indicom.h"
 
 #include <errno.h>
@@ -105,9 +105,9 @@ void INDI::BaseClient::disconnect()
     svrrfp = NULL;
 }
 
-INDI::BaseDevice * INDI::BaseClient::getDevice(const char * deviceName)
+INDI::BaseDriver * INDI::BaseClient::getDevice(const char * deviceName)
 {
-    vector<INDI::BaseDevice *>::const_iterator devi;
+    vector<INDI::BaseDriver *>::const_iterator devi;
     for ( devi = cDevices.begin(); devi != cDevices.end(); devi++)
         if (!strcmp(deviceName, (*devi)->deviceName()))
             return (*devi);
@@ -189,7 +189,7 @@ int INDI::BaseClient::dispatchCommand(XMLEle *root, char * errmsg)
         return delPropertyCmd(root, errmsg);
 
     /* Get the device, if not available, create it */
-    INDI::BaseDevice *dp = findDev (root, 1, errmsg);
+    INDI::BaseDriver *dp = findDev (root, 1, errmsg);
     if (dp == NULL)
     {
         strcpy(errmsg,"No device available and none was created");
@@ -220,7 +220,7 @@ int INDI::BaseClient::dispatchCommand(XMLEle *root, char * errmsg)
 int INDI::BaseClient::delPropertyCmd (XMLEle *root, char * errmsg)
 {
     XMLAtt *ap;
-    INDI::BaseDevice *dp;
+    INDI::BaseDriver *dp;
 
     /* dig out device and optional property name */
     dp = findDev (root, 0, errmsg);
@@ -241,7 +241,7 @@ int INDI::BaseClient::delPropertyCmd (XMLEle *root, char * errmsg)
 
 int INDI::BaseClient::removeDevice( const char * devName, char * errmsg )
 {
-    std::vector<INDI::BaseDevice *>::iterator devicei = cDevices.begin();
+    std::vector<INDI::BaseDriver *>::iterator devicei = cDevices.begin();
 
     while (devicei != cDevices.end())
     {
@@ -259,10 +259,10 @@ int INDI::BaseClient::removeDevice( const char * devName, char * errmsg )
     return INDI_DEVICE_NOT_FOUND;
 }
 
-INDI::BaseDevice * INDI::BaseClient::findDev( const char * devName, char * errmsg )
+INDI::BaseDriver * INDI::BaseClient::findDev( const char * devName, char * errmsg )
 {
 
-    std::vector<INDI::BaseDevice *>::const_iterator devicei;
+    std::vector<INDI::BaseDriver *>::const_iterator devicei;
 
     for (devicei = cDevices.begin(); devicei != cDevices.end(); devicei++)
     {
@@ -276,13 +276,13 @@ INDI::BaseDevice * INDI::BaseClient::findDev( const char * devName, char * errms
 }
 
 /* add new device */
-INDI::BaseDevice * INDI::BaseClient::addDevice (XMLEle *dep, char * errmsg)
+INDI::BaseDriver * INDI::BaseClient::addDevice (XMLEle *dep, char * errmsg)
 {
-    INDI::BaseDevice *dp;
+    INDI::BaseDriver *dp;
     XMLAtt *ap;
     char * device_name;
 
-    /* allocate new INDI::BaseDevice */
+    /* allocate new INDI::BaseDriver */
     ap = findXMLAtt (dep, "device");
     if (!ap)
     {
@@ -292,7 +292,7 @@ INDI::BaseDevice * INDI::BaseClient::addDevice (XMLEle *dep, char * errmsg)
 
     device_name = valuXMLAtt(ap);
 
-    dp = new INDI::BaseDevice();
+    dp = new INDI::BaseDriver();
     dp->setMediator(this);
     dp->setDeviceName(device_name);
 
@@ -304,10 +304,10 @@ INDI::BaseDevice * INDI::BaseClient::addDevice (XMLEle *dep, char * errmsg)
     return dp;
 }
 
-INDI::BaseDevice * INDI::BaseClient::findDev (XMLEle *root, int create, char * errmsg)
+INDI::BaseDriver * INDI::BaseClient::findDev (XMLEle *root, int create, char * errmsg)
 {
     XMLAtt *ap;
-    INDI::BaseDevice *dp;
+    INDI::BaseDriver *dp;
     char *dn;
 
     /* get device name */
@@ -345,7 +345,7 @@ int INDI::BaseClient::messageCmd (XMLEle *root, char * errmsg)
 /* add message to queue
  * N.B. don't put carriage control in msg, we take care of that.
  */
-void INDI::BaseClient::checkMsg (XMLEle *root, INDI::BaseDevice *dp)
+void INDI::BaseClient::checkMsg (XMLEle *root, INDI::BaseDriver *dp)
 {
     XMLAtt *ap;
     ap = findXMLAtt(root, "message");
@@ -355,7 +355,7 @@ void INDI::BaseClient::checkMsg (XMLEle *root, INDI::BaseDevice *dp)
 }
 
 /* Store msg in queue */
-void INDI::BaseClient::doMsg (XMLEle *msg, INDI::BaseDevice *dp)
+void INDI::BaseClient::doMsg (XMLEle *msg, INDI::BaseDriver *dp)
 {
     XMLAtt *message;
     XMLAtt *time_stamp;

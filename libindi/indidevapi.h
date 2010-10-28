@@ -304,7 +304,7 @@ typedef enum
 extern void IDSnoopDevice (const char *snooped_device, const char *snooped_property);
 
 /** \brief Function a Driver calls to control whether they will receive BLOBs from snooped devices.
-    \param snooped_device_name name of the device to snoop.
+    \param snooped_device name of the device to snoop.
     \param bh How drivers handle BLOBs incoming from snooping drivers.
 */
 extern void IDSnoopBLOBs (const char *snooped_device, BLOBHandling bh);
@@ -533,7 +533,7 @@ extern void IUFillNumber(INumber *np, const char *name, const char * label, cons
 extern void IUFillText(IText *tp, const char *name, const char * label, const char *initialText);
 
 /** \brief Assign attributes for a BLOB property. The BLOB's data and auxiliary elements will be set to NULL.
-    \param sp pointer a BLOB property to fill
+    \param bp pointer a BLOB property to fill
     \param name the BLOB name
     \param label the BLOB label
     \param format the BLOB format.
@@ -743,17 +743,55 @@ extern void ISSnoopDevice (XMLEle *root);
 /* Handy readability macro to avoid unused variables warnings */
 #define INDI_UNUSED(x) (void) x
 
+/** \brief Extract dev and name attributes from an XML element.
+    \param root The XML element to be parsed.
+    \param dev pointer to an allocated buffer to save the extracted element device name attribute.
+           The buffer size must be at least MAXINDIDEVICE bytes.
+    \param name pointer to an allocated buffer to save the extracted elemented name attribute.
+           The buffer size must be at least MAXINDINAME bytes.
+    \param msg pointer to an allocated char buffer to store error messages. The minimum buffer size is MAXRBUF.
+    \return 0 if successful, -1 if error is encountered and msg is set.
+*/
 extern int crackDN (XMLEle *root, char **dev, char **name, char msg[]);
+
+/** \brief Extract property state (Idle, OK, Busy, Alert) from the supplied string.
+    \param str A string representation of the state.
+    \param ip Pointer to IPState structure to store the extracted property state.
+    \return 0 if successful, -1 if error is encountered.
+*/
 extern int crackIPState (const char *str, IPState *ip);
+
+/** \brief Extract switch state (On or Off) from the supplied string.
+    \param str A string representation of the switch state.
+    \param ip Pointer to ISState structure to store the extracted switch state.
+    \return 0 if successful, -1 if error is encountered.
+*/
 extern int crackISState (const char *str, ISState *ip);
+
+/** \brief Extract property permission state (RW, RO, WO) from the supplied string.
+    \param str A string representation of the permission state.
+    \param ip Pointer to IPerm structure to store the extracted permission state.
+    \return 0 if successful, -1 if error is encountered.
+*/
 extern int crackIPerm (const char *str, IPerm *ip);
+
+/** \brief Extract switch rule (OneOfMany, OnlyOne..etc) from the supplied string.
+    \param str A string representation of the switch rule.
+    \param ip Pointer to ISRule structure to store the extracted switch rule.
+    \return 0 if successful, -1 if error is encountered.
+*/
 extern int crackISRule (const char *str, ISRule *ip);
-extern void xmlv1(void);
+
+/** \return Returns a string representation of the supplied property state. */
 extern const char *pstateStr(IPState s);
+/** \return Returns a string representation of the supplied switch status. */
 extern const char *sstateStr(ISState s);
+/** \return Returns a string representation of the supplied switch rule. */
 extern const char *ruleStr(ISRule r);
+/** \return Returns a string representation of the supplied permission value. */
 extern const char *permStr(IPerm p);
 
+extern void xmlv1(void);
 
 #ifdef __cplusplus
 }
