@@ -13,8 +13,11 @@
 
 /**
  * \class INDI::BaseDriver
-   \brief Class to provide basic INDI device functionality
+   \brief Class to provide basic INDI driver functionality.
 
+   INDI::BaseClient contains a vector list of INDI::BaseDrivers. Upon connection with INDI server, the client create a INDI::BaseDriver
+   \e instance for each driver owned by the INDI server. Properties of the driver can be build either by loading an external
+   skeleton file that contains a list of defXXX commands, or by dynamically building properties as they arrive from the server.
 
  */
 class INDI::BaseDriver
@@ -32,8 +35,15 @@ public:
         INDI_DISPATCH_ERROR=-4          /*!< Dispatching command to driver failed. */
     };
 
-    /** \brief INDI property type */
-    enum INDI_TYPE { INDI_NUMBER, INDI_SWITCH, INDI_TEXT, INDI_LIGHT, INDI_BLOB };
+    /*! INDI property type */
+    enum INDI_TYPE
+    {
+        INDI_NUMBER, /*!< INumberVectorProperty. */
+        INDI_SWITCH, /*!< ISwitchVectorProperty. */
+        INDI_TEXT,   /*!< ITextVectorProperty. */
+        INDI_LIGHT,  /*!< ILightVectorProperty. */
+        INDI_BLOB    /*!< IBLOBVectorProperty. */
+    };
 
     /** \return Return vector number property given its name */
     INumberVectorProperty * getNumber(const char *name);
@@ -64,28 +74,59 @@ public:
     */
     void * getProperty(const char *name, INDI_TYPE & type);
 
+    /** \brief Build driver properties from a skeleton file.
+        \param filename full path name of the file.
+
+    A skeloton file defines the properties supported by this driver. It is a list of defXXX elements enclosed by @<INDIDriver>@
+ and @</INDIDriver>@ opening and closing tags. After the properties are created, they can be rerieved, manipulated, and defined
+ to other clients.
+
+ \see An example skeleton file can be found under examples/tutorial_four_sk.xml
+
+    */
     void buildSkeleton(const char *filename);
 
+    /** \return True if the device is connected (CONNECT=ON), False otherwise */
     bool isConnected();
+    /** \brief Connect or Disconnect a device.
+      \param status If true, the driver will attempt to connect to the device (CONNECT=ON). If false, it will attempt
+to disconnect the device.
+    */
     virtual void setConnected(bool status);
 
+    /** \brief Set the device name
+      \param dev new device name
+      */
     void setDeviceName(const char *dev);
+    /** \return Returns the device name */
     const char *deviceName();
 
+    /** \brief Add message to the driver's message queue.
+        \param msg Message to add.
+    */
     void addMessage(const char *msg);
+    //** \returns Returns the contents of the driver's message queue. *;
     const char *message() { return messageQueue.c_str(); }
 
+    /** \brief Set the driver's mediator to receive notification of news devices and updated property values. */
     void setMediator(INDI::BaseMediator *med) { mediator = med; }
+    /** \returns Get the meditator assigned to this driver */
     INDI::BaseMediator * getMediator() { return mediator; }
 
 protected:
 
+    /** \brief Build a property given the supplied XML element (defXXX)
+      \param root XML element to parse and build.
+      \param errmsg buffer to store error message in parsing fails.
+
+      \return 0 if parsing is successful, -1 otherwise and errmsg is set */
     int buildProp(XMLEle *root, char *errmsg);
 
-    // handle SetXXX commands from client
+    /** \brief handle SetXXX commands from client */
     int setValue (XMLEle *root, char * errmsg);
+    /** \brief handle SetBLOB command from client */
     int processBLOB(IBLOB *blobEL, XMLEle *ep, char * errmsg);
-    virtual void newBLOB(unsigned char *buffer, unsigned long size, const char *format) {}
+    /** \brief Parse and store BLOB in the respective vector */
     int setBLOB(IBLOBVectorProperty *pp, XMLEle * root, char * errmsg);
 
     char deviceID[MAXINDINAME];

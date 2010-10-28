@@ -321,11 +321,6 @@ bool INDI::DefaultDriver::isSimulation()
  return pSimulation;
 }
 
-void INDI::DefaultDriver::setConnected(bool status)
-{
-    INDI::BaseDriver::setConnected(status);
-}
-
 void INDI::DefaultDriver::ISGetProperties (const char *dev)
 {
     std::vector<pOrder>::const_iterator orderi;

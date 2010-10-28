@@ -113,9 +113,11 @@ protected:
     /** \brief Find a device, and if it doesn't exist, create it if create is set to 1 */
     INDI::BaseDriver * findDev (XMLEle *root, int create, char * errmsg);
 
-    // Process messages
+    /**  Process messages */
     int messageCmd (XMLEle *root, char * errmsg);
+    /**  Process messages */
     void checkMsg (XMLEle *root, INDI::BaseDriver *dp);
+    /**  Process messages */
     void doMsg (XMLEle *msg, INDI::BaseDriver *dp);
 
     /** \brief Send new Text command to server */
