@@ -14,6 +14,7 @@ drivers directly as it is linked with main(). Virtual drivers cannot employ INDI
    defined to the client. Configuration options permit saving and loading of AS-IS property values.
 
 \see <a href='tutorial__four_8h_source.html'>Tutorial Four</a>
+\author Jasem Mutlaq
  */
 class INDI::DefaultDriver : public INDI::BaseDriver
 {

@@ -410,12 +410,9 @@ libindi/LICENSE -text
 libindi/NEWS -text
 libindi/README -text
 libindi/README.drivers -text
-libindi/README.robofocus -text
-libindi/README.stv -text
 libindi/TODO -text
 libindi/base64.c -text
 libindi/base64.h -text
-libindi/config.h.cmake -text
 libindi/drivers.xml -text
 libindi/drivers/ccd/fli_ccd.c -text
 libindi/drivers/filter_wheel/fli_wheel.c -text

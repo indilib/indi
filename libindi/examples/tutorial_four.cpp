@@ -164,7 +164,8 @@ void MyScope::init_properties()
     else
         IDLog("No skeleton file was specified. Set environment variable INDISKEL to the skeleton path and try again.\n");
 
-    // Optional: Add aux controls for configuration, debug & simulation
+    // Optional: Add aux controls for configuration, debug & simulation that get added in the Options tab
+    //           of the driver.
     addAuxControls();
 
 }
@@ -176,8 +177,10 @@ void MyScope::ISGetProperties(const char *dev)
 {
     static int configLoaded = 0;
 
+    // Ask the default driver first to send properties.
     INDI::DefaultDriver::ISGetProperties(dev);
 
+    // If no configuration is load before, then load it now.
     if (configLoaded == 0)
     {
       loadConfig();
@@ -213,6 +216,7 @@ bool MyScope::ISNewNumber (const char *dev, const char *name, double values[], c
         if (!nvp)
             return false;
 
+        // Are we updating Slew Accuracy?
         if (!strcmp(nvp->name, "Slew Accuracy"))
         {
             IUUpdateNumber(nvp, values, names, n);
@@ -242,6 +246,7 @@ bool MyScope::ISNewSwitch (const char *dev, const char *name, ISState *states, c
         if (!svp)
             return false;
 
+        // Are we update CONNECTION?
         if (!strcmp(svp->name, "CONNECTION"))
         {
             IUUpdateSwitch(svp, states, names, n);
@@ -265,14 +270,17 @@ void MyScope::connect_telescope()
     if (!sp)
         return;
 
+    // Are we connecting?
     if (!strcmp(sp->name, "CONNECT"))
     {
+        // Make sure to call setConnected(true) before informing client about successful connection
         setConnected(true);
         IDSetSwitch(svp, "Connecting.... telescope is online.");
         IDLog("Connecting.... telescope is online.\n");
 
 
     }
+    // Are we disconnecting?
     else
     {
         setConnected(false);

@@ -24,6 +24,7 @@ using namespace std;
 
    \attention All notifications functions defined in INDI::BaseMediator must be implemented in the client class even if
    they are not used because these are pure virtual functions.
+   \author Jasem Mutlaq
 
  */
 class INDI::BaseClient : public INDI::BaseMediator

@@ -19,6 +19,7 @@
    \e instance for each driver owned by the INDI server. Properties of the driver can be build either by loading an external
    skeleton file that contains a list of defXXX commands, or by dynamically building properties as they arrive from the server.
 
+   \author Jasem Mutlaq
  */
 class INDI::BaseDriver
 {
