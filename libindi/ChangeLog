@@ -1,3 +1,13 @@
+From 0.6.2 to 0.7.0
+
+      # Dynamic renaming of drivers upon run time.
+      # Standard helper API to create and utilize INDI clients.
+      # Ability to load driver properties from an external XML file.
+      # Ability to write/read XML configuration files for driver values to be loaded at run time.
+      # Facilitating debugging and simulation of drivers.
+      # New C++ framework to facilitate the development of new INDI drivers.
+      # Several bug fixes for current drivers and framework. 
+
 From 0.6.1 to 0.6.2
 
 	# Build related updates.
