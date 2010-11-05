@@ -173,7 +173,7 @@ bool INDI::DefaultDriver::ISNewSwitch (const char *dev, const char *name, ISStat
 
 }
 
-void INDI::DefaultDriver::addAuxControls()
+void INDI::DefaultDriver::addDebugControl()
 {
     /**************************************************************************/
     DebugSP = getSwitch("DEBUG");
@@ -196,6 +196,10 @@ void INDI::DefaultDriver::addAuxControls()
     }
     /**************************************************************************/
 
+}
+
+void INDI::DefaultDriver::addSimulationControl()
+{
     /**************************************************************************/
     SimulationSP = getSwitch("SIMULATION");
     if (!SimulationSP)
@@ -215,7 +219,10 @@ void INDI::DefaultDriver::addAuxControls()
             if (sp->s == ISS_ON)
                 pSimulation = true;
     }
+}
 
+void INDI::DefaultDriver::addConfigurationControl()
+{
     /**************************************************************************/
     ConfigProcessSP = getSwitch("CONFIG_PROCESS");
     if (!ConfigProcessSP)
@@ -233,17 +240,24 @@ void INDI::DefaultDriver::addAuxControls()
 
 }
 
+void INDI::DefaultDriver::addAuxControls()
+{
+   addDebugControl();
+   addSimulationControl();
+   addConfigurationControl();
+}
+
 void INDI::DefaultDriver::setDebug(bool enable)
 {
+    if (!DebugSP)
+        return;
+
     if (pDebug == enable)
     {
         DebugSP->s = IPS_OK;
         IDSetSwitch(DebugSP, NULL);
         return;
     }
-
-    if (!DebugSP)
-        return;
 
     IUResetSwitch(DebugSP);
 
@@ -274,15 +288,15 @@ void INDI::DefaultDriver::setDebug(bool enable)
 
 void INDI::DefaultDriver::setSimulation(bool enable)
 {
+    if (!SimulationSP)
+        return;
+
    if (pSimulation == enable)
    {
        SimulationSP->s = IPS_OK;
        IDSetSwitch(SimulationSP, NULL);
        return;
    }
-
-   if (!SimulationSP)
-       return;
 
    IUResetSwitch(SimulationSP);
 
@@ -346,7 +360,6 @@ void INDI::DefaultDriver::ISGetProperties (const char *dev)
              break;
         }
     }
-
 }
 
 void INDI::DefaultDriver::resetProperties()

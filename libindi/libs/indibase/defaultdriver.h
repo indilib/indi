@@ -25,6 +25,15 @@ public:
     /** \brief Add Debug, Simulation, and Configuration options to the driver */
     void addAuxControls();
 
+    /** \brief Add Debug control to the driver */
+    void addDebugControl();
+
+    /** \brief Add Simulation control to the driver */
+    void addSimulationControl();
+
+    /** \brief Add Configuration control to the driver */
+    void addConfigurationControl();
+
     /** \brief Set all properties to IDLE state */
     void resetProperties();
 

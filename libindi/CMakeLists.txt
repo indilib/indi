@@ -612,7 +612,7 @@ set(tutorialfour_SRCS
 
 add_executable(tutorial_four ${tutorialfour_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
 
-target_link_libraries(tutorial_four indidefaultdriver indiclient m z pthread)
+target_link_libraries(tutorial_four indidefaultdriver m z pthread)
 
 if (NOVA_FOUND)
   target_link_libraries(tutorial_four ${NOVA_LIBRARIES})
