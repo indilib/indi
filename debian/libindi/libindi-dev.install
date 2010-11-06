@@ -1,0 +1,7 @@
+debian/tmp/usr/include/libindi/*.h
+debian/tmp/usr/lib/libindidriver.a
+debian/tmp/usr/lib/libindidefaultdriver.a
+debian/tmp/usr/lib/libindiclient.a
+debian/tmp/usr/lib/libindi.so
+debian/tmp/usr/lib/pkgconfig/libindi.pc
+

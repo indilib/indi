@@ -33,7 +33,7 @@ Description: Instrument Neutral Distributed Interface library for astronomical d
  .
  This package contains the library.
 
-Package: libindi0-dev
+Package: libindi-dev
 Section: libdevel
 Architecture: any
 Depends: libindi0 (= ${binary:Version}), ${shlibs:Depends}, ${misc:Depends}

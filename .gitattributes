@@ -71,8 +71,7 @@ debian/libindi/changelog -text
 debian/libindi/compat -text
 debian/libindi/control -text
 debian/libindi/copyright -text
-debian/libindi/indi.install -text
-debian/libindi/libindi0-dev.install -text
+debian/libindi/libindi-dev.install -text
 debian/libindi/libindi0.install -text
 debian/libindi/rules -text
 debian/sbig/debian/changelog -text
