@@ -70,7 +70,9 @@ static int finished (void);
 static void onAlarm (int dummy);
 static int readServerChar (FILE *fp);
 static void findSet (XMLEle *root, FILE *fp);
-static void scanEV (SetSpec *sp, char e[], char v[]);
+static void scanEV (SetSpec *specp, char ev[]);
+static void scanEEVV (SetSpec *specp, char *ep, char ev[]);
+static void scanEVEV (SetSpec *specp, char ev[]);
 static void sendNew (FILE *fp, INDIDef *dp, SetSpec *sp);
 static void sendSpecs(FILE *wfp);
 
@@ -204,21 +206,24 @@ static void
 usage()
 {
 	fprintf(stderr, "Purpose: set one or more writable INDI properties\n");
-	fprintf(stderr, "%s\n", "$Revision: 1.4 $");
-	fprintf(stderr, "Usage: %s [options] {[type] device.property.e1[;e2...]=v1[;v2...]} ...\n",
-									    me);
+	fprintf(stderr, "%s\n", "$Revision: 1.6 $");
+	fprintf(stderr, "Usage: %s [options] {[type] spec} ...\n", me);
 	fprintf(stderr, "Options:\n");
 	fprintf(stderr, "  -d f  : use file descriptor f already open to server\n");
 	fprintf(stderr, "  -h h  : alternate host, default is %s\n", host_def);
 	fprintf(stderr, "  -p p  : alternate port, default is %d\n", INDIPORT);
 	fprintf(stderr, "  -t t  : max time to wait, default is %d secs\n",TIMEOUT);
-	fprintf(stderr, "  -v    : verbose (cumulative)\n");
-	fprintf(stderr, "Each property optionally preceded by its type is sent without first confirming\n");
+	fprintf(stderr, "  -v    : verbose (more are cumulative)\n");
+	fprintf(stderr, "Each spec optionally preceded by its type is sent without first confirming\n");
 	fprintf(stderr, "its structure. This is much more efficient but there is no error checking.\n");
 	fprintf(stderr, "Types are indicated with the following flags:\n");
 	fprintf(stderr, "  -x    : Text\n");
 	fprintf(stderr, "  -n    : Number\n");
 	fprintf(stderr, "  -s    : Switch\n");
+	fprintf(stderr, "Spec may be either:\n");
+	fprintf(stderr, "    device.property.e1[;e2...]=v1[;v2...]\n");
+	fprintf(stderr, "  or\n");
+	fprintf(stderr, "    device.property.e1=v1[;e2=v2...]\n");
 	fprintf(stderr, "Exit status:\n");
 	fprintf(stderr, "  0: all settings successful\n");
 	fprintf(stderr, "  1: at least one setting was invalid\n");
@@ -233,7 +238,7 @@ usage()
 static int
 crackSpec (int *acp, char **avp[])
 {
-	char d[1024], p[1024], e[2048], v[2048];
+	char d[128], p[128], ev[2048];
 	char *spec = *avp[0];
 	INDIDef *dp = NULL;
 
@@ -253,8 +258,8 @@ crackSpec (int *acp, char **avp[])
 	}
 
 	/* then scan arg for property spec */
-	if (sscanf (spec, "%[^.].%[^.].%[^.=]=%s", d, p, e, v) != 4) {
-	    fprintf (stderr, "Bad property format: %s\n", spec);
+	if (sscanf (spec, "%[^.].%[^.].%s", d, p, ev) != 3) {
+	    fprintf (stderr, "Malformed property spec: %s\n", spec);
 	    usage();
 	}
 
@@ -267,7 +272,7 @@ crackSpec (int *acp, char **avp[])
 	sets[nsets].dp = dp;
 	sets[nsets].ev = (SetEV *) malloc (1);		/* seed realloc */
 	sets[nsets].nev = 0;
-	scanEV (&sets[nsets++], e, v);
+	scanEV (&sets[nsets++], ev);
 
 	/* update caller's pointers */
 	(*acp)--;
@@ -465,43 +470,110 @@ sendNew (FILE *fp, INDIDef *dp, SetSpec *sp)
 	}
 }
 
-/* scan e1[;e2...] v1[;v2,...] from e[] and v[] and add to spec sp.
- * exit if trouble.
+/* scan ev for element definitions in either of two forms and add to sp:
+ *    e1[;e2...]=v1[;v2...]
+ *  or
+ *    e1=v1[;e2=v2...]
+ * exit if nothing sensible found.
  */
 static void
-scanEV (SetSpec *sp, char e[], char v[])
+scanEV (SetSpec *specp, char ev[])
 {
-	static char sep[] = ";";
-	char *ep, *vp;
+	char *ep, *sp;		/* pointers to = and ; */
 
 	if (verbose > 1)
-	    fprintf (stderr, "Scanning %s = %s\n", e, v);
+	    fprintf (stderr, "Scanning assignments %s\n", ev);
+
+	ep = strchr (ev, '=');
+	sp = strchr (ev, ';');
+
+	if (!ep) {
+	    fprintf (stderr, "Malformed assignment: %s\n", ev);
+	    usage();
+	}
+
+	if (sp < ep)
+	    scanEEVV (specp, ep, ev);	/* including just one E=V */
+	else
+	    scanEVEV (specp, ev);
+}
+
+/* add specs of the form e1[;e2...]=v1[;v2...] to sp.
+ * v is pointer to equal sign.
+ * exit if trouble.
+ * N.B. e[] and v[] are modified in place.
+ */
+static void
+scanEEVV (SetSpec *sp, char *v, char *e)
+{
+	static char sep[] = ";";
+	char *ec, *vc;
+
+	*v++ = '\0';
 
 	while (1) {
-	    char *e0 = strtok_r (e, sep, &ep);
-	    char *v0 = strtok_r (v, sep, &vp);
+	    char *e0 = strtok_r (e, sep, &ec);
+	    char *v0 = strtok_r (v, sep, &vc);
 
 	    if (!e0 && !v0)
 		break;
 	    if (!e0) {
-		fprintf (stderr, "More values than elements for %s.%s\n",
-								sp->d, sp->p);
+		fprintf (stderr, "More values than elements for %s.%s\n", sp->d, sp->p);
 		exit(2);
 	    }
 	    if (!v0) {
-		fprintf (stderr, "More elements than values for %s.%s\n",
-								sp->d, sp->p);
+		fprintf (stderr, "More elements than values for %s.%s\n", sp->d, sp->p);
 		exit(2);
 	    }
 
 	    sp->ev = (SetEV *) realloc (sp->ev, (sp->nev+1)*sizeof(SetEV));
 	    sp->ev[sp->nev].e = strcpy (malloc(strlen(e0)+1), e0);
 	    sp->ev[sp->nev].v = strcpy (malloc(strlen(v0)+1), v0);
+	    if (verbose > 1)
+		fprintf (stderr, "Found assignment %s=%s\n", sp->ev[sp->nev].e, sp->ev[sp->nev].v);
 	    sp->nev++;
 
 	    e = NULL;
 	    v = NULL;
 	}
+}
+
+/* add specs of the form e1=v1[;e2=v2...] to sp.
+ * exit if trouble.
+ * N.B. ev[] is modified in place.
+ */
+static void
+scanEVEV (SetSpec *sp, char ev[])
+{
+	char *s, *e;
+	int last = 0;
+
+	do {
+	    s = strchr (ev, ';');
+	    if (s)
+		*s++ = '\0';
+	    else {
+		s = ev + strlen (ev);
+		last = 1;
+	    }
+	    e = strchr (ev, '=');
+	    if (e)
+		*e++ = '\0';
+	    else {
+		fprintf (stderr, "Malformed assignment: %s\n", ev);
+		usage();
+	    }
+
+	    sp->ev = (SetEV *) realloc (sp->ev, (sp->nev+1)*sizeof(SetEV));
+	    sp->ev[sp->nev].e = strcpy (malloc(strlen(ev)+1), ev);
+	    sp->ev[sp->nev].v = strcpy (malloc(strlen(e)+1), e);
+	    if (verbose > 1)
+		fprintf (stderr, "Found assignment %s=%s\n", sp->ev[sp->nev].e, sp->ev[sp->nev].v);
+	    sp->nev++;
+
+	    ev = s;
+
+	} while (!last);
 }
 
 /* send each SetSpec, all of which have a known type, to wfp
@@ -516,4 +588,4 @@ sendSpecs(FILE *wfp)
 }
 
 /* For RCS Only -- Do Not Edit */
-static char *rcsid[2] = {(char *)rcsid, "@(#) $RCSfile: setINDI.c,v $ $Date: 2007/10/11 20:12:11 $ $Revision: 1.4 $ $Name:  $"};
+static char *rcsid[2] = {(char *)rcsid, "@(#) $RCSfile: setINDI.c,v $ $Date: 2010/11/07 07:13:59 $ $Revision: 1.6 $ $Name:  $"};
