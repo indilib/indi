@@ -131,12 +131,6 @@ indi-qhy/indi_qhy.xml -text
 indi-qhy/qhy5_driver.c -text
 indi-qhy/qhy5_driver.h -text
 indi-qhy/qhy_ccd.c -text
-indi-qsi/AUTHORS -text
-indi-qsi/INSTALL -text
-indi-qsi/README -text
-indi-qsi/config.h.cmake -text
-indi-qsi/indi_qsi.xml -text
-indi-qsi/qsi_ccd.cc -text
 libapogee/.cproject -text
 libapogee/.project -text
 libapogee/AUTHORS -text
