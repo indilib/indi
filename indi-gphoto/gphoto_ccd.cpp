@@ -121,32 +121,6 @@ INDI_UNUSED(root);
 }
 
 //==========================================================================
-static void
-IUFillBLOB(IBLOB *b, const char *name, const char *label, const char *format)
-{
-	memset(b, 0, sizeof(IBLOB));
-	strncpy(b->name, name, sizeof(b->name) - 1);
-	strncpy(b->label, label, sizeof(b->label) - 1);
-	strncpy(b->format, format, sizeof(b->format) - 1);
-}
-static void
-IUFillBLOBVector(IBLOBVectorProperty *bp, IBLOB *b, int nbp, const char *dev,
-	 const char *name, const char *label, const char *group, IPerm p,
-	 double timeout, IPState s)
-{
-	memset(bp, 0, sizeof(IBLOBVectorProperty));
-	strncpy(bp->device, dev, sizeof(bp->device) - 1);
-	strncpy(bp->name, name, sizeof(bp->name) - 1);
-	strncpy(bp->label, label, sizeof(bp->label) - 1);
-	strncpy(bp->group, group, sizeof(bp->group) - 1);
-	bp->p = p;
-	bp->timeout = timeout;
-	bp->s = s;
-	bp->bp = b;
-	bp->nbp = nbp;
-}
-
-//==========================================================================
 
 GPhotoCam::GPhotoCam()
 {
