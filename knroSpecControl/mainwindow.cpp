@@ -10,7 +10,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-#include <libindi/basedevice.h>
+#include <libindi/basedriver.h>
 
 #define MAX_FILENAME_LEN    1024
 #define TIMEOUT             10000
@@ -89,17 +89,13 @@ void MainWindow::disconnectServer()
 
 }
 
-void MainWindow::newDevice()
+void MainWindow::newDevice(const char *device_name)
 {
-    std::vector<INDI::BaseDevice *>::const_iterator devicei;
-
-    for (devicei = getDevices().begin(); devicei != getDevices().end(); devicei++)
-            ui->msgQueue->append(QString("KNRO: Successfully received and constructed %1 device.").arg((*devicei)->deviceName()));
+    ui->msgQueue->append(QString("KNRO: Successfully received and constructed %1 device.").arg(device_name));
 
     setBLOBMode(B_ALSO);
 
     deviceReceived = true;
-
 }
 
 void MainWindow::newBLOB(IBLOB *bp)
