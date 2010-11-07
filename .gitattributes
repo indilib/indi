@@ -101,12 +101,6 @@ indi-gphoto/gphoto_driver.h -text
 indi-gphoto/gphoto_readimage.c -text
 indi-gphoto/gphoto_readimage.h -text
 indi-gphoto/indi_gphoto.xml -text
-indi-meadedsi/AUTHORS -text
-indi-meadedsi/COPYING.LIB -text
-indi-meadedsi/ChangeLog -text
-indi-meadedsi/INSTALL -text
-indi-meadedsi/README -text
-indi-meadedsi/indi_meadedsi_ccd.xml -text
 indi-qhy/AUTHORS -text
 indi-qhy/CMakeLists.txt -text
 indi-qhy/COPYING.LIB -text

@@ -1,6 +1,0 @@
-<devGroup group="CCDs">
-	<device label="Meade DSI">
-		<driver name="Meade DSI">indi_meadedsi_ccd</driver>
-		<version>0.1</version>
-	</device>
-</devGroup>
