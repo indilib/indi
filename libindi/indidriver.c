@@ -322,6 +322,7 @@ void IUFillText(IText *tp, const char *name, const char * label, const char *ini
 
 void IUFillBLOB(IBLOB *bp, const char *name, const char * label, const char *format)
 {
+    memset(bp, 0, sizeof(IBLOB));
     strncpy(bp->name, name, MAXINDINAME);
     strncpy(bp->label, label, MAXINDILABEL);
     strncpy(bp->format, label, MAXINDIBLOBFMT);
@@ -340,7 +341,6 @@ void IUFillSwitchVector(ISwitchVectorProperty *svp, ISwitch *sp, int nsp, const 
   strncpy(svp->name, name, MAXINDINAME);
   strncpy(svp->label, label, MAXINDILABEL);
   strncpy(svp->group, group, MAXINDIGROUP);
-  strcpy(svp->timestamp, "");
   
   svp->p	= p;
   svp->r	= r;
@@ -398,18 +398,18 @@ void IUFillTextVector(ITextVectorProperty *tvp, IText *tp, int ntp, const char *
 
 void IUFillBLOBVector(IBLOBVectorProperty *bvp, IBLOB *bp, int nbp, const char * dev, const char *name, const char *label, const char* group, IPerm p, double timeout, IPState s)
 {
+    memset(bvp, 0, sizeof(IBLOBVectorProperty));
     strncpy(bvp->device, dev, MAXINDIDEVICE);
     strncpy(bvp->name, name, MAXINDINAME);
     strncpy(bvp->label, label, MAXINDILABEL);
     strncpy(bvp->group, group, MAXINDIGROUP);
     strcpy(bvp->timestamp, "");
 
-  bvp->p	= p;
-  bvp->timeout	= timeout;
-  bvp->s	= s;
-  bvp->bp	= bp;
-  bvp->nbp	= nbp;
-
+    bvp->p	= p;
+    bvp->timeout	= timeout;
+    bvp->s	= s;
+    bvp->bp	= bp;
+    bvp->nbp	= nbp;
 }
 
 /*****************************************************************************

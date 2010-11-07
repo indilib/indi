@@ -366,7 +366,9 @@ int INDI::BaseDriver::buildProp(XMLEle *root, char *errmsg)
         pNumbers.push_back(nvp);
         pOrder o = { INDI_NUMBER, nvp };
         pAll.push_back(o);
-        IDLog("Adding number property %s to list.\n", nvp->name);
+        //IDLog("Adding number property %s to list.\n", nvp->name);
+        if (mediator)
+            mediator->newProperty(nvp->name);
     }
     else
         IDLog("%s: newNumberVector with no valid members\n",rname);
@@ -420,7 +422,9 @@ int INDI::BaseDriver::buildProp(XMLEle *root, char *errmsg)
             pSwitches.push_back(svp);
             pOrder o = { INDI_SWITCH, svp };
             pAll.push_back(o);
-            IDLog("Adding Switch property %s to list.\n", svp->name);
+            //IDLog("Adding Switch property %s to list.\n", svp->name);
+            if (mediator)
+                mediator->newProperty(svp->name);
         }
         else
             IDLog("%s: newSwitchVector with no valid members\n",rname);
@@ -473,7 +477,9 @@ else if (!strcmp (rtag, "defTextVector"))
         pTexts.push_back(tvp);
         pOrder o = { INDI_TEXT, tvp };
         pAll.push_back(o);
-        IDLog("Adding Text property %s to list.\n", tvp->name);
+        //IDLog("Adding Text property %s to list.\n", tvp->name);
+        if (mediator)
+            mediator->newProperty(tvp->name);
     }
     else
         IDLog("%s: newTextVector with no valid members\n",rname);
@@ -523,7 +529,9 @@ else if (!strcmp (rtag, "defLightVector"))
         pLights.push_back(lvp);
         pOrder o = { INDI_LIGHT, lvp };
         pAll.push_back(o);
-        IDLog("Adding Light property %s to list.\n", lvp->name);
+        //IDLog("Adding Light property %s to list.\n", lvp->name);
+        if (mediator)
+            mediator->newProperty(lvp->name);
     }
     else
         IDLog("%s: newLightVector with no valid members\n",rname);
@@ -583,6 +591,8 @@ else if (!strcmp (rtag, "defBLOBVector"))
         pOrder o = { INDI_BLOB, bvp };
         pAll.push_back(o);
         IDLog("Adding BLOB property %s to list.\n", bvp->name);
+        if (mediator)
+            mediator->newProperty(bvp->name);
     }
     else
         IDLog("%s: newBLOBVector with no valid members\n",rname);

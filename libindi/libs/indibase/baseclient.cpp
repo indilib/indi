@@ -73,6 +73,8 @@ bool INDI::BaseClient::connect()
         return false;
     }
 
+    serverConnected();
+
     /* prepare for line-oriented i/o with client */
     svrwfp = fdopen (sockfd, "w");
     svrrfp = fdopen (sockfd, "r");
@@ -298,7 +300,7 @@ INDI::BaseDriver * INDI::BaseClient::addDevice (XMLEle *dep, char * errmsg)
 
     cDevices.push_back(dp);
 
-    newDevice();
+    newDevice(device_name);
 
     /* ok */
     return dp;
