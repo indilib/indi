@@ -62,7 +62,7 @@ const unsigned char COMM_FILL = 0x20;
 #define MAX_FILTER_COUNT		10
 #define ERRMSG_SIZE			1024
 
-#define CMD_SIZE			5
+#define CMD_SIZE			4
 #define CMD_JUNK			64
 #define CMD_RESP			15
 
@@ -167,9 +167,9 @@ void ISNewSwitch (const char *dev, const char *name, ISState *states, char *name
 		int nbytes=0;
 		unsigned char type = 0x03;
 		unsigned char chksum = COMM_INIT + type + COMM_FILL;
-		/*char filter_command[5] = { COMM_PRE, COMM_INIT, type, COMM_FILL, chksum };*/
                 unsigned char filter_command[CMD_SIZE];
-		snprintf(filter_command, CMD_SIZE,  "%c%c%c%c%c", COMM_PRE, COMM_INIT, type, COMM_FILL, chksum);
+                //snprintf(filter_command, CMD_SIZE,  "%c%c%c%c%c", COMM_PRE, COMM_INIT, type, COMM_FILL, chksum);
+                snprintf(filter_command, CMD_SIZE,  "%c%c%c%c", COMM_INIT, type, COMM_FILL, chksum);
 
 		if (checkPowerS(&HomeSP))
 			return;
@@ -180,8 +180,8 @@ void ISNewSwitch (const char *dev, const char *name, ISState *states, char *name
 
                 if (DEBUG_ON)
                 {
-                    IDLog("Home Search Command (int): #%d#%d#%d#%d#%d#\n",COMM_PRE, COMM_INIT, type, COMM_FILL, chksum);
-                    IDLog("Home Search Command (char): #%c#%c#%c#%c#%c#\n",COMM_PRE, COMM_INIT, type, COMM_FILL, chksum);
+                    IDLog("Home Search Command (int): #%d#%d#%d#%d#\n",COMM_INIT, type, COMM_FILL, chksum);
+                    IDLog("Home Search Command (char): #%c#%c#%c#%c#\n",COMM_INIT, type, COMM_FILL, chksum);
                 }
 
 		/* Send Home Command */
@@ -272,12 +272,13 @@ void ISNewNumber (const char *dev, const char *name, double values[], char *name
 
 			IUUpdateNumber(&FilterPositionNP, values, names, n);
 
-                        snprintf(filter_command, CMD_SIZE,  "%c%c%c%c%c", COMM_PRE, COMM_INIT, type, targetFilter, chksum);
+                        //snprintf(filter_command, CMD_SIZE,  "%c%c%c%c%c", COMM_PRE, COMM_INIT, type, targetFilter, chksum);
+                        snprintf(filter_command, CMD_SIZE,  "%c%c%c%c", COMM_INIT, type, targetFilter, chksum);
 
                         if (DEBUG_ON)
                         {
-                            IDLog("Filter Position Command (int): #%d#%d#%d#%d#%d#\n",COMM_PRE, COMM_INIT, type, targetFilter, chksum);
-                            IDLog("Filter Position Command (char): #%c#%c#%c#%c#%c#\n",COMM_PRE, COMM_INIT, type, targetFilter, chksum);
+                            IDLog("Filter Position Command (int): #%d#%d#%d#%d#\n", COMM_INIT, type, targetFilter, chksum);
+                            IDLog("Filter Position Command (char): #%c#%c#%c#%c#\n", COMM_INIT, type, targetFilter, chksum);
                         }
 
                         if (!SIMULATION_ON)
