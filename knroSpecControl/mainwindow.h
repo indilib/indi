@@ -24,7 +24,7 @@ public:
 
 protected:
     virtual void newDevice(const char *device_name);
-    virtual void newProperty(const char *property_name) {}
+    virtual void newProperty(const char *device_name, const char *property_name) {}
     virtual void newBLOB(IBLOB *bp);
     virtual void newSwitch(ISwitchVectorProperty *svp);
     virtual void newNumber(INumberVectorProperty *nvp) {}

@@ -63,7 +63,7 @@ void MainWindow::connectServer()
     // User may still change it, but 8000 is default
     setServer("localhost", serverPort);
 
-    if (INDI::BaseClient::connect() == false)
+    if (INDI::BaseClient::connectServer() == false)
         ui->msgQueue->append(QString("KNRO: connection to server on port %1 is refused...").arg(ui->serverPort->text()));
     else
     {
@@ -78,7 +78,7 @@ void MainWindow::disconnectServer()
 {
     qDebug() << "Disconnecting ..." << endl;
 
-    INDI::BaseClient::disconnect();
+    INDI::BaseClient::disconnectServer();
 
     BLOBDirty = true;
     deviceReceived = false;
