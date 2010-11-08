@@ -62,7 +62,7 @@ const unsigned char COMM_FILL = 0x20;
 #define MAX_FILTER_COUNT		10
 #define ERRMSG_SIZE			1024
 
-#define CMD_SIZE			4
+#define CMD_SIZE			5
 #define CMD_JUNK			64
 #define CMD_RESP			15
 
