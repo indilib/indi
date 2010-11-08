@@ -430,6 +430,8 @@ libindi/examples/README -text
 libindi/examples/ccdpreview.txt -text
 libindi/examples/ngc1316o.fits -text
 libindi/examples/tutorial_ccdpreview.c -text
+libindi/examples/tutorial_client.cpp -text
+libindi/examples/tutorial_client.h -text
 libindi/examples/tutorial_dome.c -text
 libindi/examples/tutorial_four.cpp -text
 libindi/examples/tutorial_four.h -text
