@@ -37,6 +37,13 @@ public:
     /** \brief Set all properties to IDLE state */
     void resetProperties();
 
+    /** \brief Connect or Disconnect a device.
+      \param status If true, the driver will attempt to connect to the device (CONNECT=ON). If false, it will attempt
+to disconnect the device.
+      \param msg A message to be sent along with connect/disconnect command.
+    */
+    virtual void setConnected(bool status, const char *msg = NULL);
+
 protected:
 
     /** \brief define the driver's properties to the client.

@@ -649,6 +649,20 @@ if (NOVA_FOUND)
   target_link_libraries(tutorial_rain ${NOVA_LIBRARIES})
 endif (NOVA_FOUND)
 
+
+########### Client Tutorial ##############
+set(tutorialclient_SRCS
+        ${CMAKE_SOURCE_DIR}/examples/tutorial_client.cpp
+   )
+
+add_executable(tutorial_client ${tutorialclient_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
+
+target_link_libraries(tutorial_client indiclient m)
+
+if (NOVA_FOUND)
+  target_link_libraries(tutorial_client ${NOVA_LIBRARIES})
+endif (NOVA_FOUND)
+
 #################################################################################
 
 install( FILES drivers.xml DESTINATION ${DATA_INSTALL_DIR})

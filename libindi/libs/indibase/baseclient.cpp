@@ -26,7 +26,7 @@ INDI::BaseClient::BaseClient()
 INDI::BaseClient::~BaseClient()
 {
 
-    disconnect();
+    disconnectServer();
 
 }
 
@@ -42,7 +42,7 @@ void INDI::BaseClient::watchDevice(const char * deviceName)
     cDeviceNames.push_back(deviceName);
 }
 
-bool INDI::BaseClient::connect()
+bool INDI::BaseClient::connectServer()
 {
     struct sockaddr_in serv_addr;
     struct hostent *hp;
@@ -90,7 +90,7 @@ bool INDI::BaseClient::connect()
     return true;
 }
 
-void INDI::BaseClient::disconnect()
+void INDI::BaseClient::disconnectServer()
 {
     char errmsg[MAXRBUF];
     removeDevice(NULL, errmsg);
@@ -107,7 +107,54 @@ void INDI::BaseClient::disconnect()
     svrrfp = NULL;
 }
 
-INDI::BaseDriver * INDI::BaseClient::getDevice(const char * deviceName)
+
+void INDI::BaseClient::setDriverConnection(bool status, const char *deviceName)
+{
+    INDI::BaseDriver *drv = getDriver(deviceName);
+    ISwitchVectorProperty *drv_connection = NULL;
+
+    if (drv == NULL)
+    {
+        IDLog("INDI::BaseClient: Error. Unable to find driver %s\n", deviceName);
+        return;
+    }
+
+    drv_connection = drv->getSwitch("CONNECTION");
+
+    // If we need to connect
+    if (status)
+    {
+        // If there is no need to do anything, i.e. already connected.
+        if (drv_connection->sp[0].s == ISS_ON)
+            return;
+
+        IUResetSwitch(drv_connection);
+        drv_connection->s = IPS_BUSY;
+        drv_connection->sp[0].s = ISS_ON;
+        drv_connection->sp[1].s = ISS_OFF;
+
+        sendNewSwitch(drv_connection, &(drv_connection->sp[0]));
+    }
+    else
+    {
+        // If there is no need to do anything, i.e. already disconnected.
+        if (drv_connection->sp[1].s == ISS_ON)
+            return;
+
+        IUResetSwitch(drv_connection);
+        drv_connection->s = IPS_BUSY;
+        drv_connection->sp[0].s = ISS_OFF;
+        drv_connection->sp[1].s = ISS_ON;
+
+        sendNewSwitch(drv_connection, &(drv_connection->sp[1]));
+
+    }
+
+
+}
+
+
+INDI::BaseDriver * INDI::BaseClient::getDriver(const char * deviceName)
 {
     vector<INDI::BaseDriver *>::const_iterator devi;
     for ( devi = cDevices.begin(); devi != cDevices.end(); devi++)
@@ -144,7 +191,7 @@ void INDI::BaseClient::listenINDI()
     /* read from server, exit if find all requested properties */
     while (1)
     {
-        n = fread(buffer, 1, MAXINDIBUF, svrrfp);
+        n = read(sockfd, buffer, MAXINDIBUF);
 
         if (n ==0)
         {

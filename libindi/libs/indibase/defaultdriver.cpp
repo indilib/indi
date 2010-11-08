@@ -400,3 +400,35 @@ void INDI::DefaultDriver::resetProperties()
        IDSetBLOB( (*blobi), NULL);
    }
 }
+
+void INDI::DefaultDriver::setConnected(bool status, const char *msg)
+{
+    ISwitch *sp = NULL;
+    ISwitchVectorProperty *svp = getSwitch("CONNECTION");
+    if (!svp)
+        return;
+
+    IUResetSwitch(svp);
+
+    // Connect
+    if (status)
+    {
+        sp = IUFindSwitch(svp, "CONNECT");
+        if (!sp)
+            return;
+        sp->s = ISS_ON;
+    }
+    // Disconnect
+    else
+    {
+        sp = IUFindSwitch(svp, "DISCONNECT");
+        if (!sp)
+            return;
+        sp->s = ISS_ON;
+    }
+
+    svp->s = IPS_OK;
+
+    IDSetSwitch(svp, msg, NULL);
+
+}

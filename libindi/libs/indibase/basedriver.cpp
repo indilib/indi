@@ -368,7 +368,7 @@ int INDI::BaseDriver::buildProp(XMLEle *root, char *errmsg)
         pAll.push_back(o);
         //IDLog("Adding number property %s to list.\n", nvp->name);
         if (mediator)
-            mediator->newProperty(nvp->name);
+            mediator->newProperty(nvp->device, nvp->name);
     }
     else
         IDLog("%s: newNumberVector with no valid members\n",rname);
@@ -424,7 +424,7 @@ int INDI::BaseDriver::buildProp(XMLEle *root, char *errmsg)
             pAll.push_back(o);
             //IDLog("Adding Switch property %s to list.\n", svp->name);
             if (mediator)
-                mediator->newProperty(svp->name);
+                mediator->newProperty(svp->device, svp->name);
         }
         else
             IDLog("%s: newSwitchVector with no valid members\n",rname);
@@ -479,7 +479,7 @@ else if (!strcmp (rtag, "defTextVector"))
         pAll.push_back(o);
         //IDLog("Adding Text property %s to list.\n", tvp->name);
         if (mediator)
-            mediator->newProperty(tvp->name);
+            mediator->newProperty(tvp->device, tvp->name);
     }
     else
         IDLog("%s: newTextVector with no valid members\n",rname);
@@ -531,7 +531,7 @@ else if (!strcmp (rtag, "defLightVector"))
         pAll.push_back(o);
         //IDLog("Adding Light property %s to list.\n", lvp->name);
         if (mediator)
-            mediator->newProperty(lvp->name);
+            mediator->newProperty(lvp->device, lvp->name);
     }
     else
         IDLog("%s: newLightVector with no valid members\n",rname);
@@ -590,9 +590,9 @@ else if (!strcmp (rtag, "defBLOBVector"))
         pBlobs.push_back(bvp);
         pOrder o = { INDI_BLOB, bvp };
         pAll.push_back(o);
-        IDLog("Adding BLOB property %s to list.\n", bvp->name);
+        //IDLog("Adding BLOB property %s to list.\n", bvp->name);
         if (mediator)
-            mediator->newProperty(bvp->name);
+            mediator->newProperty(bvp->device, bvp->name);
     }
     else
         IDLog("%s: newBLOBVector with no valid members\n",rname);
@@ -618,35 +618,6 @@ bool INDI::BaseDriver::isConnected()
     else
         return false;
 
-}
-
-void INDI::BaseDriver::setConnected(bool status)
-{
-    ISwitch *sp = NULL;
-    ISwitchVectorProperty *svp = getSwitch("CONNECTION");
-    if (!svp)
-        return;
-
-    IUResetSwitch(svp);
-
-    // Connect
-    if (status)
-    {
-        sp = IUFindSwitch(svp, "CONNECT");
-        if (!sp)
-            return;
-        sp->s = ISS_ON;
-    }
-    // Disconnect
-    else
-    {
-        sp = IUFindSwitch(svp, "DISCONNECT");
-        if (!sp)
-            return;
-        sp->s = ISS_ON;
-    }
-
-    svp->s = IPS_OK;
 }
 
 /*

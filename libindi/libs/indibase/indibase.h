@@ -42,9 +42,10 @@ public:
     virtual void newDevice(const char *device_name)  =0;
 
     /** \brief Emmited when a new property is created for an INDI driver.
+        \param device_name Name of the device
         \param property_name Name of the new property
     */
-    virtual void newProperty(const char *property_name)  =0;
+    virtual void newProperty(const char *device_name, const char *property_name)  =0;
 
     /** \brief Emmited when a new BLOB value arrives from INDI server.
         \param bp Pointer to filled and process BLOB.

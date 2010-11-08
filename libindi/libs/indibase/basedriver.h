@@ -89,11 +89,7 @@ public:
 
     /** \return True if the device is connected (CONNECT=ON), False otherwise */
     bool isConnected();
-    /** \brief Connect or Disconnect a device.
-      \param status If true, the driver will attempt to connect to the device (CONNECT=ON). If false, it will attempt
-to disconnect the device.
-    */
-    virtual void setConnected(bool status);
+
 
     /** \brief Set the device name
       \param dev new device name

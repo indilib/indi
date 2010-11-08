@@ -56,23 +56,29 @@ public:
         \returns True if the connection is successful, false otherwise.
         \note This function blocks until connection is either successull or unsuccessful.
     */
-    bool connect();
+    bool connectServer();
 
     /** \brief Disconnect from INDI server.
 
         Disconnects from INDI servers. Any devices previously created will be deleted and memory cleared.
     */
-    void disconnect();
+    void disconnectServer();
 
+    /** \brief Connect/Disconnect to INDI driver
+        \param status If true, the client will attempt to turn on CONNECTION property within the driver (i.e. turn on the device).
+         Otherwise, CONNECTION will be turned off.
+        \param deviceName Name of the device to connect to.
+    */
+    void setDriverConnection(bool status, const char *deviceName);
 
     /** \param deviceName Name of device to search for in the list of devices owned by INDI server,
          \returns If \e deviceName exists, it returns an instance of the device. Otherwise, it returns NULL.
     */
-    INDI::BaseDriver * getDevice(const char * deviceName);
+    INDI::BaseDriver * getDriver(const char * deviceName);
 
     /** \returns Returns a vector of all devices created in the client.
     */
-    const vector<INDI::BaseDriver *> & getDevices() const { return cDevices; }
+    const vector<INDI::BaseDriver *> & getDrivers() const { return cDevices; }
 
     /** \brief Set Binary Large Object policy mode
 
