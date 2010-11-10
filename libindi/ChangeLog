@@ -1,3 +1,11 @@
+From 0.7.0 to 0.7.1
+
+      # Fixed change filter bug in true technology filter wheel. (JM)
+      # setINDI updated and improved. (ED)
+      # Improved INDI::Mediator functionality. (JM)
+      # Fixed buffer reading in INDI::BaseClient. (JM)
+      # Add new tutorial for INDI::BaseClient. (JM).
+
 From 0.6.2 to 0.7.0
 
       # Dynamic renaming of drivers upon run time.

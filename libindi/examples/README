@@ -15,9 +15,11 @@ Four tutorials are presented to introduce developers to the INDI architecture.
 
 tutorial_one: We construct a most basic (and useless) device driver to illustate basic INDI structures.
 tutorial_two:  We create a simple simulator. We will use a few handy utility functions provided by INDI like timers, string <---> number conversion, and more.
-tutorial_three:  We create a simple device, and establish a data channel with the client to transmit a FITS file. 
+tutorial_three:  We create a simple CCD simulator, and establish a data channel with the client to transmit a FITS file. 
 
 tutorial_dome and tutorial_rain are part of the inter-driver communication tutorial. 
+
+tutorial_client: We create a simple client to set the temperature of a CCD simulator (tutorial_three).
 
 Usage
 --------
@@ -44,9 +46,24 @@ $ indiserver -v -p 8000 ./tutorial_NUM
 
 where num is the tutorial number (tutorial_one, tutorial_two, or tutorial_three).
 
+------------------------------------------------------------------------------------------
+
 For the inter-driver communications tutorial, type instead:
 
 $ indiserver -v -p 8000 ./tutorial_dome ./tutorial_rain
+
+------------------------------------------------------------------------------------------
+
+For tutorial_client. Run tutorial_three first:
+
+$ indiserver -v ./tutorial_three
+
+Then open another console tab, and run the client:
+
+$ ./tutorial_client
+
+You can connect to tutorial_three via a GUI client (e.g. KStars) before running tutorial_client. This will enable you to watch 
+changes in the driver as they occur from tutorial_client. Make sure to set the port to 7624 in KStars.
 
 ------------------------------------------------------------------------------------------
 

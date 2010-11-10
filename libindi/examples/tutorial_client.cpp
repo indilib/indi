@@ -47,7 +47,7 @@ using namespace std;
 
 #define MYCCD "CCD Simulator"
 
-/* Our telescope auto pointer */
+/* Our client auto pointer */
 auto_ptr<MyClient> camera_client(0);
 
 int main(int argc, char *argv[])
@@ -126,7 +126,6 @@ void MyClient::newDevice(const char *device_name)
             return;
         }
     }
-
 }
 
 /**************************************************************************************
@@ -134,18 +133,12 @@ void MyClient::newDevice(const char *device_name)
 ***************************************************************************************/
 void MyClient::newProperty(const char *device_name, const char *property_name)
 {
-     if (!strcmp(device_name, "CCD Simulator"))
+     if (!strcmp(device_name, "CCD Simulator") && !strcmp(property_name, "CCD_TEMPERATURE"))
      {
-         if (!strcmp(property_name, "CCD_TEMPERATURE"))
-         {
              IDLog("CCD_TEMPERATURE standard property defined. Attempting connection to CCD...\n");
-
              setDriverConnection(true, MYCCD);
-
-         }
      }
 }
-
 
 /**************************************************************************************
 **
@@ -160,7 +153,6 @@ void MyClient::newSwitch(ISwitchVectorProperty *svp)
             IDLog("CCD is connected. Setting temperature to -20 C.\n");
             setTemperature();
         }
-
     }
 }
 

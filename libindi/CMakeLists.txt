@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 2.4.7)
 set(INDI_SOVERSION "0")
 set(CMAKE_INDI_VERSION_MAJOR 0)
 set(CMAKE_INDI_VERSION_MINOR 7)
-set(CMAKE_INDI_VERSION_RELEASE 0)
+set(CMAKE_INDI_VERSION_RELEASE 1)
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
 
 ##################  Paths  ################################
@@ -46,7 +46,7 @@ macro_log_feature(CFITSIO_FOUND "libcfitsio" "A library for reading and writing 
 
 
 macro_optional_find_package(FLI)
-macro_log_feature(FLI_FOUND "libfli" "Finger Lakes Instrument Library" "http://indi.sourceforge.net/" FALSE "1.71" "Provides INDI with support for controlling FLI CCDS & Filter Wheels.")
+macro_log_feature(FLI_FOUND "libfli" "Finger Lakes Instrument Library" "http://www.indilib.org/" FALSE "1.71" "Provides INDI with support for controlling FLI CCDS & Filter Wheels.")
 
 macro_optional_find_package(Nova)
 macro_bool_to_01(NOVA_FOUND HAVE_NOVA_H)
@@ -57,6 +57,10 @@ check_include_files(termios.h TERMIOS_FOUND)
 macro_bool_to_01(TERMIOS_FOUND HAVE_TERMIOS_H)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
+
+if(COMMAND cmake_policy)
+ cmake_policy(SET CMP0003 NEW)
+endif(COMMAND cmake_policy)
 
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_SOURCE_DIR})
