@@ -26,8 +26,6 @@
 #include <time.h>
 #include <memory>
 
-#include <config.h>
-
 /* INDI Common Library Routines */
 #include "indicom.h"
 
@@ -50,7 +48,6 @@ const char *OPTIONS_GROUP  = "Options";			// Options Group
 const char *OPERATION_GROUP  = "Operation";			// Operation Group
 
 static void ISPoll(void *);
-static void retry_connection(void *);
 
 /**************************************************************************************
 ** Send client definitions of all properties.
@@ -400,7 +397,7 @@ void MaxDomeII::ISNewNumber (const char *dev, const char *name, double values[],
 			{
 				AzimuthWNP.np[0].value = newAZ;
 				AzimuthWNP.s = IPS_BUSY;
-				IDSetNumber(&AzimuthWNP,"");
+                                IDSetNumber(&AzimuthWNP, NULL);
 			}
 		}
 		else

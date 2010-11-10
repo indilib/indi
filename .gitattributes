@@ -37,6 +37,8 @@
 3rdparty/indi-gphoto/gphoto_readimage.c -text
 3rdparty/indi-gphoto/gphoto_readimage.h -text
 3rdparty/indi-gphoto/indi_gphoto.xml -text
+3rdparty/indi-maxdomeii/CMakeLists.txt -text
+3rdparty/indi-maxdomeii/indi_maxdomeii.xml -text
 3rdparty/indi-maxdomeii/maxdomeii.cpp -text
 3rdparty/indi-maxdomeii/maxdomeii.h -text
 3rdparty/indi-maxdomeii/maxdomeiidriver.c -text
