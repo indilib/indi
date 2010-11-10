@@ -1,4 +1,4 @@
-debian/tmp/usr/lib/libindi.so.0.7.0
+debian/tmp/usr/lib/libindi.so.0.7.1
 debian/tmp/usr/lib/libindi.so.0
 debian/tmp/usr/share/indi/drivers.xml
 debian/tmp/usr/bin/indi*
