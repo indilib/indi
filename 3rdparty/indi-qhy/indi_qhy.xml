@@ -1,0 +1,13 @@
+<devGroup group="Telescopes">
+	<device label="QHY5 Drive">
+		<driver name="QHY5 CCD">indi_qhy_ccd</driver>
+		<version>1.0</version>
+	</device>
+</devGroup>
+<devGroup group="CCDs">
+	<device label="QHY5 CCD">
+		<driver name="QHY5 CCD">indi_qhy_ccd</driver>
+		<version>1.0</version>
+	</device>
+</devGroup>
+

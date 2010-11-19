@@ -1,0 +1,20 @@
+This package was debianized by Geoffrey Hausheer <astro@phrcaturedblue.com> on
+Tue, 25 Aug 2009 06:13:28 -0700.
+
+Copyright:
+
+The firmware files (*.hex) are copyrighted by Tom Van den Eede.  All other files
+are Copyright (C) 2009 Geoffrey Hausheer <astro@phracturedblue.com>
+
+License:
+
+The firmware files (*.hex) are copyrighted by Tom Van den Eede, and can be freely
+used and resdistributed, but may not be modified without permission of the
+original author.
+
+All other files are distributed under the following license:
+
+    <LGPL>
+
+On Debian/Ubuntu systems, the full text of the GNU General Public License,
+version 2, can be found at /usr/share/common-licenses/GPL-2.
