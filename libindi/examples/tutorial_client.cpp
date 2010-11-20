@@ -92,7 +92,6 @@ MyClient::~MyClient()
 ***************************************************************************************/
 void MyClient::setTemperature()
 {
-
    INumberVectorProperty *ccd_temperature = NULL;
 
    ccd_temperature = ccd_simulator->getNumber("CCD_TEMPERATURE");
@@ -104,9 +103,7 @@ void MyClient::setTemperature()
    }
 
    ccd_temperature->np[0].value = -20;
-
    sendNewNumber(ccd_temperature);
-
 }
 
 /**************************************************************************************
@@ -169,5 +166,4 @@ void MyClient::newNumber(INumberVectorProperty *nvp)
        if (nvp->np[0].value == -20)
            IDLog("CCD temperature reached desired value!\n");
    }
-
 }

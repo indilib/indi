@@ -148,21 +148,21 @@ install(TARGETS indi LIBRARY DESTINATION lib${LIB_POSTFIX})
 set_target_properties(indi PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION})
 
 
-######################################
-######## INDI Static Library #########
-######################################
-add_library(indidriver STATIC ${indimain_SRCS})
-install(TARGETS indidriver ARCHIVE DESTINATION lib${LIB_POSTFIX})
+##################################################
+######## INDI Base Dirver Static Library #########
+##################################################
+add_library(indibasedriver STATIC ${indimain_SRCS})
+install(TARGETS indibasedriver ARCHIVE DESTINATION lib${LIB_POSTFIX})
 
-##############################################
-######## INDI Default Driver Library #########
-##############################################
+##################################################
+######## INDI Default Driver Library #############
+##################################################
 add_library(indidefaultdriver STATIC ${indimain_SRCS} ${indidefaultdevice_SRCS})
 install(TARGETS indidefaultdriver ARCHIVE DESTINATION lib${LIB_POSTFIX})
 
-##############################################
-######## INDI Client Library #########
-##############################################
+#################################################
+############# INDI Client Library ###############
+#################################################
 add_library(indiclient STATIC ${indibase_SRCS})
 target_link_libraries(indiclient indi)
 install(TARGETS indiclient ARCHIVE DESTINATION lib${LIB_POSTFIX})
