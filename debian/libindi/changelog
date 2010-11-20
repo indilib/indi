@@ -1,8 +1,8 @@
-libindi (0.7.1-0ubuntu1) maverick; urgency=low
+libindi (0.7.2-0ubuntu1) maverick; urgency=low
 
   * New upstream release.
 
- -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Wed, 10 Nov 2010 23:47:47 +0300
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sat, 20 Nov 2010 14:45:48 +0300
 
 libindi (0.7.0-0ubuntu1) maverick; urgency=low
 
