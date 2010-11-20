@@ -44,8 +44,6 @@
 
 #include <libnova/libnova.h>
 
-#include <config.h>
-
 #include "spectracyber.h"
 
 #define mydev		"SpectraCyber"
@@ -190,7 +188,7 @@ void SpectraCyber::ISGetProperties(const char *dev)
 {
     static int propInit=0;
 
-    INDI::DefaultDevice::ISGetProperties(dev);
+    INDI::DefaultDriver::ISGetProperties(dev);
 
     if (propInit == 0)
     {
@@ -198,14 +196,20 @@ void SpectraCyber::ISGetProperties(const char *dev)
 
         loadConfig();
 
-        ITextVectorProperty *tProp = getText("Telescope");
+        ITextVectorProperty *tProp = getText("ACTIVE_DEVICES");
 
         if (tProp)
-           IDSnoopDevice(tProp->tp[0].text, "EQUATORIAL_EOD_COORD_REQUEST");
+        {
+            IText *telescopeID = IUFindText(tProp, "ACTIVE_TELESCOPE");
 
-        propInit = 1;
+            if (telescopeID)
+            {
+                IDSnoopDevice(telescopeID->text, "EQUATORIAL_EOD_COORD_REQUEST");
+                propInit = 1;
+            }
+        }
+}
 
-    }
 }
 
 
@@ -462,14 +466,19 @@ bool SpectraCyber::ISNewText (const char *name, char *texts[], char *names[], in
     }
 
     // Telescope Source
-    if (!strcmp(tProp->name, "Telescope"))
+    if (!strcmp(tProp->name, "ACTIVE_DEVICES"))
     {
-        if (strcmp(texts[0], tProp->tp[0].text))
+        IText * telescopeID = IUFindText(tProp, "ACTIVE_TELESCOPE");
+
+        if (telescopeID && strcmp(texts[0], telescopeID->text))
         {
             if (IUUpdateText(tProp, texts, names, n) < 0)
                             return false;
 
            strncpy(EquatorialCoordsWNP.device, tProp->tp[0].text, MAXINDIDEVICE);
+
+           IDMessage(deviceID, "Active telescope updated to %s. Please save configuration.", telescopeID->text);
+
         }
 
         tProp->s = IPS_OK;
@@ -490,7 +499,7 @@ bool SpectraCyber::ISNewSwitch (const char *name, ISState *states, char *names[]
 {
 
     // First process parent!
-    if (INDI::DefaultDevice::ISNewSwitch(deviceID, name, states, names, n) == true)
+    if (INDI::DefaultDriver::ISNewSwitch(deviceID, name, states, names, n) == true)
         return true;
 
     ISwitchVectorProperty *sProp = getSwitch(name);

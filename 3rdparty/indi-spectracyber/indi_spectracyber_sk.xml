@@ -47,8 +47,8 @@ On
 <defBLOBVector device="SpectraCyber" name="Data" label="" group="Main Control" state="Idle" perm="ro" timeout="360" timestamp="2010-10-20T21:43:15">
     <defBLOB name="Stream" label="JD Value Freq"/>
 </defBLOBVector>
-<defTextVector device="SpectraCyber" name="Telescope" group="Parameters" state="Idle" perm="rw" timeout="0">
-    <defText name="Source">
+<defTextVector device="SpectraCyber" name="ACTIVE_DEVICES" group="Parameters" state="Idle" perm="rw" timeout="0">
+    <defText name="ACTIVE_TELESCOPE">
     </defText>
 </defTextVector>
 <defNumberVector device="SpectraCyber" name="70 Mhz IF" label="" group="Parameters" state="Idle" perm="rw" timeout="0" timestamp="2010-10-20T21:43:15">

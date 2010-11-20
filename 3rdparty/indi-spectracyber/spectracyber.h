@@ -40,13 +40,13 @@
 
 #include <indidevapi.h>
 #include <indicom.h>
-#include <defaultdevice.h>
+#include <defaultdriver.h>
 
 using namespace std;
 
 #define MAXBLEN 64
 
-class SpectraCyber : public INDI::DefaultDevice
+class SpectraCyber : public INDI::DefaultDriver
 {
 
 public:

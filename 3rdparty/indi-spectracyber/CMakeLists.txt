@@ -25,8 +25,8 @@ set(indispectracyber_SRCS
 
 add_executable(indi_spectracyber ${indispectracyber_SRCS})
 
-target_link_libraries(indi_spectracyber ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES}
-${INDI_DEVICE_LIBRARIES} ${NOVA_LIBRARIES} z pthread)
+target_link_libraries(indi_spectracyber ${INDI_LIBRARIES} ${INDI_DEFAULT_DRIVER_LIBRARIES}
+${NOVA_LIBRARIES} z pthread)
 
 install(TARGETS indi_spectracyber RUNTIME DESTINATION bin)
 
