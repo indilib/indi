@@ -1,10 +1,10 @@
 <devGroup group="CCDs">
 	<device label="Apogee Alta-U">
 		<driver name="Apogee Alta-U">indi_apogeeu_ccd</driver>
-		<version>1.0</version>
+		<version>1.1</version>
 	</device>
 	<device label="Apogee Alta-E">
 		<driver name="Apogee Alta-E">indi_apogeee_ccd</driver>
-		<version>1.0</version>
+		<version>1.1</version>
 	</device>
 </devGroup>
