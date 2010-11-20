@@ -128,6 +128,16 @@ debian/indi-apogee/indi-apogee.install -text
 debian/indi-apogee/postinst.ex -text
 debian/indi-apogee/postrm.ex -text
 debian/indi-apogee/rules -text
+debian/indi-qhy/changelog -text
+debian/indi-qhy/compat -text
+debian/indi-qhy/control -text
+debian/indi-qhy/indi-qhy.copyright -text
+debian/indi-qhy/indi-qhy.dirs -text
+debian/indi-qhy/indi-qhy.install -text
+debian/indi-qhy/qhy-firmware.copyright -text
+debian/indi-qhy/qhy-firmware.dirs -text
+debian/indi-qhy/qhy-firmware.install -text
+debian/indi-qhy/rules -text
 debian/indi-sbig/debian/changelog -text
 debian/indi-sbig/debian/compat -text
 debian/indi-sbig/debian/control -text
