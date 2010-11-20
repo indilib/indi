@@ -1,3 +1,15 @@
+indi-apogee (1.1-0ubuntu1) maverick; urgency=low
+
+  * New upstream release
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sat, 20 Nov 2010 16:01:27 +0300
+
+indi-apogee (1.0-0ubuntu1) jaunty; urgency=low
+
+  * Update packaging for Ubuntu
+
+ -- Jonathan Riddell <jriddell@ubuntu.com>  Fri, 13 Feb 2009 23:12:53 +0000
+
 indi-apogee (1.0) gutsy; urgency=low
 
   * Initial release
