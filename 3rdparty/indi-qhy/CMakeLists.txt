@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 2.4.7)
 PROJECT(indi_qhy_ccd C)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
-set(DATA_INSTALL_DIR "share/indi/")
 set(FIRMWARE_INSTALL_DIR "/lib/firmware")
 set(UDEVRULES_INSTALL_DIR "/etc/udev/rules.d")
 SET(CMAKE_C_FLAGS "-Wall" )
@@ -38,7 +37,7 @@ set(indiqhy_SRCS
 
 add_executable(indi_qhy_ccd ${indiqhy_SRCS})
 
-target_link_libraries(indi_qhy_ccd ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${QHY_LIBRARIES} ${LIBUSB_LIBRARIES} ${ZLIB_LIBRARIES} )
+target_link_libraries(indi_qhy_ccd ${INDI_LIBRARIES} ${INDI_BASE_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${QHY_LIBRARIES} ${LIBUSB_LIBRARIES} ${ZLIB_LIBRARIES} )
 
 if (NOVA_FOUND)
   target_link_libraries(indi_qhy_ccd ${NOVA_LIBRARIES})
@@ -46,7 +45,7 @@ endif (NOVA_FOUND)
 
 install(TARGETS indi_qhy_ccd RUNTIME DESTINATION bin )
 
-install(FILES indi_qhy.xml DESTINATION ${DATA_INSTALL_DIR} )
+install(FILES indi_qhy.xml DESTINATION ${INDI_DATA_DIR} )
 
 install(FILES firmware/qhy5.hex DESTINATION ${FIRMWARE_INSTALL_DIR})
 install(FILES firmware/qhy5loader.hex DESTINATION ${FIRMWARE_INSTALL_DIR})

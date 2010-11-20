@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 2.4.7)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
-set(DATA_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/share/indi/")
 set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
 
 Include (CheckCXXSourceCompiles)
@@ -38,8 +37,8 @@ set(indiapogee_SRCS
 add_executable(indi_apogeeu_ccd ${indiapogee_SRCS})
 add_executable(indi_apogeee_ccd ${indiapogee_SRCS})
 
-target_link_libraries(indi_apogeeu_ccd ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${APOGEEU_LIBRARIES} z m)
-target_link_libraries(indi_apogeee_ccd ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${APOGEEE_LIBRARIES} z m)
+target_link_libraries(indi_apogeeu_ccd ${INDI_LIBRARIES} ${INDI_BASE_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${APOGEEU_LIBRARIES} z m)
+target_link_libraries(indi_apogeee_ccd ${INDI_LIBRARIES} ${INDI_BASE_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${APOGEEE_LIBRARIES} z m)
 
 if (NOVA_FOUND)
   target_link_libraries(indi_apogeeu_ccd ${NOVA_LIBRARIES})
@@ -49,4 +48,4 @@ endif (NOVA_FOUND)
 install(TARGETS indi_apogeeu_ccd RUNTIME DESTINATION bin )
 install(TARGETS indi_apogeee_ccd RUNTIME DESTINATION bin )
 
-install(FILES indi_apogee.xml DESTINATION ${DATA_INSTALL_DIR})
+install(FILES indi_apogee.xml DESTINATION ${INDI_DATA_DIR})

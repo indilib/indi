@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 2.4.7)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
-set(DATA_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/share/indi/")
 set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
 
 Include (CheckCXXSourceCompiles)
@@ -38,7 +37,7 @@ set(indisbig_SRCS
    
 add_executable(indi_sbig_ccd ${indisbig_SRCS})
 
-target_link_libraries(indi_sbig_ccd ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${SBIG_LIBRARIES} z)
+target_link_libraries(indi_sbig_ccd ${INDI_LIBRARIES} ${INDI_BASE_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${SBIG_LIBRARIES} z)
 
 if (NOVA_FOUND)
   target_link_libraries(indi_sbig_ccd ${NOVA_LIBRARIES})
@@ -46,4 +45,4 @@ endif (NOVA_FOUND)
 
 install(TARGETS indi_sbig_ccd RUNTIME DESTINATION bin )
 
-install(FILES indi_sbig.xml DESTINATION ${DATA_INSTALL_DIR})
+install(FILES indi_sbig.xml DESTINATION ${INDI_DATA_DIR})

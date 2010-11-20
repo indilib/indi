@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 2.4.7)
 #PROJECT(indi_maxdomeii C)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
-set(DATA_INSTALL_DIR "share/indi/")
 
 SET(CMAKE_CXX_FLAGS "-Wall" )
 SET(CMAKE_CXX_FLAGS_DEBUG "-Werror" )
@@ -37,8 +36,8 @@ endif(COMMAND cmake_policy)
 
 add_executable(indi_maxdomeii ${indimaxdomeii_SRCS})
 
-target_link_libraries(indi_maxdomeii ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES})
+target_link_libraries(indi_maxdomeii ${INDI_LIBRARIES} ${INDI_BASE_DRIVER_LIBRARIES})
 
 install(TARGETS indi_maxdomeii RUNTIME DESTINATION bin )
 
-install(FILES indi_maxdomeii.xml DESTINATION ${DATA_INSTALL_DIR})
+install(FILES indi_maxdomeii.xml DESTINATION ${INDI_DATA_DIR})

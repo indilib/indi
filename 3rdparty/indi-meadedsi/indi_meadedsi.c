@@ -171,17 +171,18 @@ dsi_create(dsi_camera_t *dsi)
     indidsi->dsi = dsi;
 
     /* Okay, figure out the camera type and make it human readable. */
-    bytes_needed = snprintf(0, 0, "%d: %s", device_count, dsi_get_camera_class_name(indidsi->dsi));
+    bytes_needed = snprintf(0, 0, "%d: %s", device_count, dsi_get_camera_name(indidsi->dsi));
     indidsi->group = malloc(bytes_needed+1);
     snprintf(indidsi->group, bytes_needed, "%d: %s",
-             device_count, dsi_get_camera_class_name(indidsi->dsi));
+             device_count, dsi_get_camera_name(indidsi->dsi));
 
     IDLog("new physical device, %s\n", indidsi->group);
 
     indidsi->desc.tp = calloc(3, sizeof(IText));
+    /* JM 2010-11-20: Changing to dsi_get_camera_name */
     init_itext(indidsi->desc.tp+0,
                "CAMERA_TYPE", "Camera Type",
-               dsi_get_camera_class_name(indidsi->dsi),
+               dsi_get_camera_name(indidsi->dsi),
                &(indidsi->desc), 0, 0);
     init_itext(indidsi->desc.tp+1,
                "CHIP_NAME", "Chip Name",

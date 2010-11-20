@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 2.4.7)
 #PROJECT(indi_gphoto_ccd C)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
-set(DATA_INSTALL_DIR "share/indi/")
 
 SET(CMAKE_CXX_FLAGS "-Wall" )
 SET(CMAKE_CXX_FLAGS_DEBUG "-Werror" )
@@ -44,8 +43,8 @@ endif(COMMAND cmake_policy)
 
 add_executable(indi_gphoto_ccd ${indigphoto_SRCS})
 
-target_link_libraries(indi_gphoto_ccd ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${LIBGPHOTO2_LIBRARIES})
+target_link_libraries(indi_gphoto_ccd ${INDI_LIBRARIES} ${INDI_BASE_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${LIBGPHOTO2_LIBRARIES})
 target_link_libraries(indi_gphoto_ccd ${CMAKE_THREAD_LIBS_INIT} ${JPEG_LIBRARIES})
 install(TARGETS indi_gphoto_ccd RUNTIME DESTINATION bin )
 
-install(FILES indi_gphoto.xml DESTINATION ${DATA_INSTALL_DIR})
+install(FILES indi_gphoto.xml DESTINATION ${INDI_DATA_DIR})
