@@ -14,13 +14,6 @@
 3rdparty/indi-gphoto/COPYING.LIB -text
 3rdparty/indi-gphoto/INSTALL -text
 3rdparty/indi-gphoto/README -text
-3rdparty/indi-gphoto/debian/changelog -text
-3rdparty/indi-gphoto/debian/compat -text
-3rdparty/indi-gphoto/debian/control -text
-3rdparty/indi-gphoto/debian/copyright -text
-3rdparty/indi-gphoto/debian/dirs -text
-3rdparty/indi-gphoto/debian/install -text
-3rdparty/indi-gphoto/debian/rules -text
 3rdparty/indi-gphoto/gphoto_ccd.cpp -text
 3rdparty/indi-gphoto/gphoto_ccd.h -text
 3rdparty/indi-gphoto/gphoto_driver.c -text
