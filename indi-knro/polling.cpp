@@ -70,12 +70,12 @@ void knroObservatory::ISPoll()
     newRA  = EqObjectCoords.ra/15.0;
     newDEC = EqObjectCoords.dec;
 
-    if (fabs(EquatorialCoordsWNP.np[0].value - newRA)  >= RA_TOLERANCE ||
-        fabs(EquatorialCoordsWNP.np[1].value - newDEC) >= DEC_TOLERANCE)
+    if (fabs(EquatorialCoordsRNP.np[0].value - newRA)  >= RA_TOLERANCE ||
+        fabs(EquatorialCoordsRNP.np[1].value - newDEC) >= DEC_TOLERANCE)
     {
-        EquatorialCoordsWNP.np[0].value = newRA;
-        EquatorialCoordsWNP.np[1].value = newDEC;
-        IDSetNumber(&EquatorialCoordsWNP, NULL);
+        EquatorialCoordsRNP.np[0].value = newRA;
+        EquatorialCoordsRNP.np[1].value = newDEC;
+        IDSetNumber(&EquatorialCoordsRNP, NULL);
     }
 
      delta_az = currentAz - targetAz;
@@ -156,7 +156,7 @@ void knroObservatory::ISPoll()
 							ParkSP.s = IPS_OK;
 							HorizontalCoordsNWP.s = IPS_OK;
 							HorizontalCoordsNRP.s = IPS_OK;
-                                                        EquatorialCoordsWNP.s = IPS_OK;
+                                                        EquatorialCoordsRNP.s = IPS_OK;
 							
 							slew_stage = SLEW_NONE;
 							slew_busy.stop();
@@ -178,8 +178,10 @@ void knroObservatory::ISPoll()
 						slew_stage = SLEW_TRACK;
 						HorizontalCoordsNWP.s = IPS_OK;
 						HorizontalCoordsNRP.s = IPS_OK;
+						EquatorialCoordsRNP.s = IPS_OK;
 						IDSetNumber(&HorizontalCoordsNWP, "Slew complete. Engaging tracking...");
 						IDSetNumber(&HorizontalCoordsNRP, NULL);
+						IDSetNumber(&EquatorialCoordsRNP, NULL);
 						
 					}
 					break;

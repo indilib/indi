@@ -265,10 +265,10 @@ void knroObservatory::init_properties()
 
   /**************************************************************************/
   // Equatorial Coords - SET
-  IUFillNumber(&EquatorialCoordsWN[0], "RA", "RA  H:M:S", "%10.6m",  0., 24., 0., 0.);
-  IUFillNumber(&EquatorialCoordsWN[1], "DEC", "Dec D:M:S", "%10.6m", -90., 90., 0., 0.);
-  IUFillNumberVector(&EquatorialCoordsWNP, EquatorialCoordsWN, NARRAY(EquatorialCoordsWN), mydev, "EQUATORIAL_EOD_COORD_REQUEST" , "Equatorial AutoSet", BASIC_GROUP, IP_RW, 0, IPS_IDLE);
-  number_list.push_back(&EquatorialCoordsWNP);
+  IUFillNumber(&EquatorialCoordsRN[0], "RA", "RA  H:M:S", "%10.6m",  0., 24., 0., 0.);
+  IUFillNumber(&EquatorialCoordsRN[1], "DEC", "Dec D:M:S", "%10.6m", -90., 90., 0., 0.);
+  IUFillNumberVector(&EquatorialCoordsRNP, EquatorialCoordsRN, NARRAY(EquatorialCoordsRN), mydev, "EQUATORIAL_EOD_COORD" , "Equatorial AutoSet", BASIC_GROUP, IP_RO, 0, IPS_IDLE);
+  number_list.push_back(&EquatorialCoordsRNP);
   /**************************************************************************/
 
 #if 0
@@ -310,7 +310,7 @@ void knroObservatory::ISGetProperties(const char *dev)
 	IDDefSwitch(&ConnectSP, NULL);
 	IDDefNumber(&HorizontalCoordsNRP, NULL);
 	IDDefNumber(&HorizontalCoordsNWP, NULL);
-        IDDefNumber(&EquatorialCoordsWNP, "Creating RA/DEC target coordinates. Do not set directly as KNRO only works in Alt/Az mode.");
+        IDDefNumber(&EquatorialCoordsRNP, NULL);
 	IDDefSwitch(&OnCoordSetSP, NULL);
         IDDefSwitch(&ParkSP, NULL);
 	IDDefSwitch(&AbortSlewSP, NULL);
@@ -633,13 +633,13 @@ void knroObservatory::ISNewNumber (const char *dev, const char *name, double val
         //  RA/DEC Coords set
         // We don't use RA/DEC coords in KNRO for control purposes
         // These are passed to which subscribers that need it (via snooping)
-        if (!strcmp(EquatorialCoordsWNP.name, name))
+        if (!strcmp(EquatorialCoordsRNP.name, name))
         {
-            if (IUUpdateNumber(&EquatorialCoordsWNP, values, names, n) < 0)
+            if (IUUpdateNumber(&EquatorialCoordsRNP, values, names, n) < 0)
                     return;
 
-            EquatorialCoordsWNP.s = IPS_OK;
-            IDSetNumber(&EquatorialCoordsWNP, NULL);
+            EquatorialCoordsRNP.s = IPS_OK;
+            IDSetNumber(&EquatorialCoordsRNP, NULL);
 
             return;
         }
@@ -925,11 +925,11 @@ void knroObservatory::execute_slew()
 	
 	HorizontalCoordsNWP.s = IPS_BUSY;
 	HorizontalCoordsNRP.s = IPS_BUSY;
-        EquatorialCoordsWNP.s = IPS_BUSY;
+        EquatorialCoordsRNP.s = IPS_BUSY;
 	
 	IDSetNumber(&HorizontalCoordsNWP, "Slewing to Az: %s Alt: %s ...", AzStr, AltStr );
 	IDSetNumber(&HorizontalCoordsNRP, NULL);
-        IDSetNumber(&EquatorialCoordsWNP, NULL);
+        IDSetNumber(&EquatorialCoordsRNP, NULL);
 
 	slew_busy.play();
 }

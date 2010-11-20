@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 2.4.7)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
-set(DATA_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/share/indi/")
 set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
 
 Include (CheckCXXSourceCompiles)
@@ -38,6 +37,10 @@ include_directories( ${ALUT_INCLUDE_DIR})
 include_directories( ${MODBUS_INCLUDE_DIR})
 include_directories(${NOVA_INCLUDE_DIR})
 
+if(COMMAND cmake_policy)
+  cmake_policy(SET CMP0003 NEW)
+endif(COMMAND cmake_policy)
+
 ########### KNRO ###########
 set(indiknro_SRCS
    ${CMAKE_SOURCE_DIR}/knro.cpp
@@ -51,7 +54,7 @@ add_executable(indi_knro ${indiknro_SRCS})
 
 # openal alut vorbis vorbisfile
 
-target_link_libraries(indi_knro ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${MODBUS_LIBRARIES} ${CFITSIO_LIBRARIES} ${ALUT_LIBRARY} ${VORBIS_LIBRARY} ${VORBISFILE_LIBRARY} z pthread)
+target_link_libraries(indi_knro ${INDI_LIBRARIES} ${INDI_BASE_DRIVER_LIBRARIES} ${MODBUS_LIBRARIES} ${CFITSIO_LIBRARIES} ${ALUT_LIBRARY} ${VORBIS_LIBRARY} ${VORBISFILE_LIBRARY} z pthread)
 
 if (NOVA_FOUND)
   target_link_libraries(indi_knro ${NOVA_LIBRARIES})
@@ -59,10 +62,10 @@ endif (NOVA_FOUND)
 
 install(TARGETS indi_knro RUNTIME DESTINATION bin )
 
-install(FILES indi_knro.xml DESTINATION ${DATA_INSTALL_DIR})
-install(FILES sounds/alarm1.ogg DESTINATION ${DATA_INSTALL_DIR})
-install(FILES sounds/alarm2.ogg DESTINATION ${DATA_INSTALL_DIR})
-install(FILES sounds/calibration_error.ogg DESTINATION ${DATA_INSTALL_DIR})
-install(FILES sounds/slew_error.ogg DESTINATION ${DATA_INSTALL_DIR})
-install(FILES sounds/slew_complete.ogg DESTINATION ${DATA_INSTALL_DIR})
-install(FILES sounds/slew_busy.ogg DESTINATION ${DATA_INSTALL_DIR})
+install(FILES indi_knro.xml DESTINATION ${INDI_DATA_DIR})
+install(FILES sounds/alarm1.ogg DESTINATION ${INDI_DATA_DIR})
+install(FILES sounds/alarm2.ogg DESTINATION ${INDI_DATA_DIR})
+install(FILES sounds/calibration_error.ogg DESTINATION ${INDI_DATA_DIR})
+install(FILES sounds/slew_error.ogg DESTINATION ${INDI_DATA_DIR})
+install(FILES sounds/slew_complete.ogg DESTINATION ${INDI_DATA_DIR})
+install(FILES sounds/slew_busy.ogg DESTINATION ${INDI_DATA_DIR})
