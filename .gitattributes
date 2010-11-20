@@ -102,6 +102,13 @@ debian/indi-apogee/indi-apogee.install -text
 debian/indi-apogee/postinst.ex -text
 debian/indi-apogee/postrm.ex -text
 debian/indi-apogee/rules -text
+debian/indi-gphoto/changelog -text
+debian/indi-gphoto/compat -text
+debian/indi-gphoto/control -text
+debian/indi-gphoto/copyright -text
+debian/indi-gphoto/dirs -text
+debian/indi-gphoto/install -text
+debian/indi-gphoto/rules -text
 debian/indi-qhy/changelog -text
 debian/indi-qhy/compat -text
 debian/indi-qhy/control -text
