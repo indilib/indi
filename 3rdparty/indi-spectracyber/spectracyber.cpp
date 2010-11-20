@@ -202,9 +202,9 @@ void SpectraCyber::ISGetProperties(const char *dev)
         {
             IText *telescopeID = IUFindText(tProp, "ACTIVE_TELESCOPE");
 
-            if (telescopeID)
+            if (telescopeID && strlen(telescopeID->text) > 0)
             {
-                IDSnoopDevice(telescopeID->text, "EQUATORIAL_EOD_COORD_REQUEST");
+                IDSnoopDevice(telescopeID->text, "EQUATORIAL_EOD_COORD");
                 propInit = 1;
             }
         }
@@ -219,13 +219,13 @@ void SpectraCyber::ISGetProperties(const char *dev)
 *****************************************************************/
 void SpectraCyber::ISSnoopDevice (XMLEle *root)
 {
-    if (IUSnoopNumber(root, &EquatorialCoordsWNP) != 0)
+    if (IUSnoopNumber(root, &EquatorialCoordsRNP) != 0)
     {
         if (isDebug())
             IDLog("Error processing snooped EQUATORIAL_EOD_COORD_REQUEST value! No RA/DEC information available.\n");
     }
     //else
-    //    IDLog("Received RA: %g - DEC: %g\n", EquatorialCoordsWNP.np[0].value, EquatorialCoordsWNP.np[1].value);
+    //    IDLog("Received RA: %g - DEC: %g\n", EquatorialCoordsRNP.np[0].value, EquatorialCoordsRNP.np[1].value);
 }
 
 /****************************************************************
@@ -261,13 +261,10 @@ void SpectraCyber::init_properties()
 
     /**************************************************************************/
     // Equatorial Coords - SET
-    IUFillNumber(&EquatorialCoordsWN[0], "RA", "RA  H:M:S", "%10.6m",  0., 24., 0., 0.);
-    IUFillNumber(&EquatorialCoordsWN[1], "DEC", "Dec D:M:S", "%10.6m", -90., 90., 0., 0.);
-    IUFillNumberVector(&EquatorialCoordsWNP, EquatorialCoordsWN, NARRAY(EquatorialCoordsWN), "", "EQUATORIAL_EOD_COORD_REQUEST" , "Equatorial AutoSet", "", IP_RW, 0, IPS_IDLE);
+    IUFillNumber(&EquatorialCoordsRN[0], "RA", "RA  H:M:S", "%10.6m",  0., 24., 0., 0.);
+    IUFillNumber(&EquatorialCoordsRN[1], "DEC", "Dec D:M:S", "%10.6m", -90., 90., 0., 0.);
+    IUFillNumberVector(&EquatorialCoordsRNP, EquatorialCoordsRN, NARRAY(EquatorialCoordsRN), "", "EQUATORIAL_EOD_COORD" , "Equatorial AutoSet", "", IP_RW, 0, IPS_IDLE);
     /**************************************************************************/
-
-
-
 
 }
 
@@ -475,9 +472,11 @@ bool SpectraCyber::ISNewText (const char *name, char *texts[], char *names[], in
             if (IUUpdateText(tProp, texts, names, n) < 0)
                             return false;
 
-           strncpy(EquatorialCoordsWNP.device, tProp->tp[0].text, MAXINDIDEVICE);
+           strncpy(EquatorialCoordsRNP.device, tProp->tp[0].text, MAXINDIDEVICE);
 
            IDMessage(deviceID, "Active telescope updated to %s. Please save configuration.", telescopeID->text);
+
+          IDSnoopDevice(telescopeID->text, "EQUATORIAL_EOD_COORD");
 
         }
 
@@ -1047,8 +1046,8 @@ void SpectraCyber::ISPoll()
            strncpy(DataStreamBP->bp[0].format, specFMT, MAXINDIBLOBFMT);
 
 
-       fs_sexa(RAStr, EquatorialCoordsWN[0].value, 2, 3600);
-       fs_sexa(DecStr, EquatorialCoordsWN[1].value, 2, 3600);
+       fs_sexa(RAStr, EquatorialCoordsRN[0].value, 2, 3600);
+       fs_sexa(DecStr, EquatorialCoordsRN[1].value, 2, 3600);
 
        snprintf(bLine, MAXBLEN, "%.8f %.3f %.3f %s %s", JD, chanValue, current_freq, RAStr, DecStr);
 

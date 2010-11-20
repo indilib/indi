@@ -103,8 +103,8 @@ private:
     IBLOBVectorProperty *DataStreamBP;
 
     // Snooping On
-    INumber EquatorialCoordsWN[2];
-    INumberVectorProperty EquatorialCoordsWNP;
+    INumber EquatorialCoordsRN[2];
+    INumberVectorProperty EquatorialCoordsRNP;
 
     // Functions
     void init_properties();
