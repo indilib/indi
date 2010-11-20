@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 2.4.7)
 set(INDI_SOVERSION "0")
 set(CMAKE_INDI_VERSION_MAJOR 0)
 set(CMAKE_INDI_VERSION_MINOR 7)
-set(CMAKE_INDI_VERSION_RELEASE 1)
+set(CMAKE_INDI_VERSION_RELEASE 2)
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
 
 ##################  Paths  ################################
@@ -128,9 +128,9 @@ endif (NOVA_FOUND)
 install(TARGETS indiserver RUNTIME DESTINATION bin )
 
 
-######################################
-######## INDI Shared Library #########
-######################################
+#################################################
+############# INDI Shared Library ###############
+#################################################
 add_library(indi SHARED ${libindicom_SRCS} ${liblilxml_SRCS})
 target_link_libraries(indi m z)
 
@@ -149,20 +149,20 @@ set_target_properties(indi PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVER
 
 
 ##################################################
-######## INDI Base Dirver Static Library #########
+######## INDI Base Driver Static Library #########
 ##################################################
 add_library(indibasedriver STATIC ${indimain_SRCS})
 install(TARGETS indibasedriver ARCHIVE DESTINATION lib${LIB_POSTFIX})
 
 ##################################################
-######## INDI Default Driver Library #############
+###### INDI Default Driver Static Library ########
 ##################################################
 add_library(indidefaultdriver STATIC ${indimain_SRCS} ${indidefaultdevice_SRCS})
 install(TARGETS indidefaultdriver ARCHIVE DESTINATION lib${LIB_POSTFIX})
 
-#################################################
-############# INDI Client Library ###############
-#################################################
+##################################################
+############# INDI Client Library ################
+##################################################
 add_library(indiclient STATIC ${indibase_SRCS})
 target_link_libraries(indiclient indi)
 install(TARGETS indiclient ARCHIVE DESTINATION lib${LIB_POSTFIX})
