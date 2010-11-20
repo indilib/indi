@@ -7,15 +7,6 @@
 3rdparty/indi-apogee/ChangeLog -text
 3rdparty/indi-apogee/INSTALL -text
 3rdparty/indi-apogee/README -text
-3rdparty/indi-apogee/debian/changelog -text
-3rdparty/indi-apogee/debian/compat -text
-3rdparty/indi-apogee/debian/control -text
-3rdparty/indi-apogee/debian/copyright -text
-3rdparty/indi-apogee/debian/indi-apogee.dirs -text
-3rdparty/indi-apogee/debian/indi-apogee.install -text
-3rdparty/indi-apogee/debian/postinst.ex -text
-3rdparty/indi-apogee/debian/postrm.ex -text
-3rdparty/indi-apogee/debian/rules -text
 3rdparty/indi-apogee/indi_apogee.xml -text
 3rdparty/indi-apogee/indialta.c -text
 3rdparty/indi-gphoto/AUTHORS -text
