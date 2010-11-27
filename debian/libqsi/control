@@ -1,0 +1,21 @@
+Source: libqsi
+Section: libs
+Priority: extra
+Maintainer: Jasem Mutlaq <mutlaqja@ikarustech.com>
+Build-Depends: debhelper (>= 6), cdbs, libtool, zlib1g-dev, libusb-dev, libtiff4-dev, libftdi-dev
+Standards-Version: 3.7.2
+
+Package: libqsi5
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libtiff4, libftdi1
+Description: Quantum Scientific Imaging (QSI) CCD Libraries.
+ .
+ This package contains the library.
+
+Package: libqsi-dev
+Architecture: any
+Depends: libqsi5, ${shlibs:Depends}, ${misc:Depends}
+Description: Quantum Scientific Imaging (QSI) CCD Libraries.
+ .
+ This package contains the development files.
+

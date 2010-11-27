@@ -1,0 +1,11 @@
+libqsi (5.2.1-0ubuntu2) maverick; urgency=low
+
+  * Corrected dependency packages version numbers.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sat, 27 Nov 2010 14:45:44 +0300
+
+libqsi (5.2.1-0ubuntu1) maverick; urgency=low
+
+  * Initial release
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Fri, 26 Nov 2010 02:05:48 +0300

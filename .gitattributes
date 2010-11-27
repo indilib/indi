@@ -102,8 +102,6 @@ debian/indi-gphoto/changelog -text
 debian/indi-gphoto/compat -text
 debian/indi-gphoto/control -text
 debian/indi-gphoto/copyright -text
-debian/indi-gphoto/dirs -text
-debian/indi-gphoto/install -text
 debian/indi-gphoto/rules -text
 debian/indi-qhy/changelog -text
 debian/indi-qhy/compat -text
@@ -115,6 +113,11 @@ debian/indi-qhy/qhy-firmware.copyright -text
 debian/indi-qhy/qhy-firmware.dirs -text
 debian/indi-qhy/qhy-firmware.install -text
 debian/indi-qhy/rules -text
+debian/indi-qsi/changelog -text
+debian/indi-qsi/compat -text
+debian/indi-qsi/control -text
+debian/indi-qsi/copyright -text
+debian/indi-qsi/rules -text
 debian/indi-sbig/debian/changelog -text
 debian/indi-sbig/debian/compat -text
 debian/indi-sbig/debian/control -text
@@ -127,6 +130,13 @@ debian/libindi/copyright -text
 debian/libindi/libindi-dev.install -text
 debian/libindi/libindi0.install -text
 debian/libindi/rules -text
+debian/libqsi/changelog -text
+debian/libqsi/compat -text
+debian/libqsi/control -text
+debian/libqsi/copyright -text
+debian/libqsi/libqsi-dev.install -text
+debian/libqsi/libqsi5.install -text
+debian/libqsi/rules -text
 debian/sbig/debian/changelog -text
 debian/sbig/debian/compat -text
 debian/sbig/debian/control -text
