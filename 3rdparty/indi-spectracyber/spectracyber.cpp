@@ -157,6 +157,8 @@ SpectraCyber::SpectraCyber()
     // Command pre-limeter
     command[0] = '!';
 
+    telescopeID = NULL;
+
     srand( time(NULL));
 
     char *skel = getenv("INDISKEL");
@@ -196,16 +198,18 @@ void SpectraCyber::ISGetProperties(const char *dev)
 
         loadConfig();
 
+        propInit = 1;
+
         ITextVectorProperty *tProp = getText("ACTIVE_DEVICES");
 
         if (tProp)
         {
-            IText *telescopeID = IUFindText(tProp, "ACTIVE_TELESCOPE");
+            telescopeID = IUFindText(tProp, "ACTIVE_TELESCOPE");
 
             if (telescopeID && strlen(telescopeID->text) > 0)
             {
                 IDSnoopDevice(telescopeID->text, "EQUATORIAL_EOD_COORD");
-                propInit = 1;
+
             }
         }
 }
@@ -465,7 +469,7 @@ bool SpectraCyber::ISNewText (const char *name, char *texts[], char *names[], in
     // Telescope Source
     if (!strcmp(tProp->name, "ACTIVE_DEVICES"))
     {
-        IText * telescopeID = IUFindText(tProp, "ACTIVE_TELESCOPE");
+        telescopeID = IUFindText(tProp, "ACTIVE_TELESCOPE");
 
         if (telescopeID && strcmp(texts[0], telescopeID->text))
         {
@@ -1049,7 +1053,11 @@ void SpectraCyber::ISPoll()
        fs_sexa(RAStr, EquatorialCoordsRN[0].value, 2, 3600);
        fs_sexa(DecStr, EquatorialCoordsRN[1].value, 2, 3600);
 
-       snprintf(bLine, MAXBLEN, "%.8f %.3f %.3f %s %s", JD, chanValue, current_freq, RAStr, DecStr);
+       if (telescopeID && strlen(telescopeID->text) > 0)
+           snprintf(bLine, MAXBLEN, "%.8f %.3f %.3f %s %s", JD, chanValue, current_freq, RAStr, DecStr);
+       else
+           snprintf(bLine, MAXBLEN, "%.8f %.3f %.3f", JD, chanValue, current_freq);
+
 
        DataStreamBP->bp[0].bloblen = DataStreamBP->bp[0].size = strlen(bLine);
        memcpy(DataStreamBP->bp[0].blob, bLine, DataStreamBP->bp[0].bloblen);

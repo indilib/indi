@@ -101,6 +101,7 @@ private:
     ISwitchVectorProperty *ScanSP;
     ISwitchVectorProperty *ChannelSP;
     IBLOBVectorProperty *DataStreamBP;
+    IText *telescopeID;
 
     // Snooping On
     INumber EquatorialCoordsRN[2];
