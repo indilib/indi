@@ -364,6 +364,13 @@ bool SpectraCyber::ISNewNumber (const char *name, double values[], char *names[]
   if (nProp == NULL)
       return false;
 
+  if (isConnected() == false)
+  {
+      resetProperties();
+      IDMessage(deviceID, "Spectrometer is offline. Connect before issiung any commands.");
+      return false;
+  }
+
     // IF Gain
     if (!strcmp(nProp->name, "70 Mhz IF"))
     {
@@ -516,11 +523,9 @@ bool SpectraCyber::ISNewSwitch (const char *name, ISState *states, char *names[]
         return true;
     }
 
+
     if (isConnected() == false)
     {
-        if (isSimulation())
-            return true;
-
       resetProperties();
       IDMessage(deviceID, "Spectrometer is offline. Connect before issiung any commands.");
       return false;
