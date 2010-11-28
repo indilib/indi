@@ -573,10 +573,12 @@ static void expTO (void *vp)
 	ExposureNP.s = IPS_OK;
 	IDSetNumber (&ExposureNP, "Exposure complete, downloading FITS...");
 
+	/*
 	printf("size: %lu\n", (unsigned long)memsize);
 	FILE *h = fopen("test.fits", "w+");
 	fwrite(memptr, memsize, 1, h);
 	fclose(h);
+	*/
 	uploadFile(memptr, memsize);
 	free(memptr);
 }
