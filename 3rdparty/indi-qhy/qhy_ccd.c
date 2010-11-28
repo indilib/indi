@@ -496,7 +496,7 @@ static void expTO (void *vp)
 	    return;
 	}
 	memsize = 5760; //impixw * impixh * (type == TBYTE ? 1 : 2) + 4096;
-	IDLog("Reading exposure %d x %d (memsize: %lu)\n", impixw, impixh, (unsigned long)memsize);
+	//IDLog("Reading exposure %d x %d (memsize: %lu)\n", impixw, impixh, (unsigned long)memsize);
 	if (qhy5_read_exposure(qhydrv)) {
 		double expsec = ExposureNP.np[0].value;
 		int expms = (int)ceil(expsec*1000);
@@ -544,7 +544,7 @@ static void expTO (void *vp)
 		fits_report_error(stderr, status);  /* print out any error messages */
 		return;
 	}
-	IDLog("New memsize: %lu\n", (unsigned long)memsize);
+	//IDLog("New memsize: %lu\n", (unsigned long)memsize);
 	/* Create the primary array image (16-bit unsigned short integer pixels */
   	fits_create_img(fptr, (binw * binh > 1 ? USHORT_IMG : BYTE_IMG), naxis, naxes, &status);
 	if (status)
