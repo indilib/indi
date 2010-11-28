@@ -622,7 +622,7 @@ void addFITSKeywords(fitsfile *fptr)
 
 void uploadFile(const void *fitsData, size_t totalBytes)
 {
-   unsigned char *compressedData;
+   unsigned char *compressedData = NULL;
    int r=0;
    uLongf compressedBytes=0;
 
@@ -650,17 +650,17 @@ void uploadFile(const void *fitsData, size_t totalBytes)
        FitsBP.bp[IMG_B].bloblen = compressedBytes;
        strcpy(FitsBP.bp[IMG_B].format, ".fits.z");
    } else {
-       compressedBytes = sizeof(char) * totalBytes + totalBytes / 64 + 16 + 3;
-       FitsBP.bp[IMG_B].blob = realloc((unsigned char *)fitsData, compressedBytes);
+       FitsBP.bp[IMG_B].blob = (unsigned char *)fitsData;
        FitsBP.bp[IMG_B].bloblen = totalBytes;
        strcpy(FitsBP.bp[IMG_B].format, ".fits");
    }
    /* #3 Send it */
-     FitsBP.bp[IMG_B].size = totalBytes;
-     FitsBP.s = IPS_OK;
-     IDSetBLOB (&FitsBP, NULL);
+   FitsBP.bp[IMG_B].size = totalBytes;
+   FitsBP.s = IPS_OK;
+   IDSetBLOB (&FitsBP, NULL);
    
-   free (compressedData);
+   if (compressedData)
+       free (compressedData);
 }
 
 
