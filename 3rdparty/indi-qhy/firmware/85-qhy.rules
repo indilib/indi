@@ -18,6 +18,10 @@ SYSFS{idVendor}=="1618", SYSFS{idProduct}=="0901", RUN+="/sbin/fxload -t fx2 -D 
 SYSFS{idVendor}=="1618", SYSFS{idProduct}=="0259", RUN+="/sbin/fxload -t fx2 -D $env{DEVNAME} -I /lib/firmware/qhy6.hex"
 SYSFS{idVendor}=="1618", SYSFS{idProduct}=="6000", RUN+="/sbin/fxload -t fx2 -D $env{DEVNAME} -I /lib/firmware/qhy8.hex"
 
+SUBSYSTEM=="usb", ENV{PRODUCT}=="16c0/296d/*", MODE="0660", OWNER="root", GROUP="video"
+SUBSYSTEM=="usb", ENV{PRODUCT}=="16c0/081e/*", MODE="0660", OWNER="root", GROUP="video"
+SUBSYSTEM=="usb", ENV{PRODUCT}=="16c0/081d/*", MODE="0660", OWNER="root", GROUP="video"
+SUBSYSTEM=="usb", ENV{PRODUCT}=="16c0/2972/*", MODE="0660", OWNER="root", GROUP="video"
 LABEL="qhy_vidpid_end"
 
 # This is the ID presented once the firmware has been loaded.
