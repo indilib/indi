@@ -11,11 +11,23 @@ SUBSYSTEM!="usb_device", GOTO="qhy_vidpid_end"
 
 LABEL="qhy_vidpid_test"
 
+# QHY2
 SYSFS{idVendor}=="1618", SYSFS{idProduct}=="0412", RUN+="/sbin/fxload -t fx2 -D $env{DEVNAME} -I /lib/firmware/qhy2.hex"
+
+# QHY5
 SYSFS{idVendor}=="1618", SYSFS{idProduct}=="0901", RUN+="/sbin/fxload -t fx2 -D $env{DEVNAME} -I /lib/firmware/qhy5loader.hex"
 SYSFS{idVendor}=="1618", SYSFS{idProduct}=="0901", RUN+="/bin/sleep 5"
 SYSFS{idVendor}=="1618", SYSFS{idProduct}=="0901", RUN+="/sbin/fxload -t fx2 -D $env{DEVNAME} -I /lib/firmware/qhy5.hex"
+
+# SSAG
+SYSFS{idVendor}=="1856", SYSFS{idProduct}=="0011", RUN+="/sbin/fxload -t fx2 -D $env{DEVNAME} -I /lib/firmware/qhy5loader.hex"
+SYSFS{idVendor}=="1856", SYSFS{idProduct}=="0011", RUN+="/bin/sleep 5"
+SYSFS{idVendor}=="1856", SYSFS{idProduct}=="0011", RUN+="/sbin/fxload -t fx2 -D $env{DEVNAME} -I /lib/firmware/qhy5.hex"
+
+# QHY6
 SYSFS{idVendor}=="1618", SYSFS{idProduct}=="0259", RUN+="/sbin/fxload -t fx2 -D $env{DEVNAME} -I /lib/firmware/qhy6.hex"
+
+#QHY8
 SYSFS{idVendor}=="1618", SYSFS{idProduct}=="6000", RUN+="/sbin/fxload -t fx2 -D $env{DEVNAME} -I /lib/firmware/qhy8.hex"
 
 SUBSYSTEM=="usb", ENV{PRODUCT}=="16c0/296d/*", MODE="0660", OWNER="root", GROUP="video"
