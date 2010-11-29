@@ -137,6 +137,11 @@ debian/libqsi/copyright -text
 debian/libqsi/libqsi-dev.install -text
 debian/libqsi/libqsi5.install -text
 debian/libqsi/rules -text
+debian/maxdomeii/changelog -text
+debian/maxdomeii/compat -text
+debian/maxdomeii/control -text
+debian/maxdomeii/copyright -text
+debian/maxdomeii/rules -text
 debian/sbig/debian/changelog -text
 debian/sbig/debian/compat -text
 debian/sbig/debian/control -text
