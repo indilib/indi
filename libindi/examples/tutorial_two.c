@@ -101,7 +101,7 @@ static INumberVectorProperty eqNP = {  mydev, "EQUATORIAL_EOD_COORD", "Equatoria
 /* Equatorial EOD Coord Request. This property is for requesting changes to target equatorial coordinates. However, the CURRENT coordinates are reported in EQUATORIAL_EOD_COORDS above.*/
 static INumber eqNR[] = {{"RA" ,"RA  H:M:S" , "%10.6m" ,0. , 24., 0., 0., 0, 0, 0},
 			 {"DEC", "Dec D:M:S", "%10.6m", -90., 90., 0., 0., 0, 0, 0}};
-static INumberVectorProperty eqNPR = {  mydev, "EQUATORIAL_EOD_COORD_REQUEST", "Equatorial Request",  MAIN_GROUP , IP_RW, 0, IPS_IDLE,  eqNR, NARRAY(eqNR), "", 0};
+static INumberVectorProperty eqNPR = {  mydev, "EQUATORIAL_EOD_COORD_REQUEST", "Equatorial Request",  MAIN_GROUP , IP_WO, 0, IPS_IDLE,  eqNR, NARRAY(eqNR), "", 0};
 
 /* Property naming convention. All property names are lower case with a postfix to indicate their type. connectS is a switch, 
  * connectSP is a switch vector. eqN is a number, eqNP is a number property, and so on. While this is not strictly required, it makes the code easier to read. */
@@ -120,6 +120,10 @@ ISwitchVectorProperty MovementNSSP      = { mydev, "TELESCOPE_MOTION_NS", "North
 *********************************************/
 static ISwitch MovementWES[]       = {{"MOTION_WEST", "West", ISS_OFF, 0, 0}, {"MOTION_EAST", "East", ISS_OFF, 0, 0}};
 ISwitchVectorProperty MovementWESP      = { mydev, "TELESCOPE_MOTION_WE", "West/East", MAIN_GROUP, IP_RW, ISR_ATMOST1, 0, IPS_IDLE, MovementWES, NARRAY(MovementWES), "", 0};
+
+static ISwitch OnCoordSetS[] = {{"TRACK", "Track", ISS_ON, 0, 0}};
+static ISwitchVectorProperty OnCoordSetSP = {mydev, "ON_COORD_SET", "On Set", MAIN_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_OK, OnCoordSetS, NARRAY(OnCoordSetS), "", 0};
+
 
 /* Initlization routine */
 static void mountInit()
@@ -148,6 +152,7 @@ void ISGetProperties (const char *dev)
 	IDDefNumber (&eqNPR, NULL);
 	IDDefSwitch (&MovementNSSP, NULL);
 	IDDefSwitch (&MovementWESP, NULL);
+        IDDefSwitch(&OnCoordSetSP, NULL);
 	
 }
 
@@ -275,6 +280,11 @@ void ISNewSwitch (const char *dev, const char *name, ISState *states, char *name
 			IDSetSwitch (&MovementWESP, "Toggle West/East.");
 		}
 	}
+        else if (! strcmp(name, OnCoordSetSP.name))
+        {
+            OnCoordSetSP.s = IPS_OK;
+            IDSetSwitch(&OnCoordSetSP, NULL);
+        }
 	
 	
 }

@@ -164,7 +164,7 @@ install(TARGETS indidefaultdriver ARCHIVE DESTINATION lib${LIB_POSTFIX})
 ############# INDI Client Library ################
 ##################################################
 add_library(indiclient STATIC ${indibase_SRCS})
-target_link_libraries(indiclient indi)
+target_link_libraries(indiclient indi pthread)
 install(TARGETS indiclient ARCHIVE DESTINATION lib${LIB_POSTFIX})
 
 #####################################
