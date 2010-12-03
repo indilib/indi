@@ -278,7 +278,7 @@ void SpectraCyber::init_properties()
 *****************************************************************/   
 bool SpectraCyber::connect()
 {
-    ITextVectorProperty *tProp = getText("SPECTROMETER_PORT");
+    ITextVectorProperty *tProp = getText("DEVICE_PORT");
 
    if (isConnected())
 		return true;
@@ -462,7 +462,7 @@ bool SpectraCyber::ISNewText (const char *name, char *texts[], char *names[], in
         return false;
 
     // Device Port Text
-    if (!strcmp(tProp->name, "SPECTROMETER_PORT"))
+    if (!strcmp(tProp->name, "DEVICE_PORT"))
     {
         if (IUUpdateText(tProp, texts, names, n) < 0)
                         return false;
