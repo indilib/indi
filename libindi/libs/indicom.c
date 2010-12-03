@@ -247,6 +247,9 @@ timestamp()
 
 int tty_timeout(int fd, int timeout)
 {
+ if (fd == -1)
+        return TTY_ERRNO;
+
   struct timeval tv;
   fd_set readout;
   int retval;
@@ -275,6 +278,9 @@ int tty_timeout(int fd, int timeout)
 
 int tty_write(int fd, const char * buf, int nbytes, int *nbytes_written)
 {
+    if (fd == -1)
+           return TTY_ERRNO;
+
   int bytes_w = 0;   
   *nbytes_written = 0;
    
@@ -296,6 +302,9 @@ int tty_write(int fd, const char * buf, int nbytes, int *nbytes_written)
 
 int tty_write_string(int fd, const char * buf, int *nbytes_written)
 {
+    if (fd == -1)
+           return TTY_ERRNO;
+
   unsigned int nbytes;
   int bytes_w = 0;
   *nbytes_written = 0;
@@ -320,6 +329,8 @@ int tty_write_string(int fd, const char * buf, int *nbytes_written)
 
 int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
 {
+    if (fd == -1)
+           return TTY_ERRNO;
 
  int bytesRead = 0;
  int err = 0;
@@ -348,6 +359,8 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
 
 int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes_read)
 {
+    if (fd == -1)
+           return TTY_ERRNO;
 
  int bytesRead = 0;
  int err = TTY_OK;
@@ -650,6 +663,7 @@ error:
     if (t_fd != -1)
     {
         close(t_fd);
+        *fd = -1;
     }
 
     return TTY_PORT_FAILURE;
@@ -661,13 +675,16 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
   return TTY_PORT_FAILURE;
 
 #else
- int t_fd=0;
+ int t_fd=-1;
  char msg[80];
  int bps;
  struct termios tty_setting;
 
  if ( (t_fd = open(device, O_RDWR | O_NOCTTY )) == -1)
+ {
+     *fd = -1;
     return TTY_PORT_FAILURE;
+ }
 
     /* Control Modes
    Set bps rate */
@@ -852,6 +869,9 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
 
 int tty_disconnect(int fd)
 {
+    if (fd == -1)
+           return TTY_ERRNO;
+
 #ifdef _WIN32
 	return TTY_ERRNO;
 #else
