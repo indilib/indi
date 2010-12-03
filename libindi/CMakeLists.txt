@@ -316,15 +316,15 @@ set(flipdf_SRCS
 	${CMAKE_SOURCE_DIR}/drivers/focuser/fli_pdf.c
 )
 
-add_executable(indi_fli_pdf ${flipdf_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
+add_executable(indi_fli_focus ${flipdf_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
 
-target_link_libraries(indi_fli_pdf m ${FLI_LIBRARIES})
+target_link_libraries(indi_fli_focus m ${FLI_LIBRARIES})
 
 if (NOVA_FOUND)
-  target_link_libraries(indi_fli_pdf ${NOVA_LIBRARIES})
+  target_link_libraries(indi_fli_focus ${NOVA_LIBRARIES})
 endif (NOVA_FOUND)
 
-install(TARGETS indi_fli_pdf RUNTIME DESTINATION bin )
+install(TARGETS indi_fli_focus RUNTIME DESTINATION bin )
 endif(FLI_FOUND)
 #################################################################################
 
@@ -336,15 +336,32 @@ set(robofocus_SRCS
 	${CMAKE_SOURCE_DIR}/drivers/focuser/robofocusdriver.c
    )
 
-add_executable(indi_robofocus ${robofocus_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
+add_executable(indi_robo_focus ${robofocus_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
 
-target_link_libraries(indi_robofocus m)
+target_link_libraries(indi_robo_focus m)
 
 if (NOVA_FOUND)
-  target_link_libraries(indi_robofocus ${NOVA_LIBRARIES})
+  target_link_libraries(indi_robo_focus ${NOVA_LIBRARIES})
 endif (NOVA_FOUND)
 
-install(TARGETS indi_robofocus RUNTIME DESTINATION bin )
+install(TARGETS indi_robo_focus RUNTIME DESTINATION bin )
+
+################ Optec TCF-S ################
+
+set(tcfs_SRCS
+        ${indimain_SRCS}
+        ${CMAKE_SOURCE_DIR}/drivers/focuser/tcfs.cpp
+   )
+
+add_executable(indi_tcfs_focus ${tcfs_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
+
+target_link_libraries(indi_tcfs_focus indidefaultdriver m z)
+
+if (NOVA_FOUND)
+  target_link_libraries(indi_tcfs_focus ${NOVA_LIBRARIES})
+endif (NOVA_FOUND)
+
+install(TARGETS indi_tcfs_focus RUNTIME DESTINATION bin )
 
 #################################################################################
 
@@ -669,7 +686,7 @@ endif (NOVA_FOUND)
 
 #################################################################################
 
-install( FILES drivers.xml DESTINATION ${DATA_INSTALL_DIR})
+install( FILES drivers.xml ${CMAKE_SOURCE_DIR}/drivers/focuser/indi_tcfs_sk.xml DESTINATION ${DATA_INSTALL_DIR})
 
 install( FILES indiapi.h indidevapi.h base64.h eventloop.h indidriver.h ${CMAKE_SOURCE_DIR}/libs/lilxml.h ${CMAKE_SOURCE_DIR}/libs/indibase/indibase.h
 ${CMAKE_SOURCE_DIR}/libs/indibase/basedriver.h  ${CMAKE_SOURCE_DIR}/libs/indibase/defaultdriver.h

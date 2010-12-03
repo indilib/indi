@@ -96,13 +96,17 @@
 </devGroup>
 <devGroup group="Focusers">
 	<device label="FLI PDF">
-		<driver name="FLI PDF">indi_fli_pdf</driver>
+                <driver name="FLI PDF">indi_fli_focus</driver>
 		<version>0.1</version>
 	</device>
 	<device label="Robo Focus">
-		<driver name="Robofocus">indi_robofocus</driver>
+                <driver name="Robofocus">indi_robo_focus</driver>
 		<version>0.1</version>
 	</device>
+        <device label="Optec TCF-S">
+                <driver name="Optec TCF-S">indi_tcfs_focus</driver>
+                <version>0.1</version>
+        </device>
 </devGroup>
 <devGroup group="Filter Wheels">
   	<device label="FLI Wheel">
