@@ -451,9 +451,12 @@ libindi/drivers/ccd/fli_ccd.c -text
 libindi/drivers/filter_wheel/fli_wheel.c -text
 libindi/drivers/filter_wheel/trutech_wheel.c -text
 libindi/drivers/focuser/fli_pdf.c -text
+libindi/drivers/focuser/indi_tcfs_sk.xml -text
 libindi/drivers/focuser/robofocus.c -text
 libindi/drivers/focuser/robofocusdriver.c -text
 libindi/drivers/focuser/robofocusdriver.h -text
+libindi/drivers/focuser/tcfs.cpp -text
+libindi/drivers/focuser/tcfs.h -text
 libindi/drivers/telescope/celestrongps.cpp -text
 libindi/drivers/telescope/celestrongps.h -text
 libindi/drivers/telescope/celestronprotocol.c -text

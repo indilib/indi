@@ -1,0 +1,71 @@
+<INDIDriver>
+<defSwitchVector device="Optec TCF-S" name="CONNECTION" label="Connection" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="60">
+    <defSwitch name="CONNECT" label="Connect">
+Off
+    </defSwitch>
+    <defSwitch name="DISCONNECT" label="Disconnect">
+On
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="Optec TCF-S" name="DEVICE_PORT" label="Focuser" group="Main Control" state="Idle" perm="rw" timeout="0">
+    <defText name="PORT" label="Port">
+/dev/ttyUSB0
+    </defText>
+</defTextVector>
+<defSwitchVector device="Optec TCF-S" name="Mode" label="" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="0">
+    <defSwitch name="Manual" label="">
+Off
+    </defSwitch>
+    <defSwitch name="Auto A" label="">
+Off
+    </defSwitch>
+    <defSwitch name="Auto B" label="">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Optec TCF-S" name="FOCUS_MOTION" label="Motion" group="Operation" state="Idle" perm="rw" rule="OneOfMany" timeout="0">
+    <defSwitch name="FOCUS_INWARD" label="Inward">
+Off
+    </defSwitch>
+    <defSwitch name="FOCUS_OUTWARD" label="Outward">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Optec TCF-S" name="FOCUS_POSITION" label="Position" group="Operation" state="Idle" perm="rw" rule="OneOfMany" timeout="0">
+    <defSwitch name="FOCUS_MIN" label="Min">
+Off
+    </defSwitch>
+    <defSwitch name="FOCUS_CENTER" label="Center">
+Off
+    </defSwitch>
+    <defSwitch name="FOCUS_MAX" label="Max">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="Optec TCF-S" name="FOCUS_STEP" label="Step" group="Operation" state="Idle" perm="rw" timeout="0">
+    <defNumber name="FOCUS_STEP_VALUE" label="# Steps" format="%.3f" min="0" max="1000" step="100">
+100
+    </defNumber>
+</defNumberVector>
+<defNumberVector device="Optec TCF-S" name="FOCUS_TIMER" label="Timer" group="Operation" state="Idle" perm="rw" timeout="0">
+    <defNumber name="FOCUS_TIME_VALUE" label="time (ms)" format="%.3f" min="0" max="5000" step="100">
+0
+    </defNumber>
+</defNumberVector>
+<defNumberVector device="Optec TCF-S" name="FOCUS_INFO" label="Info" group="Operation" state="Idle" perm="ro" timeout="0">
+    <defNumber name="FOCUS_POSITION_VALUE" label="Position" format="%.3f" min="0" max="9999" step="0">
+0
+    </defNumber>
+<defNumber name="FOCUS_TEMPERATURE_VALUE" label="Temperature (c)" format="%.3f" min="-50" max="80" step="0">
+0
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="Optec TCF-S" name="FOCUS_POWER" label="Power" group="Operation" state="Idle" perm="rw" rule="OneOfMany" timeout="0">
+    <defSwitch name="FOCUS_SLEEP" label="Sleep">
+Off
+    </defSwitch>
+    <defSwitch name="FOCUS_WAKEUP" label="Wake up">
+Off
+    </defSwitch>
+</defSwitchVector>
+</INDIDriver>
