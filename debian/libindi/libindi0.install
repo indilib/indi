@@ -1,5 +1,5 @@
-debian/tmp/usr/lib/libindi.so.0.7.2
-debian/tmp/usr/lib/libindi.so.0
-debian/tmp/usr/share/indi/drivers.xml
-debian/tmp/usr/bin/indi*
+usr/lib/libindi.so.0.7.2
+usr/lib/libindi.so.0
+usr/share/indi/drivers.xml
+usr/bin/indi*
 

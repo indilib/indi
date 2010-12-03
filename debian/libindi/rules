@@ -1,9 +1,11 @@
 #!/usr/bin/make -f
 
+DEB_DH_INSTALL_SOURCEDIR = debian/tmp
+
 include /usr/share/cdbs/1/class/cmake.mk
 include /usr/share/cdbs/1/rules/debhelper.mk
 
-install/indi::
+install/libindi0::
 	ln -sf indi_lx200generic $(DEB_DESTDIR)/usr/bin/indi_lx200classic
 	ln -sf indi_lx200generic $(DEB_DESTDIR)/usr/bin/indi_lx200autostar
 	ln -sf indi_lx200generic $(DEB_DESTDIR)/usr/bin/indi_lx200_16
