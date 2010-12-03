@@ -42,7 +42,7 @@ public:
 to disconnect the device.
       \param msg A message to be sent along with connect/disconnect command.
     */
-    virtual void setConnected(bool status, const char *msg = NULL);
+    virtual void setConnected(bool status, IPState state=IPS_OK, const char *msg = NULL);
 
 protected:
 

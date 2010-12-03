@@ -401,7 +401,7 @@ void INDI::DefaultDriver::resetProperties()
    }
 }
 
-void INDI::DefaultDriver::setConnected(bool status, const char *msg)
+void INDI::DefaultDriver::setConnected(bool status, IPState state, const char *msg)
 {
     ISwitch *sp = NULL;
     ISwitchVectorProperty *svp = getSwitch("CONNECTION");
@@ -427,7 +427,7 @@ void INDI::DefaultDriver::setConnected(bool status, const char *msg)
         sp->s = ISS_ON;
     }
 
-    svp->s = IPS_OK;
+    svp->s = state;
 
     IDSetSwitch(svp, msg, NULL);
 
