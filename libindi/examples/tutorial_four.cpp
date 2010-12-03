@@ -274,13 +274,13 @@ void MyScope::connect_telescope()
     if (!strcmp(sp->name, "CONNECT"))
     {
         // Make sure to call setConnected(true) before informing client about successful connection
-        setConnected(true, "Connecting.... telescope is online.");
+        setConnected(true, IPS_OK, "Connecting.... telescope is online.");
         IDLog("Connecting.... telescope is online.\n");
     }
     // Are we disconnecting?
     else
     {
-        setConnected(false, "Disconnecting... telescope is offline.");
+        setConnected(false, IPS_OK, "Disconnecting... telescope is offline.");
         IDLog("Disconnecting... telescope is offline.\n");
     }
 }
