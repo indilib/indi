@@ -204,11 +204,7 @@ bool TCFS::connect()
     {
         dispatch_command(FMMODE);
 
-        usleep(500000);
-
-        if (read_tcfs() == false)
-            continue;
-        else
+        if (read_tcfs())
         {
             if (!strcmp(response, "!"))
             {
@@ -216,6 +212,8 @@ bool TCFS::connect()
                 return true;
             }
         }
+
+        usleep(500000);
     }
 
     setConnected(false, IPS_ALERT, "Error connecting to TCF-S focuser...");
@@ -395,6 +393,9 @@ bool TCFS::read_tcfs()
             }
             return false;
     }
+
+    // Remove LF & CR
+    response[nbytes_read-2] = '\0';
 
     if (isDebug())
         IDLog("Bytes Read: %d - strlen(response): %d - Reponse from TCF-S: #%s#\n", nbytes_read, strlen(response), response);
