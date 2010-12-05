@@ -47,6 +47,7 @@ public:
                                FIN,             // Focuser In “nnnn”
                                FOUT,            // Focuser Out “nnnn”
                                FPOSRO,          // Focuser Position Read Out
+                               FTMPRO,          // Focuser Temperature Read Out
                                FSLEEP,          // Focuser Sleep
                                FWAKUP,          // Focuser Wake Up
                                FHOME,           // Focuser Home Command
@@ -74,6 +75,7 @@ public:
 private: 
 
     ISwitchVectorProperty *ConnectSP;
+    INumberVectorProperty *FocusStepNP;
 
     // Functions
     void init_properties();
@@ -87,6 +89,9 @@ private:
     int fd;
     char command[TCFS_MAX_CMD];
     char response[TCFS_MAX_CMD];
+
+    unsigned int simulated_position;
+    float simulated_temperature;
 
 };
 

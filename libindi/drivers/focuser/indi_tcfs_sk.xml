@@ -12,7 +12,7 @@ On
 /dev/ttyUSB0
     </defText>
 </defTextVector>
-<defSwitchVector device="Optec TCF-S" name="Mode" label="" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="0">
+<defSwitchVector device="Optec TCF-S" name="FOCUS_MODE" label="Mode" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="0">
     <defSwitch name="Manual" label="">
 Off
     </defSwitch>
@@ -43,13 +43,8 @@ Off
     </defSwitch>
 </defSwitchVector>
 <defNumberVector device="Optec TCF-S" name="FOCUS_STEP" label="Step" group="Operation" state="Idle" perm="rw" timeout="0">
-    <defNumber name="FOCUS_STEP_VALUE" label="# Steps" format="%.3f" min="0" max="1000" step="100">
+    <defNumber name="FOCUS_STEP_VALUE" label="# Steps" format="%.3f" min="0" max="1000" step="5">
 100
-    </defNumber>
-</defNumberVector>
-<defNumberVector device="Optec TCF-S" name="FOCUS_TIMER" label="Timer" group="Operation" state="Idle" perm="rw" timeout="0">
-    <defNumber name="FOCUS_TIME_VALUE" label="time (ms)" format="%.3f" min="0" max="5000" step="100">
-0
     </defNumber>
 </defNumberVector>
 <defNumberVector device="Optec TCF-S" name="FOCUS_INFO" label="Info" group="Operation" state="Idle" perm="ro" timeout="0">
