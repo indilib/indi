@@ -107,6 +107,10 @@
                 <driver name="Optec TCF-S">indi_tcfs_focus</driver>
                 <version>0.1</version>
         </device>
+        <device label="Optec TCF-S3">
+                <driver name="Optec TCF-S">indi_tcfs3_focus</driver>
+                <version>0.1</version>
+        </device>
 </devGroup>
 <devGroup group="Filter Wheels">
   	<device label="FLI Wheel">

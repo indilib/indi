@@ -54,6 +54,7 @@ public:
 			     };
 
     enum TCFSMode { TCFS_MANUAL_MODE, TCFS_A_MODE, TCFS_B_MODE };
+    enum TCFSMotion { TCFS_INWARD, TCFS_OUTWARD };
     enum TCFSError { NO_ERROR, ER_1, ER_2, ER_3 };
 
     TCFS();
@@ -75,11 +76,16 @@ public:
 private: 
 
     ISwitchVectorProperty *ConnectSP;
+    ISwitchVectorProperty *FocusPowerSP;
+    ISwitchVectorProperty *FocusModeSP;
     INumberVectorProperty *FocusStepNP;
-    INumberVectorProperty *FocusInfoNP;
+    INumberVectorProperty *FocusPositionNP;
+    INumberVectorProperty *FocusPositionRequestNP;
+    INumberVectorProperty *FocusTemperatureNP;
 
     // Functions
     void init_properties();
+    bool move_focuser(TCFSMotion dir);
 
     bool read_tcfs();
     bool dispatch_command(TCFSCommand command);
@@ -94,6 +100,8 @@ private:
     unsigned int simulated_position;
     unsigned int target_position;
     float simulated_temperature;
+
+    bool isTCFS3;
 
 };
 

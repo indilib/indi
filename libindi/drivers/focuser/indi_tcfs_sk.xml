@@ -31,7 +31,7 @@ Off
 Off
     </defSwitch>
 </defSwitchVector>
-<defSwitchVector device="Optec TCF-S" name="FOCUS_POSITION" label="Position" group="Operation" state="Idle" perm="rw" rule="OneOfMany" timeout="0">
+<defSwitchVector device="Optec TCF-S" name="FOCUS_GOTO" label="Go to" group="Operation" state="Idle" perm="rw" rule="OneOfMany" timeout="0">
     <defSwitch name="FOCUS_MIN" label="Min">
 Off
     </defSwitch>
@@ -41,17 +41,27 @@ Off
     <defSwitch name="FOCUS_MAX" label="Max">
 Off
     </defSwitch>
+<defSwitch name="FOCUS_HOME" label="Home">
+Off
+    </defSwitch>
 </defSwitchVector>
 <defNumberVector device="Optec TCF-S" name="FOCUS_STEP" label="Step" group="Operation" state="Idle" perm="rw" timeout="0">
     <defNumber name="FOCUS_STEP_VALUE" label="# Steps" format="%.3f" min="0" max="1000" step="5">
 100
     </defNumber>
 </defNumberVector>
-<defNumberVector device="Optec TCF-S" name="FOCUS_INFO" label="Info" group="Operation" state="Idle" perm="ro" timeout="0">
-    <defNumber name="FOCUS_POSITION_VALUE" label="Position" format="%.3f" min="0" max="9999" step="0">
+<defNumberVector device="Optec TCF-S" name="FOCUS_POSITION_REQUEST" label="Position" group="Operation" state="Idle" perm="wo" timeout="0">
+    <defNumber name="FOCUS_POSITION_VALUE" label="Current" format="%.3f" min="0" max="7000" step="0">
 0
     </defNumber>
-<defNumber name="FOCUS_TEMPERATURE_VALUE" label="Temperature (c)" format="%.3f" min="-50" max="80" step="0">
+</defNumberVector>
+<defNumberVector device="Optec TCF-S" name="FOCUS_POSITION" label="Position" group="Operation" state="Idle" perm="ro" timeout="0">
+    <defNumber name="FOCUS_POSITION_VALUE" label="Target" format="%.3f" min="0" max="9999" step="0">
+0
+    </defNumber>
+</defNumberVector>
+<defNumberVector device="Optec TCF-S" name="FOCUS_TEMPERATURE" label="Probe" group="Operation" state="Idle" perm="ro" timeout="0">
+    <defNumber name="FOCUS_TEMPERATURE_VALUE" label="Temperature (c)" format="%.3f" min="-50" max="80" step="0">
 0
     </defNumber>
 </defNumberVector>
