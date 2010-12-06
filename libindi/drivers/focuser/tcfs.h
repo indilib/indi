@@ -76,6 +76,7 @@ private:
 
     ISwitchVectorProperty *ConnectSP;
     INumberVectorProperty *FocusStepNP;
+    INumberVectorProperty *FocusInfoNP;
 
     // Functions
     void init_properties();
@@ -91,6 +92,7 @@ private:
     char response[TCFS_MAX_CMD];
 
     unsigned int simulated_position;
+    unsigned int target_position;
     float simulated_temperature;
 
 };
