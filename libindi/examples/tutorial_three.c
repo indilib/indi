@@ -65,9 +65,13 @@ static INumberVectorProperty ExposeTimeNP = { mydev, "CCD_EXPOSURE", "Expose", C
  static INumberVectorProperty TemperatureNP = { mydev, "CCD_TEMPERATURE", "Temperature (C)", COMM_GROUP, IP_RW, 60, IPS_IDLE, TemperatureN, NARRAY(TemperatureN), "", 0};
 
 /* BLOB for sending image */
-static IBLOB imageB = {"CCD1", "Feed", "", 0, 0, 0, 0, 0, 0, 0};
-static IBLOBVectorProperty imageBP = {mydev, "Video", "Video", COMM_GROUP,
-  IP_RO, 0, IPS_IDLE, &imageB, 1, "", 0};
+static IBLOB imagePrimaryB = {"CCD1", "Primary", "", 0, 0, 0, 0, 0, 0, 0};
+static IBLOBVectorProperty imagePrimaryBP = {mydev, "CCD1", "", COMM_GROUP,
+  IP_RO, 0, IPS_IDLE, &imagePrimaryB, 1, "", 0};
+
+static IBLOB imageGuideB = {"CCD2", "Guide", "", 0, 0, 0, 0, 0, 0, 0};
+static IBLOBVectorProperty imageGuideBP = {mydev, "CCD2", "", COMM_GROUP,
+  IP_RO, 0, IPS_IDLE, &imageGuideB, 1, "", 0};
 
 void ISGetProperties (const char *dev)
 { 
@@ -79,7 +83,8 @@ void ISGetProperties (const char *dev)
   IDDefSwitch(&PowerSP, NULL);
   IDDefNumber(&ExposeTimeNP, NULL);
   IDDefNumber(&TemperatureNP, NULL);
-  IDDefBLOB(&imageBP, NULL);
+  IDDefBLOB(&imagePrimaryBP, NULL);
+  IDDefBLOB(&imageGuideBP, NULL);
 
   IEAddTimer(1000, ISPoll, NULL);
   
@@ -235,14 +240,29 @@ void uploadFile(const char* filename)
    }
    
    /* #6 Send it */
-   imageB.blob = compressedData;
-   imageB.bloblen = compressedBytes;
-   imageB.size = totalBytes;
-   strcpy(imageB.format, ".fits.z");
+
+   if (!strcmp(filename, "ngc1316o.fits"))
+   {
+   imagePrimaryB.blob = compressedData;
+   imagePrimaryB.bloblen = compressedBytes;
+   imagePrimaryB.size = totalBytes;
+   strcpy(imagePrimaryB.format, ".fits.z");
 
    /* #7 Set BLOB state to Ok */
-   imageBP.s = IPS_OK;
-   IDSetBLOB (&imageBP, NULL);
+   imagePrimaryBP.s = IPS_OK;
+   IDSetBLOB (&imagePrimaryBP, NULL);
+   }
+   else
+   {
+       imageGuideB.blob = compressedData;
+       imageGuideB.bloblen = compressedBytes;
+       imageGuideB.size = totalBytes;
+       strcpy(imageGuideB.format, ".fits.z");
+
+       /* #7 Set BLOB state to Ok */
+       imageGuideBP.s = IPS_OK;
+       IDSetBLOB (&imageGuideBP, NULL);
+   }
 
    /* #8 Set Exposure status to Ok */
    ExposeTimeNP.s = IPS_OK;
@@ -273,13 +293,16 @@ void ISPoll(void * p)
 	ExposeTimeN[0].value--;
 
         /* Are we done yet? */
-        if (ExposeTimeN[0].value == 0)
+        if (ExposeTimeN[0].value <= 0)
         {
+          ExposeTimeN[0].value = 0;
+
           /* Let's set the state of OK and report that to the client */
           ExposeTimeNP.s = IPS_OK;
  
           /* Upload a sample FITS file */
           uploadFile("ngc1316o.fits");
+          uploadFile("x0cj010ct_d0h.fit");
 
           IDSetNumber(&ExposeTimeNP, NULL);
 	  break;

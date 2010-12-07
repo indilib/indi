@@ -512,6 +512,7 @@ libindi/examples/tutorial_one.c -text
 libindi/examples/tutorial_rain.c -text
 libindi/examples/tutorial_three.c -text
 libindi/examples/tutorial_two.c -text
+libindi/examples/x0cj010ct_d0h.fit -text
 libindi/fq.c -text
 libindi/fq.h -text
 libindi/indiapi.h -text
