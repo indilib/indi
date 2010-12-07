@@ -468,6 +468,8 @@ bool TCFS::ISNewSwitch (const char *name, ISState *states, char *names[], int n)
                     IDSetSwitch(sProp, "Focuser is set into sleep mode.");
                     FocusPositionNP->s = IPS_IDLE;
                     IDSetNumber(FocusPositionNP, NULL);
+                    FocusTemperatureNP->s = IPS_IDLE;
+                    IDSetNumber(FocusTemperatureNP, NULL);
                     return true;
                 }
                 else
@@ -488,6 +490,8 @@ bool TCFS::ISNewSwitch (const char *name, ISState *states, char *names[], int n)
                     IDSetSwitch(sProp, "Focuser is awake.");
                     FocusPositionNP->s = IPS_OK;
                     IDSetNumber(FocusPositionNP, NULL);
+                    FocusTemperatureNP->s = IPS_OK;
+                    IDSetNumber(FocusTemperatureNP, NULL);
                     return true;
                 }
                 else
@@ -529,9 +533,29 @@ bool TCFS::ISNewSwitch (const char *name, ISState *states, char *names[], int n)
            }
        }
         else if (!strcmp(target_active_switch->name, "Auto A"))
+        {
             dispatch_command(FAMODE);
+            read_tcfs();
+            if (isSimulation() == false && strcmp(response, "A"))
+            {
+                IUResetSwitch(sProp);
+                sProp->s = IPS_ALERT;
+                IDSetSwitch(sProp, "Error switching to Auto Mode A. No reply from TCF-S. Try again.");
+                return true;
+            }
+        }
         else
+        {
             dispatch_command(FBMODE);
+            read_tcfs();
+            if (isSimulation() == false && strcmp(response, "B"))
+            {
+                IUResetSwitch(sProp);
+                sProp->s = IPS_ALERT;
+                IDSetSwitch(sProp, "Error switching to Auto Mode B. No reply from TCF-S. Try again.");
+                return true;
+            }
+        }
 
         IDSetSwitch(sProp, NULL);
         return true;
@@ -881,7 +905,7 @@ bool TCFS::read_tcfs()
     }
 
     // Read until encountring a CR
-    if ( (err_code = tty_read_section(fd, response, 0x0D, 5, &nbytes_read)) != TTY_OK)
+    if ( (err_code = tty_read_section(fd, response, 0x0D, 15, &nbytes_read)) != TTY_OK)
     {
             tty_error_msg(err_code, err_msg, 32);
             if (isDebug())
