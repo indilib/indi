@@ -517,16 +517,13 @@ void INDI::BaseClient::setBLOBMode(BLOBHandling blobH, const char *dev, const ch
 {
     char blobOpenTag[64];
 
-    if (dev)
-    {
-        if (prop)
-            snprintf(blobOpenTag, 64, "<enableBLOB device='%s' name='%s'>", dev, prop);
-        else
-            snprintf(blobOpenTag, 64, "<enableBLOB device='%s'>", dev);
-    }
-    else
-        snprintf(blobOpenTag, 64, "<enableBLOB>", dev, prop);
+    if (!dev[0])
+        return;
 
+   if (prop[0])
+           snprintf(blobOpenTag, 64, "<enableBLOB device='%s' name='%s'>", dev, prop);
+   else
+          snprintf(blobOpenTag, 64, "<enableBLOB device='%s'>", dev);
 
     switch (blobH)
     {

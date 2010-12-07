@@ -91,13 +91,13 @@ public:
 
       If \e dev and \e prop are supplied, then the BLOB handling policy is set for this particular device and property.
       if \e prop is NULL, then the BLOB policy applies to the whole device.
-      if \e dev is NULL, then the BLOB policy applies to all devices owned by INDI server.
+
 
       \param blobH BLOB handling policy
-      \param dev name of device
-      \param prop name of property
+      \param dev name of device, required.
+      \param prop name of property, optional.
     */
-    void setBLOBMode(BLOBHandling blobH, const char *dev = NULL, const char *prop = NULL);
+    void setBLOBMode(BLOBHandling blobH, const char *dev, const char *prop = NULL);
 
     // Update
     static void * listenHelper(void *context);
