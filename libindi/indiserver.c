@@ -83,13 +83,16 @@ typedef enum {B_NEVER=0, B_ALSO, B_ONLY} BLOBHandling;
 typedef struct {
     char dev[MAXINDIDEVICE];
     char name[MAXINDINAME];
+    BLOBHandling blob;			/* when to snoop BLOBs */
 } Property;
 
-/* record of each snooped property */
+
+/* record of each snooped property
 typedef struct {
     Property prop;
-    BLOBHandling blob;			/* when to snoop BLOBs */
-} Snoopee;
+    BLOBHandling blob;
+} Property;
+*/
 
 struct
 {
@@ -118,7 +121,7 @@ typedef struct {
     char name[MAXINDIDEVICE];		/* persistent name */
     char dev[MAXINDIDEVICE];		/* device served by this driver */
     int active;				/* 1 when this record is in use */
-    Snoopee *sprops;			/* malloced array of props we snoop */
+    Property *sprops;			/* malloced array of props we snoop */
     int nsprops;			/* n entries in sprops[] */
     int pid;				/* process id or REMOTEDVR if remote */
     int rfd;				/* read pipe fd */
@@ -162,8 +165,8 @@ static void q2SDrivers (int isblob, const char *dev, const char *name, Msg *mp,
 static int q2Clients (ClInfo *notme, int isblob, const char *dev, const char *name,
     Msg *mp, XMLEle *root);
 static void addSDevice (DvrInfo *dp, const char *dev, const char *name);
-static Snoopee *findSDevice (DvrInfo *dp, const char *dev, const char *name);
-static void addClDevice (ClInfo *cp, const char *dev, const char *name);
+static Property *findSDevice (DvrInfo *dp, const char *dev, const char *name);
+static void addClDevice (ClInfo *cp, const char *dev, const char *name, int isblob);
 static int findClDevice (ClInfo *cp, const char *dev, const char *name);
 static int readFromDriver (DvrInfo *dp);
 static int stderrFromDriver (DvrInfo *dp);
@@ -174,7 +177,8 @@ static void freeMsg (Msg *mp);
 static Msg *newMsg (void);
 static int sendClientMsg (ClInfo *cp);
 static int sendDriverMsg (DvrInfo *cp);
-static void crackBLOB (char *enableBLOB, BLOBHandling *bp);
+static void crackBLOB (const char *enableBLOB, BLOBHandling *bp);
+static void crackBLOBHandling(const char *dev, const char *name, const char *enableBLOB, ClInfo *cp);
 static void traceMsg (XMLEle *root);
 static char *indi_tstamp (char *s);
 static void logDMsg (XMLEle *root, const char *dev);
@@ -432,7 +436,7 @@ startLocalDvr (DvrInfo *dp)
 	dp->efd = ep[0];
 	dp->lp = newLilXML();
         dp->msgq = newFQ(1);
-	dp->sprops = (Snoopee*) malloc (1);	/* seed for realloc */
+        dp->sprops = (Property*) malloc (1);	/* seed for realloc */
 	dp->nsprops = 0;
 	dp->nsent = 0;
         dp->active = 1;
@@ -483,7 +487,7 @@ startRemoteDvr (DvrInfo *dp)
 	dp->wfd = sockfd;
 	dp->lp = newLilXML();
 	dp->msgq = newFQ(1);
-	dp->sprops = (Snoopee*) malloc (1);	/* seed for realloc */
+        dp->sprops = (Property*) malloc (1);	/* seed for realloc */
 	dp->nsprops = 0;
 	dp->nsent = 0;
         dp->active = 1;
@@ -977,13 +981,14 @@ readFromClient (ClInfo *cp)
 		 *   remote client connections start returning too much.
 		 */
 		if (dev[0])
-		    addClDevice (cp, dev, name);
+                    addClDevice (cp, dev, name, isblob);
 		else if (!strcmp (roottag, "getProperties") && !cp->nprops)
 		    cp->allprops = 1;
 
 		/* snag enableBLOB -- send to remote drivers too */
 		if (!strcmp (roottag, "enableBLOB"))
-		    crackBLOB (pcdataXMLEle(root), &cp->blob);
+                   // crackBLOB (pcdataXMLEle(root), &cp->blob);
+                     crackBLOBHandling (dev, name, pcdataXMLEle(root), cp);
 
 		/* build a new message -- set content iff anyone cares */
 		mp = newMsg();
@@ -1072,7 +1077,7 @@ readFromDriver (DvrInfo *dp)
 
 		/* that's all if driver is just registering a BLOB mode */
 		if (!strcmp (roottag, "enableBLOB")) {
-		    Snoopee *sp = findSDevice (dp, dev, name);
+                    Property *sp = findSDevice (dp, dev, name);
 		    if (sp)
 			crackBLOB (pcdataXMLEle (root), &sp->blob);
 		    delXMLEle (root);
@@ -1093,7 +1098,7 @@ readFromDriver (DvrInfo *dp)
 		mp = newMsg();
 
 		/* send to interested clients */
-		if (q2Clients (NULL, isblob, dev, name, mp, root) < 0)
+                if (q2Clients (NULL, isblob, dev, name, mp, root) < 0)
 		    shutany++;
 
 		/* send to snooping drivers */
@@ -1270,7 +1275,7 @@ q2SDrivers (int isblob, const char *dev, const char *name, Msg *mp, XMLEle *root
 	DvrInfo *dp;
 
 	for (dp = dvrinfo; dp < &dvrinfo[ndvrinfo]; dp++) {
-	    Snoopee *sp = findSDevice (dp, dev, name);
+            Property *sp = findSDevice (dp, dev, name);
 
 	    /* nothing for dp if not snooping for dev/name or wrong BLOB mode */
 	    if (!sp)
@@ -1296,7 +1301,7 @@ q2SDrivers (int isblob, const char *dev, const char *name, Msg *mp, XMLEle *root
 static void
 addSDevice (DvrInfo *dp, const char *dev, const char *name)
 {
-	Snoopee *sp;
+        Property *sp;
 	char *ip;
 
 	/* no dups */
@@ -1305,15 +1310,15 @@ addSDevice (DvrInfo *dp, const char *dev, const char *name)
 	    return;
 
 	/* add dev to sdevs list */
-	dp->sprops = (Snoopee*) realloc (dp->sprops,
-					    (dp->nsprops+1)*sizeof(Snoopee));
+        dp->sprops = (Property*) realloc (dp->sprops,
+                                            (dp->nsprops+1)*sizeof(Property));
 	sp = &dp->sprops[dp->nsprops++];
 
-	ip = sp->prop.dev;
+        ip = sp->dev;
 	strncpy (ip, dev, MAXINDIDEVICE-1);
 	ip[MAXINDIDEVICE-1] = '\0';
 
-	ip = sp->prop.name;
+        ip = sp->name;
 	strncpy (ip, name, MAXINDINAME-1);
 	ip[MAXINDINAME-1] = '\0';
 
@@ -1324,23 +1329,23 @@ addSDevice (DvrInfo *dp, const char *dev, const char *name)
 							dp->name, dev, name);
 }
 
-/* return Snoopee if dp is snooping dev/name, else NULL.
+/* return Property if dp is snooping dev/name, else NULL.
  */
-static Snoopee *
+static Property *
 findSDevice (DvrInfo *dp, const char *dev, const char *name)
 {
 	int i;
 
 	for (i = 0; i < dp->nsprops; i++) {
-	    Snoopee *sp = &dp->sprops[i];
-	    Property *pp = &sp->prop;
-	    if (!strcmp (pp->dev, dev) &&
-		    (!pp->name[0] || !strcmp(pp->name, name)))
+            Property *sp = &dp->sprops[i];
+            if (!strcmp (sp->dev, dev) &&
+                    (!sp->name[0] || !strcmp(sp->name, name)))
 		return (sp);
 	}
 
 	return (NULL);
 }
+
 
 /* put Msg mp on queue of each client interested in dev/name, except notme.
  * if BLOB always honor current mode.
@@ -1351,17 +1356,40 @@ q2Clients (ClInfo *notme, int isblob, const char *dev, const char *name, Msg *mp
 {
 	int shutany = 0;
 	ClInfo *cp;
-	int ql;
+        int ql,i=0;
 
 	/* queue message to each interested client */
 	for (cp = clinfo; cp < &clinfo[nclinfo]; cp++) {
 	    /* cp in use? notme? want this dev/name? blob? */
 	    if (!cp->active || cp == notme)
 		continue;
-	    if (findClDevice (cp, dev, name) < 0)
+            if (findClDevice (cp, dev, name) < 0)
 		continue;
-	    if ((isblob && cp->blob==B_NEVER) || (!isblob && cp->blob==B_ONLY))
-		continue;
+
+
+            if ((isblob && cp->blob==B_NEVER) || (!isblob && cp->blob==B_ONLY))
+                continue;
+
+            if (isblob)
+            {
+                Property *pp = NULL;
+                int blobcont=0;
+                for (i = 0; i < cp->nprops; i++)
+                {
+                    pp = &cp->props[i];
+                    if (!strcmp (pp->dev, dev) && (!strcmp(pp->name, name)))
+                    {
+                        if (pp->blob == B_NEVER)
+                        {
+                            blobcont = 1;
+                            break;
+                        }
+                    }
+                }
+
+                if (blobcont == 1)
+                    continue;
+            }
 
 	    /* shut down this client if its q is already too large */
 	    ql = msgQSize(cp->msgq);
@@ -1567,12 +1595,12 @@ findClDevice (ClInfo *cp, const char *dev, const char *name)
 {
 	int i;
 
-	if (cp->allprops || !dev[0])
+        if (cp->allprops || !dev[0])
 	    return (0);
-	for (i = 0; i < cp->nprops; i++) {
-	    Property *pp = &cp->props[i];
-	    if (!strcmp (pp->dev, dev) &&
-                                    (!pp->name[0] || !strcmp(pp->name, name)))
+        for (i = 0; i < cp->nprops; i++)
+        {
+            Property *pp = &cp->props[i];
+            if (!strcmp (pp->dev, dev) && (!pp->name[0] || !strcmp(pp->name, name)))
 		return (0);
 	}
 	return (-1);
@@ -1581,27 +1609,41 @@ findClDevice (ClInfo *cp, const char *dev, const char *name)
 /* add the given device and property to the devs[] list of client if new.
  */
 static void
-addClDevice (ClInfo *cp, const char *dev, const char *name)
+addClDevice (ClInfo *cp, const char *dev, const char *name, int isblob)
 {
 	Property *pp;
 	char *ip;
+        int i=0;
 
+        if (isblob)
+        {
+            for (i = 0; i < cp->nprops; i++)
+            {
+                Property *pp = &cp->props[i];
+                if (!strcmp (pp->dev, dev) && (!pp->name[0] || !strcmp(pp->name, name)))
+                    return;
+            }
+        }
 	/* no dups */
-	if (!findClDevice (cp, dev, name))
+        else if (!findClDevice (cp, dev, name))
 	    return;
 
 	/* add */
 	cp->props = (Property *) realloc (cp->props,
-					    (cp->nprops+1)*sizeof(Property));
+                                            (cp->nprops+1)*sizeof(Property));
 	pp = &cp->props[cp->nprops++];
 
-	ip = pp->dev;
+        /*ip = pp->dev;
 	strncpy (ip, dev, MAXINDIDEVICE-1);
 	ip[MAXINDIDEVICE-1] = '\0';
 
 	ip = pp->name;
 	strncpy (ip, name, MAXINDINAME-1);
-	ip[MAXINDINAME-1] = '\0';
+        ip[MAXINDINAME-1] = '\0';*/
+
+        strncpy (pp->dev, dev, MAXINDIDEVICE);
+        strncpy (pp->name, name, MAXINDINAME);
+        pp->blob = B_NEVER;
 }
 
 
@@ -1631,7 +1673,7 @@ newClSocket ()
  * no change if unrecognized
  */
 static void
-crackBLOB (char *enableBLOB, BLOBHandling *bp)
+crackBLOB (const char *enableBLOB, BLOBHandling *bp)
 {
 	if (!strcmp (enableBLOB, "Also"))
 	    *bp = B_ALSO;
@@ -1639,6 +1681,33 @@ crackBLOB (char *enableBLOB, BLOBHandling *bp)
 	    *bp = B_ONLY;
 	else if (!strcmp (enableBLOB, "Never"))
 	    *bp = B_NEVER;
+}
+
+/* Update the client property BLOB handling policy */
+static void crackBLOBHandling(const char *dev, const char *name, const char *enableBLOB, ClInfo *cp)
+{
+    int i=0;
+
+    /* If we have EnableBLOB with property name, we add it to Client device list */
+    if (name[0])
+        addClDevice (cp, dev, name, 1);
+    else
+    /* Otherwise, we set the whole client blob handling to what's passed (enableBLOB) */
+        crackBLOB(enableBLOB, &cp->blob);
+
+    /* If whole client blob handling policy was updated, we need to pass that also to all children
+       and if the request was for a specific property, then we apply the policy to it */
+    for (i = 0; i < cp->nprops; i++)
+    {
+        Property *pp = &cp->props[i];
+        if (!name[0])
+            crackBLOB(enableBLOB, &pp->blob);
+        else if (!strcmp (pp->dev, dev) && (!strcmp(pp->name, name)))
+        {
+            crackBLOB(enableBLOB, &pp->blob);
+            return;
+        }
+    }
 }
 
 /* print key attributes and values of the given xml to stderr.
