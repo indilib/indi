@@ -1,4 +1,13 @@
 * text=auto !eol
+3rdparty/gerry/cmake_modules/FindCFITSIO.cmake -text
+3rdparty/gerry/cmake_modules/FindINDI.cmake -text
+3rdparty/gerry/cmake_modules/FindNova.cmake -text
+3rdparty/gerry/cmake_modules/FindQSI.cmake -text
+3rdparty/gerry/cmake_modules/FindUSB.cmake -text
+3rdparty/gerry/cmake_modules/FindVorbis.cmake -text
+3rdparty/gerry/cmake_modules/MacroBoolTo01.cmake -text
+3rdparty/gerry/cmake_modules/MacroLogFeature.cmake -text
+3rdparty/gerry/cmake_modules/MacroOptionalFindPackage.cmake -text
 3rdparty/indi-apogee/.cproject -text
 3rdparty/indi-apogee/.project -text
 3rdparty/indi-apogee/AUTHORS -text
