@@ -8,6 +8,9 @@
 3rdparty/gerry/cmake_modules/MacroBoolTo01.cmake -text
 3rdparty/gerry/cmake_modules/MacroLogFeature.cmake -text
 3rdparty/gerry/cmake_modules/MacroOptionalFindPackage.cmake -text
+3rdparty/gerry/testclient/main.cpp -text
+3rdparty/gerry/testclient/testclient.cpp -text
+3rdparty/gerry/testclient/testclient.h -text
 3rdparty/indi-apogee/.cproject -text
 3rdparty/indi-apogee/.project -text
 3rdparty/indi-apogee/AUTHORS -text
