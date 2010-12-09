@@ -1366,30 +1366,32 @@ q2Clients (ClInfo *notme, int isblob, const char *dev, const char *name, Msg *mp
             if (findClDevice (cp, dev, name) < 0)
 		continue;
 
-
-            if ((isblob && cp->blob==B_NEVER) || (!isblob && cp->blob==B_ONLY))
+            //if ((isblob && cp->blob==B_NEVER) || (!isblob && cp->blob==B_ONLY))
+            if (!isblob && cp->blob==B_ONLY)
                 continue;
 
             if (isblob)
             {
+                if (cp->nprops > 0)
+                {
                 Property *pp = NULL;
-                int blobcont=0;
+                int blob_found=0;
                 for (i = 0; i < cp->nprops; i++)
                 {
                     pp = &cp->props[i];
                     if (!strcmp (pp->dev, dev) && (!strcmp(pp->name, name)))
                     {
-                        if (pp->blob == B_NEVER)
-                        {
-                            blobcont = 1;
-                            break;
-                        }
+                        blob_found = 1;
+                        break;
                     }
                 }
 
-                if (blobcont == 1)
+                if ( (blob_found && pp->blob == B_NEVER) || (blob_found==0 && cp->blob == B_NEVER) )
                     continue;
-            }
+               }
+               else if (cp->blob == B_NEVER)
+                   continue;
+           }
 
 	    /* shut down this client if its q is already too large */
 	    ql = msgQSize(cp->msgq);
@@ -1700,7 +1702,7 @@ static void crackBLOBHandling(const char *dev, const char *name, const char *ena
     for (i = 0; i < cp->nprops; i++)
     {
         Property *pp = &cp->props[i];
-        if (!name[0])
+        if (!name[0])           
             crackBLOB(enableBLOB, &pp->blob);
         else if (!strcmp (pp->dev, dev) && (!strcmp(pp->name, name)))
         {
