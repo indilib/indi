@@ -154,6 +154,31 @@ int testclient::dotest()
         }
         printf("Got %d blobs \n",gotblob);
 
+
+        printf("Calling setBLOBMode B_ALSO for %s with \"\"\n",CAMNAME);
+        setBLOBMode(B_NEVER,CAMNAME,"");
+        printf("Setting exposure, this should produce ZERO blobs\n");
+        spin=0;gotblob=0;
+        setnumber((char *)"CCD_EXPOSURE",1.0);
+        while((gotblob<2)&&(spin++ < 10)) {
+            sleep(1);
+        }
+        printf("Got %d blobs \n",gotblob);
+
+        printf("Calling setBLOBMode B_ALSO for %s with %s\n",CAMNAME,p);
+        setBLOBMode(B_ALSO,CAMNAME,p);
+
+        p=PrintProperties((char *)"CCD2");
+        printf("Second blob is %s\n",p);
+        spin=0;gotblob=0;
+        printf("Setting exposure, this should produce one blob\n");
+        setnumber((char *)"CCD_EXPOSURE",1.0);
+        while((gotblob<2)&&(spin++ < 10)) {
+            sleep(1);
+        }
+        printf("Got %d blobs \n",gotblob);
+
+
         /*
         if(gotblob==1) {
             printf("Got this blob like we should have\n");
