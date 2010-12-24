@@ -146,27 +146,27 @@ int qhy5_timed_move(qhy5_driver *qhy5, int direction, int duration_msec)
 		{
 			cmd = 0x18;
 		} else if(direction & (QHY_NORTH | QHY_SOUTH)) {
-			cmd = 0x21;
-		} else {
 			cmd = 0x22;
-		}
+		} else {
+			cmd = 0x21;
+                }
 		return ctrl_msg(qhy5->handle, 0xc2, cmd, 0, 0, (char *)&ret, sizeof(ret));
 	}
-	if (direction &= QHY_NORTH) {
+	if (direction & QHY_NORTH) {
 		cmd |= 0x20;
 		duration[1] = duration_msec;
-	} else if (direction &= QHY_SOUTH) {
+	} else if (direction & QHY_SOUTH) {
 		cmd |= 0x40;
 		duration[1] = duration_msec;
 	}
-	if (direction &= QHY_EAST) {
+	if (direction & QHY_EAST) {
 		cmd |= 0x10;
 		duration[0] = duration_msec;
-	} else if (direction &= QHY_WEST) {
+	} else if (direction & QHY_WEST) {
 		cmd |= 0x80;
 		duration[0] = duration_msec;
 	}
-	return ctrl_msg(qhy5->handle, 0x42, cmd, 0, 0, (char *)&duration, sizeof(duration));
+	return ctrl_msg(qhy5->handle, 0x42, 0x10, 0, cmd, (char *)&duration, sizeof(duration));
 }
 
 void *qhy5_get_row(qhy5_driver *qhy5, int row)
