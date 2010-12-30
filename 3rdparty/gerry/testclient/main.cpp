@@ -25,6 +25,6 @@ int main()
     if(client->Connected) {
         printf("No Disconnect messages came to the client\n");
     }
-
+    delete client;  // we want to clean up, but, this abends inthe library somwhere
     return 0;
 }
