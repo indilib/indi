@@ -5,7 +5,7 @@
 
 #include <string.h>
 
-#define CAMNAME "CCD Simulator"
+#define CAMNAME "CcdSimulator"
 
 testclient::testclient()
 {
@@ -149,6 +149,7 @@ int testclient::dotest()
         printf("Setting exposure, this should produce two blobs\n");
         spin=0;gotblob=0;
         setnumber((char *)"CCD_EXPOSURE",1.0);
+        setnumber((char *)"GUIDER_EXPOSURE",1.0);
         while((gotblob<2)&&(spin++ < 10)) {
             sleep(1);
         }
@@ -160,6 +161,7 @@ int testclient::dotest()
         printf("Setting exposure, this should produce ZERO blobs\n");
         spin=0;gotblob=0;
         setnumber((char *)"CCD_EXPOSURE",1.0);
+        setnumber((char *)"GUIDER_EXPOSURE",1.0);
         while((gotblob<2)&&(spin++ < 10)) {
             sleep(1);
         }
@@ -173,6 +175,7 @@ int testclient::dotest()
         spin=0;gotblob=0;
         printf("Setting exposure, this should produce one blob\n");
         setnumber((char *)"CCD_EXPOSURE",1.0);
+        setnumber((char *)"GUIDER_EXPOSURE",1.0);
         while((gotblob<2)&&(spin++ < 10)) {
             sleep(1);
         }
