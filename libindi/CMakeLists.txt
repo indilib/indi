@@ -460,6 +460,7 @@ endif(CFITSIO_FOUND)
 #################################################################################
 
 ### Meade Lunar Planetary Imager ########
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 if (CFITSIO_FOUND)
 
 ADD_DEFINITIONS(-DHAVE_LINUX_VIDEODEV2_H)
@@ -481,10 +482,12 @@ endif (NOVA_FOUND)
 install(TARGETS indi_meade_lpi RUNTIME DESTINATION bin )
 
 endif (CFITSIO_FOUND)
+endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 #################################################################################
 
 ########### V4L Philips ##############
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 if (CFITSIO_FOUND)
 
 set(v4lphilips_SRCS
@@ -505,10 +508,12 @@ endif (NOVA_FOUND)
 install(TARGETS indi_v4l_philips RUNTIME DESTINATION bin )
 
 endif (CFITSIO_FOUND)
+endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 #################################################################################
 
 ########### Generic V4L Driver ###############
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 if (CFITSIO_FOUND)
 
 set(v4ldriver_SRCS
@@ -528,6 +533,7 @@ endif (NOVA_FOUND)
 install(TARGETS indi_v4l_generic RUNTIME DESTINATION bin )
 
 endif (CFITSIO_FOUND)
+endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 #################################################################################
 
