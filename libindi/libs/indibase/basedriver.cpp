@@ -17,29 +17,40 @@ INDI::BaseDriver::BaseDriver()
 
 INDI::BaseDriver::~BaseDriver()
 {
-    std::vector<INumberVectorProperty *>::const_iterator numi;
-    std::vector<ISwitchVectorProperty *>::const_iterator switchi;
-    std::vector<ITextVectorProperty *>::const_iterator texti;
-    std::vector<ILightVectorProperty *>::const_iterator lighti;
-    std::vector<IBLOBVectorProperty *>::const_iterator blobi;
+    std::vector<INumberVectorProperty *>::iterator numi;
+    std::vector<ISwitchVectorProperty *>::iterator switchi;
+    std::vector<ITextVectorProperty *>::iterator texti;
+    std::vector<ILightVectorProperty *>::iterator lighti;
+    std::vector<IBLOBVectorProperty *>::iterator blobi;
 
     delLilXML (lp);
     pAll.clear();
 
-    for ( numi = pNumbers.begin(); numi != pNumbers.end(); numi++)
+    for ( numi = pNumbers.begin(); numi != pNumbers.end(); ++numi)
         delete (*numi);
 
-   for ( switchi = pSwitches.begin(); switchi != pSwitches.end(); switchi++)
-        delete (*switchi);
+    pNumbers.clear();
 
-   for ( texti = pTexts.begin(); texti != pTexts.end(); texti++)
+   for ( switchi = pSwitches.begin(); switchi != pSwitches.end(); ++switchi)
+        delete (*switchi);
+   pSwitches.clear();
+
+
+   for ( texti = pTexts.begin(); texti != pTexts.end(); ++texti)
         delete (*texti);
 
-   for ( lighti = pLights.begin(); lighti != pLights.end(); lighti++)
+   pTexts.clear();
+
+   for ( lighti = pLights.begin(); lighti != pLights.end(); ++lighti)
         delete (*lighti);
 
-   for ( blobi = pBlobs.begin(); blobi != pBlobs.end(); blobi++)
+   pLights.clear();
+
+   for ( blobi = pBlobs.begin(); blobi != pBlobs.end(); ++blobi)
         delete (*blobi);
+
+   pBlobs.clear();
+
 }
 
 INumberVectorProperty * INDI::BaseDriver::getNumber(const char *name)
@@ -287,9 +298,9 @@ int INDI::BaseDriver::buildProp(XMLEle *root, char *errmsg)
     if (getProperty(rname, type) != NULL)
         return INDI::BaseClient::INDI_PROPERTY_DUPLICATED;
 
-    if (crackIPerm(findXMLAttValu(root, "perm"), &perm) < 0)
+    if (strcmp (rtag, "defLightVector") && crackIPerm(findXMLAttValu(root, "perm"), &perm) < 0)
     {
-        IDLog("Error extracting %s permission (%s)", rname, findXMLAttValu(root, "perm"));
+        IDLog("Error extracting %s permission (%s)\n", rname, findXMLAttValu(root, "perm"));
         return -1;
     }
 
@@ -297,7 +308,7 @@ int INDI::BaseDriver::buildProp(XMLEle *root, char *errmsg)
 
     if (crackIPState (findXMLAttValu(root, "state"), &state) < 0)
     {
-        IDLog("Error extracting %s state (%s)", rname, findXMLAttValu(root, "state"));
+        IDLog("Error extracting %s state (%s)\n", rname, findXMLAttValu(root, "state"));
         return -1;
     }
 

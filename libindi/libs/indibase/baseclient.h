@@ -61,8 +61,9 @@ public:
     /** \brief Disconnect from INDI server.
 
         Disconnects from INDI servers. Any devices previously created will be deleted and memory cleared.
+        \return True if disconnection is successful, false otherwise.
     */
-    void disconnectServer();
+    bool disconnectServer();
 
     /** \brief Connect/Disconnect to INDI driver
         \param status If true, the client will attempt to turn on CONNECTION property within the driver (i.e. turn on the device).
@@ -153,12 +154,12 @@ private:
 
     string cServer;
     unsigned int cPort;
+    bool sConnected;
 
     // Parse & FILE buffers for IO
     int sockfd;
     LilXML *lillp;			/* XML parser context */
     FILE *svrwfp;			/* FILE * to talk to server */
-    FILE *svrrfp;			/* FILE * to read from server */
 
 };
 

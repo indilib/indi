@@ -19,6 +19,8 @@ INDI::BaseClient::BaseClient()
 {
     cServer = "localhost";
     cPort   = 7624;
+    svrwfp = NULL;    
+    sConnected = false;
 
 }
 
@@ -73,11 +75,8 @@ bool INDI::BaseClient::connectServer()
         return false;
     }
 
-    serverConnected();
-
     /* prepare for line-oriented i/o with client */
     svrwfp = fdopen (sockfd, "w");
-    svrrfp = fdopen (sockfd, "r");
 
     int result = pthread_create( &listen_thread, NULL, &INDI::BaseClient::listenHelper, this);
 
@@ -87,24 +86,36 @@ bool INDI::BaseClient::connectServer()
         return false;
     }
 
+    serverConnected();
+    sConnected = true;
+
     return true;
 }
 
-void INDI::BaseClient::disconnectServer()
+bool INDI::BaseClient::disconnectServer()
 {
-    char errmsg[MAXRBUF];
-    removeDevice(NULL, errmsg);
+    if (sConnected == false)
+        return true;
+
+    while(!cDevices.empty()) delete cDevices.back(), cDevices.pop_back();
+
     if (lillp)
         delLilXML(lillp);
     lillp = NULL;
-    pthread_cancel(listen_thread);
-    close(sockfd);
-    if (svrwfp)
+
+    if (svrwfp != NULL)
         fclose(svrwfp);
-    svrwfp = NULL;
-    if (svrrfp)
-        fclose(svrrfp);
-    svrrfp = NULL;
+   svrwfp = NULL;
+
+   pthread_cancel(listen_thread);
+
+   close(sockfd);
+
+    serverDisconnected();
+
+    sConnected = false;
+
+    return true;
 }
 
 
@@ -149,8 +160,6 @@ void INDI::BaseClient::setDriverConnection(bool status, const char *deviceName)
         sendNewSwitch(drv_connection, &(drv_connection->sp[1]));
 
     }
-
-
 }
 
 
@@ -195,11 +204,8 @@ void INDI::BaseClient::listenINDI()
 
         if (n ==0)
         {
-            if (ferror(svrrfp))
-                perror ("read");
-            else
-                fprintf (stderr,"INDI server %s/%d disconnected\n", cServer.c_str(), cPort);
-
+            perror ("read");
+            fprintf (stderr,"INDI server %s/%d disconnected\n", cServer.c_str(), cPort);
             serverDisconnected();
             return;
         }
@@ -294,7 +300,7 @@ int INDI::BaseClient::removeDevice( const char * devName, char * errmsg )
 
     while (devicei != cDevices.end())
     {
-      if (devName == NULL || !strcmp(devName, (*devicei)->deviceName()))
+      if (strcmp(devName, (*devicei)->deviceName()))
       {
           cDevices.erase(devicei);
           delete (*devicei);
