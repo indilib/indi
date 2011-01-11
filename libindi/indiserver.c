@@ -740,7 +740,7 @@ static void newFIFO(void)
     char line[MAXRBUF], tDriver[MAXRBUF], tConfig[MAXRBUF], tDev[MAXRBUF];
     static char *envDev=NULL, *envConfig=NULL;
     const char *delm = " ";
-    char *token, *cp;
+    char *token, *cp, *tp;
     DvrInfo *dp = NULL;
     int startCmd=0;
 
@@ -751,7 +751,8 @@ static void newFIFO(void)
 
     while ( fgets (line, MAXRBUF, fifo.fs) != NULL)
     {
-        //fprintf(stderr, "FIFO: %s\n", line);
+        fprintf(stderr, "FIFO: %s\n", line);
+
         tDev[0] = '\0', tDriver[0] = '\0', tConfig[0] = '\0', envDev[0] = '\0', envConfig[0] = '\0';
         cp = strdup(line);
 
@@ -759,6 +760,8 @@ static void newFIFO(void)
 
         if (!strcmp(token, "start") || !strcmp(token, "stop"))
         {
+            //fprintf(stderr, "TOKEN: %s\n", token);
+
                 if (!strcmp(token, "start"))
                     startCmd = 1;
 
@@ -768,6 +771,8 @@ static void newFIFO(void)
                     continue;
 
                strncpy(tDriver, token, MAXRBUF);
+               if (tp = strchr(tDriver, '\n'))
+                   *tp = '\0';
 
                if (verbose)
                 fprintf(stderr, "FIFO: Request for %s driver: %s\n", (startCmd == 1) ? "starting" : "stopping", tDriver);
@@ -788,15 +793,20 @@ static void newFIFO(void)
                    {
                      strcat(tDev, " ");
                      strncat(tDev, token, MAXRBUF);
-                     if (strstr(token, "\"") || strstr(token, "'"))
+                     if ( (tp=strchr(tDev, '\"')) || (tp=strchr(tDev, '\'')))
                      {
-                         tDev[strlen(tDev)-1] = '\0';
+                         //tDev[strlen(tDev)-1] = '\0';
+                         *tp='\0';
                          break;
                      }
                     }
                  }
                  else
+                {
                      strncpy(tDev, token, MAXRBUF);
+                     if (tp = strchr(tDev, '\n'))
+                         *tp = '\0';
+                 }
 
                   /* Find config, if there is any */
                   token = strsep(&cp, delm);
@@ -811,15 +821,20 @@ static void newFIFO(void)
                           strcat(tConfig, " ");
                           strncat(tConfig, token, MAXRBUF);
 
-                          if (strstr(token, "\"") || strstr(token, "'"))
+                          if ( (tp=strchr(tConfig, '\"')) || (tp=strchr(tConfig, '\'')))
                           {
-                                 tConfig[strlen(tConfig)-1] = '\0';
-                                 break;
+                                 //tConfig[strlen(tConfig)-1] = '\0';
+                              *tp = '\0';
+                              break;
                           }
                        }
                       }
                        else
+                      {
                            strncpy(tConfig, token, MAXRBUF);
+                           if (tp = strchr(tConfig, '\n'))
+                               *tp = '\0';
+                       }
                   }
               }
 
@@ -827,7 +842,10 @@ static void newFIFO(void)
                if (tDev[0])
                {
                  snprintf(envDev, MAXRBUF, "INDIDEV=%s", tDev);
-                 //fprintf(stderr, "With name: %s\n", envDev);
+
+                 if (verbose)
+                    fprintf(stderr, "With name: %s\n", envDev);
+
                  putenv(envDev);
 
                  //fprintf(stderr, "envionment check INDIDEV: %s\n", getenv("INDIDEV"));
@@ -837,7 +855,10 @@ static void newFIFO(void)
                if (tConfig[0])
                {
                    snprintf(envConfig, MAXRBUF, "INDICONFIG=%s", tConfig);
-                   //fprintf(stderr, "With config: %s\n", envConfig);
+
+                   if (verbose)
+                    fprintf(stderr, "With config: %s\n", envConfig);
+
                    putenv(envConfig);
                }
 
