@@ -20,6 +20,7 @@ class testclient : public INDI::BaseClient
         bool Connected;
 
         INDI::BaseDriver * mycam;
+        INDI::BaseDriver * myscope;
 
     virtual void newDevice(const char *device_name);
     virtual void newProperty(const char *device_name, const char *property_name);
@@ -35,6 +36,8 @@ class testclient : public INDI::BaseClient
 
     char *PrintProperties(char *);
     int dotest();
+    int connectcam(bool);
+    int connectscope(bool);
     int gotblob;
 };
 

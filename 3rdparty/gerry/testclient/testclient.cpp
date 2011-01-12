@@ -5,13 +5,15 @@
 
 #include <string.h>
 
-#define CAMNAME "CcdSimulator"
+#define CAMNAME "TestCcd"
+#define SCOPENAME "TestScope"
 
 testclient::testclient()
 {
     //ctor
     Connected=false;
     mycam=NULL;
+    myscope=NULL;
 }
 
 testclient::~testclient()
@@ -25,6 +27,10 @@ void testclient::newDevice(const char *device_name)
     if(strcmp(device_name,CAMNAME)==0) {
         printf("This is our camera, get a device pointer\n");
         mycam=getDriver(CAMNAME);
+    }
+    if(strcmp(device_name,SCOPENAME)==0) {
+        printf("This is our Scope, get a device pointer\n");
+        myscope=getDriver(SCOPENAME);
     }
     return;
 }
@@ -111,10 +117,36 @@ char * testclient::PrintProperties(char *n)
     return propret;
 
 }
+
+int testclient::connectscope(bool st)
+{
+    if(myscope != NULL) {
+        printf("Tell basedriver to connect to the scope\n");
+        setDriverConnection(st,SCOPENAME);
+
+    }
+    return 0;
+}
+
+int testclient::connectcam(bool st)
+{
+    if(mycam != NULL) {
+        printf("Tell basedriver to connect to the camera\n");
+        setDriverConnection(st,CAMNAME);
+        //  Wait for a bit, driver is going to populate more items
+    }
+    return 0;
+}
+
 int testclient::dotest()
 {
     //INDI::BaseDriver * mycam;
 
+    if(myscope != NULL) {
+        printf("Tell basedriver to connect to the scope\n");
+        setDriverConnection(true,SCOPENAME);
+
+    }
     //mycam=getDriver("SxCamera");
     if(mycam != NULL) {
         int spin;
@@ -126,6 +158,8 @@ int testclient::dotest()
         setDriverConnection(true,CAMNAME);
         //  Wait for a bit, driver is going to populate more items
         sleep(3);
+
+        /*
         //  these are the two I am interested in
         printf("Printing vectors and properties for our image blobs\n");
         p=PrintProperties((char *)"CCD1");
@@ -200,7 +234,6 @@ int testclient::dotest()
             printf("Did not get the blob we shouldn't have got\n");
         }
         */
-
     }
     return 0;
 }
