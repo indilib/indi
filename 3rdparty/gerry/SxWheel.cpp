@@ -96,6 +96,7 @@ bool SxWheel::Connect()
                 /* Get Raw Name */
                 res = ioctl(fd, HIDIOCGRAWNAME(256), buf);
                 if(res > 0) {
+                    fprintf(stderr,"Found %s\n",buf);
                     if(strncmp(buf,"SxFilterWh",10)== 0) {
                         //  This is a starlight xpress filter wheel
                         //  so lets run with this one

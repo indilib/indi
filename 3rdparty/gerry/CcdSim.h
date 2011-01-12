@@ -45,7 +45,54 @@ class CcdSim : public IndiCcd
         float CalcTimeLeft(timeval,float);
 
         int testvalue;
+        int ShowStarField;
+        int bias;
+        int maxnoise;
+        int maxval;
+        float skyglow;
+        float limitingmag;
+        float saturationmag;
+        float seeing;
+        float ImageScalex;
+        float ImageScaley;
+        float focallength;
+        float CenterOffsetDec;
+        float TimeFactor;
+        //  our zero point calcs used for drawing stars
+        float k;
+        float z;
+
         bool AbortGuideFrame;
+
+        float RA;
+        float Dec;
+        float GuideRate;
+
+        float PEPeriod;
+        float PEMax;
+        time_t RunStart;
+
+        //  We are going to snoop these from a telescope
+        INumberVectorProperty EqNV;
+        INumber EqN[2];
+
+        //  And this lives in our simulator settings page
+
+        INumberVectorProperty SimulatorSettingsNV;
+        INumber SimulatorSettingsN[13];
+
+        ITextVectorProperty ConfigFileTV; //  A text vector that stores our configuration name
+        IText ConfigFileT[1];
+
+        ISwitch ConfigSaveRestoreS[2];
+        ISwitchVectorProperty ConfigSaveRestoreSV;
+
+        ISwitch TimeFactorS[3];
+        ISwitchVectorProperty TimeFactorSV;
+
+        bool SetupParms();
+        int MakeConfigName(char *);
+
 
     public:
         CcdSim();
@@ -55,6 +102,8 @@ class CcdSim : public IndiCcd
 
         int init_properties();
         void ISGetProperties (const char *dev);
+        void ISSnoopDevice (XMLEle *root);
+
         bool UpdateProperties();
 
         bool Connect();
@@ -69,6 +118,18 @@ class CcdSim : public IndiCcd
 
         int DrawCcdFrame();
         int DrawGuiderFrame();
+
+        int DrawImageStar(float,float,float);
+        int AddToPixel(int,int,int);
+
+        int GuideNorth(float);
+        int GuideSouth(float);
+        int GuideEast(float);
+        int GuideWest(float);
+
+        virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+        virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+        virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
 
 };
 

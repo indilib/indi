@@ -172,7 +172,7 @@ int SxCam::StartExposure(float n)
     DidFlush=0;
     DidLatch=0;
 
-    ClearPixels(0,IMAGE_CCD);
+    ClearPixels(SXCCD_EXP_FLAGS_FIELD_BOTH,IMAGE_CCD);
         //  Relatively long exposure
         //  lets do it on our own timers
         int tval;
@@ -209,7 +209,7 @@ int SxCam::StartGuideExposure(float n)
     //  the accumulators and the light sensative portions
     DidGuideLatch=0;
 
-        ClearPixels(SXCCD_EXP_FLAGS_FIELD_BOTH,GUIDE_CCD);
+        //ClearPixels(SXCCD_EXP_FLAGS_FIELD_BOTH,GUIDE_CCD);
         //  Relatively long exposure
         //  lets do it on our own timers
         int tval;
@@ -270,7 +270,7 @@ void SxCam::TimerHit()
     int rc;
     bool IgnoreGuider=false;
 
-    //IDLog("Exposeleft is %4.2f\n",timeleft);
+    IDLog("SXCam Timer \n");
 
     //  If this is a relatively long exposure
     //  and its nearing the end, but not quite there yet
@@ -283,7 +283,7 @@ void SxCam::TimerHit()
             //  This will clear accumulators, but, not affect the
             //  light sensative parts currently exposing
             IDLog("Doing Flush\n");
-            ClearPixels(SXCCD_EXP_FLAGS_NOWIPE_FRAME,0);
+            ClearPixels(SXCCD_EXP_FLAGS_NOWIPE_FRAME,IMAGE_CCD);
             DidFlush=1;
         }
         if(timeleft < 1.0) {
@@ -305,7 +305,8 @@ void SxCam::TimerHit()
                         usleep(slv);
                         timeleft=CalcTimeLeft();
                     }
-                    rc=LatchPixels(0,IMAGE_CCD,SubX,SubY,SubW,SubH,BinX,BinY);
+                    //  first a flush
+                    rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_BOTH,IMAGE_CCD,SubX,SubY,SubW,SubH,BinX,BinY);
                     //rc=LatchPixels(0,GUIDE_CCD,GSubX,GSubY,GSubW,GSubH,1,1);
                     DidLatch=1;
                     IDLog("Image Pixels latched\n");
@@ -328,8 +329,12 @@ void SxCam::TimerHit()
                         usleep(slv);
                         timeleft=CalcGuideTimeLeft();
                     }
-                    //rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_EVEN | SXCCD_EXP_FLAGS_NOWIPE_FRAME,GUIDE_CCD,GSubX,GSubY,GSubW,GSubH,1,1);
-                    rc=LatchPixels(0,GUIDE_CCD,GSubX,GSubY,GSubW,GSubH,1,1);
+                    //  first a flush
+                    ClearPixels(SXCCD_EXP_FLAGS_NOWIPE_FRAME,GUIDE_CCD);
+                    //  now latch the exposure
+                    //rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_EVEN | SXCCD_EXP_FLAGS_NOWIPE_FRAME_FRAME,GUIDE_CCD,GSubX,GSubY,GSubW,GSubH,1,1);
+                    rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_EVEN | SXCCD_EXP_FLAGS_NOCLEAR_FRAME,GUIDE_CCD,GSubX,GSubY,GSubW,GSubH,1,1);
+                    //rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_BOTH ,GUIDE_CCD,GSubX,GSubY,GSubW,GSubH,1,1);
                     DidGuideLatch=1;
                     IDLog("Guide Even Pixels latched\n");
 
@@ -359,8 +364,10 @@ void SxCam::TimerHit()
         rc=ReadCameraFrame(GUIDE_CCD,RawGuiderFrame);
         DidGuideLatch=0;
         InGuideExposure=false;
+        //  send half a frame
         GuideExposureComplete();
 
+        //rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_ODD | SXCCD_EXP_FLAGS_NOWIPE_FRAME,GUIDE_CCD,GSubX,GSubY,GSubW,GSubH,1,1);
         //rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_ODD | SXCCD_EXP_FLAGS_NOWIPE_FRAME,GUIDE_CCD,GSubX,GSubY,GSubW,GSubH,1,1);
         //rc=ReadCameraFrame(GUIDE_CCD,RawGuiderFrame);
         //GuideExposureComplete();

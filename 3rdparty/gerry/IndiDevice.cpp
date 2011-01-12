@@ -36,8 +36,12 @@ void ISGetProperties (const char *dev)
         IDLog("Create device for %s\n",dev);
         device=_create_device();
         if(dev != NULL) {
+            //fprintf(stderr,"Calling setDeviceName %s\n",dev);
             device->setDeviceName(dev);
+            //fprintf(stderr,"deviceName() returns  %s\n",device->deviceName());
+            //fprintf(stderr,"getDefaultName() returns  %s\n",device->getDefaultName());
         } else {
+            //device->setDeviceName("junker");
             device->setDeviceName(device->getDefaultName());
         }
         device->init_properties();
@@ -72,7 +76,7 @@ void ISNewText (const char *dev, const char *name, char *texts[], char *names[],
 ***************************************************************************************/
 void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
- fprintf(stderr,"Enter ISNewNumber\n");
+    //fprintf(stderr,"OutsideClass::Enter ISNewNumber\n");
  //ISInit();
  device->ISNewNumber(dev, name, values, names, n);
 }
@@ -97,7 +101,7 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
 ***************************************************************************************/
 void ISSnoopDevice (XMLEle *root)
 {
-  INDI_UNUSED(root);
+    return device->ISSnoopDevice(root);
 }
 
 void timerfunc(void *t)
@@ -308,4 +312,9 @@ bool IndiDevice::UpdateProperties()
 {
     //  The base device has no properties to update
     return true;
+}
+
+void IndiDevice::ISSnoopDevice (XMLEle *root)
+{
+      INDI_UNUSED(root);
 }

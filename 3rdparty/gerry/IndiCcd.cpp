@@ -32,6 +32,8 @@ IndiCcd::IndiCcd()
     SendCompressed=false;
     GuiderCompressed=false;
     HasGuideHead=false;
+    HasSt4Port=false;
+
     RawFrame=NULL;
     RawFrameSize=0;
 
@@ -115,6 +117,15 @@ int IndiCcd::init_properties()
     IUFillBLOB(&GuiderB,"CCD2","Guider","");
     IUFillBLOBVector(&GuiderBV,&GuiderB,1,deviceName(),"CCD2","Guider Data","Data Channel",IP_RO,60,IPS_IDLE);
 
+    IUFillNumber(&GuideNS[0],"TIMED_GUIDE_N","North (sec)","%g",0,10,0.001,0);
+    IUFillNumber(&GuideNS[1],"TIMED_GUIDE_S","South (sec)","%g",0,10,0.001,0);
+    IUFillNumberVector(&GuideNSV,GuideNS,2,deviceName(),"TELESCOPE_TIMED_GUIDE_NS","Guide North/South","GuiderControl",IP_RW,60,IPS_IDLE);
+
+    IUFillNumber(&GuideEW[0],"TIMED_GUIDE_E","East (sec)","%g",0,10,0.001,0);
+    IUFillNumber(&GuideEW[1],"TIMED_GUIDE_W","West (sec)","%g",0,10,0.001,0);
+    IUFillNumberVector(&GuideEWV,GuideEW,2,deviceName(),"TELESCOPE_TIMED_GUIDE_WE","Guide East/West","GuiderControl",IP_RW,60,IPS_IDLE);
+
+
     //IDLog("Setting up ccdpreview stuff\n");
     //IUFillNumber(&GuiderN[0],"WIDTH","Width","%4.0f",0.,1392.0,0.,1392.);
     //IUFillNumber(&GuiderN[1],"HEIGHT","Height","%4.0f",0.,1040.,0.,1040.);
@@ -163,7 +174,10 @@ bool IndiCcd::UpdateProperties()
             IDDefSwitch(&GuiderCompressSV,NULL);
             IDDefBLOB(&GuiderBV, NULL);
         }
-
+        if(HasSt4Port) {
+            IDDefNumber(&GuideNSV, NULL);
+            IDDefNumber(&GuideEWV, NULL);
+        }
     } else {
         DeleteProperty(ImageFrameNV.name);
         DeleteProperty(ImageBinNV.name);
@@ -179,6 +193,11 @@ bool IndiCcd::UpdateProperties()
             DeleteProperty(GuiderBV.name);
             DeleteProperty(GuiderCompressSV.name);
         }
+        if(HasSt4Port) {
+            DeleteProperty(GuideNSV.name);
+            DeleteProperty(GuideEWV.name);
+
+        }
 }
 
     return true;
@@ -187,7 +206,7 @@ bool IndiCcd::UpdateProperties()
 bool IndiCcd::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
     //  first check if it's for our device
-    IDLog("IndiCcd::ISNewNumber %s\n",name);
+    //IDLog("IndiCcd::ISNewNumber %s\n",name);
     if(strcmp(dev,deviceName())==0) {
         //  This is for our device
         //  Now lets see if it's something we process here
@@ -288,6 +307,53 @@ bool IndiCcd::ISNewNumber (const char *dev, const char *name, double values[], c
             GSubY=GuiderFrameN[1].value;
             GSubW=GuiderFrameN[2].value;
             GSubH=GuiderFrameN[3].value;
+            return true;
+        }
+
+        if(strcmp(name,GuideNSV.name)==0) {
+            //  We are being asked to send a guide pulse north/south on the st4 port
+            GuideNSV.s=IPS_BUSY;
+            IUUpdateNumber(&GuideNSV,values,names,n);
+            //  Update client display
+            IDSetNumber(&GuideNSV,NULL);
+
+            fprintf(stderr,"GuideNorthSouth set to %7.3f,%7.3f\n",
+                  GuideNS[0].value,GuideNS[1].value);
+
+            if(GuideNS[0].value != 0) {
+                GuideNorth(GuideNS[0].value);
+            }
+            if(GuideNS[1].value != 0) {
+                GuideSouth(GuideNS[1].value);
+            }
+            GuideNS[0].value=0;
+            GuideNS[1].value=0;
+            GuideNSV.s=IPS_OK;
+            IDSetNumber(&GuideNSV,NULL);
+
+            return true;
+        }
+        if(strcmp(name,GuideEWV.name)==0) {
+            //  We are being asked to send a guide pulse north/south on the st4 port
+            GuideEWV.s=IPS_BUSY;
+            IUUpdateNumber(&GuideEWV,values,names,n);
+            //  Update client display
+            IDSetNumber(&GuideEWV,NULL);
+
+            fprintf(stderr,"GuiderEastWest set to %6.3f,%6.3f\n",
+                  GuideEW[0].value,GuideEW[1].value);
+
+            if(GuideEW[0].value != 0) {
+                GuideEast(GuideEW[0].value);
+            } else {
+                GuideWest(GuideEW[1].value);
+            }
+
+            GuideEW[0].value=0;
+            GuideEW[1].value=0;
+            GuideEWV.s=IPS_OK;
+            IDSetNumber(&GuideEWV,NULL);
+
             return true;
         }
 
@@ -392,7 +458,7 @@ bool IndiCcd::ExposureComplete()
     fitsfile *fptr=NULL;
 
 
-    IDLog("Enter Exposure Complete %d %d %d %d\n",SubW,SubH,BinX,BinY);
+    //IDLog("Enter Exposure Complete %d %d %d %d\n",SubW,SubH,BinX,BinY);
 
 
     naxes[0]=SubW/BinX;
@@ -425,7 +491,7 @@ bool IndiCcd::ExposureComplete()
 		return false;
 	}
 	fits_close_file(fptr,&status);
-	IDLog("Built the fits file\n");
+	//IDLog("Built the fits file\n");
 
     //  ok, undo the kludge we threw in for
     //  guider frames, and set the resolution back
@@ -579,7 +645,7 @@ int IndiCcd::uploadfile(void *fitsdata,int total)
     //  lets try sending a ccd preview
 
 
-    IDLog("Enter Uploadfile with %d total sending via %s\n",total,FitsBV.name);
+    //IDLog("Enter Uploadfile with %d total sending via %s\n",total,FitsBV.name);
     FitsB.blob=fitsdata;
     FitsB.bloblen=total;
     FitsB.size=total;
@@ -602,6 +668,8 @@ int IndiCcd::SetCCDParams(int x,int y,int bpp,float xf,float yf)
     BinX=1;
     BinY=1;
 
+    PixelSizex=xf;
+    PixelSizey=yf;
     ImageFrameN[2].value=x;
     ImageFrameN[3].value=y;
     ImagePixelSizeN[0].value=x;
@@ -636,4 +704,21 @@ int IndiCcd::SetGuidHeadParams(int x,int y,int bpp,float xf,float yf)
 bool IndiCcd::AbortGuideExposure()
 {
     return false;
+}
+
+int IndiCcd::GuideNorth(float)
+{
+    return -1;
+}
+int IndiCcd::GuideSouth(float)
+{
+    return -1;
+}
+int IndiCcd::GuideEast(float)
+{
+    return -1;
+}
+int IndiCcd::GuideWest(float)
+{
+    return -1;
 }

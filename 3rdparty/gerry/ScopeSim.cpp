@@ -10,9 +10,9 @@ IndiDevice * _create_device()
 ScopeSim::ScopeSim()
 {
     //ctor
-    ra=0;
-    dec=90;
-    Parked=true;
+    ra=15;
+    dec=15;
+    Parked=false;
 }
 
 ScopeSim::~ScopeSim()

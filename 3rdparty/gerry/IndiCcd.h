@@ -48,6 +48,8 @@ class IndiCcd : public IndiDevice
         float PixelSizey;   //  pixel size in microns, y direction
         bool SendCompressed;
 
+        bool HasSt4Port;
+
         //  If the camera has a second ccd, or integrated guide head
         //  we need information on that one too
         bool HasGuideHead;
@@ -109,8 +111,10 @@ class IndiCcd : public IndiDevice
         ISwitch GuiderVideoS[2];
         ISwitchVectorProperty GuiderVideoSV;
 
-        //INumber GuiderN[5];
-        //INumberVectorProperty GuiderNV;
+        INumber GuideNS[2];
+        INumberVectorProperty GuideNSV;
+        INumber GuideEW[2];
+        INumberVectorProperty GuideEWV;
 
         IBLOB FitsB;
         IBLOBVectorProperty FitsBV;
@@ -137,6 +141,10 @@ class IndiCcd : public IndiDevice
         virtual int SetCCDParams(int x,int y,int bpp,float xf,float yf);
         virtual int SetGuidHeadParams(int x,int y,int bpp,float xf,float yf);
 
+        virtual int GuideNorth(float);
+        virtual int GuideSouth(float);
+        virtual int GuideEast(float);
+        virtual int GuideWest(float);
 
 };
 

@@ -51,12 +51,12 @@ int IndiTelescope::init_properties()
     IDLog("IndiTelescope::init_properties() adding eq co-ordinates  MyDev=%s\n",deviceName());
     IUFillNumber(&EqN[0],"RA","Ra (hh:mm:ss)","%010.6m",0,24,0,0);
     IUFillNumber(&EqN[1],"DEC","Dec (dd:mm:ss)","%010.6m",-90,90,0,0);
-    IUFillNumberVector(&EqNV,EqN,2,deviceName(),"EQUATORIAL_COORD","Eq. Coordinates","Main Control",IP_RW,60,IPS_IDLE);
+    IUFillNumberVector(&EqNV,EqN,2,deviceName(),"EQUATORIAL_EOD_COORD","Eq. Coordinates","Main Control",IP_RW,60,IPS_IDLE);
     //IUFillNumberVector(&EqNV,EqN,2,deviceName(),"EQUATORIAL_EOD_COORD","Eq. Coordinates","Main Control",IP_RW,60,IPS_IDLE);
 
     IUFillNumber(&EqReqN[0],"RA","Ra (hh:mm:ss)","%010.6m",0,24,0,0);
     IUFillNumber(&EqReqN[1],"DEC","Dec (dd:mm:ss)","%010.6m",-90,90,0,0);
-    IUFillNumberVector(&EqReqNV,EqReqN,2,deviceName(),"EQUATORIAL_COORD_REQUEST","Goto....","Controls",IP_WO,60,IPS_IDLE);
+    IUFillNumberVector(&EqReqNV,EqReqN,2,deviceName(),"EQUATORIAL_EOD_COORD_REQUEST","Goto....","Controls",IP_WO,60,IPS_IDLE);
 
     IUFillNumber(&LocationN[0],"LAT","Lat (dd:mm:ss)","%010.6m",-90,90,0,48.433);
     IUFillNumber(&LocationN[1],"LONG","Lon (dd:mm:ss)","%010.6m",-180,360,0,-123.35 );
@@ -205,7 +205,7 @@ bool IndiTelescope::ISNewNumber (const char *dev, const char *name, double value
         //  Cartes sends the REQUEST
         //  But KStars sends just the co-ordinates
         //if((strcmp(name,"EQUATORIAL_EOD_COORD_REQUEST")==0)||(strcmp(name,"EQUATORIAL_EOD_COORD")==0)) {
-        if((strcmp(name,"EQUATORIAL_COORD_REQUEST")==0)||(strcmp(name,"EQUATORIAL_COORD")==0)) {
+        if((strcmp(name,"EQUATORIAL_EOD_COORD_REQUEST")==0)||(strcmp(name,"EQUATORIAL_EOD_COORD")==0)) {
             //  this is for us, and it is a goto
             bool rc=false;
             double ra=-1;
