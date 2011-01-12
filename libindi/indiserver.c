@@ -1269,6 +1269,8 @@ q2RDrivers (const char *dev, Msg *mp, XMLEle *root)
 	 */
 	for (dp = dvrinfo; dp < &dvrinfo[ndvrinfo]; dp++) {
 	    int isremote = (dp->pid == REMOTEDVR);
+            if (dp->active == 0)
+                continue;
 	    if (dev[0] && dp->dev[0] && strcmp (dev, dp->dev))
 		continue;	/* driver known to not support this dev */
 	    if (!dev[0] && isremote && sawremote)
