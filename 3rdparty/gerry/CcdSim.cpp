@@ -29,7 +29,7 @@
 IndiDevice * _create_device()
 {
     IndiDevice *ccd;
-    IDLog("Create a Ccd Simulator\n");
+    //IDLog("Create a Ccd Simulator\n");
     ccd=new CcdSim();
     return ccd;
 }
@@ -57,7 +57,7 @@ CcdSim::CcdSim()
     limitingmag=11.5;
     saturationmag=2;
     focallength=1280;   //  focal length of the telescope in millimeters
-    CenterOffsetDec=0;    //  An oag is offset this much from center of scope position (arcminutes);
+    OAGoffset=0;    //  An oag is offset this much from center of scope position (arcminutes);
     skyglow=40;
 
     seeing=3.5;         //  fwhm of our stars
@@ -86,7 +86,7 @@ bool CcdSim::SetupParms()
     limitingmag=SimulatorSettingsN[7].value;
     saturationmag=SimulatorSettingsN[6].value;
     focallength=SimulatorSettingsN[8].value;   //  focal length of the telescope in millimeters
-    CenterOffsetDec=SimulatorSettingsN[12].value;    //  An oag is offset this much from center of scope position (arcminutes);
+    OAGoffset=SimulatorSettingsN[12].value;    //  An oag is offset this much from center of scope position (arcminutes);
     seeing=SimulatorSettingsN[9].value;        //  we get real fat stars in this one
 
 
@@ -122,7 +122,7 @@ CcdSim::~CcdSim()
 
 char * CcdSim::getDefaultName()
 {
-    fprintf(stderr,"Arrived in getDefaultName and deviceName returns '%s'\n",deviceName());
+    //fprintf(stderr,"Arrived in getDefaultName and deviceName returns '%s'\n",deviceName());
     //if(strlen(deviceName())==0) {
         return (char *)"CcdSimulator";
     //} else {
@@ -140,7 +140,7 @@ int CcdSim::init_properties()
 
     IUFillNumber(&EqN[0],"RA","Ra (hh:mm:ss)","%010.6m",0,24,0,0);
     IUFillNumber(&EqN[1],"DEC","Dec (dd:mm:ss)","%010.6m",-90,90,0,0);
-    IUFillNumberVector(&EqNV,EqN,2,"ScopeSim","EQUATORIAL_EOD_COORD","Eq. Coordinates","Main Control",IP_RW,60,IPS_IDLE);
+    IUFillNumberVector(&EqNV,EqN,2,"","EQUATORIAL_EOD_COORD","Eq. Coordinates","Main Control",IP_RW,60,IPS_IDLE);
     //IUFillNumberVector(&EqNV,EqN,2,deviceName(),"EQUATORIAL_EOD_COORD","Eq. Coordinates","Main Control",IP_RW,60,IPS_IDLE);
 
     IUFillNumber(&SimulatorSettingsN[0],"SIM_XRES","CCD X resolution","%4.0f",0,2048,0,1280);
@@ -155,27 +155,23 @@ int CcdSim::init_properties()
     IUFillNumber(&SimulatorSettingsN[9],"SIM_FWHM","FWHM (arcseconds)","%4.2f",0,60,0,3.5);
     IUFillNumber(&SimulatorSettingsN[10],"SIM_NOISE","CCD Noise","%4.0f",0,6000,0,50);
     IUFillNumber(&SimulatorSettingsN[11],"SIM_SKYGLOW","Sky Glow (magnitudes)","%4.1f",0,6000,0,19.5);
-    IUFillNumber(&SimulatorSettingsN[12],"SIM_DECOFFSET","Dec Offset (arminutes)","%4.1f",0,6000,0,0);
+    IUFillNumber(&SimulatorSettingsN[12],"SIM_OAGOFFSET","Oag Offset (arminutes)","%4.1f",0,6000,0,0);
     IUFillNumberVector(&SimulatorSettingsNV,SimulatorSettingsN,13,deviceName(),"SIMULATOR_SETTINGS","Simulator Settings","SimSettings",IP_RW,60,IPS_IDLE);
 
-    IUFillText(&ConfigFileT[0],"SIM_CONFIG","Filename",deviceName());
-    IUFillTextVector(&ConfigFileTV,ConfigFileT,1,deviceName(),"SIM_CONFIG_SAVE","Config File","Simulator Config",IP_RW,60,IPS_IDLE);
+    //IUFillText(&ConfigFileT[0],"SIM_CONFIG","Filename",deviceName());
+    //IUFillTextVector(&ConfigFileTV,ConfigFileT,1,deviceName(),"SIM_CONFIG_SAVE","Config File","Simulator Config",IP_RW,60,IPS_IDLE);
 
-    IUFillSwitch(&ConfigSaveRestoreS[0],"SAVE","Save",ISS_OFF);
-    IUFillSwitch(&ConfigSaveRestoreS[1],"LOAD","Load",ISS_OFF);
-    IUFillSwitchVector(&ConfigSaveRestoreSV,ConfigSaveRestoreS,2,deviceName(),"ON_CONFIG_SAVE_RESTORE","Set","Simulator Config",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    //IUFillSwitch(&ConfigSaveRestoreS[0],"SAVE","Save",ISS_OFF);
+    //IUFillSwitch(&ConfigSaveRestoreS[1],"LOAD","Load",ISS_OFF);
+    //IUFillSwitchVector(&ConfigSaveRestoreSV,ConfigSaveRestoreS,2,deviceName(),"ON_CONFIG_SAVE_RESTORE","Set","Simulator Config",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
     IUFillSwitch(&TimeFactorS[0],"1X","Actual Time",ISS_ON);
     IUFillSwitch(&TimeFactorS[1],"10X","10x",ISS_OFF);
     IUFillSwitch(&TimeFactorS[2],"100X","100x",ISS_OFF);
     IUFillSwitchVector(&TimeFactorSV,TimeFactorS,3,deviceName(),"ON_TIME_FACTOR","Time Factor","Simulator Config",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
-    int rc;
-    char err[MAXRBUF];
-    char FileName[300];
-    MakeConfigName(FileName);
-    rc=IUReadConfig(FileName,deviceName(),err);
-    if(rc != 0) IDLog("Error reading config '%s'\n",err);
+
+    LoadConfig();
 
     return 0;
 }
@@ -184,13 +180,13 @@ void CcdSim::ISGetProperties (const char *dev)
 {
     //  First we let our parent populate
 
-    IDLog("CcdSim IsGetProperties with %s\n",dev);
+    //IDLog("CcdSim IsGetProperties with %s\n",dev);
     IndiCcd::ISGetProperties(dev);
 
     IDDefNumber(&SimulatorSettingsNV, NULL);
     IDDefSwitch(&TimeFactorSV, NULL);
-    IDDefText(&ConfigFileTV, NULL);
-    IDDefSwitch(&ConfigSaveRestoreSV, NULL);
+    //IDDefText(&ConfigFileTV, NULL);
+    //IDDefSwitch(&ConfigSaveRestoreSV, NULL);
 
     IDSnoopDevice("ScopeSim","EQUATORIAL_EOD_COORD");
 
@@ -256,7 +252,7 @@ int CcdSim::StartGuideExposure(float n)
 
 bool CcdSim::AbortGuideExposure()
 {
-    IDLog("Enter AbortGuideExposure\n");
+    //IDLog("Enter AbortGuideExposure\n");
     if(!InGuideExposure) return true;   //  no need to abort if we aren't doing one
     AbortGuideFrame=true;
     return true;
@@ -407,7 +403,7 @@ int CcdSim::DrawCcdFrame()
         rar=rad*0.0174532925;
         //  offsetting the dec by the guide head offset
         float cameradec;
-        cameradec=Dec+CenterOffsetDec/60;
+        cameradec=Dec+OAGoffset/60;
         decr=cameradec*0.0174532925;
 
         //fprintf(stderr,"Dec %7.5f  cameradec %7.5f  CenterOffsetDec %4.4f\n",Dec,cameradec,CenterOffsetDec);
@@ -771,7 +767,7 @@ void CcdSim::ISSnoopDevice (XMLEle *root)
 
         }
      } else {
-        fprintf(stderr,"Snoop Failed\n");
+        //fprintf(stderr,"Snoop Failed\n");
      }
  }
 
@@ -797,7 +793,7 @@ bool CcdSim::ISNewNumber (const char *dev, const char *name, double values[], ch
                     //  because they likely mean it was just a field not
                     //  actually filled in, but, for the dec offset it is
                     //  important to keep a zero value
-                    if(strcmp(names[x],"SIM_DECOFFSET")==0) {
+                    if(strcmp(names[x],"SIM_OAGOFFSET")==0) {
                         SimulatorSettingsN[x].value=values[x];
                     }
                 }
@@ -806,6 +802,7 @@ bool CcdSim::ISNewNumber (const char *dev, const char *name, double values[], ch
             //  Reset our parameters now
             SetupParms();
             IDSetNumber(&SimulatorSettingsNV,NULL);
+            SaveConfig();
 
             //IDLog("Frame set to %4.0f,%4.0f %4.0f x %4.0f\n",CcdFrameN[0].value,CcdFrameN[1].value,CcdFrameN[2].value,CcdFrameN[3].value);
             //seeing=SimulatorSettingsN[0].value;
@@ -819,80 +816,17 @@ bool CcdSim::ISNewNumber (const char *dev, const char *name, double values[], ch
     return IndiCcd::ISNewNumber(dev,name,values,names,n);
 }
 
-bool CcdSim::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    //  Ok, lets see if this is a property wer process
-    IDLog("CcdSim got %d new text items name %s\n",n,name);
-    //  first check if it's for our device
-    if(strcmp(dev,deviceName())==0) {
-        //  This is for our device
-        //  Now lets see if it's something we process here
-        if(strcmp(name,ConfigFileTV.name)==0) {
-            //  This is our config name, so, lets process it
-
-            int rc;
-            IDLog("calling update text\n");
-            ConfigFileTV.s=IPS_OK;
-            rc=IUUpdateText(&ConfigFileTV,texts,names,n);
-            IDLog("update text returns %d\n",rc);
-            //  Update client display
-            IDSetText(&ConfigFileTV,NULL);
-
-            //  We processed this one, so, tell the world we did it
-            return true;
-        }
-
-    }
-
-    return IndiCcd::ISNewText(dev,name,texts,names,n);
-}
 
 bool CcdSim::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    IDLog("Enter IsNewSwitch for %s\n",name);
+    //IDLog("Enter IsNewSwitch for %s\n",name);
     //for(int x=0; x<n; x++) {
     //    IDLog("Switch %s %d\n",names[x],states[x]);
     //}
 
     if(strcmp(dev,deviceName())==0) {
         //  This one is for us
-        if(strcmp(name,"ON_CONFIG_SAVE_RESTORE")==0) {
-            char err[MAXRBUF];
-            FILE *fp;
-            int rc;
-            char FileName[300];
 
-            //  client is telling us what to do with co-ordinate requests
-            ConfigSaveRestoreSV.s=IPS_OK;
-            IUUpdateSwitch(&ConfigSaveRestoreSV,states,names,n);
-            //  Update client display
-            IDSetSwitch(&ConfigSaveRestoreSV,NULL);
-
-            if(ConfigSaveRestoreS[0].s==ISS_ON    ) {
-                IDLog("CCDSim:: Save Config %s\n",ConfigFileT[0].text);
-                MakeConfigName(FileName);
-                fp=IUGetConfigFP(FileName,deviceName(),err);
-                if(fp != NULL) {
-                    IUSaveConfigTag(fp,0);
-                    IUSaveConfigNumber(fp,&SimulatorSettingsNV);
-                    IUSaveConfigTag(fp,1);
-                    fclose(fp);
-                    IDMessage(deviceName(),"Configuration Saved\n");
-                } else {
-                    IDMessage(deviceName(),"Load config failed\n");
-                }
-            }
-            if(ConfigSaveRestoreS[1].s==ISS_ON    ) {
-                IDLog("CCDSim:: Restore Config %s\n",ConfigFileT[0].text);
-                MakeConfigName(FileName);
-                rc=IUReadConfig(FileName,deviceName(),err);
-                if(rc != 0) IDMessage(deviceName(),"Error reading config");
-                SetupParms();
-                UpdateProperties();
-            }
-
-            return true;
-        }
 
         if(strcmp(name,"ON_TIME_FACTOR")==0) {
 
@@ -902,16 +836,17 @@ bool CcdSim::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
             //  Update client display
             IDSetSwitch(&TimeFactorSV,NULL);
 
+            SaveConfig();
             if(TimeFactorS[0].s==ISS_ON    ) {
-                IDLog("CCDSim:: Time Factor 1\n");
+                //IDLog("CCDSim:: Time Factor 1\n");
                 TimeFactor=1;
             }
             if(TimeFactorS[1].s==ISS_ON    ) {
-                IDLog("CCDSim:: Time Factor 0.1\n");
+                //IDLog("CCDSim:: Time Factor 0.1\n");
                 TimeFactor=0.1;
             }
             if(TimeFactorS[2].s==ISS_ON    ) {
-                IDLog("CCDSim:: Time Factor 0.01\n");
+                //IDLog("CCDSim:: Time Factor 0.01\n");
                 TimeFactor=0.01;
             }
 
@@ -924,9 +859,10 @@ bool CcdSim::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
     return IndiCcd::ISNewSwitch(dev,name,states,names,n);
 }
 
-int CcdSim::MakeConfigName(char *buf)
+bool CcdSim::WritePersistentConfig(FILE *fp)
 {
-    sprintf(buf,"%s/.indi/%s_config.xml",getenv("HOME"),ConfigFileT[0].text);
-    return 0;
+    IndiCcd::WritePersistentConfig(fp);
+    IUSaveConfigSwitch(fp,&TimeFactorSV);
+    IUSaveConfigNumber(fp,&SimulatorSettingsNV);
+    return true;
 }
-

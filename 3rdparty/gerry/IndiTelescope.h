@@ -117,6 +117,8 @@ class IndiTelescope : public IndiDevice
         virtual bool Sync(double,double);
         virtual bool Park();
 
+        bool WritePersistentConfig(FILE *);
+
 };
 
 #endif // INDITELESCOPE_H

@@ -2,6 +2,8 @@
 3rdparty/gerry/CMakeLists.txt -text
 3rdparty/gerry/CcdSim.cpp -text
 3rdparty/gerry/CcdSim.h -text
+3rdparty/gerry/FilterSim.cpp -text
+3rdparty/gerry/FilterSim.h -text
 3rdparty/gerry/IndiCcd.cpp -text
 3rdparty/gerry/IndiCcd.h -text
 3rdparty/gerry/IndiDevice.cpp -text

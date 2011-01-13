@@ -35,6 +35,9 @@ class IndiFilterWheel: public IndiDevice
         INumberVectorProperty FilterSlotNV;   //  A number vector for filter slot
         INumber FilterSlotN[1];
 
+        ITextVectorProperty FilterNameTV; //  A text vector that stores out physical port name
+        IText FilterNameT[12];
+
         int MinFilter;
         int MaxFilter;
         int CurrentFilter;
@@ -47,12 +50,16 @@ class IndiFilterWheel: public IndiDevice
 
         //  Ok, we do need our virtual functions from the base class for processing
         //  client requests
-        //  We process Numbers in a focusser
+        //  We process Numbers and text in a filter wheel
         virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+        virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
 
         virtual int SelectFilter(int);
         virtual int SelectFilterDone(int);
         virtual int QueryFilter();
+        //int SaveFilterNames();
+        //int LoadFilterNames();
+        bool WritePersistentConfig(FILE *);
 
 
 };

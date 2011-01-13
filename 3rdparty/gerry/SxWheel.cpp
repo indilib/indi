@@ -138,8 +138,7 @@ void SxWheel::ISGetProperties (const char *dev)
     //  First we let our parent class do it's thing
     IndiFilterWheel::ISGetProperties(dev);
 
-    //  Now we add anything that's specific to this telescope
-    //  or we could just load from a skeleton file too
+    //  Now we add anything that's specific to this filter wheel
     return;
 }
 

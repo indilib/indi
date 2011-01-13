@@ -40,6 +40,8 @@ IndiCcd::IndiCcd()
     RawGuideSize=0;
     RawGuiderFrame=NULL;
 
+    FrameType=FRAME_TYPE_LIGHT;
+
 }
 
 IndiCcd::~IndiCcd()
@@ -49,7 +51,7 @@ IndiCcd::~IndiCcd()
 
 int IndiCcd::init_properties()
 {
-    IDLog("IndiCcd init_properties '%s'\n",deviceName());
+    //IDLog("IndiCcd init_properties '%s'\n",deviceName());
 
     IndiDevice::init_properties();   //  let the base class flesh in what it wants
 
@@ -59,6 +61,12 @@ int IndiCcd::init_properties()
     IUFillNumber(&ImageFrameN[2],"WIDTH","Width","%4.0f",0,1392.0,0,1392.0);
     IUFillNumber(&ImageFrameN[3],"HEIGHT","Height","%4.0f",0,1040,0,1040);
     IUFillNumberVector(&ImageFrameNV,ImageFrameN,4,deviceName(),"CCD_FRAME","Frame","Image Settings",IP_RW,60,IPS_IDLE);
+
+    IUFillSwitch(&FrameTypeS[0],"FRAME_LIGHT","Light",ISS_ON);
+    IUFillSwitch(&FrameTypeS[1],"FRAME_BIAS","Bias",ISS_OFF);
+    IUFillSwitch(&FrameTypeS[2],"FRAME_DARK","Dark",ISS_OFF);
+    IUFillSwitch(&FrameTypeS[3],"FRAME_FLAT","Flat",ISS_OFF);
+    IUFillSwitchVector(&FrameTypeSV,FrameTypeS,4,deviceName(),"CCD_FRAME_TYPE","FrameType","Image Settings",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
     IUFillNumber(&ImageExposureN[0],"CCD_EXPOSURE_VALUE","Duration (s)","%5.2f",0,36000,0,1.0);
     IUFillNumberVector(&ImageExposureNV,ImageExposureN,1,deviceName(),"CCD_EXPOSURE","Expose","Main Control",IP_RW,60,IPS_IDLE);
@@ -85,8 +93,6 @@ int IndiCcd::init_properties()
     IUFillNumber(&GuiderFrameN[3],"HEIGHT","Height","%4.0f",0,1040,0,1040);
     IUFillNumberVector(&GuiderFrameNV,GuiderFrameN,4,deviceName(),"GUIDER_FRAME","Frame","Guidehead Settings",IP_RW,60,IPS_IDLE);
 
-    IUFillNumber(&GuiderExposureN[0],"GUIDER_EXPOSURE_VALUE","Duration (s)","%5.2f",0,36000,0,1.0);
-    IUFillNumberVector(&GuiderExposureNV,GuiderExposureN,1,deviceName(),"GUIDER_EXPOSURE","Guider","Main Control",IP_RW,60,IPS_IDLE);
 
     IUFillNumber(&GuiderPixelSizeN[0],"GUIDER_MAX_X","Resolution x","%4.0f",1,40,0,6.45);
     IUFillNumber(&GuiderPixelSizeN[1],"GUIDER_MAX_Y","Resolution y","%4.0f",1,40,0,6.45);
@@ -95,6 +101,10 @@ int IndiCcd::init_properties()
     IUFillNumber(&GuiderPixelSizeN[4],"GUIDER_PIXEL_SIZE_Y","Pixel size Y","%5.2f",1,40,0,6.45);
     IUFillNumber(&GuiderPixelSizeN[5],"GUIDER_BITSPERPIXEL","Bits per pixel","%3.0f",1,40,0,6.45);
     IUFillNumberVector(&GuiderPixelSizeNV,GuiderPixelSizeN,6,deviceName(),"GUIDER_INFO","Guidehead Information","Guidehead Info",IP_RO,60,IPS_IDLE);
+
+
+    IUFillNumber(&GuiderExposureN[0],"GUIDER_EXPOSURE_VALUE","Duration (s)","%5.2f",0,36000,0,1.0);
+    IUFillNumberVector(&GuiderExposureNV,GuiderExposureN,1,deviceName(),"GUIDER_EXPOSURE","Guider","Main Cntrol",IP_RW,60,IPS_IDLE);
 
 
     IUFillSwitch(&GuiderVideoS[0],"ON","on",ISS_OFF);
@@ -141,7 +151,7 @@ void IndiCcd::ISGetProperties (const char *dev)
 {
     //  First we let our parent populate
 
-    IDLog("IndiCcd IsGetProperties with %s\n",dev);
+    //IDLog("IndiCcd IsGetProperties with %s\n",dev);
 
     IndiDevice::ISGetProperties(dev);
 
@@ -150,7 +160,7 @@ void IndiCcd::ISGetProperties (const char *dev)
 
 bool IndiCcd::UpdateProperties()
 {
-    IDLog("IndiCCD UpdateProperties isConnected returns %d %d\n",isConnected(),Connected);
+    //IDLog("IndiCCD UpdateProperties isConnected returns %d %d\n",isConnected(),Connected);
     if(Connected) {
         IDDefNumber(&ImageExposureNV, NULL);
         IDDefNumber(&ImageFrameNV, NULL);
@@ -178,6 +188,7 @@ bool IndiCcd::UpdateProperties()
             IDDefNumber(&GuideNSV, NULL);
             IDDefNumber(&GuideEWV, NULL);
         }
+        IDDefSwitch(&FrameTypeSV,NULL);
     } else {
         DeleteProperty(ImageFrameNV.name);
         DeleteProperty(ImageBinNV.name);
@@ -198,8 +209,8 @@ bool IndiCcd::UpdateProperties()
             DeleteProperty(GuideEWV.name);
 
         }
-}
-
+        DeleteProperty(FrameTypeSV.name);
+    }
     return true;
 }
 
@@ -378,15 +389,15 @@ bool IndiCcd::ISNewSwitch (const char *dev, const char *name, ISState *states, c
 {
 
     //  Ok, lets Process any switches we actually handle here
-    IDLog("IndiCcd IsNewSwitch %s %s\n",dev,name);
+    //IDLog("IndiCcd IsNewSwitch %s %s\n",dev,name);
 
 
     if(strcmp(dev,deviceName())==0) {
         //  it's for this device
 
-        for(int x=0; x<n; x++) {
-            IDLog("Switch %s\n",names[x]);
-        }
+        //for(int x=0; x<n; x++) {
+        //    IDLog("Switch %s\n",names[x]);
+        //}
 
         if(strcmp(name,CompressSV.name)==0) {
 
@@ -425,6 +436,20 @@ bool IndiCcd::ISNewSwitch (const char *dev, const char *name, ISState *states, c
             }
 
             IDSetSwitch(&GuiderVideoSV,NULL);
+            return true;
+        }
+
+        if(strcmp(name,FrameTypeSV.name)==0) {
+            //  Compression Update
+            IUUpdateSwitch(&FrameTypeSV,states,names,n);
+            FrameTypeSV.s=IPS_OK;
+            if(FrameTypeS[0].s==ISS_ON) SetFrameType(FRAME_TYPE_LIGHT);
+            if(FrameTypeS[1].s==ISS_ON) SetFrameType(FRAME_TYPE_BIAS);
+            if(FrameTypeS[2].s==ISS_ON) SetFrameType(FRAME_TYPE_DARK);
+            if(FrameTypeS[3].s==ISS_ON) SetFrameType(FRAME_TYPE_FLAT);
+
+
+            IDSetSwitch(&FrameTypeSV,NULL);
             return true;
         }
 
@@ -721,4 +746,10 @@ int IndiCcd::GuideEast(float)
 int IndiCcd::GuideWest(float)
 {
     return -1;
+}
+int IndiCcd::SetFrameType(int t)
+{
+    //fprintf(stderr,"Set frame type to %d\n",t);
+    FrameType=t;
+    return 0;
 }

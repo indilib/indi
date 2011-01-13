@@ -31,9 +31,9 @@ IndiDevice *device=NULL;
 ***************************************************************************************/
 void ISGetProperties (const char *dev)
 {
-    fprintf(stderr,"Enter ISGetProperties '%s'\n",dev);
+    //fprintf(stderr,"Enter ISGetProperties '%s'\n",dev);
     if(device==NULL) {
-        IDLog("Create device for %s\n",dev);
+        //IDLog("Create device for %s\n",dev);
         device=_create_device();
         if(dev != NULL) {
             //fprintf(stderr,"Calling setDeviceName %s\n",dev);
@@ -54,11 +54,11 @@ void ISGetProperties (const char *dev)
 ***************************************************************************************/
 void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
- fprintf(stderr,"Enter ISNewSwitch %s\n",dev);
+    //fprintf(stderr,"Enter ISNewSwitch %s\n",dev);
 
- //ISInit();
- //fprintf(stderr,"Calling Device->IsNewSwitch for device %0x\n",(void *)device);
- device->ISNewSwitch(dev, name, states, names, n);
+    //ISInit();
+    //fprintf(stderr,"Calling Device->IsNewSwitch for device %0x\n",(void *)device);
+    device->ISNewSwitch(dev, name, states, names, n);
 }
 
 /**************************************************************************************
@@ -66,9 +66,9 @@ void ISNewSwitch (const char *dev, const char *name, ISState *states, char *name
 ***************************************************************************************/
 void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
- fprintf(stderr,"Enter ISNewText\n");
- //ISInit();
- device->ISNewText(dev, name, texts, names, n);
+    //fprintf(stderr,"Enter ISNewText\n");
+    //ISInit();
+    device->ISNewText(dev, name, texts, names, n);
 }
 
 /**************************************************************************************
@@ -77,8 +77,8 @@ void ISNewText (const char *dev, const char *name, char *texts[], char *names[],
 void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
     //fprintf(stderr,"OutsideClass::Enter ISNewNumber\n");
- //ISInit();
- device->ISNewNumber(dev, name, values, names, n);
+    //ISInit();
+    device->ISNewNumber(dev, name, values, names, n);
 }
 
 /**************************************************************************************
@@ -134,7 +134,7 @@ int IndiDevice::init_properties()
     //  All devices should have a connection switch defined
     //  so lets create it
 
-    IDLog("IndiDevice::init_properties()  MyDev=%s\n",deviceName());
+    //IDLog("IndiDevice::init_properties()  MyDev=%s\n",deviceName());
     IUFillSwitch(&ConnectionS[0],"CONNECT","Connect",ISS_OFF);
     IUFillSwitch(&ConnectionS[1],"DISCONNECT","Disconnect",ISS_ON);
     IUFillSwitchVector(&ConnectionSV,ConnectionS,2,deviceName(),"CONNECTION","Connection","Main Control",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
@@ -152,7 +152,7 @@ void IndiDevice::ISGetProperties(const char *dev)
 {
 
     //  Now lets send the ones we have defined
-    IDLog("IndiDevice::ISGetProperties %s\n",dev);
+    //IDLog("IndiDevice::ISGetProperties %s\n",dev);
     IDDefSwitch (&ConnectionSV, NULL);
 
     if(Connected) UpdateProperties();   //  If already connected, send the rest
@@ -317,4 +317,42 @@ bool IndiDevice::UpdateProperties()
 void IndiDevice::ISSnoopDevice (XMLEle *root)
 {
       INDI_UNUSED(root);
+}
+
+bool IndiDevice::SaveConfig()
+{
+    char err[MAXRBUF];
+    FILE *fp;
+    //int rc;
+
+    fp=IUGetConfigFP(NULL,deviceName(),err);
+    if(fp != NULL) {
+        IUSaveConfigTag(fp,0);
+        //IUSaveConfigText(fp,&FilterNameTV);
+        //  Tell child classes to write any items they want
+        //  into persistent storage
+        WritePersistentConfig(fp);
+        IUSaveConfigTag(fp,1);
+        fclose(fp);
+        //IDMessage(deviceName(),"Configuration Saved\n");
+        return true;
+    } else {
+        IDMessage(deviceName(),"Save config failed\n");
+    }
+    return false;
+}
+
+bool IndiDevice::WritePersistentConfig(FILE *f)
+{
+    return false;
+}
+
+bool IndiDevice::LoadConfig()
+{
+    char err[MAXRBUF];
+    int rc;
+
+    rc=IUReadConfig(NULL,deviceName(),err);
+    if(rc==0) return true;
+    return false;
 }

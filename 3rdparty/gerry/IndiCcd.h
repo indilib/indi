@@ -24,6 +24,10 @@
 
 #include "IndiDevice.h"
 
+#define FRAME_TYPE_LIGHT 0
+#define FRAME_TYPE_BIAS 1
+#define FRAME_TYPE_DARK 2
+#define FRAME_TYPE_FLAT 3
 
 class IndiCcd : public IndiDevice
 {
@@ -65,6 +69,8 @@ class IndiCcd : public IndiDevice
         float GPixelSizey;
         bool GuiderCompressed;
 
+        int FrameType;
+
 
     private:
     public:
@@ -99,6 +105,9 @@ class IndiCcd : public IndiDevice
         INumber GuiderPixelSizeN[6];
         INumberVectorProperty GuiderExposureNV;
         INumber GuiderExposureN[1];
+
+        ISwitch FrameTypeS[4];
+        ISwitchVectorProperty FrameTypeSV;
 
 
         ISwitch CompressS[2];
@@ -145,6 +154,8 @@ class IndiCcd : public IndiDevice
         virtual int GuideSouth(float);
         virtual int GuideEast(float);
         virtual int GuideWest(float);
+
+        virtual int SetFrameType(int);
 
 };
 

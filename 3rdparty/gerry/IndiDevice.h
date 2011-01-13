@@ -74,6 +74,10 @@ class IndiDevice : public INDI::DefaultDriver
         virtual bool Disconnect();
         virtual char *getDefaultName()=0;
 
+        virtual bool SaveConfig();
+        virtual bool LoadConfig();
+        virtual bool WritePersistentConfig(FILE *);
+
 };
 
 extern IndiDevice *device;

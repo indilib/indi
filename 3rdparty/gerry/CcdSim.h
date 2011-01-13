@@ -56,7 +56,7 @@ class CcdSim : public IndiCcd
         float ImageScalex;
         float ImageScaley;
         float focallength;
-        float CenterOffsetDec;
+        float OAGoffset;
         float TimeFactor;
         //  our zero point calcs used for drawing stars
         float k;
@@ -81,18 +81,16 @@ class CcdSim : public IndiCcd
         INumberVectorProperty SimulatorSettingsNV;
         INumber SimulatorSettingsN[13];
 
-        ITextVectorProperty ConfigFileTV; //  A text vector that stores our configuration name
-        IText ConfigFileT[1];
+        //ITextVectorProperty ConfigFileTV; //  A text vector that stores our configuration name
+        //IText ConfigFileT[1];
 
-        ISwitch ConfigSaveRestoreS[2];
-        ISwitchVectorProperty ConfigSaveRestoreSV;
+        //ISwitch ConfigSaveRestoreS[2];
+        //ISwitchVectorProperty ConfigSaveRestoreSV;
 
         ISwitch TimeFactorS[3];
         ISwitchVectorProperty TimeFactorSV;
 
         bool SetupParms();
-        int MakeConfigName(char *);
-
 
     public:
         CcdSim();
@@ -128,8 +126,9 @@ class CcdSim : public IndiCcd
         int GuideWest(float);
 
         virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-        virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+        //virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
         virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+        bool WritePersistentConfig(FILE *f);
 
 };
 

@@ -42,6 +42,15 @@ set(indi_scopesim_SRCS
 add_executable(indi_scopesim ${indi_scopesim_SRCS})
 target_link_libraries(indi_scopesim ${INDI_LIBRARIES} ${INDI_BASE_DRIVER_LIBRARIES} ${INDI_DEFAULT_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${ZLIB_LIBRARIES} )
 
+set(indi_filtersim_SRCS
+   ${CMAKE_SOURCE_DIR}/IndiDevice.cpp
+   ${CMAKE_SOURCE_DIR}/IndiFilterWheel.cpp
+   ${CMAKE_SOURCE_DIR}/FilterSim.cpp
+   )
+
+add_executable(indi_filtersim ${indi_filtersim_SRCS})
+target_link_libraries(indi_filtersim ${INDI_LIBRARIES} ${INDI_BASE_DRIVER_LIBRARIES} ${INDI_DEFAULT_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${ZLIB_LIBRARIES} )
+
 set(indi_synscan_SRCS
    ${CMAKE_SOURCE_DIR}/IndiDevice.cpp
    ${CMAKE_SOURCE_DIR}/IndiTelescope.cpp

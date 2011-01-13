@@ -2,7 +2,7 @@
 
 IndiDevice * _create_device()
 {
-    IDLog("Create a mount simulator\n");
+    //IDLog("Create a mount simulator\n");
     return new ScopeSim();
 }
 
@@ -45,7 +45,7 @@ bool ScopeSim::ReadScopeStatus()
 
 bool ScopeSim::Goto(double r,double d)
 {
-    IDLog("ScopeSim Goto\n");
+    //IDLog("ScopeSim Goto\n");
     ra=r;
     dec=d;
     Parked=false;

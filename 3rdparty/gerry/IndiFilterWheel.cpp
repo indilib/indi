@@ -26,6 +26,7 @@
 IndiFilterWheel::IndiFilterWheel()
 {
     //ctor
+    MaxFilter=12;
 }
 
 IndiFilterWheel::~IndiFilterWheel()
@@ -37,8 +38,23 @@ int IndiFilterWheel::init_properties()
 {
     IndiDevice::init_properties();   //  let the base class flesh in what it wants
 
-    IUFillNumber(&FilterSlotN[0],"FILTER_SLOT_VALUE","Filter","%3.0f",1.0,10.0,1.0,1.0);
+    IUFillNumber(&FilterSlotN[0],"FILTER_SLOT_VALUE","Filter","%3.0f",1.0,12.0,1.0,1.0);
     IUFillNumberVector(&FilterSlotNV,FilterSlotN,1,deviceName(),"FILTER_SLOT","Filter","Main Control",IP_RW,60,IPS_IDLE);
+
+    IUFillText(&FilterNameT[0],"FILTER1","1","");
+    IUFillText(&FilterNameT[1],"FILTER2","2","");
+    IUFillText(&FilterNameT[2],"FILTER3","3","");
+    IUFillText(&FilterNameT[3],"FILTER4","4","");
+    IUFillText(&FilterNameT[4],"FILTER5","5","");
+    IUFillText(&FilterNameT[5],"FILTER6","6","");
+    IUFillText(&FilterNameT[6],"FILTER7","7","");
+    IUFillText(&FilterNameT[7],"FILTER8","8","");
+    IUFillText(&FilterNameT[8],"FILTER9","9","");
+    IUFillText(&FilterNameT[9],"FILTER10","10","");
+    IUFillText(&FilterNameT[10],"FILTER11","11","");
+    IUFillText(&FilterNameT[11],"FILTER12","12","");
+    IUFillTextVector(&FilterNameTV,FilterNameT,12,deviceName(),"FILTER_NAME","Filter","Filters",IP_RW,60,IPS_IDLE);
+
     return 0;
 }
 
@@ -49,6 +65,7 @@ void IndiFilterWheel::ISGetProperties (const char *dev)
     IndiDevice::ISGetProperties(dev);
     if(Connected) {
         IDDefNumber(&FilterSlotNV, NULL);
+        IDDefText(&FilterNameTV, NULL);
     }
     return;
 }
@@ -61,8 +78,13 @@ bool IndiFilterWheel::UpdateProperties()
     if(Connected) {
         IUFillNumber(&FilterSlotN[0],"FILTER_SLOT_VALUE","Filter","%3.0f",MinFilter,MaxFilter,1.0,CurrentFilter);
         IDDefNumber(&FilterSlotNV, NULL);
+        IUFillTextVector(&FilterNameTV,FilterNameT,MaxFilter,deviceName(),"FILTER_NAME","Filter","Filters",IP_RW,60,IPS_IDLE);
+        IDDefText(&FilterNameTV, NULL);
+        //LoadFilterNames();
+        LoadConfig();
     } else {
         DeleteProperty(FilterSlotNV.name);
+        DeleteProperty(FilterNameTV.name);
     }
 
     return true;
@@ -106,6 +128,45 @@ bool IndiFilterWheel::ISNewNumber (const char *dev, const char *name, double val
     return IndiDevice::ISNewNumber(dev,name,values,names,n);
 }
 
+bool IndiFilterWheel::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+{
+    //  Ok, lets see if this is a property wer process
+    IDLog("IndiFilterWheel got %d new text items name %s\n",n,name);
+    //  first check if it's for our device
+    if(strcmp(dev,deviceName())==0) {
+        //  This is for our device
+        //  Now lets see if it's something we process here
+        if(strcmp(name,FilterNameTV.name)==0) {
+            //  This is our port, so, lets process it
+
+            //  Some clients insist on sending a port
+            //  and they may not be configured for the
+            //  correct port
+            //  If we are already connected
+            //  and running, it makes absolutely no sense
+            //  to accept a new port value
+            //  so lets just lie to them and say
+            //  we did this, but, dont actually change anything
+            //if(Connected) return true;
+
+            int rc;
+            IDLog("calling update text\n");
+            FilterNameTV.s=IPS_OK;
+            rc=IUUpdateText(&FilterNameTV,texts,names,n);
+            IDLog("update text returns %d\n",rc);
+            //  Update client display
+            IDSetText(&FilterNameTV,NULL);
+            SaveConfig();
+
+            //  We processed this one, so, tell the world we did it
+            return true;
+        }
+
+    }
+
+    return IndiDevice::ISNewText(dev,name,texts,names,n);
+}
+
 int IndiFilterWheel::SelectFilterDone(int f)
 {
     //  The hardware has finished changing
@@ -127,3 +188,10 @@ int IndiFilterWheel::QueryFilter()
 {
     return -1;
 }
+
+bool IndiFilterWheel::WritePersistentConfig(FILE *fp)
+{
+    IUSaveConfigText(fp,&FilterNameTV);
+    return true;
+}
+

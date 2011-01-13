@@ -45,10 +45,10 @@ IndiTelescope::~IndiTelescope()
 
 int IndiTelescope::init_properties()
 {
-    IDLog("IndiTelescope::init_properties()\n");
+    //IDLog("IndiTelescope::init_properties()\n");
     IndiDevice::init_properties();
 
-    IDLog("IndiTelescope::init_properties() adding eq co-ordinates  MyDev=%s\n",deviceName());
+    //IDLog("IndiTelescope::init_properties() adding eq co-ordinates  MyDev=%s\n",deviceName());
     IUFillNumber(&EqN[0],"RA","Ra (hh:mm:ss)","%010.6m",0,24,0,0);
     IUFillNumber(&EqN[1],"DEC","Dec (dd:mm:ss)","%010.6m",-90,90,0,0);
     IUFillNumberVector(&EqNV,EqN,2,deviceName(),"EQUATORIAL_EOD_COORD","Eq. Coordinates","Main Control",IP_RW,60,IPS_IDLE);
@@ -81,11 +81,12 @@ int IndiTelescope::init_properties()
 void IndiTelescope::ISGetProperties (const char *dev)
 {
     //  First we let our parent populate
-    IDLog("IndiTelescope::ISGetProperties %s\n",dev);
+    //IDLog("IndiTelescope::ISGetProperties %s\n",dev);
     IndiDevice::ISGetProperties(dev);
 
     //  We may need the port set before we can connect
     IDDefText(&PortTV,NULL);
+    LoadConfig();
 
     if(Connected) {
     //  Now we add our telescope specific stuff
@@ -102,7 +103,7 @@ bool IndiTelescope::UpdateProperties()
 {
     if(Connected) {
         //  Now we add our telescope specific stuff
-        IDLog("indiTelescope adding properties\n");
+        //IDLog("indiTelescope adding properties\n");
         IDDefSwitch(&CoordSV,NULL);
         IDDefNumber(&EqNV, NULL);
         IDDefNumber(&EqReqNV, NULL);
@@ -110,7 +111,7 @@ bool IndiTelescope::UpdateProperties()
         IDDefNumber(&LocationNV,NULL);
         IDDefSwitch(&ParkSV,NULL);
     } else {
-        IDLog("IndiTelescope deleting properties\n");
+        //IDLog("IndiTelescope deleting properties\n");
         DeleteProperty(CoordSV.name);
         DeleteProperty(EqNV.name);
         DeleteProperty(EqReqNV.name);
@@ -157,7 +158,7 @@ bool IndiTelescope::Sync(double ra,double dec)
 bool IndiTelescope::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     //  Ok, lets see if this is a property wer process
-    IDLog("IndiTelescope got %d new text items name %s\n",n,name);
+    //IDLog("IndiTelescope got %d new text items name %s\n",n,name);
     //  first check if it's for our device
     if(strcmp(dev,deviceName())==0) {
         //  This is for our device
@@ -176,13 +177,13 @@ bool IndiTelescope::ISNewText (const char *dev, const char *name, char *texts[],
             if(Connected) return true;
 
             int rc;
-            IDLog("calling update text\n");
+            //IDLog("calling update text\n");
             PortTV.s=IPS_OK;
             rc=IUUpdateText(&PortTV,texts,names,n);
-            IDLog("update text returns %d\n",rc);
+            //IDLog("update text returns %d\n",rc);
             //  Update client display
             IDSetText(&PortTV,NULL);
-
+            SaveConfig();
             //  We processed this one, so, tell the world we did it
             return true;
         }
@@ -198,7 +199,7 @@ bool IndiTelescope::ISNewText (const char *dev, const char *name, char *texts[],
 bool IndiTelescope::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
     //  first check if it's for our device
-    IDLog("IndiTelescope::ISNewNumber %s\n",name);
+    //IDLog("IndiTelescope::ISNewNumber %s\n",name);
     if(strcmp(dev,deviceName())==0) {
         //  This is for our device
         //  Now lets see if it's something we process here
@@ -266,7 +267,7 @@ bool IndiTelescope::ISNewNumber (const char *dev, const char *name, double value
 ***************************************************************************************/
 bool IndiTelescope::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    IDLog("Enter IsNewSwitch for %s\n",name);
+    //IDLog("Enter IsNewSwitch for %s\n",name);
     //for(int x=0; x<n; x++) {
     //    IDLog("Switch %s %d\n",names[x],states[x]);
     //}
@@ -300,11 +301,11 @@ bool IndiTelescope::ISNewSwitch (const char *dev, const char *name, ISState *sta
 bool IndiTelescope::Connect()
 {
     //  Parent class is wanting a connection
-    IDLog("IndiTelescope calling connect with %s\n",PortT[0].text);
+    //IDLog("IndiTelescope calling connect with %s\n",PortT[0].text);
 
     if(Connected) return true;
 
-    IDLog("Calling Connect\n");
+    //IDLog("Calling Connect\n");
 
     Connected=Connect(PortT[0].text);
     if(Connected) {
@@ -321,7 +322,7 @@ bool IndiTelescope::Connect(char *port)
     bool rc;
 
     /* Make the connection */
-    IDLog("Trying to open %s\n",port);
+    //IDLog("Trying to open %s\n",port);
     PortFD = open(port,O_RDWR);
     if(PortFD == -1) {
         IDMessage(deviceName(),"Could not open port");
@@ -461,4 +462,10 @@ bool IndiTelescope::Park()
     //  but the scope doesn't seem to support park
     //  or it wouldn't have gotten here
     return false;
+}
+
+bool IndiTelescope::WritePersistentConfig(FILE *fp)
+{
+    IUSaveConfigText(fp,&PortTV);
+    return true;
 }
