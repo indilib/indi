@@ -4,7 +4,7 @@
 IndiDevice * _create_device()
 {
     IndiDevice *wheel;
-    IDLog("Create a FilterWheel Simulator\n");
+    //IDLog("Create a FilterWheel Simulator\n");
     wheel=new FilterSim();
     return wheel;
 }
@@ -47,4 +47,11 @@ int FilterSim::SelectFilter(int f)
 void FilterSim::TimerHit()
 {
     SelectFilterDone(CurrentFilter);
+}
+
+bool FilterSim::WritePersistentConfig(FILE *fp)
+{
+    IUSaveConfigSwitch(fp,&ConnectionSV);
+    IndiFilterWheel::WritePersistentConfig(fp);
+    return true;
 }

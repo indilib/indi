@@ -174,7 +174,7 @@ bool IndiTelescope::ISNewText (const char *dev, const char *name, char *texts[],
             //  to accept a new port value
             //  so lets just lie to them and say
             //  we did this, but, dont actually change anything
-            if(Connected) return true;
+            //if(Connected) return true;
 
             int rc;
             //IDLog("calling update text\n");

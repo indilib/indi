@@ -59,7 +59,7 @@ class IndiFilterWheel: public IndiDevice
         virtual int QueryFilter();
         //int SaveFilterNames();
         //int LoadFilterNames();
-        bool WritePersistentConfig(FILE *);
+        virtual bool WritePersistentConfig(FILE *);
 
 
 };

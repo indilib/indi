@@ -55,13 +55,15 @@ int IndiFilterWheel::init_properties()
     IUFillText(&FilterNameT[11],"FILTER12","12","");
     IUFillTextVector(&FilterNameTV,FilterNameT,12,deviceName(),"FILTER_NAME","Filter","Filters",IP_RW,60,IPS_IDLE);
 
+    LoadConfig();
+
     return 0;
 }
 
 void IndiFilterWheel::ISGetProperties (const char *dev)
 {
     //  First we let our parent populate
-    IDLog("IndiFilterWheel::ISGetProperties %s\n",dev);
+    //IDLog("IndiFilterWheel::ISGetProperties %s\n",dev);
     IndiDevice::ISGetProperties(dev);
     if(Connected) {
         IDDefNumber(&FilterSlotNV, NULL);
@@ -81,7 +83,6 @@ bool IndiFilterWheel::UpdateProperties()
         IUFillTextVector(&FilterNameTV,FilterNameT,MaxFilter,deviceName(),"FILTER_NAME","Filter","Filters",IP_RW,60,IPS_IDLE);
         IDDefText(&FilterNameTV, NULL);
         //LoadFilterNames();
-        LoadConfig();
     } else {
         DeleteProperty(FilterSlotNV.name);
         DeleteProperty(FilterNameTV.name);
@@ -93,7 +94,7 @@ bool IndiFilterWheel::UpdateProperties()
 bool IndiFilterWheel::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
     //  first check if it's for our device
-    IDLog("IndiFilterWheel::ISNewNumber %s\n",name);
+    //IDLog("IndiFilterWheel::ISNewNumber %s\n",name);
     if(strcmp(dev,deviceName())==0) {
         //  This is for our device
         //  Now lets see if it's something we process here
@@ -112,7 +113,7 @@ bool IndiFilterWheel::ISNewNumber (const char *dev, const char *name, double val
             }
 
             if(f != -1) {
-                IDLog("Filter wheel got a filter slot change\n");
+                //IDLog("Filter wheel got a filter slot change\n");
                 //  tell the client we are busy changing the filter
                 FilterSlotNV.s=IPS_BUSY;
                 IDSetNumber(&FilterSlotNV,NULL);
@@ -131,7 +132,7 @@ bool IndiFilterWheel::ISNewNumber (const char *dev, const char *name, double val
 bool IndiFilterWheel::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     //  Ok, lets see if this is a property wer process
-    IDLog("IndiFilterWheel got %d new text items name %s\n",n,name);
+    //IDLog("IndiFilterWheel got %d new text items name %s\n",n,name);
     //  first check if it's for our device
     if(strcmp(dev,deviceName())==0) {
         //  This is for our device
@@ -150,10 +151,10 @@ bool IndiFilterWheel::ISNewText (const char *dev, const char *name, char *texts[
             //if(Connected) return true;
 
             int rc;
-            IDLog("calling update text\n");
+            //IDLog("calling update text\n");
             FilterNameTV.s=IPS_OK;
             rc=IUUpdateText(&FilterNameTV,texts,names,n);
-            IDLog("update text returns %d\n",rc);
+            //IDLog("update text returns %d\n",rc);
             //  Update client display
             IDSetText(&FilterNameTV,NULL);
             SaveConfig();

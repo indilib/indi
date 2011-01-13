@@ -81,8 +81,8 @@ class CcdSim : public IndiCcd
         INumberVectorProperty SimulatorSettingsNV;
         INumber SimulatorSettingsN[13];
 
-        //ITextVectorProperty ConfigFileTV; //  A text vector that stores our configuration name
-        //IText ConfigFileT[1];
+        ITextVectorProperty TelescopeTV; //  A text vector that stores the telescope we want to snoop
+        IText TelescopeT[1];
 
         //ISwitch ConfigSaveRestoreS[2];
         //ISwitchVectorProperty ConfigSaveRestoreSV;
@@ -126,7 +126,7 @@ class CcdSim : public IndiCcd
         int GuideWest(float);
 
         virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-        //virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+        virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
         virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
         bool WritePersistentConfig(FILE *f);
 

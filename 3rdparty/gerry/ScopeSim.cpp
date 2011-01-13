@@ -59,3 +59,10 @@ bool ScopeSim::Park()
     Parked=true;
     return true;
 }
+
+bool ScopeSim::WritePersistentConfig(FILE *fp)
+{
+    IUSaveConfigSwitch(fp,&ConnectionSV);
+    IndiTelescope::WritePersistentConfig(fp);
+    return true;
+}

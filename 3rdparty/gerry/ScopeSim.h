@@ -22,6 +22,7 @@ class ScopeSim : public IndiTelescope
 
         bool Goto(double,double);
         bool Park();
+        bool WritePersistentConfig(FILE *fp);
 
 };
 

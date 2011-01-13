@@ -158,8 +158,8 @@ int CcdSim::init_properties()
     IUFillNumber(&SimulatorSettingsN[12],"SIM_OAGOFFSET","Oag Offset (arminutes)","%4.1f",0,6000,0,0);
     IUFillNumberVector(&SimulatorSettingsNV,SimulatorSettingsN,13,deviceName(),"SIMULATOR_SETTINGS","Simulator Settings","SimSettings",IP_RW,60,IPS_IDLE);
 
-    //IUFillText(&ConfigFileT[0],"SIM_CONFIG","Filename",deviceName());
-    //IUFillTextVector(&ConfigFileTV,ConfigFileT,1,deviceName(),"SIM_CONFIG_SAVE","Config File","Simulator Config",IP_RW,60,IPS_IDLE);
+    IUFillText(&TelescopeT[0],"SIM_CCD_TELESCOPE","Telescope","");
+    IUFillTextVector(&TelescopeTV,TelescopeT,1,deviceName(),"SIM_SNOOP_SCOPE","Snoop Scope","Simulator Config",IP_RW,60,IPS_IDLE);
 
     //IUFillSwitch(&ConfigSaveRestoreS[0],"SAVE","Save",ISS_OFF);
     //IUFillSwitch(&ConfigSaveRestoreS[1],"LOAD","Load",ISS_OFF);
@@ -185,10 +185,10 @@ void CcdSim::ISGetProperties (const char *dev)
 
     IDDefNumber(&SimulatorSettingsNV, NULL);
     IDDefSwitch(&TimeFactorSV, NULL);
+    IDDefText(&TelescopeTV, NULL);
     //IDDefText(&ConfigFileTV, NULL);
     //IDDefSwitch(&ConfigSaveRestoreSV, NULL);
 
-    IDSnoopDevice("ScopeSim","EQUATORIAL_EOD_COORD");
 
     return;
 }
@@ -434,40 +434,42 @@ int CcdSim::DrawCcdFrame()
 
         lookuplimit=limitingmag;
         lookuplimit=lookuplimit;
-        if(radius > 60) lookuplimit=14;
+        if(radius > 60) lookuplimit=11;
 
-        //sprintf(gsccmd,"gsc -c %8.6f %+8.6f -r 120 -m 0 9.1",rad+PEOffset,Dec);
-        sprintf(gsccmd,"gsc -c %8.6f %+8.6f -r %4.1f -m 0 %4.2f -n 3000",rad+PEOffset,cameradec,radius,lookuplimit);
-        //fprintf(stderr,"gsccmd %s\n",gsccmd);
-        pp=popen(gsccmd,"r");
-        if(pp != NULL) {
-            char line[256];
-            while(fgets(line,256,pp)!=NULL) {
-                //fprintf(stderr,"%s",line);
+        //  if this is a light frame, we need a star field drawn
+        if(FrameType==FRAME_TYPE_LIGHT) {
+            //sprintf(gsccmd,"gsc -c %8.6f %+8.6f -r 120 -m 0 9.1",rad+PEOffset,Dec);
+            sprintf(gsccmd,"gsc -c %8.6f %+8.6f -r %4.1f -m 0 %4.2f -n 3000",rad+PEOffset,cameradec,radius,lookuplimit);
+            //fprintf(stderr,"gsccmd %s\n",gsccmd);
+            pp=popen(gsccmd,"r");
+            if(pp != NULL) {
+                char line[256];
+                while(fgets(line,256,pp)!=NULL) {
+                    //fprintf(stderr,"%s",line);
 
-                //  ok, lets parse this line for specifcs we want
-                char id[20];
-                char plate[6];
-                char ob[6];
-                float mag;
-                float mage;
-                float ra;
-                float dec;
-                float pose;
-                int band;
-                float dist;
-                int dir;
-                int c;
-                int rc;
+                    //  ok, lets parse this line for specifcs we want
+                    char id[20];
+                    char plate[6];
+                    char ob[6];
+                    float mag;
+                    float mage;
+                    float ra;
+                    float dec;
+                    float pose;
+                    int band;
+                    float dist;
+                    int dir;
+                    int c;
+                    int rc;
 
 
 
-                rc=sscanf(line,"%10s %f %f %f %f %f %d %d %4s %2s %f %d",
-                          id,&ra,&dec,&pose,&mag,&mage,&band,&c,plate,ob,&dist,&dir);
-                //fprintf(stderr,"Parsed %d items\n",rc);
-                if(rc==12) {
-                    lines++;
-                    //if(c==0) {
+                    rc=sscanf(line,"%10s %f %f %f %f %f %d %d %4s %2s %f %d",
+                            id,&ra,&dec,&pose,&mag,&mage,&band,&c,plate,ob,&dist,&dir);
+                    //fprintf(stderr,"Parsed %d items\n",rc);
+                    if(rc==12) {
+                        lines++;
+                        //if(c==0) {
                         stars++;
                         //fprintf(stderr,"%s %8.4f %8.4f %5.2f %5.2f %d\n",id,ra,dec,mag,dist,dir);
 
@@ -504,16 +506,16 @@ int CcdSim::DrawCcdFrame()
                             //fprintf(stderr,"star %s ccd %6.2f %6.2f\n",id,ccdx,ccdy);
                         }
                     }
-                //}
+                }
+                pclose(pp);
+            } else {
+                IDMessage(deviceName(),"Error looking up stars, is gsc installed with appropriate environment variables set ??");
+                //fprintf(stderr,"Error doing gsc lookup\n");
             }
-            pclose(pp);
-        } else {
-            IDMessage(deviceName(),"Error looking up stars, is gsc installed with appropriate environment variables set ??");
-            //fprintf(stderr,"Error doing gsc lookup\n");
-        }
-        if(drawn==0) {
-            IDMessage(deviceName(),"Got no stars, is gsc installed with appropriate environment variables set ??");
+            if(drawn==0) {
+                IDMessage(deviceName(),"Got no stars, is gsc installed with appropriate environment variables set ??");
 
+            }
         }
         //fprintf(stderr,"Got %d stars from %d lines drew %d\n",stars,lines,drawn);
 
@@ -521,52 +523,60 @@ int CcdSim::DrawCcdFrame()
         //  this is essentially the same math as drawing a dim star with
         //  fwhm equivalent to the full field of view
 
-        float skyflux;
-        //  calculate flux from our zero point and gain values
-        skyflux=pow(10,((skyglow-z)*k/-2.5));
-        //  ok, flux represents one second now
-        //  scale up linearly for exposure time
-        skyflux=skyflux*ExposureRequest*BinX*BinY;
-        //IDLog("SkyFlux = %4.2f ExposureRequest %4.2f\n",skyflux,ExposureRequest);
+        if((FrameType==FRAME_TYPE_LIGHT)||(FrameType==FRAME_TYPE_FLAT)) {
+            float skyflux;
+            float glow;
+            //  calculate flux from our zero point and gain values
+            glow=skyglow;
+            if(FrameType==FRAME_TYPE_FLAT) {
+                //  Assume flats are done with a diffuser
+                //  in broad daylight, so, the sky magnitude
+                //  is much brighter than at night
+                glow=skyglow/10;
+            }
+            //fprintf(stderr,"Using glow %4.2f\n",glow);
+            skyflux=pow(10,((glow-z)*k/-2.5));
+            //  ok, flux represents one second now
+            //  scale up linearly for exposure time
+            skyflux=skyflux*ExposureRequest*BinX*BinY;
+            //IDLog("SkyFlux = %4.2f ExposureRequest %4.2f\n",skyflux,ExposureRequest);
 
-        unsigned short *pt;
-        pt=(unsigned short int *)RawFrame;
-        for(int y=0; y<YRes/BinY; y++) {
-            for(int x=0; x<XRes/BinX; x++) {
-                float dc;   //  distance from center
-                float fp;   //  flux this pixel;
-                float sx,sy;
-                float vig;
+            unsigned short *pt;
+            pt=(unsigned short int *)RawFrame;
+            for(int y=0; y<YRes/BinY; y++) {
+                for(int x=0; x<XRes/BinX; x++) {
+                    float dc;   //  distance from center
+                    float fp;   //  flux this pixel;
+                    float sx,sy;
+                    float vig;
 
-                sx=XRes/2/BinX;
-                sx=sx-x;
-                sy=YRes/2/BinY;
-                sy=sy-y;
+                    sx=XRes/2/BinX;
+                    sx=sx-x;
+                    sy=YRes/2/BinY;
+                    sy=sy-y;
 
-                vig=XRes/BinX;
-                vig=vig*ImageScalex;
-                //  need to make this account for actual pixel size
-                dc=sqrt(sx*sx*ImageScalex*ImageScalex+sy*sy*ImageScaley*ImageScaley);
-                //  now we have the distance from center, in arcseconds
-                //  now lets plot a gaussian falloff to the edges
-                //
-                float fa;
-                fa=exp(-2.0*0.7*(dc*dc)/vig/vig);
-                //  get the current value
-                fp=pt[0];
-                //  Add the sky glow
-                fp+=skyflux;
-                //  now scale it for the vignetting
-                fp=fa*fp;
-                //  clamp to limits
-                if(fp > maxval) fp=maxval;
-                //  and put it back
-                pt[0]=fp;
-                pt++;
-                //fp=fa*flux;
-                //if(fp < 0) fp=0;
-                //AddToPixel(x,y,fp);
+                    vig=XRes/BinX;
+                    vig=vig*ImageScalex;
+                    //  need to make this account for actual pixel size
+                    dc=sqrt(sx*sx*ImageScalex*ImageScalex+sy*sy*ImageScaley*ImageScaley);
+                    //  now we have the distance from center, in arcseconds
+                    //  now lets plot a gaussian falloff to the edges
+                    //
+                    float fa;
+                    fa=exp(-2.0*0.7*(dc*dc)/vig/vig);
+                    //  get the current value
+                    fp=pt[0];
+                    //  Add the sky glow
+                    fp+=skyflux;
+                    //  now scale it for the vignetting
+                    fp=fa*fp;
+                    //  clamp to limits
+                    if(fp > maxval) fp=maxval;
+                    //  and put it back
+                    pt[0]=fp;
+                    pt++;
 
+                }
             }
         }
 
@@ -761,7 +771,7 @@ void CcdSim::ISSnoopDevice (XMLEle *root)
         newra=EqN[0].value;
         newdec=EqN[1].value;
         if((newra != RA)||(newdec != Dec)) {
-            fprintf(stderr,"RA %4.2f  Dec %4.2f Snooped RA %4.2f  Dec %4.2f\n",RA,Dec,newra,newdec);
+            //fprintf(stderr,"RA %4.2f  Dec %4.2f Snooped RA %4.2f  Dec %4.2f\n",RA,Dec,newra,newdec);
             RA=newra;
             Dec=newdec;
 
@@ -815,6 +825,33 @@ bool CcdSim::ISNewNumber (const char *dev, const char *name, double values[], ch
     //  give it a shot
     return IndiCcd::ISNewNumber(dev,name,values,names,n);
 }
+bool CcdSim::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+{
+    //  Ok, lets see if this is a property wer process
+    //IDLog("IndiTelescope got %d new text items name %s\n",n,name);
+    //  first check if it's for our device
+    if(strcmp(dev,deviceName())==0) {
+        //  This is for our device
+        //  Now lets see if it's something we process here
+        if(strcmp(name,TelescopeTV.name)==0) {
+            int rc;
+            //IDLog("calling update text\n");
+            TelescopeTV.s=IPS_OK;
+            rc=IUUpdateText(&TelescopeTV,texts,names,n);
+            //IDLog("update text returns %d\n",rc);
+            //  Update client display
+            IDSetText(&TelescopeTV,NULL);
+            SaveConfig();
+            IUFillNumberVector(&EqNV,EqN,2,TelescopeT[0].text,"EQUATORIAL_EOD_COORD","Eq. Coordinates","Main Control",IP_RW,60,IPS_IDLE);
+            IDSnoopDevice(TelescopeT[0].text,"EQUATORIAL_EOD_COORD");
+            //  We processed this one, so, tell the world we did it
+            return true;
+        }
+
+    }
+
+    return IndiDevice::ISNewText(dev,name,texts,names,n);
+}
 
 
 bool CcdSim::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
@@ -861,8 +898,11 @@ bool CcdSim::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
 
 bool CcdSim::WritePersistentConfig(FILE *fp)
 {
-    IndiCcd::WritePersistentConfig(fp);
+    IUSaveConfigSwitch(fp,&ConnectionSV);
     IUSaveConfigSwitch(fp,&TimeFactorSV);
     IUSaveConfigNumber(fp,&SimulatorSettingsNV);
+    IUSaveConfigText(fp,&TelescopeTV);
+
+    IndiCcd::WritePersistentConfig(fp);
     return true;
 }

@@ -38,6 +38,8 @@ class FilterSim : public IndiFilterWheel
         bool Disconnect();
         int SelectFilter(int);
         void TimerHit();
+        bool WritePersistentConfig(FILE *);
+
 
 };
 
