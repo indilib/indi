@@ -1,8 +1,8 @@
 #ifndef INDIBASEDRIVER_H
 #define INDIBASEDRIVER_H
 
+#include <boost/shared_ptr.hpp>
 #include <vector>
-#include <map>
 #include <string>
 
 #include "indiapi.h"
@@ -25,7 +25,7 @@ class INDI::BaseDriver
 {
 public:
     BaseDriver();
-    virtual ~BaseDriver();
+    ~BaseDriver();
 
     /*! INDI error codes. */
     enum INDI_ERROR
@@ -136,15 +136,22 @@ private:
         void *p;
     } pOrder;
 
-    std::vector<INumberVectorProperty *> pNumbers;
-    std::vector<ITextVectorProperty *> pTexts;
-    std::vector<ISwitchVectorProperty *> pSwitches;
-    std::vector<ILightVectorProperty *> pLights;
-    std::vector<IBLOBVectorProperty *> pBlobs;
+    typedef boost::shared_ptr<pOrder> orderPtr;
+    typedef boost::shared_ptr<INumberVectorProperty> numberPtr;
+    typedef boost::shared_ptr<ITextVectorProperty> textPtr;
+    typedef boost::shared_ptr<ISwitchVectorProperty> switchPtr;
+    typedef boost::shared_ptr<ILightVectorProperty> lightPtr;
+    typedef boost::shared_ptr<IBLOBVectorProperty> blobPtr;
+
+    std::vector<numberPtr> pNumbers;
+    std::vector<textPtr> pTexts;
+    std::vector<switchPtr> pSwitches;
+    std::vector<lightPtr> pLights;
+    std::vector<blobPtr> pBlobs;
+
+    std::vector<orderPtr> pAll;
 
     LilXML *lp;
-
-    std::vector<pOrder> pAll;
 
     std::string messageQueue;
 

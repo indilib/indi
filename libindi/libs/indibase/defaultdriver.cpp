@@ -31,7 +31,7 @@ bool INDI::DefaultDriver::loadConfig()
 
 bool INDI::DefaultDriver::saveConfig()
 {
-    std::vector<pOrder>::const_iterator orderi;
+    std::vector<orderPtr>::iterator orderi;
     ISwitchVectorProperty *svp=NULL;
     char errmsg[MAXRBUF];
     FILE *fp = NULL;
@@ -48,23 +48,23 @@ bool INDI::DefaultDriver::saveConfig()
 
     for (orderi = pAll.begin(); orderi != pAll.end(); orderi++)
     {
-        switch ( (*orderi).type)
+        switch ( (*orderi)->type)
         {
         case INDI_NUMBER:
-             IUSaveConfigNumber(fp, static_cast<INumberVectorProperty *> ((*orderi).p));
+             IUSaveConfigNumber(fp, static_cast<INumberVectorProperty *> ((*orderi)->p));
              break;
         case INDI_TEXT:
-             IUSaveConfigText(fp, static_cast<ITextVectorProperty *> ((*orderi).p));
+             IUSaveConfigText(fp, static_cast<ITextVectorProperty *> ((*orderi)->p));
              break;
         case INDI_SWITCH:
-             svp = static_cast<ISwitchVectorProperty *> ((*orderi).p);
+             svp = static_cast<ISwitchVectorProperty *> ((*orderi)->p);
              /* Never save CONNECTION property. Don't save switches with no switches on if the rule is one of many */
              if (!strcmp(svp->name, "CONNECTION") || (svp->r == ISR_1OFMANY && !IUFindOnSwitch(svp)))
                  continue;
              IUSaveConfigSwitch(fp, svp);
              break;
         case INDI_BLOB:
-             IUSaveConfigBLOB(fp, static_cast<IBLOBVectorProperty *> ((*orderi).p));
+             IUSaveConfigBLOB(fp, static_cast<IBLOBVectorProperty *> ((*orderi)->p));
              break;
         }
     }
@@ -179,12 +179,15 @@ void INDI::DefaultDriver::addDebugControl()
     DebugSP = getSwitch("DEBUG");
     if (!DebugSP)
     {
-        DebugSP = new ISwitchVectorProperty;
+        switchPtr debSw(new ISwitchVectorProperty);
+        DebugSP = debSw.get();
         IUFillSwitch(&DebugS[0], "ENABLE", "Enable", ISS_OFF);
         IUFillSwitch(&DebugS[1], "DISABLE", "Disable", ISS_ON);
         IUFillSwitchVector(DebugSP, DebugS, NARRAY(DebugS), deviceID, "DEBUG", "Debug", "Options", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-        pSwitches.push_back(DebugSP);
-        pOrder debo = {INDI_SWITCH, DebugSP};
+        pSwitches.push_back(debSw);
+        orderPtr debo(new pOrder);
+        debo->type = INDI_SWITCH;
+        debo->p    = DebugSP;
         pAll.push_back(debo);
     }
     else
@@ -204,12 +207,15 @@ void INDI::DefaultDriver::addSimulationControl()
     SimulationSP = getSwitch("SIMULATION");
     if (!SimulationSP)
     {
-        SimulationSP = new ISwitchVectorProperty;
+        switchPtr simSw(new ISwitchVectorProperty);
+        SimulationSP = simSw.get();
         IUFillSwitch(&SimulationS[0], "ENABLE", "Enable", ISS_OFF);
         IUFillSwitch(&SimulationS[1], "DISABLE", "Disable", ISS_ON);
         IUFillSwitchVector(SimulationSP, SimulationS, NARRAY(SimulationS), deviceID, "SIMULATION", "Simulation", "Options", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-        pSwitches.push_back(SimulationSP);
-        pOrder simo = {INDI_SWITCH, SimulationSP};
+        pSwitches.push_back(simSw);
+        orderPtr simo(new pOrder);
+        simo->type = INDI_SWITCH;
+        simo->p    = SimulationSP;
         pAll.push_back(simo);
     }
     else
@@ -227,13 +233,16 @@ void INDI::DefaultDriver::addConfigurationControl()
     ConfigProcessSP = getSwitch("CONFIG_PROCESS");
     if (!ConfigProcessSP)
     {
-        ConfigProcessSP = new ISwitchVectorProperty;
+        switchPtr configSw(new ISwitchVectorProperty);
+        ConfigProcessSP = configSw.get();
         IUFillSwitch(&ConfigProcessS[0], "CONFIG_LOAD", "Load", ISS_OFF);
         IUFillSwitch(&ConfigProcessS[1], "CONFIG_SAVE", "Save", ISS_OFF);
         IUFillSwitch(&ConfigProcessS[2], "CONFIG_DEFAULT", "Default", ISS_OFF);
         IUFillSwitchVector(ConfigProcessSP, ConfigProcessS, NARRAY(ConfigProcessS), deviceID, "CONFIG_PROCESS", "Configuration", "Options", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-        pSwitches.push_back(ConfigProcessSP);
-        pOrder cpono = {INDI_SWITCH, ConfigProcessSP};
+        pSwitches.push_back(configSw);
+        orderPtr cpono(new pOrder);
+        cpono->type = INDI_SWITCH;
+        cpono->p    = ConfigProcessSP;
         pAll.push_back(cpono);
     }
     /**************************************************************************/
@@ -337,26 +346,26 @@ bool INDI::DefaultDriver::isSimulation()
 
 void INDI::DefaultDriver::ISGetProperties (const char *dev)
 {
-    std::vector<pOrder>::const_iterator orderi;
+    std::vector<orderPtr>::iterator orderi;
 
     for (orderi = pAll.begin(); orderi != pAll.end(); orderi++)
     {
-        switch ( (*orderi).type)
+        switch ( (*orderi)->type)
         {
         case INDI_NUMBER:
-             IDDefNumber(static_cast<INumberVectorProperty *>((*orderi).p) , NULL);
+             IDDefNumber(static_cast<INumberVectorProperty *>((*orderi)->p) , NULL);
              break;
         case INDI_TEXT:
-             IDDefText(static_cast<ITextVectorProperty *>((*orderi).p) , NULL);
+             IDDefText(static_cast<ITextVectorProperty *>((*orderi)->p) , NULL);
              break;
         case INDI_SWITCH:
-             IDDefSwitch(static_cast<ISwitchVectorProperty *>((*orderi).p) , NULL);
+             IDDefSwitch(static_cast<ISwitchVectorProperty *>((*orderi)->p) , NULL);
              break;
         case INDI_LIGHT:
-             IDDefLight(static_cast<ILightVectorProperty *>((*orderi).p) , NULL);
+             IDDefLight(static_cast<ILightVectorProperty *>((*orderi)->p) , NULL);
              break;
         case INDI_BLOB:
-             IDDefBLOB(static_cast<IBLOBVectorProperty *>((*orderi).p) , NULL);
+             IDDefBLOB(static_cast<IBLOBVectorProperty *>((*orderi)->p) , NULL);
              break;
         }
     }
@@ -364,40 +373,40 @@ void INDI::DefaultDriver::ISGetProperties (const char *dev)
 
 void INDI::DefaultDriver::resetProperties()
 {
-    std::vector<INumberVectorProperty *>::const_iterator numi;
-    std::vector<ISwitchVectorProperty *>::const_iterator switchi;
-    std::vector<ITextVectorProperty *>::const_iterator texti;
-    std::vector<ILightVectorProperty *>::const_iterator lighti;
-    std::vector<IBLOBVectorProperty *>::const_iterator blobi;
+    std::vector<numberPtr>::const_iterator numi;
+    std::vector<switchPtr>::const_iterator switchi;
+    std::vector<textPtr>::const_iterator texti;
+    std::vector<lightPtr>::const_iterator lighti;
+    std::vector<blobPtr>::const_iterator blobi;
 
     for ( numi = pNumbers.begin(); numi != pNumbers.end(); numi++)
     {
         (*numi)->s = IPS_IDLE;
-        IDSetNumber( (*numi), NULL);
+        IDSetNumber( (*numi).get(), NULL);
     }
 
    for ( switchi = pSwitches.begin(); switchi != pSwitches.end(); switchi++)
    {
        (*switchi)->s = IPS_IDLE;
-       IDSetSwitch( (*switchi), NULL);
+       IDSetSwitch( (*switchi).get(), NULL);
    }
 
    for ( texti = pTexts.begin(); texti != pTexts.end(); texti++)
    {
       (*texti)->s = IPS_IDLE;
-      IDSetText( (*texti), NULL);
+      IDSetText( (*texti).get(), NULL);
    }
 
    for ( lighti = pLights.begin(); lighti != pLights.end(); lighti++)
    {
        (*lighti)->s = IPS_IDLE;
-       IDSetLight( (*lighti), NULL);
+       IDSetLight( (*lighti).get(), NULL);
    }
 
    for ( blobi = pBlobs.begin(); blobi != pBlobs.end(); blobi++)
    {
        (*blobi)->s = IPS_IDLE;
-       IDSetBLOB( (*blobi), NULL);
+       IDSetBLOB( (*blobi).get(), NULL);
    }
 }
 
