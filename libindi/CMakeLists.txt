@@ -108,6 +108,11 @@ set (indibase_SRCS
 set (indidefaultdevice_SRCS
         ${CMAKE_SOURCE_DIR}/libs/indibase/basedriver.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/defaultdriver.cpp
+        ${CMAKE_SOURCE_DIR}/libs/indibase/indiccd.cpp
+        ${CMAKE_SOURCE_DIR}/libs/indibase/inditelescope.cpp
+        ${CMAKE_SOURCE_DIR}/libs/indibase/indifilterwheel.cpp
+        ${CMAKE_SOURCE_DIR}/libs/indibase/indifocuser.cpp
+
     )
 
 

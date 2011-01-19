@@ -44,6 +44,10 @@ to disconnect the device.
     */
     virtual void setConnected(bool status, IPState state=IPS_OK, const char *msg = NULL);
 
+    int SetTimer(int);
+    void RemoveTimer(int);
+    virtual void TimerHit();
+
 protected:
 
     /** \brief define the driver's properties to the client.
@@ -110,6 +114,30 @@ protected:
 
     /** \return True if Simulation is on, False otherwise. */
     bool isSimulation();
+
+    //  These are the properties we define, that are generic to pretty much all devices
+    //  They are public to make them available to all dervied classes and thier children
+    ISwitchVectorProperty ConnectionSP;
+    ISwitch ConnectionS[2];
+
+    //  Helper functions that encapsulate the indi way of doing things
+    //  and give us a clean c++ class method
+    virtual int initProperties();
+
+    //  This will be called after connecting
+    //  to flesh out and update properties to the
+    //  client when the device is connected
+    virtual bool updateProperties();
+
+    //  A helper for child classes
+    virtual bool deleteProperty(const char *propertyName);
+
+    //  some virtual functions that our underlying classes are meant to override
+    virtual bool Connect();
+    virtual bool Disconnect();
+    virtual const char *getDefaultName()=0;
+
+
 
 private:
 

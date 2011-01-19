@@ -2,7 +2,7 @@
 #define INDIBASEDRIVER_H
 
 #include <boost/shared_ptr.hpp>
-#include <vector>
+#include <map>
 #include <string>
 
 #include "indiapi.h"
@@ -37,14 +37,15 @@ public:
     };
 
     /*! INDI property type */
-    enum INDI_TYPE
+    typedef enum
     {
         INDI_NUMBER, /*!< INumberVectorProperty. */
         INDI_SWITCH, /*!< ISwitchVectorProperty. */
         INDI_TEXT,   /*!< ITextVectorProperty. */
         INDI_LIGHT,  /*!< ILightVectorProperty. */
-        INDI_BLOB    /*!< IBLOBVectorProperty. */
-    };
+        INDI_BLOB,    /*!< IBLOBVectorProperty. */
+        INDI_UNKNOWN
+    } INDI_TYPE;
 
     /** \return Return vector number property given its name */
     INumberVectorProperty * getNumber(const char *name);
@@ -56,6 +57,9 @@ public:
     ILightVectorProperty * getLight(const char *name);
     /** \return Return vector BLOB property given its name */
     IBLOBVectorProperty * getBLOB(const char *name);
+
+
+    void registerProperty(void *p, INDI_TYPE type);
 
     /** \brief Remove a property
         \param name name of property to be removed
@@ -73,7 +77,7 @@ public:
         is the property type (Number, Text, Switch..etc).
 
     */
-    void * getProperty(const char *name, INDI_TYPE & type);
+    void * getProperty(const char *name, INDI_TYPE type = INDI_UNKNOWN);
 
     /** \brief Build driver properties from a skeleton file.
         \param filename full path name of the file.
@@ -110,6 +114,7 @@ public:
     /** \returns Get the meditator assigned to this driver */
     INDI::BaseMediator * getMediator() { return mediator; }
 
+
 protected:
 
     /** \brief Build a property given the supplied XML element (defXXX)
@@ -130,26 +135,22 @@ protected:
 
 private:
 
-    typedef struct
+    /*typedef struct
     {
         INDI_TYPE type;
         void *p;
     } pOrder;
 
-    typedef boost::shared_ptr<pOrder> orderPtr;
+    typedef boost::shared_ptr<pOrder> orderPtr;*/
     typedef boost::shared_ptr<INumberVectorProperty> numberPtr;
     typedef boost::shared_ptr<ITextVectorProperty> textPtr;
     typedef boost::shared_ptr<ISwitchVectorProperty> switchPtr;
     typedef boost::shared_ptr<ILightVectorProperty> lightPtr;
     typedef boost::shared_ptr<IBLOBVectorProperty> blobPtr;
 
-    std::vector<numberPtr> pNumbers;
-    std::vector<textPtr> pTexts;
-    std::vector<switchPtr> pSwitches;
-    std::vector<lightPtr> pLights;
-    std::vector<blobPtr> pBlobs;
+    //std::vector<orderPtr> pAll;
 
-    std::vector<orderPtr> pAll;
+    std::map< boost::shared_ptr<void>, INDI_TYPE> pAll;
 
     LilXML *lp;
 

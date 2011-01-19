@@ -37,8 +37,10 @@ class MyScope : public INDI::DefaultDriver
  virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
 
 private:
- void init_properties();
- void connect_telescope();
+ const char *getDefaultName();
+ virtual int initProperties();
+ virtual bool Connect();
+ virtual bool Disconnect();
 
 };
 

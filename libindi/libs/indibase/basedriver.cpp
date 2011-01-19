@@ -22,128 +22,52 @@ INDI::BaseDriver::~BaseDriver()
 
 INumberVectorProperty * INDI::BaseDriver::getNumber(const char *name)
 {
-    std::vector<numberPtr>::const_iterator numi;
+    INumberVectorProperty * nvp = NULL;
 
-    for ( numi = pNumbers.begin(); numi != pNumbers.end(); numi++)
-        if (!strcmp(name, (*numi)->name))
-            return (*numi).get();
+    nvp = static_cast<INumberVectorProperty *> (getProperty(name, INDI_NUMBER));
 
-    return NULL;
-
+    return nvp;
 }
 
 ITextVectorProperty * INDI::BaseDriver::getText(const char *name)
 {
-    std::vector<textPtr>::const_iterator texti;
+    ITextVectorProperty * tvp = NULL;
 
-    for ( texti = pTexts.begin(); texti != pTexts.end(); texti++)
-        if (!strcmp(name, (*texti)->name))
-            return (*texti).get();
+    tvp = static_cast<ITextVectorProperty *> (getProperty(name, INDI_TEXT));
 
-    return NULL;
+    return tvp;
 }
 
 ISwitchVectorProperty * INDI::BaseDriver::getSwitch(const char *name)
 {
-    std::vector<switchPtr>::const_iterator switchi;
+    ISwitchVectorProperty * svp = NULL;
 
-    for ( switchi = pSwitches.begin(); switchi != pSwitches.end(); switchi++)
-        if (!strcmp(name, (*switchi)->name))
-            return (*switchi).get();
+    svp = static_cast<ISwitchVectorProperty *> (getProperty(name, INDI_SWITCH));
 
-    return NULL;
-
+    return svp;
 }
 
 ILightVectorProperty * INDI::BaseDriver::getLight(const char *name)
 {
-    std::vector<lightPtr>::const_iterator lighti;
+    ILightVectorProperty * lvp = NULL;
 
-    for ( lighti = pLights.begin(); lighti != pLights.end(); lighti++)
-        if (!strcmp(name, (*lighti)->name))
-            return (*lighti).get();
+    lvp = static_cast<ILightVectorProperty *> (getProperty(name, INDI_LIGHT));
 
-    return NULL;
-
+    return lvp;
 }
 
 IBLOBVectorProperty * INDI::BaseDriver::getBLOB(const char *name)
-{
-    std::vector<blobPtr>::const_iterator blobi;
+{       
+  IBLOBVectorProperty * bvp = NULL;
 
-    for ( blobi = pBlobs.begin(); blobi != pBlobs.end(); blobi++)
-        if (!strcmp(name, (*blobi)->name))
-            return (*blobi).get();
+  bvp = static_cast<IBLOBVectorProperty *> (getProperty(name, INDI_BLOB));
 
-    return NULL;
+  return bvp;
 }
 
-void * INDI::BaseDriver::getProperty(const char *name, INDI_TYPE & type)
+void * INDI::BaseDriver::getProperty(const char *name, INDI_TYPE type)
 {
-    std::vector<orderPtr>::iterator orderi;
-
-    INumberVectorProperty *nvp;
-    ITextVectorProperty *tvp;
-    ISwitchVectorProperty *svp;
-    ILightVectorProperty *lvp;
-    IBLOBVectorProperty *bvp;
-    int i=0;
-
-    for (i=0, orderi = pAll.begin(); orderi != pAll.end(); orderi++, i++)
-    {
-        //switch ( (*orderi).type)
-        switch ( (*orderi)->type)
-        {
-        case INDI_NUMBER:
-            nvp = static_cast<INumberVectorProperty *>((*orderi)->p);
-            if (!strcmp(name, nvp->name))
-            {
-                type = INDI_NUMBER;
-                return (*orderi)->p;
-            }
-
-             break;
-        case INDI_TEXT:
-             tvp = static_cast<ITextVectorProperty *>((*orderi)->p);
-             if (!strcmp(name, tvp->name))
-             {
-                 type = INDI_TEXT;
-                 return (*orderi)->p;
-             }
-             break;
-        case INDI_SWITCH:
-             svp = static_cast<ISwitchVectorProperty *>((*orderi)->p);
-             if (!strcmp(name, svp->name))
-             {
-                 type = INDI_SWITCH;
-                 return (*orderi)->p;
-             }
-             break;
-        case INDI_LIGHT:
-             lvp = static_cast<ILightVectorProperty *>((*orderi)->p);
-             if (!strcmp(name, lvp->name))
-             {
-                 type = INDI_LIGHT;
-                 return (*orderi)->p;
-             }
-             break;
-        case INDI_BLOB:
-             bvp = static_cast<IBLOBVectorProperty *>((*orderi)->p);
-             if (!strcmp(name, bvp->name))
-             {
-                 type = INDI_BLOB;
-                 return (*orderi)->p;
-             }
-             break;
-        }
-    }
-
-    return NULL;
-}
-
-int INDI::BaseDriver::removeProperty(const char *name)
-{
-    std::vector<orderPtr>::iterator orderi;
+    std::map< boost::shared_ptr<void>, INDI_TYPE>::iterator orderi;
 
     INumberVectorProperty *nvp;
     ITextVectorProperty *tvp;
@@ -153,50 +77,94 @@ int INDI::BaseDriver::removeProperty(const char *name)
 
     for (orderi = pAll.begin(); orderi != pAll.end(); orderi++)
     {
-        switch ( (*orderi)->type)
+        if (type != INDI_UNKNOWN &&  orderi->second != type)
+            continue;
+
+        switch (orderi->second)
         {
         case INDI_NUMBER:
-            nvp = static_cast<INumberVectorProperty *>((*orderi)->p);
+            nvp = static_cast<INumberVectorProperty *>((orderi->first).get());
+            if (!strcmp(name, nvp->name))
+                return (orderi->first).get();
+             break;
+        case INDI_TEXT:
+             tvp = static_cast<ITextVectorProperty *>((orderi->first).get());
+             if (!strcmp(name, tvp->name))
+                return (orderi->first).get();
+             break;
+        case INDI_SWITCH:
+             svp = static_cast<ISwitchVectorProperty *>((orderi->first).get());
+             if (!strcmp(name, svp->name))
+                 return (orderi->first).get();
+             break;
+        case INDI_LIGHT:
+             lvp = static_cast<ILightVectorProperty *>((orderi->first).get());
+             if (!strcmp(name, lvp->name))
+                 return (orderi->first).get();
+             break;
+        case INDI_BLOB:
+             bvp = static_cast<IBLOBVectorProperty *>((orderi->first).get());
+             if (!strcmp(name, bvp->name))
+                 return (orderi->first).get();
+             break;
+        }
+
+    }
+
+    return NULL;
+}
+
+int INDI::BaseDriver::removeProperty(const char *name)
+{
+    std::map< boost::shared_ptr<void>, INDI_TYPE>::iterator orderi;
+
+    INumberVectorProperty *nvp;
+    ITextVectorProperty *tvp;
+    ISwitchVectorProperty *svp;
+    ILightVectorProperty *lvp;
+    IBLOBVectorProperty *bvp;
+
+    for (orderi = pAll.begin(); orderi != pAll.end(); orderi++)
+    {
+        switch (orderi->second)
+        {
+        case INDI_NUMBER:
+            nvp = static_cast<INumberVectorProperty *>((orderi->first).get());
             if (!strcmp(name, nvp->name))
             {
                  pAll.erase(orderi);
-                 //delete (nvp);
                  return 0;
              }
              break;
         case INDI_TEXT:
-             tvp = static_cast<ITextVectorProperty *>((*orderi)->p);
+             tvp = static_cast<ITextVectorProperty *>((orderi->first).get());
              if (!strcmp(name, tvp->name))
              {
                   pAll.erase(orderi);
-                  //delete (tvp);
                   return 0;
               }
              break;
         case INDI_SWITCH:
-             svp = static_cast<ISwitchVectorProperty *>((*orderi)->p);
+             svp = static_cast<ISwitchVectorProperty *>((orderi->first).get());
              if (!strcmp(name, svp->name))
              {
                   pAll.erase(orderi);
-                  //delete (svp);
                   return 0;
               }
              break;
         case INDI_LIGHT:
-             lvp = static_cast<ILightVectorProperty *>((*orderi)->p);
+             lvp = static_cast<ILightVectorProperty *>((orderi->first).get());
              if (!strcmp(name, lvp->name))
              {
                   pAll.erase(orderi);
-                  //delete (lvp);
                   return 0;
               }
              break;
         case INDI_BLOB:
-             bvp = static_cast<IBLOBVectorProperty *>((*orderi)->p);
+             bvp = static_cast<IBLOBVectorProperty *>((orderi->first).get());
              if (!strcmp(name, bvp->name))
              {
                   pAll.erase(orderi);
-                  //delete (bvp);
                   return 0;
               }
              break;
@@ -243,7 +211,7 @@ int INDI::BaseDriver::buildProp(XMLEle *root, char *errmsg)
     ISRule rule;
     XMLEle *ep = NULL;
     char *rtag, *rname, *rdev;
-    INDI_TYPE type;
+    //INDI_TYPE type;
     double timeout=0;
 
     rtag = tagXMLEle(root);
@@ -260,7 +228,8 @@ int INDI::BaseDriver::buildProp(XMLEle *root, char *errmsg)
             strncpy(deviceID, rdev, MAXINDINAME);
     }
 
-    if (getProperty(rname, type) != NULL)
+    //if (getProperty(rname, type) != NULL)
+    if (getProperty(rname) != NULL)
         return INDI::BaseClient::INDI_PROPERTY_DUPLICATED;
 
     if (strcmp (rtag, "defLightVector") && crackIPerm(findXMLAttValu(root, "perm"), &perm) < 0)
@@ -341,11 +310,11 @@ int INDI::BaseDriver::buildProp(XMLEle *root, char *errmsg)
     {
         nvp->nnp = n;
         nvp->np  = np;
-        pNumbers.push_back(nvp);
-        orderPtr o(new pOrder);
-        o->p = nvp.get();
-        o->type = INDI_NUMBER;
-        pAll.push_back(o);
+        //orderPtr o(new pOrder);
+        //o->p = &nvp;
+        //o->type = INDI_NUMBER;
+        //pAll.push_back(o);
+        pAll[nvp] = INDI_NUMBER;
         //IDLog("Adding number property %s to list.\n", nvp->name);
         if (mediator)
             mediator->newProperty(nvp->device, nvp->name);
@@ -401,11 +370,11 @@ int INDI::BaseDriver::buildProp(XMLEle *root, char *errmsg)
         {
             svp->nsp = n;
             svp->sp  = sp;
-            pSwitches.push_back(svp);
-            orderPtr o(new pOrder);
-            o->p = svp.get();
-            o->type = INDI_SWITCH;
-            pAll.push_back(o);
+            //orderPtr o(new pOrder);
+            //o->p = &svp;
+            //o->type = INDI_SWITCH;
+            //pAll.push_back(o);
+            pAll[svp] = INDI_SWITCH;
             //IDLog("Adding Switch property %s to list.\n", svp->name);
             if (mediator)
                 mediator->newProperty(svp->device, svp->name);
@@ -460,11 +429,11 @@ else if (!strcmp (rtag, "defTextVector"))
     {
         tvp->ntp = n;
         tvp->tp  = tp;
-        pTexts.push_back(tvp);
-        orderPtr o(new pOrder);
-        o->p = tvp.get();
-        o->type = INDI_TEXT;
-        pAll.push_back(o);
+        //orderPtr o(new pOrder);
+        //o->p = &tvp;
+        //o->type = INDI_TEXT;
+        //pAll.push_back(o);
+        pAll[tvp] = INDI_TEXT;
         //IDLog("Adding Text property %s to list.\n", tvp->name);
         if (mediator)
             mediator->newProperty(tvp->device, tvp->name);
@@ -516,11 +485,11 @@ else if (!strcmp (rtag, "defLightVector"))
     {
         lvp->nlp = n;
         lvp->lp  = lp;
-        pLights.push_back(lvp);
-        orderPtr o(new pOrder);
-        o->p = lvp.get();
-        o->type = INDI_LIGHT;
-        pAll.push_back(o);
+        //orderPtr o(new pOrder);
+        //o->p = &lvp;
+        //o->type = INDI_LIGHT;
+        //pAll.push_back(o);
+        pAll[lvp] = INDI_LIGHT;
         //IDLog("Adding Light property %s to list.\n", lvp->name);
         if (mediator)
             mediator->newProperty(lvp->device, lvp->name);
@@ -581,11 +550,11 @@ else if (!strcmp (rtag, "defBLOBVector"))
     {
         bvp->nbp = n;
         bvp->bp  = bp;
-        pBlobs.push_back(bvp);
-        orderPtr o(new pOrder);
-        o->p = bvp.get();
-        o->type = INDI_BLOB;
-        pAll.push_back(o);
+        //orderPtr o(new pOrder);
+        //o->p = &bvp;
+        //o->type = INDI_BLOB;
+        //pAll.push_back(o);
+        pAll[bvp] = INDI_BLOB;
         //IDLog("Adding BLOB property %s to list.\n", bvp->name);
         if (mediator)
             mediator->newProperty(bvp->device, bvp->name);
@@ -932,5 +901,68 @@ const char * INDI::BaseDriver::deviceName()
 void INDI::BaseDriver::addMessage(const char *msg)
 {
     messageQueue.append(msg);
+}
+
+void INDI::BaseDriver::registerProperty(void *p, INDI_TYPE type)
+{
+
+
+    if (type == INDI_NUMBER)
+    {
+        INumberVectorProperty *nvp = static_cast<INumberVectorProperty *> (p);
+        if ( (getProperty(nvp->name), INDI_NUMBER) != NULL)
+            return;
+
+        numberPtr ovp(nvp);
+
+        pAll[ovp] = INDI_NUMBER;
+    }
+    else if (type == INDI_TEXT)
+    {
+       ITextVectorProperty *tvp = static_cast<ITextVectorProperty *> (p);
+       if ( (getProperty(tvp->name), INDI_TEXT) != NULL)
+           return;
+
+       textPtr ovp(tvp);
+       //o->p = &ovp;
+
+       pAll[ovp] = INDI_TEXT;
+   }
+    else if (type == INDI_SWITCH)
+    {
+       ISwitchVectorProperty *svp = static_cast<ISwitchVectorProperty *> (p);
+       if ( (getProperty(svp->name), INDI_SWITCH) != NULL)
+           return;
+
+       switchPtr ovp(svp);
+       //o->p = &ovp;
+
+       pAll[ovp] = INDI_SWITCH;
+    }
+    else if (type == INDI_LIGHT)
+    {
+       ILightVectorProperty *lvp = static_cast<ILightVectorProperty *> (p);
+       if ( (getProperty(lvp->name), INDI_LIGHT) != NULL)
+           return;
+
+       lightPtr ovp(lvp);
+       //o->p = &ovp;
+       pAll[ovp] = INDI_LIGHT;
+   }
+    else if (type == INDI_BLOB)
+    {
+       IBLOBVectorProperty *bvp = static_cast<IBLOBVectorProperty *> (p);
+       if ( (getProperty(bvp->name), INDI_BLOB) != NULL)
+           return;
+
+       blobPtr ovp(bvp);
+       //o->p = &ovp;
+
+       pAll[ovp] = INDI_BLOB;
+    }
+
+    //o->type = type;
+
+    //pAll.push_back(o);
 }
 

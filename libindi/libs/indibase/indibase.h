@@ -25,6 +25,10 @@ namespace INDI
     class BaseClient;
     class BaseDriver;
     class DefaultDriver;
+    class CCD;
+    class Telescope;
+    class FilterWheel;
+    class Focuser;
 }
 
 

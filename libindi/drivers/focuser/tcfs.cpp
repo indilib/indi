@@ -924,3 +924,8 @@ bool TCFS::read_tcfs()
 
     return true;
 }
+
+const char * TCFS::getDefaultName()
+{
+    return "TCFS";
+}

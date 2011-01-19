@@ -87,6 +87,7 @@ private:
     void init_properties();
     bool move_focuser(TCFSMotion dir);
 
+    const char *getDefaultName();
     bool read_tcfs();
     bool dispatch_command(TCFSCommand command);
 

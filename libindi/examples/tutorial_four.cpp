@@ -132,7 +132,7 @@ MyScope::MyScope()
 {
     IDLog("Initilizing from My Scope device...\n");
 
-    init_properties();
+    //init_properties();
 
  }
 
@@ -147,8 +147,9 @@ MyScope::~MyScope()
 /**************************************************************************************
 ** Initialize all properties & set default values.
 ***************************************************************************************/
-void MyScope::init_properties()
+int MyScope::initProperties()
 {
+    DefaultDriver::initProperties();
     // This is the default driver skeleton file location
     // Convention is: drivername_sk_xml
     // Default location is /usr/share/indi
@@ -167,6 +168,8 @@ void MyScope::init_properties()
     // Optional: Add aux controls for configuration, debug & simulation that get added in the Options tab
     //           of the driver.
     addAuxControls();
+
+    return 0;
 
 }
 
@@ -246,13 +249,13 @@ bool MyScope::ISNewSwitch (const char *dev, const char *name, ISState *states, c
         if (!svp)
             return false;
 
-        // Are we update CONNECTION?
+        /* Are we update CONNECTION?
         if (!strcmp(svp->name, "CONNECTION"))
         {
             IUUpdateSwitch(svp, states, names, n);
             connect_telescope();
             return true;
-        }
+        }*/
 
 
 }
@@ -261,28 +264,24 @@ bool MyScope::ISNewSwitch (const char *dev, const char *name, ISState *states, c
 /**************************************************************************************
 **
 ***************************************************************************************/
-void MyScope::connect_telescope()
+bool MyScope::Connect()
 {
-    ISwitchVectorProperty *svp = getSwitch("CONNECTION");
-
-    ISwitch *sp = IUFindOnSwitch(svp);
-
-    if (!sp)
-        return;
-
-    // Are we connecting?
-    if (!strcmp(sp->name, "CONNECT"))
-    {
-        // Make sure to call setConnected(true) before informing client about successful connection
-        setConnected(true, IPS_OK, "Connecting.... telescope is online.");
-        IDLog("Connecting.... telescope is online.\n");
-    }
-    // Are we disconnecting?
-    else
-    {
-        setConnected(false, IPS_OK, "Disconnecting... telescope is offline.");
-        IDLog("Disconnecting... telescope is offline.\n");
-    }
+    return true;
 }
+
+bool MyScope::Disconnect()
+{
+    return true;
+}
+
+const char * MyScope::getDefaultName()
+{
+    return "My Scope";
+}
+
+
+
+
+
 
 
