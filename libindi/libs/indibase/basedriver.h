@@ -58,7 +58,6 @@ public:
     /** \return Return vector BLOB property given its name */
     IBLOBVectorProperty * getBLOB(const char *name);
 
-
     void registerProperty(void *p, INDI_TYPE type);
 
     /** \brief Remove a property
@@ -99,6 +98,7 @@ public:
       \param dev new device name
       */
     void setDeviceName(const char *dev);
+
     /** \return Returns the device name */
     const char *deviceName();
 
@@ -106,11 +106,13 @@ public:
         \param msg Message to add.
     */
     void addMessage(const char *msg);
-    //** \returns Returns the contents of the driver's message queue. *;
+
+    /** \return Returns the contents of the driver's message queue. */
     const char *message() { return messageQueue.c_str(); }
 
     /** \brief Set the driver's mediator to receive notification of news devices and updated property values. */
     void setMediator(INDI::BaseMediator *med) { mediator = med; }
+
     /** \returns Get the meditator assigned to this driver */
     INDI::BaseMediator * getMediator() { return mediator; }
 

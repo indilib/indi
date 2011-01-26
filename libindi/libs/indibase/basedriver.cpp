@@ -910,7 +910,7 @@ void INDI::BaseDriver::registerProperty(void *p, INDI_TYPE type)
     if (type == INDI_NUMBER)
     {
         INumberVectorProperty *nvp = static_cast<INumberVectorProperty *> (p);
-        if ( (getProperty(nvp->name), INDI_NUMBER) != NULL)
+        if (getProperty(nvp->name, INDI_NUMBER) != NULL)
             return;
 
         numberPtr ovp(nvp);
@@ -920,7 +920,7 @@ void INDI::BaseDriver::registerProperty(void *p, INDI_TYPE type)
     else if (type == INDI_TEXT)
     {
        ITextVectorProperty *tvp = static_cast<ITextVectorProperty *> (p);
-       if ( (getProperty(tvp->name), INDI_TEXT) != NULL)
+       if (getProperty(tvp->name, INDI_TEXT) != NULL)
            return;
 
        textPtr ovp(tvp);
@@ -931,18 +931,20 @@ void INDI::BaseDriver::registerProperty(void *p, INDI_TYPE type)
     else if (type == INDI_SWITCH)
     {
        ISwitchVectorProperty *svp = static_cast<ISwitchVectorProperty *> (p);
-       if ( (getProperty(svp->name), INDI_SWITCH) != NULL)
+       if (getProperty(svp->name, INDI_SWITCH) != NULL)
            return;
 
        switchPtr ovp(svp);
        //o->p = &ovp;
+
+       IDLog("Registering switch %s\n", svp->name);
 
        pAll[ovp] = INDI_SWITCH;
     }
     else if (type == INDI_LIGHT)
     {
        ILightVectorProperty *lvp = static_cast<ILightVectorProperty *> (p);
-       if ( (getProperty(lvp->name), INDI_LIGHT) != NULL)
+       if (getProperty(lvp->name, INDI_LIGHT) != NULL)
            return;
 
        lightPtr ovp(lvp);
@@ -952,7 +954,7 @@ void INDI::BaseDriver::registerProperty(void *p, INDI_TYPE type)
     else if (type == INDI_BLOB)
     {
        IBLOBVectorProperty *bvp = static_cast<IBLOBVectorProperty *> (p);
-       if ( (getProperty(bvp->name), INDI_BLOB) != NULL)
+       if (getProperty(bvp->name, INDI_BLOB) != NULL)
            return;
 
        blobPtr ovp(bvp);
@@ -961,8 +963,5 @@ void INDI::BaseDriver::registerProperty(void *p, INDI_TYPE type)
        pAll[ovp] = INDI_BLOB;
     }
 
-    //o->type = type;
-
-    //pAll.push_back(o);
 }
 

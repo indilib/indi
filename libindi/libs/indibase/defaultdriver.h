@@ -37,6 +37,42 @@ public:
     /** \brief Set all properties to IDLE state */
     void resetProperties();
 
+    /** \brief Define number vector to client & register it. Alternatively, IDDefNumber can be used but the property will not
+               get registered and the driver will not be able to save configuration files.
+         \param nvp The number vector property to be defined
+    */
+    void defineNumber(INumberVectorProperty *nvp);
+
+    /** \brief Define text vector to client & register it. Alternatively, IDDefText can be used but the property will not
+               get registered and the driver will not be able to save configuration files.
+         \param tvp The text vector property to be defined
+    */
+    void defineText(ITextVectorProperty *tvp);
+
+    /** \brief Define switch vector to client & register it. Alternatively, IDDefswitch can be used but the property will not
+               get registered and the driver will not be able to save configuration files.
+         \param svp The switch vector property to be defined
+    */
+    void defineSwitch(ISwitchVectorProperty *svp);
+
+    /** \brief Define light vector to client & register it. Alternatively, IDDeflight can be used but the property will not
+               get registered and the driver will not be able to save configuration files.
+         \param lvp The light vector property to be defined
+    */
+    void defineLight(ILightVectorProperty *lvp);
+
+    /** \brief Define BLOB vector to client & register it. Alternatively, IDDefBLOB can be used but the property will not
+               get registered and the driver will not be able to save configuration files.
+         \param bvp The BLOB vector property to be defined
+    */
+    void defineBLOB(IBLOBVectorProperty *bvp);
+
+
+    /** \brief Delete a property and unregister it. It will also be deleted from all clients.
+        \param propertyName name of property to be deleted.
+    */
+    virtual bool deleteProperty(const char *propertyName);
+
     /** \brief Connect or Disconnect a device.
       \param status If true, the driver will attempt to connect to the device (CONNECT=ON). If false, it will attempt
 to disconnect the device.
@@ -120,21 +156,32 @@ protected:
     ISwitchVectorProperty ConnectionSP;
     ISwitch ConnectionS[2];
 
-    //  Helper functions that encapsulate the indi way of doing things
-    //  and give us a clean c++ class method
-    virtual int initProperties();
 
-    //  This will be called after connecting
-    //  to flesh out and update properties to the
-    //  client when the device is connected
+    /** \brief Initilize properties initial state and value. The child class must implement this function.
+        \return True if initilization is successful, false otherwise.
+    */
+    virtual bool initProperties();
+
+    /** \brief updateProperties is called whenever there is a change in the CONNECTION status of the driver.
+        This will enable the driver to react to changes of switching ON/OFF a device. For example, a driver
+        may only define a set of properties after a device is connected, but not before.
+        \return True if update is successful, false otherwise.
+    */
     virtual bool updateProperties();
 
-    //  A helper for child classes
-    virtual bool deleteProperty(const char *propertyName);
+    /** \brief Connect to a device. Child classes must implement this function and perform the connection
+        routine in the function.
+        \return True if connection to device is successful, false otherwise.
+    */
+    virtual bool Connect()=0;
 
-    //  some virtual functions that our underlying classes are meant to override
-    virtual bool Connect();
-    virtual bool Disconnect();
+    /** \brief Disconnect from a device. Child classes must implement this function and perform the disconnection
+        routine in the function.
+        \return True if disconnection from a device is successful, false otherwise.
+    */
+    virtual bool Disconnect()=0;
+
+    /** \return Default name of the device. */
     virtual const char *getDefaultName()=0;
 
 

@@ -60,8 +60,8 @@ public:
     TCFS();
     ~TCFS();
    
-    bool connect();
-    void disconnect();
+    virtual bool Connect();
+    virtual bool Disconnect();
 
     // Standard INDI interface fucntions
     virtual void ISGetProperties(const char *dev);

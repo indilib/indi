@@ -200,7 +200,7 @@ void TCFS::init_properties()
 **
 **
 *****************************************************************/   
-bool TCFS::connect()
+bool TCFS::Connect()
 {
     ITextVectorProperty *tProp = getText("DEVICE_PORT");
 
@@ -283,7 +283,7 @@ bool TCFS::connect()
 **
 **
 *****************************************************************/   
-void TCFS::disconnect()
+bool TCFS::Disconnect()
 {
 
     FocusPositionNP->s = IPS_IDLE;
@@ -297,6 +297,8 @@ void TCFS::disconnect()
     tty_disconnect(fd);
 
     setConnected(false, IPS_OK, "Disconnected from TCF-S.");
+
+    return true;
 }
 
 /****************************************************************
@@ -400,14 +402,14 @@ bool TCFS::ISNewSwitch (const char *name, ISState *states, char *names[], int n)
     if (sProp == NULL)
         return false;
 
-    if (!strcmp(sProp->name, "CONNECTION"))
+    /*if (!strcmp(sProp->name, "CONNECTION"))
     {
         if (!strcmp(names[0], "CONNECT"))
             connect();
         else
             disconnect();
         return true;
-    }
+    }*/
 
 
     if (isConnected() == false)

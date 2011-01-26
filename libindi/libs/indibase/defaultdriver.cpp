@@ -26,6 +26,13 @@ INDI::DefaultDriver::DefaultDriver()
 {
     pDebug = false;
     pSimulation = false;
+
+    IUFillSwitch(&ConnectionS[0],"CONNECT","Connect",ISS_OFF);
+    IUFillSwitch(&ConnectionS[1],"DISCONNECT","Disconnect",ISS_ON);
+    IUFillSwitchVector(&ConnectionSP,ConnectionS,2,deviceName(),"CONNECTION","Connection","Main Control",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+
+    registerProperty(&ConnectionSP, INDI_SWITCH);
+
 }
 
 bool INDI::DefaultDriver::loadConfig()
@@ -255,10 +262,6 @@ void INDI::DefaultDriver::addDebugControl()
         IUFillSwitch(&DebugS[0], "ENABLE", "Enable", ISS_OFF);
         IUFillSwitch(&DebugS[1], "DISABLE", "Disable", ISS_ON);
         IUFillSwitchVector(DebugSP, DebugS, NARRAY(DebugS), deviceID, "DEBUG", "Debug", "Options", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-        //orderPtr debo(new pOrder);
-        //debo->type = INDI_SWITCH;
-        //debo->p    = &debSw;
-        //pAll.push_back(debo);
         pAll[debSw] = INDI_SWITCH;
     }
     else
@@ -283,10 +286,6 @@ void INDI::DefaultDriver::addSimulationControl()
         IUFillSwitch(&SimulationS[0], "ENABLE", "Enable", ISS_OFF);
         IUFillSwitch(&SimulationS[1], "DISABLE", "Disable", ISS_ON);
         IUFillSwitchVector(SimulationSP, SimulationS, NARRAY(SimulationS), deviceID, "SIMULATION", "Simulation", "Options", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-        //orderPtr simo(new pOrder);
-        //simo->type = INDI_SWITCH;
-        //simo->p    = &simSw;
-        //pAll.push_back(simo);
         pAll[simSw] = INDI_SWITCH;
     }
     else
@@ -310,10 +309,6 @@ void INDI::DefaultDriver::addConfigurationControl()
         IUFillSwitch(&ConfigProcessS[1], "CONFIG_SAVE", "Save", ISS_OFF);
         IUFillSwitch(&ConfigProcessS[2], "CONFIG_DEFAULT", "Default", ISS_OFF);
         IUFillSwitchVector(ConfigProcessSP, ConfigProcessS, NARRAY(ConfigProcessS), deviceID, "CONFIG_PROCESS", "Configuration", "Options", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-        //orderPtr cpono(new pOrder);
-        //cpono->type = INDI_SWITCH;
-        //cpono->p    = &configSw;
-        //pAll.push_back(cpono);
         pAll[configSw] = INDI_SWITCH;
     }
     /**************************************************************************/
@@ -434,6 +429,7 @@ void INDI::DefaultDriver::ISGetProperties (const char *dev)
                setDeviceName(getDefaultName());
         }
 
+        strncpy(ConnectionSP.device, deviceName(), MAXINDIDEVICE);
         initProperties();
         addConfigurationControl();
 
@@ -555,20 +551,6 @@ void INDI::DefaultDriver::TimerHit()
     return;
 }
 
-bool INDI::DefaultDriver::Connect()
-{
-    //  We dont actually implement a device here
-    //  So we cannot connect to it
-    IDMessage(deviceName(),"DefaultDriver:: has no device attached....");
-    return false;
-}
-
-bool INDI::DefaultDriver::Disconnect()
-{
-    //  Since we cannot connect, we cant disconnect either
-    IDMessage(deviceName(),"DefaultDriver:: has no device to detach....");
-    return false;
-}
 
 bool INDI::DefaultDriver::updateProperties()
 {
@@ -577,19 +559,9 @@ bool INDI::DefaultDriver::updateProperties()
 }
 
 
-int INDI::DefaultDriver::initProperties()
+bool INDI::DefaultDriver::initProperties()
 {
-    //  All devices should have a connection switch defined
-    //  so lets create it
-
-    //IDLog("IndiDevice::init_properties()  MyDev=%s\n",deviceName());
-    IUFillSwitch(&ConnectionS[0],"CONNECT","Connect",ISS_OFF);
-    IUFillSwitch(&ConnectionS[1],"DISCONNECT","Disconnect",ISS_ON);
-    IUFillSwitchVector(&ConnectionSP,ConnectionS,2,deviceName(),"CONNECTION","Connection","Main Control",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
-
-    registerProperty(&ConnectionSP, INDI_SWITCH);
-
-    return 0;
+   return true;
 }
 
 bool INDI::DefaultDriver::deleteProperty(const char *propertyName)
@@ -597,4 +569,34 @@ bool INDI::DefaultDriver::deleteProperty(const char *propertyName)
     removeProperty(propertyName);
     IDDelete(deviceName(), propertyName ,NULL);
     return true;
+}
+
+void INDI::DefaultDriver::defineNumber(INumberVectorProperty *nvp)
+{
+    registerProperty(nvp, INDI_NUMBER);
+    IDDefNumber(nvp, NULL);
+}
+
+void INDI::DefaultDriver::defineText(ITextVectorProperty *tvp)
+{
+    registerProperty(tvp, INDI_TEXT);
+    IDDefText(tvp, NULL);
+}
+
+void INDI::DefaultDriver::defineSwitch(ISwitchVectorProperty *svp)
+{
+    registerProperty(svp, INDI_SWITCH);
+    IDDefSwitch(svp, NULL);
+}
+
+void INDI::DefaultDriver::defineLight(ILightVectorProperty *lvp)
+{
+    registerProperty(lvp, INDI_LIGHT);
+    IDDefLight(lvp, NULL);
+}
+
+void INDI::DefaultDriver::defineBLOB(IBLOBVectorProperty *bvp)
+{
+    registerProperty(bvp, INDI_BLOB);
+    IDDefBLOB(bvp, NULL);
 }

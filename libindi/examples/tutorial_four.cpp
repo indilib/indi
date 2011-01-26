@@ -146,8 +146,8 @@ MyScope::~MyScope()
 
 /**************************************************************************************
 ** Initialize all properties & set default values.
-***************************************************************************************/
-int MyScope::initProperties()
+**************************************************************************************/
+bool MyScope::initProperties()
 {
     DefaultDriver::initProperties();
     // This is the default driver skeleton file location
@@ -169,7 +169,7 @@ int MyScope::initProperties()
     //           of the driver.
     addAuxControls();
 
-    return 0;
+    return true;
 
 }
 
