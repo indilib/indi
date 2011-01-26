@@ -71,14 +71,14 @@ public:
     SpectraCyber();
     ~SpectraCyber();
    
-    bool connect();
-    void disconnect();
+    bool Connect();
+    bool Disconnect();
+    const char *getDefaultName();
 
     // Simulation
-    void enable_simulation (bool to_enable);
-    void enable_debug(bool to_enable);
-
-    bool is_connected();
+    //void enable_simulation (bool to_enable);
+    //void enable_debug(bool to_enable);
+    //bool is_connected();
     
     // Standard INDI interface fucntions
     virtual void ISGetProperties(const char *dev);
@@ -94,8 +94,6 @@ public:
 
 private: 
 
-
-    ISwitchVectorProperty *ConnectSP;
     INumberVectorProperty *FreqNP;
     INumberVectorProperty *ScanNP;
     ISwitchVectorProperty *ScanSP;
@@ -108,7 +106,7 @@ private:
     INumberVectorProperty EquatorialCoordsRNP;
 
     // Functions
-    void init_properties();
+    virtual bool initProperties();
     bool init_spectrometer();
     void abort_scan();
     bool read_channel();

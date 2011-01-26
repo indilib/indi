@@ -1,12 +1,4 @@
 <INDIDriver>
-<defSwitchVector device="SpectraCyber" name="CONNECTION" label="Connection" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2010-10-20T21:43:15">
-    <defSwitch name="CONNECT" label="Connect">
-Off
-    </defSwitch>
-    <defSwitch name="DISCONNECT" label="Disconnect">
-On
-    </defSwitch>
-</defSwitchVector>
 <defTextVector device="SpectraCyber" name="DEVICE_PORT" label="Spectrometer" group="Main Control" state="Idle" perm="rw" timeout="0" timestamp="2010-10-20T21:43:15">
     <defText name="PORT" label="Port">
 /dev/ttyUSB0

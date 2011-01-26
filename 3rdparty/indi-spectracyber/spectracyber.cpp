@@ -194,8 +194,6 @@ void SpectraCyber::ISGetProperties(const char *dev)
 
     if (propInit == 0)
     {
-        init_properties();
-
         loadConfig();
 
         propInit = 1;
@@ -236,9 +234,12 @@ void SpectraCyber::ISSnoopDevice (XMLEle *root)
 **
 **
 *****************************************************************/
-void SpectraCyber::init_properties()
+bool SpectraCyber::initProperties()
 {
-    ConnectSP = getSwitch("CONNECTION");
+
+   IDLog("init Properties in spectracyber\n");
+
+    INDI::DefaultDriver::initProperties();
 
     FreqNP = getNumber("Freq (Mhz)");
     if (FreqNP == NULL)
@@ -276,7 +277,7 @@ void SpectraCyber::init_properties()
 **
 **
 *****************************************************************/   
-bool SpectraCyber::connect()
+bool SpectraCyber::Connect()
 {
     ITextVectorProperty *tProp = getText("DEVICE_PORT");
 
@@ -289,7 +290,7 @@ bool SpectraCyber::connect()
     if (isSimulation())
     {
         setConnected(true);
-        IDSetSwitch(ConnectSP, "%s Spectrometer: Simulating connection to port %s.", type_name.c_str(), tProp->tp[0].text);
+        IDSetSwitch(&ConnectionSP, "%s Spectrometer: Simulating connection to port %s.", type_name.c_str(), tProp->tp[0].text);
 	return true;
     }
 
@@ -298,8 +299,8 @@ bool SpectraCyber::connect()
 
     if (tty_connect(tProp->tp[0].text, 2400, 8, 0, 1, &fd) != TTY_OK)
     {
-        ConnectSP->s = IPS_ALERT;
-        IDSetSwitch (ConnectSP, "Error connecting to port %s. Make sure you have BOTH read and write permission to the port.", tProp->tp[0].text);
+        ConnectionSP.s = IPS_ALERT;
+        IDSetSwitch (&ConnectionSP, "Error connecting to port %s. Make sure you have BOTH read and write permission to the port.", tProp->tp[0].text);
 	return false;
     }
 
@@ -307,7 +308,7 @@ bool SpectraCyber::connect()
     if (reset() == true)
     {
         setConnected(true);
-        IDSetSwitch (ConnectSP, "Spectrometer is online. Retrieving preliminary data...");
+        IDSetSwitch (&ConnectionSP, "Spectrometer is online. Retrieving preliminary data...");
 
         return init_spectrometer();
    }
@@ -315,8 +316,8 @@ bool SpectraCyber::connect()
    {
         if (isDebug())
             IDLog("Echo test failed.\n");
-        ConnectSP->s = IPS_ALERT;
-        IDSetSwitch (ConnectSP, "Spectrometer echo test failed. Please recheck connection to spectrometer and try again.");
+        ConnectionSP.s = IPS_ALERT;
+        IDSetSwitch (&ConnectionSP, "Spectrometer echo test failed. Please recheck connection to spectrometer and try again.");
 	return false;
    }
 	
@@ -345,9 +346,11 @@ bool SpectraCyber::init_spectrometer()
 **
 **
 *****************************************************************/   
-void SpectraCyber::disconnect()
+bool SpectraCyber::Disconnect()
 {
 	tty_disconnect(fd);
+
+        return true;
 }
 
 /****************************************************************
@@ -516,12 +519,6 @@ bool SpectraCyber::ISNewSwitch (const char *name, ISState *states, char *names[]
 
     if (sProp == NULL)
         return false;
-
-    if (!strcmp(sProp->name, "CONNECTION"))
-    {
-        connect();
-        return true;
-    }
 
 
     if (isConnected() == false)
@@ -1122,4 +1119,9 @@ bool SpectraCyber::read_channel()
     chanValue = result / 409.5;
 
     return true;
+}
+
+const char * SpectraCyber::getDefaultName()
+{
+    return mydev;
 }
