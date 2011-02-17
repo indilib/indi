@@ -131,7 +131,7 @@ class INDI::CCD : public INDI::DefaultDriver
         IBLOB GuiderB;
         IBLOBVectorProperty GuiderBV;
 
-        virtual int  initProperties();
+        virtual bool  initProperties();
         virtual bool updateProperties();
         virtual void ISGetProperties (const char *dev);
 

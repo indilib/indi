@@ -32,7 +32,7 @@ INDI::Focuser::~Focuser()
     //dtor
 }
 
-int INDI::Focuser::initProperties()
+bool INDI::Focuser::initProperties()
 {
     DefaultDriver::initProperties();   //  let the base class flesh in what it wants
 

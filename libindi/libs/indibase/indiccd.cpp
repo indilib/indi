@@ -49,7 +49,7 @@ INDI::CCD::~CCD()
     //dtor
 }
 
-int INDI::CCD::initProperties()
+bool INDI::CCD::initProperties()
 {
     //IDLog("INDI::CCD initProperties '%s'\n",deviceName());
 

@@ -44,7 +44,7 @@ class INDI::FilterWheel: public INDI::DefaultDriver
         int TargetFilter;
 
 
-        virtual int initProperties();
+        virtual bool initProperties();
         virtual bool updateProperties();
         virtual void ISGetProperties (const char *dev);
 

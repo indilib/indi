@@ -43,7 +43,7 @@ INDI::Telescope::~Telescope()
     //dtor
 }
 
-int INDI::Telescope::initProperties()
+bool INDI::Telescope::initProperties()
 {
     //IDLog("INDI::Telescope::initProperties()\n");
     DefaultDriver::initProperties();

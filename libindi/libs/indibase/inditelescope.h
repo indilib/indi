@@ -77,7 +77,7 @@ class INDI::Telescope : public INDI::DefaultDriver
 
         //  overrides of base class virtual functions
         //  that are specific to our way of implementing Indi
-        virtual int initProperties();      //  Called to initialize basic properties required all the time
+        virtual bool initProperties();      //  Called to initialize basic properties required all the time
         virtual bool updateProperties();    //  Called when connected state changes, to add/remove properties
 
         virtual void TimerHit();

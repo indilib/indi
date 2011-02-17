@@ -34,7 +34,7 @@ INDI::FilterWheel::~FilterWheel()
     //dtor
 }
 
-int INDI::FilterWheel::initProperties()
+bool INDI::FilterWheel::initProperties()
 {
     DefaultDriver::initProperties();   //  let the base class flesh in what it wants
 

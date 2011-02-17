@@ -42,7 +42,7 @@ class INDI::Focuser : public INDI::DefaultDriver
         INumber FocustimerN[1];
 
 
-        virtual int initProperties();
+        virtual bool initProperties();
         virtual void ISGetProperties (const char *dev);
         bool updateProperties();
 
