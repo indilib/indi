@@ -1,4 +1,9 @@
 * text=auto !eol
+3rdparty/fliusb/Makefile -text
+3rdparty/fliusb/README -text
+3rdparty/fliusb/fliusb.c -text
+3rdparty/fliusb/fliusb.h -text
+3rdparty/fliusb/fliusb_ioctl.h -text
 3rdparty/gerry/CMakeLists.txt -text
 3rdparty/gerry/CcdSim.cpp -text
 3rdparty/gerry/CcdSim.h -text
