@@ -1,0 +1,13 @@
+Source: fliusb-dkms
+Section: libs
+Priority: extra
+Maintainer: Ubuntu MOTU Developers <ubuntu-motu@lists.ubuntu.com>
+Build-Depends: debhelper (>= 6), cdbs
+Standards-Version: 3.8.0
+
+Package: fliusb-dkms
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, dkms (>= 1.95)
+Description: FLI USB Kernel Driver
+ .
+ This driver is required to operate FLI USB CCD & Filter Wheel under Linux.

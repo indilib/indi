@@ -1,0 +1,10 @@
+#!/usr/bin/make -f
+
+include /usr/share/cdbs/1/rules/debhelper.mk
+include /usr/share/cdbs/1/rules/simple-patchsys.mk
+
+DEB_DH_INSTALL_ARGS=--exclude=debian/
+
+SRC_VERSION := $(shell dpkg-parsechangelog | grep '^Version:' | cut -d' ' -f2 | cut -d- -f1 | cut -d\: -f2)
+binary-install/fliusb-dkms::
+	cp $(CURDIR)/debian/dkms.conf $(CURDIR)/debian/$(cdbs_curpkg)/usr/src/fliusb-$(SRC_VERSION)
