@@ -1,0 +1,11 @@
+libfli1 (1.8ubuntu1) maverick; urgency=low
+
+  * Upstream sync.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Wed, 06 Apr 2011 00:18:32 +0300
+
+libfli1 (1.7) gutsy; urgency=low
+
+  * Initial release
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sat, 4 Oct 2008 12:00:00 +0300
