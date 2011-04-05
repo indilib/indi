@@ -237,7 +237,7 @@ char *xstrdup(const char *s)
 {
   char *tmp;
 
-#ifdef WIN32
+#ifdef _WIN32
 #define strdup _strdup
 #endif
 
@@ -306,7 +306,7 @@ int xasprintf(char **strp, const char *fmt, ...)
   {
     /* Try to print in the allocated space. */
     va_start(ap, fmt);
-#ifdef WIN32
+#ifdef _WIN32
     n = _vsnprintf (p, size, fmt, ap);
 #else
     n = vsnprintf (p, size, fmt, ap);

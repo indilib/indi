@@ -53,6 +53,7 @@
    An opaque handle used by library functions to refer to FLI
    hardware.
 */
+#define FLI_INVALID_DEVICE (-1)
 typedef long flidev_t;
 
 /**
@@ -80,6 +81,9 @@ typedef long flidomain_t;
 #define FLIDEVICE_CAMERA (0x100)
 #define FLIDEVICE_FILTERWHEEL (0x200)
 #define FLIDEVICE_FOCUSER (0x300)
+#define FLIDEVICE_HS_FILTERWHEEL (0x0400)
+#define FLIDEVICE_RAW (0x0f00)
+#define FLIDEVICE_ENUMERATE_BY_CONNECTION (0x8000)
 
 /**
    The frame type for an FLI CCD camera device.  Valid frame types are
@@ -91,6 +95,8 @@ typedef long fliframe_t;
 
 #define FLI_FRAME_TYPE_NORMAL (0)
 #define FLI_FRAME_TYPE_DARK (1)
+#define FLI_FRAME_TYPE_FLOOD (2)
+#define FLI_FRAME_TYPE_RBI_FLUSH (FLI_FRAME_TYPE_FLOOD | FLI_FRAME_TYPE_DARK)
 
 /**
    The gray-scale bit depth for an FLI camera device.  Valid bit
@@ -120,6 +126,7 @@ typedef long flishutter_t;
 #define FLI_SHUTTER_EXTERNAL_TRIGGER (0x0002)
 #define FLI_SHUTTER_EXTERNAL_TRIGGER_LOW (0x0002)
 #define FLI_SHUTTER_EXTERNAL_TRIGGER_HIGH (0x0004)
+#define FLI_SHUTTER_EXTERNAL_EXPOSURE_CONTROL (0x0008)
 
 /**
    Type used for background flush operations for an FLI camera device.  Valid
@@ -156,9 +163,11 @@ typedef long flichannel_t;
 */
 typedef long flidebug_t;
 typedef long flimode_t;
+typedef long flistatus_t;
+typedef long flitdirate_t;
+typedef long flitdiflags_t;
 
 /* Status settings */
-
 #define FLI_CAMERA_STATUS_UNKNOWN (0xffffffff)
 #define FLI_CAMERA_STATUS_MASK (0x000000ff)
 #define FLI_CAMERA_STATUS_IDLE (0x00)
@@ -166,6 +175,15 @@ typedef long flimode_t;
 #define FLI_CAMERA_STATUS_EXPOSING (0x02)
 #define FLI_CAMERA_STATUS_READING_CCD (0x03)
 #define FLI_CAMERA_DATA_READY (0x80000000)
+
+#define FLI_FOCUSER_STATUS_UNKNOWN (0xffffffff)
+#define FLI_FOCUSER_STATUS_HOMING (0x00000004)
+#define FLI_FOCUSER_STATUS_MOVING_IN (0x00000001)
+#define FLI_FOCUSER_STATUS_MOVING_OUT (0x00000002)
+#define FLI_FOCUSER_STATUS_MOVING_MASK (0x00000007)
+#define FLI_FOCUSER_STATUS_HOME (0x00000080)
+#define FLI_FOCUSER_STATUS_LIMIT (0x00000040)
+#define FLI_FOCUSER_STATUS_LEGACY (0x10000000)
 
 #define FLIDEBUG_NONE (0x00)
 #define FLIDEBUG_INFO (0x01)
@@ -178,11 +196,21 @@ typedef long flimode_t;
 #define FLI_IO_P2 (0x04)
 #define FLI_IO_P3 (0x08)
 
-#ifdef WIN32
-	#ifndef LIBFLIAPI
+#define FLI_FAN_SPEED_OFF (0x00)
+#define FLI_FAN_SPEED_ON (0xffffffff)
+
+#ifdef _WIN32
+#ifndef LIBFLIAPI
+#ifndef STATIC_LIBRARY
+
+#define LIBFLIAPI __declspec(dllexport) long __stdcall
 		//#define LIBFLIAPI __declspec(dllimport) long __stdcall
-		#define LIBFLIAPI __declspec(dllexport) long __stdcall
-	#endif
+#else
+
+#define LIBFLIAPI long __stdcall
+
+#endif
+#endif
 #else
 #define LIBFLIAPI long
 #endif
@@ -201,6 +229,9 @@ LIBFLIAPI FLIGetModel(flidev_t dev, char* model, size_t len);
 LIBFLIAPI FLIGetPixelSize(flidev_t dev, double *pixel_x, double *pixel_y);
 LIBFLIAPI FLIGetHWRevision(flidev_t dev, long *hwrev);
 LIBFLIAPI FLIGetFWRevision(flidev_t dev, long *fwrev);
+LIBFLIAPI FLIGetDeviceID(flidev_t dev, long *devid);
+LIBFLIAPI FLIGetSerialNum(flidev_t dev, long *serno);
+LIBFLIAPI FLIGetDeviceName(flidev_t dev, const char **devnam);
 LIBFLIAPI FLIGetArrayArea(flidev_t dev, long* ul_x, long* ul_y,
 			  long* lr_x, long* lr_y);
 LIBFLIAPI FLIGetVisibleArea(flidev_t dev, long* ul_x, long* ul_y,
@@ -249,10 +280,20 @@ LIBFLIAPI FLIReadTemperature(flidev_t dev,
 					flichannel_t channel, double *temperature);
 LIBFLIAPI FLIGetFocuserExtent(flidev_t dev, long *extent);
 LIBFLIAPI FLIUsbBulkIO(flidev_t dev, int ep, void *buf, long *len);
-LIBFLIAPI FLIGetDeviceStatus(flidev_t dev, long *camera_status);
+LIBFLIAPI FLIGetDeviceStatus(flidev_t dev, long *status);
 LIBFLIAPI FLIGetCameraModeString(flidev_t dev, flimode_t mode_index, char *mode_string, size_t siz);
 LIBFLIAPI FLIGetCameraMode(flidev_t dev, flimode_t *mode_index);
 LIBFLIAPI FLISetCameraMode(flidev_t dev, flimode_t mode_index);
+LIBFLIAPI FLIHomeDevice(flidev_t dev);
+LIBFLIAPI FLIGrabFrame(flidev_t dev, void* buff, size_t buffsize, size_t* bytesgrabbed);
+LIBFLIAPI FLISetTDI(flidev_t dev, flitdirate_t tdi_rate, flitdiflags_t flags);
+LIBFLIAPI FLIGrabVideoFrame(flidev_t dev, void *buff, size_t size);
+LIBFLIAPI FLIStopVideoMode(flidev_t dev);
+LIBFLIAPI FLIStartVideoMode(flidev_t dev);
+LIBFLIAPI FLIGetSerialString(flidev_t dev, char* serial, size_t len);
+LIBFLIAPI FLIEndExposure(flidev_t dev);
+LIBFLIAPI FLITriggerExposure(flidev_t dev);
+LIBFLIAPI FLISetFanSpeed(flidev_t dev, long fan_speed);
 
 #ifdef __cplusplus
 }

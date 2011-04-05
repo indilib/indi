@@ -41,7 +41,7 @@
 
 */
 
-#ifdef WIN32
+#ifdef _WIN32
 //#include <winsock.h>
 #else
 #include <unistd.h>
@@ -64,6 +64,9 @@
 //#define SHOWFUNCTIONS
 
 extern double dconvert(void *buf); /* From libfli-camera-usb.c */
+
+static long fli_homedevice(flidev_t dev, long block);
+static long fli_getstepperstatus(flidev_t dev, flistatus_t *status);
 
 /*
 	Array of filterwheel info
@@ -146,7 +149,7 @@ long fli_filter_focuser_open(flidev_t dev)
   buf[0] = htons(0x8001);
   IO(dev, buf, &wlen, &rlen);
   DEVICE->devinfo.fwrev = ntohs(buf[0]);
-  if ((DEVICE->devinfo.fwrev & 0xff00) != 0x8000)
+  if ((DEVICE->devinfo.fwrev & 0xf000) != 0x8000)
   {
     debug(FLIDEBUG_WARN, "Invalid echo, device not recognized.");
     err = -ENODEV;
@@ -181,7 +184,9 @@ long fli_filter_focuser_open(flidev_t dev)
   }
 
   debug(FLIDEBUG_INFO, "New version of hardware found.");
-  wlen = 2;
+	debug(FLIDEBUG_INFO, "Internal FW Rev: 0x%04x", DEVICE->devinfo.fwrev);
+
+	wlen = 2;
   rlen = 2;
   buf[0] = htons(0x8002);
   IO(dev, buf, &wlen, &rlen);
@@ -291,6 +296,8 @@ long fli_filter_focuser_open(flidev_t dev)
 				fdata->extent = 7000;
 				fdata->numtempsensors = 2;
 			}
+
+			debug(FLIDEBUG_INFO, "Extent: %d Steps/sec: %d Temp Sensors: %d", fdata->extent, fdata->stepspersec, fdata->numtempsensors);
 			break;
 
 		case 0x08:
@@ -338,11 +345,24 @@ long fli_filter_focuser_open(flidev_t dev)
 			}
 			else if (DEVICE->devinfo.type == FLIDEVICE_FOCUSER)
 			{
-				/* Get the number of filters */
-				wlen = 2; rlen = 2;
-				buf[0] = htons(0x8006);
-				IO(dev, buf, &wlen, &rlen);
-				fdata->extent = ntohs(buf[0]);
+				iobuf_t _buf[IOBUF_MAX_SIZ];
+
+				/* Pre-Atlas */
+				if ((DEVICE->devinfo.fwrev & 0x00ff) < 0x40)
+				{
+					wlen = 2; rlen = 2;
+					IOWRITE_U16(_buf, 0, 0x8006);
+					IO(dev, _buf, &wlen, &rlen);
+					IOREAD_U16(_buf, 0, fdata->extent);
+				}
+				else /* Post-Atlas */
+				{
+					wlen = 4; rlen = 4;
+					IOWRITE_U16(_buf, 0, 0x8006);
+					IOWRITE_U16(_buf, 2, 0);
+					IO(dev, _buf, &wlen, &rlen);
+					IOREAD_U32(_buf, 0, fdata->extent);
+				}
 
 				/* Get the number of temperature sensors */
 				wlen = 2; rlen = 2;
@@ -570,6 +590,25 @@ long fli_filter_command(flidev_t dev, int cmd, int argc, ...)
     }
     break;
 
+		case FLI_HOME_DEVICE:
+		if (argc != 0)
+			r = -EINVAL;
+		else
+			r =  fli_homedevice(dev, FLI_NON_BLOCK);
+		break;
+
+	  case FLI_GET_STATUS:
+    if (argc != 1)
+      r = -EINVAL;
+    else
+    {
+      flistatus_t *status;
+
+      status = va_arg(ap, flistatus_t *);
+      r = fli_getstepperstatus(dev, status);
+    }
+    break;
+
   default:
     r = -EINVAL;
   }
@@ -653,8 +692,15 @@ long fli_focuser_command(flidev_t dev, int cmd, int argc, ...)
     if (argc != 0)
       r = -EINVAL;
     else
-      r =  fli_setfilterpos(dev, FLI_FILTERPOSITION_HOME);
+      r =  fli_homedevice(dev, FLI_BLOCK);
     break;
+
+		case FLI_HOME_DEVICE:
+		if (argc != 0)
+			r = -EINVAL;
+		else
+			r =  fli_homedevice(dev, FLI_NON_BLOCK);
+		break;
 
   case FLI_READ_TEMPERATURE:
     if (argc != 2)
@@ -669,6 +715,19 @@ long fli_focuser_command(flidev_t dev, int cmd, int argc, ...)
       r = fli_focuser_readtemperature(dev, channel, temperature);
     }
     break;
+
+	  case FLI_GET_STATUS:
+    if (argc != 1)
+      r = -EINVAL;
+    else
+    {
+      flistatus_t *status;
+
+      status = va_arg(ap, flistatus_t *);
+      r = fli_getstepperstatus(dev, status);
+    }
+    break;
+
 
   default:
     r = -EINVAL;
@@ -688,10 +747,6 @@ static long fli_stepmotor(flidev_t dev, long steps, long block)
   clock_t begin;
 
   fdata = DEVICE->device_data;
-
-#ifdef SHOWFUNCTIONS
-	debug(FLIDEBUG_INFO, "Entering " __FUNCTION__);
-#endif
 
 /* Support HALT operation when steps == 0 */
 	if (steps == 0)
@@ -716,10 +771,6 @@ static long fli_stepmotor(flidev_t dev, long steps, long block)
       move = 4095;
     else
       move = steps;
-
-#ifdef SHOWFUNCTIONS
-	debug(FLIDEBUG_INFO, "Entering " __FUNCTION__);
-#endif
 
     steps -= move;
     timeout = (move / fdata->stepspersec) + 2;
@@ -751,7 +802,7 @@ static long fli_stepmotor(flidev_t dev, long steps, long block)
     stepsleft = 0;
     while ( (stepsleft != 0x7000) && (block != 0) )
     {
-#ifdef WIN32
+#ifdef _WIN32
 			Sleep(100);
 #else
 			usleep(100000);
@@ -777,33 +828,44 @@ static long fli_getsteppos(flidev_t dev, long *pos)
   long rlen, wlen;
   unsigned short buf[16];
 
-#ifdef SHOWFUNCTIONS
-	debug(FLIDEBUG_INFO, "Entering " __FUNCTION__);
-#endif
+	/* Pre-Atlas */
+	if ( (DEVICE->devinfo.fwrev & 0x00ff) < 0x40)
+	{
+		rlen = 2; wlen = 2;
+		buf[0] = htons(0x6000);
+		IO(dev, buf, &wlen, &rlen);
+		poslow = ntohs(buf[0]);
+		if ((poslow & 0xf000) != 0x6000)
+			return -EIO;
 
-  rlen = 2; wlen = 2;
-  buf[0] = htons(0x6000);
-  IO(dev, buf, &wlen, &rlen);
-  poslow = ntohs(buf[0]);
-  if ((poslow & 0xf000) != 0x6000)
-    return -EIO;
+		buf[0] = htons(0x6001);
+		IO(dev, buf, &wlen, &rlen);
+		poshigh = ntohs(buf[0]);
+		if ((poshigh & 0xf000) != 0x6000)
+			return -EIO;
 
-  buf[0] = htons(0x6001);
-  IO(dev, buf, &wlen, &rlen);
-  poshigh = ntohs(buf[0]);
-  if ((poshigh & 0xf000) != 0x6000)
-    return -EIO;
+		if ((poshigh & 0x0080) > 0)
+		{
+			*pos = ((~poslow) & 0xff) + 1;
+			*pos += (256 * ((~poshigh) & 0xff));
+			*pos = -(*pos);
+		}
+		else
+		{
+			*pos = (poslow & 0xff) + 256 * (poshigh & 0xff);
+		}
+	}
+	else /* Post-Atlas */
+	{
+		iobuf_t _buf[IOBUF_MAX_SIZ];
 
-  if ((poshigh & 0x0080) > 0)
-  {
-    *pos = ((~poslow) & 0xff) + 1;
-    *pos += (256 * ((~poshigh) & 0xff));
-    *pos = -(*pos);
-  }
-  else
-  {
-    *pos = (poslow & 0xff) + 256 * (poshigh & 0xff);
-  }
+		wlen = 4; rlen = 4;
+		IOWRITE_U16(_buf, 0, 0x6000);
+		IOWRITE_U16(_buf, 2, 0);
+		IO(dev, _buf, &wlen, &rlen);
+		IOREAD_U32(_buf, 0, *pos);
+	}
+
   return 0;
 }
 
@@ -816,9 +878,23 @@ static long fli_getstepsremaining(flidev_t dev, long *pos)
 	debug(FLIDEBUG_INFO, "Entering " __FUNCTION__);
 #endif
 
-	buf[0] = htons(0x7000);
-  IO(dev, buf, &wlen, &rlen);
-  *pos = ntohs(buf[0]) & 0x0fff;
+	if ( (DEVICE->devinfo.fwrev & 0x00ff) < 0x40)
+	{
+		buf[0] = htons(0x7000);
+		IO(dev, buf, &wlen, &rlen);
+		*pos = ntohs(buf[0]) & 0x0fff;
+	}
+	else
+	{
+		iobuf_t _buf[IOBUF_MAX_SIZ];
+
+		wlen = 4; rlen = 4;
+		IOWRITE_U16(_buf, 0, 0x7000);
+		IOWRITE_U16(_buf, 2, 0);
+		IO(dev, _buf, &wlen, &rlen);
+		IOREAD_U32(_buf, 0, *pos);
+		*pos &= 0x0fffffff;
+	}
 
 	return 0;
 }
@@ -830,10 +906,6 @@ static long fli_homedevice(flidev_t dev, long block)
   unsigned short buf[16];
 
   fdata = DEVICE->device_data;
-
-#ifdef SHOWFUNCTIONS
-	debug(FLIDEBUG_INFO, "Entering " __FUNCTION__);
-#endif
 
 	/* Older hardware */
 	if (fdata->hwtype < 0xfe)
@@ -899,7 +971,7 @@ static long fli_homedevice(flidev_t dev, long block)
 		stepsleft = 0x04;
 		while ( ((stepsleft & 0x04) != 0) && (block != 0) )
 		{
-#ifdef WIN32
+#ifdef _WIN32
 			Sleep(100);
 #else
 			usleep(100000);
@@ -912,6 +984,48 @@ static long fli_homedevice(flidev_t dev, long block)
 	}
 
 	return 0;
+}
+
+static long fli_getstepperstatus(flidev_t dev, flistatus_t *status)
+{
+  flifilterfocuserdata_t *fdata;
+  long rlen, wlen, r = 0;
+  unsigned char buf[16];
+
+  fdata = DEVICE->device_data;
+
+#ifdef SHOWFUNCTIONS
+	debug(FLIDEBUG_INFO, "Entering " __FUNCTION__);
+#endif
+
+	/* Older hardware */
+	if (fdata->hwtype < 0xfe)
+	{
+		long pos;
+		if ((r = fli_getstepsremaining(dev, &pos)) == 0)
+		{
+			*status = FLI_FOCUSER_STATUS_LEGACY;
+			if (pos != 0)
+			{
+				/* We can't be sure of the direction */
+				*status |= FLI_FOCUSER_STATUS_MOVING_IN | FLI_FOCUSER_STATUS_MOVING_OUT;
+			}
+		}
+		else
+		{
+			*status = FLI_FOCUSER_STATUS_UNKNOWN;
+		}
+	}
+	else /* New HW */
+	{
+		wlen = 2; rlen = 2;
+		buf[0] = 0xb0;
+		buf[1] = 0x00;
+    IO(dev, buf, &wlen, &rlen);
+    *status = ((long) buf[1]) & 0xff;
+	}
+
+	return r;
 }
 
 static long fli_setfilterpos(flidev_t dev, long pos)
@@ -983,7 +1097,7 @@ static long fli_setfilterpos(flidev_t dev, long pos)
 		stepsleft = 0;
 		while (stepsleft != 0x7000)
 		{
-#ifdef WIN32
+#ifdef _WIN32
 			Sleep(100);
 #else
 			usleep(100000);

@@ -55,6 +55,7 @@ typedef struct _flifilterfocuserdata_t {
 	long numtempsensors;
 	long extent;
 	long hwtype;
+	long uselong;
 } flifilterfocuserdata_t;
 
 typedef struct {

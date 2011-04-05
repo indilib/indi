@@ -65,7 +65,6 @@ const fliccdinfo_t knowndev[] = {
   {9,  "TK-1024",       {{0, 0}, {1124, 1024}}, {{50, 0},  {1074, 1024}}, 1.0, 24.0, 24.0},
   {10, "TK-512",        {{0, 0}, {563,  512}},  {{51, 0},  {563,   512}}, 1.0, 24.0, 24.0},
   {11, "SI-003A",       {{0, 0}, {1056, 1024}}, {{16, 0},  {1040, 1024}}, 1.0, 24.0, 24.0},
-//  {11, "SI-003A",       {{0, 0}, {1120, 1024}}, {{0, 0},  {1120, 1024}}, 1.0, 24.0, 24.0},
   {12, "KAF-6300",      {{0, 0}, {3100, 2056}}, {{16, 4},  {3088, 2052}}, 1.0,  9.0,  9.0},
   {13, "KAF-3200",      {{0, 0}, {2267, 1510}}, {{46,34},  {2230, 1506}}, 1.0,  6.8,  6.8},
   {14, "SI424A",        {{0, 0}, {2088, 2049}}, {{20, 0},  {2068, 2049}}, 1.0,  6.8,  6.8},
@@ -138,6 +137,13 @@ long fli_camera_close(flidev_t dev)
     xfree(cam->gbuf);
     cam->gbuf = NULL;
   }
+
+	 if (cam->ibuf != NULL)
+  {
+    xfree(cam->ibuf);
+    cam->ibuf = NULL;
+  }
+
 
   if (DEVICE->devinfo.model != NULL)
   {
@@ -257,9 +263,9 @@ long fli_camera_command(flidev_t dev, int cmd, int argc, ...)
 				r = -EINVAL;
 			else
 			{
-				long exptime;
+				unsigned long exptime;
 
-				exptime = *va_arg(ap, long *);
+				exptime = *va_arg(ap, unsigned long *);
 
 				switch (DEVICE->domain)
 				{
@@ -436,6 +442,27 @@ long fli_camera_command(flidev_t dev, int cmd, int argc, ...)
 			}
 			break;
 
+		case FLI_SET_FAN_SPEED:
+			if (argc != 1)
+				r = -EINVAL;
+			else
+			{
+				long fan_speed;
+
+				fan_speed = *va_arg(ap, long *);
+
+				switch (DEVICE->domain)
+				{
+					case FLIDOMAIN_USB:
+						r = fli_camera_usb_set_fan_speed(dev, fan_speed);
+						break;
+
+					default:
+						r = -EINVAL;
+				}
+			}
+			break;
+
 		case FLI_SET_TEMPERATURE:
 			if (argc != 1)
 				r = -EINVAL;
@@ -513,6 +540,29 @@ long fli_camera_command(flidev_t dev, int cmd, int argc, ...)
 			}
 			break;
 
+		case FLI_SET_TDI:
+			if (argc != 2)
+				r = -EINVAL;
+			else
+			{
+				flitdirate_t rate;
+				flitdiflags_t flags;
+
+				rate = *va_arg(ap, flitdirate_t *);
+				flags = *va_arg(ap, flitdiflags_t *);
+
+				switch (DEVICE->domain)
+				{
+					case FLIDOMAIN_USB:
+						r = fli_camera_usb_set_tdi(dev, rate, flags);
+						break;
+
+					default:
+						r = -EINVAL;
+				}
+			}
+			break;
+
 		case FLI_GRAB_ROW:
 			if (argc != 2)
 				r = -EINVAL;
@@ -560,6 +610,64 @@ long fli_camera_command(flidev_t dev, int cmd, int argc, ...)
 				}
 			}
 			break;
+
+		case FLI_START_VIDEO_MODE:
+			if (argc != 0)
+				r = -EINVAL;
+			else
+			{
+				switch (DEVICE->domain)
+				{
+					case FLIDOMAIN_USB:
+						r = fli_camera_usb_start_video_mode(dev);
+						break;
+
+					default:
+						r = -EINVAL;
+				}
+			}
+			break;
+
+		case FLI_STOP_VIDEO_MODE:
+			if (argc != 0)
+				r = -EINVAL;
+			else
+			{
+				switch (DEVICE->domain)
+				{
+					case FLIDOMAIN_USB:
+						r = fli_camera_usb_stop_video_mode(dev);
+						break;
+
+					default:
+						r = -EINVAL;
+				}
+			}
+			break;
+
+		case FLI_GRAB_VIDEO_FRAME:
+			if (argc != 2)
+				r = -EINVAL;
+			else
+			{
+				void *buf;
+				size_t size;
+
+				buf = va_arg(ap, void *);
+				size = *va_arg(ap, size_t *);
+
+				switch (DEVICE->domain)
+				{
+					case FLIDOMAIN_USB:
+						r = fli_camera_usb_grab_video_frame(dev, buf, size);
+						break;
+
+					default:
+						r = -EINVAL;
+				}
+			}
+			break;
+
 
 		case FLI_FLUSH_ROWS:
 			if (argc != 2)
@@ -724,18 +832,21 @@ long fli_camera_command(flidev_t dev, int cmd, int argc, ...)
 
 				shutter = *va_arg(ap, long *);
 
-				if( (shutter == FLI_SHUTTER_EXTERNAL_TRIGGER_LOW) ||
-					  (shutter == FLI_SHUTTER_EXTERNAL_TRIGGER_HIGH) )
+				if( (shutter & FLI_SHUTTER_EXTERNAL_TRIGGER_LOW) ||
+					  (shutter & FLI_SHUTTER_EXTERNAL_TRIGGER_HIGH) ||
+						((shutter & FLI_SHUTTER_EXTERNAL_EXPOSURE_CONTROL)) )
 				{
-					debug(FLIDEBUG_INFO, "External trigger.");
+					debug(FLIDEBUG_INFO, "External trigger: %02x", shutter);
 					cam->exttrigger = 1;
-					cam->exttriggerpol = (shutter == FLI_SHUTTER_EXTERNAL_TRIGGER_LOW)?0:1;
+					cam->exttriggerpol = (shutter & FLI_SHUTTER_EXTERNAL_TRIGGER_LOW)?0:1;
+					cam->extexposurectrl = (shutter & FLI_SHUTTER_EXTERNAL_EXPOSURE_CONTROL)?1:0; 
 					r = 0;
 				}
 				else
 				{
 					debug(FLIDEBUG_INFO, "No External trigger.\n");
 					cam->exttrigger = 0;
+					cam->extexposurectrl = 0;
 
 					switch (DEVICE->domain)
 					{
@@ -794,7 +905,7 @@ long fli_camera_command(flidev_t dev, int cmd, int argc, ...)
 				switch (DEVICE->domain)
 				{
 					case FLIDOMAIN_PARALLEL_PORT:
-						r = -EFAULT;
+						r = -EINVAL;
 						break;
 
 					case FLIDOMAIN_USB:
@@ -923,6 +1034,48 @@ long fli_camera_command(flidev_t dev, int cmd, int argc, ...)
 			}
 			break;
 
+		case FLI_TRIGGER_EXPOSURE:
+			if (argc != 0)
+				r = -EINVAL;
+			else
+			{
+				switch (DEVICE->domain)
+				{
+					case FLIDOMAIN_PARALLEL_PORT:
+						r = -EINVAL;
+						break;
+
+					case FLIDOMAIN_USB:
+						r = fli_camera_usb_trigger_exposure(dev);
+						break;
+
+					default:
+						r = -EINVAL;
+				}
+			}
+			break;
+
+		case FLI_END_EXPOSURE:
+			if (argc != 0)
+				r = -EINVAL;
+			else
+			{
+				switch (DEVICE->domain)
+				{
+					case FLIDOMAIN_PARALLEL_PORT:
+						r = -EINVAL;
+						break;
+
+					case FLIDOMAIN_USB:
+						r = fli_camera_usb_end_exposure(dev);
+						break;
+
+					default:
+						r = -EINVAL;
+				}
+			}
+			break;
+
 		default:
 			r = -EINVAL;
   }
@@ -950,7 +1103,7 @@ static long fli_camera_set_frame_type(flidev_t dev, fliframe_t frametype)
 
   cam = DEVICE->device_data;
 
-  if ((frametype < FLI_FRAME_TYPE_NORMAL) || (frametype > FLI_FRAME_TYPE_DARK))
+  if (frametype & 0xfff8)
     return -EINVAL;
 
   cam->frametype = frametype;

@@ -55,8 +55,8 @@
 #if defined(__linux__)
 
 #define __SYSNAME__ "Linux"
-#define __LIBFLI_MINOR__ 71
-#define USB_READ_SIZ_MAX (1024 * 128)
+#define __LIBFLI_MINOR__ 99
+#define USB_READ_SIZ_MAX (1024 * 64)
 #define _USE_FLOCK_
 #define PARPORT_GLOB "/dev/ccd*"
 #define USB_GLOB "/dev/fliusb*"

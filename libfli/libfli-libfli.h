@@ -44,10 +44,19 @@
 #ifndef _LIBFLI_LIBFLI_H_
 #define _LIBFLI_LIBFLI_H_
 
+//#define OLDUSBDRIVER
+
 #include <string.h>
 
-#ifdef WIN32
+#ifdef DEFINELONG
+#define LIBFLIAPI long __stdcall
+#endif
+
+#ifdef _WIN32
+#ifndef LIBFLIAPI
 #define LIBFLIAPI __declspec(dllexport) long __stdcall
+#endif
+#define stricmp _stricmp
 #endif
 
 #include "libfli.h"
@@ -70,13 +79,13 @@
     if((xdev < 0) || (xdev >= MAX_OPEN_DEVICES))		\
     {								\
       debug(FLIDEBUG_WARN,					\
-	    "Attempt to use a device out of range (%d)", xdev);	\
+	    "[%s] Attempt to use a device out of range (%d)", __FUNCTION__, xdev);	\
       return -EINVAL;						\
     }								\
     if(devices[xdev] == NULL)					\
     {								\
       debug(FLIDEBUG_WARN,					\
-	    "Attempt to use a NULL device (%d)", xdev);		\
+	    "[%s] Attempt to use a NULL device (%d)", __FUNCTION__, xdev);		\
       return -EINVAL;						\
     }								\
   } while(0)
@@ -113,6 +122,26 @@
       return err;						\
     }								\
   } while(0)
+
+#define MSW(x) ((unsigned short) ((x >> 16) & 0xffff))
+#define LSW(x) ((unsigned short) (x & 0xffff))
+#define MSB(x) ((unsigned char) ((x >> 8) & 0xff))
+#define LSB(x) ((unsigned char) (x & 0xff))
+
+#define IOBUF_MAX_SIZ (64)
+typedef unsigned char iobuf_t;
+
+#define IOREAD_U16L(b, i, y) { y = (*(b + i + 1) << 8) | *(b + i); }
+
+#define IOREAD_U8(b, i, y)  { y = *(b + i); }
+#define IOREAD_U16(b, i, y) { y = (*(b + i) << 8) | *(b + i + 1); }
+#define IOREAD_U32(b, i, y) { y = (*(b + i) << 24) | *(b + i + 1) << 16 | \
+																 *(b + i + 2) << 8 | *(b + i + 3); }
+#define IOWRITE_U8(b, i, y)  { *(b + i) = (unsigned char) y; }
+#define IOWRITE_U16(b, i, y) { *(b + i) = MSB(y); *(b + i + 1) = LSB(y); }
+#define IOWRITE_U32(b, i, y) { *(b + i) = MSB(MSW(y)); *(b + i + 1) = LSB(MSW(y)); \
+																 *(b + i + 2) = MSB(LSW(y)); *(b + i + 3) = LSB(LSW(y)); }
+#define IOREAD_LF(b, i, y) { y = dconvert(b + i); }
 
 #define FLIUSB_VENDORID 0xf18
 #define FLIUSB_CAM_ID 0x02
@@ -206,17 +235,24 @@ extern flidevdesc_t *devices[MAX_OPEN_DEVICES];
   FLI_COMMAND(FLI_GET_FOCUSER_EXTENT, 1)		\
   FLI_COMMAND(FLI_READ_TEMPERATURE, 2)		\
   FLI_COMMAND(FLI_HOME_FOCUSER, 0) \
+  FLI_COMMAND(FLI_HOME_DEVICE, 0) \
   FLI_COMMAND(FLI_GET_COOLER_POWER, 1)		\
   FLI_COMMAND(FLI_SET_CAMERA_MODE, 1)		\
   FLI_COMMAND(FLI_GET_CAMERA_MODE_STRING, 2)		\
   FLI_COMMAND(FLI_GET_CAMERA_MODE, 1)		\
-	FLI_COMMAND(FLI_GET_SERIAL_STRING, 2)		\
+  FLI_COMMAND(FLI_GET_SERIAL_STRING, 2)		\
   FLI_COMMAND(FLI_SET_CAMERA_GAIN, 1)		\
   FLI_COMMAND(FLI_GET_CAMERA_GAIN, 1)		\
   FLI_COMMAND(FLI_SET_CAMERA_OFFSET, 1)		\
   FLI_COMMAND(FLI_GET_CAMERA_OFFSET, 1)		\
+	FLI_COMMAND(FLI_SET_TDI, 2) \
 	FLI_COMMAND(FLI_GET_STATUS, 1)  \
-
+	FLI_COMMAND(FLI_START_VIDEO_MODE, 0)  \
+	FLI_COMMAND(FLI_STOP_VIDEO_MODE, 0)  \
+	FLI_COMMAND(FLI_GRAB_VIDEO_FRAME, 2)  \
+	FLI_COMMAND(FLI_END_EXPOSURE, 0)  \
+	FLI_COMMAND(FLI_TRIGGER_EXPOSURE, 0)  \
+  FLI_COMMAND(FLI_SET_FAN_SPEED, 1)		\
 
 /* Enumerate the commands */
 enum _commands {

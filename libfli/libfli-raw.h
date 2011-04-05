@@ -41,16 +41,11 @@
 
 */
 
-#ifndef _LIBFLI_DEBUG_H_
-#define _LIBFLI_DEBUG_H_
+#ifndef _LIBFLI_RAW_H_
+#define _LIBFLI_RAW_H_
 
-#define _DEBUGSTRING
-#define _DEBUG_IO
+long fli_raw_open(flidev_t dev);
+long fli_raw_close(flidev_t dev);
+long fli_raw_command(flidev_t dev, int cmd, int argc, ...);
 
-/* Debug functions */
-int debugclose(void);
-int debugopen(char *host);
-void debug(int level, char *format, ...);
-void setdebuglevel(char *host, int level);
-
-#endif /* _LIBFLI_DEBUG_H_ */
+#endif

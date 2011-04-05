@@ -41,7 +41,7 @@
 
 */
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <winsock.h>
 #else
 #include <sys/param.h>
@@ -66,6 +66,10 @@ long fli_camera_parport_open(flidev_t dev)
   int id;
 
   cam = DEVICE->device_data;
+
+	cam->removebias = 1;
+	cam->biasoffset = 200;
+
 
   /* Set timeout values */
   cam->readto = 1000;
@@ -599,7 +603,7 @@ long fli_camera_parport_expose_frame(flidev_t dev)
   }
 
   debug(FLIDEBUG_INFO, "Exposing.");
-  buf = htons((unsigned short) C_SHUTTER((cam->frametype == FLI_FRAME_TYPE_DARK)?0:1,
+  buf = htons((unsigned short) C_SHUTTER((cam->frametype & FLI_FRAME_TYPE_DARK)?0:1,
 			cam->expmul));
   IO(dev, &buf, &wlen, &rlen);
 

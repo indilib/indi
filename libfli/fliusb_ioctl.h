@@ -46,6 +46,12 @@
 
 #include <linux/ioctl.h>
 
+/* Structure to describe string descriptor transfers */
+typedef struct {
+  unsigned int index;
+  char buf[64];
+} fliusb_string_descriptor_t;
+
 /* Structure to describe bulk transfers */
 typedef struct {
   u_int8_t ep;
@@ -74,7 +80,8 @@ typedef struct {
 #define FLIUSB_BULKWRITE		_IOW(FLIUSB_IOC_TYPE, 10, fliusb_bulktransfer_t)
 
 #define FLIUSB_GET_DEVICE_DESCRIPTOR	_IOR(FLIUSB_IOC_TYPE, 11, struct usb_device_descriptor)
+#define FLIUSB_GET_STRING_DESCRIPTOR	_IOR(FLIUSB_IOC_TYPE, 12, struct usb_device_descriptor)
 
-#define FLIUSB_IOC_MAX			11
+#define FLIUSB_IOC_MAX			12
 
 #endif /* _FLIUSB_IOCTL_H_ */

@@ -41,16 +41,33 @@
 
 */
 
-#ifndef _LIBFLI_DEBUG_H_
-#define _LIBFLI_DEBUG_H_
+#include <stdint.h>
 
-#define _DEBUGSTRING
-#define _DEBUG_IO
+// contains defines for USB to compile and do not depend on kernel, where
+// location of this changes
+/*
+ * USB directions
+ *
+ * This bit flag is used in endpoint descriptors' bEndpointAddress field.
+ * It's also one of three fields in control requests bRequestType.
+ */
+#define USB_DIR_OUT			0		/* to device */
+#define USB_DIR_IN			0x80		/* to host */
 
-/* Debug functions */
-int debugclose(void);
-int debugopen(char *host);
-void debug(int level, char *format, ...);
-void setdebuglevel(char *host, int level);
-
-#endif /* _LIBFLI_DEBUG_H_ */
+/* Device descriptor */
+struct usb_device_descriptor {
+	uint8_t  bLength;
+	uint8_t  bDescriptorType;
+	uint16_t bcdUSB;
+	uint8_t  bDeviceClass;
+	uint8_t  bDeviceSubClass;
+	uint8_t  bDeviceProtocol;
+	uint8_t  bMaxPacketSize0;
+	uint16_t idVendor;
+	uint16_t idProduct;
+	uint16_t bcdDevice;
+	uint8_t  iManufacturer;
+	uint8_t  iProduct;
+	uint8_t  iSerialNumber;
+	uint8_t  bNumConfigurations;
+} __attribute__ ((packed));

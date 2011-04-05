@@ -91,13 +91,16 @@
 #define PROLINE_COMMAND_CONFIGURE_IOPORT			(0x0010)
 #define PROLINE_COMMAND_WRITE_IOPORT					(0x0011)
 #define PROLINE_COMMAND_READ_IOPORT						(0x0012)
+#define PROLINE_COMMAND_SET_TDI_MODE					(0x0013)
+#define PROLINE_COMMAND_UPDATE_EXPOSURE			  (0x0015)
+#define PROLINE_COMMAND_SET_FAN_SPEED					(0x0016)
 
 long fli_camera_usb_open(flidev_t dev);
 long fli_camera_usb_get_array_area(flidev_t dev, long *ul_x, long *ul_y,
 				   long *lr_x, long *lr_y);
 long fli_camera_usb_get_visible_area(flidev_t dev, long *ul_x, long *ul_y,
 				     long *lr_x, long *lr_y);
-long fli_camera_usb_set_exposure_time(flidev_t dev, long exptime);
+long fli_camera_usb_set_exposure_time(flidev_t dev, unsigned long exptime);
 long fli_camera_usb_set_image_area(flidev_t dev, long ul_x, long ul_y,
 				   long lr_x, long lr_y);
 long fli_camera_usb_set_hbin(flidev_t dev, long hbin);
@@ -122,5 +125,13 @@ long fli_camera_usb_get_camera_mode_string(flidev_t dev, flimode_t camera_mode, 
 long fli_camera_usb_set_camera_mode(flidev_t dev, flimode_t camera_mode);
 long fli_camera_usb_get_camera_mode(flidev_t dev, flimode_t *camera_mode);
 long fli_camera_usb_read_temperature(flidev_t dev, flichannel_t channel, double *temperature);
+long fli_camera_usb_set_tdi(flidev_t dev, flitdirate_t rate, flitdiflags_t flags);
+long fli_camera_usb_start_video_mode(flidev_t dev);
+long fli_camera_usb_stop_video_mode(flidev_t dev);
+long fli_camera_usb_start_video_mode(flidev_t dev);
+long fli_camera_usb_grab_video_frame(flidev_t dev, void *buff, size_t size);
+long fli_camera_usb_end_exposure(flidev_t dev);
+long fli_camera_usb_trigger_exposure(flidev_t dev);
+long fli_camera_usb_set_fan_speed(flidev_t dev, long fan_speed);
 
 #endif /* _LIBFLI_CAMERA_USB_H_ */

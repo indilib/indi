@@ -44,6 +44,23 @@
 #ifndef _LIBFLI_CAMERA_H_
 #define _LIBFLI_CAMERA_H_
 
+#define CAPABILITY_VIDEO					(0x00010000)
+#define CAPABILITY_TDI						(0x00000001)
+#define CAPABILITY_BGFLUSH				(0x00000002)
+
+#define SUPPORTS_VIDEO(x) ((((flicamdata_t *) (x->device_data))->capabilities & CAPABILITY_VIDEO) != 0)
+#define SUPPORTS_TDI(x) ((((flicamdata_t *) (x->device_data))->capabilities & CAPABILITY_TDI) != 0)
+#define SUPPORTS_BGFLUSH(x) ((((flicamdata_t *) (x->device_data))->capabilities & CAPABILITY_BGFLUSH) != 0)
+#define SUPPORTS_END_EXPOSURE(x) ((x->devinfo.fwrev >= 0x0120) && (x->devinfo.devid == FLIUSB_PROLINE_ID) != 0)
+#define SUPPORTS_SOFTWARE_TRIGGER(x) ((x->devinfo.fwrev >= 0x0120) && (x->devinfo.devid == FLIUSB_PROLINE_ID) != 0)
+
+/* Video mode stuff */
+typedef enum {
+	VIDEO_MODE_OFF = 0,
+	VIDEO_MODE_BEGIN,
+	VIDEO_MODE_ON
+} video_mode_t;
+
 typedef struct {
   int x;                        /* X coordinate */
   int y;                        /* Y coordinate */
@@ -86,6 +103,9 @@ typedef struct {
   long bitdepth;
   long exttrigger;
   long exttriggerpol;
+	long extexposurectrl;
+	long tdirate;
+	long tdiflags;
 
   double tempslope;
   double tempintercept;
@@ -102,15 +122,35 @@ typedef struct {
 	double pix_sum;
 	double pix_cnt;
 
-	/* Booleans */
+	/* Variables for Proline/Microline readout */
+	long top_height;
+	long top_offset;
+	long bottom_height;
+	long bottom_offset;
+	long left_width;
+	long left_offset;
+	long right_width;
+	long right_offset;
+	long dl_index;
+	size_t bytesleft;
+
+	unsigned short *ibuf_wr_idx;
+
+	/* Booleans and state variables */
 	int removebias;
 	int biasoffset;
 	int background_flush;
 	int force_overscan;
+	video_mode_t video_mode;
+
+	/* Capability flags */
+	long capabilities;
 
   unsigned short *gbuf;
-  unsigned long gbuf_siz;
-  unsigned long max_usb_xfer;
+  unsigned short *ibuf;
+  size_t gbuf_siz;
+  size_t ibuf_siz;
+  long max_usb_xfer;
   
 } flicamdata_t;
 

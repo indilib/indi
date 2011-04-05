@@ -41,7 +41,7 @@
 
 */
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <winsock.h>
 #else
 #include <sys/param.h>
@@ -60,28 +60,6 @@
 #include "libfli-camera.h"
 #include "libfli-camera-usb.h"
 #include "libfli-usb.h"
-
-/* These routines are defined because everyone wants to change the size of long...
- * and we will now make everything BYTE aligned and the proper byte order
- */
-
-#define MSW(x) (unsigned short) ((x >> 16) & 0xffff)
-#define LSW(x) (unsigned short) (x & 0xffff)
-#define MSB(x) (unsigned char) ((x >> 8) & 0xff)
-#define LSB(x) (unsigned char) (x & 0xff)
-
-#define IOBUF_MAX_SIZ (64)
-typedef unsigned char iobuf_t;
-
-#define IOREAD_U8(b, i, y)  { y = *(b + i); }
-#define IOREAD_U16(b, i, y) { y = (*(b + i) << 8) | *(b + i + 1); }
-#define IOREAD_U32(b, i, y) { y = (*(b + i) << 24) | *(b + i + 1) << 16 | \
-																 *(b + i + 2) << 8 | *(b + i + 3); }
-#define IOWRITE_U8(b, i, y)  { *(b + i) = (unsigned char) y; }
-#define IOWRITE_U16(b, i, y) { *(b + i) = MSB(y); *(b + i + 1) = LSB(y); }
-#define IOWRITE_U32(b, i, y) { *(b + i) = MSB(MSW(y)); *(b + i + 1) = LSB(MSW(y)); \
-																 *(b + i + 2) = MSB(LSW(y)); *(b + i + 3) = LSB(LSW(y)); }
-#define IOREAD_LF(b, i, y) { y = dconvert(b + i); }
 
 double dconvert(void *buf)
 {
@@ -107,6 +85,8 @@ long fli_camera_usb_open(flidev_t dev)
 	long rlen, wlen;
 //	long r = 0;
 
+	memset(buf, 0x00, IOBUF_MAX_SIZ);
+
 	cam = DEVICE->device_data;
 
 #ifdef __linux__
@@ -124,6 +104,9 @@ long fli_camera_usb_open(flidev_t dev)
 	if ((cam->gbuf = xmalloc(cam->gbuf_siz)) == NULL)
 		return -ENOMEM;
 #endif
+
+	if ((DEVICE->devinfo.devid >= 0x0100) && (DEVICE->devinfo.devid < 0x0110))
+			DEVICE->devinfo.devid = FLIUSB_PROLINE_ID;
 
 	switch (DEVICE->devinfo.devid)
   {
@@ -174,7 +157,7 @@ long fli_camera_usb_open(flidev_t dev)
 				IOWRITE_U16(buf, 12, (unsigned short) knowndev[id].visible_area.ul.y);
 				IO(dev, buf, &wlen, &rlen);
 
-				DEVICE->devinfo.model = xstrndup(knowndev[id].model, 32);
+				DEVICE->devinfo.model = xstrndup(knowndev[id].model, 31);
 
 				switch(DEVICE->devinfo.fwrev & 0xff00)
 				{
@@ -210,12 +193,11 @@ long fli_camera_usb_open(flidev_t dev)
 			IOWRITE_U16(buf, 0, FLI_USBCAM_DEVICENAME);
 			IO(dev, buf, &wlen, &rlen);
 
-			DEVICE->devinfo.devnam = xstrndup((char *) buf, 32);
-
-			if(DEVICE->devinfo.model == NULL)
-			{
-				DEVICE->devinfo.model = xstrndup(DEVICE->devinfo.devnam, 32);
-			}
+			/* Hack to make old software happy */
+			DEVICE->devinfo.devnam = xcalloc(1, 32);
+			DEVICE->devinfo.model = xcalloc(1, 32);
+			strncpy(DEVICE->devinfo.devnam, (char *) buf, 30);
+			strncpy(DEVICE->devinfo.model, (char *) buf, 30);
 
 			rlen = 4; wlen = 2;
 			IOWRITE_U16(buf, 0, FLI_USBCAM_ARRAYSIZE);
@@ -239,8 +221,9 @@ long fli_camera_usb_open(flidev_t dev)
 			IOREAD_U16(buf, 2, cam->ccd.visible_area.lr.y);
 			cam->ccd.visible_area.lr.y += cam->ccd.visible_area.ul.y;
 
-#ifdef WIN32
-
+			/* This is added as a hack to allow for overscan of CCD
+			 * this should be moved somewhere else */
+#ifdef _WIN32
 			/* Check the registry to determine if we are overriding any settings */
 			{
 				HKEY hKey;
@@ -253,7 +236,7 @@ long fli_camera_usb_open(flidev_t dev)
 					&hKey) == ERROR_SUCCESS)
 				{
 					/* Check for overscan data */
-					
+
 					len = sizeof(DWORD);
 					if (RegQueryValueEx(hKey, "overscan_x", NULL, NULL, (LPBYTE) &overscan_x, &len) == ERROR_SUCCESS)
 					{
@@ -293,8 +276,6 @@ long fli_camera_usb_open(flidev_t dev)
 					debug(FLIDEBUG_INFO, "Could not find registry key.");
 				}
 			}
-
-
 #endif
 
 			/* Initialize all variables to something */
@@ -352,6 +333,8 @@ long fli_camera_usb_open(flidev_t dev)
 		/* Proline Camera */
 		case FLIUSB_PROLINE_ID:
 		{
+			DEVICE->devinfo.devid = FLIUSB_PROLINE_ID;
+
 			/* Let's get information about the hardware */
 			wlen = 2; rlen = 6;
 			IOWRITE_U16(buf, 0, PROLINE_GET_HARDWAREINFO);
@@ -361,7 +344,7 @@ long fli_camera_usb_open(flidev_t dev)
 			IOREAD_U16(buf, 4, rlen);
 
 			/* Configuration data from ProLine is little endian, I can't believe
-			 * that I did this oh well, I'll deal with it!
+			 * that I did this oh well, I'll deal with it! (Well, SDCC did it...)
 			 */
 
 			if (DEVICE->devinfo.hwrev >= 0x0100)
@@ -383,12 +366,29 @@ long fli_camera_usb_open(flidev_t dev)
 				cam->ccd.pixelwidth = dconvert(&buf[12]);
 				cam->ccd.pixelheight = dconvert(&buf[16]);
 
+				cam->capabilities = buf[21] + (buf[22] << 8) + (buf[23] << 16) + (buf[24] << 24);
+
 				rlen = 64; wlen = 2;
 				IOWRITE_U16(buf, 0, PROLINE_GET_DEVICESTRINGS);
 				IO(dev, buf, &wlen, &rlen);
 				DEVICE->devinfo.devnam = xstrndup((char *) &buf[0], 32);
 				DEVICE->devinfo.model = xstrndup((char *) &buf[32], 32);
 			}
+
+			/* FW dependent capabilities */
+			if (DEVICE->devinfo.fwrev >= 0x0110)
+			{
+				cam->capabilities |= CAPABILITY_TDI;
+				cam->capabilities |= CAPABILITY_BGFLUSH;
+			}
+
+			debug(FLIDEBUG_INFO, "Device has following capabilities:");
+
+			if SUPPORTS_VIDEO(DEVICE) debug(FLIDEBUG_INFO, "   SUPPORTS_VIDEO");
+			if SUPPORTS_TDI(DEVICE) debug(FLIDEBUG_INFO, "   SUPPORTS_TDI");
+			if SUPPORTS_BGFLUSH(DEVICE) debug(FLIDEBUG_INFO, "   SUPPORTS_BGFLUSH");
+			if SUPPORTS_END_EXPOSURE(DEVICE) debug(FLIDEBUG_INFO, "   SUPPORTS_END_EXPOSURE");
+			if SUPPORTS_SOFTWARE_TRIGGER(DEVICE) debug(FLIDEBUG_INFO, "   SUPPORTS_SOFTWARE_TRIGGER");
 
 			/* Initialize all varaibles to something */
 			cam->vflushbin = 0;
@@ -429,8 +429,8 @@ long fli_camera_usb_open(flidev_t dev)
 
 	debug(FLIDEBUG_INFO, "DeviceID %d", DEVICE->devinfo.devid);
 	debug(FLIDEBUG_INFO, "SerialNum %d", DEVICE->devinfo.serno);
-	debug(FLIDEBUG_INFO, "HWRev %d", DEVICE->devinfo.hwrev);
-	debug(FLIDEBUG_INFO, "FWRev %d", DEVICE->devinfo.fwrev);
+	debug(FLIDEBUG_INFO, "HWRev %04x", DEVICE->devinfo.hwrev);
+	debug(FLIDEBUG_INFO, "FWRev %04x", DEVICE->devinfo.fwrev);
 
 	debug(FLIDEBUG_INFO, "     Name: %s", DEVICE->devinfo.devnam);
 	debug(FLIDEBUG_INFO, "    Array: (%4d,%4d),(%4d,%4d)",
@@ -521,12 +521,9 @@ long fli_camera_usb_get_visible_area(flidev_t dev, long *ul_x, long *ul_y,
   return 0;
 }
 
-long fli_camera_usb_set_exposure_time(flidev_t dev, long exptime)
+long fli_camera_usb_set_exposure_time(flidev_t dev, unsigned long exptime)
 {
   flicamdata_t *cam = DEVICE->device_data;
-
-  if (exptime < 0)
-    return -EINVAL;
 
 	switch (DEVICE->devinfo.devid)
   {
@@ -573,7 +570,7 @@ long fli_camera_usb_set_image_area(flidev_t dev, long ul_x, long ul_y,
 				(lr_y > (cam->ccd.visible_area.lr.y * cam->vbin)) )
 		{
 			debug(FLIDEBUG_WARN,
-				"FLISetImageArea(), area out of bounds: (%4d,%4d),(%4d,%4d)",
+				"Area out of bounds: (%4d,%4d),(%4d,%4d)",
 				ul_x, ul_y, lr_x, lr_y);
 			return -EINVAL;
 		}
@@ -583,7 +580,7 @@ long fli_camera_usb_set_image_area(flidev_t dev, long ul_x, long ul_y,
 			(ul_y < 0) )
 	{
 		debug(FLIDEBUG_FAIL,
-			"FLISetImageArea(), area out of bounds: (%4d,%4d),(%4d,%4d)",
+			"Area out of bounds: (%4d,%4d),(%4d,%4d)",
 			ul_x, ul_y, lr_x, lr_y);
 		return -EINVAL;
 	}
@@ -599,6 +596,8 @@ long fli_camera_usb_set_image_area(flidev_t dev, long ul_x, long ul_y,
 			long rlen, wlen;
 			iobuf_t buf[IOBUF_MAX_SIZ];
 
+			memset(buf, 0x00, IOBUF_MAX_SIZ);
+
 			rlen = 0; wlen = 6;
 			IOWRITE_U16(buf, 0, FLI_USBCAM_SETFRAMEOFFSET);
 			IOWRITE_U16(buf, 2, ul_x);
@@ -611,6 +610,8 @@ long fli_camera_usb_set_image_area(flidev_t dev, long ul_x, long ul_y,
 		case FLIUSB_PROLINE_ID:
 		{
 			/* JIM! perform some bounds checking... */
+
+			/* Remember TDI imaging does not have a limit on vertical height */
 		}
 		break;
 
@@ -638,14 +639,16 @@ long fli_camera_usb_set_hbin(flidev_t dev, long hbin)
 //	long r = 0;
 	flicamdata_t *cam = DEVICE->device_data;
 
-  if ((hbin < 1) || (hbin > 16))
-    return -EINVAL;
+	memset(buf, 0x00, IOBUF_MAX_SIZ);
 
 	switch (DEVICE->devinfo.devid)
   {
 		/* MaxCam and IMG cameras */
 		case FLIUSB_CAM_ID:
 		{
+			if ((hbin < 1) || (hbin > 16))
+				return -EINVAL;
+
 			rlen = 0; wlen = 6;
 			IOWRITE_U16(buf, 0, FLI_USBCAM_SETBINFACTORS);
 			IOWRITE_U16(buf, 2, hbin);
@@ -657,8 +660,11 @@ long fli_camera_usb_set_hbin(flidev_t dev, long hbin)
 		/* Proline Camera */
 		case FLIUSB_PROLINE_ID:
 		{
+			if ((hbin < 1) || (hbin > 255))
+				return -EINVAL;
+
 			/* We do nothing here, h_bin is sent with start exposure command
-			   this is a bug, TDI imaging will require this */
+			   this may be a bug, TDI imaging will require this */
 		}
 		break;
 
@@ -682,14 +688,16 @@ long fli_camera_usb_set_vbin(flidev_t dev, long vbin)
 
 	flicamdata_t *cam = DEVICE->device_data;
 
-  if ((vbin < 1) || (vbin > 16))
-    return -EINVAL;
+	memset(buf, 0x00, IOBUF_MAX_SIZ);
 
 	switch (DEVICE->devinfo.devid)
   {
 		/* MaxCam and IMG cameras */
 		case FLIUSB_CAM_ID:
 		{
+			if ((vbin < 1) || (vbin > 16))
+				return -EINVAL;
+
 			rlen = 0; wlen = 6;
 			IOWRITE_U16(buf, 0, FLI_USBCAM_SETBINFACTORS);
 			IOWRITE_U16(buf, 2, cam->hbin);
@@ -702,7 +710,12 @@ long fli_camera_usb_set_vbin(flidev_t dev, long vbin)
 		case FLIUSB_PROLINE_ID:
 		{
 			/* We do nothing here, h_bin is sent with start exposure command
-			   this is a bug, TDI imaging will require this */
+			   this may be a bug, TDI imaging will require this */
+
+			if ((vbin < 1) || (vbin > 255))
+				return -EINVAL;
+
+
 		}
 		break;
 
@@ -755,7 +768,10 @@ long fli_camera_usb_get_exposure_status(flidev_t dev, long *timeleft)
 
 long fli_camera_usb_cancel_exposure(flidev_t dev)
 {
-/*	flicamdata_t *cam = DEVICE->device_data; */
+	flicamdata_t *cam = DEVICE->device_data;
+
+	cam->tdirate = 0;
+	cam->tdiflags = 0;
 
 	switch (DEVICE->devinfo.devid)
   {
@@ -791,6 +807,8 @@ long fli_camera_usb_cancel_exposure(flidev_t dev)
 
 			IOWRITE_U16(buf, 0, PROLINE_COMMAND_CANCEL_EXPOSURE);
 			IO(dev, buf, &wlen, &rlen);
+
+			cam->video_mode = VIDEO_MODE_OFF;
 		}
 		break;
 
@@ -884,7 +902,7 @@ long fli_camera_usb_read_temperature(flidev_t dev, flichannel_t channel, double 
 			}
 			else
 			{
-				r = -EINVAL;
+				*temperature = (0.0);
 			}
 		}
 		break;
@@ -915,21 +933,6 @@ long fli_camera_usb_read_temperature(flidev_t dev, flichannel_t channel, double 
 					r = -EINVAL;
 				break;
 			}
-
-//#define CHECK_ERRLIM
-#ifdef CHECK_ERRLIM
-			{
-				unsigned long cnt;
-
-				rlen = 4; wlen = 2;
-				IOWRITE_U16(buf, 0, 0x0103);
-				IO(dev, buf, &wlen, &rlen);
-				IOREAD_U32(buf, 0, cnt);
-
-				debug(FLIDEBUG_WARN, "USBERRCNT: %d", cnt);
-			}
-#endif
-
 		}
 		break;
 
@@ -952,12 +955,16 @@ long fli_camera_usb_grab_row(flidev_t dev, void *buff, size_t width)
 
 	if(width > (size_t) (cam->image_area.lr.x - cam->image_area.ul.x))
 	{
-		debug(FLIDEBUG_FAIL, "FLIGrabRow(), requested row too wide.");
+		debug(FLIDEBUG_FAIL, "Requested row too wide, truncating.");
 		debug(FLIDEBUG_FAIL, "  Requested width: %d", width);
-		debug(FLIDEBUG_FAIL, "  FLISetImageArea() width: %d",
+		debug(FLIDEBUG_FAIL, "  Set width: %d",
 			cam->image_area.lr.x - cam->image_area.ul.x);
-		return -EINVAL;
+
+		width = cam->image_area.lr.x - cam->image_area.ul.x;
 	}
+
+	if (cam->gbuf == NULL)
+		return -ENOMEM;
 
 	switch (DEVICE->devinfo.devid)
   {
@@ -1042,65 +1049,115 @@ long fli_camera_usb_grab_row(flidev_t dev, void *buff, size_t width)
 		}
 		break;
 
-		/* Proline Camera */
+#ifdef OLD_PROLINE
 
-		/*
-			grabrowindex -- current row being grabbed
-			grabrowbatchsize -- number of words to grab
-			grabrowcounttot -- number of words left in buffer 
-			grabrowbufferindex -- location of the beginning of the row in the buffer
-			flushcountafterlastrow -- unused
-		*/
-
-		case FLIUSB_PROLINE_ID:
+		/* Proline/Microline Camera */
+		case FLIUSB_PROLINE_ID+1:
 		{
 			long rlen, rtotal;
+			int abort = 0;
 
 			/* First we need to determine if the row is in memory */
-			if (cam->grabrowcounttot < cam->grabrowwidth)
+			while ( (cam->grabrowcounttot < cam->grabrowwidth) && (abort == 0) )
 			{
-				long loadindex = 0;
+				int loadindex = 0;
+				long rowsleft, bytesleft, wordsleft;
 
-				/* Ok, the buffer is double sized (cam->max_usb_xfer * 2) and can
-				 * hold cam->max_usb_xfer / 2 words. We need to figure out which
-				 * half of the buffer to fill with data
+				/* Ring buffer for image download... ideally this should just
+				 * swap from top to bottom as 1/2 the buffer is filled each time.
+				 * For single row grabs
+				 *
+				 * cam->gbuf_siz -- size of the grab buffer (bytes)
+				 * cam->max_usb_xfer -- size of the maximum USB transfer (bytes)
+				 * cam->grabrowindex -- current row being grabbed
+				 * cam->grabrowcounttot -- number of words left in buffer (words)
+				 * cam->grabrowbufferindex -- location of the beginning of the row in the buffer in words
+				 *
 				 */
 
-				/* Which half of the buffer are we in, which half to load? */
-				if (cam->grabrowbufferindex == 0)
-				{
-					loadindex = 0;
-				}
-				else if (cam->grabrowbufferindex < (cam->max_usb_xfer / 2))
-				{
-					loadindex = (cam->max_usb_xfer / 2);
-				}
-				else if (cam->grabrowbufferindex == (cam->max_usb_xfer / 2))
-				{
-					loadindex = (cam->max_usb_xfer / 2);
-				}
-				else if (cam->grabrowbufferindex > (cam->max_usb_xfer / 2))
-				{
-					loadindex = 0;
-				}
+				/* Let's fill the buffer */
+				rlen = (cam->gbuf_siz / 2) - (cam->grabrowbufferindex + cam->grabrowcounttot);
 
-				/* Determine how many bytes to transfer */
-				rlen = (((cam->grabrowcount - cam->grabrowindex) * cam->grabrowwidth) - cam->grabrowcounttot) * 2;
+				/* Words to bytes */
+				rlen *= 2;
 
-				if (rlen > cam->max_usb_xfer)
+				if (rlen < 0)
+				{
+					debug(FLIDEBUG_FAIL, "READ, rlen < 0!");
+					abort = 1;
+					continue;
+				} else if (rlen == 0)
+				{
+					/* For this to be true we must have the buffer completely filled
+					 * so we start back at the beginning
+					 */
+
 					rlen = cam->max_usb_xfer;
+					loadindex = 0;
+				} else
+				{
+					loadindex = cam->grabrowbufferindex + cam->grabrowcounttot;
+				}
+
+				/* At this point rlen is positive and non-zero
+				 * we should constrain its limit to no more than the
+				 * data we are expecting from the camera. Furthermore,
+				 * we may just need to fill to the top of the buffer then
+				 * wrap around...
+				 */
+
+				if (cam->tdirate == 0)
+				{
+					rowsleft = cam->grabrowcount - cam->grabrowindex;
+					wordsleft = (rowsleft * cam->grabrowwidth) - cam->grabrowcounttot;
+					bytesleft = wordsleft * 2;
+				}
+				else
+				{
+				/* For TDI imaging we only want one row at a time, must be rounded up
+				 * to 512 bytes wide */
+					bytesleft = (cam->grabrowwidth - cam->grabrowcounttot) * 2;
+
+					if (bytesleft & 0x1ff)
+					{
+						debug(FLIDEBUG_WARN, "TDI row width must be multiple of 512 bytes!");
+						abort = 1;
+						continue;
+					}
+				}
+
+				if (rlen > bytesleft) rlen = bytesleft;
+				if (rlen > cam->max_usb_xfer) rlen = cam->max_usb_xfer;
 
 				memset(&cam->gbuf[loadindex], 0x00, rlen);
-
 				rtotal = rlen;
-				debug(FLIDEBUG_INFO, "Transferring %d starting at %d, buffer starts at %d.", rlen, cam->grabrowcounttot, cam->grabrowbufferindex);
+
+				debug(FLIDEBUG_INFO, "Transfer, Base: %p Start: %p End: %p Size: %d",
+					&cam->gbuf[0], &cam->gbuf[loadindex], &cam->gbuf[loadindex + rlen / 2], rlen);
+
+#ifdef CHECK_STATUS
+				do
+				{
+
+
+				} while (status &
+
+#endif
+
 				if ((usb_bulktransfer(dev, 0x82, &cam->gbuf[loadindex], &rlen)) != 0) /* Grab the buffer */
 				{
 					debug(FLIDEBUG_FAIL, "Read failed...");
+					abort = 1;
 				}
 
-				if (rlen != rtotal)
+				if ((rlen < rtotal) && (cam->grabrowindex > 0))
 				{
+					char b[2048];
+
+#ifdef _WIN32
+					sprintf(b, "Pad, L:%d\n", cam->grabrowindex);
+					OutputDebugString(b);
+#endif
 					debug(FLIDEBUG_FAIL, "Transfer did not complete, padding...");
 					memset(&cam->gbuf[cam->grabrowcounttot], 0x00, (rtotal - rlen));
 				}
@@ -1108,7 +1165,7 @@ long fli_camera_usb_grab_row(flidev_t dev, void *buff, size_t width)
 			}
 
 			/* Double check that row is in memory (an IO operation could have failed.) */
-			if (cam->grabrowcounttot >= cam->grabrowwidth)
+			if ( (abort == 0) && (cam->grabrowcounttot >= cam->grabrowwidth) )
 			{
 				long l = 0;
 
@@ -1120,7 +1177,9 @@ long fli_camera_usb_grab_row(flidev_t dev, void *buff, size_t width)
 						/* Not near end of buffer */
 						while (l < cam->grabrowwidth)
 						{
-							((unsigned short *) buff)[l] = ((cam->gbuf[cam->grabrowbufferindex] << 8) & 0xff00) | ((cam->gbuf[cam->grabrowbufferindex] >> 8) & 0x00ff);
+							if (l < width)
+								((unsigned short *) buff)[l] = ((cam->gbuf[cam->grabrowbufferindex] << 8) & 0xff00) | ((cam->gbuf[cam->grabrowbufferindex] >> 8) & 0x00ff);
+
 							cam->grabrowbufferindex ++;
 							l ++;
 						}
@@ -1130,7 +1189,9 @@ long fli_camera_usb_grab_row(flidev_t dev, void *buff, size_t width)
 						/* Near end of buffer */
 						while (cam->grabrowbufferindex < ((cam->max_usb_xfer / 2) * 2))
 						{
-							((unsigned short *) buff)[l] = ((cam->gbuf[cam->grabrowbufferindex] << 8) & 0xff00) | ((cam->gbuf[cam->grabrowbufferindex] >> 8) & 0x00ff);
+							if (l < width)
+								((unsigned short *) buff)[l] = ((cam->gbuf[cam->grabrowbufferindex] << 8) & 0xff00) | ((cam->gbuf[cam->grabrowbufferindex] >> 8) & 0x00ff);
+
 							cam->grabrowbufferindex ++;
 							l ++;
 						}
@@ -1143,6 +1204,394 @@ long fli_camera_usb_grab_row(flidev_t dev, void *buff, size_t width)
 			}
 		}
 		break;
+#endif
+		/* New code */
+		case FLIUSB_PROLINE_ID:
+		{
+			long rlen = 0, rtotal = 0;
+			int abort = 0, index = 0;
+
+			/*
+			 * cam->gbuf_siz -- size of the grab buffer (bytes)
+			 * cam->ibuf_siz -- size of image buffer (bytes)
+			 * cam->max_usb_xfer -- size of the maximum USB transfer (bytes)
+			 * cam->grabrowindex -- current row being grabbed
+			 * cam->grabrowcounttot --
+			 * cam->grabrowbufferindex --
+			 * cam->bytesleft -- number of bytes left to acquire from camera
+			 */
+
+			long top = 1;
+			long di = 1;
+			long row_idx;
+			long to, bo, lo, ro;
+			long th, bh, lw, rw;
+			long w;
+			unsigned short *left, *right, *ibuf;
+
+			/* Normalize the offsets */
+			to = cam->top_offset - MIN(cam->top_offset, cam->bottom_offset);
+			bo = cam->bottom_offset - MIN(cam->top_offset, cam->bottom_offset);
+			lo = cam->left_offset - MIN(cam->left_offset, cam->right_offset);
+			ro = cam->right_offset - MIN(cam->left_offset, cam->right_offset);
+
+			/* Make these nicer to use */
+			th = cam->top_height;
+			bh = cam->bottom_height;
+			lw = cam->left_width;
+			rw = cam->right_width;
+			row_idx = cam->grabrowindex;
+			w = lw + rw;
+
+			left = (unsigned short *) buff;
+			right = (unsigned short *) buff + w;
+
+			ibuf = cam->ibuf;
+
+			/* Fix these so that data is "contiguous" */
+			if (bo > th) bo = th; /* Bottom data starts immediately after top data */
+			if (to > bh) to = bh; /* Top data starts immediately after bottom data */
+
+			/* Top data is first */
+			if (to == 0) /* Top is first data (bo can be zero also without a problem) */
+			{
+				/* Now determine bottom or top */
+				if (row_idx < th) /* Top */
+				{
+					if (row_idx < bo) /* No Bottom Data yet */
+					{
+						ibuf += w * row_idx;
+						di = 1;
+					}
+					else /* Bottom Data mixed in */
+					{
+						ibuf += w * bo; /* Take us to where the bottom data starts */
+
+						if (row_idx < (bo + bh)) /* Still with bottom data around */
+						{
+							ibuf += w * 2 * (row_idx - bo);
+							di = 2;
+						}
+						else /* Past bottom data */
+						{
+							ibuf += w * 2 * bh;
+							ibuf += w * (row_idx - (bo + bh));
+							di = 1;
+						}
+					}
+				}
+				else if (row_idx < (th + bh)) /* Bottom */
+				{
+					top = 0; /* Bottom Data */
+					row_idx -= th; /* Normalize */
+
+					ibuf = cam->ibuf + ((th + bh) * w); /* End of buffer */
+
+					if (row_idx < ((bo + bh) - th)) /* No Top Data yet */
+					{
+						ibuf -= w * row_idx;
+						di = 1;
+					}
+					else /* Top Data mixed in */
+					{
+						if (((bo + bh) - th) > 0)
+						{
+							ibuf -= w * ((bo + bh) - th); /* Take us to where the bottom data starts */
+							row_idx -= ((bo + bh) - th);
+						}
+
+						if (row_idx < (to + th)) /* Still with bottom data around */
+						{
+							ibuf -= w * 2 * (row_idx - to);
+//							ibuf ++; /* Re-align */
+							di = 2;
+						}
+						else /* Past top data */
+						{
+							ibuf -= w * 2 * th;
+							ibuf -= w * (row_idx - (to + th));
+							di = 1;
+						}
+					}
+
+					ibuf -= w * di; /* Position at the beginning of the row */
+				}
+				else
+				{
+					/* We shouldn't be here */
+				}
+			}
+			else /* to != 0, bottom data has started */
+			{
+				/* Now determine bottom or top */
+				if (row_idx < th) /* Top */
+				{
+					ibuf = cam->ibuf + w * to; /* Beginning of data */
+
+					if (row_idx < (bh - to)) /* Bottom data intermixed */
+					{
+						ibuf += w * 2 * row_idx;
+						di = 2;
+					}
+					else /* Past bottom data */
+					{
+						if ((bh - to) >= 0)
+						{
+							ibuf += w * 2 * (bh - to); /* Move past shared data */
+
+							ibuf += w * (row_idx - (bh - to));
+							di = 1;
+						}
+						else
+						{
+							ibuf += w * row_idx;
+							di = 1;
+						}
+					}
+				}
+				else if (row_idx < (th + bh)) /* Bottom */
+				{
+					top = 0;
+					row_idx -= th; /* Normalize the index in terms of top rows */
+
+					ibuf = cam->ibuf + ((th + bh) * w); /* End of buffer */
+
+					if (row_idx < (bh - (to + th))) /* Past Top Data */
+					{
+						ibuf -= w * row_idx;
+						di = 1;
+					}
+					else if (row_idx < (bh - to)) /* Mixed Data */
+					{
+						if ((bh - (to + th)) > 0) /* Position ourselves */
+						{
+							ibuf -= w * (bh - (to + th));
+							row_idx -= (bh - (to + th));
+						}
+
+						ibuf -= w * 2 * row_idx;
+						di = 2;
+					}
+					else
+					{
+						if ((bh - (to + th)) > 0) /* Position ourselves */
+						{
+							ibuf -= w * (bh - (to + th));
+							row_idx -= (bh - (to + th));
+						}
+
+						if ((bh - to) > 0)
+						{
+							ibuf -= w * 2 * (bh - to);
+							row_idx -= (bh - to);
+						}
+
+						ibuf -= w * row_idx;
+
+						di = 1;
+					}
+
+					ibuf -= w * di; /* Position at the beginning of the row */
+				}
+				else
+				{
+					/* We shouldn't be here */
+				}
+			}
+
+			/* First we need to determine if the row is in memory */
+			while ((cam->ibuf_wr_idx < (ibuf + w * di)) && (abort == 0) && (cam->bytesleft > 0))
+			{
+				/* Let's get some more from the camera */
+
+				/* Not performing TDI */
+				if (cam->tdirate == 0)
+				{
+					rlen = (long) MIN(cam->bytesleft, (size_t) cam->max_usb_xfer);
+				}
+				else
+				/* For TDI imaging we only want one row at a time, must be rounded up
+				 * to 512 bytes wide */
+				{
+					rlen = cam->grabrowwidth * 2;
+
+					if (rlen & 0x1ff)
+					{
+						debug(FLIDEBUG_WARN, "TDI row download width must be multiple of 512 bytes!");
+						abort = 1;
+						continue;
+					}
+				}
+
+				memset(cam->gbuf, 0x00, rlen);
+				rtotal = rlen;
+
+				if ((usb_bulktransfer(dev, 0x82, cam->gbuf, &rlen)) != 0) /* Grab the buffer */
+				{
+					debug(FLIDEBUG_FAIL, "Read failed...");
+					abort = 1;
+				}
+
+				if (rlen < rtotal)
+				{
+					debug(FLIDEBUG_FAIL, "Transfer did not complete...");
+				}
+
+				if (rlen == 0x03) /* This is a special case, the camera is telling us there
+													 * is no more data, something went wrong */
+				{
+					cam->bytesleft = 0;
+				}
+				else
+				{
+					cam->bytesleft -= rlen;
+				}
+
+				for (index = 0; index < (rlen / (long) sizeof(unsigned short)); index ++)
+				{
+					*cam->ibuf_wr_idx = ((cam->gbuf[index] << 8) & 0xff00) | ((cam->gbuf[index] >> 8) & 0x00ff);
+					cam->ibuf_wr_idx++;
+				}
+			}
+
+			memset(left, 0x00, width * sizeof(unsigned short));
+
+			/* Double check that row is in memory (an IO operation could have failed.) */
+			if (cam->ibuf_wr_idx >= (ibuf + w * di))
+			{
+				/* Top data only */
+				if (top == 1)
+				{
+//					long r = row_idx;
+
+					/* Beginning of row, left portion of data */
+					while ( (ro > 0) && (left < right) )
+					{
+						*left = *ibuf;
+						left++;
+
+						lw--;
+						ro--;
+						ibuf += di;
+					}
+
+					/* Beginning of row, right portion of data */
+					while ( (lo > 0) && (left < right) )
+					{
+						right--;
+						*right = *ibuf;
+
+						rw--;
+						lo--;
+						ibuf += di;
+					}
+
+					/* Both portions of data, middle of the row */
+					while ( ((rw > 0) && (lw > 0)) && (left < right) )
+					{
+						*left = *ibuf;
+						left ++;
+						lw --;
+						ibuf += di;
+
+						--right;
+						*right = *ibuf;
+						rw --;
+						ibuf += di;
+					}
+
+					/* Remaining left data */
+					while ( (lw > 0) && (left < right) )
+					{
+						*left = *ibuf;
+						left++;
+
+						lw--;
+						ibuf += di;
+					}
+
+					/* Remaining right data */
+					while ( (rw > 0) && (left < right) )
+					{
+						right--;
+						*right = *ibuf;
+
+						rw--;
+						ibuf += di;
+					}
+				}
+				else /* Bottom Data */
+				{
+//					long r = row_idx;
+
+					 /* Re-align */
+					if (di == 2)
+					{
+						ibuf ++;
+						di = 2;
+					}
+
+					/* Beginning of row, left portion of data */
+					while ( (ro > 0) && (left < right) )
+					{
+						*left = *ibuf;
+						left++;
+
+						lw--;
+						ro--;
+						ibuf += di;
+					}
+
+					/* Beginning of row, right portion of data */
+					while ( (lo > 0) && (left < right) )
+					{
+						right--;
+						*right = *ibuf;
+
+						rw--;
+						lo--;
+						ibuf += di;
+					}
+
+					/* Both portions of data, middle of the row */
+					while ( ((rw > 0) && (lw > 0)) && (left < right) )
+					{
+						*left = *ibuf;
+						left ++;
+						lw --;
+						ibuf += di;
+
+						--right;
+						*right = *ibuf;
+						rw --;
+						ibuf += di;
+					}
+
+					/* Remaining left data */
+					while ( (lw > 0) && (left < right) )
+					{
+						*left = *ibuf;
+						left++;
+
+						lw--;
+						ibuf += di;
+					}
+
+					/* Remaining right data */
+					while ( (rw > 0) && (left < right) )
+					{
+						right--;
+						*right = *ibuf;
+
+						rw--;
+						ibuf += di;
+					}
+				}
+			}
+			cam->grabrowindex ++;
+		}
+		break;
+
 
 		default:
 			debug(FLIDEBUG_WARN, "Hmmm, shouldn't be here, operation on NO camera...");
@@ -1152,12 +1601,214 @@ long fli_camera_usb_grab_row(flidev_t dev, void *buff, size_t width)
 	return 0;
 }
 
+long fli_camera_usb_stop_video_mode(flidev_t dev)
+{
+  flicamdata_t *cam = DEVICE->device_data;
+
+	/* This function only works on specific prolines, use this function to
+	 * determine if video mode is available on the camera. If it succeeds, then
+	 * video mode is supported, if it fails, then it isn't. */
+	if (!SUPPORTS_VIDEO(DEVICE))
+	{
+		debug(FLIDEBUG_FAIL, "Video mode not supported.");
+		return -EINVAL;
+	}
+
+	if (cam->video_mode == VIDEO_MODE_OFF)
+	{
+		debug(FLIDEBUG_WARN, "Video mode not started.");
+	}
+
+	return fli_camera_usb_cancel_exposure(dev);
+}
+
+long fli_camera_usb_start_video_mode(flidev_t dev)
+{
+  flicamdata_t *cam = DEVICE->device_data;
+
+	/* This function only works on specific prolines */
+	if (!SUPPORTS_VIDEO(DEVICE))
+	{
+		debug(FLIDEBUG_FAIL, "Video mode not supported.");
+		return -EINVAL;
+	}
+
+	if (cam->video_mode != VIDEO_MODE_OFF)
+	{
+		debug(FLIDEBUG_WARN, "Video mode already started, restarting...");
+		fli_camera_usb_stop_video_mode(dev);
+	}
+
+	cam->video_mode = VIDEO_MODE_BEGIN;
+
+	return fli_camera_usb_expose_frame(dev);
+}
+
+//long fli_camera_usb_prepare_video_frame(flidev_t dev)
+//{
+//  flicamdata_t *cam = DEVICE->device_data;
+//
+//	/* This function only works on specific cameras */
+//	if (!SUPPORTS_VIDEO(cam))
+//	{
+//		debug(FLIDEBUG_FAIL, "Video mode not supported.");
+//		return -EINVAL;
+//	}
+//
+//	if (cam->video_mode != VIDEO_MODE_ON)
+//	{
+//		debug(FLIDEBUG_FAIL, "Video mode not started.");
+//		return -EINVAL;
+//	}
+//
+//	debug(FLIDEBUG_INFO, "Prepare Video Frame.");
+//
+//	/* Video mode is supported and started, for now implement with FLIGrabRow(),
+//		this may not be fast enough in the future... */
+//
+//	/* Since this is proline/microline only, this is hacked from fli_camera_usb_expose_frame()
+//	 * in the proline section, this is done only so that I can use
+//	 * fli_camera_usb_grab_row() (YES! this is a hack!) */
+//
+//	cam->grabrowcount = cam->image_area.lr.y - cam->image_area.ul.y; // Rows High
+//	cam->grabrowwidth = cam->image_area.lr.x - cam->image_area.ul.x; // Pixels Wide
+//	cam->flushcountbeforefirstrow = cam->image_area.ul.y; // Vertical Offset
+//	cam->grabrowindex = 0;
+//	cam->grabrowbatchsize = 0;
+//	cam->grabrowcounttot = 0;
+//	cam->grabrowbufferindex = 0;
+//	cam->flushcountafterlastrow = 0;
+//	cam->ibuf_wr_idx = cam->ibuf;
+//	cam->bytesleft = (cam->top_height + cam->bottom_height) *
+//	(cam->left_width + cam->right_width) * sizeof(unsigned short);
+//
+//	return 0;
+//}
+
+long fli_camera_usb_grab_video_frame(flidev_t dev, void *buff, size_t size)
+{
+  flicamdata_t *cam = DEVICE->device_data;
+	long y = 0;
+	long status = 0;
+
+	/* This function only works on specific cameras */
+	if (!SUPPORTS_VIDEO(DEVICE))
+	{
+		debug(FLIDEBUG_FAIL, "Video mode not supported.");
+		return -EINVAL;
+	}
+
+	if (cam->video_mode != VIDEO_MODE_ON)
+	{
+		debug(FLIDEBUG_FAIL, "Video mode not started.");
+		return -EINVAL;
+	}
+
+	debug(FLIDEBUG_INFO, "Grab Video Frame.");
+
+	/* Video mode is supported and started, for now implement with FLIGrabRow(),
+		this may not be fast enough in the future... */
+
+	/* Since this is proline/microline only, this is hacked from fli_camera_usb_expose_frame()
+	 * in the proline section, this is done only so that I can use
+	 * fli_camera_usb_grab_row() (YES! this is a hack!) */
+
+	cam->grabrowcount = cam->image_area.lr.y - cam->image_area.ul.y; // Rows High
+	cam->grabrowwidth = cam->image_area.lr.x - cam->image_area.ul.x; // Pixels Wide
+	cam->flushcountbeforefirstrow = cam->image_area.ul.y; // Vertical Offset
+	cam->grabrowindex = 0;
+	cam->grabrowbatchsize = 0;
+	cam->grabrowcounttot = 0;
+	cam->grabrowbufferindex = 0;
+	cam->flushcountafterlastrow = 0;
+	cam->ibuf_wr_idx = cam->ibuf;
+	cam->bytesleft = (cam->top_height + cam->bottom_height) *
+		(cam->left_width + cam->right_width) * sizeof(unsigned short);
+
+	if (size < (cam->grabrowcount * cam->grabrowwidth * sizeof(unsigned short)))
+	{
+		debug(FLIDEBUG_FAIL, "Buffer not large enough to receive frame.");
+		return -ENOMEM;
+	}
+
+	status = 0;
+  while ((status == 0) && (y < cam->grabrowcount))
+	{
+//		debug(FLIDEBUG_INFO, "Grabbing row %d of %d of width %d.", y, cam->grabrowcount, cam->grabrowwidth);
+
+		status = fli_camera_usb_grab_row(dev, buff, cam->grabrowwidth);
+//		((unsigned short *) buff) += cam->grabrowwidth;
+		buff = ((unsigned short *) buff) + cam->grabrowwidth;
+
+		y++;
+	}
+
+	return status;
+}
+
+long fli_camera_usb_set_tdi(flidev_t dev, flitdirate_t rate, flitdiflags_t flags)
+{
+  flicamdata_t *cam = DEVICE->device_data;
+	iobuf_t buf[IOBUF_MAX_SIZ];
+	long rlen, wlen;
+	long r = 0;
+
+	memset(buf, 0x00, IOBUF_MAX_SIZ);
+
+	/* Some of these don't support TDI */
+	if ( !SUPPORTS_TDI(DEVICE) || (rate < 0) )
+	{
+		return -EINVAL;
+	}
+
+	switch (DEVICE->devinfo.devid)
+  {
+		/* MaxCam and IMG cameras */
+		case FLIUSB_CAM_ID:
+		{
+			/* These cameras don't support TDI */
+			r = -EINVAL;
+		}
+		break;
+
+		case FLIUSB_PROLINE_ID:
+		{
+			cam->tdirate = rate;
+			cam->tdiflags = flags;
+
+			rlen = 2; wlen = 6;
+			IOWRITE_U16(buf, 0, PROLINE_COMMAND_SET_TDI_MODE);
+
+			/* TDI Rate */
+			IOWRITE_U32(buf, 2, cam->tdirate);
+
+			/* Enable */
+			IO(dev, buf, &wlen, &rlen);
+		}
+		break;
+
+		default:
+			debug(FLIDEBUG_WARN, "Hmmm, shouldn't be here, operation on NO camera...");
+			break;
+	}
+
+	return r;
+}
+
 long fli_camera_usb_expose_frame(flidev_t dev)
 {
   flicamdata_t *cam = DEVICE->device_data;
 	iobuf_t buf[IOBUF_MAX_SIZ];
 	long rlen, wlen;
 	long r = 0;
+
+	memset(buf, 0x00, IOBUF_MAX_SIZ);
+
+	if (cam->video_mode == VIDEO_MODE_ON)
+	{
+		debug(FLIDEBUG_FAIL, "Video mode has started.");
+		return -EINVAL;
+	}
 
 	switch (DEVICE->devinfo.devid)
   {
@@ -1191,14 +1842,13 @@ long fli_camera_usb_expose_frame(flidev_t dev)
 
 			/* What flags do we need to send... */
 			/* Dark Frame */
-			flags |= (cam->frametype == FLI_FRAME_TYPE_DARK) ? 0x01 : 0x00;
+			flags |= (cam->frametype & FLI_FRAME_TYPE_DARK) ? 0x01 : 0x00;
 			/* External trigger */
 			flags |= (cam->exttrigger != 0) ? 0x04 : 0x00;
 			flags |= (cam->exttriggerpol != 0) ? 0x08 : 0x00;
 
 			debug(FLIDEBUG_INFO, "Exposure flags: %04x", flags);
 			debug(FLIDEBUG_INFO, "Flushing %d times.", cam->flushes);
-		//	debug(FLIDEBUG_INFO, "Flushing bin factor(X,Y) %d, %d.", cam->hflushbin, cam->vflushbin);
 
 			if (cam->flushes > 0)
 			{
@@ -1210,7 +1860,7 @@ long fli_camera_usb_expose_frame(flidev_t dev)
 					return r;
 			}
 
-			debug(FLIDEBUG_INFO, "Starting exposure.");
+			debug(FLIDEBUG_INFO, "Starting exposure...");
 			rlen = 0; wlen = 4;
 			IOWRITE_U16(buf, 0, FLI_USBCAM_STARTEXPOSURE);
 			IOWRITE_U16(buf, 2, flags);
@@ -1255,9 +1905,21 @@ long fli_camera_usb_expose_frame(flidev_t dev)
 		case FLIUSB_PROLINE_ID:
 		{
 			short h_offset;
+			size_t numpix;
 
 			cam->grabrowcount = cam->image_area.lr.y - cam->image_area.ul.y; // Rows High
 			cam->grabrowwidth = cam->image_area.lr.x - cam->image_area.ul.x; // Pixels Wide
+
+			/* Row width in bytes must be multiple of 512 (256 pixels) so that
+			 * single rows can be grabbed by FLIGrabRow
+			 */
+
+			if (cam->tdirate != 0)
+			{
+				if ((cam->grabrowwidth % 256) != 0)
+					cam->grabrowwidth += (256 - (cam->grabrowwidth % 256));
+			}
+
 			cam->flushcountbeforefirstrow = cam->image_area.ul.y; // Vertical Offset
 			h_offset = cam->image_area.ul.x; // Horizontal Offset
 
@@ -1270,7 +1932,17 @@ long fli_camera_usb_expose_frame(flidev_t dev)
 			if (cam->grabrowwidth <= 0)
 				return -EINVAL;
 
-			rlen = 0; wlen = 32;
+			/* Check FW revision, >= 2.0 returns a structure defining
+			 * image parameters */
+
+			if (DEVICE->devinfo.fwrev >= 0x0200)
+			{
+				rlen = 64; wlen = 64;
+			}
+			else
+			{
+				rlen = 0; wlen = 32;
+			}
 			IOWRITE_U16(buf, 0, PROLINE_COMMAND_EXPOSE);
 
 			/* Number of pixels wide */
@@ -1294,14 +1966,89 @@ long fli_camera_usb_expose_frame(flidev_t dev)
 			/* Exposure */
 			IOWRITE_U32(buf, 12, cam->exposure);
 
-			/* Now the exposure flags */
-			buf[16]  = (cam->frametype == FLI_FRAME_TYPE_DARK) ? 0x01 : 0x00;
-
+			/* Now the exposure flags (16, 17 will be for them) */
+			buf[16]  = (cam->frametype & FLI_FRAME_TYPE_DARK) ? 0x01 : 0x00;
+			buf[16] |= (cam->frametype & FLI_FRAME_TYPE_FLOOD) ? 0x08 : 0x00;
 			buf[16] |= ((cam->exttrigger != 0) && (cam->exttriggerpol == 0)) ? 0x02 : 0x00;
 			buf[16] |= ((cam->exttrigger != 0) && (cam->exttriggerpol != 0)) ? 0x04 : 0x00;
+			buf[16] |= (cam->extexposurectrl != 0) ? 0x20 : 0x00;
+
+			if ((cam->video_mode == VIDEO_MODE_BEGIN) && SUPPORTS_VIDEO(DEVICE))
+			{
+				buf[16] |= 0x10; /* Enable video mode */
+				cam->video_mode = VIDEO_MODE_ON;
+			}
 
 			/* Perform the transation */
 			IO(dev, buf, &wlen, &rlen);
+
+			 /* Newer Proline/Microline */
+			if (DEVICE->devinfo.fwrev >= 0x0200)
+			{
+				IOREAD_U16L(buf, 0, cam->top_height)
+				IOREAD_U16L(buf, 2, cam->top_offset)
+				IOREAD_U16L(buf, 44, cam->bottom_height)
+				IOREAD_U16L(buf, 4, cam->bottom_offset)
+				IOREAD_U16L(buf, 11, cam->left_width)
+				IOREAD_U16L(buf, 13, cam->left_offset)
+				IOREAD_U16L(buf, 15, cam->right_width)
+				IOREAD_U16L(buf, 17, cam->right_offset)
+			}
+			else
+			{
+				cam->top_height = cam->grabrowcount;
+				cam->top_offset = 0;
+				cam->bottom_height = 0;
+				cam->bottom_offset = cam->grabrowcount;
+				cam->left_width = cam->grabrowwidth;
+				cam->left_offset = 0;
+				cam->right_width = 0;
+				cam->right_offset =cam->grabrowwidth;
+			}
+
+			debug(FLIDEBUG_INFO, "         Grab Height: %d", cam->top_height);
+			debug(FLIDEBUG_INFO, "           Top Flush: %d", cam->top_offset);
+			debug(FLIDEBUG_INFO, "       Bottom Height: %d", cam->bottom_height);
+			debug(FLIDEBUG_INFO, "        Bottom Flush: %d", cam->bottom_offset);
+			debug(FLIDEBUG_INFO, "          Left Width: %d", cam->left_width);
+			debug(FLIDEBUG_INFO, "         Left Offset: %d", cam->left_offset);
+			debug(FLIDEBUG_INFO, "         Right Width: %d", cam->right_width);
+			debug(FLIDEBUG_INFO, "        Right Offset: %d", cam->right_offset);
+
+			numpix = (cam->top_height + cam->bottom_height) *
+				(cam->left_width + cam->right_width);
+
+			cam->dl_index = 0;
+			cam->bytesleft = numpix * sizeof(unsigned short);
+
+			/* Let's reallocate the image buffer if needed, this will
+			 * allow us to build the entire image in memory. This is needed
+			 * for top/bottom (four quadrant) detectors. */
+
+			if (cam->ibuf_siz < (numpix * sizeof(unsigned short)))
+			{
+				if (cam->ibuf != NULL)
+					xfree(cam->ibuf);
+
+				cam->ibuf = NULL;
+				cam->ibuf_siz = numpix * sizeof(unsigned short);
+
+#ifdef __linux__
+				/* Linux needs this page aligned, hopefully this is 512 byte aligned too... */
+				cam->ibuf_siz = ((cam->ibuf_siz / getpagesize()) + 1) * getpagesize();
+				if ((cam->ibuf = xmemalign(getpagesize(), cam->ibuf_siz)) == NULL)
+					r = -ENOMEM;
+#else
+				/* Just 512 byte align it... */
+				if ((cam->ibuf = xmalloc(cam->ibuf_siz)) == NULL)
+					r = -ENOMEM;
+#endif
+				if (r != 0)
+					cam->ibuf_siz = 0;
+			}
+
+			/* Initialize all the buffer pointers */
+			cam->ibuf_wr_idx = cam->ibuf;
 		}
 		break;
 
@@ -1319,6 +2066,8 @@ long fli_camera_usb_flush_rows(flidev_t dev, long rows, long repeat)
 	iobuf_t buf[IOBUF_MAX_SIZ];
 	long rlen, wlen;
 	long r = 0;
+
+	memset(buf, 0x00, IOBUF_MAX_SIZ);
 
   if (rows < 0)
     return -EINVAL;
@@ -1402,6 +2151,8 @@ long fli_camera_usb_read_ioport(flidev_t dev, long *ioportset)
 	long rlen, wlen;
 	long r = 0;
 
+	memset(buf, 0x00, IOBUF_MAX_SIZ);
+
 	switch (DEVICE->devinfo.devid)
   {
 		/* MaxCam and IMG cameras */
@@ -1438,6 +2189,8 @@ long fli_camera_usb_write_ioport(flidev_t dev, long ioportset)
 	iobuf_t buf[IOBUF_MAX_SIZ];
 	long rlen, wlen;
 	long r = 0;
+
+	memset(buf, 0x00, IOBUF_MAX_SIZ);
 
 	switch (DEVICE->devinfo.devid)
   {
@@ -1476,6 +2229,8 @@ long fli_camera_usb_configure_ioport(flidev_t dev, long ioportset)
 	long rlen, wlen;
 	long r = 0;
 
+	memset(buf, 0x00, IOBUF_MAX_SIZ);
+
 	switch (DEVICE->devinfo.devid)
   {
 		/* MaxCam and IMG cameras */
@@ -1513,6 +2268,8 @@ long fli_camera_usb_control_shutter(flidev_t dev, long shutter)
 	long rlen, wlen;
 	long r = 0;
 
+	memset(buf, 0x00, IOBUF_MAX_SIZ);
+
 	switch (DEVICE->devinfo.devid)
   {
 		/* MaxCam and IMG cameras */
@@ -1529,9 +2286,6 @@ long fli_camera_usb_control_shutter(flidev_t dev, long shutter)
 		case FLIUSB_PROLINE_ID:
 		{
 			unsigned char c = 0;
-
-			debug(FLIDEBUG_INFO, "JIM!!");
-
 
 			switch (shutter)
 			{
@@ -1575,6 +2329,8 @@ long fli_camera_usb_control_bgflush(flidev_t dev, long bgflush)
 	long rlen, wlen;
 	long r = 0;
 
+	memset(buf, 0x00, IOBUF_MAX_SIZ);
+
 	if( (bgflush != FLI_BGFLUSH_STOP) &&
 		(bgflush != FLI_BGFLUSH_START) )
 	return -EINVAL;
@@ -1591,7 +2347,6 @@ long fli_camera_usb_control_bgflush(flidev_t dev, long bgflush)
 				debug(FLIDEBUG_WARN, "Background flush commanded on early firmware.");
 				return -EFAULT;
 			}
-
 			rlen = 0; wlen = 4;
 			IOWRITE_U16(buf, 0, FLI_USBCAM_BGFLUSH);
 			IOWRITE_U16(buf, 2, bgflush);
@@ -1602,6 +2357,16 @@ long fli_camera_usb_control_bgflush(flidev_t dev, long bgflush)
 		/* Proline Camera */
 		case FLIUSB_PROLINE_ID:
 		{
+			if(DEVICE->devinfo.fwrev < 0x0110)
+			{
+				debug(FLIDEBUG_WARN, "Background flush commanded on early firmware.");
+				return -EFAULT;
+			}
+
+			rlen = 2; wlen = 4;
+			IOWRITE_U16(buf, 0, PROLINE_COMMAND_SET_BGFLUSH);
+			IOWRITE_U16(buf, 2, bgflush);
+			IO(dev, buf, &wlen, &rlen);
 
 		}
 		break;
@@ -1621,13 +2386,15 @@ long fli_camera_usb_get_cooler_power(flidev_t dev, double *power)
 	long rlen, wlen;
 	long r = 0;
 
+	memset(buf, 0x00, IOBUF_MAX_SIZ);
+
 	*power = 0.0;
 	switch (DEVICE->devinfo.devid)
   {
 		/* MaxCam and IMG cameras */
 		case FLIUSB_CAM_ID:
 		{
-			return -EFAULT;
+			r = -EFAULT;
 		}
 		break;
 
@@ -1636,12 +2403,20 @@ long fli_camera_usb_get_cooler_power(flidev_t dev, double *power)
 		{
 			short pwm;
 
-			rlen = 14; wlen = 2;
-			IOWRITE_U16(buf, 0, PROLINE_COMMAND_GET_TEMPERATURE);
-			IO(dev, buf, &wlen, &rlen);
+			if (DEVICE->devinfo.fwrev == 0x0100)
+			{
+				r = -EFAULT;
+			}
+			else
+			{
 
-			IOREAD_U16(buf, 4, pwm);
-			*power = (double) pwm;
+				rlen = 14; wlen = 2;
+				IOWRITE_U16(buf, 0, PROLINE_COMMAND_GET_TEMPERATURE);
+				IO(dev, buf, &wlen, &rlen);
+
+				IOREAD_U16(buf, 4, pwm);
+				*power = (double) pwm;
+			}
 		}
 		break;
 
@@ -1650,7 +2425,6 @@ long fli_camera_usb_get_cooler_power(flidev_t dev, double *power)
 			break;
 	}
 
-	debug(FLIDEBUG_INFO, "Cooler power: %f", *power);
   return r;
 }
 
@@ -1661,6 +2435,8 @@ long fli_camera_usb_get_camera_status(flidev_t dev, long *camera_status)
 	long rlen, wlen;
 	long r = 0;
 
+	memset(buf, 0x00, IOBUF_MAX_SIZ);
+
 	switch (DEVICE->devinfo.devid)
   {
 		/* MaxCam and IMG cameras */
@@ -1673,10 +2449,17 @@ long fli_camera_usb_get_camera_status(flidev_t dev, long *camera_status)
 		/* Proline Camera */
 		case FLIUSB_PROLINE_ID:
 		{
-			rlen = 4; wlen = 2;
-			IOWRITE_U16(buf, 0, PROLINE_COMMAND_GET_STATUS);
-			IO(dev, buf, &wlen, &rlen);
-			IOREAD_U32(buf, 0, *camera_status);
+			if (DEVICE->devinfo.fwrev == 0x0100)
+			{
+				*camera_status = FLI_CAMERA_STATUS_UNKNOWN;
+			}
+			else
+			{
+				rlen = 4; wlen = 2;
+				IOWRITE_U16(buf, 0, PROLINE_COMMAND_GET_STATUS);
+				IO(dev, buf, &wlen, &rlen);
+				IOREAD_U32(buf, 0, *camera_status);
+			}
 		}
 		break;
 
@@ -1695,6 +2478,8 @@ long fli_camera_usb_get_camera_mode(flidev_t dev, flimode_t *camera_mode)
 	long rlen, wlen;
 	long r = 0;
 
+	memset(buf, 0x00, IOBUF_MAX_SIZ);
+
 	switch (DEVICE->devinfo.devid)
   {
 		/* MaxCam and IMG cameras */
@@ -1707,10 +2492,17 @@ long fli_camera_usb_get_camera_mode(flidev_t dev, flimode_t *camera_mode)
 		/* Proline Camera */
 		case FLIUSB_PROLINE_ID:
 		{
-			rlen = 2; wlen = 2;
-			IOWRITE_U16(buf, 0, PROLINE_COMMAND_GET_CURRENT_MODE);
-			IO(dev, buf, &wlen, &rlen);
-			IOREAD_U16(buf, 0, *camera_mode);
+			if (DEVICE->devinfo.fwrev == 0x0100)
+			{
+				*camera_mode = 0;
+			}
+			else
+			{
+				rlen = 2; wlen = 2;
+				IOWRITE_U16(buf, 0, PROLINE_COMMAND_GET_CURRENT_MODE);
+				IO(dev, buf, &wlen, &rlen);
+				IOREAD_U16(buf, 0, *camera_mode);
+			}
 		}
 		break;
 
@@ -1729,6 +2521,8 @@ long fli_camera_usb_set_camera_mode(flidev_t dev, flimode_t camera_mode)
 	long rlen, wlen;
 	long r = 0;
 
+	memset(buf, 0x00, IOBUF_MAX_SIZ);
+
 	switch (DEVICE->devinfo.devid)
   {
 		/* MaxCam and IMG cameras */
@@ -1744,18 +2538,20 @@ long fli_camera_usb_set_camera_mode(flidev_t dev, flimode_t camera_mode)
 		{
 			flimode_t mode;
 
-			rlen = 2; wlen = 4;
-			IOWRITE_U16(buf, 0, PROLINE_COMMAND_SET_MODE);
-			IOWRITE_U16(buf, 2, camera_mode);
-			IO(dev, buf, &wlen, &rlen);
-			IOREAD_U16(buf, 0, mode);
-
-			if (mode != camera_mode)
+			if (DEVICE->devinfo.fwrev >= 0x0101)
 			{
-				debug(FLIDEBUG_FAIL, "Error setting camera mode, tried %d, performed %d.", camera_mode, mode);
-				r = -EINVAL;
-			}
+				rlen = 2; wlen = 4;
+				IOWRITE_U16(buf, 0, PROLINE_COMMAND_SET_MODE);
+				IOWRITE_U16(buf, 2, camera_mode);
+				IO(dev, buf, &wlen, &rlen);
+				IOREAD_U16(buf, 0, mode);
 
+				if (mode != camera_mode)
+				{
+					debug(FLIDEBUG_FAIL, "Error setting camera mode, tried %d, performed %d.", camera_mode, mode);
+					r = -EINVAL;
+				}
+			}
 		}
 		break;
 
@@ -1774,6 +2570,8 @@ long fli_camera_usb_get_camera_mode_string(flidev_t dev, flimode_t camera_mode, 
 	long rlen, wlen;
 	long r = 0;
 
+	memset(buf, 0x00, IOBUF_MAX_SIZ);
+
 	switch (DEVICE->devinfo.devid)
   {
 		/* MaxCam and IMG cameras */
@@ -1789,14 +2587,24 @@ long fli_camera_usb_get_camera_mode_string(flidev_t dev, flimode_t camera_mode, 
 		/* Proline Camera */
 		case FLIUSB_PROLINE_ID:
 		{
-			rlen = 32; wlen = 4;
-			IOWRITE_U16(buf, 0, PROLINE_COMMAND_GET_MODE_STRING);
-			IOWRITE_U16(buf, 2, camera_mode);
-			IO(dev, buf, &wlen, &rlen);
+			if (DEVICE->devinfo.fwrev == 0x0100)
+			{
+				if (camera_mode > 0)
+					r = -EINVAL;
+				else
+					strncpy((char *) dest, "Default Mode", siz - 1);
+			}
+			else
+			{
+				rlen = 32; wlen = 4;
+				IOWRITE_U16(buf, 0, PROLINE_COMMAND_GET_MODE_STRING);
+				IOWRITE_U16(buf, 2, camera_mode);
+				IO(dev, buf, &wlen, &rlen);
 
-			strncpy((char *) dest, (char *) buf, MIN(siz - 1, 31));
-			if (dest[0] == '\0')
-				r = -EINVAL;
+				strncpy((char *) dest, (char *) buf, MIN(siz - 1, 31));
+				if (dest[0] == '\0')
+					r = -EINVAL;
+			}
 		}
 		break;
 
@@ -1807,3 +2615,137 @@ long fli_camera_usb_get_camera_mode_string(flidev_t dev, flimode_t camera_mode, 
 
   return r;
 }
+
+long fli_camera_usb_end_exposure(flidev_t dev)
+{
+	long r = 0;
+//	flicamdata_t *cam = DEVICE->device_data;
+
+	switch (DEVICE->devinfo.devid)
+  {
+		/* MaxCam and IMG cameras */
+		case FLIUSB_CAM_ID:
+		{
+			r = -EINVAL;
+		}
+		break;
+
+		/* Proline Camera */
+		case FLIUSB_PROLINE_ID:
+		{
+			long rlen = 4, wlen = 4;
+			iobuf_t buf[IOBUF_MAX_SIZ];
+
+			if (SUPPORTS_END_EXPOSURE(DEVICE) != 0)
+			{
+				IOWRITE_U16(buf, 0, PROLINE_COMMAND_UPDATE_EXPOSURE);
+				IOWRITE_U16(buf, 2, 0x0001);
+				IO(dev, buf, &wlen, &rlen);
+
+				/* The camera returns status at this point, I dunno what we want to do with it
+				   so nothing. */
+
+			}
+			else
+			{
+				r = -EINVAL;
+			}
+		}
+		break;
+
+		default:
+			debug(FLIDEBUG_WARN, "Hmmm, shouldn't be here, operation on NO camera...");
+			break;
+	}
+
+	return r;
+}
+
+long fli_camera_usb_trigger_exposure(flidev_t dev)
+{
+	long r = 0;
+//	flicamdata_t *cam = DEVICE->device_data;
+
+	switch (DEVICE->devinfo.devid)
+  {
+		/* MaxCam and IMG cameras */
+		case FLIUSB_CAM_ID:
+		{
+			r = -EINVAL;
+		}
+		break;
+
+		/* Proline Camera */
+		case FLIUSB_PROLINE_ID:
+		{
+			long rlen = 4, wlen = 4;
+			iobuf_t buf[IOBUF_MAX_SIZ];
+
+			if (SUPPORTS_SOFTWARE_TRIGGER(DEVICE) != 0)
+			{
+				IOWRITE_U16(buf, 0, PROLINE_COMMAND_UPDATE_EXPOSURE);
+				IOWRITE_U16(buf, 2, 0x0002);
+				IO(dev, buf, &wlen, &rlen);
+
+				/* The camera returns status at this point, I dunno what we want to do with it
+				   so nothing. */
+
+			}
+			else
+			{
+				r = -EINVAL;
+			}
+		}
+		break;
+
+		default:
+			debug(FLIDEBUG_WARN, "Hmmm, shouldn't be here, operation on NO camera...");
+			break;
+	}
+
+	return r;
+}
+
+long fli_camera_usb_set_fan_speed(flidev_t dev, long fan_speed)
+{
+//  flicamdata_t *cam = DEVICE->device_data;
+	iobuf_t buf[IOBUF_MAX_SIZ];
+	long rlen, wlen;
+	long r = 0;
+
+	memset(buf, 0x00, IOBUF_MAX_SIZ);
+
+	switch (DEVICE->devinfo.devid)
+  {
+		/* MaxCam and IMG cameras */
+		case FLIUSB_CAM_ID:
+		{
+			r = -EFAULT;
+		}
+		break;
+
+		/* Proline Camera */
+		case FLIUSB_PROLINE_ID:
+		{
+			if(DEVICE->devinfo.fwrev < 0x0122)
+			{
+				debug(FLIDEBUG_WARN, "Fan speed control with early firmware.");
+				return -EFAULT;
+			}
+
+			rlen = 2; wlen = 4;
+			IOWRITE_U16(buf, 0, PROLINE_COMMAND_SET_FAN_SPEED);
+			IOWRITE_U16(buf, 2, (short) fan_speed);
+			IO(dev, buf, &wlen, &rlen);
+
+		}
+		break;
+
+		default:
+			debug(FLIDEBUG_WARN, "Hmmm, shouldn't be here, operation on NO camera...");
+			break;
+	}
+
+  return r;
+}
+
