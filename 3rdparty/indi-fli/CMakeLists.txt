@@ -34,7 +34,7 @@ endif (NOVA_FOUND)
 ###### FLI Precision Digital Focuser ######
 if (FLI_FOUND)
 set(flipdf_SRCS
-	${CMAKE_SOURCE_DIR}/drivers/focuser/fli_pdf.c
+	${CMAKE_SOURCE_DIR}/fli_pdf.c
 )
 
 add_executable(indi_fli_focus ${flipdf_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
@@ -52,7 +52,7 @@ endif(FLI_FOUND)
 if (CFITSIO_FOUND AND FLI_FOUND)
 
 set(fliccd_SRCS
-	${CMAKE_SOURCE_DIR}/drivers/ccd/fli_ccd.c
+	${CMAKE_SOURCE_DIR}/fli_ccd.c
 )
 
 add_executable(indi_fli_ccd ${fliccd_SRCS})
