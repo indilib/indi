@@ -1,0 +1,13 @@
+<devGroup group="CCDs">
+	<device label="FLI CCD">
+		<driver name="FLI CCD">indi_fli_ccd</driver>
+		<version>1.0</version>
+	</device>
+</devGroup>
+<devGroup group="Focusers">
+	<device label="FLI PDF">
+                <driver name="FLI PDF">indi_fli_focus</driver>
+		<version>0.1</version>
+	</device>
+</devGroup>
+

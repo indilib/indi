@@ -53,6 +53,14 @@
 3rdparty/indi-apogee/README -text
 3rdparty/indi-apogee/indi_apogee.xml -text
 3rdparty/indi-apogee/indialta.c -text
+3rdparty/indi-fli/AUTHORS -text
+3rdparty/indi-fli/CMakeLists.txt -text
+3rdparty/indi-fli/INSTALL -text
+3rdparty/indi-fli/README -text
+3rdparty/indi-fli/config.h.cmake -text
+3rdparty/indi-fli/fli_ccd.c -text
+3rdparty/indi-fli/fli_pdf.c -text
+3rdparty/indi-fli/indi_fli.xml -text
 3rdparty/indi-gphoto/AUTHORS -text
 3rdparty/indi-gphoto/CMakeLists.txt -text
 3rdparty/indi-gphoto/COPYING.LIB -text
