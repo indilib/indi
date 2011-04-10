@@ -552,6 +552,8 @@ libindi/drivers/telescope/lx200gps.h -text
 libindi/drivers/telescope/orionatlas.cpp -text
 libindi/drivers/telescope/orionatlas.h -text
 libindi/drivers/telescope/skycommander.c -text
+libindi/drivers/telescope/synscanmount.cpp -text
+libindi/drivers/telescope/synscanmount.h -text
 libindi/drivers/telescope/temmadriver.c -text
 libindi/drivers/telescope/temmadriver.h -text
 libindi/drivers/video/indi_lpi.cpp -text
