@@ -31,7 +31,9 @@
 
 #include <usb.h>
 
-class UsbDevice
+#include "indibase.h"
+
+class INDI::USBDevice
 {
 protected:
 	struct usb_device *dev;
@@ -57,9 +59,9 @@ public:
 	int ReadBulk(char *,int,int);
 	int FindEndpoints();
 	int Open();
-	UsbDevice(void);
-	UsbDevice(struct usb_device *);
-	virtual ~UsbDevice(void);
+        USBDevice(void);
+        USBDevice(struct usb_device *);
+        virtual ~USBDevice(void);
 };
 
 #endif // USBDEVICE_H

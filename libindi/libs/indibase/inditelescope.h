@@ -84,7 +84,7 @@ class INDI::Telescope : public INDI::DefaultDriver
         virtual bool Connect();
         virtual bool Disconnect();
 
-        virtual bool Connect(char *);
+        virtual bool Connect(const char *);
 
 
         //  Since every mount I know of actually uses a serial port for control
@@ -92,9 +92,6 @@ class INDI::Telescope : public INDI::DefaultDriver
         //  One less piece to worry about in the hardware specific
         //  low level stuff
         int PortFD;
-        int writen(int fd, unsigned char* ptr, int nbytes);
-        int readn(int fd, unsigned char* ptr, int nbytes, int sec);
-        int portstat(int fd,int sec,int usec);
 
 
         //  This is a variable filled in by the ReadStatus telescope

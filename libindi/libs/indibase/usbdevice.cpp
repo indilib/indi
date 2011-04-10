@@ -18,11 +18,11 @@
   The full GNU General Public License is included in this distribution in the
   file called LICENSE.
 *******************************************************************************/
-#include "UsbDevice.h"
+#include "usbdevice.h"
 
 #include <string.h>
 
-UsbDevice::UsbDevice()
+INDI::USBDevice::USBDevice()
 {
 	dev=NULL;
 	usb_handle=NULL;
@@ -35,11 +35,11 @@ UsbDevice::UsbDevice()
 }
 
 
-UsbDevice::~UsbDevice()
+INDI::USBDevice::~USBDevice()
 {
 }
 
-struct usb_device * UsbDevice::FindDevice(int vendor, int product, int searchindex)
+struct usb_device * INDI::USBDevice::FindDevice(int vendor, int product, int searchindex)
 {
     struct usb_device *dev;
     struct usb_bus *usb_bus;
@@ -62,7 +62,7 @@ struct usb_device * UsbDevice::FindDevice(int vendor, int product, int searchind
 
 }
 
-int UsbDevice::Open()
+int INDI::USBDevice::Open()
 {
 	if(dev==NULL) return -1;
 
@@ -76,7 +76,7 @@ int UsbDevice::Open()
 	return -1;
 }
 
-int UsbDevice::FindEndpoints()
+int INDI::USBDevice::FindEndpoints()
 {
 
 	int rc=0;
@@ -128,7 +128,7 @@ int UsbDevice::FindEndpoints()
 
 }
 
-int UsbDevice::ReadInterrupt(char *buf,int c,int timeout)
+int INDI::USBDevice::ReadInterrupt(char *buf,int c,int timeout)
 {
 	int rc;
 
@@ -138,7 +138,7 @@ int UsbDevice::ReadInterrupt(char *buf,int c,int timeout)
 
 }
 
-int UsbDevice::WriteInterrupt(char *buf,int c,int timeout)
+int INDI::USBDevice::WriteInterrupt(char *buf,int c,int timeout)
 {
 	int rc;
 
@@ -148,7 +148,7 @@ int UsbDevice::WriteInterrupt(char *buf,int c,int timeout)
 
 }
 
-int UsbDevice::ReadBulk(char *buf,int c,int timeout)
+int INDI::USBDevice::ReadBulk(char *buf,int c,int timeout)
 {
 	int rc;
 
@@ -158,7 +158,7 @@ int UsbDevice::ReadBulk(char *buf,int c,int timeout)
 
 }
 
-int UsbDevice::WriteBulk(char *buf,int c,int timeout)
+int INDI::USBDevice::WriteBulk(char *buf,int c,int timeout)
 {
 	int rc;
 
@@ -169,7 +169,7 @@ int UsbDevice::WriteBulk(char *buf,int c,int timeout)
 
 }
 
-int UsbDevice::ControlMessage()
+int INDI::USBDevice::ControlMessage()
 {
     char buf[3];
     int rc;

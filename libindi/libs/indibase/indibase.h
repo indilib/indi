@@ -29,6 +29,7 @@ namespace INDI
     class Telescope;
     class FilterWheel;
     class Focuser;
+    class USBDevice;
 }
 
 

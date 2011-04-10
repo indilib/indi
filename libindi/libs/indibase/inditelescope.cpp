@@ -20,6 +20,7 @@
 *******************************************************************************/
 
 #include "inditelescope.h"
+#include "libs/indicom.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -173,10 +174,12 @@ bool INDI::Telescope::ISNewText (const char *dev, const char *name, char *texts[
     //  Ok, lets see if this is a property wer process
     //IDLog("INDI::Telescope got %d new text items name %s\n",n,name);
     //  first check if it's for our device
-    if(strcmp(dev,deviceName())==0) {
+    if(strcmp(dev,deviceName())==0)
+    {
         //  This is for our device
         //  Now lets see if it's something we process here
-        if(strcmp(name,PortTV.name)==0) {
+        if(strcmp(name,PortTV.name)==0)
+        {
             //  This is our port, so, lets process it
 
             //  Some clients insist on sending a port
@@ -213,7 +216,8 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
 {
     //  first check if it's for our device
     //IDLog("INDI::Telescope::ISNewNumber %s\n",name);
-    if(strcmp(dev,deviceName())==0) {
+    if(strcmp(dev,deviceName())==0)
+    {
         //  This is for our device
         //  Now lets see if it's something we process here
         //  Cartes sends the REQUEST
@@ -225,19 +229,23 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
             double ra=-1;
             double dec=-100;
 
-            for (int x=0; x<n; x++) {
+            for (int x=0; x<n; x++)
+            {
 
                 //IDLog("request stuff %s %4.2f\n",names[x],values[x]);
 
                 INumber *eqp = IUFindNumber (&EqNV, names[x]);
-                if (eqp == &EqN[0]) {
+                if (eqp == &EqN[0])
+                {
                     ra = values[x];
-                } else if (eqp == &EqN[1]) {
+                } else if (eqp == &EqN[1])
+                {
                     dec = values[x];
                 }
             }
             //IDLog("Got %4.2f %4.2f\n",ra,dec);
-            if ((ra>=0)&&(ra<=24)&&(dec>=-90)&&(dec<=90)) {
+            if ((ra>=0)&&(ra<=24)&&(dec>=-90)&&(dec<=90))
+            {
                 //  we got an ra and a dec, both in range
                 //  And now we let the underlying hardware specific class
                 //  perform the goto
@@ -245,7 +253,8 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
                 //  or a sync
                 ISwitch *sw;
                 sw=IUFindSwitch(&CoordSV,"SYNC");
-                if((sw != NULL)&&( sw->s==ISS_ON )) {
+                if((sw != NULL)&&( sw->s==ISS_ON ))
+                {
                     //IDLog("Got a sync, we dont process yet\n");
                     rc=Sync(ra,dec);
                 } else {
@@ -258,7 +267,8 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
             }
             return rc;
         }
-        if(strcmp(name,"GEOGRAPHIC_COORD")==0) {
+        if(strcmp(name,"GEOGRAPHIC_COORD")==0)
+        {
             //  Client wants to update the lat/long
             //  For now, we'll allow this, but, in future
             //  If we have lat/lon from gps, we'll prevent this
@@ -285,25 +295,28 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
     //    IDLog("Switch %s %d\n",names[x],states[x]);
     //}
 
-    if(strcmp(dev,deviceName())==0) {
+    if(strcmp(dev,deviceName())==0)
+    {
         //  This one is for us
-        if(strcmp(name,"ON_COORD_SET")==0) {
+        if(strcmp(name,"ON_COORD_SET")==0)
+        {
             //  client is telling us what to do with co-ordinate requests
             CoordSV.s=IPS_OK;
             IUUpdateSwitch(&CoordSV,states,names,n);
             //  Update client display
             IDSetSwitch(&CoordSV,NULL);
 
-            for(int x=0; x<n; x++) {
+            for(int x=0; x<n; x++)
+            {
 
 
             }
             return true;
         }
 
-        if(strcmp(name,"TELESCOPE_PARK")==0) {
+        if(strcmp(name,"TELESCOPE_PARK")==0)
+        {
             Park();
-
         }
     }
 
@@ -322,40 +335,34 @@ bool INDI::Telescope::Connect()
     //IDLog("Calling Connect\n");
 
     rc=Connect(PortT[0].text);
-    if(rc) {
+
+    if(rc)
         SetTimer(1000);
-    }
     return rc;
 }
 
-bool INDI::Telescope::Connect(char *port)
+bool INDI::Telescope::Connect(const char *port)
 {
     //  We want to connect to a port
     //  For now, we will assume it's a serial port
-    struct termios tty;
+    //struct termios tty;
+
+    int connectrc=0;
+    char errorMsg[MAXRBUF];
     bool rc;
 
-    /* Make the connection */
-    //IDLog("Trying to open %s\n",port);
-    PortFD = open(port,O_RDWR);
-    if(PortFD == -1) {
-        IDMessage(deviceName(),"Could not open port");
-        return false;
-    }
 
-    tcgetattr(PortFD,&tty);
-    cfsetospeed(&tty, (speed_t) B9600);
-    cfsetispeed(&tty, (speed_t) B9600);
-    tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8;
-    tty.c_iflag =  IGNBRK;
-    tty.c_lflag = 0;
-    tty.c_oflag = 0;
-    tty.c_cflag |= CLOCAL | CREAD;
-    tty.c_cc[VMIN] = 1;
-    tty.c_cc[VTIME] = 5;
-    tty.c_iflag &= ~(IXON|IXOFF|IXANY);
-    tty.c_cflag &= ~(PARENB | PARODD);
-    tcsetattr(PortFD, TCSANOW, &tty);
+    if ( (connectrc = tty_connect(port, B9600, 8, 0, 1, &PortFD)) != TTY_OK)
+    {
+        tty_error_msg(connectrc, errorMsg, MAXRBUF);
+
+        if (isDebug())
+            IDLog("Failed to connect o port %s. Error: %s", port, errorMsg);
+        IDMessage(deviceName(), "Failed to connect to port %s. Error: %s", port, errorMsg);
+
+        return false;
+
+    }
 
     /* Flush the input (read) buffer */
 
@@ -363,7 +370,8 @@ bool INDI::Telescope::Connect(char *port)
 
     /* Test connection */
     rc=ReadScopeStatus();
-    if(rc) {
+    if(rc)
+    {
         //  We got a valid scope status read
         IDMessage(deviceName(),"Telescope is online.");
         return rc;
@@ -399,9 +407,11 @@ void INDI::Telescope::TimerHit()
 
         rc=ReadScopeStatus();
         //IDLog("TrackState after read is %d\n",TrackState);
-        if(rc) {
+        if(rc)
+        {
             //  read was good
-            switch(TrackState) {
+            switch(TrackState)
+            {
                 case PARKED:
                 EqNV.s=IPS_IDLE;
                 break;
@@ -415,7 +425,8 @@ void INDI::Telescope::TimerHit()
                 break;
 
             }
-        } else {
+        } else
+        {
             //  read was not good
             EqNV.s=IPS_ALERT;
         }
@@ -426,50 +437,6 @@ void INDI::Telescope::TimerHit()
     }
 }
 
-int INDI::Telescope::writen(int fd, unsigned char* ptr, int nbytes)
-{
-    int nleft, nwritten;
-    nleft = nbytes;
-    while (nleft > 0) {
-        nwritten = write (fd, ptr, nleft);
-        if (nwritten <=0 ) break;
-        nleft -= nwritten;
-        ptr += nwritten;
-    }
-    return (nbytes - nleft);
-}
-
-int INDI::Telescope::readn(int fd, unsigned char* ptr, int nbytes, int sec)
-{
-    int status;
-    int nleft, nread;
-    nleft = nbytes;
-    while (nleft > 0) {
-        status = portstat(fd,sec,0);
-        if (status <=  0 ) break;
-        nread  = read (fd, ptr, nleft);
-        if (nread <= 0)  break;
-        nleft -= nread;
-        ptr += nread;
-    }
-    return (nbytes - nleft);
-}
-
-int INDI::Telescope::portstat(int fd,int sec,int usec)
-{
-    int ret;
-    int width;
-    struct timeval timeout;
-    fd_set readfds;
-
-    memset((char *)&readfds,0,sizeof(readfds));
-    FD_SET(fd, &readfds);
-    width = fd+1;
-    timeout.tv_sec = sec;
-    timeout.tv_usec = usec;
-    ret = select(width,&readfds,(fd_set *)0,(fd_set *)0,&timeout);
-    return(ret);
-}
 
 bool INDI::Telescope::Park()
 {

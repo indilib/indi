@@ -1,11 +1,10 @@
 cmake_minimum_required(VERSION 2.4.7)
 
-
 ##################  INDI version  ################################
 set(INDI_SOVERSION "0")
 set(CMAKE_INDI_VERSION_MAJOR 0)
-set(CMAKE_INDI_VERSION_MINOR 7)
-set(CMAKE_INDI_VERSION_RELEASE 2)
+set(CMAKE_INDI_VERSION_MINOR 8)
+set(CMAKE_INDI_VERSION_RELEASE 0)
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
 
 ##################  Paths  ################################
@@ -33,20 +32,17 @@ include (CheckIncludeFiles)
 find_package(ZLIB REQUIRED)
 
 macro_optional_find_package(USB)
-macro_log_feature(LIBUSB_FOUND "libusb" "User level access to USB devices" "http://indi.sf.net" FALSE "" "Provides support for USB based drivers in INDI.")
+macro_log_feature(LIBUSB_FOUND "libusb" "User level access to USB devices" "http://www.libusb.org" FALSE "" "Provides support for USB based drivers in INDI.")
 
 macro_optional_find_package(CFITSIO)
 
 if (NOT CFITSIO_FOUND OR CFITSIO_VERSION_MAJOR LESS 3)
-  message(FATAL_ERROR "CFITSIO version too old, Please install cfitsio 3.x and try again. http://indi.sf.net")
+  message(FATAL_ERROR "CFITSIO version too old, Please install cfitsio 3.x and try again. http://heasarc.gsfc.nasa.gov/fitsio/fitsio.html")
 endif (NOT CFITSIO_FOUND OR CFITSIO_VERSION_MAJOR LESS 3)
 
 macro_bool_to_01(CFITSIO_FOUND HAVE_CFITSIO_H)
 macro_log_feature(CFITSIO_FOUND "libcfitsio" "A library for reading and writing data files in FITS (Flexible Image Transport System) data format" "http://indi.sf.net" FALSE "3.03" "Provides INDI with FITS I/O support.")
 
-
-macro_optional_find_package(FLI)
-macro_log_feature(FLI_FOUND "libfli" "Finger Lakes Instrument Library" "http://www.indilib.org/" FALSE "1.71" "Provides INDI with support for controlling FLI CCDS & Filter Wheels.")
 
 macro_optional_find_package(Nova)
 macro_bool_to_01(NOVA_FOUND HAVE_NOVA_H)
@@ -75,10 +71,6 @@ if (NOVA_FOUND)
     include_directories(${NOVA_INCLUDE_DIR})
 endif (NOVA_FOUND)
 
-if (FLI_FOUND)
-    include_directories(${FLI_INCLUDE_DIR})
-endif (FLI_FOUND)
-
 set(liblilxml_SRCS  ${CMAKE_SOURCE_DIR}/libs/lilxml.c )
 
 set(libindicom_SRCS
@@ -100,19 +92,19 @@ set (indimain_SRCS
 	${CMAKE_SOURCE_DIR}/eventloop.c
     )
 
-set (indibase_SRCS
+set (indiclient_SRCS
         ${CMAKE_SOURCE_DIR}/libs/indibase/basedriver.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/baseclient.cpp
     )
 
-set (indidefaultdevice_SRCS
+set (indidriver_SRCS
         ${CMAKE_SOURCE_DIR}/libs/indibase/basedriver.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/defaultdriver.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/indiccd.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/inditelescope.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/indifilterwheel.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/indifocuser.cpp
-
+        ${CMAKE_SOURCE_DIR}/libs/indibase/usbdevice.cpp
     )
 
 
@@ -132,7 +124,6 @@ endif (NOVA_FOUND)
 
 install(TARGETS indiserver RUNTIME DESTINATION bin )
 
-
 #################################################
 ############# INDI Shared Library ###############
 #################################################
@@ -145,30 +136,26 @@ endif(NOVA_FOUND)
 if (CFITSIO_FOUND)
 target_link_libraries(indi ${CFITSIO_LIBRARIES})
 endif(CFITSIO_FOUND)
-if (FLI_FOUND)
-target_link_libraries(indi ${FLI_LIBRARIES})
-endif(FLI_FOUND)
 
 install(TARGETS indi LIBRARY DESTINATION lib${LIB_POSTFIX})
 set_target_properties(indi PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION})
 
-
 ##################################################
 ######## INDI Base Driver Static Library #########
 ##################################################
-add_library(indibasedriver STATIC ${indimain_SRCS})
-install(TARGETS indibasedriver ARCHIVE DESTINATION lib${LIB_POSTFIX})
+#add_library(indibasedriver STATIC ${indimain_SRCS})
+#install(TARGETS indibasedriver ARCHIVE DESTINATION lib${LIB_POSTFIX})
 
 ##################################################
 ###### INDI Default Driver Static Library ########
 ##################################################
-add_library(indidefaultdriver STATIC ${indimain_SRCS} ${indidefaultdevice_SRCS})
-install(TARGETS indidefaultdriver ARCHIVE DESTINATION lib${LIB_POSTFIX})
+add_library(indidriver STATIC ${indimain_SRCS} ${indidriver_SRCS})
+install(TARGETS indidriver ARCHIVE DESTINATION lib${LIB_POSTFIX})
 
 ##################################################
-############# INDI Client Library ################
+########### INDI Client Static Library ###########
 ##################################################
-add_library(indiclient STATIC ${indibase_SRCS})
+add_library(indiclient STATIC ${indiclient_SRCS})
 target_link_libraries(indiclient indi pthread)
 install(TARGETS indiclient ARCHIVE DESTINATION lib${LIB_POSTFIX})
 
@@ -310,27 +297,25 @@ endif (NOVA_FOUND)
 
 install(TARGETS indi_intelliscope RUNTIME DESTINATION bin )
 
+########### Syncscan ###############
+set(synscan_SRCS
+   ${indimain_SRCS}
+   ${CMAKE_SOURCE_DIR}/drivers/telescope/synscanmount.cpp )
+
+add_executable(indi_synscan ${synscan_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
+
+target_link_libraries(indi_synscan indidriver m z)
+
+if (NOVA_FOUND)
+  target_link_libraries(indi_synscan ${NOVA_LIBRARIES})
+endif (NOVA_FOUND)
+
+install(TARGETS indi_synscan RUNTIME DESTINATION bin )
+
 #####################################
 ########## FOCUSER GROUP ############
 #####################################
 
-###### FLI Precision Digital Focuser ######
-if (FLI_FOUND)
-set(flipdf_SRCS
-	${indimain_SRCS}
-	${CMAKE_SOURCE_DIR}/drivers/focuser/fli_pdf.c
-)
-
-add_executable(indi_fli_focus ${flipdf_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
-
-target_link_libraries(indi_fli_focus m ${FLI_LIBRARIES})
-
-if (NOVA_FOUND)
-  target_link_libraries(indi_fli_focus ${NOVA_LIBRARIES})
-endif (NOVA_FOUND)
-
-install(TARGETS indi_fli_focus RUNTIME DESTINATION bin )
-endif(FLI_FOUND)
 #################################################################################
 
 ################ Robo Focuser ################
@@ -360,7 +345,7 @@ set(tcfs_SRCS
 
 add_executable(indi_tcfs_focus ${tcfs_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
 
-target_link_libraries(indi_tcfs_focus indidefaultdriver m z)
+target_link_libraries(indi_tcfs_focus indidriver m z)
 
 if (NOVA_FOUND)
   target_link_libraries(indi_tcfs_focus ${NOVA_LIBRARIES})
@@ -394,50 +379,6 @@ endif (NOVA_FOUND)
 
 install(TARGETS indi_trutech_wheel RUNTIME DESTINATION bin )
 
-#################################################################################
-
-########## FLI Filter Wheel ############
-if (FLI_FOUND)
-set(fliwheel_SRCS
-	${indimain_SRCS}
-	${CMAKE_SOURCE_DIR}/drivers/filter_wheel/fli_wheel.c
-   )
-
-add_executable(indi_fli_wheel ${fliwheel_SRCS}  ${liblilxml_SRCS} ${libindicom_SRCS})
-
-target_link_libraries(indi_fli_wheel ${FLI_LIBRARIES} m)
-
-if (NOVA_FOUND)
-  target_link_libraries(indi_fli_wheel ${NOVA_LIBRARIES})
-endif (NOVA_FOUND)
-
-install(TARGETS indi_fli_wheel RUNTIME DESTINATION bin )
-endif (FLI_FOUND)
-#################################################################################
-
-#######################################
-############# CCD GROUP ###############
-#######################################
-
-############# FLI CCD ###############
-if (CFITSIO_FOUND AND FLI_FOUND)
-
-set(fliccd_SRCS
-	${indimain_SRCS}
-	${CMAKE_SOURCE_DIR}/drivers/ccd/fli_ccd.c
-)
-
-add_executable(indi_fli_ccd ${fliccd_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
-
-target_link_libraries(indi_fli_ccd ${FLI_LIBRARIES} ${CFITSIO_LIBRARIES} m z)
-
-if (NOVA_FOUND)
-  target_link_libraries(indi_fli_ccd ${NOVA_LIBRARIES})
-endif (NOVA_FOUND)
-
-install(TARGETS indi_fli_ccd RUNTIME DESTINATION bin )
-
-endif (CFITSIO_FOUND AND FLI_FOUND)
 #################################################################################
 
 #########################################
@@ -710,4 +651,3 @@ ${CMAKE_SOURCE_DIR}/libs/indibase/baseclient.h ${CMAKE_SOURCE_DIR}/libs/indicom.
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libindi.pc.cmake ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc DESTINATION ${PKGCONFIG_INSTALL_PREFIX})
-
