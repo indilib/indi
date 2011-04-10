@@ -518,7 +518,6 @@ libindi/drivers.xml -text
 libindi/drivers/ccd/fli_ccd.c -text
 libindi/drivers/filter_wheel/fli_wheel.c -text
 libindi/drivers/filter_wheel/trutech_wheel.c -text
-libindi/drivers/focuser/fli_pdf.c -text
 libindi/drivers/focuser/indi_tcfs_sk.xml -text
 libindi/drivers/focuser/robofocus.c -text
 libindi/drivers/focuser/robofocusdriver.c -text
