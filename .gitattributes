@@ -162,6 +162,11 @@ debian/indi-apogee/compat -text
 debian/indi-apogee/control -text
 debian/indi-apogee/copyright -text
 debian/indi-apogee/rules -text
+debian/indi-fli/changelog -text
+debian/indi-fli/compat -text
+debian/indi-fli/control -text
+debian/indi-fli/copyright -text
+debian/indi-fli/rules -text
 debian/indi-gphoto/changelog -text
 debian/indi-gphoto/compat -text
 debian/indi-gphoto/control -text
@@ -191,6 +196,9 @@ debian/libfli/changelog -text
 debian/libfli/compat -text
 debian/libfli/control -text
 debian/libfli/copyright -text
+debian/libfli/libfli-dev.dirs -text
+debian/libfli/libfli-dev.install -text
+debian/libfli/libfli-dev.links -text
 debian/libfli/libfli1-dev.dirs -text
 debian/libfli/libfli1-dev.install -text
 debian/libfli/libfli1-dev.links -text
