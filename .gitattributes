@@ -515,7 +515,6 @@ libindi/base64.c -text
 libindi/base64.h -text
 libindi/config.h.cmake -text
 libindi/drivers.xml -text
-libindi/drivers/ccd/fli_ccd.c -text
 libindi/drivers/filter_wheel/fli_wheel.c -text
 libindi/drivers/filter_wheel/trutech_wheel.c -text
 libindi/drivers/focuser/indi_tcfs_sk.xml -text
