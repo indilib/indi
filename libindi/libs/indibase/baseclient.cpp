@@ -514,15 +514,15 @@ void INDI::BaseClient::finishBlob()
 
 void INDI::BaseClient::setBLOBMode(BLOBHandling blobH, const char *dev, const char *prop)
 {
-    char blobOpenTag[64];
+    char blobOpenTag[MAXRBUF];
 
     if (!dev[0])
         return;
 
-   if (prop[0])
-           snprintf(blobOpenTag, 64, "<enableBLOB device='%s' name='%s'>", dev, prop);
+   if (prop != NULL)
+           snprintf(blobOpenTag, MAXRBUF, "<enableBLOB device='%s' name='%s'>", dev, prop);
    else
-          snprintf(blobOpenTag, 64, "<enableBLOB device='%s'>", dev);
+          snprintf(blobOpenTag, MAXRBUF, "<enableBLOB device='%s'>", dev);
 
     switch (blobH)
     {
