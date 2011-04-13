@@ -93,7 +93,7 @@ void MainWindow::newDevice(const char *device_name)
 {
     ui->msgQueue->append(QString("KNRO: Successfully received and constructed %1 device.").arg(device_name));
 
-    setBLOBMode(B_ALSO);
+    setBLOBMode(B_ALSO, device_name);
 
     deviceReceived = true;
 }
