@@ -54,7 +54,7 @@ add_executable(indi_knro ${indiknro_SRCS})
 
 # openal alut vorbis vorbisfile
 
-target_link_libraries(indi_knro ${INDI_LIBRARIES} ${INDI_BASE_DRIVER_LIBRARIES} ${MODBUS_LIBRARIES} ${CFITSIO_LIBRARIES} ${ALUT_LIBRARY} ${VORBIS_LIBRARY} ${VORBISFILE_LIBRARY} z pthread)
+target_link_libraries(indi_knro ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${MODBUS_LIBRARIES} ${CFITSIO_LIBRARIES} ${ALUT_LIBRARY} ${VORBIS_LIBRARY} ${VORBISFILE_LIBRARY} z pthread)
 
 if (NOVA_FOUND)
   target_link_libraries(indi_knro ${NOVA_LIBRARIES})
