@@ -44,7 +44,7 @@ else (FLI_INCLUDE_DIR AND FLI_LIBRARIES)
     endif (NOT FLI_FIND_QUIETLY)
   else (FLI_FOUND)
     if (FLI_FIND_REQUIRED)
-      message(FATAL_ERROR "FLI not found. Please install libfli1-devel. http://indi.sf.net")
+      message(FATAL_ERROR "FLI not found. Please install libfli-dev. http://www.indilib.org")
     endif (FLI_FIND_REQUIRED)
   endif (FLI_FOUND)
 
