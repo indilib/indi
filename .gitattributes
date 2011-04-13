@@ -129,6 +129,16 @@
 3rdparty/indi-spectracyber/install -text
 3rdparty/indi-spectracyber/spectracyber.cpp -text
 3rdparty/indi-spectracyber/spectracyber.h -text
+3rdparty/indi-sx/AUTHORS -text
+3rdparty/indi-sx/CMakeLists.txt -text
+3rdparty/indi-sx/COPYING.LIB -text
+3rdparty/indi-sx/INSTALL -text
+3rdparty/indi-sx/README -text
+3rdparty/indi-sx/indi_sx.xml -text
+3rdparty/indi-sx/sxcam.cpp -text
+3rdparty/indi-sx/sxcam.h -text
+3rdparty/indi-sx/sxwheel.cpp -text
+3rdparty/indi-sx/sxwheel.h -text
 cmake_modules/FindALUT.cmake -text
 cmake_modules/FindAPOGEE.cmake -text
 cmake_modules/FindCFITSIO.cmake -text

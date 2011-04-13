@@ -62,6 +62,8 @@ int IndiCcd::init_properties()
     IUFillNumber(&ImageFrameN[3],"HEIGHT","Height","%4.0f",0,1040,0,1040);
     IUFillNumberVector(&ImageFrameNV,ImageFrameN,4,deviceName(),"CCD_FRAME","Frame","Image Settings",IP_RW,60,IPS_IDLE);
 
+    registerProperty(&ImageFrameNV, INDI_NUMBER);
+
     IUFillSwitch(&FrameTypeS[0],"FRAME_LIGHT","Light",ISS_ON);
     IUFillSwitch(&FrameTypeS[1],"FRAME_BIAS","Bias",ISS_OFF);
     IUFillSwitch(&FrameTypeS[2],"FRAME_DARK","Dark",ISS_OFF);

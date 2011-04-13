@@ -44,6 +44,7 @@ void ISGetProperties (const char *dev)
             //device->setDeviceName("junker");
             device->setDeviceName(device->getDefaultName());
         }
+        device->addConfigurationControl();
         device->init_properties();
     }
     device->ISGetProperties(dev);
@@ -321,6 +322,10 @@ void IndiDevice::ISSnoopDevice (XMLEle *root)
 
 bool IndiDevice::SaveConfig()
 {
+
+    // FIXME REMOVE THIS
+    return true;
+
     char err[MAXRBUF];
     FILE *fp;
     //int rc;
