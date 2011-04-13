@@ -18,15 +18,62 @@
   The full GNU General Public License is included in this distribution in the
   file called LICENSE.
 *******************************************************************************/
-#include "SxCam.h"
+#include "sxcam.h"
 
+// We declare an auto pointer to sxcamera.
+std::auto_ptr<SxCam> sxcamera(0);
 
-IndiDevice * _create_device()
+void ISInit()
 {
-    IndiDevice *cam;
-    IDLog("Create an sx camera device\n");
-    cam=new SxCam();
-    return cam;
+   static int isInit =0;
+
+   if (isInit == 1)
+       return;
+
+    isInit = 1;
+    if(sxcamera.get() == 0) sxcamera.reset(new SxCam());
+    //IEAddTimer(POLLMS, ISPoll, NULL);
+
+}
+
+void ISGetProperties(const char *dev)
+{
+        ISInit();
+        sxcamera->ISGetProperties(dev);
+}
+
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+{
+        ISInit();
+        sxcamera->ISNewSwitch(dev, name, states, names, num);
+}
+
+void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
+{
+        ISInit();
+        sxcamera->ISNewText(dev, name, texts, names, num);
+}
+
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+{
+        ISInit();
+        sxcamera->ISNewNumber(dev, name, values, names, num);
+}
+
+void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+{
+  INDI_UNUSED(dev);
+  INDI_UNUSED(name);
+  INDI_UNUSED(sizes);
+  INDI_UNUSED(blobsizes);
+  INDI_UNUSED(blobs);
+  INDI_UNUSED(formats);
+  INDI_UNUSED(names);
+  INDI_UNUSED(n);
+}
+void ISSnoopDevice (XMLEle *root)
+{
+    INDI_UNUSED(root);
 }
 
 SxCam::SxCam()
@@ -46,7 +93,7 @@ SxCam::~SxCam()
     if(RawFrame != NULL) delete RawFrame;
 }
 
-char * SxCam::getDefaultName()
+const char * SxCam::getDefaultName()
 {
     return (char *)"SxCamera";
 }
@@ -54,14 +101,18 @@ char * SxCam::getDefaultName()
 bool SxCam::Connect()
 {
     IDLog("Checking for SXV-H9\n");
+
     dev=FindDevice(0x1278,0x0119,0);
-    if(dev==NULL) {
-        IDLog("No SXV-H9 found");
+    if(dev==NULL)
+    {
+        IDLog("No SXV-H9 found\n");
+        IDMessage(deviceName(), "Error: No SXV-H9 found.");
         return false;
     }
     IDLog("Found an SXV-H9\n");
     usb_handle=usb_open(dev);
-    if(usb_handle != NULL) {
+    if(usb_handle != NULL)
+    {
         int rc;
 
         rc=FindEndpoints();
@@ -73,7 +124,8 @@ bool SxCam::Connect()
 
         rc=usb_claim_interface(usb_handle,1);
         IDLog("claim interface returns %d\n",rc);
-        if(rc==0) {
+        if(rc==0)
+        {
             //  ok, we have the camera now
             //  Lets see what it really is
             rc=ResetCamera();
@@ -109,7 +161,13 @@ bool SxCam::Connect()
 
                 IDLog("Guider is %d x %d with %d bpp  size %4.2f x %4.2f Matrix %x\n",
                       gparms.width,gparms.height,gparms.bits_per_pixel,gparms.pix_width,gparms.pix_height,gparms.color_matrix);
+
+                IDMessage(deviceName(), "Guider is %d x %d with %d bpp  size %4.2f x %4.2f Matrix %x",
+                          gparms.width,gparms.height,gparms.bits_per_pixel,gparms.pix_width,gparms.pix_height,gparms.color_matrix);
+
                 IDLog("Guider capabilities %x\n",gparms.extra_caps);
+
+                IDMessage(deviceName(), "Guider capabilities %x",gparms.extra_caps);
 
                 SetGuidHeadParams(gparms.width,gparms.height,gparms.bits_per_pixel,gparms.pix_width,gparms.pix_height);
 

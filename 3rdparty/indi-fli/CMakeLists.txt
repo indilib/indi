@@ -39,7 +39,7 @@ set(flipdf_SRCS
 
 add_executable(indi_fli_focus ${flipdf_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
 
-target_link_libraries(indi_fli_focus ${INDI_LIBRARIES} ${INDI_BASE_DRIVER_LIBRARIES} ${FLI_LIBRARIES} m z)
+target_link_libraries(indi_fli_focus ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${FLI_LIBRARIES} m z)
 
 if (NOVA_FOUND)
   target_link_libraries(indi_fli_focus ${NOVA_LIBRARIES})
@@ -57,7 +57,7 @@ set(fliccd_SRCS
 
 add_executable(indi_fli_ccd ${fliccd_SRCS})
 
-target_link_libraries(indi_fli_ccd ${INDI_LIBRARIES} ${INDI_BASE_DRIVER_LIBRARIES} ${FLI_LIBRARIES} ${CFITSIO_LIBRARIES} m z)
+target_link_libraries(indi_fli_ccd ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${FLI_LIBRARIES} ${CFITSIO_LIBRARIES} m z)
 
 if (NOVA_FOUND)
   target_link_libraries(indi_fli_ccd ${NOVA_LIBRARIES})

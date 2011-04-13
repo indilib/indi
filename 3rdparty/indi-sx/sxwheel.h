@@ -22,7 +22,7 @@
 #ifndef SXWHEEL_H
 #define SXWHEEL_H
 
-#include "IndiFilterWheel.h"
+#include <libindi/indifilterwheel.h>
 //#include "UsbDevice.h"
 
 //  required linux headers
@@ -42,7 +42,7 @@
 #include <stdlib.h>
 #include <errno.h>
 
-class SxWheel : public IndiFilterWheel
+class SxWheel : public INDI::FilterWheel
 {
     protected:
     private:
@@ -59,9 +59,9 @@ class SxWheel : public IndiFilterWheel
 
         bool Connect();
         bool Disconnect();
-        char *getDefaultName();
+        const char *getDefaultName();
 
-        int init_properties();
+        bool initProperties();
 
         void ISGetProperties (const char *dev);
 

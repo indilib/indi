@@ -35,7 +35,7 @@ set(indimeadedsi_SRCS
 
 add_executable(indi_meadedsi_ccd ${indimeadedsi_SRCS})
 
-target_link_libraries(indi_meadedsi_ccd ${INDI_LIBRARIES} ${INDI_BASE_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${MEADEDSI_LIBRARIES} z)
+target_link_libraries(indi_meadedsi_ccd ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${MEADEDSI_LIBRARIES} z)
 
 if (NOVA_FOUND)
   target_link_libraries(indi_meadedsi_ccd ${NOVA_LIBRARIES})

@@ -41,7 +41,7 @@ set(indiqsi_SRCS
 
 add_executable(indi_qsi_ccd ${indiqsi_SRCS})
 
-target_link_libraries(indi_qsi_ccd ${INDI_LIBRARIES} ${INDI_BASE_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${QSI_LIBRARIES} )
+target_link_libraries(indi_qsi_ccd ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${QSI_LIBRARIES} )
 
 if (NOVA_FOUND)
   target_link_libraries(indi_qsi_ccd ${NOVA_LIBRARIES})

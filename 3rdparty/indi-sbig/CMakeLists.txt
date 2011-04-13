@@ -37,7 +37,7 @@ set(indisbig_SRCS
    
 add_executable(indi_sbig_ccd ${indisbig_SRCS})
 
-target_link_libraries(indi_sbig_ccd ${INDI_LIBRARIES} ${INDI_BASE_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${SBIG_LIBRARIES} z)
+target_link_libraries(indi_sbig_ccd ${INDI_LIBRARIES} ${INDI_MAIN_LIBRARIES} ${CFITSIO_LIBRARIES} ${SBIG_LIBRARIES} z)
 
 if (NOVA_FOUND)
   target_link_libraries(indi_sbig_ccd ${NOVA_LIBRARIES})

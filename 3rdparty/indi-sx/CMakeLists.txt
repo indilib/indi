@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 2.4.7)
-PROJECT(indi_sx C)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
 
@@ -26,12 +25,12 @@ endif (NOVA_FOUND)
 
 ########### SX CCD ###########
 set(indisxccd_SRCS
-   ${CMAKE_SOURCE_DIR}/sx_camp.cpp
+   ${CMAKE_SOURCE_DIR}/sxcam.cpp
    )
 
 add_executable(indi_sx_ccd ${indisxccd_SRCS})
 
-target_link_libraries(indi_sx_ccd ${INDI_LIBRARIES} ${INDI_DRIVER} ${CFITSIO_LIBRARIES} ${ZLIB_LIBRARIES})
+target_link_libraries(indi_sx_ccd ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${ZLIB_LIBRARIES} ${LIBUSB_LIBRARIES})
 
 if (NOVA_FOUND)
   target_link_libraries(indi_sx_ccd ${NOVA_LIBRARIES})
@@ -42,12 +41,12 @@ install(TARGETS indi_sx_ccd RUNTIME DESTINATION bin )
 
 ########### SX Wheel ###########
 set(indisxwheel_SRCS
-   ${CMAKE_SOURCE_DIR}/sx_wheel.cpp
+   ${CMAKE_SOURCE_DIR}/sxwheel.cpp
    )
 
-add_executable(indi_sx_wheel ${indisxccd_SRCS})
+add_executable(indi_sx_wheel ${indisxwheel_SRCS})
 
-target_link_libraries(indi_sx_wheel ${INDI_LIBRARIES} ${INDI_DRIVER} ${ZLIB_LIBRARIES} )
+target_link_libraries(indi_sx_wheel ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${ZLIB_LIBRARIES} )
 
 if (NOVA_FOUND)
   target_link_libraries(indi_sx_wheel ${NOVA_LIBRARIES})

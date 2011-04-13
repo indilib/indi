@@ -1,4 +1,4 @@
-#include "SxWheel.h"
+#include "sxwheel.h"
 
 /*******************************************************************************
   Copyright(c) 2010 Gerry Rozema. All rights reserved.
@@ -27,14 +27,62 @@
 
 #include <string.h>
 
+// We declare an auto pointer to sxwheel.
+std::auto_ptr<SxWheel> sxwheel(0);
 
-IndiDevice * _create_device()
+void ISInit()
 {
-    IndiDevice *wheel;
-    IDLog("Create an Sx filter wheel\n");
-    wheel=new SxWheel();
-    return wheel;
+   static int isInit =0;
+
+   if (isInit == 1)
+       return;
+
+    isInit = 1;
+    if(sxwheel.get() == 0) sxwheel.reset(new SxWheel());
+    //IEAddTimer(POLLMS, ISPoll, NULL);
+
 }
+
+void ISGetProperties(const char *dev)
+{
+        ISInit();
+        sxwheel->ISGetProperties(dev);
+}
+
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+{
+        ISInit();
+        sxwheel->ISNewSwitch(dev, name, states, names, num);
+}
+
+void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
+{
+        ISInit();
+        sxwheel->ISNewText(dev, name, texts, names, num);
+}
+
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+{
+        ISInit();
+        sxwheel->ISNewNumber(dev, name, values, names, num);
+}
+
+void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+{
+  INDI_UNUSED(dev);
+  INDI_UNUSED(name);
+  INDI_UNUSED(sizes);
+  INDI_UNUSED(blobsizes);
+  INDI_UNUSED(blobs);
+  INDI_UNUSED(formats);
+  INDI_UNUSED(names);
+  INDI_UNUSED(n);
+}
+void ISSnoopDevice (XMLEle *root)
+{
+    INDI_UNUSED(root);
+}
+
 
 
 SxWheel::SxWheel()
@@ -51,7 +99,7 @@ SxWheel::~SxWheel()
     //dtor
 }
 
-char * SxWheel::getDefaultName()
+const char * SxWheel::getDefaultName()
 {
     return (char *)"SxWheel";
 }
@@ -123,20 +171,20 @@ bool SxWheel::Disconnect()
     return true;
 }
 
-int SxWheel::init_properties()
+bool SxWheel::initProperties()
 {
 
     //setDeviceName("SX Wheel");
-    IndiFilterWheel::init_properties();
+    INDI::FilterWheel::initProperties();
     //  Lets add one property that makes it easy to test things
     //  Label it led on/off
-    return 0;
+    return true;
 }
 void SxWheel::ISGetProperties (const char *dev)
 {
     IDLog("fcusb::ISGetProperties %s\n",dev);
     //  First we let our parent class do it's thing
-    IndiFilterWheel::ISGetProperties(dev);
+    INDI::FilterWheel::ISGetProperties(dev);
 
     //  Now we add anything that's specific to this filter wheel
     return;

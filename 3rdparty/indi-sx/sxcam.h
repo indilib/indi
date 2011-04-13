@@ -22,8 +22,8 @@
 #ifndef SXCAM_H
 #define SXCAM_H
 
-#include "IndiCcd.h"
-#include "UsbDevice.h"
+#include <libindi/indiccd.h>
+#include <libindi/indiusbdevice.h>
 
 /* Standard headers */
 #include <stdio.h>
@@ -145,7 +145,7 @@ typedef struct t_sxccd_params
 } CCDPARMS, *PCCDPARMS;
 
 
-class SxCam : public IndiCcd , public UsbDevice
+class SxCam : public INDI::CCD , public INDI::USBDevice
 {
     protected:
     private:
@@ -189,7 +189,7 @@ class SxCam : public IndiCcd , public UsbDevice
         //  Generic indi device entries
         bool Connect();
         bool Disconnect();
-        char *getDefaultName();
+        const char *getDefaultName();
 
         int StartExposure(float);
         int StartGuideExposure(float);
