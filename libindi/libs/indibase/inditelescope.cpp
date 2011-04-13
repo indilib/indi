@@ -55,36 +55,25 @@ bool INDI::Telescope::initProperties()
     IUFillNumberVector(&EqNV,EqN,2,deviceName(),"EQUATORIAL_EOD_COORD","Eq. Coordinates","Main Control",IP_RW,60,IPS_IDLE);
     //IUFillNumberVector(&EqNV,EqN,2,deviceName(),"EQUATORIAL_EOD_COORD","Eq. Coordinates","Main Control",IP_RW,60,IPS_IDLE);
 
-    registerProperty(&EqNV, INDI_NUMBER);
 
     IUFillNumber(&EqReqN[0],"RA","Ra (hh:mm:ss)","%010.6m",0,24,0,0);
     IUFillNumber(&EqReqN[1],"DEC","Dec (dd:mm:ss)","%010.6m",-90,90,0,0);
     IUFillNumberVector(&EqReqNV,EqReqN,2,deviceName(),"EQUATORIAL_EOD_COORD_REQUEST","Goto....","Controls",IP_WO,60,IPS_IDLE);
 
-    registerProperty(&EqReqNV, INDI_NUMBER);
-
     IUFillNumber(&LocationN[0],"LAT","Lat (dd:mm:ss)","%010.6m",-90,90,0,48.433);
     IUFillNumber(&LocationN[1],"LONG","Lon (dd:mm:ss)","%010.6m",-180,360,0,-123.35 );
     IUFillNumberVector(&LocationNV,LocationN,2,deviceName(),"GEOGRAPHIC_COORD","Scope Location","Location",IP_RW,60,IPS_OK);
-
-    registerProperty(&LocationNV, INDI_NUMBER);
 
     IUFillSwitch(&CoordS[0],"TRACK","Track",ISS_OFF);
     IUFillSwitch(&CoordS[1],"SLEW","Slew",ISS_OFF);
     IUFillSwitch(&CoordS[2],"SYNC","Sync",ISS_OFF);
     IUFillSwitchVector(&CoordSV,CoordS,3,deviceName(),"ON_COORD_SET","On Set","Controls",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
-    registerProperty(&CoordSV, INDI_SWITCH);
-
     IUFillSwitch(&ParkS[0],"PARK","Park",ISS_OFF);
     IUFillSwitchVector(&ParkSV,ParkS,1,deviceName(),"TELESCOPE_PARK","Park","Controls",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
-    registerProperty(&ParkSV, INDI_SWITCH);
-
     IUFillText(&PortT[0],"PORT","Port","/dev/ttyUSB0");
     IUFillTextVector(&PortTV,PortT,1,deviceName(),"DEVICE_PORT","Ports","Options",IP_RW,60,IPS_IDLE);
-
-    registerProperty(&PortTV, INDI_TEXT);
 
     TrackState=PARKED;
     return 0;
@@ -103,11 +92,11 @@ void INDI::Telescope::ISGetProperties (const char *dev)
     if(isConnected())
     {
         //  Now we add our telescope specific stuff
-        IDDefSwitch(&CoordSV,NULL);
-        IDDefNumber(&EqNV, NULL);
-        IDDefNumber(&EqReqNV, NULL);
-        IDDefNumber(&LocationNV,NULL);
-        IDDefSwitch(&ParkSV,NULL);
+        defineSwitch(&CoordSV);
+        defineNumber(&EqNV);
+        defineNumber(&EqReqNV);
+        defineNumber(&LocationNV);
+        defineSwitch(&ParkSV);
     }
     return;
 }
@@ -118,12 +107,12 @@ bool INDI::Telescope::updateProperties()
     {
         //  Now we add our telescope specific stuff
         //IDLog("INDI::Telescope adding properties\n");
-        IDDefSwitch(&CoordSV,NULL);
-        IDDefNumber(&EqNV, NULL);
-        IDDefNumber(&EqReqNV, NULL);
+        defineSwitch(&CoordSV);
+        defineNumber(&EqNV);
+        defineNumber(&EqReqNV);
         //IDDefText(&PortTV,NULL);
-        IDDefNumber(&LocationNV,NULL);
-        IDDefSwitch(&ParkSV,NULL);
+        defineNumber(&LocationNV);
+        defineSwitch(&ParkSV);
     } else
     {
         //IDLog("INDI::Telescope deleting properties\n");

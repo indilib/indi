@@ -104,7 +104,7 @@ set (indidriver_SRCS
         ${CMAKE_SOURCE_DIR}/libs/indibase/inditelescope.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/indifilterwheel.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/indifocuser.cpp
-        ${CMAKE_SOURCE_DIR}/libs/indibase/usbdevice.cpp
+        ${CMAKE_SOURCE_DIR}/libs/indibase/indiusbdevice.cpp
     )
 
 
@@ -126,6 +126,8 @@ install(TARGETS indiserver RUNTIME DESTINATION bin )
 
 #################################################
 ############# INDI Shared Library ###############
+# To offer lilxml and communination routines    #
+# Mostly used by generic clients                #
 #################################################
 add_library(indi SHARED ${libindicom_SRCS} ${liblilxml_SRCS})
 target_link_libraries(indi m z)
@@ -141,13 +143,15 @@ install(TARGETS indi LIBRARY DESTINATION lib${LIB_POSTFIX})
 set_target_properties(indi PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION})
 
 ##################################################
-######## INDI Base Driver Static Library #########
+############ INDI Main Static Library ############
+# To link with main() for 3rd party drivers      #
 ##################################################
-#add_library(indibasedriver STATIC ${indimain_SRCS})
-#install(TARGETS indibasedriver ARCHIVE DESTINATION lib${LIB_POSTFIX})
+add_library(indimain STATIC ${indimain_SRCS})
+install(TARGETS indimain ARCHIVE DESTINATION lib${LIB_POSTFIX})
 
 ##################################################
 ###### INDI Default Driver Static Library ########
+# To link with main() and indibase classes       #
 ##################################################
 add_library(indidriver STATIC ${indimain_SRCS} ${indidriver_SRCS})
 install(TARGETS indidriver ARCHIVE DESTINATION lib${LIB_POSTFIX})
@@ -646,7 +650,10 @@ install( FILES drivers.xml ${CMAKE_SOURCE_DIR}/drivers/focuser/indi_tcfs_sk.xml 
 
 install( FILES indiapi.h indidevapi.h base64.h eventloop.h indidriver.h ${CMAKE_SOURCE_DIR}/libs/lilxml.h ${CMAKE_SOURCE_DIR}/libs/indibase/indibase.h
 ${CMAKE_SOURCE_DIR}/libs/indibase/basedriver.h  ${CMAKE_SOURCE_DIR}/libs/indibase/defaultdriver.h
+${CMAKE_SOURCE_DIR}/libs/indibase/indiccd.h  ${CMAKE_SOURCE_DIR}/libs/indibase/indifilterwheel.h
+${CMAKE_SOURCE_DIR}/libs/indibase/indifocuser.h  ${CMAKE_SOURCE_DIR}/libs/indibase/inditelescope.h
 ${CMAKE_SOURCE_DIR}/libs/indibase/baseclient.h ${CMAKE_SOURCE_DIR}/libs/indicom.h
+${CMAKE_SOURCE_DIR}/libs/indibase/indiusbdevice.h
  DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libindi.pc.cmake ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc @ONLY)

@@ -18,7 +18,7 @@
   The full GNU General Public License is included in this distribution in the
   file called LICENSE.
 *******************************************************************************/
-#include "usbdevice.h"
+#include "indiusbdevice.h"
 
 #include <string.h>
 

@@ -65,8 +65,8 @@ void INDI::FilterWheel::ISGetProperties (const char *dev)
     DefaultDriver::ISGetProperties(dev);
     if(isConnected())
     {
-        IDDefNumber(&FilterSlotNV, NULL);
-        IDDefText(&FilterNameTV, NULL);
+        defineNumber(&FilterSlotNV);
+        defineText(&FilterNameTV);
     }
     return;
 }
@@ -79,9 +79,9 @@ bool INDI::FilterWheel::updateProperties()
     if(isConnected())
     {
         IUFillNumber(&FilterSlotN[0],"FILTER_SLOT_VALUE","Filter","%3.0f",MinFilter,MaxFilter,1.0,CurrentFilter);
-        IDDefNumber(&FilterSlotNV, NULL);
+        defineNumber(&FilterSlotNV);
         IUFillTextVector(&FilterNameTV,FilterNameT,MaxFilter,deviceName(),"FILTER_NAME","Filter","Filters",IP_RW,60,IPS_IDLE);
-        IDDefText(&FilterNameTV, NULL);
+        defineText(&FilterNameTV);
         //LoadFilterNames();
     } else
     {
