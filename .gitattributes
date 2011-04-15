@@ -209,9 +209,6 @@ debian/libfli/copyright -text
 debian/libfli/libfli-dev.dirs -text
 debian/libfli/libfli-dev.install -text
 debian/libfli/libfli-dev.links -text
-debian/libfli/libfli1-dev.dirs -text
-debian/libfli/libfli1-dev.install -text
-debian/libfli/libfli1-dev.links -text
 debian/libfli/libfli1.dirs -text
 debian/libfli/libfli1.install -text
 debian/libfli/libfli1.links -text
