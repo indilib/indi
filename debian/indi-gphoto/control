@@ -1,5 +1,5 @@
 Source: indi-gphoto
-Section: libs
+Section: science
 Priority: extra
 Maintainer: Geoffrey Hausheer <astro@phracturedblue.com>
 Build-Depends: debhelper (>= 6), cdbs, cmake, libindi-dev, zlib1g-dev, libusb-dev, libjpeg62-dev, libcfitsio3-dev, libgphoto2-2-dev
