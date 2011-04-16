@@ -109,9 +109,19 @@ class INDI::Telescope : public INDI::DefaultDriver
         //  And these are the hardware specific functions our children need to override
         //  They are not pure virtual, because, not all functions are relavent for all types
         //  of mount, ie, a Goto is not relavent for a Push-to mount
+
+        /** \brief Read telescope status.
+         This function checks the following:
+         <ol>
+           <li>Check if the link to the telescope is alive.</li>
+           <li>Update telescope status: Idle, Slewing, Parking..etc.</li>
+           <li>Read coordinates</li>
+         </ol>
+          \return True if reading scope status is OK, false if an error is encounterd. */
         virtual bool ReadScopeStatus();
-        virtual bool Goto(double,double);
-        virtual bool Sync(double,double);
+
+        virtual bool Goto(double ra,double dec);
+        virtual bool Sync(double ra,double dec);
         virtual bool Park();
 
 };

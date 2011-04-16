@@ -12,6 +12,12 @@ INDI::BaseDriver::BaseDriver()
 {
     mediator = NULL;
     lp = newLilXML();
+
+    if (getenv("INDIDEV") != NULL)
+    {
+        strncpy(deviceID, getenv("INDIDEV"), MAXINDINAME);
+        putenv("INDIDEV=");
+    }
 }
 
 
@@ -220,13 +226,16 @@ int INDI::BaseDriver::buildProp(XMLEle *root, char *errmsg)
     if (crackDN (root, &rdev, &rname, errmsg) < 0)
         return -1;
 
-    if (!deviceID[0])
+   /* if (!deviceID[0])
     {
         if (getenv("INDIDEV"))
             strncpy(deviceID, getenv("INDIDEV"), MAXINDINAME);
         else
             strncpy(deviceID, rdev, MAXINDINAME);
-    }
+    }*/
+
+    if (!deviceID[0])
+        strncpy(deviceID, rdev, MAXINDINAME);
 
     //if (getProperty(rname, type) != NULL)
     if (getProperty(rname) != NULL)

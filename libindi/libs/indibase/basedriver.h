@@ -122,7 +122,6 @@ protected:
     /** \brief Build a property given the supplied XML element (defXXX)
       \param root XML element to parse and build.
       \param errmsg buffer to store error message in parsing fails.
-
       \return 0 if parsing is successful, -1 otherwise and errmsg is set */
     int buildProp(XMLEle *root, char *errmsg);
 
