@@ -463,15 +463,15 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
 }
 
 
-int INDI::CCD::StartExposure(float n)
+int INDI::CCD::StartExposure(float duration)
 {
-    IDLog("INDI::CCD::StartExposure %4.2f -  Should never get here\n",n);
+    IDLog("INDI::CCD::StartExposure %4.2f -  Should never get here\n",duration);
     return -1;
 }
 
-int INDI::CCD::StartGuideExposure(float n)
+int INDI::CCD::StartGuideExposure(float duration)
 {
-    IDLog("INDI::CCD::StartGuide Exposure %4.2f -  Should never get here\n",n);
+    IDLog("INDI::CCD::StartGuide Exposure %4.2f -  Should never get here\n",duration);
     return -1;
 }
 bool INDI::CCD::ExposureComplete()

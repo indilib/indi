@@ -33,6 +33,7 @@
 #include <fcntl.h>
 #include <termios.h>
 
+#define POLLMS 1000
 
 INDI::Telescope::Telescope()
 {
@@ -46,36 +47,44 @@ INDI::Telescope::~Telescope()
 
 bool INDI::Telescope::initProperties()
 {
-    //IDLog("INDI::Telescope::initProperties()\n");
     DefaultDriver::initProperties();
 
-    //IDLog("INDI::Telescope::initProperties() adding eq co-ordinates  MyDev=%s\n",deviceName());
-    IUFillNumber(&EqN[0],"RA","Ra (hh:mm:ss)","%010.6m",0,24,0,0);
-    IUFillNumber(&EqN[1],"DEC","Dec (dd:mm:ss)","%010.6m",-90,90,0,0);
-    IUFillNumberVector(&EqNV,EqN,2,deviceName(),"EQUATORIAL_EOD_COORD","Eq. Coordinates","Main Control",IP_RW,60,IPS_IDLE);
-    //IUFillNumberVector(&EqNV,EqN,2,deviceName(),"EQUATORIAL_EOD_COORD","Eq. Coordinates","Main Control",IP_RW,60,IPS_IDLE);
+    EqNV = new INumberVectorProperty;
 
+    IUFillNumber(&EqN[0],"RA","RA (hh:mm:ss)","%010.6m",0,24,0,0);
+    IUFillNumber(&EqN[1],"DEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,0);
+    IUFillNumberVector(EqNV,EqN,2,deviceName(),"EQUATORIAL_EOD_COORD","Eq. Coordinates","Main Control",IP_RW,60,IPS_IDLE);
 
-    IUFillNumber(&EqReqN[0],"RA","Ra (hh:mm:ss)","%010.6m",0,24,0,0);
-    IUFillNumber(&EqReqN[1],"DEC","Dec (dd:mm:ss)","%010.6m",-90,90,0,0);
-    IUFillNumberVector(&EqReqNV,EqReqN,2,deviceName(),"EQUATORIAL_EOD_COORD_REQUEST","Goto....","Controls",IP_WO,60,IPS_IDLE);
+    EqReqNV = new INumberVectorProperty;
+
+    IUFillNumber(&EqReqN[0],"RA","RA (hh:mm:ss)","%010.6m",0,24,0,0);
+    IUFillNumber(&EqReqN[1],"DEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,0);
+    IUFillNumberVector(EqReqNV,EqReqN,2,deviceName(),"EQUATORIAL_EOD_COORD_REQUEST","GOTO","Controls",IP_WO,60,IPS_IDLE);
+
+    LocationNV = new INumberVectorProperty;
 
     IUFillNumber(&LocationN[0],"LAT","Lat (dd:mm:ss)","%010.6m",-90,90,0,48.433);
     IUFillNumber(&LocationN[1],"LONG","Lon (dd:mm:ss)","%010.6m",-180,360,0,-123.35 );
-    IUFillNumberVector(&LocationNV,LocationN,2,deviceName(),"GEOGRAPHIC_COORD","Scope Location","Location",IP_RW,60,IPS_OK);
+    IUFillNumberVector(LocationNV,LocationN,2,deviceName(),"GEOGRAPHIC_COORD","Scope Location","Location",IP_RW,60,IPS_OK);
+
+    CoordSV = new ISwitchVectorProperty;
 
     IUFillSwitch(&CoordS[0],"TRACK","Track",ISS_OFF);
     IUFillSwitch(&CoordS[1],"SLEW","Slew",ISS_OFF);
     IUFillSwitch(&CoordS[2],"SYNC","Sync",ISS_OFF);
-    IUFillSwitchVector(&CoordSV,CoordS,3,deviceName(),"ON_COORD_SET","On Set","Controls",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    IUFillSwitchVector(CoordSV,CoordS,3,deviceName(),"ON_COORD_SET","On Set","Controls",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+
+    ParkSV = new ISwitchVectorProperty;
 
     IUFillSwitch(&ParkS[0],"PARK","Park",ISS_OFF);
-    IUFillSwitchVector(&ParkSV,ParkS,1,deviceName(),"TELESCOPE_PARK","Park","Controls",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    IUFillSwitchVector(ParkSV,ParkS,1,deviceName(),"TELESCOPE_PARK","Park","Controls",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+
+    PortTV = new ITextVectorProperty;
 
     IUFillText(&PortT[0],"PORT","Port","/dev/ttyUSB0");
-    IUFillTextVector(&PortTV,PortT,1,deviceName(),"DEVICE_PORT","Ports","Options",IP_RW,60,IPS_IDLE);
+    IUFillTextVector(PortTV,PortT,1,deviceName(),"DEVICE_PORT","Ports","Options",IP_RW,60,IPS_IDLE);
 
-    TrackState=PARKED;
+    TrackState=SCOPE_PARKED;
     return 0;
 }
 
@@ -92,11 +101,11 @@ void INDI::Telescope::ISGetProperties (const char *dev)
     if(isConnected())
     {
         //  Now we add our telescope specific stuff
-        defineSwitch(&CoordSV);
-        defineNumber(&EqNV);
-        defineNumber(&EqReqNV);
-        defineNumber(&LocationNV);
-        defineSwitch(&ParkSV);
+        defineSwitch(CoordSV);
+        defineNumber(EqNV);
+        defineNumber(EqReqNV);
+        defineNumber(LocationNV);
+        defineSwitch(ParkSV);
     }
     return;
 }
@@ -107,21 +116,23 @@ bool INDI::Telescope::updateProperties()
     {
         //  Now we add our telescope specific stuff
         //IDLog("INDI::Telescope adding properties\n");
-        defineSwitch(&CoordSV);
-        defineNumber(&EqNV);
-        defineNumber(&EqReqNV);
+        defineSwitch(CoordSV);
+        defineNumber(EqNV);
+        defineNumber(EqReqNV);
         //IDDefText(&PortTV,NULL);
-        defineNumber(&LocationNV);
-        defineSwitch(&ParkSV);
+        defineNumber(LocationNV);
+        defineSwitch(ParkSV);
     } else
     {
         //IDLog("INDI::Telescope deleting properties\n");
-        deleteProperty(CoordSV.name);
-        deleteProperty(EqNV.name);
-        deleteProperty(EqReqNV.name);
+        deleteProperty(CoordSV->name);
+        deleteProperty(EqNV->name);
+        deleteProperty(EqReqNV->name);
         //DeleteProperty(PortTV.name);
-        deleteProperty(LocationNV.name);
-        deleteProperty(ParkSV.name);
+        deleteProperty(LocationNV->name);
+        deleteProperty(ParkSV->name);
+
+        initProperties();
     }
     return true;
 }
@@ -132,6 +143,18 @@ int INDI::Telescope::NewRaDec(double ra,double dec)
     //  which came from the hardware
     EqN[0].value=ra;
     EqN[1].value=dec;
+
+    if (TrackState == SCOPE_TRACKING && EqReqNV->s != IPS_OK)
+    {
+        EqReqNV->s = IPS_OK;
+        IDSetNumber(EqReqNV, NULL);
+    }
+    if ( (TrackState == SCOPE_PARKED || TrackState == SCOPE_IDLE) && EqReqNV->s != IPS_IDLE)
+    {
+        EqReqNV->s = IPS_IDLE;
+        IDSetNumber(EqReqNV, NULL);
+    }
+
     return 0;
 }
 
@@ -167,7 +190,7 @@ bool INDI::Telescope::ISNewText (const char *dev, const char *name, char *texts[
     {
         //  This is for our device
         //  Now lets see if it's something we process here
-        if(strcmp(name,PortTV.name)==0)
+        if(strcmp(name,PortTV->name)==0)
         {
             //  This is our port, so, lets process it
 
@@ -183,11 +206,11 @@ bool INDI::Telescope::ISNewText (const char *dev, const char *name, char *texts[
 
             int rc;
             //IDLog("calling update text\n");
-            PortTV.s=IPS_OK;
-            rc=IUUpdateText(&PortTV,texts,names,n);
+            PortTV->s=IPS_OK;
+            rc=IUUpdateText(PortTV,texts,names,n);
             //IDLog("update text returns %d\n",rc);
             //  Update client display
-            IDSetText(&PortTV,NULL);
+            IDSetText(PortTV,NULL);
             //SaveConfig();
             //  We processed this one, so, tell the world we did it
             return true;
@@ -223,7 +246,7 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
 
                 //IDLog("request stuff %s %4.2f\n",names[x],values[x]);
 
-                INumber *eqp = IUFindNumber (&EqNV, names[x]);
+                INumber *eqp = IUFindNumber (EqNV, names[x]);
                 if (eqp == &EqN[0])
                 {
                     ra = values[x];
@@ -241,15 +264,15 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
                 //  Ok, lets see if we should be doing a goto
                 //  or a sync
                 ISwitch *sw;
-                sw=IUFindSwitch(&CoordSV,"SYNC");
+                sw=IUFindSwitch(CoordSV,"SYNC");
                 if((sw != NULL)&&( sw->s==ISS_ON ))
                 {
                     //IDLog("Got a sync, we dont process yet\n");
                     rc=Sync(ra,dec);
                 } else {
                     //  Ensure we are not showing Parked status
-                    ParkSV.s=IPS_IDLE;
-                    IDSetSwitch(&ParkSV,NULL);
+                    ParkSV->s=IPS_IDLE;
+                    IDSetSwitch(ParkSV,NULL);
                     rc=Goto(ra,dec);
                 }
                 //  Ok, now we have to put our switches back
@@ -262,10 +285,10 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
             //  For now, we'll allow this, but, in future
             //  If we have lat/lon from gps, we'll prevent this
             //  from being updated
-            LocationNV.s=IPS_OK;
-            IUUpdateNumber(&LocationNV,values,names,n);
+            LocationNV->s=IPS_OK;
+            IUUpdateNumber(LocationNV,values,names,n);
             //  Update client display
-            IDSetNumber(&LocationNV,NULL);
+            IDSetNumber(LocationNV,NULL);
         }
     }
 
@@ -290,10 +313,10 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
         if(strcmp(name,"ON_COORD_SET")==0)
         {
             //  client is telling us what to do with co-ordinate requests
-            CoordSV.s=IPS_OK;
-            IUUpdateSwitch(&CoordSV,states,names,n);
+            CoordSV->s=IPS_OK;
+            IUUpdateSwitch(CoordSV,states,names,n);
             //  Update client display
-            IDSetSwitch(&CoordSV,NULL);
+            IDSetSwitch(CoordSV,NULL);
 
             for(int x=0; x<n; x++)
             {
@@ -326,7 +349,7 @@ bool INDI::Telescope::Connect()
     rc=Connect(PortT[0].text);
 
     if(rc)
-        SetTimer(1000);
+        SetTimer(POLLMS);
     return rc;
 }
 
@@ -401,28 +424,29 @@ void INDI::Telescope::TimerHit()
             //  read was good
             switch(TrackState)
             {
-                case PARKED:
-                EqNV.s=IPS_IDLE;
+              case SCOPE_IDLE:
+              case SCOPE_PARKED:
+                EqNV->s=IPS_IDLE;
                 break;
 
-                case SLEWING:
-                EqNV.s=IPS_BUSY;
+             case SCOPE_SLEWING:
+             case SCOPE_PARKING:
+                EqNV->s=IPS_BUSY;
                 break;
 
-                default:
-                EqNV.s=IPS_OK;
+            case SCOPE_TRACKING:
+                EqNV->s=IPS_OK;
                 break;
-
             }
         } else
         {
             //  read was not good
-            EqNV.s=IPS_ALERT;
+            EqNV->s=IPS_ALERT;
         }
         //IDLog("IsConnected, re-arm timer\n");
         //  Now update the Client data
-        IDSetNumber(&EqNV,NULL);
-        SetTimer(1000);
+        IDSetNumber(EqNV,NULL);
+        SetTimer(POLLMS);
     }
 }
 

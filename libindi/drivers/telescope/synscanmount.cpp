@@ -152,7 +152,7 @@ bool SynscanMount::ReadScopeStatus()
         return false;
     }
 
-    if(TrackState==SLEWING)
+    if(TrackState==SCOPE_SLEWING)
     {
         //  We have a slew in progress
         //  lets see if it's complete
@@ -166,11 +166,11 @@ bool SynscanMount::ReadScopeStatus()
             //  Nothing to do here
         } else
         {
-            if(TrackState==PARKING) TrackState=PARKED;
-            else TrackState=TRACKING;
+            if(TrackState==SCOPE_PARKING) TrackState=SCOPE_PARKED;
+            else TrackState=SCOPE_TRACKING;
         }
     }
-    if(TrackState==PARKING)
+    if(TrackState==SCOPE_PARKING)
     {
         //  ok, lets try read where we are
         //  and see if we have reached the park position
@@ -180,9 +180,9 @@ bool SynscanMount::ReadScopeStatus()
         //IDLog("PARK READ %s\n",str);
         if(strncmp((char *)str,"0000,4000",9)==0)
         {
-            TrackState=PARKED;
-            ParkSV.s=IPS_OK;
-            IDSetSwitch(&ParkSV,NULL);
+            TrackState=SCOPE_PARKED;
+            ParkSV->s=IPS_OK;
+            IDSetSwitch(ParkSV,NULL);
             IDMessage(deviceName(),"Telescope is Parked.");
         }
 
@@ -227,7 +227,7 @@ bool SynscanMount::Goto(double ra,double dec)
     n2=n2<<8;
     sprintf((char *)str,"r%08X,%08X",n1,n2);
     tty_write(PortFD,str,18, &bytesWritten);
-    TrackState=SLEWING;
+    TrackState=SCOPE_SLEWING;
     numread=tty_read(PortFD,str,1,60, &bytesRead);
     if (numread!=1||str[0]!='#')
     {
@@ -274,7 +274,7 @@ bool SynscanMount::Park()
         return false;
     }
 
-    TrackState=PARKING;
+    TrackState=SCOPE_PARKING;
     IDMessage(deviceName(),"Parking Telescope...");
     return true;
 }

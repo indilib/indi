@@ -134,22 +134,13 @@ protected:
 
     char deviceID[MAXINDINAME];
 
-private:
-
-    /*typedef struct
-    {
-        INDI_TYPE type;
-        void *p;
-    } pOrder;
-
-    typedef boost::shared_ptr<pOrder> orderPtr;*/
     typedef boost::shared_ptr<INumberVectorProperty> numberPtr;
     typedef boost::shared_ptr<ITextVectorProperty> textPtr;
     typedef boost::shared_ptr<ISwitchVectorProperty> switchPtr;
     typedef boost::shared_ptr<ILightVectorProperty> lightPtr;
     typedef boost::shared_ptr<IBLOBVectorProperty> blobPtr;
 
-    //std::vector<orderPtr> pAll;
+private:
 
     std::map< boost::shared_ptr<void>, INDI_TYPE> pAll;
 

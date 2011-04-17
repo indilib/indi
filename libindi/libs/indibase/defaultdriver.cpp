@@ -27,11 +27,14 @@ INDI::DefaultDriver::DefaultDriver()
     pDebug = false;
     pSimulation = false;
 
+    //switchPtr conSw(new ISwitchVectorProperty);
+    ConnectionSP = new ISwitchVectorProperty;
+
     IUFillSwitch(&ConnectionS[0],"CONNECT","Connect",ISS_OFF);
     IUFillSwitch(&ConnectionS[1],"DISCONNECT","Disconnect",ISS_ON);
-    IUFillSwitchVector(&ConnectionSP,ConnectionS,2,deviceName(),"CONNECTION","Connection","Main Control",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    IUFillSwitchVector(ConnectionSP,ConnectionS,2,deviceName(),"CONNECTION","Connection","Main Control",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
-    registerProperty(&ConnectionSP, INDI_SWITCH);
+    registerProperty(ConnectionSP, INDI_SWITCH);
 
 }
 
@@ -148,7 +151,7 @@ bool INDI::DefaultDriver::ISNewSwitch (const char *dev, const char *name, ISStat
     if (!svp)
         return false;
 
-     if(!strcmp(svp->name,ConnectionSP.name))
+     if(!strcmp(svp->name,ConnectionSP->name))
      {
         bool rc;
         
@@ -429,7 +432,7 @@ void INDI::DefaultDriver::ISGetProperties (const char *dev)
                setDeviceName(getDefaultName());
         }
 
-        strncpy(ConnectionSP.device, deviceName(), MAXINDIDEVICE);
+        strncpy(ConnectionSP->device, deviceName(), MAXINDIDEVICE);
         initProperties();
         addConfigurationControl();
 

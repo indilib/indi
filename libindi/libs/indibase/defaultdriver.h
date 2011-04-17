@@ -153,7 +153,7 @@ protected:
 
     //  These are the properties we define, that are generic to pretty much all devices
     //  They are public to make them available to all dervied classes and thier children
-    ISwitchVectorProperty ConnectionSP;
+    ISwitchVectorProperty *ConnectionSP;
     ISwitch ConnectionS[2];
 
 

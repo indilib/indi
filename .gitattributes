@@ -530,6 +530,10 @@ libindi/base64.c -text
 libindi/base64.h -text
 libindi/config.h.cmake -text
 libindi/drivers.xml -text
+libindi/drivers/ccd/ccd_simulator.cpp -text
+libindi/drivers/ccd/ccd_simulator.h -text
+libindi/drivers/filter_wheel/filter_simulator.cpp -text
+libindi/drivers/filter_wheel/filter_simulator.h -text
 libindi/drivers/filter_wheel/fli_wheel.c -text
 libindi/drivers/filter_wheel/trutech_wheel.c -text
 libindi/drivers/focuser/indi_tcfs_sk.xml -text
@@ -567,6 +571,8 @@ libindi/drivers/telescope/orionatlas.h -text
 libindi/drivers/telescope/skycommander.c -text
 libindi/drivers/telescope/synscanmount.cpp -text
 libindi/drivers/telescope/synscanmount.h -text
+libindi/drivers/telescope/telescope_simulator.cpp -text
+libindi/drivers/telescope/telescope_simulator.h -text
 libindi/drivers/telescope/temmadriver.c -text
 libindi/drivers/telescope/temmadriver.h -text
 libindi/drivers/video/indi_lpi.cpp -text

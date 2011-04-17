@@ -24,11 +24,6 @@
 
 #include "defaultdriver.h"
 
-#define PARKED 0
-#define SLEWING 1
-#define TRACKING 2
-#define PARKING 3
-
 class INDI::Telescope : public INDI::DefaultDriver
 {
     protected:
@@ -40,29 +35,30 @@ class INDI::Telescope : public INDI::DefaultDriver
         Telescope();
         virtual ~Telescope();
 
+        enum TelescopeStatus { SCOPE_IDLE, SCOPE_SLEWING, SCOPE_TRACKING, SCOPE_PARKING, SCOPE_PARKED };
 
         //  All telescopes should produce equatorial co-ordinates
-        INumberVectorProperty EqNV;
+        INumberVectorProperty *EqNV;
         INumber EqN[2];
 
         //  And we need a vector to store requests, ie, where are we asked to go
-        INumberVectorProperty EqReqNV;
+        INumberVectorProperty *EqReqNV;
         INumber EqReqN[2];
 
-        ISwitchVectorProperty CoordSV; //  A switch vector that stores how we should readct
+        ISwitchVectorProperty *CoordSV; //  A switch vector that stores how we should readct
         ISwitch CoordS[3];              //  On a coord_set message, sync, or slew
 
-        INumberVectorProperty LocationNV;   //  A number vector that stores lattitude and longitude
+        INumberVectorProperty *LocationNV;   //  A number vector that stores lattitude and longitude
         INumber LocationN[2];
 
-        ISwitchVectorProperty ParkSV; //  A Switch in the client interface to park the scope
+        ISwitchVectorProperty *ParkSV; //  A Switch in the client interface to park the scope
         ISwitch ParkS[1];
 
         //  I dont know of any telescopes that dont
         //  need a port for connection
         //  So lets put all the port connect framework
         //  into our generic telescope super class
-        ITextVectorProperty PortTV; //  A text vector that stores out physical port name
+        ITextVectorProperty *PortTV; //  A text vector that stores out physical port name
         IText PortT[1];
 
 

@@ -316,6 +316,47 @@ endif (NOVA_FOUND)
 
 install(TARGETS indi_synscan RUNTIME DESTINATION bin )
 
+########### Telescope Simulator ##############
+set(telescopesimulator_SRCS
+        ${indimain_SRCS}
+        ${CMAKE_SOURCE_DIR}/drivers/telescope/telescope_simulator.cpp
+   )
+
+add_executable(indi_simulator_telescope ${telescopesimulator_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
+
+target_link_libraries(indi_simulator_telescope indidriver ${CFITSIO_LIBRARIES} m z pthread)
+
+if (NOVA_FOUND)
+  target_link_libraries(indi_simulator_telescope ${NOVA_LIBRARIES})
+endif (NOVA_FOUND)
+
+install(TARGETS indi_simulator_telescope RUNTIME DESTINATION bin )
+
+#####################################
+########## FOCUSER GROUP ############
+#####################################
+
+########### CCD Simulator ##############
+if (CFITSIO_FOUND)
+
+set(ccdsimulator_SRCS
+        ${indimain_SRCS}
+        ${CMAKE_SOURCE_DIR}/drivers/ccd/ccd_simulator.cpp
+   )
+
+add_executable(indi_simulator_ccd ${ccdsimulator_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
+
+target_link_libraries(indi_simulator_ccd indidriver ${CFITSIO_LIBRARIES} m z pthread)
+
+if (NOVA_FOUND)
+  target_link_libraries(indi_simulator_ccd ${NOVA_LIBRARIES})
+endif (NOVA_FOUND)
+
+install(TARGETS indi_simulator_ccd RUNTIME DESTINATION bin )
+
+endif (CFITSIO_FOUND)
+
+
 #####################################
 ########## FOCUSER GROUP ############
 #####################################
@@ -382,6 +423,22 @@ if (NOVA_FOUND)
 endif (NOVA_FOUND)
 
 install(TARGETS indi_trutech_wheel RUNTIME DESTINATION bin )
+
+########### Filter Simulator ##############
+set(filtersimulator_SRCS
+        ${indimain_SRCS}
+        ${CMAKE_SOURCE_DIR}/drivers/filter_wheel/filter_simulator.cpp
+   )
+
+add_executable(indi_simulator_wheel ${filtersimulator_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
+
+target_link_libraries(indi_simulator_wheel indidriver ${CFITSIO_LIBRARIES} m z pthread)
+
+if (NOVA_FOUND)
+  target_link_libraries(indi_simulator_wheel ${NOVA_LIBRARIES})
+endif (NOVA_FOUND)
+
+install(TARGETS indi_simulator_wheel RUNTIME DESTINATION bin )
 
 #################################################################################
 
@@ -588,6 +645,8 @@ if (NOVA_FOUND)
 endif (NOVA_FOUND)
 
 ########### Tutorial four ##############
+if (CFITSIO_FOUND)
+
 set(tutorialfour_SRCS
         ${indimain_SRCS}
         ${CMAKE_SOURCE_DIR}/examples/tutorial_four.cpp
@@ -595,12 +654,13 @@ set(tutorialfour_SRCS
 
 add_executable(tutorial_four ${tutorialfour_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
 
-target_link_libraries(tutorial_four indidefaultdriver m z pthread)
+target_link_libraries(tutorial_four indidriver ${CFITSIO_LIBRARIES} m z pthread)
 
 if (NOVA_FOUND)
   target_link_libraries(tutorial_four ${NOVA_LIBRARIES})
 endif (NOVA_FOUND)
 
+endif (CFITSIO_FOUND)
 
 ########### Tutorial dome ##############
 set(tutorialdome_SRCS

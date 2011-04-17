@@ -91,7 +91,24 @@
                 <driver name="SynScan">indi_synscan</driver>
                 <version>1.0</version>
         </device>
+        <device label="EQ6" focal_length="" aperture="">
+                <driver name="SynScan">indi_synscan</driver>
+                <version>1.0</version>
+        </device>
+        <device label="HEQ5" focal_length="" aperture="">
+                <driver name="SynScan">indi_synscan</driver>
+                <version>1.0</version>
+        </device>
+        <device label="NEQ3" focal_length="" aperture="">
+                <driver name="SynScan">indi_synscan</driver>
+                <version>1.0</version>
+        </device>
+        <device label="Telescope Simulator" focal_length="" aperture="">
+                <driver name="Telescope Simulator">indi_simulator_telescope</driver>
+                <version>1.0</version>
+        </device>
 </devGroup>
+<devGroup group="Focusers">
 	<device label="Robo Focus">
                 <driver name="Robofocus">indi_robo_focus</driver>
 		<version>0.1</version>
@@ -105,6 +122,12 @@
                 <version>0.1</version>
         </device>
 </devGroup>
+<devGroup group="CCDs">
+        <device label="CCD Simulator">
+                <driver name="CCD Simulator">indi_simulator_ccd</driver>
+                <version>0.1</version>
+        </device>
+</devGroup>
 <devGroup group="Filter Wheels">
   	<device label="FLI Wheel">
 		<driver name="FLI Wheel">indi_fli_wheel</driver>
@@ -114,6 +137,10 @@
 		<driver name="TruTech Wheel">indi_trutech_wheel</driver>
 		<version>0.1</version>
     	</device>
+        <device label="Filter Simulator">
+                <driver name="Filter Simulator">indi_simulator_wheel</driver>
+                <version>0.1</version>
+        </device>
 </devGroup>
 <devGroup group="Video">
 	<device label="Generic Video4Linux">

@@ -141,12 +141,12 @@ class INDI::CCD : public INDI::DefaultDriver
         virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n) {return false;}
 
 
-        virtual int StartExposure(float);
+        virtual int StartExposure(float duration);
         virtual bool ExposureComplete();
-        virtual int StartGuideExposure(float);
+        virtual int StartGuideExposure(float duration);
         virtual bool AbortGuideExposure();
         virtual bool GuideExposureComplete();
-        virtual int uploadfile(void *,int);
+        virtual int uploadfile(void *fitsdata,int total);
         virtual int sendPreview();
 
         //  Handy functions for child classes
