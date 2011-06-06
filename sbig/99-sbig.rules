@@ -8,6 +8,7 @@
 
 # History:
 
+# 2011-04-15: Remove SYSFS and replace with ATTR (JM).
 # 2008-10-13: Updating script for SUSE 11. Forcing permission change since MODE="0XXX" has no effect.
 # 2007-12-20: Tested on SUSE 10.3 & Kubuntu 7.10, works okay (JM).
 # 2007-11-04: revison.
@@ -42,19 +43,19 @@
 # 2006-08-20: The version 1.0 released.
 #
 #=================================
-# SUSE 11/Others
+# Ubuntu/Others
 #=================================
 # SBIG ST-7/8/9/10/2K cameras
-SUBSYSTEM=="usb", ACTION=="add", SYSFS{idVendor}=="0d97", SYSFS{idProduct}=="0001" , ENV{DEVTYPE}="usb_device", \
+SUBSYSTEM=="usb", ACTION=="add", ATTR{idVendor}=="0d97", ATTR{idProduct}=="0001" , ENV{DEVTYPE}="usb_device", \
 RUN+="/sbin/fxload -I /lib/firmware/sbigucam.hex -D $env{DEVNAME}"
 RUN+="/bin/chmod 0666 $env{DEVNAME}"
 
 # SBIG ST-L cameras
-SUBSYSTEM=="usb", ACTION=="add", SYSFS{idVendor}=="0d97", SYSFS{idProduct}=="0002" , ENV{DEVTYPE}="usb_device", \
+SUBSYSTEM=="usb", ACTION=="add", ATTR{idVendor}=="0d97", ATTR{idProduct}=="0002" , ENV{DEVTYPE}="usb_device", \
 RUN+="/sbin/fxload -I /lib/firmware/sbiglcam.hex -D $env{DEVNAME}"
 RUN+="/bin/chmod 0666 $env{DEVNAME}"
 
 # SBIG ST-402/1603/3200 cameras
-SUBSYSTEM=="usb", ACTION=="add", SYSFS{idVendor}=="0d97", SYSFS{idProduct}=="0003" , ENV{DEVTYPE}="usb_device", \
+SUBSYSTEM=="usb", ACTION=="add", ATTR{idVendor}=="0d97", ATTR{idProduct}=="0003" , ENV{DEVTYPE}="usb_device", \
 RUN+="/sbin/fxload -I /lib/firmware/sbigfcam.hex -D $env{DEVNAME}"
 RUN+="/bin/chmod 0666 $env{DEVNAME}"

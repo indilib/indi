@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.4.7)
 
-set(SBIG_VERSION "2.0.0")
+set(SBIG_VERSION "2.0.1")
 set(SBIG_SOVERSION "2")
 
 set(FIRMWARE_INSTALL_DIR "/lib/firmware")
