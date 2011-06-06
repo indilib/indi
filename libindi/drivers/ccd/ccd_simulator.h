@@ -78,17 +78,17 @@ class CCDSim : public INDI::CCD
 
         //  And this lives in our simulator settings page
 
-        INumberVectorProperty SimulatorSettingsNV;
+        INumberVectorProperty *SimulatorSettingsNV;
         INumber SimulatorSettingsN[13];
 
-        ITextVectorProperty TelescopeTV; //  A text vector that stores the telescope we want to snoop
+        ITextVectorProperty *TelescopeTV; //  A text vector that stores the telescope we want to snoop
         IText TelescopeT[1];
 
         //ISwitch ConfigSaveRestoreS[2];
         //ISwitchVectorProperty ConfigSaveRestoreSV;
 
         ISwitch TimeFactorS[3];
-        ISwitchVectorProperty TimeFactorSV;
+        ISwitchVectorProperty *TimeFactorSV;
 
         bool SetupParms();
 

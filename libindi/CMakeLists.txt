@@ -31,6 +31,12 @@ include (CheckIncludeFiles)
 
 find_package(ZLIB REQUIRED)
 
+FIND_PACKAGE(Boost)
+IF (BOOST_FOUND)
+    INCLUDE_DIRECTORIES(${BOOST_INCLUDE_DIR})
+ENDIF()
+
+
 macro_optional_find_package(USB)
 macro_log_feature(LIBUSB_FOUND "libusb" "User level access to USB devices" "http://www.libusb.org" FALSE "" "Provides support for USB based drivers in INDI.")
 

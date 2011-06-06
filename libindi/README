@@ -1,5 +1,5 @@
-libindi v0.6.2
-==============
+libindi v0.8
+============
 
 The code here demonstrates the use of INDI, an Instrument-Neutral Device
 Interface protocol. See http://www.clearskyinstitute.com/INDI/INDI.pdf.
@@ -102,5 +102,4 @@ Testing:
 	more stuff
 	more stuff
 
-! For RCS Only -- Do Not Edit
-! @(#) $RCSfile$ $Date: 2004-02-03 09:34:32 +0300 (Tue, 03 Feb 2004) $ $Revision: 284704 $ $Name:  $
+

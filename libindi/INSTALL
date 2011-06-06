@@ -1,4 +1,4 @@
-INDI Library Setup 0.7.0
+INDI Library Setup 0.8.0
 ========================
 
 You must have CMake >= 2.4.7 in order to build this package.
@@ -21,8 +21,3 @@ Dependencies
 + libfli  >= 1.7
 + cfitsio >= 3.0
 
-You can download packages for the dependencies above from SUSE BuildService:
-
-http://software.opensuse.org/search
-
-The packages are available for all major distributions.

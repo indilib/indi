@@ -53,7 +53,7 @@ bool INDI::Telescope::initProperties()
 
     IUFillNumber(&EqN[0],"RA","RA (hh:mm:ss)","%010.6m",0,24,0,0);
     IUFillNumber(&EqN[1],"DEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,0);
-    IUFillNumberVector(EqNV,EqN,2,deviceName(),"EQUATORIAL_EOD_COORD","Eq. Coordinates","Main Control",IP_RW,60,IPS_IDLE);
+    IUFillNumberVector(EqNV,EqN,2,deviceName(),"EQUATORIAL_EOD_COORD","Eq. Coordinates","Main Control",IP_RO,60,IPS_IDLE);
 
     EqReqNV = new INumberVectorProperty;
 
@@ -63,8 +63,8 @@ bool INDI::Telescope::initProperties()
 
     LocationNV = new INumberVectorProperty;
 
-    IUFillNumber(&LocationN[0],"LAT","Lat (dd:mm:ss)","%010.6m",-90,90,0,48.433);
-    IUFillNumber(&LocationN[1],"LONG","Lon (dd:mm:ss)","%010.6m",-180,360,0,-123.35 );
+    IUFillNumber(&LocationN[0],"LAT","Lat (dd:mm:ss)","%010.6m",-90,90,0,0.0);
+    IUFillNumber(&LocationN[1],"LONG","Lon (dd:mm:ss)","%010.6m",0,360,0,0.0 );
     IUFillNumberVector(LocationNV,LocationN,2,deviceName(),"GEOGRAPHIC_COORD","Scope Location","Location",IP_RW,60,IPS_OK);
 
     CoordSV = new ISwitchVectorProperty;
@@ -230,12 +230,8 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
     //IDLog("INDI::Telescope::ISNewNumber %s\n",name);
     if(strcmp(dev,deviceName())==0)
     {
-        //  This is for our device
-        //  Now lets see if it's something we process here
-        //  Cartes sends the REQUEST
-        //  But KStars sends just the co-ordinates
-        //if((strcmp(name,"EQUATORIAL_EOD_COORD_REQUEST")==0)||(strcmp(name,"EQUATORIAL_EOD_COORD")==0)) {
-        if((strcmp(name,"EQUATORIAL_EOD_COORD_REQUEST")==0)||(strcmp(name,"EQUATORIAL_EOD_COORD")==0)) {
+        if(strcmp(name,"EQUATORIAL_EOD_COORD_REQUEST")==0)
+        {
             //  this is for us, and it is a goto
             bool rc=false;
             double ra=-1;
@@ -279,6 +275,7 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
             }
             return rc;
         }
+
         if(strcmp(name,"GEOGRAPHIC_COORD")==0)
         {
             //  Client wants to update the lat/long

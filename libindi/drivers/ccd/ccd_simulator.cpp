@@ -194,6 +194,7 @@ bool CCDSim::initProperties()
     IUFillNumberVector(&EqNV,EqN,2,"","EQUATORIAL_EOD_COORD","Eq. Coordinates","Main Control",IP_RW,60,IPS_IDLE);
     //IUFillNumberVector(&EqNV,EqN,2,deviceName(),"EQUATORIAL_EOD_COORD","Eq. Coordinates","Main Control",IP_RW,60,IPS_IDLE);
 
+    SimulatorSettingsNV = new INumberVectorProperty;
     IUFillNumber(&SimulatorSettingsN[0],"SIM_XRES","CCD X resolution","%4.0f",0,2048,0,1280);
     IUFillNumber(&SimulatorSettingsN[1],"SIM_YRES","CCD Y resolution","%4.0f",0,2048,0,1024);
     IUFillNumber(&SimulatorSettingsN[2],"SIM_XSIZE","CCD X Pixel Size","%4.2f",0,60,0,5.2);
@@ -207,19 +208,19 @@ bool CCDSim::initProperties()
     IUFillNumber(&SimulatorSettingsN[10],"SIM_NOISE","CCD Noise","%4.0f",0,6000,0,50);
     IUFillNumber(&SimulatorSettingsN[11],"SIM_SKYGLOW","Sky Glow (magnitudes)","%4.1f",0,6000,0,19.5);
     IUFillNumber(&SimulatorSettingsN[12],"SIM_OAGOFFSET","Oag Offset (arminutes)","%4.1f",0,6000,0,0);
-    IUFillNumberVector(&SimulatorSettingsNV,SimulatorSettingsN,13,deviceName(),"SIMULATOR_SETTINGS","Simulator Settings","SimSettings",IP_RW,60,IPS_IDLE);
+    IUFillNumberVector(SimulatorSettingsNV,SimulatorSettingsN,13,deviceName(),"SIMULATOR_SETTINGS","Simulator Settings","SimSettings",IP_RW,60,IPS_IDLE);
 
-    IUFillText(&TelescopeT[0],"SIM_CCD_TELESCOPE","Telescope","");
-    IUFillTextVector(&TelescopeTV,TelescopeT,1,deviceName(),"SIM_SNOOP_SCOPE","Snoop Scope","Simulator Config",IP_RW,60,IPS_IDLE);
 
-    //IUFillSwitch(&ConfigSaveRestoreS[0],"SAVE","Save",ISS_OFF);
-    //IUFillSwitch(&ConfigSaveRestoreS[1],"LOAD","Load",ISS_OFF);
-    //IUFillSwitchVector(&ConfigSaveRestoreSV,ConfigSaveRestoreS,2,deviceName(),"ON_CONFIG_SAVE_RESTORE","Set","Simulator Config",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    TelescopeTV = new ITextVectorProperty;
+    IUFillText(&TelescopeT[0],"ACTIVE_TELESCOPE","Telescope","");
+    IUFillTextVector(TelescopeTV,TelescopeT,1,deviceName(),"ACTIVE_DEVICES","Snoop Scope","Simulator Config",IP_RW,60,IPS_IDLE);
+
+    TimeFactorSV = new ISwitchVectorProperty;
 
     IUFillSwitch(&TimeFactorS[0],"1X","Actual Time",ISS_ON);
     IUFillSwitch(&TimeFactorS[1],"10X","10x",ISS_OFF);
     IUFillSwitch(&TimeFactorS[2],"100X","100x",ISS_OFF);
-    IUFillSwitchVector(&TimeFactorSV,TimeFactorS,3,deviceName(),"ON_TIME_FACTOR","Time Factor","Simulator Config",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    IUFillSwitchVector(TimeFactorSV,TimeFactorS,3,deviceName(),"ON_TIME_FACTOR","Time Factor","Simulator Config",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
 
     loadConfig();
@@ -234,9 +235,9 @@ void CCDSim::ISGetProperties (const char *dev)
     //IDLog("CCDSim IsGetProperties with %s\n",dev);
     INDI::CCD::ISGetProperties(dev);
 
-    defineNumber(&SimulatorSettingsNV);
-    defineSwitch(&TimeFactorSV);
-    defineText(&TelescopeTV);
+    defineNumber(SimulatorSettingsNV);
+    defineSwitch(TimeFactorSV);
+    defineText(TelescopeTV);
     //IDDefText(&ConfigFileTV, NULL);
     //IDDefSwitch(&ConfigSaveRestoreSV, NULL);
 
@@ -246,7 +247,7 @@ void CCDSim::ISGetProperties (const char *dev)
 
 bool CCDSim::updateProperties()
 {
-    IDDefNumber(&SimulatorSettingsNV, NULL);
+    IDDefNumber(SimulatorSettingsNV, NULL);
 
     INDI::CCD::updateProperties();
     return true;
@@ -275,7 +276,8 @@ int CCDSim::StartExposure(float duration)
     //  by the timer routines
     ExposureRequest=duration;
 
-    if(InExposure) {
+    if(InExposure)
+    {
         //  We are already in an exposure, just change the time
         //  and be done with it.
         return 0;
@@ -308,6 +310,7 @@ bool CCDSim::AbortGuideExposure()
     AbortGuideFrame=true;
     return true;
 }
+
 float CCDSim::CalcTimeLeft(timeval start,float req)
 {
     double timesince;
@@ -322,42 +325,55 @@ float CCDSim::CalcTimeLeft(timeval start,float req)
 }
 
 void CCDSim::TimerHit()
-{   int nexttimer=1000;
+{
+    int nexttimer=1000;
 
     if(isConnected() == false) return;  //  No need to reset timer if we are not connected anymore
 
-    if(InExposure) {
+    if(InExposure)
+    {
         float timeleft;
         timeleft=CalcTimeLeft(ExpStart,ExposureRequest);
-        if(timeleft < 1.0) {
-            if(timeleft <= 0.001) {
+        if(timeleft < 1.0)
+        {
+            if(timeleft <= 0.001)
+            {
                 InExposure=false;
                 ExposureComplete();
-            } else {
+            } else
+            {
                 nexttimer=timeleft*1000;    //  set a shorter timer
             }
         }
     }
-    if(InGuideExposure) {
+    if(InGuideExposure)
+    {
         float timeleft;
         timeleft=CalcTimeLeft(GuideExpStart,GuideExposureRequest);
-        if(timeleft < 1.0) {
-            if(timeleft <= 0.001) {
+        if(timeleft < 1.0)
+        {
+            if(timeleft <= 0.001)
+            {
                 InGuideExposure=false;
-                if(!AbortGuideFrame) {
+                if(!AbortGuideFrame)
+                {
                     //IDLog("Sending guider frame\n");
                     GuideExposureComplete();
-                    if(InGuideExposure) {    //  the call to complete triggered another exposure
+                    if(InGuideExposure)
+                    {    //  the call to complete triggered another exposure
                         timeleft=CalcTimeLeft(GuideExpStart,GuideExposureRequest);
-                        if(timeleft <1.0) {
+                        if(timeleft <1.0)
+                        {
                             nexttimer=timeleft*1000;
                         }
                     }
-                } else {
+                } else
+                {
                     IDLog("Not sending guide frame cuz of abort\n");
                 }
                 AbortGuideFrame=false;
-            } else {
+            } else
+            {
                 nexttimer=timeleft*1000;    //  set a shorter timer
             }
         }
@@ -488,14 +504,16 @@ int CCDSim::DrawCcdFrame()
         if(radius > 60) lookuplimit=11;
 
         //  if this is a light frame, we need a star field drawn
-        if(FrameType==FRAME_TYPE_LIGHT) {
+        if(FrameType==FRAME_TYPE_LIGHT)
+        {
             //sprintf(gsccmd,"gsc -c %8.6f %+8.6f -r 120 -m 0 9.1",rad+PEOffset,Dec);
             sprintf(gsccmd,"gsc -c %8.6f %+8.6f -r %4.1f -m 0 %4.2f -n 3000",rad+PEOffset,cameradec,radius,lookuplimit);
             //fprintf(stderr,"gsccmd %s\n",gsccmd);
             pp=popen(gsccmd,"r");
             if(pp != NULL) {
                 char line[256];
-                while(fgets(line,256,pp)!=NULL) {
+                while(fgets(line,256,pp)!=NULL)
+                {
                     //fprintf(stderr,"%s",line);
 
                     //  ok, lets parse this line for specifcs we want
@@ -512,8 +530,6 @@ int CCDSim::DrawCcdFrame()
                     int dir;
                     int c;
                     int rc;
-
-
 
                     rc=sscanf(line,"%10s %f %f %f %f %f %d %d %4s %2s %f %d",
                             id,&ra,&dec,&pose,&mag,&mage,&band,&c,plate,ob,&dist,&dir);
@@ -559,11 +575,13 @@ int CCDSim::DrawCcdFrame()
                     }
                 }
                 pclose(pp);
-            } else {
+            } else
+            {
                 IDMessage(deviceName(),"Error looking up stars, is gsc installed with appropriate environment variables set ??");
                 //fprintf(stderr,"Error doing gsc lookup\n");
             }
-            if(drawn==0) {
+            if(drawn==0)
+            {
                 IDMessage(deviceName(),"Got no stars, is gsc installed with appropriate environment variables set ??");
 
             }
@@ -574,12 +592,14 @@ int CCDSim::DrawCcdFrame()
         //  this is essentially the same math as drawing a dim star with
         //  fwhm equivalent to the full field of view
 
-        if((FrameType==FRAME_TYPE_LIGHT)||(FrameType==FRAME_TYPE_FLAT)) {
+        if((FrameType==FRAME_TYPE_LIGHT)||(FrameType==FRAME_TYPE_FLAT))
+        {
             float skyflux;
             float glow;
             //  calculate flux from our zero point and gain values
             glow=skyglow;
-            if(FrameType==FRAME_TYPE_FLAT) {
+            if(FrameType==FRAME_TYPE_FLAT)
+            {
                 //  Assume flats are done with a diffuser
                 //  in broad daylight, so, the sky magnitude
                 //  is much brighter than at night
@@ -650,7 +670,8 @@ int CCDSim::DrawCcdFrame()
         if(testvalue > 255) testvalue=0;
         val=testvalue;
 
-        for(int x=0; x<XRes*YRes; x++) {
+        for(int x=0; x<XRes*YRes; x++)
+        {
             *ptr=val++;
             ptr++;
         }
@@ -686,7 +707,8 @@ int CCDSim::DrawImageStar(float mag,float x,float y)
     int boxsizey=5;
     float flux;
 
-    if((x<0)||(x>XRes/BinX)||(y<0)||(y>YRes/BinY)) {
+    if((x<0)||(x>XRes/BinX)||(y<0)||(y>YRes/BinY))
+    {
         //  this star is not on the ccd frame anyways
         return 0;
     }
@@ -843,7 +865,7 @@ bool CCDSim::ISNewNumber (const char *dev, const char *name, double values[], ch
         //IDLog("CCDSim::ISNewNumber %s\n",name);
         if(strcmp(name,"SIMULATOR_SETTINGS")==0) {
             //  We are being asked to set camera binning
-            SimulatorSettingsNV.s=IPS_OK;
+            SimulatorSettingsNV->s=IPS_OK;
 
             for(int x=0; x<n; x++) {
                 //fprintf(stderr,"name %s value %4.2f\n",names[x],values[x]);
@@ -862,7 +884,7 @@ bool CCDSim::ISNewNumber (const char *dev, const char *name, double values[], ch
 
             //  Reset our parameters now
             SetupParms();
-            IDSetNumber(&SimulatorSettingsNV,NULL);
+            IDSetNumber(SimulatorSettingsNV,NULL);
             saveConfig();
 
             //IDLog("Frame set to %4.0f,%4.0f %4.0f x %4.0f\n",CcdFrameN[0].value,CcdFrameN[1].value,CcdFrameN[2].value,CcdFrameN[3].value);
@@ -884,14 +906,14 @@ bool CCDSim::ISNewText (const char *dev, const char *name, char *texts[], char *
     if(strcmp(dev,deviceName())==0) {
         //  This is for our device
         //  Now lets see if it's something we process here
-        if(strcmp(name,TelescopeTV.name)==0) {
+        if(strcmp(name,TelescopeTV->name)==0) {
             int rc;
             //IDLog("calling update text\n");
-            TelescopeTV.s=IPS_OK;
-            rc=IUUpdateText(&TelescopeTV,texts,names,n);
+            TelescopeTV->s=IPS_OK;
+            rc=IUUpdateText(TelescopeTV,texts,names,n);
             //IDLog("update text returns %d\n",rc);
             //  Update client display
-            IDSetText(&TelescopeTV,NULL);
+            IDSetText(TelescopeTV,NULL);
             saveConfig();
             IUFillNumberVector(&EqNV,EqN,2,TelescopeT[0].text,"EQUATORIAL_EOD_COORD","Eq. Coordinates","Main Control",IP_RW,60,IPS_IDLE);
             IDSnoopDevice(TelescopeT[0].text,"EQUATORIAL_EOD_COORD");
@@ -919,10 +941,10 @@ bool CCDSim::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
         if(strcmp(name,"ON_TIME_FACTOR")==0) {
 
             //  client is telling us what to do with co-ordinate requests
-            TimeFactorSV.s=IPS_OK;
-            IUUpdateSwitch(&TimeFactorSV,states,names,n);
+            TimeFactorSV->s=IPS_OK;
+            IUUpdateSwitch(TimeFactorSV,states,names,n);
             //  Update client display
-            IDSetSwitch(&TimeFactorSV,NULL);
+            IDSetSwitch(TimeFactorSV,NULL);
 
             saveConfig();
             if(TimeFactorS[0].s==ISS_ON    ) {
