@@ -59,11 +59,17 @@ else (INDI_INCLUDE_DIR AND INDI_DATA_DIR AND INDI_LIBRARIES AND INDI_DRIVER_LIBR
     ${GNUWIN32_DIR}/lib
   )
 
-  if(INDI_INCLUDE_DIR AND INDI_DATA_DIR AND INDI_LIBRARIES AND INDI_DRIVER_LIBRARIES AND INDI_MAIN_LIBRARIES)
-    set(INDI_FOUND TRUE)
-  else (INDI_INCLUDE_DIR AND INDI_DATA_DIR AND INDI_LIBRARIES AND INDI_DRIVER_LIBRARIES AND INDI_MAIN_LIBRARIES)
-    set(INDI_FOUND FALSE)
-  endif(INDI_INCLUDE_DIR AND INDI_DATA_DIR AND INDI_LIBRARIES AND INDI_DRIVER_LIBRARIES AND INDI_MAIN_LIBRARIES)
+  # Find pkg-config
+  FIND_PROGRAM(PKGCONFIG_EXECUTABLE NAMES pkg-config PATHS /usr/bin/ /usr/local/bin )
+
+  # query pkg-config asking for a libindi >= 0.8.0
+     EXEC_PROGRAM(${PKGCONFIG_EXECUTABLE} ARGS --atleast-version=0.8.0 libindi RETURN_VALUE _return_VALUE OUTPUT_VARIABLE _pkgconfigDevNull )
+     if(_return_VALUE STREQUAL "0")
+        set(INDI_FOUND TRUE)
+     else(_return_VALUE STREQUAL "0")
+       set(INDI_FOUND FALSE)
+       message(STATUS "Could NOT find libindi. pkg-config indicates that libindi >= 0.8.0 is not installed.")
+     endif(_return_VALUE STREQUAL "0")
 
 
   if (INDI_FOUND)
@@ -71,10 +77,6 @@ else (INDI_INCLUDE_DIR AND INDI_DATA_DIR AND INDI_LIBRARIES AND INDI_DRIVER_LIBR
       message(STATUS "Found INDI: ${INDI_LIBRARIES}, ${INDI_MAIN_LIBRARIES}")
       message(STATUS "INDI Include: ${INDI_INCLUDE_DIR}, INDI Data: ${INDI_DATA_DIR}")
     endif (NOT INDI_FIND_QUIETLY)
-  else (INDI_FOUND)
-    if (INDI_FIND_REQUIRED)
-      message(FATAL_ERROR "indi-dev not found. Cannot compile INDI drivers. Please install indi-dev and try again. http://www.indilib.org")
-    endif (INDI_FIND_REQUIRED)
   endif (INDI_FOUND)
 
   mark_as_advanced(INDI_INCLUDE_DIR INDI_DATA_DIR INDI_LIBRARIES INDI_DRIVER_LIBRARIES INDI_MAIN_LIBRARIES INDI_CLIENT_LIBRARIES)
