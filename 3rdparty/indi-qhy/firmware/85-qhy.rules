@@ -6,34 +6,32 @@
 # Vendorid & Prodid: QHY VOTI
 
 ACTION!="add", GOTO="qhy_vidpid_end"
-SUBSYSTEM=="usb", env{DEVTYPE}=="usb_device", GOTO="qhy_vidpid_test"
+SUBSYSTEM=="usb", GOTO="qhy_vidpid_test"
 SUBSYSTEM!="usb_device", GOTO="qhy_vidpid_end"
 
 LABEL="qhy_vidpid_test"
 
 # QHY2
-SYSFS{idVendor}=="1618", SYSFS{idProduct}=="0412", RUN+="/sbin/fxload -t fx2 -D $env{DEVNAME} -I /lib/firmware/qhy2.hex"
+ATTRS{idVendor}=="1618", ATTRS{idProduct}=="0412", RUN+="/sbin/fxload -t fx2 -D $env{DEVNAME} -I /lib/firmware/qhy2.hex"
 
 # QHY5
-SYSFS{idVendor}=="1618", SYSFS{idProduct}=="0901", RUN+="/sbin/fxload -t fx2 -D $env{DEVNAME} -I /lib/firmware/qhy5loader.hex"
-SYSFS{idVendor}=="1618", SYSFS{idProduct}=="0901", RUN+="/bin/sleep 5"
-SYSFS{idVendor}=="1618", SYSFS{idProduct}=="0901", RUN+="/sbin/fxload -t fx2 -D $env{DEVNAME} -I /lib/firmware/qhy5.hex"
+ATTRS{idVendor}=="1618", ATTRS{idProduct}=="0901", RUN+="/sbin/fxload -t fx2 -I /lib/firmware/qhy5.hex -D $env{DEVNAME} -s /lib/firmware/qhy5loader.hex"
 
 # SSAG
-SYSFS{idVendor}=="1856", SYSFS{idProduct}=="0011", RUN+="/sbin/fxload -t fx2 -D $env{DEVNAME} -I /lib/firmware/qhy5loader.hex"
-SYSFS{idVendor}=="1856", SYSFS{idProduct}=="0011", RUN+="/bin/sleep 5"
-SYSFS{idVendor}=="1856", SYSFS{idProduct}=="0011", RUN+="/sbin/fxload -t fx2 -D $env{DEVNAME} -I /lib/firmware/qhy5.hex"
+ATTRS{idVendor}=="1856", ATTRS{idProduct}=="0011", RUN+="/sbin/fxload -t fx2 -I /lib/firmware/qhy5.hex -D $env{DEVNAME} -s /lib/firmware/qhy5loader.hex"
+
+#Other QHY5 variants
+ATTRS{idVendor}=="1618", ATTRS{idProduct}=="1002", RUN+="/sbin/fxload -t fx2 -I /lib/firmware/qhy5.hex -D $env{DEVNAME} -s /lib/firmware/qhy5loader.hex"
+ATTRS{idVendor}=="0547", ATTRS{idProduct}=="1002", RUN+="/sbin/fxload -t fx2 -I /lib/firmware/qhy5.hex -D $env{DEVNAME} -s /lib/firmware/qhy5loader.hex"
+ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="8613", RUN+="/sbin/fxload -t fx2 -I /lib/firmware/qhy5.hex -D $env{DEVNAME} -s /lib/firmware/qhy5loader.hex"
+ATTRS{idVendor}=="16c0", ATTRS{idProduct}=="081a", RUN+="/sbin/fxload -t fx2 -I /lib/firmware/qhy5.hex -D $env{DEVNAME} -s /lib/firmware/qhy5loader.hex"
 
 # QHY6
-SYSFS{idVendor}=="1618", SYSFS{idProduct}=="0259", RUN+="/sbin/fxload -t fx2 -D $env{DEVNAME} -I /lib/firmware/qhy6.hex"
+ATTRS{idVendor}=="1618", ATTRS{idProduct}=="0259", RUN+="/sbin/fxload -t fx2 -D $env{DEVNAME} -I /lib/firmware/qhy6.hex"
 
 #QHY8
-SYSFS{idVendor}=="1618", SYSFS{idProduct}=="6000", RUN+="/sbin/fxload -t fx2 -D $env{DEVNAME} -I /lib/firmware/qhy8.hex"
+ATTRS{idVendor}=="1618", ATTRS{idProduct}=="6000", RUN+="/sbin/fxload -t fx2 -D $env{DEVNAME} -I /lib/firmware/qhy8.hex"
 
-SUBSYSTEM=="usb", ENV{PRODUCT}=="16c0/296d/*", MODE="0660", OWNER="root", GROUP="video"
-SUBSYSTEM=="usb", ENV{PRODUCT}=="16c0/081e/*", MODE="0660", OWNER="root", GROUP="video"
-SUBSYSTEM=="usb", ENV{PRODUCT}=="16c0/081d/*", MODE="0660", OWNER="root", GROUP="video"
-SUBSYSTEM=="usb", ENV{PRODUCT}=="16c0/2972/*", MODE="0660", OWNER="root", GROUP="video"
 LABEL="qhy_vidpid_end"
 
 # This is the ID presented once the firmware has been loaded.
@@ -45,10 +43,12 @@ GOTO="qhy-rules-end"
 
 LABEL="qhy-vipi"
 
-ATTRS{modalias}=="usb:v16c0p081e*",OWNER="root", GROUP="video", MODE="0660", SYMLINK+="qhy2"
-ATTRS{modalias}=="usb:v16c0p296d*",OWNER="root", GROUP="video", MODE="0660", SYMLINK+="qhy5"
-ATTRS{modalias}=="usb:v16c0p081d*",OWNER="root", GROUP="video", MODE="0660", SYMLINK+="qhy6"
-ATTRS{modalias}=="usb:v16c0p2972*",OWNER="root", GROUP="video", MODE="0660", SYMLINK+="qhy8"
+ATTRS{modalias}=="usb:v16c0p081e*",OWNER="root", GROUP="video", MODE="0660", SYMLINK+="QHY2"
+ATTRS{modalias}=="usb:v16c0p296d*",OWNER="root", GROUP="video", MODE="0660", SYMLINK+="QHY5"
+ATTRS{idVendor}=="16c0",ATTRS{idProduct}=="296d",OWNER="root", GROUP="video", MODE="0660", SYMLINK+="QHY5"
+#ATTRS{modalias}=="usb:v16c0p081d*",OWNER="root", GROUP="video", MODE="0660", SYMLINK+="QHY6"
+ATTRS{modalias}=="usb:v1618p025a*",OWNER="root", GROUP="video", MODE="0660", SYMLINK+="QHY6"
+ATTRS{modalias}=="usb:v16c0p2981*",OWNER="root", GROUP="video", MODE="0660", SYMLINK+="QHY6pro"
+ATTRS{modalias}=="usb:v16c0p2972*",OWNER="root", GROUP="video", MODE="0660", SYMLINK+="QHY8"
 
 LABEL="qhy-rules-end"
-
