@@ -15,7 +15,7 @@ using namespace std;
 
 
 enum { ON_S, OFF_S };
-enum { FITS_S, NATIVE_S };
+enum { FITS_S, ZFITS_S, NATIVE_S };
 
 /********************************************
  Property: CCD Image BLOB
@@ -92,7 +92,7 @@ private:
 	ISwitchVectorProperty mIsoSP;
 	ISwitch *mFormatS;
 	ISwitchVectorProperty mFormatSP;
-	ISwitch mTransferS[2];
+	ISwitch mTransferS[3];
 	ISwitchVectorProperty mTransferSP;
 
 	IBLOB mFitsB[1];

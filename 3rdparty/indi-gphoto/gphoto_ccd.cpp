@@ -441,7 +441,7 @@ void GPhotoCam::ExposureUpdate (void)
 	    return;
 	}
 
-	if(mTransferS[FITS_S].s == ISS_ON) {
+	if(mTransferS[FITS_S].s == ISS_ON || mTransferS[ZFITS_S].s == ISS_ON) {
 		int fd;
 		char tmpfile[] = "/tmp/indi_XXXXXX";
 		// Convert to FITS
@@ -486,14 +486,16 @@ void GPhotoCam::ExposureUpdate (void)
 	IDSetNumber (&mExposureNP, "Exposure complete, downloading image...");
 
 	printf("size: %lu\n", (unsigned long)memsize);
+#ifdef DEBUG_FITS
 	FILE *h = fopen("test.fits", "w+");
 	fwrite(memptr, memsize, 1, h);
 	fclose(h);
+#endif
 	uploadFile(memptr, memsize, ext);
 	mExposureNP.s = IPS_OK;
 	IDSetNumber (&mExposureNP, NULL);
 	if(memptr) {
-		if(mTransferS[FITS_S].s == ISS_ON)
+		if(mTransferS[FITS_S].s == ISS_ON || mTransferS[ZFITS_S].s == ISS_ON)
 			free(memptr);
 		else
 			gphoto_free_buffer(gphotodrv);
@@ -503,43 +505,47 @@ void GPhotoCam::ExposureUpdate (void)
 void
 GPhotoCam::uploadFile(const void *fitsData, size_t totalBytes, const char *ext)
 {
-   unsigned char *compressedData;
-   int r=0;
-   uLongf compressedBytes=0;
+	unsigned char *compressedData = NULL;
+	int r=0;
+	uLongf compressedBytes=0;
 
-   
-   compressedBytes = sizeof(char) * totalBytes + totalBytes / 64 + 16 + 3;
-   compressedData = (unsigned char *) malloc (compressedBytes);
-   
-   if (fitsData == NULL || compressedData == NULL)
-   {
-     if (compressedData)
-       free(compressedData);
-     IDMessage(MYDEV, "Error: Ran out of memory compressing image\n");
-     IDLog("Error! low memory. Unable to initialize fits buffers.\n");
-     return;
-   }
-   
-   /* #2 Compress it */ 
-   r = compress2(compressedData, &compressedBytes, (const Bytef*)fitsData, totalBytes, 5);
-   if (r != Z_OK)
-   {
- 	/* this should NEVER happen */
-        mExposureNP.s = IPS_ALERT;
-        IDMessage(MYDEV, "Error: Failed to compress image\n");
- 	IDLog("internal error - compression failed: %d\n", r);
-	return;
-   }
-   
-   /* #3 Send it */
-     mFitsBP.bp[IMG_B].blob = compressedData;
-     mFitsBP.bp[IMG_B].bloblen = compressedBytes;
-     mFitsBP.bp[IMG_B].size = totalBytes;
-     sprintf(mFitsBP.bp[IMG_B].format, ".%s.z", ext);
-     mFitsBP.s = IPS_OK;
-     IDSetBLOB (&mFitsBP, NULL);
-   
-   free (compressedData);
+	if (mTransferS[ZFITS_S].s == ISS_ON)
+	{
+		compressedBytes = sizeof(char) * totalBytes + totalBytes / 64 + 16 + 3;
+		compressedData = (unsigned char *) malloc (compressedBytes);
+ 
+		if (fitsData == NULL || compressedData == NULL)
+		{
+			if (compressedData) free(compressedData);
+			IDMessage(MYDEV, "Error: Ran out of memory compressing image\n");
+			IDLog("Error! low memory. Unable to initialize fits buffers.\n");
+			return;
+		}
+       
+		/* #2 Compress it */ 
+		r = compress2(compressedData, &compressedBytes, (const Bytef*)fitsData, totalBytes, 9);
+		if (r != Z_OK)
+		{
+			/* this should NEVER happen */
+			IDMessage(MYDEV, "Error: Failed to compress image\n");
+			IDLog("internal error - compression failed: %d\n", r);
+			return;
+		}
+		mFitsBP.bp[IMG_B].blob = compressedData;
+		mFitsBP.bp[IMG_B].bloblen = compressedBytes;
+		sprintf(mFitsBP.bp[IMG_B].format, ".%s.z", ext);
+	} else {
+		mFitsBP.bp[IMG_B].blob = (unsigned char *)fitsData;
+		mFitsBP.bp[IMG_B].bloblen = totalBytes;
+		sprintf(mFitsBP.bp[IMG_B].format, ".%s", ext);
+	}
+	/* #3 Send it */
+	mFitsBP.bp[IMG_B].size = totalBytes;
+	mFitsBP.s = IPS_OK;
+	IDSetBLOB (&mFitsBP, NULL);
+
+	if (compressedData)
+		free (compressedData);
 }
 
 ISwitch *
@@ -824,7 +830,8 @@ void GPhotoCam::InitVars(void)
 	IUFillSwitchVector(&mFormatSP, NULL, 0, MYDEV,
 		"CAPTURE_FORMAT", "Capture Format", IMAGE_GROUP, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
   	IUFillSwitch(&mTransferS[0], "FITS" , "Fits" , ISS_ON);
-  	IUFillSwitch(&mTransferS[1], "NATIVE", "Native", ISS_OFF);
+  	IUFillSwitch(&mTransferS[1], "ZFITS", "Compressed Fits", ISS_OFF);
+  	IUFillSwitch(&mTransferS[2], "NATIVE", "Native", ISS_OFF);
 	IUFillSwitchVector(&mTransferSP, mTransferS, NARRAY(mTransferS), MYDEV,
 		"TRANSFER_FORMAT", "Transfer Format", IMAGE_GROUP, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 

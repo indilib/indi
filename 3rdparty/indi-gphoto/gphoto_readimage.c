@@ -324,7 +324,7 @@ int read_jpeg(const char *filename, void **memptr, size_t *memsize )
 	int row;
 	int naxis = 2;
 	long naxes[3];
-	int status;
+	int status = 0;
 	fitsfile *fptr = NULL;
 	unsigned char *r_data = NULL, *g_data, *b_data;
 

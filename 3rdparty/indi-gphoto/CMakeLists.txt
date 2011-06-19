@@ -4,9 +4,9 @@ cmake_minimum_required(VERSION 2.4.7)
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
 
 SET(CMAKE_CXX_FLAGS "-Wall" )
-SET(CMAKE_CXX_FLAGS_DEBUG "-Werror" )
+SET(CMAKE_CXX_FLAGS_DEBUG "-Werror -O0 -g -DDEBUG_FITS" )
 SET(CMAKE_C_FLAGS "-Wall" )
-SET(CMAKE_C_FLAGS_DEBUG "-Werror" )
+SET(CMAKE_C_FLAGS_DEBUG "-Werror -O0 -g -DDEBUG_FITS" )
 
 Include (CheckCXXSourceCompiles)
 Include (CheckCSourceCompiles)
