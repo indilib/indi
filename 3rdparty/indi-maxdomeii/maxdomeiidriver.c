@@ -70,8 +70,8 @@ const char *ErrorMessages[] = {"Ok", // no error
 								"Invalid declared message lenght", // -2
 								"Message too short", // -3
 								"Checksum error", // -4
-								"Couldn't send command", // -5
-								"Response don't match command", // -6
+								"Could not send command", // -5
+								"Response do not match command", // -6
 								""};
 
 /*

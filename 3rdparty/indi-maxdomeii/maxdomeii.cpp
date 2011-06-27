@@ -154,7 +154,7 @@ MaxDomeII::MaxDomeII()
     init_properties();
 
     IDLog("Initilizing from MaxDome II device...\n");
-    IDLog("Driver Version: 2010-03-14\n"); 
+    IDLog("Driver Version: 2011-06-25\n"); 
 }
 
 /**************************************************************************************
@@ -226,9 +226,9 @@ void MaxDomeII::init_properties()
     IUFillSwitchVector(&ParkOnShutterSP, ParkOnShutterS, NARRAY(ParkOnShutterS), mydev, "PARK_ON_SHUTTER", "Park before operating shutter", OPTIONS_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
 	// Shutter - SET
-    IUFillSwitch(&ShutterS[0], "OPEN_SHUTER", "Open shutter", ISS_OFF);
-	IUFillSwitch(&ShutterS[1], "OPEN_UPPER_SHUTER", "Open upper shutter", ISS_OFF);
-    IUFillSwitch(&ShutterS[2], "CLOSE_SHUTER", "Close shutter", ISS_ON);
+    IUFillSwitch(&ShutterS[0], "OPEN_SHUTTER", "Open shutter", ISS_OFF);
+	IUFillSwitch(&ShutterS[1], "OPEN_UPPER_SHUTTER", "Open upper shutter", ISS_OFF);
+    IUFillSwitch(&ShutterS[2], "CLOSE_SHUTTER", "Close shutter", ISS_ON);
     IUFillSwitchVector(&ShutterSP, ShutterS, NARRAY(ShutterS), mydev, "SHUTTER", "Shutter", OPERATION_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 }
 
@@ -327,12 +327,15 @@ void MaxDomeII::ISNewText (const char *dev, const char *name, char *texts[], cha
 int MaxDomeII::GotoAzimuth(double newAZ)
 {
 	double currAZ = 0;
-	int newPos = 0, currPos = 0, nDir = 0;
+	int newPos = 0, nDir = 0;
 	int error;
 		
 	currAZ = AzimuthRN[0].value;
-	newPos = floor(0.5 + newAZ * nTicksPerTurn / 360.0);
-	currPos = floor(0.5 + currAZ * nTicksPerTurn / 360.0);
+	newPos = floor(0.5 + newAZ * nTicksPerTurn / 360.0) + nHomeTicks;
+	
+	if (newPos > nTicksPerTurn)
+		newPos -= nTicksPerTurn;
+	
 	// Take the shortest path
 	if (newAZ > currAZ)
 	{
@@ -902,7 +905,7 @@ void MaxDomeII::ISPoll()
 				{
 					AzimuthWNP.s = IPS_ALERT;
 					nTimeSinceAzimuthStart = -1;
-					IDSetNumber(&AzimuthWNP, "Couldn't position right");
+					IDSetNumber(&AzimuthWNP, "Could not position right");
 				}
 				else
 				{   // Succesfull end of movement				
