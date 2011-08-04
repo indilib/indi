@@ -84,6 +84,13 @@ enum { ON_S, OFF_S };
 static ISwitch ConnectS[]          	= {{"CONNECT" , "Connect" , ISS_OFF, 0, 0},{"DISCONNECT", "Disconnect", ISS_ON, 0, 0}};
 ISwitchVectorProperty ConnectSP		= { MYDEV, "CONNECTION" , "Connection", COMM_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, ConnectS, NARRAY(ConnectS), "", 0};
 
+
+/********************************************
+ Property: Port
+*********************************************/
+static ISwitch PortS[]          	= {{"USB" , "" , ISS_ON, 0, 0},{"ETHERNET", "", ISS_OFF, 0, 0}};
+ISwitchVectorProperty PortSP		= { MYDEV, "Port" , "", COMM_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, PortS, NARRAY(PortS), "", 0};
+
 /**********************************************************************************************/
 /*********************************** GROUP: Expose ********************************************/
 /**********************************************************************************************/
@@ -245,6 +252,7 @@ void ISGetProperties (char const *dev)
 
 	/* Communication Group */
 	IDDefSwitch(&ConnectSP, NULL);
+        IDDefSwitch(&PortSP, NULL);
 
 }
 
@@ -253,6 +261,16 @@ void ISNewSwitch (const char *dev, const char *name, ISState *states, char *name
 
 	if (strcmp (dev, MYDEV))
 	    return;
+
+        if (!strcmp(name, PortSP.name))
+        {
+            if (IUUpdateSwitch(&PortSP, states, names, n) < 0)
+                            return;
+
+            PortSP.s = IPS_OK;
+            IDSetSwitch(&PortSP, NULL);
+            return;
+        }
 
 	if (!strcmp(name, ConnectSP.name))
 	{
@@ -587,7 +605,7 @@ static void expTO (void *vp)
 		return;
 	   }
 
-	   /* Create the primary array image (16-bit unsigned short integer pixels */
+           /* Create the primary array image (16-bit unsigned short integer pixels) */
   	   fits_create_img(fptr, USHORT_IMG, naxis, naxes, &status);
 	   if (status)
 	   {
@@ -628,14 +646,6 @@ static void expTO (void *vp)
   	unlink(filename);
 	
 	}
-}
-
-void addFITSKeywords(fitsfile *fptr)
-{
-  int status=0;
-
-  /* TODO add other data later */
-  fits_write_date(fptr, &status);
 }
 
 void uploadFile(const char* filename)
@@ -708,74 +718,60 @@ void uploadFile(const char* filename)
    
 }
 
-/* FIXME */
 
-#if 0
+
+
 
 /* hack together a FITS header for the current image
  * we use up exactly FHDRSZ bytes.
  */
-static void
-setHeader (char *fits)
+void addFITSKeywords(fitsfile *fptr)
 {
 
+       int status=0;
 
-	double expt = ExposureSettingsNP.np[EXP_EV].value;
-	double tempt = TemperatureRNP.np[T_TN].value;
-	int binw = ExposureSettingsNP.np[BINW_EV].value;
-	int binh = ExposureSettingsNP.np[BINH_EV].value;
-	char *shtr = ExposureSettingsNP.np[SHUTTER_EV].value ? "'OPEN    '":"'CLOSED  '";
+        int bitpi=16;
+        int naxis=2;
+        int bscale=1;
+        int bzero=32768;
+        double expt = ExposureWN[0].value;
+        double tempt = TemperatureRN[0].value;
+        int binw = ExposureSettingsNP.np[0].value;
+        int binh = ExposureSettingsNP.np[1].value;
+        char *shtr = ShutterS[0].s == ISS_ON ? "'OPEN    '":"'CLOSED  '";
 	double jd = 2440587.5 + exp0.tv_sec/3600./24.;
 	char *sensor, *camera;
-	char *fits0 = fits;
 	char buf[1024];
 	struct tm *tmp;
-	ImRegion imr;
-	ImStats ims;
-
-	/* compute some stats over the whole image */
-	imr.im = (CamPix *) (fits0 + FHDRSZ);
-	imr.iw = imr.rw = impixw;
-	imr.ih = imr.rh = impixh;
-	imr.rx = imr.ry = 0;
-	regionStats (&imr, &ims);
-
 	ApnGlueGetName (&sensor, &camera);
 
-	fits += sprintf (fits, "SIMPLE  = %20s%-50s", "T", "");
-	fits += sprintf (fits, "BITPIX  = %20d%-50s", 16, " / bit/pix");
-	fits += sprintf (fits, "NAXIS   = %20d%-50s", 2, " / n image axes");
-	fits += sprintf (fits, "NAXIS1  = %20d%-50s", impixw, " / columns");
-	fits += sprintf (fits, "NAXIS2  = %20d%-50s", impixh, " / rows");
-	fits += sprintf (fits, "BSCALE  = %20d%-50s", 1, " / v=p*BSCALE+BZERO");
-	fits += sprintf (fits, "BZERO   = %20d%-50s", 32768, " / v=p*BSCALE+BZERO");
-	fits += sprintf (fits, "EXPTIME = %20.6f%-50s", expt, " / seconds");
-	fits += sprintf (fits, "INSTRUME= '%-18s'%-50s",camera," / instrument");
-	fits += sprintf (fits, "DETECTOR= '%-18s'%-50s",sensor," / detector");
-	fits += sprintf (fits, "CCDTEMP = %20.2f%-50s", tempt, " / deg C");
-	fits += sprintf (fits, "CCDXBIN = %20d%-50s", binw," / column binning");
-	fits += sprintf (fits, "CCDYBIN = %20d%-50s", binh, " / row binning");
-	fits += sprintf (fits, "SHUTTER = %-20s%-50s", shtr," / shutter state");
-	fits += sprintf (fits, "MEAN    = %20.3f%-50s", ims.mean, " / mean");
-	fits += sprintf (fits, "MEDIAN  = %20d%-50s", ims.median," / median");
-	fits += sprintf (fits, "STDEV   = %20.3f%-50s", ims.std," / standard deviation");
-	fits += sprintf (fits, "MIN     = %20d%-50s", ims.min," / min pixel");
-	fits += sprintf (fits, "MAX     = %20d%-50s", ims.max," / max pixel");
-	fits += sprintf (fits, "MAXATX  = %20d%-50s", ims.maxatx," / col of max pixel");
-	fits += sprintf (fits, "MAXATY  = %20d%-50s", ims.maxaty," / row of max pixel");
-
+        fits_update_key(fptr, TSTRING,  "SIMPLE", "T", "", &status);
+        fits_update_key(fptr, TINT,  "BITPI", &bitpi, "bit/pix", &status);
+        fits_update_key(fptr, TINT,  "NAXIS",&naxis, "n image axes", &status);
+        fits_update_key(fptr, TINT,  "NAXIS1", &impixw, "columns", &status);
+        fits_update_key(fptr, TINT,  "NAXIS2", &impixh, "rows", &status);
+        fits_update_key(fptr, TINT,  "BSCALE", &bscale, "v=p*BSCALE+BZERO", &status);
+        fits_update_key(fptr, TINT,  "BZEROs", &bzero, "v=p*BSCALE+BZERO", &status);
+        fits_update_key(fptr, TDOUBLE, "EXPTIME", &expt, "seconds", &status);
+        fits_update_key(fptr,  TSTRING, "INSTRUME",camera,"instrument", &status);
+        fits_update_key(fptr,  TSTRING, "DETECTOR",sensor," detector", &status);
+        fits_update_key(fptr,  TDOUBLE, "CCDTEMP", &tempt, "deg C", &status);
+        fits_update_key(fptr,  TINT, "CCDXBIN", &binw,"column binning", &status);
+        fits_update_key(fptr,  TINT, "CCDYBIN", &binh, "row binning", &status);
+        fits_update_key(fptr,  TSTRING, "SHUTTER", shtr,"shutter state", &status);
 
 	tmp = gmtime (&exp0.tv_sec);
-	fits += sprintf (fits, "TIMESYS = %-20s%-50s", "'UTC     '", " / time zone");
-	fits += sprintf (fits, "JD      = %20.5f%-50s", jd, " / JD at start");
+        fits_update_key(fptr, TSTRING, "TIMESYS", "'UTC     '", "time zone", &status);
+        fits_update_key(fptr,  TDOUBLE, "JD", &jd, "JD at start", &status);
 	sprintf (buf, "'%4d:%02d:%02d'", tmp->tm_year+1900, tmp->tm_mon+1,
 							    tmp->tm_mday);
-	fits += sprintf (fits, "DATE-OBS= %-20s%-50s", buf, " / Date at start");
+        fits_update_key(fptr, TSTRING, "DATE-OBS", buf, "Date at start", &status);
 	sprintf (buf, "'%02d:%02d:%06.3f'", tmp->tm_hour, tmp->tm_min,
 					tmp->tm_sec + exp0.tv_usec/1e6);
-	fits += sprintf (fits, "TIME-OBS= %-20s%-50s", buf, " / Time at start");
+        fits_update_key(fptr, TSTRING, "TIME-OBS", buf, "Time at start", &status);
 
-	/* some Telescope info, if sensible */
+        /* some Telescope info, if sensible */
+        /*
 	if (ra0 || dec0) {
 	    fs_sexa (buf, ra0, 4, 36000);
 	    fits += sprintf(fits,"RA2K    = %-20s%-50s",buf," / RA J2K H:M:S");
@@ -791,35 +787,25 @@ setHeader (char *fits)
 
 	    fits += sprintf(fits,"AIRMASS = %20.3f%-50s", am0, " / Airmass");
 	}
-	ra0 = dec0 = 0;			/* mark stale for next time */
+        */
+
 
 	/* some env info, if sensible */
+        /*
 	if (hum0 || windd0) {
-	    fits += sprintf (fits, "HUMIDITY= %20.3f%-50s", hum0,
+            fits_update_key(fptr,  "HUMIDITY= %20.3f%-50s", hum0,
 					    " / exterior humidity, percent");
-	    fits += sprintf (fits, "AIRTEMP = %20.3f%-50s", extt0,
+            fits_update_key(fptr,  "AIRTEMP = %20.3f%-50s", extt0,
 					    " / exterior temp, deg C");
-	    fits += sprintf (fits, "MIRRTEMP= %20.3f%-50s", mirrort0,
+            fits_update_key(fptr,  "MIRRTEMP= %20.3f%-50s", mirrort0,
 					    " / mirror temp, deg C");
-	    fits += sprintf (fits, "WINDSPD = %20.3f%-50s", winds0,
+            fits_update_key(fptr,  "WINDSPD = %20.3f%-50s", winds0,
 					    " / wind speed, kph");
-	    fits += sprintf (fits, "WINDDIR = %20.3f%-50s", windd0,
+            fits_update_key(fptr,  "WINDDIR = %20.3f%-50s", windd0,
 					    " / wind dir, degs E of N");
 	}
-	hum0 = windd0 = 0;		/* mark stale for next time */
-
-	/* pad with blank lines to next-to-last then carefully add END */
-	while (fits-fits0 < FHDRSZ-80)
-	    fits += sprintf (fits, "%80s", "");
-	fits += sprintf (fits, "%-79s", "END");
-
-	*fits = ' ';
-
-
+        */
 }
-
-#endif
-
 
 /* timer to read the cooler, repeats forever */
 static void coolerTO (void *vp)
@@ -869,8 +855,8 @@ static int camconnect()
         double exptime, mintemp;
 	char whynot[1024];
 
-    // JM (2008-10-03): Pass 1 to ApnGlueOpen assuming 1 camera setup for now.
-	if (ApnGlueOpen(1) < 0) 
+        unsigned int portConnection = (PortS[0].s == ISS_ON) ? APOGEE_USB_ONLY : APOGEE_ETH_ONLY;
+        if (ApnGlueOpen(portConnection) < 0)
 	{
 	    IDLog ("Can not open camera: power ok? suid root?\n");
 	    ConnectS[ON_S].s = ISS_OFF;
