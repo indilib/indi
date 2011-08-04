@@ -929,5 +929,5 @@ bool TCFS::read_tcfs()
 
 const char * TCFS::getDefaultName()
 {
-    return "TCFS";
+    return mydev;
 }
