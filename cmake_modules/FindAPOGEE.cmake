@@ -51,7 +51,7 @@ else (APOGEE_INCLUDE_DIR AND APOGEEU_LIBRARIES AND APOGEEE_LIBRARIES)
     endif (NOT APOGEE_FIND_QUIETLY)
   else (APOGEE_FOUND)
     if (APOGEE_FIND_REQUIRED)
-      message(FATAL_ERROR "libapogee not found. Cannot compile Apogee CCD Driver. Please install libapogee and try again. http://APOGEE.sf.net")
+      message(FATAL_ERROR "libapogee not found. Cannot compile Apogee CCD Driver. Please install libapogee and try again. http://www.indilib.org")
     endif (APOGEE_FIND_REQUIRED)
   endif (APOGEE_FOUND) 
 
