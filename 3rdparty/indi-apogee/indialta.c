@@ -59,6 +59,8 @@
 #define BPP		2		/* Bytes per pixel */
 #define TEMPFILE_LEN	16
 
+//#define SIMULATION      1
+
 static int impixw, impixh;		/* image size, final binned FitsBP */
 static int expTID;			/* exposure callback timer id, if any */
 
@@ -393,12 +395,14 @@ void ISNewNumber (const char * dev, const char *name, double *doubles, char *nam
 			int expms = (int)ceil(expsec*1000);
 			int wantshutter = (ShutterS[0].s == ISS_ON) ? 1 : 0;
 
+#ifndef SIMULATION
 			if (ApnGlueStartExp (&expsec, wantshutter) < 0) 
 			{
 			    ExposureWNP.s = IPS_ALERT;
 			    IDSetNumber (&ExposureWNP, "Error starting exposure");
 			    return;
 			}
+#endif
 
 			getStartConditions();
 
@@ -538,7 +542,7 @@ static void expTO (void *vp)
 	char whynot[1024];
 	unsigned short *fits;
 	int zero = 0;
-	int i, fd, status;
+        int i, fd, status,x,y;
        	char filename[TEMPFILE_LEN] = "/tmp/fitsXXXXXX";
 	char filename_rw[TEMPFILE_LEN+1];
 	fitsfile *fptr;       /* pointer to the FITS file; defined in fitsio.h */
@@ -556,6 +560,8 @@ static void expTO (void *vp)
 	    return;
 	}
 
+#ifndef SIMULATION
+
 	/* wait for exp complete, to a point */
 	for (i = 0; i < MAXEXPERR && !ApnGlueExpDone(); i++)
 	    IEDeferLoop(200, &zero);
@@ -570,6 +576,8 @@ static void expTO (void *vp)
 	    IDSetNumber (&ExposureRNP, NULL);
 	    return;
 	}
+
+#endif
 
 	if ((fd = mkstemp(filename)) < 0)
 	{ 
@@ -586,6 +594,12 @@ static void expTO (void *vp)
 	IDSetNumber (&ExposureWNP, "Reading %d FitsBP", npix);
 	fits = imbuf;
 
+#ifdef SIMULATION
+        IDLog("Writing random data to fits image in simulation mode\n");
+        for (x=0; x < impixh; x++)
+            for (y=0; y < impixw; y++)
+                fits[x*impixw + y] = rand()%255;
+#else
 	if (ApnGlueReadPixels (fits, npix, whynot) < 0) 
 	{
 	    /* can't get FitsBP */
@@ -594,8 +608,9 @@ static void expTO (void *vp)
 	    ExposureRNP.s = IPS_ALERT;
 	    IDSetNumber (&ExposureWNP, "Error reading FitsBP: %s", whynot);
 	    IDSetNumber (&ExposureRNP, NULL);
-	} else 
-	{
+            return;
+        }
+#endif
 	   /* ok */
 	   fits_create_file(&fptr, filename_rw, &status);   /* create new file */
 
@@ -645,7 +660,7 @@ static void expTO (void *vp)
 	uploadFile(filename);
   	unlink(filename);
 	
-	}
+
 }
 
 void uploadFile(const char* filename)
@@ -728,8 +743,7 @@ void uploadFile(const char* filename)
 void addFITSKeywords(fitsfile *fptr)
 {
 
-       int status=0;
-
+        int status=0;
         int bitpi=16;
         int naxis=2;
         int bscale=1;
@@ -743,9 +757,12 @@ void addFITSKeywords(fitsfile *fptr)
 	char *sensor, *camera;
 	char buf[1024];
 	struct tm *tmp;
-	ApnGlueGetName (&sensor, &camera);
 
-        fits_update_key(fptr, TSTRING,  "SIMPLE", "T", "", &status);
+#ifndef SIMULATION
+	ApnGlueGetName (&sensor, &camera);
+#endif
+
+        //fits_update_key(fptr, TSTRING,  "SIMPLE", simple, "", &status);
         fits_update_key(fptr, TINT,  "BITPI", &bitpi, "bit/pix", &status);
         fits_update_key(fptr, TINT,  "NAXIS",&naxis, "n image axes", &status);
         fits_update_key(fptr, TINT,  "NAXIS1", &impixw, "columns", &status);
@@ -753,8 +770,10 @@ void addFITSKeywords(fitsfile *fptr)
         fits_update_key(fptr, TINT,  "BSCALE", &bscale, "v=p*BSCALE+BZERO", &status);
         fits_update_key(fptr, TINT,  "BZEROs", &bzero, "v=p*BSCALE+BZERO", &status);
         fits_update_key(fptr, TDOUBLE, "EXPTIME", &expt, "seconds", &status);
+#ifndef SIMULATION
         fits_update_key(fptr,  TSTRING, "INSTRUME",camera,"instrument", &status);
         fits_update_key(fptr,  TSTRING, "DETECTOR",sensor," detector", &status);
+#endif
         fits_update_key(fptr,  TDOUBLE, "CCDTEMP", &tempt, "deg C", &status);
         fits_update_key(fptr,  TINT, "CCDXBIN", &binw,"column binning", &status);
         fits_update_key(fptr,  TINT, "CCDYBIN", &binh, "row binning", &status);
@@ -766,6 +785,7 @@ void addFITSKeywords(fitsfile *fptr)
 	sprintf (buf, "'%4d:%02d:%02d'", tmp->tm_year+1900, tmp->tm_mon+1,
 							    tmp->tm_mday);
         fits_update_key(fptr, TSTRING, "DATE-OBS", buf, "Date at start", &status);
+
 	sprintf (buf, "'%02d:%02d:%06.3f'", tmp->tm_hour, tmp->tm_min,
 					tmp->tm_sec + exp0.tv_usec/1e6);
         fits_update_key(fptr, TSTRING, "TIME-OBS", buf, "Time at start", &status);
@@ -855,6 +875,7 @@ static int camconnect()
         double exptime, mintemp;
 	char whynot[1024];
 
+#ifndef SIMULATION
         unsigned int portConnection = (PortS[0].s == ISS_ON) ? APOGEE_USB_ONLY : APOGEE_ETH_ONLY;
         if (ApnGlueOpen(portConnection) < 0)
 	{
@@ -912,6 +933,28 @@ static int camconnect()
 
 	    /* init fans to our FanSpeedSP switch default */
 	    ApnGlueSetFan (IUFindOnSwitch(&FanSpeedSP) - FanSpeedS);
+
+#else
+        MaxValuesNP.np[ROIW_MV].value = 512;
+        MaxValuesNP.np[ROIH_MV].value = 512;
+
+        impixw=512;
+        impixh=512;
+
+        ExposureRNP.np[0].value = 1.0;
+
+        FrameNP.np[CCD_X].value = 0;
+        FrameNP.np[CCD_Y].value = 0;
+
+        FrameNP.np[CCD_W].value = 512;
+        FrameNP.np[CCD_H].value = 512;
+
+        BinningNP.np[CCD_HBIN].value = 1;
+        BinningNP.np[CCD_VBIN].value = 1;
+
+        ExposureSettingsNP.np[OSW_EV].value = 0;
+        ExposureSettingsNP.np[OSH_EV].value = 0;
+#endif
 
 	/* Expose Group */
 	IDDefSwitch(&ShutterSP, NULL);
