@@ -130,6 +130,13 @@ bool INDI::FilterWheel::ISNewNumber (const char *dev, const char *name, double v
     return DefaultDriver::ISNewNumber(dev,name,values,names,n);
 }
 
+bool INDI::FilterWheel::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+{
+    //IDLog("FilterWheel::Enter IsNewSwitch for %s\n",name);
+
+    //  Nobody has claimed this, so, ignore it
+    return DefaultDriver::ISNewSwitch(dev,name,states,names,n);
+}
 bool INDI::FilterWheel::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     //  Ok, lets see if this is a property wer process

@@ -53,7 +53,8 @@ class INDI::FilterWheel: public INDI::DefaultDriver
         //  We process Numbers and text in a filter wheel
         virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
         virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-        virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n) { return false; }
+        virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+		// { return false; }
 
         virtual int SelectFilter(int);
         virtual int SelectFilterDone(int);
