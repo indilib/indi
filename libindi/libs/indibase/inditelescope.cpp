@@ -360,8 +360,9 @@ bool INDI::Telescope::Connect(const char *port)
     char errorMsg[MAXRBUF];
     bool rc;
 
+	//IDLog("connecting to %s\n",port);
 
-    if ( (connectrc = tty_connect(port, B9600, 8, 0, 1, &PortFD)) != TTY_OK)
+    if ( (connectrc = tty_connect(port, 9600, 8, 0, 1, &PortFD)) != TTY_OK)
     {
         tty_error_msg(connectrc, errorMsg, MAXRBUF);
 
@@ -372,10 +373,10 @@ bool INDI::Telescope::Connect(const char *port)
         return false;
 
     }
-
+	//IDLog("Port Fd %d\n",PortFD);
     /* Flush the input (read) buffer */
 
-    tcflush(PortFD,TCIOFLUSH);
+    //tcflush(PortFD,TCIOFLUSH);
 
     /* Test connection */
     rc=ReadScopeStatus();
