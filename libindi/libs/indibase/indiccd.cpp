@@ -104,7 +104,7 @@ bool INDI::CCD::initProperties()
 
 
     IUFillNumber(&GuiderExposureN[0],"GUIDER_EXPOSURE_VALUE","Duration (s)","%5.2f",0,36000,0,1.0);
-    IUFillNumberVector(&GuiderExposureNV,GuiderExposureN,1,deviceName(),"GUIDER_EXPOSURE","Guider","Main Cntrol",IP_RW,60,IPS_IDLE);
+    IUFillNumberVector(&GuiderExposureNV,GuiderExposureN,1,deviceName(),"GUIDER_EXPOSURE","Guider","Main Control",IP_RW,60,IPS_IDLE);
 
 
     IUFillSwitch(&GuiderVideoS[0],"ON","on",ISS_OFF);
@@ -523,9 +523,9 @@ bool INDI::CCD::ExposureComplete()
     //  ok, undo the kludge we threw in for
     //  guider frames, and set the resolution back
 
-    //ImageFrameN[2].value=SubW;
-    //ImageFrameN[3].value=SubH;
-    //IDSetNumber(&ImageFrameNV,NULL);
+    ImageFrameN[2].value=SubW;
+    ImageFrameN[3].value=SubH;
+    IDSetNumber(&ImageFrameNV,NULL);
 
 
     ImageExposureNV.s=IPS_OK;
@@ -548,9 +548,9 @@ bool INDI::CCD::GuideExposureComplete()
 
         //  Ok, bit of a kludge here
         //  we need to send a new size to kstars
-        //ImageFrameN[2].value=GSubW;
-        //ImageFrameN[3].value=GSubH;
-        //IDSetNumber(&ImageFrameNV,NULL);
+        ImageFrameN[2].value=GSubW;
+        ImageFrameN[3].value=GSubH;
+        IDSetNumber(&ImageFrameNV,NULL);
 
         //IDLog("Sending guider stream blob\n");
 
