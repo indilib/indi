@@ -69,7 +69,7 @@ bool INDI::CCD::initProperties()
     IUFillSwitchVector(&FrameTypeSV,FrameTypeS,4,deviceName(),"CCD_FRAME_TYPE","FrameType","Image Settings",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
     IUFillNumber(&ImageExposureN[0],"CCD_EXPOSURE_VALUE","Duration (s)","%5.2f",0,36000,0,1.0);
-    IUFillNumberVector(&ImageExposureNV,ImageExposureN,1,deviceName(),"CCD_EXPOSURE","Expose","Main Control",IP_RW,60,IPS_IDLE);
+    IUFillNumberVector(&ImageExposureNV,ImageExposureN,1,deviceName(),"CCD_EXPOSURE_REQUEST","Expose","Main Control",IP_RW,60,IPS_IDLE);
     //IUFillNumber(&CcdExposureReqN[0],"CCD_EXPOSURE_VALUE","Duration","%5.2f",0,36000,0,1.0);
     //IUFillNumberVector(&CcdExposureReqNV,CcdExposureReqN,1,deviceName(),"CCD_EXPOSURE_REQUEST","Expose","Main Control",IP_WO,60,IPS_IDLE);
 
@@ -223,7 +223,7 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
     if(strcmp(dev,deviceName())==0) {
         //  This is for our device
         //  Now lets see if it's something we process here
-        if(strcmp(name,"CCD_EXPOSURE")==0) {
+        if(strcmp(name,"CCD_EXPOSURE_REQUEST")==0) {
             float n;
             int rc;
 

@@ -84,9 +84,6 @@ class CCDSim : public INDI::CCD
         ITextVectorProperty *TelescopeTV; //  A text vector that stores the telescope we want to snoop
         IText TelescopeT[1];
 
-        //ISwitch ConfigSaveRestoreS[2];
-        //ISwitchVectorProperty ConfigSaveRestoreSV;
-
         ISwitch TimeFactorS[3];
         ISwitchVectorProperty *TimeFactorSV;
 

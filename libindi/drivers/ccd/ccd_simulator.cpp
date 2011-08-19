@@ -83,7 +83,8 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
 }
 void ISSnoopDevice (XMLEle *root)
 {
-    INDI_UNUSED(root);
+    ISInit();
+    ccdsim->ISSnoopDevice(root);
 }
 
 
@@ -223,7 +224,7 @@ bool CCDSim::initProperties()
     IUFillSwitchVector(TimeFactorSV,TimeFactorS,3,deviceName(),"ON_TIME_FACTOR","Time Factor","Simulator Config",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
 
-    loadConfig();
+    //loadConfig();
 
     return true;
 }
@@ -334,6 +335,11 @@ void CCDSim::TimerHit()
     {
         float timeleft;
         timeleft=CalcTimeLeft(ExpStart,ExposureRequest);
+
+        ImageExposureN[0].value = timeleft;
+        IDSetNumber(&ImageExposureNV, NULL);
+        if (timeleft < 0)
+             timeleft = 0;
         if(timeleft < 1.0)
         {
             if(timeleft <= 0.001)
@@ -350,6 +356,13 @@ void CCDSim::TimerHit()
     {
         float timeleft;
         timeleft=CalcTimeLeft(GuideExpStart,GuideExposureRequest);
+
+        ImageExposureN[0].value = timeleft;
+        IDSetNumber(&ImageExposureNV, NULL);
+
+        if (timeleft < 0)
+             timeleft = 0;
+
         if(timeleft < 1.0)
         {
             if(timeleft <= 0.001)
@@ -838,7 +851,7 @@ int CCDSim::GuideWest(float v)
 
 void CCDSim::ISSnoopDevice (XMLEle *root)
  {
-     //fprintf(stderr,"CCDSim handling snoop\n");
+     //fprintf(stderr," ################# CCDSim handling snoop ##############\n");
      if(IUSnoopNumber(root,&EqNV)==0) {
         float newra,newdec;
         newra=EqN[0].value;
