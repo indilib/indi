@@ -105,7 +105,7 @@ ISwitchVectorProperty PortSP		= { MYDEV, "Port" , "", COMM_GROUP, IP_RW, ISR_1OF
 typedef enum {	/* N.B. order must match array below */
     T_STEMP, N_STEMP
 } SetTempIndex;
-static INumber  TemperatureWN[N_STEMP] = {{"CCD_TEMPERATURE_VALUE",  "Target temp, C (0 off)",    "%6.1f", 0, 0, 0,   -20.0, 0,0,0}};
+static INumber  TemperatureWN[N_STEMP] = {{"CCD_TEMPERATURE_VALUE",  "Target temp, C (0 off)",    "%6.1f", -20.0, 20.,1.0, 0}};
 
 static INumberVectorProperty TemperatureWNP = {MYDEV, "CCD_TEMPERATURE_REQUEST", "Set target cooler temperature", EXPOSE_GROUP, IP_WO, 0, IPS_IDLE, TemperatureWN, NARRAY(TemperatureWN), "", 0};
 
@@ -116,7 +116,7 @@ static INumberVectorProperty TemperatureWNP = {MYDEV, "CCD_TEMPERATURE_REQUEST",
 typedef enum {	/* N.B. order must match array below */
     T_TN, N_TN
 } TempNowIndex;
-static INumber  TemperatureRN[N_TN] = { {"CCD_TEMPERATURE_VALUE",  "Cooler temp, C",         "%6.1f", 0, 0, 0,   0.0 , 0 ,0, 0}};
+static INumber  TemperatureRN[N_TN] = { {"CCD_TEMPERATURE_VALUE",  "Cooler temp, C",         "%6.1f", -20.0, 20.1, 1,0}};
 static INumberVectorProperty TemperatureRNP = {MYDEV, "CCD_TEMPERATURE", "Current cooler temperature", EXPOSE_GROUP, IP_RO, 0, IPS_IDLE, TemperatureRN, NARRAY(TemperatureRN), "", 0};
 
 /********************************************
@@ -140,13 +140,12 @@ static INumberVectorProperty ExposureRNP = { MYDEV, "CCD_EXPOSURE", "Expose", EX
 /* ExpValues parameter */
 typedef enum 
 {	/* N.B. order must match array below */
-    OSW_EV, OSH_EV, SHUTTER_EV, N_EV
+    OSW_EV, OSH_EV, N_EV
 } ExpValuesIndex;
 static INumber  ExposureSettingsN[N_EV] = 
 {
-    {"OSW",      "Overscan width",    "%4.0f", 0, 0, 0,   0.0, 0,0,0},
-    {"OSH",      "Overscan height",   "%4.0f", 0, 0, 0,   0.0 ,0,0,0}
-    /*{"Shutter",  "1 to open shutter, else 0", "%2.0f", 0, 0, 1,   1.0 ,0,0,0},*/
+    {"OSW",      "Overscan width",    "%4.0f", 0, 50, 1,   0.0},
+    {"OSH",      "Overscan height",   "%4.0f", 0, 50, 1,   0.0},
 };
 static INumberVectorProperty ExposureSettingsNP = {MYDEV, "ExpValues", "Exposure settings", EXPOSE_GROUP, IP_WO, 0, IPS_IDLE, ExposureSettingsN, NARRAY(ExposureSettingsN), "", 0};
 
@@ -456,6 +455,7 @@ void ISNewNumber (const char * dev, const char *name, double *doubles, char *nam
 		binw = BinningNP.np[CCD_HBIN].value;
 		binh = BinningNP.np[CCD_VBIN].value;
 
+#ifndef SIMULATION
 	   if (ApnGlueSetExpGeom (roiw, roih, osw, osh, binw, binh, roix, roiy, &impixw, &impixh, whynot) < 0) 
 	   {
 		current_prop->s = IPS_ALERT;
@@ -469,6 +469,10 @@ void ISNewNumber (const char * dev, const char *name, double *doubles, char *nam
 		current_prop->s = IPS_OK;
 		IDSetNumber (current_prop, "New values accepted");
 	    }
+#else
+                current_prop->s = IPS_OK;
+                IDSetNumber (current_prop, "New values accepted");
+#endif
 
 	   return;
 	}
@@ -481,7 +485,10 @@ void ISNewNumber (const char * dev, const char *name, double *doubles, char *nam
 
 	    double newt = TemperatureWNP.np[0].value;
 
+#ifndef SIMULATION
 	    ApnGlueSetTemp (newt);
+#endif
+
 	    /* let coolerTO loop update TemperatureRNP */
 
 	    TemperatureWNP.s = IPS_BUSY;
@@ -832,11 +839,21 @@ static void coolerTO (void *vp)
 {
 	INDI_UNUSED(vp);
 	static int lasts = 9999;
-	double cnow;
+        double cnow=TemperatureRN[0].value;
 	int status;
 	char *msg = NULL;
 
+#ifndef SIMULATION
 	status = ApnGlueGetTemp(&cnow);
+#else
+        status = 1;
+        if (cnow > TemperatureWN[0].value)
+            cnow--;
+        else if (cnow < TemperatureWN[0].value)
+            cnow++;
+        else if (cnow == TemperatureWN[0].value)
+            status = 2;
+#endif
 
 	switch (status) 
 	{
@@ -854,6 +871,8 @@ static void coolerTO (void *vp)
 
 	case 2:
 	    TemperatureRNP.s = IPS_OK;
+            TemperatureWNP.s = IPS_OK;
+            IDSetNumber(&TemperatureWNP, NULL);
 	    if (status != lasts)
 		msg = "Cooler is on target";
 	    break;
@@ -935,6 +954,9 @@ static int camconnect()
 	    ApnGlueSetFan (IUFindOnSwitch(&FanSpeedSP) - FanSpeedS);
 
 #else
+        /* init and start cooler reading timer */
+        coolerTO(NULL);
+
         MaxValuesNP.np[ROIW_MV].value = 512;
         MaxValuesNP.np[ROIH_MV].value = 512;
 
