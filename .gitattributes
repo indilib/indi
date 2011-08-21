@@ -566,6 +566,10 @@ libindi/drivers/telescope/lx200generic.cpp -text
 libindi/drivers/telescope/lx200generic.h -text
 libindi/drivers/telescope/lx200gps.cpp -text
 libindi/drivers/telescope/lx200gps.h -text
+libindi/drivers/telescope/magellan1.cpp -text
+libindi/drivers/telescope/magellan1.h -text
+libindi/drivers/telescope/magellandriver.c -text
+libindi/drivers/telescope/magellandriver.h -text
 libindi/drivers/telescope/orionatlas.cpp -text
 libindi/drivers/telescope/orionatlas.h -text
 libindi/drivers/telescope/skycommander.c -text

@@ -103,6 +103,10 @@
                 <driver name="SynScan">indi_synscan</driver>
                 <version>1.0</version>
         </device>
+        <device label="Magellan I" focal_length="" aperture="">
+                <driver name="Magellan I">indi_magellan1</driver>
+                <version>1.0</version>
+        </device>
         <device label="Telescope Simulator" focal_length="" aperture="">
                 <driver name="Telescope Simulator">indi_simulator_telescope</driver>
                 <version>1.0</version>
