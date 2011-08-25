@@ -819,7 +819,7 @@ void GPhotoCam::InitVars(void)
 	IUFillNumber(&mExposureN[0], "CCD_EXPOSURE_VALUE", "Duration (s)",
 		"%5.2f", 0., 36000., .5, 1.);
 	IUFillNumberVector(&mExposureNP, mExposureN, NARRAY(mExposureN), MYDEV,
-		"CCD_EXPOSURE", "Expose", EXPOSE_GROUP, IP_RW, 36000, IPS_IDLE);
+                "CCD_EXPOSURE_REQUEST", "Expose", EXPOSE_GROUP, IP_RW, 36000, IPS_IDLE);
 
 	/**********************************************************************************************/
 	/*********************************** GROUP: Image Settings ************************************/

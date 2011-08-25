@@ -7,7 +7,7 @@
 <devGroup group="Focusers">
 	<device label="FLI PDF">
                 <driver name="FLI PDF">indi_fli_focus</driver>
-		<version>0.1</version>
+		<version>1.0</version>
 	</device>
 </devGroup>
 

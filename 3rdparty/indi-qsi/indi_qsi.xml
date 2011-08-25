@@ -1,6 +1,6 @@
 <devGroup group="CCDs">
         <device label="QSI CCD">
                 <driver name="QSI">indi_qsi_ccd</driver>
-                <version>0.2</version>
+                <version>0.3</version>
         </device>
 </devGroup> 

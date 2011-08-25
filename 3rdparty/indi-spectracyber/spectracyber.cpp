@@ -290,7 +290,7 @@ bool SpectraCyber::Connect()
     if (isSimulation())
     {
         setConnected(true);
-        IDSetSwitch(&ConnectionSP, "%s Spectrometer: Simulating connection to port %s.", type_name.c_str(), tProp->tp[0].text);
+        IDSetSwitch(ConnectionSP, "%s Spectrometer: Simulating connection to port %s.", type_name.c_str(), tProp->tp[0].text);
 	return true;
     }
 
@@ -299,8 +299,8 @@ bool SpectraCyber::Connect()
 
     if (tty_connect(tProp->tp[0].text, 2400, 8, 0, 1, &fd) != TTY_OK)
     {
-        ConnectionSP.s = IPS_ALERT;
-        IDSetSwitch (&ConnectionSP, "Error connecting to port %s. Make sure you have BOTH read and write permission to the port.", tProp->tp[0].text);
+        ConnectionSP->s = IPS_ALERT;
+        IDSetSwitch (ConnectionSP, "Error connecting to port %s. Make sure you have BOTH read and write permission to the port.", tProp->tp[0].text);
 	return false;
     }
 
@@ -308,7 +308,7 @@ bool SpectraCyber::Connect()
     if (reset() == true)
     {
         setConnected(true);
-        IDSetSwitch (&ConnectionSP, "Spectrometer is online. Retrieving preliminary data...");
+        IDSetSwitch (ConnectionSP, "Spectrometer is online. Retrieving preliminary data...");
 
         return init_spectrometer();
    }
@@ -316,8 +316,8 @@ bool SpectraCyber::Connect()
    {
         if (isDebug())
             IDLog("Echo test failed.\n");
-        ConnectionSP.s = IPS_ALERT;
-        IDSetSwitch (&ConnectionSP, "Spectrometer echo test failed. Please recheck connection to spectrometer and try again.");
+        ConnectionSP->s = IPS_ALERT;
+        IDSetSwitch (ConnectionSP, "Spectrometer echo test failed. Please recheck connection to spectrometer and try again.");
 	return false;
    }
 	

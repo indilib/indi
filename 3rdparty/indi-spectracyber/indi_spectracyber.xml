@@ -1,6 +1,6 @@
 <devGroup group="Receivers">
 	<device label="SpectraCyber">
 		<driver name='SpectraCyber'>indi_spectracyber</driver>
-		<version>1.0</version>
+		<version>1.2</version>
 	</device>
 </devGroup>

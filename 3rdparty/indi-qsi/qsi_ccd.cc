@@ -164,7 +164,7 @@ static short targetFilter;
 
  /* Exposure time */
   static INumber ExposeTimeWN[]    = {{ "CCD_EXPOSURE_VALUE", "Duration (s)", "%5.2f", 0., 36000., .1, 1., 0, 0, 0}};
-  static INumberVectorProperty ExposeTimeWNP = { mydev, "CCD_EXPOSURE", "Expose", EXPOSE_GROUP, IP_WO, 36000, IPS_IDLE, ExposeTimeWN, NARRAY(ExposeTimeWN), "", 0};
+  static INumberVectorProperty ExposeTimeWNP = { mydev, "CCD_EXPOSURE_REQUEST", "Expose", EXPOSE_GROUP, IP_WO, 36000, IPS_IDLE, ExposeTimeWN, NARRAY(ExposeTimeWN), "", 0};
 
   static INumber ExposeTimeLeftN[]    = {{ "CCD_TIMELEFT_VALUE", "Time left (s)", "%5.2f", 0., 36000., 0., 0., 0, 0, 0}};
   static INumberVectorProperty ExposeTimeLeftNP = { mydev, "CCD_TIMELEFT", "Time left", EXPOSE_GROUP, IP_RO, 36000, IPS_IDLE, ExposeTimeLeftN, NARRAY(ExposeTimeLeftN), "", 0};

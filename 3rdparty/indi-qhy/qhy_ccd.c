@@ -87,7 +87,7 @@ ISwitchVectorProperty ConnectSP		= { MYDEV, "CONNECTION" , "Connection", COMM_GR
 *********************************************/
 
 static INumber ExposureN[]    = {{ "CCD_EXPOSURE_VALUE", "Duration (s)", "%5.2f", 0., 36000., .5, 1., 0, 0, 0}};
-static INumberVectorProperty ExposureNP = { MYDEV, "CCD_EXPOSURE", "Expose", EXPOSE_GROUP, IP_RW, 36000, IPS_IDLE, ExposureN, NARRAY(ExposureN), "", 0};
+static INumberVectorProperty ExposureNP = { MYDEV, "CCD_EXPOSURE_REQUEST", "Expose", EXPOSE_GROUP, IP_RW, 36000, IPS_IDLE, ExposureN, NARRAY(ExposureN), "", 0};
 
 /**********************************************************************************************/
 /*********************************** GROUP: Image Settings ************************************/
