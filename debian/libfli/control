@@ -3,7 +3,7 @@ Section: libs
 Priority: extra
 Maintainer: Jasem Mutlaq <mutlaqja@ikarustech.com>
 Build-Depends: debhelper (>= 5), cmake
-Standards-Version: 3.7.2
+Standards-Version: 3.9.1
 
 Package: libfli1
 Architecture: any

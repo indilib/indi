@@ -11,3 +11,5 @@ install/libindi0::
 	ln -sf indi_lx200generic $(DEB_DESTDIR)/usr/bin/indi_lx200_16
 	ln -sf indi_lx200generic $(DEB_DESTDIR)/usr/bin/indi_lx200gps
 	ln -sf indi_lx200generic $(DEB_DESTDIR)/usr/bin/indi_lx200ap
+	ln -sf indi_tcfs_focus   $(DEB_DESTDIR)/usr/bin/indi_tcfs3_focus
+

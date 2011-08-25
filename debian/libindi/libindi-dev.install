@@ -1,7 +1,7 @@
 usr/include/libindi/*.h
 usr/lib/libindi.so
-usr/lib/libindibasedriver.a
-usr/lib/libindidefaultdriver.a
+usr/lib/libindimain.a
+usr/lib/libindidriver.a
 usr/lib/libindiclient.a
 usr/lib/pkgconfig/libindi.pc
 
