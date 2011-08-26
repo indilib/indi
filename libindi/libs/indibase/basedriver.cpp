@@ -74,6 +74,7 @@ IBLOBVectorProperty * INDI::BaseDriver::getBLOB(const char *name)
 void * INDI::BaseDriver::getProperty(const char *name, INDI_TYPE type)
 {
     std::map< boost::shared_ptr<void>, INDI_TYPE>::iterator orderi;
+    int regStatus=0;
 
     INumberVectorProperty *nvp;
     ITextVectorProperty *tvp;
@@ -86,31 +87,64 @@ void * INDI::BaseDriver::getProperty(const char *name, INDI_TYPE type)
         if (type != INDI_UNKNOWN &&  orderi->second != type)
             continue;
 
+        regStatus = 0;
+
         switch (orderi->second)
         {
         case INDI_NUMBER:
             nvp = static_cast<INumberVectorProperty *>((orderi->first).get());
-            if (!strcmp(name, nvp->name))
+            if (nvp == NULL)
+                continue;
+
+            if (nvp->aux != NULL)
+               regStatus = *( (int *) nvp->aux);
+
+            if (!strcmp(name, nvp->name) && regStatus == 1)
                 return (orderi->first).get();
              break;
         case INDI_TEXT:
              tvp = static_cast<ITextVectorProperty *>((orderi->first).get());
-             if (!strcmp(name, tvp->name))
+             if (tvp == NULL)
+                 continue;
+
+             if (tvp->aux != NULL)
+                regStatus = *( (int *) tvp->aux);
+
+             if (!strcmp(name, tvp->name)  && regStatus == 1)
                 return (orderi->first).get();
              break;
         case INDI_SWITCH:
              svp = static_cast<ISwitchVectorProperty *>((orderi->first).get());
-             if (!strcmp(name, svp->name))
+             if (svp == NULL)
+                 continue;
+
+             if (svp->aux != NULL)
+                regStatus = *( (int *) svp->aux);
+
+             //IDLog("Switch %s and aux value is now %d\n", svp->name, regStatus );
+             if (!strcmp(name, svp->name) && regStatus == 1)
                  return (orderi->first).get();
              break;
         case INDI_LIGHT:
              lvp = static_cast<ILightVectorProperty *>((orderi->first).get());
-             if (!strcmp(name, lvp->name))
+             if (lvp == NULL)
+                 continue;
+
+             if (lvp->aux != NULL)
+                regStatus = *( (int *) lvp->aux);
+
+             if (!strcmp(name, lvp->name)  && regStatus == 1)
                  return (orderi->first).get();
              break;
         case INDI_BLOB:
              bvp = static_cast<IBLOBVectorProperty *>((orderi->first).get());
-             if (!strcmp(name, bvp->name))
+             if (bvp == NULL)
+                 continue;
+
+             if (bvp->aux != NULL)
+                regStatus = *( (int *) bvp->aux);
+
+             if (!strcmp(name, bvp->name) && regStatus == 1)
                  return (orderi->first).get();
              break;
         }
@@ -123,6 +157,8 @@ void * INDI::BaseDriver::getProperty(const char *name, INDI_TYPE type)
 int INDI::BaseDriver::removeProperty(const char *name)
 {
     std::map< boost::shared_ptr<void>, INDI_TYPE>::iterator orderi;
+
+    static int propertyRemoved=0;
 
     INumberVectorProperty *nvp;
     ITextVectorProperty *tvp;
@@ -138,7 +174,8 @@ int INDI::BaseDriver::removeProperty(const char *name)
             nvp = static_cast<INumberVectorProperty *>((orderi->first).get());
             if (!strcmp(name, nvp->name))
             {
-                 pAll.erase(orderi);
+                  nvp->aux = &propertyRemoved;
+                 //pAll.erase(orderi);
                  return 0;
              }
              break;
@@ -146,7 +183,8 @@ int INDI::BaseDriver::removeProperty(const char *name)
              tvp = static_cast<ITextVectorProperty *>((orderi->first).get());
              if (!strcmp(name, tvp->name))
              {
-                  pAll.erase(orderi);
+                 tvp->aux = &propertyRemoved;
+                  //pAll.erase(orderi);
                   return 0;
               }
              break;
@@ -154,7 +192,8 @@ int INDI::BaseDriver::removeProperty(const char *name)
              svp = static_cast<ISwitchVectorProperty *>((orderi->first).get());
              if (!strcmp(name, svp->name))
              {
-                  pAll.erase(orderi);
+                 svp->aux = &propertyRemoved;
+                  //pAll.erase(orderi);
                   return 0;
               }
              break;
@@ -162,7 +201,8 @@ int INDI::BaseDriver::removeProperty(const char *name)
              lvp = static_cast<ILightVectorProperty *>((orderi->first).get());
              if (!strcmp(name, lvp->name))
              {
-                  pAll.erase(orderi);
+                 lvp->aux = &propertyRemoved;
+                  //pAll.erase(orderi);
                   return 0;
               }
              break;
@@ -170,7 +210,8 @@ int INDI::BaseDriver::removeProperty(const char *name)
              bvp = static_cast<IBLOBVectorProperty *>((orderi->first).get());
              if (!strcmp(name, bvp->name))
              {
-                  pAll.erase(orderi);
+                 bvp->aux = &propertyRemoved;
+                  //pAll.erase(orderi);
                   return 0;
               }
              break;
@@ -915,12 +956,15 @@ void INDI::BaseDriver::addMessage(const char *msg)
 void INDI::BaseDriver::registerProperty(void *p, INDI_TYPE type)
 {
 
+    static int propertyRegistered=1;
 
     if (type == INDI_NUMBER)
     {
         INumberVectorProperty *nvp = static_cast<INumberVectorProperty *> (p);
         if (getProperty(nvp->name, INDI_NUMBER) != NULL)
             return;
+
+        nvp->aux = &propertyRegistered;
 
         numberPtr ovp(nvp);
 
@@ -931,6 +975,8 @@ void INDI::BaseDriver::registerProperty(void *p, INDI_TYPE type)
        ITextVectorProperty *tvp = static_cast<ITextVectorProperty *> (p);
        if (getProperty(tvp->name, INDI_TEXT) != NULL)
            return;
+
+       tvp->aux = &propertyRegistered;
 
        textPtr ovp(tvp);
        //o->p = &ovp;
@@ -943,10 +989,11 @@ void INDI::BaseDriver::registerProperty(void *p, INDI_TYPE type)
        if (getProperty(svp->name, INDI_SWITCH) != NULL)
            return;
 
+       svp->aux = &propertyRegistered;
        switchPtr ovp(svp);
        //o->p = &ovp;
 
-       IDLog("Registering switch %s\n", svp->name);
+       //IDLog("Registering switch %s with aux value of %d\n", svp->name, *( (int *) svp->aux));
 
        pAll[ovp] = INDI_SWITCH;
     }
@@ -955,6 +1002,8 @@ void INDI::BaseDriver::registerProperty(void *p, INDI_TYPE type)
        ILightVectorProperty *lvp = static_cast<ILightVectorProperty *> (p);
        if (getProperty(lvp->name, INDI_LIGHT) != NULL)
            return;
+
+       lvp->aux = &propertyRegistered;
 
        lightPtr ovp(lvp);
        //o->p = &ovp;
@@ -965,6 +1014,8 @@ void INDI::BaseDriver::registerProperty(void *p, INDI_TYPE type)
        IBLOBVectorProperty *bvp = static_cast<IBLOBVectorProperty *> (p);
        if (getProperty(bvp->name, INDI_BLOB) != NULL)
            return;
+
+       bvp->aux = &propertyRegistered;
 
        blobPtr ovp(bvp);
        //o->p = &ovp;

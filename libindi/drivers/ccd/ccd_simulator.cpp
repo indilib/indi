@@ -267,6 +267,8 @@ bool CCDSim::Disconnect()
         RawGuideSize=0;
     }
 
+    updateProperties();
+
     return true;
 }
 
@@ -337,7 +339,7 @@ void CCDSim::TimerHit()
         timeleft=CalcTimeLeft(ExpStart,ExposureRequest);
 
         ImageExposureN[0].value = timeleft;
-        IDSetNumber(&ImageExposureNV, NULL);
+        IDSetNumber(ImageExposureNV, NULL);
         if (timeleft < 0)
              timeleft = 0;
         if(timeleft < 1.0)
@@ -358,7 +360,7 @@ void CCDSim::TimerHit()
         timeleft=CalcTimeLeft(GuideExpStart,GuideExposureRequest);
 
         ImageExposureN[0].value = timeleft;
-        IDSetNumber(&ImageExposureNV, NULL);
+        IDSetNumber(ImageExposureNV, NULL);
 
         if (timeleft < 0)
              timeleft = 0;

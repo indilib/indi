@@ -84,52 +84,51 @@ class INDI::CCD : public INDI::DefaultDriver
         //INumberVectorProperty CcdPixelSizeNV;
 
 
-        INumberVectorProperty ImageFrameNV;
+        INumberVectorProperty *ImageFrameNV;
         INumber ImageFrameN[4];
 
-        INumberVectorProperty ImageBinNV;
+        INumberVectorProperty *ImageBinNV;
         INumber ImageBinN[2];
 
-        INumberVectorProperty ImagePixelSizeNV;
+        INumberVectorProperty *ImagePixelSizeNV;
         INumber ImagePixelSizeN[6];
 
-        INumberVectorProperty ImageExposureNV;
+        INumberVectorProperty *ImageExposureNV;
         INumber ImageExposureN[1];
 
         //INumberVectorProperty ImageExposureReqNV;
         //INumber ImageExposureReqN[1];
 
-        INumberVectorProperty GuiderFrameNV;
+        INumberVectorProperty *GuiderFrameNV;
         INumber GuiderFrameN[4];
-        INumberVectorProperty GuiderPixelSizeNV;
+        INumberVectorProperty *GuiderPixelSizeNV;
         INumber GuiderPixelSizeN[6];
-        INumberVectorProperty GuiderExposureNV;
+        INumberVectorProperty *GuiderExposureNV;
         INumber GuiderExposureN[1];
 
         ISwitch FrameTypeS[4];
-        ISwitchVectorProperty FrameTypeSV;
+        ISwitchVectorProperty *FrameTypeSV;
 
 
         ISwitch CompressS[2];
-        ISwitchVectorProperty CompressSV;
+        ISwitchVectorProperty *CompressSV;
 
         ISwitch GuiderCompressS[2];
-        ISwitchVectorProperty GuiderCompressSV;
-
+        ISwitchVectorProperty *GuiderCompressSV;
 
         ISwitch GuiderVideoS[2];
-        ISwitchVectorProperty GuiderVideoSV;
+        ISwitchVectorProperty *GuiderVideoSV;
 
         INumber GuideNS[2];
-        INumberVectorProperty GuideNSV;
+        INumberVectorProperty *GuideNSV;
         INumber GuideEW[2];
-        INumberVectorProperty GuideEWV;
+        INumberVectorProperty *GuideEWV;
 
         IBLOB FitsB;
-        IBLOBVectorProperty FitsBV;
+        IBLOBVectorProperty *FitsBV;
 
         IBLOB GuiderB;
-        IBLOBVectorProperty GuiderBV;
+        IBLOBVectorProperty *GuiderBV;
 
         virtual bool  initProperties();
         virtual bool updateProperties();
