@@ -267,8 +267,6 @@ bool CCDSim::Disconnect()
         RawGuideSize=0;
     }
 
-    updateProperties();
-
     return true;
 }
 
