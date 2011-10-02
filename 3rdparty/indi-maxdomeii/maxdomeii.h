@@ -97,6 +97,8 @@ private:
  int get_switch_index(ISwitchVectorProperty *sp);
  int AzimuthDistance(int nPos1, int nPos2);
  int GotoAzimuth(double newAZ);
+ double TicksToAzimuth(int nTicks);
+ int AzimuthToTicks(double nAzimuth);
 
  /*******************************************************/
  /* Error handling routines

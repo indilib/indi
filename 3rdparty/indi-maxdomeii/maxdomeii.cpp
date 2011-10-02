@@ -331,10 +331,7 @@ int MaxDomeII::GotoAzimuth(double newAZ)
 	int error;
 		
 	currAZ = AzimuthRN[0].value;
-	newPos = floor(0.5 + newAZ * nTicksPerTurn / 360.0) + nHomeTicks;
-	
-	if (newPos > nTicksPerTurn)
-		newPos -= nTicksPerTurn;
+	newPos = AzimuthToTicks(newAZ); 
 	
 	// Take the shortest path
 	if (newAZ > currAZ)
@@ -748,6 +745,7 @@ void MaxDomeII::ISPoll()
 	SH_Status nShutterStatus;
 	AZ_Status nAzimuthStatus;
 	unsigned nHomePosition;
+	float nAz;
 	int nError;
 
 	nError = Status_MaxDomeII(fd, &nShutterStatus, &nAzimuthStatus, &nCurrentTicks, &nHomePosition);
@@ -889,9 +887,10 @@ void MaxDomeII::ISPoll()
 			break;
 		}
 		// Azimuth
-		if (AzimuthRN[0].value != (nCurrentTicks * 360.0 / nTicksPerTurn))
+		nAz = TicksToAzimuth(nCurrentTicks);
+		if (AzimuthRN[0].value != nAz)
 		{	// Only refresh position if it changed
-			AzimuthRN[0].value = nCurrentTicks * 360.0 / nTicksPerTurn;
+			AzimuthRN[0].value = nAz;
 			IDSetNumber(&AzimuthRNP, NULL);
 		}
 		
@@ -974,3 +973,31 @@ int MaxDomeII::get_switch_index(ISwitchVectorProperty *sp)
 
  return -1;
 }
+/**************************************************************************************
+ **
+ ***************************************************************************************/
+double MaxDomeII::TicksToAzimuth(int nTicks)
+{
+	double nAz;
+	
+	nAz = (nTicks + nHomeTicks) * 360.0 / nTicksPerTurn;
+	while (nAz < 0) nAz += 360;
+	while (nAz >= 360) nAz -= 360;
+	
+	return nAz;
+}
+/**************************************************************************************
+ **
+ ***************************************************************************************/
+int MaxDomeII::AzimuthToTicks(double nAzimuth)
+{
+	int nTicks;
+	
+	nTicks = floor(0.5 + nAzimuth * nTicksPerTurn / 360.0) - nHomeTicks;
+	while (nTicks > nTicksPerTurn) nTicks -= nTicksPerTurn;
+	while (nTicks < 0) nTicks += nTicksPerTurn;
+	
+	return nTicks;
+}
+
+

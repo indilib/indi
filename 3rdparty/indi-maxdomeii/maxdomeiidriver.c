@@ -141,9 +141,7 @@ signed char checksum_MaxDomeII(char *cMessage, int nLen)
 int ReadResponse_MaxDomeII(int fd, unsigned char *cMessage)
 {
 	int nBytesRead;
-	int nIdx = 0;
 	int nLen = MAX_BUFFER;
-	int nReturn = 0;
 	int nErrorType = TTY_OK;
 	char nChecksum;
 	
