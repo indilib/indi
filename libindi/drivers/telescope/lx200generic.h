@@ -44,11 +44,11 @@ class LX200Generic
  int checkPower(INumberVectorProperty *np);
  int checkPower(ISwitchVectorProperty *sp);
  int checkPower(ITextVectorProperty *tp);
- void handleError(ISwitchVectorProperty *svp, int err, const char *msg);
- void handleError(INumberVectorProperty *nvp, int err, const char *msg);
- void handleError(ITextVectorProperty *tvp, int err, const char *msg);
+ virtual void handleError(ISwitchVectorProperty *svp, int err, const char *msg);
+ virtual void handleError(INumberVectorProperty *nvp, int err, const char *msg);
+ virtual void handleError(ITextVectorProperty *tvp, int err, const char *msg);
  bool isTelescopeOn(void);
- void connectTelescope();
+ virtual void connectTelescope();
  void slewError(int slewCode);
  void getAlignment();
  int handleCoordSet();
@@ -79,7 +79,6 @@ class LX200Generic
   char   thisDevice[64];
   int    currentSet;
   int    lastSet;
-  
 
 };
 

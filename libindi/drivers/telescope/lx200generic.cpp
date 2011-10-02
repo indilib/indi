@@ -32,6 +32,7 @@
 #include "lx200gps.h"
 #include "lx200ap.h"
 #include "lx200classic.h"
+#include "lx200fs2.h"
 
 #include <config.h>
 
@@ -330,6 +331,7 @@ void changeAllDeviceNames(const char *newName)
   changeLX200_16DeviceName(newName);
   changeLX200ClassicDeviceName(newName);
   changeLX200GPSDeviceName(newName);
+  changeLX200FS2DeviceName(newName);
 }
 
 
@@ -463,6 +465,27 @@ void ISInit()
 
 
    MaxReticleFlashRate = 9;
+ }
+ else if (strstr(me, "indi_lx200fs2"))
+ {
+   fprintf(stderr , "initilizaing from fs2 device...\n");
+  
+   // 2. device = sub_class
+   telescope = new LX200Fs2();
+	 
+   if (envDev != NULL)
+   {
+	   // 1. change device name
+	   changeAllDeviceNames(envDev);
+	   telescope->setCurrentDeviceName(envDev);
+   }
+   else
+   {
+	  // 1. change device name
+	  changeAllDeviceNames("LX200 FS2");
+      telescope->setCurrentDeviceName("LX200 FS2");
+   }
+   
  }
  // be nice and give them a generic device
  else
