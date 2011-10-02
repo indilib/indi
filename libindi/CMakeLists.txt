@@ -13,8 +13,6 @@ set(DATA_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/share/indi/")
 set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
 set(INCLUDE_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/include")
 
-MESSAGE( STATUS "BIN_INSTALL_DIR: " ${BIN_INSTALL_DIR} )
-
 ##################  setup install directories  ################################
 set (LIB_SUFFIX "" CACHE STRING "Define suffix of directory name (32/64)" )
 set (LIB_DESTINATION "${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}" CACHE STRING "Library directory name")
@@ -199,7 +197,8 @@ set(lx200generic_SRCS
    ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200generic.cpp
    ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200classic.cpp
    ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200apdriver.c
-   ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200ap.cpp )
+   ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200ap.cpp 
+   ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200fs2.cpp)
 
 add_executable(indi_lx200generic ${lx200generic_SRCS}  ${liblilxml_SRCS} ${libindicom_SRCS})
 
@@ -217,6 +216,7 @@ exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx2
 exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic ${BUILD_ROOT}${BIN_INSTALL_DIR}/indi_lx200_16)\n
 exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic ${BUILD_ROOT}${BIN_INSTALL_DIR}/indi_lx200gps)\n
 exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic ${BUILD_ROOT}${BIN_INSTALL_DIR}/indi_lx200ap)\n
+exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic ${BUILD_ROOT}${BIN_INSTALL_DIR}/indi_lx200fs2)\n
 ")
 set_target_properties(indi_lx200generic PROPERTIES POST_INSTALL_SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_lx200generic_symlink.cmake)
 #################################################################################
