@@ -151,10 +151,11 @@ MaxDomeII::MaxDomeII()
 	nTimeSinceShutterStart = -1; // No movement has started
 	nTimeSinceAzimuthStart = -1; // No movement has started
 	nTargetAzimuth = -1; //Target azimuth not established 
+	nTimeSinceLastCommunication = 0;
     init_properties();
 
     IDLog("Initilizing from MaxDome II device...\n");
-    IDLog("Driver Version: 2011-06-25\n"); 
+    IDLog("Driver Version: 2011-10-16\n"); 
 }
 
 /**************************************************************************************
@@ -230,6 +231,10 @@ void MaxDomeII::init_properties()
 	IUFillSwitch(&ShutterS[1], "OPEN_UPPER_SHUTTER", "Open upper shutter", ISS_OFF);
     IUFillSwitch(&ShutterS[2], "CLOSE_SHUTTER", "Close shutter", ISS_ON);
     IUFillSwitchVector(&ShutterSP, ShutterS, NARRAY(ShutterS), mydev, "SHUTTER", "Shutter", OPERATION_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+	
+	// Watch Dog
+    IUFillNumber(&WatchDogN[0], "WATCH_DOG_TIME", "Watch dog time", "%5.2f",  0., 3600., 0., 0.);
+    IUFillNumberVector(&WachDogNP, WatchDogN, NARRAY(WatchDogN), mydev, "WATCH_DOG_TIME_SET" , "Watch dog time set", OPTIONS_GROUP, IP_RW, 0, IPS_IDLE);
 }
 
 /**************************************************************************************
@@ -249,6 +254,7 @@ void MaxDomeII::reset_all_properties()
     ParkPositionNP.s		= IPS_IDLE;
 	ParkOnShutterSP.s		= IPS_IDLE;
 	ShutterSP.s				= IPS_IDLE;
+	WachDogNP.s				= IPS_IDLE;
 
     IUResetSwitch(&AbortSP);
 
@@ -267,6 +273,7 @@ void MaxDomeII::reset_all_properties()
     IDSetNumber(&AzimuthRNP, NULL);
     IDSetNumber(&TicksPerTurnNP, NULL);
     IDSetNumber(&ParkPositionNP, NULL);
+	IDSetNumber(&WachDogNP, NULL);
 }
 
 /**************************************************************************************
@@ -294,7 +301,7 @@ void MaxDomeII::ISGetProperties(const char *dev)
   IDDefNumber(&TicksPerTurnNP, NULL);
   IDDefNumber(&ParkPositionNP, NULL);
   IDDefSwitch(&ParkOnShutterSP, NULL);
-  
+  IDDefNumber(&WachDogNP, NULL);
 }
 
 /**************************************************************************************
@@ -306,6 +313,7 @@ void MaxDomeII::ISNewText (const char *dev, const char *name, char *texts[], cha
 	if (strcmp (dev, mydev))
 	    return;
 
+	nTimeSinceLastCommunication = 0;
 	// ===================================
 	// Port Name
 	// ===================================
@@ -364,6 +372,8 @@ void MaxDomeII::ISNewNumber (const char *dev, const char *name, double values[],
 	// Ignore if not ours
 	if (strcmp (dev, mydev))
 	    return;
+	
+	nTimeSinceLastCommunication = 0;
 
 	if (is_connected() == false)
         {
@@ -505,6 +515,33 @@ void MaxDomeII::ISNewNumber (const char *dev, const char *name, double values[],
 		
 		return;
 	}
+	
+	// ===================================
+    // Watch dog
+	// ===================================
+	if (!strcmp (name, WachDogNP.name))
+	{
+		double nVal;
+		char cLog[255];
+		
+		if (IUUpdateNumber(&WachDogNP, values, names, n) < 0)
+			return;
+		
+		nVal = values[0];
+		if (nVal >= 0 && nVal <=3600)
+		{
+			sprintf(cLog, "New watch dog set: %lf", nVal);
+			WachDogNP.s = IPS_OK;
+			WachDogNP.np[0].value = nVal;
+			IDSetNumber(&WachDogNP, cLog);
+			return;
+		}
+		// Incorrect value. 
+		WachDogNP.s = IPS_ALERT;
+		IDSetNumber(&WachDogNP, "Invalid watch dog time");
+		
+		return;
+	}
 
 }
 
@@ -517,6 +554,7 @@ void MaxDomeII::ISNewSwitch (const char *dev, const char *name, ISState *states,
 	if (strcmp (mydev, dev))
 	    return;
 
+	nTimeSinceLastCommunication = 0;
 	// ===================================
     // Connect Switch
 	// ===================================
@@ -755,6 +793,36 @@ void MaxDomeII::ISPoll()
 		nTimeSinceShutterStart++;
 	if (nTimeSinceAzimuthStart >= 0)
 		nTimeSinceAzimuthStart++;
+	
+	// Watch dog
+	nTimeSinceLastCommunication++;
+	if (WachDogNP.np[0].value > 0 && WachDogNP.np[0].value >= nTimeSinceLastCommunication)
+	{		
+		// Close Shutter if it is not
+		if (nShutterStatus != Ss_CLOSED)
+		{
+			int error;
+			
+			error = Close_Shutter_MaxDomeII(fd);
+			nTimeSinceShutterStart = 0;	// Init movement timer
+			if (error)
+			{
+				IDLog("MAX DOME II: %s",ErrorMessages[-error]);
+				ShutterSP.s = IPS_ALERT;
+				IDSetSwitch(&ShutterSP, "Error closing shutter");
+			}
+			else 
+			{
+				nTimeSinceLastCommunication = 0;
+				ShutterS[2].s = ISS_ON;
+				ShutterS[1].s = ISS_OFF;
+				ShutterS[0].s = ISS_OFF;
+				ShutterSP.s = IPS_BUSY;
+				IDSetSwitch(&ShutterSP, "Closing shutter due watch dog");
+			}
+		}
+
+	}
 		
     if (!nError)
 	{

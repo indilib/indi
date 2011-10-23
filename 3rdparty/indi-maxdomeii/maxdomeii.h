@@ -63,6 +63,7 @@ private:
   INumber TicksPerTurnN[1];
   INumber ParkPositionN[1];
   INumber HomeAzimuthN[1];
+  INumber WatchDogN[1];
     
   /* Switch Vectors */
   ISwitchVectorProperty ConnectSP;
@@ -79,6 +80,7 @@ private:
   INumberVectorProperty TicksPerTurnNP;
   INumberVectorProperty ParkPositionNP;
   INumberVectorProperty HomeAzimuthNP;
+  INumberVectorProperty WachDogNP;
   
   /* Text Vectors */
   ITextVectorProperty PortTP;
@@ -120,6 +122,7 @@ private:
   int nTimeSinceShutterStart;	// Timer since shutter movement has started, in order to check timeouts
   int nTimeSinceAzimuthStart;	// Timer since azimuth movement has started, in order to check timeouts
   int nTargetAzimuth;
+  int nTimeSinceLastCommunication;  // Used by Watch Dog
 };
 
 #endif
