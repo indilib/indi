@@ -524,9 +524,10 @@ void CelestronGPS::ISNewSwitch (const char *dev, const char *name, ISState *stat
 	 last_move = getOnSwitch(&MovementNSSP);
 
 	 if (IUUpdateSwitch(&MovementNSSP, states, names, n) < 0)
-		return;
+        IDLog("fixme!!! - IUUpdateSwitch MovementNSSP\n");
+	//	return;
 
-	current_move = getOnSwitch(&SlewModeSP);
+	current_move = getOnSwitch(&MovementNSSP);
 
 	// Previosuly active switch clicked again, so let's stop.
 	if (current_move == last_move)
@@ -568,9 +569,10 @@ void CelestronGPS::ISNewSwitch (const char *dev, const char *name, ISState *stat
 	 last_move = getOnSwitch(&MovementWESP);
 
 	 if (IUUpdateSwitch(&MovementWESP, states, names, n) < 0)
-		return;
+        IDLog("fixme!!! - IUUpdateSwitch MovementWESP\n");
+		//return;
 
-	current_move = getOnSwitch(&SlewModeSP);
+	current_move = getOnSwitch(&MovementWESP);
 
 	// Previosuly active switch clicked again, so let's stop.
 	if (current_move == last_move)
