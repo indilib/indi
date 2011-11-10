@@ -107,6 +107,10 @@
                 <driver name="Magellan I">indi_magellan1</driver>
                 <version>1.0</version>
         </device>
+        <device label="iEQ45" focal_length="" aperture="">
+                <driver name="IEQ45">indi_ieq45</driver>
+                <version>0.1</version>
+        </device>
         <device label="Telescope Simulator" focal_length="" aperture="">
                 <driver name="Telescope Simulator">indi_simulator_telescope</driver>
                 <version>1.0</version>
