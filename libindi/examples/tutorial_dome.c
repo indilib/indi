@@ -44,6 +44,8 @@
 #define MAIN_GROUP	"Main"
 #define SNOOP_GROUP     "Snooped"
 
+void closeDome();
+
 /* Connect/Disconnect */
 static ISwitch PowerS[]          	= {{"CONNECT" , "Connect" , ISS_OFF, 0, 0},{"DISCONNECT", "Disconnect", ISS_ON, 0, 0}};
 static ISwitchVectorProperty PowerSP	= { mydev, "CONNECTION" , "Connection", MAIN_GROUP, IP_RW, ISR_1OFMANY, 60, IPS_IDLE, PowerS, NARRAY(PowerS), "", 0};
