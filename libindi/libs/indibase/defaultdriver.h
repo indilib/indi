@@ -4,6 +4,13 @@
 #include "basedriver.h"
 #include "indidriver.h"
 
+extern const char *COMMUNICATION_TAB;
+extern const char *MAIN_CONTROL_TAB;
+extern const char *MOTION_TAB;
+extern const char *DATETIME_TAB;
+extern const char *SITE_TAB;
+extern const char *OPTIONS_TAB;
+
 /**
  * \class INDI::DefaultDriver
    \brief Class to provide extended functionary for drivers in addition

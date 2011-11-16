@@ -14,6 +14,17 @@ class ScopeSim : public INDI::Telescope
         double targetDEC;
 
         bool Parked;
+
+        INumber GuideNSN[2];
+        INumberVectorProperty *GuideNSNP;
+
+
+        INumber GuideWEN[2];
+        INumberVectorProperty *GuideWENP;
+
+        INumberVectorProperty *EqPECNV;
+        INumber EqPECN[2];
+
     public:
         ScopeSim();
         virtual ~ScopeSim();
@@ -23,6 +34,9 @@ class ScopeSim : public INDI::Telescope
         virtual bool Connect(char *);
         virtual bool Disconnect();
         virtual bool ReadScopeStatus();
+        virtual bool initProperties();
+        virtual void ISGetProperties (const char *dev);
+        virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
 
         bool Goto(double,double);
         bool Park();

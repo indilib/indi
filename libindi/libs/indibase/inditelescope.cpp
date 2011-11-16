@@ -53,36 +53,36 @@ bool INDI::Telescope::initProperties()
 
     IUFillNumber(&EqN[0],"RA","RA (hh:mm:ss)","%010.6m",0,24,0,0);
     IUFillNumber(&EqN[1],"DEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,0);
-    IUFillNumberVector(EqNV,EqN,2,deviceName(),"EQUATORIAL_EOD_COORD","Eq. Coordinates","Main Control",IP_RO,60,IPS_IDLE);
+    IUFillNumberVector(EqNV,EqN,2,deviceName(),"EQUATORIAL_EOD_COORD","Eq. Coordinates",MAIN_CONTROL_TAB,IP_RO,60,IPS_IDLE);
 
     EqReqNV = new INumberVectorProperty;
 
     IUFillNumber(&EqReqN[0],"RA","RA (hh:mm:ss)","%010.6m",0,24,0,0);
     IUFillNumber(&EqReqN[1],"DEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,0);
-    IUFillNumberVector(EqReqNV,EqReqN,2,deviceName(),"EQUATORIAL_EOD_COORD_REQUEST","GOTO","Controls",IP_WO,60,IPS_IDLE);
+    IUFillNumberVector(EqReqNV,EqReqN,2,deviceName(),"EQUATORIAL_EOD_COORD_REQUEST","GOTO",MAIN_CONTROL_TAB,IP_WO,60,IPS_IDLE);
 
     LocationNV = new INumberVectorProperty;
 
     IUFillNumber(&LocationN[0],"LAT","Lat (dd:mm:ss)","%010.6m",-90,90,0,0.0);
     IUFillNumber(&LocationN[1],"LONG","Lon (dd:mm:ss)","%010.6m",0,360,0,0.0 );
-    IUFillNumberVector(LocationNV,LocationN,2,deviceName(),"GEOGRAPHIC_COORD","Scope Location","Location",IP_RW,60,IPS_OK);
+    IUFillNumberVector(LocationNV,LocationN,2,deviceName(),"GEOGRAPHIC_COORD","Scope Location",SITE_TAB,IP_RW,60,IPS_OK);
 
     CoordSV = new ISwitchVectorProperty;
 
     IUFillSwitch(&CoordS[0],"TRACK","Track",ISS_OFF);
     IUFillSwitch(&CoordS[1],"SLEW","Slew",ISS_OFF);
     IUFillSwitch(&CoordS[2],"SYNC","Sync",ISS_OFF);
-    IUFillSwitchVector(CoordSV,CoordS,3,deviceName(),"ON_COORD_SET","On Set","Controls",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    IUFillSwitchVector(CoordSV,CoordS,3,deviceName(),"ON_COORD_SET","On Set",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
     ParkSV = new ISwitchVectorProperty;
 
     IUFillSwitch(&ParkS[0],"PARK","Park",ISS_OFF);
-    IUFillSwitchVector(ParkSV,ParkS,1,deviceName(),"TELESCOPE_PARK","Park","Controls",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    IUFillSwitchVector(ParkSV,ParkS,1,deviceName(),"TELESCOPE_PARK","Park",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
     PortTV = new ITextVectorProperty;
 
     IUFillText(&PortT[0],"PORT","Port","/dev/ttyUSB0");
-    IUFillTextVector(PortTV,PortT,1,deviceName(),"DEVICE_PORT","Ports","Options",IP_RW,60,IPS_IDLE);
+    IUFillTextVector(PortTV,PortT,1,deviceName(),"DEVICE_PORT","Ports",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
 
     TrackState=SCOPE_PARKED;
     return 0;

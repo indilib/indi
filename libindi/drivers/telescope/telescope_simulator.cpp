@@ -12,9 +12,24 @@
 // We declare an auto pointer to ScopeSim.
 std::auto_ptr<ScopeSim> telescope_sim(0);
 
-#define	SLEWRATE	1				/* slew rate, degrees/s */
+#define	GOTO_RATE	2				/* slew rate, degrees/s */
+#define	SLEW_RATE	0.5				/* slew rate, degrees/s */
+#define FINE_SLEW_RATE  0.1                             /* slew rate, degrees/s */
+#define SID_RATE	0.004178			/* sidereal rate, degrees/s */
+
+#define GOTO_LIMIT      5                               /* Move at GOTO_RATE until distance from target is GOTO_LIMIT degrees */
+#define SLEW_LIMIT      2                               /* Move at SLEW_LIMIT until distance from target is SLEW_LIMIT degrees */
+#define FINE_SLEW_LIMIT 0.5                             /* Move at FINE_SLEW_RATE until distance from target is FINE_SLEW_LIMIT degrees */
+
 #define	POLLMS		250				/* poll period, ms */
-#define SIDRATE		0.004178			/* sidereal rate, degrees/s */
+
+#define RA_AXIS         0
+#define DEC_AXIS        1
+#define GUIDE_NORTH     0
+#define GUIDE_SOUTH     1
+#define GUIDE_WEST      0
+#define GUIDE_EAST      1
+
 
 
 void ISPoll(void *p);
@@ -79,6 +94,9 @@ ScopeSim::ScopeSim()
     currentRA=15;
     currentDEC=15;
     Parked=false;
+
+    /* initialize random seed: */
+      srand ( time(NULL) );
 }
 
 ScopeSim::~ScopeSim()
@@ -90,6 +108,44 @@ const char * ScopeSim::getDefaultName()
 {
     return (char *)"Telescope Simulator";
 }
+
+bool ScopeSim::initProperties()
+{
+    INDI::Telescope::initProperties();
+
+
+    GuideNSNP = new INumberVectorProperty;
+    IUFillNumber(&GuideNSN[GUIDE_NORTH], "TIMED_GUIDE_N", "North (sec)", "%g", 0, 10, 0.001, 0);
+    IUFillNumber(&GuideNSN[GUIDE_SOUTH], "TIMED_GUIDE_S", "South (sec)", "%g", 0, 10, 0.001, 0);
+    IUFillNumberVector(GuideNSNP, GuideNSN, 2, deviceName(), "TELESCOPE_TIMED_GUIDE_NS", "Guide North/South", MOTION_TAB, IP_RW, 0, IPS_IDLE);
+
+    GuideWENP = new INumberVectorProperty;
+    IUFillNumber(&GuideWEN[GUIDE_WEST], "TIMED_GUIDE_W", "West (sec)", "%g", 0, 10, 0.001, 0);
+    IUFillNumber(&GuideWEN[GUIDE_EAST], "TIMED_GUIDE_E", "East (sec)", "%g", 0, 10, 0.001, 0);
+    IUFillNumberVector(GuideWENP, GuideWEN, 2, deviceName(), "TELESCOPE_TIMED_GUIDE_WE", "Guide West/East", MOTION_TAB, IP_RW, 0, IPS_IDLE);
+
+    EqPECNV = new INumberVectorProperty;
+
+    IUFillNumber(&EqPECN[RA_AXIS],"RA_PEC","RA (hh:mm:ss)","%010.6m",0,24,0,0);
+    IUFillNumber(&EqPECN[DEC_AXIS],"DEC_PEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,0);
+    IUFillNumberVector(EqPECNV,EqPECN,2,deviceName(),"EQUATORIAL_PEC","Periodic Error",MOTION_TAB,IP_RO,60,IPS_IDLE);
+
+    return true;
+
+}
+
+void ScopeSim::ISGetProperties (const char *dev)
+{
+    //  First we let our parent populate
+    INDI::Telescope::ISGetProperties(dev);
+
+    defineNumber(GuideNSNP);
+    defineNumber(GuideWENP);
+    defineNumber(EqPECNV);
+
+    return;
+}
+
 
 bool ScopeSim::Connect(char *)
 {
@@ -105,8 +161,8 @@ bool ScopeSim::ReadScopeStatus()
 {
     static struct timeval ltv;
     struct timeval tv;
-    double dt, da, dx;
-    int nlocked;
+    double dt, da_ra, da_dec, dx;
+    int nlocked, ns_guide_dir=-1, we_guide_dir=-1;
 
 
     /* update elapsed time since last poll, don't presume exactly POLLMS */
@@ -117,7 +173,21 @@ bool ScopeSim::ReadScopeStatus()
 
     dt = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec)/1e6;
     ltv = tv;
-    da = SLEWRATE*dt;
+
+    if ( fabs(targetRA - currentRA)*15. >= GOTO_LIMIT )
+        da_ra = GOTO_RATE *dt;
+    else if ( fabs(targetRA - currentRA)*15. >= SLEW_LIMIT )
+        da_ra = SLEW_RATE *dt;
+    else
+        da_ra = FINE_SLEW_RATE *dt;
+
+    if ( fabs(targetDEC - currentDEC) >= GOTO_LIMIT )
+        da_dec = GOTO_RATE *dt;
+    else if ( fabs(targetDEC - currentDEC) >= SLEW_LIMIT )
+        da_dec = SLEW_RATE *dt;
+    else
+        da_dec = FINE_SLEW_RATE *dt;
+
 
     /* Process per current state. We check the state of EQUATORIAL_EOD_COORDS_REQUEST and act acoordingly */
     switch (TrackState)
@@ -129,36 +199,39 @@ bool ScopeSim::ReadScopeStatus()
 
         dx = targetRA - currentRA;
 
-        if (fabs(dx) <= da)
+        if (fabs(dx)*15. <= da_ra)
         {
             currentRA = targetRA;
             nlocked++;
         }
         else if (dx > 0)
-            currentRA += da/15.;
+            currentRA += da_ra/15.;
         else
-            currentRA -= da/15.;
+            currentRA -= da_ra/15.;
 
 
         dx = targetDEC - currentDEC;
-        if (fabs(dx) <= da)
+        if (fabs(dx) <= da_dec)
         {
             currentDEC = targetDEC;
             nlocked++;
         }
         else if (dx > 0)
-          currentDEC += da;
+          currentDEC += da_dec;
         else
-          currentDEC -= da;
+          currentDEC -= da_dec;
 
         if (nlocked == 2)
         {
-            //eqNP.s = IPS_OK;
-            //eqNPR.s = IPS_OK;
-            //IDSetNumber(&eqNP, NULL);
-            //IDSetNumber(&eqNPR, "Now tracking");
             if (TrackState == SCOPE_SLEWING)
             {
+
+                // Create random PEC in RA/DEC
+                EqPECN[0].value = currentRA + ( (rand()%2 == 0 ? 1 : -1) * rand() % 10)/100.;
+                EqPECN[1].value = currentDEC + ( (rand()%2 == 0 ? 1 : -1) * rand() % 10)/100.;
+
+                IDSetNumber(EqPECNV, NULL);
+
                 TrackState = SCOPE_TRACKING;
                 IDMessage(deviceName(), "Telescope slew is complete. Tracking...");
             }
@@ -168,15 +241,74 @@ bool ScopeSim::ReadScopeStatus()
                 IDMessage(deviceName(), "Telescope parked successfully.");
             }
         }
-        //else
-          //  IDSetNumber(&eqNP, NULL);
 
         break;
 
     case SCOPE_TRACKING:
         /* tracking */
-        /* RA moves at sidereal, Dec stands still */
-         currentRA += (SIDRATE*dt/15.);
+
+        if (GuideNSN[GUIDE_NORTH].value > 0)
+            ns_guide_dir = GUIDE_NORTH;
+        else if (GuideNSN[GUIDE_SOUTH].value > 0)
+            ns_guide_dir = GUIDE_SOUTH;
+
+        if (GuideWEN[GUIDE_WEST].value > 0)
+            we_guide_dir = GUIDE_WEST;
+        else if (GuideWEN[GUIDE_EAST].value > 0)
+            we_guide_dir = GUIDE_EAST;
+
+        if (ns_guide_dir != -1)
+        {
+          if (GuideNSN[ns_guide_dir].value >= dt)
+          {
+              EqPECN[DEC_AXIS].value += da_dec * (ns_guide_dir==GUIDE_NORTH ? 1 : -1);
+                GuideNSN[ns_guide_dir].value -= dt;
+          }
+          else
+          {
+                EqPECN[DEC_AXIS].value += FINE_SLEW_RATE * GuideNSN[ns_guide_dir].value * (ns_guide_dir==GUIDE_NORTH ? 1 : -1);
+                GuideNSN[ns_guide_dir].value = 0;
+          }
+
+
+            if (GuideNSN[ns_guide_dir].value <= 0)
+            {
+                GuideNSN[GUIDE_NORTH].value = GuideNSN[GUIDE_SOUTH].value = 0;
+                GuideNSNP->s = IPS_OK;
+                IDSetNumber(GuideNSNP, NULL);
+            }
+            else
+                IDSetNumber(GuideNSNP, NULL);
+          }
+
+
+        if (we_guide_dir != -1)
+        {
+          if (GuideWEN[we_guide_dir].value >= dt)
+          {
+                EqPECN[RA_AXIS].value += da_ra * (we_guide_dir==GUIDE_WEST ? 1 : -1);
+                GuideWEN[we_guide_dir].value -= dt;
+          }
+          else
+          {
+                EqPECN[RA_AXIS].value += FINE_SLEW_RATE * GuideWEN[we_guide_dir].value* (we_guide_dir==GUIDE_WEST ? 1 : -1);
+                GuideWEN[we_guide_dir].value = 0;
+          }
+
+
+            if (GuideWEN[we_guide_dir].value <= 0)
+            {
+                GuideWEN[GUIDE_WEST].value = GuideWEN[GUIDE_EAST].value = 0;
+                GuideWENP->s = IPS_OK;
+                IDSetNumber(GuideWENP, NULL);
+            }
+            else
+                IDSetNumber(GuideWENP, NULL);
+          }
+
+        if (ns_guide_dir != -1 || we_guide_dir != -1)
+            IDSetNumber(EqPECNV, NULL);
+
          break;
 
     default:
@@ -230,12 +362,48 @@ bool ScopeSim::Connect()
     return rc;
 }
 
-
-
-/* update the "mount" over time */
-void mountSim (void *p)
+bool ScopeSim::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
+    //  first check if it's for our device
 
+    if(strcmp(dev,deviceName())==0)
+    {
+        //  This is for our device
+        //  Now lets see if it's something we process here
+         if(strcmp(name,"TELESCOPE_TIMED_GUIDE_NS")==0)
+         {
+
+             // Unless we're in track mode, we don't obey guide commands.
+             if (TrackState != SCOPE_TRACKING)
+             {
+                 GuideNSNP->s = IPS_IDLE;
+                 IDSetNumber(GuideNSNP, NULL);
+                 return true;
+             }
+
+             IUUpdateNumber(GuideNSNP, values, names, n);
+
+           return true;
+         }
+
+         if(strcmp(name,"TELESCOPE_TIMED_GUIDE_WE")==0)
+         {
+             // Unless we're in track mode, we don't obey guide commands.
+             if (TrackState != SCOPE_TRACKING)
+             {
+                 GuideWENP->s = IPS_IDLE;
+                 IDSetNumber(GuideWENP, NULL);
+                 return true;
+             }
+
+             IUUpdateNumber(GuideWENP, values, names, n);
+
+           return true;
+         }
+
+    }
+
+    //  if we didn't process it, continue up the chain, let somebody else
+    //  give it a shot
+    return INDI::Telescope::ISNewNumber(dev,name,values,names,n);
 }
-
-

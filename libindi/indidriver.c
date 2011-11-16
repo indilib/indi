@@ -235,7 +235,7 @@ int IUUpdateNumber(INumberVectorProperty *nvp, double values[], char *names[], i
   for (i=0; i < n; i++)
   {
     np = IUFindNumber(nvp, names[i]);
-    np->value = values[i];
+    np->value = values[i];  
   }
 
   return 0;

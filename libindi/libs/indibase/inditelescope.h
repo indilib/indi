@@ -93,7 +93,7 @@ class INDI::Telescope : public INDI::DefaultDriver
         //  This is a variable filled in by the ReadStatus telescope
         //  low level code, used to report current state
         //  are we slewing, tracking, or parked.
-        int TrackState;
+        TelescopeStatus TrackState;
 
 
         //  These functions are telescope specific

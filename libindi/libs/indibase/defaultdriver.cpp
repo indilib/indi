@@ -7,6 +7,13 @@
 #include "indicom.h"
 #include "base64.h"
 
+const char *COMMUNICATION_TAB = "Communication";
+const char *MAIN_CONTROL_TAB = "Main Control";
+const char *MOTION_TAB = "Motion Control";
+const char *DATETIME_TAB = "Date/Time";
+const char *SITE_TAB = 	"Site Management";
+const char *OPTIONS_TAB = "Options";
+
 void timerfunc(void *t)
 {
     //fprintf(stderr,"Got a timer hit with %x\n",t);
