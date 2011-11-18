@@ -36,6 +36,7 @@ class ScopeSim : public INDI::Telescope
         virtual bool ReadScopeStatus();
         virtual bool initProperties();
         virtual void ISGetProperties (const char *dev);
+        virtual bool updateProperties();
         virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
 
         bool Goto(double,double);

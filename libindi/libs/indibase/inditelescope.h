@@ -61,6 +61,12 @@ class INDI::Telescope : public INDI::DefaultDriver
         ITextVectorProperty *PortTV; //  A text vector that stores out physical port name
         IText PortT[1];
 
+        ISwitch MovementNSS[2];
+        ISwitchVectorProperty *MovementNSSP;
+
+        ISwitch MovementWES[2];
+        ISwitchVectorProperty *MovementWESP;
+
 
         //  Ok, we do need our virtual functions from the base class for processing
         //  client requests
@@ -118,6 +124,8 @@ class INDI::Telescope : public INDI::DefaultDriver
 
         virtual bool Goto(double ra,double dec);
         virtual bool Sync(double ra,double dec);
+        virtual bool MoveNS(int dir);
+        virtual bool MoveWE(int dir);
         virtual bool Park();
 
 };

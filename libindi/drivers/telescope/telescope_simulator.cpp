@@ -95,6 +95,10 @@ ScopeSim::ScopeSim()
     currentDEC=15;
     Parked=false;
 
+    GuideNSNP = new INumberVectorProperty;
+    GuideWENP = new INumberVectorProperty;
+    EqPECNV = new INumberVectorProperty;
+
     /* initialize random seed: */
       srand ( time(NULL) );
 }
@@ -113,22 +117,19 @@ bool ScopeSim::initProperties()
 {
     INDI::Telescope::initProperties();
 
-
-    GuideNSNP = new INumberVectorProperty;
     IUFillNumber(&GuideNSN[GUIDE_NORTH], "TIMED_GUIDE_N", "North (sec)", "%g", 0, 10, 0.001, 0);
     IUFillNumber(&GuideNSN[GUIDE_SOUTH], "TIMED_GUIDE_S", "South (sec)", "%g", 0, 10, 0.001, 0);
     IUFillNumberVector(GuideNSNP, GuideNSN, 2, deviceName(), "TELESCOPE_TIMED_GUIDE_NS", "Guide North/South", MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
-    GuideWENP = new INumberVectorProperty;
+
     IUFillNumber(&GuideWEN[GUIDE_WEST], "TIMED_GUIDE_W", "West (sec)", "%g", 0, 10, 0.001, 0);
     IUFillNumber(&GuideWEN[GUIDE_EAST], "TIMED_GUIDE_E", "East (sec)", "%g", 0, 10, 0.001, 0);
     IUFillNumberVector(GuideWENP, GuideWEN, 2, deviceName(), "TELESCOPE_TIMED_GUIDE_WE", "Guide West/East", MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
-    EqPECNV = new INumberVectorProperty;
-
     IUFillNumber(&EqPECN[RA_AXIS],"RA_PEC","RA (hh:mm:ss)","%010.6m",0,24,0,0);
     IUFillNumber(&EqPECN[DEC_AXIS],"DEC_PEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,0);
     IUFillNumberVector(EqPECNV,EqPECN,2,deviceName(),"EQUATORIAL_PEC","Periodic Error",MOTION_TAB,IP_RO,60,IPS_IDLE);
+
 
     return true;
 
@@ -139,13 +140,40 @@ void ScopeSim::ISGetProperties (const char *dev)
     //  First we let our parent populate
     INDI::Telescope::ISGetProperties(dev);
 
-    defineNumber(GuideNSNP);
-    defineNumber(GuideWENP);
-    defineNumber(EqPECNV);
+    if(isConnected())
+    {
+        defineNumber(GuideNSNP);
+        defineNumber(GuideWENP);
+        defineNumber(EqPECNV);
+    }
 
     return;
 }
 
+bool ScopeSim::updateProperties()
+{
+
+    INDI::Telescope::updateProperties();
+
+    if (isConnected())
+    {
+        defineNumber(GuideNSNP);
+        defineNumber(GuideWENP);
+        defineNumber(EqPECNV);
+
+    }
+    else
+    {
+        deleteProperty(GuideNSNP->name);
+        deleteProperty(GuideWENP->name);
+        deleteProperty(EqPECNV->name);
+
+       // initProperties();
+    }
+
+
+
+}
 
 bool ScopeSim::Connect(char *)
 {
@@ -171,6 +199,7 @@ bool ScopeSim::ReadScopeStatus()
     if (ltv.tv_sec == 0 && ltv.tv_usec == 0)
         ltv = tv;
 
+
     dt = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec)/1e6;
     ltv = tv;
 
@@ -192,6 +221,9 @@ bool ScopeSim::ReadScopeStatus()
     /* Process per current state. We check the state of EQUATORIAL_EOD_COORDS_REQUEST and act acoordingly */
     switch (TrackState)
     {
+    case SCOPE_IDLE:
+        EqNV->s = IPS_IDLE;
+        break;
     case SCOPE_SLEWING:
     case SCOPE_PARKING:
         /* slewing - nail it when both within one pulse @ SLEWRATE */
@@ -221,6 +253,8 @@ bool ScopeSim::ReadScopeStatus()
         else
           currentDEC -= da_dec;
 
+        EqNV->s = IPS_BUSY;
+
         if (nlocked == 2)
         {
             if (TrackState == SCOPE_SLEWING)
@@ -233,11 +267,14 @@ bool ScopeSim::ReadScopeStatus()
                 IDSetNumber(EqPECNV, NULL);
 
                 TrackState = SCOPE_TRACKING;
+
+                EqNV->s = IPS_OK;
                 IDMessage(deviceName(), "Telescope slew is complete. Tracking...");
             }
             else
             {
                 TrackState = SCOPE_PARKED;
+                EqNV->s = IPS_IDLE;
                 IDMessage(deviceName(), "Telescope parked successfully.");
             }
         }
@@ -247,11 +284,13 @@ bool ScopeSim::ReadScopeStatus()
     case SCOPE_TRACKING:
         /* tracking */
 
+        // N/S Guide Selection
         if (GuideNSN[GUIDE_NORTH].value > 0)
             ns_guide_dir = GUIDE_NORTH;
         else if (GuideNSN[GUIDE_SOUTH].value > 0)
             ns_guide_dir = GUIDE_SOUTH;
 
+        // WE Guide Selection
         if (GuideWEN[GUIDE_WEST].value > 0)
             we_guide_dir = GUIDE_WEST;
         else if (GuideWEN[GUIDE_EAST].value > 0)
@@ -259,6 +298,7 @@ bool ScopeSim::ReadScopeStatus()
 
         if (ns_guide_dir != -1)
         {
+            // If time remaining is more that dt, then decrement and
           if (GuideNSN[ns_guide_dir].value >= dt)
           {
               EqPECN[DEC_AXIS].value += da_dec * (ns_guide_dir==GUIDE_NORTH ? 1 : -1);

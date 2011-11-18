@@ -42,6 +42,22 @@ INDI::CCD::CCD()
 
     FrameType=FRAME_TYPE_LIGHT;
 
+    ImageFrameNV = new INumberVectorProperty;
+    FrameTypeSV = new ISwitchVectorProperty;
+    ImageExposureNV = new INumberVectorProperty;
+    ImageBinNV = new INumberVectorProperty;
+    ImagePixelSizeNV = new INumberVectorProperty;
+    GuiderFrameNV = new INumberVectorProperty;
+    GuiderPixelSizeNV = new INumberVectorProperty;
+    GuiderExposureNV = new INumberVectorProperty;
+    GuiderVideoSV = new ISwitchVectorProperty;
+    CompressSV = new ISwitchVectorProperty;
+    GuiderCompressSV = new ISwitchVectorProperty;
+    FitsBV = new IBLOBVectorProperty;
+    GuiderBV = new IBLOBVectorProperty;
+    GuideNSV = new INumberVectorProperty;
+    GuideEWV = new INumberVectorProperty;
+
 }
 
 INDI::CCD::~CCD()
@@ -57,15 +73,11 @@ bool INDI::CCD::initProperties()
 
     //IDLog("INDI::CCD::initProperties()\n");
 
-    ImageFrameNV = new INumberVectorProperty;
-
     IUFillNumber(&ImageFrameN[0],"X","Left ","%4.0f",0,1392.0,0,0);
     IUFillNumber(&ImageFrameN[1],"Y","Top","%4.0f",0,1040,0,0);
     IUFillNumber(&ImageFrameN[2],"WIDTH","Width","%4.0f",0,1392.0,0,1392.0);
     IUFillNumber(&ImageFrameN[3],"HEIGHT","Height","%4.0f",0,1040,0,1040);
     IUFillNumberVector(ImageFrameNV,ImageFrameN,4,deviceName(),"CCD_FRAME","Frame","Image Settings",IP_RW,60,IPS_IDLE);
-
-    FrameTypeSV = new ISwitchVectorProperty;
 
     IUFillSwitch(&FrameTypeS[0],"FRAME_LIGHT","Light",ISS_ON);
     IUFillSwitch(&FrameTypeS[1],"FRAME_BIAS","Bias",ISS_OFF);
@@ -73,19 +85,16 @@ bool INDI::CCD::initProperties()
     IUFillSwitch(&FrameTypeS[3],"FRAME_FLAT","Flat",ISS_OFF);
     IUFillSwitchVector(FrameTypeSV,FrameTypeS,4,deviceName(),"CCD_FRAME_TYPE","FrameType","Image Settings",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
-    ImageExposureNV = new INumberVectorProperty;
-
     IUFillNumber(&ImageExposureN[0],"CCD_EXPOSURE_VALUE","Duration (s)","%5.2f",0,36000,0,1.0);
     IUFillNumberVector(ImageExposureNV,ImageExposureN,1,deviceName(),"CCD_EXPOSURE_REQUEST","Expose","Main Control",IP_RW,60,IPS_IDLE);
     //IUFillNumber(&CcdExposureReqN[0],"CCD_EXPOSURE_VALUE","Duration","%5.2f",0,36000,0,1.0);
     //IUFillNumberVector(&CcdExposureReqNV,CcdExposureReqN,1,deviceName(),"CCD_EXPOSURE_REQUEST","Expose","Main Control",IP_WO,60,IPS_IDLE);
 
-    ImageBinNV = new INumberVectorProperty;
     IUFillNumber(&ImageBinN[0],"HOR_BIN","X","%2.0f",1,4,1,1);
     IUFillNumber(&ImageBinN[1],"VER_BIN","Y","%2.0f",1,4,1,1);
     IUFillNumberVector(ImageBinNV,ImageBinN,2,deviceName(),"CCD_BINNING","Binning","Image Settings",IP_RW,60,IPS_IDLE);
 
-    ImagePixelSizeNV = new INumberVectorProperty;
+
     IUFillNumber(&ImagePixelSizeN[0],"CCD_MAX_X","Resolution x","%4.0f",1,40,0,6.45);
     IUFillNumber(&ImagePixelSizeN[1],"CCD_MAX_Y","Resolution y","%4.0f",1,40,0,6.45);
     IUFillNumber(&ImagePixelSizeN[2],"CCD_PIXEL_SIZE","Pixel size (um)","%5.2f",1,40,0,6.45);
@@ -94,15 +103,13 @@ bool INDI::CCD::initProperties()
     IUFillNumber(&ImagePixelSizeN[5],"CCD_BITSPERPIXEL","Bits per pixel","%3.0f",1,40,0,6.45);
     IUFillNumberVector(ImagePixelSizeNV,ImagePixelSizeN,6,deviceName(),"CCD_INFO","Ccd Information","Image Info",IP_RO,60,IPS_IDLE);
 
-    GuiderFrameNV = new INumberVectorProperty;
-
     IUFillNumber(&GuiderFrameN[0],"X","Left ","%4.0f",0,1392.0,0,0);
     IUFillNumber(&GuiderFrameN[1],"Y","Top","%4.0f",0,1040,0,0);
     IUFillNumber(&GuiderFrameN[2],"WIDTH","Width","%4.0f",0,1392.0,0,1392.0);
     IUFillNumber(&GuiderFrameN[3],"HEIGHT","Height","%4.0f",0,1040,0,1040);
     IUFillNumberVector(GuiderFrameNV,GuiderFrameN,4,deviceName(),"GUIDER_FRAME","Frame","Guidehead Settings",IP_RW,60,IPS_IDLE);
 
-    GuiderPixelSizeNV = new INumberVectorProperty;
+
     IUFillNumber(&GuiderPixelSizeN[0],"GUIDER_MAX_X","Resolution x","%4.0f",1,40,0,6.45);
     IUFillNumber(&GuiderPixelSizeN[1],"GUIDER_MAX_Y","Resolution y","%4.0f",1,40,0,6.45);
     IUFillNumber(&GuiderPixelSizeN[2],"GUIDER_PIXEL_SIZE","Pixel size (um)","%5.2f",1,40,0,6.45);
@@ -111,46 +118,30 @@ bool INDI::CCD::initProperties()
     IUFillNumber(&GuiderPixelSizeN[5],"GUIDER_BITSPERPIXEL","Bits per pixel","%3.0f",1,40,0,6.45);
     IUFillNumberVector(GuiderPixelSizeNV,GuiderPixelSizeN,6,deviceName(),"GUIDER_INFO","Guidehead Information","Guidehead Info",IP_RO,60,IPS_IDLE);
 
-    GuiderExposureNV = new INumberVectorProperty;
-
     IUFillNumber(&GuiderExposureN[0],"GUIDER_EXPOSURE_VALUE","Duration (s)","%5.2f",0,36000,0,1.0);
     IUFillNumberVector(GuiderExposureNV,GuiderExposureN,1,deviceName(),"GUIDER_EXPOSURE","Guider","Main Control",IP_RW,60,IPS_IDLE);
-
-    GuiderVideoSV = new ISwitchVectorProperty;
 
     IUFillSwitch(&GuiderVideoS[0],"ON","on",ISS_OFF);
     IUFillSwitch(&GuiderVideoS[1],"OFF","off",ISS_OFF);
     IUFillSwitchVector(GuiderVideoSV,GuiderVideoS,2,deviceName(),"VIDEO_STREAM","Guider Stream","Guidehead Settings",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
-    CompressSV = new ISwitchVectorProperty;
-
     IUFillSwitch(&CompressS[0],"COMPRESS","Compress",ISS_OFF);
     IUFillSwitch(&CompressS[1],"RAW","Raw",ISS_ON);
     IUFillSwitchVector(CompressSV,CompressS,2,deviceName(),"COMPRESSION","Image","Data Channel",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
-
-    GuiderCompressSV = new ISwitchVectorProperty;
 
     IUFillSwitch(&GuiderCompressS[0],"GCOMPRESS","Compress",ISS_OFF);
     IUFillSwitch(&GuiderCompressS[1],"GRAW","Raw",ISS_ON);
     IUFillSwitchVector(GuiderCompressSV,GuiderCompressS,2,deviceName(),"GCOMPRESSION","Guider","Data Channel",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
-    FitsBV = new IBLOBVectorProperty;
-
     IUFillBLOB(&FitsB,"CCD1","Image","");
     IUFillBLOBVector(FitsBV,&FitsB,1,deviceName(),"CCD1","Image Data","Data Channel",IP_RO,60,IPS_IDLE);
-
-    GuiderBV = new IBLOBVectorProperty;
 
     IUFillBLOB(&GuiderB,"CCD2","Guider","");
     IUFillBLOBVector(GuiderBV,&GuiderB,1,deviceName(),"CCD2","Guider Data","Data Channel",IP_RO,60,IPS_IDLE);
 
-    GuideNSV = new INumberVectorProperty;
-
     IUFillNumber(&GuideNS[0],"TIMED_GUIDE_N","North (sec)","%g",0,10,0.001,0);
     IUFillNumber(&GuideNS[1],"TIMED_GUIDE_S","South (sec)","%g",0,10,0.001,0);
     IUFillNumberVector(GuideNSV,GuideNS,2,deviceName(),"TELESCOPE_TIMED_GUIDE_NS","Guide North/South","GuiderControl",IP_RW,60,IPS_IDLE);
-
-    GuideEWV = new INumberVectorProperty;
 
     IUFillNumber(&GuideEW[0],"TIMED_GUIDE_E","East (sec)","%g",0,10,0.001,0);
     IUFillNumber(&GuideEW[1],"TIMED_GUIDE_W","West (sec)","%g",0,10,0.001,0);
