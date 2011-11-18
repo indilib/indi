@@ -34,10 +34,6 @@
 #include <termios.h>
 
 #define POLLMS 1000
-#define MOTION_NORTH    0
-#define MOTION_SOUTH    1
-#define MOTION_WEST     0
-#define MOTION_EAST     1
 
 INDI::Telescope::Telescope()
 {
@@ -202,7 +198,7 @@ bool INDI::Telescope::Sync(double ra,double dec)
     return false;
 }
 
-bool INDI::Telescope::MoveNS(int dir)
+bool INDI::Telescope::MoveNS(TelescopeMotionNS dir)
 {
     IDMessage(deviceName(),"Mount does not support North/South motion");
     IUResetSwitch(MovementNSSP);
@@ -211,7 +207,7 @@ bool INDI::Telescope::MoveNS(int dir)
     return false;
 }
 
-bool INDI::Telescope::MoveWE(int dir)
+bool INDI::Telescope::MoveWE(TelescopeMotionWE dir)
 {
     IDMessage(deviceName(),"Mount does not support West/East motion");
     IUResetSwitch(MovementWESP);
@@ -374,6 +370,8 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
         {
             IUUpdateSwitch(MovementNSSP,states,names,n);
 
+            MovementNSSP->s = IPS_BUSY;
+
             if (MovementNSS[MOTION_NORTH].s == ISS_ON)
                 MoveNS(MOTION_NORTH);
             else
@@ -383,6 +381,8 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
         if(strcmp(name,"TELESCOPE_MOTION_WE")==0)
         {
             IUUpdateSwitch(MovementWESP,states,names,n);
+
+            MovementWESP->s = IPS_BUSY;
 
             if (MovementWES[MOTION_WEST].s == ISS_ON)
                 MoveWE(MOTION_WEST);

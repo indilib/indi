@@ -218,6 +218,34 @@ bool ScopeSim::ReadScopeStatus()
         da_dec = FINE_SLEW_RATE *dt;
 
 
+    switch (MovementNSSP->s)
+    {
+       case IPS_BUSY:
+        if (MovementNSS[MOTION_NORTH].s == ISS_ON)
+            currentDEC += da_dec;
+        else if (MovementNSS[MOTION_SOUTH].s == ISS_ON)
+            currentDEC -= da_dec;
+
+        NewRaDec(currentRA, currentDEC);
+        return true;
+        break;
+    }
+
+    switch (MovementWESP->s)
+    {
+        case IPS_BUSY:
+
+        if (MovementWES[MOTION_WEST].s == ISS_ON)
+            currentRA += da_ra/15.;
+        else if (MovementWES[MOTION_EAST].s == ISS_ON)
+            currentRA -= da_ra/15.;
+
+        NewRaDec(currentRA, currentDEC);
+        return true;
+        break;
+
+    }
+
     /* Process per current state. We check the state of EQUATORIAL_EOD_COORDS_REQUEST and act acoordingly */
     switch (TrackState)
     {
@@ -447,3 +475,70 @@ bool ScopeSim::ISNewNumber (const char *dev, const char *name, double values[], 
     //  give it a shot
     return INDI::Telescope::ISNewNumber(dev,name,values,names,n);
 }
+
+
+bool ScopeSim::MoveNS(TelescopeMotionNS dir)
+{
+    static int last_motion=-1;
+
+    switch (dir)
+    {
+      case MOTION_NORTH:
+        if (last_motion != MOTION_NORTH)
+            last_motion = MOTION_NORTH;
+        else
+        {
+            IUResetSwitch(MovementNSSP);
+            MovementNSSP->s = IPS_IDLE;
+            IDSetSwitch(MovementNSSP, NULL);
+        }
+        break;
+
+    case MOTION_SOUTH:
+      if (last_motion != MOTION_SOUTH)
+          last_motion = MOTION_SOUTH;
+      else
+      {
+          IUResetSwitch(MovementNSSP);
+          MovementNSSP->s = IPS_IDLE;
+          IDSetSwitch(MovementNSSP, NULL);
+      }
+      break;
+    }
+
+    return true;
+}
+
+bool ScopeSim::MoveWE(TelescopeMotionWE dir)
+{
+    static int last_motion=-1;
+
+    switch (dir)
+    {
+      case MOTION_WEST:
+        if (last_motion != MOTION_WEST)
+            last_motion = MOTION_WEST;
+        else
+        {
+            IUResetSwitch(MovementWESP);
+            MovementWESP->s = IPS_IDLE;
+            IDSetSwitch(MovementWESP, NULL);
+        }
+        break;
+
+    case MOTION_EAST:
+      if (last_motion != MOTION_EAST)
+          last_motion = MOTION_EAST;
+      else
+      {
+          IUResetSwitch(MovementWESP);
+          MovementWESP->s = IPS_IDLE;
+          IDSetSwitch(MovementWESP, NULL);
+      }
+      break;
+    }
+
+    return true;
+
+}
+

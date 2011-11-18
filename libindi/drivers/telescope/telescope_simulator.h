@@ -39,6 +39,9 @@ class ScopeSim : public INDI::Telescope
         virtual bool updateProperties();
         virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
 
+        virtual bool MoveNS(TelescopeMotionNS dir);
+        virtual bool MoveWE(TelescopeMotionWE dir);
+
         bool Goto(double,double);
         bool Park();
 

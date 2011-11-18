@@ -36,6 +36,8 @@ class INDI::Telescope : public INDI::DefaultDriver
         virtual ~Telescope();
 
         enum TelescopeStatus { SCOPE_IDLE, SCOPE_SLEWING, SCOPE_TRACKING, SCOPE_PARKING, SCOPE_PARKED };
+        enum TelescopeMotionNS { MOTION_NORTH, MOTION_SOUTH };
+        enum TelescopeMotionWE { MOTION_WEST, MOTION_EAST };
 
         //  All telescopes should produce equatorial co-ordinates
         INumberVectorProperty *EqNV;
@@ -124,8 +126,8 @@ class INDI::Telescope : public INDI::DefaultDriver
 
         virtual bool Goto(double ra,double dec);
         virtual bool Sync(double ra,double dec);
-        virtual bool MoveNS(int dir);
-        virtual bool MoveWE(int dir);
+        virtual bool MoveNS(TelescopeMotionNS dir);
+        virtual bool MoveWE(TelescopeMotionWE dir);
         virtual bool Park();
 
 };
