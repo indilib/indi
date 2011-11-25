@@ -267,12 +267,11 @@ void INDI::DefaultDriver::addDebugControl()
     DebugSP = getSwitch("DEBUG");
     if (!DebugSP)
     {
-        switchPtr debSw(new ISwitchVectorProperty);
-        DebugSP = debSw.get();
+        DebugSP = new ISwitchVectorProperty;
         IUFillSwitch(&DebugS[0], "ENABLE", "Enable", ISS_OFF);
         IUFillSwitch(&DebugS[1], "DISABLE", "Disable", ISS_ON);
-        IUFillSwitchVector(DebugSP, DebugS, NARRAY(DebugS), deviceID, "DEBUG", "Debug", "Options", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-        pAll[debSw] = INDI_SWITCH;
+        IUFillSwitchVector(DebugSP, DebugS, NARRAY(DebugS), deviceName(), "DEBUG", "Debug", "Options", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+        registerProperty(DebugSP, INDI_SWITCH);
     }
     else
     {
@@ -291,12 +290,11 @@ void INDI::DefaultDriver::addSimulationControl()
     SimulationSP = getSwitch("SIMULATION");
     if (!SimulationSP)
     {
-        switchPtr simSw(new ISwitchVectorProperty);
-        SimulationSP = simSw.get();
+        SimulationSP = new ISwitchVectorProperty;
         IUFillSwitch(&SimulationS[0], "ENABLE", "Enable", ISS_OFF);
         IUFillSwitch(&SimulationS[1], "DISABLE", "Disable", ISS_ON);
-        IUFillSwitchVector(SimulationSP, SimulationS, NARRAY(SimulationS), deviceID, "SIMULATION", "Simulation", "Options", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-        pAll[simSw] = INDI_SWITCH;
+        IUFillSwitchVector(SimulationSP, SimulationS, NARRAY(SimulationS), deviceName(), "SIMULATION", "Simulation", "Options", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+        registerProperty(SimulationSP, INDI_SWITCH);
     }
     else
     {
@@ -313,13 +311,12 @@ void INDI::DefaultDriver::addConfigurationControl()
     ConfigProcessSP = getSwitch("CONFIG_PROCESS");
     if (!ConfigProcessSP)
     {
-        switchPtr configSw(new ISwitchVectorProperty);
-        ConfigProcessSP = configSw.get();
+        ConfigProcessSP = new ISwitchVectorProperty;
         IUFillSwitch(&ConfigProcessS[0], "CONFIG_LOAD", "Load", ISS_OFF);
         IUFillSwitch(&ConfigProcessS[1], "CONFIG_SAVE", "Save", ISS_OFF);
         IUFillSwitch(&ConfigProcessS[2], "CONFIG_DEFAULT", "Default", ISS_OFF);
-        IUFillSwitchVector(ConfigProcessSP, ConfigProcessS, NARRAY(ConfigProcessS), deviceID, "CONFIG_PROCESS", "Configuration", "Options", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-        pAll[configSw] = INDI_SWITCH;
+        IUFillSwitchVector(ConfigProcessSP, ConfigProcessS, NARRAY(ConfigProcessS), deviceName(), "CONFIG_PROCESS", "Configuration", "Options", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+        registerProperty(ConfigProcessSP, INDI_SWITCH);
     }
     /**************************************************************************/
 

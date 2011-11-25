@@ -190,9 +190,9 @@ bool CCDSim::initProperties()
     //  but the simulators are a special case
     INDI::CCD::initProperties();
 
-    IUFillNumber(&EqN[0],"RA","Ra (hh:mm:ss)","%010.6m",0,24,0,0);
-    IUFillNumber(&EqN[1],"DEC","Dec (dd:mm:ss)","%010.6m",-90,90,0,0);
-    IUFillNumberVector(&EqNV,EqN,2,"","EQUATORIAL_EOD_COORD","Eq. Coordinates","Main Control",IP_RW,60,IPS_IDLE);
+    IUFillNumber(&EqN[0],"RA_PEC","Ra (hh:mm:ss)","%010.6m",0,24,0,0);
+    IUFillNumber(&EqN[1],"DEC_PEC","Dec (dd:mm:ss)","%010.6m",-90,90,0,0);
+    IUFillNumberVector(&EqNV,EqN,2,"","EQUATORIAL_PEC","EQ PEC","Main Control",IP_RW,60,IPS_IDLE);
     //IUFillNumberVector(&EqNV,EqN,2,deviceName(),"EQUATORIAL_EOD_COORD","Eq. Coordinates","Main Control",IP_RW,60,IPS_IDLE);
 
     SimulatorSettingsNV = new INumberVectorProperty;
@@ -856,7 +856,8 @@ void CCDSim::ISSnoopDevice (XMLEle *root)
         float newra,newdec;
         newra=EqN[0].value;
         newdec=EqN[1].value;
-        if((newra != RA)||(newdec != Dec)) {
+        if((newra != RA)||(newdec != Dec))
+        {
             //fprintf(stderr,"RA %4.2f  Dec %4.2f Snooped RA %4.2f  Dec %4.2f\n",RA,Dec,newra,newdec);
             RA=newra;
             Dec=newdec;
@@ -928,8 +929,8 @@ bool CCDSim::ISNewText (const char *dev, const char *name, char *texts[], char *
             //  Update client display
             IDSetText(TelescopeTV,NULL);
             saveConfig();
-            IUFillNumberVector(&EqNV,EqN,2,TelescopeT[0].text,"EQUATORIAL_EOD_COORD","Eq. Coordinates","Main Control",IP_RW,60,IPS_IDLE);
-            IDSnoopDevice(TelescopeT[0].text,"EQUATORIAL_EOD_COORD");
+            IUFillNumberVector(&EqNV,EqN,2,TelescopeT[0].text,"EQUATORIAL_PEC","EQ PEC","Main Control",IP_RW,60,IPS_IDLE);
+            IDSnoopDevice(TelescopeT[0].text,"EQUATORIAL_PEC");
             //  We processed this one, so, tell the world we did it
             return true;
         }

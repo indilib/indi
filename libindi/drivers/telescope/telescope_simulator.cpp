@@ -99,6 +99,9 @@ ScopeSim::ScopeSim()
     GuideWENP = new INumberVectorProperty;
     EqPECNV = new INumberVectorProperty;
 
+    PECErrNSSP = new ISwitchVectorProperty;
+    PECErrWESP = new ISwitchVectorProperty;
+
     /* initialize random seed: */
       srand ( time(NULL) );
 }
@@ -126,9 +129,19 @@ bool ScopeSim::initProperties()
     IUFillNumber(&GuideWEN[GUIDE_EAST], "TIMED_GUIDE_E", "East (sec)", "%g", 0, 10, 0.001, 0);
     IUFillNumberVector(GuideWENP, GuideWEN, 2, deviceName(), "TELESCOPE_TIMED_GUIDE_WE", "Guide West/East", MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
-    IUFillNumber(&EqPECN[RA_AXIS],"RA_PEC","RA (hh:mm:ss)","%010.6m",0,24,0,0);
-    IUFillNumber(&EqPECN[DEC_AXIS],"DEC_PEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,0);
+    IUFillNumber(&EqPECN[RA_AXIS],"RA_PEC","RA (hh:mm:ss)","%010.6m",0,24,0,15.);
+    IUFillNumber(&EqPECN[DEC_AXIS],"DEC_PEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,15.);
     IUFillNumberVector(EqPECNV,EqPECN,2,deviceName(),"EQUATORIAL_PEC","Periodic Error",MOTION_TAB,IP_RO,60,IPS_IDLE);
+
+    IUFillSwitch(&PECErrNSS[MOTION_NORTH], "PEC_N", "North", ISS_OFF);
+    IUFillSwitch(&PECErrNSS[MOTION_SOUTH], "PEC_S", "South", ISS_OFF);
+    IUFillSwitchVector(PECErrNSSP, PECErrNSS, 2, deviceName(),"PEC_NS", "PE N/S", MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+    IUFillSwitch(&PECErrWES[MOTION_WEST], "PEC_W", "West", ISS_OFF);
+    IUFillSwitch(&PECErrWES[MOTION_EAST], "PEC_E", "East", ISS_OFF);
+    IUFillSwitchVector(PECErrWESP, PECErrWES, 2, deviceName(),"PEC_WE", "PE W/E", MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+    addDebugControl();
 
 
     return true;
@@ -145,6 +158,8 @@ void ScopeSim::ISGetProperties (const char *dev)
         defineNumber(GuideNSNP);
         defineNumber(GuideWENP);
         defineNumber(EqPECNV);
+        defineSwitch(PECErrNSSP);
+        defineSwitch(PECErrWESP);
     }
 
     return;
@@ -160,6 +175,8 @@ bool ScopeSim::updateProperties()
         defineNumber(GuideNSNP);
         defineNumber(GuideWENP);
         defineNumber(EqPECNV);
+        defineSwitch(PECErrNSSP);
+        defineSwitch(PECErrWESP);
 
     }
     else
@@ -167,12 +184,9 @@ bool ScopeSim::updateProperties()
         deleteProperty(GuideNSNP->name);
         deleteProperty(GuideWENP->name);
         deleteProperty(EqPECNV->name);
-
-       // initProperties();
+        deleteProperty(PECErrNSSP->name);
+        deleteProperty(PECErrNSSP->name);
     }
-
-
-
 }
 
 bool ScopeSim::Connect(char *)
@@ -189,8 +203,10 @@ bool ScopeSim::ReadScopeStatus()
 {
     static struct timeval ltv;
     struct timeval tv;
-    double dt, da_ra, da_dec, dx;
+    double dt=0, da_ra=0, da_dec=0, dx=0, dy=0, ra_guide_dt=0, dec_guide_dt=0;
+    double last_dx=0, last_dy=0;
     int nlocked, ns_guide_dir=-1, we_guide_dir=-1;
+    char RA_DISP[64], DEC_DISP[64], RA_GUIDE[64], DEC_GUIDE[64], RA_PEC[64], DEC_PEC[64], RA_TARGET[64], DEC_TARGET[64];
 
 
     /* update elapsed time since last poll, don't presume exactly POLLMS */
@@ -270,13 +286,13 @@ bool ScopeSim::ReadScopeStatus()
             currentRA -= da_ra/15.;
 
 
-        dx = targetDEC - currentDEC;
-        if (fabs(dx) <= da_dec)
+        dy = targetDEC - currentDEC;
+        if (fabs(dy) <= da_dec)
         {
             currentDEC = targetDEC;
             nlocked++;
         }
-        else if (dx > 0)
+        else if (dy > 0)
           currentDEC += da_dec;
         else
           currentDEC -= da_dec;
@@ -288,9 +304,9 @@ bool ScopeSim::ReadScopeStatus()
             if (TrackState == SCOPE_SLEWING)
             {
 
-                // Create random PEC in RA/DEC
-                EqPECN[0].value = currentRA + ( (rand()%2 == 0 ? 1 : -1) * rand() % 10)/100.;
-                EqPECN[1].value = currentDEC + ( (rand()%2 == 0 ? 1 : -1) * rand() % 10)/100.;
+                // Initially no PEC in both axis.
+                EqPECN[0].value = currentRA;
+                EqPECN[1].value = currentDEC;
 
                 IDSetNumber(EqPECNV, NULL);
 
@@ -312,32 +328,45 @@ bool ScopeSim::ReadScopeStatus()
     case SCOPE_TRACKING:
         /* tracking */
 
-        // N/S Guide Selection
         if (GuideNSN[GUIDE_NORTH].value > 0)
+        {
+            if (isDebug())
+                IDLog("  ****** Commanded to GUIDE NORTH for %g ,s *****\n", GuideNSN[GUIDE_NORTH].value*1000);
             ns_guide_dir = GUIDE_NORTH;
+        }
         else if (GuideNSN[GUIDE_SOUTH].value > 0)
+        {
+            if (isDebug())
+                IDLog("  ****** Commanded to GUIDE SOUTH for %g *****\n", GuideNSN[GUIDE_SOUTH].value*1000);
             ns_guide_dir = GUIDE_SOUTH;
+        }
 
         // WE Guide Selection
         if (GuideWEN[GUIDE_WEST].value > 0)
+        {
             we_guide_dir = GUIDE_WEST;
+            if (isDebug())
+            IDLog("  ****** Commanded to GUIDE WEST for %g ****** \n", GuideWEN[GUIDE_WEST].value*1000);
+        }
         else if (GuideWEN[GUIDE_EAST].value > 0)
+        {
             we_guide_dir = GUIDE_EAST;
+            if (isDebug())
+               IDLog(" ****** Commanded to GUIDE EAST for %g   ****** \n", GuideWEN[GUIDE_EAST].value*1000);
+        }
 
         if (ns_guide_dir != -1)
         {
+
+            dec_guide_dt =  SID_RATE * GuideNSN[ns_guide_dir].value * (ns_guide_dir==GUIDE_NORTH ? 1 : -1);
+
             // If time remaining is more that dt, then decrement and
           if (GuideNSN[ns_guide_dir].value >= dt)
-          {
-              EqPECN[DEC_AXIS].value += da_dec * (ns_guide_dir==GUIDE_NORTH ? 1 : -1);
-                GuideNSN[ns_guide_dir].value -= dt;
-          }
-          else
-          {
-                EqPECN[DEC_AXIS].value += FINE_SLEW_RATE * GuideNSN[ns_guide_dir].value * (ns_guide_dir==GUIDE_NORTH ? 1 : -1);
-                GuideNSN[ns_guide_dir].value = 0;
-          }
+              GuideNSN[ns_guide_dir].value -= dt;
+          else              
+              GuideNSN[ns_guide_dir].value = 0;
 
+          EqPECN[DEC_AXIS].value += dec_guide_dt;
 
             if (GuideNSN[ns_guide_dir].value <= 0)
             {
@@ -349,20 +378,17 @@ bool ScopeSim::ReadScopeStatus()
                 IDSetNumber(GuideNSNP, NULL);
           }
 
-
         if (we_guide_dir != -1)
         {
-          if (GuideWEN[we_guide_dir].value >= dt)
-          {
-                EqPECN[RA_AXIS].value += da_ra * (we_guide_dir==GUIDE_WEST ? 1 : -1);
-                GuideWEN[we_guide_dir].value -= dt;
-          }
-          else
-          {
-                EqPECN[RA_AXIS].value += FINE_SLEW_RATE * GuideWEN[we_guide_dir].value* (we_guide_dir==GUIDE_WEST ? 1 : -1);
-                GuideWEN[we_guide_dir].value = 0;
-          }
 
+            ra_guide_dt = SID_RATE * GuideWEN[we_guide_dir].value* (we_guide_dir==GUIDE_WEST ? -1 : 1);
+
+          if (GuideWEN[we_guide_dir].value >= dt)
+                GuideWEN[we_guide_dir].value -= dt;
+          else
+                GuideWEN[we_guide_dir].value = 0;
+
+          EqPECN[RA_AXIS].value += ra_guide_dt;
 
             if (GuideWEN[we_guide_dir].value <= 0)
             {
@@ -373,6 +399,41 @@ bool ScopeSim::ReadScopeStatus()
             else
                 IDSetNumber(GuideWENP, NULL);
           }
+
+
+        //Mention the followng:
+        // Current RA displacemet and direction
+        // Current DEC displacement and direction
+        // Amount of RA GUIDING correction and direction
+        // Amount of DEC GUIDING correction and direction
+
+        dx = EqPECN[RA_AXIS].value - targetRA;
+        dy = EqPECN[DEC_AXIS].value - targetDEC;
+        fs_sexa(RA_DISP, fabs(dx), 2, 3600 );
+        fs_sexa(DEC_DISP, fabs(dy), 2, 3600 );
+
+        fs_sexa(RA_GUIDE, fabs(ra_guide_dt), 2, 3600 );
+        fs_sexa(DEC_GUIDE, fabs(dec_guide_dt), 2, 3600 );
+
+        fs_sexa(RA_PEC, EqPECN[RA_AXIS].value, 2, 3600);
+        fs_sexa(DEC_PEC, EqPECN[DEC_AXIS].value, 2, 3600);
+
+        fs_sexa(RA_TARGET, targetRA, 2, 3600);
+        fs_sexa(DEC_TARGET, targetDEC, 2, 3600);
+
+
+        if (isDebug() && (dx!=last_dx || dy!=last_dy || ra_guide_dt || dec_guide_dt))
+        {
+            dx=last_dx;
+            dy=last_dy;
+            IDLog("#########################################\n");
+            IDLog("dt is %g\n", dt);
+            IDLog("RA Displacement (%c%s) %s -- %s of target RA %s\n", dx >= 0 ? '+' : '-', RA_DISP, RA_PEC,  (EqPECN[RA_AXIS].value - targetRA) > 0 ? "East" : "West", RA_TARGET);
+            IDLog("DEC Displacement (%c%s) %s -- %s of target RA %s\n", dy >= 0 ? '+' : '-', DEC_DISP, DEC_PEC, (EqPECN[DEC_AXIS].value - targetDEC) > 0 ? "North" : "South", DEC_TARGET);
+            IDLog("RA Guide Correction (%g) %s -- Direction %s\n", ra_guide_dt, RA_GUIDE, ra_guide_dt > 0 ? "East" : "West");
+            IDLog("DEC Guide Correction (%g) %s -- Direction %s\n", dec_guide_dt, DEC_GUIDE, dec_guide_dt > 0 ? "North" : "South");
+            IDLog("#########################################\n");
+        }
 
         if (ns_guide_dir != -1 || we_guide_dir != -1)
             IDSetNumber(EqPECNV, NULL);
@@ -399,6 +460,10 @@ bool ScopeSim::Goto(double r,double d)
 
     Parked=false;
     TrackState = SCOPE_SLEWING;
+
+    EqReqNV->s = IPS_BUSY;
+    EqNV->s    = IPS_BUSY;
+
     IDMessage(deviceName(), "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
 }
@@ -475,6 +540,76 @@ bool ScopeSim::ISNewNumber (const char *dev, const char *name, double values[], 
     //  give it a shot
     return INDI::Telescope::ISNewNumber(dev,name,values,names,n);
 }
+
+bool ScopeSim::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+{
+    //IDLog("Enter IsNewSwitch for %s\n",name);
+    //for(int x=0; x<n; x++) {
+    //    IDLog("Switch %s %d\n",names[x],states[x]);
+    //}
+
+    if(strcmp(dev,deviceName())==0)
+    {
+        if(strcmp(name,"PEC_NS")==0)
+        {
+            IUUpdateSwitch(PECErrNSSP,states,names,n);
+
+            PECErrNSSP->s = IPS_OK;
+
+            if (PECErrNSS[MOTION_NORTH].s == ISS_ON)
+            {
+                EqPECN[DEC_AXIS].value += SID_RATE;
+                if (isDebug())
+                    IDLog("$$$$$ Simulating PE in NORTH direction for value of %g $$$$$\n", SID_RATE);
+            }
+            else
+            {
+                EqPECN[DEC_AXIS].value -= SID_RATE;
+                if (isDebug())
+                    IDLog("$$$$$ Simulating PE in SOUTH direction for value of %g $$$$$\n", SID_RATE);
+            }
+
+            IUResetSwitch(PECErrNSSP);
+            IDSetSwitch(PECErrNSSP, NULL);
+            IDSetNumber(EqPECNV, NULL);
+
+            return true;
+
+        }
+
+        if(strcmp(name,"PEC_WE")==0)
+        {
+            IUUpdateSwitch(PECErrWESP,states,names,n);
+
+            PECErrWESP->s = IPS_OK;
+
+            if (PECErrWES[MOTION_WEST].s == ISS_ON)
+            {
+                EqPECN[RA_AXIS].value -= SID_RATE;
+                if (isDebug())
+                    IDLog("$$$$$ Simulator PE in WEST direction for value of %g $$$$$$\n", SID_RATE);
+            }
+            else
+            {
+                EqPECN[RA_AXIS].value += SID_RATE;
+                if (isDebug())
+                    IDLog("$$$$$$ Simulator PE in EAST direction for value of %g $$$$$$\n", SID_RATE);
+            }
+
+            IUResetSwitch(PECErrWESP);
+            IDSetSwitch(PECErrWESP, NULL);
+            IDSetNumber(EqPECNV, NULL);
+
+            return true;
+
+        }
+
+    }
+
+    //  Nobody has claimed this, so, ignore it
+    return INDI::Telescope::ISNewSwitch(dev,name,states,names,n);
+}
+
 
 
 bool ScopeSim::MoveNS(TelescopeMotionNS dir)

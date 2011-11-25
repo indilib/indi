@@ -376,6 +376,8 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
                 MoveNS(MOTION_NORTH);
             else
                 MoveNS(MOTION_SOUTH);
+
+            return true;
         }
 
         if(strcmp(name,"TELESCOPE_MOTION_WE")==0)
@@ -388,6 +390,8 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
                 MoveWE(MOTION_WEST);
             else
                 MoveWE(MOTION_EAST);
+
+            return true;
         }
 
     }

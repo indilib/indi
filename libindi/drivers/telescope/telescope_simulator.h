@@ -25,6 +25,13 @@ class ScopeSim : public INDI::Telescope
         INumberVectorProperty *EqPECNV;
         INumber EqPECN[2];
 
+        ISwitch PECErrNSS[2];
+        ISwitchVectorProperty *PECErrNSSP;
+
+        ISwitch PECErrWES[2];
+        ISwitchVectorProperty *PECErrWESP;
+
+
     public:
         ScopeSim();
         virtual ~ScopeSim();
@@ -38,6 +45,7 @@ class ScopeSim : public INDI::Telescope
         virtual void ISGetProperties (const char *dev);
         virtual bool updateProperties();
         virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+        virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
 
         virtual bool MoveNS(TelescopeMotionNS dir);
         virtual bool MoveWE(TelescopeMotionWE dir);
