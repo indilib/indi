@@ -204,7 +204,7 @@ bool ScopeSim::ReadScopeStatus()
     static struct timeval ltv;
     struct timeval tv;
     double dt=0, da_ra=0, da_dec=0, dx=0, dy=0, ra_guide_dt=0, dec_guide_dt=0;
-    double last_dx=0, last_dy=0;
+    static double last_dx=0, last_dy=0;
     int nlocked, ns_guide_dir=-1, we_guide_dir=-1;
     char RA_DISP[64], DEC_DISP[64], RA_GUIDE[64], DEC_GUIDE[64], RA_PEC[64], DEC_PEC[64], RA_TARGET[64], DEC_TARGET[64];
 
@@ -331,13 +331,13 @@ bool ScopeSim::ReadScopeStatus()
         if (GuideNSN[GUIDE_NORTH].value > 0)
         {
             if (isDebug())
-                IDLog("  ****** Commanded to GUIDE NORTH for %g ,s *****\n", GuideNSN[GUIDE_NORTH].value*1000);
+                IDLog("  ****** Commanded to GUIDE NORTH for %g ms *****\n", GuideNSN[GUIDE_NORTH].value*1000);
             ns_guide_dir = GUIDE_NORTH;
         }
         else if (GuideNSN[GUIDE_SOUTH].value > 0)
         {
             if (isDebug())
-                IDLog("  ****** Commanded to GUIDE SOUTH for %g *****\n", GuideNSN[GUIDE_SOUTH].value*1000);
+                IDLog("  ****** Commanded to GUIDE SOUTH for %g ms *****\n", GuideNSN[GUIDE_SOUTH].value*1000);
             ns_guide_dir = GUIDE_SOUTH;
         }
 
@@ -346,13 +346,13 @@ bool ScopeSim::ReadScopeStatus()
         {
             we_guide_dir = GUIDE_WEST;
             if (isDebug())
-            IDLog("  ****** Commanded to GUIDE WEST for %g ****** \n", GuideWEN[GUIDE_WEST].value*1000);
+            IDLog("  ****** Commanded to GUIDE WEST for %g ms ****** \n", GuideWEN[GUIDE_WEST].value*1000);
         }
         else if (GuideWEN[GUIDE_EAST].value > 0)
         {
             we_guide_dir = GUIDE_EAST;
             if (isDebug())
-               IDLog(" ****** Commanded to GUIDE EAST for %g   ****** \n", GuideWEN[GUIDE_EAST].value*1000);
+               IDLog(" ****** Commanded to GUIDE EAST for %g ms  ****** \n", GuideWEN[GUIDE_EAST].value*1000);
         }
 
         if (ns_guide_dir != -1)
@@ -424,8 +424,8 @@ bool ScopeSim::ReadScopeStatus()
 
         if (isDebug() && (dx!=last_dx || dy!=last_dy || ra_guide_dt || dec_guide_dt))
         {
-            dx=last_dx;
-            dy=last_dy;
+            last_dx=dx;
+            last_dy=dy;
             IDLog("#########################################\n");
             IDLog("dt is %g\n", dt);
             IDLog("RA Displacement (%c%s) %s -- %s of target RA %s\n", dx >= 0 ? '+' : '-', RA_DISP, RA_PEC,  (EqPECN[RA_AXIS].value - targetRA) > 0 ? "East" : "West", RA_TARGET);
