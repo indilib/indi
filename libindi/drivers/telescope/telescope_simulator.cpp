@@ -98,6 +98,7 @@ ScopeSim::ScopeSim()
     GuideNSNP = new INumberVectorProperty;
     GuideWENP = new INumberVectorProperty;
     EqPECNV = new INumberVectorProperty;
+    GuideRateNP = new INumberVectorProperty;
 
     PECErrNSSP = new ISwitchVectorProperty;
     PECErrWESP = new ISwitchVectorProperty;
@@ -141,6 +142,10 @@ bool ScopeSim::initProperties()
     IUFillSwitch(&PECErrWES[MOTION_EAST], "PEC_E", "East", ISS_OFF);
     IUFillSwitchVector(PECErrWESP, PECErrWES, 2, deviceName(),"PEC_WE", "PE W/E", MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
+    IUFillNumber(&GuideRateN[RA_AXIS], "GUIDE_RATE_WE", "W/E Rate", "%g", 0, 1, 0.1, 0.3);
+    IUFillNumber(&GuideRateN[DEC_AXIS], "GUIDE_RATE_NS", "N/S Rate", "%g", 0, 1, 0.1, 0.3);
+    IUFillNumberVector(GuideRateNP, GuideRateN, 2, deviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0, IPS_IDLE);
+
     addDebugControl();
 
 
@@ -157,6 +162,7 @@ void ScopeSim::ISGetProperties (const char *dev)
     {
         defineNumber(GuideNSNP);
         defineNumber(GuideWENP);
+        defineNumber(GuideRateNP);
         defineNumber(EqPECNV);
         defineSwitch(PECErrNSSP);
         defineSwitch(PECErrWESP);
@@ -174,6 +180,7 @@ bool ScopeSim::updateProperties()
     {
         defineNumber(GuideNSNP);
         defineNumber(GuideWENP);
+        defineNumber(GuideRateNP);
         defineNumber(EqPECNV);
         defineSwitch(PECErrNSSP);
         defineSwitch(PECErrWESP);
@@ -186,6 +193,7 @@ bool ScopeSim::updateProperties()
         deleteProperty(EqPECNV->name);
         deleteProperty(PECErrNSSP->name);
         deleteProperty(PECErrNSSP->name);
+        deleteProperty(GuideRateNP->name);
     }
 }
 
@@ -358,7 +366,7 @@ bool ScopeSim::ReadScopeStatus()
         if (ns_guide_dir != -1)
         {
 
-            dec_guide_dt =  SID_RATE * GuideNSN[ns_guide_dir].value * (ns_guide_dir==GUIDE_NORTH ? 1 : -1);
+            dec_guide_dt =  SID_RATE * GuideRateN[DEC_AXIS].value * GuideNSN[ns_guide_dir].value * (ns_guide_dir==GUIDE_NORTH ? 1 : -1);
 
             // If time remaining is more that dt, then decrement and
           if (GuideNSN[ns_guide_dir].value >= dt)
@@ -381,7 +389,7 @@ bool ScopeSim::ReadScopeStatus()
         if (we_guide_dir != -1)
         {
 
-            ra_guide_dt = SID_RATE * GuideWEN[we_guide_dir].value* (we_guide_dir==GUIDE_WEST ? -1 : 1);
+            ra_guide_dt = SID_RATE/15.0 * GuideRateN[RA_AXIS].value * GuideWEN[we_guide_dir].value* (we_guide_dir==GUIDE_WEST ? -1 : 1);
 
           if (GuideWEN[we_guide_dir].value >= dt)
                 GuideWEN[we_guide_dir].value -= dt;
@@ -534,6 +542,14 @@ bool ScopeSim::ISNewNumber (const char *dev, const char *name, double values[], 
            return true;
          }
 
+         if(strcmp(name,"GUIDE_RATE")==0)
+         {
+             IUUpdateNumber(GuideRateNP, values, names, n);
+             GuideRateNP->s = IPS_OK;
+             IDSetNumber(GuideRateNP, NULL);
+             return true;
+         }
+
     }
 
     //  if we didn't process it, continue up the chain, let somebody else
@@ -558,13 +574,13 @@ bool ScopeSim::ISNewSwitch (const char *dev, const char *name, ISState *states, 
 
             if (PECErrNSS[MOTION_NORTH].s == ISS_ON)
             {
-                EqPECN[DEC_AXIS].value += SID_RATE;
+                EqPECN[DEC_AXIS].value += SID_RATE * GuideRateN[DEC_AXIS].value;
                 if (isDebug())
                     IDLog("$$$$$ Simulating PE in NORTH direction for value of %g $$$$$\n", SID_RATE);
             }
             else
             {
-                EqPECN[DEC_AXIS].value -= SID_RATE;
+                EqPECN[DEC_AXIS].value -= SID_RATE * GuideRateN[DEC_AXIS].value;
                 if (isDebug())
                     IDLog("$$$$$ Simulating PE in SOUTH direction for value of %g $$$$$\n", SID_RATE);
             }
@@ -585,13 +601,13 @@ bool ScopeSim::ISNewSwitch (const char *dev, const char *name, ISState *states, 
 
             if (PECErrWES[MOTION_WEST].s == ISS_ON)
             {
-                EqPECN[RA_AXIS].value -= SID_RATE;
+                EqPECN[RA_AXIS].value -= SID_RATE/15. * GuideRateN[RA_AXIS].value;
                 if (isDebug())
                     IDLog("$$$$$ Simulator PE in WEST direction for value of %g $$$$$$\n", SID_RATE);
             }
             else
             {
-                EqPECN[RA_AXIS].value += SID_RATE;
+                EqPECN[RA_AXIS].value += SID_RATE/15. * GuideRateN[RA_AXIS].value;
                 if (isDebug())
                     IDLog("$$$$$$ Simulator PE in EAST direction for value of %g $$$$$$\n", SID_RATE);
             }
