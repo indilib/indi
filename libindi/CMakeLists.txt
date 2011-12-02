@@ -27,9 +27,9 @@ include (MacroLogFeature)
 include (MacroBoolTo01)
 include (CheckIncludeFiles)
 
-find_package(ZLIB REQUIRED)
+FIND_PACKAGE(ZLIB REQUIRED)
 
-FIND_PACKAGE(Boost)
+FIND_PACKAGE(Boost REQUIRED)
 IF (BOOST_FOUND)
     INCLUDE_DIRECTORIES(${BOOST_INCLUDE_DIR})
 ENDIF()
