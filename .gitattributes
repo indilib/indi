@@ -104,7 +104,8 @@
 3rdparty/indi-qsi/README -text
 3rdparty/indi-qsi/config.h.cmake -text
 3rdparty/indi-qsi/indi_qsi.xml -text
-3rdparty/indi-qsi/qsi_ccd.cc -text
+3rdparty/indi-qsi/qsi_ccd.cpp -text
+3rdparty/indi-qsi/qsi_ccd.h -text
 3rdparty/indi-sbig/.cproject -text
 3rdparty/indi-sbig/.project -text
 3rdparty/indi-sbig/AUTHORS -text

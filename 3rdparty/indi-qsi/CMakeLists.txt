@@ -9,9 +9,6 @@ include (MacroLogFeature)
 include (MacroBoolTo01)
 include (CheckIncludeFiles)
 
-#macro_optional_find_package(QSIAPI)
-#macro_log_feature(QSI_FOUND "libqsiapi" "Quantum Scientific Imaging Library" "http://www.qsimaging.com" FALSE "4.6.1" "Provides API for controlling QSI CCDS & Filter Wheels.")
-
 find_package(USB REQUIRED)
 find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
@@ -36,7 +33,7 @@ endif (NOVA_FOUND)
 
 ########### QSI ###########
 set(indiqsi_SRCS
-   ${CMAKE_SOURCE_DIR}/qsi_ccd.cc
+   ${CMAKE_SOURCE_DIR}/qsi_ccd.cpp
    )
 
 add_executable(indi_qsi_ccd ${indiqsi_SRCS})
