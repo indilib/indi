@@ -158,12 +158,6 @@ protected:
     /** \return True if Simulation is on, False otherwise. */
     bool isSimulation();
 
-    //  These are the properties we define, that are generic to pretty much all devices
-    //  They are public to make them available to all dervied classes and thier children
-    ISwitchVectorProperty *ConnectionSP;
-    ISwitch ConnectionS[2];
-
-
     /** \brief Initilize properties initial state and value. The child class must implement this function.
         \return True if initilization is successful, false otherwise.
     */
@@ -180,7 +174,7 @@ protected:
         routine in the function.
         \return True if connection to device is successful, false otherwise.
     */
-    virtual bool Connect()=0;
+    virtual bool Connect(char *msg)=0;
 
     /** \brief Disconnect from a device. Child classes must implement this function and perform the disconnection
         routine in the function.
@@ -205,6 +199,11 @@ private:
     ISwitchVectorProperty *DebugSP;
     ISwitchVectorProperty *SimulationSP;
     ISwitchVectorProperty *ConfigProcessSP;
+
+    //  These are the properties we define, that are generic to pretty much all devices
+    //  They are public to make them available to all dervied classes and thier children
+    ISwitchVectorProperty *ConnectionSP;
+    ISwitch ConnectionS[2];
 
 
 };

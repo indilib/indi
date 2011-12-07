@@ -200,7 +200,7 @@ void TCFS::init_properties()
 **
 **
 *****************************************************************/   
-bool TCFS::Connect()
+bool TCFS::Connect(char *msg)
 {
     ITextVectorProperty *tProp = getText("DEVICE_PORT");
 

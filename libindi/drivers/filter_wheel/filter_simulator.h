@@ -34,7 +34,7 @@ class FilterSim : public INDI::FilterWheel
 
         const char *getDefaultName();
 
-        bool Connect();
+        bool Connect(char *msg);
         bool Disconnect();
         int SelectFilter(int);
         void TimerHit();

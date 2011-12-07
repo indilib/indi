@@ -1,5 +1,5 @@
 /*******************************************************************************
-  Copyright(c) 2010 Gerry Rozema. All rights reserved.
+  Copyright(c) 2010, 2011 Gerry Rozema, Jasem Mutlaq. All rights reserved.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the Free
@@ -23,8 +23,12 @@
 
 #include <string.h>
 
-#include <fitsio.h>
 #include <zlib.h>
+
+const char *IMAGE_SETTINGS_TAB = "Image Settings";
+const char *IMAGE_INFO_TAB     = "Image Info";
+const char *GUIDE_HEAD_TAB     = "Guide Head";
+const char *GUIDE_CONTROL_TAB     = "Guider Control";
 
 INDI::CCD::CCD()
 {
@@ -40,23 +44,24 @@ INDI::CCD::CCD()
     RawGuideSize=0;
     RawGuiderFrame=NULL;
 
-    FrameType=FRAME_TYPE_LIGHT;
+    FrameType=LIGHT_FRAME;
 
-    ImageFrameNV = new INumberVectorProperty;
-    FrameTypeSV = new ISwitchVectorProperty;
-    ImageExposureNV = new INumberVectorProperty;
-    ImageBinNV = new INumberVectorProperty;
-    ImagePixelSizeNV = new INumberVectorProperty;
-    GuiderFrameNV = new INumberVectorProperty;
-    GuiderPixelSizeNV = new INumberVectorProperty;
-    GuiderExposureNV = new INumberVectorProperty;
-    GuiderVideoSV = new ISwitchVectorProperty;
-    CompressSV = new ISwitchVectorProperty;
-    GuiderCompressSV = new ISwitchVectorProperty;
-    FitsBV = new IBLOBVectorProperty;
-    GuiderBV = new IBLOBVectorProperty;
-    GuideNSV = new INumberVectorProperty;
-    GuideEWV = new INumberVectorProperty;
+    ImageFrameNP = new INumberVectorProperty;
+    FrameTypeSP = new ISwitchVectorProperty;
+    ImageExposureNP = new INumberVectorProperty;
+    ImageBinNP = new INumberVectorProperty;
+    ImagePixelSizeNP = new INumberVectorProperty;
+    GuiderFrameNP = new INumberVectorProperty;
+    GuiderPixelSizeNP = new INumberVectorProperty;
+    GuiderExposureNP = new INumberVectorProperty;
+    GuiderVideoSP = new ISwitchVectorProperty;
+    CompressSP = new ISwitchVectorProperty;
+    GuiderCompressSP = new ISwitchVectorProperty;
+    FitsBP = new IBLOBVectorProperty;
+    GuiderBP = new IBLOBVectorProperty;
+    GuideNSP = new INumberVectorProperty;
+    GuideEWP = new INumberVectorProperty;
+    TelescopeTP = new ITextVectorProperty;
 
 }
 
@@ -67,33 +72,26 @@ INDI::CCD::~CCD()
 
 bool INDI::CCD::initProperties()
 {
-    //IDLog("INDI::CCD initProperties '%s'\n",deviceName());
-
     DefaultDriver::initProperties();   //  let the base class flesh in what it wants
-
-    //IDLog("INDI::CCD::initProperties()\n");
 
     IUFillNumber(&ImageFrameN[0],"X","Left ","%4.0f",0,1392.0,0,0);
     IUFillNumber(&ImageFrameN[1],"Y","Top","%4.0f",0,1040,0,0);
     IUFillNumber(&ImageFrameN[2],"WIDTH","Width","%4.0f",0,1392.0,0,1392.0);
     IUFillNumber(&ImageFrameN[3],"HEIGHT","Height","%4.0f",0,1040,0,1040);
-    IUFillNumberVector(ImageFrameNV,ImageFrameN,4,deviceName(),"CCD_FRAME","Frame","Image Settings",IP_RW,60,IPS_IDLE);
+    IUFillNumberVector(ImageFrameNP,ImageFrameN,4,deviceName(),"CCD_FRAME","Frame",IMAGE_SETTINGS_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillSwitch(&FrameTypeS[0],"FRAME_LIGHT","Light",ISS_ON);
     IUFillSwitch(&FrameTypeS[1],"FRAME_BIAS","Bias",ISS_OFF);
     IUFillSwitch(&FrameTypeS[2],"FRAME_DARK","Dark",ISS_OFF);
     IUFillSwitch(&FrameTypeS[3],"FRAME_FLAT","Flat",ISS_OFF);
-    IUFillSwitchVector(FrameTypeSV,FrameTypeS,4,deviceName(),"CCD_FRAME_TYPE","FrameType","Image Settings",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    IUFillSwitchVector(FrameTypeSP,FrameTypeS,4,deviceName(),"CCD_FRAME_TYPE","FrameType",IMAGE_SETTINGS_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
     IUFillNumber(&ImageExposureN[0],"CCD_EXPOSURE_VALUE","Duration (s)","%5.2f",0,36000,0,1.0);
-    IUFillNumberVector(ImageExposureNV,ImageExposureN,1,deviceName(),"CCD_EXPOSURE_REQUEST","Expose","Main Control",IP_RW,60,IPS_IDLE);
-    //IUFillNumber(&CcdExposureReqN[0],"CCD_EXPOSURE_VALUE","Duration","%5.2f",0,36000,0,1.0);
-    //IUFillNumberVector(&CcdExposureReqNV,CcdExposureReqN,1,deviceName(),"CCD_EXPOSURE_REQUEST","Expose","Main Control",IP_WO,60,IPS_IDLE);
+    IUFillNumberVector(ImageExposureNP,ImageExposureN,1,deviceName(),"CCD_EXPOSURE_REQUEST","Expose",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillNumber(&ImageBinN[0],"HOR_BIN","X","%2.0f",1,4,1,1);
     IUFillNumber(&ImageBinN[1],"VER_BIN","Y","%2.0f",1,4,1,1);
-    IUFillNumberVector(ImageBinNV,ImageBinN,2,deviceName(),"CCD_BINNING","Binning","Image Settings",IP_RW,60,IPS_IDLE);
-
+    IUFillNumberVector(ImageBinNP,ImageBinN,2,deviceName(),"CCD_BINNING","Binning",IMAGE_SETTINGS_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillNumber(&ImagePixelSizeN[0],"CCD_MAX_X","Resolution x","%4.0f",1,40,0,6.45);
     IUFillNumber(&ImagePixelSizeN[1],"CCD_MAX_Y","Resolution y","%4.0f",1,40,0,6.45);
@@ -101,14 +99,13 @@ bool INDI::CCD::initProperties()
     IUFillNumber(&ImagePixelSizeN[3],"CCD_PIXEL_SIZE_X","Pixel size X","%5.2f",1,40,0,6.45);
     IUFillNumber(&ImagePixelSizeN[4],"CCD_PIXEL_SIZE_Y","Pixel size Y","%5.2f",1,40,0,6.45);
     IUFillNumber(&ImagePixelSizeN[5],"CCD_BITSPERPIXEL","Bits per pixel","%3.0f",1,40,0,6.45);
-    IUFillNumberVector(ImagePixelSizeNV,ImagePixelSizeN,6,deviceName(),"CCD_INFO","Ccd Information","Image Info",IP_RO,60,IPS_IDLE);
+    IUFillNumberVector(ImagePixelSizeNP,ImagePixelSizeN,6,deviceName(),"CCD_INFO","Ccd Information",IMAGE_INFO_TAB,IP_RO,60,IPS_IDLE);
 
     IUFillNumber(&GuiderFrameN[0],"X","Left ","%4.0f",0,1392.0,0,0);
     IUFillNumber(&GuiderFrameN[1],"Y","Top","%4.0f",0,1040,0,0);
     IUFillNumber(&GuiderFrameN[2],"WIDTH","Width","%4.0f",0,1392.0,0,1392.0);
     IUFillNumber(&GuiderFrameN[3],"HEIGHT","Height","%4.0f",0,1040,0,1040);
-    IUFillNumberVector(GuiderFrameNV,GuiderFrameN,4,deviceName(),"GUIDER_FRAME","Frame","Guidehead Settings",IP_RW,60,IPS_IDLE);
-
+    IUFillNumberVector(GuiderFrameNP,GuiderFrameN,4,deviceName(),"GUIDER_FRAME","Frame",GUIDE_HEAD_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillNumber(&GuiderPixelSizeN[0],"GUIDER_MAX_X","Resolution x","%4.0f",1,40,0,6.45);
     IUFillNumber(&GuiderPixelSizeN[1],"GUIDER_MAX_Y","Resolution y","%4.0f",1,40,0,6.45);
@@ -116,47 +113,46 @@ bool INDI::CCD::initProperties()
     IUFillNumber(&GuiderPixelSizeN[3],"GUIDER_PIXEL_SIZE_X","Pixel size X","%5.2f",1,40,0,6.45);
     IUFillNumber(&GuiderPixelSizeN[4],"GUIDER_PIXEL_SIZE_Y","Pixel size Y","%5.2f",1,40,0,6.45);
     IUFillNumber(&GuiderPixelSizeN[5],"GUIDER_BITSPERPIXEL","Bits per pixel","%3.0f",1,40,0,6.45);
-    IUFillNumberVector(GuiderPixelSizeNV,GuiderPixelSizeN,6,deviceName(),"GUIDER_INFO","Guidehead Information","Guidehead Info",IP_RO,60,IPS_IDLE);
+    IUFillNumberVector(GuiderPixelSizeNP,GuiderPixelSizeN,6,deviceName(),"GUIDER_INFO",GUIDE_HEAD_TAB,GUIDE_HEAD_TAB,IP_RO,60,IPS_IDLE);
 
     IUFillNumber(&GuiderExposureN[0],"GUIDER_EXPOSURE_VALUE","Duration (s)","%5.2f",0,36000,0,1.0);
-    IUFillNumberVector(GuiderExposureNV,GuiderExposureN,1,deviceName(),"GUIDER_EXPOSURE","Guider","Main Control",IP_RW,60,IPS_IDLE);
+    IUFillNumberVector(GuiderExposureNP,GuiderExposureN,1,deviceName(),"GUIDER_EXPOSURE","Guider",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillSwitch(&GuiderVideoS[0],"ON","on",ISS_OFF);
     IUFillSwitch(&GuiderVideoS[1],"OFF","off",ISS_OFF);
-    IUFillSwitchVector(GuiderVideoSV,GuiderVideoS,2,deviceName(),"VIDEO_STREAM","Guider Stream","Guidehead Settings",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    IUFillSwitchVector(GuiderVideoSP,GuiderVideoS,2,deviceName(),"VIDEO_STREAM","Guider Stream",GUIDE_HEAD_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
     IUFillSwitch(&CompressS[0],"COMPRESS","Compress",ISS_OFF);
     IUFillSwitch(&CompressS[1],"RAW","Raw",ISS_ON);
-    IUFillSwitchVector(CompressSV,CompressS,2,deviceName(),"COMPRESSION","Image","Data Channel",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    IUFillSwitchVector(CompressSP,CompressS,2,deviceName(),"COMPRESSION","Image",IMAGE_SETTINGS_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
     IUFillSwitch(&GuiderCompressS[0],"GCOMPRESS","Compress",ISS_OFF);
     IUFillSwitch(&GuiderCompressS[1],"GRAW","Raw",ISS_ON);
-    IUFillSwitchVector(GuiderCompressSV,GuiderCompressS,2,deviceName(),"GCOMPRESSION","Guider","Data Channel",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    IUFillSwitchVector(GuiderCompressSP,GuiderCompressS,2,deviceName(),"GCOMPRESSION","Guider",GUIDE_HEAD_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
     IUFillBLOB(&FitsB,"CCD1","Image","");
-    IUFillBLOBVector(FitsBV,&FitsB,1,deviceName(),"CCD1","Image Data","Data Channel",IP_RO,60,IPS_IDLE);
+    IUFillBLOBVector(FitsBP,&FitsB,1,deviceName(),"CCD1","Image Data",OPTIONS_TAB,IP_RO,60,IPS_IDLE);
 
     IUFillBLOB(&GuiderB,"CCD2","Guider","");
-    IUFillBLOBVector(GuiderBV,&GuiderB,1,deviceName(),"CCD2","Guider Data","Data Channel",IP_RO,60,IPS_IDLE);
+    IUFillBLOBVector(GuiderBP,&GuiderB,1,deviceName(),"CCD2","Guider Data",OPTIONS_TAB,IP_RO,60,IPS_IDLE);
 
     IUFillNumber(&GuideNS[0],"TIMED_GUIDE_N","North (sec)","%g",0,10,0.001,0);
     IUFillNumber(&GuideNS[1],"TIMED_GUIDE_S","South (sec)","%g",0,10,0.001,0);
-    IUFillNumberVector(GuideNSV,GuideNS,2,deviceName(),"TELESCOPE_TIMED_GUIDE_NS","Guide North/South","GuiderControl",IP_RW,60,IPS_IDLE);
+    IUFillNumberVector(GuideNSP,GuideNS,2,deviceName(),"TELESCOPE_TIMED_GUIDE_NS","Guide North/South",GUIDE_CONTROL_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillNumber(&GuideEW[0],"TIMED_GUIDE_E","East (sec)","%g",0,10,0.001,0);
     IUFillNumber(&GuideEW[1],"TIMED_GUIDE_W","West (sec)","%g",0,10,0.001,0);
-    IUFillNumberVector(GuideEWV,GuideEW,2,deviceName(),"TELESCOPE_TIMED_GUIDE_WE","Guide East/West","GuiderControl",IP_RW,60,IPS_IDLE);
+    IUFillNumberVector(GuideEWP,GuideEW,2,deviceName(),"TELESCOPE_TIMED_GUIDE_WE","Guide East/West",GUIDE_CONTROL_TAB,IP_RW,60,IPS_IDLE);
+
+    IUFillText(&TelescopeT[0],"ACTIVE_TELESCOPE","Telescope","");
+    IUFillTextVector(TelescopeTP,TelescopeT,1,deviceName(),"ACTIVE_DEVICES","Snoop Scope",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
+
+    IUFillNumber(&EqN[0],"RA_PEC","Ra (hh:mm:ss)","%010.6m",0,24,0,0);
+    IUFillNumber(&EqN[1],"DEC_PEC","Dec (dd:mm:ss)","%010.6m",-90,90,0,0);
+    IUFillNumberVector(&EqNP,EqN,2,"","EQUATORIAL_PEC","EQ PEC","Main Control",IP_RW,60,IPS_IDLE);
 
 
-    //IDLog("Setting up ccdpreview stuff\n");
-    //IUFillNumber(&GuiderN[0],"WIDTH","Width","%4.0f",0.,1392.0,0.,1392.);
-    //IUFillNumber(&GuiderN[1],"HEIGHT","Height","%4.0f",0.,1040.,0.,1040.);
-    //IUFillNumber(&GuiderN[2],"MAXGOODDATA","max good","%5.0f",0.,65535.0,0.,65535.0);
-    //IUFillNumber(&GuiderN[3],"BYTESPERPIXEL","BPP","%1.0f",1.,4.,1.,2.);
-    //IUFillNumber(&GuiderN[4],"BYTEORDER","BO","%1.0f",1.,2.,1.,1.);
-    //IUFillNumberVector(&GuiderNV,GuiderN,5,deviceName(),"CCDPREVIEW_CTRL","Image Size","Guider Settings",IP_RW,60,IPS_IDLE);
-
-    return 0;
+    return true;
 }
 
 void INDI::CCD::ISGetProperties (const char *dev)
@@ -173,59 +169,120 @@ void INDI::CCD::ISGetProperties (const char *dev)
 bool INDI::CCD::updateProperties()
 {
     //IDLog("INDI::CCD UpdateProperties isConnected returns %d %d\n",isConnected(),Connected);
-    if(isConnected()) {
-        defineNumber(ImageExposureNV);
-        defineNumber(ImageFrameNV);
-        defineNumber(ImageBinNV);
+    if(isConnected())
+    {
+        defineNumber(ImageExposureNP);
+        defineNumber(ImageFrameNP);
+        defineNumber(ImageBinNP);
 
 
-        if(HasGuideHead) {
-            IDLog("Sending Guider Stuff\n");
-            defineNumber(GuiderExposureNV);
-            defineNumber(GuiderFrameNV);
-            defineSwitch(GuiderVideoSV);
-        }
-
-        defineNumber(ImagePixelSizeNV);
-        if(HasGuideHead) {
-            defineNumber(GuiderPixelSizeNV);
-        }
-        defineSwitch(CompressSV);
-        defineBLOB(FitsBV);
         if(HasGuideHead)
         {
-            defineSwitch(GuiderCompressSV);
-            defineBLOB(GuiderBV);
+            IDLog("Sending Guider Stuff\n");
+            defineNumber(GuiderExposureNP);
+            defineNumber(GuiderFrameNP);
+            defineSwitch(GuiderVideoSP);
+        }
+
+        defineNumber(ImagePixelSizeNP);
+        if(HasGuideHead)
+        {
+            defineNumber(GuiderPixelSizeNP);
+        }
+        defineSwitch(CompressSP);
+        defineBLOB(FitsBP);
+        if(HasGuideHead)
+        {
+            defineSwitch(GuiderCompressSP);
+            defineBLOB(GuiderBP);
         }
         if(HasSt4Port)
         {
-            defineNumber(GuideNSV);
-            defineNumber(GuideEWV);
+            defineNumber(GuideNSP);
+            defineNumber(GuideEWP);
         }
-        defineSwitch(FrameTypeSV);
-    } else {
-        deleteProperty(ImageFrameNV->name);
-        deleteProperty(ImageBinNV->name);
-        deleteProperty(ImagePixelSizeNV->name);
-        deleteProperty(ImageExposureNV->name);
-        deleteProperty(FitsBV->name);
-        deleteProperty(CompressSV->name);
-        if(HasGuideHead) {
-            deleteProperty(GuiderVideoSV->name);
-            deleteProperty(GuiderExposureNV->name);
-            deleteProperty(GuiderFrameNV->name);
-            deleteProperty(GuiderPixelSizeNV->name);
-            deleteProperty(GuiderBV->name);
-            deleteProperty(GuiderCompressSV->name);
+        defineSwitch(FrameTypeSP);
+        defineText(TelescopeTP);
+    }
+    else
+    {
+        deleteProperty(ImageFrameNP->name);
+        deleteProperty(ImageBinNP->name);
+        deleteProperty(ImagePixelSizeNP->name);
+        deleteProperty(ImageExposureNP->name);
+        deleteProperty(FitsBP->name);
+        deleteProperty(CompressSP->name);
+        if(HasGuideHead)
+        {
+            deleteProperty(GuiderVideoSP->name);
+            deleteProperty(GuiderExposureNP->name);
+            deleteProperty(GuiderFrameNP->name);
+            deleteProperty(GuiderPixelSizeNP->name);
+            deleteProperty(GuiderBP->name);
+            deleteProperty(GuiderCompressSP->name);
         }
-        if(HasSt4Port) {
-            deleteProperty(GuideNSV->name);
-            deleteProperty(GuideEWV->name);
+        if(HasSt4Port)
+        {
+            deleteProperty(GuideNSP->name);
+            deleteProperty(GuideEWP->name);
 
         }
-        deleteProperty(FrameTypeSV->name);
+        deleteProperty(FrameTypeSP->name);
+        deleteProperty(TelescopeTP->name);
     }
     return true;
+}
+
+void INDI::CCD::ISSnoopDevice (XMLEle *root)
+ {
+     //fprintf(stderr," ################# CCDSim handling snoop ##############\n");
+     if(IUSnoopNumber(root,&EqNP)==0)
+     {
+        float newra,newdec;
+        newra=EqN[0].value;
+        newdec=EqN[1].value;
+        if((newra != RA)||(newdec != Dec))
+        {
+            //fprintf(stderr,"RA %4.2f  Dec %4.2f Snooped RA %4.2f  Dec %4.2f\n",RA,Dec,newra,newdec);
+            RA=newra;
+            Dec=newdec;
+
+        }
+     }
+     else
+     {
+        //fprintf(stderr,"Snoop Failed\n");
+     }
+ }
+
+bool INDI::CCD::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+{
+    //  Ok, lets see if this is a property wer process
+    //IDLog("IndiTelescope got %d new text items name %s\n",n,name);
+    //  first check if it's for our device
+    if(strcmp(dev,deviceName())==0)
+    {
+        //  This is for our device
+        //  Now lets see if it's something we process here
+        if(strcmp(name,TelescopeTP->name)==0)
+        {
+            int rc;
+            //IDLog("calling update text\n");
+            TelescopeTP->s=IPS_OK;
+            rc=IUUpdateText(TelescopeTP,texts,names,n);
+            //IDLog("update text returns %d\n",rc);
+            //  Update client display
+            IDSetText(TelescopeTP,NULL);
+            saveConfig();
+            IUFillNumberVector(&EqNP,EqN,2,TelescopeT[0].text,"EQUATORIAL_PEC","EQ PEC",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
+            IDSnoopDevice(TelescopeT[0].text,"EQUATORIAL_PEC");
+            //  We processed this one, so, tell the world we did it
+            return true;
+        }
+
+    }
+
+    return INDI::DefaultDriver::ISNewText(dev,name,texts,names,n);
 }
 
 bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
@@ -242,7 +299,11 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
             n=values[0];
 
             ImageExposureN[0].value=n;
-            ImageExposureNV->s=IPS_BUSY;
+
+            if (ImageExposureNP->s==IPS_BUSY)
+                AbortExposure();
+
+            ImageExposureNP->s=IPS_BUSY;
             //  now we have a new number, this is our requested exposure time
             //  Tell the clients we are busy with this exposure
 
@@ -250,16 +311,16 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
             rc=StartExposure(n);
             switch(rc) {
                 case 0: //  normal case, exposure running on timers, callbacks when it's finished
-                    ImageExposureNV->s=IPS_BUSY;
+                    ImageExposureNP->s=IPS_BUSY;
                     break;
                 case 1: //  Short exposure, it's already done
-                    ImageExposureNV->s=IPS_OK;
+                    ImageExposureNP->s=IPS_OK;
                     break;
                 case -1:    //  error condition
-                    ImageExposureNV->s=IPS_ALERT;
+                    ImageExposureNP->s=IPS_ALERT;
                 break;
             }
-            IDSetNumber(ImageExposureNV,NULL);
+            IDSetNumber(ImageExposureNP,NULL);
             return true;
         }
 
@@ -270,7 +331,7 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
             n=values[0];
 
             GuiderExposureN[0].value=n;
-            GuiderExposureNV->s=IPS_BUSY;
+            GuiderExposureNP->s=IPS_BUSY;
             //  now we have a new number, this is our requested exposure time
             //  Tell the clients we are busy with this exposure
 
@@ -281,50 +342,57 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
             //rc=1;   //  set it to ok
             switch(rc) {
                 case 0: //  normal case, exposure running on timers, callbacks when it's finished
-                    GuiderExposureNV->s=IPS_BUSY;
+                    GuiderExposureNP->s=IPS_BUSY;
                     break;
                 case 1: //  Short exposure, it's already done
-                    GuiderExposureNV->s=IPS_OK;
+                    GuiderExposureNP->s=IPS_OK;
                     break;
                 case -1:    //  error condition
-                    GuiderExposureNV->s=IPS_ALERT;
+                    GuiderExposureNP->s=IPS_ALERT;
                 break;
             }
-            IDSetNumber(GuiderExposureNV,NULL);
+            IDSetNumber(GuiderExposureNP,NULL);
             return true;
         }
         if(strcmp(name,"CCD_BINNING")==0) {
             //  We are being asked to set camera binning
-            ImageBinNV->s=IPS_OK;
-            IUUpdateNumber(ImageBinNV,values,names,n);
+            ImageBinNP->s=IPS_OK;
+            IUUpdateNumber(ImageBinNP,values,names,n);
             //  Update client display
-            IDSetNumber(ImageBinNV,NULL);
+            IDSetNumber(ImageBinNP,NULL);
 
             //IDLog("Binning set to %4.0f x %4.0f\n",CcdBinN[0].value,CcdBinN[1].value);
             BinX=ImageBinN[0].value;
             BinY=ImageBinN[1].value;
+
+            updateCCDBin();
         }
-        if(strcmp(name,"CCD_FRAME")==0) {
+
+        if(strcmp(name,"CCD_FRAME")==0)
+        {
             //  We are being asked to set camera binning
-            ImageFrameNV->s=IPS_OK;
-            IUUpdateNumber(ImageFrameNV,values,names,n);
+            ImageFrameNP->s=IPS_OK;
+            IUUpdateNumber(ImageFrameNP,values,names,n);
             //  Update client display
-            IDSetNumber(ImageFrameNV,NULL);
+            IDSetNumber(ImageFrameNP,NULL);
 
             //IDLog("Frame set to %4.0f,%4.0f %4.0f x %4.0f\n",CcdFrameN[0].value,CcdFrameN[1].value,CcdFrameN[2].value,CcdFrameN[3].value);
             SubX=ImageFrameN[0].value;
             SubY=ImageFrameN[1].value;
             SubW=ImageFrameN[2].value;
             SubH=ImageFrameN[3].value;
+
+            updateCCDFrame();
             return true;
         }
 
-        if(strcmp(name,"GUIDER_FRAME")==0) {
+        if(strcmp(name,"GUIDER_FRAME")==0)
+        {
             //  We are being asked to set camera binning
-            GuiderFrameNV->s=IPS_OK;
-            IUUpdateNumber(GuiderFrameNV,values,names,n);
+            GuiderFrameNP->s=IPS_OK;
+            IUUpdateNumber(GuiderFrameNP,values,names,n);
             //  Update client display
-            IDSetNumber(GuiderFrameNV,NULL);
+            IDSetNumber(GuiderFrameNP,NULL);
 
             IDLog("GuiderFrame set to %4.0f,%4.0f %4.0f x %4.0f\n",
                   GuiderFrameN[0].value,GuiderFrameN[1].value,GuiderFrameN[2].value,GuiderFrameN[3].value);
@@ -335,12 +403,12 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
             return true;
         }
 
-        if(strcmp(name,GuideNSV->name)==0) {
+        if(strcmp(name,GuideNSP->name)==0) {
             //  We are being asked to send a guide pulse north/south on the st4 port
-            GuideNSV->s=IPS_BUSY;
-            IUUpdateNumber(GuideNSV,values,names,n);
+            GuideNSP->s=IPS_BUSY;
+            IUUpdateNumber(GuideNSP,values,names,n);
             //  Update client display
-            IDSetNumber(GuideNSV,NULL);
+            IDSetNumber(GuideNSP,NULL);
 
             fprintf(stderr,"GuideNorthSouth set to %7.3f,%7.3f\n",
                   GuideNS[0].value,GuideNS[1].value);
@@ -353,17 +421,17 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
             }
             GuideNS[0].value=0;
             GuideNS[1].value=0;
-            GuideNSV->s=IPS_OK;
-            IDSetNumber(GuideNSV,NULL);
+            GuideNSP->s=IPS_OK;
+            IDSetNumber(GuideNSP,NULL);
 
             return true;
         }
-        if(strcmp(name,GuideEWV->name)==0) {
+        if(strcmp(name,GuideEWP->name)==0) {
             //  We are being asked to send a guide pulse north/south on the st4 port
-            GuideEWV->s=IPS_BUSY;
-            IUUpdateNumber(GuideEWV,values,names,n);
+            GuideEWP->s=IPS_BUSY;
+            IUUpdateNumber(GuideEWP,values,names,n);
             //  Update client display
-            IDSetNumber(GuideEWV,NULL);
+            IDSetNumber(GuideEWP,NULL);
 
             fprintf(stderr,"GuiderEastWest set to %6.3f,%6.3f\n",
                   GuideEW[0].value,GuideEW[1].value);
@@ -376,8 +444,8 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
 
             GuideEW[0].value=0;
             GuideEW[1].value=0;
-            GuideEWV->s=IPS_OK;
-            IDSetNumber(GuideEWV,NULL);
+            GuideEWP->s=IPS_OK;
+            IDSetNumber(GuideEWP,NULL);
 
             return true;
         }
@@ -385,10 +453,10 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
         /*
         if(strcmp(name,"CCDPREVIEW_CTRL")==0) {
             //  We are being asked to set camera binning
-            GuiderNV->s=IPS_OK;
-            IUUpdateNumber(&GuiderNV,values,names,n);
+            GuiderNP->s=IPS_OK;
+            IUUpdateNumber(&GuiderNP,values,names,n);
             //  Update client display
-            IDSetNumber(&GuiderNV,NULL);
+            IDSetNumber(&GuiderNP,NULL);
             return true;
         }
         */
@@ -413,10 +481,10 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
         //    IDLog("Switch %s\n",names[x]);
         //}
 
-        if(strcmp(name,CompressSV->name)==0) {
+        if(strcmp(name,CompressSP->name)==0) {
 
-            IUUpdateSwitch(CompressSV,states,names,n);
-            IDSetSwitch(CompressSV,NULL);
+            IUUpdateSwitch(CompressSP,states,names,n);
+            IDSetSwitch(CompressSP,NULL);
 
             if(CompressS[0].s==ISS_ON    ) {
                 SendCompressed=true;
@@ -425,10 +493,10 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
             }
             return true;
         }
-        if(strcmp(name,GuiderCompressSV->name)==0) {
+        if(strcmp(name,GuiderCompressSP->name)==0) {
 
-            IUUpdateSwitch(GuiderCompressSV,states,names,n);
-            IDSetSwitch(GuiderCompressSV,NULL);
+            IUUpdateSwitch(GuiderCompressSP,states,names,n);
+            IDSetSwitch(GuiderCompressSP,NULL);
 
             if(GuiderCompressS[0].s==ISS_ON    ) {
                 SendCompressed=true;
@@ -438,32 +506,32 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
             return true;
         }
 
-        if(strcmp(name,GuiderVideoSV->name)==0) {
+        if(strcmp(name,GuiderVideoSP->name)==0) {
             //  Compression Update
-            IUUpdateSwitch(GuiderVideoSV,states,names,n);
+            IUUpdateSwitch(GuiderVideoSP,states,names,n);
             if(GuiderVideoS[0].s==ISS_ON    ) {
-                GuiderVideoSV->s=IPS_OK;
+                GuiderVideoSP->s=IPS_OK;
                 StartGuideExposure(GuiderExposureN[0].value);
             } else {
                 AbortGuideExposure();
-                GuiderVideoSV->s=IPS_IDLE;
+                GuiderVideoSP->s=IPS_IDLE;
             }
 
-            IDSetSwitch(GuiderVideoSV,NULL);
+            IDSetSwitch(GuiderVideoSP,NULL);
             return true;
         }
 
-        if(strcmp(name,FrameTypeSV->name)==0) {
+        if(strcmp(name,FrameTypeSP->name)==0)
+        {
             //  Compression Update
-            IUUpdateSwitch(FrameTypeSV,states,names,n);
-            FrameTypeSV->s=IPS_OK;
-            if(FrameTypeS[0].s==ISS_ON) SetFrameType(FRAME_TYPE_LIGHT);
-            if(FrameTypeS[1].s==ISS_ON) SetFrameType(FRAME_TYPE_BIAS);
-            if(FrameTypeS[2].s==ISS_ON) SetFrameType(FRAME_TYPE_DARK);
-            if(FrameTypeS[3].s==ISS_ON) SetFrameType(FRAME_TYPE_FLAT);
+            IUUpdateSwitch(FrameTypeSP,states,names,n);
+            FrameTypeSP->s=IPS_OK;
+            if(FrameTypeS[0].s==ISS_ON) SetFrameType(LIGHT_FRAME);
+            if(FrameTypeS[1].s==ISS_ON) SetFrameType(BIAS_FRAME);
+            if(FrameTypeS[2].s==ISS_ON) SetFrameType(DARK_FRAME);
+            if(FrameTypeS[3].s==ISS_ON) SetFrameType(FLAT_FRAME);
 
-
-            IDSetSwitch(FrameTypeSV,NULL);
+            IDSetSwitch(FrameTypeSP,NULL);
             return true;
         }
 
@@ -486,6 +554,28 @@ int INDI::CCD::StartGuideExposure(float duration)
     IDLog("INDI::CCD::StartGuide Exposure %4.2f -  Should never get here\n",duration);
     return -1;
 }
+
+bool INDI::CCD::AbortExposure()
+{
+    IDLog("INDI::CCD::AbortExposure -  Should never get here\n");
+    return false;
+}
+
+void INDI::CCD::updateCCDFrame()
+{
+    // Nothing to do here. HW layer should take care of it if needed.
+}
+
+void INDI::CCD::updateCCDBin()
+{
+    // Nothing to do here. HW layer should take care of it if needed.
+}
+
+void INDI::CCD::addFITSKeywords(fitsfile *fptr)
+{
+    // Nothing to do here. HW layer should take care of it if needed.
+}
+
 bool INDI::CCD::ExposureComplete()
 {
     void *memptr;
@@ -522,6 +612,8 @@ bool INDI::CCD::ExposureComplete()
 		return false;
 	}
 
+    addFITSKeywords(fptr);
+
     fits_write_img(fptr,TUSHORT,1,SubW*SubH/BinX/BinY,RawFrame,&status);
     if (status)
 	{
@@ -537,11 +629,11 @@ bool INDI::CCD::ExposureComplete()
 
     ImageFrameN[2].value=SubW;
     ImageFrameN[3].value=SubH;
-    IDSetNumber(ImageFrameNV,NULL);
+    IDSetNumber(ImageFrameNP,NULL);
 
 
-    ImageExposureNV->s=IPS_OK;
-    IDSetNumber(ImageExposureNV,NULL);
+    ImageExposureNP->s=IPS_OK;
+    IDSetNumber(ImageExposureNP,NULL);
 
     uploadfile(memptr,memsize);
     free(memptr);
@@ -562,18 +654,18 @@ bool INDI::CCD::GuideExposureComplete()
         //  we need to send a new size to kstars
         ImageFrameN[2].value=GSubW;
         ImageFrameN[3].value=GSubH;
-        IDSetNumber(ImageFrameNV,NULL);
+        IDSetNumber(ImageFrameNP,NULL);
 
         //IDLog("Sending guider stream blob\n");
 
-        GuiderExposureNV->s=IPS_OK;
-        IDSetNumber(GuiderExposureNV,NULL);
+        GuiderExposureNP->s=IPS_OK;
+        IDSetNumber(GuiderExposureNP,NULL);
         GuiderB.blob=RawGuiderFrame;
         GuiderB.bloblen=GSubW*GSubH;
         GuiderB.size=GSubW*GSubH;
         strcpy(GuiderB.format,"->stream");
-        GuiderBV->s=IPS_OK;
-        IDSetBLOB(GuiderBV,NULL);
+        GuiderBP->s=IPS_OK;
+        IDSetBLOB(GuiderBP,NULL);
         StartGuideExposure(GuiderExposureN[0].value);
     } else {
         //  We are not streaming
@@ -616,16 +708,16 @@ bool INDI::CCD::GuideExposureComplete()
         }
         fits_close_file(fptr,&status);
         IDLog("Built the Guider fits file\n");
-        GuiderExposureNV->s=IPS_OK;
-        IDSetNumber(GuiderExposureNV,NULL);
+        GuiderExposureNP->s=IPS_OK;
+        IDSetNumber(GuiderExposureNP,NULL);
 
-        IDLog("Sending guider fits file via %s\n",GuiderBV->name);
+        IDLog("Sending guider fits file via %s\n",GuiderBP->name);
         GuiderB.blob=memptr;
         GuiderB.bloblen=memsize;
         GuiderB.size=memsize;
         strcpy(GuiderB.format,".fits");
-        GuiderBV->s=IPS_OK;
-        IDSetBLOB(GuiderBV,NULL);
+        GuiderBP->s=IPS_OK;
+        IDSetBLOB(GuiderBP,NULL);
         free(memptr);
     }
 
@@ -648,11 +740,11 @@ int INDI::CCD::sendPreview()
     xw=SubW/BinX;
     yw=SubH/BinY;
 
-    //GuiderNV->s=IPS_OK;
+    //GuiderNP->s=IPS_OK;
     //GuiderN[0].value=xw;
     //GuiderN[1].value=yw;
     //IDLog("Guider Frame %d x %d\n",xw,yw);
-    //IDSetNumber(&GuiderNV,"Starting to send new preview frame\n");
+    //IDSetNumber(&GuiderNP,"Starting to send new preview frame\n");
 
     numbytes=xw*yw;
     numbytes=numbytes*2;
@@ -670,9 +762,9 @@ int INDI::CCD::sendPreview()
     FitsB.blob=RawFrame;
     FitsB.bloblen=numbytes;
     FitsB.size=numbytes;
-    FitsBV->s=IPS_OK;
+    FitsBP->s=IPS_OK;
     strcpy(FitsB.format,".ccdpreview");
-    IDSetBLOB(FitsBV,NULL);
+    IDSetBLOB(FitsBP,NULL);
     //IDLog("Done with SetBlob with %d compressed to %d\n",numbytes,compressedbytes);
     //free(compressed);
     return 0;
@@ -684,13 +776,13 @@ int INDI::CCD::uploadfile(void *fitsdata,int total)
     //  lets try sending a ccd preview
 
 
-    //IDLog("Enter Uploadfile with %d total sending via %s\n",total,FitsBV->name);
+    //IDLog("Enter Uploadfile with %d total sending via %s\n",total,FitsBP->name);
     FitsB.blob=fitsdata;
     FitsB.bloblen=total;
     FitsB.size=total;
     strcpy(FitsB.format,".fits");
-    FitsBV->s=IPS_OK;
-    IDSetBLOB(FitsBV,NULL);
+    FitsBP->s=IPS_OK;
+    IDSetBLOB(FitsBP,NULL);
     //IDLog("Done with SetBlob\n");
 
     return 0;
@@ -761,7 +853,7 @@ int INDI::CCD::GuideWest(float)
 {
     return -1;
 }
-int INDI::CCD::SetFrameType(int t)
+int INDI::CCD::SetFrameType(CCD_FRAME t)
 {
     //fprintf(stderr,"Set frame type to %d\n",t);
     FrameType=t;

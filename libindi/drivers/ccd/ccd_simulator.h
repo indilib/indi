@@ -64,25 +64,17 @@ class CCDSim : public INDI::CCD
 
         bool AbortGuideFrame;
 
-        float RA;
-        float Dec;
+
         float GuideRate;
 
         float PEPeriod;
         float PEMax;
         time_t RunStart;
 
-        //  We are going to snoop these from a telescope
-        INumberVectorProperty EqNV;
-        INumber EqN[2];
-
         //  And this lives in our simulator settings page
 
         INumberVectorProperty *SimulatorSettingsNV;
         INumber SimulatorSettingsN[13];
-
-        ITextVectorProperty *TelescopeTV; //  A text vector that stores the telescope we want to snoop
-        IText TelescopeT[1];
 
         ISwitch TimeFactorS[3];
         ISwitchVectorProperty *TimeFactorSV;
@@ -99,11 +91,9 @@ class CCDSim : public INDI::CCD
         bool updateProperties();
 
         void ISGetProperties (const char *dev);
-        void ISSnoopDevice (XMLEle *root);
 
 
-
-        bool Connect();
+        bool Connect(char *msg);
         bool Disconnect();
 
         int StartExposure(float duration);
@@ -125,7 +115,6 @@ class CCDSim : public INDI::CCD
         int GuideWest(float);
 
         virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-        virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
         virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
 
 };

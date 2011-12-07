@@ -22,113 +22,78 @@
 #ifndef INDI_CCD_H
 #define INDI_CCD_H
 
+#include <fitsio.h>
+
 #include "defaultdriver.h"
 
-#define FRAME_TYPE_LIGHT 0
-#define FRAME_TYPE_BIAS 1
-#define FRAME_TYPE_DARK 2
-#define FRAME_TYPE_FLAT 3
+
+extern const char *IMAGE_SETTINGS_TAB;
+extern const char *IMAGE_INFO_TAB;
+extern const char *GUIDE_HEAD_TAB;
+extern const char *GUIDE_CONTROL_TAB;
 
 class INDI::CCD : public INDI::DefaultDriver
 {
-    protected:
-
-        char *RawFrame;
-        int RawFrameSize;
-
-        //  Altho these numbers are indeed stored in the indi properties
-        //  It makes for much cleaner code if we have 'plain old number' copies
-        //  So, when we process messages, just update both
-
-        int XRes;   //  native resolution of the ccd
-        int YRes;   //  ditto
-        int SubX;   //  left side of the subframe we are requesting
-        int SubY;   //  top of the subframe requested
-        int SubW;   //  width of the subframe
-        int SubH;   //  height of the subframe
-        int BinX;   //  Binning requested in the x direction
-        int BinY;   //  Binning requested in the Y direction
-        float PixelSizex;   //  pixel size in microns, x direction
-        float PixelSizey;   //  pixel size in microns, y direction
-        bool SendCompressed;
-
-        bool HasSt4Port;
-
-        //  If the camera has a second ccd, or integrated guide head
-        //  we need information on that one too
-        bool HasGuideHead;
-        char *RawGuiderFrame;
-        int RawGuideSize;
-        int GXRes;  //  native resolution of the guide head
-        int GYRes;  //  native resolution
-        int GSubX;  //  left side of the guide image subframe
-        int GSubY;  //  top of the guide image subframe
-        int GSubW;  //  Width of the guide image
-        int GSubH;  //  Height of the guide image
-        float GPixelSizex;  //  phyiscal size of the guider pixels
-        float GPixelSizey;
-        bool GuiderCompressed;
-
-        int FrameType;
 
 
-    private:
-    public:
+      public:
         CCD();
         virtual ~CCD();
 
-        //  A ccd needs to desribe the frame
-        //INumberVectorProperty CcdFrameNV;
-        //INumberVectorProperty CcdExposureNV;
-        //INumberVectorProperty CcdBinNV;
-        //INumberVectorProperty CcdPixelSizeNV;
+        typedef enum { LIGHT_FRAME=0, BIAS_FRAME, DARK_FRAME, FLAT_FRAME } CCD_FRAME;
 
+        //  We are going to snoop these from a telescope
+        INumberVectorProperty EqNP;
+        INumber EqN[2];
 
-        INumberVectorProperty *ImageFrameNV;
+        INumberVectorProperty *ImageFrameNP;
         INumber ImageFrameN[4];
 
-        INumberVectorProperty *ImageBinNV;
+        INumberVectorProperty *ImageBinNP;
         INumber ImageBinN[2];
 
-        INumberVectorProperty *ImagePixelSizeNV;
+        INumberVectorProperty *ImagePixelSizeNP;
         INumber ImagePixelSizeN[6];
 
-        INumberVectorProperty *ImageExposureNV;
+        INumberVectorProperty *ImageExposureNP;
         INumber ImageExposureN[1];
 
-        //INumberVectorProperty ImageExposureReqNV;
+        //INumberVectorProperty ImageExposureReqNP;
         //INumber ImageExposureReqN[1];
 
-        INumberVectorProperty *GuiderFrameNV;
+        INumberVectorProperty *GuiderFrameNP;
         INumber GuiderFrameN[4];
-        INumberVectorProperty *GuiderPixelSizeNV;
+        INumberVectorProperty *GuiderPixelSizeNP;
         INumber GuiderPixelSizeN[6];
-        INumberVectorProperty *GuiderExposureNV;
+        INumberVectorProperty *GuiderExposureNP;
         INumber GuiderExposureN[1];
 
         ISwitch FrameTypeS[4];
-        ISwitchVectorProperty *FrameTypeSV;
+        ISwitchVectorProperty *FrameTypeSP;
 
 
         ISwitch CompressS[2];
-        ISwitchVectorProperty *CompressSV;
+        ISwitchVectorProperty *CompressSP;
 
         ISwitch GuiderCompressS[2];
-        ISwitchVectorProperty *GuiderCompressSV;
+        ISwitchVectorProperty *GuiderCompressSP;
 
         ISwitch GuiderVideoS[2];
-        ISwitchVectorProperty *GuiderVideoSV;
+        ISwitchVectorProperty *GuiderVideoSP;
 
         INumber GuideNS[2];
-        INumberVectorProperty *GuideNSV;
+        INumberVectorProperty *GuideNSP;
         INumber GuideEW[2];
-        INumberVectorProperty *GuideEWV;
+        INumberVectorProperty *GuideEWP;
 
         IBLOB FitsB;
-        IBLOBVectorProperty *FitsBV;
+        IBLOBVectorProperty *FitsBP;
 
         IBLOB GuiderB;
-        IBLOBVectorProperty *GuiderBV;
+        IBLOBVectorProperty *GuiderBP;
+
+        ITextVectorProperty *TelescopeTP; //  A text vector that stores the telescope we want to snoop
+        IText TelescopeT[1];
 
         virtual bool  initProperties();
         virtual bool updateProperties();
@@ -137,16 +102,22 @@ class INDI::CCD : public INDI::DefaultDriver
         virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
         virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
 
-        virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n) {return false;}
+        virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+        virtual void ISSnoopDevice (XMLEle *root);
 
 
         virtual int StartExposure(float duration);
         virtual bool ExposureComplete();
+        virtual bool AbortExposure();
         virtual int StartGuideExposure(float duration);
         virtual bool AbortGuideExposure();
         virtual bool GuideExposureComplete();
         virtual int uploadfile(void *fitsdata,int total);
-        virtual int sendPreview();
+
+        int sendPreview();
+
+        virtual void updateCCDFrame();
+        virtual void updateCCDBin();
 
         //  Handy functions for child classes
         virtual int SetCCDParams(int x,int y,int bpp,float xf,float yf);
@@ -157,7 +128,53 @@ class INDI::CCD : public INDI::DefaultDriver
         virtual int GuideEast(float);
         virtual int GuideWest(float);
 
-        virtual int SetFrameType(int);
+        virtual int SetFrameType(CCD_FRAME);
+
+        virtual void addFITSKeywords(fitsfile *fptr);
+
+
+protected:
+
+    char *RawFrame;
+    int RawFrameSize;
+
+    //  Altho these numbers are indeed stored in the indi properties
+    //  It makes for much cleaner code if we have 'plain old number' copies
+    //  So, when we process messages, just update both
+
+    int XRes;   //  native resolution of the ccd
+    int YRes;   //  ditto
+    int SubX;   //  left side of the subframe we are requesting
+    int SubY;   //  top of the subframe requested
+    int SubW;   //  width of the subframe
+    int SubH;   //  height of the subframe
+    int BinX;   //  Binning requested in the x direction
+    int BinY;   //  Binning requested in the Y direction
+    float PixelSizex;   //  pixel size in microns, x direction
+    float PixelSizey;   //  pixel size in microns, y direction
+    bool SendCompressed;
+
+    bool HasSt4Port;
+
+    //  If the camera has a second ccd, or integrated guide head
+    //  we need information on that one too
+    bool HasGuideHead;
+    char *RawGuiderFrame;
+    int RawGuideSize;
+    int GXRes;  //  native resolution of the guide head
+    int GYRes;  //  native resolution
+    int GSubX;  //  left side of the guide image subframe
+    int GSubY;  //  top of the guide image subframe
+    int GSubW;  //  Width of the guide image
+    int GSubH;  //  Height of the guide image
+    float GPixelSizex;  //  phyiscal size of the guider pixels
+    float GPixelSizey;
+    bool GuiderCompressed;
+
+    CCD_FRAME FrameType;
+
+    float RA;
+    float Dec;
 
 };
 

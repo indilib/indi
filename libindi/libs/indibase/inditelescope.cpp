@@ -400,7 +400,7 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
     return DefaultDriver::ISNewSwitch(dev,name,states,names,n);
 }
 
-bool INDI::Telescope::Connect()
+bool INDI::Telescope::Connect(char *msg)
 {
     //  Parent class is wanting a connection
     //IDLog("INDI::Telescope calling connect with %s\n",PortT[0].text);

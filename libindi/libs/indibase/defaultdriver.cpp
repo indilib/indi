@@ -153,6 +153,8 @@ bool INDI::DefaultDriver::ISNewSwitch (const char *dev, const char *name, ISStat
     if (strcmp (dev, deviceID))
         return false;
 
+    char msg[MAXRBUF];
+    msg[0] = '\0';
     ISwitchVectorProperty *svp = getSwitch(name);
 
     if (!svp)
@@ -169,13 +171,23 @@ bool INDI::DefaultDriver::ISNewSwitch (const char *dev, const char *name, ISStat
             // If not connected, attempt to connect
             if (isConnected() == false)
             {
-                rc = Connect();
+                rc = Connect(msg);
 
                 // If connection is successful, set it thus
                 if (rc)
-                  setConnected(true);
+                {
+                    if (msg[0])
+                        setConnected(true, IPS_OK, msg);
+                    else
+                        setConnected(true);
+                }
                 else
-                  setConnected(false, IPS_ALERT);
+                {
+                    if (msg[0])
+                        setConnected(false, IPS_ALERT, msg);
+                    else
+                        setConnected(false, IPS_ALERT);
+                }
 
                 updateProperties();
             }

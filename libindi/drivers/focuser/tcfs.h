@@ -60,7 +60,7 @@ public:
     TCFS();
     ~TCFS();
    
-    virtual bool Connect();
+    virtual bool Connect(char *msg);
     virtual bool Disconnect();
 
     // Standard INDI interface fucntions

@@ -85,9 +85,10 @@ class INDI::Telescope : public INDI::DefaultDriver
         virtual bool updateProperties();    //  Called when connected state changes, to add/remove properties
 
         virtual void TimerHit();
-        virtual bool Connect();
         virtual bool Disconnect();
 
+
+        virtual bool Connect(char *);
         virtual bool Connect(const char *);
 
 

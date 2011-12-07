@@ -125,6 +125,9 @@ CCDSim::CCDSim()
     GuideRate=7;    //  guide rate is 7 arcseconds per second
     TimeFactor=1;
 
+    SimulatorSettingsNV = new INumberVectorProperty;
+    TimeFactorSV = new ISwitchVectorProperty;
+
 }
 
 bool CCDSim::SetupParms()
@@ -151,12 +154,13 @@ bool CCDSim::SetupParms()
     return true;
 }
 
-bool CCDSim::Connect()
+bool CCDSim::Connect(char *msg)
 {
 
     SetupParms();
 
-    if(HasGuideHead) {
+    if(HasGuideHead)
+    {
         SetGuidHeadParams(500,290,8,9.8,12.6);
         RawGuideSize=GXRes*GYRes;                 //  this is pixel count
         RawGuideSize+=512;                      //  leave a little extra at the end
@@ -174,14 +178,7 @@ CCDSim::~CCDSim()
 
 const char * CCDSim::getDefaultName()
 {
-    //fprintf(stderr,"Arrived in getDefaultName and deviceName returns '%s'\n",deviceName());
-    //if(strlen(deviceName())==0) {
         return (char *)"CCD Simulator";
-    //} else {
-    //    char n[500];
-    //    strcpy(n,deviceName());
-    //    return n;
-    //}
 }
 
 bool CCDSim::initProperties()
@@ -190,12 +187,6 @@ bool CCDSim::initProperties()
     //  but the simulators are a special case
     INDI::CCD::initProperties();
 
-    IUFillNumber(&EqN[0],"RA_PEC","Ra (hh:mm:ss)","%010.6m",0,24,0,0);
-    IUFillNumber(&EqN[1],"DEC_PEC","Dec (dd:mm:ss)","%010.6m",-90,90,0,0);
-    IUFillNumberVector(&EqNV,EqN,2,"","EQUATORIAL_PEC","EQ PEC","Main Control",IP_RW,60,IPS_IDLE);
-    //IUFillNumberVector(&EqNV,EqN,2,deviceName(),"EQUATORIAL_EOD_COORD","Eq. Coordinates","Main Control",IP_RW,60,IPS_IDLE);
-
-    SimulatorSettingsNV = new INumberVectorProperty;
     IUFillNumber(&SimulatorSettingsN[0],"SIM_XRES","CCD X resolution","%4.0f",0,2048,0,1280);
     IUFillNumber(&SimulatorSettingsN[1],"SIM_YRES","CCD Y resolution","%4.0f",0,2048,0,1024);
     IUFillNumber(&SimulatorSettingsN[2],"SIM_XSIZE","CCD X Pixel Size","%4.2f",0,60,0,5.2);
@@ -209,14 +200,8 @@ bool CCDSim::initProperties()
     IUFillNumber(&SimulatorSettingsN[10],"SIM_NOISE","CCD Noise","%4.0f",0,6000,0,50);
     IUFillNumber(&SimulatorSettingsN[11],"SIM_SKYGLOW","Sky Glow (magnitudes)","%4.1f",0,6000,0,19.5);
     IUFillNumber(&SimulatorSettingsN[12],"SIM_OAGOFFSET","Oag Offset (arminutes)","%4.1f",0,6000,0,0);
-    IUFillNumberVector(SimulatorSettingsNV,SimulatorSettingsN,13,deviceName(),"SIMULATOR_SETTINGS","Simulator Settings","SimSettings",IP_RW,60,IPS_IDLE);
+    IUFillNumberVector(SimulatorSettingsNV,SimulatorSettingsN,13,deviceName(),"SIMULATOR_SETTINGS","Simulator Settings","Simulator Config",IP_RW,60,IPS_IDLE);
 
-
-    TelescopeTV = new ITextVectorProperty;
-    IUFillText(&TelescopeT[0],"ACTIVE_TELESCOPE","Telescope","");
-    IUFillTextVector(TelescopeTV,TelescopeT,1,deviceName(),"ACTIVE_DEVICES","Snoop Scope","Simulator Config",IP_RW,60,IPS_IDLE);
-
-    TimeFactorSV = new ISwitchVectorProperty;
 
     IUFillSwitch(&TimeFactorS[0],"1X","Actual Time",ISS_ON);
     IUFillSwitch(&TimeFactorS[1],"10X","10x",ISS_OFF);
@@ -238,7 +223,6 @@ void CCDSim::ISGetProperties (const char *dev)
 
     defineNumber(SimulatorSettingsNV);
     defineSwitch(TimeFactorSV);
-    defineText(TelescopeTV);
     //IDDefText(&ConfigFileTV, NULL);
     //IDDefSwitch(&ConfigSaveRestoreSV, NULL);
 
@@ -336,10 +320,12 @@ void CCDSim::TimerHit()
         float timeleft;
         timeleft=CalcTimeLeft(ExpStart,ExposureRequest);
 
-        ImageExposureN[0].value = timeleft;
-        IDSetNumber(ImageExposureNV, NULL);
         if (timeleft < 0)
              timeleft = 0;
+
+        ImageExposureN[0].value = timeleft;
+        IDSetNumber(ImageExposureNP, NULL);
+
         if(timeleft < 1.0)
         {
             if(timeleft <= 0.001)
@@ -357,11 +343,12 @@ void CCDSim::TimerHit()
         float timeleft;
         timeleft=CalcTimeLeft(GuideExpStart,GuideExposureRequest);
 
-        ImageExposureN[0].value = timeleft;
-        IDSetNumber(ImageExposureNV, NULL);
 
         if (timeleft < 0)
              timeleft = 0;
+
+        ImageExposureN[0].value = timeleft;
+        IDSetNumber(ImageExposureNP, NULL);
 
         if(timeleft < 1.0)
         {
@@ -517,7 +504,7 @@ int CCDSim::DrawCcdFrame()
         if(radius > 60) lookuplimit=11;
 
         //  if this is a light frame, we need a star field drawn
-        if(FrameType==FRAME_TYPE_LIGHT)
+        if(FrameType==LIGHT_FRAME)
         {
             //sprintf(gsccmd,"gsc -c %8.6f %+8.6f -r 120 -m 0 9.1",rad+PEOffset,Dec);
             sprintf(gsccmd,"gsc -c %8.6f %+8.6f -r %4.1f -m 0 %4.2f -n 3000",rad+PEOffset,cameradec,radius,lookuplimit);
@@ -605,13 +592,13 @@ int CCDSim::DrawCcdFrame()
         //  this is essentially the same math as drawing a dim star with
         //  fwhm equivalent to the full field of view
 
-        if((FrameType==FRAME_TYPE_LIGHT)||(FrameType==FRAME_TYPE_FLAT))
+        if((FrameType==LIGHT_FRAME)||(FrameType==FLAT_FRAME))
         {
             float skyflux;
             float glow;
             //  calculate flux from our zero point and gain values
             glow=skyglow;
-            if(FrameType==FRAME_TYPE_FLAT)
+            if(FrameType==FLAT_FRAME)
             {
                 //  Assume flats are done with a diffuser
                 //  in broad daylight, so, the sky magnitude
@@ -849,25 +836,6 @@ int CCDSim::GuideWest(float v)
     return 0;
 }
 
-void CCDSim::ISSnoopDevice (XMLEle *root)
- {
-     //fprintf(stderr," ################# CCDSim handling snoop ##############\n");
-     if(IUSnoopNumber(root,&EqNV)==0) {
-        float newra,newdec;
-        newra=EqN[0].value;
-        newdec=EqN[1].value;
-        if((newra != RA)||(newdec != Dec))
-        {
-            //fprintf(stderr,"RA %4.2f  Dec %4.2f Snooped RA %4.2f  Dec %4.2f\n",RA,Dec,newra,newdec);
-            RA=newra;
-            Dec=newdec;
-
-        }
-     } else {
-        //fprintf(stderr,"Snoop Failed\n");
-     }
- }
-
 bool CCDSim::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
     //  first check if it's for our device
@@ -911,33 +879,6 @@ bool CCDSim::ISNewNumber (const char *dev, const char *name, double values[], ch
     //  if we didn't process it, continue up the chain, let somebody else
     //  give it a shot
     return INDI::CCD::ISNewNumber(dev,name,values,names,n);
-}
-bool CCDSim::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    //  Ok, lets see if this is a property wer process
-    //IDLog("IndiTelescope got %d new text items name %s\n",n,name);
-    //  first check if it's for our device
-    if(strcmp(dev,deviceName())==0) {
-        //  This is for our device
-        //  Now lets see if it's something we process here
-        if(strcmp(name,TelescopeTV->name)==0) {
-            int rc;
-            //IDLog("calling update text\n");
-            TelescopeTV->s=IPS_OK;
-            rc=IUUpdateText(TelescopeTV,texts,names,n);
-            //IDLog("update text returns %d\n",rc);
-            //  Update client display
-            IDSetText(TelescopeTV,NULL);
-            saveConfig();
-            IUFillNumberVector(&EqNV,EqN,2,TelescopeT[0].text,"EQUATORIAL_PEC","EQ PEC","Main Control",IP_RW,60,IPS_IDLE);
-            IDSnoopDevice(TelescopeT[0].text,"EQUATORIAL_PEC");
-            //  We processed this one, so, tell the world we did it
-            return true;
-        }
-
-    }
-
-    return INDI::DefaultDriver::ISNewText(dev,name,texts,names,n);
 }
 
 
