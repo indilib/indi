@@ -167,7 +167,7 @@ bool SxWheel::Connect()
 bool SxWheel::Disconnect()
 {
     if(wheelfd != 0) close(wheelfd);
-    wheelfd=NULL;
+    wheelfd=0;
     return true;
 }
 

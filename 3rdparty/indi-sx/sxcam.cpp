@@ -95,14 +95,16 @@ SxCam::~SxCam()
 
 const char * SxCam::getDefaultName()
 {
-    return (char *)"SxCamera";
+    return (char *)"SX CCD";
 }
 
 bool SxCam::Connect()
 {
     IDLog("Checking for SXV-H9\n");
 
-    dev=FindDevice(0x1278,0x0119,0);
+    //dev=FindDevice(0x1278,0x0119,0);
+
+    dev=FindDevice(0x1278,0x0507,0);
     if(dev==NULL)
     {
         IDLog("No SXV-H9 found\n");
@@ -143,6 +145,9 @@ bool SxCam::Connect()
 
             SetCCDParams(parms.width,parms.height,parms.bits_per_pixel,parms.pix_width,parms.pix_height);
 
+            BinX = ImageBinN[0].value;
+            BinY = ImageBinN[1].value;
+            IDSetNumber(ImageBinNP, NULL);
             //  Fill in parent ccd values
             //  Initialize for doing full frames
 
@@ -152,7 +157,8 @@ bool SxCam::Connect()
             RawFrame=new char[RawFrameSize];
 
 
-            if((parms.extra_caps & SXCCD_CAPS_GUIDER)==SXCCD_CAPS_GUIDER) {
+            if((parms.extra_caps & SXCCD_CAPS_GUIDER)==SXCCD_CAPS_GUIDER)
+            {
                 IDLog("Camera has a guide head attached\n");
                 struct t_sxccd_params gparms;
                 rc=GetCameraParams(1,&gparms);
@@ -231,6 +237,7 @@ int SxCam::StartExposure(float n)
     DidLatch=0;
 
     ClearPixels(SXCCD_EXP_FLAGS_FIELD_BOTH,IMAGE_CCD);
+
         //  Relatively long exposure
         //  lets do it on our own timers
         int tval;
@@ -300,9 +307,11 @@ int SxCam::ReadCameraFrame(int index, char *buf)
 
     gettimeofday(&start,NULL);
 
-    if(index==IMAGE_CCD) {
+    if(index==IMAGE_CCD)
+    {
         numbytes=SubW*SubH/BinX/BinY;
         numbytes=numbytes*2;
+        IDLog("SubW: %d - SubH: %d - BinX: %d - BinY: %d\n",SubW, SubH, BinX, BinY);
         IDLog("Download Starting for %d\n",numbytes);
         rc=ReadPixels(buf,numbytes);
     } else {
@@ -502,8 +511,10 @@ int SxCam::GetFirmwareVersion()
 int SxCam::GetCameraParams(int index,PCCDPARMS params)
 {
     unsigned char setup_data[17];
-    int rc;
 
+    unsigned char output_data[17];
+
+    int rc;
     setup_data[USB_REQ_TYPE    ] = USB_REQ_VENDOR | USB_REQ_DATAIN;
     setup_data[USB_REQ         ] = SXUSB_GET_CCD;
     setup_data[USB_REQ_VALUE_L ] = 0;
@@ -513,29 +524,43 @@ int SxCam::GetCameraParams(int index,PCCDPARMS params)
     setup_data[USB_REQ_LENGTH_L] = 17;
     setup_data[USB_REQ_LENGTH_H] = 0;
     rc=WriteBulk((char *)setup_data,17,1000);
-    rc=ReadBulk((char *)setup_data,17,1000);
+    rc=ReadBulk((char *)output_data,17,1000);
     if(rc != 17) {
         IDLog("Bad camera parameters readout\n");
         return -1;
     }
-    params->hfront_porch = setup_data[0];
-    params->hback_porch = setup_data[1];
 
-    IDLog("width raw numbers %d %d\n",setup_data[2],setup_data[3]);
+    for (int i=0; i < 17; i++)
+    {
+        IDLog("OUTPUT[%d]= %#X -- %d\n", i, output_data[i], (int) output_data[i]);
+    }
+    params->hfront_porch = output_data[0];
+    params->hback_porch = output_data[1];
 
-    params->width = setup_data[2] | (setup_data[3] << 8);
-    params->vfront_porch = setup_data[4];
-    params->vback_porch = setup_data[5];
+    IDLog("width raw numbers %d %d\n",output_data[2],output_data[3]);
 
-    IDLog("height raw numbers %d %d\n",setup_data[6],setup_data[7]);
+    params->width = output_data[2] | (output_data[3] << 8);
+    params->vfront_porch = output_data[4];
+    params->vback_porch = output_data[5];
 
-    params->height = setup_data[6] | (setup_data[7] << 8);
-    params->pix_width = (setup_data[8] | (setup_data[9] << 8)) / 256.0;
-    params->pix_height = (setup_data[10] | (setup_data[11] << 8)) / 256.0;
-    params->color_matrix = setup_data[12] | (setup_data[13] << 8);
-    params->bits_per_pixel = setup_data[14];
-    params->num_serial_ports = setup_data[15];
-    params->extra_caps = setup_data[16];
+    IDLog("height raw numbers %d %d\n",output_data[6],output_data[7]);
+
+    params->height = output_data[6] | (output_data[7] << 8);
+    params->pix_width = (output_data[8] | (output_data[9] << 8)) / 256.0;
+    params->pix_height = (output_data[10] | (output_data[11] << 8)) / 256.0;
+
+    // On loadstar, pix_height defaults to 16.6 microns since by default it's 1x2 binned
+    // But since we have no way of knowing that (binnig), we have to check if the difference
+    // in pixel size is big enough to be considered binned.
+    // PixAspect will give us ~2 in the loadstar
+    int pixAspect = floor((params->pix_height / params->pix_width) + 0.5);
+    params->pix_height /= pixAspect;
+    params->height *= pixAspect;
+
+    params->color_matrix = output_data[12] | (output_data[13] << 8);
+    params->bits_per_pixel = output_data[14];
+    params->num_serial_ports = output_data[15];
+    params->extra_caps = output_data[16];
     return (0);
 }
 
@@ -560,6 +585,8 @@ int SxCam::LatchPixels(int flags,int camIndex,int xoffset,int yoffset,int width,
 {
     char setup_data[18];
     int rc;
+
+    IDLog("Latch pixels: xoffset: %d - yoffset: %d - Width: %d - Height: %d - xbin: %d - ybin: %d\n", xoffset, yoffset, width, height, xbin, ybin);
 
     setup_data[USB_REQ_TYPE    ] = USB_REQ_VENDOR | USB_REQ_DATAOUT;
     setup_data[USB_REQ         ] = SXUSB_READ_PIXELS;
@@ -589,6 +616,7 @@ int SxCam::ExposePixels(int flags,int camIndex,int xoffset,int yoffset,int width
     char setup_data[22];
     int rc;
 
+    IDLog("Expose pixels: xoffset: %d - yoffset: %d - Width: %d - Height: %d - xbin: %d - ybin: %d - delay: %d\n", xoffset, yoffset, width, height, xbin, ybin, msec);
     setup_data[USB_REQ_TYPE    ] = USB_REQ_VENDOR | USB_REQ_DATAOUT;
     setup_data[USB_REQ         ] = SXUSB_READ_PIXELS_DELAYED;
     setup_data[USB_REQ_VALUE_L ] = flags;
