@@ -62,28 +62,40 @@ class QSICCD : public INDI::CCD
     INumber TemperatureN[1];
     INumberVectorProperty *TemperatureNP;
 
-    bool canAbort;
+    INumber FilterN[1];
+    INumberVectorProperty *FilterNP;
+
+    IText *FilterT;
+    ITextVectorProperty *FilterTP;
+
+    ISwitch FilterS[2];
+    ISwitchVectorProperty *FilterSP;
+
+    ISwitch ReadOutS[2];
+    ISwitchVectorProperty *ReadOutSP;
+
+    bool canAbort, canGuide;
     short targetFilter;
     double ccdTemp;
-
+    double minDuration;
     unsigned short *imageBuffer;
     double imageExpose;
     int imageWidth, imageHeight;
     INDI::CCD::CCD_FRAME imageFrameType;
+    struct timeval ExpStart;
 
-
-     struct timeval ExpStart;
-     float CalcTimeLeft(timeval,float);
-     int grabImage();
-     bool setupParams();
-     int manageDefaults(char errmsg[]);
-
-     void activateCooler();
-     void resetFrame();
-     void shutterControl();
-     double min();
-     double max();
-     void fits_update_key_s(fitsfile* fptr, int type, string name, void* p, string explanation, int* status);
+    float CalcTimeLeft(timeval,float);
+    int grabImage();
+    bool setupParams();
+    void initFilterNames();
+    int manageDefaults(char errmsg[]);
+    void activateCooler();
+    void resetFrame();
+    void shutterControl();
+    void turnWheel();
+    double min();
+    double max();
+    void fits_update_key_s(fitsfile* fptr, int type, string name, void* p, string explanation, int* status);
 
 public:
 
@@ -95,7 +107,7 @@ public:
     bool initProperties();
     bool updateProperties();
 
-    bool Connect(char *msg);
+    bool Connect();
     bool Disconnect();
 
     int StartExposure(float duration);
@@ -110,6 +122,12 @@ public:
 
     virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
     virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+
+    virtual int GuideNorth(float);
+    virtual int GuideSouth(float);
+    virtual int GuideEast(float);
+    virtual int GuideWest(float);
 
 
 };
