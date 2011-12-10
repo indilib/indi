@@ -848,9 +848,6 @@ void QSICCD::updateCCDBin()
  N.B. No processing is done on the image */
 int QSICCD::grabImage()
 {
-
-	int fd;
-	char errmsg[ERRMSG_SIZE];
         unsigned short* image = (unsigned short *) RawFrame;
 
         memset(RawFrame,0,RawFrameSize);
