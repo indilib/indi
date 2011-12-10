@@ -166,6 +166,10 @@ class SxCam : public INDI::CCD , public INDI::USBDevice
 
         int DidFlush;
         int DidLatch;
+        int SubType;
+        unsigned short int CameraModel;
+        bool Interlaced;
+        bool ColorSensor;
 
         float CalcTimeLeft();
         bool InExposure;
@@ -178,8 +182,10 @@ class SxCam : public INDI::CCD , public INDI::USBDevice
         struct timeval GuideExpStart;
         float CalcGuideTimeLeft();
 
+        char *RawData;
 
         int ReadCameraFrame(int,char *);
+        int ProcessRawData(char *, char *);
 
 
     public:

@@ -1,12 +1,12 @@
 <devGroup group="CCDs">
-	<device label="SxCamera">
-		<driver name="SxCamera">indi_sx_ccd</driver>
+        <device label="SX CCD">
+                <driver name="SX CCD">indi_sx_ccd</driver>
 		<version>1.0</version>
 	</device>
 </devGroup>
 <devGroup group="Filter Wheels">
-	<device label="SxWheel">
-		<driver name="SxWheel">indi_sx_wheel</driver>
+        <device label="SX Wheel">
+                <driver name="SX Wheel">indi_sx_wheel</driver>
 		<version>1.0</version>
 	</device>
 </devGroup>

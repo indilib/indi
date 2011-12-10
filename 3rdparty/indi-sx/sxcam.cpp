@@ -85,6 +85,8 @@ SxCam::SxCam()
     SubH=1040;
     BinX=1;
     BinY=1;
+    Interlaced=false;
+    RawFrame = NULL;
 }
 
 SxCam::~SxCam()
@@ -151,11 +153,14 @@ bool SxCam::Connect()
             //  Fill in parent ccd values
             //  Initialize for doing full frames
 
+            if (RawFrame != NULL)
+                delete RawFrame;
+
             RawFrameSize=XRes*YRes;                 //  this is pixel count
             RawFrameSize=RawFrameSize*2;            //  Each pixel is 2 bytes
             RawFrameSize+=512;                      //  leave a little extra at the end
             RawFrame=new char[RawFrameSize];
-
+            RawData = new char[RawFrameSize];
 
             if((parms.extra_caps & SXCCD_CAPS_GUIDER)==SXCCD_CAPS_GUIDER)
             {
@@ -238,28 +243,29 @@ int SxCam::StartExposure(float n)
 
     ClearPixels(SXCCD_EXP_FLAGS_FIELD_BOTH,IMAGE_CCD);
 
-        //  Relatively long exposure
-        //  lets do it on our own timers
-        int tval;
-        tval=n*1000;
-        tval=tval-50;
-        if(tval < 1) tval=1;
-        if(tval > 250) tval=250;
-        SetTimer(tval);
+     //  Relatively long exposure
+     //  lets do it on our own timers
+     int tval;
+     tval=n*1000;
+     tval=tval-50;
+     if(tval < 1)
+         tval=1;
+     if(tval > 250)
+         tval=250;
+
+     SetTimer(tval);
 
     return 0;
 }
 
 int SxCam::StartGuideExposure(float n)
 {
-
-
-
     GuideExposureRequest=n;
 
     IDLog("Start guide exposure %4.2f\n",n);
 
-    if(InGuideExposure) {
+    if(InGuideExposure)
+    {
         //  We already have an exposure running
         //  so we just change the exposure time
         //  and return
@@ -309,12 +315,20 @@ int SxCam::ReadCameraFrame(int index, char *buf)
 
     if(index==IMAGE_CCD)
     {
-        numbytes=SubW*SubH/BinX/BinY;
+        if (Interlaced)
+            numbytes=SubW*SubH/BinX/BinY/2;
+        else
+            numbytes=SubW*SubH/BinX/BinY;
+
         numbytes=numbytes*2;
-        IDLog("SubW: %d - SubH: %d - BinX: %d - BinY: %d\n",SubW, SubH, BinX, BinY);
+        if (Interlaced)
+            IDLog("SubW: %d - SubH: %d - BinX: %d - BinY: %d\n",SubW, SubH/2, BinX, BinY);
+        else
+            IDLog("SubW: %d - SubH: %d - BinX: %d - BinY: %d\n",SubW, SubH, BinX, BinY);
         IDLog("Download Starting for %d\n",numbytes);
         rc=ReadPixels(buf,numbytes);
-    } else {
+    } else
+    {
         numbytes=GSubW*GSubH;
         //numbytes=numbytes*2;
         IDLog("Download Starting for %d\n",numbytes);
@@ -343,53 +357,72 @@ void SxCam::TimerHit()
     //  and its nearing the end, but not quite there yet
     //  We want to flush the accumulators
 
-    if(InExposure) {
+    if(InExposure)
+    {
         timeleft=CalcTimeLeft();
 
-        if((timeleft < 3) && (timeleft > 2) && (DidFlush==0)&&(InExposure)) {
+        if((timeleft < 3) && (timeleft > 2) && (DidFlush==0)&&(InExposure))
+        {
             //  This will clear accumulators, but, not affect the
             //  light sensative parts currently exposing
             IDLog("Doing Flush\n");
             ClearPixels(SXCCD_EXP_FLAGS_NOWIPE_FRAME,IMAGE_CCD);
             DidFlush=1;
         }
-        if(timeleft < 1.0) {
+
+        if(timeleft < 1.0)
+        {
             IgnoreGuider=true;
-            if(timeleft > 0.25) {
+            if(timeleft > 0.25)
+            {
                 //  a quarter of a second or more
                 //  just set a tighter timer
                 SetTimer(250);
-            } else {
-                if(timeleft >0.07) {
+            } else
+            {
+                if(timeleft >0.07)
+                {
                     //  use an even tighter timer
                     SetTimer(50);
-                } else {
+                } else
+                {
                     //  it's real close now, so spin on it
-                    while(timeleft > 0) {
+                    while(timeleft > 0)
+                    {
                         int slv;
                         slv=100000*timeleft;
                         //IDLog("usleep %d\n",slv);
                         usleep(slv);
                         timeleft=CalcTimeLeft();
                     }
-                    //  first a flush
-                    rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_BOTH,IMAGE_CCD,SubX,SubY,SubW,SubH,BinX,BinY);
+                    //  Latch Pixels
+                    if (Interlaced)
+                        rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_ODD,IMAGE_CCD,SubX,SubY,SubW,SubH/2,BinX,BinY);
+                    else
+                        rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_BOTH,IMAGE_CCD,SubX,SubY,SubW,SubH,BinX,BinY);
+
                     //rc=LatchPixels(0,GUIDE_CCD,GSubX,GSubY,GSubW,GSubH,1,1);
                     DidLatch=1;
                     IDLog("Image Pixels latched\n");
                 }
             }
-        } else {
+        } else
+        {
             if(!InGuideExposure) SetTimer(250);
         }
     }
 
-    if(!IgnoreGuider) {
-        if(InGuideExposure) {
+    if(!IgnoreGuider)
+    {
+        if(InGuideExposure)
+        {
             timeleft=CalcGuideTimeLeft();
-            if(timeleft < 0.25) {
-                if(timeleft < 0.10) {
-                    while(timeleft > 0) {
+            if(timeleft < 0.25)
+            {
+                if(timeleft < 0.10)
+                {
+                    while(timeleft > 0)
+                    {
                         int slv;
                         slv=100000*timeleft;
                         //IDLog("usleep %d\n",slv);
@@ -405,28 +438,35 @@ void SxCam::TimerHit()
                     DidGuideLatch=1;
                     IDLog("Guide Even Pixels latched\n");
 
-                } else {
+                } else
+                {
                     SetTimer(100);
                 }
-            } else {
+            } else
+            {
                 SetTimer(250);
             }
         }
     }
 
-    if(DidLatch==1) {
+    if(DidLatch==1)
+    {
         //  Pixels have been latched
         //  now download them
         int rc;
-        rc=ReadCameraFrame(IMAGE_CCD,RawFrame);
+        rc=ReadCameraFrame(IMAGE_CCD,RawData);
+        rc=ProcessRawData(RawFrame, RawData);
         DidLatch=0;
         InExposure=false;
+
+
         ExposureComplete();
         //  if we get here, we quite likely ignored a guider hit
         if(InGuideExposure) SetTimer(1);    //  just make it all run again
 
     }
-    if(DidGuideLatch==1) {
+    if(DidGuideLatch==1)
+    {
         int rc;
         rc=ReadCameraFrame(GUIDE_CCD,RawGuiderFrame);
         DidGuideLatch=0;
@@ -443,8 +483,85 @@ void SxCam::TimerHit()
     }
 }
 
+int SxCam::ProcessRawData(char *imageData, char *rawData)
+{
+    int xsize, ysize, npixels;
+    char *rawptr, *dataptr;
+
+    rawptr = rawData;
+    dataptr = imageData;
+
+    xsize = SubW;
+
+    if (Interlaced)
+        ysize = SubH / 2;
+    else
+        ysize = SubH;
+
+    npixels = xsize * ysize / BinX / BinY;
+
+    if (CameraModel == 39)
+    { // CMOS guider -- crop and clean
+            int x, y, val;
+            int oddbias, evenbias;
+
+            for (y=0; y<SubH; y++)
+            {
+                    oddbias = evenbias = 0;
+                    for (x=0; x<16; x+=2)
+                    { // Figure the offsets for this line
+                            oddbias += (int) *rawptr++;
+                            evenbias += (int) *rawptr++;
+                    }
+                    oddbias = oddbias / 8 - 1000;  // Create avg and pre-build in the offset to keep off of the floor
+                    evenbias = evenbias / 8 - 1000;
+                    for (x=0; x<SubW; x+=2)
+                    { // Load value into new image array pulling out right bias
+                            val = (int) *rawptr++ - oddbias;
+                            if (val < 0.0) val = 0.0;  //Bounds check
+                            else if (val > 65535.0) val = 65535.0;
+                            *dataptr++ = (unsigned short) val;
+                            val = (int) *rawptr++ - evenbias;
+                            if (val < 0.0) val = 0.0;  //Bounds check
+                            else if (val > 65535.0) val = 65535.0;
+                            *dataptr++ = (unsigned short) val;
+                    }
+            }
+    }
+    else if (Interlaced)
+    {  // recon 1x2 bin into full-frame
+            unsigned int x,y;
+            for (y=0; y<ysize; y++)
+            {  // load into image w/skips
+                    for (x=0; x<xsize; x++, rawptr++, dataptr++)
+                    {
+                            *dataptr = (*rawptr);
+                    }
+                    dataptr += xsize;
+            }
+            // interpolate
+            dataptr = imageData + xsize;
+            for (y=0; y<(ysize - 1); y++)
+            {
+                    for (x=0; x<xsize; x++, dataptr++)
+                            *dataptr = ( *(dataptr - xsize) + *(dataptr + xsize) ) / 2;
+                    dataptr += xsize;
+            }
+            for (x=0; x<xsize; x++, dataptr++)
+                    *dataptr =  *(dataptr - xsize);
+
+    }
+    else {  // Progressive
+            for (int i=0; i<npixels; i++, rawptr++, dataptr++)
+            {
+                    *dataptr = (*rawptr);
+            }
+    }
 
 
+
+    return 0;
+}
 
 int SxCam::ResetCamera()
 {
@@ -469,7 +586,7 @@ int SxCam::ResetCamera()
 int SxCam::GetCameraModel()
 {
     char setup_data[8];
-    unsigned short int model;
+    char Name[MAXINDILABEL];
     int rc;
 
     setup_data[USB_REQ_TYPE    ] = USB_REQ_VENDOR | USB_REQ_DATAIN;
@@ -481,9 +598,32 @@ int SxCam::GetCameraModel()
     setup_data[USB_REQ_LENGTH_L] = 2;
     setup_data[USB_REQ_LENGTH_H] = 0;
     rc=WriteBulk(setup_data,8,1000);
-    rc=ReadBulk((char *)&model,2,1000);
-    IDLog("GetCameraModel returns %d\n",model);
-    return model;
+    rc=ReadBulk((char *)&CameraModel,2,1000);
+    IDLog("GetCameraModel returns %d\n",CameraModel);
+
+    snprintf(Name, MAXINDILABEL, "SXV-%c%d%c", CameraModel & 0x40 ? 'M' : 'H', CameraModel & 0x1F, CameraModel & 0x80 ? 'C' : '\0');
+
+    SubType = CameraModel & 0x1F;
+
+    if (CameraModel & 0x80)  // color
+            ColorSensor = true;
+    else
+            ColorSensor = false;
+
+    if (CameraModel & 0x40)
+            Interlaced = true;
+    else
+            Interlaced = false;
+
+    if (SubType == 25)
+            Interlaced = false;
+
+    if (Interlaced)
+        IDMessage(deviceName(), "Detected interlaced camera %s", Name);
+    else
+        IDMessage(deviceName(), "Detected progressive camera %s", Name);
+
+    return CameraModel;
 }
 
 int SxCam::GetFirmwareVersion()
@@ -549,13 +689,14 @@ int SxCam::GetCameraParams(int index,PCCDPARMS params)
     params->pix_width = (output_data[8] | (output_data[9] << 8)) / 256.0;
     params->pix_height = (output_data[10] | (output_data[11] << 8)) / 256.0;
 
-    // On loadstar, pix_height defaults to 16.6 microns since by default it's 1x2 binned
-    // But since we have no way of knowing that (binnig), we have to check if the difference
-    // in pixel size is big enough to be considered binned.
-    // PixAspect will give us ~2 in the loadstar
-    int pixAspect = floor((params->pix_height / params->pix_width) + 0.5);
-    params->pix_height /= pixAspect;
-    params->height *= pixAspect;
+    // Interlaced cameras only report half the field and double the pixel height
+    // So correct for it.
+    if (Interlaced)
+    {
+        int pixAspect = floor((params->pix_height / params->pix_width) + 0.5);
+        params->pix_height /= pixAspect;
+        params->height *= pixAspect;
+    }
 
     params->color_matrix = output_data[12] | (output_data[13] << 8);
     params->bits_per_pixel = output_data[14];
@@ -655,7 +796,7 @@ int SxCam::ReadPixels(char *pixels,int count)
     //total++;
     //total=total*256;
 
-    rc=ReadBulk(pixels,total,35000);
+    rc=ReadBulk(pixels,total,10000);
     //total+=rc;
     //if(rc > count) rc=count;
     IDLog("Read Pixels request %d got %d\n",count,rc);
