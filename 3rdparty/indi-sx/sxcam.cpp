@@ -123,7 +123,7 @@ bool SxCam::Connect()
 
         usb_detach_kernel_driver_np(usb_handle,0);
         IDLog("Detach Kernel returns %d\n",rc);
-        rc=usb_set_configuration(usb_handle,1);
+        //rc=usb_set_configuration(usb_handle,1);
         IDLog("Set Configuration returns %d\n",rc);
 
         rc=usb_claim_interface(usb_handle,1);
@@ -243,6 +243,7 @@ int SxCam::StartExposure(float n)
 
     ClearPixels(SXCCD_EXP_FLAGS_FIELD_BOTH,IMAGE_CCD);
 
+
      //  Relatively long exposure
      //  lets do it on our own timers
      int tval;
@@ -252,6 +253,8 @@ int SxCam::StartExposure(float n)
          tval=1;
      if(tval > 250)
          tval=250;
+
+     IDLog("Cleared both fields, setting timer to %d\n", tval);
 
      SetTimer(tval);
 
@@ -306,6 +309,7 @@ int SxCam::ReadCameraFrame(int index, char *buf)
 {
     int rc;
     int numbytes;
+    //static int expCount=0;
 
     double timesince;
     struct timeval start;
@@ -316,17 +320,33 @@ int SxCam::ReadCameraFrame(int index, char *buf)
     if(index==IMAGE_CCD)
     {
         if (Interlaced)
-            numbytes=SubW*SubH/BinX/BinY/2;
-        else
-            numbytes=SubW*SubH/BinX/BinY;
+        {
+            numbytes=SubW*SubH/BinX/BinY/4;
+            //numbytes= 28672 + expCount;
 
-        numbytes=numbytes*2;
-        if (Interlaced)
-            IDLog("SubW: %d - SubH: %d - BinX: %d - BinY: %d\n",SubW, SubH/2, BinX, BinY);
+            //expCount += 64;
+
+            IDLog("Total Bytes: %d - SubW: %d - SubH: %d - BinX: %d - BinY: %d\n", numbytes, SubW, SubH, BinX, BinY);
+
+            IDLog("Latching EVEN lines...\n");
+            rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_EVEN,IMAGE_CCD,SubX,SubY,SubW,SubH,BinX,BinY);
+            IDLog("Latch result: %d. Reading EVEN lines...\n", rc);
+            rc=ReadPixels(buf,numbytes);
+            IDLog("Latching ODD lines...\n");
+            rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_ODD,IMAGE_CCD,SubX,SubY,SubW,SubH,BinX,BinY);
+            IDLog("Latch result: %d. Reading ODD lines...\n", rc);
+            rc=ReadPixels(buf,numbytes);
+
+
+
+        }
         else
+        {
+            numbytes=SubW*SubH/BinX/BinY;
             IDLog("SubW: %d - SubH: %d - BinX: %d - BinY: %d\n",SubW, SubH, BinX, BinY);
         IDLog("Download Starting for %d\n",numbytes);
         rc=ReadPixels(buf,numbytes);
+        }
     } else
     {
         numbytes=GSubW*GSubH;
@@ -395,15 +415,16 @@ void SxCam::TimerHit()
                         usleep(slv);
                         timeleft=CalcTimeLeft();
                     }
-                    //  Latch Pixels
-                    if (Interlaced)
-                        rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_ODD,IMAGE_CCD,SubX,SubY,SubW,SubH/2,BinX,BinY);
-                    else
+
+                        if (Interlaced == false)
+                        {
+                        IDLog("Image Pixels latched with rc=%d\n", rc);
                         rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_BOTH,IMAGE_CCD,SubX,SubY,SubW,SubH,BinX,BinY);
+                        }
 
                     //rc=LatchPixels(0,GUIDE_CCD,GSubX,GSubY,GSubW,GSubH,1,1);
                     DidLatch=1;
-                    IDLog("Image Pixels latched\n");
+
                 }
             }
         } else
@@ -455,7 +476,9 @@ void SxCam::TimerHit()
         //  now download them
         int rc;
         rc=ReadCameraFrame(IMAGE_CCD,RawData);
+        IDLog("Read camera frame with rc=%d\n", rc);
         rc=ProcessRawData(RawFrame, RawData);
+        IDLog("processed raw data with rc=%d\n", rc);
         DidLatch=0;
         InExposure=false;
 
@@ -487,6 +510,10 @@ int SxCam::ProcessRawData(char *imageData, char *rawData)
 {
     int xsize, ysize, npixels;
     char *rawptr, *dataptr;
+
+    // FIXME TEMP ONLY
+    imageData = rawData;
+    return 0;
 
     rawptr = rawData;
     dataptr = imageData;
@@ -691,12 +718,12 @@ int SxCam::GetCameraParams(int index,PCCDPARMS params)
 
     // Interlaced cameras only report half the field and double the pixel height
     // So correct for it.
-    if (Interlaced)
+    /*if (Interlaced)
     {
         int pixAspect = floor((params->pix_height / params->pix_width) + 0.5);
         params->pix_height /= pixAspect;
         params->height *= pixAspect;
-    }
+    }*/
 
     params->color_matrix = output_data[12] | (output_data[13] << 8);
     params->bits_per_pixel = output_data[14];
@@ -789,6 +816,10 @@ int SxCam::ReadPixels(char *pixels,int count)
 {
     int rc;
     int total;
+
+    // Let's set them all to WHITE
+    //for (int i=0; i<count; i++)
+      //  pixels[i] = 255;
 
     total=count;
     //  round to divisible by 256
