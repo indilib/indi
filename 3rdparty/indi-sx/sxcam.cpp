@@ -87,6 +87,7 @@ SxCam::SxCam()
     BinY=1;
     Interlaced=false;
     RawFrame = NULL;
+	CamBits=8;
 }
 
 SxCam::~SxCam()
@@ -103,11 +104,12 @@ const char * SxCam::getDefaultName()
 bool SxCam::Connect()
 {
     IDLog("Checking for SXV-H9\n");
-
-    //dev=FindDevice(0x1278,0x0119,0);
-
-    dev=FindDevice(0x1278,0x0507,0);
-    if(dev==NULL)
+    dev=FindDevice(0x1278,0x0119,0);
+	if(NULL==dev) {
+	    IDLog("Checking for lodestar\n");
+    	dev=FindDevice(0x1278,0x0507,0);
+	}
+   if(dev==NULL)
     {
         IDLog("No SXV-H9 found\n");
         IDMessage(deviceName(), "Error: No SXV-H9 found.");
@@ -146,10 +148,11 @@ bool SxCam::Connect()
             IDLog("Camera has %d serial ports\n",parms.num_serial_ports);
 
             SetCCDParams(parms.width,parms.height,parms.bits_per_pixel,parms.pix_width,parms.pix_height);
+			CamBits=parms.bits_per_pixel;
 
             BinX = ImageBinN[0].value;
             BinY = ImageBinN[1].value;
-            IDSetNumber(ImageBinNP, NULL);
+            //IDSetNumber(ImageBinNP, NULL);
             //  Fill in parent ccd values
             //  Initialize for doing full frames
 
@@ -343,9 +346,10 @@ int SxCam::ReadCameraFrame(int index, char *buf)
         else
         {
             numbytes=SubW*SubH/BinX/BinY;
+			if(CamBits==16) numbytes=numbytes*2;
             IDLog("SubW: %d - SubH: %d - BinX: %d - BinY: %d\n",SubW, SubH, BinX, BinY);
-        IDLog("Download Starting for %d\n",numbytes);
-        rc=ReadPixels(buf,numbytes);
+        	IDLog("Read Starting for %d\n",numbytes);
+        	rc=ReadPixels(buf,numbytes);
         }
     } else
     {
@@ -478,7 +482,7 @@ void SxCam::TimerHit()
         rc=ReadCameraFrame(IMAGE_CCD,RawData);
         IDLog("Read camera frame with rc=%d\n", rc);
         rc=ProcessRawData(RawFrame, RawData);
-        IDLog("processed raw data with rc=%d\n", rc);
+        //IDLog("processed raw data with rc=%d\n", rc);
         DidLatch=0;
         InExposure=false;
 
@@ -510,9 +514,13 @@ int SxCam::ProcessRawData(char *imageData, char *rawData)
 {
     int xsize, ysize, npixels;
     char *rawptr, *dataptr;
-
+	int rawsize;
     // FIXME TEMP ONLY
-    imageData = rawData;
+    //imageData = rawData;
+	
+	rawsize=SubW*SubH/BinX/BinY;
+	if(CamBits==16) rawsize=rawsize*2;
+	memcpy(imageData,rawData,rawsize);
     return 0;
 
     rawptr = rawData;
@@ -831,6 +839,9 @@ int SxCam::ReadPixels(char *pixels,int count)
     //total+=rc;
     //if(rc > count) rc=count;
     IDLog("Read Pixels request %d got %d\n",count,rc);
+
+	//  put in a test pattern for testing
+	//for(int x=0; x<count; x++) pixels[x]=x%256;
 
 	//FILE *h = fopen("rawcam.dat", "w+");
 	//fwrite(pixels, count, 1, h);

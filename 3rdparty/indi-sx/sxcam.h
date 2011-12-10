@@ -170,6 +170,7 @@ class SxCam : public INDI::CCD , public INDI::USBDevice
         unsigned short int CameraModel;
         bool Interlaced;
         bool ColorSensor;
+		int CamBits;
 
         float CalcTimeLeft();
         bool InExposure;
