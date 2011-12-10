@@ -200,7 +200,7 @@ void TCFS::init_properties()
 **
 **
 *****************************************************************/   
-bool TCFS::Connect(char *msg)
+bool TCFS::Connect()
 {
     ITextVectorProperty *tProp = getText("DEVICE_PORT");
 
@@ -238,8 +238,7 @@ bool TCFS::Connect(char *msg)
 
     if (tty_connect(tProp->tp[0].text, 19200, 8, 0, 1, &fd) != TTY_OK)
     {
-        ConnectSP->s = IPS_ALERT;
-        IDSetSwitch (ConnectSP, "Error connecting to port %s. Make sure you have BOTH read and write permission to the port.", tProp->tp[0].text);
+        IDMessage(deviceName(), "Error connecting to port %s. Make sure you have BOTH read and write permission to the port.", tProp->tp[0].text);
 	return false;
     }
 
@@ -251,7 +250,7 @@ bool TCFS::Connect(char *msg)
         {
             if (!strcmp(response, "!"))
             {
-                setConnected(true, IPS_OK, "Successfully connected to TCF-S Focuser in Manual Mode.");
+                IDMessage(deviceName(), "Successfully connected to TCF-S Focuser in Manual Mode.");
 
                 IUResetSwitch(FocusModeSP);
                 FocusModeSP->sp[0].s = ISS_ON;
@@ -274,7 +273,7 @@ bool TCFS::Connect(char *msg)
         usleep(500000);
     }
 
-    setConnected(false, IPS_ALERT, "Error connecting to TCF-S focuser...");
+    IDMessage(deviceName(), "Error connecting to TCF-S focuser...");
     return false;
 
 }

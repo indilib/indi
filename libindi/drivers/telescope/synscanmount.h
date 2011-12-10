@@ -38,6 +38,7 @@ class SynscanMount : public INDI::Telescope
         void ISGetProperties (const char *dev);
         const char *getDefaultName();
 
+        virtual bool Connect() {return true;}
         bool ReadScopeStatus();
         bool Goto(double,double);
         bool Park();

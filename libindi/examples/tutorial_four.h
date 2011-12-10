@@ -39,7 +39,7 @@ class MyScope : public INDI::DefaultDriver
 private:
  const char *getDefaultName();
  virtual bool initProperties();
- virtual bool Connect(char *msg);
+ virtual bool Connect();
  virtual bool Disconnect();
 
 };

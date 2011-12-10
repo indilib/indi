@@ -76,7 +76,7 @@ const char *FilterSim::getDefaultName()
     return (char *)"Filter Simulator";
 }
 
-bool FilterSim::Connect(char *msg)
+bool FilterSim::Connect()
 {
     CurrentFilter=1;
     MinFilter=1;

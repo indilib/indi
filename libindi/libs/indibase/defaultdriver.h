@@ -174,7 +174,7 @@ protected:
         routine in the function.
         \return True if connection to device is successful, false otherwise.
     */
-    virtual bool Connect(char *msg)=0;
+    virtual bool Connect()=0;
 
     /** \brief Disconnect from a device. Child classes must implement this function and perform the disconnection
         routine in the function.

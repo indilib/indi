@@ -154,7 +154,7 @@ bool CCDSim::SetupParms()
     return true;
 }
 
-bool CCDSim::Connect(char *msg)
+bool CCDSim::Connect()
 {
 
     SetupParms();

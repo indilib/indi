@@ -264,7 +264,7 @@ bool MyScope::ISNewSwitch (const char *dev, const char *name, ISState *states, c
 /**************************************************************************************
 **
 ***************************************************************************************/
-bool MyScope::Connect(char *msg)
+bool MyScope::Connect()
 {
     return true;
 }

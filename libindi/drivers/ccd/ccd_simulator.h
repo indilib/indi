@@ -93,7 +93,7 @@ class CCDSim : public INDI::CCD
         void ISGetProperties (const char *dev);
 
 
-        bool Connect(char *msg);
+        bool Connect();
         bool Disconnect();
 
         int StartExposure(float duration);
