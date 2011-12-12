@@ -29,17 +29,13 @@ include (MacroBoolTo01)
 include (CheckIncludeFiles)
 
 FIND_PACKAGE(ZLIB REQUIRED)
-
+FIND_PACKAGE(USB REQUIRED)
 FIND_PACKAGE(Boost REQUIRED)
+FIND_PACKAGE(CFITSIO REQUIRED)
+
 IF (BOOST_FOUND)
     INCLUDE_DIRECTORIES(${BOOST_INCLUDE_DIR})
 ENDIF()
-
-
-macro_optional_find_package(USB)
-macro_log_feature(LIBUSB_FOUND "libusb" "User level access to USB devices" "http://www.libusb.org" FALSE "" "Provides support for USB based drivers in INDI.")
-
-macro_optional_find_package(CFITSIO)
 
 if (NOT CFITSIO_FOUND OR CFITSIO_VERSION_MAJOR LESS 3)
   message(FATAL_ERROR "CFITSIO version too old, Please install cfitsio 3.x and try again. http://heasarc.gsfc.nasa.gov/fitsio/fitsio.html")
@@ -47,7 +43,6 @@ endif (NOT CFITSIO_FOUND OR CFITSIO_VERSION_MAJOR LESS 3)
 
 macro_bool_to_01(CFITSIO_FOUND HAVE_CFITSIO_H)
 macro_log_feature(CFITSIO_FOUND "libcfitsio" "A library for reading and writing data files in FITS (Flexible Image Transport System) data format" "http://indi.sf.net" FALSE "3.03" "Provides INDI with FITS I/O support.")
-
 
 macro_optional_find_package(Nova)
 macro_bool_to_01(NOVA_FOUND HAVE_NOVA_H)
