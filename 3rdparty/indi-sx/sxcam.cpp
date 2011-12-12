@@ -148,7 +148,8 @@ bool SxCam::Connect()
             IDLog("Camera has %d serial ports\n",parms.num_serial_ports);
 
             SetCCDParams(parms.width,parms.height,parms.bits_per_pixel,parms.pix_width,parms.pix_height);
-			CamBits=parms.bits_per_pixel;
+
+            CamBits=parms.bits_per_pixel;
 
             BinX = ImageBinN[0].value;
             BinY = ImageBinN[1].value;
@@ -163,7 +164,6 @@ bool SxCam::Connect()
             RawFrameSize=RawFrameSize*2;            //  Each pixel is 2 bytes
             RawFrameSize+=512;                      //  leave a little extra at the end
             RawFrame=new char[RawFrameSize];
-            RawData = new char[RawFrameSize];
 
             if((parms.extra_caps & SXCCD_CAPS_GUIDER)==SXCCD_CAPS_GUIDER)
             {
@@ -246,8 +246,7 @@ int SxCam::StartExposure(float n)
 
     ClearPixels(SXCCD_EXP_FLAGS_FIELD_BOTH,IMAGE_CCD);
 
-
-     //  Relatively long exposure
+    //  Relatively long exposure
      //  lets do it on our own timers
      int tval;
      tval=n*1000;
@@ -257,7 +256,7 @@ int SxCam::StartExposure(float n)
      if(tval > 250)
          tval=250;
 
-     IDLog("Cleared both fields, setting timer to %d\n", tval);
+     IDLog("Cleared all fields, setting timer to %d\n", tval);
 
      SetTimer(tval);
 
@@ -308,66 +307,6 @@ bool SxCam::AbortGuideExposure()
     return false;
 }
 
-int SxCam::ReadCameraFrame(int index, char *buf)
-{
-    int rc;
-    int numbytes;
-    //static int expCount=0;
-
-    double timesince;
-    struct timeval start;
-    struct timeval end;
-
-    gettimeofday(&start,NULL);
-
-    if(index==IMAGE_CCD)
-    {
-        if (Interlaced)
-        {
-            numbytes=SubW*SubH/BinX/BinY/4;
-            //numbytes= 28672 + expCount;
-
-            //expCount += 64;
-
-            IDLog("Total Bytes: %d - SubW: %d - SubH: %d - BinX: %d - BinY: %d\n", numbytes, SubW, SubH, BinX, BinY);
-
-            IDLog("Latching EVEN lines...\n");
-            rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_EVEN,IMAGE_CCD,SubX,SubY,SubW,SubH,BinX,BinY);
-            IDLog("Latch result: %d. Reading EVEN lines...\n", rc);
-            rc=ReadPixels(buf,numbytes);
-            IDLog("Latching ODD lines...\n");
-            rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_ODD,IMAGE_CCD,SubX,SubY,SubW,SubH,BinX,BinY);
-            IDLog("Latch result: %d. Reading ODD lines...\n", rc);
-            rc=ReadPixels(buf,numbytes);
-
-
-
-        }
-        else
-        {
-            numbytes=SubW*SubH/BinX/BinY;
-			if(CamBits==16) numbytes=numbytes*2;
-            IDLog("SubW: %d - SubH: %d - BinX: %d - BinY: %d\n",SubW, SubH, BinX, BinY);
-        	IDLog("Read Starting for %d\n",numbytes);
-        	rc=ReadPixels(buf,numbytes);
-        }
-    } else
-    {
-        numbytes=GSubW*GSubH;
-        //numbytes=numbytes*2;
-        IDLog("Download Starting for %d\n",numbytes);
-        rc=ReadPixels(buf,numbytes);
-
-    }
-
-    gettimeofday(&end,NULL);
-
-    timesince=(double)(end.tv_sec * 1000.0 + end.tv_usec/1000) - (double)(start.tv_sec * 1000.0 + start.tv_usec/1000);
-    timesince=timesince/1000;
-
-    IDLog("Download returns %d in %4.2f seconds\n",rc,timesince);
-    return rc;
-}
 
 void SxCam::TimerHit()
 {
@@ -420,13 +359,9 @@ void SxCam::TimerHit()
                         timeleft=CalcTimeLeft();
                     }
 
-                        if (Interlaced == false)
-                        {
-                        IDLog("Image Pixels latched with rc=%d\n", rc);
-                        rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_BOTH,IMAGE_CCD,SubX,SubY,SubW,SubH,BinX,BinY);
-                        }
+                            rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_BOTH,IMAGE_CCD,SubX,SubY,SubW,SubH,BinX,BinY);
+                            IDLog("Image Pixels latched with rc=%d\n", rc);
 
-                    //rc=LatchPixels(0,GUIDE_CCD,GSubX,GSubY,GSubW,GSubH,1,1);
                     DidLatch=1;
 
                 }
@@ -479,9 +414,9 @@ void SxCam::TimerHit()
         //  Pixels have been latched
         //  now download them
         int rc;
-        rc=ReadCameraFrame(IMAGE_CCD,RawData);
+        rc=ReadCameraFrame(IMAGE_CCD,RawFrame);
         IDLog("Read camera frame with rc=%d\n", rc);
-        rc=ProcessRawData(RawFrame, RawData);
+        //rc=ProcessRawData(RawFrame, RawData);
         //IDLog("processed raw data with rc=%d\n", rc);
         DidLatch=0;
         InExposure=false;
@@ -510,92 +445,49 @@ void SxCam::TimerHit()
     }
 }
 
-int SxCam::ProcessRawData(char *imageData, char *rawData)
+int SxCam::ReadCameraFrame(int index, char *buf)
 {
-    int xsize, ysize, npixels;
-    char *rawptr, *dataptr;
-	int rawsize;
-    // FIXME TEMP ONLY
-    //imageData = rawData;
-	
-	rawsize=SubW*SubH/BinX/BinY;
-	if(CamBits==16) rawsize=rawsize*2;
-	memcpy(imageData,rawData,rawsize);
-    return 0;
+    int rc;
+    int numbytes;
+    //static int expCount=0;
 
-    rawptr = rawData;
-    dataptr = imageData;
+    double timesince;
+    struct timeval start;
+    struct timeval end;
 
-    xsize = SubW;
+    gettimeofday(&start,NULL);
 
-    if (Interlaced)
-        ysize = SubH / 2;
-    else
-        ysize = SubH;
+    if(index==IMAGE_CCD)
+    {
+        if (Interlaced)
+            numbytes=SubW*SubH/BinX/(BinY-1);
+        else
+            numbytes=SubW*SubH/BinX/BinY;
 
-    npixels = xsize * ysize / BinX / BinY;
+        if(CamBits==16)
+             numbytes=numbytes*2;
 
-    if (CameraModel == 39)
-    { // CMOS guider -- crop and clean
-            int x, y, val;
-            int oddbias, evenbias;
+              IDLog("SubW: %d - SubH: %d - BinX: %d - BinY: %d\n",SubW, SubH, BinX, BinY);
 
-            for (y=0; y<SubH; y++)
-            {
-                    oddbias = evenbias = 0;
-                    for (x=0; x<16; x+=2)
-                    { // Figure the offsets for this line
-                            oddbias += (int) *rawptr++;
-                            evenbias += (int) *rawptr++;
-                    }
-                    oddbias = oddbias / 8 - 1000;  // Create avg and pre-build in the offset to keep off of the floor
-                    evenbias = evenbias / 8 - 1000;
-                    for (x=0; x<SubW; x+=2)
-                    { // Load value into new image array pulling out right bias
-                            val = (int) *rawptr++ - oddbias;
-                            if (val < 0.0) val = 0.0;  //Bounds check
-                            else if (val > 65535.0) val = 65535.0;
-                            *dataptr++ = (unsigned short) val;
-                            val = (int) *rawptr++ - evenbias;
-                            if (val < 0.0) val = 0.0;  //Bounds check
-                            else if (val > 65535.0) val = 65535.0;
-                            *dataptr++ = (unsigned short) val;
-                    }
-            }
-    }
-    else if (Interlaced)
-    {  // recon 1x2 bin into full-frame
-            unsigned int x,y;
-            for (y=0; y<ysize; y++)
-            {  // load into image w/skips
-                    for (x=0; x<xsize; x++, rawptr++, dataptr++)
-                    {
-                            *dataptr = (*rawptr);
-                    }
-                    dataptr += xsize;
-            }
-            // interpolate
-            dataptr = imageData + xsize;
-            for (y=0; y<(ysize - 1); y++)
-            {
-                    for (x=0; x<xsize; x++, dataptr++)
-                            *dataptr = ( *(dataptr - xsize) + *(dataptr + xsize) ) / 2;
-                    dataptr += xsize;
-            }
-            for (x=0; x<xsize; x++, dataptr++)
-                    *dataptr =  *(dataptr - xsize);
+
+                IDLog("Read Starting for %d\n",numbytes);
+                rc=ReadPixels(buf,numbytes);
+    } else
+    {
+        numbytes=GSubW*GSubH;
+        //numbytes=numbytes*2;
+        IDLog("Download Starting for %d\n",numbytes);
+        rc=ReadPixels(buf,numbytes);
 
     }
-    else {  // Progressive
-            for (int i=0; i<npixels; i++, rawptr++, dataptr++)
-            {
-                    *dataptr = (*rawptr);
-            }
-    }
 
+    gettimeofday(&end,NULL);
 
+    timesince=(double)(end.tv_sec * 1000.0 + end.tv_usec/1000) - (double)(start.tv_sec * 1000.0 + start.tv_usec/1000);
+    timesince=timesince/1000;
 
-    return 0;
+    IDLog("Download returns %d in %4.2f seconds\n",rc,timesince);
+    return rc;
 }
 
 int SxCam::ResetCamera()
@@ -724,14 +616,19 @@ int SxCam::GetCameraParams(int index,PCCDPARMS params)
     params->pix_width = (output_data[8] | (output_data[9] << 8)) / 256.0;
     params->pix_height = (output_data[10] | (output_data[11] << 8)) / 256.0;
 
-    // Interlaced cameras only report half the field and double the pixel height
-    // So correct for it.
-    /*if (Interlaced)
+    // For interlace, default to 1x2 MINIMUM binning.
+    // Will not do 1x1 to avoid dealing with deinterlacing frames
+    if (Interlaced)
     {
         int pixAspect = floor((params->pix_height / params->pix_width) + 0.5);
         params->pix_height /= pixAspect;
-        params->height *= pixAspect;
-    }*/
+
+        ImageBinN[1].value = pixAspect;
+        ImageBinN[1].min   = pixAspect;
+        IUUpdateMinMax(ImageBinNP);
+
+        //ImageFrameN[1].max = parms->pix_height;
+    }
 
     params->color_matrix = output_data[12] | (output_data[13] << 8);
     params->bits_per_pixel = output_data[14];
@@ -762,6 +659,9 @@ int SxCam::LatchPixels(int flags,int camIndex,int xoffset,int yoffset,int width,
     char setup_data[18];
     int rc;
 
+    if (Interlaced)
+        ybin--;
+
     IDLog("Latch pixels: xoffset: %d - yoffset: %d - Width: %d - Height: %d - xbin: %d - ybin: %d\n", xoffset, yoffset, width, height, xbin, ybin);
 
     setup_data[USB_REQ_TYPE    ] = USB_REQ_VENDOR | USB_REQ_DATAOUT;
@@ -791,6 +691,9 @@ int SxCam::ExposePixels(int flags,int camIndex,int xoffset,int yoffset,int width
 {
     char setup_data[22];
     int rc;
+
+    if (Interlaced)
+        ybin--;
 
     IDLog("Expose pixels: xoffset: %d - yoffset: %d - Width: %d - Height: %d - xbin: %d - ybin: %d - delay: %d\n", xoffset, yoffset, width, height, xbin, ybin, msec);
     setup_data[USB_REQ_TYPE    ] = USB_REQ_VENDOR | USB_REQ_DATAOUT;
@@ -825,9 +728,7 @@ int SxCam::ReadPixels(char *pixels,int count)
     int rc;
     int total;
 
-    // Let's set them all to WHITE
-    //for (int i=0; i<count; i++)
-      //  pixels[i] = 255;
+
 
     total=count;
     //  round to divisible by 256
@@ -835,13 +736,22 @@ int SxCam::ReadPixels(char *pixels,int count)
     //total++;
     //total=total*256;
 
+    //  put in a test pattern for testing
+
+
+    //for(int x=0; x<count; x++)
+         // pixels[x]=x%256;
+
     rc=ReadBulk(pixels,total,10000);
     //total+=rc;
     //if(rc > count) rc=count;
+
+
+
+
     IDLog("Read Pixels request %d got %d\n",count,rc);
 
-	//  put in a test pattern for testing
-	//for(int x=0; x<count; x++) pixels[x]=x%256;
+
 
 	//FILE *h = fopen("rawcam.dat", "w+");
 	//fwrite(pixels, count, 1, h);
