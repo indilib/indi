@@ -156,6 +156,7 @@ protected:
 
     bool HasSt4Port;
 
+    bool Interlaced;
     //  If the camera has a second ccd, or integrated guide head
     //  we need information on that one too
     bool HasGuideHead;
