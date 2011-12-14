@@ -185,6 +185,9 @@ class SxCam : public INDI::CCD , public INDI::USBDevice
 
         int ReadCameraFrame(int,char *);
 
+        ISwitch StreamS[2];
+        ISwitchVectorProperty *StreamSP;
+
 
     public:
         SxCam();
@@ -200,6 +203,10 @@ class SxCam : public INDI::CCD , public INDI::USBDevice
         bool AbortGuideExposure();
 
         void TimerHit();
+
+        virtual bool initProperties();
+        virtual bool updateProperties();
+        virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
 
 };
 

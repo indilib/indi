@@ -87,13 +87,36 @@ SxCam::SxCam()
     BinY=1;
     Interlaced=false;
     RawFrame = NULL;
-	CamBits=8;
+    CamBits=8;
+    StreamSP = new ISwitchVectorProperty;
 }
 
 SxCam::~SxCam()
 {
     //dtor
     if(RawFrame != NULL) delete RawFrame;
+    usb_close(usb_handle);
+}
+
+bool SxCam::initProperties()
+{
+    INDI::CCD::initProperties();
+
+    /* Video Stream */
+     IUFillSwitch(&StreamS[0], "ON", "Stream On", ISS_OFF);
+     IUFillSwitch(&StreamS[1], "OFF", "Stream Off", ISS_ON);
+     IUFillSwitchVector(StreamSP, StreamS, 2, deviceName(), "VIDEO_STREAM", "Video Stream", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+}
+
+bool SxCam::updateProperties()
+{
+
+    INDI::CCD::updateProperties();
+
+    if (isConnected())
+        defineSwitch(StreamSP);
+    else
+        deleteProperty(StreamSP->name);
 }
 
 const char * SxCam::getDefaultName()
@@ -202,6 +225,40 @@ bool SxCam::Disconnect()
     return true;
 }
 
+bool SxCam::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+{
+    if(strcmp(dev,deviceName())==0)
+    {
+        //  it's for this device
+
+        //for(int x=0; x<n; x++) {
+        //    IDLog("Switch %s\n",names[x]);
+        //}
+
+        if(strcmp(name,StreamSP->name)==0)
+        {
+
+            IUUpdateSwitch(StreamSP,states,names,n);
+
+            if (StreamS[0].s == ISS_ON)
+            {
+                StreamSP->s = IPS_BUSY;
+                IDSetSwitch(StreamSP, "Starting video stream.");
+                StartExposure(0.5);
+            }
+            else
+            {
+                StreamSP->s = IPS_IDLE;
+                IDSetSwitch(StreamSP, "Video stream stopped.");
+            }
+
+            return true;
+        }
+  }
+
+    return INDI::CCD::ISNewSwitch(dev, name, states, names, n);
+
+}
 
 float SxCam::CalcTimeLeft()
 {
@@ -359,8 +416,11 @@ void SxCam::TimerHit()
                         timeleft=CalcTimeLeft();
                     }
 
-                            rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_BOTH,IMAGE_CCD,SubX,SubY,SubW,SubH,BinX,BinY);
-                            IDLog("Image Pixels latched with rc=%d\n", rc);
+                    if (Interlaced)
+                        rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_EVEN,IMAGE_CCD,SubX,SubY,SubW,SubH,BinX,BinY);
+                    else
+                        rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_BOTH,IMAGE_CCD,SubX,SubY,SubW,SubH,BinX,BinY);
+                           // IDLog("Image Pixels latched with rc=%d\n", rc);
 
                     DidLatch=1;
 
@@ -421,8 +481,14 @@ void SxCam::TimerHit()
         DidLatch=0;
         InExposure=false;
 
+        if (StreamSP->s == IPS_BUSY)
+        {
+            sendPreview();
+            StartExposure(0.5);
+        }
+        else
+            ExposureComplete();
 
-        ExposureComplete();
         //  if we get here, we quite likely ignored a guider hit
         if(InGuideExposure) SetTimer(1);    //  just make it all run again
 
@@ -448,7 +514,7 @@ void SxCam::TimerHit()
 int SxCam::ReadCameraFrame(int index, char *buf)
 {
     int rc;
-    int numbytes;
+    int numbytes, xwidth=0, yheight=0;
     //static int expCount=0;
 
     double timesince;
@@ -459,19 +525,58 @@ int SxCam::ReadCameraFrame(int index, char *buf)
 
     if(index==IMAGE_CCD)
     {
-        if (Interlaced)
-            numbytes=SubW*SubH/BinX/(BinY-1);
-        else
             numbytes=SubW*SubH/BinX/BinY;
+            xwidth = SubW;
+            yheight= SubH;
 
         if(CamBits==16)
+        {
              numbytes=numbytes*2;
+             xwidth  *= 2;
+             yheight *= 2;
+        }
 
-              IDLog("SubW: %d - SubH: %d - BinX: %d - BinY: %d\n",SubW, SubH, BinX, BinY);
+        IDLog("SubW: %d - SubH: %d - BinX: %d - BinY: %d\n",SubW, SubH, BinX, BinY);
 
+        if (Interlaced)
+        {
+            numbytes /= 2;
+
+            char *evenBuf, *oddBuf;
+            evenBuf = new char[numbytes];
+            oddBuf = new char[numbytes];
+
+            // Let's read EVEN fields now
+            IDLog("EVEN FIELD: Read Starting for %d\n",numbytes);
+
+            rc=ReadPixels(evenBuf,numbytes);
+
+            IDLog("EVEN FIELD: Read %d\n",rc);
+
+            rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_ODD,IMAGE_CCD,SubX,SubY,SubW,SubH,BinX,BinY);
+
+            IDLog("bpp: %d - xwidth: %d - ODD FIELD: Read Starting for %d\n", (CamBits==16) ? 2 : 1, xwidth, numbytes);
+
+            rc=ReadPixels(oddBuf,numbytes);
+
+            IDLog("ODD FIELD: Read %d\n",rc);
+
+            for (int i=0; i < SubH ; i+=2)
+            {
+                memcpy(buf + i * xwidth, evenBuf, xwidth);
+                memcpy(buf + ((i+1) * xwidth), oddBuf, xwidth);
+            }
+
+              delete (evenBuf);
+              delete (oddBuf);
+
+        }
+        else
+        {
 
                 IDLog("Read Starting for %d\n",numbytes);
                 rc=ReadPixels(buf,numbytes);
+        }
     } else
     {
         numbytes=GSubW*GSubH;
@@ -623,9 +728,11 @@ int SxCam::GetCameraParams(int index,PCCDPARMS params)
         int pixAspect = floor((params->pix_height / params->pix_width) + 0.5);
         params->pix_height /= pixAspect;
 
-        ImageBinN[1].value = pixAspect;
-        ImageBinN[1].min   = pixAspect;
-        IUUpdateMinMax(ImageBinNP);
+        params->height *= pixAspect;
+
+        //ImageBinN[1].value = pixAspect;
+        //ImageBinN[1].min   = pixAspect;
+        //IUUpdateMinMax(ImageBinNP);
 
         //ImageFrameN[1].max = parms->pix_height;
     }
@@ -659,8 +766,8 @@ int SxCam::LatchPixels(int flags,int camIndex,int xoffset,int yoffset,int width,
     char setup_data[18];
     int rc;
 
-    if (Interlaced)
-        ybin--;
+    //if (Interlaced)
+        //ybin--;
 
     IDLog("Latch pixels: xoffset: %d - yoffset: %d - Width: %d - Height: %d - xbin: %d - ybin: %d\n", xoffset, yoffset, width, height, xbin, ybin);
 
@@ -692,8 +799,8 @@ int SxCam::ExposePixels(int flags,int camIndex,int xoffset,int yoffset,int width
     char setup_data[22];
     int rc;
 
-    if (Interlaced)
-        ybin--;
+    //if (Interlaced)
+        //ybin--;
 
     IDLog("Expose pixels: xoffset: %d - yoffset: %d - Width: %d - Height: %d - xbin: %d - ybin: %d - delay: %d\n", xoffset, yoffset, width, height, xbin, ybin, msec);
     setup_data[USB_REQ_TYPE    ] = USB_REQ_VENDOR | USB_REQ_DATAOUT;
@@ -725,12 +832,12 @@ int SxCam::ExposePixels(int flags,int camIndex,int xoffset,int yoffset,int width
 
 int SxCam::ReadPixels(char *pixels,int count)
 {
-    int rc;
-    int total;
+    int rc=0, bread=0;
+    int tries=0;
 
 
 
-    total=count;
+
     //  round to divisible by 256
     //total=total/256;
     //total++;
@@ -742,14 +849,22 @@ int SxCam::ReadPixels(char *pixels,int count)
     //for(int x=0; x<count; x++)
          // pixels[x]=x%256;
 
-    rc=ReadBulk(pixels,total,10000);
+    while (rc < count && tries < 5)
+    {
+        tries++;
+        rc = ReadBulk(pixels+bread,count-bread,10000);
+        if (rc < 0)
+            break;
+        bread += rc;
+
+    }
     //total+=rc;
     //if(rc > count) rc=count;
 
 
 
 
-    IDLog("Read Pixels request %d got %d\n",count,rc);
+    IDLog("Read Pixels request %d got %d\n",count,bread);
 
 
 
