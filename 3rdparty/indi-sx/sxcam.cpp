@@ -849,25 +849,21 @@ int SxCam::ReadPixels(char *pixels,int count)
     //for(int x=0; x<count; x++)
          // pixels[x]=x%256;
 
-    while (rc < count && tries < 5)
+    while (bread < count && tries < 5)
     {
         tries++;
         rc = ReadBulk(pixels+bread,count-bread,10000);
-        if (rc < 0)
+        if (rc < 0 || rc==count)
             break;
         bread += rc;
+	
+	IDLog("On Read Attempt %d got %d bytes while requested is %d\n", tries, bread, count); 
+	usleep(50);
 
     }
-    //total+=rc;
-    //if(rc > count) rc=count;
-
-
-
-
-    IDLog("Read Pixels request %d got %d\n",count,bread);
-
-
-
+    
+    IDLog("Read Pixels request %d got %d after %d tries.\n",count,bread, tries);
+    
 	//FILE *h = fopen("rawcam.dat", "w+");
 	//fwrite(pixels, count, 1, h);
 	//fclose(h);
