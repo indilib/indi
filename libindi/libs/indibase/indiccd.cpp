@@ -592,11 +592,8 @@ bool INDI::CCD::ExposureComplete()
 
 
     naxes[0]=SubW/BinX;
+    naxes[1]=SubH/BinY;
 
-    if (Interlaced)
-        naxes[1]=SubH/(BinY-1);
-    else
-        naxes[1]=SubH/BinY;
     //  Now we have to send fits format data to the client
     memsize=5760;
     memptr=malloc(memsize);
@@ -619,10 +616,7 @@ bool INDI::CCD::ExposureComplete()
 
     addFITSKeywords(fptr);
 
-    if (Interlaced)
-        fits_write_img(fptr,TUSHORT,1,SubW*SubH/BinX/(BinY-1),RawFrame,&status);
-    else
-        fits_write_img(fptr,TUSHORT,1,SubW*SubH/BinX/BinY,RawFrame,&status);
+    fits_write_img(fptr,TUSHORT,1,SubW*SubH/BinX/BinY,RawFrame,&status);
 
     if (status)
 	{
@@ -745,13 +739,9 @@ int INDI::CCD::sendPreview()
     //int ccount;
     //int r;
 
-    return 0;
+    //return 0;
     xw=SubW/BinX;
-
-    if (Interlaced)
-        yw=SubH/(BinY-1);
-    else
-        yw=SubH/BinY;
+    yw=SubH/BinY;
 
     //GuiderNP->s=IPS_OK;
     //GuiderN[0].value=xw;
