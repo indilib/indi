@@ -79,6 +79,8 @@ class SxCam : public INDI::CCD, public SxCCD
         struct timeval GuideExpStart;
         float CalcGuideTimeLeft();
 
+        char *evenBuf, *oddBuf;
+
         int ReadCameraFrame(int,char *);
 
         ISwitch StreamS[2];

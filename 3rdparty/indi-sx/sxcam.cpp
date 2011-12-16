@@ -89,6 +89,8 @@ SxCam::SxCam()
     RawFrame = NULL;
     HasGuideHead=false;
     CamBits=8;
+    evenBuf = NULL;
+    oddBuf  = NULL;
     StreamSP = new ISwitchVectorProperty;
 }
 
@@ -226,7 +228,17 @@ int SxCam::StartExposure(float n)
     DidFlush=0;
     DidLatch=0;
 
-    ClearPixels(SXCCD_EXP_FLAGS_FIELD_BOTH,IMAGE_CCD);
+    if (Interlaced && BinY == 1)
+    {
+        ClearPixels(SXCCD_EXP_FLAGS_FIELD_EVEN,IMAGE_CCD);
+
+        // TODO: Add Delay here
+
+        ClearPixels(SXCCD_EXP_FLAGS_FIELD_ODD,IMAGE_CCD);
+
+    }
+    else
+        ClearPixels(SXCCD_EXP_FLAGS_FIELD_BOTH,IMAGE_CCD);
 
     //  Relatively long exposure
      //  lets do it on our own timers
@@ -341,10 +353,12 @@ void SxCam::TimerHit()
                         timeleft=CalcTimeLeft();
                     }
 
-                    if (Interlaced)
-                        rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_EVEN,IMAGE_CCD,SubX,SubY,SubW,SubH,BinX,BinY);
-                    else
+                    // If not interlaced, take full frame
+                    // If interlaced, but vertical binning is > 1, then take full frame as well.
+                    if (Interlaced == false)
                         rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_BOTH,IMAGE_CCD,SubX,SubY,SubW,SubH,BinX,BinY);
+                    else if (Interlaced && BinY > 1)
+                        rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_BOTH,IMAGE_CCD,SubX,SubY,SubW,SubH/2,BinX,BinY-1);
                            // IDLog("Image Pixels latched with rc=%d\n", rc);
 
                     DidLatch=1;
@@ -441,7 +455,7 @@ void SxCam::TimerHit()
 int SxCam::ReadCameraFrame(int index, char *buf)
 {
     int rc;
-    int numbytes, xwidth=0, yheight=0;
+    int numbytes, xwidth=0;
     //static int expCount=0;
 
     double timesince;
@@ -452,55 +466,51 @@ int SxCam::ReadCameraFrame(int index, char *buf)
 
     if(index==IMAGE_CCD)
     {
+        if (Interlaced && BinY > 1)
+            numbytes=SubW*SubH/2/BinX/(BinY-1);
+        else
             numbytes=SubW*SubH/BinX/BinY;
-            xwidth = SubW;
-            yheight= SubH;
+
+        xwidth = SubW;
 
         if(CamBits==16)
         {
              numbytes=numbytes*2;
-             //xwidth  *= 2;
+             xwidth  *= 2;
              //yheight *= 2;
         }
 
         IDLog("SubW: %d - SubH: %d - BinX: %d - BinY: %d CamBits %d\n",SubW, SubH, BinX, BinY,CamBits);
 
-        if (Interlaced)
+        if (Interlaced && BinY == 1)
         {
-            numbytes /= 2;
 
-            char *evenBuf, *oddBuf;
-            evenBuf = new char[numbytes];
-            oddBuf = new char[numbytes];
+            rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_EVEN | SXCCD_EXP_FLAGS_NOBIN_ACCUM,IMAGE_CCD,SubX,SubY,SubW,SubH/2,BinX,BinY);
 
             // Let's read EVEN fields now
-            IDLog("EVEN FIELD: Read Starting for %d\n",numbytes);
+            //IDLog("EVEN FIELD: Read Starting for %d\n",numbytes);
 
-            rc=ReadPixels(evenBuf,numbytes);
+            rc=ReadPixels(evenBuf,numbytes/2);
 
-            IDLog("EVEN FIELD: Read %d\n",rc);
+            //IDLog("EVEN FIELD: Read %d\n",rc);
 
-            rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_ODD,IMAGE_CCD,SubX,SubY,SubW,SubH,BinX,BinY);
+            rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_ODD | SXCCD_EXP_FLAGS_NOBIN_ACCUM,IMAGE_CCD,SubX,SubY,SubW,SubH/2,BinX,BinY);
 
-            IDLog("bpp: %d - xwidth: %d - ODD FIELD: Read Starting for %d\n", (CamBits==16) ? 2 : 1, xwidth, numbytes);
+            //IDLog("bpp: %d - xwidth: %d - ODD FIELD: Read Starting for %d\n", (CamBits==16) ? 2 : 1, xwidth, numbytes);
 
-            rc=ReadPixels(oddBuf,numbytes);
+            rc=ReadPixels(oddBuf,numbytes/2);
 
-            IDLog("ODD FIELD: Read %d\n",rc);
+            //IDLog("ODD FIELD: Read %d\n",rc);
 
-            for (int i=0; i < SubH ; i+=2)
+            for (int i=0, j=0; i < SubH ; i+=2, j++)
             {
-                memcpy(buf + i * xwidth, evenBuf, xwidth);
-                memcpy(buf + ((i+1) * xwidth), oddBuf, xwidth);
+                memcpy(buf + i * xwidth, evenBuf + (j * xwidth), xwidth);
+                memcpy(buf + ((i+1) * xwidth), oddBuf + (j*xwidth), xwidth);
             }
-
-              delete (evenBuf);
-              delete (oddBuf);
 
         }
         else
         {
-
                 IDLog("non interlaced Read Starting for %d\n",numbytes);
                 rc=ReadPixels(buf,numbytes);
         }
@@ -568,17 +578,34 @@ int SxCam::GetCamTimer()
 int SxCam::SetParams(int xres,int yres,int Bits,float pixwidth,float pixheight)
 {
     IDLog("SxCam::Setparams %d %d\n",xres,yres);
-    SetCCDParams(xres,yres,Bits,pixwidth,pixheight);
+
+    if (Interlaced)
+    {
+        pixheight /= 2;
+        yres *= 2;
+    }
+
+   SetCCDParams(xres,yres,Bits,pixwidth,pixheight);
+
+
     CamBits=Bits;
+
     if (RawFrame != NULL)
         delete RawFrame;
 
         RawFrameSize=XRes*YRes;                 //  this is pixel count
         if(bits_per_pixel==16) RawFrameSize=RawFrameSize*2;            //  Each pixel is 2 bytes
         RawFrameSize+=512;                      //  leave a little extra at the end
+
         RawFrame=new char[RawFrameSize];
 
+        if (evenBuf != NULL)
+            delete evenBuf;
+        if (oddBuf != NULL)
+            delete oddBuf;
 
+        evenBuf = new char[RawFrameSize/2];
+        oddBuf = new char[RawFrameSize/2];
 
 }
 

@@ -229,24 +229,6 @@ int SxCCD::GetCameraParams(int index,PCCDPARMS params)
     params->pix_width = (output_data[8] | (output_data[9] << 8)) / 256.0;
     params->pix_height = (output_data[10] | (output_data[11] << 8)) / 256.0;
 
-    // For interlace, default to 1x2 MINIMUM binning.
-    // Will not do 1x1 to avoid dealing with deinterlacing frames
-    /*
-    if (Interlaced)
-    {
-        int pixAspect = floor((params->pix_height / params->pix_width) + 0.5);
-        params->pix_height /= pixAspect;
-
-        params->height *= pixAspect;
-
-        //ImageBinN[1].value = pixAspect;
-        //ImageBinN[1].min   = pixAspect;
-        //IUUpdateMinMax(ImageBinNP);
-
-        //ImageFrameN[1].max = parms->pix_height;
-    }
-    */
-
     params->color_matrix = output_data[12] | (output_data[13] << 8);
     params->bits_per_pixel = output_data[14];
     params->num_serial_ports = output_data[15];
