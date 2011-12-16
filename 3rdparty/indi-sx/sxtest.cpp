@@ -60,7 +60,7 @@ int main()
         BinX=1;
         BinY=1;
         SubW=ccd.xres;
-        SubH=ccd.xres;
+        SubH=ccd.yres;
 
         FrameBufferSize=ccd.xres*ccd.yres;
         if(ccd.bits_per_pixel==16) FrameBufferSize*=2;
