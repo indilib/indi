@@ -6,6 +6,10 @@ using namespace std;
 
 #include "sxccd.h"
 
+#define PROGRESSIVE_TEST 0
+#define GUIDER_TEST 1
+#define INTERLACE_TEST 2
+
 int write_ppm(char *name,char *buffer,int xres,int yres,int depth)
 {
     int x;
@@ -46,7 +50,9 @@ int main()
 
     SxCCD ccd;
 
-    int TestGuider=0;
+
+    int TestCase = INTERLACE_TEST;
+
     exptime=100;
 
     rc=ccd.Connect();
@@ -64,7 +70,12 @@ int main()
 
         FrameBufferSize=ccd.xres*ccd.yres;
         if(ccd.bits_per_pixel==16) FrameBufferSize*=2;
-        FrameBuffer=new char[FrameBufferSize];
+
+        if (TestCase == PROGRESSIVE_TEST)
+            FrameBuffer=new char[FrameBufferSize];
+        else if (TestCase == INTERLACE_TEST)
+            FrameBuffer=new char[FrameBufferSize*2];
+
 
         if(ccd.hasguide) {
             GuiderFrameSize=ccd.gxres*ccd.gyres;
@@ -73,16 +84,18 @@ int main()
 
         GuiderFrame=new char[GuiderFrameSize*2];
 
-        if(TestGuider==0) {
+        switch (TestCase)
+        {
+           case PROGRESSIVE_TEST:
             //  Do a quick exposure on a progressive ccd
             ccd.ClearPixels(SXCCD_EXP_FLAGS_FIELD_BOTH,IMAGE_CCD);
             ccd.LatchPixels(SXCCD_EXP_FLAGS_FIELD_BOTH,IMAGE_CCD,SubX,SubY,SubW,SubH,BinX,BinY);
             ccd.ReadPixels(FrameBuffer,FrameBufferSize);
 
             write_ppm("test.ppm",FrameBuffer,SubW,SubH,65535);
+            break;
 
-        } else {
-
+        case GUIDER_TEST:
             SubX=0;
             SubY=0;
             BinX=1;
@@ -116,9 +129,46 @@ int main()
 
             for(int x=0; x<GuiderFrameSize*2; x++) GuiderFrame[x]+=100;
             write_ppm("test.ppm",GuiderFrame,SubW,SubH*2,255);
+            break;
+
+        case INTERLACE_TEST:
+            SubX=0;
+            SubY=0;
+            BinX=1;
+            BinY=1;
+            SubW=ccd.xres;
+            SubH=ccd.yres;
+
+            //  Experiment with the interlaced ccd
+
+            ccd.ClearPixels(SXCCD_EXP_FLAGS_FIELD_EVEN,IMAGE_CCD);
+            //  a delay here, equal to readout time for a half frame
+            //  will make even and odd frames get the same exposure time
+            //  Assuming exposure time is longer than readout time
+
+
+            ccd.ClearPixels(SXCCD_EXP_FLAGS_FIELD_ODD,IMAGE_CCD);
+            //  A delay here for exposure time, less any delays introduced between the halves
+            usleep(exptime);
+            //  and now lets try an interlaced readout
+            //  first the even lines
+            ccd.LatchPixels(SXCCD_EXP_FLAGS_FIELD_EVEN | SXCCD_EXP_FLAGS_NOBIN_ACCUM,IMAGE_CCD,SubX,SubY,SubW,SubH,BinX,BinY);
+            ccd.ReadPixels(FrameBuffer,FrameBufferSize);
+
+
+            //  and now the odd lines
+            //ccd.ClearPixels(SXCCD_EXP_FLAGS_FIELD_ODD,GUIDE_CCD);
+            //usleep(exptime);
+
+            ccd.LatchPixels(SXCCD_EXP_FLAGS_FIELD_ODD | SXCCD_EXP_FLAGS_NOBIN_ACCUM,IMAGE_CCD,SubX,SubY,SubW,SubH,BinX,BinY);
+            ccd.ReadPixels(FrameBuffer+FrameBufferSize,FrameBufferSize);
+
+            //for(int x=0; x<GuiderFrameSize*2; x++) GuiderFrame[x]+=100;
+            write_ppm("test.ppm",FrameBuffer,SubW,SubH*2,65535);
+            break;
+
 
         }
-
 
         delete FrameBuffer;
         delete GuiderFrame;
