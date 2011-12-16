@@ -87,6 +87,7 @@ SxCam::SxCam()
     BinY=1;
     Interlaced=false;
     RawFrame = NULL;
+    HasGuideHead=false;
     CamBits=8;
     StreamSP = new ISwitchVectorProperty;
 }
@@ -126,103 +127,27 @@ const char * SxCam::getDefaultName()
 
 bool SxCam::Connect()
 {
-    IDLog("Checking for SXV-H9\n");
-    dev=FindDevice(0x1278,0x0119,0);
-	if(NULL==dev) {
-	    IDLog("Checking for lodestar\n");
-    	dev=FindDevice(0x1278,0x0507,0);
-	}
-   if(dev==NULL)
-    {
-        IDLog("No SXV-H9 found\n");
-        IDMessage(deviceName(), "Error: No SXV-H9 found.");
-        return false;
-    }
-    IDLog("Found an SXV-H9\n");
-    usb_handle=usb_open(dev);
-    if(usb_handle != NULL)
-    {
-        int rc;
-
-        rc=FindEndpoints();
-
-        usb_detach_kernel_driver_np(usb_handle,0);
-        IDLog("Detach Kernel returns %d\n",rc);
-        //rc=usb_set_configuration(usb_handle,1);
-        IDLog("Set Configuration returns %d\n",rc);
-
-        rc=usb_claim_interface(usb_handle,1);
-        IDLog("claim interface returns %d\n",rc);
-        if(rc==0)
-        {
-            //  ok, we have the camera now
-            //  Lets see what it really is
-            rc=ResetCamera();
-            rc=GetCameraModel();
-            rc=GetFirmwareVersion();
-
-            struct t_sxccd_params parms;
-            rc=GetCameraParams(0,&parms);
-
-            IDLog("Camera is %d x %d with %d bpp  size %4.2f x %4.2f Matrix %x\n",
-                  parms.width,parms.height,parms.bits_per_pixel,parms.pix_width,parms.pix_height,parms.color_matrix);
-
-            IDLog("Camera capabilities %x\n",parms.extra_caps);
-            IDLog("Camera has %d serial ports\n",parms.num_serial_ports);
-
-            SetCCDParams(parms.width,parms.height,parms.bits_per_pixel,parms.pix_width,parms.pix_height);
-
-            CamBits=parms.bits_per_pixel;
-
-            BinX = ImageBinN[0].value;
-            BinY = ImageBinN[1].value;
-            //IDSetNumber(ImageBinNP, NULL);
-            //  Fill in parent ccd values
-            //  Initialize for doing full frames
-
-            if (RawFrame != NULL)
-                delete RawFrame;
-
-            RawFrameSize=XRes*YRes;                 //  this is pixel count
-            RawFrameSize=RawFrameSize*2;            //  Each pixel is 2 bytes
-            RawFrameSize+=512;                      //  leave a little extra at the end
-            RawFrame=new char[RawFrameSize];
-
-            if((parms.extra_caps & SXCCD_CAPS_GUIDER)==SXCCD_CAPS_GUIDER)
-            {
-                IDLog("Camera has a guide head attached\n");
-                struct t_sxccd_params gparms;
-                rc=GetCameraParams(1,&gparms);
-
-                //HasGuideHead=true;
-
-                IDLog("Guider is %d x %d with %d bpp  size %4.2f x %4.2f Matrix %x\n",
-                      gparms.width,gparms.height,gparms.bits_per_pixel,gparms.pix_width,gparms.pix_height,gparms.color_matrix);
-
-                IDMessage(deviceName(), "Guider is %d x %d with %d bpp  size %4.2f x %4.2f Matrix %x",
-                          gparms.width,gparms.height,gparms.bits_per_pixel,gparms.pix_width,gparms.pix_height,gparms.color_matrix);
-
-                IDLog("Guider capabilities %x\n",gparms.extra_caps);
-
-                IDMessage(deviceName(), "Guider capabilities %x",gparms.extra_caps);
-
-                SetGuidHeadParams(gparms.width,gparms.height,gparms.bits_per_pixel,gparms.pix_width,gparms.pix_height);
-
-                RawGuideSize=GXRes*GYRes;
-                RawGuideSize=RawGuideSize*2;
-                RawGuiderFrame=new char[RawGuideSize];
-
-            }
-            return true;
+    bool rc;
+    IDLog("Calling sx connect\n");
+    rc=SxCCD::Connect();
+    if(rc) {
+        IDLog("Calling Set CCD %d %d\n",XRes,YRes);
+        SetCCDParams(XRes,YRes,CamBits,pixwidth,pixheight);
+        if(HasGuideHead) {
+            printf("Guide head detected\n");
+            SetGuidHeadParams(GXRes,GYRes,GuiderBits,gpixwidth,gpixheight);
+        } else {
+            printf("no guide head\n");
         }
     }
-    return false;
+    return rc;
 }
 
 bool SxCam::Disconnect()
 {
-    usb_close(usb_handle);
-    return true;
+    bool rc;
+    rc=SxCCD::Disconnect();
+    return rc;
 }
 
 bool SxCam::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
@@ -481,12 +406,14 @@ void SxCam::TimerHit()
         DidLatch=0;
         InExposure=false;
 
+/*
         if (StreamSP->s == IPS_BUSY)
         {
             sendPreview();
             StartExposure(0.5);
         }
         else
+*/
             ExposureComplete();
 
         //  if we get here, we quite likely ignored a guider hit
@@ -532,11 +459,11 @@ int SxCam::ReadCameraFrame(int index, char *buf)
         if(CamBits==16)
         {
              numbytes=numbytes*2;
-             xwidth  *= 2;
-             yheight *= 2;
+             //xwidth  *= 2;
+             //yheight *= 2;
         }
 
-        IDLog("SubW: %d - SubH: %d - BinX: %d - BinY: %d\n",SubW, SubH, BinX, BinY);
+        IDLog("SubW: %d - SubH: %d - BinX: %d - BinY: %d CamBits %d\n",SubW, SubH, BinX, BinY,CamBits);
 
         if (Interlaced)
         {
@@ -574,7 +501,7 @@ int SxCam::ReadCameraFrame(int index, char *buf)
         else
         {
 
-                IDLog("Read Starting for %d\n",numbytes);
+                IDLog("non interlaced Read Starting for %d\n",numbytes);
                 rc=ReadPixels(buf,numbytes);
         }
     } else
@@ -595,280 +522,6 @@ int SxCam::ReadCameraFrame(int index, char *buf)
     return rc;
 }
 
-int SxCam::ResetCamera()
-{
-    char setup_data[8];
-    int rc;
-
-    setup_data[USB_REQ_TYPE    ] = USB_REQ_VENDOR | USB_REQ_DATAOUT;
-    setup_data[USB_REQ         ] = SXUSB_RESET;
-    setup_data[USB_REQ_VALUE_L ] = 0;
-    setup_data[USB_REQ_VALUE_H ] = 0;
-    setup_data[USB_REQ_INDEX_L ] = 0;
-    setup_data[USB_REQ_INDEX_H ] = 0;
-    setup_data[USB_REQ_LENGTH_L] = 0;
-    setup_data[USB_REQ_LENGTH_H] = 0;
-    //return (WriteFile(sxHandle, setup_data, sizeof(setup_data), &written, NULL));
-    rc=WriteBulk(setup_data,8,1000);
-    IDLog("ResetCamera WriteBulk returns %d\n",rc);
-    if(rc==8) return 0;
-    return -1;
-}
-
-int SxCam::GetCameraModel()
-{
-    char setup_data[8];
-    char Name[MAXINDILABEL];
-    int rc;
-
-    setup_data[USB_REQ_TYPE    ] = USB_REQ_VENDOR | USB_REQ_DATAIN;
-    setup_data[USB_REQ         ] = SXUSB_CAMERA_MODEL;
-    setup_data[USB_REQ_VALUE_L ] = 0;
-    setup_data[USB_REQ_VALUE_H ] = 0;
-    setup_data[USB_REQ_INDEX_L ] = 0;
-    setup_data[USB_REQ_INDEX_H ] = 0;
-    setup_data[USB_REQ_LENGTH_L] = 2;
-    setup_data[USB_REQ_LENGTH_H] = 0;
-    rc=WriteBulk(setup_data,8,1000);
-    rc=ReadBulk((char *)&CameraModel,2,1000);
-    IDLog("GetCameraModel returns %d\n",CameraModel);
-
-    snprintf(Name, MAXINDILABEL, "SXV-%c%d%c", CameraModel & 0x40 ? 'M' : 'H', CameraModel & 0x1F, CameraModel & 0x80 ? 'C' : '\0');
-
-    SubType = CameraModel & 0x1F;
-
-    if (CameraModel & 0x80)  // color
-            ColorSensor = true;
-    else
-            ColorSensor = false;
-
-    if (CameraModel & 0x40)
-            Interlaced = true;
-    else
-            Interlaced = false;
-
-    if (SubType == 25)
-            Interlaced = false;
-
-    if (Interlaced)
-        IDMessage(deviceName(), "Detected interlaced camera %s", Name);
-    else
-        IDMessage(deviceName(), "Detected progressive camera %s", Name);
-
-    return CameraModel;
-}
-
-int SxCam::GetFirmwareVersion()
-{
-    char setup_data[8];
-    unsigned int ver;
-    int rc;
-
-    setup_data[USB_REQ_TYPE    ] = USB_REQ_VENDOR | USB_REQ_DATAIN;
-    setup_data[USB_REQ         ] = SXUSB_GET_FIRMWARE_VERSION;
-    setup_data[USB_REQ_VALUE_L ] = 0;
-    setup_data[USB_REQ_VALUE_H ] = 0;
-    setup_data[USB_REQ_INDEX_L ] = 0;
-    setup_data[USB_REQ_INDEX_H ] = 0;
-    setup_data[USB_REQ_LENGTH_L] = 4;
-    setup_data[USB_REQ_LENGTH_H] = 0;
-
-    rc=WriteBulk(setup_data,8,1000);
-    ver=0;
-    rc=ReadBulk((char *)&ver,4,1000);
-    IDLog("GetFirmwareVersion returns %x\n",ver);
-    return ver;
-}
-
-int SxCam::GetCameraParams(int index,PCCDPARMS params)
-{
-    unsigned char setup_data[17];
-
-    unsigned char output_data[17];
-
-    int rc;
-    setup_data[USB_REQ_TYPE    ] = USB_REQ_VENDOR | USB_REQ_DATAIN;
-    setup_data[USB_REQ         ] = SXUSB_GET_CCD;
-    setup_data[USB_REQ_VALUE_L ] = 0;
-    setup_data[USB_REQ_VALUE_H ] = 0;
-    setup_data[USB_REQ_INDEX_L ] = index;
-    setup_data[USB_REQ_INDEX_H ] = 0;
-    setup_data[USB_REQ_LENGTH_L] = 17;
-    setup_data[USB_REQ_LENGTH_H] = 0;
-    rc=WriteBulk((char *)setup_data,17,1000);
-    rc=ReadBulk((char *)output_data,17,1000);
-    if(rc != 17) {
-        IDLog("Bad camera parameters readout\n");
-        return -1;
-    }
-
-    for (int i=0; i < 17; i++)
-    {
-        IDLog("OUTPUT[%d]= %#X -- %d\n", i, output_data[i], (int) output_data[i]);
-    }
-    params->hfront_porch = output_data[0];
-    params->hback_porch = output_data[1];
-
-    IDLog("width raw numbers %d %d\n",output_data[2],output_data[3]);
-
-    params->width = output_data[2] | (output_data[3] << 8);
-    params->vfront_porch = output_data[4];
-    params->vback_porch = output_data[5];
-
-    IDLog("height raw numbers %d %d\n",output_data[6],output_data[7]);
-
-    params->height = output_data[6] | (output_data[7] << 8);
-    params->pix_width = (output_data[8] | (output_data[9] << 8)) / 256.0;
-    params->pix_height = (output_data[10] | (output_data[11] << 8)) / 256.0;
-
-    // For interlace, default to 1x2 MINIMUM binning.
-    // Will not do 1x1 to avoid dealing with deinterlacing frames
-    if (Interlaced)
-    {
-        int pixAspect = floor((params->pix_height / params->pix_width) + 0.5);
-        params->pix_height /= pixAspect;
-
-        params->height *= pixAspect;
-
-        //ImageBinN[1].value = pixAspect;
-        //ImageBinN[1].min   = pixAspect;
-        //IUUpdateMinMax(ImageBinNP);
-
-        //ImageFrameN[1].max = parms->pix_height;
-    }
-
-    params->color_matrix = output_data[12] | (output_data[13] << 8);
-    params->bits_per_pixel = output_data[14];
-    params->num_serial_ports = output_data[15];
-    params->extra_caps = output_data[16];
-    return (0);
-}
-
-int SxCam::ClearPixels(int flags,int camIndex)
-{
-    char setup_data[8];
-    int rc;
-
-    setup_data[USB_REQ_TYPE    ] = USB_REQ_VENDOR | USB_REQ_DATAOUT;
-    setup_data[USB_REQ         ] = SXUSB_CLEAR_PIXELS;
-    setup_data[USB_REQ_VALUE_L ] = flags;
-    setup_data[USB_REQ_VALUE_H ] = flags >> 8;
-    setup_data[USB_REQ_INDEX_L ] = camIndex;
-    setup_data[USB_REQ_INDEX_H ] = 0;
-    setup_data[USB_REQ_LENGTH_L] = 0;
-    setup_data[USB_REQ_LENGTH_H] = 0;
-    rc=WriteBulk(setup_data,8,1000);
-    return 0;
-}
-
-int SxCam::LatchPixels(int flags,int camIndex,int xoffset,int yoffset,int width,int height,int xbin,int ybin)
-{
-    char setup_data[18];
-    int rc;
-
-    //if (Interlaced)
-        //ybin--;
-
-    IDLog("Latch pixels: xoffset: %d - yoffset: %d - Width: %d - Height: %d - xbin: %d - ybin: %d\n", xoffset, yoffset, width, height, xbin, ybin);
-
-    setup_data[USB_REQ_TYPE    ] = USB_REQ_VENDOR | USB_REQ_DATAOUT;
-    setup_data[USB_REQ         ] = SXUSB_READ_PIXELS;
-    setup_data[USB_REQ_VALUE_L ] = flags;
-    setup_data[USB_REQ_VALUE_H ] = flags >> 8;
-    setup_data[USB_REQ_INDEX_L ] = camIndex;
-    setup_data[USB_REQ_INDEX_H ] = 0;
-    setup_data[USB_REQ_LENGTH_L] = 10;
-    setup_data[USB_REQ_LENGTH_H] = 0;
-    setup_data[USB_REQ_DATA + 0] = xoffset & 0xFF;
-    setup_data[USB_REQ_DATA + 1] = xoffset >> 8;
-    setup_data[USB_REQ_DATA + 2] = yoffset & 0xFF;
-    setup_data[USB_REQ_DATA + 3] = yoffset >> 8;
-    setup_data[USB_REQ_DATA + 4] = width & 0xFF;
-    setup_data[USB_REQ_DATA + 5] = width >> 8;
-    setup_data[USB_REQ_DATA + 6] = height & 0xFF;
-    setup_data[USB_REQ_DATA + 7] = height >> 8;
-    setup_data[USB_REQ_DATA + 8] = xbin;
-    setup_data[USB_REQ_DATA + 9] = ybin;
-    rc=WriteBulk(setup_data,18,1000);
-
-    return 0;
-}
-
-int SxCam::ExposePixels(int flags,int camIndex,int xoffset,int yoffset,int width,int height,int xbin,int ybin,int msec)
-{
-    char setup_data[22];
-    int rc;
-
-    //if (Interlaced)
-        //ybin--;
-
-    IDLog("Expose pixels: xoffset: %d - yoffset: %d - Width: %d - Height: %d - xbin: %d - ybin: %d - delay: %d\n", xoffset, yoffset, width, height, xbin, ybin, msec);
-    setup_data[USB_REQ_TYPE    ] = USB_REQ_VENDOR | USB_REQ_DATAOUT;
-    setup_data[USB_REQ         ] = SXUSB_READ_PIXELS_DELAYED;
-    setup_data[USB_REQ_VALUE_L ] = flags;
-    setup_data[USB_REQ_VALUE_H ] = flags >> 8;
-    setup_data[USB_REQ_INDEX_L ] = camIndex;
-    setup_data[USB_REQ_INDEX_H ] = 0;
-    setup_data[USB_REQ_LENGTH_L] = 10;
-    setup_data[USB_REQ_LENGTH_H] = 0;
-    setup_data[USB_REQ_DATA + 0] = xoffset & 0xFF;
-    setup_data[USB_REQ_DATA + 1] = xoffset >> 8;
-    setup_data[USB_REQ_DATA + 2] = yoffset & 0xFF;
-    setup_data[USB_REQ_DATA + 3] = yoffset >> 8;
-    setup_data[USB_REQ_DATA + 4] = width & 0xFF;
-    setup_data[USB_REQ_DATA + 5] = width >> 8;
-    setup_data[USB_REQ_DATA + 6] = height & 0xFF;
-    setup_data[USB_REQ_DATA + 7] = height >> 8;
-    setup_data[USB_REQ_DATA + 8] = xbin;
-    setup_data[USB_REQ_DATA + 9] = ybin;
-    setup_data[USB_REQ_DATA + 10] = msec;
-    setup_data[USB_REQ_DATA + 11] = msec >> 8;
-    setup_data[USB_REQ_DATA + 12] = msec >> 16;
-    setup_data[USB_REQ_DATA + 13] = msec >> 24;
-
-    rc=WriteBulk(setup_data,22,1000);
-    return 0;
-}
-
-int SxCam::ReadPixels(char *pixels,int count)
-{
-    int rc=0, bread=0;
-    int tries=0;
-
-
-
-
-    //  round to divisible by 256
-    //total=total/256;
-    //total++;
-    //total=total*256;
-
-    //  put in a test pattern for testing
-
-
-    //for(int x=0; x<count; x++)
-         // pixels[x]=x%256;
-
-    while (bread < count && tries < 5)
-    {
-        tries++;
-        rc = ReadBulk(pixels+bread,count-bread,10000);
-        if (rc < 0 || rc==count)
-            break;
-        bread += rc;
-	
-	IDLog("On Read Attempt %d got %d bytes while requested is %d\n", tries, bread, count); 
-	usleep(50);
-
-    }
-    
-    IDLog("Read Pixels request %d got %d after %d tries.\n",count,bread, tries);
-    
-	//FILE *h = fopen("rawcam.dat", "w+");
-	//fwrite(pixels, count, 1, h);
-	//fclose(h);
-    return rc;
-}
 
 int SxCam::SetCamTimer(int msec)
 {
@@ -910,4 +563,40 @@ int SxCam::GetCamTimer()
     timer=0;
     rc=ReadBulk((char *)&timer,4,1000);
     return timer;
+}
+
+int SxCam::SetParams(int xres,int yres,int Bits,float pixwidth,float pixheight)
+{
+    IDLog("SxCam::Setparams %d %d\n",xres,yres);
+    SetCCDParams(xres,yres,Bits,pixwidth,pixheight);
+    CamBits=Bits;
+    if (RawFrame != NULL)
+        delete RawFrame;
+
+        RawFrameSize=XRes*YRes;                 //  this is pixel count
+        if(bits_per_pixel==16) RawFrameSize=RawFrameSize*2;            //  Each pixel is 2 bytes
+        RawFrameSize+=512;                      //  leave a little extra at the end
+        RawFrame=new char[RawFrameSize];
+
+
+
+}
+
+int SxCam::SetGuideParams(int gXRes,int gYRes,int gBits,float gpixwidth,float gpixheight)
+{
+    IDLog("SxCam::SetGuideparams %d %d\n",xres,yres);
+
+    SetGuidHeadParams(gXRes,gYRes,gBits,gpixwidth,gpixheight);
+
+                RawGuideSize=GXRes*GYRes;
+                if(gparms.bits_per_pixel ==16) RawGuideSize=RawGuideSize*2;
+                RawGuiderFrame=new char[RawGuideSize];
+
+
+}
+
+int SxCam::SetInterlaced(bool i)
+{
+    Interlaced=i;
+    return 0;
 }

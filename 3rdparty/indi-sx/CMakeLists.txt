@@ -27,6 +27,7 @@ endif (NOVA_FOUND)
 ########### SX CCD ###########
 set(indisxccd_SRCS
    ${CMAKE_SOURCE_DIR}/sxcam.cpp
+   ${CMAKE_SOURCE_DIR}/sxccd.cpp
    )
 
 add_executable(indi_sx_ccd ${indisxccd_SRCS})
@@ -38,6 +39,22 @@ if (NOVA_FOUND)
 endif (NOVA_FOUND)
 
 install(TARGETS indi_sx_ccd RUNTIME DESTINATION bin )
+
+########### SX test program ###########
+set(indisxtest_SRCS
+   ${CMAKE_SOURCE_DIR}/sxtest.cpp
+   ${CMAKE_SOURCE_DIR}/sxccd.cpp
+   )
+
+add_executable(sxtest ${indisxtest_SRCS})
+
+target_link_libraries(sxtest ${INDI_LIBRARIES}  ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${ZLIB_LIBRARIES} ${LIBUSB_LIBRARIES})
+
+if (NOVA_FOUND)
+  target_link_libraries(indi_sx_ccd ${NOVA_LIBRARIES})
+endif (NOVA_FOUND)
+
+#install(TARGETS indi_sx_ccd RUNTIME DESTINATION bin )
 
 
 ########### SX Wheel ###########

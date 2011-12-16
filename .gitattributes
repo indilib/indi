@@ -138,6 +138,8 @@
 3rdparty/indi-sx/indi_sx.xml -text
 3rdparty/indi-sx/sxcam.cpp -text
 3rdparty/indi-sx/sxcam.h -text
+3rdparty/indi-sx/sxccd.cpp -text
+3rdparty/indi-sx/sxccd.h -text
 3rdparty/indi-sx/sxwheel.cpp -text
 3rdparty/indi-sx/sxwheel.h -text
 cmake_modules/FindALUT.cmake -text
