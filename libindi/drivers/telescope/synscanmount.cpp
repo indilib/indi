@@ -38,6 +38,7 @@ std::auto_ptr<SynscanMount> synscan(0);
 
 void ISPoll(void *p);
 
+#define isDebug() true
 
 void ISInit()
 {
@@ -109,7 +110,7 @@ const char * SynscanMount::getDefaultName()
 
 bool SynscanMount::initProperties()
 {
-    if (isDebug())
+    //if (isDebug())
         IDLog("Synscan::init_properties\n");
 
     //setDeviceName("Synscan");
@@ -119,7 +120,7 @@ bool SynscanMount::initProperties()
 }
 void SynscanMount::ISGetProperties (const char *dev)
 {
-    if (isDebug())
+    //if (isDebug())
         IDLog("Enter SynscanMount::ISGetProperties %s\n",dev);
 
     //  First we let our parent class do it's thing
@@ -138,7 +139,7 @@ bool SynscanMount::ReadScopeStatus()
     double ra,dec;
     int n1,n2;
 
-    //IDLog("Read Status\n");
+    //IDLog("SynScan Read Status\n");
     //tty_write(PortFD,(unsigned char *)"Ka",2, &bytesWritten);  //  test for an echo
 
     tty_write(PortFD,"Ka",2, &bytesWritten);  //  test for an echo
@@ -146,7 +147,7 @@ bool SynscanMount::ReadScopeStatus()
     if(str[1] != '#')
     {
         //  this is not a correct echo
-        if (isDebug())
+        //if (isDebug())
             IDLog("ReadStatus Echo Fail\n");
         IDMessage(deviceName(),"Mount Not Responding");
         return false;
@@ -191,7 +192,8 @@ bool SynscanMount::ReadScopeStatus()
     memset(str,0,20);
     tty_write(PortFD,"e",1, &bytesWritten);
     numread=tty_read(PortFD,str,18,1, &bytesRead);
-    if (numread!=18)
+    if (bytesRead!=18)
+	//if(str[17] != '#')
     {
         IDLog("read status bytes didn't get a full read\n");
         return false;
@@ -229,7 +231,7 @@ bool SynscanMount::Goto(double ra,double dec)
     tty_write(PortFD,str,18, &bytesWritten);
     TrackState=SCOPE_SLEWING;
     numread=tty_read(PortFD,str,1,60, &bytesRead);
-    if (numread!=1||str[0]!='#')
+    if (bytesRead!=1||str[0]!='#')
     {
         if (isDebug())
             IDLog("Timeout waiting for scope to complete slewing.");
@@ -257,7 +259,7 @@ bool SynscanMount::Park()
     //  Now we stop tracking
     tty_write(PortFD,"T0",2, &bytesWritten);
     numread=tty_read(PortFD,str,1,60, &bytesRead);
-    if (numread!=1||str[0]!='#')
+    if (bytesRead!=1||str[0]!='#')
     {
         if (isDebug())
             IDLog("Timeout waiting for scope to stop tracking.");
@@ -267,7 +269,7 @@ bool SynscanMount::Park()
     //sprintf((char *)str,"b%08X,%08X",0x0,0x40000000);
     tty_write(PortFD,"B0000,4000",10, &bytesWritten);
     numread=tty_read(PortFD,str,1,60, &bytesRead);
-    if (numread!=1||str[0]!='#')
+    if (bytesRead!=1||str[0]!='#')
     {
         if (isDebug())
             IDLog("Timeout waiting for scope to respond to park.");

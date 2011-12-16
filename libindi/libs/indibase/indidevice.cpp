@@ -298,6 +298,7 @@ bool IndiDevice::Connect()
 {
     //  We dont actually implement a device here
     //  So we cannot connect to it
+IDLog("IndiDevice Connect, we should never get here\n");
     IDMessage(deviceName(),"IndiDevice:: has no device attached....");
     return false;
 }

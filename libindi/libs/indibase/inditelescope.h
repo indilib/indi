@@ -50,6 +50,9 @@ class INDI::Telescope : public INDI::DefaultDriver
         ISwitchVectorProperty *CoordSV; //  A switch vector that stores how we should readct
         ISwitch CoordS[3];              //  On a coord_set message, sync, or slew
 
+		ISwitchVectorProperty *ConfigSV; //  A switch vector that stores how we should readct
+        ISwitch ConfigS[3];              //  On a coord_set message, sync, or slew
+
         INumberVectorProperty *LocationNV;   //  A number vector that stores lattitude and longitude
         INumber LocationN[2];
 
@@ -69,6 +72,7 @@ class INDI::Telescope : public INDI::DefaultDriver
         ISwitch MovementWES[2];
         ISwitchVectorProperty *MovementWESP;
 
+		virtual bool saveConfigItems(FILE *fp);
 
         //  Ok, we do need our virtual functions from the base class for processing
         //  client requests
@@ -85,12 +89,11 @@ class INDI::Telescope : public INDI::DefaultDriver
         virtual bool updateProperties();    //  Called when connected state changes, to add/remove properties
 
         virtual void TimerHit();
+		virtual bool Connect();
         virtual bool Disconnect();
 
-
-        virtual bool Connect(char *);
         virtual bool Connect(const char *);
-
+ 
 
         //  Since every mount I know of actually uses a serial port for control
         //  We put the serial helper into the base telescope class

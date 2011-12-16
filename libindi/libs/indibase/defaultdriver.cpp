@@ -53,35 +53,23 @@ bool INDI::DefaultDriver::loadConfig()
     pResult = IUReadConfig(NULL, deviceID, errmsg) == 0 ? true : false;
 
    if (pResult)
-       IDMessage(deviceID, "Configuration successfully loaded.");
+       IDMessage(deviceID, "Configuration successfully loaded.\n");
+	else
+		IDMessage(deviceID,"Error loading configuration\n");
 
    IUSaveDefaultConfig(NULL, NULL, deviceID);
 
    return pResult;
 }
 
-bool INDI::DefaultDriver::saveConfig()
+bool INDI::DefaultDriver::saveConfigItems(FILE *fp)
 {
-    //std::vector<orderPtr>::iterator orderi;
-
     std::map< boost::shared_ptr<void>, INDI_TYPE>::iterator orderi;
 
     ISwitchVectorProperty *svp=NULL;
     INumberVectorProperty *nvp=NULL;
     ITextVectorProperty   *tvp=NULL;
     IBLOBVectorProperty   *bvp=NULL;
-    char errmsg[MAXRBUF];
-    FILE *fp = NULL;
-
-    fp = IUGetConfigFP(NULL, deviceID, errmsg);
-
-    if (fp == NULL)
-    {
-        IDMessage(deviceID, "Error saving configuration. %s", errmsg);
-        return false;
-    }
-
-    IUSaveConfigTag(fp, 0);
 
     for (orderi = pAll.begin(); orderi != pAll.end(); orderi++)
     {
@@ -110,6 +98,27 @@ bool INDI::DefaultDriver::saveConfig()
              break;
         }
     }
+	return true;
+}
+
+bool INDI::DefaultDriver::saveConfig()
+{
+    //std::vector<orderPtr>::iterator orderi;
+    char errmsg[MAXRBUF];
+
+    FILE *fp = NULL;
+
+    fp = IUGetConfigFP(NULL, deviceID, errmsg);
+
+    if (fp == NULL)
+    {
+        IDMessage(deviceID, "Error saving configuration. %s\n", errmsg);
+        return false;
+    }
+
+    IUSaveConfigTag(fp, 0);
+
+	saveConfigItems(fp);
 
     IUSaveConfigTag(fp, 1);
 
@@ -148,7 +157,7 @@ bool INDI::DefaultDriver::loadDefaultConfig()
 
 bool INDI::DefaultDriver::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-
+	IDLog("DefaultDriver NewSwitch\n");
     // ignore if not ours //
     if (strcmp (dev, deviceID))
         return false;
@@ -166,10 +175,13 @@ bool INDI::DefaultDriver::ISNewSwitch (const char *dev, const char *name, ISStat
       {
         if ( !strcmp(names[i], "CONNECT") && (states[i] == ISS_ON))
         {
+			IDLog("DefaultDriver Connect\n");
             // If not connected, attempt to connect
             if (isConnected() == false)
             {
+				IDLog("DefaultDriver Calling Connect\n");
                 rc = Connect();
+				IDLog("DefaultDriver Call Connect returns %d\n",rc);
 
                 // If connection is successful, set it thus
                 if (rc)

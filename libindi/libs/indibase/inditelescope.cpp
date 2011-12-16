@@ -46,6 +46,8 @@ INDI::Telescope::Telescope()
     PortTV = new ITextVectorProperty;
     MovementNSSP = new ISwitchVectorProperty;
     MovementWESP = new ISwitchVectorProperty;
+    ConfigSV = new ISwitchVectorProperty;
+
 }
 
 INDI::Telescope::~Telescope()
@@ -68,13 +70,19 @@ bool INDI::Telescope::initProperties()
     IUFillNumberVector(EqReqNV,EqReqN,2,deviceName(),"EQUATORIAL_EOD_COORD_REQUEST","GOTO",MAIN_CONTROL_TAB,IP_WO,60,IPS_IDLE);
 
     IUFillNumber(&LocationN[0],"LAT","Lat (dd:mm:ss)","%010.6m",-90,90,0,0.0);
-    IUFillNumber(&LocationN[1],"LONG","Lon (dd:mm:ss)","%010.6m",0,360,0,0.0 );
+    IUFillNumber(&LocationN[1],"LONG","Lon (dd:mm:ss)","%010.6m",-180,180,0,0.0 );
     IUFillNumberVector(LocationNV,LocationN,2,deviceName(),"GEOGRAPHIC_COORD","Scope Location",SITE_TAB,IP_RW,60,IPS_OK);
 
     IUFillSwitch(&CoordS[0],"TRACK","Track",ISS_OFF);
     IUFillSwitch(&CoordS[1],"SLEW","Slew",ISS_OFF);
     IUFillSwitch(&CoordS[2],"SYNC","Sync",ISS_OFF);
     IUFillSwitchVector(CoordSV,CoordS,3,deviceName(),"ON_COORD_SET","On Set",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+
+    IUFillSwitch(&ConfigS[0], "CONFIG_LOAD", "Load", ISS_OFF);
+    IUFillSwitch(&ConfigS[1], "CONFIG_SAVE", "Save", ISS_OFF);
+    IUFillSwitch(&ConfigS[2], "CONFIG_DEFAULT", "Default", ISS_OFF);
+    IUFillSwitchVector(ConfigSV, ConfigS, 3, deviceName(), "CONFIG_PROCESS", "Configuration", "Options", IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
 
     IUFillSwitch(&ParkS[0],"PARK","Park",ISS_OFF);
     IUFillSwitchVector(ParkSV,ParkS,1,deviceName(),"TELESCOPE_PARK","Park",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
@@ -101,7 +109,7 @@ void INDI::Telescope::ISGetProperties (const char *dev)
     DefaultDriver::ISGetProperties(dev);
 
     //  We may need the port set before we can connect
-    //IDDefText(&PortTV,NULL);
+    IDDefText(PortTV,NULL);
     //LoadConfig();
 
     if(isConnected())
@@ -114,6 +122,7 @@ void INDI::Telescope::ISGetProperties (const char *dev)
         defineSwitch(ParkSV);
         defineSwitch(MovementNSSP);
         defineSwitch(MovementWESP);
+		defineSwitch(ConfigSV);
 
     }
     return;
@@ -121,6 +130,7 @@ void INDI::Telescope::ISGetProperties (const char *dev)
 
 bool INDI::Telescope::updateProperties()
 {
+    defineText(PortTV);
     if(isConnected())
     {
         //  Now we add our telescope specific stuff
@@ -145,6 +155,15 @@ bool INDI::Telescope::updateProperties()
 
         //initProperties();
     }
+	defineSwitch(ConfigSV);
+
+    return true;
+}
+
+bool INDI::Telescope::saveConfigItems(FILE *fp)
+{
+
+	IUSaveConfigNumber(fp,LocationNV);
     return true;
 }
 
@@ -400,22 +419,26 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
     return DefaultDriver::ISNewSwitch(dev,name,states,names,n);
 }
 
-bool INDI::Telescope::Connect(char *msg)
+
+bool INDI::Telescope::Connect()
 {
     //  Parent class is wanting a connection
-    //IDLog("INDI::Telescope calling connect with %s\n",PortT[0].text);
+    IDLog("INDI::Telescope arrived in connect with %s\n",PortT[0].text);
     bool rc=false;
 
     if(isConnected()) return true;
 
-    //IDLog("Calling Connect\n");
+    IDLog("Telescope Calling Connect\n");
 
     rc=Connect(PortT[0].text);
+
+	IDLog("Telescope Connect returns %d\n",rc);
 
     if(rc)
         SetTimer(POLLMS);
     return rc;
 }
+
 
 bool INDI::Telescope::Connect(const char *port)
 {
@@ -427,20 +450,20 @@ bool INDI::Telescope::Connect(const char *port)
     char errorMsg[MAXRBUF];
     bool rc;
 
-	//IDLog("connecting to %s\n",port);
+	IDLog("Indi Telescope connecting to %s\n",port);
 
     if ( (connectrc = tty_connect(port, 9600, 8, 0, 1, &PortFD)) != TTY_OK)
     {
         tty_error_msg(connectrc, errorMsg, MAXRBUF);
 
-        if (isDebug())
+        //if (isDebug())
             IDLog("Failed to connect o port %s. Error: %s", port, errorMsg);
         IDMessage(deviceName(), "Failed to connect to port %s. Error: %s", port, errorMsg);
 
         return false;
 
     }
-	//IDLog("Port Fd %d\n",PortFD);
+	IDLog("Port Fd %d\n",PortFD);
     /* Flush the input (read) buffer */
 
     //tcflush(PortFD,TCIOFLUSH);
@@ -468,6 +491,8 @@ bool INDI::Telescope::Disconnect()
     //  because clients can screw each other up if we allow that
     //Connected=false;
 
+	IDLog("IndiTelescope Disconnect\n");
+
     close(PortFD);
     IDMessage(deviceName(),"Telescope is offline.");
 
@@ -477,7 +502,7 @@ bool INDI::Telescope::Disconnect()
 
 void INDI::Telescope::TimerHit()
 {
-    //IDLog("Timer Hit\n");
+    //IDLog("Telescope Timer Hit\n");
     if(isConnected())
     {
         bool rc;

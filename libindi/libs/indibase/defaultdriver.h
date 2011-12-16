@@ -80,6 +80,7 @@ public:
     */
     virtual bool deleteProperty(const char *propertyName);
 
+
     /** \brief Connect or Disconnect a device.
       \param status If true, the driver will attempt to connect to the device (CONNECT=ON). If false, it will attempt
 to disconnect the device.
@@ -90,6 +91,8 @@ to disconnect the device.
     int SetTimer(int);
     void RemoveTimer(int);
     virtual void TimerHit();
+
+
 
 protected:
 
@@ -122,17 +125,19 @@ protected:
     /** \brief Load the last saved configuration file
         \return True if successful, false otherwise.
     */
-    bool loadConfig();
+    virtual bool loadConfig();
 
     /** \brief Save the current properties in a configuration file
         \return True if successful, false otherwise.
     */
-    bool saveConfig();
+    virtual bool saveConfig();
+	virtual bool saveConfigItems(FILE *fp);
 
     /** \brief Load the default configuration file
         \return True if successful, false otherwise.
     */
-    bool loadDefaultConfig();
+    virtual bool loadDefaultConfig();
+
 
     // Simulatin & Debug
 
@@ -157,6 +162,12 @@ protected:
 
     /** \return True if Simulation is on, False otherwise. */
     bool isSimulation();
+
+    //  These are the properties we define, that are generic to pretty much all devices
+    //  They are public to make them available to all dervied classes and thier children
+    ISwitchVectorProperty *ConnectionSP;
+    ISwitch ConnectionS[2];
+
 
     /** \brief Initilize properties initial state and value. The child class must implement this function.
         \return True if initilization is successful, false otherwise.
@@ -199,11 +210,6 @@ private:
     ISwitchVectorProperty *DebugSP;
     ISwitchVectorProperty *SimulationSP;
     ISwitchVectorProperty *ConfigProcessSP;
-
-    //  These are the properties we define, that are generic to pretty much all devices
-    //  They are public to make them available to all dervied classes and thier children
-    ISwitchVectorProperty *ConnectionSP;
-    ISwitch ConnectionS[2];
 
 
 };
