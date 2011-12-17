@@ -65,8 +65,7 @@ class SxCam : public INDI::CCD, public SxCCD
         unsigned short int CameraModel;
 
         bool ColorSensor;
-		int CamBits;
-		int GuiderBits;
+
 
         float CalcTimeLeft();
         bool InExposure;
@@ -83,10 +82,6 @@ class SxCam : public INDI::CCD, public SxCCD
 
         int ReadCameraFrame(int,char *);
 
-        ISwitch StreamS[2];
-        ISwitchVectorProperty *StreamSP;
-
-
          SxCam();
         virtual ~SxCam();
 
@@ -102,9 +97,8 @@ class SxCam : public INDI::CCD, public SxCCD
 
         void TimerHit();
 
-        virtual bool initProperties();
-        virtual bool updateProperties();
-        virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+        virtual bool updateCCDBin(int hor, int ver);
+
         virtual int SetParams(int XRes,int YRes,int CamBits,float pixwidth,float pixheight);
         virtual int SetGuideParams(int XRes,int YRes,int CamBits,float pixwidth,float pixheight);
         virtual int SetInterlaced(bool);

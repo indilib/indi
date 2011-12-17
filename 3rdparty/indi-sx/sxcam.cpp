@@ -79,48 +79,17 @@ void ISSnoopDevice (XMLEle *root)
 SxCam::SxCam()
 {
     //ctor
-    SubX=0;
-    SubY=0;
-    SubW=1392;
-    SubH=1040;
-    BinX=1;
-    BinY=1;
-    Interlaced=false;
-    RawFrame = NULL;
     HasGuideHead=false;
-    CamBits=8;
     evenBuf = NULL;
     oddBuf  = NULL;
-    StreamSP = new ISwitchVectorProperty;
 }
 
 SxCam::~SxCam()
 {
     //dtor
-    if(RawFrame != NULL) delete RawFrame;
     usb_close(usb_handle);
 }
 
-bool SxCam::initProperties()
-{
-    INDI::CCD::initProperties();
-
-    /* Video Stream */
-     IUFillSwitch(&StreamS[0], "ON", "Stream On", ISS_OFF);
-     IUFillSwitch(&StreamS[1], "OFF", "Stream Off", ISS_ON);
-     IUFillSwitchVector(StreamSP, StreamS, 2, deviceName(), "VIDEO_STREAM", "Video Stream", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-}
-
-bool SxCam::updateProperties()
-{
-
-    INDI::CCD::updateProperties();
-
-    if (isConnected())
-        defineSwitch(StreamSP);
-    else
-        deleteProperty(StreamSP->name);
-}
 
 const char * SxCam::getDefaultName()
 {
@@ -132,7 +101,9 @@ bool SxCam::Connect()
     bool rc;
     IDLog("Calling sx connect\n");
     rc=SxCCD::Connect();
-    if(rc) {
+    return rc;
+    /*if(rc)
+    {
         IDLog("Calling Set CCD %d %d\n",XRes,YRes);
         SetCCDParams(XRes,YRes,CamBits,pixwidth,pixheight);
         if(HasGuideHead) {
@@ -142,7 +113,7 @@ bool SxCam::Connect()
             printf("no guide head\n");
         }
     }
-    return rc;
+    return rc;*/
 }
 
 bool SxCam::Disconnect()
@@ -150,41 +121,6 @@ bool SxCam::Disconnect()
     bool rc;
     rc=SxCCD::Disconnect();
     return rc;
-}
-
-bool SxCam::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    if(strcmp(dev,deviceName())==0)
-    {
-        //  it's for this device
-
-        //for(int x=0; x<n; x++) {
-        //    IDLog("Switch %s\n",names[x]);
-        //}
-
-        if(strcmp(name,StreamSP->name)==0)
-        {
-
-            IUUpdateSwitch(StreamSP,states,names,n);
-
-            if (StreamS[0].s == ISS_ON)
-            {
-                StreamSP->s = IPS_BUSY;
-                IDSetSwitch(StreamSP, "Starting video stream.");
-                StartExposure(0.5);
-            }
-            else
-            {
-                StreamSP->s = IPS_IDLE;
-                IDSetSwitch(StreamSP, "Video stream stopped.");
-            }
-
-            return true;
-        }
-  }
-
-    return INDI::CCD::ISNewSwitch(dev, name, states, names, n);
-
 }
 
 float SxCam::CalcTimeLeft()
@@ -228,7 +164,7 @@ int SxCam::StartExposure(float n)
     DidFlush=0;
     DidLatch=0;
 
-    if (Interlaced && BinY == 1)
+    if (PrimaryCCD.isInterlaced() && PrimaryCCD.getBinY() == 1)
     {
         ClearPixels(SXCCD_EXP_FLAGS_FIELD_EVEN,IMAGE_CCD);
 
@@ -355,11 +291,12 @@ void SxCam::TimerHit()
 
                     // If not interlaced, take full frame
                     // If interlaced, but vertical binning is > 1, then take full frame as well.
-                    if (Interlaced == false)
-                        rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_BOTH,IMAGE_CCD,SubX,SubY,SubW,SubH,BinX,BinY);
-                    else if (Interlaced && BinY > 1)
-                        rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_BOTH,IMAGE_CCD,SubX,SubY,SubW,SubH/2,BinX,BinY-1);
-                           // IDLog("Image Pixels latched with rc=%d\n", rc);
+                    if (PrimaryCCD.isInterlaced() == false)
+                        rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_BOTH,IMAGE_CCD,PrimaryCCD.getSubX(),PrimaryCCD.getSubY(),PrimaryCCD.getSubW(),
+                                       PrimaryCCD.getSubH(),PrimaryCCD.getBinX(),PrimaryCCD.getBinY());
+                    else if (PrimaryCCD.isInterlaced() && PrimaryCCD.getBinY() > 1)
+                        rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_BOTH,IMAGE_CCD,PrimaryCCD.getSubX(),PrimaryCCD.getSubY(),PrimaryCCD.getSubW(),
+                                       PrimaryCCD.getSubH()/2,PrimaryCCD.getBinX(),(PrimaryCCD.getBinY()/2));
 
                     DidLatch=1;
 
@@ -392,7 +329,8 @@ void SxCam::TimerHit()
                     ClearPixels(SXCCD_EXP_FLAGS_NOWIPE_FRAME,GUIDE_CCD);
                     //  now latch the exposure
                     //rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_EVEN | SXCCD_EXP_FLAGS_NOWIPE_FRAME_FRAME,GUIDE_CCD,GSubX,GSubY,GSubW,GSubH,1,1);
-                    rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_EVEN | SXCCD_EXP_FLAGS_NOCLEAR_FRAME,GUIDE_CCD,GSubX,GSubY,GSubW,GSubH,1,1);
+                    rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_EVEN | SXCCD_EXP_FLAGS_NOCLEAR_FRAME,GUIDE_CCD,GuideCCD.getSubX(),GuideCCD.getSubY(),
+                                   GuideCCD.getSubW(),GuideCCD.getSubH(),1,1);
                     //rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_BOTH ,GUIDE_CCD,GSubX,GSubY,GSubW,GSubH,1,1);
                     DidGuideLatch=1;
                     IDLog("Guide Even Pixels latched\n");
@@ -413,7 +351,7 @@ void SxCam::TimerHit()
         //  Pixels have been latched
         //  now download them
         int rc;
-        rc=ReadCameraFrame(IMAGE_CCD,RawFrame);
+        rc=ReadCameraFrame(IMAGE_CCD,PrimaryCCD.getFrameBuffer());
         IDLog("Read camera frame with rc=%d\n", rc);
         //rc=ProcessRawData(RawFrame, RawData);
         //IDLog("processed raw data with rc=%d\n", rc);
@@ -437,7 +375,7 @@ void SxCam::TimerHit()
     if(DidGuideLatch==1)
     {
         int rc;
-        rc=ReadCameraFrame(GUIDE_CCD,RawGuiderFrame);
+        rc=ReadCameraFrame(GUIDE_CCD,PrimaryCCD.getFrameBuffer());
         DidGuideLatch=0;
         InGuideExposure=false;
         //  send half a frame
@@ -466,26 +404,21 @@ int SxCam::ReadCameraFrame(int index, char *buf)
 
     if(index==IMAGE_CCD)
     {
-        if (Interlaced && BinY > 1)
-            numbytes=SubW*SubH/2/BinX/(BinY-1);
+        if (PrimaryCCD.isInterlaced() && PrimaryCCD.getBinY() > 1)
+            numbytes= PrimaryCCD.getBPP() * PrimaryCCD.getSubW()*PrimaryCCD.getSubH()/2/PrimaryCCD.getBinX()/(PrimaryCCD.getBinY()/2);
         else
-            numbytes=SubW*SubH/BinX/BinY;
+            numbytes= PrimaryCCD.getBPP() * PrimaryCCD.getSubW()*PrimaryCCD.getSubH()/PrimaryCCD.getBinX()/PrimaryCCD.getBinY();
 
-        xwidth = SubW;
+        xwidth = PrimaryCCD.getSubW() * PrimaryCCD.getBPP();
 
-        if(CamBits==16)
-        {
-             numbytes=numbytes*2;
-             xwidth  *= 2;
-             //yheight *= 2;
-        }
 
-        IDLog("SubW: %d - SubH: %d - BinX: %d - BinY: %d CamBits %d\n",SubW, SubH, BinX, BinY,CamBits);
+        //IDLog("SubW: %d - SubH: %d - BinX: %d - BinY: %d CamBits %d\n",SubW, SubH, BinX, BinY,CamBits);
 
-        if (Interlaced && BinY == 1)
+        if (PrimaryCCD.isInterlaced() && PrimaryCCD.getBinY() == 1)
         {
 
-            rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_EVEN | SXCCD_EXP_FLAGS_NOBIN_ACCUM,IMAGE_CCD,SubX,SubY,SubW,SubH/2,BinX,BinY);
+            rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_EVEN | SXCCD_EXP_FLAGS_NOBIN_ACCUM,IMAGE_CCD,PrimaryCCD.getSubX(),PrimaryCCD.getSubY(),
+                           PrimaryCCD.getSubW(),PrimaryCCD.getSubH()/2,PrimaryCCD.getBinX(),1);
 
             // Let's read EVEN fields now
             //IDLog("EVEN FIELD: Read Starting for %d\n",numbytes);
@@ -494,7 +427,8 @@ int SxCam::ReadCameraFrame(int index, char *buf)
 
             //IDLog("EVEN FIELD: Read %d\n",rc);
 
-            rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_ODD | SXCCD_EXP_FLAGS_NOBIN_ACCUM,IMAGE_CCD,SubX,SubY,SubW,SubH/2,BinX,BinY);
+            rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_ODD | SXCCD_EXP_FLAGS_NOBIN_ACCUM,IMAGE_CCD,PrimaryCCD.getSubX(),PrimaryCCD.getSubY(),
+                           PrimaryCCD.getSubW(),PrimaryCCD.getSubH()/2,PrimaryCCD.getBinX(),1);
 
             //IDLog("bpp: %d - xwidth: %d - ODD FIELD: Read Starting for %d\n", (CamBits==16) ? 2 : 1, xwidth, numbytes);
 
@@ -502,7 +436,8 @@ int SxCam::ReadCameraFrame(int index, char *buf)
 
             //IDLog("ODD FIELD: Read %d\n",rc);
 
-            for (int i=0, j=0; i < SubH ; i+=2, j++)
+            int height = PrimaryCCD.getSubH();
+            for (int i=0, j=0; i < height ; i+=2, j++)
             {
                 memcpy(buf + i * xwidth, evenBuf + (j * xwidth), xwidth);
                 memcpy(buf + ((i+1) * xwidth), oddBuf + (j*xwidth), xwidth);
@@ -516,7 +451,7 @@ int SxCam::ReadCameraFrame(int index, char *buf)
         }
     } else
     {
-        numbytes=GSubW*GSubH;
+        numbytes=GuideCCD.getSubW()*GuideCCD.getSubH();
         //numbytes=numbytes*2;
         IDLog("Download Starting for %d\n",numbytes);
         rc=ReadPixels(buf,numbytes);
@@ -578,8 +513,9 @@ int SxCam::GetCamTimer()
 int SxCam::SetParams(int xres,int yres,int Bits,float pixwidth,float pixheight)
 {
     IDLog("SxCam::Setparams %d %d\n",xres,yres);
+    int nbuf;
 
-    if (Interlaced)
+    if (PrimaryCCD.isInterlaced())
     {
         pixheight /= 2;
         yres *= 2;
@@ -587,43 +523,50 @@ int SxCam::SetParams(int xres,int yres,int Bits,float pixwidth,float pixheight)
 
    SetCCDParams(xres,yres,Bits,pixwidth,pixheight);
 
+   nbuf=PrimaryCCD.getXRes()*PrimaryCCD.getYRes();                 //  this is pixel count
+   if(Bits==16)
+         nbuf *=2;            //  Each pixel is 2 bytes
+   nbuf+=512;                      //  leave a little extra at the end
 
-    CamBits=Bits;
+   PrimaryCCD.setFrameBufferSize(nbuf);
 
-    if (RawFrame != NULL)
-        delete RawFrame;
+   if (evenBuf != NULL)
+       delete evenBuf;
+   if (oddBuf != NULL)
+      delete oddBuf;
 
-        RawFrameSize=XRes*YRes;                 //  this is pixel count
-        if(bits_per_pixel==16) RawFrameSize=RawFrameSize*2;            //  Each pixel is 2 bytes
-        RawFrameSize+=512;                      //  leave a little extra at the end
-
-        RawFrame=new char[RawFrameSize];
-
-        if (evenBuf != NULL)
-            delete evenBuf;
-        if (oddBuf != NULL)
-            delete oddBuf;
-
-        evenBuf = new char[RawFrameSize/2];
-        oddBuf = new char[RawFrameSize/2];
-
+   evenBuf = new char[nbuf/2];
+   oddBuf = new char[nbuf/2];
 }
 
 int SxCam::SetGuideParams(int gXRes,int gYRes,int gBits,float gpixwidth,float gpixheight)
 {
     IDLog("SxCam::SetGuideparams %d %d\n",xres,yres);
-
+    int nbuf=0;
     SetGuidHeadParams(gXRes,gYRes,gBits,gpixwidth,gpixheight);
 
-                RawGuideSize=GXRes*GYRes;
-                if(gparms.bits_per_pixel ==16) RawGuideSize=RawGuideSize*2;
-                RawGuiderFrame=new char[RawGuideSize];
+    nbuf = GuideCCD.getXRes() * GuideCCD.getYRes();
+    if(gparms.bits_per_pixel ==16)
+        nbuf *= 2;
 
-
+    GuideCCD.setFrameBufferSize(nbuf);
 }
 
 int SxCam::SetInterlaced(bool i)
 {
-    Interlaced=i;
+    PrimaryCCD.setInterlaced(i);
     return 0;
+}
+
+bool SxCam::updateCCDBin(int hor, int ver)
+{
+    if (hor == 3 || ver ==3)
+    {
+        PrimaryCCD.setBin(1,1);
+        IDMessage(deviceName(), "3x3 binning is not supported on this CCD. Valid modes are 1x1, 2x2, and 4x4.");
+        return true;
+    }
+
+    return false;
+
 }
