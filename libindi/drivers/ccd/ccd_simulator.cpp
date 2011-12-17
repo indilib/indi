@@ -132,6 +132,7 @@ CCDSim::CCDSim()
 
 bool CCDSim::SetupParms()
 {
+    int nbuf;
     SetCCDParams(SimulatorSettingsN[0].value,SimulatorSettingsN[1].value,16,SimulatorSettingsN[2].value,SimulatorSettingsN[3].value);
     //  Kwiq
     maxnoise=SimulatorSettingsN[10].value;
@@ -144,12 +145,9 @@ bool CCDSim::SetupParms()
     OAGoffset=SimulatorSettingsN[12].value;    //  An oag is offset this much from center of scope position (arcminutes);
     seeing=SimulatorSettingsN[9].value;        //  we get real fat stars in this one
 
-
-    if(RawFrame != NULL) delete RawFrame;
-    RawFrameSize=XRes*YRes;                 //  this is pixel count
-    RawFrameSize=RawFrameSize*2;            //  Each pixel is 2 bytes
-    RawFrameSize+=512;                      //  leave a little extra at the end
-    RawFrame=new char[RawFrameSize];
+    nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP();
+    nbuf += 512;
+    PrimaryCCD.setFrameBufferSize(nbuf);
 
     return true;
 }
@@ -157,14 +155,14 @@ bool CCDSim::SetupParms()
 bool CCDSim::Connect()
 {
 
+    int nbuf;
     SetupParms();
 
     if(HasGuideHead)
     {
         SetGuidHeadParams(500,290,8,9.8,12.6);
-        RawGuideSize=GXRes*GYRes;                 //  this is pixel count
-        RawGuideSize+=512;                      //  leave a little extra at the end
-        RawGuiderFrame=new char[RawGuideSize];
+        nbuf = GuideCCD.getXRes() * GuideCCD.getYRes();
+        GuideCCD.setFrameBufferSize(nbuf);
     }
 
     SetTimer(1000);     //  start the timer
@@ -187,8 +185,8 @@ bool CCDSim::initProperties()
     //  but the simulators are a special case
     INDI::CCD::initProperties();
 
-    IUFillNumber(&SimulatorSettingsN[0],"SIM_XRES","CCD X resolution","%4.0f",0,2048,0,1280);
-    IUFillNumber(&SimulatorSettingsN[1],"SIM_YRES","CCD Y resolution","%4.0f",0,2048,0,1024);
+    IUFillNumber(&SimulatorSettingsN[0],"SIM_PrimarCCD.getXRes()","CCD X resolution","%4.0f",0,2048,0,1280);
+    IUFillNumber(&SimulatorSettingsN[1],"SIM_PrimarCCD.getYRes()","CCD Y resolution","%4.0f",0,2048,0,1024);
     IUFillNumber(&SimulatorSettingsN[2],"SIM_XSIZE","CCD X Pixel Size","%4.2f",0,60,0,5.2);
     IUFillNumber(&SimulatorSettingsN[3],"SIM_YSIZE","CCD Y Pixel Size","%4.2f",0,60,0,5.2);
     IUFillNumber(&SimulatorSettingsN[4],"SIM_MAXVAL","CCD Maximum ADU","%4.0f",0,65000,0,65000);
@@ -241,16 +239,6 @@ bool CCDSim::updateProperties()
 
 bool CCDSim::Disconnect()
 {
-    delete RawFrame;
-    RawFrameSize=0;
-    RawFrame=NULL;
-
-
-    if(RawGuiderFrame != NULL) {
-        delete RawGuiderFrame;
-        RawGuideSize=0;
-    }
-
     return true;
 }
 
@@ -323,8 +311,9 @@ void CCDSim::TimerHit()
         if (timeleft < 0)
              timeleft = 0;
 
-        ImageExposureN[0].value = timeleft;
-        IDSetNumber(ImageExposureNP, NULL);
+        PrimaryCCD.setExposure(timeleft);
+        //ImageExposureN[0].value = timeleft;
+        //IDSetNumber(ImageExposureNP, NULL);
 
         if(timeleft < 1.0)
         {
@@ -338,6 +327,7 @@ void CCDSim::TimerHit()
             }
         }
     }
+
     if(InGuideExposure)
     {
         float timeleft;
@@ -347,8 +337,9 @@ void CCDSim::TimerHit()
         if (timeleft < 0)
              timeleft = 0;
 
-        ImageExposureN[0].value = timeleft;
-        IDSetNumber(ImageExposureNP, NULL);
+        //ImageExposureN[0].value = timeleft;
+        //IDSetNumber(ImageExposureNP, NULL);
+        GuideCCD.setExposure(timeleft);
 
         if(timeleft < 1.0)
         {
@@ -389,9 +380,10 @@ int CCDSim::DrawCcdFrame()
     unsigned short int *ptr;
     unsigned short int val;
 
-    ptr=(unsigned short int *)RawFrame;
+    ptr=(unsigned short int *) PrimaryCCD.getFrameBuffer();
 
-    if(ShowStarField) {
+    if(ShowStarField)
+    {
         char gsccmd[250];
         FILE *pp;
         int stars=0;
@@ -422,7 +414,7 @@ int CCDSim::DrawCcdFrame()
         //PeOffset=PeOffset/15;       //  ra is in h:mm
 
         //  Start by clearing the frame buffer
-        memset(RawFrame,0,RawFrameSize);
+        memset(PrimaryCCD.getFrameBuffer(),0,PrimaryCCD.getFrameBufferSize());
 
 
         //  Spin up a set of plate constants that will relate
@@ -438,14 +430,14 @@ int CCDSim::DrawCcdFrame()
         //  for now we cheat
         //  no offset or rotation for and y axis means
         pb=0.0;
-        pc=XRes/2/BinX;
+        pc=PrimaryCCD.getXRes()/2/PrimaryCCD.getBinX();
         pd=0.0;
-        pf=YRes/2/BinY;
+        pf=PrimaryCCD.getYRes()/2/PrimaryCCD.getBinY();
         //  and we do a simple scale for x and y locations
         //  based on the focal length and pixel size
         //  focal length in mm, pixels in microns
-        pa=focallength/PixelSizex*1000/BinX;
-        pe=focallength/PixelSizey*1000/BinY;
+        pa=focallength/PrimaryCCD.getPixelSizeX()*1000/PrimaryCCD.getBinX();
+        pe=focallength/PrimaryCCD.getPixelSizeY()*1000/PrimaryCCD.getBinY();
 
         //IDLog("Pixels are %4.2f %4.2f  pa %6.4f  pe %6.4f\n",PixelSizex,PixelSizey,pa,pe);
 
@@ -477,7 +469,7 @@ int CCDSim::DrawCcdFrame()
         //  now lets calculate the radius we need to fetch
         float radius;
 
-        radius=sqrt((Scalex*Scalex*XRes/2.0*XRes/2.0)+(Scaley*Scaley*YRes/2.0*YRes/2.0));
+        radius=sqrt((Scalex*Scalex*PrimaryCCD.getXRes()/2.0*PrimaryCCD.getXRes()/2.0)+(Scaley*Scaley*PrimaryCCD.getYRes()/2.0*PrimaryCCD.getYRes()/2.0));
         //  we have radius in arcseconds now
         radius=radius/60;   //  convert to arcminutes
         //fprintf(stderr,"Lookup radius %4.2f\n",radius);
@@ -504,7 +496,7 @@ int CCDSim::DrawCcdFrame()
         if(radius > 60) lookuplimit=11;
 
         //  if this is a light frame, we need a star field drawn
-        if(FrameType==LIGHT_FRAME)
+        if(PrimaryCCD.getFrameType()==CCDChip::LIGHT_FRAME)
         {
             //sprintf(gsccmd,"gsc -c %8.6f %+8.6f -r 120 -m 0 9.1",rad+PEOffset,Dec);
             sprintf(gsccmd,"gsc -c %8.6f %+8.6f -r %4.1f -m 0 %4.2f -n 3000",rad+PEOffset,cameradec,radius,lookuplimit);
@@ -592,13 +584,15 @@ int CCDSim::DrawCcdFrame()
         //  this is essentially the same math as drawing a dim star with
         //  fwhm equivalent to the full field of view
 
-        if((FrameType==LIGHT_FRAME)||(FrameType==FLAT_FRAME))
+        CCDChip::CCD_FRAME ftype = PrimaryCCD.getFrameType();
+
+        if((ftype==CCDChip::LIGHT_FRAME)||(ftype==CCDChip::FLAT_FRAME))
         {
             float skyflux;
             float glow;
             //  calculate flux from our zero point and gain values
             glow=skyglow;
-            if(FrameType==FLAT_FRAME)
+            if(ftype==CCDChip::FLAT_FRAME)
             {
                 //  Assume flats are done with a diffuser
                 //  in broad daylight, so, the sky magnitude
@@ -609,24 +603,27 @@ int CCDSim::DrawCcdFrame()
             skyflux=pow(10,((glow-z)*k/-2.5));
             //  ok, flux represents one second now
             //  scale up linearly for exposure time
-            skyflux=skyflux*ExposureRequest*BinX*BinY;
+            skyflux=skyflux*ExposureRequest*PrimaryCCD.getBinX()*PrimaryCCD.getBinY();
             //IDLog("SkyFlux = %4.2f ExposureRequest %4.2f\n",skyflux,ExposureRequest);
 
             unsigned short *pt;
-            pt=(unsigned short int *)RawFrame;
-            for(int y=0; y<YRes/BinY; y++) {
-                for(int x=0; x<XRes/BinX; x++) {
+
+            int nwidth  = PrimaryCCD.getXRes()/PrimaryCCD.getBinX();
+            int nheight = PrimaryCCD.getYRes()/PrimaryCCD.getBinY();
+            pt=(unsigned short int *)PrimaryCCD.getFrameBuffer();
+            for(int y=0; y< nheight; y++) {
+                for(int x=0; x< nwidth; x++) {
                     float dc;   //  distance from center
                     float fp;   //  flux this pixel;
                     float sx,sy;
                     float vig;
 
-                    sx=XRes/2/BinX;
+                    sx=PrimaryCCD.getXRes()/2/PrimaryCCD.getBinX();
                     sx=sx-x;
-                    sy=YRes/2/BinY;
+                    sy=PrimaryCCD.getYRes()/2/PrimaryCCD.getBinY();
                     sy=sy-y;
 
-                    vig=XRes/BinX;
+                    vig=PrimaryCCD.getXRes()/PrimaryCCD.getBinX();
                     vig=vig*ImageScalex;
                     //  need to make this account for actual pixel size
                     dc=sqrt(sx*sx*ImageScalex*ImageScalex+sy*sy*ImageScaley*ImageScaley);
@@ -653,8 +650,8 @@ int CCDSim::DrawCcdFrame()
 
 
         //  Now we add some bias and read noise
-        for(x=0; x<XRes; x++) {
-            for(y=0; y<YRes; y++) {
+        for(x=0; x<PrimaryCCD.getXRes(); x++) {
+            for(y=0; y<PrimaryCCD.getYRes(); y++) {
                 int noise;
 
                 noise=random();
@@ -670,7 +667,9 @@ int CCDSim::DrawCcdFrame()
         if(testvalue > 255) testvalue=0;
         val=testvalue;
 
-        for(int x=0; x<XRes*YRes; x++)
+        int nbuf    = PrimaryCCD.getXRes()*PrimaryCCD.getYRes();
+
+        for(int x=0; x<nbuf; x++)
         {
             *ptr=val++;
             ptr++;
@@ -685,12 +684,14 @@ int CCDSim::DrawGuiderFrame()
     unsigned char *ptr;
     unsigned char val;
 
-    ptr=(unsigned char *)RawGuiderFrame;
+    ptr=(unsigned char *) GuideCCD.getFrameBuffer();
     testvalue++;
     if(testvalue > 255) testvalue=0;
     val=testvalue;
 
-    for(int x=0; x<GXRes*GYRes; x++) {
+    int nbuf = GuideCCD.getXRes()*GuideCCD.getYRes();
+    for(int x=0; x< nbuf; x++)
+    {
         *ptr=val++;
         ptr++;
     }
@@ -707,7 +708,7 @@ int CCDSim::DrawImageStar(float mag,float x,float y)
     int boxsizey=5;
     float flux;
 
-    if((x<0)||(x>XRes/BinX)||(y<0)||(y>YRes/BinY))
+    if((x<0)||(x>PrimaryCCD.getXRes()/PrimaryCCD.getBinX())||(y<0)||(y>PrimaryCCD.getYRes()/PrimaryCCD.getBinY()))
     {
         //  this star is not on the ccd frame anyways
         return 0;
@@ -749,7 +750,7 @@ int CCDSim::DrawImageStar(float mag,float x,float y)
             //  a simple linear function
             float fa;
             fa=exp(-2.0*0.7*(dc*dc)/seeing/seeing);
-            fp=fa*flux*BinX*BinY;
+            fp=fa*flux*PrimaryCCD.getBinX()*PrimaryCCD.getBinY();
             if(fp < 0) fp=0;
 
             /*
@@ -772,14 +773,14 @@ int CCDSim::AddToPixel(int x,int y,int val)
 {
     int drew=0;
     if(x >= 0) {
-        if(x < XRes/BinX) {
+        if(x < PrimaryCCD.getXRes()/PrimaryCCD.getBinX()) {
             if(y >= 0) {
-                if(y < YRes/BinY) {
+                if(y < PrimaryCCD.getYRes()/PrimaryCCD.getBinY()) {
                     unsigned short *pt;
                     int newval;
                     drew++;
-                    pt=(unsigned short int *)RawFrame;
-                    pt+=(y*XRes/BinX);
+                    pt=(unsigned short int *)PrimaryCCD.getFrameBuffer();
+                    pt+=(y*PrimaryCCD.getXRes()/PrimaryCCD.getBinX());
                     pt+=x;
                     newval=pt[0];
                     newval+=val;
@@ -840,7 +841,8 @@ bool CCDSim::ISNewNumber (const char *dev, const char *name, double values[], ch
 {
     //  first check if it's for our device
     //IDLog("INDI::CCD::ISNewNumber %s\n",name);
-    if(strcmp(dev,deviceName())==0) {
+    if(strcmp(dev,deviceName())==0)
+    {
         //  This is for our device
         //  Now lets see if it's something we process here
 

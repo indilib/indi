@@ -30,6 +30,8 @@ namespace INDI
     class FilterWheel;
     class Focuser;
     class USBDevice;
+    class FilterInterface;
+    class GuiderInterface;
 }
 
 

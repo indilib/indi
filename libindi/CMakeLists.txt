@@ -105,6 +105,8 @@ set (indidriver_SRCS
         ${CMAKE_SOURCE_DIR}/libs/indibase/indifilterwheel.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/indifocuser.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/indiusbdevice.cpp
+        ${CMAKE_SOURCE_DIR}/libs/indibase/indiguiderinterface.cpp
+
     )
 
 
@@ -742,8 +744,8 @@ install( FILES indiapi.h indidevapi.h base64.h eventloop.h indidriver.h ${CMAKE_
 ${CMAKE_SOURCE_DIR}/libs/indibase/basedriver.h  ${CMAKE_SOURCE_DIR}/libs/indibase/defaultdriver.h
 ${CMAKE_SOURCE_DIR}/libs/indibase/indiccd.h  ${CMAKE_SOURCE_DIR}/libs/indibase/indifilterwheel.h
 ${CMAKE_SOURCE_DIR}/libs/indibase/indifocuser.h  ${CMAKE_SOURCE_DIR}/libs/indibase/inditelescope.h
-${CMAKE_SOURCE_DIR}/libs/indibase/baseclient.h ${CMAKE_SOURCE_DIR}/libs/indicom.h
-${CMAKE_SOURCE_DIR}/libs/indibase/indiusbdevice.h
+${CMAKE_SOURCE_DIR}/libs/indibase/baseclient.h ${CMAKE_SOURCE_DIR}/libs/indibase/indiguiderinterface.h
+${CMAKE_SOURCE_DIR}/libs/indicom.h ${CMAKE_SOURCE_DIR}/libs/indibase/indiusbdevice.h
  DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libindi.pc.cmake ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc @ONLY)

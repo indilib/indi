@@ -198,7 +198,7 @@ void MyScope::ISGetProperties(const char *dev)
 bool MyScope::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
 	// Ignore if not ours 
-        if (strcmp (dev, deviceID))
+        if (strcmp (dev, deviceName()))
             return false;
 
         return false;
@@ -211,7 +211,7 @@ bool MyScope::ISNewNumber (const char *dev, const char *name, double values[], c
 {
 	
 	// Ignore if not ours
-        if (strcmp (dev, deviceID))
+        if (strcmp (dev, deviceName()))
             return false;
 
         INumberVectorProperty *nvp = getNumber(name);
@@ -238,7 +238,7 @@ bool MyScope::ISNewNumber (const char *dev, const char *name, double values[], c
 bool MyScope::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
 	// ignore if not ours //
-        if (strcmp (dev, deviceID))
+        if (strcmp (dev, deviceName()))
             return false;
 
         if (INDI::DefaultDriver::ISNewSwitch(dev, name, states, names, n) == true)

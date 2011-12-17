@@ -315,7 +315,7 @@ bool TCFS::ISNewNumber (const char *name, double values[], char *names[], int n)
   if (isConnected() == false)
   {
       resetProperties();
-      IDMessage(deviceID, "TCF-S is offline. Connect before issiung any commands.");
+      IDMessage(deviceName(), "TCF-S is offline. Connect before issiung any commands.");
       return false;
   }
 
@@ -393,7 +393,7 @@ bool TCFS::ISNewSwitch (const char *name, ISState *states, char *names[], int n)
 
     ISwitch *current_active_switch = NULL, *target_active_switch = NULL;
     // First process parent!
-    if (INDI::DefaultDriver::ISNewSwitch(deviceID, name, states, names, n) == true)
+    if (INDI::DefaultDriver::ISNewSwitch(deviceName(), name, states, names, n) == true)
         return true;
 
     ISwitchVectorProperty *sProp = getSwitch(name);
@@ -414,7 +414,7 @@ bool TCFS::ISNewSwitch (const char *name, ISState *states, char *names[], int n)
     if (isConnected() == false)
     {
       resetProperties();
-      IDMessage(deviceID, "TCF-S is offline. Connect before issiung any commands.");
+      IDMessage(deviceName(), "TCF-S is offline. Connect before issiung any commands.");
       return false;
     }
 

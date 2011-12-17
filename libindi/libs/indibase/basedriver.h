@@ -132,7 +132,6 @@ protected:
     /** \brief Parse and store BLOB in the respective vector */
     int setBLOB(IBLOBVectorProperty *pp, XMLEle * root, char * errmsg);
 
-    char deviceID[MAXINDINAME];
 
     typedef boost::shared_ptr<INumberVectorProperty> numberPtr;
     typedef boost::shared_ptr<ITextVectorProperty> textPtr;
@@ -141,6 +140,8 @@ protected:
     typedef boost::shared_ptr<IBLOBVectorProperty> blobPtr;
 
 private:
+
+    char deviceID[MAXINDINAME];
 
     std::map< boost::shared_ptr<void>, INDI_TYPE> pAll;
 
