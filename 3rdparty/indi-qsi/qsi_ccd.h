@@ -8,10 +8,13 @@
     Copyright (C) 2009 Sami Lehti (sami.lehti@helsinki.fi)
 
     (2011-12-10) Updated by Jasem Mutlaq:
+        + Driver completely rewritten to be based on INDI::CCD
         + Fixed compiler warnings.
         + Reduced message traffic.
         + Added filter name property.
-        + Class based on INDI::CCD
+        + Added snooping on telescopes.
+        + Added Guider support.
+        + Added Readout speed option.
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -30,13 +33,16 @@
 #endif
 
 #include <indiccd.h>
+#include <indiguiderinterface.h>
+#include <indifilterinterface.h>
 #include <iostream>
 
 using namespace std;
 
+#define MAX_FILTERS_SIZE 6
 
 
-class QSICCD : public INDI::CCD
+class QSICCD : public INDI::CCD, public INDI::FilterInterface
 {
         protected:
         private:
@@ -62,11 +68,11 @@ class QSICCD : public INDI::CCD
     INumber TemperatureN[1];
     INumberVectorProperty *TemperatureNP;
 
-    INumber FilterN[1];
+    /*INumber FilterN[1];
     INumberVectorProperty *FilterNP;
 
     IText *FilterT;
-    ITextVectorProperty *FilterTP;
+    ITextVectorProperty *FilterTP;*/
 
     ISwitch FilterS[2];
     ISwitchVectorProperty *FilterSP;
@@ -74,20 +80,20 @@ class QSICCD : public INDI::CCD
     ISwitch ReadOutS[2];
     ISwitchVectorProperty *ReadOutSP;
 
-    bool canAbort, canGuide;
+    bool canAbort;
     short targetFilter;
     double ccdTemp;
     double minDuration;
     unsigned short *imageBuffer;
     double imageExpose;
     int imageWidth, imageHeight;
-    INDI::CCD::CCD_FRAME imageFrameType;
+    CCDChip::CCD_FRAME imageFrameType;
     struct timeval ExpStart;
+    std::string filterDesignation[MAX_FILTERS_SIZE];
 
     float CalcTimeLeft(timeval,float);
     int grabImage();
     bool setupParams();
-    void initFilterNames();
     int manageDefaults(char errmsg[]);
     void activateCooler();
     void resetFrame();
@@ -96,6 +102,11 @@ class QSICCD : public INDI::CCD
     double min();
     double max();
     void fits_update_key_s(fitsfile* fptr, int type, string name, void* p, string explanation, int* status);
+
+    virtual bool initFilterNames(const char *deviceName, const char* groupName);
+    virtual bool SetFilterNames();
+    virtual bool SelectFilter(int);
+    virtual int QueryFilter();
 
 public:
 
@@ -115,7 +126,6 @@ public:
 
     void TimerHit();
 
-
     virtual void updateCCDFrame();
     virtual void updateCCDBin();
     virtual void addFITSKeywords(fitsfile *fptr);
@@ -128,7 +138,6 @@ public:
     virtual int GuideSouth(float);
     virtual int GuideEast(float);
     virtual int GuideWest(float);
-
 
 };
 

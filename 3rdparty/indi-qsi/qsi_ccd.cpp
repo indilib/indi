@@ -147,10 +147,10 @@ std::auto_ptr<QSICCD> qsiCCD(0);
      TemperatureNP = new INumberVectorProperty;
 
      ReadOutSP = new ISwitchVectorProperty;
-     FilterNP = new INumberVectorProperty;
+     //FilterSlotNP = new INumberVectorProperty;
      FilterSP = new ISwitchVectorProperty;
-     FilterTP = new ITextVectorProperty;
-     FilterT  = NULL;
+     //FilterNameTP = new ITextVectorProperty;
+     //FilterNameT  = NULL;
 
      QSICam.put_UseStructuredExceptions(true);
 
@@ -160,8 +160,6 @@ std::auto_ptr<QSICCD> qsiCCD(0);
 QSICCD::~QSICCD()
 {
     //dtor
-    delete RawFrame;
-    RawFrame = NULL;
 }
 
 const char * QSICCD::getDefaultName()
@@ -198,12 +196,16 @@ bool QSICCD::initProperties()
     IUFillSwitch(&ReadOutS[1], "QUALITY_LOW", "Fast", ISS_OFF);
     IUFillSwitchVector(ReadOutSP, ReadOutS, 2, deviceName(), "READOUT_QUALITY", "Readout Speed", OPTIONS_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillNumber(&FilterN[0], "FILTER_SLOT_VALUE", "Active Filter", "%2.0f", FIRST_FILTER, LAST_FILTER, 1, 0);
-    IUFillNumberVector(FilterNP, FilterN, 1, deviceName(), "FILTER_SLOT", "Filter", FILTER_WHEEL_TAB, IP_RW, 60, IPS_IDLE);
+    //IUFillNumber(&FilterN[0], "FILTER_SLOT_VALUE", "Active Filter", "%2.0f", FIRST_FILTER, LAST_FILTER, 1, 0);
+    //IUFillNumberVector(FilterSlotNP, FilterN, 1, deviceName(), "FILTER_SLOT", "Filter", FILTER_WHEEL_TAB, IP_RW, 60, IPS_IDLE);
 
     IUFillSwitch(&FilterS[0], "FILTER_CW", "+", ISS_OFF);
     IUFillSwitch(&FilterS[1], "FILTER_CCW", "-", ISS_OFF);
-    IUFillSwitchVector(FilterSP, FilterS, 2, deviceName(), "FILTER_WHEEL_MOTION", "Turn Wheel", FILTER_WHEEL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(FilterSP, FilterS, 2, deviceName(), "FILTER_WHEEL_MOTION", "Turn Wheel", FILTER_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+    //initGuiderProperties(deviceName(), GUIDER_TAB);
+    initFilterProperties(deviceName(), FILTER_TAB);
+
 
     addDebugControl();
 }
@@ -220,16 +222,11 @@ bool QSICCD::updateProperties()
         defineSwitch(CoolerSP);
         defineSwitch(ShutterSP);
         defineNumber(CoolerNP);
-        defineNumber(FilterNP);
+        defineNumber(FilterSlotNP);
         defineSwitch(FilterSP);
         defineSwitch(ReadOutSP);
-        if (FilterT != NULL)
-            defineText(FilterTP);
-        if (canGuide)
-        {
-            defineNumber(GuideNSP);
-            defineNumber(GuideEWP);
-        }
+        if (FilterNameT != NULL)
+            defineText(FilterNameTP);
     }
     else
     {
@@ -239,16 +236,11 @@ bool QSICCD::updateProperties()
         deleteProperty(CoolerSP->name);
         deleteProperty(ShutterSP->name);
         deleteProperty(CoolerNP->name);
-        deleteProperty(FilterNP->name);
+        deleteProperty(FilterSlotNP->name);
         deleteProperty(FilterSP->name);
         deleteProperty(ReadOutSP->name);
-        if (FilterT != NULL)
-            deleteProperty(FilterTP->name);
-        if (canGuide)
-        {
-            deleteProperty(GuideNSP->name);
-            deleteProperty(GuideEWP->name);
-        }
+        if (FilterNameT != NULL)
+            deleteProperty(FilterNameTP->name);
     }
 
     return true;
@@ -291,8 +283,8 @@ bool QSICCD::setupParams()
 
     SetCCDParams(sub_frame_x, sub_frame_y, 16, pixel_size_x, pixel_size_y);
 
-    imageWidth  = ImageFrameN[2].value;
-    imageHeight = ImageFrameN[3].value;
+    imageWidth  = PrimaryCCD.getSubW();
+    imageHeight = PrimaryCCD.getSubH();
 
     IDSetNumber(TemperatureNP, NULL);
 
@@ -327,18 +319,18 @@ bool QSICCD::setupParams()
     if (isDebug())
         IDLog("The filter count is %d\n", filter_count);
 
-    FilterN[0].max = filter_count - 1;
-    FilterNP->s = IPS_OK;
+    FilterSlotN[0].max = filter_count - 1;
+    FilterSlotNP->s = IPS_OK;
 
-    IUUpdateMinMax(FilterNP);
-    IDSetNumber(FilterNP, "Setting max number of filters.\n");
+    IUUpdateMinMax(FilterSlotNP);
+    IDSetNumber(FilterSlotNP, "Setting max number of filters.\n");
 
     FilterSP->s = IPS_OK;
     IDSetSwitch(FilterSP,NULL);
 
     try
     {
-        QSICam.get_CanPulseGuide(&canGuide);
+        QSICam.get_CanPulseGuide(&HasSt4Port);
     }
     catch (std::runtime_error err)
     {
@@ -348,7 +340,7 @@ bool QSICCD::setupParams()
           return false;
     }
 
-    initFilterNames();
+    initFilterNames(deviceName(), FILTER_TAB);
 
     try
     {
@@ -361,11 +353,10 @@ bool QSICCD::setupParams()
         return false;
     }
 
-    if(RawFrame != NULL) delete RawFrame;
-    RawFrameSize=XRes*YRes;                 //  this is pixel count
-    RawFrameSize=RawFrameSize*2;            //  Each pixel is 2 bytes
-    RawFrameSize+=512;                      //  leave a little extra at the end
-    RawFrame=new char[RawFrameSize];
+    int nbuf;
+    nbuf=PrimaryCCD.getXRes()*PrimaryCCD.getYRes() * PrimaryCCD.getBPP();                 //  this is pixel count
+    nbuf+=512;                      //  leave a little extra at the end
+    PrimaryCCD.setFrameBufferSize(nbuf);
 
     return true;
 }
@@ -463,38 +454,36 @@ bool QSICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
 
 bool QSICCD::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    int maxFilters = (int) FilterN[0].max + 1;
-    std::string filterDesignation[maxFilters];
+    int maxFilters = (int) FilterSlotN[0].max + 1;
+    //std::string filterDesignation[maxFilters];
 
     if(strcmp(dev,deviceName())==0)
     {
-        if (!strcmp(name, FilterTP->name))
+        if (!strcmp(name, FilterNameTP->name))
         {
-            if (IUUpdateText(FilterTP, texts, names, n) < 0)
+            if (IUUpdateText(FilterNameTP, texts, names, n) < 0)
             {
-                FilterTP->s = IPS_ALERT;
-                IDSetText(FilterTP, "Error updating names. XML corrupted.");
+                FilterNameTP->s = IPS_ALERT;
+                IDSetText(FilterNameTP, "Error updating names. XML corrupted.");
                 return false;
             }
 
             for (int i=0; i < maxFilters; i++)
-                filterDesignation[i] = FilterT[i].text;
+                filterDesignation[i] = FilterNameT[i].text;
 
-            try
+            if (SetFilterNames() == true)
             {
-                QSICam.put_Names(filterDesignation);
+                FilterNameTP->s = IPS_OK;
+                IDSetText(FilterNameTP, NULL);
+                return true;
             }
-            catch (std::runtime_error err)
+            else
             {
-              IDSetText(FilterTP, "put_Names() failed. %s.", err.what());
-              if (isDebug())
-                 IDLog("put_Names() failed. %s.", err.what());
-              return false;
+                FilterNameTP->s = IPS_ALERT;
+                IDSetText(FilterNameTP, "Error updating filter names.");
+                return false;
             }
 
-            FilterTP->s = IPS_OK;
-            IDSetText(FilterTP, NULL);
-            return true;
         }
     }
 
@@ -565,17 +554,17 @@ bool QSICCD::ISNewNumber(const char *dev, const char *name, double values[], cha
             return true;
         }
 
-        if (!strcmp(FilterNP->name, name))
+        if (!strcmp(FilterSlotNP->name, name))
         {
 
             targetFilter = values[0];
 
-            np = IUFindNumber(FilterNP, names[0]);
+            np = IUFindNumber(FilterSlotNP, names[0]);
 
             if (!np)
             {
-                FilterNP->s = IPS_ALERT;
-                IDSetNumber(FilterNP, "Unknown error. %s is not a member of %s property.", names[0], name);
+                FilterSlotNP->s = IPS_ALERT;
+                IDSetNumber(FilterSlotNP, "Unknown error. %s is not a member of %s property.", names[0], name);
                 return false;
             }
 
@@ -585,33 +574,23 @@ bool QSICCD::ISNewNumber(const char *dev, const char *name, double values[], cha
                 QSICam.get_FilterCount(filter_count);
             } catch (std::runtime_error err)
             {
-                IDSetNumber(FilterNP, "get_FilterCount() failed. %s.", err.what());
+                IDSetNumber(FilterSlotNP, "get_FilterCount() failed. %s.", err.what());
             }
             if (targetFilter < FIRST_FILTER || targetFilter > filter_count - 1)
             {
-                FilterNP->s = IPS_ALERT;
-                IDSetNumber(FilterNP, "Error: valid range of filter is from %d to %d", FIRST_FILTER, LAST_FILTER);
+                FilterSlotNP->s = IPS_ALERT;
+                IDSetNumber(FilterSlotNP, "Error: valid range of filter is from %d to %d", FIRST_FILTER, LAST_FILTER);
                 return false;
             }
 
-            IUUpdateNumber(FilterNP, values, names, n);
+            IUUpdateNumber(FilterSlotNP, values, names, n);
 
-            FilterNP->s = IPS_BUSY;
-            IDSetNumber(FilterNP, "Setting current filter to slot %d", targetFilter);
+            FilterSlotNP->s = IPS_BUSY;
+            IDSetNumber(FilterSlotNP, "Setting current filter to slot %d", targetFilter);
             if (isDebug())
                 IDLog("Setting current filter to slot %d\n", targetFilter);
 
-            try
-            {
-                QSICam.put_Position(targetFilter);
-            } catch(std::runtime_error err)
-            {
-                FilterNP->s = IPS_ALERT;
-                IDSetNumber(FilterNP, "put_Position() failed. %s.", err.what());
-                if (isDebug())
-                    IDLog("put_Position() failed. %s.", err.what());
-                return false;
-            }
+            SelectFilter(targetFilter);
 
             /* Check current filter position */
             short newFilter;
@@ -620,8 +599,8 @@ bool QSICCD::ISNewNumber(const char *dev, const char *name, double values[], cha
                 QSICam.get_Position(&newFilter);
             } catch(std::runtime_error err)
             {
-                FilterNP->s = IPS_ALERT;
-                IDSetNumber(FilterNP, "get_Position() failed. %s.", err.what());
+                FilterSlotNP->s = IPS_ALERT;
+                IDSetNumber(FilterSlotNP, "get_Position() failed. %s.", err.what());
                 if (isDebug())
                     IDLog("get_Position() failed. %s.\n", err.what());
                 return false;
@@ -629,9 +608,9 @@ bool QSICCD::ISNewNumber(const char *dev, const char *name, double values[], cha
 
             if (newFilter == targetFilter)
             {
-                FilterN[0].value = targetFilter;
-                FilterNP->s = IPS_OK;
-                IDSetNumber(FilterNP, "Filter set to slot #%d", targetFilter);
+                FilterSlotN[0].value = targetFilter;
+                FilterSlotNP->s = IPS_OK;
+                IDSetNumber(FilterSlotNP, "Filter set to slot #%d", targetFilter);
                 return true;
             }
             else
@@ -656,25 +635,25 @@ int QSICCD::StartExposure(float duration)
             IDMessage(deviceName(), "Exposure shorter than minimum duration %g s requested. \n Setting exposure time to %g s.", minDuration,minDuration);
         }
 
-        imageFrameType = FrameType;
+        imageFrameType = PrimaryCCD.getFrameType();
 
-        if(imageFrameType == BIAS_FRAME)
+        if(imageFrameType == CCDChip::BIAS_FRAME)
         {
-            ImageExposureN[0].value =  minDuration;
-            IDSetNumber(ImageExposureNP, "Bias Frame (s) : %g\n", minDuration);
+            PrimaryCCD.setExposure(minDuration);
+            IDMessage(deviceName(), "Bias Frame (s) : %g\n", minDuration);
             if (isDebug())
                 IDLog("Bias Frame (s) : %g\n", minDuration);
         } else
         {
-            ImageExposureN[0].value = duration;
+            PrimaryCCD.setExposure(duration);
             if (isDebug())
                 IDLog("Exposure Time (s) is: %g\n", duration);
         }
 
-         imageExpose = ImageExposureN[0].value;
+         imageExpose = PrimaryCCD.getExposure();
 
             /* BIAS frame is the same as DARK but with minimum period. i.e. readout from camera electronics.*/
-            if (imageFrameType == BIAS_FRAME)
+            if (imageFrameType == CCDChip::BIAS_FRAME)
             {
                 try
                 {
@@ -683,7 +662,7 @@ int QSICCD::StartExposure(float duration)
                     shortExposure = true;
                 } catch (std::runtime_error& err)
                 {
-                    ImageExposureNP->s = IPS_ALERT;
+                    //ImageExposureNP->s = IPS_ALERT;
                     IDMessage(deviceName(), "StartExposure() failed. %s.", err.what());
                     if (isDebug())
                         IDLog("StartExposure() failed. %s.\n", err.what());
@@ -691,7 +670,7 @@ int QSICCD::StartExposure(float duration)
                 }
             }
 
-            else if (imageFrameType == DARK_FRAME)
+            else if (imageFrameType == CCDChip::DARK_FRAME)
             {
                 try
                 {
@@ -699,7 +678,7 @@ int QSICCD::StartExposure(float duration)
                     QSICam.StartExposure (imageExpose,false);
                 } catch (std::runtime_error& err)
                 {
-                    ImageExposureNP->s = IPS_ALERT;
+                    //ImageExposureNP->s = IPS_ALERT;
                     IDMessage(deviceName(), "StartExposure() failed. %s.", err.what());
                     if (isDebug())
                         IDLog("StartExposure() failed. %s.\n", err.what());
@@ -707,7 +686,7 @@ int QSICCD::StartExposure(float duration)
                 }
             }
 
-            else if (imageFrameType == LIGHT_FRAME || imageFrameType == FLAT_FRAME)
+            else if (imageFrameType == CCDChip::LIGHT_FRAME || imageFrameType == CCDChip::FLAT_FRAME)
             {
                 try
                 {
@@ -715,21 +694,22 @@ int QSICCD::StartExposure(float duration)
                     QSICam.StartExposure (imageExpose,true);
                 } catch (std::runtime_error& err)
                 {
-                    ImageExposureNP->s = IPS_ALERT;
+                    //ImageExposureNP->s = IPS_ALERT;
                     IDMessage(deviceName(), "StartExposure() failed. %s.", err.what());
                     if (isDebug())
                         IDLog("StartExposure() failed. %s.\n", err.what());
-                    return false;
+                    return -1;
                 }
             }
 
-            ImageExposureNP->s = IPS_BUSY;
+            //ImageExposureNP->s = IPS_BUSY;
             gettimeofday(&ExpStart,NULL);
-            IDSetNumber(ImageExposureNP, "Taking a %g seconds frame...", imageExpose);
+            IDMessage(deviceName(), "Taking a %g seconds frame...", imageExpose);
 
             if (isDebug())
                 IDLog("Taking a frame...\n");
 
+            InExposure = true;
             return (shortExposure ? 1 : 0);
 }
 
@@ -742,14 +722,16 @@ bool QSICCD::AbortExposure()
           QSICam.AbortExposure();
         } catch (std::runtime_error err)
         {
-          ImageExposureNP->s = IPS_ALERT;
-          IDSetNumber(ImageExposureNP, "AbortExposure() failed. %s.", err.what());
+          //ImageExposureNP->s = IPS_ALERT;
+          IDMessage(deviceName(), "AbortExposure() failed. %s.", err.what());
           IDLog("AbortExposure() failed. %s.\n", err.what());
           return false;
         }
 
-        ImageExposureNP->s = IPS_IDLE;
-        IDSetNumber(ImageExposureNP, NULL);
+        //ImageExposureNP->s = IPS_IDLE;
+        //IDSetNumber(ImageExposureNP, NULL);
+
+        InExposure = false;
         return true;
     }
 
@@ -774,11 +756,11 @@ void QSICCD::updateCCDFrame()
     char errmsg[ERRMSG_SIZE];
 
     /* Add the X and Y offsets */
-    long x_1 = ImageFrameN[0].value;
-    long y_1 = ImageFrameN[1].value;
+    long x_1 = PrimaryCCD.getSubX(); //ImageFrameN[0].value;
+    long y_1 = PrimaryCCD.getSubY(); //ImageFrameN[1].value;
 
-    long x_2 = x_1 + (ImageFrameN[2].value / ImageBinN[0].value);
-    long y_2 = y_1 + (ImageFrameN[3].value / ImageBinN[1].value);
+    long x_2 = x_1 + (PrimaryCCD.getSubW() / PrimaryCCD.getBinX());
+    long y_2 = y_1 + (PrimaryCCD.getSubH() / PrimaryCCD.getBinY());
 
     long sensorPixelSize_x,
          sensorPixelSize_y;
@@ -791,11 +773,11 @@ void QSICCD::updateCCDFrame()
         IDMessage(deviceName(), "Getting image area size failed. %s.", err.what());
     }
 
-    if (x_2 > sensorPixelSize_x / ImageBinN[0].value)
-        x_2 = sensorPixelSize_x / ImageBinN[0].value;
+    if (x_2 > sensorPixelSize_x / PrimaryCCD.getBinX())
+        x_2 = sensorPixelSize_x / PrimaryCCD.getBinX();
 
-    if (y_2 > sensorPixelSize_y / ImageBinN[1].value)
-        y_2 = sensorPixelSize_y / ImageBinN[1].value;
+    if (y_2 > sensorPixelSize_y / PrimaryCCD.getBinY())
+        y_2 = sensorPixelSize_y / PrimaryCCD.getBinY();
 
     if (isDebug())
         IDLog("The Final image area is (%ld, %ld), (%ld, %ld)\n", x_1, y_1, x_2, y_2);
@@ -823,20 +805,20 @@ void QSICCD::updateCCDBin()
 {
     try
     {
-        QSICam.put_BinX(ImageBinN[0].value);
+        QSICam.put_BinX(PrimaryCCD.getBinX());
     } catch (std::runtime_error err)
     {
-        IDSetNumber(ImageBinNP, "put_BinX() failed. %s.", err.what());
+        IDMessage(deviceName(), "put_BinX() failed. %s.", err.what());
         IDLog("put_BinX() failed. %s.", err.what());
         return;
     }
 
     try
     {
-        QSICam.put_BinY(ImageBinN[1].value);
+        QSICam.put_BinY(PrimaryCCD.getBinY());
     } catch (std::runtime_error err)
     {
-        IDSetNumber(ImageBinNP, "put_BinY() failed. %s.", err.what());
+        IDMessage(deviceName(), "put_BinY() failed. %s.", err.what());
         IDLog("put_BinY() failed. %s.", err.what());
         return;
     }
@@ -848,9 +830,7 @@ void QSICCD::updateCCDBin()
  N.B. No processing is done on the image */
 int QSICCD::grabImage()
 {
-        unsigned short* image = (unsigned short *) RawFrame;
-
-        memset(RawFrame,0,RawFrameSize);
+        unsigned short* image = (unsigned short *) PrimaryCCD.getFrameBuffer();
 
         int x,y,z;
         try {
@@ -889,22 +869,21 @@ void QSICCD::addFITSKeywords(fitsfile *fptr)
         char frame_s[32];
         double min_val = min();
         double max_val = max();
-        double exposure = 1000 * imageExpose; // conversion s - ms
 
-        snprintf(binning_s, 32, "(%g x %g)", ImageBinN[0].value, ImageBinN[1].value);
+        snprintf(binning_s, 32, "(%d x %d)", PrimaryCCD.getBinX(), PrimaryCCD.getBinY());
 
         switch (imageFrameType)
         {
-          case LIGHT_FRAME:
+          case CCDChip::LIGHT_FRAME:
       	    strcpy(frame_s, "Light");
 	    break;
-          case BIAS_FRAME:
+          case CCDChip::BIAS_FRAME:
             strcpy(frame_s, "Bias");
 	    break;
-          case FLAT_FRAME:
+          case CCDChip::FLAT_FRAME:
             strcpy(frame_s, "Flat Field");
 	    break;
-          case DARK_FRAME:
+          case CCDChip::DARK_FRAME:
             strcpy(frame_s, "Dark");
 	    break;
         }
@@ -924,11 +903,13 @@ void QSICCD::addFITSKeywords(fitsfile *fptr)
             return;
         }
 
+        int pixSize = PrimaryCCD.getPixelSizeX();
+
         fits_update_key_s(fptr, TDOUBLE, "CCD-TEMP", &(TemperatureN[0].value), "CCD Temperature (Celcius)", &status);
         fits_update_key_s(fptr, TDOUBLE, "EXPTIME", &(imageExpose), "Total Exposure Time (s)", &status);
-        if(imageFrameType == DARK_FRAME)
+        if(imageFrameType == CCDChip::DARK_FRAME)
         fits_update_key_s(fptr, TDOUBLE, "DARKTIME", &(imageExpose), "Total Exposure Time (s)", &status);
-        fits_update_key_s(fptr, TDOUBLE, "PIX-SIZ", &(ImagePixelSizeN[0].value), "Pixel Size (microns)", &status);
+        fits_update_key_s(fptr, TDOUBLE, "PIX-SIZ", &pixSize, "Pixel Size (microns)", &status);
         fits_update_key_s(fptr, TSTRING, "BINNING", binning_s, "Binning HOR x VER", &status);
         fits_update_key_s(fptr, TSTRING, "FRAME", frame_s, "Frame Type", &status);
         fits_update_key_s(fptr, TDOUBLE, "DATAMIN", &min_val, "Minimum value", &status);
@@ -954,7 +935,7 @@ int QSICCD::manageDefaults(char errmsg[])
         /* X horizontal binning */
         try
         {
-            QSICam.put_BinX(ImageBinN[0].value);
+            QSICam.put_BinX(PrimaryCCD.getBinX());
         } catch (std::runtime_error err) {
             IDMessage(deviceName(), "Error: put_BinX() failed. %s.", err.what());
             IDLog("Error: put_BinX() failed. %s.\n", err.what());
@@ -963,7 +944,7 @@ int QSICCD::manageDefaults(char errmsg[])
 
         /* Y vertical binning */
         try {
-            QSICam.put_BinY(ImageBinN[1].value);
+            QSICam.put_BinY(PrimaryCCD.getBinY());
         } catch (std::runtime_error err)
         {
             IDMessage(deviceName(), "Error: put_BinY() failed. %s.", err.what());
@@ -972,7 +953,7 @@ int QSICCD::manageDefaults(char errmsg[])
         }
 
         if (isDebug())
-            IDLog("Setting default binning %f x %f.\n", ImageBinN[0].value, ImageBinN[1].value);
+            IDLog("Setting default binning %d x %d.\n", PrimaryCCD.getBinX(), PrimaryCCD.getBinY());
 
         updateCCDFrame();
 
@@ -1043,9 +1024,6 @@ bool QSICCD::Disconnect()
 {
     char msg[MAXRBUF];
     bool connected;
-    delete RawFrame;
-    RawFrameSize=0;
-    RawFrame=NULL;
 
 
     try
@@ -1191,28 +1169,16 @@ void QSICCD::resetFrame()
         imageWidth  = sensorPixelSize_x;
         imageHeight = sensorPixelSize_y;
 
-        ImageFrameN[0].value = 0;
-        ImageFrameN[1].value = 0;
-        ImageFrameN[2].value = imageWidth;
-        ImageFrameN[3].value = imageHeight;
-
-        IDSetNumber(ImageFrameNP, NULL);
-
         try
         {
             QSICam.put_BinX(1);
             QSICam.put_BinY(1);
         } catch (std::runtime_error err)
         {
-            IDSetNumber(ImageBinNP, "Resetting BinX/BinY failed. %s.", err.what());
+            IDMessage(deviceName(), "Resetting BinX/BinY failed. %s.", err.what());
             IDLog("Resetting BinX/BinY failed. %s.", err.what());
             return;
         }
-
-        ImageBinN[0].value = 1;
-        ImageBinN[1].value = 1;
-
-        IDSetNumber(ImageBinNP, NULL);
 
         SetCCDParams(imageWidth, imageHeight, 16, 1, 1);
 
@@ -1307,16 +1273,8 @@ void QSICCD::TimerHit()
     if(isConnected() == false)
         return;  //  No need to reset timer if we are not connected anymore
 
-    switch (ImageExposureNP->s)
+    if (InExposure)
     {
-      case IPS_IDLE:
-        break;
-
-      case IPS_OK:
-        break;
-
-      case IPS_BUSY:
-
         bool imageReady;
         try
        {
@@ -1326,11 +1284,12 @@ void QSICCD::TimerHit()
             QSICam.get_ImageReady(&imageReady);
         } catch (std::runtime_error err)
         {
-            ImageExposureNP->s = IPS_ALERT;
-
-            IDSetNumber(ImageExposureNP, "get_ImageReady() failed. %s.", err.what());
+            IDMessage(deviceName(), "get_ImageReady() failed. %s.", err.what());
             IDLog("get_ImageReady() failed. %s.", err.what());
-            break;
+            InExposure = false;
+            PrimaryCCD.setExposureFailed();
+            SetTimer(POLLMS);
+            return;
         }
 
         timeleft=CalcTimeLeft(ExpStart,imageExpose);
@@ -1338,31 +1297,28 @@ void QSICCD::TimerHit()
         if (timeleft < 0)
             timeleft = 0;
 
-        ImageExposureN[0].value = timeleft;
+        //ImageExposureN[0].value = timeleft;
 
         if (isDebug())
             IDLog("With time left %ld\n", timeleft);
 
         if (!imageReady)
         {
-            IDSetNumber(ImageExposureNP, NULL);
+            PrimaryCCD.setExposure(timeleft);
+            //IDSetNumber(ImageExposureNP, NULL);
             if (isDebug())
                 IDLog("image not yet ready....\n");
-            break;
+            SetTimer(POLLMS);
+            return;
         }
 
         /* We're done exposing */
-        ImageExposureNP->s = IPS_OK;
-        IDSetNumber(ImageExposureNP, "Exposure done, downloading image...");
+        IDMessage(deviceName(), "Exposure done, downloading image...");
         IDLog("Exposure done, downloading image...\n");
 
+        InExposure = false;
         /* grab and save image */
-        grabImage();
-
-        break;
-
-      case IPS_ALERT:
-        break;
+        grabImage();   
     }
 
     switch (TemperatureNP->s)
@@ -1471,42 +1427,6 @@ void QSICCD::TimerHit()
          break;
     }
 
-    /*
-    switch (FilterNP->s)
-    {
-
-      case IPS_IDLE:
-      case IPS_OK:
-
-        short current_filter;
-        try
-       {
-            QSICam.get_Position(&current_filter);
-        } catch (std::runtime_error err)
-        {
-            FilterNP->s = IPS_ALERT;
-            IDSetNumber(&FilterNP, "QSICamera::get_FilterPos() failed. %s.", err.what());
-            IDLog("QSICamera::get_FilterPos() failed. %s.\n", err.what());
-            return;
-        }
-
-        if (FilterN[0].value != current_filter)
-        {
-            FilterN[0].value = current_filter;
-            IDSetNumber(&FilterNP, NULL);
-        }
-        break;
-
-      case IPS_BUSY:
-        break;
-
-      case IPS_ALERT:
-        break;
-    }
-    */
-
-
-
     SetTimer(POLLMS);
     return;
 }
@@ -1540,12 +1460,12 @@ void QSICCD::turnWheel()
                 return;
             }
 
-            FilterN[0].value = current_filter;
+            FilterSlotN[0].value = current_filter;
             FilterS[0].s = ISS_OFF;
             FilterS[1].s = ISS_OFF;
             FilterSP->s = IPS_OK;
             IDSetSwitch(FilterSP,"The current filter is %d\n", current_filter);
-            IDSetNumber(FilterNP, NULL);
+            IDSetNumber(FilterSlotNP, NULL);
             if (isDebug())
                 IDLog("The current filter is %d\n", current_filter);
 
@@ -1570,56 +1490,18 @@ void QSICCD::turnWheel()
                 return;
             }
 
-            FilterN[0].value = current_filter;
+            FilterSlotN[0].value = current_filter;
             FilterS[0].s = ISS_OFF;
             FilterS[1].s = ISS_OFF;
             FilterSP->s = IPS_OK;
             IDSetSwitch(FilterSP,"The current filter is %d\n", current_filter);
-            IDSetNumber(FilterNP, NULL);
+            IDSetNumber(FilterSlotNP, NULL);
 
             if (isDebug())
                 IDLog("The current filter is %d\n", current_filter);
 
             break;
         }
-}
-
-void QSICCD::initFilterNames()
-{
-    char filterName[MAXINDINAME];
-    char filterLabel[MAXINDILABEL];
-    int maxFilters = (int) FilterN[0].max + 1;
-    std::string filterDesignation[maxFilters];
-
-    if (FilterT != NULL)
-        delete FilterT;
-
-    try
-    {
-     QSICam.get_Names(filterDesignation);
-    }
-    catch (std::runtime_error err)
-    {
-        IDMessage(deviceName(), "QSICamera::get_Names() failed. %s.", err.what());
-        if (isDebug())
-            IDLog("QSICamera::get_Names() failed. %s.", err.what());
-        return;
-    }
-
-
-    FilterT = new IText[maxFilters];
-
-    for (int i=0; i < maxFilters; i++)
-    {
-        snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i);
-        snprintf(filterLabel, MAXINDILABEL, "Filter #%d", i);
-        IUFillText(&FilterT[i], filterName, filterLabel, filterDesignation[i].c_str());
-    }
-
-    IUFillTextVector(FilterTP, FilterT, maxFilters, deviceName(), "FILTER_NAME", "Filter", FILTER_WHEEL_TAB, IP_RW, 0, IPS_IDLE);
-
-    return;
-
 }
 
 int QSICCD::GuideNorth(float duration)
@@ -1692,3 +1574,93 @@ int QSICCD::GuideWest(float duration)
     return 0;
 
 }
+
+bool QSICCD::initFilterNames(const char *deviceName, const char* groupName)
+{
+    char filterName[MAXINDINAME];
+    char filterLabel[MAXINDILABEL];
+    int maxFilters = (int) FilterSlotN[0].max + 1;
+    //std::string filterDesignation[maxFilters];
+
+    if (FilterNameT != NULL)
+        delete FilterNameT;
+
+    try
+    {
+     QSICam.get_Names(filterDesignation);
+    }
+    catch (std::runtime_error err)
+    {
+        IDMessage(deviceName, "QSICamera::get_Names() failed. %s.", err.what());
+        if (isDebug())
+            IDLog("QSICamera::get_Names() failed. %s.", err.what());
+        return false;
+    }
+
+    FilterNameT = new IText[maxFilters];
+
+    for (int i=0; i < maxFilters; i++)
+    {
+        snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i+1);
+        snprintf(filterLabel, MAXINDILABEL, "Filter #%d", i+1);
+        IUFillText(&FilterNameT[i], filterName, filterLabel, filterDesignation[i].c_str());
+    }
+
+    IUFillTextVector(FilterNameTP, FilterNameT, maxFilters, deviceName, "FILTER_NAME", "Filter", groupName, IP_RW, 0, IPS_IDLE);
+
+    return true;
+}
+
+bool QSICCD::SetFilterNames()
+{
+    try
+    {
+        QSICam.put_Names(filterDesignation);
+    }
+    catch (std::runtime_error err)
+    {
+      IDSetText(FilterNameTP, "put_Names() failed. %s.", err.what());
+      if (isDebug())
+         IDLog("put_Names() failed. %s.", err.what());
+      return false;
+    }
+
+    return true;
+}
+
+bool QSICCD::SelectFilter(int targetFilter)
+{
+    try
+    {
+        QSICam.put_Position(targetFilter);
+    } catch(std::runtime_error err)
+    {
+        FilterSlotNP->s = IPS_ALERT;
+        IDSetNumber(FilterSlotNP, "put_Position() failed. %s.", err.what());
+        if (isDebug())
+            IDLog("put_Position() failed. %s.", err.what());
+        return false;
+
+    }
+
+    return true;
+}
+
+int QSICCD::QueryFilter()
+{
+    short newFilter;
+    try
+    {
+        QSICam.get_Position(&newFilter);
+    } catch(std::runtime_error err)
+    {
+        FilterSlotNP->s = IPS_ALERT;
+        IDSetNumber(FilterSlotNP, "get_Position() failed. %s.", err.what());
+        if (isDebug())
+            IDLog("get_Position() failed. %s.\n", err.what());
+        return -1;
+    }
+
+    return newFilter;
+}
+
