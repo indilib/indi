@@ -69,6 +69,7 @@ public:
     void setBPP(int bpp);
     int setFrameType(CCD_FRAME);
     void setExposure(double duration);
+    void setExposureFailed();
 
 private:
 
@@ -157,6 +158,7 @@ protected:
     float Dec;
     bool HasGuideHead;
     bool HasSt4Port;
+    bool InExposure;
 
     CCDChip PrimaryCCD;
     CCDChip GuideCCD;

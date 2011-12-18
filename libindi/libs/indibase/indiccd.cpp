@@ -146,11 +146,18 @@ void CCDChip::setInterlaced(bool intr)
     Interlaced = intr;
 }
 
+void CCDChip::setExposureFailed()
+{
+    ImageExposureNP->s = IPS_ALERT;
+    IDSetNumber(ImageExposureNP, NULL);
+}
+
 INDI::CCD::CCD()
 {
     //ctor
     HasGuideHead=false;
     HasSt4Port=false;
+    InExposure=false;
     TelescopeTP = new ITextVectorProperty;
 }
 

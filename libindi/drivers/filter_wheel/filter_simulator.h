@@ -36,7 +36,7 @@ class FilterSim : public INDI::FilterWheel
 
         bool Connect();
         bool Disconnect();
-        int SelectFilter(int);
+        bool SelectFilter(int);
         void TimerHit();
 
 };

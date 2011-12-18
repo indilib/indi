@@ -26,7 +26,7 @@
 INDI::FilterWheel::FilterWheel()
 {
     //ctor
-    MaxFilter=12;
+    MaxFilter=-1;
 }
 
 INDI::FilterWheel::~FilterWheel()
@@ -34,28 +34,12 @@ INDI::FilterWheel::~FilterWheel()
     //dtor
 }
 
+
 bool INDI::FilterWheel::initProperties()
 {
-    DefaultDriver::initProperties();   //  let the base class flesh in what it wants
+    DefaultDriver::initProperties();
 
-    IUFillNumber(&FilterSlotN[0],"FILTER_SLOT_VALUE","Filter","%3.0f",1.0,12.0,1.0,1.0);
-    IUFillNumberVector(&FilterSlotNV,FilterSlotN,1,deviceName(),"FILTER_SLOT","Filter","Main Control",IP_RW,60,IPS_IDLE);
-
-    IUFillText(&FilterNameT[0],"FILTER1","1","");
-    IUFillText(&FilterNameT[1],"FILTER2","2","");
-    IUFillText(&FilterNameT[2],"FILTER3","3","");
-    IUFillText(&FilterNameT[3],"FILTER4","4","");
-    IUFillText(&FilterNameT[4],"FILTER5","5","");
-    IUFillText(&FilterNameT[5],"FILTER6","6","");
-    IUFillText(&FilterNameT[6],"FILTER7","7","");
-    IUFillText(&FilterNameT[7],"FILTER8","8","");
-    IUFillText(&FilterNameT[8],"FILTER9","9","");
-    IUFillText(&FilterNameT[9],"FILTER10","10","");
-    IUFillText(&FilterNameT[10],"FILTER11","11","");
-    IUFillText(&FilterNameT[11],"FILTER12","12","");
-    IUFillTextVector(&FilterNameTV,FilterNameT,12,deviceName(),"FILTER_NAME","Filter","Filters",IP_RW,60,IPS_IDLE);
-
-    return 0;
+    initFilterProperties(deviceName(), FILTER_TAB);
 }
 
 void INDI::FilterWheel::ISGetProperties (const char *dev)
@@ -65,8 +49,10 @@ void INDI::FilterWheel::ISGetProperties (const char *dev)
     DefaultDriver::ISGetProperties(dev);
     if(isConnected())
     {
-        defineNumber(&FilterSlotNV);
-        defineText(&FilterNameTV);
+        defineNumber(FilterSlotNP);
+
+        if (initFilterNames(deviceName(), FILTER_TAB))
+            defineText(FilterNameTP);
     }
     return;
 }
@@ -78,46 +64,54 @@ bool INDI::FilterWheel::updateProperties()
 
     if(isConnected())
     {
-        IUFillNumber(&FilterSlotN[0],"FILTER_SLOT_VALUE","Filter","%3.0f",MinFilter,MaxFilter,1.0,CurrentFilter);
-        defineNumber(&FilterSlotNV);
-        IUFillTextVector(&FilterNameTV,FilterNameT,MaxFilter,deviceName(),"FILTER_NAME","Filter","Filters",IP_RW,60,IPS_IDLE);
-        defineText(&FilterNameTV);
-        //LoadFilterNames();
+        initFilterProperties(deviceName(), FILTER_TAB);
+        defineNumber(FilterSlotNP);
+        if (initFilterNames(deviceName(), FILTER_TAB))
+            defineText(FilterNameTP);
     } else
     {
-        deleteProperty(FilterSlotNV.name);
-        deleteProperty(FilterNameTV.name);
+        deleteProperty(FilterSlotNP->name);
+        deleteProperty(FilterNameTP->name);
     }
 
     return true;
+}
+
+bool INDI::FilterWheel::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+{
+    return DefaultDriver::ISNewSwitch(dev, name, states, names,n);
 }
 
 bool INDI::FilterWheel::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
     //  first check if it's for our device
     //IDLog("INDI::FilterWheel::ISNewNumber %s\n",name);
-    if(strcmp(dev,deviceName())==0) {
+    if(strcmp(dev,deviceName())==0)
+    {
         //  This is for our device
         //  Now lets see if it's something we process here
 
-        if(strcmp(name,"FILTER_SLOT")==0) {
-
+        if(strcmp(name,"FILTER_SLOT")==0)
+        {
             int f;
 
             f=-1;
-            for(int x=0; x<n; x++) {
-                if(strcmp(names[x],"FILTER_SLOT_VALUE")==0) {
+            for(int x=0; x<n; x++)
+            {
+                if(strcmp(names[x],"FILTER_SLOT_VALUE")==0)
+                {
                     //  This is the new filter number we are being asked
                     //  to set as active
                     f=values[x];
                 }
             }
 
-            if(f != -1) {
+            if(f != -1)
+            {
                 //IDLog("Filter wheel got a filter slot change\n");
                 //  tell the client we are busy changing the filter
-                FilterSlotNV.s=IPS_BUSY;
-                IDSetNumber(&FilterSlotNV,NULL);
+                FilterSlotNP->s=IPS_BUSY;
+                IDSetNumber(FilterSlotNP,NULL);
                 //  Tell the hardware to change
                 SelectFilter(f);
                 //  tell the caller we processed this
@@ -130,43 +124,29 @@ bool INDI::FilterWheel::ISNewNumber (const char *dev, const char *name, double v
     return DefaultDriver::ISNewNumber(dev,name,values,names,n);
 }
 
-bool INDI::FilterWheel::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    //IDLog("FilterWheel::Enter IsNewSwitch for %s\n",name);
-
-    //  Nobody has claimed this, so, ignore it
-    return DefaultDriver::ISNewSwitch(dev,name,states,names,n);
-}
 bool INDI::FilterWheel::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     //  Ok, lets see if this is a property wer process
     //IDLog("INDI::FilterWheel got %d new text items name %s\n",n,name);
     //  first check if it's for our device
-    if(strcmp(dev,deviceName())==0) {
+    if(strcmp(dev,deviceName())==0)
+    {
         //  This is for our device
         //  Now lets see if it's something we process here
-        if(strcmp(name,FilterNameTV.name)==0) {
-            //  This is our port, so, lets process it
-
-            //  Some clients insist on sending a port
-            //  and they may not be configured for the
-            //  correct port
-            //  If we are already connected
-            //  and running, it makes absolutely no sense
-            //  to accept a new port value
-            //  so lets just lie to them and say
-            //  we did this, but, dont actually change anything
-            //if(Connected) return true;
-
+        if(strcmp(name,FilterNameTP->name)==0)
+        {
             int rc;
             //IDLog("calling update text\n");
-            FilterNameTV.s=IPS_OK;
-            rc=IUUpdateText(&FilterNameTV,texts,names,n);
-            //IDLog("update text returns %d\n",rc);
-            //  Update client display
-            IDSetText(&FilterNameTV,NULL);
-            //SaveConfig();
+            FilterNameTP->s=IPS_OK;
+            rc=IUUpdateText(FilterNameTP,texts,names,n);
 
+            if (SetFilterNames() == true)
+                IDSetText(FilterNameTP,NULL);
+            else
+            {
+                FilterNameTP->s = IPS_ALERT;
+                IDSetText(FilterNameTP, "Error updating names of filters.");
+            }
             //  We processed this one, so, tell the world we did it
             return true;
         }
@@ -176,26 +156,25 @@ bool INDI::FilterWheel::ISNewText (const char *dev, const char *name, char *text
     return DefaultDriver::ISNewText(dev,name,texts,names,n);
 }
 
-int INDI::FilterWheel::SelectFilterDone(int f)
-{
-    //  The hardware has finished changing
-    //  filters
-    FilterSlotN[0].value=f;
-    FilterSlotNV.s=IPS_OK;
-    // Tell the clients we are done, and
-    //  filter is now useable
-    IDSetNumber(&FilterSlotNV,NULL);
-    return 0;
-}
-
-int INDI::FilterWheel::SelectFilter(int)
-{
-    return -1;
-}
-
 int INDI::FilterWheel::QueryFilter()
 {
     return -1;
+}
+
+
+bool INDI::FilterWheel::SelectFilter(int)
+{
+    return false;
+}
+
+bool INDI::FilterWheel::SetFilterNames()
+{
+    return true;
+}
+
+bool INDI::FilterWheel::initFilterNames(const char *deviceName, const char* groupName)
+{
+    return false;
 }
 
 

@@ -649,6 +649,8 @@ libindi/libs/indibase/indiccd.cpp -text
 libindi/libs/indibase/indiccd.h -text
 libindi/libs/indibase/indidevice.cpp -text
 libindi/libs/indibase/indidevice.h -text
+libindi/libs/indibase/indifilterinterface.cpp -text
+libindi/libs/indibase/indifilterinterface.h -text
 libindi/libs/indibase/indifilterwheel.cpp -text
 libindi/libs/indibase/indifilterwheel.h -text
 libindi/libs/indibase/indifocuser.cpp -text

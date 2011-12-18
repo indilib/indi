@@ -13,6 +13,8 @@ const char *MOTION_TAB = "Motion Control";
 const char *DATETIME_TAB = "Date/Time";
 const char *SITE_TAB = 	"Site Management";
 const char *OPTIONS_TAB = "Options";
+const char *FILTER_TAB = "Filter Wheel";
+const char *GUIDER_TAB = "Guide Wheel";
 
 void timerfunc(void *t)
 {
@@ -157,7 +159,6 @@ bool INDI::DefaultDriver::loadDefaultConfig()
 
 bool INDI::DefaultDriver::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-	IDLog("DefaultDriver NewSwitch\n");
     // ignore if not ours //
     if (strcmp (dev, deviceID))
         return false;

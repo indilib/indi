@@ -25,13 +25,13 @@ namespace INDI
     class BaseClient;
     class BaseDriver;
     class DefaultDriver;
+    class FilterInterface;
+    class GuiderInterface;
     class CCD;
     class Telescope;
     class FilterWheel;
     class Focuser;
-    class USBDevice;
-    class FilterInterface;
-    class GuiderInterface;
+    class USBDevice;   
 }
 
 

@@ -10,6 +10,8 @@ extern const char *MOTION_TAB;
 extern const char *DATETIME_TAB;
 extern const char *SITE_TAB;
 extern const char *OPTIONS_TAB;
+extern const char *FILTER_TAB;
+extern const char *GUIDER_TAB;
 
 /**
  * \class INDI::DefaultDriver

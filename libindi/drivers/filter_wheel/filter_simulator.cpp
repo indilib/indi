@@ -89,11 +89,11 @@ bool FilterSim::Disconnect()
     return true;
 }
 
-int FilterSim::SelectFilter(int f)
+bool FilterSim::SelectFilter(int f)
 {
     CurrentFilter=f;
     SetTimer(500);
-    return 0;
+    return true;
 }
 
 void FilterSim::TimerHit()

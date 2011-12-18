@@ -1,5 +1,5 @@
 /*
-    Guider Interface
+    Filter Interface
     Copyright (C) 2011 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
     This library is free software; you can redistribute it and/or
@@ -18,32 +18,41 @@
 
 */
 
-#ifndef GUIDERINTERFACE_H
-#define GUIDERINTERFACE_H
+#ifndef INDIFILTERINTERFACE_H
+#define INDIFILTERINTERFACE_H
 
 #include "indibase.h"
 
-class INDI::GuiderInterface
+class INDI::FilterInterface
 {
 
 public:
 
-    virtual int GuideNorth(float) = 0;
-    virtual int GuideSouth(float) = 0;
-    virtual int GuideEast(float) = 0;
-    virtual int GuideWest(float) = 0;
+    virtual int QueryFilter() = 0;
+    virtual bool SelectFilter(int) = 0;
+    virtual bool SetFilterNames() = 0;
+    virtual bool initFilterNames(const char *deviceName, const char* groupName) = 0;
+
+    void SelectFilterDone(int);
+
 
 protected:
 
-    GuiderInterface();
-    ~GuiderInterface();
+    FilterInterface();
+    ~FilterInterface();
 
-    void initGuiderProperties(const char *deviceName, const char* groupName);
+    void initFilterProperties(const char *deviceName, const char* groupName);
 
-    INumber GuideNS[2];
-    INumberVectorProperty *GuideNSP;
-    INumber GuideEW[2];
-    INumberVectorProperty *GuideEWP;
+    INumberVectorProperty *FilterSlotNP;   //  A number vector for filter slot
+    INumber FilterSlotN[1];
+
+    ITextVectorProperty *FilterNameTP; //  A text vector that stores out physical port name
+    IText *FilterNameT;
+
+    int MinFilter;
+    int MaxFilter;
+    int CurrentFilter;
+    int TargetFilter;
 };
 
-#endif // GUIDERINTERFACE_H
+#endif // INDIFILTERINTERFACE_H
