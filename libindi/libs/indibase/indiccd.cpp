@@ -767,7 +767,7 @@ bool INDI::CCD::GuideExposureComplete()
         fits_close_file(fptr,&status);
         IDLog("Built the Guider fits file\n");
         GuideCCD.ImageExposureNP->s=IPS_OK;
-        IDSetNumber(PrimaryCCD.ImageExposureNP,NULL);
+        IDSetNumber(GuideCCD.ImageExposureNP,NULL);
 
         IDLog("Sending guider fits file via %s\n",GuideCCD.FitsBP->name);
         GuideCCD.FitsB.blob=memptr;
