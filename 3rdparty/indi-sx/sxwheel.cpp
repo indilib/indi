@@ -249,13 +249,13 @@ int SxWheel::QueryFilter()
     return CurrentFilter;
 }
 
-int SxWheel::SelectFilter(int f)
+bool SxWheel::SelectFilter(int f)
 {
     TargetFilter=f;
     IDLog("SxWheel Select Filter %d\n",f);
     SendWheelMessage(f,0);
     SetTimer(250);
-    return 0;
+    return true;
 }
 
 void SxWheel::TimerHit()

@@ -68,7 +68,7 @@ class SxCam : public INDI::CCD, public SxCCD
 
 
         float CalcTimeLeft();
-        bool InExposure;
+        //bool InExposure;
         float ExposureRequest;
         struct timeval ExpStart;
 

@@ -66,7 +66,7 @@ class SxWheel : public INDI::FilterWheel
         void ISGetProperties (const char *dev);
 
         int QueryFilter();
-        int SelectFilter(int);
+        bool SelectFilter(int);
         void TimerHit();
 
 };
