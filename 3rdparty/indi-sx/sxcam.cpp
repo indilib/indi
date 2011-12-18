@@ -215,7 +215,7 @@ int SxCam::StartGuideExposure(float n)
     //  the accumulators and the light sensative portions
     DidGuideLatch=0;
 
-        //ClearPixels(SXCCD_EXP_FLAGS_FIELD_BOTH,GUIDE_CCD);
+        ClearPixels(SXCCD_EXP_FLAGS_FIELD_BOTH,GUIDE_CCD);
         //  Relatively long exposure
         //  lets do it on our own timers
         int tval;
@@ -326,10 +326,10 @@ void SxCam::TimerHit()
                         timeleft=CalcGuideTimeLeft();
                     }
                     //  first a flush
-                    ClearPixels(SXCCD_EXP_FLAGS_NOWIPE_FRAME,GUIDE_CCD);
+                    //ClearPixels(SXCCD_EXP_FLAGS_NOWIPE_FRAME,GUIDE_CCD);
                     //  now latch the exposure
                     //rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_EVEN | SXCCD_EXP_FLAGS_NOWIPE_FRAME_FRAME,GUIDE_CCD,GSubX,GSubY,GSubW,GSubH,1,1);
-                    rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_EVEN | SXCCD_EXP_FLAGS_NOCLEAR_FRAME,GUIDE_CCD,GuideCCD.getSubX(),GuideCCD.getSubY(),
+                    rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_BOTH | SXCCD_EXP_FLAGS_NOCLEAR_FRAME,GUIDE_CCD,GuideCCD.getSubX(),GuideCCD.getSubY(),
                                    GuideCCD.getSubW(),GuideCCD.getSubH(),1,1);
                     //rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_BOTH ,GUIDE_CCD,GSubX,GSubY,GSubW,GSubH,1,1);
                     DidGuideLatch=1;
@@ -375,7 +375,7 @@ void SxCam::TimerHit()
     if(DidGuideLatch==1)
     {
         int rc;
-        rc=ReadCameraFrame(GUIDE_CCD,PrimaryCCD.getFrameBuffer());
+        rc=ReadCameraFrame(GUIDE_CCD,GuideCCD.getFrameBuffer());
         DidGuideLatch=0;
         InGuideExposure=false;
         //  send half a frame

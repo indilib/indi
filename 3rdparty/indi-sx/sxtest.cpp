@@ -42,18 +42,20 @@ int main()
     bool rc;
 
     int SubX,SubY,SubW,SubH,BinX,BinY;
-    char *FrameBuffer;
+    char *FrameBuffer=NULL;
     int FrameBufferSize;
-    char *GuiderFrame;
+    char *GuiderFrame=NULL;
     int GuiderFrameSize=1;
     int exptime;
 
     SxCCD ccd;
 
 
-    int TestCase = INTERLACE_TEST;
+    int TestCase = GUIDER_TEST;
 
-    exptime=100;
+    //TestCase = PROGRESSIVE_TEST;
+
+    exptime=1000000;
 
     rc=ccd.Connect();
     if(rc) {
@@ -103,32 +105,14 @@ int main()
             SubW=ccd.gxres;
             SubH=ccd.gyres;
 
-            //  Experiment with the interlaced ccd
+            //  Experiment with the guide ccd
 
-            ccd.ClearPixels(SXCCD_EXP_FLAGS_FIELD_EVEN,GUIDE_CCD);
-            //  a delay here, equal to readout time for a half frame
-            //  will make even and odd frames get the same exposure time
-            //  Assuming exposure time is longer than readout time
-
-
-            ccd.ClearPixels(SXCCD_EXP_FLAGS_FIELD_ODD,GUIDE_CCD);
-            //  A delay here for exposure time, less any delays introduced between the halves
+            ccd.ClearPixels(SXCCD_EXP_FLAGS_FIELD_BOTH,GUIDE_CCD);
             usleep(exptime);
-            //  and now lets try an interlaced readout
-            //  first the even lines
-            ccd.LatchPixels(SXCCD_EXP_FLAGS_FIELD_EVEN | SXCCD_EXP_FLAGS_NOBIN_ACCUM,GUIDE_CCD,SubX,SubY,SubW,SubH,BinX,BinY);
+            ccd.LatchPixels(SXCCD_EXP_FLAGS_FIELD_BOTH ,GUIDE_CCD,SubX,SubY,SubW,SubH,BinX,BinY);
             ccd.ReadPixels(GuiderFrame,GuiderFrameSize);
-
-
-            //  and now the odd lines
-            //ccd.ClearPixels(SXCCD_EXP_FLAGS_FIELD_ODD,GUIDE_CCD);
-            //usleep(exptime);
-
-            ccd.LatchPixels(SXCCD_EXP_FLAGS_FIELD_ODD | SXCCD_EXP_FLAGS_NOBIN_ACCUM,GUIDE_CCD,SubX,SubY,SubW,SubH,BinX,BinY);
-            ccd.ReadPixels(GuiderFrame+GuiderFrameSize,GuiderFrameSize);
-
-            for(int x=0; x<GuiderFrameSize*2; x++) GuiderFrame[x]+=100;
-            write_ppm("test.ppm",GuiderFrame,SubW,SubH*2,255);
+            //for(int x=0; x<GuiderFrameSize; x++) GuiderFrame[x]=x%100;
+            write_ppm("test.ppm",GuiderFrame,SubW,SubH,255);
             break;
 
         case INTERLACE_TEST:
@@ -170,8 +154,8 @@ int main()
 
         }
 
-        delete FrameBuffer;
-        delete GuiderFrame;
+        if(FrameBuffer != NULL) delete FrameBuffer;
+        if(GuiderFrame != NULL) delete GuiderFrame;
         ccd.Disconnect();
     }
 
