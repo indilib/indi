@@ -41,67 +41,48 @@
 
 class SxCam : public INDI::CCD, public SxCCD
 {
-    protected:
-    private:
     public:
+    SxCam();
+    virtual ~SxCam();
 
-        //char *RawFrame;
-        //int RawFrameSize;
-        //int XRes;
-        //int YRes;
-        //int GXRes;
-        //int GYRes;
-        //char *RawGuiderFrame;
-        //int RawGuideSize;
-        //int Interlaced;
-        //bool HasGuideHead;
+    protected:
+
+    //  Generic indi device entries
+    bool Connect();
+    bool Disconnect();
+    const char *getDefaultName();
+    int StartExposure(float);
+    int StartGuideExposure(float);
+    bool AbortGuideExposure();
+    void TimerHit();
+    virtual bool updateCCDBin(int hor, int ver);
+    virtual int SetParams(int XRes,int YRes,int CamBits,float pixwidth,float pixheight);
+    virtual int SetGuideParams(int XRes,int YRes,int CamBits,float pixwidth,float pixheight);
+    virtual int SetInterlaced(bool);
+
+    private:
 
         int SetCamTimer(int ms);
         int GetCamTimer();
+        int ReadCameraFrame(int,char *);
+        float CalcTimeLeft();
+        float CalcGuideTimeLeft();
 
         int DidFlush;
         int DidLatch;
+        int DidGuideLatch;
         int SubType;
         unsigned short int CameraModel;
 
         bool ColorSensor;
-
-
-        float CalcTimeLeft();
-        //bool InExposure;
-        float ExposureRequest;
-        struct timeval ExpStart;
-
-        int DidGuideLatch;
         bool InGuideExposure;
         float GuideExposureRequest;
         struct timeval GuideExpStart;
-        float CalcGuideTimeLeft();
+        float ExposureRequest;
+        struct timeval ExpStart;
 
         char *evenBuf, *oddBuf;
 
-        int ReadCameraFrame(int,char *);
-
-         SxCam();
-        virtual ~SxCam();
-
-        //  Generic indi device entries
-        bool Connect();
-        bool Disconnect();
-
-        const char *getDefaultName();
-
-        int StartExposure(float);
-        int StartGuideExposure(float);
-        bool AbortGuideExposure();
-
-        void TimerHit();
-
-        virtual bool updateCCDBin(int hor, int ver);
-
-        virtual int SetParams(int XRes,int YRes,int CamBits,float pixwidth,float pixheight);
-        virtual int SetGuideParams(int XRes,int YRes,int CamBits,float pixwidth,float pixheight);
-        virtual int SetInterlaced(bool);
 
 };
 
