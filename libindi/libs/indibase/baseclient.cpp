@@ -158,10 +158,10 @@ void INDI::BaseClient::setDriverConnection(bool status, const char *deviceName)
 
 INDI::BaseDriver * INDI::BaseClient::getDriver(const char * deviceName)
 {
-    vector<devicePtr>::const_iterator devi;
+    vector<INDI::BaseDriver *>::const_iterator devi;
     for ( devi = cDevices.begin(); devi != cDevices.end(); devi++)
         if (!strcmp(deviceName, (*devi)->deviceName()))
-            return (*devi).get();
+            return (*devi);
 
     return NULL;
 }
@@ -290,18 +290,18 @@ int INDI::BaseClient::delPropertyCmd (XMLEle *root, char * errmsg)
 
 int INDI::BaseClient::removeDevice( const char * devName, char * errmsg )
 {
-    std::vector<devicePtr>::iterator devicei = cDevices.begin();
+    std::vector<INDI::BaseDriver *>::iterator devicei;
 
-    while (devicei != cDevices.end())
+    for (devicei =cDevices.begin(); devicei != cDevices.end();)
     {
       if (strcmp(devName, (*devicei)->deviceName()))
       {
-          cDevices.erase(devicei);
-          //delete (*devicei);
+          delete *devicei;
+          devicei = cDevices.erase(devicei);
           return 0;
       }
-
-      devicei++;
+      else
+          ++devicei;
     }
 
     snprintf(errmsg, MAXRBUF, "Device %s not found", devName);
@@ -311,12 +311,12 @@ int INDI::BaseClient::removeDevice( const char * devName, char * errmsg )
 INDI::BaseDriver * INDI::BaseClient::findDev( const char * devName, char * errmsg )
 {
 
-    std::vector<devicePtr>::const_iterator devicei;
+    std::vector<INDI::BaseDriver *>::const_iterator devicei;
 
     for (devicei = cDevices.begin(); devicei != cDevices.end(); devicei++)
     {
         if (!strcmp(devName, (*devicei)->deviceName()))
-         return (*devicei).get();
+         return (*devicei);
 
     }
 
@@ -327,7 +327,8 @@ INDI::BaseDriver * INDI::BaseClient::findDev( const char * devName, char * errms
 /* add new device */
 INDI::BaseDriver * INDI::BaseClient::addDevice (XMLEle *dep, char * errmsg)
 {
-    devicePtr dp(new INDI::BaseDriver());
+    //devicePtr dp(new INDI::BaseDriver());
+    INDI::BaseDriver *dp = new INDI::BaseDriver();
     XMLAtt *ap;
     char * device_name;
 
@@ -349,7 +350,7 @@ INDI::BaseDriver * INDI::BaseClient::addDevice (XMLEle *dep, char * errmsg)
     newDevice(device_name);
 
     /* ok */
-    return dp.get();
+    return dp;
 }
 
 INDI::BaseDriver * INDI::BaseClient::findDev (XMLEle *root, int create, char * errmsg)

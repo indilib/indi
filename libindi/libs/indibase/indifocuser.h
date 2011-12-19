@@ -34,12 +34,12 @@ class INDI::Focuser : public INDI::DefaultDriver
         Focuser();
         virtual ~Focuser();
 
-        INumberVectorProperty FocusspeedNV;
-        INumber FocusspeedN[1];
-        ISwitchVectorProperty FocusmotionSV; //  A Switch in the client interface to park the scope
-        ISwitch FocusmotionS[2];
-        INumberVectorProperty FocustimerNV;
-        INumber FocustimerN[1];
+        INumberVectorProperty *FocusSpeedNP;
+        INumber FocusSpeedN[1];
+        ISwitchVectorProperty *FocusMotionSP; //  A Switch in the client interface to park the scope
+        ISwitch FocusMotionS[2];
+        INumberVectorProperty *FocusTimerNP;
+        INumber FocusTimerN[1];
 
 
         virtual bool initProperties();
@@ -54,7 +54,7 @@ class INDI::Focuser : public INDI::DefaultDriver
         virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
 
         //  And here are the virtual functions we will have for easy overrides
-        virtual int Move(int, int, int);
+        virtual bool Move(int, int, int);
 
 };
 

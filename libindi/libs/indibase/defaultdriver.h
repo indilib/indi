@@ -4,6 +4,8 @@
 #include "basedriver.h"
 #include "indidriver.h"
 
+#include <auto_ptr.h>
+
 extern const char *COMMUNICATION_TAB;
 extern const char *MAIN_CONTROL_TAB;
 extern const char *MOTION_TAB;
@@ -29,7 +31,7 @@ class INDI::DefaultDriver : public INDI::BaseDriver
 {
 public:
     DefaultDriver();
-    virtual ~DefaultDriver() {}
+    virtual ~DefaultDriver();
 
     /** \brief Add Debug, Simulation, and Configuration options to the driver */
     void addAuxControls();
@@ -93,8 +95,6 @@ to disconnect the device.
     int SetTimer(int);
     void RemoveTimer(int);
     virtual void TimerHit();
-
-
 
 protected:
 

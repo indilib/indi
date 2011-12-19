@@ -3,7 +3,6 @@
 
 #include <vector>
 #include <map>
-#include <boost/shared_ptr.hpp>
 #include <string>
 
 #include "indiapi.h"
@@ -32,7 +31,7 @@ class INDI::BaseClient : public INDI::BaseMediator
 {
 public:
     enum { INDI_DEVICE_NOT_FOUND=-1, INDI_PROPERTY_INVALID=-2, INDI_PROPERTY_DUPLICATED = -3, INDI_DISPATCH_ERROR=-4 };
-    typedef boost::shared_ptr<INDI::BaseDriver> devicePtr;
+    //typedef boost::shared_ptr<INDI::BaseDriver> devicePtr;
 
     BaseClient();
     ~BaseClient();
@@ -81,7 +80,7 @@ public:
 
     /** \returns Returns a vector of all devices created in the client.
     */
-    const vector<devicePtr> & getDrivers() const { return cDevices; }
+    const vector<INDI::BaseDriver *> & getDrivers() const { return cDevices; }
 
     /** \brief Set Binary Large Object policy mode
 
@@ -151,7 +150,7 @@ private:
     // Thread for listenINDI()
     pthread_t listen_thread;
 
-    vector<devicePtr> cDevices;
+    vector<INDI::BaseDriver *> cDevices;
     vector<string> cDeviceNames;
 
     string cServer;

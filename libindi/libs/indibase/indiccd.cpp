@@ -45,9 +45,7 @@ CCDChip::CCDChip()
     ImageExposureNP = new INumberVectorProperty;
     ImageBinNP = new INumberVectorProperty;
     ImagePixelSizeNP = new INumberVectorProperty;
-
     CompressSP = new ISwitchVectorProperty;
-
     FitsBP = new IBLOBVectorProperty;
 
 }
@@ -57,6 +55,14 @@ CCDChip::~CCDChip()
     delete RawFrame;
     RawFrameSize=0;
     RawFrame=NULL;
+
+    delete ImageFrameNP;
+    delete FrameTypeSP;
+    delete ImageExposureNP;
+    delete ImageBinNP;
+    delete ImagePixelSizeNP;
+    delete CompressSP;
+    delete FitsBP;
 }
 
 int CCDChip::setFrameType(CCD_FRAME t)
@@ -163,7 +169,7 @@ INDI::CCD::CCD()
 
 INDI::CCD::~CCD()
 {
-    //dtor
+    delete TelescopeTP;
 }
 
 bool INDI::CCD::initProperties()

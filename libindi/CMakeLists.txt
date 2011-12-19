@@ -30,12 +30,7 @@ include (CheckIncludeFiles)
 
 FIND_PACKAGE(ZLIB REQUIRED)
 FIND_PACKAGE(USB REQUIRED)
-FIND_PACKAGE(Boost REQUIRED)
 FIND_PACKAGE(CFITSIO REQUIRED)
-
-IF (BOOST_FOUND)
-    INCLUDE_DIRECTORIES(${BOOST_INCLUDE_DIR})
-ENDIF()
 
 if (NOT CFITSIO_FOUND OR CFITSIO_VERSION_MAJOR LESS 3)
   message(FATAL_ERROR "CFITSIO version too old, Please install cfitsio 3.x and try again. http://heasarc.gsfc.nasa.gov/fitsio/fitsio.html")

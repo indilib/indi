@@ -24,28 +24,32 @@
 
 INDI::Focuser::Focuser()
 {
-    //ctor
+    FocusSpeedNP  = new INumberVectorProperty;
+    FocusTimerNP  = new INumberVectorProperty;
+    FocusMotionSP = new ISwitchVectorProperty;
 }
 
 INDI::Focuser::~Focuser()
 {
-    //dtor
+    delete FocusSpeedNP;
+    delete FocusTimerNP;
+    delete FocusMotionSP;
+
 }
 
 bool INDI::Focuser::initProperties()
 {
     DefaultDriver::initProperties();   //  let the base class flesh in what it wants
 
-    IUFillNumber(&FocusspeedN[0],"FOCUS_SPEED_VALUE","Focus Speed","%3.0f",0.0,255.0,1.0,255.0);
-    IUFillNumberVector(&FocusspeedNV,FocusspeedN,1,deviceName(),"FOCUS_SPEED","Speed","Main Control",IP_RW,60,IPS_OK);
+    IUFillNumber(&FocusSpeedN[0],"FOCUS_SPEED_VALUE","Focus Speed","%3.0f",0.0,255.0,1.0,255.0);
+    IUFillNumberVector(FocusSpeedNP,FocusSpeedN,1,deviceName(),"FOCUS_SPEED","Speed",MAIN_CONTROL_TAB,IP_RW,60,IPS_OK);
 
-    IUFillNumber(&FocustimerN[0],"FOCUS_TIMER_VALUE","Focus Timer","%4.0f",0.0,1000.0,10.0,1000.0);
-    IUFillNumberVector(&FocustimerNV,FocustimerN,1,deviceName(),"FOCUS_TIMER","Timer","Main Control",IP_RW,60,IPS_OK);
+    IUFillNumber(&FocusTimerN[0],"FOCUS_TIMER_VALUE","Focus Timer","%4.0f",0.0,1000.0,10.0,1000.0);
+    IUFillNumberVector(FocusTimerNP,FocusTimerN,1,deviceName(),"FOCUS_TIMER","Timer",MAIN_CONTROL_TAB,IP_RW,60,IPS_OK);
 
-    IUFillSwitch(&FocusmotionS[0],"FOCUS_INWARD","Focus In",ISS_ON);
-    IUFillSwitch(&FocusmotionS[1],"FOCUS_OUTWARD","Focus Out",ISS_OFF);
-    IUFillSwitchVector(&FocusmotionSV,FocusmotionS,2,deviceName(),"FOCUS_MOTION","Focus Direction","Main Control",IP_RW,ISR_1OFMANY,60,IPS_OK);
-
+    IUFillSwitch(&FocusMotionS[0],"FOCUS_INWARD","Focus In",ISS_ON);
+    IUFillSwitch(&FocusMotionS[1],"FOCUS_OUTWARD","Focus Out",ISS_OFF);
+    IUFillSwitchVector(FocusMotionSP,FocusMotionS,2,deviceName(),"FOCUS_MOTION","Focus Direction",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_OK);
 
     return 0;
 }
@@ -64,14 +68,14 @@ bool INDI::Focuser::updateProperties()
     if(isConnected())
     {
         //  Now we add our focusser specific stuff
-        IDDefSwitch(&FocusmotionSV, NULL);
-        IDDefNumber(&FocusspeedNV, NULL);
-        IDDefNumber(&FocustimerNV, NULL);
+        defineSwitch(FocusMotionSP);
+        defineNumber(FocusSpeedNP);
+        defineNumber(FocusTimerNP);
     } else
     {
-        deleteProperty(FocusmotionSV.name);
-        deleteProperty(FocusspeedNV.name);
-        deleteProperty(FocustimerNV.name);
+        deleteProperty(FocusMotionSP->name);
+        deleteProperty(FocusSpeedNP->name);
+        deleteProperty(FocusTimerNP->name);
     }
     return true;
 }
@@ -80,11 +84,12 @@ bool INDI::Focuser::updateProperties()
 bool INDI::Focuser::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
     //  first check if it's for our device
-    IDLog("INDI::Focuser::ISNewNumber %s\n",name);
-    if(strcmp(dev,deviceName())==0) {
+    if(strcmp(dev,deviceName())==0)
+    {
         //  This is for our device
         //  Now lets see if it's something we process here
-        if(strcmp(name,"FOCUS_TIMER")==0) {
+        if(strcmp(name,"FOCUS_TIMER")==0)
+        {
             //  Ok, gotta move the focusser now
             int dir;
             int speed;
@@ -92,34 +97,32 @@ bool INDI::Focuser::ISNewNumber (const char *dev, const char *name, double value
 
             //IDLog(")
             //  first we get all the numbers just sent to us
-            FocustimerNV.s=IPS_OK;
-            IUUpdateNumber(&FocustimerNV,values,names,n);
+            FocusTimerNP->s=IPS_OK;
+            IUUpdateNumber(FocusTimerNP,values,names,n);
 
             //  Now lets find what we need for this move
-            speed=FocusspeedN[0].value;
-            if(FocusmotionS[0].s==ISS_ON) dir=1;
+            speed=FocusSpeedN[0].value;
+            if(FocusMotionS[0].s==ISS_ON) dir=1;
             else dir=0;
-            t=FocustimerN[0].value;
+            t=FocusTimerN[0].value;
 
-            Move(dir,speed,t);
+            if (Move(dir,speed,t) == false)
+                FocusTimerNP->s = IPS_ALERT;
 
-
-            //  Update client display
-            IDSetNumber(&FocustimerNV,NULL);
+            IDSetNumber(FocusTimerNP,NULL);
             return true;
         }
 
 
-        if(strcmp(name,"FOCUS_SPEED")==0) {
-
-
-            FocusspeedNV.s=IPS_OK;
-            IUUpdateNumber(&FocusspeedNV,values,names,n);
+        if(strcmp(name,"FOCUS_SPEED")==0)
+        {
+            FocusSpeedNP->s=IPS_OK;
+            IUUpdateNumber(FocusSpeedNP,values,names,n);
 
 
 
             //  Update client display
-            IDSetNumber(&FocusspeedNV,NULL);
+            IDSetNumber(FocusSpeedNP,NULL);
             return true;
         }
 
@@ -136,14 +139,16 @@ bool INDI::Focuser::ISNewSwitch (const char *dev, const char *name, ISState *sta
     //    IDLog("Switch %s %d\n",names[x],states[x]);
     //}
 
-    if(strcmp(dev,deviceName())==0) {
+    if(strcmp(dev,deviceName())==0)
+    {
         //  This one is for us
-        if(strcmp(name,"FOCUS_MOTION")==0) {
+        if(strcmp(name,"FOCUS_MOTION")==0)
+        {
             //  client is telling us what to do with focus direction
-            FocusmotionSV.s=IPS_OK;
-            IUUpdateSwitch(&FocusmotionSV,states,names,n);
+            FocusMotionSP->s=IPS_OK;
+            IUUpdateSwitch(FocusMotionSP,states,names,n);
             //  Update client display
-            IDSetSwitch(&FocusmotionSV,NULL);
+            IDSetSwitch(FocusMotionSP,NULL);
 
             return true;
         }
@@ -154,12 +159,12 @@ bool INDI::Focuser::ISNewSwitch (const char *dev, const char *name, ISState *sta
     return DefaultDriver::ISNewSwitch(dev,name,states,names,n);
 }
 
-int INDI::Focuser::Move(int,int,int)
+bool INDI::Focuser::Move(int,int,int)
 {
     //  This should be a virtual function, because the low level hardware class
     //  must override this
     //  but it's much easier early development if the method actually
     //  exists for now
-    return -1;
+    return false;
 }
 

@@ -52,14 +52,20 @@ INDI::Telescope::Telescope()
 
 INDI::Telescope::~Telescope()
 {
-    //dtor
+    delete EqNV;
+    delete EqReqNV;
+    delete LocationNV;
+    delete CoordSV;
+    delete ParkSV;
+    delete PortTV;
+    delete MovementNSSP;
+    delete MovementWESP;
+    delete ConfigSV;
 }
 
 bool INDI::Telescope::initProperties()
 {
     DefaultDriver::initProperties();
-
-
 
     IUFillNumber(&EqN[0],"RA","RA (hh:mm:ss)","%010.6m",0,24,0,0);
     IUFillNumber(&EqN[1],"DEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,0);

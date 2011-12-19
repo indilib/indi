@@ -38,13 +38,24 @@ INDI::DefaultDriver::DefaultDriver()
 
     //switchPtr conSw(new ISwitchVectorProperty);
     ConnectionSP = new ISwitchVectorProperty;
+    DebugSP = NULL;
+    SimulationSP = NULL;
+    ConfigProcessSP = NULL;
 
     IUFillSwitch(&ConnectionS[0],"CONNECT","Connect",ISS_OFF);
     IUFillSwitch(&ConnectionS[1],"DISCONNECT","Disconnect",ISS_ON);
     IUFillSwitchVector(ConnectionSP,ConnectionS,2,deviceName(),"CONNECTION","Connection","Main Control",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
-    registerProperty(ConnectionSP, INDI_SWITCH);
+    registerProperty(ConnectionSP, PropertyContainer::INDI_SWITCH);
 
+}
+
+INDI::DefaultDriver::~DefaultDriver()
+{
+    delete ConnectionSP;
+    delete DebugSP;
+    delete SimulationSP;
+    delete ConfigProcessSP;
 }
 
 bool INDI::DefaultDriver::loadConfig()
@@ -66,7 +77,10 @@ bool INDI::DefaultDriver::loadConfig()
 
 bool INDI::DefaultDriver::saveConfigItems(FILE *fp)
 {
-    std::map< boost::shared_ptr<void>, INDI_TYPE>::iterator orderi;
+    std::vector<PropertyContainer *>::iterator orderi;
+
+    PropertyContainer::INDI_TYPE pType;
+    void *pPtr;
 
     ISwitchVectorProperty *svp=NULL;
     INumberVectorProperty *nvp=NULL;
@@ -76,26 +90,29 @@ bool INDI::DefaultDriver::saveConfigItems(FILE *fp)
     for (orderi = pAll.begin(); orderi != pAll.end(); orderi++)
     {
 
-        switch (orderi->second)
+        pType       = (*orderi)->getType();
+        pPtr        = (*orderi)->getProperty();
+
+        switch (pType)
         {
-        case INDI_NUMBER:
-             nvp = static_cast<INumberVectorProperty *>((orderi->first).get());
-             IDLog("Trying to save config for number %s\n", nvp->name);
+        case PropertyContainer::INDI_NUMBER:
+             nvp = static_cast<INumberVectorProperty *>(pPtr);
+             //IDLog("Trying to save config for number %s\n", nvp->name);
              IUSaveConfigNumber(fp, nvp);
              break;
-        case INDI_TEXT:
-             tvp = static_cast<ITextVectorProperty *>((orderi->first).get());
+        case PropertyContainer::INDI_TEXT:
+             tvp = static_cast<ITextVectorProperty *>(pPtr);
              IUSaveConfigText(fp, tvp);
              break;
-        case INDI_SWITCH:
-             svp = static_cast<ISwitchVectorProperty *>((orderi->first).get());
+        case PropertyContainer::INDI_SWITCH:
+             svp = static_cast<ISwitchVectorProperty *>(pPtr);
              /* Never save CONNECTION property. Don't save switches with no switches on if the rule is one of many */
              if (!strcmp(svp->name, "CONNECTION") || (svp->r == ISR_1OFMANY && !IUFindOnSwitch(svp)))
                  continue;
              IUSaveConfigSwitch(fp, svp);
              break;
-        case INDI_BLOB:
-             bvp = static_cast<IBLOBVectorProperty *>((orderi->first).get());
+        case PropertyContainer::INDI_BLOB:
+             bvp = static_cast<IBLOBVectorProperty *>(pPtr);
              IUSaveConfigBLOB(fp, bvp);
              break;
         }
@@ -176,13 +193,11 @@ bool INDI::DefaultDriver::ISNewSwitch (const char *dev, const char *name, ISStat
       {
         if ( !strcmp(names[i], "CONNECT") && (states[i] == ISS_ON))
         {
-			IDLog("DefaultDriver Connect\n");
+
             // If not connected, attempt to connect
             if (isConnected() == false)
             {
-				IDLog("DefaultDriver Calling Connect\n");
                 rc = Connect();
-				IDLog("DefaultDriver Call Connect returns %d\n",rc);
 
                 // If connection is successful, set it thus
                 if (rc)
@@ -285,7 +300,7 @@ void INDI::DefaultDriver::addDebugControl()
         IUFillSwitch(&DebugS[0], "ENABLE", "Enable", ISS_OFF);
         IUFillSwitch(&DebugS[1], "DISABLE", "Disable", ISS_ON);
         IUFillSwitchVector(DebugSP, DebugS, NARRAY(DebugS), deviceName(), "DEBUG", "Debug", "Options", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-        registerProperty(DebugSP, INDI_SWITCH);
+        registerProperty(DebugSP, PropertyContainer::INDI_SWITCH);
     }
     else
     {
@@ -308,7 +323,7 @@ void INDI::DefaultDriver::addSimulationControl()
         IUFillSwitch(&SimulationS[0], "ENABLE", "Enable", ISS_OFF);
         IUFillSwitch(&SimulationS[1], "DISABLE", "Disable", ISS_ON);
         IUFillSwitchVector(SimulationSP, SimulationS, NARRAY(SimulationS), deviceName(), "SIMULATION", "Simulation", "Options", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-        registerProperty(SimulationSP, INDI_SWITCH);
+        registerProperty(SimulationSP, PropertyContainer::INDI_SWITCH);
     }
     else
     {
@@ -330,7 +345,7 @@ void INDI::DefaultDriver::addConfigurationControl()
         IUFillSwitch(&ConfigProcessS[1], "CONFIG_SAVE", "Save", ISS_OFF);
         IUFillSwitch(&ConfigProcessS[2], "CONFIG_DEFAULT", "Default", ISS_OFF);
         IUFillSwitchVector(ConfigProcessSP, ConfigProcessS, NARRAY(ConfigProcessS), deviceName(), "CONFIG_PROCESS", "Configuration", "Options", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-        registerProperty(ConfigProcessSP, INDI_SWITCH);
+        registerProperty(ConfigProcessSP, PropertyContainer::INDI_SWITCH);
     }
     /**************************************************************************/
 
@@ -433,10 +448,11 @@ bool INDI::DefaultDriver::isSimulation()
 
 void INDI::DefaultDriver::ISGetProperties (const char *dev)
 {
-    std::map< boost::shared_ptr<void>, INDI_TYPE>::iterator orderi;
+    std::vector<PropertyContainer *>::iterator orderi;
     static int isInit = 0;
+    PropertyContainer::INDI_TYPE pType;
+    void *pPtr;
 
-    //fprintf(stderr,"Enter ISGetProperties '%s'\n",dev);
     if(isInit == 0)
     {
         if(dev != NULL)
@@ -459,22 +475,25 @@ void INDI::DefaultDriver::ISGetProperties (const char *dev)
 
     for (orderi = pAll.begin(); orderi != pAll.end(); orderi++)
     {
-        switch (orderi->second)
+        pType       = (*orderi)->getType();
+        pPtr        = (*orderi)->getProperty();
+
+        switch (pType)
         {
-        case INDI_NUMBER:
-             IDDefNumber(static_cast<INumberVectorProperty *>((orderi->first).get()) , NULL);
+        case PropertyContainer::INDI_NUMBER:
+             IDDefNumber(static_cast<INumberVectorProperty *>(pPtr) , NULL);
              break;
-        case INDI_TEXT:
-             IDDefText(static_cast<ITextVectorProperty *>((orderi->first).get()) , NULL);
+        case PropertyContainer::INDI_TEXT:
+             IDDefText(static_cast<ITextVectorProperty *>(pPtr) , NULL);
              break;
-        case INDI_SWITCH:
-             IDDefSwitch(static_cast<ISwitchVectorProperty *>((orderi->first).get()) , NULL);
+        case PropertyContainer::INDI_SWITCH:
+             IDDefSwitch(static_cast<ISwitchVectorProperty *>(pPtr) , NULL);
              break;
-        case INDI_LIGHT:
-             IDDefLight(static_cast<ILightVectorProperty *>((orderi->first).get()) , NULL);
+        case PropertyContainer::INDI_LIGHT:
+             IDDefLight(static_cast<ILightVectorProperty *>(pPtr) , NULL);
              break;
-        case INDI_BLOB:
-             IDDefBLOB(static_cast<IBLOBVectorProperty *>((orderi->first).get()) , NULL);
+        case PropertyContainer::INDI_BLOB:
+             IDDefBLOB(static_cast<IBLOBVectorProperty *>(pPtr) , NULL);
              break;
         }
     }
@@ -594,30 +613,30 @@ bool INDI::DefaultDriver::deleteProperty(const char *propertyName)
 
 void INDI::DefaultDriver::defineNumber(INumberVectorProperty *nvp)
 {
-    registerProperty(nvp, INDI_NUMBER);
+    registerProperty(nvp, PropertyContainer::INDI_NUMBER);
     IDDefNumber(nvp, NULL);
 }
 
 void INDI::DefaultDriver::defineText(ITextVectorProperty *tvp)
 {
-    registerProperty(tvp, INDI_TEXT);
+    registerProperty(tvp, PropertyContainer::INDI_TEXT);
     IDDefText(tvp, NULL);
 }
 
 void INDI::DefaultDriver::defineSwitch(ISwitchVectorProperty *svp)
 {
-    registerProperty(svp, INDI_SWITCH);
+    registerProperty(svp, PropertyContainer::INDI_SWITCH);
     IDDefSwitch(svp, NULL);
 }
 
 void INDI::DefaultDriver::defineLight(ILightVectorProperty *lvp)
 {
-    registerProperty(lvp, INDI_LIGHT);
+    registerProperty(lvp, PropertyContainer::INDI_LIGHT);
     IDDefLight(lvp, NULL);
 }
 
 void INDI::DefaultDriver::defineBLOB(IBLOBVectorProperty *bvp)
 {
-    registerProperty(bvp, INDI_BLOB);
+    registerProperty(bvp, PropertyContainer::INDI_BLOB);
     IDDefBLOB(bvp, NULL);
 }

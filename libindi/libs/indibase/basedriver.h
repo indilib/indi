@@ -1,8 +1,7 @@
 #ifndef INDIBASEDRIVER_H
 #define INDIBASEDRIVER_H
 
-#include <boost/shared_ptr.hpp>
-#include <map>
+#include <vector>
 #include <string>
 
 #include "indiapi.h"
@@ -10,6 +9,40 @@
 #include "indibase.h"
 
 #define MAXRBUF 2048
+
+class PropertyContainer
+{
+public:
+    PropertyContainer();
+    ~PropertyContainer();
+
+    /*! INDI property type */
+    typedef enum
+    {
+        INDI_NUMBER, /*!< INumberVectorProperty. */
+        INDI_SWITCH, /*!< ISwitchVectorProperty. */
+        INDI_TEXT,   /*!< ITextVectorProperty. */
+        INDI_LIGHT,  /*!< ILightVectorProperty. */
+        INDI_BLOB,    /*!< IBLOBVectorProperty. */
+        INDI_UNKNOWN
+    } INDI_TYPE;
+
+    void setProperty(void *);
+    void setType(INDI_TYPE t);
+    void setRegistered(bool r);
+    void setDynamic(bool d);
+
+    void *getProperty() { return pPtr; }
+    INDI_TYPE getType() { return pType; }
+    bool getRegistered() { return pRegistered; }
+    bool getDynamic() { return pDynamic; }
+
+private:
+    void *pPtr;
+    INDI_TYPE pType;
+    bool pRegistered;
+    bool pDynamic;
+};
 
 /**
  * \class INDI::BaseDriver
@@ -36,17 +69,6 @@ public:
         INDI_DISPATCH_ERROR=-4          /*!< Dispatching command to driver failed. */
     };
 
-    /*! INDI property type */
-    typedef enum
-    {
-        INDI_NUMBER, /*!< INumberVectorProperty. */
-        INDI_SWITCH, /*!< ISwitchVectorProperty. */
-        INDI_TEXT,   /*!< ITextVectorProperty. */
-        INDI_LIGHT,  /*!< ILightVectorProperty. */
-        INDI_BLOB,    /*!< IBLOBVectorProperty. */
-        INDI_UNKNOWN
-    } INDI_TYPE;
-
     /** \return Return vector number property given its name */
     INumberVectorProperty * getNumber(const char *name);
     /** \return Return vector text property given its name */
@@ -58,7 +80,7 @@ public:
     /** \return Return vector BLOB property given its name */
     IBLOBVectorProperty * getBLOB(const char *name);
 
-    void registerProperty(void *p, INDI_TYPE type);
+    void registerProperty(void *p, PropertyContainer::INDI_TYPE type);
 
     /** \brief Remove a property
         \param name name of property to be removed
@@ -76,7 +98,9 @@ public:
         is the property type (Number, Text, Switch..etc).
 
     */
-    void * getProperty(const char *name, INDI_TYPE type = INDI_UNKNOWN);
+    void * getProperty(const char *name, PropertyContainer::INDI_TYPE type = PropertyContainer::INDI_UNKNOWN);
+
+    PropertyContainer * getContainer(const char *name, PropertyContainer::INDI_TYPE type = PropertyContainer::INDI_UNKNOWN);
 
     /** \brief Build driver properties from a skeleton file.
         \param filename full path name of the file.
@@ -133,17 +157,11 @@ protected:
     int setBLOB(IBLOBVectorProperty *pp, XMLEle * root, char * errmsg);
 
 
-    typedef boost::shared_ptr<INumberVectorProperty> numberPtr;
-    typedef boost::shared_ptr<ITextVectorProperty> textPtr;
-    typedef boost::shared_ptr<ISwitchVectorProperty> switchPtr;
-    typedef boost::shared_ptr<ILightVectorProperty> lightPtr;
-    typedef boost::shared_ptr<IBLOBVectorProperty> blobPtr;
-
 private:
 
     char deviceID[MAXINDINAME];
 
-    std::map< boost::shared_ptr<void>, INDI_TYPE> pAll;
+    std::vector<PropertyContainer *> pAll;
 
     LilXML *lp;
 

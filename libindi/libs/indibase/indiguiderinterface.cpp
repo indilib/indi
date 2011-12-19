@@ -29,7 +29,8 @@ INDI::GuiderInterface::GuiderInterface()
 
 INDI::GuiderInterface::~GuiderInterface()
 {
-
+    delete GuideNSP;
+    delete GuideEWP;
 }
 
 void INDI::GuiderInterface::initGuiderProperties(const char *deviceName, const char* groupName)
