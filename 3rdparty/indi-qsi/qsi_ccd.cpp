@@ -142,15 +142,10 @@ std::auto_ptr<QSICCD> qsiCCD(0);
      CoolerSP = new ISwitchVectorProperty;
      ShutterSP = new ISwitchVectorProperty;
      CoolerNP = new INumberVectorProperty;
-
      TemperatureRequestNP = new INumberVectorProperty;
      TemperatureNP = new INumberVectorProperty;
-
      ReadOutSP = new ISwitchVectorProperty;
-     //FilterSlotNP = new INumberVectorProperty;
-     FilterSP = new ISwitchVectorProperty;
-     //FilterNameTP = new ITextVectorProperty;
-     //FilterNameT  = NULL;
+     FilterSP = new ISwitchVectorProperty;     
 
      QSICam.put_UseStructuredExceptions(true);
 
@@ -159,7 +154,14 @@ std::auto_ptr<QSICCD> qsiCCD(0);
 
 QSICCD::~QSICCD()
 {
-    //dtor
+    delete ResetSP;
+    delete CoolerSP;
+    delete ShutterSP;
+    delete CoolerNP;
+    delete TemperatureRequestNP;
+    delete TemperatureNP;
+    delete ReadOutSP;
+    delete FilterSP;
 }
 
 const char * QSICCD::getDefaultName()
@@ -1269,14 +1271,13 @@ void QSICCD::TimerHit()
     double ccdTemp;
     double coolerPower;
 
-
     if(isConnected() == false)
         return;  //  No need to reset timer if we are not connected anymore
 
     if (InExposure)
     {
         bool imageReady;
-        try
+       /* try
        {
         if (isDebug())
             IDLog("Trying to see if the image is ready.\n");
@@ -1290,35 +1291,44 @@ void QSICCD::TimerHit()
             PrimaryCCD.setExposureFailed();
             SetTimer(POLLMS);
             return;
-        }
+        }*/
 
         timeleft=CalcTimeLeft(ExpStart,imageExpose);
 
-        if (timeleft < 0)
-            timeleft = 0;
-
-        //ImageExposureN[0].value = timeleft;
-
-        if (isDebug())
-            IDLog("With time left %ld\n", timeleft);
-
-        if (!imageReady)
+        if (timeleft < 1)
         {
-            PrimaryCCD.setExposure(timeleft);
-            //IDSetNumber(ImageExposureNP, NULL);
-            if (isDebug())
-                IDLog("image not yet ready....\n");
-            SetTimer(POLLMS);
-            return;
+            QSICam.get_ImageReady(&imageReady);
+
+            while (!imageReady)
+            {
+                usleep(100);
+                QSICam.get_ImageReady(&imageReady);
+
+            }
+
+            /* We're done exposing */
+            IDMessage(deviceName(), "Exposure done, downloading image...");
+            IDLog("Exposure done, downloading image...\n");
+
+            PrimaryCCD.setExposure(0);
+            InExposure = false;
+            /* grab and save image */
+            grabImage();
+
+        }
+        else
+        {
+
+         if (isDebug())
+         {
+            IDLog("With time left %ld\n", timeleft);
+            IDLog("image not yet ready....\n");
+         }
+
+         PrimaryCCD.setExposure(timeleft);
+
         }
 
-        /* We're done exposing */
-        IDMessage(deviceName(), "Exposure done, downloading image...");
-        IDLog("Exposure done, downloading image...\n");
-
-        InExposure = false;
-        /* grab and save image */
-        grabImage();   
     }
 
     switch (TemperatureNP->s)

@@ -68,12 +68,6 @@ class QSICCD : public INDI::CCD, public INDI::FilterInterface
     INumber TemperatureN[1];
     INumberVectorProperty *TemperatureNP;
 
-    /*INumber FilterN[1];
-    INumberVectorProperty *FilterNP;
-
-    IText *FilterT;
-    ITextVectorProperty *FilterTP;*/
-
     ISwitch FilterS[2];
     ISwitchVectorProperty *FilterSP;
 
