@@ -172,6 +172,12 @@ bool INDI::FilterWheel::SetFilterNames()
     return true;
 }
 
+void INDI::FilterWheel::ISSnoopDevice (XMLEle *root)
+{
+ return;
+}
+
+
 bool INDI::FilterWheel::initFilterNames(const char *deviceName, const char* groupName)
 {
     return false;

@@ -49,6 +49,7 @@ public:
         virtual bool SelectFilter(int);
         virtual bool SetFilterNames();
         virtual bool initFilterNames(const char *deviceName, const char* groupName);
+        virtual void ISSnoopDevice (XMLEle *root);
 
 };
 

@@ -49,7 +49,7 @@ bool INDI::Focuser::initProperties()
 
     IUFillSwitch(&FocusMotionS[0],"FOCUS_INWARD","Focus In",ISS_ON);
     IUFillSwitch(&FocusMotionS[1],"FOCUS_OUTWARD","Focus Out",ISS_OFF);
-    IUFillSwitchVector(FocusMotionSP,FocusMotionS,2,deviceName(),"FOCUS_MOTION","Focus Direction",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_OK);
+    IUFillSwitchVector(FocusMotionSP,FocusMotionS,2,deviceName(),"FOCUS_MOTION","Direction",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_OK);
 
     return 0;
 }
@@ -91,7 +91,7 @@ bool INDI::Focuser::ISNewNumber (const char *dev, const char *name, double value
         if(strcmp(name,"FOCUS_TIMER")==0)
         {
             //  Ok, gotta move the focusser now
-            int dir;
+            FocusDirection dir;
             int speed;
             int t;
 
@@ -102,8 +102,8 @@ bool INDI::Focuser::ISNewNumber (const char *dev, const char *name, double value
 
             //  Now lets find what we need for this move
             speed=FocusSpeedN[0].value;
-            if(FocusMotionS[0].s==ISS_ON) dir=1;
-            else dir=0;
+            if(FocusMotionS[0].s==ISS_ON) dir=FOCUS_INWARD;
+            else dir=FOCUS_OUTWARD;
             t=FocusTimerN[0].value;
 
             if (Move(dir,speed,t) == false)
@@ -159,7 +159,17 @@ bool INDI::Focuser::ISNewSwitch (const char *dev, const char *name, ISState *sta
     return DefaultDriver::ISNewSwitch(dev,name,states,names,n);
 }
 
-bool INDI::Focuser::Move(int,int,int)
+bool INDI::Focuser::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+{
+    return DefaultDriver::ISNewText(dev, name, texts, names, n);
+}
+
+void INDI::Focuser::ISSnoopDevice (XMLEle *root)
+{
+ return;
+}
+
+bool INDI::Focuser::Move(FocusDirection dir, int speed, int duration)
 {
     //  This should be a virtual function, because the low level hardware class
     //  must override this

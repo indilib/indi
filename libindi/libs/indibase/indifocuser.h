@@ -34,6 +34,8 @@ class INDI::Focuser : public INDI::DefaultDriver
         Focuser();
         virtual ~Focuser();
 
+        enum FocusDirection { FOCUS_INWARD, FOCUS_OUTWARD };
+
         INumberVectorProperty *FocusSpeedNP;
         INumber FocusSpeedN[1];
         ISwitchVectorProperty *FocusMotionSP; //  A Switch in the client interface to park the scope
@@ -52,9 +54,12 @@ class INDI::Focuser : public INDI::DefaultDriver
         //  We process Numbers in a focusser
         virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
         virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+        virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+        virtual void ISSnoopDevice (XMLEle *root);
+
 
         //  And here are the virtual functions we will have for easy overrides
-        virtual bool Move(int, int, int);
+        virtual bool Move(FocusDirection dir, int speed, int duration);
 
 };
 
