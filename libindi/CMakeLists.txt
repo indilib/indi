@@ -360,10 +360,6 @@ endif (NOVA_FOUND)
 
 install(TARGETS indi_simulator_telescope RUNTIME DESTINATION bin )
 
-#####################################
-########## FOCUSER GROUP ############
-#####################################
-
 ########### CCD Simulator ##############
 if (CFITSIO_FOUND)
 
@@ -395,13 +391,12 @@ endif (CFITSIO_FOUND)
 
 set(robofocus_SRCS
 	${indimain_SRCS}
-	${CMAKE_SOURCE_DIR}/drivers/focuser/robofocus.c
-	${CMAKE_SOURCE_DIR}/drivers/focuser/robofocusdriver.c
+        ${CMAKE_SOURCE_DIR}/drivers/focuser/robofocus.cpp
    )
 
 add_executable(indi_robo_focus ${robofocus_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
 
-target_link_libraries(indi_robo_focus m)
+target_link_libraries(indi_robo_focus indidriver m z)
 
 if (NOVA_FOUND)
   target_link_libraries(indi_robo_focus ${NOVA_LIBRARIES})
