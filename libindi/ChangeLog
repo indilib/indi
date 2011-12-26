@@ -1,6 +1,9 @@
 From 0.8 to 0.9
 
       # iEQ45 GoTo German Equatorial Mount Driver.
+      # New improved QSI CCD & Filte driver.
+      # New improved Starlight Xpress CCD & Filter driver.
+      # libboost is no longer required to build libindi.
 
 From 0.7.2 to 0.8
 
