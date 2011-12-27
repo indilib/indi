@@ -1,0 +1,101 @@
+Install libusb-1.0 (version 1.0 or later) and libftd2xx (version 1.0.4 or greater) prior to building this package.
+
+Ubuntu users should insure that the build-essential package has been installed:
+apt-get install build-essential
+
+Installation
+
+Insure that the kernel is configured for USB support and the device permissions are correct. 
+
+With root permissions:
+
+Download, compile, and install libftd2xx. (Available at: http://www.ftdichip.com/Drivers/D2XX.htm )
+
+Modify the ftdi_table file provided in the libftd2xx release, to include the VIDs and PIDs for QSI cameras.  
+Compile and install it as directed by the README from the libftdi release.  For more information see the
+installation section of the QSI Linux API reference manual located in the doc directory of the release.
+
+Insure that libusb-1.0 is installed, as required by libftd2xx.
+
+Extract the release files from the qsiapi tar archive.
+	gunzip qsiapi.5.7.0.0.tar.gz
+	tar xvf qsiapi.5.7.0.0.tar
+	
+Run the GNU development tools:
+	
+	In the extracted qsiapi.5.7.0.0 directory
+	
+	./configure
+	make all
+	make install
+	
+You may need to install the g++ compiler and other build tools to run the above. If so, run: 
+	apt-get install build-essential
+
+Confirm the installation of the include and library files.
+	The include files qsiapi.h and QSIError.h are installed in /usr/local/include. 
+	The libraries libqsiapi.so, libqsiapi.a, etc. are installed in /usr/local/lib. 
+
+Run ldconfig for the newly installed libraries:
+	cd /usr/local/lib
+	ldconfig /usr/local/lib
+
+Add the following line to /etc/fstab (if it does not already exist):
+	none /proc/bus/usb usbfs defaults,devmode=0666 0 0
+
+Remount all in the fstab file
+	mount -a
+	
+Connect the QSI camera to AC power and connect the USB cable from the camera to an available 
+USB port on the computer. Use usbview (available at http://www.kroah.com/linux-usb/) or lsusb 
+to verify proper USB installation.
+
+Confirm that all libraries are loaded and the system is properly configured.
+	qsiapitest
+	
+	qsiapitest first displays the version of the api. If there is a QSI camera connected to the system, 
+	it will execute a series of command to exercise the camera. See the qsiapitest.cpp source code for further details.
+
+Troubleshooting:
+
+If you have problems with the installation steps above, first use usbview or lsusb to
+ confirm that the USB file system is mounted properly and the QSI camera is connected to the system.
+
+Some problems may be related to the ftdi_sio driver loading. You must unload this driver (and usbserial)
+ if it is attached to your device ("rmmod ftdi_sio" and "rmmod usbserial"as root user).
+
+Insure that the user running the api has read/write access to the camera usb raw device. Check the permissions
+ in /dev/bus/usb/XXX/YYY, where XXX is a hub number and YYY is the device number obtained from lsusb.
+
+
+To set device persmissions other than root:
+
+udev changes:
+
+For example, to give rw access rights to all users for all QSI USB cameras in Fedora:
+
+In the file /etc/udev/rules.d/50-udev-rules,
+
+after:
+"Persistent block device stuff - end"
+and before:
+ACTION="add", SUBSYSTEM='usb-device'...
+
+Add the following lines:
+ACTION="add", SUBSYSTEM=usb-device', \
+SYSFS{idVendor}=="0403", SYSFS{idProduct}=="eb48", \
+PROGRAM="/bin/sh -c 'K=%k; K=$${K#usbdev}; printf bus/usb/%%03i/%%03i $${K%%%%.*} $${K#*.}' ", \
+NAME="%c", MODE="0666"
+
+In Ubuntu 6:
+
+In the file /etc/udev/rules.d/40-permisssions.rules
+
+after:
+#USB devices (usbfs replacement)
+SUBSYSTEM=usb_device, MODE=0664
+
+Add the following line:
+SUBSYSTEM=usb_device, SYSFS{idVendor}==0403, SYSFS{idProduct}== eb48, MODE=0666
+
+
