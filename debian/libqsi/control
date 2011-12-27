@@ -5,7 +5,7 @@ Maintainer: Jasem Mutlaq <mutlaqja@ikarustech.com>
 Build-Depends: debhelper (>= 6), cdbs, libtool, zlib1g-dev, libusb-dev, libtiff4-dev, libftdi-dev
 Standards-Version: 3.7.2
 
-Package: libqsi5
+Package: libqsi6
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, libtiff4, libftdi1
 Description: Quantum Scientific Imaging (QSI) CCD Libraries.

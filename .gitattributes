@@ -245,7 +245,7 @@ debian/libqsi/compat -text
 debian/libqsi/control -text
 debian/libqsi/copyright -text
 debian/libqsi/libqsi-dev.install -text
-debian/libqsi/libqsi5.install -text
+debian/libqsi/libqsi6.install -text
 debian/libqsi/rules -text
 debian/maxdomeii/changelog -text
 debian/maxdomeii/compat -text

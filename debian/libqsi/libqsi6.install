@@ -1,5 +1,5 @@
-debian/tmp/usr/lib/libqsiapi.so.5.2.1 
-debian/tmp/usr/lib/libqsiapi.so.5
+debian/tmp/usr/lib/libqsiapi.so.6.0.3 
+debian/tmp/usr/lib/libqsiapi.so.6
 debian/tmp/usr/bin/qsiapitest
 debian/tmp/usr/bin/qsidemo
 debian/tmp/usr/bin/libqsiapi-config
