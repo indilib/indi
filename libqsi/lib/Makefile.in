@@ -247,12 +247,12 @@ libqsiapi_la_SOURCES = CCDCamera.cpp CameraID.cpp ConvertUTF.c Filter.cpp \
 
 # version-info a:b:c yields a library name (a-c).c.b
 # example (3:2:1) yields 2.1.2
-#libqsiapi_la_LDFLAGS = -version-info 0:0:0 $(all_libraries) -fPIC --shared
+libqsiapi_la_LDFLAGS = -version-info 6:3:0 $(all_libraries) -fPIC --shared
 
 #uncomment below for ftd2xx library
-libqsiapi_la_LIBADD = -L/usr/local/lib -lftd2xx -lc 
+#libqsiapi_la_LIBADD = -L/usr/local/lib -lftd2xx -lc 
 #uncomment below for libftdi
-#libqsiapi_la_LIBADD = -L/usr/local/lib -lftdi -lc
+libqsiapi_la_LIBADD = -L/usr/local/lib -lftdi -lc
 libqsiapi_la_METASOURCES = AUTO
 libqsiapi_la_DEPENDENCIES = 
 all: all-am
