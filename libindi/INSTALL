@@ -1,4 +1,4 @@
-INDI Library Setup 0.8.0
+INDI Library Setup 0.9.0
 ========================
 
 You must have CMake >= 2.4.7 in order to build this package.
@@ -18,6 +18,5 @@ Dependencies
 
 + libusb
 + libnova >= 0.12.2
-+ libfli  >= 1.7
 + cfitsio >= 3.0
 
