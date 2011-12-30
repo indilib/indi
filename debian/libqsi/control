@@ -3,7 +3,7 @@ Section: libs
 Priority: extra
 Maintainer: Jasem Mutlaq <mutlaqja@ikarustech.com>
 Build-Depends: debhelper (>= 6), cdbs, libtool, zlib1g-dev, libusb-dev, libtiff4-dev, libftdi-dev
-Standards-Version: 3.7.2
+Standards-Version: 3.9.2
 
 Package: libqsi6
 Architecture: any
@@ -14,7 +14,7 @@ Description: Quantum Scientific Imaging (QSI) CCD Libraries.
 
 Package: libqsi-dev
 Architecture: any
-Depends: libqsi5, ${shlibs:Depends}, ${misc:Depends}
+Depends: libqsi6, ${shlibs:Depends}, ${misc:Depends}
 Description: Quantum Scientific Imaging (QSI) CCD Libraries.
  .
  This package contains the development files.
