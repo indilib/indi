@@ -1,4 +1,4 @@
-Install libusb-1.0 (version 1.0 or later) and libftd2xx (version 1.0.4 or greater) prior to building this package.
+Install libusb-1.0 (version 1.0 or later) and libftdi prior to building this package.
 
 Ubuntu users should insure that the build-essential package has been installed:
 apt-get install build-essential
