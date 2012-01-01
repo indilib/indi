@@ -802,7 +802,7 @@ int get_TemmaStandbyState(unsigned char *local_buffer){
 	}
 
 	if((status=portRead(local_buffer,-1,TEMMA_TIMEOUT)==SUCCESS)){
-		if(strstr(local_buffer, "stn")==local_buffer){
+                if( ( (unsigned char *) strstr(local_buffer, "stn"))==local_buffer){
 			local_buffer[7]=0;
 			if (strstr(local_buffer,"on")){ /* stanby on */
 				RAmotorSw.s = IPS_OK;

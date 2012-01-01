@@ -346,8 +346,8 @@ static int
 setOp (XMLEle *root)
 {
 	char *t = tagXMLEle (root);
-	char *d = findXMLAttValu (root, "device");
-	char *n = findXMLAttValu (root, "name");
+        const char *d = findXMLAttValu (root, "device");
+        const char *n = findXMLAttValu (root, "name");
 	int nset = 0;
 	double v;
 	char prop[1024];
@@ -396,7 +396,7 @@ setOp (XMLEle *root)
 	}
 
 	/* check special elements */
-	t = findXMLAttValu (root, "state");
+        t = (char *) findXMLAttValu (root, "state");
 	if (t[0]) {
 	    sprintf (prop, "%s.%s._STATE", d, n);
 	    v = (double)pstatestr(t);
@@ -406,7 +406,7 @@ setOp (XMLEle *root)
 		    fprintf (stderr, "%s=%g\n", prop, v);
 	    }
 	}
-	t = findXMLAttValu (root, "timestamp");
+        t = (char *) findXMLAttValu (root, "timestamp");
 	if (t[0]) {
 	    sprintf (prop, "%s.%s._TS", d, n);
 	    v = (double)timestamp(t);

@@ -117,7 +117,7 @@
         </device>
 </devGroup>
 <devGroup group="Focusers">
-	<device label="Robo Focus">
+	<device label="RoboFocus">
                 <driver name="Robofocus">indi_robo_focus</driver>
 		<version>0.1</version>
 	</device>

@@ -418,8 +418,8 @@ findSet (XMLEle *root, FILE *fp)
 	alarm (timeout);	/* reset timeout */
 
 	/* check each set for matching device and property name, send if ok */
-	rdev  = findXMLAttValu (root, "device");
-	rprop = findXMLAttValu (root, "name");
+        rdev  = (char *) findXMLAttValu (root, "device");
+        rprop = (char *) findXMLAttValu (root, "name");
 	if (verbose > 1)
 	    fprintf (stderr, "Read definition for %s.%s\n", rdev, rprop);
 	for (s = 0; s < nsets; s++) {

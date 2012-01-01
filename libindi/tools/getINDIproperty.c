@@ -445,15 +445,15 @@ findDPE (XMLEle *root)
 		/* for each possible type */
 		if (strcmp (tagXMLEle (root), defs[j].vec) == 0) {
 		    /* legal defXXXVector, check device */
-		    char *dev = findXMLAttValu (root, "device");
+                    char *dev = (char *) findXMLAttValu (root, "device");
 		    char *idev = srchs[i].d;
 		    if (idev[0] == WILDCARD || !strcmp (dev,idev)) {
 			/* found device, check name */
-			char *nam = findXMLAttValu (root, "name");
+                        char *nam = (char *) findXMLAttValu (root, "name");
 			char *iprop = srchs[i].p;
 			if (iprop[0] == WILDCARD || !strcmp (nam,iprop)) {
 			    /* found device and name, check perm */
-			    char *perm = findXMLAttValu (root, "perm");
+                            char *perm = (char *) findXMLAttValu (root, "perm");
 			    if (!wflag && perm[0] && !strchr (perm, 'r')) {
 				if (verbose)
 				    fprintf (stderr, "%s.%s is write-only\n",
@@ -490,7 +490,7 @@ findEle (XMLEle *root, char *dev, char *nam, char *defone, SearchDef *sp)
 	for (i = 0; i < NKWA; i++) {
 	    if (strcmp (iele, kwattr[i].keyword) == 0) {
 		/* just print the property state, not the element values */
-		char *s = findXMLAttValu (root, kwattr[i].indiattr);
+                char *s = (char *) findXMLAttValu (root, kwattr[i].indiattr);
 		sp->ok = 1;   			/* progress */
 		if (onematch && justvalue)
 		    printf ("%s\n", s);
@@ -504,7 +504,7 @@ findEle (XMLEle *root, char *dev, char *nam, char *defone, SearchDef *sp)
 	for (ep = nextXMLEle(root,1); ep; ep = nextXMLEle(root,0)) {
 	    if (!strcmp (tagXMLEle (ep), defone)) {
 		/* legal defXXX, check deeper */
-		char *enam = findXMLAttValu (ep, "name");
+                char *enam = (char *) findXMLAttValu (ep, "name");
 		if (iele[0]==WILDCARD || !strcmp(enam,iele)) {
 		    /* found it! */
 		    char *p = pcdataXMLEle(ep);
@@ -555,7 +555,7 @@ oneBLOB (XMLEle *root, char *dev, char *nam, char *enam, char *p, int plen)
 							dev, nam, enam, ucs);
 
 	/* get format and length */
-	format = findXMLAttValu (root, "format");
+        format = (char *) findXMLAttValu (root, "format");
 	isz = !strcmp (&format[strlen(format)-2], ".z");
 
 	/* decode blob from base64 in p */

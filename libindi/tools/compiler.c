@@ -294,15 +294,15 @@ next_token ()
 	    break;
 	case '|':
 	    if (*cexpr == '|') { cexpr++; tok = OR; }
-	    else { (void) sprintf (err_msg, badop); return (ERR); }
+            else { (void) strcpy (err_msg, badop); return (ERR); }
 	    break;
 	case '&':
 	    if (*cexpr == '&') { cexpr++; tok = AND; }
-	    else { (void) sprintf (err_msg, badop); return (ERR); }
+            else { (void) strcpy (err_msg, badop); return (ERR); }
 	    break;
 	case '=':
 	    if (*cexpr == '=') { cexpr++; tok = EQ; }
-	    else { (void) sprintf (err_msg, badop); return (ERR); }
+            else { (void) strcpy (err_msg, badop); return (ERR); }
 	    break;
 	case '!':
 	    if (*cexpr == '=') { cexpr++; tok = NE; } else { tok = NOT; }

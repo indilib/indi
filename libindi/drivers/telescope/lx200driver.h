@@ -173,7 +173,7 @@ int setCommandInt(int fd, int data, const char *cmd);
 /* Set Sexigesimal */
 int setCommandXYZ(int fd, int x, int y, int z, const char *cmd);
 /* Common routine for Set commands */
-int setStandardProcedure(int fd, char * writeData);
+int setStandardProcedure(int fd, const char * writeData);
 /* Set Slew Mode */
 int setSlewMode(int fd, int slewMode);
 /* Set Alignment mode */

@@ -564,8 +564,16 @@ void V4L_Driver::addFITSKeywords(fitsfile *fptr)
 {
   int status=0; 
 
- fits_update_key(fptr, TLONG, "EXPOSURE", &(V4LFrame->expose), "Total Exposure Time (ms)", &status); 
- fits_update_key(fptr, TSTRING, "INSTRUME", v4l_base->getDeviceName(), "Webcam Name", &status);
+  char keyname[32], comment[64];
+
+ strncpy(keyname, "EXPOSURE", 32);
+ strncpy(comment, "Total Exposure Time (ms)", 64);
+ fits_update_key(fptr, TLONG, keyname , &(V4LFrame->expose), comment, &status);
+
+ strncpy(keyname, "INSTRUME", 32);
+ strncpy(comment, "Webcam Name", 64);
+ fits_update_key(fptr, TSTRING, keyname, v4l_base->getDeviceName(), comment, &status);
+
  fits_write_date(fptr, &status);
 }
 
