@@ -208,6 +208,11 @@ debian/indi-sbig/debian/compat -text
 debian/indi-sbig/debian/control -text
 debian/indi-sbig/debian/copyright -text
 debian/indi-sbig/debian/rules -text
+debian/indi-sx/changelog -text
+debian/indi-sx/compat -text
+debian/indi-sx/control -text
+debian/indi-sx/copyright -text
+debian/indi-sx/rules -text
 debian/libapogee/changelog -text
 debian/libapogee/compat -text
 debian/libapogee/control -text
