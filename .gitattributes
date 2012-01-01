@@ -131,6 +131,7 @@
 3rdparty/indi-spectracyber/install -text
 3rdparty/indi-spectracyber/spectracyber.cpp -text
 3rdparty/indi-spectracyber/spectracyber.h -text
+3rdparty/indi-sx/99-sx.rules -text
 3rdparty/indi-sx/AUTHORS -text
 3rdparty/indi-sx/CMakeLists.txt -text
 3rdparty/indi-sx/COPYING.LIB -text

@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.4.7)
 PROJECT(sxccd CXX C)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
+set(RULES_INSTALL_DIR "/etc/udev/rules.d")
 
 Include (CheckCSourceCompiles)
 include (MacroOptionalFindPackage)
@@ -73,4 +74,4 @@ endif (NOVA_FOUND)
 install(TARGETS indi_sx_wheel RUNTIME DESTINATION bin )
 
 install(FILES indi_sx.xml DESTINATION ${INDI_DATA_DIR} )
-
+install(FILES 99-sx.rules DESTINATION ${RULES_INSTALL_DIR})

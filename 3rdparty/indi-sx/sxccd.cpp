@@ -1,6 +1,8 @@
 
 #include "sxccd.h"
 
+const int SX_PIDS[12] = { 0x0507, 0x0119, 0x0105, 0x0305, 0x0107, 0x0307, 0x0109, 0x0325, 0x0110, 0x0135, 0x0136, 0x0319 };
+
 SxCCD::SxCCD()
 {
     //ctor
@@ -14,13 +16,16 @@ SxCCD::SxCCD()
 
 bool SxCCD::Connect()
 {
-    dev=FindDevice(0x1278,0x0119,0);
-	if(NULL==dev) {
-    	dev=FindDevice(0x1278,0x0507,0);
-	}
+    for (int i=0; i < 12; i++)
+    {
+        dev=FindDevice(0x1278,SX_PIDS[i],0);
+        if(dev != NULL)
+            break;
+    }
+
    if(dev==NULL)
     {
-        fprintf(stderr,"Error: No SX Cameras found\r\n");
+        IDLog("Error: No SX Cameras found\n");
         return false;
     }
     usb_handle=usb_open(dev);
@@ -31,9 +36,9 @@ bool SxCCD::Connect()
         rc=FindEndpoints();
 
         usb_detach_kernel_driver_np(usb_handle,0);
-        fprintf(stderr,"Detach Kernel returns %d\n",rc);
+        IDLog("Detach Kernel returns %d\n",rc);
         //rc=usb_set_configuration(usb_handle,1);
-        fprintf(stderr,"Set Configuration returns %d\n",rc);
+        IDLog("Set Configuration returns %d\n",rc);
 
         rc=usb_claim_interface(usb_handle,1);
         fprintf(stderr,"claim interface returns %d\n",rc);
@@ -44,15 +49,15 @@ bool SxCCD::Connect()
             rc=ResetCamera();
             rc=GetCameraModel();
             rc=GetFirmwareVersion();
-
             rc=GetCameraParams(0,&parms);
 
-            fprintf(stderr,"Camera is %d x %d with %d bpp  size %4.2f x %4.2f Matrix %x\n",
+            
+              IDLog("Camera is %d x %d with %d bpp  size %4.2f x %4.2f Matrix %x\n",
                   parms.width,parms.height,parms.bits_per_pixel,parms.pix_width,parms.pix_height,parms.color_matrix);
 
-            fprintf(stderr,"Camera capabilities %x\n",parms.extra_caps);
-            fprintf(stderr,"Camera has %d serial ports\n",parms.num_serial_ports);
-
+              IDLog("Camera capabilities %x\n",parms.extra_caps);
+              IDLog("Camera has %d serial ports\n",parms.num_serial_ports);
+            
 
             pixwidth=parms.pix_width;
             pixheight=parms.pix_height;
@@ -62,34 +67,28 @@ bool SxCCD::Connect()
 
             SetParams(xres,yres,bits_per_pixel,pixwidth,pixheight);
 
-            //BinX = ImageBinN[0].value;
-            //BinY = ImageBinN[1].value;
-            //IDSetNumber(ImageBinNP, NULL);
-            //  Fill in parent ccd values
-            //  Initialize for doing full frames
-
             if((parms.extra_caps & SXCCD_CAPS_GUIDER)==SXCCD_CAPS_GUIDER)
             {
-                fprintf(stderr,"Camera has a guide head attached\n");
+                IDLog("Camera has a guide head attached\n");
                 rc=GetCameraParams(1,&gparms);
 
                 hasguide=true;
 
-                fprintf(stderr,"Guider is %d x %d with %d bpp  size %4.2f x %4.2f Matrix %x\n",
+                
+                IDLog("Guider is %d x %d with %d bpp  size %4.2f x %4.2f Matrix %x\n",
                       gparms.width,gparms.height,gparms.bits_per_pixel,gparms.pix_width,gparms.pix_height,gparms.color_matrix);
 
                 //IDMessage(deviceName(), "Guider is %d x %d with %d bpp  size %4.2f x %4.2f Matrix %x",
                 //          gparms.width,gparms.height,gparms.bits_per_pixel,gparms.pix_width,gparms.pix_height,gparms.color_matrix);
 
-                fprintf(stderr,"Guider capabilities %x\n",gparms.extra_caps);
+                
+                IDLog("Guider capabilities %x\n",gparms.extra_caps);
 
                 gbits_per_pixel=gparms.bits_per_pixel;
                 gxres=gparms.width;
                 gyres=gparms.height;
                 gpixwidth=gparms.pix_width;
                 gpixheight=gparms.pix_height;
-
-                //IDMessage(deviceName(), "Guider capabilities %x",gparms.extra_caps);
 
                 SetGuideParams(gparms.width,gparms.height,gparms.bits_per_pixel,gparms.pix_width,gparms.pix_height);
 

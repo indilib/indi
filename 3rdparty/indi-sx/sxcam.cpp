@@ -99,21 +99,10 @@ const char * SxCam::getDefaultName()
 bool SxCam::Connect()
 {
     bool rc;
-    IDLog("Calling sx connect\n");
+    //IDLog("Calling sx connect\n");
     rc=SxCCD::Connect();
     return rc;
-    /*if(rc)
-    {
-        IDLog("Calling Set CCD %d %d\n",XRes,YRes);
-        SetCCDParams(XRes,YRes,CamBits,pixwidth,pixheight);
-        if(HasGuideHead) {
-            printf("Guide head detected\n");
-            SetGuidHeadParams(GXRes,GYRes,GuiderBits,gpixwidth,gpixheight);
-        } else {
-            printf("no guide head\n");
-        }
-    }
-    return rc;*/
+    
 }
 
 bool SxCam::Disconnect()
@@ -186,7 +175,7 @@ int SxCam::StartExposure(float n)
      if(tval > 250)
          tval=250;
 
-     IDLog("Cleared all fields, setting timer to %d\n", tval);
+     //IDLog("Cleared all fields, setting timer to %d\n", tval);
 
      SetTimer(tval);
 
@@ -197,7 +186,7 @@ int SxCam::StartGuideExposure(float n)
 {
     GuideExposureRequest=n;
 
-    IDLog("Start guide exposure %4.2f\n",n);
+    //IDLog("Start guide exposure %4.2f\n",n);
 
     if(InGuideExposure)
     {
@@ -244,7 +233,7 @@ void SxCam::TimerHit()
     int rc;
     bool IgnoreGuider=false;
 
-    IDLog("SXCam Timer \n");
+    //IDLog("SXCam Timer \n");
 
     //  If this is a relatively long exposure
     //  and its nearing the end, but not quite there yet
@@ -258,7 +247,7 @@ void SxCam::TimerHit()
         {
             //  This will clear accumulators, but, not affect the
             //  light sensative parts currently exposing
-            IDLog("Doing Flush\n");
+            //IDLog("Doing Flush\n");
             ClearPixels(SXCCD_EXP_FLAGS_NOWIPE_FRAME,IMAGE_CCD);
             DidFlush=1;
         }
@@ -333,7 +322,7 @@ void SxCam::TimerHit()
                                    GuideCCD.getSubW(),GuideCCD.getSubH(),1,1);
                     //rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_BOTH ,GUIDE_CCD,GSubX,GSubY,GSubW,GSubH,1,1);
                     DidGuideLatch=1;
-                    IDLog("Guide Even Pixels latched\n");
+                    //IDLog("Guide Even Pixels latched\n");
 
                 } else
                 {
@@ -352,7 +341,7 @@ void SxCam::TimerHit()
         //  now download them
         int rc;
         rc=ReadCameraFrame(IMAGE_CCD,PrimaryCCD.getFrameBuffer());
-        IDLog("Read camera frame with rc=%d\n", rc);
+        //IDLog("Read camera frame with rc=%d\n", rc);
         //rc=ProcessRawData(RawFrame, RawData);
         //IDLog("processed raw data with rc=%d\n", rc);
         DidLatch=0;
@@ -446,14 +435,14 @@ int SxCam::ReadCameraFrame(int index, char *buf)
         }
         else
         {
-                IDLog("non interlaced Read Starting for %d\n",numbytes);
+                //IDLog("non interlaced Read Starting for %d\n",numbytes);
                 rc=ReadPixels(buf,numbytes);
         }
     } else
     {
         numbytes=GuideCCD.getSubW()*GuideCCD.getSubH();
         //numbytes=numbytes*2;
-        IDLog("Download Starting for %d\n",numbytes);
+        //IDLog("Download Starting for %d\n",numbytes);
         rc=ReadPixels(buf,numbytes);
 
     }
@@ -463,7 +452,7 @@ int SxCam::ReadCameraFrame(int index, char *buf)
     timesince=(double)(end.tv_sec * 1000.0 + end.tv_usec/1000) - (double)(start.tv_sec * 1000.0 + start.tv_usec/1000);
     timesince=timesince/1000;
 
-    IDLog("Download returns %d in %4.2f seconds\n",rc,timesince);
+    //IDLog("Download returns %d in %4.2f seconds\n",rc,timesince);
     return rc;
 }
 
@@ -512,7 +501,7 @@ int SxCam::GetCamTimer()
 
 int SxCam::SetParams(int xres,int yres,int Bits,float pixwidth,float pixheight)
 {
-    IDLog("SxCam::Setparams %d %d\n",xres,yres);
+    //IDLog("SxCam::Setparams %d %d\n",xres,yres);
     int nbuf;
 
     if (PrimaryCCD.isInterlaced())
@@ -541,7 +530,7 @@ int SxCam::SetParams(int xres,int yres,int Bits,float pixwidth,float pixheight)
 
 int SxCam::SetGuideParams(int gXRes,int gYRes,int gBits,float gpixwidth,float gpixheight)
 {
-    IDLog("SxCam::SetGuideparams %d %d\n",xres,yres);
+    //IDLog("SxCam::SetGuideparams %d %d\n",xres,yres);
     int nbuf=0;
     SetGuidHeadParams(gXRes,gYRes,gBits,gpixwidth,gpixheight);
 
