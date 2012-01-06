@@ -223,8 +223,6 @@ debian/libapogee/libapogee2-dev.links -text
 debian/libapogee/libapogee2.dirs -text
 debian/libapogee/libapogee2.install -text
 debian/libapogee/libapogee2.links -text
-debian/libapogee/postinst.ex -text
-debian/libapogee/postrm.ex -text
 debian/libapogee/rules -text
 debian/libfli/changelog -text
 debian/libfli/compat -text

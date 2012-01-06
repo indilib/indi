@@ -1,9 +1,9 @@
 Source: libapogee2
-Section: Development/Libraries
+Section: libs
 Priority: extra
 Maintainer: Jasem Mutlaq <mutlaqja@ikarustech.com>
-Build-Depends: debhelper (>= 5)
-Standards-Version: 3.7.2
+Build-Depends: debhelper (>= 5), cmake, libusb-dev, libcurl4-gnutls-dev
+Standards-Version: 3.9.1
 
 Package: libapogee2
 Architecture: any
@@ -14,3 +14,4 @@ Package: libapogee2-dev
 Architecture: any
 Depends: libapogee2, ${shlibs:Depends}, ${misc:Depends}
 Description: This package includes development headers for Apogee Alta CCDs.
+

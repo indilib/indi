@@ -5,7 +5,7 @@ clean::
 	rm -rf debian/tmp 
 
 d:=debian/tmp
-version:=2.2
+version:=2.3
 DEB_HOST_ARCH=$(shell /usr/bin/dpkg-architecture -qDEB_HOST_ARCH)
 
 build:
