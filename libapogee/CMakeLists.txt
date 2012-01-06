@@ -5,7 +5,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
 set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
 set(INCLUDE_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/include")
 
-set(APOGEE_VERSION "2.2")
+set(APOGEE_VERSION "2.3")
 set(APOGEE_SOVERSION "2")
 
 Include (CheckCXXSourceCompiles)
