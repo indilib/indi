@@ -3,4 +3,4 @@ debian/tmp/lib/firmware/sbigfcam.hex
 debian/tmp/lib/firmware/sbiglcam.hex
 debian/tmp/lib/firmware/sbigucam.hex
 debian/tmp/lib/firmware/stfga.bin
-debian/tmp/usr/lib/libsbigudrv.so.2.0.0
+debian/tmp/usr/lib/libsbigudrv.so.2.0.1

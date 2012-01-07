@@ -1,3 +1,9 @@
+sbig (2.0.1-0ubuntu2~ppa1) natty; urgency=low
+
+  * Natty release
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sat, 04 Jun 2011 03:52:18 +0300
+
 sbig (2.0.0-0ubuntu1) jaunty; urgency=low
 
   * Update packaging for Ubuntu
