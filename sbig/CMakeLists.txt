@@ -95,9 +95,9 @@ exec_program(ls ARGS ${PROJECT_SOURCE_DIR})
 
 
 if (LIB_64)
-exec_program(cp ARGS ${CMAKE_SOURCE_DIR}/libsbigudrv64.so ${CMAKE_BINARY_DIR}/libsbigudrv.so.${SBIG_VERSION})
+exec_program(cp ARGS ${CMAKE_SOURCE_DIR}/libsbigudrv64.bin ${CMAKE_BINARY_DIR}/libsbigudrv.so.${SBIG_VERSION})
 else (LIB_64)
-exec_program(cp ARGS ${CMAKE_SOURCE_DIR}/libsbigudrv32.so ${CMAKE_BINARY_DIR}/libsbigudrv.so.${SBIG_VERSION})
+exec_program(cp ARGS ${CMAKE_SOURCE_DIR}/libsbigudrv32.bin ${CMAKE_BINARY_DIR}/libsbigudrv.so.${SBIG_VERSION})
 endif(LIB_64)
 
 # Make sure symbolic links are installed

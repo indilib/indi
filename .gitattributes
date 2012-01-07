@@ -736,8 +736,8 @@ libqsi/src/Makefile.in -text
 libqsi/src/qsiapitest.cpp -text
 sbig/99-sbig.rules -text
 sbig/CMakeLists.txt -text
-sbig/libsbigudrv32.so -text
-sbig/libsbigudrv64.so -text
+sbig/libsbigudrv32.bin -text
+sbig/libsbigudrv64.bin -text
 sbig/sbigfcam.hex -text
 sbig/sbiglcam.hex -text
 sbig/sbigucam.hex -text
