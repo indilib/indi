@@ -333,7 +333,7 @@ void ISNewSwitch (const char *dev, const char *name, ISState *states, char *name
 				IUResetSwitch (&FanSpeedSP);
 				FanSpeedSP.sp[fs].s = ISS_ON;
 				FanSpeedSP.s = IPS_OK;
-				IDSetSwitch (&FanSpeedSP, smsg);
+                                IDSetSwitch (&FanSpeedSP, "%s", smsg);
 		    	}
 
 		    break;
@@ -879,7 +879,7 @@ static void coolerTO (void *vp)
 	}
 
 	TemperatureRNP.np[0].value = cnow;
-	IDSetNumber (&TemperatureRNP, msg);
+        IDSetNumber (&TemperatureRNP, "%s", msg);
 
 	lasts = status;
 
