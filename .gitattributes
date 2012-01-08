@@ -433,11 +433,9 @@ libapogee/Apogee.h -text
 libapogee/ApogeeLinux.h -text
 libapogee/ApogeeNet/ApnDiscover.cpp -text
 libapogee/ApogeeNet/ApogeeNet.cpp -text
-libapogee/ApogeeNet/ApogeeNet.cpp.old -text
 libapogee/ApogeeNet/ApogeeNet.h -text
 libapogee/ApogeeNet/ApogeeNetErr.h -text
 libapogee/ApogeeNet/ApogeeNetLinux.c -text
-libapogee/ApogeeNet/ApogeeNetLinux.c.old -text
 libapogee/ApogeeUsb/ApogeeUsb.h -text
 libapogee/ApogeeUsb/ApogeeUsbErr.h -text
 libapogee/ApogeeUsb/ApogeeUsbLinux.cpp -text
