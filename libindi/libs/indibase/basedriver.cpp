@@ -74,12 +74,12 @@ INDI::BaseDriver::BaseDriver()
 {
     mediator = NULL;
     lp = newLilXML();
-    char indidev[16];
-    strncpy(indidev, "INDIDEV=", 16);
+    char indidev[MAXINDIDEVICE];
+    strncpy(indidev, "INDIDEV=", MAXINDIDEVICE);
 
     if (getenv("INDIDEV") != NULL)
     {
-        strncpy(deviceID, getenv("INDIDEV"), MAXINDINAME);
+        strncpy(deviceID, getenv("INDIDEV"), MAXINDIDEVICE);
         putenv(indidev);
     }
 }
