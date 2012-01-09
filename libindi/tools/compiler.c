@@ -266,9 +266,9 @@ double value;
 static int
 next_token ()
 {
-	static char toomv[] = "More than %d variables";
-	static char toomc[] = "More than %d constants";
-	static char badop[] = "Illegal operator";
+	static const char toomv[] = "More than %d variables";
+	static const char toomc[] = "More than %d constants";
+	static const char badop[] = "Illegal operator";
 	int tok = ERR;	/* just something illegal */
 	char c;
 

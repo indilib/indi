@@ -112,15 +112,15 @@ set (indidriver_SRCS
 
 set(indiserver_SRCS indiserver.c fq.c)
 
-add_executable(indiserver ${indiserver_SRCS}  ${liblilxml_SRCS})
+add_executable(indiserver ${indiserver_SRCS} ${liblilxml_SRCS})
 
-target_link_libraries(indiserver  pthread )
+target_link_libraries(indiserver pthread)
 
 if (NOVA_FOUND)
   target_link_libraries(indiserver ${NOVA_LIBRARIES})
 endif (NOVA_FOUND)
 
-install(TARGETS indiserver RUNTIME DESTINATION bin )
+install(TARGETS indiserver RUNTIME DESTINATION bin)
 
 #################################################
 ############# INDI Shared Library ###############
@@ -137,7 +137,7 @@ if (CFITSIO_FOUND)
 target_link_libraries(indi ${CFITSIO_LIBRARIES})
 endif(CFITSIO_FOUND)
 
-install(TARGETS indi LIBRARY DESTINATION lib${LIB_POSTFIX})
+install(TARGETS indi LIBRARY DESTINATION ${LIB_DESTINATION})
 set_target_properties(indi PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION})
 
 ##################################################
@@ -145,21 +145,21 @@ set_target_properties(indi PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVER
 # To link with main() for 3rd party drivers      #
 ##################################################
 add_library(indimain STATIC ${indimain_SRCS})
-install(TARGETS indimain ARCHIVE DESTINATION lib${LIB_POSTFIX})
+install(TARGETS indimain ARCHIVE DESTINATION ${LIB_DESTINATION})
 
 ##################################################
 ###### INDI Default Driver Static Library ########
 # To link with main() and indibase classes       #
 ##################################################
 add_library(indidriver STATIC ${indimain_SRCS} ${indidriver_SRCS})
-install(TARGETS indidriver ARCHIVE DESTINATION lib${LIB_POSTFIX})
+install(TARGETS indidriver ARCHIVE DESTINATION ${LIB_DESTINATION})
 
 ##################################################
 ########### INDI Client Static Library ###########
 ##################################################
 add_library(indiclient STATIC ${indiclient_SRCS})
 target_link_libraries(indiclient indi pthread)
-install(TARGETS indiclient ARCHIVE DESTINATION lib${LIB_POSTFIX})
+install(TARGETS indiclient ARCHIVE DESTINATION ${LIB_DESTINATION})
 
 #####################################
 ########## TELESCOPE GROUP ##########
@@ -205,12 +205,12 @@ endif (NOVA_FOUND)
 install(TARGETS indi_lx200generic RUNTIME DESTINATION bin )
 
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/make_lx200generic_symlink.cmake
-"exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic ${BUILD_ROOT}${BIN_INSTALL_DIR}/indi_lx200classic)\n
-exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic ${BUILD_ROOT}${BIN_INSTALL_DIR}/indi_lx200autostar)\n
-exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic ${BUILD_ROOT}${BIN_INSTALL_DIR}/indi_lx200_16)\n
-exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic ${BUILD_ROOT}${BIN_INSTALL_DIR}/indi_lx200gps)\n
-exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic ${BUILD_ROOT}${BIN_INSTALL_DIR}/indi_lx200ap)\n
-exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic ${BUILD_ROOT}${BIN_INSTALL_DIR}/indi_lx200fs2)\n
+"exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200classic)\n
+exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200autostar)\n
+exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200_16)\n
+exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200gps)\n
+exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200ap)\n
+exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200fs2)\n
 ")
 set_target_properties(indi_lx200generic PROPERTIES POST_INSTALL_SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_lx200generic_symlink.cmake)
 #################################################################################
@@ -422,7 +422,7 @@ endif (NOVA_FOUND)
 install(TARGETS indi_tcfs_focus RUNTIME DESTINATION bin )
 
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/make_tcfs_symlink.cmake
-"exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_tcfs_focus ${BUILD_ROOT}${BIN_INSTALL_DIR}/indi_tcfs3_focus)\n")
+"exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_tcfs_focus \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_tcfs3_focus)\n")
 set_target_properties(indi_tcfs_focus PROPERTIES POST_INSTALL_SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_tcfs_symlink.cmake)
 
 #################################################################################
