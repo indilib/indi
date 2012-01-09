@@ -1,5 +1,2 @@
-usr/lib/libindi.so.0.9.0
-usr/lib/libindi.so.0
-usr/share/indi/drivers.xml
-usr/bin/indi*
-
+usr/lib/*/libindi.so.0
+usr/lib/*/libindi.so.0.9.0

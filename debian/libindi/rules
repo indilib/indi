@@ -1,15 +1,19 @@
 #!/usr/bin/make -f
 
-DEB_DH_INSTALL_SOURCEDIR = debian/tmp
+DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
 
-include /usr/share/cdbs/1/class/cmake.mk
-include /usr/share/cdbs/1/rules/debhelper.mk
+export CFLAGS := $(shell dpkg-buildflags --get CFLAGS)
+export CXXFLAGS := $(shell dpkg-buildflags --get CXXFLAGS)
+export LDFLAGS := $(shell dpkg-buildflags --get LDFLAGS)
 
-install/libindi0::
-	ln -sf indi_lx200generic $(DEB_DESTDIR)/usr/bin/indi_lx200classic
-	ln -sf indi_lx200generic $(DEB_DESTDIR)/usr/bin/indi_lx200autostar
-	ln -sf indi_lx200generic $(DEB_DESTDIR)/usr/bin/indi_lx200_16
-	ln -sf indi_lx200generic $(DEB_DESTDIR)/usr/bin/indi_lx200gps
-	ln -sf indi_lx200generic $(DEB_DESTDIR)/usr/bin/indi_lx200ap
-	ln -sf indi_tcfs_focus   $(DEB_DESTDIR)/usr/bin/indi_tcfs3_focus
+%:
+	dh $@ --parallel
 
+override_dh_auto_configure:
+	dh_auto_configure -- -DLIB_DESTINATION=/usr/lib/$(DEB_HOST_MULTIARCH)
+
+override_dh_makeshlibs:
+	dh_makeshlibs -- -c0
+
+override_dh_strip:
+	dh_strip --dbg-package=indi-dbg

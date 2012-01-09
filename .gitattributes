@@ -241,10 +241,15 @@ debian/libindi/changelog -text
 debian/libindi/compat -text
 debian/libindi/control -text
 debian/libindi/copyright -text
+debian/libindi/indi-bin.install -text
+debian/libindi/libindi-data.install -text
 debian/libindi/libindi-dev.install -text
 debian/libindi/libindi-dev.links -text
 debian/libindi/libindi0.install -text
+debian/libindi/libindi0.symbols -text
 debian/libindi/rules -text
+debian/libindi/source/format -text
+debian/libindi/watch -text
 debian/libqsi/changelog -text
 debian/libqsi/compat -text
 debian/libqsi/control -text
