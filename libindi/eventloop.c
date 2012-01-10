@@ -421,7 +421,7 @@ oneLoop()
 	ns = select (maxfd+1, &rfd, NULL, NULL, tvp);
 	if (ns < 0) {
 	    perror ("select");
-	    exit(1);
+            return;
 	}
 	
 	/* dispatch */
@@ -479,7 +479,7 @@ stdinCB (int fd, void *ud)
 
 	if (read (fd, &c, 1) != 1) {
 	    perror ("read");
-	    exit(1);
+            return;
 	}
 
 	switch (c) {

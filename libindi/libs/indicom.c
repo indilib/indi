@@ -146,7 +146,7 @@ fs_sexa (char *out, double a, int w, int fracbase)
 	    break;
 	default:
 	    printf ("fs_sexa: unknown fracbase: %d\n", fracbase);
-	    exit(1);
+            return -1;
 	}
 
 	return (out - out0);
@@ -388,7 +388,7 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
   return TTY_TIME_OUT;
 }
 
-#ifdef BSD
+#if defined(BSD) && !defined(__GNU__)
 // BSD - OSX version
 int tty_connect(const char *device, int bit_rate, int word_size, int parity, int stop_bits, int *fd)
 {
@@ -948,7 +948,7 @@ pstateStr (IPState s)
         case IPS_ALERT: return ("Alert");
         default:
             fprintf (stderr, "Impossible IPState %d\n", s);
-            exit(1);
+            return NULL;
         }
 }
 
@@ -1006,6 +1006,7 @@ sstateStr (ISState s)
         case ISS_OFF: return ("Off");
         default:
             fprintf (stderr, "Impossible ISState %d\n", s);
+            return NULL;
         }
 }
 
@@ -1019,6 +1020,7 @@ ruleStr (ISRule r)
         case ISR_NOFMANY: return ("AnyOfMany");
         default:
             fprintf (stderr, "Impossible ISRule %d\n", r);
+            return NULL;
         }
 }
 
@@ -1032,6 +1034,7 @@ permStr (IPerm p)
         case IP_RW: return ("rw");
         default:
             fprintf (stderr, "Impossible IPerm %d\n", p);
+            return NULL;
         }
 }
 

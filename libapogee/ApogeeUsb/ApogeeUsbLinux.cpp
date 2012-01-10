@@ -2,11 +2,6 @@
 //
 
 #include <assert.h>
-#ifndef OSX
-#ifndef OSXI
-#include <sys/io.h>
-#endif
-#endif
 #include <sys/time.h>                                                           
 #include <sys/resource.h>
 #include <sys/ioctl.h>

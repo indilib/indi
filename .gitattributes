@@ -510,7 +510,10 @@ libindi/.cproject -text
 libindi/.project -text
 libindi/AUTHORS -text
 libindi/CMakeLists.txt -text
-libindi/COPYING.LIB -text
+libindi/COPYING.BSD -text
+libindi/COPYING.GPL -text
+libindi/COPYING.LGPL -text
+libindi/COPYRIGHT -text
 libindi/ChangeLog -text
 libindi/Doxyfile -text
 libindi/INSTALL -text
@@ -649,10 +652,6 @@ libindi/libs/webcam/ccvt_types.h -text
 libindi/libs/webcam/port.cpp -text
 libindi/libs/webcam/port.h -text
 libindi/libs/webcam/pwc-ioctl.h -text
-libindi/libs/webcam/v4l1_base.cpp -text
-libindi/libs/webcam/v4l1_base.h -text
-libindi/libs/webcam/v4l1_pwc.cpp -text
-libindi/libs/webcam/v4l1_pwc.h -text
 libindi/libs/webcam/v4l2_base.cpp -text
 libindi/libs/webcam/v4l2_base.h -text
 libindi/libs/webcam/vcvt.h -text

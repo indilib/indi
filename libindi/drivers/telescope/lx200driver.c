@@ -219,8 +219,12 @@ int getCommandSexa(int fd, double *value, const char * cmd)
   
   /*if ( (read_ret = portRead(temp_string, -1, LX200_TIMEOUT)) < 1)
      return read_ret;*/
-  tty_read_section(fd, temp_string, '#', LX200_TIMEOUT, &nbytes_read);
- 
+
+  error_type = tty_read_section(fd, temp_string, '#', LX200_TIMEOUT, &nbytes_read);
+  tcflush(fd, TCIFLUSH);
+  if (error_type != TTY_OK)
+    return error_type;
+
   temp_string[nbytes_read - 1] = '\0';
   
   /*IDLog("getComandSexa: %s\n", temp_string);*/
@@ -250,7 +254,10 @@ int getCommandInt(int fd, int *value, const char* cmd)
   if ( (error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
    return error_type;
   
-  tty_read_section(fd, temp_string, '#', LX200_TIMEOUT, &nbytes_read);
+  error_type = tty_read_section(fd, temp_string, '#', LX200_TIMEOUT, &nbytes_read);
+  tcflush(fd, TCIFLUSH);
+  if (error_type != TTY_OK)
+    return error_type;
  
   temp_string[nbytes_read - 1] = '\0';
 

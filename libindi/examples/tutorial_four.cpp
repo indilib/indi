@@ -257,6 +257,8 @@ bool MyScope::ISNewSwitch (const char *dev, const char *name, ISState *states, c
             return true;
         }*/
 
+    return DefaultDriver::ISNewSwitch(dev, name, states, names, n);
+
 
 }
 

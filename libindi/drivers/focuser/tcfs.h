@@ -65,9 +65,9 @@ public:
 
     // Standard INDI interface fucntions
     virtual void ISGetProperties(const char *dev);
-    virtual bool ISNewNumber (const char *name, double values[], char *names[], int n);
-    virtual bool ISNewText (const char *name, char *texts[], char *names[], int n);
-    virtual bool ISNewSwitch (const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
  	
 
     void ISPoll();

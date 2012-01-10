@@ -248,6 +248,6 @@ checkalta()
 {
 	if (!alta) {
 	    fprintf (stderr, "Bug! Alta used before open\n");
-	    exit(1);
+	    return;
 	}
 }

@@ -81,21 +81,21 @@ void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names
 {
 	if(dev && strcmp (mydev, dev)) return;
 	ISInit();
-        tcfs->ISNewSwitch(name, states, names, num);
+        tcfs->ISNewSwitch(dev, name, states, names, num);
 }
 
 void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
 {
 	if(dev && strcmp (mydev, dev)) return;
 	ISInit();
-        tcfs->ISNewText(name, texts, names, num);
+        tcfs->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
 	if(dev && strcmp (mydev, dev)) return;
 	ISInit();
-        tcfs->ISNewNumber(name, values, names, num);
+        tcfs->ISNewNumber(dev, name, values, names, num);
 }
 
 void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n) 
@@ -304,7 +304,7 @@ bool TCFS::Disconnect()
 **
 **
 *****************************************************************/
-bool TCFS::ISNewNumber (const char *name, double values[], char *names[], int n)
+bool TCFS::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
 
   INumberVectorProperty *nProp = getNumber(name);
@@ -353,6 +353,8 @@ bool TCFS::ISNewNumber (const char *name, double values[], char *names[], int n)
       IDSetNumber(nProp, "Moving focuser to new position %g...", nFocusTargetPosition);
       return true;
   }
+
+  return DefaultDriver::ISNewNumber (dev, name, values, names, n);
     
 }
 
@@ -360,7 +362,7 @@ bool TCFS::ISNewNumber (const char *name, double values[], char *names[], int n)
 **
 **
 *****************************************************************/
-bool TCFS::ISNewText (const char *name, char *texts[], char *names[], int n)
+bool TCFS::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     ITextVectorProperty * tProp = getText(name);
 
@@ -380,7 +382,7 @@ bool TCFS::ISNewText (const char *name, char *texts[], char *names[], int n)
     }
 
 
-    return false;
+    return DefaultDriver::ISNewText(dev, name, texts, names, n);
 	
 }
 
@@ -388,7 +390,7 @@ bool TCFS::ISNewText (const char *name, char *texts[], char *names[], int n)
 **
 **
 *****************************************************************/
-bool TCFS::ISNewSwitch (const char *name, ISState *states, char *names[], int n)
+bool TCFS::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
 
     ISwitch *current_active_switch = NULL, *target_active_switch = NULL;
@@ -661,7 +663,7 @@ bool TCFS::ISNewSwitch (const char *name, ISState *states, char *names[], int n)
 
 
 
-    return false;
+    return DefaultDriver::ISNewSwitch(dev, name, states, names, n);
 }
 
 bool TCFS::move_focuser(TCFSMotion dir)

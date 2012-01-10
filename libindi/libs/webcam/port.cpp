@@ -37,13 +37,20 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #endif /* LOCKING */
+#ifdef __linux__
+#if defined(arm) || defined(__hppa__) || defined(__sparc__) || defined(__ppc__) \
+	|| defined(__powerpc__) || defined(__s390__) || defined(__s390x__)\
+	|| defined(__mips__) || defined(__mc68000__) || defined(__sh__)
+#define NO_SYSIO
+#endif /* architechtures */
+#endif /* __linux__ */
 
 #ifdef __linux__
-  #if defined(arm) || defined(__hppa__) || defined(__sparc__) || defined(__ppc__) || defined(__powerpc__) || defined(__s390__) || defined(__s390x__) || defined(__mips__) || defined(__mc68000__)
+  #if defined(NO_SYSIO)
   #include <fcntl.h>
   #else
   #include <sys/io.h>
-  #endif /* arm */
+  #endif /* NO_SYSIO */
 #elif defined(QNX)
 #include <conio.h>
 #elif defined(__FreeBSD__)
@@ -76,7 +83,7 @@ port_t::port_t(int iport) {
 #endif /* LOCKING */
 
 #ifdef LINUX
-#if defined(arm) || defined(__hppa__) || defined(__sparc__) || defined(__ppc__) || defined(__powerpc__) || defined(__s390__) || defined(__s390x__) || defined(__mips__) || defined(__mc68000__)
+#ifdef NO_SYSIO
   if ((devport = open("/dev/port", O_RDWR)) < 0) {
     perror("open /dev/port");
     return;
@@ -86,7 +93,7 @@ port_t::port_t(int iport) {
     perror("ioperm()");
     return;
   }
-#endif /* arm */
+#endif /* NO_SYSIO */
 #elif defined(FREEBSD)
   if ((devio = fopen("/dev/io", "r+")) == NULL) {
     perror("fopen /dev/io");
@@ -120,7 +127,7 @@ port_t::~port_t(void) {
   unlock(port);
 #endif /* LOCKING */
 #ifdef LINUX
-#if defined(arm) || defined(__hppa__) || defined(__sparc__) || defined(__ppc__) || defined(__powerpc__) || defined(__s390__) || defined(__s390x__) || defined(__mips__) || defined(__mc68000__)
+#ifdef NO_SYSIO
   if (devport >= 0)
     close(devport);
 #else
@@ -128,7 +135,7 @@ port_t::~port_t(void) {
     if (ioperm(port, 3, 0) != 0)  // drop port permissions -- still must
                                   // be root
       perror("ioperm()");
-#endif /* arm */
+#endif /* NO_SYSIO */
 #elif defined(FREEBSD)
   if (devio != NULL)
     fclose(devio);
