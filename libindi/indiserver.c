@@ -751,7 +751,8 @@ static void newFIFO(void)
 
     while ( fgets (line, MAXRBUF, fifo.fs) != NULL)
     {
-        fprintf(stderr, "FIFO: %s\n", line);
+        if (verbose)
+            fprintf(stderr, "FIFO: %s\n", line);
 
         tDev[0] = '\0', tDriver[0] = '\0', tConfig[0] = '\0', envDev[0] = '\0', envConfig[0] = '\0';
         cp = strdup(line);
@@ -875,7 +876,7 @@ static void newFIFO(void)
                {
                   for (dp = dvrinfo; dp < &dvrinfo[ndvrinfo]; dp++)
                    {
-                       if (!strcmp(dp->name, tDriver))
+                       if (!strcmp(dp->name, tDriver) && dp->active==1)
                        {
                            /* If device name is given, check against it before shutting down */
                            if (tDev[0] && strcmp(dp->dev, tDev))
