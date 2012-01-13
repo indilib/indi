@@ -996,6 +996,7 @@ bool QSICCD::Connect()
                     QSICam.put_Connected(true);
                 } catch (std::runtime_error err)
                 {
+                    IDMessage(deviceName(), "Error: put_Connected(true) failed. %s.", err.what());
                     if (isDebug())
                         IDLog("Error: put_Connected(true) failed. %s.", err.what());
                     return false;

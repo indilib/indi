@@ -55,7 +55,6 @@ bool INDI::Focuser::initProperties()
 void INDI::Focuser::ISGetProperties (const char *dev)
 {
     //  First we let our parent populate
-    IDLog("INDI::Focuser::ISGetProperties %s\n",dev);
     DefaultDriver::ISGetProperties(dev);
 
     return;
@@ -132,10 +131,6 @@ bool INDI::Focuser::ISNewNumber (const char *dev, const char *name, double value
 
 bool INDI::Focuser::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    IDLog("Enter IsNewSwitch for %s\n",name);
-    //for(int x=0; x<n; x++) {
-    //    IDLog("Switch %s %d\n",names[x],states[x]);
-    //}
 
     if(strcmp(dev,deviceName())==0)
     {

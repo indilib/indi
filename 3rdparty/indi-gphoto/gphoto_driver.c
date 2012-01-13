@@ -315,7 +315,7 @@ static void *stop_bulb(void *arg)
 	long timeleft;
 	struct timespec timeout;
 	struct timeval curtime;
-	int result;
+	int result=0;
 
 	pthread_mutex_lock(&gphoto->mutex);
 	pthread_cond_signal(&gphoto->signal);

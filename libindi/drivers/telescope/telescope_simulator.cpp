@@ -211,6 +211,9 @@ bool ScopeSim::Connect()
 
     rc=Connect(PortT[0].text);
 
+    if(rc)
+        SetTimer(POLLMS);
+
     return rc;
 }
 

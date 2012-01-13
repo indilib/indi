@@ -43,8 +43,7 @@ endif(COMMAND cmake_policy)
 
 add_executable(indi_gphoto_ccd ${indigphoto_SRCS})
 
-target_link_libraries(indi_gphoto_ccd ${INDI_LIBRARIES} ${INDI_MAIN_LIBRARIES} ${CFITSIO_LIBRARIES} ${LIBGPHOTO2_LIBRARIES})
-target_link_libraries(indi_gphoto_ccd ${CMAKE_THREAD_LIBS_INIT} ${JPEG_LIBRARIES})
+target_link_libraries(indi_gphoto_ccd ${INDI_LIBRARIES} ${INDI_MAIN_LIBRARIES} ${CFITSIO_LIBRARIES} ${LIBGPHOTO2_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${JPEG_LIBRARIES} gphoto2_port)
 install(TARGETS indi_gphoto_ccd RUNTIME DESTINATION bin )
 
 install(FILES indi_gphoto.xml DESTINATION ${INDI_DATA_DIR})

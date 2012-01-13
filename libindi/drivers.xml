@@ -118,7 +118,7 @@
 </devGroup>
 <devGroup group="Focusers">
 	<device label="RoboFocus">
-                <driver name="Robofocus">indi_robo_focus</driver>
+                <driver name="RoboFocus">indi_robo_focus</driver>
 		<version>1.0</version>
 	</device>
         <device label="Optec TCF-S">
@@ -137,10 +137,6 @@
         </device>
 </devGroup>
 <devGroup group="Filter Wheels">
-  	<device label="FLI Wheel">
-		<driver name="FLI Wheel">indi_fli_wheel</driver>
-    		<version>0.9</version>
-    	</device>
 	<device label="TruTech Wheel">
 		<driver name="TruTech Wheel">indi_trutech_wheel</driver>
 		<version>0.1</version>

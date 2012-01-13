@@ -101,7 +101,7 @@ SxWheel::~SxWheel()
 
 const char * SxWheel::getDefaultName()
 {
-    return (char *)"SxWheel";
+    return (char *)"SX Wheel";
 }
 
 bool SxWheel::Connect()

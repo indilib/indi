@@ -2314,19 +2314,37 @@ int SbigCam::WriteFits(	string						fits_name,
 #ifdef INDI
 void	SbigCam::CreateFitsHeader(fitsfile *fptr, unsigned int width, unsigned int height)
 {
-  char card[FLEN_CARD];
   int status=0;
+  char key[16];
+  char comment[32];
   
   double temp_val;
 
-  fits_update_key(fptr, TSTRING, "INSTRUME", m_icam_product_t[0].text, "CCD Name", &status);
-  fits_update_key(fptr, TSTRING, "DETNAM", m_icam_product_t[1].text, "", &status);
+  strncpy(key, "INSTRUME", 16);
+  strncpy(comment, "CCD Name", 32);
+  fits_update_key(fptr, TSTRING, key, m_icam_product_t[0].text, comment , &status);
+
+  strncpy(key, "DETNAM", 16);
+  strncpy(comment, "", 32);
+  fits_update_key(fptr, TSTRING, key, m_icam_product_t[1].text, comment, &status);
   temp_val = GetLastExposeTime();
-  fits_update_key(fptr, TDOUBLE, "EXPTIME", &temp_val, "Total Exposure Time (s)", &status); 
+
+  strncpy(key, "EXPTIME", 16);
+  strncpy(comment, "Total Exposure Time (s)", 32);
+  fits_update_key(fptr, TDOUBLE, key, &temp_val, comment, &status);
   temp_val = GetLastTemperature();
-  fits_update_key(fptr, TDOUBLE, "CCD-TEMP", &temp_val, "degrees celcius", &status); 
-  fits_update_key(fptr, TDOUBLE, "XPIXSZ", &m_icam_pixel_size_n[0].value, "um", &status); 
-  fits_update_key(fptr, TDOUBLE, "YPIXSZ", &m_icam_pixel_size_n[0].value, "um", &status); 
+
+  strncpy(key, "CCD-TEMP", 16);
+  strncpy(comment, "degrees celcius", 32);
+  fits_update_key(fptr, TDOUBLE, key , &temp_val, comment, &status);
+
+  strncpy(key, "XPIXSZ", 16);
+  strncpy(comment, "um", 32);
+  fits_update_key(fptr, TDOUBLE, key, &m_icam_pixel_size_n[0].value, comment, &status);
+
+  strncpy(key, "YPIXSZ", 16);
+  strncpy(comment, "um", 32);
+  fits_update_key(fptr, TDOUBLE, key, &m_icam_pixel_size_n[0].value, comment, &status);
 
   // XBINNING & YBINNING:	
   int binning;
@@ -2353,20 +2371,33 @@ void	SbigCam::CreateFitsHeader(fitsfile *fptr, unsigned int width, unsigned int 
 						break;
 	}
 
-	fits_update_key(fptr, TINT, "XBINNING", &binning, "1=1x1, 2=2x2, etc.", &status); 
-	fits_update_key(fptr, TINT, "YBINNING", &binning, "1=1x1, 2=2x2, etc.", &status); 
+        strncpy(key, "XBINNING", 16);
+        strncpy(comment, "1=1x1, 2=2x2, etc.", 32);
+        fits_update_key(fptr, TINT, key , &binning, comment, &status);
+
+        strncpy(key, "YBINNING", 16);
+        strncpy(comment, "1=1x1, 2=2x2, etc.", 32);
+        fits_update_key(fptr, TINT, key, &binning, comment, &status);
 	
   }
 
 	#ifdef USE_CCD_FRAME_STANDARD_PROPERTY		
 	// XORGSUBF:
-	fits_update_key(fptr, TINT, "XORGSUBF", &m_icam_ccd_frame_n[0].value, "", &status); 
+        strncpy(key, "XORGSUBF", 16);
+        strncpy(comment, "", 32);
+        fits_update_key(fptr, TINT, key, &m_icam_ccd_frame_n[0].value, comment, &status);
 	// YORGSUBF:
-	fits_update_key(fptr, TINT, "YORGSUBF", &m_icam_ccd_frame_n[1].value, "", &status); 
+        strncpy(key, "YORGSUBF", 16);
+        strncpy(comment, "", 32);
+        fits_update_key(fptr, TINT, key, &m_icam_ccd_frame_n[1].value, comment, &status);
 	#else
 	// XORGSUBF:
-	fits_update_key(fptr, TINT, "XORGSUBF", &m_icam_frame_x_n[0].value, "", &status);
-	fits_update_key(fptr, TINT, "YORGSUBF", &m_icam_frame_y_n[0].value, "", &status);
+        strncpy(key, "XORGSUBF", 16);
+        strncpy(comment, "", 32);
+        fits_update_key(fptr, TINT, key, &m_icam_frame_x_n[0].value, comment, &status);
+        strncpy(key, "YORGSUBF", 16);
+        strncpy(comment, "", 32);
+        fits_update_key(fptr, TINT, key, &m_icam_frame_y_n[0].value, comment, &status);
 	#endif
 
 	// IMAGETYP:
@@ -2385,7 +2416,10 @@ void	SbigCam::CreateFitsHeader(fitsfile *fptr, unsigned int width, unsigned int 
 	}
 	char frame[64];
 	strncpy(frame, str.c_str(), 64);
-	fits_update_key(fptr, TSTRING, "IMAGETYP", frame, "Frame Type", &status);
+
+        strncpy(key, "IMAGETYP", 16);
+        strncpy(comment, "Frame Type", 32);
+        fits_update_key(fptr, TSTRING, key, frame, comment, &status);
 }
 
 #endif // INDI

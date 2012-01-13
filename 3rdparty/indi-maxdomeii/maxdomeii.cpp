@@ -401,7 +401,7 @@ void MaxDomeII::ISNewNumber (const char *dev, const char *name, double values[],
 			{
 				IDLog("MAX DOME II: %s",ErrorMessages[-error]);
 				AzimuthWNP.s = IPS_ALERT;
-				IDSetNumber(&AzimuthWNP, ErrorMessages[-error]);
+                                IDSetNumber(&AzimuthWNP, "%s", ErrorMessages[-error]);
 			}
 			else
 			{
@@ -439,7 +439,7 @@ void MaxDomeII::ISNewNumber (const char *dev, const char *name, double values[],
 			nHomeTicks = floor(0.5 + nHomeAzimuth * nTicksPerTurn / 360.0); // Calculate Home ticks again
 			TicksPerTurnNP.s = IPS_OK;
 			TicksPerTurnNP.np[0].value = nVal;
-			IDSetNumber(&TicksPerTurnNP, cLog);
+                        IDSetNumber(&TicksPerTurnNP, "%s", cLog);
 			return;
 		}
 		// Incorrect value. 
@@ -475,7 +475,7 @@ void MaxDomeII::ISNewNumber (const char *dev, const char *name, double values[],
 			{
 				IDLog("MAX DOME II: %s",ErrorMessages[-error]);
 				ParkPositionNP.s = IPS_ALERT;
-				IDSetNumber(&ParkPositionNP, ErrorMessages[-error]);
+                                IDSetNumber(&ParkPositionNP, "%s", ErrorMessages[-error]);
 			}
 			
 			return;
@@ -506,7 +506,7 @@ void MaxDomeII::ISNewNumber (const char *dev, const char *name, double values[],
 			nHomeTicks = floor(0.5 + nHomeAzimuth * nTicksPerTurn / 360.0);
 			HomeAzimuthNP.s = IPS_OK;
 			HomeAzimuthNP.np[0].value = nVal;
-			IDSetNumber(&HomeAzimuthNP, cLog);
+                        IDSetNumber(&HomeAzimuthNP, "%s", cLog);
 			return;
 		}
 		// Incorrect value. 
@@ -533,7 +533,7 @@ void MaxDomeII::ISNewNumber (const char *dev, const char *name, double values[],
 			sprintf(cLog, "New watch dog set: %lf", nVal);
 			WachDogNP.s = IPS_OK;
 			WachDogNP.np[0].value = nVal;
-			IDSetNumber(&WachDogNP, cLog);
+                        IDSetNumber(&WachDogNP, "%s", cLog);
 			return;
 		}
 		// Incorrect value. 
@@ -588,7 +588,7 @@ void MaxDomeII::ISNewSwitch (const char *dev, const char *name, ISState *states,
 				ConnectS[0].s = ISS_OFF;
 				ConnectS[1].s = ISS_ON;
 				ConnectSP.s = IPS_ALERT;
-				IDSetSwitch (&ConnectSP, ErrorMessages[-error]);//"Error connecting to Dome. Dome is offline.");
+                                IDSetSwitch (&ConnectSP, "%s", ErrorMessages[-error]);//"Error connecting to Dome. Dome is offline.");
 				Disconnect_MaxDomeII(fd);
 				fd = -1;
 				return;
@@ -1025,7 +1025,7 @@ void MaxDomeII::ISPoll()
 	{
 		IDLog("MAX DOME II: %s",ErrorMessages[-nError]);
 		ConnectSP.s = IPS_ALERT;
-		IDSetSwitch (&ConnectSP,  ErrorMessages[-nError]);
+                IDSetSwitch (&ConnectSP,  "%s", ErrorMessages[-nError]);
 	}
 	
 }

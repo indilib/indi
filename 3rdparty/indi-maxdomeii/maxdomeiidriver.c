@@ -138,7 +138,7 @@ signed char checksum_MaxDomeII(char *cMessage, int nLen)
 	@param cMessage Pointer to a buffer to receive the message
 	@return 0 if message is Ok. -1 if no response or no start caracter found. -2 invalid declared message length. -3 message too short. -4 checksum error
 */
-int ReadResponse_MaxDomeII(int fd, unsigned char *cMessage)
+int ReadResponse_MaxDomeII(int fd, char *cMessage)
 {
 	int nBytesRead;
 	int nLen = MAX_BUFFER;
@@ -187,7 +187,7 @@ int ReadResponse_MaxDomeII(int fd, unsigned char *cMessage)
 */
 int Abort_Azimuth_MaxDomeII(int fd)
 {
-	unsigned char cMessage[MAX_BUFFER];
+        char cMessage[MAX_BUFFER];
 	int nErrorType;
 	int nBytesWrite;
 	int nReturn;
@@ -219,7 +219,7 @@ int Abort_Azimuth_MaxDomeII(int fd)
 */
 int Home_Azimuth_MaxDomeII(int fd)
 {
-	unsigned char cMessage[MAX_BUFFER];
+        char cMessage[MAX_BUFFER];
 	int nErrorType;
 	int nBytesWrite;
 	int nReturn;
@@ -227,7 +227,7 @@ int Home_Azimuth_MaxDomeII(int fd)
 	cMessage[0] = 0x01;
 	cMessage[1] = 0x02;		// Will follow 2 bytes more
 	cMessage[2] = HOME_CMD;
-	cMessage[3] = checksum_MaxDomeII(cMessage, 3);
+        cMessage[3] = checksum_MaxDomeII(cMessage, 3);
 	nErrorType = tty_write(fd, cMessage, 4, &nBytesWrite);
 	
 	if (nErrorType != TTY_OK)
@@ -253,9 +253,9 @@ int Home_Azimuth_MaxDomeII(int fd)
 */
 int Goto_Azimuth_MaxDomeII(int fd, int nDir, int nTicks)
 {
-	unsigned char cMessage[MAX_BUFFER];
-	int nErrorType;
-	int nBytesWrite;
+        char cMessage[MAX_BUFFER];
+        int nErrorType;
+        int nBytesWrite;
 	int nReturn;
 	
 	cMessage[0] = 0x01;
@@ -295,7 +295,7 @@ int Goto_Azimuth_MaxDomeII(int fd, int nDir, int nTicks)
 */
 int Status_MaxDomeII(int fd, enum SH_Status *nShutterStatus, enum AZ_Status *nAzimuthStatus, unsigned *nAzimuthPosition, unsigned *nHomePosition)
 {
-	unsigned char cMessage[MAX_BUFFER];
+        char cMessage[MAX_BUFFER];
 	int nErrorType;
 	int nBytesWrite;
 	int nReturn;
@@ -334,7 +334,7 @@ int Status_MaxDomeII(int fd, enum SH_Status *nShutterStatus, enum AZ_Status *nAz
 */
 int Ack_MaxDomeII(int fd)
 {
-	unsigned char cMessage[MAX_BUFFER];
+        char cMessage[MAX_BUFFER];
 	int nErrorType = TTY_OK;
 	int nBytesWrite;
 	int nReturn;
@@ -373,7 +373,7 @@ int Ack_MaxDomeII(int fd)
 */
 int SetPark_MaxDomeII(int fd, int nParkOnShutter, int nTicks)
 {
-	unsigned char cMessage[MAX_BUFFER];
+        char cMessage[MAX_BUFFER];
 	int nErrorType;
 	int nBytesWrite;
 	int nReturn;
@@ -415,7 +415,7 @@ int SetPark_MaxDomeII(int fd, int nParkOnShutter, int nTicks)
 */
 int Open_Shutter_MaxDomeII(int fd)
 {
-	unsigned char cMessage[MAX_BUFFER];
+        char cMessage[MAX_BUFFER];
 	int nErrorType;
 	int nBytesWrite;
 	int nReturn;
@@ -448,7 +448,7 @@ int Open_Shutter_MaxDomeII(int fd)
 */
 int Open_Upper_Shutter_Only_MaxDomeII(int fd)
 {
-	unsigned char cMessage[MAX_BUFFER];
+        char cMessage[MAX_BUFFER];
 	int nErrorType;
 	int nBytesWrite;
 	int nReturn;
@@ -481,7 +481,7 @@ int Open_Upper_Shutter_Only_MaxDomeII(int fd)
 */
 int Close_Shutter_MaxDomeII(int fd)
 {
-	unsigned char cMessage[MAX_BUFFER];
+        char cMessage[MAX_BUFFER];
 	int nErrorType;
 	int nBytesWrite;
 	int nReturn;
@@ -514,7 +514,7 @@ int Close_Shutter_MaxDomeII(int fd)
 */
 int Abort_Shutter_MaxDomeII(int fd)
 {
-	unsigned char cMessage[MAX_BUFFER];
+        char cMessage[MAX_BUFFER];
 	int nErrorType;
 	int nBytesWrite;
 	int nReturn;
@@ -547,7 +547,7 @@ int Abort_Shutter_MaxDomeII(int fd)
 */
 int Exit_Shutter_MaxDomeII(int fd)
 {
-	unsigned char cMessage[MAX_BUFFER];
+        char cMessage[MAX_BUFFER];
 	int nErrorType;
 	int nBytesWrite;
 	int nReturn;
