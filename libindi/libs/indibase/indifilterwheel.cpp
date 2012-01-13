@@ -48,7 +48,7 @@ void INDI::FilterWheel::ISGetProperties (const char *dev)
     {
         defineNumber(FilterSlotNP);
 
-        if (initFilterNames(deviceName(), FILTER_TAB))
+        if (GetFilterNames(deviceName(), FILTER_TAB))
             defineText(FilterNameTP);
     }
     return;
@@ -63,7 +63,7 @@ bool INDI::FilterWheel::updateProperties()
     {
         initFilterProperties(deviceName(), FILTER_TAB);
         defineNumber(FilterSlotNP);
-        if (initFilterNames(deviceName(), FILTER_TAB))
+        if (GetFilterNames(deviceName(), FILTER_TAB))
             defineText(FilterNameTP);
     } else
     {
@@ -175,8 +175,10 @@ void INDI::FilterWheel::ISSnoopDevice (XMLEle *root)
 }
 
 
-bool INDI::FilterWheel::initFilterNames(const char *deviceName, const char* groupName)
+bool INDI::FilterWheel::GetFilterNames(const char *deviceName, const char* groupName)
 {
+    INDI_UNUSED(deviceName);
+    INDI_UNUSED(groupName);
     return false;
 }
 

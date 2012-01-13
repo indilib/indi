@@ -53,7 +53,7 @@ public:
     virtual int QueryFilter();
     virtual bool SelectFilter(int);
     virtual bool SetFilterNames();
-    virtual bool initFilterNames(const char *deviceName, const char* groupName);
+    virtual bool GetFilterNames(const char *deviceName, const char* groupName);
 
 };
 
