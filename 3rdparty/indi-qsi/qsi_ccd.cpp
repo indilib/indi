@@ -342,7 +342,7 @@ bool QSICCD::setupParams()
           return false;
     }
 
-    initFilterNames(deviceName(), FILTER_TAB);
+    GetFilterNames(deviceName(), FILTER_TAB);
 
     try
     {
@@ -1514,7 +1514,7 @@ void QSICCD::turnWheel()
         }
 }
 
-int QSICCD::GuideNorth(float duration)
+bool QSICCD::GuideNorth(float duration)
 {
     try
     {
@@ -1525,13 +1525,13 @@ int QSICCD::GuideNorth(float duration)
         IDMessage(deviceName(), "PulseGuide() failed. %s.", err.what());
       if (isDebug())
          IDLog("PulseGuide failed. %s.", err.what());
-      return -1;
+      return false;
     }
 
-    return 0;
+    return true;
 }
 
-int QSICCD::GuideSouth(float duration)
+bool QSICCD::GuideSouth(float duration)
 {
     try
     {
@@ -1542,14 +1542,14 @@ int QSICCD::GuideSouth(float duration)
         IDMessage(deviceName(), "PulseGuide() failed. %s.", err.what());
       if (isDebug())
          IDLog("PulseGuide failed. %s.", err.what());
-      return -1;
+      return false;
     }
 
-    return 0;
+    return true;
 
 }
 
-int QSICCD::GuideEast(float duration)
+bool QSICCD::GuideEast(float duration)
 {
     try
     {
@@ -1560,14 +1560,14 @@ int QSICCD::GuideEast(float duration)
         IDMessage(deviceName(), "PulseGuide() failed. %s.", err.what());
       if (isDebug())
          IDLog("PulseGuide failed. %s.", err.what());
-      return -1;
+      return false;
     }
 
-    return 0;
+    return true;
 
 }
 
-int QSICCD::GuideWest(float duration)
+bool QSICCD::GuideWest(float duration)
 {
     try
     {
@@ -1578,14 +1578,13 @@ int QSICCD::GuideWest(float duration)
         IDMessage(deviceName(), "PulseGuide() failed. %s.", err.what());
       if (isDebug())
          IDLog("PulseGuide failed. %s.", err.what());
-      return -1;
+      return false;
     }
 
-    return 0;
-
+    return true;
 }
 
-bool QSICCD::initFilterNames(const char *deviceName, const char* groupName)
+bool QSICCD::GetFilterNames(const char *deviceName, const char* groupName)
 {
     char filterName[MAXINDINAME];
     char filterLabel[MAXINDILABEL];

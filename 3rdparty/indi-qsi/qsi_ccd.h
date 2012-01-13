@@ -49,7 +49,6 @@ class QSICCD : public INDI::CCD, public INDI::FilterInterface
 
     QSICamera QSICam;
 
-
     ISwitch ResetS[1];
     ISwitchVectorProperty *ResetSP;
 
@@ -97,7 +96,7 @@ class QSICCD : public INDI::CCD, public INDI::FilterInterface
     double max();
     void fits_update_key_s(fitsfile* fptr, int type, string name, void* p, string explanation, int* status);
 
-    virtual bool initFilterNames(const char *deviceName, const char* groupName);
+    virtual bool GetFilterNames(const char *deviceName, const char* groupName);
     virtual bool SetFilterNames();
     virtual bool SelectFilter(int);
     virtual int QueryFilter();
@@ -128,10 +127,10 @@ public:
     virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
     virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
 
-    virtual int GuideNorth(float);
-    virtual int GuideSouth(float);
-    virtual int GuideEast(float);
-    virtual int GuideWest(float);
+    virtual bool GuideNorth(float);
+    virtual bool GuideSouth(float);
+    virtual bool GuideEast(float);
+    virtual bool GuideWest(float);
 
 };
 
