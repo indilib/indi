@@ -133,7 +133,7 @@
 <devGroup group="CCDs">
         <device label="CCD Simulator">
                 <driver name="CCD Simulator">indi_simulator_ccd</driver>
-                <version>0.1</version>
+                <version>1.0</version>
         </device>
 </devGroup>
 <devGroup group="Filter Wheels">
@@ -147,7 +147,7 @@
     	</device>
         <device label="Filter Simulator">
                 <driver name="Filter Simulator">indi_simulator_wheel</driver>
-                <version>0.1</version>
+                <version>1.0</version>
         </device>
 </devGroup>
 <devGroup group="Video">
