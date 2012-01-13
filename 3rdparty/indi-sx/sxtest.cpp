@@ -10,7 +10,7 @@ using namespace std;
 #define GUIDER_TEST 1
 #define INTERLACE_TEST 2
 
-int write_ppm(char *name,char *buffer,int xres,int yres,int depth)
+int write_ppm(const char *name,char *buffer,int xres,int yres,int depth)
 {
     int x;
 
