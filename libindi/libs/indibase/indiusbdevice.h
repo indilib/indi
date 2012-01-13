@@ -30,6 +30,15 @@
 
 #include "indibase.h"
 
+/**
+ * \class INDI::USBDevice
+   \brief Class to provide general functionality of a generic USB device.
+
+   Developers need to subclass INDI::USBDevice to implement any driver within INDI that requires direct read/write/control over USB.
+
+\author Gerry Rozema
+\see Starlight Xpress INDI CCD driver for an example implementation of INDI::USBDevice
+*/
 class INDI::USBDevice
 {
 protected:
@@ -52,8 +61,8 @@ public:
 
 	int ControlMessage();
 
-	int WriteBulk(char *,int,int);
-	int ReadBulk(char *,int,int);
+        int WriteBulk(char *buf,int nbytes,int timeout);
+        int ReadBulk(char *buf,int nbytes,int timeout);
 	int FindEndpoints();
 	int Open();
         USBDevice(void);

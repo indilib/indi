@@ -589,15 +589,15 @@ void INDI::DefaultDriver::setConnected(bool status, IPState state, const char *m
 
 //  This is a helper function
 //  that just encapsulates the Indi way into our clean c++ way of doing things
-int INDI::DefaultDriver::SetTimer(int t)
+int INDI::DefaultDriver::SetTimer(int ms)
 {
-    return IEAddTimer(t,timerfunc,this);
+    return IEAddTimer(ms,timerfunc,this);
 }
 
 //  Just another helper to help encapsulate indi into a clean class
-void INDI::DefaultDriver::RemoveTimer(int t)
+void INDI::DefaultDriver::RemoveTimer(int id)
 {
-    IERmTimer(t);
+    IERmTimer(id);
     return;
 }
 

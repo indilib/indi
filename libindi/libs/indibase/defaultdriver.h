@@ -35,7 +35,7 @@ extern const char *GUIDER_TAB;
 
 /**
  * \class INDI::DefaultDriver
-   \brief Class to provide extended functionary for drivers in addition
+   \brief Class to provide extended functionality for drivers in addition
 to the functionality provided by INDI::BaseDriver. This class should \e only be subclassed by
 drivers directly as it is linked with main(). Virtual drivers cannot employ INDI::DefaultDriver.
 
@@ -103,15 +103,27 @@ public:
     virtual bool deleteProperty(const char *propertyName);
 
 
-    /** \brief Connect or Disconnect a device.
+    /** \brief Set connection switch status in the client.
       \param status If true, the driver will attempt to connect to the device (CONNECT=ON). If false, it will attempt
 to disconnect the device.
-      \param msg A message to be sent along with connect/disconnect command.
+      \param status True to set CONNECT on, false to set DISCONNECT on.
+      \param state State of CONNECTION properti, by default IPS_OK.
+      \param msg A message to be sent along with connect/disconnect command, by default NULL.
     */
     virtual void setConnected(bool status, IPState state=IPS_OK, const char *msg = NULL);
 
-    int SetTimer(int);
-    void RemoveTimer(int);
+    /** \brief Set a timer to call the function TimerHit after ms milliseconds
+        \param ms timer duration in milliseconds.
+        \return id of the timer to be used with RemoveTimer
+   */
+    int SetTimer(int ms);
+
+    /** \brief Remove timer added with SetTimer
+        \param id ID of the timer as returned from SetTimer
+   */
+    void RemoveTimer(int id);
+
+    /** \brief Callback function to be called once SetTimer duration elapses. */
     virtual void TimerHit();
 
 protected:
@@ -151,7 +163,7 @@ protected:
         \return True if successful, false otherwise.
     */
     virtual bool saveConfig();
-	virtual bool saveConfigItems(FILE *fp);
+    virtual bool saveConfigItems(FILE *fp);
 
     /** \brief Load the default configuration file
         \return True if successful, false otherwise.

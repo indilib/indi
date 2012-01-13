@@ -799,7 +799,7 @@ int INDI::CCD::uploadfile(void *fitsdata,int total)
     return 0;
 }
 
-int INDI::CCD::SetCCDParams(int x,int y,int bpp,float xf,float yf)
+void INDI::CCD::SetCCDParams(int x,int y,int bpp,float xf,float yf)
 {
     PrimaryCCD.setResolutoin(x, y);
     PrimaryCCD.setFrame(0, 0, x, y);
@@ -807,10 +807,9 @@ int INDI::CCD::SetCCDParams(int x,int y,int bpp,float xf,float yf)
     PrimaryCCD.setPixelSize(xf, yf);
     PrimaryCCD.setBPP(bpp/8);
 
-    return 0;
 }
 
-int INDI::CCD::SetGuidHeadParams(int x,int y,int bpp,float xf,float yf)
+void INDI::CCD::SetGuidHeadParams(int x,int y,int bpp,float xf,float yf)
 {
     HasGuideHead=true;
 
@@ -820,7 +819,6 @@ int INDI::CCD::SetGuidHeadParams(int x,int y,int bpp,float xf,float yf)
     GuideCCD.setPixelSize(xf, yf);
     GuideCCD.setBPP(bpp/8);
 
-    return 0;
 }
 
 bool INDI::CCD::AbortGuideExposure()
@@ -829,21 +827,20 @@ bool INDI::CCD::AbortGuideExposure()
 }
 
 
-
-int INDI::CCD::GuideNorth(float)
+bool INDI::CCD::GuideNorth(float ms)
 {
-    return -1;
+    return false;
 }
-int INDI::CCD::GuideSouth(float)
+bool INDI::CCD::GuideSouth(float ms)
 {
-    return -1;
+    return false;
 }
-int INDI::CCD::GuideEast(float)
+bool INDI::CCD::GuideEast(float ms)
 {
-    return -1;
+    return false;
 }
-int INDI::CCD::GuideWest(float)
+bool INDI::CCD::GuideWest(float ms)
 {
-    return -1;
+    return false;
 }
 

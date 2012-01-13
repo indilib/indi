@@ -790,7 +790,7 @@ int CCDSim::AddToPixel(int x,int y,int val)
     return drew;
 }
 
-int CCDSim::GuideNorth(float v)
+bool CCDSim::GuideNorth(float v)
 {
     float c;
 
@@ -798,9 +798,9 @@ int CCDSim::GuideNorth(float v)
     c=c/3600;
     Dec=Dec+c;
 
-    return 0;
+    return true;
 }
-int CCDSim::GuideSouth(float v)
+bool CCDSim::GuideSouth(float v)
 {
     float c;
 
@@ -808,10 +808,10 @@ int CCDSim::GuideSouth(float v)
     c=c/3600;
     Dec=Dec-c;
 
-    return 0;
+    return true;
 }
 
-int CCDSim::GuideEast(float v)
+bool CCDSim::GuideEast(float v)
 {
     float c;
 
@@ -820,9 +820,9 @@ int CCDSim::GuideEast(float v)
     c=c/(cos(Dec*0.0174532925));
     RA=RA-c;
 
-    return 0;
+    return true;
 }
-int CCDSim::GuideWest(float v)
+bool CCDSim::GuideWest(float v)
 {
     float c;
 
@@ -831,7 +831,7 @@ int CCDSim::GuideWest(float v)
     c=c/(cos(Dec*0.0174532925));
     RA=RA+c;
 
-    return 0;
+    return true;
 }
 
 bool CCDSim::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)

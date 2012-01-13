@@ -23,21 +23,47 @@
 
 #include "indibase.h"
 
+/**
+ * \class INDI::GuiderInterface
+   \brief Provides interface to implement guider (ST4) port functionality.
+
+   initFilterProperties() must be called before any other function to initilize the guider properties.
+\author Jasem Mutlaq
+*/
 class INDI::GuiderInterface
 {
 
 public:
 
-    virtual int GuideNorth(float) = 0;
-    virtual int GuideSouth(float) = 0;
-    virtual int GuideEast(float) = 0;
-    virtual int GuideWest(float) = 0;
+    /** \brief Guide north for ms milliseconds
+        \return True if OK, false otherwise
+    */
+    virtual bool GuideNorth(float ms) = 0;
+
+    /** \brief Guide south for ms milliseconds
+        \return True if OK, false otherwise
+    */
+    virtual bool GuideSouth(float ms) = 0;
+
+    /** \brief Guide east for ms milliseconds
+        \return True if OK, false otherwise
+    */
+    virtual bool GuideEast(float ms) = 0;
+
+    /** \brief Guide west for ms milliseconds
+        \return True if OK, false otherwise
+    */
+    virtual bool GuideWest(float ms) = 0;
 
 protected:
 
     GuiderInterface();
     ~GuiderInterface();
 
+    /** \brief Initilize guider properties. It is recommended to call this function within initProperties() of your primary device
+        \param deviceName Name of the primary device
+        \param groupName Group or tab name to be used to define guider properties.
+    */
     void initGuiderProperties(const char *deviceName, const char* groupName);
 
     INumber GuideNS[2];

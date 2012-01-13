@@ -145,23 +145,23 @@ int INDI::USBDevice::WriteInterrupt(char *buf,int c,int timeout)
 
 }
 
-int INDI::USBDevice::ReadBulk(char *buf,int c,int timeout)
+int INDI::USBDevice::ReadBulk(char *buf,int nbytes,int timeout)
 {
 	int rc;
 
 	//rc=usb_interrupt_read(usb_handle,InputEndpoint,buf,c,timeout);
-	rc=usb_bulk_read(usb_handle,InputEndpoint,buf,c,timeout);
+        rc=usb_bulk_read(usb_handle,InputEndpoint,buf,nbytes,timeout);
 	return rc;
 
 }
 
-int INDI::USBDevice::WriteBulk(char *buf,int c,int timeout)
+int INDI::USBDevice::WriteBulk(char *buf,int nbytes,int timeout)
 {
 	int rc;
 
 	//printf("Writing %02x to endpoint %d\n",buf[0],OutputEndpoint);
 	//rc=usb_interrupt_write(usb_handle,OutputEndpoint,buf,c,timeout);
-	rc=usb_bulk_write(usb_handle,OutputEndpoint,buf,c,timeout);
+        rc=usb_bulk_write(usb_handle,OutputEndpoint,buf,nbytes,timeout);
 	return rc;
 
 }

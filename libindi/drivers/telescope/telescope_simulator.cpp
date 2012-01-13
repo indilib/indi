@@ -119,43 +119,48 @@ const char * ScopeSim::getDefaultName()
 
 bool ScopeSim::initProperties()
 {
+    /* Make sure to init parent properties first */
     INDI::Telescope::initProperties();
 
+    /* Property for guider support. How many seconds to guide either northward or southward? */
     IUFillNumber(&GuideNSN[GUIDE_NORTH], "TIMED_GUIDE_N", "North (sec)", "%g", 0, 10, 0.001, 0);
     IUFillNumber(&GuideNSN[GUIDE_SOUTH], "TIMED_GUIDE_S", "South (sec)", "%g", 0, 10, 0.001, 0);
     IUFillNumberVector(GuideNSNP, GuideNSN, 2, deviceName(), "TELESCOPE_TIMED_GUIDE_NS", "Guide North/South", MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
-
+    /* Property for guider support. How many seconds to guide either westward or eastward? */
     IUFillNumber(&GuideWEN[GUIDE_WEST], "TIMED_GUIDE_W", "West (sec)", "%g", 0, 10, 0.001, 0);
     IUFillNumber(&GuideWEN[GUIDE_EAST], "TIMED_GUIDE_E", "East (sec)", "%g", 0, 10, 0.001, 0);
     IUFillNumberVector(GuideWENP, GuideWEN, 2, deviceName(), "TELESCOPE_TIMED_GUIDE_WE", "Guide West/East", MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
+    /* Simulated periodic error in RA, DEC */
     IUFillNumber(&EqPECN[RA_AXIS],"RA_PEC","RA (hh:mm:ss)","%010.6m",0,24,0,15.);
     IUFillNumber(&EqPECN[DEC_AXIS],"DEC_PEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,15.);
     IUFillNumberVector(EqPECNV,EqPECN,2,deviceName(),"EQUATORIAL_PEC","Periodic Error",MOTION_TAB,IP_RO,60,IPS_IDLE);
 
+    /* Enable client to manually add periodic error northward or southward for simulation purposes */
     IUFillSwitch(&PECErrNSS[MOTION_NORTH], "PEC_N", "North", ISS_OFF);
     IUFillSwitch(&PECErrNSS[MOTION_SOUTH], "PEC_S", "South", ISS_OFF);
     IUFillSwitchVector(PECErrNSSP, PECErrNSS, 2, deviceName(),"PEC_NS", "PE N/S", MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
+    /* Enable client to manually add periodic error westward or easthward for simulation purposes */
     IUFillSwitch(&PECErrWES[MOTION_WEST], "PEC_W", "West", ISS_OFF);
     IUFillSwitch(&PECErrWES[MOTION_EAST], "PEC_E", "East", ISS_OFF);
     IUFillSwitchVector(PECErrWESP, PECErrWES, 2, deviceName(),"PEC_WE", "PE W/E", MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
+    /* How fast do we guide compared to sideral rate */
     IUFillNumber(&GuideRateN[RA_AXIS], "GUIDE_RATE_WE", "W/E Rate", "%g", 0, 1, 0.1, 0.3);
     IUFillNumber(&GuideRateN[DEC_AXIS], "GUIDE_RATE_NS", "N/S Rate", "%g", 0, 1, 0.1, 0.3);
     IUFillNumberVector(GuideRateNP, GuideRateN, 2, deviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
+    /* Add debug controls so we may debug driver if necessary */
     addDebugControl();
 
-
     return true;
-
 }
 
 void ScopeSim::ISGetProperties (const char *dev)
 {
-    //  First we let our parent populate
+    /* First we let our parent populate */
     INDI::Telescope::ISGetProperties(dev);
 
     if(isConnected())
@@ -173,7 +178,6 @@ void ScopeSim::ISGetProperties (const char *dev)
 
 bool ScopeSim::updateProperties()
 {
-
     INDI::Telescope::updateProperties();
 
     if (isConnected())
@@ -195,6 +199,19 @@ bool ScopeSim::updateProperties()
         deleteProperty(PECErrNSSP->name);
         deleteProperty(GuideRateNP->name);
     }
+
+    return true;
+}
+
+bool ScopeSim::Connect()
+{
+    bool rc=false;
+
+    if(isConnected()) return true;
+
+    rc=Connect(PortT[0].text);
+
+    return rc;
 }
 
 bool ScopeSim::Connect(char *)
@@ -223,7 +240,6 @@ bool ScopeSim::ReadScopeStatus()
     if (ltv.tv_sec == 0 && ltv.tv_usec == 0)
         ltv = tv;
 
-
     dt = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec)/1e6;
     ltv = tv;
 
@@ -240,7 +256,6 @@ bool ScopeSim::ReadScopeStatus()
         da_dec = SLEW_RATE *dt;
     else
         da_dec = FINE_SLEW_RATE *dt;
-
 
     switch (MovementNSSP->s)
     {
@@ -484,23 +499,6 @@ bool ScopeSim::Park()
     TrackState = SCOPE_PARKING;
     IDMessage(deviceName(), "Parking telescope in progress...");
     return true;
-}
-
-bool ScopeSim::Connect()
-{
-    //  Parent class is wanting a connection
-    //IDLog("INDI::Telescope calling connect with %s\n",PortT[0].text);
-    bool rc=false;
-
-    if(isConnected()) return true;
-
-    //IDLog("Calling Connect\n");
-
-    rc=Connect(PortT[0].text);
-
-    if(rc)
-        SetTimer(POLLMS);
-    return rc;
 }
 
 bool ScopeSim::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)

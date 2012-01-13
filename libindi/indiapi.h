@@ -45,10 +45,11 @@ INDI is intended for developers who seek a scalable API for device control and a
 <p>The INDI Library API is divided into the following main sections:</p>
 <ul>
 <li><a href="indidevapi_8h.html">INDI Device API</a></li>
+<li><a href="classINDI_1_1BaseClient.html">INDI Client API</a></li>
+<li><a href="namespaceINDI.html">INDI Base Drivers</a></li>
 <li><a href="indicom_8h.html">INDI Common Routine Library</a></li>
 <li><a href="lilxml_8h.html">INDI LilXML Library</a></li>
 <li><a href="group__configFunctions.html">Configuration</a></li>
-<li><a href="classINDI_1_1BaseClient.html">Client API</a></li>
 </ul>
 
 

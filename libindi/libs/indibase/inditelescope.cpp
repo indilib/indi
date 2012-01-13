@@ -171,7 +171,7 @@ bool INDI::Telescope::saveConfigItems(FILE *fp)
     return true;
 }
 
-int INDI::Telescope::NewRaDec(double ra,double dec)
+void INDI::Telescope::NewRaDec(double ra,double dec)
 {
     //  Lets set our eq values to these numbers
     //  which came from the hardware
@@ -198,7 +198,6 @@ int INDI::Telescope::NewRaDec(double ra,double dec)
         IDSetNumber(EqNV, NULL);
     }
 
-    return 0;
 }
 
 bool INDI::Telescope::ReadScopeStatus()
@@ -427,16 +426,20 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
 bool INDI::Telescope::Connect()
 {
     //  Parent class is wanting a connection
-    IDLog("INDI::Telescope arrived in connect with %s\n",PortT[0].text);
+    if (isDebug())
+        IDLog("INDI::Telescope arrived in connect with %s\n",PortT[0].text);
     bool rc=false;
 
     if(isConnected()) return true;
 
-    IDLog("Telescope Calling Connect\n");
+
+    if (isDebug())
+        IDLog("Telescope Calling Connect\n");
 
     rc=Connect(PortT[0].text);
 
-	IDLog("Telescope Connect returns %d\n",rc);
+    if (isDebug())
+        IDLog("Telescope Connect returns %d\n",rc);
 
     if(rc)
         SetTimer(POLLMS);

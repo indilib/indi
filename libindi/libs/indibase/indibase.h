@@ -8,7 +8,9 @@
 
 /**
  * \namespace INDI
-   \brief Namespace to encapsulate INDI client, device, and mediator classes
+   \brief Namespace to encapsulate INDI client, drivers, and mediator classes.
+   Developers can subclass the base devices class to implement device specific functionality. This ensures interoperability and consistency among devices within the same family
+   and reduces code overhead.
 
    <ul>
    <li>BaseClient: Base class for INDI clients. By subclassing BaseClient, client can easily connect to INDI server
@@ -17,6 +19,13 @@
    <li>BaseDriver: Base class for all INDI virtual driver as handled and stored in INDI::BaseClient.</li>
    <li>DefaultDriver: INDI::BaseDriver with extended functionality such as debug, simulation, and configuration support.
        It is \e only used by drivers directly, it cannot be used by clients.</li>
+   <li>FilterInterface: Basic interface for filter wheels functions.</li>
+   <li>GuiderInterface: Basic interface for guider (ST4) port functions.</li>
+   <li>CCD: Base class for CCD drivers. Provides basic support for single chip CCD and CCDs with a guide head as well.</li>
+   <li>Telescope: Base class for telescope drivers.</li>
+   <li>FilterWheel: Base class for Filter Wheels. It implements the FilterInterface.</li>
+   <li>Focuser: Base class for focusers.</li>
+   <li>USBDevice: Base class for USB devices for direct read/write/control over USB.</li>
    </ul>
  */
 namespace INDI

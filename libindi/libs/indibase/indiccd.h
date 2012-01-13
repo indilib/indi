@@ -112,6 +112,15 @@ private:
     friend class INDI::CCD;
 };
 
+/**
+ * \class INDI::CCD
+   \brief Class to provide general functionality of CCD cameras with a single CCD sensor, or a primary CCD sensor in addition to a secondary CCD guide head.
+
+   It also implements the interface to perform guiding. The class enable the ability to \e snoop on telescope equatorial coordinates and record them in the
+   FITS file before upload. Developers need to subclass INDI::CCD to implement any driver for CCD cameras within INDI.
+
+\author Gerry Rozema, Jasem Mutlaq
+*/
 class INDI::CCD : public INDI::DefaultDriver, INDI::GuiderInterface
 {
       public:
@@ -121,74 +130,134 @@ class INDI::CCD : public INDI::DefaultDriver, INDI::GuiderInterface
         virtual bool initProperties();
         virtual bool updateProperties();
         virtual void ISGetProperties (const char *dev);
-
         virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
         virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-
         virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
         virtual void ISSnoopDevice (XMLEle *root);
 
+     protected:
+        /** \brief Start exposing primary CCD chip
+            \param duration Duration in seconds
+            \return 0 if OK and exposure will take some time to complete, 1 if exposure is short and complete already (e.g. bias), -1 on error.
+            \note This function is not implemented in INDI::CCD, it must be implemented in the child class
+        */
         virtual int StartExposure(float duration);
-        virtual bool ExposureComplete();
-        virtual bool AbortExposure();
-        virtual int StartGuideExposure(float duration);
-        virtual bool AbortGuideExposure();
-        virtual bool GuideExposureComplete();
-        virtual int uploadfile(void *fitsdata,int total);
 
+        /** \brief Uploads primary CCD exposed buffer as FITS to the client. Dervied classes should class this function when an exposure is complete.
+             \note This function is not implemented in INDI::CCD, it must be implemented in the child class
+        */
+        virtual bool ExposureComplete();
+
+        /** \brief Abort ongoing exposure
+            \return true is abort is successful, false otherwise.
+            \note This function is not implemented in INDI::CCD, it must be implemented in the child class
+        */
+        virtual bool AbortExposure();
+
+        /** \brief Start exposing guide CCD chip
+            \param duration Duration in seconds
+            \return 0 if OK and exposure will take some time to complete, 1 if exposure is short and complete already (e.g. bias), -1 on error.
+            \note This function is not implemented in INDI::CCD, it must be implemented in the child class
+        */
+        virtual int StartGuideExposure(float duration);
+
+        /** \brief Abort ongoing exposure
+            \return true is abort is successful, false otherwise.
+            \note This function is not implemented in INDI::CCD, it must be implemented in the child class
+        */
+        virtual bool AbortGuideExposure();
+
+        /** \brief Uploads Guide head CCD exposed buffer as FITS to the client. Dervied classes should class this function when an exposure is complete.
+            \note This function is not implemented in INDI::CCD, it must be implemented in the child class
+        */
+        virtual bool GuideExposureComplete();
+
+        /** \brief INDI::CCD calls this function when CCD Frame dimension needs to be updated in the hardware. Derived classes should implement this function
+            \param x Subframe X coordinate in pixels.
+            \param y Subframe Y coordinate in pixels.
+            \param w Subframe width in pixels.
+            \param h Subframe height in pixels.
+            \note (0,0) is defined as most left, top pixel in the subframe.
+            \return true is CCD chip update is successful, false otherwise.
+            \note This function is not implemented in INDI::CCD, it must be implemented in the child class
+        */
         virtual bool updateCCDFrame(int x, int y, int w, int h);
+
+        /** \brief INDI::CCD calls this function when CCD Binning needs to be updated in the hardware. Derived classes should implement this function
+            \param hor Horizontal binning.
+            \param ver Vertical binning.
+            \return true is CCD chip update is successful, false otherwise.
+            \note This function is not implemented in INDI::CCD, it must be implemented in the child class
+        */
         virtual bool updateCCDBin(int hor, int ver);
 
-        //  Handy functions for child classes
-        virtual int SetCCDParams(int x,int y,int bpp,float xf,float yf);
-        virtual int SetGuidHeadParams(int x,int y,int bpp,float xf,float yf);     
 
-        virtual void addFITSKeywords(fitsfile *fptr);
+        /** \brief Setup CCD paramters for primary CCD. Child classes call this function to update CCD paramaters
+            \param x Frame X coordinates in pixels.
+            \param y Frame Y coordinates in pixels.
+            \param bpp Bits Per Pixels.
+            \param xf X pixel size in microns.
+            \param yf Y pixel size in microns.
+        */
+        virtual void SetCCDParams(int x,int y,int bpp,float xf,float yf);
 
-        virtual int GuideNorth(float);
-        virtual int GuideSouth(float);
-        virtual int GuideEast(float);
-        virtual int GuideWest(float);
+        /** \brief Setup CCD paramters for guide head CCD. Child classes call this function to update CCD paramaters
+            \param x Frame X coordinates in pixels.
+            \param y Frame Y coordinates in pixels.
+            \param bpp Bits Per Pixels.
+            \param xf X pixel size in microns.
+            \param yf Y pixel size in microns.
+        */
+        virtual void SetGuidHeadParams(int x,int y,int bpp,float xf,float yf);
 
-protected:
 
-    float RA;
-    float Dec;
-    bool HasGuideHead;
-    bool HasSt4Port;
-    bool InExposure;
+        /** \brief Guide northward for ms milliseconds
+            \param ms Duration in milliseconds.
+            \note This function is not implemented in INDI::CCD, it must be implemented in the child class
+            \return True if successful, false otherwise.
+        */
+        virtual bool GuideNorth(float ms);
 
-    CCDChip PrimaryCCD;
-    CCDChip GuideCCD;
+        /** \brief Guide southward for ms milliseconds
+            \param ms Duration in milliseconds.
+            \note This function is not implemented in INDI::CCD, it must be implemented in the child class
+            \return 0 if successful, -1 otherwise.
+        */
+        virtual bool GuideSouth(float ms);
+
+        /** \brief Guide easward for ms milliseconds
+            \param ms Duration in milliseconds.
+            \note This function is not implemented in INDI::CCD, it must be implemented in the child class
+            \return 0 if successful, -1 otherwise.
+        */
+        virtual bool GuideEast(float ms);
+
+        /** \brief Guide westward for ms milliseconds
+            \param ms Duration in milliseconds.
+            \note This function is not implemented in INDI::CCD, it must be implemented in the child class
+            \return 0 if successful, -1 otherwise.
+        */
+        virtual bool GuideWest(float ms);
+
+        float RA;
+        float Dec;
+        bool HasGuideHead;
+        bool HasSt4Port;
+        bool InExposure;
+
+        CCDChip PrimaryCCD;
+        CCDChip GuideCCD;
 
  private:
     //  We are going to snoop these from a telescope
     INumberVectorProperty EqNP;
     INumber EqN[2];
 
-
-/*
-    INumberVectorProperty *GuiderFrameNP;
-    INumber GuiderFrameN[4];
-
-    INumberVectorProperty *GuiderPixelSizeNP;
-    INumber GuiderPixelSizeN[6];
-
-    INumberVectorProperty *GuiderExposureNP;
-    INumber GuiderExposureN[1];
-
-    ISwitch GuiderCompressS[2];
-    ISwitchVectorProperty *GuiderCompressSP;
-
-    ISwitch GuiderVideoS[2];
-    ISwitchVectorProperty *GuiderVideoSP;
-
-    IBLOB GuiderB;
-    IBLOBVectorProperty *GuiderBP;
-    */
-
     ITextVectorProperty *TelescopeTP;
     IText TelescopeT[1];
+
+    void addFITSKeywords(fitsfile *fptr);
+    int uploadfile(void *fitsdata,int total);
 
 };
 
