@@ -1,9 +1,9 @@
 Source: indi-qhy
 Section: science
 Priority: extra
-Maintainer: Geoffrey Hausheer <astro@phracturedblue.com>
-Build-Depends: debhelper (>= 5)
-Standards-Version: 3.7.2
+Maintainer: Jasem Mutlaq <mutlaqja@ikarustech.com>
+Build-Depends: debhelper (>= 5), cdbs, cmake, libusb-dev, libcfitsio3-dev, libindi-dev, zlib1g-dev, libnova-dev
+Standards-Version: 3.9.2
 
 Package: indi-qhy
 Architecture: any
