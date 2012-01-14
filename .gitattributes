@@ -173,6 +173,7 @@ debian/fliusb/fliusb-dkms.postrm -text
 debian/fliusb/fliusb-dkms.prerm -text
 debian/fliusb/postinst.dpkg-dist -text
 debian/fliusb/rules -text
+debian/fliusb/source/format -text
 debian/indi-apogee/changelog -text
 debian/indi-apogee/compat -text
 debian/indi-apogee/control -text
