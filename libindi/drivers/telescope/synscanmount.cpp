@@ -118,9 +118,6 @@ bool SynscanMount::initProperties()
 }
 void SynscanMount::ISGetProperties (const char *dev)
 {
-    //if (isDebug())
-        IDLog("Enter SynscanMount::ISGetProperties %s\n",dev);
-
     //  First we let our parent class do it's thing
     INDI::Telescope::ISGetProperties(dev);
 
@@ -146,7 +143,7 @@ bool SynscanMount::ReadScopeStatus()
     {
         //  this is not a correct echo
         //if (isDebug())
-            IDLog("ReadStatus Echo Fail\n");
+            IDLog("ReadStatus Echo Fail. %s\n", str);
         IDMessage(deviceName(),"Mount Not Responding");
         return false;
     }
