@@ -1,3 +1,9 @@
+indi-gphoto (1.0-ubuntu2) Oneiric; urgency=low
+
+  * Oneiric release.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sun, 15 Jan 2012 14:20:12 +0300
+
 indi-gphoto (1.0ubuntu1) maverick; urgency=low
 
   * New upstream release.
