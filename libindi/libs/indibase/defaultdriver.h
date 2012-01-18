@@ -22,7 +22,7 @@
 #include "basedriver.h"
 #include "indidriver.h"
 
-#include <auto_ptr.h>
+#include <memory.h>
 
 extern const char *COMMUNICATION_TAB;
 extern const char *MAIN_CONTROL_TAB;
