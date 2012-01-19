@@ -480,7 +480,7 @@ set(stv_SRCS
 
 add_executable(indi_sbig_stv ${stv_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
 
-target_link_libraries(indi_sbig_stv z m ${NOVA_LIBRARIES} ${CFITSIO_LIBRARIES})
+target_link_libraries(indi_sbig_stv z m ${NOVA_LIBRARIES} ${CFITSIO_LIBRARIES} pthread)
 
 install(TARGETS indi_sbig_stv RUNTIME DESTINATION bin )
 
@@ -503,7 +503,7 @@ set(meade_lpi_SRCS
 
 add_executable(indi_meade_lpi ${meade_lpi_SRCS} ${libwebcam_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
 
-target_link_libraries(indi_meade_lpi z ${CFITSIO_LIBRARIES})
+target_link_libraries(indi_meade_lpi z ${CFITSIO_LIBRARIES} pthread)
 
 if (NOVA_FOUND)
   target_link_libraries(indi_meade_lpi ${NOVA_LIBRARIES})
@@ -529,7 +529,7 @@ set(v4lphilips_SRCS
 
 add_executable(indi_v4l_philips ${v4lphilips_SRCS} ${libwebcam_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
 
-target_link_libraries(indi_v4l_philips m z ${CFITSIO_LIBRARIES})
+target_link_libraries(indi_v4l_philips m z ${CFITSIO_LIBRARIES} pthread)
 
 if (NOVA_FOUND)
   target_link_libraries(indi_v4l_philips ${NOVA_LIBRARIES})
@@ -554,7 +554,7 @@ set(v4ldriver_SRCS
 
 add_executable(indi_v4l_generic ${v4ldriver_SRCS} ${libwebcam_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
 
-target_link_libraries(indi_v4l_generic m z ${CFITSIO_LIBRARIES})
+target_link_libraries(indi_v4l_generic m z ${CFITSIO_LIBRARIES} pthread)
 
 if (NOVA_FOUND)
   target_link_libraries(indi_v4l_generic ${NOVA_LIBRARIES})
