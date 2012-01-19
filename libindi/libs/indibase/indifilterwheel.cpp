@@ -37,6 +37,8 @@ bool INDI::FilterWheel::initProperties()
     DefaultDriver::initProperties();
 
     initFilterProperties(deviceName(), FILTER_TAB);
+
+    return true;
 }
 
 void INDI::FilterWheel::ISGetProperties (const char *dev)
