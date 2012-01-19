@@ -446,6 +446,8 @@ void CelestronGPS::ISNewSwitch (const char *dev, const char *name, ISState *stat
 
 	  
 	  if (IUUpdateSwitch(&OnCoordSetSP, states, names, n) < 0) return;
+          OnCoordSetSP.s = IPS_OK;
+          IDSetSwitch(&OnCoordSetSP, NULL);
 	  currentSet = getOnSwitch(&OnCoordSetSP);
 	}
 	
@@ -523,9 +525,7 @@ void CelestronGPS::ISNewSwitch (const char *dev, const char *name, ISState *stat
 	// -1 means all off previously
 	 last_move = getOnSwitch(&MovementNSSP);
 
-	 if (IUUpdateSwitch(&MovementNSSP, states, names, n) < 0)
-        IDLog("fixme!!! - IUUpdateSwitch MovementNSSP\n");
-	//	return;
+         IUUpdateSwitch(&MovementNSSP, states, names, n);
 
 	current_move = getOnSwitch(&MovementNSSP);
 
