@@ -25,6 +25,7 @@
 #include <termios.h>
 #include <string.h>
 #include <sys/time.h>
+#include <memory>
 
 #define RF_MAX_CMD   9
 #define RF_TIMEOUT   15

@@ -18,6 +18,7 @@
 
 #include "filter_simulator.h"
 
+#include <memory>
 
 // We declare an auto pointer to FilterSim.
 std::auto_ptr<FilterSim> filter_sim(0);

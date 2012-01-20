@@ -9,6 +9,8 @@
 #include "telescope_simulator.h"
 #include "indicom.h"
 
+#include <memory>
+
 // We declare an auto pointer to ScopeSim.
 std::auto_ptr<ScopeSim> telescope_sim(0);
 

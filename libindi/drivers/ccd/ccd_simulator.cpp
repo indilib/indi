@@ -23,6 +23,8 @@
 #include <math.h>
 #include <string.h>
 
+#include <memory>
+
 
 // We declare an auto pointer to ccdsim.
 std::auto_ptr<CCDSim> ccdsim(0);
