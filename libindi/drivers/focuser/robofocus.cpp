@@ -25,6 +25,7 @@
 #include <termios.h>
 #include <string.h>
 #include <sys/time.h>
+#include <unistd.h>
 #include <memory>
 
 #define RF_MAX_CMD   9
