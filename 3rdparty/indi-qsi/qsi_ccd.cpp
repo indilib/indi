@@ -46,6 +46,8 @@
 #include <netdb.h>
 #include <zlib.h>
 
+#include <memory>
+
 #include <fitsio.h>
 
 #include "qsiapi.h"
