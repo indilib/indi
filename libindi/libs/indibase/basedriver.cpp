@@ -614,6 +614,7 @@ else if (!strcmp (rtag, "defTextVector"))
             {
                 tp[n].text = (char *) malloc(pcdatalenXMLEle(ep)*sizeof(char));
                 strncpy(tp[n].text, pcdataXMLEle(ep), pcdatalenXMLEle(ep));
+                tp[n].text[pcdatalenXMLEle(ep)] = '\0';
                 strncpy(tp[n].name, valuXMLAtt(na), MAXINDINAME);
 
                 na = findXMLAtt (ep, "label");
@@ -633,7 +634,8 @@ else if (!strcmp (rtag, "defTextVector"))
         indiProp->setType(PropertyContainer::INDI_TEXT);
 
         pAll.push_back(indiProp);
-        //IDLog("Adding Text property %s to list.\n", tvp->name);
+
+        //IDLog("Adding Text property %s to list with initial value of %s.\n", tvp->name, tvp->tp[0].text);
         if (mediator)
             mediator->newProperty(tvp->device, tvp->name);
     }

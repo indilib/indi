@@ -239,6 +239,12 @@ class INDI::CCD : public INDI::DefaultDriver, INDI::GuiderInterface
         */
         virtual bool GuideWest(float ms);
 
+        /** \brief Add FITS keywords to a fits file
+            \param fptr pointer to a valid FITS file.
+            \note This function is not implemented in INDI::CCD, it must be implemented in the child class
+        */
+        virtual void addFITSKeywords(fitsfile *fptr);
+
         float RA;
         float Dec;
         bool HasGuideHead;
@@ -256,7 +262,6 @@ class INDI::CCD : public INDI::DefaultDriver, INDI::GuiderInterface
     ITextVectorProperty *TelescopeTP;
     IText TelescopeT[1];
 
-    void addFITSKeywords(fitsfile *fptr);
     int uploadfile(void *fitsdata,int total);
 
 };

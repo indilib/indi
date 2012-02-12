@@ -155,7 +155,6 @@ bool CCDSim::Connect()
 {
 
     int nbuf;
-    SetupParms();
 
     if(HasGuideHead)
     {
@@ -232,6 +231,10 @@ bool CCDSim::updateProperties()
     IDDefNumber(SimulatorSettingsNV, NULL);
 
     INDI::CCD::updateProperties();
+
+    if (isConnected())
+        SetupParms();
+
     return true;
 }
 
