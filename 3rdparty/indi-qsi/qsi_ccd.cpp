@@ -894,6 +894,7 @@ void QSICCD::addFITSKeywords(fitsfile *fptr)
 
         char name_s[32] = "QSI";
         double electronsPerADU;
+	double pixSize1,pixSize2;
         short filter;
         try {
             string name;
@@ -901,19 +902,22 @@ void QSICCD::addFITSKeywords(fitsfile *fptr)
             for(unsigned i = 0; i < 18; ++i) name_s[i] = name[i];
             QSICam.get_ElectronsPerADU(&electronsPerADU);
             QSICam.get_Position(&filter);
+	    QSICam.get_PixelSizeX(&pixSize1);
+	    QSICam.get_PixelSizeY(&pixSize2);
         } catch (std::runtime_error& err) {
             IDMessage(deviceName(), "get_Name() failed. %s.", err.what());
             IDLog("get_Name() failed. %s.\n", err.what());
             return;
         }
 
-        int pixSize = PrimaryCCD.getPixelSizeX();
+        //pixSize = PrimaryCCD.getPixelSizeX();
 
         fits_update_key_s(fptr, TDOUBLE, "CCD-TEMP", &(TemperatureN[0].value), "CCD Temperature (Celcius)", &status);
         fits_update_key_s(fptr, TDOUBLE, "EXPTIME", &(imageExpose), "Total Exposure Time (s)", &status);
         if(imageFrameType == CCDChip::DARK_FRAME)
         fits_update_key_s(fptr, TDOUBLE, "DARKTIME", &(imageExpose), "Total Exposure Time (s)", &status);
-        fits_update_key_s(fptr, TINT, "PIX-SIZ", &pixSize, "Pixel Size (microns)", &status);
+        fits_update_key_s(fptr, TDOUBLE, "PIXSIZE1", &(pixSize1), "Pixel Size 1 (microns)", &status);
+	fits_update_key_s(fptr, TDOUBLE, "PIXSIZE2", &(pixSize2), "Pixel Size 2 (microns)", &status);
         fits_update_key_s(fptr, TSTRING, "BINNING", binning_s, "Binning HOR x VER", &status);
         fits_update_key_s(fptr, TSTRING, "FRAME", frame_s, "Frame Type", &status);
         fits_update_key_s(fptr, TDOUBLE, "DATAMIN", &min_val, "Minimum value", &status);
