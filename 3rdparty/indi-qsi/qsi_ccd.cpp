@@ -74,8 +74,8 @@ double max(void);
 #define TEMP_THRESHOLD  .25		/* Differential temperature threshold (C)*/
 #define NFLUSHES	1		/* Number of times a CCD array is flushed before an exposure */
 
-#define LAST_FILTER  4          /* Max slot index */
-#define FIRST_FILTER 0          /* Min slot index */
+#define LAST_FILTER  5          /* Max slot index */
+#define FIRST_FILTER 1          /* Min slot index */
 
 #define currentFilter   FilterN[0].value
 
@@ -323,7 +323,7 @@ bool QSICCD::setupParams()
     if (isDebug())
         IDLog("The filter count is %d\n", filter_count);
 
-    FilterSlotN[0].max = filter_count - 1;
+    FilterSlotN[0].max = filter_count;
     FilterSlotNP->s = IPS_OK;
 
     IUUpdateMinMax(FilterSlotNP);
@@ -458,7 +458,7 @@ bool QSICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
 
 bool QSICCD::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    int maxFilters = (int) FilterSlotN[0].max + 1;
+    int maxFilters = (int) FilterSlotN[0].max;
     //std::string filterDesignation[maxFilters];
 
     if(strcmp(dev,deviceName())==0)
@@ -580,7 +580,7 @@ bool QSICCD::ISNewNumber(const char *dev, const char *name, double values[], cha
             {
                 IDSetNumber(FilterSlotNP, "get_FilterCount() failed. %s.", err.what());
             }
-            if (targetFilter < FIRST_FILTER || targetFilter > filter_count - 1)
+            if (targetFilter < FIRST_FILTER || targetFilter > filter_count)
             {
                 FilterSlotNP->s = IPS_ALERT;
                 IDSetNumber(FilterSlotNP, "Error: valid range of filter is from %d to %d", FIRST_FILTER, LAST_FILTER);
@@ -597,10 +597,12 @@ bool QSICCD::ISNewNumber(const char *dev, const char *name, double values[], cha
             SelectFilter(targetFilter);
 
             /* Check current filter position */
-            short newFilter;
+            short newFilter = QueryFilter();
+	    /*
             try
             {
-                QSICam.get_Position(&newFilter);
+	        newFilter = QueryFilter();
+	        //QSICam.get_Position(&newFilter);
             } catch(std::runtime_error err)
             {
                 FilterSlotNP->s = IPS_ALERT;
@@ -609,6 +611,7 @@ bool QSICCD::ISNewNumber(const char *dev, const char *name, double values[], cha
                     IDLog("get_Position() failed. %s.\n", err.what());
                 return false;
             }
+	    */
 
             if (newFilter == targetFilter)
             {
@@ -895,13 +898,18 @@ void QSICCD::addFITSKeywords(fitsfile *fptr)
         char name_s[32] = "QSI";
         double electronsPerADU;
 	double pixSize1,pixSize2;
-        short filter;
+        short filter = 0;
         try {
             string name;
             QSICam.get_Name(name);
             for(unsigned i = 0; i < 18; ++i) name_s[i] = name[i];
             QSICam.get_ElectronsPerADU(&electronsPerADU);
-            QSICam.get_Position(&filter);
+	    bool hasWheel = false;
+	    QSICam.get_HasFilterWheel(&hasWheel);
+	    if(hasWheel){
+	      filter = QueryFilter();
+	      //QSICam.get_Position(&filter);
+	    }
 	    QSICam.get_PixelSizeX(&pixSize1);
 	    QSICam.get_PixelSizeY(&pixSize2);
         } catch (std::runtime_error& err) {
@@ -911,7 +919,7 @@ void QSICCD::addFITSKeywords(fitsfile *fptr)
         }
 
         //pixSize = PrimaryCCD.getPixelSizeX();
-
+	
         fits_update_key_s(fptr, TDOUBLE, "CCD-TEMP", &(TemperatureN[0].value), "CCD Temperature (Celcius)", &status);
         fits_update_key_s(fptr, TDOUBLE, "EXPTIME", &(imageExpose), "Total Exposure Time (s)", &status);
         if(imageFrameType == CCDChip::DARK_FRAME)
@@ -1462,10 +1470,12 @@ void QSICCD::turnWheel()
             else current_filter = FIRST_FILTER;
             try
             {
-                QSICam.get_Position(&current_filter);
+	        current_filter = QueryFilter();
+                //QSICam.get_Position(&current_filter);
                 if(current_filter < LAST_FILTER) current_filter++;
                 else current_filter = FIRST_FILTER;
-                QSICam.put_Position(current_filter);
+		SelectFilter(current_filter);
+                //QSICam.put_Position(current_filter);
             } catch (std::runtime_error err)
             {
                 FilterSP->s = IPS_IDLE;
@@ -1492,10 +1502,12 @@ void QSICCD::turnWheel()
           case ISS_OFF:
            try
            {
-                QSICam.get_Position(&current_filter);
+	        current_filter = QueryFilter();
+	        //QSICam.get_Position(&current_filter);
                 if(current_filter > FIRST_FILTER) current_filter--;
                 else current_filter = LAST_FILTER;
-                QSICam.put_Position(current_filter);
+                //QSICam.put_Position(current_filter);
+		SelectFilter(current_filter);
             } catch (std::runtime_error err)
             {
                 FilterSP->s = IPS_IDLE;
@@ -1596,7 +1608,7 @@ bool QSICCD::GetFilterNames(const char *deviceName, const char* groupName)
 {
     char filterName[MAXINDINAME];
     char filterLabel[MAXINDILABEL];
-    int maxFilters = (int) FilterSlotN[0].max + 1;
+    int maxFilters = (int) FilterSlotN[0].max;
     //std::string filterDesignation[maxFilters];
 
     if (FilterNameT != NULL)
@@ -1623,7 +1635,7 @@ bool QSICCD::GetFilterNames(const char *deviceName, const char* groupName)
         IUFillText(&FilterNameT[i], filterName, filterLabel, filterDesignation[i].c_str());
     }
 
-    IUFillTextVector(FilterNameTP, FilterNameT, maxFilters, deviceName, "FILTER_NAME", "Filter", groupName, IP_RW, 0, IPS_IDLE);
+    IUFillTextVector(FilterNameTP, FilterNameT, maxFilters, deviceName, "FILTER_NAME", "Filter", groupName, IP_RW, 1, IPS_IDLE);
 
     return true;
 }
@@ -1647,9 +1659,10 @@ bool QSICCD::SetFilterNames()
 
 bool QSICCD::SelectFilter(int targetFilter)
 {
+    short filter = targetFilter - 1;
     try
     {
-        QSICam.put_Position(targetFilter);
+        QSICam.put_Position(filter);
     } catch(std::runtime_error err)
     {
         FilterSlotNP->s = IPS_ALERT;
@@ -1678,6 +1691,6 @@ int QSICCD::QueryFilter()
         return -1;
     }
 
-    return newFilter;
+    return newFilter + 1;
 }
 
