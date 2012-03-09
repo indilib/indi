@@ -913,13 +913,14 @@ void QSICCD::addFITSKeywords(fitsfile *fptr)
         fits_update_key_s(fptr, TDOUBLE, "EXPTIME", &(imageExpose), "Total Exposure Time (s)", &status);
         if(imageFrameType == CCDChip::DARK_FRAME)
         fits_update_key_s(fptr, TDOUBLE, "DARKTIME", &(imageExpose), "Total Exposure Time (s)", &status);
-        fits_update_key_s(fptr, TDOUBLE, "PIX-SIZ", &pixSize, "Pixel Size (microns)", &status);
+        fits_update_key_s(fptr, TINT, "PIX-SIZ", &pixSize, "Pixel Size (microns)", &status);
         fits_update_key_s(fptr, TSTRING, "BINNING", binning_s, "Binning HOR x VER", &status);
         fits_update_key_s(fptr, TSTRING, "FRAME", frame_s, "Frame Type", &status);
         fits_update_key_s(fptr, TDOUBLE, "DATAMIN", &min_val, "Minimum value", &status);
         fits_update_key_s(fptr, TDOUBLE, "DATAMAX", &max_val, "Maximum value", &status);
         fits_update_key_s(fptr, TSTRING, "INSTRUME", name_s, "CCD Name", &status);
         fits_update_key_s(fptr, TDOUBLE, "EPERADU", &electronsPerADU, "Electrons per ADU", &status);
+	fits_update_key_s(fptr, TSHORT, "FILPOS", &filter, "Filter system position", &status);
 
         fits_write_date(fptr, &status);
 }
