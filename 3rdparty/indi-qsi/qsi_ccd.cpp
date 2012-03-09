@@ -899,6 +899,7 @@ void QSICCD::addFITSKeywords(fitsfile *fptr)
         double electronsPerADU;
 	double pixSize1,pixSize2;
         short filter = 0;
+	char filter_s[32] = "None";
         try {
             string name;
             QSICam.get_Name(name);
@@ -909,6 +910,9 @@ void QSICCD::addFITSKeywords(fitsfile *fptr)
 	    if(hasWheel){
 	      filter = QueryFilter();
 	      //QSICam.get_Position(&filter);
+	      string *filterNames = new std::string[LAST_FILTER+1];
+	      QSICam.get_Names(filterNames);
+	      for(unsigned i = 0; i < 18; ++i) filter_s[i] = filterNames[filter-1][i];
 	    }
 	    QSICam.get_PixelSizeX(&pixSize1);
 	    QSICam.get_PixelSizeY(&pixSize2);
@@ -932,7 +936,8 @@ void QSICCD::addFITSKeywords(fitsfile *fptr)
         fits_update_key_s(fptr, TDOUBLE, "DATAMAX", &max_val, "Maximum value", &status);
         fits_update_key_s(fptr, TSTRING, "INSTRUME", name_s, "CCD Name", &status);
         fits_update_key_s(fptr, TDOUBLE, "EPERADU", &electronsPerADU, "Electrons per ADU", &status);
-	fits_update_key_s(fptr, TSHORT, "FILPOS", &filter, "Filter system position", &status);
+	fits_update_key_s(fptr, TSHORT,  "FILPOS", &filter, "Filter system position", &status);
+	fits_update_key_s(fptr, TSTRING, "FILTER", filter_s, "Filter name", &status);
 
         fits_write_date(fptr, &status);
 }
