@@ -973,7 +973,7 @@ void MaxDomeII::ISPoll()
 		{	// Only refresh position if it changed
 			HomePosRN[0].value = nHomePosition;
             sprintf(buf,"%d", nHomePosition);
-			IDSetNumber(&HomePosRN, buf);
+			IDSetNumber(&HomePosRNP, buf);
 		}
 		
 		switch(nAzimuthStatus)
