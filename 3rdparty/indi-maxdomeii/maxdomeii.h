@@ -64,6 +64,7 @@ private:
   INumber ParkPositionN[1];
   INumber HomeAzimuthN[1];
   INumber WatchDogN[1];
+  INumber HomePosRN[1];
     
   /* Switch Vectors */
   ISwitchVectorProperty ConnectSP;
@@ -81,6 +82,7 @@ private:
   INumberVectorProperty ParkPositionNP;
   INumberVectorProperty HomeAzimuthNP;
   INumberVectorProperty WachDogNP;
+  INumberVectorProperty HomePosRNP;
   
   /* Text Vectors */
   ITextVectorProperty PortTP;

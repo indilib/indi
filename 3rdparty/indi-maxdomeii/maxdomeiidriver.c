@@ -205,7 +205,7 @@ int Abort_Azimuth_MaxDomeII(int fd)
 	if (nReturn != 0)
 		return nReturn;
 	
-	if (cMessage[2] == (ABORT_CMD | TO_COMPUTER))
+	if (cMessage[2] == (char)(ABORT_CMD | TO_COMPUTER))
 		return 0;
 	
 	return -6;	// Response don't match command
@@ -237,7 +237,7 @@ int Home_Azimuth_MaxDomeII(int fd)
 	if (nReturn != 0)
 		return nReturn;
 	
-	if (cMessage[2] == (HOME_CMD | TO_COMPUTER))
+	if (cMessage[2] == (char)(HOME_CMD | TO_COMPUTER))
 		return 0;
 	
 	return -6;	// Response don't match command
@@ -277,7 +277,7 @@ int Goto_Azimuth_MaxDomeII(int fd, int nDir, int nTicks)
 	if (nReturn != 0)
 		return nReturn;
 	
-	if (cMessage[2] == (GOTO_CMD | TO_COMPUTER))
+	if (cMessage[2] == (char)(GOTO_CMD | TO_COMPUTER))
 		return 0;
 	
 	return -6;	// Response don't match command
@@ -313,7 +313,7 @@ int Status_MaxDomeII(int fd, enum SH_Status *nShutterStatus, enum AZ_Status *nAz
 	if (nReturn != 0)
 		return nReturn;
 	
-	if (cMessage[2] == (STATUS_CMD | TO_COMPUTER))
+	if (cMessage[2] == (char)(STATUS_CMD | TO_COMPUTER))
 	{
 		*nShutterStatus = (int)cMessage[3];
 		*nAzimuthStatus = (int)cMessage[4];
@@ -356,7 +356,7 @@ int Ack_MaxDomeII(int fd)
 	if (nReturn != 0)
 		return nReturn;
 	
-	if (cMessage[2] == (ACK_CMD | TO_COMPUTER))
+	if (cMessage[2] == (char)(ACK_CMD | TO_COMPUTER))
 		return 0;
 	
 	//fprintf(stderr,"\nIn: %02x %02x", (unsigned char)(ACK_CMD | TO_COMPUTER), cMessage[2]);
@@ -395,7 +395,7 @@ int SetPark_MaxDomeII(int fd, int nParkOnShutter, int nTicks)
 	if (nReturn != 0)
 		return nReturn;
 	
-	if (cMessage[2] == (SETPARK_CMD | TO_COMPUTER))
+	if (cMessage[2] == (char)(SETPARK_CMD | TO_COMPUTER))
 		return 0;
 	
 	return -6;	// Response don't match command
@@ -434,7 +434,7 @@ int Open_Shutter_MaxDomeII(int fd)
 	if (nReturn != 0)
 		return nReturn;
 	
-	if (cMessage[2] == (SHUTTER_CMD | TO_COMPUTER))
+	if (cMessage[2] == (char)(SHUTTER_CMD | TO_COMPUTER))
 		return 0;
 	
 	return -6;	// Response don't match command
@@ -467,7 +467,7 @@ int Open_Upper_Shutter_Only_MaxDomeII(int fd)
 	if (nReturn != 0)
 		return nReturn;
 	
-	if (cMessage[2] == (SHUTTER_CMD | TO_COMPUTER))
+	if (cMessage[2] == (char)(SHUTTER_CMD | TO_COMPUTER))
 		return 0;
 	
 	return -6;	// Response don't match command
@@ -500,7 +500,7 @@ int Close_Shutter_MaxDomeII(int fd)
 	if (nReturn != 0)
 		return nReturn;
 	
-	if (cMessage[2] == (SHUTTER_CMD | TO_COMPUTER))
+	if (cMessage[2] == (char)(SHUTTER_CMD | TO_COMPUTER))
 		return 0;
 	
 	return -6;	// Response don't match command
@@ -533,7 +533,7 @@ int Abort_Shutter_MaxDomeII(int fd)
 	if (nReturn != 0)
 		return nReturn;
 	
-	if (cMessage[2] == (SHUTTER_CMD | TO_COMPUTER))
+	if (cMessage[2] == (char)(SHUTTER_CMD | TO_COMPUTER))
 		return 0;
 	
 	return -6;	// Response don't match command
@@ -566,7 +566,7 @@ int Exit_Shutter_MaxDomeII(int fd)
 	if (nReturn != 0)
 		return nReturn;
 	
-	if (cMessage[2] == (SHUTTER_CMD | TO_COMPUTER))
+	if (cMessage[2] == (char)(SHUTTER_CMD | TO_COMPUTER))
 		return 0;
 	
 	return -6;	// Response don't match command

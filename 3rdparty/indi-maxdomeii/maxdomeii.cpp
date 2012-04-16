@@ -155,7 +155,7 @@ MaxDomeII::MaxDomeII()
     init_properties();
 
     IDLog("Initilizing from MaxDome II device...\n");
-    IDLog("Driver Version: 2011-10-16\n"); 
+    IDLog("Driver Version: 2012-03-11\n"); 
 }
 
 /**************************************************************************************
@@ -206,6 +206,10 @@ void MaxDomeII::init_properties()
     IUFillNumber(&AzimuthRN[0], "AZIMUTH", "Azimuth", "%5.2f",  0., 360., 0., 0.);
     IUFillNumberVector(&AzimuthRNP, AzimuthRN, NARRAY(AzimuthRN), mydev, "AZIMUTH_GET" , "Azimuth get", OPERATION_GROUP, IP_RO, 0, IPS_IDLE);
 
+	// Homr position - GET (for debug purpouses)
+    IUFillNumber(&HomePosRN[0], "HOME_POS", "Home Position", "%5.2f",  0., 360., 0., 0.);
+    IUFillNumberVector(&HomePosRNP, HomePosRN, NARRAY(HomePosRN), mydev, "HOME_POS_GET" , "Home Position", OPERATION_GROUP, IP_RO, 0, IPS_IDLE);
+	
 	// Ticks per turn
 	TicksPerTurnN[0].value = nTicksPerTurn;
 	IUFillNumber(&TicksPerTurnN[0], "TICKS_PER_TURN", "Ticks per turn", "%d",  0., 360., 0., 0.);
@@ -339,7 +343,6 @@ int MaxDomeII::GotoAzimuth(double newAZ)
 	int error;
 		
 	currAZ = AzimuthRN[0].value;
-	newPos = AzimuthToTicks(newAZ); 
 	
 	// Take the shortest path
 	if (newAZ > currAZ)
@@ -356,6 +359,7 @@ int MaxDomeII::GotoAzimuth(double newAZ)
 		else
 			nDir = MAXDOMEII_WE_DIR;
 	}
+    newPos = AzimuthToTicks(newAZ);
 	error = Goto_Azimuth_MaxDomeII(fd, nDir, newPos);
 	nTargetAzimuth = newPos;
 	nTimeSinceAzimuthStart = 0;	// Init movement timer
@@ -777,6 +781,8 @@ int MaxDomeII::AzimuthDistance(int nPos1, int nPos2)
 ***************************************************************************************/
 void MaxDomeII::ISPoll()
 {	
+    char buf[32];
+    
 	if (is_connected() == false)
 	 return;
 
@@ -959,7 +965,15 @@ void MaxDomeII::ISPoll()
 		if (AzimuthRN[0].value != nAz)
 		{	// Only refresh position if it changed
 			AzimuthRN[0].value = nAz;
-			IDSetNumber(&AzimuthRNP, NULL);
+            sprintf(buf,"%d", nCurrentTicks);
+			IDSetNumber(&AzimuthRNP, buf);
+		}
+		
+		if (HomePosRN[0].value != nHomePosition)
+		{	// Only refresh position if it changed
+			HomePosRN[0].value = nHomePosition;
+            sprintf(buf,"%d", nHomePosition);
+			IDSetNumber(&HomePosRN, buf);
 		}
 		
 		switch(nAzimuthStatus)
@@ -1020,6 +1034,8 @@ void MaxDomeII::ISPoll()
 		default:
 			break;
 		}
+		
+		
 	}
 	else
 	{
@@ -1048,7 +1064,7 @@ double MaxDomeII::TicksToAzimuth(int nTicks)
 {
 	double nAz;
 	
-	nAz = (nTicks + nHomeTicks) * 360.0 / nTicksPerTurn;
+	nAz = nHomeAzimuth + nTicks * 360.0 / nTicksPerTurn;
 	while (nAz < 0) nAz += 360;
 	while (nAz >= 360) nAz -= 360;
 	
@@ -1061,7 +1077,7 @@ int MaxDomeII::AzimuthToTicks(double nAzimuth)
 {
 	int nTicks;
 	
-	nTicks = floor(0.5 + nAzimuth * nTicksPerTurn / 360.0) - nHomeTicks;
+	nTicks = floor(0.5 + (nAzimuth - nHomeAzimuth) * nTicksPerTurn / 360.0);
 	while (nTicks > nTicksPerTurn) nTicks -= nTicksPerTurn;
 	while (nTicks < 0) nTicks += nTicksPerTurn;
 	
