@@ -900,6 +900,7 @@ void QSICCD::addFITSKeywords(fitsfile *fptr)
 	double pixSize1,pixSize2;
         short filter = 0;
 	char filter_s[32] = "None";
+	char exposureStartTime_s[32] = "";
         try {
             string name;
             QSICam.get_Name(name);
@@ -916,6 +917,9 @@ void QSICCD::addFITSKeywords(fitsfile *fptr)
 	    }
 	    QSICam.get_PixelSizeX(&pixSize1);
 	    QSICam.get_PixelSizeY(&pixSize2);
+	    string exposureStartTime;
+	    QSICam.get_LastExposureStartTime(exposureStartTime);
+	    for(unsigned i = 0; i < 19; ++i) exposureStartTime_s[i] = exposureStartTime[i];
         } catch (std::runtime_error& err) {
             IDMessage(deviceName(), "get_Name() failed. %s.", err.what());
             IDLog("get_Name() failed. %s.\n", err.what());
@@ -938,6 +942,7 @@ void QSICCD::addFITSKeywords(fitsfile *fptr)
         fits_update_key_s(fptr, TDOUBLE, "EPERADU", &electronsPerADU, "Electrons per ADU", &status);
 	fits_update_key_s(fptr, TSHORT,  "FILPOS", &filter, "Filter system position", &status);
 	fits_update_key_s(fptr, TSTRING, "FILTER", filter_s, "Filter name", &status);
+	fits_update_key_s(fptr, TSTRING, "DATE-OBS", exposureStartTime_s, "UTC start date of observation", &status);
 
         fits_write_date(fptr, &status);
 }
