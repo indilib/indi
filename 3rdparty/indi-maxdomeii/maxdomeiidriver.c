@@ -295,7 +295,7 @@ int Goto_Azimuth_MaxDomeII(int fd, int nDir, int nTicks)
 */
 int Status_MaxDomeII(int fd, enum SH_Status *nShutterStatus, enum AZ_Status *nAzimuthStatus, unsigned *nAzimuthPosition, unsigned *nHomePosition)
 {
-        char cMessage[MAX_BUFFER];
+    char cMessage[MAX_BUFFER];
 	int nErrorType;
 	int nBytesWrite;
 	int nReturn;

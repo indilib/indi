@@ -206,7 +206,7 @@ void MaxDomeII::init_properties()
     IUFillNumber(&AzimuthRN[0], "AZIMUTH", "Azimuth", "%5.2f",  0., 360., 0., 0.);
     IUFillNumberVector(&AzimuthRNP, AzimuthRN, NARRAY(AzimuthRN), mydev, "AZIMUTH_GET" , "Azimuth get", OPERATION_GROUP, IP_RO, 0, IPS_IDLE);
 
-	// Homr position - GET (for debug purpouses)
+	// Home position - GET (for debug purpouses)
     IUFillNumber(&HomePosRN[0], "HOME_POS", "Home Position", "%5.2f",  0., 360., 0., 0.);
     IUFillNumberVector(&HomePosRNP, HomePosRN, NARRAY(HomePosRN), mydev, "HOME_POS_GET" , "Home Position", OPERATION_GROUP, IP_RO, 0, IPS_IDLE);
 	
@@ -960,6 +960,14 @@ void MaxDomeII::ISPoll()
 			}
 			break;
 		}
+		
+		if (HomePosRN[0].value != nHomePosition)
+		{	// Only refresh position if it changed
+			HomePosRN[0].value = nHomePosition;
+            //sprintf(buf,"%d", nHomePosition);
+			IDSetNumber(&HomePosRNP, NULL);
+		}
+		
 		// Azimuth
 		nAz = TicksToAzimuth(nCurrentTicks);
 		if (AzimuthRN[0].value != nAz)
@@ -967,13 +975,6 @@ void MaxDomeII::ISPoll()
 			AzimuthRN[0].value = nAz;
             sprintf(buf,"%d", nCurrentTicks);
 			IDSetNumber(&AzimuthRNP, buf);
-		}
-		
-		if (HomePosRN[0].value != nHomePosition)
-		{	// Only refresh position if it changed
-			HomePosRN[0].value = nHomePosition;
-            sprintf(buf,"%d", nHomePosition);
-			IDSetNumber(&HomePosRNP, buf);
 		}
 		
 		switch(nAzimuthStatus)
