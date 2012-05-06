@@ -155,7 +155,7 @@ MaxDomeII::MaxDomeII()
     init_properties();
 
     IDLog("Initilizing from MaxDome II device...\n");
-    IDLog("Driver Version: 2012-03-11\n"); 
+    IDLog("Driver Version: 2012-05-06\n"); 
 }
 
 /**************************************************************************************

@@ -317,7 +317,7 @@ int Status_MaxDomeII(int fd, enum SH_Status *nShutterStatus, enum AZ_Status *nAz
 	{
 		*nShutterStatus = (int)cMessage[3];
 		*nAzimuthStatus = (int)cMessage[4];
-		*nAzimuthPosition = ((unsigned)cMessage[5]) * 256 + ((unsigned)cMessage[6]); 
+		*nAzimuthPosition = (unsigned)(((unsigned)cMessage[5]) * 256 + ((unsigned)cMessage[6])); 
 		*nHomePosition = ((unsigned)cMessage[7]) * 256 + ((unsigned)cMessage[8]);
 		
 		return 0;
