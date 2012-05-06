@@ -436,14 +436,15 @@ void MaxDomeII::ISNewNumber (const char *dev, const char *name, double values[],
 			return;
 			
 		nVal = values[0];
-		if (nVal >= 100 && nVal <=10000)
+		if (nVal >= 100 && nVal <=500)
 		{
+			error = SetTicksPerCount_MaxDomeII(nVal);
 			sprintf(cLog, "New Ticks Per Turn set: %lf", nVal);
 			nTicksPerTurn = nVal;
 			nHomeTicks = floor(0.5 + nHomeAzimuth * nTicksPerTurn / 360.0); // Calculate Home ticks again
 			TicksPerTurnNP.s = IPS_OK;
 			TicksPerTurnNP.np[0].value = nVal;
-                        IDSetNumber(&TicksPerTurnNP, "%s", cLog);
+			IDSetNumber(&TicksPerTurnNP, "%s", cLog);
 			return;
 		}
 		// Incorrect value. 
@@ -961,9 +962,9 @@ void MaxDomeII::ISPoll()
 			break;
 		}
 		
-		if (HomePosRN[0].value != nAzimuthStatus)//nHomePosition)
+		if (HomePosRN[0].value != nHomePosition)
 		{	// Only refresh position if it changed
-			HomePosRN[0].value = nAzimuthStatus; //nHomePosition;
+			HomePosRN[0].value = nHomePosition;
             //sprintf(buf,"%d", nHomePosition);
 			IDSetNumber(&HomePosRNP, NULL);
 		}
@@ -973,8 +974,8 @@ void MaxDomeII::ISPoll()
 		if (AzimuthRN[0].value != nAz)
 		{	// Only refresh position if it changed
 			AzimuthRN[0].value = nAz;
-            sprintf(buf,"%d", nCurrentTicks);
-			IDSetNumber(&AzimuthRNP, buf);
+            //sprintf(buf,"%d", nCurrentTicks);
+			IDSetNumber(&AzimuthRNP, NULL);
 		}
 		
 		switch(nAzimuthStatus)

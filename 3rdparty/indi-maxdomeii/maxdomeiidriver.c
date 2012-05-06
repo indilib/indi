@@ -401,6 +401,43 @@ int SetPark_MaxDomeII(int fd, int nParkOnShutter, int nTicks)
 	return -6;	// Response don't match command
 }
 
+/*
+ Set park coordinates and if need to park before to operating shutter
+ 
+ @param fd File descriptor
+ @param nParkOnShutter 0 operate shutter at any azimuth. 1 go to park position before operating shutter
+ @param nTicks Ticks from home position in E to W direction.
+ @return 0 command received by MAX DOME. -5 Couldn't send command. -6 Response don't match command. See ReadResponse() return
+ */
+int SetTicksPerCount_MaxDomeII(int fd, int nTicks)
+{
+    char cMessage[MAX_BUFFER];
+	int nErrorType;
+	int nBytesWrite;
+	int nReturn;
+	
+	cMessage[0] = 0x01;
+	cMessage[1] = 0x04;		// Will follow 4 bytes more
+	cMessage[2] = TICKS_CMD;
+	// Note: we not use nTicks >> 8 in order to remain compatible with both little-endian and big-endian procesors
+	cMessage[3] = (char)(nTicks / 256);
+	cMessage[4] = (char)(nTicks % 256);
+	cMessage[5] = checksum_MaxDomeII(cMessage, 5);
+	nErrorType = tty_write(fd, cMessage, 6, &nBytesWrite);
+	
+	if (nErrorType != TTY_OK)
+		return -5;
+    
+	nReturn = ReadResponse_MaxDomeII(fd, cMessage);
+	if (nReturn != 0)
+		return nReturn;
+	
+	if (cMessage[2] == (char)(TICKS_CMD | TO_COMPUTER))
+		return 0;
+	
+	return -6;	// Response don't match command
+}
+
 ///////////////////////////////////////////////////////////////////////////
 //
 //  Shutter commands
