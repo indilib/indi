@@ -187,7 +187,7 @@ int ReadResponse_MaxDomeII(int fd, char *cMessage)
 */
 int Abort_Azimuth_MaxDomeII(int fd)
 {
-        char cMessage[MAX_BUFFER];
+    char cMessage[MAX_BUFFER];
 	int nErrorType;
 	int nBytesWrite;
 	int nReturn;
@@ -219,7 +219,7 @@ int Abort_Azimuth_MaxDomeII(int fd)
 */
 int Home_Azimuth_MaxDomeII(int fd)
 {
-        char cMessage[MAX_BUFFER];
+    char cMessage[MAX_BUFFER];
 	int nErrorType;
 	int nBytesWrite;
 	int nReturn;
@@ -253,9 +253,9 @@ int Home_Azimuth_MaxDomeII(int fd)
 */
 int Goto_Azimuth_MaxDomeII(int fd, int nDir, int nTicks)
 {
-        char cMessage[MAX_BUFFER];
-        int nErrorType;
-        int nBytesWrite;
+    char cMessage[MAX_BUFFER];
+    int nErrorType;
+    int nBytesWrite;
 	int nReturn;
 	
 	cMessage[0] = 0x01;
@@ -317,8 +317,8 @@ int Status_MaxDomeII(int fd, enum SH_Status *nShutterStatus, enum AZ_Status *nAz
 	{
 		*nShutterStatus = (int)cMessage[3];
 		*nAzimuthStatus = (int)cMessage[4];
-		*nAzimuthPosition = (unsigned)cMessage[5] * 256 + (unsigned)cMessage[6]; 
-		*nHomePosition = (unsigned)cMessage[7] * 256 + (unsigned)cMessage[8];
+		*nAzimuthPosition = ((unsigned)cMessage[5]) * 256 + (unsigned)cMessage[6]; 
+		*nHomePosition = ((unsigned)cMessage[7]) * 256 + (unsigned)cMessage[8];
 		
 		return 0;
 	}
@@ -334,7 +334,7 @@ int Status_MaxDomeII(int fd, enum SH_Status *nShutterStatus, enum AZ_Status *nAz
 */
 int Ack_MaxDomeII(int fd)
 {
-        char cMessage[MAX_BUFFER];
+    char cMessage[MAX_BUFFER];
 	int nErrorType = TTY_OK;
 	int nBytesWrite;
 	int nReturn;
@@ -373,7 +373,7 @@ int Ack_MaxDomeII(int fd)
 */
 int SetPark_MaxDomeII(int fd, int nParkOnShutter, int nTicks)
 {
-        char cMessage[MAX_BUFFER];
+    char cMessage[MAX_BUFFER];
 	int nErrorType;
 	int nBytesWrite;
 	int nReturn;
@@ -415,7 +415,7 @@ int SetPark_MaxDomeII(int fd, int nParkOnShutter, int nTicks)
 */
 int Open_Shutter_MaxDomeII(int fd)
 {
-        char cMessage[MAX_BUFFER];
+    char cMessage[MAX_BUFFER];
 	int nErrorType;
 	int nBytesWrite;
 	int nReturn;
@@ -448,7 +448,7 @@ int Open_Shutter_MaxDomeII(int fd)
 */
 int Open_Upper_Shutter_Only_MaxDomeII(int fd)
 {
-        char cMessage[MAX_BUFFER];
+    char cMessage[MAX_BUFFER];
 	int nErrorType;
 	int nBytesWrite;
 	int nReturn;
@@ -481,7 +481,7 @@ int Open_Upper_Shutter_Only_MaxDomeII(int fd)
 */
 int Close_Shutter_MaxDomeII(int fd)
 {
-        char cMessage[MAX_BUFFER];
+    char cMessage[MAX_BUFFER];
 	int nErrorType;
 	int nBytesWrite;
 	int nReturn;
@@ -514,7 +514,7 @@ int Close_Shutter_MaxDomeII(int fd)
 */
 int Abort_Shutter_MaxDomeII(int fd)
 {
-        char cMessage[MAX_BUFFER];
+    char cMessage[MAX_BUFFER];
 	int nErrorType;
 	int nBytesWrite;
 	int nReturn;
@@ -547,7 +547,7 @@ int Abort_Shutter_MaxDomeII(int fd)
 */
 int Exit_Shutter_MaxDomeII(int fd)
 {
-        char cMessage[MAX_BUFFER];
+    char cMessage[MAX_BUFFER];
 	int nErrorType;
 	int nBytesWrite;
 	int nReturn;
