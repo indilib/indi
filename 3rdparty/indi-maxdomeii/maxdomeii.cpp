@@ -431,6 +431,7 @@ void MaxDomeII::ISNewNumber (const char *dev, const char *name, double values[],
 	{
 		double nVal;
 		char cLog[255];
+		int error;
 		
 		if (IUUpdateNumber(&TicksPerTurnNP, values, names, n) < 0)
 			return;
@@ -439,12 +440,21 @@ void MaxDomeII::ISNewNumber (const char *dev, const char *name, double values[],
 		if (nVal >= 100 && nVal <=500)
 		{
 			error = SetTicksPerCount_MaxDomeII(nVal);
-			sprintf(cLog, "New Ticks Per Turn set: %lf", nVal);
-			nTicksPerTurn = nVal;
-			nHomeTicks = floor(0.5 + nHomeAzimuth * nTicksPerTurn / 360.0); // Calculate Home ticks again
-			TicksPerTurnNP.s = IPS_OK;
-			TicksPerTurnNP.np[0].value = nVal;
-			IDSetNumber(&TicksPerTurnNP, "%s", cLog);
+			if (error >= 0)
+			{
+				sprintf(cLog, "New Ticks Per Turn set: %lf", nVal);
+				nTicksPerTurn = nVal;
+				nHomeTicks = floor(0.5 + nHomeAzimuth * nTicksPerTurn / 360.0); // Calculate Home ticks again
+				TicksPerTurnNP.s = IPS_OK;
+				TicksPerTurnNP.np[0].value = nVal;
+				IDSetNumber(&TicksPerTurnNP, "%s", cLog);
+			}
+			else {
+				IDLog("MAX DOME II: %s",ErrorMessages[-error]);
+				TicksPerTurnNP.s = IPS_ALERT;
+				IDSetNumber(&TicksPerTurnNP, "%s", ErrorMessages[-error]);
+			}
+
 			return;
 		}
 		// Incorrect value. 

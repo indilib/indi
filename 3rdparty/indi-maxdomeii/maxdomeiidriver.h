@@ -46,6 +46,7 @@ int Goto_Azimuth_MaxDomeII(int fd, int nDir, int nTicks);
 int Status_MaxDomeII(int fd, enum SH_Status *nShutterStatus, enum AZ_Status *nAzimuthStatus, unsigned *nAzimuthPosition, unsigned *nHomePosition);
 int Ack_MaxDomeII(int fd);
 int SetPark_MaxDomeII(int fd, int nParkOnShutter, int nTicks);
+int SetTicksPerCount_MaxDomeII(int fd, int nTicks)
 //  Shutter commands
 int Open_Shutter_MaxDomeII(int fd);
 int Open_Upper_Shutter_Only_MaxDomeII(int fd);
