@@ -973,7 +973,7 @@ void MaxDomeII::ISPoll()
 		if (AzimuthRN[0].value != nAz)
 		{	// Only refresh position if it changed
 			AzimuthRN[0].value = nAz;
-            sprintf(buf,"%d", nCurrentTicks);
+            sprintf(buf,"%d", nAzimuthStatus);
 			IDSetNumber(&AzimuthRNP, buf);
 		}
 		
