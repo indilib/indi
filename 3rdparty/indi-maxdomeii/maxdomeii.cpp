@@ -439,7 +439,7 @@ void MaxDomeII::ISNewNumber (const char *dev, const char *name, double values[],
 		nVal = values[0];
 		if (nVal >= 100 && nVal <=500)
 		{
-			error = SetTicksPerCount_MaxDomeII(nVal);
+			error = SetTicksPerCount_MaxDomeII(fd, nVal);
 			if (error >= 0)
 			{
 				sprintf(cLog, "New Ticks Per Turn set: %lf", nVal);
