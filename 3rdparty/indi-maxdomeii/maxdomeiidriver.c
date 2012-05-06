@@ -313,7 +313,7 @@ int Status_MaxDomeII(int fd, enum SH_Status *nShutterStatus, enum AZ_Status *nAz
 	if (nReturn != 0)
 		return nReturn;
 	
-	if (cMessage[2] == (char)(STATUS_CMD | TO_COMPUTER))
+	if (cMessage[2] == (unsigned char)(STATUS_CMD | TO_COMPUTER))
 	{
 		*nShutterStatus = (int)cMessage[3];
 		*nAzimuthStatus = (int)cMessage[4];
