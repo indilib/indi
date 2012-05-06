@@ -961,9 +961,9 @@ void MaxDomeII::ISPoll()
 			break;
 		}
 		
-		if (HomePosRN[0].value != nHomePosition)
+		if (HomePosRN[0].value != nAzimuthStatus)//nHomePosition)
 		{	// Only refresh position if it changed
-			HomePosRN[0].value = nHomePosition;
+			HomePosRN[0].value = nAzimuthStatus; //nHomePosition;
             //sprintf(buf,"%d", nHomePosition);
 			IDSetNumber(&HomePosRNP, NULL);
 		}
@@ -973,7 +973,7 @@ void MaxDomeII::ISPoll()
 		if (AzimuthRN[0].value != nAz)
 		{	// Only refresh position if it changed
 			AzimuthRN[0].value = nAz;
-            sprintf(buf,"%d", nAzimuthStatus);
+            sprintf(buf,"%d", nCurrentTicks);
 			IDSetNumber(&AzimuthRNP, buf);
 		}
 		
