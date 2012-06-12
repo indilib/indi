@@ -26,7 +26,7 @@
 
 #include <indidevapi.h>
 #include <indicom.h>
-#include <indibase/defaultdriver.h>
+#include <indibase/defaultdevice.h>
 
 using namespace std;
 
@@ -34,7 +34,7 @@ using namespace std;
 #define TCFS_MAX_TRIES      3
 #define TCFS_ERROR_BUFFER   1024
 
-class TCFS : public INDI::DefaultDriver
+class TCFS : public INDI::DefaultDevice
 {
 
 public:

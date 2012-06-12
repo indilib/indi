@@ -52,10 +52,11 @@ public:
 
     /** \brief Obtains a list of filter names from the hardware and initilizes the FilterNameTP property. The function should check for the number of filters
       available in the filter wheel and build the FilterNameTP property accordingly.
+      \param groupName group name for FilterNameTP property to be created.
       \return True if successful, false if unsupported or failed operation
       \see QSI CCD implementation of the FilterInterface. QSI CCD is available as a 3rd party INDI driver.
     */
-    virtual bool GetFilterNames(const char *deviceName, const char* groupName) = 0;
+    virtual bool GetFilterNames(const char* groupName) = 0;
 
     /** \brief The child class calls this function when the hardware successfully finished selecting a new filter wheel position
         \param newpos New position of the filter wheel

@@ -127,32 +127,32 @@ bool ScopeSim::initProperties()
     /* Property for guider support. How many seconds to guide either northward or southward? */
     IUFillNumber(&GuideNSN[GUIDE_NORTH], "TIMED_GUIDE_N", "North (sec)", "%g", 0, 10, 0.001, 0);
     IUFillNumber(&GuideNSN[GUIDE_SOUTH], "TIMED_GUIDE_S", "South (sec)", "%g", 0, 10, 0.001, 0);
-    IUFillNumberVector(GuideNSNP, GuideNSN, 2, deviceName(), "TELESCOPE_TIMED_GUIDE_NS", "Guide North/South", MOTION_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(GuideNSNP, GuideNSN, 2, getDeviceName(), "TELESCOPE_TIMED_GUIDE_NS", "Guide North/South", MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
     /* Property for guider support. How many seconds to guide either westward or eastward? */
     IUFillNumber(&GuideWEN[GUIDE_WEST], "TIMED_GUIDE_W", "West (sec)", "%g", 0, 10, 0.001, 0);
     IUFillNumber(&GuideWEN[GUIDE_EAST], "TIMED_GUIDE_E", "East (sec)", "%g", 0, 10, 0.001, 0);
-    IUFillNumberVector(GuideWENP, GuideWEN, 2, deviceName(), "TELESCOPE_TIMED_GUIDE_WE", "Guide West/East", MOTION_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(GuideWENP, GuideWEN, 2, getDeviceName(), "TELESCOPE_TIMED_GUIDE_WE", "Guide West/East", MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
     /* Simulated periodic error in RA, DEC */
     IUFillNumber(&EqPECN[RA_AXIS],"RA_PEC","RA (hh:mm:ss)","%010.6m",0,24,0,15.);
     IUFillNumber(&EqPECN[DEC_AXIS],"DEC_PEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,15.);
-    IUFillNumberVector(EqPECNV,EqPECN,2,deviceName(),"EQUATORIAL_PEC","Periodic Error",MOTION_TAB,IP_RO,60,IPS_IDLE);
+    IUFillNumberVector(EqPECNV,EqPECN,2,getDeviceName(),"EQUATORIAL_PEC","Periodic Error",MOTION_TAB,IP_RO,60,IPS_IDLE);
 
     /* Enable client to manually add periodic error northward or southward for simulation purposes */
     IUFillSwitch(&PECErrNSS[MOTION_NORTH], "PEC_N", "North", ISS_OFF);
     IUFillSwitch(&PECErrNSS[MOTION_SOUTH], "PEC_S", "South", ISS_OFF);
-    IUFillSwitchVector(PECErrNSSP, PECErrNSS, 2, deviceName(),"PEC_NS", "PE N/S", MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(PECErrNSSP, PECErrNSS, 2, getDeviceName(),"PEC_NS", "PE N/S", MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     /* Enable client to manually add periodic error westward or easthward for simulation purposes */
     IUFillSwitch(&PECErrWES[MOTION_WEST], "PEC_W", "West", ISS_OFF);
     IUFillSwitch(&PECErrWES[MOTION_EAST], "PEC_E", "East", ISS_OFF);
-    IUFillSwitchVector(PECErrWESP, PECErrWES, 2, deviceName(),"PEC_WE", "PE W/E", MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(PECErrWESP, PECErrWES, 2, getDeviceName(),"PEC_WE", "PE W/E", MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     /* How fast do we guide compared to sideral rate */
     IUFillNumber(&GuideRateN[RA_AXIS], "GUIDE_RATE_WE", "W/E Rate", "%g", 0, 1, 0.1, 0.3);
     IUFillNumber(&GuideRateN[DEC_AXIS], "GUIDE_RATE_NS", "N/S Rate", "%g", 0, 1, 0.1, 0.3);
-    IUFillNumberVector(GuideRateNP, GuideRateN, 2, deviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
     /* Add debug controls so we may debug driver if necessary */
     addDebugControl();
@@ -198,7 +198,7 @@ bool ScopeSim::updateProperties()
         deleteProperty(GuideWENP->name);
         deleteProperty(EqPECNV->name);
         deleteProperty(PECErrNSSP->name);
-        deleteProperty(PECErrNSSP->name);
+        deleteProperty(PECErrWESP->name);
         deleteProperty(GuideRateNP->name);
     }
 
@@ -219,9 +219,9 @@ bool ScopeSim::Connect()
     return rc;
 }
 
-bool ScopeSim::Connect(char *)
+bool ScopeSim::Connect(char *port)
 {
-    return true;
+   return true;
 }
 
 bool ScopeSim::Disconnect()
@@ -341,13 +341,13 @@ bool ScopeSim::ReadScopeStatus()
                 TrackState = SCOPE_TRACKING;
 
                 EqNV->s = IPS_OK;
-                IDMessage(deviceName(), "Telescope slew is complete. Tracking...");
+                IDMessage(getDeviceName(), "Telescope slew is complete. Tracking...");
             }
             else
             {
                 TrackState = SCOPE_PARKED;
                 EqNV->s = IPS_IDLE;
-                IDMessage(deviceName(), "Telescope parked successfully.");
+                IDMessage(getDeviceName(), "Telescope parked successfully.");
             }
         }
 
@@ -492,8 +492,23 @@ bool ScopeSim::Goto(double r,double d)
     EqReqNV->s = IPS_BUSY;
     EqNV->s    = IPS_BUSY;
 
-    IDMessage(deviceName(), "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+    IDMessage(getDeviceName(), "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
+}
+
+bool ScopeSim::Sync(double ra, double dec)
+{
+    currentRA  = ra;
+    currentDEC = dec;
+
+    IDMessage(getDeviceName(), "Sync is successful.");
+
+    TrackState = SCOPE_IDLE;
+    EqReqNV->s = IPS_OK;
+    EqNV->s    = IPS_OK;
+
+
+    NewRaDec(currentRA, currentDEC);
 }
 
 bool ScopeSim::Park()
@@ -502,7 +517,7 @@ bool ScopeSim::Park()
     targetDEC=90;
     Parked=true;
     TrackState = SCOPE_PARKING;
-    IDMessage(deviceName(), "Parking telescope in progress...");
+    IDMessage(getDeviceName(), "Parking telescope in progress...");
     return true;
 }
 
@@ -510,7 +525,7 @@ bool ScopeSim::ISNewNumber (const char *dev, const char *name, double values[], 
 {
     //  first check if it's for our device
 
-    if(strcmp(dev,deviceName())==0)
+    if(strcmp(dev,getDeviceName())==0)
     {
         //  This is for our device
         //  Now lets see if it's something we process here
@@ -567,7 +582,7 @@ bool ScopeSim::ISNewSwitch (const char *dev, const char *name, ISState *states, 
     //    IDLog("Switch %s %d\n",names[x],states[x]);
     //}
 
-    if(strcmp(dev,deviceName())==0)
+    if(strcmp(dev,getDeviceName())==0)
     {
         if(strcmp(name,"PEC_NS")==0)
         {

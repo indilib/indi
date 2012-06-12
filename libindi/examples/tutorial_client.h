@@ -36,18 +36,20 @@ class MyClient : public INDI::BaseClient
 
 protected:
 
-    virtual void newDevice(const char *device_name);
-    virtual void newProperty(const char *device_name, const char *property_name);
+    virtual void newDevice(INDI::BaseDevice *dp);
+    virtual void newProperty(INDI::Property *property);
+    virtual void removeProperty(INDI::Property *property) {}
     virtual void newBLOB(IBLOB *bp) {}
     virtual void newSwitch(ISwitchVectorProperty *svp);
     virtual void newNumber(INumberVectorProperty *nvp);
+    virtual void newMessage(INDI::BaseDevice *dp);
     virtual void newText(ITextVectorProperty *tvp) {}
     virtual void newLight(ILightVectorProperty *lvp) {}
     virtual void serverConnected() {}
-    virtual void serverDisconnected() {}
+    virtual void serverDisconnected(int exit_code) {}
 
 private:
-   INDI::BaseDriver * ccd_simulator;
+   INDI::BaseDevice * ccd_simulator;
 
 };
 

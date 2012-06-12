@@ -556,7 +556,7 @@ LX200Generic::LX200Generic()
    IDLog("initilizaing from generic LX200 device...\n");
    IDLog("Driver Version: 2008-05-21\n");
  
-   //enableSimulation(true);  
+   enableSimulation(true);
 }
 
 LX200Generic::~LX200Generic()

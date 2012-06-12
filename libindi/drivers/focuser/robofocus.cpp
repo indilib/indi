@@ -103,7 +103,6 @@ std::auto_ptr<RoboFocus> roboFocus(0);
  void ISSnoopDevice (XMLEle *root)
  {
      ISInit();
-     roboFocus->ISSnoopDevice(root);
  }
 
 
@@ -128,53 +127,53 @@ bool RoboFocus::initProperties()
 
     /* Port */
     IUFillText(&PortT[0], "PORT", "Port", "/dev/ttyUSB0");
-    IUFillTextVector(&PortTP, PortT, 1, deviceName(), "DEVICE_PORT", "Ports", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillTextVector(&PortTP, PortT, 1, getDeviceName(), "DEVICE_PORT", "Ports", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
 
     /* Focuser temperature */
     IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", 0, 65000., 0., 10000.);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, deviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     /* Settings of the Robofocus */
     IUFillNumber(&SettingsN[0], "Duty cycle", "Duty cycle", "%6.0f", 0., 255., 0., 1.0);
     IUFillNumber(&SettingsN[1], "Step Delay", "Step delay", "%6.0f", 0., 255., 0., 1.0);
     IUFillNumber(&SettingsN[2], "Motor Steps", "Motor steps per tick", "%6.0f", 0., 255., 0., 1.0);
-    IUFillNumberVector(&SettingsNP, SettingsN, 3, deviceName(), "FOCUS_SETTINGS", "Settings", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&SettingsNP, SettingsN, 3, getDeviceName(), "FOCUS_SETTINGS", "Settings", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     /* Power Switches of the Robofocus */
     IUFillSwitch(&PowerSwitchesS[0], "1", "Switch 1", ISS_OFF);
     IUFillSwitch(&PowerSwitchesS[1], "2", "Switch 2", ISS_OFF);
     IUFillSwitch(&PowerSwitchesS[2], "3", "Switch 3", ISS_OFF);
     IUFillSwitch(&PowerSwitchesS[3], "4", "Switch 4", ISS_ON);
-    IUFillSwitchVector(&PowerSwitchesSP, PowerSwitchesS, 4, deviceName(), "SWTICHES", "Power", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&PowerSwitchesSP, PowerSwitchesS, 4, getDeviceName(), "SWTICHES", "Power", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     /* Robofocus should stay within these limits */
     IUFillNumber(&MinMaxPositionN[0], "MINPOS", "Minimum Tick", "%6.0f", 1., 65000., 0., 100. );
     IUFillNumber(&MinMaxPositionN[1], "MAXPOS", "Maximum Tick", "%6.0f", 1., 65000., 0., 55000.);
-    IUFillNumberVector(&MinMaxPositionNP, MinMaxPositionN, 2, deviceName(), "FOCUS_MINMAXPOSITION", "Extrama", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&MinMaxPositionNP, MinMaxPositionN, 2, getDeviceName(), "FOCUS_MINMAXPOSITION", "Extrama", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     IUFillNumber(&MaxTravelN[0], "MAXTRAVEL", "Maximum travel", "%6.0f", 1., 64000., 0., 10000.);
-    IUFillNumberVector(&MaxTravelNP, MaxTravelN, 1, deviceName(), "FOCUS_MAXTRAVEL", "Max. travel", OPTIONS_TAB, IP_RW, 0, IPS_IDLE );
+    IUFillNumberVector(&MaxTravelNP, MaxTravelN, 1, getDeviceName(), "FOCUS_MAXTRAVEL", "Max. travel", OPTIONS_TAB, IP_RW, 0, IPS_IDLE );
 
     /* Set Robofocus position register to the this position */
     IUFillNumber(&SetRegisterPositionN[0], "SETPOS", "Position", "%6.0f", 0, 64000., 0., 0. );
-    IUFillNumberVector(&SetRegisterPositionNP, SetRegisterPositionN, 1, deviceName(), "FOCUS_REGISTERPOSITION", "Set register", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&SetRegisterPositionNP, SetRegisterPositionN, 1, getDeviceName(), "FOCUS_REGISTERPOSITION", "Set register", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     /* Backlash */
     IUFillNumber(&SetBacklashN[0], "SETBACKLASH", "Backlash", "%6.0f", -255., 255., 0., 0.);
-    IUFillNumberVector(&SetBacklashNP, SetBacklashN, 1, deviceName(), "FOCUS_BACKLASH", "Set Register", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&SetBacklashNP, SetBacklashN, 1, getDeviceName(), "FOCUS_BACKLASH", "Set Register", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     /* Robofocus` position (RO) */
     IUFillNumber(&PositionN[0], "POSITION", "Tick", "%6.0f", 0, 65000., 0., 10000.);
-    IUFillNumberVector(&PositionNP, PositionN, 1, deviceName(), "FOCUS_POSITION", "Position", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillNumberVector(&PositionNP, PositionN, 1, getDeviceName(), "FOCUS_POSITION", "Position", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
 
     /* Relative and absolute movement */
     IUFillNumber(&RelMovementN[0], "RELMOVEMENT", "Ticks", "%6.0f", -65000., 65000., 0., 100. );
-    IUFillNumberVector(&RelMovementNP, RelMovementN, 1, deviceName(), "FOCUS_RELMOVEMENT", "Relative GoTo", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&RelMovementNP, RelMovementN, 1, getDeviceName(), "FOCUS_RELMOVEMENT", "Relative GoTo", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     IUFillNumber(&AbsMovementN[0], "ABSMOVEMENT", "Tick", "%6.0f", 0, 65000., 0., 10000.);
-    IUFillNumberVector(&AbsMovementNP, AbsMovementN, 1, deviceName(), "FOCUS_ABSMOVEMENT", "Absolute GoTo", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&AbsMovementNP, AbsMovementN, 1, getDeviceName(), "FOCUS_ABSMOVEMENT", "Absolute GoTo", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
 
     addDebugControl();
@@ -246,7 +245,7 @@ bool RoboFocus::Connect()
         if (isDebug())
             IDLog("Failed to connect o port %s. Error: %s", PortT[0].text, errorMsg);
 
-        IDMessage(deviceName(), "Failed to connect to port %s. Error: %s", PortT[0].text, errorMsg);
+        IDMessage(getDeviceName(), "Failed to connect to port %s. Error: %s", PortT[0].text, errorMsg);
 
         return false;
 
@@ -255,15 +254,15 @@ bool RoboFocus::Connect()
     if((updateRFFirmware(firmeware)) < 0)
     {
       /* This would be the end*/
-        IDMessage( deviceName(), "Unknown error while reading Robofocus firmware\n");
+        IDMessage( getDeviceName(), "Unknown error while reading Robofocus firmware\n");
         return false;
     }
 
-    IDMessage(deviceName(), "Robofocus is online. Getting focus parameters...");
+    IDMessage(getDeviceName(), "Robofocus is online. Getting focus parameters...");
 
     GetFocusParams();
 
-    IDMessage(deviceName(), "RoboFocus paramaters readout complete, focuser ready for use.");
+    IDMessage(getDeviceName(), "RoboFocus paramaters readout complete, focuser ready for use.");
 
     return true;
 }
@@ -271,7 +270,7 @@ bool RoboFocus::Connect()
 bool RoboFocus::Disconnect()
 {
     tty_disconnect(PortFD);
-    IDMessage(deviceName(), "RoboFocus is offline.");
+    IDMessage(getDeviceName(), "RoboFocus is offline.");
     return true;
 }
 
@@ -391,7 +390,7 @@ int RoboFocus::ReadResponse(char *buf, int nbytes, int timeout)
               if (isDebug())
               {
                   IDLog("TTY error detected: %s\n", robofocus_error);
-                  IDMessage(deviceName(), "TTY error detected: %s\n", robofocus_error);
+                  IDMessage(getDeviceName(), "TTY error detected: %s\n", robofocus_error);
               }
               return false;
       }
@@ -849,7 +848,7 @@ int RoboFocus::updateRFSetPosition(double *value)
 
 bool RoboFocus::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if(strcmp(dev,deviceName())==0)
+    if(strcmp(dev,getDeviceName())==0)
     {
         // ===================================
         // Port Name
@@ -871,7 +870,7 @@ bool RoboFocus::ISNewText (const char *dev, const char *name, char *texts[], cha
 
 bool RoboFocus::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if(strcmp(dev,deviceName())==0)
+    if(strcmp(dev,getDeviceName())==0)
     {
         if (!strcmp (name, PowerSwitchesSP.name))
         {
@@ -952,7 +951,7 @@ bool RoboFocus::ISNewNumber (const char *dev, const char *name, double values[],
 {
     int nset=0,i=0;
 
-    if(strcmp(dev,deviceName())==0)
+    if(strcmp(dev,getDeviceName())==0)
     {
 
         if (!strcmp (name, SettingsNP.name))
@@ -1087,7 +1086,7 @@ bool RoboFocus::ISNewNumber (const char *dev, const char *name, double values[],
                 PositionNP.s = IPS_ALERT;
                 IDSetNumber(&PositionNP, "Robofocus position recovered %5.0f", currentPosition);
 
-                IDMessage( deviceName(), "Robofocus position recovered resuming normal operation");
+                IDMessage( getDeviceName(), "Robofocus position recovered resuming normal operation");
 
                 /* We have to leave here, because new_rpos is not set */
                 return false ;
@@ -1171,7 +1170,7 @@ bool RoboFocus::ISNewNumber (const char *dev, const char *name, double values[],
 
                 PositionNP.s = IPS_OK;
                 IDSetNumber(&PositionNP, "Robofocus position recovered %5.0f", currentPosition);
-                IDMessage( deviceName(), "Robofocus position recovered resuming normal operation");
+                IDMessage( getDeviceName(), "Robofocus position recovered resuming normal operation");
                 /* We have to leave here, because new_apos is not set */
                 return false;
               }
@@ -1406,7 +1405,7 @@ bool RoboFocus::ISNewNumber (const char *dev, const char *name, double values[],
 
                 PositionNP.s = IPS_OK;
                 IDSetNumber(&PositionNP, "Robofocus position recovered %5.0f", currentPosition);
-                IDMessage( deviceName(), "Robofocus position recovered resuming normal operation");
+                IDMessage( getDeviceName(), "Robofocus position recovered resuming normal operation");
                 /* We have to leave here, because new_apos is not set */
                 return true ;
               }

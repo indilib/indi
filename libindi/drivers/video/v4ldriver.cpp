@@ -572,7 +572,7 @@ void V4L_Driver::addFITSKeywords(fitsfile *fptr)
 
  strncpy(keyname, "INSTRUME", 32);
  strncpy(comment, "Webcam Name", 64);
- fits_update_key(fptr, TSTRING, keyname, v4l_base->getDeviceName(), comment, &status);
+ fits_update_key(fptr, TSTRING, keyname, v4l_base->getgetDeviceName(), comment, &status);
 
  fits_write_date(fptr, &status);
 }
@@ -717,7 +717,7 @@ void V4L_Driver::getBasicData()
   IUUpdateMinMax(&FrameNP);
   IDSetNumber(&FrameNP, NULL);
   
-  IUSaveText(&camNameT[0], v4l_base->getDeviceName());
+  IUSaveText(&camNameT[0], v4l_base->getgetDeviceName());
   IDSetText(&camNameTP, NULL);
 
    #ifndef HAVE_LINUX_VIDEODEV2_H

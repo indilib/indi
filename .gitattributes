@@ -615,10 +615,10 @@ libindi/indiserver.c -text
 libindi/libindi.pc.cmake -text
 libindi/libs/indibase/baseclient.cpp -text
 libindi/libs/indibase/baseclient.h -text
-libindi/libs/indibase/basedriver.cpp -text
-libindi/libs/indibase/basedriver.h -text
-libindi/libs/indibase/defaultdriver.cpp -text
-libindi/libs/indibase/defaultdriver.h -text
+libindi/libs/indibase/basedevice.cpp -text
+libindi/libs/indibase/basedevice.h -text
+libindi/libs/indibase/defaultdevice.cpp -text
+libindi/libs/indibase/defaultdevice.h -text
 libindi/libs/indibase/indibase.h -text
 libindi/libs/indibase/indiccd.cpp -text
 libindi/libs/indibase/indiccd.h -text
@@ -632,6 +632,8 @@ libindi/libs/indibase/indifocuser.cpp -text
 libindi/libs/indibase/indifocuser.h -text
 libindi/libs/indibase/indiguiderinterface.cpp -text
 libindi/libs/indibase/indiguiderinterface.h -text
+libindi/libs/indibase/indiproperty.cpp -text
+libindi/libs/indibase/indiproperty.h -text
 libindi/libs/indibase/inditelescope.cpp -text
 libindi/libs/indibase/inditelescope.h -text
 libindi/libs/indibase/indiusbdevice.cpp -text

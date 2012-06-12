@@ -155,7 +155,7 @@ void TCFS::ISGetProperties(const char *dev)
 {
     static int propInit=0;
 
-    INDI::DefaultDriver::ISGetProperties(dev);
+    INDI::DefaultDevice::ISGetProperties(dev);
 
     if (propInit == 0)
     {
@@ -238,7 +238,7 @@ bool TCFS::Connect()
 
     if (tty_connect(tProp->tp[0].text, 19200, 8, 0, 1, &fd) != TTY_OK)
     {
-        IDMessage(deviceName(), "Error connecting to port %s. Make sure you have BOTH read and write permission to the port.", tProp->tp[0].text);
+        IDMessage(getDeviceName(), "Error connecting to port %s. Make sure you have BOTH read and write permission to the port.", tProp->tp[0].text);
 	return false;
     }
 
@@ -250,7 +250,7 @@ bool TCFS::Connect()
         {
             if (!strcmp(response, "!"))
             {
-                IDMessage(deviceName(), "Successfully connected to TCF-S Focuser in Manual Mode.");
+                IDMessage(getDeviceName(), "Successfully connected to TCF-S Focuser in Manual Mode.");
 
                 IUResetSwitch(FocusModeSP);
                 FocusModeSP->sp[0].s = ISS_ON;
@@ -273,7 +273,7 @@ bool TCFS::Connect()
         usleep(500000);
     }
 
-    IDMessage(deviceName(), "Error connecting to TCF-S focuser...");
+    IDMessage(getDeviceName(), "Error connecting to TCF-S focuser...");
     return false;
 
 }
@@ -315,7 +315,7 @@ bool TCFS::ISNewNumber (const char *dev, const char *name, double values[], char
   if (isConnected() == false)
   {
       resetProperties();
-      IDMessage(deviceName(), "TCF-S is offline. Connect before issiung any commands.");
+      IDMessage(getDeviceName(), "TCF-S is offline. Connect before issiung any commands.");
       return false;
   }
 
@@ -354,7 +354,7 @@ bool TCFS::ISNewNumber (const char *dev, const char *name, double values[], char
       return true;
   }
 
-  return DefaultDriver::ISNewNumber (dev, name, values, names, n);
+  return DefaultDevice::ISNewNumber (dev, name, values, names, n);
     
 }
 
@@ -382,7 +382,7 @@ bool TCFS::ISNewText (const char *dev, const char *name, char *texts[], char *na
     }
 
 
-    return DefaultDriver::ISNewText(dev, name, texts, names, n);
+    return DefaultDevice::ISNewText(dev, name, texts, names, n);
 	
 }
 
@@ -395,7 +395,7 @@ bool TCFS::ISNewSwitch (const char *dev, const char *name, ISState *states, char
 
     ISwitch *current_active_switch = NULL, *target_active_switch = NULL;
     // First process parent!
-    if (INDI::DefaultDriver::ISNewSwitch(deviceName(), name, states, names, n) == true)
+    if (INDI::DefaultDevice::ISNewSwitch(getDeviceName(), name, states, names, n) == true)
         return true;
 
     ISwitchVectorProperty *sProp = getSwitch(name);
@@ -416,7 +416,7 @@ bool TCFS::ISNewSwitch (const char *dev, const char *name, ISState *states, char
     if (isConnected() == false)
     {
       resetProperties();
-      IDMessage(deviceName(), "TCF-S is offline. Connect before issiung any commands.");
+      IDMessage(getDeviceName(), "TCF-S is offline. Connect before issiung any commands.");
       return false;
     }
 
@@ -663,7 +663,7 @@ bool TCFS::ISNewSwitch (const char *dev, const char *name, ISState *states, char
 
 
 
-    return DefaultDriver::ISNewSwitch(dev, name, states, names, n);
+    return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
 bool TCFS::move_focuser(TCFSMotion dir)

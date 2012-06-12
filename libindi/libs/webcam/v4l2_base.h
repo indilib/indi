@@ -48,7 +48,7 @@ class V4L2_Base
   /* Connection */
   virtual int connectCam(const char * devpath, char *errmsg, int pixelFormat = -1 , int width = -1, int height = -1);
   virtual void disconnectCam();
-  char * getDeviceName();
+  char * getgetDeviceName();
 
   /* Image settings */
   int  getBrightness();

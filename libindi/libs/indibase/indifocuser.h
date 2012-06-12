@@ -19,7 +19,7 @@
 #ifndef INDIFOCUSSER_H
 #define INDIFOCUSSER_H
 
-#include "defaultdriver.h"
+#include "defaultdevice.h"
 
 /**
  * \class INDI::Focuser
@@ -29,7 +29,7 @@
 
 \author Gerry Rozema
 */
-class INDI::Focuser : public INDI::DefaultDriver
+class INDI::Focuser : public INDI::DefaultDevice
 {
     public:
         Focuser();
@@ -43,7 +43,6 @@ class INDI::Focuser : public INDI::DefaultDriver
         virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
         virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
         virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-        virtual void ISSnoopDevice (XMLEle *root);
 
     protected:
 

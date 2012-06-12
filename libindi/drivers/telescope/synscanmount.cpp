@@ -144,7 +144,7 @@ bool SynscanMount::ReadScopeStatus()
         //  this is not a correct echo
         //if (isDebug())
             IDLog("ReadStatus Echo Fail. %s\n", str);
-        IDMessage(deviceName(),"Mount Not Responding");
+        IDMessage(getDeviceName(),"Mount Not Responding");
         return false;
     }
 
@@ -179,7 +179,7 @@ bool SynscanMount::ReadScopeStatus()
             TrackState=SCOPE_PARKED;
             ParkSV->s=IPS_OK;
             IDSetSwitch(ParkSV,NULL);
-            IDMessage(deviceName(),"Telescope is Parked.");
+            IDMessage(getDeviceName(),"Telescope is Parked.");
         }
 
     }
@@ -272,6 +272,6 @@ bool SynscanMount::Park()
     }
 
     TrackState=SCOPE_PARKING;
-    IDMessage(deviceName(),"Parking Telescope...");
+    IDMessage(getDeviceName(),"Parking Telescope...");
     return true;
 }

@@ -19,7 +19,7 @@
 #ifndef INDI_FILTERWHEEL_H
 #define INDI_FILTERWHEEL_H
 
-#include "defaultdriver.h"
+#include "defaultdevice.h"
 #include "indifilterinterface.h"
 
 /**
@@ -31,7 +31,7 @@
 \author Gerry Rozema, Jasem Mutlaq
 \see INDI::FilterInterface
 */
-class INDI::FilterWheel: public INDI::DefaultDriver, public INDI::FilterInterface
+class INDI::FilterWheel: public INDI::DefaultDevice, public INDI::FilterInterface
 {
 protected:
 
@@ -46,14 +46,13 @@ public:
         virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
         virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
         virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);      
-        virtual void ISSnoopDevice (XMLEle *root);
 
    protected:
 
     virtual int QueryFilter();
     virtual bool SelectFilter(int);
     virtual bool SetFilterNames();
-    virtual bool GetFilterNames(const char *deviceName, const char* groupName);
+    virtual bool GetFilterNames(const char* groupName);
 
 };
 

@@ -5,7 +5,7 @@ PROJECT(libindi C CXX)
 set(INDI_SOVERSION "0")
 set(CMAKE_INDI_VERSION_MAJOR 0)
 set(CMAKE_INDI_VERSION_MINOR 9)
-set(CMAKE_INDI_VERSION_RELEASE 0)
+set(CMAKE_INDI_VERSION_RELEASE 5)
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
 
 ##################  Paths  ################################
@@ -88,13 +88,15 @@ set (indimain_SRCS
     )
 
 set (indiclient_SRCS
-        ${CMAKE_SOURCE_DIR}/libs/indibase/basedriver.cpp
+        ${CMAKE_SOURCE_DIR}/libs/indibase/basedevice.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/baseclient.cpp
+        ${CMAKE_SOURCE_DIR}/libs/indibase/indiproperty.cpp
     )
 
 set (indidriver_SRCS
-        ${CMAKE_SOURCE_DIR}/libs/indibase/basedriver.cpp
-        ${CMAKE_SOURCE_DIR}/libs/indibase/defaultdriver.cpp
+        ${CMAKE_SOURCE_DIR}/libs/indibase/basedevice.cpp
+        ${CMAKE_SOURCE_DIR}/libs/indibase/defaultdevice.cpp
+        ${CMAKE_SOURCE_DIR}/libs/indibase/indiproperty.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/indiccd.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/inditelescope.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/indifilterwheel.cpp
@@ -102,6 +104,8 @@ set (indidriver_SRCS
         ${CMAKE_SOURCE_DIR}/libs/indibase/indiusbdevice.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/indiguiderinterface.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/indifilterinterface.cpp
+
+
 
     )
 
@@ -732,11 +736,11 @@ endif (NOVA_FOUND)
 install( FILES drivers.xml ${CMAKE_SOURCE_DIR}/drivers/focuser/indi_tcfs_sk.xml DESTINATION ${DATA_INSTALL_DIR})
 
 install( FILES indiapi.h indidevapi.h base64.h eventloop.h indidriver.h ${CMAKE_SOURCE_DIR}/libs/lilxml.h ${CMAKE_SOURCE_DIR}/libs/indibase/indibase.h
-${CMAKE_SOURCE_DIR}/libs/indibase/basedriver.h  ${CMAKE_SOURCE_DIR}/libs/indibase/defaultdriver.h
+${CMAKE_SOURCE_DIR}/libs/indibase/basedevice.h  ${CMAKE_SOURCE_DIR}/libs/indibase/defaultdevice.h
 ${CMAKE_SOURCE_DIR}/libs/indibase/indiccd.h  ${CMAKE_SOURCE_DIR}/libs/indibase/indifilterwheel.h
 ${CMAKE_SOURCE_DIR}/libs/indibase/indifocuser.h  ${CMAKE_SOURCE_DIR}/libs/indibase/inditelescope.h
 ${CMAKE_SOURCE_DIR}/libs/indibase/baseclient.h ${CMAKE_SOURCE_DIR}/libs/indibase/indiguiderinterface.h
-${CMAKE_SOURCE_DIR}/libs/indibase/indifilterinterface.h
+${CMAKE_SOURCE_DIR}/libs/indibase/indifilterinterface.h ${CMAKE_SOURCE_DIR}/libs/indibase/indiproperty.h
 ${CMAKE_SOURCE_DIR}/libs/indicom.h ${CMAKE_SOURCE_DIR}/libs/indibase/indiusbdevice.h
  DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
 

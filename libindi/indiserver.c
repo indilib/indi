@@ -789,14 +789,17 @@ static void newFIFO(void)
                 /* Get rid of quotes */
                 else if (strstr(token, "\"") || strstr(token, "'"))
                 {
-		    strncat(tDev, ++token, sizeof(tDev)-strlen(tDev)-1);
-                    while (token = strsep(&cp, delm) )
+                    strncat(tDev, ++token, sizeof(tDev)-strlen(tDev)-1);
+
+                    if ( tDev[strlen(tDev)-2] == '\"' || tDev[strlen(tDev)-2] == '\'')
+                        tDev[strlen(tDev)-2] = '\0';
+                   else while (token = strsep(&cp, delm) )
                    {
                      strcat(tDev, " ");
                      strncat(tDev, token, sizeof(tDev)-strlen(tDev)-1);
                      if ( (tp=strchr(tDev, '\"')) || (tp=strchr(tDev, '\'')))
                      {
-                         //tDev[strlen(tDev)-1] = '\0';
+                         tDev[strlen(tDev)-1] = '\0';
                          *tp='\0';
                          break;
                      }
@@ -817,6 +820,10 @@ static void newFIFO(void)
                       if (strstr(token, "\"") || strstr(token, "'"))
                       {
                        strncat(tConfig, ++token, sizeof(tConfig)-strlen(tDev)-1);
+
+                       if ( tConfig[strlen(tConfig)-2] == '\"' || tConfig[strlen(tConfig)-2] == '\'')
+                           tConfig[strlen(tConfig)-2] = '\0';
+
                        while (token = strsep(&cp, delm) )
                        {
                           strcat(tConfig, " ");
@@ -824,7 +831,7 @@ static void newFIFO(void)
 
                           if ( (tp=strchr(tConfig, '\"')) || (tp=strchr(tConfig, '\'')))
                           {
-                                 //tConfig[strlen(tConfig)-1] = '\0';
+                               tConfig[strlen(tConfig)-1] = '\0';
                               *tp = '\0';
                               break;
                           }

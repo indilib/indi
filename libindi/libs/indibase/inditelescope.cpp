@@ -63,44 +63,44 @@ INDI::Telescope::~Telescope()
 
 bool INDI::Telescope::initProperties()
 {
-    DefaultDriver::initProperties();
+    DefaultDevice::initProperties();
 
     IUFillNumber(&EqN[0],"RA","RA (hh:mm:ss)","%010.6m",0,24,0,0);
     IUFillNumber(&EqN[1],"DEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,0);
-    IUFillNumberVector(EqNV,EqN,2,deviceName(),"EQUATORIAL_EOD_COORD","Eq. Coordinates",MAIN_CONTROL_TAB,IP_RO,60,IPS_IDLE);
+    IUFillNumberVector(EqNV,EqN,2,getDeviceName(),"EQUATORIAL_EOD_COORD","Eq. Coordinates",MAIN_CONTROL_TAB,IP_RO,60,IPS_IDLE);
 
     IUFillNumber(&EqReqN[0],"RA","RA (hh:mm:ss)","%010.6m",0,24,0,0);
     IUFillNumber(&EqReqN[1],"DEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,0);
-    IUFillNumberVector(EqReqNV,EqReqN,2,deviceName(),"EQUATORIAL_EOD_COORD_REQUEST","GOTO",MAIN_CONTROL_TAB,IP_WO,60,IPS_IDLE);
+    IUFillNumberVector(EqReqNV,EqReqN,2,getDeviceName(),"EQUATORIAL_EOD_COORD_REQUEST","GOTO",MAIN_CONTROL_TAB,IP_WO,60,IPS_IDLE);
 
     IUFillNumber(&LocationN[0],"LAT","Lat (dd:mm:ss)","%010.6m",-90,90,0,0.0);
     IUFillNumber(&LocationN[1],"LONG","Lon (dd:mm:ss)","%010.6m",-180,180,0,0.0 );
-    IUFillNumberVector(LocationNV,LocationN,2,deviceName(),"GEOGRAPHIC_COORD","Scope Location",SITE_TAB,IP_RW,60,IPS_OK);
+    IUFillNumberVector(LocationNV,LocationN,2,getDeviceName(),"GEOGRAPHIC_COORD","Scope Location",SITE_TAB,IP_RW,60,IPS_OK);
 
     IUFillSwitch(&CoordS[0],"TRACK","Track",ISS_OFF);
     IUFillSwitch(&CoordS[1],"SLEW","Slew",ISS_OFF);
     IUFillSwitch(&CoordS[2],"SYNC","Sync",ISS_OFF);
-    IUFillSwitchVector(CoordSV,CoordS,3,deviceName(),"ON_COORD_SET","On Set",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    IUFillSwitchVector(CoordSV,CoordS,3,getDeviceName(),"ON_COORD_SET","On Set",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
     IUFillSwitch(&ConfigS[0], "CONFIG_LOAD", "Load", ISS_OFF);
     IUFillSwitch(&ConfigS[1], "CONFIG_SAVE", "Save", ISS_OFF);
     IUFillSwitch(&ConfigS[2], "CONFIG_DEFAULT", "Default", ISS_OFF);
-    IUFillSwitchVector(ConfigSV, ConfigS, 3, deviceName(), "CONFIG_PROCESS", "Configuration", "Options", IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(ConfigSV, ConfigS, 3, getDeviceName(), "CONFIG_PROCESS", "Configuration", "Options", IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
 
     IUFillSwitch(&ParkS[0],"PARK","Park",ISS_OFF);
-    IUFillSwitchVector(ParkSV,ParkS,1,deviceName(),"TELESCOPE_PARK","Park",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    IUFillSwitchVector(ParkSV,ParkS,1,getDeviceName(),"TELESCOPE_PARK","Park",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
     IUFillText(&PortT[0],"PORT","Port","/dev/ttyUSB0");
-    IUFillTextVector(PortTV,PortT,1,deviceName(),"DEVICE_PORT","Ports",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
+    IUFillTextVector(PortTV,PortT,1,getDeviceName(),"DEVICE_PORT","Ports",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillSwitch(&MovementNSS[MOTION_NORTH], "MOTION_NORTH", "North", ISS_OFF);
     IUFillSwitch(&MovementNSS[MOTION_SOUTH], "MOTION_SOUTH", "South", ISS_OFF);
-    IUFillSwitchVector(MovementNSSP, MovementNSS, 2, deviceName(),"TELESCOPE_MOTION_NS", "North/South", MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(MovementNSSP, MovementNSS, 2, getDeviceName(),"TELESCOPE_MOTION_NS", "North/South", MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     IUFillSwitch(&MovementWES[MOTION_WEST], "MOTION_WEST", "West", ISS_OFF);
     IUFillSwitch(&MovementWES[MOTION_EAST], "MOTION_EAST", "East", ISS_OFF);
-    IUFillSwitchVector(MovementWESP, MovementWES, 2, deviceName(),"TELESCOPE_MOTION_WE", "West/East", MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(MovementWESP, MovementWES, 2, getDeviceName(),"TELESCOPE_MOTION_WE", "West/East", MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     TrackState=SCOPE_PARKED;
     return 0;
@@ -110,7 +110,7 @@ void INDI::Telescope::ISGetProperties (const char *dev)
 {
     //  First we let our parent populate
     //IDLog("INDI::Telescope::ISGetProperties %s\n",dev);
-    DefaultDriver::ISGetProperties(dev);
+    DefaultDevice::ISGetProperties(dev);
 
     //  We may need the port set before we can connect
     IDDefText(PortTV,NULL);
@@ -216,13 +216,13 @@ bool INDI::Telescope::Goto(double ra,double dec)
 bool INDI::Telescope::Sync(double ra,double dec)
 {
     //  if we get here, our mount doesn't support sync
-    IDMessage(deviceName(),"Mount does not support Sync");
+    IDMessage(getDeviceName(),"Mount does not support Sync");
     return false;
 }
 
 bool INDI::Telescope::MoveNS(TelescopeMotionNS dir)
 {
-    IDMessage(deviceName(),"Mount does not support North/South motion");
+    IDMessage(getDeviceName(),"Mount does not support North/South motion");
     IUResetSwitch(MovementNSSP);
     MovementNSSP->s = IPS_IDLE;
     IDSetSwitch(MovementNSSP, NULL);
@@ -231,7 +231,7 @@ bool INDI::Telescope::MoveNS(TelescopeMotionNS dir)
 
 bool INDI::Telescope::MoveWE(TelescopeMotionWE dir)
 {
-    IDMessage(deviceName(),"Mount does not support West/East motion");
+    IDMessage(getDeviceName(),"Mount does not support West/East motion");
     IUResetSwitch(MovementWESP);
     MovementWESP->s = IPS_IDLE;
     IDSetSwitch(MovementWESP, NULL);
@@ -246,7 +246,7 @@ bool INDI::Telescope::ISNewText (const char *dev, const char *name, char *texts[
     //  Ok, lets see if this is a property wer process
     //IDLog("INDI::Telescope got %d new text items name %s\n",n,name);
     //  first check if it's for our device
-    if(strcmp(dev,deviceName())==0)
+    if(strcmp(dev,getDeviceName())==0)
     {
         //  This is for our device
         //  Now lets see if it's something we process here
@@ -278,7 +278,7 @@ bool INDI::Telescope::ISNewText (const char *dev, const char *name, char *texts[
 
     }
 
-    return DefaultDriver::ISNewText(dev,name,texts,names,n);
+    return DefaultDevice::ISNewText(dev,name,texts,names,n);
 }
 
 /**************************************************************************************
@@ -288,7 +288,7 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
 {
     //  first check if it's for our device
     //IDLog("INDI::Telescope::ISNewNumber %s\n",name);
-    if(strcmp(dev,deviceName())==0)
+    if(strcmp(dev,getDeviceName())==0)
     {
         if(strcmp(name,"EQUATORIAL_EOD_COORD_REQUEST")==0)
         {
@@ -351,7 +351,7 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
 
 
 
-    return DefaultDriver::ISNewNumber(dev,name,values,names,n);
+    return DefaultDevice::ISNewNumber(dev,name,values,names,n);
 }
 
 /**************************************************************************************
@@ -364,7 +364,7 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
     //    IDLog("Switch %s %d\n",names[x],states[x]);
     //}
 
-    if(strcmp(dev,deviceName())==0)
+    if(strcmp(dev,getDeviceName())==0)
     {
         //  This one is for us
         if(strcmp(name,"ON_COORD_SET")==0)
@@ -419,7 +419,7 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
     }
 
     //  Nobody has claimed this, so, ignore it
-    return DefaultDriver::ISNewSwitch(dev,name,states,names,n);
+    return DefaultDevice::ISNewSwitch(dev,name,states,names,n);
 }
 
 
@@ -465,7 +465,7 @@ bool INDI::Telescope::Connect(const char *port)
 
         //if (isDebug())
             IDLog("Failed to connect o port %s. Error: %s", port, errorMsg);
-        IDMessage(deviceName(), "Failed to connect to port %s. Error: %s", port, errorMsg);
+        IDMessage(getDeviceName(), "Failed to connect to port %s. Error: %s", port, errorMsg);
 
         return false;
 
@@ -480,14 +480,14 @@ bool INDI::Telescope::Connect(const char *port)
     if(rc)
     {
         //  We got a valid scope status read
-        IDMessage(deviceName(),"Telescope is online.");
+        IDMessage(getDeviceName(),"Telescope is online.");
         return rc;
     }
 
     //  Ok, we didn't get a valid read
     //  So, we need to close our handle and send error messages
     close(PortFD);
-    //IDMessage(deviceName(),"Didn't find a synscan mount on Serial Port");
+    //IDMessage(getDeviceName(),"Didn't find a synscan mount on Serial Port");
 
     return false;
 }
@@ -501,7 +501,7 @@ bool INDI::Telescope::Disconnect()
 	IDLog("IndiTelescope Disconnect\n");
 
     close(PortFD);
-    IDMessage(deviceName(),"Telescope is offline.");
+    IDMessage(getDeviceName(),"Telescope is offline.");
 
     return true;
 }

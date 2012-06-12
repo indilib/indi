@@ -32,16 +32,28 @@ namespace INDI
 {
     class BaseMediator;
     class BaseClient;
-    class BaseDriver;
-    class DefaultDriver;
+    class BaseDevice;
+    class DefaultDevice;
     class FilterInterface;
     class GuiderInterface;
     class CCD;
     class Telescope;
     class FilterWheel;
     class Focuser;
-    class USBDevice;   
+    class USBDevice;
+    class Property;
 }
+
+/*! INDI property type */
+typedef enum
+{
+    INDI_NUMBER, /*!< INumberVectorProperty. */
+    INDI_SWITCH, /*!< ISwitchVectorProperty. */
+    INDI_TEXT,   /*!< ITextVectorProperty. */
+    INDI_LIGHT,  /*!< ILightVectorProperty. */
+    INDI_BLOB,    /*!< IBLOBVectorProperty. */
+    INDI_UNKNOWN
+} INDI_TYPE;
 
 
 /**
@@ -55,13 +67,21 @@ public:
     /** \brief Emmited when a new device is created from INDI server.
         \param device_name Name of the new device
     */
-    virtual void newDevice(const char *device_name)  =0;
+    virtual void newDevice(INDI::BaseDevice *dp)  =0;
 
     /** \brief Emmited when a new property is created for an INDI driver.
-        \param device_name Name of the device
-        \param property_name Name of the new property
+        \param property Pointer to the Property Container
+
     */
-    virtual void newProperty(const char *device_name, const char *property_name)  =0;
+    virtual void newProperty(INDI::Property *property)  =0;
+
+
+    /** \brief Emmited when a property is deleted for an INDI driver.
+        \param property Pointer to the Property Container to remove.
+
+    */
+    virtual void removeProperty(INDI::Property *property)  =0;
+
 
     /** \brief Emmited when a new BLOB value arrives from INDI server.
         \param bp Pointer to filled and process BLOB.
@@ -88,13 +108,19 @@ public:
     */
     virtual void newLight(ILightVectorProperty *lvp) =0;
 
+    /** \brief Emmited when a new message arrives from INDI server.
+        \param dp pointer to the INDI device the message is sent to.
+    */
+    virtual void newMessage(INDI::BaseDevice *dp) =0;
+
     /** \brief Emmited when the server is connected.
     */
     virtual void serverConnected() =0;
 
     /** \brief Emmited when the server gets disconnected.
+        \param exit_code 0 if client was requested to disconnect from server. -1 if connection to server is terminated due to remote server disconnection.
     */
-    virtual void serverDisconnected() =0;
+    virtual void serverDisconnected(int exit_code) =0;
 };
 
 #endif // INDIBASE_H

@@ -1150,6 +1150,17 @@ IUFindOnSwitch(const ISwitchVectorProperty *svp)
         return (NULL);
 }
 
+/* Find index of the ON member of an ISwitchVectorProperty */
+int IUFindOnSwitchIndex(const ISwitchVectorProperty *svp)
+{
+        int i;
+
+        for (i = 0; i < svp->nsp; i++)
+            if (svp->sp[i].s == ISS_ON)
+                return i;
+        return -1;
+}
+
 /* Set all switches to off */
 void
 IUResetSwitch(ISwitchVectorProperty *svp)

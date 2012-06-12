@@ -271,6 +271,44 @@ int IUUpdateText(ITextVectorProperty *tvp, char * texts[], char *names[], int n)
 
 }
 
+
+/* Update property BLOB in accord with BLOBs and names */
+int IUUpdateBLOB(IBLOBVectorProperty *bvp, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+{
+  int i=0;
+
+  IBLOB *bp;
+
+  for (i = 0; i < n; i++)
+  {
+    bp = IUFindBLOB(bvp, names[i]);
+    if (!bp)
+    {
+        bvp->s = IPS_IDLE;
+    IDSetBLOB(bvp, "Error: %s is not a member of %s property.", names[i], bvp->name);
+    return -1;
+    }
+  }
+
+  /* First loop checks for error, second loop set all values atomically*/
+  for (i=0; i < n; i++)
+  {
+    bp = IUFindBLOB(bvp, names[i]);
+    IUSaveBLOB(bp, sizes[i], blobsizes[i], blobs[i], formats[i]);
+  }
+
+  return 0;
+
+}
+
+int IUSaveBLOB(IBLOB *bp, int size, int blobsize, char *blob, char *format)
+{
+    bp->bloblen = blobsize;
+    bp->size    = size;
+    bp->blob    = blob;
+    strncpy(bp->format, format, MAXINDIFORMAT);
+}
+
 void IUFillSwitch(ISwitch *sp, const char *name, const char * label, ISState s)
 {
   strncpy(sp->name, name, MAXINDINAME);

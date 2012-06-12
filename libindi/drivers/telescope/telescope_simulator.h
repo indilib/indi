@@ -55,6 +55,7 @@ class ScopeSim : public INDI::Telescope
 
         bool Goto(double,double);
         bool Park();
+        bool Sync(double ra, double dec);
 
 };
 

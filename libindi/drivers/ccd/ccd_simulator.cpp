@@ -196,13 +196,13 @@ bool CCDSim::initProperties()
     IUFillNumber(&SimulatorSettingsN[10],"SIM_NOISE","CCD Noise","%4.0f",0,6000,0,50);
     IUFillNumber(&SimulatorSettingsN[11],"SIM_SKYGLOW","Sky Glow (magnitudes)","%4.1f",0,6000,0,19.5);
     IUFillNumber(&SimulatorSettingsN[12],"SIM_OAGOFFSET","Oag Offset (arminutes)","%4.1f",0,6000,0,0);
-    IUFillNumberVector(SimulatorSettingsNV,SimulatorSettingsN,13,deviceName(),"SIMULATOR_SETTINGS","Simulator Settings","Simulator Config",IP_RW,60,IPS_IDLE);
+    IUFillNumberVector(SimulatorSettingsNV,SimulatorSettingsN,13,getDeviceName(),"SIMULATOR_SETTINGS","Simulator Settings","Simulator Config",IP_RW,60,IPS_IDLE);
 
 
     IUFillSwitch(&TimeFactorS[0],"1X","Actual Time",ISS_ON);
     IUFillSwitch(&TimeFactorS[1],"10X","10x",ISS_OFF);
     IUFillSwitch(&TimeFactorS[2],"100X","100x",ISS_OFF);
-    IUFillSwitchVector(TimeFactorSV,TimeFactorS,3,deviceName(),"ON_TIME_FACTOR","Time Factor","Simulator Config",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    IUFillSwitchVector(TimeFactorSV,TimeFactorS,3,getDeviceName(),"ON_TIME_FACTOR","Time Factor","Simulator Config",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
 
     //loadConfig();
@@ -571,12 +571,12 @@ int CCDSim::DrawCcdFrame()
                 pclose(pp);
             } else
             {
-                IDMessage(deviceName(),"Error looking up stars, is gsc installed with appropriate environment variables set ??");
+                IDMessage(getDeviceName(),"Error looking up stars, is gsc installed with appropriate environment variables set ??");
                 //fprintf(stderr,"Error doing gsc lookup\n");
             }
             if(drawn==0)
             {
-                IDMessage(deviceName(),"Got no stars, is gsc installed with appropriate environment variables set ??");
+                IDMessage(getDeviceName(),"Got no stars, is gsc installed with appropriate environment variables set ??");
 
             }
         }
@@ -843,7 +843,7 @@ bool CCDSim::ISNewNumber (const char *dev, const char *name, double values[], ch
 {
     //  first check if it's for our device
     //IDLog("INDI::CCD::ISNewNumber %s\n",name);
-    if(strcmp(dev,deviceName())==0)
+    if(strcmp(dev,getDeviceName())==0)
     {
         //  This is for our device
         //  Now lets see if it's something we process here
@@ -893,7 +893,7 @@ bool CCDSim::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
     //    IDLog("Switch %s %d\n",names[x],states[x]);
     //}
 
-    if(strcmp(dev,deviceName())==0) {
+    if(strcmp(dev,getDeviceName())==0) {
         //  This one is for us
 
 

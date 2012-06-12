@@ -44,7 +44,7 @@ using namespace std;
 auto_ptr<LX200Basic> telescope(0);
 
 const int POLLMS = 1000;				// Period of update, 1 second.
-const char *mydev = "LX200 Basic";			// Name of our device.
+char *mydev;                            // Name of our device.
 
 const char *BASIC_GROUP    = "Main Control";		// Main Group
 const char *OPTIONS_GROUP  = "Options";			// Options Group
@@ -150,6 +150,15 @@ void ISSnoopDevice (XMLEle *root)
 ***************************************************************************************/
 LX200Basic::LX200Basic()
 {
+    mydev = new char[MAXINDIDEVICE];
+
+    char *envDev = getenv("INDIDEV");
+
+    if (envDev != NULL)
+        strncpy(mydev, envDev, MAXINDIDEVICE);
+    else
+        strncpy(mydev, "LX200 Basic", MAXINDIDEVICE);
+
    init_properties();
 
    lastSet        = -1;

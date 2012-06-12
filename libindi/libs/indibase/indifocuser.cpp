@@ -37,17 +37,17 @@ INDI::Focuser::~Focuser()
 
 bool INDI::Focuser::initProperties()
 {
-    DefaultDriver::initProperties();   //  let the base class flesh in what it wants
+    DefaultDevice::initProperties();   //  let the base class flesh in what it wants
 
     IUFillNumber(&FocusSpeedN[0],"FOCUS_SPEED_VALUE","Focus Speed","%3.0f",0.0,255.0,1.0,255.0);
-    IUFillNumberVector(FocusSpeedNP,FocusSpeedN,1,deviceName(),"FOCUS_SPEED","Speed",MAIN_CONTROL_TAB,IP_RW,60,IPS_OK);
+    IUFillNumberVector(FocusSpeedNP,FocusSpeedN,1,getDeviceName(),"FOCUS_SPEED","Speed",MAIN_CONTROL_TAB,IP_RW,60,IPS_OK);
 
     IUFillNumber(&FocusTimerN[0],"FOCUS_TIMER_VALUE","Focus Timer","%4.0f",0.0,1000.0,10.0,1000.0);
-    IUFillNumberVector(FocusTimerNP,FocusTimerN,1,deviceName(),"FOCUS_TIMER","Timer",MAIN_CONTROL_TAB,IP_RW,60,IPS_OK);
+    IUFillNumberVector(FocusTimerNP,FocusTimerN,1,getDeviceName(),"FOCUS_TIMER","Timer",MAIN_CONTROL_TAB,IP_RW,60,IPS_OK);
 
     IUFillSwitch(&FocusMotionS[0],"FOCUS_INWARD","Focus In",ISS_ON);
     IUFillSwitch(&FocusMotionS[1],"FOCUS_OUTWARD","Focus Out",ISS_OFF);
-    IUFillSwitchVector(FocusMotionSP,FocusMotionS,2,deviceName(),"FOCUS_MOTION","Direction",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_OK);
+    IUFillSwitchVector(FocusMotionSP,FocusMotionS,2,getDeviceName(),"FOCUS_MOTION","Direction",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_OK);
 
     return 0;
 }
@@ -55,7 +55,7 @@ bool INDI::Focuser::initProperties()
 void INDI::Focuser::ISGetProperties (const char *dev)
 {
     //  First we let our parent populate
-    DefaultDriver::ISGetProperties(dev);
+    DefaultDevice::ISGetProperties(dev);
 
     return;
 }
@@ -81,7 +81,7 @@ bool INDI::Focuser::updateProperties()
 bool INDI::Focuser::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
     //  first check if it's for our device
-    if(strcmp(dev,deviceName())==0)
+    if(strcmp(dev,getDeviceName())==0)
     {
         //  This is for our device
         //  Now lets see if it's something we process here
@@ -126,13 +126,13 @@ bool INDI::Focuser::ISNewNumber (const char *dev, const char *name, double value
     }
 
 
-    return DefaultDriver::ISNewNumber(dev,name,values,names,n);
+    return DefaultDevice::ISNewNumber(dev,name,values,names,n);
 }
 
 bool INDI::Focuser::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
 
-    if(strcmp(dev,deviceName())==0)
+    if(strcmp(dev,getDeviceName())==0)
     {
         //  This one is for us
         if(strcmp(name,"FOCUS_MOTION")==0)
@@ -149,17 +149,12 @@ bool INDI::Focuser::ISNewSwitch (const char *dev, const char *name, ISState *sta
     }
 
     //  Nobody has claimed this, so, ignore it
-    return DefaultDriver::ISNewSwitch(dev,name,states,names,n);
+    return DefaultDevice::ISNewSwitch(dev,name,states,names,n);
 }
 
 bool INDI::Focuser::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    return DefaultDriver::ISNewText(dev, name, texts, names, n);
-}
-
-void INDI::Focuser::ISSnoopDevice (XMLEle *root)
-{
- return;
+    return DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
 
 bool INDI::Focuser::Move(FocusDirection dir, int speed, int duration)

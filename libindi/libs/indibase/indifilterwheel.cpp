@@ -34,9 +34,9 @@ INDI::FilterWheel::~FilterWheel()
 
 bool INDI::FilterWheel::initProperties()
 {
-    DefaultDriver::initProperties();
+    DefaultDevice::initProperties();
 
-    initFilterProperties(deviceName(), FILTER_TAB);
+    initFilterProperties(getDeviceName(), FILTER_TAB);
 
     return true;
 }
@@ -45,12 +45,12 @@ void INDI::FilterWheel::ISGetProperties (const char *dev)
 {
     //  First we let our parent populate
     //IDLog("INDI::FilterWheel::ISGetProperties %s\n",dev);
-    DefaultDriver::ISGetProperties(dev);
+    DefaultDevice::ISGetProperties(dev);
     if(isConnected())
     {
         defineNumber(FilterSlotNP);
 
-        if (GetFilterNames(deviceName(), FILTER_TAB))
+        if (GetFilterNames(FILTER_TAB))
             defineText(FilterNameTP);
     }
     return;
@@ -63,9 +63,9 @@ bool INDI::FilterWheel::updateProperties()
 
     if(isConnected())
     {
-        initFilterProperties(deviceName(), FILTER_TAB);
+        //initFilterProperties(getDeviceName(), FILTER_TAB);
         defineNumber(FilterSlotNP);
-        if (GetFilterNames(deviceName(), FILTER_TAB))
+        if (GetFilterNames(FILTER_TAB))
             defineText(FilterNameTP);
     } else
     {
@@ -78,14 +78,14 @@ bool INDI::FilterWheel::updateProperties()
 
 bool INDI::FilterWheel::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    return DefaultDriver::ISNewSwitch(dev, name, states, names,n);
+    return DefaultDevice::ISNewSwitch(dev, name, states, names,n);
 }
 
 bool INDI::FilterWheel::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
     //  first check if it's for our device
     //IDLog("INDI::FilterWheel::ISNewNumber %s\n",name);
-    if(strcmp(dev,deviceName())==0)
+    if(strcmp(dev,getDeviceName())==0)
     {
         //  This is for our device
         //  Now lets see if it's something we process here
@@ -120,7 +120,7 @@ bool INDI::FilterWheel::ISNewNumber (const char *dev, const char *name, double v
     }
     //  if we didn't process it, continue up the chain, let somebody else
     //  give it a shot
-    return DefaultDriver::ISNewNumber(dev,name,values,names,n);
+    return DefaultDevice::ISNewNumber(dev,name,values,names,n);
 }
 
 bool INDI::FilterWheel::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
@@ -128,7 +128,7 @@ bool INDI::FilterWheel::ISNewText (const char *dev, const char *name, char *text
     //  Ok, lets see if this is a property wer process
     //IDLog("INDI::FilterWheel got %d new text items name %s\n",n,name);
     //  first check if it's for our device
-    if(strcmp(dev,deviceName())==0)
+    if(strcmp(dev,getDeviceName())==0)
     {
         //  This is for our device
         //  Now lets see if it's something we process here
@@ -152,7 +152,7 @@ bool INDI::FilterWheel::ISNewText (const char *dev, const char *name, char *text
 
     }
 
-    return DefaultDriver::ISNewText(dev,name,texts,names,n);
+    return DefaultDevice::ISNewText(dev,name,texts,names,n);
 }
 
 int INDI::FilterWheel::QueryFilter()
@@ -171,15 +171,9 @@ bool INDI::FilterWheel::SetFilterNames()
     return true;
 }
 
-void INDI::FilterWheel::ISSnoopDevice (XMLEle *root)
-{
- return;
-}
 
-
-bool INDI::FilterWheel::GetFilterNames(const char *deviceName, const char* groupName)
+bool INDI::FilterWheel::GetFilterNames(const char* groupName)
 {
-    INDI_UNUSED(deviceName);
     INDI_UNUSED(groupName);
     return false;
 }

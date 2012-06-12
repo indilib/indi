@@ -22,7 +22,7 @@
 
 #include <fitsio.h>
 
-#include "defaultdriver.h"
+#include "defaultdevice.h"
 #include "indiguiderinterface.h"
 
 extern const char *IMAGE_SETTINGS_TAB;
@@ -121,7 +121,7 @@ private:
 
 \author Gerry Rozema, Jasem Mutlaq
 */
-class INDI::CCD : public INDI::DefaultDriver, INDI::GuiderInterface
+class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
 {
       public:
         CCD();
@@ -133,7 +133,7 @@ class INDI::CCD : public INDI::DefaultDriver, INDI::GuiderInterface
         virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
         virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
         virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-        virtual void ISSnoopDevice (XMLEle *root);
+        virtual bool ISSnoopDevice (XMLEle *root);
 
      protected:
         /** \brief Start exposing primary CCD chip

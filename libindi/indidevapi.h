@@ -449,6 +449,16 @@ extern IBLOB *IUFindBLOB(const IBLOBVectorProperty *bvp, const char *name);
 */
 extern ISwitch *IUFindOnSwitch (const ISwitchVectorProperty *sp);
 
+/** \brief Returns the index of first ON switch it finds in the vector switch property.
+
+*   \note This is only valid for ISR_1OFMANY mode. That is, when only one switch out of many is allowed to be ON. Do not use this function if you can have multiple ON switches in the same vector property.
+*
+* \param sp a pointer to a switch vector property.
+* \return index to the \e first ON ISwitch member if found. If all switches are off, -1 is returned.
+*/
+
+extern int IUFindOnSwitchIndex (const ISwitchVectorProperty *sp);
+
 /** \brief Reset all switches in a switch vector property to OFF.
 *
 * \param svp a pointer to a switch vector property.
@@ -484,6 +494,26 @@ extern int IUUpdateNumber(INumberVectorProperty *nvp, double values[], char *nam
 * \return 0 if update successful, -1 otherwise. Update will fail in case of property name mismatch.
 */
 extern int IUUpdateText(ITextVectorProperty *tvp, char * texts[], char *names[], int n);
+
+/** \brief Update all BLOB members in a BLOB vector property.
+*
+* \param bvp a pointer to a BLOB vector property.
+* \param BLOBs a pointer to the BLOB members
+* \param names the names of the IBLOB members to update.
+* \param n the number of IBLOB members to update.
+* \return 0 if update successful, -1 otherwise. Update will fail in case of property name mismatch.
+*/
+extern int IUUpdateBLOB(IBLOBVectorProperty *bvp, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
+
+/** \brief Function to save blob metadata in the corresponding blob.
+    \param tb pointer to an IBLOB member.
+    \param size size of the blob buffer encoded in base64
+    \param blobsize actual size of the buffer after base64 decoding. This is the actual byte count used in drivers.
+    \param blob pointer to the blob buffer
+    \param format format of the blob buffer
+    \note Do not call this function directly, it is called internally by IUUpdateBLOB.
+    */
+extern int IUSaveBLOB(IBLOB *bp, int size, int blobsize, char *blob, char *format);
 
 /** \brief Function to update the min and max elements of a number in the client
     \param nvp pointer to an INumberVectorProperty.

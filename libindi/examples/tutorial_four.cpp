@@ -1,5 +1,5 @@
 #if 0
-    MyScope - Tutorial Four
+    TestDevice - Tutorial Four
     Demonstration of libindi v0.7 capabilities.
 
     Copyright (C) 2010 Jasem Mutlaq (mutlaqja@ikarustech.com)
@@ -44,7 +44,7 @@
 using namespace std;
 
 /* Our telescope auto pointer */
-auto_ptr<MyScope> telescope(0);
+auto_ptr<TestDevice> telescope(0);
 
 const int POLLMS = 1000;				// Period of update, 1 second.
 
@@ -61,7 +61,8 @@ void ISInit()
  if (telescope.get() == 0)
  {
      isInit = 1;
-     telescope.reset(new MyScope());
+     telescope.reset(new TestDevice());
+     srand (time(NULL));
  }
  
 }
@@ -107,14 +108,11 @@ void ISNewNumber (const char *dev, const char *name, double values[], char *name
 ***************************************************************************************/
 void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
 {
-  INDI_UNUSED(dev);
-  INDI_UNUSED(name);
-  INDI_UNUSED(sizes);
-  INDI_UNUSED(blobsizes);
-  INDI_UNUSED(blobs);
-  INDI_UNUSED(formats);
-  INDI_UNUSED(names);
-  INDI_UNUSED(n);
+    ISInit();
+
+    telescope->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
+
+
 }
 
 /**************************************************************************************
@@ -128,18 +126,16 @@ void ISSnoopDevice (XMLEle *root)
 /**************************************************************************************
 ** LX200 Basic constructor
 ***************************************************************************************/
-MyScope::MyScope()
+TestDevice::TestDevice()
 {
-    IDLog("Initilizing from My Scope device...\n");
+    IDLog("Initilizing from Test Device...\n");
 
-    //init_properties();
-
- }
+}
 
 /**************************************************************************************
 **
 ***************************************************************************************/
-MyScope::~MyScope()
+TestDevice::~TestDevice()
 {
 
 }
@@ -147,9 +143,9 @@ MyScope::~MyScope()
 /**************************************************************************************
 ** Initialize all properties & set default values.
 **************************************************************************************/
-bool MyScope::initProperties()
+bool TestDevice::initProperties()
 {
-    DefaultDriver::initProperties();
+    DefaultDevice::initProperties();
     // This is the default driver skeleton file location
     // Convention is: drivername_sk_xml
     // Default location is /usr/share/indi
@@ -176,12 +172,12 @@ bool MyScope::initProperties()
 /**************************************************************************************
 ** Define Basic properties to clients.
 ***************************************************************************************/
-void MyScope::ISGetProperties(const char *dev)
+void TestDevice::ISGetProperties(const char *dev)
 {
     static int configLoaded = 0;
 
     // Ask the default driver first to send properties.
-    INDI::DefaultDriver::ISGetProperties(dev);
+    INDI::DefaultDevice::ISGetProperties(dev);
 
     // If no configuration is load before, then load it now.
     if (configLoaded == 0)
@@ -195,10 +191,10 @@ void MyScope::ISGetProperties(const char *dev)
 /**************************************************************************************
 ** Process Text properties
 ***************************************************************************************/
-bool MyScope::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+bool TestDevice::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
 	// Ignore if not ours 
-        if (strcmp (dev, deviceName()))
+        if (strcmp (dev, getDeviceName()))
             return false;
 
         return false;
@@ -207,11 +203,11 @@ bool MyScope::ISNewText (const char *dev, const char *name, char *texts[], char 
 /**************************************************************************************
 **
 ***************************************************************************************/
-bool MyScope::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+bool TestDevice::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
 	
 	// Ignore if not ours
-        if (strcmp (dev, deviceName()))
+        if (strcmp (dev, getDeviceName()))
             return false;
 
         INumberVectorProperty *nvp = getNumber(name);
@@ -219,8 +215,14 @@ bool MyScope::ISNewNumber (const char *dev, const char *name, double values[], c
         if (!nvp)
             return false;
 
-        // Are we updating Slew Accuracy?
-        if (!strcmp(nvp->name, "Slew Accuracy"))
+        if (isConnected() == false)
+        {
+            nvp->s = IPS_ALERT;
+            IDSetNumber(nvp, "Cannot change property while device is disconnected.");
+            return false;
+        }
+
+        if (!strcmp(nvp->name, "Number Property"))
         {
             IUUpdateNumber(nvp, values, names, n);
             nvp->s = IPS_OK;
@@ -235,30 +237,104 @@ bool MyScope::ISNewNumber (const char *dev, const char *name, double values[], c
 /**************************************************************************************
 **
 ***************************************************************************************/
-bool MyScope::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool TestDevice::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
+    int lightState=0;
+    int lightIndex=0;
+
 	// ignore if not ours //
-        if (strcmp (dev, deviceName()))
+            if (strcmp (dev, getDeviceName()))
             return false;
 
-        if (INDI::DefaultDriver::ISNewSwitch(dev, name, states, names, n) == true)
+        if (INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n) == true)
             return true;
+
+
 
         ISwitchVectorProperty *svp = getSwitch(name);
+        ILightVectorProperty *lvp  = getLight("Light Property");
 
-        if (!svp)
+        if (isConnected() == false)
+        {
+            svp->s = IPS_ALERT;
+            IDSetSwitch(svp, "Cannot change property while device is disconnected.");
+            return false;
+        }
+
+
+        if (!svp || !lvp)
             return false;
 
-        /* Are we update CONNECTION?
-        if (!strcmp(svp->name, "CONNECTION"))
+        if (!strcmp(svp->name, "Menu"))
         {
             IUUpdateSwitch(svp, states, names, n);
-            connect_telescope();
+            ISwitch *onSW = IUFindOnSwitch(svp);
+            lightIndex = IUFindOnSwitchIndex(svp);
+
+            if (lightIndex < 0 || lightIndex > lvp->nlp)
+                return false;
+
+            if (onSW)
+            {
+                lightState = rand() % 4;
+                svp->s = IPS_OK;
+                lvp->s = IPS_OK;
+                lvp->lp[lightIndex].s = (IPState) lightState;
+
+                IDSetSwitch(svp, "Setting to switch %s is successful. Changing corresponding light property to %s.", onSW->name, pstateStr(lvp->lp[lightIndex].s));
+                IDSetLight(lvp, NULL);
+
+
+            }
             return true;
-        }*/
+        }
 
-    return DefaultDriver::ISNewSwitch(dev, name, states, names, n);
+    return false;
 
+
+}
+
+bool TestDevice::ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+{
+    if (strcmp (dev, getDeviceName()))
+        return false;
+
+    const char *testBLOB = "This is a test BLOB from the driver";
+
+    IBLOBVectorProperty *bvp = getBLOB(name);
+
+    if (!bvp)
+        return false;
+
+    if (isConnected() == false)
+    {
+        bvp->s = IPS_ALERT;
+        IDSetBLOB(bvp, "Cannot change property while device is disconnected.");
+        return false;
+    }
+
+    if (!strcmp(bvp->name, "BLOB Test"))
+    {
+
+        IUUpdateBLOB(bvp, sizes, blobsizes, blobs, formats, names, n);
+
+        IBLOB *bp = IUFindBLOB(bvp, names[0]);
+
+        if (!bp)
+            return false;
+
+        IDLog("Recieved BLOB with name %s, format %s, and size %d, and bloblen %d\n", bp->name, bp->format, bp->size, bp->bloblen);
+
+        char *blobBuffer = new char[bp->bloblen+1];
+        strncpy(blobBuffer, ((char *) bp->blob), bp->bloblen);
+        blobBuffer[bp->bloblen] = '\0';
+
+        IDLog("BLOB Content:\n##################################\n%s\n##################################\n", blobBuffer);
+
+        delete [] blobBuffer;
+    }
+
+    return true;
 
 }
 
@@ -266,19 +342,19 @@ bool MyScope::ISNewSwitch (const char *dev, const char *name, ISState *states, c
 /**************************************************************************************
 **
 ***************************************************************************************/
-bool MyScope::Connect()
+bool TestDevice::Connect()
 {
     return true;
 }
 
-bool MyScope::Disconnect()
+bool TestDevice::Disconnect()
 {
     return true;
 }
 
-const char * MyScope::getDefaultName()
+const char * TestDevice::getDefaultName()
 {
-    return "My Scope";
+    return "Test Device";
 }
 
 

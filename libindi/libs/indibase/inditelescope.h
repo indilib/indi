@@ -19,7 +19,7 @@
 #ifndef INDI_TELESCOPE_H
 #define INDI_TELESCOPE_H
 
-#include "defaultdriver.h"
+#include "defaultdevice.h"
 
 /**
  * \class INDI::Telescope
@@ -41,7 +41,7 @@
 \author Gerry Rozema, Jasem Mutlaq
 \see TelescopeSimulator and SynScan drivers for examples of implementations of INDI::Telescope.
 */
-class INDI::Telescope : public INDI::DefaultDriver
+class INDI::Telescope : public INDI::DefaultDevice
 {
     private:
 

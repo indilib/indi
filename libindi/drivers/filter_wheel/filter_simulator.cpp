@@ -99,7 +99,8 @@ bool FilterSim::Connect()
 {
     CurrentFilter=1;
     MinFilter=1;
-    MaxFilter=7;
+    MaxFilter=5;
+    FilterSlotN[0].max = MaxFilter;
     return true;
 }
 
@@ -118,4 +119,28 @@ bool FilterSim::SelectFilter(int f)
 void FilterSim::TimerHit()
 {
     SelectFilterDone(CurrentFilter);
+}
+
+bool FilterSim::GetFilterNames(const char* groupName)
+{
+    char filterName[MAXINDINAME];
+    char filterLabel[MAXINDILABEL];
+
+    const char *filterDesignation[5] = { "Red", "Green", "Blue", "H Alpha", "Luminosity" };
+
+    if (FilterNameT != NULL)
+        delete FilterNameT;
+
+    FilterNameT = new IText[MaxFilter];
+
+    for (int i=0; i < MaxFilter; i++)
+    {
+        snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i+1);
+        snprintf(filterLabel, MAXINDILABEL, "Filter #%d", i+1);
+        IUFillText(&FilterNameT[i], filterName, filterLabel, filterDesignation[i]);
+    }
+
+    IUFillTextVector(FilterNameTP, FilterNameT, MaxFilter, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW, 0, IPS_IDLE);
+
+    return true;
 }

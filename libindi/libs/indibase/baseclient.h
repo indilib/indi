@@ -37,7 +37,7 @@ using namespace std;
 
    BaseClient enables accelerated development of INDI Clients by providing a framework that facilitates communication, device
    handling, and event notification. By subclassing BaseClient, clients can quickly connect to an INDI server, and query for
-   a set of INDI::BaseDriver devices, and read and write properties seamlessly. Event driven programming is possible due to
+   a set of INDI::BaseDevice devices, and read and write properties seamlessly. Event driven programming is possible due to
    notifications upon reception of new devices or properties.
 
    \attention All notifications functions defined in INDI::BaseMediator must be implemented in the client class even if
@@ -51,7 +51,7 @@ class INDI::BaseClient : public INDI::BaseMediator
 {
 public:
     enum { INDI_DEVICE_NOT_FOUND=-1, INDI_PROPERTY_INVALID=-2, INDI_PROPERTY_DUPLICATED = -3, INDI_DISPATCH_ERROR=-4 };
-    //typedef boost::shared_ptr<INDI::BaseDriver> devicePtr;
+    //typedef boost::shared_ptr<INDI::BaseDevice> devicePtr;
 
     BaseClient();
     ~BaseClient();
@@ -66,7 +66,7 @@ public:
 
         A client may select to receive notifications of only a specific device or a set of devices.
         If the client encounters any of the devices set via this function, it will create a corresponding
-        INDI::BaseDriver object to handle them. If no devices are watched, then all devices owned by INDI server
+        INDI::BaseDevice object to handle them. If no devices are watched, then all devices owned by INDI server
         will be created and handled.
     */
     void watchDevice(const char * deviceName);
@@ -86,21 +86,24 @@ public:
     */
     bool disconnectServer();
 
-    /** \brief Connect/Disconnect to INDI driver
-        \param status If true, the client will attempt to turn on CONNECTION property within the driver (i.e. turn on the device).
-         Otherwise, CONNECTION will be turned off.
+    /** \brief Connect to INDI driver
         \param deviceName Name of the device to connect to.
     */
-    void setDriverConnection(bool status, const char *deviceName);
+    void connectDevice(const char *deviceName);
+
+    /** \brief Disconnect INDI driver
+        \param deviceName Name of the device to disconnect.
+    */
+    void disconnectDevice(const char *deviceName);
 
     /** \param deviceName Name of device to search for in the list of devices owned by INDI server,
          \returns If \e deviceName exists, it returns an instance of the device. Otherwise, it returns NULL.
     */
-    INDI::BaseDriver * getDriver(const char * deviceName);
+    INDI::BaseDevice * getDevice(const char * deviceName);
 
     /** \returns Returns a vector of all devices created in the client.
     */
-    const vector<INDI::BaseDriver *> & getDrivers() const { return cDevices; }
+    const vector<INDI::BaseDevice *> & getDevices() const { return cDevices; }
 
     /** \brief Set Binary Large Object policy mode
 
@@ -124,6 +127,29 @@ public:
     // Update
     static void * listenHelper(void *context);
 
+    const char * getHost() { return cServer.c_str();}
+    int getPort() { return cPort; }
+
+    /** \brief Send new Text command to server */
+    void sendNewText (ITextVectorProperty *pp);
+    /** \brief Send new Text command to server */
+    void sendNewText (const char * deviceName, const char * propertyName, const char* elementName, const char *text);
+    /** \brief Send new Number command to server */
+    void sendNewNumber (INumberVectorProperty *pp);
+    /** \brief Send new Number command to server */
+    void sendNewNumber (const char * deviceName, const char *propertyName, const char* elementName, double value);
+    /** \brief Send new Switch command to server */
+    void sendNewSwitch (ISwitchVectorProperty *pp);
+    /** \brief Send new Switch command to server */
+    void sendNewSwitch (const char * deviceName, const char *propertyName, const char *elementName);
+
+    /** \brief Send opening tag for BLOB command to server */
+    void startBlob( const char *devName, const char *propName, const char *timestamp);
+    /** \brief Send ONE blob content to server */
+    void sendOneBlob( const char *blobName, unsigned int blobSize, const char *blobFormat, void * blobBuffer);
+    /** \brief Send closing tag for BLOB command to server */
+    void finishBlob();
+
 protected:
 
     /** \brief Dispatch command received from INDI server to respective devices handled by the client */
@@ -136,33 +162,24 @@ protected:
     int delPropertyCmd (XMLEle *root, char * errmsg);
 
     /** \brief Find and return a particular device */
-    INDI::BaseDriver * findDev( const char * devName, char * errmsg);
+    INDI::BaseDevice * findDev( const char * devName, char * errmsg);
     /** \brief Add a new device */
-    INDI::BaseDriver * addDevice (XMLEle *dep, char * errmsg);
+    INDI::BaseDevice * addDevice (XMLEle *dep, char * errmsg);
     /** \brief Find a device, and if it doesn't exist, create it if create is set to 1 */
-    INDI::BaseDriver * findDev (XMLEle *root, int create, char * errmsg);
+    INDI::BaseDevice * findDev (XMLEle *root, int create, char * errmsg);
 
     /**  Process messages */
     int messageCmd (XMLEle *root, char * errmsg);
-    /**  Process messages */
-    void checkMsg (XMLEle *root, INDI::BaseDriver *dp);
-    /**  Process messages */
-    void doMsg (XMLEle *msg, INDI::BaseDriver *dp);
 
-    /** \brief Send new Text command to server */
-    void sendNewText (ITextVectorProperty *pp);
-    /** \brief Send new Number command to server */
-    void sendNewNumber (INumberVectorProperty *pp);
-    /** \brief Send new Switch command to server */
-    void sendNewSwitch (ISwitchVectorProperty *pp, ISwitch *lp);
-    /** \brief Send opening tag for BLOB command to server */
-    void startBlob( const char *devName, const char *propName, const char *timestamp);
-    /** \brief Send ONE blob content to server */
-    void sendOneBlob( const char *blobName, unsigned int blobSize, const char *blobFormat, unsigned char * blobBuffer);
-    /** \brief Send closing tag for BLOB command to server */
-    void finishBlob();
 
 private:
+
+    /** \brief Connect/Disconnect to INDI driver
+        \param status If true, the client will attempt to turn on CONNECTION property within the driver (i.e. turn on the device).
+         Otherwise, CONNECTION will be turned off.
+        \param deviceName Name of the device to connect to.
+    */
+    void setDriverConnection(bool status, const char *deviceName);
 
     // Listen to INDI server and process incoming messages
     void listenINDI();
@@ -170,7 +187,7 @@ private:
     // Thread for listenINDI()
     pthread_t listen_thread;
 
-    vector<INDI::BaseDriver *> cDevices;
+    vector<INDI::BaseDevice *> cDevices;
     vector<string> cDeviceNames;
 
     string cServer;

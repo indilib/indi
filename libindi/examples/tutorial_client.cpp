@@ -36,7 +36,8 @@
 #include <config.h>
 
 #include "indibase/baseclient.h"
-#include "indibase/basedriver.h"
+#include "indibase/basedevice.h"
+#include "indibase/indiproperty.h"
 
 /* INDI Common Library Routines */
 #include "indicom.h"
@@ -109,31 +110,25 @@ void MyClient::setTemperature()
 /**************************************************************************************
 **
 ***************************************************************************************/
-void MyClient::newDevice(const char *device_name)
+void MyClient::newDevice(INDI::BaseDevice *dp)
 {
-    if (!strcmp(device_name, "CCD Simulator"))
-    {
-        IDLog("Receiving CCD Simulator Device...\n");
+    if (!strcmp(dp->getDeviceName(), "CCD Simulator"))
+       IDLog("Receiving CCD Simulator Device...\n");
 
-        ccd_simulator = getDriver(MYCCD);
+    ccd_simulator = dp;
 
-        if (ccd_simulator == NULL)
-        {
-            IDLog("Error: unable to find CCD Simulator device...\n");
-            return;
-        }
-    }
 }
 
 /**************************************************************************************
 **
-***************************************************************************************/
-void MyClient::newProperty(const char *device_name, const char *property_name)
+*************************************************************************************/
+void MyClient::newProperty(INDI::Property *property)
 {
-     if (!strcmp(device_name, "CCD Simulator") && !strcmp(property_name, "CCD_TEMPERATURE"))
+
+     if (!strcmp(property->getDeviceName(), "CCD Simulator") && !strcmp(property->getName(), "CCD_TEMPERATURE"))
      {
              IDLog("CCD_TEMPERATURE standard property defined. Attempting connection to CCD...\n");
-             setDriverConnection(true, MYCCD);
+             connectDevice(MYCCD);
      }
 }
 
@@ -167,3 +162,16 @@ void MyClient::newNumber(INumberVectorProperty *nvp)
            IDLog("CCD temperature reached desired value!\n");
    }
 }
+
+/**************************************************************************************
+**
+***************************************************************************************/
+void MyClient::newMessage(INDI::BaseDevice *dp)
+{
+     if (strcmp(dp->getDeviceName(), "CCD Simulator"))
+         return;
+
+     IDLog("Recveing message from Server:\n\n########################\n%s\n########################\n\n", dp->lastMessage());
+
+}
+

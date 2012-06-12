@@ -21,9 +21,10 @@
 #include <errno.h>
 #include <zlib.h>
 
-#include "defaultdriver.h"
+#include "defaultdevice.h"
 #include "indicom.h"
 #include "base64.h"
+#include "indiproperty.h"
 
 const char *COMMUNICATION_TAB = "Communication";
 const char *MAIN_CONTROL_TAB = "Main Control";
@@ -37,7 +38,7 @@ const char *GUIDER_TAB = "Guide Wheel";
 void timerfunc(void *t)
 {
     //fprintf(stderr,"Got a timer hit with %x\n",t);
-    INDI::DefaultDriver *devPtr = static_cast<INDI::DefaultDriver *> (t);
+    INDI::DefaultDevice *devPtr = static_cast<INDI::DefaultDevice *> (t);
     if (devPtr != NULL)
     {
         //  this was for my device
@@ -49,7 +50,7 @@ void timerfunc(void *t)
 }
 
 
-INDI::DefaultDriver::DefaultDriver()
+INDI::DefaultDevice::DefaultDevice()
 {
     pDebug = false;
     pSimulation = false;
@@ -62,13 +63,13 @@ INDI::DefaultDriver::DefaultDriver()
 
     IUFillSwitch(&ConnectionS[0],"CONNECT","Connect",ISS_OFF);
     IUFillSwitch(&ConnectionS[1],"DISCONNECT","Disconnect",ISS_ON);
-    IUFillSwitchVector(ConnectionSP,ConnectionS,2,deviceName(),"CONNECTION","Connection","Main Control",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    IUFillSwitchVector(ConnectionSP,ConnectionS,2,getDeviceName(),"CONNECTION","Connection","Main Control",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
-    registerProperty(ConnectionSP, PropertyContainer::INDI_SWITCH);
+    registerProperty(ConnectionSP, INDI_SWITCH);
 
 }
 
-INDI::DefaultDriver::~DefaultDriver()
+INDI::DefaultDevice::~DefaultDevice()
 {
     delete ConnectionSP;
     delete DebugSP;
@@ -76,7 +77,7 @@ INDI::DefaultDriver::~DefaultDriver()
     delete ConfigProcessSP;
 }
 
-bool INDI::DefaultDriver::loadConfig()
+bool INDI::DefaultDevice::loadConfig()
 {
     char errmsg[MAXRBUF];
     bool pResult = false;
@@ -93,11 +94,11 @@ bool INDI::DefaultDriver::loadConfig()
    return pResult;
 }
 
-bool INDI::DefaultDriver::saveConfigItems(FILE *fp)
+bool INDI::DefaultDevice::saveConfigItems(FILE *fp)
 {
-    std::vector<PropertyContainer *>::iterator orderi;
+    std::vector<INDI::Property *>::iterator orderi;
 
-    PropertyContainer::INDI_TYPE pType;
+    INDI_TYPE pType;
     void *pPtr;
 
     ISwitchVectorProperty *svp=NULL;
@@ -113,23 +114,23 @@ bool INDI::DefaultDriver::saveConfigItems(FILE *fp)
 
         switch (pType)
         {
-        case PropertyContainer::INDI_NUMBER:
+        case INDI_NUMBER:
              nvp = static_cast<INumberVectorProperty *>(pPtr);
              //IDLog("Trying to save config for number %s\n", nvp->name);
              IUSaveConfigNumber(fp, nvp);
              break;
-        case PropertyContainer::INDI_TEXT:
+        case INDI_TEXT:
              tvp = static_cast<ITextVectorProperty *>(pPtr);
              IUSaveConfigText(fp, tvp);
              break;
-        case PropertyContainer::INDI_SWITCH:
+        case INDI_SWITCH:
              svp = static_cast<ISwitchVectorProperty *>(pPtr);
              /* Never save CONNECTION property. Don't save switches with no switches on if the rule is one of many */
              if (!strcmp(svp->name, "CONNECTION") || (svp->r == ISR_1OFMANY && !IUFindOnSwitch(svp)))
                  continue;
              IUSaveConfigSwitch(fp, svp);
              break;
-        case PropertyContainer::INDI_BLOB:
+        case INDI_BLOB:
              bvp = static_cast<IBLOBVectorProperty *>(pPtr);
              IUSaveConfigBLOB(fp, bvp);
              break;
@@ -138,7 +139,7 @@ bool INDI::DefaultDriver::saveConfigItems(FILE *fp)
 	return true;
 }
 
-bool INDI::DefaultDriver::saveConfig()
+bool INDI::DefaultDevice::saveConfig()
 {
     //std::vector<orderPtr>::iterator orderi;
     char errmsg[MAXRBUF];
@@ -168,7 +169,7 @@ bool INDI::DefaultDriver::saveConfig()
     return true;
 }
 
-bool INDI::DefaultDriver::loadDefaultConfig()
+bool INDI::DefaultDevice::loadDefaultConfig()
 {
     char configDefaultFileName[MAXRBUF];
     char errmsg[MAXRBUF];
@@ -192,7 +193,7 @@ bool INDI::DefaultDriver::loadDefaultConfig()
     return pResult;
 }
 
-bool INDI::DefaultDriver::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool INDI::DefaultDevice::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     // ignore if not ours //
     if (strcmp (dev, deviceID))
@@ -219,12 +220,15 @@ bool INDI::DefaultDriver::ISNewSwitch (const char *dev, const char *name, ISStat
 
                 // If connection is successful, set it thus
                 if (rc)
+                {
                         setConnected(true, IPS_OK);
+                        updateProperties();
+                }
                 else
                         setConnected(false, IPS_ALERT);
 
 
-                updateProperties();
+
             }
             else
                 // Just tell client we're connected yes
@@ -239,11 +243,14 @@ bool INDI::DefaultDriver::ISNewSwitch (const char *dev, const char *name, ISStat
                 rc = true;
 
             if (rc)
+            {
                 setConnected(false, IPS_IDLE);
+                updateProperties();
+            }
             else
                 setConnected(true, IPS_ALERT);
 
-            updateProperties();
+
         }
     }
 
@@ -308,7 +315,7 @@ bool INDI::DefaultDriver::ISNewSwitch (const char *dev, const char *name, ISStat
 
 }
 
-void INDI::DefaultDriver::addDebugControl()
+void INDI::DefaultDevice::addDebugControl()
 {
     /**************************************************************************/
     DebugSP = getSwitch("DEBUG");
@@ -317,8 +324,8 @@ void INDI::DefaultDriver::addDebugControl()
         DebugSP = new ISwitchVectorProperty;
         IUFillSwitch(&DebugS[0], "ENABLE", "Enable", ISS_OFF);
         IUFillSwitch(&DebugS[1], "DISABLE", "Disable", ISS_ON);
-        IUFillSwitchVector(DebugSP, DebugS, NARRAY(DebugS), deviceName(), "DEBUG", "Debug", "Options", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-        registerProperty(DebugSP, PropertyContainer::INDI_SWITCH);
+        IUFillSwitchVector(DebugSP, DebugS, NARRAY(DebugS), getDeviceName(), "DEBUG", "Debug", "Options", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+        registerProperty(DebugSP, INDI_SWITCH);
     }
     else
     {
@@ -331,7 +338,7 @@ void INDI::DefaultDriver::addDebugControl()
 
 }
 
-void INDI::DefaultDriver::addSimulationControl()
+void INDI::DefaultDevice::addSimulationControl()
 {
     /**************************************************************************/
     SimulationSP = getSwitch("SIMULATION");
@@ -340,8 +347,8 @@ void INDI::DefaultDriver::addSimulationControl()
         SimulationSP = new ISwitchVectorProperty;
         IUFillSwitch(&SimulationS[0], "ENABLE", "Enable", ISS_OFF);
         IUFillSwitch(&SimulationS[1], "DISABLE", "Disable", ISS_ON);
-        IUFillSwitchVector(SimulationSP, SimulationS, NARRAY(SimulationS), deviceName(), "SIMULATION", "Simulation", "Options", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-        registerProperty(SimulationSP, PropertyContainer::INDI_SWITCH);
+        IUFillSwitchVector(SimulationSP, SimulationS, NARRAY(SimulationS), getDeviceName(), "SIMULATION", "Simulation", "Options", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+        registerProperty(SimulationSP, INDI_SWITCH);
     }
     else
     {
@@ -352,7 +359,7 @@ void INDI::DefaultDriver::addSimulationControl()
     }
 }
 
-void INDI::DefaultDriver::addConfigurationControl()
+void INDI::DefaultDevice::addConfigurationControl()
 {
     /**************************************************************************/
     ConfigProcessSP = getSwitch("CONFIG_PROCESS");
@@ -362,21 +369,21 @@ void INDI::DefaultDriver::addConfigurationControl()
         IUFillSwitch(&ConfigProcessS[0], "CONFIG_LOAD", "Load", ISS_OFF);
         IUFillSwitch(&ConfigProcessS[1], "CONFIG_SAVE", "Save", ISS_OFF);
         IUFillSwitch(&ConfigProcessS[2], "CONFIG_DEFAULT", "Default", ISS_OFF);
-        IUFillSwitchVector(ConfigProcessSP, ConfigProcessS, NARRAY(ConfigProcessS), deviceName(), "CONFIG_PROCESS", "Configuration", "Options", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-        registerProperty(ConfigProcessSP, PropertyContainer::INDI_SWITCH);
+        IUFillSwitchVector(ConfigProcessSP, ConfigProcessS, NARRAY(ConfigProcessS), getDeviceName(), "CONFIG_PROCESS", "Configuration", "Options", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+        registerProperty(ConfigProcessSP, INDI_SWITCH);
     }
     /**************************************************************************/
 
 }
 
-void INDI::DefaultDriver::addAuxControls()
+void INDI::DefaultDevice::addAuxControls()
 {
    addDebugControl();
    addSimulationControl();
    addConfigurationControl();
 }
 
-void INDI::DefaultDriver::setDebug(bool enable)
+void INDI::DefaultDevice::setDebug(bool enable)
 {
     if (!DebugSP)
         return;
@@ -415,7 +422,7 @@ void INDI::DefaultDriver::setDebug(bool enable)
 
 }
 
-void INDI::DefaultDriver::setSimulation(bool enable)
+void INDI::DefaultDevice::setSimulation(bool enable)
 {
     if (!SimulationSP)
         return;
@@ -454,21 +461,21 @@ void INDI::DefaultDriver::setSimulation(bool enable)
 
 }
 
-bool INDI::DefaultDriver::isDebug()
+bool INDI::DefaultDevice::isDebug()
 {
   return pDebug;
 }
 
-bool INDI::DefaultDriver::isSimulation()
+bool INDI::DefaultDevice::isSimulation()
 {
  return pSimulation;
 }
 
-void INDI::DefaultDriver::ISGetProperties (const char *dev)
+void INDI::DefaultDevice::ISGetProperties (const char *dev)
 {
-    std::vector<PropertyContainer *>::iterator orderi;
+    std::vector<INDI::Property *>::iterator orderi;
     static int isInit = 0;
-    PropertyContainer::INDI_TYPE pType;
+    INDI_TYPE pType;
     void *pPtr;
 
     if(isInit == 0)
@@ -484,7 +491,7 @@ void INDI::DefaultDriver::ISGetProperties (const char *dev)
                setDeviceName(getDefaultName());
         }
 
-        strncpy(ConnectionSP->device, deviceName(), MAXINDIDEVICE);
+        strncpy(ConnectionSP->device, getDeviceName(), MAXINDIDEVICE);
         initProperties();
         addConfigurationControl();
 
@@ -498,26 +505,26 @@ void INDI::DefaultDriver::ISGetProperties (const char *dev)
 
         switch (pType)
         {
-        case PropertyContainer::INDI_NUMBER:
+        case INDI_NUMBER:
              IDDefNumber(static_cast<INumberVectorProperty *>(pPtr) , NULL);
              break;
-        case PropertyContainer::INDI_TEXT:
+        case INDI_TEXT:
              IDDefText(static_cast<ITextVectorProperty *>(pPtr) , NULL);
              break;
-        case PropertyContainer::INDI_SWITCH:
+        case INDI_SWITCH:
              IDDefSwitch(static_cast<ISwitchVectorProperty *>(pPtr) , NULL);
              break;
-        case PropertyContainer::INDI_LIGHT:
+        case INDI_LIGHT:
              IDDefLight(static_cast<ILightVectorProperty *>(pPtr) , NULL);
              break;
-        case PropertyContainer::INDI_BLOB:
+        case INDI_BLOB:
              IDDefBLOB(static_cast<IBLOBVectorProperty *>(pPtr) , NULL);
              break;
         }
     }
 }
 
-void INDI::DefaultDriver::resetProperties()
+void INDI::DefaultDevice::resetProperties()
 {
     /*std::vector<numberPtr>::const_iterator numi;
     std::vector<switchPtr>::const_iterator switchi;
@@ -556,7 +563,7 @@ void INDI::DefaultDriver::resetProperties()
    }*/
 }
 
-void INDI::DefaultDriver::setConnected(bool status, IPState state, const char *msg)
+void INDI::DefaultDevice::setConnected(bool status, IPState state, const char *msg)
 {
     ISwitch *sp = NULL;
     ISwitchVectorProperty *svp = getSwitch("CONNECTION");
@@ -589,13 +596,13 @@ void INDI::DefaultDriver::setConnected(bool status, IPState state, const char *m
 
 //  This is a helper function
 //  that just encapsulates the Indi way into our clean c++ way of doing things
-int INDI::DefaultDriver::SetTimer(int ms)
+int INDI::DefaultDevice::SetTimer(int ms)
 {
     return IEAddTimer(ms,timerfunc,this);
 }
 
 //  Just another helper to help encapsulate indi into a clean class
-void INDI::DefaultDriver::RemoveTimer(int id)
+void INDI::DefaultDevice::RemoveTimer(int id)
 {
     IERmTimer(id);
     return;
@@ -604,57 +611,59 @@ void INDI::DefaultDriver::RemoveTimer(int id)
 //  This is just a placeholder
 //  This function should be overriden by child classes if they use timers
 //  So we should never get here
-void INDI::DefaultDriver::TimerHit()
+void INDI::DefaultDevice::TimerHit()
 {
     return;
 }
 
 
-bool INDI::DefaultDriver::updateProperties()
+bool INDI::DefaultDevice::updateProperties()
 {
     //  The base device has no properties to update
     return true;
 }
 
 
-bool INDI::DefaultDriver::initProperties()
+bool INDI::DefaultDevice::initProperties()
 {
    return true;
 }
 
-bool INDI::DefaultDriver::deleteProperty(const char *propertyName)
+bool INDI::DefaultDevice::deleteProperty(const char *propertyName)
 {
-    removeProperty(propertyName);
-    IDDelete(deviceName(), propertyName ,NULL);
+    char errmsg[MAXRBUF];
+
+    removeProperty(propertyName, errmsg);
+    IDDelete(getDeviceName(), propertyName ,NULL);
     return true;
 }
 
-void INDI::DefaultDriver::defineNumber(INumberVectorProperty *nvp)
+void INDI::DefaultDevice::defineNumber(INumberVectorProperty *nvp)
 {
-    registerProperty(nvp, PropertyContainer::INDI_NUMBER);
+    registerProperty(nvp, INDI_NUMBER);
     IDDefNumber(nvp, NULL);
 }
 
-void INDI::DefaultDriver::defineText(ITextVectorProperty *tvp)
+void INDI::DefaultDevice::defineText(ITextVectorProperty *tvp)
 {
-    registerProperty(tvp, PropertyContainer::INDI_TEXT);
+    registerProperty(tvp, INDI_TEXT);
     IDDefText(tvp, NULL);
 }
 
-void INDI::DefaultDriver::defineSwitch(ISwitchVectorProperty *svp)
+void INDI::DefaultDevice::defineSwitch(ISwitchVectorProperty *svp)
 {
-    registerProperty(svp, PropertyContainer::INDI_SWITCH);
+    registerProperty(svp, INDI_SWITCH);
     IDDefSwitch(svp, NULL);
 }
 
-void INDI::DefaultDriver::defineLight(ILightVectorProperty *lvp)
+void INDI::DefaultDevice::defineLight(ILightVectorProperty *lvp)
 {
-    registerProperty(lvp, PropertyContainer::INDI_LIGHT);
+    registerProperty(lvp, INDI_LIGHT);
     IDDefLight(lvp, NULL);
 }
 
-void INDI::DefaultDriver::defineBLOB(IBLOBVectorProperty *bvp)
+void INDI::DefaultDevice::defineBLOB(IBLOBVectorProperty *bvp)
 {
-    registerProperty(bvp, PropertyContainer::INDI_BLOB);
+    registerProperty(bvp, INDI_BLOB);
     IDDefBLOB(bvp, NULL);
 }

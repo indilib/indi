@@ -171,7 +171,7 @@ INDI::CCD::~CCD()
 
 bool INDI::CCD::initProperties()
 {
-    DefaultDriver::initProperties();   //  let the base class flesh in what it wants
+    DefaultDevice::initProperties();   //  let the base class flesh in what it wants
 
     // PRIMARY CCD Init
 
@@ -179,20 +179,20 @@ bool INDI::CCD::initProperties()
     IUFillNumber(&PrimaryCCD.ImageFrameN[1],"Y","Top","%4.0f",0,1040,0,0);
     IUFillNumber(&PrimaryCCD.ImageFrameN[2],"WIDTH","Width","%4.0f",0,1392.0,0,1392.0);
     IUFillNumber(&PrimaryCCD.ImageFrameN[3],"HEIGHT","Height","%4.0f",0,1040,0,1040);
-    IUFillNumberVector(PrimaryCCD.ImageFrameNP,PrimaryCCD.ImageFrameN,4,deviceName(),"CCD_FRAME","Frame",IMAGE_SETTINGS_TAB,IP_RW,60,IPS_IDLE);
+    IUFillNumberVector(PrimaryCCD.ImageFrameNP,PrimaryCCD.ImageFrameN,4,getDeviceName(),"CCD_FRAME","Frame",IMAGE_SETTINGS_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillSwitch(&PrimaryCCD.FrameTypeS[0],"FRAME_LIGHT","Light",ISS_ON);
     IUFillSwitch(&PrimaryCCD.FrameTypeS[1],"FRAME_BIAS","Bias",ISS_OFF);
     IUFillSwitch(&PrimaryCCD.FrameTypeS[2],"FRAME_DARK","Dark",ISS_OFF);
     IUFillSwitch(&PrimaryCCD.FrameTypeS[3],"FRAME_FLAT","Flat",ISS_OFF);
-    IUFillSwitchVector(PrimaryCCD.FrameTypeSP,PrimaryCCD.FrameTypeS,4,deviceName(),"CCD_FRAME_TYPE","FrameType",IMAGE_SETTINGS_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    IUFillSwitchVector(PrimaryCCD.FrameTypeSP,PrimaryCCD.FrameTypeS,4,getDeviceName(),"CCD_FRAME_TYPE","FrameType",IMAGE_SETTINGS_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
     IUFillNumber(&PrimaryCCD.ImageExposureN[0],"CCD_EXPOSURE_VALUE","Duration (s)","%5.2f",0,36000,0,1.0);
-    IUFillNumberVector(PrimaryCCD.ImageExposureNP,PrimaryCCD.ImageExposureN,1,deviceName(),"CCD_EXPOSURE_REQUEST","Expose",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
+    IUFillNumberVector(PrimaryCCD.ImageExposureNP,PrimaryCCD.ImageExposureN,1,getDeviceName(),"CCD_EXPOSURE_REQUEST","Expose",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillNumber(&PrimaryCCD.ImageBinN[0],"HOR_BIN","X","%2.0f",1,4,1,1);
     IUFillNumber(&PrimaryCCD.ImageBinN[1],"VER_BIN","Y","%2.0f",1,4,1,1);
-    IUFillNumberVector(PrimaryCCD.ImageBinNP,PrimaryCCD.ImageBinN,2,deviceName(),"CCD_BINNING","Binning",IMAGE_SETTINGS_TAB,IP_RW,60,IPS_IDLE);
+    IUFillNumberVector(PrimaryCCD.ImageBinNP,PrimaryCCD.ImageBinN,2,getDeviceName(),"CCD_BINNING","Binning",IMAGE_SETTINGS_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillNumber(&PrimaryCCD.ImagePixelSizeN[0],"CCD_MAX_X","Resolution x","%4.0f",1,40,0,6.45);
     IUFillNumber(&PrimaryCCD.ImagePixelSizeN[1],"CCD_MAX_Y","Resolution y","%4.0f",1,40,0,6.45);
@@ -200,14 +200,14 @@ bool INDI::CCD::initProperties()
     IUFillNumber(&PrimaryCCD.ImagePixelSizeN[3],"CCD_PIXEL_SIZE_X","Pixel size X","%5.2f",1,40,0,6.45);
     IUFillNumber(&PrimaryCCD.ImagePixelSizeN[4],"CCD_PIXEL_SIZE_Y","Pixel size Y","%5.2f",1,40,0,6.45);
     IUFillNumber(&PrimaryCCD.ImagePixelSizeN[5],"CCD_BITSPERPIXEL","Bits per pixel","%3.0f",1,40,0,6.45);
-    IUFillNumberVector(PrimaryCCD.ImagePixelSizeNP,PrimaryCCD.ImagePixelSizeN,6,deviceName(),"CCD_INFO","Ccd Information",IMAGE_INFO_TAB,IP_RO,60,IPS_IDLE);
+    IUFillNumberVector(PrimaryCCD.ImagePixelSizeNP,PrimaryCCD.ImagePixelSizeN,6,getDeviceName(),"CCD_INFO","Ccd Information",IMAGE_INFO_TAB,IP_RO,60,IPS_IDLE);
 
     IUFillSwitch(&PrimaryCCD.CompressS[0],"COMPRESS","Compress",ISS_OFF);
     IUFillSwitch(&PrimaryCCD.CompressS[1],"RAW","Raw",ISS_ON);
-    IUFillSwitchVector(PrimaryCCD.CompressSP,PrimaryCCD.CompressS,2,deviceName(),"COMPRESSION","Image",IMAGE_SETTINGS_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    IUFillSwitchVector(PrimaryCCD.CompressSP,PrimaryCCD.CompressS,2,getDeviceName(),"COMPRESSION","Image",IMAGE_SETTINGS_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
     IUFillBLOB(&PrimaryCCD.FitsB,"CCD1","Image","");
-    IUFillBLOBVector(PrimaryCCD.FitsBP,&PrimaryCCD.FitsB,1,deviceName(),"CCD1","Image Data",OPTIONS_TAB,IP_RO,60,IPS_IDLE);
+    IUFillBLOBVector(PrimaryCCD.FitsBP,&PrimaryCCD.FitsB,1,getDeviceName(),"CCD1","Image Data",OPTIONS_TAB,IP_RO,60,IPS_IDLE);
 
     // GUIDER CCD Init
 
@@ -215,7 +215,7 @@ bool INDI::CCD::initProperties()
     IUFillNumber(&GuideCCD.ImageFrameN[1],"Y","Top","%4.0f",0,1040,0,0);
     IUFillNumber(&GuideCCD.ImageFrameN[2],"WIDTH","Width","%4.0f",0,1392.0,0,1392.0);
     IUFillNumber(&GuideCCD.ImageFrameN[3],"HEIGHT","Height","%4.0f",0,1040,0,1040);
-    IUFillNumberVector(GuideCCD.ImageFrameNP,GuideCCD.ImageFrameN,4,deviceName(),"GUIDE_FRAME","Frame",GUIDE_HEAD_TAB,IP_RW,60,IPS_IDLE);
+    IUFillNumberVector(GuideCCD.ImageFrameNP,GuideCCD.ImageFrameN,4,getDeviceName(),"GUIDE_FRAME","Frame",GUIDE_HEAD_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillNumber(&GuideCCD.ImagePixelSizeN[0],"Image_MAX_X","Resolution x","%4.0f",1,40,0,6.45);
     IUFillNumber(&GuideCCD.ImagePixelSizeN[1],"Image_MAX_Y","Resolution y","%4.0f",1,40,0,6.45);
@@ -223,29 +223,29 @@ bool INDI::CCD::initProperties()
     IUFillNumber(&GuideCCD.ImagePixelSizeN[3],"Image_PIXEL_SIZE_X","Pixel size X","%5.2f",1,40,0,6.45);
     IUFillNumber(&GuideCCD.ImagePixelSizeN[4],"Image_PIXEL_SIZE_Y","Pixel size Y","%5.2f",1,40,0,6.45);
     IUFillNumber(&GuideCCD.ImagePixelSizeN[5],"Image_BITSPERPIXEL","Bits per pixel","%3.0f",1,40,0,6.45);
-    IUFillNumberVector(GuideCCD.ImagePixelSizeNP,GuideCCD.ImagePixelSizeN,6,deviceName(),"GUIDE_INFO",GUIDE_HEAD_TAB,GUIDE_HEAD_TAB,IP_RO,60,IPS_IDLE);
+    IUFillNumberVector(GuideCCD.ImagePixelSizeNP,GuideCCD.ImagePixelSizeN,6,getDeviceName(),"GUIDE_INFO",GUIDE_HEAD_TAB,GUIDE_HEAD_TAB,IP_RO,60,IPS_IDLE);
 
     IUFillNumber(&GuideCCD.ImageExposureN[0],"GUIDER_EXPOSURE_VALUE","Duration (s)","%5.2f",0,36000,0,1.0);
-    IUFillNumberVector(GuideCCD.ImageExposureNP,GuideCCD.ImageExposureN,1,deviceName(),"GUIDER_EXPOSURE","Image",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
+    IUFillNumberVector(GuideCCD.ImageExposureNP,GuideCCD.ImageExposureN,1,getDeviceName(),"GUIDER_EXPOSURE","Image",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillSwitch(&GuideCCD.CompressS[0],"GCOMPRESS","Compress",ISS_OFF);
     IUFillSwitch(&GuideCCD.CompressS[1],"GRAW","Raw",ISS_ON);
-    IUFillSwitchVector(GuideCCD.CompressSP,GuideCCD.CompressS,2,deviceName(),"GCOMPRESSION","Image",GUIDE_HEAD_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    IUFillSwitchVector(GuideCCD.CompressSP,GuideCCD.CompressS,2,getDeviceName(),"GCOMPRESSION","Image",GUIDE_HEAD_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
     IUFillBLOB(&GuideCCD.FitsB,"CCD2","Guider Image","");
-    IUFillBLOBVector(GuideCCD.FitsBP,&GuideCCD.FitsB,1,deviceName(),"CCD2","Image Data",OPTIONS_TAB,IP_RO,60,IPS_IDLE);
+    IUFillBLOBVector(GuideCCD.FitsBP,&GuideCCD.FitsB,1,getDeviceName(),"CCD2","Image Data",OPTIONS_TAB,IP_RO,60,IPS_IDLE);
 
     // CCD Class Init
 
     IUFillText(&TelescopeT[0],"ACTIVE_TELESCOPE","Telescope","");
-    IUFillTextVector(TelescopeTP,TelescopeT,1,deviceName(),"ACTIVE_DEVICES","Snoop Scope",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
+    IUFillTextVector(TelescopeTP,TelescopeT,1,getDeviceName(),"ACTIVE_DEVICES","Snoop Scope",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillNumber(&EqN[0],"RA_PEC","Ra (hh:mm:ss)","%010.6m",0,24,0,0);
     IUFillNumber(&EqN[1],"DEC_PEC","Dec (dd:mm:ss)","%010.6m",-90,90,0,0);
     IUFillNumberVector(&EqNP,EqN,2,"","EQUATORIAL_PEC","EQ PEC","Main Control",IP_RW,60,IPS_IDLE);
 
     // Guider Interface
-    initGuiderProperties(deviceName(), GUIDE_CONTROL_TAB);
+    initGuiderProperties(getDeviceName(), GUIDE_CONTROL_TAB);
 
     return true;
 }
@@ -256,7 +256,7 @@ void INDI::CCD::ISGetProperties (const char *dev)
 
     //IDLog("INDI::CCD IsGetProperties with %s\n",dev);
 
-    DefaultDriver::ISGetProperties(dev);
+    DefaultDevice::ISGetProperties(dev);
 
     return;
 }
@@ -325,7 +325,7 @@ bool INDI::CCD::updateProperties()
     return true;
 }
 
-void INDI::CCD::ISSnoopDevice (XMLEle *root)
+bool INDI::CCD::ISSnoopDevice (XMLEle *root)
  {
      //fprintf(stderr," ################# CCDSim handling snoop ##############\n");
      if(IUSnoopNumber(root,&EqNP)==0)
@@ -345,6 +345,8 @@ void INDI::CCD::ISSnoopDevice (XMLEle *root)
      {
         //fprintf(stderr,"Snoop Failed\n");
      }
+
+     return true;
  }
 
 bool INDI::CCD::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
@@ -352,7 +354,7 @@ bool INDI::CCD::ISNewText (const char *dev, const char *name, char *texts[], cha
     //  Ok, lets see if this is a property wer process
     //IDLog("IndiTelescope got %d new text items name %s\n",n,name);
     //  first check if it's for our device
-    if(strcmp(dev,deviceName())==0)
+    if(strcmp(dev,getDeviceName())==0)
     {
         //  This is for our device
         //  Now lets see if it's something we process here
@@ -374,14 +376,14 @@ bool INDI::CCD::ISNewText (const char *dev, const char *name, char *texts[], cha
 
     }
 
-    return INDI::DefaultDriver::ISNewText(dev,name,texts,names,n);
+    return INDI::DefaultDevice::ISNewText(dev,name,texts,names,n);
 }
 
 bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
     //  first check if it's for our device
     //IDLog("INDI::CCD::ISNewNumber %s\n",name);
-    if(strcmp(dev,deviceName())==0)
+    if(strcmp(dev,getDeviceName())==0)
     {
         //  This is for our device
         //  Now lets see if it's something we process here
@@ -563,13 +565,13 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
     }
     //  if we didn't process it, continue up the chain, let somebody else
     //  give it a shot
-    return DefaultDriver::ISNewNumber(dev,name,values,names,n);
+    return DefaultDevice::ISNewNumber(dev,name,values,names,n);
 }
 
 bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
 
-    if(strcmp(dev,deviceName())==0)
+    if(strcmp(dev,getDeviceName())==0)
     {
 
 
@@ -622,7 +624,7 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
 
 
     // let the default driver have a crack at it
-    return DefaultDriver::ISNewSwitch(dev, name, states, names, n);
+    return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
 

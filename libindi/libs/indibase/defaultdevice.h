@@ -19,7 +19,7 @@
 #ifndef INDIDEFAULTDRIVER_H
 #define INDIDEFAULTDRIVER_H
 
-#include "basedriver.h"
+#include "basedevice.h"
 #include "indidriver.h"
 
 #include <memory.h>
@@ -34,22 +34,22 @@ extern const char *FILTER_TAB;
 extern const char *GUIDER_TAB;
 
 /**
- * \class INDI::DefaultDriver
-   \brief Class to provide extended functionality for drivers in addition
-to the functionality provided by INDI::BaseDriver. This class should \e only be subclassed by
-drivers directly as it is linked with main(). Virtual drivers cannot employ INDI::DefaultDriver.
+ * \class INDI::DefaultDevice
+   \brief Class to provide extended functionality for devices in addition
+to the functionality provided by INDI::BaseDevice. This class should \e only be subclassed by
+drivers directly as it is linked with main(). Virtual drivers cannot employ INDI::DefaultDevice.
 
-   INDI::DefaultDriver provides capability to add Debug, Simulation, and Configuration controls. These controls (switches) are
+   INDI::DefaultDevice provides capability to add Debug, Simulation, and Configuration controls. These controls (switches) are
    defined to the client. Configuration options permit saving and loading of AS-IS property values.
 
 \see <a href='tutorial__four_8h_source.html'>Tutorial Four</a>
 \author Jasem Mutlaq
  */
-class INDI::DefaultDriver : public INDI::BaseDriver
+class INDI::DefaultDevice : public INDI::BaseDevice
 {
 public:
-    DefaultDriver();
-    virtual ~DefaultDriver();
+    DefaultDevice();
+    virtual ~DefaultDevice();
 
     /** \brief Add Debug, Simulation, and Configuration options to the driver */
     void addAuxControls();
@@ -151,6 +151,18 @@ protected:
       \returns True if any property was successfully processed, false otherwise.
     */
     virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n) {return false;}
+
+    /** \brief Process the client newBLOB command
+      \note This function is called by the INDI framework, do not call it directly.
+      \returns True if any property was successfully processed, false otherwise.
+    */
+    virtual bool ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n) { return false;}
+
+    /** \brief Process a snoop event from INDI server. This function is called when a snooped property is updated in a snooped driver.
+      \note This function is called by the INDI framework, do not call it directly.
+      \returns True if any property was successfully processed, false otherwise.
+    */
+    virtual bool ISSnoopDevice (XMLEle *root) { return false;}
 
     // Configuration
 
