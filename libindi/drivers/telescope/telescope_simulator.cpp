@@ -501,6 +501,10 @@ bool ScopeSim::Sync(double ra, double dec)
     currentRA  = ra;
     currentDEC = dec;
 
+    EqPECN[RA_AXIS].value = ra;
+    EqPECN[DEC_AXIS].value = dec;
+    IDSetNumber(EqPECNV, NULL);
+
     IDMessage(getDeviceName(), "Sync is successful.");
 
     TrackState = SCOPE_IDLE;

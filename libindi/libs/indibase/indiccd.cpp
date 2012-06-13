@@ -498,7 +498,8 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
             //  Update client display
             //IDSetNumber(GuiderFrameNP,NULL);
 
-            IDLog("GuiderFrame set to %4.0f,%4.0f %4.0f x %4.0f\n",
+            if (isDebug())
+                IDLog("GuiderFrame set to %4.0f,%4.0f %4.0f x %4.0f\n",
                   GuideCCD.ImageFrameN[0].value,GuideCCD.ImageFrameN[1].value,GuideCCD.ImageFrameN[2].value,GuideCCD.ImageFrameN[3].value);
             //GSubX=GuiderFrameN[0].value;
             //GSubY=GuiderFrameN[1].value;
@@ -518,7 +519,8 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
             //  Update client display
             IDSetNumber(GuideNSP,NULL);
 
-            fprintf(stderr,"GuideNorthSouth set to %7.3f,%7.3f\n", GuideNS[0].value,GuideNS[1].value);
+            if (isDebug())
+                fprintf(stderr,"GuideNorthSouth set to %7.3f,%7.3f\n", GuideNS[0].value,GuideNS[1].value);
 
             if(GuideNS[0].value != 0)
             {
@@ -543,8 +545,8 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
             //  Update client display
             IDSetNumber(GuideEWP,NULL);
 
-            fprintf(stderr,"GuiderEastWest set to %6.3f,%6.3f\n",
-                  GuideEW[0].value,GuideEW[1].value);
+            if (isDebug())
+                fprintf(stderr,"GuiderEastWest set to %6.3f,%6.3f\n", GuideEW[0].value,GuideEW[1].value);
 
             if(GuideEW[0].value != 0)
             {
