@@ -4,6 +4,7 @@ libindi.so.0 libindi0 #MINVER#
  IUFindLight@Base 0.9-0ubuntu2
  IUFindNumber@Base 0.9-0ubuntu2
  IUFindOnSwitch@Base 0.9-0ubuntu2
+ IUFindOnSwitchIndex@Base 0.9-0ubuntu2
  IUFindSwitch@Base 0.9-0ubuntu2
  IUFindText@Base 0.9-0ubuntu2
  IUResetSwitch@Base 0.9-0ubuntu2
