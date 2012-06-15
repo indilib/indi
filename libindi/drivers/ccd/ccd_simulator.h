@@ -71,12 +71,20 @@ class CCDSim : public INDI::CCD
         //  And this lives in our simulator settings page
 
         INumberVectorProperty *SimulatorSettingsNV;
-        INumber SimulatorSettingsN[13];
+        INumber SimulatorSettingsN[11];
 
         ISwitch TimeFactorS[3];
         ISwitchVectorProperty *TimeFactorSV;
 
         bool SetupParms();
+
+        //  We are going to snoop these from focuser
+        INumberVectorProperty FWHMNP;
+        INumber FWHMN[1];
+
+        // We are going to snoop these from telescope
+        INumber ScopeParametersN[2];
+        INumberVectorProperty ScopeParametersNP;
 
     public:
         CCDSim();
@@ -113,6 +121,7 @@ class CCDSim : public INDI::CCD
 
         virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
         virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+        virtual bool ISSnoopDevice (XMLEle *root);
 
 };
 

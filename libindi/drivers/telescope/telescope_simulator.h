@@ -18,7 +18,6 @@ class ScopeSim : public INDI::Telescope
         INumber GuideNSN[2];
         INumberVectorProperty *GuideNSNP;
 
-
         INumber GuideWEN[2];
         INumberVectorProperty *GuideWENP;
 

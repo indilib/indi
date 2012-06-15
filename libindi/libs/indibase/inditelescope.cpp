@@ -45,6 +45,7 @@ INDI::Telescope::Telescope()
     MovementNSSP = new ISwitchVectorProperty;
     MovementWESP = new ISwitchVectorProperty;
     ConfigSV = new ISwitchVectorProperty;
+    ScopeParametersNP = new INumberVectorProperty;
 
 }
 
@@ -59,6 +60,7 @@ INDI::Telescope::~Telescope()
     delete MovementNSSP;
     delete MovementWESP;
     delete ConfigSV;
+    delete ScopeParametersNP;
 }
 
 bool INDI::Telescope::initProperties()
@@ -102,6 +104,10 @@ bool INDI::Telescope::initProperties()
     IUFillSwitch(&MovementWES[MOTION_EAST], "MOTION_EAST", "East", ISS_OFF);
     IUFillSwitchVector(MovementWESP, MovementWES, 2, getDeviceName(),"TELESCOPE_MOTION_WE", "West/East", MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
+    IUFillNumber(&ScopeParametersN[0],"TELESCOPE_APERTURE","Aperture (mm)","%g",50,4000,0,0.0);
+    IUFillNumber(&ScopeParametersN[1],"TELESCOPE_FOCAL_LENGTH","Focal Length (mm)","%g",100,10000,0,0.0 );
+    IUFillNumberVector(ScopeParametersNP,ScopeParametersN,2,getDeviceName(),"TELESCOPE_PARAMETERS","Scope Properties",OPTIONS_TAB,IP_RW,60,IPS_OK);
+
     TrackState=SCOPE_PARKED;
     return 0;
 }
@@ -127,6 +133,7 @@ void INDI::Telescope::ISGetProperties (const char *dev)
         defineSwitch(MovementNSSP);
         defineSwitch(MovementWESP);
 		defineSwitch(ConfigSV);
+        defineNumber(ScopeParametersNP);
 
     }
     return;
@@ -135,6 +142,7 @@ void INDI::Telescope::ISGetProperties (const char *dev)
 bool INDI::Telescope::updateProperties()
 {
     defineText(PortTV);
+
     if(isConnected())
     {
         //  Now we add our telescope specific stuff
@@ -145,10 +153,11 @@ bool INDI::Telescope::updateProperties()
         defineSwitch(MovementWESP);
         defineNumber(LocationNV);
         defineSwitch(ParkSV);
+        defineNumber(ScopeParametersNP);
 
-    } else
+    }
+    else
     {
-        //IDLog("INDI::Telescope deleting properties\n");
         deleteProperty(CoordSV->name);
         deleteProperty(EqNV->name);
         deleteProperty(EqReqNV->name);
@@ -156,9 +165,10 @@ bool INDI::Telescope::updateProperties()
         deleteProperty(MovementWESP->name);
         deleteProperty(LocationNV->name);
         deleteProperty(ParkSV->name);
+        deleteProperty(ScopeParametersNP->name);
 
-        //initProperties();
     }
+
 	defineSwitch(ConfigSV);
 
     return true;
@@ -274,7 +284,7 @@ bool INDI::Telescope::ISNewText (const char *dev, const char *name, char *texts[
             //SaveConfig();
             //  We processed this one, so, tell the world we did it
             return true;
-        }
+        }    
 
     }
 
@@ -347,6 +357,17 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
             //  Update client display
             IDSetNumber(LocationNV,NULL);
         }
+
+        if(strcmp(name,"TELESCOPE_PARAMETERS")==0)
+        {
+            ScopeParametersNP->s = IPS_OK;
+
+            IUUpdateNumber(ScopeParametersNP,values,names,n);
+            IDSetNumber(ScopeParametersNP,NULL);
+
+            return true;
+        }
+
     }
 
 

@@ -259,8 +259,8 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
     INumberVectorProperty EqNP;
     INumber EqN[2];
 
-    ITextVectorProperty *TelescopeTP;
-    IText TelescopeT[1];
+    ITextVectorProperty *ActiveDeviceTP;
+    IText ActiveDeviceT[2];
 
     int uploadfile(void *fitsdata,int total);
 

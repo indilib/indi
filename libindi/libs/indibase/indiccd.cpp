@@ -161,12 +161,12 @@ INDI::CCD::CCD()
     HasGuideHead=false;
     HasSt4Port=false;
     InExposure=false;
-    TelescopeTP = new ITextVectorProperty;
+    ActiveDeviceTP = new ITextVectorProperty;
 }
 
 INDI::CCD::~CCD()
 {
-    delete TelescopeTP;
+    delete ActiveDeviceTP;
 }
 
 bool INDI::CCD::initProperties()
@@ -237,8 +237,13 @@ bool INDI::CCD::initProperties()
 
     // CCD Class Init
 
-    IUFillText(&TelescopeT[0],"ACTIVE_TELESCOPE","Telescope","");
-    IUFillTextVector(TelescopeTP,TelescopeT,1,getDeviceName(),"ACTIVE_DEVICES","Snoop Scope",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
+    IUFillText(&ActiveDeviceT[0],"ACTIVE_TELESCOPE","Telescope","Telescope Simulator");
+    IUFillText(&ActiveDeviceT[1],"ACTIVE_FOCUSER","Focuser","Focuser Simulator");
+    IUFillTextVector(ActiveDeviceTP,ActiveDeviceT,2,getDeviceName(),"ACTIVE_DEVICES","Snoop devices",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
+
+    IDSnoopDevice(ActiveDeviceT[0].text,"EQUATORIAL_PEC");
+    IDSnoopDevice(ActiveDeviceT[0].text,"TELESCOPE_PARAMETERS");
+    IDSnoopDevice(ActiveDeviceT[1].text,"FWHM");
 
     IUFillNumber(&EqN[0],"RA_PEC","Ra (hh:mm:ss)","%010.6m",0,24,0,0);
     IUFillNumber(&EqN[1],"DEC_PEC","Dec (dd:mm:ss)","%010.6m",-90,90,0,0);
@@ -295,7 +300,7 @@ bool INDI::CCD::updateProperties()
             defineNumber(GuideEWP);
         }
         defineSwitch(PrimaryCCD.FrameTypeSP);
-        defineText(TelescopeTP);
+        defineText(ActiveDeviceTP);
     }
     else
     {
@@ -320,7 +325,7 @@ bool INDI::CCD::updateProperties()
 
         }
         deleteProperty(PrimaryCCD.FrameTypeSP->name);
-        deleteProperty(TelescopeTP->name);
+        deleteProperty(ActiveDeviceTP->name);
     }
     return true;
 }
@@ -358,18 +363,21 @@ bool INDI::CCD::ISNewText (const char *dev, const char *name, char *texts[], cha
     {
         //  This is for our device
         //  Now lets see if it's something we process here
-        if(strcmp(name,TelescopeTP->name)==0)
+        if(strcmp(name,ActiveDeviceTP->name)==0)
         {
             int rc;
             //IDLog("calling update text\n");
-            TelescopeTP->s=IPS_OK;
-            rc=IUUpdateText(TelescopeTP,texts,names,n);
+            ActiveDeviceTP->s=IPS_OK;
+            rc=IUUpdateText(ActiveDeviceTP,texts,names,n);
             //IDLog("update text returns %d\n",rc);
             //  Update client display
-            IDSetText(TelescopeTP,NULL);
+            IDSetText(ActiveDeviceTP,NULL);
             saveConfig();
-            IUFillNumberVector(&EqNP,EqN,2,TelescopeT[0].text,"EQUATORIAL_PEC","EQ PEC",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
-            IDSnoopDevice(TelescopeT[0].text,"EQUATORIAL_PEC");
+            IUFillNumberVector(&EqNP,EqN,2,ActiveDeviceT[0].text,"EQUATORIAL_PEC","EQ PEC",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
+
+            IDSnoopDevice(ActiveDeviceT[0].text,"EQUATORIAL_PEC");
+            IDSnoopDevice(ActiveDeviceT[0].text,"TELESCOPE_PARAMETERS");
+            IDSnoopDevice(ActiveDeviceT[1].text,"FWHM");
             //  We processed this one, so, tell the world we did it
             return true;
         }
@@ -792,12 +800,13 @@ bool INDI::CCD::GuideExposureComplete()
 int INDI::CCD::uploadfile(void *fitsdata,int total)
 {
     //  lets try sending a ccd preview
-    //IDLog("Enter Uploadfile with %d total sending via %s\n",total,FitsBP->name);
+
     PrimaryCCD.FitsB.blob=fitsdata;
     PrimaryCCD.FitsB.bloblen=total;
     PrimaryCCD.FitsB.size=total;
     strcpy(PrimaryCCD.FitsB.format,".fits");
     PrimaryCCD.FitsBP->s=IPS_OK;
+    //IDLog("Enter Uploadfile with %d total sending via %s, and format %s\n",total,PrimaryCCD.FitsB.name, PrimaryCCD.FitsB.format);
     IDSetBLOB(PrimaryCCD.FitsBP,NULL);
 
     return 0;

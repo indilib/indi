@@ -172,6 +172,9 @@ class INDI::Telescope : public INDI::DefaultDevice
         ISwitch MovementWES[2];     // A switch for West/East motion
         ISwitchVectorProperty *MovementWESP;
 
+        INumber ScopeParametersN[2];
+        INumberVectorProperty *ScopeParametersNP;
+
 
 };
 

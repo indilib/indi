@@ -166,3 +166,8 @@ bool INDI::Focuser::Move(FocusDirection dir, int speed, int duration)
     return false;
 }
 
+bool INDI::Focuser::ISSnoopDevice (XMLEle *root)
+{
+    return false;
+}
+

@@ -391,6 +391,23 @@ endif (CFITSIO_FOUND)
 
 #################################################################################
 
+################ Focuser Simulator ################
+
+set(focussimulator_SRCS
+        ${indimain_SRCS}
+        ${CMAKE_SOURCE_DIR}/drivers/focuser/focus_simulator.cpp
+   )
+
+add_executable(indi_simulator_focus ${focussimulator_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
+
+target_link_libraries(indi_simulator_focus indidriver m z)
+
+if (NOVA_FOUND)
+  target_link_libraries(indi_simulator_focus ${NOVA_LIBRARIES})
+endif (NOVA_FOUND)
+
+install(TARGETS indi_simulator_focus RUNTIME DESTINATION bin )
+
 ################ Robo Focuser ################
 
 set(robofocus_SRCS

@@ -117,6 +117,10 @@
         </device>
 </devGroup>
 <devGroup group="Focusers">
+        <device label="Focuser Simulator">
+            <driver name="Focuser Simulator">indi_simulator_focus</driver>
+            <version>1.0</version>
+        </device>
 	<device label="RoboFocus">
                 <driver name="RoboFocus">indi_robo_focus</driver>
 		<version>1.0</version>

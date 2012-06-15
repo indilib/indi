@@ -529,6 +529,8 @@ libindi/drivers/filter_wheel/filter_simulator.cpp -text
 libindi/drivers/filter_wheel/filter_simulator.h -text
 libindi/drivers/filter_wheel/fli_wheel.c -text
 libindi/drivers/filter_wheel/trutech_wheel.c -text
+libindi/drivers/focuser/focus_simulator.cpp -text
+libindi/drivers/focuser/focus_simulator.h -text
 libindi/drivers/focuser/indi_tcfs_sk.xml -text
 libindi/drivers/focuser/robofocus.cpp -text
 libindi/drivers/focuser/robofocus.h -text

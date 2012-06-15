@@ -134,15 +134,13 @@ bool CCDSim::SetupParms()
     int nbuf;
     SetCCDParams(SimulatorSettingsN[0].value,SimulatorSettingsN[1].value,16,SimulatorSettingsN[2].value,SimulatorSettingsN[3].value);
     //  Kwiq
-    maxnoise=SimulatorSettingsN[10].value;
-    skyglow=SimulatorSettingsN[11].value;
+    maxnoise=SimulatorSettingsN[8].value;
+    skyglow=SimulatorSettingsN[9].value;
     maxval=SimulatorSettingsN[4].value;
     bias=SimulatorSettingsN[5].value;
     limitingmag=SimulatorSettingsN[7].value;
     saturationmag=SimulatorSettingsN[6].value;
-    focallength=SimulatorSettingsN[8].value;   //  focal length of the telescope in millimeters
-    OAGoffset=SimulatorSettingsN[12].value;    //  An oag is offset this much from center of scope position (arcminutes);
-    seeing=SimulatorSettingsN[9].value;        //  we get real fat stars in this one
+    OAGoffset=SimulatorSettingsN[10].value;    //  An oag is offset this much from center of scope position (arcminutes);
 
     nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP();
     nbuf += 512;
@@ -191,12 +189,10 @@ bool CCDSim::initProperties()
     IUFillNumber(&SimulatorSettingsN[5],"SIM_BIAS","CCD Bias","%4.0f",0,6000,0,1500);
     IUFillNumber(&SimulatorSettingsN[6],"SIM_SATURATION","Saturation Mag","%4.1f",0,20,0,1.0);
     IUFillNumber(&SimulatorSettingsN[7],"SIM_LIMITINGMAG","Limiting Mag","%4.1f",0,20,0,20);
-    IUFillNumber(&SimulatorSettingsN[8],"SIM_FOCALLENGTH","Focal Length","%4.0f",0,60000,0,1000);
-    IUFillNumber(&SimulatorSettingsN[9],"SIM_FWHM","FWHM (arcseconds)","%4.2f",0,60,0,3.5);
-    IUFillNumber(&SimulatorSettingsN[10],"SIM_NOISE","CCD Noise","%4.0f",0,6000,0,50);
-    IUFillNumber(&SimulatorSettingsN[11],"SIM_SKYGLOW","Sky Glow (magnitudes)","%4.1f",0,6000,0,19.5);
-    IUFillNumber(&SimulatorSettingsN[12],"SIM_OAGOFFSET","Oag Offset (arminutes)","%4.1f",0,6000,0,0);
-    IUFillNumberVector(SimulatorSettingsNV,SimulatorSettingsN,13,getDeviceName(),"SIMULATOR_SETTINGS","Simulator Settings","Simulator Config",IP_RW,60,IPS_IDLE);
+    IUFillNumber(&SimulatorSettingsN[8],"SIM_NOISE","CCD Noise","%4.0f",0,6000,0,50);
+    IUFillNumber(&SimulatorSettingsN[9],"SIM_SKYGLOW","Sky Glow (magnitudes)","%4.1f",0,6000,0,19.5);
+    IUFillNumber(&SimulatorSettingsN[10],"SIM_OAGOFFSET","Oag Offset (arminutes)","%4.1f",0,6000,0,0);
+    IUFillNumberVector(SimulatorSettingsNV,SimulatorSettingsN,11,getDeviceName(),"SIMULATOR_SETTINGS","Simulator Settings","Simulator Config",IP_RW,60,IPS_IDLE);
 
 
     IUFillSwitch(&TimeFactorS[0],"1X","Actual Time",ISS_ON);
@@ -204,8 +200,12 @@ bool CCDSim::initProperties()
     IUFillSwitch(&TimeFactorS[2],"100X","100x",ISS_OFF);
     IUFillSwitchVector(TimeFactorSV,TimeFactorS,3,getDeviceName(),"ON_TIME_FACTOR","Time Factor","Simulator Config",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
+    IUFillNumber(&FWHMN[0],"SIM_FWHM","FWHM (arcseconds)","%4.2f",0,60,0,7.5);
+    IUFillNumberVector(&FWHMNP,FWHMN,1,"Focuser Simulator", "FWHM","FWHM",OPTIONS_TAB,IP_RO,60,IPS_IDLE);
 
-    //loadConfig();
+    IUFillNumber(&ScopeParametersN[0],"TELESCOPE_APERTURE","Aperture (mm)","%g",50,4000,0,0.0);
+    IUFillNumber(&ScopeParametersN[1],"TELESCOPE_FOCAL_LENGTH","Focal Length (mm)","%g",100,10000,0,0.0 );
+    IUFillNumberVector(&ScopeParametersNP,ScopeParametersN,2,"Telescope Simulator","TELESCOPE_PARAMETERS","Scope Properties",OPTIONS_TAB,IP_RW,60,IPS_OK);
 
     return true;
 }
@@ -219,9 +219,6 @@ void CCDSim::ISGetProperties (const char *dev)
 
     defineNumber(SimulatorSettingsNV);
     defineSwitch(TimeFactorSV);
-    //IDDefText(&ConfigFileTV, NULL);
-    //IDDefSwitch(&ConfigSaveRestoreSV, NULL);
-
 
     return;
 }
@@ -314,8 +311,6 @@ void CCDSim::TimerHit()
              timeleft = 0;
 
         PrimaryCCD.setExposure(timeleft);
-        //ImageExposureN[0].value = timeleft;
-        //IDSetNumber(ImageExposureNP, NULL);
 
         if(timeleft < 1.0)
         {
@@ -928,3 +923,21 @@ bool CCDSim::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
     return INDI::CCD::ISNewSwitch(dev,name,states,names,n);
 }
 
+bool CCDSim::ISSnoopDevice (XMLEle *root)
+{
+     if (IUSnoopNumber(root,&FWHMNP)==0)
+     {
+           seeing = FWHMNP.np[0].value;
+           IDLog("CCD Simulator: New FWHM value of %g\n", seeing);
+           return true;
+     }
+
+     if (IUSnoopNumber(root,&ScopeParametersNP)==0)
+     {
+           focallength = ScopeParametersNP.np[1].value;
+           IDLog("CCD Simulator: New focalLength value of %g\n", focallength);
+           return true;
+     }
+
+     return INDI::CCD::ISSnoopDevice(root);
+}
