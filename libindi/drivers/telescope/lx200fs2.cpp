@@ -215,17 +215,14 @@ void LX200Fs2::connectTelescope()
 ***************************************************************************************/
 void LX200Fs2::getBasicData()
 {
-
-  // process parent first
-   LX200Generic::getBasicData();
   // Make sure short
-  //checkLX200Format(fd);
+  checkLX200Format(fd);
 
   // Get current RA/DEC
-  //getLX200RA(fd, &currentRA);
-  //getLX200DEC(fd, &currentDEC);
+  getLX200RA(fd, &currentRA);
+  getLX200DEC(fd, &currentDEC);
 
-  //IDSetNumber (&EquatorialCoordsRNP, NULL);  
+  IDSetNumber (&EquatorialCoordsRNP, NULL);  
 }
 
 /**********************************************************************************
