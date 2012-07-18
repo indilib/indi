@@ -813,7 +813,7 @@ void MaxDomeII::ISPoll()
 	
 	// Watch dog
 	nTimeSinceLastCommunication++;
-	if (WachDogNP.np[0].value > 0 && WachDogNP.np[0].value >= nTimeSinceLastCommunication)
+	if (WachDogNP.np[0].value > 0 && WachDogNP.np[0].value <= nTimeSinceLastCommunication)
 	{		
 		// Close Shutter if it is not
 		if (nShutterStatus != Ss_CLOSED)
