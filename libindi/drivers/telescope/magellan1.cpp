@@ -97,16 +97,23 @@ INumberVectorProperty EquatorialCoordsRNP= { mydev, "EQUATORIAL_EOD_COORD", "Equ
 /* send client definitions of all properties */
 void ISInit()
 {
+  static int isInit=0;
+	
+  if (isInit)
+	  return;
   if (telescope == NULL)
   {
     IUSaveText(&PortT[0], "/dev/ttyS0");
     telescope = new Magellan1();
     telescope->setCurrentDeviceName(mydev);
   }
+ 
+  isInit = 1;
+  IEAddTimer (POLLMS, ISPoll, NULL);
 }
 
 void ISGetProperties (const char *dev)
-{ ISInit(); telescope->ISGetProperties(dev); IEAddTimer (POLLMS, ISPoll, NULL);}
+{ ISInit(); telescope->ISGetProperties(dev);}
 
 void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 { ISInit(); telescope->ISNewSwitch(dev, name, states, names, n);}

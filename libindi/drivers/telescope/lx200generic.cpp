@@ -506,11 +506,11 @@ void ISInit()
   }
 
  }
-
+ IEAddTimer (POLLMS, ISPoll, NULL);
 }
 
 void ISGetProperties (const char *dev)
-{ ISInit(); telescope->ISGetProperties(dev); IEAddTimer (POLLMS, ISPoll, NULL);}
+{ ISInit(); telescope->ISGetProperties(dev);}
 void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 { ISInit(); telescope->ISNewSwitch(dev, name, states, names, n);}
 void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
