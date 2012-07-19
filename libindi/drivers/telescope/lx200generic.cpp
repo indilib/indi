@@ -1749,7 +1749,7 @@ void LX200Generic::ISPoll()
 	{
 		mountSim();
 		return;
-        }
+	}
 
 	if ( (err = getLX200RA(fd, &currentRA)) < 0 || (err = getLX200DEC(fd, &currentDEC)) < 0)
 	{
@@ -1776,7 +1776,7 @@ void LX200Generic::ISPoll()
 	case IPS_IDLE:
         break;
 
-        case IPS_BUSY:
+	case IPS_BUSY:
 	    dx = targetRA - currentRA;
 	    dy = targetDEC - currentDEC;
 
@@ -1788,8 +1788,8 @@ void LX200Generic::ISPoll()
 	       
 	       EquatorialCoordsWNP.s = IPS_OK;
 	       IDSetNumber(&EquatorialCoordsWNP, "Slew is complete, target locked...");
-	       
-	    break;
+		}  
+		break;
 
 	case IPS_OK:
         break;
@@ -1800,7 +1800,7 @@ void LX200Generic::ISPoll()
 	}
 }
 
-}
+
 // wildi nothing changed in LX200Generic::mountSim
 void LX200Generic::mountSim ()
 {
