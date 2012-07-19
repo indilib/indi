@@ -215,7 +215,7 @@ void LX200Fs2::connectTelescope()
 ***************************************************************************************/
 void LX200Fs2::getBasicData()
 {
-  LX200Generic::getBasicData()
+  //LX200Generic::getBasicData()
   // Make sure short
   //checkLX200Format(fd);
 
