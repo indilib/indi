@@ -92,7 +92,7 @@ private:
  ********************************************************/
  void init_properties();
  void get_initial_data();
- void Connect();
+ int Connect();
  bool is_connected(void);
  
  /*******************************************************/
