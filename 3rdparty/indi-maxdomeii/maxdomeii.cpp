@@ -155,7 +155,7 @@ MaxDomeII::MaxDomeII()
     init_properties();
 
     IDLog("Initilizing from MaxDome II device...\n");
-    IDLog("Driver Version: 2012-05-06\n"); 
+    IDLog("Driver Version: 2012-07-22\n"); 
 }
 
 /**************************************************************************************
@@ -163,7 +163,7 @@ MaxDomeII::MaxDomeII()
 ***************************************************************************************/
 MaxDomeII::~MaxDomeII()
 {
-	if (fd)
+	if (fd >= 0)
 		Disconnect_MaxDomeII(fd);
 }
 
@@ -341,6 +341,7 @@ int MaxDomeII::GotoAzimuth(double newAZ)
 	double currAZ = 0;
 	int newPos = 0, nDir = 0;
 	int error;
+	int nRetry = 3;
 		
 	currAZ = AzimuthRN[0].value;
 	
@@ -360,7 +361,11 @@ int MaxDomeII::GotoAzimuth(double newAZ)
 			nDir = MAXDOMEII_WE_DIR;
 	}
     newPos = AzimuthToTicks(newAZ);
-	error = Goto_Azimuth_MaxDomeII(fd, nDir, newPos);
+	while (nRetry){
+		error = Goto_Azimuth_MaxDomeII(fd, nDir, newPos);
+		handle_driver_error(&error, &nRetry);
+	}
+	
 	nTargetAzimuth = newPos;
 	nTimeSinceAzimuthStart = 0;	// Init movement timer
 		
@@ -432,6 +437,7 @@ void MaxDomeII::ISNewNumber (const char *dev, const char *name, double values[],
 		double nVal;
 		char cLog[255];
 		int error;
+		int nRetry = 3;
 		
 		if (IUUpdateNumber(&TicksPerTurnNP, values, names, n) < 0)
 			return;
@@ -439,7 +445,10 @@ void MaxDomeII::ISNewNumber (const char *dev, const char *name, double values[],
 		nVal = values[0];
 		if (nVal >= 100 && nVal <=500)
 		{
-			error = SetTicksPerCount_MaxDomeII(fd, nVal);
+			while (nRetry){
+				error = SetTicksPerCount_MaxDomeII(fd, nVal);
+				handle_driver_error(&error,&nRetry);
+			}
 			if (error >= 0)
 			{
 				sprintf(cLog, "New Ticks Per Turn set: %lf", nVal);
@@ -471,6 +480,7 @@ void MaxDomeII::ISNewNumber (const char *dev, const char *name, double values[],
 	{
 		double nVal;
 		int error;
+		int nRetry = 3;
 		
 		if (IUUpdateNumber(&ParkPositionNP, values, names, n) < 0)
 			return;
@@ -478,7 +488,10 @@ void MaxDomeII::ISNewNumber (const char *dev, const char *name, double values[],
 		nVal = values[0];
 		if (nVal >= 0 && nVal <= nTicksPerTurn)
 		{
-			error = SetPark_MaxDomeII(fd, nCloseShutterBeforePark, nVal);
+			while (nRetry){
+				error =SetPark_MaxDomeII(fd, nCloseShutterBeforePark, nVal);
+				handle_driver_error(&error,&nRetry);
+			}
 			if (error >= 0)
 			{
 				nParkPosition = nVal;
@@ -561,6 +574,48 @@ void MaxDomeII::ISNewNumber (const char *dev, const char *name, double values[],
 }
 
 /**************************************************************************************
+ **
+ ***************************************************************************************/
+int MaxDomeII::Connect()
+{
+	int error;
+	
+	if (fd >= 0)
+		Disconnect_MaxDomeII(fd);
+	
+	ConnectSP.s = IPS_BUSY;
+	IDSetSwitch (&ConnectSP, "Openning port ...");
+	IDLog("MAX DOME II: Openning port ...");
+	fd = Connect_MaxDomeII(PortT[0].text);
+	if (fd < 0)
+	{
+		ConnectS[0].s = ISS_OFF;
+		ConnectS[1].s = ISS_ON;
+		ConnectSP.s = IPS_ALERT;
+		IDSetSwitch (&ConnectSP, "Error connecting to port %s. Make sure you have BOTH write and read permission to your port.\n", PortT[0].text);
+		return -1;
+	}
+	IDSetSwitch (&ConnectSP, "Connecting ...");
+	IDLog("MAX DOME II: Connecting ...");
+	error = Ack_MaxDomeII(fd);
+	if (error)
+	{
+		IDLog("MAX DOME II: %s",ErrorMessages[-error]);
+		ConnectS[0].s = ISS_OFF;
+		ConnectS[1].s = ISS_ON;
+		ConnectSP.s = IPS_ALERT;
+		IDSetSwitch (&ConnectSP, "%s", ErrorMessages[-error]);//"Error connecting to Dome. Dome is offline.");
+		Disconnect_MaxDomeII(fd);
+		fd = -1;
+		return -1;
+	}
+	
+	ConnectSP.s = IPS_OK;
+	IDSetSwitch (&ConnectSP, "Dome is online.");
+	IDLog("Dome is online.");
+}
+
+/**************************************************************************************
 **
 ***************************************************************************************/
 void MaxDomeII::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
@@ -577,45 +632,15 @@ void MaxDomeII::ISNewSwitch (const char *dev, const char *name, ISState *states,
 	{
 	    if (IUUpdateSwitch(&ConnectSP, states, names, n) < 0)
 		return;
-		
-		int error;
 
-		if (fd < 0 && ConnectS[0].s == ISS_ON)
+		if (ConnectS[0].s == ISS_ON)
 		{
-			ConnectSP.s = IPS_BUSY;
-			IDSetSwitch (&ConnectSP, "Openning port ...");
-			IDLog("MAX DOME II: Openning port ...");
-			fd = Connect_MaxDomeII(PortT[0].text);
-			if (fd < 0)
-			{
-				ConnectS[0].s = ISS_OFF;
-				ConnectS[1].s = ISS_ON;
-				ConnectSP.s = IPS_ALERT;
-				IDSetSwitch (&ConnectSP, "Error connecting to port %s. Make sure you have BOTH write and read permission to your port.\n", PortT[0].text);
-				return;
-			}
-			IDSetSwitch (&ConnectSP, "Connecting ...");
-			IDLog("MAX DOME II: Connecting ...");
-			error = Ack_MaxDomeII(fd);
-			if (error)
-			{
-				IDLog("MAX DOME II: %s",ErrorMessages[-error]);
-				ConnectS[0].s = ISS_OFF;
-				ConnectS[1].s = ISS_ON;
-				ConnectSP.s = IPS_ALERT;
-                                IDSetSwitch (&ConnectSP, "%s", ErrorMessages[-error]);//"Error connecting to Dome. Dome is offline.");
-				Disconnect_MaxDomeII(fd);
-				fd = -1;
-				return;
-			}
-			
-			ConnectSP.s = IPS_OK;
-			IDSetSwitch (&ConnectSP, "Dome is online.");
-			IDLog("Dome is online.");
+			Connect();
 		} 
-		else if (fd >= 0 &&  ConnectS[1].s == ISS_ON)
+		else if (ConnectS[1].s == ISS_ON)
 		{
-			Disconnect_MaxDomeII(fd);
+			if (fd >= 0)
+				Disconnect_MaxDomeII(fd);
 			fd = -1;
 			ConnectS[0].s = ISS_OFF;
 			ConnectS[1].s = ISS_ON;
@@ -638,12 +663,19 @@ void MaxDomeII::ISNewSwitch (const char *dev, const char *name, ISState *states,
 	// ===================================
 	if (!strcmp (name, AbortSP.name))
 	{
+		int error;
+		int nRetry = 3;
 
 		IUResetSwitch(&AbortSP);
-		Abort_Azimuth_MaxDomeII(fd);
-		Abort_Shutter_MaxDomeII(fd);
-
-	   if (AzimuthWNP.s == IPS_BUSY)
+		while (nRetry){
+			error = Abort_Azimuth_MaxDomeII(fd);
+			handle_driver_error(&error, &nRetry);
+		}
+		while (nRetry){
+			error = Abort_Shutter_MaxDomeII(fd);
+			handle_driver_error(&error, &nRetry);
+		}
+	    if (AzimuthWNP.s == IPS_BUSY)
 	    {
 		AbortSP.s = IPS_OK;
 		AzimuthWNP.s       = IPS_IDLE;
@@ -662,13 +694,17 @@ void MaxDomeII::ISNewSwitch (const char *dev, const char *name, ISState *states,
 	if (!strcmp(name, ShutterSP.name))
 	{
 		int error;
+		int nRetry = 3;
 		
 	    if (IUUpdateSwitch(&ShutterSP, states, names, n) < 0)
 			return;
 
 		if (ShutterS[0].s == ISS_ON)
 		{ // Open Shutter
-			error = Open_Shutter_MaxDomeII(fd);
+			while (nRetry){
+				error = Open_Shutter_MaxDomeII(fd);
+				handle_driver_error(&error, &nRetry);
+			}
 			nTimeSinceShutterStart = 0;	// Init movement timer
 			if (error)
 			{
@@ -682,7 +718,10 @@ void MaxDomeII::ISNewSwitch (const char *dev, const char *name, ISState *states,
 		}
 		else if (ShutterS[1].s == ISS_ON)
 		{ // Open upper shutter only
-			error = Open_Upper_Shutter_Only_MaxDomeII(fd);
+			while (nRetry){
+				error = Open_Upper_Shutter_Only_MaxDomeII(fd);
+				handle_driver_error(&error, &nRetry);
+			}
 			nTimeSinceShutterStart = 0;	// Init movement timer
 			if (error)
 			{
@@ -696,7 +735,10 @@ void MaxDomeII::ISNewSwitch (const char *dev, const char *name, ISState *states,
 		}
 		else if (ShutterS[2].s == ISS_ON)
 		{ // Close Shutter
-			error = Close_Shutter_MaxDomeII(fd);
+			while (nRetry){
+				error = Close_Shutter_MaxDomeII(fd);
+				handle_driver_error(&error, &nRetry);
+			}
 			nTimeSinceShutterStart = 0;	// Init movement timer
 			if (error)
 			{
@@ -721,8 +763,12 @@ void MaxDomeII::ISNewSwitch (const char *dev, const char *name, ISState *states,
 			return;
 			
 		int error;
+		int nRetry = 3;
 		
-		error = Home_Azimuth_MaxDomeII(fd);
+		while (nRetry){
+			error = Home_Azimuth_MaxDomeII(fd);
+			handle_driver_error(&error, &nRetry);
+		}
 		nTimeSinceAzimuthStart = 0;
 		nTargetAzimuth = -1;
 		if (error)
@@ -748,7 +794,7 @@ void MaxDomeII::ISNewSwitch (const char *dev, const char *name, ISState *states,
 			return;
 			
 		int error;
-				
+		
 		error = GotoAzimuth(nParkPosition);
 		if (error)
 		{
@@ -792,8 +838,6 @@ int MaxDomeII::AzimuthDistance(int nPos1, int nPos2)
 ***************************************************************************************/
 void MaxDomeII::ISPoll()
 {	
-    char buf[32];
-    
 	if (is_connected() == false)
 	 return;
 
@@ -802,8 +846,10 @@ void MaxDomeII::ISPoll()
 	unsigned nHomePosition;
 	float nAz;
 	int nError;
+	int nRetry = 1;
 
 	nError = Status_MaxDomeII(fd, &nShutterStatus, &nAzimuthStatus, &nCurrentTicks, &nHomePosition);
+	handle_driver_error(&nError, &nRetry); // This is a timer, we will not repeat in order to not delay the execution.
 
 	// Increment movment time counter
 	if (nTimeSinceShutterStart >= 0)
@@ -821,6 +867,8 @@ void MaxDomeII::ISPoll()
 			int error;
 			
 			error = Close_Shutter_MaxDomeII(fd);
+			handle_driver_error(&error, &nRetry); // This is a timer, we will not repeat in order to not delay the execution. 
+			
 			nTimeSinceShutterStart = 0;	// Init movement timer
 			if (error)
 			{
@@ -1094,6 +1142,33 @@ int MaxDomeII::AzimuthToTicks(double nAzimuth)
 	while (nTicks < 0) nTicks += nTicksPerTurn;
 	
 	return nTicks;
+}
+
+/**************************************************************************************
+ **
+ ***************************************************************************************/
+
+int MaxDomeII::handle_driver_error(int *error, int *nRetry)
+{	
+	(*nRetry)--;
+	switch (*error) {
+		case 0:	// No error. Continue
+			*nRetry = 0;
+			break;
+		case -5: // can't connect
+			// This error can happen if port connection is lost, i.e. a usb-serial reconnection 
+			// Reconnect
+			IDLog("MAX DOME II: Reconnecting ...");
+			Connect();
+			if (fd < 0)
+				*nRetry = 0; // Can't open the port. Don't retry anymore. 
+			break;
+			
+		default:  // Do nothing in all other errors.
+			break;
+	}
+	
+	return *nRetry;
 }
 
 

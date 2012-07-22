@@ -92,7 +92,7 @@ private:
  ********************************************************/
  void init_properties();
  void get_initial_data();
- void connect_dome();
+ void Connect();
  bool is_connected(void);
  
  /*******************************************************/
@@ -107,10 +107,10 @@ private:
  /*******************************************************/
  /* Error handling routines
  ********************************************************/
- void slew_error(int slewCode);
  void reset_all_properties();
- void handle_error(INumberVectorProperty *nvp, int err, const char *msg);
- void correct_fault();
+ int handle_driver_error(int *error, int *nRetry); // Handles errors returned by driver
+
+
 
  protected:
 

@@ -102,7 +102,7 @@ int Connect_MaxDomeII(const char *device)
 */
 int Disconnect_MaxDomeII(int fd)
 {
-	Exit_Shutter_MaxDomeII(fd); // Realy don't know why this is needed, but ASCOM driver does it.
+	Exit_Shutter_MaxDomeII(fd); // Really don't know why this is needed, but ASCOM driver does it.
 	tty_disconnect(fd);
 	
 	return 0;
