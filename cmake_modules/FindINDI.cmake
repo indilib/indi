@@ -30,9 +30,9 @@ else (INDI_INCLUDE_DIR AND INDI_DATA_DIR AND INDI_LIBRARIES AND INDI_DRIVER_LIBR
     ${GNUWIN32_DIR}/include
   )
 
- find_path(INDI_DATA_DIR drivers.xml
-    PATHS /usr/share /usr/local/share /opt ${GNUWIN32_DIR}/share
-    PATH_SUFFIXES indi
+  find_path(INDI_DATA_DIR drivers.xml
+    PATHS ${CMAKE_INSTALL_PREFIX} /usr /usr/local /opt /opt/local ${GNUWIN32_DIR}
+    PATH_SUFFIXES share/indi
   )
 
   find_library(INDI_LIBRARIES NAMES indi
