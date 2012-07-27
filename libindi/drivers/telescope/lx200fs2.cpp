@@ -63,7 +63,7 @@ LX200Fs2::LX200Fs2() : LX200Generic()
    init_properties();
 
    IDLog("Initilizing from LX200 FS2 device...\n");
-   IDLog("Driver Version: 2011-01-02\n");
+   IDLog("Driver Version: 2012-07-22\n");
  
    //enableSimulation(true);  
 }
@@ -150,7 +150,10 @@ int LX200Fs2::check_fs2_connection(int fd)
   double x;
   
   if (FirmwareVerNP.np[0].value < 1.19)
-	return getLX200RA(fd, &x); // Version 1.18 and below don't support ACK command
+  {
+	getLX200RA(fd, &x);
+	return getLX200DEC(fd, &x); // Version 1.18 and below don't support ACK command
+  }
   else
 	return check_lx200_connection(fd);
 }
