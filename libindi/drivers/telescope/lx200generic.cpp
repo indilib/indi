@@ -554,7 +554,7 @@ LX200Generic::LX200Generic()
    // Children call parent routines, this is the default
    IDLog("INDI Library v%g\n", INDI_LIBV);
    IDLog("initilizaing from generic LX200 device...\n");
-   IDLog("Driver Version: 2008-05-21\n");
+   IDLog("Driver Version: 2012-07-27\n");
  
    //enableSimulation(true);
 }
@@ -2116,6 +2116,7 @@ void LX200Generic::connectTelescope()
 	  return;
 	}
 	
+	 tty_disconnect(fd); // Close if already open
 	 if (tty_connect(PortTP.tp[0].text, 9600, 8, 0, 1, &fd) != TTY_OK)
 	 {
 	   ConnectS[0].s = ISS_OFF;
