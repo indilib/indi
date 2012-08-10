@@ -19,6 +19,7 @@
   file called LICENSE.
 *******************************************************************************/
 #include "sxcam.h"
+#include <memory>
 
 // We declare an auto pointer to sxcamera.
 std::auto_ptr<SxCam> sxcamera(0);
