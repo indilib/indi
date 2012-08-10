@@ -26,6 +26,7 @@
 #include <errno.h>
 
 #include <string.h>
+#include <memory>
 
 // We declare an auto pointer to sxwheel.
 std::auto_ptr<SxWheel> sxwheel(0);
