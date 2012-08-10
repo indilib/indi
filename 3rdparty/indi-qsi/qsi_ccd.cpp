@@ -168,8 +168,14 @@ QSICCD::~QSICCD()
 
 const char * QSICCD::getDefaultName()
 {
-        return (char *)"QSI CCD";
+    return (char *)"QSI CCD";
 }
+
+const char * QSICCD::deviceName()
+{
+    return getDeviceName();
+}
+
 
 bool QSICCD::initProperties()
 {
@@ -344,8 +350,8 @@ bool QSICCD::setupParams()
           return false;
     }
 
-    GetFilterNames(deviceName(), FILTER_TAB);
-
+    //GetFilterNames(deviceName(), FILTER_TAB);
+    GetFilterNames(FILTER_TAB);
     try
     {
         QSICam.get_MinExposureTime(&minDuration);
@@ -1614,7 +1620,8 @@ bool QSICCD::GuideWest(float duration)
     return true;
 }
 
-bool QSICCD::GetFilterNames(const char *deviceName, const char* groupName)
+//bool QSICCD::GetFilterNames(const char *deviceName, const char* groupName)
+bool QSICCD::GetFilterNames(const char* groupName)
 {
     char filterName[MAXINDINAME];
     char filterLabel[MAXINDILABEL];
@@ -1630,7 +1637,7 @@ bool QSICCD::GetFilterNames(const char *deviceName, const char* groupName)
     }
     catch (std::runtime_error err)
     {
-        IDMessage(deviceName, "QSICamera::get_Names() failed. %s.", err.what());
+        IDMessage(deviceName(), "QSICamera::get_Names() failed. %s.", err.what());
         if (isDebug())
             IDLog("QSICamera::get_Names() failed. %s.", err.what());
         return false;
@@ -1645,7 +1652,8 @@ bool QSICCD::GetFilterNames(const char *deviceName, const char* groupName)
         IUFillText(&FilterNameT[i], filterName, filterLabel, filterDesignation[i].c_str());
     }
 
-    IUFillTextVector(FilterNameTP, FilterNameT, maxFilters, deviceName, "FILTER_NAME", "Filter", groupName, IP_RW, 1, IPS_IDLE);
+    //    IUFillTextVector(FilterNameTP, FilterNameT, maxFilters, deviceName, "FILTER_NAME", "Filter", groupName, IP_RW, 1, IPS_IDLE);
+    IUFillTextVector(FilterNameTP, FilterNameT, maxFilters, deviceName(), "FILTER_NAME", "Filter", groupName, IP_RW,1, IPS_IDLE);
 
     return true;
 }
