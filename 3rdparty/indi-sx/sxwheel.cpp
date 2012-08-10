@@ -105,6 +105,11 @@ const char * SxWheel::getDefaultName()
     return (char *)"SX Wheel";
 }
 
+const char * SxWheel::deviceName()
+{
+    return getDeviceName();
+}
+
 bool SxWheel::Connect()
 {
 	char buf[256];

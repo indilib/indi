@@ -60,6 +60,7 @@ class SxWheel : public INDI::FilterWheel
         bool Connect();
         bool Disconnect();
         const char *getDefaultName();
+	const char *deviceName();
 
         bool initProperties();
 

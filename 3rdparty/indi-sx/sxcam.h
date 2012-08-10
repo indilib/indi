@@ -51,6 +51,7 @@ class SxCam : public INDI::CCD, public SxCCD
     bool Connect();
     bool Disconnect();
     const char *getDefaultName();
+    const char *deviceName();
     int StartExposure(float);
     int StartGuideExposure(float);
     bool AbortGuideExposure();

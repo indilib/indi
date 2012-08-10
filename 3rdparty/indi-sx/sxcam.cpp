@@ -97,6 +97,11 @@ const char * SxCam::getDefaultName()
     return (char *)"SX CCD";
 }
 
+const char * SxCam::deviceName()
+{
+    return getDeviceName();
+}
+
 bool SxCam::Connect()
 {
     bool rc;
