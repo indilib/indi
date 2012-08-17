@@ -202,6 +202,7 @@ debian/indi-qsi/compat -text
 debian/indi-qsi/control -text
 debian/indi-qsi/copyright -text
 debian/indi-qsi/rules -text
+debian/indi-qsi/watch -text
 debian/indi-sbig/changelog -text
 debian/indi-sbig/compat -text
 debian/indi-sbig/control -text

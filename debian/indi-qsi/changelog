@@ -1,3 +1,10 @@
+indi-qsi (0.4-1) unstable; urgency=low
+
+  * Released for debian.
+  * New upstream version.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Mon, 16 Jan 2012 16:03:06 +0300
+
 indi-qsi (0.2-0ubuntu1) maverick; urgency=low
 
   * Initial release
