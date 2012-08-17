@@ -350,8 +350,8 @@ bool QSICCD::setupParams()
           return false;
     }
 
-    //GetFilterNames(deviceName(), FILTER_TAB);
     GetFilterNames(FILTER_TAB);
+
     try
     {
         QSICam.get_MinExposureTime(&minDuration);
@@ -1620,7 +1620,7 @@ bool QSICCD::GuideWest(float duration)
     return true;
 }
 
-//bool QSICCD::GetFilterNames(const char *deviceName, const char* groupName)
+
 bool QSICCD::GetFilterNames(const char* groupName)
 {
     char filterName[MAXINDINAME];
@@ -1652,7 +1652,6 @@ bool QSICCD::GetFilterNames(const char* groupName)
         IUFillText(&FilterNameT[i], filterName, filterLabel, filterDesignation[i].c_str());
     }
 
-    //    IUFillTextVector(FilterNameTP, FilterNameT, maxFilters, deviceName, "FILTER_NAME", "Filter", groupName, IP_RW, 1, IPS_IDLE);
     IUFillTextVector(FilterNameTP, FilterNameT, maxFilters, deviceName(), "FILTER_NAME", "Filter", groupName, IP_RW,1, IPS_IDLE);
 
     return true;

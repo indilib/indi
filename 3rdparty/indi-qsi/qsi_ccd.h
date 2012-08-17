@@ -96,7 +96,6 @@ class QSICCD : public INDI::CCD, public INDI::FilterInterface
     double max();
     void fits_update_key_s(fitsfile* fptr, int type, string name, void* p, string explanation, int* status);
 
-    //    virtual bool GetFilterNames(const char *deviceName, const char* groupName);
     virtual bool GetFilterNames(const char* groupName);
     virtual bool SetFilterNames();
     virtual bool SelectFilter(int);
