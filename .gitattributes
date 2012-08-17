@@ -256,6 +256,7 @@ debian/libqsi/copyright -text
 debian/libqsi/libqsi-dev.install -text
 debian/libqsi/libqsi6.install -text
 debian/libqsi/rules -text
+debian/libqsi/watch -text
 debian/maxdomeii/changelog -text
 debian/maxdomeii/compat -text
 debian/maxdomeii/control -text
