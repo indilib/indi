@@ -14,7 +14,7 @@ Description: Quantum Scientific Imaging (QSI) CCD Libraries.
 
 Package: libqsi-dev
 Architecture: any
-Depends: libqsi6, ${shlibs:Depends}, ${misc:Depends}
+Depends: libqsi6 (= ${binary:Version}), ${misc:Depends}
 Description: Quantum Scientific Imaging (QSI) CCD Libraries.
  .
  This package contains the development files.

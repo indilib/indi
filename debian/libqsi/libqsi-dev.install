@@ -1,6 +1,5 @@
 debian/tmp/usr/lib/libqsiapi.so
 debian/tmp/usr/lib/libqsiapi.a
-debian/tmp/usr/lib/libqsiapi.la
 debian/tmp/usr/include/qsiapi.h
 debian/tmp/usr/include/QSIError.h
 
