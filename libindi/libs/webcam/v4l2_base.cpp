@@ -730,7 +730,7 @@ int V4L2_Base::getFPS()
   return 15;
 }
 
-char * V4L2_Base::getgetDeviceName()
+char * V4L2_Base::getDeviceName()
 {
   return ((char *) cap.card);
 }

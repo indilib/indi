@@ -567,7 +567,7 @@ void V4L_Philips::getBasicData()
   IDSetNumber(&FrameNP, NULL);
   IUUpdateMinMax(&FrameNP);
   
-  IUSaveText(&camNameT[0], v4l_pwc->getgetDeviceName());
+  IUSaveText(&camNameT[0], v4l_pwc->getDeviceName());
   IDSetText(&camNameTP, NULL);
   
   IDLog("Raw values\n Contrast: %d \n Brightness %d \n Color %d \n Sharpness %d \n Gain %d \n Gamma %d \n", v4l_pwc->getContrast(), v4l_pwc->getBrightness(), v4l_pwc->getColor(), v4l_pwc->getSharpness(), v4l_pwc->getGain(), v4l_pwc->getGama());
