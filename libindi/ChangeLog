@@ -1,3 +1,11 @@
+From 0.9 to 0.95
+
+      # Focuser simulator driver.
+      # CCD, Telescope, Focuser, and Filter simulators improvements including periodic error effects, FWHM, and more.
+      # Major improvements to INDI Base Library and INDI Client Library.
+      # Fixed minor bugs in LX200 Generic, LX200 FS2, Magellan, and Celestron drivers.
+      # Minor bugfixes and improvements.
+      
 From 0.8 to 0.9
 
       # iEQ45 GoTo German Equatorial Mount Driver.
