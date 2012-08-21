@@ -241,13 +241,14 @@ bool INDI::CCD::initProperties()
     IUFillText(&ActiveDeviceT[1],"ACTIVE_FOCUSER","Focuser","Focuser Simulator");
     IUFillTextVector(ActiveDeviceTP,ActiveDeviceT,2,getDeviceName(),"ACTIVE_DEVICES","Snoop devices",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
 
+    IUFillNumber(&EqN[0],"RA_PEC","Ra (hh:mm:ss)","%010.6m",0,24,0,0);
+    IUFillNumber(&EqN[1],"DEC_PEC","Dec (dd:mm:ss)","%010.6m",-90,90,0,0);
+    IUFillNumberVector(&EqNP,EqN,2,ActiveDeviceT[0].text,"EQUATORIAL_PEC","EQ PEC","Main Control",IP_RW,60,IPS_IDLE);
+
     IDSnoopDevice(ActiveDeviceT[0].text,"EQUATORIAL_PEC");
     IDSnoopDevice(ActiveDeviceT[0].text,"TELESCOPE_PARAMETERS");
     IDSnoopDevice(ActiveDeviceT[1].text,"FWHM");
 
-    IUFillNumber(&EqN[0],"RA_PEC","Ra (hh:mm:ss)","%010.6m",0,24,0,0);
-    IUFillNumber(&EqN[1],"DEC_PEC","Dec (dd:mm:ss)","%010.6m",-90,90,0,0);
-    IUFillNumberVector(&EqNP,EqN,2,"","EQUATORIAL_PEC","EQ PEC","Main Control",IP_RW,60,IPS_IDLE);
 
     // Guider Interface
     initGuiderProperties(getDeviceName(), GUIDE_CONTROL_TAB);

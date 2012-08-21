@@ -154,6 +154,12 @@ bool ScopeSim::initProperties()
     IUFillNumber(&GuideRateN[DEC_AXIS], "GUIDE_RATE_NS", "N/S Rate", "%g", 0, 1, 0.1, 0.3);
     IUFillNumberVector(GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
+    // Let's simulate it to be an F/10 8" telescope
+    ScopeParametersN[0].value = 203;
+    ScopeParametersN[1].value = 2000;
+
+    TrackState=SCOPE_IDLE;
+
     /* Add debug controls so we may debug driver if necessary */
     addDebugControl();
 
@@ -293,9 +299,9 @@ bool ScopeSim::ReadScopeStatus()
     /* Process per current state. We check the state of EQUATORIAL_EOD_COORDS_REQUEST and act acoordingly */
     switch (TrackState)
     {
-    case SCOPE_IDLE:
+    /*case SCOPE_IDLE:
         EqNV->s = IPS_IDLE;
-        break;
+        break;*/
     case SCOPE_SLEWING:
     case SCOPE_PARKING:
         /* slewing - nail it when both within one pulse @ SLEWRATE */
@@ -353,6 +359,7 @@ bool ScopeSim::ReadScopeStatus()
 
         break;
 
+    case SCOPE_IDLE:
     case SCOPE_TRACKING:
         /* tracking */
 
@@ -537,12 +544,12 @@ bool ScopeSim::ISNewNumber (const char *dev, const char *name, double values[], 
          {
 
              // Unless we're in track mode, we don't obey guide commands.
-             if (TrackState != SCOPE_TRACKING)
-             {
-                 GuideNSNP->s = IPS_IDLE;
-                 IDSetNumber(GuideNSNP, NULL);
-                 return true;
-             }
+             //if (TrackState != SCOPE_TRACKING)
+             //{
+                // GuideNSNP->s = IPS_IDLE;
+                 //IDSetNumber(GuideNSNP, NULL);
+                 //return true;
+             //}
 
              IUUpdateNumber(GuideNSNP, values, names, n);
 
@@ -552,12 +559,12 @@ bool ScopeSim::ISNewNumber (const char *dev, const char *name, double values[], 
          if(strcmp(name,"TELESCOPE_TIMED_GUIDE_WE")==0)
          {
              // Unless we're in track mode, we don't obey guide commands.
-             if (TrackState != SCOPE_TRACKING)
-             {
-                 GuideWENP->s = IPS_IDLE;
-                 IDSetNumber(GuideWENP, NULL);
-                 return true;
-             }
+             //if (TrackState != SCOPE_TRACKING)
+             //{
+                 //GuideWENP->s = IPS_IDLE;
+                 //IDSetNumber(GuideWENP, NULL);
+                 //return true;
+             //}
 
              IUUpdateNumber(GuideWENP, values, names, n);
 

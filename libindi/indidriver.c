@@ -477,7 +477,7 @@ IUSnoopNumber (XMLEle *root, INumberVectorProperty *nvp)
 	/* match each INumber with a oneNumber */
 	for (i = 0; i < nvp->nnp; i++) {
 	    for (ep = nextXMLEle(root,1); ep; ep = nextXMLEle(root,0)) {
-		if (!strcmp (tagXMLEle(ep), "oneNumber") &&
+        if (!strcmp (tagXMLEle(ep)+3, "Number") &&
 			!strcmp (nvp->np[i].name, findXMLAttValu(ep, "name"))) {
 		    if (f_scansexa (pcdataXMLEle(ep), &nvp->np[i].value) < 0)
 			return (-1);	/* bad number format */
@@ -515,7 +515,7 @@ IUSnoopText (XMLEle *root, ITextVectorProperty *tvp)
 	/* match each IText with a oneText */
 	for (i = 0; i < tvp->ntp; i++) {
 	    for (ep = nextXMLEle(root,1); ep; ep = nextXMLEle(root,0)) {
-		if (!strcmp (tagXMLEle(ep), "oneText") &&
+        if (!strcmp (tagXMLEle(ep)+3, "Text") &&
 			!strcmp (tvp->tp[i].name, findXMLAttValu(ep, "name"))) {
 		    IUSaveText (&tvp->tp[i], pcdataXMLEle(ep));
 		    break;
@@ -552,7 +552,7 @@ IUSnoopLight (XMLEle *root, ILightVectorProperty *lvp)
 
 	/* match each oneLight with one ILight */
 	for (ep = nextXMLEle(root,1); ep; ep = nextXMLEle(root,0)) {
-	    if (!strcmp (tagXMLEle(ep), "oneLight")) {
+        if (!strcmp (tagXMLEle(ep)+3, "Light")) {
 		const char *name = findXMLAttValu (ep, "name");
 		for (i = 0; i < lvp->nlp; i++) {
 		    if (!strcmp (lvp->lp[i].name, name)) {
@@ -591,7 +591,7 @@ IUSnoopSwitch (XMLEle *root, ISwitchVectorProperty *svp)
 
 	/* match each oneSwitch with one ISwitch */
 	for (ep = nextXMLEle(root,1); ep; ep = nextXMLEle(root,0)) {
-	    if (!strcmp (tagXMLEle(ep), "oneSwitch")) {
+        if (!strcmp (tagXMLEle(ep)+3, "Switch")) {
 		const char *name = findXMLAttValu (ep, "name");
 		for (i = 0; i < svp->nsp; i++) {
 		    if (!strcmp (svp->sp[i].name, name)) {
@@ -631,7 +631,7 @@ IUSnoopBLOB (XMLEle *root, IBLOBVectorProperty *bvp)
 
 	/* match each oneBLOB with one IBLOB */
 	for (ep = nextXMLEle(root,1); ep; ep = nextXMLEle(root,0)) {
-	    if (!strcmp (tagXMLEle(ep), "oneBLOB")) {
+        if (!strcmp (tagXMLEle(ep)+3, "BLOB")) {
 		const char *name = findXMLAttValu (ep, "name");
 		for (i = 0; i < bvp->nbp; i++) {
 		    IBLOB *bp = &bvp->bp[i];
