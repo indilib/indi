@@ -73,7 +73,7 @@ void V4L_Driver::initProperties(const char *dev)
   
   /* Expose */
   IUFillNumber(&ExposeTimeN[0], "CCD_EXPOSURE_VALUE", "Duration (s)", "%5.2f", 0., 36000., 0.5, 1.);
-  IUFillNumberVector(&ExposeTimeNP, ExposeTimeN, NARRAY(ExposeTimeN), dev, "CCD_EXPOSURE", "Expose", COMM_GROUP, IP_RW, 60, IPS_IDLE);
+  IUFillNumberVector(&ExposeTimeNP, ExposeTimeN, NARRAY(ExposeTimeN), dev, "CCD_EXPOSURE_REQUEST", "Expose", COMM_GROUP, IP_RW, 60, IPS_IDLE);
 
 /* Frame Rate */
   IUFillNumber(&FrameRateN[0], "RATE", "Rate", "%0.f", 1., 50., 1., 10.);
@@ -129,11 +129,7 @@ void V4L_Driver::initProperties(const char *dev)
 
 void V4L_Driver::initCamBase()
 {
-   #ifndef HAVE_LINUX_VIDEODEV2_H
-    v4l_base = new V4L1_Base();
-   #else
     v4l_base = new V4L2_Base();
-   #endif
 }
 
 void V4L_Driver::ISGetProperties (const char *dev)
@@ -217,6 +213,8 @@ void V4L_Driver::ISNewSwitch (const char *dev, const char *name, ISState *states
        StreamSP.s = IPS_IDLE;
        
           
+       v4l_base->stop_capturing(errmsg);
+
        if (StreamS[0].s == ISS_ON)
        {
          frameCount = 0;
@@ -372,8 +370,8 @@ void V4L_Driver::ISNewNumber (const char *dev, const char *name, double values[]
        if (checkPowerN(&ExposeTimeNP))
          return;
     
-        if (StreamS[0].s == ISS_ON) 
-          v4l_base->stop_capturing(errmsg);
+        //if (StreamS[0].s == ISS_ON)
+    v4l_base->stop_capturing(errmsg);
 
 	StreamS[0].s  = ISS_OFF;
 	StreamS[1].s  = ISS_ON;

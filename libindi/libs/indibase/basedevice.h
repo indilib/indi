@@ -150,8 +150,6 @@ protected:
 
     /** \brief handle SetXXX commands from client */
     int setValue (XMLEle *root, char * errmsg);
-    /** \brief handle SetBLOB command from client */
-    int processBLOB(IBLOB *blobEL, XMLEle *ep, char * errmsg);
     /** \brief Parse and store BLOB in the respective vector */
     int setBLOB(IBLOBVectorProperty *pp, XMLEle * root, char * errmsg);
 

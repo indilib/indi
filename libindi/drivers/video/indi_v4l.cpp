@@ -29,7 +29,7 @@ void ISInit()
   if (MainCam == NULL)
   {
     MainCam = new V4L_Driver();
-    MainCam->initProperties("Video4Linux Generic Device");
+    MainCam->initProperties("Generic Video4Linux");
     MainCam->initCamBase();
   }
 }

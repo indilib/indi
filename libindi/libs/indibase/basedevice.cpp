@@ -964,7 +964,8 @@ int INDI::BaseDevice::setBLOB(IBLOBVectorProperty *bvp, XMLEle * root, char * er
                     if (strstr(blobEL->format, ".z"))
                     {
                         blobEL->format[strlen(blobEL->format)-2] = '\0';
-                        dataBuffer = (unsigned char *) realloc(dataBuffer, blobEL->bloblen * sizeof(unsigned char));
+                        dataSize = blobEL->size * sizeof(unsigned char);
+                        dataBuffer = (unsigned char *) malloc(dataSize);
 
                         if (dataBuffer == NULL)
                         {
@@ -980,8 +981,8 @@ int INDI::BaseDevice::setBLOB(IBLOBVectorProperty *bvp, XMLEle * root, char * er
                             return -1;
                         }
                         blobEL->size = dataSize;
-                        memcpy(blobEL->blob, dataBuffer, blobEL->size);
-
+                        free(blobEL->blob);
+                        blobEL->blob = dataBuffer;
                     }
 
                     if (mediator)
@@ -996,132 +997,6 @@ int INDI::BaseDevice::setBLOB(IBLOBVectorProperty *bvp, XMLEle * root, char * er
            }
     }
 
-    free(dataBuffer);
-
-
-    /*XMLEle *ep;
-    IBLOB *blobEL;
-
-    for (ep = nextXMLEle(root,1); ep; ep = nextXMLEle(root,0))
-    {
-        if (strcmp(tagXMLEle(ep), "oneBLOB") == 0)
-        {
-            blobEL = IUFindBLOB(bvp, findXMLAttValu (ep, "name"));
-
-            if (blobEL)
-                return processBLOB(blobEL, ep, errmsg);
-            else
-            {
-                snprintf(errmsg, MAXRBUF, "INDI: set %s.%s.%s not found", bvp->device, bvp->name,
-                         findXMLAttValu (ep, "name"));
-                return (-1);
-            }
-        }
-    }
-
-    return -1;*/
-
-
-}
-
-/* Process incoming data stream
- * Return 0 if okay, -1 if error
-*/
-int INDI::BaseDevice::processBLOB(IBLOB *blobEL, XMLEle *ep, char * errmsg)
-{
-    XMLAtt *ap = NULL;
-    int blobSize=0, r=0;
-    uLongf dataSize=0;
-    char *baseBuffer=NULL, *dataFormat;
-    unsigned char *blobBuffer(NULL), *dataBuffer(NULL);
-
-    ap = findXMLAtt(ep, "size");
-    if (!ap)
-    {
-        snprintf(errmsg, MAXRBUF, "INDI: set %s size not found", blobEL->name);
-        return (-1);
-    }
-
-    dataSize = atoi(valuXMLAtt(ap));
-
-    /* Blob size = 0 when only state changes */
-    if (dataSize == 0)
-        return (0);
-
-    ap = findXMLAtt(ep, "format");
-    if (!ap)
-    {
-        snprintf(errmsg, MAXRBUF, "INDI: set %s format not found",blobEL->name);
-        return (-1);
-    }
-
-    dataFormat = valuXMLAtt(ap);
-
-    strncpy(blobEL->format, dataFormat, MAXINDIFORMAT);
-
-    baseBuffer = (char *) malloc ( (3*pcdatalenXMLEle(ep)/4) * sizeof (char));
-
-    if (baseBuffer == NULL)
-    {
-        strncpy(errmsg, "Unable to allocate memory for base buffer", MAXRBUF);
-        return (-1);
-    }
-
-    ap = findXMLAtt(ep, "bloblen");
-    if (!ap)
-    {
-        snprintf(errmsg, MAXRBUF, "INDI: set %s bloblen not found",blobEL->name);
-        return (-1);
-    }
-
-    blobEL->bloblen   = from64tobits (baseBuffer, pcdataXMLEle(ep));
-    blobBuffer = (unsigned char *) baseBuffer;
-
-    if (blobSize < 0)
-    {
-        free (blobBuffer);
-        snprintf(errmsg, MAXRBUF, "INDI: %s.%s.%s bad base64", blobEL->bvp->device, blobEL->bvp->name, blobEL->name);
-        return (-1);
-    }
-
-    if (strstr(dataFormat, ".z"))
-    {
-        dataFormat[strlen(dataFormat)-2] = '\0';
-        dataBuffer = (unsigned char *) realloc (dataBuffer,  (dataSize * sizeof(unsigned char)));
-
-        if (baseBuffer == NULL)
-        {
-                free (blobBuffer);
-                strncpy(errmsg, "Unable to allocate memory for data buffer", MAXRBUF);
-                return (-1);
-        }
-
-        r = uncompress(dataBuffer, &dataSize, blobBuffer, (uLong) blobSize);
-        if (r != Z_OK)
-        {
-            snprintf(errmsg, MAXRBUF, "INDI: %s.%s.%s compression error: %d", blobEL->bvp->device, blobEL->bvp->name, blobEL->name, r);
-            free (blobBuffer);
-            return -1;
-        }
-        blobEL->size = dataSize;
-    }
-    else
-    {
-        dataBuffer = (unsigned char *) realloc (dataBuffer,  (dataSize * sizeof(unsigned char)));
-        memcpy(dataBuffer, blobBuffer, dataSize);
-        blobEL->size = dataSize;
-    }
-
-    strncpy(blobEL->format, dataFormat, MAXINDIFORMAT);
-    blobEL->blob = dataBuffer;
-
-    if (mediator)
-        mediator->newBLOB(blobEL);
-
-   // newBLOB(dataBuffer, dataSize, dataFormat);
-
-    free (blobBuffer);
-    return (0);
 }
 
 void INDI::BaseDevice::setDeviceName(const char *dev)

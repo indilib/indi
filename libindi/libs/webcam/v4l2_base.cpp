@@ -217,7 +217,7 @@ int V4L2_Base::read_frame(char *errmsg)
                 	(*callback)(uptr);
 
 		if (-1 == xioctl (fd, VIDIOC_QBUF, &buf))
-			return errno_exit ("VIDIOC_QBUF", errmsg);
+            return errno_exit ("ReadFrame IO_METHOD_MMAP: VIDIOC_QBUF", errmsg);
 
 		break;
 
@@ -252,7 +252,7 @@ int V4L2_Base::read_frame(char *errmsg)
     		//process_image ((void *) buf.m.userptr);
 
 		if (-1 == xioctl (fd, VIDIOC_QBUF, &buf))
-			errno_exit ("VIDIOC_QBUF", errmsg);
+            errno_exit ("ReadFrame IO_METHOD_USERPTR: VIDIOC_QBUF", errmsg);
 
 		break;
 	}
@@ -302,7 +302,8 @@ int V4L2_Base::start_capturing(char * errmsg)
 		break;
 
 	case IO_METHOD_MMAP:
-		for (i = 0; i < n_buffers; ++i) {
+        for (i = 0; i < n_buffers; ++i)
+        {
             		struct v4l2_buffer buf;
 
         		CLEAR (buf);
@@ -312,10 +313,10 @@ int V4L2_Base::start_capturing(char * errmsg)
         		buf.index       = i;
 
         		if (-1 == xioctl (fd, VIDIOC_QBUF, &buf))
-                    		return errno_exit ("VIDIOC_QBUF", errmsg);
+                            return errno_exit ("StartCapturing IO_METHOD_MMAP: VIDIOC_QBUF", errmsg);
 
 		}
-		
+
 		type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
 		if (-1 == xioctl (fd, VIDIOC_STREAMON, &type))
@@ -339,7 +340,7 @@ int V4L2_Base::start_capturing(char * errmsg)
 			buf.length      = buffers[i].length;
 
         		if (-1 == xioctl (fd, VIDIOC_QBUF, &buf))
-                    		return errno_exit ("VIDIOC_QBUF", errmsg);
+                            return errno_exit ("StartCapturing IO_METHOD_USERPTR: VIDIOC_QBUF", errmsg);
 		}
 
 
