@@ -18,9 +18,9 @@ Package: libindi0
 Section: libs
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends},
- libindi-data (>= ${source:Version})
+ libindi-data (>= ${source:Version}),
+ indi-bin (>= ${source:Version})
 Pre-Depends: ${misc:Pre-Depends}
-Suggests: indi-bin (>= ${source:Version})
 Multi-Arch: same
 Description: Instrument-Neutral Device Interface library -- shared library
  INDI (Instrument-Neutral Device Interface) is a distributed XML-based
