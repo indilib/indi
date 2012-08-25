@@ -88,7 +88,7 @@ void ccvt_yuyv_bgr32(int width, int height, const void *src, void *dst)
    s = src;
    d = dst;
    while (l--) {
-      c = width >> 2;
+      c = width >> 1;
       while (c--) {
          y1 = *s++;
          cb = ((*s - 128) * 454) >> 8;
