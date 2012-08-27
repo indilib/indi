@@ -55,12 +55,20 @@ class INDI::Focuser : public INDI::DefaultDevice
         */
         virtual bool Move(FocusDirection dir, int speed, int duration);
 
-        INumberVectorProperty *FocusSpeedNP;
+        /** \brief Move the focuser to an absolute position.
+            \param ticks The new position of the focuser.
+            \return True if succssfull, false otherwise.
+        */
+        virtual bool MoveAbs(int ticks);
+
+        INumberVectorProperty FocusSpeedNP;
         INumber FocusSpeedN[1];
-        ISwitchVectorProperty *FocusMotionSP; //  A Switch in the client interface to park the scope
+        ISwitchVectorProperty FocusMotionSP; //  A Switch in the client interface to park the scope
         ISwitch FocusMotionS[2];
-        INumberVectorProperty *FocusTimerNP;
+        INumberVectorProperty FocusTimerNP;
         INumber FocusTimerN[1];
+        INumberVectorProperty FocusAbsPosNP;
+        INumber FocusAbsPosN[1];
 
 };
 

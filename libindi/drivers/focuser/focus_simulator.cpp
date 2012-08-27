@@ -32,7 +32,6 @@ std::auto_ptr<FocusSim> focusSim(0);
 #define SIM_SEEING  0
 #define SIM_FWHM    1
 
-
 void ISPoll(void *p);
 
 
@@ -129,9 +128,10 @@ bool FocusSim::initProperties()
     IUFillNumber(&FWHMN[0],"SIM_FWHM","arcseconds","%4.2f",0,60,0,7.5);
     IUFillNumberVector(&FWHMNP,FWHMN,1,getDeviceName(), "FWHM","FWHM",MAIN_CONTROL_TAB,IP_RO,60,IPS_IDLE);
 
-    ticks = sqrt(FWHMN[0].value - SeeingN[0].value) / 0.75;
+    ticks = initTicks = sqrt(FWHMN[0].value - SeeingN[0].value) / 0.75;
 
-    IDLog("Initial Ticks is %g\n", ticks);
+    if (isDebug())
+        IDLog("Initial Ticks is %g\n", ticks);
 
     return true;
 }
@@ -153,12 +153,14 @@ bool FocusSim::updateProperties()
 
     if (isConnected())
     {
+        defineNumber(&FocusAbsPosNP);
         defineNumber(&SeeingNP);
         defineNumber(&FWHMNP);
         SetupParms();
     }
     else
     {
+        deleteProperty(FocusAbsPosNP.name);
         deleteProperty(SeeingNP.name);
         deleteProperty(FWHMNP.name);
     }
@@ -217,15 +219,61 @@ bool FocusSim::ISNewSwitch (const char *dev, const char *name, ISState *states, 
 bool FocusSim::Move(FocusDirection dir, int speed, int duration)
 {
     double targetTicks = (speed * duration) / (FocusSpeedN[0].max * FocusTimerN[0].max);
+    double plannedTicks=ticks;
+    double plannedAbsPos=0;
 
-    IDLog("Current ticks: %g - target Ticks: %g\n", ticks, targetTicks);
+
 
     if (dir == FOCUS_INWARD)
-        ticks -= targetTicks;
+        plannedTicks -= targetTicks;
     else
-        ticks += targetTicks;
+        plannedTicks += targetTicks;
 
-    IDLog("Current ticks: %g\n", ticks);
+    if (isDebug())
+        IDLog("Current ticks: %g - target Ticks: %g, plannedTicks %g\n", ticks, targetTicks, plannedTicks);
+
+    plannedAbsPos = (plannedTicks - initTicks) * 5000 + (FocusAbsPosN[0].max - FocusAbsPosN[0].min)/2;
+
+    if (plannedAbsPos < FocusAbsPosN[0].min || plannedAbsPos > FocusAbsPosN[0].max)
+    {
+        IDMessage(getDeviceName(), "Error, requested position is out of range.");
+        return false;
+    }
+
+    ticks = plannedTicks;
+    if (isDebug())
+          IDLog("Current absolute positoin: %g, current ticks is %g\n", plannedAbsPos, ticks);
+
+
+    FWHMN[0].value = 0.5625*ticks*ticks +  SeeingN[0].value;
+    FocusAbsPosN[0].value = plannedAbsPos;
+
+
+    if (FWHMN[0].value < SeeingN[0].value)
+        FWHMN[0].value = SeeingN[0].value;
+
+    IDSetNumber(&FWHMNP, NULL);
+    IDSetNumber(&FocusAbsPosNP, NULL);
+
+    return true;
+
+}
+
+bool FocusSim::MoveAbs(int targetTicks)
+{
+    if (targetTicks < FocusAbsPosN[0].min || targetTicks > FocusAbsPosN[0].max)
+    {
+        IDMessage(getDeviceName(), "Error, requested absolute position is out of range.");
+        return false;
+    }
+
+    double mid = (FocusAbsPosN[0].max - FocusAbsPosN[0].min)/2;
+
+    // Limit to +/- 10 from initTicks
+    ticks = initTicks + (targetTicks - mid) / 5000.0;
+
+    if (isDebug())
+        IDLog("Current ticks: %g\n", ticks);
 
     FWHMN[0].value = 0.5625*ticks*ticks +  SeeingN[0].value;
 
@@ -237,4 +285,3 @@ bool FocusSim::Move(FocusDirection dir, int speed, int duration)
     return true;
 
 }
-

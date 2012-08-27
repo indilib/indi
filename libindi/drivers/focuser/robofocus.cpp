@@ -123,7 +123,7 @@ bool RoboFocus::initProperties()
     // No speed for robofocus
     FocusSpeedN[0].min = FocusSpeedN[0].max = FocusSpeedN[0].value = 1;
 
-    IUUpdateMinMax(FocusSpeedNP);
+    IUUpdateMinMax(&FocusSpeedNP);
 
     /* Port */
     IUFillText(&PortT[0], "PORT", "Port", "/dev/ttyUSB0");
