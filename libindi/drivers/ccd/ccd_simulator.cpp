@@ -844,24 +844,10 @@ bool CCDSim::ISNewNumber (const char *dev, const char *name, double values[], ch
         //  Now lets see if it's something we process here
 
         //IDLog("CCDSim::ISNewNumber %s\n",name);
-        if(strcmp(name,"SIMULATOR_SETTINGS")==0) {
-            //  We are being asked to set camera binning
+        if(strcmp(name,"SIMULATOR_SETTINGS")==0)
+        {
+            IUUpdateNumber(SimulatorSettingsNV, values, names, n);
             SimulatorSettingsNV->s=IPS_OK;
-
-            for(int x=0; x<n; x++) {
-                //fprintf(stderr,"name %s value %4.2f\n",names[x],values[x]);
-                if(values[x] != 0) {
-                    SimulatorSettingsN[x].value=values[x];
-                } else {
-                    //  We ignore zeros on most of our items
-                    //  because they likely mean it was just a field not
-                    //  actually filled in, but, for the dec offset it is
-                    //  important to keep a zero value
-                    if(strcmp(names[x],"SIM_OAGOFFSET")==0) {
-                        SimulatorSettingsN[x].value=values[x];
-                    }
-                }
-            }
 
             //  Reset our parameters now
             SetupParms();
