@@ -222,8 +222,6 @@ bool FocusSim::Move(FocusDirection dir, int speed, int duration)
     double plannedTicks=ticks;
     double plannedAbsPos=0;
 
-
-
     if (dir == FOCUS_INWARD)
         plannedTicks -= targetTicks;
     else

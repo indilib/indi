@@ -98,8 +98,8 @@ CCDSim::CCDSim()
     HasGuideHead=false;
 
 
-    RA=9.95;
-    Dec=68.9;
+    raPEC=9.95;
+    decPEC=68.9;
 
     //  sxvh9
     bias=1500;
@@ -206,6 +206,12 @@ bool CCDSim::initProperties()
     IUFillNumber(&ScopeParametersN[0],"TELESCOPE_APERTURE","Aperture (mm)","%g",50,4000,0,0.0);
     IUFillNumber(&ScopeParametersN[1],"TELESCOPE_FOCAL_LENGTH","Focal Length (mm)","%g",100,10000,0,0.0 );
     IUFillNumberVector(&ScopeParametersNP,ScopeParametersN,2,"Telescope Simulator","TELESCOPE_PARAMETERS","Scope Properties",OPTIONS_TAB,IP_RW,60,IPS_OK);
+
+    IUFillNumber(&EqPECN[0],"RA_PEC","Ra (hh:mm:ss)","%010.6m",0,24,0,0);
+    IUFillNumber(&EqPECN[1],"DEC_PEC","decPEC (dd:mm:ss)","%010.6m",-90,90,0,0);
+    IUFillNumberVector(&EqPECNP,EqPECN,2,ActiveDeviceT[0].text,"EQUATORIAL_PEC","EQ PEC","Main Control",IP_RW,60,IPS_IDLE);
+
+    IDSnoopDevice(ActiveDeviceT[0].text,"EQUATORIAL_PEC");
 
     return true;
 }
@@ -455,14 +461,14 @@ int CCDSim::DrawCcdFrame()
         ImageScaley=Scaley;
 
         //  calc this now, we will use it a lot later
-        rad=RA*15.0;
+        rad=raPEC*15.0;
         rar=rad*0.0174532925;
         //  offsetting the dec by the guide head offset
         float cameradec;
-        cameradec=Dec+OAGoffset/60;
+        cameradec=decPEC+OAGoffset/60;
         decr=cameradec*0.0174532925;
 
-        //fprintf(stderr,"Dec %7.5f  cameradec %7.5f  CenterOffsetDec %4.4f\n",Dec,cameradec,CenterOffsetDec);
+        //fprintf(stderr,"decPEC %7.5f  cameradec %7.5f  CenterOffsetDec %4.4f\n",decPEC,cameradec,CenterOffsetDec);
         //  now lets calculate the radius we need to fetch
         float radius;
 
@@ -495,7 +501,7 @@ int CCDSim::DrawCcdFrame()
         //  if this is a light frame, we need a star field drawn
         if(PrimaryCCD.getFrameType()==CCDChip::LIGHT_FRAME)
         {
-            //sprintf(gsccmd,"gsc -c %8.6f %+8.6f -r 120 -m 0 9.1",rad+PEOffset,Dec);
+            //sprintf(gsccmd,"gsc -c %8.6f %+8.6f -r 120 -m 0 9.1",rad+PEOffset,decPEC);
             sprintf(gsccmd,"gsc -c %8.6f %+8.6f -r %4.1f -m 0 %4.2f -n 3000",rad+PEOffset,cameradec,radius,lookuplimit);
             //fprintf(stderr,"gsccmd %s\n",gsccmd);
             pp=popen(gsccmd,"r");
@@ -558,7 +564,7 @@ int CCDSim::DrawCcdFrame()
                         rc=DrawImageStar(mag,ccdx,ccdy);
                         drawn+=rc;
                         if(rc==1) {
-                            //fprintf(stderr,"star %s scope %6.4f %6.4f star %6.4f %6.4f  ccd %6.2f %6.2f\n",id,rad,Dec,ra,dec,ccdx,ccdy);
+                            //fprintf(stderr,"star %s scope %6.4f %6.4f star %6.4f %6.4f  ccd %6.2f %6.2f\n",id,rad,decPEC,ra,dec,ccdx,ccdy);
                             //fprintf(stderr,"star %s ccd %6.2f %6.2f\n",id,ccdx,ccdy);
                         }
                     }
@@ -796,7 +802,7 @@ bool CCDSim::GuideNorth(float v)
 
     c=v*GuideRate;  //
     c=c/3600;
-    Dec=Dec+c;
+    decPEC=decPEC+c;
 
     return true;
 }
@@ -806,7 +812,7 @@ bool CCDSim::GuideSouth(float v)
 
     c=v*GuideRate;  //
     c=c/3600;
-    Dec=Dec-c;
+    decPEC=decPEC-c;
 
     return true;
 }
@@ -817,8 +823,8 @@ bool CCDSim::GuideEast(float v)
 
     c=v*GuideRate;
     c=c/3600.0/15.0;
-    c=c/(cos(Dec*0.0174532925));
-    RA=RA-c;
+    c=c/(cos(decPEC*0.0174532925));
+    raPEC=raPEC-c;
 
     return true;
 }
@@ -828,8 +834,8 @@ bool CCDSim::GuideWest(float v)
 
     c=v*GuideRate;  //
     c=c/3600.0/15.0;
-    c=c/(cos(Dec*0.0174532925));
-    RA=RA+c;
+    c=c/(cos(decPEC*0.0174532925));
+    raPEC=raPEC+c;
 
     return true;
 }
@@ -923,6 +929,22 @@ bool CCDSim::ISSnoopDevice (XMLEle *root)
            focallength = ScopeParametersNP.np[1].value;
            IDLog("CCD Simulator: New focalLength value of %g\n", focallength);
            return true;
+     }
+
+     if(IUSnoopNumber(root,&EqPECNP)==0)
+     {
+        float newra,newdec;
+        newra=EqPECN[0].value;
+        newdec=EqPECN[1].value;
+        if((newra != raPEC)||(newdec != decPEC))
+        {
+            fprintf(stderr,"raPEC %4.2f  decPEC %4.2f Snooped raPEC %4.2f  decPEC %4.2f\n",raPEC,decPEC,newra,newdec);
+            raPEC=newra;
+            decPEC=newdec;
+
+            return true;
+
+        }
      }
 
      return INDI::CCD::ISSnoopDevice(root);

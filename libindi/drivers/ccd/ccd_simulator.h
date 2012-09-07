@@ -66,6 +66,8 @@ class CCDSim : public INDI::CCD
 
         float PEPeriod;
         float PEMax;
+
+        double raPEC,decPEC;
         time_t RunStart;
 
         //  And this lives in our simulator settings page
@@ -85,6 +87,9 @@ class CCDSim : public INDI::CCD
         // We are going to snoop these from telescope
         INumber ScopeParametersN[2];
         INumberVectorProperty ScopeParametersNP;
+
+        INumberVectorProperty EqPECNP;
+        INumber EqPECN[2];
 
     public:
         CCDSim();

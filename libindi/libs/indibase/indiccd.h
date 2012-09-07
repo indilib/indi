@@ -254,15 +254,18 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         CCDChip PrimaryCCD;
         CCDChip GuideCCD;
 
- private:
-    //  We are going to snoop these from a telescope
-    INumberVectorProperty EqNP;
-    INumber EqN[2];
+        //  We are going to snoop these from a telescope
+        INumberVectorProperty EqNP;
+        INumber EqN[2];
 
-    ITextVectorProperty *ActiveDeviceTP;
-    IText ActiveDeviceT[2];
+        ITextVectorProperty *ActiveDeviceTP;
+        IText ActiveDeviceT[2];
 
-    int uploadfile(void *fitsdata,int total);
+private:
+        int uploadfile(void *fitsdata,int total);
+
+
+
 
 };
 
