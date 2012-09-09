@@ -97,14 +97,6 @@ ScopeSim::ScopeSim()
     currentDEC=15;
     Parked=false;
 
-    GuideNSNP = new INumberVectorProperty;
-    GuideWENP = new INumberVectorProperty;
-    EqPECNV = new INumberVectorProperty;
-    GuideRateNP = new INumberVectorProperty;
-
-    PECErrNSSP = new ISwitchVectorProperty;
-    PECErrWESP = new ISwitchVectorProperty;
-
     /* initialize random seed: */
       srand ( time(NULL) );
 }
@@ -127,32 +119,32 @@ bool ScopeSim::initProperties()
     /* Property for guider support. How many seconds to guide either northward or southward? */
     IUFillNumber(&GuideNSN[GUIDE_NORTH], "TIMED_GUIDE_N", "North (sec)", "%g", 0, 10, 0.001, 0);
     IUFillNumber(&GuideNSN[GUIDE_SOUTH], "TIMED_GUIDE_S", "South (sec)", "%g", 0, 10, 0.001, 0);
-    IUFillNumberVector(GuideNSNP, GuideNSN, 2, getDeviceName(), "TELESCOPE_TIMED_GUIDE_NS", "Guide North/South", MOTION_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&GuideNSNP, GuideNSN, 2, getDeviceName(), "TELESCOPE_TIMED_GUIDE_NS", "Guide North/South", MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
     /* Property for guider support. How many seconds to guide either westward or eastward? */
     IUFillNumber(&GuideWEN[GUIDE_WEST], "TIMED_GUIDE_W", "West (sec)", "%g", 0, 10, 0.001, 0);
     IUFillNumber(&GuideWEN[GUIDE_EAST], "TIMED_GUIDE_E", "East (sec)", "%g", 0, 10, 0.001, 0);
-    IUFillNumberVector(GuideWENP, GuideWEN, 2, getDeviceName(), "TELESCOPE_TIMED_GUIDE_WE", "Guide West/East", MOTION_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&GuideWENP, GuideWEN, 2, getDeviceName(), "TELESCOPE_TIMED_GUIDE_WE", "Guide West/East", MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
     /* Simulated periodic error in RA, DEC */
     IUFillNumber(&EqPECN[RA_AXIS],"RA_PEC","RA (hh:mm:ss)","%010.6m",0,24,0,15.);
     IUFillNumber(&EqPECN[DEC_AXIS],"DEC_PEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,15.);
-    IUFillNumberVector(EqPECNV,EqPECN,2,getDeviceName(),"EQUATORIAL_PEC","Periodic Error",MOTION_TAB,IP_RO,60,IPS_IDLE);
+    IUFillNumberVector(&EqPECNV,EqPECN,2,getDeviceName(),"EQUATORIAL_PEC","Periodic Error",MOTION_TAB,IP_RO,60,IPS_IDLE);
 
     /* Enable client to manually add periodic error northward or southward for simulation purposes */
     IUFillSwitch(&PECErrNSS[MOTION_NORTH], "PEC_N", "North", ISS_OFF);
     IUFillSwitch(&PECErrNSS[MOTION_SOUTH], "PEC_S", "South", ISS_OFF);
-    IUFillSwitchVector(PECErrNSSP, PECErrNSS, 2, getDeviceName(),"PEC_NS", "PE N/S", MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&PECErrNSSP, PECErrNSS, 2, getDeviceName(),"PEC_NS", "PE N/S", MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     /* Enable client to manually add periodic error westward or easthward for simulation purposes */
     IUFillSwitch(&PECErrWES[MOTION_WEST], "PEC_W", "West", ISS_OFF);
     IUFillSwitch(&PECErrWES[MOTION_EAST], "PEC_E", "East", ISS_OFF);
-    IUFillSwitchVector(PECErrWESP, PECErrWES, 2, getDeviceName(),"PEC_WE", "PE W/E", MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&PECErrWESP, PECErrWES, 2, getDeviceName(),"PEC_WE", "PE W/E", MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     /* How fast do we guide compared to sideral rate */
     IUFillNumber(&GuideRateN[RA_AXIS], "GUIDE_RATE_WE", "W/E Rate", "%g", 0, 1, 0.1, 0.3);
     IUFillNumber(&GuideRateN[DEC_AXIS], "GUIDE_RATE_NS", "N/S Rate", "%g", 0, 1, 0.1, 0.3);
-    IUFillNumberVector(GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
     // Let's simulate it to be an F/10 8" telescope
     ScopeParametersN[0].value = 203;
@@ -173,12 +165,12 @@ void ScopeSim::ISGetProperties (const char *dev)
 
     if(isConnected())
     {
-        defineNumber(GuideNSNP);
-        defineNumber(GuideWENP);
-        defineNumber(GuideRateNP);
-        defineNumber(EqPECNV);
-        defineSwitch(PECErrNSSP);
-        defineSwitch(PECErrWESP);
+        defineNumber(&GuideNSNP);
+        defineNumber(&GuideWENP);
+        defineNumber(&GuideRateNP);
+        defineNumber(&EqPECNV);
+        defineSwitch(&PECErrNSSP);
+        defineSwitch(&PECErrWESP);
     }
 
     return;
@@ -190,22 +182,22 @@ bool ScopeSim::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(GuideNSNP);
-        defineNumber(GuideWENP);
-        defineNumber(GuideRateNP);
-        defineNumber(EqPECNV);
-        defineSwitch(PECErrNSSP);
-        defineSwitch(PECErrWESP);
+        defineNumber(&GuideNSNP);
+        defineNumber(&GuideWENP);
+        defineNumber(&GuideRateNP);
+        defineNumber(&EqPECNV);
+        defineSwitch(&PECErrNSSP);
+        defineSwitch(&PECErrWESP);
 
     }
     else
     {
-        deleteProperty(GuideNSNP->name);
-        deleteProperty(GuideWENP->name);
-        deleteProperty(EqPECNV->name);
-        deleteProperty(PECErrNSSP->name);
-        deleteProperty(PECErrWESP->name);
-        deleteProperty(GuideRateNP->name);
+        deleteProperty(GuideNSNP.name);
+        deleteProperty(GuideWENP.name);
+        deleteProperty(EqPECNV.name);
+        deleteProperty(PECErrNSSP.name);
+        deleteProperty(PECErrWESP.name);
+        deleteProperty(GuideRateNP.name);
     }
 
     return true;
@@ -268,7 +260,7 @@ bool ScopeSim::ReadScopeStatus()
     else
         da_dec = FINE_SLEW_RATE *dt;
 
-    switch (MovementNSSP->s)
+    switch (MovementNSSP.s)
     {
        case IPS_BUSY:
         if (MovementNSS[MOTION_NORTH].s == ISS_ON)
@@ -281,7 +273,7 @@ bool ScopeSim::ReadScopeStatus()
         break;
     }
 
-    switch (MovementWESP->s)
+    switch (MovementWESP.s)
     {
         case IPS_BUSY:
 
@@ -300,7 +292,7 @@ bool ScopeSim::ReadScopeStatus()
     switch (TrackState)
     {
     /*case SCOPE_IDLE:
-        EqNV->s = IPS_IDLE;
+        EqNV.s = IPS_IDLE;
         break;*/
     case SCOPE_SLEWING:
     case SCOPE_PARKING:
@@ -331,7 +323,7 @@ bool ScopeSim::ReadScopeStatus()
         else
           currentDEC -= da_dec;
 
-        EqNV->s = IPS_BUSY;
+        EqNV.s = IPS_BUSY;
 
         if (nlocked == 2)
         {
@@ -342,17 +334,17 @@ bool ScopeSim::ReadScopeStatus()
                 EqPECN[0].value = currentRA;
                 EqPECN[1].value = currentDEC;
 
-                IDSetNumber(EqPECNV, NULL);
+                IDSetNumber(&EqPECNV, NULL);
 
                 TrackState = SCOPE_TRACKING;
 
-                EqNV->s = IPS_OK;
+                EqNV.s = IPS_OK;
                 IDMessage(getDeviceName(), "Telescope slew is complete. Tracking...");
             }
             else
             {
                 TrackState = SCOPE_PARKED;
-                EqNV->s = IPS_IDLE;
+                EqNV.s = IPS_IDLE;
                 IDMessage(getDeviceName(), "Telescope parked successfully.");
             }
         }
@@ -406,11 +398,11 @@ bool ScopeSim::ReadScopeStatus()
             if (GuideNSN[ns_guide_dir].value <= 0)
             {
                 GuideNSN[GUIDE_NORTH].value = GuideNSN[GUIDE_SOUTH].value = 0;
-                GuideNSNP->s = IPS_OK;
-                IDSetNumber(GuideNSNP, NULL);
+                GuideNSNP.s = IPS_OK;
+                IDSetNumber(&GuideNSNP, NULL);
             }
             else
-                IDSetNumber(GuideNSNP, NULL);
+                IDSetNumber(&GuideNSNP, NULL);
           }
 
         if (we_guide_dir != -1)
@@ -428,11 +420,11 @@ bool ScopeSim::ReadScopeStatus()
             if (GuideWEN[we_guide_dir].value <= 0)
             {
                 GuideWEN[GUIDE_WEST].value = GuideWEN[GUIDE_EAST].value = 0;
-                GuideWENP->s = IPS_OK;
-                IDSetNumber(GuideWENP, NULL);
+                GuideWENP.s = IPS_OK;
+                IDSetNumber(&GuideWENP, NULL);
             }
             else
-                IDSetNumber(GuideWENP, NULL);
+                IDSetNumber(&GuideWENP, NULL);
           }
 
 
@@ -471,7 +463,7 @@ bool ScopeSim::ReadScopeStatus()
         }
 
         if (ns_guide_dir != -1 || we_guide_dir != -1)
-            IDSetNumber(EqPECNV, NULL);
+            IDSetNumber(&EqPECNV, NULL);
 
          break;
 
@@ -496,8 +488,8 @@ bool ScopeSim::Goto(double r,double d)
     Parked=false;
     TrackState = SCOPE_SLEWING;
 
-    EqReqNV->s = IPS_BUSY;
-    EqNV->s    = IPS_BUSY;
+    EqReqNV.s = IPS_BUSY;
+    EqNV.s    = IPS_BUSY;
 
     IDMessage(getDeviceName(), "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
@@ -510,13 +502,13 @@ bool ScopeSim::Sync(double ra, double dec)
 
     EqPECN[RA_AXIS].value = ra;
     EqPECN[DEC_AXIS].value = dec;
-    IDSetNumber(EqPECNV, NULL);
+    IDSetNumber(&EqPECNV, NULL);
 
     IDMessage(getDeviceName(), "Sync is successful.");
 
     TrackState = SCOPE_IDLE;
-    EqReqNV->s = IPS_OK;
-    EqNV->s    = IPS_OK;
+    EqReqNV.s = IPS_OK;
+    EqNV.s    = IPS_OK;
 
 
     NewRaDec(currentRA, currentDEC);
@@ -546,12 +538,12 @@ bool ScopeSim::ISNewNumber (const char *dev, const char *name, double values[], 
              // Unless we're in track mode, we don't obey guide commands.
              //if (TrackState != SCOPE_TRACKING)
              //{
-                // GuideNSNP->s = IPS_IDLE;
-                 //IDSetNumber(GuideNSNP, NULL);
+                // GuideNSNP.s = IPS_IDLE;
+                 //IDSetNumber(&GuideNSNP, NULL);
                  //return true;
              //}
 
-             IUUpdateNumber(GuideNSNP, values, names, n);
+             IUUpdateNumber(&GuideNSNP, values, names, n);
 
            return true;
          }
@@ -561,21 +553,21 @@ bool ScopeSim::ISNewNumber (const char *dev, const char *name, double values[], 
              // Unless we're in track mode, we don't obey guide commands.
              //if (TrackState != SCOPE_TRACKING)
              //{
-                 //GuideWENP->s = IPS_IDLE;
-                 //IDSetNumber(GuideWENP, NULL);
+                 //GuideWENP.s = IPS_IDLE;
+                 //IDSetNumber(&GuideWENP, NULL);
                  //return true;
              //}
 
-             IUUpdateNumber(GuideWENP, values, names, n);
+             IUUpdateNumber(&GuideWENP, values, names, n);
 
            return true;
          }
 
          if(strcmp(name,"GUIDE_RATE")==0)
          {
-             IUUpdateNumber(GuideRateNP, values, names, n);
-             GuideRateNP->s = IPS_OK;
-             IDSetNumber(GuideRateNP, NULL);
+             IUUpdateNumber(&GuideRateNP, values, names, n);
+             GuideRateNP.s = IPS_OK;
+             IDSetNumber(&GuideRateNP, NULL);
              return true;
          }
 
@@ -597,9 +589,9 @@ bool ScopeSim::ISNewSwitch (const char *dev, const char *name, ISState *states, 
     {
         if(strcmp(name,"PEC_NS")==0)
         {
-            IUUpdateSwitch(PECErrNSSP,states,names,n);
+            IUUpdateSwitch(&PECErrNSSP,states,names,n);
 
-            PECErrNSSP->s = IPS_OK;
+            PECErrNSSP.s = IPS_OK;
 
             if (PECErrNSS[MOTION_NORTH].s == ISS_ON)
             {
@@ -614,9 +606,9 @@ bool ScopeSim::ISNewSwitch (const char *dev, const char *name, ISState *states, 
                     IDLog("$$$$$ Simulating PE in SOUTH direction for value of %g $$$$$\n", SID_RATE);
             }
 
-            IUResetSwitch(PECErrNSSP);
-            IDSetSwitch(PECErrNSSP, NULL);
-            IDSetNumber(EqPECNV, NULL);
+            IUResetSwitch(&PECErrNSSP);
+            IDSetSwitch(&PECErrNSSP, NULL);
+            IDSetNumber(&EqPECNV, NULL);
 
             return true;
 
@@ -624,9 +616,9 @@ bool ScopeSim::ISNewSwitch (const char *dev, const char *name, ISState *states, 
 
         if(strcmp(name,"PEC_WE")==0)
         {
-            IUUpdateSwitch(PECErrWESP,states,names,n);
+            IUUpdateSwitch(&PECErrWESP,states,names,n);
 
-            PECErrWESP->s = IPS_OK;
+            PECErrWESP.s = IPS_OK;
 
             if (PECErrWES[MOTION_WEST].s == ISS_ON)
             {
@@ -641,9 +633,9 @@ bool ScopeSim::ISNewSwitch (const char *dev, const char *name, ISState *states, 
                     IDLog("$$$$$$ Simulator PE in EAST direction for value of %g $$$$$$\n", SID_RATE);
             }
 
-            IUResetSwitch(PECErrWESP);
-            IDSetSwitch(PECErrWESP, NULL);
-            IDSetNumber(EqPECNV, NULL);
+            IUResetSwitch(&PECErrWESP);
+            IDSetSwitch(&PECErrWESP, NULL);
+            IDSetNumber(&EqPECNV, NULL);
 
             return true;
 
@@ -655,6 +647,50 @@ bool ScopeSim::ISNewSwitch (const char *dev, const char *name, ISState *states, 
     return INDI::Telescope::ISNewSwitch(dev,name,states,names,n);
 }
 
+bool ScopeSim::Abort()
+{
+    if (MovementNSSP.s == IPS_BUSY)
+    {
+        IUResetSwitch(&MovementNSSP);
+        MovementNSSP.s = IPS_IDLE;
+        IDSetSwitch(&MovementNSSP, NULL);
+    }
+
+    if (MovementWESP.s == IPS_BUSY)
+    {
+        MovementWESP.s = IPS_IDLE;
+        IUResetSwitch(&MovementWESP);
+        IDSetSwitch(&MovementWESP, NULL);
+    }
+
+    if (ParkSV.s == IPS_BUSY)
+    {
+        ParkSV.s       = IPS_IDLE;
+        IUResetSwitch(&ParkSV);
+        IDSetSwitch(&ParkSV, NULL);
+    }
+
+    if (EqReqNV.s == IPS_BUSY)
+    {
+        EqReqNV.s      = IPS_IDLE;
+        IDSetNumber(&EqReqNV, NULL);
+    }
+
+    if (EqNV.s == IPS_BUSY)
+    {
+        EqNV.s = IPS_IDLE;
+        IDSetNumber(&EqNV, NULL);
+    }
+
+
+    TrackState = SCOPE_IDLE;
+
+    AbortSV.s      = IPS_OK;
+    IUResetSwitch(&AbortSV);
+    IDSetSwitch(&AbortSV, "Telescope aborted.");
+
+    return true;
+}
 
 
 bool ScopeSim::MoveNS(TelescopeMotionNS dir)
@@ -668,9 +704,9 @@ bool ScopeSim::MoveNS(TelescopeMotionNS dir)
             last_motion = MOTION_NORTH;
         else
         {
-            IUResetSwitch(MovementNSSP);
-            MovementNSSP->s = IPS_IDLE;
-            IDSetSwitch(MovementNSSP, NULL);
+            IUResetSwitch(&MovementNSSP);
+            MovementNSSP.s = IPS_IDLE;
+            IDSetSwitch(&MovementNSSP, NULL);
         }
         break;
 
@@ -679,9 +715,9 @@ bool ScopeSim::MoveNS(TelescopeMotionNS dir)
           last_motion = MOTION_SOUTH;
       else
       {
-          IUResetSwitch(MovementNSSP);
-          MovementNSSP->s = IPS_IDLE;
-          IDSetSwitch(MovementNSSP, NULL);
+          IUResetSwitch(&MovementNSSP);
+          MovementNSSP.s = IPS_IDLE;
+          IDSetSwitch(&MovementNSSP, NULL);
       }
       break;
     }
@@ -700,9 +736,9 @@ bool ScopeSim::MoveWE(TelescopeMotionWE dir)
             last_motion = MOTION_WEST;
         else
         {
-            IUResetSwitch(MovementWESP);
-            MovementWESP->s = IPS_IDLE;
-            IDSetSwitch(MovementWESP, NULL);
+            IUResetSwitch(&MovementWESP);
+            MovementWESP.s = IPS_IDLE;
+            IDSetSwitch(&MovementWESP, NULL);
         }
         break;
 
@@ -711,9 +747,9 @@ bool ScopeSim::MoveWE(TelescopeMotionWE dir)
           last_motion = MOTION_EAST;
       else
       {
-          IUResetSwitch(MovementWESP);
-          MovementWESP->s = IPS_IDLE;
-          IDSetSwitch(MovementWESP, NULL);
+          IUResetSwitch(&MovementWESP);
+          MovementWESP.s = IPS_IDLE;
+          IDSetSwitch(&MovementWESP, NULL);
       }
       break;
     }

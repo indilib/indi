@@ -16,22 +16,22 @@ class ScopeSim : public INDI::Telescope
         bool Parked;
 
         INumber GuideNSN[2];
-        INumberVectorProperty *GuideNSNP;
+        INumberVectorProperty GuideNSNP;
 
         INumber GuideWEN[2];
-        INumberVectorProperty *GuideWENP;
+        INumberVectorProperty GuideWENP;
 
         INumber GuideRateN[2];
-        INumberVectorProperty *GuideRateNP;
+        INumberVectorProperty GuideRateNP;
 
-        INumberVectorProperty *EqPECNV;
+        INumberVectorProperty EqPECNV;
         INumber EqPECN[2];
 
         ISwitch PECErrNSS[2];
-        ISwitchVectorProperty *PECErrNSSP;
+        ISwitchVectorProperty PECErrNSSP;
 
         ISwitch PECErrWES[2];
-        ISwitchVectorProperty *PECErrWESP;
+        ISwitchVectorProperty PECErrWESP;
 
 
     public:
@@ -51,6 +51,7 @@ class ScopeSim : public INDI::Telescope
 
         virtual bool MoveNS(TelescopeMotionNS dir);
         virtual bool MoveWE(TelescopeMotionWE dir);
+        virtual bool Abort();
 
         bool Goto(double,double);
         bool Park();
