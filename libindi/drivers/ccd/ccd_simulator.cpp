@@ -824,7 +824,7 @@ bool CCDSim::GuideEast(float v)
     c=v*GuideRate;
     c=c/3600.0/15.0;
     c=c/(cos(decPEC*0.0174532925));
-    raPEC=raPEC-c;
+    raPEC=raPEC+c;
 
     return true;
 }
@@ -835,7 +835,7 @@ bool CCDSim::GuideWest(float v)
     c=v*GuideRate;  //
     c=c/3600.0/15.0;
     c=c/(cos(decPEC*0.0174532925));
-    raPEC=raPEC+c;
+    raPEC=raPEC-c;
 
     return true;
 }
