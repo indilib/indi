@@ -28,8 +28,8 @@ const int MAX_DEVICES = 31;       // Maximum devices supported
 const int MAX_PKT_LENGTH = 128;   // Maximum packet length (in bytes)
 const int READ_TIMEOUT = 5000;    // Amount of time in milliseconds
 const int WRITE_TIMEOUT = 5000;   // Amount of time in milliseconds 
-const int SHORT_READ_TIMEOUT = 250;
-const int SHORT_WRITE_TIMEOUT = 250;
+const int SHORT_READ_TIMEOUT = 100;
+const int SHORT_WRITE_TIMEOUT = 100;
 
 const int MAX_PIXELS_READ_PER_BLOCK = 510 * 128 / 2;
 // Maximum number of pixels (not bytes) to read per block
@@ -40,7 +40,7 @@ const int MAX_PIXELS_READ_PER_BLOCK = 510 * 128 / 2;
 // Transfer size in bytes.
 const int USB_IN_TRANSFER_SIZE = 64 * 1024; // Max allowed by fdti
 const int USB_OUT_TRANSFER_SIZE = 64 * 1024;
-const int LATENCY_TIMER_MS = 2;
+const int LATENCY_TIMER_MS = 16;
 
 const int USB_SERIAL_LENGTH = 32; // Length of character array to hold device's USB serial number
 const int USB_DESCRIPTION_LENGTH = 32;
@@ -50,7 +50,7 @@ const int PKT_COMMAND = 0;        // Offset to packet command byte
 const int PKT_LENGTH = 1;         // Offset to packet length byte
 const int PKT_HEAD_LENGTH = 2;    // Number of bytes for the packet header
 
-const int AUTOZEROSATTHRESHOLD = 2000;
+const int AUTOZEROSATTHRESHOLD = 10000;
 const int AUTOZEROMAXADU = 64000;
 const int AUTOZEROSKIPSTARTPIXELS = 32;
 const int AUTOZEROSKIPENDPIXELS = 32;
@@ -63,32 +63,39 @@ const int AUTOZEROSKIPENDPIXELS = 32;
 // ...
 typedef struct QSI_DeviceDetails_t
 {
-  bool    HasCamera;
-  bool    HasShutter;
-  bool    HasFilter;
-  bool    HasRelays;
-  bool    HasTempReg;
-  int     ArrayColumns;
-  int     ArrayRows;
-  double  XAspect;
-  double  YAspect;
-  int     MaxHBinning;
-  int     MaxVBinning;
-  bool    AsymBin;
-  bool    TwoTimesBinning;
-  USHORT  NumRowsPerBlock;    // Not currently used; calculated in "QSI_PlugIn::TransferImage" function, see "iPixelsPerRead"
-  bool    ControlEachBlock;   // Not currently used; handled by "Show D/L Progress" in Advanced Dialog
-  double  minExp;
-  double  maxExp;
-  int     MaxADU;
-  double  EADUHigh;
-  double  EADULow;
-  double  EFull;
-  int     NumFilters;
-  char    ModelNumber[33];
-  char    ModelName[33];
-  char    SerialNumber[33];
-  bool    HasFilterTrim;
+	bool    HasCamera;
+	bool    HasShutter;
+	bool    HasFilter;
+	bool    HasRelays;
+	bool    HasTempReg;
+	int     ArrayColumns;
+	int     ArrayRows;
+	double  XAspect;
+	double  YAspect;
+	int     MaxHBinning;
+	int     MaxVBinning;
+	bool    AsymBin;
+	bool    TwoTimesBinning;
+	USHORT  NumRowsPerBlock;    // Not currently used; calculated in "QSI_PlugIn::TransferImage" function, see "iPixelsPerRead"
+	bool    ControlEachBlock;   // Not currently used; handled by "Show D/L Progress" in Advanced Dialog
+	double  minExp;
+	double  maxExp;
+	int     MaxADU;
+	double  EADUHigh;
+	double  EADULow;
+	double  EFull;
+	int     NumFilters;
+	char    ModelNumber[33];
+	char    ModelName[33];
+	char    SerialNumber[33];
+	bool    HasFilterTrim;
+	bool	HasCMD_GetTemperatureEx;
+	bool	HasCMD_StartExposureEx;
+	bool	HasCMD_SetFilterTrim;
+	bool	HasCMD_HSRExposure;	
+	bool	HasCMD_PVIMode;
+	bool	HasCMD_LockCamera;
+	bool	HasCMD_BasicHWTrigger;
 } QSI_DeviceDetails;
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -166,6 +173,31 @@ typedef struct QSI_USBTimeouts_t
 	int ExtendedRead;
 	int ExtendedWrite;
 } QSI_USBTimeouts;
+
+typedef enum QSICameraState_t
+{							// Highest priority at top of list
+	CCD_ERROR				= 0,	// Camera is not available
+	CCD_FILTERWHEELMOVING	= 1,	// Waiting for filter wheel to finish moving
+	CCD_FLUSHING			= 2,	// Flushing CCD chip or camera otherwise busy
+	CCD_WAITTRIGGER			= 3,	// Waiting for an external trigger event
+	CCD_DOWNLOADING			= 4,	// Downloading the image from camera hardware
+	CCD_READING				= 5,	// Reading the CCD chip into camera hardware
+	CCD_EXPOSING			= 6,	// Exposing dark or light frame
+	CCD_IDLE				= 7,	// Camera idle
+}QSICameraState;
+
+typedef enum QSICoolerState_t
+{
+	COOL_OFF				= 0,	// Cooler is off
+	COOL_ON					= 1,	// Cooler is on
+	COOL_ATAMBIENT			= 2,	// Cooler is on and regulating at ambient temperature (optional)
+	COOL_GOTOAMBIENT		= 3,	// Cooler is on and ramping to ambient
+	COOL_NOCONTROL			= 4,	// Cooler cannot be controlled on this camera open loop
+	COOL_INITIALIZING		= 5,	// Cooler control is initializing (optional -- displays "Please Wait")
+	COOL_INCREASING			= 6,	// Cooler temperature is going up    NEW 2000/02/04
+	COOL_DECREASING			= 7,	// Cooler temperature is going down  NEW 2000/02/04
+	COOL_BROWNOUT			= 8,	// Cooler brownout condition  NEW 2001/09/06
+}QSICoolerState;
 
 //****************************************************************************************
 // Error constants from FTDI, repeated here for reference.
@@ -266,7 +298,9 @@ enum QSI_ReturnStates
 	ERR_IFC_GetCCDSpecs	      = 290000, //
 	ERR_IFC_GetAdvDetails	  = 300000,	//
 	ERR_IFC_NegAutoZero	  	  = 310000,	//
-	ERR_IFC_SendAdvSettings   = 320000  //
+	ERR_IFC_SendAdvSettings   = 320000, //
+	ERR_IFC_TriggerCCDError   = 330000, //
+	ERR_IFC_NotSupported	  = 340000
 };
 
 

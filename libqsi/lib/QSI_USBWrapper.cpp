@@ -14,6 +14,22 @@ REVISION HISTORY
 
 #include "QSI_USBWrapper.h"
 
+#if defined(USELIBFTD2XX) && defined(USELIBFTDIZERO)
+	#error "Multiple FTDI stacks defined.  Use only one of libftdi and libftd2xx"
+#endif
+
+#if defined(USELIBFTDIZERO)
+	#pragma message "libftdi-0.1 selected."
+#elif defined(USELIBFTDIONE)
+	#pragma message "libftdi-1.0 selected."
+	#error "ftdi-1.0 NOT_IMPLEMENTED"
+#elif defined (USELIBFTD2XX)
+	#pragma message "libftd2xx selected."
+#else
+	#error "No ftdi library selected."
+#endif
+
+
 //****************************************************************************************
 // CLASS FUNCTION DEFINITIONS
 //****************************************************************************************
@@ -28,10 +44,10 @@ QSI_USBWrapper::QSI_USBWrapper()
 
 	this->m_log = new QSILog("QSIINTERFACELOG.TXT", "LOGUSBTOFILE");
 
-#if defined(USBLIBFTDI0)
+#if defined(USELIBFTDIZERO)
 	m_iStatus = ftdi_init(&m_ftdi);
 	m_ftdiIsOpen = false;
-#elif defined(USELIBFTDI1)
+#elif defined(USELIBFTDIONE)
 
 #elif defined(USELIBFTD2XX)
 	m_DeviceHandle = NULL;
@@ -40,9 +56,9 @@ QSI_USBWrapper::QSI_USBWrapper()
 
 QSI_USBWrapper::~QSI_USBWrapper()
 {
-#if defined(USBLIBFTDI0)
+#if defined(USELIBFTDIZERO)
 	ftdi_deinit(&m_ftdi);
-#elif defined(USELIBFTDI1)
+#elif defined(USELIBFTDIONE)
 
 #elif defined(USELIBFTD2XX)
 
@@ -66,10 +82,10 @@ int QSI_USBWrapper::USB_ListAllDevices( std::vector<CameraID> & vID )
 		pacDescription[i][0] = 0;
 	}
 
-#if defined(USBLIBFTDI0)
+#if defined(USELIBFTDIZERO)
 
-	ftdi_device_list* devlist;
-	ftdi_device_list* curdev;
+	ftdi_device_list* devlist=NULL;
+	ftdi_device_list* curdev=NULL;
 	char  szMan[256];
 	int count;
 
@@ -111,7 +127,7 @@ int QSI_USBWrapper::USB_ListAllDevices( std::vector<CameraID> & vID )
 
 	m_iStatus = -m_iStatus; // Error codes from ftdi are neg, we expect pos
 
-#elif defined(USELIBFTDI1)
+#elif defined(USELIBFTDIONE)
 
 #elif defined(USELIBFTD2XX)
 	DWORD numDevs;
@@ -164,8 +180,7 @@ int QSI_USBWrapper::USB_OpenEx(CameraID  cID )
 {
 	m_log->Write(2, "OpenEx name: %s", cID.Description.c_str());
 
-
-#if defined(USBLIBFTDI0)
+#if defined(USELIBFTDIZERO)
 	m_iStatus = ftdi_set_interface( &m_ftdi, INTERFACE_A ); 
 
 	m_iStatus = ftdi_usb_open_desc(&m_ftdi, cID.VendorID, cID.ProductID, cID.Description.c_str(), cID.SerialNumber.c_str());
@@ -180,11 +195,12 @@ int QSI_USBWrapper::USB_OpenEx(CameraID  cID )
 	if (cID.ProductID == 0xeb49 ) // high speed ftdi
 	{
 		m_iStatus = ftdi_set_bitmode(&m_ftdi, 0x00, BITMODE_SYNCFF);
-		if (m_log->LoggingEnabled()) m_log->Write(2, _T("SetBitMode (HS) Done status: %I32x"), m_iStatus);
+		if (m_log->LoggingEnabled()) m_log->Write(2, _T("SetBitMode (HS) Done status: %x"), m_iStatus);
 	}
 
 	if (m_ftdiIsOpen)
 	{
+		m_iStatus = ftdi_set_latency_timer(&m_ftdi, LATENCY_TIMER_MS);
 		m_iStatus = ftdi_read_data_set_chunksize(&m_ftdi, (1<<14));
 		m_iStatus = ftdi_setflowctrl(&m_ftdi, SIO_RTS_CTS_HS);
 		m_iStatus |= ftdi_usb_purge_rx_buffer(&m_ftdi);
@@ -198,7 +214,7 @@ int QSI_USBWrapper::USB_OpenEx(CameraID  cID )
 		}
 	}
 
-#elif defined(USELIBFTDI1)
+#elif defined(USELIBFTDIONE)
 
 #elif defined(USELIBFTD2XX)
 	m_iStatus = FT_OpenEx((void*)cID.SerialToOpen.c_str(), FT_OPEN_BY_SERIAL_NUMBER, &m_DeviceHandle);
@@ -206,9 +222,9 @@ int QSI_USBWrapper::USB_OpenEx(CameraID  cID )
 	if (cID.ProductID == 0xeb49 ) // high speed ftdi
 	{
 		m_iStatus |= FT_SetBitMode(m_DeviceHandle, 0xff, FT_BITMODE_RESET);
-		usleep(10000);															// Delay 10ms as per ftdi example
+		usleep(10000);	// Delay 10ms as per ftdi example
 		m_iStatus |= FT_SetBitMode(m_DeviceHandle, 0xff, FT_BITMODE_SYNC_FIFO);
-		m_log->Write(2, _T("SetBitMode (HS) Done status: %I32x"), m_iStatus);
+		m_log->Write(2, _T("SetBitMode (HS) Done status: %x"), m_iStatus);
 	}
 
 	// Startup Settings
@@ -233,11 +249,11 @@ int QSI_USBWrapper::USB_SetTimeouts(uint32_t dwReadTimeout, uint32_t dwWriteTime
 	if (dwReadTimeout  < 1000) dwReadTimeout = 1000;
 	if (dwWriteTimeout < 1000) dwWriteTimeout = 1000;
 
-#if defined(USBLIBFTDI0)
+#if defined(USELIBFTDIZERO)
 	m_ftdi.usb_read_timeout = dwReadTimeout;
 	m_ftdi.usb_write_timeout = dwWriteTimeout;
 	m_iStatus = 0;
-#elif defined(USELIBFTDI1)
+#elif defined(USELIBFTDIONE)
 
 #elif defined(USELIBFTD2XX)
 	m_iStatus =  FT_SetTimeouts(m_DeviceHandle, dwReadTimeout, dwWriteTimeout);
@@ -253,8 +269,7 @@ int QSI_USBWrapper::USB_Close()
 
 	m_log->Write(2, "Close");
 
-
-#if defined(USBLIBFTDI0)
+#if defined(USELIBFTDIZERO)
 	if (m_ftdiIsOpen)
 	{
 		m_iStatus = ftdi_usb_close(&m_ftdi);
@@ -263,7 +278,7 @@ int QSI_USBWrapper::USB_Close()
 	ftdi_deinit(&m_ftdi);
 	m_iStatus = ftdi_init(&m_ftdi);
 	m_iStatus = -m_iStatus; // Error codes from ftdi are neg, we expect pos
-#elif defined(USELIBFTDI1)
+#elif defined(USELIBFTDIONE)
 
 #elif defined(USELIBFTD2XX)
 	m_iStatus = FT_Close(m_DeviceHandle);
@@ -283,7 +298,7 @@ int QSI_USBWrapper::USB_Write(LPVOID lpvBuffer, DWORD dwBuffSize, LPDWORD lpdwBy
 	m_log->Write(2, _T("Write %d bytes, Data:"), dwBuffSize);
 	m_log->WriteBuffer(2, lpvBuffer, dwBuffSize, dwBuffSize, 256);
 
-#if defined(USBLIBFTDI0)
+#if defined(USELIBFTDIZERO)
 	m_iStatus = ftdi_write_data(&m_ftdi, (unsigned char *)lpvBuffer, dwBuffSize);
 	if (m_iStatus >= 0)
 	{
@@ -295,7 +310,7 @@ int QSI_USBWrapper::USB_Write(LPVOID lpvBuffer, DWORD dwBuffSize, LPDWORD lpdwBy
 		*lpdwBytes = 0;
 		m_iStatus = -m_iStatus; // Error codes from ftdi are negative, we expect positive
 	}
-#elif defined(USELIBFTDI1)
+#elif defined(USELIBFTDIONE)
 
 #elif defined(USELIBFTD2XX)
 	m_iStatus =  FT_Write(m_DeviceHandle, (unsigned char *)lpvBuffer, dwBuffSize, lpdwBytes);
@@ -310,7 +325,7 @@ int QSI_USBWrapper::USB_Read(LPVOID lpvBuffer, DWORD dwBuffSize, LPDWORD lpdwByt
 {
 	m_log->Write(2, "Read buffer size: %d bytes", dwBuffSize);
 
-#if defined(USBLIBFTDI0)
+#if defined(USELIBFTDIZERO)
 	m_iStatus = my_ftdi_read_data(&m_ftdi, (unsigned char *)lpvBuffer, dwBuffSize);
 	if (m_iStatus > 0)
 	{
@@ -323,12 +338,12 @@ int QSI_USBWrapper::USB_Read(LPVOID lpvBuffer, DWORD dwBuffSize, LPDWORD lpdwByt
 		m_iStatus = -m_iStatus; // Error codes from ftdi are negative, we expect positive
 		if (m_iStatus == 0) m_iStatus = 4; // read returned with zero bytes.
 	}
-#elif defined(USELIBFTDI1)
+#elif defined(USELIBFTDIONE)
 
 #elif defined(USELIBFTD2XX)
 	m_iStatus = FT_Read(m_DeviceHandle, lpvBuffer, dwBuffSize, lpdwBytesRead);
 #endif
-	m_log->Write(2, _T("Read Done %d bytes read, status: %I32x, data: "), *lpdwBytesRead, m_iStatus);
+	m_log->Write(2, _T("Read Done %d bytes read, status: %x, data: "), *lpdwBytesRead, m_iStatus);
 	m_log->WriteBuffer(2, lpvBuffer, dwBuffSize, *lpdwBytesRead, 256);
 
 	return m_iStatus;
@@ -339,11 +354,11 @@ int QSI_USBWrapper::USB_GetStatus(LPDWORD lpdwAmountInRxQueue, LPDWORD lpdwAmoun
 {
 	m_log->Write(2, "GetStatus");
 
-#if defined(USBLIBFTDI0)
+#if defined(USELIBFTDIZERO)
 	m_iStatus = 0;
 	*lpdwAmountInRxQueue = m_ftdi.readbuffer_remaining;
 	*lpdwAmountInTxQueue = 0;	
-#elif defined(USELIBFTDI1)
+#elif defined(USELIBFTDIONE)
 
 #elif defined(USELIBFTD2XX)
 	DWORD dwDummy = 0;  				// Used in place of lpdwEventStatus
@@ -359,10 +374,10 @@ int QSI_USBWrapper::USB_SetLatencyTimer(UCHAR ucTimer)
 {
 	m_log->Write(2, "SetLatencyTimer %0hx", ucTimer);
 
-#if defined(USBLIBFTDI0)
+#if defined(USELIBFTDIZERO)
 	m_iStatus = ftdi_set_latency_timer(&m_ftdi, ucTimer);
 	m_iStatus = -m_iStatus;
-#elif defined(USELIBFTDI1)
+#elif defined(USELIBFTDIONE)
 
 #elif defined(USELIBFTD2XX)
 	m_iStatus = FT_SetLatencyTimer(m_DeviceHandle, ucTimer);
@@ -377,10 +392,10 @@ int QSI_USBWrapper::USB_ResetDevice()
 {
 	m_log->Write(2, "ResetDevice");
 
-#if defined(USBLIBFTDI0)
+#if defined(USELIBFTDIZERO)
 	m_iStatus = ftdi_usb_reset(&m_ftdi);
 	m_iStatus = -m_iStatus;
-#elif defined(USELIBFTDI1)
+#elif defined(USELIBFTDIONE)
 
 #elif defined(USELIBFTD2XX)
 	m_iStatus = FT_ResetDevice(m_DeviceHandle);
@@ -395,10 +410,10 @@ int QSI_USBWrapper::USB_Purge(uint32_t dwMask)
 {
 	m_log->Write(2, "Purge mask: %08lx", dwMask);
 
-#if defined(USBLIBFTDI0)
+#if defined(USELIBFTDIZERO)
 	m_iStatus = ftdi_usb_purge_buffers(&m_ftdi);
 	m_iStatus = -m_iStatus;
-#elif defined(USELIBFTDI1)
+#elif defined(USELIBFTDIONE)
 
 #elif defined(USELIBFTD2XX)
 	m_iStatus = FT_Purge(m_DeviceHandle, dwMask);
@@ -413,10 +428,10 @@ int QSI_USBWrapper::USB_GetQueueStatus(LPDWORD lpdwAmountInRxQueue)
 {
 	m_log->Write(2, "GetQueueStatus");
 
-#if defined(USBLIBFTDI0)
+#if defined(USELIBFTDIZERO)
 	m_iStatus = 0;
 	*lpdwAmountInRxQueue = m_ftdi.readbuffer_remaining;	
-#elif defined(USELIBFTDI1)
+#elif defined(USELIBFTDIONE)
 
 #elif defined(USELIBFTD2XX)
 	m_iStatus = FT_GetQueueStatus(m_DeviceHandle, lpdwAmountInRxQueue);
@@ -431,7 +446,7 @@ int QSI_USBWrapper::USB_SetUSBParameters(DWORD dwInSize, DWORD dwOutSize)
 {
 	m_log->Write(2, "SetUSBParamters %d In Size, %d Out Size", dwInSize, dwOutSize);
 
-#if defined(USBLIBFTDI0)
+#if defined(USELIBFTDIZERO)
 	m_iStatus = 0;
 	if (dwInSize  != 0) 
 		// m_iStatus = ftdi_read_data_set_chunksize(&m_ftdi, dwInSize);
@@ -439,7 +454,7 @@ int QSI_USBWrapper::USB_SetUSBParameters(DWORD dwInSize, DWORD dwOutSize)
 	if (dwOutSize != 0) 
 		m_iStatus += ftdi_write_data_set_chunksize(&m_ftdi, dwOutSize);
 	m_iStatus = -m_iStatus;
-#elif defined(USELIBFTDI1)
+#elif defined(USELIBFTDIONE)
 
 #elif defined(USELIBFTD2XX)
 	m_iStatus = FT_SetUSBParameters(m_DeviceHandle, dwInSize, dwOutSize);
@@ -449,7 +464,7 @@ int QSI_USBWrapper::USB_SetUSBParameters(DWORD dwInSize, DWORD dwOutSize)
 	return m_iStatus;
 }
 
-#if defined(USBLIBFTDI0)
+#if defined(USELIBFTDIZERO)
 
 int QSI_USBWrapper::my_ftdi_read_data(struct ftdi_context *ftdi, unsigned char *buf, int size)
 {
@@ -500,7 +515,7 @@ int QSI_USBWrapper::my_ftdi_read_data(struct ftdi_context *ftdi, unsigned char *
 	return offset;
 }
 
-#elif defined(USELIBFTDI1)
+#elif defined(USELIBFTDIONE)
 
 #elif defined(USELIBFTD2XX)
 

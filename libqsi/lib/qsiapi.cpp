@@ -659,3 +659,37 @@ int QSICamera::DeleteFilterWheel(std::string newVal)
 	return ((CCCDCamera *)pCam)->DeleteFilterWheel( newVal );
 }
 
+int QSICamera::get_PCBTemperature(double* pVal)
+{
+	return ((CCCDCamera *)pCam)->get_PCBTemperature(pVal);
+}
+
+int QSICamera::HSRImage(double Duration, unsigned short * Image)
+{
+	return ((CCCDCamera *)pCam)->HSRImage(Duration, Image);
+}
+
+int QSICamera::put_HSRMode(bool newVal)
+{
+	return ((CCCDCamera *)pCam)->put_HSRMode(newVal);
+}
+
+int QSICamera::Flush(void)
+{
+	return ((CCCDCamera *)pCam)->Flush();
+}
+
+int QSICamera::EnableTriggerMode(TriggerModeEnum newVal1, TriggerPolarityEnum newVal2)
+{
+	return ((CCCDCamera *)pCam)->EnableTriggerMode((CCCDCamera::TriggerModeEnum)newVal1, (CCCDCamera::TriggerPolarityEnum)newVal2);
+}
+
+int QSICamera::TerminatePendingTrigger(void)
+{
+	return ((CCCDCamera *)pCam)->TerminatePendingTrigger();
+}
+
+int QSICamera::CancelTriggerMode(void)
+{
+	return ((CCCDCamera *)pCam)->CancelTriggerMode();
+}

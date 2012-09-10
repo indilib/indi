@@ -172,8 +172,7 @@ int QSI_PacketWrapper::PKT_SendPacket( PVOID pvTxBuffer, PVOID pvRxBuffer, bool 
   m_iStatus = USB_Read(ucRxBuffer, PKT_HEAD_LENGTH, &dwBytesReturned);
   if (m_iStatus != ALL_OK)
   {
-    //AfxMessageBox ( "ERROR", 0, 0 );
-    return m_iStatus + ERR_PKT_RxHeaderFailed;
+     return m_iStatus + ERR_PKT_RxHeaderFailed;
   }
   // Make sure the entire Rx packet header was read
   if (dwBytesReturned != (unsigned int)PKT_HEAD_LENGTH) 

@@ -51,7 +51,6 @@ DIST_SOURCES =
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = ${SHELL} /data/qsi/dev/qsilib/build-aux/missing --run aclocal-1.11
 AMTAR = ${SHELL} /data/qsi/dev/qsilib/build-aux/missing --run tar
-AM_CXXFLAGS = 
 AR = ar
 AUTOCONF = ${SHELL} /data/qsi/dev/qsilib/build-aux/missing --run autoconf
 AUTOHEADER = ${SHELL} /data/qsi/dev/qsilib/build-aux/missing --run autoheader
@@ -78,6 +77,10 @@ ECHO_T =
 EGREP = /bin/grep -E
 EXEEXT = 
 FGREP = /bin/grep -F
+FTD2XX_CFLAGS = 
+FTD2XX_LIBS = 
+FTDI_CFLAGS = -I/usr/local/include
+FTDI_LIBS = -L/usr/local/lib -lftdi
 GREP = /bin/grep
 INSTALL = /usr/bin/install -c
 INSTALL_DATA = ${INSTALL} -m 644
@@ -104,17 +107,17 @@ OTOOL64 =
 PACKAGE = qsiapi
 PACKAGE_BUGREPORT = support@qsimaging.com
 PACKAGE_NAME = qsiapi
-PACKAGE_STRING = qsiapi 6.0.3
+PACKAGE_STRING = qsiapi 6.4.1
 PACKAGE_TARNAME = qsiapi
-PACKAGE_URL = 
-PACKAGE_VERSION = 6.0.3
+PACKAGE_URL = www.qsimaging.com
+PACKAGE_VERSION = 6.4.1
 PATH_SEPARATOR = :
 RANLIB = ranlib
 SED = /bin/sed
 SET_MAKE = 
 SHELL = /bin/sh
 STRIP = strip
-VERSION = 6.0.3
+VERSION = 6.4.1
 abs_builddir = /data/qsi/dev/qsilib/doc
 abs_srcdir = /data/qsi/dev/qsilib/doc
 abs_top_builddir = /data/qsi/dev/qsilib
@@ -181,9 +184,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign doc/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu doc/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --foreign doc/Makefile
+	  $(AUTOMAKE) --gnu doc/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \

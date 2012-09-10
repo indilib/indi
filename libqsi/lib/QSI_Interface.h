@@ -25,6 +25,7 @@ REVISION HISTORY
 #include "QSILog.h"
 #include "HotPixelMap.h"
 #include "FilterWheel.h"
+#include "QSIFeatures.h"
 
 /*****************************************************************************************
 NAME
@@ -100,26 +101,25 @@ public:
 	int CMD_GetAltMode1(unsigned char & mode);
 	int CMD_SetAltMode1(unsigned char mode);
 	int CMD_GetEEPROM(USHORT usAddress, BYTE & data);
-	int CMD_SetFilterTrim(int Position);
-	bool CMD_HasFilterWheelTrim(void);
+	int CMD_SetFilterTrim(int Position, bool probe = false);
+	int CMD_BurstBlock(int Count, BYTE * Buffer, int * Status);
 	int CMD_GetFeatures(BYTE* pMem, int iFeatureArraySize, int & iCountReturned);
-
-	int GetVersionInfo(char tszHWVersion[], char tszFWVersion[]);
-
-	bool GetBoolean(UCHAR);
-	USHORT Get2Bytes(PVOID);
-	UINT Get3Bytes(PVOID);
-	void GetString(PVOID, PVOID,int);
-	void PutBool(PVOID, bool);
-	void Put2Bytes(PVOID, USHORT);
-	void Put3Bytes(PVOID, uint32_t);
-	void LogWrite(int iLevel, const char * msg, ...);
-	void GetAutoZeroAdjustment(QSI_AutoZeroData autoZeroData, USHORT * zeroPixels, USHORT * usLastMean, int * usAdjust, double * dAdjust);
-	int AdjustZero(BYTE* pMem, BYTE* pDst, int iRowLen, int iRowPad, int iRowsLeft, int usAdjust);
-	int AdjustZero(BYTE* pMem, double * pDst, int iRowLen, int iRowsLeft, double dAdjust);
+	int CMD_HSRExposure( QSI_ExposureSettings ExposureSettings, QSI_AutoZeroData& AutoZeroData);
+	int CMD_SetHSRMode( bool enable);
 	int CMD_StartExposureEx( QSI_ExposureSettings ExposureSettings );
-	int CMD_HasFastExposure( bool & bFast );
-//
+	bool HasFilterWheelTrim(void);
+	int GetVersionInfo(char tszHWVersion[], char tszFWVersion[]);
+	void LogWrite(int iLevel, const char * msg, ...);
+	// Old Autozero
+	// ...Deleted...
+	// End old autozero
+	// New autozero
+	void GetAutoZeroAdjustment(QSI_AutoZeroData autoZeroData, USHORT * zeroPixels, USHORT * usLastMean, int * usAdjust, double *  dAdjust);
+	int AdjustZero(USHORT* pSrc, USHORT * pDst, int iRowLen, int iRowsLeft, int    usAdjust, bool bAdjust);
+	int AdjustZero(USHORT* pSrc, double * pDst, int iRowLen, int iRowsLeft, double dAdjust,  bool bAdjust);
+	int AdjustZero(USHORT* pSrc, long   * pDst, int iRowLen, int iRowsLeft, int    usAdjust, bool bAdjust);
+	// End new Autozero
+	int HasFastExposure( bool & bFast );
 	int QSIRead( unsigned char * Buffer, int BytesToRead, int * BytesReturned);
 	int QSIWrite( unsigned char * Buffer, int BytesToWrite, int * BytesWritten);
 	int QSIReadDataAvailable(int * count);
@@ -129,6 +129,8 @@ public:
 	//
 	void HotPixelRemap(	BYTE * Image, int RowPad, QSI_ExposureSettings Exposure,
 							QSI_DeviceDetails Details, USHORT ZeroPixel);
+
+	int CMD_ExtTrigMode( BYTE action, BYTE polarity);
 	//////////////////////////////////////////////////////////////////////////////////////////
 	// Member Variables
 	//
@@ -146,28 +148,96 @@ public:
 	//
 	HotPixelMap m_hpmMap;
 	QSILog *m_log;				// Log interface transactions
-
+	
 private:
 	////////////////////////////////////////////////////////////////////////////////////////
 	// Private variables
-
+	bool GetBoolean(UCHAR);
+	USHORT Get2Bytes(PVOID);
+	UINT Get3Bytes(PVOID);
+	void GetString(PVOID, PVOID,int);
+	void PutBool(PVOID, bool);
+	void Put2Bytes(PVOID, USHORT);
+	void Put3Bytes(PVOID, uint32_t);
+	
 	int m_iError; // Holds errors; declared here so it won't have to be declared every function
 	QSI_PacketWrapper PacketWrapper;
 	QSI_USBTimeouts 	USBTimeouts;
 	UCHAR   Cmd_Pkt[MAX_PKT_LENGTH];
 	UCHAR   Rsp_Pkt[MAX_PKT_LENGTH];
 	QSI_DeviceDetails m_DeviceDetails;
+	
 	FilterWheel	m_fwWheel;
+
 	bool m_bHighGainOverride;
 	bool m_bLowGainOverride;
 	double m_dHighGainOverride;
 	double m_dLowGainOverride;
-	bool m_bHasCMD_GetTemperatureEx;
-	// Log USB transactions
-	static const int IMAXFEATURES = 254;
-	BYTE m_Features[IMAXFEATURES];
-	int m_iFeaturesReturned;
 
+	// Commands sensed when Open is called.
+	bool m_bHasCMD_GetTemperatureEx;
+	bool m_bHasCMD_StartExposureEx;
+	bool m_bHasCMD_SetFilterTrim;
+	bool m_bHasCMD_GetFeatures;
+
+	QSIFeatures m_Features;
+
+	// Define Camera byte commands
+	static const BYTE CMD_STARTBOOTLOADER		= 0x21;
+	static const BYTE CMD_FORCEBOOTLOAFER		= 0x22;
+	static const BYTE CMD_GETDEVICEDETAILS		= 0x41;
+	static const BYTE CMD_GETDEVICESTATE		= 0x42;
+	static const BYTE CMD_STARTEXPOSURE			= 0x43;
+	static const BYTE CMD_ABORTEXPOSURE			= 0x44;
+	static const BYTE CMD_TRANSFERIMAGE			= 0x45;
+	static const BYTE CMD_SETTEMPERATURE		= 0x46;
+	static const BYTE CMD_GETTEMPERATURE		= 0x47;
+	static const BYTE CMD_ACTIVATERELAY			= 0x48;
+	static const BYTE CMD_ISRELAYDONE			= 0x49;
+	static const BYTE CMD_SETFILTERWHEEL		= 0x4A;
+	static const BYTE CMD_INIT					= 0x4B;
+	static const BYTE CMD_GETDEFAULTADVDETAILS	= 0x4C;
+	static const BYTE CMD_SETADVSETTINGS		= 0x4D;
+	static const BYTE CMD_GETAUTOZERO			= 0x4E;
+	static const BYTE CMD_SETALTMODE1			= 0x4F;
+	static const BYTE CMD_GETALTMODE1			= 0x50;
+	static const BYTE CMD_GETSETPOINT			= 0x51;
+	static const BYTE CMD_SETSHUTTER			= 0x52;
+	static const BYTE CMD_ABORTRELAYS			= 0x53;
+	static const BYTE CMD_GETLASTEXPOSURETIME	= 0x54;
+	static const BYTE CMD_CANABORTEXPOSURE		= 0x55;
+	static const BYTE CMD_CANSTOPEXPOSURE		= 0x56;
+	static const BYTE CMD_GETFILTERPOSITION		= 0x57;
+	static const BYTE CMD_GETCCDSPECS			= 0x58;
+	static const BYTE CMD_STARTEXPOSUREEX		= 0x59;
+	static const BYTE CMD_SETFILTERTRIM			= 0x5A;
+	static const BYTE CMD_GETTEMPERATUREEX		= 0x5B;
+	static const BYTE CMD_GETFEATURES			= 0x5C;
+	static const BYTE CMD_SETHSRMODE			= 0x5E;
+	static const BYTE CMD_HSREXPOSURE			= 0x5F;
+	static const BYTE CMD_GETEEPROM				= 0x60;
+	static const BYTE CMD_SETEEPROM				= 0x61;
+	static const BYTE CMD_CAMERARESET			= 0x64;
+	static const BYTE CMD_BURSTBLOCK			= 0x65;
+	static const BYTE CMD_SHUTTERUNLOCK			= 0x70;
+	static const BYTE CMD_BASICHWTRIGGER		= 0x71;
+
+	// CMD_SHUTTERLOCK MODES
+	static const int LOCKMODE_LOCKREQ 			= 0;
+	static const int LOCKMODE_LOCKACK 			= 1;
+	static const int LOCKMODE_UNLOCKREQ			= 2;
+	static const int LOCKMODE_UNLOCKACK			= 3;
+
+	// CMD_BASICHWTRIGGER MODES
+	static const BYTE TRIG_DISABLE				= 0x00;
+	static const BYTE TRIG_CLEARERROR			= 0x01;
+	static const BYTE TRIG_TERMINATE			= 0x02;
+	static const BYTE TRIG_SHORTWAIT			= 0x04;
+	static const BYTE TRIG_LONGWAIT				= 0x06;
+	static const BYTE TRIG_HIGHTOLOW			= 0x00;
+	static const BYTE TRIG_LOWTOHIGH			= 0x01;
+
+	BYTE m_TriggerMode;
 };
 
 int compareUSHORT( const void *val1, const void *val2);

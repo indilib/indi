@@ -74,17 +74,19 @@ am__base_list = \
   sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
 am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(includedir)"
 LTLIBRARIES = $(lib_LTLIBRARIES)
+am__DEPENDENCIES_1 =
 am_libqsiapi_la_OBJECTS = libqsiapi_la-CCDCamera.lo \
 	libqsiapi_la-CameraID.lo libqsiapi_la-ConvertUTF.lo \
 	libqsiapi_la-Filter.lo libqsiapi_la-FilterWheel.lo \
 	libqsiapi_la-HotPixelMap.lo libqsiapi_la-QSILog.lo \
 	libqsiapi_la-QSI_Interface.lo \
 	libqsiapi_la-QSI_PacketWrapper.lo \
-	libqsiapi_la-QSI_USBWrapper.lo libqsiapi_la-qsiapi.lo
+	libqsiapi_la-QSI_USBWrapper.lo libqsiapi_la-qsiapi.lo \
+	libqsiapi_la-QSIFeatures.lo
 libqsiapi_la_OBJECTS = $(am_libqsiapi_la_OBJECTS)
 libqsiapi_la_LINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(libqsiapi_la_CXXFLAGS) \
-	$(CXXFLAGS) $(libqsiapi_la_LDFLAGS) $(LDFLAGS) -o $@
+	$(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/build-aux/depcomp
 am__depfiles_maybe = depfiles
@@ -115,7 +117,6 @@ CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
-AM_CXXFLAGS = @AM_CXXFLAGS@
 AR = @AR@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
@@ -142,6 +143,10 @@ ECHO_T = @ECHO_T@
 EGREP = @EGREP@
 EXEEXT = @EXEEXT@
 FGREP = @FGREP@
+FTD2XX_CFLAGS = @FTD2XX_CFLAGS@
+FTD2XX_LIBS = @FTD2XX_LIBS@
+FTDI_CFLAGS = @FTDI_CFLAGS@
+FTDI_LIBS = @FTDI_LIBS@
 GREP = @GREP@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
@@ -233,26 +238,30 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 lib_LTLIBRARIES = libqsiapi.la 
-libqsiapi_la_CPPFLAGS = $(all_includes)
-libqsiapi_la_CXXFLAGS = -fPIC -g
+@ENABLE_LIBFTD2XX_FALSE@FTD2XXSTACK = 
+
+# ./configure selects the libftdi-0.1 stack
+# ./configure --enable-ftd2xx option selects the libftd2xx stack
+# ENABLE_FTD2XX is set in configure.ac
+@ENABLE_LIBFTD2XX_TRUE@FTD2XXSTACK = -Wc,-DUSELIBFTD2XX
+@ENABLE_LIBFTDI_FALSE@FTDISTACK = 
+@ENABLE_LIBFTDI_TRUE@FTDISTACK = -Wc,-DUSELIBFTDIZERO
+libqsiapi_la_CPPFLAGS = $(all_includes) $(FTD2XX_CFLAGS) $(FTDI_CFLAGS) $(FTDISTACK) $(FTD2XXSTACK)
+libqsiapi_la_CXXFLAGS = -fPIC -g -fpermissive
 include_HEADERS = qsiapi.h QSIError.h
 noinst_HEADERS = CCDCamera.h CameraID.h ConvertUTF.h Filter.h FilterWheel.h HotPixelMap.h QSILog.h \
 	QSI_Global.h QSI_Interface.h QSI_PacketWrapper.h QSI_Registry.h \
-	QSI_States.h QSI_USBWrapper.h SimpleIni.h WinTypes.h ftd2xx.h wincompat.h
+	QSI_States.h QSI_USBWrapper.h SimpleIni.h WinTypes.h ftd2xx.h wincompat.h QSICriticalSection.h QSIFeatures.h HotPixelMap.h
 
 libqsiapi_la_SOURCES = CCDCamera.cpp CameraID.cpp ConvertUTF.c Filter.cpp \
-	FilterWheel.cpp HotPixelMap.cpp HotPixelMap.h QSILog.cpp QSI_Interface.cpp \
-	QSI_PacketWrapper.cpp QSI_USBWrapper.cpp qsiapi.cpp qsicopyright.txt
+	FilterWheel.cpp HotPixelMap.cpp QSILog.cpp QSI_Interface.cpp \
+	QSI_PacketWrapper.cpp QSI_USBWrapper.cpp qsiapi.cpp qsicopyright.txt QSIFeatures.cpp
 
 
 # version-info a:b:c yields a library name (a-c).c.b
 # example (3:2:1) yields 2.1.2
-libqsiapi_la_LDFLAGS = -version-info 6:3:0 $(all_libraries) -fPIC --shared
-
-#uncomment below for ftd2xx library
-#libqsiapi_la_LIBADD = -L/usr/local/lib -lftd2xx -lc 
-#uncomment below for libftdi
-libqsiapi_la_LIBADD = -L/usr/local/lib -lftdi -lc
+#libqsiapi_la_LDFLAGS = -version-info 0:0:0 $(all_libraries) -fPIC --shared
+libqsiapi_la_LIBADD = -L/usr/local/lib $(FTD2XX_LIBS) $(FTDI_LIBS) -lc
 libqsiapi_la_METASOURCES = AUTO
 libqsiapi_la_DEPENDENCIES = 
 all: all-am
@@ -268,9 +277,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign lib/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu lib/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --foreign lib/Makefile
+	  $(AUTOMAKE) --gnu lib/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -335,6 +344,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libqsiapi_la-Filter.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libqsiapi_la-FilterWheel.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libqsiapi_la-HotPixelMap.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libqsiapi_la-QSIFeatures.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libqsiapi_la-QSILog.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libqsiapi_la-QSI_Interface.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libqsiapi_la-QSI_PacketWrapper.Plo@am__quote@
@@ -459,6 +469,13 @@ libqsiapi_la-qsiapi.lo: qsiapi.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='qsiapi.cpp' object='libqsiapi_la-qsiapi.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libqsiapi_la_CPPFLAGS) $(CPPFLAGS) $(libqsiapi_la_CXXFLAGS) $(CXXFLAGS) -c -o libqsiapi_la-qsiapi.lo `test -f 'qsiapi.cpp' || echo '$(srcdir)/'`qsiapi.cpp
+
+libqsiapi_la-QSIFeatures.lo: QSIFeatures.cpp
+@am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libqsiapi_la_CPPFLAGS) $(CPPFLAGS) $(libqsiapi_la_CXXFLAGS) $(CXXFLAGS) -MT libqsiapi_la-QSIFeatures.lo -MD -MP -MF $(DEPDIR)/libqsiapi_la-QSIFeatures.Tpo -c -o libqsiapi_la-QSIFeatures.lo `test -f 'QSIFeatures.cpp' || echo '$(srcdir)/'`QSIFeatures.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libqsiapi_la-QSIFeatures.Tpo $(DEPDIR)/libqsiapi_la-QSIFeatures.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='QSIFeatures.cpp' object='libqsiapi_la-QSIFeatures.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libqsiapi_la_CPPFLAGS) $(CPPFLAGS) $(libqsiapi_la_CXXFLAGS) $(CXXFLAGS) -c -o libqsiapi_la-QSIFeatures.lo `test -f 'QSIFeatures.cpp' || echo '$(srcdir)/'`QSIFeatures.cpp
 
 mostlyclean-libtool:
 	-rm -f *.lo

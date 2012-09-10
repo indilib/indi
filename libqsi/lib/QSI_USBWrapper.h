@@ -6,35 +6,32 @@ DESCRIPTION
  USB Wrapper
 
 COPYRIGHT (C)
- QSI (Quantum Scientific Imaging) 2005-2006
+ QSI (Quantum Scientific Imaging) 2005-2012
 
 REVISION HISTORY
  MWB 04.28.06 Original Version
- *****************************************************************************************/
+ *****************************************************************************************/ 
 
 #pragma once
-
-// Modify the following defines to select the ftdi driver stack of your choice.
-// Be sure to also adjust the Makefile.am in the lib directory prior to running ./configure and make all
-// Also be sure to define only one.
 //
-// which ftdi USB library to use
-// open source is 
-// #define USBLIBFTDI0 for libftdi
-// #define USELIBFT2XX for libftd2xx.so
-
-#define USBLIBFTDI0
-#undef USELIBFTDI1
-#undef USELIBFTD2XX
-
-#ifdef USBLIBFTDI0
+// Select the approriate ftdi library.  Default is libftdi-0.1.
+// use "./configure --enable-ftd2xx" to switch to libftd2xx.
+// and "./configure --enable-libftdi" for the open source stack.
+// "./condifure" with no options defaults to libftdi
+//
+#if defined(USELIBFTDIZERO)
 	#include <ftdi.h>
 	#define FT_PURGE_TX 1
 	#define FT_PURGE_RX 2
-#else
+#elif defined(USELIBFTDIONE)
+
+#elif defined (USELIBFTD2XX)
 	#include <ftd2xx.h>
+#else
+
 #endif
 //
+
 #include "CameraID.h"
 #include "QSI_Global.h"
 #include "QSILog.h"
@@ -52,7 +49,6 @@ REVISION HISTORY
 class QSI_USBWrapper  // USB Driver Wrapper
 {
 public:
-
 	//////////////////////////////////////////////////////////////////////////////////////
 	// FUNCTION PROTOTYPES
 
@@ -74,7 +70,7 @@ public:
 
 private:
 
-	#ifdef USBLIBFTDI0
+	#ifdef USELIBFTDIZERO
 	int my_ftdi_read_data(struct ftdi_context *ftdi, unsigned char *buf, int size);
 	#endif
 
@@ -86,10 +82,10 @@ private:
 	int m_iLoadStatus;          //
 	int m_iStatus;				// Generic return status
 
-#if defined(USBLIBFTDI0)
+#if defined(USELIBFTDIZERO)
 	ftdi_context m_ftdi;
 	bool m_ftdiIsOpen;
-#elif defined(USELIBFTDI1)
+#elif defined(USELIBFTDIONE)
 
 #elif defined(USELIBFTD2XX)
 	FT_HANDLE m_DeviceHandle;   // Holds handle to usb device when connected

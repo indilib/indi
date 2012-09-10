@@ -108,6 +108,18 @@ public:
 		FastReadout = 1
 	};
 
+	enum TriggerModeEnum
+	{
+		ShortWait = 4,
+		LongWait = 6
+	};
+
+	enum TriggerPolarityEnum
+	{
+		HighToLow = 0,
+		LowToHigh = 1
+	};
+
 	static const int MAXCAMERAS = 128;
 
 	QSICamera();
@@ -265,7 +277,14 @@ public:
 	int put_SelectedFilterWheel(std::string newVal);
 	int NewFilterWheel(std::string Name);
 	int DeleteFilterWheel(std::string Name);
-
+	int get_PCBTemperature(double* pVal);
+	int HSRImage(double Duration, unsigned short * Image);
+	int put_HSRMode(bool newVal);
+	int Flush(void);
+	int EnableTriggerMode(TriggerModeEnum newVal1, TriggerPolarityEnum newVal2);
+	int TerminatePendingTrigger(void);
+	int CancelTriggerMode(void);
+	
 private:
 	//////////////////////////////////////////////////////////////////////////////////////
 	// Private methods

@@ -34,31 +34,11 @@
 6.0.0.0		Remove Series500 references.  600 series supported.  8 Position filter wheel.
 6.0.1.0		Release candidate for 600 Series.
 6.0.3.0		Changes for 64 bit Linux.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+6.1.0.0		Correct ImageReady for non-blocking and do not transfer image to host until image is requested.
+6.2.0.0		Changes to facilitate porting to Mac OSX.  Remove unnecesary calls to PURGE. Added --enable-ftd2xx option to ./configure.
+6.2.1.0		Add get_PCBTemperature().  Adjust FTDI LATENCY setting. Tested with libftd2xx1.1.0.
+6.3.0.0		Add HSRImage and Flush methods, optimize Autozero transfer code, add USHORT image format.
+6.4.0.0		Add -fpermissive to compile with GCC 4.7.0
+6.4.1.0		Correct mutex code.  Add external trigger input handling.
 
 

@@ -24,11 +24,11 @@ public:
 	FilterWheel(int iNumFilters);
 	~FilterWheel();
 
-	static void GetWheels( std::string strSerialNumber, std::vector<FilterWheel>  * Wheels );
-	bool LoadFromRegistry( std::string strSerialNumber, std::string strName );
+	static void GetWheels( std::string strSerialNumber, std::vector<FilterWheel>  * Wheels, int iNumFiltersExpected  );
+	bool LoadFromRegistry( std::string strSerialNumber, std::string strName, int iNumFiltersExpected );
 	void SaveToRegistry( std::string  strSerialNumber );
 	void DeleteFromRegistry( std::string  strSerialNumber );
-
+	void AddFilter(Filter filter);
 	std::vector<Filter> Filters;
 	std::string Name;
 	int m_iNumFilters;

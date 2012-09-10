@@ -202,7 +202,7 @@ public:
 		// Filter Wheel settings
 		std::string strWheelName = GetSelectedFilterWheel( strSerialNumber, bIsMainCamera);
 		FilterWheel CurrentWheel;
-		if (CurrentWheel.LoadFromRegistry(strSerialNumber, strWheelName))
+		if (CurrentWheel.LoadFromRegistry(strSerialNumber, strWheelName, DefaultSettings.fwWheel.m_iNumFilters))
 			AdvSettings.fwWheel = CurrentWheel;
 		else
 		{

@@ -17,6 +17,8 @@ REVISION HISTORY
 #include "QSI_Interface.h"
 #include "qsiapi.h"
 #include "config.h"
+#include <string>
+#include "QSICriticalSection.h"
 
 #ifndef PACKAGE_VERSION
 #define PACKAGE_VERSION 4.2.0.0
@@ -102,6 +104,18 @@ public:
 		HighImageQuality = 0,
 		FastReadout = 1
 	};
+	
+	enum TriggerModeEnum
+	{
+		ShortWait = 4,
+		LongWait = 6
+	};
+
+	enum TriggerPolarityEnum
+	{
+		HighToLow = 0,
+		LowToHigh = 1
+	};
 
 	static const int MAXCAMERAS = 128;
 
@@ -128,7 +142,7 @@ public:
 	int get_CoolerOn(bool* pVal);
 	int put_CoolerOn(bool newVal);
 	int get_CoolerPower(double* pVal);
-	int get_Description(std::string& pVal);
+	int get_Description(std::string & pVal);
 	int get_ElectronsPerADU(double* pVal);
 	int get_FullWellCapacity(double* pVal);
 	int get_HasShutter(bool* pVal);
@@ -138,9 +152,9 @@ public:
 	int get_ImageArray(double* pVal);
 	int get_ImageReady(bool* pVal);
 	int get_IsPulseGuiding(bool* pVal);
-	int get_LastError(std::string& pVal);
+	int get_LastError(std::string & pVal);
 	int get_LastExposureDuration(double* pVal);
-	int get_LastExposureStartTime(std::string& pVal);
+	int get_LastExposureStartTime(std::string & pVal);
 	int get_MaxADU(long* pVal);
 	int get_MaxBinX(short* pVal);
 	int get_MaxBinY(short* pVal);
@@ -162,7 +176,7 @@ public:
 	int StopExposure(void);
 
 	int put_SelectCamera(std::string serialNum);
-	int get_SelectCamera(std::string& serialNum);
+	int get_SelectCamera(std::string & serialNum);
 	int get_AvailableCameras(std::string cameraSerial[], std::string cameraDesc[], int& numFound);
 
 	//Advanced settings
@@ -251,7 +265,14 @@ public:
 	int put_SelectedFilterWheel(std::string newVal);
 	int NewFilterWheel(std::string Name);
 	int DeleteFilterWheel(std::string Name);
-
+	int get_PCBTemperature(double* pVal);
+	int HSRImage(double Duration, USHORT * Image);
+	int put_HSRMode(bool newVal);
+	int Flush(void);
+	int EnableTriggerMode(TriggerModeEnum newVal1, TriggerPolarityEnum newVal2);
+	int TerminatePendingTrigger(void);
+	int CancelTriggerMode(void);
+	
 private:
 	//////////////////////////////////////////////////////////////////////////////////////
 	// Private methods
@@ -260,7 +281,8 @@ private:
 	int 	PutFilterConnected(bool bCon);
 	int 	GetFilterConnected(bool * pVal);
 	void 	CloseCamera ( void );
-	int 	FillImageBuffer( void );
+	int 	FillImageBuffer( bool bMakeRequest );
+	int		GetAutoZeroData(bool bMakeRequest );
 
 	//////////////////////////////////////////////////////////////////////////////////////
 	// Private members
@@ -282,7 +304,7 @@ private:
 	bool 						m_bIsMainCamera;
 	bool 						m_bDownloading;			// Flag saying whether or not the camera is downloading an image
 	bool 						m_bIsConnected;
-	pthread_mutex_t 			csQSI;					// critical section
+	static QSICriticalSection	csQSI;					// critical section
 	timeval 					m_stStartExposure;		// Log the start of each exposure
 	bool 						m_bExposureTaken;
 	int 						m_ExposureNumX;
@@ -300,9 +322,10 @@ private:
 	bool						m_bStructuredExceptions;
 	USHORT						m_usOverScanPixels[8192];
 	USHORT						m_usLastOverscanMean;
+	double						m_dLastOverscanMean;
 	int							m_usOverscanAdjustment;
 	double						m_dOverscanAdjustment;
-	bool						m_bUseFastExposure;
+	int							m_iOverscanAdjustment;
 	bool						m_bImageValid;
 	double						m_dLastDuration;
 };

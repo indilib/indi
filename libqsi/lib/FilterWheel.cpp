@@ -41,7 +41,7 @@ FilterWheel::~FilterWheel()
 
 }
 
-void FilterWheel::GetWheels( std::string strSerialNumber, std::vector<FilterWheel> * Wheels)
+void FilterWheel::GetWheels( std::string strSerialNumber, std::vector<FilterWheel> * Wheels, int iNumFiltersExpected )
 {
 	QSI_Registry reg;
 	std::vector<std::string> vKeys;
@@ -52,14 +52,14 @@ void FilterWheel::GetWheels( std::string strSerialNumber, std::vector<FilterWhee
 	for (int i=0; i < vKeys.size(); i++)
 	{
 		FilterWheel fwWheel;
-		if (fwWheel.LoadFromRegistry(strSerialNumber, vKeys[i]))
+		if (fwWheel.LoadFromRegistry(strSerialNumber, vKeys[i], iNumFiltersExpected) )
 			Wheels->push_back(fwWheel);
 	}
 
 	return;
 }
 
-bool FilterWheel::LoadFromRegistry(std::string strSerialNumber, std::string strWheelName )
+bool FilterWheel::LoadFromRegistry(std::string strSerialNumber, std::string strWheelName, int iNumFiltersExpected )
 {
 	QSI_Registry reg;
 
@@ -101,9 +101,25 @@ bool FilterWheel::LoadFromRegistry(std::string strSerialNumber, std::string strW
 
 		this->Filters.push_back(filter);
 	}
+
+	// Now check to see if we need to expand the wheel size to match the camera's current wheel.
+	if (iNumFiltersExpected > m_iNumFilters)
+	{
+		Filter filter;
+		for (int i = m_iNumFilters; i < iNumFiltersExpected; i++)
+		{
+			AddFilter( filter );
+		}
+	}
+	
 	return true;
 }
 
+void FilterWheel::AddFilter(Filter filter)
+{
+	Filters.push_back(filter);
+	m_iNumFilters++;
+}
 
 void FilterWheel::SaveToRegistry(std::string  strSerialNumber)
 {

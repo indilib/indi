@@ -19,6 +19,7 @@ REVISION HISTORY
 #include <sys/time.h>
 #include <sstream>
 #include <math.h>
+#include <string.h>
 
 #include "QSI_Global.h"
 #include "QSI_Interface.h"
@@ -28,9 +29,10 @@ REVISION HISTORY
 #include "CCDCamera.h"
 #include "qsiapi.h"
 
+QSICriticalSection CCCDCamera::csQSI;
+
 CCCDCamera::CCCDCamera()
 {
-	pthread_mutex_init(&csQSI, NULL);
 	m_pusBuffer						= NULL;
 	m_bDownloading					= false;
 	m_iNumPixelsRead				= 0;
@@ -102,7 +104,6 @@ CCCDCamera::CCCDCamera()
 		m_Max_Pixels_Per_Block = 1000;
 
 	m_usLastOverscanMean = 0;
-	m_bUseFastExposure = false;
 	m_bImageValid = false;
 	m_dLastDuration = 0.0;
 	m_USBSerialNumber = std::string( "" );
@@ -110,7 +111,7 @@ CCCDCamera::CCCDCamera()
 
 CCCDCamera::~CCCDCamera()
 {
-	pthread_mutex_destroy( &csQSI );
+
 }
 
 int  CCCDCamera::get_BinX(short* pVal)
@@ -265,9 +266,9 @@ int  CCCDCamera::get_CameraState(CameraState* pVal)
 		return Error ( "Camera Error", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
 	// Send command
-	pthread_mutex_lock( &csQSI );
+	csQSI.Lock();
 	m_iError = m_QSIInterface.CMD_GetDeviceState ( iState, bShutterOpen, bFilterState );
-	pthread_mutex_unlock( &csQSI );
+	csQSI.Unlock();
 	if ( m_iError ) 
 		return Error ( "Cannot Get Camera State", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 	//CameraIdle		= 0,
@@ -391,9 +392,9 @@ int  CCCDCamera::get_CanAbortExposure(bool* pVal)
 	bool bCanAbort;
 
 	// Send command
-	pthread_mutex_lock( &csQSI );
+	csQSI.Lock();
 	m_iError = m_QSIInterface.CMD_CanAbortExposure ( bCanAbort );
-	pthread_mutex_unlock( &csQSI );
+	csQSI.Unlock();
 
 	if ( m_iError ) 
 		return Error ( "Cannot Get Can Abort", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
@@ -548,9 +549,9 @@ int  CCCDCamera::get_CanStopExposure(bool* pVal)
 	bool bCanStop;
 
 	// Send command
-	pthread_mutex_lock( &csQSI );
+	csQSI.Lock();
 	m_iError = m_QSIInterface.CMD_CanStopExposure ( bCanStop );
-	pthread_mutex_unlock( &csQSI );
+	csQSI.Unlock();
 
 	if ( m_iError ) 
 		return Error ( "Cannot Get Can Stop", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
@@ -597,9 +598,9 @@ int  CCCDCamera::get_CCDTemperature(double* pVal)
 	}
 
 	// Send command
-	pthread_mutex_lock( &csQSI );
+	csQSI.Lock();
 	m_iError = m_QSIInterface.CMD_GetTemperature ( iState, Temp, TempAmbient, Power );
-	pthread_mutex_unlock( &csQSI );
+	csQSI.Unlock();
 
 	if ( m_iError ) 
 		return Error ( "Cannot Get CCD Temperature", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
@@ -670,9 +671,9 @@ int  CCCDCamera::get_CoolerOn(bool* pVal)
 		return Error ( "Camera Error", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
 	// Send command
-	pthread_mutex_lock( &csQSI );
+	csQSI.Lock();
 	m_iError = m_QSIInterface.CMD_GetTemperature ( iState, Temp, TempAmbient, Power );
-	pthread_mutex_unlock( &csQSI );
+	csQSI.Unlock();
 
 	if ( m_iError ) 
 		return Error ( "Cannot Get Cooler State", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
@@ -715,9 +716,9 @@ int  CCCDCamera::put_CoolerOn(bool newVal)
 	if ( m_iError ) 
 		return Error ( "Camera Error", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
-	pthread_mutex_lock( &csQSI );
+	csQSI.Lock();
 	m_iError = m_QSIInterface.CMD_GetSetPoint( dCurSetPoint);
-	pthread_mutex_unlock( &csQSI );
+	csQSI.Unlock();
 	if ( m_iError ) 
 		return Error ( "Cannot Get Current Temp Set Point", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
@@ -732,9 +733,9 @@ int  CCCDCamera::put_CoolerOn(bool newVal)
 	//at some safe rate that the camera decides, as opposed to just turning off the cooler.
 
 	// Send command
-	pthread_mutex_lock( &csQSI );
+	csQSI.Lock();
 	m_iError = m_QSIInterface.CMD_SetTemperature ( newVal, /*GoToAmbient*/ false, dCurSetPoint );
-	pthread_mutex_unlock( &csQSI );
+	csQSI.Unlock();
 	if ( m_iError ) 
 		return Error ( "Cannot Change Cooler State", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
@@ -785,9 +786,9 @@ int  CCCDCamera::get_CoolerPower(double* pVal)
 	}
 
 	// Send command
-	pthread_mutex_lock( &csQSI );
+	csQSI.Lock();
 	m_iError = m_QSIInterface.CMD_GetTemperature ( iState, Temp, TempAmbient, Power );
-	pthread_mutex_unlock( &csQSI );
+	csQSI.Unlock();
 
 	if ( m_iError ) 
 		return Error ( "Cannot Get CCD Temperature", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
@@ -972,9 +973,9 @@ int  CCCDCamera::get_HeatSinkTemperature(double* pVal)
 		return Error ( "Camera Error", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
 	// Send command
-	pthread_mutex_lock( &csQSI );
+	csQSI.Lock();
 	m_iError = m_QSIInterface.CMD_GetTemperature ( iState, Temp, TempAmbient, Power );
-	pthread_mutex_unlock( &csQSI );
+	csQSI.Unlock();
 
 	if ( m_iError ) 
 		return Error ("Cannot Get Ambient Temperature", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
@@ -1003,7 +1004,13 @@ int (CCCDCamera::get_ImageArraySize)(int& xSize, int& ySize, int& elementSize)
 	// 
 	// 
 
-	if ( !m_bIsConnected || !m_bImageValid) 
+	if ( !m_bIsConnected )
+		return Error ( _T("Not Connected"), IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTCONNECTED) );
+
+	if ( !m_bExposureTaken )
+		return Error ( "No Exposure Taken", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOIMAGEAVAILABLE) );
+
+	if ( ! ( m_DownloadPending || m_bImageValid ) )
 		return Error ( "No Image Available", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOIMAGEAVAILABLE) );
 
 	xSize = m_ExposureNumX;
@@ -1034,37 +1041,15 @@ int  CCCDCamera::get_ImageArray(unsigned short* pVal)
 	// 
 	// 
 
-	if ( !m_bIsConnected || !m_bImageValid ) 
+	if ( !m_bIsConnected )
+		return Error ( _T("Not Connected"), IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTCONNECTED) );
+
+	FillImageBuffer(true); // Retrieve data from the camera
+
+	if ( !m_bImageValid )
 		return Error ( _T("No Image Available"), IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOIMAGEAVAILABLE) );
 
-	// Hack for MaxIm not calling get_ImageReady()
-	if (m_DownloadPending)
-	{
-		bool bDone = false;
-		bool vbReady;
-		int hres;
-		while (!bDone)
-		{
-			hres = get_ImageReady(&vbReady);
-			if (hres != S_OK)
-				return hres;
-			if (vbReady)
-				break;
-			usleep(100);
-		}
-	}
-
-	if (m_AutoZeroData.zeroEnable)
-	{
-		// From CCDSoft version.  Row length is in bytes, and with MaxIm the row pad is always 0.
-		m_iError = m_QSIInterface.AdjustZero((BYTE *)m_pusBuffer, (BYTE *)pVal, m_ExposureSettings.ColumnsToRead * 2, 0, m_ExposureSettings.RowsToRead, m_usOverscanAdjustment);
-	}
-	else
-	{
-		unsigned short* pSrc = m_pusBuffer;
-		memcpy(pVal, pSrc, m_ExposureNumX * m_ExposureNumY * 2);
-	}
-
+	m_iError = m_QSIInterface.AdjustZero(m_pusBuffer, pVal, m_ExposureSettings.ColumnsToRead, m_ExposureSettings.RowsToRead, m_usOverscanAdjustment, m_AutoZeroData.zeroEnable);
 	return S_OK;
 }
 
@@ -1089,35 +1074,15 @@ int CCCDCamera::get_ImageArray(double* pVal)
 	// 
 	// 
 
-	if ( !m_bIsConnected || !m_bImageValid ) 
+	if ( !m_bIsConnected )
+		return Error ( _T("Not Connected"), IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTCONNECTED) );
+
+	FillImageBuffer(true);
+
+	if ( !m_bImageValid )
 		return Error ( _T("No Image Available"), IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOIMAGEAVAILABLE) );
 
-	// Hack for MaxIm not calling get_ImageReady()
-	if (m_DownloadPending)
-	{
-		bool bDone = false;
-		bool vbReady;
-		int hres;
-		while (!bDone)
-		{
-			hres = get_ImageReady(&vbReady);
-			if (hres != S_OK)
-				return hres;
-			if (vbReady)
-				break;
-			usleep(100);
-		}
-	}
-
-	if (m_AutoZeroData.zeroEnable)
-	{
-		m_iError = m_QSIInterface.AdjustZero((BYTE *)m_pusBuffer, pVal, m_ExposureSettings.ColumnsToRead * 2, m_ExposureSettings.RowsToRead, m_dOverscanAdjustment);
-	}
-	else
-	{
-		m_iError = m_QSIInterface.AdjustZero((BYTE *)m_pusBuffer, pVal, m_ExposureSettings.ColumnsToRead * 2, m_ExposureSettings.RowsToRead, 0);
-	}
-
+	m_iError = m_QSIInterface.AdjustZero(m_pusBuffer, pVal, m_ExposureSettings.ColumnsToRead, m_ExposureSettings.RowsToRead, m_dOverscanAdjustment, m_AutoZeroData.zeroEnable);
 	return S_OK;
 }
 
@@ -1161,22 +1126,18 @@ int  CCCDCamera::get_ImageReady(bool* pVal)
 		return Error ( "Camera Error", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
 	// Send command
-	pthread_mutex_lock( &csQSI );
+	csQSI.Lock();
 	m_iError = m_QSIInterface.CMD_GetDeviceState ( iState, bShutterOpen, bFilterState );
-	pthread_mutex_unlock( &csQSI );
+	csQSI.Unlock();
 	if ( m_iError ) 
 		return Error ( "Cannot Get Camera State", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
-	*pVal = iState==CCD_IDLE?true:false;
-
-	if (m_DownloadPending && iState == CCD_IDLE)
+	if (iState==CCD_ERROR)
 	{
-		m_DownloadPending = false;
-
-		m_iError = FillImageBuffer();
-		if ( m_iError )
-			return m_iError;			// pass error back upstream	
+		return Error ( "Trigger Timeout", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_TRIGGERTIMEOUT) );
 	}
+
+	*pVal = iState==CCD_IDLE?true:false;
 
 	return S_OK;
 }
@@ -1211,9 +1172,9 @@ int  CCCDCamera::get_IsPulseGuiding(bool* pVal)
 	if( this->m_iError ) 
 		return Error ( "Camera Error", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
-	pthread_mutex_lock( &csQSI );
+	csQSI.Lock();
 	this->m_iError = m_QSIInterface.CMD_IsRelayDone( bIsRelayState );
-	pthread_mutex_unlock( &csQSI );
+	csQSI.Unlock();
 	if( this->m_iError ) 
 		return Error ( "Cannot Get Guiding Status", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
@@ -1611,9 +1572,9 @@ int  CCCDCamera::get_SetCCDTemperature(double* pVal)
 	if ( m_iError ) 
 		return Error ( "Camera Error", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
-	pthread_mutex_lock( &csQSI );
+	csQSI.Lock();
 	m_iError = m_QSIInterface.CMD_GetSetPoint( dCurSetPoint);
-	pthread_mutex_unlock( &csQSI );
+	csQSI.Unlock();
 	if ( m_iError ) 
 		return Error ( "Cannot Get Current CCD Temperature Set Point", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
@@ -1671,9 +1632,9 @@ int  CCCDCamera::put_SetCCDTemperature(double newVal)
 	//at some safe rate that the camera decides, as opposed to just turning off the cooler.
 
 	// Send command
-	pthread_mutex_lock( &csQSI );
+	csQSI.Lock();
 	m_iError = m_QSIInterface.CMD_SetTemperature ( bCoolerOn, /*GoToAmbient*/ false, newVal );
-	pthread_mutex_unlock( &csQSI );
+	csQSI.Unlock();
 	if ( m_iError ) 
 		return Error ( "Cannot Change Cooler Temp", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
@@ -1810,9 +1771,9 @@ int  CCCDCamera::AbortExposure(void)
 	m_DownloadPending = false;
 	m_bImageValid = false;
 	// Send command
-	pthread_mutex_lock( &csQSI );
+	csQSI.Lock();
 	this->m_iError = m_QSIInterface.CMD_AbortExposure();
-	pthread_mutex_unlock( &csQSI );
+	csQSI.Unlock();
 	if( this->m_iError ) 
 		return Error ( "Cannot Abort Exposure", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
@@ -1899,25 +1860,25 @@ int  CCCDCamera::PulseGuide(GuideDirections Direction, long Duration)
 	if (Y >  5000) Y =  5000;
 	if (Y < -5000) Y = -5000;
 
-	pthread_mutex_lock( &csQSI );
+	csQSI.Lock();
 	m_iError = m_QSIInterface.CMD_IsRelayDone( bRelaysDone );
-	pthread_mutex_unlock( &csQSI );
+	csQSI.Unlock();
 	if ( m_iError ) 
 		return Error ( "Cannot Get Relay Status", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_BADRELAYSTATUS) );
 	
 	if (!bRelaysDone || ((X == 0) && (Y == 0)))
 	{
-		pthread_mutex_lock( &csQSI );
+		csQSI.Lock();
 		m_iError = m_QSIInterface.CMD_AbortRelays();
-		pthread_mutex_unlock( &csQSI );
+		csQSI.Unlock();
 		if ( m_iError ) 
 			return Error ( "Cannot Abort Relays", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_BADABORTRELAYS) );
 	}
 
 	// Send command
-	pthread_mutex_lock( &csQSI );
+	csQSI.Lock();
 	m_iError = m_QSIInterface.CMD_ActivateRelay ( (short) X, (short) Y );
-	pthread_mutex_unlock( &csQSI );
+	csQSI.Unlock();
 
 	if ( m_iError ) 
 		return Error ( "Cannot Activate Relays", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_RELAYERROR) );
@@ -2013,7 +1974,7 @@ int  CCCDCamera::StartExposure(double Duration, bool Light)
 	m_dLastDuration = Duration;
 
 	// Send command
-	if (m_bUseFastExposure)
+	if (m_DeviceDetails.HasCMD_StartExposureEx)
 	{
 		double fExposure;
 		double fFract;
@@ -2025,17 +1986,17 @@ int  CCCDCamera::StartExposure(double Duration, bool Light)
 
 		m_ExposureSettings.Duration         = static_cast<UINT>(fIntPart + 0.5);
 		m_ExposureSettings.DurationUSec     = static_cast<UINT>((fFract * 100.0) + 0.5);
-		pthread_mutex_lock( &csQSI );
+		csQSI.Lock();
 		m_iError = m_QSIInterface.CMD_StartExposureEx( m_ExposureSettings );
-		pthread_mutex_unlock( &csQSI );
+		csQSI.Unlock();
 	}
 	else
 	{
 		m_ExposureSettings.Duration         = (UINT)((Duration * 100) + 0.5);
 		m_ExposureSettings.DurationUSec     = 0;
-		pthread_mutex_lock( &csQSI );
+		csQSI.Lock();
 		m_iError = m_QSIInterface.CMD_StartExposure( m_ExposureSettings );
-		pthread_mutex_unlock( &csQSI );
+		csQSI.Unlock();
 	}
 
 	if( this->m_iError ) 
@@ -2116,9 +2077,9 @@ int CCCDCamera::put_SoundEnabled(bool newVal)
 	Registry.SetAdvancedSetupSettings( strSerialNumber, m_bIsMainCamera, m_AdvSettings );
 
 	// Send advanced settings to camera
-	pthread_mutex_lock( &csQSI );
+	csQSI.Lock();
 	m_iError = m_QSIInterface.CMD_SendAdvSettings( m_AdvSettings );
-	pthread_mutex_unlock( &csQSI );
+	csQSI.Unlock();
 	if( m_iError ) 
 		return Error ( "Cannot set advanced settings", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
@@ -2160,9 +2121,9 @@ int CCCDCamera::put_LEDEnabled(bool newVal)
 	Registry.SetAdvancedSetupSettings( strSerialNumber, m_bIsMainCamera, m_AdvSettings );
 
 	// Send advanced settings to camera
-	pthread_mutex_lock( &csQSI );
+	csQSI.Lock();
 	m_iError = m_QSIInterface.CMD_SendAdvSettings( m_AdvSettings );
-	pthread_mutex_unlock( &csQSI );
+	csQSI.Unlock();
 	if( m_iError ) 
 		return Error ( "Cannot set advanced settings", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
@@ -2204,9 +2165,9 @@ int CCCDCamera::put_ReadoutSpeed(ReadoutSpeed newVal)
 	Registry.SetAdvancedSetupSettings( strSerialNumber, m_bIsMainCamera, m_AdvSettings );
 
 	// Send advanced settings to camera
-	pthread_mutex_lock( &csQSI );
+	csQSI.Lock();
 	m_iError = m_QSIInterface.CMD_SendAdvSettings( m_AdvSettings );
-	pthread_mutex_unlock( &csQSI );
+	csQSI.Unlock();
 	if( m_iError ) 
 		return Error ( "Cannot set advanced settings", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
@@ -2246,9 +2207,9 @@ int CCCDCamera::put_FanMode(FanMode newVal)
 	Registry.SetAdvancedSetupSettings( strSerialNumber, m_bIsMainCamera, m_AdvSettings );
 
 	// Send advanced settings to camera
-	pthread_mutex_lock( &csQSI );
+	csQSI.Lock();
 	m_iError = m_QSIInterface.CMD_SendAdvSettings( m_AdvSettings );
-	pthread_mutex_unlock( &csQSI );
+	csQSI.Unlock();
 	if( m_iError ) 
 		return Error ( "Cannot set advanced settings", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
@@ -2422,9 +2383,9 @@ int  CCCDCamera::get_Position( short* pVal )
 		return Error ( "Camera Error", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
 
-	pthread_mutex_lock( &csQSI );
+	csQSI.Lock();
 	this->m_iError = m_QSIInterface.CMD_GetDeviceState ( iCameraState, bShutterOpen, bFilterState );
-	pthread_mutex_unlock( & csQSI );
+	csQSI.Unlock();
 	if( this->m_iError ) 
 		return Error ( "Filter Wheel Get Status Failed", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 	
@@ -2434,9 +2395,9 @@ int  CCCDCamera::get_Position( short* pVal )
 	{
 		int iPos;
 		// Send command
-		pthread_mutex_lock( &csQSI );
+		csQSI.Lock();
 		m_iError = m_QSIInterface.CMD_GetFilterPosition ( iPos );
-		pthread_mutex_unlock( &csQSI );
+		csQSI.Unlock();
 
 		if ( m_iError ) 
 			return Error ( "Cannot Get Filter Position", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
@@ -2483,9 +2444,9 @@ int  CCCDCamera::put_Position( short newVal)
 	if (newVal < 0 || newVal > (m_DeviceDetails.NumFilters - 1 ))
 		return Error ( "Invalid Filter Number", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_INVALIDFILTERNUMBER) );
 
-	pthread_mutex_lock( &csQSI );
+	csQSI.Lock();
 	m_iError = m_QSIInterface.CMD_SetFilterWheel( newVal );
- 	pthread_mutex_unlock( &csQSI );
+ 	csQSI.Unlock();
 	if ( m_iError ) 
 		return Error ( "Cannot Set Filter", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
@@ -2648,9 +2609,9 @@ int CCCDCamera::put_Connected(bool bCon)
 		CloseCamera();
 
 		// Make sure we don't get that pesky first connect failure; see function definition for details
-		pthread_mutex_lock( &csQSI );
+		csQSI.Lock();
 		m_QSIInterface.Initialize();
-		pthread_mutex_unlock( &csQSI);
+		csQSI.Unlock();
 
 		// Determine what role we're in (either main or guider camera)
 		m_bIsMainCamera = GetCameraRole();
@@ -2668,16 +2629,16 @@ int CCCDCamera::put_Connected(bool bCon)
 			
 			int iCount;
 
-			EnterCriticalSection( &csQSI );		
+			csQSI.Lock();	
 			iCount = m_QSIInterface.CountDevices();
-			LeaveCriticalSection( &csQSI );
+			csQSI.Unlock();
 				
 			if (iCount == 0)
 				return Error ( "Cannot open camera connection", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
-			EnterCriticalSection( &csQSI );
+			csQSI.Lock();
 			m_iError = m_QSIInterface.GetDeviceInfo(0, cID);
-			LeaveCriticalSection( &csQSI );
+			csQSI.Unlock();
 			if( m_iError ) 
 				return Error ( "Cannot open camera connection, no device description", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
@@ -2703,23 +2664,23 @@ int CCCDCamera::put_Connected(bool bCon)
 
 		///////////////////////////////////////////////////////////////////////////////////////////
 
-		pthread_mutex_lock( &csQSI );
+		csQSI.Lock();
 		m_iError = m_QSIInterface.OpenCamera( m_USBSerialNumber );
-		pthread_mutex_unlock( &csQSI );
+		csQSI.Unlock();
 		if( m_iError ) 
 			return Error ( "Cannot open camera connection", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
 		// Send initialize command packet to camera
-		pthread_mutex_lock( &csQSI );
+		csQSI.Lock();
 		m_iError = m_QSIInterface.CMD_InitCamera();
-		pthread_mutex_unlock( &csQSI );
+		csQSI.Unlock();
 		if( m_iError ) 
 			return Error ( "Cannot initialize camera", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
 		// Get device details from camera
-		pthread_mutex_lock( &csQSI );
+		csQSI.Lock();
 		m_iError = m_QSIInterface.CMD_GetDeviceDetails( m_DeviceDetails );
-		pthread_mutex_unlock( &csQSI );
+		csQSI.Unlock();
 		if( m_iError ) 
 			return Error ( "Cannot get device details", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
@@ -2729,9 +2690,9 @@ int CCCDCamera::put_Connected(bool bCon)
 		m_ExposureSettings.BinFactorY = 1;
 
 		// Get default advanced setup settings
-		pthread_mutex_lock( &csQSI );
+		csQSI.Lock();
 		m_iError = m_QSIInterface.CMD_GetAdvDefaultSettings( m_AdvDefaultSettings, m_DeviceDetails );
-		pthread_mutex_unlock( &csQSI );
+		csQSI.Unlock();
 		if( m_iError ) 
 			return Error ( "Cannot get advanced default settings", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
@@ -2739,9 +2700,9 @@ int CCCDCamera::put_Connected(bool bCon)
 		m_AdvSettings = Registry.GetAdvancedSetupSettings( m_USBSerialNumber, m_bIsMainCamera, m_AdvDefaultSettings );
 
 		// Send advanced settings to camera
-		pthread_mutex_lock( &csQSI );
+		csQSI.Lock();
 		m_iError = m_QSIInterface.CMD_SendAdvSettings( m_AdvSettings );
-		pthread_mutex_unlock( &csQSI );
+		csQSI.Unlock();
 		if( m_iError ) 
 			return Error ( "Cannot set advanced settings", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
@@ -2749,9 +2710,9 @@ int CCCDCamera::put_Connected(bool bCon)
 		// Bug here: Camera always reports fan speed index as 2.
 		// So throw away what the camera says.
 		QSI_AdvSettings temp;
-		pthread_mutex_lock( &csQSI );
+		csQSI.Lock();
 		m_iError = m_QSIInterface.CMD_GetCamDefaultAdvDetails( temp, m_AdvEnabledOptions, m_DeviceDetails );
-		pthread_mutex_unlock( &csQSI );
+		csQSI.Unlock();
 		if( m_iError ) 
 			return Error ( "Cannot get advanced settings from camera", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
@@ -2767,12 +2728,6 @@ int CCCDCamera::put_Connected(bool bCon)
 
 		// Get Hardware and Firmware version
 		m_iError = m_QSIInterface.GetVersionInfo(m_HWVersion, m_FWVersion);
-
-		//Does this camera implement the fast exposure command?
-		m_bUseFastExposure = false;
-		pthread_mutex_lock( &csQSI );
-		m_iError = m_QSIInterface.CMD_HasFastExposure( m_bUseFastExposure );
-		pthread_mutex_unlock( &csQSI );
 	}
 	else
 	{
@@ -2817,9 +2772,9 @@ void CCCDCamera::CloseCamera ( void )
 	//////////////////////////////////////////////////////////////////////////////////////////
 	// CloseCamera shuts down the link to the camera and deallocates buffer memory
 	// Send command
-	pthread_mutex_lock( &csQSI );
+	csQSI.Lock();
 	m_QSIInterface.CloseCamera();
-	pthread_mutex_unlock( &csQSI );
+	csQSI.Unlock();
   
 	// Delete image buffer and reset pointer to null 
 	if (m_pusBuffer != NULL)
@@ -2829,7 +2784,7 @@ void CCCDCamera::CloseCamera ( void )
 	return;
 }
 
-int CCCDCamera::FillImageBuffer(void)
+int CCCDCamera::FillImageBuffer(bool bMakeRequest)
 {
 	// This is the common code for reading an image from the camera
 	// and filling the image buffer
@@ -2842,6 +2797,11 @@ int CCCDCamera::FillImageBuffer(void)
 
 	if (!m_bIsConnected  || m_pusBuffer == NULL)
 		return Error ( "Not connected", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTCONNECTED) );
+
+	if (!m_DownloadPending)
+		return S_OK;
+
+	m_DownloadPending = false;
 
 	// Calculate the total pixels to be read
 	iTotalPixelsToRead = m_ExposureNumY * m_ExposureNumX;
@@ -2861,14 +2821,17 @@ int CCCDCamera::FillImageBuffer(void)
 	// Set number of pixels read so far to zero
 	m_iNumPixelsRead = 0;
 
-	// Send transfer image command to camera
-	pthread_mutex_lock( &csQSI );
-	m_iError = m_QSIInterface.CMD_TransferImage();
-	pthread_mutex_unlock( &csQSI );
+	if (bMakeRequest)
+	{
+		// Send transfer image command to camera
+		csQSI.Lock();
+		m_iError = m_QSIInterface.CMD_TransferImage();
+		csQSI.Unlock();
 
-	if( m_iError ) 
-		return Error ( "Image transfer error", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
-
+		if( m_iError ) 
+			return Error ( "Image transfer error", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
+	}
+	
 	while (!TransferDone)
 	{
 		if( m_iNumPixelsRead + iPixelsPerRead > iTotalPixelsToRead ) // We're executing the last read; base case if called recursively
@@ -2877,9 +2840,9 @@ int CCCDCamera::FillImageBuffer(void)
 			iPixelsPerRead = iTotalPixelsToRead - m_iNumPixelsRead;
 
 			// Read last block
-			pthread_mutex_lock( &csQSI );
+			csQSI.Lock();
 			m_iError = m_QSIInterface.ReadImage ( m_pusBuffer + m_iNumPixelsRead, iPixelsPerRead * 2 ); // *2 because 1 pixel = 2 bytes
-			pthread_mutex_unlock( &csQSI );			
+			csQSI.Unlock();			
 			if( m_iError ) 
 				return Error ( "Image transfer error", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
@@ -2890,9 +2853,9 @@ int CCCDCamera::FillImageBuffer(void)
 		else
 		{
 			// Read block
-			pthread_mutex_lock( &csQSI );
+			csQSI.Lock();
 			m_iError = m_QSIInterface.ReadImage ( m_pusBuffer+this->m_iNumPixelsRead, iPixelsPerRead*2 ); // *2 because 1 pixel = 2 bytes
-			pthread_mutex_unlock( &csQSI );			
+			csQSI.Unlock();			
 			if( m_iError != ALL_OK && m_iError ) 
 				return Error ( "Image transfer error", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 			m_iError = ALL_OK;
@@ -2908,25 +2871,40 @@ int CCCDCamera::FillImageBuffer(void)
 	//
 	// Image is now in m_pusBuffer
 	//
-	m_AutoZeroData.pixelCount = 0;
-	pthread_mutex_lock( &csQSI );
-	m_iError = m_QSIInterface.CMD_GetAutoZero( m_AutoZeroData );
-	pthread_mutex_unlock( &csQSI );
-
+	
+	m_iError = GetAutoZeroData( bMakeRequest ); // true == issue autozero request to camera
 	if( m_iError != ALL_OK ) 
 		return Error ( "Auto zero get data error", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
+	// Now apply the Hot Pixel map
+	m_QSIInterface.HotPixelRemap((BYTE *)m_pusBuffer, 0, m_ExposureSettings, m_DeviceDetails, m_AutoZeroData.zeroLevel);
+
+	m_bImageValid = true;
+	return S_OK;
+}
+
+int CCCDCamera::GetAutoZeroData(bool bMakeRequest)
+{
+	if (bMakeRequest) // Send AZ request to camera.  Other callers just expect the data to be ready to read (ie FocusImage).
+	{
+		csQSI.Lock();
+		m_iError = m_QSIInterface.CMD_GetAutoZero( m_AutoZeroData );
+		csQSI.Unlock();
+
+		if( m_iError != ALL_OK ) 
+			return m_iError;
+	}
+
 	if (m_AutoZeroData.zeroEnable && m_AutoZeroData.pixelCount > 0 && m_AutoZeroData.pixelCount <= 8192)
 	{
-		//Get the zero level pixels
-		pthread_mutex_lock( &csQSI );
+		csQSI.Lock();
 		m_iError = m_QSIInterface.ReadImage ( m_usOverScanPixels, m_AutoZeroData.pixelCount * 2 );
-		pthread_mutex_unlock( &csQSI );
-		m_QSIInterface.LogWrite(2, "AutoZero analyze overscan started.");
+		csQSI.Unlock();
+		m_QSIInterface.LogWrite(2, _T("AutoZero adjust pixels started."));
 
 		if( m_iError == ALL_OK )
 		{
-			m_QSIInterface.GetAutoZeroAdjustment(m_AutoZeroData, m_usOverScanPixels, &m_usLastOverscanMean, &m_usOverscanAdjustment, &m_dOverscanAdjustment);
+			m_QSIInterface.GetAutoZeroAdjustment(m_AutoZeroData, m_usOverScanPixels, &m_usLastOverscanMean, &m_iOverscanAdjustment, &m_dOverscanAdjustment);
 		} 
 
 		if (m_iError == ALL_OK)
@@ -2934,11 +2912,6 @@ int CCCDCamera::FillImageBuffer(void)
 		else
 			m_QSIInterface.LogWrite(2, "AutoZero analyze overscan failed. Error Code: %x", m_iError);
 	}
-
-	// Now apply the Hot Pixel map
-	m_QSIInterface.HotPixelRemap((BYTE *)m_pusBuffer, 0, m_ExposureSettings, m_DeviceDetails, m_AutoZeroData.zeroLevel);
-
-	m_bImageValid = true;
 	return S_OK;
 }
 
@@ -2960,7 +2933,7 @@ int  CCCDCamera::get_DriverInfo(std::string& pVal)
 	std::stringstream s;
 	s << XQUOTEME(PACKAGE_VERSION);
 
-#ifdef USBLIBFTDI0
+#ifdef USELIBFTDIZERO
 	s << " using libftdi";
 #elif defined(USELIBFTD2XX)
 	s << " using libftd2xx";
@@ -3079,9 +3052,9 @@ int CCCDCamera::get_AvailableCameras(std::string cameraSerial[], std::string cam
 {
 	std::vector<CameraID> vID;
 
-	pthread_mutex_lock( &csQSI );
+	csQSI.Lock();
 	m_iError = m_QSIInterface.ListDevices( vID, numFound );
-	pthread_mutex_unlock( &csQSI );
+	csQSI.Unlock();
 	if( this->m_iError ) 
 		return Error ( "Cannot list cameras", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
@@ -3114,9 +3087,9 @@ int CCCDCamera::put_EnableShutterStatusOutput(bool newVal)
 	if (!m_bIsConnected)
 		return Error ( "Not Connected", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTCONNECTED) );
 
-	pthread_mutex_lock( &csQSI );
+	csQSI.Lock();
 	m_iError = m_QSIInterface.CMD_GetAltMode1(ucMode);
-	pthread_mutex_unlock( &csQSI );
+	csQSI.Unlock();
 	if( this->m_iError ) 
 		return Error ( "Cannot get AltMode1", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
@@ -3125,9 +3098,9 @@ int CCCDCamera::put_EnableShutterStatusOutput(bool newVal)
 	else
 		ucMode &= ~EXPOSUREPULSEOUTBIT;
 
-	pthread_mutex_lock( &csQSI );
+	csQSI.Lock();
 	m_iError = m_QSIInterface.CMD_SetAltMode1(ucMode);
-	pthread_mutex_unlock( &csQSI );
+	csQSI.Unlock();
 	if( this->m_iError ) 
 		return Error ( "Cannot set AltMode1", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
@@ -3141,9 +3114,9 @@ int CCCDCamera::get_EnableShutterStatusOutput(bool* pVal)
 		return Error ( "Not Connected", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTCONNECTED) );
 
 
-	pthread_mutex_lock( &csQSI );
+	csQSI.Lock();
 	m_iError = m_QSIInterface.CMD_GetAltMode1(ucMode);
-	pthread_mutex_unlock( &csQSI );
+	csQSI.Unlock();
 	if( this->m_iError ) 
 		return Error ( "Cannot get AltMode1", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
@@ -3162,9 +3135,9 @@ int CCCDCamera::get_ManualShutterMode(bool * pVal)
 	if (!m_bIsConnected)
 		return Error ( "Not Connected", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTCONNECTED) );
 	
-	pthread_mutex_lock( &csQSI );
+	csQSI.Lock();
 	m_iError = m_QSIInterface.CMD_GetAltMode1(ucMode);
-	pthread_mutex_unlock( &csQSI );
+	csQSI.Unlock();
 
 	if( this->m_iError ) 
 		return Error ( "Cannot get AltMode1", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
@@ -3189,9 +3162,9 @@ int CCCDCamera::put_ManualShutterMode(bool newVal)
 	if (!hasShutter)
 		return Error ( "No Shutter Installed", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
-	pthread_mutex_lock( &csQSI );
+	csQSI.Lock();
 	m_iError = m_QSIInterface.CMD_GetAltMode1(ucMode);
-	pthread_mutex_unlock( &csQSI );
+	csQSI.Unlock();
 	if( this->m_iError ) 
 		return Error ( "Cannot get AltMode1", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
@@ -3200,9 +3173,9 @@ int CCCDCamera::put_ManualShutterMode(bool newVal)
 	else
 		ucMode &= ~MANUALSHUTTERMODE;
 
-	pthread_mutex_lock( &csQSI );
+	csQSI.Lock();
 	m_iError = m_QSIInterface.CMD_SetAltMode1(ucMode);
-	pthread_mutex_unlock( &csQSI );
+	csQSI.Unlock();
 
 	if( this->m_iError ) 
 		return Error ( "Cannot set AltMode1", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
@@ -3228,9 +3201,9 @@ int CCCDCamera::put_ManualShutterOpen(bool newVal)
 	else
 		ucMode = MANUALSHUTTERCLOSE;
 
-	pthread_mutex_lock( &csQSI );
+	csQSI.Lock();
 	m_iError = m_QSIInterface.CMD_SetAltMode1(ucMode);
-	pthread_mutex_unlock( &csQSI );
+	csQSI.Unlock();
 
 	if( this->m_iError ) 
 		return Error ( "Cannot set AltMode1", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
@@ -3275,17 +3248,17 @@ int CCCDCamera::put_CameraGain(CameraGain newVal)
 	Registry.SetAdvancedSetupSettings( m_USBSerialNumber, m_bIsMainCamera, m_AdvSettings );
 
 	// Send advanced settings to camera
-	pthread_mutex_lock( &csQSI );
+	csQSI.Lock();
 	m_iError = m_QSIInterface.CMD_SendAdvSettings( m_AdvSettings );
-	pthread_mutex_unlock( &csQSI );
+	csQSI.Unlock();
 	if( m_iError ) 
 		return Error ( "Cannot set advanced settings", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
 	// Get CCD and other camera parameters
 	// as EADU will changes and these are cached in the DeviceDetails structure
-	pthread_mutex_lock( &csQSI );
+	csQSI.Lock();
 	m_iError = m_QSIInterface.CMD_GetCCDSpecs ( m_DeviceDetails.MaxADU, m_DeviceDetails.EADUHigh, m_DeviceDetails.EADULow, m_DeviceDetails.EFull, m_DeviceDetails.minExp, m_DeviceDetails.maxExp );
-	pthread_mutex_unlock( &csQSI );
+	csQSI.Unlock();
 
 	if( m_iError ) 
 		return Error ( "Cannot query camera specifications", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
@@ -3327,9 +3300,9 @@ int CCCDCamera::put_AntiBlooming(AntiBloom newVal)
 	Registry.SetAdvancedSetupSettings( m_USBSerialNumber, m_bIsMainCamera, m_AdvSettings );
 
 	// Send advanced settings to camera
-	pthread_mutex_lock( &csQSI );
+	csQSI.Lock();
 	m_iError = m_QSIInterface.CMD_SendAdvSettings( m_AdvSettings );
-	pthread_mutex_unlock( &csQSI );
+	csQSI.Unlock();
 	if( m_iError ) 
 		return Error ( "Cannot set advanced settings", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
@@ -3381,9 +3354,9 @@ int CCCDCamera::put_ShutterPriority(ShutterPriority newVal)
 	Registry.SetAdvancedSetupSettings( m_USBSerialNumber, m_bIsMainCamera, m_AdvSettings );
 
 	// Send advanced settings to camera
-	pthread_mutex_lock( &csQSI );
+	csQSI.Lock();
 	m_iError = m_QSIInterface.CMD_SendAdvSettings( m_AdvSettings );
-	pthread_mutex_unlock( &csQSI );
+	csQSI.Unlock();
 	if( m_iError ) 
 		return Error ( "Cannot set advanced settings", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
@@ -3423,9 +3396,9 @@ int CCCDCamera::put_PreExposureFlush(PreExposureFlush newVal)
 	Registry.SetAdvancedSetupSettings( m_USBSerialNumber, m_bIsMainCamera, m_AdvSettings );
 
 	// Send advanced settings to camera
-	pthread_mutex_lock( &csQSI );
+	csQSI.Lock();
 	m_iError = m_QSIInterface.CMD_SendAdvSettings( m_AdvSettings );
-	pthread_mutex_unlock( &csQSI );
+	csQSI.Unlock();
 	if( m_iError ) 
 		return Error ( "Cannot set advanced settings", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
@@ -3443,9 +3416,9 @@ int CCCDCamera::put_HostTimedExposure(bool newVal)
 	if (strncmp (m_DeviceDetails.ModelNumber, "520", 3) != 0)
 		return Error ( "Feature not available on the currect camera model", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTSUPPORTED) );
 
-	pthread_mutex_lock( &csQSI );
+	csQSI.Lock();
 	m_iError = m_QSIInterface.CMD_GetAltMode1(ucMode);
-	pthread_mutex_unlock( &csQSI );
+	csQSI.Unlock();
 	if( this->m_iError ) 
 		return Error ( "Cannot get AltMode1", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
@@ -3454,9 +3427,9 @@ int CCCDCamera::put_HostTimedExposure(bool newVal)
 	else
 		ucMode &= ~HOSTTIMEDEXPOSURE;
 
-	pthread_mutex_lock( &csQSI );
+	csQSI.Lock();
 	m_iError = m_QSIInterface.CMD_SetAltMode1(ucMode);
-	pthread_mutex_unlock( &csQSI );
+	csQSI.Unlock();
 
 	if( this->m_iError ) 
 		return Error ( "Cannot set AltMode1", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
@@ -3499,9 +3472,9 @@ int CCCDCamera::get_QSIDeviceCount(SHORT * pVal)
 	//read only
 	//Returns the number of camera available for connection (with or without serial numbers assigned), 0 if no camera connected
 
-	EnterCriticalSection( &csQSI );	
+	csQSI.Lock();
 	*pVal = (SHORT)m_QSIInterface.CountDevices( );
-	LeaveCriticalSection( &csQSI );
+	csQSI.Unlock();
 
 	return S_OK;
 }
@@ -3540,9 +3513,9 @@ int CCCDCamera::get_QSISerialNumbers(std::string pVal[], int * iNumFound)
 	std::vector<std::string> vSerial;
 	std::vector<CameraID> vID;
 
-	EnterCriticalSection( &csQSI );	
+	csQSI.Lock();
 	m_iError = m_QSIInterface.ListDevices( vID,  *iNumFound );
-	LeaveCriticalSection( &csQSI );
+	csQSI.Unlock();
 
 	if (m_iError == 200002) // No cameras connected
 	{
@@ -3573,9 +3546,9 @@ int CCCDCamera::QSIRead( unsigned char * Buffer, int BytesToRead, int * BytesRet
 	if (!m_bIsConnected)
 		return Error ( "Not Connected", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTCONNECTED) );
 
-	EnterCriticalSection( &csQSI );	
+	csQSI.Lock();
 	m_iError = m_QSIInterface.QSIRead( Buffer, BytesToRead, BytesReturned);
-	LeaveCriticalSection( &csQSI );
+	csQSI.Unlock();
 
 	if( this->m_iError ) 
 		return Error ( "Read Error", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
@@ -3588,9 +3561,9 @@ int CCCDCamera::QSIWrite( unsigned char * Buffer, int BytesToWrite, int * BytesW
 	if (!m_bIsConnected)
 		return Error ( "Not Connected", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTCONNECTED) );
 
-	EnterCriticalSection( &csQSI );	
+	csQSI.Lock();
 	m_iError = m_QSIInterface.QSIWrite( Buffer, BytesToWrite, BytesWritten);
-	LeaveCriticalSection( &csQSI );
+	csQSI.Unlock();
 
 	if( this->m_iError ) 
 		return Error ( "Write Error", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
@@ -3603,9 +3576,9 @@ int CCCDCamera::get_QSIReadDataAvailable( int * pVal )
 	if (!m_bIsConnected)
 		return Error ( "Not Connected", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTCONNECTED) );
 
-	EnterCriticalSection( &csQSI );	
+	csQSI.Lock();
 	m_iError =  m_QSIInterface.QSIReadDataAvailable( pVal);
-	LeaveCriticalSection( &csQSI );
+	csQSI.Unlock();
 
 	if( this->m_iError ) 
 		return Error ( "Cannot get read data available", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
@@ -3618,9 +3591,9 @@ int CCCDCamera::get_QSIWriteDataPending( int * pVal )
 	if (!m_bIsConnected)
 		return Error ( "Not Connected", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTCONNECTED) );
 
-	EnterCriticalSection( &csQSI );	
+	csQSI.Lock();
 	m_iError =  m_QSIInterface.QSIWriteDataPending(pVal);
-	LeaveCriticalSection( &csQSI );
+	csQSI.Unlock();
 
 	if( this->m_iError ) 
 		return Error ( "Cannot get write data pending", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
@@ -3633,9 +3606,9 @@ int CCCDCamera::put_QSIReadTimeout( int newVal )
 	if (!m_bIsConnected)
 		return Error ( "Not Connected", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTCONNECTED) );
 
-	EnterCriticalSection( &csQSI );	
+	csQSI.Lock();	
 	m_iError =  m_QSIInterface.QSIReadTimeout(newVal);
-	LeaveCriticalSection( &csQSI );
+	csQSI.Unlock();
 
 	if( this->m_iError ) 
 		return Error ( "Cannot set read timeout", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
@@ -3648,9 +3621,9 @@ int CCCDCamera::put_QSIWriteTimeout( int newVal )
 	if (!m_bIsConnected)
 		return Error ( "Not Connected", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTCONNECTED) );
 
-	EnterCriticalSection( &csQSI );
+	csQSI.Lock();
 	m_iError =  m_QSIInterface.QSIWriteTimeout(newVal);
-	LeaveCriticalSection( &csQSI );
+	csQSI.Unlock();
 
 	if( this->m_iError ) 
 		return Error ( "Cannot set write timeout", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
@@ -3685,9 +3658,9 @@ int CCCDCamera::put_QSIOpen(bool bCon)
 		CloseCamera();
 
 		// Make sure we don't get that pesky first connect failure; see function definition for details
-		pthread_mutex_lock( &csQSI );
+		csQSI.Lock();
 		m_QSIInterface.Initialize();
-		pthread_mutex_unlock( &csQSI);
+		csQSI.Unlock();
 
 		// Determine what role we're in (either main or guider camera)
 		m_bIsMainCamera = GetCameraRole();
@@ -3705,16 +3678,16 @@ int CCCDCamera::put_QSIOpen(bool bCon)
 			
 			int iCount;
 
-			EnterCriticalSection( &csQSI );		
+			csQSI.Lock();		
 			iCount = m_QSIInterface.CountDevices();
-			LeaveCriticalSection( &csQSI );
+			csQSI.Unlock();
 				
 			if (iCount == 0)
 				return Error ( "Cannot open camera connection", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
-			EnterCriticalSection( &csQSI );
+			csQSI.Lock();
 			m_iError = m_QSIInterface.GetDeviceInfo(0, cID);
-			LeaveCriticalSection( &csQSI );
+			csQSI.Unlock();
 			if( m_iError ) 
 				return Error ( "Cannot open camera connection, no device description", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
@@ -3740,9 +3713,9 @@ int CCCDCamera::put_QSIOpen(bool bCon)
 
 		///////////////////////////////////////////////////////////////////////////////////////////
 
-		pthread_mutex_lock( &csQSI );
+		csQSI.Lock();
 		m_iError = m_QSIInterface.OpenCamera( m_USBSerialNumber );
-		pthread_mutex_unlock( &csQSI );
+		csQSI.Unlock();
 		if( m_iError ) 
 			return Error ( "Cannot open camera connection", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
@@ -3925,7 +3898,7 @@ int CCCDCamera::get_FilterWheelNames( std::vector<std::string> * pVal)
 
 	std::vector<FilterWheel> Wheels;
 
-	FilterWheel::GetWheels( m_USBSerialNumber, &Wheels);
+	FilterWheel::GetWheels( m_USBSerialNumber, &Wheels, m_DeviceDetails.NumFilters);
 
 	pVal->clear();
 
@@ -3959,7 +3932,7 @@ int CCCDCamera::put_SelectedFilterWheel(std::string newVal)
 	FilterWheel Wheel(m_DeviceDetails.NumFilters);
 	std::string strWheelName = newVal;
 
-	Wheel.LoadFromRegistry(m_USBSerialNumber, strWheelName);
+	Wheel.LoadFromRegistry(m_USBSerialNumber, strWheelName, m_DeviceDetails.NumFilters);
 	m_AdvSettings.fwWheel = Wheel;
 	reg.SetSelectedFilterWheel( m_USBSerialNumber, m_bIsMainCamera, strWheelName);
 
@@ -3990,7 +3963,7 @@ int CCCDCamera::DeleteFilterWheel(std::string delName)
 	FilterWheel Wheel;
 	std::string strWheelName = delName;
 
-	Wheel.LoadFromRegistry(m_USBSerialNumber, strWheelName);
+	Wheel.LoadFromRegistry(m_USBSerialNumber, strWheelName, m_DeviceDetails.NumFilters);
 	Wheel.DeleteFromRegistry(m_USBSerialNumber);
 
 	std::string SetName = m_AdvSettings.fwWheel.Name;
@@ -4004,3 +3977,342 @@ int CCCDCamera::DeleteFilterWheel(std::string delName)
 
 	return S_OK;
 }
+
+int  CCCDCamera::get_PCBTemperature(double* pVal)
+{
+	// 
+	// CCDTemperature
+	// --------------
+	// 
+	// Property
+	//             CCDCamera.CCDTemperature  (read only)
+	// Syntax
+	//             CCDCamera.CCDTemperature
+	// Exceptions
+	//             Must throw exception if data unavailable.
+	// 
+	// Remarks
+	// 
+	// Returns the current CCD temperature in degrees Celsius. Only valid if
+	// CanControlTemperature is True.
+	// 
+
+	if (!m_bIsConnected)
+		return Error ( "Not Connected", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTCONNECTED) );
+
+	//CoolerState &State,        // Current temperature controller status
+	int iState = 0;
+	double Temp = 0;             // Temperature of CCD chip (FLT_MAX if not available)
+	double TempAmbient = 0;      // Ambient temperature if available (FLT_MAX if not)
+	double PCBTemp = 0;
+	unsigned short Power = 0;    // Power level in percent (0-100), return > 100 if not available
+
+	if ( m_iError )
+	{
+		// Once the error is caught, we must clear it to allow another attempt at this command
+		int err = m_iError;
+		m_iError = 0;
+		return Error ( "Camera Error", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, err) );
+	}
+
+	if (m_DeviceDetails.HasCMD_GetTemperatureEx)
+	{
+		// Send command
+		csQSI.Lock();
+		m_iError = m_QSIInterface.CMD_GetTemperatureEx ( iState, Temp, TempAmbient, Power, PCBTemp, false );
+		csQSI.Unlock();
+	}
+	else
+	{
+		m_iError = QSI_NOTSUPPORTED;
+	}
+
+	if ( m_iError ) 
+		return Error ( "Cannot Get PCB Temperature", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
+
+	*pVal = PCBTemp;
+
+	return S_OK;
+}
+int CCCDCamera::HSRImage(double Duration, USHORT * pImage)
+{
+	// 
+	// HSRImage
+	// -------------
+	// 
+	// Syntax
+	//             CCDCamera.HSRImage ( Duration, Image )
+	// Parameters
+	//             Double Duration - Duration of exposure in seconds
+	//             VARIANT Image - Returned image from camrea
+	// Returns
+	//             Boolean - True if successful
+	// Exceptions
+	//             Must throw exception if NumX, NumY, XBin, YBin, StartX, StartY,
+	//               or Duration parameters are invalid.
+	//             Must throw exception if CanAsymmetricBin is False and
+	//               BinX <> BinY
+	//             Must throw exception if the exposure cannot be started for
+	//               any reason, such as a hardware or communications error
+	// 
+	// Remarks
+	// 
+	// Starts an exposure and complete it with an image. Must complete in under 5 seconds.
+	// 
+	if (!m_bIsConnected)
+		return Error ( _T("Not Connected"), IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTCONNECTED) );
+	// Check for previous error
+	if( this->m_iError ) 
+		return Error ( _T("Camera Error"), IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
+	if (!m_DeviceDetails.HasCMD_HSRExposure)
+		return Error ( _T("Not Supported On This Model"), IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTSUPPORTED) );
+	// Make sure image to be exposed (including offsets and binning) isn't greater than the CCD size
+	if ((m_ExposureSettings.ColumnOffset + m_ExposureSettings.ColumnsToRead) * m_ExposureSettings.BinFactorX > m_DeviceDetails.ArrayColumns) 
+		return Error ( _T("Invalid Column Size"), IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_BADROWSIZE) );
+	if ((m_ExposureSettings.RowOffset + m_ExposureSettings.RowsToRead) * m_ExposureSettings.BinFactorY > m_DeviceDetails.ArrayRows) 
+		return Error ( _T("Invalid Row Size"), IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_BADCOLSIZE) );
+	// Make sure binning is within boundaries specified by camera
+	if (m_ExposureSettings.BinFactorX > m_DeviceDetails.MaxHBinning || m_ExposureSettings.BinFactorY > m_DeviceDetails.MaxVBinning) 
+		return Error ( _T("Invalid Binning Mode"), IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_INVALIDBIN) );
+	if (!m_DeviceDetails.AsymBin && (m_ExposureSettings.BinFactorX != m_ExposureSettings.BinFactorY))
+		return Error ( _T("Asymetric Binning Not Allowed"), IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOASYMBIN) );
+	if ((Duration < m_DeviceDetails.minExp || Duration > m_DeviceDetails.maxExp) && Duration != 0.0)
+		return Error ( _T("Invalid Exposure Duration"), IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_BADEXPOSURE) );
+
+	// Save image dimensions as per spec
+	// ColumnsToRead and RowsToRead could be changed by the user
+	// during the exposure
+	m_ExposureNumX = m_ExposureSettings.ColumnsToRead;
+	m_ExposureNumY = m_ExposureSettings.RowsToRead;
+	m_ExposureSettings.OpenShutter      = true;
+
+	// ASCOM requires light paramater to be ignored if no shutter present
+	if (!m_DeviceDetails.HasShutter)
+		m_ExposureSettings.OpenShutter = true;
+
+	// TODO expose properties for:
+	//m_ExposureSettings.FastReadout      = FastReadout;
+	//m_ExposureSettings.HoldShutterOpen  = HoldShutterOpen;
+	m_ExposureSettings.UseExtTrigger    = false;	//TODO
+	m_ExposureSettings.StrobeShutterOutput = false; //TODO
+	m_ExposureSettings.ExpRepeatCount   = 0;		//TODO
+	m_ExposureSettings.ProbeForImplemented = false;
+	m_dLastDuration = Duration;
+
+	// Send command
+	double fExposure;
+	double fFract;
+	double fIntPart;
+
+	fExposure = Duration;					// Float exposure time in second increments
+	fExposure = fExposure * 100;			// Float in 10ms increments
+	fFract = modf(fExposure, &fIntPart);
+
+	m_ExposureSettings.Duration         = static_cast<UINT>(fIntPart + 0.5);
+	m_ExposureSettings.DurationUSec     = static_cast<BYTE>((fFract * 100.0) + 0.5);
+	csQSI.Lock();
+	m_iError = m_QSIInterface.CMD_HSRExposure( m_ExposureSettings, m_AutoZeroData );
+	csQSI.Unlock();
+	if( this->m_iError ) 
+		return Error ( _T("Cannot Start HSR Exposure"), IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
+
+	// Record start time
+	gettimeofday(&m_stStartExposure, NULL);
+	m_DownloadPending = true;
+	m_bExposureTaken = true;
+	m_bImageValid = false;
+	///////////////////////////////////////////////////////////////////
+	// Wait for Image Data, it will just start when camera is ready
+	// This will also read the autozero pixels after the image
+	///////////////////////////////////////////////////////////////////
+	FillImageBuffer(false); // False indicates to need to issue CMD to transfer data/autozero
+	if ( !m_bImageValid) 
+		return Error ( _T("No Image Available"), IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOIMAGEAVAILABLE) );
+
+	USHORT* pSrc = m_pusBuffer;
+	// Adjust zero also copies the data and does any appropriate casting of pixel type.
+	m_iError = m_QSIInterface.AdjustZero(pSrc, pImage, m_ExposureSettings.ColumnsToRead, m_ExposureSettings.RowsToRead,  m_iOverscanAdjustment, m_AutoZeroData.zeroEnable);
+
+	return S_OK;
+}
+
+int CCCDCamera::put_HSRMode(bool newVal)
+{
+	if (!m_bIsConnected )
+		return Error ( _T("Not Connected"), IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTCONNECTED) );
+
+	if (!m_DeviceDetails.HasCMD_HSRExposure)
+		return Error ( _T("Not Supported On This Model"), IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTSUPPORTED) );
+
+	csQSI.Lock();
+	m_QSIInterface.CMD_SetHSRMode( newVal );
+	csQSI.Unlock();
+	
+	return S_OK;
+}
+
+int CCCDCamera::Flush(void)
+{
+	// 
+	// Flush
+	// -------------
+	// 
+	// Syntax
+	//             CCDCamera.Flush ( void )
+	// Parameters
+	//             None
+	// Returns
+	//             Boolean - True if successful
+	// Exceptions
+	//           
+	// 
+	// Remarks
+	// 
+	// Flush the CCD using the Flush Settings and a minimal exposure that does not return data.
+	// 
+	if (!m_bIsConnected)
+		return Error ( _T("Not Connected"), IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTCONNECTED) );
+
+	QSI_ExposureSettings ExposureSettings;
+	ExposureSettings.BinFactorX				= 1;
+	ExposureSettings.BinFactorY				= 1;
+	ExposureSettings.ColumnOffset			= 0;
+	ExposureSettings.ColumnsToRead			= 1;
+	ExposureSettings.RowOffset				= 0;
+	ExposureSettings.RowsToRead				= 1;
+	ExposureSettings.Duration				= 0;		// Zero exposure == Use fastest exposure length
+	ExposureSettings.DurationUSec			= 0;		// Ignored on KAF cameras
+	ExposureSettings.ExpRepeatCount			= 0;		// Ignored by firmware
+	ExposureSettings.OpenShutter			= false;
+	ExposureSettings.FastReadout			= true;		// Ignored by firmware
+	ExposureSettings.HoldShutterOpen		= false;
+	ExposureSettings.UseExtTrigger			= false;
+	ExposureSettings.StrobeShutterOutput	= false;
+	ExposureSettings.ProbeForImplemented	= false;
+
+	csQSI.Lock();
+	if (m_DeviceDetails.HasCMD_StartExposureEx)
+		m_iError = m_QSIInterface.CMD_StartExposureEx( m_ExposureSettings );
+	else
+		m_iError = m_QSIInterface.CMD_StartExposure( m_ExposureSettings );
+	csQSI.Unlock();
+	if( this->m_iError ) 
+		return Error ( _T("Error Flushing Camera"), IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
+
+	CameraState CameraState;
+	do	
+	{
+		get_CameraState(&CameraState);
+	} 
+	while (CameraState != CameraIdle && CameraState != CameraError);
+
+	return S_OK;
+}
+
+int CCCDCamera::EnableTriggerMode( TriggerModeEnum newVal1, TriggerPolarityEnum newVal2)
+{
+	// 
+	// EnableTriggerMode
+	// -------------
+	// 
+	// Syntax
+	//             CCDCamera::EnableTriggerMode(enum TriggerModeEnum newVal1, enum TriggerPolarityEnum newVal2)
+	// Parameters
+	//             None
+	// Returns
+	//             0 is successesful, non-zero on error;
+	// Exceptions
+	//           
+	// 
+	// Remarks
+	// 
+	// Enable the external shutter input trigger mode
+	// 
+
+	if (!m_bIsConnected)
+		return Error( _T("Not Connected"), IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTCONNECTED) );
+
+	if (!m_DeviceDetails.HasCMD_BasicHWTrigger)
+		return Error( _T("Not Supported On This Model"), IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTSUPPORTED) );
+
+	csQSI.Lock();
+	int iResult = m_QSIInterface.CMD_ExtTrigMode((BYTE)newVal1, (BYTE)newVal2);
+	csQSI.Unlock();
+	if (iResult == ERR_IFC_NotSupported)
+		return Error ( _T("Not Supported On This Model"), IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTSUPPORTED) );
+	if (iResult != 0)
+		return Error( _T("Enable Trigger Mode failed."), IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_UNRECOVERABLE) );
+
+	return S_OK;
+}
+
+int CCCDCamera::TerminatePendingTrigger(void)
+{
+	// 
+	// TerminatePendingTrigger
+	// -------------
+	// 
+	// Syntax
+	//             CCCDCamera::TerminatePendingTrigger(void)
+	// Parameters
+	//             None
+	// Returns
+	//             0 is successesful, non-zero on error;
+	// Exceptions
+	//           
+	// 
+	// Remarks
+	// 
+	// Terminate the wait for a pending external trigger (startexposure is in progress)
+	// 
+
+	if (!m_bIsConnected)
+		return Error( _T("Not Connected"), IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTCONNECTED) );
+	if (!m_DeviceDetails.HasCMD_BasicHWTrigger)
+		return Error( _T("Not Supported On This Model"), IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTSUPPORTED) );
+
+	csQSI.Lock();
+	int iResult = m_QSIInterface.CMD_ExtTrigMode(2,0);
+	csQSI.Unlock();
+
+	if (iResult != 0)
+		return Error( _T("Terminate Pending Trigger failed."), IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_UNRECOVERABLE) );
+
+	return S_OK;
+}
+
+int CCCDCamera::CancelTriggerMode(void)
+{
+	// 
+	// CancelTriggerMode
+	// -------------
+	// 
+	// Syntax
+	//             CCCDCamera::CancelTriggerMode(void)
+	// Parameters
+	//             None
+	// Returns
+	//             0 is successesful, non-zero on error;
+	// Exceptions
+	//           
+	// 
+	// Remarks
+	// 
+	// Cancel the wait for external trigger mode
+	// 
+
+	if (!m_bIsConnected)
+		return Error( _T("Not Connected"), IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTCONNECTED) );
+	if (!m_DeviceDetails.HasCMD_BasicHWTrigger)
+		return Error( _T("Not Supported On This Model"), IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTSUPPORTED) );
+
+	csQSI.Lock();
+	int iResult = m_QSIInterface.CMD_ExtTrigMode(0,0);
+	csQSI.Unlock();
+
+	if (iResult != 0)
+		return Error( _T("Cancel External Trigger Mode failed."), IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_UNRECOVERABLE) );
+
+	return S_OK;
+}
+

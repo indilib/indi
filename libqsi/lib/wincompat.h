@@ -15,6 +15,8 @@ REVISION HISTORY
 
 #ifdef __APPLE__
 #include <limits.h>
+#define CString std::string
+typedef char TCHAR;
 #else
 #include <linux/limits.h>
 #endif
@@ -34,6 +36,7 @@ REVISION HISTORY
 #define EnterCriticalSection( x ) pthread_mutex_lock( x )
 #define LeaveCriticalSection( x ) pthread_mutex_unlock( x )
 #define _T( x ) x
+#define DOUBLE double
 
 template <class T>
 std::string StringOf(T object)

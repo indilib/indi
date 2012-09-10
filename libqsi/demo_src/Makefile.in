@@ -34,7 +34,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-bin_PROGRAMS = qsidemo$(EXEEXT)
+bin_PROGRAMS = qsidemo$(EXEEXT) ExternalTrigger$(EXEEXT)
 subdir = demo_src
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -50,6 +50,14 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
+am_ExternalTrigger_OBJECTS =  \
+	ExternalTrigger-ExternalTrigger.$(OBJEXT)
+ExternalTrigger_OBJECTS = $(am_ExternalTrigger_OBJECTS)
+ExternalTrigger_DEPENDENCIES = $(top_builddir)/lib/libqsiapi.la
+ExternalTrigger_LINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CXXLD) \
+	$(ExternalTrigger_CXXFLAGS) $(CXXFLAGS) \
+	$(ExternalTrigger_LDFLAGS) $(LDFLAGS) -o $@
 am_qsidemo_OBJECTS = qsidemo-qsidemo.$(OBJEXT)
 qsidemo_OBJECTS = $(am_qsidemo_OBJECTS)
 qsidemo_DEPENDENCIES = $(top_builddir)/lib/libqsiapi.la
@@ -69,14 +77,13 @@ CXXLD = $(CXX)
 CXXLINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-SOURCES = $(qsidemo_SOURCES)
-DIST_SOURCES = $(qsidemo_SOURCES)
+SOURCES = $(ExternalTrigger_SOURCES) $(qsidemo_SOURCES)
+DIST_SOURCES = $(ExternalTrigger_SOURCES) $(qsidemo_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
-AM_CXXFLAGS = @AM_CXXFLAGS@
 AR = @AR@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
@@ -103,6 +110,10 @@ ECHO_T = @ECHO_T@
 EGREP = @EGREP@
 EXEEXT = @EXEEXT@
 FGREP = @FGREP@
+FTD2XX_CFLAGS = @FTD2XX_CFLAGS@
+FTD2XX_LIBS = @FTD2XX_LIBS@
+FTDI_CFLAGS = @FTDI_CFLAGS@
+FTDI_LIBS = @FTDI_LIBS@
 GREP = @GREP@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
@@ -198,6 +209,13 @@ qsidemo_CXXFLAGS = -g
 qsidemo_LDFLAGS = $(all_libraries) -L$(top_srcdir)/lib -L/usr/local/lib  
 qsidemo_LDADD = $(top_builddir)/lib/libqsiapi.la -ltiff 
 qsidemo_SOURCES = qsidemo.cpp
+ExternalTrigger_CPPFLAGS = $(all_includes) -I$(top_srcdir)/lib -I/usr/local/include
+ExternalTrigger_CXXFLAGS = -g
+ExternalTrigger_LDFLAGS = $(all_libraries) -L$(top_srcdir)/lib -L/usr/local/lib  
+ExternalTrigger_LDADD = $(top_builddir)/lib/libqsiapi.la -ltiff 
+ExternalTrigger_SOURCES = \
+	ExternalTrigger.cpp
+
 all: all-am
 
 .SUFFIXES:
@@ -211,9 +229,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign demo_src/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu demo_src/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --foreign demo_src/Makefile
+	  $(AUTOMAKE) --gnu demo_src/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -275,6 +293,9 @@ clean-binPROGRAMS:
 	list=`for p in $$list; do echo "$$p"; done | sed 's/$(EXEEXT)$$//'`; \
 	echo " rm -f" $$list; \
 	rm -f $$list
+ExternalTrigger$(EXEEXT): $(ExternalTrigger_OBJECTS) $(ExternalTrigger_DEPENDENCIES) 
+	@rm -f ExternalTrigger$(EXEEXT)
+	$(ExternalTrigger_LINK) $(ExternalTrigger_OBJECTS) $(ExternalTrigger_LDADD) $(LIBS)
 qsidemo$(EXEEXT): $(qsidemo_OBJECTS) $(qsidemo_DEPENDENCIES) 
 	@rm -f qsidemo$(EXEEXT)
 	$(qsidemo_LINK) $(qsidemo_OBJECTS) $(qsidemo_LDADD) $(LIBS)
@@ -285,6 +306,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ExternalTrigger-ExternalTrigger.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qsidemo-qsidemo.Po@am__quote@
 
 .cpp.o:
@@ -307,6 +329,20 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(LTCXXCOMPILE) -c -o $@ $<
+
+ExternalTrigger-ExternalTrigger.o: ExternalTrigger.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ExternalTrigger_CPPFLAGS) $(CPPFLAGS) $(ExternalTrigger_CXXFLAGS) $(CXXFLAGS) -MT ExternalTrigger-ExternalTrigger.o -MD -MP -MF $(DEPDIR)/ExternalTrigger-ExternalTrigger.Tpo -c -o ExternalTrigger-ExternalTrigger.o `test -f 'ExternalTrigger.cpp' || echo '$(srcdir)/'`ExternalTrigger.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/ExternalTrigger-ExternalTrigger.Tpo $(DEPDIR)/ExternalTrigger-ExternalTrigger.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='ExternalTrigger.cpp' object='ExternalTrigger-ExternalTrigger.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ExternalTrigger_CPPFLAGS) $(CPPFLAGS) $(ExternalTrigger_CXXFLAGS) $(CXXFLAGS) -c -o ExternalTrigger-ExternalTrigger.o `test -f 'ExternalTrigger.cpp' || echo '$(srcdir)/'`ExternalTrigger.cpp
+
+ExternalTrigger-ExternalTrigger.obj: ExternalTrigger.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ExternalTrigger_CPPFLAGS) $(CPPFLAGS) $(ExternalTrigger_CXXFLAGS) $(CXXFLAGS) -MT ExternalTrigger-ExternalTrigger.obj -MD -MP -MF $(DEPDIR)/ExternalTrigger-ExternalTrigger.Tpo -c -o ExternalTrigger-ExternalTrigger.obj `if test -f 'ExternalTrigger.cpp'; then $(CYGPATH_W) 'ExternalTrigger.cpp'; else $(CYGPATH_W) '$(srcdir)/ExternalTrigger.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/ExternalTrigger-ExternalTrigger.Tpo $(DEPDIR)/ExternalTrigger-ExternalTrigger.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='ExternalTrigger.cpp' object='ExternalTrigger-ExternalTrigger.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ExternalTrigger_CPPFLAGS) $(CPPFLAGS) $(ExternalTrigger_CXXFLAGS) $(CXXFLAGS) -c -o ExternalTrigger-ExternalTrigger.obj `if test -f 'ExternalTrigger.cpp'; then $(CYGPATH_W) 'ExternalTrigger.cpp'; else $(CYGPATH_W) '$(srcdir)/ExternalTrigger.cpp'; fi`
 
 qsidemo-qsidemo.o: qsidemo.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(qsidemo_CPPFLAGS) $(CPPFLAGS) $(qsidemo_CXXFLAGS) $(CXXFLAGS) -MT qsidemo-qsidemo.o -MD -MP -MF $(DEPDIR)/qsidemo-qsidemo.Tpo -c -o qsidemo-qsidemo.o `test -f 'qsidemo.cpp' || echo '$(srcdir)/'`qsidemo.cpp

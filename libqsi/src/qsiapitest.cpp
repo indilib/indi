@@ -47,6 +47,8 @@ int WriteTIFF(unsigned short * buffer, int cols, int rows, char * filename);
 void AdjustImage(unsigned short * buffer, int cols, int rows, unsigned char * out);
 #endif
 
+#define NUMTESTIMAGES 10
+
 	QSICamera cam;
 
 int main(int argc, char** argv)
@@ -202,6 +204,8 @@ int main(int argc, char** argv)
 		std::cout << "Try to connect to camera...\n";
 		cam.put_Connected(true);
 		std::cout << "Camera connected. \n";
+		cam.get_SerialNumber(serial);
+		std::cout << "Serial Number: " + serial + "\n";
 		// Get Model Number
 		cam.get_ModelNumber(modelNumber);
 		std::cout << modelNumber << "\n";
@@ -236,7 +240,8 @@ int main(int argc, char** argv)
 			//cam.put_ReadoutSpeed(QSICamera::HighImageQuality);
 			//
 			QSICamera::ReadoutSpeed speed;
-			if (cam.get_ReadoutSpeed(speed)== QSICamera::HighImageQuality)
+			cam.get_ReadoutSpeed(speed);
+			if (speed == QSICamera::HighImageQuality)
 				std::cout << "Readout Speed set to HighImageQuality. \n";
 			else
 				std::cout << "Readout Speed set to FastReadout. \n";
@@ -345,7 +350,7 @@ int main(int argc, char** argv)
 		cam.get_CoolerOn(&coolerOn);
 		// Enable the cooler
 		cam.put_CoolerOn(true);
-		std::cout << "Coooler On...\n";
+		std::cout << "Cooler On...\n";
 		// Query various camera parameters
 		cam.get_Description(desc);
 		cam.get_ElectronsPerADU(&eADU);
@@ -360,6 +365,7 @@ int main(int argc, char** argv)
 		cam.get_PowerOfTwoBinning(&p2bin);
 		cam.get_SerialNumber(info);
 		cam.get_MinExposureTime( &expTime );
+		std::cout << "Min. Exposure Time: " << expTime << "\n";
 		cam.get_MaxExposureTime( &expTime );
 		// Does the camera have a filer wheel?
 		cam.get_HasFilterWheel(&hasFilters);
@@ -372,8 +378,14 @@ int main(int argc, char** argv)
 			cam.get_FilterCount(filters);
 			// Query the current filter wheel position
 			cam.get_Position(&pos);
-			// Set the filter wheel to position 1 (0 based position)
-			cam.put_Position(4);
+			std::cout << " Initial position: " << pos << "\n";
+			for (int i = 0; i < 5; i++)
+			{
+				// Set the filter wheel to position 1 (0 based position)
+				cam.put_Position(i);
+				cam.get_Position(&pos);
+				std::cout << "Moved to position: " << pos << "\n";
+			}
 			// Allocate arrays for filter names and offsets
 			names = new std::string[filters];
 			offsets = new long[filters];
@@ -498,14 +510,18 @@ int main(int argc, char** argv)
 	try
 	{
 		bool imageReady = false;
-		cam.put_BinX(1);
-		cam.put_BinY(2);
+		cam.put_BinX(4);
+		cam.put_BinY(4);
 		// Image size is specified in binned pixels,
-		// So with 2x binning, the image size is half the imager size
+		// First get the imager size (X axis)
+		cam.get_CameraXSize(&xsize);
+		// Reduce it by the binning factor
+		cam.put_NumX(xsize/4);
 		// First get the imager size (Y axis)
 		cam.get_CameraYSize(&ysize);
 		// Reduce it by the binning factor
-		cam.put_NumY(ysize/2);
+		cam.put_NumY(ysize/4);
+		std::cout << "Start 4x4 binning test\n";
 		result = cam.StartExposure(0.500, true);
 		// Poll for image completed
 		result = cam.get_ImageReady(&imageReady);
@@ -520,6 +536,7 @@ int main(int argc, char** argv)
 		// Retrieve the pending image from the camera
 		result = cam.get_ImageArray(image);
 		delete [] image;
+		std::cout << "4x4 binning test complete\n";
 	}
 	catch (std::runtime_error& err)
 	{
@@ -640,7 +657,7 @@ int main(int argc, char** argv)
 	cam.put_CoolerOn(true);
 	std::cout << "Camera Cooler On...\n";
 	// take 10 test images
-	for (int i = 0; i < 10; i++) //<===============================================================
+	for (int i = 0; i < NUMTESTIMAGES; i++) //<===============================================================
 	{
 
 #ifdef WAITFORTEMP
@@ -700,6 +717,8 @@ int main(int argc, char** argv)
 			break;
 		}
 		std::cout << "Start Exposure Complete.  \nWaiting for Image Ready...\n";
+		cam.get_CCDTemperature(&ccdTemp);
+		std::cout << "CCD Temp: " << ccdTemp << "\n";
 		// Poll for image completed
 		result = cam.get_ImageReady(&imageReady);
 		while(!imageReady)

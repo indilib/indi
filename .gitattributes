@@ -687,6 +687,7 @@ libqsi/config.h.in -text
 libqsi/config.sub -text
 libqsi/configure -text
 libqsi/configure.ac -text
+libqsi/demo_src/ExternalTrigger.cpp -text
 libqsi/demo_src/Makefile.am -text
 libqsi/demo_src/Makefile.in -text
 libqsi/demo_src/qsidemo.cpp -text
@@ -710,7 +711,10 @@ libqsi/lib/HotPixelMap.cpp -text
 libqsi/lib/HotPixelMap.h -text
 libqsi/lib/Makefile.am -text
 libqsi/lib/Makefile.in -text
+libqsi/lib/QSICriticalSection.h -text
 libqsi/lib/QSIError.h -text
+libqsi/lib/QSIFeatures.cpp -text
+libqsi/lib/QSIFeatures.h -text
 libqsi/lib/QSILog.cpp -text
 libqsi/lib/QSILog.h -text
 libqsi/lib/QSI_Global.h -text
