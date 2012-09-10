@@ -1,3 +1,9 @@
+libqsi (6.4.1) precise; urgency=low
+
+  * New upstream release.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Mon, 10 Sep 2012 02:13:28 +0300
+ 
 libqsi (6.0.3-1) unstable; urgency=low
 
   * Packaging for Debian unstable
