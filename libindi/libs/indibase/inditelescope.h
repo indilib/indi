@@ -131,6 +131,8 @@ class INDI::Telescope : public INDI::DefaultDevice
         */
         virtual bool Park();
 
+        virtual bool Abort();
+
 
         //  Since every mount I know of actually uses a serial port for control
         //  We put the serial helper into the base telescope class
@@ -144,36 +146,39 @@ class INDI::Telescope : public INDI::DefaultDevice
         TelescopeStatus TrackState;
 
         //  All telescopes should produce equatorial co-ordinates
-        INumberVectorProperty *EqNV;
+        INumberVectorProperty EqNV;
         INumber EqN[2];
 
         //  And we need a vector to store requests, ie, where are we asked to go
-        INumberVectorProperty *EqReqNV;
+        INumberVectorProperty EqReqNV;
         INumber EqReqN[2];
 
-        ISwitchVectorProperty *CoordSV; //  A switch vector that stores how we should readct
+        ISwitchVectorProperty AbortSV; // Abort motion
+        ISwitch AbortS[1];
+
+        ISwitchVectorProperty CoordSV; //  A switch vector that stores how we should readct
         ISwitch CoordS[3];              //  On a coord_set message, sync, or slew
 
-        ISwitchVectorProperty *ConfigSV; //  A switch vector that stores how we should readct
+        ISwitchVectorProperty ConfigSV; //  A switch vector that stores how we should readct
         ISwitch ConfigS[3];              //  On a coord_set message, sync, or slew
 
-        INumberVectorProperty *LocationNV;   //  A number vector that stores lattitude and longitude
+        INumberVectorProperty LocationNV;   //  A number vector that stores lattitude and longitude
         INumber LocationN[2];
 
-        ISwitchVectorProperty *ParkSV; //  A Switch in the client interface to park the scope
+        ISwitchVectorProperty ParkSV; //  A Switch in the client interface to park the scope
         ISwitch ParkS[1];
 
-        ITextVectorProperty *PortTV; //  A text vector that stores out physical port name
+        ITextVectorProperty PortTV; //  A text vector that stores out physical port name
         IText PortT[1];
 
         ISwitch MovementNSS[2];     // A switch for North/South motion
-        ISwitchVectorProperty *MovementNSSP;
+        ISwitchVectorProperty MovementNSSP;
 
         ISwitch MovementWES[2];     // A switch for West/East motion
-        ISwitchVectorProperty *MovementWESP;
+        ISwitchVectorProperty MovementWESP;
 
         INumber ScopeParametersN[2];
-        INumberVectorProperty *ScopeParametersNP;
+        INumberVectorProperty ScopeParametersNP;
 
 
 };
