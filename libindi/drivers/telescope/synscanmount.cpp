@@ -36,8 +36,6 @@ std::auto_ptr<SynscanMount> synscan(0);
 
 void ISPoll(void *p);
 
-#define isDebug() true
-
 void ISInit()
 {
    static int isInit =0;
@@ -132,7 +130,7 @@ bool SynscanMount::ReadScopeStatus()
     int bytesWritten, bytesRead;
     int numread;
     double ra,dec;
-    int n1,n2;
+    long unsigned int n1,n2;
 
     //IDLog("SynScan Read Status\n");
     //tty_write(PortFD,(unsigned char *)"Ka",2, &bytesWritten);  //  test for an echo
@@ -142,7 +140,7 @@ bool SynscanMount::ReadScopeStatus()
     if(str[1] != '#')
     {
         //  this is not a correct echo
-        //if (isDebug())
+        if (isDebug())
             IDLog("ReadStatus Echo Fail. %s\n", str);
         IDMessage(getDeviceName(),"Mount Not Responding");
         return false;
@@ -193,9 +191,16 @@ bool SynscanMount::ReadScopeStatus()
         IDLog("read status bytes didn't get a full read\n");
         return false;
     }
+
+    if (isDebug())
+        IDLog("Bytes read is (%s)\n", str);
     // bytes read is as expected
-    sscanf((char *)str,"%x",&n1);
-    sscanf((char *)&str[9],"%x",&n2);
+    //sscanf((char *)str,"%x",&n1);
+    //sscanf((char *)&str[9],"%x",&n2);
+
+    // JM read as unsigned long int, otherwise we get negative RA!
+    sscanf(str, "%lx,%lx#", &n1, &n2);
+
     ra=(double)n1/0x100000000*24.0;
     dec=(double)n2/0x100000000*360.0;
     NewRaDec(ra,dec);
@@ -274,4 +279,25 @@ bool SynscanMount::Park()
     TrackState=SCOPE_PARKING;
     IDMessage(getDeviceName(),"Parking Telescope...");
     return true;
+}
+
+bool  SynscanMount::Abort()
+{
+    char str[20];
+    int bytesWritten, bytesRead;
+
+    tty_write(PortFD,"M",1, &bytesWritten);
+
+    // Try 3 times
+    for (int i=0; i < 3; i++)
+    {
+        tty_read(PortFD,str,1,1, &bytesRead);  //  Read 1 bytes of response
+        if(bytesRead == 1 && str[0] == '#')
+            return true;
+
+        usleep(100000);
+    }
+
+    return false;
+
 }
