@@ -50,28 +50,28 @@ class QSICCD : public INDI::CCD, public INDI::FilterInterface
     QSICamera QSICam;
 
     ISwitch ResetS[1];
-    ISwitchVectorProperty *ResetSP;
+    ISwitchVectorProperty ResetSP;
 
     INumber CoolerN[1];
-    INumberVectorProperty *CoolerNP;
+    INumberVectorProperty CoolerNP;
 
     ISwitch CoolerS[2];
-    ISwitchVectorProperty *CoolerSP;
+    ISwitchVectorProperty CoolerSP;
 
     ISwitch ShutterS[2];
-    ISwitchVectorProperty *ShutterSP;
+    ISwitchVectorProperty ShutterSP;
 
     INumber TemperatureRequestN[1];
-    INumberVectorProperty *TemperatureRequestNP;
+    INumberVectorProperty TemperatureRequestNP;
 
     INumber TemperatureN[1];
-    INumberVectorProperty *TemperatureNP;
+    INumberVectorProperty TemperatureNP;
 
     ISwitch FilterS[2];
-    ISwitchVectorProperty *FilterSP;
+    ISwitchVectorProperty FilterSP;
 
     ISwitch ReadOutS[2];
-    ISwitchVectorProperty *ReadOutSP;
+    ISwitchVectorProperty ReadOutSP;
 
     bool canAbort;
     short targetFilter;
