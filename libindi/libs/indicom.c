@@ -683,6 +683,7 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
  if ( (t_fd = open(device, O_RDWR | O_NOCTTY )) == -1)
  {
      *fd = -1;
+
     return TTY_PORT_FAILURE;
  }
 
@@ -916,7 +917,7 @@ void tty_error_msg(int err_code, char *err_msg, int err_msg_len)
 		break;
 
 	case TTY_PORT_FAILURE:
-		snprintf(error_string, 512, "Port failure Error: %s", strerror(errno));
+        snprintf(error_string, 512, "Port failure Error: %s. Try adding your user to the dialout group and restart. (sudo adduser $username dialout)", strerror(errno));
 		strncpy(err_msg, error_string, err_msg_len);
 		break;
 
