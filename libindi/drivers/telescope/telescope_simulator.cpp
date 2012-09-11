@@ -116,16 +116,6 @@ bool ScopeSim::initProperties()
     /* Make sure to init parent properties first */
     INDI::Telescope::initProperties();
 
-    /* Property for guider support. How many seconds to guide either northward or southward? */
-    IUFillNumber(&GuideNSN[GUIDE_NORTH], "TIMED_GUIDE_N", "North (sec)", "%g", 0, 10, 0.001, 0);
-    IUFillNumber(&GuideNSN[GUIDE_SOUTH], "TIMED_GUIDE_S", "South (sec)", "%g", 0, 10, 0.001, 0);
-    IUFillNumberVector(&GuideNSNP, GuideNSN, 2, getDeviceName(), "TELESCOPE_TIMED_GUIDE_NS", "Guide North/South", MOTION_TAB, IP_RW, 0, IPS_IDLE);
-
-    /* Property for guider support. How many seconds to guide either westward or eastward? */
-    IUFillNumber(&GuideWEN[GUIDE_WEST], "TIMED_GUIDE_W", "West (sec)", "%g", 0, 10, 0.001, 0);
-    IUFillNumber(&GuideWEN[GUIDE_EAST], "TIMED_GUIDE_E", "East (sec)", "%g", 0, 10, 0.001, 0);
-    IUFillNumberVector(&GuideWENP, GuideWEN, 2, getDeviceName(), "TELESCOPE_TIMED_GUIDE_WE", "Guide West/East", MOTION_TAB, IP_RW, 0, IPS_IDLE);
-
     /* Simulated periodic error in RA, DEC */
     IUFillNumber(&EqPECN[RA_AXIS],"RA_PEC","RA (hh:mm:ss)","%010.6m",0,24,0,15.);
     IUFillNumber(&EqPECN[DEC_AXIS],"DEC_PEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,15.);
@@ -152,6 +142,8 @@ bool ScopeSim::initProperties()
 
     TrackState=SCOPE_IDLE;
 
+    initGuiderProperties(getDeviceName(), MOTION_TAB);
+
     /* Add debug controls so we may debug driver if necessary */
     addDebugControl();
 
@@ -165,8 +157,8 @@ void ScopeSim::ISGetProperties (const char *dev)
 
     if(isConnected())
     {
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
+        defineNumber(&GuideNSP);
+        defineNumber(&GuideEWP);
         defineNumber(&GuideRateNP);
         defineNumber(&EqPECNV);
         defineSwitch(&PECErrNSSP);
@@ -182,8 +174,8 @@ bool ScopeSim::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
+        defineNumber(&GuideNSP);
+        defineNumber(&GuideEWP);
         defineNumber(&GuideRateNP);
         defineNumber(&EqPECNV);
         defineSwitch(&PECErrNSSP);
@@ -192,8 +184,8 @@ bool ScopeSim::updateProperties()
     }
     else
     {
-        deleteProperty(GuideNSNP.name);
-        deleteProperty(GuideWENP.name);
+        deleteProperty(GuideNSP.name);
+        deleteProperty(GuideEWP.name);
         deleteProperty(EqPECNV.name);
         deleteProperty(PECErrNSSP.name);
         deleteProperty(PECErrWESP.name);
@@ -355,76 +347,61 @@ bool ScopeSim::ReadScopeStatus()
     case SCOPE_TRACKING:
         /* tracking */
 
-        if (GuideNSN[GUIDE_NORTH].value > 0)
+        dt *= 1000;
+        if (guiderNSTarget[GUIDE_NORTH] > 0)
         {
             if (isDebug())
-                IDLog("  ****** Commanded to GUIDE NORTH for %g ms *****\n", GuideNSN[GUIDE_NORTH].value*1000);
+                IDLog("  ****** Commanded to GUIDE NORTH for %g ms *****\n", guiderNSTarget[GUIDE_NORTH]);
             ns_guide_dir = GUIDE_NORTH;
         }
-        else if (GuideNSN[GUIDE_SOUTH].value > 0)
+        else if (guiderNSTarget[GUIDE_SOUTH] > 0)
         {
             if (isDebug())
-                IDLog("  ****** Commanded to GUIDE SOUTH for %g ms *****\n", GuideNSN[GUIDE_SOUTH].value*1000);
+                IDLog("  ****** Commanded to GUIDE SOUTH for %g ms *****\n", guiderNSTarget[GUIDE_SOUTH]);
             ns_guide_dir = GUIDE_SOUTH;
         }
 
         // WE Guide Selection
-        if (GuideWEN[GUIDE_WEST].value > 0)
+        if (guiderEWTarget[GUIDE_WEST] > 0)
         {
             we_guide_dir = GUIDE_WEST;
             if (isDebug())
-            IDLog("  ****** Commanded to GUIDE WEST for %g ms ****** \n", GuideWEN[GUIDE_WEST].value*1000);
+            IDLog("  ****** Commanded to GUIDE WEST for %g ms ****** \n", guiderEWTarget[GUIDE_WEST]);
         }
-        else if (GuideWEN[GUIDE_EAST].value > 0)
+        else if (guiderEWTarget[GUIDE_EAST] > 0)
         {
             we_guide_dir = GUIDE_EAST;
             if (isDebug())
-               IDLog(" ****** Commanded to GUIDE EAST for %g ms  ****** \n", GuideWEN[GUIDE_EAST].value*1000);
+               IDLog(" ****** Commanded to GUIDE EAST for %g ms  ****** \n", guiderEWTarget[GUIDE_EAST]);
         }
 
         if (ns_guide_dir != -1)
         {
 
-            dec_guide_dt =  SID_RATE * GuideRateN[DEC_AXIS].value * GuideNSN[ns_guide_dir].value * (ns_guide_dir==GUIDE_NORTH ? 1 : -1);
+            dec_guide_dt =  SID_RATE * GuideRateN[DEC_AXIS].value * guiderNSTarget[ns_guide_dir]/1000.0 * (ns_guide_dir==GUIDE_NORTH ? 1 : -1);
 
             // If time remaining is more that dt, then decrement and
-          if (GuideNSN[ns_guide_dir].value >= dt)
-              GuideNSN[ns_guide_dir].value -= dt;
+          if (guiderNSTarget[ns_guide_dir] >= dt)
+              guiderNSTarget[ns_guide_dir] -= dt;
           else              
-              GuideNSN[ns_guide_dir].value = 0;
+              guiderNSTarget[ns_guide_dir] = 0;
 
           EqPECN[DEC_AXIS].value += dec_guide_dt;
 
-            if (GuideNSN[ns_guide_dir].value <= 0)
-            {
-                GuideNSN[GUIDE_NORTH].value = GuideNSN[GUIDE_SOUTH].value = 0;
-                GuideNSNP.s = IPS_OK;
-                IDSetNumber(&GuideNSNP, NULL);
-            }
-            else
-                IDSetNumber(&GuideNSNP, NULL);
           }
 
         if (we_guide_dir != -1)
         {
 
-            ra_guide_dt = SID_RATE/15.0 * GuideRateN[RA_AXIS].value * GuideWEN[we_guide_dir].value* (we_guide_dir==GUIDE_WEST ? -1 : 1);
+            ra_guide_dt = SID_RATE/15.0 * GuideRateN[RA_AXIS].value * guiderEWTarget[we_guide_dir]/1000.0 * (we_guide_dir==GUIDE_WEST ? -1 : 1);
 
-          if (GuideWEN[we_guide_dir].value >= dt)
-                GuideWEN[we_guide_dir].value -= dt;
+          if (guiderEWTarget[we_guide_dir] >= dt)
+                guiderEWTarget[we_guide_dir] -= dt;
           else
-                GuideWEN[we_guide_dir].value = 0;
+                guiderEWTarget[we_guide_dir] = 0;
 
           EqPECN[RA_AXIS].value += ra_guide_dt;
 
-            if (GuideWEN[we_guide_dir].value <= 0)
-            {
-                GuideWEN[GUIDE_WEST].value = GuideWEN[GUIDE_EAST].value = 0;
-                GuideWENP.s = IPS_OK;
-                IDSetNumber(&GuideWENP, NULL);
-            }
-            else
-                IDSetNumber(&GuideWENP, NULL);
           }
 
 
@@ -530,39 +507,6 @@ bool ScopeSim::ISNewNumber (const char *dev, const char *name, double values[], 
 
     if(strcmp(dev,getDeviceName())==0)
     {
-        //  This is for our device
-        //  Now lets see if it's something we process here
-         if(strcmp(name,"TELESCOPE_TIMED_GUIDE_NS")==0)
-         {
-
-             // Unless we're in track mode, we don't obey guide commands.
-             //if (TrackState != SCOPE_TRACKING)
-             //{
-                // GuideNSNP.s = IPS_IDLE;
-                 //IDSetNumber(&GuideNSNP, NULL);
-                 //return true;
-             //}
-
-             IUUpdateNumber(&GuideNSNP, values, names, n);
-
-           return true;
-         }
-
-         if(strcmp(name,"TELESCOPE_TIMED_GUIDE_WE")==0)
-         {
-             // Unless we're in track mode, we don't obey guide commands.
-             //if (TrackState != SCOPE_TRACKING)
-             //{
-                 //GuideWENP.s = IPS_IDLE;
-                 //IDSetNumber(&GuideWENP, NULL);
-                 //return true;
-             //}
-
-             IUUpdateNumber(&GuideWENP, values, names, n);
-
-           return true;
-         }
-
          if(strcmp(name,"GUIDE_RATE")==0)
          {
              IUUpdateNumber(&GuideRateNP, values, names, n);
@@ -571,7 +515,15 @@ bool ScopeSim::ISNewNumber (const char *dev, const char *name, double values[], 
              return true;
          }
 
+         if (!strcmp(name,GuideNSP.name) || !strcmp(name,GuideEWP.name))
+         {
+             processGuiderProperties(name, values, names, n);
+             return true;
+         }
+
     }
+
+
 
     //  if we didn't process it, continue up the chain, let somebody else
     //  give it a shot
@@ -754,6 +706,38 @@ bool ScopeSim::MoveWE(TelescopeMotionWE dir)
       break;
     }
 
+    return true;
+
+}
+
+bool ScopeSim::GuideNorth(float ms)
+{
+    guiderNSTarget[GUIDE_NORTH] = ms;
+    guiderNSTarget[GUIDE_SOUTH] = 0;
+    return true;
+}
+
+bool ScopeSim::GuideSouth(float ms)
+{
+    guiderNSTarget[GUIDE_SOUTH] = ms;
+    guiderNSTarget[GUIDE_NORTH] = 0;
+    return true;
+
+}
+
+bool ScopeSim::GuideEast(float ms)
+{
+
+    guiderEWTarget[GUIDE_EAST] = ms;
+    guiderEWTarget[GUIDE_WEST] = 0;
+    return true;
+
+}
+
+bool ScopeSim::GuideWest(float ms)
+{
+    guiderEWTarget[GUIDE_WEST] = ms;
+    guiderEWTarget[GUIDE_EAST] = 0;
     return true;
 
 }

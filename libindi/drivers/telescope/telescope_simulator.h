@@ -1,10 +1,12 @@
 #ifndef SCOPESIM_H
 #define SCOPESIM_H
 
+#include "indibase/indiguiderinterface.h"
 #include "indibase/inditelescope.h"
 
 
-class ScopeSim : public INDI::Telescope
+
+class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
 {
     protected:
     private:
@@ -15,11 +17,14 @@ class ScopeSim : public INDI::Telescope
 
         bool Parked;
 
-        INumber GuideNSN[2];
+       /* INumber GuideNSN[2];
         INumberVectorProperty GuideNSNP;
 
         INumber GuideWEN[2];
-        INumberVectorProperty GuideWENP;
+        INumberVectorProperty GuideWENP;*/
+
+        double guiderEWTarget[2];
+        double guiderNSTarget[2];
 
         INumber GuideRateN[2];
         INumberVectorProperty GuideRateNP;
@@ -52,6 +57,11 @@ class ScopeSim : public INDI::Telescope
         virtual bool MoveNS(TelescopeMotionNS dir);
         virtual bool MoveWE(TelescopeMotionWE dir);
         virtual bool Abort();
+
+        virtual bool GuideNorth(float ms);
+        virtual bool GuideSouth(float ms);
+        virtual bool GuideEast(float ms);
+        virtual bool GuideWest(float ms);
 
         bool Goto(double,double);
         bool Park();
