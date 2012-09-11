@@ -172,8 +172,8 @@ bool RoboFocus::initProperties()
     IUFillNumber(&RelMovementN[0], "RELMOVEMENT", "Ticks", "%6.0f", -65000., 65000., 0., 100. );
     IUFillNumberVector(&RelMovementNP, RelMovementN, 1, getDeviceName(), "FOCUS_RELMOVEMENT", "Relative GoTo", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
-    IUFillNumber(&AbsMovementN[0], "ABSMOVEMENT", "Tick", "%6.0f", 0, 65000., 0., 10000.);
-    IUFillNumberVector(&AbsMovementNP, AbsMovementN, 1, getDeviceName(), "FOCUS_ABSMOVEMENT", "Absolute GoTo", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumber(&AbsMovementN[0], "FOCUS_ABSOLUTE_POSITION", "Tick", "%6.0f", 0, 65000., 0., 10000.);
+    IUFillNumberVector(&AbsMovementNP, AbsMovementN, 1, getDeviceName(), "FOCUS_POSITION", "Absolute GoTo", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
 
     addDebugControl();
@@ -1117,84 +1117,6 @@ bool RoboFocus::ISNewNumber (const char *dev, const char *name, double values[],
 
 
 
-        if (!strcmp (name, AbsMovementNP.name))
-        {
-
-          double new_apos = 0 ;
-          int nset = 0;
-          int ret= -1 ;
-
-          for (nset = i = 0; i < n; i++)
-          {
-            /* Find numbers with the passed names in the AbsMovementNP property */
-            INumber *eqp = IUFindNumber (&AbsMovementNP, names[i]);
-
-            /* If the number found is AbsMovement (AbsMovementN[0]) then process it */
-            if (eqp == &AbsMovementN[0]){
-
-              new_apos = (values[i]);
-
-              /* limits are absolute to the actual position */
-              nset += new_apos >= 0 && new_apos <= 0xffff;
-            }
-
-            if (nset == 1)
-            {
-
-              /* Set the robofocus state to BUSY */
-              AbsMovementNP.s = IPS_BUSY;
-              IDSetNumber(&AbsMovementNP, NULL);
-
-              if((new_apos < currentMinPosition) || (new_apos > currentMaxPosition))
-              {
-
-                AbsMovementNP.s = IPS_ALERT ;
-                IDSetNumber(&AbsMovementNP, "Value out of limits  %5.0f", new_apos);
-                return false ;
-              }
-
-              if(( ret= updateRFPositionAbsolute(&new_apos)) < 0)
-              {
-
-                AbsMovementNP.s = IPS_IDLE;
-                IDSetNumber(&AbsMovementNP, "Read out of the absolute movement failed %3d, trying to recover position.", ret);
-
-                if((ret= updateRFPosition(&currentPosition)) < 0)
-                {
-
-                  PositionNP.s = IPS_ALERT;
-                  IDSetNumber(&PositionNP, "Unknown error while reading  Robofocus position: %d.", ret);
-
-                  return false;
-                }
-
-                PositionNP.s = IPS_OK;
-                IDSetNumber(&PositionNP, "Robofocus position recovered %5.0f", currentPosition);
-                IDMessage( getDeviceName(), "Robofocus position recovered resuming normal operation");
-                /* We have to leave here, because new_apos is not set */
-                return false;
-              }
-
-              currentAbsoluteMovement=  currentPosition ;
-              AbsMovementNP.s = IPS_OK;
-              IDSetNumber(&AbsMovementNP, NULL) ;
-
-              PositionNP.s = IPS_OK;
-              currentPosition= new_apos ;
-              IDSetNumber(&PositionNP,  "Absolute position was  %5.0f", currentAbsoluteMovement);
-              return true;
-
-            } else
-            {
-
-              AbsMovementNP.s = IPS_IDLE;
-              IDSetNumber(&RelMovementNP, "Need exactly one parameter.");
-
-              return false;
-            }
-          }
-        }
-
 
 
         if (!strcmp (name, SetBacklashNP.name))
@@ -1582,5 +1504,41 @@ bool RoboFocus::Move(FocusDirection dir, int speed, int duration)
 
    return true;
 }
+
+
+bool RoboFocus::MoveAbs(int targetTicks)
+{
+    int ret= -1 ;
+    double new_apos = targetTicks;
+
+    if (targetTicks < FocusAbsPosN[0].min || targetTicks > FocusAbsPosN[0].max)
+    {
+        IDMessage(getDeviceName(), "Error, requested absolute position is out of range.");
+        return false;
+    }
+
+    IDMessage(getDeviceName() , "Focuser is moving to requested position...");
+
+    if(( ret= updateRFPositionAbsolute(&new_apos)) < 0)
+    {
+
+        IDMessage(getDeviceName(), "Read out of the absolute movement failed %3d, trying to recover position.", ret);
+
+      if((ret= updateRFPosition(&currentPosition)) < 0)
+      {
+          IDMessage(getDeviceName(),"Unknown error while reading  Robofocus position: %d.", ret);
+           return false;
+      }
+
+      IDMessage( getDeviceName(), "Robofocus position recovered resuming normal operation");
+      /* We have to leave here, because new_apos is not set */
+      return false;
+    }
+
+
+    return true;
+}
+
+
 
 

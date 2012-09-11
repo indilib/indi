@@ -41,6 +41,7 @@ public:
     virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
     virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
     virtual bool Move(FocusDirection dir, int speed, int duration);
+    virtual bool MoveAbs(int ticks);
 
 private:
 

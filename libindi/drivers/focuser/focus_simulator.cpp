@@ -31,6 +31,7 @@ std::auto_ptr<FocusSim> focusSim(0);
 
 #define SIM_SEEING  0
 #define SIM_FWHM    1
+#define FOCUS_MOTION_DELAY  100                /* Focuser takes 100 microsecond to move for each step, completing 100,000 steps in 10 seconds */
 
 void ISPoll(void *p);
 
@@ -267,11 +268,17 @@ bool FocusSim::MoveAbs(int targetTicks)
 
     double mid = (FocusAbsPosN[0].max - FocusAbsPosN[0].min)/2;
 
+    IDMessage(getDeviceName() , "Focuser is moving to requested position...");
+
     // Limit to +/- 10 from initTicks
     ticks = initTicks + (targetTicks - mid) / 5000.0;
 
     if (isDebug())
         IDLog("Current ticks: %g\n", ticks);
+
+    // simulate delay in motion as the focuser moves to the new position
+
+    usleep( abs(targetTicks - FocusAbsPosN[0].value) * FOCUS_MOTION_DELAY);
 
     FWHMN[0].value = 0.5625*ticks*ticks +  SeeingN[0].value;
 
