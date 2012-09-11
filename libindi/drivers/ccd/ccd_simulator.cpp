@@ -800,7 +800,7 @@ bool CCDSim::GuideNorth(float v)
 {
     float c;
 
-    c=v*GuideRate;  //
+    c=v/1000*GuideRate;  //
     c=c/3600;
     decPEC=decPEC+c;
 
@@ -810,7 +810,7 @@ bool CCDSim::GuideSouth(float v)
 {
     float c;
 
-    c=v*GuideRate;  //
+    c=v/1000*GuideRate;  //
     c=c/3600;
     decPEC=decPEC-c;
 
@@ -821,7 +821,7 @@ bool CCDSim::GuideEast(float v)
 {
     float c;
 
-    c=v*GuideRate;
+    c=v/1000*GuideRate;
     c=c/3600.0/15.0;
     c=c/(cos(decPEC*0.0174532925));
     raPEC=raPEC+c;
@@ -832,7 +832,7 @@ bool CCDSim::GuideWest(float v)
 {
     float c;
 
-    c=v*GuideRate;  //
+    c=v/1000*GuideRate;  //
     c=c/3600.0/15.0;
     c=c/(cos(decPEC*0.0174532925));
     raPEC=raPEC-c;
