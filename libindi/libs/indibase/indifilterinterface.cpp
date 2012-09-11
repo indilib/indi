@@ -22,8 +22,6 @@
 
 INDI::FilterInterface::FilterInterface()
 {
-    FilterSlotNP = new INumberVectorProperty;
-    FilterNameTP = new ITextVectorProperty;
     FilterNameT  = NULL;
     MinFilter = MaxFilter = 0;
 }
@@ -31,7 +29,7 @@ INDI::FilterInterface::FilterInterface()
 void INDI::FilterInterface::initFilterProperties(const char *deviceName, const char* groupName)
 {
     IUFillNumber(&FilterSlotN[0],"FILTER_SLOT_VALUE","Filter","%3.0f",1.0,12.0,1.0,1.0);
-    IUFillNumberVector(FilterSlotNP,FilterSlotN,1,deviceName,"FILTER_SLOT","Filter",groupName,IP_RW,60,IPS_IDLE);
+    IUFillNumberVector(&FilterSlotNP,FilterSlotN,1,deviceName,"FILTER_SLOT","Filter",groupName,IP_RW,60,IPS_IDLE);
 }
 
 INDI::FilterInterface::~FilterInterface()
@@ -44,10 +42,10 @@ void INDI::FilterInterface::SelectFilterDone(int f)
     //  The hardware has finished changing
     //  filters
     FilterSlotN[0].value=f;
-    FilterSlotNP->s=IPS_OK;
+    FilterSlotNP.s=IPS_OK;
     // Tell the clients we are done, and
     //  filter is now useable
-    IDSetNumber(FilterSlotNP,NULL);
+    IDSetNumber(&FilterSlotNP,NULL);
 }
 
 

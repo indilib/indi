@@ -48,10 +48,10 @@ void INDI::FilterWheel::ISGetProperties (const char *dev)
     DefaultDevice::ISGetProperties(dev);
     if(isConnected())
     {
-        defineNumber(FilterSlotNP);
+        defineNumber(&FilterSlotNP);
 
         if (GetFilterNames(FILTER_TAB))
-            defineText(FilterNameTP);
+            defineText(&FilterNameTP);
     }
     return;
 }
@@ -64,13 +64,13 @@ bool INDI::FilterWheel::updateProperties()
     if(isConnected())
     {
         //initFilterProperties(getDeviceName(), FILTER_TAB);
-        defineNumber(FilterSlotNP);
+        defineNumber(&FilterSlotNP);
         if (GetFilterNames(FILTER_TAB))
-            defineText(FilterNameTP);
+            defineText(&FilterNameTP);
     } else
     {
-        deleteProperty(FilterSlotNP->name);
-        deleteProperty(FilterNameTP->name);
+        deleteProperty(FilterSlotNP.name);
+        deleteProperty(FilterNameTP.name);
     }
 
     return true;
@@ -109,8 +109,8 @@ bool INDI::FilterWheel::ISNewNumber (const char *dev, const char *name, double v
             {
                 //IDLog("Filter wheel got a filter slot change\n");
                 //  tell the client we are busy changing the filter
-                FilterSlotNP->s=IPS_BUSY;
-                IDSetNumber(FilterSlotNP,NULL);
+                FilterSlotNP.s=IPS_BUSY;
+                IDSetNumber(&FilterSlotNP,NULL);
                 //  Tell the hardware to change
                 SelectFilter(f);
                 //  tell the caller we processed this
@@ -132,19 +132,19 @@ bool INDI::FilterWheel::ISNewText (const char *dev, const char *name, char *text
     {
         //  This is for our device
         //  Now lets see if it's something we process here
-        if(strcmp(name,FilterNameTP->name)==0)
+        if(strcmp(name,FilterNameTP.name)==0)
         {
             int rc;
             //IDLog("calling update text\n");
-            FilterNameTP->s=IPS_OK;
-            rc=IUUpdateText(FilterNameTP,texts,names,n);
+            FilterNameTP.s=IPS_OK;
+            rc=IUUpdateText(&FilterNameTP,texts,names,n);
 
             if (SetFilterNames() == true)
-                IDSetText(FilterNameTP,NULL);
+                IDSetText(&FilterNameTP,NULL);
             else
             {
-                FilterNameTP->s = IPS_ALERT;
-                IDSetText(FilterNameTP, "Error updating names of filters.");
+                FilterNameTP.s = IPS_ALERT;
+                IDSetText(&FilterNameTP, "Error updating names of filters.");
             }
             //  We processed this one, so, tell the world we did it
             return true;

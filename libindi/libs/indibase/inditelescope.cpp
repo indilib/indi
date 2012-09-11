@@ -30,6 +30,7 @@
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <termios.h>
+#include <errno.h>
 
 #define POLLMS 1000
 
@@ -219,25 +220,25 @@ bool INDI::Telescope::Abort()
 bool INDI::Telescope::Sync(double ra,double dec)
 {
     //  if we get here, our mount doesn't support sync
-    IDMessage(getDeviceName(),"Mount does not support Sync");
+    IDMessage(getDeviceName(),"Mount does not support Sync.");
     return false;
 }
 
 bool INDI::Telescope::MoveNS(TelescopeMotionNS dir)
 {
-    IDMessage(getDeviceName(),"Mount does not support North/South motion");
+    IDMessage(getDeviceName(),"Mount does not support North/South motion.");
     IUResetSwitch(&MovementNSSP);
     MovementNSSP.s = IPS_IDLE;
-    IUResetSwitch(&MovementNSSP);
+    IDSetSwitch(&MovementNSSP, NULL);
     return false;
 }
 
 bool INDI::Telescope::MoveWE(TelescopeMotionWE dir)
 {
-    IDMessage(getDeviceName(),"Mount does not support West/East motion");
+    IDMessage(getDeviceName(),"Mount does not support West/East motion.");
     IUResetSwitch(&MovementWESP);
     MovementWESP.s = IPS_IDLE;
-    IUResetSwitch(&MovementWESP);
+    IDSetSwitch(&MovementWESP, NULL);
     return false;
 }
 
@@ -512,7 +513,8 @@ bool INDI::Telescope::Disconnect()
     //  because clients can screw each other up if we allow that
     //Connected=false;
 
-	IDLog("IndiTelescope Disconnect\n");
+    if (isDebug())
+        IDLog("INDI::Telescope Disconnect\n");
 
     close(PortFD);
     IDMessage(getDeviceName(),"Telescope is offline.");
@@ -536,6 +538,7 @@ void INDI::Telescope::TimerHit()
             EqNV.s=IPS_ALERT;
             IDSetNumber(&EqNV, NULL);
         }      
+        else EqNV.s=IPS_OK;
 
         SetTimer(POLLMS);
     }

@@ -75,10 +75,10 @@ protected:
     */
     void initFilterProperties(const char *deviceName, const char* groupName);
 
-    INumberVectorProperty *FilterSlotNP;   //  A number vector for filter slot
+    INumberVectorProperty FilterSlotNP;   //  A number vector for filter slot
     INumber FilterSlotN[1];
 
-    ITextVectorProperty *FilterNameTP; //  A text vector that stores out physical port name
+    ITextVectorProperty FilterNameTP; //  A text vector that stores out physical port name
     IText *FilterNameT;
 
     int MinFilter;

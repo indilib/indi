@@ -297,8 +297,8 @@ bool INDI::CCD::updateProperties()
         }
         if(HasSt4Port)
         {
-            defineNumber(GuideNSP);
-            defineNumber(GuideEWP);
+            defineNumber(&GuideNSP);
+            defineNumber(&GuideEWP);
         }
         defineSwitch(PrimaryCCD.FrameTypeSP);
         defineText(ActiveDeviceTP);
@@ -321,8 +321,8 @@ bool INDI::CCD::updateProperties()
         }
         if(HasSt4Port)
         {
-            deleteProperty(GuideNSP->name);
-            deleteProperty(GuideEWP->name);
+            deleteProperty(GuideNSP.name);
+            deleteProperty(GuideEWP.name);
 
         }
         deleteProperty(PrimaryCCD.FrameTypeSP->name);
@@ -520,56 +520,9 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
             return true;
         }
 
-        if(strcmp(name,GuideNSP->name)==0)
+        if (!strcmp(name,GuideNSP.name) || !strcmp(name,GuideEWP.name))
         {
-            //  We are being asked to send a guide pulse north/south on the st4 port
-            GuideNSP->s=IPS_BUSY;
-            IUUpdateNumber(GuideNSP,values,names,n);
-            //  Update client display
-            IDSetNumber(GuideNSP,NULL);
-
-            if (isDebug())
-                fprintf(stderr,"GuideNorthSouth set to %7.3f,%7.3f\n", GuideNS[0].value,GuideNS[1].value);
-
-            if(GuideNS[0].value != 0)
-            {
-                GuideNorth(GuideNS[0].value);
-            }
-            if(GuideNS[1].value != 0) {
-                GuideSouth(GuideNS[1].value);
-            }
-            GuideNS[0].value=0;
-            GuideNS[1].value=0;
-            GuideNSP->s=IPS_OK;
-            IDSetNumber(GuideNSP,NULL);
-
-            return true;
-        }
-
-        if(strcmp(name,GuideEWP->name)==0)
-        {
-            //  We are being asked to send a guide pulse north/south on the st4 port
-            GuideEWP->s=IPS_BUSY;
-            IUUpdateNumber(GuideEWP,values,names,n);
-            //  Update client display
-            IDSetNumber(GuideEWP,NULL);
-
-            if (isDebug())
-                fprintf(stderr,"GuiderEastWest set to %6.3f,%6.3f\n", GuideEW[0].value,GuideEW[1].value);
-
-            if(GuideEW[0].value != 0)
-            {
-                GuideEast(GuideEW[0].value);
-            } else
-            {
-                GuideWest(GuideEW[1].value);
-            }
-
-            GuideEW[0].value=0;
-            GuideEW[1].value=0;
-            GuideEWP->s=IPS_OK;
-            IDSetNumber(GuideEWP,NULL);
-
+            processGuiderProperties(name, values, names, n);
             return true;
         }
 

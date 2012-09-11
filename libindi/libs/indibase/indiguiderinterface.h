@@ -66,10 +66,12 @@ protected:
     */
     void initGuiderProperties(const char *deviceName, const char* groupName);
 
+    void processGuiderProperties(const char *name, double values[], char *names[], int n);
+
     INumber GuideNS[2];
-    INumberVectorProperty *GuideNSP;
+    INumberVectorProperty GuideNSP;
     INumber GuideEW[2];
-    INumberVectorProperty *GuideEWP;
+    INumberVectorProperty GuideEWP;
 };
 
 #endif // GUIDERINTERFACE_H
