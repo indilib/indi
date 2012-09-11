@@ -286,18 +286,13 @@ bool  SynscanMount::Abort()
     char str[20];
     int bytesWritten, bytesRead;
 
+    // Hmmm twice only stops it
     tty_write(PortFD,"M",1, &bytesWritten);
+    tty_read(PortFD,str,1,1, &bytesRead);  //  Read 1 bytes of response
 
-    // Try 3 times
-    for (int i=0; i < 3; i++)
-    {
-        tty_read(PortFD,str,1,1, &bytesRead);  //  Read 1 bytes of response
-        if(bytesRead == 1 && str[0] == '#')
-            return true;
 
-        usleep(100000);
-    }
+    tty_write(PortFD,"M",1, &bytesWritten);
+    tty_read(PortFD,str,1,1, &bytesRead);  //  Read 1 bytes of response
 
-    return false;
-
+    return true;
 }

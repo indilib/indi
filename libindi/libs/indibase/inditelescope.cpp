@@ -136,6 +136,7 @@ bool INDI::Telescope::updateProperties()
         defineSwitch(&CoordSV);
         defineNumber(&EqNV);
         defineNumber(&EqReqNV);
+        defineSwitch(&AbortSV);
         defineSwitch(&MovementNSSP);
         defineSwitch(&MovementWESP);
         defineNumber(&LocationNV);
@@ -148,6 +149,7 @@ bool INDI::Telescope::updateProperties()
         deleteProperty(CoordSV.name);
         deleteProperty(EqNV.name);
         deleteProperty(EqReqNV.name);
+        deleteProperty(AbortSV.name);
         deleteProperty(MovementNSSP.name);
         deleteProperty(MovementWESP.name);
         deleteProperty(LocationNV.name);
@@ -427,6 +429,49 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
                 MoveWE(MOTION_WEST);
             else
                 MoveWE(MOTION_EAST);
+
+            return true;
+        }
+
+        if(strcmp(name,"TELESCOPE_ABORT_MOTION")==0)
+        {
+            IUResetSwitch(&AbortSV);
+
+            if (Abort())
+            {
+                AbortSV.s = IPS_OK;
+                if (ParkSV.s == IPS_BUSY)
+                {
+                    ParkSV.s = IPS_IDLE;
+                    IDSetSwitch(&ParkSV, NULL);
+                }
+                if (EqNV.s == IPS_BUSY)
+                {
+                    EqNV.s = IPS_IDLE;
+                    IDSetNumber(&EqNV, NULL);
+                }
+                if (MovementWESP.s == IPS_BUSY)
+                {
+                    MovementWESP.s = IPS_IDLE;
+                    IDSetSwitch(&MovementWESP, NULL);
+                }
+
+                if (MovementNSSP.s == IPS_BUSY)
+                {
+                    MovementNSSP.s = IPS_IDLE;
+                    IDSetSwitch(&MovementNSSP, NULL);
+                }
+
+                if (EqReqNV.s == IPS_BUSY)
+                {
+                    EqReqNV.s = IPS_IDLE;
+                    IDSetNumber(&EqReqNV, NULL);
+                }
+            }
+            else
+                AbortSV.s = IPS_ALERT;
+
+            IDSetSwitch(&AbortSV, NULL);
 
             return true;
         }
