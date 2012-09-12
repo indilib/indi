@@ -32,18 +32,21 @@
 #define RF_TIMEOUT   15
 #define RF_STEP_RES  5
 
+#define RF_MAX_TRIES    3
+#define RF_MAX_DELAY    100000
+
 #define BACKLASH_READOUT 99999
 #define MAXTRAVEL_READOUT 99999
 
 #define currentSpeed            SpeedN[0].value
-#define currentPosition         PositionN[0].value
+#define currentPosition         FocusAbsPosN[0].value
 #define currentTemperature      TemperatureN[0].value
 #define currentBacklash         SetBacklashN[0].value
 #define currentDuty             SettingsN[0].value
 #define currentDelay            SettingsN[1].value
 #define currentTicks            SettingsN[2].value
-#define currentRelativeMovement RelMovementN[0].value
-#define currentAbsoluteMovement AbsMovementN[0].value
+#define currentRelativeMovement FocusRelPosN[0].value
+#define currentAbsoluteMovement FocusAbsPosN[0].value
 #define currentSetBacklash      SetBacklashN[0].value
 #define currentMinPosition      MinMaxPositionN[0].value
 #define currentMaxPosition      MinMaxPositionN[1].value
@@ -163,18 +166,16 @@ bool RoboFocus::initProperties()
     IUFillNumber(&SetBacklashN[0], "SETBACKLASH", "Backlash", "%6.0f", -255., 255., 0., 0.);
     IUFillNumberVector(&SetBacklashNP, SetBacklashN, 1, getDeviceName(), "FOCUS_BACKLASH", "Set Register", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
-    /* Robofocus` position (RO) */
-    IUFillNumber(&PositionN[0], "POSITION", "Tick", "%6.0f", 0, 65000., 0., 10000.);
-    IUFillNumberVector(&PositionNP, PositionN, 1, getDeviceName(), "FOCUS_POSITION", "Position", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
-
-
     /* Relative and absolute movement */
-    IUFillNumber(&RelMovementN[0], "RELMOVEMENT", "Ticks", "%6.0f", -65000., 65000., 0., 100. );
-    IUFillNumberVector(&RelMovementNP, RelMovementN, 1, getDeviceName(), "FOCUS_RELMOVEMENT", "Relative GoTo", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+    FocusRelPosN[0].min = -65000.;
+    FocusRelPosN[0].max = 65000.;
+    FocusRelPosN[0].value = 0;
+    FocusRelPosN[0].step = 100;
 
-    IUFillNumber(&AbsMovementN[0], "FOCUS_ABSOLUTE_POSITION", "Tick", "%6.0f", 0, 65000., 0., 10000.);
-    IUFillNumberVector(&AbsMovementNP, AbsMovementN, 1, getDeviceName(), "FOCUS_POSITION", "Absolute GoTo", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
-
+    FocusAbsPosN[0].min = 0.;
+    FocusAbsPosN[0].max = 65000.;
+    FocusAbsPosN[0].value = 0;
+    FocusAbsPosN[0].step = 10000;
 
     addDebugControl();
 
@@ -204,9 +205,8 @@ bool RoboFocus::updateProperties()
         defineNumber(&MaxTravelNP);
         defineNumber(&SetRegisterPositionNP);
         defineNumber(&SetBacklashNP);
-        defineNumber(&PositionNP);
-        defineNumber(&RelMovementNP);
-        defineNumber(&AbsMovementNP);
+        defineNumber(&FocusRelPosNP);
+        defineNumber(&FocusAbsPosNP);
     }
     else
     {
@@ -218,9 +218,8 @@ bool RoboFocus::updateProperties()
         deleteProperty(MaxTravelNP.name);
         deleteProperty(SetRegisterPositionNP.name);
         deleteProperty(SetBacklashNP.name);
-        deleteProperty(PositionNP.name);
-        deleteProperty(RelMovementNP.name);
-        deleteProperty(AbsMovementNP.name);
+        deleteProperty(FocusRelPosNP.name);
+        deleteProperty(FocusAbsPosNP.name);
 
     }
 
@@ -367,6 +366,10 @@ int RoboFocus::SendCommand(char *rf_cmd)
    check_ret= CheckSum(rf_cmd) ;
 
    rf_cmd[ nbytes_read - 1] = 0 ;
+
+   if (isDebug())
+       IDLog("Reply is (%s)\n", rf_cmd);
+
    return 0;
 
 }
@@ -379,7 +382,9 @@ int RoboFocus::ReadResponse(char *buf, int nbytes, int timeout)
   int totalBytesRead = 0;
   int err_code;
 
-
+  if (isDebug())
+      IDLog("##########################################\n")
+;
   while (totalBytesRead < nbytes)
   {
       //IDLog("Nbytes: %d\n", nbytes);
@@ -392,37 +397,42 @@ int RoboFocus::ReadResponse(char *buf, int nbytes, int timeout)
                   IDLog("TTY error detected: %s\n", robofocus_error);
                   IDMessage(getDeviceName(), "TTY error detected: %s\n", robofocus_error);
               }
-              return false;
+              return -1;
       }
 
-      //IDLog("Bytes Read: %d\n", bytesRead);
+      if (isDebug())
+        IDLog("Bytes Read: %d\n", bytesRead);
 
       if (bytesRead < 0 )
       {
-          //IDLog("Bytesread < 1\n");
+          if (isDebug())
+            IDLog("Bytesread < 1\n");
           return -1;
       }
 
       if((  buf[0]== 'I')||  (  buf[0]== 'O'))
       {
 
-        //fprintf(stderr, "Moving\n") ;
+          if (isDebug())
+              IDLog("Moving... with buf[0]=(%c)\n", buf[0]) ;
 
         for(int i=0; i < 9; i++)
         {
+            if (isDebug())
+                IDLog("buf[%d]=(%c)\n", i, buf[i]);
+
             // Catch the F in stream of I's and O's
             // The robofocus reply might get mixed with the movement strings. For example:
             // 0x49 0x49 0x49 0x49 0x49 0x46 0x44 0x30 0x32
             // The 0x46 above is the START for the rofofocus response string, but it's lost unless we catch it here
             if (buf[i] == 0x46)
             {
-                totalBytesRead = RF_MAX_CMD - i;
-                strncpy(buf, buf+totalBytesRead+1, totalBytesRead);
+                totalBytesRead = bytesRead - i;
+                strncpy(buf, buf+i, totalBytesRead);
                 break;
             }
         }
 
-       // buf[0]=0 ;
          usleep(100000) ;
 
 
@@ -624,6 +634,7 @@ int RoboFocus::updateRFPositionRelativeInward(double *value)
   if ((ret_read_tmp= SendCommand( rf_cmd)) < 0)
     return ret_read_tmp;
 
+
   if (sscanf(rf_cmd, "FD0%5f", &temp) < 1)
     return -1;
 
@@ -655,6 +666,8 @@ int RoboFocus::updateRFPositionRelativeOutward(double *value)
 
   if ((ret_read_tmp= SendCommand( rf_cmd)) < 0)
     return ret_read_tmp;
+
+
 
   if (sscanf(rf_cmd, "FD0%5f", &temp) < 1)
     return -1;
@@ -1022,100 +1035,6 @@ bool RoboFocus::ISNewNumber (const char *dev, const char *name, double values[],
         }
 
 
-        if (!strcmp (name, RelMovementNP.name))
-        {
-
-          double cur_rpos=0 ;
-          double new_rpos = 0 ;
-          int nset = 0;
-          int ret= -1 ;
-
-          for (nset = i = 0; i < n; i++)
-          {
-            /* Find numbers with the passed names in the RelMovementNP property */
-            INumber *eqp = IUFindNumber (&RelMovementNP, names[i]);
-
-            /* If the number found is RelMovement (RelMovementN[0]) then process it */
-            if (eqp == &RelMovementN[0])
-            {
-
-              cur_rpos= new_rpos = (values[i]);
-
-              /* CHECK 2006-01-26, limmits are relative to the actual position */
-              nset += new_rpos >= -0xffff && new_rpos <= 0xffff;
-            }
-
-            if (nset == 1)
-            {
-
-              /* Set the robofocus state to BUSY */
-              RelMovementNP.s = IPS_BUSY;
-              IDSetNumber(&RelMovementNP, NULL);
-
-              if((currentPosition + new_rpos < currentMinPosition) || (currentPosition + new_rpos > currentMaxPosition))
-              {
-
-                RelMovementNP.s = IPS_ALERT ;
-                IDSetNumber(&RelMovementNP, "Value out of limits %5.0f", currentPosition +  new_rpos);
-                return false ;
-              }
-
-              if( new_rpos > 0)
-              {
-
-                ret= updateRFPositionRelativeOutward(&new_rpos) ;
-              } else
-              {
-
-                new_rpos= -new_rpos ;
-                ret= updateRFPositionRelativeInward(&new_rpos) ;
-              }
-
-              if( ret < 0)
-              {
-
-                RelMovementNP.s = IPS_IDLE;
-                IDSetNumber(&RelMovementNP, "Read out of the relative movement failed, trying to recover position.");
-                if((ret= updateRFPosition(&currentPosition)) < 0) {
-
-
-                  PositionNP.s = IPS_ALERT;
-                  IDSetNumber(&PositionNP, "Unknown error while reading  Robofocus position: %d", ret);
-                  return false;
-                }
-                PositionNP.s = IPS_ALERT;
-                IDSetNumber(&PositionNP, "Robofocus position recovered %5.0f", currentPosition);
-
-                IDMessage( getDeviceName(), "Robofocus position recovered resuming normal operation");
-
-                /* We have to leave here, because new_rpos is not set */
-                return false ;
-              }
-
-              RelMovementNP.s = IPS_OK;
-              currentRelativeMovement= cur_rpos ;
-              IDSetNumber(&RelMovementNP, NULL) ;
-
-              AbsMovementNP.s = IPS_OK;
-              currentAbsoluteMovement=  new_rpos - cur_rpos ;
-              IDSetNumber(&AbsMovementNP, NULL) ;
-
-              PositionNP.s = IPS_OK;
-              currentPosition= new_rpos ;
-              IDSetNumber(&PositionNP,  "Last position was %5.0f", currentAbsoluteMovement);
-              return true;
-
-           } else {
-
-              RelMovementNP.s = IPS_IDLE;
-              IDSetNumber(&RelMovementNP, "Need exactly one parameter.");
-
-              return  false;
-            }
-          }
-        }
-
-
 
 
 
@@ -1314,8 +1233,8 @@ bool RoboFocus::ISNewNumber (const char *dev, const char *name, double values[],
                 if((ret= updateRFPosition( &currentPosition)) < 0)
                 {
 
-                  PositionNP.s = IPS_ALERT;
-                  IDSetNumber(&PositionNP, "Unknown error while reading  Robofocus position: %d", ret);
+                  FocusAbsPosNP.s = IPS_ALERT;
+                  IDSetNumber(&FocusAbsPosNP, "Unknown error while reading  Robofocus position: %d", ret);
 
                   SetRegisterPositionNP.s = IPS_IDLE;
                   IDSetNumber(&SetRegisterPositionNP, "Relative movement failed.");
@@ -1325,8 +1244,8 @@ bool RoboFocus::ISNewNumber (const char *dev, const char *name, double values[],
                 IDSetNumber(&SetRegisterPositionNP, NULL);
 
 
-                PositionNP.s = IPS_OK;
-                IDSetNumber(&PositionNP, "Robofocus position recovered %5.0f", currentPosition);
+                FocusAbsPosNP.s = IPS_OK;
+                IDSetNumber(&FocusAbsPosNP, "Robofocus position recovered %5.0f", currentPosition);
                 IDMessage( getDeviceName(), "Robofocus position recovered resuming normal operation");
                 /* We have to leave here, because new_apos is not set */
                 return true ;
@@ -1335,8 +1254,8 @@ bool RoboFocus::ISNewNumber (const char *dev, const char *name, double values[],
               SetRegisterPositionNP.s = IPS_OK;
               IDSetNumber(&SetRegisterPositionNP, "Robofocus register set to %5.0f", currentPosition);
 
-              PositionNP.s = IPS_OK;
-              IDSetNumber(&PositionNP, "Robofocus position is now %5.0f", currentPosition);
+              FocusAbsPosNP.s = IPS_OK;
+              IDSetNumber(&FocusAbsPosNP, "Robofocus position is now %5.0f", currentPosition);
 
               return true ;
 
@@ -1352,8 +1271,8 @@ bool RoboFocus::ISNewNumber (const char *dev, const char *name, double values[],
             if((ret= updateRFPosition(&currentPosition)) < 0)
             {
 
-              PositionNP.s = IPS_ALERT;
-              IDSetNumber(&PositionNP, "Unknown error while reading  Robofocus position: %d", ret);
+              FocusAbsPosNP.s = IPS_ALERT;
+              IDSetNumber(&FocusAbsPosNP, "Unknown error while reading  Robofocus position: %d", ret);
 
               return false ;
             }
@@ -1361,8 +1280,8 @@ bool RoboFocus::ISNewNumber (const char *dev, const char *name, double values[],
             SetRegisterPositionNP.s = IPS_OK;
             IDSetNumber(&SetRegisterPositionNP, "Robofocus has accepted new register setting" ) ;
 
-            PositionNP.s = IPS_OK;
-            IDSetNumber(&PositionNP, "Robofocus new position %5.0f", currentPosition);
+            FocusAbsPosNP.s = IPS_OK;
+            IDSetNumber(&FocusAbsPosNP, "Robofocus new position %5.0f", currentPosition);
 
             return true;
           }
@@ -1388,16 +1307,16 @@ void RoboFocus::GetFocusParams ()
 
       if((ret= updateRFPosition(&currentPosition)) < 0)
       {
-        PositionNP.s = IPS_ALERT;
-        IDSetNumber(&PositionNP, "Unknown error while reading  Robofocus position: %d", ret);
+        FocusAbsPosNP.s = IPS_ALERT;
+        IDSetNumber(&FocusAbsPosNP, "Unknown error while reading  Robofocus position: %d", ret);
         return;
       }
 
-      PositionNP.s = IPS_OK;
-      IDSetNumber(&PositionNP, NULL);
+      FocusAbsPosNP.s = IPS_OK;
+      IDSetNumber(&FocusAbsPosNP, NULL);
 
-      AbsMovementN[0].value = currentPosition;
-      IDSetNumber(&AbsMovementNP, NULL);
+      FocusAbsPosN[0].value = currentPosition;
+      IDSetNumber(&FocusAbsPosNP, NULL);
 
       if(( ret= updateRFTemperature(&currentTemperature)) < 0)
       {
@@ -1524,10 +1443,17 @@ bool RoboFocus::MoveAbs(int targetTicks)
 
         IDMessage(getDeviceName(), "Read out of the absolute movement failed %3d, trying to recover position.", ret);
 
-      if((ret= updateRFPosition(&currentPosition)) < 0)
-      {
-          IDMessage(getDeviceName(),"Unknown error while reading  Robofocus position: %d.", ret);
-           return false;
+        for (int i=0;; i++)
+        {
+            if((ret= updateRFPosition(&currentPosition)) < 0)
+            {
+                IDMessage(getDeviceName(),"Unknown error while reading  Robofocus position: %d.", ret);
+                if (i == RF_MAX_TRIES)
+                    return false;
+                else
+                    usleep(RF_MAX_DELAY);
+            }
+            else break;
       }
 
       IDMessage( getDeviceName(), "Robofocus position recovered resuming normal operation");
@@ -1539,6 +1465,58 @@ bool RoboFocus::MoveAbs(int targetTicks)
     return true;
 }
 
+bool RoboFocus::MoveRel(FocusDirection dir, unsigned int ticks)
+{
+
+      double cur_rpos=0 ;
+      double new_rpos = 0 ;
+      int ret=0;
+      bool nset = false;
+
+        cur_rpos= new_rpos = ticks;
+        /* CHECK 2006-01-26, limits are relative to the actual position */
+        nset = new_rpos >= -0xffff && new_rpos <= 0xffff;
+
+        if (nset)
+        {
+
+          if((currentPosition + new_rpos < currentMinPosition) || (currentPosition + new_rpos > currentMaxPosition))
+          {
+
+            IDMessage(getDeviceName(), "Value out of limits %5.0f", currentPosition +  new_rpos);
+            return false ;
+          }
+
+          if( dir == FOCUS_OUTWARD)
+            ret= updateRFPositionRelativeOutward(&new_rpos) ;
+          else
+            ret= updateRFPositionRelativeInward(&new_rpos) ;
+
+          if( ret < 0)
+          {
+
+            IDMessage(getDeviceName(), "Read out of the relative movement failed, trying to recover position.");
+            if((ret= updateRFPosition(&currentPosition)) < 0)
+            {
+
+              IDMessage(getDeviceName(), "Unknown error while reading  Robofocus position: %d", ret);
+              return false;
+            }
+
+            IDMessage(getDeviceName(), "Robofocus position recovered %5.0f", currentPosition);
+            // We have to leave here, because new_rpos is not set
+            return false ;
+          }
+
+          currentRelativeMovement= cur_rpos ;
+          currentAbsoluteMovement=  new_rpos;
+          return true;
+        }
+        {
+            IDMessage(getDeviceName(), "Value out of limits.");
+            return false;
+        }
 
 
+}
 
