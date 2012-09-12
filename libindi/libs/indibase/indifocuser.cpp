@@ -38,12 +38,17 @@ bool INDI::Focuser::initProperties()
     IUFillNumber(&FocusTimerN[0],"FOCUS_TIMER_VALUE","Focus Timer","%4.0f",0.0,1000.0,10.0,1000.0);
     IUFillNumberVector(&FocusTimerNP,FocusTimerN,1,getDeviceName(),"FOCUS_TIMER","Timer",MAIN_CONTROL_TAB,IP_RW,60,IPS_OK);
 
-    IUFillNumber(&FocusAbsPosN[0],"FOCUS_ABSOLUTE_POSITION","Ticks","%4.0f",0.0,100000.0,1000.0,50000.0);
-    IUFillNumberVector(&FocusAbsPosNP,FocusAbsPosN,1,getDeviceName(),"FOCUS_POSITION","Absolute Position",MAIN_CONTROL_TAB,IP_RW,60,IPS_OK);
 
     IUFillSwitch(&FocusMotionS[0],"FOCUS_INWARD","Focus In",ISS_ON);
     IUFillSwitch(&FocusMotionS[1],"FOCUS_OUTWARD","Focus Out",ISS_OFF);
     IUFillSwitchVector(&FocusMotionSP,FocusMotionS,2,getDeviceName(),"FOCUS_MOTION","Direction",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_OK);
+
+    // Driver can define those to clients if there is support
+    IUFillNumber(&FocusAbsPosN[0],"FOCUS_ABSOLUTE_POSITION","Ticks","%4.0f",0.0,100000.0,1000.0,50000.0);
+    IUFillNumberVector(&FocusAbsPosNP,FocusAbsPosN,1,getDeviceName(),"ABS_FOCUS_POSITION","Absolute Position",MAIN_CONTROL_TAB,IP_RW,60,IPS_OK);
+
+    IUFillNumber(&FocusRelPosN[0],"RELATIVE_ABSOLUTE_POSITION","Ticks","%4.0f",0.0,100000.0,1000.0,50000.0);
+    IUFillNumberVector(&FocusRelPosNP,FocusRelPosN,1,getDeviceName(),"REL_FOCUS_POSITION","Relative Position",MAIN_CONTROL_TAB,IP_RW,60,IPS_OK);
 
     addDebugControl();
 
@@ -121,7 +126,7 @@ bool INDI::Focuser::ISNewNumber (const char *dev, const char *name, double value
             return true;
         }
 
-        if(strcmp(name,"FOCUS_POSITION")==0)
+        if(strcmp(name,"ABS_FOCUS_POSITION")==0)
         {
 
             int newPos = (int) values[0];
@@ -136,6 +141,26 @@ bool INDI::Focuser::ISNewNumber (const char *dev, const char *name, double value
 
             FocusAbsPosNP.s = IPS_ALERT;
             IDSetNumber(&FocusAbsPosNP, "Focuser failed to move to new requested position.");
+            return false;
+        }
+
+
+        if(strcmp(name,"REL_FOCUS_POSITION")==0)
+        {
+            int newPos = (int) values[0];
+
+            if (MoveRel( (FocusMotionS[0].s == ISS_ON ? FOCUS_INWARD : FOCUS_OUTWARD), newPos) == true)
+            {
+               FocusRelPosNP.s=IPS_OK;
+               IUUpdateNumber(&FocusRelPosNP,values,names,n);
+               IDSetNumber(&FocusRelPosNP, "Focuser moved %d steps", newPos);
+               // Derivative class should also update absolute position count as well
+               IDSetNumber(&FocusAbsPosNP, NULL);
+               return true;
+            }
+
+            FocusRelPosNP.s = IPS_ALERT;
+            IDSetNumber(&FocusRelPosNP, "Focuser failed to move to new requested position.");
             return false;
         }
 
@@ -182,6 +207,15 @@ bool INDI::Focuser::Move(FocusDirection dir, int speed, int duration)
     return false;
 }
 
+bool INDI::Focuser::MoveRel(FocusDirection dir, unsigned int ticks)
+{
+    //  This should be a virtual function, because the low level hardware class
+    //  must override this
+    //  but it's much easier early development if the method actually
+    //  exists for now
+    return false;
+}
+
 bool INDI::Focuser::MoveAbs(int ticks)
 {
     //  This should be a virtual function, because the low level hardware class
@@ -190,6 +224,7 @@ bool INDI::Focuser::MoveAbs(int ticks)
     //  exists for now
     return false;
 }
+
 
 bool INDI::Focuser::ISSnoopDevice (XMLEle *root)
 {

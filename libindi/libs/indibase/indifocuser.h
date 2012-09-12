@@ -61,6 +61,13 @@ class INDI::Focuser : public INDI::DefaultDevice
         */
         virtual bool MoveAbs(int ticks);
 
+        /** \brief Move the focuser to an relative position.
+            \param dir Direction of focuser, either FOCUS_INWARD or FOCUS_OUTWARD.
+            \param ticks The relative ticks to move.
+            \return True if succssfull, false otherwise.
+        */
+        virtual bool MoveRel(FocusDirection dir, unsigned int ticks);
+
         INumberVectorProperty FocusSpeedNP;
         INumber FocusSpeedN[1];
         ISwitchVectorProperty FocusMotionSP; //  A Switch in the client interface to park the scope
@@ -69,6 +76,8 @@ class INDI::Focuser : public INDI::DefaultDevice
         INumber FocusTimerN[1];
         INumberVectorProperty FocusAbsPosNP;
         INumber FocusAbsPosN[1];
+        INumberVectorProperty FocusRelPosNP;
+        INumber FocusRelPosN[1];
 
 };
 
