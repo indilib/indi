@@ -1053,7 +1053,7 @@ void INDI::BaseDevice::addMessage(const char *msg)
     messageLog.push_back(msg);
 
     if (mediator)
-        mediator->newMessage(this);
+        mediator->newMessage(this, messageLog.size()-1);
 }
 
 const char * INDI::BaseDevice::messageQueue(int index)

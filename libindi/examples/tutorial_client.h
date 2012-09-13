@@ -42,7 +42,7 @@ protected:
     virtual void newBLOB(IBLOB *bp) {}
     virtual void newSwitch(ISwitchVectorProperty *svp);
     virtual void newNumber(INumberVectorProperty *nvp);
-    virtual void newMessage(INDI::BaseDevice *dp);
+    virtual void newMessage(INDI::BaseDevice *dp, int messageID);
     virtual void newText(ITextVectorProperty *tvp) {}
     virtual void newLight(ILightVectorProperty *lvp) {}
     virtual void serverConnected() {}

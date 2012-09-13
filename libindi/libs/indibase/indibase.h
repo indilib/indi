@@ -111,7 +111,7 @@ public:
     /** \brief Emmited when a new message arrives from INDI server.
         \param dp pointer to the INDI device the message is sent to.
     */
-    virtual void newMessage(INDI::BaseDevice *dp) =0;
+    virtual void newMessage(INDI::BaseDevice *dp, int messageID) =0;
 
     /** \brief Emmited when the server is connected.
     */

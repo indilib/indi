@@ -166,12 +166,12 @@ void MyClient::newNumber(INumberVectorProperty *nvp)
 /**************************************************************************************
 **
 ***************************************************************************************/
-void MyClient::newMessage(INDI::BaseDevice *dp)
+void MyClient::newMessage(INDI::BaseDevice *dp, int messageID)
 {
      if (strcmp(dp->getDeviceName(), "CCD Simulator"))
          return;
 
-     IDLog("Recveing message from Server:\n\n########################\n%s\n########################\n\n", dp->lastMessage());
+     IDLog("Recveing message from Server:\n\n########################\n%s\n########################\n\n", dp->messageQueue(messageID));
 
 }
 
