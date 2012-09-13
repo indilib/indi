@@ -154,6 +154,8 @@ class SxCCD :  public INDI::USBDevice
         bool Connect();
         bool Disconnect();
 
+        void getDefaultParam();
+
         int ResetCamera();
         int GetCameraModel();
         int GetFirmwareVersion();

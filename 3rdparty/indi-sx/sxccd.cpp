@@ -42,66 +42,73 @@ bool SxCCD::Connect()
 
         rc=usb_claim_interface(usb_handle,1);
         fprintf(stderr,"claim interface returns %d\n",rc);
-        if(rc==0)
-        {
-            //  ok, we have the camera now
-            //  Lets see what it really is
-            rc=ResetCamera();
-            rc=GetCameraModel();
-            rc=GetFirmwareVersion();
-            rc=GetCameraParams(0,&parms);
 
-            
-              IDLog("Camera is %d x %d with %d bpp  size %4.2f x %4.2f Matrix %x\n",
-                  parms.width,parms.height,parms.bits_per_pixel,parms.pix_width,parms.pix_height,parms.color_matrix);
-
-              IDLog("Camera capabilities %x\n",parms.extra_caps);
-              IDLog("Camera has %d serial ports\n",parms.num_serial_ports);
-            
-
-            pixwidth=parms.pix_width;
-            pixheight=parms.pix_height;
-            bits_per_pixel=parms.bits_per_pixel;
-            xres=parms.width;
-            yres=parms.height;
-
-            SetParams(xres,yres,bits_per_pixel,pixwidth,pixheight);
-
-            if((parms.extra_caps & SXCCD_CAPS_GUIDER)==SXCCD_CAPS_GUIDER)
-            {
-                IDLog("Camera has a guide head attached\n");
-                rc=GetCameraParams(1,&gparms);
-
-                hasguide=true;
-
-                
-                IDLog("Guider is %d x %d with %d bpp  size %4.2f x %4.2f Matrix %x\n",
-                      gparms.width,gparms.height,gparms.bits_per_pixel,gparms.pix_width,gparms.pix_height,gparms.color_matrix);
-
-                //IDMessage(deviceName(), "Guider is %d x %d with %d bpp  size %4.2f x %4.2f Matrix %x",
-                //          gparms.width,gparms.height,gparms.bits_per_pixel,gparms.pix_width,gparms.pix_height,gparms.color_matrix);
-
-                
-                IDLog("Guider capabilities %x\n",gparms.extra_caps);
-
-                gbits_per_pixel=gparms.bits_per_pixel;
-                gxres=gparms.width;
-                gyres=gparms.height;
-                gpixwidth=gparms.pix_width;
-                gpixheight=gparms.pix_height;
-
-                SetGuideParams(gparms.width,gparms.height,gparms.bits_per_pixel,gparms.pix_width,gparms.pix_height);
-
-
-            }
+        if (rc== 0)
             return true;
-        }
     }
-    return false;
+
+   return false;
+}
+
+void SxCCD::getDefaultParam()
+{
+    int rc=0;
+
+        //  ok, we have the camera now
+        //  Lets see what it really is
+        rc=ResetCamera();
+        rc=GetCameraModel();
+        rc=GetFirmwareVersion();
+        rc=GetCameraParams(0,&parms);
+
+
+          IDLog("Camera is %d x %d with %d bpp  size %4.2f x %4.2f Matrix %x\n",
+              parms.width,parms.height,parms.bits_per_pixel,parms.pix_width,parms.pix_height,parms.color_matrix);
+
+          IDLog("Camera capabilities %x\n",parms.extra_caps);
+          IDLog("Camera has %d serial ports\n",parms.num_serial_ports);
+
+
+        pixwidth=parms.pix_width;
+        pixheight=parms.pix_height;
+        bits_per_pixel=parms.bits_per_pixel;
+        xres=parms.width;
+        yres=parms.height;
+
+        SetParams(xres,yres,bits_per_pixel,pixwidth,pixheight);
+
+        if((parms.extra_caps & SXCCD_CAPS_GUIDER)==SXCCD_CAPS_GUIDER)
+        {
+            IDLog("Camera has a guide head attached\n");
+            rc=GetCameraParams(1,&gparms);
+
+            hasguide=true;
+
+
+            IDLog("Guider is %d x %d with %d bpp  size %4.2f x %4.2f Matrix %x\n",
+                  gparms.width,gparms.height,gparms.bits_per_pixel,gparms.pix_width,gparms.pix_height,gparms.color_matrix);
+
+            //IDMessage(deviceName(), "Guider is %d x %d with %d bpp  size %4.2f x %4.2f Matrix %x",
+            //          gparms.width,gparms.height,gparms.bits_per_pixel,gparms.pix_width,gparms.pix_height,gparms.color_matrix);
+
+
+            IDLog("Guider capabilities %x\n",gparms.extra_caps);
+
+            gbits_per_pixel=gparms.bits_per_pixel;
+            gxres=gparms.width;
+            gyres=gparms.height;
+            gpixwidth=gparms.pix_width;
+            gpixheight=gparms.pix_height;
+
+            SetGuideParams(gparms.width,gparms.height,gparms.bits_per_pixel,gparms.pix_width,gparms.pix_height);
+
+
+        }
 }
 
 bool SxCCD::Disconnect()
 {
+    usb_release_interface(usb_handle, 1);
     usb_close(usb_handle);
     return true;
 }

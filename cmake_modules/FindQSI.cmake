@@ -41,7 +41,7 @@ else (QSI_INCLUDE_DIR AND QSI_LIBRARIES)
     endif (NOT QSI_FIND_QUIETLY)
   else (QSI_FOUND)
     if (QSI_FIND_REQUIRED)
-      message(FATAL_ERROR "QSI not found. Please install qsiapi http://indi.sf.net")
+      message(FATAL_ERROR "QSI not found. Please install libqsi http://www.indilib.org")
     endif (QSI_FIND_REQUIRED)
   endif (QSI_FOUND)
 

@@ -80,6 +80,7 @@ class QSICCD : public INDI::CCD, public INDI::FilterInterface
     unsigned short *imageBuffer;
     double imageExpose;
     int imageWidth, imageHeight;
+    int timerID;
     CCDChip::CCD_FRAME imageFrameType;
     struct timeval ExpStart;
     std::string filterDesignation[MAX_FILTERS_SIZE];
@@ -107,7 +108,6 @@ public:
     virtual ~QSICCD();
 
     const char *getDefaultName();
-    const char *deviceName();
 
     bool initProperties();
     bool updateProperties();

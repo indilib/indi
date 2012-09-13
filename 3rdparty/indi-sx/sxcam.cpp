@@ -97,11 +97,6 @@ const char * SxCam::getDefaultName()
     return (char *)"SX CCD";
 }
 
-const char * SxCam::deviceName()
-{
-    return getDeviceName();
-}
-
 bool SxCam::Connect()
 {
     bool rc;
@@ -117,6 +112,18 @@ bool SxCam::Disconnect()
     rc=SxCCD::Disconnect();
     return rc;
 }
+
+bool SxCam::updateProperties()
+{
+    INDI::CCD::updateProperties();
+
+    if (isConnected())
+        getDefaultParam();
+
+    //  The base device has no properties to update
+    return true;
+}
+
 
 float SxCam::CalcTimeLeft()
 {
@@ -558,10 +565,11 @@ bool SxCam::updateCCDBin(int hor, int ver)
     if (hor == 3 || ver ==3)
     {
         PrimaryCCD.setBin(1,1);
-        IDMessage(deviceName(), "3x3 binning is not supported on this CCD. Valid modes are 1x1, 2x2, and 4x4.");
-        return true;
+        IDMessage(getDeviceName(), "3x3 binning is not supported on this CCD. Valid modes are 1x1, 2x2, and 4x4.");
+        return false;
     }
 
-    return false;
+    PrimaryCCD.setBin(hor, ver);
+    return true;
 
 }

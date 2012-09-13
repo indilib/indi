@@ -1,53 +1,30 @@
-# - Try to find LIBUSB
-# Once done this will define
+# - Try to find the USB library
+# Once done this defines
 #
-#  LIBUSB_FOUND - system has LIBUSB
-#  LIBUSB_INCLUDE_DIR - the LIBUSB include directory
-#  LIBUSB_LIBRARIES - Link these to use LIBUSB
+#  LIBUSB_FOUND - system has libusb
+#  LIBUSB_INCLUDE_DIR - the libusb include directory
+#  LIBUSB_LIBRARIES - Link these to use libusb
 
-# Copyright (c) 2006, Jasem Mutlaq <mutlaqja@ikarustech.com>
-# Based on FindLibfacile by Carsten Niehaus, <cniehaus@gmx.de>
+# Copyright (c) 2006, 2008  Laurent Montel, <montel@kde.org>
 #
 # Redistribution and use is allowed according to the terms of the BSD license.
 # For details see the accompanying COPYING-CMAKE-SCRIPTS file.
 
-if (LIBUSB_INCLUDE_DIR AND LIBUSB_LIBRARIES)
 
-  # in cache already
-  set(LIBUSB_FOUND TRUE)
-  message(STATUS "Found LIBUSB: ${LIBUSB_LIBRARIES}")
+if (NOT WIN32)
+  # use pkg-config to get the directories and then use these values
+  # in the FIND_PATH() and FIND_LIBRARY() calls
+  find_package(PkgConfig)
+  pkg_check_modules(PC_LIBUSB QUIET libusb)
+endif(NOT WIN32)
 
+find_path(LIBUSB_INCLUDE_DIR usb.h
+  HINTS ${PC_LIBUSB_INCLUDEDIR} ${PC_LIBUSB_INCLUDE_DIRS})
 
-else (LIBUSB_INCLUDE_DIR AND LIBUSB_LIBRARIES)
+find_library(LIBUSB_LIBRARIES NAMES usb
+  HINTS ${PC_LIBUSB_LIBDIR} ${PC_LIBUSB_LIBRARY_DIRS})
 
-  find_path(LIBUSB_INCLUDE_DIR usb.h
-    ${_obIncDir}
-    ${GNUWIN32_DIR}/include
-  )
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(LIBUSB  DEFAULT_MSG  LIBUSB_LIBRARIES LIBUSB_INCLUDE_DIR)
 
-  find_library(LIBUSB_LIBRARIES NAMES usb
-    PATHS
-    ${_obLinkDir}
-    ${GNUWIN32_DIR}/lib
-  )
-
-  if(LIBUSB_INCLUDE_DIR AND LIBUSB_LIBRARIES)
-    set(LIBUSB_FOUND TRUE)
-  else (LIBUSB_INCLUDE_DIR AND LIBUSB_LIBRARIES)
-    set(LIBUSB_FOUND FALSE)
-  endif(LIBUSB_INCLUDE_DIR AND LIBUSB_LIBRARIES)
-
-
-  if (LIBUSB_FOUND)
-    if (NOT USB_FIND_QUIETLY)
-      message(STATUS "Found LIBUSB: ${LIBUSB_LIBRARIES}")
-    endif (NOT USB_FIND_QUIETLY)
-  else (LIBUSB_FOUND)
-    if (USB_FIND_REQUIRED)
-      message(FATAL_ERROR "LIBUSB not found. Please install libusb-devel and try again.")
-    endif (USB_FIND_REQUIRED)
-  endif (LIBUSB_FOUND)
-   
 mark_as_advanced(LIBUSB_INCLUDE_DIR LIBUSB_LIBRARIES)
-
-endif (LIBUSB_INCLUDE_DIR AND LIBUSB_LIBRARIES)

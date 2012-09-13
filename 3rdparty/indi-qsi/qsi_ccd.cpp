@@ -155,50 +155,44 @@ const char * QSICCD::getDefaultName()
     return (char *)"QSI CCD";
 }
 
-const char * QSICCD::deviceName()
-{
-    return getDeviceName();
-}
-
-
 bool QSICCD::initProperties()
 {
     // Init parent properties first
     INDI::CCD::initProperties();
 
     IUFillSwitch(&ResetS[0], "RESET", "Reset", ISS_OFF);
-    IUFillSwitchVector(&ResetSP, ResetS, 1, deviceName(), "FRAME_RESET", "Frame Values", IMAGE_SETTINGS_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&ResetSP, ResetS, 1, getDeviceName(), "FRAME_RESET", "Frame Values", IMAGE_SETTINGS_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillSwitch(&CoolerS[0], "CONNECT_COOLER", "ON", ISS_OFF);
     IUFillSwitch(&CoolerS[1], "DISCONNECT_COOLER", "OFF", ISS_OFF);
-    IUFillSwitchVector(&CoolerSP, CoolerS, 2, deviceName(), "COOLER_CONNECTION", "Cooler", MAIN_CONTROL_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&CoolerSP, CoolerS, 2, getDeviceName(), "COOLER_CONNECTION", "Cooler", MAIN_CONTROL_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillSwitch(&ShutterS[0], "SHUTTER_ON", "Manual open", ISS_OFF);
     IUFillSwitch(&ShutterS[1], "SHUTTER_OFF", "Manual close", ISS_OFF);
-    IUFillSwitchVector(&ShutterSP, ShutterS, 2, deviceName(), "SHUTTER_CONNECTION", "Shutter", MAIN_CONTROL_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&ShutterSP, ShutterS, 2, getDeviceName(), "SHUTTER_CONNECTION", "Shutter", MAIN_CONTROL_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillNumber(&CoolerN[0], "CCD_COOLER_VALUE", "Cooling Power (%)", "%+06.2f", 0., 1., .2, 0.0);
-    IUFillNumberVector(&CoolerNP, CoolerN, 1, deviceName(), "CCD_COOLER", "Cooling Power", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
+    IUFillNumberVector(&CoolerNP, CoolerN, 1, getDeviceName(), "CCD_COOLER", "Cooling Power", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     IUFillNumber(&TemperatureRequestN[0], "CCD_TEMPERATURE_VALUE", "Temperature (C)", "%5.2f", MIN_CCD_TEMP, MAX_CCD_TEMP, 0., 0.);
-    IUFillNumberVector(&TemperatureRequestNP, TemperatureN, 1, deviceName(), "CCD_TEMPERATURE_REQUEST", "Temperature", MAIN_CONTROL_TAB, IP_WO, 60, IPS_IDLE);
+    IUFillNumberVector(&TemperatureRequestNP, TemperatureN, 1, getDeviceName(), "CCD_TEMPERATURE_REQUEST", "Temperature", MAIN_CONTROL_TAB, IP_WO, 60, IPS_IDLE);
 
     IUFillNumber(&TemperatureN[0], "CCD_TEMPERATURE_VALUE", "Temperature (C)", "%5.2f", MIN_CCD_TEMP, MAX_CCD_TEMP, 0., 0.);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, deviceName(), "CCD_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
+    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "CCD_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     IUFillSwitch(&ReadOutS[0], "QUALITY_HIGH", "High Quality", ISS_OFF);
     IUFillSwitch(&ReadOutS[1], "QUALITY_LOW", "Fast", ISS_OFF);
-    IUFillSwitchVector(&ReadOutSP, ReadOutS, 2, deviceName(), "READOUT_QUALITY", "Readout Speed", OPTIONS_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&ReadOutSP, ReadOutS, 2, getDeviceName(), "READOUT_QUALITY", "Readout Speed", OPTIONS_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
 
     //IUFillNumber(&FilterN[0], "FILTER_SLOT_VALUE", "Active Filter", "%2.0f", FIRST_FILTER, LAST_FILTER, 1, 0);
-    //IUFillNumberVector(&FilterSlotNP, FilterN, 1, deviceName(), "FILTER_SLOT", "Filter", FILTER_WHEEL_TAB, IP_RW, 60, IPS_IDLE);
+    //IUFillNumberVector(&FilterSlotNP, FilterN, 1, getDeviceName(), "FILTER_SLOT", "Filter", FILTER_WHEEL_TAB, IP_RW, 60, IPS_IDLE);
 
     IUFillSwitch(&FilterS[0], "FILTER_CW", "+", ISS_OFF);
     IUFillSwitch(&FilterS[1], "FILTER_CCW", "-", ISS_OFF);
-    IUFillSwitchVector(&FilterSP, FilterS, 2, deviceName(), "FILTER_WHEEL_MOTION", "Turn Wheel", FILTER_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&FilterSP, FilterS, 2, getDeviceName(), "FILTER_WHEEL_MOTION", "Turn Wheel", FILTER_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
-    //initGuiderProperties(deviceName(), GUIDER_TAB);
-    initFilterProperties(deviceName(), FILTER_TAB);
+    //initGuiderProperties(getDeviceName(), GUIDER_TAB);
+    initFilterProperties(getDeviceName(), FILTER_TAB);
 
 
     addDebugControl();
@@ -206,6 +200,7 @@ bool QSICCD::initProperties()
 
 bool QSICCD::updateProperties()
 {
+
     INDI::CCD::updateProperties();
 
     if (isConnected())
@@ -221,6 +216,20 @@ bool QSICCD::updateProperties()
         defineSwitch(&ReadOutSP);
         if (FilterNameT != NULL)
             defineText(&FilterNameTP);
+
+        setupParams();
+
+        char msg[1024];
+
+        if (manageDefaults(msg))
+        {
+            IDMessage(getDeviceName(), msg, NULL);
+            if (isDebug())
+                IDLog("%s\n", msg);
+            return false;
+        }
+
+        timerID = SetTimer(POLLMS);
     }
     else
     {
@@ -235,6 +244,8 @@ bool QSICCD::updateProperties()
         deleteProperty(ReadOutSP.name);
         if (FilterNameT != NULL)
             deleteProperty(FilterNameTP.name);
+
+        rmTimer(timerID);
     }
 
     return true;
@@ -261,14 +272,14 @@ bool QSICCD::setupParams()
         QSICam.get_CCDTemperature(&temperature);
     } catch (std::runtime_error err)
     {
-        IDMessage(deviceName(), "Setup Params failed. %s.", err.what());
+        IDMessage(getDeviceName(), "Setup Params failed. %s.", err.what());
         if (isDebug())
             IDLog("Setup Params failed. %s.", err.what());
         return false;
     }
 
 
-    IDMessage(deviceName(), "The CCD Temperature is %f.\n", temperature);
+    IDMessage(getDeviceName(), "The CCD Temperature is %f.\n", temperature);
 
     if (isDebug())
         IDLog("The CCD Temperature is %f.\n", temperature);
@@ -287,12 +298,12 @@ bool QSICCD::setupParams()
      QSICam.get_Name(name);
     } catch (std::runtime_error& err)
     {
-        IDMessage(deviceName(), "get_Name() failed. %s.", err.what());
+        IDMessage(getDeviceName(), "get_Name() failed. %s.", err.what());
         if (isDebug())
             IDLog("get_Name() failed. %s.\n", err.what());
         return false;
     }
-    IDMessage(deviceName(), "%s", name.c_str());
+    IDMessage(getDeviceName(), "%s", name.c_str());
 
     if (isDebug())
         IDLog("%s\n", name.c_str());
@@ -303,12 +314,12 @@ bool QSICCD::setupParams()
             QSICam.get_FilterCount(filter_count);
     } catch (std::runtime_error err)
     {
-            IDMessage(deviceName(), "get_FilterCount() failed. %s.", err.what());
+            IDMessage(getDeviceName(), "get_FilterCount() failed. %s.", err.what());
             IDLog("get_FilterCount() failed. %s.\n", err.what());
             return false;
     }
 
-    IDMessage(deviceName(),"The filter count is %d\n", filter_count);
+    IDMessage(getDeviceName(),"The filter count is %d\n", filter_count);
 
     if (isDebug())
         IDLog("The filter count is %d\n", filter_count);
@@ -328,7 +339,7 @@ bool QSICCD::setupParams()
     }
     catch (std::runtime_error err)
     {
-          IDMessage(deviceName(), "get_canPulseGuide() failed. %s.", err.what());
+          IDMessage(getDeviceName(), "get_canPulseGuide() failed. %s.", err.what());
           if (isDebug())
             IDLog("get_canPulseGuide() failed. %s.\n", err.what());
           return false;
@@ -341,7 +352,7 @@ bool QSICCD::setupParams()
         QSICam.get_MinExposureTime(&minDuration);
     } catch (std::runtime_error err)
     {
-        IDMessage(deviceName(), "get_MinExposureTime() failed. %s.", err.what());
+        IDMessage(getDeviceName(), "get_MinExposureTime() failed. %s.", err.what());
         if (isDebug())
             IDLog("get_MinExposureTime() failed. %s.", err.what());
         return false;
@@ -358,7 +369,7 @@ bool QSICCD::setupParams()
 bool QSICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
 
-    if(strcmp(dev,deviceName())==0)
+    if(strcmp(dev,getDeviceName())==0)
     {
 
         /* Readout Speed */
@@ -451,7 +462,7 @@ bool QSICCD::ISNewText (const char *dev, const char *name, char *texts[], char *
     int maxFilters = (int) FilterSlotN[0].max;
     //std::string filterDesignation[maxFilters];
 
-    if(strcmp(dev,deviceName())==0)
+    if(strcmp(dev,getDeviceName())==0)
     {
         if (!strcmp(name, FilterNameTP.name))
         {
@@ -489,7 +500,7 @@ bool QSICCD::ISNewNumber(const char *dev, const char *name, double values[], cha
 {
     INumber *np;
 
-    if(strcmp(dev,deviceName())==0)
+    if(strcmp(dev,getDeviceName())==0)
     {
 
         /* Temperature*/
@@ -524,7 +535,7 @@ bool QSICCD::ISNewNumber(const char *dev, const char *name, double values[], cha
             }
             if(!canSetTemp)
             {
-                IDMessage(deviceName(), "Cannot set CCD temperature, CanSetCCDTemperature == false\n");
+                IDMessage(getDeviceName(), "Cannot set CCD temperature, CanSetCCDTemperature == false\n");
                 return false;
             }
 
@@ -629,7 +640,7 @@ int QSICCD::StartExposure(float duration)
         if(duration < minDuration)
         {
             duration = minDuration;
-            IDMessage(deviceName(), "Exposure shorter than minimum duration %g s requested. \n Setting exposure time to %g s.", minDuration,minDuration);
+            IDMessage(getDeviceName(), "Exposure shorter than minimum duration %g s requested. \n Setting exposure time to %g s.", minDuration,minDuration);
         }
 
         imageFrameType = PrimaryCCD.getFrameType();
@@ -637,7 +648,7 @@ int QSICCD::StartExposure(float duration)
         if(imageFrameType == CCDChip::BIAS_FRAME)
         {
             PrimaryCCD.setExposure(minDuration);
-            IDMessage(deviceName(), "Bias Frame (s) : %g\n", minDuration);
+            IDMessage(getDeviceName(), "Bias Frame (s) : %g\n", minDuration);
             if (isDebug())
                 IDLog("Bias Frame (s) : %g\n", minDuration);
         } else
@@ -660,7 +671,7 @@ int QSICCD::StartExposure(float duration)
                 } catch (std::runtime_error& err)
                 {
                     //ImageExposureNP.s = IPS_ALERT;
-                    IDMessage(deviceName(), "StartExposure() failed. %s.", err.what());
+                    IDMessage(getDeviceName(), "StartExposure() failed. %s.", err.what());
                     if (isDebug())
                         IDLog("StartExposure() failed. %s.\n", err.what());
                     return -1;
@@ -676,7 +687,7 @@ int QSICCD::StartExposure(float duration)
                 } catch (std::runtime_error& err)
                 {
                     //ImageExposureNP.s = IPS_ALERT;
-                    IDMessage(deviceName(), "StartExposure() failed. %s.", err.what());
+                    IDMessage(getDeviceName(), "StartExposure() failed. %s.", err.what());
                     if (isDebug())
                         IDLog("StartExposure() failed. %s.\n", err.what());
                     return -1;
@@ -692,7 +703,7 @@ int QSICCD::StartExposure(float duration)
                 } catch (std::runtime_error& err)
                 {
                     //ImageExposureNP.s = IPS_ALERT;
-                    IDMessage(deviceName(), "StartExposure() failed. %s.", err.what());
+                    IDMessage(getDeviceName(), "StartExposure() failed. %s.", err.what());
                     if (isDebug())
                         IDLog("StartExposure() failed. %s.\n", err.what());
                     return -1;
@@ -701,7 +712,7 @@ int QSICCD::StartExposure(float duration)
 
             //ImageExposureNP.s = IPS_BUSY;
             gettimeofday(&ExpStart,NULL);
-            IDMessage(deviceName(), "Taking a %g seconds frame...", imageExpose);
+            IDMessage(getDeviceName(), "Taking a %g seconds frame...", imageExpose);
 
             if (isDebug())
                 IDLog("Taking a frame...\n");
@@ -720,7 +731,7 @@ bool QSICCD::AbortExposure()
         } catch (std::runtime_error err)
         {
           //ImageExposureNP.s = IPS_ALERT;
-          IDMessage(deviceName(), "AbortExposure() failed. %s.", err.what());
+          IDMessage(getDeviceName(), "AbortExposure() failed. %s.", err.what());
           IDLog("AbortExposure() failed. %s.\n", err.what());
           return false;
         }
@@ -767,7 +778,7 @@ void QSICCD::updateCCDFrame()
         QSICam.get_CameraYSize(&sensorPixelSize_y);
     } catch (std::runtime_error err)
     {
-        IDMessage(deviceName(), "Getting image area size failed. %s.", err.what());
+        IDMessage(getDeviceName(), "Getting image area size failed. %s.", err.what());
     }
 
     if (x_2 > sensorPixelSize_x / PrimaryCCD.getBinX())
@@ -791,7 +802,7 @@ void QSICCD::updateCCDFrame()
     } catch (std::runtime_error err)
     {
         snprintf(errmsg, ERRMSG_SIZE, "Setting image area failed. %s.\n",err.what());
-        IDMessage(deviceName(), "Setting image area failed. %s.", err.what());
+        IDMessage(getDeviceName(), "Setting image area failed. %s.", err.what());
         if (isDebug())
             IDLog("Setting image area failed. %s.", err.what());
         return;
@@ -805,7 +816,7 @@ void QSICCD::updateCCDBin()
         QSICam.put_BinX(PrimaryCCD.getBinX());
     } catch (std::runtime_error err)
     {
-        IDMessage(deviceName(), "put_BinX() failed. %s.", err.what());
+        IDMessage(getDeviceName(), "put_BinX() failed. %s.", err.what());
         IDLog("put_BinX() failed. %s.", err.what());
         return;
     }
@@ -815,7 +826,7 @@ void QSICCD::updateCCDBin()
         QSICam.put_BinY(PrimaryCCD.getBinY());
     } catch (std::runtime_error err)
     {
-        IDMessage(deviceName(), "put_BinY() failed. %s.", err.what());
+        IDMessage(getDeviceName(), "put_BinY() failed. %s.", err.what());
         IDLog("put_BinY() failed. %s.", err.what());
         return;
     }
@@ -846,12 +857,12 @@ int QSICCD::grabImage()
             imageHeight = y;
         } catch (std::runtime_error err)
         {
-            IDMessage(deviceName(), "get_ImageArray() failed. %s.", err.what());
+            IDMessage(getDeviceName(), "get_ImageArray() failed. %s.", err.what());
             IDLog("get_ImageArray() failed. %s.", err.what());
             return -1;
         }
 
-        IDMessage(deviceName(), "Download complete.\n");
+        IDMessage(getDeviceName(), "Download complete.\n");
 	
         ExposureComplete();
 
@@ -911,7 +922,7 @@ void QSICCD::addFITSKeywords(fitsfile *fptr)
 	    QSICam.get_LastExposureStartTime(exposureStartTime);
 	    for(unsigned i = 0; i < 19; ++i) exposureStartTime_s[i] = exposureStartTime[i];
         } catch (std::runtime_error& err) {
-            IDMessage(deviceName(), "get_Name() failed. %s.", err.what());
+            IDMessage(getDeviceName(), "get_Name() failed. %s.", err.what());
             IDLog("get_Name() failed. %s.\n", err.what());
             return;
         }
@@ -954,7 +965,7 @@ int QSICCD::manageDefaults(char errmsg[])
         {
             QSICam.put_BinX(PrimaryCCD.getBinX());
         } catch (std::runtime_error err) {
-            IDMessage(deviceName(), "Error: put_BinX() failed. %s.", err.what());
+            IDMessage(getDeviceName(), "Error: put_BinX() failed. %s.", err.what());
             IDLog("Error: put_BinX() failed. %s.\n", err.what());
             return -1;
         }
@@ -964,7 +975,7 @@ int QSICCD::manageDefaults(char errmsg[])
             QSICam.put_BinY(PrimaryCCD.getBinY());
         } catch (std::runtime_error err)
         {
-            IDMessage(deviceName(), "Error: put_BinY() failed. %s.", err.what());
+            IDMessage(getDeviceName(), "Error: put_BinY() failed. %s.", err.what());
             IDLog("Error: put_BinX() failed. %s.\n", err.what());
             return -1;
         }
@@ -984,7 +995,7 @@ bool QSICCD::Connect()
     bool connected;
     char msg[1024];
 
-    IDMessage(deviceName(), "Attempting to find the QSI CCD...");
+    IDMessage(getDeviceName(), "Attempting to find the QSI CCD...");
 
     if (isDebug())
     {
@@ -998,7 +1009,7 @@ bool QSICCD::Connect()
                 QSICam.get_Connected(&connected);
             } catch (std::runtime_error err)
             {
-                IDMessage(deviceName(), "Error: get_Connected() failed. %s.", err.what());
+                IDMessage(getDeviceName(), "Error: get_Connected() failed. %s.", err.what());
                 if (isDebug())
                     IDLog("Error: get_Connected() failed. %s.", err.what());
                 return false;
@@ -1011,7 +1022,7 @@ bool QSICCD::Connect()
                     QSICam.put_Connected(true);
                 } catch (std::runtime_error err)
                 {
-                    IDMessage(deviceName(), "Error: put_Connected(true) failed. %s.", err.what());
+                    IDMessage(getDeviceName(), "Error: put_Connected(true) failed. %s.", err.what());
                     if (isDebug())
                         IDLog("Error: put_Connected(true) failed. %s.", err.what());
                     return false;
@@ -1019,21 +1030,11 @@ bool QSICCD::Connect()
             }
 
             /* Success! */
-            IDMessage(deviceName(), "CCD is online. Retrieving basic data.");
+            IDMessage(getDeviceName(), "CCD is online. Retrieving basic data.");
             if (isDebug())
                 IDLog("CCD is online. Retrieving basic data.\n");
 
-            setupParams();
 
-            if (manageDefaults(msg))
-            {
-                IDMessage(deviceName(), msg, NULL);
-                if (isDebug())
-                    IDLog("%s\n", msg);
-                return false;
-            }
-
-            SetTimer(POLLMS);
             return true;
 }
 
@@ -1049,7 +1050,7 @@ bool QSICCD::Disconnect()
         QSICam.get_Connected(&connected);
     } catch (std::runtime_error err)
     {
-        IDMessage(deviceName(), "Error: get_Connected() failed. %s.", err.what());
+        IDMessage(getDeviceName(), "Error: get_Connected() failed. %s.", err.what());
         snprintf(msg, MAXRBUF, "Error: get_Connected() failed. %s.", err.what());
 
         if (isDebug())
@@ -1064,7 +1065,7 @@ bool QSICCD::Disconnect()
             QSICam.put_Connected(false);
         } catch (std::runtime_error err)
         {
-            IDMessage(deviceName(), "Error: put_Connected(false) failed. %s.", err.what());
+            IDMessage(getDeviceName(), "Error: put_Connected(false) failed. %s.", err.what());
             snprintf(msg, MAXRBUF, "Error: put_Connected(false) failed. %s.\n", err.what());
             if (isDebug())
                 IDLog("%s\n", msg);
@@ -1072,7 +1073,7 @@ bool QSICCD::Disconnect()
         }
     }
 
-    IDMessage(deviceName(), "CCD is offline.");
+    IDMessage(getDeviceName(), "CCD is offline.");
     return true;
 }
 
@@ -1181,7 +1182,7 @@ void QSICCD::resetFrame()
             QSICam.get_CameraYSize(&sensorPixelSize_y);
         } catch (std::runtime_error err)
         {
-            IDMessage(deviceName(), "Getting image area size failed. %s.", err.what());
+            IDMessage(getDeviceName(), "Getting image area size failed. %s.", err.what());
         }
 
         imageWidth  = sensorPixelSize_x;
@@ -1193,7 +1194,7 @@ void QSICCD::resetFrame()
             QSICam.put_BinY(1);
         } catch (std::runtime_error err)
         {
-            IDMessage(deviceName(), "Resetting BinX/BinY failed. %s.", err.what());
+            IDMessage(getDeviceName(), "Resetting BinX/BinY failed. %s.", err.what());
             IDLog("Resetting BinX/BinY failed. %s.", err.what());
             return;
         }
@@ -1219,7 +1220,7 @@ void QSICCD::shutterControl()
             ShutterSP.s   = IPS_IDLE;
             ShutterS[0].s = ISS_OFF;
             ShutterS[1].s = ISS_OFF;
-            IDMessage(deviceName(), "QSICamera::get_HasShutter() failed. %s.", err.what());
+            IDMessage(getDeviceName(), "QSICamera::get_HasShutter() failed. %s.", err.what());
             IDLog("QSICamera::get_HasShutter() failed. %s.\n", err.what());
             return;
         }
@@ -1301,7 +1302,7 @@ void QSICCD::TimerHit()
             QSICam.get_ImageReady(&imageReady);
         } catch (std::runtime_error err)
         {
-            IDMessage(deviceName(), "get_ImageReady() failed. %s.", err.what());
+            IDMessage(getDeviceName(), "get_ImageReady() failed. %s.", err.what());
             IDLog("get_ImageReady() failed. %s.", err.what());
             InExposure = false;
             PrimaryCCD.setExposureFailed();
@@ -1323,7 +1324,7 @@ void QSICCD::TimerHit()
             }
 
             /* We're done exposing */
-            IDMessage(deviceName(), "Exposure done, downloading image...");
+            IDMessage(getDeviceName(), "Exposure done, downloading image...");
             IDLog("Exposure done, downloading image...\n");
 
             PrimaryCCD.setExposure(0);
@@ -1481,7 +1482,7 @@ void QSICCD::turnWheel()
                 FilterSP.s = IPS_IDLE;
                 FilterS[0].s = ISS_OFF;
                 FilterS[1].s = ISS_OFF;
-                IDMessage(deviceName(), "QSICamera::get_FilterPos() failed. %s.", err.what());
+                IDMessage(getDeviceName(), "QSICamera::get_FilterPos() failed. %s.", err.what());
 
                 if (isDebug())
                     IDLog("QSICamera::get_FilterPos() failed. %s.\n", err.what());
@@ -1513,7 +1514,7 @@ void QSICCD::turnWheel()
                 FilterSP.s = IPS_IDLE;
                 FilterS[0].s = ISS_OFF;
                 FilterS[1].s = ISS_OFF;
-                IDMessage(deviceName(), "QSICamera::get_FilterPos() failed. %s.", err.what());
+                IDMessage(getDeviceName(), "QSICamera::get_FilterPos() failed. %s.", err.what());
 
                 if (isDebug())
                     IDLog("QSICamera::get_FilterPos() failed. %s.\n", err.what());
@@ -1542,7 +1543,7 @@ bool QSICCD::GuideNorth(float duration)
     }
     catch (std::runtime_error err)
     {
-        IDMessage(deviceName(), "PulseGuide() failed. %s.", err.what());
+        IDMessage(getDeviceName(), "PulseGuide() failed. %s.", err.what());
       if (isDebug())
          IDLog("PulseGuide failed. %s.", err.what());
       return false;
@@ -1559,7 +1560,7 @@ bool QSICCD::GuideSouth(float duration)
     }
     catch (std::runtime_error err)
     {
-        IDMessage(deviceName(), "PulseGuide() failed. %s.", err.what());
+        IDMessage(getDeviceName(), "PulseGuide() failed. %s.", err.what());
       if (isDebug())
          IDLog("PulseGuide failed. %s.", err.what());
       return false;
@@ -1577,7 +1578,7 @@ bool QSICCD::GuideEast(float duration)
     }
     catch (std::runtime_error err)
     {
-        IDMessage(deviceName(), "PulseGuide() failed. %s.", err.what());
+        IDMessage(getDeviceName(), "PulseGuide() failed. %s.", err.what());
       if (isDebug())
          IDLog("PulseGuide failed. %s.", err.what());
       return false;
@@ -1595,7 +1596,7 @@ bool QSICCD::GuideWest(float duration)
     }
     catch (std::runtime_error err)
     {
-        IDMessage(deviceName(), "PulseGuide() failed. %s.", err.what());
+        IDMessage(getDeviceName(), "PulseGuide() failed. %s.", err.what());
       if (isDebug())
          IDLog("PulseGuide failed. %s.", err.what());
       return false;
@@ -1621,7 +1622,7 @@ bool QSICCD::GetFilterNames(const char* groupName)
     }
     catch (std::runtime_error err)
     {
-        IDMessage(deviceName(), "QSICamera::get_Names() failed. %s.", err.what());
+        IDMessage(getDeviceName(), "QSICamera::get_Names() failed. %s.", err.what());
         if (isDebug())
             IDLog("QSICamera::get_Names() failed. %s.", err.what());
         return false;
@@ -1636,7 +1637,7 @@ bool QSICCD::GetFilterNames(const char* groupName)
         IUFillText(&FilterNameT[i], filterName, filterLabel, filterDesignation[i].c_str());
     }
 
-    IUFillTextVector(&FilterNameTP, FilterNameT, maxFilters, deviceName(), "FILTER_NAME", "Filter", groupName, IP_RW,1, IPS_IDLE);
+    IUFillTextVector(&FilterNameTP, FilterNameT, maxFilters, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW,1, IPS_IDLE);
 
     return true;
 }
