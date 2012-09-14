@@ -917,7 +917,11 @@ void tty_error_msg(int err_code, char *err_msg, int err_msg_len)
 		break;
 
 	case TTY_PORT_FAILURE:
-        snprintf(error_string, 512, "Port failure Error: %s. Try adding your user to the dialout group and restart. (sudo adduser $username dialout)", strerror(errno));
+      if (errno == EACCES)
+        snprintf(error_string, 512, "Port failure Error: %s. Try adding your user to the dialout group and restart (sudo adduser $username dialout)", strerror(errno));
+      else
+        snprintf(error_string, 512, "Port failure Error: %s. Check if device is connected to this port.", strerror(errno));
+
 		strncpy(err_msg, error_string, err_msg_len);
 		break;
 
