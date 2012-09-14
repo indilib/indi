@@ -21,17 +21,17 @@ set(qsi_LIB_SRCS
 )
 
 #build a shared library
-ADD_LIBRARY(qsi SHARED ${qsi_LIB_SRCS})
+ADD_LIBRARY(qsiapi SHARED ${qsi_LIB_SRCS})
 
-set_target_properties(qsi PROPERTIES VERSION 6.4.1 SOVERSION 6)
+set_target_properties(qsiapi PROPERTIES VERSION 6.4.1 SOVERSION 6)
 
 #need to link to some other libraries ? just add them here
-TARGET_LINK_LIBRARIES(qsi ${FTDI_LIBRARIES})
+TARGET_LINK_LIBRARIES(qsiapi ${FTDI_LIBRARIES})
 
 #add an install target here
 INSTALL(FILES qsiapi.h QSIError.h DESTINATION include)
 
-INSTALL(TARGETS qsi LIBRARY DESTINATION lib)
+INSTALL(TARGETS qsiapi LIBRARY DESTINATION lib)
 
 # build API test
 set(qsiapitest_SRCS
