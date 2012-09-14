@@ -1,2 +1,0 @@
-METASOURCES = AUTO
-

@@ -19,6 +19,9 @@ REVISION HISTORY
 // and "./configure --enable-libftdi" for the open source stack.
 // "./condifure" with no options defaults to libftdi
 //
+
+#include "config.h"
+
 #if defined(USELIBFTDIZERO)
 	#include <ftdi.h>
 	#define FT_PURGE_TX 1
