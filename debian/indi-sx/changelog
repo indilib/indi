@@ -1,3 +1,9 @@
+indi-sx (1.1) precise; urgency=low
+
+  * New upstread release
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sat, 15 Sep 2012 13:19:48 +0300
+
 indi-sx (1.0-0ubuntu1~ppa3) natty; urgency=low
 
   * Natty release

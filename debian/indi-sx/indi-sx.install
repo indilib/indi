@@ -1,0 +1,4 @@
+usr/bin/indi_sx_ccd
+usr/bin/indi_sx_wheel
+usr/share/indi/indi_sx.xml
+etc/udev/rules.d/99-sx.rules
