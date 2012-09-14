@@ -1,13 +1,13 @@
 <devGroup group="CCDs">
         <device label="SX CCD">
                 <driver name="SX CCD">indi_sx_ccd</driver>
-		<version>1.0</version>
+		<version>1.1</version>
 	</device>
 </devGroup>
 <devGroup group="Filter Wheels">
         <device label="SX Wheel">
                 <driver name="SX Wheel">indi_sx_wheel</driver>
-		<version>1.0</version>
+		<version>1.1</version>
 	</device>
 </devGroup>
 
