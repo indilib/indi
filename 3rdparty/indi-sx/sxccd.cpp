@@ -11,7 +11,9 @@ SxCCD::SxCCD()
     //RawGuiderFrame=NULL;
     //CamBits=8;
     //HasGuideHead=0;
-    hasguide=false;
+    sx_hasguide=false;
+    sx_hasST4=false;
+    guide_cmd = 0;
 }
 
 bool SxCCD::Connect()
@@ -43,6 +45,8 @@ bool SxCCD::Connect()
         rc=usb_claim_interface(usb_handle,1);
         fprintf(stderr,"claim interface returns %d\n",rc);
 
+        getCapabilites();
+
         if (rc== 0)
             return true;
     }
@@ -50,7 +54,7 @@ bool SxCCD::Connect()
    return false;
 }
 
-void SxCCD::getDefaultParam()
+void SxCCD::getCapabilites()
 {
     int rc=0;
 
@@ -75,14 +79,12 @@ void SxCCD::getDefaultParam()
         xres=parms.width;
         yres=parms.height;
 
-        SetParams(xres,yres,bits_per_pixel,pixwidth,pixheight);
-
         if((parms.extra_caps & SXCCD_CAPS_GUIDER)==SXCCD_CAPS_GUIDER)
         {
             IDLog("Camera has a guide head attached\n");
             rc=GetCameraParams(1,&gparms);
 
-            hasguide=true;
+            sx_hasguide=true;
 
 
             IDLog("Guider is %d x %d with %d bpp  size %4.2f x %4.2f Matrix %x\n",
@@ -100,10 +102,20 @@ void SxCCD::getDefaultParam()
             gpixwidth=gparms.pix_width;
             gpixheight=gparms.pix_height;
 
-            SetGuideParams(gparms.width,gparms.height,gparms.bits_per_pixel,gparms.pix_width,gparms.pix_height);
-
-
         }
+
+        if ((parms.extra_caps & SXCCD_CAPS_STAR2K)==SXCCD_CAPS_STAR2K)
+            sx_hasST4 = true;
+
+}
+
+void SxCCD::getDefaultParam()
+{
+     SetParams(xres,yres,bits_per_pixel,pixwidth,pixheight);
+
+     if (sx_hasguide)
+        SetGuideParams(gparms.width,gparms.height,gparms.bits_per_pixel,gparms.pix_width,gparms.pix_height);
+
 }
 
 bool SxCCD::Disconnect()
@@ -369,6 +381,23 @@ int SxCCD::SetGuideParams(int XRes,int YRes,int CamBits,float pixwidth,float pix
 
 int SxCCD::SetInterlaced(bool)
 {
+    return 0;
+}
+
+int SxCCD::pulseGuide()
+{
+    char setup_data[8];
+    int rc;
+
+    setup_data[USB_REQ_TYPE    ] = USB_REQ_VENDOR | USB_REQ_DATAOUT;
+    setup_data[USB_REQ         ] = SXUSB_SET_STAR2K;
+    setup_data[USB_REQ_VALUE_L ] = guide_cmd;
+    setup_data[USB_REQ_VALUE_H ] = 0;
+    setup_data[USB_REQ_INDEX_L ] = 0;
+    setup_data[USB_REQ_INDEX_H ] = 0;
+    setup_data[USB_REQ_LENGTH_L] = 0;
+    setup_data[USB_REQ_LENGTH_H] = 0;
+    rc=WriteBulk(setup_data,8,1000);
     return 0;
 }
 

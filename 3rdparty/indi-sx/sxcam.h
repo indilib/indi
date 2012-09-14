@@ -1,5 +1,6 @@
 /*******************************************************************************
   Copyright(c) 2010 Gerry Rozema. All rights reserved.
+               2012 Jasem Mutlaq
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the Free
@@ -61,6 +62,11 @@ class SxCam : public INDI::CCD, public SxCCD
     virtual int SetGuideParams(int XRes,int YRes,int CamBits,float pixwidth,float pixheight);
     virtual int SetInterlaced(bool);
 
+    virtual bool GuideNorth(float ms);
+    virtual bool GuideSouth(float ms);
+    virtual bool GuideEast(float ms);
+    virtual bool GuideWest(float ms);
+
     private:
 
         int SetCamTimer(int ms);
@@ -68,6 +74,8 @@ class SxCam : public INDI::CCD, public SxCCD
         int ReadCameraFrame(int,char *);
         float CalcTimeLeft();
         float CalcGuideTimeLeft();
+        float CalcWEPulseTimeLeft();
+        float CalcNSPulseTimeLeft();
 
         int DidFlush;
         int DidLatch;
@@ -81,6 +89,19 @@ class SxCam : public INDI::CCD, public SxCCD
         struct timeval GuideExpStart;
         float ExposureRequest;
         struct timeval ExpStart;
+
+        bool InWEPulse;
+        float WEPulseRequest;
+        struct timeval WEPulseStart;
+        int WEtimerID;
+
+
+        bool InNSPulse;
+        float NSPulseRequest;
+        struct timeval NSPulseStart;
+        int NStimerID;
+
+
 
         char *evenBuf, *oddBuf;
 

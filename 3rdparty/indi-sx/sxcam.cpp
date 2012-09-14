@@ -1,5 +1,6 @@
 /*******************************************************************************
   Copyright(c) 2010 Gerry Rozema. All rights reserved.
+               2012 Jasem Mutlaq
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the Free
@@ -20,6 +21,8 @@
 *******************************************************************************/
 #include "sxcam.h"
 #include <memory>
+
+#define POLLMS 250
 
 // We declare an auto pointer to sxcamera.
 std::auto_ptr<SxCam> sxcamera(0);
@@ -81,6 +84,9 @@ SxCam::SxCam()
 {
     //ctor
     HasGuideHead=false;
+    HasSt4Port = false;
+    InWEPulse = false;
+    InNSPulse = false;
     evenBuf = NULL;
     oddBuf  = NULL;
 }
@@ -102,6 +108,8 @@ bool SxCam::Connect()
     bool rc;
     //IDLog("Calling sx connect\n");
     rc=SxCCD::Connect();
+    HasGuideHead = sx_hasguide;
+    HasSt4Port = sx_hasST4;
     return rc;
     
 }
@@ -109,7 +117,8 @@ bool SxCam::Connect()
 bool SxCam::Disconnect()
 {
     bool rc;
-    rc=SxCCD::Disconnect();
+    rc=SxCCD::Disconnect();    
+
     return rc;
 }
 
@@ -139,6 +148,38 @@ float SxCam::CalcTimeLeft()
     timeleft=ExposureRequest-timesince;
     return timeleft;
 }
+
+float SxCam::CalcWEPulseTimeLeft()
+{
+    double timesince;
+    double timeleft;
+    struct timeval now;
+    gettimeofday(&now,NULL);
+
+    timesince=(double)(now.tv_sec * 1000.0 + now.tv_usec/1000) - (double)(WEPulseStart.tv_sec * 1000.0 + WEPulseStart.tv_usec/1000);
+    timesince=timesince/1000;
+
+
+    timeleft=WEPulseRequest-timesince;
+    return timeleft;
+}
+
+float SxCam::CalcNSPulseTimeLeft()
+{
+    double timesince;
+    double timeleft;
+    struct timeval now;
+    gettimeofday(&now,NULL);
+
+    timesince=(double)(now.tv_sec * 1000.0 + now.tv_usec/1000) - (double)(NSPulseStart.tv_sec * 1000.0 + NSPulseStart.tv_usec/1000);
+    timesince=timesince/1000;
+
+
+    timeleft=NSPulseRequest-timesince;
+    return timeleft;
+}
+
+
 float SxCam::CalcGuideTimeLeft()
 {
     double timesince;
@@ -306,7 +347,8 @@ void SxCam::TimerHit()
             }
         } else
         {
-            if(!InGuideExposure) SetTimer(250);
+            if(!InGuideExposure && !InWEPulse && !InNSPulse)
+                SetTimer(250);
         }
     }
 
@@ -341,7 +383,7 @@ void SxCam::TimerHit()
                 {
                     SetTimer(100);
                 }
-            } else
+            } else if (!InWEPulse && !InNSPulse)
             {
                 SetTimer(250);
             }
@@ -390,6 +432,100 @@ void SxCam::TimerHit()
         //ClearPixels(SXCCD_EXP_FLAGS_FIELD_BOTH,GUIDE_CCD);
 
     }
+
+
+    if(InWEPulse)
+    {
+        timeleft=CalcWEPulseTimeLeft();
+
+        if(timeleft < 1.0)
+        {
+            if(timeleft > 0.25)
+            {
+                //  a quarter of a second or more
+                //  just set a tighter timer
+                WEtimerID = SetTimer(250);
+            } else
+            {
+                if(timeleft >0.07)
+                {
+                    //  use an even tighter timer
+                    WEtimerID = SetTimer(50);
+                } else
+                {
+                    //  it's real close now, so spin on it
+                    while(timeleft > 0)
+                    {
+                        int slv;
+                        slv=100000*timeleft;
+                        //IDLog("usleep %d\n",slv);
+                        usleep(slv);
+                        timeleft=CalcWEPulseTimeLeft();
+                    }
+
+                    guide_cmd &= SX_CLEAR_WE;
+                    InWEPulse = false;
+                    IDLog("Stopping WE Guide\n");
+                    pulseGuide();
+
+                    // If we have an exposure, keep going
+                    if (InExposure || InGuideExposure && !InNSPulse)
+                        SetTimer(250);
+
+                }
+            }
+        } else if (!InNSPulse)
+        {
+            WEtimerID = SetTimer(250);
+        }
+    }
+
+    if(InNSPulse)
+    {
+        timeleft=CalcNSPulseTimeLeft();
+
+        if(timeleft < 1.0)
+        {
+            if(timeleft > 0.25)
+            {
+                //  a quarter of a second or more
+                //  just set a tighter timer
+                NStimerID =  SetTimer(250);
+            } else
+            {
+                if(timeleft >0.07)
+                {
+                    //  use an even tighter timer
+                    NStimerID = SetTimer(50);
+                } else
+                {
+                    //  it's real close now, so spin on it
+                    while(timeleft > 0)
+                    {
+                        int slv;
+                        slv=100000*timeleft;
+                        //IDLog("usleep %d\n",slv);
+                        usleep(slv);
+                        timeleft=CalcNSPulseTimeLeft();
+                    }
+
+                    guide_cmd &= SX_CLEAR_NS;
+                    InNSPulse = false;
+                    IDLog("Stopping NS Guide\n");
+                    pulseGuide();
+
+                    // If we have an exposure, keep going
+                    if (InExposure || InGuideExposure)
+                        SetTimer(250);
+
+                }
+            }
+        } else
+        {
+            NStimerID = SetTimer(250);
+        }
+    }
+
 }
 
 int SxCam::ReadCameraFrame(int index, char *buf)
@@ -570,6 +706,143 @@ bool SxCam::updateCCDBin(int hor, int ver)
     }
 
     PrimaryCCD.setBin(hor, ver);
+    return true;
+
+}
+
+bool SxCam::GuideNorth(float ms)
+{
+    if (HasSt4Port == false)
+        return false;
+
+    RemoveTimer(NStimerID);
+
+    guide_cmd &= SX_CLEAR_NS;
+    guide_cmd |= SX_GUIDE_NORTH;
+    pulseGuide();
+
+    IDLog("Starting NORTH guide\n");
+
+    if (ms <= POLLMS)
+    {
+
+        usleep(ms*1000);
+
+        guide_cmd &= SX_CLEAR_NS;
+        pulseGuide();
+        return true;
+    }
+
+    NSPulseRequest=ms/1000.0;
+    gettimeofday(&NSPulseStart,NULL);
+    InNSPulse=true;
+
+
+    if (!InExposure  && !InGuideExposure)
+        NStimerID = SetTimer(ms-50);
+
+    return true;
+}
+
+bool SxCam::GuideSouth(float ms)
+{
+    if (HasSt4Port == false)
+        return false;
+
+    RemoveTimer(NStimerID);
+
+    guide_cmd &= SX_CLEAR_NS;
+    guide_cmd |= SX_GUIDE_SOUTH;
+    pulseGuide();
+
+    IDLog("Starting SOUTH guide\n");
+
+    if (ms <= POLLMS)
+    {
+
+        usleep(ms*1000);
+
+        guide_cmd &= SX_CLEAR_NS;
+        pulseGuide();
+        return true;
+    }
+
+    NSPulseRequest=ms/1000.0;
+    gettimeofday(&NSPulseStart,NULL);
+    InNSPulse=true;
+
+
+    if (!InExposure  && !InGuideExposure)
+        NStimerID = SetTimer(ms-50);
+
+    return true;
+
+}
+
+bool SxCam::GuideEast(float ms)
+{
+    if (HasSt4Port == false)
+        return false;
+
+    RemoveTimer(WEtimerID);
+
+    guide_cmd &= SX_CLEAR_WE;
+    guide_cmd |= SX_GUIDE_EAST;
+    pulseGuide();
+
+    IDLog("Starting EAST guide\n");
+
+    if (ms <= POLLMS)
+    {
+
+        usleep(ms*1000);
+
+        guide_cmd &= SX_CLEAR_WE;
+        pulseGuide();
+        return true;
+    }
+
+    WEPulseRequest=ms/1000.0;
+    gettimeofday(&WEPulseStart,NULL);
+    InWEPulse=true;
+
+    if (!InExposure  && !InGuideExposure)
+        WEtimerID = SetTimer(ms-50);
+
+    return true;
+}
+
+bool SxCam::GuideWest(float ms)
+{
+    if (HasSt4Port == false)
+        return false;
+
+    RemoveTimer(WEtimerID);
+
+    guide_cmd &= SX_CLEAR_WE;
+    guide_cmd |= SX_GUIDE_WEST;
+    pulseGuide();
+
+    IDLog("Starting WEST guide\n");
+
+    if (ms <= POLLMS)
+    {
+
+        usleep(ms*1000);
+
+        guide_cmd &= SX_CLEAR_WE;
+        pulseGuide();
+        return true;
+    }
+
+    WEPulseRequest=ms/1000.0;
+    gettimeofday(&WEPulseStart,NULL);
+    InWEPulse=true;
+
+
+    if (!InExposure  && !InGuideExposure)
+        WEtimerID = SetTimer(ms-50);
+
     return true;
 
 }

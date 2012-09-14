@@ -82,6 +82,16 @@
 #define SXUSB_CAMERA_MODEL          14
 #define SXUSB_LOAD_EEPROM           15
 
+#define SX_GUIDE_EAST             0x08     /* RA+ */
+#define SX_GUIDE_NORTH            0x04     /* DEC+ */
+#define SX_GUIDE_SOUTH            0x02     /* DEC- */
+#define SX_GUIDE_WEST             0x01     /* RA- */
+
+
+#define SX_CLEAR_NS               0x09
+#define SX_CLEAR_WE               0x06
+
+
 #define USHORT unsigned short int
 #define BYTE unsigned char
 
@@ -127,7 +137,8 @@ class SxCCD :  public INDI::USBDevice
         int yres;
         int gxres;
         int gyres;
-        bool hasguide;
+        bool sx_hasguide;
+        bool sx_hasST4;
 
         float gpixwidth;
         float gpixheight;
@@ -135,26 +146,17 @@ class SxCCD :  public INDI::USBDevice
         struct t_sxccd_params parms;
         struct t_sxccd_params gparms;
 
+        double north_guide, south_guide, west_guide, east_guide;
+        unsigned char guide_cmd;
+
         int bits_per_pixel;
         int gbits_per_pixel;
-
-        //char *RawFrame;
-        //int RawFrameSize;
-        //int XRes;
-        //int YRes;
-        //int CamBits;
-
-        //bool HasGuideHead;
-        //char *RawGuiderFrame;
-        //int RawGuideSize;
-        //int GXRes;
-        //int GYRes;
-        //int GuiderBits;
 
         bool Connect();
         bool Disconnect();
 
         void getDefaultParam();
+        void getCapabilites();
 
         int ResetCamera();
         int GetCameraModel();
@@ -166,6 +168,8 @@ class SxCCD :  public INDI::USBDevice
         int LatchPixels(int flags,int cam,int xoffset,int yoffset,int width,int height,int xbin,int ybin);
         int ExposePixels(int flags,int cam,int xoffset,int yoffset,int width,int height,int xbin,int ybin, int ms);
         int ReadPixels(char *,int);
+
+        int pulseGuide();
 
         virtual int SetParams(int XRes,int YRes,int CamBits,float pixwidth,float pixheight);
         virtual int SetGuideParams(int XRes,int YRes,int CamBits,float pixwidth,float pixheight);

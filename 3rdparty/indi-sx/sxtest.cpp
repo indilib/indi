@@ -79,7 +79,7 @@ int main()
             FrameBuffer=new char[FrameBufferSize*2];
 
 
-        if(ccd.hasguide) {
+        if(ccd.sx_hasguide) {
             GuiderFrameSize=ccd.gxres*ccd.gyres;
             if(ccd.gbits_per_pixel==16) GuiderFrameSize*=2;
         }
