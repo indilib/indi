@@ -1,6 +1,4 @@
 #!/usr/bin/make -f
 
-DEB_DH_INSTALL_SOURCEDIR = debian/tmp
-
 include /usr/share/cdbs/1/class/cmake.mk
 include /usr/share/cdbs/1/rules/debhelper.mk
