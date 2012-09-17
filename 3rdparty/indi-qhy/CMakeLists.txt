@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.4.7)
-PROJECT(indi_qhy_ccd C)
+PROJECT(indi_qhy_ccd CXX)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
 set(FIRMWARE_INSTALL_DIR "/lib/firmware")
@@ -31,13 +31,13 @@ endif (NOVA_FOUND)
 
 ########### QHY ###########
 set(indiqhy_SRCS
-   ${CMAKE_SOURCE_DIR}/qhy_ccd.c
-   ${CMAKE_SOURCE_DIR}/qhy5_driver.c
+   ${CMAKE_SOURCE_DIR}/qhy_ccd.cpp
+   ${CMAKE_SOURCE_DIR}/qhy5_driver.cpp
    )
 
 add_executable(indi_qhy_ccd ${indiqhy_SRCS})
 
-target_link_libraries(indi_qhy_ccd ${INDI_LIBRARIES} ${INDI_MAIN_LIBRARIES} ${CFITSIO_LIBRARIES} ${QHY_LIBRARIES} ${LIBUSB_LIBRARIES} ${ZLIB_LIBRARIES} )
+target_link_libraries(indi_qhy_ccd ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${ZLIB_LIBRARIES} ${LIBUSB_LIBRARIES})
 
 if (NOVA_FOUND)
   target_link_libraries(indi_qhy_ccd ${NOVA_LIBRARIES})
