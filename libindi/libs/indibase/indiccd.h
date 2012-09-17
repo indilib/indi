@@ -38,6 +38,9 @@ public:
     ~CCDChip();
 
     typedef enum { LIGHT_FRAME=0, BIAS_FRAME, DARK_FRAME, FLAT_FRAME } CCD_FRAME;
+    typedef enum { FRAME_X, FRAME_Y, FRAME_W, FRAME_H} CCD_FRAME_INDEX;
+    typedef enum { BIN_W, BIN_H} CCD_BIN_INDEX;
+    typedef enum { CCD_MAX_X, CCD_MAX_Y, CCD_PIXEL_SIZE, CCD_PIXEL_SIZE_X, CCD_PIXEL_SIZE_Y, CCD_BITSPERPIXEL} CCD_INFO_INDEX;
 
     int getXRes() { return XRes; }
     int getYRes() { return YRes; }

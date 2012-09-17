@@ -87,10 +87,10 @@ void CCDChip::setFrame(int subx, int suby, int subw, int subh)
     SubW = subw;
     SubH = subh;
 
-    ImageFrameN[0].value = SubX;
-    ImageFrameN[1].value = SubY;
-    ImageFrameN[2].value = SubW;
-    ImageFrameN[3].value = SubH;
+    ImageFrameN[FRAME_X].value = SubX;
+    ImageFrameN[FRAME_Y].value = SubY;
+    ImageFrameN[FRAME_W].value = SubW;
+    ImageFrameN[FRAME_H].value = SubH;
 
     IDSetNumber(ImageFrameNP, NULL);
 }
@@ -100,8 +100,8 @@ void CCDChip::setBin(int hor, int ver)
     BinX = hor;
     BinY = ver;
 
-    ImageBinN[0].value = BinX;
-    ImageBinN[1].value = BinY;
+    ImageBinN[BIN_W].value = BinX;
+    ImageBinN[BIN_H].value = BinY;
 
     IDSetNumber(ImageBinNP, NULL);
 }
@@ -130,8 +130,12 @@ void CCDChip::setBPP(int bbp)
 
 void CCDChip::setFrameBufferSize(int nbuf)
 {
+    if (nbuf == RawFrameSize)
+        return;
+
     if (RawFrame != NULL)
         delete RawFrame;
+
 
     RawFrameSize = nbuf;
 
@@ -246,7 +250,7 @@ bool INDI::CCD::initProperties()
     IUFillNumberVector(&EqNP,EqN,2,ActiveDeviceT[0].text,"EQUATORIAL_COORD","EQ Coord","Main Control",IP_RW,60,IPS_IDLE);
 
     IDSnoopDevice(ActiveDeviceT[0].text,"EQUATORIAL_COORD");
-    IDSnoopDevice(ActiveDeviceT[0].text,"TELESCOPE_PARAMETERS");
+    IDSnoopDevice(ActiveDeviceT[0].text,"TELESCOPE_INFO");
     IDSnoopDevice(ActiveDeviceT[1].text,"FWHM");
 
 
@@ -377,7 +381,7 @@ bool INDI::CCD::ISNewText (const char *dev, const char *name, char *texts[], cha
             IUFillNumberVector(&EqNP,EqN,2,ActiveDeviceT[0].text,"EQUATORIAL_PEC","EQ PEC",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
 
             IDSnoopDevice(ActiveDeviceT[0].text,"EQUATORIAL_PEC");
-            IDSnoopDevice(ActiveDeviceT[0].text,"TELESCOPE_PARAMETERS");
+            IDSnoopDevice(ActiveDeviceT[0].text,"TELESCOPE_INFO");
             IDSnoopDevice(ActiveDeviceT[1].text,"FWHM");
             //  We processed this one, so, tell the world we did it
             return true;
