@@ -92,7 +92,7 @@ bool INDI::Telescope::initProperties()
 
     IUFillNumber(&ScopeParametersN[0],"TELESCOPE_APERTURE","Aperture (mm)","%g",50,4000,0,0.0);
     IUFillNumber(&ScopeParametersN[1],"TELESCOPE_FOCAL_LENGTH","Focal Length (mm)","%g",100,10000,0,0.0 );
-    IUFillNumberVector(&ScopeParametersNP,ScopeParametersN,2,getDeviceName(),"TELESCOPE_PARAMETERS","Scope Properties",OPTIONS_TAB,IP_RW,60,IPS_OK);
+    IUFillNumberVector(&ScopeParametersNP,ScopeParametersN,2,getDeviceName(),"TELESCOPE_INFO","Scope Properties",OPTIONS_TAB,IP_RW,60,IPS_OK);
 
     TrackState=SCOPE_PARKED;
     return 0;
@@ -354,7 +354,7 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
             IDSetNumber(&LocationNV,NULL);
         }
 
-        if(strcmp(name,"TELESCOPE_PARAMETERS")==0)
+        if(strcmp(name,"TELESCOPE_INFO")==0)
         {
             ScopeParametersNP.s = IPS_OK;
 
@@ -390,19 +390,14 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
             CoordSV.s=IPS_OK;
             IUUpdateSwitch(&CoordSV,states,names,n);
             //  Update client display
-            IUResetSwitch(&CoordSV);
-
-            for(int x=0; x<n; x++)
-            {
-
-
-            }
+            IDSetSwitch(&CoordSV, NULL);
             return true;
         }
 
         if(strcmp(name,"TELESCOPE_PARK")==0)
         {
             Park();
+            return true;
         }
 
         if(strcmp(name,"TELESCOPE_MOTION_NS")==0)
