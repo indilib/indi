@@ -145,6 +145,15 @@
 3rdparty/indi-sx/sxtest.cpp -text
 3rdparty/indi-sx/sxwheel.cpp -text
 3rdparty/indi-sx/sxwheel.h -text
+3rdparty/indi_fishcamp/AUTHORS -text
+3rdparty/indi_fishcamp/CMakeLists.txt -text
+3rdparty/indi_fishcamp/ChangeLog -text
+3rdparty/indi_fishcamp/INSTALL -text
+3rdparty/indi_fishcamp/README -text
+3rdparty/indi_fishcamp/config.h.cmake -text
+3rdparty/indi_fishcamp/fishcamp.c -text
+3rdparty/indi_fishcamp/indi_fishcamp.xml -text
+3rdparty/indi_fishcamp/libFcLinux.h -text
 cmake_modules/FindALUT.cmake -text
 cmake_modules/FindAPOGEE.cmake -text
 cmake_modules/FindCFITSIO.cmake -text

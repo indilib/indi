@@ -1,0 +1,43 @@
+FISHCAMP Starfish INDI Driver
+=============================
+
+This package provides the INDI driver for Fishcamp Engineering's Starfish CMOS autoguider (currently support imaging part only).
+
+Requirements
+============
+
++ INDI >= v0.6 (http://indi.sf.net)
+
+	You need to install both indi and indi-devel to build this package.
+	
++ cfitsio
+
+	cfitsio-devel is required to compile support for FITS.
+	
++ libusb
+
+	libusb is required.
+	
++ fishcamp library (see the contents of the distribution.tar.gz file).   
+
+
+	
+Installation
+============
+	
+	First install and check that the linux driver in distribution.tar.gz works with your camera.   Then follow the install instructions in INSTALL file.
+	
+	
+How to Use
+==========
+
+	You can use the FISHCAMP INDI Driver in any INDI-compatible client such as KStars or Xephem. 
+	
+	To run the driver from the command line:
+	
+	$ indiserver indi_fishcamp_ccd
+	
+	You can then connect to the driver from any client, the default port is 7624.
+	If you're using KStars, the driver will be automatically listed in KStars' Device Manager,
+	no further configuration is necessary.
+	 
