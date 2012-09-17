@@ -58,16 +58,15 @@ protected:
 public:
 	int WriteInterrupt(char *,int,int);
 	int ReadInterrupt(char *,int,int);
+    int ControlMessage(unsigned char request_type, unsigned char request, unsigned int value, unsigned int index, char *data, unsigned char len);
 
-	int ControlMessage();
-
-        int WriteBulk(char *buf,int nbytes,int timeout);
-        int ReadBulk(char *buf,int nbytes,int timeout);
+    int WriteBulk(char *buf,int nbytes,int timeout);
+    int ReadBulk(char *buf,int nbytes,int timeout);
 	int FindEndpoints();
 	int Open();
-        USBDevice(void);
-        USBDevice(struct usb_device *);
-        virtual ~USBDevice(void);
+    USBDevice(void);
+    USBDevice(struct usb_device *);
+    virtual ~USBDevice(void);
 };
 
 #endif // USBDEVICE_H

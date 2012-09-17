@@ -161,21 +161,22 @@ int INDI::USBDevice::WriteBulk(char *buf,int nbytes,int timeout)
 
 	//printf("Writing %02x to endpoint %d\n",buf[0],OutputEndpoint);
 	//rc=usb_interrupt_write(usb_handle,OutputEndpoint,buf,c,timeout);
-        rc=usb_bulk_write(usb_handle,OutputEndpoint,buf,nbytes,timeout);
+    rc=usb_bulk_write(usb_handle,OutputEndpoint,buf,nbytes,timeout);
 	return rc;
 
 }
 
-int INDI::USBDevice::ControlMessage()
+int INDI::USBDevice::ControlMessage(unsigned char request_type, unsigned char request, unsigned int value, unsigned int index, char *data, unsigned char len)
 {
-    char buf[3];
-    int rc;
+    int result;
 
-    buf[0]=0;
-    buf[1]=0;
-    buf[2]=0;
+    //dprintf("Sending %s command 0x%02x, 0x%02x, 0x%04x, 0x%04x, %d bytes\n",(request_type & USB_ENDPOINT_IN) ? "recv" : "send",	request_type, request, value, index, len);
 
-    rc=usb_control_msg(usb_handle,0xc2&USB_ENDPOINT_IN, 0x12,0,0,buf,3,1000);
-    fprintf(stderr,"UsbControlMessage returns %d\n",rc);
-    return 0;
+    result =  usb_control_msg(usb_handle, request_type,	request, value, index, data, len, 5000);
+    /*for(i = 0; i < len; i++)
+    {
+        dprintf(" %02x", (unsigned char)data[i]);
+    }
+    dprintf("\n");*/
+    return result;
 }
