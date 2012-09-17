@@ -205,7 +205,7 @@ bool CCDSim::initProperties()
 
     IUFillNumber(&ScopeParametersN[0],"TELESCOPE_APERTURE","Aperture (mm)","%g",50,4000,0,0.0);
     IUFillNumber(&ScopeParametersN[1],"TELESCOPE_FOCAL_LENGTH","Focal Length (mm)","%g",100,10000,0,0.0 );
-    IUFillNumberVector(&ScopeParametersNP,ScopeParametersN,2,"Telescope Simulator","TELESCOPE_PARAMETERS","Scope Properties",OPTIONS_TAB,IP_RW,60,IPS_OK);
+    IUFillNumberVector(&ScopeParametersNP,ScopeParametersN,2,"Telescope Simulator","TELESCOPE_INFO","Scope Properties",OPTIONS_TAB,IP_RW,60,IPS_OK);
 
     IUFillNumber(&EqPECN[0],"RA_PEC","Ra (hh:mm:ss)","%010.6m",0,24,0,0);
     IUFillNumber(&EqPECN[1],"DEC_PEC","decPEC (dd:mm:ss)","%010.6m",-90,90,0,0);
