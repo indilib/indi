@@ -105,9 +105,11 @@
 3rdparty/indi-qhy/firmware/qhy5.hex -text
 3rdparty/indi-qhy/firmware/qhy5loader.hex -text
 3rdparty/indi-qhy/indi_qhy.xml -text
-3rdparty/indi-qhy/qhy5_driver.c -text
+3rdparty/indi-qhy/m42_test.fits -text
+3rdparty/indi-qhy/qhy5_driver.cpp -text
 3rdparty/indi-qhy/qhy5_driver.h -text
-3rdparty/indi-qhy/qhy_ccd.c -text
+3rdparty/indi-qhy/qhy_ccd.cpp -text
+3rdparty/indi-qhy/qhy_ccd.h -text
 3rdparty/indi-qsi/99-qsi.rules -text
 3rdparty/indi-qsi/AUTHORS -text
 3rdparty/indi-qsi/INSTALL -text
