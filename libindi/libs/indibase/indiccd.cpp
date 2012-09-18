@@ -635,6 +635,8 @@ bool INDI::CCD::ExposureComplete()
 {
     void *memptr;
     size_t memsize;
+    int img_type=0;
+    int byte_type=0;
     int status=0;
     long naxes[2];
     long naxis=2;
@@ -645,7 +647,31 @@ bool INDI::CCD::ExposureComplete()
     //IDLog("Enter Exposure Complete %d %d %d %d\n",SubW,SubH,BinX,BinY);
 
     naxes[0]=PrimaryCCD.getSubW()/PrimaryCCD.getBinX();
-    naxes[1]=PrimaryCCD.getSubH()/PrimaryCCD.getBinY();
+    naxes[1]=PrimaryCCD.getSubH()/PrimaryCCD.getBinY();  
+
+    switch (PrimaryCCD.getBPP())
+    {
+        case 8:
+            byte_type = TBYTE;
+            img_type  = BYTE_IMG;
+            break;
+
+        case 16:
+            byte_type = TUSHORT;
+            img_type = USHORT_IMG;
+            break;
+
+        case 32:
+            byte_type = TULONG;
+            img_type = ULONG_IMG;
+            break;
+
+         default:
+            IDLog("Unspported bits per pixel value %d\n", PrimaryCCD.getBPP() );
+            return false;
+            break;
+    }
+
 
     numbytes = naxes[0] * naxes[1];
 
@@ -666,7 +692,7 @@ bool INDI::CCD::ExposureComplete()
 		return false;
     }
 
-    fits_create_img(fptr, USHORT_IMG , naxis, naxes, &status);
+    fits_create_img(fptr, img_type , naxis, naxes, &status);
 
     if (status)
     {
@@ -677,7 +703,7 @@ bool INDI::CCD::ExposureComplete()
 
     addFITSKeywords(fptr);
 
-    fits_write_img(fptr,TUSHORT,1,numbytes,PrimaryCCD.getFrameBuffer(),&status);
+    fits_write_img(fptr,byte_type,1,numbytes,PrimaryCCD.getFrameBuffer(),&status);
 
     if (status)
     {
