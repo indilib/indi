@@ -120,7 +120,9 @@ void QHYCCD::ISGetProperties(const char *dev)
 
     addAuxControls();
 
-    setSimulation(true);
+    //setSimulation(true);
+
+    setDebug(true);
 }
 
 bool QHYCCD::updateProperties()
@@ -159,6 +161,11 @@ bool QHYCCD::Connect()
         driver->setSimulation(true);
     else
         driver->setSimulation(false);
+
+    if (isDebug())
+        driver->setDebug(true);
+    else
+        driver->setDebug(false);
 
     rc=driver->Connect();
     return rc;
@@ -233,8 +240,11 @@ int QHYCCD::StartExposure(float n)
     InExposure=true;
 
 
-
-    driver->StartExposure(n);
+    if (isDebug())
+        IDLog("Calling start exposure...\n");
+    int rc = driver->StartExposure(n);
+    if (isDebug())
+        IDLog("Result from start exposure is (%d)\n", rc);
 
     //  Relatively long exposure
      //  lets do it on our own timers
@@ -302,6 +312,9 @@ void QHYCCD::TimerHit()
                         usleep(slv);
                         timeleft=CalcTimeLeft();
                     }
+
+                    if (isDebug())
+                        IDLog("Exposure done, calling ReadCameraFrame\n");
 
                     ReadCameraFrame();
 

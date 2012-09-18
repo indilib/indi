@@ -81,13 +81,24 @@ bool QHY5Driver::Connect()
 
         rc=FindEndpoints();
 
-        usb_detach_kernel_driver_np(usb_handle,0);
-        IDLog("Detach Kernel returns %d\n",rc);
-        IDLog("Set Configuration returns %d\n",rc);
+        rc = usb_detach_kernel_driver_np(usb_handle,0);
+
+        if (debug)
+            IDLog("Detach Kernel returns %d\n",rc);
+
+        rc = usb_set_configuration(usb_handle,1);
+        if (debug)
+            IDLog("Set Configuration returns %d\n",rc);
 
         rc=usb_claim_interface(usb_handle,0);
-        fprintf(stderr,"claim interface returns %d\n",rc);
+
+        if (debug)
+            IDLog("claim interface returns %d\n",rc);
+
         rc= usb_set_altinterface(usb_handle,0);
+
+        if (debug)
+            IDLog("set alt interface returns %d\n",rc);
 
         if (rc== 0)
             return true;
@@ -138,7 +149,7 @@ int QHY5Driver::Pulse(int direction, int duration_msec)
     int cmd = 0x00;
 
     if (! (direction & (QHY_NORTH | QHY_SOUTH | QHY_EAST | QHY_WEST))) {
-        fprintf(stderr, "No direction specified to qhy5_timed_move\n");
+        IDLog( "No direction specified to qhy5_timed_move\n");
         return 1;
     }
     if (duration_msec == 0) {
@@ -195,11 +206,22 @@ int QHY5Driver::SetParams(int in_width, int in_height, int in_offw, int in_offh,
 
     if (simulation == false)
     {
-        ControlMessage(0x42, 0x13, value, index, reg, 19);
+        int rc;
+        rc = ControlMessage(0x42, 0x13, value, index, reg, 19);
+        if (debug)
+            IDLog( "SetParam1 result: %d\n", rc);
+
         usleep(20000);
-        ControlMessage(0x42, 0x14, 0x31a5, 0, reg, 0);
+        rc = ControlMessage(0x42, 0x14, 0x31a5, 0, reg, 0);
+
+        if (debug)
+            IDLog( "SetParam2 result: %d\n", rc);
+
         usleep(10000);
-        ControlMessage(0x42, 0x16, 0, 0, reg, 0);
+        rc = ControlMessage(0x42, 0x16, 0, 0, reg, 0);
+
+        if (debug)
+            IDLog( "SetParam3 result: %d\n", rc);
     }
 
     width = in_width;
@@ -220,7 +242,8 @@ int QHY5Driver::SetParams(int in_width, int in_height, int in_offw, int in_offh,
         imageBuffer = (char *) realloc(imageBuffer, imageBufferSize);
     }
 
-    fprintf(stderr, "Driver imgBufferSize is %d bytes\n", imageBufferSize);
+    if (debug)
+        IDLog( "Driver imgBufferSize is %d bytes\n", imageBufferSize);
     return(0);
 }
 
@@ -233,6 +256,7 @@ int QHY5Driver::StartExposure(unsigned int exposure)
     value = exposure & 0xffff;
 
     usleep(20000);
+
 
     if (simulation)
     {
@@ -263,7 +287,11 @@ int QHY5Driver::StartExposure(unsigned int exposure)
         return 0;
     }
     else
+    {
+        if (debug)
+            IDLog( "QHY5Driver: calling start exposure...\n");
         return ControlMessage(0xc2, 0x12, value, index, buffer, 2);
+    }
 }
 
 int QHY5Driver::ReadExposure()
@@ -274,7 +302,7 @@ int QHY5Driver::ReadExposure()
     {
         if (fitsBuffer == NULL)
         {
-            fprintf(stderr," fitsbuffer is NULL\n");
+            IDLog(" fitsbuffer is NULL\n");
             return -1;
         }
 
@@ -285,19 +313,30 @@ int QHY5Driver::ReadExposure()
           return 0;
     }
 
-    //dprintf("Reading %08x bytes\n", (unsigned int)imagesize);
+    if (debug)
+        IDLog( "QH5Driver: Reading %08x bytes\n", (unsigned int)imageBufferSize);
+
     result = usb_bulk_read(usb_handle, 0x82, imageBuffer, imageBufferSize, 20000);
-    if (result == imageBufferSize) {
-        //dprintf( "Bytes: %d\n", result);
-/*		for (i = 0; i < result; i++) {
-            if((i% 16) == 0) {
-                dprintf("\n%06x:", i);
+    if (result == imageBufferSize)
+    {
+        if (debug)
+        {
+
+        IDLog( "Bytes: %d\n", result);
+        for (int i = 0; i < result; i++)
+        {
+            if((i% 16) == 0)
+            {
+                IDLog( "\n%06x:", i);
             }
-            dprintf(" %02x", imd[i]);
+            fprintf(stderr, " %02x", imageBuffer[i]);
         }
-*/
-    } else {
-        printf("Failed to read image. Got: %d, expected %u\n", result, (unsigned int)imageBufferSize);
+        }
+
+    }
+    else
+    {
+        IDLog("Failed to read image. Got: %d, expected %u\n", result, (unsigned int)imageBufferSize);
         return 1;
     }
     return 0;

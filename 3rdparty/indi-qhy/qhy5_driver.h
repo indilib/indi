@@ -48,6 +48,7 @@ class QHY5Driver :  public INDI::USBDevice
         bool Disconnect();
 
         void setSimulation(bool enable) { simulation = enable;}
+        void setDebug(bool enable) { debug = enable; }
 
         int SetParams(int in_width, int in_height, int in_offw, int in_offh, int in_gain, int *pixw, int *pixh);
         int GetDefaultParam(int *width, int *height, int *gain);
@@ -73,6 +74,7 @@ class QHY5Driver :  public INDI::USBDevice
         bool hasGuide;
         bool hasST4;
         bool simulation;
+        bool debug;
 
         char *imageBuffer;
         int imageBufferSize;
