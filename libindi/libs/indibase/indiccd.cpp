@@ -802,7 +802,7 @@ void INDI::CCD::SetCCDParams(int x,int y,int bpp,float xf,float yf)
     PrimaryCCD.setFrame(0, 0, x, y);
     PrimaryCCD.setBin(1,1);
     PrimaryCCD.setPixelSize(xf, yf);
-    PrimaryCCD.setBPP(bpp/8);
+    PrimaryCCD.setBPP(bpp);
 
 }
 

@@ -134,8 +134,6 @@ bool CCDSim::SetupParms()
     int nbuf;
     SetCCDParams(SimulatorSettingsN[0].value,SimulatorSettingsN[1].value,16,SimulatorSettingsN[2].value,SimulatorSettingsN[3].value);
 
-    PrimaryCCD.setBPP(16);
-
     //  Kwiq
     maxnoise=SimulatorSettingsN[8].value;
     skyglow=SimulatorSettingsN[9].value;
