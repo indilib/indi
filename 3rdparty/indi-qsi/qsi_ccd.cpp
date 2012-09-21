@@ -214,10 +214,11 @@ bool QSICCD::updateProperties()
         defineNumber(&FilterSlotNP);
         defineSwitch(&FilterSP);
         defineSwitch(&ReadOutSP);
-        if (FilterNameT != NULL)
-            defineText(&FilterNameTP);
 
         setupParams();
+
+        if (FilterNameT != NULL)
+            defineText(FilterNameTP);
 
         char msg[1024];
 
@@ -243,7 +244,7 @@ bool QSICCD::updateProperties()
         deleteProperty(FilterSP.name);
         deleteProperty(ReadOutSP.name);
         if (FilterNameT != NULL)
-            deleteProperty(FilterNameTP.name);
+            deleteProperty(FilterNameTP->name);
 
         rmTimer(timerID);
     }
@@ -359,7 +360,7 @@ bool QSICCD::setupParams()
     }
 
     int nbuf;
-    nbuf=PrimaryCCD.getXRes()*PrimaryCCD.getYRes() * PrimaryCCD.getBPP();                 //  this is pixel count
+    nbuf=PrimaryCCD.getXRes()*PrimaryCCD.getYRes() * PrimaryCCD.getBPP()/8;                 //  this is pixel count
     nbuf+=512;                      //  leave a little extra at the end
     PrimaryCCD.setFrameBufferSize(nbuf);
 
@@ -464,12 +465,12 @@ bool QSICCD::ISNewText (const char *dev, const char *name, char *texts[], char *
 
     if(strcmp(dev,getDeviceName())==0)
     {
-        if (!strcmp(name, FilterNameTP.name))
+        if (!strcmp(name, FilterNameTP->name))
         {
-            if (IUUpdateText(&FilterNameTP, texts, names, n) < 0)
+            if (IUUpdateText(FilterNameTP, texts, names, n) < 0)
             {
-                FilterNameTP.s = IPS_ALERT;
-                IDSetText(&FilterNameTP, "Error updating names. XML corrupted.");
+                FilterNameTP->s = IPS_ALERT;
+                IDSetText(FilterNameTP, "Error updating names. XML corrupted.");
                 return false;
             }
 
@@ -478,14 +479,14 @@ bool QSICCD::ISNewText (const char *dev, const char *name, char *texts[], char *
 
             if (SetFilterNames() == true)
             {
-                FilterNameTP.s = IPS_OK;
-                IDSetText(&FilterNameTP, NULL);
+                FilterNameTP->s = IPS_OK;
+                IDSetText(FilterNameTP, NULL);
                 return true;
             }
             else
             {
-                FilterNameTP.s = IPS_ALERT;
-                IDSetText(&FilterNameTP, "Error updating filter names.");
+                FilterNameTP->s = IPS_ALERT;
+                IDSetText(FilterNameTP, "Error updating filter names.");
                 return false;
             }
 
@@ -759,16 +760,16 @@ float QSICCD::CalcTimeLeft(timeval start,float req)
     return timeleft;
 }
 
-void QSICCD::updateCCDFrame()
+bool QSICCD::updateCCDFrame(int x, int y, int w, int h)
 {
     char errmsg[ERRMSG_SIZE];
 
     /* Add the X and Y offsets */
-    long x_1 = PrimaryCCD.getSubX(); //ImageFrameN[0].value;
-    long y_1 = PrimaryCCD.getSubY(); //ImageFrameN[1].value;
+    long x_1 = x;
+    long y_1 = y;
 
-    long x_2 = x_1 + (PrimaryCCD.getSubW() / PrimaryCCD.getBinX());
-    long y_2 = y_1 + (PrimaryCCD.getSubH() / PrimaryCCD.getBinY());
+    long x_2 = x_1 + (w / PrimaryCCD.getBinX());
+    long y_2 = y_1 + (h / PrimaryCCD.getBinY());
 
     long sensorPixelSize_x,
          sensorPixelSize_y;
@@ -779,6 +780,7 @@ void QSICCD::updateCCDFrame()
     } catch (std::runtime_error err)
     {
         IDMessage(getDeviceName(), "Getting image area size failed. %s.", err.what());
+        return false;
     }
 
     if (x_2 > sensorPixelSize_x / PrimaryCCD.getBinX())
@@ -805,33 +807,42 @@ void QSICCD::updateCCDFrame()
         IDMessage(getDeviceName(), "Setting image area failed. %s.", err.what());
         if (isDebug())
             IDLog("Setting image area failed. %s.", err.what());
-        return;
+        return false;
     }
+
+    int nbuf;
+    nbuf=(imageWidth*imageHeight * PrimaryCCD.getBPP()/8);                 //  this is pixel count
+    nbuf+=512;                      //  leave a little extra at the end
+    PrimaryCCD.setFrameBufferSize(nbuf);
+
+    return true;
 }
 
-void QSICCD::updateCCDBin()
+bool QSICCD::updateCCDBin(int binx, int biny)
 {
     try
     {
-        QSICam.put_BinX(PrimaryCCD.getBinX());
+        QSICam.put_BinX(binx);
     } catch (std::runtime_error err)
     {
         IDMessage(getDeviceName(), "put_BinX() failed. %s.", err.what());
         IDLog("put_BinX() failed. %s.", err.what());
-        return;
+        return false;
     }
 
     try
     {
-        QSICam.put_BinY(PrimaryCCD.getBinY());
+        QSICam.put_BinY(biny);
     } catch (std::runtime_error err)
     {
         IDMessage(getDeviceName(), "put_BinY() failed. %s.", err.what());
         IDLog("put_BinY() failed. %s.", err.what());
-        return;
+        return false;
     }
 
-    updateCCDFrame();
+    PrimaryCCD.setBin(binx, biny);
+
+    return updateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
 }
 
 /* Downloads the image from the CCD.
@@ -842,16 +853,20 @@ int QSICCD::grabImage()
 
         int x,y,z;
         try {
+            int counter=1;
             bool imageReady = false;
             QSICam.get_ImageReady(&imageReady);
             while(!imageReady)
             {
                 usleep(500);
+                IDLog("Sleeping 500, counter %d\n", counter++);
                 QSICam.get_ImageReady(&imageReady);
             }
 
             QSICam.get_ImageArraySize(x,y,z);
+            IDLog("Before grab array\n");
             QSICam.get_ImageArray(image);
+            IDLog("After grab array\n");
             imageBuffer = image;
             imageWidth  = x;
             imageHeight = y;
@@ -983,7 +998,7 @@ int QSICCD::manageDefaults(char errmsg[])
         if (isDebug())
             IDLog("Setting default binning %d x %d.\n", PrimaryCCD.getBinX(), PrimaryCCD.getBinY());
 
-        updateCCDFrame();
+        updateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
 
         /* Success */
         return 0;
@@ -1205,7 +1220,8 @@ void QSICCD::resetFrame()
         ResetSP.s = IPS_IDLE;
         IDSetSwitch(&ResetSP, "Resetting frame and binning.");
 
-        updateCCDFrame();
+        PrimaryCCD.setBin(1,1);
+        updateCCDFrame(0,0, imageWidth, imageHeight);
 
         return;
 }
@@ -1637,7 +1653,7 @@ bool QSICCD::GetFilterNames(const char* groupName)
         IUFillText(&FilterNameT[i], filterName, filterLabel, filterDesignation[i].c_str());
     }
 
-    IUFillTextVector(&FilterNameTP, FilterNameT, maxFilters, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW,1, IPS_IDLE);
+    IUFillTextVector(FilterNameTP, FilterNameT, maxFilters, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW,1, IPS_IDLE);
 
     return true;
 }
@@ -1650,7 +1666,7 @@ bool QSICCD::SetFilterNames()
     }
     catch (std::runtime_error err)
     {
-      IDSetText(&FilterNameTP, "put_Names() failed. %s.", err.what());
+      IDSetText(FilterNameTP, "put_Names() failed. %s.", err.what());
       if (isDebug())
          IDLog("put_Names() failed. %s.", err.what());
       return false;

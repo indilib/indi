@@ -120,8 +120,8 @@ public:
 
     void TimerHit();
 
-    virtual void updateCCDFrame();
-    virtual void updateCCDBin();
+    virtual bool updateCCDFrame(int x, int y, int w, int h);
+    virtual bool updateCCDBin(int binx, int biny);
     virtual void addFITSKeywords(fitsfile *fptr);
 
     virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
