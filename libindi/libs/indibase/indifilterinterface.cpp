@@ -22,6 +22,7 @@
 
 INDI::FilterInterface::FilterInterface()
 {
+    FilterNameTP  = new ITextVectorProperty;
     FilterNameT  = NULL;
     MinFilter = MaxFilter = 0;
 }
@@ -35,6 +36,7 @@ void INDI::FilterInterface::initFilterProperties(const char *deviceName, const c
 INDI::FilterInterface::~FilterInterface()
 {
 
+    delete FilterNameTP;
 }
 
 void INDI::FilterInterface::SelectFilterDone(int f)

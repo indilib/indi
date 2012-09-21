@@ -480,7 +480,7 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
 
             return true;
 
-        }
+      }
 
         if(strcmp(name,"CCD_FRAME")==0)
         {

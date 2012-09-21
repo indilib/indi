@@ -78,7 +78,7 @@ protected:
     INumberVectorProperty FilterSlotNP;   //  A number vector for filter slot
     INumber FilterSlotN[1];
 
-    ITextVectorProperty FilterNameTP; //  A text vector that stores out physical port name
+    ITextVectorProperty *FilterNameTP; //  A text vector that stores out physical port name
     IText *FilterNameT;
 
     int MinFilter;
