@@ -492,6 +492,8 @@ int INDI::BaseClient::messageCmd (XMLEle *root, char * errmsg)
 
 void INDI::BaseClient::sendNewText (ITextVectorProperty *tvp)
 {
+    tvp->s = IPS_BUSY;
+
     fprintf(svrwfp, "<newTextVector\n");
     fprintf(svrwfp, "  device='%s'\n", tvp->device);
     fprintf(svrwfp, "  name='%s'\n>", tvp->name);
@@ -526,7 +528,6 @@ void INDI::BaseClient::sendNewText (const char * deviceName, const char * proper
     if (tp == NULL)
         return;
 
-    tvp->s = IPS_BUSY;
     IUSaveText(tp, text);
 
     sendNewText(tvp);
@@ -534,6 +535,8 @@ void INDI::BaseClient::sendNewText (const char * deviceName, const char * proper
 
 void INDI::BaseClient::sendNewNumber (INumberVectorProperty *nvp)
 {
+    nvp->s = IPS_BUSY;
+
     fprintf(svrwfp, "<newNumberVector\n");
     fprintf(svrwfp, "  device='%s'\n", nvp->device);
     fprintf(svrwfp, "  name='%s'\n>", nvp->name);
@@ -568,7 +571,6 @@ void INDI::BaseClient::sendNewNumber (const char *deviceName, const char *proper
         return;
 
     np->value = value;
-    nvp->s = IPS_BUSY;
 
     sendNewNumber(nvp);
 
@@ -576,6 +578,7 @@ void INDI::BaseClient::sendNewNumber (const char *deviceName, const char *proper
 
 void INDI::BaseClient::sendNewSwitch (ISwitchVectorProperty *svp)
 {
+    svp->s = IPS_BUSY;
     ISwitch *onSwitch = IUFindOnSwitch(svp);
 
     fprintf(svrwfp, "<newSwitchVector\n");
@@ -625,7 +628,6 @@ void INDI::BaseClient::sendNewSwitch (const char *deviceName, const char *proper
         return;
 
     sp->s = ISS_ON;
-    svp->s = IPS_BUSY;
 
     sendNewSwitch(svp);
 
