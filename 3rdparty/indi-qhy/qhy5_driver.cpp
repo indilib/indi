@@ -67,7 +67,7 @@ bool QHY5Driver::Connect()
     if (simulation)
         return true;
 
-   dev=FindDevice(0x1278,0x16c0,0);
+   dev=FindDevice(0x16c0, 0x296d);
 
    if(dev==NULL)
     {
