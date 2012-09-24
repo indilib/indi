@@ -78,6 +78,10 @@ void CCDChip::setResolutoin(int x, int y)
     ImagePixelSizeN[1].value=y;
 
     IDSetNumber(ImagePixelSizeNP, NULL);
+
+    ImageFrameN[FRAME_W].max = x;
+    ImageFrameN[FRAME_H].max = y;
+    IUUpdateMinMax(ImageFrameNP);
 }
 
 void CCDChip::setFrame(int subx, int suby, int subw, int subh)
@@ -472,11 +476,12 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
             PrimaryCCD.ImageBinNP->s=IPS_OK;
             IUUpdateNumber(PrimaryCCD.ImageBinNP,values,names,n);
 
-            // Let child classes know of CCD BIN changes
-            // If child processes and updates bin (true) then no further action is needed
-            // if child class does not do any processing, then we simply update the values.
+
             if (updateCCDBin(PrimaryCCD.ImageBinN[0].value, PrimaryCCD.ImageBinN[1].value) == false)
-                PrimaryCCD.setBin(PrimaryCCD.ImageBinN[0].value, PrimaryCCD.ImageBinN[1].value);
+            {
+                PrimaryCCD.ImageBinNP->s = IPS_ALERT;
+                IDSetNumber (PrimaryCCD.ImageBinNP, NULL);
+            }
 
             return true;
 
@@ -487,19 +492,14 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
             //  We are being asked to set camera binning
             PrimaryCCD.ImageFrameNP->s=IPS_OK;
             IUUpdateNumber(PrimaryCCD.ImageFrameNP,values,names,n);
-            //  Update client display
-            //IDSetNumber(PrimaryCCD.ImageFrameNP,NULL);
-
-            //IDLog("Frame set to %4.0f,%4.0f %4.0f x %4.0f\n",CcdFrameN[0].value,CcdFrameN[1].value,CcdFrameN[2].value,CcdFrameN[3].value);
-            //SubX=PrimaryCCD.ImageFrameN[0].value;
-            //SubY=PrimaryCCD.ImageFrameN[1].value;
-            //SubW=PrimaryCCD.ImageFrameN[2].value;
-            //SubH=PrimaryCCD.ImageFrameN[3].value;
 
             if (updateCCDFrame(PrimaryCCD.ImageFrameN[0].value, PrimaryCCD.ImageFrameN[1].value, PrimaryCCD.ImageFrameN[2].value,
                                PrimaryCCD.ImageFrameN[3].value) == false)
-                PrimaryCCD.setFrame(PrimaryCCD.ImageFrameN[0].value, PrimaryCCD.ImageFrameN[1].value, PrimaryCCD.ImageFrameN[2].value,
-                                    PrimaryCCD.ImageFrameN[3].value);
+            {
+                PrimaryCCD.ImageFrameNP->s = IPS_ALERT;
+                IDSetNumber(PrimaryCCD.ImageFrameNP, NULL);
+
+            }
             return true;
         }
 
@@ -616,14 +616,16 @@ bool INDI::CCD::AbortExposure()
 
 bool INDI::CCD::updateCCDFrame(int x, int y, int w, int h)
 {
-    // Nothing to do here. HW layer should take care of it if needed.
-    return false;
+    // Just set value, unless HW layer overrides this and performs its own processing
+    PrimaryCCD.setFrame(x, y, w, h);
+    return true;
 }
 
 bool INDI::CCD::updateCCDBin(int hor, int ver)
 {
-    // Nothing to do here. HW layer should take care of it if needed.
-    return false;
+    // Just set value, unless HW layer overrides this and performs its own processing
+    PrimaryCCD.setBin(hor, ver);
+    return true;
 }
 
 void INDI::CCD::addFITSKeywords(fitsfile *fptr)
