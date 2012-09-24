@@ -771,23 +771,17 @@ bool QSICCD::updateCCDFrame(int x, int y, int w, int h)
     long x_2 = x_1 + (w / PrimaryCCD.getBinX());
     long y_2 = y_1 + (h / PrimaryCCD.getBinY());
 
-    long sensorPixelSize_x,
-         sensorPixelSize_y;
-    try
+    if (x_2 > PrimaryCCD.getXRes() / PrimaryCCD.getBinX())
     {
-        QSICam.get_CameraXSize(&sensorPixelSize_x);
-        QSICam.get_CameraYSize(&sensorPixelSize_y);
-    } catch (std::runtime_error err)
+        IDMessage(getDeviceName(), "Error: invalid width requested %ld", x_2);
+        return false;
+    }
+    else if (y_2 > PrimaryCCD.getYRes() / PrimaryCCD.getBinY())
     {
-        IDMessage(getDeviceName(), "Getting image area size failed. %s.", err.what());
+        IDMessage(getDeviceName(), "Error: invalid height request %ld", y_2);
         return false;
     }
 
-    if (x_2 > sensorPixelSize_x / PrimaryCCD.getBinX())
-        x_2 = sensorPixelSize_x / PrimaryCCD.getBinX();
-
-    if (y_2 > sensorPixelSize_y / PrimaryCCD.getBinY())
-        y_2 = sensorPixelSize_y / PrimaryCCD.getBinY();
 
     if (isDebug())
         IDLog("The Final image area is (%ld, %ld), (%ld, %ld)\n", x_1, y_1, x_2, y_2);
@@ -810,7 +804,8 @@ bool QSICCD::updateCCDFrame(int x, int y, int w, int h)
         return false;
     }
 
-    PrimaryCCD.setFrame(x_1, y_1, x_2, y_2);
+    // Set UNBINNED coords
+    PrimaryCCD.setFrame(x_1, y_1, w,  h);
 
     int nbuf;
     nbuf=(imageWidth*imageHeight * PrimaryCCD.getBPP()/8);                 //  this is pixel count
@@ -855,20 +850,16 @@ int QSICCD::grabImage()
 
         int x,y,z;
         try {
-            int counter=1;
             bool imageReady = false;
             QSICam.get_ImageReady(&imageReady);
             while(!imageReady)
             {
                 usleep(500);
-                IDLog("Sleeping 500, counter %d\n", counter++);
                 QSICam.get_ImageReady(&imageReady);
             }
 
             QSICam.get_ImageArraySize(x,y,z);
-            IDLog("Before grab array\n");
             QSICam.get_ImageArray(image);
-            IDLog("After grab array\n");
             imageBuffer = image;
             imageWidth  = x;
             imageHeight = y;
