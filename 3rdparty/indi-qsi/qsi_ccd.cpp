@@ -810,6 +810,8 @@ bool QSICCD::updateCCDFrame(int x, int y, int w, int h)
         return false;
     }
 
+    PrimaryCCD.setFrame(x_1, y_1, x_2, y_2);
+
     int nbuf;
     nbuf=(imageWidth*imageHeight * PrimaryCCD.getBPP()/8);                 //  this is pixel count
     nbuf+=512;                      //  leave a little extra at the end
@@ -999,6 +1001,8 @@ int QSICCD::manageDefaults(char errmsg[])
             IDLog("Setting default binning %d x %d.\n", PrimaryCCD.getBinX(), PrimaryCCD.getBinY());
 
         updateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
+
+
 
         /* Success */
         return 0;
