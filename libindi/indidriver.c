@@ -307,6 +307,7 @@ int IUSaveBLOB(IBLOB *bp, int size, int blobsize, char *blob, char *format)
     bp->size    = size;
     bp->blob    = blob;
     strncpy(bp->format, format, MAXINDIFORMAT);
+    return 0;
 }
 
 void IUFillSwitch(ISwitch *sp, const char *name, const char * label, ISState s)

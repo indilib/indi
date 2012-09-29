@@ -168,3 +168,9 @@
 		<version>0.1</version>
 	</device>
 </devGroup>
+<devGroup group="Auxiliary">
+        <device label="GPUSB">
+                <driver name="GPUSB">indi_gpusb</driver>
+                <version>0.1</version>
+        </device>
+</devGroup>

@@ -1,0 +1,1 @@
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="134a", ATTRS{idProduct}=="9020", MODE="0666"

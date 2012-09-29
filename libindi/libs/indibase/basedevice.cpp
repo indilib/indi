@@ -997,6 +997,8 @@ int INDI::BaseDevice::setBLOB(IBLOBVectorProperty *bvp, XMLEle * root, char * er
            }
     }
 
+    return 0;
+
 }
 
 void INDI::BaseDevice::setDeviceName(const char *dev)

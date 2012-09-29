@@ -489,6 +489,8 @@ bool ScopeSim::Sync(double ra, double dec)
 
 
     NewRaDec(currentRA, currentDEC);
+
+    return true;
 }
 
 bool ScopeSim::Park()

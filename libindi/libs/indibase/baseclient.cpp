@@ -122,13 +122,13 @@ bool INDI::BaseClient::connectServer()
 
 bool INDI::BaseClient::disconnectServer()
 {
-   // IDLog("Server disconnected called\n");
+    //IDLog("Server disconnected called\n");
     if (sConnected == false)
         return true;
 
     sConnected = false;
 
-    //IDLog("Closing socket fd!\n");
+   //IDLog("Closing socket fd!\n");
     close(sockfd);
 
     if (svrwfp != NULL)
@@ -300,10 +300,8 @@ void INDI::BaseClient::listenINDI()
         }
     }
 
-    //IDLog("Termindating Listen therad!\n");
     delLilXML(lillp);
 
-    //IDLog("sConnected value at termination is: %s\n", (sConnected ? "True" : "False"));
     serverDisconnected( (sConnected == false) ? 0 : -1);
     sConnected = false;
 

@@ -13,6 +13,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
 set(DATA_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/share/indi/")
 set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
 set(INCLUDE_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/include")
+set(UDEVRULES_INSTALL_DIR "/etc/udev/rules.d")
 
 ##################  setup install directories  ################################
 set (LIB_SUFFIX "" CACHE STRING "Define suffix of directory name (32/64)" )
@@ -587,6 +588,35 @@ endif (CFITSIO_FOUND)
 endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 #################################################################################
+
+#####################################
+############ AUX GROUP ##############
+#####################################
+
+########### GPUSB Driver ###############
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+
+set(gpusb_SRCS
+        ${indimain_SRCS}
+        ${CMAKE_SOURCE_DIR}/drivers/aux/gpdriver.cpp
+        ${CMAKE_SOURCE_DIR}/drivers/aux/gpusb.cpp
+   )
+
+add_executable(indi_gpusb ${gpusb_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
+
+target_link_libraries(indi_gpusb indidriver usb m z pthread)
+
+if (NOVA_FOUND)
+  target_link_libraries(indi_gpusb ${NOVA_LIBRARIES})
+endif (NOVA_FOUND)
+
+install(TARGETS indi_gpusb RUNTIME DESTINATION bin )
+
+install(FILES ${CMAKE_SOURCE_DIR}/drivers/aux/99-gpusb.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
+
+endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+
+
 
 ########### getINDI ##############
 set(getindi_SRCS

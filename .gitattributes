@@ -538,6 +538,11 @@ libindi/base64.c -text
 libindi/base64.h -text
 libindi/config.h.cmake -text
 libindi/drivers.xml -text
+libindi/drivers/aux/99-gpusb.rules -text
+libindi/drivers/aux/gpdriver.cpp -text
+libindi/drivers/aux/gpdriver.h -text
+libindi/drivers/aux/gpusb.cpp -text
+libindi/drivers/aux/gpusb.h -text
 libindi/drivers/ccd/ccd_simulator.cpp -text
 libindi/drivers/ccd/ccd_simulator.h -text
 libindi/drivers/filter_wheel/filter_simulator.cpp -text
