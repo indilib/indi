@@ -1653,7 +1653,7 @@ addClDevice (ClInfo *cp, const char *dev, const char *name, int isblob)
             for (i = 0; i < cp->nprops; i++)
             {
                 Property *pp = &cp->props[i];
-                if (!strcmp (pp->dev, dev) && (!pp->name[0] || !strcmp(pp->name, name)))
+                if (!strcmp (pp->dev, dev) && (name==NULL || !strcmp(pp->name, name)))
                     return;
             }
         }
