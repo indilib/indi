@@ -317,7 +317,7 @@ int QHY5Driver::ReadExposure()
         IDLog( "QH5Driver: Reading %08x bytes\n", (unsigned int)imageBufferSize);
 
     result = usb_bulk_read(usb_handle, 0x82, imageBuffer, imageBufferSize, 20000);
-    if (result == imageBufferSize)
+    /*if (result == imageBufferSize)
     {
         if (debug)
         {
@@ -334,7 +334,8 @@ int QHY5Driver::ReadExposure()
         }
 
     }
-    else
+    else*/
+    if (result != imageBufferSize)
     {
         IDLog("Failed to read image. Got: %d, expected %u\n", result, (unsigned int)imageBufferSize);
         return 1;
