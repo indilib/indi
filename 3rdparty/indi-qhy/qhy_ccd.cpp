@@ -122,7 +122,7 @@ void QHYCCD::ISGetProperties(const char *dev)
 
     //setSimulation(true);
 
-    setDebug(true);
+    //setDebug(true);
 }
 
 bool QHYCCD::updateProperties()
