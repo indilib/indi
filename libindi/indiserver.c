@@ -602,18 +602,21 @@ indiListen ()
 /* Attempt to open up FIFO */
 static void indiFIFO(void)
 {
+    close(fifo.fd);
+    fifo.fd=-1;
+
     /* Open up FIFO, if available */
     if (fifo.name)
     {
-        fifo.fd = open(fifo.name,  O_RDWR | O_NONBLOCK);
-                  if (fifo.fd < 0)
-                  {
-                       fprintf(stderr, "%s: open(%s): %s.\n", indi_tstamp(NULL), fifo.name, strerror(errno));
-                        Bye();
-                   }
+        fifo.fd = open(fifo.name, O_RDWR | O_NONBLOCK);
 
-        //fifo.fs = fdopen(fifo.fd, "r");
+       if (fifo.fd < 0)
+       {
+           fprintf(stderr, "%s: open(%s): %s.\n", indi_tstamp(NULL), fifo.name, strerror(errno));
+           Bye();
+       }
     }
+
 }
 
 /* service traffic from clients and drivers */
@@ -628,7 +631,7 @@ indiRun(void)
 	FD_ZERO(&ws);
 	FD_ZERO(&rs);
 
-        if (fifo.name && fifo.fd > 0)
+        if (fifo.name && fifo.fd >=0)
         {
            FD_SET(fifo.fd, &rs);
            maxfd = fifo.fd;
@@ -685,7 +688,8 @@ indiRun(void)
 
 
         /* new command from FIFO? */
-        if (s > 0 && FD_ISSET(fifo.fd, &rs)) {
+        if (s > 0 && fifo.fd >= 0 && FD_ISSET(fifo.fd, &rs))
+        {
             newFIFO();
             s--;
         }
@@ -737,40 +741,49 @@ indiRun(void)
 /* Read commands from FIFO and process them. Start/stop drivers accordingly */
 static void newFIFO(void)
 {
-    char line[MAXRBUF], tDriver[MAXRBUF], tConfig[MAXRBUF], tDev[MAXRBUF];
-    static char *envDev=NULL, *envConfig=NULL;
+    char line[MAXRBUF], tDriver[MAXRBUF], tConfig[MAXRBUF], tDev[MAXRBUF], envDev[MAXRBUF], envConfig[MAXRBUF];
     const char *delm = " ";
     char *token, *cp, *tp;
     DvrInfo *dp = NULL;
     int startCmd=0, i=0;
 
-    if (envDev == NULL)
-        envDev = (char *) malloc(MAXRBUF* sizeof(char));
-    if (envConfig == NULL)
-        envConfig = (char *) malloc(MAXRBUF * sizeof(char));
-
-
-    for (i=0; i < MAXRBUF; i++)
+    while (i < MAXRBUF)
     {
-        if (read(fifo.fd, line+i, 1) < 0)
+        if (read(fifo.fd, line+i, 1) <= 0)
+        {
+            // Reset FIFO now, otherwise select will always return with no data from FIFO.
+            indiFIFO();
             return;
+        }
 
         if (line[i] == '\n')
-            break;
-    }
+        {
+            line[i] = '\0';
+            i=0;
+        }
+        else
+        {
+          i++;
+          continue;
+        }
+
 
      if (verbose)
             fprintf(stderr, "FIFO: %s\n", line);
 
-     tDev[0] = '\0', tDriver[0] = '\0', tConfig[0] = '\0', envDev[0] = '\0', envConfig[0] = '\0';
+
+     memset(&tDriver[0], 0, sizeof(MAXRBUF));
+     memset(&tConfig[0], 0, sizeof(MAXRBUF));
+     memset(&tDev[0], 0, sizeof(MAXRBUF));
+     memset(&envDev[0], 0, sizeof(MAXRBUF));
+     memset(&envConfig[0], 0, sizeof(MAXRBUF));
+
      cp = strdup(line);
 
      token = strsep(&cp, delm);
 
         if (!strcmp(token, "start") || !strcmp(token, "stop"))
         {
-            //fprintf(stderr, "TOKEN: %s\n", token);
-
                 if (!strcmp(token, "start"))
                     startCmd = 1;
 
@@ -803,6 +816,7 @@ static void newFIFO(void)
                         tDev[strlen(tDev)-2] = '\0';
                    else while (token = strsep(&cp, delm) )
                    {
+
                      strcat(tDev, " ");
                      strncat(tDev, token, sizeof(tDev)-strlen(tDev)-1);
                      if ( (tp=strchr(tDev, '\"')) || (tp=strchr(tDev, '\'')))
@@ -815,6 +829,7 @@ static void newFIFO(void)
                  }
                  else
                 {
+
                      strncpy(tDev, token, MAXRBUF);
                      if (tp = strchr(tDev, '\n'))
                          *tp = '\0';
@@ -921,6 +936,7 @@ static void newFIFO(void)
                }
          }
 
+    }
 
 
 }
