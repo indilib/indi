@@ -98,7 +98,7 @@ struct
 {
     const char *name;                      /* Path to FIFO for dynamic startups & shutdowns of drivers */
     int fd;
-    FILE *fs;
+    //FILE *fs;
 } fifo;
 
 /* info for each connected client */
@@ -605,14 +605,14 @@ static void indiFIFO(void)
     /* Open up FIFO, if available */
     if (fifo.name)
     {
-        fifo.fd = open(fifo.name, O_RDONLY);
+        fifo.fd = open(fifo.name,  O_RDWR | O_NONBLOCK);
                   if (fifo.fd < 0)
                   {
                        fprintf(stderr, "%s: open(%s): %s.\n", indi_tstamp(NULL), fifo.name, strerror(errno));
                         Bye();
                    }
 
-        fifo.fs = fdopen(fifo.fd, "r");
+        //fifo.fs = fdopen(fifo.fd, "r");
     }
 }
 
@@ -742,22 +742,30 @@ static void newFIFO(void)
     const char *delm = " ";
     char *token, *cp, *tp;
     DvrInfo *dp = NULL;
-    int startCmd=0;
+    int startCmd=0, i=0;
 
     if (envDev == NULL)
         envDev = (char *) malloc(MAXRBUF* sizeof(char));
     if (envConfig == NULL)
         envConfig = (char *) malloc(MAXRBUF * sizeof(char));
 
-    while ( fgets (line, MAXRBUF, fifo.fs) != NULL)
+
+    for (i=0; i < MAXRBUF; i++)
     {
-        if (verbose)
+        if (read(fifo.fd, line+i, 1) < 0)
+            return;
+
+        if (line[i] == '\n')
+            break;
+    }
+
+     if (verbose)
             fprintf(stderr, "FIFO: %s\n", line);
 
-        tDev[0] = '\0', tDriver[0] = '\0', tConfig[0] = '\0', envDev[0] = '\0', envConfig[0] = '\0';
-        cp = strdup(line);
+     tDev[0] = '\0', tDriver[0] = '\0', tConfig[0] = '\0', envDev[0] = '\0', envConfig[0] = '\0';
+     cp = strdup(line);
 
-        token = strsep(&cp, delm);
+     token = strsep(&cp, delm);
 
         if (!strcmp(token, "start") || !strcmp(token, "stop"))
         {
@@ -769,7 +777,7 @@ static void newFIFO(void)
                 token = strsep(&cp, delm);
 
                 if (!token)
-                    continue;
+                    return;
 
                strncpy(tDriver, token, MAXRBUF);
                if (tp = strchr(tDriver, '\n'))
@@ -912,7 +920,9 @@ static void newFIFO(void)
                    }
                }
          }
-    }
+
+
+
 }
 
 /* prepare for new client arriving on lsocket.
