@@ -22,8 +22,8 @@
 #ifndef GPUSB_H
 #define GPUSB_H
 
-#include <libindi/defaultdevice.h>
-#include <libindi/indiguiderinterface.h>
+#include "libs/indibase/defaultdevice.h"
+#include "libs/indibase/indiguiderinterface.h"
 
 
 /* Standard headers */

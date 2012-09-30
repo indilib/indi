@@ -22,7 +22,7 @@
 #ifndef GPUSBDRIVER_H
 #define GPUSBDRIVER_H
 
-#include "../../libs/indibase/indiusbdevice.h"
+#include "libs/indibase/indiusbdevice.h"
 
 /* Standard headers */
 #include <stdio.h>
