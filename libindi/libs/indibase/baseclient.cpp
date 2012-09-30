@@ -129,7 +129,8 @@ bool INDI::BaseClient::disconnectServer()
     sConnected = false;
 
    //IDLog("Closing socket fd!\n");
-    close(sockfd);
+    //close(sockfd);
+    shutdown(sockfd, SHUT_RDWR);
 
     if (svrwfp != NULL)
         fclose(svrwfp);
@@ -221,12 +222,12 @@ void INDI::BaseClient::listenINDI()
     char msg[MAXRBUF];
 
     int n=0, err_code=0;
-    struct timeval tv;
+    //struct timeval tv;
     fd_set rs;
     FD_ZERO(&rs);
 
-    tv.tv_sec  = 1;
-    tv.tv_usec = 0;//500000;
+    //tv.tv_sec  = 1;
+    //tv.tv_usec = 0;//500000;
 
 
     if (cDeviceNames.empty())
@@ -248,7 +249,7 @@ void INDI::BaseClient::listenINDI()
     /* read from server, exit if find all requested properties */
     while (sConnected)
     {
-        n = select (sockfd+1, &rs, NULL, NULL, &tv);
+        n = select (sockfd+1, &rs, NULL, NULL, NULL);
 
         if (n < 0)
         {
