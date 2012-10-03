@@ -554,11 +554,11 @@ int SxCam::ReadCameraFrame(int index, char *buf)
     if(index==IMAGE_CCD)
     {
         if (PrimaryCCD.isInterlaced() && PrimaryCCD.getBinY() > 1)
-            numbytes= PrimaryCCD.getBPP() * PrimaryCCD.getSubW()*PrimaryCCD.getSubH()/2/PrimaryCCD.getBinX()/(PrimaryCCD.getBinY()/2);
+            numbytes= PrimaryCCD.getBPP()/8 * PrimaryCCD.getSubW()*PrimaryCCD.getSubH()/2/PrimaryCCD.getBinX()/(PrimaryCCD.getBinY()/2);
         else
-            numbytes= PrimaryCCD.getBPP() * PrimaryCCD.getSubW()*PrimaryCCD.getSubH()/PrimaryCCD.getBinX()/PrimaryCCD.getBinY();
+            numbytes= PrimaryCCD.getBPP()/8 * PrimaryCCD.getSubW()*PrimaryCCD.getSubH()/PrimaryCCD.getBinX()/PrimaryCCD.getBinY();
 
-        xwidth = PrimaryCCD.getSubW() * PrimaryCCD.getBPP();
+        xwidth = PrimaryCCD.getSubW() * PrimaryCCD.getBPP()/8;
 
 
        // if (isDebug())
