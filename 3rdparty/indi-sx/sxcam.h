@@ -46,12 +46,15 @@ class SxCam : public INDI::CCD, public SxCCD
     SxCam();
     virtual ~SxCam();
 
+    virtual void ISGetProperties(const char *dev);
+
     protected:
 
     //  Generic indi device entries
     bool Connect();
     bool Disconnect();
     const char *getDefaultName();
+
     virtual bool updateProperties();
     int StartExposure(float);
     int StartGuideExposure(float);

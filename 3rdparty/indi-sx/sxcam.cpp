@@ -122,6 +122,14 @@ bool SxCam::Disconnect()
     return rc;
 }
 
+void SxCam::ISGetProperties(const char *dev)
+{
+    INDI::CCD::ISGetProperties(dev);
+
+    addDebugControl();
+
+}
+
 bool SxCam::updateProperties()
 {
     INDI::CCD::updateProperties();
@@ -301,7 +309,10 @@ void SxCam::TimerHit()
         {
             //  This will clear accumulators, but, not affect the
             //  light sensative parts currently exposing
-            //IDLog("Doing Flush\n");
+
+            if (isDebug())
+                  IDLog("Doing Flush\n");
+
             ClearPixels(SXCCD_EXP_FLAGS_NOWIPE_FRAME,IMAGE_CCD);
             DidFlush=1;
         }
@@ -550,7 +561,8 @@ int SxCam::ReadCameraFrame(int index, char *buf)
         xwidth = PrimaryCCD.getSubW() * PrimaryCCD.getBPP();
 
 
-        //IDLog("SubW: %d - SubH: %d - BinX: %d - BinY: %d CamBits %d\n",SubW, SubH, BinX, BinY,CamBits);
+       // if (isDebug())
+            //IDLog("SubW: %d - SubH: %d - BinX: %d - BinY: %d CamBits %d\n",SubW, SubH, BinX, BinY,CamBits);
 
         if (PrimaryCCD.isInterlaced() && PrimaryCCD.getBinY() == 1)
         {
@@ -559,11 +571,14 @@ int SxCam::ReadCameraFrame(int index, char *buf)
                            PrimaryCCD.getSubW(),PrimaryCCD.getSubH()/2,PrimaryCCD.getBinX(),1);
 
             // Let's read EVEN fields now
-            //IDLog("EVEN FIELD: Read Starting for %d\n",numbytes);
+
+            if (isDebug())
+                IDLog("EVEN FIELD: Read Starting for %d\n",numbytes);
 
             rc=ReadPixels(evenBuf,numbytes/2);
 
-            //IDLog("EVEN FIELD: Read %d\n",rc);
+            if (isDebug())
+                IDLog("EVEN FIELD: Read %d\n",rc);
 
             rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_ODD | SXCCD_EXP_FLAGS_NOBIN_ACCUM,IMAGE_CCD,PrimaryCCD.getSubX(),PrimaryCCD.getSubY(),
                            PrimaryCCD.getSubW(),PrimaryCCD.getSubH()/2,PrimaryCCD.getBinX(),1);
@@ -572,7 +587,8 @@ int SxCam::ReadCameraFrame(int index, char *buf)
 
             rc=ReadPixels(oddBuf,numbytes/2);
 
-            //IDLog("ODD FIELD: Read %d\n",rc);
+            if (isDebug())
+                IDLog("ODD FIELD: Read %d\n",rc);
 
             int height = PrimaryCCD.getSubH();
             for (int i=0, j=0; i < height ; i+=2, j++)
@@ -584,16 +600,15 @@ int SxCam::ReadCameraFrame(int index, char *buf)
         }
         else
         {
-                //IDLog("non interlaced Read Starting for %d\n",numbytes);
-                rc=ReadPixels(buf,numbytes);
+            if (isDebug())
+                IDLog("non interlaced Read Starting for %d\n",numbytes);
+
+            rc=ReadPixels(buf,numbytes);
         }
     } else
     {
         numbytes=GuideCCD.getSubW()*GuideCCD.getSubH();
-        //numbytes=numbytes*2;
-        //IDLog("Download Starting for %d\n",numbytes);
         rc=ReadPixels(buf,numbytes);
-
     }
 
     gettimeofday(&end,NULL);
@@ -601,7 +616,8 @@ int SxCam::ReadCameraFrame(int index, char *buf)
     timesince=(double)(end.tv_sec * 1000.0 + end.tv_usec/1000) - (double)(start.tv_sec * 1000.0 + start.tv_usec/1000);
     timesince=timesince/1000;
 
-    //IDLog("Download returns %d in %4.2f seconds\n",rc,timesince);
+    if (isDebug())
+        IDLog("Download returns %d in %4.2f seconds\n",rc,timesince);
     return rc;
 }
 
