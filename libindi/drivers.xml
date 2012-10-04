@@ -56,7 +56,7 @@
                 <version>1.0</version>
 	</device>
 	<device label="Sky Scan" focal_length="" aperture="">
-		<driver name="Orion Atlas">indi_orion_atlas</driver>
+                <driver name="SynScan">indi_synscan</driver>
 		<version>0.1</version>
 	</device>
 	<device label="Losmandy Gemini" focal_length="" aperture="">

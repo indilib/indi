@@ -239,23 +239,6 @@ install(TARGETS indi_celestron_gps RUNTIME DESTINATION bin )
 
 #################################################################################
 
-########### Orion Atlas #############
-set(orionatlas_SRCS
-   ${indimain_SRCS}
-   ${CMAKE_SOURCE_DIR}/drivers/telescope/orionatlas.cpp )
-
-add_executable(indi_orion_atlas ${orionatlas_SRCS}  ${liblilxml_SRCS} ${libindicom_SRCS})
-
-#target_link_libraries(indi_orion_atlas ${KDE4_KDECORE_LIBS})
-
-if (NOVA_FOUND)
-  target_link_libraries(indi_orion_atlas ${NOVA_LIBRARIES})
-endif (NOVA_FOUND)
-
-install(TARGETS indi_orion_atlas RUNTIME DESTINATION bin )
-
-#################################################################################
-
 ########### Takahashi Temma ##########
 if (NOVA_FOUND)
 
