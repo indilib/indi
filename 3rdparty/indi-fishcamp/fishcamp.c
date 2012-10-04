@@ -65,7 +65,7 @@ static ISwitchVectorProperty ConnectSP	= { mydev, "CONNECTION" , "Connection", C
 
 /* Exposure time */
 static INumber ExposeTimeN[]    = {{ "CCD_EXPOSURE_VALUE", "Duration (s)", "%5.2f", 0., 36000., .5, 1., 0, 0, 0}};
-static INumberVectorProperty ExposeTimeNP = { mydev, "CCD_EXPOSURE", "Expose", COMM_GROUP, IP_RW, 60, IPS_IDLE, ExposeTimeN, NARRAY(ExposeTimeN), "", 0};
+static INumberVectorProperty ExposeTimeNP = { mydev, "CCD_EXPOSURE_REQUEST", "Expose", COMM_GROUP, IP_RW, 60, IPS_IDLE, ExposeTimeN, NARRAY(ExposeTimeN), "", 0};
  
 /* Temperature control */
  static INumber TemperatureN[]	  = { {"CCD_TEMPERATURE_VALUE", "Temperature", "%+06.2f", -30., 40., 1., 0., 0, 0, 0}};
