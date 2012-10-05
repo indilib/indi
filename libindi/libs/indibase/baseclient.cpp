@@ -32,7 +32,7 @@
 
 #include <errno.h>
 
-#define MAXINDIBUF 64
+#define MAXINDIBUF 256
 
 INDI::BaseClient::BaseClient()
 {
@@ -46,8 +46,10 @@ INDI::BaseClient::BaseClient()
 
 INDI::BaseClient::~BaseClient()
 {
-
+   // close(m_sendFd);
+   // close(m_receiveFd);
 }
+
 
 void INDI::BaseClient::setServer(const char * hostname, unsigned int port)
 {
@@ -65,7 +67,8 @@ bool INDI::BaseClient::connectServer()
 {
     struct sockaddr_in serv_addr;
     struct hostent *hp;
-    int sflags=0;
+    int pipefd[2];
+    int ret = 0;
 
     /* lookup host address */
     hp = gethostbyname(cServer.c_str());
@@ -86,10 +89,6 @@ bool INDI::BaseClient::connectServer()
         return false;
     }
 
-//    sflags=fcntl(sockfd,F_GETFL,0);         // Get socket flags
-//    fcntl(sockfd,F_SETFL, sflags | O_NONBLOCK);   // Add non-blocking flag
-
-
     /* connect */
     if (::connect (sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr))<0)
     {
@@ -105,6 +104,17 @@ bool INDI::BaseClient::connectServer()
         perror("fdopen");
         return false;
     }
+
+    ret = socketpair(PF_UNIX,SOCK_STREAM,0,pipefd);
+
+    if (ret < 0)
+    {
+        IDLog("notify pipe: %s\n", strerror(errno));
+        return false;
+    }
+
+    m_receiveFd = pipefd[0];
+    m_sendFd = pipefd[1];
 
     int result = pthread_create( &listen_thread, NULL, &INDI::BaseClient::listenHelper, this);
 
@@ -128,9 +138,9 @@ bool INDI::BaseClient::disconnectServer()
 
     sConnected = false;
 
-   //IDLog("Closing socket fd!\n");
-    //close(sockfd);
     shutdown(sockfd, SHUT_RDWR);
+    write(m_sendFd,"1",1);
+
 
     if (svrwfp != NULL)
         fclose(svrwfp);
@@ -140,7 +150,6 @@ bool INDI::BaseClient::disconnectServer()
 
    return true;
 }
-
 
 void INDI::BaseClient::connectDevice(const char *deviceName)
 {
@@ -222,13 +231,8 @@ void INDI::BaseClient::listenINDI()
     char msg[MAXRBUF];
 
     int n=0, err_code=0;
-    //struct timeval tv;
+    int maxfd=0;
     fd_set rs;
-    FD_ZERO(&rs);
-
-    //tv.tv_sec  = 1;
-    //tv.tv_usec = 0;//500000;
-
 
     if (cDeviceNames.empty())
        fprintf(svrwfp, "<getProperties version='%g'/>\n", INDIV);
@@ -241,15 +245,24 @@ void INDI::BaseClient::listenINDI()
 
     fflush (svrwfp);
 
+    FD_ZERO(&rs);
+
     FD_SET(sockfd, &rs);
+    if (sockfd > maxfd)
+        maxfd = sockfd;
+
+    FD_SET(m_receiveFd, &rs);
+    if (m_receiveFd > maxfd)
+        maxfd = m_receiveFd;
+
 
     lillp = newLilXML();
-
 
     /* read from server, exit if find all requested properties */
     while (sConnected)
     {
-        n = select (sockfd+1, &rs, NULL, NULL, NULL);
+
+        n = select (maxfd+1, &rs, NULL, NULL, NULL);
 
         if (n < 0)
         {
@@ -258,47 +271,58 @@ void INDI::BaseClient::listenINDI()
             break;
         }
 
-        n = recv(sockfd, buffer, MAXINDIBUF, MSG_DONTWAIT);
-        if (n<=0)
+        // Received terminiation string from main thread
+        if (n > 0 && FD_ISSET(m_receiveFd, &rs))
         {
-
-            if (n==0)
-            {
-                fprintf (stderr,"INDI server %s/%d disconnected.\n", cServer.c_str(), cPort);
-                close(sockfd);
-                break;
-            }
-            else
-                continue;
+            sConnected = false;
+            break;
         }
 
 
-        for (int i=0; i < n; i++)
+        if (n > 0 && FD_ISSET(sockfd, &rs))
         {
-            //IDLog("Getting #%d bytes in for loop, calling readXMLEle for byte %d\n", n, i);
-            XMLEle *root = readXMLEle (lillp, buffer[i], msg);
-            //IDLog("############# BLOCK # POST READ XML ELE #####################\n");
-
-            if (root)
+            n = recv(sockfd, buffer, MAXINDIBUF, MSG_DONTWAIT);
+            if (n<=0)
             {
-                if ( (err_code = dispatchCommand(root, msg)) < 0)
+
+                if (n==0)
                 {
-                     // Silenty ignore property duplication errors
-                     if (err_code != INDI_PROPERTY_DUPLICATED)
-                     {
-                         IDLog("Dispatch command error(%d): %s\n", err_code, msg);
-                         prXMLEle (stderr, root, 0);
-                     }
+                    fprintf (stderr,"INDI server %s/%d disconnected.\n", cServer.c_str(), cPort);
+                    close(sockfd);
+                    break;
                 }
-
-               delXMLEle (root);	/* not yet, delete and continue */
+                else
+                    continue;
             }
-            else if (msg[0])
+
+            for (int i=0; i < n; i++)
             {
-               fprintf (stderr, "Bad XML from %s/%d: %s\n%s\n", cServer.c_str(), cPort, msg, buffer);
-               return;
+              // IDLog("Getting #%d bytes in for loop, calling readXMLEle for byte %d\n", n, i);
+                XMLEle *root = readXMLEle (lillp, buffer[i], msg);
+                //IDLog("############# BLOCK # POST READ XML ELE #####################\n");
+
+                if (root)
+                {
+                    if ( (err_code = dispatchCommand(root, msg)) < 0)
+                    {
+                         // Silenty ignore property duplication errors
+                         if (err_code != INDI_PROPERTY_DUPLICATED)
+                         {
+                             IDLog("Dispatch command error(%d): %s\n", err_code, msg);
+                             prXMLEle (stderr, root, 0);
+                         }
+                    }
+
+                   delXMLEle (root);	// not yet, delete and continue
+                }
+                else if (msg[0])
+                {
+                   fprintf (stderr, "Bad XML from %s/%d: %s\n%s\n", cServer.c_str(), cPort, msg, buffer);
+                   return;
+                }
             }
         }
+
     }
 
     delLilXML(lillp);

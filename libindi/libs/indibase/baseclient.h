@@ -31,6 +31,8 @@
 
 using namespace std;
 
+
+
 /**
  * \class INDI::BaseClient
    \brief Class to provide basic client functionality.
@@ -198,6 +200,9 @@ private:
     int sockfd;
     LilXML *lillp;			/* XML parser context */
     FILE *svrwfp;			/* FILE * to talk to server */
+
+    int m_receiveFd;
+    int m_sendFd;
 
 };
 
