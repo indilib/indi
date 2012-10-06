@@ -95,7 +95,7 @@ CCDSim::CCDSim()
     ShowStarField=true;
 
     HasSt4Port=true;
-    HasGuideHead=false;
+    HasGuideHead=true;
 
 
     raPEC=9.95;
@@ -105,6 +105,8 @@ CCDSim::CCDSim()
     bias=1500;
     maxnoise=20;
     maxval=65000;
+    maxpix=0;
+    minpix =65000;
     limitingmag=11.5;
     saturationmag=2;
     focallength=1280;   //  focal length of the telescope in millimeters
@@ -154,13 +156,6 @@ bool CCDSim::Connect()
 {
 
     int nbuf;
-
-    if(HasGuideHead)
-    {
-        SetGuidHeadParams(500,290,8,9.8,12.6);
-        nbuf = GuideCCD.getXRes() * GuideCCD.getYRes();
-        GuideCCD.setFrameBufferSize(nbuf);
-    }
 
     SetTimer(1000);     //  start the timer
     return true;
@@ -237,7 +232,15 @@ bool CCDSim::updateProperties()
     INDI::CCD::updateProperties();
 
     if (isConnected())
+    {
         SetupParms();
+
+        if(HasGuideHead)
+        {
+            SetGuidHeadParams(500,290,8,9.8,12.6);
+            GuideCCD.setFrameBufferSize(GuideCCD.getXRes() * GuideCCD.getYRes());
+        }
+    }
 
     return true;
 }
@@ -644,6 +647,8 @@ int CCDSim::DrawCcdFrame()
                     fp=fa*fp;
                     //  clamp to limits
                     if(fp > maxval) fp=maxval;
+                    if (fp > maxpix) maxpix = fp;
+                    if (fp < minpix) minpix = fp;
                     //  and put it back
                     pt[0]=fp;
                     pt++;
@@ -685,20 +690,31 @@ int CCDSim::DrawCcdFrame()
 
 int CCDSim::DrawGuiderFrame()
 {
-    unsigned char *ptr;
-    unsigned char val;
+    maxpix=0;
+    minpix = 65000;
+    ExposureRequest = GuideExposureRequest;
+    DrawCcdFrame();
+    unsigned char *pt;
+    unsigned short *p_ccd;
+    unsigned short *p_temp;
 
-    ptr=(unsigned char *) GuideCCD.getFrameBuffer();
-    testvalue++;
-    if(testvalue > 255) testvalue=0;
-    val=testvalue;
+    p_ccd = p_temp = (unsigned short *)PrimaryCCD.getFrameBuffer();
+    pt    =(unsigned char *)GuideCCD.getFrameBuffer();
 
-    int nbuf = GuideCCD.getXRes()*GuideCCD.getYRes();
-    for(int x=0; x< nbuf; x++)
+    float coeff = 255.0 / ((maxpix - minpix)/maxpix);
+    int diff = PrimaryCCD.getSubW() - GuideCCD.getSubW();
+    float p_val=0;
+
+
+    for (int i=0; i < GuideCCD.getSubH(); i++, p_ccd += diff)
     {
-        *ptr=val++;
-        ptr++;
+        for (int j=0; j < GuideCCD.getSubW(); j++, p_ccd++, pt++)
+        {
+            p_val = *(p_ccd + j);
+            *pt = (p_val-minpix)/maxpix * coeff;;
+        }
     }
+
     return 0;
 }
 
@@ -789,6 +805,8 @@ int CCDSim::AddToPixel(int x,int y,int val)
                     newval=pt[0];
                     newval+=val;
                     if(newval > maxval) newval=maxval;
+                    if (newval > maxpix) maxpix = newval;
+                    if (newval < minpix) minpix = newval;
                     pt[0]=newval;
                 }
             }

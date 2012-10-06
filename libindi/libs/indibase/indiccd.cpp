@@ -225,16 +225,16 @@ bool INDI::CCD::initProperties()
     IUFillNumber(&GuideCCD.ImageFrameN[3],"HEIGHT","Height","%4.0f",0,1040,0,1040);
     IUFillNumberVector(GuideCCD.ImageFrameNP,GuideCCD.ImageFrameN,4,getDeviceName(),"GUIDE_FRAME","Frame",GUIDE_HEAD_TAB,IP_RW,60,IPS_IDLE);
 
-    IUFillNumber(&GuideCCD.ImagePixelSizeN[0],"Image_MAX_X","Resolution x","%4.0f",1,40,0,6.45);
-    IUFillNumber(&GuideCCD.ImagePixelSizeN[1],"Image_MAX_Y","Resolution y","%4.0f",1,40,0,6.45);
-    IUFillNumber(&GuideCCD.ImagePixelSizeN[2],"Image_PIXEL_SIZE","Pixel size (um)","%5.2f",1,40,0,6.45);
-    IUFillNumber(&GuideCCD.ImagePixelSizeN[3],"Image_PIXEL_SIZE_X","Pixel size X","%5.2f",1,40,0,6.45);
-    IUFillNumber(&GuideCCD.ImagePixelSizeN[4],"Image_PIXEL_SIZE_Y","Pixel size Y","%5.2f",1,40,0,6.45);
-    IUFillNumber(&GuideCCD.ImagePixelSizeN[5],"Image_BITSPERPIXEL","Bits per pixel","%3.0f",1,40,0,6.45);
+    IUFillNumber(&GuideCCD.ImagePixelSizeN[0],"CCD_MAX_X","Resolution x","%4.0f",1,40,0,6.45);
+    IUFillNumber(&GuideCCD.ImagePixelSizeN[1],"CCD_MAX_Y","Resolution y","%4.0f",1,40,0,6.45);
+    IUFillNumber(&GuideCCD.ImagePixelSizeN[2],"CCD_PIXEL_SIZE","Pixel size (um)","%5.2f",1,40,0,6.45);
+    IUFillNumber(&GuideCCD.ImagePixelSizeN[3],"CCD_PIXEL_SIZE_X","Pixel size X","%5.2f",1,40,0,6.45);
+    IUFillNumber(&GuideCCD.ImagePixelSizeN[4],"CCD_PIXEL_SIZE_Y","Pixel size Y","%5.2f",1,40,0,6.45);
+    IUFillNumber(&GuideCCD.ImagePixelSizeN[5],"CCD_BITSPERPIXEL","Bits per pixel","%3.0f",1,40,0,6.45);
     IUFillNumberVector(GuideCCD.ImagePixelSizeNP,GuideCCD.ImagePixelSizeN,6,getDeviceName(),"GUIDE_INFO",GUIDE_HEAD_TAB,GUIDE_HEAD_TAB,IP_RO,60,IPS_IDLE);
 
     IUFillNumber(&GuideCCD.ImageExposureN[0],"GUIDER_EXPOSURE_VALUE","Duration (s)","%5.2f",0,36000,0,1.0);
-    IUFillNumberVector(GuideCCD.ImageExposureNP,GuideCCD.ImageExposureN,1,getDeviceName(),"GUIDER_EXPOSURE","Image",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
+    IUFillNumberVector(GuideCCD.ImageExposureNP,GuideCCD.ImageExposureN,1,getDeviceName(),"GUIDER_EXPOSURE_REQUEST","Guide",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillSwitch(&GuideCCD.CompressS[0],"GCOMPRESS","Compress",ISS_OFF);
     IUFillSwitch(&GuideCCD.CompressS[1],"GRAW","Raw",ISS_ON);
@@ -286,7 +286,7 @@ bool INDI::CCD::updateProperties()
 
         if(HasGuideHead)
         {
-            IDLog("Sending Guider Stuff\n");
+           // IDLog("Sending Guider Stuff\n");
             defineNumber(GuideCCD.ImageExposureNP);
             defineNumber(GuideCCD.ImageFrameNP);
         }
@@ -438,7 +438,7 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
             return true;
         }
 
-        if(strcmp(name,"GUIDER_EXPOSURE")==0)
+        if(strcmp(name,"GUIDER_EXPOSURE_REQUEST")==0)
         {
             float n;
             int rc;

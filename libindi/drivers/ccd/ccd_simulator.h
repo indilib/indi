@@ -46,6 +46,8 @@ class CCDSim : public INDI::CCD
         int bias;
         int maxnoise;
         int maxval;
+        int maxpix;
+        int minpix;
         float skyglow;
         float limitingmag;
         float saturationmag;
