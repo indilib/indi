@@ -425,7 +425,7 @@ void QHYCCD::ReadCameraFrame()
         }
     }
 
-    ExposureComplete();
+    ExposureComplete(&PrimaryCCD);
 
 }
 

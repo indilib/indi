@@ -872,7 +872,7 @@ int QSICCD::grabImage()
 
         IDMessage(getDeviceName(), "Download complete.\n");
 	
-        ExposureComplete();
+        ExposureComplete(&PrimaryCCD);
 
 	return 0;
 }

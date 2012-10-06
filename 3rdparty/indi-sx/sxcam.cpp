@@ -421,7 +421,7 @@ void SxCam::TimerHit()
         }
         else
 */
-            ExposureComplete();
+            ExposureComplete(&PrimaryCCD);
 
         //  if we get here, we quite likely ignored a guider hit
         if(InGuideExposure) SetTimer(1);    //  just make it all run again
@@ -434,12 +434,12 @@ void SxCam::TimerHit()
         DidGuideLatch=0;
         InGuideExposure=false;
         //  send half a frame
-        GuideExposureComplete();
+        ExposureComplete(&GuideCCD);
 
         //rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_ODD | SXCCD_EXP_FLAGS_NOWIPE_FRAME,GUIDE_CCD,GSubX,GSubY,GSubW,GSubH,1,1);
         //rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_ODD | SXCCD_EXP_FLAGS_NOWIPE_FRAME,GUIDE_CCD,GSubX,GSubY,GSubW,GSubH,1,1);
         //rc=ReadCameraFrame(GUIDE_CCD,RawGuiderFrame);
-        //GuideExposureComplete();
+        //GuideExposureComplete(ExposureComplete()PrimaryCCD);
         //ClearPixels(SXCCD_EXP_FLAGS_FIELD_BOTH,GUIDE_CCD);
 
     }
