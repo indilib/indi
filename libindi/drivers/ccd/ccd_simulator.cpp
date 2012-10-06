@@ -227,8 +227,6 @@ void CCDSim::ISGetProperties (const char *dev)
 
 bool CCDSim::updateProperties()
 {
-    IDDefNumber(SimulatorSettingsNV, NULL);
-
     INDI::CCD::updateProperties();
 
     if (isConnected())
@@ -237,8 +235,8 @@ bool CCDSim::updateProperties()
 
         if(HasGuideHead)
         {
-            SetGuidHeadParams(500,290,8,9.8,12.6);
-            GuideCCD.setFrameBufferSize(GuideCCD.getXRes() * GuideCCD.getYRes());
+            SetGuidHeadParams(500,290,16,9.8,12.6);
+            GuideCCD.setFrameBufferSize(GuideCCD.getXRes() * GuideCCD.getYRes() * 2);
         }
     }
 
@@ -267,7 +265,7 @@ int CCDSim::StartExposure(float duration)
 
     gettimeofday(&ExpStart,NULL);
     //  Leave the proper time showing for the draw routines
-    DrawCcdFrame();
+    DrawCcdFrame(&PrimaryCCD);
     //  Now compress the actual wait time
     ExposureRequest=duration*TimeFactor;
 
@@ -279,7 +277,7 @@ int CCDSim::StartGuideExposure(float n)
 {
     GuideExposureRequest=n;
     if(InGuideExposure) return 0;
-    DrawGuiderFrame();
+    DrawCcdFrame(&GuideCCD);
     gettimeofday(&GuideExpStart,NULL);
     InGuideExposure=true;
     return 0;
@@ -317,6 +315,7 @@ void CCDSim::TimerHit()
         float timeleft;
         timeleft=CalcTimeLeft(ExpStart,ExposureRequest);
 
+        //IDLog("CCD Exposure left: %g - Requset: %g\n", timeleft, ExposureRequest);
         if (timeleft < 0)
              timeleft = 0;
 
@@ -327,7 +326,7 @@ void CCDSim::TimerHit()
             if(timeleft <= 0.001)
             {
                 InExposure=false;
-                ExposureComplete();
+                ExposureComplete(&PrimaryCCD);
             } else
             {
                 nexttimer=timeleft*1000;    //  set a shorter timer
@@ -340,6 +339,8 @@ void CCDSim::TimerHit()
         float timeleft;
         timeleft=CalcTimeLeft(GuideExpStart,GuideExposureRequest);
 
+
+        //IDLog("GUIDE Exposure left: %g - Requset: %g\n", timeleft, GuideExposureRequest);
 
         if (timeleft < 0)
              timeleft = 0;
@@ -356,7 +357,7 @@ void CCDSim::TimerHit()
                 if(!AbortGuideFrame)
                 {
                     //IDLog("Sending guider frame\n");
-                    GuideExposureComplete();
+                    ExposureComplete(&GuideCCD);
                     if(InGuideExposure)
                     {    //  the call to complete triggered another exposure
                         timeleft=CalcTimeLeft(GuideExpStart,GuideExposureRequest);
@@ -380,14 +381,21 @@ void CCDSim::TimerHit()
     return;
 }
 
-int CCDSim::DrawCcdFrame()
+int CCDSim::DrawCcdFrame(CCDChip *targetChip)
 {
     //  Ok, lets just put a silly pattern into this
     //  CCd frame is 16 bit data
     unsigned short int *ptr;
     unsigned short int val;
+    float ExposureTime;
 
-    ptr=(unsigned short int *) PrimaryCCD.getFrameBuffer();
+    ptr=(unsigned short int *) targetChip->getFrameBuffer();
+
+    if (targetChip->getXRes() == 500)
+        ExposureTime = GuideExposureRequest;
+    else
+        ExposureTime = ExposureRequest;
+
 
     if(ShowStarField)
     {
@@ -421,7 +429,7 @@ int CCDSim::DrawCcdFrame()
         //PeOffset=PeOffset/15;       //  ra is in h:mm
 
         //  Start by clearing the frame buffer
-        memset(PrimaryCCD.getFrameBuffer(),0,PrimaryCCD.getFrameBufferSize());
+        memset(targetChip->getFrameBuffer(),0,targetChip->getFrameBufferSize());
 
 
         //  Spin up a set of plate constants that will relate
@@ -437,14 +445,14 @@ int CCDSim::DrawCcdFrame()
         //  for now we cheat
         //  no offset or rotation for and y axis means
         pb=0.0;
-        pc=PrimaryCCD.getXRes()/2/PrimaryCCD.getBinX();
+        pc=targetChip->getXRes()/2/targetChip->getBinX();
         pd=0.0;
-        pf=PrimaryCCD.getYRes()/2/PrimaryCCD.getBinY();
+        pf=targetChip->getYRes()/2/targetChip->getBinY();
         //  and we do a simple scale for x and y locations
         //  based on the focal length and pixel size
         //  focal length in mm, pixels in microns
-        pa=focallength/PrimaryCCD.getPixelSizeX()*1000/PrimaryCCD.getBinX();
-        pe=focallength/PrimaryCCD.getPixelSizeY()*1000/PrimaryCCD.getBinY();
+        pa=focallength/targetChip->getPixelSizeX()*1000/targetChip->getBinX();
+        pe=focallength/targetChip->getPixelSizeY()*1000/targetChip->getBinY();
 
         //IDLog("Pixels are %4.2f %4.2f  pa %6.4f  pe %6.4f\n",PixelSizex,PixelSizey,pa,pe);
 
@@ -476,7 +484,7 @@ int CCDSim::DrawCcdFrame()
         //  now lets calculate the radius we need to fetch
         float radius;
 
-        radius=sqrt((Scalex*Scalex*PrimaryCCD.getXRes()/2.0*PrimaryCCD.getXRes()/2.0)+(Scaley*Scaley*PrimaryCCD.getYRes()/2.0*PrimaryCCD.getYRes()/2.0));
+        radius=sqrt((Scalex*Scalex*targetChip->getXRes()/2.0*targetChip->getXRes()/2.0)+(Scaley*Scaley*targetChip->getYRes()/2.0*targetChip->getYRes()/2.0));
         //  we have radius in arcseconds now
         radius=radius/60;   //  convert to arcminutes
         //fprintf(stderr,"Lookup radius %4.2f\n",radius);
@@ -503,7 +511,7 @@ int CCDSim::DrawCcdFrame()
         if(radius > 60) lookuplimit=11;
 
         //  if this is a light frame, we need a star field drawn
-        if(PrimaryCCD.getFrameType()==CCDChip::LIGHT_FRAME)
+        if(targetChip->getFrameType()==CCDChip::LIGHT_FRAME)
         {
             //sprintf(gsccmd,"gsc -c %8.6f %+8.6f -r 120 -m 0 9.1",rad+PEOffset,decPEC);
             sprintf(gsccmd,"gsc -c %8.6f %+8.6f -r %4.1f -m 0 %4.2f -n 3000",rad+PEOffset,cameradec,radius,lookuplimit);
@@ -565,9 +573,10 @@ int CCDSim::DrawCcdFrame()
                         ccdy=pd*sx+pe*sy+pf;
 
 
-                        rc=DrawImageStar(mag,ccdx,ccdy);
+                        rc=DrawImageStar(targetChip, mag,ccdx,ccdy);
                         drawn+=rc;
-                        if(rc==1) {
+                        if(rc==1)
+                        {
                             //fprintf(stderr,"star %s scope %6.4f %6.4f star %6.4f %6.4f  ccd %6.2f %6.2f\n",id,rad,decPEC,ra,dec,ccdx,ccdy);
                             //fprintf(stderr,"star %s ccd %6.2f %6.2f\n",id,ccdx,ccdy);
                         }
@@ -591,7 +600,7 @@ int CCDSim::DrawCcdFrame()
         //  this is essentially the same math as drawing a dim star with
         //  fwhm equivalent to the full field of view
 
-        CCDChip::CCD_FRAME ftype = PrimaryCCD.getFrameType();
+        CCDChip::CCD_FRAME ftype = targetChip->getFrameType();
 
         if((ftype==CCDChip::LIGHT_FRAME)||(ftype==CCDChip::FLAT_FRAME))
         {
@@ -606,31 +615,36 @@ int CCDSim::DrawCcdFrame()
                 //  is much brighter than at night
                 glow=skyglow/10;
             }
+
             //fprintf(stderr,"Using glow %4.2f\n",glow);
+
             skyflux=pow(10,((glow-z)*k/-2.5));
             //  ok, flux represents one second now
             //  scale up linearly for exposure time
-            skyflux=skyflux*ExposureRequest*PrimaryCCD.getBinX()*PrimaryCCD.getBinY();
-            //IDLog("SkyFlux = %4.2f ExposureRequest %4.2f\n",skyflux,ExposureRequest);
+            skyflux=skyflux*ExposureTime*targetChip->getBinX()*targetChip->getBinY();
+           //IDLog("SkyFlux = %g ExposureRequest %g\n",skyflux,ExposureTime);
 
             unsigned short *pt;
 
-            int nwidth  = PrimaryCCD.getXRes()/PrimaryCCD.getBinX();
-            int nheight = PrimaryCCD.getYRes()/PrimaryCCD.getBinY();
-            pt=(unsigned short int *)PrimaryCCD.getFrameBuffer();
-            for(int y=0; y< nheight; y++) {
-                for(int x=0; x< nwidth; x++) {
+            int nwidth  = targetChip->getXRes()/targetChip->getBinX();
+            int nheight = targetChip->getYRes()/targetChip->getBinY();
+            pt=(unsigned short int *)targetChip->getFrameBuffer();
+
+            for(int y=0; y< nheight; y++)
+            {
+                for(int x=0; x< nwidth; x++)
+                {
                     float dc;   //  distance from center
                     float fp;   //  flux this pixel;
                     float sx,sy;
                     float vig;
 
-                    sx=PrimaryCCD.getXRes()/2/PrimaryCCD.getBinX();
+                    sx=targetChip->getXRes()/2/targetChip->getBinX();
                     sx=sx-x;
-                    sy=PrimaryCCD.getYRes()/2/PrimaryCCD.getBinY();
+                    sy=targetChip->getYRes()/2/targetChip->getBinY();
                     sy=sy-y;
 
-                    vig=PrimaryCCD.getXRes()/PrimaryCCD.getBinX();
+                    vig=targetChip->getXRes()/targetChip->getBinX();
                     vig=vig*ImageScalex;
                     //  need to make this account for actual pixel size
                     dc=sqrt(sx*sx*ImageScalex*ImageScalex+sy*sy*ImageScaley*ImageScaley);
@@ -639,12 +653,16 @@ int CCDSim::DrawCcdFrame()
                     //
                     float fa;
                     fa=exp(-2.0*0.7*(dc*dc)/vig/vig);
+
                     //  get the current value
                     fp=pt[0];
+
                     //  Add the sky glow
                     fp+=skyflux;
+
                     //  now scale it for the vignetting
                     fp=fa*fp;
+
                     //  clamp to limits
                     if(fp > maxval) fp=maxval;
                     if (fp > maxpix) maxpix = fp;
@@ -659,14 +677,15 @@ int CCDSim::DrawCcdFrame()
 
 
         //  Now we add some bias and read noise
-        for(x=0; x<PrimaryCCD.getXRes(); x++) {
-            for(y=0; y<PrimaryCCD.getYRes(); y++) {
+        for(x=0; x<targetChip->getXRes(); x++) {
+            for(y=0; y<targetChip->getYRes(); y++) {
                 int noise;
 
                 noise=random();
                 noise=noise%maxnoise; //
 
-                AddToPixel(x,y,bias+noise);
+                //IDLog("noise is %d\n", noise);
+                AddToPixel(targetChip, x,y,bias+noise);
             }
         }
 
@@ -676,7 +695,7 @@ int CCDSim::DrawCcdFrame()
         if(testvalue > 255) testvalue=0;
         val=testvalue;
 
-        int nbuf    = PrimaryCCD.getXRes()*PrimaryCCD.getYRes();
+        int nbuf    = targetChip->getXRes()*targetChip->getYRes();
 
         for(int x=0; x<nbuf; x++)
         {
@@ -688,37 +707,7 @@ int CCDSim::DrawCcdFrame()
     return 0;
 }
 
-int CCDSim::DrawGuiderFrame()
-{
-    maxpix=0;
-    minpix = 65000;
-    ExposureRequest = GuideExposureRequest;
-    DrawCcdFrame();
-    unsigned char *pt;
-    unsigned short *p_ccd;
-    unsigned short *p_temp;
-
-    p_ccd = p_temp = (unsigned short *)PrimaryCCD.getFrameBuffer();
-    pt    =(unsigned char *)GuideCCD.getFrameBuffer();
-
-    float coeff = 255.0 / ((maxpix - minpix)/maxpix);
-    int diff = PrimaryCCD.getSubW() - GuideCCD.getSubW();
-    float p_val=0;
-
-
-    for (int i=0; i < GuideCCD.getSubH(); i++, p_ccd += diff)
-    {
-        for (int j=0; j < GuideCCD.getSubW(); j++, p_ccd++, pt++)
-        {
-            p_val = *(p_ccd + j);
-            *pt = (p_val-minpix)/maxpix * coeff;;
-        }
-    }
-
-    return 0;
-}
-
-int CCDSim::DrawImageStar(float mag,float x,float y)
+int CCDSim::DrawImageStar(CCDChip *targetChip, float mag,float x,float y)
 {
     //float d;
     //float r;
@@ -727,8 +716,15 @@ int CCDSim::DrawImageStar(float mag,float x,float y)
     int boxsizex=5;
     int boxsizey=5;
     float flux;
+    float ExposureTime;
 
-    if((x<0)||(x>PrimaryCCD.getXRes()/PrimaryCCD.getBinX())||(y<0)||(y>PrimaryCCD.getYRes()/PrimaryCCD.getBinY()))
+    if (targetChip->getXRes() == 500)
+        ExposureTime = GuideExposureRequest;
+    else
+        ExposureTime = ExposureRequest;
+
+
+    if((x<0)||(x>targetChip->getXRes()/targetChip->getBinX())||(y<0)||(y>targetChip->getYRes()/targetChip->getBinY()))
     {
         //  this star is not on the ccd frame anyways
         return 0;
@@ -738,10 +734,10 @@ int CCDSim::DrawImageStar(float mag,float x,float y)
 
     //  calculate flux from our zero point and gain values
     flux=pow(10,((mag-z)*k/-2.5));
+
     //  ok, flux represents one second now
     //  scale up linearly for exposure time
-    flux=flux*ExposureRequest;
-
+    flux=flux*ExposureTime;
 
     float qx;
     //  we need a box size that gives a radius at least 3 times fwhm
@@ -770,7 +766,9 @@ int CCDSim::DrawImageStar(float mag,float x,float y)
             //  a simple linear function
             float fa;
             fa=exp(-2.0*0.7*(dc*dc)/seeing/seeing);
-            fp=fa*flux*PrimaryCCD.getBinX()*PrimaryCCD.getBinY();
+            fp=fa*flux*targetChip->getBinX()*targetChip->getBinY();
+
+
             if(fp < 0) fp=0;
 
             /*
@@ -782,25 +780,27 @@ int CCDSim::DrawImageStar(float mag,float x,float y)
                 fp=0;
             }
             */
-            rc=AddToPixel(x+sx,y+sy,fp);
+            rc=AddToPixel(targetChip, x+sx,y+sy,fp);
             if(rc != 0) drew=1;
         }
     }
     return drew;
 }
 
-int CCDSim::AddToPixel(int x,int y,int val)
+int CCDSim::AddToPixel(CCDChip *targetChip, int x,int y,int val)
 {
     int drew=0;
     if(x >= 0) {
-        if(x < PrimaryCCD.getXRes()/PrimaryCCD.getBinX()) {
+        if(x < targetChip->getXRes()/targetChip->getBinX()) {
             if(y >= 0) {
-                if(y < PrimaryCCD.getYRes()/PrimaryCCD.getBinY()) {
+                if(y < targetChip->getYRes()/targetChip->getBinY()) {
                     unsigned short *pt;
                     int newval;
                     drew++;
-                    pt=(unsigned short int *)PrimaryCCD.getFrameBuffer();
-                    pt+=(y*PrimaryCCD.getXRes()/PrimaryCCD.getBinX());
+
+                    pt=(unsigned short int *)targetChip->getFrameBuffer();
+
+                    pt+=(y*targetChip->getXRes()/targetChip->getBinX());
                     pt+=x;
                     newval=pt[0];
                     newval+=val;

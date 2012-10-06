@@ -35,6 +35,8 @@ CCDChip::CCDChip()
     RawFrame=NULL;
     RawFrameSize=0;
 
+    BinX = BinY = 1;
+
     FrameType=LIGHT_FRAME;
 
     ImageFrameNP = new INumberVectorProperty;
@@ -280,7 +282,7 @@ bool INDI::CCD::updateProperties()
     //IDLog("INDI::CCD UpdateProperties isConnected returns %d %d\n",isConnected(),Connected);
     if(isConnected())
     {
-        defineNumber(PrimaryCCD.ImageExposureNP);
+       defineNumber(PrimaryCCD.ImageExposureNP);
         defineNumber(PrimaryCCD.ImageFrameNP);
         defineNumber(PrimaryCCD.ImageBinNP);
 
@@ -633,7 +635,7 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr)
     // Nothing to do here. HW layer should take care of it if needed.
 }
 
-bool INDI::CCD::ExposureComplete()
+bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
 {
     void *memptr;
     size_t memsize;
@@ -648,10 +650,10 @@ bool INDI::CCD::ExposureComplete()
 
     //IDLog("Enter Exposure Complete %d %d %d %d\n",SubW,SubH,BinX,BinY);
 
-    naxes[0]=PrimaryCCD.getSubW()/PrimaryCCD.getBinX();
-    naxes[1]=PrimaryCCD.getSubH()/PrimaryCCD.getBinY();  
+    naxes[0]=targetChip->getSubW()/targetChip->getBinX();
+    naxes[1]=targetChip->getSubH()/targetChip->getBinY();
 
-    switch (PrimaryCCD.getBPP())
+    switch (targetChip->getBPP())
     {
         case 8:
             byte_type = TBYTE;
@@ -669,7 +671,7 @@ bool INDI::CCD::ExposureComplete()
             break;
 
          default:
-            IDLog("Unspported bits per pixel value %d\n", PrimaryCCD.getBPP() );
+            IDLog("Unspported bits per pixel value %d\n", targetChip->getBPP() );
             return false;
             break;
     }
@@ -705,7 +707,7 @@ bool INDI::CCD::ExposureComplete()
 
     addFITSKeywords(fptr);
 
-    fits_write_img(fptr,byte_type,1,numbytes,PrimaryCCD.getFrameBuffer(),&status);
+    fits_write_img(fptr,byte_type,1,numbytes,targetChip->getFrameBuffer(),&status);
 
     if (status)
     {
@@ -716,86 +718,20 @@ bool INDI::CCD::ExposureComplete()
 
     fits_close_file(fptr,&status);
 
+    targetChip->ImageExposureNP->s=IPS_OK;
+    IDSetNumber(targetChip->ImageExposureNP,NULL);
 
-    PrimaryCCD.ImageExposureNP->s=IPS_OK;
-    IDSetNumber(PrimaryCCD.ImageExposureNP,NULL);
 
-    uploadfile(memptr,memsize);
+    targetChip->FitsB.blob=memptr;
+    targetChip->FitsB.bloblen=memsize;
+    targetChip->FitsB.size=memsize;
+    strcpy(targetChip->FitsB.format,".fits");
+    targetChip->FitsBP->s=IPS_OK;
+    //IDLog("Enter Uploadfile with %d total sending via %s, and format %s\n",total,targetChip->FitsB.name, targetChip->FitsB.format);
+    IDSetBLOB(targetChip->FitsBP,NULL);
+
     free(memptr);
     return true;
-}
-
-bool INDI::CCD::GuideExposureComplete()
-{
-        void *memptr;
-        size_t memsize;
-        int status=0;
-        long naxes[2];
-        long naxis=2;
-
-        fitsfile *fptr=NULL;
-        naxes[0]=GuideCCD.getSubW();
-        naxes[1]=GuideCCD.getSubH();
-        //  Now we have to send fits format data to the client
-        memsize=5760;
-        memptr=malloc(memsize);
-        if(!memptr)
-        {
-            IDLog("Error: failed to allocate memory: %lu\n",(unsigned long)memsize);
-        }
-        fits_create_memfile(&fptr,&memptr,&memsize,2880,realloc,&status);
-        if(status)
-        {
-            IDLog("Error: Failed to create FITS image\n");
-            fits_report_error(stderr, status);  /* print out any error messages */
-            return false;
-        }
-        fits_create_img(fptr, BYTE_IMG , naxis, naxes, &status);
-        if (status)
-        {
-            IDLog("Error: Failed to create FITS image\n");
-            fits_report_error(stderr, status);  /* print out any error messages */
-            return false;
-        }
-
-        fits_write_img(fptr,TBYTE,1,naxes[0]*naxes[1],GuideCCD.getFrameBuffer(),&status);
-        if (status)
-        {
-            IDLog("Error: Failed to write FITS image\n");
-            fits_report_error(stderr, status);  /* print out any error messages */
-            return false;
-        }
-        fits_close_file(fptr,&status);
-        IDLog("Built the Guider fits file\n");
-        GuideCCD.ImageExposureNP->s=IPS_OK;
-        IDSetNumber(GuideCCD.ImageExposureNP,NULL);
-
-        IDLog("Sending guider fits file via %s\n",GuideCCD.FitsBP->name);
-        GuideCCD.FitsB.blob=memptr;
-        GuideCCD.FitsB.bloblen=memsize;
-        GuideCCD.FitsB.size=memsize;
-        strcpy(GuideCCD.FitsB.format,".fits");
-        GuideCCD.FitsBP->s=IPS_OK;
-        IDSetBLOB(GuideCCD.FitsBP,NULL);
-        free(memptr);
-
-    return true;
-}
-
-
-int INDI::CCD::uploadfile(void *fitsdata,int total)
-{
-    //  lets try sending a ccd preview
-
-    PrimaryCCD.FitsB.blob=fitsdata;
-    PrimaryCCD.FitsB.bloblen=total;
-    PrimaryCCD.FitsB.size=total;
-    strcpy(PrimaryCCD.FitsB.format,".fits");
-    PrimaryCCD.FitsBP->s=IPS_OK;
-    //IDLog("Enter Uploadfile with %d total sending via %s, and format %s\n",total,PrimaryCCD.FitsB.name, PrimaryCCD.FitsB.format);
-    IDSetBLOB(PrimaryCCD.FitsBP,NULL);
-
-    return 0;
 }
 
 void INDI::CCD::SetCCDParams(int x,int y,int bpp,float xf,float yf)
@@ -814,9 +750,8 @@ void INDI::CCD::SetGuidHeadParams(int x,int y,int bpp,float xf,float yf)
 
     GuideCCD.setResolutoin(x, y);
     GuideCCD.setFrame(0, 0, x, y);
-    GuideCCD.setBin(1,1);
     GuideCCD.setPixelSize(xf, yf);
-    GuideCCD.setBPP(bpp/8);
+    GuideCCD.setBPP(bpp);
 
 }
 

@@ -115,11 +115,10 @@ class CCDSim : public INDI::CCD
 
         void TimerHit();
 
-        int DrawCcdFrame();
-        int DrawGuiderFrame();
+        int DrawCcdFrame(CCDChip *targetChip);
 
-        int DrawImageStar(float,float,float);
-        int AddToPixel(int,int,int);
+        int DrawImageStar(CCDChip *targetChip, float,float,float);
+        int AddToPixel(CCDChip *targetChip, int,int,int);
 
         bool GuideNorth(float);
         bool GuideSouth(float);

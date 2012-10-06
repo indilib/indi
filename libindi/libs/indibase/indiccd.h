@@ -146,10 +146,10 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         */
         virtual int StartExposure(float duration);
 
-        /** \brief Uploads primary CCD exposed buffer as FITS to the client. Dervied classes should class this function when an exposure is complete.
+        /** \brief Uploads target Chip exposed buffer as FITS to the client. Dervied classes should class this function when an exposure is complete.
              \note This function is not implemented in INDI::CCD, it must be implemented in the child class
         */
-        virtual bool ExposureComplete();
+        virtual bool ExposureComplete(CCDChip *targetChip);
 
         /** \brief Abort ongoing exposure
             \return true is abort is successful, false otherwise.
@@ -169,11 +169,6 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
             \note This function is not implemented in INDI::CCD, it must be implemented in the child class
         */
         virtual bool AbortGuideExposure();
-
-        /** \brief Uploads Guide head CCD exposed buffer as FITS to the client. Dervied classes should class this function when an exposure is complete.
-            \note This function is not implemented in INDI::CCD, it must be implemented in the child class
-        */
-        virtual bool GuideExposureComplete();
 
         /** \brief INDI::CCD calls this function when CCD Frame dimension needs to be updated in the hardware. Derived classes should implement this function
             \param x Subframe X coordinate in pixels.
@@ -263,12 +258,6 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
 
         ITextVectorProperty *ActiveDeviceTP;
         IText ActiveDeviceT[2];
-
-private:
-        int uploadfile(void *fitsdata,int total);
-
-
-
 
 };
 
