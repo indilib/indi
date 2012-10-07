@@ -454,7 +454,7 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
 
             //  And now call the physical hardware layer to start the exposure
             //  change of plans, this is just changing exposure time
-            //  the the start/stop stream buttons do the rest
+            //  the start/stop stream buttons do the rest
             rc=StartGuideExposure(n);
             //rc=1;   //  set it to ok
             switch(rc) {
@@ -671,7 +671,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
             break;
 
          default:
-            IDLog("Unspported bits per pixel value %d\n", targetChip->getBPP() );
+            IDLog("Unsupported bits per pixel value %d\n", targetChip->getBPP() );
             return false;
             break;
     }

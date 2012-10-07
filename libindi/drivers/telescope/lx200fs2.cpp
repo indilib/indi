@@ -62,7 +62,7 @@ LX200Fs2::LX200Fs2() : LX200Generic()
    DeviceName = "LX200 FS2";
    init_properties();
 
-   IDLog("Initilizing from LX200 FS2 device...\n");
+   IDLog("Initializing from LX200 FS2 device...\n");
    IDLog("Driver Version: 2012-07-22\n");
  
    //enableSimulation(true);  

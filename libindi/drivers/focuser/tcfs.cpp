@@ -315,7 +315,7 @@ bool TCFS::ISNewNumber (const char *dev, const char *name, double values[], char
   if (isConnected() == false)
   {
       resetProperties();
-      IDMessage(getDeviceName(), "TCF-S is offline. Connect before issiung any commands.");
+      IDMessage(getDeviceName(), "TCF-S is offline. Connect before issiuing any commands.");
       return false;
   }
 
@@ -416,7 +416,7 @@ bool TCFS::ISNewSwitch (const char *dev, const char *name, ISState *states, char
     if (isConnected() == false)
     {
       resetProperties();
-      IDMessage(getDeviceName(), "TCF-S is offline. Connect before issiung any commands.");
+      IDMessage(getDeviceName(), "TCF-S is offline. Connect before issiuing any commands.");
       return false;
     }
 
@@ -591,7 +591,7 @@ bool TCFS::ISNewSwitch (const char *dev, const char *name, ISState *states, char
             move_focuser(TCFS_INWARD);
             nFocusSteps = currentStep;
             IUResetSwitch(sProp);
-            IDSetSwitch(sProp, "Moving focouser to minimum position...");
+            IDSetSwitch(sProp, "Moving focuser to minimum position...");
         }
         // Center
         else if (!strcmp(target_active_switch->name, "FOCUS_CENTER"))
@@ -630,7 +630,7 @@ bool TCFS::ISNewSwitch (const char *dev, const char *name, ISState *states, char
             move_focuser(TCFS_OUTWARD);
             nFocusSteps = currentStep;
             IUResetSwitch(sProp);
-            IDSetSwitch(sProp, "Moving focouser to maximum position %g...", FocusPositionRequestNP->np[0].max);
+            IDSetSwitch(sProp, "Moving focuser to maximum position %g...", FocusPositionRequestNP->np[0].max);
         }
         // Home
         else if (!strcmp(target_active_switch->name, "FOCUS_HOME"))
@@ -923,7 +923,7 @@ bool TCFS::read_tcfs()
     response[nbytes_read-2] = '\0';
 
     if (isDebug())
-        IDLog("Bytes Read: %d - strlen(response): %d - Reponse from TCF-S: #%s#\n", nbytes_read, strlen(response), response);
+        IDLog("Bytes Read: %d - strlen(response): %d - Response from TCF-S: #%s#\n", nbytes_read, strlen(response), response);
 
     return true;
 }

@@ -189,7 +189,7 @@ ISwitchVectorProperty SlewRateSP =
     myapdev, "SLEWRATE" , "Slew rate", MOTION_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, SlewRateS, NARRAY(SlewRateS), "", 0
 };
 static ISwitch SwapS[] = {
-    {"NS" , "North/Sounth" , ISS_OFF, 0, 0},
+    {"NS" , "North/South" , ISS_OFF, 0, 0},
     {"EW" , "East/West" , ISS_OFF, 0, 0},
 };
 
@@ -1942,7 +1942,7 @@ void LX200AstroPhysics::handleAZCoordSet()
 	    if (HorizontalCoordsWNP.s == IPS_BUSY)
 	    {
 #ifdef INDI_DEBUG
-		IDLog("Aboring Slew\n");
+		IDLog("Aborting Slew\n");
 #endif
 		// ToDo
 		abortSlew(fd);

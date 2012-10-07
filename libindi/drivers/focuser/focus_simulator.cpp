@@ -241,7 +241,7 @@ bool FocusSim::Move(FocusDirection dir, int speed, int duration)
 
     ticks = plannedTicks;
     if (isDebug())
-          IDLog("Current absolute positoin: %g, current ticks is %g\n", plannedAbsPos, ticks);
+          IDLog("Current absolute position: %g, current ticks is %g\n", plannedAbsPos, ticks);
 
 
     FWHMN[0].value = 0.5625*ticks*ticks +  SeeingN[0].value;

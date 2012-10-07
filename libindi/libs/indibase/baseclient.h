@@ -109,7 +109,7 @@ public:
 
     /** \brief Set Binary Large Object policy mode
 
-      Set the BLOB handling mode for the client. The client may either recieve:
+      Set the BLOB handling mode for the client. The client may either receive:
       <ul>
       <li>Only BLOBS</li>
       <li>BLOBs mixed with normal messages</li>

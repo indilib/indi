@@ -168,7 +168,7 @@ LX200Basic::LX200Basic()
    lastDEC	  = 0;
    currentSet     = 0;
 
-   IDLog("Initilizing from LX200 Basic device...\n");
+   IDLog("Initializing from LX200 Basic device...\n");
    IDLog("Driver Version: 2007-09-28\n");
  
    enable_simulation(false);  
@@ -686,7 +686,7 @@ bool LX200Basic::process_coords()
           lastSet = LX200_SLEW;
 	  if (EquatorialCoordsWNP.s == IPS_BUSY)
 	  {
-	     IDLog("Aboring Slew\n");
+	     IDLog("Aborting Slew\n");
 	     abortSlew(fd);
 
 	     // sleep for 100 mseconds
@@ -713,7 +713,7 @@ bool LX200Basic::process_coords()
           //IDLog("We're in LX200_TRACK\n");
           if (EquatorialCoordsWNP.s == IPS_BUSY)
 	  {
-	     IDLog("Aboring Slew\n");
+	     IDLog("Aborting Slew\n");
 	     abortSlew(fd);
 
 	     // sleep for 200 mseconds

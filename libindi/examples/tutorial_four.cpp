@@ -128,7 +128,7 @@ void ISSnoopDevice (XMLEle *root)
 ***************************************************************************************/
 TestDevice::TestDevice()
 {
-    IDLog("Initilizing from Test Device...\n");
+    IDLog("Initializing from Test Device...\n");
 
 }
 
@@ -323,7 +323,7 @@ bool TestDevice::ISNewBLOB (const char *dev, const char *name, int sizes[], int 
         if (!bp)
             return false;
 
-        IDLog("Recieved BLOB with name %s, format %s, and size %d, and bloblen %d\n", bp->name, bp->format, bp->size, bp->bloblen);
+        IDLog("Received BLOB with name %s, format %s, and size %d, and bloblen %d\n", bp->name, bp->format, bp->size, bp->bloblen);
 
         char *blobBuffer = new char[bp->bloblen+1];
         strncpy(blobBuffer, ((char *) bp->blob), bp->bloblen);

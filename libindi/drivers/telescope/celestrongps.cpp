@@ -164,7 +164,7 @@ CelestronGPS::CelestronGPS()
    lastSet      = -1;
 
    // Children call parent routines, this is the default
-   IDLog("initilizaing from Celeston GPS device...\n");
+   IDLog("initializing from Celeston GPS device...\n");
 
 }
 

@@ -356,7 +356,7 @@ void ISInit()
   
   if (strstr(me, "indi_lx200classic"))
   {
-     fprintf(stderr , "initilizaing from LX200 classic device...\n");
+     fprintf(stderr , "initializing from LX200 classic device...\n");
 
      telescope = new LX200Classic();
      if (envDev != NULL)
@@ -376,7 +376,7 @@ void ISInit()
 
   else if (strstr(me, "indi_lx200gps"))
   {
-     fprintf(stderr , "initilizaing from LX200 GPS device...\n");
+     fprintf(stderr , "initializing from LX200 GPS device...\n");
 
      // 2. device = sub_class
      telescope = new LX200GPS();
@@ -401,7 +401,7 @@ void ISInit()
   else if (strstr(me, "indi_lx200_16"))
   {
 
-    IDLog("Initilizaing from LX200 16 device...\n");
+    IDLog("Initializing from LX200 16 device...\n");
 
     // 2. device = sub_class
    telescope = new LX200_16();
@@ -422,7 +422,7 @@ void ISInit()
  }
  else if (strstr(me, "indi_lx200autostar"))
  {
-   fprintf(stderr , "initilizaing from autostar device...\n");
+   fprintf(stderr , "initializing from autostar device...\n");
   
    // 2. device = sub_class
    telescope = new LX200Autostar();
@@ -444,7 +444,7 @@ void ISInit()
  }
  else if (strstr(me, "indi_lx200ap"))
  {
-   fprintf(stderr , "initilizaing from ap device...\n");
+   fprintf(stderr , "initializing from ap device...\n");
   
 
    // 2. device = sub_class
@@ -468,7 +468,7 @@ void ISInit()
  }
  else if (strstr(me, "indi_lx200fs2"))
  {
-   fprintf(stderr , "initilizaing from fs2 device...\n");
+   fprintf(stderr , "initializing from fs2 device...\n");
   
    // 2. device = sub_class
    telescope = new LX200Fs2();
@@ -553,7 +553,7 @@ LX200Generic::LX200Generic()
 
    // Children call parent routines, this is the default
    IDLog("INDI Library v%g\n", INDI_LIBV);
-   IDLog("initilizaing from generic LX200 device...\n");
+   IDLog("initializing from generic LX200 device...\n");
    IDLog("Driver Version: 2012-07-27\n");
  
    //enableSimulation(true);
@@ -873,11 +873,11 @@ void LX200Generic::ISNewNumber (const char *dev, const char *name, double values
 	  }
 
 	  getSexComponents(values[0], &h, &m, &s);
-	  IDLog("Siderial Time is %02d:%02d:%02d\n", h, m, s);
+	  IDLog("Sidereal Time is %02d:%02d:%02d\n", h, m, s);
 	  
 	  if ( ( err = setSDTime(fd, h, m, s) < 0) )
 	  {
-	    handleError(&SDTimeNP, err, "Setting siderial time"); 
+	    handleError(&SDTimeNP, err, "Setting sidereal time"); 
             return;
 	  }
 	  
@@ -1962,7 +1962,7 @@ int LX200Generic::handleCoordSet()
 	  if (EquatorialCoordsWNP.s == IPS_BUSY)
 	  {
 	     #ifdef INDI_DEBUG
-	     IDLog("Aboring Slew\n");
+	     IDLog("Aborting Slew\n");
 	     #endif
 	     if (abortSlew(fd) < 0)
 	     {
@@ -2133,7 +2133,7 @@ void LX200Generic::connectTelescope()
 	 }
 
         #ifdef INDI_DEBUG
-        IDLog("Telescope test successfful.\n");
+        IDLog("Telescope test successful.\n");
 	#endif
 
         *((int *) UTCOffsetN[0].aux0) = 0;
@@ -2245,7 +2245,7 @@ void LX200Generic::updateTime()
   getSexComponents(ctime, &h, &m, &s);
 
   if ( (result = getSDTime(fd, &SDTimeN[0].value)) < 0)
-    IDMessage(thisDevice, "Failed to retrieve siderial time from device.");
+    IDMessage(thisDevice, "Failed to retrieve sidereal time from device.");
   
   getCalenderDate(fd, cdate);
   result = sscanf(cdate, "%d/%d/%d", &year, &month, &day);

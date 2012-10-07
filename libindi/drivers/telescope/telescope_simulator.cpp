@@ -131,7 +131,7 @@ bool ScopeSim::initProperties()
     IUFillSwitch(&PECErrWES[MOTION_EAST], "PEC_E", "East", ISS_OFF);
     IUFillSwitchVector(&PECErrWESP, PECErrWES, 2, getDeviceName(),"PEC_WE", "PE W/E", MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
-    /* How fast do we guide compared to sideral rate */
+    /* How fast do we guide compared to sidereal rate */
     IUFillNumber(&GuideRateN[RA_AXIS], "GUIDE_RATE_WE", "W/E Rate", "%g", 0, 1, 0.1, 0.3);
     IUFillNumber(&GuideRateN[DEC_AXIS], "GUIDE_RATE_NS", "N/S Rate", "%g", 0, 1, 0.1, 0.3);
     IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0, IPS_IDLE);

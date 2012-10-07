@@ -160,7 +160,7 @@ IEQ45Basic::IEQ45Basic()
    lastDEC	  = 0;
    currentSet     = 0;
 
-   IDLog("Initilizing from IEQ45 device...\n");
+   IDLog("Initializing from IEQ45 device...\n");
    IDLog("Driver Version: 0.1 (2011-11-07)\n");
  
    enable_simulation(false);  
@@ -191,7 +191,7 @@ void IEQ45Basic::init_properties()
     IUFillSwitchVector(&OnCoordSetSP, OnCoordSetS, NARRAY(OnCoordSetS), mydev, "ON_COORD_SET", "On Set", BASIC_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     //Track MODE
-    IUFillSwitch(&TrackModeS[0],"SIDERAL", "Sideral", ISS_ON);
+    IUFillSwitch(&TrackModeS[0],"SIDERAL", "Sidereal", ISS_ON);
     IUFillSwitch(&TrackModeS[1],"LUNAR","Lunar", ISS_OFF);
     IUFillSwitch(&TrackModeS[2],"SOLAR", "Solar", ISS_OFF);
     IUFillSwitch(&TrackModeS[3],"ZERO", "Stop", ISS_OFF);
@@ -629,7 +629,7 @@ bool IEQ45Basic::process_coords()
           lastSet = IEQ45_SLEW;
 	  if (EquatorialCoordsWNP.s == IPS_BUSY)
 	  {
-	     IDLog("Aboring Slew\n");
+	     IDLog("Aborting Slew\n");
 	     abortSlew(fd);
 
 	     // sleep for 100 mseconds
@@ -769,7 +769,7 @@ void IEQ45Basic::get_initial_data()
 void IEQ45Basic::slew_error(int slewCode)
 {
     OnCoordSetSP.s = IPS_IDLE;
-    IDLog("Aboring Slew\n");
+    IDLog("Aborting Slew\n");
     abortSlew(fd);
     if (slewCode == 1)
 	IDSetSwitch (&OnCoordSetSP, "Object below horizon.");
