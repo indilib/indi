@@ -392,7 +392,7 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
     ptr=(unsigned short int *) targetChip->getFrameBuffer();
 
     if (targetChip->getXRes() == 500)
-        ExposureTime = GuideExposureRequest;
+        ExposureTime = GuideExposureRequest*4;
     else
         ExposureTime = ExposureRequest;
 
@@ -719,7 +719,7 @@ int CCDSim::DrawImageStar(CCDChip *targetChip, float mag,float x,float y)
     float ExposureTime;
 
     if (targetChip->getXRes() == 500)
-        ExposureTime = GuideExposureRequest;
+        ExposureTime = GuideExposureRequest*4;
     else
         ExposureTime = ExposureRequest;
 
