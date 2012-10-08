@@ -33,6 +33,8 @@ endif (NOVA_FOUND)
 set(indiqhy_SRCS
    ${CMAKE_SOURCE_DIR}/qhy_ccd.cpp
    ${CMAKE_SOURCE_DIR}/qhy5_driver.cpp
+   ${CMAKE_SOURCE_DIR}/qhy8_driver.cpp
+
    )
 
 add_executable(indi_qhy_ccd ${indiqhy_SRCS})
