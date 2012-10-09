@@ -139,6 +139,8 @@ bool ScopeSim::initProperties()
     // Let's simulate it to be an F/10 8" telescope
     ScopeParametersN[0].value = 203;
     ScopeParametersN[1].value = 2000;
+    ScopeParametersN[2].value = 203;
+    ScopeParametersN[3].value = 2000;
 
     TrackState=SCOPE_IDLE;
 

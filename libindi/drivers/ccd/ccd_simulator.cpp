@@ -92,6 +92,7 @@ CCDSim::CCDSim()
     //ctor
     testvalue=0;
     AbortGuideFrame=false;
+    AbortPrimaryFrame = false;
     ShowStarField=true;
 
     HasSt4Port=true;
@@ -110,13 +111,13 @@ CCDSim::CCDSim()
     limitingmag=11.5;
     saturationmag=2;
     focallength=1280;   //  focal length of the telescope in millimeters
+    guider_focallength=1280;
     OAGoffset=0;    //  An oag is offset this much from center of scope position (arcminutes);
     skyglow=40;
 
     seeing=3.5;         //  fwhm of our stars
     ImageScalex=1.0;    //  preset with a valid non-zero
     ImageScaley=1.0;
-    //focallength=175;   //  focal length of the telescope in millimeters
     time(&RunStart);
 
     //  Our PEPeriod is 8 minutes
@@ -187,7 +188,7 @@ bool CCDSim::initProperties()
     IUFillNumber(&SimulatorSettingsN[7],"SIM_LIMITINGMAG","Limiting Mag","%4.1f",0,20,0,20);
     IUFillNumber(&SimulatorSettingsN[8],"SIM_NOISE","CCD Noise","%4.0f",0,6000,0,50);
     IUFillNumber(&SimulatorSettingsN[9],"SIM_SKYGLOW","Sky Glow (magnitudes)","%4.1f",0,6000,0,19.5);
-    IUFillNumber(&SimulatorSettingsN[10],"SIM_OAGOFFSET","Oag Offset (arminutes)","%4.1f",0,6000,0,0);
+    IUFillNumber(&SimulatorSettingsN[10],"SIM_OAGOFFSET","Oag Offset (arcminutes)","%4.1f",0,6000,0,0);
     IUFillNumberVector(SimulatorSettingsNV,SimulatorSettingsN,11,getDeviceName(),"SIMULATOR_SETTINGS","Simulator Settings","Simulator Config",IP_RW,60,IPS_IDLE);
 
 
@@ -201,7 +202,9 @@ bool CCDSim::initProperties()
 
     IUFillNumber(&ScopeParametersN[0],"TELESCOPE_APERTURE","Aperture (mm)","%g",50,4000,0,0.0);
     IUFillNumber(&ScopeParametersN[1],"TELESCOPE_FOCAL_LENGTH","Focal Length (mm)","%g",100,10000,0,0.0 );
-    IUFillNumberVector(&ScopeParametersNP,ScopeParametersN,2,"Telescope Simulator","TELESCOPE_INFO","Scope Properties",OPTIONS_TAB,IP_RW,60,IPS_OK);
+    IUFillNumber(&ScopeParametersN[2],"GUIDER_APERTURE","Guider Aperture (mm)","%g",50,4000,0,0.0);
+    IUFillNumber(&ScopeParametersN[3],"GUIDER_FOCAL_LENGTH","Guider Focal Length (mm)","%g",100,10000,0,0.0 );
+    IUFillNumberVector(&ScopeParametersNP,ScopeParametersN,4,"Telescope Simulator","TELESCOPE_INFO","Scope Properties",OPTIONS_TAB,IP_RW,60,IPS_OK);
 
     IUFillNumber(&EqPECN[0],"RA_PEC","Ra (hh:mm:ss)","%010.6m",0,24,0,0);
     IUFillNumber(&EqPECN[1],"DEC_PEC","decPEC (dd:mm:ss)","%010.6m",-90,90,0,0);
@@ -254,21 +257,14 @@ int CCDSim::StartExposure(float duration)
     //  for the simulator, we can just draw the frame now
     //  and it will get returned at the right time
     //  by the timer routines
+    AbortPrimaryFrame=false;
     ExposureRequest=duration;
-
-    if(InExposure)
-    {
-        //  We are already in an exposure, just change the time
-        //  and be done with it.
-        return 0;
-    }
 
     gettimeofday(&ExpStart,NULL);
     //  Leave the proper time showing for the draw routines
     DrawCcdFrame(&PrimaryCCD);
     //  Now compress the actual wait time
     ExposureRequest=duration*TimeFactor;
-
     InExposure=true;
     return 0;
 }
@@ -276,11 +272,21 @@ int CCDSim::StartExposure(float duration)
 int CCDSim::StartGuideExposure(float n)
 {
     GuideExposureRequest=n;
-    if(InGuideExposure) return 0;
+    AbortGuideFrame = false;
     DrawCcdFrame(&GuideCCD);
     gettimeofday(&GuideExpStart,NULL);
     InGuideExposure=true;
     return 0;
+}
+
+bool CCDSim::AbortExposure()
+{
+    if (!InExposure)
+        return true;
+
+    AbortPrimaryFrame = true;
+
+    return true;
 }
 
 bool CCDSim::AbortGuideExposure()
@@ -312,24 +318,32 @@ void CCDSim::TimerHit()
 
     if(InExposure)
     {
-        float timeleft;
-        timeleft=CalcTimeLeft(ExpStart,ExposureRequest);
-
-        //IDLog("CCD Exposure left: %g - Requset: %g\n", timeleft, ExposureRequest);
-        if (timeleft < 0)
-             timeleft = 0;
-
-        PrimaryCCD.setExposure(timeleft);
-
-        if(timeleft < 1.0)
+        if (AbortPrimaryFrame)
         {
-            if(timeleft <= 0.001)
+            InExposure = false;
+            AbortPrimaryFrame = false;
+        }
+        else
+        {
+            float timeleft;
+            timeleft=CalcTimeLeft(ExpStart,ExposureRequest);
+
+            //IDLog("CCD Exposure left: %g - Requset: %g\n", timeleft, ExposureRequest);
+            if (timeleft < 0)
+                 timeleft = 0;
+
+            PrimaryCCD.setExposure(timeleft);
+
+            if(timeleft < 1.0)
             {
-                InExposure=false;
-                ExposureComplete(&PrimaryCCD);
-            } else
-            {
-                nexttimer=timeleft*1000;    //  set a shorter timer
+                if(timeleft <= 0.001)
+                {
+                    InExposure=false;
+                    ExposureComplete(&PrimaryCCD);
+                } else
+                {
+                    nexttimer=timeleft*1000;    //  set a shorter timer
+                }
             }
         }
     }
@@ -388,13 +402,20 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
     unsigned short int *ptr;
     unsigned short int val;
     float ExposureTime;
+    float targetFocalLength;
 
     ptr=(unsigned short int *) targetChip->getFrameBuffer();
 
     if (targetChip->getXRes() == 500)
+    {
+        targetFocalLength = guider_focallength;
         ExposureTime = GuideExposureRequest*4;
+    }
     else
+    {
+        targetFocalLength = focallength;
         ExposureTime = ExposureRequest;
+    }
 
 
     if(ShowStarField)
@@ -451,8 +472,8 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
         //  and we do a simple scale for x and y locations
         //  based on the focal length and pixel size
         //  focal length in mm, pixels in microns
-        pa=focallength/targetChip->getPixelSizeX()*1000/targetChip->getBinX();
-        pe=focallength/targetChip->getPixelSizeY()*1000/targetChip->getBinY();
+        pa=targetFocalLength/targetChip->getPixelSizeX()*1000/targetChip->getBinX();
+        pe=targetFocalLength/targetChip->getPixelSizeY()*1000/targetChip->getBinY();
 
         //IDLog("Pixels are %4.2f %4.2f  pa %6.4f  pe %6.4f\n",PixelSizex,PixelSizey,pa,pe);
 
@@ -939,14 +960,21 @@ bool CCDSim::ISSnoopDevice (XMLEle *root)
      if (IUSnoopNumber(root,&FWHMNP)==0)
      {
            seeing = FWHMNP.np[0].value;
-           IDLog("CCD Simulator: New FWHM value of %g\n", seeing);
+
+           if (isDebug())
+                IDLog("CCD Simulator: New FWHM value of %g\n", seeing);
            return true;
      }
 
      if (IUSnoopNumber(root,&ScopeParametersNP)==0)
      {
            focallength = ScopeParametersNP.np[1].value;
-           IDLog("CCD Simulator: New focalLength value of %g\n", focallength);
+           guider_focallength = ScopeParametersNP.np[3].value;
+           if (isDebug())
+           {
+                IDLog("CCD Simulator: New focalLength value of %g\n", focallength);
+                IDLog("CCD Simulator: New guider_focalLength value of %g\n", guider_focallength);
+           }
            return true;
      }
 
@@ -957,7 +985,8 @@ bool CCDSim::ISSnoopDevice (XMLEle *root)
         newdec=EqPECN[1].value;
         if((newra != raPEC)||(newdec != decPEC))
         {
-            fprintf(stderr,"raPEC %4.2f  decPEC %4.2f Snooped raPEC %4.2f  decPEC %4.2f\n",raPEC,decPEC,newra,newdec);
+            if (isDebug())
+                IDLog("raPEC %4.2f  decPEC %4.2f Snooped raPEC %4.2f  decPEC %4.2f\n",raPEC,decPEC,newra,newdec);
             raPEC=newra;
             decPEC=newdec;
 
@@ -967,4 +996,14 @@ bool CCDSim::ISSnoopDevice (XMLEle *root)
      }
 
      return INDI::CCD::ISSnoopDevice(root);
+}
+
+bool CCDSim::saveConfigItems(FILE *fp)
+{
+    INDI::CCD::saveConfigItems(fp);
+
+    IUSaveConfigNumber(fp,SimulatorSettingsNV);
+    IUSaveConfigSwitch(fp, TimeFactorSV);
+
+    return true;
 }

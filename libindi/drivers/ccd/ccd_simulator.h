@@ -29,6 +29,9 @@
 class CCDSim : public INDI::CCD
 {
     protected:
+
+    virtual bool saveConfigItems(FILE *fp);
+
     private:
 
         bool InExposure;
@@ -55,6 +58,7 @@ class CCDSim : public INDI::CCD
         float ImageScalex;
         float ImageScaley;
         float focallength;
+        float guider_focallength;
         float OAGoffset;
         float TimeFactor;
         //  our zero point calcs used for drawing stars
@@ -62,6 +66,7 @@ class CCDSim : public INDI::CCD
         float z;
 
         bool AbortGuideFrame;
+        bool AbortPrimaryFrame;
 
 
         float GuideRate;
@@ -87,7 +92,7 @@ class CCDSim : public INDI::CCD
         INumber FWHMN[1];
 
         // We are going to snoop these from telescope
-        INumber ScopeParametersN[2];
+        INumber ScopeParametersN[4];
         INumberVectorProperty ScopeParametersNP;
 
         INumberVectorProperty EqPECNP;
@@ -110,6 +115,8 @@ class CCDSim : public INDI::CCD
 
         int StartExposure(float duration);
         int StartGuideExposure(float);
+
+        bool AbortExposure();
         bool AbortGuideExposure();
 
 
