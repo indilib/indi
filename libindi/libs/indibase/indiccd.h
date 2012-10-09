@@ -94,6 +94,9 @@ private:
     INumberVectorProperty *ImageExposureNP;
     INumber ImageExposureN[1];
 
+    ISwitchVectorProperty *AbortExposureSP;
+    ISwitch AbortExposureS[1];
+
     INumberVectorProperty *ImageFrameNP;
     INumber ImageFrameN[4];
 
@@ -242,6 +245,8 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
             \note This function is not implemented in INDI::CCD, it must be implemented in the child class
         */
         virtual void addFITSKeywords(fitsfile *fptr);
+
+        virtual bool saveConfigItems(FILE *fp);
 
         float RA;
         float Dec;

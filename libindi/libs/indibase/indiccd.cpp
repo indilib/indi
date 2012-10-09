@@ -40,6 +40,7 @@ CCDChip::CCDChip()
     FrameType=LIGHT_FRAME;
 
     ImageFrameNP = new INumberVectorProperty;
+    AbortExposureSP = new ISwitchVectorProperty;
     FrameTypeSP = new ISwitchVectorProperty;
     ImageExposureNP = new INumberVectorProperty;
     ImageBinNP = new INumberVectorProperty;
@@ -56,6 +57,7 @@ CCDChip::~CCDChip()
     RawFrame=NULL;
 
     delete ImageFrameNP;
+    delete AbortExposureSP;
     delete FrameTypeSP;
     delete ImageExposureNP;
     delete ImageBinNP;
@@ -200,6 +202,9 @@ bool INDI::CCD::initProperties()
     IUFillNumber(&PrimaryCCD.ImageExposureN[0],"CCD_EXPOSURE_VALUE","Duration (s)","%5.2f",0,36000,0,1.0);
     IUFillNumberVector(PrimaryCCD.ImageExposureNP,PrimaryCCD.ImageExposureN,1,getDeviceName(),"CCD_EXPOSURE_REQUEST","Expose",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
 
+    IUFillSwitch(&PrimaryCCD.AbortExposureS[0],"ABORT","Abort",ISS_OFF);
+    IUFillSwitchVector(PrimaryCCD.AbortExposureSP,PrimaryCCD.AbortExposureS,1,getDeviceName(),"CCD_ABORT_EXPOSURE","Expose Abort",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+
     IUFillNumber(&PrimaryCCD.ImageBinN[0],"HOR_BIN","X","%2.0f",1,4,1,1);
     IUFillNumber(&PrimaryCCD.ImageBinN[1],"VER_BIN","Y","%2.0f",1,4,1,1);
     IUFillNumberVector(PrimaryCCD.ImageBinNP,PrimaryCCD.ImageBinN,2,getDeviceName(),"CCD_BINNING","Binning",IMAGE_SETTINGS_TAB,IP_RW,60,IPS_IDLE);
@@ -237,6 +242,9 @@ bool INDI::CCD::initProperties()
 
     IUFillNumber(&GuideCCD.ImageExposureN[0],"GUIDER_EXPOSURE_VALUE","Duration (s)","%5.2f",0,36000,0,1.0);
     IUFillNumberVector(GuideCCD.ImageExposureNP,GuideCCD.ImageExposureN,1,getDeviceName(),"GUIDER_EXPOSURE_REQUEST","Guide",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
+
+    IUFillSwitch(&GuideCCD.AbortExposureS[0],"ABORT","Abort",ISS_OFF);
+    IUFillSwitchVector(GuideCCD.AbortExposureSP,GuideCCD.AbortExposureS,1,getDeviceName(),"GUIDE_ABORT_EXPOSURE","Guide Abort",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
     IUFillSwitch(&GuideCCD.CompressS[0],"GCOMPRESS","Compress",ISS_OFF);
     IUFillSwitch(&GuideCCD.CompressS[1],"GRAW","Raw",ISS_ON);
@@ -283,6 +291,7 @@ bool INDI::CCD::updateProperties()
     if(isConnected())
     {
        defineNumber(PrimaryCCD.ImageExposureNP);
+       defineSwitch(PrimaryCCD.AbortExposureSP);
         defineNumber(PrimaryCCD.ImageFrameNP);
         defineNumber(PrimaryCCD.ImageBinNP);
 
@@ -290,6 +299,7 @@ bool INDI::CCD::updateProperties()
         {
            // IDLog("Sending Guider Stuff\n");
             defineNumber(GuideCCD.ImageExposureNP);
+            defineSwitch(GuideCCD.AbortExposureSP);
             defineNumber(GuideCCD.ImageFrameNP);
         }
 
@@ -319,11 +329,13 @@ bool INDI::CCD::updateProperties()
         deleteProperty(PrimaryCCD.ImageBinNP->name);
         deleteProperty(PrimaryCCD.ImagePixelSizeNP->name);
         deleteProperty(PrimaryCCD.ImageExposureNP->name);
+        deleteProperty(PrimaryCCD.AbortExposureSP->name);
         deleteProperty(PrimaryCCD.FitsBP->name);
         deleteProperty(PrimaryCCD.CompressSP->name);
         if(HasGuideHead)
         {
             deleteProperty(GuideCCD.ImageExposureNP->name);
+            deleteProperty(GuideCCD.AbortExposureSP->name);
             deleteProperty(GuideCCD.ImageFrameNP->name);
             deleteProperty(GuideCCD.ImagePixelSizeNP->name);
             deleteProperty(GuideCCD.FitsBP->name);
@@ -545,6 +557,52 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
     {
 
 
+        if(strcmp(name,PrimaryCCD.AbortExposureSP->name)==0)
+        {
+            IUResetSwitch(PrimaryCCD.AbortExposureSP);
+
+            if (AbortExposure())
+            {
+                PrimaryCCD.AbortExposureSP->s = IPS_OK;
+                PrimaryCCD.ImageExposureNP->s = IPS_IDLE;
+                PrimaryCCD.ImageExposureN[0].value = 0;
+            }
+            else
+            {
+                PrimaryCCD.AbortExposureSP->s = IPS_ALERT;
+                PrimaryCCD.ImageExposureNP->s = IPS_ALERT;
+            }
+
+            IDSetSwitch(PrimaryCCD.AbortExposureSP, NULL);
+            IDSetNumber(PrimaryCCD.ImageExposureNP, NULL);
+
+            return true;
+        }
+
+
+        if(strcmp(name,GuideCCD.AbortExposureSP->name)==0)
+        {
+            IUResetSwitch(GuideCCD.AbortExposureSP);
+
+            if (AbortGuideExposure())
+            {
+                GuideCCD.AbortExposureSP->s = IPS_OK;
+                GuideCCD.ImageExposureNP->s = IPS_IDLE;
+                GuideCCD.ImageExposureN[0].value = 0;
+            }
+            else
+            {
+                GuideCCD.AbortExposureSP->s = IPS_ALERT;
+                GuideCCD.ImageExposureNP->s = IPS_ALERT;
+            }
+
+            IDSetSwitch(GuideCCD.AbortExposureSP, NULL);
+            IDSetNumber(GuideCCD.ImageExposureNP, NULL);
+
+            return true;
+        }
+
+
         if(strcmp(name,PrimaryCCD.CompressSP->name)==0)
         {
 
@@ -760,6 +818,12 @@ bool INDI::CCD::AbortGuideExposure()
     return false;
 }
 
+bool INDI::CCD::saveConfigItems(FILE *fp)
+{
+    IUSaveConfigText(fp, ActiveDeviceTP);
+
+    return true;
+}
 
 bool INDI::CCD::GuideNorth(float ms)
 {
