@@ -80,7 +80,7 @@ bool INDI::Telescope::initProperties()
     IUFillSwitchVector(&AbortSV,AbortS,1,getDeviceName(),"TELESCOPE_ABORT_MOTION","Abort Motion",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
     IUFillText(&PortT[0],"PORT","Port","/dev/ttyUSB0");
-    IUFillTextVector(&PortTV,PortT,1,getDeviceName(),"DEVICE_PORT","Ports",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
+    IUFillTextVector(&PortTP,PortT,1,getDeviceName(),"DEVICE_PORT","Ports",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillSwitch(&MovementNSS[MOTION_NORTH], "MOTION_NORTH", "North", ISS_OFF);
     IUFillSwitch(&MovementNSS[MOTION_SOUTH], "MOTION_SOUTH", "South", ISS_OFF);
@@ -92,7 +92,9 @@ bool INDI::Telescope::initProperties()
 
     IUFillNumber(&ScopeParametersN[0],"TELESCOPE_APERTURE","Aperture (mm)","%g",50,4000,0,0.0);
     IUFillNumber(&ScopeParametersN[1],"TELESCOPE_FOCAL_LENGTH","Focal Length (mm)","%g",100,10000,0,0.0 );
-    IUFillNumberVector(&ScopeParametersNP,ScopeParametersN,2,getDeviceName(),"TELESCOPE_INFO","Scope Properties",OPTIONS_TAB,IP_RW,60,IPS_OK);
+    IUFillNumber(&ScopeParametersN[2],"GUIDER_APERTURE","Guider Aperture (mm)","%g",50,4000,0,0.0);
+    IUFillNumber(&ScopeParametersN[3],"GUIDER_FOCAL_LENGTH","Guider Focal Length (mm)","%g",100,10000,0,0.0 );
+    IUFillNumberVector(&ScopeParametersNP,ScopeParametersN,4,getDeviceName(),"TELESCOPE_INFO","Scope Properties",OPTIONS_TAB,IP_RW,60,IPS_OK);
 
     TrackState=SCOPE_PARKED;
     return 0;
@@ -105,7 +107,7 @@ void INDI::Telescope::ISGetProperties (const char *dev)
     DefaultDevice::ISGetProperties(dev);
 
     //  We may need the port set before we can connect
-    IDDefText(&PortTV,NULL);
+    IDDefText(&PortTP,NULL);
     //LoadConfig();
 
     if(isConnected())
@@ -128,7 +130,7 @@ void INDI::Telescope::ISGetProperties (const char *dev)
 
 bool INDI::Telescope::updateProperties()
 {
-    defineText(&PortTV);
+    defineText(&PortTP);
 
     if(isConnected())
     {
@@ -166,7 +168,10 @@ bool INDI::Telescope::updateProperties()
 bool INDI::Telescope::saveConfigItems(FILE *fp)
 {
 
+    IUSaveConfigText(fp, &PortTP);
     IUSaveConfigNumber(fp,&LocationNV);
+    IUSaveConfigNumber(fp, &ScopeParametersNP);
+
     return true;
 }
 
@@ -256,7 +261,7 @@ bool INDI::Telescope::ISNewText (const char *dev, const char *name, char *texts[
     {
         //  This is for our device
         //  Now lets see if it's something we process here
-        if(strcmp(name,PortTV.name)==0)
+        if(strcmp(name,PortTP.name)==0)
         {
             //  This is our port, so, lets process it
 
@@ -272,11 +277,11 @@ bool INDI::Telescope::ISNewText (const char *dev, const char *name, char *texts[
 
             int rc;
             //IDLog("calling update text\n");
-            PortTV.s=IPS_OK;
-            rc=IUUpdateText(&PortTV,texts,names,n);
+            PortTP.s=IPS_OK;
+            rc=IUUpdateText(&PortTP,texts,names,n);
             //IDLog("update text returns %d\n",rc);
             //  Update client display
-            IDSetText(&PortTV,NULL);
+            IDSetText(&PortTP,NULL);
             //SaveConfig();
             //  We processed this one, so, tell the world we did it
             return true;

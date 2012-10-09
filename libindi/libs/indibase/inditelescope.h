@@ -168,7 +168,7 @@ class INDI::Telescope : public INDI::DefaultDevice
         ISwitchVectorProperty ParkSV; //  A Switch in the client interface to park the scope
         ISwitch ParkS[1];
 
-        ITextVectorProperty PortTV; //  A text vector that stores out physical port name
+        ITextVectorProperty PortTP; //  A text vector that stores out physical port name
         IText PortT[1];
 
         ISwitch MovementNSS[2];     // A switch for North/South motion
@@ -177,7 +177,7 @@ class INDI::Telescope : public INDI::DefaultDevice
         ISwitch MovementWES[2];     // A switch for West/East motion
         ISwitchVectorProperty MovementWESP;
 
-        INumber ScopeParametersN[2];
+        INumber ScopeParametersN[4];
         INumberVectorProperty ScopeParametersNP;
 
 
