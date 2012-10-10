@@ -56,7 +56,7 @@ public:
     //typedef boost::shared_ptr<INDI::BaseDevice> devicePtr;
 
     BaseClient();
-    ~BaseClient();
+    virtual ~BaseClient();
 
     /** \brief Set the server host name and port
         \param hostname INDI server host name or IP address.

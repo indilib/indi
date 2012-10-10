@@ -121,6 +121,9 @@ public:
         \param exit_code 0 if client was requested to disconnect from server. -1 if connection to server is terminated due to remote server disconnection.
     */
     virtual void serverDisconnected(int exit_code) =0;
+
+    virtual ~BaseMediator() {}
+
 };
 
 #endif // INDIBASE_H
