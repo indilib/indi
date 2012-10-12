@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 2.4.7)
+PROJECT(fliccd CXX C)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
 set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
@@ -52,7 +53,7 @@ endif(FLI_FOUND)
 if (CFITSIO_FOUND AND FLI_FOUND)
 
 set(fliccd_SRCS
-	${CMAKE_SOURCE_DIR}/fli_ccd.c
+	${CMAKE_SOURCE_DIR}/fli_ccd.cpp
 )
 
 add_executable(indi_fli_ccd ${fliccd_SRCS})

@@ -54,10 +54,8 @@ QHY8Driver::~QHY8Driver()
 
 
 
-int QHY8Driver::open_device( void )
+bool QHY8Driver::Connect()
 {
-
-
     int ret=0;
 
      //  locate_device(QHY8L_VENDOR_ID, QHY8L_PRODUCT_ID)) == NULL )
@@ -66,13 +64,13 @@ int QHY8Driver::open_device( void )
 	{
 		// set defaults
 		qhy8l_params_t p;
-//		p.exposure	= (int)m_high_params.Exposition;
-//		p.binn		= m_high_params.Binning;
-//		p.gain		= m_high_params.gain;
-//		p.offset	= m_high_params.offset;
-//		p.speed		= m_high_params.readout_speed;
-		p.amp		= 1;//m_high_params.amp;
-//		p.pwm		= m_high_params.pwm;
+        p.exposure	= (int)Exposition;
+        p.binn		= Binning;
+        p.gain		= gain;
+        p.offset	= offset;
+        p.speed		= readout_speed;
+        p.amp		= 1;;
+        p.pwm		= pwm;
 		p.out_frame_width = 0;
 		p.out_frame_height = 0;
 		p.out_buffer_size = 0;
@@ -97,16 +95,16 @@ int QHY8Driver::open_device( void )
 		m_low_params  = p;
         //m_initialized = true;
         IDLog( "Connected to QHY8L camera" );
-		return EXIT_SUCCESS;
+        return true;
 	}while( 0 );
 
 	close_device();	// error happened
 
- return ret;
+    return false;
 }
 
 
-void QHY8Driver::close_device( void )
+void QHY8Driver::Disconnect()
 {
     /*if( m_handle )
 	{
@@ -144,7 +142,7 @@ void QHY8Driver::close_device( void )
 
 	ret = set_thread_task( MK_CMD("@SETPAR"), (char*)&p, sizeof(qhy8l_params_t), NULL, 0, true );
 	if( !ret )
-	{
+    {
         IDLog("QHY8Driver::set_params: set_thread_task error");
 		return false;
 	}

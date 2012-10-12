@@ -93,9 +93,6 @@ class QSICCD : public INDI::CCD, public INDI::FilterInterface
     void resetFrame();
     void shutterControl();
     void turnWheel();
-    double min();
-    double max();
-    void fits_update_key_s(fitsfile* fptr, int type, string name, void* p, string explanation, int* status);
 
     virtual bool GetFilterNames(const char* groupName);
     virtual bool SetFilterNames();
@@ -122,7 +119,7 @@ public:
 
     virtual bool updateCCDFrame(int x, int y, int w, int h);
     virtual bool updateCCDBin(int binx, int biny);
-    virtual void addFITSKeywords(fitsfile *fptr);
+    virtual void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip);
 
     virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
     virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);

@@ -24,8 +24,8 @@
 #ifndef _QHY5_DRIVER_H_
 #define _QHY5_DRIVER_H_
 
-#include <libindi/indiccd.h>
-#include <libindi/indiusbdevice.h>
+#include <indiccd.h>
+#include <indiusbdevice.h>
 
 #include <fitsio.h>
 

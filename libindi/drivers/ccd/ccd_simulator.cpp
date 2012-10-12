@@ -260,6 +260,7 @@ int CCDSim::StartExposure(float duration)
     AbortPrimaryFrame=false;
     ExposureRequest=duration;
 
+    PrimaryCCD.setExposureDuration(duration);
     gettimeofday(&ExpStart,NULL);
     //  Leave the proper time showing for the draw routines
     DrawCcdFrame(&PrimaryCCD);
@@ -273,6 +274,7 @@ int CCDSim::StartGuideExposure(float n)
 {
     GuideExposureRequest=n;
     AbortGuideFrame = false;
+    GuideCCD.setExposureDuration(n);
     DrawCcdFrame(&GuideCCD);
     gettimeofday(&GuideExpStart,NULL);
     InGuideExposure=true;
@@ -332,7 +334,7 @@ void CCDSim::TimerHit()
             if (timeleft < 0)
                  timeleft = 0;
 
-            PrimaryCCD.setExposure(timeleft);
+            PrimaryCCD.setExposureLeft(timeleft);
 
             if(timeleft < 1.0)
             {
@@ -361,7 +363,7 @@ void CCDSim::TimerHit()
 
         //ImageExposureN[0].value = timeleft;
         //IDSetNumber(ImageExposureNP, NULL);
-        GuideCCD.setExposure(timeleft);
+        GuideCCD.setExposureLeft(timeleft);
 
         if(timeleft < 1.0)
         {

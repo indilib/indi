@@ -648,18 +648,16 @@ int QSICCD::StartExposure(float duration)
 
         if(imageFrameType == CCDChip::BIAS_FRAME)
         {
-            PrimaryCCD.setExposure(minDuration);
+            PrimaryCCD.setExposureDuration(minDuration);
             IDMessage(getDeviceName(), "Bias Frame (s) : %g\n", minDuration);
             if (isDebug())
                 IDLog("Bias Frame (s) : %g\n", minDuration);
         } else
         {
-            PrimaryCCD.setExposure(duration);
+            PrimaryCCD.setExposureDuration(duration);
             if (isDebug())
                 IDLog("Exposure Time (s) is: %g\n", duration);
         }
-
-         imageExpose = PrimaryCCD.getExposure();
 
             /* BIAS frame is the same as DARK but with minimum period. i.e. readout from camera electronics.*/
             if (imageFrameType == CCDChip::BIAS_FRAME)
@@ -877,91 +875,43 @@ int QSICCD::grabImage()
 	return 0;
 }
 
-void QSICCD::addFITSKeywords(fitsfile *fptr)
+void QSICCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
 {
 
-        int status=0; 
-        char binning_s[32];
-        char frame_s[32];
-        double min_val = min();
-        double max_val = max();
+    INDI::CCD::addFITSKeywords(fptr, targetChip);
 
-        snprintf(binning_s, 32, "(%d x %d)", PrimaryCCD.getBinX(), PrimaryCCD.getBinY());
-
-        switch (imageFrameType)
-        {
-          case CCDChip::LIGHT_FRAME:
-      	    strcpy(frame_s, "Light");
-	    break;
-          case CCDChip::BIAS_FRAME:
-            strcpy(frame_s, "Bias");
-	    break;
-          case CCDChip::FLAT_FRAME:
-            strcpy(frame_s, "Flat Field");
-	    break;
-          case CCDChip::DARK_FRAME:
-            strcpy(frame_s, "Dark");
-	    break;
-        }
-
-        char name_s[32] = "QSI";
-        double electronsPerADU;
-	double pixSize1,pixSize2;
-        short filter = 0;
+    int status=0;
+    double electronsPerADU;
+    short filter = 0;
 	char filter_s[32] = "None";
-	char exposureStartTime_s[32] = "";
-        try {
-            string name;
-            QSICam.get_Name(name);
-            for(unsigned i = 0; i < 18; ++i) name_s[i] = name[i];
-            QSICam.get_ElectronsPerADU(&electronsPerADU);
+
+    try
+    {
+        QSICam.get_ElectronsPerADU(&electronsPerADU);
 	    bool hasWheel = false;
 	    QSICam.get_HasFilterWheel(&hasWheel);
-	    if(hasWheel){
+        if(hasWheel)
+        {
 	      filter = QueryFilter();
-	      //QSICam.get_Position(&filter);
 	      string *filterNames = new std::string[LAST_FILTER+1];
 	      QSICam.get_Names(filterNames);
-	      for(unsigned i = 0; i < 18; ++i) filter_s[i] = filterNames[filter-1][i];
+          for(unsigned i = 0; i < 18; ++i)
+              filter_s[i] = filterNames[filter-1][i];
 	    }
-	    QSICam.get_PixelSizeX(&pixSize1);
-	    QSICam.get_PixelSizeY(&pixSize2);
-	    string exposureStartTime;
-	    QSICam.get_LastExposureStartTime(exposureStartTime);
-	    for(unsigned i = 0; i < 19; ++i) exposureStartTime_s[i] = exposureStartTime[i];
-        } catch (std::runtime_error& err) {
-            IDMessage(getDeviceName(), "get_Name() failed. %s.", err.what());
-            IDLog("get_Name() failed. %s.\n", err.what());
+    } catch (std::runtime_error& err)
+    {
+            IDMessage(getDeviceName(), "get_ElectronsPerADU failed. %s.", err.what());
+            IDLog("get_ElectronsPerADU failed. %s.\n", err.what());
             return;
-        }
+    }
 
-        //pixSize = PrimaryCCD.getPixelSizeX();
-	
         fits_update_key_s(fptr, TDOUBLE, "CCD-TEMP", &(TemperatureN[0].value), "CCD Temperature (Celcius)", &status);
-        fits_update_key_s(fptr, TDOUBLE, "EXPTIME", &(imageExpose), "Total Exposure Time (s)", &status);
-        if(imageFrameType == CCDChip::DARK_FRAME)
-        fits_update_key_s(fptr, TDOUBLE, "DARKTIME", &(imageExpose), "Total Exposure Time (s)", &status);
-        fits_update_key_s(fptr, TDOUBLE, "PIXSIZE1", &(pixSize1), "Pixel Size 1 (microns)", &status);
-	fits_update_key_s(fptr, TDOUBLE, "PIXSIZE2", &(pixSize2), "Pixel Size 2 (microns)", &status);
-        fits_update_key_s(fptr, TSTRING, "BINNING", binning_s, "Binning HOR x VER", &status);
-        fits_update_key_s(fptr, TSTRING, "FRAME", frame_s, "Frame Type", &status);
-        fits_update_key_s(fptr, TDOUBLE, "DATAMIN", &min_val, "Minimum value", &status);
-        fits_update_key_s(fptr, TDOUBLE, "DATAMAX", &max_val, "Maximum value", &status);
-        fits_update_key_s(fptr, TSTRING, "INSTRUME", name_s, "CCD Name", &status);
         fits_update_key_s(fptr, TDOUBLE, "EPERADU", &electronsPerADU, "Electrons per ADU", &status);
-	fits_update_key_s(fptr, TSHORT,  "FILPOS", &filter, "Filter system position", &status);
-	fits_update_key_s(fptr, TSTRING, "FILTER", filter_s, "Filter name", &status);
-	fits_update_key_s(fptr, TSTRING, "DATE-OBS", exposureStartTime_s, "UTC start date of observation", &status);
+        fits_update_key_s(fptr, TSHORT,  "FILPOS", &filter, "Filter system position", &status);
+        fits_update_key_s(fptr, TSTRING, "FILTER", filter_s, "Filter name", &status);
 
         fits_write_date(fptr, &status);
 }
-
-void QSICCD::fits_update_key_s(fitsfile* fptr, int type, string name, void* p, string explanation, int* status)
-{
-        // this function is for removing warnings about deprecated string conversion to char* (from arg 5)
-        fits_update_key(fptr,type,name.c_str(),p, const_cast<char*>(explanation.c_str()), status);
-}
-
 
 int QSICCD::manageDefaults(char errmsg[])
 {
@@ -1152,36 +1102,6 @@ void QSICCD::activateCooler()
         }
 }
 
-double QSICCD::min()
-{
-
-        double lmin = imageBuffer[0];
-        int ind=0, i, j;
-  
-        for (i= 0; i < imageHeight ; i++)
-            for (j= 0; j < imageWidth; j++) {
-                ind = (i * imageWidth) + j;
-                if (imageBuffer[ind] < lmin) lmin = imageBuffer[ind];
-        }
-    
-        return lmin;
-}
-
-double QSICCD::max()
-{
-
-        double lmax = imageBuffer[0];
-        int ind=0, i, j;
-  
-        for (i= 0; i < imageHeight ; i++)
-            for (j= 0; j < imageWidth; j++) {
-                ind = (i * imageWidth) + j;
-                if (imageBuffer[ind] > lmax) lmax = imageBuffer[ind];
-        }
-    
-        return lmax;
-}
-
 void QSICCD::resetFrame()
 {
 
@@ -1338,7 +1258,7 @@ void QSICCD::TimerHit()
             IDMessage(getDeviceName(), "Exposure done, downloading image...");
             IDLog("Exposure done, downloading image...\n");
 
-            PrimaryCCD.setExposure(0);
+            PrimaryCCD.setExposureLeft(0);
             InExposure = false;
             /* grab and save image */
             grabImage();
@@ -1353,7 +1273,7 @@ void QSICCD::TimerHit()
             IDLog("image not yet ready....\n");
          }
 
-         PrimaryCCD.setExposure(timeleft);
+         PrimaryCCD.setExposureLeft(timeleft);
 
         }
 

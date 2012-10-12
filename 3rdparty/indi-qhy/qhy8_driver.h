@@ -9,7 +9,7 @@
 #define CAM_QHY8L_H_
 
 
-#include <libindi/indiusbdevice.h>
+#include <indiusbdevice.h>
 #include <map>
 #include <vector>
 #include <string>
@@ -23,9 +23,6 @@
 #define QHY8L_MATRIX_WIDTH	 3328
 #define QHY8L_MATRIX_HEIGHT  2030
 
-
-
-
 #define QHY8L_WIDTH_B1	QHY8L_MATRIX_WIDTH
 #define QHY8L_HEIGHT_B1	QHY8L_MATRIX_HEIGHT
 
@@ -37,7 +34,6 @@
 
 #define QHY8L_BINN_CNT 4
 #define QHY8L_SPEED_CNT 2
-
 
 /*
 class cam_qhy8l_params : public cam_base_params
@@ -184,8 +180,8 @@ private:
 		int voltage;
 	};
 
-	virtual int open_device( void );
-	virtual void close_device( void );
+    //virtual int open_device( void );
+    //virtual void close_device( void );
 
 //	virtual int do_command( cam_task_t *task );
 

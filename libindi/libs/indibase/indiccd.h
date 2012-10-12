@@ -21,6 +21,7 @@
 #define INDI_CCD_H
 
 #include <fitsio.h>
+#include <string.h>
 
 #include "defaultdevice.h"
 #include "indiguiderinterface.h"
@@ -42,23 +43,25 @@ public:
     typedef enum { BIN_W, BIN_H} CCD_BIN_INDEX;
     typedef enum { CCD_MAX_X, CCD_MAX_Y, CCD_PIXEL_SIZE, CCD_PIXEL_SIZE_X, CCD_PIXEL_SIZE_Y, CCD_BITSPERPIXEL} CCD_INFO_INDEX;
 
-    int getXRes() { return XRes; }
-    int getYRes() { return YRes; }
-    int getSubX() { return SubX; }
-    int getSubY() { return SubY; }
-    int getSubW() { return SubW; }
-    int getSubH() { return SubH; }
-    int getBinX() { return BinX; }
-    int getBinY() { return BinY; }
-    int getPixelSizeX() { return PixelSizex; }
-    int getPixelSizeY() { return PixelSizey; }
-    int getBPP() { return BPP; }
-    int getFrameBufferSize() { return RawFrameSize; }
-    double getExposure() { return ImageExposureN[0].value; }
-    char *getFrameBuffer() { return RawFrame; }
-    bool isCompressed() { return SendCompressed; }
-    bool isInterlaced() { return Interlaced; }
-    CCD_FRAME getFrameType() { return FrameType; }
+    inline int getXRes() { return XRes; }
+    inline int getYRes() { return YRes; }
+    inline int getSubX() { return SubX; }
+    inline int getSubY() { return SubY; }
+    inline int getSubW() { return SubW; }
+    inline int getSubH() { return SubH; }
+    inline int getBinX() { return BinX; }
+    inline int getBinY() { return BinY; }
+    inline int getPixelSizeX() { return PixelSizex; }
+    inline int getPixelSizeY() { return PixelSizey; }
+    inline int getBPP() { return BPP; }
+    inline int getFrameBufferSize() { return RawFrameSize; }
+    inline double getExposureLeft() { return ImageExposureN[0].value; }
+    inline double getExposureDuration() { return exposureDuration; }
+    inline char *getFrameBuffer() { return RawFrame; }
+    inline bool isCompressed() { return SendCompressed; }
+    inline bool isInterlaced() { return Interlaced; }
+    inline CCD_FRAME getFrameType() { return FrameType; }
+    const char *getExposureStartTime();
 
     void setResolutoin(int x, int y);
     void setFrame(int subx, int suby, int subw, int subh);
@@ -69,7 +72,8 @@ public:
     void setFrameBufferSize(int nbuf);
     void setBPP(int bpp);
     int setFrameType(CCD_FRAME);
-    void setExposure(double duration);
+    void setExposureDuration(double duration);
+    void setExposureLeft(double duration);
     void setExposureFailed();
 
 private:
@@ -90,6 +94,8 @@ private:
     int RawFrameSize;
     bool SendCompressed;
     CCD_FRAME FrameType;
+    double exposureDuration;
+    timeval startExposureTime;
 
     INumberVectorProperty *ImageExposureNP;
     INumber ImageExposureN[1];
@@ -242,9 +248,27 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
 
         /** \brief Add FITS keywords to a fits file
             \param fptr pointer to a valid FITS file.
-            \note This function is not implemented in INDI::CCD, it must be implemented in the child class
+            \param targetChip The target chip to extract the keywords from.
+            \note In additional to the standard FITS keywords, this function write the following keywords the FITS file:
+            <ul>
+            <li>EXPTIME: Total Exposure Time (s)</li>
+            <li>DARKTIME (if applicable): Total Exposure Time (s)</li>
+            <li>PIXSIZE1: Pixel Size 1 (microns)</li>
+            <li>PIXSIZE2: Pixel Size 2 (microns)</li>
+            <li>BINNING: Binning HOR x VER</li>
+            <li>FRAME: Frame Type</li>
+            <li>DATAMIN: Minimum value</li>
+            <li>DATAMAX: Maximum value</li>
+            <li>INSTRUME: CCD Name</li>
+            <li>DATE-OBS: UTC start date of observation</li>
+            </ul>
+
+            To add additional information, override this function in the child class and ensure to call INDI::CCD::addFITSKeywords.
         */
-        virtual void addFITSKeywords(fitsfile *fptr);
+        virtual void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip);
+
+        /* A function to just remove GCC warnings about deprecated conversion */
+        void fits_update_key_s(fitsfile* fptr, int type, std::string name, void* p, std::string explanation, int* status);
 
         virtual bool saveConfigItems(FILE *fp);
 
@@ -263,6 +287,10 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
 
         ITextVectorProperty *ActiveDeviceTP;
         IText ActiveDeviceT[2];
+
+     private:
+        void getMinMax(double *min, double *max, CCDChip *targetChip);
+
 
 };
 

@@ -239,6 +239,8 @@ int SxCam::StartExposure(float n)
 
      //IDLog("Cleared all fields, setting timer to %d\n", tval);
 
+     PrimaryCCD.setExposureDuration(n);
+
      SetTimer(tval);
 
     return 0;
@@ -260,6 +262,8 @@ int SxCam::StartGuideExposure(float n)
 
     gettimeofday(&GuideExpStart,NULL);
     InGuideExposure=true;
+
+    GuideCCD.setExposureDuration(n);
 
     //  Clear the pixels to start a fresh exposure
     //  calling here with no parameters flushes both
@@ -304,6 +308,8 @@ void SxCam::TimerHit()
     if(InExposure)
     {
         timeleft=CalcTimeLeft();
+
+        PrimaryCCD.setExposureLeft(timeleft);
 
         if((timeleft < 3) && (timeleft > 2) && (DidFlush==0)&&(InExposure))
         {
@@ -368,6 +374,9 @@ void SxCam::TimerHit()
         if(InGuideExposure)
         {
             timeleft=CalcGuideTimeLeft();
+
+            GuideCCD.setExposureLeft(timeleft);
+
             if(timeleft < 0.25)
             {
                 if(timeleft < 0.10)
@@ -413,15 +422,7 @@ void SxCam::TimerHit()
         DidLatch=0;
         InExposure=false;
 
-/*
-        if (StreamSP->s == IPS_BUSY)
-        {
-            sendPreview();
-            StartExposure(0.5);
-        }
-        else
-*/
-            ExposureComplete(&PrimaryCCD);
+        ExposureComplete(&PrimaryCCD);
 
         //  if we get here, we quite likely ignored a guider hit
         if(InGuideExposure) SetTimer(1);    //  just make it all run again

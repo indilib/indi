@@ -19,8 +19,11 @@
 #include "indiccd.h"
 
 #include <string.h>
-
+#include <time.h>
+#include <sys/time.h>
 #include <zlib.h>
+
+#include <fitsio.h>
 
 const char *IMAGE_SETTINGS_TAB = "Image Settings";
 const char *IMAGE_INFO_TAB     = "Image Info";
@@ -150,10 +153,29 @@ void CCDChip::setFrameBufferSize(int nbuf)
     RawFrame = new char[nbuf];
 }
 
-void CCDChip::setExposure(double duration)
+void CCDChip::setExposureLeft(double duration)
 {
     ImageExposureN[0].value = duration;
+
     IDSetNumber(ImageExposureNP, NULL);
+}
+
+void CCDChip::setExposureDuration(double duration)
+{
+    exposureDuration = duration;
+    gettimeofday(&startExposureTime,NULL);
+}
+
+const char * CCDChip::getExposureStartTime()
+{
+    static char ts[32];
+    struct tm *tp;
+    time_t t = (time_t) startExposureTime.tv_sec;
+
+    //time (&t);
+    tp = gmtime (&t);
+    strftime (ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", tp);
+    return (ts);
 }
 
 void CCDChip::setInterlaced(bool intr)
@@ -688,9 +710,66 @@ bool INDI::CCD::updateCCDBin(int hor, int ver)
     return true;
 }
 
-void INDI::CCD::addFITSKeywords(fitsfile *fptr)
+void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
 {
-    // Nothing to do here. HW layer should take care of it if needed.
+    int status=0;
+    char binning_s[32];
+    char frame_s[32];
+    char dev_name[32];
+    char exp_start[32];
+    double min_val, max_val;
+    double exposureDuration;
+    double pixSize1,pixSize2;
+
+    getMinMax(&min_val, &max_val, targetChip);
+
+    snprintf(binning_s, 32, "(%d x %d)", targetChip->getBinX(), targetChip->getBinY());
+
+    switch (targetChip->getFrameType())
+    {
+      case CCDChip::LIGHT_FRAME:
+        strcpy(frame_s, "Light");
+    break;
+      case CCDChip::BIAS_FRAME:
+        strcpy(frame_s, "Bias");
+    break;
+      case CCDChip::FLAT_FRAME:
+        strcpy(frame_s, "Flat Field");
+    break;
+      case CCDChip::DARK_FRAME:
+        strcpy(frame_s, "Dark");
+    break;
+    }
+
+    exposureDuration = targetChip->getExposureDuration();
+
+    pixSize1 = targetChip->getPixelSizeX();
+    pixSize2 = targetChip->getPixelSizeY();
+
+    strncpy(dev_name, getDeviceName(), 32);
+    strncpy(exp_start, targetChip->getExposureStartTime(), 32);
+
+    fits_update_key_s(fptr, TDOUBLE, "EXPTIME", &(exposureDuration), "Total Exposure Time (s)", &status);
+
+    if(targetChip->getFrameType() == CCDChip::DARK_FRAME)
+        fits_update_key_s(fptr, TDOUBLE, "DARKTIME", &(exposureDuration), "Total Exposure Time (s)", &status);
+
+    fits_update_key_s(fptr, TDOUBLE, "PIXSIZE1", &(pixSize1), "Pixel Size 1 (microns)", &status);
+    fits_update_key_s(fptr, TDOUBLE, "PIXSIZE2", &(pixSize2), "Pixel Size 2 (microns)", &status);
+    fits_update_key_s(fptr, TSTRING, "BINNING", binning_s, "Binning HOR x VER", &status);
+    fits_update_key_s(fptr, TSTRING, "FRAME", frame_s, "Frame Type", &status);
+    fits_update_key_s(fptr, TDOUBLE, "DATAMIN", &min_val, "Minimum value", &status);
+    fits_update_key_s(fptr, TDOUBLE, "DATAMAX", &max_val, "Maximum value", &status);
+    fits_update_key_s(fptr, TSTRING, "INSTRUME", dev_name, "CCD Name", &status);
+    fits_update_key_s(fptr, TSTRING, "DATE-OBS", exp_start, "UTC start date of observation", &status);
+
+    //fits_write_date(fptr, &status);
+}
+
+void INDI::CCD::fits_update_key_s(fitsfile* fptr, int type, std::string name, void* p, std::string explanation, int* status)
+{
+        // this function is for removing warnings about deprecated string conversion to char* (from arg 5)
+        fits_update_key(fptr,type,name.c_str(),p, const_cast<char*>(explanation.c_str()), status);
 }
 
 bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
@@ -763,7 +842,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
 		return false;
     }
 
-    addFITSKeywords(fptr);
+    addFITSKeywords(fptr, targetChip);
 
     fits_write_img(fptr,byte_type,1,numbytes,targetChip->getFrameBuffer(),&status);
 
@@ -841,4 +920,69 @@ bool INDI::CCD::GuideWest(float ms)
 {
     return false;
 }
+
+void INDI::CCD::getMinMax(double *min, double *max, CCDChip *targetChip)
+{
+    int ind=0, i, j;
+    int imageHeight = targetChip->getSubH();
+    int imageWidth  = targetChip->getSubW();
+    double lmin, lmax;
+
+    switch (targetChip->getBPP())
+    {
+        case 8:
+        {
+            char *imageBuffer = targetChip->getFrameBuffer();
+            lmin = lmax = imageBuffer[0];
+
+
+            for (i= 0; i < imageHeight ; i++)
+                for (j= 0; j < imageWidth; j++)
+                {
+                    ind = (i * imageWidth) + j;
+                    if (imageBuffer[ind] < lmin) lmin = imageBuffer[ind];
+                    else if (imageBuffer[ind] > lmax) lmax = imageBuffer[ind];
+                }
+
+        }
+        break;
+
+        case 16:
+        {
+            unsigned short *imageBuffer = (unsigned short* ) targetChip->getFrameBuffer();
+            lmin = lmax = imageBuffer[0];
+
+            for (i= 0; i < imageHeight ; i++)
+                for (j= 0; j < imageWidth; j++)
+                {
+                    ind = (i * imageWidth) + j;
+                    if (imageBuffer[ind] < lmin) lmin = imageBuffer[ind];
+                     else if (imageBuffer[ind] > lmax) lmax = imageBuffer[ind];
+                }
+
+        }
+        break;
+
+        case 32:
+        {
+            unsigned int *imageBuffer = (unsigned int* ) targetChip->getFrameBuffer();
+            lmin = lmax = imageBuffer[0];
+
+            for (i= 0; i < imageHeight ; i++)
+                for (j= 0; j < imageWidth; j++)
+                {
+                    ind = (i * imageWidth) + j;
+                    if (imageBuffer[ind] < lmin) lmin = imageBuffer[ind];
+                    else if (imageBuffer[ind] > lmax) lmax = imageBuffer[ind];
+
+                }
+
+        }
+        break;
+
+    }
+        *min = lmin;
+        *max = lmax;
+}
+
 

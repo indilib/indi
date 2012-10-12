@@ -22,8 +22,8 @@
 #ifndef QHYCCD_H
 #define QHYCCD_H
 
-#include <libindi/indiccd.h>
-#include <libindi/indiusbdevice.h>
+#include <indiccd.h>
+#include <indiusbdevice.h>
 
 /* Standard headers */
 #include <stdio.h>
