@@ -663,11 +663,15 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
             IUUpdateSwitch(PrimaryCCD.FrameTypeSP,states,names,n);
             PrimaryCCD.FrameTypeSP->s=IPS_OK;
             if(PrimaryCCD.FrameTypeS[0].s==ISS_ON) PrimaryCCD.setFrameType(CCDChip::LIGHT_FRAME);
-            if(PrimaryCCD.FrameTypeS[1].s==ISS_ON) PrimaryCCD.setFrameType(CCDChip::BIAS_FRAME);
-            if(PrimaryCCD.FrameTypeS[2].s==ISS_ON) PrimaryCCD.setFrameType(CCDChip::DARK_FRAME);
-            if(PrimaryCCD.FrameTypeS[3].s==ISS_ON) PrimaryCCD.setFrameType(CCDChip::FLAT_FRAME);
+            else if(PrimaryCCD.FrameTypeS[1].s==ISS_ON) PrimaryCCD.setFrameType(CCDChip::BIAS_FRAME);
+            else if(PrimaryCCD.FrameTypeS[2].s==ISS_ON) PrimaryCCD.setFrameType(CCDChip::DARK_FRAME);
+            else if(PrimaryCCD.FrameTypeS[3].s==ISS_ON) PrimaryCCD.setFrameType(CCDChip::FLAT_FRAME);
+
+            if (updateCCDFrameType(PrimaryCCD.getFrameType()) == false)
+                PrimaryCCD.FrameTypeSP->s = IPS_ALERT;
 
             IDSetSwitch(PrimaryCCD.FrameTypeSP,NULL);
+
             return true;
         }
     }
@@ -707,6 +711,13 @@ bool INDI::CCD::updateCCDBin(int hor, int ver)
 {
     // Just set value, unless HW layer overrides this and performs its own processing
     PrimaryCCD.setBin(hor, ver);
+    return true;
+}
+
+bool INDI::CCD::updateCCDFrameType(CCDChip::CCD_FRAME fType)
+{
+    INDI_UNUSED(fType);
+    // Child classes can override this
     return true;
 }
 

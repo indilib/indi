@@ -199,6 +199,14 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         virtual bool updateCCDBin(int hor, int ver);
 
 
+        /** \brief INDI::CCD calls this function when CCD frame type needs to be updated in the hardware.
+            \param fType Frame type
+            \return true is CCD chip update is successful, false otherwise.
+            \note It is \e not mandotary to implement this function in the child class. The CCD hardware layer may either set the frame type when this function
+             is called, or (optionally) before an exposure is started.
+        */
+        virtual bool updateCCDFrameType(CCDChip::CCD_FRAME fType);
+
         /** \brief Setup CCD paramters for primary CCD. Child classes call this function to update CCD paramaters
             \param x Frame X coordinates in pixels.
             \param y Frame Y coordinates in pixels.
