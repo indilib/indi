@@ -876,7 +876,7 @@ void FLICCD::TimerHit()
           break;
         }
 
-        if (fabs(TemperatureN[0].value - ccdTemp) <= TEMP_THRESHOLD)
+        if (fabs(FLICam.temperature - ccdTemp) <= TEMP_THRESHOLD)
         {
             TemperatureNP.s = IPS_OK;
             IDSetNumber(&TemperatureNP, NULL);
