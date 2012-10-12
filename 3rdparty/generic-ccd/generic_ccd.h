@@ -58,6 +58,12 @@ public:
     virtual void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip);
     virtual bool updateCCDFrameType(CCDChip::CCD_FRAME fType);
 
+    // Guide Port
+    virtual bool GuideNorth(float);
+    virtual bool GuideSouth(float);
+    virtual bool GuideEast(float);
+    virtual bool GuideWest(float);
+
     private:
 
     ISwitch ResetS[1];

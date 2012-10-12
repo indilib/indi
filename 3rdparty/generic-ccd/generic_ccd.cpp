@@ -235,6 +235,14 @@ bool GenericCCD::Connect()
 
     sim = isSimulation();
 
+    ///////////////////////////
+    // Guide Port?
+    ///////////////////////////
+    // Do we have a guide port?
+
+    if (sim)
+        HasSt4Port = true;
+
     if (sim)
         return true;
     else
@@ -363,8 +371,13 @@ bool GenericCCD::setupParams()
     IDMessage(getDeviceName(), "The CCD Temperature is %f.\n", TemperatureN[0].value);
     IDSetNumber(&TemperatureNP, NULL);
 
+
     if (isDebug())
         IDLog("The CCD Temperature is %f.\n", TemperatureN[0].value);
+
+    ///////////////////////////
+    // 4. Get temperature
+    ///////////////////////////
 
     if (sim)
         bit_depth = 16;
@@ -823,5 +836,100 @@ void GenericCCD::TimerHit()
     if (timerID == -1)
         SetTimer(POLLMS);
     return;
+}
+
+bool GenericCCD::GuideNorth(float duration)
+{
+    /**********************************************************
+     *
+     *
+     *
+     *  IMPORRANT: Put here your CCD Guide call
+     *  Some CCD API support pulse guiding directly (i.e. without timers)
+     *  Others implement GUIDE_ON and GUIDE_OFF for each direction, and you
+     *  will have to start a timer and then stop it after the 'duration' seconds
+     *  For an example on timer usage, please refer to indi-sx and indi-gpusb drivers
+     *  available in INDI 3rd party repository
+     *  If there is an error, report it back to client
+     *  e.g.
+     *  IDMessage(getDeviceName(), "Error, unable to guide due ...");
+     *  return false;
+     *
+     *
+     **********************************************************/
+
+    return true;
+}
+
+
+bool GenericCCD::GuideSouth(float duration)
+{
+    /**********************************************************
+     *
+     *
+     *
+     *  IMPORRANT: Put here your CCD Guide call
+     *  Some CCD API support pulse guiding directly (i.e. without timers)
+     *  Others implement GUIDE_ON and GUIDE_OFF for each direction, and you
+     *  will have to start a timer and then stop it after the 'duration' seconds
+     *  For an example on timer usage, please refer to indi-sx and indi-gpusb drivers
+     *  available in INDI 3rd party repository
+     *  If there is an error, report it back to client
+     *  e.g.
+     *  IDMessage(getDeviceName(), "Error, unable to guide due ...");
+     *  return false;
+     *
+     *
+     **********************************************************/
+
+    return true;
+
+}
+
+bool GenericCCD::GuideEast(float duration)
+{
+    /**********************************************************
+     *
+     *
+     *
+     *  IMPORRANT: Put here your CCD Guide call
+     *  Some CCD API support pulse guiding directly (i.e. without timers)
+     *  Others implement GUIDE_ON and GUIDE_OFF for each direction, and you
+     *  will have to start a timer and then stop it after the 'duration' seconds
+     *  For an example on timer usage, please refer to indi-sx and indi-gpusb drivers
+     *  available in INDI 3rd party repository
+     *  If there is an error, report it back to client
+     *  e.g.
+     *  IDMessage(getDeviceName(), "Error, unable to guide due ...");
+     *  return false;
+     *
+     *
+     **********************************************************/
+
+    return true;
+
+}
+
+bool GenericCCD::GuideWest(float duration)
+{
+    /**********************************************************
+     *
+     *
+     *
+     *  IMPORRANT: Put here your CCD Guide call
+     *  Some CCD API support pulse guiding directly (i.e. without timers)
+     *  Others implement GUIDE_ON and GUIDE_OFF for each direction, and you
+     *  will have to start a timer and then stop it after the 'duration' seconds
+     *  For an example on timer usage, please refer to indi-sx and indi-gpusb drivers
+     *  available in INDI 3rd party repository
+     *  If there is an error, report it back to client
+     *  e.g.
+     *  IDMessage(getDeviceName(), "Error, unable to guide due ...");
+     *  return false;
+     *
+     *
+     **********************************************************/
+
+    return true;
 }
 
