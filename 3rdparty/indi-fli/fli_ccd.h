@@ -48,16 +48,18 @@ public:
     int StartExposure(float duration);
     bool AbortExposure();
 
-    void TimerHit();
-
-    virtual bool updateCCDFrame(int x, int y, int w, int h);
-    virtual bool updateCCDBin(int binx, int biny);
-    virtual void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip);
 
     virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
     virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
 
     protected:
+
+    void TimerHit();
+    virtual bool updateCCDFrame(int x, int y, int w, int h);
+    virtual bool updateCCDBin(int binx, int biny);
+    virtual void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip);
+    virtual bool updateCCDFrameType(CCDChip::CCD_FRAME fType);
+
     private:
 
     typedef struct
@@ -65,7 +67,7 @@ public:
       flidomain_t domain;
       char *dname;
       char *name;
-      char *model;
+      char model[32];
       long HWRevision;
       long FWRevision;
       double x_pixel_size;
@@ -101,10 +103,14 @@ public:
     flidev_t fli_dev;
     cam_t FLICam;
 
+    bool findFLICCD(flidomain_t domain);
     float CalcTimeLeft();
     int grabImage();
     bool setupParams();
     void resetFrame();
+
+    bool sim;
+
 
 
 };
