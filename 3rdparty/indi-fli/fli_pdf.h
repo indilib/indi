@@ -1,9 +1,9 @@
-#ifndef FLI_CCD_H
-#define FLI_CCD_H
+#ifndef FLI_PDF_H
+#define FLI_PDF_H
 
 #if 0
-    FLI CCD
-    INDI Interface for Finger Lakes Instrument CCDs
+    FLI PDF
+    INDI Interface for Finger Lakes Instrument Focusers
     Copyright (C) 2003-2012 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
     This library is free software; you can redistribute it and/or
@@ -23,13 +23,13 @@
 #endif
 
 #include <libfli.h>
-#include <indiccd.h>
+#include <indifocuser.h>
 #include <iostream>
 
 using namespace std;
 
 
-class FLIPDF : public INDI::CCD
+class FLIPDF : public INDI::Focuser
 {
 public:
 
@@ -45,74 +45,52 @@ public:
     bool Connect();
     bool Disconnect();
 
-    int StartExposure(float duration);
-    bool AbortExposure();
-
-
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
     virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
 
     protected:
 
+    virtual int MoveAbs(int ticks);
     void TimerHit();
-    virtual bool updateCCDFrame(int x, int y, int w, int h);
-    virtual bool updateCCDBin(int binx, int biny);
-    virtual void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip);
-    virtual bool updateCCDFrameType(CCDChip::CCD_FRAME fType);
 
     private:
 
     typedef struct
     {
-      flidomain_t domain;
-      char *dname;
-      char *name;
-      char model[32];
-      long HWRevision;
-      long FWRevision;
-      double x_pixel_size;
-      double y_pixel_size;
-      long Array_Area[4];
-      long Visible_Area[4];
-      int width, height;
-      double temperature;
-    } cam_t;
-
+        flidomain_t domain;
+        char *dname;
+        char *name;
+        char *model;
+        long HWRevision;
+        long FWRevision;
+        long current_pos;
+        long max_pos;
+        long home;
+    } focuser_t;
 
     ISwitch PortS[4];
     ISwitchVectorProperty PortSP;
 
-    ISwitch ResetS[1];
-    ISwitchVectorProperty ResetSP;
+    ISwitch HomeS[1];
+    ISwitchVectorProperty HomeSP;
 
-    INumber TemperatureN[1];
-    INumberVectorProperty TemperatureNP;
+    IText FocusInfoT[3];
+    ITextVectorProperty FocusInfoTP;
 
-    IText CamInfoT[3];
-    ITextVectorProperty CamInfoTP;
-
-    double ccdTemp;
-    double minDuration;
-    unsigned short *imageBuffer;
-    int imageWidth, imageHeight;
     int timerID;
-    CCDChip::CCD_FRAME imageFrameType;
-    struct timeval ExpStart;
-    float ExposureRequest;
+    int StepRequest;
+
+    bool InStep;
+    bool sim;
 
     flidev_t fli_dev;
-    cam_t FLICam;
+    focuser_t FLIFocus;
 
     bool findFLIPDF(flidomain_t domain);
-    float CalcTimeLeft();
-    int grabImage();
     bool setupParams();
-    void resetFrame();
-
-    bool sim;
+    void goHomePosition();
 
 
 
 };
 
-#endif // FLI_CCD_H
+#endif // FLI_PDF_H

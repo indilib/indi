@@ -79,6 +79,8 @@
 3rdparty/indi-fli/fli_ccd.cpp -text
 3rdparty/indi-fli/fli_ccd.h -text
 3rdparty/indi-fli/fli_pdf.c -text
+3rdparty/indi-fli/fli_pdf.cpp -text
+3rdparty/indi-fli/fli_pdf.h -text
 3rdparty/indi-fli/indi_fli.xml -text
 3rdparty/indi-gphoto/AUTHORS -text
 3rdparty/indi-gphoto/CMakeLists.txt -text

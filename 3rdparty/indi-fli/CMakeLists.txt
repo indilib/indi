@@ -35,7 +35,7 @@ endif (NOVA_FOUND)
 ###### FLI Precision Digital Focuser ######
 if (FLI_FOUND)
 set(flipdf_SRCS
-	${CMAKE_SOURCE_DIR}/fli_pdf.c
+        ${CMAKE_SOURCE_DIR}/fli_pdf.cpp
 )
 
 add_executable(indi_fli_focus ${flipdf_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
