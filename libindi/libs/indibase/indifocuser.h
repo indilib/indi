@@ -57,9 +57,10 @@ class INDI::Focuser : public INDI::DefaultDevice
 
         /** \brief Move the focuser to an absolute position.
             \param ticks The new position of the focuser.
-            \return True if succssfull, false otherwise.
+            \return Return 0 if motion is completed and focuser reached requested position. Return 1 if focuser started motion to requested position and is in progress.
+                    Return -1 if there is an error.
         */
-        virtual bool MoveAbs(int ticks);
+        virtual int MoveAbs(int ticks);
 
         /** \brief Move the focuser to an relative position.
             \param dir Direction of focuser, either FOCUS_INWARD or FOCUS_OUTWARD.

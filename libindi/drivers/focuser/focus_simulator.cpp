@@ -258,12 +258,12 @@ bool FocusSim::Move(FocusDirection dir, int speed, int duration)
 
 }
 
-bool FocusSim::MoveAbs(int targetTicks)
+int FocusSim::MoveAbs(int targetTicks)
 {
     if (targetTicks < FocusAbsPosN[0].min || targetTicks > FocusAbsPosN[0].max)
     {
         IDMessage(getDeviceName(), "Error, requested absolute position is out of range.");
-        return false;
+        return -1;
     }
 
     double mid = (FocusAbsPosN[0].max - FocusAbsPosN[0].min)/2;
@@ -287,6 +287,6 @@ bool FocusSim::MoveAbs(int targetTicks)
 
     IDSetNumber(&FWHMNP, NULL);
 
-    return true;
+    return 0;
 
 }

@@ -130,14 +130,22 @@ bool INDI::Focuser::ISNewNumber (const char *dev, const char *name, double value
         {
 
             int newPos = (int) values[0];
+            int ret =0;
 
-            if (MoveAbs(newPos) == true)
+            if ( (ret = MoveAbs(newPos)) == 0)
             {
                FocusAbsPosNP.s=IPS_OK;
                IUUpdateNumber(&FocusAbsPosNP,values,names,n);
                IDSetNumber(&FocusAbsPosNP, "Focuser moved to position %d", newPos);
                return true;
             }
+            else if (ret == 1)
+            {
+               FocusAbsPosNP.s=IPS_BUSY;
+               IDSetNumber(&FocusAbsPosNP, "Focuser is moving to position %d", newPos);
+               return true;
+            }
+
 
             FocusAbsPosNP.s = IPS_ALERT;
             IDSetNumber(&FocusAbsPosNP, "Focuser failed to move to new requested position.");
@@ -216,13 +224,13 @@ bool INDI::Focuser::MoveRel(FocusDirection dir, unsigned int ticks)
     return false;
 }
 
-bool INDI::Focuser::MoveAbs(int ticks)
+int INDI::Focuser::MoveAbs(int ticks)
 {
     //  This should be a virtual function, because the low level hardware class
     //  must override this
     //  but it's much easier early development if the method actually
     //  exists for now
-    return false;
+    return -1;
 }
 
 

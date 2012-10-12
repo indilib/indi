@@ -63,7 +63,7 @@ class FocusSim : public INDI::Focuser
         virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
 
         virtual bool Move(FocusDirection dir, int speed, int duration);
-        virtual bool MoveAbs(int ticks);
+        virtual int MoveAbs(int ticks);
 
 };
 

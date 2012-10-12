@@ -1425,7 +1425,7 @@ bool RoboFocus::Move(FocusDirection dir, int speed, int duration)
 }
 
 
-bool RoboFocus::MoveAbs(int targetTicks)
+int RoboFocus::MoveAbs(int targetTicks)
 {
     int ret= -1 ;
     double new_apos = targetTicks;
@@ -1433,7 +1433,7 @@ bool RoboFocus::MoveAbs(int targetTicks)
     if (targetTicks < FocusAbsPosN[0].min || targetTicks > FocusAbsPosN[0].max)
     {
         IDMessage(getDeviceName(), "Error, requested absolute position is out of range.");
-        return false;
+        return -1;
     }
 
     IDMessage(getDeviceName() , "Focuser is moving to requested position...");
@@ -1458,11 +1458,11 @@ bool RoboFocus::MoveAbs(int targetTicks)
 
       IDMessage( getDeviceName(), "Robofocus position recovered resuming normal operation");
       /* We have to leave here, because new_apos is not set */
-      return false;
+      return -1;
     }
 
 
-    return true;
+    return 0;
 }
 
 bool RoboFocus::MoveRel(FocusDirection dir, unsigned int ticks)
