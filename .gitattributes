@@ -4,6 +4,14 @@
 3rdparty/fliusb/fliusb.c -text
 3rdparty/fliusb/fliusb.h -text
 3rdparty/fliusb/fliusb_ioctl.h -text
+3rdparty/generic-ccd/AUTHORS -text
+3rdparty/generic-ccd/CMakeLists.txt -text
+3rdparty/generic-ccd/INSTALL -text
+3rdparty/generic-ccd/README -text
+3rdparty/generic-ccd/config.h.cmake -text
+3rdparty/generic-ccd/generic_ccd.cpp -text
+3rdparty/generic-ccd/generic_ccd.h -text
+3rdparty/generic-ccd/indi_generic_ccd.xml -text
 3rdparty/gerry/CMakeLists.txt -text
 3rdparty/gerry/CcdSim.cpp -text
 3rdparty/gerry/CcdSim.h -text
