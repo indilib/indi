@@ -814,7 +814,9 @@ void FLICCD::TimerHit()
 
                     /* We're done exposing */
                     IDMessage(getDeviceName(), "Exposure done, downloading image...");
-                    IDLog("Exposure done, downloading image...\n");
+
+                    if (isDebug())
+                        IDLog("Exposure done, downloading image...\n");
 
                     PrimaryCCD.setExposureLeft(0);
                     InExposure = false;
