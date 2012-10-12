@@ -117,7 +117,7 @@ void CCDChip::setBin(int hor, int ver)
     IDSetNumber(ImageBinNP, NULL);
 }
 
-void CCDChip::setPixelSize(int x, int y)
+void CCDChip::setPixelSize(float x, float y)
 {
     PixelSizex = x;
     PixelSizey = y;
@@ -792,11 +792,9 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
     int status=0;
     long naxes[2];
     long naxis=2;
-    int numbytes=0;
+    int nelements=0;
 
     fitsfile *fptr=NULL;
-
-    //IDLog("Enter Exposure Complete %d %d %d %d\n",SubW,SubH,BinX,BinY);
 
     naxes[0]=targetChip->getSubW()/targetChip->getBinX();
     naxes[1]=targetChip->getSubH()/targetChip->getBinY();
@@ -825,7 +823,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
     }
 
 
-    numbytes = naxes[0] * naxes[1];
+    nelements = naxes[0] * naxes[1];
 
     //  Now we have to send fits format data to the client
     memsize=5760;
@@ -855,7 +853,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
 
     addFITSKeywords(fptr, targetChip);
 
-    fits_write_img(fptr,byte_type,1,numbytes,targetChip->getFrameBuffer(),&status);
+    fits_write_img(fptr,byte_type,1,nelements,targetChip->getFrameBuffer(),&status);
 
     if (status)
     {
@@ -935,8 +933,8 @@ bool INDI::CCD::GuideWest(float ms)
 void INDI::CCD::getMinMax(double *min, double *max, CCDChip *targetChip)
 {
     int ind=0, i, j;
-    int imageHeight = targetChip->getSubH();
-    int imageWidth  = targetChip->getSubW();
+    int imageHeight = targetChip->getSubH() / targetChip->getBinY();
+    int imageWidth  = targetChip->getSubW() / targetChip->getBinX();
     double lmin, lmax;
 
     switch (targetChip->getBPP())

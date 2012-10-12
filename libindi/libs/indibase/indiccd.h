@@ -51,8 +51,8 @@ public:
     inline int getSubH() { return SubH; }
     inline int getBinX() { return BinX; }
     inline int getBinY() { return BinY; }
-    inline int getPixelSizeX() { return PixelSizex; }
-    inline int getPixelSizeY() { return PixelSizey; }
+    inline float getPixelSizeX() { return PixelSizex; }
+    inline float getPixelSizeY() { return PixelSizey; }
     inline int getBPP() { return BPP; }
     inline int getFrameBufferSize() { return RawFrameSize; }
     inline double getExposureLeft() { return ImageExposureN[0].value; }
@@ -66,7 +66,7 @@ public:
     void setResolutoin(int x, int y);
     void setFrame(int subx, int suby, int subw, int subh);
     void setBin(int hor, int ver);
-    void setPixelSize(int x, int y);
+    void setPixelSize(float x, float y);
     void setCompressed (bool cmp);
     void setInterlaced(bool intr);
     void setFrameBufferSize(int nbuf);
