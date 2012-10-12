@@ -63,7 +63,7 @@
 
 static int impixw, impixh;		/* image size, final binned FitsBP */
 static int expTID;			/* exposure callback timer id, if any */
-
+static double expsec;
 /* info when exposure started */
 static struct timeval exp0;		/* when exp started */
 
@@ -107,7 +107,7 @@ typedef enum {	/* N.B. order must match array below */
 } SetTempIndex;
 static INumber  TemperatureWN[N_STEMP] = {{"CCD_TEMPERATURE_VALUE",  "Target temp, C (0 off)",    "%6.1f", -20.0, 20.,1.0, 0}};
 
-static INumberVectorProperty TemperatureWNP = {MYDEV, "CCD_TEMPERATURE_REQUEST", "Set target cooler temperature", EXPOSE_GROUP, IP_WO, 0, IPS_IDLE, TemperatureWN, NARRAY(TemperatureWN), "", 0};
+static INumberVectorProperty TemperatureWNP = {MYDEV, "CCD_TEMPERATURE", "Set target cooler temperature", EXPOSE_GROUP, IP_WO, 0, IPS_IDLE, TemperatureWN, NARRAY(TemperatureWN), "", 0};
 
 /********************************************
  Property: CCD Temperature [READ]
@@ -120,19 +120,11 @@ static INumber  TemperatureRN[N_TN] = { {"CCD_TEMPERATURE_VALUE",  "Cooler temp,
 static INumberVectorProperty TemperatureRNP = {MYDEV, "CCD_TEMPERATURE", "Current cooler temperature", EXPOSE_GROUP, IP_RO, 0, IPS_IDLE, TemperatureRN, NARRAY(TemperatureRN), "", 0};
 
 /********************************************
- Property: CCD Exposure [REQUEST]
-*********************************************/
-
-/* Exposure time */
-static INumber ExposureWN[]    = {{ "CCD_EXPOSURE_VALUE", "Duration (s)", "%5.2f", 0., 36000., .5, 1., 0, 0, 0}};
-static INumberVectorProperty ExposureWNP = { MYDEV, "CCD_EXPOSURE_REQUEST", "Expose", EXPOSE_GROUP, IP_WO, 36000, IPS_IDLE, ExposureWN, NARRAY(ExposureWN), "", 0};
-
-/********************************************
  Property: CCD Exposure [READ]
 *********************************************/
 
-static INumber ExposureRN[]    = {{ "CCD_EXPOSURE_VALUE", "Duration (s)", "%5.2f", 0., 36000., .5, 1., 0, 0, 0}};
-static INumberVectorProperty ExposureRNP = { MYDEV, "CCD_EXPOSURE", "Expose", EXPOSE_GROUP, IP_RO, 36000, IPS_IDLE, ExposureRN, NARRAY(ExposureRN), "", 0};
+static INumber ExposureN[]    = {{ "CCD_EXPOSURE_VALUE", "Duration (s)", "%5.2f", 0., 36000., .5, 1., 0, 0, 0}};
+static INumberVectorProperty ExposureNP = { MYDEV, "CCD_EXPOSURE", "Expose", EXPOSE_GROUP, IP_RW, 36000, IPS_IDLE, ExposureN, NARRAY(ExposureN), "", 0};
 
 /********************************************
  Property: Some CCD Settings
@@ -364,12 +356,9 @@ void ISNewNumber (const char * dev, const char *name, double *doubles, char *nam
 		return;
 	}
 
-	if (!strcmp (name, ExposureWNP.name))
+    if (!strcmp (name, ExposureNP.name))
 	{
-		if (IUUpdateNumber(&ExposureWNP, doubles, names, n) < 0)
-			return;
-
-	            if (ExposureWNP.s == IPS_BUSY)
+            if (ExposureNP.s == IPS_BUSY)
 		    {
 			/* abort current exposure */
 			if (expTID) 
@@ -380,37 +369,34 @@ void ISNewNumber (const char * dev, const char *name, double *doubles, char *nam
 			    fprintf (stderr, "Hmm, BUSY but no expTID\n");
 
 			ApnGlueExpAbort();
-			ExposureWNP.s = IPS_IDLE;
-			ExposureRNP.s = IPS_IDLE;
-			ExposureRNP.np[0].value = 0;
-			IDSetNumber (&ExposureWNP, "Exposure aborted");
+            ExposureNP.s = IPS_IDLE;
+            ExposureNP.np[0].value = 0;
+            IDSetNumber (&ExposureNP, "Exposure aborted");
 
 		    } else 
 		    {
 			/* start new exposure with last ExpValues settings.
 			 * ExpGo goes busy. set timer to read when done
 			 */
-			double expsec = ExposureWNP.np[0].value;
+            expsec = doubles[0];
 			int expms = (int)ceil(expsec*1000);
 			int wantshutter = (ShutterS[0].s == ISS_ON) ? 1 : 0;
 
 #ifndef SIMULATION
 			if (ApnGlueStartExp (&expsec, wantshutter) < 0) 
 			{
-			    ExposureWNP.s = IPS_ALERT;
-			    IDSetNumber (&ExposureWNP, "Error starting exposure");
+                ExposureNP.s = IPS_ALERT;
+                IDSetNumber (&ExposureNP, "Error starting exposure");
 			    return;
 			}
 #endif
 
 			getStartConditions();
 
-			ExposureRNP.np[0].value = expsec;
-
 			expTID = IEAddTimer (expms, expTO, NULL);
 
-			ExposureWNP.s = IPS_BUSY;
-			IDSetNumber (&ExposureWNP, "Starting %g sec exp, %d x %d, shutter %s", expsec, impixw, impixh, wantshutter ? "open" : "closed");
+            ExposureNP.s = IPS_BUSY;
+            IDSetNumber (&ExposureNP, "Starting %g sec exp, %d x %d, shutter %s", expsec, impixw, impixh, wantshutter ? "open" : "closed");
 		    }
 
 		   return;
@@ -561,7 +547,7 @@ static void expTO (void *vp)
 	expTID = 0;
 
 	/* assert we are doing an exposure */
-	if (ExposureWNP.s != IPS_BUSY) 
+    if (ExposureNP.s != IPS_BUSY)
 	{
 	    fprintf (stderr, "Hmm, expTO but not exposing\n");
 	    return;
@@ -577,10 +563,10 @@ static void expTO (void *vp)
 	{
 	    /* something's wrong */
 	    ApnGlueExpAbort();
-	    ExposureWNP.s = IPS_ALERT;
-	    ExposureRNP.s = IPS_ALERT;
-	    IDSetNumber (&ExposureWNP, "Exposure never completed");
-	    IDSetNumber (&ExposureRNP, NULL);
+        ExposureNP.s = IPS_ALERT;
+        ExposureNP.s = IPS_ALERT;
+        IDSetNumber (&ExposureNP, "Exposure never completed");
+        IDSetNumber (&ExposureNP, NULL);
 	    return;
 	}
 
@@ -598,7 +584,7 @@ static void expTO (void *vp)
 	snprintf(filename_rw, TEMPFILE_LEN+1, "!%s", filename);
 
 	/* read FitsBP as a FITS file */
-	IDSetNumber (&ExposureWNP, "Reading %d FitsBP", npix);
+    IDSetNumber (&ExposureNP, "Reading %d FitsBP", npix);
 	fits = imbuf;
 
 #ifdef SIMULATION
@@ -611,10 +597,10 @@ static void expTO (void *vp)
 	{
 	    /* can't get FitsBP */
 	    ApnGlueExpAbort();
-	    ExposureWNP.s = IPS_ALERT;
-	    ExposureRNP.s = IPS_ALERT;
-	    IDSetNumber (&ExposureWNP, "Error reading FitsBP: %s", whynot);
-	    IDSetNumber (&ExposureRNP, NULL);
+        ExposureNP.s = IPS_ALERT;
+        ExposureNP.s = IPS_ALERT;
+        IDSetNumber (&ExposureNP, "Error reading FitsBP: %s", whynot);
+        IDSetNumber (&ExposureNP, NULL);
             return;
         }
 #endif
@@ -659,10 +645,10 @@ static void expTO (void *vp)
 		return;
 	 }
 
-	ExposureWNP.s = IPS_OK;
-	ExposureRNP.s = IPS_OK;
-	IDSetNumber (&ExposureWNP, "Exposure complete, downloading FITS...");
-	IDSetNumber (&ExposureRNP, NULL);
+    ExposureNP.s = IPS_OK;
+    ExposureNP.s = IPS_OK;
+    IDSetNumber (&ExposureNP, "Exposure complete, downloading FITS...");
+    IDSetNumber (&ExposureNP, NULL);
 
 	uploadFile(filename);
   	unlink(filename);
@@ -755,7 +741,7 @@ void addFITSKeywords(fitsfile *fptr)
         int naxis=2;
         int bscale=1;
         int bzero=32768;
-        double expt = ExposureWN[0].value;
+        double expt = expsec;
         double tempt = TemperatureRN[0].value;
         int binw = ExposureSettingsNP.np[0].value;
         int binh = ExposureSettingsNP.np[1].value;
@@ -920,7 +906,7 @@ static int camconnect()
 	    MaxValuesNP.np[MINTEMP_MV].value = mintemp;
 
 	    /* use max values to set up a default geometry */
-	    ExposureRNP.np[0].value = 1.0;
+        ExposureNP.np[0].value = 1.0;
 
 	    FrameNP.np[CCD_X].value = 0;
 	    FrameNP.np[CCD_Y].value = 0;
@@ -963,7 +949,7 @@ static int camconnect()
         impixw=512;
         impixh=512;
 
-        ExposureRNP.np[0].value = 1.0;
+        ExposureNP.np[0].value = 1.0;
 
         FrameNP.np[CCD_X].value = 0;
         FrameNP.np[CCD_Y].value = 0;
@@ -980,8 +966,8 @@ static int camconnect()
 
 	/* Expose Group */
 	IDDefSwitch(&ShutterSP, NULL);
-	IDDefNumber(&ExposureWNP, NULL);
-	IDDefNumber(&ExposureRNP, NULL);
+    IDDefNumber(&ExposureNP, NULL);
+    IDDefNumber(&ExposureNP, NULL);
 
 	IDDefNumber(&TemperatureWNP, NULL);
 	IDDefNumber(&TemperatureRNP, NULL);
@@ -1007,8 +993,8 @@ void reset_all_properties()
 	TemperatureRNP.s	= IPS_IDLE;
 	FrameNP.s		= IPS_IDLE;
 	BinningNP.s		= IPS_IDLE;
-	ExposureWNP.s		= IPS_IDLE;
-	ExposureRNP.s		= IPS_IDLE;
+    ExposureNP.s		= IPS_IDLE;
+    ExposureNP.s		= IPS_IDLE;
 	MaxValuesNP.s 		= IPS_IDLE;
 	ExposureSettingsNP.s	= IPS_IDLE;
 	FanSpeedSP.s		= IPS_IDLE;
@@ -1020,8 +1006,8 @@ void reset_all_properties()
 	IDSetNumber(&TemperatureRNP, NULL);
 	IDSetNumber(&FrameNP, NULL);
 	IDSetNumber(&BinningNP, NULL);
-	IDSetNumber(&ExposureWNP, NULL);
-	IDSetNumber(&ExposureRNP, NULL);
+    IDSetNumber(&ExposureNP, NULL);
+    IDSetNumber(&ExposureNP, NULL);
 	IDSetNumber(&MaxValuesNP, NULL);
 	IDSetNumber(&ExposureSettingsNP, NULL);
 	IDSetSwitch(&FanSpeedSP, NULL);

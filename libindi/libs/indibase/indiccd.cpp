@@ -222,7 +222,7 @@ bool INDI::CCD::initProperties()
     IUFillSwitchVector(PrimaryCCD.FrameTypeSP,PrimaryCCD.FrameTypeS,4,getDeviceName(),"CCD_FRAME_TYPE","FrameType",IMAGE_SETTINGS_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
     IUFillNumber(&PrimaryCCD.ImageExposureN[0],"CCD_EXPOSURE_VALUE","Duration (s)","%5.2f",0,36000,0,1.0);
-    IUFillNumberVector(PrimaryCCD.ImageExposureNP,PrimaryCCD.ImageExposureN,1,getDeviceName(),"CCD_EXPOSURE_REQUEST","Expose",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
+    IUFillNumberVector(PrimaryCCD.ImageExposureNP,PrimaryCCD.ImageExposureN,1,getDeviceName(),"CCD_EXPOSURE","Expose",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillSwitch(&PrimaryCCD.AbortExposureS[0],"ABORT","Abort",ISS_OFF);
     IUFillSwitchVector(PrimaryCCD.AbortExposureSP,PrimaryCCD.AbortExposureS,1,getDeviceName(),"CCD_ABORT_EXPOSURE","Expose Abort",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
@@ -263,7 +263,7 @@ bool INDI::CCD::initProperties()
     IUFillNumberVector(GuideCCD.ImagePixelSizeNP,GuideCCD.ImagePixelSizeN,6,getDeviceName(),"GUIDE_INFO",GUIDE_HEAD_TAB,GUIDE_HEAD_TAB,IP_RO,60,IPS_IDLE);
 
     IUFillNumber(&GuideCCD.ImageExposureN[0],"GUIDER_EXPOSURE_VALUE","Duration (s)","%5.2f",0,36000,0,1.0);
-    IUFillNumberVector(GuideCCD.ImageExposureNP,GuideCCD.ImageExposureN,1,getDeviceName(),"GUIDER_EXPOSURE_REQUEST","Guide",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
+    IUFillNumberVector(GuideCCD.ImageExposureNP,GuideCCD.ImageExposureN,1,getDeviceName(),"GUIDER_EXPOSURE","Guide",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillSwitch(&GuideCCD.AbortExposureS[0],"ABORT","Abort",ISS_OFF);
     IUFillSwitchVector(GuideCCD.AbortExposureSP,GuideCCD.AbortExposureS,1,getDeviceName(),"GUIDE_ABORT_EXPOSURE","Guide Abort",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
@@ -440,7 +440,7 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
     {
         //  This is for our device
         //  Now lets see if it's something we process here
-        if(strcmp(name,"CCD_EXPOSURE_REQUEST")==0)
+        if(strcmp(name,"CCD_EXPOSURE")==0)
         {
             float n;
             int rc;
@@ -474,7 +474,7 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
             return true;
         }
 
-        if(strcmp(name,"GUIDER_EXPOSURE_REQUEST")==0)
+        if(strcmp(name,"GUIDER_EXPOSURE")==0)
         {
             float n;
             int rc;

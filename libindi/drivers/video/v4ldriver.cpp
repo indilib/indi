@@ -73,7 +73,7 @@ void V4L_Driver::initProperties(const char *dev)
   
   /* Expose */
   IUFillNumber(&ExposeTimeN[0], "CCD_EXPOSURE_VALUE", "Duration (s)", "%5.2f", 0., 36000., 0.5, 1.);
-  IUFillNumberVector(&ExposeTimeNP, ExposeTimeN, NARRAY(ExposeTimeN), dev, "CCD_EXPOSURE_REQUEST", "Expose", COMM_GROUP, IP_RW, 60, IPS_IDLE);
+  IUFillNumberVector(&ExposeTimeNP, ExposeTimeN, NARRAY(ExposeTimeN), dev, "CCD_EXPOSURE", "Expose", COMM_GROUP, IP_RW, 60, IPS_IDLE);
 
 /* Frame Rate */
   IUFillNumber(&FrameRateN[0], "RATE", "Rate", "%0.f", 1., 50., 1., 10.);
