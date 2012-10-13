@@ -49,6 +49,23 @@ endif (NOVA_FOUND)
 install(TARGETS indi_fli_focus RUNTIME DESTINATION bin )
 endif(FLI_FOUND)
 
+###### FLI Filter wheel ######
+if (FLI_FOUND)
+set(flicfw_SRCS
+        ${CMAKE_SOURCE_DIR}/fli_cfw.cpp
+)
+
+add_executable(indi_fli_wheel ${flicfw_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
+
+target_link_libraries(indi_fli_wheel ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${FLI_LIBRARIES} m z)
+
+if (NOVA_FOUND)
+  target_link_libraries(indi_fli_wheel ${NOVA_LIBRARIES})
+endif (NOVA_FOUND)
+
+install(TARGETS indi_fli_wheel RUNTIME DESTINATION bin )
+endif(FLI_FOUND)
+
 ############# FLI CCD ###############
 if (CFITSIO_FOUND AND FLI_FOUND)
 

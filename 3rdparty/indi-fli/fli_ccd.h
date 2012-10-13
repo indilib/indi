@@ -29,12 +29,12 @@
 using namespace std;
 
 
-class FLIPDF : public INDI::CCD
+class FLICCD : public INDI::CCD
 {
 public:
 
-    FLIPDF();
-    virtual ~FLIPDF();
+    FLICCD();
+    virtual ~FLICCD();
 
     const char *getDefaultName();
 
@@ -103,7 +103,7 @@ public:
     flidev_t fli_dev;
     cam_t FLICam;
 
-    bool findFLIPDF(flidomain_t domain);
+    bool findFLICCD(flidomain_t domain);
     float CalcTimeLeft();
     int grabImage();
     bool setupParams();

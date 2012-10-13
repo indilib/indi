@@ -78,6 +78,8 @@
 3rdparty/indi-fli/fli_ccd.c -text
 3rdparty/indi-fli/fli_ccd.cpp -text
 3rdparty/indi-fli/fli_ccd.h -text
+3rdparty/indi-fli/fli_cfw.cpp -text
+3rdparty/indi-fli/fli_cfw.h -text
 3rdparty/indi-fli/fli_pdf.c -text
 3rdparty/indi-fli/fli_pdf.cpp -text
 3rdparty/indi-fli/fli_pdf.h -text

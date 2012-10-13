@@ -1,9 +1,9 @@
-#ifndef FLI_PDF_H
-#define FLI_PDF_H
+#ifndef FLI_CFW_H
+#define FLI_CFW_H
 
 #if 0
-    FLI PDF
-    INDI Interface for Finger Lakes Instrument Focusers
+    FLI CFW
+    INDI Interface for Finger Lakes Instrument Filter Wheels
     Copyright (C) 2003-2012 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
     This library is free software; you can redistribute it and/or
@@ -23,18 +23,19 @@
 #endif
 
 #include <libfli.h>
-#include <indifocuser.h>
-#include <iostream>
+#include <indifilterwheel.h>
+#include <string.h>
 
 using namespace std;
 
+#define MAX_FILTERS_SIZE 20
 
-class FLIPDF : public INDI::Focuser
+class FLICFW : public INDI::FilterWheel
 {
 public:
 
-    FLIPDF();
-    virtual ~FLIPDF();
+    FLICFW();
+    virtual ~FLICFW();
 
     const char *getDefaultName();
 
@@ -49,9 +50,9 @@ public:
 
     protected:
 
-    virtual bool Move(FocusDirection dir, int speed, int duration);
-    virtual int MoveAbs(int ticks);
-    virtual int MoveRel(FocusDirection dir, unsigned int ticks);
+    virtual bool GetFilterNames(const char* groupName);
+    virtual bool SelectFilter(int);
+    virtual int QueryFilter();
     void TimerHit();
 
     private:
@@ -61,38 +62,33 @@ public:
         flidomain_t domain;
         char *dname;
         char *name;
-        char *model;
+        char model[32];
         long HWRevision;
         long FWRevision;
         long current_pos;
-        long max_pos;
-        long home;
-    } focuser_t;
+        long count;
+    } filter_t;
+
 
     ISwitch PortS[4];
     ISwitchVectorProperty PortSP;
 
-    ISwitch HomeS[1];
-    ISwitchVectorProperty HomeSP;
+    IText FilterInfoT[3];
+    ITextVectorProperty FilterInfoTP;
 
-    IText FocusInfoT[3];
-    ITextVectorProperty FocusInfoTP;
+    ISwitch FilterS[2];
+    ISwitchVectorProperty FilterSP;
 
     int timerID;
-    int StepRequest;
-
-    bool InStep;
     bool sim;
 
     flidev_t fli_dev;
-    focuser_t FLIFocus;
+    filter_t FLIFilter;
 
-    bool findFLIPDF(flidomain_t domain);
+    bool findFLICFW(flidomain_t domain);
+    void turnWheel();
     bool setupParams();
-    void goHomePosition();
-
-
 
 };
 
-#endif // FLI_PDF_H
+#endif // FLI_CFW_H

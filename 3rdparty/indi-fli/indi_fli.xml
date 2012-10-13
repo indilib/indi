@@ -10,4 +10,10 @@
 		<version>1.0</version>
 	</device>
 </devGroup>
+<devGroup group="Filter Wheels">
+        <device label="FLI CFW">
+                <driver name="FLI CFW">indi_fli_wheel</driver>
+                <version>1.0</version>
+        </device>
+</devGroup>
 

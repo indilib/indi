@@ -29,6 +29,7 @@
 
 #include "fli_pdf.h"
 
+#define FLI_STEP_RES  5
 #define POLLMS		1000		/* Polling time (ms) */
 
 std::auto_ptr<FLIPDF> fliPDF(0);
@@ -139,10 +140,13 @@ void FLIPDF::ISGetProperties(const char *dev)
 bool FLIPDF::updateProperties()
 {
 
+    INDI::Focuser::updateProperties();
+
     if (isConnected())
     {
-        defineSwitch(&HomeSP);
         defineNumber(&FocusAbsPosNP);
+        defineNumber(&FocusRelPosNP);
+        defineSwitch(&HomeSP);
         defineText(&FocusInfoTP);
         setupParams();
 
@@ -150,9 +154,9 @@ bool FLIPDF::updateProperties()
     }
     else
     {
-
-        deleteProperty(HomeSP.name);
         deleteProperty(FocusAbsPosNP.name);
+        deleteProperty(FocusRelPosNP.name);
+        deleteProperty(HomeSP.name);
         deleteProperty(FocusInfoTP.name);
 
         rmTimer(timerID);
@@ -223,6 +227,8 @@ bool FLIPDF::Connect()
 
         return false;
     }
+
+
 
     if ((err = FLIOpen(&fli_dev, FLIFocus.name, FLIDEVICE_FOCUSER | FLIFocus.domain)))
     {
@@ -365,6 +371,13 @@ bool FLIPDF::setupParams()
 
     IUUpdateMinMax(&FocusAbsPosNP);
 
+    FocusRelPosN[0].min   = 0;
+    FocusRelPosN[0].max   = 500;
+    FocusRelPosN[0].value = 100;
+
+    IUUpdateMinMax(&FocusRelPosNP);
+
+
     return true;
 
 }
@@ -404,13 +417,13 @@ void FLIPDF::TimerHit()
         {
             if (FLIFocus.current_pos < StepRequest)
             {
-                FLIFocus.current_pos += 100;
+                FLIFocus.current_pos += 250;
                 if (FLIFocus.current_pos > StepRequest)
                     FLIFocus.current_pos = StepRequest;
             }
             else
             {
-                FLIFocus.current_pos -= 100;
+                FLIFocus.current_pos -= 250;
                 if (FLIFocus.current_pos < StepRequest)
                     FLIFocus.current_pos = StepRequest;
 
@@ -431,6 +444,11 @@ void FLIPDF::TimerHit()
         {
             InStep = false;
             FocusAbsPosNP.s = IPS_OK;
+            if (FocusRelPosNP.s == IPS_BUSY)
+            {
+                FocusRelPosNP.s = IPS_OK;
+                IDSetNumber(&FocusRelPosNP, NULL);
+            }
         }
 
         FocusAbsPosN[0].value = FLIFocus.current_pos;
@@ -470,6 +488,83 @@ int FLIPDF::MoveAbs(int targetTicks)
     return 1;
 }
 
+bool FLIPDF::Move(FocusDirection dir, int speed, int duration)
+{
+    INDI_UNUSED(speed);
+    int err=0;
+    double pos=0;
+    struct timeval tv_start;
+    struct timeval tv_finish;
+    double dt=0;
+    long targetTicks;
+    gettimeofday (&tv_start, NULL);
+
+    targetTicks = FLIFocus.current_pos;
+
+    while (duration > 0)
+    {
+
+        pos = FLI_STEP_RES;
+
+        if (dir == FOCUS_INWARD)
+             targetTicks += pos;
+        else
+             targetTicks -= pos;
+
+        if (sim)
+        {
+            usleep(50000);
+        }
+        else if ((err = FLIStepMotor(fli_dev, targetTicks)))
+        {
+            IDMessage(getDeviceName(), "FLIStepMotor() failed. %s.", strerror((int)-err));
+
+            if (isDebug())
+                IDLog("FLIStepMotor() failed. %s.", strerror((int)-err));
+            return false;
+        }
+
+        gettimeofday (&tv_finish, NULL);
+
+        dt = tv_finish.tv_sec - tv_start.tv_sec + (tv_finish.tv_usec - tv_start.tv_usec)/1e6;
+
+        duration -= dt * 1000;
+
+        FLIFocus.current_pos = targetTicks;
+
+        FocusAbsPosN[0].value = FLIFocus.current_pos;
+
+        IDSetNumber(&FocusAbsPosNP, NULL);
+
+        // IDLog("dt is: %g --- duration is: %d -- pos: %g\n", dt, duration, pos);
+    }
+
+   return true;
+}
+
+int FLIPDF::MoveRel(FocusDirection dir, unsigned int ticks)
+{
+
+      long cur_rpos=0 ;
+      long new_rpos = 0 ;
+
+      cur_rpos= FLIFocus.current_pos;
+
+       if( dir == FOCUS_INWARD)
+           new_rpos = cur_rpos+ticks;
+       else
+           new_rpos = cur_rpos-ticks;
+
+       /* CHECK  limits are relative to the actual position */
+       if (new_rpos < FocusAbsPosN[0].min || new_rpos > FocusAbsPosN[0].max)
+       {
+           IDMessage(getDeviceName(), "Error, requested position is out of bounds.");
+           return -1;
+       }
+
+
+       return MoveAbs(new_rpos);
+}
 
 bool FLIPDF::findFLIPDF(flidomain_t domain)
 {
@@ -550,5 +645,4 @@ bool FLIPDF::findFLIPDF(flidomain_t domain)
 
   return true;
 }
-
 
