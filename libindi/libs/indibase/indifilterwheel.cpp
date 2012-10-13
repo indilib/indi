@@ -155,6 +155,13 @@ bool INDI::FilterWheel::ISNewText (const char *dev, const char *name, char *text
     return DefaultDevice::ISNewText(dev,name,texts,names,n);
 }
 
+bool INDI::FilterWheel::saveConfigItems(FILE *fp)
+{
+    IUSaveConfigNumber(fp, &FilterSlotNP);
+    IUSaveConfigText(fp, FilterNameTP);
+    return true;
+}
+
 int INDI::FilterWheel::QueryFilter()
 {
     return -1;
@@ -178,4 +185,7 @@ bool INDI::FilterWheel::GetFilterNames(const char* groupName)
     return false;
 }
 
-
+bool INDI::FilterWheel::ISSnoopDevice (XMLEle *root)
+{
+    return INDI::DefaultDevice::ISSnoopDevice(root);
+}

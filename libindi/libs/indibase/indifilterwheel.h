@@ -41,14 +41,16 @@ protected:
 public:
 
         virtual bool initProperties();
-        virtual bool updateProperties();
+        virtual bool updateProperties();    
         virtual void ISGetProperties (const char *dev);
+        virtual bool ISSnoopDevice (XMLEle *root);
         virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
         virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-        virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);      
+        virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);          
 
    protected:
 
+    virtual bool saveConfigItems(FILE *fp);
     virtual int QueryFilter();
     virtual bool SelectFilter(int);
     virtual bool SetFilterNames();

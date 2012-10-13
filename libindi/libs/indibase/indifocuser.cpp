@@ -156,15 +156,21 @@ bool INDI::Focuser::ISNewNumber (const char *dev, const char *name, double value
         if(strcmp(name,"REL_FOCUS_POSITION")==0)
         {
             int newPos = (int) values[0];
+            int ret =0;
 
-            if (MoveRel( (FocusMotionS[0].s == ISS_ON ? FOCUS_INWARD : FOCUS_OUTWARD), newPos) == true)
+            if ( (ret=MoveRel( (FocusMotionS[0].s == ISS_ON ? FOCUS_INWARD : FOCUS_OUTWARD), newPos)) == 0)
             {
                FocusRelPosNP.s=IPS_OK;
                IUUpdateNumber(&FocusRelPosNP,values,names,n);
                IDSetNumber(&FocusRelPosNP, "Focuser moved %d steps", newPos);
-               // Derivative class should also update absolute position count as well
                IDSetNumber(&FocusAbsPosNP, NULL);
                return true;
+            }
+            else if (ret == 1)
+            {
+                 FocusRelPosNP.s=IPS_BUSY;
+                 IDSetNumber(&FocusAbsPosNP, "Focuser is moving %d steps...", newPos);
+                 return true;
             }
 
             FocusRelPosNP.s = IPS_ALERT;
@@ -215,13 +221,13 @@ bool INDI::Focuser::Move(FocusDirection dir, int speed, int duration)
     return false;
 }
 
-bool INDI::Focuser::MoveRel(FocusDirection dir, unsigned int ticks)
+int INDI::Focuser::MoveRel(FocusDirection dir, unsigned int ticks)
 {
     //  This should be a virtual function, because the low level hardware class
     //  must override this
     //  but it's much easier early development if the method actually
     //  exists for now
-    return false;
+    return -1;
 }
 
 int INDI::Focuser::MoveAbs(int ticks)
@@ -236,6 +242,6 @@ int INDI::Focuser::MoveAbs(int ticks)
 
 bool INDI::Focuser::ISSnoopDevice (XMLEle *root)
 {
-    return false;
+    return INDI::DefaultDevice::ISSnoopDevice(root);
 }
 

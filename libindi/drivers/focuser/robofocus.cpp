@@ -1465,9 +1465,8 @@ int RoboFocus::MoveAbs(int targetTicks)
     return 0;
 }
 
-bool RoboFocus::MoveRel(FocusDirection dir, unsigned int ticks)
+int RoboFocus::MoveRel(FocusDirection dir, unsigned int ticks)
 {
-
       double cur_rpos=0 ;
       double new_rpos = 0 ;
       int ret=0;
@@ -1484,7 +1483,7 @@ bool RoboFocus::MoveRel(FocusDirection dir, unsigned int ticks)
           {
 
             IDMessage(getDeviceName(), "Value out of limits %5.0f", currentPosition +  new_rpos);
-            return false ;
+            return -1 ;
           }
 
           if( dir == FOCUS_OUTWARD)
@@ -1505,16 +1504,16 @@ bool RoboFocus::MoveRel(FocusDirection dir, unsigned int ticks)
 
             IDMessage(getDeviceName(), "Robofocus position recovered %5.0f", currentPosition);
             // We have to leave here, because new_rpos is not set
-            return false ;
+            return -1 ;
           }
 
           currentRelativeMovement= cur_rpos ;
           currentAbsoluteMovement=  new_rpos;
-          return true;
+          return 0;
         }
         {
             IDMessage(getDeviceName(), "Value out of limits.");
-            return false;
+            return -1;
         }
 
 

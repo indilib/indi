@@ -65,9 +65,10 @@ class INDI::Focuser : public INDI::DefaultDevice
         /** \brief Move the focuser to an relative position.
             \param dir Direction of focuser, either FOCUS_INWARD or FOCUS_OUTWARD.
             \param ticks The relative ticks to move.
-            \return True if succssfull, false otherwise.
+            \return Return 0 if motion is completed and focuser reached requested position. Return 1 if focuser started motion to requested position and is in progress.
+                    Return -1 if there is an error.
         */
-        virtual bool MoveRel(FocusDirection dir, unsigned int ticks);
+        virtual int MoveRel(FocusDirection dir, unsigned int ticks);
 
         INumberVectorProperty FocusSpeedNP;
         INumber FocusSpeedN[1];

@@ -42,7 +42,7 @@ public:
     virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
     virtual bool Move(FocusDirection dir, int speed, int duration);
     virtual int MoveAbs(int ticks);
-    virtual bool MoveRel(FocusDirection dir, unsigned int ticks);
+    virtual int MoveRel(FocusDirection dir, unsigned int ticks);
 
 private:
 
