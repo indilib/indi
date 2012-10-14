@@ -638,25 +638,27 @@ int QSICCD::StartExposure(float duration)
 
         bool shortExposure = false;
 
-        if(duration < minDuration)
+        if(ExposureRequest < minDuration)
         {
-            duration = minDuration;
-            IDMessage(getDeviceName(), "Exposure shorter than minimum duration %g s requested. \n Setting exposure time to %g s.", minDuration,minDuration);
+            ExposureRequest = minDuration;
+            IDMessage(getDeviceName(), "Exposure shorter than minimum ExposureRequest %g s requested. \n Setting exposure time to %g s.", minDuration,minDuration);
         }
 
         imageFrameType = PrimaryCCD.getFrameType();
 
         if(imageFrameType == CCDChip::BIAS_FRAME)
         {
-            PrimaryCCD.setExposureDuration(minDuration);
-            IDMessage(getDeviceName(), "Bias Frame (s) : %g\n", minDuration);
+            ExposureRequest = minDuration;
+            PrimaryCCD.setExposureDuration(ExposureRequest);
+            IDMessage(getDeviceName(), "Bias Frame (s) : %g\n", ExposureRequest);
             if (isDebug())
-                IDLog("Bias Frame (s) : %g\n", minDuration);
+                IDLog("Bias Frame (s) : %g\n", ExposureRequest);
         } else
         {
-            PrimaryCCD.setExposureDuration(duration);
+            ExposureRequest = duration;
+            PrimaryCCD.setExposureDuration(ExposureRequest);
             if (isDebug())
-                IDLog("Exposure Time (s) is: %g\n", duration);
+                IDLog("Exposure Time (s) is: %g\n", ExposureRequest);
         }
 
             /* BIAS frame is the same as DARK but with minimum period. i.e. readout from camera electronics.*/
@@ -665,7 +667,7 @@ int QSICCD::StartExposure(float duration)
                 try
                 {
                     QSICam.put_PreExposureFlush(QSICamera::FlushNormal);
-                    QSICam.StartExposure (minDuration,false);
+                    QSICam.StartExposure (ExposureRequest,false);
                     shortExposure = true;
                 } catch (std::runtime_error& err)
                 {
@@ -682,7 +684,7 @@ int QSICCD::StartExposure(float duration)
                 try
                 {
                     QSICam.put_PreExposureFlush(QSICamera::FlushNormal);
-                    QSICam.StartExposure (imageExpose,false);
+                    QSICam.StartExposure (ExposureRequest,false);
                 } catch (std::runtime_error& err)
                 {
                     //ImageExposureNP.s = IPS_ALERT;
@@ -698,7 +700,7 @@ int QSICCD::StartExposure(float duration)
                 try
                 {
                     QSICam.put_PreExposureFlush(QSICamera::FlushNormal);
-                    QSICam.StartExposure (imageExpose,true);
+                    QSICam.StartExposure (ExposureRequest,true);
                 } catch (std::runtime_error& err)
                 {
                     //ImageExposureNP.s = IPS_ALERT;
@@ -711,7 +713,7 @@ int QSICCD::StartExposure(float duration)
 
             //ImageExposureNP.s = IPS_BUSY;
             gettimeofday(&ExpStart,NULL);
-            IDMessage(getDeviceName(), "Taking a %g seconds frame...", imageExpose);
+            IDMessage(getDeviceName(), "Taking a %g seconds frame...", ExposureRequest);
 
             if (isDebug())
                 IDLog("Taking a frame...\n");
@@ -1241,7 +1243,7 @@ void QSICCD::TimerHit()
             return;
         }*/
 
-        timeleft=CalcTimeLeft(ExpStart,imageExpose);
+        timeleft=CalcTimeLeft(ExpStart, ExposureRequest);
 
         if (timeleft < 1)
         {

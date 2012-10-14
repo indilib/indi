@@ -78,7 +78,7 @@ class QSICCD : public INDI::CCD, public INDI::FilterInterface
     double ccdTemp;
     double minDuration;
     unsigned short *imageBuffer;
-    double imageExpose;
+    double ExposureRequest;
     int imageWidth, imageHeight;
     int timerID;
     CCDChip::CCD_FRAME imageFrameType;
