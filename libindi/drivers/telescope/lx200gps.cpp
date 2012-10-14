@@ -47,8 +47,8 @@ static ISwitchVectorProperty GPSUpdateSP   = { mydev, "GPS System", "", GPSGroup
 static ISwitchVectorProperty AltDecPecSP   = { mydev, "Alt/Dec PEC", "", GPSGroup, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, AltDecPecS, NARRAY(AltDecPecS), "", 0};
 static ISwitchVectorProperty AzRaPecSP	   = { mydev, "Az/Ra PEC", "", GPSGroup, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, AzRaPecS, NARRAY(AzRaPecS), "", 0};
 static ISwitchVectorProperty SelenSyncSP   = { mydev, "Selenographic Sync", "", GPSGroup, IP_RW, ISR_ATMOST1, 0, IPS_IDLE, SelenSyncS, NARRAY(SelenSyncS), "", 0};
-static ISwitchVectorProperty AltDecBackSlashSP	= { mydev, "Alt/Dec Anti-backslash", "", GPSGroup, IP_RW, ISR_ATMOST1, 0, IPS_IDLE, AltDecBackSlashS, NARRAY(AltDecBackSlashS), "", 0};
-static ISwitchVectorProperty AzRaBackSlashSP	= { mydev, "Az/Ra Anti-backslash", "", GPSGroup, IP_RW, ISR_ATMOST1, 0, IPS_IDLE, AzRaBackSlashS, NARRAY(AzRaBackSlashS), "", 0};
+static ISwitchVectorProperty AltDecBackSlashSP	= { mydev, "Alt/Dec Anti-backlash", "", GPSGroup, IP_RW, ISR_ATMOST1, 0, IPS_IDLE, AltDecBackSlashS, NARRAY(AltDecBackSlashS), "", 0};
+static ISwitchVectorProperty AzRaBackSlashSP	= { mydev, "Az/Ra Anti-backlash", "", GPSGroup, IP_RW, ISR_ATMOST1, 0, IPS_IDLE, AzRaBackSlashS, NARRAY(AzRaBackSlashS), "", 0};
 static ISwitchVectorProperty OTAUpdateSP	= { mydev, "OTA Update", "", GPSGroup, IP_RW, ISR_ATMOST1, 0, IPS_IDLE, OTAUpdateS, NARRAY(OTAUpdateS), "", 0};
 
 static INumber OTATempN[]	= { {"Temp.", "", "%g", -200., 500., 0., 0., 0, 0, 0 } };
@@ -281,7 +281,7 @@ void LX200GPS::ISNewNumber (const char *dev, const char *name, double values[], 
 
      err = activateAltDecAntiBackSlash(fd);
      AltDecBackSlashSP.s = IPS_OK;
-     IDSetSwitch(&AltDecBackSlashSP, "Alt/Dec Anti-backslash enabled");
+     IDSetSwitch(&AltDecBackSlashSP, "Alt/Dec Anti-backlash enabled");
      return;
    }
 
@@ -292,7 +292,7 @@ void LX200GPS::ISNewNumber (const char *dev, const char *name, double values[], 
 
      err = activateAzRaAntiBackSlash(fd);
      AzRaBackSlashSP.s = IPS_OK;
-     IDSetSwitch(&AzRaBackSlashSP, "Az/Ra Anti-backslash enabled");
+     IDSetSwitch(&AzRaBackSlashSP, "Az/Ra Anti-backlash enabled");
      return;
    }
    
