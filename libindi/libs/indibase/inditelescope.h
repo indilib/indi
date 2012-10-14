@@ -125,12 +125,16 @@ class INDI::Telescope : public INDI::DefaultDevice
         */
         virtual bool MoveWE(TelescopeMotionWE dir);
 
-        /** \brief Part the telescope to its home position.
+        /** \brief Park the telescope to its home position.
             \return True if successful, false otherewise
             \note This function is not implemented in INDI::Telescope, it must be implemented in the child class
         */
         virtual bool Park();
 
+        /** \brief Abort telescope motion
+            \return True if successful, false otherewise
+            \note This function is not implemented in INDI::Telescope, it must be implemented in the child class
+        */
         virtual bool Abort();
 
 
