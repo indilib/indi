@@ -746,3 +746,12 @@ bool ScopeSim::GuideWest(float ms)
 
 }
 
+bool ScopeSim::canSync()
+{
+    return true;
+}
+
+bool ScopeSim::canPark()
+{
+    return true;
+}

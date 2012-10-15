@@ -8,7 +8,38 @@
 
 class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
 {
+public:
+    ScopeSim();
+    virtual ~ScopeSim();
+
+    virtual const char *getDefaultName();
+    virtual bool Connect();
+    virtual bool Connect(char *);
+    virtual bool Disconnect();
+    virtual bool ReadScopeStatus();
+    virtual bool initProperties();
+    virtual void ISGetProperties (const char *dev);
+    virtual bool updateProperties();
+    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+
     protected:
+
+    virtual bool MoveNS(TelescopeMotionNS dir);
+    virtual bool MoveWE(TelescopeMotionWE dir);
+    virtual bool Abort();
+
+    virtual bool GuideNorth(float ms);
+    virtual bool GuideSouth(float ms);
+    virtual bool GuideEast(float ms);
+    virtual bool GuideWest(float ms);
+
+    bool Goto(double,double);
+    bool Park();
+    bool Sync(double ra, double dec);
+    bool canSync();
+    bool canPark();
+
     private:
         double currentRA;
         double currentDEC;
@@ -16,12 +47,6 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
         double targetDEC;
 
         bool Parked;
-
-       /* INumber GuideNSN[2];
-        INumberVectorProperty GuideNSNP;
-
-        INumber GuideWEN[2];
-        INumberVectorProperty GuideWENP;*/
 
         double guiderEWTarget[2];
         double guiderNSTarget[2];
@@ -39,33 +64,7 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
         ISwitchVectorProperty PECErrWESP;
 
 
-    public:
-        ScopeSim();
-        virtual ~ScopeSim();
 
-        virtual const char *getDefaultName();
-        virtual bool Connect();
-        virtual bool Connect(char *);
-        virtual bool Disconnect();
-        virtual bool ReadScopeStatus();
-        virtual bool initProperties();
-        virtual void ISGetProperties (const char *dev);
-        virtual bool updateProperties();
-        virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-        virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-
-        virtual bool MoveNS(TelescopeMotionNS dir);
-        virtual bool MoveWE(TelescopeMotionWE dir);
-        virtual bool Abort();
-
-        virtual bool GuideNorth(float ms);
-        virtual bool GuideSouth(float ms);
-        virtual bool GuideEast(float ms);
-        virtual bool GuideWest(float ms);
-
-        bool Goto(double,double);
-        bool Park();
-        bool Sync(double ra, double dec);
 
 };
 

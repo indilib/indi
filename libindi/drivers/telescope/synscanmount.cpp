@@ -296,3 +296,8 @@ bool  SynscanMount::Abort()
 
     return true;
 }
+
+bool SynscanMount::canPark()
+{
+    return true;
+}

@@ -25,6 +25,9 @@
 class SynscanMount : public INDI::Telescope
 {
     protected:
+
+    bool canPark();
+
     private:
     public:
         SynscanMount();
