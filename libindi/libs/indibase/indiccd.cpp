@@ -266,7 +266,7 @@ bool INDI::CCD::initProperties()
     IUFillNumberVector(GuideCCD.ImageExposureNP,GuideCCD.ImageExposureN,1,getDeviceName(),"GUIDER_EXPOSURE","Guide",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillSwitch(&GuideCCD.AbortExposureS[0],"ABORT","Abort",ISS_OFF);
-    IUFillSwitchVector(GuideCCD.AbortExposureSP,GuideCCD.AbortExposureS,1,getDeviceName(),"GUIDE_ABORT_EXPOSURE","Guide Abort",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    IUFillSwitchVector(GuideCCD.AbortExposureSP,GuideCCD.AbortExposureS,1,getDeviceName(),"GUIDER_ABORT_EXPOSURE","Guide Abort",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
     IUFillSwitch(&GuideCCD.CompressS[0],"GCOMPRESS","Compress",ISS_OFF);
     IUFillSwitch(&GuideCCD.CompressS[1],"GRAW","Raw",ISS_ON);
