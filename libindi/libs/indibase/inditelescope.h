@@ -107,9 +107,15 @@ class INDI::Telescope : public INDI::DefaultDevice
         */
         virtual bool Goto(double ra,double dec);
 
+        /** \brief Does the mount support sync?
+         *  \return True if sync is supported, false otherwise.
+         *\note This function is not implemented in INDI::Telescope, it must be implemented in the child class
+        */
+        virtual bool canSync();
+
         /** \brief Set the telescope current RA and DEC coordinates to the supplied RA and DEC coordinates
             \return True if successful, false otherewise
-            \note This function is not implemented in INDI::Telescope, it must be implemented in the child class
+            *\note This function implemented INDI::Telescope always returns false. Override the function to return true.
         */
         virtual bool Sync(double ra,double dec);
 
@@ -125,6 +131,12 @@ class INDI::Telescope : public INDI::DefaultDevice
         */
         virtual bool MoveWE(TelescopeMotionWE dir);
 
+        /** \brief Does the mount support park?
+         *  \return True if park is supported, false otherwise.
+         *\note This function implemented INDI::Telescope always returns false. Override the function to return true.
+        */
+        virtual bool canPark();
+
         /** \brief Park the telescope to its home position.
             \return True if successful, false otherewise
             \note This function is not implemented in INDI::Telescope, it must be implemented in the child class
@@ -136,6 +148,8 @@ class INDI::Telescope : public INDI::DefaultDevice
             \note This function is not implemented in INDI::Telescope, it must be implemented in the child class
         */
         virtual bool Abort();
+
+
 
 
         //  Since every mount I know of actually uses a serial port for control

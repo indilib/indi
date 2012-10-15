@@ -65,7 +65,11 @@ bool INDI::Telescope::initProperties()
     IUFillSwitch(&CoordS[0],"TRACK","Track",ISS_OFF);
     IUFillSwitch(&CoordS[1],"SLEW","Slew",ISS_OFF);
     IUFillSwitch(&CoordS[2],"SYNC","Sync",ISS_OFF);
-    IUFillSwitchVector(&CoordSV,CoordS,3,getDeviceName(),"ON_COORD_SET","On Set",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+
+    if (canSync())
+        IUFillSwitchVector(&CoordSV,CoordS,3,getDeviceName(),"ON_COORD_SET","On Set",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    else
+        IUFillSwitchVector(&CoordSV,CoordS,2,getDeviceName(),"ON_COORD_SET","On Set",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
     IUFillSwitch(&ConfigS[0], "CONFIG_LOAD", "Load", ISS_OFF);
     IUFillSwitch(&ConfigS[1], "CONFIG_SAVE", "Save", ISS_OFF);
@@ -142,7 +146,8 @@ bool INDI::Telescope::updateProperties()
         defineSwitch(&MovementNSSP);
         defineSwitch(&MovementWESP);
         defineNumber(&LocationNV);
-        defineSwitch(&ParkSV);
+        if (canPark())
+            defineSwitch(&ParkSV);
         defineNumber(&ScopeParametersNP);
 
     }
@@ -155,7 +160,8 @@ bool INDI::Telescope::updateProperties()
         deleteProperty(MovementNSSP.name);
         deleteProperty(MovementWESP.name);
         deleteProperty(LocationNV.name);
-        deleteProperty(ParkSV.name);
+        if (canPark())
+            deleteProperty(ParkSV.name);
         deleteProperty(ScopeParametersNP.name);
 
     }
@@ -598,3 +604,12 @@ bool INDI::Telescope::Park()
     return false;
 }
 
+bool INDI::Telescope::canSync()
+{
+    return false;
+}
+
+bool INDI::Telescope::canPark()
+{
+    return false;
+}
