@@ -359,6 +359,18 @@ bool QSICCD::setupParams()
         return false;
     }
 
+    try
+    {
+        QSICam.get_CanAbortExposure(&canAbort);
+    } catch (std::runtime_error err)
+    {
+        IDMessage(getDeviceName(), "get_CanAbortExposure() failed. %s.", err.what());
+        if (isDebug())
+            IDLog("get_CanAbortExposure() failed. %s.", err.what());
+        return false;
+    }
+
+
     int nbuf;
     nbuf=PrimaryCCD.getXRes()*PrimaryCCD.getYRes() * PrimaryCCD.getBPP()/8;                 //  this is pixel count
     nbuf+=512;                      //  leave a little extra at the end
