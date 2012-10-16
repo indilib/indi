@@ -67,7 +67,7 @@
 // Error messages
 const char *ErrorMessages[] = {"Ok", // no error
 								"No response from MAX DOME", // -1
-								"Invalid declared message lenght", // -2
+								"Invalid declared message length", // -2
 								"Message too short", // -3
 								"Checksum error", // -4
 								"Could not send command", // -5

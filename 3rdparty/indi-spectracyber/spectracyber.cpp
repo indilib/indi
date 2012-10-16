@@ -370,7 +370,7 @@ bool SpectraCyber::ISNewNumber (const char *name, double values[], char *names[]
   if (isConnected() == false)
   {
       resetProperties();
-      IDMessage(deviceName(), "Spectrometer is offline. Connect before issiung any commands.");
+      IDMessage(deviceName(), "Spectrometer is offline. Connect before issiuing any commands.");
       return false;
   }
 
@@ -524,7 +524,7 @@ bool SpectraCyber::ISNewSwitch (const char *name, ISState *states, char *names[]
     if (isConnected() == false)
     {
       resetProperties();
-      IDMessage(deviceName(), "Spectrometer is offline. Connect before issiung any commands.");
+      IDMessage(deviceName(), "Spectrometer is offline. Connect before issiuing any commands.");
       return false;
     }
 
@@ -971,7 +971,7 @@ bool SpectraCyber::reset()
    }
 
    if (isDebug())
-       IDLog("Reponse from Spectrometer: #%c# #%c# #%c# #%c#\n", response[0], response[1], response[2], response[3]);
+       IDLog("Response from Spectrometer: #%c# #%c# #%c# #%c#\n", response[0], response[1], response[2], response[3]);
 
    if (strstr(response, "R000"))
    {
@@ -1111,7 +1111,7 @@ bool SpectraCyber::read_channel()
     }
 
     if (isDebug())
-        IDLog("Reponse from Spectrometer: #%s#\n", response);
+        IDLog("Response from Spectrometer: #%s#\n", response);
 
     int result=0;
     sscanf(response, "D%x", &result);

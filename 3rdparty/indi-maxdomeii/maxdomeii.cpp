@@ -154,7 +154,7 @@ MaxDomeII::MaxDomeII()
 	nTimeSinceLastCommunication = 0;
     init_properties();
 
-    IDLog("Initilizing from MaxDome II device...\n");
+    IDLog("Initializing from MaxDome II device...\n");
     IDLog("Driver Version: 2012-07-22\n"); 
 }
 
@@ -584,8 +584,8 @@ int MaxDomeII::Connect()
 		Disconnect_MaxDomeII(fd);
 	
 	ConnectSP.s = IPS_BUSY;
-	IDSetSwitch (&ConnectSP, "Openning port ...");
-	IDLog("MAX DOME II: Openning port ...");
+	IDSetSwitch (&ConnectSP, "Opening port ...");
+	IDLog("MAX DOME II: Opening port ...");
 	fd = Connect_MaxDomeII(PortT[0].text);
 	if (fd < 0)
 	{
@@ -937,7 +937,7 @@ void MaxDomeII::ISPoll()
 			{	// For some reason the shutter is opening (manual operation?)
 				ShutterSP.s = IPS_ALERT;
 				nTimeSinceShutterStart = 0;
-				IDSetSwitch (&ShutterSP, "Unexpexted shutter opening");
+				IDSetSwitch (&ShutterSP, "Unexpected shutter opening");
 			}
 			else if (ShutterSP.s == IPS_ALERT)
 			{	// The alert has corrected
@@ -997,7 +997,7 @@ void MaxDomeII::ISPoll()
 			{	// For some reason the shutter is opening (manual operation?)
 				ShutterSP.s = IPS_ALERT;
 				nTimeSinceShutterStart = 0;
-				IDSetSwitch (&ShutterSP, "Unexpexted shutter closing");
+				IDSetSwitch (&ShutterSP, "Unexpected shutter closing");
 			}
 			else if (ShutterSP.s == IPS_ALERT)
 			{	// The alert has corrected
@@ -1015,7 +1015,7 @@ void MaxDomeII::ISPoll()
 				ShutterS[1].s = ISS_OFF;
 				ShutterS[0].s = ISS_OFF;
 				nTimeSinceShutterStart = -1;
-				IDSetSwitch (&ShutterSP, "Unknow shutter status");
+				IDSetSwitch (&ShutterSP, "Unknown shutter status");
 			}
 			break;
 		}

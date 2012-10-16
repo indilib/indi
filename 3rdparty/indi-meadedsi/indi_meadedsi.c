@@ -355,7 +355,7 @@ connectDevice(void)
 
             /* Tell the client to update the states of the ConnectSP property,
                and send a message to inform successful disconnection */
-            IDSetSwitch(&ConnectSP, "%s has been disconneced.", MYDEV);
+            IDSetSwitch(&ConnectSP, "%s has been disconnected.", MYDEV);
 
             /* FIXME: Alas, simple descriptions won't work because property
                names are effectively device-global.  So we really need to

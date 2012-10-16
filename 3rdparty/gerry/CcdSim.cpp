@@ -155,7 +155,7 @@ int CcdSim::init_properties()
     IUFillNumber(&SimulatorSettingsN[9],"SIM_FWHM","FWHM (arcseconds)","%4.2f",0,60,0,3.5);
     IUFillNumber(&SimulatorSettingsN[10],"SIM_NOISE","CCD Noise","%4.0f",0,6000,0,50);
     IUFillNumber(&SimulatorSettingsN[11],"SIM_SKYGLOW","Sky Glow (magnitudes)","%4.1f",0,6000,0,19.5);
-    IUFillNumber(&SimulatorSettingsN[12],"SIM_OAGOFFSET","Oag Offset (arminutes)","%4.1f",0,6000,0,0);
+    IUFillNumber(&SimulatorSettingsN[12],"SIM_OAGOFFSET","Oag Offset (arcminutes)","%4.1f",0,6000,0,0);
     IUFillNumberVector(&SimulatorSettingsNV,SimulatorSettingsN,13,deviceName(),"SIMULATOR_SETTINGS","Simulator Settings","SimSettings",IP_RW,60,IPS_IDLE);
 
     IUFillText(&TelescopeT[0],"SIM_CCD_TELESCOPE","Telescope","");

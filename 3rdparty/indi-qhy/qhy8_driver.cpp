@@ -383,7 +383,7 @@ int QHY8Driver::do_command( cam_task_t *task )
 		int res = ctrl_msg( 0x40, 0xB3, 0, 0, REG, 1/*sizeof(REG)*/ );
 		if( res != EXIT_SUCCESS )
 		{
-            IDLog( "QHY8Driver::do_command(): CMD = %.*s failed. Unableto start exposure", task->cmd_len, task->cmd );
+            IDLog( "QHY8Driver::do_command(): CMD = %.*s failed. Unable to start exposure", task->cmd_len, task->cmd );
 			return 5;
 		}
 
@@ -464,7 +464,7 @@ int QHY8Driver::do_command( cam_task_t *task )
 			unsigned char *raw_buffer = (unsigned char *)malloc( raw_buffer_size );
 			if( !raw_buffer )
 			{
-                IDLog( "QHY8Driver::do_command(): CMD = %.*s failed. Unableto allocate raw data buffer", task->cmd_len, task->cmd );
+                IDLog( "QHY8Driver::do_command(): CMD = %.*s failed. Unable to allocate raw data buffer", task->cmd_len, task->cmd );
 				return 6;
 			}
 

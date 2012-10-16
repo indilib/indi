@@ -106,7 +106,7 @@ int IndiCcd::init_properties()
 
 
     IUFillNumber(&GuiderExposureN[0],"GUIDER_EXPOSURE_VALUE","Duration (s)","%5.2f",0,36000,0,1.0);
-    IUFillNumberVector(&GuiderExposureNV,GuiderExposureN,1,deviceName(),"GUIDER_EXPOSURE","Guider","Main Cntrol",IP_RW,60,IPS_IDLE);
+    IUFillNumberVector(&GuiderExposureNV,GuiderExposureN,1,deviceName(),"GUIDER_EXPOSURE","Guider","Main Control",IP_RW,60,IPS_IDLE);
 
 
     IUFillSwitch(&GuiderVideoS[0],"ON","on",ISS_OFF);
