@@ -57,7 +57,7 @@ int main()
 
     exptime=1000000;
 
-    rc=ccd.Connect();
+    rc=ccd.Connect(-1);
     if(rc) {
         printf("connected ok\n");
         ccd.GetCameraModel();

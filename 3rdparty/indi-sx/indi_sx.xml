@@ -1,4 +1,8 @@
 <devGroup group="CCDs">
+        <device label="Loadstar">
+            <driver name="Loadstar">indi_sx_ccd</driver>
+            <version>1.1</version>
+        </device>
         <device label="SX CCD">
                 <driver name="SX CCD">indi_sx_ccd</driver>
 		<version>1.1</version>

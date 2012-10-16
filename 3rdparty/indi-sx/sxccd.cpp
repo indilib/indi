@@ -1,6 +1,7 @@
 
 #include "sxccd.h"
 
+
 const int SX_PIDS[12] = { 0x0507, 0x0119, 0x0105, 0x0305, 0x0107, 0x0307, 0x0109, 0x0325, 0x0110, 0x0135, 0x0136, 0x0319 };
 
 SxCCD::SxCCD()
@@ -16,14 +17,19 @@ SxCCD::SxCCD()
     guide_cmd = 0;
 }
 
-bool SxCCD::Connect()
+bool SxCCD::Connect(int pid)
 {
+   if (pid == -1)
+   {
     for (int i=0; i < 12; i++)
     {
         dev=FindDevice(0x1278,SX_PIDS[i],0);
         if(dev != NULL)
             break;
     }
+   }
+   else
+      FindDevice(0x1278,SX_PIDS[pid],0);
 
    if(dev==NULL)
     {

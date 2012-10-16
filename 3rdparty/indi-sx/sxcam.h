@@ -47,6 +47,7 @@ class SxCam : public INDI::CCD, public SxCCD
     virtual ~SxCam();
 
     virtual void ISGetProperties(const char *dev);
+    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
 
     protected:
 
@@ -55,7 +56,9 @@ class SxCam : public INDI::CCD, public SxCCD
     bool Disconnect();
     const char *getDefaultName();
 
+    virtual bool initProperties();
     virtual bool updateProperties();
+
     int StartExposure(float);
     int StartGuideExposure(float);
     bool AbortGuideExposure();
@@ -71,6 +74,9 @@ class SxCam : public INDI::CCD, public SxCCD
     virtual bool GuideWest(float ms);
 
     private:
+
+        ISwitch ModelS[13];
+        ISwitchVectorProperty ModelSP;
 
         int SetCamTimer(int ms);
         int GetCamTimer();

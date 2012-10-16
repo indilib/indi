@@ -152,7 +152,7 @@ class SxCCD :  public INDI::USBDevice
         int bits_per_pixel;
         int gbits_per_pixel;
 
-        bool Connect();
+        bool Connect(int pid);
         bool Disconnect();
 
         void getDefaultParam();
