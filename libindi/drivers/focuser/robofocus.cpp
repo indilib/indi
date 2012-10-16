@@ -158,7 +158,7 @@ bool RoboFocus::initProperties()
     IUFillNumber(&MaxTravelN[0], "MAXTRAVEL", "Maximum travel", "%6.0f", 1., 64000., 0., 10000.);
     IUFillNumberVector(&MaxTravelNP, MaxTravelN, 1, getDeviceName(), "FOCUS_MAXTRAVEL", "Max. travel", OPTIONS_TAB, IP_RW, 0, IPS_IDLE );
 
-    /* Set Robofocus position register to the this position */
+    /* Set Robofocus position register to this position */
     IUFillNumber(&SetRegisterPositionN[0], "SETPOS", "Position", "%6.0f", 0, 64000., 0., 0. );
     IUFillNumberVector(&SetRegisterPositionNP, SetRegisterPositionN, 1, getDeviceName(), "FOCUS_REGISTERPOSITION", "Set register", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
