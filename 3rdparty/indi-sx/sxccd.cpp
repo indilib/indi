@@ -2,7 +2,7 @@
 #include "sxccd.h"
 
 
-const int SX_PIDS[12] = { 0x0507, 0x0119, 0x0105, 0x0305, 0x0107, 0x0307, 0x0109, 0x0325, 0x0110, 0x0135, 0x0136, 0x0319 };
+const int SX_PIDS[MODEL_COUNT] = { 0x0507, 0x0119, 0x0105, 0x0305, 0x0107, 0x0307, 0x0109, 0x0325, 0x0110, 0x0135, 0x0136, 0x0319, 0x0128 };
 
 SxCCD::SxCCD()
 {
@@ -21,7 +21,7 @@ bool SxCCD::Connect(int pid)
 {
    if (pid == -1)
    {
-    for (int i=0; i < 12; i++)
+    for (int i=0; i < MODEL_COUNT; i++)
     {
         dev=FindDevice(0x1278,SX_PIDS[i],0);
         if(dev != NULL)
@@ -29,7 +29,7 @@ bool SxCCD::Connect(int pid)
     }
    }
    else
-      FindDevice(0x1278,SX_PIDS[pid],0);
+      dev=FindDevice(0x1278,SX_PIDS[pid],0);
 
    if(dev==NULL)
     {
@@ -48,7 +48,11 @@ bool SxCCD::Connect(int pid)
         //rc=usb_set_configuration(usb_handle,1);
         IDLog("Set Configuration returns %d\n",rc);
 
+#ifdef __APPLE__
+        rc=usb_claim_interface(usb_handle,0);
+#else
         rc=usb_claim_interface(usb_handle,1);
+#endif
         fprintf(stderr,"claim interface returns %d\n",rc);
 
         getCapabilites();

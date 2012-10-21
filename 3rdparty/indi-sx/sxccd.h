@@ -98,6 +98,8 @@
 #define IMAGE_CCD 0
 #define GUIDE_CCD 1
 
+#define MODEL_COUNT 13
+
 typedef struct t_sxccd_params
 {
     USHORT hfront_porch;

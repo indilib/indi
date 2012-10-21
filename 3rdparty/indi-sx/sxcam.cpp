@@ -27,7 +27,7 @@
 // We declare an auto pointer to sxcamera.
 std::auto_ptr<SxCam> sxcamera(0);
 
-const char *SX_NAMES[12] = { "Lodestar", "SXV-H9","SXV-M5" , "SXV-M5C", "SXV-M7", "SXV-M7C", "SXV-M9", "SXV-M25C", "SXV-M7C", "SXV-M7C", "SXV-M7C", "SXV-H9C"};
+const char *SX_NAMES[MODEL_COUNT] = { "Lodestar", "SXV-H9","SXV-M5" , "SXV-M5C", "SXV-M7", "SXV-M7C", "SXV-M9", "SXV-M25C", "SXV-M7C", "SXV-M7C", "SXV-M7C", "SXV-H9C", "SXV-H18" };
 
 void ISInit()
 {
@@ -132,13 +132,13 @@ bool SxCam::initProperties()
 {
     INDI::CCD::initProperties();
 
-    IUFillSwitch(&ModelS[0],"Auto","",ISS_ON);
+    IUFillSwitch(&ModelS[0],"Auto","Auto",ISS_ON);
 
-    for (int i=0; i < 12; i++)
-        IUFillSwitch(&ModelS[i+1],SX_NAMES[i],"",ISS_OFF);
+    for (int i=0; i < MODEL_COUNT; i++)
+        IUFillSwitch(&ModelS[i+1],SX_NAMES[i],SX_NAMES[i],ISS_OFF);
 
 
-    IUFillSwitchVector(&ModelSP,ModelS,13,getDeviceName(),"Model","Model",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    IUFillSwitchVector(&ModelSP,ModelS,MODEL_COUNT+1,getDeviceName(),"Model","Model",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
 }
 

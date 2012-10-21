@@ -75,7 +75,7 @@ class SxCam : public INDI::CCD, public SxCCD
 
     private:
 
-        ISwitch ModelS[13];
+        ISwitch ModelS[MODEL_COUNT+1];
         ISwitchVectorProperty ModelSP;
 
         int SetCamTimer(int ms);
