@@ -98,7 +98,7 @@
 #define IMAGE_CCD 0
 #define GUIDE_CCD 1
 
-#define MODEL_COUNT 13
+#define MODEL_COUNT 16
 
 typedef struct t_sxccd_params
 {

@@ -27,7 +27,7 @@
 // We declare an auto pointer to sxcamera.
 std::auto_ptr<SxCam> sxcamera(0);
 
-const char *SX_NAMES[MODEL_COUNT] = { "Lodestar", "SXV-H9","SXV-M5" , "SXV-M5C", "SXV-M7", "SXV-M7C", "SXV-M9", "SXV-M25C", "SXV-M7C", "SXV-M7C", "SXV-M7C", "SXV-H9C", "SXV-H18" };
+const char *SX_NAMES[MODEL_COUNT] = { "SXVF-M5", "SXVF-M5C", "SXVF-M7", "SXVF-M7C", "SXVF-M8C", "SXVF-M9", "SXVR-M25C", "SXVR-M26C", "SXVR-H18", "SXVR-H16", "SXVR-H35", "SXVR-H36", "SXVR-H9", "SXVR-H9C", "Lodestar", "CoStar" };
 
 void ISInit()
 {
@@ -286,6 +286,16 @@ int SxCam::StartExposure(float n)
      SetTimer(tval);
 
     return 0;
+}
+
+bool SxCam::AbortExposure()
+{
+    if(InExposure) {
+        InExposure=false;
+        ResetCamera();
+        return true;
+    }
+    return false;
 }
 
 int SxCam::StartGuideExposure(float n)

@@ -60,6 +60,7 @@ class SxCam : public INDI::CCD, public SxCCD
     virtual bool updateProperties();
 
     int StartExposure(float);
+    bool AbortExposure();
     int StartGuideExposure(float);
     bool AbortGuideExposure();
     void TimerHit();
