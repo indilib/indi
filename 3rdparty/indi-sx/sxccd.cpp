@@ -15,6 +15,8 @@ SxCCD::SxCCD()
     //HasGuideHead=0;
     sx_hasguide=false;
     sx_hasST4=false;
+    sx_hasCooler=false;
+    sx_hasShutter=false;
     guide_cmd = 0;
 }
 
@@ -68,6 +70,11 @@ bool SxCCD::Connect(int pid)
 void SxCCD::getCapabilites()
 {
     int rc=0;
+    sx_hasguide=false;
+    sx_hasST4=false;
+    sx_hasCooler=false;
+    sx_hasShutter=false;
+
 
         //  ok, we have the camera now
         //  Lets see what it really is
@@ -117,6 +124,12 @@ void SxCCD::getCapabilites()
 
         if ((parms.extra_caps & SXCCD_CAPS_STAR2K)==SXCCD_CAPS_STAR2K)
             sx_hasST4 = true;
+            
+        if ((parms.extra_caps & SXCCD_CAPS_COOLER)==SXCCD_CAPS_COOLER)
+        	sx_hasCooler = true;
+
+        if ((parms.extra_caps & SXCCD_CAPS_SHUTTER)==SXCCD_CAPS_SHUTTER)
+        	sx_hasShutter = true;
 
 }
 
@@ -412,3 +425,57 @@ int SxCCD::pulseGuide()
     return 0;
 }
 
+int SxCCD::SetShutter(bool state)
+{
+// Sets the mechanical shutter to open (state=0) or closed (state=1)
+// No error checking if the shutter does not exist
+
+    char setup_data[8];
+    int rc;
+	
+    setup_data[USB_REQ_TYPE    ] = USB_REQ_VENDOR;
+    setup_data[USB_REQ         ] = SXUSB_SHUTTER;
+    setup_data[USB_REQ_VALUE_L ] = 0;
+    if (state) 
+		setup_data[USB_REQ_VALUE_H ] = 128;
+	else 
+		setup_data[USB_REQ_VALUE_H ] = 64;
+	setup_data[USB_REQ_INDEX_L ] = 0;
+	setup_data[USB_REQ_INDEX_H] = 0;
+    setup_data[USB_REQ_LENGTH_L] = 0;
+    setup_data[USB_REQ_LENGTH_H] = 0;
+    
+    rc=WriteBulk(setup_data,8,1000);
+    return 0;
+}
+
+int SxCCD::SetCooler(bool state, double temperature, double *currentTemperature) 
+{
+    char setup_data[8];
+    int rc;
+
+	int iTemperature= (int)(temperature * 10 + 2730);
+
+	//fprintf(stderr,"cooler request %f %d\n", temperature, state);
+
+	setup_data[USB_REQ_TYPE    ] = USB_REQ_VENDOR;
+    setup_data[USB_REQ         ] = SXUSB_COOLER;
+    setup_data[USB_REQ_VALUE_L ] = iTemperature & 0xFF;
+    setup_data[USB_REQ_VALUE_H ] = (iTemperature >> 8) & 0xFF;
+    if (state) 
+		setup_data[USB_REQ_INDEX_L ] = 1;
+	else 
+		setup_data[USB_REQ_INDEX_L ] = 0;
+	setup_data[USB_REQ_INDEX_H] = 0;
+    setup_data[USB_REQ_LENGTH_L] = 0;
+    setup_data[USB_REQ_LENGTH_H] = 0;
+
+    rc=WriteBulk(setup_data,8,1000);
+    rc=ReadBulk(setup_data,3,1000);
+
+	*currentTemperature = ((setup_data[1] & 0xFF) * 256 + (setup_data[0] & 0xFF) - 2730) / 10.0;
+
+	//fprintf(stderr,"cooler status %f %d\n", *currentTemperature, setup_data[2] != 0);
+
+	return 0;
+}

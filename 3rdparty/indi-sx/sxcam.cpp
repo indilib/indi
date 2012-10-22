@@ -2,6 +2,8 @@
   Copyright(c) 2010 Gerry Rozema. All rights reserved.
                2012 Jasem Mutlaq
 
+               Shutter & Temperature controls added by Peter Polakovic
+               
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the Free
   Software Foundation; either version 2 of the License, or (at your option)
@@ -23,6 +25,7 @@
 #include <memory>
 
 #define POLLMS 250
+#define TEMPMS 5000
 
 // We declare an auto pointer to sxcamera.
 std::auto_ptr<SxCam> sxcamera(0);
@@ -91,6 +94,7 @@ SxCam::SxCam()
     InNSPulse = false;
     evenBuf = NULL;
     oddBuf  = NULL;
+    TemperatureRequest=-20;
 }
 
 SxCam::~SxCam()
@@ -137,9 +141,19 @@ bool SxCam::initProperties()
     for (int i=0; i < MODEL_COUNT; i++)
         IUFillSwitch(&ModelS[i+1],SX_NAMES[i],SX_NAMES[i],ISS_OFF);
 
-
     IUFillSwitchVector(&ModelSP,ModelS,MODEL_COUNT+1,getDeviceName(),"Model","Model",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
+	IUFillNumber(&TemperatureN,"CCD_TEMPERATURE_VALUE","CCD temperature","%4.1f", -40, 35, 1, TemperatureRequest);
+    IUFillNumberVector(&TemperatureNP, &TemperatureN, 1,getDeviceName(), "CCD_TEMPERATURE","Temperature",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
+
+    IUFillSwitch(&CoolerS[0],"DISCONNECT_COOLER","Off",ISS_ON);
+    IUFillSwitch(&CoolerS[1],"CONNECT_COOLER","On",ISS_OFF);
+    IUFillSwitchVector(&CoolerSP,CoolerS,2,getDeviceName(),"COOLER_CONNECTION","Cooler",OPTIONS_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+
+    IUFillSwitch(&ShutterS[0],"SHUTTER_ON","Manual open",ISS_OFF);
+    IUFillSwitch(&ShutterS[1],"SHUTTER_OFF","Manual close",ISS_ON);
+    IUFillSwitchVector(&ShutterSP,ShutterS,2,getDeviceName(),"SHUTTER_CONNECTION","Shutter",OPTIONS_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    
 }
 
 void SxCam::ISGetProperties(const char *dev)
@@ -147,9 +161,27 @@ void SxCam::ISGetProperties(const char *dev)
     INDI::CCD::ISGetProperties(dev);
 
     defineSwitch(&ModelSP);
-
+    
     addDebugControl();
 
+}
+
+void TemperatureTimerCallback(void *p)
+{	SxCam *ccd = (SxCam *) p;
+    
+    if (ccd->isConnected() && ccd->sx_hasCooler) {
+		ccd->SetCooler(ccd->CoolerS[1].s==ISS_ON, ccd->TemperatureRequest, &ccd->TemperatureN.value);
+		if (ccd->TemperatureReported != ccd->TemperatureN.value)
+        {
+    		ccd->TemperatureReported = ccd->TemperatureN.value;
+            if (abs(ccd->TemperatureRequest-ccd->TemperatureReported)<1)
+	            ccd->TemperatureNP.s = IPS_OK;
+	        else
+	            ccd->TemperatureNP.s = IPS_BUSY;
+    		IDSetNumber(&ccd->TemperatureNP, NULL);
+    		ccd->TemperatureTimerID = IEAddTimer(TEMPMS, TemperatureTimerCallback, p);
+    	}
+	}
 }
 
 bool SxCam::updateProperties()
@@ -158,7 +190,29 @@ bool SxCam::updateProperties()
 
     if (isConnected())
         getDefaultParam();
-
+    if (isConnected()) {
+    	if (sx_hasCooler) {
+			defineNumber(&TemperatureNP);
+			defineSwitch(&CoolerSP);
+			if (!TemperatureTimerID)
+				TemperatureTimerID = IEAddTimer(TEMPMS, TemperatureTimerCallback, this);
+		}
+		if (sx_hasShutter)
+			defineSwitch(&ShutterSP);
+	} else {
+    	if (sx_hasCooler) {
+			deleteProperty(TemperatureNP.name);
+			deleteProperty(CoolerSP.name);
+			if (TemperatureTimerID)
+			{
+				IERmTimer(TemperatureTimerID);
+				TemperatureTimerID = 0;
+			}
+		}
+		if (sx_hasShutter)
+			deleteProperty(ShutterSP.name);
+	}
+		
     //  The base device has no properties to update
     return true;
 }
@@ -171,17 +225,60 @@ bool SxCam::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
         if(strcmp(name,ModelSP.name)==0)
         {
             IUUpdateSwitch(&ModelSP, states, names, n);
-
             ModelSP.s = IPS_OK;
-
             IDSetSwitch(&ModelSP, NULL);
-
+            return true;
+        }
+        if(strcmp(name,ShutterSP.name)==0)
+        {
+            IUUpdateSwitch(&ShutterSP, states, names, n);
+            ShutterSP.s = IPS_OK;
+            IDSetSwitch(&ShutterSP, NULL);
+            if (ShutterS[0].s==ISS_ON)
+            	SetShutter(0);
+            else
+            	SetShutter(1);
+            return true;
+        }
+        if(strcmp(name,CoolerSP.name)==0)
+        {
+            IUUpdateSwitch(&CoolerSP, states, names, n);
+            CoolerSP.s = IPS_OK;
+            IDSetSwitch(&CoolerSP, NULL);
+            SetCooler(CoolerS[1].s == ISS_ON, TemperatureRequest, &TemperatureN.value);
+            TemperatureReported = TemperatureN.value;
+            TemperatureNP.s = IPS_OK;
+            IDSetNumber(&TemperatureNP, NULL);
             return true;
         }
     }
 
     return INDI::CCD::ISNewSwitch(dev, name, states, names, n);
 
+}
+
+bool SxCam::ISNewNumber	(const char *dev, const char *name, double values[], char *names[], int n)
+{
+
+        if(strcmp(name,TemperatureNP.name)==0)
+        {
+            IUUpdateNumber(&TemperatureNP, values, names, n);
+        	TemperatureRequest = TemperatureN.value;
+            SetCooler(true, TemperatureRequest, &TemperatureN.value);
+            TemperatureReported = TemperatureN.value;
+            if (abs(TemperatureRequest-TemperatureReported)<1)
+	            TemperatureNP.s = IPS_OK;
+	        else
+	            TemperatureNP.s = IPS_BUSY;
+            IDSetNumber(&TemperatureNP, NULL);
+            CoolerSP.s = IPS_OK;
+            CoolerS[0].s = ISS_OFF;
+            CoolerS[1].s = ISS_ON;
+            IDSetSwitch(&CoolerSP, NULL);
+            return true;
+        }
+
+	return INDI::CCD::ISNewNumber(dev, name, values, names, n);
 }
 
 float SxCam::CalcTimeLeft()

@@ -26,6 +26,9 @@
 #define SXCCD_CAPS_COMPRESS             0x02
 #define SXCCD_CAPS_EEPROM               0x04
 #define SXCCD_CAPS_GUIDER               0x08
+#define SXCCD_CAPS_COOLER				0x10
+#define SXCCD_CAPS_SHUTTER				0x20
+
 /*
  * CCD command options.
  */
@@ -81,6 +84,8 @@
 #define SXUSB_GET_SERIAL            13
 #define SXUSB_CAMERA_MODEL          14
 #define SXUSB_LOAD_EEPROM           15
+#define SXUSB_COOLER				30
+#define SXUSB_SHUTTER				32
 
 #define SX_GUIDE_EAST             0x08     /* RA+ */
 #define SX_GUIDE_NORTH            0x04     /* DEC+ */
@@ -141,6 +146,8 @@ class SxCCD :  public INDI::USBDevice
         int gyres;
         bool sx_hasguide;
         bool sx_hasST4;
+        bool sx_hasCooler;
+        bool sx_hasShutter;
 
         float gpixwidth;
         float gpixheight;
@@ -170,6 +177,8 @@ class SxCCD :  public INDI::USBDevice
         int LatchPixels(int flags,int cam,int xoffset,int yoffset,int width,int height,int xbin,int ybin);
         int ExposePixels(int flags,int cam,int xoffset,int yoffset,int width,int height,int xbin,int ybin, int ms);
         int ReadPixels(char *,int);
+        int SetShutter(bool state);
+        int SetCooler(bool, double, double *);
 
         int pulseGuide();
 

@@ -2,6 +2,8 @@
   Copyright(c) 2010 Gerry Rozema. All rights reserved.
                2012 Jasem Mutlaq
 
+               Shutter & Temperature controls added by Peter Polakovic
+               
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the Free
   Software Foundation; either version 2 of the License, or (at your option)
@@ -39,6 +41,7 @@
 #include <sys/time.h>
 #include <time.h>
 
+void TemperatureTimerCallback(void *p);
 
 class SxCam : public INDI::CCD, public SxCCD
 {
@@ -48,6 +51,7 @@ class SxCam : public INDI::CCD, public SxCCD
 
     virtual void ISGetProperties(const char *dev);
     virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+	virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
 
     protected:
 
@@ -78,6 +82,16 @@ class SxCam : public INDI::CCD, public SxCCD
 
         ISwitch ModelS[MODEL_COUNT+1];
         ISwitchVectorProperty ModelSP;
+        
+        INumber TemperatureN;
+        INumberVectorProperty TemperatureNP;
+
+        ISwitch CoolerS[2];
+        ISwitchVectorProperty CoolerSP;
+
+        ISwitch ShutterS[2];
+        ISwitchVectorProperty ShutterSP;
+
 
         int SetCamTimer(int ms);
         int GetCamTimer();
@@ -105,13 +119,15 @@ class SxCam : public INDI::CCD, public SxCCD
         struct timeval WEPulseStart;
         int WEtimerID;
 
-
         bool InNSPulse;
         float NSPulseRequest;
         struct timeval NSPulseStart;
         int NStimerID;
 
-
+	float TemperatureRequest;
+	float TemperatureReported;
+	int TemperatureTimerID;
+	friend void ::TemperatureTimerCallback(void *p);
 
         char *evenBuf, *oddBuf;
 
