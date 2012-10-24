@@ -22,7 +22,9 @@
 #include <memory>
 #include <time.h>
 #include <math.h>
+#include <unistd.h>
 #include <sys/time.h>
+
 
 #include "indidevapi.h"
 #include "eventloop.h"
