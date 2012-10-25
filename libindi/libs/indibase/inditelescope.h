@@ -149,9 +149,6 @@ class INDI::Telescope : public INDI::DefaultDevice
         */
         virtual bool Abort();
 
-
-
-
         //  Since every mount I know of actually uses a serial port for control
         //  We put the serial helper into the base telescope class
         //  One less piece to worry about in the hardware specific

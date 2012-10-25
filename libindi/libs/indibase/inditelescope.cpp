@@ -16,28 +16,14 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-
 #include "inditelescope.h"
 #include "libs/indicom.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <math.h>
-#include <unistd.h>
-#include <time.h>
-#include <sys/ioctl.h>
-#include <fcntl.h>
-#include <termios.h>
-#include <errno.h>
 
 #define POLLMS 1000
 
 INDI::Telescope::Telescope()
 {
     //ctor
-
 
 }
 
@@ -107,12 +93,10 @@ bool INDI::Telescope::initProperties()
 void INDI::Telescope::ISGetProperties (const char *dev)
 {
     //  First we let our parent populate
-    //IDLog("INDI::Telescope::ISGetProperties %s\n",dev);
     DefaultDevice::ISGetProperties(dev);
 
     //  We may need the port set before we can connect
     IDDefText(&PortTP,NULL);
-    //LoadConfig();
 
     if(isConnected())
     {
@@ -260,8 +244,6 @@ bool INDI::Telescope::MoveWE(TelescopeMotionWE dir)
 ***************************************************************************************/
 bool INDI::Telescope::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    //  Ok, lets see if this is a property wer process
-    //IDLog("INDI::Telescope got %d new text items name %s\n",n,name);
     //  first check if it's for our device
     if(strcmp(dev,getDeviceName())==0)
     {
@@ -270,25 +252,11 @@ bool INDI::Telescope::ISNewText (const char *dev, const char *name, char *texts[
         if(strcmp(name,PortTP.name)==0)
         {
             //  This is our port, so, lets process it
-
-            //  Some clients insist on sending a port
-            //  and they may not be configured for the
-            //  correct port
-            //  If we are already connected
-            //  and running, it makes absolutely no sense
-            //  to accept a new port value
-            //  so lets just lie to them and say
-            //  we did this, but, dont actually change anything
-            //if(Connected) return true;
-
             int rc;
-            //IDLog("calling update text\n");
             PortTP.s=IPS_OK;
             rc=IUUpdateText(&PortTP,texts,names,n);
-            //IDLog("update text returns %d\n",rc);
             //  Update client display
             IDSetText(&PortTP,NULL);
-            //SaveConfig();
             //  We processed this one, so, tell the world we did it
             return true;
         }    
@@ -304,7 +272,6 @@ bool INDI::Telescope::ISNewText (const char *dev, const char *name, char *texts[
 bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
     //  first check if it's for our device
-    //IDLog("INDI::Telescope::ISNewNumber %s\n",name);
     if(strcmp(dev,getDeviceName())==0)
     {
         if(strcmp(name,"EQUATORIAL_EOD_COORD_REQUEST")==0)
@@ -328,7 +295,6 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
                     dec = values[x];
                 }
             }
-            //IDLog("Got %4.2f %4.2f\n",ra,dec);
             if ((ra>=0)&&(ra<=24)&&(dec>=-90)&&(dec<=90))
             {
                 //  we got an ra and a dec, both in range
@@ -377,8 +343,6 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
 
     }
 
-
-
     return DefaultDevice::ISNewNumber(dev,name,values,names,n);
 }
 
@@ -387,11 +351,6 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
 ***************************************************************************************/
 bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    //IDLog("Enter IsNewSwitch for %s\n",name);
-    //for(int x=0; x<n; x++) {
-    //    IDLog("Switch %s %d\n",names[x],states[x]);
-    //}
-
     if(strcmp(dev,getDeviceName())==0)
     {
         //  This one is for us
@@ -517,13 +476,12 @@ bool INDI::Telescope::Connect(const char *port)
 {
     //  We want to connect to a port
     //  For now, we will assume it's a serial port
-    //struct termios tty;
-
     int connectrc=0;
     char errorMsg[MAXRBUF];
     bool rc;
 
-	IDLog("Indi Telescope connecting to %s\n",port);
+    if (isDebug())
+        IDLog("INDI::Telescope connecting to %s\n",port);
 
     if ( (connectrc = tty_connect(port, 9600, 8, 0, 1, &PortFD)) != TTY_OK)
     {
@@ -536,10 +494,10 @@ bool INDI::Telescope::Connect(const char *port)
         return false;
 
     }
-	IDLog("Port Fd %d\n",PortFD);
-    /* Flush the input (read) buffer */
 
-    //tcflush(PortFD,TCIOFLUSH);
+    if (isDebug())
+        IDLog("Port Fd %d\n",PortFD);
+
 
     /* Test connection */
     rc=ReadScopeStatus();
@@ -552,8 +510,7 @@ bool INDI::Telescope::Connect(const char *port)
 
     //  Ok, we didn't get a valid read
     //  So, we need to close our handle and send error messages
-    close(PortFD);
-    //IDMessage(getDeviceName(),"Didn't find a synscan mount on Serial Port");
+    tty_disconnect(PortFD);
 
     return false;
 }
@@ -567,7 +524,7 @@ bool INDI::Telescope::Disconnect()
     if (isDebug())
         IDLog("INDI::Telescope Disconnect\n");
 
-    close(PortFD);
+    tty_disconnect(PortFD);
     IDMessage(getDeviceName(),"Telescope is offline.");
 
     return true;
@@ -576,13 +533,12 @@ bool INDI::Telescope::Disconnect()
 
 void INDI::Telescope::TimerHit()
 {
-    //IDLog("Telescope Timer Hit\n");
     if(isConnected())
     {
         bool rc;
 
         rc=ReadScopeStatus();
-        //IDLog("TrackState after read is %d\n",TrackState);
+
         if(rc == false)
         {
             //  read was not good
