@@ -724,17 +724,19 @@ bool INDI::CCD::updateCCDFrameType(CCDChip::CCD_FRAME fType)
 void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
 {
     int status=0;
-    char binning_s[32];
     char frame_s[32];
     char dev_name[32];
     char exp_start[32];
     double min_val, max_val;
     double exposureDuration;
     double pixSize1,pixSize2;
+    unsigned int xbin, ybin;
 
     getMinMax(&min_val, &max_val, targetChip);
 
-    snprintf(binning_s, 32, "(%d x %d)", targetChip->getBinX(), targetChip->getBinY());
+    xbin = targetChip->getBinX();
+    ybin = targetChip->getBinY();
+
 
     switch (targetChip->getFrameType())
     {
@@ -767,7 +769,8 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
 
     fits_update_key_s(fptr, TDOUBLE, "PIXSIZE1", &(pixSize1), "Pixel Size 1 (microns)", &status);
     fits_update_key_s(fptr, TDOUBLE, "PIXSIZE2", &(pixSize2), "Pixel Size 2 (microns)", &status);
-    fits_update_key_s(fptr, TSTRING, "BINNING", binning_s, "Binning HOR x VER", &status);
+    fits_update_key_s(fptr, TUINT, "XBINNING", &(xbin) , "Binning factor in width", &status);
+    fits_update_key_s(fptr, TUINT, "YBINNING", &(ybin), "Binning factor in height", &status);
     fits_update_key_s(fptr, TSTRING, "FRAME", frame_s, "Frame Type", &status);
     fits_update_key_s(fptr, TDOUBLE, "DATAMIN", &min_val, "Minimum value", &status);
     fits_update_key_s(fptr, TDOUBLE, "DATAMAX", &max_val, "Maximum value", &status);
