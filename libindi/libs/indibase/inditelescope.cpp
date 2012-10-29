@@ -87,7 +87,8 @@ bool INDI::Telescope::initProperties()
     IUFillNumberVector(&ScopeParametersNP,ScopeParametersN,4,getDeviceName(),"TELESCOPE_INFO","Scope Properties",OPTIONS_TAB,IP_RW,60,IPS_OK);
 
     TrackState=SCOPE_PARKED;
-    return 0;
+
+    return true;
 }
 
 void INDI::Telescope::ISGetProperties (const char *dev)
