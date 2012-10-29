@@ -446,6 +446,7 @@ int SxCCD::SetShutter(bool state)
     setup_data[USB_REQ_LENGTH_H] = 0;
     
     rc=WriteBulk(setup_data,8,1000);
+    rc=ReadBulk(setup_data,2,1000);
     return 0;
 }
 

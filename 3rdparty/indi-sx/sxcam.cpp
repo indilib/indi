@@ -1,9 +1,9 @@
 /*******************************************************************************
   Copyright(c) 2010 Gerry Rozema. All rights reserved.
                2012 Jasem Mutlaq
-
-               Shutter & Temperature controls added by Peter Polakovic
                
+               Shutter & Temperature controls added by Peter Polakovic
+
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the Free
   Software Foundation; either version 2 of the License, or (at your option)
@@ -170,15 +170,17 @@ void TemperatureTimerCallback(void *p)
 {	SxCam *ccd = (SxCam *) p;
     
     if (ccd->isConnected() && ccd->sx_hasCooler) {
-		ccd->SetCooler(ccd->CoolerS[1].s==ISS_ON, ccd->TemperatureRequest, &ccd->TemperatureN.value);
-		if (ccd->TemperatureReported != ccd->TemperatureN.value)
-        {
-    		ccd->TemperatureReported = ccd->TemperatureN.value;
-            if (abs(ccd->TemperatureRequest-ccd->TemperatureReported)<1)
-	            ccd->TemperatureNP.s = IPS_OK;
-	        else
-	            ccd->TemperatureNP.s = IPS_BUSY;
-    		IDSetNumber(&ccd->TemperatureNP, NULL);
+    	if (!ccd->DidLatch) {
+			ccd->SetCooler(ccd->CoolerS[1].s==ISS_ON, ccd->TemperatureRequest, &ccd->TemperatureN.value);
+			if (ccd->TemperatureReported != ccd->TemperatureN.value)
+    	    {
+    			ccd->TemperatureReported = ccd->TemperatureN.value;
+            	if (abs(ccd->TemperatureRequest-ccd->TemperatureReported)<1)
+	            	ccd->TemperatureNP.s = IPS_OK;
+		        else
+		            ccd->TemperatureNP.s = IPS_BUSY;
+    			IDSetNumber(&ccd->TemperatureNP, NULL);
+    		}
     		ccd->TemperatureTimerID = IEAddTimer(TEMPMS, TemperatureTimerCallback, p);
     	}
 	}
@@ -365,7 +367,10 @@ int SxCam::StartExposure(float n)
     }
     else
         ClearPixels(SXCCD_EXP_FLAGS_FIELD_BOTH,IMAGE_CCD);
-
+	
+	if (sx_hasShutter)
+		SetShutter(0);
+	
     //  Relatively long exposure
      //  lets do it on our own timers
      int tval;
@@ -389,7 +394,8 @@ bool SxCam::AbortExposure()
 {
     if(InExposure) {
         InExposure=false;
-        ResetCamera();
+		if (sx_hasShutter)
+			SetShutter(1);
         return true;
     }
     return false;
@@ -500,6 +506,8 @@ void SxCam::TimerHit()
 
                     // If not interlaced, take full frame
                     // If interlaced, but vertical binning is > 1, then take full frame as well.
+					if (sx_hasShutter)
+						SetShutter(1);
                     if (PrimaryCCD.isInterlaced() == false)
                         rc=LatchPixels(SXCCD_EXP_FLAGS_FIELD_BOTH,IMAGE_CCD,PrimaryCCD.getSubX(),PrimaryCCD.getSubY(),PrimaryCCD.getSubW(),
                                        PrimaryCCD.getSubH(),PrimaryCCD.getBinX(),PrimaryCCD.getBinY());
