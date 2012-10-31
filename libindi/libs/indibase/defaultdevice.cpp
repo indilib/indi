@@ -54,6 +54,7 @@ INDI::DefaultDevice::DefaultDevice()
 {
     pDebug = false;
     pSimulation = false;
+    isInit = false;
 
     //switchPtr conSw(new ISwitchVectorProperty);
     ConnectionSP = new ISwitchVectorProperty;
@@ -474,7 +475,6 @@ bool INDI::DefaultDevice::isSimulation()
 void INDI::DefaultDevice::ISGetProperties (const char *dev)
 {
     std::vector<INDI::Property *>::iterator orderi;
-    static int isInit = 0;
     INDI_TYPE pType;
     void *pPtr;
 

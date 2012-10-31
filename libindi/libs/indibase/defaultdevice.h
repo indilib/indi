@@ -47,6 +47,8 @@ drivers directly as it is linked with main(). Virtual drivers cannot employ INDI
  */
 class INDI::DefaultDevice : public INDI::BaseDevice
 {
+private:
+    bool isInit;
 public:
     DefaultDevice();
     virtual ~DefaultDevice();
