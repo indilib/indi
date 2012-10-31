@@ -8,7 +8,7 @@ Standards-Version: 3.8.0
 
 Package: indi-sbig
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libindi0
+Depends: ${shlibs:Depends}, ${misc:Depends}, libindi0, libsbigudrv2
 Description: INDI SBIG Santa Barbra Instrument Group CCD Driver
  Driver for INDI SBIG Santa Barbra Instrument Group CCD.
  .

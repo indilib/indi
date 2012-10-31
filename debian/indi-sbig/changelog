@@ -1,3 +1,9 @@
+indi-sbig (1.2-0ubuntu2) oneiric; urgency=low
+
+  * Make it depend on libsbigudrv2
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Wed, 31 Oct 2012 13:00:00 +0300
+
 indi-sbig (1.2-0ubuntu1) oneiric; urgency=low
 
   * New release synced with libindi v0.9
