@@ -1,4 +1,5 @@
 usr/include/libindi
 usr/lib/*/libindi.so
-usr/lib/*/libindi*.a
+usr/lib/*/libindimain.so
+usr/lib/*/libindidriver.so
 usr/lib/pkgconfig/libindi.pc

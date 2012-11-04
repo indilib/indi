@@ -1,1 +1,3 @@
 usr/lib/libindi.so.0 usr/lib/libindi.so
+usr/lib/libindimain.so.0 usr/lib/libindimain.so
+usr/lib/libindidriver.so.0 usr/lib/libindidriver.so
