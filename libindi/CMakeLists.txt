@@ -15,6 +15,10 @@ set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
 set(INCLUDE_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/include")
 set(UDEVRULES_INSTALL_DIR "/etc/udev/rules.d")
 
+IF(APPLE)
+set(CMAKE_SHARED_LINKER_FLAGS "-undefined dynamic_lookup")
+ENDIF(APPLE)
+
 ##################  setup install directories  ################################
 set (LIB_SUFFIX "" CACHE STRING "Define suffix of directory name (32/64)" )
 set (LIB_DESTINATION "${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}" CACHE STRING "Library directory name")
