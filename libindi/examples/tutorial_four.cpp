@@ -165,6 +165,11 @@ bool TestDevice::initProperties()
     //           of the driver.
     addAuxControls();
 
+    std::vector<INDI::Property *> *pAll = getProperties();
+
+    for (int i=0; i < pAll->size(); i++)
+        IDLog("Property #%d: %s\n", i, pAll->at(i)->getName());
+
     return true;
 
 }
@@ -248,8 +253,6 @@ bool TestDevice::ISNewSwitch (const char *dev, const char *name, ISState *states
 
         if (INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n) == true)
             return true;
-
-
 
         ISwitchVectorProperty *svp = getSwitch(name);
         ILightVectorProperty *lvp  = getLight("Light Property");
