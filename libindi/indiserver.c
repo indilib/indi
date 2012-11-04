@@ -64,6 +64,7 @@
 
 #define INDIPORT        7624            /* default TCP/IP port to listen */
 #define	REMOTEDVR	(-1234)		/* invalid PID to flag remote drivers */
+#define MAXSBUF     512
 #define	MAXRBUF		4096		/* max read buffering here */
 #define	MAXWSIZ		4096		/* max bytes/write */
 #define	DEFMAXQSIZ	10		/* default max q behind, MB */
@@ -741,9 +742,8 @@ indiRun(void)
 /* Read commands from FIFO and process them. Start/stop drivers accordingly */
 static void newFIFO(void)
 {
-    char line[MAXRBUF], tDriver[MAXRBUF], tConfig[MAXRBUF], tDev[MAXRBUF], envDev[MAXRBUF], envConfig[MAXRBUF];
-    const char *delm = " ";
-    char *token, *cp, *tp;
+    //char line[MAXRBUF], tDriver[MAXRBUF], tConfig[MAXRBUF], tDev[MAXRBUF], tSkel[MAXRBUF], envDev[MAXRBUF], envConfig[MAXRBUF], envSkel[MAXR];
+    char line[MAXRBUF];
     DvrInfo *dp = NULL;
     int startCmd=0, i=0;
 
@@ -767,177 +767,111 @@ static void newFIFO(void)
           continue;
         }
 
-
      if (verbose)
             fprintf(stderr, "FIFO: %s\n", line);
 
+     char cmd[MAXSBUF], arg[3][1], var[3][MAXSBUF], tDriver[MAXSBUF], tName[MAXSBUF], envDev[MAXSBUF], envConfig[MAXSBUF], envSkel[MAXSBUF];
 
-     memset(&tDriver[0], 0, sizeof(MAXRBUF));
-     memset(&tConfig[0], 0, sizeof(MAXRBUF));
-     memset(&tDev[0], 0, sizeof(MAXRBUF));
-     memset(&envDev[0], 0, sizeof(MAXRBUF));
-     memset(&envConfig[0], 0, sizeof(MAXRBUF));
+     memset(&tDriver[0], 0, sizeof(MAXSBUF));
+     memset(&tName[0], 0, sizeof(MAXSBUF));
+     memset(&envDev[0], 0, sizeof(MAXSBUF));
+     memset(&envConfig[0], 0, sizeof(MAXSBUF));
+     memset(&envSkel[0], 0, sizeof(MAXSBUF));
 
-     cp = strdup(line);
+     int n = sscanf(line, "%s %s -%1c \"%512[^\"]\" -%1c \"%512[^\"]\" -%1c \"%512[^\"]\"", cmd, tDriver, arg[0], var[0], arg[1], var[1]
+                    , arg[2], var[2]);
 
-     token = strsep(&cp, delm);
 
-        if (!strcmp(token, "start") || !strcmp(token, "stop"))
-        {
-                if (!strcmp(token, "start"))
-                    startCmd = 1;
+     int n_args = (n - 2)/2;
 
-                token = strsep(&cp, delm);
+     int j=0;
+     for (j=0; j < n_args; j++)
+     {
+         //fprintf(stderr, "arg[%d]: %c\n", i, arg[j][0]);
+         //fprintf(stderr, "var[%d]: %s\n", i, var[j]);
 
-                if (!token)
-                    return;
+         if (arg[j][0] == 'n')
+         {
+             strncpy(tName, var[j], MAXSBUF-1);
+             tName[MAXSBUF-1] = '\0';
+             snprintf(envDev, MAXSBUF, "INDIDEV=%s", tName);
+             if (verbose)
+                fprintf(stderr, "With name: %s\n", envDev);
 
-               strncpy(tDriver, token, MAXRBUF);
-               if (tp = strchr(tDriver, '\n'))
-                   *tp = '\0';
+             putenv(envDev);
+         }
+         else if (arg[j][0] == 'c')
+         {
+             snprintf(envConfig, MAXSBUF, "INDICONFIG=%s", var[j]);
 
-               if (verbose)
-                fprintf(stderr, "FIFO: Request for %s driver: %s\n", (startCmd == 1) ? "starting" : "stopping", tDriver);
+             if (verbose)
+              fprintf(stderr, "With config: %s\n", envConfig);
 
-               /* Find more name + config */
-               token = strsep(&cp, delm);
+             putenv(envConfig);
 
-               if (token)
-               {
-                 /* If config file detected, copy it */
-                if (strstr(token, ".xml"))                 
-                    strncpy(tConfig, token, MAXRBUF);
-                /* Get rid of quotes */
-                else if (strstr(token, "\"") || strstr(token, "'"))
-                {
-                    strncat(tDev, ++token, sizeof(tDev)-strlen(tDev)-1);
+         }
+         else if (arg[j][0] == 's')
+         {
+             snprintf(envSkel, MAXSBUF, "INDISKEL=%s", var[j]);
 
-                    if ( tDev[strlen(tDev)-1] == '\"' || tDev[strlen(tDev)-1] == '\'')
-                        tDev[strlen(tDev)-1] = '\0';
+             if (verbose)
+              fprintf(stderr, "With skeketon: %s\n", envSkel);
 
-                   else while (token = strsep(&cp, delm) )
-                   {
-                     strcat(tDev, " ");
-                     strncat(tDev, token, sizeof(tDev)-strlen(tDev)-1);
-                     if ( (tp=strchr(tDev, '\"')) || (tp=strchr(tDev, '\'')))
-                     {
-                         tDev[strlen(tDev)-1] = '\0';
-                         *tp='\0';
-                         break;
-                     }
-                    }
-                 }
-                 else
-                {
-                     strncpy(tDev, token, MAXRBUF);
-                     if (tp = strchr(tDev, '\n'))
-                         *tp = '\0';
-                 }
+             putenv(envSkel);
 
-                  /* Find config, if there is any */
-                  token = strsep(&cp, delm);
-                  if (token)
-                  {
-                      /* Get rid of quotes */
-                      if (strstr(token, "\"") || strstr(token, "'"))
-                      {
-                       strncat(tConfig, ++token, sizeof(tConfig)-strlen(tDev)-1);
-
-                       if ( tConfig[strlen(tConfig)-1] == '\"' || tConfig[strlen(tConfig)-1] == '\'')
-                           tConfig[strlen(tConfig)-1] = '\0';
-
-                       while (token = strsep(&cp, delm) )
-                       {
-                          strcat(tConfig, " ");
-                          strncat(tConfig, token, sizeof(tConfig)-strlen(tDev)-1);
-
-                          if ( (tp=strchr(tConfig, '\"')) || (tp=strchr(tConfig, '\'')))
-                          {
-                               tConfig[strlen(tConfig)-1] = '\0';
-                              *tp = '\0';
-                              break;
-                          }
-                       }
-                      }
-                       else
-                      {
-                           strncpy(tConfig, token, MAXRBUF);
-                           if (tp = strchr(tConfig, '\n'))
-                               *tp = '\0';
-                       }
-                  }
-              }
-
-               /* Did we find device name? */
-               if (tDev[0])
-               {
-                 snprintf(envDev, MAXRBUF, "INDIDEV=%s", tDev);
-
-                 if (verbose)
-                    fprintf(stderr, "With name: %s\n", envDev);
-
-                 putenv(envDev);
-
-                 //fprintf(stderr, "envionment check INDIDEV: %s\n", getenv("INDIDEV"));
-               }
-
-               /* Did we find config file */
-               if (tConfig[0])
-               {
-                   snprintf(envConfig, MAXRBUF, "INDICONFIG=%s", tConfig);
-
-                   if (verbose)
-                    fprintf(stderr, "With config: %s\n", envConfig);
-
-                   putenv(envConfig);
-               }
-
-               if (startCmd)
-               {
-                   if (verbose)
-                        fprintf(stderr, "FIFO: Starting driver %s\n", tDriver);
-                    dp = allocDvr();
-                    strncpy(dp->name, tDriver, MAXINDIDEVICE);
-                    strncpy(dp->dev, tDev, MAXINDIDEVICE);
-                    startDvr (dp);
-              }
-               else
-               {
-                  for (dp = dvrinfo; dp < &dvrinfo[ndvrinfo]; dp++)
-                   {
-                       if (!strcmp(dp->name, tDriver) && dp->active==1)
-                       {
-                           /* If device name is given, check against it before shutting down */
-                           if (tDev[0] && strcmp(dp->dev, tDev))
-                               continue;
-
-                           if (verbose)
-                               fprintf(stderr, "FIFO: Shutting down driver: %s\n", tDriver);
-
-                           shutdownDvr(dp, 0);
-
-                               /* Inform clients that this driver is dead */
-                               XMLEle *root = addXMLEle (NULL, "delProperty");
-                               addXMLAtt(root, "device", dp->dev);
-                               Msg * mp = newMsg();
-
-                               q2Clients(NULL, 0, dp->dev, NULL, mp, root);
-                               if (mp->count > 0)
-                                   setMsgXMLEle (mp, root);
-                               else
-                                   freeMsg (mp);
-                               delXMLEle (root);
-
-                           break;
-
-                       }
-                   }
-               }
          }
 
+     }
+
+     if (!strcmp(cmd, "start"))
+         startCmd = 1;
+     else
+         startCmd = 0;
+
+    if (startCmd)
+    {
+          if (verbose)
+             fprintf(stderr, "FIFO: Starting driver %s\n", tDriver);
+          dp = allocDvr();
+          strncpy(dp->name, tDriver, MAXINDIDEVICE);
+          strncpy(dp->dev, tName, MAXINDIDEVICE);
+          startDvr (dp);
     }
+    else
+    {
+     for (dp = dvrinfo; dp < &dvrinfo[ndvrinfo]; dp++)
+     {
+         fprintf(stderr, "dp->name: %s - tDriver: %s\n", dp->name, tDriver);
+         if (!strcmp(dp->name, tDriver) && dp->active==1)
+         {
+             fprintf(stderr, "name: %s - dp->dev: %s\n", tName, dp->dev);
 
+            /* If device name is given, check against it before shutting down */
+            if (tName[0] && strcmp(dp->dev, tName))
+                  continue;
+           if (verbose)
+               fprintf(stderr, "FIFO: Shutting down driver: %s\n", tDriver);
 
+            shutdownDvr(dp, 0);
+
+           /* Inform clients that this driver is dead */
+           XMLEle *root = addXMLEle (NULL, "delProperty");
+           addXMLAtt(root, "device", dp->dev);
+
+           prXMLEle(stderr, root, 0);
+           Msg * mp = newMsg();
+
+          q2Clients(NULL, 0, dp->dev, NULL, mp, root);
+          if (mp->count > 0)
+              setMsgXMLEle (mp, root);
+          else
+              freeMsg (mp);
+         delXMLEle (root);
+         break;
+         }
+     }
+    }
+   }
 }
 
 /* prepare for new client arriving on lsocket.
