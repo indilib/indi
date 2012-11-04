@@ -156,8 +156,18 @@ install(TARGETS indimain ARCHIVE DESTINATION ${LIB_DESTINATION})
 ###### INDI Default Driver Static Library ########
 # To link with main() and indibase classes       #
 ##################################################
-add_library(indidriver STATIC ${indimain_SRCS} ${indidriver_SRCS})
-install(TARGETS indidriver ARCHIVE DESTINATION ${LIB_DESTINATION})
+add_library(indidriver SHARED ${libindicom_SRCS} ${liblilxml_SRCS} ${indimain_SRCS} ${indidriver_SRCS})
+target_link_libraries(indidriver ${LIBUSB_LIBRARIES})
+if (NOVA_FOUND)
+target_link_libraries(indidriver ${NOVA_LIBRARIES})
+endif(NOVA_FOUND)
+if (CFITSIO_FOUND)
+target_link_libraries(indidriver ${CFITSIO_LIBRARIES})
+endif(CFITSIO_FOUND)
+install(TARGETS indidriver LIBRARY DESTINATION ${LIB_DESTINATION})
+set_target_properties(indidriver PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION})
+
+#install(TARGETS indidriver ARCHIVE DESTINATION ${LIB_DESTINATION})
 
 ##################################################
 ########### INDI Client Static Library ###########
@@ -291,16 +301,10 @@ install(TARGETS indi_intelliscope RUNTIME DESTINATION bin )
 
 ########### Syncscan ###############
 set(synscan_SRCS
-   ${indimain_SRCS}
    ${CMAKE_SOURCE_DIR}/drivers/telescope/synscanmount.cpp )
 
-add_executable(indi_synscan ${synscan_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
-
+add_executable(indi_synscan ${synscan_SRCS})
 target_link_libraries(indi_synscan indidriver m z)
-
-if (NOVA_FOUND)
-  target_link_libraries(indi_synscan ${NOVA_LIBRARIES})
-endif (NOVA_FOUND)
 
 install(TARGETS indi_synscan RUNTIME DESTINATION bin )
 
@@ -334,36 +338,22 @@ install(TARGETS indi_ieq45 RUNTIME DESTINATION bin )
 
 ########### Telescope Simulator ##############
 set(telescopesimulator_SRCS
-        ${indimain_SRCS}
         ${CMAKE_SOURCE_DIR}/drivers/telescope/telescope_simulator.cpp
    )
 
-add_executable(indi_simulator_telescope ${telescopesimulator_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
-
-target_link_libraries(indi_simulator_telescope indidriver ${CFITSIO_LIBRARIES} m z pthread)
-
-if (NOVA_FOUND)
-  target_link_libraries(indi_simulator_telescope ${NOVA_LIBRARIES})
-endif (NOVA_FOUND)
-
+add_executable(indi_simulator_telescope ${telescopesimulator_SRCS})
+target_link_libraries(indi_simulator_telescope indidriver  m z pthread)
 install(TARGETS indi_simulator_telescope RUNTIME DESTINATION bin )
 
 ########### CCD Simulator ##############
 if (CFITSIO_FOUND)
 
 set(ccdsimulator_SRCS
-        ${indimain_SRCS}
         ${CMAKE_SOURCE_DIR}/drivers/ccd/ccd_simulator.cpp
    )
 
-add_executable(indi_simulator_ccd ${ccdsimulator_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
-
-target_link_libraries(indi_simulator_ccd indidriver ${CFITSIO_LIBRARIES} m z pthread)
-
-if (NOVA_FOUND)
-  target_link_libraries(indi_simulator_ccd ${NOVA_LIBRARIES})
-endif (NOVA_FOUND)
-
+add_executable(indi_simulator_ccd ${ccdsimulator_SRCS})
+target_link_libraries(indi_simulator_ccd indidriver m z pthread)
 install(TARGETS indi_simulator_ccd RUNTIME DESTINATION bin )
 
 endif (CFITSIO_FOUND)
@@ -378,52 +368,32 @@ endif (CFITSIO_FOUND)
 ################ Focuser Simulator ################
 
 set(focussimulator_SRCS
-        ${indimain_SRCS}
         ${CMAKE_SOURCE_DIR}/drivers/focuser/focus_simulator.cpp
    )
 
-add_executable(indi_simulator_focus ${focussimulator_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
-
+add_executable(indi_simulator_focus ${focussimulator_SRCS})
 target_link_libraries(indi_simulator_focus indidriver m z)
-
-if (NOVA_FOUND)
-  target_link_libraries(indi_simulator_focus ${NOVA_LIBRARIES})
-endif (NOVA_FOUND)
-
 install(TARGETS indi_simulator_focus RUNTIME DESTINATION bin )
 
 ################ Robo Focuser ################
 
 set(robofocus_SRCS
-	${indimain_SRCS}
         ${CMAKE_SOURCE_DIR}/drivers/focuser/robofocus.cpp
    )
 
-add_executable(indi_robo_focus ${robofocus_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
-
+add_executable(indi_robo_focus ${robofocus_SRCS})
 target_link_libraries(indi_robo_focus indidriver m z)
-
-if (NOVA_FOUND)
-  target_link_libraries(indi_robo_focus ${NOVA_LIBRARIES})
-endif (NOVA_FOUND)
-
 install(TARGETS indi_robo_focus RUNTIME DESTINATION bin )
 
 ################ Optec TCF-S ################
 
 set(tcfs_SRCS
-        ${indimain_SRCS}
         ${CMAKE_SOURCE_DIR}/drivers/focuser/tcfs.cpp
    )
 
-add_executable(indi_tcfs_focus ${tcfs_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
+add_executable(indi_tcfs_focus ${tcfs_SRCS})
 
 target_link_libraries(indi_tcfs_focus indidriver m z)
-
-if (NOVA_FOUND)
-  target_link_libraries(indi_tcfs_focus ${NOVA_LIBRARIES})
-endif (NOVA_FOUND)
-
 install(TARGETS indi_tcfs_focus RUNTIME DESTINATION bin )
 
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/make_tcfs_symlink.cmake
@@ -454,18 +424,11 @@ install(TARGETS indi_trutech_wheel RUNTIME DESTINATION bin )
 
 ########### Filter Simulator ##############
 set(filtersimulator_SRCS
-        ${indimain_SRCS}
         ${CMAKE_SOURCE_DIR}/drivers/filter_wheel/filter_simulator.cpp
    )
 
-add_executable(indi_simulator_wheel ${filtersimulator_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
-
-target_link_libraries(indi_simulator_wheel indidriver ${CFITSIO_LIBRARIES} m z pthread)
-
-if (NOVA_FOUND)
-  target_link_libraries(indi_simulator_wheel ${NOVA_LIBRARIES})
-endif (NOVA_FOUND)
-
+add_executable(indi_simulator_wheel ${filtersimulator_SRCS})
+target_link_libraries(indi_simulator_wheel indidriver m z pthread)
 install(TARGETS indi_simulator_wheel RUNTIME DESTINATION bin )
 
 #################################################################################
@@ -580,26 +543,17 @@ endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 set(gpusb_SRCS
-        ${indimain_SRCS}
         ${CMAKE_SOURCE_DIR}/drivers/auxiliary/gpdriver.cpp
         ${CMAKE_SOURCE_DIR}/drivers/auxiliary/gpusb.cpp
    )
 
-add_executable(indi_gpusb ${gpusb_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
+add_executable(indi_gpusb ${gpusb_SRCS})
 
-target_link_libraries(indi_gpusb indidriver usb m z pthread)
-
-if (NOVA_FOUND)
-  target_link_libraries(indi_gpusb ${NOVA_LIBRARIES})
-endif (NOVA_FOUND)
-
+target_link_libraries(indi_gpusb indidriver m z pthread)
 install(TARGETS indi_gpusb RUNTIME DESTINATION bin )
-
 install(FILES ${CMAKE_SOURCE_DIR}/drivers/auxiliary/99-gpusb.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
 
 endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-
-
 
 ########### getINDI ##############
 set(getindi_SRCS
