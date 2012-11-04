@@ -40,13 +40,13 @@
 
 #include <indidevapi.h>
 #include <indicom.h>
-#include <defaultdriver.h>
+#include <defaultdevice.h>
 
 using namespace std;
 
 #define MAXBLEN 64
 
-class SpectraCyber : public INDI::DefaultDriver
+class SpectraCyber : public INDI::DefaultDevice
 {
 
 public:
@@ -90,7 +90,7 @@ public:
     bool update_freq(double nFreq);
     void ISPoll();
 
-    void ISSnoopDevice (XMLEle *root);
+    bool ISSnoopDevice (XMLEle *root);
 
 private: 
 

@@ -4,16 +4,9 @@ PROJECT(indi_spectracyber C CXX)
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
 set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
 
-Include (CheckCXXSourceCompiles)
-include (MacroOptionalFindPackage)
-include (MacroLogFeature)
-include (MacroBoolTo01)
-include (CheckIncludeFiles)
-
 find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
 find_package(ZLIB REQUIRED)
-find_package(Nova REQUIRED)
 
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_SOURCE_DIR})
@@ -26,8 +19,7 @@ set(indispectracyber_SRCS
 
 add_executable(indi_spectracyber ${indispectracyber_SRCS})
 
-target_link_libraries(indi_spectracyber ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES}
-${NOVA_LIBRARIES} z pthread)
+target_link_libraries(indi_spectracyber ${INDI_DRIVER_LIBRARIES} z pthread)
 
 install(TARGETS indi_spectracyber RUNTIME DESTINATION bin)
 

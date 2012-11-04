@@ -7,43 +7,24 @@ set(UDEVRULES_INSTALL_DIR "/etc/udev/rules.d")
 SET(CMAKE_C_FLAGS "-Wall" )
 SET(CMAKE_C_FLAGS_DEBUG "-Werror" )
 
-Include (CheckCSourceCompiles)
-include (MacroOptionalFindPackage)
-include (MacroLogFeature)
-include (MacroBoolTo01)
-include (CheckIncludeFiles)
-
-find_package(USB REQUIRED)
 find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
 find_package(ZLIB REQUIRED)
-
-#configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_SOURCE_DIR})
 include_directories( ${INDI_INCLUDE_DIR})
 include_directories( ${CFITSIO_INCLUDE_DIR})
 
-if (NOVA_FOUND)
-    include_directories(${NOVA_INCLUDE_DIR})
-endif (NOVA_FOUND)
-
 ########### QHY ###########
 set(indiqhy_SRCS
    ${CMAKE_SOURCE_DIR}/qhy_ccd.cpp
    ${CMAKE_SOURCE_DIR}/qhy5_driver.cpp
-   ${CMAKE_SOURCE_DIR}/qhy8_driver.cpp
-
    )
 
 add_executable(indi_qhy_ccd ${indiqhy_SRCS})
 
-target_link_libraries(indi_qhy_ccd ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${ZLIB_LIBRARIES} ${LIBUSB_LIBRARIES})
-
-if (NOVA_FOUND)
-  target_link_libraries(indi_qhy_ccd ${NOVA_LIBRARIES})
-endif (NOVA_FOUND)
+target_link_libraries(indi_qhy_ccd ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${ZLIB_LIBRARIES} ${LIBUSB_LIBRARIES})
 
 install(TARGETS indi_qhy_ccd RUNTIME DESTINATION bin )
 

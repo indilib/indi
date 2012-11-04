@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.4.7)
-#PROJECT(indi_gphoto_ccd C)
+PROJECT(indi_gphoto C CXX)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
 
@@ -8,13 +8,6 @@ SET(CMAKE_CXX_FLAGS_DEBUG "-Werror -O0 -g -DDEBUG_FITS" )
 SET(CMAKE_C_FLAGS "-Wall" )
 SET(CMAKE_C_FLAGS_DEBUG "-Werror -O0 -g -DDEBUG_FITS" )
 
-Include (CheckCXXSourceCompiles)
-Include (CheckCSourceCompiles)
-include (MacroOptionalFindPackage)
-include (MacroLogFeature)
-include (MacroBoolTo01)
-include (CheckIncludeFiles)
-
 find_package(USB REQUIRED)
 find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
@@ -22,7 +15,6 @@ find_package(ZLIB REQUIRED)
 find_package(GPHOTO2 REQUIRED)
 find_package(Threads REQUIRED)
 find_package(JPEG REQUIRED)
-#configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_SOURCE_DIR})
@@ -43,7 +35,7 @@ endif(COMMAND cmake_policy)
 
 add_executable(indi_gphoto_ccd ${indigphoto_SRCS})
 
-target_link_libraries(indi_gphoto_ccd ${INDI_LIBRARIES} ${INDI_MAIN_LIBRARIES} ${CFITSIO_LIBRARIES} ${LIBGPHOTO2_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${JPEG_LIBRARIES} gphoto2_port)
+target_link_libraries(indi_gphoto_ccd ${INDI_MAIN_LIBRARIES} ${CFITSIO_LIBRARIES} ${LIBGPHOTO2_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${JPEG_LIBRARIES} gphoto2_port)
 install(TARGETS indi_gphoto_ccd RUNTIME DESTINATION bin )
 
 install(FILES indi_gphoto.xml DESTINATION ${INDI_DATA_DIR})

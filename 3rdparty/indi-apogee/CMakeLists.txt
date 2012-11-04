@@ -4,31 +4,16 @@ PROJECT(indi_apogee C CXX)
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
 set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
 
-Include (CheckCXXSourceCompiles)
-include (MacroOptionalFindPackage)
-include (MacroLogFeature)
-include (MacroBoolTo01)
-include (CheckIncludeFiles)
-
-find_package(USB REQUIRED)
 find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
 find_package(APOGEE REQUIRED)
 find_package(ZLIB REQUIRED)
-
-macro_optional_find_package(Nova)
-macro_bool_to_01(NOVA_FOUND HAVE_NOVA_H)
-macro_log_feature(NOVA_FOUND "libnova" "A general purpose, double precision, Celestial Mechanics, Astrometry and Astrodynamics library" "http://libnova.sourceforge.net" FALSE "0.12.1" "Needed by INDI.")
 
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_SOURCE_DIR})
 include_directories( ${INDI_INCLUDE_DIR})
 include_directories( ${CFITSIO_INCLUDE_DIR})
 include_directories( ${APOGEE_INCLUDE_DIR})
-
-if (NOVA_FOUND)
-    include_directories(${NOVA_INCLUDE_DIR})
-endif (NOVA_FOUND)
 
 ########### Apogee ###########
 set(indiapogee_SRCS
@@ -38,13 +23,8 @@ set(indiapogee_SRCS
 add_executable(indi_apogeeu_ccd ${indiapogee_SRCS})
 add_executable(indi_apogeee_ccd ${indiapogee_SRCS})
 
-target_link_libraries(indi_apogeeu_ccd ${INDI_LIBRARIES} ${INDI_MAIN_LIBRARIES} ${CFITSIO_LIBRARIES} ${APOGEEU_LIBRARIES} z m)
-target_link_libraries(indi_apogeee_ccd ${INDI_LIBRARIES} ${INDI_MAIN_LIBRARIES} ${CFITSIO_LIBRARIES} ${APOGEEE_LIBRARIES} z m)
-
-if (NOVA_FOUND)
-  target_link_libraries(indi_apogeeu_ccd ${NOVA_LIBRARIES})
-  target_link_libraries(indi_apogeee_ccd ${NOVA_LIBRARIES})
-endif (NOVA_FOUND)
+target_link_libraries(indi_apogeeu_ccd ${INDI_MAIN_LIBRARIES} ${CFITSIO_LIBRARIES} ${APOGEEU_LIBRARIES} z m)
+target_link_libraries(indi_apogeee_ccd ${INDI_MAIN_LIBRARIES} ${CFITSIO_LIBRARIES} ${APOGEEE_LIBRARIES} z m)
 
 install(TARGETS indi_apogeeu_ccd RUNTIME DESTINATION bin )
 install(TARGETS indi_apogeee_ccd RUNTIME DESTINATION bin )
