@@ -94,6 +94,10 @@ public:
     */
     INDI::Property * getProperty(const char *name, INDI_TYPE type = INDI_UNKNOWN);
 
+    /** \brief Return a list of all properties in the device.
+    */
+    std::vector<INDI::Property *> * getProperties() { return &pAll; }
+
     /** \brief Build driver properties from a skeleton file.
         \param filename full path name of the file.
 
