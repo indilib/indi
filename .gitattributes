@@ -169,9 +169,14 @@
 3rdparty/indi-sx/sxcam.h -text
 3rdparty/indi-sx/sxccd.cpp -text
 3rdparty/indi-sx/sxccd.h -text
+3rdparty/indi-sx/sxccdusb.cpp -text
+3rdparty/indi-sx/sxccdusb.h -text
+3rdparty/indi-sx/sxconfig.h -text
+3rdparty/indi-sx/sxconfig.h.in -text
 3rdparty/indi-sx/sxtest.cpp -text
 3rdparty/indi-sx/sxwheel.cpp -text
 3rdparty/indi-sx/sxwheel.h -text
+3rdparty/indi-sx/test.cpp -text
 cmake_modules/FindALUT.cmake -text
 cmake_modules/FindAPOGEE.cmake -text
 cmake_modules/FindCFITSIO.cmake -text

@@ -1,482 +1,731 @@
+/*
+ Starlight Xpress CCD INDI Driver
 
+ Copyright (c) 2012 Cloudmakers, s. r. o.
+ All Rights Reserved.
+
+ Code is based on SX INDI Driver by Gerry Rozema and Jasem Mutlaq
+ Copyright(c) 2010 Gerry Rozema.
+ Copyright(c) 2012 Jasem Mutlaq.
+ All rights reserved.
+
+ This program is free software; you can redistribute it and/or modify it
+ under the terms of the GNU General Public License as published by the Free
+ Software Foundation; either version 2 of the License, or (at your option)
+ any later version.
+
+ This program is distributed in the hope that it will be useful, but WITHOUT
+ ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+ more details.
+
+ You should have received a copy of the GNU General Public License along with
+ this program; if not, write to the Free Software Foundation, Inc., 59
+ Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+
+ The full GNU General Public License is included in this distribution in the
+ file called LICENSE.
+ */
+
+#include <stdio.h>
+#include <memory.h>
+
+#include "sxconfig.h"
 #include "sxccd.h"
 
+#define SX_GUIDE_EAST             0x08     /* RA+ */
+#define SX_GUIDE_NORTH            0x04     /* DEC+ */
+#define SX_GUIDE_SOUTH            0x02     /* DEC- */
+#define SX_GUIDE_WEST             0x01     /* RA- */
+#define SX_CLEAR_NS               0x09
+#define SX_CLEAR_WE               0x06
 
-const int SX_PIDS[MODEL_COUNT] = { 0x0105, 0x0305, 0x0107, 0x0307, 0x0308, 0x0109, 0x0325, 0x0326, 0x0128, 0x0126, 0x0135, 0x0136, 0x0119, 0x0319, 0x0507, 0x0517 };
+static int count;
+static SXCCD *cameras[20];
 
+#define TIMER 1000
 
-SxCCD::SxCCD()
-{
-    //ctor
-    //Interlaced=false;
-    //RawFrame = NULL;
-    //RawGuiderFrame=NULL;
-    //CamBits=8;
-    //HasGuideHead=0;
-    sx_hasguide=false;
-    sx_hasST4=false;
-    sx_hasCooler=false;
-    sx_hasShutter=false;
-    guide_cmd = 0;
+#define TRACE(c) (c)
+#define DEBUG(c) (c)
+
+void cleanup() {
+  TRACE(fprintf(stderr, "-> cleanup()\n"));
+  for (int i = 0; i < count; i++) {
+    delete cameras[i];
+  }
+  TRACE(fprintf(stderr, "<- cleanup\n"));
 }
 
-bool SxCCD::Connect(int pid)
-{
-   if (pid == -1)
-   {
-    for (int i=0; i < MODEL_COUNT; i++)
-    {
-        dev=FindDevice(0x1278,SX_PIDS[i],0);
-        if(dev != NULL)
-            break;
+void ISInit() {
+  static bool isInit = false;
+  if (!isInit) {
+    DEVICE devices[20];
+    const char* names[20];
+    count = sxList(devices, names);
+    for (int i = 0; i < count; i++) {
+      cameras[i] = new SXCCD(devices[i], names[i]);
     }
-   }
-   else
-      dev=FindDevice(0x1278,SX_PIDS[pid],0);
+    atexit(cleanup);
+    isInit = true;
+  }
+}
 
-   if(dev==NULL)
-    {
-        IDLog("Error: No SX Cameras found\n");
-        return false;
+void ISGetProperties(const char *dev) {
+  TRACE(fprintf(stderr, "-> ISGetProperties(%s)\n", dev));
+  ISInit();
+  for (int i = 0; i < count; i++) {
+    SXCCD *camera = cameras[i];
+    if (dev == NULL || !strcmp(dev, camera->name)) {
+      camera->ISGetProperties(camera->name);
+      if (dev != NULL)
+        break;
     }
-    usb_handle=usb_open(dev);
-    if(usb_handle != NULL)
-    {
-        int rc;
+  }
+  TRACE(fprintf(stderr, "<- ISGetProperties\n"));
+}
 
-        rc=FindEndpoints();
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num) {
+  TRACE(fprintf(stderr, "-> ISNewSwitch(%s, %s...)\n", dev, name));
+  ISInit();
+  for (int i = 0; i < count; i++) {
+    SXCCD *camera = cameras[i];
+    if (dev == NULL || !strcmp(dev, camera->name)) {
+      camera->ISNewSwitch(camera->name, name, states, names, num);
+      if (dev != NULL)
+        break;
+    }
+  }
+  TRACE(fprintf(stderr, "<- ISNewSwitch\n"));
+}
 
-        usb_detach_kernel_driver_np(usb_handle,0);
-        IDLog("Detach Kernel returns %d\n",rc);
-        //rc=usb_set_configuration(usb_handle,1);
-        IDLog("Set Configuration returns %d\n",rc);
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num) {
+  TRACE(fprintf(stderr, "-> ISNewText(%s, %s, ...)\n", dev, name));
+  ISInit();
+  for (int i = 0; i < count; i++) {
+    SXCCD *camera = cameras[i];
+    if (dev == NULL || !strcmp(dev, camera->name)) {
+      camera->ISNewText(camera->name, name, texts, names, num);
+      if (dev != NULL)
+        break;
+    }
+  }
+  TRACE(fprintf(stderr, "<- ISNewText\n"));
+}
 
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num) {
+  TRACE(fprintf(stderr, "-> ISNewNumber(%s, %s, ...)\n", dev, name));
+  ISInit();
+  for (int i = 0; i < count; i++) {
+    SXCCD *camera = cameras[i];
+    if (dev == NULL || !strcmp(dev, camera->name)) {
+      camera->ISNewNumber(camera->name, name, values, names, num);
+      if (dev != NULL)
+        break;
+    }
+  }
+  TRACE(fprintf(stderr, "<- ISNewNumber\n"));
+}
+
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n) {
+  INDI_UNUSED(dev);
+  INDI_UNUSED(name);
+  INDI_UNUSED(sizes);
+  INDI_UNUSED(blobsizes);
+  INDI_UNUSED(blobs);
+  INDI_UNUSED(formats);
+  INDI_UNUSED(names);
+  INDI_UNUSED(n);
+}
+
+void ISSnoopDevice(XMLEle *root) {
+  INDI_UNUSED(root);
+}
+
+void ExposureTimerCallback(void *p) {
+  ((SXCCD *) p)->ExposureTimerHit();
+}
+
+void GuideExposureTimerCallback(void *p) {
+  ((SXCCD *) p)->GuideExposureTimerHit();
+}
+
+void WEGuiderTimerCallback(void *p) {
+  ((SXCCD *) p)->WEGuiderTimerHit();
+}
+
+void NSGuiderTimerCallback(void *p) {
+  ((SXCCD *) p)->NSGuiderTimerHit();
+}
+
+SXCCD::SXCCD(DEVICE device, const char *name) {
+  TRACE(fprintf(stderr, "-> SXCCD::SXCCD\n"));
+  this->device = device;
+  handle = NULL;
+  model = 0;
+  oddBuf = NULL;
+  evenBuf = NULL;
+  GuideStatus = 0;
+  TemperatureRequest = 0;
+  TemperatureReported = 0;
+  ExposureTimeLeft = 0.0;
+  GuideExposureTimeLeft = 0.0;
+  HasShutter = false;
+  HasCooler = false;
+  ExposureTimerID = 0;
+  DidFlush = false;
+  DidLatch = false;
+  GuideExposureTimerID = 0;
+  InGuideExposure = false;
+  DidGuideLatch = false;
+  NSGuiderTimerID = 0;
+  WEGuiderTimerID = 0;
+  strncpy(this->name, name, 20);
+  setDeviceName(this->name);
+  TRACE(fprintf(stderr, "   %s instance created\n", name));
+  TRACE(fprintf(stderr, "<- SXCCD::SXCCD\n"));
+}
+
+SXCCD::~SXCCD() {
+  TRACE(fprintf(stderr, "-> SXCCD::~SXCCD\n"));
+  sxClose(handle);
+  TRACE(fprintf(stderr, "<- SXCCD::~SXCCD\n"));
+}
+
+const char *SXCCD::getDefaultName() {
+  return name;
+}
+
+bool SXCCD::initProperties() {
+  TRACE(fprintf(stderr, "-> SXCCD::initProperties()\n"));
+  INDI::CCD::initProperties();
+
+  IUFillNumber(&TemperatureN, "CCD_TEMPERATURE_VALUE", "CCD temperature", "%4.1f", -40, 35, 1, TemperatureRequest);
+  IUFillNumberVector(&TemperatureNP, &TemperatureN, 1, getDeviceName(), "CCD_TEMPERATURE", "Temperature", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+
+  IUFillSwitch(&CoolerS[0], "DISCONNECT_COOLER", "Off", ISS_ON);
+  IUFillSwitch(&CoolerS[1], "CONNECT_COOLER", "On", ISS_OFF);
+  IUFillSwitchVector(&CoolerSP, CoolerS, 2, getDeviceName(), "COOLER_CONNECTION", "Cooler", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+  IUFillSwitch(&ShutterS[0], "SHUTTER_ON", "Manual open", ISS_OFF);
+  IUFillSwitch(&ShutterS[1], "SHUTTER_OFF", "Manual close", ISS_ON);
+  IUFillSwitchVector(&ShutterSP, ShutterS, 2, getDeviceName(), "SHUTTER_CONNECTION", "Shutter", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+  TRACE(fprintf(stderr, "<- SXCCD::initProperties 1\n"));
+  return true;
+}
+
+bool SXCCD::updateProperties() {
+  TRACE(fprintf(stderr, "-> SXCCD::updateProperties()\n"));
+
+  INDI::CCD::updateProperties();
+
+  if (isConnected()) {
+    if (HasCooler) {
+      defineNumber(&TemperatureNP);
+      defineSwitch(&CoolerSP);
+    }
+    if (HasShutter)
+      defineSwitch(&ShutterSP);
+  } else {
+    if (HasCooler) {
+      deleteProperty(TemperatureNP.name);
+      deleteProperty(CoolerSP.name);
+    }
+    if (HasShutter)
+      deleteProperty(ShutterSP.name);
+  }
+
+  TRACE(fprintf(stderr, "<- SXCCD::updateProperties 1\n"));
+  return true;
+}
+
+bool SXCCD::updateCCDBin(int hor, int ver) {
+  TRACE(fprintf(stderr, "-> SXCCD::updateCCDBin()\n"));
+  if (hor == 3 || ver == 3) {
+    IDMessage(getDeviceName(), "3x3 binning is not supported.");
+    TRACE(fprintf(stderr, "<- SXCCD::updateCCDBin 0\n"));
+    return false;
+  }
+  PrimaryCCD.setBin(hor, ver);
+  TRACE(fprintf(stderr, "<- SXCCD::updateCCDBin 1\n"));
+  return true;
+}
+
+bool SXCCD::Connect() {
+  TRACE(fprintf(stderr, "-> SXCCD::Connect()\n"));
+  if (handle == NULL) {
+    handle = usb_open(device);
+    if (handle != NULL) {
+      int rc;
+      struct t_sxccd_params params;
+      rc = usb_detach_kernel_driver_np(handle, 0);
+      TRACE( fprintf(stderr, "   usb_detach_kernel_driver_np() -> %d\n", rc));
 #ifdef __APPLE__
-        rc=usb_claim_interface(usb_handle,0);
+      rc=usb_claim_interface(handle,0);
 #else
-        rc=usb_claim_interface(usb_handle,1);
+      rc = usb_claim_interface(handle, 1);
 #endif
-        fprintf(stderr,"claim interface returns %d\n",rc);
+      TRACE(fprintf(stderr, "   usb_claim_interface() -> %d\n", rc));
+      if (!rc) {
+        sxReset(handle);
+        usleep(1000);
+        model = sxGetCameraModel(handle);
+        bool isInterlaced = model & 0x40;
+        PrimaryCCD.setInterlaced(isInterlaced);
 
-        getCapabilites();
-
-        if (rc== 0)
-            return true;
-    }
-
-   return false;
-}
-
-void SxCCD::getCapabilites()
-{
-    int rc=0;
-    sx_hasguide=false;
-    sx_hasST4=false;
-    sx_hasCooler=false;
-    sx_hasShutter=false;
-
-
-        //  ok, we have the camera now
-        //  Lets see what it really is
-        rc=ResetCamera();
-        rc=GetCameraModel();
-        rc=GetFirmwareVersion();
-        rc=GetCameraParams(0,&parms);
-
-
-          IDLog("Camera is %d x %d with %d bpp  size %4.2f x %4.2f Matrix %x\n",
-              parms.width,parms.height,parms.bits_per_pixel,parms.pix_width,parms.pix_height,parms.color_matrix);
-
-          IDLog("Camera capabilities %x\n",parms.extra_caps);
-          IDLog("Camera has %d serial ports\n",parms.num_serial_ports);
-
-
-        pixwidth=parms.pix_width;
-        pixheight=parms.pix_height;
-        bits_per_pixel=parms.bits_per_pixel;
-        xres=parms.width;
-        yres=parms.height;
-
-        if((parms.extra_caps & SXCCD_CAPS_GUIDER)==SXCCD_CAPS_GUIDER)
-        {
-            IDLog("Camera has a guide head attached\n");
-            rc=GetCameraParams(1,&gparms);
-
-            sx_hasguide=true;
-
-
-            IDLog("Guider is %d x %d with %d bpp  size %4.2f x %4.2f Matrix %x\n",
-                  gparms.width,gparms.height,gparms.bits_per_pixel,gparms.pix_width,gparms.pix_height,gparms.color_matrix);
-
-            //IDMessage(deviceName(), "Guider is %d x %d with %d bpp  size %4.2f x %4.2f Matrix %x",
-            //          gparms.width,gparms.height,gparms.bits_per_pixel,gparms.pix_width,gparms.pix_height,gparms.color_matrix);
-
-
-            IDLog("Guider capabilities %x\n",gparms.extra_caps);
-
-            gbits_per_pixel=gparms.bits_per_pixel;
-            gxres=gparms.width;
-            gyres=gparms.height;
-            gpixwidth=gparms.pix_width;
-            gpixheight=gparms.pix_height;
-
+        sxGetCameraParams(handle, 0, &params);
+        if (isInterlaced) {
+          params.pix_height /= 2;
+          params.height *= 2;
         }
 
-        if ((parms.extra_caps & SXCCD_CAPS_STAR2K)==SXCCD_CAPS_STAR2K)
-            sx_hasST4 = true;
-            
-        if ((parms.extra_caps & SXCCD_CAPS_COOLER)==SXCCD_CAPS_COOLER)
-        	sx_hasCooler = true;
+        SetCCDParams(params.width, params.height, params.bits_per_pixel, params.pix_width, params.pix_height);
 
-        if ((parms.extra_caps & SXCCD_CAPS_SHUTTER)==SXCCD_CAPS_SHUTTER)
-        	sx_hasShutter = true;
+        int nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes();
+        if (params.bits_per_pixel == 16)
+          nbuf *= 2;
+        nbuf += 512;
+        PrimaryCCD.setFrameBufferSize(nbuf);
+        if (evenBuf != NULL)
+          delete evenBuf;
+        if (oddBuf != NULL)
+          delete oddBuf;
+        evenBuf = new char[nbuf / 2];
+        oddBuf = new char[nbuf / 2];
 
+        HasGuideHead = params.extra_caps & SXCCD_CAPS_GUIDER;
+        HasCooler = params.extra_caps & SXUSB_CAPS_COOLER;
+        HasShutter = params.extra_caps & SXUSB_CAPS_SHUTTER;
+        HasSt4Port = params.extra_caps & SXCCD_CAPS_STAR2K;
+
+        if (HasGuideHead) {
+          sxGetCameraParams(handle, 1, &params);
+          SetGuidHeadParams(params.width, params.height, params.bits_per_pixel, params.pix_width, params.pix_height);
+        }
+        SetTimer(TIMER);
+        TRACE(fprintf(stderr, "<- SXCCD::Connect 1\n"));
+        return true;
+      }
+    }
+  }
+  TRACE(fprintf(stderr, "<- SXCCD::Connect 0\n"));
+  return false;
 }
 
-void SxCCD::getDefaultParam()
-{
-     SetParams(xres,yres,bits_per_pixel,pixwidth,pixheight);
-
-     if (sx_hasguide)
-        SetGuideParams(gparms.width,gparms.height,gparms.bits_per_pixel,gparms.pix_width,gparms.pix_height);
-
+bool SXCCD::Disconnect() {
+  TRACE(fprintf(stderr, "-> SXCCD::Disconnect()\n"));
+  if (handle != NULL) {
+    int rc = usb_close(handle);
+    TRACE(fprintf(stderr, "   usb_close() -> %d\n", rc));
+    handle = NULL;
+    HasCooler = false;
+  }
+  TRACE(fprintf(stderr, "<- SXCCD::Disconnect 1\n"));
+  return true;
 }
 
-bool SxCCD::Disconnect()
-{
-    usb_release_interface(usb_handle, 1);
-    usb_close(usb_handle);
+void SXCCD::TimerHit() {
+
+  if (HasCooler) {
+    if (!DidLatch && !DidGuideLatch) {
+      unsigned char status;
+      unsigned short temperature;
+      sxSetCooler(handle, (unsigned char) (CoolerS[1].s == ISS_ON), (unsigned short) (TemperatureRequest * 10 + 2730), &status, &temperature);
+      TemperatureN.value = (temperature - 2730) / 10.0;
+      if (TemperatureReported != TemperatureN.value) {
+        TemperatureReported = TemperatureN.value;
+        if (abs(TemperatureRequest - TemperatureReported) < 1)
+          TemperatureNP.s = IPS_OK;
+        else
+          TemperatureNP.s = IPS_BUSY;
+        IDSetNumber(&TemperatureNP, NULL);
+      }
+    }
+  }
+
+  if (InExposure && ExposureTimeLeft >= 0) {
+    PrimaryCCD.setExposureLeft(ExposureTimeLeft--);
+  }
+
+  if (InGuideExposure && GuideExposureTimeLeft >= 0) {
+    GuideCCD.setExposureLeft(GuideExposureTimeLeft--);
+  }
+
+  if (isConnected())
+    SetTimer(TIMER);
+}
+
+int SXCCD::StartExposure(float n) {
+  TRACE(fprintf(stderr, "-> SXCCD::StartExposure(%f)\n", n));
+  InExposure = true;
+  PrimaryCCD.setExposureDuration(n);
+  if (PrimaryCCD.isInterlaced() && PrimaryCCD.getBinY() == 1) {
+    sxClearPixels(handle, CCD_EXP_FLAGS_FIELD_EVEN, 0);
+    usleep(100);
+    sxClearPixels(handle, CCD_EXP_FLAGS_FIELD_ODD, 0);
+  } else
+    sxClearPixels(handle, CCD_EXP_FLAGS_FIELD_BOTH, 0);
+
+  if (HasShutter)
+    sxSetShutter(handle, 0);
+
+  int time = (int) (1000 * n);
+  if (time < 1)
+    time = 1;
+
+  if (time > 3000) {
+    DidFlush = false;
+    time -= 3000;
+  } else
+    DidFlush = true;
+  DidLatch = false;
+  ExposureTimeLeft = n;
+
+  ExposureTimerID = IEAddTimer(time, ExposureTimerCallback, this);
+
+  TRACE(fprintf(stderr, "<- SXCCD::StartExposure 0\n"));
+  return 0;
+}
+
+bool SXCCD::AbortExposure() {
+  TRACE(fprintf(stderr, "-> SXCCD::AbortExposure()\n"));
+  if (InExposure) {
+    if (ExposureTimerID)
+      IERmTimer(ExposureTimerID);
+    if (HasShutter)
+      sxSetShutter(handle, 1);
+    ExposureTimerID = 0;
+    PrimaryCCD.setExposureLeft(ExposureTimeLeft = 0);
+    DidLatch = false;
+    DidFlush = false;
+
+    TRACE(fprintf(stderr, "<- SXCCD::AbortExposure 1\n"));
     return true;
+  }
+  TRACE(fprintf(stderr, "<- SXCCD::AbortExposure 0\n"));
+  return false;
 }
 
-int SxCCD::ResetCamera()
-{
-    char setup_data[8];
-    int rc;
+void SXCCD::ExposureTimerHit() {
+  TRACE(fprintf(stderr, "-> SXCCD::ExposureTimerHit()\n"));
+  if (InExposure) {
+    if (!DidFlush) {
+      ExposureTimerID = IEAddTimer(3000, ExposureTimerCallback, this);
+      sxClearPixels(handle, CCD_EXP_FLAGS_NOWIPE_FRAME, 0);
+      DidFlush = true;
+      TRACE(fprintf(stderr, "   did flush\n"));
+    } else {
+      int rc;
+      ExposureTimerID = 0;
+      bool isInterlaced = PrimaryCCD.isInterlaced();
+      int subX = PrimaryCCD.getSubX();
+      int subY = PrimaryCCD.getSubY();
+      int subW = PrimaryCCD.getSubW();
+      int subH = PrimaryCCD.getSubH();
+      int binX = PrimaryCCD.getBinX();
+      int binY = PrimaryCCD.getBinY();
+      int subWW = subW * 2;
+      char *buf = PrimaryCCD.getFrameBuffer();
+      int size;
+      ;
 
-    setup_data[USB_REQ_TYPE    ] = USB_REQ_VENDOR | USB_REQ_DATAOUT;
-    setup_data[USB_REQ         ] = SXUSB_RESET;
-    setup_data[USB_REQ_VALUE_L ] = 0;
-    setup_data[USB_REQ_VALUE_H ] = 0;
-    setup_data[USB_REQ_INDEX_L ] = 0;
-    setup_data[USB_REQ_INDEX_H ] = 0;
-    setup_data[USB_REQ_LENGTH_L] = 0;
-    setup_data[USB_REQ_LENGTH_H] = 0;
-    //return (WriteFile(sxHandle, setup_data, sizeof(setup_data), &written, NULL));
-    rc=WriteBulk(setup_data,8,1000);
-    fprintf(stderr,"ResetCamera WriteBulk returns %d\n",rc);
-    if(rc==8) return 0;
-    return -1;
+      if (isInterlaced && binY > 1)
+        size = subW * subH / 2 / binX / (binY / 2);
+      else
+        size = subW * subH / binX / binY;
+
+      if (HasShutter)
+        sxSetShutter(handle, 1);
+
+      DidLatch = true;
+      if (isInterlaced) {
+        if (binY > 1) {
+          rc = sxLatchPixels(handle, CCD_EXP_FLAGS_FIELD_BOTH, 0, subX, subY, subW, subH / 2, binX, binY / 2);
+          if (rc) {
+            TRACE(fprintf(stderr, "   did latch\n"));
+            rc = sxReadPixels(handle, (unsigned short *) buf, size);
+            if (rc) {
+              TRACE(fprintf(stderr, "   did read\n"));
+            }
+          }
+        } else {
+          rc = sxLatchPixels(handle, CCD_EXP_FLAGS_FIELD_EVEN | CCD_EXP_FLAGS_SPARE2, 0, subX, subY, subW, subH / 2, binX, 1);
+          if (rc) {
+            TRACE(fprintf(stderr, "   did latch even\n"));
+            rc = sxReadPixels(handle, (unsigned short *) evenBuf, size / 2);
+            if (rc) {
+              TRACE(fprintf(stderr, "   did read even\n"));
+            }
+          }
+          if (rc)
+            rc = sxLatchPixels(handle, CCD_EXP_FLAGS_FIELD_ODD | CCD_EXP_FLAGS_SPARE2, 0, subX, subY, subW, subH / 2, binX, 1);
+          if (rc) {
+            TRACE(fprintf(stderr, "   did latch odd\n"));
+            rc = sxReadPixels(handle, (unsigned short *) oddBuf, size / 2);
+            if (rc) {
+              TRACE(fprintf(stderr, "   did read odd\n"));
+            }
+          }
+          if (rc)
+            for (int i = 0, j = 0; i < subH; i += 2, j++) {
+              memcpy(buf + i * subWW, evenBuf + (j * subWW), subWW);
+              memcpy(buf + ((i + 1) * subWW), oddBuf + (j * subWW), subWW);
+            }
+        }
+      } else {
+        rc = sxLatchPixels(handle, CCD_EXP_FLAGS_FIELD_BOTH, 0, subX, subY, subW, subH, binX, binY);
+        if (rc) {
+          TRACE(fprintf(stderr, "   did latch\n"));
+          rc = sxReadPixels(handle, (unsigned short *) buf, size);
+          if (rc) {
+            TRACE(fprintf(stderr, "   did read\n"));
+          }
+        }
+      }
+
+      DidLatch = false;
+      InExposure = false;
+      PrimaryCCD.setExposureLeft(ExposureTimeLeft = 0);
+      if (rc)
+        ExposureComplete(&PrimaryCCD);
+    }
+  }
+  TRACE(fprintf(stderr, "<- SXCCD::ExposureTimerHit\n"));
 }
 
-int SxCCD::GetCameraModel()
-{
-    char setup_data[8];
-    char Name[MAXINDILABEL];
-    int rc;
+int SXCCD::StartGuideExposure(float n) {
+  TRACE(fprintf(stderr, "-> SXCCD::StartGuideExposure(%f)\n", n));
+  InGuideExposure = true;
+  GuideCCD.setExposureDuration(n);
+  sxClearPixels(handle, CCD_EXP_FLAGS_FIELD_BOTH, 1);
+  int time = (int) (1000 * n);
+  if (time < 1)
+    time = 1;
+  ExposureTimeLeft = n;
 
-    setup_data[USB_REQ_TYPE    ] = USB_REQ_VENDOR | USB_REQ_DATAIN;
-    setup_data[USB_REQ         ] = SXUSB_CAMERA_MODEL;
-    setup_data[USB_REQ_VALUE_L ] = 0;
-    setup_data[USB_REQ_VALUE_H ] = 0;
-    setup_data[USB_REQ_INDEX_L ] = 0;
-    setup_data[USB_REQ_INDEX_H ] = 0;
-    setup_data[USB_REQ_LENGTH_L] = 2;
-    setup_data[USB_REQ_LENGTH_H] = 0;
-    rc=WriteBulk(setup_data,8,1000);
-    rc=ReadBulk((char *)&CameraModel,2,1000);
-    fprintf(stderr,"GetCameraModel returns %d\n",CameraModel);
+  GuideExposureTimerID = IEAddTimer(time, GuideExposureTimerCallback, this);
 
-    snprintf(Name, MAXINDILABEL, "SXV-%c%d%c", CameraModel & 0x40 ? 'M' : 'H', CameraModel & 0x1F, CameraModel & 0x80 ? 'C' : '\0');
-
-    SubType = CameraModel & 0x1F;
-
-    if (CameraModel & 0x80)  // color
-            ColorSensor = true;
-    else
-            ColorSensor = false;
-
-
-    if (CameraModel & 0x40)
-            SetInterlaced(true);
-    else
-            SetInterlaced(false);
-
-    if (SubType == 25)
-            SetInterlaced(false);
-
-    return CameraModel;
+  TRACE(fprintf(stderr, "<- SXCCD::StartGuideExposure 0\n"));
+  return 0;
 }
 
-int SxCCD::GetFirmwareVersion()
-{
-    char setup_data[8];
-    unsigned int ver;
-    int rc;
+bool SXCCD::AbortGuideExposure() {
+  TRACE(fprintf(stderr, "-> SXCCD::AbortGuideExposure()\n"));
+  if (InGuideExposure) {
+    if (GuideExposureTimerID)
+      IERmTimer(GuideExposureTimerID);
+    GuideCCD.setExposureLeft(GuideExposureTimeLeft = 0);
+    GuideExposureTimerID = 0;
+    DidGuideLatch = false;
 
-    setup_data[USB_REQ_TYPE    ] = USB_REQ_VENDOR | USB_REQ_DATAIN;
-    setup_data[USB_REQ         ] = SXUSB_GET_FIRMWARE_VERSION;
-    setup_data[USB_REQ_VALUE_L ] = 0;
-    setup_data[USB_REQ_VALUE_H ] = 0;
-    setup_data[USB_REQ_INDEX_L ] = 0;
-    setup_data[USB_REQ_INDEX_H ] = 0;
-    setup_data[USB_REQ_LENGTH_L] = 4;
-    setup_data[USB_REQ_LENGTH_H] = 0;
-
-    rc=WriteBulk(setup_data,8,1000);
-    ver=0;
-    rc=ReadBulk((char *)&ver,4,1000);
-    fprintf(stderr,"GetFirmwareVersion returns %x\n",ver);
-    return ver;
+    TRACE(fprintf(stderr, "<- SXCCD::AbortGuideExposure 1\n"));
+    return true;
+  }
+  TRACE(fprintf(stderr, "<- SXCCD::AbortGuideExposure 0\n"));
+  return false;
 }
 
-int SxCCD::GetCameraParams(int index,PCCDPARMS params)
-{
-    unsigned char setup_data[17];
-
-    unsigned char output_data[17];
-
+void SXCCD::GuideExposureTimerHit() {
+  TRACE(fprintf(stderr, "-> SXCCD::GuideExposureTimerHit()\n"));
+  if (InGuideExposure) {
     int rc;
-    setup_data[USB_REQ_TYPE    ] = USB_REQ_VENDOR | USB_REQ_DATAIN;
-    setup_data[USB_REQ         ] = SXUSB_GET_CCD;
-    setup_data[USB_REQ_VALUE_L ] = 0;
-    setup_data[USB_REQ_VALUE_H ] = 0;
-    setup_data[USB_REQ_INDEX_L ] = index;
-    setup_data[USB_REQ_INDEX_H ] = 0;
-    setup_data[USB_REQ_LENGTH_L] = 17;
-    setup_data[USB_REQ_LENGTH_H] = 0;
-    rc=WriteBulk((char *)setup_data,17,1000);
-    rc=ReadBulk((char *)output_data,17,1000);
-    if(rc != 17) {
-        fprintf(stderr,"Bad camera parameters readout\n");
-        return -1;
+    GuideExposureTimerID = 0;
+    int subX = GuideCCD.getSubX();
+    int subY = GuideCCD.getSubY();
+    int subW = GuideCCD.getSubW();
+    int subH = GuideCCD.getSubH();
+    int binX = GuideCCD.getBinX();
+    int binY = GuideCCD.getBinY();
+    int size = subW * subH / binX / binY;
+    int subWW = subW * 2;
+    char *buf = GuideCCD.getFrameBuffer();
+
+    DidGuideLatch = true;
+    rc = sxLatchPixels(handle, CCD_EXP_FLAGS_FIELD_BOTH, 1, subX, subY, subW, subH, binX, binY);
+    if (rc) {
+      TRACE(fprintf(stderr, "   did guide latch\n"));
+      rc = sxReadPixels(handle, (unsigned short *) buf, size);
+      if (rc) {
+        TRACE(fprintf(stderr, "   did guide read\n"));
+      }
     }
 
-    //for (int i=0; i < 17; i++)
-    //{
-    //    printf("OUTPUT[%d]= %#X -- %d\n", i, output_data[i], (int) output_data[i]);
-    //}
-    params->hfront_porch = output_data[0];
-    params->hback_porch = output_data[1];
-
-    //printf("width raw numbers %d %d\n",output_data[2],output_data[3]);
-
-    params->width = output_data[2] | (output_data[3] << 8);
-    params->vfront_porch = output_data[4];
-    params->vback_porch = output_data[5];
-
-    fprintf(stderr,"height raw numbers %d %d\n",output_data[6],output_data[7]);
-
-    params->height = output_data[6] | (output_data[7] << 8);
-    params->pix_width = (output_data[8] | (output_data[9] << 8)) / 256.0;
-    params->pix_height = (output_data[10] | (output_data[11] << 8)) / 256.0;
-
-    params->color_matrix = output_data[12] | (output_data[13] << 8);
-    params->bits_per_pixel = output_data[14];
-    params->num_serial_ports = output_data[15];
-    params->extra_caps = output_data[16];
-    return (0);
+    DidGuideLatch = false;
+    InGuideExposure = false;
+    GuideCCD.setExposureLeft(GuideExposureTimeLeft = 0);
+    if (rc)
+      ExposureComplete(&GuideCCD);
+  }
+  TRACE(fprintf(stderr, "<- SXCCD::GuideExposureTimerHit\n"));
 }
 
-int SxCCD::ClearPixels(int flags,int camIndex)
-{
-    char setup_data[8];
-    int rc;
-
-    setup_data[USB_REQ_TYPE    ] = USB_REQ_VENDOR | USB_REQ_DATAOUT;
-    setup_data[USB_REQ         ] = SXUSB_CLEAR_PIXELS;
-    setup_data[USB_REQ_VALUE_L ] = flags;
-    setup_data[USB_REQ_VALUE_H ] = flags >> 8;
-    setup_data[USB_REQ_INDEX_L ] = camIndex;
-    setup_data[USB_REQ_INDEX_H ] = 0;
-    setup_data[USB_REQ_LENGTH_L] = 0;
-    setup_data[USB_REQ_LENGTH_H] = 0;
-    rc=WriteBulk(setup_data,8,1000);
-    return 0;
+bool SXCCD::GuideWest(float time) {
+  TRACE(fprintf(stderr, "-> SXCCD::GuideWest(%f)\n", time));
+  if (!HasSt4Port || time < 1) {
+    TRACE(fprintf(stderr, "<- SXCCD::GuideWest 0\n"));
+    return false;
+  }
+  if (WEGuiderTimerID) {
+    IERmTimer(WEGuiderTimerID);
+    WEGuiderTimerID = 0;
+  }
+  GuideStatus &= SX_CLEAR_WE;
+  GuideStatus |= SX_GUIDE_WEST;
+  sxSetSTAR2000(handle, GuideStatus);
+  if (time < 100) {
+    usleep(time * 1000);
+    GuideStatus &= SX_CLEAR_WE;
+    sxSetSTAR2000(handle, GuideStatus);
+  } else
+    WEGuiderTimerID = IEAddTimer(time, WEGuiderTimerCallback, this);
+  TRACE(fprintf(stderr, "<- SXCCD::GuideWest 1\n"));
+  return true;
 }
 
-int SxCCD::LatchPixels(int flags,int camIndex,int xoffset,int yoffset,int width,int height,int xbin,int ybin)
-{
-    char setup_data[18];
-    int rc;
-
-    //if (Interlaced)
-        //ybin--;
-
-    fprintf(stderr,"Latch pixels: xoffset: %d - yoffset: %d - Width: %d - Height: %d - xbin: %d - ybin: %d\n", xoffset, yoffset, width, height, xbin, ybin);
-
-    setup_data[USB_REQ_TYPE    ] = USB_REQ_VENDOR | USB_REQ_DATAOUT;
-    setup_data[USB_REQ         ] = SXUSB_READ_PIXELS;
-    setup_data[USB_REQ_VALUE_L ] = flags;
-    setup_data[USB_REQ_VALUE_H ] = flags >> 8;
-    setup_data[USB_REQ_INDEX_L ] = camIndex;
-    setup_data[USB_REQ_INDEX_H ] = 0;
-    setup_data[USB_REQ_LENGTH_L] = 10;
-    setup_data[USB_REQ_LENGTH_H] = 0;
-    setup_data[USB_REQ_DATA + 0] = xoffset & 0xFF;
-    setup_data[USB_REQ_DATA + 1] = xoffset >> 8;
-    setup_data[USB_REQ_DATA + 2] = yoffset & 0xFF;
-    setup_data[USB_REQ_DATA + 3] = yoffset >> 8;
-    setup_data[USB_REQ_DATA + 4] = width & 0xFF;
-    setup_data[USB_REQ_DATA + 5] = width >> 8;
-    setup_data[USB_REQ_DATA + 6] = height & 0xFF;
-    setup_data[USB_REQ_DATA + 7] = height >> 8;
-    setup_data[USB_REQ_DATA + 8] = xbin;
-    setup_data[USB_REQ_DATA + 9] = ybin;
-    rc=WriteBulk(setup_data,18,1000);
-
-    return 0;
+bool SXCCD::GuideEast(float time) {
+  TRACE(fprintf(stderr, "-> SXCCD::GuideEast(%f)\n", time));
+  if (!HasSt4Port || time < 1) {
+    TRACE(fprintf(stderr, "<- SXCCD::GuideEast 0\n"));
+    return false;
+  }
+  if (WEGuiderTimerID) {
+    IERmTimer(WEGuiderTimerID);
+    WEGuiderTimerID = 0;
+  }
+  GuideStatus &= SX_CLEAR_WE;
+  GuideStatus |= SX_GUIDE_EAST;
+  sxSetSTAR2000(handle, GuideStatus);
+  if (time < 100) {
+    usleep(time * 1000);
+    GuideStatus &= SX_CLEAR_WE;
+    sxSetSTAR2000(handle, GuideStatus);
+  } else
+    WEGuiderTimerID = IEAddTimer(time, WEGuiderTimerCallback, this);
+  TRACE(fprintf(stderr, "<- SXCCD::GuideEast 1\n"));
+  return true;
 }
 
-int SxCCD::ExposePixels(int flags,int camIndex,int xoffset,int yoffset,int width,int height,int xbin,int ybin,int msec)
-{
-    char setup_data[22];
-    int rc;
-
-    //if (Interlaced)
-        //ybin--;
-
-    fprintf(stderr,"Expose pixels: xoffset: %d - yoffset: %d - Width: %d - Height: %d - xbin: %d - ybin: %d - delay: %d\n", xoffset, yoffset, width, height, xbin, ybin, msec);
-    setup_data[USB_REQ_TYPE    ] = USB_REQ_VENDOR | USB_REQ_DATAOUT;
-    setup_data[USB_REQ         ] = SXUSB_READ_PIXELS_DELAYED;
-    setup_data[USB_REQ_VALUE_L ] = flags;
-    setup_data[USB_REQ_VALUE_H ] = flags >> 8;
-    setup_data[USB_REQ_INDEX_L ] = camIndex;
-    setup_data[USB_REQ_INDEX_H ] = 0;
-    setup_data[USB_REQ_LENGTH_L] = 10;
-    setup_data[USB_REQ_LENGTH_H] = 0;
-    setup_data[USB_REQ_DATA + 0] = xoffset & 0xFF;
-    setup_data[USB_REQ_DATA + 1] = xoffset >> 8;
-    setup_data[USB_REQ_DATA + 2] = yoffset & 0xFF;
-    setup_data[USB_REQ_DATA + 3] = yoffset >> 8;
-    setup_data[USB_REQ_DATA + 4] = width & 0xFF;
-    setup_data[USB_REQ_DATA + 5] = width >> 8;
-    setup_data[USB_REQ_DATA + 6] = height & 0xFF;
-    setup_data[USB_REQ_DATA + 7] = height >> 8;
-    setup_data[USB_REQ_DATA + 8] = xbin;
-    setup_data[USB_REQ_DATA + 9] = ybin;
-    setup_data[USB_REQ_DATA + 10] = msec;
-    setup_data[USB_REQ_DATA + 11] = msec >> 8;
-    setup_data[USB_REQ_DATA + 12] = msec >> 16;
-    setup_data[USB_REQ_DATA + 13] = msec >> 24;
-
-    rc=WriteBulk(setup_data,22,1000);
-    return 0;
+void SXCCD::WEGuiderTimerHit() {
+  TRACE(fprintf(stderr, "-> SXCCD::WEGuiderTimerHit()\n"));
+  GuideStatus &= SX_CLEAR_WE;
+  sxSetSTAR2000(handle, GuideStatus);
+  WEGuiderTimerID = 0;
+  TRACE(fprintf(stderr, "<- SXCCD::WEGuiderTimerHit\n"));
 }
 
-int SxCCD::ReadPixels(char *pixels,int count)
-{
-    int rc=0, bread=0;
-    int tries=0;
-    while ((bread < count) && (tries < 5)&&(rc >=0))
-    {
-        tries++;
-        rc = ReadBulk(pixels+bread,count-bread,10000);
-        fprintf(stderr,"Read bulk returns %d\n",rc);
-        //if (rc < 0 );
-        //    break;
-        //bread += rc;
-        if(rc > 0) bread+=rc;
-
-        fprintf(stderr,"On Read Attempt %d got %d bytes while requested is %d\n", tries, bread, count);
-        usleep(50);
-
-    }
-
-    fprintf(stderr,"Read Pixels request %d got %d after %d tries.\n",count,bread, tries);
-
-	//FILE *h = fopen("rawcam.dat", "w+");
-	//fwrite(pixels, count, 1, h);
-	//fclose(h);
-    return bread;
+bool SXCCD::GuideNorth(float time) {
+  TRACE(fprintf(stderr, "-> SXCCD::GuideNorth(%f)\n", time));
+  if (!HasSt4Port || time < 1) {
+    TRACE(fprintf(stderr, "<- SXCCD::GuideNorth 0\n"));
+    return false;
+  }
+  if (NSGuiderTimerID) {
+    IERmTimer(NSGuiderTimerID);
+    NSGuiderTimerID = 0;
+  }
+  GuideStatus &= SX_CLEAR_NS;
+  GuideStatus |= SX_GUIDE_NORTH;
+  sxSetSTAR2000(handle, GuideStatus);
+  if (time < 100) {
+    usleep(time * 1000);
+    GuideStatus &= SX_CLEAR_NS;
+    sxSetSTAR2000(handle, GuideStatus);
+  } else
+    NSGuiderTimerID = IEAddTimer(time, NSGuiderTimerCallback, this);
+  TRACE(fprintf(stderr, "<- SXCCD::GuideNorth 1\n"));
+  return true;
 }
 
-int SxCCD::SetParams(int XRes,int YRes,int CamBits,float pixwidth,float pixheight)
-{
-    fprintf(stderr,"SxCCD::SetParams\n");
-    return 0;
+bool SXCCD::GuideSouth(float time) {
+  TRACE(fprintf(stderr, "-> SXCCD::GuideSouth(%f)\n", time));
+  if (!HasSt4Port || time < 1) {
+    TRACE(fprintf(stderr, "<- SXCCD::GuideSouth 0\n"));
+    return false;
+  }
+  if (NSGuiderTimerID) {
+    IERmTimer(NSGuiderTimerID);
+    NSGuiderTimerID = 0;
+  }
+  GuideStatus &= SX_CLEAR_NS;
+  GuideStatus |= SX_GUIDE_SOUTH;
+  sxSetSTAR2000(handle, GuideStatus);
+  if (time < 100) {
+    usleep(time * 1000);
+    GuideStatus &= SX_CLEAR_NS;
+    sxSetSTAR2000(handle, GuideStatus);
+  } else
+    NSGuiderTimerID = IEAddTimer(time, NSGuiderTimerCallback, this);
+  TRACE(fprintf(stderr, "<- SXCCD::GuideSouth 1\n"));
+  return true;
 }
 
-int SxCCD::SetGuideParams(int XRes,int YRes,int CamBits,float pixwidth,float pixheight)
-{
-
-    return 0;
+void SXCCD::NSGuiderTimerHit() {
+  TRACE(fprintf(stderr, "-> SXCCD::NSGuiderTimerHit()\n"));
+  GuideStatus &= SX_CLEAR_NS;
+  sxSetSTAR2000(handle, GuideStatus);
+  NSGuiderTimerID = 0;
+  TRACE(fprintf(stderr, "<- SXCCD::NSGuiderTimerHit\n"));
 }
 
-int SxCCD::SetInterlaced(bool)
-{
-    return 0;
+void SXCCD::ISGetProperties(const char *dev) {
+  TRACE(fprintf(stderr, "-> SXCCD::ISGetProperties(%s)\n", name));
+  INDI::CCD::ISGetProperties(name);
+  addDebugControl();
+  TRACE(fprintf(stderr, "<- SXCCD::ISGetProperties\n"));
 }
 
-int SxCCD::pulseGuide()
-{
-    char setup_data[8];
-    int rc;
+bool SXCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) {
+  TRACE(fprintf(stderr, "-> SXCCD::ISNewSwitch(%s, %s, ...)\n", dev, name));
+  bool result = false;
+  if (strcmp(name, ShutterSP.name) == 0) {
+    IUUpdateSwitch(&ShutterSP, states, names, n);
+    ShutterSP.s = IPS_OK;
+    IDSetSwitch(&ShutterSP, NULL);
+    sxSetShutter(handle, ShutterS[0].s != ISS_ON);
+    result = true;
+  } else if (strcmp(name, CoolerSP.name) == 0) {
+    IUUpdateSwitch(&CoolerSP, states, names, n);
+    CoolerSP.s = IPS_OK;
+    IDSetSwitch(&CoolerSP, NULL);
+    unsigned char status;
+    unsigned short temperature;
+    sxSetCooler(handle, (unsigned char) (CoolerS[1].s == ISS_ON), (unsigned short) (TemperatureRequest * 10 + 2730), &status, &temperature);
+    TemperatureReported = TemperatureN.value = (temperature - 2730) / 10.0;
+    TemperatureNP.s = IPS_OK;
+    IDSetNumber(&TemperatureNP, NULL);
+    result = true;
+  } else
+    result = INDI::CCD::ISNewSwitch(dev, name, states, names, n);
 
-    setup_data[USB_REQ_TYPE    ] = USB_REQ_VENDOR | USB_REQ_DATAOUT;
-    setup_data[USB_REQ         ] = SXUSB_SET_STAR2K;
-    setup_data[USB_REQ_VALUE_L ] = guide_cmd;
-    setup_data[USB_REQ_VALUE_H ] = 0;
-    setup_data[USB_REQ_INDEX_L ] = 0;
-    setup_data[USB_REQ_INDEX_H ] = 0;
-    setup_data[USB_REQ_LENGTH_L] = 0;
-    setup_data[USB_REQ_LENGTH_H] = 0;
-    rc=WriteBulk(setup_data,8,1000);
-    return 0;
+  TRACE(fprintf(stderr, "<- SXCCD::ISNewSwitch %d\n", result));
+  return result;
 }
 
-int SxCCD::SetShutter(bool state)
-{
-// Sets the mechanical shutter to open (state=0) or closed (state=1)
-// No error checking if the shutter does not exist
+bool SXCCD::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) {
+  TRACE(fprintf(stderr, "-> SXCCD::ISNewNumber(%s, %s, ...)\n", dev, name));
+  bool result = false;
 
-    char setup_data[8];
-    int rc;
-	
-    setup_data[USB_REQ_TYPE    ] = USB_REQ_VENDOR;
-    setup_data[USB_REQ         ] = SXUSB_SHUTTER;
-    setup_data[USB_REQ_VALUE_L ] = 0;
-    if (state) 
-		setup_data[USB_REQ_VALUE_H ] = 128;
-	else 
-		setup_data[USB_REQ_VALUE_H ] = 64;
-	setup_data[USB_REQ_INDEX_L ] = 0;
-	setup_data[USB_REQ_INDEX_H] = 0;
-    setup_data[USB_REQ_LENGTH_L] = 0;
-    setup_data[USB_REQ_LENGTH_H] = 0;
-    
-    rc=WriteBulk(setup_data,8,1000);
-    rc=ReadBulk(setup_data,2,1000);
-    return 0;
+  if (strcmp(name, TemperatureNP.name) == 0) {
+    IUUpdateNumber(&TemperatureNP, values, names, n);
+    TemperatureRequest = TemperatureN.value;
+    unsigned char status;
+    unsigned short temperature;
+    sxSetCooler(handle, (unsigned char) (CoolerS[1].s == ISS_ON), (unsigned short) (TemperatureRequest * 10 + 2730), &status, &temperature);
+    TemperatureReported = TemperatureN.value = (temperature - 2730) / 10.0;
+    if (abs(TemperatureRequest - TemperatureReported) < 1)
+      TemperatureNP.s = IPS_OK;
+    else
+      TemperatureNP.s = IPS_BUSY;
+    IDSetNumber(&TemperatureNP, NULL);
+    CoolerSP.s = IPS_OK;
+    CoolerS[0].s = ISS_OFF;
+    CoolerS[1].s = ISS_ON;
+    IDSetSwitch(&CoolerSP, NULL);
+    result = true;
+  } else
+    result = INDI::CCD::ISNewNumber(dev, name, values, names, n);
+
+  TRACE(fprintf(stderr, "<- SXCCD::ISNewNumber %d\n", result));
+  return result;
 }
 
-int SxCCD::SetCooler(bool state, double temperature, double *currentTemperature) 
-{
-    char setup_data[8];
-    int rc;
-
-	int iTemperature= (int)(temperature * 10 + 2730);
-
-	//fprintf(stderr,"cooler request %f %d\n", temperature, state);
-
-	setup_data[USB_REQ_TYPE    ] = USB_REQ_VENDOR;
-    setup_data[USB_REQ         ] = SXUSB_COOLER;
-    setup_data[USB_REQ_VALUE_L ] = iTemperature & 0xFF;
-    setup_data[USB_REQ_VALUE_H ] = (iTemperature >> 8) & 0xFF;
-    if (state) 
-		setup_data[USB_REQ_INDEX_L ] = 1;
-	else 
-		setup_data[USB_REQ_INDEX_L ] = 0;
-	setup_data[USB_REQ_INDEX_H] = 0;
-    setup_data[USB_REQ_LENGTH_L] = 0;
-    setup_data[USB_REQ_LENGTH_H] = 0;
-
-    rc=WriteBulk(setup_data,8,1000);
-    rc=ReadBulk(setup_data,3,1000);
-
-	*currentTemperature = ((setup_data[1] & 0xFF) * 256 + (setup_data[0] & 0xFF) - 2730) / 10.0;
-
-	//fprintf(stderr,"cooler status %f %d\n", *currentTemperature, setup_data[2] != 0);
-
-	return 0;
-}

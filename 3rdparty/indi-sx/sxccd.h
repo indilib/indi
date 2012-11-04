@@ -1,191 +1,119 @@
-/* definitions for the SX camera control packets */
-
 /*
- * CCD color representation.
- *  Packed colors allow individual sizes up to 16 bits.
- *  2X2 matrix bits are represented as:
- *      0 1
- *      2 3
- */
-#define SXCCD_COLOR_PACKED_RGB          0x8000
-#define SXCCD_COLOR_PACKED_BGR          0x4000
-#define SXCCD_COLOR_PACKED_RED_SIZE     0x0F00
-#define SXCCD_COLOR_PACKED_GREEN_SIZE   0x00F0
-#define SXCCD_COLOR_PACKED_BLUE_SIZE    0x000F
-#define SXCCD_COLOR_MATRIX_ALT_EVEN     0x2000
-#define SXCCD_COLOR_MATRIX_ALT_ODD      0x1000
-#define SXCCD_COLOR_MATRIX_2X2          0x0000
-#define SXCCD_COLOR_MATRIX_RED_MASK     0x0F00
-#define SXCCD_COLOR_MATRIX_GREEN_MASK   0x00F0
-#define SXCCD_COLOR_MATRIX_BLUE_MASK    0x000F
-#define SXCCD_COLOR_MONOCHROME          0x0FFF
-/*
- * Caps bit definitions.
- */
-#define SXCCD_CAPS_STAR2K               0x01
-#define SXCCD_CAPS_COMPRESS             0x02
-#define SXCCD_CAPS_EEPROM               0x04
-#define SXCCD_CAPS_GUIDER               0x08
-#define SXCCD_CAPS_COOLER				0x10
-#define SXCCD_CAPS_SHUTTER				0x20
+  Starlight Xpress CCD INDI Driver
 
-/*
- * CCD command options.
- */
-#define SXCCD_EXP_FLAGS_FIELD_ODD     	1
-#define SXCCD_EXP_FLAGS_FIELD_EVEN    	2
-#define SXCCD_EXP_FLAGS_FIELD_BOTH    	(SXCCD_EXP_FLAGS_FIELD_EVEN|SXCCD_EXP_FLAGS_FIELD_ODD)
-#define SXCCD_EXP_FLAGS_FIELD_MASK    	SXCCD_EXP_FLAGS_FIELD_BOTH
-#define SXCCD_EXP_FLAGS_NOBIN_ACCUM   	4
-#define SXCCD_EXP_FLAGS_NOWIPE_FRAME  	8
-#define SXCCD_EXP_FLAGS_TDI             32
-#define SXCCD_EXP_FLAGS_NOCLEAR_FRAME 	64
-/*
- * Control request fields.
- */
-#define USB_REQ_TYPE                0
-#define USB_REQ                     1
-#define USB_REQ_VALUE_L             2
-#define USB_REQ_VALUE_H             3
-#define USB_REQ_INDEX_L             4
-#define USB_REQ_INDEX_H             5
-#define USB_REQ_LENGTH_L            6
-#define USB_REQ_LENGTH_H            7
-#define USB_REQ_DATA                8
-#define USB_REQ_DIR(r)              ((r)&(1<<7))
-#define USB_REQ_DATAOUT             0x00
-#define USB_REQ_DATAIN              0x80
-#define USB_REQ_KIND(r)             ((r)&(3<<5))
-#define USB_REQ_VENDOR              (2<<5)
-#define USB_REQ_STD                 0
-#define USB_REQ_RECIP(r)            ((r)&31)
-#define USB_REQ_DEVICE              0x00
-#define USB_REQ_IFACE               0x01
-#define USB_REQ_ENDPOINT            0x02
-#define USB_DATAIN                  0x80
-#define USB_DATAOUT                 0x00
-/*
- * CCD camera control commands.
- */
-#define SXUSB_GET_FIRMWARE_VERSION  255
-#define SXUSB_ECHO                  0
-#define SXUSB_CLEAR_PIXELS          1
-#define SXUSB_READ_PIXELS_DELAYED   2
-#define SXUSB_READ_PIXELS           3
-#define SXUSB_SET_TIMER             4
-#define SXUSB_GET_TIMER             5
-#define SXUSB_RESET                 6
-#define SXUSB_SET_CCD               7
-#define SXUSB_GET_CCD               8
-#define SXUSB_SET_STAR2K            9
-#define SXUSB_WRITE_SERIAL_PORT     10
-#define SXUSB_READ_SERIAL_PORT      11
-#define SXUSB_SET_SERIAL            12
-#define SXUSB_GET_SERIAL            13
-#define SXUSB_CAMERA_MODEL          14
-#define SXUSB_LOAD_EEPROM           15
-#define SXUSB_COOLER				30
-#define SXUSB_SHUTTER				32
+  Copyright (c) 2012 Cloudmakers, s. r. o.
+  All Rights Reserved.
 
-#define SX_GUIDE_EAST             0x08     /* RA+ */
-#define SX_GUIDE_NORTH            0x04     /* DEC+ */
-#define SX_GUIDE_SOUTH            0x02     /* DEC- */
-#define SX_GUIDE_WEST             0x01     /* RA- */
+  Code is based on SX INDI Driver by Gerry Rozema and Jasem Mutlaq
+  Copyright(c) 2010 Gerry Rozema.
+  Copyright(c) 2012 Jasem Mutlaq.
+  All rights reserved.
 
+  This program is free software; you can redistribute it and/or modify it
+  under the terms of the GNU General Public License as published by the Free
+  Software Foundation; either version 2 of the License, or (at your option)
+  any later version.
 
-#define SX_CLEAR_NS               0x09
-#define SX_CLEAR_WE               0x06
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+  more details.
 
+  You should have received a copy of the GNU General Public License along with
+  this program; if not, write to the Free Software Foundation, Inc., 59
+  Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-#define USHORT unsigned short int
-#define BYTE unsigned char
+  The full GNU General Public License is included in this distribution in the
+  file called LICENSE.
+*/
 
-#define IMAGE_CCD 0
-#define GUIDE_CCD 1
+#ifndef SXCCD_H_
+#define SXCCD_H_
 
-#define MODEL_COUNT 16
+#include <indiccd.h>
+#include "sxccdusb.h"
 
-typedef struct t_sxccd_params
+void ExposureTimerCallback(void *p);
+void GuideExposureTimerCallback(void *p);
+void WEGuiderTimerCallback(void *p);
+void NSGuiderTimerCallback(void *p);
+
+class SXCCD : public INDI::CCD
 {
-    USHORT hfront_porch;
-    USHORT hback_porch;
-    USHORT width;
-    USHORT vfront_porch;
-    USHORT vback_porch;
-    USHORT height;
-    float  pix_width;
-    float  pix_height;
-    USHORT color_matrix;
-    BYTE   bits_per_pixel;
-    BYTE   num_serial_ports;
-    BYTE   extra_caps;
-    BYTE   vclk_delay;
-} CCDPARMS, *PCCDPARMS;
+  private:
+    DEVICE device;
+    HANDLE handle;
+    unsigned short model;
+    char name[20];
+    char *evenBuf, *oddBuf;
 
-#include <libindi/indiccd.h>
-#include <libindi/indiusbdevice.h>
+    INumber TemperatureN;
+    INumberVectorProperty TemperatureNP;
+    ISwitch CoolerS[2];
+    ISwitchVectorProperty CoolerSP;
+    ISwitch ShutterS[2];
+    ISwitchVectorProperty ShutterSP;
 
+    float TemperatureRequest;
+    float TemperatureReported;
 
+    float ExposureTimeLeft;
+    float GuideExposureTimeLeft;
 
-class SxCCD :  public INDI::USBDevice
-{
-    public:
-        SxCCD();
-        //  variables that we inherit from the indi ccd stuff
-        //  and we need a local copy for stand-alone use
-        int CameraModel;
-        int SubType;
-        int ColorSensor;
-        //int Interlaced;
+    int ExposureTimerID;
+    int GuideExposureTimerID;
+    int WEGuiderTimerID;
+    int NSGuiderTimerID;
 
-        float pixwidth;
-        float pixheight;
-        int xres;
-        int yres;
-        int gxres;
-        int gyres;
-        bool sx_hasguide;
-        bool sx_hasST4;
-        bool sx_hasCooler;
-        bool sx_hasShutter;
+    bool DidFlush;
+    bool DidLatch;
+    bool DidGuideLatch;
+    bool InGuideExposure;
 
-        float gpixwidth;
-        float gpixheight;
+    char GuideStatus;
 
-        struct t_sxccd_params parms;
-        struct t_sxccd_params gparms;
+  protected:
+    const char *getDefaultName();
+    bool initProperties();
+    bool updateProperties();
+    bool updateCCDBin(int hor, int ver);
+    bool Connect();
+    bool Disconnect();
+    int StartExposure(float n);
+    bool AbortExposure();
+    int StartGuideExposure(float n);
+    bool AbortGuideExposure();
+    void TimerHit();
+    void ExposureTimerHit();
+    void GuideExposureTimerHit();
+    void WEGuiderTimerHit();
+    void NSGuiderTimerHit();
+    bool GuideWest(float time);
+    bool GuideEast(float time);
+    bool GuideNorth(float time);
+    bool GuideSouth(float time);
 
-        double north_guide, south_guide, west_guide, east_guide;
-        unsigned char guide_cmd;
+  public:
+    bool HasCooler;
+    bool HasShutter;
 
-        int bits_per_pixel;
-        int gbits_per_pixel;
+    SXCCD(DEVICE device, const char *name);
+    virtual ~SXCCD();
+    void ISGetProperties(const char *dev);
+    bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
 
-        bool Connect(int pid);
-        bool Disconnect();
-
-        void getDefaultParam();
-        void getCapabilites();
-
-        int ResetCamera();
-        int GetCameraModel();
-        int GetFirmwareVersion();
-        int GetCameraParams(int,PCCDPARMS);
-        //int SetCameraParams(int,PCCDPARMS);
-
-        int ClearPixels(int flags,int cam);
-        int LatchPixels(int flags,int cam,int xoffset,int yoffset,int width,int height,int xbin,int ybin);
-        int ExposePixels(int flags,int cam,int xoffset,int yoffset,int width,int height,int xbin,int ybin, int ms);
-        int ReadPixels(char *,int);
-        int SetShutter(bool state);
-        int SetCooler(bool, double, double *);
-
-        int pulseGuide();
-
-        virtual int SetParams(int XRes,int YRes,int CamBits,float pixwidth,float pixheight);
-        virtual int SetGuideParams(int XRes,int YRes,int CamBits,float pixwidth,float pixheight);
-        virtual int SetInterlaced(bool);
-
-
+  friend void ::ExposureTimerCallback(void *p);
+  friend void ::GuideExposureTimerCallback(void *p);
+  friend void ::WEGuiderTimerCallback(void *p);
+  friend void ::NSGuiderTimerCallback(void *p);
+  friend void ::ISGetProperties(const char *dev);
+  friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);
+  friend void ::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num);
+  friend void ::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num);
+  friend void ::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
 };
 
+
+
+#endif /* SXCCD_H_ */
