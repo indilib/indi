@@ -5,7 +5,7 @@ PROJECT(libindi C CXX)
 set(INDI_SOVERSION "0")
 set(CMAKE_INDI_VERSION_MAJOR 0)
 set(CMAKE_INDI_VERSION_MINOR 9)
-set(CMAKE_INDI_VERSION_RELEASE 5)
+set(CMAKE_INDI_VERSION_RELEASE 6)
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
 
 ##################  Paths  ################################
@@ -145,16 +145,24 @@ endif(CFITSIO_FOUND)
 install(TARGETS indi LIBRARY DESTINATION ${LIB_DESTINATION})
 set_target_properties(indi PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION})
 
-##################################################
-############ INDI Main Static Library ############
-# To link with main() for 3rd party drivers      #
-##################################################
-add_library(indimain STATIC ${indimain_SRCS})
-install(TARGETS indimain ARCHIVE DESTINATION ${LIB_DESTINATION})
+###################################################
+############ INDI Main Shared Library #############
+# To link with main() for 3rd party legacy drivers#
+###################################################
+add_library(indimain SHARED ${indimain_SRCS} ${libindicom_SRCS} ${liblilxml_SRCS})
+if (NOVA_FOUND)
+target_link_libraries(indimain ${NOVA_LIBRARIES})
+endif(NOVA_FOUND)
+if (CFITSIO_FOUND)
+target_link_libraries(indimain ${CFITSIO_LIBRARIES})
+endif(CFITSIO_FOUND)
+
+install(TARGETS indimain LIBRARY DESTINATION ${LIB_DESTINATION})
+set_target_properties(indimain PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION})
 
 ##################################################
-###### INDI Default Driver Static Library ########
-# To link with main() and indibase classes       #
+########## INDI Default Driver Library ###########
+# To link with main() and indibase classes  ######
 ##################################################
 add_library(indidriver SHARED ${libindicom_SRCS} ${liblilxml_SRCS} ${indimain_SRCS} ${indidriver_SRCS})
 target_link_libraries(indidriver ${LIBUSB_LIBRARIES})
