@@ -25,7 +25,8 @@ set(indisxccd_SRCS
    )
 
 add_executable(indi_sx_ccd ${indisxccd_SRCS})
-target_link_libraries(indi_sx_ccd ${INDI_DRIVER_LIBRARIES})
+target_link_libraries(indi_sx_ccd ${INDI_DRIVER_LIBRARIES} ${LIBUSB_LIBRARIES})
+
 
 set(test_SRCS
    ${CMAKE_SOURCE_DIR}/test.cpp
