@@ -297,7 +297,7 @@ unsigned char RoboFocus::CheckSum(char *rf_cmd)
   } else {
 
       if (isDebug())
-          fprintf(stderr,  "Wrong (%s,%d), %x != %x\n",  rf_cmd, strlen(rf_cmd), val, (unsigned char) rf_cmd[8]) ;
+          fprintf(stderr,  "Wrong (%s,%ld), %x != %x\n",  rf_cmd, strlen(rf_cmd), val, (unsigned char) rf_cmd[8]) ;
   }
 
   return val ;

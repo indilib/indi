@@ -923,7 +923,7 @@ bool TCFS::read_tcfs()
     response[nbytes_read-2] = '\0';
 
     if (isDebug())
-        IDLog("Bytes Read: %d - strlen(response): %d - Response from TCF-S: #%s#\n", nbytes_read, strlen(response), response);
+        IDLog("Bytes Read: %d - strlen(response): %ld - Response from TCF-S: #%s#\n", nbytes_read, strlen(response), response);
 
     return true;
 }
