@@ -113,7 +113,6 @@ public:
     /** \return True if the device is connected (CONNECT=ON), False otherwise */
     bool isConnected();
 
-
     /** \brief Set the device name
       \param dev new device name
       */
@@ -143,6 +142,9 @@ public:
     /** \returns Get the meditator assigned to this driver */
     INDI::BaseMediator * getMediator() { return mediator; }
 
+    const char *getDriverName();
+
+    const char *getDriverExec();
 
 protected:
 

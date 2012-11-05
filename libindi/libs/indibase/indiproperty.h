@@ -3,8 +3,12 @@
 
 #include "indibase.h"
 
+
+
 namespace INDI
 {
+
+class BaseDevice;
 
 class Property
 {
@@ -16,11 +20,13 @@ public:
     void setType(INDI_TYPE t);
     void setRegistered(bool r);
     void setDynamic(bool d);
+    void setBaseDevice(BaseDevice *idp);
 
     void *getProperty() { return pPtr; }
     INDI_TYPE getType() { return pType; }
     bool getRegistered() { return pRegistered; }
     bool isDynamic() { return pDynamic; }
+    BaseDevice *getBaseDevice() { return dp; }
 
     // Convenience Functions
     const char *getName();
@@ -38,6 +44,7 @@ public:
 
 private:
     void *pPtr;
+    BaseDevice *dp;
     INDI_TYPE pType;
     bool pRegistered;
     bool pDynamic;

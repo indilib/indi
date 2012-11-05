@@ -56,26 +56,12 @@ INDI::DefaultDevice::DefaultDevice()
     pSimulation = false;
     isInit = false;
 
-    //switchPtr conSw(new ISwitchVectorProperty);
-    ConnectionSP = new ISwitchVectorProperty;
-    DebugSP = NULL;
-    SimulationSP = NULL;
-    ConfigProcessSP = NULL;
-
-    IUFillSwitch(&ConnectionS[0],"CONNECT","Connect",ISS_OFF);
-    IUFillSwitch(&ConnectionS[1],"DISCONNECT","Disconnect",ISS_ON);
-    IUFillSwitchVector(ConnectionSP,ConnectionS,2,getDeviceName(),"CONNECTION","Connection","Main Control",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
-
-    registerProperty(ConnectionSP, INDI_SWITCH);
-
+    majorVersion = 1;
+    minorVersion = 0;
 }
 
 INDI::DefaultDevice::~DefaultDevice()
 {
-    delete ConnectionSP;
-    delete DebugSP;
-    delete SimulationSP;
-    delete ConfigProcessSP;
 }
 
 bool INDI::DefaultDevice::loadConfig()
@@ -205,7 +191,7 @@ bool INDI::DefaultDevice::ISNewSwitch (const char *dev, const char *name, ISStat
     if (!svp)
         return false;
 
-     if(!strcmp(svp->name,ConnectionSP->name))
+     if(!strcmp(svp->name,ConnectionSP.name))
      {
         bool rc;
         
@@ -318,63 +304,20 @@ bool INDI::DefaultDevice::ISNewSwitch (const char *dev, const char *name, ISStat
 
 void INDI::DefaultDevice::addDebugControl()
 {
-    /**************************************************************************/
-    DebugSP = getSwitch("DEBUG");
-    if (!DebugSP)
-    {
-        DebugSP = new ISwitchVectorProperty;
-        IUFillSwitch(&DebugS[0], "ENABLE", "Enable", ISS_OFF);
-        IUFillSwitch(&DebugS[1], "DISABLE", "Disable", ISS_ON);
-        IUFillSwitchVector(DebugSP, DebugS, NARRAY(DebugS), getDeviceName(), "DEBUG", "Debug", "Options", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-        registerProperty(DebugSP, INDI_SWITCH);
-    }
-    else
-    {
-        ISwitch *sp = IUFindSwitch(DebugSP, "ENABLE");
-        if (sp)
-            if (sp->s == ISS_ON)
-                pDebug = true;
-    }
-    /**************************************************************************/
+    registerProperty(&DebugSP, INDI_SWITCH);
+    pDebug = false;
 
 }
 
 void INDI::DefaultDevice::addSimulationControl()
 {
-    /**************************************************************************/
-    SimulationSP = getSwitch("SIMULATION");
-    if (!SimulationSP)
-    {
-        SimulationSP = new ISwitchVectorProperty;
-        IUFillSwitch(&SimulationS[0], "ENABLE", "Enable", ISS_OFF);
-        IUFillSwitch(&SimulationS[1], "DISABLE", "Disable", ISS_ON);
-        IUFillSwitchVector(SimulationSP, SimulationS, NARRAY(SimulationS), getDeviceName(), "SIMULATION", "Simulation", "Options", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-        registerProperty(SimulationSP, INDI_SWITCH);
-    }
-    else
-    {
-        ISwitch *sp = IUFindSwitch(SimulationSP, "ENABLE");
-        if (sp)
-            if (sp->s == ISS_ON)
-                pSimulation = true;
-    }
+        registerProperty(&SimulationSP, INDI_SWITCH);
+        pSimulation = false;
 }
 
 void INDI::DefaultDevice::addConfigurationControl()
 {
-    /**************************************************************************/
-    ConfigProcessSP = getSwitch("CONFIG_PROCESS");
-    if (!ConfigProcessSP)
-    {
-        ConfigProcessSP = new ISwitchVectorProperty;
-        IUFillSwitch(&ConfigProcessS[0], "CONFIG_LOAD", "Load", ISS_OFF);
-        IUFillSwitch(&ConfigProcessS[1], "CONFIG_SAVE", "Save", ISS_OFF);
-        IUFillSwitch(&ConfigProcessS[2], "CONFIG_DEFAULT", "Default", ISS_OFF);
-        IUFillSwitchVector(ConfigProcessSP, ConfigProcessS, NARRAY(ConfigProcessS), getDeviceName(), "CONFIG_PROCESS", "Configuration", "Options", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-        registerProperty(ConfigProcessSP, INDI_SWITCH);
-    }
-    /**************************************************************************/
-
+        registerProperty(&ConfigProcessSP, INDI_SWITCH);
 }
 
 void INDI::DefaultDevice::addAuxControls()
@@ -386,21 +329,18 @@ void INDI::DefaultDevice::addAuxControls()
 
 void INDI::DefaultDevice::setDebug(bool enable)
 {
-    if (!DebugSP)
-        return;
-
     if (pDebug == enable)
     {
-        DebugSP->s = IPS_OK;
-        IDSetSwitch(DebugSP, NULL);
+        DebugSP.s = IPS_OK;
+        IDSetSwitch(&DebugSP, NULL);
         return;
     }
 
-    IUResetSwitch(DebugSP);
+    IUResetSwitch(&DebugSP);
 
     if (enable)
     {
-        ISwitch *sp = IUFindSwitch(DebugSP, "ENABLE");
+        ISwitch *sp = IUFindSwitch(&DebugSP, "ENABLE");
         if (sp)
         {
             sp->s = ISS_ON;
@@ -409,7 +349,7 @@ void INDI::DefaultDevice::setDebug(bool enable)
     }
     else
     {
-        ISwitch *sp = IUFindSwitch(DebugSP, "DISABLE");
+        ISwitch *sp = IUFindSwitch(&DebugSP, "DISABLE");
         if (sp)
         {
             sp->s = ISS_ON;
@@ -418,28 +358,26 @@ void INDI::DefaultDevice::setDebug(bool enable)
     }
 
     pDebug = enable;
-    DebugSP->s = IPS_OK;
-    IDSetSwitch(DebugSP, NULL);
+    DebugSP.s = IPS_OK;
+    IDSetSwitch(&DebugSP, NULL);
 
 }
 
 void INDI::DefaultDevice::setSimulation(bool enable)
 {
-    if (!SimulationSP)
-        return;
 
    if (pSimulation == enable)
    {
-       SimulationSP->s = IPS_OK;
-       IDSetSwitch(SimulationSP, NULL);
+       SimulationSP.s = IPS_OK;
+       IDSetSwitch(&SimulationSP, NULL);
        return;
    }
 
-   IUResetSwitch(SimulationSP);
+   IUResetSwitch(&SimulationSP);
 
    if (enable)
    {
-       ISwitch *sp = IUFindSwitch(SimulationSP, "ENABLE");
+       ISwitch *sp = IUFindSwitch(&SimulationSP, "ENABLE");
        if (sp)
        {
            IDMessage(deviceID, "Simulation is enabled.");
@@ -448,7 +386,7 @@ void INDI::DefaultDevice::setSimulation(bool enable)
    }
    else
    {
-       ISwitch *sp = IUFindSwitch(SimulationSP, "DISABLE");
+       ISwitch *sp = IUFindSwitch(&SimulationSP, "DISABLE");
        if (sp)
        {
            sp->s = ISS_ON;
@@ -457,8 +395,8 @@ void INDI::DefaultDevice::setSimulation(bool enable)
    }
 
    pSimulation = enable;
-   SimulationSP->s = IPS_OK;
-   IDSetSwitch(SimulationSP, NULL);
+   SimulationSP.s = IPS_OK;
+   IDSetSwitch(&SimulationSP, NULL);
 
 }
 
@@ -491,7 +429,7 @@ void INDI::DefaultDevice::ISGetProperties (const char *dev)
                setDeviceName(getDefaultName());
         }
 
-        strncpy(ConnectionSP->device, getDeviceName(), MAXINDIDEVICE);
+        strncpy(ConnectionSP.device, getDeviceName(), MAXINDIDEVICE);
         initProperties();
         addConfigurationControl();
 
@@ -522,6 +460,7 @@ void INDI::DefaultDevice::ISGetProperties (const char *dev)
              break;
         }
     }
+
 }
 
 void INDI::DefaultDevice::resetProperties()
@@ -626,6 +565,34 @@ bool INDI::DefaultDevice::updateProperties()
 
 bool INDI::DefaultDevice::initProperties()
 {
+    char versionStr[16];
+
+    snprintf(versionStr, 16, "%d.%d", majorVersion, minorVersion);
+
+    IUFillSwitch(&ConnectionS[0],"CONNECT","Connect",ISS_OFF);
+    IUFillSwitch(&ConnectionS[1],"DISCONNECT","Disconnect",ISS_ON);
+    IUFillSwitchVector(&ConnectionSP,ConnectionS,2,getDeviceName(),"CONNECTION","Connection","Main Control",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    registerProperty(&ConnectionSP, INDI_SWITCH);
+
+    IUFillText(&DriverInfoT[0],"NAME","Name",getDefaultName());
+    IUFillText(&DriverInfoT[1],"EXEC","Exec",getDriverName());
+    IUFillText(&DriverInfoT[2],"VERSION","Version",versionStr);
+    IUFillTextVector(&DriverInfoTP,DriverInfoT,3,getDeviceName(),"DRIVER_INFO","Driver Info",OPTIONS_TAB,IP_RO,60,IPS_IDLE);
+    registerProperty(&DriverInfoTP, INDI_TEXT);
+
+    IUFillSwitch(&DebugS[0], "ENABLE", "Enable", ISS_OFF);
+    IUFillSwitch(&DebugS[1], "DISABLE", "Disable", ISS_ON);
+    IUFillSwitchVector(&DebugSP, DebugS, NARRAY(DebugS), getDeviceName(), "DEBUG", "Debug", "Options", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    IUFillSwitch(&SimulationS[0], "ENABLE", "Enable", ISS_OFF);
+    IUFillSwitch(&SimulationS[1], "DISABLE", "Disable", ISS_ON);
+    IUFillSwitchVector(&SimulationSP, SimulationS, NARRAY(SimulationS), getDeviceName(), "SIMULATION", "Simulation", "Options", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    IUFillSwitch(&ConfigProcessS[0], "CONFIG_LOAD", "Load", ISS_OFF);
+    IUFillSwitch(&ConfigProcessS[1], "CONFIG_SAVE", "Save", ISS_OFF);
+    IUFillSwitch(&ConfigProcessS[2], "CONFIG_DEFAULT", "Default", ISS_OFF);
+    IUFillSwitchVector(&ConfigProcessSP, ConfigProcessS, NARRAY(ConfigProcessS), getDeviceName(), "CONFIG_PROCESS", "Configuration", "Options", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
    return true;
 }
 

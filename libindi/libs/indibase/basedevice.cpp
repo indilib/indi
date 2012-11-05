@@ -463,6 +463,7 @@ int INDI::BaseDevice::buildProp(XMLEle *root, char *errmsg)
         nvp->nnp = n;
         nvp->np  = np;
 
+        indiProp->setBaseDevice(this);
         indiProp->setProperty(nvp);
         indiProp->setDynamic(true);
         indiProp->setType(INDI_NUMBER);
@@ -525,6 +526,7 @@ int INDI::BaseDevice::buildProp(XMLEle *root, char *errmsg)
             svp->nsp = n;
             svp->sp  = sp;
 
+            indiProp->setBaseDevice(this);
             indiProp->setProperty(svp);
             indiProp->setDynamic(true);
             indiProp->setType(INDI_SWITCH);
@@ -585,6 +587,7 @@ else if (!strcmp (rtag, "defTextVector"))
         tvp->ntp = n;
         tvp->tp  = tp;
 
+        indiProp->setBaseDevice(this);
         indiProp->setProperty(tvp);
         indiProp->setDynamic(true);
         indiProp->setType(INDI_TEXT);
@@ -642,6 +645,7 @@ else if (!strcmp (rtag, "defLightVector"))
         lvp->nlp = n;
         lvp->lp  = lp;
 
+        indiProp->setBaseDevice(this);
         indiProp->setProperty(lvp);
         indiProp->setDynamic(true);
         indiProp->setType(INDI_LIGHT);
@@ -708,6 +712,7 @@ else if (!strcmp (rtag, "defBLOBVector"))
         bvp->nbp = n;
         bvp->bp  = bp;
 
+        indiProp->setBaseDevice(this);
         indiProp->setProperty(bvp);
         indiProp->setDynamic(true);
         indiProp->setType(INDI_BLOB);
@@ -1161,5 +1166,33 @@ void INDI::BaseDevice::registerProperty(void *p, INDI_TYPE type)
 
     }
 
+}
+
+const char *INDI::BaseDevice::getDriverName()
+{
+    ITextVectorProperty *driverInfo = getText("DRIVER_INFO");
+
+    if (driverInfo == NULL)
+        return NULL;
+
+    IText *driverName = IUFindText(driverInfo, "NAME");
+    if (driverName)
+        return driverName->text;
+
+    return NULL;
+}
+
+const char *INDI::BaseDevice::getDriverExec()
+{
+    ITextVectorProperty *driverInfo = getText("DRIVER_INFO");
+
+    if (driverInfo == NULL)
+        return NULL;
+
+    IText *driverExec = IUFindText(driverInfo, "EXEC");
+    if (driverExec)
+        return driverExec->text;
+
+    return NULL;
 }
 

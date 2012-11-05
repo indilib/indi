@@ -47,8 +47,7 @@ drivers directly as it is linked with main(). Virtual drivers cannot employ INDI
  */
 class INDI::DefaultDevice : public INDI::BaseDevice
 {
-private:
-    bool isInit;
+
 public:
     DefaultDevice();
     virtual ~DefaultDevice();
@@ -128,6 +127,13 @@ to disconnect the device.
     /** \brief Callback function to be called once SetTimer duration elapses. */
     virtual void TimerHit();
 
+    /** \return driver name (executable filename) */
+    virtual const char *getDriverName() { return me; }
+
+    void setVersion(unsigned int vMajor, unsigned int vMinor) { majorVersion = vMajor; minorVersion = vMinor;}
+    unsigned int getMajorVersion() { return majorVersion;}
+    unsigned int getMinorVersion() { return minorVersion;}
+
 protected:
 
     /** \brief define the driver's properties to the client.
@@ -184,7 +190,6 @@ protected:
     */
     virtual bool loadDefaultConfig();
 
-
     // Simulatin & Debug
 
     /** \brief Toggle driver debug status
@@ -208,12 +213,6 @@ protected:
 
     /** \return True if Simulation is on, False otherwise. */
     bool isSimulation();
-
-    //  These are the properties we define, that are generic to pretty much all devices
-    //  They are public to make them available to all dervied classes and thier children
-    ISwitchVectorProperty *ConnectionSP;
-    ISwitch ConnectionS[2];
-
 
     /** \brief Initilize properties initial state and value. The child class must implement this function.
         \return True if initilization is successful, false otherwise.
@@ -242,20 +241,28 @@ protected:
     /** \return Default name of the device. */
     virtual const char *getDefaultName()=0;
 
-
-
 private:
 
+    bool isInit;
     bool pDebug;
     bool pSimulation;
+
+    unsigned int majorVersion;
+    unsigned int minorVersion;
 
     ISwitch DebugS[2];
     ISwitch SimulationS[2];
     ISwitch ConfigProcessS[3];
+    ISwitch ConnectionS[2];
 
-    ISwitchVectorProperty *DebugSP;
-    ISwitchVectorProperty *SimulationSP;
-    ISwitchVectorProperty *ConfigProcessSP;
+    ISwitchVectorProperty DebugSP;
+    ISwitchVectorProperty SimulationSP;
+    ISwitchVectorProperty ConfigProcessSP;
+    ISwitchVectorProperty ConnectionSP;
+
+
+    IText DriverInfoT[3];
+    ITextVectorProperty DriverInfoTP;
 
 
 };

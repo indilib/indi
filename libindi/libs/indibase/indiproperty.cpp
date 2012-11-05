@@ -66,6 +66,11 @@ void INDI::Property::setDynamic(bool d)
    pDynamic = d;
 }
 
+void INDI::Property::setBaseDevice(BaseDevice *idp)
+{
+    dp = idp;
+}
+
 const char * INDI::Property::getName()
 {
     if (pPtr == NULL)
