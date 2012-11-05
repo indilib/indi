@@ -1,0 +1,27 @@
+indiduino v0.1
+==============
+
+This INDI drivers allows to use arduino boards (http://www.arduino.cc)
+as general propouse I/O.
+
+The comunication to the arduino board it is made using firmata protocol
+(http://www.firmata.org/) and the board has to be load with the standard 
+firmata firmaware. This firmware is distributed with the Arduino-IDE 
+programing tool. To load File->examples->firmata->standardfirmata
+
+The driver read the properties configuration from xml skeleton file. It use 
+also this file to program on runtime arduino pin behaviour (ANALOG,PWM,INPUT, 
+OUTPUT). The driver use the property name to map each arduino pin. The syntaxis
+is:
+
+DINPUT__xx  -> PIN xx (two digits) is configure as digital input.
+DOUTPUT_xx -> PIN xx (two digits) is configure as digital input.
+AINPUT__xx  -> PIN xx (two digits) is configure as analog input. Values are report as raw 
+              input reading in the 0-1024 range.		 
+AOUTPUT_xx -> PIN xx (two digits) is configure as analog output(real PWM). Values are 0-255 
+	      range corresponding 0% to 100% PWM duty cycle.	
+
+IMPORTANT: The user is responsible to map every pin to the real hardware. No check is done. 
+
+See example skeleton files for more details.
+
