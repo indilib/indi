@@ -44,7 +44,7 @@ class SXCCD : public INDI::CCD
     DEVICE device;
     HANDLE handle;
     unsigned short model;
-    char name[20];
+    char name[32];
     char *evenBuf, *oddBuf;
 
     INumber TemperatureN;
@@ -75,6 +75,7 @@ class SXCCD : public INDI::CCD
   protected:
     const char *getDefaultName();
     bool initProperties();
+    void getCameraParams();
     bool updateProperties();
     bool updateCCDBin(int hor, int ver);
     bool Connect();

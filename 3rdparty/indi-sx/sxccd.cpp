@@ -179,9 +179,9 @@ SXCCD::SXCCD(DEVICE device, const char *name) {
   DidGuideLatch = false;
   NSGuiderTimerID = 0;
   WEGuiderTimerID = 0;
-  strncpy(this->name, name, 20);
+  snprintf(this->name, 32, "SX CCD %s", name);
   setDeviceName(this->name);
-  TRACE(fprintf(stderr, "   %s instance created\n", name));
+  TRACE(fprintf(stderr, "   %s instance created\n", this->name));
   TRACE(fprintf(stderr, "<- SXCCD::SXCCD\n"));
 }
 
@@ -192,7 +192,7 @@ SXCCD::~SXCCD() {
 }
 
 const char *SXCCD::getDefaultName() {
-  return name;
+    return name;
 }
 
 bool SXCCD::initProperties() {
@@ -235,6 +235,8 @@ bool SXCCD::updateProperties() {
       deleteProperty(ShutterSP.name);
   }
 
+  getCameraParams();
+
   TRACE(fprintf(stderr, "<- SXCCD::updateProperties 1\n"));
   return true;
 }
@@ -257,7 +259,6 @@ bool SXCCD::Connect() {
     handle = usb_open(device);
     if (handle != NULL) {
       int rc;
-      struct t_sxccd_params params;
       rc = usb_detach_kernel_driver_np(handle, 0);
       TRACE( fprintf(stderr, "   usb_detach_kernel_driver_np() -> %d\n", rc));
 #ifdef __APPLE__
@@ -266,46 +267,8 @@ bool SXCCD::Connect() {
       rc = usb_claim_interface(handle, 1);
 #endif
       TRACE(fprintf(stderr, "   usb_claim_interface() -> %d\n", rc));
-      if (!rc) {
-        sxReset(handle);
-        usleep(1000);
-        model = sxGetCameraModel(handle);
-        bool isInterlaced = model & 0x40;
-        PrimaryCCD.setInterlaced(isInterlaced);
-
-        sxGetCameraParams(handle, 0, &params);
-        if (isInterlaced) {
-          params.pix_height /= 2;
-          params.height *= 2;
-        }
-
-        SetCCDParams(params.width, params.height, params.bits_per_pixel, params.pix_width, params.pix_height);
-
-        int nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes();
-        if (params.bits_per_pixel == 16)
-          nbuf *= 2;
-        nbuf += 512;
-        PrimaryCCD.setFrameBufferSize(nbuf);
-        if (evenBuf != NULL)
-          delete evenBuf;
-        if (oddBuf != NULL)
-          delete oddBuf;
-        evenBuf = new char[nbuf / 2];
-        oddBuf = new char[nbuf / 2];
-
-        HasGuideHead = params.extra_caps & SXCCD_CAPS_GUIDER;
-        HasCooler = params.extra_caps & SXUSB_CAPS_COOLER;
-        HasShutter = params.extra_caps & SXUSB_CAPS_SHUTTER;
-        HasSt4Port = params.extra_caps & SXCCD_CAPS_STAR2K;
-
-        if (HasGuideHead) {
-          sxGetCameraParams(handle, 1, &params);
-          SetGuidHeadParams(params.width, params.height, params.bits_per_pixel, params.pix_width, params.pix_height);
-        }
-        SetTimer(TIMER);
-        TRACE(fprintf(stderr, "<- SXCCD::Connect 1\n"));
-        return true;
-      }
+      if (!rc)
+          return true;
     }
   }
   TRACE(fprintf(stderr, "<- SXCCD::Connect 0\n"));
@@ -322,6 +285,48 @@ bool SXCCD::Disconnect() {
   }
   TRACE(fprintf(stderr, "<- SXCCD::Disconnect 1\n"));
   return true;
+}
+
+void SXCCD::getCameraParams()
+{
+      struct t_sxccd_params params;
+      sxReset(handle);
+      usleep(1000);
+      model = sxGetCameraModel(handle);
+      bool isInterlaced = model & 0x40;
+      PrimaryCCD.setInterlaced(isInterlaced);
+
+      sxGetCameraParams(handle, 0, &params);
+      if (isInterlaced) {
+        params.pix_height /= 2;
+        params.height *= 2;
+      }
+
+      SetCCDParams(params.width, params.height, params.bits_per_pixel, params.pix_width, params.pix_height);
+
+      int nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes();
+      if (params.bits_per_pixel == 16)
+        nbuf *= 2;
+      nbuf += 512;
+      PrimaryCCD.setFrameBufferSize(nbuf);
+      if (evenBuf != NULL)
+        delete evenBuf;
+      if (oddBuf != NULL)
+        delete oddBuf;
+      evenBuf = new char[nbuf / 2];
+      oddBuf = new char[nbuf / 2];
+
+      HasGuideHead = params.extra_caps & SXCCD_CAPS_GUIDER;
+      HasCooler = params.extra_caps & SXUSB_CAPS_COOLER;
+      HasShutter = params.extra_caps & SXUSB_CAPS_SHUTTER;
+      HasSt4Port = params.extra_caps & SXCCD_CAPS_STAR2K;
+
+      if (HasGuideHead) {
+        sxGetCameraParams(handle, 1, &params);
+        SetGuidHeadParams(params.width, params.height, params.bits_per_pixel, params.pix_width, params.pix_height);
+      }
+      SetTimer(TIMER);
+      TRACE(fprintf(stderr, "<- SXCCD::Connect 1\n"));
 }
 
 void SXCCD::TimerHit() {
