@@ -142,8 +142,14 @@ public:
     /** \returns Get the meditator assigned to this driver */
     INDI::BaseMediator * getMediator() { return mediator; }
 
+    /** \return driver name
+     *  \note This can only be valid if DRIVER_INFO is defined by the driver.
+     **/
     const char *getDriverName();
 
+    /** \return driver executable name
+     *  \note This can only be valid if DRIVER_INFO is defined by the driver.
+     **/
     const char *getDriverExec();
 
 protected:

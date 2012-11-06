@@ -130,8 +130,16 @@ to disconnect the device.
     /** \return driver name (executable filename) */
     virtual const char *getDriverName() { return me; }
 
+    /** \brief Set driver version information to be defined in DRIVER_INFO property as vMajor.vMinor
+     * \param vMajor major revision number
+     * \param vMinor minor revision number
+    */
     void setVersion(unsigned int vMajor, unsigned int vMinor) { majorVersion = vMajor; minorVersion = vMinor;}
+
+    /** \return Major driver version number. */
     unsigned int getMajorVersion() { return majorVersion;}
+
+    /** \return Minor driver version number. */
     unsigned int getMinorVersion() { return minorVersion;}
 
 protected:
