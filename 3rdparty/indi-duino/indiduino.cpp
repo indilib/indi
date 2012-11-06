@@ -231,13 +231,16 @@ bool indiduino::initProperties()
     const char *skelFileName = "/usr/share/indi/switcher_sk.xml";
     struct stat st;
 
+
+    setVersion(VERSION_MAJOR, VERSION_MINOR);
+
     char *skel = getenv("INDISKEL");
     if (skel) {
         buildSkeleton(skel);
-	IDLog("Buildding from %s skeleton\n",skel);
+    IDLog("Building from %s skeleton\n",skel);
     } else if (stat(skelFileName,&st) == 0) {
         buildSkeleton(skelFileName);
-	IDLog("Buildding from %s skeleton\n",skelFileName);
+    IDLog("Building from %s skeleton\n",skelFileName);
     } else {
         IDLog("No skeleton file was specified. Set environment variable INDISKEL to the skeleton path and try again.\n");
     } 
