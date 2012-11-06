@@ -10,6 +10,7 @@
 #  INDI_DATA_DIR - INDI shared data dir.
 
 # Copyright (c) 2011, Jasem Mutlaq <mutlaqja@ikarustech.com>
+# Copyright (c) 2012, Pino Toscano <pino@kde.org>
 # Based on FindLibfacile by Carsten Niehaus, <cniehaus@gmx.de>
 #
 # Redistribution and use is allowed according to the terms of the BSD license.
@@ -24,60 +25,53 @@ if (INDI_INCLUDE_DIR AND INDI_DATA_DIR AND INDI_LIBRARIES AND INDI_DRIVER_LIBRAR
 
 else (INDI_INCLUDE_DIR AND INDI_DATA_DIR AND INDI_LIBRARIES AND INDI_DRIVER_LIBRARIES AND INDI_MAIN_LIBRARIES)
 
-  find_path(INDI_INCLUDE_DIR indidevapi.h
-    PATH_SUFFIXES libindi
-    ${_obIncDir}
-    ${GNUWIN32_DIR}/include
+  find_package(PkgConfig)
+
+  if (PKG_CONFIG_FOUND)
+    if (INDI_FIND_VERSION)
+      set(version_string ">=${INDI_FIND_VERSION}")
+    endif()
+    pkg_check_modules(PC_INDI libindi${version_string})
+  else()
+    # assume it was found
+    set(PC_INDI_FOUND TRUE)
+  endif()
+
+  if (PC_INDI_FOUND)
+    find_path(INDI_INCLUDE_DIR indidevapi.h
+      PATH_SUFFIXES libindi
+      HINTS ${PC_INDI_INCLUDE_DIRS}
+    )
+
+    find_library(INDI_LIBRARIES NAMES indi
+      HINTS ${PC_INDI_LIBRARY_DIRS}
+    )
+
+    find_library(INDI_DRIVER_LIBRARIES NAMES indidriver
+      HINTS ${PC_INDI_LIBRARY_DIRS}
+    )
+
+    find_library(INDI_MAIN_LIBRARIES NAMES indimain
+      HINTS ${PC_INDI_LIBRARY_DIRS}
+    )
+
+    find_library(INDI_CLIENT_LIBRARIES NAMES indiclient
+      HINTS ${PC_INDI_LIBRARY_DIRS}
+    )
+
+    find_path(INDI_DATA_DIR drivers.xml
+      PATH_SUFFIXES indi
+    )
+
+    set(INDI_VERSION "${PC_INDI_VERSION}")
+
+  endif()
+
+  include(FindPackageHandleStandardArgs)
+  find_package_handle_standard_args(INDI
+                                    REQUIRED_VARS INDI_INCLUDE_DIR INDI_LIBRARIES INDI_DRIVER_LIBRARIES INDI_MAIN_LIBRARIES INDI_CLIENT_LIBRARIES
+                                    VERSION_VAR INDI_VERSION
   )
-
-  find_path(INDI_DATA_DIR drivers.xml
-    PATHS ${CMAKE_INSTALL_PREFIX} /usr /usr/local /opt /opt/local ${GNUWIN32_DIR}
-    PATH_SUFFIXES share/indi
-  )
-
-  find_library(INDI_LIBRARIES NAMES indi
-    PATHS
-    ${_obLinkDir}
-    ${GNUWIN32_DIR}/lib
-  )
-
-  find_library(INDI_DRIVER_LIBRARIES NAMES indidriver
-    PATHS
-    ${_obLinkDir}
-    ${GNUWIN32_DIR}/lib
-  )
-
-  find_library(INDI_MAIN_LIBRARIES NAMES indimain
-    PATHS
-    ${_obLinkDir}
-    ${GNUWIN32_DIR}/lib
-  )
-
-  find_library(INDI_CLIENT_LIBRARIES NAMES indiclient
-    PATHS
-    ${_obLinkDir}
-    ${GNUWIN32_DIR}/lib
-  )
-
-  # Find pkg-config
-  FIND_PROGRAM(PKGCONFIG_EXECUTABLE NAMES pkg-config PATHS /usr/bin/ /usr/local/bin )
-
-  # query pkg-config asking for a libindi >= 0.8.0
-     EXEC_PROGRAM(${PKGCONFIG_EXECUTABLE} ARGS --atleast-version=0.8.0 libindi RETURN_VALUE _return_VALUE OUTPUT_VARIABLE _pkgconfigDevNull )
-     if(_return_VALUE STREQUAL "0")
-        set(INDI_FOUND TRUE)
-     else(_return_VALUE STREQUAL "0")
-       set(INDI_FOUND FALSE)
-       message(STATUS "Could NOT find libindi. pkg-config indicates that libindi >= 0.8.0 is not installed.")
-     endif(_return_VALUE STREQUAL "0")
-
-
-  if (INDI_FOUND)
-    if (NOT INDI_FIND_QUIETLY)
-      message(STATUS "Found INDI: ${INDI_LIBRARIES}, ${INDI_MAIN_LIBRARIES}")
-      message(STATUS "INDI Include: ${INDI_INCLUDE_DIR}, INDI Data: ${INDI_DATA_DIR}")
-    endif (NOT INDI_FIND_QUIETLY)
-  endif (INDI_FOUND)
 
   mark_as_advanced(INDI_INCLUDE_DIR INDI_DATA_DIR INDI_LIBRARIES INDI_DRIVER_LIBRARIES INDI_MAIN_LIBRARIES INDI_CLIENT_LIBRARIES)
 
