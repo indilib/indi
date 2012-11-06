@@ -1,3 +1,9 @@
+libindi (0.9.6) precise; urgency=low
+
+  * New upstream release.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Tue, 6 Nov 2012 01:09:00 +0300
+
 libindi (0.9.5) precise; urgency=low
 
   * New upstream release.
