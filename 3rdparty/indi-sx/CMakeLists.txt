@@ -27,16 +27,37 @@ set(indisxccd_SRCS
 add_executable(indi_sx_ccd ${indisxccd_SRCS})
 target_link_libraries(indi_sx_ccd ${INDI_DRIVER_LIBRARIES} ${LIBUSB_LIBRARIES})
 
+IF (APPLE)
+set(indisxwheel_SRCS
+  ${CMAKE_SOURCE_DIR}/sxwheel.cpp
+  ${CMAKE_SOURCE_DIR}/hid_mac.c
+  )
+ELSEIF (WIN32)
+set(indisxwheel_SRCS
+  ${CMAKE_SOURCE_DIR}/sxwheel.cpp
+  ${CMAKE_SOURCE_DIR}/hid_win.c
+  )
+ELSE ()
+set(indisxwheel_SRCS
+  ${CMAKE_SOURCE_DIR}/sxwheel.cpp
+  ${CMAKE_SOURCE_DIR}/hid_libusb.c
+  )
+ENDIF()
 
-set(test_SRCS
-   ${CMAKE_SOURCE_DIR}/test.cpp
-   ${CMAKE_SOURCE_DIR}/sxccdusb.cpp
-   )
+IF (APPLE)
+set(CMAKE_EXE_LINKER_FLAGS "-framework IOKit -framework CoreFoundation")
+ELSEIF (WIN32)
+ELSE ()
+ENDIF()
 
-add_executable(test ${CMAKE_SOURCE_DIR}/test.cpp ${CMAKE_SOURCE_DIR}/sxccdusb.cpp)
-target_link_libraries(test ${LIBUSB_LIBRARIES})
+add_executable(indi_sx_wheel ${indisxwheel_SRCS})
+target_link_libraries(indi_sx_wheel ${INDI_DRIVER_LIBRARIES} ${LIBUSB_LIBRARIES})
+
+
+
 
 install(TARGETS indi_sx_ccd RUNTIME DESTINATION bin)
+install(TARGETS indi_sx_wheel RUNTIME DESTINATION bin)
 install(FILES indi_sx.xml DESTINATION ${INDI_DATA_DIR})
 
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")

@@ -1,7 +1,7 @@
-QHY INDI Driver
+SX INDI Driver
 ==================
 
-This package provides the INDI driver for QHY CCDs (currently only QHY5)
+This package provides the INDI drivers for SX CCDs and SX wheel
 
 Requirtments
 ============
@@ -21,17 +21,15 @@ Requirtments
 Installation
 ============
 
-	Ensure that the firmware is properly installed.  See firmware/README
-
 	See INSTALL
 	
 How to Use
 ==========
 
-	You can use the QHY INDI Driver in any INDI-compatible client such as OpenPHD, gcx, KStars or Xephem. 
+	You can use the SX INDI Driver in any INDI-compatible client such as OpenPHD, gcx, KStars, Xephem or jINDI. 
 	
 	To run the driver from the command line:
 	
-	$ indiserver indi_qhy_ccd
+	$ indiserver indi_sx_ccd indi_sx_wheel
 
 	You can then connect to the driver from any client, the default port is 7624.

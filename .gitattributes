@@ -184,6 +184,10 @@
 3rdparty/indi-sx/COPYING.LIB -text
 3rdparty/indi-sx/INSTALL -text
 3rdparty/indi-sx/README -text
+3rdparty/indi-sx/hid_libusb.c -text svneol=unset#text/plain
+3rdparty/indi-sx/hid_mac.c -text svneol=unset#text/plain
+3rdparty/indi-sx/hid_win.c -text svneol=unset#text/plain
+3rdparty/indi-sx/hidapi.h -text svneol=unset#text/plain
 3rdparty/indi-sx/indi_sx.xml -text
 3rdparty/indi-sx/sxccd.cpp -text
 3rdparty/indi-sx/sxccd.h -text
@@ -191,6 +195,8 @@
 3rdparty/indi-sx/sxccdusb.h -text
 3rdparty/indi-sx/sxconfig.h -text
 3rdparty/indi-sx/sxconfig.h.in -text
+3rdparty/indi-sx/sxwheel.cpp -text svneol=unset#text/plain
+3rdparty/indi-sx/sxwheel.h -text svneol=unset#text/plain
 3rdparty/indi-sx/test.cpp -text
 cmake_modules/FindALUT.cmake -text
 cmake_modules/FindAPOGEE.cmake -text
