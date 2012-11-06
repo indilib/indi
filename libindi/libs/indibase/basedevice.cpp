@@ -349,6 +349,9 @@ void INDI::BaseDevice::buildSkeleton(const char *filename)
 
     //prXMLEle(stderr, fproot, 0);
 
+    strncpy(deviceID, findXMLAttValu(fproot, "name"), MAXINDIDEVICE-1);
+    deviceID[MAXINDIDEVICE-1]='\0';
+
     for (root = nextXMLEle (fproot, 1); root != NULL; root = nextXMLEle (fproot, 0))
             buildProp(root, errmsg);
 

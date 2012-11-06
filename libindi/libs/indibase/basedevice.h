@@ -159,7 +159,6 @@ protected:
     /** \brief Parse and store BLOB in the respective vector */
     int setBLOB(IBLOBVectorProperty *pp, XMLEle * root, char * errmsg);
 
-
 private:
 
     char *deviceID;
