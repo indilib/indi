@@ -215,9 +215,11 @@ bool SXCCD::initProperties() {
 }
 
 bool SXCCD::updateProperties() {
-  TRACE(fprintf(stderr, "-> SXCCD::updateProperties()\n"));
+  TRACE(fprintf(stderr, "-> SXCCD::updateProperties() conneced=%d\n", isConnected()));
 
   INDI::CCD::updateProperties();
+
+  getCameraParams();
 
   if (isConnected()) {
     if (HasCooler) {
@@ -234,8 +236,6 @@ bool SXCCD::updateProperties() {
     if (HasShutter)
       deleteProperty(ShutterSP.name);
   }
-
-  getCameraParams();
 
   TRACE(fprintf(stderr, "<- SXCCD::updateProperties 1\n"));
   return true;
