@@ -28,6 +28,7 @@
 
 #include <stdio.h>
 #include <memory>
+#include <unistd.h>
 
 #include "sxwheel.h"
 
