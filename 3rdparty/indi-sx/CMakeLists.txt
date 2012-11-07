@@ -13,6 +13,7 @@ configure_file (
   )
 
 find_package(USB REQUIRED)
+find_package(USB-1 REQUIRED)
 find_package(INDI REQUIRED)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
@@ -38,20 +39,22 @@ set(indisxwheel_SRCS
   ${CMAKE_SOURCE_DIR}/hid_win.c
   )
 ELSE ()
+include_directories(${LIBUSB_1_INCLUDE_DIRS})
 set(indisxwheel_SRCS
   ${CMAKE_SOURCE_DIR}/sxwheel.cpp
   ${CMAKE_SOURCE_DIR}/hid_libusb.c
   )
 ENDIF()
 
+add_executable(indi_sx_wheel ${indisxwheel_SRCS})
 IF (APPLE)
 set(CMAKE_EXE_LINKER_FLAGS "-framework IOKit -framework CoreFoundation")
+target_link_libraries(indi_sx_wheel ${INDI_DRIVER_LIBRARIES} ${LIBUSB_LIBRARIES})
 ELSEIF (WIN32)
 ELSE ()
+target_link_libraries(indi_sx_wheel ${INDI_DRIVER_LIBRARIES} ${LIBUSB_1_LIBRARIES})
 ENDIF()
 
-add_executable(indi_sx_wheel ${indisxwheel_SRCS})
-target_link_libraries(indi_sx_wheel ${INDI_DRIVER_LIBRARIES} ${LIBUSB_LIBRARIES})
 
 
 
