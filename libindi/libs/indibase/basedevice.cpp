@@ -32,6 +32,8 @@ INDI::BaseDevice::BaseDevice()
     mediator = NULL;
     lp = newLilXML();
     deviceID = new char[MAXINDIDEVICE];
+    memset(deviceID, 0, MAXINDIDEVICE);
+
     char indidev[MAXINDIDEVICE];
     strncpy(indidev, "INDIDEV=", MAXINDIDEVICE);
 

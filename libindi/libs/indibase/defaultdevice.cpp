@@ -420,7 +420,7 @@ void INDI::DefaultDevice::ISGetProperties (const char *dev)
     {
         if(dev != NULL)
              setDeviceName(dev);
-        else if (getDeviceName() == '\0')
+        else if (*getDeviceName() == '\0')
         {
             char *envDev = getenv("INDIDEV");
             if (envDev != NULL)
