@@ -1,7 +1,7 @@
 SX INDI Driver
 ==================
 
-This package provides the INDI drivers for SX CCDs and SX wheel
+This package provides the INDI drivers for SX CCDs, SX wheel and SX Active Optics
 
 Requirtments
 ============
@@ -34,6 +34,6 @@ How to Use
 	
 	To run the driver from the command line:
 	
-	$ indiserver indi_sx_ccd indi_sx_wheel
+	$ indiserver indi_sx_ccd indi_sx_wheel indi_sx_ao
 
 	You can then connect to the driver from any client, the default port is 7624.

@@ -1,6 +1,6 @@
 In order to build the INDI SX drivers, you must have:
 cmake installed
-libusb 0.1.xx (libusb 1.x is not supported) along with the header files (libusb-dev)
+both libusb 0.1.x and libusb 1.x along with the header files (libusb-dev)
 INDI installed along with the header files.
 cfitsio installed
 

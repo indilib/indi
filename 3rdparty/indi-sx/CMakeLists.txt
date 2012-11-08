@@ -55,8 +55,12 @@ ELSE ()
 target_link_libraries(indi_sx_wheel ${INDI_DRIVER_LIBRARIES} ${LIBUSB_1_LIBRARIES})
 ENDIF()
 
+set(indisxao_SRCS
+   ${CMAKE_SOURCE_DIR}/sxao.cpp
+   )
 
-
+add_executable(indi_sx_ao ${indisxao_SRCS})
+target_link_libraries(indi_sx_ao ${INDI_DRIVER_LIBRARIES})
 
 
 install(TARGETS indi_sx_ccd RUNTIME DESTINATION bin)
