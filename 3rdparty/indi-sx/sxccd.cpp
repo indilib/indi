@@ -181,6 +181,7 @@ SXCCD::SXCCD(DEVICE device, const char *name) {
   WEGuiderTimerID = 0;
   snprintf(this->name, 32, "SX CCD %s", name);
   setDeviceName(this->name);
+  setVersion(VERSION_MAJOR, VERSION_MINOR);
   TRACE(fprintf(stderr, "   %s instance created\n", this->name));
   TRACE(fprintf(stderr, "<- SXCCD::SXCCD\n"));
 }

@@ -30,6 +30,7 @@
 #include <memory>
 #include <unistd.h>
 
+#include "sxconfig.h"
 #include "sxwheel.h"
 
 #define TRACE(c) (c)
@@ -97,6 +98,7 @@ SXWHEEL::SXWHEEL() {
   CurrentFilter = 1;
   handle = 0;
   setDeviceName(getDefaultName());
+  setVersion(VERSION_MAJOR, VERSION_MINOR);
   TRACE(fprintf(stderr, "<- SXWHEEL::SXWHEEL\n"));
 }
 

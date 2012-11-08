@@ -16,8 +16,12 @@ Requirtments
 	
 + libusb
 
-	libusb-devel is required.
+	libusb-dev is required (for CCD driver).
 	
++ libusb-1.0
+
+  libusb-1.0-dev is required (for wheel driver).
+  
 Installation
 ============
 
