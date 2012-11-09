@@ -60,7 +60,7 @@ else (INDI_INCLUDE_DIR AND INDI_DATA_DIR AND INDI_LIBRARIES AND INDI_DRIVER_LIBR
     )
 
     find_path(INDI_DATA_DIR drivers.xml
-      PATH_SUFFIXES indi
+      PATH_SUFFIXES share/indi
     )
 
     set(INDI_VERSION "${PC_INDI_VERSION}")
