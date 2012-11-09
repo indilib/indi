@@ -25,8 +25,8 @@
 #ifndef SXAO_H
 #define SXAO_H
 
-#include <libindi/defaultdevice.h>
-#include <libindi/indiguiderinterface.h>
+#include <defaultdevice.h>
+#include <indiguiderinterface.h>
 
 extern const char *GUIDE_CONTROL_TAB;
 
