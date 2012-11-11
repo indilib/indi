@@ -70,7 +70,6 @@
 3rdparty/indi-duino/devices/indi_duino.xml -text
 3rdparty/indi-duino/devices/switcher_sk.xml -text
 3rdparty/indi-duino/devices/various_sk.xml -text
-3rdparty/indi-duino/duconfig.h -text
 3rdparty/indi-duino/duconfig.h.in -text
 3rdparty/indi-duino/indiduino.cpp -text
 3rdparty/indi-duino/indiduino.h -text

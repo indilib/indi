@@ -6,12 +6,12 @@ set(FIRMATA_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libfirmata/src/")
 set (VERSION_MAJOR 0)
 set (VERSION_MINOR 1)
  
+find_package(INDI REQUIRED)
+
 configure_file (
   "${CMAKE_SOURCE_DIR}/duconfig.h.in"
   "${CMAKE_SOURCE_DIR}/duconfig.h"
   )
-
-find_package(INDI REQUIRED)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${CMAKE_SOURCE_DIR})
