@@ -20,6 +20,13 @@ AINPUT__xx  -> PIN xx (two digits) is configure as analog input. Values are repo
               input reading in the 0-1024 range.		 
 AOUTPUT_xx -> PIN xx (two digits) is configure as analog output(real PWM). Values are 0-255 
 	      range corresponding 0% to 100% PWM duty cycle.	
+Advices:
+
+Remember that arduino pins only can driver a litle power. For testing driver leds and buttons are ok. For other device probably you need adicional electronics (relays, MOSFET…)
+
+Assuming your board is arduino-uno o arduino-dumilnove, for analog input (pins labeled A0,A1 .. ) you have to use numbers 14,15 and so on.. (i.e AINPUT__14 is A0, AINPUT__15 is A1 …).
+
+Standard firmata firmware use raw values. Values 0-1023 for analog inputs and 0-256 for analog outputs(PWM). Custom firmaware could change that if needed.See device/firmware/TemplateINDIDUINO.ino
 
 IMPORTANT: The user is responsible to map every pin to the real hardware. No check is done. 
 
