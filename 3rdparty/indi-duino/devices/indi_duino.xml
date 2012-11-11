@@ -3,6 +3,10 @@
                 <driver name="Arduino Switcher">indi_duino</driver>
                 <version>0.1</version>
         </device>
+	<device label="Arduino Digital Inputs" skel="digital_inputs_sk.xml">
+                <driver name="Arduino Demo">indi_duino</driver>
+                <version>0.1</version>
+        </device>
 	<device label="Arduino Demo" skel="various_sk.xml">
                 <driver name="Arduino Demo">indi_duino</driver>
                 <version>0.1</version>

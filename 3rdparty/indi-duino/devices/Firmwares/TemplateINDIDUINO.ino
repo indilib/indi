@@ -10,9 +10,31 @@
  */
 
 /*
-  Copyright (C) 2012 Nacho Mas.  Standard firmata modification
-  to map real analog values to the sensor fisical.
+  Copyright (C) 2012 Nacho Mas. By default Standard firmata write analog 
+  input value to PWM pin directly and send the ADC readings to analog output
+  without modification. By this modification you can adapt this behaviour.
 
+  two functions are added to the original StandardFirmata.:
+
+  mapAndSendAnalog(int pin):
+
+	Change the value returned by readAnalog before send through
+	firmata protocol. By this you can adapt the 0-1024 stadard ADC range
+	to more apropiate range (i.e phisical range of a sensor). Also you 
+	can do some logic or event sent a variable value instead of 
+	readAnalog. 
+
+  mapAndWriteAnalog(int pin,int value):
+
+	Change the value recived through firmata protocol before write to
+	PWM output. Alternative can be used to change internal variable value instead
+	of setting PWM output.
+
+  (TODO: same for digital input/output)
+
+  NOTE: This only a template and by default do nothing! You have to addapt 
+	to your real needs before.					  
+ 
   Copyright (C) 2006-2008 Hans-Christoph Steiner.  All rights reserved.
   Copyright (C) 2010-2011 Paul Stoffregen.  All rights reserved.
   Copyright (C) 2009 Shigeru Kobayashi.  All rights reserved.
@@ -90,6 +112,54 @@ Servo servos[MAX_SERVOS];
  * FUNCTIONS
  *============================================================================*/
 
+/* Nacho Mas. 
+	Change the value returned by readAnalog before send through
+	firmata protocol. By this you can adapt the 0-1024 stadard ADC range
+	to more apropiate range (i.e phisical range of a sensor). Also you 
+	can do some logic or event sent a variable value instead of 
+	readAnalog. 
+*/
+int mapAndSendAnalog(int pin) {
+  int value=0;
+  int result=0;
+  value=analogRead(pin);
+  switch(pin) {
+      //PIN 14 A0
+       case 0:               
+ //            result=map(value, 0, 1023, 0, 500);
+ //            break;             
+       case 1:               
+ //            result=map(value, 0, 1023, 0, 100);
+ //            break;             
+
+       default:
+             result=value;
+             break;
+  }
+  Firmata.sendAnalog(pin,result);
+} 
+
+/* Nacho Mas.
+	Change the value recived through firmata protocol before write to
+	PWM output. Alternative can be used to change internal variable value instead
+	of setting PWM output.
+*/
+int mapAndWriteAnalog(int pin,int value) {
+  int pwmPin=PIN_TO_PWM(pin);
+  int result=0;
+  switch(pwmPin) {
+       case 5:
+       case 6:
+       case 9:               
+//             result=map(value, 0, 100, 0, 255);
+//             break;             
+       default:
+             result=value;
+             break;
+  }
+  analogWrite(pwmPin, result);
+}  
+
 void readAndReportData(byte address, int theRegister, byte numBytes) {
   // allow I2C requests that don't require a register read
   // for example, some devices using an interrupt pin to signify new data available
@@ -152,6 +222,8 @@ void checkDigitalInputs(void)
   /* Using non-looping code allows constants to be given to readPort().
    * The compiler will apply substantial optimizations if the inputs
    * to readPort() are compile-time constants. */
+ //Nacho Mas. 
+ //TODO: Cach deafult behaviour 
   if (TOTAL_PORTS > 0 && reportPINs[0]) outputPort(0, readPort(0, portConfigInputs[0]), false);
   if (TOTAL_PORTS > 1 && reportPINs[1]) outputPort(1, readPort(1, portConfigInputs[1]), false);
   if (TOTAL_PORTS > 2 && reportPINs[2]) outputPort(2, readPort(2, portConfigInputs[2]), false);
@@ -258,7 +330,8 @@ void analogWriteCallback(byte pin, int value)
       break;
     case PWM:
       if (IS_PIN_PWM(pin))
-        analogWrite(PIN_TO_PWM(pin), value);
+        //Nacho Mas. Write analog and do something before set PWM. 
+        mapAndWriteAnalog(pin,value);
         pinState[pin] = value;
       break;
     }
@@ -285,6 +358,8 @@ void digitalWriteCallback(byte port, int value)
       }
       mask = mask << 1;
     }
+    //Nacho Mas. TODO: sustitute this call by
+    //mapAndWriteDigital(port, (byte)value, pinWriteMask)
     writePort(port, (byte)value, pinWriteMask);
   }
 }
@@ -606,6 +681,8 @@ void loop()
 
   /* DIGITALREAD - as fast as possible, check for changes and output them to the
    * FTDI buffer using Serial.print()  */
+  //Nacho Mas. TODO: sustitute this call by
+  //mapAndSendDigital()
   checkDigitalInputs();  
 
   /* SERIALREAD - processing incoming messagse as soon as possible, while still
@@ -625,12 +702,8 @@ void loop()
       if (IS_PIN_ANALOG(pin) && pinConfig[pin] == ANALOG) {
         analogPin = PIN_TO_ANALOG(pin);
         if (analogInputsToReport & (1 << analogPin)) {
-          if (pin!=14) {
-            Firmata.sendAnalog(analogPin, analogRead(analogPin)*3);
-          } else {
-            Firmata.sendAnalog(analogPin, analogRead(analogPin)*3);
-          }
-
+          //Nacho Mas. Read analog and do something before send. Then send it
+          mapAndSendAnalog(analogPin);
         }
       }
     }

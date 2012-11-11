@@ -38,7 +38,7 @@ target_link_libraries (ask_digital_pin firmata)
 add_executable(ask_analog_pin ${CMAKE_SOURCE_DIR}/libfirmata/examples/ask_analog_pin.cpp)
 target_link_libraries (ask_analog_pin firmata)
 
-##################### indi ariduino #####################
+##################### indi arduino #####################
 set(indiduino_SRCS
    ${CMAKE_SOURCE_DIR}/indiduino.cpp
    )
@@ -47,7 +47,7 @@ add_executable(indi_duino ${indiduino_SRCS})
 target_link_libraries(indi_duino ${INDI_DRIVER_LIBRARIES} firmata)
 
 install(TARGETS indi_duino RUNTIME DESTINATION bin)
-install(FILES indi_duino.xml DESTINATION ${INDI_DATA_DIR})
-install(FILES indiduino_sk.xml DESTINATION ${INDI_DATA_DIR})
-install(FILES switcher_sk.xml DESTINATION ${INDI_DATA_DIR})
-install(FILES various_sk.xml DESTINATION ${INDI_DATA_DIR})
+
+################### DEVICES XML  #####################
+add_subdirectory(devices)
+

@@ -228,7 +228,7 @@ bool indiduino::initProperties()
     // This is the default driver skeleton file location
     // Convention is: drivername_sk_xml
     // Default location is /usr/share/indi  
-    const char *skelFileName = "/usr/share/indi/switcher_sk.xml";
+    const char *skelFileName = DEFAULT_SKELETON_FILE;
     struct stat st;
 
 
