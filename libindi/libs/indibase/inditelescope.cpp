@@ -38,11 +38,7 @@ bool INDI::Telescope::initProperties()
 
     IUFillNumber(&EqN[0],"RA","RA (hh:mm:ss)","%010.6m",0,24,0,0);
     IUFillNumber(&EqN[1],"DEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,0);
-    IUFillNumberVector(&EqNV,EqN,2,getDeviceName(),"EQUATORIAL_EOD_COORD","Eq. Coordinates",MAIN_CONTROL_TAB,IP_RO,60,IPS_IDLE);
-
-    IUFillNumber(&EqReqN[0],"RA","RA (hh:mm:ss)","%010.6m",0,24,0,0);
-    IUFillNumber(&EqReqN[1],"DEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,0);
-    IUFillNumberVector(&EqReqNV,EqReqN,2,getDeviceName(),"EQUATORIAL_EOD_COORD_REQUEST","GOTO",MAIN_CONTROL_TAB,IP_WO,60,IPS_IDLE);
+    IUFillNumberVector(&EqNV,EqN,2,getDeviceName(),"EQUATORIAL_EOD_COORD","Eq. Coordinates",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillNumber(&LocationN[0],"LAT","Lat (dd:mm:ss)","%010.6m",-90,90,0,0.0);
     IUFillNumber(&LocationN[1],"LONG","Lon (dd:mm:ss)","%010.6m",-180,180,0,0.0 );
@@ -104,7 +100,6 @@ void INDI::Telescope::ISGetProperties (const char *dev)
         //  Now we add our telescope specific stuff
         defineSwitch(&CoordSV);
         defineNumber(&EqNV);
-        defineNumber(&EqReqNV);
         defineSwitch(&AbortSV);
         defineNumber(&LocationNV);
         defineSwitch(&ParkSV);
@@ -126,7 +121,6 @@ bool INDI::Telescope::updateProperties()
         //  Now we add our telescope specific stuff
         defineSwitch(&CoordSV);
         defineNumber(&EqNV);
-        defineNumber(&EqReqNV);
         defineSwitch(&AbortSV);
         defineSwitch(&MovementNSSP);
         defineSwitch(&MovementWESP);
@@ -140,7 +134,6 @@ bool INDI::Telescope::updateProperties()
     {
         deleteProperty(CoordSV.name);
         deleteProperty(EqNV.name);
-        deleteProperty(EqReqNV.name);
         deleteProperty(AbortSV.name);
         deleteProperty(MovementNSSP.name);
         deleteProperty(MovementWESP.name);
@@ -172,21 +165,28 @@ void INDI::Telescope::NewRaDec(double ra,double dec)
     //  which came from the hardware
     static int last_state=-1;
 
-    if (TrackState == SCOPE_TRACKING && EqReqNV.s != IPS_OK)
+    switch(TrackState)
     {
-        EqReqNV.s = IPS_OK;
-        IDSetNumber(&EqReqNV, NULL);
-    }
-    else if ( (TrackState == SCOPE_PARKED || TrackState == SCOPE_IDLE) && EqReqNV.s != IPS_IDLE)
-    {
-        EqReqNV.s = IPS_IDLE;
-        IDSetNumber(&EqReqNV, NULL);
+       case SCOPE_PARKED:
+       case SCOPE_IDLE:
+        EqNV.s=IPS_IDLE;
+        break;
+
+       case SCOPE_SLEWING:
+        EqNV.s=IPS_BUSY;
+        break;
+
+       case SCOPE_TRACKING:
+        EqNV.s=IPS_OK;
+        break;
+
+      default:
+        break;
     }
 
     //IDLog("newRA DEC RA %g - DEC %g --- EqN[0] %g --- EqN[1] %g --- EqN.state %d\n", ra, dec, EqN[0].value, EqN[1].value, EqNV.s);
     if (EqN[0].value != ra || EqN[1].value != dec || EqNV.s != last_state)
     {
-      //  IDLog("Not equal , send update to client...\n");
         EqN[0].value=ra;
         EqN[1].value=dec;
         last_state = EqNV.s;
@@ -275,7 +275,7 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
     //  first check if it's for our device
     if(strcmp(dev,getDeviceName())==0)
     {
-        if(strcmp(name,"EQUATORIAL_EOD_COORD_REQUEST")==0)
+        if(strcmp(name,"EQUATORIAL_EOD_COORD")==0)
         {
             //  this is for us, and it is a goto
             bool rc=false;
@@ -303,18 +303,22 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
                 //  perform the goto
                 //  Ok, lets see if we should be doing a goto
                 //  or a sync
-                ISwitch *sw;
-                sw=IUFindSwitch(&CoordSV,"SYNC");
-                if((sw != NULL)&&( sw->s==ISS_ON ))
+                if (canSync())
                 {
-                    //IDLog("Got a sync, we dont process yet\n");
-                    rc=Sync(ra,dec);
-                } else {
-                    //  Ensure we are not showing Parked status
-                    ParkSV.s=IPS_IDLE;
-                    IUResetSwitch(&ParkSV);
-                    rc=Goto(ra,dec);
+                    ISwitch *sw;
+                    sw=IUFindSwitch(&CoordSV,"SYNC");
+                    if((sw != NULL)&&( sw->s==ISS_ON ))
+                    {
+                       rc=Sync(ra,dec);
+                       return rc;
+                    }
                 }
+
+                //  Ensure we are not showing Parked status
+                ParkSV.s=IPS_IDLE;
+                IUResetSwitch(&ParkSV);
+                rc=Goto(ra,dec);
+
                 //  Ok, now we have to put our switches back
             }
             return rc;
@@ -428,10 +432,10 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
                     IDSetSwitch(&MovementNSSP, NULL);
                 }
 
-                if (EqReqNV.s == IPS_BUSY)
+                if (EqNV.s == IPS_BUSY)
                 {
-                    EqReqNV.s = IPS_IDLE;
-                    IDSetNumber(&EqReqNV, NULL);
+                    EqNV.s = IPS_IDLE;
+                    IDSetNumber(&EqNV, NULL);
                 }
             }
             else
@@ -545,8 +549,7 @@ void INDI::Telescope::TimerHit()
             //  read was not good
             EqNV.s=IPS_ALERT;
             IDSetNumber(&EqNV, NULL);
-        }      
-        else EqNV.s=IPS_OK;
+        }
 
         SetTimer(POLLMS);
     }

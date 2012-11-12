@@ -164,10 +164,6 @@ class INDI::Telescope : public INDI::DefaultDevice
         INumberVectorProperty EqNV;
         INumber EqN[2];
 
-        //  And we need a vector to store requests, ie, where are we asked to go
-        INumberVectorProperty EqReqNV;
-        INumber EqReqN[2];
-
         ISwitchVectorProperty AbortSV; // Abort motion
         ISwitch AbortS[1];
 
@@ -194,7 +190,6 @@ class INDI::Telescope : public INDI::DefaultDevice
 
         INumber ScopeParametersN[4];
         INumberVectorProperty ScopeParametersNP;
-
 
 };
 
