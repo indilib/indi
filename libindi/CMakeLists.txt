@@ -628,105 +628,72 @@ install(TARGETS indi_eval RUNTIME DESTINATION bin )
 ########### Tutorial one ##############
 set(tutorialone_SRCS
 	${indimain_SRCS}
-	${CMAKE_SOURCE_DIR}/examples/tutorial_one.c
+        ${CMAKE_SOURCE_DIR}/examples/tutorial_one/simpledevice.cpp
    )
 
-add_executable(tutorial_one ${tutorialone_SRCS}  ${liblilxml_SRCS} ${libindicom_SRCS})
+add_executable(tutorial_one ${tutorialone_SRCS})
 
-target_link_libraries(tutorial_one  m)
-
-if (NOVA_FOUND)
-  target_link_libraries(tutorial_one ${NOVA_LIBRARIES})
-endif (NOVA_FOUND)
+target_link_libraries(tutorial_one indidriver m)
 
 ########### Tutorial two ##############
 set(tutorialtwo_SRCS
 	${indimain_SRCS}
-	${CMAKE_SOURCE_DIR}/examples/tutorial_two.c
+        ${CMAKE_SOURCE_DIR}/examples/tutorial_two/simplescope.cpp
    )
 
-add_executable(tutorial_two ${tutorialtwo_SRCS}  ${liblilxml_SRCS} ${libindicom_SRCS})
+add_executable(tutorial_two ${tutorialtwo_SRCS})
 
-target_link_libraries(tutorial_two  m)
-
-if (NOVA_FOUND)
-  target_link_libraries(tutorial_two ${NOVA_LIBRARIES})
-endif (NOVA_FOUND)
+target_link_libraries(tutorial_two indidriver m)
 
 ########### Tutorial three ##############
+if (CFITSIO_FOUND)
 set(tutorialthree_SRCS
 	${indimain_SRCS}
-	${CMAKE_SOURCE_DIR}/examples/tutorial_three.c
+        ${CMAKE_SOURCE_DIR}/examples/tutorial_three/simpleccd.cpp
    )
 
-add_executable(tutorial_three ${tutorialthree_SRCS}  ${liblilxml_SRCS} ${libindicom_SRCS})
+add_executable(tutorial_three ${tutorialthree_SRCS})
 
-target_link_libraries(tutorial_three m z)
-
-if (NOVA_FOUND)
-  target_link_libraries(tutorial_three ${NOVA_LIBRARIES})
-endif (NOVA_FOUND)
-
+target_link_libraries(tutorial_three indidriver m)
+endif (CFITSIO_FOUND)
 ########### Tutorial four ##############
-if (CFITSIO_FOUND)
-
 set(tutorialfour_SRCS
         ${indimain_SRCS}
-        ${CMAKE_SOURCE_DIR}/examples/tutorial_four.cpp
+        ${CMAKE_SOURCE_DIR}/examples/tutorial_four/simpleskeleton.cpp
    )
 
-add_executable(tutorial_four ${tutorialfour_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
+add_executable(tutorial_four ${tutorialfour_SRCS})
 
-target_link_libraries(tutorial_four indidriver ${CFITSIO_LIBRARIES} m z pthread)
+target_link_libraries(tutorial_four indidriver m)
 
-if (NOVA_FOUND)
-  target_link_libraries(tutorial_four ${NOVA_LIBRARIES})
-endif (NOVA_FOUND)
-
-endif (CFITSIO_FOUND)
-
-########### Tutorial dome ##############
+########### Tutorial five - dome driver ##############
 set(tutorialdome_SRCS
 	${indimain_SRCS}
-	${CMAKE_SOURCE_DIR}/examples/tutorial_dome.c
+        ${CMAKE_SOURCE_DIR}/examples/tutorial_five/dome.cpp
    )
 
-add_executable(tutorial_dome ${tutorialdome_SRCS}  ${liblilxml_SRCS} ${libindicom_SRCS})
+add_executable(tutorial_dome ${tutorialdome_SRCS})
 
-target_link_libraries(tutorial_dome  m)
+target_link_libraries(tutorial_dome indidriver)
 
-if (NOVA_FOUND)
-  target_link_libraries(tutorial_dome ${NOVA_LIBRARIES})
-endif (NOVA_FOUND)
-
-########### Tutorial rain ##############
+########### Tutorial five - rain driver ##############
 set(tutorialrain_SRCS
 	${indimain_SRCS}
-	${CMAKE_SOURCE_DIR}/examples/tutorial_rain.c
+        ${CMAKE_SOURCE_DIR}/examples/tutorial_five/raindetector.cpp
    )
 
-add_executable(tutorial_rain ${tutorialrain_SRCS}  ${liblilxml_SRCS} ${libindicom_SRCS})
+add_executable(tutorial_rain ${tutorialrain_SRCS})
 
-target_link_libraries(tutorial_rain  m)
-
-if (NOVA_FOUND)
-  target_link_libraries(tutorial_rain ${NOVA_LIBRARIES})
-endif (NOVA_FOUND)
-
+target_link_libraries(tutorial_rain indidriver)
 
 ########### Client Tutorial ##############
 set(tutorialclient_SRCS
-        ${CMAKE_SOURCE_DIR}/examples/tutorial_client.cpp
+        ${CMAKE_SOURCE_DIR}/examples/tutorial_six/tutorial_client.cpp
    )
 
-add_executable(tutorial_client ${tutorialclient_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
+add_executable(tutorial_client ${tutorialclient_SRCS})
 
-target_link_libraries(tutorial_client indiclient m)
-
-if (NOVA_FOUND)
-  target_link_libraries(tutorial_client ${NOVA_LIBRARIES})
-endif (NOVA_FOUND)
-
+target_link_libraries(tutorial_client indiclient)
 #################################################################################
 
 install( FILES drivers.xml ${CMAKE_SOURCE_DIR}/drivers/focuser/indi_tcfs_sk.xml DESTINATION ${DATA_INSTALL_DIR})

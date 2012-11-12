@@ -1,5 +1,5 @@
 #if 0
-    TestDevice - Tutorial Four
+    Simple Skeleton - Tutorial Four
     Demonstration of libindi v0.7 capabilities.
 
     Copyright (C) 2010 Jasem Mutlaq (mutlaqja@ikarustech.com)
@@ -20,31 +20,17 @@
 
 #endif
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <math.h>
-#include <unistd.h>
-#include <time.h>
 #include <memory>
 #include <sys/types.h>
 #include <sys/stat.h>
-
-#include <config.h>
-
-#include "indibase/baseclient.h"
-
-/* INDI Common Library Routines */
-#include "indicom.h"
+#include <unistd.h>
+#include <stdlib.h>
 
 /* Our driver header */
-#include "tutorial_four.h"
+#include "simpleskeleton.h"
 
-using namespace std;
-
-/* Our telescope auto pointer */
-auto_ptr<TestDevice> telescope(0);
+/* Our simpleSkeleton auto pointer */
+std::auto_ptr<SimpleSkeleton> simpleSkeleton(0);
 
 const int POLLMS = 1000;				// Period of update, 1 second.
 
@@ -57,14 +43,11 @@ void ISInit()
 
  if (isInit)
   return;
-
- if (telescope.get() == 0)
+ if (simpleSkeleton.get() == 0)
  {
      isInit = 1;
-     telescope.reset(new TestDevice());
-     srand (time(NULL));
+     simpleSkeleton.reset(new SimpleSkeleton());
  }
- 
 }
 
 /**************************************************************************************
@@ -73,7 +56,7 @@ void ISInit()
 void ISGetProperties (const char *dev)
 {
  ISInit(); 
- telescope->ISGetProperties(dev);
+ simpleSkeleton->ISGetProperties(dev);
 }
 
 /**************************************************************************************
@@ -82,7 +65,7 @@ void ISGetProperties (const char *dev)
 void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
  ISInit();
- telescope->ISNewSwitch(dev, name, states, names, n);
+ simpleSkeleton->ISNewSwitch(dev, name, states, names, n);
 }
 
 /**************************************************************************************
@@ -91,7 +74,7 @@ void ISNewSwitch (const char *dev, const char *name, ISState *states, char *name
 void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
  ISInit();
- telescope->ISNewText(dev, name, texts, names, n);
+ simpleSkeleton->ISNewText(dev, name, texts, names, n);
 }
 
 /**************************************************************************************
@@ -100,7 +83,7 @@ void ISNewText (const char *dev, const char *name, char *texts[], char *names[],
 void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
  ISInit();
- telescope->ISNewNumber(dev, name, values, names, n);
+ simpleSkeleton->ISNewNumber(dev, name, values, names, n);
 }
 
 /**************************************************************************************
@@ -110,11 +93,8 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
 {
     ISInit();
 
-    telescope->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
-
-
+    simpleSkeleton->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
 }
-
 /**************************************************************************************
 **
 ***************************************************************************************/
@@ -124,28 +104,26 @@ void ISSnoopDevice (XMLEle *root)
 }
 
 /**************************************************************************************
-** LX200 Basic constructor
+**
 ***************************************************************************************/
-TestDevice::TestDevice()
+SimpleSkeleton::SimpleSkeleton()
 {
-    IDLog("Initializing from Test Device...\n");
-
 }
 
 /**************************************************************************************
 **
 ***************************************************************************************/
-TestDevice::~TestDevice()
+SimpleSkeleton::~SimpleSkeleton()
 {
-
 }
 
 /**************************************************************************************
 ** Initialize all properties & set default values.
 **************************************************************************************/
-bool TestDevice::initProperties()
+bool SimpleSkeleton::initProperties()
 {
     DefaultDevice::initProperties();
+
     // This is the default driver skeleton file location
     // Convention is: drivername_sk_xml
     // Default location is /usr/share/indi
@@ -167,17 +145,17 @@ bool TestDevice::initProperties()
 
     std::vector<INDI::Property *> *pAll = getProperties();
 
+    // Let's print a list of all device properties
     for (int i=0; i < pAll->size(); i++)
         IDLog("Property #%d: %s\n", i, pAll->at(i)->getName());
 
     return true;
-
 }
 
 /**************************************************************************************
 ** Define Basic properties to clients.
 ***************************************************************************************/
-void TestDevice::ISGetProperties(const char *dev)
+void SimpleSkeleton::ISGetProperties(const char *dev)
 {
     static int configLoaded = 0;
 
@@ -196,7 +174,7 @@ void TestDevice::ISGetProperties(const char *dev)
 /**************************************************************************************
 ** Process Text properties
 ***************************************************************************************/
-bool TestDevice::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+bool SimpleSkeleton::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
 	// Ignore if not ours 
         if (strcmp (dev, getDeviceName()))
@@ -208,7 +186,7 @@ bool TestDevice::ISNewText (const char *dev, const char *name, char *texts[], ch
 /**************************************************************************************
 **
 ***************************************************************************************/
-bool TestDevice::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+bool SimpleSkeleton::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
 	
 	// Ignore if not ours
@@ -242,13 +220,13 @@ bool TestDevice::ISNewNumber (const char *dev, const char *name, double values[]
 /**************************************************************************************
 **
 ***************************************************************************************/
-bool TestDevice::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool SimpleSkeleton::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     int lightState=0;
     int lightIndex=0;
 
 	// ignore if not ours //
-            if (strcmp (dev, getDeviceName()))
+    if (strcmp (dev, getDeviceName()))
             return false;
 
         if (INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n) == true)
@@ -297,12 +275,10 @@ bool TestDevice::ISNewSwitch (const char *dev, const char *name, ISState *states
 
 }
 
-bool TestDevice::ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+bool SimpleSkeleton::ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
 {
     if (strcmp (dev, getDeviceName()))
         return false;
-
-    const char *testBLOB = "This is a test BLOB from the driver";
 
     IBLOBVectorProperty *bvp = getBLOB(name);
 
@@ -335,6 +311,11 @@ bool TestDevice::ISNewBLOB (const char *dev, const char *name, int sizes[], int 
         IDLog("BLOB Content:\n##################################\n%s\n##################################\n", blobBuffer);
 
         delete [] blobBuffer;
+
+        bp->size=0;
+        bvp->s = IPS_OK;
+        IDSetBLOB(bvp, NULL);
+
     }
 
     return true;
@@ -345,24 +326,17 @@ bool TestDevice::ISNewBLOB (const char *dev, const char *name, int sizes[], int 
 /**************************************************************************************
 **
 ***************************************************************************************/
-bool TestDevice::Connect()
+bool SimpleSkeleton::Connect()
 {
     return true;
 }
 
-bool TestDevice::Disconnect()
+bool SimpleSkeleton::Disconnect()
 {
     return true;
 }
 
-const char * TestDevice::getDefaultName()
+const char * SimpleSkeleton::getDefaultName()
 {
-    return "Test Device";
+    return "Simple Skeleton";
 }
-
-
-
-
-
-
-

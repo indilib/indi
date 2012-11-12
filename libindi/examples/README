@@ -13,13 +13,12 @@ Tutorials
 
 Four tutorials are presented to introduce developers to the INDI architecture. 
 
-tutorial_one: We construct a most basic (and useless) device driver to illustate basic INDI structures.
-tutorial_two:  We create a simple simulator. We will use a few handy utility functions provided by INDI like timers, string <---> number conversion, and more.
-tutorial_three:  We create a simple CCD simulator, and establish a data channel with the client to transmit a FITS file. 
-
-tutorial_dome and tutorial_rain are part of the inter-driver communication tutorial. 
-
-tutorial_client: We create a simple client to set the temperature of a CCD simulator (tutorial_three).
+tutorial_one: We construct the most basic device.
+tutorial_two:  We create a simple telescope simulator. 
+tutorial_three:  We create a simple CCD simulator, and establish a data channel with the client to transmit randomly generated FITS. 
+tutorial_four: We demonstrate use of skeleton files to define properties.
+tutorial_five: We create two devices (Rain Detector and Dome) to demonstrate inter-driver communication in INDI. 
+tutorial_six: We create a simple client to set the temperature of a CCD simulator (tutorial_three).
 
 Usage
 --------
@@ -44,7 +43,7 @@ Enter "127.0.0.1" in the host name and "8000" in the port entry (without the quo
 
 $ indiserver -v -p 8000 ./tutorial_NUM
 
-where num is the tutorial number (tutorial_one, tutorial_two, or tutorial_three).
+where num is the tutorial number (tutorial_one, tutorial_two...etc)
 
 ------------------------------------------------------------------------------------------
 

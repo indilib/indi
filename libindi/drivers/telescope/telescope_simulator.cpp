@@ -467,7 +467,6 @@ bool ScopeSim::Goto(double r,double d)
     Parked=false;
     TrackState = SCOPE_SLEWING;
 
-    EqReqNV.s = IPS_BUSY;
     EqNV.s    = IPS_BUSY;
 
     IDMessage(getDeviceName(), "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
@@ -486,7 +485,6 @@ bool ScopeSim::Sync(double ra, double dec)
     IDMessage(getDeviceName(), "Sync is successful.");
 
     TrackState = SCOPE_IDLE;
-    EqReqNV.s = IPS_OK;
     EqNV.s    = IPS_OK;
 
 
@@ -624,12 +622,6 @@ bool ScopeSim::Abort()
         ParkSV.s       = IPS_IDLE;
         IUResetSwitch(&ParkSV);
         IDSetSwitch(&ParkSV, NULL);
-    }
-
-    if (EqReqNV.s == IPS_BUSY)
-    {
-        EqReqNV.s      = IPS_IDLE;
-        IDSetNumber(&EqReqNV, NULL);
     }
 
     if (EqNV.s == IPS_BUSY)

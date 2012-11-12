@@ -18,18 +18,18 @@
 
 */
 
-#ifndef TUTORIAL_FOUR_H
-#define TUTORIAL_FOUR_H
+#ifndef SIMPLE_SKELETON_H
+#define SIMPLE_SKELETON_H
 
 #include "indidevapi.h"
 #include "indicom.h"
 #include "indibase/defaultdevice.h"
 
-class TestDevice : public INDI::DefaultDevice
+class SimpleSkeleton : public INDI::DefaultDevice
 {
  public:
- TestDevice();
- ~TestDevice();
+ SimpleSkeleton();
+ ~SimpleSkeleton();
 
  virtual void ISGetProperties (const char *dev);
  virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
