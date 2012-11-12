@@ -142,8 +142,6 @@ to disconnect the device.
     /** \return Minor driver version number. */
     unsigned int getMinorVersion() { return minorVersion;}
 
-protected:
-
     /** \brief define the driver's properties to the client.
       \param dev name of the device
       \note This function is called by the INDI framework, do not call it directly.
@@ -179,6 +177,8 @@ protected:
       \returns True if any property was successfully processed, false otherwise.
     */
     virtual bool ISSnoopDevice (XMLEle *root) { return false;}
+
+protected:
 
     // Configuration
 

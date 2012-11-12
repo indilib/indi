@@ -465,41 +465,39 @@ void INDI::DefaultDevice::ISGetProperties (const char *dev)
 
 void INDI::DefaultDevice::resetProperties()
 {
-    /*std::vector<numberPtr>::const_iterator numi;
-    std::vector<switchPtr>::const_iterator switchi;
-    std::vector<textPtr>::const_iterator texti;
-    std::vector<lightPtr>::const_iterator lighti;
-    std::vector<blobPtr>::const_iterator blobi;
+    std::vector<INDI::Property *>::iterator orderi;
+    INDI_TYPE pType;
+    void *pPtr;
 
-    for ( numi = pNumbers.begin(); numi != pNumbers.end(); numi++)
+    for (orderi = pAll.begin(); orderi != pAll.end(); orderi++)
     {
-        (*numi)->s = IPS_IDLE;
-        IDSetNumber( (*numi).get(), NULL);
+        pType       = (*orderi)->getType();
+        pPtr        = (*orderi)->getProperty();
+
+        switch (pType)
+        {
+        case INDI_NUMBER:
+            static_cast<INumberVectorProperty *>(pPtr)->s = IPS_IDLE;
+            IDSetNumber(static_cast<INumberVectorProperty *>(pPtr) , NULL);
+             break;
+        case INDI_TEXT:
+            static_cast<ITextVectorProperty *>(pPtr)->s = IPS_IDLE;
+            IDSetText(static_cast<ITextVectorProperty *>(pPtr) , NULL);
+             break;
+        case INDI_SWITCH:
+            static_cast<ISwitchVectorProperty *>(pPtr)->s = IPS_IDLE;
+            IDSetSwitch(static_cast<ISwitchVectorProperty *>(pPtr) , NULL);
+             break;
+        case INDI_LIGHT:
+            static_cast<ILightVectorProperty *>(pPtr)->s = IPS_IDLE;
+            IDSetLight(static_cast<ILightVectorProperty *>(pPtr) , NULL);
+             break;
+        case INDI_BLOB:
+            static_cast<IBLOBVectorProperty *>(pPtr)->s = IPS_IDLE;
+            IDSetBLOB(static_cast<IBLOBVectorProperty *>(pPtr) , NULL);
+             break;
+        }
     }
-
-   for ( switchi = pSwitches.begin(); switchi != pSwitches.end(); switchi++)
-   {
-       (*switchi)->s = IPS_IDLE;
-       IDSetSwitch( (*switchi).get(), NULL);
-   }
-
-   for ( texti = pTexts.begin(); texti != pTexts.end(); texti++)
-   {
-      (*texti)->s = IPS_IDLE;
-      IDSetText( (*texti).get(), NULL);
-   }
-
-   for ( lighti = pLights.begin(); lighti != pLights.end(); lighti++)
-   {
-       (*lighti)->s = IPS_IDLE;
-       IDSetLight( (*lighti).get(), NULL);
-   }
-
-   for ( blobi = pBlobs.begin(); blobi != pBlobs.end(); blobi++)
-   {
-       (*blobi)->s = IPS_IDLE;
-       IDSetBLOB( (*blobi).get(), NULL);
-   }*/
 }
 
 void INDI::DefaultDevice::setConnected(bool status, IPState state, const char *msg)
