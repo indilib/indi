@@ -944,7 +944,7 @@ void INDI::CCD::getMinMax(double *min, double *max, CCDChip *targetChip)
     {
         case 8:
         {
-            char *imageBuffer = targetChip->getFrameBuffer();
+            unsigned char *imageBuffer = (unsigned char *) targetChip->getFrameBuffer();
             lmin = lmax = imageBuffer[0];
 
 
