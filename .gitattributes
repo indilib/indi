@@ -660,8 +660,6 @@ libindi/examples/tutorial_five/dome.cpp -text
 libindi/examples/tutorial_five/dome.h -text
 libindi/examples/tutorial_five/raindetector.cpp -text
 libindi/examples/tutorial_five/raindetector.h -text
-libindi/examples/tutorial_five/tutorial_dome.c -text
-libindi/examples/tutorial_five/tutorial_rain.c -text
 libindi/examples/tutorial_four/simpleskeleton.cpp -text
 libindi/examples/tutorial_four/simpleskeleton.h -text
 libindi/examples/tutorial_four/tutorial_four_sk.xml -text

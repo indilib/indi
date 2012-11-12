@@ -20,6 +20,11 @@
 
 #endif
 
+/** \file simpleskeleton.cpp
+    \brief Construct a basic INDI CCD device that demonstrates ability to define properties from a skeleton file.
+    \author Jasem Mutlaq
+*/
+
 #include <memory>
 #include <sys/types.h>
 #include <sys/stat.h>

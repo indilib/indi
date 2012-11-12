@@ -14,8 +14,8 @@
 
 */
 
-/** \file tutorial_one.c
-    \brief Construct a basic INDI driver with only one property.
+/** \file simpledevice.h
+    \brief Construct a basic INDI device with only one property to connect and disconnect.
     \author Jasem Mutlaq
 */
 

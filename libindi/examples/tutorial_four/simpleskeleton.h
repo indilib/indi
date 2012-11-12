@@ -21,6 +21,11 @@
 #ifndef SIMPLE_SKELETON_H
 #define SIMPLE_SKELETON_H
 
+/** \file simpleskeleton.h
+    \brief Construct a basic INDI CCD device that demonstrates ability to define properties from a skeleton file.
+    \author Jasem Mutlaq
+*/
+
 #include "indidevapi.h"
 #include "indicom.h"
 #include "indibase/defaultdevice.h"

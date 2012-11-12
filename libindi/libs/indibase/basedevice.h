@@ -33,9 +33,9 @@
  * \class INDI::BaseDevice
    \brief Class to provide basic INDI device functionality.
 
-   INDI::BaseClient contains a vector list of INDI::BaseDrivers. Upon connection with INDI server, the client create a INDI::BaseDevice
-   \e instance for each driver owned by the INDI server. Properties of the driver can be built either by loading an external
-   skeleton file that contains a list of defXXX commands, or by dynamically building properties as they arrive from the server.
+   INDI::BaseDevice is the base device for all INDI devices and contains a list of all properties defined by the device either explicity or via a skeleton file.
+   You don't need to subclass INDI::BaseDevice class directly, it is inheritied by INDI::DefaultDevice which takes care of building a standard INDI device. Moreover, INDI::BaseClient
+   maintains a list of INDI::BaseDevice objects as they get defined from the INDI server, and those objects may be accessed to retrieve information on the object properties or message log.
 
    \author Jasem Mutlaq
  */

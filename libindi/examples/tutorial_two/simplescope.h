@@ -14,6 +14,11 @@
 
 */
 
+/** \file simplescope.h
+    \brief Construct a basic INDI telescope device that simulates GOTO commands.
+    \author Jasem Mutlaq
+*/
+
 #include "indibase/inditelescope.h"
 
 class SimpleScope : public INDI::Telescope

@@ -37,7 +37,7 @@
    Developers need to subclass INDI::USBDevice to implement any driver within INDI that requires direct read/write/control over USB.
 
 \author Gerry Rozema
-\see Starlight Xpress INDI CCD driver for an example implementation of INDI::USBDevice
+\note This class implements legacy libusb API v0.1
 */
 class INDI::USBDevice
 {

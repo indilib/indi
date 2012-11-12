@@ -11,6 +11,11 @@
 
 */
 
+/** \file simpledevice.cpp
+    \brief Construct a basic INDI device with only one property to connect and disconnect.
+    \author Jasem Mutlaq
+*/
+
 #include <memory>
 
 #include "simpledevice.h"

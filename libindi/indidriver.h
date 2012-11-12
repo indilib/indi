@@ -46,7 +46,7 @@ extern void clientMsgCB(int fd, void *arg);
 /**
  * \defgroup configFunctions Configuration Functions: Functions drivers call to save and load configuraion options.
 
-<p>Drivers can save properties states and values in an XML configuration file. The following functions take an optinal filename
+<p>Drivers can save properties states and values in an XML configuration file. The following functions take an optional filename
 parameter which specifies the full path of the configuration file. If the filename is set to NULL, the configuration file
 is locally stored in ~/.indi. By default, two configuration files may exist for each driver:</p>
 <ul>
@@ -64,6 +64,7 @@ options may only available when the device is powered up or is in a particular s
 be used as the configuration filename</li>
 <li>Generate filename: If the <i>device_name</i> is supplied, the function will attempt to set the configuration filename to ~/.indi/device_name_config.xml</li>
 </ol>
+\author Jasem Mutlaq
 \note Drivers subclassing INDI::DefaultDevice do not need to call the configuration functions directly as it is handled internally by the class.
 \version libindi 0.7+
 */

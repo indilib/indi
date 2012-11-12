@@ -20,6 +20,10 @@
 
 #endif
 
+/** \file tutorial_client.cpp
+    \brief Construct a basic INDI client that demonstrates INDI::Client capabilities. This client must be used with tutorial_three device "Simple CCD".
+    \author Jasem Mutlaq
+*/
 
 #include <string>
 #include <iostream>

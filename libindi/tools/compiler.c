@@ -632,7 +632,7 @@ double *result;
 
 	/* result should now be on top of stack */
 	if (sp != &stack[MAX_STACK - 1]) {
-	    (void) sprintf (err_msg, "Bug! stack has %d items",
+        (void) sprintf (err_msg, "Bug! stack has %ld items",
 							MAX_STACK - (sp-stack));
 	    return (-1);
 	}

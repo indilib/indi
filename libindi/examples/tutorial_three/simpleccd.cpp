@@ -11,6 +11,11 @@
 
 */
 
+/** \file simpleccd.cpp
+    \brief Construct a basic INDI CCD device that simulates exposure & temperature settings. It also generates a random pattern and uploads it as a FITS file.
+    \author Jasem Mutlaq
+*/
+
 #include <sys/time.h>
 #include <memory>
 

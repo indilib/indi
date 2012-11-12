@@ -99,13 +99,13 @@ class INDI::Telescope : public INDI::DefaultDevice
          </ol>
           \return True if reading scope status is OK, false if an error is encounterd.
           \note This function is not implemented in INDI::Telescope, it must be implemented in the child class */
-        virtual bool ReadScopeStatus();
+        virtual bool ReadScopeStatus()=0;
 
         /** \brief Move the scope to the supplied RA and DEC coordinates
             \return True if successful, false otherewise
             \note This function is not implemented in INDI::Telescope, it must be implemented in the child class
         */
-        virtual bool Goto(double ra,double dec);
+        virtual bool Goto(double ra,double dec)=0;
 
         /** \brief Does the mount support sync?
          *  \return True if sync is supported, false otherwise.
@@ -133,13 +133,13 @@ class INDI::Telescope : public INDI::DefaultDevice
 
         /** \brief Does the mount support park?
          *  \return True if park is supported, false otherwise.
-         *\note This function implemented INDI::Telescope always returns false. Override the function to return true.
+         *\note This function defaults to return false unless subclassed by the child class.
         */
         virtual bool canPark();
 
         /** \brief Park the telescope to its home position.
             \return True if successful, false otherewise
-            \note This function is not implemented in INDI::Telescope, it must be implemented in the child class
+            *\note This function defaults to return false unless subclassed by the child class.
         */
         virtual bool Park();
 
@@ -147,7 +147,7 @@ class INDI::Telescope : public INDI::DefaultDevice
             \return True if successful, false otherewise
             \note This function is not implemented in INDI::Telescope, it must be implemented in the child class
         */
-        virtual bool Abort();
+        virtual bool Abort()=0;
 
         //  Since every mount I know of actually uses a serial port for control
         //  We put the serial helper into the base telescope class

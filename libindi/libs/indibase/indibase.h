@@ -27,6 +27,8 @@
    <li>Focuser: Base class for focusers.</li>
    <li>USBDevice: Base class for USB devices for direct read/write/control over USB.</li>
    </ul>
+\author Jasem Mutlaq
+\author Gerry Rozema
  */
 namespace INDI
 {
@@ -65,7 +67,7 @@ class INDI::BaseMediator
 public:
 
     /** \brief Emmited when a new device is created from INDI server.
-        \param device_name Name of the new device
+        \param dp Pointer to the base device instance
     */
     virtual void newDevice(INDI::BaseDevice *dp)  =0;
 
@@ -110,6 +112,7 @@ public:
 
     /** \brief Emmited when a new message arrives from INDI server.
         \param dp pointer to the INDI device the message is sent to.
+        \param messageID ID of the message that can be used to retrieve the message from the device's messageQueue() function.
     */
     virtual void newMessage(INDI::BaseDevice *dp, int messageID) =0;
 

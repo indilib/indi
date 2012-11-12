@@ -9,6 +9,12 @@
 
 */
 
+/** \file dome.cpp
+    \brief Construct a dome device that the user may operate to open or close the dome shutter door. This driver is \e snooping on the Rain Detector rain property status.
+    If rain property state is alert, we close the dome shutter door if it is open, and we prevent the user from opening it until the rain threat passes.
+    \author Jasem Mutlaq
+*/
+
 #include <unistd.h>
 #include <memory>
 

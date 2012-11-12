@@ -195,26 +195,6 @@ void INDI::Telescope::NewRaDec(double ra,double dec)
 
 }
 
-bool INDI::Telescope::ReadScopeStatus()
-{
-    //  Return an error, because we sholdn't get here
-    return false;
-}
-
-bool INDI::Telescope::Goto(double ra,double dec)
-{
-    //  if we get here, it's because our derived hardware class
-    //  does not support goto
-    return false;
-}
-
-bool INDI::Telescope::Abort()
-{
-    //  if we get here, it's because our derived hardware class
-    //  does not support abort
-    return false;
-}
-
 bool INDI::Telescope::Sync(double ra,double dec)
 {
     //  if we get here, our mount doesn't support sync

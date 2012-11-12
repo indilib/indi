@@ -25,21 +25,22 @@
 
 /** \file indidevapi.h
     \brief Interface to the reference INDI C API device implementation on the Device Driver side.
-    \author Elwood C. Downey
-    \author Jasem Mutlaq
+*
+\author Elwood C. Downey
+\author Jasem Mutlaq
      
-     This file is divided into two main sections:\n
-     <ol><li> Functions the INDI device driver framework defines which the Driver may
-     call:</li>
+This file is divided into two main sections:\n
+<ol><li> Functions the INDI device driver framework defines which the Driver may
+call:</li>
  
-      <ul><li>IDxxx functions to send messages to an INDI client.</li>
-      <li>IExxx functions to implement the event driven model.</li>
-      <li>IUxxx functions to perform handy utility functions.</li></ul>
+<ul><li>IDxxx functions to send messages to an INDI client.</li>
+<li>IExxx functions to implement the event driven model.</li>
+<li>IUxxx functions to perform handy utility functions.</li></ul>
  
-     <li>Functions the INDI device driver framework calls which the Driver must
-    define:</li>
+<li>Functions the INDI device driver framework calls which the Driver must
+define:</li>
  
-     <ul><li>ISxxx to respond to messages from a Client.</li></ul></ol>
+<ul><li>ISxxx to respond to messages from a Client.</li></ul></ol>
 
 <p>These functions are the interface to the INDI C-language Device Driver
 reference implementation library. Any driver that uses this interface is
@@ -498,15 +499,18 @@ extern int IUUpdateText(ITextVectorProperty *tvp, char * texts[], char *names[],
 /** \brief Update all BLOB members in a BLOB vector property.
 *
 * \param bvp a pointer to a BLOB vector property.
-* \param BLOBs a pointer to the BLOB members
+* \param sizes sizes of the blobs.
+* \param blobsizes size of the blobs, raw without compression.
+* \param blobs a pointer to the BLOB members
 * \param names the names of the IBLOB members to update.
+* \param formats The blob format or extension.
 * \param n the number of IBLOB members to update.
 * \return 0 if update successful, -1 otherwise. Update will fail in case of property name mismatch.
 */
 extern int IUUpdateBLOB(IBLOBVectorProperty *bvp, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
 
 /** \brief Function to save blob metadata in the corresponding blob.
-    \param tb pointer to an IBLOB member.
+    \param bp pointer to an IBLOB member.
     \param size size of the blob buffer encoded in base64
     \param blobsize actual size of the buffer after base64 decoding. This is the actual byte count used in drivers.
     \param blob pointer to the blob buffer

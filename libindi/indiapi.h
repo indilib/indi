@@ -22,9 +22,10 @@
 #define INDI_API_H
 
 /** \mainpage Instrument Neutral Distributed Interface INDI
-    \section Introduction
-    
-    INDI is a simple XML-like communications protocol described for interactive and automated remote control of diverse instrumentation.\n
+ *
+\section Introduction
+
+ INDI is a simple XML-like communications protocol described for interactive and automated remote control of diverse instrumentation.\n
  
  INDI is small, easy to parse, and stateless. In the INDI paradigm each Device poses all command and status functions in terms of settings and getting Properties. Each Property is a vector of one or more names members. Each property has a current value vector; a target value vector; provides information about how it should be sequenced with respect to other Properties to accomplish one coordinated unit of observation; and provides hints as to how it might be displayed for interactive manipulation in a GUI.\n
  
@@ -40,7 +41,7 @@ INDI is intended for developers who seek a scalable API for device control and a
 
 \section Development Developing under INDI
 
-<p>Please refere to the <a href="http://indi.sourceforge.net/index.php/Manual">INDI Developers Manual</a> for a complete guide on INDI's driver developemnt framework.</p>
+<p>Please refere to the <a href="http://www.indilib.org/develop/developer-manual">INDI Developers Manual</a> for a complete guide on INDI's driver developemnt framework.</p>
 
 <p>The INDI Library API is divided into the following main sections:</p>
 <ul>
@@ -55,7 +56,7 @@ INDI is intended for developers who seek a scalable API for device control and a
 
 \section Help 
 
-You can find information on INDI development in the <a href="http://indi.sf.net">INDI sourceforge</a> site. Furthermore, you can discuss INDI related issues on the <a href="http://sourceforge.net/mail/?group_id=90275">INDI development mailing list</a>. 
+You can find information on INDI development in the <a href="http://www.indilib.org">INDI Library</a> site. Furthermore, you can discuss INDI related issues on the <a href="http://sourceforge.net/mail/?group_id=90275">INDI development mailing list</a>.
 
 \author Elwood Downey
 \author Jasem Mutlaq

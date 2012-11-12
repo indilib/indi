@@ -31,6 +31,8 @@
    pure virtual functions and call SelectFilterDone(int) when selection of a new filter position is complete in the hardware.
 
    initFilterProperties() must be called before any other function to initilize the filter properties.
+
+   \note Filter position starts from 1 and \e not 0
 \author Gerry Rozema, Jasem Mutlaq
 */
 class INDI::FilterInterface

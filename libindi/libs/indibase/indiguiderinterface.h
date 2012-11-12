@@ -27,7 +27,8 @@
  * \class INDI::GuiderInterface
    \brief Provides interface to implement guider (ST4) port functionality.
 
-   initFilterProperties() must be called before any other function to initilize the guider properties.
+   initGuiderProperties() must be called before any other function to initilize the guider properties.
+
 \author Jasem Mutlaq
 */
 class INDI::GuiderInterface
@@ -66,6 +67,13 @@ protected:
     */
     void initGuiderProperties(const char *deviceName, const char* groupName);
 
+    /** \brief Call this function whenever client updates GuideNSP or GuideWSP properties in the primary device. This function then takes care of issuing the corresponding
+     * GuideXXXX function accordingly.
+     * \param name device name
+     * \param values value as passed by the client
+     * \param names names as passed by the client
+     * \param n number of values and names pair to process.
+    */
     void processGuiderProperties(const char *name, double values[], char *names[], int n);
 
     INumber GuideNS[2];

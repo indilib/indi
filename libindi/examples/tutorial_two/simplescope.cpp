@@ -11,6 +11,11 @@
 
 */
 
+/** \file simplescope.cpp
+    \brief Construct a basic INDI telescope device that simulates GOTO commands.
+    \author Jasem Mutlaq
+*/
+
 #include <sys/time.h>
 #include <math.h>
 #include <memory>
