@@ -126,7 +126,7 @@ bool FilterSim::GetFilterNames(const char* groupName)
     char filterName[MAXINDINAME];
     char filterLabel[MAXINDILABEL];
 
-    const char *filterDesignation[5] = { "Red", "Green", "Blue", "H Alpha", "Luminosity" };
+    const char *filterDesignation[5] = { "Red", "Green", "Blue", "H_Alpha", "Luminosity" };
 
     if (FilterNameT != NULL)
         delete FilterNameT;
