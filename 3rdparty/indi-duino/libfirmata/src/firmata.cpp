@@ -199,12 +199,13 @@ int Firmata::sendSysExData(const unsigned char command, vector<unsigned char> da
 
 int Firmata::init(const char* _serialPort) {
 	arduino = new Arduino();
+	portOpen = 0;
 	if (arduino->openPort(_serialPort,FIRMATA_DEFAULT_BAUD) != 0) {
 		if (debug) fprintf(stderr,"sf->openPort(%s) failed: exiting\n",_serialPort);
 		destroy();
 		return 1;
 	}
-	portOpen = 0;
+
 	askFirmwareVersion();
 	usleep(1000);
 	while(true) {

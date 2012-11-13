@@ -106,6 +106,7 @@ class Firmata {
 		void print_state();
 		char firmata_name[140];
 		void OnIdle();
+		bool portOpen;
         private:
 		int parse_count;
 		int parse_command_len;
@@ -115,7 +116,7 @@ class Firmata {
 	protected:
 
 		Arduino* arduino;
-		bool portOpen;
+
 		int waitForData;
 		int executeMultiByteCommand;
 		int multiByteChannel;

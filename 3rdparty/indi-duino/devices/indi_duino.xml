@@ -11,4 +11,13 @@
                 <driver name="Arduino Demo">indi_duino</driver>
                 <version>0.1</version>
         </device>
+	<device label="Arduino Stepper" skel="stepper_sk.xml">
+                <driver name="Arduino Stepper">indi_duino</driver>
+                <version>0.1</version>
+        </device>
+	<device label="Arduino Focuser" skel="focuser_sk.xml">
+                <driver name="Arduino Focuser">indi_duino</driver>
+                <version>0.1</version>
+        </device>
 </devGroup>
+

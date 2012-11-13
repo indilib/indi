@@ -64,10 +64,13 @@
 3rdparty/indi-duino/CMakeLists.txt -text
 3rdparty/indi-duino/README -text
 3rdparty/indi-duino/devices/CMakeLists.txt -text
+3rdparty/indi-duino/devices/Firmwares/INDIDUINOStepper/INDIDUINOStepper.ino -text
 3rdparty/indi-duino/devices/Firmwares/StandardFirmata.ino -text
-3rdparty/indi-duino/devices/Firmwares/TemplateINDIDUINO.ino -text
+3rdparty/indi-duino/devices/Firmwares/TemplateINDIDUINO/TemplateINDIDUINO.ino -text
 3rdparty/indi-duino/devices/digital_inputs_sk.xml -text
+3rdparty/indi-duino/devices/focuser_sk.xml -text
 3rdparty/indi-duino/devices/indi_duino.xml -text
+3rdparty/indi-duino/devices/stepper_sk.xml -text
 3rdparty/indi-duino/devices/switcher_sk.xml -text
 3rdparty/indi-duino/devices/various_sk.xml -text
 3rdparty/indi-duino/duconfig.h.in -text

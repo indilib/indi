@@ -163,9 +163,9 @@ void indiduino::ISPoll() {
 	label=pAll->at(i)->getLabel();
 	type=pAll->at(i)->getType();
 	//IDLog("PROP:%s\n",name);
-	//DIGITAL
-        if (type == INDI_SWITCH) { 
-		ISwitchVectorProperty *svp = getSwitch(name);
+	//DIGITAL INPUT
+        if (type == INDI_LIGHT ) { 
+		ILightVectorProperty *svp = getLight(name);
         	char s[10];
 		strncpy(s,svp->name,7);
 		//IDLog("DIGITAL PROP:%s\n",s);
@@ -185,7 +185,7 @@ void indiduino::ISPoll() {
 					//strcpy(svp->name,"");
 					svp->s = IPS_IDLE;
 				}
-				IDSetSwitch(svp, NULL);
+				IDSetLight(svp, NULL);
 			}
         	 } 
         }
@@ -377,8 +377,8 @@ bool indiduino::ISNewSwitch (const char *dev, const char *name, ISState *states,
 
 
         ISwitchVectorProperty *svp = getSwitch(name);
-	//IDLog("NAME:%s\n",name);
-        //IDLog("%s\n",svp->name);
+	IDLog("NAME:%s\n",name);
+        IDLog("%s\n",svp->name);
 
         if (isConnected() == false)
         {
@@ -420,29 +420,6 @@ bool indiduino::ISNewSwitch (const char *dev, const char *name, ISState *states,
 	        return true;
 	}
 
-	if (!strcmp(s, PROP_NAME_DINPUT)) {
-		int pin;
-	        s[0]=svp->name[8];
-	        s[1]=svp->name[9];
-	        s[2]='\0';	
-		pin=atoi(s);		
-                //IDLog("%s\n",s);
-		IUUpdateSwitch(svp, states, names, n);
-        	ISwitch *onSW = IUFindOnSwitch(svp);  
-		if (!strcmp(onSW->name, "ON")) {
-        		IDLog("%s on pin %u is:ON\n",svp->label,pin);
-			svp->s = IPS_OK;
-			IDSetSwitch (svp, "%s:ON\n",svp->label);
-		} else {
-        		IDLog("%s on pin %u is:OFF\n",svp->label,pin);
-			//IDLog("%s:OFF\n",svp->name);
-			svp->s = IPS_IDLE;
-			IDSetSwitch (svp, "%s:OFF\n",svp->label);
-		}
-
-        	//IUUpdateSwitch(svp, states, names, n);
-	        return true;
-	}
 
     return false;
 
@@ -501,12 +478,19 @@ bool indiduino::Connect()
 {
     ITextVectorProperty *tProp = getText("DEVICE_PORT");
     sf = new Firmata(tProp->tp[0].text);
-    IDLog("ARDUINO BOARD CONNECTED.\n");
-    IDLog("FIRMATA VERSION:%s\n",sf->firmata_name);
-    IDSetSwitch (getSwitch("CONNECTION"),"CONNECTED.FIRMATA VERSION:%s\n",sf->firmata_name);
-    setPinModesFromSK();
-
-    return true;
+    if (sf->portOpen) {
+    	IDLog("ARDUINO BOARD CONNECTED.\n");
+	IDLog("FIRMATA VERSION:%s\n",sf->firmata_name);
+	IDSetSwitch (getSwitch("CONNECTION"),"CONNECTED.FIRMATA VERSION:%s\n",sf->firmata_name);
+	setPinModesFromSK();
+	return true;
+    } else {
+	IDLog("ARDUINO BOARD FAIL TO CONNECT.\n");
+	IDSetSwitch (getSwitch("CONNECTION"),"FAIL TO CONNECT\n");
+	delete sf;
+	return false;
+    }
+    
 }
 
 bool indiduino::is_connected(void) {
@@ -528,6 +512,7 @@ void indiduino::setPinModesFromSK() {
         //IDLog("Property #%d: %s %s %u\n", i, name,label,type);
         if (type == INDI_SWITCH) { 
 		ISwitchVectorProperty *svp = getSwitch(name);
+		//IDLog("%s\n",svp->name);
         	char s[10];
 		strncpy(s,svp->name,7);	
         
@@ -537,16 +522,23 @@ void indiduino::setPinModesFromSK() {
 		        s[1]=svp->name[9];
 		        s[2]='\0';	
 			pin=atoi(s);
-			IDLog("Arduino pin %u set as DIGITAL OUTPUT\n",pin);
+			IDLog("%s on pin %u set as DIGITAL OUTPUT\n",svp->label,pin);
 			sf->setPinMode(pin,FIRMATA_MODE_OUTPUT);
          	} 
+        }
+	if (type == INDI_LIGHT) { 
+		//IDLog("INDI_LIGHT\n");
+		ILightVectorProperty *svp = getLight(name);
+        	char s[10];
+		strncpy(s,svp->name,7);	
+        
 		if (!strcmp(s, PROP_NAME_DINPUT)) {
 			int pin;
 		        s[0]=svp->name[8];
 		        s[1]=svp->name[9];
 		        s[2]='\0';	
 			pin=atoi(s);
-			IDLog("Arduino pin %u set as DIGITAL INPUT\n",pin);
+			IDLog("%s on pin %u set as DIGITAL INPUT\n",svp->label,pin);
 			sf->setPinMode(pin,FIRMATA_MODE_INPUT);
         	 } 
         }
@@ -567,7 +559,7 @@ void indiduino::setPinModesFromSK() {
 		        s[1]=eqp->name[9];
 		        s[2]='\0';	
 			pin=atoi(s);
-			IDLog("Arduino pin %u set as PWM OUTPUT\n",pin);
+			IDLog("%s on pin %u set as ANALOG OUTPUT\n",eqp->label,pin);
 			sf->setPinMode(pin,FIRMATA_MODE_PWM);
         	 } 
 		if (!strcmp(s, PROP_NAME_AINPUT)) {
@@ -576,7 +568,7 @@ void indiduino::setPinModesFromSK() {
 		        s[1]=eqp->name[9];
 		        s[2]='\0';	
 			pin=atoi(s);
-			IDLog("Arduino pin %u set as ANALOG INPUT\n",pin);
+			IDLog("%s on pin %u set as ANALOG INPUT\n",eqp->label,pin);
 			sf->setPinMode(pin,FIRMATA_MODE_ANALOG);
         	 } 
             } 

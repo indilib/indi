@@ -41,11 +41,11 @@ On
     </defSwitch>
 </defSwitchVector>
 
-<defSwitchVector device="Arduino Demo" name="DINPUT__10" label="UPS POWER" group="Main Control" state="Idle" perm="ro" rule="OneOfMany" timeout="1">
-    <defSwitch name="ON" label="OK">
+<defLightVector device="Arduino Demo" name="DINPUT__10" label="UPS POWER" group="Main Control" state="Idle" perm="ro" rule="OneOfMany" timeout="1">
+    <defLight name="ON" label="OK">
 OK
-    </defSwitch>
-</defSwitchVector>
+    </defLight>
+</defLightVector>
 <defNumberVector device="Arduino Demo" name="HEATERS" label="HEATERS" group="Main Control" state="Idle" perm="rw" timeout="0">
     <defNumber name="AOUTPUT_05" label="C9.5" format="%4.0f" min="0" max="255" step="1">
 0
