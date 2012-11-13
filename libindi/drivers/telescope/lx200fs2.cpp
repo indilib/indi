@@ -44,8 +44,6 @@ const char *MOTION_GROUP   = "Motion Control";
 /* Handy Macros */
 #define currentRA	EquatorialCoordsRN[0].value
 #define currentDEC	EquatorialCoordsRN[1].value
-#define targetRA	EquatorialCoordsWN[0].value
-#define targetDEC	EquatorialCoordsWN[1].value
 
 static void retryConnection(void *);
 

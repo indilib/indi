@@ -45,8 +45,6 @@ extern char* me;
 /* Handy Macros */
 #define currentRA	EquatorialCoordsRN[0].value
 #define currentDEC	EquatorialCoordsRN[1].value
-#define targetRA	EquatorialCoordsWN[0].value
-#define targetDEC	EquatorialCoordsWN[1].value
 
 static void ISPoll(void *);
 static void retryConnection(void *);
@@ -73,14 +71,6 @@ ITextVectorProperty PortTP	= { mydev, "DEVICE_PORT", "Ports", COMM_GROUP, IP_RW,
 /**********************************************************************************************/
 /************************************ GROUP: Position Display**********************************/
 /**********************************************************************************************/
-
-/********************************************
- Property: Equatorial Coordinates JNow
- Perm: Transient WO.
- Timeout: 120 seconds.
-*********************************************/
-INumber EquatorialCoordsWN[] 		= { {"RA",  "RA  H:M:S", "%10.6m",  0., 24., 0., 0., 0, 0, 0}, {"DEC", "Dec D:M:S", "%10.6m", -90., 90., 0., 0., 0, 0, 0} };
-INumberVectorProperty EquatorialCoordsWNP= { mydev, "EQUATORIAL_EOD_COORD_REQUEST", "Equatorial JNow", BASIC_GROUP, IP_WO, 120, IPS_IDLE, EquatorialCoordsWN, NARRAY(EquatorialCoordsWN), "", 0};
 
 /********************************************
  Property: Equatorial Coordinates JNow

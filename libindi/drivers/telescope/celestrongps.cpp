@@ -34,8 +34,6 @@
 /* Handy Macros */
 #define currentRA	EquatorialCoordsRN[0].value
 #define currentDEC	EquatorialCoordsRN[1].value
-#define targetRA	EquatorialCoordsWN[0].value
-#define targetDEC	EquatorialCoordsWN[1].value
 
 /* Enable to log debug statements 
 #define CELESTRON_DEBUG	1
@@ -60,10 +58,6 @@ static void ISPoll(void *);
 
 /*INDI controls */
 static ISwitch SlewModeS[]       = {{"Slew", "", ISS_ON, 0, 0}, {"Find", "", ISS_OFF, 0, 0}, {"Centering", "", ISS_OFF, 0, 0}, {"Guide", "", ISS_OFF, 0, 0}};
-
-/* Equatorial Coordinates: Request */
-static INumber EquatorialCoordsWN[] = {    {"RA",  "RA  H:M:S", "%10.6m",  0., 24., 0., 0., 0, 0, 0},    {"DEC", "Dec D:M:S", "%10.6m", -90., 90., 0., 0., 0, 0, 0}};
-static INumberVectorProperty EquatorialCoordsWNP = {  mydev, "EQUATORIAL_EOD_COORD_REQUEST", "Equatorial JNow", BASIC_GROUP, IP_WO, 120, IPS_IDLE,  EquatorialCoordsWN, NARRAY(EquatorialCoordsWN), "", 0};
 
 /* Equatorial Coordinates: Info */
 static INumber EquatorialCoordsRN[] = {    {"RA",  "RA  H:M:S", "%10.6m",  0., 24., 0., 0., 0, 0, 0},    {"DEC", "Dec D:M:S", "%10.6m", -90., 90., 0., 0., 0, 0, 0}};
@@ -179,7 +173,6 @@ void CelestronGPS::ISGetProperties(const char *dev)
   IDDefText   (&PortTP, NULL);
   
   // BASIC_GROUP
-  IDDefNumber (&EquatorialCoordsWNP, NULL);
   IDDefNumber (&EquatorialCoordsRNP, NULL);
   IDDefSwitch (&OnCoordSetSP, NULL);
   IDDefSwitch (&AbortSlewSP, NULL);
@@ -233,7 +226,7 @@ int CelestronGPS::handleCoordSet()
     // Slew
     case 0:
           lastSet = 0;
-	  if (EquatorialCoordsWNP.s == IPS_BUSY)
+      if (EquatorialCoordsRNP.s == IPS_BUSY)
 	  {
 	     StopNSEW();
 	     // sleep for 500 mseconds
@@ -246,19 +239,17 @@ int CelestronGPS::handleCoordSet()
 	    return (-1);
 	  }
 
-	  EquatorialCoordsWNP.s = IPS_BUSY;
 	  EquatorialCoordsRNP.s = IPS_BUSY;
 	  fs_sexa(RAStr, targetRA, 2, 3600);
 	  fs_sexa(DecStr, targetDEC, 2, 3600);
-	  IDSetNumber(&EquatorialCoordsWNP, "Slewing to JNOW RA %s - DEC %s", RAStr, DecStr);
-	  IDSetNumber(&EquatorialCoordsRNP, NULL);
+      IDSetNumber(&EquatorialCoordsRNP, "Slewing to JNOW RA %s - DEC %s", RAStr, DecStr);
 	  IDLog("Slewing to JNOW RA %s - DEC %s", RAStr, DecStr);
 	  break;
 
 
   // Track
   case 1: 
-          if (EquatorialCoordsWNP.s == IPS_BUSY)
+          if (EquatorialCoordsRNP.s == IPS_BUSY)
 	  {
 	      StopNSEW();
 	     // sleep for 500 mseconds
@@ -282,11 +273,9 @@ int CelestronGPS::handleCoordSet()
 	  	}
 		
 		fs_sexa(RAStr, targetRA, 2, 3600);
-	        fs_sexa(DecStr, targetDEC, 2, 3600);
-		EquatorialCoordsWNP.s = IPS_BUSY;
+        fs_sexa(DecStr, targetDEC, 2, 3600);
 		EquatorialCoordsRNP.s = IPS_BUSY;
-		IDSetNumber(&EquatorialCoordsWNP, "Slewing to JNow RA %s - DEC %s", RAStr, DecStr);
-		IDSetNumber(&EquatorialCoordsRNP, NULL);
+        IDSetNumber(&EquatorialCoordsRNP, "Slewing to JNow RA %s - DEC %s", RAStr, DecStr);
 		IDLog("Slewing to JNOW RA %s - DEC %s", RAStr, DecStr);
 	  }
 	  else
@@ -294,14 +283,12 @@ int CelestronGPS::handleCoordSet()
 	    #ifdef CELESTRON_DEBUG
 	    IDLog("Tracking called, but tracking threshold not reached yet.\n");
 	    #endif
-	    EquatorialCoordsWNP.s = IPS_OK;
-	    EquatorialCoordsRNP.s = IPS_OK;
+        EquatorialCoordsRNP.s = IPS_OK;
             if (lastSet != 1)
-	      IDSetNumber(&EquatorialCoordsWNP, "Tracking...");
+          IDSetNumber(&EquatorialCoordsRNP, "Tracking...");
 	    else
-	      IDSetNumber(&EquatorialCoordsWNP, NULL);
+          IDSetNumber(&EquatorialCoordsRNP, NULL);
 
-	      IDSetNumber(&EquatorialCoordsRNP, NULL);
 	  }
 	  lastSet = 1;
       break;
@@ -310,11 +297,9 @@ int CelestronGPS::handleCoordSet()
     case 2:
           lastSet = 2;
 	  OnCoordSetSP.s = IPS_OK;
-	  SyncToCoords(targetRA, targetDEC);
-          EquatorialCoordsWNP.s = IPS_OK;
+	  SyncToCoords(targetRA, targetDEC);   
 	  EquatorialCoordsRNP.s = IPS_OK;
-   	  IDSetNumber(&EquatorialCoordsWNP, "Synchronization successful.");
-	  IDSetNumber(&EquatorialCoordsRNP, NULL);
+      IDSetNumber(&EquatorialCoordsRNP, "Synchronization successful.");
 	  break;
    }
 
@@ -364,21 +349,21 @@ void CelestronGPS::ISNewNumber (const char *dev, const char *name, double values
 		return;
 	}
 
-	if (!strcmp (name, EquatorialCoordsWNP.name))
+    if (!strcmp (name, EquatorialCoordsRNP.name))
 	{
 	  int i=0, nset=0;
 
-	  if (checkPower(&EquatorialCoordsWNP))
+      if (checkPower(&EquatorialCoordsRNP))
 	   return;
 
 	    for (nset = i = 0; i < n; i++)
 	    {
-		INumber *eqp = IUFindNumber (&EquatorialCoordsWNP, names[i]);
-		if (eqp == &EquatorialCoordsWN[0])
+        INumber *eqp = IUFindNumber (&EquatorialCoordsRNP, names[i]);
+        if (eqp == &EquatorialCoordsRN[0])
 		{
                     newRA = values[i];
 		    nset += newRA >= 0 && newRA <= 24.0;
-		} else if (eqp == &EquatorialCoordsWN[1])
+        } else if (eqp == &EquatorialCoordsRN[1])
 		{
 		    newDEC = values[i];
 		    nset += newDEC >= -90.0 && newDEC <= 90.0;
@@ -406,14 +391,14 @@ void CelestronGPS::ISNewNumber (const char *dev, const char *name, double values
 	   
 	       if (handleCoordSet())
 	       {
-	        EquatorialCoordsWNP.s = IPS_ALERT;
-	    	IDSetNumber(&EquatorialCoordsWNP, NULL);
+            EquatorialCoordsRNP.s = IPS_ALERT;
+            IDSetNumber(&EquatorialCoordsRNP, NULL);
 	       }
 	    }
 	    else
 	    {
-		EquatorialCoordsWNP.s = IPS_ALERT;
-		IDSetNumber(&EquatorialCoordsWNP, "RA or Dec missing or invalid.");
+        EquatorialCoordsRNP.s = IPS_ALERT;
+        IDSetNumber(&EquatorialCoordsRNP, "RA or Dec missing or invalid.");
 	    }
 
 	    return;
@@ -464,16 +449,14 @@ void CelestronGPS::ISNewSwitch (const char *dev, const char *name, ISState *stat
 	  IUResetSwitch(&AbortSlewSP);
 	  StopNSEW();
 
-	    if (EquatorialCoordsWNP.s == IPS_BUSY)
+        if (EquatorialCoordsRNP.s == IPS_BUSY)
 	    {
 		AbortSlewSP.s = IPS_OK;
-		EquatorialCoordsWNP.s       = IPS_IDLE;
 		EquatorialCoordsRNP.s       = IPS_IDLE;
 		IDSetSwitch(&AbortSlewSP, "Slew aborted.");
-		IDSetNumber(&EquatorialCoordsWNP, NULL);
 		IDSetNumber(&EquatorialCoordsRNP, NULL);
-            }
-	    else if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+        }
+        else if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
 	    {
 		MovementNSSP.s  = MovementWESP.s =  IPS_IDLE; 
 	
@@ -670,7 +653,7 @@ void CelestronGPS::ISPoll()
        double dx, dy;
        int status;
 
-	switch (EquatorialCoordsWNP.s)
+    switch (EquatorialCoordsRNP.s)
 	{
 	case IPS_IDLE:
 	if (ConnectSP.s != IPS_OK)
@@ -711,19 +694,12 @@ void CelestronGPS::ISPoll()
 		currentRA = targetRA;
 		currentDEC = targetDEC;
 
-		EquatorialCoordsWNP.s = IPS_OK;
-		EquatorialCoordsRNP.s = IPS_OK;
+        EquatorialCoordsRNP.s = IPS_OK;
 
 		if (currentSet == 0)
-		{
-		  IDSetNumber (&EquatorialCoordsWNP, "Slew is complete.");
-		  IDSetNumber (&EquatorialCoordsRNP, NULL);
-		}
+          IDSetNumber (&EquatorialCoordsRNP, "Slew is complete.");
 		else
-		{
-		  IDSetNumber (&EquatorialCoordsWNP, "Slew is complete. Tracking...");
-		  IDSetNumber (&EquatorialCoordsRNP, NULL);
-		}
+          IDSetNumber (&EquatorialCoordsRNP, "Slew is complete. Tracking...");
 		
 		break;
 	    }   
@@ -824,24 +800,24 @@ void CelestronGPS::connectTelescope()
 
 void CelestronGPS::slewError(int slewCode)
 {
-    EquatorialCoordsWNP.s = IPS_ALERT;
+    EquatorialCoordsRNP.s = IPS_ALERT;
 
     switch (slewCode)
     {
       case 1:
-       IDSetNumber (&EquatorialCoordsWNP, "Invalid newDec in SlewToCoords");
+       IDSetNumber (&EquatorialCoordsRNP, "Invalid newDec in SlewToCoords");
        break;
       case 2:
-       IDSetNumber (&EquatorialCoordsWNP, "RA count overflow in SlewToCoords");
+       IDSetNumber (&EquatorialCoordsRNP, "RA count overflow in SlewToCoords");
        break;
       case 3:
-       IDSetNumber (&EquatorialCoordsWNP, "Dec count overflow in SlewToCoords");
+       IDSetNumber (&EquatorialCoordsRNP, "Dec count overflow in SlewToCoords");
        break;
       case 4:
-       IDSetNumber (&EquatorialCoordsWNP, "No acknowledgment from telescope after SlewToCoords");
+       IDSetNumber (&EquatorialCoordsRNP, "No acknowledgment from telescope after SlewToCoords");
        break;
       default:
-       IDSetNumber (&EquatorialCoordsWNP, "Unknown error");
+       IDSetNumber (&EquatorialCoordsRNP, "Unknown error");
        break;
     }
 

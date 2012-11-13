@@ -56,7 +56,6 @@ private:
 
   /* Numbers */
   INumber EquatorialCoordsRN[2];
-  INumber EquatorialCoordsWN[2];
   
   /* Switch Vectors */
   ISwitchVectorProperty ConnectSP;
@@ -66,7 +65,6 @@ private:
   
    /* Number Vectors */
   INumberVectorProperty EquatorialCoordsRNP;
-  INumberVectorProperty EquatorialCoordsWNP;
   
   /* Text Vectors */
   ITextVectorProperty PortTP;
@@ -110,6 +108,7 @@ private:
 
   int currentSet;
   int lastSet;
+  double targetRA, targetDEC;
 
 };
 

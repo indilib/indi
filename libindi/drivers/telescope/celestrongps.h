@@ -55,6 +55,7 @@ class CelestronGPS
 
   int lastSet;
   int currentSet;
+  double targetRA, targetDEC;
 };
 
 #endif

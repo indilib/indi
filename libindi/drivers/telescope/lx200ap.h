@@ -65,6 +65,10 @@ class LX200AstroPhysics : public LX200Generic
 
  enum LX200_STATUS { LX200_SLEW, LX200_TRACK, LX200_SYNC, LX200_PARK };
 
+private:
+ double targetRA, targetDEC;
+ double targetAZ, targetALT;
+
 };
 
 void changeLX200AstroPhysicsDeviceName(const char *newName);

@@ -54,7 +54,6 @@ private:
 
   /* Numbers */
   INumber EquatorialCoordsRN[2];
-  INumber EquatorialCoordsWN[2];
   INumber SlewAccuracyN[2];
   INumber TrackAccuracyN[2];
   
@@ -65,7 +64,6 @@ private:
   
    /* Number Vectors */
   INumberVectorProperty EquatorialCoordsRNP;
-  INumberVectorProperty EquatorialCoordsWNP;
   INumberVectorProperty SlewAccuracyNP;
   INumberVectorProperty TrackAccuracyNP;
   
@@ -111,6 +109,7 @@ private:
 
   int currentSet;
   int lastSet;
+  double targetRA, targetDEC;
 
 };
 

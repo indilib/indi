@@ -70,6 +70,7 @@ class Magellan1
   char   thisDevice[64];
   int    currentSet;
   int    lastSet;
+  double targetRA, targetDEC;
 
 };
 

@@ -47,6 +47,7 @@ class LX200Fs2 : public LX200Generic
  virtual void handleError(ISwitchVectorProperty *svp, int err, const char *msg);
  virtual void handleError(INumberVectorProperty *nvp, int err, const char *msg);
  virtual void handleError(ITextVectorProperty *tvp, int err, const char *msg);
+ int check_fs2_connection(int fd); // Added to support firmware versions below 1.19
  
  protected:
  
@@ -64,8 +65,6 @@ class LX200Fs2 : public LX200Generic
  void getBasicData();
  virtual void connectTelescope();
  bool is_connected(void);
-public:
- int check_fs2_connection(int fd); // Added to support firmware versions below 1.19
 
 };
 
