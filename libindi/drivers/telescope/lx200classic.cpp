@@ -34,8 +34,6 @@ extern int MaxReticleFlashRate;
 /* Handy Macros */
 #define currentRA	EquatorialCoordsRNP.np[0].value
 #define currentDEC	EquatorialCoordsRNP.np[1].value
-#define targetRA	EquatorialCoordsWNP.np[0].value
-#define targetDEC	EquatorialCoordsWNP.np[1].value
 
 #define BASIC_GROUP	"Main Control"
 #define LIBRARY_GROUP	"Library"

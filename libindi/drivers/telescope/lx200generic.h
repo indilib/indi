@@ -79,6 +79,7 @@ class LX200Generic
   char   thisDevice[64];
   int    currentSet;
   int    lastSet;
+  double targetRA, targetDEC;
 
 };
 

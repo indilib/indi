@@ -35,7 +35,6 @@ extern LX200Generic *telescope;
 extern int MaxReticleFlashRate;
 extern ITextVectorProperty TimeTP;
 extern INumberVectorProperty SDTimeNP;
-extern INumberVectorProperty EquatorialCoordsWNP;
 extern INumberVectorProperty EquatorialCoordsRNP;
 extern INumberVectorProperty FocusTimerNP;
 extern ISwitchVectorProperty ConnectSP;
@@ -141,7 +140,7 @@ void LX200Autostar::ISNewNumber (const char *dev, const char *name, double value
 	  if (checkPower(&ParkSP))
 	    return;
            
-   	  if (EquatorialCoordsWNP.s == IPS_BUSY)
+      if (EquatorialCoordsRNP.s == IPS_BUSY)
 	  {
 	     if (abortSlew(fd) < 0)
 	     {
@@ -152,14 +151,14 @@ void LX200Autostar::ISNewNumber (const char *dev, const char *name, double value
 	     }
 
 	     AbortSlewSP.s = IPS_OK;
-	     EquatorialCoordsWNP.s       = IPS_IDLE;
+         EquatorialCoordsRNP.s       = IPS_IDLE;
              IDSetSwitch(&AbortSlewSP, "Slew aborted.");
-	     IDSetNumber(&EquatorialCoordsWNP, NULL);
+         IDSetNumber(&EquatorialCoordsRNP, NULL);
 
 	     if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
 	     {
 		MovementNSSP.s  = MovementWESP.s =  IPS_IDLE; 
-		EquatorialCoordsWNP.s       = IPS_IDLE;
+        EquatorialCoordsRNP.s       = IPS_IDLE;
 		IUResetSwitch(&MovementNSSP);
 		IUResetSwitch(&MovementWESP);
 		IUResetSwitch(&AbortSlewSP);
