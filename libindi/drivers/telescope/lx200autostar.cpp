@@ -171,7 +171,7 @@ void LX200Autostar::ISNewNumber (const char *dev, const char *name, double value
 	     usleep(200000);
 	  }
 
-	  if (slewToPark(fd) < 0)
+      if (!simulation && slewToPark(fd) < 0)
 	  {
 		ParkSP.s = IPS_ALERT;
 		IDSetSwitch(&ParkSP, "Parking Failed.");

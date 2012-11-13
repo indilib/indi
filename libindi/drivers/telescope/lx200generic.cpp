@@ -106,7 +106,7 @@ static ISwitchVectorProperty AlignmentSw= { mydev, "Alignment", "", COMM_GROUP, 
  Perm: RO
 *********************************************/
 INumber EquatorialCoordsRN[]	 	= { {"RA",  "RA  H:M:S", "%10.6m",  0., 24., 0., 0., 0, 0, 0}, {"DEC", "Dec D:M:S", "%10.6m", -90., 90., 0., 0., 0, 0, 0}};
-INumberVectorProperty EquatorialCoordsRNP= { mydev, "EQUATORIAL_EOD_COORD", "Equatorial JNow", BASIC_GROUP, IP_RO, 120, IPS_IDLE, EquatorialCoordsRN, NARRAY(EquatorialCoordsRN), "", 0};
+INumberVectorProperty EquatorialCoordsRNP= { mydev, "EQUATORIAL_EOD_COORD", "Equatorial JNow", BASIC_GROUP, IP_RW, 120, IPS_IDLE, EquatorialCoordsRN, NARRAY(EquatorialCoordsRN), "", 0};
 
 /********************************************
  Property: On Coord Set
@@ -1147,7 +1147,7 @@ void LX200Generic::ISNewSwitch (const char *dev, const char *name, ISState *stat
 	  }
 	  
 	  IUResetSwitch(&AbortSlewSP);
-	  if (abortSlew(fd) < 0)
+      if (!simulation && abortSlew(fd) < 0)
 	  {
 		AbortSlewSP.s = IPS_ALERT;
 		IDSetSwitch(&AbortSlewSP, NULL);
@@ -1726,8 +1726,7 @@ void LX200Generic::guideTimeout(void *p)
 
 void LX200Generic::ISPoll()
 {
-        double dx, dy;
-	/*static int okCounter = 3;*/
+    double dx, dy;
 	int err=0;
 	
 	if (!isTelescopeOn())
@@ -1750,18 +1749,16 @@ void LX200Generic::ISPoll()
 	if (fault)
 	  correctFault();
 
-	EquatorialCoordsRNP.s = IPS_OK;
-
-	if ( fabs(lastRA - currentRA) > (SlewAccuracyN[0].value/(60.0*15.0)) || fabs(lastDEC - currentDEC) > (SlewAccuracyN[1].value/60.0))
-	{
-	  	lastRA  = currentRA;
-		lastDEC = currentDEC;
-		IDSetNumber (&EquatorialCoordsRNP, NULL);
-	}
-
     switch (EquatorialCoordsRNP.s)
 	{
 	case IPS_IDLE:
+    case IPS_OK:
+        if ( fabs(lastRA - currentRA) > (SlewAccuracyN[0].value/(60.0*15.0)) || fabs(lastDEC - currentDEC) > (SlewAccuracyN[1].value/60.0))
+        {
+            lastRA  = currentRA;
+            lastDEC = currentDEC;
+            IDSetNumber (&EquatorialCoordsRNP, NULL);
+        }
         break;
 
 	case IPS_BUSY:
@@ -1778,10 +1775,6 @@ void LX200Generic::ISPoll()
            IDSetNumber(&EquatorialCoordsRNP, "Slew is complete, target locked...");
 		}  
 		break;
-
-	case IPS_OK:
-        break;
-
 
 	case IPS_ALERT:
 	    break;
@@ -1950,7 +1943,7 @@ int LX200Generic::handleCoordSet()
 	     #ifdef INDI_DEBUG
 	     IDLog("Aborting Slew\n");
 	     #endif
-	     if (abortSlew(fd) < 0)
+         if (!simulation && abortSlew(fd) < 0)
 	     {
 		AbortSlewSP.s = IPS_ALERT;
 		IDSetSwitch(&AbortSlewSP, NULL);
@@ -1960,7 +1953,7 @@ int LX200Generic::handleCoordSet()
 
 	     AbortSlewSP.s = IPS_OK;
          EquatorialCoordsRNP.s       = IPS_IDLE;
-             IDSetSwitch(&AbortSlewSP, "Slew aborted.");
+         IDSetSwitch(&AbortSlewSP, "Slew aborted.");
          IDSetNumber(&EquatorialCoordsRNP, NULL);
 
 	     if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
@@ -1979,7 +1972,7 @@ int LX200Generic::handleCoordSet()
 	usleep(100000);
 	}
 
-	if ((err = Slew(fd))) /* Slew reads the '0', that is not the end of the slew */
+    if (!simulation && (err = Slew(fd))) /* Slew reads the '0', that is not the end of the slew */
 	{
 	    IDMessage(mydev "ERROR Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
 	    slewError(err);
@@ -2007,6 +2000,8 @@ int LX200Generic::handleCoordSet()
 		return (-1);
 	  }
 
+    EquatorialCoordsRN[0].value = targetRA;
+    EquatorialCoordsRN[1].value = targetDEC;
       EquatorialCoordsRNP.s = IPS_OK;
 	  IDLog("Synchronization successful %s\n", syncString);
       IDSetNumber(&EquatorialCoordsRNP, "Synchronization successful.");

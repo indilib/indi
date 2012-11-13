@@ -128,7 +128,7 @@ static INumber HorizontalCoordsRN[] =
 };
 static INumberVectorProperty HorizontalCoordsRNP = 
 {
-    myapdev, "HORIZONTAL_COORD", "Horizontal Coords", BASIC_GROUP, IP_RO, 120, IPS_IDLE, HorizontalCoordsRN, NARRAY(HorizontalCoordsRN), "", 0
+    myapdev, "HORIZONTAL_COORD", "Horizontal Coords", BASIC_GROUP, IP_RW, 120, IPS_IDLE, HorizontalCoordsRN, NARRAY(HorizontalCoordsRN), "", 0
 };
 
 /* Difference of the equatorial coordinates, used to estimate the applied corrections */

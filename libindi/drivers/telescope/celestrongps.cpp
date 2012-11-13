@@ -61,7 +61,7 @@ static ISwitch SlewModeS[]       = {{"Slew", "", ISS_ON, 0, 0}, {"Find", "", ISS
 
 /* Equatorial Coordinates: Info */
 static INumber EquatorialCoordsRN[] = {    {"RA",  "RA  H:M:S", "%10.6m",  0., 24., 0., 0., 0, 0, 0},    {"DEC", "Dec D:M:S", "%10.6m", -90., 90., 0., 0., 0, 0, 0}};
-static INumberVectorProperty EquatorialCoordsRNP = {  mydev, "EQUATORIAL_EOD_COORD", "Equatorial JNow", BASIC_GROUP, IP_RO, 120, IPS_IDLE,  EquatorialCoordsRN, NARRAY(EquatorialCoordsRN), "", 0};
+static INumberVectorProperty EquatorialCoordsRNP = {  mydev, "EQUATORIAL_EOD_COORD", "Equatorial JNow", BASIC_GROUP, IP_RW, 120, IPS_IDLE,  EquatorialCoordsRN, NARRAY(EquatorialCoordsRN), "", 0};
 
 /* Tracking precision */
 INumber TrackingAccuracyN[] = {
