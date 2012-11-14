@@ -485,8 +485,8 @@ bool indiduino::Connect()
 	setPinModesFromSK();
 	return true;
     } else {
-	IDLog("ARDUINO BOARD FAIL TO CONNECT.\n");
-	IDSetSwitch (getSwitch("CONNECTION"),"FAIL TO CONNECT\n");
+	IDLog("ARDUINO BOARD FAIL TO CONNECT. CHECK PORT NAME\n");
+	IDSetSwitch (getSwitch("CONNECTION"),"ARDUINO BOARD FAIL TO CONNECT. CHECK PORT NAME\n");
 	delete sf;
 	return false;
     }

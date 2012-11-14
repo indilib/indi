@@ -1,6 +1,9 @@
 indiduino v0.1
 ==============
 
+NACHO MAS 2012 (mas.ignacio at gmail.com)
+http://indiduino.wordpress.com
+
 This INDI drivers allows to use arduino boards (http://www.arduino.cc)
 as general propouse I/O.
 
@@ -14,21 +17,30 @@ also this file to program on runtime arduino pin behaviour (ANALOG,PWM,INPUT,
 OUTPUT). The driver use the property name to map each arduino pin. The syntaxis
 is:
 
-DINPUT__xx  -> PIN xx (two digits) is configure as digital input.
-DOUTPUT_xx -> PIN xx (two digits) is configure as digital input.
+DINPUT__xx  -> PIN xx (two digits) is configure as digital input.(it has to be defLight property)
+
+DOUTPUT_xx -> PIN xx (two digits) is configure as digital input.(it has to be defSwitch property)
+
 AINPUT__xx  -> PIN xx (two digits) is configure as analog input. Values are report as raw 
-              input reading in the 0-1024 range.		 
+              input reading in the 0-1024 range.(it has to be defNumber property)		 
+
 AOUTPUT_xx -> PIN xx (two digits) is configure as analog output(real PWM). Values are 0-255 
-	      range corresponding 0% to 100% PWM duty cycle.	
-Advices:
-
-Remember that arduino pins only can driver a litle power. For testing driver leds and buttons are ok. For other device probably you need adicional electronics (relays, MOSFET…)
-
-Assuming your board is arduino-uno o arduino-dumilnove, for analog input (pins labeled A0,A1 .. ) you have to use numbers 14,15 and so on.. (i.e AINPUT__14 is A0, AINPUT__15 is A1 …).
-
-Standard firmata firmware use raw values. Values 0-1023 for analog inputs and 0-256 for analog outputs(PWM). Custom firmaware could change that if needed.See device/firmware/TemplateINDIDUINO.ino
-
-IMPORTANT: The user is responsible to map every pin to the real hardware. No check is done. 
+	      range corresponding 0% to 100% PWM duty cycle.( it has to be defNumber property)
 
 See example skeleton files for more details.
 
+Advices:
+
+Remember that arduino pins only can driver a litle power. For testing driver leds and
+buttons are ok. For other device probably you need adicional electronics (relays, MOSFET…)
+
+Assuming your board is arduino-uno o arduino-dumilnove, for analog input (pins labeled A0,A1 .. )
+ you have to use numbers 14,15 and so on.. (i.e AINPUT__14 is A0, AINPUT__15 is A1 …).
+
+Standard firmata firmware use raw values. Values 0-1023 for analog inputs and 0-256 for analog 
+outputs(PWM). Custom firmaware could change that if needed.See device/firmware/TemplateINDIDUINO.ino
+
+IMPORTANT: The user is responsible to map every pin to the real hardware. No check is done. 
+
+
+Custom Firmware:To know how to use custom firmware see stepper example code.

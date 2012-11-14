@@ -202,7 +202,6 @@ int Firmata::init(const char* _serialPort) {
 	portOpen = 0;
 	if (arduino->openPort(_serialPort,FIRMATA_DEFAULT_BAUD) != 0) {
 		if (debug) fprintf(stderr,"sf->openPort(%s) failed: exiting\n",_serialPort);
-		destroy();
 		return 1;
 	}
 
