@@ -132,6 +132,9 @@ Servo servos[MAX_SERVOS];
 /* Nacho Mas. 
   execute one time per loop
 */
+int *INWARD=&pinState[2];
+int *BLACKSLASH=&pinState[9];
+
 void custom_loop() {
    if (motor.distanceToGo() == 0)
       motor.disableOutputs();
@@ -195,7 +198,16 @@ int custom_analog_output(int pin,int value) {
            break;
        case 9:               
 //             result=map(value, 0, 100, 0, 255);
-//             break;             
+               break;             
+       case 10:
+           motor.enableOutputs();
+           if (*INWARD==1) {  
+             motor.moveTo(motor.currentPosition()+value);   
+           } else {
+              motor.moveTo(motor.currentPosition()-value);   
+           }  
+           break;
+
        default:
              result=value;
              analogWrite(pwmPin, result);
