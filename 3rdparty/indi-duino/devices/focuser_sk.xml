@@ -15,6 +15,45 @@ On
     </defText>
 </defTextVector>
 
+
+<defNumberVector device="Arduino Focuser" name="POSITION_TARGET" label="POSITION" group="Main Control" state="Idle"  timeout="0" perm="rw">
+<defNumber name="AOUTPUT_05" label="TARGET" format="%4.0f" min="0" max="16000" step="1">
+8000
+</defNumber>
+</defNumberVector>
+
+<defNumberVector device="Arduino Focuser" name="POSITION_ACTUAL" label="POSITION" group="Main Control" state="Idle"  timeout="0" perm="ro">
+<defNumber name="AINPUT__14" label="ACTUAL" format="%4.0f" min="0" max="16000" step="1" >
+8000
+</defNumber>
+</defNumberVector>
+
+<defSwitchVector device="Arduino Focuser" name="DIRECTION" label="DIRECTION" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="60">
+    <defSwitch name="DOUTPUT_02" label="INWARD">
+Off
+    </defSwitch>
+    <defSwitch name="DUMMY" label="OUTWARD">
+On
+    </defSwitch>
+</defSwitchVector>
+
+<defNumberVector device="Arduino Focuser" name="STEPS" label="STEPS PER PUSH" group="Main Control" state="Idle" perm="rw" timeout="0">
+<defNumber name="AOUTPUT_10" label="STEPS" format="%4.0f" min="0" max="1000" step="1">
+40
+</defNumber>
+</defNumberVector>
+
+
+
+<defSwitchVector device="Arduino Focuser" name="BACKSLASH" label="BACKSLASH" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="60">
+    <defSwitch name="DOUTPUT_09" label="ON">
+Off
+    </defSwitch>
+    <defSwitch name="OFF" label="OFF">
+On
+    </defSwitch>
+</defSwitchVector>
+
 <defNumberVector device="Arduino Focuser" name="CONFIG" label="CONFIG" group="Config" state="Idle" perm="rw" timeout="0">
 <defNumber name="AOUTPUT_03" label="SPEED" format="%4.0f" min="0" max="4000" step="1">
 4000
@@ -24,26 +63,10 @@ On
 </defNumber>
 </defNumberVector>
 
-<defNumberVector device="Arduino Focuser" name="STEPS" label="STEPS PER PUSH" group="Config" state="Idle" perm="rw" timeout="0">
-<defNumber name="AOUTPUT_10" label="STEPS" format="%4.0f" min="0" max="1000" step="1">
-40
-</defNumber>
-</defNumberVector>
 
-<defNumberVector device="Arduino Focuser" name="BACKSLASH" label="BACKSLASH" group="Config" state="Idle" perm="rw" timeout="0">
+<defNumberVector device="Arduino Focuser" name="BACKSLASH_STEPS" label="BACKSLASH" group="Config" state="Idle" perm="rw" timeout="0">
 <defNumber name="AOUTPUT_11" label="STEPS" format="%4.0f" min="0" max="1000" step="1">
 40
-</defNumber>
-</defNumberVector>
-
-<defNumberVector device="Arduino Focuser" name="POSITION_TARGET" label="POSITION" group="Main Control" state="Idle"  timeout="0" perm="rw">
-<defNumber name="AOUTPUT_05" label="TARGET" format="%4.0f" min="0" max="16000" step="1">
-8000
-</defNumber>
-</defNumberVector>
-<defNumberVector device="Arduino Focuser" name="POSITION_ACTUAL" label="POSITION" group="Main Control" state="Idle"  timeout="0" perm="ro">
-<defNumber name="AINPUT__14" label="ACTUAL" format="%4.0f" min="0" max="16000" step="1" >
-8000
 </defNumber>
 </defNumberVector>
 

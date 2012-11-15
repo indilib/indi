@@ -165,30 +165,38 @@ void indiduino::ISPoll() {
 	//IDLog("PROP:%s\n",name);
 	//DIGITAL INPUT
         if (type == INDI_LIGHT ) { 
-		ILightVectorProperty *svp = getLight(name);
+		ILightVectorProperty *lvp = getLight(name);
+	   	for (int i=0;i<lvp->nlp;i++) {
+	        	ILight *lqp = &lvp->lp[i];
+        		if (!lqp)
+	        	    return;
+
         	char s[10];
-		strncpy(s,svp->name,7);
+		strncpy(s,lqp->name,7);
 		//IDLog("DIGITAL PROP:%s\n",s);
 		if (!strcmp(s, PROP_NAME_DINPUT)) {
 			int pin;
-		        s[0]=svp->name[8];
-		        s[1]=svp->name[9];
+		        s[0]=lqp->name[8];
+		        s[1]=lqp->name[9];
 		        s[2]='\0';	
 			pin=atoi(s);
 			//sf->askPinState(pin);
 			//IDLog("DIGITAL PIN:%u.Value:%u\n",pin,sf->pin_info[pin].value);
 			if (sf->pin_info[pin].mode == FIRMATA_MODE_INPUT) {
 				if (sf->pin_info[pin].value==1) {
-					//strcpy(svp->name,"ON");
-					svp->s = IPS_OK;
+					//IDLog("%s ON\n",lvp->name);
+					lqp->s = IPS_OK;
 				} else {
-					//strcpy(svp->name,"");
-					svp->s = IPS_IDLE;
+					//IDLog("%s OFF\n",lvp->name);
+					lqp->s = IPS_IDLE;
 				}
-				IDSetLight(svp, NULL);
 			}
+		 IDSetLight(lvp, NULL);
         	 } 
+		}
+
         }
+
 	//ANALOG
         if (type == INDI_NUMBER) {     
 	        INumberVectorProperty *nvp = getNumber(name);
@@ -335,7 +343,7 @@ bool indiduino::ISNewNumber (const char *dev, const char *name, double values[],
             IDSetNumber (nvp, "Setting output %s:%s to %f\n",nvp->label,eqp->label,eqp->value);
    	    sf->setPwmPin(pin,(int)eqp->value);
             nvp->s = IPS_IDLE;
-            IDSetNumber(nvp, NULL);
+            
 	    change=true;
         }
 	if (!strcmp(s, PROP_NAME_AINPUT)) {      
@@ -347,12 +355,12 @@ bool indiduino::ISNewNumber (const char *dev, const char *name, double values[],
             IUUpdateNumber(nvp, values, names, n);
 	    //IDLog("%s:%f\n",eqp->name,eqp->value);  	    
             nvp->s = IPS_IDLE;
-            IDSetNumber(nvp, NULL);
 	    change=true;
         }
         }
 
 	if (change) {
+		IDSetNumber(nvp, NULL);
           	return true;
 	} else {
         	return false;
@@ -377,8 +385,8 @@ bool indiduino::ISNewSwitch (const char *dev, const char *name, ISState *states,
 
 
         ISwitchVectorProperty *svp = getSwitch(name);
-	IDLog("NAME:%s\n",name);
-        IDLog("%s\n",svp->name);
+	//IDLog("NAME:%s\n",name);
+        //IDLog("%s\n",svp->name);
 
         if (isConnected() == false)
         {
@@ -391,37 +399,31 @@ bool indiduino::ISNewSwitch (const char *dev, const char *name, ISState *states,
         if (!svp )
             return false;
 
-
         char s[10];
-	strncpy(s,svp->name,7);	
-        //IDLog("%s\n",s);
-	if (!strcmp(s, PROP_NAME_DOUTPUT)) {
-		int pin;
-	        s[0]=svp->name[8];
-	        s[1]=svp->name[9];
-	        s[2]='\0';	
-		pin=atoi(s);		
-                //IDLog("%s\n",s);
-		IUUpdateSwitch(svp, states, names, n);
-        	ISwitch *onSW = IUFindOnSwitch(svp);  
-		if (!strcmp(onSW->name, "ON")) {
-			IDLog("Switching ON %s on pin %u\n",svp->label,pin);
-        		sf->writeDigitalPin(pin,ARDUINO_HIGH);
-			svp->s = IPS_OK;
-			IDSetSwitch (svp, "%s:ON\n",svp->label);
-		} else {
-			IDLog("Switching OFF %s on pin %u\n",svp->label,pin);
-			sf->writeDigitalPin(pin,ARDUINO_LOW);
-			svp->s = IPS_IDLE;
-			IDSetSwitch (svp, "%s:OFF\n",svp->label);
+	for (int i=0;i<svp->nsp;i++) {
+               	ISwitch *sqp = &svp->sp[i];
+		strncpy(s,sqp->name,7);	
+		if (!strcmp(s, PROP_NAME_DOUTPUT)) {
+			int pin;
+	        	s[0]=sqp->name[8];
+	        	s[1]=sqp->name[9];
+	        	s[2]='\0';	
+			pin=atoi(s);		
+			IUUpdateSwitch(svp, states, names, n);
+			if (sqp->s == ISS_ON) {
+				IDLog("Switching ON %s on pin %u\n",sqp->label,pin);
+        			sf->writeDigitalPin(pin,ARDUINO_HIGH);
+				IDSetSwitch (svp, "%s:ON\n",sqp->label);
+			} else {
+				IDLog("Switching OFF %s on pin %u\n",sqp->label,pin);
+				sf->writeDigitalPin(pin,ARDUINO_LOW);
+				IDSetSwitch (svp, "%s:OFF\n",sqp->label);
+			}       		
 		}
-
-        	//IUUpdateSwitch(svp, states, names, n);
-	        return true;
 	}
 
-
-    return false;
+    IUUpdateSwitch(svp, states, names, n);
+    return true;
 
 
 }
@@ -514,33 +516,36 @@ void indiduino::setPinModesFromSK() {
 		ISwitchVectorProperty *svp = getSwitch(name);
 		//IDLog("%s\n",svp->name);
         	char s[10];
-		strncpy(s,svp->name,7);	
-        
-		if (!strcmp(s, PROP_NAME_DOUTPUT)) {
-			int pin;
-		        s[0]=svp->name[8];
-		        s[1]=svp->name[9];
-		        s[2]='\0';	
-			pin=atoi(s);
-			IDLog("%s on pin %u set as DIGITAL OUTPUT\n",svp->label,pin);
-			sf->setPinMode(pin,FIRMATA_MODE_OUTPUT);
-         	} 
+		for (int i=0;i<svp->nsp;i++) {
+                	ISwitch *sqp = &svp->sp[i];
+			strncpy(s,sqp->name,7);	
+			if (!strcmp(s, PROP_NAME_DOUTPUT)) {
+				int pin;
+			        s[0]=sqp->name[8];
+			        s[1]=sqp->name[9];
+			        s[2]='\0';	
+				pin=atoi(s);
+				IDLog("%s on pin %u set as DIGITAL OUTPUT\n",sqp->label,pin);
+				sf->setPinMode(pin,FIRMATA_MODE_OUTPUT);
+         		} 
+		}
         }
 	if (type == INDI_LIGHT) { 
-		//IDLog("INDI_LIGHT\n");
-		ILightVectorProperty *svp = getLight(name);
+		ILightVectorProperty *lvp = getLight(name);
         	char s[10];
-		strncpy(s,svp->name,7);	
-        
-		if (!strcmp(s, PROP_NAME_DINPUT)) {
-			int pin;
-		        s[0]=svp->name[8];
-		        s[1]=svp->name[9];
-		        s[2]='\0';	
-			pin=atoi(s);
-			IDLog("%s on pin %u set as DIGITAL INPUT\n",svp->label,pin);
-			sf->setPinMode(pin,FIRMATA_MODE_INPUT);
-        	 } 
+	        for (int i=0;i<lvp->nlp;i++) {
+			ILight *lqp=&lvp->lp[i];
+			strncpy(s,lqp->name,7);	
+			if (!strcmp(s, PROP_NAME_DINPUT)) {
+				int pin;
+			        s[0]=lqp->name[8];
+			        s[1]=lqp->name[9];
+			        s[2]='\0';	
+				pin=atoi(s);
+				IDLog("%s on pin %u set as DIGITAL INPUT\n",lqp->label,pin);
+				sf->setPinMode(pin,FIRMATA_MODE_INPUT);
+        		 } 
+		}
         }
         if (type == INDI_NUMBER) {     
 	        INumberVectorProperty *nvp = getNumber(name);

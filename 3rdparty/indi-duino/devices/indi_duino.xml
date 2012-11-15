@@ -1,4 +1,8 @@
 <devGroup group="Auxiliary">
+        <device label="Arduino Simple Switcher" skel="simple_switcher_sk.xml">
+                <driver name="Arduino Simple Switcher">indi_duino</driver>
+                <version>0.1</version>
+        </device>
         <device label="Arduino Switcher" skel="switcher_sk.xml">
                 <driver name="Arduino Switcher">indi_duino</driver>
                 <version>0.1</version>

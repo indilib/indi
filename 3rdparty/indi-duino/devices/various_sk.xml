@@ -15,16 +15,16 @@ On
     </defText>
 </defTextVector>
 
-<defSwitchVector device="Arduino Demo" name="DOUTPUT_13" label="DOME DOOR" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="1">
-    <defSwitch name="ON" label="OPEN">
+<defSwitchVector device="Arduino Demo" name="DOMEDOOR" label="DOME DOOR" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="1">
+    <defSwitch name="DOUTPUT_13" label="OPEN">
 Off
     </defSwitch>
     <defSwitch name="OFF" label="CLOSE">
 On
     </defSwitch>
 </defSwitchVector>
-<defSwitchVector device="Arduino Demo" name="DOUTPUT_12" label="MOUNT POWER" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="1">
-    <defSwitch name="ON" label="ON">
+<defSwitchVector device="Arduino Demo" name="MOUNT POWER" label="MOUNT POWER" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="1">
+    <defSwitch name="DOUTPUT_12" label="ON">
 Off
     </defSwitch>
     <defSwitch name="OFF" label="OFF">
@@ -32,8 +32,8 @@ On
     </defSwitch>
 </defSwitchVector>
 
-<defSwitchVector device="Arduino Demo" name="DOUTPUT_11" label="FLAT LIGTH" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="1">
-    <defSwitch name="ON" label="ON">
+<defSwitchVector device="Arduino Demo" name="FLAT LIGTH" label="FLAT LIGTH" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="1">
+    <defSwitch name="DOUTPUT_11" label="ON">
 Off
     </defSwitch>
     <defSwitch name="OFF" label="OFF">
@@ -41,8 +41,8 @@ On
     </defSwitch>
 </defSwitchVector>
 
-<defLightVector device="Arduino Demo" name="DINPUT__10" label="UPS POWER" group="Main Control" state="Idle" perm="ro" rule="OneOfMany" timeout="1">
-    <defLight name="ON" label="OK">
+<defLightVector device="Arduino Demo" name="UPS POWER" label="UPS POWER" group="Main Control" state="Idle" perm="ro" rule="OneOfMany" timeout="1">
+    <defLight name="DINPUT__10" label="OK">
 OK
     </defLight>
 </defLightVector>
