@@ -5,4 +5,4 @@
 
 #define VERSION_MAJOR @VERSION_MAJOR@
 #define VERSION_MINOR @VERSION_MINOR@
-#define DEFAULT_SKELETON_FILE "@INDI_DATA_DIR@/switcher_sk.xml"
+#define DEFAULT_SKELETON_FILE "@INDI_DATA_DIR@/simple_switcher_sk.xml"

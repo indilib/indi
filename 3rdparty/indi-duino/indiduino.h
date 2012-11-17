@@ -22,8 +22,8 @@
 
 */
 
-#ifndef INDIDUINO_FOUR_H
-#define INDIDUINO_FOUR_H
+#ifndef INDIDUINO_H
+#define INDIDUINO_H
 
 #include <defaultdevice.h>
 #include <indicom.h>
@@ -34,10 +34,24 @@
 /* NAMES in the xml skeleton file to 
    used to define I/O arduino mapping*/
 
-#define PROP_NAME_AOUTPUT "AOUTPUT"
-#define PROP_NAME_DOUTPUT "DOUTPUT"
-#define PROP_NAME_AINPUT  "AINPUT_"
-#define PROP_NAME_DINPUT  "DINPUT_"
+
+
+typedef enum {
+	DI,
+	DO,
+	AI,
+	AO,
+	I2C_I,
+	I2C_O
+} IOTYPEStr;
+
+typedef struct {
+    IOTYPEStr IOType;
+    int pin;
+    double MulScale;
+    double AddScale;
+} IO;
+
 
 
 class indiduino : public INDI::DefaultDevice
@@ -53,13 +67,17 @@ class indiduino : public INDI::DefaultDevice
  virtual bool ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
  virtual void ISPoll ();
 
+
 private:
+ char skelFileName[560];
+ IO      iopin[20];
  const char *getDefaultName();
  virtual bool initProperties(); 
  virtual bool Connect();
  virtual bool Disconnect();
- void setPinModesFromSK(); 
  bool is_connected(void);
+ bool setPinModesFromSKEL();
+ bool readInduinoXml(XMLEle *ioep,int npin);
  Firmata* sf;
 
 };

@@ -25,13 +25,7 @@ Firmata::Firmata(const char* _serialPort) {
 }
 
 Firmata::~Firmata() {
-	destroy();
-}
-
-int Firmata::destroy() {
-	int rv = 0;
 	delete arduino;
-	return rv;
 }
 
 

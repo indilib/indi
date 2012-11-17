@@ -86,7 +86,7 @@ class Firmata {
 		Firmata(const char* _serialPort);
 		~Firmata();
 
-		int destroy();
+
 		int writeDigitalPin(unsigned char pin, unsigned char mode); // mode can be ARDUINO_HIGH or ARDUINO_LOW
 		int setPinMode(unsigned char pin, unsigned char mode);
 		int setPwmPin(unsigned char pin, int16_t value);

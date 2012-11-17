@@ -30,6 +30,6 @@ int main(int argc, char** argv) {
 		printf("Digital pin 12 is:%u\n",sf->pin_info[12].value);
 	}
 
-	sf->destroy();
+	delete sf;
 	return 0;
 }

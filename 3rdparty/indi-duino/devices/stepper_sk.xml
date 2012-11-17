@@ -16,21 +16,25 @@ On
 </defTextVector>
 
 <defNumberVector device="Arduino Stepper" name="CONFIG" label="CONFIG" group="Main Control" state="Idle" perm="rw" timeout="0">
-<defNumber name="AOUTPUT_03" label="SPEED" format="%4.0f" min="0" max="4000" step="1">
+<defNumber name="SPEED" label="SPEED" format="%4.0f" min="0" max="4000" step="1">
+    <indiduino pin="3" type="output" />
 4000
 </defNumber>
-<defNumber name="AOUTPUT_06" label="ACCEL" format="%4.0f" min="0" max="1000" step="1">
+<defNumber name="ACCEL" label="ACCEL" format="%4.0f" min="0" max="1000" step="1">
+    <indiduino pin="6" type="output" />
 400
 </defNumber>
 </defNumberVector>
 
-<defNumberVector device="Arduino Stepper" name="POSITION_TARGET" label="POSITION" group="Main Control" state="Idle"  timeout="0" perm="rw">
-<defNumber name="AOUTPUT_05" label="TARGET" format="%4.0f" min="0" max="16000" step="1">
+<defNumberVector device="Arduino Stepper" name="TARGET_POSITION" label="POSITION" group="Main Control" state="Idle"  timeout="0" perm="rw">
+<defNumber name="TARGET_POSITION_VALUE" label="TARGET" format="%4.0f" min="0" max="16000" step="1">
+    <indiduino pin="5" type="output" />
 8000
 </defNumber>
 </defNumberVector>
-<defNumberVector device="Arduino Stepper" name="POSITION_ACTUAL" label="POSITION" group="Main Control" state="Idle"  timeout="0" perm="ro">
-<defNumber name="AINPUT__14" label="ACTUAL" format="%4.0f" min="0" max="16000" step="1" >
+<defNumberVector device="Arduino Stepper" name="ACTUAL_POSITION" label="POSITION" group="Main Control" state="Idle"  timeout="0" perm="ro">
+<defNumber name="ACTUAL_POSITION_VALUE" label="ACTUAL" format="%4.0f" min="0" max="16000" step="1" >
+    <indiduino pin="14" type="input" />
 8000
 </defNumber>
 </defNumberVector>

@@ -17,7 +17,8 @@ On
 
 
 <defSwitchVector device="Arduino SWITCHER" name="SOCKET 1" label="SOCKET 1" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="1">
-    <defSwitch name="DOUTPUT_02" label="ON">
+    <defSwitch name="SOCKET01" label="ON">
+    <indiduino pin="2"/>
 Off
     </defSwitch>
     <defSwitch name="DUMMY" label="OFF">
@@ -26,7 +27,8 @@ On
 </defSwitchVector>
 
 <defSwitchVector device="Arduino SWITCHER" name="SOCKET 2" label="SOCKET 2" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="1">
-    <defSwitch name="DOUTPUT_03" label="ON">
+    <defSwitch name="SOCKET02" label="ON">
+    <indiduino pin="3"/>
 Off
     </defSwitch>
     <defSwitch name="DUMMY" label="OFF">
@@ -35,7 +37,8 @@ On
 </defSwitchVector>
 
 <defSwitchVector device="Arduino SWITCHER" name="SOCKET 3" label="SOCKET 3" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="1">
-    <defSwitch name="DOUTPUT_04" label="ON">
+    <defSwitch name="SOCKET03" label="ON">
+    <indiduino pin="4"/>
 Off
     </defSwitch>
     <defSwitch name="DUMMY" label="OFF">
@@ -44,7 +47,8 @@ On
 </defSwitchVector>
 
 <defSwitchVector device="Arduino SWITCHER" name="SOCKET 4" label="SOCKET 4" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="1">
-    <defSwitch name="DOUTPUT_05" label="ON">
+    <defSwitch name="SOCKET04" label="ON">
+    <indiduino pin="5"/>
 Off
     </defSwitch>
     <defSwitch name="DUMMY" label="OFF">
@@ -53,7 +57,8 @@ On
 </defSwitchVector>
 
 <defSwitchVector device="Arduino SWITCHER" name="SOCKET 5" label="SOCKET 5" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="1">
-    <defSwitch name="DOUTPUT_06" label="ON">
+    <defSwitch name="SOCKET05" label="ON">
+    <indiduino pin="6"/>
 Off
     </defSwitch>
     <defSwitch name="DUMMY" label="OFF">
@@ -62,7 +67,8 @@ On
 </defSwitchVector>
 
 <defSwitchVector device="Arduino SWITCHER" name="SOCKET 6" label="SOCKET 6" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="1">
-    <defSwitch name="DOUTPUT_07" label="ON">
+    <defSwitch name="SOCKET06" label="ON">
+    <indiduino pin="7"/>
 Off
     </defSwitch>
     <defSwitch name="DUMMY" label="OFF">
@@ -71,7 +77,8 @@ On
 </defSwitchVector>
 
 <defSwitchVector device="Arduino SWITCHER" name="SOCKET 7" label="SOCKET 7" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="1">
-    <defSwitch name="DOUTPUT_08" label="ON">
+    <defSwitch name="SOCKET07" label="ON">
+    <indiduino pin="8"/>
 Off
     </defSwitch>
     <defSwitch name="DUMMY" label="OFF">
@@ -80,7 +87,8 @@ On
 </defSwitchVector>
 
 <defSwitchVector device="Arduino SWITCHER" name="SOCKET 8" label="SOCKET 8" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="1">
-    <defSwitch name="DOUTPUT_09" label="ON">
+    <defSwitch name="SOCKET08" label="ON">
+    <indiduino pin="9"/>
 Off
     </defSwitch>
     <defSwitch name="DUMMY" label="OFF">
@@ -89,7 +97,8 @@ On
 </defSwitchVector>
 
 <defSwitchVector device="Arduino SWITCHER" name="SOCKET 9" label="SOCKET 9" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="1">
-    <defSwitch name="DOUTPUT_10" label="ON">
+    <defSwitch name="SOCKET09" label="ON">
+    <indiduino pin="10"/>
 Off
     </defSwitch>
     <defSwitch name="DUMMY" label="OFF">
@@ -98,7 +107,8 @@ On
 </defSwitchVector>
 
 <defSwitchVector device="Arduino SWITCHER" name="SOCKET 10" label="SOCKET 10" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="1">
-    <defSwitch name="DOUTPUT_11" label="ON">
+    <defSwitch name="SOCKET10" label="ON">
+    <indiduino pin="11"/>
 Off
     </defSwitch>
     <defSwitch name="DUMMY" label="OFF">
@@ -107,7 +117,8 @@ On
 </defSwitchVector>
 
 <defSwitchVector device="Arduino SWITCHER" name="SOCKET 11" label="SOCKET 11" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="1">
-    <defSwitch name="DOUTPUT_12" label="ON">
+    <defSwitch name="SOCKET11" label="ON">
+    <indiduino pin="12"/>
 Off
     </defSwitch>
     <defSwitch name="DUMMY" label="OFF">
@@ -116,7 +127,8 @@ On
 </defSwitchVector>
 
 <defSwitchVector device="Arduino SWITCHER" name="SOCKET 12" label="SOCKET 12" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="1">
-    <defSwitch name="DOUTPUT_13" label="ON">
+    <defSwitch name="SOCKET12" label="ON">
+    <indiduino pin="13"/>
 Off
     </defSwitch>
     <defSwitch name="DUMMY" label="OFF">

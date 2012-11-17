@@ -138,7 +138,7 @@ void ISSnoopDevice (XMLEle *root)
 ***************************************************************************************/
 indiduino::indiduino()
 {
-    IDLog("Indiduino start...\n");
+    IDLog("Indiduino driver start...\n");
 
 }
 
@@ -151,7 +151,10 @@ indiduino::~indiduino()
 }
 
 void indiduino::ISPoll() {
-  if (is_connected()) {
+
+    if (!is_connected())
+	return;
+
     //IDLog("Polling...\n");
     sf->OnIdle();
     std::vector<INDI::Property *> *pAll = getProperties();
@@ -171,63 +174,52 @@ void indiduino::ISPoll() {
         		if (!lqp)
 	        	    return;
 
-        	char s[10];
-		strncpy(s,lqp->name,7);
-		//IDLog("DIGITAL PROP:%s\n",s);
-		if (!strcmp(s, PROP_NAME_DINPUT)) {
-			int pin;
-		        s[0]=lqp->name[8];
-		        s[1]=lqp->name[9];
-		        s[2]='\0';	
-			pin=atoi(s);
-			//sf->askPinState(pin);
-			//IDLog("DIGITAL PIN:%u.Value:%u\n",pin,sf->pin_info[pin].value);
-			if (sf->pin_info[pin].mode == FIRMATA_MODE_INPUT) {
-				if (sf->pin_info[pin].value==1) {
-					//IDLog("%s ON\n",lvp->name);
-					lqp->s = IPS_OK;
-				} else {
-					//IDLog("%s OFF\n",lvp->name);
-					lqp->s = IPS_IDLE;
-				}
-			}
-		 IDSetLight(lvp, NULL);
-        	 } 
+			IO *pin_config=(IO*)lqp->aux;
+			if (pin_config == NULL) continue;
+				if (pin_config->IOType==DI) {
+					int pin=pin_config->pin;
+					if (sf->pin_info[pin].mode == FIRMATA_MODE_INPUT) {
+						if (sf->pin_info[pin].value==1) {
+							//IDLog("%s.%s on pin %u change to  ON\n",lvp->name,lqp->name,pin);
+							//IDSetLight (lvp, "%s.%s change to ON\n",lvp->name,lqp->name);
+							lqp->s = IPS_OK;
+						} else {
+							//IDLog("%s.%s on pin %u change to  OFF\n",lvp->name,lqp->name,pin);
+							//IDSetLight (lvp, "%s.%s change to OFF\n",lvp->name,lqp->name);
+							lqp->s = IPS_IDLE;
+						}
+					}
+	        	 } 
 		}
-
+		IDSetLight(lvp, NULL);
         }
 
 	//ANALOG
         if (type == INDI_NUMBER) {     
 	        INumberVectorProperty *nvp = getNumber(name);
-		//IDLog("%s\n",nvp->name);
-	   for (int i=0;i<nvp->nnp;i++) {
-	        INumber *eqp = &nvp->np[i];
-        	if (!eqp)
-	            return;
-		//IDLog("%s\n",eqp->name);
-        	char s[10];
-		strncpy(s,eqp->name,7);	
-		//IDLog("PROP:%s\n",s);
-		if (!strcmp(s, PROP_NAME_AINPUT)) {
-			int pin;
-		        s[0]=eqp->name[8];
-		        s[1]=eqp->name[9];
-		        s[2]='\0';	
-			pin=atoi(s);
-			//sf->askPinState(pin);
-			//IDLog("PIN:%u MODE:%u\n",pin,sf->pin_info[pin].mode);
-			if (sf->pin_info[pin].mode == FIRMATA_MODE_ANALOG) {
-				//IDLog("ANALOG PIN:%u.Value:%u\n",pin,sf->pin_info[pin].value);
-        			eqp->value=sf->pin_info[pin].value;
-				IDSetNumber(nvp, NULL);
-			}
-        	 } 
-            } 
-	 }
-    }	
-  }
+
+	   	for (int i=0;i<nvp->nnp;i++) {
+	        	INumber *eqp = &nvp->np[i];
+        		if (!eqp)
+	        	    return;
+			
+	        	IO *pin_config=(IO*)eqp->aux0;
+			if (pin_config == NULL) continue;
+				if (pin_config->IOType==AI) {
+					int pin=pin_config->pin;
+					if (sf->pin_info[pin].mode == FIRMATA_MODE_ANALOG) {
+						//IDLog("ANALOG PIN:%u.Value:%u\n",pin,sf->pin_info[pin].value);
+        					eqp->value=pin_config->MulScale*sf->pin_info[pin].value+pin_config->AddScale;
+						IDSetNumber(nvp, NULL);
+					}
+        	 		} 
+            		} 
+	 	}
+    	}	
+  
 }
+
+
 /**************************************************************************************
 ** Initialize all properties & set default values.
 **************************************************************************************/
@@ -236,19 +228,21 @@ bool indiduino::initProperties()
     // This is the default driver skeleton file location
     // Convention is: drivername_sk_xml
     // Default location is /usr/share/indi  
-    const char *skelFileName = DEFAULT_SKELETON_FILE;
+    
     struct stat st;
 
+    strcpy(skelFileName, DEFAULT_SKELETON_FILE);
 
     setVersion(VERSION_MAJOR, VERSION_MINOR);
 
     char *skel = getenv("INDISKEL");
     if (skel) {
-        buildSkeleton(skel);
-    IDLog("Building from %s skeleton\n",skel);
+	IDLog("Building from %s skeleton\n",skel);
+	strcpy(skelFileName, skel);
+        buildSkeleton(skel);  
     } else if (stat(skelFileName,&st) == 0) {
+	IDLog("Building from %s skeleton\n",skelFileName);
         buildSkeleton(skelFileName);
-    IDLog("Building from %s skeleton\n",skelFileName);
     } else {
         IDLog("No skeleton file was specified. Set environment variable INDISKEL to the skeleton path and try again.\n");
     } 
@@ -280,9 +274,10 @@ void indiduino::ISGetProperties(const char *dev)
 ***************************************************************************************/
 bool indiduino::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-	// Ignore if not ours 
-        if (strcmp (dev, getDeviceName()))
+    // Ignore if not ours 
+    if (strcmp (dev, getDeviceName()))
             return false;
+
     ITextVectorProperty * tProp = getText(name);
     // Device Port Text
     if (!strcmp(tProp->name, "DEVICE_PORT"))
@@ -296,7 +291,8 @@ bool indiduino::ISNewText (const char *dev, const char *name, char *texts[], cha
 
                 return true;
     }
-        return false;
+
+    return false;
 }
 
 /**************************************************************************************
@@ -310,7 +306,7 @@ bool indiduino::ISNewNumber (const char *dev, const char *name, double values[],
             return false;
 
         INumberVectorProperty *nvp = getNumber(name);
-	IDLog("%s\n",nvp->name);
+	//IDLog("%s\n",nvp->name);
 
         if (!nvp)
             return false;
@@ -321,42 +317,34 @@ bool indiduino::ISNewNumber (const char *dev, const char *name, double values[],
             IDSetNumber(nvp, "Cannot change property while device is disconnected.");
             return false;
         }
+
 	bool change=false;
         for (int i=0;i<n;i++) {
-        INumber *eqp = IUFindNumber(nvp, names[i]);
-        //IDLog("%s\n",eqp->name);
+	        INumber *eqp = IUFindNumber(nvp, names[i]);
+	        //IDLog("%s\n",eqp->name);
 	
-	if (!eqp)
-            return false;
+		if (!eqp)
+	            return false;
         
-        char s[10];
-	strncpy(s,eqp->name,7);	
-        //IDLog("%s\n",s);
-	if (!strcmp(s, PROP_NAME_AOUTPUT)) {      
-	    int pin;
-	    s[0]=eqp->name[8];
-	    s[1]=eqp->name[9];
-	    s[2]='\0';	
-	    pin=atoi(s);
-            IUUpdateNumber(nvp, values, names, n);
-	    IDLog("Setting output %s:%s on pin %u to %f\n",nvp->label,eqp->label,pin,eqp->value);
-            IDSetNumber (nvp, "Setting output %s:%s to %f\n",nvp->label,eqp->label,eqp->value);
-   	    sf->setPwmPin(pin,(int)eqp->value);
-            nvp->s = IPS_IDLE;
-            
-	    change=true;
-        }
-	if (!strcmp(s, PROP_NAME_AINPUT)) {      
-	    int pin;
-	    s[0]=eqp->name[8];
-	    s[1]=eqp->name[9];
-	    s[2]='\0';	
-	    pin=atoi(s);
-            IUUpdateNumber(nvp, values, names, n);
-	    //IDLog("%s:%f\n",eqp->name,eqp->value);  	    
-            nvp->s = IPS_IDLE;
-	    change=true;
-        }
+		IO *pin_config=(IO*)eqp->aux0;
+		if (pin_config == NULL) continue;
+	        //IDLog("%s\n",s);
+		if (pin_config->IOType=AO) {      
+		    int pin=pin_config->pin;
+	            IUUpdateNumber(nvp, values, names, n);
+		    IDLog("Setting output %s.%s on pin %u to %f\n",nvp->name,eqp->name,pin,eqp->value);
+	   	    sf->setPwmPin(pin,(int)(pin_config->MulScale*eqp->value + pin_config->AddScale));
+	            IDSetNumber (nvp, "%s.%s change to %f\n",nvp->name,eqp->name,eqp->value);
+	            nvp->s = IPS_IDLE;           
+		    change=true;
+	        }
+		if (pin_config->IOType=AI) {      
+		    int pin=pin_config->pin;
+	            IUUpdateNumber(nvp, values, names, n);
+		    //IDLog("%s:%f\n",eqp->name,eqp->value);  	    
+        	    nvp->s = IPS_IDLE;
+		    change=true;
+        	}
         }
 
 	if (change) {
@@ -399,25 +387,22 @@ bool indiduino::ISNewSwitch (const char *dev, const char *name, ISState *states,
         if (!svp )
             return false;
 
-        char s[10];
 	for (int i=0;i<svp->nsp;i++) {
                	ISwitch *sqp = &svp->sp[i];
-		strncpy(s,sqp->name,7);	
-		if (!strcmp(s, PROP_NAME_DOUTPUT)) {
-			int pin;
-	        	s[0]=sqp->name[8];
-	        	s[1]=sqp->name[9];
-	        	s[2]='\0';	
-			pin=atoi(s);		
+		IO *pin_config=(IO*)sqp->aux;
+		if (pin_config == NULL) continue;
+		//IDLog("Switching ON %s pin %u type %u %u\n",sqp->label,pin_config->pin,pin_config->IOType,pin_config->IOType==DI);
+		if (  pin_config->IOType == DO) {
+			int pin=pin_config->pin;
 			IUUpdateSwitch(svp, states, names, n);
 			if (sqp->s == ISS_ON) {
-				IDLog("Switching ON %s on pin %u\n",sqp->label,pin);
+				IDLog("Switching ON %s.%s on pin %u\n",svp->name,sqp->name,pin);
         			sf->writeDigitalPin(pin,ARDUINO_HIGH);
-				IDSetSwitch (svp, "%s:ON\n",sqp->label);
+				IDSetSwitch (svp, "%s.%s ON\n",svp->name,sqp->name);
 			} else {
-				IDLog("Switching OFF %s on pin %u\n",sqp->label,pin);
+				IDLog("Switching OFF %s.%s on pin %u\n",svp->name,sqp->name,pin);
 				sf->writeDigitalPin(pin,ARDUINO_LOW);
-				IDSetSwitch (svp, "%s:OFF\n",sqp->label);
+				IDSetSwitch (svp, "%s.%s OFF\n",svp->name,sqp->name);
 			}       		
 		}
 	}
@@ -484,8 +469,14 @@ bool indiduino::Connect()
     	IDLog("ARDUINO BOARD CONNECTED.\n");
 	IDLog("FIRMATA VERSION:%s\n",sf->firmata_name);
 	IDSetSwitch (getSwitch("CONNECTION"),"CONNECTED.FIRMATA VERSION:%s\n",sf->firmata_name);
-	setPinModesFromSK();
-	return true;
+	if (!setPinModesFromSKEL()) {
+		IDLog("FAIL TO MAP ARDUINO PINS. CHECK SKELETON FILE SINTAX\n");
+		IDSetSwitch (getSwitch("CONNECTION"),"FAIL TO MAP ARDUINO PINS. CHECK SKELETON FILE SINTAX\n");
+		delete sf;
+		return false;
+	} else {
+		return true;
+	}
     } else {
 	IDLog("ARDUINO BOARD FAIL TO CONNECT. CHECK PORT NAME\n");
 	IDSetSwitch (getSwitch("CONNECTION"),"ARDUINO BOARD FAIL TO CONNECT. CHECK PORT NAME\n");
@@ -500,89 +491,6 @@ bool indiduino::is_connected(void) {
         return (svp->s == IPS_OK);
 }
 
-void indiduino::setPinModesFromSK() {
-
-    IDLog("Setting pins behaviour from properties names\n");
-    std::vector<INDI::Property *> *pAll = getProperties();
-    for (int i=0; i < pAll->size(); i++) {
-	const char *name;
-	const char *label;
-	INDI_TYPE type;
-	name=pAll->at(i)->getName();
-	label=pAll->at(i)->getLabel();
-	type=pAll->at(i)->getType();
-        //IDLog("Property #%d: %s %s %u\n", i, name,label,type);
-        if (type == INDI_SWITCH) { 
-		ISwitchVectorProperty *svp = getSwitch(name);
-		//IDLog("%s\n",svp->name);
-        	char s[10];
-		for (int i=0;i<svp->nsp;i++) {
-                	ISwitch *sqp = &svp->sp[i];
-			strncpy(s,sqp->name,7);	
-			if (!strcmp(s, PROP_NAME_DOUTPUT)) {
-				int pin;
-			        s[0]=sqp->name[8];
-			        s[1]=sqp->name[9];
-			        s[2]='\0';	
-				pin=atoi(s);
-				IDLog("%s on pin %u set as DIGITAL OUTPUT\n",sqp->label,pin);
-				sf->setPinMode(pin,FIRMATA_MODE_OUTPUT);
-         		} 
-		}
-        }
-	if (type == INDI_LIGHT) { 
-		ILightVectorProperty *lvp = getLight(name);
-        	char s[10];
-	        for (int i=0;i<lvp->nlp;i++) {
-			ILight *lqp=&lvp->lp[i];
-			strncpy(s,lqp->name,7);	
-			if (!strcmp(s, PROP_NAME_DINPUT)) {
-				int pin;
-			        s[0]=lqp->name[8];
-			        s[1]=lqp->name[9];
-			        s[2]='\0';	
-				pin=atoi(s);
-				IDLog("%s on pin %u set as DIGITAL INPUT\n",lqp->label,pin);
-				sf->setPinMode(pin,FIRMATA_MODE_INPUT);
-        		 } 
-		}
-        }
-        if (type == INDI_NUMBER) {     
-	        INumberVectorProperty *nvp = getNumber(name);
-		//IDLog("%s\n",nvp->name);
-
-	   for (int i=0;i<nvp->nnp;i++) {
-	        INumber *eqp = &nvp->np[i];
-        	//IDLog("%s\n",eqp->name);
-		if (!eqp)
-	            return;
-        	char s[10];
-		strncpy(s,eqp->name,7);	
-		if (!strcmp(s, PROP_NAME_AOUTPUT)) {
-			int pin;
-		        s[0]=eqp->name[8];
-		        s[1]=eqp->name[9];
-		        s[2]='\0';	
-			pin=atoi(s);
-			IDLog("%s on pin %u set as ANALOG OUTPUT\n",eqp->label,pin);
-			sf->setPinMode(pin,FIRMATA_MODE_PWM);
-        	 } 
-		if (!strcmp(s, PROP_NAME_AINPUT)) {
-			int pin;
-		        s[0]=eqp->name[8];
-		        s[1]=eqp->name[9];
-		        s[2]='\0';	
-			pin=atoi(s);
-			IDLog("%s on pin %u set as ANALOG INPUT\n",eqp->label,pin);
-			sf->setPinMode(pin,FIRMATA_MODE_ANALOG);
-        	 } 
-            } 
-	 }
-    }
-    sf->setSamplingInterval(POLLMS/2); 
-    sf->reportAnalogPorts(1);
-    sf->reportDigitalPorts(1);
-}
 
 bool indiduino::Disconnect()
 {
@@ -600,8 +508,202 @@ const char * indiduino::getDefaultName()
     return "Arduino";
 }
 
+bool indiduino::setPinModesFromSKEL()
+{
+    char   errmsg[MAXRBUF];
+    FILE   *fp = NULL;
+    LilXML *lp = newLilXML();
+    XMLEle *fproot = NULL;
+    XMLEle *ep=NULL, *ioep=NULL, *xmlp=NULL; 
+    int    numiopin=0;
 
 
+    fp = fopen(skelFileName, "r");
+
+    if (fp == NULL)
+    {
+        IDLog("Unable to build skeleton. Error loading file %s: %s\n", skelFileName, strerror(errno));
+        return false;
+    }
+
+    fproot = readXMLFile(fp, lp, errmsg);
+
+    if (fproot == NULL)
+    {
+        IDLog("Unable to parse skeleton XML: %s", errmsg);
+        return false;
+    }
+
+    IDLog("Setting pins behaviour from <indiduino> tags\n");
+    std::vector<INDI::Property *> *pAll = getProperties();
+    for (int i=0; i < pAll->size(); i++) {
+	const char *name;
+	const char *label;
+	const char *aux;
+	INDI_TYPE type;
+	name=pAll->at(i)->getName();
+	label=pAll->at(i)->getLabel();
+	type=pAll->at(i)->getType();
+
+	if (ep==NULL) {
+		ep = nextXMLEle (fproot, 1);
+	} else {
+		ep = nextXMLEle (fproot, 0);
+	}
+	if (ep==NULL) {
+		break;
+	}	
+	//IDLog("XML ELEMENT:%s\n",findXMLAttValu(ep,"name"));
+        //IDLog("Property #%d: %s %s \n", i, name,label,type);
+	ioep == NULL;
+        if (type == INDI_SWITCH) { 
+		ISwitchVectorProperty *svp = getSwitch(name);
+		//IDLog("%s\n",svp->name);
+        	ioep==NULL;
+		for (int i=0;i<svp->nsp;i++) {
+                	ISwitch *sqp = &svp->sp[i];			
+			if (ioep==NULL) {
+				ioep = nextXMLEle (ep, 1);
+			} else {
+				ioep = nextXMLEle (ep, 0);
+			}
+			xmlp = findXMLEle(ioep,"indiduino");
+			if (xmlp !=NULL) {
+				if (!readInduinoXml(xmlp,numiopin)) {
+					IDLog("Malforme <indiduino> XML\n");
+					return false;
+				}
+				sqp->aux=(void*) &iopin[numiopin] ;	
+				int pin=iopin[numiopin].pin;
+				IDLog("%s.%s  pin %u set as DIGITAL OUTPUT\n",svp->name,sqp->name,pin);
+				sf->setPinMode(pin,FIRMATA_MODE_OUTPUT);
+				numiopin++;
+			}
+		}
+        }
+	if (type == INDI_LIGHT) { 
+		ILightVectorProperty *lvp = getLight(name);
+		//IDLog("%s\n",svp->name);
+        	ioep==NULL;
+		for (int i=0;i<lvp->nlp;i++) {
+                	ILight *lqp = &lvp->lp[i];			
+			if (ioep==NULL) {
+				ioep = nextXMLEle (ep, 1);
+			} else {
+				ioep = nextXMLEle (ep, 0);
+			}
+			xmlp = findXMLEle(ioep,"indiduino");
+			if (xmlp !=NULL) {
+				if (!readInduinoXml(xmlp,numiopin)) {
+					IDLog("Malforme <indiduino> XML\n");
+					return false;
+				}
+				lqp->aux=(void*) &iopin[numiopin] ;	
+				int pin=iopin[numiopin].pin;
+				IDLog("%s.%s  pin %u set as DIGITAL INPUT\n",lvp->name,lqp->name,pin);
+				sf->setPinMode(pin,FIRMATA_MODE_INPUT);
+				numiopin++;
+			}
+		}
+        }
+        if (type == INDI_NUMBER) {     
+	        INumberVectorProperty *nvp = getNumber(name);
+		//IDLog("%s\n",nvp->name);
+        	ioep==NULL;
+	   	for (int i=0;i<nvp->nnp;i++) {
+	        	INumber *eqp = &nvp->np[i];
+        		//IDLog("%s\n",eqp->name);
+        		if (ioep==NULL) {
+				ioep = nextXMLEle (ep, 1);
+			} else {
+				ioep = nextXMLEle (ep, 0);
+			}
+			xmlp = findXMLEle(ioep,"indiduino");
+			if (xmlp !=NULL) {
+				if (!readInduinoXml(xmlp,numiopin)) {
+					IDLog("Malforme <indiduino> XML\n");
+					return false;
+				}
+				eqp->aux0=(void*) &iopin[numiopin] ;	
+				int pin=iopin[numiopin].pin;
+				if (iopin[numiopin].IOType==AO) {
+					IDLog("%s.%s  pin %u set as ANALOG OUTPUT\n",nvp->name,eqp->name,pin);
+					sf->setPinMode(pin,FIRMATA_MODE_PWM);
+				} else if( iopin[numiopin].IOType==AI) {
+					IDLog("%s.%s  pin %u set as ANALOG INPUT\n",nvp->name,eqp->name,pin);
+					sf->setPinMode(pin,FIRMATA_MODE_ANALOG);
+				}
+				numiopin++;
+			}
+            	} 
+	 }
+    }
+    sf->setSamplingInterval(POLLMS/2); 
+    sf->reportAnalogPorts(1);
+    sf->reportDigitalPorts(1);
+    return true;
+}
+
+bool indiduino::readInduinoXml(XMLEle *ioep, int npin)
+{
+	char *propertyTag;
+	int  pin;
+
+	if (ioep ==NULL ) 
+		return false;
+
+	propertyTag = tagXMLEle(parentXMLEle(ioep));
+
+	if (!strcmp(propertyTag,"defSwitch") || !strcmp(propertyTag,"defLight") || !strcmp(propertyTag,"defNumber")) {
+
+		pin=atoi(findXMLAttValu(ioep, "pin"));
+		if (pin >=1 && pin <= 19) {
+			iopin[npin].pin= pin;
+		} else {
+	 		IDLog("induino: pin number is required. Check pin attrib value (1-19)\n");
+			return false;
+		}
+
+
+	   	if ( !strcmp(propertyTag,"defSwitch") ) {			
+				iopin[npin].IOType=DO;     			
+		}
+
+   		if ( !strcmp(propertyTag,"defLight") ) {
+				iopin[npin].IOType=DI;      			
+		}
+
+		if ( !strcmp(propertyTag,"defNumber") ) {
+					
+				if (strcmp(findXMLAttValu(ioep, "mul"),""))	{
+					iopin[npin].MulScale= atof(findXMLAttValu(ioep, "mul"));
+				} else {
+					iopin[npin].MulScale= 1;
+				}
+				if (strcmp(findXMLAttValu(ioep, "add"),"")) {
+					iopin[npin].AddScale= atof(findXMLAttValu(ioep, "add"));
+				} else {
+					iopin[npin].AddScale= 0;
+				}
+				if ( !strcmp(findXMLAttValu(ioep,"type"),"output")) {
+					iopin[npin].IOType=AO;
+				} else if ( !strcmp(findXMLAttValu(ioep,"type"),"input")) {
+					iopin[npin].IOType=AI;
+				} else {
+	 				IDLog("induino: Setting type (input or output) is required for analogs\n");
+					return false;
+				}
+		 }	
+
+		if (false) {
+				IDLog("arduino IO Match:Property:(%s)\n", findXMLAttValu(parentXMLEle(ioep),"name"));
+				IDLog("arduino IO pin:(%u)\n", iopin[npin].pin);
+ 				IDLog("arduino IO type:(%u)\n", iopin[npin].IOType);
+ 				IDLog("arduino IO scale: mul:%g add:%g\n", iopin[npin].MulScale,iopin[npin].AddScale);
+		}
+	}
+	return true;
+}
 
 
 

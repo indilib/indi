@@ -33,6 +33,6 @@ int main(int argc, char** argv) {
 		sf->writeDigitalPin(pin,ARDUINO_LOW);
 		sleep(1);
 	}
-	sf->destroy();
+	delete sf;
 	return 0;
 }

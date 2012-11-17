@@ -16,53 +16,65 @@ On
 </defTextVector>
 
 <defSwitchVector device="Arduino SWITCHER" name="ANYACTIVE" label="ANY ACTIVE" group="Main Control" state="Idle" perm="rw" rule="AtMostOne" timeout="1">
-    <defSwitch name="DOUTPUT_02" label="SOCKET 1">
+    <defSwitch name="SOCKET01" label="SOCKET 1">
+    <indiduino pin="2"/>
 Off
     </defSwitch>
-    <defSwitch name="DOUTPUT_03" label="SOCKET 2">
+    <defSwitch name="SOCKET02" label="SOCKET 2">
+    <indiduino pin="3"/>
 Off
     </defSwitch>
-    <defSwitch name="DOUTPUT_04" label="SOCKET 3">
+    <defSwitch name="SOCKET03" label="SOCKET 3">
+    <indiduino pin="4"/>
 Off
     </defSwitch>
-    <defSwitch name="DOUTPUT_05" label="SOCKET 4">
+    <defSwitch name="SOCKET04" label="SOCKET 4">
+    <indiduino pin="5"/>
 Off
     </defSwitch>
 </defSwitchVector>
 
 <defSwitchVector device="Arduino SWITCHER" name="ONLYONE" label="ONLY ONE ACTIVE" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="1">
-    <defSwitch name="DOUTPUT_06" label="SOCKET 5">
+    <defSwitch name="SOCKET05" label="SOCKET 5">
+    <indiduino pin="6"/>
 On
     </defSwitch>
-    <defSwitch name="DOUTPUT_07" label="SOCKET 6">
+    <defSwitch name="SOCKET06" label="SOCKET 6">
+    <indiduino pin="7"/>
 Off
     </defSwitch>
-    <defSwitch name="DOUTPUT_08" label="SOCKET 7">
+    <defSwitch name="SOCKET07" label="SOCKET 7">
+    <indiduino pin="8"/>
 Off
     </defSwitch>
 </defSwitchVector>
 
 <defSwitchVector device="Arduino SWITCHER" name="ANYOFMANY" label="ANY OF MANY" group="Main Control" state="Idle" perm="rw" rule="AnyOfMany" timeout="1">
-    <defSwitch name="DOUTPUT_09" label="SOCKET 8">
+    <defSwitch name="SOCKET08" label="SOCKET 8">
+    <indiduino pin="9"/>
 Off
     </defSwitch>
-    <defSwitch name="DOUTPUT_10" label="SOCKET 9">
+    <defSwitch name="SOCKET09" label="SOCKET 9">
+    <indiduino pin="10"/>
 Off
     </defSwitch>
-    <defSwitch name="DOUTPUT_11" label="SOCKET 10">
+    <defSwitch name="SOCKET10" label="SOCKET 10">
+    <indiduino pin="11"/>
 Off
     </defSwitch>
 </defSwitchVector>
 
 
 <defSwitchVector device="Arduino SWITCHER" name="ONE1" label="SOCKET 11" group="Main Control" state="Idle" perm="rw" rule="AtMostOne" timeout="1">
-    <defSwitch name="DOUTPUT_12" label="SOCKET 11">
+    <defSwitch name="SOCKET11" label="SOCKET 11">
+    <indiduino pin="12"/>
 Off
     </defSwitch>
 </defSwitchVector>
 
 <defSwitchVector device="Arduino SWITCHER" name="ONE2" label="SOCKET 12" group="Main Control" state="Idle" perm="rw" rule="AtMostOne" timeout="1">
-    <defSwitch name="DOUTPUT_13" label="SOCKET 12">
+    <defSwitch name="SOCKET12" label="SOCKET 12">
+    <indiduino pin="13"/>
 Off
     </defSwitch>
 </defSwitchVector>

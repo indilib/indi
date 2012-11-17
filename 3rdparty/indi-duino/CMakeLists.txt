@@ -4,7 +4,7 @@ PROJECT(indi_duino CXX C)
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
 set(FIRMATA_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libfirmata/src/")
 set (VERSION_MAJOR 0)
-set (VERSION_MINOR 1)
+set (VERSION_MINOR 2)
  
 find_package(INDI REQUIRED)
 

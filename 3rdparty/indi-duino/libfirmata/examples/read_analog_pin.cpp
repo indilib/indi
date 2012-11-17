@@ -31,6 +31,6 @@ int main(int argc, char** argv) {
 		printf("ANALOG A0 (pin 14) is:%u\n",sf->pin_info[14].value);
 	}
 
-	sf->destroy();
+	delete sf;
 	return 0;
 }

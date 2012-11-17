@@ -1,4 +1,4 @@
-indiduino v0.1
+indiduino v0.2
 ==============
 
 NACHO MAS 2012 (mas.ignacio at gmail.com)
@@ -14,18 +14,28 @@ programing tool. To load File->examples->firmata->standardfirmata
 
 The driver read the properties configuration from xml skeleton file. It use 
 also this file to program on runtime arduino pin behaviour (ANALOG,PWM,INPUT, 
-OUTPUT). The driver use the property name to map each arduino pin. The syntaxis
-is:
+OUTPUT). Skeleton files usually are in /usr/share/indi or /usr/loca/share/indi
+([devicename]_sk.xml)
 
-DINPUT__xx  -> PIN xx (two digits) is configure as digital input.(it has to be defLight property)
+The driver use a special tag <indiduino> to map each arduino pin. The syntax
+is: 
 
-DOUTPUT_xx -> PIN xx (two digits) is configure as digital input.(it has to be defSwitch property)
+<indiduino pin="[pinnumber]" type="[input][output]" mul="[float number]" add="[float number]"/>
 
-AINPUT__xx  -> PIN xx (two digits) is configure as analog input. Values are report as raw 
-              input reading in the 0-1024 range.(it has to be defNumber property)		 
 
-AOUTPUT_xx -> PIN xx (two digits) is configure as analog output(real PWM). Values are 0-255 
-	      range corresponding 0% to 100% PWM duty cycle.( it has to be defNumber property)
+.- If <induino> tag is inside defLight property  is mapped always as digital input.
+
+.- If <induino> tag is inside defSwitch property  is mapped alwaysas digital output.
+
+.- If <induino> tag is inside defNumber property  is mapped always as analog. Input or 
+output must be set using "type" atribute(requiered). In this case "mul" and "add" 
+could be set (optionaly), default values mul="1" add="0".
+
+Fisical Analogs Outputs have to be in the 0-255 range (arduino PWM). This can be achive
+using "mul" and "add" attributes. The formula is ARDUINO_PWM_VALUE=INDI_NUMBER_VALUE*mul+add
+
+Fisical Analogs Inputs are always in the 0-1024 range (arduino ADC). INDI properties are set
+using this formula: INDI_NUMBER_VALUE=ARDUINO_ADC_VALUE*mul+add
 
 See example skeleton files for more details.
 
@@ -35,12 +45,17 @@ Remember that arduino pins only can driver a litle power. For testing driver led
 buttons are ok. For other device probably you need adicional electronics (relays, MOSFET…)
 
 Assuming your board is arduino-uno o arduino-dumilnove, for analog input (pins labeled A0,A1 .. )
- you have to use numbers 14,15 and so on.. (i.e AINPUT__14 is A0, AINPUT__15 is A1 …).
+ you have to use numbers 14,15 and so on.. (i.e <indiduino pin="14" type="input"/> map A0,
+<indiduino pin="14" type="input"/> map A1, and so on …).
 
 Standard firmata firmware use raw values. Values 0-1023 for analog inputs and 0-256 for analog 
 outputs(PWM). Custom firmaware could change that if needed.See device/firmware/TemplateINDIDUINO.ino
 
 IMPORTANT: The user is responsible to map every pin to the real hardware. No check is done. 
 
+ADVANCE DEVICES
+===============
+Using custom Firmware is posible to map signal not to real hardware but a logical variables. Using this 
+is posible to achive elaborate behaviours tripping arduino functions. See stepper example code.
 
-Custom Firmware:To know how to use custom firmware see stepper example code.
+
