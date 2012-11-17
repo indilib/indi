@@ -23,5 +23,9 @@
                 <driver name="Arduino Focuser">indi_duino</driver>
                 <version>0.1</version>
         </device>
+	<device label="Arduino Cosmos" skel="cosmos_sk.xml">
+                <driver name="Arduino Cosmos">indi_duino</driver>
+                <version>0.1</version>
+        </device>
 </devGroup>
 

@@ -208,8 +208,8 @@ void indiduino::ISPoll() {
 				if (pin_config->IOType==AI) {
 					int pin=pin_config->pin;
 					if (sf->pin_info[pin].mode == FIRMATA_MODE_ANALOG) {
-						//IDLog("ANALOG PIN:%u.Value:%u\n",pin,sf->pin_info[pin].value);
-        					eqp->value=pin_config->MulScale*sf->pin_info[pin].value+pin_config->AddScale;
+        					eqp->value=pin_config->MulScale*(double)(sf->pin_info[pin].value)+pin_config->AddScale;
+						//IDLog("%f\n",eqp->value);
 						IDSetNumber(nvp, NULL);
 					}
         	 		} 
