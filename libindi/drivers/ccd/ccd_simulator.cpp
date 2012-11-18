@@ -130,6 +130,11 @@ CCDSim::CCDSim()
     SimulatorSettingsNV = new INumberVectorProperty;
     TimeFactorSV = new ISwitchVectorProperty;
 
+    // Filter stuff
+    MinFilter=1;
+    MaxFilter=5;
+    FilterSlotN[0].max = MaxFilter;
+
 }
 
 bool CCDSim::SetupParms()
@@ -149,6 +154,8 @@ bool CCDSim::SetupParms()
     nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP()/8;
     nbuf += 512;
     PrimaryCCD.setFrameBufferSize(nbuf);
+
+    GetFilterNames(FILTER_TAB);
 
     return true;
 }
@@ -212,6 +219,8 @@ bool CCDSim::initProperties()
 
     IDSnoopDevice(ActiveDeviceT[0].text,"EQUATORIAL_PEC");
 
+    initFilterProperties(getDeviceName(), FILTER_TAB);
+
     return true;
 }
 
@@ -241,6 +250,10 @@ bool CCDSim::updateProperties()
             SetGuidHeadParams(500,290,16,9.8,12.6);
             GuideCCD.setFrameBufferSize(GuideCCD.getXRes() * GuideCCD.getYRes() * 2);
         }
+
+        defineNumber(&FilterSlotNP);
+        if (FilterNameT != NULL)
+            defineText(FilterNameTP);
     }
 
     return true;
@@ -907,6 +920,12 @@ bool CCDSim::ISNewNumber (const char *dev, const char *name, double values[], ch
             return true;
         }
 
+        if (strcmp(name, FilterSlotNP.name)==0)
+        {
+            processFilterProperties(name, values, names, n);
+            return true;
+        }
+
 
     }
     //  if we didn't process it, continue up the chain, let somebody else
@@ -1009,3 +1028,39 @@ bool CCDSim::saveConfigItems(FILE *fp)
 
     return true;
 }
+
+bool CCDSim::SelectFilter(int f)
+{
+    CurrentFilter = f;
+    SelectFilterDone(f);
+}
+
+bool CCDSim::GetFilterNames(const char* groupName)
+{
+    char filterName[MAXINDINAME];
+    char filterLabel[MAXINDILABEL];
+
+    const char *filterDesignation[5] = { "Red", "Green", "Blue", "H_Alpha", "Luminosity" };
+
+    if (FilterNameT != NULL)
+        delete FilterNameT;
+
+    FilterNameT = new IText[MaxFilter];
+
+    for (int i=0; i < MaxFilter; i++)
+    {
+        snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i+1);
+        snprintf(filterLabel, MAXINDILABEL, "Filter #%d", i+1);
+        IUFillText(&FilterNameT[i], filterName, filterLabel, filterDesignation[i]);
+    }
+
+    IUFillTextVector(FilterNameTP, FilterNameT, MaxFilter, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW, 0, IPS_IDLE);
+
+    return true;
+}
+
+int CCDSim::QueryFilter()
+{
+    return CurrentFilter;
+}
+

@@ -77,6 +77,16 @@ protected:
     */
     void initFilterProperties(const char *deviceName, const char* groupName);
 
+    /** \brief Process client request to change filter position. Call this function in the filter wheel
+         implementation class ISNewNumber function. This is a convenience function only, you can process FilterSlotNP
+         in the child class.
+        \param name property name from ISNewNumber();
+        \param values values from ISNewNumber().
+        \param names names from ISNewNumber();
+        \param n n from ISNewNumber();
+    */
+    void processFilterProperties(const char *name, double values[], char *names[], int n);
+
     INumberVectorProperty FilterSlotNP;   //  A number vector for filter slot
     INumber FilterSlotN[1];
 

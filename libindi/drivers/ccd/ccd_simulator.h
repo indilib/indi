@@ -20,13 +20,14 @@
 #define CCDSIM_H
 
 #include "indibase/indiccd.h"
+#include "indibase/indifilterinterface.h"
 
 /*  Some headers we need */
 #include <math.h>
 #include <sys/time.h>
 
 
-class CCDSim : public INDI::CCD
+class CCDSim : public INDI::CCD, public INDI::FilterInterface
 {
     protected:
 
@@ -97,6 +98,12 @@ class CCDSim : public INDI::CCD
 
         INumberVectorProperty EqPECNP;
         INumber EqPECN[2];
+
+        // Filter
+        bool SelectFilter(int);
+        bool SetFilterNames() { return false; }
+        bool GetFilterNames(const char* groupName);
+        int QueryFilter();
 
     public:
         CCDSim();

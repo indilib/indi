@@ -18,6 +18,8 @@
 
 */
 
+#include <string.h>
+
 #include "indifilterinterface.h"
 
 INDI::FilterInterface::FilterInterface()
@@ -48,6 +50,40 @@ void INDI::FilterInterface::SelectFilterDone(int f)
     // Tell the clients we are done, and
     //  filter is now useable
     IDSetNumber(&FilterSlotNP,NULL);
+}
+
+void INDI::FilterInterface::processFilterProperties(const char *name, double values[], char *names[], int n)
+{
+
+    if (!strcmp(FilterSlotNP.name, name))
+    {
+
+        TargetFilter = values[0];
+
+        INumber *np = IUFindNumber(&FilterSlotNP, names[0]);
+
+        if (!np)
+        {
+            FilterSlotNP.s = IPS_ALERT;
+            IDSetNumber(&FilterSlotNP, "Unknown error. %s is not a member of %s property.", names[0], name);
+            return;
+        }
+
+        if (TargetFilter < MinFilter || TargetFilter > MaxFilter)
+        {
+            FilterSlotNP.s = IPS_ALERT;
+            IDSetNumber(&FilterSlotNP, "Error: valid range of filter is from %d to %d", MinFilter, MaxFilter);
+            return;
+        }
+
+        FilterSlotNP.s = IPS_BUSY;
+        IDSetNumber(&FilterSlotNP, "Setting current filter to slot %d", TargetFilter);
+
+        SelectFilter(TargetFilter);
+
+        return;
+
+    }
 }
 
 
