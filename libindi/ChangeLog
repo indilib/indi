@@ -1,3 +1,19 @@
+From 0.9.5 to 0.9.6
+
+      + Support for Startlight Xpress Adaptive Optics unit.
+      + Support for Ariduino boards.
+      + Improved support for Startlight Xpress CCDs and Filter wheels.
+      + Support for GPUSB Guide Port Interface.
+      + Improved support for QSI CCDs and Filter wheels.
+      + Support for filters with absolute positioning.
+      + Improved simulators.
+      + Added support to cameras with guiding chip.
+      + Fixed INDI server FIFO CPU utilization bug. 
+      + Fixed various bugs with v4l drivers due to code regression.
+      + Improved support for Mac OS X.
+      + _REQUEST properties are now deprecated.
+      + Updated tutorials and API.
+
 From 0.9 to 0.95
 
       # Focuser simulator driver.
