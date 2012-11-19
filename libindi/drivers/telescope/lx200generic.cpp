@@ -161,13 +161,13 @@ ISwitchVectorProperty MovementWESP      = { mydev, "TELESCOPE_MOTION_WE", "West/
 /********************************************
  Property: Timed Guide movement. North/South
 *********************************************/
-static INumber GuideNSN[]       = {{"TIMED_GUIDE_N", "North (sec)", "%g", 0, 10, 0.001, 0, 0, 0}, {"TIMED_GUIDE_S", "South (sec)", "%g", 0, 10, 0.001, 0, 0, 0}};
+static INumber GuideNSN[]       = {{"TIMED_GUIDE_N", "North (ms)", "%g", 0, 10, 0.001, 0, 0, 0}, {"TIMED_GUIDE_S", "South (ms)", "%g", 0, 10000, 100, 100, 0, 0}};
 INumberVectorProperty GuideNSNP      = { mydev, "TELESCOPE_TIMED_GUIDE_NS", "Guide North/South", MOTION_GROUP, IP_RW, 0, IPS_IDLE, GuideNSN, NARRAY(GuideNSN), "", 0};
 
 /********************************************
  Property: Timed Guide movement. West/East
 *********************************************/
-static INumber GuideWEN[]       = {{"TIMED_GUIDE_W", "West (sec)", "%g", 0, 10, 0.001, 0, 0, 0}, {"TIMED_GUIDE_E", "East (sec)", "%g", 0, 10, 0.001, 0, 0, 0}};
+static INumber GuideWEN[]       = {{"TIMED_GUIDE_W", "West (ms)", "%g", 0, 10, 0.001, 0, 0, 0}, {"TIMED_GUIDE_E", "East (ms)", "%g", 0, 10000, 100, 100, 0, 0}};
 INumberVectorProperty GuideWENP      = { mydev, "TELESCOPE_TIMED_GUIDE_WE", "Guide West/East", MOTION_GROUP, IP_RW, 0, IPS_IDLE, GuideWEN, NARRAY(GuideWEN), "", 0};
 
 /********************************************
@@ -1068,10 +1068,10 @@ void LX200Generic::ISNewNumber (const char *dev, const char *name, double values
 	  IUUpdateNumber(&GuideWENP, values, names, n);
 
 	  if (GuideWENP.np[0].value > 0) {
-		duration_msec = GuideWENP.np[0].value * 1000;
+        duration_msec = GuideWENP.np[0].value;
 		direction = LX200_WEST;
 	  } else {
-		duration_msec = GuideWENP.np[1].value * 1000;
+        duration_msec = GuideWENP.np[1].value;
 		direction = LX200_EAST;
 	  }
 	  if (duration_msec <= 0) {
