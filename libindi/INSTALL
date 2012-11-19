@@ -16,7 +16,8 @@ Refer to README.drivers for driver-specific information.
 Dependencies
 ============
 
-+ libusb
++ libusb-dev
++ libusb-1.0-0-dev
 + libnova >= 0.12.2
 + cfitsio >= 3.0
 
