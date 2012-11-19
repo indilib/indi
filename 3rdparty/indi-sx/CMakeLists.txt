@@ -4,8 +4,8 @@ PROJECT(sxccd CXX C)
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
 set(RULES_INSTALL_DIR "/etc/udev/rules.d")
 
-set (VERSION_MAJOR 0)
-set (VERSION_MINOR 1)
+set (VERSION_MAJOR 1)
+set (VERSION_MINOR 2)
  
 configure_file (
   "${CMAKE_SOURCE_DIR}/sxconfig.h.in"
