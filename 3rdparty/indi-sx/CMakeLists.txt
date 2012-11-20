@@ -65,6 +65,7 @@ target_link_libraries(indi_sx_ao ${INDI_DRIVER_LIBRARIES})
 
 install(TARGETS indi_sx_ccd RUNTIME DESTINATION bin)
 install(TARGETS indi_sx_wheel RUNTIME DESTINATION bin)
+install(TARGETS indi_sx_ao RUNTIME DESTINATION bin)
 install(FILES indi_sx.xml DESTINATION ${INDI_DATA_DIR})
 
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
