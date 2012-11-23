@@ -148,6 +148,8 @@ bool GPUSB::updateProperties()
         deleteProperty(GuideEWP.name);
     }
 
+    return true;
+
 }
 
 void GPUSB::ISGetProperties (const char *dev)

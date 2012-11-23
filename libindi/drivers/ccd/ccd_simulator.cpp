@@ -1033,6 +1033,7 @@ bool CCDSim::SelectFilter(int f)
 {
     CurrentFilter = f;
     SelectFilterDone(f);
+    return true;
 }
 
 bool CCDSim::GetFilterNames(const char* groupName)

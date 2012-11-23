@@ -13,7 +13,6 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
 set(DATA_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/share/indi/")
 set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
 set(INCLUDE_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/include")
-set(UDEVRULES_INSTALL_DIR "/etc/udev/rules.d")
 
 IF(APPLE)
 set(CMAKE_SHARED_LINKER_FLAGS "-undefined dynamic_lookup")
@@ -25,6 +24,7 @@ set (LIB_DESTINATION "${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}" CACHE STRING "Li
 ## the following are directories where stuff will be installed to
 set(INCLUDE_INSTALL_DIR      "${CMAKE_INSTALL_PREFIX}/include/" CACHE PATH "The subdirectory to the header prefix")
 set(PKGCONFIG_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}/pkgconfig/" CACHE STRING "Base directory for pkgconfig files")
+set(UDEVRULES_INSTALL_DIR "/etc/udev/rules.d" CACHE STRING "Base directory for udev rules")
 
 ##################  Includes  ################################
 Include (CheckCXXSourceCompiles)

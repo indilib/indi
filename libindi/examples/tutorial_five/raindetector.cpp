@@ -118,6 +118,8 @@ bool RainDetector::initProperties()
     IUFillSwitch(&RainS[1], "Off", "", ISS_OFF);
     IUFillSwitchVector(&RainSP, RainS, 2, getDeviceName(), "Control Rain", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+    return true;
+
 }
 
 /********************************************************************************************

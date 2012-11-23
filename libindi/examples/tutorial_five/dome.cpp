@@ -122,6 +122,8 @@ bool Dome::initProperties()
     // Make sure to set the device name to "Rain Detector" since we are snooping on rain detector device.
     IUFillLightVector(&RainLP, RainL, 1, "Rain Detector", "Rain Alert", "", MAIN_CONTROL_TAB, IPS_IDLE);
 
+    return true;
+
 }
 
 /********************************************************************************************
@@ -214,7 +216,10 @@ bool Dome::ISSnoopDevice(XMLEle *root)
       else if (old_state == IPS_ALERT && RainL[0].s != IPS_ALERT)
           IDMessage(getDeviceName(), "Rain threat passed. Opening the dome is now safe.");
 
+      return true;
     }
+
+    return false;
 }
 
 /********************************************************************************************
