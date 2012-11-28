@@ -61,9 +61,6 @@ class QSICCD : public INDI::CCD, public INDI::FilterInterface
     ISwitch ShutterS[2];
     ISwitchVectorProperty ShutterSP;
 
-    INumber TemperatureRequestN[1];
-    INumberVectorProperty TemperatureRequestNP;
-
     INumber TemperatureN[1];
     INumberVectorProperty TemperatureNP;
 
@@ -89,7 +86,7 @@ class QSICCD : public INDI::CCD, public INDI::FilterInterface
     int grabImage();
     bool setupParams();
     int manageDefaults(char errmsg[]);
-    void activateCooler();
+    void activateCooler(bool enable);
     void resetFrame();
     void shutterControl();
     void turnWheel();

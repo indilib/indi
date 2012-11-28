@@ -174,9 +174,6 @@ bool QSICCD::initProperties()
     IUFillNumber(&CoolerN[0], "CCD_COOLER_VALUE", "Cooling Power (%)", "%+06.2f", 0., 1., .2, 0.0);
     IUFillNumberVector(&CoolerNP, CoolerN, 1, getDeviceName(), "CCD_COOLER", "Cooling Power", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
-    IUFillNumber(&TemperatureRequestN[0], "CCD_TEMPERATURE_VALUE", "Temperature (C)", "%5.2f", MIN_CCD_TEMP, MAX_CCD_TEMP, 0., 0.);
-    IUFillNumberVector(&TemperatureRequestNP, TemperatureN, 1, getDeviceName(), "CCD_TEMPERATURE_REQUEST", "Temperature", MAIN_CONTROL_TAB, IP_WO, 60, IPS_IDLE);
-
     IUFillNumber(&TemperatureN[0], "CCD_TEMPERATURE_VALUE", "Temperature (C)", "%5.2f", MIN_CCD_TEMP, MAX_CCD_TEMP, 0., 0.);
     IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "CCD_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
@@ -205,7 +202,6 @@ bool QSICCD::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&TemperatureRequestNP);
         defineNumber(&TemperatureNP);
         defineSwitch(&ResetSP);
         defineSwitch(&CoolerSP);
@@ -234,7 +230,6 @@ bool QSICCD::updateProperties()
     }
     else
     {
-        deleteProperty(TemperatureRequestNP.name);
         deleteProperty(TemperatureNP.name);
         deleteProperty(ResetSP.name);
         deleteProperty(CoolerSP.name);
@@ -436,7 +431,12 @@ bool QSICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
         if (!strcmp (name, CoolerSP.name))
         {
           if (IUUpdateSwitch(&CoolerSP, states, names, n) < 0) return false;
-          activateCooler();
+
+          if (CoolerS[0].s == ISS_ON)
+            activateCooler(true);
+          else
+              activateCooler(false);
+
           return true;
         }
 
@@ -517,21 +517,21 @@ bool QSICCD::ISNewNumber(const char *dev, const char *name, double values[], cha
     {
 
         /* Temperature*/
-        if (!strcmp(TemperatureRequestNP.name, name))
+        if (!strcmp(TemperatureNP.name, name))
         {
-            TemperatureRequestNP.s = IPS_IDLE;
+            TemperatureNP.s = IPS_IDLE;
 
-            np = IUFindNumber(&TemperatureRequestNP, names[0]);
+            np = IUFindNumber(&TemperatureNP, names[0]);
 
             if (!np)
             {
-                IDSetNumber(&TemperatureRequestNP, "Unknown error. %s is not a member of %s property.", names[0], name);
+                IDSetNumber(&TemperatureNP, "Unknown error. %s is not a member of %s property.", names[0], name);
                 return false;
             }
 
             if (values[0] < MIN_CCD_TEMP || values[0] > MAX_CCD_TEMP)
             {
-                IDSetNumber(&TemperatureRequestNP, "Error: valid range of temperature is from %d to %d", MIN_CCD_TEMP, MAX_CCD_TEMP);
+                IDSetNumber(&TemperatureNP, "Error: valid range of temperature is from %d to %d", MIN_CCD_TEMP, MAX_CCD_TEMP);
                 return false;
             }
 
@@ -541,7 +541,7 @@ bool QSICCD::ISNewNumber(const char *dev, const char *name, double values[], cha
                 QSICam.get_CanSetCCDTemperature(&canSetTemp);
             } catch (std::runtime_error err)
             {
-                IDSetNumber(&TemperatureRequestNP, "CanSetCCDTemperature() failed. %s.", err.what());
+                IDSetNumber(&TemperatureNP, "CanSetCCDTemperature() failed. %s.", err.what());
                 if (isDebug())
                     IDLog("CanSetCCDTemperature() failed. %s.", err.what());
                 return false;
@@ -552,21 +552,22 @@ bool QSICCD::ISNewNumber(const char *dev, const char *name, double values[], cha
                 return false;
             }
 
+            activateCooler(true);
+
             try
             {
                 QSICam.put_SetCCDTemperature(values[0]);
             } catch (std::runtime_error err)
             {
-                IDSetNumber(&TemperatureRequestNP, "put_SetCCDTemperature() failed. %s.", err.what());
+                IDSetNumber(&TemperatureNP, "put_SetCCDTemperature() failed. %s.", err.what());
                 if (isDebug())
                     IDLog("put_SetCCDTemperature() failed. %s.", err.what());
                 return false;
             }
 
-            TemperatureRequestNP.s = IPS_BUSY;
             TemperatureNP.s = IPS_BUSY;
 
-            IDSetNumber(&TemperatureRequestNP, "Setting CCD temperature to %+06.2f C", values[0]);
+            IDSetNumber(&TemperatureNP, "Setting CCD temperature to %+06.2f C", values[0]);
             if (isDebug())
                 IDLog("Setting CCD temperature to %+06.2f C\n", values[0]);
             return true;
@@ -1051,14 +1052,13 @@ bool QSICCD::Disconnect()
     return true;
 }
 
-void QSICCD::activateCooler()
+void QSICCD::activateCooler(bool enable)
 {
 
         bool coolerOn;
 
-        switch (CoolerS[0].s)
+        if (enable)
         {
-          case ISS_ON:
             try
             {
                 QSICam.get_CoolerOn(&coolerOn);
@@ -1083,7 +1083,8 @@ void QSICCD::activateCooler()
                     CoolerS[0].s = ISS_OFF;
                     CoolerS[1].s = ISS_ON;
                     IDSetSwitch(&CoolerSP, "Error: put_CoolerOn(true) failed. %s.", err.what());
-                    IDLog("Error: put_CoolerOn(true) failed. %s.\n", err.what());
+                    if (isDebug())
+                        IDLog("Error: put_CoolerOn(true) failed. %s.\n", err.what());
                     return;
                 }
             }
@@ -1093,10 +1094,12 @@ void QSICCD::activateCooler()
             CoolerS[1].s = ISS_OFF;
             CoolerSP.s = IPS_OK;
             IDSetSwitch(&CoolerSP, "Cooler ON\n");
-            IDLog("Cooler ON\n");
-            break;
 
-          case ISS_OFF:
+            if (isDebug())
+                IDLog("Cooler ON\n");
+        }
+        else
+        {
               CoolerS[0].s = ISS_OFF;
               CoolerS[1].s = ISS_ON;
               CoolerSP.s = IPS_IDLE;
@@ -1108,11 +1111,11 @@ void QSICCD::activateCooler()
               } catch (std::runtime_error err)
               {
                  IDSetSwitch(&CoolerSP, "Error: CoolerOn() failed. %s.", err.what());
-                 IDLog("Error: CoolerOn() failed. %s.\n", err.what());
+                 if (isDebug())
+                    IDLog("Error: CoolerOn() failed. %s.\n", err.what());
                  return;                                              
               }
               IDSetSwitch(&CoolerSP, "Cooler is OFF.");
-              break;
         }
 }
 
@@ -1330,9 +1333,7 @@ void QSICCD::TimerHit()
         if (fabs(TemperatureN[0].value - ccdTemp) <= TEMP_THRESHOLD)
         {
             TemperatureNP.s = IPS_OK;
-            TemperatureRequestNP.s = IPS_OK;
-
-            IDSetNumber(&TemperatureRequestNP, NULL);
+            IDSetNumber(&TemperatureNP, NULL);
         }
 
         TemperatureN[0].value = ccdTemp;
