@@ -1,3 +1,9 @@
+fliusb-dkms (1.0-0ubuntu2) quantal; urgency=low
+
+  * New release update from RTS2.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sat, 01 Dec 2012 21:53:45 +0300
+
 fliusb-dkms (1.0-0ubuntu1) maverick; urgency=low
 
   * Initial release
