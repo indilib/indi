@@ -5,8 +5,6 @@ number, when a recognized FLI USB device is attached.  The character
 special file provides two ways to communicate with FLI USB devices;
 through read()/write() system calls or by using ioctl().
 
-For support, please contact FLI <support@flicamera.com>
-
 Warning
 =======
 We observed strange problems under 2.6.27 kernels - camera caused kernel

@@ -1,7 +1,6 @@
 obj-m		:= fliusb.o
 
 KDIR		?= /lib/modules/$(shell uname -r)/build
-KROOT           ?= /lib/modules/$(shell uname -r)
 PWD		:= $(shell pwd)
 
 EXTRA_CFLAGS		+= -O2 -Wall
@@ -10,14 +9,13 @@ EXTRA_CFLAGS		+= -O2 -Wall
 #EXTRA_CFLAGS		+= -DASYNCWRITE	# enable asynchronous writes
 EXTRA_CFLAGS		+= -DSGREAD	# enable scatter-gather reads
 
-all:
-	$(MAKE) -C $(KDIR) M=$(PWD) modules
+all: module cleanup
 
-install: all
-	$(MAKE) -C $(KDIR) M=$(PWD) modules_install
-	depmod -a
+module:
+	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules
 
-clean:
-	find . -type d -exec sh -c "cd {} && rm -f *.ko *.o *.mod.o *.mod.c" \;
-	rm -rf .tmp_versions Module.symvers
+cleanup:
+	rm -f *.o .*.cmd *.mod.c; rm -rf .tmp_versions
 
+clean: cleanup
+	rm -f *.ko test
