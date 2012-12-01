@@ -779,6 +779,8 @@ int INDI::BaseDevice::setValue (XMLEle *root, char * errmsg)
         stateSet = true;
     }
 
+    setlocale(LC_NUMERIC,"C");
+
     /* allow changing the timeout */
     ap = findXMLAtt (root, "timeout");
     if (ap)
@@ -818,6 +820,8 @@ int INDI::BaseDevice::setValue (XMLEle *root, char * errmsg)
           if (findXMLAtt(ep, "max"))
               np->max = atof(findXMLAttValu(ep, "max"));
        }
+
+       setlocale(LC_NUMERIC,"");
 
        if (mediator)
            mediator->newNumber(nvp);
