@@ -66,8 +66,15 @@
 #define FIRMATA_MODE_SHIFT    0x05
 #define FIRMATA_MODE_I2C      0x06
 
+#define FIRMATA_I2C_WRITE B00000000
+#define FIRMATA_I2C_READ B00001000
+#define FIRMATA_I2C_READ_CONTINUOUSLY B00010000
+#define FIRMATA_I2C_STOP_READING B00011000
+#define FIRMATA_I2C_READ_WRITE_MODE_MASK B00011000
+#define FIRMATA_I2C_10BIT_ADDRESS_MODE_MASK B00100000
 
 
+#define MAX_STRING_DATA_LEN   164
 
 using namespace std;
 
@@ -75,7 +82,7 @@ typedef struct {
 	uint8_t mode;
 	uint8_t analog_channel;
 	uint64_t supported_modes;
-	uint32_t value;
+	uint64_t value;
 } pin_t;
 
 
@@ -90,22 +97,23 @@ class Firmata {
 		int writeDigitalPin(unsigned char pin, unsigned char mode); // mode can be ARDUINO_HIGH or ARDUINO_LOW
 		int setPinMode(unsigned char pin, unsigned char mode);
 		int setPwmPin(unsigned char pin, int16_t value);
-		void mapAnalogChannels();
-		void askFirmwareVersion();
-		void askCapabilities();
-		void askPinState(int pin);
-		void reportDigitalPorts(int enable);
-		void reportAnalogPorts(int enable);
+		int mapAnalogChannels();
+		int askFirmwareVersion();
+		int askCapabilities();
+		int askPinState(int pin);
+		int reportDigitalPorts(int enable);
+		int reportAnalogPorts(int enable);
 		int setSamplingInterval(int16_t value);
 		int systemReset();
 		int closePort();
 		int flushPort();
-		int getSysExData();
-		int sendSysExData(const unsigned char command, vector<unsigned char> data);
+		//int getSysExData();
+		int sendStringData(char* data);
 		pin_t pin_info[128];
 		void print_state();
 		char firmata_name[140];
-		void OnIdle();
+		char string_buffer[MAX_STRING_DATA_LEN];
+		int OnIdle();
 		bool portOpen;
         private:
 		int parse_count;

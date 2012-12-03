@@ -157,6 +157,7 @@ void indiduino::ISPoll() {
 
     //IDLog("Polling...\n");
     sf->OnIdle();
+
     std::vector<INDI::Property *> *pAll = getProperties();
     for (int i=0; i < pAll->size(); i++) {
 	const char *name;
@@ -189,7 +190,7 @@ void indiduino::ISPoll() {
 							lqp->s = IPS_IDLE;
 						}
 					}
-	        	 } 
+	        	 	} 
 		}
 		IDSetLight(lvp, NULL);
         }
@@ -213,10 +214,25 @@ void indiduino::ISPoll() {
 						IDSetNumber(nvp, NULL);
 					}
         	 		} 
-            		} 
+            	} 
+	}
+    		
+	//TEXT
+        if (type == INDI_TEXT) {     
+	        ITextVectorProperty *tvp = getText(name);
+
+	   	for (int i=0;i<tvp->ntp;i++) {
+	        	IText *eqp = &tvp->tp[i];
+        		if (!eqp)
+	        	    return;
+
+			if (eqp->aux0 == NULL) continue;			
+      			strcpy(eqp->text,(char*)eqp->aux0);
+			//IDLog("%s.%s TEXT: %s \n",tvp->name,eqp->name,eqp->text);
+			IDSetText(tvp, NULL);
 	 	}
-    	}	
-  
+    	}  
+    }	 
 }
 
 
@@ -577,7 +593,33 @@ bool indiduino::setPinModesFromSKEL()
 				int pin=iopin[numiopin].pin;
 				IDLog("%s.%s  pin %u set as DIGITAL OUTPUT\n",svp->name,sqp->name,pin);
 				sf->setPinMode(pin,FIRMATA_MODE_OUTPUT);
+				IDLog("numiopin:%u\n",numiopin);
 				numiopin++;
+			}
+		}
+        }
+	if (type == INDI_TEXT) { 
+		ITextVectorProperty *tvp = getText(name);
+		//IDLog("%s\n",svp->name);
+        	ioep==NULL;
+		for (int i=0;i<tvp->ntp;i++) {
+                	IText *tqp = &tvp->tp[i];			
+
+			if (ioep==NULL) {
+				ioep = nextXMLEle (ep, 1);
+			} else {
+				ioep = nextXMLEle (ep, 0);
+			}
+			xmlp = findXMLEle(ioep,"indiduino");
+			if (xmlp !=NULL) {
+
+				if (!readInduinoXml(xmlp,0)) {
+					IDLog("Malforme <indiduino> XML\n");
+					return false;
+				}
+				tqp->aux0=(void*) &sf->string_buffer ;	
+				IDLog("%s.%s ARDUINO TEXT\n",tvp->name,tqp->name);
+				IDLog("numiopin:%u\n",numiopin);
 			}
 		}
         }
@@ -602,6 +644,7 @@ bool indiduino::setPinModesFromSKEL()
 				int pin=iopin[numiopin].pin;
 				IDLog("%s.%s  pin %u set as DIGITAL INPUT\n",lvp->name,lqp->name,pin);
 				sf->setPinMode(pin,FIRMATA_MODE_INPUT);
+				IDLog("numiopin:%u\n",numiopin);
 				numiopin++;
 			}
 		}
@@ -633,6 +676,7 @@ bool indiduino::setPinModesFromSKEL()
 					IDLog("%s.%s  pin %u set as ANALOG INPUT\n",nvp->name,eqp->name,pin);
 					sf->setPinMode(pin,FIRMATA_MODE_ANALOG);
 				}
+				IDLog("numiopin:%u\n",numiopin);
 				numiopin++;
 			}
             	} 
@@ -654,9 +698,12 @@ bool indiduino::readInduinoXml(XMLEle *ioep, int npin)
 
 	propertyTag = tagXMLEle(parentXMLEle(ioep));
 
+
+
 	if (!strcmp(propertyTag,"defSwitch") || !strcmp(propertyTag,"defLight") || !strcmp(propertyTag,"defNumber")) {
 
 		pin=atoi(findXMLAttValu(ioep, "pin"));
+
 		if (pin >=1 && pin <= 19) {
 			iopin[npin].pin= pin;
 		} else {

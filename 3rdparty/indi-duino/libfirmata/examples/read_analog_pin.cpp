@@ -28,7 +28,7 @@ int main(int argc, char** argv) {
 	while(true) {
 		sf->OnIdle();
 		sleep(2);
-		printf("ANALOG A0 (pin 14) is:%u\n",sf->pin_info[14].value);
+		printf("ANALOG A0 (pin 14) is:%lu\n",sf->pin_info[14].value);
 	}
 
 	delete sf;

@@ -84,6 +84,8 @@
 3rdparty/indi-duino/libfirmata/examples/blink_pin.cpp -text
 3rdparty/indi-duino/libfirmata/examples/read_analog_pin.cpp -text
 3rdparty/indi-duino/libfirmata/examples/read_digital_pin.cpp -text
+3rdparty/indi-duino/libfirmata/examples/read_extended_analog.cpp -text
+3rdparty/indi-duino/libfirmata/examples/read_string.cpp -text
 3rdparty/indi-duino/libfirmata/src/arduino.cpp -text
 3rdparty/indi-duino/libfirmata/src/arduino.h -text
 3rdparty/indi-duino/libfirmata/src/firmata.cpp -text

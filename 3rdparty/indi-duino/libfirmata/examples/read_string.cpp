@@ -16,30 +16,18 @@
 #include <firmata.h>
 
 int main(int argc, char** argv) {
-	int rv=0;
 	if (argc < 2) {
-		fprintf(stderr,"Usage: blink_pin <serial port path> [pin]\n");
+		fprintf(stderr,"Usage: read_string <serial port path> \n");
 		exit(1);
 	}
 	char* serial = argv[1];
-	int pin = atoi(argv[2]);
 	Firmata* sf = new Firmata(serial);
-	if (!sf->portOpen) {
-		printf("Fail to open port %s.Exiting\n",serial);
-		exit(1);
+	while(true) {
+		sf->OnIdle();
+		usleep(10000);
+		printf("ARDUINO SAY: %s\n",sf->string_buffer);
 	}
-	if (!sf->setPinMode(pin,FIRMATA_MODE_OUTPUT)) {
-		printf("Fail to set pin mode for pin:%u as OUTPUT.Exiting\n",pin);
-		exit(1);
-	}
-	for (int j=0;j<10;j++){
-		printf("PORT %u HIGH\n",pin);
-		sf->writeDigitalPin(pin,ARDUINO_HIGH);
-		sleep(1);
-		printf("PORT %u LOW\n",pin);
-		sf->writeDigitalPin(pin,ARDUINO_LOW);
-		sleep(1);
-	}
+
 	delete sf;
 	return 0;
 }

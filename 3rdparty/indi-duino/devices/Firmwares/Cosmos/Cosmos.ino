@@ -134,7 +134,7 @@ Servo servos[MAX_SERVOS];
 // LCD pin 15 to Arduino pin 13
 // LCD pins d4, d5, d6, d7 to Arduino pins 5, 4, 7, 6
 LiquidCrystal lcd(12, 11, 10, 5, 4, 7, 6);
-double vol0,vol1;
+int vol0,vol1;
 
 /*==============================================================================
  * FUNCTIONS
@@ -150,21 +150,25 @@ void custom_loop() {
   static long count=0;
   float v;
   float T;
+  char text[64];
   if (count>=10000) {
             lcd.clear();
-            vol0=analogRead(0);
-            vol1=analogRead(4);
+            vol0=analogRead(4);
+            vol1=analogRead(0);
             v=analogRead(3);
             T=(5*100*v)/1024 -273.15 ;
             lcd.setCursor(0,0);
             lcd.print(T);
             lcd.setCursor(6,0);           // set cursor to column 0, row 0 (the first row)
-            lcd.print("VOL0: ");
+            lcd.print("VOL1: ");
             lcd.print(vol0,DEC);
             lcd.setCursor(6,1);           
-            lcd.print("VOL1: ");
+            lcd.print("VOL2: ");
             lcd.print(vol1,DEC);
+            sprintf(text,"VOL1:%u VOL2:%u\n",vol0,vol1);  
+            Firmata.sendString(text);
             count=0;
+            
   }
   count++;
 }

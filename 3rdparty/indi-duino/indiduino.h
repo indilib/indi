@@ -34,7 +34,8 @@
 /* NAMES in the xml skeleton file to 
    used to define I/O arduino mapping*/
 
-
+#define MAX_IO_PIN 128
+#define MAX_SKELTON_FILE_NAME_LEN 504
 
 typedef enum {
 	DI,
@@ -54,6 +55,9 @@ typedef struct {
 
 
 
+
+
+
 class indiduino : public INDI::DefaultDevice
 {
  public:
@@ -69,8 +73,8 @@ class indiduino : public INDI::DefaultDevice
 
 
 private:
- char skelFileName[560];
- IO      iopin[20];
+ char skelFileName[MAX_SKELTON_FILE_NAME_LEN];
+ IO      iopin[MAX_IO_PIN];
  const char *getDefaultName();
  virtual bool initProperties(); 
  virtual bool Connect();

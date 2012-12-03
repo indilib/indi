@@ -37,6 +37,8 @@ add_executable(ask_digital_pin ${CMAKE_SOURCE_DIR}/libfirmata/examples/ask_digit
 target_link_libraries (ask_digital_pin firmata)
 add_executable(ask_analog_pin ${CMAKE_SOURCE_DIR}/libfirmata/examples/ask_analog_pin.cpp)
 target_link_libraries (ask_analog_pin firmata)
+add_executable(read_string ${CMAKE_SOURCE_DIR}/libfirmata/examples/read_string.cpp)
+target_link_libraries (read_string firmata)
 
 ##################### indi arduino #####################
 set(indiduino_SRCS

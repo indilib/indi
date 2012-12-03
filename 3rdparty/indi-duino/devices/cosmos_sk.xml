@@ -15,7 +15,7 @@ On
     </defText>
 </defTextVector>
 
-<defSwitchVector device="Arduino Cosmos" name="BLACK_LIGHT" label="BLACK_LIGHT" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="1">
+<defSwitchVector device="Arduino Cosmos" name="BACK_LIGHT" label="BACK_LIGHT" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="1">
     <defSwitch name="ON" label="OPEN">
 Off
     <indiduino pin="13"/>
@@ -33,20 +33,26 @@ On
     </defNumber>
 </defNumberVector>
 <defNumberVector device="Arduino Cosmos" name="POT" label="POT" group="Main Control" state="Idle" perm="ro" timeout="0">
-    <defNumber name="POT1" label="POT2" format="%4.0f" min="0" max="1024" step="1">
-    <indiduino pin="14" type="input" mul="1" add="0"/>
-0
-    </defNumber>
-    <defNumber name="POT2" label="POT2" format="%4.0f" min="0" max="1024" step="1">
+    <defNumber name="POT1" label="POT1" format="%4.0f" min="0" max="10240" step="1">
     <indiduino pin="18" type="input" mul="1" add="0"/>
 0
     </defNumber>
-</defNumberVector>
-
-<defNumberVector device="Arduino Cosmos" name="TEMP" label="" group="Main Control" state="Idle" perm="ro" timeout="0">
-    <defNumber name="TEMP" label="TEMP" format="%6.2f" min="0" max="50" >
-    <indiduino pin="17" type="input" mul="0.4882" add="-273.15"/>
+    <defNumber name="POT2" label="POT2" format="%4.0f" min="0" max="1024" step="1">
+    <indiduino pin="14" type="input" mul="1" add="0"/>
 0
     </defNumber>
 </defNumberVector>
+<defTextVector device="Arduino Cosmos" name="STRING" label="STRING" group="Main Control" state="Idle" perm="ro" timeout="0">
+    <defText name="ARDUINO" label="SAY">
+       <indiduino/>
+NOTHING
+    </defText>
+</defTextVector>
+<defNumberVector device="Arduino Cosmos" name="TEMP" label="" group="Main Control" state="Idle" perm="ro" timeout="0">
+    <defNumber name="TEMP" label="TEMP" format="%4.2f" min="-50" max="100" >
+    <indiduino pin="17" type="input" mul="0.4882" add="-273.15"/>
+22.9
+    </defNumber>
+</defNumberVector>
+
 </INDIDriver>

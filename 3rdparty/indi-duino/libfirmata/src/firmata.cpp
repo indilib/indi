@@ -14,7 +14,7 @@
 #include <firmata.h>
 #include <string.h>
 
-int debug=1;
+int debug=0;
 
 Firmata::Firmata() {
 	init("/dev/ttyACM0");
@@ -63,18 +63,8 @@ int Firmata::writeDigitalPin(unsigned char pin, unsigned char mode) {
 	}
 	rv |= arduino->sendUchar(FIRMATA_DIGITAL_MESSAGE+port);
 	rv |= sendValueAsTwo7bitBytes(digitalPortValue[port]); //ARDUINO_HIGH OR ARDUINO_LOW
-	return(rv);/*
- * Copyright 2012 (c) Nacho Mas (mas.ignacio at gmail.com)
+	return(rv);
 
-   Base on the following works:
-	* Firmata GUI example. http://www.pjrc.com/teensy/firmata_test/
-	  Copyright 2010, Paul Stoffregen (paul at pjrc.com)
-
-	* firmataplus: http://sourceforge.net/projects/firmataplus/
-	  Copyright (c) 2008 - Scott Reid, dataczar.com
-
-   Firmata C++ library. 
-*/
 }
 
 // in Firmata (and MIDI) data bytes are 7-bits. The 8th bit serves as a flag to mark a byte as either command or data.
@@ -86,6 +76,8 @@ int Firmata::sendValueAsTwo7bitBytes(int value)
   rv |= arduino->sendUchar(value >> 7 & 127); // MSB
   return rv;
 }
+
+
 
 int Firmata::setSamplingInterval(int16_t value) {
 	int rv=0;
@@ -114,45 +106,57 @@ int Firmata::setPwmPin(unsigned char pin, int16_t value) {
 	rv |= arduino->sendUchar((unsigned char)(value >> 7));
 	return(rv);
 }
-void Firmata::mapAnalogChannels() {
-	arduino->sendUchar(FIRMATA_START_SYSEX);
-	arduino->sendUchar(FIRMATA_ANALOG_MAPPING_QUERY); // read firmata name & version
-	arduino->sendUchar(FIRMATA_END_SYSEX);
+int Firmata::mapAnalogChannels() {
+	int rv=0;
+	rv |= arduino->sendUchar(FIRMATA_START_SYSEX);
+	rv |= arduino->sendUchar(FIRMATA_ANALOG_MAPPING_QUERY); // read firmata name & version
+	rv |= arduino->sendUchar(FIRMATA_END_SYSEX);
+	return(rv);
 }
 
-void Firmata::askFirmwareVersion() {
-	arduino->sendUchar(FIRMATA_START_SYSEX);
-	arduino->sendUchar(FIRMATA_REPORT_FIRMWARE); // read firmata name & version
-	arduino->sendUchar(FIRMATA_END_SYSEX);
+int Firmata::askFirmwareVersion() {
+	int rv=0;
+	rv |= arduino->sendUchar(FIRMATA_START_SYSEX);
+	rv |= arduino->sendUchar(FIRMATA_REPORT_FIRMWARE); // read firmata name & version
+	rv |= arduino->sendUchar(FIRMATA_END_SYSEX);
+	return(rv);
 }
 
-void Firmata::askCapabilities() {
-	arduino->sendUchar(FIRMATA_START_SYSEX);
-	arduino->sendUchar(FIRMATA_CAPABILITY_QUERY); 
-	arduino->sendUchar(FIRMATA_END_SYSEX);
+int Firmata::askCapabilities() {
+	int rv=0;
+	rv |= arduino->sendUchar(FIRMATA_START_SYSEX);
+	rv |= arduino->sendUchar(FIRMATA_CAPABILITY_QUERY); 
+	rv |= arduino->sendUchar(FIRMATA_END_SYSEX);
+	return(rv);
 }
 
-void Firmata::askPinState(int pin) {
-	arduino->sendUchar(FIRMATA_START_SYSEX);
-	arduino->sendUchar(FIRMATA_PIN_STATE_QUERY);
-	arduino->sendUchar(pin);  
-	arduino->sendUchar(FIRMATA_END_SYSEX);
-	usleep(1000);
-	OnIdle();
+int Firmata::askPinState(int pin) {
+	int rv=0;
+	rv |= arduino->sendUchar(FIRMATA_START_SYSEX);
+	rv |= arduino->sendUchar(FIRMATA_PIN_STATE_QUERY);
+	rv |= arduino->sendUchar(pin);  
+	rv |= arduino->sendUchar(FIRMATA_END_SYSEX);
+	rv |= usleep(1000);
+	rv |= OnIdle();
+	return(rv);
 }
 
-void  Firmata::reportDigitalPorts(int enable) {
+int  Firmata::reportDigitalPorts(int enable) {
+	int rv=0;
 	for (int i=0; i<20; i++) {
-		arduino->sendUchar(FIRMATA_REPORT_DIGITAL | i);  // report analog
-		arduino->sendUchar(enable);
+		rv |= arduino->sendUchar(FIRMATA_REPORT_DIGITAL | i);  // report analog
+		rv |= arduino->sendUchar(enable);
 	}
+	return(rv);
 }
 
-void Firmata::reportAnalogPorts(int enable) {
+int Firmata::reportAnalogPorts(int enable) {
+	int rv=0;
 	for (int i=0; i<20; i++) {
-		arduino->sendUchar(FIRMATA_REPORT_ANALOG | i);  // report analog
-		arduino->sendUchar(enable);
+		rv |= arduino->sendUchar(FIRMATA_REPORT_ANALOG | i);  // report analog
+		rv |= arduino->sendUchar(enable);
 	}
+	return(rv);
 }
 
 int Firmata::systemReset() {
@@ -178,14 +182,15 @@ int Firmata::flushPort() {
 	return(0);
 }
 
-int Firmata::sendSysExData(const unsigned char command, vector<unsigned char> data) {
+int Firmata::sendStringData(char* data) {
+	//TODO Testting
 	int rv=0;
+	int i;
+	char c;
 	rv |= arduino->sendUchar(FIRMATA_START_SYSEX);
-	rv |= arduino->sendUchar(command);
-	vector<unsigned char>::iterator it = data.begin();
-	while (it != data.end()) {
-		rv |= arduino->sendUchar(*it);
-		it++;
+	rv |= arduino->sendUchar(FIRMATA_STRING_DATA);
+	for (int i=0; i < strlen(data); i++) {
+		rv|=sendValueAsTwo7bitBytes(data[i]);
 	}
 	rv |= arduino->sendUchar(FIRMATA_END_SYSEX);
 	return(rv);
@@ -339,13 +344,49 @@ void Firmata::DoMessage(void)
 			pin_info[pin].value = parse_buf[4];
 			if (parse_count > 6) pin_info[pin].value |= (parse_buf[5] << 7);
 			if (parse_count > 7) pin_info[pin].value |= (parse_buf[6] << 14);
-			if (debug) printf("PIN:%u. Mode:%u. Value:%u\n",pin,pin_info[pin].mode,pin_info[pin].value);
+			if (debug) printf("PIN:%u. Mode:%u. Value:%lu\n",pin,pin_info[pin].mode,pin_info[pin].value);
+		} else if (parse_buf[1] == FIRMATA_STRING_DATA ) {
+			if ( (parse_count -3 ) >= MAX_STRING_DATA_LEN ) {
+				if (debug) printf("FIRMATA_STRING_DATA TOO LARGE.%u Parsing up to max %u\n",(parse_count -3 ),MAX_STRING_DATA_LEN);
+				parse_count=FIRMATA_STRING_DATA+3;
+			}
+			char name[MAX_STRING_DATA_LEN];
+			int len=0;
+			for (int i=2; i < parse_count-2; i+=2) {
+				name[len++] = (parse_buf[i] & 0x7F)
+				  | ((parse_buf[i+1] & 0x7F) << 7);
+			}
+			name[len++] = 0;
+			strcpy(string_buffer,name);
+		} else if (parse_buf[1] == FIRMATA_EXTENDED_ANALOG) {
+			//TODO Testting
+			if ( (parse_count -3) > 8 ) printf("Extended analog max precision uint64_bit");
+			int pin=(parse_buf[2] & 0x7F);   //UP to 128 analogs
+			if (pin_info[pin].mode == FIRMATA_MODE_INPUT) {
+				int analog_val = (parse_buf[3] & 0x7F);
+				for (int i=4;i < parse_count -1 ; i++) {
+					analog_val = ( analog_val << 7 ) | ( parse_buf[i]  & 0x7F );			
+				}
+				pin_info[pin].value = analog_val;
+				if (debug) printf("Extended analog: pin %d = %d\n", pin, analog_val);
+			}
+		} else if (parse_buf[1] == FIRMATA_I2C_REPLY) {
+			//TODO Testting
+			if ( (parse_count -3) > 8 ) printf("I2C_REPLY max precision uint64_bit (8 bytes)");
+			int slaveAddress=(parse_buf[2] & 0x7F);   
+			slaveAddress = (slaveAddress <<7 )|| (parse_buf[3] & 0x7F); 
+			long i2c_val = (parse_buf[4] & 0x7F);
+			for (int i=4;i < parse_count -1 ; i++) {
+				i2c_val = ( i2c_val << 7 ) | ( parse_buf[i]  & 0x7F );			
+			}
+			if (debug) printf("I2C_REPLY value: SlaveAddres %u = %d\n", slaveAddress, i2c_val);
+
 		}
 		return;
 	}
 }
 
-void Firmata::OnIdle()
+int Firmata::OnIdle()
 {
 	uint8_t buf[1024];
 	int r=1;
@@ -355,7 +396,7 @@ void Firmata::OnIdle()
 		r = arduino->readPort(buf, sizeof(buf));
 		if (r < 0) {
 			// error
-			return;
+			return r;
 		}
 		if (r > 0) {
 			
@@ -365,9 +406,10 @@ void Firmata::OnIdle()
 			if (debug) printf("\n");
 			
 			Parse(buf, r);
+			return 0;
 		}
 	} else if (r < 0) {
-		return;
+		return r;
 	}
 }
 

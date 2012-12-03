@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
 	while(true) {
 		sf->OnIdle();
 		sleep(2);
-		printf("Digital pin 12 is:%u\n",sf->pin_info[12].value);
+		printf("Digital pin 12 is:%lu\n",sf->pin_info[12].value);
 	}
 
 	delete sf;
