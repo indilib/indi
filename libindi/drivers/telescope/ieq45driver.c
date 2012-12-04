@@ -182,7 +182,17 @@ int check_IEQ45_connection(int in_fd)
 /**********************************************************************
 * GET
 **********************************************************************/
-
+void remove_spaces(char *texto_recibe)
+{
+    char *texto_sin_espacio;
+    for (texto_sin_espacio = texto_recibe; *texto_recibe; texto_recibe++)
+    {
+        if (isspace(*texto_recibe))
+            continue;
+        *texto_sin_espacio++ = *texto_recibe;
+    }
+    *texto_sin_espacio = '\0';
+}
 
 int getCommandSexa(int fd, double *value, const char * cmd)
 {
@@ -202,7 +212,9 @@ int getCommandSexa(int fd, double *value, const char * cmd)
 
 
   /*IDLog("getComandSexa: %s\n", temp_string);*/
-
+  //IEQ45 sometimes send a malformed RA/DEC (intermediate spaces)
+  //so I clean before:
+  remove_spaces(temp_string);
   if (f_scansexa(temp_string, value))
   {
    #ifdef INDI_DEBUG
@@ -1262,7 +1274,8 @@ int Sync(int fd, char *matchedObject)
   int error_type;
   int nbytes_write=0, nbytes_read=0;
 
-  if ( (error_type = tty_write_string(fd, ":CM#", &nbytes_write)) != TTY_OK)
+//  if ( (error_type = tty_write_string(fd, ":CM#", &nbytes_write)) != TTY_OK)
+  if ( (error_type = tty_write_string(fd, ":CMR#", &nbytes_write)) != TTY_OK)
     	   return error_type;
 
   /*portWrite(":CM#");*/
