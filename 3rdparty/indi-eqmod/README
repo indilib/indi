@@ -1,0 +1,39 @@
+SkyWatcher Protocol INDI Driver
+==================
+
+This package provides the INDI driver for mounts compliant to the SkyWatcher Protocol as described in
+  http://code.google.com/p/skywatcher/wiki/SkyWatcherProtocol
+
+Requirements
+============
+
++ libindi0 >= v0.9 (http://indi.sf.net)
+
+	You need to install both libindi0 and libindi-dev to build this package.
+	
++ libnova 
+
+	You need to install both libnova and libnova-devel to build this package.
+	
+Installation
+============
+
+	See INSTALL
+	
+How to Use
+==========
+
+	You can use the SkyWatcher Protocol INDI Driver in any INDI-compatible client such as KStars or Xephem. 
+	
+	To run the driver from the command line:
+	
+
+	$ indiserver indi_eqmod_telescope
+
+	You can then connect to the driver from any client, the default port is 7624.
+	If you're using KStars, the driver will be automatically listed in KStars' Device Manager,
+	no further configuration is necessary.
+
+	To connect your mount, first specify the serial port in the options Tab (default is /dev/ttyUSB0).
+	The mount is supposed to be parked in the home position (pointing to the celestial pole) 
+	at the first connection, or after each reset of the mount.
