@@ -61,10 +61,11 @@ public:
         flidomain_t domain;
         char *dname;
         char *name;
-        char *model;
+        char model[200];
         long HWRevision;
         long FWRevision;
         long current_pos;
+        long steps_remaing;
         long max_pos;
         long home;
     } focuser_t;

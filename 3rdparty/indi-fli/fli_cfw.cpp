@@ -1,6 +1,6 @@
 #if 0
-    FLI PDF
-    INDI Interface for Finger Lakes Instrument Focusers
+    FLI Filter Wheels
+    INDI Interface for Finger Lakes Instrument Filter Wheels
     Copyright (C) 2003-2012 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
     This library is free software; you can redistribute it and/or
@@ -215,10 +215,10 @@ bool FLICFW::Connect()
 
     if (findFLICFW(Domains[portSwitchIndex]) == false)
     {
-        IDMessage(getDeviceName(), "Error: no focusers were detected.");
+        IDMessage(getDeviceName(), "Error: no filter wheels were detected.");
 
         if (isDebug())
-            IDLog("Error: no focusers were detected.\n");
+            IDLog("Error: no filter wheels were detected.\n");
 
         return false;
     }
@@ -235,9 +235,9 @@ bool FLICFW::Connect()
     }
 
     /* Success! */
-    IDMessage(getDeviceName(), "Focuser is online. Retrieving basic data.");
+    IDMessage(getDeviceName(), "Filter wheel is online. Retrieving basic data.");
     if (isDebug())
-       IDLog("Focuser is online. Retrieving basic data.\n");
+       IDLog("Filter wheel is online. Retrieving basic data.\n");
 
     setupParams();
 
@@ -262,7 +262,7 @@ bool FLICFW::Disconnect()
         return false;
     }
 
-    IDMessage(getDeviceName(), "Focuser is offline.");
+    IDMessage(getDeviceName(), "Filter wheel is offline.");
     return true;
 }
 
@@ -277,9 +277,9 @@ bool FLICFW::setupParams()
 
     char hw_rev[16], fw_rev[16];
 
-    //////////////////////
-    // 1. Get Focusera Model
-    //////////////////////
+    ////////////////////////////
+    // 1. Get Filter wheels Model
+    ////////////////////////////
     if (!sim && (err = FLIGetModel (fli_dev, FLIFilter.model, 32)))
     {
       IDMessage(getDeviceName(), "FLIGetModel() failed. %s.", strerror((int)-err));
@@ -335,15 +335,23 @@ bool FLICFW::setupParams()
     ///////////////////////////
     // 4. Filter position
     ///////////////////////////
+
     if (sim)
         FLIFilter.current_pos = 0;
-    else if (( err = FLIGetFilterPos(fli_dev, &FLIFilter.current_pos)))
+    else
     {
-        IDMessage(getDeviceName(), "FLIGetFilterPos() failed. %s.", strerror((int)-err));
+        // on first contact fliter wheel reports position -1
+        // to avoid wrong number presented in client dialog: 
+        SelectFilter(MinFilter);
 
-        if (isDebug())
-            IDLog("FLIGetFilterPos() failed. %s.\n", strerror((int)-err));
-        return false;
+        if (( err = FLIGetFilterPos(fli_dev, &FLIFilter.current_pos)))
+        {
+            IDMessage(getDeviceName(), "FLIGetFilterPos() failed. %s.", strerror((int)-err));
+
+            if (isDebug())
+                IDLog("FLIGetFilterPos() failed. %s.\n", strerror((int)-err));
+            return false;
+	}
     }
 
     ///////////////////////////
@@ -400,7 +408,7 @@ bool FLICFW::SelectFilter(int targetFilter)
     long filter = targetFilter-1;
 
     if (isDebug())
-        IDLog("Requested filter positoin is %ld\n", filter);
+        IDLog("Requested filter position is %ld\n", filter);
 
     if (sim)
     {
@@ -439,7 +447,7 @@ int FLICFW::QueryFilter()
     }
 
     if (isDebug())
-        IDLog("Current filter positoin is %ld\n", newFilter+1);
+        IDLog("Current filter position is %ld\n", newFilter+1);
 
     return newFilter + 1;
 }
@@ -492,7 +500,7 @@ bool FLICFW::findFLICFW(flidomain_t domain)
   long err;
 
   if (isDebug())
-    IDLog("In find Focusera, the domain is %ld\n", domain);
+    IDLog("In find Filter wheel, the domain is %ld\n", domain);
 
   if (( err = FLIList(domain | FLIDEVICE_FILTERWHEEL, &tmplist)))
   {

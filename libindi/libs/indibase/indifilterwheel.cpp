@@ -107,14 +107,22 @@ bool INDI::FilterWheel::ISNewNumber (const char *dev, const char *name, double v
 
             if(f != -1)
             {
-                //IDLog("Filter wheel got a filter slot change\n");
-                //  tell the client we are busy changing the filter
-                FilterSlotNP.s=IPS_BUSY;
-                IDSetNumber(&FilterSlotNP,NULL);
-                //  Tell the hardware to change
-                SelectFilter(f);
-                //  tell the caller we processed this
-                return true;
+                if (f < MinFilter || f > MaxFilter)
+		{
+		    FilterSlotNP.s = IPS_ALERT;
+                    IDSetNumber(&FilterSlotNP,"Error: filter value out of bounds");
+                    return false;
+		} else
+		{ 
+                    //IDLog("Filter wheel got a filter slot change\n");
+		    //tell the client we are busy changing the filter
+                    FilterSlotNP.s=IPS_BUSY;
+                    IDSetNumber(&FilterSlotNP,NULL);
+                    //  Tell the hardware to change
+                    SelectFilter(f);
+                    //  tell the caller we processed this
+                    return true;
+		}
             }
         }
     }
