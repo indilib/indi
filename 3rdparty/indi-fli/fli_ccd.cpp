@@ -534,13 +534,24 @@ int FLICCD::StartExposure(float duration)
                 IDLog("Bias Frame (s) : %g\n", minDuration);
         }
 
-        if (!sim && (err = FLISetExposureTime(fli_dev, duration/1000.0)))
+        if (!sim && (err = FLISetExposureTime(fli_dev, (long)(duration * 1000))))
         {
 
             IDMessage(getDeviceName(), "FLISetExposureTime() failed. %s.\n", strerror((int)-err));
 
             if (isDebug())
                 IDLog("FLISetExposureTime() failed. %s.\n", strerror((int)-err));
+
+            return -1;
+        }
+        // yes, we need to push the release 
+        if (!sim && (err =FLIExposeFrame(fli_dev)))
+        {
+
+            IDMessage(getDeviceName(), "FLIxposeFrame() failed. %s.\n", strerror((int)-err));
+
+            if (isDebug())
+                IDLog("FLIxposeFrame() failed. %s.\n", strerror((int)-err));
 
             return -1;
         }
@@ -581,8 +592,8 @@ bool FLICCD::updateCCDFrameType(CCDChip::CCD_FRAME fType)
 {
     int err=0;
     CCDChip::CCD_FRAME imageFrameType = PrimaryCCD.getFrameType();
-
-    if (fType == imageFrameType || sim)
+    // in indiccd.cpp imageFrameType is already set
+    if (sim)
         return true;
 
     switch (imageFrameType)
@@ -597,8 +608,8 @@ bool FLICCD::updateCCDFrameType(CCDChip::CCD_FRAME fType)
         }
         break;
 
-       case CCDChip::LIGHT_FRAME:
-       case CCDChip::FLAT_FRAME:
+        case CCDChip::LIGHT_FRAME:
+        case CCDChip::FLAT_FRAME:
         if ((err = FLISetFrameType(fli_dev, FLI_FRAME_TYPE_NORMAL) ))
         {
             if (isDebug())
@@ -607,8 +618,6 @@ bool FLICCD::updateCCDFrameType(CCDChip::CCD_FRAME fType)
         }
         break;
     }
-
-    PrimaryCCD.setFrameType(fType);
 
     return true;
 
