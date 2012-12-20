@@ -38,13 +38,14 @@ class MyClient : public INDI::BaseClient
     ~MyClient();
 
     void setTemperature();
+    void takeExposure();
 
 protected:
 
     virtual void newDevice(INDI::BaseDevice *dp);
     virtual void newProperty(INDI::Property *property);
     virtual void removeProperty(INDI::Property *property) {}
-    virtual void newBLOB(IBLOB *bp) {}
+    virtual void newBLOB(IBLOB *bp);
     virtual void newSwitch(ISwitchVectorProperty *svp) {}
     virtual void newNumber(INumberVectorProperty *nvp);
     virtual void newMessage(INDI::BaseDevice *dp, int messageID);

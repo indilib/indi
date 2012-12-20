@@ -27,6 +27,7 @@
 
 #include <string>
 #include <iostream>
+#include <fstream>
 
 #include <string.h>
 #include <stdarg.h>
@@ -67,6 +68,8 @@ int main(int argc, char *argv[])
   camera_client->watchDevice(MYCCD);
 
   camera_client->connectServer();
+
+  camera_client->setBLOBMode(B_ALSO, MYCCD, NULL);
 
   cout << "Press any key to terminate the client.\n";
   string term;
@@ -114,6 +117,28 @@ void MyClient::setTemperature()
 /**************************************************************************************
 **
 ***************************************************************************************/
+void MyClient::takeExposure()
+{
+    INumberVectorProperty *ccd_exposure = NULL;
+
+    ccd_exposure = ccd_simulator->getNumber("CCD_EXPOSURE");
+
+    if (ccd_exposure == NULL)
+    {
+        IDLog("Error: unable to find CCD Simulator CCD_EXPOSURE property...\n");
+        return;
+    }
+
+    // Take a 1 second exposure
+    IDLog("Taking a 1 second exposure.\n");
+    ccd_exposure->np[0].value = 1;
+    sendNewNumber(ccd_exposure);
+
+}
+
+/**************************************************************************************
+**
+***************************************************************************************/
 void MyClient::newDevice(INDI::BaseDevice *dp)
 {
     if (!strcmp(dp->getDeviceName(), MYCCD))
@@ -156,7 +181,11 @@ void MyClient::newNumber(INumberVectorProperty *nvp)
        IDLog("Receving new CCD Temperature: %g C\n", nvp->np[0].value);
 
        if (nvp->np[0].value == -20)
+       {
            IDLog("CCD temperature reached desired value!\n");
+           takeExposure();
+       }
+
    }
 }
 
@@ -169,5 +198,22 @@ void MyClient::newMessage(INDI::BaseDevice *dp, int messageID)
          return;
 
      IDLog("Recveing message from Server:\n\n########################\n%s\n########################\n\n", dp->messageQueue(messageID));
+}
+
+/**************************************************************************************
+**
+***************************************************************************************/
+void MyClient::newBLOB(IBLOB *bp)
+{
+    // Save FITS file to disk
+    ofstream myfile;
+    myfile.open ("ccd_simulator.fits", ios::out | ios::binary);
+
+    myfile.write(static_cast<char *> (bp->blob), bp->bloblen);
+
+    myfile.close();
+
+    IDLog("Received image, saved as ccd_simulator.fits\n");
+
 }
 
