@@ -704,7 +704,7 @@ bool indiduino::readInduinoXml(XMLEle *ioep, int npin)
 
 		pin=atoi(findXMLAttValu(ioep, "pin"));
 
-		if (pin >=1 && pin <= 19) {
+		if (pin >=1 && pin <= 40) { //19 hardware pins. 
 			iopin[npin].pin= pin;
 		} else {
 	 		IDLog("induino: pin number is required. Check pin attrib value (1-19)\n");
