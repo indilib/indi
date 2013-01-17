@@ -68,10 +68,12 @@
 3rdparty/indi-duino/devices/Firmwares/INDIDUINOStepper/INDIDUINOStepper.ino -text
 3rdparty/indi-duino/devices/Firmwares/StandardFirmata.ino -text
 3rdparty/indi-duino/devices/Firmwares/TemplateINDIDUINO/TemplateINDIDUINO.ino -text
+3rdparty/indi-duino/devices/Firmwares/indiduinoMETEO/indiduinoMETEO.ino -text
 3rdparty/indi-duino/devices/cosmos_sk.xml -text
 3rdparty/indi-duino/devices/digital_inputs_sk.xml -text
 3rdparty/indi-duino/devices/focuser_sk.xml -text
 3rdparty/indi-duino/devices/indi_duino.xml -text
+3rdparty/indi-duino/devices/meteostation_sk.xml -text
 3rdparty/indi-duino/devices/simple_switcher_sk.xml -text
 3rdparty/indi-duino/devices/stepper_sk.xml -text
 3rdparty/indi-duino/devices/switcher_sk.xml -text
