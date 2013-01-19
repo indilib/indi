@@ -61,6 +61,12 @@ On
 0
     </defNumber>
 </defNumberVector>
+<defNumberVector device="Arduino MeteoStation" name="Ligth" label="Ligth" group="Main Control" state="Idle" perm="ro" timeout="0">
+    <defNumber name="ligth" label="ligth" format="%4.1f" min="0" max="10240" step="1">
+    <indiduino pin="21" type="input" mul="0.1" add="0"/>
+0
+    </defNumber>
+</defNumberVector>
 <defLightVector device="Arduino INPUTS" name="STATUS" label="STATUS" group="INFO" state="Idle" perm="ro" rule="AnyOfMany" timeout="1">
     <defLight name="clouds" label="Cloudy">
 	<indiduino pin="3"/>

@@ -67,6 +67,9 @@ dht DHT;
 Adafruit_BMP085 bmp;
 float P,HR,IR,Tp,Thr,Tir;
 
+#define TOTAL_ANALOG_PINS       8
+#define TOTAL_PINS              22
+
 void setupMeteoStation(){
 	//i2c_init(); //Initialise the i2c bus
         bmp.begin();
@@ -257,6 +260,10 @@ int mapAndSendAnalog(int pin) {
                break;                      
        case 6:     
                result=dewPoint(Thr,HR)*10;
+               break;       
+       case 7:     
+               value=analogRead(0);
+               result=value*100;
                break;       
 
                
