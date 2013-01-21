@@ -65,7 +65,7 @@
 #define DHTPIN 2     // what pin we're connected to
 dht DHT;
 Adafruit_BMP085 bmp;
-float P,HR,IR,Tp,Thr,Tir;
+float P,HR,IR,Tp,Thr,Tir,Dew,Light;
 
 #define TOTAL_ANALOG_PINS       8
 #define TOTAL_PINS              22
@@ -120,28 +120,42 @@ void runMeteoStation() {
     Tir = tempData - 273.15;
      int chk = DHT.read22(DHTPIN);
      if (chk == DHTLIB_OK) {
-         digitalWrite(PIN_TO_DIGITAL(7), LOW); 
+         digitalWrite(PIN_TO_DIGITAL(8), LOW); 
          HR=DHT.humidity;  
          Thr=DHT.temperature;
      } else {
-         digitalWrite(PIN_TO_DIGITAL(7), HIGH); 
+         digitalWrite(PIN_TO_DIGITAL(8), HIGH); 
      }
     Tp=bmp.readTemperature();
     P=bmp.readPressure();
+    Dew=dewPoint(Thr,HR);
+    Light=analogRead(0);
 }
 
 void checkMeteo() {
+
+    if (Tir-IR<10) {
+       digitalWrite(PIN_TO_DIGITAL(3), HIGH); // enable internal pull-ups 
+    } else {
+       digitalWrite(PIN_TO_DIGITAL(3), LOW); // disable internal pull-ups  
+    }
   
-   if (HR>40) {
+   if (Thr<Dew+2) {
        digitalWrite(PIN_TO_DIGITAL(4), HIGH); // enable internal pull-ups 
     } else {
        digitalWrite(PIN_TO_DIGITAL(4), LOW); // disable internal pull-ups 
     }
-    
-    if (IR>28) {
-       digitalWrite(PIN_TO_DIGITAL(3), HIGH); // enable internal pull-ups 
+
+   if (Thr<2 && Thr<Dew+2) {
+       digitalWrite(PIN_TO_DIGITAL(5), HIGH); // enable internal pull-ups 
     } else {
-       digitalWrite(PIN_TO_DIGITAL(3), LOW); // disable internal pull-ups  
+       digitalWrite(PIN_TO_DIGITAL(5), LOW); // disable internal pull-ups 
+    }   
+  
+    if (Light>10) {
+       digitalWrite(PIN_TO_DIGITAL(6), HIGH); // enable internal pull-ups 
+    } else {
+       digitalWrite(PIN_TO_DIGITAL(6), LOW); // disable internal pull-ups  
     }  
 
 }
@@ -241,29 +255,28 @@ int mapAndSendAnalog(int pin) {
   switch(pin) {
       //PIN 14 A0
        case 0:     
-               result=(IR*10);
+               result=(IR+273)*20;
                break;       
        case 1:     
-               result=(Tir*10);
+               result=(Tir+273)*20;
                break;   
        case 2:     
-               result=(P/100);
+               result=(P/10);
                break;       
        case 3:     
-               result=Tp*10;
+               result=(Tp+273)*20;
                break;                      
        case 4:     
-               result=(HR*10);
+               result=HR*100;
                break;       
        case 5:     
-               result=Thr*10;
+               result=(Thr+273)*20;
                break;                      
        case 6:     
-               result=dewPoint(Thr,HR)*10;
+               result=(Dew+273)*20;
                break;       
        case 7:     
-               value=analogRead(0);
-               result=value*100;
+               result=Light;
                break;       
 
                

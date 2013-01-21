@@ -27,43 +27,43 @@ On
 
 
 <defNumberVector device="Arduino MeteoStation" name="IR" label="IR Sensor" group="Main Control" state="Idle" perm="ro" timeout="0">
-    <defNumber name="IR" label="IR" format="%4.1f" min="0" max="10240" step="1">
-    <indiduino pin="14" type="input" mul="0.1" add="0"/>
+    <defNumber name="IR" label="IR" format="%4.2f" min="-100" max="100" step="1">
+    <indiduino pin="14" type="input" mul="0.05" add="-273"/>
 0
     </defNumber>
-    <defNumber name="T" label="Celsius" format="%4.1f" min="0" max="10240" step="1">
-    <indiduino pin="15" type="input" mul="0.1" add="0"/>
+    <defNumber name="T" label="Celsius" format="%4.2f" min="-100" max="-100" step="1">
+    <indiduino pin="15" type="input" mul="0.05" add="-273"/>
 0
     </defNumber>
 </defNumberVector>
 <defNumberVector device="Arduino MeteoStation" name="Presure" label="Presure Sensor" group="Main Control" state="Idle" perm="ro" timeout="0">
 
-    <defNumber name="P" label="mBars" format="%4.0f" min="0" max="10240" step="1">
-    <indiduino pin="16" type="input" mul="1" add="0"/>
+    <defNumber name="P" label="mBars" format="%4.2f" min="0" max="10240" step="1">
+    <indiduino pin="16" type="input" mul="0.1" add="0"/>
 0
     </defNumber>
-    <defNumber name="T" label="Celsius" format="%4.1f" min="0" max="10240" step="1">
-    <indiduino pin="17" type="input" mul="0.1" add="0"/>
+    <defNumber name="T" label="Celsius" format="%4.2f" min="-100" max="100" step="1">
+    <indiduino pin="17" type="input" mul="0.05" add="-273"/>
 0
     </defNumber>
 </defNumberVector>
 <defNumberVector device="Arduino MeteoStation" name="HR" label="HR Sensor" group="Main Control" state="Idle" perm="ro" timeout="0">
-    <defNumber name="HR" label="HR" format="%4.1f" min="0" max="10240" step="1">
-    <indiduino pin="18" type="input" mul="0.1" add="0"/>
+    <defNumber name="HR" label="HR" format="%4.2f" min="0" max="10240" step="1">
+    <indiduino pin="18" type="input" mul="0.01" add="0"/>
 0
     </defNumber>
-    <defNumber name="T" label="Celsius" format="%4.1f" min="0" max="10240" step="1">
-    <indiduino pin="19" type="input" mul="0.1" add="0"/>
+    <defNumber name="T" label="Celsius" format="%4.2f" min="-100" max="100" step="1">
+    <indiduino pin="19" type="input" mul="0.05" add="-273"/>
 0
     </defNumber>
-    <defNumber name="DEW" label="DEW.POINT" format="%4.1f" min="0" max="10240" step="1">
-    <indiduino pin="20" type="input" mul="0.1" add="0"/>
+    <defNumber name="DEW" label="DEW.POINT" format="%4.2f" min="-100" max="100" step="1">
+    <indiduino pin="20" type="input" mul="0.05" add="-273"/>
 0
     </defNumber>
 </defNumberVector>
-<defNumberVector device="Arduino MeteoStation" name="Ligth" label="Ligth" group="Main Control" state="Idle" perm="ro" timeout="0">
-    <defNumber name="ligth" label="ligth" format="%4.1f" min="0" max="10240" step="1">
-    <indiduino pin="21" type="input" mul="0.1" add="0"/>
+<defNumberVector device="Arduino MeteoStation" name="LIGHT" label="LIGHT" group="Main Control" state="Idle" perm="ro" timeout="0">
+    <defNumber name="LIGHT" label="LIGHT" format="%5.0f" min="0" max="10240" step="1">
+    <indiduino pin="21" type="input" mul="1" add="0"/>
 0
     </defNumber>
 </defNumberVector>
@@ -76,23 +76,27 @@ On
 	<indiduino pin="4"/>
 	Off
     </defLight>
-    <defLight name="daylight" label="Daylight">
+    <defLight name="frezzing" label="frezzing">
 	<indiduino pin="5"/>
+	Off
+    </defLight>
+    <defLight name="daylight" label="Daylight">
+	<indiduino pin="6"/>
 	Off
     </defLight>
 </defLightVector>
 
 <defLightVector device="Arduino INPUTS" name="FAIL" label="Sensor FAIL" group="INFO" state="Idle" perm="ro" rule="AnyOfMany" timeout="1">
     <defLight name="IR" label="IR Fail">
-	<indiduino pin="6"/>
-	Off
-    </defLight>
-    <defLight name="HR" label="HR Fail">
 	<indiduino pin="7"/>
 	Off
     </defLight>
-    <defLight name="HR" label="P Fail">
+    <defLight name="HR" label="HR Fail">
 	<indiduino pin="8"/>
+	Off
+    </defLight>
+    <defLight name="P" label="P Fail">
+	<indiduino pin="9"/>
 	Off
     </defLight>
 </defLightVector>
