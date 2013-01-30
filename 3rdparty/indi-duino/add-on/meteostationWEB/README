@@ -1,0 +1,7 @@
+==== MeteoStations graphs python daemons. ====
+Install pyrrdtool and python
+Edit and customice startMETEO.sh script to macht your setup.
+Test it and put on rc.local if you want a automatic startup.
+
+
+

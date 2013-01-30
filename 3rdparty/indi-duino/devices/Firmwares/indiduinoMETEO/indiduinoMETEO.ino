@@ -58,17 +58,18 @@
 #include <Wire.h>
 #include <Firmata.h>
 
-#include <i2cmaster.h>
-#include <Adafruit_BMP085.h>
+#include "i2cmaster.h"
+#include "Adafruit_BMP085.h"
 
 #include "dht.h"
 #define DHTPIN 2     // what pin we're connected to
 dht DHT;
 Adafruit_BMP085 bmp;
-float P,HR,IR,Tp,Thr,Tir,Dew,Light;
+float P,HR,IR,Tp,Thr,Tir,Dew,Light,Clouds,skyT;
+int cloudy,dewing,frezzing;
 
-#define TOTAL_ANALOG_PINS       8
-#define TOTAL_PINS              22
+#define TOTAL_ANALOG_PINS       10
+#define TOTAL_PINS              24
 
 void setupMeteoStation(){
 	//i2c_init(); //Initialise the i2c bus
@@ -81,7 +82,7 @@ void runMeteoStation() {
     int data_low = 0;
     int data_high = 0;
     int pec = 0;
-    
+
     i2c_start_wait(dev+I2C_WRITE);
     i2c_write(0x07);
     
@@ -118,6 +119,10 @@ void runMeteoStation() {
     tempData = (tempData /50);
     
     Tir = tempData - 273.15;
+
+    Tp=bmp.readTemperature();
+    P=bmp.readPressure(); 
+
      int chk = DHT.read22(DHTPIN);
      if (chk == DHTLIB_OK) {
          digitalWrite(PIN_TO_DIGITAL(8), LOW); 
@@ -126,33 +131,49 @@ void runMeteoStation() {
      } else {
          digitalWrite(PIN_TO_DIGITAL(8), HIGH); 
      }
-    Tp=bmp.readTemperature();
-    P=bmp.readPressure();
+
     Dew=dewPoint(Thr,HR);
     Light=analogRead(0);
+    Clouds=cloudIndex();
+    skyT=skyTemp();
+    if (Clouds >30) {
+      cloudy=1;
+    } else {
+      cloudy=0;
+    }
+    if (Thr<=Dew+2) { 
+      dewing=1;
+    } else {
+       dewing=0;
+    }
+    if (Thr <=2) {
+      frezzing=1;
+    } else {
+      frezzing=0;
+    }
 }
 
 void checkMeteo() {
 
-    if (Tir-IR<10) {
+    if (cloudy==1) {
        digitalWrite(PIN_TO_DIGITAL(3), HIGH); // enable internal pull-ups 
     } else {
        digitalWrite(PIN_TO_DIGITAL(3), LOW); // disable internal pull-ups  
     }
   
-   if (Thr<Dew+2) {
+   if (dewing==1) {
        digitalWrite(PIN_TO_DIGITAL(4), HIGH); // enable internal pull-ups 
     } else {
        digitalWrite(PIN_TO_DIGITAL(4), LOW); // disable internal pull-ups 
     }
 
-   if (Thr<2 && Thr<Dew+2) {
+   if (frezzing == 1) {
        digitalWrite(PIN_TO_DIGITAL(5), HIGH); // enable internal pull-ups 
     } else {
        digitalWrite(PIN_TO_DIGITAL(5), LOW); // disable internal pull-ups 
     }   
   
-    if (Light>10) {
+    if (Light>500) {
        digitalWrite(PIN_TO_DIGITAL(6), HIGH); // enable internal pull-ups 
     } else {
        digitalWrite(PIN_TO_DIGITAL(6), LOW); // disable internal pull-ups  
@@ -184,6 +205,26 @@ double dewPointFast(double celsius, double humidity)
         double temp = (a * celsius) / (b + celsius) + log(humidity/100);
         double Td = (b * temp) / (a - temp);
         return Td;
+}
+
+//From AAG Cloudwatcher formula
+//http://www.aagware.eu/aag/cloudwatcher700/WebHelp/index.htm#page=Operational%20Aspects/23-TemperatureFactor-.htm
+//https://azug.minpet.unibas.ch/wikiobsvermes/index.php/AAG_cloud_sensor#Snow_on_the_sky_temperature_sensor
+double skyTemp() {
+  double K1=33,K2=0,K3=4,K4=100,K5=100;
+  double Td = (K1 / 100) * (Thr - K2 / 10) + (K3 / 100) * pow((exp (K4 / 1000* Thr)) , (K5 / 100));
+  double Tsky=IR-Td;
+  return Tsky;
+}
+
+double cloudIndex() {
+   double Tcloudy=0,Tclear=-12;
+   double Tsky=skyTemp();
+   double Index;
+   if (Tsky<Tclear) Tsky=Tclear;
+   if (Tsky>Tcloudy) Tsky=Tcloudy;
+   Index=(Tsky-Tclear)*100/(Tcloudy-Tclear);
+   return Index;
 }
 
 // move the following defines to Firmata.h?
@@ -278,7 +319,12 @@ int mapAndSendAnalog(int pin) {
        case 7:     
                result=Light;
                break;       
-
+       case 8:     
+               result=Clouds;
+               break;   
+       case 9:     
+               result=(skyT+273)*20;
+               break;   
                
        default:
              result=value;
