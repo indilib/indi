@@ -1,3 +1,4 @@
+/* CUSTOMIZE INDIDUINOMETEO FIRMWARE */
 /*
  * Firmata is a generic protocol for communicating with microcontrollers
  * from software on a host computer. It is intended to work with
@@ -207,7 +208,7 @@ double dewPointFast(double celsius, double humidity)
         return Td;
 }
 
-//From AAG Cloudwatcher formula
+//From AAG Cloudwatcher formula. Need to improve futher.
 //http://www.aagware.eu/aag/cloudwatcher700/WebHelp/index.htm#page=Operational%20Aspects/23-TemperatureFactor-.htm
 //https://azug.minpet.unibas.ch/wikiobsvermes/index.php/AAG_cloud_sensor#Snow_on_the_sky_temperature_sensor
 double skyTemp() {
@@ -218,7 +219,7 @@ double skyTemp() {
 }
 
 double cloudIndex() {
-   double Tcloudy=0,Tclear=-12;
+   double Tcloudy=0,Tclear=-8;
    double Tsky=skyTemp();
    double Index;
    if (Tsky<Tclear) Tsky=Tclear;

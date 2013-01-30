@@ -55,7 +55,7 @@ class uwyoClass:
 	fi.close()
 
 if __name__=='__main__':
-print "Starting internet data downloader"
+   print "Starting internet data downloader"
    try:
  	print "Retriving SKEW-T diagrams from:",SOUNDINGSTATION
    except:
