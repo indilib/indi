@@ -94,6 +94,13 @@
 3rdparty/indi-duino/devices/CMakeLists.txt -text
 3rdparty/indi-duino/devices/Firmwares/Cosmos/Cosmos.ino -text
 3rdparty/indi-duino/devices/Firmwares/INDIDUINOStepper/INDIDUINOStepper.ino -text
+3rdparty/indi-duino/devices/Firmwares/METEOtest/Adafruit_BMP085.cpp -text
+3rdparty/indi-duino/devices/Firmwares/METEOtest/Adafruit_BMP085.h -text
+3rdparty/indi-duino/devices/Firmwares/METEOtest/METEOtest.ino -text
+3rdparty/indi-duino/devices/Firmwares/METEOtest/dht.cpp -text
+3rdparty/indi-duino/devices/Firmwares/METEOtest/dht.h -text
+3rdparty/indi-duino/devices/Firmwares/METEOtest/i2cmaster.h -text
+3rdparty/indi-duino/devices/Firmwares/METEOtest/twimaster.cpp -text
 3rdparty/indi-duino/devices/Firmwares/StandardFirmata.ino -text
 3rdparty/indi-duino/devices/Firmwares/TemplateINDIDUINO/TemplateINDIDUINO.ino -text
 3rdparty/indi-duino/devices/Firmwares/indiduinoMETEO/Adafruit_BMP085.cpp -text

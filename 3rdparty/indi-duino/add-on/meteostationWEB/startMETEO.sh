@@ -21,7 +21,7 @@ then
    echo "RRD file exists."
 else
    echo "RRD file exists does not exist. Creating"
-   ./meteoRRD_create.pu
+   ./meteoRRD_createRRD.py
 fi
 ./meteoRRD_updater.py &
 ./meteoRRD_graph.py &

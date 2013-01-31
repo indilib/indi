@@ -48,7 +48,7 @@ fi.write("var sitename=\"%s\"\n" % SITENAME)
 fi.write("var INDISERVER=\"%s\"\n" % INDISERVER)
 fi.write("var INDIPORT=%s\n" % INDIPORT)
 fi.write("var INDIDEVICE=\"%s\"\n" % INDIDEVICE)
-fi.write("var INDIDEVICEPORT=%s\n" % INDIDEVICEPORT)
+fi.write("var INDIDEVICEPORT=\"%s\"\n" % INDIDEVICEPORT)
 fi.write("var OWNERNAME=\"%s\"\n" % OWNERNAME)
 fi.close()
 
