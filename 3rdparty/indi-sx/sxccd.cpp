@@ -288,6 +288,7 @@ bool SXCCD::Disconnect() {
 }
 
 void SXCCD::getCameraParams() {
+  TRACE(fprintf(stderr, "-> SXCCD::getCameraParams()\n"));
   struct t_sxccd_params params;
   sxReset(handle);
   usleep(1000);
@@ -325,7 +326,7 @@ void SXCCD::getCameraParams() {
     SetGuidHeadParams(params.width, params.height, params.bits_per_pixel, params.pix_width, params.pix_height);
   }
   SetTimer(TIMER);
-  TRACE(fprintf(stderr, "<- SXCCD::Connect 1\n"));
+  TRACE(fprintf(stderr, "<- SXCCD::getCameraParams\n"));
 }
 
 void SXCCD::TimerHit() {

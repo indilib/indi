@@ -98,6 +98,11 @@
 #define SXUSB_READ_I2CPORT          33
 
 #define SX_VID                      0x1278
+
+#define SX_USB_VID                  0x4444
+#define SX_USB_PID                  0x4220
+#define SX_USB_NAME                 "SX-USB"
+
 #define BULK_IN                     0x0082
 #define BULK_OUT                    0x0001
 
@@ -105,7 +110,7 @@
 #define DEBUG(c) (c)
 
 static const char *SX_NAMES[] = { "SXVF-M5", "SXVF-M5C", "SXVF-M7", "SXVF-M7C", "SXVF-M8C", "SXVF-M9", "SXVR-M25C", "SXVR-M26C", "SXVR-H18", "SXVR-H16", "SXVR-H35", "SXVR-H36", "SXVR-H9", "SXVR-H9C", "SXVR-H9", "SXVR-H9C", "Lodestar", "CoStar", "Superstar", NULL };
-static int SX_PIDS[] = { 0x0105, 0x0305, 0x0107, 0x0307, 0x0308, 0x0109, 0x0325, 0x0326, 0x0128, 0x0126, 0x0135, 0x0136, 0x0119, 0x0319, 0x100, 0x100, 0x0507, 0x0517,  0x0509, 0 };
+static int SX_PIDS[] = { 0x0105, 0x0305, 0x0107, 0x0307, 0x0308, 0x0109, 0x0325, 0x0326, 0x0128, 0x0126, 0x0135, 0x0136, 0x0119, 0x0319, 0x100, 0x100, 0x0507, 0x0517, 0x0509, 0 };
 
 static void init() {
   static int done = 0;
@@ -133,6 +138,10 @@ int sxList(DEVICE *sxDevices, const char **names) {
             break;
           }
         }
+      } else if (dev->descriptor.idVendor == SX_USB_VID && dev->descriptor.idProduct == SX_USB_PID) {
+        TRACE(fprintf(stderr, "   '%s' [0x%x, 0x%x] found...\n", SX_USB_NAME, SX_USB_VID, SX_USB_PID));
+        names[count]=SX_USB_NAME;
+        sxDevices[count++] = dev;
       }
     }
   }
