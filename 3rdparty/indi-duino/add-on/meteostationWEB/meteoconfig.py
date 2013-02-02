@@ -10,8 +10,8 @@
 #To start indiserver use 'localhost'
 #otherwise not start and connect remote
 #indiserver
-#INDISERVER="localhost"
-INDISERVER="raspberryPI"
+INDISERVER="localhost"
+#INDISERVER="raspberryPI"
 INDIPORT="7624"
 INDIDEVICE="MeteoStation"
 INDIDEVICEPORT="/dev/ttyACM0"

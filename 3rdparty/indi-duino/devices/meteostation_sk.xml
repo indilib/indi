@@ -2,7 +2,7 @@
 
 <defNumberVector device="Arduino MeteoStation" name="Meteo" label="Meteo" group="METEO" state="Idle" perm="ro" timeout="60">
     <defNumber name="T" label="Celsius" format="%4.2f" min="-100" max="100" step="1">
-    <indiduino pin="19" type="input" mul="0.05" add="-273"/>
+    <indiduino pin="24" type="input" mul="0.05" add="-273"/>
 0
     </defNumber>
     <defNumber name="HR" label="HR" format="%4.2f" min="0" max="10240" step="1">

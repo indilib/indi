@@ -1,4 +1,55 @@
-/* CUSTOMIZE INDIDUINOMETEO FIRMWARE */
+/* INDIDUINOMETEO FIRMWARE.
+NACHO MAS 2013. http://indiduino.wordpress.com
+
+Several modifications over indiduinoTemplate:
+.- Include  "i2cmaster.h",  "Adafruit_BMP085.h" and  "dht.h" libraries 
+   to read the sensors.
+.- Several additional functions to read the sensor and calculate flags,
+   cloudcover and dew point.
+.- Overwrite firmata TOTAL_ANALOG_PINS and TOTAL_PINS to make room for
+   aditional (>6) analog calculate inputs.
+.- Use pullup resitor on inputs for signal flags.
+
+IMPORTANT: Customize following values to match your setup
+*/
+
+//Comment out if you setup don't include some sensor.
+#define USE_DHT_SENSOR   //USE DHT HUMITITY SENSOR. Comment if not.
+#define USE_IR_SENSOR   //USE MELEXIS IR SENSOR. Comment if not.
+#define USE_P_SENSOR   //USE BMP085 PRESSURE SENSOR. Comment if not.
+
+//All sensors (Thr=DHT22,Tir=MELEXIS and Tp=BMP085) include a ambient temperature
+//Chosse  that sensor, only one, is going to use for main Ambient Temperature:
+#define T_MAIN_Thr
+//#define T_MAIN_Tir  
+//#define T_MAIN_Tp
+
+//Cloudy sky is warmer that clear sky. Thus sky temperature meassure by IR sensor
+//is a good indicator to estimate cloud cover. However IR really meassure the
+//temperatura of all the air column above increassing with ambient temperature.
+//So it is important include some correction factor:
+//From AAG Cloudwatcher formula. Need to improve futher.
+//http://www.aagware.eu/aag/cloudwatcher700/WebHelp/index.htm#page=Operational%20Aspects/23-TemperatureFactor-.htm
+//Sky temp correction factor. Tsky=Tsky_meassure - Tcorrection
+//Formula Tcorrection = (K1 / 100) * (Thr - K2 / 10) + (K3 / 100) * pow((exp (K4 / 1000* Thr)) , (K5 / 100));
+#define  K1 33
+#define  K2 0 
+#define  K3 4
+#define  K4 100
+#define  K5 100
+
+//Clear sky corrected temperature (temp below means 0% clouds)
+#define CLOUD_TEMP_CLEAR  -8 
+//Totally cover sky corrected temperature (temp above means 100% clouds)
+#define CLOUD_TEMP_OVERCAST  0  
+//Activation treshold for cloudFlag (%)
+#define CLOUD_FLAG_PERCENT  30 
+
+
+
+/*END OFF CUSTOMITATION. YOU SHOULT NOT NEED TO CHANGE ANYTHING BELOW */
+
+
 /*
  * Firmata is a generic protocol for communicating with microcontrollers
  * from software on a host computer. It is intended to work with
@@ -59,25 +110,42 @@
 #include <Wire.h>
 #include <Firmata.h>
 
-#include "i2cmaster.h"
-#include "Adafruit_BMP085.h"
 
-#include "dht.h"
-#define DHTPIN 2     // what pin we're connected to
-dht DHT;
-Adafruit_BMP085 bmp;
-float P,HR,IR,Tp,Thr,Tir,Dew,Light,Clouds,skyT;
+#ifdef USE_IR_SENSOR
+  #include "i2cmaster.h"
+#endif //USE_IR_SENSOR
+
+#ifdef USE_DHT_SENSOR
+  #include "dht.h"
+  #define DHTPIN 2         // what pin we're connected DHT22 to
+  dht DHT;
+#endif //USE_DHT_SENSOR
+
+#ifdef USE_P_SENSOR
+  #include "Adafruit_BMP085.h"
+  Adafruit_BMP085 bmp;
+#endif //USE_P_SENSOR
+
+
+
+float P,HR,IR,T,Tp,Thr,Tir,Dew,Light,Clouds,skyT;
 int cloudy,dewing,frezzing;
 
-#define TOTAL_ANALOG_PINS       10
-#define TOTAL_PINS              24
+#define TOTAL_ANALOG_PINS       11
+#define TOTAL_PINS              25
 
 void setupMeteoStation(){
-	//i2c_init(); //Initialise the i2c bus
+#ifdef USE_P_SENSOR
         bmp.begin();
+#endif //USE_P_SENSOR
 }
 
+/*==============================================================================
+ * METEOSTATION FUNCTIONS
+ *============================================================================*/
 void runMeteoStation() {
+  
+#ifdef USE_IR_SENSOR  
     double tempData = 0x0000; // zero out the data
     int dev = 0x5A<<1;
     int data_low = 0;
@@ -93,16 +161,12 @@ void runMeteoStation() {
     data_high = i2c_readAck(); //Read 1 byte and then send ack
     pec = i2c_readNak();
     i2c_stop();
-    
-    
+       
     // This masks off the error bit of the high byte, then moves it left 8 bits and adds the low byte.
     tempData = (double)(((data_high & 0x007F) << 8) + data_low);
     tempData = (tempData /50);
     
     IR = tempData - 273.15;
-
-    //Serial.print("Fahrenheit: ");
-    //Serial.println(fahrenheit);
 
     i2c_start_wait(dev+I2C_WRITE);
     i2c_write(0x06);
@@ -120,34 +184,60 @@ void runMeteoStation() {
     tempData = (tempData /50);
     
     Tir = tempData - 273.15;
-
-    Tp=bmp.readTemperature();
-    P=bmp.readPressure(); 
-
-     int chk = DHT.read22(DHTPIN);
-     if (chk == DHTLIB_OK) {
-         digitalWrite(PIN_TO_DIGITAL(8), LOW); 
-         HR=DHT.humidity;  
-         Thr=DHT.temperature;
-     } else {
-         digitalWrite(PIN_TO_DIGITAL(8), HIGH); 
-     }
-
-    Dew=dewPoint(Thr,HR);
-    Light=analogRead(0);
     Clouds=cloudIndex();
     skyT=skyTemp();
-    if (Clouds >30) {
+    if (Clouds >CLOUD_FLAG_PERCENT) {
       cloudy=1;
     } else {
       cloudy=0;
     }
+#else
+    //set IR sensor fail flag
+    digitalWrite(PIN_TO_DIGITAL(7), HIGH); 
+#endif //USE_IR_SENSOR  
+
+#ifdef USE_P_SENSOR
+    Tp=bmp.readTemperature();
+    P=bmp.readPressure(); 
+#else
+    //set P sensor fail flag
+    digitalWrite(PIN_TO_DIGITAL(9), HIGH);     
+#endif //USE_P_SENSOR  
+
+#ifdef USE_DHT_SENSOR
+     int chk = DHT.read22(DHTPIN);
+     if (chk == DHTLIB_OK) {
+         //OK.clear HR sensor fail flag       
+         digitalWrite(PIN_TO_DIGITAL(8), LOW); 
+         HR=DHT.humidity;  
+         Thr=DHT.temperature;
+     } else {
+         //set HR sensor fail flag
+         digitalWrite(PIN_TO_DIGITAL(8), HIGH); 
+     }
+
+    Dew=dewPoint(Thr,HR);
     if (Thr<=Dew+2) { 
-      dewing=1;
+       dewing=1;
     } else {
        dewing=0;
     }
-    if (Thr <=2) {
+#else
+    //set HR sensor fail flag
+    digitalWrite(PIN_TO_DIGITAL(8), HIGH); 
+#endif //USE_DHT_SENSOR    
+
+    Light=analogRead(0);
+
+#ifdef T_MAIN_Thr
+    T=Thr;
+#elif T_MAIN_Tir  
+    T=Tir;
+#elif T_MAIN_Tp
+    T=Tp;
+#endif  //T_MAIN  
+
+    if (T <=2) {
       frezzing=1;
     } else {
       frezzing=0;
@@ -181,6 +271,8 @@ void checkMeteo() {
     }  
 
 }
+
+#ifdef USE_DHT_SENSOR
 // dewPoint function NOAA
 // reference: http://wahiduddin.net/calc/density_algorithms.htm 
 double dewPoint(double celsius, double humidity)
@@ -207,19 +299,22 @@ double dewPointFast(double celsius, double humidity)
         double Td = (b * temp) / (a - temp);
         return Td;
 }
+#endif //USE_DHT_SENSOR
 
+#ifdef USE_IR_SENSOR
 //From AAG Cloudwatcher formula. Need to improve futher.
 //http://www.aagware.eu/aag/cloudwatcher700/WebHelp/index.htm#page=Operational%20Aspects/23-TemperatureFactor-.htm
 //https://azug.minpet.unibas.ch/wikiobsvermes/index.php/AAG_cloud_sensor#Snow_on_the_sky_temperature_sensor
 double skyTemp() {
-  double K1=33,K2=0,K3=4,K4=100,K5=100;
+  //Constant defined above
   double Td = (K1 / 100) * (Thr - K2 / 10) + (K3 / 100) * pow((exp (K4 / 1000* Thr)) , (K5 / 100));
   double Tsky=IR-Td;
   return Tsky;
 }
 
+
 double cloudIndex() {
-   double Tcloudy=0,Tclear=-8;
+   double Tcloudy= CLOUD_TEMP_OVERCAST,Tclear=CLOUD_TEMP_CLEAR;
    double Tsky=skyTemp();
    double Index;
    if (Tsky<Tclear) Tsky=Tclear;
@@ -227,6 +322,93 @@ double cloudIndex() {
    Index=(Tsky-Tclear)*100/(Tcloudy-Tclear);
    return Index;
 }
+#endif //USE_IR_SENSOR
+
+/* Nacho Mas. 
+	Change the value returned by readAnalog before send through
+	firmata protocol. By this you can adapt the 0-1024 stadard ADC range
+	to more apropiate range (i.e phisical range of a sensor). Also you 
+	can do some logic or event sent a variable value instead of 
+	readAnalog. 
+*/
+int mapAndSendAnalog(int pin) {
+  
+//some scalation are use. Don't change without changing also skeleton file  
+  int value=0;
+  int result=0;
+ 
+  switch(pin) {
+      //PIN 14->A0, 24->A10
+       case 0:     
+               result=(IR+273)*20;
+               break;       
+       case 1:     
+               result=(Tir+273)*20;
+               break;   
+       case 2:     
+               result=(P/10);
+               break;       
+       case 3:     
+               result=(Tp+273)*20;
+               break;                      
+       case 4:     
+               result=HR*100;
+               break;       
+       case 5:     
+               result=(Thr+273)*20;
+               break;                      
+       case 6:     
+               result=(Dew+273)*20;
+               break;       
+       case 7:     
+               result=Light;
+               break;       
+       case 8:     
+               result=Clouds;
+               break;   
+       case 9:     
+               result=(skyT+273)*20;
+               break;   
+       case 10:     
+               result=(T+273)*20;
+               break;   
+               
+               
+       default:
+             result=value;
+             break;
+  }
+  Firmata.sendAnalog(pin,result);
+} 
+
+/* Nacho Mas.
+	Change the value recived through firmata protocol before write to
+	PWM output. Alternative can be used to change internal variable value instead
+	of setting PWM output.
+*/
+int mapAndWriteAnalog(int pin,int value) {
+  int pwmPin=PIN_TO_PWM(pin);
+  int result=0;
+  switch(pwmPin) {
+       case 5:
+       case 6:
+       case 9:               
+//             result=map(value, 0, 100, 0, 255);
+//             break;             
+       default:
+             result=value;
+             break;
+  }
+  analogWrite(pwmPin, result);
+}  
+
+/*==============================================================================
+ * STANDAR FIRMATA FUNCTIONS
+ *============================================================================*/
+
+void disableI2CPins();
+void enableI2CPins();
+void reportAnalogCallback(byte analogPin, int value);
 
 // move the following defines to Firmata.h?
 #define I2C_WRITE B00000000
@@ -278,82 +460,6 @@ signed char queryIndex = -1;
 unsigned int i2cReadDelayTime = 0;  // default delay time between i2c read request and Wire.requestFrom()
 
 Servo servos[MAX_SERVOS];
-/*==============================================================================
- * FUNCTIONS
- *============================================================================*/
-
-/* Nacho Mas. 
-	Change the value returned by readAnalog before send through
-	firmata protocol. By this you can adapt the 0-1024 stadard ADC range
-	to more apropiate range (i.e phisical range of a sensor). Also you 
-	can do some logic or event sent a variable value instead of 
-	readAnalog. 
-*/
-int mapAndSendAnalog(int pin) {
-  int value=0;
-  int result=0;
-  //runMeteoStation();
-  //value=analogRead(pin);
-  switch(pin) {
-      //PIN 14 A0
-       case 0:     
-               result=(IR+273)*20;
-               break;       
-       case 1:     
-               result=(Tir+273)*20;
-               break;   
-       case 2:     
-               result=(P/10);
-               break;       
-       case 3:     
-               result=(Tp+273)*20;
-               break;                      
-       case 4:     
-               result=HR*100;
-               break;       
-       case 5:     
-               result=(Thr+273)*20;
-               break;                      
-       case 6:     
-               result=(Dew+273)*20;
-               break;       
-       case 7:     
-               result=Light;
-               break;       
-       case 8:     
-               result=Clouds;
-               break;   
-       case 9:     
-               result=(skyT+273)*20;
-               break;   
-               
-       default:
-             result=value;
-             break;
-  }
-  Firmata.sendAnalog(pin,result);
-} 
-
-/* Nacho Mas.
-	Change the value recived through firmata protocol before write to
-	PWM output. Alternative can be used to change internal variable value instead
-	of setting PWM output.
-*/
-int mapAndWriteAnalog(int pin,int value) {
-  int pwmPin=PIN_TO_PWM(pin);
-  int result=0;
-  switch(pwmPin) {
-       case 5:
-       case 6:
-       case 9:               
-//             result=map(value, 0, 100, 0, 255);
-//             break;             
-       default:
-             result=value;
-             break;
-  }
-  analogWrite(pwmPin, result);
-}  
 
 void readAndReportData(byte address, int theRegister, byte numBytes) {
   // allow I2C requests that don't require a register read
