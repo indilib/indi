@@ -165,7 +165,11 @@ int sxOpen(HANDLE *sxHandles) {
       int rc;
       rc=usb_detach_kernel_driver_np(handle, 0);
       TRACE(fprintf(stderr, "   usb_detach_kernel_driver_np() -> %d\n", rc));
-      rc = usb_claim_interface(handle, 0);
+#ifdef __APPLE__
+      rc=usb_claim_interface(handle,0);
+#else
+      rc = usb_claim_interface(handle, 1);
+#endif
       TRACE(fprintf(stderr, "   usb_claim_interface() -> %d\n", rc));
       if (rc>=0) {
         sxHandles[i] = handle;
