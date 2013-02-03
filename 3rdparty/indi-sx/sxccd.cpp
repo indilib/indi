@@ -268,6 +268,7 @@ bool SXCCD::Connect() {
       TRACE(fprintf(stderr, "   usb_claim_interface() -> %d\n", rc));
       if (!rc) {
         getCameraParams();
+        TRACE(fprintf(stderr, "<- SXCCD::Connect 1\n"));
         return true;
       }
     }

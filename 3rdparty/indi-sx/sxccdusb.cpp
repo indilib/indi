@@ -152,31 +152,28 @@ int sxList(DEVICE *sxDevices, const char **names) {
 int sxOpen(HANDLE *sxHandles) {
   TRACE(fprintf(stderr, "-> sxOpen(...)\n"));
   init();
-  int count=0;
-  for (struct usb_bus *bus = usb_get_busses(); bus && count<20; bus = bus->next) {
-    for (struct usb_device *dev = bus->devices; dev && count<20; dev = dev->next) {
-      if (dev->descriptor.idVendor == SX_VID) {
-        int pid = dev->descriptor.idProduct;
-        for (int i = 0; SX_PIDS[i]; i++) {
-          if (pid == SX_PIDS[i]) {
-            TRACE(fprintf(stderr, "   '%s' [0x%x, 0x%x] opened...\n", SX_NAMES[i], SX_VID, pid));
-            HANDLE handle = usb_open(dev);
-            if (handle != NULL) {
-              int rc;
-              rc=usb_detach_kernel_driver_np(handle, 0);
-              TRACE(fprintf(stderr, "   usb_detach_kernel_driver_np() -> %d\n", rc));
-              rc = usb_claim_interface(handle, 0);
-              TRACE(fprintf(stderr, "   usb_claim_interface() -> %d\n", rc));
-              if (rc>=0) {
-                sxHandles[count++] = handle;
-              }
-            }
-            break;
-          }
-        }
+
+  DEVICE devices[20];
+  const char* names[20];
+  int count = sxList(devices, names);
+
+  for (int i = 0; i < count; i++) {
+    TRACE(fprintf(stderr, "   opening '%s' [0x%x, 0x%x]\n", names[i], devices[i]->descriptor.idVendor, devices[i]->descriptor.idProduct));
+    HANDLE handle = usb_open(devices[i]);
+    TRACE(fprintf(stderr, "   usb_open() -> %ld\n", (long)handle));
+    if (handle != NULL) {
+      int rc;
+      rc=usb_detach_kernel_driver_np(handle, 0);
+      TRACE(fprintf(stderr, "   usb_detach_kernel_driver_np() -> %d\n", rc));
+      rc = usb_claim_interface(handle, 0);
+      TRACE(fprintf(stderr, "   usb_claim_interface() -> %d\n", rc));
+      if (rc>=0) {
+        sxHandles[i] = handle;
       }
     }
+
   }
+
   TRACE(fprintf(stderr, "<- sxOpen %d\n", count));
   return count;
 }

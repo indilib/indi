@@ -62,6 +62,13 @@ set(indisxao_SRCS
 add_executable(indi_sx_ao ${indisxao_SRCS})
 target_link_libraries(indi_sx_ao ${INDI_DRIVER_LIBRARIES})
 
+set(test_SRCS
+   ${CMAKE_SOURCE_DIR}/test.cpp
+   ${CMAKE_SOURCE_DIR}/sxccdusb.cpp
+   )
+
+add_executable(test ${test_SRCS})
+target_link_libraries(test ${LIBUSB_LIBRARIES})
 
 install(TARGETS indi_sx_ccd RUNTIME DESTINATION bin)
 install(TARGETS indi_sx_wheel RUNTIME DESTINATION bin)
