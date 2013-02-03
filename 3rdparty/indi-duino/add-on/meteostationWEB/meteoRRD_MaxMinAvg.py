@@ -43,7 +43,7 @@ def writeJson(consolidation,resolution):
 print "Starting MinMax"
 while (True):
   try:
-	writeJson("AVERAGE",300)
+	writeJson("AVERAGE",3600)
 	writeJson("MAX",86400)
 	writeJson("MIN",86400)
 	time.sleep(10)

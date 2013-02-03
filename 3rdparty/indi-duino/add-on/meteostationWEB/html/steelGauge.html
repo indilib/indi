@@ -2,7 +2,7 @@
 <head>
 <meta name="generator" content="Bluefish 2.2.2" >
 <meta name="author" content="Nacho Mas" >
-<meta name="date" content="2013-01-30T22:22:24+0100" >
+<meta name="date" content="2013-02-03T13:16:30+0100" >
 <meta name="copyright" content="">
 <meta name="keywords" content="">
 <meta name="description" content="">
@@ -25,6 +25,20 @@
 <a href="graphs.html">Graphs</a>
 <a href="external.html">Advance</a>
 </div>
+
+<table border=0 align="center">
+<tr>
+<td style="vertical-align:middle"  >
+<b>Clouds</b><canvas id=cloudFlag ></canvas>
+</td>
+<td style="vertical-align:middle"  >
+<b>Dewing</b><canvas id=dewFlag ></canvas>
+</td>
+<td style="vertical-align:middle" >
+<b>Frezzing</b><canvas id=frezzingFlag ></canvas>
+</td>
+<tr>
+</table>
 
 <table border=0 align="center">
 <tr>
@@ -64,18 +78,18 @@
 <b>Dew Point</b>
 <canvas id=dew ></canvas>
 </td>
-
 </tr>
 <tr>
 <td style="vertical-align:middle" align="center" colspan="3">
 <canvas id=Clouds ></canvas>
 </td>
-<tr>
+</tr>
+
 <tr>
 <td style="vertical-align:middle" align="center" colspan="3">
 <canvas id=info ></canvas>
 </td>
-<tr>
+</tr>
 </table>
 </body>
 <script>
@@ -239,12 +253,28 @@
                             lcdColor:steelseries.LcdColor.STANDARD
                             });
                             
+       cloudLed = new steelseries.Led('cloudFlag', {
+       							size:50,
+									ledColor:steelseries.LedColor.ORANGE_LED
+                            });
+
+       frezzingLed = new steelseries.Led('frezzingFlag', {
+       							size:50,
+									ledColor:steelseries.LedColor.CYAN_LED
+                            });
+                            
+       dewLed = new steelseries.Led('dewFlag', {
+       							size:50,
+									ledColor:steelseries.LedColor.BLUE_LED
+                            });
+                           
+                            
         info.setValue('              WELCOME TO INDUINO METEOSTATION. LOADING DATA ....');
         info.setScrolling(true);
  		   
        
 		 $.get("CHART/RTdata.json", function(data) {
-			 T.setValue(data.Thr);
+			 T.setValue(data.T);
 			 P.setValue(data.P);
 			 HR.setValue(data.HR);
 		    T.resetMinMeasuredValue();
@@ -253,13 +283,13 @@
 		 })
 		      
 		 $.get("CHART/MINvalues.json", function(data) {
-		    T.setMinMeasuredValue(data.Thr);
+		    T.setMinMeasuredValue(data.T);
 		    P.setMinMeasuredValue(data.P);
 		    HR.setMinMeasuredValue(data.HR);			 
 		 })          
 	
 		 $.get("CHART/MAXvalues.json", function(data) {
-		    T.setMaxMeasuredValue(data.Thr);
+		    T.setMaxMeasuredValue(data.T);
 		    P.setMaxMeasuredValue(data.P);
 		    HR.setMaxMeasuredValue(data.HR);			 
 		 })  	 
@@ -273,8 +303,8 @@
 	        T.setTrend(steelseries.TrendState.STEADY);
 			  P.setTrend(steelseries.TrendState.STEADY);
 			  HR.setTrend(steelseries.TrendState.STEADY);
-			  if (T.getValue() > data.Thr+0.1) { T.setTrend(steelseries.TrendState.UP);}
-			  if (T.getValue() < data.Thr-0.1)   { T.setTrend(steelseries.TrendState.DOWN);}
+			  if (T.getValue() > data.T+0.1) { T.setTrend(steelseries.TrendState.UP);}
+			  if (T.getValue() < data.T-0.1)   { T.setTrend(steelseries.TrendState.DOWN);}
 		  			    		
 			  if (P.getValue() > data.P+0.1)  { P.setTrend(steelseries.TrendState.UP);}
 			  if (P.getValue()< data.P-0.1)   { P.setTrend(steelseries.TrendState.DOWN);}
@@ -287,7 +317,7 @@
          updatedata();
         function updatedata(){
         						$.get("CHART/RTdata.json", function(data) {
-					         T.setValueAnimated(data.Thr);
+					         T.setValueAnimated(data.T);
 					         P.setValueAnimated(data.P);
 								HR.setValueAnimated(data.HR);
 								updateTrendIndicator()
@@ -298,12 +328,21 @@
 								iradiance.setValueAnimated(data.Light);
 								<!-- Clouds.setValueAnimated(cloudIndex(data.Tir,data.IR)); -->
 								Clouds.setValueAnimated(data.clouds);
+								cloudLed.setLedOnOff(false);
+								dewLed.setLedOnOff(false);
+								frezzingLed.setLedOnOff(false);
 								var warningText='';
-								if (data.frezzingFlag==1) {
-								   warningText=warningText+"  ***** FREZZING ******  ";
+                        if (data.cloudFlag==1) {
+								   warningText=warningText+"  ****** CLOUDY ******  ";
+								   cloudLed.setLedOnOff(true);
 								}
-								if (data.dewFlag) {
-								   warningText=warningText+"  *****  DEWING  ******  ";
+								if (data.dewFlag==1) {
+								   warningText=warningText+"  ******  DEWING  ******  ";
+								   dewLed.setLedOnOff(true);
+								}
+								if (data.frezzingFlag==1) {
+								   warningText=warningText+"  ****** FREZZING ******  ";
+								   frezzingLed.setLedOnOff(true);
 								}
 								warningText=warningText+data.TIME;
           					info.setValue(warningText);

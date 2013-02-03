@@ -29,15 +29,15 @@ def graphs(time):
           preamble,
 	 "--title","Temperature",
 	 "--vertical-label=Celsius ºC",
-	 "DEF:Thr=meteo.rrd:Thr:AVERAGE",
-	 "DEF:Thrmax=meteo.rrd:Thr:MAX",
-	 "DEF:Thrmin=meteo.rrd:Thr:MIN",
+	 "DEF:T=meteo.rrd:T:AVERAGE",
+	 "DEF:Tmax=meteo.rrd:T:MAX",
+	 "DEF:Tmin=meteo.rrd:T:MIN",
 	 "DEF:Dew=meteo.rrd:Dew:AVERAGE",
-	 "LINE1:Thr#"+red+":Ambient Temperature",
+	 "LINE1:T#"+red+":Ambient Temperature",
 	 "HRULE:0#00FFFFAA:ZERO",
 	 "AREA:Dew#"+red+"40:Dew Point\\r",
 	 "COMMENT:\\n",
-	 "GPRINT:Thr:AVERAGE:Avg Temp\: %6.2lf %S\\r")
+	 "GPRINT:T:AVERAGE:Avg Temp\: %6.2lf %S\\r")
 
 	ret = rrdtool.graph( CHARTPATH+"alltemp"+str(time)+".png","-A","--start","-"+str(time)+"h","-E",
           preamble,
@@ -71,8 +71,8 @@ def graphs(time):
 
 	ret = rrdtool.graph( CHARTPATH+"hr"+str(time)+".png","--start","-"+str(time)+"h","-E",
           preamble,
-	 "-u","100",
-	 "-l","0",
+	 "-u","105",
+	 "-l","-5",
 	 "-r",
 	 "--title","Humidity",
 	 "--vertical-label=%",
@@ -96,8 +96,8 @@ def graphs(time):
           preamble,
 	 "--title","Clouds",
 	 "--vertical-label=%",
-	 "-u","100",
-	 "-l","0",
+	 "-u","102",
+	 "-l","-2",
 	 "-r",
 	 "DEF:clouds=meteo.rrd:clouds:AVERAGE",
 	 "DEF:cloudFlag=meteo.rrd:cloudFlag:AVERAGE",
@@ -106,7 +106,7 @@ def graphs(time):
 	 "AREA:cloudy#FFFFFF40:CloudyFlag\\r",
 	 "AREA:30#00000a40:Clear",
 	 "AREA:40#0000AA40:Cloudy:STACK",
-	 "AREA:30#0000FF40:Overcast:STACK")
+	 "AREA:32#0000FF40:Overcast:STACK")
 
 	ret = rrdtool.graph( CHARTPATH+"skyT"+str(time)+".png","--start","-"+str(time)+"h","-E",
           preamble,

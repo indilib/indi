@@ -20,8 +20,8 @@ IMPORTANT: Customize following values to match your setup
 
 //All sensors (Thr=DHT22,Tir=MELEXIS and Tp=BMP085) include a ambient temperature
 //Chosse  that sensor, only one, is going to use for main Ambient Temperature:
-#define T_MAIN_Thr
-//#define T_MAIN_Tir  
+//#define T_MAIN_Thr
+#define T_MAIN_Tir  
 //#define T_MAIN_Tp
 
 //Cloudy sky is warmer that clear sky. Thus sky temperature meassure by IR sensor
@@ -32,11 +32,11 @@ IMPORTANT: Customize following values to match your setup
 //http://www.aagware.eu/aag/cloudwatcher700/WebHelp/index.htm#page=Operational%20Aspects/23-TemperatureFactor-.htm
 //Sky temp correction factor. Tsky=Tsky_meassure - Tcorrection
 //Formula Tcorrection = (K1 / 100) * (Thr - K2 / 10) + (K3 / 100) * pow((exp (K4 / 1000* Thr)) , (K5 / 100));
-#define  K1 33
-#define  K2 0 
-#define  K3 4
-#define  K4 100
-#define  K5 100
+#define  K1 33.
+#define  K2 0. 
+#define  K3 4.
+#define  K4 100.
+#define  K5 100.
 
 //Clear sky corrected temperature (temp below means 0% clouds)
 #define CLOUD_TEMP_CLEAR  -8 
@@ -231,9 +231,9 @@ void runMeteoStation() {
 
 #ifdef T_MAIN_Thr
     T=Thr;
-#elif T_MAIN_Tir  
+#elifdef T_MAIN_Tir  
     T=Tir;
-#elif T_MAIN_Tp
+#elifdef T_MAIN_Tp
     T=Tp;
 #endif  //T_MAIN  
 
@@ -307,7 +307,7 @@ double dewPointFast(double celsius, double humidity)
 //https://azug.minpet.unibas.ch/wikiobsvermes/index.php/AAG_cloud_sensor#Snow_on_the_sky_temperature_sensor
 double skyTemp() {
   //Constant defined above
-  double Td = (K1 / 100) * (Thr - K2 / 10) + (K3 / 100) * pow((exp (K4 / 1000* Thr)) , (K5 / 100));
+  double Td = (K1 / 100.) * (T - K2 / 10) + (K3 / 100.) * pow((exp (K4 / 1000.* T)) , (K5 / 100.));
   double Tsky=IR-Td;
   return Tsky;
 }

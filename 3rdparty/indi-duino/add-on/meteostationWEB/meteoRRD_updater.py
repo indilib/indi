@@ -28,6 +28,7 @@ def recv_indi():
         Tir=indi.get_float(INDIDEVICE,"IR","T")
         dew=indi.get_float(INDIDEVICE,"Meteo","DEW")
         light=indi.get_float(INDIDEVICE,"LIGHT","LIGHT")
+        T=indi.get_float(INDIDEVICE,"Meteo","T")
         clouds=indi.get_float(INDIDEVICE,"Meteo","clouds") 
         skyT=indi.get_float(INDIDEVICE,"Meteo","SkyT") 
         statusVector=indi.get_vector(INDIDEVICE,"STATUS")
@@ -35,7 +36,8 @@ def recv_indi():
 	dewFlag=int(statusVector.get_element("dew").is_ok())
 	frezzingFlag=int(statusVector.get_element("frezzing").is_ok())
 	return (("HR",HR),("Thr",Thr),("IR",IR),("Tir",Tir),("P",P),("Tp",Tp),("Dew",dew),("Light",light),
-           ("clouds",clouds),("skyT",skyT),("cloudFlag",cloudFlag),("dewFlag",dewFlag),("frezzingFlag",frezzingFlag))
+           ("T",T),("clouds",clouds),("skyT",skyT),("cloudFlag",cloudFlag),("dewFlag",dewFlag),
+           ("frezzingFlag",frezzingFlag))
 
 
 ############# MAIN #############

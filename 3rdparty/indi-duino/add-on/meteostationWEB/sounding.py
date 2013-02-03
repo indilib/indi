@@ -68,7 +68,7 @@ if __name__=='__main__':
 	try:
 	        s.get_sounding_skewt()
         	s.get_sounding_data()
-		urllib.urlretrieve("http://oiswww.eumetsat.org/IPPS/html/latestImages/EUMETSAT_MSG_IR039E-westernEurope.jpg", CHARTPATH+"meteosatIR039.jpg")
+		urllib.urlretrieve(EUMETSAT_LAST, CHARTPATH+"meteosat.jpg")
 	except:
 		print "Fail to retrive internet data"
 	del s
