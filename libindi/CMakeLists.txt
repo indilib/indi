@@ -335,18 +335,33 @@ endif (NOVA_FOUND)
 install(TARGETS indi_magellan1 RUNTIME DESTINATION bin )
 
 ########### IEQ45 #############
-set(ieq45_SRCS
+###Handheld 8406 version
+set(ieq45_8406_SRCS
    ${indimain_SRCS}
-   ${CMAKE_SOURCE_DIR}/drivers/telescope/ieq45driver.c
+   ${CMAKE_SOURCE_DIR}/drivers/telescope/ieq45driver8406.c
    ${CMAKE_SOURCE_DIR}/drivers/telescope/ieq45.cpp )
 
-add_executable(indi_ieq45 ${ieq45_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
+add_executable(indi_ieq45_8406 ${ieq45_8406_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
 
 if (NOVA_FOUND)
-  target_link_libraries(indi_ieq45 ${NOVA_LIBRARIES})
+  target_link_libraries(indi_ieq45_8406 ${NOVA_LIBRARIES})
 endif (NOVA_FOUND)
 
-install(TARGETS indi_ieq45 RUNTIME DESTINATION bin )
+install(TARGETS indi_ieq45_8406 RUNTIME DESTINATION bin )
+
+###Handheld 8407 version
+set(ieq45_8407_SRCS
+   ${indimain_SRCS}
+   ${CMAKE_SOURCE_DIR}/drivers/telescope/ieq45driver8407.c
+   ${CMAKE_SOURCE_DIR}/drivers/telescope/ieq45.cpp )
+
+add_executable(indi_ieq45_8407 ${ieq45_8407_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
+
+if (NOVA_FOUND)
+  target_link_libraries(indi_ieq45_8407 ${NOVA_LIBRARIES})
+endif (NOVA_FOUND)
+
+install(TARGETS indi_ieq45_8407 RUNTIME DESTINATION bin )
 
 ########### Telescope Simulator ##############
 set(telescopesimulator_SRCS

@@ -682,8 +682,9 @@ libindi/drivers/telescope/celestronprotocol.c -text
 libindi/drivers/telescope/celestronprotocol.h -text
 libindi/drivers/telescope/ieq45.cpp -text
 libindi/drivers/telescope/ieq45.h -text
-libindi/drivers/telescope/ieq45driver.c -text
 libindi/drivers/telescope/ieq45driver.h -text
+libindi/drivers/telescope/ieq45driver8406.c -text
+libindi/drivers/telescope/ieq45driver8407.c -text
 libindi/drivers/telescope/intelliscope.c -text
 libindi/drivers/telescope/lx200_16.cpp -text
 libindi/drivers/telescope/lx200_16.h -text
