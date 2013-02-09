@@ -525,7 +525,7 @@ void checkDigitalInputs(void)
    * to readPort() are compile-time constants. */
  //Nacho Mas. 
  //TODO: Cach deafult behaviour 
- boolean send_always=true;
+// boolean send_always=true;
   if (TOTAL_PORTS > 0 && reportPINs[0]) outputPort(0, readPort(0, portConfigInputs[0]), send_always);
   if (TOTAL_PORTS > 1 && reportPINs[1]) outputPort(1, readPort(1, portConfigInputs[1]), send_always);
   if (TOTAL_PORTS > 2 && reportPINs[2]) outputPort(2, readPort(2, portConfigInputs[2]), send_always);
@@ -1000,8 +1000,8 @@ void loop()
   currentMillis = millis();
   if (currentMillis - previousMillis > samplingInterval) {  
     previousMillis += samplingInterval;
-    runMeteoStation();
     checkMeteo();
+    runMeteoStation();
     checkDigitalInputs();
     /* ANALOGREAD - do all analogReads() at the configured sampling interval */
     for(pin=0; pin<TOTAL_PINS; pin++) {
