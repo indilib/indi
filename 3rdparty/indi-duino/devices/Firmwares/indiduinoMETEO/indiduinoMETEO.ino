@@ -229,11 +229,11 @@ void runMeteoStation() {
 
     Light=analogRead(0);
 
-#ifdef T_MAIN_Thr
+#if defined T_MAIN_Thr
     T=Thr;
-#elifdef T_MAIN_Tir  
+#elif defined T_MAIN_Tir  
     T=Tir;
-#elifdef T_MAIN_Tp
+#elif defined T_MAIN_Tp
     T=Tp;
 #endif  //T_MAIN  
 
@@ -525,7 +525,7 @@ void checkDigitalInputs(void)
    * to readPort() are compile-time constants. */
  //Nacho Mas. 
  //TODO: Cach deafult behaviour 
-// boolean send_always=true;
+  boolean send_always=false;
   if (TOTAL_PORTS > 0 && reportPINs[0]) outputPort(0, readPort(0, portConfigInputs[0]), send_always);
   if (TOTAL_PORTS > 1 && reportPINs[1]) outputPort(1, readPort(1, portConfigInputs[1]), send_always);
   if (TOTAL_PORTS > 2 && reportPINs[2]) outputPort(2, readPort(2, portConfigInputs[2]), send_always);

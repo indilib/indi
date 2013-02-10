@@ -108,7 +108,7 @@ while (True):
 	
 	#print "Garbage collector: collected %d objects." % (collected)
 	indi=indiclient(INDISERVER,INDIPORT)
-	indi.tell()
+	#indi.tell()
 	indi.process_events()
 	now=time.localtime()
 	json_dict={"TIME":time.strftime("%c",now)}
@@ -127,7 +127,6 @@ while (True):
         fi=open(CHARTPATH+"RTdata.json","w")
 	fi.write(x)
 	fi.close()
-	indi.tell()
 	indi.quit()
 	del indi
         del data
