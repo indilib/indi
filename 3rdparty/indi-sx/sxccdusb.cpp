@@ -106,6 +106,9 @@
 #define BULK_IN                     0x0082
 #define BULK_OUT                    0x0001
 
+#define BULK_COMMAND_TIMEOUT        3000
+#define BULK_DATA_TIMEOUT           15000
+
 #define TRACE(c) (c)
 #define DEBUG(c) (c)
 
@@ -197,7 +200,7 @@ int sxReset(HANDLE sxHandle) {
   setup_data[USB_REQ_INDEX_H ] = 0;
   setup_data[USB_REQ_LENGTH_L] = 0;
   setup_data[USB_REQ_LENGTH_H] = 0;
-  int rc = usb_bulk_write(sxHandle, BULK_OUT, (char *)setup_data, 8, 1000);
+  int rc = usb_bulk_write(sxHandle, BULK_OUT, (char *)setup_data, 8, BULK_COMMAND_TIMEOUT);
   TRACE(fprintf(stderr, "   usb_bulk_write() -> %d\n", rc));
   TRACE(fprintf(stderr, "<- sxReset %d\n", rc >= 0));
   return rc >= 0;
@@ -214,10 +217,10 @@ unsigned short sxGetCameraModel(HANDLE sxHandle) {
   setup_data[USB_REQ_INDEX_H ] = 0;
   setup_data[USB_REQ_LENGTH_L] = 2;
   setup_data[USB_REQ_LENGTH_H] = 0;
-  int rc = usb_bulk_write(sxHandle, BULK_OUT, (char *)setup_data, 8, 1000);
+  int rc = usb_bulk_write(sxHandle, BULK_OUT, (char *)setup_data, 8, BULK_COMMAND_TIMEOUT);
   TRACE(fprintf(stderr, "   usb_bulk_write() -> %d\n", rc));
   if (rc == 8) {
-    rc = usb_bulk_read(sxHandle, BULK_IN, (char *)setup_data, 2, 1000);
+    rc = usb_bulk_read(sxHandle, BULK_IN, (char *)setup_data, 2, BULK_COMMAND_TIMEOUT);
     TRACE(fprintf(stderr, "   usb_bulk_read() -> %d\n", rc));
     if (rc == 2) {
       int result=setup_data[0] | (setup_data[1] << 8);
@@ -241,10 +244,10 @@ unsigned long sxGetFirmwareVersion(HANDLE sxHandle) {
   setup_data[USB_REQ_INDEX_H ] = 0;
   setup_data[USB_REQ_LENGTH_L] = 4;
   setup_data[USB_REQ_LENGTH_H] = 0;
-  int rc = usb_bulk_write(sxHandle, BULK_OUT, (char *)setup_data, 8, 1000);
+  int rc = usb_bulk_write(sxHandle, BULK_OUT, (char *)setup_data, 8, BULK_COMMAND_TIMEOUT);
   TRACE(fprintf(stderr, "   usb_bulk_write() -> %d\n", rc));
   if (rc == 8) {
-    rc = usb_bulk_read(sxHandle, BULK_IN, (char *)setup_data, 4, 1000);
+    rc = usb_bulk_read(sxHandle, BULK_IN, (char *)setup_data, 4, BULK_COMMAND_TIMEOUT);
     TRACE(fprintf(stderr, "   usb_bulk_read() -> %d\n", rc));
     if (rc == 4) {
       unsigned long result=((unsigned long)setup_data[0] | ((unsigned long)setup_data[1] << 8) | ((unsigned long)setup_data[2] << 16) | ((unsigned long)setup_data[3] << 24));
@@ -267,10 +270,10 @@ unsigned short sxGetBuildNumber(HANDLE sxHandle) {
   setup_data[USB_REQ_INDEX_H ] = 0;
   setup_data[USB_REQ_LENGTH_L] = 4;
   setup_data[USB_REQ_LENGTH_H] = 0;
-  int rc = usb_bulk_write(sxHandle, BULK_OUT, (char *)setup_data, 8, 1000);
+  int rc = usb_bulk_write(sxHandle, BULK_OUT, (char *)setup_data, 8, BULK_COMMAND_TIMEOUT);
   TRACE(fprintf(stderr, "   usb_bulk_write() -> %d\n", rc));
   if (rc == 8) {
-    rc = usb_bulk_read(sxHandle, BULK_IN, (char *)setup_data, 2, 1000);
+    rc = usb_bulk_read(sxHandle, BULK_IN, (char *)setup_data, 2, BULK_COMMAND_TIMEOUT);
     TRACE(fprintf(stderr, "   usb_bulk_read() -> %d\n", rc));
     if (rc == 2) {
       int result=setup_data[0] | (setup_data[1] << 8);
@@ -293,10 +296,10 @@ int sxGetCameraParams(HANDLE sxHandle, unsigned short camIndex, struct t_sxccd_p
   setup_data[USB_REQ_INDEX_H ] = 0;
   setup_data[USB_REQ_LENGTH_L] = 17;
   setup_data[USB_REQ_LENGTH_H] = 0;
-  int rc = usb_bulk_write(sxHandle, BULK_OUT, (char *)setup_data, 8, 1000);
+  int rc = usb_bulk_write(sxHandle, BULK_OUT, (char *)setup_data, 8, BULK_COMMAND_TIMEOUT);
   TRACE(fprintf(stderr, "   usb_bulk_write() -> %d\n", rc));
   if (rc == 8) {
-    rc = usb_bulk_read(sxHandle, BULK_IN, (char *)setup_data, 17, 1000);
+    rc = usb_bulk_read(sxHandle, BULK_IN, (char *)setup_data, 17, BULK_COMMAND_TIMEOUT);
     TRACE(fprintf(stderr, "   usb_bulk_read() -> %d\n", rc));
     if (rc == 17) {
       params->hfront_porch = setup_data[0];
@@ -331,10 +334,10 @@ int sxSetShutter(HANDLE sxHandle, unsigned short state) {
   setup_data[USB_REQ_INDEX_H ] = 0;
   setup_data[USB_REQ_LENGTH_L] = 0;
   setup_data[USB_REQ_LENGTH_H] = 0;
-  int rc = usb_bulk_write(sxHandle, BULK_OUT, (char *)setup_data, 8, 1000);
+  int rc = usb_bulk_write(sxHandle, BULK_OUT, (char *)setup_data, 8, BULK_COMMAND_TIMEOUT);
   TRACE(fprintf(stderr, "   usb_bulk_write() -> %d\n", rc));
   if (rc == 8) {
-    rc = usb_bulk_read(sxHandle, BULK_IN, (char *)setup_data, 2, 1000);
+    rc = usb_bulk_read(sxHandle, BULK_IN, (char *)setup_data, 2, BULK_COMMAND_TIMEOUT);
     TRACE(fprintf(stderr, "   usb_bulk_read() -> %d\n", rc));
     if (rc == 2) {
       int result=setup_data[0] | (setup_data[1] << 8);
@@ -361,7 +364,7 @@ int sxSetTimer(HANDLE sxHandle, unsigned long msec) {
   setup_data[USB_REQ_DATA + 1] = (unsigned char)(msec >> 8);
   setup_data[USB_REQ_DATA + 2] = (unsigned char)(msec >> 16);
   setup_data[USB_REQ_DATA + 3] = (unsigned char)(msec >> 24);
-  int rc = usb_bulk_write(sxHandle, BULK_OUT, (char *)setup_data, 12, 1000);
+  int rc = usb_bulk_write(sxHandle, BULK_OUT, (char *)setup_data, 12, BULK_COMMAND_TIMEOUT);
   TRACE(fprintf(stderr, "   usb_bulk_write() -> %d\n", rc));
   TRACE(fprintf(stderr, "<- sxSetTimer %d\n", rc >= 0));
   return rc >= 0;
@@ -378,10 +381,10 @@ unsigned long sxGetTimer(HANDLE sxHandle) {
   setup_data[USB_REQ_INDEX_H ] = 0;
   setup_data[USB_REQ_LENGTH_L] = 4;
   setup_data[USB_REQ_LENGTH_H] = 0;
-  int rc = usb_bulk_write(sxHandle, BULK_OUT, (char *)setup_data, 8, 1000);
+  int rc = usb_bulk_write(sxHandle, BULK_OUT, (char *)setup_data, 8, BULK_COMMAND_TIMEOUT);
   TRACE(fprintf(stderr, "   usb_bulk_write() -> %d\n", rc));
   if (rc == 8) {
-    rc = usb_bulk_read(sxHandle, BULK_IN, (char *)setup_data, 4, 1000);
+    rc = usb_bulk_read(sxHandle, BULK_IN, (char *)setup_data, 4, BULK_COMMAND_TIMEOUT);
     TRACE(fprintf(stderr, "   usb_bulk_read() -> %d\n", rc));
     if (rc == 4) {
       unsigned long result=((unsigned long)setup_data[0] | ((unsigned long)setup_data[1] << 8) | ((unsigned long)setup_data[2] << 16) | ((unsigned long)setup_data[3] << 24));
@@ -404,10 +407,10 @@ int sxSetCooler(HANDLE sxHandle, unsigned char setStatus, unsigned short setTemp
   setup_data[USB_REQ_INDEX_H ] = 0;
   setup_data[USB_REQ_LENGTH_L] = 0;
   setup_data[USB_REQ_LENGTH_H] = 0;
-  int rc = usb_bulk_write(sxHandle, BULK_OUT, (char *)setup_data, 8, 1000);
+  int rc = usb_bulk_write(sxHandle, BULK_OUT, (char *)setup_data, 8, BULK_COMMAND_TIMEOUT);
   TRACE(fprintf(stderr, "   usb_bulk_write() -> %d\n", rc));
   if (rc == 8) {
-    rc = usb_bulk_read(sxHandle, BULK_IN, (char *)setup_data, 3, 1000);
+    rc = usb_bulk_read(sxHandle, BULK_IN, (char *)setup_data, 3, BULK_COMMAND_TIMEOUT);
     TRACE(fprintf(stderr, "   usb_bulk_read() -> %d\n", rc));
     if (rc == 3) {
       *retTemp = (setup_data[1] * 256) + setup_data[0];
@@ -438,7 +441,7 @@ int sxClearPixels(HANDLE sxHandle, unsigned short flags, unsigned short camIndex
   setup_data[USB_REQ_INDEX_H ] = 0;
   setup_data[USB_REQ_LENGTH_L] = 0;
   setup_data[USB_REQ_LENGTH_H] = 0;
-  int rc = usb_bulk_write(sxHandle, BULK_OUT, (char *)setup_data, 8, 1000);
+  int rc = usb_bulk_write(sxHandle, BULK_OUT, (char *)setup_data, 8, BULK_COMMAND_TIMEOUT);
   TRACE(fprintf(stderr, "   usb_bulk_write() -> %d\n", rc));
   TRACE(fprintf(stderr, "<- sxClearPixels %d\n", rc >= 0));
   return rc >= 0;
@@ -465,7 +468,7 @@ int sxLatchPixels(HANDLE sxHandle, unsigned short flags, unsigned short camIndex
   setup_data[USB_REQ_DATA + 7] = height >> 8;
   setup_data[USB_REQ_DATA + 8] = (unsigned char)xbin;
   setup_data[USB_REQ_DATA + 9] = (unsigned char)ybin;
-  int rc = usb_bulk_write(sxHandle, BULK_OUT, (char *)setup_data, 18, 1000);
+  int rc = usb_bulk_write(sxHandle, BULK_OUT, (char *)setup_data, 18, BULK_COMMAND_TIMEOUT);
   TRACE(fprintf(stderr, "   usb_bulk_write() -> %d\n", rc));
   TRACE(fprintf(stderr, "<- sxLatchPixels %d\n", rc >= 0));
   return rc >= 0;
@@ -496,7 +499,7 @@ int sxExposePixels(HANDLE sxHandle, unsigned short flags, unsigned short camInde
   setup_data[USB_REQ_DATA + 11] = (unsigned char)(msec >> 8);
   setup_data[USB_REQ_DATA + 12] = (unsigned char)(msec >> 16);
   setup_data[USB_REQ_DATA + 13] = (unsigned char)(msec >> 24);
-  int rc = usb_bulk_write(sxHandle, BULK_OUT, (char *)setup_data, 22, 1000);
+  int rc = usb_bulk_write(sxHandle, BULK_OUT, (char *)setup_data, 22, BULK_COMMAND_TIMEOUT);
   TRACE(fprintf(stderr, "   usb_bulk_write() -> %d\n", rc));
   TRACE(fprintf(stderr, "<- sxExposePixels %d\n", rc >= 0));
   return rc >= 0;
@@ -527,7 +530,7 @@ int sxExposePixelsGated(HANDLE sxHandle, unsigned short flags, unsigned short ca
   setup_data[USB_REQ_DATA + 11] = (unsigned char)(msec >> 8);
   setup_data[USB_REQ_DATA + 12] = (unsigned char)(msec >> 16);
   setup_data[USB_REQ_DATA + 13] = (unsigned char)(msec >> 24);
-  int rc = usb_bulk_write(sxHandle, BULK_OUT, (char *)setup_data, 22, 1000);
+  int rc = usb_bulk_write(sxHandle, BULK_OUT, (char *)setup_data, 22, BULK_COMMAND_TIMEOUT);
   TRACE(fprintf(stderr, "   usb_bulk_write() -> %d\n", rc));
   TRACE(fprintf(stderr, "<- sxExposePixelsGated %d\n", rc >= 0));
   return rc >= 0;
@@ -540,7 +543,7 @@ int sxReadPixels(HANDLE sxHandle, unsigned short *pixels, unsigned long count) {
   int rc=0;
   while (read < count && rc >= 0) {
     TRACE(fprintf(stderr, "   %ld %ld\n", read, count));
-    rc = usb_bulk_read(sxHandle, BULK_IN, ((char *)pixels) + read, count - read, 10000);
+    rc = usb_bulk_read(sxHandle, BULK_IN, ((char *)pixels) + read, count - read, BULK_DATA_TIMEOUT);
     TRACE(fprintf(stderr, "   usb_bulk_read() -> %d\n", rc));
     if (rc >= 0) {
       read+=rc;
@@ -562,7 +565,7 @@ int sxSetSTAR2000(HANDLE sxHandle, char star2k) {
   setup_data[USB_REQ_INDEX_H ] = 0;
   setup_data[USB_REQ_LENGTH_L] = 0;
   setup_data[USB_REQ_LENGTH_H] = 0;
-  int rc = usb_bulk_write(sxHandle, BULK_OUT, (char *)setup_data, 8, 1000);
+  int rc = usb_bulk_write(sxHandle, BULK_OUT, (char *)setup_data, 8, BULK_COMMAND_TIMEOUT);
   TRACE(fprintf(stderr, "   usb_bulk_write() -> %d\n", rc));
   TRACE(fprintf(stderr, "<- sxSetSTAR2000 %d\n", rc >= 0));
   return rc >= 0;
@@ -585,10 +588,10 @@ unsigned short sxGetSerialPort(HANDLE sxHandle, unsigned short portIndex, unsign
   setup_data[USB_REQ_INDEX_H ] = 0;
   setup_data[USB_REQ_LENGTH_L] = 2;
   setup_data[USB_REQ_LENGTH_H] = 0;
-  int rc = usb_bulk_write(sxHandle, BULK_OUT, (char *)setup_data, 8, 1000);
+  int rc = usb_bulk_write(sxHandle, BULK_OUT, (char *)setup_data, 8, BULK_COMMAND_TIMEOUT);
   TRACE(fprintf(stderr, "   usb_bulk_write() -> %d\n", rc));
   if (rc == 8) {
-    rc = usb_bulk_read(sxHandle, BULK_IN, (char *)setup_data, 2, 1000);
+    rc = usb_bulk_read(sxHandle, BULK_IN, (char *)setup_data, 2, BULK_COMMAND_TIMEOUT);
     TRACE(fprintf(stderr, "   usb_bulk_read() -> %d\n", rc));
     if (rc == 2) {
       int result=setup_data[0] | (setup_data[1] << 8);
@@ -612,7 +615,7 @@ int sxWriteSerialPort(HANDLE sxHandle, unsigned short portIndex, unsigned short 
   setup_data[USB_REQ_LENGTH_L] = (unsigned char)count;
   setup_data[USB_REQ_LENGTH_H] = 0;
   memcpy(setup_data + USB_REQ_DATA, data, count);
-  int rc = usb_bulk_write(sxHandle, BULK_OUT, (char *)setup_data, USB_REQ_DATA + count, 1000);
+  int rc = usb_bulk_write(sxHandle, BULK_OUT, (char *)setup_data, USB_REQ_DATA + count, BULK_COMMAND_TIMEOUT);
   TRACE(fprintf(stderr, "   usb_bulk_write() -> %d\n", rc));
   TRACE(fprintf(stderr, "<- sxWriteSerialPort %d\n", rc >= 0));
   return rc >= 0;
@@ -629,10 +632,10 @@ int sxReadSerialPort(HANDLE sxHandle, unsigned short portIndex, unsigned short c
   setup_data[USB_REQ_INDEX_H ] = 0;
   setup_data[USB_REQ_LENGTH_L] = (unsigned char)count;
   setup_data[USB_REQ_LENGTH_H] = 0;
-  int rc = usb_bulk_write(sxHandle, BULK_OUT, (char *)setup_data, 8, 1000);
+  int rc = usb_bulk_write(sxHandle, BULK_OUT, (char *)setup_data, 8, BULK_COMMAND_TIMEOUT);
   TRACE(fprintf(stderr, "   usb_bulk_write() -> %d\n", rc));
   if (rc == 8) {
-    rc = usb_bulk_read(sxHandle, BULK_IN, (char *)data, count, 1000);
+    rc = usb_bulk_read(sxHandle, BULK_IN, (char *)data, count, BULK_COMMAND_TIMEOUT);
     TRACE(fprintf(stderr, "   usb_bulk_read() -> %d\n", rc));
     TRACE(fprintf(stderr, "<- sxReadSerialPort %d\n", rc >= 0));
   }
@@ -651,10 +654,10 @@ int sxReadEEPROM(HANDLE sxHandle, unsigned short address, unsigned short count, 
   setup_data[USB_REQ_INDEX_H ] = 0;
   setup_data[USB_REQ_LENGTH_L] = (unsigned char)count;
   setup_data[USB_REQ_LENGTH_H] = 0;
-  int rc = usb_bulk_write(sxHandle, BULK_OUT, (char *)setup_data, 8, 1000);
+  int rc = usb_bulk_write(sxHandle, BULK_OUT, (char *)setup_data, 8, BULK_COMMAND_TIMEOUT);
   TRACE(fprintf(stderr, "   usb_bulk_write() -> %d\n", rc));
   if (rc == 8) {
-    rc = usb_bulk_read(sxHandle, BULK_IN, (char *)data, count, 1000);
+    rc = usb_bulk_read(sxHandle, BULK_IN, (char *)data, count, BULK_COMMAND_TIMEOUT);
     TRACE(fprintf(stderr, "   usb_bulk_read() -> %d\n", rc));
     TRACE(fprintf(stderr, "<- sxReadEEPROM %d\n", rc >= 0));
   }
