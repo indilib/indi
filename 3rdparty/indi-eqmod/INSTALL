@@ -11,4 +11,22 @@ You must have CMake >= 2.4.7 in order to build this package.
    
 Refer to README for instructions on using the driver.
 
+CMake Compilation Options:
+	
+	a) Logging: Debug messages may be logged into a file 
+with a different verbosity than the one used for client messages.
+Log files names are /tmp/indi_eqmod_telescope_%TIMESTAMP%.log.
+$ cmake -DCMAKE_INSTALL_PREFIX=/usr -DWITH_LOGGER:OPTION=TRUE . ../indi-eqmod
+
+	b) Simulator: included by default, can be suppressed if desired.
+$ cmake -DCMAKE_INSTALL_PREFIX=/usr -DWITH_SIMULATOR:OPTION=FALSE . ../indi-eqmod
+
+	b) Alignment: included by default, this is some test code, can be suppressed if desired.
+$ cmake -DCMAKE_INSTALL_PREFIX=/usr -DWITH_ALIGN_GEEHALEL:OPTION=FALSE . ../indi-eqmod
+
+  	d) NOFMANY switches: it seems that some (of mine) versions
+of Kstars do not support the display of NOFMANY switches, normal
+switches are used by default. 
+$ cmake -DCMAKE_INSTALL_PREFIX=/usr -DWITH_NOFMANY:OPTION=TRUE . ../indi-eqmod
+
 That's it!

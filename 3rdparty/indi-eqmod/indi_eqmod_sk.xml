@@ -19,7 +19,7 @@
 <defText name="MOUNT_TYPE" label="Mount Type"></defText> 
 <defText name="MOTOR_CONTROLLER" label="Firmware Version"></defText> 
 </defTextVector>
-<defNumberVector device="EQMod Mount" name="STEPPERS" label="Stepper/Gear" group="Firmware" state="Idle" perm="rw">
+<defNumberVector device="EQMod Mount" name="STEPPERS" label="Stepper/Gear" group="Firmware" state="Idle" perm="ro">
 <defNumber name="RASteps360" label="RA Steps (Total)" format="%.0f" min="0.0" max="16777215.0" step="1.0">
 1.0
 </defNumber>
@@ -32,14 +32,22 @@
 <defNumber name="DEStepsWorm" label="DE Steps (Worm)" format="%.0f" min="0.0" max="16777215.0" step="1.0">
 1.0
 </defNumber>
-<defNumber name="RAHighspeedRatio" label="RA Highspeed ratio" format="%.0f" min="1.0" max="16.0" step="1.0">
+<defNumber name="RAHighspeedRatio" label="RA Highspeed ratio" format="%.0f" min="1.0" max="256.0" step="1.0">
 1.0
 </defNumber>
-<defNumber name="DEHighspeedRatio" label="DE Highspeed raio" format="%.0f" min="1.0" max="16.0" step="1.0">
+<defNumber name="DEHighspeedRatio" label="DE Highspeed ratio" format="%.0f" min="1.0" max="256.0" step="1.0">
 1.0
 </defNumber>
 </defNumberVector>
-<defLightVector device="EQMod Mount" name="RASTATUS" label="RA Motor Status" group="Firmware" state="Idle" perm="ro">
+<defNumberVector device="EQMod Mount" name="CURRENTSTEPPERS" label="Stepper Position" group="Motor Status" state="Idle" perm="ro">
+<defNumber name="RAStepsCurrent" label="RA Steps" format="%.0f" min="0.0" max="16777215.0" step="1.0">
+1.0
+</defNumber>
+<defNumber name="DEStepsCurrent" label="DE Steps" format="%.0f" min="0.0" max="16777215.0" step="1.0">
+1.0
+</defNumber>
+</defNumberVector>
+<defLightVector device="EQMod Mount" name="RASTATUS" label="RA Motor Status" group="Motor Status" state="Idle" perm="ro">
     <defLight name="RAInitialized" label="Initialized">
 Alert
     </defLight>
@@ -56,7 +64,7 @@ Idle
 Idle
     </defLight>
 </defLightVector>
-<defLightVector device="EQMod Mount" name="DESTATUS" label="DE Motor Status" group="Firmware" state="Idle" perm="ro">
+<defLightVector device="EQMod Mount" name="DESTATUS" label="DE Motor Status" group="Motor Status" state="Idle" perm="ro">
     <defLight name="DEInitialized" label="Initialized">
 Alert
     </defLight>
@@ -81,7 +89,7 @@ Idle
 0.0
 </defNumber>
 </defNumberVector>
-<defNumberVector device="EQMod Mount" name="SLEWSPEEDS" label="Slew Speeds" group="Motion Control" state="Idle" perm="rw">
+<defNumberVector device="EQMod Mount" name="SLEWSPEEDS" label="Custom Speeds" group="Motion Control" state="Idle" perm="rw">
 <defNumber name="RASLEW" label="RA Slew" format="%3.2fx" min="0.05" max="800.0" step="0.05">
 64.0
 </defNumber>
@@ -89,7 +97,7 @@ Idle
 64.0
 </defNumber>
 </defNumberVector>
-<defNumberVector device="EQMod Mount" name="PERIODS" label="Worm Periods" group="Firmware" state="Idle" perm="rw">
+<defNumberVector device="EQMod Mount" name="PERIODS" label="Worm Periods" group="Motor Status" state="Idle" perm="ro">
 <defNumber name="RAPERIOD" label="RA Period" format="%.0f" min="0.0" max="16384.0" step="1.0">
 256.0
 </defNumber>
@@ -120,10 +128,10 @@ Off
 </defSwitch>
 </defSwitchVector>
 <defNumberVector device="EQMod Mount" name="TRACKRATES" label="Track Rates" group="Main Control" state="Idle" perm="rw">
-<defNumber name="RATRACKRATE" label="RA (arcsecs/s)" format="%.6f" min="0.0" max="16384.0" step="0.000001">
+<defNumber name="RATRACKRATE" label="RA (arcsecs/s)" format="%.6f" min="-16384.0" max="16384.0" step="0.000001">
 15.041067
 </defNumber>
-<defNumber name="DETRACKRATE" label="DE (arcsecs/s)" format="%.6f" min="0.0" max="16384.0" step="0.000001">
+<defNumber name="DETRACKRATE" label="DE (arcsecs/s)" format="%.6f" min="-16384.0" max="16384.0" step="0.000001">
 0.0
 </defNumber>
 </defNumberVector>
@@ -135,6 +143,40 @@ On
 Off
 </defSwitch>
 </defSwitchVector>
-
+<defSwitchVector device="EQMod Mount" name="SLEWMODE" label="Slew Presets" group="Motion Control" state="Idle" perm="rw" rule="OneOfMany">
+<defSwitch name="SLEWCUSTOM" label="Custom">
+Off
+</defSwitch>
+<defSwitch name="SLEWPRESET1" label="Preset 1">
+Off
+</defSwitch>
+<defSwitch name="SLEWPRESET2" label="Preset 2">
+Off
+</defSwitch>
+<defSwitch name="SLEWPRESET3" label="Preset 3">
+Off
+</defSwitch>
+<defSwitch name="SLEWPRESET4" label="Preset 4">
+Off
+</defSwitch>
+<defSwitch name="SLEWPRESET5" label="Preset 5">
+Off
+</defSwitch>
+<defSwitch name="SLEWPRESET6" label="Preset 6">
+On
+</defSwitch>
+<defSwitch name="SLEWPRESET7" label="Preset 7">
+Off
+</defSwitch>
+<defSwitch name="SLEWPRESET8" label="Preset 8">
+Off
+</defSwitch>
+<defSwitch name="SLEWPRESET9" label="Preset 9">
+Off
+</defSwitch>
+<defSwitch name="SLEWPRESET10" label="Preset 10">
+Off
+</defSwitch>
+</defSwitchVector>
 
 </INDIDriver>

@@ -20,7 +20,14 @@
 
 #include <sys/time.h>
 #include <time.h>
+#include <inditelescope.h>
 #include "eqmoderror.h"
+//#include "eqmod.h"
+class EQMod; // TODO
+
+#ifdef WITH_SIMULATOR
+#include "simulator/simulator.h"
+#endif
 
 #define SKYWATCHER_MAX_CMD        16
 #define SKYWATCHER_MAX_TRIES      3
@@ -40,11 +47,14 @@ class Skywatcher
 {
 
 public:
-    Skywatcher();
+    Skywatcher(EQMod *t);
     ~Skywatcher();
    
     bool Connect(char *port) throw (EQModError);
     bool Disconnect() throw (EQModError);
+    void setDebug (bool enable);
+    const char *getDeviceName ();
+
 
     unsigned long GetRAEncoder()  throw (EQModError);
     unsigned long GetDEEncoder()  throw (EQModError);
@@ -71,7 +81,11 @@ public:
     void StartDETracking(double trackspeed) throw (EQModError);
     bool IsRARunning() throw (EQModError);
     bool IsDERunning() throw (EQModError);
-
+#ifdef WITH_SIMULATOR
+    void setSimulation(bool);
+    bool isSimulation();
+    bool simulation;
+#endif
  private: 
 
     // Official Skywatcher Protocol
@@ -81,6 +95,7 @@ public:
     static const char SkywatcherTrailingChar= 0x0d;
     static const double MIN_RATE=0.05;
     static const double MAX_RATE=800.0;
+    unsigned long minperiods[2];
 
     // Types
     enum SkywatcherCommand {      
@@ -144,6 +159,7 @@ public:
     void long2Revu24str(unsigned long ,char *);
     double get_min_rate();
     double get_max_rate();
+    bool isDebug();
 
     // Variables
     //string default_port;
@@ -173,6 +189,11 @@ public:
     int fd;
     char command[SKYWATCHER_MAX_CMD];
     char response[SKYWATCHER_MAX_CMD];
+
+    bool debug;
+    const char *deviceName;
+    bool debugnextread;
+    EQMod *telescope;
 
 };
 

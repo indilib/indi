@@ -35,6 +35,12 @@ Off
 <defSwitch name="ALIGNLISTCLEAR" label="Clear List">
 Off
 </defSwitch>
+<defSwitch name="ALIGNWRITEFILE" label="Write File">
+Off
+</defSwitch>
+<defSwitch name="ALIGNLOADFILE" label="Load File">
+Off
+</defSwitch>
 </defSwitchVector>
 <defNumberVector device="EQMod Mount" name="ALIGNPOINT" label="Alignment Point" group="Alignment" state="Idle" perm="rw">
 <defNumber name="ALIGNPOINT_JD" label="Sync Date" format="%08.8f" min="0.0" max="9999999999" step="0.0">

@@ -156,6 +156,13 @@
 3rdparty/indi-eqmod/eqmoderror.h -text
 3rdparty/indi-eqmod/indi_eqmod.xml -text
 3rdparty/indi-eqmod/indi_eqmod_sk.xml -text
+3rdparty/indi-eqmod/logger/Logger.cpp -text
+3rdparty/indi-eqmod/logger/Logger.h -text
+3rdparty/indi-eqmod/simulator/indi_eqmod_simulator_sk.xml -text
+3rdparty/indi-eqmod/simulator/simulator.cpp -text
+3rdparty/indi-eqmod/simulator/simulator.h -text
+3rdparty/indi-eqmod/simulator/skywatcher-simulator.cpp -text
+3rdparty/indi-eqmod/simulator/skywatcher-simulator.h -text
 3rdparty/indi-eqmod/skywatcher.cpp -text
 3rdparty/indi-eqmod/skywatcher.h -text
 3rdparty/indi-fishcamp/AUTHORS -text

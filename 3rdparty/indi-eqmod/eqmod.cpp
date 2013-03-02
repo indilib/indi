@@ -35,6 +35,9 @@
 
 #include "skywatcher.h"
 
+#include "logger/Logger.h"
+
+
 #include <memory>
 
 #define DEVICE_NAME "EQMod Mount"
@@ -64,6 +67,11 @@ std::auto_ptr<EQMod> eqmod(0);
 #define SOLAR_DAY 86400
 #define TRACKRATE_SOLAR ((360.0 * 3600.0) / SOLAR_DAY)
 #define TRACKRATE_LUNAR 14.511415
+
+/* Preset Slew Speeds */
+#define SLEWMODES 11
+double slewspeeds[SLEWMODES - 1] = { 1.0, 2.0, 4.0, 8.0, 32.0, 64.0, 128.0, 200.0, 400.0, 800.0 };
+double defaultspeed=64.0;
 
 #define RA_AXIS         0
 #define DEC_AXIS        1
@@ -133,16 +141,30 @@ void ISSnoopDevice (XMLEle *root)
 EQMod::EQMod()
 {
   //ctor
+  setVersion(EQMOD_VERSION_MAJOR, EQMOD_VERSION_MINOR);
   currentRA=15;
   currentDEC=15;
   Parked=false;
-  
-  mount=new Skywatcher();
-  pierside = WEST;
+
+#ifdef WITH_LOGGER
+  DEBUG_CONF("/tmp/indi_eqmod_telescope",  Logger::file_on|Logger::screen_on, Logger::defaultlevel, Logger::defaultlevel);
+#endif
+
+
+  mount=new Skywatcher(this);
+
+  pierside = EAST;
   RAInverted = DEInverted = false;
   bzero(&syncdata, sizeof(syncdata));
 
-  //align=new Align(this);
+#ifdef WITH_ALIGN_GEEHALEL
+  align=new Align(this);
+#endif
+
+#ifdef WITH_SIMULATOR
+  simulator=new EQModSimulator(this);
+#endif
+
   /* initialize random seed: */
   srand ( time(NULL) );
 }
@@ -155,9 +177,40 @@ EQMod::~EQMod()
 
 }
 
+void EQMod::setLogDebug (bool enable) 
+{
+  
+  INDI::Telescope::setDebug(enable);
+  if (not Logger::updateProperties(enable, this)) 
+    DEBUG(Logger::DBG_WARNING,"setLogDebug: Logger error");
+  //if (mount) mount->setDebug(enable);
+
+}
+#ifdef WITH_SIMULATOR
+void EQMod::setStepperSimulation (bool enable) 
+{
+  if ((enable && !isSimulation()) || (!enable && isSimulation())) {
+    mount->setSimulation(enable); 
+    if (not simulator->updateProperties(enable)) 
+      DEBUG(Logger::DBG_WARNING,"setStepperSimulator: Disable/Enable error");
+  }
+  INDI::Telescope::setSimulation(enable);
+}
+#endif
+
 const char * EQMod::getDefaultName()
 {
     return (char *)DEVICE_NAME;
+}
+
+double EQMod::getLongitude() 
+{
+  return(IUFindNumber(&LocationNV, "LONG")->value);
+}
+
+double EQMod::getLatitude() 
+{
+  return(IUFindNumber(&LocationNV, "LAT")->value);
 }
 
 bool EQMod::initProperties()
@@ -167,13 +220,17 @@ bool EQMod::initProperties()
 
     //IDLog("initProperties: connected=%d %s", (isConnected()?1:0), this->getDeviceName());
 
-    //if (!align->initProperties()) return false;
+    if (align) {
+    if (!align->initProperties()) return false;
+    }
 
     INDI::GuiderInterface::initGuiderProperties(this->getDeviceName(), MOTION_TAB);
 
     /* Add debug controls so we may debug driver if necessary */
     addDebugControl();
-    
+#ifdef WITH_SIMULATOR
+    addSimulationControl();
+#endif
     return true;
 }
 
@@ -183,8 +240,9 @@ void EQMod::ISGetProperties (const char *dev)
     /* First we let our parent populate */
     INDI::Telescope::ISGetProperties(dev);
     //IDMessage(dev,"ISGetProperties: connected=%d %s", (isConnected()?1:0), dev);
-
-    //align->ISGetProperties(dev);
+    if (align){
+      align->ISGetProperties(dev);
+    }
     return;
 }
 
@@ -199,7 +257,7 @@ bool EQMod::updateProperties()
 	snprintf(skelPath, MAX_PATH_LENGTH, "%s/%s", INDI_DATA_DIR, skelFileName);
 	struct stat st;
 	unsigned int i;
-	INumber *latitude=IUFindNumber(&LocationNV, "LAT");
+	INumber *latitude;
 	
 	char *skel = getenv("INDISKEL");
 	if (skel) 
@@ -214,23 +272,36 @@ bool EQMod::updateProperties()
 	
 	MountInformationTP=getText("MOUNTINFORMATION");
 	SteppersNP=getNumber("STEPPERS");
+	CurrentSteppersNP=getNumber("CURRENTSTEPPERS");
 	PeriodsNP=getNumber("PERIODS");
 	DateNP=getNumber("DATE");
 	RAStatusLP=getLight("RASTATUS");
 	DEStatusLP=getLight("DESTATUS");
 	SlewSpeedsNP=getNumber("SLEWSPEEDS");
+	SlewModeSP=getSwitch("SLEWMODE");
 	HemisphereSP=getSwitch("HEMISPHERE");
 	PierSideSP=getSwitch("PIERSIDE");
 	TrackModeSP=getSwitch("TRACKMODE");
 	TrackRatesNP=getNumber("TRACKRATES");
 	//AbortMotionSP=getSwitch("TELESCOPE_ABORT_MOTION");
 	HorizontalCoordsNP=getNumber("HORIZONTAL_COORDS");
+	for (i=1; i<SlewModeSP->nsp; i++) {
+	  if (i < SLEWMODES) {
+	    sprintf(SlewModeSP->sp[i].label, "%.2fx", slewspeeds[i-1]);
+	    SlewModeSP->sp[i].aux=(void *)&slewspeeds[i-1];
+	  } else {
+	    sprintf(SlewModeSP->sp[i].label, "%.2fx (default)", defaultspeed);
+	    SlewModeSP->sp[i].aux=(void *)&defaultspeed;
+	  }
+	}
 	defineNumber(&GuideNSP);
 	defineNumber(&GuideEWP);
+	defineSwitch(SlewModeSP);
 	defineNumber(SlewSpeedsNP);
 	defineNumber(GuideRateNP);
 	defineText(MountInformationTP);
 	defineNumber(SteppersNP);
+	defineNumber(CurrentSteppersNP);
 	defineNumber(PeriodsNP);
 	defineNumber(DateNP);
 	defineLight(RAStatusLP);
@@ -243,62 +314,68 @@ bool EQMod::updateProperties()
 	//defineSwitch(AbortMotionSP);
 	try {
 	  mount->InquireBoardVersion(MountInformationTP);
-	}   
+
+	  if (isDebug()) {
+	    for (i=0;i<MountInformationTP->ntp;i++) 
+	      DEBUGF(Logger::DBG_DEBUG, "Got Board Property %s: %s\n", MountInformationTP->tp[i].name, MountInformationTP->tp[i].text);
+	  }
+	
+	  mount->InquireRAEncoderInfo(SteppersNP);
+	  mount->InquireDEEncoderInfo(SteppersNP);
+	  if (isDebug()) {
+	    for (i=0;i<SteppersNP->nnp;i++) 
+	      DEBUGF(Logger::DBG_DEBUG,"Got Encoder Property %s: %.0f\n", SteppersNP->np[i].label, SteppersNP->np[i].value);
+	  }
+	
+	  mount->Init(&ParkSV);
+	
+	  zeroRAEncoder=mount->GetRAEncoderZero();
+	  totalRAEncoder=mount->GetRAEncoderTotal();
+	  zeroDEEncoder=mount->GetDEEncoderZero();
+	  totalDEEncoder=mount->GetDEEncoderTotal();
+
+	  latitude=IUFindNumber(&LocationNV, "LAT");
+	  if ((latitude) && (latitude->value < 0.0)) SetSouthernHemisphere(true);
+	  else  SetSouthernHemisphere(false);
+	
+	  if (ParkSV.sp[0].s==ISS_ON) {
+	    //TODO unpark mount if desired
+	  }
+	
+	  //TODO start tracking ? 
+	  TrackState=SCOPE_IDLE;
+	} 
 	catch(EQModError e) {
-	  IDMessage(DEVICE_NAME, "%s", e.message);
-	  Disconnect();
-	  return false;
+	  return(e.DefaultHandleException(this));
 	}
-	if (isDebug()) {
-	  for (i=0;i<MountInformationTP->ntp;i++) 
-	    IDLog("Got Board Property %s: %s\n", MountInformationTP->tp[i].name, MountInformationTP->tp[i].text);
-	}
-	
-	mount->InquireRAEncoderInfo(SteppersNP);
-	mount->InquireDEEncoderInfo(SteppersNP);
-	if (isDebug()) {
-	  for (i=0;i<SteppersNP->nnp;i++) 
-	    IDLog("Got Encoder Property %s: %g\n", SteppersNP->np[i].label, SteppersNP->np[i].value);
-	}
-	
-	mount->Init(&ParkSV);
-	
-	zeroRAEncoder=mount->GetRAEncoderZero();
-	totalRAEncoder=mount->GetRAEncoderTotal();
-	zeroDEEncoder=mount->GetDEEncoderZero();
-	totalDEEncoder=mount->GetDEEncoderTotal();
-	
-	if ((latitude) && (latitude->value < 0.0)) SetSouthernHemisphere(true);
-	else  SetSouthernHemisphere(false);
-	
-	if (ParkSV.sp[0].s==ISS_ON) {
-	  //TODO unpark mount if desired
-	}
-	
-	//TODO start tracking ? 
-	TrackState=SCOPE_IDLE;
-	
       }
     else
       {
-	deleteProperty(GuideNSP.name);
-	deleteProperty(GuideEWP.name);
-	deleteProperty(GuideRateNP->name);
-	deleteProperty(MountInformationTP->name);
-	deleteProperty(SteppersNP->name);
-	deleteProperty(PeriodsNP->name);
-	deleteProperty(DateNP->name);
-	deleteProperty(RAStatusLP->name);
-	deleteProperty(DEStatusLP->name);
-	deleteProperty(SlewSpeedsNP->name);
-	deleteProperty(HemisphereSP->name);
-	deleteProperty(TrackModeSP->name);
-	deleteProperty(TrackRatesNP->name);
-	deleteProperty(HorizontalCoordsNP->name);
-	deleteProperty(PierSideSP->name);
-	//deleteProperty(AbortMotionSP->name);
+	if (MountInformationTP) {
+	  deleteProperty(GuideNSP.name);
+	  deleteProperty(GuideEWP.name);
+	  deleteProperty(GuideRateNP->name);
+	  deleteProperty(MountInformationTP->name);
+	  deleteProperty(SteppersNP->name);
+	  deleteProperty(CurrentSteppersNP->name);
+	  deleteProperty(PeriodsNP->name);
+	  deleteProperty(DateNP->name);
+	  deleteProperty(RAStatusLP->name);
+	  deleteProperty(DEStatusLP->name);
+	  deleteProperty(SlewSpeedsNP->name);
+	  deleteProperty(SlewModeSP->name);
+	  deleteProperty(HemisphereSP->name);
+	  deleteProperty(TrackModeSP->name);
+	  deleteProperty(TrackRatesNP->name);
+	  deleteProperty(HorizontalCoordsNP->name);
+	  deleteProperty(PierSideSP->name);
+	  //deleteProperty(AbortMotionSP->name);
+	  MountInformationTP=NULL;
+	} 
       }
-    //if (!align->updateProperties()) return false;
+    if (align) {
+      if (!align->updateProperties()) return false;
+    }
     return true;
 }
 
@@ -330,28 +407,27 @@ bool EQMod::Connect(char *port)
   try {
     mount->Connect(port);
     // Mount initialisation is in updateProperties as it sets directly Indi properties which should be defined 
-  }
-  catch(EQModError e) {
-    IDMessage(DEVICE_NAME, "%s", e.message);
-    Disconnect();
-    return false;
+  } catch(EQModError e) {
+    return(e.DefaultHandleException(this));
   }
 
-  //if (align) align->Init();
-  IDMessage(DEVICE_NAME, "Successfully connected to EQMod Mount.");
+  DEBUG(Logger::DBG_SESSION, "Successfully connected to EQMod Mount.");
   return true;
 }
 
 bool EQMod::Disconnect()
 {
-  try {
-    mount->Disconnect();
-  }
- catch(EQModError e) {
-   IDMessage(DEVICE_NAME, "%s", e.message);
- }
-  IDMessage(DEVICE_NAME, "Disconnected from EQMod Mount.");
-  return true;
+  if (isConnected()) {
+    try {
+      mount->Disconnect();
+    }
+    catch(EQModError e) {
+      DEBUGF(Logger::DBG_ERROR, "Error when disconnecting mount -> %s", e.message);
+      return(false);
+    }
+    DEBUG(Logger::DBG_SESSION,"Disconnected from EQMod Mount.");
+    return true;
+  } else return false;
 }
 
 void EQMod::TimerHit()
@@ -401,13 +477,16 @@ bool EQMod::ReadScopeStatus() {
   const char *periodsnames[]={"RAPERIOD", "DEPERIOD"};
   double horizvalues[2];
   const char *horiznames[2]={"AZ", "ALT"};
+  double steppervalues[2];
+  const char *steppernames[]={"RAStepsCurrent", "DEStepsCurrent"};
+
 
   lst+=(IUFindNumber(&LocationNV, "LONG")->value /15.0); // add longitude ha of observer
   lst=range24(lst);
   
   fs_sexa(hrlst, lst, 2, 360000);
   hrlst[11]='\0';
-  if (isDebug()) IDMessage(DEVICE_NAME, "Compute local time: lst=%2.8f (%s) - julian date=%8.8f", lst, hrlst, juliandate); 
+  DEBUGF(Logger::DBG_SCOPE_STATUS, "Compute local time: lst=%2.8f (%s) - julian date=%8.8f", lst, hrlst, juliandate); 
   //DateNP->s=IPS_BUSY;
   datevalues[0]=lst; datevalues[1]=juliandate;
   IUUpdateNumber(DateNP, datevalues, (char **)datenames, 2);
@@ -416,11 +495,11 @@ bool EQMod::ReadScopeStatus() {
   try {
     currentRAEncoder=mount->GetRAEncoder();
     currentDEEncoder=mount->GetDEEncoder();
-    if (isDebug()) IDMessage(DEVICE_NAME, "Current encoders RA=%ld DE=%ld", currentRAEncoder, currentDEEncoder);
+    DEBUGF(Logger::DBG_SCOPE_STATUS, "Current encoders RA=%ld DE=%ld", currentRAEncoder, currentDEEncoder);
     EncodersToRADec(currentRAEncoder, currentDEEncoder, lst, &currentRA, &currentDEC, &currentHA);
     alignedRA=currentRA; alignedDEC=currentDEC;
     if (align) 
-      align->GetAlignedCoords(currentRA, currentDEC, &alignedRA, &alignedDEC);
+      align->GetAlignedCoords(lst, currentRA, currentDEC, &alignedRA, &alignedDEC);
     else {
       if (syncdata.lst != 0.0) {
 	alignedRA += syncdata.deltaRA;
@@ -431,11 +510,13 @@ bool EQMod::ReadScopeStatus() {
     lnradec.ra =(alignedRA * 360.0) / 24.0;
     lnradec.dec =alignedDEC;
     ln_get_hrz_from_equ_sidereal_time(&lnradec, &lnobserver, lst, &lnaltaz);
-    horizvalues[0]=lnaltaz.az;
+    /* libnova measures azimuth from south towards west */
+    horizvalues[0]=range360(lnaltaz.az + 180);
     horizvalues[1]=lnaltaz.alt;
     IUUpdateNumber(HorizontalCoordsNP, horizvalues, (char **)horiznames, 2);
     IDSetNumber(HorizontalCoordsNP, NULL);
 
+    /* TODO should we consider currentHA after alignment ? */
     pierside=SideOfPier(currentHA);
     if (pierside == EAST) {
       piersidevalues[0]=ISS_ON; piersidevalues[1]=ISS_OFF;
@@ -445,6 +526,11 @@ bool EQMod::ReadScopeStatus() {
       IUUpdateSwitch(PierSideSP, piersidevalues, (char **)piersidenames, 2);
     }
     IDSetSwitch(PierSideSP, NULL);
+
+    steppervalues[0]=currentRAEncoder;
+    steppervalues[1]=currentDEEncoder;
+    IUUpdateNumber(CurrentSteppersNP, steppervalues, (char **)steppernames, 2);
+    IDSetNumber(CurrentSteppersNP, NULL);
 
     mount->GetRAMotorStatus(RAStatusLP);
     mount->GetDEMotorStatus(DEStatusLP);
@@ -460,31 +546,27 @@ bool EQMod::ReadScopeStatus() {
       if (!(mount->IsRARunning()) && !(mount->IsDERunning())) {
 	// Goto iteration
 	gotoparams.iterative_count += 1;
-	IDMessage(getDeviceName(), "Iterative Goto (%d): RA diff = %4.2f arcsecs DE diff = %4.2f arcsecs",
-		      gotoparams.iterative_count, 3600 * fabs(gotoparams.ratarget - currentRA),  3600 * fabs(gotoparams.detarget - currentDEC));
+	DEBUGF(Logger::DBG_SESSION, "Iterative Goto (%d): RA diff = %4.2f arcsecs DE diff = %4.2f arcsecs",
+	       gotoparams.iterative_count, 3600 * fabs(gotoparams.ratarget - currentRA),  3600 * fabs(gotoparams.detarget - currentDEC));
         if ((gotoparams.iterative_count <= GOTO_ITERATIVE_LIMIT) &&
 	    (((3600 * fabs(gotoparams.ratarget - currentRA)) > RAGOTORESOLUTION) || 
 	     ((3600 * fabs(gotoparams.detarget - currentDEC)) > DEGOTORESOLUTION))) {
 	  gotoparams.racurrent = currentRA; gotoparams.decurrent = currentDEC;
 	  gotoparams.racurrentencoder = currentRAEncoder; gotoparams.decurrentencoder = currentDEEncoder;
 	  EncoderTarget(&gotoparams);
-	  try {    
-	    // Start iterative slewing
-	    IDMessage(DEVICE_NAME, "Iterative goto (%d): slew mount to RA increment = %ld, DE increment = %ld", gotoparams.iterative_count, 
-		      gotoparams.ratargetencoder - gotoparams.racurrentencoder, gotoparams.detargetencoder - gotoparams.decurrentencoder);
-	    mount->SlewTo(gotoparams.ratargetencoder - gotoparams.racurrentencoder, gotoparams.detargetencoder - gotoparams.decurrentencoder);
-	  } catch(EQModError e) {
-	    IDMessage(DEVICE_NAME, "%s", e.message);
-	    return false;
-	  }
+	  // Start iterative slewing
+	  DEBUGF(Logger::DBG_SESSION, "Iterative goto (%d): slew mount to RA increment = %ld, DE increment = %ld", gotoparams.iterative_count, 
+		    gotoparams.ratargetencoder - gotoparams.racurrentencoder, gotoparams.detargetencoder - gotoparams.decurrentencoder);
+	  mount->SlewTo(gotoparams.ratargetencoder - gotoparams.racurrentencoder, gotoparams.detargetencoder - gotoparams.decurrentencoder);
+
 	} else {
 	  ISwitch *sw;
 	  sw=IUFindSwitch(&CoordSV,"TRACK");
 	  if ((gotoparams.iterative_count > GOTO_ITERATIVE_LIMIT) &&
 	    (((3600 * abs(gotoparams.ratarget - currentRA)) > RAGOTORESOLUTION) || 
 	     ((3600 * abs(gotoparams.detarget - currentDEC)) > DEGOTORESOLUTION))) {
-	    IDMessage(getDeviceName(), "Iterative Goto Limit reached (%d iterations): RA diff = %4.2f arcsecs DE diff = %4.2f arcsecs",
-		      gotoparams.iterative_count, 3600 * fabs(gotoparams.ratarget - currentRA),  3600 * fabs(gotoparams.detarget - currentDEC));
+	    DEBUGF(Logger::DBG_SESSION, "Iterative Goto Limit reached (%d iterations): RA diff = %4.2f arcsecs DE diff = %4.2f arcsecs",
+		   gotoparams.iterative_count, 3600 * fabs(gotoparams.ratarget - currentRA),  3600 * fabs(gotoparams.detarget - currentDEC));
 	  }
 	  if ((RememberTrackState == SCOPE_TRACKING) || ((sw != NULL) && (sw->s == ISS_ON))) {
 	    TrackState = SCOPE_TRACKING;
@@ -492,21 +574,20 @@ bool EQMod::ReadScopeStatus() {
 	    IDSetSwitch(TrackModeSP,NULL);
 	    mount->StartRATracking(GetRATrackRate());
 	    mount->StartDETracking(GetDETrackRate());
-	    IDMessage(getDeviceName(), "Telescope slew is complete. Tracking...");
+	    DEBUG(Logger::DBG_SESSION, "Telescope slew is complete. Tracking...");
 	  } else {
 	    TrackState = SCOPE_IDLE;
-	    IDMessage(getDeviceName(), "Telescope slew is complete. Stopping...");
+	    DEBUG(Logger::DBG_SESSION, "Telescope slew is complete. Stopping...");
 	  }
 	  EqNV.s = IPS_OK;
 
 	}
       } 
     }
-    
   } catch(EQModError e) {
-      IDMessage(DEVICE_NAME, "%s", e.message);
-      return false;
-    }
+    return(e.DefaultHandleException(this));
+  }    
+
   return true;
 
 }
@@ -654,7 +735,7 @@ double EQMod::rangeDec(double decdegrees) {
 void EQMod::SetSouthernHemisphere(bool southern) {
   const char *hemispherenames[]={"NORTH", "SOUTH"};
   ISState hemispherevalues[2];
-  //IDLog("Set southern %s\n", (southern?"true":"false"));
+  DEBUGF(Logger::DBG_DEBUG, "Set southern %s\n", (southern?"true":"false"));
   if (southern) Hemisphere=SOUTH;
   else Hemisphere=NORTH;
   RAInverted = (Hemisphere==SOUTH);
@@ -666,6 +747,7 @@ void EQMod::SetSouthernHemisphere(bool southern) {
     hemispherevalues[0]=ISS_OFF; hemispherevalues[1]=ISS_ON;
     IUUpdateSwitch(HemisphereSP, hemispherevalues, (char **)hemispherenames, 2);
   }
+  HemisphereSP->s=IPS_IDLE;
   IDSetSwitch(HemisphereSP, NULL);
 }
 
@@ -717,7 +799,7 @@ void EQMod::EncoderTarget(GotoParams *g)
       if ((targetraencoder > g->limiteast) || (targetraencoder < g->limitwest)) outsidelimits=true;
     }
     if (outsidelimits) {
-      IDMessage(DEVICE_NAME, "Goto: RA Limits prevent Counterweights-up slew.");
+      DEBUG(Logger::DBG_WARNING, "Goto: RA Limits prevent Counterweights-up slew.");
       if (ha < 0.0) {// target EAST
 	if (Hemisphere == NORTH) targetpier = WEST; else targetpier = EAST;
 	targetra = range24(r - 12.0);
@@ -774,7 +856,13 @@ double EQMod::GetDETrackRate()
 
 bool EQMod::Goto(double r,double d)
 {
-    //IDLog("EQMod Goto\n");
+  double juliandate=ln_get_julian_from_sys();
+  double lst=ln_get_mean_sidereal_time(juliandate);
+
+  lst+=(IUFindNumber(&LocationNV, "LONG")->value /15.0); // add longitude ha of observer
+  lst=range24(lst);
+
+  DEBUGF(Logger::DBG_SESSION,"Starting Goto RA=%g DE=%g (current RA=%g DE=%g)", r, d, currentRA, currentDEC);
     targetRA=r;
     targetDEC=d;
     char RAStr[64], DecStr[64];
@@ -783,7 +871,7 @@ bool EQMod::Goto(double r,double d)
     bzero(&gotoparams, sizeof(gotoparams));
     gotoparams.ratarget = r;  gotoparams.detarget = d;
     if (align) 
-      align->AlignGoto(&gotoparams.ratarget, &gotoparams.detarget);
+      align->AlignGoto(lst, &gotoparams.ratarget, &gotoparams.detarget);
     else {
       if (syncdata.lst != 0.0) {
 	gotoparams.ratarget -= syncdata.deltaRA;
@@ -804,14 +892,12 @@ bool EQMod::Goto(double r,double d)
       mount->StopRA();
       mount->StopDE();
       // Start slewing
-      IDMessage(DEVICE_NAME, "Slew mount to RA increment = %ld, DE increment = %ld", 
+      DEBUGF(Logger::DBG_SESSION, "Slewing mount: RA increment = %ld, DE increment = %ld", 
 		gotoparams.ratargetencoder - gotoparams.racurrentencoder, gotoparams.detargetencoder - gotoparams.decurrentencoder);
       mount->SlewTo(gotoparams.ratargetencoder - gotoparams.racurrentencoder, gotoparams.detargetencoder - gotoparams.decurrentencoder);
-
     } catch(EQModError e) {
-      IDMessage(DEVICE_NAME, "%s", e.message);
-      return false;
-    }
+      return(e.DefaultHandleException(this));
+    }    
     
     fs_sexa(RAStr, targetRA, 2, 3600);
     fs_sexa(DecStr, targetDEC, 2, 3600);
@@ -826,7 +912,7 @@ bool EQMod::Goto(double r,double d)
     TrackModeSP->s=IPS_IDLE;
     IDSetSwitch(TrackModeSP,NULL);
 
-    IDMessage(getDeviceName(), "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+    DEBUGF(Logger::DBG_SESSION, "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
 }
 
@@ -846,7 +932,7 @@ bool EQMod::Park()
     targetDEC=90;
     Parked=true;
     TrackState = SCOPE_PARKING;
-    IDMessage(getDeviceName(), "Parking telescope in progress...");
+    DEBUG(Logger::DBG_SESSION, "Parking telescope in progress...");
     return true;
 }
 
@@ -860,7 +946,7 @@ bool EQMod::Sync(double ra,double dec)
     EqNV.s=IPS_IDLE;
     //IDSetNumber(&EqReqNV, NULL);
     IDSetNumber(&EqNV, NULL);
-    IDMessage(getDeviceName(),"Syncs are allowed only when Tracking");
+    DEBUG(Logger::DBG_WARNING,"Syncs are allowed only when Tracking");
     return false;
   }
   lst+=(IUFindNumber(&LocationNV, "LONG")->value /15.0); // add longitude ha of observer
@@ -872,71 +958,90 @@ bool EQMod::Sync(double ra,double dec)
   try {
     EncodersToRADec(mount->GetRAEncoder(), mount->GetDEEncoder(), lst, &syncdata.telescopeRA, &syncdata.telescopeDEC, NULL);
   } catch(EQModError e) {
-    IDMessage(DEVICE_NAME, "%s", e.message);
-    return false;
-  }
+    return(e.DefaultHandleException(this));
+  }    
+
   syncdata.deltaRA = syncdata.targetRA - syncdata.telescopeRA;
   syncdata.deltaDEC= syncdata.targetDEC - syncdata.telescopeDEC;
   //EqReqNV.s=IPS_IDLE;
   //EqNV.s=IPS_OK;
   //IDSetNumber(&EqReqNV, NULL);
   if (align) align->AlignSync(syncdata.lst, syncdata.jd, syncdata.targetRA, syncdata.targetDEC, syncdata.telescopeRA, syncdata.telescopeDEC);
-  IDMessage(getDeviceName(),"Mount Synced (deltaRA = %.6f deltaDEC = %.6f)", syncdata.deltaRA, syncdata.deltaDEC);
+  DEBUGF(Logger::DBG_SESSION, "Mount Synced (deltaRA = %.6f deltaDEC = %.6f)", syncdata.deltaRA, syncdata.deltaDEC);
+  //IDLog("Mount Synced (deltaRA = %.6f deltaDEC = %.6f)\n", syncdata.deltaRA, syncdata.deltaDEC);
   return true;
 }
 
 bool EQMod::GuideNorth(float ms) {
   double rateshift=0.0;
   rateshift = TRACKRATE_SIDEREAL * IUFindNumber(GuideRateNP, "GUIDE_RATE_NS")->value;
+  DEBUGF(Logger::DBG_SESSION, "Timed guide North %d ms at rate %g",(int)(ms), rateshift);
   if (DEInverted) rateshift = -rateshift;
-  if (ms > 0.0) {
-    mount->StartDETracking(GetDETrackRate() + rateshift);
-    GuideTimerNS = IEAddTimer((int)(ms * 1000.0), (IE_TCF *)timedguideNSCallback, this);
-    IDMessage(getDeviceName(), "Timed guide North %d ms",(int)(ms * 1000.0));
-  }
+  try {
+    if (ms > 0.0) {
+      mount->StartDETracking(GetDETrackRate() + rateshift);
+      GuideTimerNS = IEAddTimer((int)(ms), (IE_TCF *)timedguideNSCallback, this);
+    }
+  } catch(EQModError e) {
+    return(e.DefaultHandleException(this));
+  }    
 }
 
 bool EQMod::GuideSouth(float ms) {
   double rateshift=0.0;
   rateshift = TRACKRATE_SIDEREAL * IUFindNumber(GuideRateNP, "GUIDE_RATE_NS")->value;
-  if (ms > 0.0) {
-    mount->StartDETracking(GetDETrackRate() - rateshift);
-    GuideTimerNS = IEAddTimer((int)(ms * 1000.0), (IE_TCF *)timedguideNSCallback, this);
-    IDMessage(getDeviceName(), "Timed guide South %d ms",(int)(ms * 1000.0));
-  }
+  DEBUGF(Logger::DBG_SESSION, "Timed guide South %d ms at rate %g",(int)(ms), rateshift);
+  if (DEInverted) rateshift = -rateshift;
+  try {
+    if (ms > 0.0) {
+      mount->StartDETracking(GetDETrackRate() - rateshift);
+      GuideTimerNS = IEAddTimer((int)(ms), (IE_TCF *)timedguideNSCallback, this);
+    }
+  } catch(EQModError e) {
+    return(e.DefaultHandleException(this));
+  }   
 }
 
 bool EQMod::GuideEast(float ms) {
   double rateshift=0.0;
   rateshift = TRACKRATE_SIDEREAL * IUFindNumber(GuideRateNP, "GUIDE_RATE_WE")->value;
+  DEBUGF(Logger::DBG_SESSION, "Timed guide East %d ms at rate %g",(int)(ms), rateshift);
   if (RAInverted) rateshift = -rateshift;
-  if (ms > 0.0) {
-    mount->StartRATracking(GetRATrackRate() - rateshift);
-    GuideTimerWE = IEAddTimer((int)(ms * 1000.0), (IE_TCF *)timedguideWECallback, this);
-    IDMessage(getDeviceName(), "Timed guide EAST %d ms",(int)(ms * 1000.0));
-  }
+  try {
+    if (ms > 0.0) {
+      mount->StartRATracking(GetRATrackRate() - rateshift);
+      GuideTimerWE = IEAddTimer((int)(ms), (IE_TCF *)timedguideWECallback, this);
+    }
+  } catch(EQModError e) {
+    return(e.DefaultHandleException(this));
+  }   
 }
 
 bool EQMod::GuideWest(float ms) {
   double rateshift=0.0;
   rateshift = TRACKRATE_SIDEREAL * IUFindNumber(GuideRateNP, "GUIDE_RATE_WE")->value;
+  DEBUGF(Logger::DBG_SESSION, "Timed guide West %d ms at rate %g",(int)(ms), rateshift);
   if (RAInverted) rateshift = -rateshift;
-  if (ms > 0.0) {
-    mount->StartRATracking(GetRATrackRate() + rateshift);
-    GuideTimerWE = IEAddTimer((int)(ms * 1000.0), (IE_TCF *)timedguideWECallback, this);
-    IDMessage(getDeviceName(), "Timed guide West %d ms",(int)(ms * 1000.0));
-  }
+  try {
+    if (ms > 0.0) {
+      mount->StartRATracking(GetRATrackRate() + rateshift);
+      GuideTimerWE = IEAddTimer((int)(ms), (IE_TCF *)timedguideWECallback, this);
+    }
+  } catch(EQModError e) {
+    return(e.DefaultHandleException(this));
+  }   
 }
 
 bool EQMod::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
+  bool compose=true;
   //  first check if it's for our device
-
   if(strcmp(dev,getDeviceName())==0)
     {
       //  This is for our device
       //  Now lets see if it's something we process here
-      
+
+
       if(strcmp(name,"SLEWSPEEDS")==0)
 	{ 
 	  unsigned int i;
@@ -948,13 +1053,13 @@ bool EQMod::ISNewNumber (const char *dev, const char *name, double values[], cha
 		else if  (strcmp(names[i], "DESLEW") == 0) mount->SetDERate(values[i]);
 	      }
 	    } catch(EQModError e) {
-	      IDMessage(DEVICE_NAME, "%s", e.message);
-	      return false;
-	    }
+	      return(e.DefaultHandleException(this));
+	    }   
 	  }
 	  IUUpdateNumber(SlewSpeedsNP, values, names, n);
 	  SlewSpeedsNP->s = IPS_OK;
-	  IDSetNumber(SlewSpeedsNP, "Setting Slew rates - RA=%.2fx DE=%.2fx", 
+	  IDSetNumber(SlewSpeedsNP, NULL);
+	  DEBUGF(Logger::DBG_SESSION, "Setting Slew rates - RA=%.2fx DE=%.2fx", 
 		      IUFindNumber(SlewSpeedsNP,"RASLEW")->value, IUFindNumber(SlewSpeedsNP,"DESLEW")->value);
 	  return true;
 	}
@@ -971,13 +1076,13 @@ bool EQMod::ISNewNumber (const char *dev, const char *name, double values[], cha
 		else if  (strcmp(names[i], "DETRACKRATE") == 0) mount->SetDERate(values[i] / SKYWATCHER_STELLAR_SPEED);
 	      }
 	    } catch(EQModError e) {
-	      IDMessage(DEVICE_NAME, "%s", e.message);
-	      return false;
-	    }
+	      return(e.DefaultHandleException(this));
+	    }   
 	  }
 	  IUUpdateNumber(TrackRatesNP, values, names, n);
 	  TrackRatesNP->s = IPS_OK;
-	  IDSetNumber(TrackRatesNP, "Setting Custom Tracking Rates - RA=%.6f arcsec/s DE=%.6f arcsec/s", 
+	  IDSetNumber(TrackRatesNP, NULL);
+	  DEBUGF(Logger::DBG_SESSION, "Setting Custom Tracking Rates - RA=%.6f  DE=%.6f arcsec/s", 
 		      IUFindNumber(TrackRatesNP,"RATRACKRATE")->value, IUFindNumber(TrackRatesNP,"DETRACKRATE")->value);
 	  return true;
 	}
@@ -992,7 +1097,7 @@ bool EQMod::ISNewNumber (const char *dev, const char *name, double values[], cha
 	      IDSetNumber(&GuideNSP, NULL);
 	      GuideEWP.s = IPS_IDLE;
 	      IDSetNumber(&GuideEWP, NULL);
-	      IDMessage(this->getDeviceName(), "Can not guide if not tracking.");
+	      DEBUG(Logger::DBG_WARNING, "Can not guide if not tracking.");
 	      return true;
 	    }
 
@@ -1006,6 +1111,8 @@ bool EQMod::ISNewNumber (const char *dev, const char *name, double values[], cha
 	  IUUpdateNumber(GuideRateNP, values, names, n);
 	  GuideRateNP->s = IPS_OK;
 	  IDSetNumber(GuideRateNP, NULL);
+	  DEBUGF(Logger::DBG_SESSION, "Setting Custom Tracking Rates - RA=%1.1f arcsec/s DE=%1.1f arcsec/s", 
+		      IUFindNumber(GuideRateNP,"GUIDE_RATE_WE")->value, IUFindNumber(GuideRateNP,"GUIDE_RATE_NS")->value);
 	  return true;
 	}
       
@@ -1023,12 +1130,21 @@ bool EQMod::ISNewNumber (const char *dev, const char *name, double values[], cha
 	      else SetSouthernHemisphere(false);
 	    }
 	  }   
-	  IDMessage(DEVICE_NAME,"Changed observer: %f %f", lnobserver.lng, lnobserver.lat);
+	  DEBUGF(Logger::DBG_SESSION,"Changed observer: long = %f lat = %f", lnobserver.lng, lnobserver.lat);
 	  return true;
 	}
       
     }
-  
+
+
+  if (align) { compose=align->ISNewNumber(dev,name,values,names,n); if (compose) return true;}
+
+#ifdef WITH_SIMULATOR
+  if (simulator) { 
+      compose=simulator->ISNewNumber(dev,name,values,names,n); if (compose) return true;
+  }
+#endif
+
     //  if we didn't process it, continue up the chain, let somebody else
     //  give it a shot
     return INDI::Telescope::ISNewNumber(dev,name,values,names,n);
@@ -1036,7 +1152,7 @@ bool EQMod::ISNewNumber (const char *dev, const char *name, double values[], cha
 
 bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-
+  bool compose=true;
     //IDLog("Enter IsNewSwitch for %s\n",name);
     //for(int x=0; x<n; x++) {
     //    IDLog("Switch %s %d\n",names[x],states[x]);
@@ -1044,6 +1160,55 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 
     if(strcmp(dev,getDeviceName())==0)
     {      
+      if (!strcmp(name, "DEBUG"))
+	{
+	  ISwitchVectorProperty *svp = getSwitch(name);
+	  IUUpdateSwitch(svp, states, names, n);
+	  ISwitch *sp = IUFindOnSwitch(svp);
+	  if (!sp)
+	    return false;
+	  
+	  if (!strcmp(sp->name, "ENABLE"))
+	    setLogDebug(true);
+	  else
+	    setLogDebug(false);
+	  return true;
+	}
+
+#ifdef WITH_SIMULATOR
+      if (!strcmp(name, "SIMULATION"))
+	{
+	  ISwitchVectorProperty *svp = getSwitch(name);
+	  IUUpdateSwitch(svp, states, names, n);
+	  ISwitch *sp = IUFindOnSwitch(svp);
+	  if (!sp)
+	    return false;
+	  
+	  if (!strcmp(sp->name, "ENABLE"))
+	    setStepperSimulation(true);
+	  else
+	    setStepperSimulation(false);
+	  return true;
+	}
+#endif
+
+      if(strcmp(name,"HEMISPHERE")==0)
+	{
+	  /* Read-only property */
+	  SetSouthernHemisphere(Hemisphere==SOUTH);
+	  return true;
+	}
+
+      if(strcmp(name,"SLEWMODE")==0)
+ 	{  
+	  ISwitch *sw;
+	  IUUpdateSwitch(SlewModeSP,states,names,n);
+	  sw=IUFindOnSwitch(SlewModeSP);
+	  DEBUGF(Logger::DBG_SESSION, "Slew mode :  %s", sw->label);
+	  SlewModeSP->s=IPS_IDLE;
+	  IDSetSwitch(SlewModeSP,NULL);
+	  return true;
+	}
 
       if(strcmp(name,"TRACKMODE")==0)
  	{  
@@ -1051,42 +1216,57 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 	  swbefore=IUFindOnSwitch(TrackModeSP);
 	  IUUpdateSwitch(TrackModeSP,states,names,n);
 	  swafter=IUFindOnSwitch(TrackModeSP);
-	  IDMessage(getDeviceName(), "Track mode :  from %s to %s.", swbefore->name, swafter->name);
-	  if (swbefore == swafter) {
-	    if ( TrackState == SCOPE_TRACKING) {
-	      TrackState = SCOPE_IDLE;
-	      TrackModeSP->s=IPS_IDLE;
-	      IDSetSwitch(TrackModeSP,NULL);
-	      mount->StopRA();
-	      mount->StopDE();
-	      IDMessage(getDeviceName(), "Stop Tracking (%s).", swafter->name);
-	    } else {
-	      if (TrackState == SCOPE_IDLE) {
-		TrackState = SCOPE_TRACKING;
-		TrackModeSP->s=IPS_BUSY;
+	  //DEBUGF(Logger::DBG_SESSION, "Track mode :  from %s to %s.", swbefore->name, swafter->name);
+	  try {
+	    if (swbefore == swafter) {
+	      if ( TrackState == SCOPE_TRACKING) {
+		DEBUGF(Logger::DBG_SESSION, "Stop Tracking (%s).", swafter->name);
+		TrackState = SCOPE_IDLE;
+		TrackModeSP->s=IPS_IDLE;
 		IDSetSwitch(TrackModeSP,NULL);
+		mount->StopRA();
+		mount->StopDE();
+	      } else {
+		if (TrackState == SCOPE_IDLE) {
+		  DEBUGF(Logger::DBG_SESSION, "Start Tracking (%s).", swafter->name);
+		  TrackState = SCOPE_TRACKING;
+		  TrackModeSP->s=IPS_BUSY;
+		  IDSetSwitch(TrackModeSP,NULL);
+		  mount->StartRATracking(GetRATrackRate());
+		  mount->StartDETracking(GetDETrackRate());
+		} else {
+		  TrackModeSP->s=IPS_IDLE;
+		  IDSetSwitch(TrackModeSP,NULL);
+		  DEBUGF(Logger::DBG_WARNING, "Can not start Tracking (%s).", swafter->name);
+		}
+	      }
+	    } else {
+	      if (TrackState == SCOPE_TRACKING) {
+		DEBUGF(Logger::DBG_SESSION, "Changed Tracking rate (%s).", swafter->name);
 		mount->StartRATracking(GetRATrackRate());
 		mount->StartDETracking(GetDETrackRate());
-		IDMessage(getDeviceName(), "Start Tracking (%s).", swafter->name);
 	      } else {
 		TrackModeSP->s=IPS_IDLE;
 		IDSetSwitch(TrackModeSP,NULL);
-		IDMessage(getDeviceName(), "Can not start Tracking (%s).", swafter->name);
+		DEBUGF(Logger::DBG_SESSION,"Changed Tracking mode (from %s to %s).", swbefore->name, swafter->name);
 	      }
 	    }
-	  } else {
-	    if (TrackState == SCOPE_TRACKING) {
-	      mount->StartRATracking(GetRATrackRate());
-	      mount->StartDETracking(GetDETrackRate());
-	    } else {
-	      TrackModeSP->s=IPS_IDLE;
-	      IDSetSwitch(TrackModeSP,NULL);
-	    }
-	    IDMessage(getDeviceName(), "Changing Track mode (from %s to %s).", swbefore->name, swafter->name);
-	  }
+	    } catch(EQModError e) {
+	      return(e.DefaultHandleException(this));
+	  }   
 	  return true;	
 	}
     }
+
+    if (align) { compose=align->ISNewSwitch(dev,name,states,names,n); if (compose) return true;}
+
+#ifdef WITH_SIMULATOR
+    if (simulator) { 
+      compose=simulator->ISNewSwitch(dev,name,states,names,n); if (compose) return true;
+  }
+#endif
+
+    Logger::ISNewSwitch(dev,name,states,names,n);
 
     //  Nobody has claimed this, so, ignore it
     return INDI::Telescope::ISNewSwitch(dev,name,states,names,n);
@@ -1094,40 +1274,75 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 
 bool EQMod::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n) 
 {
-
+  bool compose;
   if(strcmp(dev,getDeviceName())==0)
     {
 
     }
-  if (align) align->ISNewText(dev,name,texts,names,n);
+  if (align) { compose=align->ISNewText(dev,name,texts,names,n); if (compose) return true;}
+
+#ifdef WITH_SIMULATOR
+  if (simulator) { 
+    compose=simulator->ISNewText(dev,name,texts,names,n); if (compose) return true;
+  }
+#endif
   //  Nobody has claimed this, so, ignore it
   return INDI::Telescope::ISNewText(dev,name,texts,names,n);
 }
 
+double EQMod::GetRASlew() {	  
+  ISwitch *sw;
+  double rate=1.0;
+  sw=IUFindOnSwitch(SlewModeSP);
+  if (!strcmp(sw->name, "SLEWCUSTOM")) 
+    rate=IUFindNumber(SlewSpeedsNP, "RASLEW")->value;
+  else
+    rate = *((double *)sw->aux);
+  return rate;
+}
+
+double EQMod::GetDESlew() {
+  ISwitch *sw;
+  double rate=1.0;
+  sw=IUFindOnSwitch(SlewModeSP);
+  if (!strcmp(sw->name, "SLEWCUSTOM")) 
+    rate=IUFindNumber(SlewSpeedsNP, "DESLEW")->value;
+  else
+    rate = *((double *)sw->aux);
+  return rate;
+}
+
 bool EQMod::MoveNS(TelescopeMotionNS dir)
 {
-  static int last_motion=-1;
-
+  static int last_motion_ns=-1;
+  if (TrackState == SCOPE_SLEWING) {
+    DEBUG(Logger::DBG_WARNING, "Can not slew while goto in progress.");
+    IUResetSwitch(&MovementNSSP);
+    MovementNSSP.s = IPS_IDLE;
+    IDSetSwitch(&MovementNSSP, NULL);
+    return true;
+  }
+  try {
   switch (dir)
     {
     case MOTION_NORTH:
-      if (last_motion != MOTION_NORTH)  {
-	double rate=IUFindNumber(SlewSpeedsNP, "DESLEW")->value;
+      if (last_motion_ns != MOTION_NORTH)  {
+	double rate=GetDESlew();
+	DEBUG(Logger::DBG_SESSION, "Starting North slew.");
 	if (DEInverted) rate=-rate;
 	mount->SlewDE(rate);
-	last_motion = MOTION_NORTH;
+	last_motion_ns = MOTION_NORTH;
 	RememberTrackState = TrackState;
-	IDMessage(getDeviceName(), "Starting North slew.");
       } else {
+	DEBUG(Logger::DBG_SESSION, "North Slew stopped");
 	mount->StopDE();
-	last_motion=-1;
+	last_motion_ns=-1;
 	if (RememberTrackState == SCOPE_TRACKING) {
+	  DEBUG(Logger::DBG_SESSION, "Restarting DE Tracking...");
 	  TrackState = SCOPE_TRACKING;
 	  mount->StartDETracking(GetDETrackRate());
-	  IDMessage(getDeviceName(), "North Slew stopped. Restarting DE Tracking...");
 	} else {
 	  TrackState = SCOPE_IDLE;
-	  IDMessage(getDeviceName(), "North Slew stopped");
 	}
 	IUResetSwitch(&MovementNSSP);
 	MovementNSSP.s = IPS_IDLE;
@@ -1136,23 +1351,23 @@ bool EQMod::MoveNS(TelescopeMotionNS dir)
       break;
       
     case MOTION_SOUTH:
-      if (last_motion != MOTION_SOUTH) {
-	double rate=-(IUFindNumber(SlewSpeedsNP, "DESLEW")->value);
+      if (last_motion_ns != MOTION_SOUTH) {
+	double rate=-GetDESlew();
+	DEBUG(Logger::DBG_SESSION, "Starting South slew");
 	if (DEInverted) rate=-rate;
 	mount->SlewDE(rate);
-	last_motion = MOTION_SOUTH;
+	last_motion_ns = MOTION_SOUTH;
 	RememberTrackState = TrackState;
-	IDMessage(getDeviceName(), "Starting South slew");
       } else {
+	DEBUG(Logger::DBG_SESSION, "South Slew stopped.");
 	mount->StopDE();
-	last_motion=-1;
+	last_motion_ns=-1;
 	if (RememberTrackState == SCOPE_TRACKING) {
+	    DEBUG(Logger::DBG_SESSION, "Restarting DE Tracking...");
 	    TrackState = SCOPE_TRACKING;
 	    mount->StartDETracking(GetDETrackRate());
-	    IDMessage(getDeviceName(), "South Slew stopped. Restarting DE Tracking...");
 	  } else {
 	    TrackState = SCOPE_IDLE;
-	    IDMessage(getDeviceName(), "South Slew stopped.");
 	  }
 	IUResetSwitch(&MovementNSSP);
 	MovementNSSP.s = IPS_IDLE;
@@ -1160,75 +1375,102 @@ bool EQMod::MoveNS(TelescopeMotionNS dir)
       }
       break;
     }
-  
+  } catch (EQModError e) {
+    return e.DefaultHandleException(this);
+  }
   return true;
 }
 
 bool EQMod::MoveWE(TelescopeMotionWE dir)
 {
     static int last_motion=-1;
-
-    switch (dir)
-    {
-    case MOTION_WEST:
-      if (last_motion != MOTION_WEST) {
-	double rate=IUFindNumber(SlewSpeedsNP, "RASLEW")->value;
-	if (RAInverted) rate=-rate;
-	mount->SlewRA(rate);
-	last_motion = MOTION_WEST;
-	RememberTrackState = TrackState;
-	IDMessage(getDeviceName(), "Starting West Slew");
-      } else {
-	mount->StopRA();
-	last_motion=-1;
-	if (RememberTrackState == SCOPE_TRACKING) {
-	  TrackState = SCOPE_TRACKING;
-	  mount->StartRATracking(GetRATrackRate());
-	  IDMessage(getDeviceName(), "West Slew stopped. Restarting RA Tracking...");
-	} else {
-	  TrackState = SCOPE_IDLE;
-	  IDMessage(getDeviceName(), "West Slew stopped");
-	}
-	IUResetSwitch(&MovementWESP);
-	MovementWESP.s = IPS_IDLE;
-	IDSetSwitch(&MovementWESP, NULL);
-      }
-      break;
-      
-    case MOTION_EAST:
-      if (last_motion != MOTION_EAST) {
-	double rate=-(IUFindNumber(SlewSpeedsNP, "RASLEW")->value);
-	if (RAInverted) rate=-rate;
-	mount->SlewRA(rate);
-	last_motion = MOTION_EAST;
-	RememberTrackState = TrackState;
-	IDMessage(getDeviceName(), "Starting East Slew");
-      } else {
-	mount->StopRA();
-	last_motion=-1;
-	if (RememberTrackState == SCOPE_TRACKING) {
-	  TrackState = SCOPE_TRACKING;
-	  mount->StartRATracking(GetRATrackRate());
-	  IDMessage(getDeviceName(), "East Slew stopped. Restarting RA Tracking...");
-	} else {
-	  TrackState = SCOPE_IDLE;
-	  IDMessage(getDeviceName(), "East Slew stopped");
-	}
-	IUResetSwitch(&MovementWESP);
-	MovementWESP.s = IPS_IDLE;
-	IDSetSwitch(&MovementWESP, NULL);
-      }
-      break;
+    if (TrackState == SCOPE_SLEWING) {
+      DEBUG(Logger::DBG_WARNING, "Can not slew while goto in progress.");
+      IUResetSwitch(&MovementWESP);
+      MovementWESP.s = IPS_IDLE;
+      IDSetSwitch(&MovementWESP, NULL);
+      return true;
     }
-
+    try {
+      switch (dir)
+	{
+	case MOTION_WEST:
+	  if (last_motion != MOTION_WEST) {
+	    double rate=GetRASlew();
+	    DEBUG(Logger::DBG_SESSION, "Starting West Slew");
+	    if (RAInverted) rate=-rate;
+	    mount->SlewRA(rate);
+	    last_motion = MOTION_WEST;
+	    RememberTrackState = TrackState;
+	  } else {
+	    DEBUG(Logger::DBG_SESSION, "West Slew stopped");
+	    mount->StopRA();
+	    last_motion=-1;
+	    if (RememberTrackState == SCOPE_TRACKING) {
+	      DEBUG(Logger::DBG_SESSION, "Restarting RA Tracking...");
+	      TrackState = SCOPE_TRACKING;
+	      mount->StartRATracking(GetRATrackRate());
+	    } else {
+	      TrackState = SCOPE_IDLE;
+	    }
+	    IUResetSwitch(&MovementWESP);
+	    MovementWESP.s = IPS_IDLE;
+	    IDSetSwitch(&MovementWESP, NULL);
+	  }
+	  break;
+	  
+	case MOTION_EAST:
+	  if (last_motion != MOTION_EAST) {
+	    double rate=-GetRASlew();
+	    DEBUG(Logger::DBG_SESSION,  "Starting East Slew");
+	    if (RAInverted) rate=-rate;
+	    mount->SlewRA(rate);
+	    last_motion = MOTION_EAST;
+	    RememberTrackState = TrackState;
+	  } else {
+	    DEBUG(Logger::DBG_SESSION,  "East Slew stopped");
+	    mount->StopRA();
+	    last_motion=-1;
+	    if (RememberTrackState == SCOPE_TRACKING) {
+	      DEBUG(Logger::DBG_SESSION,  "Restarting RA Tracking...");
+	      TrackState = SCOPE_TRACKING;
+	      mount->StartRATracking(GetRATrackRate());
+	    } else {
+	      TrackState = SCOPE_IDLE;
+	    }
+	    IUResetSwitch(&MovementWESP);
+	    MovementWESP.s = IPS_IDLE;
+	    IDSetSwitch(&MovementWESP, NULL);
+	  }
+	  break;
+	}
+    } catch(EQModError e) {
+      return(e.DefaultHandleException(this));
+    }   
     return true;
 
 }
 
 bool EQMod::Abort()
 {
-  mount->StopRA();
-  mount->StopDE();
+  try {
+    mount->StopRA();
+  } catch(EQModError e) {
+    if (!(e.DefaultHandleException(this))) {
+      DEBUG(Logger::DBG_WARNING,  "Abort: error while stopping RA motor");
+    }   
+  }   
+  try {
+    mount->StopDE();
+  } catch(EQModError e) {
+    if (!(e.DefaultHandleException(this))) {
+      DEBUG(Logger::DBG_WARNING,  "Abort: error while stopping DE motor");
+    }   
+  }   
+
+  if (TrackState==SCOPE_TRACKING) {
+    // How to know we are also guiding: GuideTimer != 0 ??
+  }
   //INDI::Telescope::Abort();
   // Reset switches
   GuideNSP.s = IPS_IDLE;
@@ -1238,7 +1480,7 @@ bool EQMod::Abort()
   TrackModeSP->s=IPS_IDLE;
   IUResetSwitch(TrackModeSP);
   IDSetSwitch(TrackModeSP,NULL);    
-
+  
   if (MovementNSSP.s == IPS_BUSY)
     {
       IUResetSwitch(&MovementNSSP);
@@ -1251,7 +1493,7 @@ bool EQMod::Abort()
       MovementWESP.s = IPS_IDLE;
       IUResetSwitch(&MovementWESP);
       IDSetSwitch(&MovementWESP, NULL);
-    }
+      }
   
   if (ParkSV.s == IPS_BUSY)
     {
@@ -1262,8 +1504,8 @@ bool EQMod::Abort()
   
   /*if (EqReqNV.s == IPS_BUSY)
     {
-      EqReqNV.s      = IPS_IDLE;
-      IDSetNumber(&EqReqNV, NULL);
+    EqReqNV.s      = IPS_IDLE;
+    IDSetNumber(&EqReqNV, NULL);
     }
   */
   if (EqNV.s == IPS_BUSY)
@@ -1271,32 +1513,45 @@ bool EQMod::Abort()
       EqNV.s = IPS_IDLE;
       IDSetNumber(&EqNV, NULL);
     }   
-
+  
   TrackState=SCOPE_IDLE;
-
+  
   AbortSV.s=IPS_OK;
   IUResetSwitch(&AbortSV);
-  IDSetSwitch(&AbortSV, "Telescope Aborted");
-
+  IDSetSwitch(&AbortSV, NULL);
+  DEBUG(Logger::DBG_SESSION, "Telescope Aborted");
+  
   return true;
 }
 
 void EQMod::timedguideNSCallback(void *userpointer) {
   EQMod *p = ((EQMod *)userpointer);
-  p->mount->StartDETracking(p->GetDETrackRate());
+  try {
+    p->mount->StartDETracking(p->GetDETrackRate());
+  } catch(EQModError e) {
+    if (!(e.DefaultHandleException(p))) {
+      DEBUGDEVICE(p->getDeviceName(), Logger::DBG_WARNING, "Timed guide North/South Error: can not restart tracking");
+    }   
+  }
   p->GuideNSP.s = IPS_IDLE;
   //p->GuideNSN[GUIDE_NORTH].value = p->GuideNSN[GUIDE_SOUTH].value = 0;
   IDSetNumber(&(p->GuideNSP), NULL);
-  IDMessage(p->getDeviceName(), "End Timed guide North/South");
+  DEBUGDEVICE(p->getDeviceName(), Logger::DBG_SESSION, "End Timed guide North/South");
   IERmTimer(p->GuideTimerNS);
 }
 
 void EQMod::timedguideWECallback(void *userpointer) {
   EQMod *p = ((EQMod *)userpointer);
+  try {
   p->mount->StartRATracking(p->GetRATrackRate());
+  } catch(EQModError e) {
+    if (!(e.DefaultHandleException(p))) {
+      DEBUGDEVICE(p->getDeviceName(), Logger::DBG_WARNING, "Timed guide West/East Error: can not restart tracking");
+    }   
+  }
   p->GuideEWP.s = IPS_IDLE;
   //p->GuideWEN[GUIDE_WEST].value = p->GuideWEN[GUIDE_EAST].value = 0;
   IDSetNumber(&(p->GuideEWP), NULL);
-  IDMessage(p->getDeviceName(), "End Timed guide West/East");
+  DEBUGDEVICE(p->getDeviceName(), Logger::DBG_SESSION, "End Timed guide West/East");
   IERmTimer(p->GuideTimerWE);
 }

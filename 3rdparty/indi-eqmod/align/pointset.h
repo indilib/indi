@@ -19,9 +19,13 @@
 #define POINTSET_H
 
 #include <map>
+#include <set>
 
 #include "htm.h"
 #include <lilxml.h>
+
+// to get access to lat/long data
+#include <inditelescope.h>
 
 typedef struct AlignData {
   double lst;
@@ -40,20 +44,36 @@ class PointSet
     double celestialALT, celestialAZ, telescopeALT, telescopeAZ;
     AlignData aligndata;
   } Point;
-
-  void AddPoint(AlignData aligndata);
+  typedef struct Distance {
+    HtmID htmID;
+    double value;
+  } Distance;
+  typedef enum PointFilter {
+    None, SameQuadrant
+  } PointFilter;
+  PointSet(INDI::Telescope *);
+  void AddPoint(AlignData aligndata, struct ln_lnlat_posn *pos);
+  Point *getPoint(HtmID htmid);
   void Init();
   void Reset();
   char *LoadDataFile(const char *filename);
-
+  char *WriteDataFile(const char *filename);
+  std::set<Distance, bool (*)(Distance, Distance)> *ComputeDistances(double alt, double az, PointFilter filter);
+  double lat, lon, alt;
+  double range24(double r);
+  double range360(double r);
+  void AltAzFromRaDec(double ra, double dec, double lst, double *alt, double *az, struct ln_lnlat_posn *pos);
+  void RaDecFromAltAz(double alt, double az, double jd, double *ra, double *dec, struct ln_lnlat_posn *pos) ;
  protected:
  private:
 
   XMLEle *PointSetXmlRoot;
   std::map<HtmID, Point> *PointSetMap;
-  double lat, lon, alt;
- 
-  double range24(double r);
+
+  // to get access to lat/long data
+  INDI::Telescope *telescope;
+  // from align data file
+  struct ln_lnlat_posn *lnalignpos; 
 
 };
 #endif

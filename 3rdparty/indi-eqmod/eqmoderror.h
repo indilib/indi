@@ -19,6 +19,9 @@
 #define EQMODERROR_H
 
 #define ERROR_MSG_LENGTH 250
+#include <indidevapi.h>
+
+class EQMod;
 
 class EQModError 
 {
@@ -27,6 +30,8 @@ public:
     char message[ERROR_MSG_LENGTH];
 
     EQModError(Severity sev, const char *msg, ...);
+    const char *severityString();
+    bool DefaultHandleException(EQMod *device);
 };
 
 #endif

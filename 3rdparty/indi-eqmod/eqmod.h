@@ -20,9 +20,14 @@
 
 #include <inditelescope.h>
 #include <indiguiderinterface.h>
+#include <libnova.h>
 
+#include "config.h"
 #include "skywatcher.h"
 #include "align/align.h"
+#ifdef WITH_SIMULATOR
+#include "simulator/simulator.h"
+#endif
 
 class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 {
@@ -30,6 +35,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
     private:
         Skywatcher *mount;
 	Align *align;
+
 	unsigned long currentRAEncoder, zeroRAEncoder, totalRAEncoder;
 	unsigned long currentDEEncoder, zeroDEEncoder, totalDEEncoder;
 	
@@ -54,11 +60,13 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 
 	ITextVectorProperty *MountInformationTP;
 	INumberVectorProperty *SteppersNP;
+	INumberVectorProperty *CurrentSteppersNP;
 	INumberVectorProperty *PeriodsNP;
 	INumberVectorProperty *DateNP;
 	ILightVectorProperty *RAStatusLP;
 	ILightVectorProperty *DEStatusLP;
 	INumberVectorProperty *SlewSpeedsNP;
+	ISwitchVectorProperty *SlewModeSP;
 	ISwitchVectorProperty *HemisphereSP;
 	ISwitchVectorProperty *PierSideSP;
 	ISwitchVectorProperty *TrackModeSP;
@@ -109,7 +117,11 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 	double GetDETrackRate();
 	static void timedguideNSCallback(void *userpointer);
 	static void timedguideWECallback(void *userpointer);
+	double GetRASlew();
+	double GetDESlew();
 
+	void setLogDebug (bool enable);
+	void setStepperSimulation (bool enable);
     public:
         EQMod();
         virtual ~EQMod();
@@ -143,6 +155,11 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
         virtual bool canSync();
         virtual bool canPark();
 
+	double getLongitude();
+	double getLatitude();
+#ifdef WITH_SIMULATOR
+	EQModSimulator *simulator;
+#endif
 };
 
 #endif // EQMOD_H
