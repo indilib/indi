@@ -159,7 +159,7 @@ int sxOpen(HANDLE *sxHandles) {
   DEVICE devices[20];
   const char* names[20];
   int count = sxList(devices, names);
-
+  int result=0;
   for (int i = 0; i < count; i++) {
     TRACE(fprintf(stderr, "   opening '%s' [0x%x, 0x%x]\n", names[i], devices[i]->descriptor.idVendor, devices[i]->descriptor.idProduct));
     HANDLE handle = usb_open(devices[i]);
@@ -175,14 +175,13 @@ int sxOpen(HANDLE *sxHandles) {
 #endif
       TRACE(fprintf(stderr, "   usb_claim_interface() -> %d\n", rc));
       if (rc>=0) {
-        sxHandles[i] = handle;
+        sxHandles[result++] = handle;
       }
     }
-
   }
 
-  TRACE(fprintf(stderr, "<- sxOpen %d\n", count));
-  return count;
+  TRACE(fprintf(stderr, "<- sxOpen %d\n", result));
+  return result;
 }
 
 void sxClose(HANDLE sxHandle) {

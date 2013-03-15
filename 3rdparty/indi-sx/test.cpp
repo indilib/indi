@@ -17,8 +17,8 @@ int main() {
     HANDLE handle=handles[i];
     sxReset(handle);
     sxGetCameraModel(handle);
-    sxGetFirmwareVersion(handle);
-    sxGetBuildNumber(handle);
+//    sxGetFirmwareVersion(handle);
+//    sxGetBuildNumber(handle);
     memset(&params, 0, sizeof(params));
     sxGetCameraParams(handle, 0, &params);
 
