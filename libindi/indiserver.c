@@ -257,7 +257,7 @@ main (int ac, char *av[])
 
 	/* start each driver */
         while (ac-- > 0) {
-            strcpy(dvrinfo[ac].name, *av++);
+            strncpy(dvrinfo[ac].name, *av++, MAXINDINAME);
 	    startDvr (&dvrinfo[ac]);
         }
 
