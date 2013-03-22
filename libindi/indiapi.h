@@ -125,13 +125,13 @@ typedef enum
 /* The XML strings for these attributes may be any length but implementations
  * are only obligued to support these lengths for the various string attributes.
  */
-#define	MAXINDINAME	32
-#define	MAXINDILABEL	32
-#define	MAXINDIDEVICE	32
-#define	MAXINDIGROUP	32
-#define	MAXINDIFORMAT	32
-#define	MAXINDIBLOBFMT	32
-#define	MAXINDITSTAMP	32
+#define	MAXINDINAME     64
+#define	MAXINDILABEL	64
+#define	MAXINDIDEVICE	64
+#define	MAXINDIGROUP	64
+#define	MAXINDIFORMAT	64
+#define	MAXINDIBLOBFMT	64
+#define	MAXINDITSTAMP	64
 
 /*******************************************************************************
  * Typedefs for each INDI Property type.

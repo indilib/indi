@@ -119,7 +119,7 @@ static int nclinfo;			/* n total (not active) */
 
 /* info for each connected driver */
 typedef struct {
-    char name[MAXINDIDEVICE];		/* persistent name */
+    char name[MAXINDINAME];		/* persistent name */
     char dev[MAXINDIDEVICE];		/* device served by this driver */
     int active;				/* 1 when this record is in use */
     Property *sprops;			/* malloced array of props we snoop */
