@@ -221,6 +221,10 @@ bool CCDSim::initProperties()
 
     initFilterProperties(getDeviceName(), FILTER_TAB);
 
+    MinFilter=1;
+    MaxFilter=5;
+    FilterSlotN[0].max = MaxFilter;
+
     return true;
 }
 
@@ -251,6 +255,7 @@ bool CCDSim::updateProperties()
             GuideCCD.setFrameBufferSize(GuideCCD.getXRes() * GuideCCD.getYRes() * 2);
         }
 
+        // Define the Filter Slot and name properties
         defineNumber(&FilterSlotNP);
         if (FilterNameT != NULL)
             defineText(FilterNameTP);
