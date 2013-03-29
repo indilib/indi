@@ -112,9 +112,41 @@
 #define TRACE(c) (c)
 #define DEBUG(c) (c)
 
-static const char *SX_NAMES[] = { "SXVF-M5", "SXVF-M5C", "SXVF-M7", "SXVF-M7C", "SXVF-M8C", "SXVF-M9", "SXVR-M25C", "SXVR-M26C", "SXVR-H18", "SXVR-H16", "SXVR-H35", "SXVR-H36", "SXVR-H9", "SXVR-H9C", "SXVR-H9", "SXVR-H9C", "Lodestar", "CoStar", "Superstar", "MX Camera", "SXVR-H694", "SXVR-H5", "SXVR-H694C", "SXVR-H674", "SXVR-H674C", NULL };
-static int SX_PIDS[] = { 0x0105, 0x0305, 0x0107, 0x0307, 0x0308, 0x0109, 0x0325, 0x0326, 0x0128, 0x0126, 0x0135, 0x0136, 0x0119, 0x0319, 0x0100, 0x0100, 0x0507, 0x0517, 0x0509, 0x0200, 0x0194, 0x0115, 0x0394, 0x0174, 0x0374, 0 };
+//static const char *SX_NAMES[] = { "SXVF-M5", "SXVF-M5C", "SXVF-M7", "SXVF-M7C", "SXVF-M8C", "SXVF-M9", "SXVR-M25C", "SXVR-M26C", "SXVR-H18", "SXVR-H16", "SXVR-H35", "SXVR-H36", "SXVR-H9", "SXVR-H9C", "SXVR-H9", "SXVR-H9C", "LodeStar", "CoStar", "SuperStar", "MX Camera", "SXVR-H694", "SXVR-H5", "SXVR-H694C", "SXVR-H674", "SXVR-H674C", NULL };
+//static int SX_PIDS[] = { 0x0105, 0x0305, 0x0107, 0x0307, 0x0308, 0x0109, 0x0325, 0x0326, 0x0128, 0x0126, 0x0135, 0x0136, 0x0119, 0x0319, 0x0100, 0x0100, 0x0507, 0x0517, 0x0509, 0x0200, 0x0194, 0x0115, 0x0394, 0x0174, 0x0374, 0 };
 
+static struct {
+  int pid;
+  const char *name;
+  } SX_PIDS[] = {
+    { 0x105, "SXVF-M5" },
+    { 0x305, "SXVF-M5C" },
+    { 0x107, "SXVF-M7" },
+    { 0x307, "SXVF-M7C" },
+    { 0x308, "SXVF-M8C" },
+    { 0x109, "SXVF-M9" },
+    { 0x325, "SXVR-M25C" },
+    { 0x326, "SXVR-M26C" },
+    { 0x115, "SXVR-H5" },
+    { 0x119, "SXVR-H9" },
+    { 0x319, "SXVR-H9C" },
+    { 0x100, "SXVR-H9" },
+    { 0x300, "SXVR-H9C" },
+    { 0x126, "SXVR-H16" },
+    { 0x128, "SXVR-H18" },
+    { 0x135, "SXVR-H35" },
+    { 0x136, "SXVR-H36" },
+    { 0x194, "SXVR-H694" },
+    { 0x394, "SXVR-H694C" },
+    { 0x174, "SXVR-H674" },
+    { 0x374, "SXVR-H674C" },
+    { 0x507, "LodeStar" },
+    { 0x517, "CoStar" },
+    { 0x509, "SuperStar" },
+    { 0x200, "MX Camera" },
+    { 0, NULL }
+  };
+  
 static void init() {
   static int done = 0;
   if (!done) {
@@ -125,6 +157,17 @@ static void init() {
   }
 }
 
+bool sxIsInterlaced(short model) {
+  bool interlaced = model & 0x40;
+  if (model == 0x84)
+    return true;
+  model &= 0x1F;
+  if (model == 0x16 || model == 0x17 || model == 0x18 || model == 0x19)
+    return false;
+  return interlaced;
+}
+
+
 int sxList(DEVICE *sxDevices, const char **names) {
   TRACE(fprintf(stderr, "-> sxList(...)\n"));
   init();
@@ -133,10 +176,10 @@ int sxList(DEVICE *sxDevices, const char **names) {
     for (struct usb_device *dev = bus->devices; dev && count<20; dev = dev->next) {
       if (dev->descriptor.idVendor == SX_VID) {
         int pid = dev->descriptor.idProduct;
-        for (int i = 0; SX_PIDS[i]; i++) {
-          if (pid == SX_PIDS[i]) {
-            TRACE(fprintf(stderr, "   '%s' [0x%x, 0x%x] found...\n", SX_NAMES[i], SX_VID, pid));
-            names[count]=SX_NAMES[i];
+        for (int i = 0; SX_PIDS[i].pid; i++) {
+          if (pid == SX_PIDS[i].pid) {
+            TRACE(fprintf(stderr, "   '%s' [0x%x, 0x%x] found...\n", SX_PIDS[i].name, SX_VID, pid));
+            names[count]=SX_PIDS[i].name;
             sxDevices[count++] = dev;
             break;
           }
@@ -223,10 +266,7 @@ unsigned short sxGetCameraModel(HANDLE sxHandle) {
     TRACE(fprintf(stderr, "   usb_bulk_read() -> %d\n", rc));
     if (rc == 2) {
       int result=setup_data[0] | (setup_data[1] << 8);
-      bool interlaced = true;
-      if ((result & 0x40) == 0 || (result & 0x1F) > 9)
-        interlaced = false;
-      TRACE(fprintf(stderr, "   %s %s model %d\n", interlaced ? "INTERLACED" : "NON-INTERLACED", result & 0x80 ? "COLOR" : "MONO", result & 0x1F));
+      TRACE(fprintf(stderr, "   %s %s model %d\n", sxIsInterlaced(result) ? "INTERLACED" : "NON-INTERLACED", result & 0x80 ? "COLOR" : "MONO", result & 0x1F));
       TRACE(fprintf(stderr, "<- 0x%x\n", result));
       return result;
     }

@@ -157,5 +157,6 @@ int sxWriteSerialPort(HANDLE sxHandle, unsigned short portIndex, unsigned short 
 int sxReadSerialPort(HANDLE sxHandle, unsigned short portIndex, unsigned short count, char *data);
 int sxReadEEPROM(HANDLE sxHandle, unsigned short address, unsigned short count, char *data);
 int sxSetCooler(HANDLE sxHandle, unsigned char SetStatus, unsigned short SetTemp, unsigned char *RetStatus, unsigned short *RetTemp);
+bool sxIsInterlaced(short model);
 
 #endif /* SXCCDUSB_H_ */

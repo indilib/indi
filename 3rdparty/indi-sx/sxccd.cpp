@@ -295,9 +295,7 @@ void SXCCD::getCameraParams() {
   usleep(1000);
 
   model = sxGetCameraModel(handle);
-  bool isInterlaced = true;
-  if ((model & 0x40) == 0 || (model & 0x1F) > 9) // to be verified with Terry
-    isInterlaced = false;
+  bool isInterlaced = sxIsInterlaced(model);
 
   PrimaryCCD.setInterlaced(isInterlaced);
 
