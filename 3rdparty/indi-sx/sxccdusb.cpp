@@ -223,7 +223,10 @@ unsigned short sxGetCameraModel(HANDLE sxHandle) {
     TRACE(fprintf(stderr, "   usb_bulk_read() -> %d\n", rc));
     if (rc == 2) {
       int result=setup_data[0] | (setup_data[1] << 8);
-      TRACE(fprintf(stderr, "   %s %s model %d\n", result & 0x40 ? "INTERLACED" : "NON-INTERLACED", result & 0x80 ? "COLOR" : "MONO", result & 0x1F));
+      bool interlaced = true;
+      if ((result & 0x40) == 0 || (result & 0x1F) > 9)
+        interlaced = false;
+      TRACE(fprintf(stderr, "   %s %s model %d\n", interlaced ? "INTERLACED" : "NON-INTERLACED", result & 0x80 ? "COLOR" : "MONO", result & 0x1F));
       TRACE(fprintf(stderr, "<- 0x%x\n", result));
       return result;
     }

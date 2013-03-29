@@ -293,8 +293,12 @@ void SXCCD::getCameraParams() {
   struct t_sxccd_params params;
   sxReset(handle);
   usleep(1000);
+
   model = sxGetCameraModel(handle);
-  bool isInterlaced = model & 0x40;
+  bool isInterlaced = true;
+  if ((model & 0x40) == 0 || (model & 0x1F) > 9) // to be verified with Terry
+    isInterlaced = false;
+
   PrimaryCCD.setInterlaced(isInterlaced);
 
   sxGetCameraParams(handle, 0, &params);
