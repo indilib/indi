@@ -4,10 +4,5 @@
                 <version>0.4</version>
         </device>
 </devGroup>
-<devGroup group="Filter Wheels">
-          <device label="QSI CCD">
-                <driver name="QSI CCD">indi_qsi_ccd</driver>
-                <version>0.4</version>
-        </device>
-</devGroup>
+
 
