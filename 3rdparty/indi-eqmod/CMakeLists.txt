@@ -1,3 +1,4 @@
+PROJECT(indi-eqmod C CXX)
 cmake_minimum_required(VERSION 2.4.7)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
@@ -21,7 +22,7 @@ set(EQMOD_VERSION_MINOR 1)
 option(WITH_ALIGN_GEEHALEL "Enable Alignment Test" ON)
 option(WITH_SIMULATOR "Enable Simulator" ON)
 option(WITH_LOGGER "Enable File Logging" OFF)
-option(WITH_NOFMANY "Use NOFMANY switches" OFF)
+option(WITH_NOFMANY "Use NOFMANY switches" ON)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})

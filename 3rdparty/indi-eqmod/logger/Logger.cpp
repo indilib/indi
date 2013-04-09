@@ -6,7 +6,7 @@ const char *Logger::Tags[]= {
   "ERROR", "WARNING", "INFO", "DEBUG", "DRIVER", "SERIAL", "CALL", "STATUS"
 };
 
-#ifdef WITH_N0FMANY 
+#ifdef WITH_NOFMANY
 struct Logger::switchinit Logger::DebugLevelSInit[]={
   {"DBG_ERROR", "Errors", ISS_ON, DBG_ERROR},
   {"DBG_WARNING", "Warnings", ISS_ON, DBG_WARNING}, 
@@ -18,7 +18,7 @@ struct Logger::switchinit Logger::DebugLevelSInit[]={
   {"DBG_SCOPE_STATUS", "Scope status(verbose)", ISS_OFF, DBG_SCOPE_STATUS}
 };
 #ifdef WITH_LOGGER
-struct Logger::switchinit Logger::LogginLevelSInit[]={
+struct Logger::switchinit Logger::LoggingLevelSInit[]={
   {"LOG_ERROR", "Errors", ISS_ON, DBG_ERROR},
   {"LOG_WARNING", "Warnings", ISS_ON, DBG_WARNING}, 
   {"LOG_SESSION", "Messages", ISS_ON, DBG_SESSION}, 
@@ -122,7 +122,7 @@ bool Logger::updateProperties(bool debugenable, INDI::DefaultDevice *device)
         LoggingLevelS[i].aux = (void *)&LoggingLevelSInit[i].levelmask;
 #endif
       }
-#ifdef WITH_N0FMANY 
+#ifdef WITH_NOFMANY
       IUFillSwitchVector(&DebugLevelSP, DebugLevelS, nlevels, device->getDeviceName(), "DEBUG_LEVEL" , "Debug Levels", OPTIONS_TAB, IP_RW, ISR_NOFMANY, 0, IPS_IDLE);
 #ifdef WITH_LOGGER
       IUFillSwitchVector(&LoggingLevelSP, LoggingLevelS, nlevels, device->getDeviceName(), "LOGGING_LEVEL" , "Logging Levels", OPTIONS_TAB, IP_RW, ISR_NOFMANY, 0, IPS_IDLE);
@@ -166,13 +166,13 @@ bool Logger::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
       IUUpdateSwitch(&DebugLevelSP,states,names,n);
       sw=IUFindOnSwitch(&DebugLevelSP);
 #ifndef WITH_LOGGER
-#ifdef WITH_N0FMANY 
+#ifdef WITH_NOFMANY
       level ^= *((unsigned int *)sw->aux);
 #else
       level = *((unsigned int *)sw->aux);
 #endif
 #else
-#ifdef WITH_N0FMANY 
+#ifdef WITH_NOFMANY
       screenVerbosityLevel_ ^= *((unsigned int *)sw->aux);
 #else
       screenVerbosityLevel_ = *((unsigned int *)sw->aux);
@@ -189,7 +189,7 @@ bool Logger::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
       ISwitch *sw;
       IUUpdateSwitch(&LoggingLevelSP,states,names,n);
       sw=IUFindOnSwitch(&LoggingLevelSP);
-#ifdef WITH_N0FMANY 
+#ifdef WITH_NOFMANY
       fileVerbosityLevel_ ^= *((unsigned int *)sw->aux);
 #else
       fileVerbosityLevel_ = *((unsigned int *)sw->aux);
