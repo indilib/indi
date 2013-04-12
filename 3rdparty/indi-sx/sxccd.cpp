@@ -217,6 +217,7 @@ bool SXCCD::initProperties() {
 
 bool SXCCD::updateProperties() {
   TRACE(fprintf(stderr, "-> SXCCD::updateProperties() conneced=%d\n", isConnected()));
+  struct t_sxccd_params params;
 
   INDI::CCD::updateProperties();
 
@@ -228,10 +229,15 @@ bool SXCCD::updateProperties() {
     if (HasShutter)
       defineSwitch(&ShutterSP);
 
-    SetCCDParams(PrimaryCCD.getSubW(), PrimaryCCD.getSubH(), PrimaryCCD.getBPP(), PrimaryCCD.getPixelSizeX(), PrimaryCCD.getPixelSizeY());
+    sxGetCameraParams(handle, 0, &params);
+    SetCCDParams(params.width, params.height, params.bits_per_pixel, params.pix_width, params.pix_height);
 
     if (HasGuideHead)
-        SetGuidHeadParams(GuideCCD.getSubW(), GuideCCD.getSubH(), GuideCCD.getBPP(), GuideCCD.getPixelSizeX(), GuideCCD.getPixelSizeY());
+    {
+       sxGetCameraParams(handle, 1, &params);
+       SetGuidHeadParams(params.width, params.height, params.bits_per_pixel, params.pix_width, params.pix_height);
+    }
+
   } else {
     if (HasCooler) {
       deleteProperty(TemperatureNP.name);
@@ -310,7 +316,7 @@ void SXCCD::getCameraParams() {
     params.height *= 2;
   }
 
-  int nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes();
+  int nbuf = params.width * params.height;
   if (params.bits_per_pixel == 16)
     nbuf *= 2;
   nbuf += 512;
@@ -327,9 +333,6 @@ void SXCCD::getCameraParams() {
   HasShutter = params.extra_caps & SXUSB_CAPS_SHUTTER;
   HasSt4Port = params.extra_caps & SXCCD_CAPS_STAR2K;
 
-  if (HasGuideHead) {
-    sxGetCameraParams(handle, 1, &params);
-  }
   SetTimer(TIMER);
   TRACE(fprintf(stderr, "<- SXCCD::getCameraParams\n"));
 }
