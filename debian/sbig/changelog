@@ -1,3 +1,10 @@
+sbig (2.0.2) natty; urgency=low
+
+  * New upstream release
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Fri, 12 Apr 2013 03:52:18 +0300
+
+ 
 sbig (2.0.1-0ubuntu2~ppa1) natty; urgency=low
 
   * Natty release

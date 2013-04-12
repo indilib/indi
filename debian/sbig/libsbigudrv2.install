@@ -1,6 +1,7 @@
-debian/tmp/etc/udev/rules.d/99-sbig.rules
+debian/tmp/etc/udev/rules.d/51-sbig-debian.rules
 debian/tmp/lib/firmware/sbigfcam.hex
 debian/tmp/lib/firmware/sbiglcam.hex
 debian/tmp/lib/firmware/sbigucam.hex
+debian/tmp/lib/firmware/sbigpcam.hex
 debian/tmp/lib/firmware/stfga.bin
-debian/tmp/usr/lib/libsbigudrv.so.2.0.1
+debian/tmp/usr/lib/libsbigudrv.so.2.0.2
