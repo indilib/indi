@@ -227,6 +227,9 @@ bool SXCCD::updateProperties() {
     }
     if (HasShutter)
       defineSwitch(&ShutterSP);
+
+    // 2013-04-12: Only get parameters after we defined properties to client (JM)
+    getCameraParams();
   } else {
     if (HasCooler) {
       deleteProperty(TemperatureNP.name);
@@ -267,7 +270,6 @@ bool SXCCD::Connect() {
 #endif
       TRACE(fprintf(stderr, "   usb_claim_interface() -> %d\n", rc));
       if (!rc) {
-        getCameraParams();
         TRACE(fprintf(stderr, "<- SXCCD::Connect 1\n"));
         return true;
       }
