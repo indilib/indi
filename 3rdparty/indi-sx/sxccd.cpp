@@ -228,8 +228,10 @@ bool SXCCD::updateProperties() {
     if (HasShutter)
       defineSwitch(&ShutterSP);
 
-    // 2013-04-12: Only get parameters after we defined properties to client (JM)
-    getCameraParams();
+    SetCCDParams(PrimaryCCD.getSubW(), PrimaryCCD.getSubH(), PrimaryCCD.getBPP(), PrimaryCCD.getPixelSizeX(), PrimaryCCD.getPixelSizeY());
+
+    if (HasGuideHead)
+        SetGuidHeadParams(GuideCCD.getSubW(), GuideCCD.getSubH(), GuideCCD.getBPP(), GuideCCD.getPixelSizeX(), GuideCCD.getPixelSizeY());
   } else {
     if (HasCooler) {
       deleteProperty(TemperatureNP.name);
@@ -270,6 +272,7 @@ bool SXCCD::Connect() {
 #endif
       TRACE(fprintf(stderr, "   usb_claim_interface() -> %d\n", rc));
       if (!rc) {
+        getCameraParams();
         TRACE(fprintf(stderr, "<- SXCCD::Connect 1\n"));
         return true;
       }
@@ -307,8 +310,6 @@ void SXCCD::getCameraParams() {
     params.height *= 2;
   }
 
-  SetCCDParams(params.width, params.height, params.bits_per_pixel, params.pix_width, params.pix_height);
-
   int nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes();
   if (params.bits_per_pixel == 16)
     nbuf *= 2;
@@ -328,7 +329,6 @@ void SXCCD::getCameraParams() {
 
   if (HasGuideHead) {
     sxGetCameraParams(handle, 1, &params);
-    SetGuidHeadParams(params.width, params.height, params.bits_per_pixel, params.pix_width, params.pix_height);
   }
   SetTimer(TIMER);
   TRACE(fprintf(stderr, "<- SXCCD::getCameraParams\n"));
