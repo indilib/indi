@@ -31,6 +31,6 @@ exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${LIB_INSTALL_DIR}${LIB_POS
 ")
 
 install( FILES ${CMAKE_BINARY_DIR}/libsbigudrv.so.${SBIG_VERSION} DESTINATION ${LIB_INSTALL_DIR}${LIB_POSTFIX})
-install( FILES sbigucam.hex sbiglcam.hex sbigfcam.hex stfga.bin DESTINATION ${FIRMWARE_INSTALL_DIR})
-install( FILES 99-sbig.rules DESTINATION ${RULES_INSTALL_DIR})
+install( FILES sbigucam.hex sbiglcam.hex sbigfcam.hex sbigpcam.hex stfga.bin DESTINATION ${FIRMWARE_INSTALL_DIR})
+install( FILES 51-sbig-debian.rules DESTINATION ${RULES_INSTALL_DIR})
 install( SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_sbig_symlink.cmake)

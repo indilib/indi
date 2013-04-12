@@ -857,11 +857,12 @@ libqsi/qsiapi.cpp -text
 libqsi/qsiapi.h -text
 libqsi/qsicopyright.txt -text
 libqsi/wincompat.h -text
-sbig/99-sbig.rules -text
+sbig/51-sbig-debian.rules -text
 sbig/CMakeLists.txt -text
 sbig/libsbigudrv32.bin -text
 sbig/libsbigudrv64.bin -text
 sbig/sbigfcam.hex -text
 sbig/sbiglcam.hex -text
+sbig/sbigpcam.hex -text
 sbig/sbigucam.hex -text
 sbig/stfga.bin -text
