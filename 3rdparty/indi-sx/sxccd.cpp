@@ -230,6 +230,13 @@ bool SXCCD::updateProperties() {
       defineSwitch(&ShutterSP);
 
     sxGetCameraParams(handle, 0, &params);
+
+    if (PrimaryCCD.isInterlaced())
+    {
+      params.pix_height /= 2;
+      params.height *= 2;
+    }
+
     SetCCDParams(params.width, params.height, params.bits_per_pixel, params.pix_width, params.pix_height);
 
     if (HasGuideHead)
