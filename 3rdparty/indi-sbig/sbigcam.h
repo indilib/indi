@@ -516,7 +516,7 @@ class SbigCam
  	int				GetDriverHandle(GetDriverHandleResults *);
 
  	// Exposure Related Commands:
- 	int				StartExposure(StartExposureParams *);
+ 	int				StartExposure(StartExposureParams2 *);
  	int				EndExposure(EndExposureParams *);
  	int				StartReadout(StartReadoutParams *);
  	int				ReadoutLine(ReadoutLineParams *, unsigned short *results, 

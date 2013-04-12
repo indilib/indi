@@ -233,9 +233,9 @@ int SbigCam::GetDriverHandle(GetDriverHandleResults *gdhr)
  	return(SBIGUnivDrvCommand(CC_GET_DRIVER_HANDLE, 0, gdhr));
 }
 //==========================================================================
-int SbigCam::StartExposure(StartExposureParams *sep)
+int SbigCam::StartExposure(StartExposureParams2 *sep)
 {
- 	return(SBIGUnivDrvCommand(CC_START_EXPOSURE, sep, 0));
+ 	return(SBIGUnivDrvCommand(CC_START_EXPOSURE2, sep, 0));
 }
 //==========================================================================
 int SbigCam::EndExposure(EndExposureParams *eep)
@@ -1966,12 +1966,30 @@ int SbigCam::StartExposure()
  	// Calculate an expose time:
   ulong expTime = (ulong)floor(m_icam_expose_time_n[0].value * 100.0 + 0.5);
 
+	// Get image size:
+	#ifdef USE_CCD_FRAME_STANDARD_PROPERTY		
+ 	unsigned short left	= (unsigned short)m_icam_ccd_frame_n[0].value;
+  unsigned short top		= (unsigned short)m_icam_ccd_frame_n[1].value;
+	unsigned short width	= (unsigned short)m_icam_ccd_frame_n[2].value;
+	unsigned short height	= (unsigned short)m_icam_ccd_frame_n[3].value;
+	#else
+ 	unsigned short left	= (unsigned short)m_icam_frame_x_n[0].value;
+  unsigned short top		= (unsigned short)m_icam_frame_y_n[0].value;
+	unsigned short width	= (unsigned short)m_icam_frame_w_n[0].value;
+	unsigned short height	= (unsigned short)m_icam_frame_h_n[0].value;
+	#endif
+
   // Start exposure:
-	StartExposureParams	sep;
+	StartExposureParams2	sep;
   sep.ccd = (unsigned short)ccd;
   sep.abgState = (unsigned short)ABG_LOW7;
   sep.openShutter = (unsigned short)shutter;
   sep.exposureTime = expTime;
+  sep.readoutMode = binning;
+  sep.left        = left;
+  sep.top         = top;
+  sep.width       = width;
+  sep.height      = height;
 	if((res = StartExposure(&sep)) != CE_NO_ERROR) return(res);
 
 	// Save start time of the exposure:
@@ -2055,7 +2073,7 @@ void SbigCam::UpdateExposure()
   QueryCommandStatusResults	qcsr;
 
 	// Query command status:
-  qcsp.command = CC_START_EXPOSURE;
+  qcsp.command = CC_START_EXPOSURE2;
 	if(QueryCommandStatus(&qcsp, &qcsr) != CE_NO_ERROR) return;
 
 	int mask = 12; // Tracking & external tracking CCD chip mask.
