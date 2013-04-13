@@ -23,6 +23,7 @@ option(WITH_ALIGN_GEEHALEL "Enable Alignment Test" ON)
 option(WITH_SIMULATOR "Enable Simulator" ON)
 option(WITH_LOGGER "Enable File Logging" OFF)
 option(WITH_NOFMANY "Use NOFMANY switches" ON)
+option(STOP_WHEN_MOTION_CHANGED "Stop motors when motion mode changes" OFF)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
@@ -33,9 +34,16 @@ include_directories( ${NOVA_INCLUDE_DIR})
 ########### EQMod ###############
 set(eqmod_SRCS
    ${CMAKE_SOURCE_DIR}/eqmod.cpp ${CMAKE_SOURCE_DIR}/eqmoderror.cpp ${CMAKE_SOURCE_DIR}/skywatcher.cpp 
-   ${CMAKE_SOURCE_DIR}/logger/Logger.cpp
-   ${CMAKE_SOURCE_DIR}/simulator/simulator.cpp    ${CMAKE_SOURCE_DIR}/simulator/skywatcher-simulator.cpp
+   ${CMAKE_SOURCE_DIR}/logger/Logger.cpp)
+
+if(WITH_SIMULATOR)
+  set(eqmod_SRCS ${eqmod_SRCS}
+   ${CMAKE_SOURCE_DIR}/simulator/simulator.cpp    ${CMAKE_SOURCE_DIR}/simulator/skywatcher-simulator.cpp)
+endif(WITH_SIMULATOR)
+if(WITH_ALIGN_GEEHALEL)
+  set(eqmod_SRCS ${eqmod_SRCS}
    ${CMAKE_SOURCE_DIR}/align/align.cpp ${CMAKE_SOURCE_DIR}/align/pointset.cpp ${CMAKE_SOURCE_DIR}/align/htm.c)
+endif(WITH_ALIGN_GEEHALEL)
 
 add_executable(indi_eqmod_telescope ${eqmod_SRCS})
 
@@ -43,8 +51,11 @@ target_link_libraries(indi_eqmod_telescope ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRA
 
 install(TARGETS indi_eqmod_telescope RUNTIME DESTINATION bin )
 
+install( FILES  indi_eqmod.xml indi_eqmod_sk.xml DESTINATION ${INDI_DATA_DIR})
+
 if (WITH_SIMULATOR)
-  install( FILES  indi_eqmod.xml indi_eqmod_sk.xml align/indi_align_sk.xml simulator/indi_eqmod_simulator_sk.xml DESTINATION ${INDI_DATA_DIR})
-else(WITH_SIMULATOR)
-  install( FILES  indi_eqmod.xml indi_eqmod_sk.xml align/indi_align_sk.xml DESTINATION ${INDI_DATA_DIR})
+  install( FILES  simulator/indi_eqmod_simulator_sk.xml DESTINATION ${INDI_DATA_DIR})
 endif(WITH_SIMULATOR)
+if(WITH_ALIGN)
+  install( FILES  align/indi_align_sk.xml DESTINATION ${INDI_DATA_DIR})
+endif(WITH_ALIGN)

@@ -491,7 +491,7 @@ void Skywatcher::SlewRA(double rate) throw (EQModError)
   if (useHighspeed) newstatus.speedmode = HIGHSPEED; else newstatus.speedmode = LOWSPEED;
   SetMotion(Axis1, newstatus);
   SetSpeed(Axis1, period);
-  StartMotor(Axis1);
+  if (!RARunning) StartMotor(Axis1);
 }
 
 void Skywatcher::SlewDE(double rate) throw (EQModError)
@@ -524,7 +524,7 @@ void Skywatcher::SlewDE(double rate) throw (EQModError)
   if (useHighspeed) newstatus.speedmode = HIGHSPEED; else newstatus.speedmode = LOWSPEED;
   SetMotion(Axis2, newstatus);
   SetSpeed(Axis2, period);
-  StartMotor(Axis2);
+  if (!DERunning) StartMotor(Axis2);
 }
 
 void Skywatcher::SlewTo(long deltaraencoder, long deltadeencoder)
@@ -740,11 +740,18 @@ void Skywatcher::SetMotion(SkywatcherAxis axis, SkywatcherAxisStatus newstatus) 
   default: motioncmd[0] ='1'; break;
   }
   if (newstatus.direction == FORWARD) motioncmd[1] = '0'; else motioncmd[1] = '1';
-  if ((newstatus.direction != currentstatus->direction) || (newstatus.speedmode != currentstatus->speedmode)
-      || (newstatus.slewmode != currentstatus->slewmode))
-    StopWaitMotor(axis);
+#ifdef STOP_WHEN_MOTION_CHANGED
+  StopWaitMotor(axis);
   dispatch_command(SetMotionMode, axis, motioncmd);
   read_eqmod();
+#else
+  if ((newstatus.direction != currentstatus->direction) || (newstatus.speedmode != currentstatus->speedmode)
+      || (newstatus.slewmode != currentstatus->slewmode)) {
+    StopWaitMotor(axis);
+    dispatch_command(SetMotionMode, axis, motioncmd);
+    read_eqmod();
+  }
+#endif
 }
 
 
