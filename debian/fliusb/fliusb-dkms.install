@@ -1,5 +1,0 @@
-*.h			usr/src/fliusb-1.0
-*.c			usr/src/fliusb-1.0
-Makefile		usr/src/fliusb-1.0
-debian/dkms.conf	usr/src/fliusb-1.0
-

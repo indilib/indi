@@ -1,10 +1,54 @@
 #!/usr/bin/make -f
+# -*- makefile -*-
 
-include /usr/share/cdbs/1/rules/debhelper.mk
-include /usr/share/cdbs/1/rules/simple-patchsys.mk
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
 
-DEB_DH_INSTALL_ARGS=--exclude=debian/
+DEB_NAME=fliusb
+NAME=fliusb
+VERSION=1.2
 
-SRC_VERSION := $(shell dpkg-parsechangelog | grep '^Version:' | cut -d' ' -f2 | cut -d- -f1 | cut -d\: -f2)
-binary-install/fliusb-dkms::
-	cp $(CURDIR)/debian/dkms.conf $(CURDIR)/debian/$(cdbs_curpkg)/usr/src/fliusb-$(SRC_VERSION)
+configure: configure-stamp
+configure-stamp:
+	dh_testdir
+	touch configure-stamp
+
+
+build: build-stamp
+
+build-stamp: configure-stamp 
+	dh_testdir
+	$(MAKE)
+	touch $@
+
+clean:
+	dh_testdir
+	dh_testroot
+	rm -f build-stamp configure-stamp
+	-$(MAKE) clean
+	dh_clean
+
+install: build
+	dh_testdir
+	dh_testroot
+	dh_prep
+	dh_installdirs
+	$(MAKE) DESTDIR=$(CURDIR)/debian/$(DEB_NAME)-dkms NAME=$(NAME) VERSION=$(VERSION) install
+
+binary-arch: build install
+
+binary-indep: build install
+	dh_testdir
+	dh_testroot
+	dh_link
+	dh_strip
+	dh_compress
+	dh_fixperms
+	dh_installdeb
+	dh_shlibdeps
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary install configure

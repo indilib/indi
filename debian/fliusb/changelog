@@ -1,12 +1,6 @@
-fliusb-dkms (1.0-0ubuntu2) quantal; urgency=low
+fliusb-dkms (1.2) stable; urgency=low
 
-  * New release update from RTS2.
+  * Automatically packaged by DKMS.
 
- -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sat, 01 Dec 2012 21:53:45 +0300
-
-fliusb-dkms (1.0-0ubuntu1) maverick; urgency=low
-
-  * Initial release
-
- -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sun, 20 Feb 2010 16:01:27 +0300
+ -- Dynamic Kernel Modules Support Team <pkg-dkms-maint@lists.alioth.debian.org>  Sun, 05 May 2013 21:00:54 +0300
 
