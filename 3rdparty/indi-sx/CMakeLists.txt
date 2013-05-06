@@ -52,7 +52,7 @@ set(CMAKE_EXE_LINKER_FLAGS "-framework IOKit -framework CoreFoundation")
 target_link_libraries(indi_sx_wheel ${INDI_DRIVER_LIBRARIES} ${LIBUSB_LIBRARIES})
 ELSEIF (WIN32)
 ELSE ()
-target_link_libraries(indi_sx_wheel ${INDI_DRIVER_LIBRARIES} ${LIBUSB_1_LIBRARIES})
+target_link_libraries(indi_sx_wheel ${INDI_DRIVER_LIBRARIES} ${LIBUSB_1_LIBRARIES} pthread)
 ENDIF()
 
 set(indisxao_SRCS
