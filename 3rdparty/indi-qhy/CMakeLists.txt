@@ -8,6 +8,7 @@ SET(CMAKE_C_FLAGS "-Wall" )
 SET(CMAKE_C_FLAGS_DEBUG "-Werror" )
 
 find_package(CFITSIO REQUIRED)
+find_package(USB REQUIRED)
 find_package(INDI REQUIRED)
 find_package(ZLIB REQUIRED)
 
