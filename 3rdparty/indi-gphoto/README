@@ -18,6 +18,8 @@ Requirtments
 
 	libgphoto2 is required
 
++ libgphoto2 >= 2.5 (for CANON 600D bulb-mode support) (Nacho Mas dirty hack)
+
 + libpthread
 	libpthread is required
 Installation

@@ -332,7 +332,7 @@ static void *stop_bulb(void *arg)
 		pthread_cond_timedwait(&gphoto->signal, &gphoto->mutex, &timeout);
 		gp_dprintf("timeout expired\n");
 		if (! (gphoto->command & DSLR_CMD_DONE) && (gphoto->command & DSLR_CMD_BULB_CAPTURE)) {
-			result = gp_camera_wait_for_event(gphoto->camera, 1, &event, &data, gphoto->context);
+			//result = gp_camera_wait_for_event(gphoto->camera, 1, &event, &data, gphoto->context);
 			switch (event) {
 				//TODO: Handle unexpected events
 				default: break;
@@ -344,7 +344,13 @@ static void *stop_bulb(void *arg)
 				//shut off bulb mode
 				gp_dprintf("Closing shutter\n");
 				if (gphoto->bulb_widget) {
-					gphoto_set_widget_num(gphoto, gphoto->bulb_widget, FALSE);
+					gp_dprintf("Using widget:%s\n",gphoto->bulb_widget->name);
+					if(strcmp(gphoto->bulb_widget->name, "eosremoterelease") == 0 ) 
+					{
+						gphoto_set_widget_num(gphoto, gphoto->bulb_widget, 4);  //600D eosremoterelease RELEASE FULL
+					} else {
+						gphoto_set_widget_num(gphoto, gphoto->bulb_widget, FALSE);
+					}
 				} else {
 					close(gphoto->bulb_fd);
 				}
@@ -357,6 +363,7 @@ static void *stop_bulb(void *arg)
 			}
 		}
 		if (! (gphoto->command & DSLR_CMD_DONE) && (gphoto->command & DSLR_CMD_CAPTURE)) {
+			//gp_camera_capture(gphoto->camera, GP_CAPTURE_IMAGE, &gphoto->camerapath, gphoto->context);
 			gp_camera_capture(gphoto->camera, GP_CAPTURE_IMAGE, &gphoto->camerapath, gphoto->context);
 			gphoto->command |= DSLR_CMD_DONE;
 			pthread_cond_signal(&gphoto->signal);
@@ -383,8 +390,10 @@ static void reset_settings(gphoto_driver *gphoto)
 int find_bulb_exposure(gphoto_driver *gphoto, gphoto_widget *widget)
 {
 	int i;
+   	gp_dprintf("looking for bulb exposure..\n");
 	for (i = 0; i < widget->choice_cnt; i++) {
 		if (gphoto->exposure[i] == -1) {
+		   	gp_dprintf("bulb exposure found! id:%u\n",i);
 			return i;
 		}
 	}
@@ -471,8 +480,8 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec)
 			fprintf(stderr, "Warning: Bulb mode isn't supported.  exposure limited to maximum camera exposure\n");
 		} else {
 			//Bulb mode is supported
-			gp_dprintf("Using bulb mode\n");
-		
+			gp_dprintf("Using bulb mode. idx:%u\n",idx);
+		        
 			gphoto_set_widget_num(gphoto, gphoto->exposure_widget, idx);
 		
 			gettimeofday(&gphoto->bulb_end, NULL);
@@ -489,7 +498,13 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec)
 					return 1;
 				}
 			} else {
-				gphoto_set_widget_num(gphoto, gphoto->bulb_widget, TRUE);
+				gp_dprintf("Using widget:%s\n",gphoto->bulb_widget->name);
+				if(strcmp(gphoto->bulb_widget->name, "eosremoterelease") == 0 ) 
+				{
+					gphoto_set_widget_num(gphoto, gphoto->bulb_widget, 2); //600D eosremoterelease PRESS FULL
+				} else {
+					gphoto_set_widget_num(gphoto, gphoto->bulb_widget, TRUE);
+				}
 			}
 			gphoto->command = DSLR_CMD_BULB_CAPTURE;
 			pthread_cond_signal(&gphoto->signal);
@@ -544,7 +559,10 @@ int gphoto_read_exposure_fd(gphoto_driver *gphoto, int fd)
 			fprintf(stderr, "WARNING: Could not wait for event.\n");
 			return (result);
 		}
+
 		switch (event) {
+
+		case GP_EVENT_CAPTURE_COMPLETE:
 		case GP_EVENT_FILE_ADDED:
 			gp_dprintf("Captured an image\n");
 			fn = (CameraFilePath*)data;
@@ -682,7 +700,12 @@ gphoto_driver *gphoto_open(const char *shutter_release_port)
 		gphoto->iso_widget = find_widget(gphoto, "eos-iso");
 	}
 	gphoto->iso = -1;
-	gphoto->bulb_widget = find_widget(gphoto, "bulb");
+
+	if ( !(gphoto->bulb_widget = find_widget(gphoto, "bulb")) )
+	{
+	     gphoto->bulb_widget = find_widget(gphoto, "eosremoterelease");
+    	     gp_dprintf("Using eosremoterelease command\n");	
+	}
 
 	if(shutter_release_port) {
 		strncpy(gphoto->bulb_port, shutter_release_port, sizeof(gphoto->bulb_port));
