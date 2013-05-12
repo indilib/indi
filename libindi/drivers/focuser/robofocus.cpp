@@ -207,6 +207,10 @@ bool RoboFocus::updateProperties()
         defineNumber(&SetBacklashNP);
         defineNumber(&FocusRelPosNP);
         defineNumber(&FocusAbsPosNP);
+
+        GetFocusParams();
+
+       IDMessage(getDeviceName(), "RoboFocus paramaters readout complete, focuser ready for use.");
     }
     else
     {
@@ -258,10 +262,6 @@ bool RoboFocus::Connect()
     }
 
     IDMessage(getDeviceName(), "Robofocus is online. Getting focus parameters...");
-
-    GetFocusParams();
-
-    IDMessage(getDeviceName(), "RoboFocus paramaters readout complete, focuser ready for use.");
 
     return true;
 }
