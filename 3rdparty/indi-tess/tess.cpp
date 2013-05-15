@@ -50,7 +50,7 @@ using namespace std;
 /* Our inditess auto pointer */
 auto_ptr<inditess> inditess_prt(0);
 
-const int POLLMS = 250;				// Period of update, 0.1 second.
+const int POLLMS = 100;				// Period of update, 0.1 second.
 static void ISPoll(void *);
 
 /**************************************************************************************
@@ -155,11 +155,11 @@ inditess::~inditess()
 }
 
 void inditess::ISPoll() {
-  char readBuffer[TESS_BUFFER];
+  char readBuffer[TESS_MSG_SIZE];
   static char buffer[TESS_BUFFER];
   char TESSmsg[TESS_MSG_SIZE];
   int nbytes_read=0;
-  int i,endInx=0,startInx=0; 
+  int startInx=0; 
   char dummy[24];
   static int pointer=-1;	
   static int fail_counter=0; 	
@@ -176,7 +176,7 @@ void inditess::ISPoll() {
   
   if (nbytes_read==0) {
 	fail_counter++;
-        IDLog("TESS not responding. Fail number:%u of %u max allowed\n",fail_counter,MAX_CONNETIONS_FAILS);
+        //IDLog("TESS not responding. Fail number:%u of %u max allowed\n",fail_counter,MAX_CONNETIONS_FAILS);
   } else {
 	fail_counter=0;
   }
@@ -193,45 +193,40 @@ void inditess::ISPoll() {
   }
   startInx=-1;
   //IDLog("readBuffer:%s\n",readBuffer);
+
+//Not enougth data in the previous loop. Concatenate
+  if (pointer !=-1 && pointer <  TESS_MSG_SIZE) {
+	//IDLog("1Buffer:%s\n",buffer);
+	//IDLog("Pointer:%u\n",pointer);
+	strncpy(&buffer[pointer],readBuffer,TESS_MSG_SIZE-pointer);
+	//IDLog("2Buffer:%s\n",buffer);
+	pointer=pointer+nbytes_read;
+  }
+
+//Searching for star
   if (pointer==-1) {
-  for (i=0;i<TESS_BUFFER;i++) {
+  for (int i=1;i<TESS_MSG_SIZE;i++) {
 	if (readBuffer[i]=='f') {
 		startInx=i-1;	
+		pointer=nbytes_read-startInx;
+		//IDLog("Pointer:%u\n",pointer);
+		buffer[0]='\0';
+		strncpy(buffer,&readBuffer[startInx],pointer);
+		//IDLog("0Buffer:%s\n",buffer);
                 //IDLog("startInx:%i\n",startInx);
 		break;
 	}	
   }
   }	  
-  strncpy(buffer,&readBuffer[startInx],TESS_MSG_SIZE);
-/*
-  if (startInx == -1 && pointer==-1) return;
-//Not enougth data. Wait next loop
-//DO NOT WORK!!! CHECK LATER
-  if ( startInx!=-1 && (nbytes_read-startInx < TESS_MSG_SIZE) ) {
-        strcpy(buffer,&readBuffer[startInx]);
-        IDLog("::%s\n",buffer);
-        pointer=+ (nbytes_read-startInx);
-	//IDLog("pointer:%u\n",pointer);
-	if (pointer>=TESS_MSG_SIZE) {
-		pointer=-1;
-	} else {
-		return;
-	}
-  } else if (startInx==-1 && (pointer !=-1) ) {
-        strcpy(&buffer[pointer],readBuffer);
-        IDLog(":::%s\n",buffer);
-        pointer=+ nbytes_read;
-	if (pointer>=TESS_MSG_SIZE) {
-		pointer=-1;
-	} else {
-		return;
-	}
+
+//Check if enought data if not wait next loop
+  if (pointer >=TESS_MSG_SIZE) {
+	pointer=-1;
   } else {
-	strncpy(buffer,&readBuffer[startInx],TESS_MSG_SIZE);
+	return;
   }
-*/
   strcpy(TESSmsg,buffer);
-//  IDLog("TESSmsg:%s\n",TESSmsg);
+  //IDLog("TESSmsg:%s\n",TESSmsg);
 
 //Decode msg
   strncpy(dummy, TESSmsg + 3, 6);
