@@ -1,0 +1,7 @@
+<devGroup group="Auxiliary">
+        <device label="TESS" skel="tess_sk.xml">
+                <driver name="TESS">indi_tess</driver>
+                <version>0.1</version>
+        </device>
+</devGroup>
+

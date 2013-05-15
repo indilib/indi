@@ -286,6 +286,19 @@
 3rdparty/indi-sx/sxwheel.cpp -text svneol=unset#text/plain
 3rdparty/indi-sx/sxwheel.h -text svneol=unset#text/plain
 3rdparty/indi-sx/test.cpp -text
+3rdparty/indi-tess/CMakeLists.txt -text
+3rdparty/indi-tess/README -text
+3rdparty/indi-tess/cmake_modules/FindINDI.cmake -text
+3rdparty/indi-tess/cmake_modules/FindNova.cmake -text
+3rdparty/indi-tess/duconfig.h -text
+3rdparty/indi-tess/duconfig.h.in -text
+3rdparty/indi-tess/indi_tess.xml -text
+3rdparty/indi-tess/tess.cpp -text
+3rdparty/indi-tess/tess.h -text
+3rdparty/indi-tess/tess_algebra.cpp -text
+3rdparty/indi-tess/tess_algebra.h -text
+3rdparty/indi-tess/tess_description.pdf -text
+3rdparty/indi-tess/tess_sk.xml -text
 cmake_modules/FindALUT.cmake -text
 cmake_modules/FindAPOGEE.cmake -text
 cmake_modules/FindCFITSIO.cmake -text

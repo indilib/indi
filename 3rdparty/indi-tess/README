@@ -1,0 +1,14 @@
+indi-tess v0.1
+==============
+
+NACHO MAS 2013 (mas.ignacio at gmail.com)
+
+Driver for TESS custom hardware. TESS board is compose by 3-axes acelerometer, compass and 2 sky-sensors one for clouds and the other to determine sky darkness (limit magnitud). The compass/accelerometer is to determine where is pointing. The idea is attach it to a OTA and have a point aid for dobson or independend RA/DEC reading to check if everything is ok for goto mounts.
+
+All the information to make the board is in http://tech.groups.yahoo.com/group/ObservatorioRemoto/ 
+
+The driver provide EQUATORIAL_EOD_COORD, HORIZONTAL_COORD and sky sensors values. The board report raw sensors value all the calculation are made inside the driver.
+
+See document tess_descripcion.pdf for futher description (sorry is in spanish). 
+
+
