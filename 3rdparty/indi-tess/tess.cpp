@@ -44,6 +44,7 @@
 #include "tess.h"
 #include "tess_algebra.h"
 
+
 using namespace std;
 
 /* Our inditess auto pointer */
@@ -276,18 +277,19 @@ void inditess::ISPoll() {
 
 //Heading
   get_heading(&a_avg, &m_avg, &p, &heading);
-  alt=heading.y;
-  az=heading.z;
-
 //LOWPASS Filter
 //y[i] := y[i-1] + α * (x[i] - y[i-1])
-/*  double a=0.5;
-  alt=alt+a*(heading.y-alt);  
-  az=az+a*(heading.x-az);
-*/
+  if (( abs(az-heading.z) > ALTAZ_FAST_CHANGE) || 
+     ( abs(alt-heading.y) > ALTAZ_FAST_CHANGE) ) {
+	  alt=heading.y;
+	  az=heading.z;	
+  }
+  alt=alt+filter*(heading.y-alt);  
+  az=az+filter*(heading.z-az);
+
 //RA-DEC calculation
     HrztoEqu(alt,az,&ra,&dec);
-
+    //IDLog("RA/DEC:%f %f\n",ra,dec);
 //Update properties
     std::vector<INDI::Property *> *pAll = getProperties();
     for (int i=0; i < pAll->size(); i++) {
@@ -348,10 +350,10 @@ void inditess::ISPoll() {
 			} else if ( !strcmp(eqp->name,"AZ") ) {
 				eqp->value=az;
    			} else if ( !strcmp(eqp->name,"RA") ) {
-				eqp->value=ra;
+				eqp->value=ra/15;
 			} else if ( !strcmp(eqp->name,"DEC") ) {
 				eqp->value=dec;
-			}
+			} 
 
             	} 
 		IDSetNumber(nvp, NULL);
@@ -477,7 +479,7 @@ bool inditess::ISNewNumber (const char *dev, const char *name, double values[], 
 	bool change=false;
         for (int i=0;i<n;i++) {
 	        INumber *eqp = IUFindNumber(nvp, names[i]);
-	        IDLog("%s\n",eqp->name);
+	        //IDLog("%s\n",eqp->name);
 	
 		if (!eqp)
 	            return false;
@@ -488,6 +490,15 @@ bool inditess::ISNewNumber (const char *dev, const char *name, double values[], 
 		} else if ( !strcmp(eqp->name,"Lon") ) {
 			Lon=eqp->value;
 			IDLog("New Lon:%f\n",Lon);
+		} else if ( !strcmp(eqp->name,"filter") ) {
+			filter=eqp->value;
+			IDLog("New filter value:%f\n",filter);
+		} else if ( !strcmp(eqp->name,"ALT") ) {
+			alt_offset=eqp->value;
+			IDLog("Sync ALT offset:%f\n",alt_offset);
+		} else if ( !strcmp(eqp->name,"AZ") ) {
+			az_offset=eqp->value;
+			IDLog("Sync AZ offset:%f\n",az_offset);
 		}
 
 
@@ -495,7 +506,7 @@ bool inditess::ISNewNumber (const char *dev, const char *name, double values[], 
         }
 
 	if (change) {
-		IDSetNumber(nvp, NULL);
+		IDSetNumber(nvp, "Property:%s update\n",nvp->name);
           	return true;
 	} else {
         	return false;
@@ -600,6 +611,12 @@ bool inditess::Connect()
 	//IDLog("svp->s:%u\n",svp->s);
 	IDSetSwitch (svp,"TESS BOARD CONNECTED.\n");
 	IDLog("TESS BOARD CONNECTED.\n");
+        //Init Input properties
+        INumberVectorProperty *nvp = getNumber("LATLON");
+        Lat=nvp->np[0].value;
+        Lon=nvp->np[1].value;
+        nvp= getNumber("Filter");
+        filter=nvp->np[0].value;
     } else {
 	IDLog("TESS BOARD FAIL TO CONNECT. CHECK PORT NAME\n");
 	IDSetSwitch (svp,"TESS BOARD FAIL TO CONNECT. CHECK PORT NAME\n");
@@ -662,14 +679,14 @@ int inditess::HrztoEqu(double alt,double az,double *ra,double *dec) {
          */
         observer.lng= Lon;
         observer.lat= Lat;
-
+        //IDLog("Lat/Lon %f %f\n",observer.lat,observer.lng);
          /*
 	  * Horizontal coordinates. Libnova az:
           0 deg = South, 90 deg = West, 180 deg = Nord, 270 deg = East
           conversion needed
 	 */
         az=az-180.;
-	if (az>0) az=+360.; 
+	if (az<=0) az=az+360.; 
         hrz.az=az;
 	hrz.alt=alt;
         

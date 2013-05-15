@@ -30,11 +30,11 @@
 
 
 
-#define TESS_TIMEOUT	  	1		/* FD timeout in seconds */
+#define TESS_TIMEOUT	  	2		/* FD timeout in seconds */
 #define TESS_BUFFER     	255
 #define TESS_MSG_SIZE   	92
 #define MAX_CONNETIONS_FAILS 	10 	        /* Max number of connections fails after disconnect */
-
+#define ALTAZ_FAST_CHANGE       10              /* If ALTAZ COORDs change more disactivate filter to increse responsiveness */
 
 class inditess : public INDI::DefaultDevice
 {
@@ -57,10 +57,12 @@ private:
  virtual bool Connect();
  virtual bool Disconnect();
  int HrztoEqu(double alt,double az,double *ra,double *dec);
+ float filter;
  bool is_connected(void);
  int    fd;
  float fH,tO,tA,aX,aY,aZ,mX,mY,mZ;
  float Lat,Lon;
+ float az_offset,alt_offset;
  vector a_avg,m_avg,heading, MagMax, MagMin;
  vector p;
 };

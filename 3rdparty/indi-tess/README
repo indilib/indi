@@ -11,4 +11,6 @@ The driver provide EQUATORIAL_EOD_COORD, HORIZONTAL_COORD and sky sensors values
 
 See document tess_descripcion.pdf for futher description (sorry is in spanish). 
 
+Prior to compile make sure that libnova-dev is instaled in your system.
+
 
