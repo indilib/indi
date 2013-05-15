@@ -44,6 +44,9 @@ public:
     virtual int MoveAbs(int ticks);
     virtual int MoveRel(FocusDirection dir, unsigned int ticks);
 
+protected:
+    bool saveConfigItems(FILE *fp);
+
 private:
 
     int PortFD;
@@ -65,6 +68,8 @@ private:
     int updateRFPowerSwitches(int s, int  new_sn, int *cur_s1LL, int *cur_s2LR, int *cur_s3RL, int *cur_s4RR) ;
     int updateRFMaxPosition(double *value);
     int updateRFSetPosition(double *value);
+
+
 
     ITextVectorProperty PortTP;
     IText PortT[1];

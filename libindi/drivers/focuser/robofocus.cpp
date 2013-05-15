@@ -1519,3 +1519,10 @@ int RoboFocus::MoveRel(FocusDirection dir, unsigned int ticks)
 
 }
 
+bool RoboFocus::saveConfigItems(FILE *fp)
+{
+    IUSaveConfigText(fp, &PortTP);
+    IUSaveConfigNumber(fp, &SettingsNP);
+    IUSaveConfigNumber(fp, &SetBacklashNP);
+}
+
