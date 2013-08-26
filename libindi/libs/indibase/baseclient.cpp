@@ -558,6 +558,8 @@ void INDI::BaseClient::sendNewText (const char * deviceName, const char * proper
 
 void INDI::BaseClient::sendNewNumber (INumberVectorProperty *nvp)
 {
+   setlocale(LC_NUMERIC,"C");
+
     nvp->s = IPS_BUSY;
 
     fprintf(svrwfp, "<newNumberVector\n");
@@ -574,6 +576,8 @@ void INDI::BaseClient::sendNewNumber (INumberVectorProperty *nvp)
     fprintf(svrwfp, "</newNumberVector>\n");
 
    fflush(svrwfp);
+
+   setlocale(LC_NUMERIC,"");
 }
 
 void INDI::BaseClient::sendNewNumber (const char *deviceName, const char *propertyName, const char* elementName, double value)
