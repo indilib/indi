@@ -1,3 +1,10 @@
+From 0.9.6 to 0.9.7
+
+      + Support for ATIK CCDs and Filter Wheels.
+      + Support for i-Nova family of cameras.
+      + Fixed an issue involving non-English clients that utilize INDI client library to communicate with INDI server.
+      + Fixed an issue where some properties in some drivers are sent before getting defined by INDI. 
+
 From 0.9.5 to 0.9.6
 
       + Support for Starlight Xpress Adaptive Optics unit. 
