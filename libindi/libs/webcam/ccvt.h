@@ -148,6 +148,13 @@ int RGB2YUV (int x_dim, int y_dim, void *bmp, void *y_out, void *u_out, void *v_
 
 void bayer2rgb24(unsigned char *dst, unsigned char *src, long int WIDTH, long int HEIGHT);
 
+/* following lines are an Ilia Platone <info@iliaplatone.com> contribute, */
+
+void rggb2rgb24(unsigned char *dst, unsigned char *src, long int WIDTH, long int HEIGHT); //based on the above bayer2rgb24 function
+void grey2rgb24(unsigned char *dst, unsigned char *src, long int WIDTH, long int HEIGHT);
+
+/************** end of contribute, more to come hopefully *****************/
+
 #ifdef __cplusplus
 }
 #endif

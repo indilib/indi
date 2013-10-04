@@ -232,6 +232,99 @@ void bayer2rgb24(unsigned char *dst, unsigned char *src, long int WIDTH, long in
 
 }
 
+/* following lines are an Ilia Platone <info@iliaplatone.com> contribute, */
+
+void rggb2rgb24(unsigned char *dst, unsigned char *src, long int WIDTH, long int HEIGHT)
+{
+    long int i;
+    unsigned char *rawpt, *scanpt;
+    long int size;
+
+    rawpt = src;
+    scanpt = dst;
+    size = WIDTH*HEIGHT;
+
+    for ( i = 0; i < size; i++ ) {
+	if ( (i/WIDTH) % 2 == 0 ) {
+	    if ( (i % 2) == 0 ) {
+		/* B */
+		if ( (i > WIDTH) && ((i % WIDTH) > 0) ) {
+		    *scanpt++ = *rawpt;					/* R */
+		    *scanpt++ = (*(rawpt-1)+*(rawpt+1)+
+				 *(rawpt+WIDTH)+*(rawpt-WIDTH))/4;	/* G */
+		    *scanpt++ = (*(rawpt-WIDTH-1)+*(rawpt-WIDTH+1)+
+				 *(rawpt+WIDTH-1)+*(rawpt+WIDTH+1))/4;	/* B */
+		} else {
+		    /* first line or left column */
+		    *scanpt++ = *rawpt;				/* R */
+		    *scanpt++ = (*(rawpt+1)+*(rawpt+WIDTH))/2;	/* G */
+		    *scanpt++ = *(rawpt+WIDTH+1);		/* B */
+		}
+	    } else {
+		/* (B)G */
+		if ( (i > WIDTH) && ((i % WIDTH) < (WIDTH-1)) ) {
+		    *scanpt++ = (*(rawpt-1)+*(rawpt+1))/2;		/* R */
+		    *scanpt++ = *rawpt;					/* G */
+		    *scanpt++ = (*(rawpt+WIDTH)+*(rawpt-WIDTH))/2;	/* B */
+		} else {
+		    /* first line or right column */
+		    *scanpt++ = *(rawpt-1);	/* R */
+		    *scanpt++ = *rawpt;		/* G */
+		    *scanpt++ = *(rawpt+WIDTH);	/* B */
+		}
+	    }
+	} else {
+	    if ( (i % 2) == 0 ) {
+		/* G(R) */
+		if ( (i < (WIDTH*(HEIGHT-1))) && ((i % WIDTH) > 0) ) {
+		    *scanpt++ = (*(rawpt+WIDTH)+*(rawpt-WIDTH))/2;	/* R */
+		    *scanpt++ = *rawpt;					/* G */
+		    *scanpt++ = (*(rawpt-1)+*(rawpt+1))/2;		/* B */
+		} else {
+		    /* bottom line or left column */
+		    *scanpt++ = *(rawpt-WIDTH);		/* R */
+		    *scanpt++ = *rawpt;			/* G */
+		    *scanpt++ = *(rawpt+1);		/* B */
+		}
+	    } else {
+		/* R */
+		if ( i < (WIDTH*(HEIGHT-1)) && ((i % WIDTH) < (WIDTH-1)) ) {
+		    *scanpt++ = (*(rawpt-WIDTH-1)+*(rawpt-WIDTH+1)+
+				 *(rawpt+WIDTH-1)+*(rawpt+WIDTH+1))/4;	/* R */
+		    *scanpt++ = (*(rawpt-1)+*(rawpt+1)+
+				 *(rawpt-WIDTH)+*(rawpt+WIDTH))/4;	/* G */
+		    *scanpt++ = *rawpt;					/* B */
+		} else {
+		    /* bottom line or right column */
+		    *scanpt++ = *(rawpt-WIDTH-1);		/* R */
+		    *scanpt++ = (*(rawpt-1)+*(rawpt-WIDTH))/2;	/* G */
+		    *scanpt++ = *rawpt;				/* B */
+		}
+	    }
+	}
+	rawpt++;
+    }
+
+}
+
+void grey2rgb24(unsigned char *dst, unsigned char *src, long int WIDTH, long int HEIGHT) {
+    long int i;
+    unsigned char *destination, *source;
+    long int size;
+
+    source = src;
+    destination = dst;
+    size = WIDTH*HEIGHT;
+
+    for ( i = 0; i < size; i++ ) {
+        *destination++ = *(source + i);
+        *destination++ = *(source + i);
+        *destination++ = *(source + i);
+    }   
+}
+
+/************** end of contribute, more to come hopefully *****************/
+
 /************************************************************************
  *
  *  int RGB2YUV (int x_dim, int y_dim, void *bmp, YUV *yuv)

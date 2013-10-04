@@ -204,6 +204,14 @@ int V4L2_Base::read_frame(char *errmsg)
                  case V4L2_PIX_FMT_SBGGR8:
                          bayer2rgb24(rgb24_buffer, ((unsigned char *) buffers[buf.index].start), fmt.fmt.pix.width, fmt.fmt.pix.height);
                          break;
+
+                 case V4L2_PIX_FMT_SRGGB8:
+                         rggb2rgb24(rgb24_buffer, ((unsigned char *) buffers[buf.index].start), fmt.fmt.pix.width, fmt.fmt.pix.height);
+                         break;
+
+                 case V4L2_PIX_FMT_GREY:
+                         grey2rgb24(rgb24_buffer, ((unsigned char *) buffers[buf.index].start), fmt.fmt.pix.width, fmt.fmt.pix.height);
+                         break;
                 }
                   
                 /*if (dropFrame)
@@ -640,6 +648,14 @@ int V4L2_Base::init_device(char *errmsg, int pixelFormat , int width, int height
          cerr << "pixel format: V4L2_PIX_FMT_SBGGR8" << endl;
          break;
 
+        case V4L2_PIX_FMT_SRGGB8:
+         cerr << "pixel format: V4L2_PIX_FMT_SRGGB8" << endl;
+         break;
+
+        case V4L2_PIX_FMT_GREY:
+         cerr << "pixel format: V4L2_PIX_FMT_GREY" << endl;
+         break;
+
        }
 
         findMinMax();
@@ -749,7 +765,9 @@ void V4L2_Base::allocBuffers()
    VBuf= new unsigned char[ fmt.fmt.pix.width * fmt.fmt.pix.height];
    colorBuffer = new unsigned char[fmt.fmt.pix.width * fmt.fmt.pix.height * 4];
 
-   if (fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_SBGGR8)
+   if ( fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_SBGGR8 ||
+        fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_SRGGB8 ||
+        fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_GREY)
      rgb24_buffer = new unsigned char[fmt.fmt.pix.width * fmt.fmt.pix.height * 3];
 }
 
@@ -860,7 +878,9 @@ void V4L2_Base::getPictureSettings()
 
 unsigned char * V4L2_Base::getY()
 {
-  if (fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_SBGGR8)
+  if (  fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_SBGGR8 ||
+        fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_SRGGB8 ||
+        fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_GREY)
       RGB2YUV(fmt.fmt.pix.width, fmt.fmt.pix.height, rgb24_buffer, YBuf, UBuf, VBuf, 0);
 
   return YBuf;
@@ -898,6 +918,16 @@ unsigned char * V4L2_Base::getColorBuffer()
          break;
 
     case V4L2_PIX_FMT_SBGGR8:
+         ccvt_rgb24_bgr32(fmt.fmt.pix.width, fmt.fmt.pix.height,
+                      rgb24_buffer, (void*)colorBuffer);
+         break;
+
+    case V4L2_PIX_FMT_SRGGB8:
+         ccvt_rgb24_bgr32(fmt.fmt.pix.width, fmt.fmt.pix.height,
+                      rgb24_buffer, (void*)colorBuffer);
+         break;
+
+    case V4L2_PIX_FMT_GREY:
          ccvt_rgb24_bgr32(fmt.fmt.pix.width, fmt.fmt.pix.height,
                       rgb24_buffer, (void*)colorBuffer);
          break;
