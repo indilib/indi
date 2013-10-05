@@ -13,3 +13,6 @@
 /* Define if you have libnova.h */
 #cmakedefine   HAVE_NOVA_H 1
 
+/* Set INDI Library version */
+#cmakedefine CMAKE_INDI_VERSION_STRING "@CMAKE_INDI_VERSION_STRING@"
+
