@@ -42,7 +42,8 @@ bool INDI::Telescope::initProperties()
 
     IUFillNumber(&LocationN[0],"LAT","Lat (dd:mm:ss)","%010.6m",-90,90,0,0.0);
     IUFillNumber(&LocationN[1],"LONG","Lon (dd:mm:ss)","%010.6m",-180,180,0,0.0 );
-    IUFillNumberVector(&LocationNV,LocationN,2,getDeviceName(),"GEOGRAPHIC_COORD","Scope Location",SITE_TAB,IP_RW,60,IPS_OK);
+    IUFillNumber(&LocationN[2],"ELEV","Elevation (m)","%g",-200,10000,0,0 );
+    IUFillNumberVector(&LocationNV,LocationN,3,getDeviceName(),"GEOGRAPHIC_COORD","Scope Location",SITE_TAB,IP_RW,60,IPS_OK);
 
     IUFillSwitch(&CoordS[0],"TRACK","Track",ISS_OFF);
     IUFillSwitch(&CoordS[1],"SLEW","Slew",ISS_OFF);

@@ -174,7 +174,7 @@ class INDI::Telescope : public INDI::DefaultDevice
         ISwitch ConfigS[3];              //  On a coord_set message, sync, or slew
 
         INumberVectorProperty LocationNV;   //  A number vector that stores lattitude and longitude
-        INumber LocationN[2];
+        INumber LocationN[3];
 
         ISwitchVectorProperty ParkSV; //  A Switch in the client interface to park the scope
         ISwitch ParkS[1];
