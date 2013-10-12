@@ -242,40 +242,23 @@ bool TCFS::Connect()
 	return false;
     }
 
-    for (int i=0; i < TCFS_MAX_TRIES; i++)
-    {
-        dispatch_command(FMMODE);
+    IDMessage(getDeviceName(), "Successfully connected to TCF-S Focuser in Manual Mode.");
 
-        if (read_tcfs() == true)
-        {
-            if (!strcmp(response, "!"))
-            {
-                IDMessage(getDeviceName(), "Successfully connected to TCF-S Focuser in Manual Mode.");
+    IUResetSwitch(FocusModeSP);
+    FocusModeSP->sp[0].s = ISS_ON;
+    FocusModeSP->s       = IPS_OK;
+    IDSetSwitch(FocusModeSP, NULL);
 
-                IUResetSwitch(FocusModeSP);
-                FocusModeSP->sp[0].s = ISS_ON;
-                FocusModeSP->s       = IPS_OK;
-                IDSetSwitch(FocusModeSP, NULL);
+    FocusPositionNP->s = IPS_OK;
+    IDSetNumber(FocusPositionNP, NULL);
 
-                FocusPositionNP->s = IPS_OK;
-                IDSetNumber(FocusPositionNP, NULL);
+    FocusTemperatureNP->s = IPS_OK;
+    IDSetNumber(FocusTemperatureNP, NULL);
 
-                FocusTemperatureNP->s = IPS_OK;
-                IDSetNumber(FocusTemperatureNP, NULL);
+    IUResetSwitch(FocusPowerSP);
+    IDSetSwitch(FocusPowerSP, NULL);
 
-                IUResetSwitch(FocusPowerSP);
-                IDSetSwitch(FocusPowerSP, NULL);
-
-                return true;
-             }
-        }
-
-        usleep(500000);
-    }
-
-    IDMessage(getDeviceName(), "Error connecting to TCF-S focuser...");
-    return false;
-
+    return true;
 }
 
 /****************************************************************
