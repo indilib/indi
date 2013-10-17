@@ -1026,8 +1026,6 @@ bool CCDSim::ISSnoopDevice (XMLEle *root)
 
             if (isDebug())
                 IDLog("raPEC %g  decPEC %g Snooped raPEC %g  decPEC %g\n",raPEC,decPEC,newra,newdec);
-            raPEC=newra;
-            decPEC=newdec;
 
             return true;
 
