@@ -25,6 +25,7 @@
 
 #include <memory>
 
+#include <libnova.h>
 
 // We declare an auto pointer to ccdsim.
 std::auto_ptr<CCDSim> ccdsim(0);
@@ -213,8 +214,8 @@ bool CCDSim::initProperties()
     IUFillNumber(&ScopeParametersN[3],"GUIDER_FOCAL_LENGTH","Guider Focal Length (mm)","%g",100,10000,0,0.0 );
     IUFillNumberVector(&ScopeParametersNP,ScopeParametersN,4,"Telescope Simulator","TELESCOPE_INFO","Scope Properties",OPTIONS_TAB,IP_RW,60,IPS_OK);
 
-    IUFillNumber(&EqPECN[0],"RA_PEC","Ra (hh:mm:ss)","%010.6m",0,24,0,0);
-    IUFillNumber(&EqPECN[1],"DEC_PEC","decPEC (dd:mm:ss)","%010.6m",-90,90,0,0);
+    IUFillNumber(&EqPECN[0],"RA_PEC","RA (hh:mm:ss)","%010.6m",0,24,0,0);
+    IUFillNumber(&EqPECN[1],"DEC_PEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,0);
     IUFillNumberVector(&EqPECNP,EqPECN,2,ActiveDeviceT[0].text,"EQUATORIAL_PEC","EQ PEC","Main Control",IP_RW,60,IPS_IDLE);
 
     IDSnoopDevice(ActiveDeviceT[0].text,"EQUATORIAL_PEC");
@@ -224,6 +225,8 @@ bool CCDSim::initProperties()
     MinFilter=1;
     MaxFilter=5;
     FilterSlotN[0].max = MaxFilter;
+
+    addDebugControl();
 
     return true;
 }
@@ -1006,13 +1009,23 @@ bool CCDSim::ISSnoopDevice (XMLEle *root)
 
      if(IUSnoopNumber(root,&EqPECNP)==0)
      {
-        float newra,newdec;
+        double newra,newdec;
         newra=EqPECN[0].value;
         newdec=EqPECN[1].value;
         if((newra != raPEC)||(newdec != decPEC))
         {
+             ln_equ_posn epochPos, J2000Pos;
+             epochPos.ra   = newra*15.0;
+             epochPos.dec  = newdec;
+
+
+             ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
+
+             raPEC  = J2000Pos.ra/15.0;
+             decPEC = J2000Pos.dec;
+
             if (isDebug())
-                IDLog("raPEC %4.2f  decPEC %4.2f Snooped raPEC %4.2f  decPEC %4.2f\n",raPEC,decPEC,newra,newdec);
+                IDLog("raPEC %g  decPEC %g Snooped raPEC %g  decPEC %g\n",raPEC,decPEC,newra,newdec);
             raPEC=newra;
             decPEC=newdec;
 
