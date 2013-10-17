@@ -139,8 +139,8 @@ bool INDI::BaseClient::disconnectServer()
     sConnected = false;
 
     shutdown(sockfd, SHUT_RDWR);
-    write(m_sendFd,"1",1);
 
+    while (write(m_sendFd,"1",1) <= 0)
 
     if (svrwfp != NULL)
         fclose(svrwfp);
