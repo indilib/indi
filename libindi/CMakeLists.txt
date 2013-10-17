@@ -36,6 +36,7 @@ include (CheckIncludeFiles)
 FIND_PACKAGE(ZLIB REQUIRED)
 FIND_PACKAGE(USB REQUIRED)
 FIND_PACKAGE(CFITSIO REQUIRED)
+FIND_PACKAGE(Nova REQUIRED)
 
 if (NOT CFITSIO_FOUND OR CFITSIO_VERSION_MAJOR LESS 3)
   message(FATAL_ERROR "CFITSIO version too old, Please install cfitsio 3.x and try again. http://heasarc.gsfc.nasa.gov/fitsio/fitsio.html")
@@ -44,7 +45,6 @@ endif (NOT CFITSIO_FOUND OR CFITSIO_VERSION_MAJOR LESS 3)
 macro_bool_to_01(CFITSIO_FOUND HAVE_CFITSIO_H)
 macro_log_feature(CFITSIO_FOUND "libcfitsio" "A library for reading and writing data files in FITS (Flexible Image Transport System) data format" "http://heasarc.gsfc.nasa.gov/fitsio/fitsio.html" FALSE "3.03" "Provides INDI with FITS I/O support.")
 
-macro_optional_find_package(Nova)
 macro_bool_to_01(NOVA_FOUND HAVE_NOVA_H)
 macro_log_feature(NOVA_FOUND "libnova" "A general purpose, double precision, Celestial Mechanics, Astrometry and Astrodynamics library" "http://libnova.sourceforge.net" FALSE "0.12.1" "Provides INDI with astrodynamics library.")
 
