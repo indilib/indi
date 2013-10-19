@@ -317,12 +317,10 @@ cmake_modules/FindVorbis.cmake -text
 cmake_modules/MacroBoolTo01.cmake -text
 cmake_modules/MacroLogFeature.cmake -text
 cmake_modules/MacroOptionalFindPackage.cmake -text
-debian/astrometry.net/astrometry.net.dirs -text
 debian/astrometry.net/changelog -text
 debian/astrometry.net/compat -text
 debian/astrometry.net/control -text
 debian/astrometry.net/copyright -text
-debian/astrometry.net/docs -text
 debian/astrometry.net/rules -text
 debian/astrometry.net/source/format -text
 debian/fliusb/README.Debian -text
