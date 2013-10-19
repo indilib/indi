@@ -108,7 +108,7 @@ void * INDI::BaseDevice::getRawProperty(const char *name, INDI_TYPE type)
     void *pPtr;
     bool pRegistered = false;
 
-    std::vector<INDI::Property *>::iterator orderi;
+    typename std::vector<INDI::Property *>::iterator orderi = pAll.begin();
 
     INumberVectorProperty *nvp;
     ITextVectorProperty *tvp;
@@ -116,7 +116,7 @@ void * INDI::BaseDevice::getRawProperty(const char *name, INDI_TYPE type)
     ILightVectorProperty *lvp;
     IBLOBVectorProperty *bvp;
 
-    for (orderi = pAll.begin(); orderi != pAll.end(); orderi++)
+    for (; orderi != pAll.end(); ++orderi)
     {
         pType       = (*orderi)->getType();
         pPtr        = (*orderi)->getProperty();
@@ -189,7 +189,7 @@ INDI::Property * INDI::BaseDevice::getProperty(const char *name, INDI_TYPE type)
     ILightVectorProperty *lvp;
     IBLOBVectorProperty *bvp;
 
-    for (orderi = pAll.begin(); orderi != pAll.end(); orderi++)
+    for (orderi = pAll.begin(); orderi != pAll.end(); ++orderi)
     {
         pType       = (*orderi)->getType();
         pPtr        = (*orderi)->getProperty();
@@ -261,7 +261,7 @@ int INDI::BaseDevice::removeProperty(const char *name, char *errmsg)
     ILightVectorProperty *lvp;
     IBLOBVectorProperty *bvp;
 
-    for (orderi = pAll.begin(); orderi != pAll.end(); orderi++)
+    for (orderi = pAll.begin(); orderi != pAll.end(); ++orderi)
     {
         pType       = (*orderi)->getType();
         pPtr        = (*orderi)->getProperty();
