@@ -425,13 +425,38 @@ void GetRAandDec(void)
 
 int SyncToCoords(double newRA, double newDec)
 {
-   offsetRA = 0.;
+ /*  offsetRA = 0.;
    offsetDec = 0.;
    GetRAandDec();
    offsetRA = returnRA - newRA;
    offsetDec = returnDec - newDec;
 
-   return (0);
+   return (0);*/
+
+    /* 2013-10-19 JM: Trying to support sync in Nextstar command set v4.10+ */
+    char str[20];
+    int n1,n2;
+
+    //  so, lets format up a sync command
+    n1=newRA*0x1000000/24;
+    n2=newDec*0x1000000/360;
+    n1=n1<<8;
+    n2=n2<<8;
+    sprintf((char *)str,"s%08X,%08X",n1,n2);
+    writen(TelPortFD,str,18);
+
+    /* Look for '#' in response */
+    for (;;)
+    {
+      if ( readn(TelPortFD,str,1,2) )
+      {
+        if (str[0] == '#') break;
+      }
+      else
+      fprintf(stderr,"No acknowledgment from telescope after SyncToCoords.\n");
+      return 4;
+    }
+    return 0;
 }
 
 

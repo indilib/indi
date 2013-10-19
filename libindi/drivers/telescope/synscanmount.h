@@ -24,11 +24,7 @@
 
 class SynscanMount : public INDI::Telescope
 {
-    protected:
 
-    bool canPark();
-
-    private:
     public:
         SynscanMount();
         virtual ~SynscanMount();
@@ -38,12 +34,14 @@ class SynscanMount : public INDI::Telescope
         void ISGetProperties (const char *dev);
         const char *getDefaultName();
 
-        //virtual bool Connect() {return true;}
         bool ReadScopeStatus();
         bool Goto(double,double);
+        bool Sync(double ra, double dec);
         bool Park();
         bool Abort();
 
+        bool canSync();
+        bool canPark();
 
 };
 
