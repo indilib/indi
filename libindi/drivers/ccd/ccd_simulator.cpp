@@ -99,6 +99,8 @@ CCDSim::CCDSim()
     HasSt4Port=true;
     HasGuideHead=true;
 
+    polarError=0;
+    polarDrift=0;
 
     raPEC=9.95;
     decPEC=68.9;
@@ -151,6 +153,8 @@ bool CCDSim::SetupParms()
     limitingmag=SimulatorSettingsN[7].value;
     saturationmag=SimulatorSettingsN[6].value;
     OAGoffset=SimulatorSettingsN[10].value;    //  An oag is offset this much from center of scope position (arcminutes);
+    polarError=SimulatorSettingsN[11].value;
+    polarDrift=SimulatorSettingsN[12].value;
 
     nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP()/8;
     nbuf += 512;
@@ -197,8 +201,9 @@ bool CCDSim::initProperties()
     IUFillNumber(&SimulatorSettingsN[8],"SIM_NOISE","CCD Noise","%4.0f",0,6000,0,50);
     IUFillNumber(&SimulatorSettingsN[9],"SIM_SKYGLOW","Sky Glow (magnitudes)","%4.1f",0,6000,0,19.5);
     IUFillNumber(&SimulatorSettingsN[10],"SIM_OAGOFFSET","Oag Offset (arcminutes)","%4.1f",0,6000,0,0);
-    IUFillNumberVector(SimulatorSettingsNV,SimulatorSettingsN,11,getDeviceName(),"SIMULATOR_SETTINGS","Simulator Settings","Simulator Config",IP_RW,60,IPS_IDLE);
-
+    IUFillNumber(&SimulatorSettingsN[11],"SIM_POLAR","PAE (arcminutes)","%4.1f",-600,600,0,0); /* PAE = Polar Alignment Error */
+    IUFillNumber(&SimulatorSettingsN[12],"SIM_POLARDRIFT","PAE Drift (minutes)","%4.1f",0,6000,0,0);
+    IUFillNumberVector(SimulatorSettingsNV,SimulatorSettingsN,13,getDeviceName(),"SIMULATOR_SETTINGS","Simulator Settings","Simulator Config",IP_RW,60,IPS_IDLE);
 
     IUFillSwitch(&TimeFactorS[0],"1X","Actual Time",ISS_ON);
     IUFillSwitch(&TimeFactorS[1],"10X","10x",ISS_OFF);
@@ -451,10 +456,10 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
         int x,y;
         float PEOffset;
         float PESpot;
+        float decDrift;
         double rad;  //  telescope ra in degrees
         double rar;  //  telescope ra in radians
         double decr; //  telescope dec in radians;
-
 
         double timesince;
         time_t now;
@@ -523,6 +528,11 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
         float cameradec;
         cameradec=decPEC+OAGoffset/60;
         decr=cameradec*0.0174532925;
+
+        decDrift = (polarDrift * polarError * cos(decr)) / 3.81;
+
+        // Add declination drift, if any.
+        decr += decDrift/3600.0 * 0.0174532925;
 
         //fprintf(stderr,"decPEC %7.5f  cameradec %7.5f  CenterOffsetDec %4.4f\n",decPEC,cameradec,CenterOffsetDec);
         //  now lets calculate the radius we need to fetch

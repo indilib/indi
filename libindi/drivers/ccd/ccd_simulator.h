@@ -78,10 +78,13 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         double raPEC,decPEC;
         time_t RunStart;
 
+        float polarError;
+        float polarDrift;
+
         //  And this lives in our simulator settings page
 
         INumberVectorProperty *SimulatorSettingsNV;
-        INumber SimulatorSettingsN[11];
+        INumber SimulatorSettingsN[13];
 
         ISwitch TimeFactorS[3];
         ISwitchVectorProperty *TimeFactorSV;
