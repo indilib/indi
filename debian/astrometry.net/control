@@ -2,13 +2,13 @@ Source: astrometry.net
 Section: science
 Priority: extra
 Maintainer: Jasem Mutlaq <mutlaqja@ikarustech.com>
-Build-Depends: debhelper (>= 8.0.0), autotools-dev, libcfitsio3-dev,  zlib1g-dev, libcairo2-dev, python-dev, libpng12-dev, libjpeg-dev, python-numpy, libnetpbm10-dev, swig 
+Build-Depends: debhelper (>= 8.0.0), autotools-dev, libcfitsio3-dev,  zlib1g-dev, libcairo2-dev, python-dev, libpng12-dev, libjpeg-dev, python-numpy, libnetpbm10-dev, libgsl0-dev, swig 
 Standards-Version: 3.9.4
 Homepage: www.astrometry.net
 
 Package: astrometry.net
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libcfitsio3, python, libcairo2, python-pyfits, netpbm
+Depends: ${shlibs:Depends}, ${misc:Depends}, libcfitsio3, python, libcairo2, python-pyfits, netpbm, libgsl0
 Description: Astrometry plate solver
  The astrometry engine will take any image and return the astrometry
  world coordinate system (WCS), a standards-based description of the
