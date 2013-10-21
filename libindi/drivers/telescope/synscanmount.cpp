@@ -241,42 +241,6 @@ bool SynscanMount::Goto(double ra,double dec)
     return true;
 }
 
-bool SynscanMount::Sync(double ra,double dec)
-{
-    char str[20];
-    int n1,n2;
-    int numread, bytesWritten, bytesRead;
-
-    //  not fleshed in yet
-    tty_write(PortFD,"Ka",2, &bytesWritten);  //  test for an echo
-    tty_read(PortFD,str,2,2, &bytesRead);  //  Read 2 bytes of response
-    if(str[1] != '#') {
-        //  this is not a correct echo
-        //  so we are not talking to a mount properly
-        return false;
-    }
-    //  Ok, mount is alive and well
-    //  so, lets format up a goto command
-    n1=ra*0x1000000/24;
-    n2=dec*0x1000000/360;
-    n1=n1<<8;
-    n2=n2<<8;
-    sprintf((char *)str,"s%08X,%08X",n1,n2);
-    tty_write(PortFD,str,18, &bytesWritten);
-    TrackState=SCOPE_TRACKING;
-
-    numread=tty_read(PortFD,str,1,60, &bytesRead);
-    if (bytesRead!=1||str[0]!='#')
-    {
-        if (isDebug())
-            IDLog("Timeout waiting for scope to complete syncing.");
-        return false;
-    }
-
-    return true;
-}
-
-
 bool SynscanMount::Park()
 {
     char str[20];
@@ -330,11 +294,6 @@ bool  SynscanMount::Abort()
     tty_write(PortFD,"M",1, &bytesWritten);
     tty_read(PortFD,str,1,1, &bytesRead);  //  Read 1 bytes of response
 
-    return true;
-}
-
-bool SynscanMount::canSync()
-{
     return true;
 }
 
