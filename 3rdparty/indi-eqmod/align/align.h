@@ -40,6 +40,7 @@ class Align
   INumberVectorProperty *AlignTelescopeCoordsNP;
   ISwitchVectorProperty *AlignOptionsSP;
   ISwitchVectorProperty *AlignModeSP;
+  bool alignReady;
 
   AlignData syncdata;
 
@@ -64,6 +65,8 @@ public:
   virtual void AlignNearest(double lst, double currentRA, double currentDEC, double *alignedRA, double *alignedDEC, bool ingoto);
   virtual void AlignGoto(double lst, double *gotoRA, double *gotoDEC);
   virtual void AlignSync(double lst, double jd, double targetRA, double targetDEC, double telescopeRA, double telescopeDEC);
+
+  bool isReady() { return alignReady; }
 };
 
 #endif // ALIGN_H

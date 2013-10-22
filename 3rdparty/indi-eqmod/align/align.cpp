@@ -77,6 +77,7 @@ Align::Align(INDI::Telescope *t)
 {
   telescope=t;
   pointset=new PointSet(t);
+  alignReady = false;
 }
 
 Align::~Align() 
@@ -165,6 +166,7 @@ bool Align::updateProperties ()
       telescope->buildSkeleton(skelPath);
     else 
       IDLog("No skeleton file was specified. Set environment variable INDISKEL to the skeleton path and try again.\n"); 
+
     AlignDataFileTP=telescope->getText("ALIGNDATAFILE");
     AlignDataBP=telescope->getBLOB("ALIGNDATA");
     AlignPointNP=telescope->getNumber("ALIGNPOINT");
@@ -180,6 +182,7 @@ bool Align::updateProperties ()
       telescope->defineSwitch(AlignOptionsSP);
       telescope->defineSwitch(AlignModeSP);
     Init();
+    alignReady = true;
     } else {
     if (AlignDataBP) {
       telescope->deleteProperty(AlignDataBP->name);
@@ -196,8 +199,11 @@ bool Align::updateProperties ()
       AlignModeSP=NULL;
       AlignTelescopeCoordsNP=NULL;
       AlignOptionsSP=NULL;
+      alignReady = false;
     }
     }
+
+
   return true;
 }
 

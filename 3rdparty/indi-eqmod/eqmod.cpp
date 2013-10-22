@@ -498,7 +498,7 @@ bool EQMod::ReadScopeStatus() {
     DEBUGF(Logger::DBG_SCOPE_STATUS, "Current encoders RA=%ld DE=%ld", currentRAEncoder, currentDEEncoder);
     EncodersToRADec(currentRAEncoder, currentDEEncoder, lst, &currentRA, &currentDEC, &currentHA);
     alignedRA=currentRA; alignedDEC=currentDEC;
-    if (align) 
+    if (align && align->isReady())
       align->GetAlignedCoords(lst, currentRA, currentDEC, &alignedRA, &alignedDEC);
     else {
       if (syncdata.lst != 0.0) {
@@ -870,7 +870,7 @@ bool EQMod::Goto(double r,double d)
     // Compute encoder targets and check RA limits if forced
     bzero(&gotoparams, sizeof(gotoparams));
     gotoparams.ratarget = r;  gotoparams.detarget = d;
-    if (align) 
+    if (align && align->isReady())
       align->AlignGoto(lst, &gotoparams.ratarget, &gotoparams.detarget);
     else {
       if (syncdata.lst != 0.0) {
@@ -966,7 +966,7 @@ bool EQMod::Sync(double ra,double dec)
   //EqReqNV.s=IPS_IDLE;
   //EqNV.s=IPS_OK;
   //IDSetNumber(&EqReqNV, NULL);
-  if (align) align->AlignSync(syncdata.lst, syncdata.jd, syncdata.targetRA, syncdata.targetDEC, syncdata.telescopeRA, syncdata.telescopeDEC);
+  if (align && align->isReady()) align->AlignSync(syncdata.lst, syncdata.jd, syncdata.targetRA, syncdata.targetDEC, syncdata.telescopeRA, syncdata.telescopeDEC);
   DEBUGF(Logger::DBG_SESSION, "Mount Synced (deltaRA = %.6f deltaDEC = %.6f)", syncdata.deltaRA, syncdata.deltaDEC);
   //IDLog("Mount Synced (deltaRA = %.6f deltaDEC = %.6f)\n", syncdata.deltaRA, syncdata.deltaDEC);
   return true;
@@ -1137,7 +1137,7 @@ bool EQMod::ISNewNumber (const char *dev, const char *name, double values[], cha
     }
 
 
-  if (align) { compose=align->ISNewNumber(dev,name,values,names,n); if (compose) return true;}
+  if (align && align->isReady()) { compose=align->ISNewNumber(dev,name,values,names,n); if (compose) return true;}
 
 #ifdef WITH_SIMULATOR
   if (simulator) { 
@@ -1258,7 +1258,7 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 	}
     }
 
-    if (align) { compose=align->ISNewSwitch(dev,name,states,names,n); if (compose) return true;}
+    if (align && align->isReady()) { compose=align->ISNewSwitch(dev,name,states,names,n); if (compose) return true;}
 
 #ifdef WITH_SIMULATOR
     if (simulator) { 
@@ -1279,7 +1279,7 @@ bool EQMod::ISNewText (const char *dev, const char *name, char *texts[], char *n
     {
 
     }
-  if (align) { compose=align->ISNewText(dev,name,texts,names,n); if (compose) return true;}
+  if (align && align->isReady()) { compose=align->ISNewText(dev,name,texts,names,n); if (compose) return true;}
 
 #ifdef WITH_SIMULATOR
   if (simulator) { 
