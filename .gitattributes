@@ -337,6 +337,12 @@ debian/indi-apogee/compat -text
 debian/indi-apogee/control -text
 debian/indi-apogee/copyright -text
 debian/indi-apogee/rules -text
+debian/indi-eqmod/changelog -text
+debian/indi-eqmod/compat -text
+debian/indi-eqmod/control -text
+debian/indi-eqmod/copyright -text
+debian/indi-eqmod/rules -text
+debian/indi-eqmod/watch -text
 debian/indi-fli/changelog -text
 debian/indi-fli/compat -text
 debian/indi-fli/control -text
