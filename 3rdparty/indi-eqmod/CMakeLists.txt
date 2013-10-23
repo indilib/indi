@@ -23,7 +23,7 @@ option(WITH_ALIGN_GEEHALEL "Enable Alignment Test" ON)
 option(WITH_SIMULATOR "Enable Simulator" ON)
 option(WITH_LOGGER "Enable File Logging" OFF)
 option(WITH_NOFMANY "Use NOFMANY switches" ON)
-option(STOP_WHEN_MOTION_CHANGED "Stop motors when motion mode changes" OFF)
+option(STOP_WHEN_MOTION_CHANGED "Stop motors when motion mode changes" ON)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
@@ -42,7 +42,8 @@ if(WITH_SIMULATOR)
 endif(WITH_SIMULATOR)
 if(WITH_ALIGN_GEEHALEL)
   set(eqmod_SRCS ${eqmod_SRCS}
-   ${CMAKE_SOURCE_DIR}/align/align.cpp ${CMAKE_SOURCE_DIR}/align/pointset.cpp ${CMAKE_SOURCE_DIR}/align/htm.c)
+   ${CMAKE_SOURCE_DIR}/align/align.cpp ${CMAKE_SOURCE_DIR}/align/pointset.cpp ${CMAKE_SOURCE_DIR}/align/htm.c
+   ${CMAKE_SOURCE_DIR}/align/triangulate.cpp ${CMAKE_SOURCE_DIR}/align/triangulate_chull.cpp ${CMAKE_SOURCE_DIR}/align/chull/chull.c)
 endif(WITH_ALIGN_GEEHALEL)
 
 add_executable(indi_eqmod_telescope ${eqmod_SRCS})

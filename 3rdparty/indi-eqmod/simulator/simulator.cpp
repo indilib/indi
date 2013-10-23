@@ -82,27 +82,38 @@ void EQModSimulator::send_reply(char *buf, int *sent)
   //*sent=2;
 }
 
+bool EQModSimulator::initProperties()
+{
+      char skelPath[MAX_PATH_LENGTH];
+      const char *skelFileName = "indi_eqmod_simulator_sk.xml";
+      snprintf(skelPath, MAX_PATH_LENGTH, "%s/%s", INDI_DATA_DIR, skelFileName);
+      struct stat st;
+
+      if (stat(skelPath,&st) == 0)
+        telescope->buildSkeleton(skelPath);
+      else
+      {
+        IDLog("EQMod Simulator Skeleton file %s not found.\n", skelPath);
+        return false;
+      }
+
+      SimWormNP=telescope->getNumber("SIMULATORWORM");
+      SimRatioNP=telescope->getNumber("SIMULATORRATIO");
+      SimMotorNP=telescope->getNumber("SIMULATORMOTOR");
+      SimModeSP=telescope->getSwitch("SIMULATORMODE");
+      SimHighSpeedSP=telescope->getSwitch("SIMULATORHIGHSPEED");
+      SimMCVersionTP=telescope->getText("SIMULATORMCVERSION");
+
+      return true;
+
+}
+
 bool EQModSimulator::updateProperties(bool enable)
 {
 
-  if (enable) {
-    char skelPath[MAX_PATH_LENGTH];
-    const char *skelFileName = "indi_eqmod_simulator_sk.xml";
-    snprintf(skelPath, MAX_PATH_LENGTH, "%s/%s", INDI_DATA_DIR, skelFileName);
-    struct stat st;
-    
-    if (stat(skelPath,&st) == 0) 
-      telescope->buildSkeleton(skelPath);
-    else 
-      IDLog("EQMod Simulator Skeleton file %s not found.\n", skelPath); 
-
-    SimWormNP=telescope->getNumber("SIMULATORWORM");
-    SimRatioNP=telescope->getNumber("SIMULATORRATIO");
-    SimMotorNP=telescope->getNumber("SIMULATORMOTOR");
-    SimModeSP=telescope->getSwitch("SIMULATORMODE");
-    SimHighSpeedSP=telescope->getSwitch("SIMULATORHIGHSPEED");
-    SimMCVersionTP=telescope->getText("SIMULATORMCVERSION");
-
+  if (enable)
+  {
+    initProperties();
     telescope->defineSwitch(SimModeSP);
     telescope->defineNumber(SimWormNP);
     telescope->defineNumber(SimRatioNP);
@@ -112,7 +123,7 @@ bool EQModSimulator::updateProperties(bool enable)
     /*
       AlignDataFileTP=telescope->getText("ALIGNDATAFILE");
       AlignDataBP=telescope->getBLOB("ALIGNDATA");
-    */
+      */
   } else {
     telescope->deleteProperty(SimModeSP->name);
     telescope->deleteProperty(SimWormNP->name);
@@ -121,6 +132,7 @@ bool EQModSimulator::updateProperties(bool enable)
     telescope->deleteProperty(SimHighSpeedSP->name);
     telescope->deleteProperty(SimMCVersionTP->name);
   }
+
     return true;
 }
 
@@ -172,18 +184,24 @@ bool EQModSimulator::ISNewText (const char *dev, const char *name, char *texts[]
   //  first check if it's for our device
 
   if(strcmp(dev,telescope->getDeviceName())==0)
-    {
-      ITextVectorProperty *tvp =telescope->getText(name);      
-      if ((tvp != SimMCVersionTP)) return false;
-      if (telescope->isConnected()) {
-	DEBUGDEVICE(telescope->getDeviceName(), Logger::DBG_WARNING,"Can not change simulation settings when mount is already connected");
-	return false;
-      }
-      tvp->s=IPS_OK;
-      IUUpdateText(tvp,texts,names,n);
-      IDSetText(tvp,NULL);
-      return true;
-    }
+  {
+      ITextVectorProperty *tvp =telescope->getText(name);
+      if (tvp)
+      {
+            if ((tvp != SimMCVersionTP)) return false;
+            if (telescope->isConnected())
+            {
+                DEBUGDEVICE(telescope->getDeviceName(), Logger::DBG_WARNING,"Can not change simulation settings when mount is already connected");
+                return false;
+            }
+
+            tvp->s=IPS_OK;
+            IUUpdateText(tvp,texts,names,n);
+            IDSetText(tvp,NULL);
+            return true;
+
+     }
+  }
     return false;
 }
 

@@ -52,6 +52,7 @@ class EQModSimulator
   void Connect();
   void receive_cmd(const char *cmd, int *received);
   void send_reply(char *buf, int *sent);
+  bool initProperties();
   bool updateProperties(bool enable);
   bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
   bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);

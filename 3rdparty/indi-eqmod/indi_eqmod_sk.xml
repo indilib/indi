@@ -1,9 +1,9 @@
 <INDIDriver>
-<defNumberVector device="EQMod Mount" name="HORIZONTAL_COORDS" label="Hor. Coordinates" group="Main Control" state="Idle" perm="ro">
-<defNumber name="AZ" label="Azimuth" format="%10.6m" min="0.0" max="360.0" step="0.0">
+<defNumberVector device="EQMod Mount" name="HORIZONTAL_COORD" label="Hor. Coordinates" group="Main Control" state="Idle" perm="ro">
+<defNumber name="ALT" label="Altitude" format="%10.6m" min="-90.00" max="90.0" step="0.0">
 0.0
 </defNumber>
-<defNumber name="ALT" label="Altitude" format="%10.6m" min="-90.00" max="90.0" step="0.0">
+<defNumber name="AZ" label="Azimuth" format="%10.6m" min="0.0" max="360.0" step="0.0">
 0.0
 </defNumber>
 </defNumberVector>
@@ -81,14 +81,21 @@ Idle
 Idle
     </defLight>
 </defLightVector>
-<defNumberVector device="EQMod Mount" name="DATE" label="Time" group="Site Management" state="Idle" perm="ro">
-<defNumber name="LST" label="Local Sidereal Time" format="%010.6m" min="0.0" max="24.0" step="0.000000000001">
-12.0
-</defNumber>
-<defNumber name="JULIAN" label="Julian Date" format="%8.8f" min="0.0" max="9999999999.0" step="0.00000000001">
+<defNumberVector device="EQMod Mount" name="JULIAN" label="JD" group="Site Management" state="Idle" perm="ro">
+<defNumber name="JULIANDATE" label="Julian Date" format="%8.8f" min="0.0" max="9999999999.0" step="0.00000000001">
 0.0
 </defNumber>
 </defNumberVector>
+<defNumberVector device="EQMod Mount" name="TIME_LST" label="LST" group="Site Management" state="Idle" perm="ro">
+<defNumber name="LST" label="Local Sidereal Time" format="%010.6m" min="0.0" max="24.0" step="0.000000000001">
+12.0
+</defNumber>
+</defNumberVector>
+<defTextVector device="EQMod Mount" name="TIME_UTC" label="UTC" group="Site Management" state="Idle" perm="rw">
+<defText name="UTC" label="UTC Time"></defText>
+<defText name="OFFSET" label="UTC Offset"></defText>
+</defTextVector>
+
 <defNumberVector device="EQMod Mount" name="SLEWSPEEDS" label="Custom Speeds" group="Motion Control" state="Idle" perm="rw">
 <defNumber name="RASLEW" label="RA Slew" format="%3.2fx" min="0.05" max="800.0" step="0.05">
 64.0
@@ -175,6 +182,49 @@ Off
 Off
 </defSwitch>
 <defSwitch name="SLEWPRESET10" label="Preset 10">
+Off
+</defSwitch>
+</defSwitchVector>
+
+<defNumberVector device="EQMod Mount" name="STANDARDSYNC" label="Delta" group="Sync" state="Idle" perm="ro">
+<defNumber name="STANDARDSYNC_RA" label="Delta RA (hh:mm:ss)" format="%010.6m" min="0.0" max="24.0" step="0.0">
+0.0
+</defNumber>
+<defNumber name="STANDARDSYNC_DE" label="Delta DE (dd:mm:ss)" format="%010.6m" min="-90.0" max="90.0" step="0.0">
+0.0
+</defNumber>
+</defNumberVector>
+<defNumberVector device="EQMod Mount" name="STANDARDSYNCPOINT" label="Sync Data" group="Sync" state="Idle" perm="rw">
+<defNumber name="STANDARDSYNCPOINT_JD" label="Sync Date" format="%08.8f" min="0.0" max="9999999999" step="0.0">
+0.0
+</defNumber>
+<defNumber name="STANDARDSYNCPOINT_SYNCTIME" label="Sync LST" format="%010.6m" min="0.0" max="24.0" step="0.000000000001">
+0.0
+</defNumber>
+<defNumber name="STANDARDSYNCPOINT_CELESTIAL_RA" label="Celestial RA (hh:mm:ss)" format="%010.6m" min="0.0" max="24.0" step="0.0">
+0.0
+</defNumber>
+<defNumber name="STANDARDSYNCPOINT_CELESTIAL_DE" label="Celestial DE (dd:mm:ss)" format="%010.6m" min="-90.0" max="90.0" step="0.0">
+0.0
+</defNumber>
+<defNumber name="STANDARDSYNCPOINT_TELESCOPE_RA" label="Telescope RA (hh:mm:ss)" format="%010.6m" min="0.0" max="24.0" step="0.0">
+0.0
+</defNumber>
+<defNumber name="STANDARDSYNCPOINT_TELESCOPE_DE" label="Telescope DE (dd:mm:ss)" format="%010.6m" min="-90.0" max="90.0" step="0.0">
+0.0
+</defNumber>
+
+</defNumberVector>
+<defNumberVector device="EQMod Mount" name="SYNCPOLARALIGN" label="Polar Align" group="Sync" state="Idle" perm="ro">
+<defNumber name="SYNCPOLARALIGN_ALT" label="Est. Mount Alt." format="%010.6m" min="-90.0" max="90.0" step="0.0">
+0.0
+</defNumber>
+<defNumber name="SYNCPOLARALIGN_AZ" label="Est. Mount AZ."  format="%10.6m" min="0.0" max="360.0" step="0.0">
+0.0
+</defNumber>
+</defNumberVector>
+<defSwitchVector device="EQMod Mount" name="SYNCMANAGE" label="Manage Sync" group="Sync" state="Idle" perm="rw" rule="OneOfMany">
+<defSwitch name="SYNCCLEARDELTA" label="Clear Sync Delta">
 Off
 </defSwitch>
 </defSwitchVector>

@@ -20,12 +20,16 @@
 
 #include <map>
 #include <set>
+#include <vector>
 
 #include "htm.h"
 #include <lilxml.h>
 
+
 // to get access to lat/long data
 #include <inditelescope.h>
+
+#include "../logger/Logger.h"
 
 typedef struct AlignData {
   double lst;
@@ -34,14 +38,20 @@ typedef struct AlignData {
   double telescopeRA, telescopeDEC;
 } AlignData;
 
+//class Triangulate;
+class TriangulateCHull;
+class Face;
+
 class PointSet 
 {
-
- public:
+public:
   typedef struct Point {
+    int index;
     HtmID htmID;
     HtmName htmname;
     double celestialALT, celestialAZ, telescopeALT, telescopeAZ;
+    double cx, cy ,cz;
+    double tx, ty ,tz;
     AlignData aligndata;
   } Point;
   typedef struct Distance {
@@ -52,28 +62,41 @@ class PointSet
     None, SameQuadrant
   } PointFilter;
   PointSet(INDI::Telescope *);
+  const char *getDeviceName();
   void AddPoint(AlignData aligndata, struct ln_lnlat_posn *pos);
   Point *getPoint(HtmID htmid);
+  int getNbPoints();
   void Init();
   void Reset();
   char *LoadDataFile(const char *filename);
   char *WriteDataFile(const char *filename);
-  std::set<Distance, bool (*)(Distance, Distance)> *ComputeDistances(double alt, double az, PointFilter filter);
+  XMLEle *toXML();
+  void setBlobData(IBLOBVectorProperty *bp);
+  void setPointBlobData(IBLOB *blob); 
+  void setTriangulationBlobData(IBLOB *blob); 
+  std::set<Distance, bool (*)(Distance, Distance)> *ComputeDistances(double alt, double az, PointFilter filter, bool ingoto);
+  std::vector<HtmID> findFace(double currentRA, double currentDEC, double jd, double pointalt, double pointaz, ln_lnlat_posn *position, bool ingoto);
   double lat, lon, alt;
   double range24(double r);
   double range360(double r);
-  void AltAzFromRaDec(double ra, double dec, double lst, double *alt, double *az, struct ln_lnlat_posn *pos);
+  // should be elsewhere
+  void AltAzFromRaDec(double ra, double dec, double jd, double *alt, double *az, struct ln_lnlat_posn *pos);
+  void AltAzFromRaDecSidereal(double ra, double dec, double lst, double *alt, double *az, struct ln_lnlat_posn *pos);
   void RaDecFromAltAz(double alt, double az, double jd, double *ra, double *dec, struct ln_lnlat_posn *pos) ;
+  double scalarTripleProduct(Point *p, Point *e1, Point *e2, bool ingoto);
+  bool isPointInside(Point *p, std::vector<HtmID> f, bool ingoto);
  protected:
  private:
 
   XMLEle *PointSetXmlRoot;
   std::map<HtmID, Point> *PointSetMap;
-
+  TriangulateCHull *Triangulation;
+  Face *currentFace;
+  std::vector<HtmID> current;
   // to get access to lat/long data
   INDI::Telescope *telescope;
   // from align data file
   struct ln_lnlat_posn *lnalignpos; 
-
+  friend class TriangulateCHull;
 };
 #endif

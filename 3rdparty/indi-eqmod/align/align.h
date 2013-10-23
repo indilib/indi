@@ -21,6 +21,10 @@
 #include <stdio.h>
 #include <inditelescope.h>
 
+#include "../logger/Logger.h"
+
+typedef struct SyncData SyncData;
+
 #include "pointset.h"
 
 
@@ -38,21 +42,26 @@ class Align
   INumberVectorProperty *AlignPointNP;
   ISwitchVectorProperty *AlignListSP;
   INumberVectorProperty *AlignTelescopeCoordsNP;
-  ISwitchVectorProperty *AlignOptionsSP;
+  ISwitchVectorProperty *AlignSyncModeSP;
   ISwitchVectorProperty *AlignModeSP;
-  bool alignReady;
+  INumberVectorProperty *AlignCountNP;
 
   AlignData syncdata;
 
   enum AlignmentMode GetAlignmentMode();
 
+  double currentdeltaRA, currentdeltaDEC;
+
+  int lastnearestindex;
+
 public:
 
   Align(INDI::Telescope *);
   virtual ~Align();
+
+  const char *getDeviceName(); // used for logger
  
-  virtual bool initProperties();
-  virtual void ISGetProperties (const char *dev);
+  virtual bool initProperties(); 
   virtual bool updateProperties();
   virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
   virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
@@ -60,13 +69,19 @@ public:
   virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
 
   virtual void Init();
-  virtual void GetAlignedCoords(double lst, double currentRA, double currentDEC, double *alignedRA, double *alignedDEC);
-  virtual void AlignNStar(double lst, double currentRA, double currentDEC, double *alignedRA, double *alignedDEC, bool ingoto);
-  virtual void AlignNearest(double lst, double currentRA, double currentDEC, double *alignedRA, double *alignedDEC, bool ingoto);
-  virtual void AlignGoto(double lst, double *gotoRA, double *gotoDEC);
-  virtual void AlignSync(double lst, double jd, double targetRA, double targetDEC, double telescopeRA, double telescopeDEC);
-
-  bool isReady() { return alignReady; }
+  virtual void GetAlignedCoords(SyncData globalsync, double jd, struct ln_lnlat_posn *position, 
+				double currentRA, double currentDEC, 
+				double *alignedRA, double *alignedDEC);
+  virtual void AlignNStar(double jd,  struct ln_lnlat_posn *position, double currentRA, double currentDEC, 
+			  double *alignedRA, double *alignedDEC, bool ingoto);
+  virtual void AlignNearest(double jd, struct ln_lnlat_posn *position,  double currentRA, double currentDEC, 
+			    double *alignedRA, double *alignedDEC, bool ingoto);
+  virtual void AlignGoto(SyncData globalsync, double jd,  struct ln_lnlat_posn *position, 
+			 double *gotoRA, double *gotoDEC);
+  //virtual void AlignSync(double lst, double jd, double targetRA, double targetDEC, double telescopeRA, double telescopeDEC);
+  virtual void AlignSync(SyncData globalsync, SyncData thissync);
+  virtual void AlignStandardSync(SyncData globalsync, SyncData *thissync, struct ln_lnlat_posn *position);
+  virtual bool isStandardSync();
 };
 
 #endif // ALIGN_H
