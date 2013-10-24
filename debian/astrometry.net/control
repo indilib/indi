@@ -8,7 +8,7 @@ Homepage: www.astrometry.net
 
 Package: astrometry.net
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libcfitsio3, python, libcairo2, python-pyfits, netpbm, libgsl0
+Depends: ${shlibs:Depends}, ${misc:Depends}, libcfitsio3, python, libcairo2, python-pyfits, netpbm, libgsl0ldbl
 Description: Astrometry plate solver
  The astrometry engine will take any image and return the astrometry
  world coordinate system (WCS), a standards-based description of the
