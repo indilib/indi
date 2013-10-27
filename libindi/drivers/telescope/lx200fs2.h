@@ -39,11 +39,8 @@ class LX200Fs2 : public LX200Generic
  ~LX200Fs2();
 
  virtual void ISGetProperties (const char *dev);
- virtual void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+ virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
  // Not implemented. LX200 generic used. 
- //virtual void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
- //virtual void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
- //virtual void ISPoll ();
  virtual void handleError(ISwitchVectorProperty *svp, int err, const char *msg);
  virtual void handleError(INumberVectorProperty *nvp, int err, const char *msg);
  virtual void handleError(ITextVectorProperty *tvp, int err, const char *msg);

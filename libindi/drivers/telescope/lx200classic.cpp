@@ -62,17 +62,6 @@ static INumber altLimit[] = {
        {"maxAlt", "max Alt", "%+03f", -90., 90., 0., 0., 0, 0, 0}};
 static INumberVectorProperty ElevationLimitNP = { mydev, "altLimit", "Slew elevation Limit", BASIC_GROUP, IP_RW, 0, IPS_IDLE, altLimit, NARRAY(altLimit), "", 0};
 
-void changeLX200ClassicDeviceName(const char *newName)
-{
- strcpy(ObjectInfoTP.device, newName);
- strcpy(SolarSP.device, newName);
- strcpy(StarCatalogSP.device, newName);
- strcpy(DeepSkyCatalogSP.device, newName);
- strcpy(ObjectNoNP.device, newName);
- strcpy(MaxSlewRateNP.device , newName );
- strcpy(ElevationLimitNP.device , newName );
-}
-
 LX200Classic::LX200Classic() : LX200Generic()
 {
    ObjectInfoTP.tp[0].text = NULL;
@@ -100,17 +89,7 @@ if (dev && strcmp (thisDevice, dev))
 
 }
 
-void LX200Classic::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    // ignore if not ours //
-	if (strcmp (dev, thisDevice))
-	    return;
-
-  LX200Generic::ISNewText (dev, name, texts, names, n);
-}
-
-
-void LX200Classic::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+bool LX200Classic::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
     int err=0;
     
@@ -212,10 +191,10 @@ void LX200Classic::ISNewNumber (const char *dev, const char *name, double values
 	    return;
 	}
 
-    LX200Generic::ISNewNumber (dev, name, values, names, n);
+    return LX200Generic::ISNewNumber (dev, name, values, names, n);
 }
 
- void LX200Classic::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+ bool LX200Classic::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
  {
 
       int index=0;
@@ -325,21 +304,8 @@ void LX200Classic::ISNewNumber (const char *dev, const char *name, double values
 	  return;
 	}
 
-   LX200Generic::ISNewSwitch (dev, name, states, names,  n);
+   return LX200Generic::ISNewSwitch (dev, name, states, names,  n);
 
  }
 
- void LX200Classic::ISPoll ()
- {
 
-      LX200Generic::ISPoll();
-
- }
-
- void LX200Classic::getBasicData()
- {
-
-   // process parent first
-   LX200Generic::getBasicData();
-
- }

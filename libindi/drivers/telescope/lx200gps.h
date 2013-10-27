@@ -29,16 +29,44 @@ class LX200GPS : public LX200_16
   LX200GPS();
   ~LX200GPS() {} 
 
- void ISGetProperties (const char *dev);
- void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
- void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
- void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
- void ISPoll ();
- void getBasicData();
+  bool initProperties();
+  bool updateProperties();
+  void ISGetProperties (const char *dev);
+  bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+  bool ReadScopeStatus();
+
+ protected:
+  ISwitchVectorProperty GPSPowerSP;
+  ISwitch GPSPowerS[2];
+
+  ISwitchVectorProperty GPSStatusSP;
+  ISwitch GPSStatusS[3];
+
+  ISwitchVectorProperty GPSUpdateSP;
+  ISwitch GPSUpdateS[2];
+
+  ISwitchVectorProperty AltDecPecSP;
+  ISwitch AltDecPecS[2];
+
+  ISwitchVectorProperty AzRaPecSP;
+  ISwitch AzRaPecS[2];
+
+  ISwitchVectorProperty SelenSyncSP;
+  ISwitch SelenSyncS[1];
+
+  ISwitchVectorProperty AltDecBacklashSP;
+  ISwitch AltDecBacklashS[1];
+
+  ISwitchVectorProperty AzRaBacklashSP;
+  ISwitch AzRaBacklashS[1];
+
+  ISwitchVectorProperty OTAUpdateSP;
+  ISwitch OTAUpdateS[1];
+
+  INumberVectorProperty OTATempNP;
+  INumber OTATempN[1];
 
 };
-
-void changeLX200GPSDeviceName(const char *newName);
 
 #endif
 

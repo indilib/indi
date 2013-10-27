@@ -19,6 +19,8 @@
 #ifndef INDI_TELESCOPE_H
 #define INDI_TELESCOPE_H
 
+#include <libnova.h>
+
 #include "defaultdevice.h"
 
 /**
@@ -149,6 +151,23 @@ class INDI::Telescope : public INDI::DefaultDevice
         */
         virtual bool Abort()=0;
 
+        /** \brief Update telescope time, date, and UTC offset.
+         *  \param utc UTC time.
+         *  \param utc_offset UTC offset in hours.
+            \return True if successful, false otherewise
+            \note This function performs no action unless subclassed by the child class if required.
+        */
+        virtual bool updateTime(ln_date *utc, double utc_offset);
+
+        /** \brief Update telescope location settings
+         *  \param latitude Site latitude in degrees.
+         *  \param longitude Site latitude in degrees increasing eastward from Greenwich (0 to 360).
+         *  \param elevation Site elevation in meters.
+            \return True if successful, false otherewise
+            \note This function performs no action unless subclassed by the child class if required.
+        */
+        virtual bool updateLocation(double latitude, double longitude, double elevation);
+
         //  Since every mount I know of actually uses a serial port for control
         //  We put the serial helper into the base telescope class
         //  One less piece to worry about in the hardware specific
@@ -161,22 +180,22 @@ class INDI::Telescope : public INDI::DefaultDevice
         TelescopeStatus TrackState;
 
         //  All telescopes should produce equatorial co-ordinates
-        INumberVectorProperty EqNV;
+        INumberVectorProperty EqNP;
         INumber EqN[2];
 
-        ISwitchVectorProperty AbortSV; // Abort motion
+        ISwitchVectorProperty AbortSP; // Abort motion
         ISwitch AbortS[1];
 
-        ISwitchVectorProperty CoordSV; //  A switch vector that stores how we should readct
+        ISwitchVectorProperty CoordSP; //  A switch vector that stores how we should readct
         ISwitch CoordS[3];              //  On a coord_set message, sync, or slew
 
-        ISwitchVectorProperty ConfigSV; //  A switch vector that stores how we should readct
+        ISwitchVectorProperty ConfigSP; //  A switch vector that stores how we should readct
         ISwitch ConfigS[3];              //  On a coord_set message, sync, or slew
 
-        INumberVectorProperty LocationNV;   //  A number vector that stores lattitude and longitude
+        INumberVectorProperty LocationNP;   //  A number vector that stores lattitude and longitude
         INumber LocationN[3];
 
-        ISwitchVectorProperty ParkSV; //  A Switch in the client interface to park the scope
+        ISwitchVectorProperty ParkSP; //  A Switch in the client interface to park the scope
         ISwitch ParkS[1];
 
         ITextVectorProperty PortTP; //  A text vector that stores out physical port name
@@ -190,6 +209,9 @@ class INDI::Telescope : public INDI::DefaultDevice
 
         INumber ScopeParametersN[4];
         INumberVectorProperty ScopeParametersNP;
+
+        IText TimeT[2];
+        ITextVectorProperty TimeTP;
 
 };
 

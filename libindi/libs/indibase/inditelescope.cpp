@@ -15,6 +15,7 @@
  the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
+#include <stdlib.h>
 
 #include "inditelescope.h"
 #include "libs/indicom.h"
@@ -38,33 +39,37 @@ bool INDI::Telescope::initProperties()
 
     IUFillNumber(&EqN[0],"RA","RA (hh:mm:ss)","%010.6m",0,24,0,0);
     IUFillNumber(&EqN[1],"DEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,0);
-    IUFillNumberVector(&EqNV,EqN,2,getDeviceName(),"EQUATORIAL_EOD_COORD","Eq. Coordinates",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
+    IUFillNumberVector(&EqNP,EqN,2,getDeviceName(),"EQUATORIAL_EOD_COORD","Eq. Coordinates",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
+
+    IUFillText(&TimeT[0],"UTC","UTC Time","");
+    IUFillText(&TimeT[1],"Offset","UTC Offset","");
+    IUFillTextVector(&TimeTP,TimeT,2,getDeviceName(),"UTC_TIME","UTC",SITE_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillNumber(&LocationN[0],"LAT","Lat (dd:mm:ss)","%010.6m",-90,90,0,0.0);
     IUFillNumber(&LocationN[1],"LONG","Lon (dd:mm:ss)","%010.6m",-180,180,0,0.0 );
     IUFillNumber(&LocationN[2],"ELEV","Elevation (m)","%g",-200,10000,0,0 );
-    IUFillNumberVector(&LocationNV,LocationN,3,getDeviceName(),"GEOGRAPHIC_COORD","Scope Location",SITE_TAB,IP_RW,60,IPS_OK);
+    IUFillNumberVector(&LocationNP,LocationN,3,getDeviceName(),"GEOGRAPHIC_COORD","Scope Location",SITE_TAB,IP_RW,60,IPS_OK);
 
     IUFillSwitch(&CoordS[0],"TRACK","Track",ISS_OFF);
     IUFillSwitch(&CoordS[1],"SLEW","Slew",ISS_OFF);
     IUFillSwitch(&CoordS[2],"SYNC","Sync",ISS_OFF);
 
     if (canSync())
-        IUFillSwitchVector(&CoordSV,CoordS,3,getDeviceName(),"ON_COORD_SET","On Set",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+        IUFillSwitchVector(&CoordSP,CoordS,3,getDeviceName(),"ON_COORD_SET","On Set",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
     else
-        IUFillSwitchVector(&CoordSV,CoordS,2,getDeviceName(),"ON_COORD_SET","On Set",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+        IUFillSwitchVector(&CoordSP,CoordS,2,getDeviceName(),"ON_COORD_SET","On Set",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
     IUFillSwitch(&ConfigS[0], "CONFIG_LOAD", "Load", ISS_OFF);
     IUFillSwitch(&ConfigS[1], "CONFIG_SAVE", "Save", ISS_OFF);
     IUFillSwitch(&ConfigS[2], "CONFIG_DEFAULT", "Default", ISS_OFF);
-    IUFillSwitchVector(&ConfigSV, ConfigS, 3, getDeviceName(), "CONFIG_PROCESS", "Configuration", "Options", IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&ConfigSP, ConfigS, 3, getDeviceName(), "CONFIG_PROCESS", "Configuration", "Options", IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
 
     IUFillSwitch(&ParkS[0],"PARK","Park",ISS_OFF);
-    IUFillSwitchVector(&ParkSV,ParkS,1,getDeviceName(),"TELESCOPE_PARK","Park",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    IUFillSwitchVector(&ParkSP,ParkS,1,getDeviceName(),"TELESCOPE_PARK","Park",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
     IUFillSwitch(&AbortS[0],"ABORT","Abort",ISS_OFF);
-    IUFillSwitchVector(&AbortSV,AbortS,1,getDeviceName(),"TELESCOPE_ABORT_MOTION","Abort Motion",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    IUFillSwitchVector(&AbortSP,AbortS,1,getDeviceName(),"TELESCOPE_ABORT_MOTION","Abort Motion",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
     IUFillText(&PortT[0],"PORT","Port","/dev/ttyUSB0");
     IUFillTextVector(&PortTP,PortT,1,getDeviceName(),"DEVICE_PORT","Ports",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
@@ -94,19 +99,22 @@ void INDI::Telescope::ISGetProperties (const char *dev)
     DefaultDevice::ISGetProperties(dev);
 
     //  We may need the port set before we can connect
-    IDDefText(&PortTP,NULL);
+    //IDDefText(&PortTP,NULL);
+    defineText(&PortTP);
+    defineSwitch(&ConfigSP);
 
     if(isConnected())
     {
         //  Now we add our telescope specific stuff
-        defineSwitch(&CoordSV);
-        defineNumber(&EqNV);
-        defineSwitch(&AbortSV);
-        defineNumber(&LocationNV);
-        defineSwitch(&ParkSV);
+        defineSwitch(&CoordSP);
+        defineNumber(&EqNP);
+        defineSwitch(&AbortSP);
+        defineText(&TimeTP);
+        defineNumber(&LocationNP);
+        defineSwitch(&ParkSP);
         defineSwitch(&MovementNSSP);
         defineSwitch(&MovementWESP);
-        defineSwitch(&ConfigSV);
+        defineSwitch(&ConfigSP);
         defineNumber(&ScopeParametersNP);
 
     }
@@ -115,37 +123,35 @@ void INDI::Telescope::ISGetProperties (const char *dev)
 
 bool INDI::Telescope::updateProperties()
 {
-    defineText(&PortTP);
 
     if(isConnected())
     {
         //  Now we add our telescope specific stuff
-        defineSwitch(&CoordSV);
-        defineNumber(&EqNV);
-        defineSwitch(&AbortSV);
+        defineSwitch(&CoordSP);
+        defineNumber(&EqNP);
+        defineSwitch(&AbortSP);
         defineSwitch(&MovementNSSP);
         defineSwitch(&MovementWESP);
-        defineNumber(&LocationNV);
+        defineText(&TimeTP);
+        defineNumber(&LocationNP);
         if (canPark())
-            defineSwitch(&ParkSV);
+            defineSwitch(&ParkSP);
         defineNumber(&ScopeParametersNP);
 
     }
     else
     {
-        deleteProperty(CoordSV.name);
-        deleteProperty(EqNV.name);
-        deleteProperty(AbortSV.name);
+        deleteProperty(CoordSP.name);
+        deleteProperty(EqNP.name);
+        deleteProperty(AbortSP.name);
         deleteProperty(MovementNSSP.name);
         deleteProperty(MovementWESP.name);
-        deleteProperty(LocationNV.name);
+        deleteProperty(TimeTP.name);
+        deleteProperty(LocationNP.name);
         if (canPark())
-            deleteProperty(ParkSV.name);
+            deleteProperty(ParkSP.name);
         deleteProperty(ScopeParametersNP.name);
-
     }
-
-    defineSwitch(&ConfigSV);
 
     return true;
 }
@@ -154,7 +160,7 @@ bool INDI::Telescope::saveConfigItems(FILE *fp)
 {
 
     IUSaveConfigText(fp, &PortTP);
-    IUSaveConfigNumber(fp,&LocationNV);
+    IUSaveConfigNumber(fp,&LocationNP);
     IUSaveConfigNumber(fp, &ScopeParametersNP);
 
     return true;
@@ -170,28 +176,28 @@ void INDI::Telescope::NewRaDec(double ra,double dec)
     {
        case SCOPE_PARKED:
        case SCOPE_IDLE:
-        EqNV.s=IPS_IDLE;
+        EqNP.s=IPS_IDLE;
         break;
 
        case SCOPE_SLEWING:
-        EqNV.s=IPS_BUSY;
+        EqNP.s=IPS_BUSY;
         break;
 
        case SCOPE_TRACKING:
-        EqNV.s=IPS_OK;
+        EqNP.s=IPS_OK;
         break;
 
       default:
         break;
     }
 
-    //IDLog("newRA DEC RA %g - DEC %g --- EqN[0] %g --- EqN[1] %g --- EqN.state %d\n", ra, dec, EqN[0].value, EqN[1].value, EqNV.s);
-    if (EqN[0].value != ra || EqN[1].value != dec || EqNV.s != last_state)
+    //IDLog("newRA DEC RA %g - DEC %g --- EqN[0] %g --- EqN[1] %g --- EqN.state %d\n", ra, dec, EqN[0].value, EqN[1].value, EqNP.s);
+    if (EqN[0].value != ra || EqN[1].value != dec || EqNP.s != last_state)
     {
         EqN[0].value=ra;
         EqN[1].value=dec;
-        last_state = EqNV.s;
-        IDSetNumber(&EqNV, NULL);
+        last_state = EqNP.s;
+        IDSetNumber(&EqNP, NULL);
     }
 
 }
@@ -241,9 +247,45 @@ bool INDI::Telescope::ISNewText (const char *dev, const char *name, char *texts[
             IDSetText(&PortTP,NULL);
             //  We processed this one, so, tell the world we did it
             return true;
-        }    
+        }
 
+      if(strcmp(name,"TIME_UTC")==0)
+      {
+        int utcindex=0, offsetindex=1;
+        struct ln_date utc;
+        double utc_offset=0;
+
+        if (strcmp(names[utcindex], "UTC"))
+        {
+            offsetindex=0;
+            utcindex=1;
+        }
+
+        if (extractISOTime(texts[utcindex], &utc) == -1)
+        {
+          TimeTP.s = IPS_ALERT;
+          IDSetText(&TimeTP, "Date/Time is invalid: %s.", texts[utcindex]);
+          return false;
+        }
+
+        utc_offset = atof(texts[offsetindex]);
+
+        if (updateTime(&utc, utc_offset))
+        {
+            IUUpdateText(&TimeTP, texts, names, n);
+            TimeTP.s = IPS_OK;
+            IDSetText(&TimeTP, NULL);
+            return true;
+        }
+        else
+        {
+            TimeTP.s = IPS_ALERT;
+            IDSetText(&TimeTP, NULL);
+            return false;
+        }
     }
+
+   }
 
     return DefaultDevice::ISNewText(dev,name,texts,names,n);
 }
@@ -268,7 +310,7 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
 
                 //IDLog("request stuff %s %4.2f\n",names[x],values[x]);
 
-                INumber *eqp = IUFindNumber (&EqNV, names[x]);
+                INumber *eqp = IUFindNumber (&EqNP, names[x]);
                 if (eqp == &EqN[0])
                 {
                     ra = values[x];
@@ -287,7 +329,7 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
                 if (canSync())
                 {
                     ISwitch *sw;
-                    sw=IUFindSwitch(&CoordSV,"SYNC");
+                    sw=IUFindSwitch(&CoordSP,"SYNC");
                     if((sw != NULL)&&( sw->s==ISS_ON ))
                     {
                        rc=Sync(ra,dec);
@@ -296,8 +338,8 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
                 }
 
                 //  Ensure we are not showing Parked status
-                ParkSV.s=IPS_IDLE;
-                IUResetSwitch(&ParkSV);
+                ParkSP.s=IPS_IDLE;
+                IUResetSwitch(&ParkSP);
                 rc=Goto(ra,dec);
 
                 //  Ok, now we have to put our switches back
@@ -307,14 +349,33 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
 
         if(strcmp(name,"GEOGRAPHIC_COORD")==0)
         {
-            //  Client wants to update the lat/long
-            //  For now, we'll allow this, but, in future
-            //  If we have lat/lon from gps, we'll prevent this
-            //  from being updated
-            LocationNV.s=IPS_OK;
-            IUUpdateNumber(&LocationNV,values,names,n);
-            //  Update client display
-            IDSetNumber(&LocationNV,NULL);
+            int latindex = IUFindIndex("LAT", names, n);
+            int longindex= IUFindIndex("LONG", names, n);
+            int elevationindex = IUFindIndex("ELEV", names, n);
+
+            if (latindex == -1 || longindex==-1 || elevationindex == -1)
+            {
+                LocationNP.s=IPS_ALERT;
+                IDSetNumber(&LocationNP, "Location data missing or corrupted.");
+            }
+
+            double targetLat  = values[latindex];
+            double targetLong = values[longindex];
+            double targetElev = values[elevationindex];
+
+            if (updateLocation(targetLat, targetLong, targetElev))
+            {
+                LocationNP.s=IPS_OK;
+                IUUpdateNumber(&LocationNP,values,names,n);
+                //  Update client display
+                IDSetNumber(&LocationNP,NULL);
+            }
+            else
+            {
+                LocationNP.s=IPS_ALERT;
+                //  Update client display
+                IDSetNumber(&LocationNP,NULL);
+            }
         }
 
         if(strcmp(name,"TELESCOPE_INFO")==0)
@@ -343,10 +404,10 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
         if(strcmp(name,"ON_COORD_SET")==0)
         {
             //  client is telling us what to do with co-ordinate requests
-            CoordSV.s=IPS_OK;
-            IUUpdateSwitch(&CoordSV,states,names,n);
+            CoordSP.s=IPS_OK;
+            IUUpdateSwitch(&CoordSP,states,names,n);
             //  Update client display
-            IDSetSwitch(&CoordSV, NULL);
+            IDSetSwitch(&CoordSP, NULL);
             return true;
         }
 
@@ -386,20 +447,20 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
 
         if(strcmp(name,"TELESCOPE_ABORT_MOTION")==0)
         {
-            IUResetSwitch(&AbortSV);
+            IUResetSwitch(&AbortSP);
 
             if (Abort())
             {
-                AbortSV.s = IPS_OK;
-                if (ParkSV.s == IPS_BUSY)
+                AbortSP.s = IPS_OK;
+                if (ParkSP.s == IPS_BUSY)
                 {
-                    ParkSV.s = IPS_IDLE;
-                    IDSetSwitch(&ParkSV, NULL);
+                    ParkSP.s = IPS_IDLE;
+                    IDSetSwitch(&ParkSP, NULL);
                 }
-                if (EqNV.s == IPS_BUSY)
+                if (EqNP.s == IPS_BUSY)
                 {
-                    EqNV.s = IPS_IDLE;
-                    IDSetNumber(&EqNV, NULL);
+                    EqNP.s = IPS_IDLE;
+                    IDSetNumber(&EqNP, NULL);
                 }
                 if (MovementWESP.s == IPS_BUSY)
                 {
@@ -413,16 +474,16 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
                     IDSetSwitch(&MovementNSSP, NULL);
                 }
 
-                if (EqNV.s == IPS_BUSY)
+                if (EqNP.s == IPS_BUSY)
                 {
-                    EqNV.s = IPS_IDLE;
-                    IDSetNumber(&EqNV, NULL);
+                    EqNP.s = IPS_IDLE;
+                    IDSetNumber(&EqNP, NULL);
                 }
             }
             else
-                AbortSV.s = IPS_ALERT;
+                AbortSP.s = IPS_ALERT;
 
-            IDSetSwitch(&AbortSV, NULL);
+            IDSetSwitch(&AbortSP, NULL);
 
             return true;
         }
@@ -528,8 +589,8 @@ void INDI::Telescope::TimerHit()
         if(rc == false)
         {
             //  read was not good
-            EqNV.s=IPS_ALERT;
-            IDSetNumber(&EqNV, NULL);
+            EqNP.s=IPS_ALERT;
+            IDSetNumber(&EqNP, NULL);
         }
 
         SetTimer(POLLMS);
@@ -553,4 +614,21 @@ bool INDI::Telescope::canSync()
 bool INDI::Telescope::canPark()
 {
     return false;
+}
+
+bool INDI::Telescope::updateTime(ln_date *utc, double utc_offset)
+{
+    INDI_UNUSED(utc);
+    INDI_UNUSED(utc_offset);
+
+    return true;
+}
+
+bool INDI::Telescope::updateLocation(double latitude, double longitude, double elevation)
+{
+    INDI_UNUSED(latitude);
+    INDI_UNUSED(longitude);
+    INDI_UNUSED(elevation);
+
+    return true;
 }

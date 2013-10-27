@@ -339,8 +339,8 @@ bool INDI::CCD::updateProperties()
         }
         if(HasSt4Port)
         {
-            defineNumber(&GuideNSP);
-            defineNumber(&GuideEWP);
+            defineNumber(&GuideNSNP);
+            defineNumber(&GuideWENP);
         }
         defineSwitch(PrimaryCCD.FrameTypeSP);
         defineText(ActiveDeviceTP);
@@ -365,8 +365,8 @@ bool INDI::CCD::updateProperties()
         }
         if(HasSt4Port)
         {
-            deleteProperty(GuideNSP.name);
-            deleteProperty(GuideEWP.name);
+            deleteProperty(GuideNSNP.name);
+            deleteProperty(GuideWENP.name);
 
         }
         deleteProperty(PrimaryCCD.FrameTypeSP->name);
@@ -560,7 +560,7 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
             return true;
         }
 
-        if (!strcmp(name,GuideNSP.name) || !strcmp(name,GuideEWP.name))
+        if (!strcmp(name,GuideNSNP.name) || !strcmp(name,GuideWENP.name))
         {
             processGuiderProperties(name, values, names, n);
             return true;

@@ -67,7 +67,7 @@ protected:
     */
     void initGuiderProperties(const char *deviceName, const char* groupName);
 
-    /** \brief Call this function whenever client updates GuideNSP or GuideWSP properties in the primary device. This function then takes care of issuing the corresponding
+    /** \brief Call this function whenever client updates GuideNSNP or GuideWSP properties in the primary device. This function then takes care of issuing the corresponding
      * GuideXXXX function accordingly.
      * \param name device name
      * \param values value as passed by the client
@@ -76,10 +76,10 @@ protected:
     */
     void processGuiderProperties(const char *name, double values[], char *names[], int n);
 
-    INumber GuideNS[2];
-    INumberVectorProperty GuideNSP;
-    INumber GuideEW[2];
-    INumberVectorProperty GuideEWP;
+    INumber GuideNSN[2];
+    INumberVectorProperty GuideNSNP;
+    INumber GuideWEN[2];
+    INumberVectorProperty GuideWENP;
 };
 
 #endif // GUIDERINTERFACE_H

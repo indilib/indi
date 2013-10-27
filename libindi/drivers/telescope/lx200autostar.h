@@ -29,12 +29,22 @@ class LX200Autostar : public LX200Generic
   LX200Autostar();
   ~LX200Autostar() {}
 
- void ISGetProperties (const char *dev);
- void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
- void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
- void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
- void ISPoll ();
- void getBasicData();
+
+ virtual void ISGetProperties (const char *dev);
+ virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+ virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+ virtual void getBasicData();
+
+protected:
+
+ virtual bool initProperties();
+ virtual bool updateProperties();
+
+ ITextVectorProperty VersionTP;
+ IText   VersionT[5];
+
+ INumberVectorProperty	FocusSpeedNP;
+ INumber	FocusSpeedN[1];
 
 
 };

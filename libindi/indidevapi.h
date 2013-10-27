@@ -450,6 +450,16 @@ extern IBLOB *IUFindBLOB(const IBLOBVectorProperty *bvp, const char *name);
 */
 extern ISwitch *IUFindOnSwitch (const ISwitchVectorProperty *sp);
 
+/** \brief Returns the index of the string in a string array
+*
+* \param needle the string to match against each element in the hay
+* \param hay a pointer to a string array to search in
+* \param n the size of hay
+* \return index of needle if found in the hay. Otherwise -1 if not found.
+*/
+extern int IUFindIndex (const char *needle, char **hay, unsigned int n);
+
+
 /** \brief Returns the index of first ON switch it finds in the vector switch property.
 
 *   \note This is only valid for ISR_1OFMANY mode. That is, when only one switch out of many is allowed to be ON. Do not use this function if you can have multiple ON switches in the same vector property.

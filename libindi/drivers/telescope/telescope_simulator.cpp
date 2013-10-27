@@ -159,8 +159,8 @@ void ScopeSim::ISGetProperties (const char *dev)
 
     if(isConnected())
     {
-        defineNumber(&GuideNSP);
-        defineNumber(&GuideEWP);
+        defineNumber(&GuideNSNP);
+        defineNumber(&GuideWENP);
         defineNumber(&GuideRateNP);
         defineNumber(&EqPECNV);
         defineSwitch(&PECErrNSSP);
@@ -176,8 +176,8 @@ bool ScopeSim::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&GuideNSP);
-        defineNumber(&GuideEWP);
+        defineNumber(&GuideNSNP);
+        defineNumber(&GuideWENP);
         defineNumber(&GuideRateNP);
         defineNumber(&EqPECNV);
         defineSwitch(&PECErrNSSP);
@@ -186,8 +186,8 @@ bool ScopeSim::updateProperties()
     }
     else
     {
-        deleteProperty(GuideNSP.name);
-        deleteProperty(GuideEWP.name);
+        deleteProperty(GuideNSNP.name);
+        deleteProperty(GuideWENP.name);
         deleteProperty(EqPECNV.name);
         deleteProperty(PECErrNSSP.name);
         deleteProperty(PECErrWESP.name);
@@ -286,7 +286,7 @@ bool ScopeSim::ReadScopeStatus()
     switch (TrackState)
     {
     /*case SCOPE_IDLE:
-        EqNV.s = IPS_IDLE;
+        EqNP.s = IPS_IDLE;
         break;*/
     case SCOPE_SLEWING:
     case SCOPE_PARKING:
@@ -317,7 +317,7 @@ bool ScopeSim::ReadScopeStatus()
         else
           currentDEC -= da_dec;
 
-        EqNV.s = IPS_BUSY;
+        EqNP.s = IPS_BUSY;
 
         if (nlocked == 2)
         {
@@ -332,13 +332,13 @@ bool ScopeSim::ReadScopeStatus()
 
                 TrackState = SCOPE_TRACKING;
 
-                EqNV.s = IPS_OK;
+                EqNP.s = IPS_OK;
                 IDMessage(getDeviceName(), "Telescope slew is complete. Tracking...");
             }
             else
             {
                 TrackState = SCOPE_PARKED;
-                EqNV.s = IPS_IDLE;
+                EqNP.s = IPS_IDLE;
                 IDMessage(getDeviceName(), "Telescope parked successfully.");
             }
         }
@@ -467,7 +467,7 @@ bool ScopeSim::Goto(double r,double d)
     Parked=false;
     TrackState = SCOPE_SLEWING;
 
-    EqNV.s    = IPS_BUSY;
+    EqNP.s    = IPS_BUSY;
 
     IDMessage(getDeviceName(), "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
@@ -485,7 +485,7 @@ bool ScopeSim::Sync(double ra, double dec)
     IDMessage(getDeviceName(), "Sync is successful.");
 
     TrackState = SCOPE_IDLE;
-    EqNV.s    = IPS_OK;
+    EqNP.s    = IPS_OK;
 
 
     NewRaDec(currentRA, currentDEC);
@@ -517,7 +517,7 @@ bool ScopeSim::ISNewNumber (const char *dev, const char *name, double values[], 
              return true;
          }
 
-         if (!strcmp(name,GuideNSP.name) || !strcmp(name,GuideEWP.name))
+         if (!strcmp(name,GuideNSNP.name) || !strcmp(name,GuideWENP.name))
          {
              processGuiderProperties(name, values, names, n);
              return true;
@@ -617,25 +617,25 @@ bool ScopeSim::Abort()
         IDSetSwitch(&MovementWESP, NULL);
     }
 
-    if (ParkSV.s == IPS_BUSY)
+    if (ParkSP.s == IPS_BUSY)
     {
-        ParkSV.s       = IPS_IDLE;
-        IUResetSwitch(&ParkSV);
-        IDSetSwitch(&ParkSV, NULL);
+        ParkSP.s       = IPS_IDLE;
+        IUResetSwitch(&ParkSP);
+        IDSetSwitch(&ParkSP, NULL);
     }
 
-    if (EqNV.s == IPS_BUSY)
+    if (EqNP.s == IPS_BUSY)
     {
-        EqNV.s = IPS_IDLE;
-        IDSetNumber(&EqNV, NULL);
+        EqNP.s = IPS_IDLE;
+        IDSetNumber(&EqNP, NULL);
     }
 
 
     TrackState = SCOPE_IDLE;
 
-    AbortSV.s      = IPS_OK;
-    IUResetSwitch(&AbortSV);
-    IDSetSwitch(&AbortSV, "Telescope aborted.");
+    AbortSP.s      = IPS_OK;
+    IUResetSwitch(&AbortSP);
+    IDSetSwitch(&AbortSP, "Telescope aborted.");
 
     return true;
 }

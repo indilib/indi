@@ -18,6 +18,7 @@
 
 */
 
+#include "libs/indibase/inditelescope.h"
 #include "lx200autostar.h"
 #include "lx200driver.h"
 
@@ -26,236 +27,165 @@
 #include <string.h>
 #include <unistd.h>
 
-#define BASIC_GROUP   "Main Control"
-#define FIRMWARE_GROUP "Firmware data"
-#define FOCUS_GROUP   "Focus Control"
+#define FIRMWARE_TAB "Firmware data"
 
-
-extern LX200Generic *telescope;
 extern int MaxReticleFlashRate;
-extern ITextVectorProperty TimeTP;
-extern INumberVectorProperty SDTimeNP;
-extern INumberVectorProperty EquatorialCoordsRNP;
-extern INumberVectorProperty FocusTimerNP;
-extern ISwitchVectorProperty ConnectSP;
-extern ISwitchVectorProperty FocusMotionSP;
-extern ISwitchVectorProperty AbortSlewSP;
-extern ISwitchVectorProperty MovementNSSP;
-extern ISwitchVectorProperty MovementWESP;
 
 
-static IText   VersionT[] ={{ "Date", "", 0, 0, 0, 0} ,
-			   { "Time", "", 0, 0, 0, 0} ,
-			   { "Number", "", 0, 0, 0 ,0} ,
-			   { "Full", "", 0, 0, 0, 0} ,
-			   { "Name", "" ,0 ,0 ,0 ,0}};
-
-static ITextVectorProperty VersionInfo = {mydev, "Firmware Info", "", FIRMWARE_GROUP, IP_RO, 0, IPS_IDLE, VersionT, NARRAY(VersionT), "" ,0};
-
-// Focus Control
-static INumber	FocusSpeedN[]	 = {{"SPEED", "Speed", "%0.f", 0.0, 4.0, 1.0, 0.0, 0, 0, 0}};
-static INumberVectorProperty	FocusSpeedNP  = {mydev, "FOCUS_SPEED", "Speed", FOCUS_GROUP, IP_RW, 0, IPS_IDLE, FocusSpeedN, NARRAY(FocusSpeedN), "", 0};
 
 /********************************************
  Property: Park telescope to HOME
 *********************************************/
-static ISwitch ParkS[]		 	= { {"PARK", "Park", ISS_OFF, 0, 0} };
-ISwitchVectorProperty ParkSP		= {mydev, "TELESCOPE_PARK", "Park Scope", BASIC_GROUP, IP_RW, ISR_ATMOST1, 0, IPS_IDLE, ParkS, NARRAY(ParkS), "", 0 };
 
-
-void changeLX200AutostarDeviceName(const char *newName)
-{
-  strcpy(VersionInfo.device, newName);
-  strcpy(FocusSpeedNP.device, newName);
-  strcpy(ParkSP.device, newName);
-}
 
 LX200Autostar::LX200Autostar() : LX200Generic()
 {
 
 }
 
+bool LX200Autostar::initProperties()
+{
+    IUFillText(&VersionT[0], "Date", "", "");
+    IUFillText(&VersionT[1], "Time", "", "");
+    IUFillText(&VersionT[2], "Number", "", "");
+    IUFillText(&VersionT[3], "Full", "", "");
+    IUFillText(&VersionT[4], "Name", "", "");
+    IUFillTextVector(&VersionTP, VersionT, 5, getDeviceName(), "Firmware Info", "", FIRMWARE_TAB, IP_RO, 0, IPS_IDLE);
+
+    IUFillNumber(&FocusSpeedN[0], "SPEED", "Speed", "%0.f", 0, 4.0, 1.0, 0);
+    IUFillNumberVector(&FocusSpeedNP, FocusSpeedN, 1, getDeviceName(), "FOCUS_SPEED", "Speed", FOCUS_TAB, IP_RW, 0, IPS_IDLE);
+
+}
+
 void LX200Autostar::ISGetProperties (const char *dev)
 {
 
-if (dev && strcmp (thisDevice, dev))
-    return;
-
     LX200Generic::ISGetProperties(dev);
 
-    IDDefSwitch (&ParkSP, NULL);
-    IDDefText   (&VersionInfo, NULL);
-    IDDefNumber (&FocusSpeedNP, NULL);
+    //IDDefSwitch (&ParkSP, NULL);
+    //IDDefText   (&VersionTP, NULL);
+    //IDDefNumber (&FocusSpeedNP, NULL);
 
     // For Autostar, we have a different focus speed method
     // Therefore, we don't need the classical one
-    IDDelete(thisDevice, "FOCUS_MODE", NULL);
+    deleteProperty(FocusModeSP.name);
+    //IDDelete(thisDevice, "FOCUS_MODE", NULL);
+
+    if (isConnected())
+    {
+        defineText(&VersionTP);
+        defineNumber(&FocusSpeedNP);
+    }
 
 }
 
-void LX200Autostar::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+bool LX200Autostar::updateProperties()
 {
-        // ignore if not ours //
-	if (strcmp (dev, thisDevice))
-	    return;
 
-	// suppress warning
-	n=n;
+    LX200Generic::updateProperties();
 
-  LX200Generic::ISNewText (dev, name, texts, names, n);
-
+    if (isConnected())
+    {
+        defineText(&VersionTP);
+        defineNumber(&FocusSpeedNP);
+    }
+    else
+    {
+        deleteProperty(VersionTP.name);
+        deleteProperty(FocusSpeedNP.name);
+    }
 }
 
-
-void LX200Autostar::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+bool LX200Autostar::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
-        // ignore if not ours
-	if (strcmp (dev, thisDevice))
-	    return;
+   if(strcmp(dev,getDeviceName())==0)
+   {
+       // Focus speed
+       if (!strcmp (name, FocusSpeedNP.name))
+       {
 
-        // Focus speed
-	if (!strcmp (name, FocusSpeedNP.name))
-	{
-	  if (checkPower(&FocusSpeedNP))
-	   return;
+         if (IUUpdateNumber(&FocusSpeedNP, values, names, n) < 0)
+           return false;
 
-	  if (IUUpdateNumber(&FocusSpeedNP, values, names, n) < 0)
-		return;
+         setGPSFocuserSpeed(PortFD,  ( (int) FocusSpeedN[0].value));
+         FocusSpeedNP.s = IPS_OK;
+         IDSetNumber(&FocusSpeedNP, NULL);
+         return true;
+       }
+   }
 
-	  setGPSFocuserSpeed(fd,  ( (int) FocusSpeedN[0].value));
-	  FocusSpeedNP.s = IPS_OK;
-	  IDSetNumber(&FocusSpeedNP, NULL);
-	  return;
-	}
-
-    LX200Generic::ISNewNumber (dev, name, values, names, n);
+    return LX200Generic::ISNewNumber (dev, name, values, names, n);
 }
 
- void LX200Autostar::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+ bool LX200Autostar::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
  {
    int index=0, err=0;
  
-   if (!strcmp(name, ParkSP.name))
+   if(strcmp(dev,getDeviceName())==0)
    {
-	  if (checkPower(&ParkSP))
-	    return;
-           
-      if (EquatorialCoordsRNP.s == IPS_BUSY)
-	  {
-	     if (abortSlew(fd) < 0)
-	     {
-		AbortSlewSP.s = IPS_ALERT;
-		IDSetSwitch(&AbortSlewSP, NULL);
-                slewError(err);
-		return;
-	     }
-
-	     AbortSlewSP.s = IPS_OK;
-         EquatorialCoordsRNP.s       = IPS_IDLE;
-             IDSetSwitch(&AbortSlewSP, "Slew aborted.");
-         IDSetNumber(&EquatorialCoordsRNP, NULL);
-
-	     if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
-	     {
-		MovementNSSP.s  = MovementWESP.s =  IPS_IDLE; 
-        EquatorialCoordsRNP.s       = IPS_IDLE;
-		IUResetSwitch(&MovementNSSP);
-		IUResetSwitch(&MovementWESP);
-		IUResetSwitch(&AbortSlewSP);
-
-		IDSetSwitch(&MovementNSSP, NULL);
-		IDSetSwitch(&MovementWESP, NULL);
-	      }
-
-	     // sleep for 200 mseconds
-	     usleep(200000);
-	  }
-
-      if (!simulation && slewToPark(fd) < 0)
-	  {
-		ParkSP.s = IPS_ALERT;
-		IDSetSwitch(&ParkSP, "Parking Failed.");
-		return;
-	  }
-
-	  ParkSP.s = IPS_OK;
-	  ConnectSP.s   = IPS_IDLE;
-	  ConnectSP.sp[0].s = ISS_OFF;
-	  ConnectSP.sp[1].s = ISS_ON;
-	  tty_disconnect(fd);
-	  IDSetSwitch(&ParkSP, "The telescope is slewing to park position. Turn off the telescope after park is complete. Disconnecting...");
-	  IDSetSwitch(&ConnectSP, NULL);
-	  return;
-    }
-
         // Focus Motion
-	if (!strcmp (name, FocusMotionSP.name))
-	{
-	  if (checkPower(&FocusMotionSP))
-	   return;
+        if (!strcmp (name, FocusMotionSP.name))
+        {
+            IUResetSwitch(&FocusMotionSP);
+	  
+            // If speed is "halt"
+            if (FocusSpeedN[0].value == 0)
+            {
+                FocusMotionSP.s = IPS_IDLE;
+                IDSetSwitch(&FocusMotionSP, NULL);
+                return false;
+            }
+	  
+            IUUpdateSwitch(&FocusMotionSP, states, names, n);
+            index = IUFindOnSwitchIndex(&FocusMotionSP);
+	  
+           if (setFocuserMotion(PortFD, index) < 0)
+           {
+               FocusMotionSP.s = IPS_ALERT;
+               IDSetSwitch(&FocusMotionSP, "Error setting focuser speed.");
+               return false;
+           }
 
-	  IUResetSwitch(&FocusMotionSP);
+           FocusMotionSP.s = IPS_BUSY;
 	  
-	  // If speed is "halt"
-	  if (FocusSpeedN[0].value == 0)
-	  {
-	    FocusMotionSP.s = IPS_IDLE;
-	    IDSetSwitch(&FocusMotionSP, NULL);
-	    return;
-	  }
+           // with a timer
+           if (FocusTimerNP.np[0].value > 0)
+           {
+                FocusTimerNP.s  = IPS_BUSY;
+                if (isDebug())
+                    IDLog("Starting Focus Timer BUSY\n");
+
+                IEAddTimer(50, LX200Generic::updateFocusTimer, this);
+           }
 	  
-	  IUUpdateSwitch(&FocusMotionSP, states, names, n);
-	  index = getOnSwitch(&FocusMotionSP);
-	  
-	  
-	  if ( ( err = setFocuserMotion(fd, index) < 0) )
-	  {
-	     handleError(&FocusMotionSP, err, "Setting focuser speed");
-             return;
-	  }
-	  
-	  FocusMotionSP.s = IPS_BUSY;
-	  
-	  // with a timer 
-	if (FocusTimerNP.np[0].value > 0)  
-	{
-	     FocusTimerNP.s  = IPS_BUSY;
-	     IDLog("Starting Focus Timer BUSY\n");
-	     IEAddTimer(50, LX200Generic::updateFocusTimer, this);
+           IDSetSwitch(&FocusMotionSP, NULL);
+           return true;
+        }
 	}
-	  
-	  IDSetSwitch(&FocusMotionSP, NULL);
-	  return;
-	}
 
-   LX200Generic::ISNewSwitch (dev, name, states, names,  n);
-
- }
-
- void LX200Autostar::ISPoll ()
- {
-
-      LX200Generic::ISPoll();
+   return LX200Generic::ISNewSwitch (dev, name, states, names,  n);
 
  }
 
  void LX200Autostar::getBasicData()
  {
 
-   VersionInfo.tp[0].text = new char[64];
-   getVersionDate(fd, VersionInfo.tp[0].text);
-   VersionInfo.tp[1].text = new char[64];
-   getVersionTime(fd, VersionInfo.tp[1].text);
-   VersionInfo.tp[2].text = new char[64];
-   getVersionNumber(fd, VersionInfo.tp[2].text);
-   VersionInfo.tp[3].text = new char[128];
-   getFullVersion(fd, VersionInfo.tp[3].text);
-   VersionInfo.tp[4].text = new char[128];
-   getProductName(fd, VersionInfo.tp[4].text);
-
-   IDSetText(&VersionInfo, NULL);
-   
    // process parent
    LX200Generic::getBasicData();
+
+   VersionTP.tp[0].text = new char[64];
+   getVersionDate(PortFD, VersionTP.tp[0].text);
+   VersionTP.tp[1].text = new char[64];
+   getVersionTime(PortFD, VersionTP.tp[1].text);
+   VersionTP.tp[2].text = new char[64];
+   getVersionNumber(PortFD, VersionTP.tp[2].text);
+   VersionTP.tp[3].text = new char[128];
+   getFullVersion(PortFD, VersionTP.tp[3].text);
+   VersionTP.tp[4].text = new char[128];
+   getProductName(PortFD, VersionTP.tp[4].text);
+
+   IDSetText(&VersionTP, NULL);
+   
+
 
  }

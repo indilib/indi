@@ -42,35 +42,23 @@
 #include <string.h>
 #include <unistd.h>
 
-#define COMM_GROUP	 "Communication"
-#define BASIC_GROUP      "Main Control"
-#define MOTION_GROUP	 "Motion Control"
-#define FIRMWARE_GROUP   "Firmware data"
-#define SETTINGS_GROUP   "Settings"
-#define ATMOSPHERE_GROUP "Atmosphere"
-#define MOUNT_GROUP      "Mounting"
+#define COMM_TAB	 "Communication"
+#define BASIC_TAB      "Main Control"
+#define MOTION_TAB	 "Motion Control"
+#define FIRMWARE_TAB   "Firmware data"
+#define SETTINGS_TAB   "Settings"
+#define ATMOSPHERE_TAB "Atmosphere"
+#define MOUNT_TAB      "Mounting"
 
 /* Handy Macros */
-#define currentRA	EquatorialCoordsRNP.np[0].value
-#define currentDEC	EquatorialCoordsRNP.np[1].value
-#define currentAZ	HorizontalCoordsRNP.np[0].value
-#define currentALT	HorizontalCoordsRNP.np[1].value
+#define currentRA	EquatorialCoordsNP.np[0].value
+#define currentDEC	EquatorialCoordsNP.np[1].value
+#define currentAZ	HorizontalCoordsNP.np[0].value
+#define currentALT	HorizontalCoordsNP.np[1].value
 
 /* SNOOP */
 
-#define CONTROL_GROUP    "Control"
-
-/* Do not forget to remove static in lx200generic.cpp */
-extern INumberVectorProperty EquatorialCoordsRNP;
-extern ITextVectorProperty   PortTP ;
-extern ISwitchVectorProperty MovementNSSP ;
-extern ISwitchVectorProperty MovementWESP ;
-extern ISwitchVectorProperty ConnectSP ;
-extern ISwitchVectorProperty AbortSlewSP ;
-extern ISwitchVectorProperty OnCoordSetSP ;
-extern INumberVectorProperty geoNP ;
-extern INumberVectorProperty TrackingAccuracyNP ;
-extern INumberVectorProperty SlewAccuracyNP ;
+#define CONTROL_TAB    "Control"
 
 /* Communication */
 
@@ -82,7 +70,7 @@ static ISwitch DomeControlS[] =
 
 ISwitchVectorProperty DomeControlSP = 
 { 
-    myapdev, "DOMECONTROL" , "Dome control", COMM_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, DomeControlS, NARRAY(DomeControlS), "", 0
+    myapdev, "DOMECONTROL" , "Dome control", COMM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, DomeControlS, NARRAY(DomeControlS), "", 0
 };
 
 static ISwitch StartUpS[] = 
@@ -93,7 +81,7 @@ static ISwitch StartUpS[] =
 
 ISwitchVectorProperty StartUpSP = 
 { 
-    myapdev, "STARTUP" , "Mount init.", COMM_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, StartUpS, NARRAY(StartUpS), "", 0
+    myapdev, "STARTUP" , "Mount init.", COMM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, StartUpS, NARRAY(StartUpS), "", 0
 };
 
 /* Main control */
@@ -108,7 +96,7 @@ static ISwitch ApparentToObservedS[] =
 
 ISwitchVectorProperty ApparentToObservedSP = 
 { 
-    myapdev, "TRANSFORMATION" , "Transformation", BASIC_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, ApparentToObservedS, NARRAY(ApparentToObservedS), "", 0
+    myapdev, "TRANSFORMATION" , "Transformation", BASIC_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, ApparentToObservedS, NARRAY(ApparentToObservedS), "", 0
 };
 #endif
 
@@ -119,16 +107,16 @@ static INumber HourangleCoordsN[] =
 };
 static INumberVectorProperty  HourangleCoordsNP = 
 {
-    myapdev, "HOURANGLE_COORD", "Hourangle Coords", BASIC_GROUP, IP_RO, 0., IPS_IDLE, HourangleCoordsN, NARRAY( HourangleCoordsN), "", 0
+    myapdev, "HOURANGLE_COORD", "Hourangle Coords", BASIC_TAB, IP_RO, 0., IPS_IDLE, HourangleCoordsN, NARRAY( HourangleCoordsN), "", 0
 };
-static INumber HorizontalCoordsRN[] = 
+static INumber HorizontalCoordsN[] =
 {
     {"AZ", "Az D:M:S", "%10.6m", 0., 360., 0., 0., 0, 0, 0},
     {"ALT",  "Alt  D:M:S", "%10.6m",  -90., 90., 0., 0., 0, 0, 0}
 };
-static INumberVectorProperty HorizontalCoordsRNP = 
+static INumberVectorProperty HorizontalCoordsNP =
 {
-    myapdev, "HORIZONTAL_COORD", "Horizontal Coords", BASIC_GROUP, IP_RW, 120, IPS_IDLE, HorizontalCoordsRN, NARRAY(HorizontalCoordsRN), "", 0
+    myapdev, "HORIZONTAL_COORD", "Horizontal Coords", BASIC_TAB, IP_RW, 120, IPS_IDLE, HorizontalCoordsN, NARRAY(HorizontalCoordsN), "", 0
 };
 
 /* Difference of the equatorial coordinates, used to estimate the applied corrections */
@@ -139,7 +127,7 @@ static INumber DiffEquatorialCoordsN[] =
 };
 static INumberVectorProperty  DiffEquatorialCoordsNP = 
 {
-    myapdev, "DIFFEQUATORIAL_COORD", "Diff. Eq.", BASIC_GROUP, IP_RO, 0., IPS_IDLE, DiffEquatorialCoordsN, NARRAY( DiffEquatorialCoordsN), "", 0
+    myapdev, "DIFFEQUATORIAL_COORD", "Diff. Eq.", BASIC_TAB, IP_RO, 0., IPS_IDLE, DiffEquatorialCoordsN, NARRAY( DiffEquatorialCoordsN), "", 0
 };
 
 static ISwitch TrackModeS[] = {
@@ -150,7 +138,7 @@ static ISwitch TrackModeS[] = {
 };
 ISwitchVectorProperty TrackModeSP = 
 { 
-    myapdev, "TRACKINGMODE" , "Tracking mode", MOTION_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, TrackModeS, NARRAY(TrackModeS), "", 0
+    myapdev, "TRACKINGMODE" , "Tracking mode", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, TrackModeS, NARRAY(TrackModeS), "", 0
 };
 static ISwitch MoveToRateS[] = {
     {"1200" , "1200x" , ISS_OFF, 0, 0},
@@ -161,7 +149,7 @@ static ISwitch MoveToRateS[] = {
 
 ISwitchVectorProperty MoveToRateSP = 
 { 
-    myapdev, "MOVETORATE" , "Move to rate", MOTION_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, MoveToRateS, NARRAY(MoveToRateS), "", 0
+    myapdev, "MOVETORATE" , "Move to rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, MoveToRateS, NARRAY(MoveToRateS), "", 0
 };
 static ISwitch SlewRateS[] = {
     {"1200" , "1200x" , ISS_OFF, 0, 0},
@@ -171,7 +159,7 @@ static ISwitch SlewRateS[] = {
 
 ISwitchVectorProperty SlewRateSP = 
 { 
-    myapdev, "SLEWRATE" , "Slew rate", MOTION_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, SlewRateS, NARRAY(SlewRateS), "", 0
+    myapdev, "SLEWRATE" , "Slew rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, SlewRateS, NARRAY(SlewRateS), "", 0
 };
 static ISwitch SwapS[] = {
     {"NS" , "North/South" , ISS_OFF, 0, 0},
@@ -180,7 +168,7 @@ static ISwitch SwapS[] = {
 
 ISwitchVectorProperty SwapSP = 
 { 
-    myapdev, "SWAP" , "Swap buttons", MOTION_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, SwapS, NARRAY(SwapS), "", 0
+    myapdev, "SWAP" , "Swap buttons", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, SwapS, NARRAY(SwapS), "", 0
 };
 static ISwitch SyncCMRS[] = {
     {":CM#" , ":CM#" , ISS_ON, 0, 0},
@@ -189,7 +177,7 @@ static ISwitch SyncCMRS[] = {
 
 ISwitchVectorProperty SyncCMRSP = 
 { 
-    myapdev, "SYNCCMR" , "Sync", MOTION_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, SyncCMRS, NARRAY(SyncCMRS), "", 0
+    myapdev, "SYNCCMR" , "Sync", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, SyncCMRS, NARRAY(SyncCMRS), "", 0
 };
 
 /* Firmware data */
@@ -202,7 +190,7 @@ static IText   VersionT[] =
 
 static ITextVectorProperty VersionInfo = 
 {
-    myapdev, "Firmware Info", "", FIRMWARE_GROUP, IP_RO, 0, IPS_IDLE, VersionT, NARRAY(VersionT), "" ,0
+    myapdev, "Firmware Info", "", FIRMWARE_TAB, IP_RO, 0, IPS_IDLE, VersionT, NARRAY(VersionT), "" ,0
 };
 
 /* Mount */
@@ -214,7 +202,7 @@ static IText   DeclinationAxisT[] =
 
 static ITextVectorProperty DeclinationAxisTP = 
 {
-    myapdev, "DECLINATIONAXIS", "Declination axis", MOUNT_GROUP, IP_RO, 0, IPS_IDLE, DeclinationAxisT, NARRAY(DeclinationAxisT), "" ,0
+    myapdev, "DECLINATIONAXIS", "Declination axis", MOUNT_TAB, IP_RO, 0, IPS_IDLE, DeclinationAxisT, NARRAY(DeclinationAxisT), "" ,0
 };
 static INumber APLocalTimeN[] = 
 {
@@ -222,7 +210,7 @@ static INumber APLocalTimeN[] =
 };
 static INumberVectorProperty APLocalTimeNP = 
 {
-    myapdev, "APLOCALTIME", "AP local time", MOUNT_GROUP, IP_RO, 0., IPS_IDLE, APLocalTimeN, NARRAY(APLocalTimeN), "", 0
+    myapdev, "APLOCALTIME", "AP local time", MOUNT_TAB, IP_RO, 0., IPS_IDLE, APLocalTimeN, NARRAY(APLocalTimeN), "", 0
 };
 static INumber APSiderealTimeN[] = 
 {
@@ -230,7 +218,7 @@ static INumber APSiderealTimeN[] =
 };
 static INumberVectorProperty APSiderealTimeNP = 
 {
-    myapdev, "APSIDEREALTIME", "AP sidereal time", MOUNT_GROUP, IP_RO, 0., IPS_IDLE, APSiderealTimeN, NARRAY(APSiderealTimeN), "", 0
+    myapdev, "APSIDEREALTIME", "AP sidereal time", MOUNT_TAB, IP_RO, 0., IPS_IDLE, APSiderealTimeN, NARRAY(APSiderealTimeN), "", 0
 };
 
 static INumber APUTCOffsetN[] = 
@@ -239,7 +227,7 @@ static INumber APUTCOffsetN[] =
 };
 static INumberVectorProperty APUTCOffsetNP = 
 {
-    myapdev, "APUTCOFFSET", "AP UTC Offset", MOUNT_GROUP, IP_RW, 0., IPS_IDLE, APUTCOffsetN, NARRAY(APUTCOffsetN), "", 0
+    myapdev, "APUTCOFFSET", "AP UTC Offset", MOUNT_TAB, IP_RW, 0., IPS_IDLE, APUTCOffsetN, NARRAY(APUTCOffsetN), "", 0
 };
 
 static INumber HourAxisN[] = 
@@ -249,7 +237,7 @@ static INumber HourAxisN[] =
 };
 static INumberVectorProperty HourAxisNP = 
 {
-    myapdev, "HOURAXIS", "Hour axis", MOUNT_GROUP, IP_RW, 0., IPS_IDLE, HourAxisN, NARRAY(HourAxisN), "", 0
+    myapdev, "HOURAXIS", "Hour axis", MOUNT_TAB, IP_RW, 0., IPS_IDLE, HourAxisN, NARRAY(HourAxisN), "", 0
 };
 
 /* Atmosphere */
@@ -261,7 +249,7 @@ static INumber AirN[] =
 };
 static INumberVectorProperty AirNP = 
 {
-    myapdev, "ATMOSPHERE", "Atmosphere", ATMOSPHERE_GROUP, IP_RW, 0., IPS_IDLE, AirN, NARRAY(AirN), "", 0
+    myapdev, "ATMOSPHERE", "Atmosphere", ATMOSPHERE_TAB, IP_RW, 0., IPS_IDLE, AirN, NARRAY(AirN), "", 0
 };
 
 /* Settings Group */
@@ -272,7 +260,7 @@ static IText   ConnectionDCODT[] =
 };
 static ITextVectorProperty ConnectionDCODTP = 
 {
-    myapdev, "SNOOPCONNECTIONDC", "Snoop dc connection", SETTINGS_GROUP, IP_RW, 0, IPS_IDLE, ConnectionDCODT, NARRAY(ConnectionDCODT), "" ,0
+    myapdev, "SNOOPCONNECTIONDC", "Snoop dc connection", SETTINGS_TAB, IP_RW, 0, IPS_IDLE, ConnectionDCODT, NARRAY(ConnectionDCODT), "" ,0
 };
 static IText MasterAlarmODT[]= 
 {
@@ -281,7 +269,7 @@ static IText MasterAlarmODT[]=
 };
 static ITextVectorProperty MasterAlarmODTP = 
 {
-    myapdev, "SNOOPMASTERALARM", "Snoop dc master alarm", SETTINGS_GROUP, IP_RW, 0, IPS_IDLE, MasterAlarmODT, NARRAY(MasterAlarmODT), "" ,0
+    myapdev, "SNOOPMASTERALARM", "Snoop dc master alarm", SETTINGS_TAB, IP_RW, 0, IPS_IDLE, MasterAlarmODT, NARRAY(MasterAlarmODT), "" ,0
 };
 static IText   ModeDCODT[] =
 {
@@ -290,7 +278,7 @@ static IText   ModeDCODT[] =
 };
 static ITextVectorProperty ModeDCODTP = 
 {
-    myapdev, "SNOOPMODEDC", "Snoop dc mode", SETTINGS_GROUP, IP_RW, 0, IPS_IDLE, ModeDCODT, NARRAY(ModeDCODT), "" ,0
+    myapdev, "SNOOPMODEDC", "Snoop dc mode", SETTINGS_TAB, IP_RW, 0, IPS_IDLE, ModeDCODT, NARRAY(ModeDCODT), "" ,0
 };
 /********************************************
  Property: Park telescope to HOME
@@ -302,7 +290,7 @@ static ISwitch ParkS[] =
 };
 static ISwitchVectorProperty ParkSP = 
 {
-    myapdev, "TELESCOPE_PARK", "Park Scope", BASIC_GROUP, IP_RW, ISR_ATMOST1, 0, IPS_IDLE, ParkS, NARRAY(ParkS), "", 0 
+    myapdev, "TELESCOPE_PARK", "Park Scope", BASIC_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE, ParkS, NARRAY(ParkS), "", 0
 };
 
 /* SNOOPed properties */
@@ -315,7 +303,7 @@ static ISwitch ConnectionDCS[] =
 
 static ISwitchVectorProperty ConnectionDCSP = 
 { 
-  "dc", "CONNECTION", "Connection", CONTROL_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, ConnectionDCS, NARRAY(ConnectionDCS), "", 0
+  "dc", "CONNECTION", "Connection", CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, ConnectionDCS, NARRAY(ConnectionDCS), "", 0
 };	
 
 static ISwitch MasterAlarmS[] = 
@@ -328,7 +316,7 @@ static ISwitch MasterAlarmS[] =
 
 static ISwitchVectorProperty MasterAlarmSP = 
 { 
-  "dc", "MASTERALARM", "Master alarm", CONTROL_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, MasterAlarmS, NARRAY(MasterAlarmS), "", 0
+  "dc", "MASTERALARM", "Master alarm", CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, MasterAlarmS, NARRAY(MasterAlarmS), "", 0
 };
 static ISwitch ModeS[] = {  
   {"MANUAL", "manual", ISS_ON, 0, 0},                         
@@ -336,39 +324,9 @@ static ISwitch ModeS[] = {
 };
 
 static ISwitchVectorProperty ModeSP = { 
-  "dc", "MODE", "Mode", CONTROL_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, ModeS, NARRAY(ModeS), "", 0
+  "dc", "MODE", "Mode", CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, ModeS, NARRAY(ModeS), "", 0
 };	
 
-void changeLX200AstroPhysicsDeviceName(const char *newName)
-{
-    strcpy(VersionInfo.device, newName);
-    strcpy(ParkSP.device, newName);
-    strcpy(AirNP.device, newName);
-    strcpy(ConnectionDCODTP.device, newName);
-    strcpy(MasterAlarmODTP.device, newName);
-    strcpy(ModeDCODTP.device, newName);
-    strcpy(TrackModeSP.device, newName);
-    strcpy(MovementNSSP.device, newName);
-    strcpy(MovementWESP.device, newName);
-    strcpy(MoveToRateSP.device, newName);
-    strcpy(SlewRateSP.device, newName);
-    strcpy(SwapSP.device, newName);
-    strcpy(SyncCMRSP.device, newName);
-    strcpy(DeclinationAxisTP.device, newName);
-    strcpy(APLocalTimeNP.device, newName);
-    strcpy(APSiderealTimeNP.device, newName);
-    strcpy(HourAxisNP.device, newName);
-    strcpy(APUTCOffsetNP.device, newName);
-#if defined HAVE_NOVA_H || defined HAVE_NOVASCC_H
-    strcpy(ApparentToObservedSP.device, newName);
-#endif
-    strcpy(HourangleCoordsNP.device, newName);
-    strcpy(HorizontalCoordsRNP.device, newName);
-    strcpy(EquatorialCoordsRNP.device, newName);
-    strcpy(DiffEquatorialCoordsNP.device, newName);
-    strcpy(StartUpSP.device, newName);
-    strcpy(DomeControlSP.device, newName);
-}
 
 /* Constructor */
 
@@ -394,7 +352,6 @@ void LX200AstroPhysics::ISGetProperties (const char *dev)
 
     LX200Generic::ISGetProperties(dev);
 
-    IDDelete(thisDevice, "TELESCOPE_PARK", NULL);
     IDDefSwitch (&ParkSP, NULL);
     IDDefText(&VersionInfo, NULL);
 
@@ -410,9 +367,9 @@ void LX200AstroPhysics::ISGetProperties (const char *dev)
     IDDefSwitch(&ApparentToObservedSP, NULL);
 #endif
     IDDefNumber(&HourangleCoordsNP, NULL) ;
-    IDDefNumber(&HorizontalCoordsRNP, NULL);
+    IDDefNumber(&HorizontalCoordsNP, NULL);
     IDDelete(thisDevice, "EQUATORIAL_EOD_COORD", NULL);
-    IDDefNumber(&EquatorialCoordsRNP, NULL);
+    IDDefNumber(&EquatorialCoordsNP, NULL);
     IDDefNumber(&DiffEquatorialCoordsNP, NULL);
 /* Date&Time group */
     IDDelete(thisDevice, "TIME_UTC_OFFSET", NULL);
@@ -461,7 +418,7 @@ void LX200AstroPhysics::ISGetProperties (const char *dev)
 
 }
 
-void LX200AstroPhysics::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+bool LX200AstroPhysics::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     IText *tp=NULL;
 
@@ -540,11 +497,11 @@ void LX200AstroPhysics::ISNewText (const char *dev, const char *name, char *text
 	return;
     }
 
-    LX200Generic::ISNewText (dev, name, texts, names, n);
+    return LX200Generic::ISNewText (dev, name, texts, names, n);
 }
 
 
-void LX200AstroPhysics::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+bool LX200AstroPhysics::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
     int i=0, nset=0;
     INumber *np=NULL;
@@ -676,22 +633,22 @@ void LX200AstroPhysics::ISNewNumber (const char *dev, const char *name, double v
     // =======================================
     // Equatorial Coord - SET
     // =======================================
-    if (!strcmp (name, EquatorialCoordsRNP.name))
+    if (!strcmp (name, EquatorialCoordsNP.name))
     {
 	int err ;
 	int i=0, nset=0;
 	double newRA, newDEC ;
-    if (checkPower(&EquatorialCoordsRNP))
+    if (checkPower(&EquatorialCoordsNP))
 	    return;
 
 	for (nset = i = 0; i < n; i++)
 	{
-        INumber *np = IUFindNumber (&EquatorialCoordsRNP, names[i]);
-        if (np == &EquatorialCoordsRNP.np[0])
+        INumber *np = IUFindNumber (&EquatorialCoordsNP, names[i]);
+        if (np == &EquatorialCoordsNP.np[0])
 	    {
 		newRA = values[i];
 		nset += newRA >= 0 && newRA <= 24.0;
-        } else if (np == &EquatorialCoordsRNP.np[1])
+        } else if (np == &EquatorialCoordsNP.np[1])
 	    {
 		newDEC = values[i];
 		nset += newDEC >= -90.0 && newDEC <= 90.0;
@@ -749,11 +706,11 @@ void LX200AstroPhysics::ISNewNumber (const char *dev, const char *name, double v
 	    {
 		DiffEquatorialCoordsNP.s= IPS_ALERT;
 		IDSetNumber(&DiffEquatorialCoordsNP, NULL);
-		handleError(&EquatorialCoordsRNP, err, "Setting RA/DEC");
+        handleError(&EquatorialCoordsNP, err, "Setting RA/DEC");
 		return;
 	    }
-        EquatorialCoordsRNP.s = IPS_OK;
-        IDSetNumber(&EquatorialCoordsRNP, NULL);
+        EquatorialCoordsNP.s = IPS_OK;
+        IDSetNumber(&EquatorialCoordsNP, NULL);
 
 	    DiffEquatorialCoordsNP.np[0].value= targetRA - currentRA ;
 	    DiffEquatorialCoordsNP.np[1].value= targetDEC - currentDEC;
@@ -778,8 +735,8 @@ void LX200AstroPhysics::ISNewNumber (const char *dev, const char *name, double v
         } // end nset
         else
         {
-        EquatorialCoordsRNP.s = IPS_ALERT;
-        IDSetNumber(&EquatorialCoordsRNP, "RA or Dec missing or invalid");
+        EquatorialCoordsNP.s = IPS_ALERT;
+        IDSetNumber(&EquatorialCoordsNP, "RA or Dec missing or invalid");
         }
 	return ;
     }
@@ -787,25 +744,25 @@ void LX200AstroPhysics::ISNewNumber (const char *dev, const char *name, double v
     // =======================================
     // Horizontal Coords - SET
     // =======================================
-    if ( !strcmp (name, HorizontalCoordsRNP.name) )
+    if ( !strcmp (name, HorizontalCoordsNP.name) )
     {
 	int i=0, nset=0;
 	double newAz, newAlt ;
 	int ret ;
 	char altStr[64], azStr[64];
 
-    if (checkPower(&HorizontalCoordsRNP))
+    if (checkPower(&HorizontalCoordsNP))
 	    return;
 
         for (nset = i = 0; i < n; i++)
 	{
-        np = IUFindNumber (&HorizontalCoordsRNP, names[i]);
-        if (np == &HorizontalCoordsRN[0])
+        np = IUFindNumber (&HorizontalCoordsNP, names[i]);
+        if (np == &HorizontalCoordsN[0])
 	    {
         newAz = values[i];
 		nset += newAz >= 0. && newAz <= 360.0;
 	    } 
-        else if (np == &HorizontalCoordsRN[1])
+        else if (np == &HorizontalCoordsN[1])
 	    {
 		newAlt = values[i];
 		nset += newAlt >= -90. && newAlt <= 90.0;
@@ -815,13 +772,13 @@ void LX200AstroPhysics::ISNewNumber (const char *dev, const char *name, double v
 	{
 	    if ( (ret = setAPObjectAZ(fd, newAz)) < 0 || (ret = setAPObjectAlt(fd, newAlt)) < 0)
 	    {
-        handleError(&HorizontalCoordsRNP, ret, "Setting Alt/Az");
+        handleError(&HorizontalCoordsNP, ret, "Setting Alt/Az");
 		return;
 	    }
 	    targetAZ= newAz;
 	    targetALT= newAlt;
-        HorizontalCoordsRNP.s = IPS_OK;
-        IDSetNumber(&HorizontalCoordsRNP, NULL) ;
+        HorizontalCoordsNP.s = IPS_OK;
+        IDSetNumber(&HorizontalCoordsNP, NULL) ;
 
 	    fs_sexa(azStr, targetAZ, 2, 3600);
 	    fs_sexa(altStr, targetALT, 2, 3600);
@@ -831,8 +788,8 @@ void LX200AstroPhysics::ISNewNumber (const char *dev, const char *name, double v
 	}
 	else
 	{
-        HorizontalCoordsRNP.s = IPS_ALERT;
-        IDSetNumber(&HorizontalCoordsRNP, "Altitude or Azimuth missing or invalid");
+        HorizontalCoordsNP.s = IPS_ALERT;
+        IDSetNumber(&HorizontalCoordsNP, "Altitude or Azimuth missing or invalid");
 	}
 
 	return;
@@ -896,10 +853,10 @@ void LX200AstroPhysics::ISNewNumber (const char *dev, const char *name, double v
 	return;
     }
 
-    LX200Generic::ISNewNumber (dev, name, values, names, n);
+    return LX200Generic::ISNewNumber (dev, name, values, names, n);
 }
 
-void LX200AstroPhysics::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool LX200AstroPhysics::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     int err=0;
 
@@ -992,20 +949,20 @@ void LX200AstroPhysics::ISNewSwitch (const char *dev, const char *name, ISState 
 	    // make a IDSet in order the dome controller is aware of the initial values
 	    targetRA= currentRA ;
 	    targetDEC= currentDEC ;
-        EquatorialCoordsRNP.s = IPS_BUSY; /* dome controller sets target only if this state is busy */
-        IDSetNumber(&EquatorialCoordsRNP,  "EquatorialCoordsWNP.s = IPS_BUSY after initialization");
+        EquatorialCoordsNP.s = IPS_BUSY; /* dome controller sets target only if this state is busy */
+        IDSetNumber(&EquatorialCoordsNP,  "EquatorialCoordsWNP.s = IPS_BUSY after initialization");
 
 	    // sleep for 100 mseconds
 	    usleep(100000);
 
-        EquatorialCoordsRNP.s = IPS_OK;
-        IDSetNumber(&EquatorialCoordsRNP, NULL);
+        EquatorialCoordsNP.s = IPS_OK;
+        IDSetNumber(&EquatorialCoordsNP, NULL);
 
 	    getLX200Az(fd, &currentAZ);
 	    getLX200Alt(fd, &currentALT);
 
-	    HorizontalCoordsRNP.s = IPS_OK ;
-	    IDSetNumber (&HorizontalCoordsRNP, NULL);
+        HorizontalCoordsNP.s = IPS_OK ;
+        IDSetNumber (&HorizontalCoordsNP, NULL);
 
 	    VersionInfo.tp[0].text = new char[64];
 	    getAPVersionNumber(fd, VersionInfo.tp[0].text);
@@ -1060,7 +1017,7 @@ void LX200AstroPhysics::ISNewSwitch (const char *dev, const char *name, ISState 
 	if (checkPower(&ParkSP))
 	    return;
 	
-    if (EquatorialCoordsRNP.s == IPS_BUSY)
+    if (EquatorialCoordsNP.s == IPS_BUSY)
 	{
 	    // ToDo handle return value
 	    abortSlew(fd);
@@ -1274,9 +1231,9 @@ void LX200AstroPhysics::ISNewSwitch (const char *dev, const char *name, ISState 
 	return;
     }
 
-    LX200Generic::ISNewSwitch (dev, name, states, names,  n);
+    return LX200Generic::ISNewSwitch (dev, name, states, names,  n);
  }
-void LX200AstroPhysics::ISSnoopDevice (XMLEle *root)
+bool LX200AstroPhysics::ISSnoopDevice (XMLEle *root)
 {
     int err ;
     if (IUSnoopSwitch(root, &MasterAlarmSP) == 0)
@@ -1335,7 +1292,7 @@ void LX200AstroPhysics::ISSnoopDevice (XMLEle *root)
 	    TrackModeSP.s = IPS_OK;
 	    IDSetSwitch(&TrackModeSP, "MasterAlarm Status ok");
 	    // values obtained via ISPoll
-        IDSetNumber(&EquatorialCoordsRNP, "Setting (sending) EquatorialCoordsRNP on reset MasterAlarm");
+        IDSetNumber(&EquatorialCoordsNP, "Setting (sending) EquatorialCoordsNP on reset MasterAlarm");
 	}
 	else
 	{
@@ -1389,15 +1346,16 @@ void LX200AstroPhysics::ISSnoopDevice (XMLEle *root)
  
 	    targetRA= currentRA ;
 	    targetDEC= currentDEC ;
-        EquatorialCoordsRNP.s = IPS_BUSY; /* dome controller sets target only if this state is busy */
-        IDSetNumber(&EquatorialCoordsRNP, "Setting (sending) EquatorialCoordsRNP on ModeS[1].s != ISS_ON");
+        EquatorialCoordsNP.s = IPS_BUSY; /* dome controller sets target only if this state is busy */
+        IDSetNumber(&EquatorialCoordsNP, "Setting (sending) EquatorialCoordsNP on ModeS[1].s != ISS_ON");
 	    // sleep for 100 mseconds
 	    usleep(100000);
-        EquatorialCoordsRNP.s = IPS_OK;
-        IDSetNumber(&EquatorialCoordsRNP, NULL) ;
+        EquatorialCoordsNP.s = IPS_OK;
+        IDSetNumber(&EquatorialCoordsNP, NULL) ;
 	}
     }
 }
+
 bool LX200AstroPhysics::isMountInit(void)
 {
     return (StartUpSP.s != IPS_IDLE);
@@ -1489,8 +1447,8 @@ void LX200AstroPhysics::ISPoll()
      /* LX200Generic should take care of this */
      //getLX200RA(fd, &currentRA );
      //getLX200DEC(fd, &currentDEC );
-     //EquatorialCoordsRNP.s = IPS_OK ;
-     //IDSetNumber (&EquatorialCoordsRNP, NULL);
+     //EquatorialCoordsNP.s = IPS_OK ;
+     //IDSetNumber (&EquatorialCoordsNP, NULL);
      
    
 /* Calculate the hour angle */
@@ -1505,12 +1463,12 @@ void LX200AstroPhysics::ISPoll()
      getLX200Alt(fd, &currentALT);
 
      /* The state of RNP is coupled to the WNP 
-     HorizontalCoordsRNP.s = IPS_OK ;
-     IDSetNumber (&HorizontalCoordsRNP, NULL);
+     HorizontalCoordsNP.s = IPS_OK ;
+     IDSetNumber (&HorizontalCoordsNP, NULL);
      */
 
      // LX200generic has no  HorizontalCoords(R|W)NP
-     if( HorizontalCoordsRNP.s == IPS_BUSY) /* telescope is syncing or slewing */
+     if( HorizontalCoordsNP.s == IPS_BUSY) /* telescope is syncing or slewing */
      {
 	 
 	 double dx = fabs ( targetAZ  - currentAZ);
@@ -1521,8 +1479,8 @@ void LX200AstroPhysics::ISPoll()
              #ifdef INDI_DEBUG
 	     IDLog("Slew completed.\n");
              #endif
-         HorizontalCoordsRNP.s = IPS_OK ;
-         IDSetNumber(&HorizontalCoordsRNP, "Slew completed") ;
+         HorizontalCoordsNP.s = IPS_OK ;
+         IDSetNumber(&HorizontalCoordsNP, "Slew completed") ;
 	 }
 	 else
 	 {
@@ -1700,7 +1658,7 @@ void LX200AstroPhysics::handleAltAzSlew()
     int i=0;
     char altStr[64], azStr[64];
 
-    if (HorizontalCoordsRNP.s == IPS_BUSY)
+    if (HorizontalCoordsNP.s == IPS_BUSY)
     {
 	abortSlew(fd);
 	AbortSlewSP.s = IPS_OK;
@@ -1713,16 +1671,16 @@ void LX200AstroPhysics::handleAltAzSlew()
 //    if ((i = slewToAltAz(fd)))
     if ((i = Slew(fd)))
     {
-    HorizontalCoordsRNP.s = IPS_ALERT;
-    IDSetNumber(&HorizontalCoordsRNP, "Slew is not possible.");
+    HorizontalCoordsNP.s = IPS_ALERT;
+    IDSetNumber(&HorizontalCoordsNP, "Slew is not possible.");
 	return;
     }
 
-    HorizontalCoordsRNP.s = IPS_OK;
+    HorizontalCoordsNP.s = IPS_OK;
     fs_sexa(azStr, targetAZ, 2, 3600);
     fs_sexa(altStr, targetALT, 2, 3600);
 
-    IDSetNumber(&HorizontalCoordsRNP, "Slewing to Alt %s - Az %s", altStr, azStr);
+    IDSetNumber(&HorizontalCoordsNP, "Slewing to Alt %s - Az %s", altStr, azStr);
     return;
 }
 void LX200AstroPhysics::handleEqCoordSet()
@@ -1743,7 +1701,7 @@ void LX200AstroPhysics::handleEqCoordSet()
 	// Slew
 	case LX200_TRACK:
 	    lastSet = LX200_TRACK;
-        if (EquatorialCoordsRNP.s == IPS_BUSY)
+        if (EquatorialCoordsNP.s == IPS_BUSY)
 	    {
 #ifdef INDI_DEBUG
 		IDLog("Aborting Track\n");
@@ -1762,10 +1720,10 @@ void LX200AstroPhysics::handleEqCoordSet()
 		// ToDo handle that with the handleError function
 		return ;
 	    }
-        EquatorialCoordsRNP.s = IPS_BUSY;
+        EquatorialCoordsNP.s = IPS_BUSY;
 	    fs_sexa(RAStr,  targetRA, 2, 3600);
 	    fs_sexa(DecStr, targetDEC, 2, 3600);
-        IDSetNumber(&EquatorialCoordsRNP, "Slewing to JNow RA %s - DEC %s", RAStr, DecStr);
+        IDSetNumber(&EquatorialCoordsNP, "Slewing to JNow RA %s - DEC %s", RAStr, DecStr);
 #ifdef INDI_DEBUG
 	    IDLog("Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
 #endif
@@ -1832,8 +1790,8 @@ void LX200AstroPhysics::handleEqCoordSet()
 		{
 		    if ( ( err = APSyncCM(fd, syncString) < 0) )
 		    {
-            EquatorialCoordsRNP.s = IPS_ALERT ;
-            IDSetNumber( &EquatorialCoordsRNP , "Synchronization failed.");
+            EquatorialCoordsNP.s = IPS_ALERT ;
+            IDSetNumber( &EquatorialCoordsNP , "Synchronization failed.");
 			// ToDo handle with handleError function
 			return ;
 		    }
@@ -1842,16 +1800,16 @@ void LX200AstroPhysics::handleEqCoordSet()
 		{
 		    if ( ( err = APSyncCMR(fd, syncString) < 0) )
 		    {
-            EquatorialCoordsRNP.s = IPS_ALERT ;
-            IDSetNumber( &EquatorialCoordsRNP, "Synchronization failed.");
+            EquatorialCoordsNP.s = IPS_ALERT ;
+            IDSetNumber( &EquatorialCoordsNP, "Synchronization failed.");
 			// ToDo handle with handleError function
 			return ;
 		    }
 		}
 		else
 		{
-            EquatorialCoordsRNP.s = IPS_ALERT ;
-            IDSetNumber( &EquatorialCoordsRNP , "SYNC NOK no valid SYNCCM, SYNCCMR");
+            EquatorialCoordsNP.s = IPS_ALERT ;
+            IDSetNumber( &EquatorialCoordsNP , "SYNC NOK no valid SYNCCM, SYNCCMR");
 #ifdef INDI_DEBUG
 		    IDLog("SYNC NOK no valid SYNCCM, SYNCCMR\n") ;
 #endif
@@ -1878,8 +1836,8 @@ void LX200AstroPhysics::handleEqCoordSet()
 // is aware of the new target
                 targetRA= currentRA ;
                 targetDEC= currentDEC ;
-                EquatorialCoordsRNP.s = IPS_BUSY; /* dome controller sets target only if this state is busy */
-                IDSetNumber(&EquatorialCoordsRNP,  "EquatorialCoordsWNP.s = IPS_BUSY after SYNC");
+                EquatorialCoordsNP.s = IPS_BUSY; /* dome controller sets target only if this state is busy */
+                IDSetNumber(&EquatorialCoordsNP,  "EquatorialCoordsWNP.s = IPS_BUSY after SYNC");
 	    }
 	    else
 	    {
@@ -1887,8 +1845,8 @@ void LX200AstroPhysics::handleEqCoordSet()
 		IDLog("Synchronization not allowed\n") ;
 #endif
 
-        EquatorialCoordsRNP.s = IPS_ALERT;
-        IDSetNumber(&EquatorialCoordsRNP,  "Synchronization not allowed" );
+        EquatorialCoordsNP.s = IPS_ALERT;
+        IDSetNumber(&EquatorialCoordsNP,  "Synchronization not allowed" );
 
 #ifdef INDI_DEBUG
                     IDLog("Telescope is on the wrong side targetHA was %f\n", targetHA) ;
@@ -1901,8 +1859,8 @@ void LX200AstroPhysics::handleEqCoordSet()
 #ifdef INDI_DEBUG
 	    IDLog("Synchronization successful >%s<\n", syncString);
 #endif
-        EquatorialCoordsRNP.s = IPS_OK; /* see above for dome controller dc */
-        IDSetNumber(&EquatorialCoordsRNP, "Synchronization successful, EquatorialCoordsWNP.s = IPS_OK after SYNC");
+        EquatorialCoordsNP.s = IPS_OK; /* see above for dome controller dc */
+        IDSetNumber(&EquatorialCoordsNP, "Synchronization successful, EquatorialCoordsWNP.s = IPS_OK after SYNC");
 	    break;
     }
    return ;
@@ -1919,7 +1877,7 @@ void LX200AstroPhysics::handleAZCoordSet()
 	// Slew
 	case LX200_TRACK:
 	    lastSet = LX200_TRACK;
-        if (HorizontalCoordsRNP.s == IPS_BUSY)
+        if (HorizontalCoordsNP.s == IPS_BUSY)
 	    {
 #ifdef INDI_DEBUG
 		IDLog("Aborting Slew\n");
@@ -1940,10 +1898,10 @@ void LX200AstroPhysics::handleAZCoordSet()
 		return ;
 	    }
 
-        HorizontalCoordsRNP.s = IPS_BUSY;
+        HorizontalCoordsNP.s = IPS_BUSY;
 	    fs_sexa(AZStr, targetAZ, 2, 3600);
 	    fs_sexa(AltStr, targetALT, 2, 3600);
-        IDSetNumber(&HorizontalCoordsRNP, "Slewing to AZ %s - Alt %s", AZStr, AltStr);
+        IDSetNumber(&HorizontalCoordsNP, "Slewing to AZ %s - Alt %s", AZStr, AltStr);
 #ifdef INDI_DEBUG
 	    IDLog("Slewing to AZ %s - Alt %s\n", AZStr, AltStr);
 #endif

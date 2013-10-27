@@ -40,16 +40,23 @@ class LX200Generic: public INDI::Telescope, public INDI::GuiderInterface
     virtual bool Connect(char *);
     virtual bool Disconnect();
     virtual bool ReadScopeStatus();
+    virtual void ISGetProperties(const char *dev);
     virtual bool initProperties();
     virtual bool updateProperties();
     virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
     virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISSnoopDevice(XMLEle *root);
+
+    int getPort() { return PortFD; }
 
   protected:
 
     virtual bool MoveNS(TelescopeMotionNS dir);
     virtual bool MoveWE(TelescopeMotionWE dir);
     virtual bool Abort();
+
+    virtual bool updateTime(ln_date utc, double utc_offset);
+    virtual bool updateLocation(double latitude, double longitude, double elevation);
 
     virtual bool GuideNorth(float ms);
     virtual bool GuideSouth(float ms);
@@ -62,41 +69,28 @@ class LX200Generic: public INDI::Telescope, public INDI::GuiderInterface
     virtual bool canSync();
     virtual bool canPark();
 
-  private:
 
-   virtual void getBasicData();
-   void slewError(int slewCode);
-   void getAlignment();
-   int handleCoordSet();
+    virtual void getBasicData();
+    void slewError(int slewCode);
+    void getAlignment();
+    void sendScopeTime();
+    void sendScopeLocation();
+    void mountSim();
 
- //int getOnSwitch(ISwitchVectorProperty *sp);
+    static void updateFocusTimer(void *p);
+    static void guideTimeout(void *p);
 
- //void setCurrentDeviceName(const char * devName);
- //void correctFault();
- //void enableSimulation(bool enable);
-
- void updateTime();
- void updateLocation();
- void mountSim();
-
- static void updateFocusTimer(void *p);
- static void guideTimeout(void *p);
-
- int    GuideNSTID;
- int    GuideWETID;
+    int    GuideNSTID;
+    int    GuideWETID;
 
 
-  int timeFormat;
-  int currentSiteNum;
-  int trackingMode;
+    int timeFormat;
+    int currentSiteNum;
+    int trackingMode;
 
-  double JD;
-  double lastRA;
-  double lastDEC;
-  bool   simulation;
-  int    currentSet;
-  int    lastSet;
-  double targetRA, targetDEC;
+    double JD;
+    double targetRA, targetDEC;
+    double currentRA, currentDEC;
 
   /* Telescope Alignment Mode */
   ISwitchVectorProperty AlignmentSP;
@@ -119,16 +113,26 @@ class LX200Generic: public INDI::Telescope, public INDI::GuiderInterface
   ISwitch UsePulseCmdS[1];
 
   /* Site Management */
-  ISwitchVectorProperty SitesSP;
-  ISwitch SitesS[4];
+  ISwitchVectorProperty SiteSP;
+  ISwitch SiteS[4];
 
   /* Site Name */
   ITextVectorProperty SiteNameTP;
   IText   SiteNameT[1];
 
-};
+  /* Focus motion */
+  ISwitchVectorProperty	FocusMotionSP;
+  ISwitch  FocusMotionS[2];
 
-//void changeLX200GenericDeviceName(const char * newName);
-//void changeAllDeviceNames(const char *newName);
+  /* Focus Timer */
+  INumberVectorProperty FocusTimerNP;
+  INumber  FocusTimerN[1];
+
+  /* Focus Mode */
+  ISwitchVectorProperty FocusModeSP;
+  ISwitch  FocusModeS[3];
+
+
+};
 
 #endif

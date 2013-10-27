@@ -140,13 +140,13 @@ bool GPUSB::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&GuideNSP);
-        defineNumber(&GuideEWP);
+        defineNumber(&GuideNSNP);
+        defineNumber(&GuideWENP);
     }
     else
     {
-        deleteProperty(GuideNSP.name);
-        deleteProperty(GuideEWP.name);
+        deleteProperty(GuideNSNP.name);
+        deleteProperty(GuideWENP.name);
     }
 
     return true;
@@ -162,7 +162,7 @@ bool GPUSB::ISNewNumber (const char *dev, const char *name, double values[], cha
 {
     if(strcmp(dev,getDeviceName())==0)
     {
-        if (!strcmp(name,GuideNSP.name) || !strcmp(name,GuideEWP.name))
+        if (!strcmp(name,GuideNSNP.name) || !strcmp(name,GuideWENP.name))
         {
             processGuiderProperties(name, values, names, n);
             return true;

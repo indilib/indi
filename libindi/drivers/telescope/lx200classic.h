@@ -30,11 +30,9 @@ class LX200Classic : public LX200Generic
   ~LX200Classic() {}
 
  void ISGetProperties (const char *dev);
- void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
- void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
- void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
- void ISPoll ();
- void getBasicData();
+ bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+ bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+
  
  private:
  int currentCatalog;

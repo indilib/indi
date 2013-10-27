@@ -1722,4 +1722,15 @@ int isPropDefined(const char *property_name)
 
 }
 
+int IUFindIndex (const char *needle, char **hay, unsigned int n)
+{
+    int i=0;
+
+    for (i=0; i < n; i++)
+        if (!strcmp(hay[i], needle))
+            return i;
+
+    return -1;
+}
+
 

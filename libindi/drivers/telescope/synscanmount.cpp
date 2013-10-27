@@ -175,8 +175,8 @@ bool SynscanMount::ReadScopeStatus()
         if(strncmp((char *)str,"0000,4000",9)==0)
         {
             TrackState=SCOPE_PARKED;
-            ParkSV.s=IPS_OK;
-            IDSetSwitch(&ParkSV,NULL);
+            ParkSP.s=IPS_OK;
+            IDSetSwitch(&ParkSP,NULL);
             IDMessage(getDeviceName(),"Telescope is Parked.");
         }
 

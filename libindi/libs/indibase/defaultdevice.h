@@ -63,6 +63,11 @@ extern const char *OPTIONS_TAB;
 extern const char *FILTER_TAB;
 
 /**
+ * @brief FOCUS_TAB Where all the properties for focuser are located.
+ */
+extern const char *FOCUS_TAB;
+
+/**
  * @brief GUIDE_TAB Where all the properties for guiding are located.
  */
 extern const char *GUIDE_TAB;
@@ -177,13 +182,15 @@ to disconnect the device.
     unsigned int getMinorVersion() { return minorVersion;}
 
     /** \brief define the driver's properties to the client.
-     *  Usually, only a minumum set of properties are defined to the client in this function. Those properties
-     *  should be enough to enable the client to establish a connection to the device. In addition to
+     *  Usually, only a minumum set of properties are defined to the client in this function if the device is in disconnected state.
+     *  Those properties should be enough to enable the client to establish a connection to the device. In addition to
      *  CONNECT/DISCONNECT, such properties may include port name, IP address, etc...
-     *  The remainder of the driver's properties are defined to the client in updateProperties() function
-     *  which is called when a client connects/disconnects from a device.
+     *  You should check if the device is already connected, and if this is true, then you must define the remainder of the
+     *  the properties to the client in this function. Otherweise, the remainder of the driver's properties are defined to the
+     *  client in updateProperties() function which is called when a client connects/disconnects from a device.
       \param dev name of the device
       \note This function is called by the INDI framework, do not call it directly.
+      \example See LX200 Generic driver for an example implementation
     */
     virtual void ISGetProperties (const char *dev);
 

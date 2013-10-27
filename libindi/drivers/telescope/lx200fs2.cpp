@@ -116,7 +116,7 @@ void LX200Fs2::ISGetProperties(const char *dev)
 /**************************************************************************************
 **
 ***************************************************************************************/
-void LX200Fs2::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+bool LX200Fs2::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
 	
 	// Ignore if not ours
@@ -137,7 +137,7 @@ void LX200Fs2::ISNewNumber (const char *dev, const char *name, double values[], 
 		return;
 	}
 	
-	LX200Generic::ISNewNumber (dev, name, values, names, n);
+    return LX200Generic::ISNewNumber (dev, name, values, names, n);
 }
 
 /**************************************************************************************

@@ -29,13 +29,33 @@ class LX200_16 : public LX200Autostar
   LX200_16();
   ~LX200_16() {}
 
+ bool initProperties();
+ bool updateProperties();
  void ISGetProperties (const char *dev);
- void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
- void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
- void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
- void ISPoll ();
+ bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+ bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+ bool ReadScopeStatus();
  void getBasicData();
- void handleAltAzSlew();
+ bool handleAltAzSlew();
+
+protected:
+
+ ISwitchVectorProperty FieldDeRotatorSP;
+ ISwitch FieldDeRotatorS[2];
+
+ ISwitchVectorProperty HomeSearchSP;
+ ISwitch HomeSearchS[2];
+
+ ISwitchVectorProperty FanStatusSP;
+ ISwitch FanStatusS[2];
+
+ INumberVectorProperty HorizontalCoordsNP;
+ INumber HorizontalCoordsN[2];
+
+private:
+
+ double targetAZ, targetALT;
+ double currentAZ, currentALT;
 
 };
 

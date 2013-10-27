@@ -47,10 +47,10 @@ class LX200AstroPhysics : public LX200Generic
   ~LX200AstroPhysics() {}
 
  void ISGetProperties (const char *dev);
- void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
- void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
- void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
- void ISSnoopDevice (XMLEle *root) ;
+ bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+ bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+ bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+ bool ISSnoopDevice (XMLEle *root) ;
  void ISPoll ();
  int  setBasicDataPart0();
  int  setBasicDataPart1();

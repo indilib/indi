@@ -33,6 +33,7 @@ const char *DATETIME_TAB = "Date/Time";
 const char *SITE_TAB = 	"Site Management";
 const char *OPTIONS_TAB = "Options";
 const char *FILTER_TAB = "Filter Wheel";
+const char *FOCUS_TAB = "Focuser";
 const char *GUIDE_TAB = "Guide";
 
 void timerfunc(void *t)
