@@ -33,7 +33,7 @@ const char *DATETIME_TAB = "Date/Time";
 const char *SITE_TAB = 	"Site Management";
 const char *OPTIONS_TAB = "Options";
 const char *FILTER_TAB = "Filter Wheel";
-const char *GUIDER_TAB = "Guide Wheel";
+const char *GUIDE_TAB = "Guide";
 
 void timerfunc(void *t)
 {
@@ -358,6 +358,7 @@ void INDI::DefaultDevice::setDebug(bool enable)
     }
 
     pDebug = enable;
+    debugTriggered(enable);
     DebugSP.s = IPS_OK;
     IDSetSwitch(&DebugSP, NULL);
 
@@ -395,6 +396,7 @@ void INDI::DefaultDevice::setSimulation(bool enable)
    }
 
    pSimulation = enable;
+   simulationTriggered(enable);
    SimulationSP.s = IPS_OK;
    IDSetSwitch(&SimulationSP, NULL);
 
@@ -408,6 +410,16 @@ bool INDI::DefaultDevice::isDebug()
 bool INDI::DefaultDevice::isSimulation()
 {
  return pSimulation;
+}
+
+void INDI::DefaultDevice::debugTriggered(bool enable)
+{
+    INDI_UNUSED(enable);
+}
+
+void INDI::DefaultDevice::simulationTriggered(bool enable)
+{
+    INDI_UNUSED(enable);
 }
 
 void INDI::DefaultDevice::ISGetProperties (const char *dev)

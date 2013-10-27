@@ -24,14 +24,48 @@
 
 #include <memory.h>
 
+/**
+ * @brief COMMUNICATION_TAB Where all the properties required to connect/disconnect from a device are located.
+ *  Usually such properties may include port number, IP address, or any property necessarily to establish a
+ *  connection to the device.
+ */
 extern const char *COMMUNICATION_TAB;
+
+/**
+ * @brief MAIN_CONTROL_TAB Where all the primary controls for the device are located.
+ */
 extern const char *MAIN_CONTROL_TAB;
+
+/**
+ * @brief MOTION_TAB Where all the motion control properties of the device are located.
+ */
 extern const char *MOTION_TAB;
+
+/**
+ * @brief DATETIME_TAB Where all date and time setting properties are located.
+ */
 extern const char *DATETIME_TAB;
+
+/**
+ * @brief SITE_TAB Where all site information setting are located.
+ */
 extern const char *SITE_TAB;
+
+/**
+ * @brief OPTIONS_TAB Where all the driver's options are located. Those may include auxiliary controls, driver
+ * metadata, version information..etc.
+ */
 extern const char *OPTIONS_TAB;
+
+/**
+ * @brief FILTER_TAB Where all the properties for filter wheels are located.
+ */
 extern const char *FILTER_TAB;
-extern const char *GUIDER_TAB;
+
+/**
+ * @brief GUIDE_TAB Where all the properties for guiding are located.
+ */
+extern const char *GUIDE_TAB;
 
 /**
  * \class INDI::DefaultDevice
@@ -143,6 +177,11 @@ to disconnect the device.
     unsigned int getMinorVersion() { return minorVersion;}
 
     /** \brief define the driver's properties to the client.
+     *  Usually, only a minumum set of properties are defined to the client in this function. Those properties
+     *  should be enough to enable the client to establish a connection to the device. In addition to
+     *  CONNECT/DISCONNECT, such properties may include port name, IP address, etc...
+     *  The remainder of the driver's properties are defined to the client in updateProperties() function
+     *  which is called when a client connects/disconnects from a device.
       \param dev name of the device
       \note This function is called by the INDI framework, do not call it directly.
     */
@@ -215,6 +254,28 @@ protected:
       \param enable If true, the Simulation option is set to ON.
     */
     void setSimulation(bool enable);
+
+    /** \brief Inform driver that the debug option was triggered.
+
+      This function is called after setDebug is triggered by the client.
+      Reimplement this function if your driver needs to take specific action after
+      debug is enabled/disabled. Otherwise, you can use isDebug() to
+      check if simulation is enabled or disabled.
+
+      \param enable If true, the debug option is set to ON.
+    */
+    virtual void debugTriggered(bool enable);
+
+    /** \brief Inform driver that the simulation option was triggered.
+
+      This function is called after setSimulation is triggered by the client.
+      Reimplement this function if your driver needs to take specific action after
+      simulation is enabled/disabled. Otherwise, you can use isSimulation() to
+      check if simulation is enabled or disabled.
+
+      \param enable If true, the simulation option is set to ON.
+    */
+    virtual void simulationTriggered(bool enable);
 
     /** \return True if Debug is on, False otherwise. */
     bool isDebug();
