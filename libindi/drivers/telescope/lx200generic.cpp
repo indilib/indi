@@ -1,6 +1,6 @@
 #if 0
     LX200 Generic
-    Copyright (C) 2003 Jasem Mutlaq (mutlaqja@ikarustech.com)
+    Copyright (C) 2003-2013 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,13 @@
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
+    2013-10-27: Updated driver to use INDI::Telescope (JM)
+
 #endif
+
+#include <config.h>
+#include <libnova.h>
+#include <memory>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,13 +40,10 @@
 #include "lx200classic.h"
 #include "lx200fs2.h"
 
-#include <config.h>
+// We declare an auto pointer to LX200Generic.
+std::auto_ptr<LX200Generic> telescope(0);
 
-#ifdef HAVE_NOVA_H
-#include <libnova.h>
-#endif
 
-LX200Generic *telescope = NULL;
 int MaxReticleFlashRate = 3;
 
 /* There is _one_ binary for all LX200 drivers, but each binary is renamed
@@ -51,12 +54,12 @@ int MaxReticleFlashRate = 3;
 */
 extern char* me;
 
-#define COMM_GROUP	"Communication"
+/*#define COMM_GROUP	"Communication"
 #define BASIC_GROUP	"Main Control"
 #define MOTION_GROUP	"Motion Control"
 #define DATETIME_GROUP	"Date/Time"
 #define SITE_GROUP	"Site Management"
-#define FOCUS_GROUP	"Focus Control"
+#define FOCUS_GROUP	"Focus Control"*/
 
 #define LX200_TRACK	0
 #define LX200_SYNC	1
@@ -66,122 +69,27 @@ extern char* me;
 #define SIDRATE		0.004178	/* sidereal rate, degrees/s */
 
 /* Handy Macros */
+/*
 #define currentRA	EquatorialCoordsRN[0].value
 #define currentDEC	EquatorialCoordsRN[1].value
 
 static void ISPoll(void *);
 static void retryConnection(void *);
+*/
 
-/*INDI Propertries */
 
-/**********************************************************************************************/
-/************************************ GROUP: Communication ************************************/
-/**********************************************************************************************/
-
-/********************************************
- Property: Connection
-*********************************************/
-static ISwitch ConnectS[]          	= {{"CONNECT" , "Connect" , ISS_OFF, 0, 0},{"DISCONNECT", "Disconnect", ISS_ON, 0, 0}};
-ISwitchVectorProperty ConnectSP		= { mydev, "CONNECTION" , "Connection", COMM_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, ConnectS, NARRAY(ConnectS), "", 0};
-
-/********************************************
- Property: Device Port
-*********************************************/
-/*wildi removed static */
-static IText PortT[]			= {{"PORT", "Port", 0, 0, 0, 0}};
-ITextVectorProperty PortTP	= { mydev, "DEVICE_PORT", "Ports", COMM_GROUP, IP_RW, 0, IPS_IDLE, PortT, NARRAY(PortT), "", 0};
-
-/********************************************
- Property: Telescope Alignment Mode
-*********************************************/
-static ISwitch AlignmentS []		= {{"Polar", "", ISS_ON, 0, 0}, {"AltAz", "", ISS_OFF, 0, 0}, {"Land", "", ISS_OFF, 0, 0}};
-static ISwitchVectorProperty AlignmentSw= { mydev, "Alignment", "", COMM_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, AlignmentS, NARRAY(AlignmentS), "", 0};
-
-/**********************************************************************************************/
-/************************************ GROUP: Main Control *************************************/
-/**********************************************************************************************/
-
-/********************************************
- Property: Equatorial Coordinates JNow
- Perm: RO
-*********************************************/
-INumber EquatorialCoordsRN[]	 	= { {"RA",  "RA  H:M:S", "%10.6m",  0., 24., 0., 0., 0, 0, 0}, {"DEC", "Dec D:M:S", "%10.6m", -90., 90., 0., 0., 0, 0, 0}};
-INumberVectorProperty EquatorialCoordsRNP= { mydev, "EQUATORIAL_EOD_COORD", "Equatorial JNow", BASIC_GROUP, IP_RW, 120, IPS_IDLE, EquatorialCoordsRN, NARRAY(EquatorialCoordsRN), "", 0};
-
-/********************************************
- Property: On Coord Set
- Description: This property decides what happens
-             when we receive a new equatorial coord
-             value. We either track, or sync
-	     to the new coordinates.
-*********************************************/
-static ISwitch OnCoordSetS[]		 = {{"SLEW", "Slew", ISS_ON, 0, 0 }, {"SYNC", "Sync", ISS_OFF, 0 , 0}};
-ISwitchVectorProperty OnCoordSetSP= { mydev, "ON_COORD_SET", "On Set", BASIC_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, OnCoordSetS, NARRAY(OnCoordSetS), "", 0};
-
-/********************************************
- Property: Abort telescope motion
-*********************************************/
-static ISwitch AbortSlewS[]		= {{"ABORT", "Abort", ISS_OFF, 0, 0 }};
-ISwitchVectorProperty AbortSlewSP= { mydev, "TELESCOPE_ABORT_MOTION", "Abort Slew", BASIC_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, AbortSlewS, NARRAY(AbortSlewS), "", 0};
-
-/**********************************************************************************************/
-/************************************** GROUP: Motion *****************************************/
-/**********************************************************************************************/
 
 /********************************************
  Property: Slew Speed
 *********************************************/
-static ISwitch SlewModeS[]		= {{"Max", "", ISS_ON, 0, 0}, {"Find", "", ISS_OFF, 0, 0}, {"Centering", "", ISS_OFF, 0, 0}, {"Guide", "", ISS_OFF, 0 , 0}};
-ISwitchVectorProperty SlewModeSP	= { mydev, "Slew rate", "", MOTION_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, SlewModeS, NARRAY(SlewModeS), "", 0};
 
 /********************************************
  Property: Tracking Mode
 *********************************************/
-static ISwitch TrackModeS[]		= {{ "Default", "", ISS_ON, 0, 0} , { "Lunar", "", ISS_OFF, 0, 0}, {"Manual", "", ISS_OFF, 0, 0}};
-static ISwitchVectorProperty TrackModeSP= { mydev, "Tracking Mode", "", MOTION_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, TrackModeS, NARRAY(TrackModeS), "", 0};
 
 /********************************************
  Property: Tracking Frequency
 *********************************************/
-static INumber TrackFreqN[] 		 = {{ "trackFreq", "Freq", "%g", 56.4, 60.1, 0.1, 60.1, 0, 0, 0}};
-static INumberVectorProperty TrackingFreqNP= { mydev, "Tracking Frequency", "", MOTION_GROUP, IP_RW, 0, IPS_IDLE, TrackFreqN, NARRAY(TrackFreqN), "", 0};
-
-/********************************************
- Property: Movement (Arrow keys on handset). North/South
-*********************************************/
-static ISwitch MovementNSS[]       = {{"MOTION_NORTH", "North", ISS_OFF, 0, 0}, {"MOTION_SOUTH", "South", ISS_OFF, 0, 0}};
-ISwitchVectorProperty MovementNSSP      = { mydev, "TELESCOPE_MOTION_NS", "North/South", MOTION_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, MovementNSS, NARRAY(MovementNSS), "", 0};
-
-/********************************************
- Property: Movement (Arrow keys on handset). West/East
-*********************************************/
-static ISwitch MovementWES[]       = {{"MOTION_WEST", "West", ISS_OFF, 0, 0}, {"MOTION_EAST", "East", ISS_OFF, 0, 0}};
-ISwitchVectorProperty MovementWESP      = { mydev, "TELESCOPE_MOTION_WE", "West/East", MOTION_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, MovementWES, NARRAY(MovementWES), "", 0};
-
-/********************************************
- Property: Timed Guide movement. North/South
-*********************************************/
-static INumber GuideNSN[]       = {{"TIMED_GUIDE_N", "North (ms)", "%g", 0, 10, 0.001, 0, 0, 0}, {"TIMED_GUIDE_S", "South (ms)", "%g", 0, 10000, 100, 100, 0, 0}};
-INumberVectorProperty GuideNSNP      = { mydev, "TELESCOPE_TIMED_GUIDE_NS", "Guide North/South", MOTION_GROUP, IP_RW, 0, IPS_IDLE, GuideNSN, NARRAY(GuideNSN), "", 0};
-
-/********************************************
- Property: Timed Guide movement. West/East
-*********************************************/
-static INumber GuideWEN[]       = {{"TIMED_GUIDE_W", "West (ms)", "%g", 0, 10, 0.001, 0, 0, 0}, {"TIMED_GUIDE_E", "East (ms)", "%g", 0, 10000, 100, 100, 0, 0}};
-INumberVectorProperty GuideWENP      = { mydev, "TELESCOPE_TIMED_GUIDE_WE", "Guide West/East", MOTION_GROUP, IP_RW, 0, IPS_IDLE, GuideWEN, NARRAY(GuideWEN), "", 0};
-
-/********************************************
- Property: Slew Accuracy
- Desciption: How close the scope have to be with
-	     respect to the requested coords for 
-	     the tracking operation to be successull
-	     i.e. returns OK
-*********************************************/
-INumber SlewAccuracyN[] = {
-    {"SlewRA",  "RA (arcmin)", "%g",  0., 60., 1., 3.0, 0, 0, 0},
-    {"SlewkDEC", "Dec (arcmin)", "%g", 0., 60., 1., 3.0, 0, 0, 0},
-};
-INumberVectorProperty SlewAccuracyNP = {mydev, "Slew Accuracy", "", MOTION_GROUP, IP_RW, 0, IPS_IDLE, SlewAccuracyN, NARRAY(SlewAccuracyN), "", 0};
 
 /********************************************
  Property: Use pulse-guide commands
@@ -190,54 +98,6 @@ INumberVectorProperty SlewAccuracyNP = {mydev, "Slew Accuracy", "", MOTION_GROUP
              be no way to query this information from
              the mount
 *********************************************/
-static ISwitch UsePulseCmdS[]		= {{ "Off", "", ISS_ON, 0, 0} , { "On", "", ISS_OFF, 0, 0}};
-static ISwitchVectorProperty UsePulseCmdSP= { mydev, "Use Pulse Cmd", "", MOTION_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, UsePulseCmdS, NARRAY(UsePulseCmdS), "", 0};
-
-/**********************************************************************************************/
-/************************************** GROUP: Focus ******************************************/
-/**********************************************************************************************/
-
-/********************************************
- Property: Focus Direction
-*********************************************/
-ISwitch  FocusMotionS[]	 = { {"IN", "Focus in", ISS_OFF, 0, 0}, {"OUT", "Focus out", ISS_OFF, 0, 0}};
-ISwitchVectorProperty	FocusMotionSP = {mydev, "FOCUS_MOTION", "Motion", FOCUS_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, FocusMotionS, NARRAY(FocusMotionS), "", 0};
-
-/********************************************
- Property: Focus Timer
-*********************************************/
-INumber  FocusTimerN[]    = { {"TIMER", "Timer (ms)", "%g", 0., 10000., 1000., 50., 0, 0, 0 }};
-INumberVectorProperty FocusTimerNP = { mydev, "FOCUS_TIMER", "Focus Timer", FOCUS_GROUP, IP_RW, 0, IPS_IDLE, FocusTimerN, NARRAY(FocusTimerN), "", 0};
-
-/********************************************
- Property: Focus Mode
-*********************************************/
-static ISwitch  FocusModeS[]	 = { {"FOCUS_HALT", "Halt", ISS_ON, 0, 0},
-				     {"FOCUS_SLOW", "Slow", ISS_OFF, 0, 0},
-				     {"FOCUS_FAST", "Fast", ISS_OFF, 0, 0}};
-static ISwitchVectorProperty FocusModeSP = {mydev, "FOCUS_MODE", "Mode", FOCUS_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, FocusModeS, NARRAY(FocusModeS), "", 0};
-
-/**********************************************************************************************/
-/*********************************** GROUP: Date & Time ***************************************/
-/**********************************************************************************************/
-
-/********************************************
- Property: UTC Time
-*********************************************/
-static IText TimeT[] = {{"UTC", "UTC", 0, 0, 0, 0}};
-ITextVectorProperty TimeTP = { mydev, "TIME_UTC", "UTC Time", DATETIME_GROUP, IP_RW, 0, IPS_IDLE, TimeT, NARRAY(TimeT), "", 0};
-
-/********************************************
- Property: DST Corrected UTC Offfset
-*********************************************/
-static INumber UTCOffsetN[] = {{"OFFSET", "Offset", "%0.3g" , -12.,12.,0.5,0., 0, 0, 0}};
-INumberVectorProperty UTCOffsetNP = { mydev, "TIME_UTC_OFFSET", "UTC Offset", DATETIME_GROUP, IP_RW, 0, IPS_IDLE, UTCOffsetN , NARRAY(UTCOffsetN), "", 0};
-
-/********************************************
- Property: Sidereal Time
-*********************************************/
-static INumber SDTimeN[] = {{"LST", "Sidereal time", "%10.6m" , 0.,24.,0.,0., 0, 0, 0}};
-INumberVectorProperty SDTimeNP = { mydev, "TIME_LST", "Sidereal Time", DATETIME_GROUP, IP_RW, 0, IPS_IDLE, SDTimeN, NARRAY(SDTimeN), "", 0};
 
 /**********************************************************************************************/
 /************************************* GROUP: Sites *******************************************/
@@ -246,144 +106,30 @@ INumberVectorProperty SDTimeNP = { mydev, "TIME_LST", "Sidereal Time", DATETIME_
 /********************************************
  Property: Site Management
 *********************************************/
-static ISwitch SitesS[]          = {{"Site 1", "", ISS_ON, 0, 0}, {"Site 2", "", ISS_OFF, 0, 0},  {"Site 3", "", ISS_OFF, 0, 0},  {"Site 4", "", ISS_OFF, 0 ,0}};
-static ISwitchVectorProperty SitesSP  = { mydev, "Sites", "", SITE_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, SitesS, NARRAY(SitesS), "", 0};
-
-/********************************************
- Property: Site Name
-*********************************************/
-static IText   SiteNameT[] = {{"Name", "", 0, 0, 0, 0}};
-static ITextVectorProperty SiteNameTP = { mydev, "Site Name", "", SITE_GROUP, IP_RW, 0 , IPS_IDLE, SiteNameT, NARRAY(SiteNameT), "", 0};
-
-/********************************************
- Property: Geographical Location
-*********************************************/
-
-static INumber geo[] = {
-    {"LAT",  "Lat.  D:M:S +N", "%10.6m",  -90.,  90., 0., 0., 0, 0, 0},
-    {"LONG", "Long. D:M:S +E", "%10.6m", 0., 360., 0., 0., 0, 0, 0},
-    {"HEIGHT", "Height m", "%10.2f", -300., 6000., 0., 610., 0, 0, 0},
-};
-INumberVectorProperty geoNP = {
-    mydev, "GEOGRAPHIC_COORD", "Geographic Location", SITE_GROUP, IP_RW, 0., IPS_IDLE,
-    geo, NARRAY(geo), "", 0};
-
-/*****************************************************************************************************/
-/**************************************** END PROPERTIES *********************************************/
-/*****************************************************************************************************/
-
-void changeLX200GenericDeviceName(const char * newName)
-{
-  // COMM_GROUP
-  strcpy(ConnectSP.device , newName);
-  strcpy(PortTP.device , newName);
-  strcpy(AlignmentSw.device, newName);
-
-  // BASIC_GROUP
-  strcpy(EquatorialCoordsRNP.device, newName);
-  strcpy(OnCoordSetSP.device , newName );
-  strcpy(AbortSlewSP.device , newName );
-
-  // MOTION_GROUP
-  strcpy(SlewModeSP.device , newName );
-  strcpy(TrackModeSP.device , newName );
-  strcpy(TrackingFreqNP.device , newName );
-  strcpy(MovementNSSP.device , newName );
-  strcpy(MovementWESP.device , newName );
-  strcpy(GuideNSNP.device , newName );
-  strcpy(GuideWENP.device , newName );
-  strcpy(SlewAccuracyNP.device, newName);
-  strcpy(UsePulseCmdSP.device, newName);
-
-  // FOCUS_GROUP
-  strcpy(FocusModeSP.device , newName );
-  strcpy(FocusMotionSP.device , newName );
-  strcpy(FocusTimerNP.device, newName);
-
-  // DATETIME_GROUP
-  strcpy(TimeTP.device , newName );
-  strcpy(UTCOffsetNP.device , newName );
-  strcpy(SDTimeNP.device , newName );
-
-  // SITE_GROUP
-  strcpy(SitesSP.device , newName );
-  strcpy(SiteNameTP.device , newName );
-  strcpy(geoNP.device , newName );
-  
-}
-
-void changeAllDeviceNames(const char *newName)
-{
-  changeLX200GenericDeviceName(newName);
-  changeLX200AutostarDeviceName(newName);
-  changeLX200AstroPhysicsDeviceName(newName);
-  changeLX200_16DeviceName(newName);
-  changeLX200ClassicDeviceName(newName);
-  changeLX200GPSDeviceName(newName);
-  changeLX200FS2DeviceName(newName);
-}
-
 
 /* send client definitions of all properties */
 void ISInit()
 {
   static int isInit=0;
-  char *envDev = getenv("INDIDEV");
 
  if (isInit)
   return;
 
  isInit = 1;
  
-  IUSaveText(&PortT[0], "/dev/ttyS0");
-  IUSaveText(&TimeT[0], "YYYY-MM-DDTHH:MM:SS");
-
-  // We need to check if UTCOffset has been set by user or not
-  UTCOffsetN[0].aux0 = (int *) malloc(sizeof(int));
-  *((int *) UTCOffsetN[0].aux0) = 0;
-  
-  
   if (strstr(me, "indi_lx200classic"))
   {
-     fprintf(stderr , "initializing from LX200 classic device...\n");
+     IDLog("initializing from LX200 classic device...\n");
 
-     telescope = new LX200Classic();
-     if (envDev != NULL)
-     {
-         changeAllDeviceNames(envDev);
-         telescope->setCurrentDeviceName(envDev);
-     }
-     else
-     {
-        // 1. mydev = device_name
-        changeAllDeviceNames("LX200 Classic");
-        telescope->setCurrentDeviceName("LX200 Classic");
-     }
+     if(telescope.get() == 0) telescope.reset(new LX200Classic());
 
      MaxReticleFlashRate = 3;
   }
-
   else if (strstr(me, "indi_lx200gps"))
   {
-     fprintf(stderr , "initializing from LX200 GPS device...\n");
+     IDLog("initializing from LX200 GPS device...\n");
 
-     // 2. device = sub_class
-     telescope = new LX200GPS();
-
-     if (envDev != NULL)
-     {
-         // 1. mydev = device_name
-         changeAllDeviceNames(envDev);
-         telescope->setCurrentDeviceName(envDev);
-     }
-     else
-     {
-         // 1. mydev = device_name
-         changeAllDeviceNames("LX200 GPS");
-         telescope->setCurrentDeviceName("LX200 GPS");
-     }
-
-
+     if(telescope.get() == 0) telescope.reset(new LX200GPS());
 
      MaxReticleFlashRate = 9;
   }
@@ -392,121 +138,62 @@ void ISInit()
 
     IDLog("Initializing from LX200 16 device...\n");
 
-    // 2. device = sub_class
-   telescope = new LX200_16();
-
-   if (envDev != NULL)
-   {
-       // 1. mydev = device_name
-       changeAllDeviceNames(envDev);
-       telescope->setCurrentDeviceName(envDev);
-   }
-   else
-   {
-       changeAllDeviceNames("LX200 16");
-       telescope->setCurrentDeviceName("LX200 16");
-   }
+   if(telescope.get() == 0) telescope.reset(new LX200_16());
 
    MaxReticleFlashRate = 3;
  }
  else if (strstr(me, "indi_lx200autostar"))
  {
-   fprintf(stderr , "initializing from autostar device...\n");
+   IDLog("initializing from autostar device...\n");
   
-   // 2. device = sub_class
-   telescope = new LX200Autostar();
-
-   if (envDev != NULL)
-   {
-       // 1. change device name
-       changeAllDeviceNames(envDev);
-       telescope->setCurrentDeviceName(envDev);
-   }
-   else
-   {
-       // 1. change device name
-       changeAllDeviceNames("LX200 Autostar");
-       telescope->setCurrentDeviceName("LX200 Autostar");
-   }
+   if(telescope.get() == 0) telescope.reset(new LX200Autostar());
 
    MaxReticleFlashRate = 9;
  }
  else if (strstr(me, "indi_lx200ap"))
  {
-   fprintf(stderr , "initializing from ap device...\n");
-  
+   IDLog("initializing from ap device...\n");
 
-   // 2. device = sub_class
-   telescope = new LX200AstroPhysics();
-
-   if (envDev != NULL)
-   {
-       // 1. change device name
-       changeAllDeviceNames(envDev);
-       telescope->setCurrentDeviceName(envDev);
-   }
-   else
-   {
-       // 1. change device name
-       changeAllDeviceNames("LX200 Astro-Physics");
-        telescope->setCurrentDeviceName("LX200 Astro-Physics");
-    }
-
+   if(telescope.get() == 0) telescope.reset(new LX200AstroPhysics());
 
    MaxReticleFlashRate = 9;
  }
  else if (strstr(me, "indi_lx200fs2"))
  {
-   fprintf(stderr , "initializing from fs2 device...\n");
+   IDLog("initializing from fs2 device...\n");
   
-   // 2. device = sub_class
-   telescope = new LX200Fs2();
-	 
-   if (envDev != NULL)
-   {
-	   // 1. change device name
-	   changeAllDeviceNames(envDev);
-	   telescope->setCurrentDeviceName(envDev);
-   }
-   else
-   {
-	  // 1. change device name
-	  changeAllDeviceNames("LX200 FS2");
-      telescope->setCurrentDeviceName("LX200 FS2");
-   }
-   
+   if(telescope.get() == 0) telescope.reset(new LX200Fs2());
  }
  // be nice and give them a generic device
  else
- {
-  telescope = new LX200Generic();
+   if(telescope.get() == 0) telescope.reset(new LX200Generic());
 
-  if (envDev != NULL)
-  {
-      // 1. change device name
-      changeAllDeviceNames(envDev);
-      telescope->setCurrentDeviceName(envDev);
-  }
-  else
-  {
-      // 1. change device name
-      changeAllDeviceNames("LX200 Generic");
-      telescope->setCurrentDeviceName("LX200 Generic");
-  }
-
- }
- IEAddTimer (POLLMS, ISPoll, NULL);
 }
 
-void ISGetProperties (const char *dev)
-{ ISInit(); telescope->ISGetProperties(dev);}
-void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
-{ ISInit(); telescope->ISNewSwitch(dev, name, states, names, n);}
-void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
-{ ISInit(); telescope->ISNewText(dev, name, texts, names, n);}
-void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
-{ ISInit(); telescope->ISNewNumber(dev, name, values, names, n);}
-void ISPoll (void *p) { telescope->ISPoll(); IEAddTimer (POLLMS, ISPoll, NULL); p=p;}
+void ISGetProperties(const char *dev)
+{
+        ISInit();
+        telescope->ISGetProperties(dev);
+}
+
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+{
+        ISInit();
+        telescope->ISNewSwitch(dev, name, states, names, num);
+}
+
+void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
+{
+        ISInit();
+        telescope->ISNewText(dev, name, texts, names, num);
+}
+
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+{
+        ISInit();
+        telescope->ISNewNumber(dev, name, values, names, num);
+}
+
 void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
 {
   INDI_UNUSED(dev);
@@ -518,10 +205,9 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
   INDI_UNUSED(names);
   INDI_UNUSED(n);
 }
-
 void ISSnoopDevice (XMLEle *root)
 {
-  telescope->ISSnoopDevice(root);
+    INDI_UNUSED(root);
 }
 
 /**************************************************
@@ -533,85 +219,155 @@ LX200Generic::LX200Generic()
    currentSiteNum = 1;
    trackingMode   = LX200_TRACK_DEFAULT;
    lastSet        = -1;
-   fault          = false;
    simulation     = false;
    currentSet     = 0;
-   fd             = -1;
    GuideNSTID     = 0;
    GuideWETID     = 0;
 
-   // Children call parent routines, this is the default
-   IDLog("INDI Library v%g\n", INDI_LIBV);
-   IDLog("initializing from generic LX200 device...\n");
-   IDLog("Driver Version: 2012-07-27\n");
+   IDLog("Initializing from generic LX200 device...\n");
  
-   //enableSimulation(true);
+   simulation = true;
 }
 
 LX200Generic::~LX200Generic()
 {
 }
 
-void LX200Generic::setCurrentDeviceName(const char * devName)
+const char * LX200Generic::getDefaultName()
 {
-  strcpy(thisDevice, devName);
-}
-
-void LX200Generic::ISGetProperties(const char *dev)
-{
-
- if (dev && strcmp (thisDevice, dev))
-    return;
-
-  // COMM_GROUP
-  IDDefSwitch (&ConnectSP, NULL);
-  IDDefText   (&PortTP, NULL);
-  IDDefSwitch (&AlignmentSw, NULL);
-
-  // BASIC_GROUP
-  IDDefNumber (&EquatorialCoordsRNP, NULL);
-  IDDefSwitch (&OnCoordSetSP, NULL);
-  IDDefSwitch (&AbortSlewSP, NULL);
-
-  // MOTION_GROUP
-  IDDefNumber (&TrackingFreqNP, NULL);
-  IDDefSwitch (&SlewModeSP, NULL);
-  IDDefSwitch (&TrackModeSP, NULL);
-  IDDefSwitch (&MovementNSSP, NULL);
-  IDDefSwitch (&MovementWESP, NULL);
-  IDDefNumber (&GuideNSNP, NULL );
-  IDDefNumber (&GuideWENP, NULL );
-  IDDefNumber (&SlewAccuracyNP, NULL);
-  IDDefSwitch (&UsePulseCmdSP, NULL);
-
-  // FOCUS_GROUP
-  IDDefSwitch(&FocusModeSP, NULL);
-  IDDefSwitch(&FocusMotionSP, NULL);
-  IDDefNumber(&FocusTimerNP, NULL);
-
-  // DATETIME_GROUP
-  #ifdef HAVE_NOVA_H
-  IDDefText   (&TimeTP, NULL);
-  IDDefNumber(&UTCOffsetNP, NULL);
-  #endif
-
-  IDDefNumber (&SDTimeNP, NULL);
-
-  // SITE_GROUP
-  IDDefSwitch (&SitesSP, NULL);
-  IDDefText   (&SiteNameTP, NULL);
-  IDDefNumber (&geoNP, NULL);
-  
-  /* Send the basic data to the new client if the previous client(s) are already connected. */		
-   if (ConnectSP.s == IPS_OK)
-       getBasicData();
-
+    return (char *)"LX200 Generic";
 }
 
 void LX200Generic::ISSnoopDevice (XMLEle *root)
 {
   INDI_UNUSED(root);
 }
+
+bool ScopeSim::initProperties()
+{
+    /* Make sure to init parent properties first */
+    INDI::Telescope::initProperties();
+
+    IUFillSwitch(&AlignmentS[0], "Polar", "", ISS_ON);
+    IUFillSwitch(&AlignmentS[1], "AltAz", "", ISS_OFF);
+    IUFillSwitch(&AlignmentS[2], "Land", "", ISS_OFF);
+    IUFillSwitchVector(&AlignmentSP, AlignmentS, 3, getDeviceName(), "Alignment", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    IUFillSwitch(&SlewModeS[0], "Max", "", ISS_ON);
+    IUFillSwitch(&SlewModeS[1], "Find", "", ISS_OFF);
+    IUFillSwitch(&SlewModeS[2], "Centering", "", ISS_OFF);
+    IUFillSwitch(&SlewModeS[3], "Guide", "", ISS_OFF);
+    IUFillSwitchVector(&SlewModeSP, SlewModeS, 4, getDeviceName(), "Slew Rate", "", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    IUFillSwitch(&TrackModeS[0], "Default", "", ISS_ON);
+    IUFillSwitch(&TrackModeS[1], "Lunar", "", ISS_OFF);
+    IUFillSwitch(&TrackModeS[2], "Manual", "", ISS_OFF);
+    IUFillSwitchVector(&TrackModeSP, TrackModeS, 3, getDeviceName(), "Tracking Mode", "", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    IUFillNumber(&TrackFreqN[0], "trackFreq", "Freq", "%g", 56.4,60.1, 0.1, 60.1);
+    IUFillNumberVector(&TrackingFreqNP, TrackFreqN, 1, getDeviceName(), "Tracking Frequency", "", MOTION_TAB, IP_RW, 0, IPS_IDLE);
+
+    IUFillSwitch(&UsePulseCmdS[0], "Off", "", ISS_ON);
+    IUFillSwitch(&UsePulseCmdS[1], "On", "", ISS_OFF);
+    IUFillSwitchVector(&UsePulseCmdSP, UsePulseCmdS, 2, getDeviceName(), "Use Pulse Cmd", "", GUIDE_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    IUFillSwitch(&SiteS[0], "Site 1", "", ISS_ON);
+    IUFillSwitch(&SiteS[1], "Site 2", "", ISS_OFF);
+    IUFillSwitch(&SiteS[2], "Site 3", "", ISS_OFF);
+    IUFillSwitch(&SiteS[3], "Site 4", "", ISS_OFF);
+    IUFillSwitchVector(&SiteSP, SiteS, 4, getDeviceName(), "Sites", "", SITE_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    IUFillText(&SiteNameT[0], "Name", "", "");
+    IUFillTextVector(&SiteNameTP, SiteNameT, 1, getDeviceName(), "Site Name", "", SITE_TAB, IP_RW, 0, IPS_IDLE);
+
+    TrackState=SCOPE_IDLE;
+
+    initGuiderProperties(getDeviceName(), GUIDE_TAB);
+
+    /* Add debug/simulation/config controls so we may debug driver if necessary */
+    addAuxControls();
+
+    return true;
+}
+
+bool LX200Generic::updateProperties()
+{
+    INDI::Telescope::updateProperties();
+
+    if (isConnected())
+    {
+        defineSwitch(&AlignmentSP);
+        defineSwitch(&SlewModeSP);
+        defineSwitch(&TrackModeSP);
+        defineNumber(&TrackingFreqNP);
+        defineSwitch(&UsePulseCmdSP);
+        defineSwitch(&SitesSP);
+        defineText(&SiteNameTP);
+    }
+    else
+    {
+        deleteProperty(AlignmentSP.name);
+        deleteProperty(SlewModeSP.name);
+        deleteProperty(TrackModeSP.name);
+        deleteProperty(TrackingFreqNP.name);
+        deleteProperty(UsePulseCmdSP.name);
+        deleteProperty(SitesSP.name);
+        deleteProperty(SiteNameTP.name);
+    }
+
+    return true;
+}
+
+bool LX200Generic::Connect()
+{
+    bool rc=false;
+
+    if(isConnected()) return true;
+
+    rc=Connect(PortT[0].text);
+
+    if(rc)
+        SetTimer(POLLMS);
+
+    return rc;
+}
+
+bool LX200Generic::Connect(char *port)
+{
+    // Closeport  if already open
+    tty_disconnect(PortFD);
+
+    if (tty_connect(port, 9600, 8, 0, 1, &PortFD) != TTY_OK)
+    {
+      IDMessage(getDeviceName(), "Error connecting to port %s. Make sure you have BOTH write and read permission to your port.", port);
+      return false;
+    }
+
+
+    // NOTE START WORKING FROM HERE
+    // GOING TO LUNCH NOW!!
+    if (check_lx200_connection(PortFD))
+    {
+        IDMessage(getDeviceName(), "Error connecting to Telescope. Telescope is offline.");
+        return false;
+    }
+
+       #ifdef INDI_DEBUG
+       IDLog("Telescope test successful.\n");
+   #endif
+
+       *((int *) UTCOffsetN[0].aux0) = 0;
+   ConnectSP.s = IPS_OK;
+   IDSetSwitch (&ConnectSP, "Telescope is online. Retrieving basic data...");
+   getBasicData();
+}
+
+bool LX200Generic::Disconnect()
+{
+    return true;
+}
+
+
 
 void LX200Generic::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
@@ -2152,10 +1908,7 @@ void LX200Generic::slewError(int slewCode)
 void LX200Generic::getAlignment()
 {
 
-   if (ConnectSP.s != IPS_OK)
-    return;
-
-   signed char align = ACK(fd);
+   signed char align = ACK(PortFD);
    if (align < 0)
    {
      IDSetSwitch (&AlignmentSw, "Failed to get telescope alignment.");
@@ -2178,22 +1931,10 @@ void LX200Generic::getAlignment()
 
     AlignmentSw.s = IPS_OK;
     IDSetSwitch (&AlignmentSw, NULL);
-    IDLog("ACK success %c\n", align);
-}
-
-void LX200Generic::enableSimulation(bool enable)
-{
-   simulation = enable;
-   
-   if (simulation)
-     IDLog("Warning: Simulation is activated.\n");
-   else
-     IDLog("Simulation is disabled.\n");
 }
 
 void LX200Generic::updateTime()
 {
-  #ifdef HAVE_NOVA_H
   char cdate[32];
   double ctime;
   int h, m, s, lx200_utc_offset=0;
@@ -2263,7 +2004,6 @@ void LX200Generic::updateTime()
   IDSetText(&TimeTP, NULL);
   IDSetNumber(&SDTimeNP, NULL);
   IDSetNumber(&UTCOffsetNP, NULL);
-  #endif
 
 }
 
