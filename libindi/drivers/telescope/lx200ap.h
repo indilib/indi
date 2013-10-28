@@ -22,11 +22,11 @@
 #ifndef LX200ASTROPHYSICS_H
 #define LX200ASTROPHYSICS_H
 
-#include "lx200generic.h"
+#include "lx200genericlegacy.h"
 /* thisDevice is not defined with the global section property definitions.*/
 /* So I use this macro throught the lx200ap.cpp */
 /* even one can use thisDevice e.g. in function call like IDMessage( thisDevice,...)*/
-/* That may collide with what is defined in lx200generic.cpp */
+/* That may collide with what is defined in LX200GenericLegacy.cpp */
 #define myapdev "LX200 Astro-Physics"
 
 #define DOMECONTROL 0
@@ -40,17 +40,17 @@
 #define MOUNTNOTINITIALIZED 0 
 #define MOUNTINITIALIZED 1 
 
-class LX200AstroPhysics : public LX200Generic
+class LX200AstroPhysics : public LX200GenericLegacy
 {
  public:
   LX200AstroPhysics();
   ~LX200AstroPhysics() {}
 
  void ISGetProperties (const char *dev);
- bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
- bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
- bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
- bool ISSnoopDevice (XMLEle *root) ;
+ void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+ void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+ void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+ void ISSnoopDevice (XMLEle *root) ;
  void ISPoll ();
  int  setBasicDataPart0();
  int  setBasicDataPart1();

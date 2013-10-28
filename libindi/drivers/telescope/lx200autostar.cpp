@@ -18,7 +18,6 @@
 
 */
 
-#include "libs/indibase/inditelescope.h"
 #include "lx200autostar.h"
 #include "lx200driver.h"
 
@@ -29,10 +28,6 @@
 
 #define FIRMWARE_TAB "Firmware data"
 
-extern int MaxReticleFlashRate;
-
-
-
 /********************************************
  Property: Park telescope to HOME
 *********************************************/
@@ -40,11 +35,19 @@ extern int MaxReticleFlashRate;
 
 LX200Autostar::LX200Autostar() : LX200Generic()
 {
+ MaxReticleFlashRate = 9;
+}
 
+const char *LX200Autostar::getDefaultName()
+{
+    return (const char *) "LX200 Autostar";
 }
 
 bool LX200Autostar::initProperties()
 {
+
+    LX200Generic::initProperties();
+
     IUFillText(&VersionT[0], "Date", "", "");
     IUFillText(&VersionT[1], "Time", "", "");
     IUFillText(&VersionT[2], "Number", "", "");
@@ -55,26 +58,27 @@ bool LX200Autostar::initProperties()
     IUFillNumber(&FocusSpeedN[0], "SPEED", "Speed", "%0.f", 0, 4.0, 1.0, 0);
     IUFillNumberVector(&FocusSpeedNP, FocusSpeedN, 1, getDeviceName(), "FOCUS_SPEED", "Speed", FOCUS_TAB, IP_RW, 0, IPS_IDLE);
 
+    return true;
+
 }
 
 void LX200Autostar::ISGetProperties (const char *dev)
 {
+    if(dev && strcmp(dev,getDeviceName()))
+        return;
 
     LX200Generic::ISGetProperties(dev);
 
-    //IDDefSwitch (&ParkSP, NULL);
-    //IDDefText   (&VersionTP, NULL);
-    //IDDefNumber (&FocusSpeedNP, NULL);
-
-    // For Autostar, we have a different focus speed method
-    // Therefore, we don't need the classical one
-    deleteProperty(FocusModeSP.name);
-    //IDDelete(thisDevice, "FOCUS_MODE", NULL);
 
     if (isConnected())
     {
         defineText(&VersionTP);
         defineNumber(&FocusSpeedNP);
+
+        // For Autostar, we have a different focus speed method
+        // Therefore, we don't need the classical one
+        deleteProperty(FocusModeSP.name);
+
     }
 
 }
@@ -88,6 +92,11 @@ bool LX200Autostar::updateProperties()
     {
         defineText(&VersionTP);
         defineNumber(&FocusSpeedNP);
+
+        // For Autostar, we have a different focus speed method
+        // Therefore, we don't need the classical one
+        deleteProperty(FocusModeSP.name);
+
     }
     else
     {
@@ -107,7 +116,8 @@ bool LX200Autostar::ISNewNumber (const char *dev, const char *name, double value
          if (IUUpdateNumber(&FocusSpeedNP, values, names, n) < 0)
            return false;
 
-         setGPSFocuserSpeed(PortFD,  ( (int) FocusSpeedN[0].value));
+         if (isSimulation() == false)
+             setGPSFocuserSpeed(PortFD,  ( (int) FocusSpeedN[0].value));
          FocusSpeedNP.s = IPS_OK;
          IDSetNumber(&FocusSpeedNP, NULL);
          return true;
@@ -119,7 +129,7 @@ bool LX200Autostar::ISNewNumber (const char *dev, const char *name, double value
 
  bool LX200Autostar::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
  {
-   int index=0, err=0;
+   int index=0;
  
    if(strcmp(dev,getDeviceName())==0)
    {
@@ -139,7 +149,7 @@ bool LX200Autostar::ISNewNumber (const char *dev, const char *name, double value
             IUUpdateSwitch(&FocusMotionSP, states, names, n);
             index = IUFindOnSwitchIndex(&FocusMotionSP);
 	  
-           if (setFocuserMotion(PortFD, index) < 0)
+           if (isSimulation() == false && setFocuserMotion(PortFD, index) < 0)
            {
                FocusMotionSP.s = IPS_ALERT;
                IDSetSwitch(&FocusMotionSP, "Error setting focuser speed.");
@@ -173,19 +183,20 @@ bool LX200Autostar::ISNewNumber (const char *dev, const char *name, double value
    // process parent
    LX200Generic::getBasicData();
 
-   VersionTP.tp[0].text = new char[64];
-   getVersionDate(PortFD, VersionTP.tp[0].text);
-   VersionTP.tp[1].text = new char[64];
-   getVersionTime(PortFD, VersionTP.tp[1].text);
-   VersionTP.tp[2].text = new char[64];
-   getVersionNumber(PortFD, VersionTP.tp[2].text);
-   VersionTP.tp[3].text = new char[128];
-   getFullVersion(PortFD, VersionTP.tp[3].text);
-   VersionTP.tp[4].text = new char[128];
-   getProductName(PortFD, VersionTP.tp[4].text);
+   if (isSimulation() == false)
+   {
+       VersionTP.tp[0].text = new char[64];
+       getVersionDate(PortFD, VersionTP.tp[0].text);
+       VersionTP.tp[1].text = new char[64];
+       getVersionTime(PortFD, VersionTP.tp[1].text);
+       VersionTP.tp[2].text = new char[64];
+       getVersionNumber(PortFD, VersionTP.tp[2].text);
+       VersionTP.tp[3].text = new char[128];
+       getFullVersion(PortFD, VersionTP.tp[3].text);
+       VersionTP.tp[4].text = new char[128];
+       getProductName(PortFD, VersionTP.tp[4].text);
 
-   IDSetText(&VersionTP, NULL);
-   
-
+       IDSetText(&VersionTP, NULL);
+   }
 
  }

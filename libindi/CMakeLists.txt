@@ -216,18 +216,11 @@ set(lx200generic_SRCS
    ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200_16.cpp
    ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200gps.cpp
    ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200generic.cpp
-   ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200classic.cpp
-   ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200apdriver.c
-   ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200ap.cpp 
-   ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200fs2.cpp)
+   ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200classic.cpp)
 
 add_executable(indi_lx200generic ${lx200generic_SRCS}  ${liblilxml_SRCS} ${libindicom_SRCS})
 
-target_link_libraries(indi_lx200generic  m )
-
-if (NOVA_FOUND)
-  target_link_libraries(indi_lx200generic ${NOVA_LIBRARIES})
-endif (NOVA_FOUND)
+target_link_libraries(indi_lx200generic indidriver ${NOVA_LIBRARIES} m )
 
 install(TARGETS indi_lx200generic RUNTIME DESTINATION bin )
 
@@ -236,10 +229,30 @@ file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/make_lx200generic_symlink.cmake
 exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200autostar)\n
 exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200_16)\n
 exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200gps)\n
-exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200ap)\n
-exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200fs2)\n
 ")
 set_target_properties(indi_lx200generic PROPERTIES POST_INSTALL_SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_lx200generic_symlink.cmake)
+#################################################################################
+
+########### LX200 Generic ###########
+set(lx200genericlegacy_SRCS
+   ${indimain_SRCS}
+   ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200driver.c
+   ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200genericlegacy.cpp
+   ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200apdriver.c
+   ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200ap.cpp
+   ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200fs2.cpp)
+
+add_executable(indi_lx200genericlegacy ${lx200genericlegacy_SRCS}  ${liblilxml_SRCS} ${libindicom_SRCS})
+
+target_link_libraries(indi_lx200genericlegacy ${NOVA_LIBRARIES} m )
+
+install(TARGETS indi_lx200genericlegacy RUNTIME DESTINATION bin )
+
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/make_lx200genericlegacy_symlink.cmake
+"exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200genericlegacy \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200ap)\n
+exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200genericlegacy \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200fs2)\n
+")
+set_target_properties(indi_lx200genericlegacy PROPERTIES POST_INSTALL_SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_lx200genericlegacy_symlink.cmake)
 #################################################################################
 
 ########### Celestron GPS ############

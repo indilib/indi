@@ -745,6 +745,8 @@ libindi/drivers/telescope/lx200fs2.cpp -text
 libindi/drivers/telescope/lx200fs2.h -text
 libindi/drivers/telescope/lx200generic.cpp -text
 libindi/drivers/telescope/lx200generic.h -text
+libindi/drivers/telescope/lx200genericlegacy.cpp -text
+libindi/drivers/telescope/lx200genericlegacy.h -text
 libindi/drivers/telescope/lx200gps.cpp -text
 libindi/drivers/telescope/lx200gps.h -text
 libindi/drivers/telescope/magellan1.cpp -text

@@ -96,3 +96,5 @@ void INDI::GuiderInterface::processGuiderProperties(const char *name, double val
         return;
     }
 }
+
+

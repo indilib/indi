@@ -29,6 +29,7 @@ class LX200_16 : public LX200Autostar
   LX200_16();
   ~LX200_16() {}
 
+ const char *getDefaultName();
  bool initProperties();
  bool updateProperties();
  void ISGetProperties (const char *dev);
@@ -58,8 +59,6 @@ private:
  double currentAZ, currentALT;
 
 };
-
-void changeLX200_16DeviceName(const char * newName);
 
 #endif
 

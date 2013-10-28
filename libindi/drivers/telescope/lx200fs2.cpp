@@ -31,9 +31,9 @@
 using namespace std;
 
 /* Our telescope auto pointer */
-extern LX200Generic *telescope;
+extern LX200GenericLegacy *telescope;
 
-// Access to properties defined in LX200Generic
+// Access to properties defined in LX200GenericLegacy
 extern ISwitchVectorProperty ConnectSP;
 extern ITextVectorProperty   PortTP;
 
@@ -55,7 +55,7 @@ void changeLX200FS2DeviceName(const char *newName)
 /**************************************************************************************
 ** LX200 FS2 constructor
 ***************************************************************************************/
-LX200Fs2::LX200Fs2() : LX200Generic()
+LX200Fs2::LX200Fs2() : LX200GenericLegacy()
 {
    DeviceName = "LX200 FS2";
    init_properties();
@@ -93,7 +93,7 @@ void LX200Fs2::ISGetProperties(const char *dev)
  if (dev && strcmp (DeviceName, dev))
     return;
 
-  LX200Generic::ISGetProperties(dev);
+  LX200GenericLegacy::ISGetProperties(dev);
   // Delete not supported properties 
 		IDDelete(DeviceName, "Alignment", NULL);
 		IDDelete(DeviceName, "Tracking Mode", NULL);
@@ -116,7 +116,7 @@ void LX200Fs2::ISGetProperties(const char *dev)
 /**************************************************************************************
 **
 ***************************************************************************************/
-bool LX200Fs2::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+void LX200Fs2::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
 	
 	// Ignore if not ours
@@ -137,7 +137,7 @@ bool LX200Fs2::ISNewNumber (const char *dev, const char *name, double values[], 
 		return;
 	}
 	
-    return LX200Generic::ISNewNumber (dev, name, values, names, n);
+    LX200GenericLegacy::ISNewNumber (dev, name, values, names, n);
 }
 
 /**************************************************************************************
@@ -216,7 +216,7 @@ void LX200Fs2::connectTelescope()
 ***************************************************************************************/
 void LX200Fs2::getBasicData()
 {
-  //LX200Generic::getBasicData()
+  //LX200GenericLegacy::getBasicData()
   // Make sure short
   //checkLX200Format(fd);
 

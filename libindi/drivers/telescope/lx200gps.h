@@ -29,11 +29,11 @@ class LX200GPS : public LX200_16
   LX200GPS();
   ~LX200GPS() {} 
 
+  const char *getDefaultName();
   bool initProperties();
   bool updateProperties();
   void ISGetProperties (const char *dev);
   bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-  bool ReadScopeStatus();
 
  protected:
   ISwitchVectorProperty GPSPowerSP;

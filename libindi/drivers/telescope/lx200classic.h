@@ -29,10 +29,34 @@ class LX200Classic : public LX200Generic
   LX200Classic();
   ~LX200Classic() {}
 
- void ISGetProperties (const char *dev);
+ const char *getDefaultName();
+ bool initProperties();
+ void ISGetProperties (const char *dev); 
+ bool updateProperties();
  bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
  bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
 
+protected:
+ ITextVectorProperty ObjectInfoTP;
+ IText   ObjectInfoT[1];
+
+ ISwitchVectorProperty StarCatalogSP;
+ ISwitch StarCatalogS[3];
+
+ ISwitchVectorProperty DeepSkyCatalogSP;
+ ISwitch DeepSkyCatalogS[7];
+
+ ISwitchVectorProperty SolarSP;
+ ISwitch SolarS[10];
+
+ INumberVectorProperty ObjectNoNP;
+ INumber ObjectNoN[1];
+
+ INumberVectorProperty MaxSlewRateNP;
+ INumber MaxSlewRateN[1];
+
+ INumberVectorProperty ElevationLimitNP;
+ INumber ElevationLimitN[2];
  
  private:
  int currentCatalog;
@@ -41,7 +65,6 @@ class LX200Classic : public LX200Generic
 
 };
 
-void changeLX200ClassicDeviceName(const char *newName);
 
 #endif
  

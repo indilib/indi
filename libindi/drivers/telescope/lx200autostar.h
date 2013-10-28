@@ -30,6 +30,7 @@ class LX200Autostar : public LX200Generic
   ~LX200Autostar() {}
 
 
+ const char *getDefaultName();
  virtual void ISGetProperties (const char *dev);
  virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
  virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
@@ -48,8 +49,6 @@ protected:
 
 
 };
-
-void changeLX200AutostarDeviceName(const char *newName);
 
 #endif
  

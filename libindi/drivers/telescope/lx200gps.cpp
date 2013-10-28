@@ -31,11 +31,18 @@
 
 LX200GPS::LX200GPS() : LX200_16()
 {
+    MaxReticleFlashRate = 9;
 
+}
+
+const char * LX200GPS::getDefaultName()
+{
+    return (const char *) "LX200 GPS";
 }
 
 bool LX200GPS::initProperties()
 {
+    LX200_16::initProperties();
 
     IUFillSwitch(&GPSPowerS[0], "On", "", ISS_OFF);
     IUFillSwitch(&GPSPowerS[1], "Off", "", ISS_OFF);
@@ -60,17 +67,17 @@ bool LX200GPS::initProperties()
     IUFillSwitchVector(&AzRaPecSP, AzRaPecS, 2, getDeviceName(), "Az/RA PEC", "", GPS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillSwitch(&SelenSyncS[0], "Sync", "", ISS_OFF);
-    IUFillSwitchVector(&SelenSyncSP, SelenSyncS, 2, getDeviceName(), "Selenographic Sync", "", GPS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillSwitchVector(&SelenSyncSP, SelenSyncS, 1, getDeviceName(), "Selenographic Sync", "", GPS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     IUFillSwitch(&AltDecBacklashS[0], "Activate", "", ISS_OFF);
-    IUFillSwitchVector(&AltDecBacklashSP, AltDecBacklashS, 2, getDeviceName(), "Alt/Dec Anti-backlash", "", GPS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillSwitchVector(&AltDecBacklashSP, AltDecBacklashS, 1, getDeviceName(), "Alt/Dec Anti-backlash", "", GPS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     IUFillSwitch(&AzRaBacklashS[0], "Activate", "", ISS_OFF);
-    IUFillSwitchVector(&AzRaBacklashSP, AzRaBacklashS, 2, getDeviceName(), "Az/Ra Anti-backlash", "", GPS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillSwitchVector(&AzRaBacklashSP, AzRaBacklashS, 1, getDeviceName(), "Az/Ra Anti-backlash", "", GPS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
 
     IUFillSwitch(&OTAUpdateS[0], "Update", "", ISS_OFF);
-    IUFillSwitchVector(&OTAUpdateSP, OTAUpdateS, 2, getDeviceName(), "OTA Update", "", GPS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillSwitchVector(&OTAUpdateSP, OTAUpdateS, 1, getDeviceName(), "OTA Update", "", GPS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
 
     IUFillNumber(&OTATempN[0], "Temp", "", "%0.g", -200.0, 500.0, 0.0, 0);
@@ -80,6 +87,9 @@ bool LX200GPS::initProperties()
 
 void LX200GPS::ISGetProperties (const char *dev)
 {
+
+    if(dev && strcmp(dev,getDeviceName()))
+        return;
 
     // process parent first
    LX200_16::ISGetProperties(dev);

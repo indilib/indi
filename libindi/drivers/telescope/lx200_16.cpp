@@ -29,13 +29,18 @@
 
 #define LX16_TAB	"GPS/16 inch Features"
 
-extern int MaxReticleFlashRate;
 
 LX200_16::LX200_16() : LX200Autostar()
 {
 
+    MaxReticleFlashRate = 3;
 }
- 
+
+const char * LX200_16::getDefaultName()
+{
+    return (const char *) "LX200 16";
+}
+
 bool LX200_16::initProperties()
 {
     LX200Autostar::initProperties();
@@ -54,12 +59,14 @@ bool LX200_16::initProperties()
 
     IUFillNumber(&HorizontalCoordsN[0], "ALT", "Alt  D:M:S", "%10.6m", -90., 90.0, 0.0, 0);
     IUFillNumber(&HorizontalCoordsN[1], "AZ", "Az D:M:S", "%10.6m", 0.0, 360.0, 0.0, 0);
-    IUFillNumberVector(&HorizontalCoordsNP, HorizontalCoordsN, 1, getDeviceName(), "HORIZONTAL_COORD", "Horizontal Coord", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&HorizontalCoordsNP, HorizontalCoordsN, 2, getDeviceName(), "HORIZONTAL_COORD", "Horizontal Coord", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
 }
 
 void LX200_16::ISGetProperties (const char *dev)
 {
+    if(dev && strcmp(dev,getDeviceName()))
+        return;
 
   // process parent first
   LX200Autostar::ISGetProperties(dev);
@@ -122,7 +129,7 @@ bool LX200_16::ISNewNumber (const char *dev, const char *name, double values[], 
 
           if (nset == 2)
           {
-           if (setObjAz(PortFD, newAz) < 0 || setObjAlt(PortFD, newAlt) < 0)
+           if (isSimulation() == false && (setObjAz(PortFD, newAz) < 0 || setObjAlt(PortFD, newAlt) < 0))
            {
                HorizontalCoordsNP.s = IPS_ALERT;
                IDSetNumber(&HorizontalCoordsNP, "Error setting Alt/Az.");
@@ -230,7 +237,7 @@ bool LX200_16::handleAltAzSlew()
 	     usleep(100000);
 	  }
 
-      if (slewToAltAz(PortFD))
+      if (isSimulation() == false && slewToAltAz(PortFD))
 	  {
         HorizontalCoordsNP.s = IPS_ALERT;
         IDSetNumber(&HorizontalCoordsNP, "Slew is not possible.");
@@ -241,6 +248,7 @@ bool LX200_16::handleAltAzSlew()
 	  fs_sexa(azStr, targetAZ, 2, 3600);
 	  fs_sexa(altStr, targetALT, 2, 3600);
 
+      TrackState = SCOPE_SLEWING;
       IDSetNumber(&HorizontalCoordsNP, "Slewing to Alt %s - Az %s", altStr, azStr);
       return true;
 }
@@ -259,7 +267,9 @@ bool LX200_16::handleAltAzSlew()
 
 	case IPS_BUSY:
 
-        if (getHomeSearchStatus(PortFD, &searchResult) < 0)
+        if (isSimulation())
+            searchResult = 1;
+        else if (getHomeSearchStatus(PortFD, &searchResult) < 0)
 	    {
             HomeSearchSP.s = IPS_ALERT;
             IDSetSwitch(&HomeSearchSP, "Error updating home search status.");
@@ -298,6 +308,13 @@ bool LX200_16::handleAltAzSlew()
 
 	case IPS_BUSY:
 
+        if (isSimulation())
+        {
+            currentAZ  = targetAZ;
+            currentALT = targetALT;
+            TrackState = SCOPE_TRACKING;
+            return true;
+        }
         if (getLX200Az(PortFD, &currentAZ) < 0 || getLX200Alt(PortFD, &currentALT) < 0)
 	    {
             HorizontalCoordsNP.s = IPS_ALERT;
@@ -330,16 +347,19 @@ bool LX200_16::handleAltAzSlew()
 	    break;
 	}
 
+    return true;
  }
 
- void LX200_16::getBasicData()
- {
+void LX200_16::getBasicData()
+{
    LX200Autostar::getBasicData();
 
-   getLX200Az(PortFD, &currentAZ);
-   getLX200Alt(PortFD, &currentALT);
-   HorizontalCoordsNP.np[0].value = currentALT;
-   HorizontalCoordsNP.np[1].value = currentAZ;
-   IDSetNumber (&HorizontalCoordsNP, NULL);
-
- }
+   if (isSimulation() == false)
+   {
+       getLX200Az(PortFD, &currentAZ);
+       getLX200Alt(PortFD, &currentALT);
+       HorizontalCoordsNP.np[0].value = currentALT;
+       HorizontalCoordsNP.np[1].value = currentAZ;
+       IDSetNumber (&HorizontalCoordsNP, NULL);
+   }
+}

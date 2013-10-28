@@ -26,21 +26,24 @@
 //#include "indidevapi.h"
 //#include "indicom.h"
 
-#include "lx200generic.h"
+#include "lx200genericlegacy.h"
 // To prevent of using mydev from generic by error
 #ifdef mydev
 #undef mydevice
 #endif
 
-class LX200Fs2 : public LX200Generic
+class LX200Fs2 : public LX200GenericLegacy
 {
  public:
  LX200Fs2();
  ~LX200Fs2();
 
  virtual void ISGetProperties (const char *dev);
- virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+ virtual void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
  // Not implemented. LX200 generic used. 
+ //virtual void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+ //virtual void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+ //virtual void ISPoll ();
  virtual void handleError(ISwitchVectorProperty *svp, int err, const char *msg);
  virtual void handleError(INumberVectorProperty *nvp, int err, const char *msg);
  virtual void handleError(ITextVectorProperty *tvp, int err, const char *msg);

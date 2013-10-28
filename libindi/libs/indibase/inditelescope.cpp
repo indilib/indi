@@ -42,8 +42,8 @@ bool INDI::Telescope::initProperties()
     IUFillNumberVector(&EqNP,EqN,2,getDeviceName(),"EQUATORIAL_EOD_COORD","Eq. Coordinates",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillText(&TimeT[0],"UTC","UTC Time","");
-    IUFillText(&TimeT[1],"Offset","UTC Offset","");
-    IUFillTextVector(&TimeTP,TimeT,2,getDeviceName(),"UTC_TIME","UTC",SITE_TAB,IP_RW,60,IPS_IDLE);
+    IUFillText(&TimeT[1],"OFFSET","UTC Offset","");
+    IUFillTextVector(&TimeTP,TimeT,2,getDeviceName(),"TIME_UTC","UTC",SITE_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillNumber(&LocationN[0],"LAT","Lat (dd:mm:ss)","%010.6m",-90,90,0,0.0);
     IUFillNumber(&LocationN[1],"LONG","Lon (dd:mm:ss)","%010.6m",-180,180,0,0.0 );
@@ -251,15 +251,10 @@ bool INDI::Telescope::ISNewText (const char *dev, const char *name, char *texts[
 
       if(strcmp(name,"TIME_UTC")==0)
       {
-        int utcindex=0, offsetindex=1;
+        int utcindex   = IUFindIndex("UTC", names, n);
+        int offsetindex= IUFindIndex("OFFSET", names, n);
         struct ln_date utc;
         double utc_offset=0;
-
-        if (strcmp(names[utcindex], "UTC"))
-        {
-            offsetindex=0;
-            utcindex=1;
-        }
 
         if (extractISOTime(texts[utcindex], &utc) == -1)
         {
@@ -479,6 +474,8 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
                     EqNP.s = IPS_IDLE;
                     IDSetNumber(&EqNP, NULL);
                 }
+
+                TrackState = SCOPE_IDLE;
             }
             else
                 AbortSP.s = IPS_ALERT;

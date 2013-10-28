@@ -93,6 +93,7 @@ class LX200Generic: public INDI::Telescope, public INDI::GuiderInterface
     double JD;
     double targetRA, targetDEC;
     double currentRA, currentDEC;
+    int MaxReticleFlashRate;
 
   /* Telescope Alignment Mode */
   ISwitchVectorProperty AlignmentSP;
