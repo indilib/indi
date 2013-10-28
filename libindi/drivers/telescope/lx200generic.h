@@ -45,9 +45,11 @@ class LX200Generic: public INDI::Telescope, public INDI::GuiderInterface
     virtual bool updateProperties();
     virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
     virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
     virtual bool ISSnoopDevice(XMLEle *root);
 
-    int getPort() { return PortFD; }
+    void updateFocusTimer();
+    void guideTimeout();
 
   protected:
 
@@ -55,7 +57,7 @@ class LX200Generic: public INDI::Telescope, public INDI::GuiderInterface
     virtual bool MoveWE(TelescopeMotionWE dir);
     virtual bool Abort();
 
-    virtual bool updateTime(ln_date utc, double utc_offset);
+    virtual bool updateTime(ln_date * utc, double utc_offset);
     virtual bool updateLocation(double latitude, double longitude, double elevation);
 
     virtual bool GuideNorth(float ms);
@@ -77,16 +79,16 @@ class LX200Generic: public INDI::Telescope, public INDI::GuiderInterface
     void sendScopeLocation();
     void mountSim();
 
-    static void updateFocusTimer(void *p);
-    static void guideTimeout(void *p);
+    static void updateFocusHelper(void *p);
+    static void guideTimeoutHelper(void *p);
 
     int    GuideNSTID;
     int    GuideWETID;
 
-
     int timeFormat;
     int currentSiteNum;
     int trackingMode;
+    long guide_direction;
 
     double JD;
     double targetRA, targetDEC;

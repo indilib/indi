@@ -155,7 +155,7 @@ bool LX200Autostar::ISNewNumber (const char *dev, const char *name, double value
                 if (isDebug())
                     IDLog("Starting Focus Timer BUSY\n");
 
-                IEAddTimer(50, LX200Generic::updateFocusTimer, this);
+                IEAddTimer(50, LX200Generic::updateFocusHelper, this);
            }
 	  
            IDSetSwitch(&FocusMotionSP, NULL);

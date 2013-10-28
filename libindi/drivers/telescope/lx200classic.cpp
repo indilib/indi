@@ -25,42 +25,36 @@
 #include <stdlib.h>
 #include <string.h>
 
-extern LX200Generic *telescope;
-extern INumberVectorProperty EquatorialCoordsWNP;
-extern INumberVectorProperty EquatorialCoordsRNP;
-extern ITextVectorProperty TimeTP;
 extern int MaxReticleFlashRate;
 
 /* Handy Macros */
 #define currentRA	EquatorialCoordsRNP.np[0].value
 #define currentDEC	EquatorialCoordsRNP.np[1].value
 
-#define BASIC_GROUP	"Main Control"
-#define LIBRARY_GROUP	"Library"
-#define MOVE_GROUP	"Movement Control"
+#define LIBRARY_TAB	"Library"
 
 static IText   ObjectText[] = {{"objectText", "Info", 0, 0, 0, 0}};
-static ITextVectorProperty ObjectInfoTP = {mydev, "Object Info", "", BASIC_GROUP, IP_RO, 0, IPS_IDLE, ObjectText, NARRAY(ObjectText), "", 0};
+static ITextVectorProperty ObjectInfoTP = {mydev, "Object Info", "", BASIC_TAB, IP_RO, 0, IPS_IDLE, ObjectText, NARRAY(ObjectText), "", 0};
 
-/* Library group */
+/* Library TAB */
 static ISwitch StarCatalogS[]    = {{"STAR", "", ISS_ON, 0, 0}, {"SAO", "", ISS_OFF, 0, 0}, {"GCVS", "", ISS_OFF, 0, 0}};
 static ISwitch DeepSkyCatalogS[] = {{"NGC", "", ISS_ON, 0, 0}, {"IC", "", ISS_OFF, 0, 0}, {"UGC", "", ISS_OFF, 0, 0}, {"Caldwell", "", ISS_OFF, 0, 0}, {"Arp", "", ISS_OFF, 0, 0}, {"Abell", "", ISS_OFF, 0, 0}, {"Messier", "", ISS_OFF, 0, 0}};
 static ISwitch SolarS[]          = { {"Select", "Select item...", ISS_ON, 0, 0}, {"1", "Mercury", ISS_OFF,0 , 0}, {"2", "Venus", ISS_OFF, 0, 0}, {"3", "Moon", ISS_OFF, 0, 0}, {"4", "Mars", ISS_OFF, 0, 0}, {"5", "Jupiter", ISS_OFF, 0, 0}, {"6", "Saturn", ISS_OFF, 0, 0}, {"7", "Uranus", ISS_OFF, 0, 0}, {"8", "Neptune", ISS_OFF, 0, 0}, {"9", "Pluto", ISS_OFF, 0 ,0}};
 
-static ISwitchVectorProperty StarCatalogSP   = { mydev, "Star Catalogs", "", LIBRARY_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, StarCatalogS, NARRAY(StarCatalogS), "", 0};
-static ISwitchVectorProperty DeepSkyCatalogSP= { mydev, "Deep Sky Catalogs", "", LIBRARY_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, DeepSkyCatalogS, NARRAY(DeepSkyCatalogS), "", 0};
-static ISwitchVectorProperty SolarSP         = { mydev, "SOLAR_SYSTEM", "Solar System", LIBRARY_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, SolarS, NARRAY(SolarS), "", 0};
+static ISwitchVectorProperty StarCatalogSP   = { mydev, "Star Catalogs", "", LIBRARY_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, StarCatalogS, NARRAY(StarCatalogS), "", 0};
+static ISwitchVectorProperty DeepSkyCatalogSP= { mydev, "Deep Sky Catalogs", "", LIBRARY_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, DeepSkyCatalogS, NARRAY(DeepSkyCatalogS), "", 0};
+static ISwitchVectorProperty SolarSP         = { mydev, "SOLAR_SYSTEM", "Solar System", LIBRARY_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, SolarS, NARRAY(SolarS), "", 0};
 
 static INumber ObjectN[] = {{ "ObjectN", "Number", "%g", 1., 10000., 1., 0., 0, 0, 0}};
-static INumberVectorProperty ObjectNoNP= { mydev, "Object Number", "", LIBRARY_GROUP, IP_RW, 0, IPS_IDLE, ObjectN, NARRAY(ObjectN), "", 0 };
+static INumberVectorProperty ObjectNoNP= { mydev, "Object Number", "", LIBRARY_TAB, IP_RW, 0, IPS_IDLE, ObjectN, NARRAY(ObjectN), "", 0 };
 
 static INumber MaxSlew[] = {{"maxSlew", "Rate", "%g", 2.0, 9.0, 1.0, 9., 0, 0 ,0}};
-static INumberVectorProperty MaxSlewRateNP = { mydev, "Max slew Rate", "", MOVE_GROUP, IP_RW, 0, IPS_IDLE, MaxSlew, NARRAY(MaxSlew), "", 0};
+static INumberVectorProperty MaxSlewRateNP = { mydev, "Max slew Rate", "", MOVE_TAB, IP_RW, 0, IPS_IDLE, MaxSlew, NARRAY(MaxSlew), "", 0};
 
 static INumber altLimit[] = {
        {"minAlt", "min Alt", "%+03f", -90., 90., 0., 0., 0, 0, 0},
        {"maxAlt", "max Alt", "%+03f", -90., 90., 0., 0., 0, 0, 0}};
-static INumberVectorProperty ElevationLimitNP = { mydev, "altLimit", "Slew elevation Limit", BASIC_GROUP, IP_RW, 0, IPS_IDLE, altLimit, NARRAY(altLimit), "", 0};
+static INumberVectorProperty ElevationLimitNP = { mydev, "altLimit", "Slew elevation Limit", BASIC_TAB, IP_RW, 0, IPS_IDLE, altLimit, NARRAY(altLimit), "", 0};
 
 LX200Classic::LX200Classic() : LX200Generic()
 {

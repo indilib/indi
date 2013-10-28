@@ -307,6 +307,31 @@ int getCommandString(int fd, char *data, const char* cmd)
     return 0;
 }
 
+int isSlewComplete(int fd)
+{
+    char data[1];
+    int error_type;
+    int nbytes_write=0, nbytes_read=0;
+    char *cmd = "#:D#";
+
+    data[0] = '\0';
+
+   if ( (error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
+    return error_type;
+
+   error_type = tty_read(fd, data, 1, LX200_TIMEOUT, &nbytes_read);
+   tcflush(fd, TCIFLUSH);
+
+    if (error_type != TTY_OK)
+    return error_type;
+
+    if (data[0] == '\0')
+        return 0;
+    else
+        return 1;
+
+}
+
 int getCalenderDate(int fd, char *date)
 {
 
