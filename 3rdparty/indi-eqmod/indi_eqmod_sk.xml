@@ -91,11 +91,6 @@ Idle
 12.0
 </defNumber>
 </defNumberVector>
-<defTextVector device="EQMod Mount" name="TIME_UTC" label="UTC" group="Site Management" state="Idle" perm="rw">
-<defText name="UTC" label="UTC Time"></defText>
-<defText name="OFFSET" label="UTC Offset"></defText>
-</defTextVector>
-
 <defNumberVector device="EQMod Mount" name="SLEWSPEEDS" label="Custom Speeds" group="Motion Control" state="Idle" perm="rw">
 <defNumber name="RASLEW" label="RA Slew" format="%3.2fx" min="0.05" max="800.0" step="0.05">
 64.0

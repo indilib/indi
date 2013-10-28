@@ -246,12 +246,12 @@ const char * EQMod::getDefaultName()
 
 double EQMod::getLongitude() 
 {
-  return(IUFindNumber(&LocationNV, "LONG")->value);
+  return(IUFindNumber(&LocationNP, "LONG")->value);
 }
 
 double EQMod::getLatitude() 
 {
-  return(IUFindNumber(&LocationNV, "LAT")->value);
+  return(IUFindNumber(&LocationNP, "LAT")->value);
 }
 
 double EQMod::getJulianDate()
@@ -330,7 +330,6 @@ bool EQMod::loadProperties()
     PeriodsNP=getNumber("PERIODS");
     JulianNP=getNumber("JULIAN");
     TimeLSTNP=getNumber("TIME_LST");
-    TimeUTCTP=getText("TIME_UTC");
     RAStatusLP=getLight("RASTATUS");
     DEStatusLP=getLight("DESTATUS");
     SlewSpeedsNP=getNumber("SLEWSPEEDS");
@@ -372,8 +371,8 @@ bool EQMod::updateProperties()
     {
     loadProperties();
 
-	defineNumber(&GuideNSP);
-	defineNumber(&GuideEWP);
+    defineNumber(&GuideNSNP);
+    defineNumber(&GuideWENP);
 	defineSwitch(SlewModeSP);
 	defineNumber(SlewSpeedsNP);
 	defineNumber(GuideRateNP);
@@ -383,7 +382,6 @@ bool EQMod::updateProperties()
 	defineNumber(PeriodsNP);
 	defineNumber(JulianNP);
 	defineNumber(TimeLSTNP);
-	defineText(TimeUTCTP);
 	defineLight(RAStatusLP);
 	defineLight(DEStatusLP);
 	defineSwitch(HemisphereSP);
@@ -411,18 +409,18 @@ bool EQMod::updateProperties()
 	      DEBUGF(Logger::DBG_DEBUG,"Got Encoder Property %s: %.0f\n", SteppersNP->np[i].label, SteppersNP->np[i].value);
 	  }
 	
-	  mount->Init(&ParkSV);
+	  mount->Init(&ParkSP);
 	
 	  zeroRAEncoder=mount->GetRAEncoderZero();
 	  totalRAEncoder=mount->GetRAEncoderTotal();
 	  zeroDEEncoder=mount->GetDEEncoderZero();
 	  totalDEEncoder=mount->GetDEEncoderTotal();
 
-	  latitude=IUFindNumber(&LocationNV, "LAT");
+	  latitude=IUFindNumber(&LocationNP, "LAT");
 	  if ((latitude) && (latitude->value < 0.0)) SetSouthernHemisphere(true);
 	  else  SetSouthernHemisphere(false);
 	
-	  if (ParkSV.sp[0].s==ISS_ON) {
+	  if (ParkSP.sp[0].s==ISS_ON) {
 	    //TODO unpark mount if desired
 	  }
 	
@@ -435,8 +433,8 @@ bool EQMod::updateProperties()
     else
       {
 	if (MountInformationTP) {
-	  deleteProperty(GuideNSP.name);
-	  deleteProperty(GuideEWP.name);
+      deleteProperty(GuideNSNP.name);
+      deleteProperty(GuideWENP.name);
 	  deleteProperty(GuideRateNP->name);
 	  deleteProperty(MountInformationTP->name);
 	  deleteProperty(SteppersNP->name);
@@ -444,7 +442,6 @@ bool EQMod::updateProperties()
 	  deleteProperty(PeriodsNP->name);
 	  deleteProperty(JulianNP->name);
 	  deleteProperty(TimeLSTNP->name);
-	  deleteProperty(TimeUTCTP->name);
 	  deleteProperty(RAStatusLP->name);
 	  deleteProperty(DEStatusLP->name);
 	  deleteProperty(SlewSpeedsNP->name);
@@ -488,7 +485,7 @@ bool EQMod::Connect(char *port)
 {
   int i;
   ISwitchVectorProperty *connect=getSwitch("CONNECTION");
-  INumber *latitude=IUFindNumber(&LocationNV, "LAT");
+  INumber *latitude=IUFindNumber(&LocationNP, "LAT");
   if (connect) {
     connect->s=IPS_BUSY;
     IDSetSwitch(connect,"connecting to port %s",port);
@@ -531,8 +528,8 @@ void EQMod::TimerHit()
       if(rc == false)
  	{
 	  // read was not good
-	  EqNV.s=IPS_ALERT;
-	  IDSetNumber(&EqNV, NULL);
+	  EqNP.s=IPS_ALERT;
+	  IDSetNumber(&EqNP, NULL);
  	}
       
       SetTimer(POLLMS);
@@ -584,10 +581,10 @@ bool EQMod::ReadScopeStatus() {
   IUUpdateNumber(JulianNP, &juliandate, (char **)(datenames  +1), 1);
   JulianNP->s=IPS_OK;
   IDSetNumber(JulianNP, NULL); 
-  strftime(IUFindText(TimeUTCTP, "UTC")->text, 32, "%Y-%m-%dT%H:%M:%S", &utc);
-  //IUUpdateText(TimeUTCTP, (char **)(&hrutc), (char **)(datenames  +2), 1);
-  TimeUTCTP->s=IPS_OK;
-  IDSetText(TimeUTCTP, NULL);
+  strftime(IUFindText(&TimeTP, "UTC")->text, 32, "%Y-%m-%dT%H:%M:%S", &utc);
+  //IUUpdateText(TimeTP, (char **)(&hrutc), (char **)(datenames  +2), 1);
+  TimeTP.s=IPS_OK;
+  IDSetText(&TimeTP, NULL);
  
   try {
     currentRAEncoder=mount->GetRAEncoder();
@@ -667,7 +664,7 @@ bool EQMod::ReadScopeStatus() {
 
 	} else {
 	  ISwitch *sw;
-	  sw=IUFindSwitch(&CoordSV,"TRACK");
+	  sw=IUFindSwitch(&CoordSP,"TRACK");
 	  if ((gotoparams.iterative_count > GOTO_ITERATIVE_LIMIT) &&
 	    (((3600 * abs(gotoparams.ratarget - currentRA)) > RAGOTORESOLUTION) || 
 	     ((3600 * abs(gotoparams.detarget - currentDEC)) > DEGOTORESOLUTION))) {
@@ -685,7 +682,7 @@ bool EQMod::ReadScopeStatus() {
 	    TrackState = SCOPE_IDLE;
 	    DEBUG(Logger::DBG_SESSION, "Telescope slew is complete. Stopping...");
 	  }
-	  EqNV.s = IPS_OK;
+	  EqNP.s = IPS_OK;
 
 	}
       } 
@@ -1014,8 +1011,8 @@ bool EQMod::Goto(double r,double d)
     RememberTrackState = TrackState;
     TrackState = SCOPE_SLEWING;
 
-    //EqReqNV.s = IPS_BUSY;
-    EqNV.s    = IPS_BUSY;
+    //EqREqNP.s = IPS_BUSY;
+    EqNP.s    = IPS_BUSY;
 
     TrackModeSP->s=IPS_IDLE;
     IDSetSwitch(TrackModeSP,NULL);
@@ -1060,10 +1057,10 @@ bool EQMod::Sync(double ra,double dec)
   lst=getLst(juliandate, getLongitude()); 
 
   if (TrackState != SCOPE_TRACKING) {
-    //EqReqNV.s=IPS_IDLE;
-    EqNV.s=IPS_ALERT;
-    //IDSetNumber(&EqReqNV, NULL);
-    IDSetNumber(&EqNV, NULL);
+    //EqREqNP.s=IPS_IDLE;
+    EqNP.s=IPS_ALERT;
+    //IDSetNumber(&EqREqNP, NULL);
+    IDSetNumber(&EqNP, NULL);
     DEBUG(Logger::DBG_WARNING,"Syncs are allowed only when Tracking");
     return false;
   }
@@ -1116,9 +1113,9 @@ bool EQMod::Sync(double ra,double dec)
   IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_TELESCOPE_RA")->value=syncdata.telescopeRA;;
   IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_TELESCOPE_DE")->value=syncdata.telescopeDEC;;
   IDSetNumber(StandardSyncPointNP, NULL);
-  //EqReqNV.s=IPS_IDLE;
-  //EqNV.s=IPS_OK;
-  //IDSetNumber(&EqReqNV, NULL);
+  //EqREqNP.s=IPS_IDLE;
+  //EqNP.s=IPS_OK;
+  //IDSetNumber(&EqREqNP, NULL);
 
   DEBUGF(Logger::DBG_SESSION, "Mount Synced (deltaRA = %.6f deltaDEC = %.6f)", syncdata.deltaRA, syncdata.deltaDEC);
   //IDLog("Mount Synced (deltaRA = %.6f deltaDEC = %.6f)\n", syncdata.deltaRA, syncdata.deltaDEC);
@@ -1249,15 +1246,15 @@ bool EQMod::ISNewNumber (const char *dev, const char *name, double values[], cha
 	}
 
       // Guider interface
-      if (!strcmp(name,GuideNSP.name) || !strcmp(name,GuideEWP.name))
+      if (!strcmp(name,GuideNSNP.name) || !strcmp(name,GuideWENP.name))
 	{
 	  // Unless we're in track mode, we don't obey guide commands.
 	  if (TrackState != SCOPE_TRACKING)
 	    {
-	      GuideNSP.s = IPS_IDLE;
-	      IDSetNumber(&GuideNSP, NULL);
-	      GuideEWP.s = IPS_IDLE;
-	      IDSetNumber(&GuideEWP, NULL);
+          GuideNSNP.s = IPS_IDLE;
+          IDSetNumber(&GuideNSNP, NULL);
+          GuideWENP.s = IPS_IDLE;
+          IDSetNumber(&GuideWENP, NULL);
 	      DEBUG(Logger::DBG_WARNING, "Can not guide if not tracking.");
 	      return true;
 	    }
@@ -1501,37 +1498,7 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 bool EQMod::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n) 
 {
   bool compose;
-  if(strcmp(dev,getDeviceName())==0)
-    {
-      if(strcmp(name,"TIME_UTC")==0)
-	{
-	  int utcindex=0;
-	  struct ln_date lndatetry;
-	  if (strcmp(names[utcindex], "UTC")) utcindex=1;
-	  if (extractISOTime(texts[utcindex], &lndatetry) == -1) {
-	    TimeUTCTP->s = IPS_ALERT;
-	    DEBUGF(Logger::DBG_ERROR, "Can not set UTC Time: %s", texts[utcindex]);
-	    return false;
-	  }
-	  lndate = lndatetry;
-	  utc.tm_sec = lndate.seconds;
-	  utc.tm_min= lndate.minutes;
-	  utc.tm_hour = lndate.hours;
-	  utc.tm_mday = lndate.days;
-	  utc.tm_mon = lndate.months -1;
-	  utc.tm_year = lndate.years - 1900;
 
-	  gettimeofday(&lasttimeupdate, NULL);
-
-	  IUUpdateText(TimeUTCTP, texts, names, n);
-	  TimeUTCTP->s = IPS_OK;
-	  IDSetText(TimeUTCTP, NULL);
-          //IDLog("New text UTC: %s", asctime(&utc));
-	  DEBUGF(Logger::DBG_SESSION, "Setting UTC Time to %s, Offset %s", 
-		      IUFindText(TimeUTCTP,"UTC")->text, IUFindText(TimeUTCTP,"OFFSET")->text);
-	  return true;
-	}
-    }
   if (align) { compose=align->ISNewText(dev,name,texts,names,n); if (compose) return true;}
 
 #ifdef WITH_SIMULATOR
@@ -1541,6 +1508,32 @@ bool EQMod::ISNewText (const char *dev, const char *name, char *texts[], char *n
 #endif
   //  Nobody has claimed this, so, ignore it
   return INDI::Telescope::ISNewText(dev,name,texts,names,n);
+}
+
+bool EQMod::updateTime(ln_date *lndate_utc, double utc_offset)
+{
+   lndate.seconds = lndate_utc->seconds;
+   lndate.minutes = lndate_utc->minutes;
+   lndate.hours   = lndate_utc->hours;
+   lndate.days    = lndate_utc->days;
+   lndate.months  = lndate_utc->months;
+   lndate.years   = lndate_utc->years;
+
+   utc.tm_sec = lndate.seconds;
+   utc.tm_min= lndate.minutes;
+   utc.tm_hour = lndate.hours;
+   utc.tm_mday = lndate.days;
+   utc.tm_mon = lndate.months -1;
+   utc.tm_year = lndate.years - 1900;
+
+   gettimeofday(&lasttimeupdate, NULL);
+
+   strftime(IUFindText(&TimeTP, "UTC")->text, 32, "%Y-%m-%dT%H:%M:%S", &utc);
+
+   DEBUGF(Logger::DBG_SESSION, "Setting UTC Time to %s, Offset %g",
+                IUFindText(&TimeTP,"UTC")->text, utc_offset);
+
+   return true;
 }
 
 double EQMod::GetRASlew() {	  
@@ -1726,10 +1719,10 @@ bool EQMod::Abort()
   }
   //INDI::Telescope::Abort();
   // Reset switches
-  GuideNSP.s = IPS_IDLE;
-  IDSetNumber(&GuideNSP, NULL);
-  GuideEWP.s = IPS_IDLE;
-  IDSetNumber(&GuideEWP, NULL);
+  GuideNSNP.s = IPS_IDLE;
+  IDSetNumber(&GuideNSNP, NULL);
+  GuideWENP.s = IPS_IDLE;
+  IDSetNumber(&GuideWENP, NULL);
   TrackModeSP->s=IPS_IDLE;
   IUResetSwitch(TrackModeSP);
   IDSetSwitch(TrackModeSP,NULL);    
@@ -1748,30 +1741,30 @@ bool EQMod::Abort()
       IDSetSwitch(&MovementWESP, NULL);
       }
   
-  if (ParkSV.s == IPS_BUSY)
+  if (ParkSP.s == IPS_BUSY)
     {
-      ParkSV.s       = IPS_IDLE;
-      IUResetSwitch(&ParkSV);
-      IDSetSwitch(&ParkSV, NULL);
+      ParkSP.s       = IPS_IDLE;
+      IUResetSwitch(&ParkSP);
+      IDSetSwitch(&ParkSP, NULL);
     }
   
-  /*if (EqReqNV.s == IPS_BUSY)
+  /*if (EqREqNP.s == IPS_BUSY)
     {
-    EqReqNV.s      = IPS_IDLE;
-    IDSetNumber(&EqReqNV, NULL);
+    EqREqNP.s      = IPS_IDLE;
+    IDSetNumber(&EqREqNP, NULL);
     }
   */
-  if (EqNV.s == IPS_BUSY)
+  if (EqNP.s == IPS_BUSY)
     {
-      EqNV.s = IPS_IDLE;
-      IDSetNumber(&EqNV, NULL);
+      EqNP.s = IPS_IDLE;
+      IDSetNumber(&EqNP, NULL);
     }   
   
   TrackState=SCOPE_IDLE;
   
-  AbortSV.s=IPS_OK;
-  IUResetSwitch(&AbortSV);
-  IDSetSwitch(&AbortSV, NULL);
+  AbortSP.s=IPS_OK;
+  IUResetSwitch(&AbortSP);
+  IDSetSwitch(&AbortSP, NULL);
   DEBUG(Logger::DBG_SESSION, "Telescope Aborted");
   
   return true;
@@ -1786,9 +1779,9 @@ void EQMod::timedguideNSCallback(void *userpointer) {
       DEBUGDEVICE(p->getDeviceName(), Logger::DBG_WARNING, "Timed guide North/South Error: can not restart tracking");
     }   
   }
-  p->GuideNSP.s = IPS_IDLE;
+  p->GuideNSNP.s = IPS_IDLE;
   //p->GuideNSN[GUIDE_NORTH].value = p->GuideNSN[GUIDE_SOUTH].value = 0;
-  IDSetNumber(&(p->GuideNSP), NULL);
+  IDSetNumber(&(p->GuideNSNP), NULL);
   DEBUGDEVICE(p->getDeviceName(), Logger::DBG_SESSION, "End Timed guide North/South");
   IERmTimer(p->GuideTimerNS);
 }
@@ -1802,9 +1795,9 @@ void EQMod::timedguideWECallback(void *userpointer) {
       DEBUGDEVICE(p->getDeviceName(), Logger::DBG_WARNING, "Timed guide West/East Error: can not restart tracking");
     }   
   }
-  p->GuideEWP.s = IPS_IDLE;
+  p->GuideWENP.s = IPS_IDLE;
   //p->GuideWEN[GUIDE_WEST].value = p->GuideWEN[GUIDE_EAST].value = 0;
-  IDSetNumber(&(p->GuideEWP), NULL);
+  IDSetNumber(&(p->GuideWENP), NULL);
   DEBUGDEVICE(p->getDeviceName(), Logger::DBG_SESSION, "End Timed guide West/East");
   IERmTimer(p->GuideTimerWE);
 }
