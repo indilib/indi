@@ -143,7 +143,10 @@ set_target_properties(indi PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVER
 ############ INDI Main Shared Library #############
 # To link with main() for 3rd party legacy drivers#
 ###################################################
-add_library(indimain SHARED ${indimain_SRCS} ${libindicom_SRCS} ${liblilxml_SRCS} ${NOVA_LIBRARIES})
+add_library(indimain SHARED ${indimain_SRCS} ${libindicom_SRCS} ${liblilxml_SRCS})
+
+target_link_libraries(indimain ${NOVA_LIBRARIES})
+
 if (CFITSIO_FOUND)
 target_link_libraries(indimain ${CFITSIO_LIBRARIES})
 endif(CFITSIO_FOUND)
