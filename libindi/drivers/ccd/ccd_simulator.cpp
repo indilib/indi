@@ -102,8 +102,9 @@ CCDSim::CCDSim()
     polarError=0;
     polarDrift=0;
 
-    raPEC=9.95;
-    decPEC=68.9;
+    usePE = false;
+    raPE=RA;
+    decPE=Dec;
 
     //  sxvh9
     bias=1500;
@@ -211,19 +212,21 @@ bool CCDSim::initProperties()
     IUFillSwitchVector(TimeFactorSV,TimeFactorS,3,getDeviceName(),"ON_TIME_FACTOR","Time Factor","Simulator Config",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
     IUFillNumber(&FWHMN[0],"SIM_FWHM","FWHM (arcseconds)","%4.2f",0,60,0,7.5);
-    IUFillNumberVector(&FWHMNP,FWHMN,1,"Focuser Simulator", "FWHM","FWHM",OPTIONS_TAB,IP_RO,60,IPS_IDLE);
+    IUFillNumberVector(&FWHMNP,FWHMN,1,ActiveDeviceT[1].text, "FWHM","FWHM",OPTIONS_TAB,IP_RO,60,IPS_IDLE);
 
     IUFillNumber(&ScopeParametersN[0],"TELESCOPE_APERTURE","Aperture (mm)","%g",50,4000,0,0.0);
     IUFillNumber(&ScopeParametersN[1],"TELESCOPE_FOCAL_LENGTH","Focal Length (mm)","%g",100,10000,0,0.0 );
     IUFillNumber(&ScopeParametersN[2],"GUIDER_APERTURE","Guider Aperture (mm)","%g",50,4000,0,0.0);
     IUFillNumber(&ScopeParametersN[3],"GUIDER_FOCAL_LENGTH","Guider Focal Length (mm)","%g",100,10000,0,0.0 );
-    IUFillNumberVector(&ScopeParametersNP,ScopeParametersN,4,"Telescope Simulator","TELESCOPE_INFO","Scope Properties",OPTIONS_TAB,IP_RW,60,IPS_OK);
+    IUFillNumberVector(&ScopeParametersNP,ScopeParametersN,4,ActiveDeviceT[0].text,"TELESCOPE_INFO","Scope Properties",OPTIONS_TAB,IP_RW,60,IPS_OK);
 
-    IUFillNumber(&EqPECN[0],"RA_PEC","RA (hh:mm:ss)","%010.6m",0,24,0,0);
-    IUFillNumber(&EqPECN[1],"DEC_PEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,0);
-    IUFillNumberVector(&EqPECNP,EqPECN,2,ActiveDeviceT[0].text,"EQUATORIAL_PEC","EQ PEC","Main Control",IP_RW,60,IPS_IDLE);
+    IUFillNumber(&EqPEN[0],"RA_PE","RA (hh:mm:ss)","%010.6m",0,24,0,0);
+    IUFillNumber(&EqPEN[1],"DEC_PE","DEC (dd:mm:ss)","%010.6m",-90,90,0,0);
+    IUFillNumberVector(&EqPENP,EqPEN,2,ActiveDeviceT[0].text,"EQUATORIAL_PE","EQ PE","Main Control",IP_RW,60,IPS_IDLE);
 
-    IDSnoopDevice(ActiveDeviceT[0].text,"EQUATORIAL_PEC");
+    IDSnoopDevice(ActiveDeviceT[0].text,"EQUATORIAL_PE");
+    IDSnoopDevice(ActiveDeviceT[0].text,"TELESCOPE_INFO");
+    IDSnoopDevice(ActiveDeviceT[1].text,"FWHM");
 
     initFilterProperties(getDeviceName(), FILTER_TAB);
 
@@ -521,12 +524,18 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
         ImageScalex=Scalex;
         ImageScaley=Scaley;
 
+        if (usePE == false)
+        {
+            raPE  = RA;
+            decPE = Dec;
+        }
+
         //  calc this now, we will use it a lot later
-        rad=raPEC*15.0;
+        rad=raPE*15.0;
         rar=rad*0.0174532925;
         //  offsetting the dec by the guide head offset
         float cameradec;
-        cameradec=decPEC+OAGoffset/60;
+        cameradec=decPE+OAGoffset/60;
         decr=cameradec*0.0174532925;
 
         decDrift = (polarDrift * polarError * cos(decr)) / 3.81;
@@ -534,7 +543,7 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
         // Add declination drift, if any.
         decr += decDrift/3600.0 * 0.0174532925;
 
-        //fprintf(stderr,"decPEC %7.5f  cameradec %7.5f  CenterOffsetDec %4.4f\n",decPEC,cameradec,CenterOffsetDec);
+        //fprintf(stderr,"decPE %7.5f  cameradec %7.5f  CenterOffsetDec %4.4f\n",decPE,cameradec,CenterOffsetDec);
         //  now lets calculate the radius we need to fetch
         float radius;
 
@@ -567,7 +576,7 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
         //  if this is a light frame, we need a star field drawn
         if(targetChip->getFrameType()==CCDChip::LIGHT_FRAME)
         {
-            //sprintf(gsccmd,"gsc -c %8.6f %+8.6f -r 120 -m 0 9.1",rad+PEOffset,decPEC);
+            //sprintf(gsccmd,"gsc -c %8.6f %+8.6f -r 120 -m 0 9.1",rad+PEOffset,decPE);
             sprintf(gsccmd,"gsc -c %8.6f %+8.6f -r %4.1f -m 0 %4.2f -n 3000",rad+PEOffset,cameradec,radius,lookuplimit);
             //fprintf(stderr,"gsccmd %s\n",gsccmd);
             pp=popen(gsccmd,"r");
@@ -631,7 +640,7 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
                         drawn+=rc;
                         if(rc==1)
                         {
-                            //fprintf(stderr,"star %s scope %6.4f %6.4f star %6.4f %6.4f  ccd %6.2f %6.2f\n",id,rad,decPEC,ra,dec,ccdx,ccdy);
+                            //fprintf(stderr,"star %s scope %6.4f %6.4f star %6.4f %6.4f  ccd %6.2f %6.2f\n",id,rad,decPE,ra,dec,ccdx,ccdy);
                             //fprintf(stderr,"star %s ccd %6.2f %6.2f\n",id,ccdx,ccdy);
                         }
                     }
@@ -875,7 +884,7 @@ bool CCDSim::GuideNorth(float v)
 
     c=v/1000*GuideRate;  //
     c=c/3600;
-    decPEC=decPEC+c;
+    decPE=decPE+c;
 
     return true;
 }
@@ -885,7 +894,7 @@ bool CCDSim::GuideSouth(float v)
 
     c=v/1000*GuideRate;  //
     c=c/3600;
-    decPEC=decPEC-c;
+    decPE=decPE-c;
 
     return true;
 }
@@ -896,8 +905,8 @@ bool CCDSim::GuideEast(float v)
 
     c=v/1000*GuideRate;
     c=c/3600.0/15.0;
-    c=c/(cos(decPEC*0.0174532925));
-    raPEC=raPEC+c;
+    c=c/(cos(decPE*0.0174532925));
+    raPE=raPE+c;
 
     return true;
 }
@@ -907,8 +916,8 @@ bool CCDSim::GuideWest(float v)
 
     c=v/1000*GuideRate;  //
     c=c/3600.0/15.0;
-    c=c/(cos(decPEC*0.0174532925));
-    raPEC=raPEC-c;
+    c=c/(cos(decPE*0.0174532925));
+    raPE=raPE-c;
 
     return true;
 }
@@ -994,6 +1003,17 @@ bool CCDSim::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
     return INDI::CCD::ISNewSwitch(dev,name,states,names,n);
 }
 
+void CCDSim::activeDevicesUpdated()
+{
+    IDSnoopDevice(ActiveDeviceT[0].text,"EQUATORIAL_PE");
+    IDSnoopDevice(ActiveDeviceT[0].text,"TELESCOPE_INFO");
+    IDSnoopDevice(ActiveDeviceT[1].text,"FWHM");
+
+    strncpy(EqPENP.device, ActiveDeviceT[0].text, MAXINDIDEVICE);
+    strncpy(ScopeParametersNP.device, ActiveDeviceT[0].text, MAXINDIDEVICE);
+    strncpy(FWHMNP.device, ActiveDeviceT[1].text, MAXINDIDEVICE);
+}
+
 bool CCDSim::ISSnoopDevice (XMLEle *root)
 {
      if (IUSnoopNumber(root,&FWHMNP)==0)
@@ -1017,12 +1037,13 @@ bool CCDSim::ISSnoopDevice (XMLEle *root)
            return true;
      }
 
-     if(IUSnoopNumber(root,&EqPECNP)==0)
+     // We try to snoop EQPEC first, if not found, we snoop regular EQNP
+     if(IUSnoopNumber(root,&EqPENP)==0)
      {
         double newra,newdec;
-        newra=EqPECN[0].value;
-        newdec=EqPECN[1].value;
-        if((newra != raPEC)||(newdec != decPEC))
+        newra=EqPEN[0].value;
+        newdec=EqPEN[1].value;
+        if((newra != raPE)||(newdec != decPE))
         {
              ln_equ_posn epochPos, J2000Pos;
              epochPos.ra   = newra*15.0;
@@ -1031,11 +1052,13 @@ bool CCDSim::ISSnoopDevice (XMLEle *root)
 
              ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
 
-             raPEC  = J2000Pos.ra/15.0;
-             decPEC = J2000Pos.dec;
+             raPE  = J2000Pos.ra/15.0;
+             decPE = J2000Pos.dec;
+
+             usePE = true;
 
             if (isDebug())
-                IDLog("raPEC %g  decPEC %g Snooped raPEC %g  decPEC %g\n",raPEC,decPEC,newra,newdec);
+                IDLog("raPE %g  decPE %g Snooped raPE %g  decPE %g\n",raPE,decPE,newra,newdec);
 
             return true;
 

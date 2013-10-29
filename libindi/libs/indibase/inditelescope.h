@@ -59,6 +59,7 @@ class INDI::Telescope : public INDI::DefaultDevice
         virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
         virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
         virtual void ISGetProperties (const char *dev);
+        virtual bool ISSnoopDevice(XMLEle *root);
 
         /** \brief Called to initialize basic properties required all the time */
         virtual bool initProperties();

@@ -32,6 +32,7 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
     protected:
 
     virtual bool saveConfigItems(FILE *fp);
+    virtual void activeDevicesUpdated();
 
     private:
 
@@ -75,7 +76,8 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         float PEPeriod;
         float PEMax;
 
-        double raPEC,decPEC;
+        double raPE,decPE;
+        bool usePE;
         time_t RunStart;
 
         float polarError;
@@ -99,8 +101,8 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         INumber ScopeParametersN[4];
         INumberVectorProperty ScopeParametersNP;
 
-        INumberVectorProperty EqPECNP;
-        INumber EqPECN[2];
+        INumberVectorProperty EqPENP;
+        INumber EqPEN[2];
 
         // Filter
         bool SelectFilter(int);

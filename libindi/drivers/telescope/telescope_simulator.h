@@ -54,14 +54,14 @@ public:
         INumber GuideRateN[2];
         INumberVectorProperty GuideRateNP;
 
-        INumberVectorProperty EqPECNV;
-        INumber EqPECN[2];
+        INumberVectorProperty EqPENV;
+        INumber EqPEN[2];
 
-        ISwitch PECErrNSS[2];
-        ISwitchVectorProperty PECErrNSSP;
+        ISwitch PEErrNSS[2];
+        ISwitchVectorProperty PEErrNSSP;
 
-        ISwitch PECErrWES[2];
-        ISwitchVectorProperty PECErrWESP;
+        ISwitch PEErrWES[2];
+        ISwitchVectorProperty PEErrWESP;
 
 
 

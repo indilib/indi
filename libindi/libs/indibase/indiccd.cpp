@@ -195,6 +195,8 @@ INDI::CCD::CCD()
     HasGuideHead=false;
     HasSt4Port=false;
     InExposure=false;
+    RA=9.95;
+    Dec=68.9;
     ActiveDeviceTP = new ITextVectorProperty;
 }
 
@@ -283,11 +285,9 @@ bool INDI::CCD::initProperties()
 
     IUFillNumber(&EqN[0],"RA","Ra (hh:mm:ss)","%010.6m",0,24,0,0);
     IUFillNumber(&EqN[1],"DEC","Dec (dd:mm:ss)","%010.6m",-90,90,0,0);
-    IUFillNumberVector(&EqNP,EqN,2,ActiveDeviceT[0].text,"EQUATORIAL_COORD","EQ Coord","Main Control",IP_RW,60,IPS_IDLE);
+    IUFillNumberVector(&EqNP,EqN,2,ActiveDeviceT[0].text,"EQUATORIAL_EOD_COORD","EQ Coord","Main Control",IP_RW,60,IPS_IDLE);
 
-    IDSnoopDevice(ActiveDeviceT[0].text,"EQUATORIAL_COORD");
-    IDSnoopDevice(ActiveDeviceT[0].text,"TELESCOPE_INFO");
-    IDSnoopDevice(ActiveDeviceT[1].text,"FWHM");
+    IDSnoopDevice(ActiveDeviceT[0].text,"EQUATORIAL_EOD_COORD");
 
 
     // Guider Interface
@@ -376,8 +376,7 @@ bool INDI::CCD::updateProperties()
 }
 
 bool INDI::CCD::ISSnoopDevice (XMLEle *root)
- {
-     //fprintf(stderr," ################# CCDSim handling snoop ##############\n");
+{
      if(IUSnoopNumber(root,&EqNP)==0)
      {
         float newra,newdec;
@@ -385,7 +384,7 @@ bool INDI::CCD::ISSnoopDevice (XMLEle *root)
         newdec=EqN[1].value;
         if((newra != RA)||(newdec != Dec))
         {
-            //fprintf(stderr,"RA %4.2f  Dec %4.2f Snooped RA %4.2f  Dec %4.2f\n",RA,Dec,newra,newdec);
+            //IDLog("RA %4.2f  Dec %4.2f Snooped RA %4.2f  Dec %4.2f\n",RA,Dec,newra,newdec);
             RA=newra;
             Dec=newdec;
 
@@ -396,13 +395,11 @@ bool INDI::CCD::ISSnoopDevice (XMLEle *root)
         //fprintf(stderr,"Snoop Failed\n");
      }
 
-     return true;
+     return INDI::DefaultDevice::ISSnoopDevice(root);
  }
 
 bool INDI::CCD::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    //  Ok, lets see if this is a property wer process
-    //IDLog("IndiTelescope got %d new text items name %s\n",n,name);
     //  first check if it's for our device
     if(strcmp(dev,getDeviceName())==0)
     {
@@ -411,18 +408,19 @@ bool INDI::CCD::ISNewText (const char *dev, const char *name, char *texts[], cha
         if(strcmp(name,ActiveDeviceTP->name)==0)
         {
             int rc;
-            //IDLog("calling update text\n");
             ActiveDeviceTP->s=IPS_OK;
             rc=IUUpdateText(ActiveDeviceTP,texts,names,n);
-            //IDLog("update text returns %d\n",rc);
             //  Update client display
             IDSetText(ActiveDeviceTP,NULL);
             saveConfig();
-            IUFillNumberVector(&EqNP,EqN,2,ActiveDeviceT[0].text,"EQUATORIAL_PEC","EQ PEC",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
 
-            IDSnoopDevice(ActiveDeviceT[0].text,"EQUATORIAL_PEC");
-            IDSnoopDevice(ActiveDeviceT[0].text,"TELESCOPE_INFO");
-            IDSnoopDevice(ActiveDeviceT[1].text,"FWHM");
+            // Update the property name!
+            strncpy(EqNP.device, ActiveDeviceT[0].text, MAXINDIDEVICE);
+            IDSnoopDevice(ActiveDeviceT[0].text,"EQUATORIAL_EOD_COORD");
+
+            // Tell children active devices was updated.
+            activeDevicesUpdated();
+
             //  We processed this one, so, tell the world we did it
             return true;
         }

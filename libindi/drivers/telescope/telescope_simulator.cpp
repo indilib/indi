@@ -117,19 +117,19 @@ bool ScopeSim::initProperties()
     INDI::Telescope::initProperties();
 
     /* Simulated periodic error in RA, DEC */
-    IUFillNumber(&EqPECN[RA_AXIS],"RA_PEC","RA (hh:mm:ss)","%010.6m",0,24,0,15.);
-    IUFillNumber(&EqPECN[DEC_AXIS],"DEC_PEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,15.);
-    IUFillNumberVector(&EqPECNV,EqPECN,2,getDeviceName(),"EQUATORIAL_PEC","Periodic Error",MOTION_TAB,IP_RO,60,IPS_IDLE);
+    IUFillNumber(&EqPEN[RA_AXIS],"RA_PE","RA (hh:mm:ss)","%010.6m",0,24,0,15.);
+    IUFillNumber(&EqPEN[DEC_AXIS],"DEC_PE","DEC (dd:mm:ss)","%010.6m",-90,90,0,15.);
+    IUFillNumberVector(&EqPENV,EqPEN,2,getDeviceName(),"EQUATORIAL_PE","Periodic Error",MOTION_TAB,IP_RO,60,IPS_IDLE);
 
     /* Enable client to manually add periodic error northward or southward for simulation purposes */
-    IUFillSwitch(&PECErrNSS[MOTION_NORTH], "PEC_N", "North", ISS_OFF);
-    IUFillSwitch(&PECErrNSS[MOTION_SOUTH], "PEC_S", "South", ISS_OFF);
-    IUFillSwitchVector(&PECErrNSSP, PECErrNSS, 2, getDeviceName(),"PEC_NS", "PE N/S", MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitch(&PEErrNSS[MOTION_NORTH], "PE_N", "North", ISS_OFF);
+    IUFillSwitch(&PEErrNSS[MOTION_SOUTH], "PE_S", "South", ISS_OFF);
+    IUFillSwitchVector(&PEErrNSSP, PEErrNSS, 2, getDeviceName(),"PE_NS", "PE N/S", MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     /* Enable client to manually add periodic error westward or easthward for simulation purposes */
-    IUFillSwitch(&PECErrWES[MOTION_WEST], "PEC_W", "West", ISS_OFF);
-    IUFillSwitch(&PECErrWES[MOTION_EAST], "PEC_E", "East", ISS_OFF);
-    IUFillSwitchVector(&PECErrWESP, PECErrWES, 2, getDeviceName(),"PEC_WE", "PE W/E", MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitch(&PEErrWES[MOTION_WEST], "PE_W", "West", ISS_OFF);
+    IUFillSwitch(&PEErrWES[MOTION_EAST], "PE_E", "East", ISS_OFF);
+    IUFillSwitchVector(&PEErrWESP, PEErrWES, 2, getDeviceName(),"PE_WE", "PE W/E", MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     /* How fast do we guide compared to sidereal rate */
     IUFillNumber(&GuideRateN[RA_AXIS], "GUIDE_RATE_WE", "W/E Rate", "%g", 0, 1, 0.1, 0.3);
@@ -162,9 +162,9 @@ void ScopeSim::ISGetProperties (const char *dev)
         defineNumber(&GuideNSNP);
         defineNumber(&GuideWENP);
         defineNumber(&GuideRateNP);
-        defineNumber(&EqPECNV);
-        defineSwitch(&PECErrNSSP);
-        defineSwitch(&PECErrWESP);
+        defineNumber(&EqPENV);
+        defineSwitch(&PEErrNSSP);
+        defineSwitch(&PEErrWESP);
     }
 
     return;
@@ -179,18 +179,18 @@ bool ScopeSim::updateProperties()
         defineNumber(&GuideNSNP);
         defineNumber(&GuideWENP);
         defineNumber(&GuideRateNP);
-        defineNumber(&EqPECNV);
-        defineSwitch(&PECErrNSSP);
-        defineSwitch(&PECErrWESP);
+        defineNumber(&EqPENV);
+        defineSwitch(&PEErrNSSP);
+        defineSwitch(&PEErrWESP);
 
     }
     else
     {
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
-        deleteProperty(EqPECNV.name);
-        deleteProperty(PECErrNSSP.name);
-        deleteProperty(PECErrWESP.name);
+        deleteProperty(EqPENV.name);
+        deleteProperty(PEErrNSSP.name);
+        deleteProperty(PEErrWESP.name);
         deleteProperty(GuideRateNP.name);
     }
 
@@ -228,7 +228,7 @@ bool ScopeSim::ReadScopeStatus()
     double dt=0, da_ra=0, da_dec=0, dx=0, dy=0, ra_guide_dt=0, dec_guide_dt=0;
     static double last_dx=0, last_dy=0;
     int nlocked, ns_guide_dir=-1, we_guide_dir=-1;
-    char RA_DISP[64], DEC_DISP[64], RA_GUIDE[64], DEC_GUIDE[64], RA_PEC[64], DEC_PEC[64], RA_TARGET[64], DEC_TARGET[64];
+    char RA_DISP[64], DEC_DISP[64], RA_GUIDE[64], DEC_GUIDE[64], RA_PE[64], DEC_PE[64], RA_TARGET[64], DEC_TARGET[64];
 
 
     /* update elapsed time since last poll, don't presume exactly POLLMS */
@@ -324,11 +324,11 @@ bool ScopeSim::ReadScopeStatus()
             if (TrackState == SCOPE_SLEWING)
             {
 
-                // Initially no PEC in both axis.
-                EqPECN[0].value = currentRA;
-                EqPECN[1].value = currentDEC;
+                // Initially no PE in both axis.
+                EqPEN[0].value = currentRA;
+                EqPEN[1].value = currentDEC;
 
-                IDSetNumber(&EqPECNV, NULL);
+                IDSetNumber(&EqPENV, NULL);
 
                 TrackState = SCOPE_TRACKING;
 
@@ -388,7 +388,7 @@ bool ScopeSim::ReadScopeStatus()
           else              
               guiderNSTarget[ns_guide_dir] = 0;
 
-          EqPECN[DEC_AXIS].value += dec_guide_dt;
+          EqPEN[DEC_AXIS].value += dec_guide_dt;
 
           }
 
@@ -402,7 +402,7 @@ bool ScopeSim::ReadScopeStatus()
           else
                 guiderEWTarget[we_guide_dir] = 0;
 
-          EqPECN[RA_AXIS].value += ra_guide_dt;
+          EqPEN[RA_AXIS].value += ra_guide_dt;
 
           }
 
@@ -413,16 +413,16 @@ bool ScopeSim::ReadScopeStatus()
         // Amount of RA GUIDING correction and direction
         // Amount of DEC GUIDING correction and direction
 
-        dx = EqPECN[RA_AXIS].value - targetRA;
-        dy = EqPECN[DEC_AXIS].value - targetDEC;
+        dx = EqPEN[RA_AXIS].value - targetRA;
+        dy = EqPEN[DEC_AXIS].value - targetDEC;
         fs_sexa(RA_DISP, fabs(dx), 2, 3600 );
         fs_sexa(DEC_DISP, fabs(dy), 2, 3600 );
 
         fs_sexa(RA_GUIDE, fabs(ra_guide_dt), 2, 3600 );
         fs_sexa(DEC_GUIDE, fabs(dec_guide_dt), 2, 3600 );
 
-        fs_sexa(RA_PEC, EqPECN[RA_AXIS].value, 2, 3600);
-        fs_sexa(DEC_PEC, EqPECN[DEC_AXIS].value, 2, 3600);
+        fs_sexa(RA_PE, EqPEN[RA_AXIS].value, 2, 3600);
+        fs_sexa(DEC_PE, EqPEN[DEC_AXIS].value, 2, 3600);
 
         fs_sexa(RA_TARGET, targetRA, 2, 3600);
         fs_sexa(DEC_TARGET, targetDEC, 2, 3600);
@@ -434,15 +434,15 @@ bool ScopeSim::ReadScopeStatus()
             last_dy=dy;
             IDLog("#########################################\n");
             IDLog("dt is %g\n", dt);
-            IDLog("RA Displacement (%c%s) %s -- %s of target RA %s\n", dx >= 0 ? '+' : '-', RA_DISP, RA_PEC,  (EqPECN[RA_AXIS].value - targetRA) > 0 ? "East" : "West", RA_TARGET);
-            IDLog("DEC Displacement (%c%s) %s -- %s of target RA %s\n", dy >= 0 ? '+' : '-', DEC_DISP, DEC_PEC, (EqPECN[DEC_AXIS].value - targetDEC) > 0 ? "North" : "South", DEC_TARGET);
+            IDLog("RA Displacement (%c%s) %s -- %s of target RA %s\n", dx >= 0 ? '+' : '-', RA_DISP, RA_PE,  (EqPEN[RA_AXIS].value - targetRA) > 0 ? "East" : "West", RA_TARGET);
+            IDLog("DEC Displacement (%c%s) %s -- %s of target RA %s\n", dy >= 0 ? '+' : '-', DEC_DISP, DEC_PE, (EqPEN[DEC_AXIS].value - targetDEC) > 0 ? "North" : "South", DEC_TARGET);
             IDLog("RA Guide Correction (%g) %s -- Direction %s\n", ra_guide_dt, RA_GUIDE, ra_guide_dt > 0 ? "East" : "West");
             IDLog("DEC Guide Correction (%g) %s -- Direction %s\n", dec_guide_dt, DEC_GUIDE, dec_guide_dt > 0 ? "North" : "South");
             IDLog("#########################################\n");
         }
 
         if (ns_guide_dir != -1 || we_guide_dir != -1)
-            IDSetNumber(&EqPECNV, NULL);
+            IDSetNumber(&EqPENV, NULL);
 
          break;
 
@@ -478,9 +478,9 @@ bool ScopeSim::Sync(double ra, double dec)
     currentRA  = ra;
     currentDEC = dec;
 
-    EqPECN[RA_AXIS].value = ra;
-    EqPECN[DEC_AXIS].value = dec;
-    IDSetNumber(&EqPECNV, NULL);
+    EqPEN[RA_AXIS].value = ra;
+    EqPEN[DEC_AXIS].value = dec;
+    IDSetNumber(&EqPENV, NULL);
 
     IDMessage(getDeviceName(), "Sync is successful.");
 
@@ -541,55 +541,55 @@ bool ScopeSim::ISNewSwitch (const char *dev, const char *name, ISState *states, 
 
     if(strcmp(dev,getDeviceName())==0)
     {
-        if(strcmp(name,"PEC_NS")==0)
+        if(strcmp(name,"PE_NS")==0)
         {
-            IUUpdateSwitch(&PECErrNSSP,states,names,n);
+            IUUpdateSwitch(&PEErrNSSP,states,names,n);
 
-            PECErrNSSP.s = IPS_OK;
+            PEErrNSSP.s = IPS_OK;
 
-            if (PECErrNSS[MOTION_NORTH].s == ISS_ON)
+            if (PEErrNSS[MOTION_NORTH].s == ISS_ON)
             {
-                EqPECN[DEC_AXIS].value += SID_RATE * GuideRateN[DEC_AXIS].value;
+                EqPEN[DEC_AXIS].value += SID_RATE * GuideRateN[DEC_AXIS].value;
                 if (isDebug())
                     IDLog("$$$$$ Simulating PE in NORTH direction for value of %g $$$$$\n", SID_RATE);
             }
             else
             {
-                EqPECN[DEC_AXIS].value -= SID_RATE * GuideRateN[DEC_AXIS].value;
+                EqPEN[DEC_AXIS].value -= SID_RATE * GuideRateN[DEC_AXIS].value;
                 if (isDebug())
                     IDLog("$$$$$ Simulating PE in SOUTH direction for value of %g $$$$$\n", SID_RATE);
             }
 
-            IUResetSwitch(&PECErrNSSP);
-            IDSetSwitch(&PECErrNSSP, NULL);
-            IDSetNumber(&EqPECNV, NULL);
+            IUResetSwitch(&PEErrNSSP);
+            IDSetSwitch(&PEErrNSSP, NULL);
+            IDSetNumber(&EqPENV, NULL);
 
             return true;
 
         }
 
-        if(strcmp(name,"PEC_WE")==0)
+        if(strcmp(name,"PE_WE")==0)
         {
-            IUUpdateSwitch(&PECErrWESP,states,names,n);
+            IUUpdateSwitch(&PEErrWESP,states,names,n);
 
-            PECErrWESP.s = IPS_OK;
+            PEErrWESP.s = IPS_OK;
 
-            if (PECErrWES[MOTION_WEST].s == ISS_ON)
+            if (PEErrWES[MOTION_WEST].s == ISS_ON)
             {
-                EqPECN[RA_AXIS].value -= SID_RATE/15. * GuideRateN[RA_AXIS].value;
+                EqPEN[RA_AXIS].value -= SID_RATE/15. * GuideRateN[RA_AXIS].value;
                 if (isDebug())
                     IDLog("$$$$$ Simulator PE in WEST direction for value of %g $$$$$$\n", SID_RATE);
             }
             else
             {
-                EqPECN[RA_AXIS].value += SID_RATE/15. * GuideRateN[RA_AXIS].value;
+                EqPEN[RA_AXIS].value += SID_RATE/15. * GuideRateN[RA_AXIS].value;
                 if (isDebug())
                     IDLog("$$$$$$ Simulator PE in EAST direction for value of %g $$$$$$\n", SID_RATE);
             }
 
-            IUResetSwitch(&PECErrWESP);
-            IDSetSwitch(&PECErrWESP, NULL);
-            IDSetNumber(&EqPECNV, NULL);
+            IUResetSwitch(&PEErrWESP);
+            IDSetSwitch(&PEErrWESP, NULL);
+            IDSetNumber(&EqPENV, NULL);
 
             return true;
 

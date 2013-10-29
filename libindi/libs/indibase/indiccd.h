@@ -278,6 +278,11 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         /* A function to just remove GCC warnings about deprecated conversion */
         void fits_update_key_s(fitsfile* fptr, int type, std::string name, void* p, std::string explanation, int* status);
 
+        /**
+         * @brief activeDevicesUpdated Inform children that ActiveDevices property was updated so they can snoop on the updated devices if desired.
+         */
+        virtual void activeDevicesUpdated() {}
+
         virtual bool saveConfigItems(FILE *fp);
 
         float RA;

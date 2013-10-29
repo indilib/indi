@@ -156,6 +156,11 @@ bool INDI::Telescope::updateProperties()
     return true;
 }
 
+bool INDI::Telescope::ISSnoopDevice(XMLEle *root)
+{
+    return INDI::DefaultDevice::ISSnoopDevice(root);
+}
+
 bool INDI::Telescope::saveConfigItems(FILE *fp)
 {
 
