@@ -483,9 +483,9 @@ bool EQMod::Connect()
 
 bool EQMod::Connect(char *port)
 {
-  int i;
+  //int i;
   ISwitchVectorProperty *connect=getSwitch("CONNECTION");
-  INumber *latitude=IUFindNumber(&LocationNP, "LAT");
+  //INumber *latitude=IUFindNumber(&LocationNP, "LAT");
   if (connect) {
     connect->s=IPS_BUSY;
     IDSetSwitch(connect,"connecting to port %s",port);
@@ -537,9 +537,9 @@ void EQMod::TimerHit()
 }
 
 bool EQMod::ReadScopeStatus() {
-  static struct timeval ltv;
-  struct timeval tv;
-  double dt=0;
+  //static struct timeval ltv;
+  //struct timeval tv;
+  //double dt=0;
 
   /* update elapsed time since last poll, don't presume exactly POLLMS */
   // gettimeofday (&tv, NULL);
@@ -1142,7 +1142,9 @@ bool EQMod::GuideNorth(float ms) {
     }
   } catch(EQModError e) {
     return(e.DefaultHandleException(this));
-  }    
+  }
+
+  return true;
 }
 
 bool EQMod::GuideSouth(float ms) {
@@ -1158,6 +1160,8 @@ bool EQMod::GuideSouth(float ms) {
   } catch(EQModError e) {
     return(e.DefaultHandleException(this));
   }   
+
+  return true;
 }
 
 bool EQMod::GuideEast(float ms) {
@@ -1173,6 +1177,8 @@ bool EQMod::GuideEast(float ms) {
   } catch(EQModError e) {
     return(e.DefaultHandleException(this));
   }   
+
+  return true;
 }
 
 bool EQMod::GuideWest(float ms) {
@@ -1188,6 +1194,8 @@ bool EQMod::GuideWest(float ms) {
   } catch(EQModError e) {
     return(e.DefaultHandleException(this));
   }   
+
+  return true;
 }
 
 bool EQMod::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
@@ -1202,7 +1210,6 @@ bool EQMod::ISNewNumber (const char *dev, const char *name, double values[], cha
 
       if(strcmp(name,"SLEWSPEEDS")==0)
 	{ 
-	  unsigned int i;
 	  /* TODO: don't change speed in gotos gotoparams.inprogress... */
 	  if (TrackState != SCOPE_TRACKING) {
 	    try {
@@ -1227,7 +1234,6 @@ bool EQMod::ISNewNumber (const char *dev, const char *name, double values[], cha
 	  ISwitch *sw;
 	  sw=IUFindOnSwitch(TrackModeSP);
 	  if ((!sw) && (!strcmp(sw->name, "CUSTOM"))) { 
-	    unsigned int i;
 	    try {
 	      for (int i=0; i<n; i++) {
 		if (strcmp(names[i], "RATRACKRATE") == 0) mount->SetRARate(values[i] / SKYWATCHER_STELLAR_SPEED);
