@@ -21,33 +21,49 @@
 #ifndef CELESTRONGPS_H
 #define CELESTRONGPS_H
 
+#include "libs/indibase/inditelescope.h"
 #include "indidevapi.h"
 #include "indicom.h"
 
 #define	POLLMS		1000		/* poll period, ms */
 
-class CelestronGPS
+class CelestronGPS : public INDI::Telescope
 {
  public:
  CelestronGPS();
  virtual ~CelestronGPS() {}
 
- virtual void ISGetProperties (const char *dev);
- virtual void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
- virtual void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
- virtual void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
- virtual void ISPoll ();
- virtual void getBasicData();
+ virtual const char *getDefaultName();
+ virtual bool Connect();
+ virtual bool Connect(char *);
+ virtual bool Disconnect();
+ virtual bool ReadScopeStatus();
+ virtual void ISGetProperties(const char *dev);
+ virtual bool initProperties();
+ virtual bool updateProperties();
+ virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
 
- int checkPower(INumberVectorProperty *np);
- int checkPower(ISwitchVectorProperty *sp);
- int checkPower(ITextVectorProperty *tp);
- void connectTelescope();
+protected:
+
+ virtual bool MoveNS(TelescopeMotionNS dir);
+ virtual bool MoveWE(TelescopeMotionWE dir);
+ virtual bool Abort();
+
+ bool Goto(double ra,double dec);
+ bool Sync(double ra, double dec);
+ virtual bool canSync();
+ virtual bool canPark();
+
  void slewError(int slewCode);
- int handleCoordSet();
- int getOnSwitch(ISwitchVectorProperty *sp);
+ void mountSim();
 
- private:
+
+ /* Slew Speed */
+ ISwitchVectorProperty SlewModeSP;
+ ISwitch SlewModeS[4];
+
+
+private:
   int timeFormat;
 
   double lastRA;
@@ -55,6 +71,7 @@ class CelestronGPS
 
   int lastSet;
   int currentSet;
+  double currentRA, currentDEC;
   double targetRA, targetDEC;
 };
 

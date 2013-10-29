@@ -67,9 +67,7 @@ if (CFITSIO_FOUND)
   include_directories(${CFITSIO_INCLUDE_DIR})
 endif (CFITSIO_FOUND)
 
-if (NOVA_FOUND)
-    include_directories(${NOVA_INCLUDE_DIR})
-endif (NOVA_FOUND)
+include_directories(${NOVA_INCLUDE_DIR})
 
 set(liblilxml_SRCS  ${CMAKE_SOURCE_DIR}/libs/lilxml.c )
 
@@ -118,16 +116,11 @@ set (indidriver_SRCS
 ######################################
 ########### INDI SERVER ##############
 ######################################
-
 set(indiserver_SRCS indiserver.c fq.c)
 
 add_executable(indiserver ${indiserver_SRCS} ${liblilxml_SRCS})
 
-target_link_libraries(indiserver pthread)
-
-if (NOVA_FOUND)
-  target_link_libraries(indiserver ${NOVA_LIBRARIES})
-endif (NOVA_FOUND)
+target_link_libraries(indiserver ${NOVA_LIBRARIES} pthread)
 
 install(TARGETS indiserver RUNTIME DESTINATION bin)
 
@@ -137,11 +130,8 @@ install(TARGETS indiserver RUNTIME DESTINATION bin)
 # Mostly used by generic clients                #
 #################################################
 add_library(indi SHARED ${libindicom_SRCS} ${liblilxml_SRCS})
-target_link_libraries(indi m z)
+target_link_libraries(indi ${NOVA_LIBRARIES} m z)
 
-if (NOVA_FOUND)
-target_link_libraries(indi ${NOVA_LIBRARIES})
-endif(NOVA_FOUND)
 if (CFITSIO_FOUND)
 target_link_libraries(indi ${CFITSIO_LIBRARIES})
 endif(CFITSIO_FOUND)
@@ -153,10 +143,7 @@ set_target_properties(indi PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVER
 ############ INDI Main Shared Library #############
 # To link with main() for 3rd party legacy drivers#
 ###################################################
-add_library(indimain SHARED ${indimain_SRCS} ${libindicom_SRCS} ${liblilxml_SRCS})
-if (NOVA_FOUND)
-target_link_libraries(indimain ${NOVA_LIBRARIES})
-endif(NOVA_FOUND)
+add_library(indimain SHARED ${indimain_SRCS} ${libindicom_SRCS} ${liblilxml_SRCS} ${NOVA_LIBRARIES})
 if (CFITSIO_FOUND)
 target_link_libraries(indimain ${CFITSIO_LIBRARIES})
 endif(CFITSIO_FOUND)
@@ -169,10 +156,7 @@ set_target_properties(indimain PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} S
 # To link with main() and indibase classes  ######
 ##################################################
 add_library(indidriver SHARED ${libindicom_SRCS} ${liblilxml_SRCS} ${indimain_SRCS} ${indidriver_SRCS})
-target_link_libraries(indidriver ${LIBUSB_LIBRARIES})
-if (NOVA_FOUND)
-target_link_libraries(indidriver ${NOVA_LIBRARIES})
-endif(NOVA_FOUND)
+target_link_libraries(indidriver ${LIBUSB_LIBRARIES} ${NOVA_LIBRARIES})
 if (CFITSIO_FOUND)
 target_link_libraries(indidriver ${CFITSIO_LIBRARIES})
 endif(CFITSIO_FOUND)
@@ -200,9 +184,7 @@ set(lx200basic_SRCS
 
 add_executable(indi_lx200basic ${lx200basic_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
 
-if (NOVA_FOUND)
-  target_link_libraries(indi_lx200basic ${NOVA_LIBRARIES})
-endif (NOVA_FOUND)
+target_link_libraries(indi_lx200basic ${NOVA_LIBRARIES} ${NOVA_LIBRARIES})
 
 install(TARGETS indi_lx200basic RUNTIME DESTINATION bin )
 
@@ -233,7 +215,7 @@ exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx2
 set_target_properties(indi_lx200generic PROPERTIES POST_INSTALL_SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_lx200generic_symlink.cmake)
 #################################################################################
 
-########### LX200 Generic ###########
+########### LX200 Generic Legacy ###########
 set(lx200genericlegacy_SRCS
    ${indimain_SRCS}
    ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200driver.c
@@ -261,22 +243,15 @@ set(celestrongps_SRCS
    ${CMAKE_SOURCE_DIR}/drivers/telescope/celestronprotocol.c
    ${CMAKE_SOURCE_DIR}/drivers/telescope/celestrongps.cpp )
 
-add_executable(indi_celestron_gps ${celestrongps_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
+add_executable(indi_celestron_gps ${celestrongps_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS} ${NOVA_LIBRARIES})
 
-target_link_libraries(indi_celestron_gps m )
-
-
-if (NOVA_FOUND)
-  target_link_libraries(indi_celestron_gps ${NOVA_LIBRARIES})
-endif (NOVA_FOUND)
+target_link_libraries(indi_celestron_gps indidriver ${NOVA_LIBRARIES} m )
 
 install(TARGETS indi_celestron_gps RUNTIME DESTINATION bin )
 
 #################################################################################
 
 ########### Takahashi Temma ##########
-if (NOVA_FOUND)
-
 set(temma_SRCS
    ${indimain_SRCS}
    ${CMAKE_SOURCE_DIR}/drivers/telescope/temmadriver.c )
@@ -286,8 +261,6 @@ add_executable(indi_temma ${temma_SRCS}  ${liblilxml_SRCS} ${libindicom_SRCS})
 target_link_libraries(indi_temma  ${NOVA_LIBRARIES} m )
 
 install(TARGETS indi_temma RUNTIME DESTINATION bin )
-
-endif (NOVA_FOUND)
 #################################################################################
 
 ########### Sky Commander #############
@@ -298,11 +271,7 @@ set(skycommander_SRCS
 
 add_executable(indi_skycommander ${skycommander_SRCS}  ${liblilxml_SRCS} ${libindicom_SRCS})
 
-target_link_libraries(indi_skycommander  m )
-
-if (NOVA_FOUND)
-  target_link_libraries(indi_skycommander ${NOVA_LIBRARIES})
-endif (NOVA_FOUND)
+target_link_libraries(indi_skycommander  ${NOVA_LIBRARIES} m )
 
 install(TARGETS indi_skycommander  RUNTIME DESTINATION bin )
 
@@ -316,11 +285,7 @@ set(intelliscope_SRCS
 
 add_executable(indi_intelliscope ${intelliscope_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
 
-target_link_libraries(indi_intelliscope  m )
-
-if (NOVA_FOUND)
-  target_link_libraries(indi_intelliscope ${NOVA_LIBRARIES})
-endif (NOVA_FOUND)
+target_link_libraries(indi_intelliscope ${NOVA_LIBRARIES} m )
 
 install(TARGETS indi_intelliscope RUNTIME DESTINATION bin )
 
@@ -341,9 +306,7 @@ set(magellan_SRCS
 
 add_executable(indi_magellan1 ${magellan_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
 
-if (NOVA_FOUND)
-  target_link_libraries(indi_magellan1 ${NOVA_LIBRARIES})
-endif (NOVA_FOUND)
+target_link_libraries(indi_magellan1 ${NOVA_LIBRARIES})
 
 install(TARGETS indi_magellan1 RUNTIME DESTINATION bin )
 
@@ -356,9 +319,7 @@ set(ieq45_8406_SRCS
 
 add_executable(indi_ieq45_8406 ${ieq45_8406_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
 
-if (NOVA_FOUND)
-  target_link_libraries(indi_ieq45_8406 ${NOVA_LIBRARIES})
-endif (NOVA_FOUND)
+target_link_libraries(indi_ieq45_8406 ${NOVA_LIBRARIES})
 
 install(TARGETS indi_ieq45_8406 RUNTIME DESTINATION bin )
 
@@ -370,9 +331,7 @@ set(ieq45_8407_SRCS
 
 add_executable(indi_ieq45_8407 ${ieq45_8407_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
 
-if (NOVA_FOUND)
-  target_link_libraries(indi_ieq45_8407 ${NOVA_LIBRARIES})
-endif (NOVA_FOUND)
+target_link_libraries(indi_ieq45_8407 ${NOVA_LIBRARIES})
 
 install(TARGETS indi_ieq45_8407 RUNTIME DESTINATION bin )
 
@@ -454,11 +413,7 @@ set(trutechwheel_SRCS
 
 add_executable(indi_trutech_wheel ${trutechwheel_SRCS}  ${liblilxml_SRCS} ${libindicom_SRCS})
 
-target_link_libraries(indi_trutech_wheel  m)
-
-if (NOVA_FOUND)
-  target_link_libraries(indi_trutech_wheel ${NOVA_LIBRARIES})
-endif (NOVA_FOUND)
+target_link_libraries(indi_trutech_wheel ${NOVA_LIBRARIES}  m)
 
 install(TARGETS indi_trutech_wheel RUNTIME DESTINATION bin )
 
@@ -479,7 +434,6 @@ install(TARGETS indi_simulator_wheel RUNTIME DESTINATION bin )
 
 ########### STV #######################
 if (CFITSIO_FOUND)
-if (NOVA_FOUND)
 
 set(stv_SRCS
    ${indimain_SRCS}
@@ -492,7 +446,6 @@ target_link_libraries(indi_sbig_stv z m ${NOVA_LIBRARIES} ${CFITSIO_LIBRARIES} p
 
 install(TARGETS indi_sbig_stv RUNTIME DESTINATION bin )
 
-endif (NOVA_FOUND)
 endif(CFITSIO_FOUND)
 
 #################################################################################
@@ -511,11 +464,7 @@ set(meade_lpi_SRCS
 
 add_executable(indi_meade_lpi ${meade_lpi_SRCS} ${libwebcam_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
 
-target_link_libraries(indi_meade_lpi z ${CFITSIO_LIBRARIES} pthread)
-
-if (NOVA_FOUND)
-  target_link_libraries(indi_meade_lpi ${NOVA_LIBRARIES})
-endif (NOVA_FOUND)
+target_link_libraries(indi_meade_lpi z ${NOVA_LIBRARIES} ${CFITSIO_LIBRARIES} pthread)
 
 install(TARGETS indi_meade_lpi RUNTIME DESTINATION bin )
 
@@ -537,11 +486,7 @@ set(v4lphilips_SRCS
 
 add_executable(indi_v4l_philips ${v4lphilips_SRCS} ${libwebcam_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
 
-target_link_libraries(indi_v4l_philips m z ${CFITSIO_LIBRARIES} pthread)
-
-if (NOVA_FOUND)
-  target_link_libraries(indi_v4l_philips ${NOVA_LIBRARIES})
-endif (NOVA_FOUND)
+target_link_libraries(indi_v4l_philips m z ${NOVA_LIBRARIES} ${CFITSIO_LIBRARIES} pthread)
 
 install(TARGETS indi_v4l_philips RUNTIME DESTINATION bin )
 
@@ -562,11 +507,7 @@ set(v4ldriver_SRCS
 
 add_executable(indi_v4l_generic ${v4ldriver_SRCS} ${libwebcam_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
 
-target_link_libraries(indi_v4l_generic m z ${CFITSIO_LIBRARIES} pthread)
-
-if (NOVA_FOUND)
-  target_link_libraries(indi_v4l_generic ${NOVA_LIBRARIES})
-endif (NOVA_FOUND)
+target_link_libraries(indi_v4l_generic m z ${NOVA_LIBRARIES} ${CFITSIO_LIBRARIES} pthread)
 
 install(TARGETS indi_v4l_generic RUNTIME DESTINATION bin )
 
@@ -603,12 +544,7 @@ set(getindi_SRCS
 
 add_executable(indi_getprop ${getindi_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
 
-target_link_libraries(indi_getprop m z)
-
-if (NOVA_FOUND)
-  target_link_libraries(indi_getprop ${NOVA_LIBRARIES})
-endif (NOVA_FOUND)
-
+target_link_libraries(indi_getprop ${NOVA_LIBRARIES} m z)
 
 install(TARGETS indi_getprop RUNTIME DESTINATION bin )
 
@@ -622,12 +558,7 @@ set(setindi_SRCS
 
 add_executable(indi_setprop ${setindi_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
 
-target_link_libraries(indi_setprop m z)
-
-if (NOVA_FOUND)
-  target_link_libraries(indi_setprop ${NOVA_LIBRARIES})
-endif (NOVA_FOUND)
-
+target_link_libraries(indi_setprop ${NOVA_LIBRARIES} m z)
 
 install(TARGETS indi_setprop RUNTIME DESTINATION bin )
 
@@ -642,12 +573,7 @@ set(evalindi_SRCS
 
 add_executable(indi_eval ${evalindi_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
 
-target_link_libraries(indi_eval m z)
-
-if (NOVA_FOUND)
-  target_link_libraries(indi_eval ${NOVA_LIBRARIES})
-endif (NOVA_FOUND)
-
+target_link_libraries(indi_eval ${NOVA_LIBRARIES} m z)
 
 install(TARGETS indi_eval RUNTIME DESTINATION bin )
 

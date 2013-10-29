@@ -130,7 +130,25 @@ static int telstat(int fd,int sec,int usec);
 
 int CheckConnectTel(void)
 {
-  return TelConnectFlag;
+    int numRead;
+    char returnStr[128];
+
+  //return TelConnectFlag;
+    tcflush(TelPortFD,TCIOFLUSH);
+
+    /* Test connection */
+
+    writen(TelPortFD,"Kx",2);
+    numRead=readn(TelPortFD,returnStr,3,2);
+    returnStr[numRead] = '\0';
+
+    if (numRead == 2)
+    {
+      TelConnectFlag = 1;
+      return (0);
+    }
+    else
+     return -1;
 }
 
 
@@ -353,6 +371,20 @@ double GetDec(void)
 
 
 /* Read the telescope right ascension and declination and set update status */
+
+int  isScopeSlewing()
+{
+    int numRead;
+    char returnStr[128];
+
+    writen(TelPortFD,"L",1);
+    numRead=readn(TelPortFD,returnStr,2,2);
+    returnStr[numRead] = '\0';
+
+    // 0 Slew complete
+    // 1 Slew in progress
+    return (returnStr[0] == '0' ? 0 : 1);
+}
 
 void GetRAandDec(void)
 {
