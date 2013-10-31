@@ -692,7 +692,6 @@ libindi/INSTALL -text
 libindi/LICENSE -text
 libindi/NEWS -text
 libindi/README -text
-libindi/README.drivers -text
 libindi/TODO -text
 libindi/base64.c -text
 libindi/base64.h -text
