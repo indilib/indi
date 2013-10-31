@@ -528,6 +528,16 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
         {
             raPE  = RA;
             decPE = Dec;
+
+            ln_equ_posn epochPos, J2000Pos;
+            epochPos.ra   = raPE*15.0;
+            epochPos.dec  = decPE;
+
+            // Convert from JNow to J2000
+            ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
+
+            raPE  = J2000Pos.ra/15.0;
+            decPE = J2000Pos.dec;
         }
 
         //  calc this now, we will use it a lot later

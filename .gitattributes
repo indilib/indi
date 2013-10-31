@@ -703,6 +703,10 @@ libindi/drivers/auxiliary/gpdriver.cpp -text
 libindi/drivers/auxiliary/gpdriver.h -text
 libindi/drivers/auxiliary/gpusb.cpp -text
 libindi/drivers/auxiliary/gpusb.h -text
+libindi/drivers/auxiliary/joystick.cpp -text
+libindi/drivers/auxiliary/joystick.h -text
+libindi/drivers/auxiliary/joystickdriver.cpp -text
+libindi/drivers/auxiliary/joystickdriver.h -text
 libindi/drivers/ccd/ccd_simulator.cpp -text
 libindi/drivers/ccd/ccd_simulator.h -text
 libindi/drivers/filter_wheel/filter_simulator.cpp -text

@@ -63,9 +63,6 @@ public:
         ISwitch PEErrWES[2];
         ISwitchVectorProperty PEErrWESP;
 
-
-
-
 };
 
 #endif // SCOPESIM_H

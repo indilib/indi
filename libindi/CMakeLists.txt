@@ -523,8 +523,8 @@ endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 ############ AUX GROUP ##############
 #####################################
 
-########### GPUSB Driver ###############
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+########### GPUSB Driver ###############
 
 set(gpusb_SRCS
         ${CMAKE_SOURCE_DIR}/drivers/auxiliary/gpdriver.cpp
@@ -536,6 +536,19 @@ add_executable(indi_gpusb ${gpusb_SRCS})
 target_link_libraries(indi_gpusb indidriver m z pthread)
 install(TARGETS indi_gpusb RUNTIME DESTINATION bin )
 install(FILES ${CMAKE_SOURCE_DIR}/drivers/auxiliary/99-gpusb.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
+
+########### Joystick Driver ###############
+
+set(joystick_SRCS
+        ${CMAKE_SOURCE_DIR}/drivers/auxiliary/joystickdriver.cpp
+        ${CMAKE_SOURCE_DIR}/drivers/auxiliary/joystick.cpp
+   )
+
+add_executable(indi_joystick ${joystick_SRCS})
+
+target_link_libraries(indi_joystick indidriver m z pthread)
+install(TARGETS indi_joystick RUNTIME DESTINATION bin )
+
 
 endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
