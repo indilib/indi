@@ -136,8 +136,6 @@ bool LX200Autostar::ISNewNumber (const char *dev, const char *name, double value
         // Focus Motion
         if (!strcmp (name, FocusMotionSP.name))
         {
-            IUResetSwitch(&FocusMotionSP);
-	  
             // If speed is "halt"
             if (FocusSpeedN[0].value == 0)
             {
@@ -146,8 +144,22 @@ bool LX200Autostar::ISNewNumber (const char *dev, const char *name, double value
                 return false;
             }
 	  
-            IUUpdateSwitch(&FocusMotionSP, states, names, n);
+            int last_motion = IUFindOnSwitchIndex(&FocusMotionSP);
+
+            if (IUUpdateSwitch(&FocusMotionSP, states, names, n) < 0)
+                return false;
+
             index = IUFindOnSwitchIndex(&FocusMotionSP);
+
+            // If same direction and we're busy, stop
+            if (last_motion == index && FocusMotionSP.s == IPS_BUSY)
+            {
+                IUResetSwitch(&FocusMotionSP);
+                FocusMotionSP.s = IPS_IDLE;
+                setFocuserSpeedMode(PortFD, 0);
+                IDSetSwitch(&FocusMotionSP, NULL);
+                return true;
+            }
 	  
            if (isSimulation() == false && setFocuserMotion(PortFD, index) < 0)
            {

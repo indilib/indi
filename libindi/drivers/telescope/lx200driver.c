@@ -309,23 +309,21 @@ int getCommandString(int fd, char *data, const char* cmd)
 
 int isSlewComplete(int fd)
 {
-    char data[1];
+    char data[8];
     int error_type;
     int nbytes_write=0, nbytes_read=0;
     char *cmd = "#:D#";
 
-    data[0] = '\0';
-
    if ( (error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
     return error_type;
 
-   error_type = tty_read(fd, data, 1, LX200_TIMEOUT, &nbytes_read);
-   tcflush(fd, TCIFLUSH);
+   error_type = tty_read_section(fd, data, '#', LX200_TIMEOUT, &nbytes_read);
+   tcflush(fd, TCIOFLUSH);
 
     if (error_type != TTY_OK)
     return error_type;
 
-    if (data[0] == '\0')
+    if (data[0] == '#')
         return 0;
     else
         return 1;

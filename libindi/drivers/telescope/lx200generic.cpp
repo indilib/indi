@@ -36,6 +36,7 @@
 #include "indicom.h"
 #include "lx200driver.h"
 #include "lx200gps.h"
+#include "lx200_16.h"
 #include "lx200classic.h"
 
 // We declare an auto pointer to LX200Generic.
@@ -370,14 +371,19 @@ bool LX200Generic::ReadScopeStatus()
         return true;
     }
 
-    if (check_lx200_connection(PortFD))
-        return false;
+    //if (check_lx200_connection(PortFD))
+        //return false;
 
     if (TrackState == SCOPE_SLEWING)
     {
         // Check if LX200 is done slewing
         if(isSlewComplete(PortFD) == 0)
         {
+            // Set slew mode to "Centering"
+            IUResetSwitch(&SlewModeSP);
+            SlewModeS[2].s = ISS_ON;
+            IDSetSwitch(&SlewModeSP, NULL);
+
             //  Nothing to do here
             if(TrackState==SCOPE_PARKING)
             {
@@ -487,6 +493,14 @@ bool LX200Generic::Sync(double ra, double dec)
     char syncString[256];
 
 
+    if (isSimulation() == false &&
+            (setObjectRA(PortFD, ra) < 0 || (setObjectDEC(PortFD, dec)) < 0))
+    {
+        EqNP.s = IPS_ALERT;
+        IDSetNumber(&EqNP, "Error setting RA/DEC. Unable to Sync.");
+        return false;
+    }
+
     if (isSimulation() == false &&  ::Sync(PortFD, syncString) < 0)
     {
         EqNP.s = IPS_ALERT;
@@ -500,7 +514,7 @@ bool LX200Generic::Sync(double ra, double dec)
     if (isDebug())
         IDLog("Synchronization successful %s\n", syncString);
 
-    IDMessage(getDeviceName(), "Synchronization successful. %s", syncString);
+    IDMessage(getDeviceName(), "Synchronization successful.");
 
     TrackState = SCOPE_IDLE;
     EqNP.s    = IPS_OK;
@@ -564,12 +578,6 @@ bool LX200Generic::MoveNS(TelescopeMotionNS dir)
 {
     static int last_move=-1;
 
-      if (GuideNSNP.s == IPS_BUSY || GuideWENP.s == IPS_BUSY)
-      {
-          IDMessage(getDeviceName(), "Can't move while guiding.");
-          return false;
-      }
-
      int current_move = -1;
 
     current_move = IUFindOnSwitchIndex(&MovementNSSP);
@@ -582,7 +590,7 @@ bool LX200Generic::MoveNS(TelescopeMotionNS dir)
 
         IUResetSwitch(&MovementNSSP);
         MovementNSSP.s = IPS_IDLE;
-        IDSetSwitch(&MovementNSSP, NULL);
+        IDSetSwitch(&MovementNSSP, "Movement toward %s halted.", (current_move == 0) ? "North" : "South");
         last_move = -1;
         return true;
     }
@@ -604,18 +612,13 @@ bool LX200Generic::MoveNS(TelescopeMotionNS dir)
 
 
       MovementNSSP.s = IPS_BUSY;
-      IDSetSwitch(&MovementNSSP, "Moving toward %s", (current_move == LX200_NORTH) ? "North" : "South");
+      IDSetSwitch(&MovementNSSP, "Moving toward %s.", (current_move == LX200_NORTH) ? "North" : "South");
       return true;
 }
 
 bool LX200Generic::MoveWE(TelescopeMotionWE dir)
 {
     static int last_move=-1;
-    if (GuideNSNP.s == IPS_BUSY || GuideWENP.s == IPS_BUSY)
-    {
-        IDMessage(getDeviceName(), "Can't move while guiding.");
-        return false;
-    }
 
    int current_move = -1;
 
@@ -628,7 +631,7 @@ bool LX200Generic::MoveWE(TelescopeMotionWE dir)
         HaltMovement(PortFD, (current_move == 0) ? LX200_WEST : LX200_EAST);
       IUResetSwitch(&MovementWESP);
       MovementWESP.s = IPS_IDLE;
-      IDSetSwitch(&MovementWESP, NULL);
+      IDSetSwitch(&MovementWESP, "Movement toward %s halted.", (current_move == 0) ? "West" : "East");
       last_move = -1;
       return true;
   }
@@ -648,7 +651,7 @@ bool LX200Generic::MoveWE(TelescopeMotionWE dir)
   }
 
     MovementWESP.s = IPS_BUSY;
-    IDSetSwitch(&MovementWESP, "Moving toward %s", (current_move == LX200_WEST) ? "West" : "East");
+    IDSetSwitch(&MovementWESP, "Moving toward %s.", (current_move == LX200_WEST) ? "West" : "East");
     return true;
 }
 
@@ -852,6 +855,8 @@ bool LX200Generic::ISNewNumber (const char *dev, const char *name, double values
           return true;
 
         }
+
+        processGuiderProperties(name, values, names, n);
     }
 
     //  if we didn't process it, continue up the chain, let somebody else
@@ -923,7 +928,6 @@ bool LX200Generic::ISNewSwitch (const char *dev, const char *name, ISState *stat
         // Focus Motion
         if (!strcmp (name, FocusMotionSP.name))
         {
-
           // If mode is "halt"
           if (FocusModeS[0].s == ISS_ON)
           {
@@ -932,10 +936,22 @@ bool LX200Generic::ISNewSwitch (const char *dev, const char *name, ISState *stat
             return true;
           }
 
+          int last_motion = IUFindOnSwitchIndex(&FocusMotionSP);
+
           if (IUUpdateSwitch(&FocusMotionSP, states, names, n) < 0)
               return false;
 
           index = IUFindOnSwitchIndex(&FocusMotionSP);
+
+          // If same direction and we're busy, stop
+          if (last_motion == index && FocusMotionSP.s == IPS_BUSY)
+          {
+              IUResetSwitch(&FocusMotionSP);
+              FocusMotionSP.s = IPS_IDLE;
+              setFocuserSpeedMode(PortFD, 0);
+              IDSetSwitch(&FocusMotionSP, NULL);
+              return true;
+          }
 
           if (isSimulation() == false && setFocuserMotion(PortFD, index) < 0)
           {
@@ -943,8 +959,6 @@ bool LX200Generic::ISNewSwitch (const char *dev, const char *name, ISState *stat
               IDSetSwitch(&FocusMotionSP, "Error setting focuser speed.");
               return false;
           }
-
-
 
           // with a timer
           if (FocusTimerN[0].value > 0)
@@ -1372,17 +1386,21 @@ bool LX200Generic::GuideNorth(float ms)
 {
       int use_pulse_cmd;
 
-      if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+      use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
+
+      if (!use_pulse_cmd && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
       {
-        IDMessage(getDeviceName(), "Can't guide while moving.");
+        IDMessage(getDeviceName(), "Cannot guide while moving.");
         return false;
       }
 
-      if (GuideNSNP.s == IPS_BUSY)
+      // If already moving (no pulse command), then stop movement
+      if (MovementNSSP.s == IPS_BUSY)
       {
-        // Already guiding so stop before restarting timer
-        HaltMovement(PortFD, LX200_NORTH);
-        HaltMovement(PortFD, LX200_SOUTH);
+          int dir = IUFindOnSwitchIndex(&MovementNSSP);
+
+          MoveNS(dir == 0 ? MOTION_NORTH : MOTION_SOUTH);
+
       }
 
       if (GuideNSTID)
@@ -1390,8 +1408,6 @@ bool LX200Generic::GuideNorth(float ms)
         IERmTimer(GuideNSTID);
         GuideNSTID = 0;
       }
-
-      use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
 
       if (use_pulse_cmd)
       {
@@ -1405,9 +1421,14 @@ bool LX200Generic::GuideNorth(float ms)
             return false;
         }
 
-        MoveTo(PortFD, LX200_NORTH);
+        MovementNSS[0].s = ISS_ON;
+        MoveNS(MOTION_NORTH);
       }
 
+      // Set slew to guiding
+      IUResetSwitch(&SlewModeSP);
+      SlewModeS[3].s = ISS_ON;
+      IDSetSwitch(&SlewModeSP, NULL);
       guide_direction = LX200_NORTH;
       GuideNSTID = IEAddTimer (ms, guideTimeoutHelper, this);
       return true;
@@ -1417,17 +1438,21 @@ bool LX200Generic::GuideSouth(float ms)
 {
     int use_pulse_cmd;
 
-    if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+    use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
+
+    if (!use_pulse_cmd && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
-      IDMessage(getDeviceName(), "Can't guide while moving.");
+      IDMessage(getDeviceName(), "Cannot guide while moving.");
       return false;
     }
 
-    if (GuideNSNP.s == IPS_BUSY)
+    // If already moving (no pulse command), then stop movement
+    if (MovementNSSP.s == IPS_BUSY)
     {
-      // Already guiding so stop before restarting timer
-      HaltMovement(PortFD, LX200_NORTH);
-      HaltMovement(PortFD, LX200_SOUTH);
+        int dir = IUFindOnSwitchIndex(&MovementNSSP);
+
+        MoveNS(dir == 0 ? MOTION_NORTH : MOTION_SOUTH);
+
     }
 
     if (GuideNSTID)
@@ -1435,8 +1460,6 @@ bool LX200Generic::GuideSouth(float ms)
       IERmTimer(GuideNSTID);
       GuideNSTID = 0;
     }
-
-    use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
 
     if (use_pulse_cmd)
     {
@@ -1450,9 +1473,14 @@ bool LX200Generic::GuideSouth(float ms)
           return false;
       }
 
-      MoveTo(PortFD, LX200_SOUTH);
+      MovementNSS[1].s = ISS_ON;
+      MoveNS(MOTION_SOUTH);
     }
 
+    // Set slew to guiding
+    IUResetSwitch(&SlewModeSP);
+    SlewModeS[3].s = ISS_ON;
+    IDSetSwitch(&SlewModeSP, NULL);
     guide_direction = LX200_SOUTH;
     GuideNSTID = IEAddTimer (ms, guideTimeoutHelper, this);
     return true;
@@ -1464,26 +1492,28 @@ bool LX200Generic::GuideEast(float ms)
 
     int use_pulse_cmd;
 
-    if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+    use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
+
+    if (!use_pulse_cmd && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
-      IDMessage(getDeviceName(), "Can't guide while moving.");
+      IDMessage(getDeviceName(), "Cannot guide while moving.");
       return false;
     }
 
-    if (GuideNSNP.s == IPS_BUSY)
+    // If already moving (no pulse command), then stop movement
+    if (MovementWESP.s == IPS_BUSY)
     {
-      // Already guiding so stop before restarting timer
-      HaltMovement(PortFD, LX200_WEST);
-      HaltMovement(PortFD, LX200_EAST);
+        int dir = IUFindOnSwitchIndex(&MovementWESP);
+
+        MoveWE(dir == 0 ? MOTION_WEST : MOTION_EAST);
+
     }
 
-    if (GuideNSTID)
+    if (GuideWETID)
     {
-      IERmTimer(GuideNSTID);
-      GuideNSTID = 0;
+      IERmTimer(GuideWETID);
+      GuideWETID = 0;
     }
-
-    use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
 
     if (use_pulse_cmd)
     {
@@ -1497,11 +1527,16 @@ bool LX200Generic::GuideEast(float ms)
           return false;
       }
 
-      MoveTo(PortFD, LX200_EAST);
+      MovementWES[1].s = ISS_ON;
+      MoveWE(MOTION_EAST);
     }
 
+    // Set slew to guiding
+    IUResetSwitch(&SlewModeSP);
+    SlewModeS[3].s = ISS_ON;
+    IDSetSwitch(&SlewModeSP, NULL);
     guide_direction = LX200_EAST;
-    GuideNSTID = IEAddTimer (ms, guideTimeoutHelper, this);
+    GuideWETID = IEAddTimer (ms, guideTimeoutHelper, this);
     return true;
 
 }
@@ -1511,26 +1546,28 @@ bool LX200Generic::GuideWest(float ms)
 
     int use_pulse_cmd;
 
-    if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+    use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
+
+    if (!use_pulse_cmd && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
-      IDMessage(getDeviceName(), "Can't guide while moving.");
+      IDMessage(getDeviceName(), "Cannot guide while moving.");
       return false;
     }
 
-    if (GuideNSNP.s == IPS_BUSY)
+    // If already moving (no pulse command), then stop movement
+    if (MovementWESP.s == IPS_BUSY)
     {
-      // Already guiding so stop before restarting timer
-      HaltMovement(PortFD, LX200_WEST);
-      HaltMovement(PortFD, LX200_EAST);
+        int dir = IUFindOnSwitchIndex(&MovementWESP);
+
+        MoveWE(dir == 0 ? MOTION_WEST : MOTION_EAST);
+
     }
 
-    if (GuideNSTID)
+    if (GuideWETID)
     {
-      IERmTimer(GuideNSTID);
-      GuideNSTID = 0;
+      IERmTimer(GuideWETID);
+      GuideWETID = 0;
     }
-
-    use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
 
     if (use_pulse_cmd)
     {
@@ -1544,11 +1581,16 @@ bool LX200Generic::GuideWest(float ms)
           return false;
       }
 
-      MoveTo(PortFD, LX200_WEST);
+      MovementWES[0].s = ISS_ON;
+      MoveWE(MOTION_WEST);
     }
 
+    // Set slew to guiding
+    IUResetSwitch(&SlewModeSP);
+    SlewModeS[3].s = ISS_ON;
+    IDSetSwitch(&SlewModeSP, NULL);
     guide_direction = LX200_WEST;
-    GuideNSTID = IEAddTimer (ms, guideTimeoutHelper, this);
+    GuideWETID = IEAddTimer (ms, guideTimeoutHelper, this);
     return true;
 
 }
@@ -1562,6 +1604,8 @@ void LX200Generic::guideTimeout()
 {
     int use_pulse_cmd;
 
+    IDLog("Guide timeout...\n");
+
     use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
     if (guide_direction == -1)
     {
@@ -1569,13 +1613,49 @@ void LX200Generic::guideTimeout()
     HaltMovement(PortFD, LX200_SOUTH);
     HaltMovement(PortFD, LX200_EAST);
     HaltMovement(PortFD, LX200_WEST);
+
+    MovementNSSP.s = IPS_IDLE;
+    MovementWESP.s = IPS_IDLE;
+    IUResetSwitch(&MovementNSSP);
+    IUResetSwitch(&MovementWESP);
+    IDSetSwitch(&MovementNSSP, NULL);
+    IDSetSwitch(&MovementWESP, NULL);
     IERmTimer(GuideNSTID);
     IERmTimer(GuideWETID);
 
     }
     else if (! use_pulse_cmd)
     {
-        HaltMovement(PortFD, guide_direction);
+
+        if (guide_direction == LX200_NORTH || guide_direction == LX200_SOUTH)
+        {
+            MoveNS(guide_direction == LX200_NORTH ? MOTION_NORTH : MOTION_SOUTH);
+
+            if (guide_direction == LX200_NORTH)
+                GuideNSNP.np[0].value = 0;
+            else
+                GuideNSNP.np[1].value = 0;
+
+            GuideNSNP.s = IPS_IDLE;
+            IDSetNumber(&GuideNSNP, NULL);
+            MovementNSSP.s = IPS_IDLE;
+            IUResetSwitch(&MovementNSSP);
+            IDSetSwitch(&MovementNSSP, NULL);
+        }
+        if (guide_direction == LX200_WEST || guide_direction == LX200_EAST)
+        {
+            MoveWE(guide_direction == LX200_WEST ? MOTION_WEST : MOTION_EAST);
+            if (guide_direction == LX200_WEST)
+                GuideWENP.np[0].value = 0;
+            else
+                GuideWENP.np[1].value = 0;
+
+            GuideWENP.s = IPS_IDLE;
+            IDSetNumber(&GuideWENP, NULL);
+            MovementWESP.s = IPS_IDLE;
+            IUResetSwitch(&MovementWESP);
+            IDSetSwitch(&MovementWESP, NULL);
+        }
     }
     if (guide_direction == LX200_NORTH || guide_direction == LX200_SOUTH || guide_direction == -1)
     {

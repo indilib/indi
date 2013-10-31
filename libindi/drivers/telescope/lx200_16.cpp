@@ -30,7 +30,7 @@
 #define LX16_TAB	"GPS/16 inch Features"
 
 
-LX200_16::LX200_16() : LX200Autostar()
+LX200_16::LX200_16() : LX200GPS()
 {
 
     MaxReticleFlashRate = 3;
@@ -43,7 +43,7 @@ const char * LX200_16::getDefaultName()
 
 bool LX200_16::initProperties()
 {
-    LX200Autostar::initProperties();
+    LX200GPS::initProperties();
 
     IUFillSwitch(&FanStatusS[0], "On", "", ISS_OFF);
     IUFillSwitch(&FanStatusS[1], "Off", "", ISS_OFF);
@@ -69,7 +69,7 @@ void LX200_16::ISGetProperties (const char *dev)
         return;
 
   // process parent first
-  LX200Autostar::ISGetProperties(dev);
+  LX200GPS::ISGetProperties(dev);
 
   if (isConnected())
   {
@@ -83,7 +83,7 @@ void LX200_16::ISGetProperties (const char *dev)
 bool LX200_16::updateProperties()
 {
     // process parent first
-    LX200Autostar::updateProperties();
+    LX200GPS::updateProperties();
 
     if (isConnected())
     {
@@ -149,7 +149,7 @@ bool LX200_16::ISNewNumber (const char *dev, const char *name, double values[], 
       }
   }
 
-    LX200Autostar::ISNewNumber (dev, name, values, names, n);
+    LX200GPS::ISNewNumber (dev, name, values, names, n);
 }
     
 bool LX200_16::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
@@ -222,7 +222,7 @@ bool LX200_16::ISNewSwitch (const char *dev, const char *name, ISState *states, 
    }
 
 
-    return LX200Autostar::ISNewSwitch (dev, name, states, names, n);
+    return LX200GPS::ISNewSwitch (dev, name, states, names, n);
 }
 
 bool LX200_16::handleAltAzSlew()
@@ -352,7 +352,7 @@ bool LX200_16::handleAltAzSlew()
 
 void LX200_16::getBasicData()
 {
-   LX200Autostar::getBasicData();
+   LX200GPS::getBasicData();
 
    if (isSimulation() == false)
    {

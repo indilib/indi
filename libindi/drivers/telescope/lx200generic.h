@@ -113,7 +113,7 @@ class LX200Generic: public INDI::Telescope, public INDI::GuiderInterface
 
   /* Use pulse-guide commands */
   ISwitchVectorProperty UsePulseCmdSP;
-  ISwitch UsePulseCmdS[1];
+  ISwitch UsePulseCmdS[2];
 
   /* Site Management */
   ISwitchVectorProperty SiteSP;

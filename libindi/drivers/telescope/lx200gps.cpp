@@ -29,7 +29,7 @@
 #define GPS_TAB   "Extended GPS Features"
 
 
-LX200GPS::LX200GPS() : LX200_16()
+LX200GPS::LX200GPS() : LX200Autostar()
 {
     MaxReticleFlashRate = 9;
 
@@ -42,7 +42,7 @@ const char * LX200GPS::getDefaultName()
 
 bool LX200GPS::initProperties()
 {
-    LX200_16::initProperties();
+    LX200Autostar::initProperties();
 
     IUFillSwitch(&GPSPowerS[0], "On", "", ISS_OFF);
     IUFillSwitch(&GPSPowerS[1], "Off", "", ISS_OFF);
@@ -80,7 +80,7 @@ bool LX200GPS::initProperties()
     IUFillSwitchVector(&OTAUpdateSP, OTAUpdateS, 1, getDeviceName(), "OTA Update", "", GPS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
 
-    IUFillNumber(&OTATempN[0], "Temp", "", "%0.g", -200.0, 500.0, 0.0, 0);
+    IUFillNumber(&OTATempN[0], "Temp", "", "%03g", -200.0, 500.0, 0.0, 0);
     IUFillNumberVector(&OTATempNP, OTATempN, 1, getDeviceName(), "OTA Temp (C)", "", GPS_TAB, IP_RO, 0, IPS_IDLE);
 
 }
@@ -92,7 +92,7 @@ void LX200GPS::ISGetProperties (const char *dev)
         return;
 
     // process parent first
-   LX200_16::ISGetProperties(dev);
+   LX200Autostar::ISGetProperties(dev);
 
    if (isConnected())
    {
@@ -111,7 +111,7 @@ void LX200GPS::ISGetProperties (const char *dev)
 
 bool LX200GPS::updateProperties()
 {
-    LX200_16::updateProperties();
+    LX200Autostar::updateProperties();
 
     if (isConnected())
     {
@@ -324,12 +324,13 @@ bool LX200GPS::updateProperties()
              OTAUpdateSP.s = IPS_OK;
              OTATempNP.s = IPS_OK;
              IDSetNumber(&OTATempNP, NULL);
+             IDSetSwitch(&OTAUpdateSP, NULL);
              return true;
            }
 
         }
     }
 
-   return LX200_16::ISNewSwitch (dev, name, states, names,  n);
+   return LX200Autostar::ISNewSwitch (dev, name, states, names,  n);
 
 }
