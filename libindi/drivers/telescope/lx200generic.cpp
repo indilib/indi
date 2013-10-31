@@ -143,7 +143,8 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
 }
 void ISSnoopDevice (XMLEle *root)
 {
-    INDI_UNUSED(root);
+    ISInit();
+    telescope->ISSnoopDevice(root);
 }
 
 /**************************************************
@@ -169,12 +170,6 @@ LX200Generic::~LX200Generic()
 const char * LX200Generic::getDefaultName()
 {
     return (char *)"LX200 Generic";
-}
-
-bool LX200Generic::ISSnoopDevice (XMLEle *root)
-{
-  INDI_UNUSED(root);
-  return true;
 }
 
 bool LX200Generic::initProperties()
@@ -227,6 +222,18 @@ bool LX200Generic::initProperties()
     IUFillSwitch(&FocusModeS[2], "FOCUS_FAST", "Fast", ISS_OFF);
     IUFillSwitchVector(&FocusModeSP, FocusModeS, 3, getDeviceName(), "FOCUS_MODE", "Mode", FOCUS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+    IUFillSwitch(&UseJoystickS[0], "ENABLE", "Enable", ISS_OFF);
+    IUFillSwitch(&UseJoystickS[1], "DISABLE", "Disable", ISS_ON);
+    IUFillSwitchVector(&UseJoystickSP, UseJoystickS, 2, getDeviceName(), "USEJOYSTICK", "Joystick", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    IUFillText(&JoystickSettingT[0], "NSWE Control", "", "JOYSTICK_1");
+    IUFillText(&JoystickSettingT[1], "Slew Max", "", "BUTTON_1");
+    IUFillText(&JoystickSettingT[2], "Slew Find", "", "BUTTON_2");
+    IUFillText(&JoystickSettingT[3], "Slew Centering", "", "BUTTON_3");
+    IUFillText(&JoystickSettingT[4], "Slew Guide", "", "BUTTON_4");
+    IUFillText(&JoystickSettingT[5], "Abort Motion", "", "BUTTON_5");
+    IUFillTextVector(&JoystickSettingTP, JoystickSettingT, 6, getDeviceName(), "JOYSTICKSETTINGS", "Settings", "Joystick", IP_RW, 0, IPS_IDLE);
+
     TrackState=SCOPE_IDLE;
 
     initGuiderProperties(getDeviceName(), GUIDE_TAB);
@@ -254,6 +261,7 @@ void LX200Generic::ISGetProperties(const char *dev)
 
         defineSwitch(&SiteSP);
         defineText(&SiteNameTP);
+        defineSwitch(&UseJoystickSP);
 
         defineNumber(&GuideNSNP);
         defineNumber(&GuideWENP);
@@ -279,6 +287,7 @@ bool LX200Generic::updateProperties()
 
         defineSwitch(&SiteSP);
         defineText(&SiteNameTP);
+        defineSwitch(&UseJoystickSP);
 
         defineNumber(&GuideNSNP);
         defineNumber(&GuideWENP);
@@ -299,6 +308,7 @@ bool LX200Generic::updateProperties()
 
         deleteProperty(SiteSP.name);
         deleteProperty(SiteNameTP.name);
+        deleteProperty(UseJoystickSP.name);
 
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
@@ -583,7 +593,7 @@ bool LX200Generic::MoveNS(TelescopeMotionNS dir)
     current_move = IUFindOnSwitchIndex(&MovementNSSP);
 
     // Previosuly active switch clicked again, so let's stop.
-    if (current_move == last_move)
+    if (current_move == last_move && current_move != -1)
     {
         if (isSimulation() == false)
             HaltMovement(PortFD, (current_move == 0) ? LX200_NORTH : LX200_SOUTH);
@@ -625,7 +635,7 @@ bool LX200Generic::MoveWE(TelescopeMotionWE dir)
    current_move = IUFindOnSwitchIndex(&MovementWESP);
 
   // Previosuly active switch clicked again, so let's stop.
-  if (current_move == last_move)
+  if (current_move == last_move && current_move != -1)
   {
       if (isSimulation() == false)
         HaltMovement(PortFD, (current_move == 0) ? LX200_WEST : LX200_EAST);
@@ -694,6 +704,15 @@ bool LX200Generic::Abort()
         return true;
      }
 
+     IUResetSwitch(&MovementNSSP);
+     IUResetSwitch(&MovementWESP);
+     MovementNSSP.s = IPS_IDLE;
+     MovementWESP.s = IPS_IDLE;
+     EqNP.s = IPS_IDLE;
+
+     IDSetSwitch(&MovementNSSP, NULL);
+     IDSetSwitch(&MovementWESP, NULL);
+     IDSetNumber(&EqNP, NULL);
      IDMessage(getDeviceName(), "Slew aborted.");
      return true;
 }
@@ -796,6 +815,18 @@ bool LX200Generic::ISNewText (const char *dev, const char *name, char *texts[], 
           IDSetText(&SiteNameTP , "Site name updated");
           return true;
          }
+
+        if (!strcmp(name, "JOYSTICKSETTINGS"))
+        {
+            IUUpdateText(&JoystickSettingTP, texts, names, n);
+
+            IDSnoopDevice("Joystick", JoystickSettingTP.tp[0].text);
+
+            JoystickSettingTP.s = IPS_OK;
+            IDSetText(&JoystickSettingTP, NULL);
+            return true;
+
+        }
     }
 
     return INDI::Telescope::ISNewText(dev, name, texts, names, n);
@@ -1053,6 +1084,20 @@ bool LX200Generic::ISNewSwitch (const char *dev, const char *name, ISState *stat
           return true;
         }
 
+        // Enable joystick support
+        if (!strcmp(name, UseJoystickSP.name))
+        {
+            IUUpdateSwitch(&UseJoystickSP, states, names, n);
+
+            UseJoystickSP.s = IPS_OK;
+
+            if (UseJoystickSP.sp[0].s == ISS_ON)
+                enableJoystick();
+            else
+                disableJoystick();
+
+            IDSetSwitch(&UseJoystickSP, NULL);
+        }
     }
 
     //  Nobody has claimed this, so pass it to the parent
@@ -1684,5 +1729,175 @@ bool LX200Generic::canSync()
 bool LX200Generic::canPark()
 {
     return false;
+}
+
+void LX200Generic::enableJoystick()
+{
+    defineText(&JoystickSettingTP);
+
+    IDSnoopDevice("Joystick", JoystickSettingTP.tp[0].text);
+    IDSnoopDevice("Joystick", "JOYSTICK_BUTTONS");
+}
+
+void LX200Generic::disableJoystick()
+{
+    deleteProperty(JoystickSettingTP.name);
+}
+
+bool LX200Generic::ISSnoopDevice(XMLEle *root)
+{
+    XMLEle *ep=NULL;
+    double mag=0, angle=0;
+
+    const char *propName = findXMLAttValu(root, "name");
+
+    // Checking for NSWE control
+    if (!strcmp(JoystickSettingTP.tp[0].text, propName))
+    {
+        for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
+        {
+            if (!strcmp("JOYSTICK_MAGNITUDE", findXMLAttValu(ep, "name")))
+                mag = atof(pcdataXMLEle(ep));
+            else if (!strcmp("JOYSTICK_ANGLE", findXMLAttValu(ep, "name")))
+                angle = atof(pcdataXMLEle(ep));
+        }
+
+        processNSWE(mag, angle);
+    }
+    // Check buttons
+    else if (!strcmp("JOYSTICK_BUTTONS", propName))
+    {
+        for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
+        {
+            const char *elemName = findXMLAttValu(ep, "name");
+
+            // ignore off switches
+            if (!strcmp(pcdataXMLEle(ep), "Off"))
+                continue;
+
+            // Max Slew speed
+            if (!strcmp(JoystickSettingTP.tp[1].text, elemName))
+            {
+                setSlewMode(PortFD, 0);
+                IUResetSwitch(&SlewModeSP);
+                SlewModeS[0].s = ISS_ON;
+                IDSetSwitch(&SlewModeSP, NULL);
+            }
+            // Find Slew speed
+            else if (!strcmp(JoystickSettingTP.tp[2].text, elemName))
+            {
+                    setSlewMode(PortFD, 1);
+                    IUResetSwitch(&SlewModeSP);
+                    SlewModeS[1].s = ISS_ON;
+                    IDSetSwitch(&SlewModeSP, NULL);
+            }
+            // Centering Slew
+            else if (!strcmp(JoystickSettingTP.tp[3].text, elemName))
+            {
+                    setSlewMode(PortFD, 2);
+                    IUResetSwitch(&SlewModeSP);
+                    SlewModeS[2].s = ISS_ON;
+                    IDSetSwitch(&SlewModeSP, NULL);
+            }
+            // Guide Slew
+            else if (!strcmp(JoystickSettingTP.tp[4].text, elemName))
+            {
+                    setSlewMode(PortFD, 3);
+                    IUResetSwitch(&SlewModeSP);
+                    SlewModeS[3].s = ISS_ON;
+                    IDSetSwitch(&SlewModeSP, NULL);
+            }
+            // Abort
+            else if (!strcmp(JoystickSettingTP.tp[5].text, elemName))
+            {
+                // Only abort if we have some sort of motion going on
+                if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY || EqNP.s == IPS_BUSY
+                        || GuideNSNP.s == IPS_BUSY || GuideWENP.s == IPS_BUSY)
+                {
+
+                    Abort();
+                }
+            }
+        }
+    }
+
+
+    return INDI::Telescope::ISSnoopDevice(root);
+
+}
+
+void LX200Generic::processNSWE(double mag, double angle)
+{
+    if (mag < 0.5)
+    {
+        // Moving in the same direction will make it stop
+        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+            Abort();
+    }
+    // Put high threshold
+    else if (mag > 0.9)
+    {
+        // North
+        if (angle > 0 && angle < 180)
+        {
+            // Don't try to move if you're busy and moving in the same direction
+            if (MovementNSSP.s != IPS_BUSY || MovementNSS[0].s != ISS_ON)
+                MoveNS(MOTION_NORTH);
+
+            MovementNSSP.s = IPS_BUSY;
+            MovementNSSP.sp[0].s = ISS_ON;
+            MovementNSSP.sp[1].s = ISS_OFF;
+            IDSetSwitch(&MovementNSSP, NULL);
+        }
+        // South
+        if (angle > 180 && angle < 360)
+        {
+            // Don't try to move if you're busy and moving in the same direction
+           if (MovementNSSP.s != IPS_BUSY  || MovementNSS[1].s != ISS_ON)
+            MoveNS(MOTION_SOUTH);
+
+            MovementNSSP.s = IPS_BUSY;
+            MovementNSSP.sp[0].s = ISS_OFF;
+            MovementNSSP.sp[1].s = ISS_ON;
+            IDSetSwitch(&MovementNSSP, NULL);
+        }
+        // East
+        if (angle < 90 || angle > 270)
+        {
+            // Don't try to move if you're busy and moving in the same direction
+           if (MovementWESP.s != IPS_BUSY  || MovementWES[1].s != ISS_ON)
+                MoveWE(MOTION_EAST);
+
+           MovementWESP.s = IPS_BUSY;
+           MovementWESP.sp[0].s = ISS_OFF;
+           MovementWESP.sp[1].s = ISS_ON;
+           IDSetSwitch(&MovementWESP, NULL);
+        }
+
+        // West
+        if (angle > 90 && angle < 270)
+        {
+
+            // Don't try to move if you're busy and moving in the same direction
+           if (MovementWESP.s != IPS_BUSY  || MovementWES[0].s != ISS_ON)
+                MoveWE(MOTION_WEST);
+
+           MovementWESP.s = IPS_BUSY;
+           MovementWESP.sp[0].s = ISS_ON;
+           MovementWESP.sp[1].s = ISS_OFF;
+           IDSetSwitch(&MovementWESP, NULL);
+        }
+    }
+
+}
+
+bool LX200Generic::saveConfigItems(FILE *fp)
+{
+    INDI::Telescope::saveConfigItems(fp);
+
+    IUSaveConfigSwitch(fp, &UseJoystickSP);
+    IUSaveConfigText(fp, &JoystickSettingTP);
+
+    return true;
 }
 

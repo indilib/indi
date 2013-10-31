@@ -65,6 +65,8 @@ class LX200Generic: public INDI::Telescope, public INDI::GuiderInterface
     virtual bool GuideEast(float ms);
     virtual bool GuideWest(float ms);
 
+    virtual bool saveConfigItems(FILE *fp);
+
     bool Goto(double,double);
     bool Park();
     bool Sync(double ra, double dec);
@@ -81,6 +83,10 @@ class LX200Generic: public INDI::Telescope, public INDI::GuiderInterface
 
     static void updateFocusHelper(void *p);
     static void guideTimeoutHelper(void *p);
+
+    void enableJoystick();
+    void disableJoystick();
+    void processNSWE(double mag, double angle);
 
     int    GuideNSTID;
     int    GuideWETID;
@@ -134,6 +140,13 @@ class LX200Generic: public INDI::Telescope, public INDI::GuiderInterface
   /* Focus Mode */
   ISwitchVectorProperty FocusModeSP;
   ISwitch  FocusModeS[3];
+
+  /* Joystick Support */
+  ISwitchVectorProperty UseJoystickSP;
+  ISwitch UseJoystickS[2];
+
+  ITextVectorProperty JoystickSettingTP;
+  IText JoystickSettingT[6];
 
 
 };
