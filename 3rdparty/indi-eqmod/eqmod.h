@@ -97,6 +97,8 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 	INumberVectorProperty *StandardSyncPointNP;
 	INumberVectorProperty *SyncPolarAlignNP;
 	ISwitchVectorProperty *SyncManageSP;
+    ISwitchVectorProperty *UseJoystickSP;
+    ITextVectorProperty *JoystickSettingTP;
 
 
 	enum Hemisphere {NORTH=0, SOUTH=1 };
@@ -145,6 +147,11 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 	void setLogDebug (bool enable);
 	void setStepperSimulation (bool enable);
 
+    void enableJoystick();
+    void disableJoystick();
+    void processNSWE(double mag, double angle);
+    void processSlewPresets(double mag, double angle);
+
 	void computePolarAlign(SyncData s1, SyncData s2, double lat, double *tpaalt, double *tpaaz);
 	void starPolarAlign(double lst, double ra, double dec, double theta, double gamma, double *tra, double *tdec); 
 
@@ -164,6 +171,8 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
         virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
         virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
         virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+        virtual bool ISSnoopDevice(XMLEle *root);
+        virtual bool saveConfigItems(FILE *fp);
 
         virtual bool MoveNS(TelescopeMotionNS dir);
         virtual bool MoveWE(TelescopeMotionWE dir);

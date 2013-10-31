@@ -224,4 +224,19 @@ Off
 </defSwitch>
 </defSwitchVector>
 
+<defSwitchVector device="EQMod Mount" name="USEJOYSTICK" label="Joystick" group="Options" state="Idle" perm="rw" rule="OneOfMany">
+<defSwitch name="ENABLE" label="Enable">
+Off
+</defSwitch>
+<defSwitch name="DISABLE" label="Disable">
+On
+</defSwitch>
+</defSwitchVector>
+<defTextVector device="EQMod Mount" name="JOYSTICKSETTINGS" label="Settings" group="Joystick" state="Idle" perm="rw">
+<defText name="MOTIONDIR" label="N/S/W/E Control">JOYSTICK_1</defText>
+<defText name="SLEWPRESET" label="Slew Presets">JOYSTICK_2</defText>
+<defText name="ABORTBUTTON" label="Abort">BUTTON_1</defText>
+</defTextVector>
+
+
 </INDIDriver>

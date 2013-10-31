@@ -13,6 +13,10 @@
 
     You should have received a copy of the GNU General Public License
     along with the Skywatcher Protocol INDI driver.  If not, see <http://www.gnu.org/licenses/>.
+
+    2013-10-20: Fixed a few bugs and init/update properties issue (Jasem Mutlaq)
+    2013-10-24: Use updateTime from new INDI framework (Jasem Mutlaq)
+    2013-10-31: Added support for joysticks (Jasem Mutlaq)
 */
 
 /* TODO */
@@ -163,7 +167,8 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
 }
 void ISSnoopDevice (XMLEle *root)
 {
-    INDI_UNUSED(root);
+    ISInit();
+    eqmod->ISSnoopDevice(root);
 }
 
 
@@ -338,6 +343,8 @@ bool EQMod::loadProperties()
     PierSideSP=getSwitch("PIERSIDE");
     TrackModeSP=getSwitch("TRACKMODE");
     TrackRatesNP=getNumber("TRACKRATES");
+    UseJoystickSP=getSwitch("USEJOYSTICK");
+    JoystickSettingTP=getText("JOYSTICKSETTINGS");
     //AbortMotionSP=getSwitch("TELESCOPE_ABORT_MOTION");
     HorizontalCoordNP=getNumber("HORIZONTAL_COORD");
     for (unsigned int i=1; i<SlewModeSP->nsp; i++) {
@@ -393,6 +400,7 @@ bool EQMod::updateProperties()
 	defineNumber(StandardSyncPointNP);
 	defineNumber(SyncPolarAlignNP);
 	defineSwitch(SyncManageSP);
+    defineSwitch(UseJoystickSP);
 
 	try {
 	  mount->InquireBoardVersion(MountInformationTP);
@@ -456,6 +464,7 @@ bool EQMod::updateProperties()
 	  deleteProperty(StandardSyncPointNP->name);
 	  deleteProperty(SyncPolarAlignNP->name);
 	  deleteProperty(SyncManageSP->name);
+      deleteProperty(UseJoystickSP->name);
 	  MountInformationTP=NULL;
 	} 
       }
@@ -1485,6 +1494,21 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 	    return true;
 	  }
 	}
+
+      if (!strcmp(name, "USEJOYSTICK"))
+      {
+          IUUpdateSwitch(UseJoystickSP, states, names, n);
+
+          UseJoystickSP->s = IPS_OK;
+
+          if (UseJoystickSP->sp[0].s == ISS_ON)
+              enableJoystick();
+          else
+              disableJoystick();
+
+          IDSetSwitch(UseJoystickSP, NULL);
+
+      }
     }
 
     if (align) { compose=align->ISNewSwitch(dev,name,states,names,n); if (compose) return true;}
@@ -1504,6 +1528,25 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 bool EQMod::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n) 
 {
   bool compose;
+
+  if(strcmp(dev,getDeviceName())==0)
+  {
+      if (!strcmp(name, "JOYSTICKSETTINGS"))
+      {
+          IUUpdateText(JoystickSettingTP, texts, names, n);
+
+          IDSnoopDevice("Joystick", JoystickSettingTP->tp[0].text);
+          IDSnoopDevice("Joystick", JoystickSettingTP->tp[1].text);
+
+          // The 3rd option is always JOYSTICK_BUTTONS
+          //IDSnoopDevice("Joystick", "JOYSTICK_BUTTONS");
+
+          JoystickSettingTP->s = IPS_OK;
+          IDSetText(JoystickSettingTP, NULL);
+          return true;
+
+      }
+  }
 
   if (align) { compose=align->ISNewText(dev,name,texts,names,n); if (compose) return true;}
 
@@ -1963,4 +2006,189 @@ void EQMod::starPolarAlign(double lst, double ra, double dec, double theta, doub
   mdec=asin(N) * 180.0 / M_PI;
   *tra = mra;
   *tdec=mdec;
+}
+
+void EQMod::enableJoystick()
+{
+    defineText(JoystickSettingTP);
+
+    IDSnoopDevice("Joystick", JoystickSettingTP->tp[0].text);
+    IDSnoopDevice("Joystick", JoystickSettingTP->tp[1].text);
+    IDSnoopDevice("Joystick", "JOYSTICK_BUTTONS");
+
+}
+
+void EQMod::disableJoystick()
+{
+    deleteProperty(JoystickSettingTP->name);
+}
+
+bool EQMod::ISSnoopDevice(XMLEle *root)
+{
+    XMLEle *ep=NULL;
+    double mag=0, angle=0;
+
+    const char *propName = findXMLAttValu(root, "name");
+
+    // Checking for NSWE control
+    if (!strcmp(JoystickSettingTP->tp[0].text, propName))
+    {
+        for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
+        {
+            if (!strcmp("JOYSTICK_MAGNITUDE", findXMLAttValu(ep, "name")))
+                mag = atof(pcdataXMLEle(ep));
+            else if (!strcmp("JOYSTICK_ANGLE", findXMLAttValu(ep, "name")))
+                angle = atof(pcdataXMLEle(ep));
+        }
+
+        processNSWE(mag, angle);
+    }
+    // Checking for Slew preset control
+    else if (!strcmp(JoystickSettingTP->tp[1].text, propName))
+    {
+        for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
+        {
+            if (!strcmp("JOYSTICK_MAGNITUDE", findXMLAttValu(ep, "name")))
+                mag = atof(pcdataXMLEle(ep));
+            else if (!strcmp("JOYSTICK_ANGLE", findXMLAttValu(ep, "name")))
+                angle = atof(pcdataXMLEle(ep));
+        }
+
+        processSlewPresets(mag, angle);
+    }
+    // Check button for Abort
+    else if (!strcmp("JOYSTICK_BUTTONS", propName))
+    {
+        for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
+        {
+            if (!strcmp(JoystickSettingTP->tp[2].text, findXMLAttValu(ep, "name")))
+                if (!strcmp(pcdataXMLEle(ep), "On"))
+                {
+                    // Only abort if we have some sort of motion going on
+                    if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY || EqNP.s == IPS_BUSY
+                            || GuideNSNP.s == IPS_BUSY || GuideWENP.s == IPS_BUSY)
+                    {
+
+                        Abort();
+                        break;
+                    }
+                }
+
+        }
+    }
+
+
+    return true;
+
+}
+
+void EQMod::processNSWE(double mag, double angle)
+{
+    if (mag == 0)
+    {
+        // Moving in the same direction will make it stop
+        if (MovementNSSP.s == IPS_BUSY)
+            MoveNS(MovementNSSP.sp[0].s == ISS_ON ? MOTION_NORTH : MOTION_SOUTH);
+
+        // Moving in the same direction will make it stop
+        if (MovementWESP.s == IPS_BUSY)
+            MoveWE(MovementWESP.sp[0].s == ISS_ON ? MOTION_WEST : MOTION_EAST);
+
+    }
+    // Put high threshold
+    else if (mag > 0.9)
+    {
+        // North
+        if (angle > 0 && angle < 180)
+        {
+            // Don't try to move if you're busy and moving in the same direction
+            if (MovementNSSP.s != IPS_BUSY || MovementNSS[0].s != ISS_ON)
+                MoveNS(MOTION_NORTH);
+
+            MovementNSSP.s = IPS_BUSY;
+            MovementNSSP.sp[0].s = ISS_ON;
+            MovementNSSP.sp[1].s = ISS_OFF;
+            IDSetSwitch(&MovementNSSP, NULL);
+        }
+        // South
+        if (angle > 180 && angle < 360)
+        {
+            // Don't try to move if you're busy and moving in the same direction
+           if (MovementNSSP.s != IPS_BUSY  || MovementNSS[1].s != ISS_ON)
+            MoveNS(MOTION_SOUTH);
+
+            MovementNSSP.s = IPS_BUSY;
+            MovementNSSP.sp[0].s = ISS_OFF;
+            MovementNSSP.sp[1].s = ISS_ON;
+            IDSetSwitch(&MovementNSSP, NULL);
+        }
+        // East
+        if (angle < 90 || angle > 270)
+        {
+            // Don't try to move if you're busy and moving in the same direction
+           if (MovementWESP.s != IPS_BUSY  || MovementWES[1].s != ISS_ON)
+                MoveWE(MOTION_EAST);
+
+           MovementWESP.s = IPS_BUSY;
+           MovementWESP.sp[0].s = ISS_OFF;
+           MovementWESP.sp[1].s = ISS_ON;
+           IDSetSwitch(&MovementWESP, NULL);
+        }
+
+        // West
+        if (angle > 90 && angle < 270)
+        {
+
+            // Don't try to move if you're busy and moving in the same direction
+           if (MovementWESP.s != IPS_BUSY  || MovementWES[0].s != ISS_ON)
+                MoveWE(MOTION_WEST);
+
+           MovementWESP.s = IPS_BUSY;
+           MovementWESP.sp[0].s = ISS_ON;
+           MovementWESP.sp[1].s = ISS_OFF;
+           IDSetSwitch(&MovementWESP, NULL);
+        }
+    }
+
+}
+
+void EQMod::processSlewPresets(double mag, double angle)
+{
+    // high threshold, only 1 is accepted
+    if (mag != 1)
+        return;
+
+    int currentIndex = IUFindOnSwitchIndex(SlewModeSP);
+
+    // Up
+    if (angle > 0 && angle < 180)
+    {
+        if (currentIndex <= 0)
+            return;
+
+        IUResetSwitch(SlewModeSP);
+        SlewModeSP->sp[currentIndex-1].s = ISS_ON;
+    }
+    // Down
+    else
+    {
+        if (currentIndex >= SlewModeSP->nsp-1)
+            return;
+
+         IUResetSwitch(SlewModeSP);
+         SlewModeSP->sp[currentIndex+1].s = ISS_ON;
+
+    }
+    IDSetSwitch(SlewModeSP, NULL);
+
+}
+
+bool EQMod::saveConfigItems(FILE *fp)
+{
+    INDI::Telescope::saveConfigItems(fp);
+
+    IUSaveConfigSwitch(fp, UseJoystickSP);
+    IUSaveConfigText(fp, JoystickSettingTP);
+
+    return true;
 }
