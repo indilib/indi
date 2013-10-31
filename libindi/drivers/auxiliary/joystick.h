@@ -48,7 +48,7 @@ class JoyStickDriver;
  *  the right/east direction [0 to 360]. They are defined as JOYSTICK_# where # is the joystick number.</li>
  * <li><b>Axes</b>: Each joystick has two or more axes. Each axis has a raw value and angle. The raw value ranges from -32767.0 to 32767.0 They are
  * defined as AXIS_# where # is the axis number.</li>
- * <li><b>Buttons</b>: Buttons are either on or off. They are defined as BUTTON_# where # is the button number.
+ * <li><b>Buttons</b>: Buttons are either on or off. They are defined as BUTTON_# where # is the button number.</li>
  * </ul>
  *
  * To snoop on buttons, call IDSnoopDevice("Joystick", "JOYSTICK_BUTTONS") from your driver.
