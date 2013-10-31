@@ -131,6 +131,9 @@ bool SimpleCCD::initProperties()
     IUFillNumber(&TemperatureN[0], "CCD_TEMPERATURE_VALUE", "Temperature (C)", "%5.2f", MIN_CCD_TEMP, MAX_CCD_TEMP, 0., 0.);
     IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "CCD_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
+    // Add Debug, Simulator, and Configuration controls
+    addAuxControls();
+
     return true;
 
 }
@@ -142,11 +145,13 @@ void SimpleCCD::ISGetProperties(const char *dev)
 {
     INDI::CCD::ISGetProperties(dev);
 
-    // Add Debug, Simulator, and Configuration controls
-    addAuxControls();
+    // If we are _already_ connected, let's define our temperature property to the client now
+    if (isConnected())
+    {
+        // Define our only property temperature
+        defineNumber(&TemperatureNP);
+    }
 
-    // Note: We don't define the TEMPERATURE property here, we only define it once
-    //       we successfuly connect to the CCD.
 }
 
 /********************************************************************************************
