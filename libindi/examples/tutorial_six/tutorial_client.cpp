@@ -23,6 +23,14 @@
 /** \file tutorial_client.cpp
     \brief Construct a basic INDI client that demonstrates INDI::Client capabilities. This client must be used with tutorial_three device "Simple CCD".
     \author Jasem Mutlaq
+
+    \example tutorial_client.cpp
+    Construct a basic INDI client that demonstrates INDI::Client capabilities. This client must be used with tutorial_three device "Simple CCD".
+    To run the example, you must first run tutorial_three:
+    \code indiserver tutorial_three \endcode
+    Then in another terminal, run the client:
+    \code tutorial_client \endcode
+    The client will connect to the CCD driver and attempts to change the CCD temperature.
 */
 
 #include <string>

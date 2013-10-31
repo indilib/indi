@@ -17,6 +17,9 @@
 /** \file simplescope.h
     \brief Construct a basic INDI telescope device that simulates GOTO commands.
     \author Jasem Mutlaq
+
+    \example simplescope.h
+    A simple GOTO telescope that simulator slewing operation.
 */
 
 #include "indibase/inditelescope.h"

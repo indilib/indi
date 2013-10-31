@@ -53,13 +53,24 @@ INDI is intended for developers who seek a scalable API for device control and a
 <li><a href="group__configFunctions.html">Configuration</a></li>
 </ul>
 
+\section Simulators
+
+Simulators provide a great framework to test drivers and equipment alike. INDI Library provides the following simulators:
+<ul>
+<li><b>Telescope Simulator</b>: Offers GOTO capability, motion control, guiding, and ability to set Periodic Error (PE) which is read by the CCD simulator when generating images.</li>
+<li><b>CCD Simulator</b>: Offers a very flexible CCD simulator with a primary CCD chip and a guide chip. The simulator generate images based on the RA & DEC coordinates it
+ snoops from the telescope driver using General Star Catalog (GSC). Please note that you must install GSC for the CCD simulator to work properly. Furthermore,
+ The simulator snoops FWHM from the focuser simulator which affects the generated images focus. All images are generated in standard FITS format.</li>
+<li><b>Filter Wheel Simulator</b>: Offers a simple simulator to change filter wheels and their corresponding designations.</li>
+<li><b>Focuser Simulator</b>: Offers a simple simualtor for an absolute position focuser. It generates a simulated FWHM value that may be used by other simulator such as the CCD simulator.</li>
+</ul>
 
 \section Help 
 
 You can find information on INDI development in the <a href="http://www.indilib.org">INDI Library</a> site. Furthermore, you can discuss INDI related issues on the <a href="http://sourceforge.net/mail/?group_id=90275">INDI development mailing list</a>.
 
-\author Elwood Downey
 \author Jasem Mutlaq
+\author Elwood Downey
 */
 
 /** \file indiapi.h

@@ -23,6 +23,11 @@
 /** \file simpleskeleton.cpp
     \brief Construct a basic INDI CCD device that demonstrates ability to define properties from a skeleton file.
     \author Jasem Mutlaq
+
+    \example simpleskeleton.cpp
+    A skeleton file is an external XML file with the driver properties already defined. This tutorial illustrates how to create a driver from
+    a skeleton file and parse/process the properties. The skeleton file name is tutorial_four_sk.xml
+    \note Please note that if you create your own skeleton file, you must append _sk postfix to your skeleton file name.
 */
 
 #include <memory>

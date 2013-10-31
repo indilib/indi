@@ -17,6 +17,9 @@
 /** \file simpledevice.h
     \brief Construct a basic INDI device with only one property to connect and disconnect.
     \author Jasem Mutlaq
+
+    \example simpledevice.h
+    A very minimal device! It also allows you to connect/disconnect and performs no other functions.
 */
 
 #include "indibase/defaultdevice.h"

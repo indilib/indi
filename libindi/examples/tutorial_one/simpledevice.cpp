@@ -14,6 +14,9 @@
 /** \file simpledevice.cpp
     \brief Construct a basic INDI device with only one property to connect and disconnect.
     \author Jasem Mutlaq
+
+    \example simpledevice.cpp
+    A very minimal device! It also allows you to connect/disconnect and performs no other functions.
 */
 
 #include <memory>

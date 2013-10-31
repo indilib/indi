@@ -53,8 +53,7 @@ class JoyStickDriver;
  *
  * To snoop on buttons, call IDSnoopDevice("Joystick", "JOYSTICK_BUTTONS") from your driver.
  *
- * \note All indexes start from 1. i.e. There is no BUTTON_0 or JOYSTICK_0.
- * \example Telescope Simulator and INDI EQMod driver implmement joystick snooping.
+ * \note All indexes start from 1. i.e. There is no BUTTON_0 or JOYSTICK_0. Telescope Simulator and INDI EQMod driver implmement joystick snooping.
  */
 class JoyStick : public INDI::DefaultDevice
 {

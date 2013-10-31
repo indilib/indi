@@ -13,6 +13,14 @@
     \brief Construct a dome device that the user may operate to open or close the dome shutter door. This driver is \e snooping on the Rain Detector rain property status.
     If rain property state is alert, we close the dome shutter door if it is open, and we prevent the user from opening it until the rain threat passes.
     \author Jasem Mutlaq
+
+    \example dome.cpp
+    The dome driver \e snoops on the rain detector signal and watches whether rain is detected or not. If it is detector and the dome is closed, it performs
+    no action, but it also prevents you from opening the dome due to rain. If the dome is open, it will automatically starts closing the shutter. In order
+    snooping to work, both drivers must be started by the same indiserver (or chained INDI servers):
+    \code indiserver tutorial_dome tutorial_rain \endcode
+    The dome driver keeps a copy of RainL light property from the rain driver. This makes it easy to parse the property status once an update from the rain
+    driver arrives in the dome driver. Alternatively, you can directly parse the XML root element in ISSnoopDevice(XMLEle *root) to extract the required data.
 */
 
 #include <unistd.h>

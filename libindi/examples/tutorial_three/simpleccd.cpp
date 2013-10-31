@@ -14,6 +14,10 @@
 /** \file simpleccd.cpp
     \brief Construct a basic INDI CCD device that simulates exposure & temperature settings. It also generates a random pattern and uploads it as a FITS file.
     \author Jasem Mutlaq
+
+    \example simpleccd.cpp
+    A simple CCD device that can capture images and control temperature. It returns a FITS image to the client. To build drivers for complex CCDs, please
+    refer to the INDI Generic CCD driver template in INDI SVN (under 3rdparty).
 */
 
 #include <sys/time.h>

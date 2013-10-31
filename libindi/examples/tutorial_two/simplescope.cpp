@@ -14,6 +14,9 @@
 /** \file simplescope.cpp
     \brief Construct a basic INDI telescope device that simulates GOTO commands.
     \author Jasem Mutlaq
+
+    \example simplescope.cpp
+    A simple GOTO telescope that simulator slewing operation.
 */
 
 #include <sys/time.h>

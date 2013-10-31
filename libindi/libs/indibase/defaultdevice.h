@@ -189,8 +189,7 @@ to disconnect the device.
      *  the properties to the client in this function. Otherweise, the remainder of the driver's properties are defined to the
      *  client in updateProperties() function which is called when a client connects/disconnects from a device.
       \param dev name of the device
-      \note This function is called by the INDI framework, do not call it directly.
-      \example See LX200 Generic driver for an example implementation
+      \note This function is called by the INDI framework, do not call it directly. See LX200 Generic driver for an example implementation
     */
     virtual void ISGetProperties (const char *dev);
 
