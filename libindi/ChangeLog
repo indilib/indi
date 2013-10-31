@@ -1,7 +1,12 @@
 From 0.9.6 to 0.9.7
 
-      + Support for ATIK CCDs and Filter Wheels.
-      + Support for i-Nova family of cameras.
+      + Support for EQMod driver (3rd party).
+      + Support for ATIK CCDs and Filter Wheels (3rd party).
+      + Support for joysticks and game pads under Linux.
+      + Improved LX200 & Celestron telescope drivers.
+      + Improved simulator drivers.
+      + Fixed an issue in TCFS driver where a connect may fail if focuser is put into sleep mode.
+      + Fixed an issue where the client thread in INDI::BaseClient is not being terminated gracefully in a blocking mode.
       + Fixed an issue involving non-English clients that utilize INDI client library to communicate with INDI server.
       + Fixed an issue where some properties in some drivers are sent before getting defined by INDI. 
 
