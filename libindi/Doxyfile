@@ -5,7 +5,7 @@
 #---------------------------------------------------------------------------
 DOXYFILE_ENCODING      = UTF-8
 PROJECT_NAME           = "Instrument Neutral Distributed Interface INDI"
-PROJECT_NUMBER         = 0.9.6
+PROJECT_NUMBER         = 0.9.7
 OUTPUT_DIRECTORY       = /home/jasem/Projects/doc
 CREATE_SUBDIRS         = NO
 OUTPUT_LANGUAGE        = English
