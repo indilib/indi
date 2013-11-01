@@ -1,7 +1,7 @@
 /*
  Starlight Xpress CCD INDI Driver
 
- Copyright (c) 2012 Cloudmakers, s. r. o.
+ Copyright (c) 2012-2013 Cloudmakers, s. r. o.
  All Rights Reserved.
 
  Code is based on SX INDI Driver by Gerry Rozema and Jasem Mutlaq
@@ -45,15 +45,10 @@ static SXCCD *cameras[20];
 
 #define TIMER 1000
 
-#define TRACE(c) (c)
-#define DEBUG(c) (c)
-
 void cleanup() {
-  TRACE(fprintf(stderr, "-> cleanup()\n"));
   for (int i = 0; i < count; i++) {
     delete cameras[i];
   }
-  TRACE(fprintf(stderr, "<- cleanup\n"));
 }
 
 void ISInit() {
@@ -61,7 +56,7 @@ void ISInit() {
   if (!isInit) {
     DEVICE devices[20];
     const char* names[20];
-    count = sxList(devices, names);
+    count = sxList(devices, names, 20);
     for (int i = 0; i < count; i++) {
       cameras[i] = new SXCCD(devices[i], names[i]);
     }
@@ -71,7 +66,6 @@ void ISInit() {
 }
 
 void ISGetProperties(const char *dev) {
-  TRACE(fprintf(stderr, "-> ISGetProperties(%s)\n", dev));
   ISInit();
   for (int i = 0; i < count; i++) {
     SXCCD *camera = cameras[i];
@@ -81,11 +75,9 @@ void ISGetProperties(const char *dev) {
         break;
     }
   }
-  TRACE(fprintf(stderr, "<- ISGetProperties\n"));
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num) {
-  TRACE(fprintf(stderr, "-> ISNewSwitch(%s, %s...)\n", dev, name));
   ISInit();
   for (int i = 0; i < count; i++) {
     SXCCD *camera = cameras[i];
@@ -95,11 +87,9 @@ void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names
         break;
     }
   }
-  TRACE(fprintf(stderr, "<- ISNewSwitch\n"));
 }
 
 void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num) {
-  TRACE(fprintf(stderr, "-> ISNewText(%s, %s, ...)\n", dev, name));
   ISInit();
   for (int i = 0; i < count; i++) {
     SXCCD *camera = cameras[i];
@@ -109,11 +99,9 @@ void ISNewText(const char *dev, const char *name, char *texts[], char *names[], 
         break;
     }
   }
-  TRACE(fprintf(stderr, "<- ISNewText\n"));
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num) {
-  TRACE(fprintf(stderr, "-> ISNewNumber(%s, %s, ...)\n", dev, name));
   ISInit();
   for (int i = 0; i < count; i++) {
     SXCCD *camera = cameras[i];
@@ -123,7 +111,6 @@ void ISNewNumber(const char *dev, const char *name, double values[], char *names
         break;
     }
   }
-  TRACE(fprintf(stderr, "<- ISNewNumber\n"));
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n) {
@@ -158,7 +145,6 @@ void NSGuiderTimerCallback(void *p) {
 }
 
 SXCCD::SXCCD(DEVICE device, const char *name) {
-  TRACE(fprintf(stderr, "-> SXCCD::SXCCD\n"));
   this->device = device;
   handle = NULL;
   model = 0;
@@ -182,15 +168,11 @@ SXCCD::SXCCD(DEVICE device, const char *name) {
   snprintf(this->name, 32, "SX CCD %s", name);
   setDeviceName(this->name);
   setVersion(VERSION_MAJOR, VERSION_MINOR);
-  TRACE(fprintf(stderr, "   %s instance created\n", this->name));
-  TRACE(fprintf(stderr, "<- SXCCD::SXCCD\n"));
 }
 
 SXCCD::~SXCCD() {
-  TRACE(fprintf(stderr, "-> SXCCD::~SXCCD\n"));
   if (handle)
-	  sxClose(handle);
-  TRACE(fprintf(stderr, "<- SXCCD::~SXCCD\n"));
+	  sxClose(&handle);
 }
 
 const char *SXCCD::getDefaultName() {
@@ -198,30 +180,21 @@ const char *SXCCD::getDefaultName() {
 }
 
 bool SXCCD::initProperties() {
-  TRACE(fprintf(stderr, "-> SXCCD::initProperties()\n"));
   INDI::CCD::initProperties();
-
   IUFillNumber(&TemperatureN, "CCD_TEMPERATURE_VALUE", "CCD temperature", "%4.1f", -40, 35, 1, TemperatureRequest);
   IUFillNumberVector(&TemperatureNP, &TemperatureN, 1, getDeviceName(), "CCD_TEMPERATURE", "Temperature", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
-
   IUFillSwitch(&CoolerS[0], "DISCONNECT_COOLER", "Off", ISS_ON);
   IUFillSwitch(&CoolerS[1], "CONNECT_COOLER", "On", ISS_OFF);
   IUFillSwitchVector(&CoolerSP, CoolerS, 2, getDeviceName(), "COOLER_CONNECTION", "Cooler", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
-
   IUFillSwitch(&ShutterS[0], "SHUTTER_ON", "Manual open", ISS_OFF);
   IUFillSwitch(&ShutterS[1], "SHUTTER_OFF", "Manual close", ISS_ON);
   IUFillSwitchVector(&ShutterSP, ShutterS, 2, getDeviceName(), "SHUTTER_CONNECTION", "Shutter", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
-
-  TRACE(fprintf(stderr, "<- SXCCD::initProperties 1\n"));
   return true;
 }
 
 bool SXCCD::updateProperties() {
-  TRACE(fprintf(stderr, "-> SXCCD::updateProperties() conneced=%d\n", isConnected()));
   struct t_sxccd_params params;
-
   INDI::CCD::updateProperties();
-
   if (isConnected()) {
     if (HasCooler) {
       defineNumber(&TemperatureNP);
@@ -229,23 +202,16 @@ bool SXCCD::updateProperties() {
     }
     if (HasShutter)
       defineSwitch(&ShutterSP);
-
     sxGetCameraParams(handle, 0, &params);
-
-    if (PrimaryCCD.isInterlaced())
-    {
+    if (PrimaryCCD.isInterlaced()) {
       params.pix_height /= 2;
       params.height *= 2;
     }
-
     SetCCDParams(params.width, params.height, params.bits_per_pixel, params.pix_width, params.pix_height);
-
-    if (HasGuideHead)
-    {
+    if (HasGuideHead) {
        sxGetCameraParams(handle, 1, &params);
        SetGuidHeadParams(params.width, params.height, params.bits_per_pixel, params.pix_width, params.pix_height);
     }
-
   } else {
     if (HasCooler) {
       deleteProperty(TemperatureNP.name);
@@ -254,76 +220,47 @@ bool SXCCD::updateProperties() {
     if (HasShutter)
       deleteProperty(ShutterSP.name);
   }
-
-  TRACE(fprintf(stderr, "<- SXCCD::updateProperties 1\n"));
   return true;
 }
 
 bool SXCCD::updateCCDBin(int hor, int ver) {
-  TRACE(fprintf(stderr, "-> SXCCD::updateCCDBin()\n"));
   if (hor == 3 || ver == 3) {
     IDMessage(getDeviceName(), "3x3 binning is not supported.");
-    TRACE(fprintf(stderr, "<- SXCCD::updateCCDBin 0\n"));
     return false;
   }
   PrimaryCCD.setBin(hor, ver);
-  TRACE(fprintf(stderr, "<- SXCCD::updateCCDBin 1\n"));
   return true;
 }
 
 bool SXCCD::Connect() {
-  TRACE(fprintf(stderr, "-> SXCCD::Connect()\n"));
   if (handle == NULL) {
-    handle = usb_open(device);
-    if (handle != NULL) {
-      int rc;
-      rc = usb_detach_kernel_driver_np(handle, 0);
-      TRACE( fprintf(stderr, "   usb_detach_kernel_driver_np() -> %d\n", rc));
-#ifdef __APPLE__
-      rc=usb_claim_interface(handle,0);
-#else
-      rc = usb_claim_interface(handle, 1);
-#endif
-      TRACE(fprintf(stderr, "   usb_claim_interface() -> %d\n", rc));
-      if (!rc) {
-        getCameraParams();
-        TRACE(fprintf(stderr, "<- SXCCD::Connect 1\n"));
-        return true;
-      }
+    int rc = sxOpen(device, &handle);
+		if (rc >= 0) {
+			getCameraParams();
+			return true;
     }
   }
-  TRACE(fprintf(stderr, "<- SXCCD::Connect 0\n"));
   return false;
 }
 
 bool SXCCD::Disconnect() {
-  TRACE(fprintf(stderr, "-> SXCCD::Disconnect()\n"));
   if (handle != NULL) {
-    int rc = usb_close(handle);
-    TRACE(fprintf(stderr, "   usb_close() -> %d\n", rc));
-    handle = NULL;
+    sxClose(&handle);
   }
-  TRACE(fprintf(stderr, "<- SXCCD::Disconnect 1\n"));
   return true;
 }
 
 void SXCCD::getCameraParams() {
-  TRACE(fprintf(stderr, "-> SXCCD::getCameraParams()\n"));
   struct t_sxccd_params params;
-  sxReset(handle);
-  usleep(1000);
-
+  //sxReset(handle);
   model = sxGetCameraModel(handle);
   bool isInterlaced = sxIsInterlaced(model);
-
   PrimaryCCD.setInterlaced(isInterlaced);
-
   sxGetCameraParams(handle, 0, &params);
   if (isInterlaced) {
     params.pix_height /= 2;
     params.height *= 2;
   }
-
   int nbuf = params.width * params.height;
   if (params.bits_per_pixel == 16)
     nbuf *= 2;
@@ -335,18 +272,14 @@ void SXCCD::getCameraParams() {
     delete oddBuf;
   evenBuf = new char[nbuf / 2];
   oddBuf = new char[nbuf / 2];
-
   HasGuideHead = params.extra_caps & SXCCD_CAPS_GUIDER;
   HasCooler = params.extra_caps & SXUSB_CAPS_COOLER;
   HasShutter = params.extra_caps & SXUSB_CAPS_SHUTTER;
   HasSt4Port = params.extra_caps & SXCCD_CAPS_STAR2K;
-
   SetTimer(TIMER);
-  TRACE(fprintf(stderr, "<- SXCCD::getCameraParams\n"));
 }
 
 void SXCCD::TimerHit() {
-
   if (isConnected() && HasCooler) {
     if (!DidLatch && !DidGuideLatch) {
       unsigned char status;
@@ -363,21 +296,15 @@ void SXCCD::TimerHit() {
       }
     }
   }
-
-  if (InExposure && ExposureTimeLeft >= 0) {
+  if (InExposure && ExposureTimeLeft >= 0)
     PrimaryCCD.setExposureLeft(ExposureTimeLeft--);
-  }
-
-  if (InGuideExposure && GuideExposureTimeLeft >= 0) {
+  if (InGuideExposure && GuideExposureTimeLeft >= 0)
     GuideCCD.setExposureLeft(GuideExposureTimeLeft--);
-  }
-
   if (isConnected())
     SetTimer(TIMER);
 }
 
 int SXCCD::StartExposure(float n) {
-  TRACE(fprintf(stderr, "-> SXCCD::StartExposure(%f)\n", n));
   InExposure = true;
   PrimaryCCD.setExposureDuration(n);
   if (PrimaryCCD.isInterlaced() && PrimaryCCD.getBinY() == 1) {
@@ -386,14 +313,11 @@ int SXCCD::StartExposure(float n) {
     sxClearPixels(handle, CCD_EXP_FLAGS_FIELD_ODD, 0);
   } else
     sxClearPixels(handle, CCD_EXP_FLAGS_FIELD_BOTH, 0);
-
   if (HasShutter)
     sxSetShutter(handle, 0);
-
   int time = (int) (1000 * n);
   if (time < 1)
     time = 1;
-
   if (time > 3000) {
     DidFlush = false;
     time -= 3000;
@@ -401,15 +325,11 @@ int SXCCD::StartExposure(float n) {
     DidFlush = true;
   DidLatch = false;
   ExposureTimeLeft = n;
-
   ExposureTimerID = IEAddTimer(time, ExposureTimerCallback, this);
-
-  TRACE(fprintf(stderr, "<- SXCCD::StartExposure 0\n"));
   return 0;
 }
 
 bool SXCCD::AbortExposure() {
-  TRACE(fprintf(stderr, "-> SXCCD::AbortExposure()\n"));
   if (InExposure) {
     if (ExposureTimerID)
       IERmTimer(ExposureTimerID);
@@ -419,22 +339,17 @@ bool SXCCD::AbortExposure() {
     PrimaryCCD.setExposureLeft(ExposureTimeLeft = 0);
     DidLatch = false;
     DidFlush = false;
-
-    TRACE(fprintf(stderr, "<- SXCCD::AbortExposure 1\n"));
     return true;
   }
-  TRACE(fprintf(stderr, "<- SXCCD::AbortExposure 0\n"));
   return false;
 }
 
 void SXCCD::ExposureTimerHit() {
-  TRACE(fprintf(stderr, "-> SXCCD::ExposureTimerHit()\n"));
   if (InExposure) {
     if (!DidFlush) {
       ExposureTimerID = IEAddTimer(3000, ExposureTimerCallback, this);
       sxClearPixels(handle, CCD_EXP_FLAGS_NOWIPE_FRAME, 0);
       DidFlush = true;
-      TRACE(fprintf(stderr, "   did flush\n"));
     } else {
       int rc;
       ExposureTimerID = 0;
@@ -448,45 +363,26 @@ void SXCCD::ExposureTimerHit() {
       int subWW = subW * 2;
       char *buf = PrimaryCCD.getFrameBuffer();
       int size;
-      ;
-
       if (isInterlaced && binY > 1)
         size = subW * subH / 2 / binX / (binY / 2);
       else
         size = subW * subH / binX / binY;
-
       if (HasShutter)
         sxSetShutter(handle, 1);
-
       DidLatch = true;
       if (isInterlaced) {
         if (binY > 1) {
           rc = sxLatchPixels(handle, CCD_EXP_FLAGS_FIELD_BOTH, 0, subX, subY, subW, subH / 2, binX, binY / 2);
-          if (rc) {
-            TRACE(fprintf(stderr, "   did latch\n"));
+          if (rc)
             rc = sxReadPixels(handle, (unsigned short *) buf, size);
-            if (rc) {
-              TRACE(fprintf(stderr, "   did read\n"));
-            }
-          }
         } else {
           rc = sxLatchPixels(handle, CCD_EXP_FLAGS_FIELD_EVEN | CCD_EXP_FLAGS_SPARE2, 0, subX, subY, subW, subH / 2, binX, 1);
-          if (rc) {
-            TRACE(fprintf(stderr, "   did latch even\n"));
+          if (rc)
             rc = sxReadPixels(handle, (unsigned short *) evenBuf, size / 2);
-            if (rc) {
-              TRACE(fprintf(stderr, "   did read even\n"));
-            }
-          }
           if (rc)
             rc = sxLatchPixels(handle, CCD_EXP_FLAGS_FIELD_ODD | CCD_EXP_FLAGS_SPARE2, 0, subX, subY, subW, subH / 2, binX, 1);
-          if (rc) {
-            TRACE(fprintf(stderr, "   did latch odd\n"));
+          if (rc)
             rc = sxReadPixels(handle, (unsigned short *) oddBuf, size / 2);
-            if (rc) {
-              TRACE(fprintf(stderr, "   did read odd\n"));
-            }
-          }
           if (rc)
             for (int i = 0, j = 0; i < subH; i += 2, j++) {
               memcpy(buf + i * subWW, evenBuf + (j * subWW), subWW);
@@ -495,15 +391,9 @@ void SXCCD::ExposureTimerHit() {
         }
       } else {
         rc = sxLatchPixels(handle, CCD_EXP_FLAGS_FIELD_BOTH, 0, subX, subY, subW, subH, binX, binY);
-        if (rc) {
-          TRACE(fprintf(stderr, "   did latch\n"));
+        if (rc)
           rc = sxReadPixels(handle, (unsigned short *) buf, size);
-          if (rc) {
-            TRACE(fprintf(stderr, "   did read\n"));
-          }
-        }
       }
-
       DidLatch = false;
       InExposure = false;
       PrimaryCCD.setExposureLeft(ExposureTimeLeft = 0);
@@ -511,11 +401,9 @@ void SXCCD::ExposureTimerHit() {
         ExposureComplete (&PrimaryCCD);
     }
   }
-  TRACE(fprintf(stderr, "<- SXCCD::ExposureTimerHit\n"));
 }
 
 int SXCCD::StartGuideExposure(float n) {
-  TRACE(fprintf(stderr, "-> SXCCD::StartGuideExposure(%f)\n", n));
   InGuideExposure = true;
   GuideCCD.setExposureDuration(n);
   sxClearPixels(handle, CCD_EXP_FLAGS_FIELD_BOTH, 1);
@@ -523,31 +411,23 @@ int SXCCD::StartGuideExposure(float n) {
   if (time < 1)
     time = 1;
   ExposureTimeLeft = n;
-
   GuideExposureTimerID = IEAddTimer(time, GuideExposureTimerCallback, this);
-
-  TRACE(fprintf(stderr, "<- SXCCD::StartGuideExposure 0\n"));
   return 0;
 }
 
 bool SXCCD::AbortGuideExposure() {
-  TRACE(fprintf(stderr, "-> SXCCD::AbortGuideExposure()\n"));
   if (InGuideExposure) {
     if (GuideExposureTimerID)
       IERmTimer(GuideExposureTimerID);
     GuideCCD.setExposureLeft(GuideExposureTimeLeft = 0);
     GuideExposureTimerID = 0;
     DidGuideLatch = false;
-
-    TRACE(fprintf(stderr, "<- SXCCD::AbortGuideExposure 1\n"));
     return true;
   }
-  TRACE(fprintf(stderr, "<- SXCCD::AbortGuideExposure 0\n"));
   return false;
 }
 
 void SXCCD::GuideExposureTimerHit() {
-  TRACE(fprintf(stderr, "-> SXCCD::GuideExposureTimerHit()\n"));
   if (InGuideExposure) {
     int rc;
     GuideExposureTimerID = 0;
@@ -560,30 +440,20 @@ void SXCCD::GuideExposureTimerHit() {
     int size = subW * subH / binX / binY;
     int subWW = subW * 2;
     char *buf = GuideCCD.getFrameBuffer();
-
     DidGuideLatch = true;
     rc = sxLatchPixels(handle, CCD_EXP_FLAGS_FIELD_BOTH, 1, subX, subY, subW, subH, binX, binY);
-    if (rc) {
-      TRACE(fprintf(stderr, "   did guide latch\n"));
+    if (rc)
       rc = sxReadPixels(handle, (unsigned short *) buf, size);
-      if (rc) {
-        TRACE(fprintf(stderr, "   did guide read\n"));
-      }
-    }
-
     DidGuideLatch = false;
     InGuideExposure = false;
     GuideCCD.setExposureLeft(GuideExposureTimeLeft = 0);
     if (rc)
       ExposureComplete (&GuideCCD);
   }
-  TRACE(fprintf(stderr, "<- SXCCD::GuideExposureTimerHit\n"));
 }
 
 bool SXCCD::GuideWest(float time) {
-  TRACE(fprintf(stderr, "-> SXCCD::GuideWest(%f)\n", time));
   if (!HasSt4Port || time < 1) {
-    TRACE(fprintf(stderr, "<- SXCCD::GuideWest 0\n"));
     return false;
   }
   if (WEGuiderTimerID) {
@@ -599,14 +469,11 @@ bool SXCCD::GuideWest(float time) {
     sxSetSTAR2000(handle, GuideStatus);
   } else
     WEGuiderTimerID = IEAddTimer(time, WEGuiderTimerCallback, this);
-  TRACE(fprintf(stderr, "<- SXCCD::GuideWest 1\n"));
   return true;
 }
 
 bool SXCCD::GuideEast(float time) {
-  TRACE(fprintf(stderr, "-> SXCCD::GuideEast(%f)\n", time));
   if (!HasSt4Port || time < 1) {
-    TRACE(fprintf(stderr, "<- SXCCD::GuideEast 0\n"));
     return false;
   }
   if (WEGuiderTimerID) {
@@ -622,22 +489,17 @@ bool SXCCD::GuideEast(float time) {
     sxSetSTAR2000(handle, GuideStatus);
   } else
     WEGuiderTimerID = IEAddTimer(time, WEGuiderTimerCallback, this);
-  TRACE(fprintf(stderr, "<- SXCCD::GuideEast 1\n"));
   return true;
 }
 
 void SXCCD::WEGuiderTimerHit() {
-  TRACE(fprintf(stderr, "-> SXCCD::WEGuiderTimerHit()\n"));
   GuideStatus &= SX_CLEAR_WE;
   sxSetSTAR2000(handle, GuideStatus);
   WEGuiderTimerID = 0;
-  TRACE(fprintf(stderr, "<- SXCCD::WEGuiderTimerHit\n"));
 }
 
 bool SXCCD::GuideNorth(float time) {
-  TRACE(fprintf(stderr, "-> SXCCD::GuideNorth(%f)\n", time));
   if (!HasSt4Port || time < 1) {
-    TRACE(fprintf(stderr, "<- SXCCD::GuideNorth 0\n"));
     return false;
   }
   if (NSGuiderTimerID) {
@@ -653,14 +515,11 @@ bool SXCCD::GuideNorth(float time) {
     sxSetSTAR2000(handle, GuideStatus);
   } else
     NSGuiderTimerID = IEAddTimer(time, NSGuiderTimerCallback, this);
-  TRACE(fprintf(stderr, "<- SXCCD::GuideNorth 1\n"));
   return true;
 }
 
 bool SXCCD::GuideSouth(float time) {
-  TRACE(fprintf(stderr, "-> SXCCD::GuideSouth(%f)\n", time));
   if (!HasSt4Port || time < 1) {
-    TRACE(fprintf(stderr, "<- SXCCD::GuideSouth 0\n"));
     return false;
   }
   if (NSGuiderTimerID) {
@@ -676,27 +535,21 @@ bool SXCCD::GuideSouth(float time) {
     sxSetSTAR2000(handle, GuideStatus);
   } else
     NSGuiderTimerID = IEAddTimer(time, NSGuiderTimerCallback, this);
-  TRACE(fprintf(stderr, "<- SXCCD::GuideSouth 1\n"));
   return true;
 }
 
 void SXCCD::NSGuiderTimerHit() {
-  TRACE(fprintf(stderr, "-> SXCCD::NSGuiderTimerHit()\n"));
   GuideStatus &= SX_CLEAR_NS;
   sxSetSTAR2000(handle, GuideStatus);
   NSGuiderTimerID = 0;
-  TRACE(fprintf(stderr, "<- SXCCD::NSGuiderTimerHit\n"));
 }
 
 void SXCCD::ISGetProperties(const char *dev) {
-  TRACE(fprintf(stderr, "-> SXCCD::ISGetProperties(%s)\n", name));
   INDI::CCD::ISGetProperties(name);
   addDebugControl();
-  TRACE(fprintf(stderr, "<- SXCCD::ISGetProperties\n"));
 }
 
 bool SXCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) {
-  TRACE(fprintf(stderr, "-> SXCCD::ISNewSwitch(%s, %s, ...)\n", dev, name));
   bool result = false;
   if (strcmp(name, ShutterSP.name) == 0) {
     IUUpdateSwitch(&ShutterSP, states, names, n);
@@ -717,15 +570,11 @@ bool SXCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char
     result = true;
   } else
     result = INDI::CCD::ISNewSwitch(dev, name, states, names, n);
-
-  TRACE(fprintf(stderr, "<- SXCCD::ISNewSwitch %d\n", result));
   return result;
 }
 
 bool SXCCD::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) {
-  TRACE(fprintf(stderr, "-> SXCCD::ISNewNumber(%s, %s, ...)\n", dev, name));
   bool result = false;
-
   if (strcmp(name, TemperatureNP.name) == 0) {
     IUUpdateNumber(&TemperatureNP, values, names, n);
     TemperatureRequest = TemperatureN.value;
@@ -745,8 +594,6 @@ bool SXCCD::ISNewNumber(const char *dev, const char *name, double values[], char
     result = true;
   } else
     result = INDI::CCD::ISNewNumber(dev, name, values, names, n);
-
-  TRACE(fprintf(stderr, "<- SXCCD::ISNewNumber %d\n", result));
   return result;
 }
 

@@ -1,7 +1,7 @@
 /*
   Starlight Xpress CCD INDI Driver
 
-  Copyright (c) 2012 Cloudmakers, s. r. o.
+  Copyright (c) 2012-2013 Cloudmakers, s. r. o.
   All Rights Reserved.
 
   Code is based on SX INDI Driver by Gerry Rozema and Jasem Mutlaq
@@ -46,30 +46,24 @@ class SXCCD : public INDI::CCD
     unsigned short model;
     char name[32];
     char *evenBuf, *oddBuf;
-
     INumber TemperatureN;
     INumberVectorProperty TemperatureNP;
     ISwitch CoolerS[2];
     ISwitchVectorProperty CoolerSP;
     ISwitch ShutterS[2];
     ISwitchVectorProperty ShutterSP;
-
     float TemperatureRequest;
     float TemperatureReported;
-
     float ExposureTimeLeft;
     float GuideExposureTimeLeft;
-
     int ExposureTimerID;
     int GuideExposureTimerID;
     int WEGuiderTimerID;
     int NSGuiderTimerID;
-
     bool DidFlush;
     bool DidLatch;
     bool DidGuideLatch;
     bool InGuideExposure;
-
     char GuideStatus;
 
   protected:
@@ -97,7 +91,6 @@ class SXCCD : public INDI::CCD
   public:
     bool HasCooler;
     bool HasShutter;
-
     SXCCD(DEVICE device, const char *name);
     virtual ~SXCCD();
     void ISGetProperties(const char *dev);

@@ -1,20 +1,19 @@
 cmake_minimum_required(VERSION 2.4.7)
 PROJECT(sxccd CXX C)
 
-cmake_policy(SET CMP0003 OLD)
+cmake_policy(SET CMP0003 NEW)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
 set(RULES_INSTALL_DIR "/etc/udev/rules.d")
 
 set (VERSION_MAJOR 1)
-set (VERSION_MINOR 2)
+set (VERSION_MINOR 3)
  
 configure_file (
   "${CMAKE_SOURCE_DIR}/sxconfig.h.in"
   "${CMAKE_SOURCE_DIR}/sxconfig.h"
   )
 
-find_package(USB REQUIRED)
 find_package(USB-1 REQUIRED)
 find_package(INDI REQUIRED)
 
@@ -28,7 +27,7 @@ set(indisxccd_SRCS
    )
 
 add_executable(indi_sx_ccd ${indisxccd_SRCS})
-target_link_libraries(indi_sx_ccd ${INDI_DRIVER_LIBRARIES} ${LIBUSB_LIBRARIES})
+target_link_libraries(indi_sx_ccd ${INDI_DRIVER_LIBRARIES} ${LIBUSB_1_LIBRARIES})
 
 IF (APPLE)
 set(indisxwheel_SRCS
@@ -64,17 +63,18 @@ set(indisxao_SRCS
 add_executable(indi_sx_ao ${indisxao_SRCS})
 target_link_libraries(indi_sx_ao ${INDI_DRIVER_LIBRARIES})
 
-set(test_SRCS
-   ${CMAKE_SOURCE_DIR}/test.cpp
+set(sx_ccd_test_SRCS
+   ${CMAKE_SOURCE_DIR}/sxccdtest.cpp
    ${CMAKE_SOURCE_DIR}/sxccdusb.cpp
    )
 
-add_executable(test ${test_SRCS})
-target_link_libraries(test ${LIBUSB_LIBRARIES})
+add_executable(sx_ccd_test ${sx_ccd_test_SRCS})
+target_link_libraries(sx_ccd_test ${LIBUSB_1_LIBRARIES})
 
 install(TARGETS indi_sx_ccd RUNTIME DESTINATION bin)
 install(TARGETS indi_sx_wheel RUNTIME DESTINATION bin)
 install(TARGETS indi_sx_ao RUNTIME DESTINATION bin)
+install(TARGETS sx_ccd_test RUNTIME DESTINATION bin)
 install(FILES indi_sx.xml DESTINATION ${INDI_DATA_DIR})
 
 set (CPACK_PACKAGE_NAME "sxccd")

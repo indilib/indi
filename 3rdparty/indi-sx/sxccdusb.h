@@ -6,7 +6,7 @@
   All rights reserved.
 
   Changes for INDI project by Peter Polakovic
-  Copyright (c) 2012 Cloudmakers, s. r. o.
+  Copyright (c) 2012-2013 Cloudmakers, s. r. o.
   All Rights Reserved.
 
   Permission is hereby granted, free of charge, to any person obtaining a
@@ -38,7 +38,7 @@
 #ifndef SXCCDUSB_H_
 #define SXCCDUSB_H_
 
-#include <usb.h>
+#include <libusb-1.0/libusb.h>
 
 /*
  * CCD color representation.
@@ -109,8 +109,8 @@
  * libusb types abstraction.
  */
 
-#define DEVICE struct usb_device *
-#define HANDLE usb_dev_handle *
+#define DEVICE libusb_device *
+#define HANDLE libusb_device_handle *
 
 /*
  * Structure to hold camera information.
@@ -134,9 +134,10 @@ struct t_sxccd_params {
 /*
  * Prototypes.
  */
-int sxList(DEVICE *sxDevices, const char **names);
+int sxList(DEVICE *sxDevices, const char **names, int maxCount);
 int sxOpen(HANDLE *sxHandles);
-void sxClose(HANDLE sxHandle);
+int sxOpen(DEVICE sxDevice, HANDLE *sxHandle);
+void sxClose(HANDLE *sxHandle);
 unsigned short sxGetCameraModel(HANDLE sxHandle);
 unsigned long sxGetFirmwareVersion(HANDLE sxHandle);
 unsigned short sxGetBuildNumber(HANDLE sxHandle);
@@ -158,5 +159,6 @@ int sxReadSerialPort(HANDLE sxHandle, unsigned short portIndex, unsigned short c
 int sxReadEEPROM(HANDLE sxHandle, unsigned short address, unsigned short count, char *data);
 int sxSetCooler(HANDLE sxHandle, unsigned char SetStatus, unsigned short SetTemp, unsigned char *RetStatus, unsigned short *RetTemp);
 bool sxIsInterlaced(short model);
+bool sxIsColor(short model);
 
 #endif /* SXCCDUSB_H_ */

@@ -287,13 +287,13 @@
 3rdparty/indi-sx/sxao.h -text svneol=unset#text/plain
 3rdparty/indi-sx/sxccd.cpp -text
 3rdparty/indi-sx/sxccd.h -text
+3rdparty/indi-sx/sxccdtest.cpp -text
 3rdparty/indi-sx/sxccdusb.cpp -text
 3rdparty/indi-sx/sxccdusb.h -text
 3rdparty/indi-sx/sxconfig.h -text
 3rdparty/indi-sx/sxconfig.h.in -text
 3rdparty/indi-sx/sxwheel.cpp -text svneol=unset#text/plain
 3rdparty/indi-sx/sxwheel.h -text svneol=unset#text/plain
-3rdparty/indi-sx/test.cpp -text
 3rdparty/indi-tess/CMakeLists.txt -text
 3rdparty/indi-tess/README -text
 3rdparty/indi-tess/cmake_modules/FindINDI.cmake -text
