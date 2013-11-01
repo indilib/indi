@@ -17,6 +17,7 @@
     2013-10-20: Fixed a few bugs and init/update properties issue (Jasem Mutlaq)
     2013-10-24: Use updateTime from new INDI framework (Jasem Mutlaq)
     2013-10-31: Added support for joysticks (Jasem Mutlaq)
+    2013-11-01: Fixed issues with logger and Skywatcher's readout for InquireHighSpeedRatio.
 */
 
 /* TODO */
@@ -459,12 +460,12 @@ bool EQMod::updateProperties()
 	  deleteProperty(TrackRatesNP->name);
 	  deleteProperty(HorizontalCoordNP->name);
 	  deleteProperty(PierSideSP->name);
-	  //deleteProperty(AbortMotionSP->name);
 	  deleteProperty(StandardSyncNP->name);
 	  deleteProperty(StandardSyncPointNP->name);
 	  deleteProperty(SyncPolarAlignNP->name);
 	  deleteProperty(SyncManageSP->name);
       deleteProperty(UseJoystickSP->name);
+      deleteProperty(JoystickSettingTP->name);
 	  MountInformationTP=NULL;
 	} 
       }

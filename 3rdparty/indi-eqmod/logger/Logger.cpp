@@ -160,25 +160,42 @@ bool Logger::updateProperties(bool debugenable, INDI::DefaultDevice *device)
 
 bool Logger::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
+    int debug_level=0, log_level=0, bitmask=0;
   if(strcmp(name,"DEBUG_LEVEL")==0)
     {  
       ISwitch *sw;
       IUUpdateSwitch(&DebugLevelSP,states,names,n);
       sw=IUFindOnSwitch(&DebugLevelSP);
+      if (sw == NULL)
+      {
+          DebugLevelSP.s=IPS_IDLE;
+          IDSetSwitch(&DebugLevelSP,NULL);
+          screenVerbosityLevel_ = 0;
+          #ifndef WITH_LOGGER
+            level = 0;
+          #endif
+          return true;
+      }
+
+      for (int i=0; i < DebugLevelSP.nsp; i++)
+      {
+          sw = &DebugLevelSP.sp[i];
+          bitmask = *((unsigned int *)sw->aux);
+          if (sw->s == ISS_ON)
+          {
+            debug_level = i;
+            screenVerbosityLevel_ |= bitmask;
+          }
+          else
+            screenVerbosityLevel_ &= ~bitmask;
+
+      }
+
 #ifndef WITH_LOGGER
-#ifdef WITH_NOFMANY
-      level ^= *((unsigned int *)sw->aux);
-#else
-      level = *((unsigned int *)sw->aux);
+      level = screenVerbosityLevel_;
 #endif
-#else
-#ifdef WITH_NOFMANY
-      screenVerbosityLevel_ ^= *((unsigned int *)sw->aux);
-#else
-      screenVerbosityLevel_ = *((unsigned int *)sw->aux);
-#endif
-#endif
-      DEBUGFDEVICE(dev, Logger::DBG_DEBUG, "Toggle Debug Level -- %s", sw->label);
+
+      DEBUGFDEVICE(dev, Logger::DBG_DEBUG, "Toggle Debug Level -- %s", DebugLevelSInit[debug_level].label);
       DebugLevelSP.s=IPS_IDLE;
       IDSetSwitch(&DebugLevelSP,NULL);
       return true;
@@ -189,12 +206,28 @@ bool Logger::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
       ISwitch *sw;
       IUUpdateSwitch(&LoggingLevelSP,states,names,n);
       sw=IUFindOnSwitch(&LoggingLevelSP);
-#ifdef WITH_NOFMANY
-      fileVerbosityLevel_ ^= *((unsigned int *)sw->aux);
-#else
-      fileVerbosityLevel_ = *((unsigned int *)sw->aux);
-#endif
-      DEBUGFDEVICE(dev, Logger::DBG_DEBUG, "Toggle Logging Level -- %s", sw->label);
+      if (sw == NULL)
+      {
+          fileVerbosityLevel_ =0;
+          LoggingLevelSP.s=IPS_IDLE;
+          IDSetSwitch(&LoggingLevelSP,NULL);
+          return true;
+      }
+
+      for (int i=0; i < LoggingLevelSP.nsp; i++)
+      {
+          sw = &LoggingLevelSP.sp[i];
+          bitmask = *((unsigned int *)sw->aux);
+          if (sw->s == ISS_ON)
+          {
+            log_level = i;
+            fileVerbosityLevel_ |= bitmask;
+          }
+          else
+              fileVerbosityLevel_ &= ~bitmask;
+      }
+
+      DEBUGFDEVICE(dev, Logger::DBG_DEBUG, "Toggle Logging Level -- %s", LoggingLevelSInit[log_level].label);
       LoggingLevelSP.s=IPS_IDLE;
       IDSetSwitch(&LoggingLevelSP,NULL);
       return true;
@@ -288,7 +321,7 @@ void Logger::configure (const std::string&	outputFile,
 		}
 
 		// Open a new stream, if needed
-		if (configuration&file_on)
+        if (configuration&file_on)
 			out_.open(logFile_.c_str(), std::ios::app);
 
 		configuration_ = configuration;

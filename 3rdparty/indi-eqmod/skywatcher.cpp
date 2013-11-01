@@ -377,7 +377,8 @@ void Skywatcher::InquireRAEncoderInfo(INumberVectorProperty *encoderNP) throw (E
   // Highspeed Ratio
   dispatch_command(InquireHighSpeedRatio, Axis1, NULL);
   read_eqmod();
-  RAHighspeedRatio=Revu24str2long(response+1);
+  //RAHighspeedRatio=Revu24str2long(response+1);
+  RAHighspeedRatio=Highstr2long(response+1);
   
   steppersvalues[2]=(double)RAHighspeedRatio;
   // should test this is ok
@@ -418,7 +419,8 @@ void Skywatcher::InquireDEEncoderInfo(INumberVectorProperty *encoderNP) throw (E
   // Highspeed Ratio
   dispatch_command(InquireHighSpeedRatio, Axis2, NULL);
   read_eqmod();
-  DEHighspeedRatio=Revu24str2long(response+1);
+  //DEHighspeedRatio=Revu24str2long(response+1);
+  DEHighspeedRatio=Highstr2long(response+1);
   steppersvalues[2]=(double)DEHighspeedRatio;
   // should test this is ok
   IUUpdateNumber(encoderNP, steppersvalues, (char **)steppersnames, 3);
@@ -518,7 +520,9 @@ void Skywatcher::SlewDE(double rate) throw (EQModError)
     }
     //}
   period=(long)(((SKYWATCHER_STELLAR_DAY * (double)DEStepsWorm) / (double)DESteps360) / absrate);
-  //IDLog("Slewing DE at %.2f %.2f %x %f\n", rate, absrate, period, (((SKYWATCHER_STELLAR_DAY * (double)RAStepsWorm) / (double)RASteps360) / absrate));
+
+  DEBUGF(Logger::DBG_DEBUG, "Slewing DE at %.2f %.2f %x %f\n", rate, absrate, period, (((SKYWATCHER_STELLAR_DAY * (double)RAStepsWorm) / (double)RASteps360) / absrate));
+
   if (rate >= 0.0) newstatus.direction = FORWARD; else newstatus.direction = BACKWARD;
   newstatus.slewmode=SLEW;
   if (useHighspeed) newstatus.speedmode = HIGHSPEED; else newstatus.speedmode = LOWSPEED;
@@ -892,6 +896,13 @@ unsigned long Skywatcher::Revu24str2long(char *s) {
    res|=HEX(s[3]); res <<= 4;
    res|=HEX(s[0]); res <<= 4;
    res|=HEX(s[1]); 
+   return res;
+}
+
+unsigned long Skywatcher::Highstr2long(char *s) {
+   unsigned long res = 0;
+   res|=HEX(s[0]); res <<= 4;
+   res|=HEX(s[1]);
    return res;
 }
 

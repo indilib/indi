@@ -156,7 +156,9 @@ public:
     bool dispatch_command(SkywatcherCommand cmd, SkywatcherAxis axis, char *arg)  throw (EQModError);
 
     unsigned long Revu24str2long(char *);
+    unsigned long Highstr2long(char *);
     void long2Revu24str(unsigned long ,char *);
+
     double get_min_rate();
     double get_max_rate();
     bool isDebug();
