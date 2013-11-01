@@ -188,7 +188,8 @@ SXCCD::SXCCD(DEVICE device, const char *name) {
 
 SXCCD::~SXCCD() {
   TRACE(fprintf(stderr, "-> SXCCD::~SXCCD\n"));
-  sxClose(handle);
+  if (handle)
+	  sxClose(handle);
   TRACE(fprintf(stderr, "<- SXCCD::~SXCCD\n"));
 }
 

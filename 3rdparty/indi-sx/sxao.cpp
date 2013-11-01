@@ -184,11 +184,11 @@ bool SXAO::initProperties() {
 
   IUFillNumber(&AONS[0], "AO_N", "North (steps)", "%d", 0, 80, 1, 0);
   IUFillNumber(&AONS[1], "AO_S", "South (steps)", "%d", 0, 80, 1, 0);
-  IUFillNumberVector(&AONSP, AONS, 2, getDeviceName(), "AO_NS", "AO Tilt North/South", GUIDE_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+  IUFillNumberVector(&AONSNP, AONS, 2, getDeviceName(), "AO_NS", "AO Tilt North/South", GUIDE_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
-  IUFillNumber(&AOEW[0], "AO_E", "East (steps)", "%d", 0, 80, 1, 0);
-  IUFillNumber(&AOEW[1], "AO_W", "West (steps)", "%d", 0, 80, 1, 0);
-  IUFillNumberVector(&AOEWP, AOEW, 2, getDeviceName(), "AO_WE", "AO Tilt East/West", GUIDE_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+  IUFillNumber(&AOWE[0], "AO_E", "East (steps)", "%d", 0, 80, 1, 0);
+  IUFillNumber(&AOWE[1], "AO_W", "West (steps)", "%d", 0, 80, 1, 0);
+  IUFillNumberVector(&AOWENP, AOWE, 2, getDeviceName(), "AO_WE", "AO Tilt East/West", GUIDE_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
   IUFillSwitch(&Center[0], "CENTER", "Center", ISS_OFF);
   IUFillSwitch(&Center[1], "UNJAM", "Unjam", ISS_OFF);
@@ -204,16 +204,16 @@ bool SXAO::updateProperties() {
   INDI::DefaultDevice::updateProperties();
 
   if (isConnected()) {
-    defineNumber (&GuideNSP);
-    defineNumber (&GuideEWP);
-    defineNumber(&AONSP);
-    defineNumber(&AOEWP);
+    defineNumber (&GuideNSNP);
+    defineNumber (&GuideWENP);
+    defineNumber(&AONSNP);
+    defineNumber(&AOWENP);
     defineSwitch(&CenterP);
   } else {
-    deleteProperty(GuideNSP.name);
-    deleteProperty(GuideEWP.name);
-    deleteProperty(AONSP.name);
-    deleteProperty(AOEWP.name);
+    deleteProperty(GuideNSNP.name);
+    deleteProperty(GuideWENP.name);
+    deleteProperty(AONSNP.name);
+    deleteProperty(AOWENP.name);
     deleteProperty(CenterP.name);
   }
 
@@ -229,31 +229,31 @@ void SXAO::ISGetProperties(const char *dev) {
 }
 
 bool SXAO::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) {
-  if (strcmp(name, AONSP.name) == 0) {
-    AONSP.s = IPS_BUSY;
-    IUUpdateNumber(&AONSP, values, names, n);
-    IDSetNumber(&AONSP, NULL);
+  if (strcmp(name, AONSNP.name) == 0) {
+    AONSNP.s = IPS_BUSY;
+    IUUpdateNumber(&AONSNP, values, names, n);
+    IDSetNumber(&AONSNP, NULL);
     if (AONS[0].value != 0)
       AONorth(AONS[0].value);
     else if (AONS[1].value != 0)
       AOSouth(AONS[1].value);
     AONS[0].value = 0;
     AONS[1].value = 0;
-    AONSP.s = IPS_OK;
-    IDSetNumber(&AONSP, NULL);
+    AONSNP.s = IPS_OK;
+    IDSetNumber(&AONSNP, NULL);
     return true;
-  } else if (strcmp(name, AOEWP.name) == 0) {
-    AOEWP.s = IPS_BUSY;
-    IUUpdateNumber(&AOEWP, values, names, n);
-    IDSetNumber(&AOEWP, NULL);
-    if (AOEW[0].value != 0)
-      AOEast(AOEW[0].value);
+  } else if (strcmp(name, AOWENP.name) == 0) {
+    AOWENP.s = IPS_BUSY;
+    IUUpdateNumber(&AOWENP, values, names, n);
+    IDSetNumber(&AOWENP, NULL);
+    if (AOWE[0].value != 0)
+      AOEast(AOWE[0].value);
     else
-      AOWest(AOEW[1].value);
-    AOEW[0].value = 0;
-    AOEW[1].value = 0;
-    AOEWP.s = IPS_OK;
-    IDSetNumber(&AOEWP, NULL);
+      AOWest(AOWE[1].value);
+    AOWE[0].value = 0;
+    AOWE[1].value = 0;
+    AOWENP.s = IPS_OK;
+    IDSetNumber(&AOWENP, NULL);
     return true;
   } else
     processGuiderProperties(name, values, names, n);

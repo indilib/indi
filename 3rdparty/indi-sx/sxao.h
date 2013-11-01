@@ -36,9 +36,9 @@ class SXAO: public INDI::DefaultDevice, INDI::GuiderInterface {
     ITextVectorProperty PortTP;
     IText PortT[1];
     INumber AONS[2];
-    INumberVectorProperty AONSP;
-    INumber AOEW[2];
-    INumberVectorProperty AOEWP;
+    INumberVectorProperty AONSNP;
+    INumber AOWE[2];
+    INumberVectorProperty AOWENP;
     ISwitch Center[2];
     ISwitchVectorProperty CenterP;
 
