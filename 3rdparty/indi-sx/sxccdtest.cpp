@@ -47,10 +47,10 @@ struct t_sxccd_params params;
 unsigned short pixels[10*10];
 
 int main() {
-	int i;
-	unsigned int ui;
-	unsigned short us;
-	unsigned long ul;
+  int i;
+  unsigned int ui;
+  unsigned short us;
+  unsigned long ul;
 
   cout << "sx_ccd_test version " << VERSION_MAJOR << "." << VERSION_MINOR << endl << endl;
   n = sxList(devices, names, 20);
@@ -59,7 +59,7 @@ int main() {
   for (int i = 0; i < n; i++) {
     HANDLE handle;
   
-  	cout << "testing " << names[i] << " -----------------------------------" << endl << endl;
+    cout << "testing " << names[i] << " -----------------------------------" << endl << endl;
     
     i = sxOpen(devices[i], &handle);
     cout << "sxOpen() -> " << i << endl << endl;
@@ -85,47 +85,47 @@ int main() {
     cout << "sxSetTimer(900) -> " << i << endl << endl;
 
     while ((i = sxGetTimer(handle))>0) {
-	    cout << "sxGetTimer() -> " << i << endl << endl;
+      cout << "sxGetTimer() -> " << i << endl << endl;
       sleep(1);
     }
-	  cout << "sxGetTimer() -> " << i << endl << endl;
+    cout << "sxGetTimer() -> " << i << endl << endl;
 
     if (params.extra_caps & SXUSB_CAPS_SHUTTER) {
       i = sxSetShutter(handle, 0);
-		  cout << "sxSetShutter(0) -> " << i << endl << endl;
+      cout << "sxSetShutter(0) -> " << i << endl << endl;
       sleep(1);
       i = sxSetShutter(handle, 1);
-		  cout << "sxSetShutter(1) -> " << i << endl << endl;
+      cout << "sxSetShutter(1) -> " << i << endl << endl;
     }
 
     if (params.extra_caps & SXUSB_CAPS_COOLER) {
       unsigned short int temp;
       unsigned char status;
       i = sxSetCooler(handle, 1, (-10 + 273) * 10, &status, &temp);
-		  cout << "sxSetCooler() -> " << i << endl << endl;
+      cout << "sxSetCooler() -> " << i << endl << endl;
     }
 
     i = sxClearPixels(handle, 0, 0);
-		cout << "sxClearPixels() -> " << i << endl << endl;
+    cout << "sxClearPixels() -> " << i << endl << endl;
 
     usleep(1000);
 
     i = sxLatchPixels(handle, 0, 0, 0, 0, 10, 10, 1, 1);
-		cout << "sxLatchPixels() -> " << i << endl << endl;
+    cout << "sxLatchPixels() -> " << i << endl << endl;
 
     i = sxReadPixels(handle, pixels, 10*10);
-		cout << "sxReadPixels() -> " << i << endl << endl;
-		
-		for (int i=0; i<10; i++) {
-			for (int j=0; j<10; j++)
-				cout << pixels[i*10+j] << " ";
-			cout << endl;
-		}
-		cout << endl;
+    cout << "sxReadPixels() -> " << i << endl << endl;
+    
+    for (int i=0; i<10; i++) {
+      for (int j=0; j<10; j++)
+        cout << pixels[i*10+j] << " ";
+      cout << endl;
+    }
+    cout << endl;
 
 
     sxClose(&handle);
-		cout << "sxClose() " << endl << endl;
+    cout << "sxClose() " << endl << endl;
   }
 }
 

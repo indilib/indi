@@ -154,19 +154,19 @@ static struct {
 libusb_context *ctx = NULL;
 
 void log(const char *fmt, ...) {
-	va_list ap;
-	va_start (ap, fmt);
+  va_list ap;
+  va_start (ap, fmt);
   vfprintf (stderr, fmt, ap);
   va_end (ap);
 }
 
 static void init() {
-	if (ctx == NULL) {
-		int rc = libusb_init(&ctx);
-		if (rc < 0) {
-			DEBUG(log("init: libusb_init -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
-			log("Can't initialize libusb\n");
-		}
+  if (ctx == NULL) {
+    int rc = libusb_init(&ctx);
+    if (rc < 0) {
+      DEBUG(log("init: libusb_init -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
+      log("Can't initialize libusb\n");
+    }
   }
 }
 
@@ -181,7 +181,7 @@ bool sxIsInterlaced(short model) {
 }
 
 bool sxIsColor(short model) {
-	return model & 0x80;
+  return model & 0x80;
 }
 
 int sxList(DEVICE *sxDevices, const char **names, int maxCount) {
@@ -191,57 +191,57 @@ int sxList(DEVICE *sxDevices, const char **names, int maxCount) {
   struct libusb_device_descriptor descriptor;
   ssize_t total = libusb_get_device_list(ctx, &usb_devices);
   if (total < 0) {
-	  log("Can't get device list\n");
-	  return 0;
+    log("Can't get device list\n");
+    return 0;
   }
   for (int i = 0; i < total && count < maxCount; i++) {
-  	libusb_device *device = usb_devices[i];
-  	if (!libusb_get_device_descriptor(device, &descriptor)) {
-  		if (descriptor.idVendor == SX_VID) {
-				int pid = descriptor.idProduct;
-				for (int i = 0; SX_PIDS[i].pid; i++) {
-					if (pid == SX_PIDS[i].pid) {
-						DEBUG(log("sxList: '%s' [0x%x, 0x%x] found\n", SX_PIDS[i].name, SX_VID, pid));
-						names[count] = SX_PIDS[i].name;
-						sxDevices[count++] = device;
-						libusb_ref_device(device);
-						break;
-					}
-				}
-			} else if (descriptor.idVendor == SX_USB_VID && descriptor.idProduct == SX_USB_PID) {
+    libusb_device *device = usb_devices[i];
+    if (!libusb_get_device_descriptor(device, &descriptor)) {
+      if (descriptor.idVendor == SX_VID) {
+        int pid = descriptor.idProduct;
+        for (int i = 0; SX_PIDS[i].pid; i++) {
+          if (pid == SX_PIDS[i].pid) {
+            DEBUG(log("sxList: '%s' [0x%x, 0x%x] found\n", SX_PIDS[i].name, SX_VID, pid));
+            names[count] = SX_PIDS[i].name;
+            sxDevices[count++] = device;
+            libusb_ref_device(device);
+            break;
+          }
+        }
+      } else if (descriptor.idVendor == SX_USB_VID && descriptor.idProduct == SX_USB_PID) {
         TRACE(log("sxList: '%s' [0x%x, 0x%x] found\n", SX_USB_NAME, SX_USB_VID, SX_USB_PID));
         names[count]=SX_USB_NAME;
         sxDevices[count++] = device;
-				libusb_ref_device(device);
+        libusb_ref_device(device);
       }
     }
-	}
- 	libusb_free_device_list(usb_devices, 1);
+  }
+   libusb_free_device_list(usb_devices, 1);
   return count;
 }
 
 int sxOpen(DEVICE sxDevice, HANDLE *sxHandle) {
   init();
-	int rc = libusb_open(sxDevice, sxHandle);
-	DEBUG(log("sxOpen: libusb_open -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
-	if (rc >= 0) {
-		if (libusb_kernel_driver_active(*sxHandle, 0) == 1) {
-			rc = libusb_detach_kernel_driver(*sxHandle, 0);
-			DEBUG(log("sxOpen: libusb_detach_kernel_driver -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
-		}    
-//		if (rc >= 0) {
-//			rc = libusb_set_configuration(*sxHandle, 1);
-//			DEBUG(log("sxOpen: libusb_set_configuration -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
-//		}
-		if (rc >= 0) {
+  int rc = libusb_open(sxDevice, sxHandle);
+  DEBUG(log("sxOpen: libusb_open -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
+  if (rc >= 0) {
+    if (libusb_kernel_driver_active(*sxHandle, 0) == 1) {
+      rc = libusb_detach_kernel_driver(*sxHandle, 0);
+      DEBUG(log("sxOpen: libusb_detach_kernel_driver -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
+    }    
+//    if (rc >= 0) {
+//      rc = libusb_set_configuration(*sxHandle, 1);
+//      DEBUG(log("sxOpen: libusb_set_configuration -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
+//    }
+    if (rc >= 0) {
 #ifdef __APPLE__
-			rc = libusb_claim_interface(*sxHandle, 0);
+      rc = libusb_claim_interface(*sxHandle, 0);
 #else
-			rc = libusb_claim_interface(*sxHandle, 1);
+      rc = libusb_claim_interface(*sxHandle, 1);
 #endif
-			DEBUG(log("sxOpen: libusb_claim_interface -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
-		}
-	}
+      DEBUG(log("sxOpen: libusb_claim_interface -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
+    }
+  }
   return rc >= 0;
 }
 
@@ -254,23 +254,23 @@ int sxOpen(HANDLE *sxHandles) {
   int result = 0;
   int rc = 0;
   for (int i = 0; rc >=0 && i < count; i++) {
-  	HANDLE handle;
-  	rc = sxOpen(devices[i], &handle);
-		if (rc >= 0) {
-			sxHandles[result++] = handle;
-		}
-		if (rc < 0)
-			return rc;
+    HANDLE handle;
+    rc = sxOpen(devices[i], &handle);
+    if (rc >= 0) {
+      sxHandles[result++] = handle;
+    }
+    if (rc < 0)
+      return rc;
   }
   return result;
 }
 
 void sxClose(HANDLE *sxHandle) {
-	int rc;
-//	rc = libusb_release_interface(*sxHandle, 0);
-//	DEBUG(log("sxClose: libusb_release_interface -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
-	libusb_close(*sxHandle);
-	*sxHandle = NULL;
+  int rc;
+//  rc = libusb_release_interface(*sxHandle, 0);
+//  DEBUG(log("sxClose: libusb_release_interface -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
+  libusb_close(*sxHandle);
+  *sxHandle = NULL;
   DEBUG(log("sxClose: libusb_close\n"));
 }
 
@@ -286,8 +286,8 @@ int sxReset(HANDLE sxHandle) {
   setup_data[USB_REQ_LENGTH_L] = 0;
   setup_data[USB_REQ_LENGTH_H] = 0;
   int rc = libusb_bulk_transfer(sxHandle, BULK_OUT, setup_data, 8, &transferred, BULK_COMMAND_TIMEOUT);
-	DEBUG(log("sxReset: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
-	usleep(1000);
+  DEBUG(log("sxReset: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
+  usleep(1000);
   return rc >= 0;
 }
 
@@ -303,10 +303,10 @@ unsigned short sxGetCameraModel(HANDLE sxHandle) {
   setup_data[USB_REQ_LENGTH_L] = 2;
   setup_data[USB_REQ_LENGTH_H] = 0;
   int rc = libusb_bulk_transfer(sxHandle, BULK_OUT, setup_data, 8, &transferred, BULK_COMMAND_TIMEOUT);
-	DEBUG(log("sxGetCameraModel: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
+  DEBUG(log("sxGetCameraModel: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
   if (transferred == 8) {
     rc = libusb_bulk_transfer(sxHandle, BULK_IN, setup_data, 2, &transferred, BULK_COMMAND_TIMEOUT);
-		DEBUG(log("sxGetCameraModel: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
+    DEBUG(log("sxGetCameraModel: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
     if (transferred == 2) {
       int result=setup_data[0] | (setup_data[1] << 8);
       DEBUG(log("sxGetCameraModel: %s %s model %d\n", sxIsInterlaced(result) ? "INTERLACED" : "NON-INTERLACED", sxIsColor(result) ? "COLOR" : "MONO", result & 0x1F));
@@ -328,10 +328,10 @@ unsigned long sxGetFirmwareVersion(HANDLE sxHandle) {
   setup_data[USB_REQ_LENGTH_L] = 4;
   setup_data[USB_REQ_LENGTH_H] = 0;
   int rc = libusb_bulk_transfer(sxHandle, BULK_OUT, setup_data, 8, &transferred, BULK_COMMAND_TIMEOUT);
-	DEBUG(log("sxGetFirmwareVersion: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
+  DEBUG(log("sxGetFirmwareVersion: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
   if (transferred == 8) {
     rc = libusb_bulk_transfer(sxHandle, BULK_IN, setup_data, 4, &transferred, BULK_COMMAND_TIMEOUT);
-		DEBUG(log("sxGetFirmwareVersion: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
+    DEBUG(log("sxGetFirmwareVersion: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
     if (transferred) {
       unsigned long result=((unsigned long)setup_data[0] | ((unsigned long)setup_data[1] << 8) | ((unsigned long)setup_data[2] << 16) | ((unsigned long)setup_data[3] << 24));
       return result;
@@ -352,10 +352,10 @@ unsigned short sxGetBuildNumber(HANDLE sxHandle) {
   setup_data[USB_REQ_LENGTH_L] = 4;
   setup_data[USB_REQ_LENGTH_H] = 0;
   int rc = libusb_bulk_transfer(sxHandle, BULK_OUT, setup_data, 8, &transferred, BULK_COMMAND_TIMEOUT);
-	DEBUG(log("sxGetBuildNumber: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
+  DEBUG(log("sxGetBuildNumber: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
   if (transferred == 8) {
     rc = libusb_bulk_transfer(sxHandle, BULK_IN, setup_data, 2, &transferred, BULK_COMMAND_TIMEOUT);
-		DEBUG(log("sxGetBuildNumber: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
+    DEBUG(log("sxGetBuildNumber: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
     if (transferred == 2) {
       int result=setup_data[0] | (setup_data[1] << 8);
       return result;
@@ -376,10 +376,10 @@ int sxGetCameraParams(HANDLE sxHandle, unsigned short camIndex, struct t_sxccd_p
   setup_data[USB_REQ_LENGTH_L] = 17;
   setup_data[USB_REQ_LENGTH_H] = 0;
   int rc = libusb_bulk_transfer(sxHandle, BULK_OUT, setup_data, 8, &transferred, BULK_COMMAND_TIMEOUT);
-	DEBUG(log("sxGetCameraParams: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
+  DEBUG(log("sxGetCameraParams: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
   if (transferred == 8) {
     rc = libusb_bulk_transfer(sxHandle, BULK_IN, setup_data, 17, &transferred, BULK_COMMAND_TIMEOUT);
-		DEBUG(log("sxGetCameraParams: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
+    DEBUG(log("sxGetCameraParams: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
     if (transferred == 17) {
       params->hfront_porch = setup_data[0];
       params->hback_porch = setup_data[1];
@@ -413,10 +413,10 @@ int sxSetShutter(HANDLE sxHandle, unsigned short state) {
   setup_data[USB_REQ_LENGTH_L] = 0;
   setup_data[USB_REQ_LENGTH_H] = 0;
   int rc = libusb_bulk_transfer(sxHandle, BULK_OUT, setup_data, 8, &transferred, BULK_COMMAND_TIMEOUT);
-	DEBUG(log("sxSetShutter: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
+  DEBUG(log("sxSetShutter: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
   if (transferred == 8) {
     rc = libusb_bulk_transfer(sxHandle, BULK_IN, setup_data, 2, &transferred, BULK_COMMAND_TIMEOUT);
-		DEBUG(log("sxSetShutter: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
+    DEBUG(log("sxSetShutter: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
     if (transferred == 2) {
       int result=setup_data[0] | (setup_data[1] << 8);
       return result;
@@ -441,7 +441,7 @@ int sxSetTimer(HANDLE sxHandle, unsigned long msec) {
   setup_data[USB_REQ_DATA + 2] = (unsigned char)(msec >> 16);
   setup_data[USB_REQ_DATA + 3] = (unsigned char)(msec >> 24);
   int rc = libusb_bulk_transfer(sxHandle, BULK_OUT, setup_data, 12, &transferred, BULK_COMMAND_TIMEOUT);
-	DEBUG(log("sxSetTimer: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
+  DEBUG(log("sxSetTimer: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
   return rc >= 0;
 }
 
@@ -457,10 +457,10 @@ unsigned long sxGetTimer(HANDLE sxHandle) {
   setup_data[USB_REQ_LENGTH_L] = 4;
   setup_data[USB_REQ_LENGTH_H] = 0;
   int rc = libusb_bulk_transfer(sxHandle, BULK_OUT, setup_data, 8, &transferred, BULK_COMMAND_TIMEOUT);
-	DEBUG(log("sxGetTimer: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
+  DEBUG(log("sxGetTimer: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
   if (transferred == 8) {
     rc = libusb_bulk_transfer(sxHandle, BULK_IN, setup_data, 4, &transferred, BULK_COMMAND_TIMEOUT);
-		DEBUG(log("sxGetTimer: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
+    DEBUG(log("sxGetTimer: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
     if (transferred == 4) {
       unsigned long result=((unsigned long)setup_data[0] | ((unsigned long)setup_data[1] << 8) | ((unsigned long)setup_data[2] << 16) | ((unsigned long)setup_data[3] << 24));
       return result;
@@ -481,10 +481,10 @@ int sxSetCooler(HANDLE sxHandle, unsigned char setStatus, unsigned short setTemp
   setup_data[USB_REQ_LENGTH_L] = 0;
   setup_data[USB_REQ_LENGTH_H] = 0;
   int rc = libusb_bulk_transfer(sxHandle, BULK_OUT, setup_data, 8, &transferred, BULK_COMMAND_TIMEOUT);
-	DEBUG(log("sxSetCooler: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
+  DEBUG(log("sxSetCooler: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
   if (transferred == 8) {
     rc = libusb_bulk_transfer(sxHandle, BULK_IN, setup_data, 3, &transferred, BULK_COMMAND_TIMEOUT);
-		DEBUG(log("sxSetCooler: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
+    DEBUG(log("sxSetCooler: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
     if (transferred) {
       *retTemp = (setup_data[1] * 256) + setup_data[0];
       if (setup_data[2]) {
@@ -513,7 +513,7 @@ int sxClearPixels(HANDLE sxHandle, unsigned short flags, unsigned short camIndex
   setup_data[USB_REQ_LENGTH_L] = 0;
   setup_data[USB_REQ_LENGTH_H] = 0;
   int rc = libusb_bulk_transfer(sxHandle, BULK_OUT, setup_data, 8, &transferred, BULK_COMMAND_TIMEOUT);
-	DEBUG(log("sxClearPixels: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
+  DEBUG(log("sxClearPixels: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
   return rc >= 0;
 }
 
@@ -539,7 +539,7 @@ int sxLatchPixels(HANDLE sxHandle, unsigned short flags, unsigned short camIndex
   setup_data[USB_REQ_DATA + 8] = (unsigned char)xbin;
   setup_data[USB_REQ_DATA + 9] = (unsigned char)ybin;
   int rc = libusb_bulk_transfer(sxHandle, BULK_OUT, setup_data, 18, &transferred, BULK_COMMAND_TIMEOUT);
-	DEBUG(log("sxLatchPixels: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
+  DEBUG(log("sxLatchPixels: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
   return rc >= 0;
 }
 
@@ -569,7 +569,7 @@ int sxExposePixels(HANDLE sxHandle, unsigned short flags, unsigned short camInde
   setup_data[USB_REQ_DATA + 12] = (unsigned char)(msec >> 16);
   setup_data[USB_REQ_DATA + 13] = (unsigned char)(msec >> 24);
   int rc = libusb_bulk_transfer(sxHandle, BULK_OUT, setup_data, 22, &transferred, BULK_COMMAND_TIMEOUT);
-	DEBUG(log("sxExposePixels: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
+  DEBUG(log("sxExposePixels: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
   return rc >= 0;
 }
 
@@ -599,7 +599,7 @@ int sxExposePixelsGated(HANDLE sxHandle, unsigned short flags, unsigned short ca
   setup_data[USB_REQ_DATA + 12] = (unsigned char)(msec >> 16);
   setup_data[USB_REQ_DATA + 13] = (unsigned char)(msec >> 24);
   int rc = libusb_bulk_transfer(sxHandle, BULK_OUT, setup_data, 22, &transferred, BULK_COMMAND_TIMEOUT);
-	DEBUG(log("sxExposePixelsGated: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
+  DEBUG(log("sxExposePixelsGated: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
   return rc >= 0;
 }
 
@@ -610,7 +610,7 @@ int sxReadPixels(HANDLE sxHandle, unsigned short *pixels, unsigned long count) {
   int rc=0;
   while (read < count && rc >= 0) {
     rc = libusb_bulk_transfer(sxHandle, BULK_IN, (unsigned char *)pixels + read, count - read, &transferred, BULK_DATA_TIMEOUT);
-		DEBUG(log("sxReadPixels: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
+    DEBUG(log("sxReadPixels: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
     if (transferred >= 0) {
       read+=transferred;
       usleep(50);
@@ -631,12 +631,12 @@ int sxSetSTAR2000(HANDLE sxHandle, char star2k) {
   setup_data[USB_REQ_LENGTH_L] = 0;
   setup_data[USB_REQ_LENGTH_H] = 0;
   int rc = libusb_bulk_transfer(sxHandle, BULK_OUT, setup_data, 8, &transferred, BULK_COMMAND_TIMEOUT);
-	DEBUG(log("sxSetSTAR2000: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
+  DEBUG(log("sxSetSTAR2000: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
   return rc >= 0;
 }
 
 int sxSetSerialPort(HANDLE sxHandle, unsigned short portIndex, unsigned short property, unsigned short value) {
-	log("sxSetSerialPort is not implemented");
+  log("sxSetSerialPort is not implemented");
   return 0;
 }
 
@@ -652,10 +652,10 @@ unsigned short sxGetSerialPort(HANDLE sxHandle, unsigned short portIndex, unsign
   setup_data[USB_REQ_LENGTH_L] = 2;
   setup_data[USB_REQ_LENGTH_H] = 0;
   int rc = libusb_bulk_transfer(sxHandle, BULK_OUT, setup_data, 8, &transferred, BULK_COMMAND_TIMEOUT);
-	DEBUG(log("sxGetSerialPort: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
+  DEBUG(log("sxGetSerialPort: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
   if (transferred == 8) {
     rc = libusb_bulk_transfer(sxHandle, BULK_IN, setup_data, 2, &transferred, BULK_COMMAND_TIMEOUT);
-		DEBUG(log("sxGetSerialPort: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
+    DEBUG(log("sxGetSerialPort: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
     if (transferred) {
       int result=setup_data[0] | (setup_data[1] << 8);
       return result;
@@ -677,7 +677,7 @@ int sxWriteSerialPort(HANDLE sxHandle, unsigned short portIndex, unsigned short 
   setup_data[USB_REQ_LENGTH_H] = 0;
   memcpy(setup_data + USB_REQ_DATA, data, count);
   int rc = libusb_bulk_transfer(sxHandle, BULK_OUT, setup_data, USB_REQ_DATA + count, &transferred, BULK_COMMAND_TIMEOUT);
-	DEBUG(log("sxWriteSerialPort: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
+  DEBUG(log("sxWriteSerialPort: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
   return rc >= 0;
 }
 
@@ -694,10 +694,10 @@ int sxReadSerialPort(HANDLE sxHandle, unsigned short portIndex, unsigned short c
   setup_data[USB_REQ_LENGTH_L] = (unsigned char)count;
   setup_data[USB_REQ_LENGTH_H] = 0;
   int rc = libusb_bulk_transfer(sxHandle, BULK_OUT, setup_data, 8, &transferred, BULK_COMMAND_TIMEOUT);
-	DEBUG(log("sxReadSerialPort: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
+  DEBUG(log("sxReadSerialPort: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
   if (transferred == 8) {
     rc = libusb_bulk_transfer(sxHandle, BULK_IN, (unsigned char *)data, count, &transferred, BULK_COMMAND_TIMEOUT);
-		DEBUG(log("sxReadSerialPort: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
+    DEBUG(log("sxReadSerialPort: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
   }
   return rc >= 0;
 }
@@ -715,10 +715,10 @@ int sxReadEEPROM(HANDLE sxHandle, unsigned short address, unsigned short count, 
   setup_data[USB_REQ_LENGTH_L] = (unsigned char)count;
   setup_data[USB_REQ_LENGTH_H] = 0;
   int rc = libusb_bulk_transfer(sxHandle, BULK_OUT, setup_data, 8, &transferred, BULK_COMMAND_TIMEOUT);
-	DEBUG(log("sxReadEEPROM: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
+  DEBUG(log("sxReadEEPROM: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
   if (transferred == 8) {
     rc = libusb_bulk_transfer(sxHandle, BULK_IN, (unsigned char *)data, count, &transferred, BULK_COMMAND_TIMEOUT);
-		DEBUG(log("sxReadEEPROM: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
+    DEBUG(log("sxReadEEPROM: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
   }
   return rc >= 0;
 }

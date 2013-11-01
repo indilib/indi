@@ -172,7 +172,7 @@ SXCCD::SXCCD(DEVICE device, const char *name) {
 
 SXCCD::~SXCCD() {
   if (handle)
-	  sxClose(&handle);
+    sxClose(&handle);
 }
 
 const char *SXCCD::getDefaultName() {
@@ -235,9 +235,9 @@ bool SXCCD::updateCCDBin(int hor, int ver) {
 bool SXCCD::Connect() {
   if (handle == NULL) {
     int rc = sxOpen(device, &handle);
-		if (rc >= 0) {
-			getCameraParams();
-			return true;
+    if (rc >= 0) {
+      getCameraParams();
+      return true;
     }
   }
   return false;
