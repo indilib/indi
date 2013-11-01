@@ -6,7 +6,7 @@ This package provides the INDI drivers for SX CCDs, SX wheel and SX Active Optic
 Requirtments
 ============
 
-+ libindi0 >= v0.6 (http://indi.sf.net)
++ libindi0 >= v0.9.7 (http://indi.sf.net)
 
 	You need to install both libindi0 and libindi0-devel to build this package.
 	
@@ -14,13 +14,9 @@ Requirtments
 
 	libcfitsio3 is required to compile support for FITS.
 	
-+ libusb
++ libusb-1.0 >= 1.0.9
 
-	libusb-dev is required (for CCD driver).
-	
-+ libusb-1.0
-
-  libusb-1.0-dev is required (for wheel driver).
+  libusb-1.0-dev is required.
   
 Installation
 ============
