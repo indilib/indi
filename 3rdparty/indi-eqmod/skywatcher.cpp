@@ -901,7 +901,7 @@ unsigned long Skywatcher::Revu24str2long(char *s) {
 
 unsigned long Skywatcher::Highstr2long(char *s) {
    unsigned long res = 0;
-   res|=HEX(s[0]); res <<= 4;
+   res =HEX(s[0]); res <<= 4;
    res|=HEX(s[1]);
    return res;
 }
