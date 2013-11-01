@@ -170,6 +170,14 @@ static void init() {
   }
 }
 
+#ifdef NO_ERROR_NAME
+static char *libusb_error_name(int rc) {
+	static char buffer[30];
+	sprintf(buffer, "error %d", rc);
+	return buffer;
+}
+#endif
+
 bool sxIsInterlaced(short model) {
   bool interlaced = model & 0x40;
   if (model == 0x84)
@@ -244,7 +252,6 @@ int sxOpen(DEVICE sxDevice, HANDLE *sxHandle) {
   }
   return rc >= 0;
 }
-
 
 int sxOpen(HANDLE *sxHandles) {
   init();
