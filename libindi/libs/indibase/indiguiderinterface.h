@@ -27,7 +27,10 @@
  * \class INDI::GuiderInterface
    \brief Provides interface to implement guider (ST4) port functionality.
 
-   initGuiderProperties() must be called before any other function to initilize the guider properties.
+   \e IMPORTANT: initGuiderProperties() must be called before any other function to initilize the guider properties.
+
+   \e IMPORATNT: processGuiderProperties() must be called in your driver's ISNewNumber(..) function. processGuiderProperties() will call the guide functions
+              GuideXXXX functions accordingly to the driver.
 
 \author Jasem Mutlaq
 */

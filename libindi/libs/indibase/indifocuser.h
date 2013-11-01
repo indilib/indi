@@ -1,5 +1,5 @@
 /*******************************************************************************
-  Copyright(c) 2011 Gerry Rozema. All rights reserved.
+  Copyright(c) 2013 Jasem Mutlaq. All rights reserved.
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
@@ -25,8 +25,11 @@
  * \class INDI::Focuser
    \brief Class to provide general functionality of a focuser device.
 
+   Both relative and absolute focuser supported. Furthermore, if no position feedback is available from the focuser,
+   an open-loop control is possible using timers, speed presets, and direction of motion.
    Developers need to subclass INDI::Focuser to implement any driver for focusers within INDI.
 
+\author Jasem Mutlaq
 \author Gerry Rozema
 */
 class INDI::Focuser : public INDI::DefaultDevice

@@ -53,6 +53,10 @@ INDI is intended for developers who seek a scalable API for device control and a
 <li><a href="group__configFunctions.html">Configuration</a></li>
 </ul>
 
+\section Tutorials
+
+INDI Library includes a number of tutorials to illustrate development of INDI drivers. Check out the <a href="examples.html">examples</a> provided with INDI library.
+
 \section Simulators
 
 Simulators provide a great framework to test drivers and equipment alike. INDI Library provides the following simulators:

@@ -30,7 +30,10 @@
    A filter wheel can be an independent device, or an embedded filter wheel within another device (e.g. CCD camera). Child class must implement all the
    pure virtual functions and call SelectFilterDone(int) when selection of a new filter position is complete in the hardware.
 
-   initFilterProperties() must be called before any other function to initilize the filter properties.
+   \e IMPORTANT: initFilterProperties() must be called before any other function to initilize the filter properties.
+
+   \e IMPORTANT: processFilterProperties() must be called in your driver's ISNewNumber() function. processFilterProperties() will call the driver's
+      SelectFilter() accordingly.
 
    \note Filter position starts from 1 and \e not 0
 \author Gerry Rozema, Jasem Mutlaq
@@ -48,8 +51,9 @@ public:
     virtual bool SelectFilter(int position) = 0;
 
     /** \brief Set filter names as defined by the client for each filter position.
-         Filter names should be saved in hardware if possible.
-         \return True if successful, false if supported or failed operation */
+         The desired filter names are stored in FilterNameTP property. Filter names should be saved in hardware if possible.
+         \return True if successful, false if supported or failed operation
+    */
     virtual bool SetFilterNames() = 0;
 
     /** \brief Obtains a list of filter names from the hardware and initilizes the FilterNameTP property. The function should check for the number of filters
@@ -78,8 +82,7 @@ protected:
     void initFilterProperties(const char *deviceName, const char* groupName);
 
     /** \brief Process client request to change filter position. Call this function in the filter wheel
-         implementation class ISNewNumber function. This is a convenience function only, you can process FilterSlotNP
-         in the child class.
+         implementation class ISNewNumber function.
         \param name property name from ISNewNumber();
         \param values values from ISNewNumber().
         \param names names from ISNewNumber();

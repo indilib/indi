@@ -1,5 +1,5 @@
 /*******************************************************************************
-  Copyright(c) 2011 Gerry Rozema. All rights reserved.
+  Copyright(c) 2013 Jasem Mutlaq. All rights reserved.
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
