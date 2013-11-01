@@ -42,7 +42,6 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-
 if (LIBUSB_1_LIBRARIES AND LIBUSB_1_INCLUDE_DIRS)
   # in cache already
   set(LIBUSB_FOUND TRUE)
@@ -86,6 +85,16 @@ else (LIBUSB_1_LIBRARIES AND LIBUSB_1_INCLUDE_DIRS)
 	  message(STATUS " - Includes: ${LIBUSB_1_INCLUDE_DIRS}")
 	  message(STATUS " - Libraries: ${LIBUSB_1_LIBRARIES}")
     endif (NOT USB-1_FIND_QUIETLY)
+    set(CMAKE_REQUIRED_INCLUDES ${LIBUSB_1_INCLUDE_DIRS})
+    set(CMAKE_REQUIRED_LIBRARIES ${LIBUSB_1_LIBRARIES})
+    include (CheckCXXSourceCompiles)
+    check_cxx_source_compiles("#include <libusb-1.0/libusb.h> 
+      int main() { libusb_error_name(0); return 0; }" ERROR_NAME_COMPILE)
+    if (NOT ERROR_NAME_COMPILE)
+      add_definitions("-DNO_ERROR_NAME")
+      message(STATUS " - 1.0.8 or older")
+    endif (NOT ERROR_NAME_COMPILE)
+    
   else (LIBUSB_1_FOUND)
     if (USB-1_FIND_REQUIRED)
       message(FATAL_ERROR "Could not find libusb-1.0. Please install libusb-1.0 along with the development package.")
