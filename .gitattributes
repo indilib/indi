@@ -158,8 +158,6 @@
 3rdparty/indi-eqmod/align/triangulate.h -text
 3rdparty/indi-eqmod/align/triangulate_chull.cpp -text
 3rdparty/indi-eqmod/align/triangulate_chull.h -text
-3rdparty/indi-eqmod/cmake_modules/FindINDI.cmake -text
-3rdparty/indi-eqmod/cmake_modules/FindNova.cmake -text
 3rdparty/indi-eqmod/config.h.cmake -text
 3rdparty/indi-eqmod/eqmod.cpp -text
 3rdparty/indi-eqmod/eqmod.h -text

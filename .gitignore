@@ -1,3 +1,8 @@
+3rdparty/indi-eqmod/*.user*
+3rdparty/indi-eqmod/align/*.user*
+3rdparty/indi-eqmod/align/chull/*.user*
+3rdparty/indi-eqmod/logger/*.user*
+3rdparty/indi-eqmod/simulator/*.user*
 3rdparty/indi-tess/*.user*
 libindi/CMakeLists.txt.user
 libqsi/*.user*
