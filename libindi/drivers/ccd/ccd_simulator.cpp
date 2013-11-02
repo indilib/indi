@@ -440,14 +440,13 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
     if (targetChip->getXRes() == 500)
     {
         targetFocalLength = guider_focallength;
-        ExposureTime = GuideExposureRequest*4;
+        ExposureTime = GuideExposureRequest;
     }
     else
     {
         targetFocalLength = focallength;
         ExposureTime = ExposureRequest;
     }
-
 
     if(ShowStarField)
     {
@@ -463,6 +462,7 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
         double rad;  //  telescope ra in degrees
         double rar;  //  telescope ra in radians
         double decr; //  telescope dec in radians;
+        int nwidth=0, nheight=0;
 
         double timesince;
         time_t now;
@@ -497,9 +497,12 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
         //  for now we cheat
         //  no offset or rotation for and y axis means
         pb=0.0;
-        pc=targetChip->getXRes()/2/targetChip->getBinX();
+        nwidth = (targetChip->getSubW() - targetChip->getSubX()) / targetChip->getBinX();
+        pc=nwidth/2;
         pd=0.0;
-        pf=targetChip->getYRes()/2/targetChip->getBinY();
+
+        nheight = (targetChip->getSubH() - targetChip->getSubY()) / targetChip->getBinY();
+        pf=nheight/2;
         //  and we do a simple scale for x and y locations
         //  based on the focal length and pixel size
         //  focal length in mm, pixels in microns
@@ -699,8 +702,6 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
 
             unsigned short *pt;
 
-            int nwidth  = targetChip->getXRes()/targetChip->getBinX();
-            int nheight = targetChip->getYRes()/targetChip->getBinY();
             pt=(unsigned short int *)targetChip->getFrameBuffer();
 
             for(int y=0; y< nheight; y++)
@@ -712,12 +713,10 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
                     float sx,sy;
                     float vig;
 
-                    sx=targetChip->getXRes()/2/targetChip->getBinX();
-                    sx=sx-x;
-                    sy=targetChip->getYRes()/2/targetChip->getBinY();
-                    sy=sy-y;
+                    sx=nwidth/2-x;
+                    sy=nheight/2-y;
 
-                    vig=targetChip->getXRes()/targetChip->getBinX();
+                    vig=nwidth;
                     vig=vig*ImageScalex;
                     //  need to make this account for actual pixel size
                     dc=sqrt(sx*sx*ImageScalex*ImageScalex+sy*sy*ImageScaley*ImageScaley);
@@ -750,8 +749,8 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
 
 
         //  Now we add some bias and read noise
-        for(x=0; x<targetChip->getXRes(); x++) {
-            for(y=0; y<targetChip->getYRes(); y++) {
+        for(x=0; x<targetChip->getSubW(); x++) {
+            for(y=0; y<targetChip->getSubH(); y++) {
                 int noise;
 
                 noise=random();
@@ -768,7 +767,7 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
         if(testvalue > 255) testvalue=0;
         val=testvalue;
 
-        int nbuf    = targetChip->getXRes()*targetChip->getYRes();
+        int nbuf    = targetChip->getSubW()*targetChip->getSubH();
 
         for(int x=0; x<nbuf; x++)
         {
@@ -796,8 +795,10 @@ int CCDSim::DrawImageStar(CCDChip *targetChip, float mag,float x,float y)
     else
         ExposureTime = ExposureRequest;
 
+    int nwidth = (targetChip->getSubW() - targetChip->getSubX()) / targetChip->getBinX();
+    int nheight = (targetChip->getSubH() - targetChip->getSubY()) / targetChip->getBinY();
 
-    if((x<0)||(x>targetChip->getXRes()/targetChip->getBinX())||(y<0)||(y>targetChip->getYRes()/targetChip->getBinY()))
+    if((x<0)||(x>nwidth||(y<0)||(y>nheight)))
     {
         //  this star is not on the ccd frame anyways
         return 0;
@@ -844,15 +845,6 @@ int CCDSim::DrawImageStar(CCDChip *targetChip, float mag,float x,float y)
 
             if(fp < 0) fp=0;
 
-            /*
-            if(dc < boxsize) {
-                dc=boxsize-dc;
-                dc=dc/boxsize;
-                fp=dc*flux;
-            } else {
-                fp=0;
-            }
-            */
             rc=AddToPixel(targetChip, x+sx,y+sy,fp);
             if(rc != 0) drew=1;
         }
@@ -862,18 +854,21 @@ int CCDSim::DrawImageStar(CCDChip *targetChip, float mag,float x,float y)
 
 int CCDSim::AddToPixel(CCDChip *targetChip, int x,int y,int val)
 {
+    int nwidth = (targetChip->getSubW() - targetChip->getSubX()) / targetChip->getBinX();
+    int nheight = (targetChip->getSubH() - targetChip->getSubY()) / targetChip->getBinY();
+
     int drew=0;
     if(x >= 0) {
-        if(x < targetChip->getXRes()/targetChip->getBinX()) {
+        if(x < nwidth) {
             if(y >= 0) {
-                if(y < targetChip->getYRes()/targetChip->getBinY()) {
+                if(y < nheight) {
                     unsigned short *pt;
                     int newval;
                     drew++;
 
                     pt=(unsigned short int *)targetChip->getFrameBuffer();
 
-                    pt+=(y*targetChip->getXRes()/targetChip->getBinX());
+                    pt+=(y*nwidth);
                     pt+=x;
                     newval=pt[0];
                     newval+=val;
