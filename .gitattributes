@@ -311,6 +311,7 @@ cmake_modules/FindALUT.cmake -text
 cmake_modules/FindAPOGEE.cmake -text
 cmake_modules/FindCFITSIO.cmake -text
 cmake_modules/FindFLI.cmake -text
+cmake_modules/FindFTDI.cmake -text
 cmake_modules/FindGPHOTO2.cmake -text
 cmake_modules/FindINDI.cmake -text
 cmake_modules/FindMEADE.cmake -text
