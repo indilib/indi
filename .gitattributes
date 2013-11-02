@@ -1,4 +1,5 @@
 * text=auto !eol
+/.svnignore -text
 3rdparty/fliusb/Makefile -text
 3rdparty/fliusb/README -text
 3rdparty/fliusb/common.postinst -text
