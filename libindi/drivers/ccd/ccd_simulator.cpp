@@ -497,11 +497,11 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
         //  for now we cheat
         //  no offset or rotation for and y axis means
         pb=0.0;
-        nwidth = (targetChip->getSubW() - targetChip->getSubX()) / targetChip->getBinX();
+        nwidth = targetChip->getXRes() / targetChip->getBinX();
         pc=nwidth/2;
         pd=0.0;
 
-        nheight = (targetChip->getSubH() - targetChip->getSubY()) / targetChip->getBinY();
+        nheight = targetChip->getYRes() / targetChip->getBinY();
         pf=nheight/2;
         //  and we do a simple scale for x and y locations
         //  based on the focal length and pixel size
@@ -678,7 +678,7 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
 
         CCDChip::CCD_FRAME ftype = targetChip->getFrameType();
 
-        if((ftype==CCDChip::LIGHT_FRAME)||(ftype==CCDChip::FLAT_FRAME))
+       /* if((ftype==CCDChip::LIGHT_FRAME)||(ftype==CCDChip::FLAT_FRAME))
         {
             float skyflux;
             float glow;
@@ -703,6 +703,9 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
             unsigned short *pt;
 
             pt=(unsigned short int *)targetChip->getFrameBuffer();
+
+            nheight = targetChip->getSubH() / targetChip->getBinY();
+            nwidth  = targetChip->getSubW() / targetChip->getBinX();
 
             for(int y=0; y< nheight; y++)
             {
@@ -749,8 +752,15 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
 
 
         //  Now we add some bias and read noise
-        for(x=0; x<targetChip->getSubW(); x++) {
-            for(y=0; y<targetChip->getSubH(); y++) {
+        int subX = targetChip->getSubX() / targetChip->getBinX();
+        int subY = targetChip->getSubY() / targetChip->getBinX();
+        int subW = targetChip->getSubW() / targetChip->getBinX() + subX;
+        int subH = targetChip->getSubH() / targetChip->getBinX() + subY;
+
+        for(x=subX; x<subW; x++)
+        {
+            for(y=subY; y<subH; y++)
+            {
                 int noise;
 
                 noise=random();
@@ -759,7 +769,7 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
                 //IDLog("noise is %d\n", noise);
                 AddToPixel(targetChip, x,y,bias+noise);
             }
-        }
+        }*/
 
 
     } else {
@@ -790,21 +800,21 @@ int CCDSim::DrawImageStar(CCDChip *targetChip, float mag,float x,float y)
     float flux;
     float ExposureTime;
 
-    if (targetChip->getXRes() == 500)
-        ExposureTime = GuideExposureRequest*4;
-    else
-        ExposureTime = ExposureRequest;
+    int subX = targetChip->getSubX() / targetChip->getBinX();
+    int subY = targetChip->getSubY() / targetChip->getBinX();
+    int subW = targetChip->getSubW() / targetChip->getBinX() + subX;
+    int subH = targetChip->getSubH() / targetChip->getBinX() + subY;
 
-    int nwidth = (targetChip->getSubW() - targetChip->getSubX()) / targetChip->getBinX();
-    int nheight = (targetChip->getSubH() - targetChip->getSubY()) / targetChip->getBinY();
-
-    if((x<0)||(x>nwidth||(y<0)||(y>nheight)))
+    if((x<subX)||(x>subW||(y<subY)||(y>subH)))
     {
         //  this star is not on the ccd frame anyways
         return 0;
     }
 
-
+    if (targetChip->getXRes() == 500)
+        ExposureTime = GuideExposureRequest*4;
+    else
+        ExposureTime = ExposureRequest;
 
     //  calculate flux from our zero point and gain values
     flux=pow(10,((mag-z)*k/-2.5));
@@ -854,8 +864,11 @@ int CCDSim::DrawImageStar(CCDChip *targetChip, float mag,float x,float y)
 
 int CCDSim::AddToPixel(CCDChip *targetChip, int x,int y,int val)
 {
-    int nwidth = (targetChip->getSubW() - targetChip->getSubX()) / targetChip->getBinX();
-    int nheight = (targetChip->getSubH() - targetChip->getSubY()) / targetChip->getBinY();
+    int nwidth = targetChip->getSubW() / targetChip->getBinX();
+    int nheight = targetChip->getSubH() / targetChip->getBinY();
+
+    x -= targetChip->getSubX();
+    y -= targetChip->getSubY();
 
     int drew=0;
     if(x >= 0) {
