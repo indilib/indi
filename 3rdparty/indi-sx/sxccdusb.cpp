@@ -172,9 +172,9 @@ static void init() {
 
 #ifdef NO_ERROR_NAME
 static char *libusb_error_name(int rc) {
-	static char buffer[30];
-	sprintf(buffer, "error %d", rc);
-	return buffer;
+  static char buffer[30];
+  sprintf(buffer, "error %d", rc);
+  return buffer;
 }
 #endif
 
