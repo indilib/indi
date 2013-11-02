@@ -153,6 +153,14 @@ static struct {
   
 libusb_context *ctx = NULL;
 
+#ifdef NO_ERROR_NAME
+static char *libusb_error_name(int rc) {
+  static char buffer[30];
+  sprintf(buffer, "error %d", rc);
+  return buffer;
+}
+#endif
+
 void log(const char *fmt, ...) {
   va_list ap;
   va_start (ap, fmt);
@@ -169,14 +177,6 @@ static void init() {
     }
   }
 }
-
-#ifdef NO_ERROR_NAME
-static char *libusb_error_name(int rc) {
-  static char buffer[30];
-  sprintf(buffer, "error %d", rc);
-  return buffer;
-}
-#endif
 
 bool sxIsInterlaced(short model) {
   bool interlaced = model & 0x40;
