@@ -309,6 +309,7 @@ bool LX200Generic::updateProperties()
         deleteProperty(SiteSP.name);
         deleteProperty(SiteNameTP.name);
         deleteProperty(UseJoystickSP.name);
+        deleteProperty(JoystickSettingTP.name);
 
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
@@ -1648,8 +1649,6 @@ void LX200Generic::guideTimeoutHelper(void *p)
 void LX200Generic::guideTimeout()
 {
     int use_pulse_cmd;
-
-    IDLog("Guide timeout...\n");
 
     use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
     if (guide_direction == -1)
