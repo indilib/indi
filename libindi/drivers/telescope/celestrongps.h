@@ -42,12 +42,16 @@ class CelestronGPS : public INDI::Telescope
  virtual bool initProperties();
  virtual bool updateProperties();
  virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+ virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+ virtual bool ISSnoopDevice(XMLEle *root);
 
 protected:
 
  virtual bool MoveNS(TelescopeMotionNS dir);
  virtual bool MoveWE(TelescopeMotionWE dir);
  virtual bool Abort();
+
+ virtual bool saveConfigItems(FILE *fp);
 
  bool Goto(double ra,double dec);
  bool Sync(double ra, double dec);
@@ -56,6 +60,10 @@ protected:
 
  void slewError(int slewCode);
  void mountSim();
+
+ void enableJoystick();
+ void disableJoystick();
+ void processNSWE(double mag, double angle);
 
 
  /* Slew Speed */
@@ -73,6 +81,14 @@ private:
   int currentSet;
   double currentRA, currentDEC;
   double targetRA, targetDEC;
+
+  /* Joystick Support */
+  ISwitchVectorProperty UseJoystickSP;
+  ISwitch UseJoystickS[2];
+
+  ITextVectorProperty JoystickSettingTP;
+  IText JoystickSettingT[6];
+
 };
 
 #endif

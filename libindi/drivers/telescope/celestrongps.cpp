@@ -73,7 +73,8 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
 }
 void ISSnoopDevice (XMLEle *root) 
 {
-  INDI_UNUSED(root);
+    ISInit();
+    telescope->ISSnoopDevice(root);
 }
 
 /**************************************************
@@ -109,6 +110,18 @@ bool CelestronGPS::initProperties()
     IUFillSwitch(&SlewModeS[3], "Guide", "", ISS_OFF);
     IUFillSwitchVector(&SlewModeSP, SlewModeS, 4, getDeviceName(), "Slew Rate", "", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+    IUFillSwitch(&UseJoystickS[0], "ENABLE", "Enable", ISS_OFF);
+    IUFillSwitch(&UseJoystickS[1], "DISABLE", "Disable", ISS_ON);
+    IUFillSwitchVector(&UseJoystickSP, UseJoystickS, 2, getDeviceName(), "USEJOYSTICK", "Joystick", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    IUFillText(&JoystickSettingT[0], "NSWE Control", "", "JOYSTICK_1");
+    IUFillText(&JoystickSettingT[1], "Slew Max", "", "BUTTON_1");
+    IUFillText(&JoystickSettingT[2], "Slew Find", "", "BUTTON_2");
+    IUFillText(&JoystickSettingT[3], "Slew Centering", "", "BUTTON_3");
+    IUFillText(&JoystickSettingT[4], "Slew Guide", "", "BUTTON_4");
+    IUFillText(&JoystickSettingT[5], "Abort Motion", "", "BUTTON_5");
+    IUFillTextVector(&JoystickSettingTP, JoystickSettingT, 6, getDeviceName(), "JOYSTICKSETTINGS", "Settings", "Joystick", IP_RW, 0, IPS_IDLE);
+
     addAuxControls();
 
     return true;
@@ -122,7 +135,10 @@ void CelestronGPS::ISGetProperties(const char *dev)
     INDI::Telescope::ISGetProperties(dev);
 
     if (isConnected())
+    {
         defineSwitch(&SlewModeSP);
+        defineSwitch(&UseJoystickSP);
+    }
 }
 
 bool CelestronGPS::updateProperties()
@@ -130,9 +146,16 @@ bool CelestronGPS::updateProperties()
     INDI::Telescope::updateProperties();
 
     if (isConnected())
+    {
         defineSwitch(&SlewModeSP);
+        defineSwitch(&UseJoystickSP);
+    }
     else
+    {
         deleteProperty(SlewModeSP.name);
+        deleteProperty(UseJoystickSP.name);
+        deleteProperty(JoystickSettingTP.name);
+    }
 
     return true;
 }
@@ -157,9 +180,45 @@ bool CelestronGPS::ISNewSwitch (const char *dev, const char *name, ISState *stat
           IDSetSwitch(&SlewModeSP, NULL);
           return true;
         }
+
+        // Enable joystick support
+        if (!strcmp(name, UseJoystickSP.name))
+        {
+            IUUpdateSwitch(&UseJoystickSP, states, names, n);
+
+            UseJoystickSP.s = IPS_OK;
+
+            if (UseJoystickSP.sp[0].s == ISS_ON)
+                enableJoystick();
+            else
+                disableJoystick();
+
+            IDSetSwitch(&UseJoystickSP, NULL);
+        }
     }
 
     return INDI::Telescope::ISNewSwitch(dev, name, states, names, n);
+}
+
+
+bool CelestronGPS::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+{
+    if(strcmp(dev,getDeviceName())==0)
+    {
+        if (!strcmp(name, "JOYSTICKSETTINGS"))
+        {
+            IUUpdateText(&JoystickSettingTP, texts, names, n);
+
+            IDSnoopDevice("Joystick", JoystickSettingTP.tp[0].text);
+
+            JoystickSettingTP.s = IPS_OK;
+            IDSetText(&JoystickSettingTP, NULL);
+            return true;
+
+        }
+    }
+
+    return INDI::Telescope::ISNewText(dev, name, texts, names, n);
 }
 
 bool CelestronGPS::Goto(double ra, double dec)
@@ -217,67 +276,73 @@ bool CelestronGPS::Sync(double targetRA, double targetDEC)
 bool CelestronGPS::MoveNS(TelescopeMotionNS dir)
 {
     static int last_move=-1;
-    int current_move = -1;
+
+     int current_move = -1;
 
     current_move = IUFindOnSwitchIndex(&MovementNSSP);
 
-	// Previosuly active switch clicked again, so let's stop.
-	if (current_move == last_move)
-	{
+    // Previosuly active switch clicked again, so let's stop.
+    if (current_move == last_move && current_move != -1)
+    {
         if (isSimulation() == false)
-		StopSlew((current_move == 0) ? NORTH : SOUTH);
-		IUResetSwitch(&MovementNSSP);
+            StopSlew((current_move == 0) ? NORTH : SOUTH);
+
+        IUResetSwitch(&MovementNSSP);
         MovementNSSP.s = IPS_IDLE;
-        IDSetSwitch(&MovementNSSP, NULL);
+        IDSetSwitch(&MovementNSSP, "Movement toward %s halted.", (current_move == 0) ? "North" : "South");
         last_move = -1;
         return true;
-	}
+    }
 
-	// 0 (North) or 1 (South)
-	last_move      = current_move;
+    last_move = current_move;
 
-	// Correction for Celestron Driver: North 0 - South 3
-	current_move = (current_move == 0) ? NORTH : SOUTH;
+    if (isDebug())
+        IDLog("Current Move: %d - Previous Move: %d\n", current_move, last_move);
+
+    // Correction for LX200 Driver: North 0 - South 3
+    current_move = (dir == MOTION_NORTH) ? NORTH : SOUTH;
 
     if (isSimulation() == false)
         StartSlew(current_move);
-	
-	  MovementNSSP.s = IPS_BUSY;
-	  IDSetSwitch(&MovementNSSP, "Moving toward %s", (current_move == NORTH) ? "North" : "South");
+
+      MovementNSSP.s = IPS_BUSY;
+      IDSetSwitch(&MovementNSSP, "Moving toward %s.", (current_move == NORTH) ? "North" : "South");
       return true;
 }
 
 bool CelestronGPS::MoveWE(TelescopeMotionWE dir)
 {
-    static int last_move=-1;
-    int current_move = -1;
+   static int last_move=-1;
 
-    current_move = IUFindOnSwitchIndex(&MovementWESP);
+   int current_move = -1;
 
-	// Previosuly active switch clicked again, so let's stop.
-	if (current_move == last_move)
-	{
-        if (isSimulation() == false)
-            StopSlew((current_move ==0) ? WEST : EAST);
+   current_move = IUFindOnSwitchIndex(&MovementWESP);
 
-		IUResetSwitch(&MovementWESP);
-        MovementWESP.s = IPS_IDLE;
-        IDSetSwitch(&MovementWESP, NULL);
-        last_move = -1;
-        return true;
-	}
+  // Previosuly active switch clicked again, so let's stop.
+  if (current_move == last_move && current_move != -1)
+  {
+      if (isSimulation() == false)
+        StopSlew((current_move == 0) ? WEST : EAST);
+      IUResetSwitch(&MovementWESP);
+      MovementWESP.s = IPS_IDLE;
+      IDSetSwitch(&MovementWESP, "Movement toward %s halted.", (current_move == 0) ? "West" : "East");
+      last_move = -1;
+      return true;
+  }
 
-	// 0 (West) or 1 (East)
-	last_move      = current_move;
+  last_move = current_move;
 
-	// Correction for Celestron Driver: West 1 - East 2
-	current_move = (current_move == 0) ? WEST : EAST;
+  if (isDebug())
+      IDLog("Current Move: %d - Previous Move: %d\n", current_move, last_move);
 
-    if (isSimulation() == false)
-        StartSlew(current_move);
-	
+  current_move = (dir == MOTION_WEST) ? WEST : EAST;
+
+  if (isSimulation() == false)
+      StartSlew(current_move);
+
+
     MovementWESP.s = IPS_BUSY;
-    IDSetSwitch(&MovementWESP, "Moving toward %s", (current_move == WEST) ? "West" : "East");
+    IDSetSwitch(&MovementWESP, "Moving toward %s.", (current_move == WEST) ? "West" : "East");
     return true;
 }
 
@@ -324,7 +389,20 @@ bool CelestronGPS::Abort()
     if (isSimulation() == false)
         StopNSEW();
 
-    IDMessage(getDeviceName(), "Telescope motion aborted.");
+    TrackState = SCOPE_IDLE;
+
+    if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY || EqNP.s == IPS_BUSY)
+    {
+        MovementNSSP.s = MovementWESP.s = EqNP.s = IPS_IDLE;
+        IUResetSwitch(&MovementNSSP);
+        IUResetSwitch(&MovementWESP);
+
+        IDSetSwitch(&MovementNSSP, NULL);
+        IDSetSwitch(&MovementWESP, NULL);
+        IDSetNumber(&EqNP, NULL);
+
+        IDMessage(getDeviceName(), "Slew stopped.");
+    }
 
     return true;
 }
@@ -348,6 +426,7 @@ bool CelestronGPS::Connect(char *port)
     if (isSimulation())
     {
         IDMessage (getDeviceName(), "Simulated Celestron GPS is online. Retrieving basic data...");
+        currentRA = 0; currentDEC=90;
         return true;
     }
 
@@ -474,3 +553,173 @@ bool CelestronGPS::canPark()
 {
     return false;
 }
+
+void CelestronGPS::enableJoystick()
+{
+    defineText(&JoystickSettingTP);
+
+    IDSnoopDevice("Joystick", JoystickSettingTP.tp[0].text);
+    IDSnoopDevice("Joystick", "JOYSTICK_BUTTONS");
+}
+
+void CelestronGPS::disableJoystick()
+{
+    deleteProperty(JoystickSettingTP.name);
+}
+
+bool CelestronGPS::ISSnoopDevice(XMLEle *root)
+{
+    XMLEle *ep=NULL;
+    double mag=0, angle=0;
+
+    const char *propName = findXMLAttValu(root, "name");
+
+    // Checking for NSWE control
+    if (!strcmp(JoystickSettingTP.tp[0].text, propName))
+    {
+        for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
+        {
+            if (!strcmp("JOYSTICK_MAGNITUDE", findXMLAttValu(ep, "name")))
+                mag = atof(pcdataXMLEle(ep));
+            else if (!strcmp("JOYSTICK_ANGLE", findXMLAttValu(ep, "name")))
+                angle = atof(pcdataXMLEle(ep));
+        }
+
+        processNSWE(mag, angle);
+    }
+    // Check buttons
+    else if (!strcmp("JOYSTICK_BUTTONS", propName))
+    {
+        for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
+        {
+            const char *elemName = findXMLAttValu(ep, "name");
+
+            // ignore off switches
+            if (!strcmp(pcdataXMLEle(ep), "Off"))
+                continue;
+
+            // Max Slew speed
+            if (!strcmp(JoystickSettingTP.tp[1].text, elemName))
+            {
+                SetRate(0);
+                IUResetSwitch(&SlewModeSP);
+                SlewModeS[0].s = ISS_ON;
+                IDSetSwitch(&SlewModeSP, NULL);
+            }
+            // Find Slew speed
+            else if (!strcmp(JoystickSettingTP.tp[2].text, elemName))
+            {
+                    SetRate(1);
+                    IUResetSwitch(&SlewModeSP);
+                    SlewModeS[1].s = ISS_ON;
+                    IDSetSwitch(&SlewModeSP, NULL);
+            }
+            // Centering Slew
+            else if (!strcmp(JoystickSettingTP.tp[3].text, elemName))
+            {
+                    SetRate(2);
+                    IUResetSwitch(&SlewModeSP);
+                    SlewModeS[2].s = ISS_ON;
+                    IDSetSwitch(&SlewModeSP, NULL);
+            }
+            // Guide Slew
+            else if (!strcmp(JoystickSettingTP.tp[4].text, elemName))
+            {
+                    SetRate(3);
+                    IUResetSwitch(&SlewModeSP);
+                    SlewModeS[3].s = ISS_ON;
+                    IDSetSwitch(&SlewModeSP, NULL);
+            }
+            // Abort
+            else if (!strcmp(JoystickSettingTP.tp[5].text, elemName))
+            {
+                // Only abort if we have some sort of motion going on
+                if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY || EqNP.s == IPS_BUSY)
+                {
+
+                    Abort();
+                }
+            }
+        }
+    }
+
+
+    return INDI::Telescope::ISSnoopDevice(root);
+
+}
+
+void CelestronGPS::processNSWE(double mag, double angle)
+{
+    if (mag < 0.5)
+    {
+        // Moving in the same direction will make it stop
+        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+            Abort();
+    }
+    // Put high threshold
+    else if (mag > 0.9)
+    {
+        // North
+        if (angle > 0 && angle < 180)
+        {
+            // Don't try to move if you're busy and moving in the same direction
+            if (MovementNSSP.s != IPS_BUSY || MovementNSS[0].s != ISS_ON)
+                MoveNS(MOTION_NORTH);
+
+            MovementNSSP.s = IPS_BUSY;
+            MovementNSSP.sp[0].s = ISS_ON;
+            MovementNSSP.sp[1].s = ISS_OFF;
+            IDSetSwitch(&MovementNSSP, NULL);
+        }
+        // South
+        if (angle > 180 && angle < 360)
+        {
+            // Don't try to move if you're busy and moving in the same direction
+           if (MovementNSSP.s != IPS_BUSY  || MovementNSS[1].s != ISS_ON)
+            MoveNS(MOTION_SOUTH);
+
+            MovementNSSP.s = IPS_BUSY;
+            MovementNSSP.sp[0].s = ISS_OFF;
+            MovementNSSP.sp[1].s = ISS_ON;
+            IDSetSwitch(&MovementNSSP, NULL);
+        }
+        // East
+        if (angle < 90 || angle > 270)
+        {
+            // Don't try to move if you're busy and moving in the same direction
+           if (MovementWESP.s != IPS_BUSY  || MovementWES[1].s != ISS_ON)
+                MoveWE(MOTION_EAST);
+
+           MovementWESP.s = IPS_BUSY;
+           MovementWESP.sp[0].s = ISS_OFF;
+           MovementWESP.sp[1].s = ISS_ON;
+           IDSetSwitch(&MovementWESP, NULL);
+        }
+
+        // West
+        if (angle > 90 && angle < 270)
+        {
+
+            // Don't try to move if you're busy and moving in the same direction
+           if (MovementWESP.s != IPS_BUSY  || MovementWES[0].s != ISS_ON)
+                MoveWE(MOTION_WEST);
+
+           MovementWESP.s = IPS_BUSY;
+           MovementWESP.sp[0].s = ISS_ON;
+           MovementWESP.sp[1].s = ISS_OFF;
+           IDSetSwitch(&MovementWESP, NULL);
+        }
+    }
+
+}
+
+bool CelestronGPS::saveConfigItems(FILE *fp)
+{
+    INDI::Telescope::saveConfigItems(fp);
+
+    IUSaveConfigSwitch(fp, &UseJoystickSP);
+    IUSaveConfigText(fp, &JoystickSettingTP);
+
+    return true;
+}
+
