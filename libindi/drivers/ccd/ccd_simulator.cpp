@@ -678,7 +678,7 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
 
         CCDChip::CCD_FRAME ftype = targetChip->getFrameType();
 
-       /* if((ftype==CCDChip::LIGHT_FRAME)||(ftype==CCDChip::FLAT_FRAME))
+        if((ftype==CCDChip::LIGHT_FRAME)||(ftype==CCDChip::FLAT_FRAME))
         {
             float skyflux;
             float glow;
@@ -769,7 +769,7 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
                 //IDLog("noise is %d\n", noise);
                 AddToPixel(targetChip, x,y,bias+noise);
             }
-        }*/
+        }
 
 
     } else {
