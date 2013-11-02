@@ -69,11 +69,9 @@ CCDChip::~CCDChip()
     delete FitsBP;
 }
 
-int CCDChip::setFrameType(CCD_FRAME t)
+void CCDChip::setFrameType(CCD_FRAME type)
 {
-    //fprintf(stderr,"Set frame type to %d\n",t);
-    FrameType=t;
-    return 0;
+    FrameType=type;
 }
 
 void CCDChip::setResolutoin(int x, int y)
@@ -86,7 +84,14 @@ void CCDChip::setResolutoin(int x, int y)
 
     IDSetNumber(ImagePixelSizeNP, NULL);
 
+    ImageFrameN[FRAME_X].min = 0;
+    ImageFrameN[FRAME_X].max = x;
+    ImageFrameN[FRAME_Y].min = 0;
+    ImageFrameN[FRAME_Y].max = y;
+
+    ImageFrameN[FRAME_W].min = 0;
     ImageFrameN[FRAME_W].max = x;
+    ImageFrameN[FRAME_H].max = 0;
     ImageFrameN[FRAME_H].max = y;
     IUUpdateMinMax(ImageFrameNP);
 }
@@ -214,7 +219,7 @@ bool INDI::CCD::initProperties()
     IUFillNumber(&PrimaryCCD.ImageFrameN[0],"X","Left ","%4.0f",0,1392.0,0,0);
     IUFillNumber(&PrimaryCCD.ImageFrameN[1],"Y","Top","%4.0f",0,1040,0,0);
     IUFillNumber(&PrimaryCCD.ImageFrameN[2],"WIDTH","Width","%4.0f",0,1392.0,0,1392.0);
-    IUFillNumber(&PrimaryCCD.ImageFrameN[3],"HEIGHT","Height","%4.0f",0,1040,0,1040);
+    IUFillNumber(&PrimaryCCD.ImageFrameN[3],"HEIGHT","Height","%4.0f",0,1392,0,1392.0);
     IUFillNumberVector(PrimaryCCD.ImageFrameNP,PrimaryCCD.ImageFrameN,4,getDeviceName(),"CCD_FRAME","Frame",IMAGE_SETTINGS_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillSwitch(&PrimaryCCD.FrameTypeS[0],"FRAME_LIGHT","Light",ISS_ON);
@@ -243,7 +248,7 @@ bool INDI::CCD::initProperties()
 
     IUFillSwitch(&PrimaryCCD.CompressS[0],"COMPRESS","Compress",ISS_OFF);
     IUFillSwitch(&PrimaryCCD.CompressS[1],"RAW","Raw",ISS_ON);
-    IUFillSwitchVector(PrimaryCCD.CompressSP,PrimaryCCD.CompressS,2,getDeviceName(),"COMPRESSION","Image",IMAGE_SETTINGS_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    IUFillSwitchVector(PrimaryCCD.CompressSP,PrimaryCCD.CompressS,2,getDeviceName(),"CCD_COMPRESSION","Image",IMAGE_SETTINGS_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
     IUFillBLOB(&PrimaryCCD.FitsB,"CCD1","Image","");
     IUFillBLOBVector(PrimaryCCD.FitsBP,&PrimaryCCD.FitsB,1,getDeviceName(),"CCD1","Image Data",OPTIONS_TAB,IP_RO,60,IPS_IDLE);
@@ -254,7 +259,7 @@ bool INDI::CCD::initProperties()
     IUFillNumber(&GuideCCD.ImageFrameN[1],"Y","Top","%4.0f",0,1040,0,0);
     IUFillNumber(&GuideCCD.ImageFrameN[2],"WIDTH","Width","%4.0f",0,1392.0,0,1392.0);
     IUFillNumber(&GuideCCD.ImageFrameN[3],"HEIGHT","Height","%4.0f",0,1040,0,1040);
-    IUFillNumberVector(GuideCCD.ImageFrameNP,GuideCCD.ImageFrameN,4,getDeviceName(),"GUIDE_FRAME","Frame",GUIDE_HEAD_TAB,IP_RW,60,IPS_IDLE);
+    IUFillNumberVector(GuideCCD.ImageFrameNP,GuideCCD.ImageFrameN,4,getDeviceName(),"GUIDER_FRAME","Frame",GUIDE_HEAD_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillNumber(&GuideCCD.ImagePixelSizeN[0],"CCD_MAX_X","Resolution x","%4.0f",1,40,0,6.45);
     IUFillNumber(&GuideCCD.ImagePixelSizeN[1],"CCD_MAX_Y","Resolution y","%4.0f",1,40,0,6.45);
@@ -262,7 +267,7 @@ bool INDI::CCD::initProperties()
     IUFillNumber(&GuideCCD.ImagePixelSizeN[3],"CCD_PIXEL_SIZE_X","Pixel size X","%5.2f",1,40,0,6.45);
     IUFillNumber(&GuideCCD.ImagePixelSizeN[4],"CCD_PIXEL_SIZE_Y","Pixel size Y","%5.2f",1,40,0,6.45);
     IUFillNumber(&GuideCCD.ImagePixelSizeN[5],"CCD_BITSPERPIXEL","Bits per pixel","%3.0f",1,40,0,6.45);
-    IUFillNumberVector(GuideCCD.ImagePixelSizeNP,GuideCCD.ImagePixelSizeN,6,getDeviceName(),"GUIDE_INFO",GUIDE_HEAD_TAB,GUIDE_HEAD_TAB,IP_RO,60,IPS_IDLE);
+    IUFillNumberVector(GuideCCD.ImagePixelSizeNP,GuideCCD.ImagePixelSizeN,6,getDeviceName(),"GUIDER_INFO",GUIDE_HEAD_TAB,GUIDE_HEAD_TAB,IP_RO,60,IPS_IDLE);
 
     IUFillNumber(&GuideCCD.ImageExposureN[0],"GUIDER_EXPOSURE_VALUE","Duration (s)","%5.2f",0,36000,0,1.0);
     IUFillNumberVector(GuideCCD.ImageExposureNP,GuideCCD.ImageExposureN,1,getDeviceName(),"GUIDER_EXPOSURE","Guide",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
@@ -272,7 +277,7 @@ bool INDI::CCD::initProperties()
 
     IUFillSwitch(&GuideCCD.CompressS[0],"GCOMPRESS","Compress",ISS_OFF);
     IUFillSwitch(&GuideCCD.CompressS[1],"GRAW","Raw",ISS_ON);
-    IUFillSwitchVector(GuideCCD.CompressSP,GuideCCD.CompressS,2,getDeviceName(),"GCOMPRESSION","Image",GUIDE_HEAD_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    IUFillSwitchVector(GuideCCD.CompressSP,GuideCCD.CompressS,2,getDeviceName(),"GUIDER_COMPRESSION","Image",GUIDE_HEAD_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
     IUFillBLOB(&GuideCCD.FitsB,"CCD2","Guider Image","");
     IUFillBLOBVector(GuideCCD.FitsBP,&GuideCCD.FitsB,1,getDeviceName(),"CCD2","Image Data",OPTIONS_TAB,IP_RO,60,IPS_IDLE);
@@ -797,8 +802,8 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
 
     fitsfile *fptr=NULL;
 
-    naxes[0]=targetChip->getSubW()/targetChip->getBinX();
-    naxes[1]=targetChip->getSubH()/targetChip->getBinY();
+    naxes[0]=(targetChip->getSubW()-targetChip->getSubX())/targetChip->getBinX();
+    naxes[1]=(targetChip->getSubH()-targetChip->getSubY())/targetChip->getBinY();
 
     switch (targetChip->getBPP())
     {

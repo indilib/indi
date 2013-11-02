@@ -31,6 +31,10 @@ extern const char *IMAGE_INFO_TAB;
 extern const char *GUIDE_HEAD_TAB;
 extern const char *GUIDE_CONTROL_TAB;
 
+/**
+ * @brief The CCDChip class provides functionality of a CCD Chip within a CCD.
+ *
+ */
 class CCDChip
 {
 
@@ -43,38 +47,201 @@ public:
     typedef enum { BIN_W, BIN_H} CCD_BIN_INDEX;
     typedef enum { CCD_MAX_X, CCD_MAX_Y, CCD_PIXEL_SIZE, CCD_PIXEL_SIZE_X, CCD_PIXEL_SIZE_Y, CCD_BITSPERPIXEL} CCD_INFO_INDEX;
 
+    /**
+     * @brief getXRes Get the horizontal resolution in pixels of the CCD Chip.
+     * @return the horizontal resolution of the CCD Chip.
+     */
     inline int getXRes() { return XRes; }
+
+    /**
+     * @brief Get the vertical resolution in pixels of the CCD Chip.
+     * @return the horizontal resolution of the CCD Chip.
+     */
     inline int getYRes() { return YRes; }
+
+    /**
+     * @brief getSubX Get the starting left coordinates (X) of the frame.
+     * @return the starting left coordinates (X) of the image.
+     */
     inline int getSubX() { return SubX; }
+
+    /**
+     * @brief getSubY Get the starting top coordinates (Y) of the frame.
+     * @return the starting top coordinates (Y) of the image.
+     */
     inline int getSubY() { return SubY; }
+
+    /**
+     * @brief getSubW Get the width of the frame
+     * @return width of the frame
+     */
     inline int getSubW() { return SubW; }
+
+    /**
+     * @brief getSubH Get the height of the frame
+     * @return height of the frame
+     */
     inline int getSubH() { return SubH; }
+
+    /**
+     * @brief getBinX Get horizontal binning of the CCD chip.
+     * @return horizontal binning of the CCD chip.
+     */
     inline int getBinX() { return BinX; }
+
+    /**
+     * @brief getBinY Get vertical binning of the CCD chip.
+     * @return vertical binning of the CCD chip.
+     */
     inline int getBinY() { return BinY; }
+
+    /**
+     * @brief getPixelSizeX Get horizontal pixel size in microns.
+     * @return horizontal pixel size in microns.
+     */
     inline float getPixelSizeX() { return PixelSizex; }
+
+    /**
+     * @brief getPixelSizeY Get vertical pixel size in microns.
+     * @return vertical pixel size in microns.
+     */
     inline float getPixelSizeY() { return PixelSizey; }
+
+    /**
+     * @brief getBPP Get CCD Chip depth (bits per pixel).
+     * @return bits per pixel.
+     */
     inline int getBPP() { return BPP; }
+
+    /**
+     * @brief getFrameBufferSize Get allocated frame buffer size to hold the CCD image frame.
+     * @return allocated frame buffer size to hold the CCD image frame.
+     */
     inline int getFrameBufferSize() { return RawFrameSize; }
+
+    /**
+     * @brief getExposureLeft Get exposure time left in seconds.
+     * @return exposure time left in seconds.
+     */
     inline double getExposureLeft() { return ImageExposureN[0].value; }
+
+    /**
+     * @brief getExposureDuration Get requested exposure duration for the CCD chip in seconds.
+     * @return requested exposure duration for the CCD chip in seconds.
+     */
     inline double getExposureDuration() { return exposureDuration; }
-    inline char *getFrameBuffer() { return RawFrame; }
-    inline bool isCompressed() { return SendCompressed; }
-    inline bool isInterlaced() { return Interlaced; }
-    inline CCD_FRAME getFrameType() { return FrameType; }
+
+    /**
+     * @brief getExposureStartTime
+     * @return exposure start time in ISO 8601 format.
+     */
     const char *getExposureStartTime();
 
+    /**
+     * @brief getFrameBuffer Get raw frame buffer of the CCD chip.
+     * @return raw frame buffer of the CCD chip.
+     */
+    inline char *getFrameBuffer() { return RawFrame; }
+
+    /**
+     * @brief isCompressed
+     * @return True if frame is compressed, false otherwise.
+     */
+    inline bool isCompressed() { return SendCompressed; }
+
+    /**
+     * @brief isInterlaced
+     * @return True if CCD chip is Interlaced, false otherwise.
+     */
+    inline bool isInterlaced() { return Interlaced; }
+
+    /**
+     * @brief getFrameType
+     * @return CCD Frame type
+     */
+    inline CCD_FRAME getFrameType() { return FrameType; }
+
+
+    /**
+     * @brief setResolutoin set CCD Chip resolution
+     * @param x width
+     * @param y height
+     */
     void setResolutoin(int x, int y);
+
+    /**
+     * @brief setFrame Set desired frame resolutoin for an exposure.
+     * @param subx Left position.
+     * @param suby Top position.
+     * @param subw width
+     * @param subh height
+     */
     void setFrame(int subx, int suby, int subw, int subh);
+
+    /**
+     * @brief setBin Set CCD Chip binnig
+     * @param hor Horizontal binning.
+     * @param ver Vertical binning.
+     */
     void setBin(int hor, int ver);
+
+    /**
+     * @brief setPixelSize Set CCD Chip pixel size
+     * @param x Horziontal pixel size in microns.
+     * @param y Vertical pixel size in microns.
+     */
     void setPixelSize(float x, float y);
+
+    /**
+     * @brief setCompressed Set whether a frame is compressed after exposure?
+     * @param cmp If true, compress frame.
+     */
     void setCompressed (bool cmp);
+
+    /**
+     * @brief setInterlaced Set whether the CCD chip is interlaced or not?
+     * @param intr If true, the CCD chip is interlaced.
+     */
     void setInterlaced(bool intr);
+
+    /**
+     * @brief setFrameBufferSize Set desired frame buffer size. The function will allocate memory accordingly. The frame size depends on the
+     * desired frame resolution (Left, Top, Width, Height), depth of the CCD chip (bpp), and binning settings. You must set the frame size any time
+     * any of the prior parameters gets updated.
+     * @param nbuf size of buffer in bytes.
+     */
     void setFrameBufferSize(int nbuf);
+
+    /**
+     * @brief setBPP Set depth of CCD chip.
+     * @param bpp bits per pixel
+     */
     void setBPP(int bpp);
-    int setFrameType(CCD_FRAME);
+
+    /**
+     * @brief setFrameType Set desired frame type for next exposure.
+     * @param type desired CCD frame type.
+     */
+    void setFrameType(CCD_FRAME type);
+
+    /**
+     * @brief setExposureDuration Set desired CCD frame exposure duration for next exposure. You must call this function immediately before
+     * starting the actual exposure.
+     * @param duration exposure duration in seconds.
+     */
     void setExposureDuration(double duration);
+
+    /**
+     * @brief setExposureLeft Update exposure time left. Inform the client of the new exposure time left value.
+     * @param duration exposure duration left in seconds.
+     */
     void setExposureLeft(double duration);
+
+    /**
+     * @brief setExposureFailed Alert the client that the exposure failed.
+     */
     void setExposureFailed();
+
 
 private:
 
