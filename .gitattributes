@@ -885,7 +885,6 @@ libqsi/README -text
 libqsi/SimpleIni.h -text
 libqsi/TODO -text
 libqsi/WinTypes.h -text
-libqsi/cmake_modules/FindFTDI.cmake -text
 libqsi/config.h.cmake -text
 libqsi/demo_src/ExternalTrigger.cpp -text
 libqsi/demo_src/qsiapitest.cpp -text

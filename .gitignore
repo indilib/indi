@@ -1,1 +1,4 @@
 libindi/CMakeLists.txt.user
+libqsi/*.user*
+libqsi/demo_src/*.user*
+libqsi/doc/*.user*
