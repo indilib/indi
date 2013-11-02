@@ -425,8 +425,7 @@ int sxSetShutter(HANDLE sxHandle, unsigned short state) {
     rc = libusb_bulk_transfer(sxHandle, BULK_IN, setup_data, 2, &transferred, BULK_COMMAND_TIMEOUT);
     DEBUG(log("sxSetShutter: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
     if (transferred == 2) {
-      int result=setup_data[0] | (setup_data[1] << 8);
-      return result;
+      return 1;
     }
   }
   return 0;

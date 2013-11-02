@@ -56,12 +56,12 @@ int main() {
   n = sxList(devices, names, 20);
   cout << "sxList() -> " << n << endl << endl;
   
-  for (int i = 0; i < n; i++) {
+  for (int j = 0; j < n; j++) {
     HANDLE handle;
   
-    cout << "testing " << names[i] << " -----------------------------------" << endl << endl;
+    cout << "testing " << names[j] << " -----------------------------------" << endl << endl;
     
-    i = sxOpen(devices[i], &handle);
+    i = sxOpen(devices[j], &handle);
     cout << "sxOpen() -> " << i << endl << endl;
 
     //i = sxReset(handle);
