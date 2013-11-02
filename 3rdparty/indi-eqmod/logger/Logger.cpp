@@ -160,7 +160,7 @@ bool Logger::updateProperties(bool debugenable, INDI::DefaultDevice *device)
 
 bool Logger::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    int debug_level=0, log_level=0, bitmask=0;
+  int debug_level=0, log_level=0, bitmask=0, verbose_level=0;
   if(strcmp(name,"DEBUG_LEVEL")==0)
     {  
       ISwitch *sw;
@@ -170,9 +170,10 @@ bool Logger::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
       {
           DebugLevelSP.s=IPS_IDLE;
           IDSetSwitch(&DebugLevelSP,NULL);
-          screenVerbosityLevel_ = 0;
           #ifndef WITH_LOGGER
             level = 0;
+          #else
+            screenVerbosityLevel_ = 0;
           #endif
           return true;
       }
@@ -184,15 +185,17 @@ bool Logger::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
           if (sw->s == ISS_ON)
           {
             debug_level = i;
-            screenVerbosityLevel_ |= bitmask;
+            verbose_level |= bitmask;
           }
           else
-            screenVerbosityLevel_ &= ~bitmask;
+            verbose_level &= ~bitmask;
 
       }
 
 #ifndef WITH_LOGGER
-      level = screenVerbosityLevel_;
+      level = verbose_level;
+#else
+      screenVerbosityLevel_ = verbose_level;
 #endif
 
       DEBUGFDEVICE(dev, Logger::DBG_DEBUG, "Toggle Debug Level -- %s", DebugLevelSInit[debug_level].label);
