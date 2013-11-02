@@ -668,12 +668,6 @@ bool LX200Generic::MoveWE(TelescopeMotionWE dir)
 
 bool LX200Generic::Abort()
 {
-    if (isSimulation())
-    {
-        IDMessage(getDeviceName(), "Simulated telescope aborted.");
-        return true;
-    }
-
      if (isSimulation() == false && abortSlew(PortFD) < 0)
      {
          IDMessage(getDeviceName(), "Failed to abort slew.");
@@ -710,6 +704,8 @@ bool LX200Generic::Abort()
      MovementNSSP.s = IPS_IDLE;
      MovementWESP.s = IPS_IDLE;
      EqNP.s = IPS_IDLE;
+
+     TrackState = SCOPE_IDLE;
 
      IDSetSwitch(&MovementNSSP, NULL);
      IDSetSwitch(&MovementWESP, NULL);
