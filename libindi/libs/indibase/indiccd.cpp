@@ -802,8 +802,8 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
 
     fitsfile *fptr=NULL;
 
-    naxes[0]=(targetChip->getSubW()-targetChip->getSubX())/targetChip->getBinX();
-    naxes[1]=(targetChip->getSubH()-targetChip->getSubY())/targetChip->getBinY();
+    naxes[0]=targetChip->getSubW()/targetChip->getBinX();
+    naxes[1]=targetChip->getSubH()/targetChip->getBinY();
 
     switch (targetChip->getBPP())
     {
