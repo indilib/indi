@@ -296,8 +296,6 @@
 3rdparty/indi-sx/sxwheel.h -text svneol=unset#text/plain
 3rdparty/indi-tess/CMakeLists.txt -text
 3rdparty/indi-tess/README -text
-3rdparty/indi-tess/cmake_modules/FindINDI.cmake -text
-3rdparty/indi-tess/cmake_modules/FindNova.cmake -text
 3rdparty/indi-tess/duconfig.h -text
 3rdparty/indi-tess/duconfig.h.in -text
 3rdparty/indi-tess/indi_tess.xml -text

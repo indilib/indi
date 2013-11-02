@@ -1,3 +1,4 @@
+3rdparty/indi-tess/*.user*
 libindi/CMakeLists.txt.user
 libqsi/*.user*
 libqsi/demo_src/*.user*
