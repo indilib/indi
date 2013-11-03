@@ -23,7 +23,7 @@
 #ifndef INDIJOYSTICK_H
 #define INDIJOYSTICK_H
 
-#include "libs/indibase/defaultdevice.h"
+#include <defaultdevice.h>
 
 /* Standard headers */
 #include <stdio.h>

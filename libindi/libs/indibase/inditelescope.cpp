@@ -18,7 +18,7 @@
 #include <stdlib.h>
 
 #include "inditelescope.h"
-#include "libs/indicom.h"
+#include "indicom.h"
 
 #define POLLMS 1000
 

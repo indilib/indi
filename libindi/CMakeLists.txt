@@ -61,6 +61,7 @@ endif(COMMAND cmake_policy)
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_SOURCE_DIR})
 include_directories( ${CMAKE_SOURCE_DIR}/libs)
+include_directories( ${CMAKE_SOURCE_DIR}/libs/indibase)
 include_directories( ${CMAKE_SOURCE_DIR}/libs/webcam)
 
 if (CFITSIO_FOUND)
@@ -672,6 +673,7 @@ ${CMAKE_SOURCE_DIR}/libs/indibase/indifocuser.h  ${CMAKE_SOURCE_DIR}/libs/indiba
 ${CMAKE_SOURCE_DIR}/libs/indibase/baseclient.h ${CMAKE_SOURCE_DIR}/libs/indibase/indiguiderinterface.h
 ${CMAKE_SOURCE_DIR}/libs/indibase/indifilterinterface.h ${CMAKE_SOURCE_DIR}/libs/indibase/indiproperty.h
 ${CMAKE_SOURCE_DIR}/libs/indicom.h ${CMAKE_SOURCE_DIR}/libs/indibase/indiusbdevice.h
+${CMAKE_SOURCE_DIR}/libs/indibase/indilogger.h
  DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libindi.pc.cmake ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc @ONLY)

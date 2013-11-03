@@ -17,7 +17,7 @@
 *******************************************************************************/
 
 #include "synscanmount.h"
-#include "libs/indicom.h"
+#include "indicom.h"
 
 #include <stdio.h>
 #include <stdlib.h>

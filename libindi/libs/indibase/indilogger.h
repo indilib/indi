@@ -29,7 +29,7 @@
 #include <sys/time.h>
 
 #include <indiapi.h>
-#include "libs/indibase/defaultdevice.h"
+#include <defaultdevice.h>
 
 /**
  * \brief Macro to configure the logger.

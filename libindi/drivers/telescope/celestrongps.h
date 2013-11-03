@@ -21,7 +21,7 @@
 #ifndef CELESTRONGPS_H
 #define CELESTRONGPS_H
 
-#include "libs/indibase/inditelescope.h"
+#include <inditelescope.h>
 #include "indidevapi.h"
 #include "indicom.h"
 
