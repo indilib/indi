@@ -98,9 +98,8 @@ const char *FilterSim::getDefaultName()
 bool FilterSim::Connect()
 {
     CurrentFilter=1;
-    MinFilter=1;
-    MaxFilter=5;
-    FilterSlotN[0].max = MaxFilter;
+    FilterSlotN[0].min = 1;
+    FilterSlotN[0].max = 5;
     return true;
 }
 
@@ -125,6 +124,7 @@ bool FilterSim::GetFilterNames(const char* groupName)
 {
     char filterName[MAXINDINAME];
     char filterLabel[MAXINDILABEL];
+    int MaxFilter = FilterSlotN[0].max;
 
     const char *filterDesignation[5] = { "Red", "Green", "Blue", "H_Alpha", "Luminosity" };
 

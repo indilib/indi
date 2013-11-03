@@ -135,9 +135,8 @@ CCDSim::CCDSim()
     TimeFactorSV = new ISwitchVectorProperty;
 
     // Filter stuff
-    MinFilter=1;
-    MaxFilter=5;
-    FilterSlotN[0].max = MaxFilter;
+    FilterSlotN[0].min = 1;
+    FilterSlotN[0].max = 5;
 
 }
 
@@ -230,9 +229,8 @@ bool CCDSim::initProperties()
 
     initFilterProperties(getDeviceName(), FILTER_TAB);
 
-    MinFilter=1;
-    MaxFilter=5;
-    FilterSlotN[0].max = MaxFilter;
+    FilterSlotN[0].min = 1;
+    FilterSlotN[0].max = 5;
 
     addDebugControl();
 
@@ -1107,6 +1105,7 @@ bool CCDSim::GetFilterNames(const char* groupName)
 {
     char filterName[MAXINDINAME];
     char filterLabel[MAXINDILABEL];
+    int MaxFilter = FilterSlotN[0].max;
 
     const char *filterDesignation[5] = { "Red", "Green", "Blue", "H_Alpha", "Luminosity" };
 

@@ -26,7 +26,6 @@ INDI::FilterInterface::FilterInterface()
 {
     FilterNameTP  = new ITextVectorProperty;
     FilterNameT  = NULL;
-    MinFilter = MaxFilter = 0;
 }
 
 void INDI::FilterInterface::initFilterProperties(const char *deviceName, const char* groupName)
@@ -69,10 +68,10 @@ void INDI::FilterInterface::processFilterProperties(const char *name, double val
             return;
         }
 
-        if (TargetFilter < MinFilter || TargetFilter > MaxFilter)
+        if (TargetFilter < FilterSlotN[0].min || TargetFilter > FilterSlotN[0].max)
         {
             FilterSlotNP.s = IPS_ALERT;
-            IDSetNumber(&FilterSlotNP, "Error: valid range of filter is from %d to %d", MinFilter, MaxFilter);
+            IDSetNumber(&FilterSlotNP, "Error: valid range of filter is from %g to %g", FilterSlotN[0].min, FilterSlotN[0].max);
             return;
         }
 

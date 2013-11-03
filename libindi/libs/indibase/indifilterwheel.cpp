@@ -23,7 +23,6 @@
 INDI::FilterWheel::FilterWheel()
 {
     //ctor
-    MaxFilter=-1;
 }
 
 INDI::FilterWheel::~FilterWheel()
@@ -92,38 +91,8 @@ bool INDI::FilterWheel::ISNewNumber (const char *dev, const char *name, double v
 
         if(strcmp(name,"FILTER_SLOT")==0)
         {
-            int f;
-
-            f=-1;
-            for(int x=0; x<n; x++)
-            {
-                if(strcmp(names[x],"FILTER_SLOT_VALUE")==0)
-                {
-                    //  This is the new filter number we are being asked
-                    //  to set as active
-                    f=values[x];
-                }
-            }
-
-            if(f != -1)
-            {
-                if (f < MinFilter || f > MaxFilter)
-		{
-		    FilterSlotNP.s = IPS_ALERT;
-                    IDSetNumber(&FilterSlotNP,"Error: filter value out of bounds");
-                    return false;
-		} else
-		{ 
-                    //IDLog("Filter wheel got a filter slot change\n");
-		    //tell the client we are busy changing the filter
-                    FilterSlotNP.s=IPS_BUSY;
-                    IDSetNumber(&FilterSlotNP,NULL);
-                    //  Tell the hardware to change
-                    SelectFilter(f);
-                    //  tell the caller we processed this
-                    return true;
-		}
-            }
+            processFilterProperties(name, values, names, n);
+            return true;
         }
     }
     //  if we didn't process it, continue up the chain, let somebody else

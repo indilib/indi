@@ -96,8 +96,6 @@ protected:
     ITextVectorProperty *FilterNameTP; //  A text vector that stores out physical port name
     IText *FilterNameT;
 
-    int MinFilter;
-    int MaxFilter;
     int CurrentFilter;
     int TargetFilter;
 };

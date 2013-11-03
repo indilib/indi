@@ -161,6 +161,12 @@ public:
      */
     inline CCD_FRAME getFrameType() { return FrameType; }
 
+    /**
+     * @brief getFrameTypeName returns CCD Frame type name
+     * @param fType type of frame
+     * @return CCD Frame type name
+     */
+    const char *getFrameTypeName(CCD_FRAME fType);
 
     /**
      * @brief setResolutoin set CCD Chip resolution
@@ -226,7 +232,7 @@ public:
 
     /**
      * @brief setExposureDuration Set desired CCD frame exposure duration for next exposure. You must call this function immediately before
-     * starting the actual exposure.
+     * starting the actual exposure as it is used to calculate the timestamp used for the FITS header.
      * @param duration exposure duration in seconds.
      */
     void setExposureDuration(double duration);
@@ -357,6 +363,19 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         */
         virtual bool updateCCDFrame(int x, int y, int w, int h);
 
+
+        /** \brief INDI::CCD calls this function when Guide head frame dimension is updated by the client. Derived classes should implement this function
+            \param x Subframe X coordinate in pixels.
+            \param y Subframe Y coordinate in pixels.
+            \param w Subframe width in pixels.
+            \param h Subframe height in pixels.
+            \note (0,0) is defined as most left, top pixel in the subframe.
+            \return true is CCD chip update is successful, false otherwise.
+            \note This function is not implemented in INDI::CCD, it must be implemented in the child class
+        */
+        virtual bool updateGuideFrame(int x, int y, int w, int h);
+
+
         /** \brief INDI::CCD calls this function when CCD Binning needs to be updated in the hardware. Derived classes should implement this function
             \param hor Horizontal binning.
             \param ver Vertical binning.
@@ -365,6 +384,14 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         */
         virtual bool updateCCDBin(int hor, int ver);
 
+
+        /** \brief INDI::CCD calls this function when Guide head binning is updated by the client. Derived classes should implement this function
+            \param hor Horizontal binning.
+            \param ver Vertical binning.
+            \return true is CCD chip update is successful, false otherwise.
+            \note This function is not implemented in INDI::CCD, it must be implemented in the child class
+        */
+        virtual bool updateGuideBin(int hor, int ver);
 
         /** \brief INDI::CCD calls this function when CCD frame type needs to be updated in the hardware.
             \param fType Frame type

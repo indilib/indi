@@ -85,13 +85,13 @@ void CCDChip::setResolutoin(int x, int y)
     IDSetNumber(ImagePixelSizeNP, NULL);
 
     ImageFrameN[FRAME_X].min = 0;
-    ImageFrameN[FRAME_X].max = x;
+    ImageFrameN[FRAME_X].max = x-1;
     ImageFrameN[FRAME_Y].min = 0;
-    ImageFrameN[FRAME_Y].max = y;
+    ImageFrameN[FRAME_Y].max = y-1;
 
-    ImageFrameN[FRAME_W].min = 0;
+    ImageFrameN[FRAME_W].min = 1;
     ImageFrameN[FRAME_W].max = x;
-    ImageFrameN[FRAME_H].max = 0;
+    ImageFrameN[FRAME_H].max = 1;
     ImageFrameN[FRAME_H].max = y;
     IUUpdateMinMax(ImageFrameNP);
 }
@@ -169,6 +169,11 @@ void CCDChip::setExposureDuration(double duration)
 {
     exposureDuration = duration;
     gettimeofday(&startExposureTime,NULL);
+}
+
+const char *CCDChip::getFrameTypeName(CCD_FRAME fType)
+{
+    return FrameTypeS[fType].name;
 }
 
 const char * CCDChip::getExposureStartTime()
@@ -260,6 +265,10 @@ bool INDI::CCD::initProperties()
     IUFillNumber(&GuideCCD.ImageFrameN[2],"WIDTH","Width","%4.0f",0,1392.0,0,1392.0);
     IUFillNumber(&GuideCCD.ImageFrameN[3],"HEIGHT","Height","%4.0f",0,1040,0,1040);
     IUFillNumberVector(GuideCCD.ImageFrameNP,GuideCCD.ImageFrameN,4,getDeviceName(),"GUIDER_FRAME","Frame",GUIDE_HEAD_TAB,IP_RW,60,IPS_IDLE);
+
+    IUFillNumber(&GuideCCD.ImageBinN[0],"HOR_BIN","X","%2.0f",1,4,1,1);
+    IUFillNumber(&GuideCCD.ImageBinN[1],"VER_BIN","Y","%2.0f",1,4,1,1);
+    IUFillNumberVector(GuideCCD.ImageBinNP,GuideCCD.ImageBinN,2,getDeviceName(),"GUIDE_BINNING","Binning",GUIDE_HEAD_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillNumber(&GuideCCD.ImagePixelSizeN[0],"CCD_MAX_X","Resolution x","%4.0f",1,40,0,6.45);
     IUFillNumber(&GuideCCD.ImagePixelSizeN[1],"CCD_MAX_Y","Resolution y","%4.0f",1,40,0,6.45);
@@ -524,7 +533,24 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
 
             return true;
 
-      }
+        }
+
+        if(strcmp(name,"GUIDE_BINNING")==0)
+        {
+            //  We are being asked to set camera binning
+            GuideCCD.ImageBinNP->s=IPS_OK;
+            IUUpdateNumber(GuideCCD.ImageBinNP,values,names,n);
+
+
+            if (updateGuideBin(GuideCCD.ImageBinN[0].value, GuideCCD.ImageBinN[1].value) == false)
+            {
+                GuideCCD.ImageBinNP->s = IPS_ALERT;
+                IDSetNumber (GuideCCD.ImageBinNP, NULL);
+            }
+
+            return true;
+
+        }
 
         if(strcmp(name,"CCD_FRAME")==0)
         {
@@ -534,11 +560,9 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
 
             if (updateCCDFrame(PrimaryCCD.ImageFrameN[0].value, PrimaryCCD.ImageFrameN[1].value, PrimaryCCD.ImageFrameN[2].value,
                                PrimaryCCD.ImageFrameN[3].value) == false)
-            {
                 PrimaryCCD.ImageFrameNP->s = IPS_ALERT;
-                IDSetNumber(PrimaryCCD.ImageFrameNP, NULL);
 
-            }
+            IDSetNumber(PrimaryCCD.ImageFrameNP, NULL);
             return true;
         }
 
@@ -547,18 +571,15 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
             //  We are being asked to set camera binning
             GuideCCD.ImageFrameNP->s=IPS_OK;
             IUUpdateNumber(GuideCCD.ImageFrameNP,values,names,n);
-            //  Update client display
-            //IDSetNumber(GuiderFrameNP,NULL);
 
-            if (isDebug())
-                IDLog("GuiderFrame set to %4.0f,%4.0f %4.0f x %4.0f\n",
+            DEBUGF(Logger::DBG_DEBUG, "GuiderFrame set to %4.0f,%4.0f %4.0f x %4.0f",
                   GuideCCD.ImageFrameN[0].value,GuideCCD.ImageFrameN[1].value,GuideCCD.ImageFrameN[2].value,GuideCCD.ImageFrameN[3].value);
-            //GSubX=GuiderFrameN[0].value;
-            //GSubY=GuiderFrameN[1].value;
-            //GSubW=GuiderFrameN[2].value;
-            //GSubH=GuiderFrameN[3].value;
-            GuideCCD.setFrame(GuideCCD.ImageFrameN[0].value, GuideCCD.ImageFrameN[1].value,
-                              GuideCCD.ImageFrameN[2].value,GuideCCD.ImageFrameN[3].value);
+
+            if (updateGuideFrame(GuideCCD.ImageFrameN[0].value, GuideCCD.ImageFrameN[1].value, GuideCCD.ImageFrameN[2].value,
+                               GuideCCD.ImageFrameN[3].value) == false)
+                GuideCCD.ImageFrameNP->s = IPS_ALERT;
+
+            IDSetNumber(GuideCCD.ImageFrameNP, NULL);
 
             return true;
         }
@@ -710,10 +731,24 @@ bool INDI::CCD::updateCCDFrame(int x, int y, int w, int h)
     return true;
 }
 
+bool INDI::CCD::updateGuideFrame(int x, int y, int w, int h)
+{
+    GuideCCD.setFrame(x,y, w,h);
+    return true;
+}
+
 bool INDI::CCD::updateCCDBin(int hor, int ver)
 {
     // Just set value, unless HW layer overrides this and performs its own processing
     PrimaryCCD.setBin(hor, ver);
+    return true;
+}
+
+
+bool INDI::CCD::updateGuideBin(int hor, int ver)
+{
+    // Just set value, unless HW layer overrides this and performs its own processing
+    GuideCCD.setBin(hor, ver);
     return true;
 }
 
