@@ -107,11 +107,8 @@ set (indidriver_SRCS
         ${CMAKE_SOURCE_DIR}/libs/indibase/indiusbdevice.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/indiguiderinterface.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/indifilterinterface.cpp
-
-
-
+        ${CMAKE_SOURCE_DIR}/libs/indibase/indilogger.cpp
     )
-
 
 ######################################
 ########### INDI SERVER ##############

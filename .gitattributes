@@ -817,6 +817,8 @@ libindi/libs/indibase/indifocuser.cpp -text
 libindi/libs/indibase/indifocuser.h -text
 libindi/libs/indibase/indiguiderinterface.cpp -text
 libindi/libs/indibase/indiguiderinterface.h -text
+libindi/libs/indibase/indilogger.cpp -text
+libindi/libs/indibase/indilogger.h -text
 libindi/libs/indibase/indiproperty.cpp -text
 libindi/libs/indibase/indiproperty.h -text
 libindi/libs/indibase/inditelescope.cpp -text

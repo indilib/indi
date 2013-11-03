@@ -11,6 +11,8 @@
 
 #include <memory>
 
+using namespace INDI;
+
 // We declare an auto pointer to ScopeSim.
 std::auto_ptr<ScopeSim> telescope_sim(0);
 
@@ -32,7 +34,7 @@ std::auto_ptr<ScopeSim> telescope_sim(0);
 #define GUIDE_WEST      0
 #define GUIDE_EAST      1
 
-
+using namespace INDI;
 
 void ISPoll(void *p);
 
@@ -93,9 +95,13 @@ void ISSnoopDevice (XMLEle *root)
 ScopeSim::ScopeSim()
 {
     //ctor
-    currentRA=15;
-    currentDEC=15;
+    currentRA=0;
+    currentDEC=90;
     Parked=false;
+
+    DBG_SCOPE = Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
+
+    DEBUG_CONF("/tmp/indi_telescope_simulator",  Logger::getConfiguration(), Logger::defaultlevel, Logger::defaultlevel);
 
     /* initialize random seed: */
       srand ( time(NULL) );
@@ -213,11 +219,13 @@ bool ScopeSim::Connect()
 
 bool ScopeSim::Connect(char *port)
 {
+   DEBUG(Logger::DBG_SESSION, "Telescope simulator is online.");
    return true;
 }
 
 bool ScopeSim::Disconnect()
 {
+    DEBUG(Logger::DBG_SESSION, "Telescope simulator is offline.");
     return true;
 }
 
@@ -333,13 +341,13 @@ bool ScopeSim::ReadScopeStatus()
                 TrackState = SCOPE_TRACKING;
 
                 EqNP.s = IPS_OK;
-                IDMessage(getDeviceName(), "Telescope slew is complete. Tracking...");
+                DEBUG(Logger::DBG_SESSION,"Telescope slew is complete. Tracking...");
             }
             else
             {
                 TrackState = SCOPE_PARKED;
                 EqNP.s = IPS_IDLE;
-                IDMessage(getDeviceName(), "Telescope parked successfully.");
+                DEBUG(Logger::DBG_SESSION,"Telescope parked successfully.");
             }
         }
 
@@ -352,14 +360,12 @@ bool ScopeSim::ReadScopeStatus()
         dt *= 1000;
         if (guiderNSTarget[GUIDE_NORTH] > 0)
         {
-            if (isDebug())
-                IDLog("  ****** Commanded to GUIDE NORTH for %g ms *****\n", guiderNSTarget[GUIDE_NORTH]);
+            DEBUGF(Logger::DBG_DEBUG, "Commanded to GUIDE NORTH for %g ms", guiderNSTarget[GUIDE_NORTH]);
             ns_guide_dir = GUIDE_NORTH;
         }
         else if (guiderNSTarget[GUIDE_SOUTH] > 0)
         {
-            if (isDebug())
-                IDLog("  ****** Commanded to GUIDE SOUTH for %g ms *****\n", guiderNSTarget[GUIDE_SOUTH]);
+            DEBUGF(Logger::DBG_DEBUG, "Commanded to GUIDE SOUTH for %g ms", guiderNSTarget[GUIDE_SOUTH]);
             ns_guide_dir = GUIDE_SOUTH;
         }
 
@@ -367,14 +373,12 @@ bool ScopeSim::ReadScopeStatus()
         if (guiderEWTarget[GUIDE_WEST] > 0)
         {
             we_guide_dir = GUIDE_WEST;
-            if (isDebug())
-            IDLog("  ****** Commanded to GUIDE WEST for %g ms ****** \n", guiderEWTarget[GUIDE_WEST]);
+            DEBUGF(Logger::DBG_DEBUG, "Commanded to GUIDE WEST for %g ms", guiderEWTarget[GUIDE_WEST]);
         }
         else if (guiderEWTarget[GUIDE_EAST] > 0)
         {
             we_guide_dir = GUIDE_EAST;
-            if (isDebug())
-               IDLog(" ****** Commanded to GUIDE EAST for %g ms  ****** \n", guiderEWTarget[GUIDE_EAST]);
+            DEBUGF(Logger::DBG_DEBUG, "Commanded to GUIDE EAST for %g ms", guiderEWTarget[GUIDE_EAST]);
         }
 
         if (ns_guide_dir != -1)
@@ -428,17 +432,15 @@ bool ScopeSim::ReadScopeStatus()
         fs_sexa(DEC_TARGET, targetDEC, 2, 3600);
 
 
-        if (isDebug() && (dx!=last_dx || dy!=last_dy || ra_guide_dt || dec_guide_dt))
+        if ((dx!=last_dx || dy!=last_dy || ra_guide_dt || dec_guide_dt))
         {
             last_dx=dx;
             last_dy=dy;
-            IDLog("#########################################\n");
-            IDLog("dt is %g\n", dt);
-            IDLog("RA Displacement (%c%s) %s -- %s of target RA %s\n", dx >= 0 ? '+' : '-', RA_DISP, RA_PE,  (EqPEN[RA_AXIS].value - targetRA) > 0 ? "East" : "West", RA_TARGET);
-            IDLog("DEC Displacement (%c%s) %s -- %s of target RA %s\n", dy >= 0 ? '+' : '-', DEC_DISP, DEC_PE, (EqPEN[DEC_AXIS].value - targetDEC) > 0 ? "North" : "South", DEC_TARGET);
-            IDLog("RA Guide Correction (%g) %s -- Direction %s\n", ra_guide_dt, RA_GUIDE, ra_guide_dt > 0 ? "East" : "West");
-            IDLog("DEC Guide Correction (%g) %s -- Direction %s\n", dec_guide_dt, DEC_GUIDE, dec_guide_dt > 0 ? "North" : "South");
-            IDLog("#########################################\n");
+            DEBUGF(Logger::DBG_DEBUG, "dt is %g\n", dt);
+            DEBUGF(Logger::DBG_DEBUG, "RA Displacement (%c%s) %s -- %s of target RA %s\n", dx >= 0 ? '+' : '-', RA_DISP, RA_PE,  (EqPEN[RA_AXIS].value - targetRA) > 0 ? "East" : "West", RA_TARGET);
+            DEBUGF(Logger::DBG_DEBUG, "DEC Displacement (%c%s) %s -- %s of target RA %s\n", dy >= 0 ? '+' : '-', DEC_DISP, DEC_PE, (EqPEN[DEC_AXIS].value - targetDEC) > 0 ? "North" : "South", DEC_TARGET);
+            DEBUGF(Logger::DBG_DEBUG, "RA Guide Correction (%g) %s -- Direction %s\n", ra_guide_dt, RA_GUIDE, ra_guide_dt > 0 ? "East" : "West");
+            DEBUGF(Logger::DBG_DEBUG, "DEC Guide Correction (%g) %s -- Direction %s\n", dec_guide_dt, DEC_GUIDE, dec_guide_dt > 0 ? "North" : "South");
         }
 
         if (ns_guide_dir != -1 || we_guide_dir != -1)
@@ -449,6 +451,13 @@ bool ScopeSim::ReadScopeStatus()
     default:
         break;
     }
+
+    char RAStr[64], DecStr[64];
+
+    fs_sexa(RAStr, currentRA, 2, 3600);
+    fs_sexa(DecStr, currentDEC, 2, 3600);
+
+    DEBUGF(DBG_SCOPE, "Current RA: %s Current DEC: %s", RAStr, DecStr);
 
     NewRaDec(currentRA, currentDEC);
     return true;
@@ -469,7 +478,7 @@ bool ScopeSim::Goto(double r,double d)
 
     EqNP.s    = IPS_BUSY;
 
-    IDMessage(getDeviceName(), "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+    DEBUGF(Logger::DBG_SESSION,"Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
 }
 
@@ -482,7 +491,7 @@ bool ScopeSim::Sync(double ra, double dec)
     EqPEN[DEC_AXIS].value = dec;
     IDSetNumber(&EqPENV, NULL);
 
-    IDMessage(getDeviceName(), "Sync is successful.");
+    DEBUG(Logger::DBG_SESSION,"Sync is successful.");
 
     TrackState = SCOPE_IDLE;
     EqNP.s    = IPS_OK;
@@ -499,7 +508,7 @@ bool ScopeSim::Park()
     targetDEC=90;
     Parked=true;
     TrackState = SCOPE_PARKING;
-    IDMessage(getDeviceName(), "Parking telescope in progress...");
+    DEBUG(Logger::DBG_SESSION,"Parking telescope in progress...");
     return true;
 }
 
@@ -525,8 +534,6 @@ bool ScopeSim::ISNewNumber (const char *dev, const char *name, double values[], 
 
     }
 
-
-
     //  if we didn't process it, continue up the chain, let somebody else
     //  give it a shot
     return INDI::Telescope::ISNewNumber(dev,name,values,names,n);
@@ -534,11 +541,6 @@ bool ScopeSim::ISNewNumber (const char *dev, const char *name, double values[], 
 
 bool ScopeSim::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    //IDLog("Enter IsNewSwitch for %s\n",name);
-    //for(int x=0; x<n; x++) {
-    //    IDLog("Switch %s %d\n",names[x],states[x]);
-    //}
-
     if(strcmp(dev,getDeviceName())==0)
     {
         if(strcmp(name,"PE_NS")==0)
@@ -550,14 +552,12 @@ bool ScopeSim::ISNewSwitch (const char *dev, const char *name, ISState *states, 
             if (PEErrNSS[MOTION_NORTH].s == ISS_ON)
             {
                 EqPEN[DEC_AXIS].value += SID_RATE * GuideRateN[DEC_AXIS].value;
-                if (isDebug())
-                    IDLog("$$$$$ Simulating PE in NORTH direction for value of %g $$$$$\n", SID_RATE);
+                DEBUGF(Logger::DBG_DEBUG, "Simulating PE in NORTH direction for value of %g", SID_RATE);
             }
             else
             {
                 EqPEN[DEC_AXIS].value -= SID_RATE * GuideRateN[DEC_AXIS].value;
-                if (isDebug())
-                    IDLog("$$$$$ Simulating PE in SOUTH direction for value of %g $$$$$\n", SID_RATE);
+                DEBUGF(Logger::DBG_DEBUG, "Simulating PE in SOUTH direction for value of %g", SID_RATE);
             }
 
             IUResetSwitch(&PEErrNSSP);
@@ -565,7 +565,6 @@ bool ScopeSim::ISNewSwitch (const char *dev, const char *name, ISState *states, 
             IDSetNumber(&EqPENV, NULL);
 
             return true;
-
         }
 
         if(strcmp(name,"PE_WE")==0)
@@ -577,14 +576,12 @@ bool ScopeSim::ISNewSwitch (const char *dev, const char *name, ISState *states, 
             if (PEErrWES[MOTION_WEST].s == ISS_ON)
             {
                 EqPEN[RA_AXIS].value -= SID_RATE/15. * GuideRateN[RA_AXIS].value;
-                if (isDebug())
-                    IDLog("$$$$$ Simulator PE in WEST direction for value of %g $$$$$$\n", SID_RATE);
+                DEBUGF(Logger::DBG_DEBUG, "Simulator PE in WEST direction for value of %g", SID_RATE);
             }
             else
             {
                 EqPEN[RA_AXIS].value += SID_RATE/15. * GuideRateN[RA_AXIS].value;
-                if (isDebug())
-                    IDLog("$$$$$$ Simulator PE in EAST direction for value of %g $$$$$$\n", SID_RATE);
+                DEBUGF(Logger::DBG_DEBUG, "Simulator PE in EAST direction for value of %g", SID_RATE);
             }
 
             IUResetSwitch(&PEErrWESP);
@@ -635,7 +632,8 @@ bool ScopeSim::Abort()
 
     AbortSP.s      = IPS_OK;
     IUResetSwitch(&AbortSP);
-    IDSetSwitch(&AbortSP, "Telescope aborted.");
+    IDSetSwitch(&AbortSP, NULL);
+    DEBUG(Logger::DBG_SESSION, "Telescope aborted.");
 
     return true;
 }

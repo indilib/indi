@@ -32,6 +32,8 @@ const int   POLLMS	 =	250;    			/* poll period, ms */
 
 std::auto_ptr<SimpleScope> simpleScope(0);
 
+using namespace INDI;
+
 /**************************************************************************************
 ** Initilize SimpleScope object
 ***************************************************************************************/
@@ -102,8 +104,26 @@ void ISSnoopDevice (XMLEle *root)
 
 SimpleScope::SimpleScope()
 {
-    currentRA  = 15;
-    currentDEC = 15;
+    currentRA  = 0;
+    currentDEC = 90;
+
+    // We add an additional debug level so we can log verbose scope status
+    DBG_SCOPE = Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
+
+    // Let's create a logging instance that prints locally to a file and also to the client with the default debug level enabled.
+    DEBUG_CONF("/tmp/indi_simple_telescope",  Logger::file_on|Logger::screen_on, Logger::defaultlevel, Logger::defaultlevel);
+
+}
+
+/**************************************************************************************
+** We init our properties here. The only thing we want to init are the Debug controls
+***************************************************************************************/
+bool SimpleScope::initProperties()
+{
+    // ALWAYS call initProperties() of parent first
+    INDI::Telescope::initProperties();
+
+    addDebugControl();
 }
 
 /**************************************************************************************
@@ -111,7 +131,7 @@ SimpleScope::SimpleScope()
 ***************************************************************************************/
 bool SimpleScope::Connect()
 {
-    IDMessage(getDeviceName(), "Simple Scope connected successfully!");
+    DEBUG(Logger::DBG_SESSION, "Simple Scope connected successfully!");
 
     // Let's set a timer that checks telescopes status every POLLMS milliseconds.
     SetTimer(POLLMS);
@@ -124,7 +144,7 @@ bool SimpleScope::Connect()
 ***************************************************************************************/
 bool SimpleScope::Disconnect()
 {
-    IDMessage(getDeviceName(), "Simple Scope disconnected successfully!");
+    DEBUG(Logger::DBG_SESSION, "Simple Scope disconnected successfully!");
     return true;
 }
 
@@ -153,7 +173,7 @@ bool SimpleScope::Goto(double ra, double dec)
     TrackState = SCOPE_SLEWING;
 
     // Inform client we are slewing to a new position
-    IDMessage(getDeviceName(), "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+    DEBUGF(Logger::DBG_SESSION, "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
 
     // Success!
     return true;
@@ -167,7 +187,7 @@ bool SimpleScope::Abort()
 
     TrackState = SCOPE_IDLE;
 
-    IDMessage(getDeviceName(), "Simple Scope stopped.");
+    DEBUG(Logger::DBG_SESSION, "Simple Scope stopped.");
 
     return true;
 
@@ -240,13 +260,21 @@ bool SimpleScope::ReadScopeStatus()
             // Let's set state to TRACKING
             TrackState = SCOPE_TRACKING;
 
-            IDMessage(getDeviceName(), "Telescope slew is complete. Tracking...");
+            DEBUG(Logger::DBG_SESSION, "Telescope slew is complete. Tracking...");
         }
         break;
 
     default:
         break;
     }
+
+    char RAStr[64], DecStr[64];
+
+    // Parse the RA/DEC into strings
+    fs_sexa(RAStr, currentRA, 2, 3600);
+    fs_sexa(DecStr, currentDEC, 2, 3600);
+
+    DEBUGF(DBG_SCOPE, "Current RA: %s Current DEC: %s", RAStr, DecStr );
 
     NewRaDec(currentRA, currentDEC);
     return true;

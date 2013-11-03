@@ -299,6 +299,11 @@ bool INDI::DefaultDevice::ISNewSwitch (const char *dev, const char *name, ISStat
         return true;
     }
 
+    if (!strcmp(svp->name, "DEBUG_LEVEL") || !strcmp(svp->name, "LOGGING_LEVEL") || !strcmp(svp->name, "LOG_OUTPUT"))
+    {
+        return Logger::ISNewSwitch(dev, name, states, names, n);
+    }
+
     return false;
 
 }
@@ -359,6 +364,11 @@ void INDI::DefaultDevice::setDebug(bool enable)
     }
 
     pDebug = enable;
+
+    // Inform logger
+    if (Logger::updateProperties(enable, this) == false)
+      DEBUG(Logger::DBG_WARNING,"setLogDebug: Logger error");
+
     debugTriggered(enable);
     DebugSP.s = IPS_OK;
     IDSetSwitch(&DebugSP, NULL);

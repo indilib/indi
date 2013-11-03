@@ -210,13 +210,13 @@ void INDI::Telescope::NewRaDec(double ra,double dec)
 bool INDI::Telescope::Sync(double ra,double dec)
 {
     //  if we get here, our mount doesn't support sync
-    IDMessage(getDeviceName(),"Mount does not support Sync.");
+    DEBUG(Logger::DBG_ERROR, "Mount does not support Sync.");
     return false;
 }
 
 bool INDI::Telescope::MoveNS(TelescopeMotionNS dir)
 {
-    IDMessage(getDeviceName(),"Mount does not support North/South motion.");
+    DEBUG(Logger::DBG_ERROR, "Mount does not support North/South motion.");
     IUResetSwitch(&MovementNSSP);
     MovementNSSP.s = IPS_IDLE;
     IDSetSwitch(&MovementNSSP, NULL);
@@ -225,7 +225,7 @@ bool INDI::Telescope::MoveNS(TelescopeMotionNS dir)
 
 bool INDI::Telescope::MoveWE(TelescopeMotionWE dir)
 {
-    IDMessage(getDeviceName(),"Mount does not support West/East motion.");
+    DEBUG(Logger::DBG_ERROR,"Mount does not support West/East motion.");
     IUResetSwitch(&MovementWESP);
     MovementWESP.s = IPS_IDLE;
     IDSetSwitch(&MovementWESP, NULL);
@@ -529,31 +529,26 @@ bool INDI::Telescope::Connect(const char *port)
     char errorMsg[MAXRBUF];
     bool rc;
 
-    if (isDebug())
-        IDLog("INDI::Telescope connecting to %s\n",port);
+    DEBUGF(Logger::DBG_DEBUG, "INDI::Telescope connecting to %s\n",port);
 
     if ( (connectrc = tty_connect(port, 9600, 8, 0, 1, &PortFD)) != TTY_OK)
     {
         tty_error_msg(connectrc, errorMsg, MAXRBUF);
 
-        //if (isDebug())
-            IDLog("Failed to connect o port %s. Error: %s", port, errorMsg);
-        IDMessage(getDeviceName(), "Failed to connect to port %s. Error: %s", port, errorMsg);
+        DEBUGF(Logger::DBG_ERROR,"Failed to connect to port %s. Error: %s", port, errorMsg);
 
         return false;
 
     }
 
-    if (isDebug())
-        IDLog("Port Fd %d\n",PortFD);
-
+    DEBUGF(Logger::DBG_DEBUG, "Port Fd %d\n",PortFD);
 
     /* Test connection */
     rc=ReadScopeStatus();
     if(rc)
     {
         //  We got a valid scope status read
-        IDMessage(getDeviceName(),"Telescope is online.");
+        DEBUG(Logger::DBG_SESSION,"Telescope is online.");
         return rc;
     }
 
@@ -566,15 +561,10 @@ bool INDI::Telescope::Connect(const char *port)
 
 bool INDI::Telescope::Disconnect()
 {
-    //  We dont actually close the serial connection
-    //  because clients can screw each other up if we allow that
-    //Connected=false;
-
-    if (isDebug())
-        IDLog("INDI::Telescope Disconnect\n");
+    DEBUG(Logger::DBG_DEBUG, "INDI::Telescope Disconnect\n");
 
     tty_disconnect(PortFD);
-    IDMessage(getDeviceName(),"Telescope is offline.");
+    DEBUG(Logger::DBG_SESSION,"Telescope is offline.");
 
     return true;
 }

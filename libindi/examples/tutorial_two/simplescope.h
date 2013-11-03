@@ -34,6 +34,7 @@ protected:
     bool Connect();
     bool Disconnect();
     const char *getDefaultName();
+    bool initProperties();
 
     // Telescoe specific functions
     bool ReadScopeStatus();
@@ -45,6 +46,8 @@ private:
     double currentDEC;
     double targetRA;
     double targetDEC;
+
+    unsigned int DBG_SCOPE;
 
 };
 

@@ -21,6 +21,7 @@
 
 #include "basedevice.h"
 #include "indidriver.h"
+#include "indilogger.h"
 
 #include <memory.h>
 

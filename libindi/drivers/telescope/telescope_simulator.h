@@ -46,6 +46,8 @@ public:
         double targetRA;
         double targetDEC;
 
+        unsigned int DBG_SCOPE;
+
         bool Parked;
 
         double guiderEWTarget[2];
