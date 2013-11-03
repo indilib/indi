@@ -92,9 +92,8 @@ void ISSnoopDevice(XMLEle *root) {
 
 SXWHEEL::SXWHEEL() {
   TRACE(fprintf(stderr, "-> SXWHEEL::SXWHEEL()\n"));
-  MinFilter = 1;
-  FilterSlotN[0].min = MinFilter = 1;
-  FilterSlotN[0].max = MaxFilter = -1;
+  FilterSlotN[0].min = 1;
+  FilterSlotN[0].max = -1;
   CurrentFilter = 1;
   handle = 0;
   setDeviceName(getDefaultName());
@@ -174,7 +173,7 @@ int SXWHEEL::SendWheelMessage(int a, int b) {
   }
 
   CurrentFilter = buf[0];
-  FilterSlotN[0].max = MaxFilter = buf[1];
+  FilterSlotN[0].max = buf[1];
 
   TRACE(fprintf(stderr, "<- SXWHEEL::SendWheelMessage 0\n"));
 
