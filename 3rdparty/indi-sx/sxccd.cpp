@@ -28,6 +28,7 @@
  */
 
 #include <stdio.h>
+#include <unistd.h>
 #include <memory.h>
 
 #include "sxconfig.h"
