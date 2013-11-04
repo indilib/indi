@@ -36,7 +36,7 @@ class FilterSim : public INDI::FilterWheel
         bool SelectFilter(int);
         void TimerHit();
 
-        virtual bool SetFilterNames() { return false; }
+        virtual bool SetFilterNames() { return true; }
         virtual bool GetFilterNames(const char* groupName);
 
 
