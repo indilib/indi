@@ -32,7 +32,6 @@
 #include "sxao.h"
 
 #define TRACE(c) (c)
-#define DEBUG(c) (c)
 
 std::auto_ptr<SXAO> sxao(0);
 

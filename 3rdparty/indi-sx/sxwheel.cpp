@@ -34,7 +34,6 @@
 #include "sxwheel.h"
 
 #define TRACE(c) (c)
-#define DEBUG(c) (c)
 
 std::auto_ptr<SXWHEEL> sxwheel(0);
 
