@@ -73,13 +73,13 @@ public:
 
     /**
      * @brief getSubW Get the width of the frame
-     * @return width of the frame
+     * @return unbinned width of the frame
      */
     inline int getSubW() { return SubW; }
 
     /**
      * @brief getSubH Get the height of the frame
-     * @return height of the frame
+     * @return unbinned height of the frame
      */
     inline int getSubH() { return SubH; }
 
@@ -179,8 +179,8 @@ public:
      * @brief setFrame Set desired frame resolutoin for an exposure.
      * @param subx Left position.
      * @param suby Top position.
-     * @param subw width
-     * @param subh height
+     * @param subw unbinned width of the frame.
+     * @param subh unbinned height of the frame.
      */
     void setFrame(int subx, int suby, int subw, int subh);
 
@@ -255,8 +255,8 @@ private:
     int YRes;   //  ditto
     int SubX;   //  left side of the subframe we are requesting
     int SubY;   //  top of the subframe requested
-    int SubW;   //  width of the subframe
-    int SubH;   //  height of the subframe
+    int SubW;   //  UNBINNED width of the subframe
+    int SubH;   //  UNBINNED height of the subframe
     int BinX;   //  Binning requested in the x direction
     int BinY;   //  Binning requested in the Y direction
     float PixelSizex;   //  pixel size in microns, x direction
@@ -401,6 +401,14 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         */
         virtual bool updateCCDFrameType(CCDChip::CCD_FRAME fType);
 
+        /** \brief INDI::CCD calls this function when Guide frame type is updated by the client.
+            \param fType Frame type
+            \return true is CCD chip update is successful, false otherwise.
+            \note It is \e not mandotary to implement this function in the child class. The CCD hardware layer may either set the frame type when this function
+             is called, or (optionally) before an exposure is started.
+        */
+        virtual bool updateGuideFrameType(CCDChip::CCD_FRAME fType);
+
         /** \brief Setup CCD paramters for primary CCD. Child classes call this function to update CCD paramaters
             \param x Frame X coordinates in pixels.
             \param y Frame Y coordinates in pixels.
@@ -417,7 +425,7 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
             \param xf X pixel size in microns.
             \param yf Y pixel size in microns.
         */
-        virtual void SetGuidHeadParams(int x,int y,int bpp,float xf,float yf);
+        virtual void SetGuideHeadParams(int x,int y,int bpp,float xf,float yf);
 
 
         /** \brief Guide northward for ms milliseconds
@@ -484,6 +492,7 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         bool HasGuideHead;
         bool HasSt4Port;
         bool InExposure;
+        bool InGuideExposure;
 
         CCDChip PrimaryCCD;
         CCDChip GuideCCD;

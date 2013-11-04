@@ -36,11 +36,9 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
 
     private:
 
-        bool InExposure;
         float ExposureRequest;
         struct timeval ExpStart;
 
-        bool InGuideExposure;
         float GuideExposureRequest;
         struct timeval GuideExpStart;
 

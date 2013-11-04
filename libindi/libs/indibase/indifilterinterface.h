@@ -32,7 +32,7 @@
 
    \e IMPORTANT: initFilterProperties() must be called before any other function to initilize the filter properties.
 
-   \e IMPORTANT: processFilterProperties() must be called in your driver's ISNewNumber() function. processFilterProperties() will call the driver's
+   \e IMPORTANT: processFilterSlot() must be called in your driver's ISNewNumber() function. processFilterSlot() will call the driver's
       SelectFilter() accordingly.
 
    \note Filter position starts from 1 and \e not 0
@@ -83,12 +83,20 @@ protected:
 
     /** \brief Process client request to change filter position. Call this function in the filter wheel
          implementation class ISNewNumber function.
-        \param name property name from ISNewNumber();
+        \param deviceName Name of the primary device
+        \param values values from ISNewNumber().
+        \param names names from ISNewNumber();
+    */
+    void processFilterSlot(const char *deviceName, double values[], char *names[]);
+
+    /** \brief Process client request to change filter name(s). Call this function in the filter wheel
+         implementation class ISNewNumber() function.
+        \param deviceName Name of the primary device
         \param values values from ISNewNumber().
         \param names names from ISNewNumber();
         \param n n from ISNewNumber();
     */
-    void processFilterProperties(const char *name, double values[], char *names[], int n);
+    void processFilterName(const char *deviceName, char *texts[], char *names[], int n);
 
     INumberVectorProperty FilterSlotNP;   //  A number vector for filter slot
     INumber FilterSlotN[1];

@@ -91,7 +91,7 @@ bool INDI::FilterWheel::ISNewNumber (const char *dev, const char *name, double v
 
         if(strcmp(name,"FILTER_SLOT")==0)
         {
-            processFilterProperties(name, values, names, n);
+            processFilterSlot(dev, values, names);
             return true;
         }
     }
@@ -111,19 +111,7 @@ bool INDI::FilterWheel::ISNewText (const char *dev, const char *name, char *text
         //  Now lets see if it's something we process here
         if(strcmp(name,FilterNameTP->name)==0)
         {
-            int rc;
-            //IDLog("calling update text\n");
-            FilterNameTP->s=IPS_OK;
-            rc=IUUpdateText(FilterNameTP,texts,names,n);
-
-            if (SetFilterNames() == true)
-                IDSetText(FilterNameTP,NULL);
-            else
-            {
-                FilterNameTP->s = IPS_ALERT;
-                IDSetText(FilterNameTP, "Error updating names of filters.");
-            }
-            //  We processed this one, so, tell the world we did it
+            processFilterName(dev, texts, names, n);
             return true;
         }
 

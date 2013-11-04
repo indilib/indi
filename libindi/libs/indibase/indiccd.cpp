@@ -28,7 +28,7 @@
 const char *IMAGE_SETTINGS_TAB = "Image Settings";
 const char *IMAGE_INFO_TAB     = "Image Info";
 const char *GUIDE_HEAD_TAB     = "Guide Head";
-const char *GUIDE_CONTROL_TAB     = "Guider Control";
+const char *GUIDE_CONTROL_TAB  = "Guide Head Control";
 
 CCDChip::CCDChip()
 {
@@ -156,6 +156,7 @@ void CCDChip::setFrameBufferSize(int nbuf)
     RawFrameSize = nbuf;
 
     RawFrame = new char[nbuf];
+
 }
 
 void CCDChip::setExposureLeft(double duration)
@@ -205,8 +206,9 @@ INDI::CCD::CCD()
     HasGuideHead=false;
     HasSt4Port=false;
     InExposure=false;
-    RA=9.95;
-    Dec=68.9;
+    InGuideExposure=false;
+    RA=0.0;
+    Dec=90.0;
     ActiveDeviceTP = new ITextVectorProperty;
 }
 
@@ -256,7 +258,7 @@ bool INDI::CCD::initProperties()
     IUFillSwitchVector(PrimaryCCD.CompressSP,PrimaryCCD.CompressS,2,getDeviceName(),"CCD_COMPRESSION","Image",IMAGE_SETTINGS_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
     IUFillBLOB(&PrimaryCCD.FitsB,"CCD1","Image","");
-    IUFillBLOBVector(PrimaryCCD.FitsBP,&PrimaryCCD.FitsB,1,getDeviceName(),"CCD1","Image Data",OPTIONS_TAB,IP_RO,60,IPS_IDLE);
+    IUFillBLOBVector(PrimaryCCD.FitsBP,&PrimaryCCD.FitsB,1,getDeviceName(),"CCD1","Image Data",IMAGE_INFO_TAB,IP_RO,60,IPS_IDLE);
 
     // GUIDER CCD Init
 
@@ -276,10 +278,17 @@ bool INDI::CCD::initProperties()
     IUFillNumber(&GuideCCD.ImagePixelSizeN[3],"CCD_PIXEL_SIZE_X","Pixel size X","%5.2f",1,40,0,6.45);
     IUFillNumber(&GuideCCD.ImagePixelSizeN[4],"CCD_PIXEL_SIZE_Y","Pixel size Y","%5.2f",1,40,0,6.45);
     IUFillNumber(&GuideCCD.ImagePixelSizeN[5],"CCD_BITSPERPIXEL","Bits per pixel","%3.0f",1,40,0,6.45);
-    IUFillNumberVector(GuideCCD.ImagePixelSizeNP,GuideCCD.ImagePixelSizeN,6,getDeviceName(),"GUIDER_INFO",GUIDE_HEAD_TAB,GUIDE_HEAD_TAB,IP_RO,60,IPS_IDLE);
+    IUFillNumberVector(GuideCCD.ImagePixelSizeNP,GuideCCD.ImagePixelSizeN,6,getDeviceName(),"GUIDER_INFO", "Guide Info",IMAGE_INFO_TAB,IP_RO,60,IPS_IDLE);
+
+    IUFillSwitch(&GuideCCD.FrameTypeS[0],"FRAME_LIGHT","Light",ISS_ON);
+    IUFillSwitch(&GuideCCD.FrameTypeS[1],"FRAME_BIAS","Bias",ISS_OFF);
+    IUFillSwitch(&GuideCCD.FrameTypeS[2],"FRAME_DARK","Dark",ISS_OFF);
+    IUFillSwitch(&GuideCCD.FrameTypeS[3],"FRAME_FLAT","Flat",ISS_OFF);
+    IUFillSwitchVector(GuideCCD.FrameTypeSP,GuideCCD.FrameTypeS,4,getDeviceName(),"GUIDE_FRAME_TYPE","FrameType",GUIDE_HEAD_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+
 
     IUFillNumber(&GuideCCD.ImageExposureN[0],"GUIDER_EXPOSURE_VALUE","Duration (s)","%5.2f",0,36000,0,1.0);
-    IUFillNumberVector(GuideCCD.ImageExposureNP,GuideCCD.ImageExposureN,1,getDeviceName(),"GUIDER_EXPOSURE","Guide",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
+    IUFillNumberVector(GuideCCD.ImageExposureNP,GuideCCD.ImageExposureN,1,getDeviceName(),"GUIDER_EXPOSURE","Guide Head",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillSwitch(&GuideCCD.AbortExposureS[0],"ABORT","Abort",ISS_OFF);
     IUFillSwitchVector(GuideCCD.AbortExposureSP,GuideCCD.AbortExposureS,1,getDeviceName(),"GUIDER_ABORT_EXPOSURE","Guide Abort",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
@@ -289,7 +298,7 @@ bool INDI::CCD::initProperties()
     IUFillSwitchVector(GuideCCD.CompressSP,GuideCCD.CompressS,2,getDeviceName(),"GUIDER_COMPRESSION","Image",GUIDE_HEAD_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
     IUFillBLOB(&GuideCCD.FitsB,"CCD2","Guider Image","");
-    IUFillBLOBVector(GuideCCD.FitsBP,&GuideCCD.FitsB,1,getDeviceName(),"CCD2","Image Data",OPTIONS_TAB,IP_RO,60,IPS_IDLE);
+    IUFillBLOBVector(GuideCCD.FitsBP,&GuideCCD.FitsB,1,getDeviceName(),"CCD2","Image Data",IMAGE_INFO_TAB,IP_RO,60,IPS_IDLE);
 
     // CCD Class Init
 
@@ -343,6 +352,7 @@ bool INDI::CCD::updateProperties()
         if(HasGuideHead)
         {
             defineNumber(GuideCCD.ImagePixelSizeNP);
+            defineNumber(GuideCCD.ImageBinNP);
         }
         defineSwitch(PrimaryCCD.CompressSP);
         defineBLOB(PrimaryCCD.FitsBP);
@@ -357,6 +367,8 @@ bool INDI::CCD::updateProperties()
             defineNumber(&GuideWENP);
         }
         defineSwitch(PrimaryCCD.FrameTypeSP);
+        if (HasGuideHead)
+            defineSwitch(GuideCCD.FrameTypeSP);
         defineText(ActiveDeviceTP);
     }
     else
@@ -375,7 +387,9 @@ bool INDI::CCD::updateProperties()
             deleteProperty(GuideCCD.ImageFrameNP->name);
             deleteProperty(GuideCCD.ImagePixelSizeNP->name);
             deleteProperty(GuideCCD.FitsBP->name);
+            deleteProperty(GuideCCD.ImageBinNP->name);
             deleteProperty(GuideCCD.CompressSP->name);
+            deleteProperty(GuideCCD.FrameTypeSP->name);
         }
         if(HasSt4Port)
         {
@@ -698,6 +712,24 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
 
             return true;
         }
+
+        if(strcmp(name,GuideCCD.FrameTypeSP->name)==0)
+        {
+            //  Compression Update
+            IUUpdateSwitch(GuideCCD.FrameTypeSP,states,names,n);
+            GuideCCD.FrameTypeSP->s=IPS_OK;
+            if(GuideCCD.FrameTypeS[0].s==ISS_ON) GuideCCD.setFrameType(CCDChip::LIGHT_FRAME);
+            else if(GuideCCD.FrameTypeS[1].s==ISS_ON) GuideCCD.setFrameType(CCDChip::BIAS_FRAME);
+            else if(GuideCCD.FrameTypeS[2].s==ISS_ON) GuideCCD.setFrameType(CCDChip::DARK_FRAME);
+            else if(GuideCCD.FrameTypeS[3].s==ISS_ON) GuideCCD.setFrameType(CCDChip::FLAT_FRAME);
+
+            if (updateGuideFrameType(GuideCCD.getFrameType()) == false)
+                GuideCCD.FrameTypeSP->s = IPS_ALERT;
+
+            IDSetSwitch(GuideCCD.FrameTypeSP,NULL);
+
+            return true;
+        }
     }
 
 
@@ -759,6 +791,13 @@ bool INDI::CCD::updateCCDFrameType(CCDChip::CCD_FRAME fType)
     return true;
 }
 
+bool INDI::CCD::updateGuideFrameType(CCDChip::CCD_FRAME fType)
+{
+    INDI_UNUSED(fType);
+    // Child classes can override this
+    return true;
+}
+
 void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
 {
     int status=0;
@@ -774,7 +813,6 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
 
     xbin = targetChip->getBinX();
     ybin = targetChip->getBinY();
-
 
     switch (targetChip->getFrameType())
     {
@@ -815,7 +853,6 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
     fits_update_key_s(fptr, TSTRING, "INSTRUME", dev_name, "CCD Name", &status);
     fits_update_key_s(fptr, TSTRING, "DATE-OBS", exp_start, "UTC start date of observation", &status);
 
-    //fits_write_date(fptr, &status);
 }
 
 void INDI::CCD::fits_update_key_s(fitsfile* fptr, int type, std::string name, void* p, std::string explanation, int* status)
@@ -834,6 +871,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
     long naxes[2];
     long naxis=2;
     int nelements=0;
+    std::string bit_depth;
 
     fitsfile *fptr=NULL;
 
@@ -845,26 +883,32 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
         case 8:
             byte_type = TBYTE;
             img_type  = BYTE_IMG;
+            bit_depth = "8 bits per pixel";
             break;
 
         case 16:
             byte_type = TUSHORT;
             img_type = USHORT_IMG;
+            bit_depth = "16 bits per pixel";
             break;
 
         case 32:
             byte_type = TULONG;
             img_type = ULONG_IMG;
+            bit_depth = "32 bits per pixel";
             break;
 
          default:
-            IDLog("Unsupported bits per pixel value %d\n", targetChip->getBPP() );
+            DEBUGF(Logger::DBG_WARNING, "Unsupported bits per pixel value %d\n", targetChip->getBPP() );
             return false;
             break;
     }
 
 
     nelements = naxes[0] * naxes[1];
+
+    DEBUGF(Logger::DBG_DEBUG, "Exposure complete. Image Depth: %s. Width: %d Height: %d nelements: %d", bit_depth.c_str(), naxes[0],
+            naxes[1], nelements);
 
     //  Now we have to send fits format data to the client
     memsize=5760;
@@ -908,7 +952,6 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
     targetChip->ImageExposureNP->s=IPS_OK;
     IDSetNumber(targetChip->ImageExposureNP,NULL);
 
-
     targetChip->FitsB.blob=memptr;
     targetChip->FitsB.bloblen=memsize;
     targetChip->FitsB.size=memsize;
@@ -931,7 +974,7 @@ void INDI::CCD::SetCCDParams(int x,int y,int bpp,float xf,float yf)
 
 }
 
-void INDI::CCD::SetGuidHeadParams(int x,int y,int bpp,float xf,float yf)
+void INDI::CCD::SetGuideHeadParams(int x,int y,int bpp,float xf,float yf)
 {
     HasGuideHead=true;
 

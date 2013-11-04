@@ -260,7 +260,7 @@ bool CCDSim::updateProperties()
 
         if(HasGuideHead)
         {
-            SetGuidHeadParams(500,290,16,9.8,12.6);
+            SetGuideHeadParams(500,290,16,9.8,12.6);
             GuideCCD.setFrameBufferSize(GuideCCD.getXRes() * GuideCCD.getYRes() * 2);
         }
 
@@ -965,7 +965,7 @@ bool CCDSim::ISNewNumber (const char *dev, const char *name, double values[], ch
 
         if (strcmp(name, FilterSlotNP.name)==0)
         {
-            processFilterProperties(name, values, names, n);
+            processFilterSlot(getDeviceName(), values, names);
             return true;
         }
 
