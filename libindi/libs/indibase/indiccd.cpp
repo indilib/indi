@@ -28,7 +28,7 @@
 const char *IMAGE_SETTINGS_TAB = "Image Settings";
 const char *IMAGE_INFO_TAB     = "Image Info";
 const char *GUIDE_HEAD_TAB     = "Guide Head";
-const char *GUIDE_CONTROL_TAB  = "Guide Head Control";
+const char *GUIDE_CONTROL_TAB  = "Guider Control";
 
 CCDChip::CCDChip()
 {
