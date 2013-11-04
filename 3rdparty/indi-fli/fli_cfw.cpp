@@ -342,7 +342,7 @@ bool FLICFW::setupParams()
     {
         // on first contact fliter wheel reports position -1
         // to avoid wrong number presented in client dialog: 
-        SelectFilter(MinFilter);
+        SelectFilter(FilterSlotN[0].min);
 
         if (( err = FLIGetFilterPos(fli_dev, &FLIFilter.current_pos)))
         {
@@ -368,11 +368,8 @@ bool FLICFW::setupParams()
         return false;
     }
 
-    MinFilter = 1;
-    MaxFilter = FLIFilter.count;
-
-    FilterSlotN[0].min = MinFilter;
-    FilterSlotN[0].max = MaxFilter;
+    FilterSlotN[0].min = 1;
+    FilterSlotN[0].max = FLIFilter.count;
     FilterSlotN[0].value = FLIFilter.current_pos+1;
     IUUpdateMinMax(&FilterSlotNP);
 
@@ -465,15 +462,15 @@ void FLICFW::turnWheel()
         switch (FilterS[0].s)
         {
           case ISS_ON:
-            if (current_filter < MaxFilter)
+            if (current_filter < FilterSlotN[0].max)
                 current_filter++;
-            else current_filter = MinFilter;
+            else current_filter = FilterSlotN[0].min;
             break;
 
           case ISS_OFF:
-            if (current_filter > MinFilter)
+            if (current_filter > FilterSlotN[0].min)
                 current_filter--;
-            else current_filter = MaxFilter;
+            else current_filter = FilterSlotN[0].max;
             break;
         }
 
