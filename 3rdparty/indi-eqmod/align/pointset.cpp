@@ -31,6 +31,8 @@
 #include "triangulate.h"
 #include "triangulate_chull.h"
 
+using namespace INDI;
+
 double PointSet::range24(double r) {
   double res = r;
   while (res<0.0) res+=24.0;

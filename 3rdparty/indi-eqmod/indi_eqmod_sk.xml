@@ -145,6 +145,14 @@ On
 Off
 </defSwitch>
 </defSwitchVector>
+<defSwitchVector device="EQMod Mount" name="REVERSEDEC" label="Reverse DEC" group="Main Control" state="Idle" perm="rw" rule="OneOfMany">
+<defSwitch name="ENABLE" label="Enable">
+Off
+</defSwitch>
+<defSwitch name="DISABLE" label="Disable">
+On
+</defSwitch>
+</defSwitchVector>
 <defSwitchVector device="EQMod Mount" name="SLEWMODE" label="Slew Presets" group="Motion Control" state="Idle" perm="rw" rule="OneOfMany">
 <defSwitch name="SLEWCUSTOM" label="Custom">
 Off

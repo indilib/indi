@@ -39,24 +39,23 @@
 	  long deltaRAEncoder, deltaDECEncoder;
 	} SyncData;
 
-
 class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 {
     protected:
     private:
-        Skywatcher *mount;
+    Skywatcher *mount;
 	Align *align;
 
 	unsigned long currentRAEncoder, zeroRAEncoder, totalRAEncoder;
 	unsigned long currentDEEncoder, zeroDEEncoder, totalDEEncoder;
 	
-        double currentRA, currentHA; 
-        double currentDEC;
+    double currentRA, currentHA;
+    double currentDEC;
 	double alignedRA, alignedDEC;
-        double targetRA;
-        double targetDEC;
+    double targetRA;
+    double targetDEC;
 	TelescopeStatus RememberTrackState;
-        bool Parked;
+    bool Parked;
 	
 	/* for use with libnova */
 	struct ln_equ_posn lnradec;
@@ -73,8 +72,8 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 
 	int GuideTimerWE;
 
-        INumber *GuideRateN;
-        INumberVectorProperty *GuideRateNP;
+    INumber *GuideRateN;
+    INumberVectorProperty *GuideRateNP;
 
 	ITextVectorProperty *MountInformationTP;
 	INumberVectorProperty *SteppersNP;
@@ -99,6 +98,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 	ISwitchVectorProperty *SyncManageSP;
     ISwitchVectorProperty *UseJoystickSP;
     ITextVectorProperty *JoystickSettingTP;
+    ISwitchVectorProperty *ReverseDECSP;
 
 
 	enum Hemisphere {NORTH=0, SOUTH=1 };

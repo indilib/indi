@@ -29,8 +29,6 @@
 // to get access to lat/long data
 #include <inditelescope.h>
 
-#include "../logger/Logger.h"
-
 typedef struct AlignData {
   double lst;
   double jd;

@@ -30,7 +30,6 @@
 3rdparty/indi-eqmod/*.user*
 3rdparty/indi-eqmod/align/*.user*
 3rdparty/indi-eqmod/align/chull/*.user*
-3rdparty/indi-eqmod/logger/*.user*
 3rdparty/indi-eqmod/simulator/*.user*
 3rdparty/indi-fishcamp/*.user*
 3rdparty/indi-fli/*.user*

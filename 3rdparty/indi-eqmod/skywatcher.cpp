@@ -40,15 +40,20 @@
 #include "skywatcher.h"
 #include "eqmod.h"
 
-#include "logger/Logger.h"
 #include "simulator/simulator.h"
 
+using namespace INDI;
+
+extern int DBG_SCOPE_STATUS;
+extern int DBG_COMM;
+extern int DBG_MOUNT;
 
 Skywatcher::Skywatcher(EQMod *t)
 {
   fd=-1;
   debug=false;
   debugnextread=false;
+  simulation=false;
   telescope = t;
 
 }
@@ -152,7 +157,7 @@ unsigned long Skywatcher::GetRAEncoder()  throw (EQModError)
   read_eqmod();
   RAStep=Revu24str2long(response+1);
   gettimeofday (&lastreadmotorposition[Axis1], NULL);
-  DEBUGF(Logger::DBG_SCOPE_STATUS, "%s() = %ld", __FUNCTION__, RAStep);
+  DEBUGF(DBG_SCOPE_STATUS, "%s() = %ld", __FUNCTION__, RAStep);
   return RAStep;
 }
 
@@ -164,7 +169,7 @@ unsigned long Skywatcher::GetDEEncoder()  throw (EQModError)
  
   DEStep=Revu24str2long(response+1);
   gettimeofday (&lastreadmotorposition[Axis2], NULL);
-  DEBUGF(Logger::DBG_SCOPE_STATUS, "%s() = %ld", __FUNCTION__, DEStep);
+  DEBUGF(DBG_SCOPE_STATUS, "%s() = %ld", __FUNCTION__, DEStep);
   return DEStep;
 }
 
@@ -194,13 +199,13 @@ unsigned long Skywatcher::GetDEEncoderTotal()
 
 unsigned long Skywatcher::GetRAPeriod() throw (EQModError)
 {
-  DEBUGF(Logger::DBG_SCOPE_STATUS, "%s() = %ld", __FUNCTION__, RAPeriod);
+  DEBUGF(DBG_SCOPE_STATUS, "%s() = %ld", __FUNCTION__, RAPeriod);
   return RAPeriod;
 }
 
 unsigned long Skywatcher::GetDEPeriod() throw (EQModError)
 {
-  DEBUGF(Logger::DBG_SCOPE_STATUS, "%s() = %ld", __FUNCTION__, DEPeriod);
+  DEBUGF(DBG_SCOPE_STATUS, "%s() = %ld", __FUNCTION__, DEPeriod);
   return DEPeriod;
 }
 
@@ -670,7 +675,7 @@ void Skywatcher::SetSpeed(SkywatcherAxis axis, unsigned long period) throw (EQMo
   char cmd[7];  
   SkywatcherAxisStatus *currentstatus;
 
-  DEBUGF(Logger::DBG_MOUNT, "%s() : Axis = %c -- period=%ld", __FUNCTION__, axis, period);
+  DEBUGF(DBG_MOUNT, "%s() : Axis = %c -- period=%ld", __FUNCTION__, axis, period);
 
   ReadMotorStatus(axis);
   if (axis == Axis1) currentstatus=&RAStatus; else currentstatus=&DEStatus;
@@ -688,7 +693,7 @@ void Skywatcher::SetSpeed(SkywatcherAxis axis, unsigned long period) throw (EQMo
 void Skywatcher::SetTarget(SkywatcherAxis axis, unsigned long increment) throw (EQModError)
 {
   char cmd[7];
-  DEBUGF(Logger::DBG_MOUNT, "%s() : Axis = %c -- increment=%ld", __FUNCTION__, axis, increment);
+  DEBUGF(DBG_MOUNT, "%s() : Axis = %c -- increment=%ld", __FUNCTION__, axis, increment);
   long2Revu24str(increment, cmd);
   //IDLog("Setting target for axis %c  to %d\n", axis, increment);
   dispatch_command(SetGotoTargetIncrement, axis, cmd);
@@ -698,7 +703,7 @@ void Skywatcher::SetTarget(SkywatcherAxis axis, unsigned long increment) throw (
 void Skywatcher::SetTargetBreaks(SkywatcherAxis axis, unsigned long increment) throw (EQModError)
 {
   char cmd[7];
-  DEBUGF(Logger::DBG_MOUNT, "%s() : Axis = %c -- increment=%ld", __FUNCTION__, axis, increment);
+  DEBUGF(DBG_MOUNT, "%s() : Axis = %c -- increment=%ld", __FUNCTION__, axis, increment);
   long2Revu24str(increment, cmd);
   //IDLog("Setting target for axis %c  to %d\n", axis, increment);
   dispatch_command(SetBreakPointIncrement, axis, cmd);
@@ -708,7 +713,7 @@ void Skywatcher::SetTargetBreaks(SkywatcherAxis axis, unsigned long increment) t
 
 void Skywatcher::StartMotor(SkywatcherAxis axis) throw (EQModError)
 {
-  DEBUGF(Logger::DBG_MOUNT, "%s() : Axis = %c", __FUNCTION__, axis);
+  DEBUGF(DBG_MOUNT, "%s() : Axis = %c", __FUNCTION__, axis);
   dispatch_command(StartMotion, axis, NULL);
   read_eqmod();
 }
@@ -730,7 +735,7 @@ void Skywatcher::SetMotion(SkywatcherAxis axis, SkywatcherAxisStatus newstatus) 
   char motioncmd[3];
   SkywatcherAxisStatus *currentstatus;
 
-  DEBUGF(Logger::DBG_MOUNT, "%s() : Axis = %c -- dir=%s mode=%s speedmode=%s", __FUNCTION__, axis,
+  DEBUGF(DBG_MOUNT, "%s() : Axis = %c -- dir=%s mode=%s speedmode=%s", __FUNCTION__, axis,
 	 ((newstatus.direction == FORWARD)?"forward":"backward"),
 	 ((newstatus.slewmode == SLEW)?"slew":"goto"),
 	 ((newstatus.speedmode == LOWSPEED)?"lowspeed":"highspeed"));
@@ -761,14 +766,14 @@ void Skywatcher::SetMotion(SkywatcherAxis axis, SkywatcherAxisStatus newstatus) 
 
 void Skywatcher::StopMotor(SkywatcherAxis axis)  throw (EQModError)
 {
-  DEBUGF(Logger::DBG_MOUNT, "%s() : Axis = %c", __FUNCTION__, axis);
+  DEBUGF(DBG_MOUNT, "%s() : Axis = %c", __FUNCTION__, axis);
   dispatch_command(NotInstantAxisStop, axis, NULL);
   read_eqmod();
 }
 
 void Skywatcher::InstantStopMotor(SkywatcherAxis axis)  throw (EQModError)
 {
-  DEBUGF(Logger::DBG_MOUNT, "%s() : Axis = %c", __FUNCTION__, axis);
+  DEBUGF(DBG_MOUNT, "%s() : Axis = %c", __FUNCTION__, axis);
   dispatch_command(InstantAxisStop, axis, NULL);
   read_eqmod();
 }
@@ -778,7 +783,7 @@ void Skywatcher::StopWaitMotor(SkywatcherAxis axis)  throw (EQModError)
 {
   bool *motorrunning;
   struct timespec wait;
-  DEBUGF(Logger::DBG_MOUNT, "%s() : Axis = %c", __FUNCTION__, axis);
+  DEBUGF(DBG_MOUNT, "%s() : Axis = %c", __FUNCTION__, axis);
   dispatch_command(NotInstantAxisStop, axis, NULL);
   read_eqmod();
   if (axis == Axis1) motorrunning=&RARunning; else motorrunning=&DERunning;
@@ -795,7 +800,7 @@ void Skywatcher::StopWaitMotor(SkywatcherAxis axis)  throw (EQModError)
 void Skywatcher::CheckMotorStatus(SkywatcherAxis axis) throw (EQModError)
 {
   struct timeval now;
-  DEBUGF(Logger::DBG_SCOPE_STATUS, "%s() : Axis = %c", __FUNCTION__, axis);
+  DEBUGF(DBG_SCOPE_STATUS, "%s() : Axis = %c", __FUNCTION__, axis);
   gettimeofday (&now, NULL);
   if (((now.tv_sec - lastreadmotorstatus[axis].tv_sec) + ((now.tv_usec - lastreadmotorstatus[axis].tv_usec)/1e6)) > SKYWATCHER_MAXREFRESH) 
     ReadMotorStatus(axis);
@@ -838,11 +843,11 @@ bool Skywatcher::dispatch_command(SkywatcherCommand cmd, SkywatcherAxis axis, ch
     telescope->simulator->receive_cmd(command, &nbytes_written);
   }
 #endif
-  if (Logger::debugSerial(cmd)) {
+  //if (Logger::debugSerial(cmd)) {
     command[nbytes_written-1]='\0'; //hmmm, remove \r, the  SkywatcherTrailingChar
-    DEBUGF(Logger::DBG_COMM, "dispatch_command: \"%s\", %d bytes written", command, nbytes_written);
+    DEBUGF(DBG_COMM, "dispatch_command: \"%s\", %d bytes written", command, nbytes_written);
     debugnextread=true;
-  }
+  //}
   return true;
 }
 
@@ -876,7 +881,7 @@ bool Skywatcher::read_eqmod() throw (EQModError)
     response[nbytes_read-1] = '\0';
 
     if (debugnextread) {
-      DEBUGF(Logger::DBG_COMM, "read_eqmod: \"%s\", %d bytes read", response, nbytes_read);
+      DEBUGF(DBG_COMM, "read_eqmod: \"%s\", %d bytes read", response, nbytes_read);
       debugnextread=false;
     }
     switch (response[0]) {

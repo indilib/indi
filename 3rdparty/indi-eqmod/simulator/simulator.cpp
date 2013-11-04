@@ -1,8 +1,7 @@
 
 #include "simulator.h"
-#include "logger/Logger.h"
 
-
+using namespace INDI;
 
 EQModSimulator::EQModSimulator(INDI::Telescope *t) 
 {

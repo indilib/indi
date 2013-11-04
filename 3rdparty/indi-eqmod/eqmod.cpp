@@ -47,8 +47,7 @@
 
 #include "skywatcher.h"
 
-#include "logger/Logger.h"
-
+using namespace INDI;
 
 #include <memory>
 
@@ -92,6 +91,10 @@ double defaultspeed=64.0;
 #define GUIDE_SOUTH     1
 #define GUIDE_WEST      0
 #define GUIDE_EAST      1
+
+int DBG_SCOPE_STATUS;
+int DBG_COMM;
+int DBG_MOUNT;
 
 int timeval_subtract(struct timeval *result, struct timeval *x, struct timeval *y)
 {
@@ -177,14 +180,20 @@ EQMod::EQMod()
 {
   //ctor
   setVersion(EQMOD_VERSION_MAJOR, EQMOD_VERSION_MINOR);
-  currentRA=15;
-  currentDEC=15;
+  currentRA=0;
+  currentDEC=90;
   Parked=false;
 
-#ifdef WITH_LOGGER
-  DEBUG_CONF("/tmp/indi_eqmod_telescope",  Logger::file_on|Logger::screen_on, Logger::defaultlevel, Logger::defaultlevel);
-#endif
+  if (isSimulation())
+  {
+      IDLog("OMG WE ARE IN SIMULATION!!\n");
+  }
 
+  DBG_SCOPE_STATUS = Logger::getInstance().addDebugLevel("Scope Status", "SCOPE");
+  DBG_COMM         = Logger::getInstance().addDebugLevel("Serial Port", "COMM");
+  DBG_MOUNT        = Logger::getInstance().addDebugLevel("Verbose Mount", "MOUNT");
+
+  DEBUG_CONF("/tmp/indi_eqmod_telescope",  Logger::file_off|Logger::screen_on, Logger::defaultlevel, Logger::defaultlevel);
 
   mount=new Skywatcher(this);
 
@@ -346,6 +355,8 @@ bool EQMod::loadProperties()
     TrackRatesNP=getNumber("TRACKRATES");
     UseJoystickSP=getSwitch("USEJOYSTICK");
     JoystickSettingTP=getText("JOYSTICKSETTINGS");
+    ReverseDECSP=getSwitch("REVERSEDEC");
+
     //AbortMotionSP=getSwitch("TELESCOPE_ABORT_MOTION");
     HorizontalCoordNP=getNumber("HORIZONTAL_COORD");
     for (unsigned int i=1; i<SlewModeSP->nsp; i++) {
@@ -397,6 +408,7 @@ bool EQMod::updateProperties()
 	defineNumber(TrackRatesNP);
 	defineNumber(HorizontalCoordNP);
 	defineSwitch(PierSideSP);
+    defineSwitch(ReverseDECSP);
 	defineNumber(StandardSyncNP);
 	defineNumber(StandardSyncPointNP);
 	defineNumber(SyncPolarAlignNP);
@@ -460,6 +472,7 @@ bool EQMod::updateProperties()
 	  deleteProperty(TrackRatesNP->name);
 	  deleteProperty(HorizontalCoordNP->name);
 	  deleteProperty(PierSideSP->name);
+      deleteProperty(ReverseDECSP->name);
 	  deleteProperty(StandardSyncNP->name);
 	  deleteProperty(StandardSyncPointNP->name);
 	  deleteProperty(SyncPolarAlignNP->name);
@@ -582,7 +595,7 @@ bool EQMod::ReadScopeStatus() {
   
   fs_sexa(hrlst, lst, 2, 360000);
   hrlst[11]='\0';
-  DEBUGF(Logger::DBG_SCOPE_STATUS, "Compute local time: lst=%2.8f (%s) - julian date=%8.8f", lst, hrlst, juliandate); 
+  DEBUGF(DBG_SCOPE_STATUS, "Compute local time: lst=%2.8f (%s) - julian date=%8.8f", lst, hrlst, juliandate);
   //DateNP->s=IPS_BUSY;
   //datevalues[0]=lst; datevalues[1]=juliandate;
   IUUpdateNumber(TimeLSTNP, &lst, (char **)(datenames), 1);
@@ -599,7 +612,7 @@ bool EQMod::ReadScopeStatus() {
   try {
     currentRAEncoder=mount->GetRAEncoder();
     currentDEEncoder=mount->GetDEEncoder();
-    DEBUGF(Logger::DBG_SCOPE_STATUS, "Current encoders RA=%ld DE=%ld", currentRAEncoder, currentDEEncoder);
+    DEBUGF(DBG_SCOPE_STATUS, "Current encoders RA=%ld DE=%ld", currentRAEncoder, currentDEEncoder);
     EncodersToRADec(currentRAEncoder, currentDEEncoder, lst, &currentRA, &currentDEC, &currentHA);
     alignedRA=currentRA; alignedDEC=currentDEC;
     if (align) 
@@ -1508,6 +1521,20 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
               disableJoystick();
 
           IDSetSwitch(UseJoystickSP, NULL);
+
+      }
+
+      if (!strcmp(name, "REVERSEDEC"))
+      {
+          IUUpdateSwitch(ReverseDECSP, states, names, n);
+
+          ReverseDECSP->s = IPS_OK;
+
+          DEInverted = (ReverseDECSP->sp[0].s == ISS_ON) ? true : false;
+
+          DEBUG(Logger::DBG_SESSION, "Inverting Declination Axis.");
+
+          IDSetSwitch(ReverseDECSP, NULL);
 
       }
     }

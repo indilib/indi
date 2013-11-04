@@ -21,8 +21,6 @@
 #include <stdio.h>
 #include <inditelescope.h>
 
-#include "../logger/Logger.h"
-
 typedef struct SyncData SyncData;
 
 #include "pointset.h"

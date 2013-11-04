@@ -1,6 +1,6 @@
 <devGroup group="Telescopes">
 	<device label="EQMod">
 		<driver name="EQMod Mount">indi_eqmod_telescope</driver>
-		<version>0.1</version>
+                <version>0.2</version>
 	</device>
 </devGroup>

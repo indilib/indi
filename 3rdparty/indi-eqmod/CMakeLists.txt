@@ -18,10 +18,9 @@ find_package(ZLIB REQUIRED)
 #find_package(Threads REQUIRED)
 
 set(EQMOD_VERSION_MAJOR 0)
-set(EQMOD_VERSION_MINOR 1)
+set(EQMOD_VERSION_MINOR 2)
 option(WITH_ALIGN_GEEHALEL "Enable Alignment Test" ON)
 option(WITH_SIMULATOR "Enable Simulator" ON)
-option(WITH_LOGGER "Enable File Logging" OFF)
 option(WITH_NOFMANY "Use NOFMANY switches" ON)
 option(STOP_WHEN_MOTION_CHANGED "Stop motors when motion mode changes" ON)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
@@ -33,8 +32,7 @@ include_directories( ${NOVA_INCLUDE_DIR})
 
 ########### EQMod ###############
 set(eqmod_SRCS
-   ${CMAKE_SOURCE_DIR}/eqmod.cpp ${CMAKE_SOURCE_DIR}/eqmoderror.cpp ${CMAKE_SOURCE_DIR}/skywatcher.cpp 
-   ${CMAKE_SOURCE_DIR}/logger/Logger.cpp)
+   ${CMAKE_SOURCE_DIR}/eqmod.cpp ${CMAKE_SOURCE_DIR}/eqmoderror.cpp ${CMAKE_SOURCE_DIR}/skywatcher.cpp)
 
 if(WITH_SIMULATOR)
   set(eqmod_SRCS ${eqmod_SRCS}

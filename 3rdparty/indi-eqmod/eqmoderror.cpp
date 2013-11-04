@@ -21,7 +21,7 @@
 #include "eqmoderror.h"
 #include "eqmod.h"
 
-#include "logger/Logger.h"
+using namespace INDI;
 
 EQModError::EQModError(Severity sev, const char *msg, ...)
 {
