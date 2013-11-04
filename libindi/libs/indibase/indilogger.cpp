@@ -293,7 +293,7 @@ void Logger::configure (const std::string&	outputFile,
 			std::ostringstream oss;
 			time_t currTime;
 			time(&currTime);
-			struct tm *currTm = localtime(&currTime);
+            //struct tm *currTm = localtime(&currTime);
 			oss << outputFile << "_" << timestamp() << ".log";
 			  //		currTm->tm_mday << "_" <<
 			  //		currTm->tm_mon << "_" <<

@@ -301,7 +301,16 @@ bool INDI::DefaultDevice::ISNewSwitch (const char *dev, const char *name, ISStat
 
     if (!strcmp(svp->name, "DEBUG_LEVEL") || !strcmp(svp->name, "LOGGING_LEVEL") || !strcmp(svp->name, "LOG_OUTPUT"))
     {
-        return Logger::ISNewSwitch(dev, name, states, names, n);
+        bool rc = Logger::ISNewSwitch(dev, name, states, names, n);
+
+        if (!strcmp(svp->name, "LOG_OUTPUT"))
+        {
+                ISwitch *sw = IUFindSwitch(svp, "FILE_DEBUG");
+                if (sw && sw->s == ISS_ON)
+                    DEBUGF(Logger::DBG_SESSION, "Session log file %s", Logger::getLogFile().c_str());
+        }
+
+        return rc;
     }
 
     return false;
