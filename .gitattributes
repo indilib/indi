@@ -256,8 +256,8 @@
 3rdparty/indi-sbig/README -text
 3rdparty/indi-sbig/config.h.cmake -text
 3rdparty/indi-sbig/indi_sbig.xml -text
-3rdparty/indi-sbig/sbigcam.cpp -text
-3rdparty/indi-sbig/sbigcam.h -text
+3rdparty/indi-sbig/sbig_ccd.cpp -text
+3rdparty/indi-sbig/sbig_ccd.h -text
 3rdparty/indi-sbig/sbigudrv.h -text
 3rdparty/indi-spectracyber/.project -text
 3rdparty/indi-spectracyber/Authors -text

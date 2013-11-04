@@ -1,14 +1,13 @@
 cmake_minimum_required(VERSION 2.4.7)
-PROJECT(indi_sbig C CXX)
+PROJECT(indi_sbig CXX C)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
 set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
 
 find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
-find_package(SBIG REQUIRED)
 find_package(ZLIB REQUIRED)
-
+find_package(SBIG REQUIRED)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 
@@ -17,15 +16,19 @@ include_directories( ${CMAKE_SOURCE_DIR})
 include_directories( ${INDI_INCLUDE_DIR})
 include_directories( ${CFITSIO_INCLUDE_DIR})
 
-########### SBIG ###########
-set(indisbig_SRCS
-   ${CMAKE_SOURCE_DIR}/sbigcam.cpp
-   )
-   
-add_executable(indi_sbig_ccd ${indisbig_SRCS})
+############# SBIG CCD ###############
+if (CFITSIO_FOUND)
 
-target_link_libraries(indi_sbig_ccd ${INDI_MAIN_LIBRARIES} ${CFITSIO_LIBRARIES} ${SBIG_LIBRARIES} z)
+set(sbigccd_SRCS
+	${CMAKE_SOURCE_DIR}/sbig_ccd.cpp
+)
 
-install(TARGETS indi_sbig_ccd RUNTIME DESTINATION bin )
+add_executable(indi_sbig_ccd ${sbigccd_SRCS})
+
+target_link_libraries(indi_sbig_ccd ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${SBIG_LIBRARIES} m z)
+
+install(TARGETS indi_sbig_ccd RUNTIME DESTINATION bin)
+
+endif (CFITSIO_FOUND)
 
 install(FILES indi_sbig.xml DESTINATION ${INDI_DATA_DIR})
