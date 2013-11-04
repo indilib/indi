@@ -193,8 +193,6 @@ EQMod::EQMod()
   DBG_COMM         = Logger::getInstance().addDebugLevel("Serial Port", "COMM");
   DBG_MOUNT        = Logger::getInstance().addDebugLevel("Verbose Mount", "MOUNT");
 
-  DEBUG_CONF("/tmp/indi_eqmod_telescope",  Logger::file_off|Logger::screen_on, Logger::defaultlevel, Logger::defaultlevel);
-
   mount=new Skywatcher(this);
 
   pierside = EAST;

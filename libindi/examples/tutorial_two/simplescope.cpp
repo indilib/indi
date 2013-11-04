@@ -109,10 +109,6 @@ SimpleScope::SimpleScope()
 
     // We add an additional debug level so we can log verbose scope status
     DBG_SCOPE = Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
-
-    // Let's create a logging instance that prints locally to a file and also to the client with the default debug level enabled.
-    DEBUG_CONF("/tmp/indi_simple_telescope",  Logger::file_on|Logger::screen_on, Logger::defaultlevel, Logger::defaultlevel);
-
 }
 
 /**************************************************************************************

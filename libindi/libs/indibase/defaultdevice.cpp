@@ -59,6 +59,7 @@ INDI::DefaultDevice::DefaultDevice()
 
     majorVersion = 1;
     minorVersion = 0;
+
 }
 
 INDI::DefaultDevice::~DefaultDevice()
@@ -622,6 +623,13 @@ bool INDI::DefaultDevice::initProperties()
     IUFillSwitch(&ConfigProcessS[1], "CONFIG_SAVE", "Save", ISS_OFF);
     IUFillSwitch(&ConfigProcessS[2], "CONFIG_DEFAULT", "Default", ISS_OFF);
     IUFillSwitchVector(&ConfigProcessSP, ConfigProcessS, NARRAY(ConfigProcessS), getDeviceName(), "CONFIG_PROCESS", "Configuration", "Options", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    // Ready the logger
+    std::string logFile;
+    logFile += "/tmp/";
+    logFile += getDriverExec();
+
+    DEBUG_CONF(logFile,  Logger::file_on|Logger::screen_on, Logger::defaultlevel, Logger::defaultlevel);
 
    return true;
 }

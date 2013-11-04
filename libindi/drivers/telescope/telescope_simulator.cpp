@@ -101,8 +101,6 @@ ScopeSim::ScopeSim()
 
     DBG_SCOPE = Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
-    DEBUG_CONF("/tmp/indi_telescope_simulator",  Logger::getConfiguration(), Logger::defaultlevel, Logger::defaultlevel);
-
     /* initialize random seed: */
       srand ( time(NULL) );
 }

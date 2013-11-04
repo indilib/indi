@@ -142,9 +142,6 @@ SBIGCCD::SBIGCCD()
     // For now let's set name to default name. In the future, we need to to support multiple devices per one driver
     strncpy(name, getDefaultName(), MAXINDINAME);
 
-    // Let's create a logging instance that prints locally to a file and also to the client with the default debug level enabled.
-    DEBUG_CONF("/tmp/indi_sbig_ccd",  Logger::file_on|Logger::screen_on, Logger::defaultlevel, Logger::defaultlevel);
-
 }
 //==========================================================================
 SBIGCCD::SBIGCCD(const char* devName)
