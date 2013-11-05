@@ -48,6 +48,9 @@ class SXAO: public INDI::DefaultDevice, INDI::GuiderInterface {
     SXAO();
     ~SXAO();
 
+    void debugTriggered(bool enable);
+    void simulationTriggered(bool enable);
+
     void ISGetProperties (const char *dev);
     bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
     bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
