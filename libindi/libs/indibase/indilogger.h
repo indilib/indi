@@ -59,10 +59,10 @@
 			__debug_stream__.str()); \
 	}
 */
-#define DEBUG(priority, msg) Logger::getInstance().print(getDeviceName(), priority, __FILE__, __LINE__,msg)
-#define DEBUGF(priority, msg, ...) Logger::getInstance().print(getDeviceName(), priority, __FILE__, __LINE__, msg, __VA_ARGS__)
-#define DEBUGDEVICE(device, priority, msg) Logger::getInstance().print(device, priority, __FILE__, __LINE__, msg)
-#define DEBUGFDEVICE(device, priority, msg, ...) Logger::getInstance().print(device, priority, __FILE__, __LINE__,  msg, __VA_ARGS__)
+#define DEBUG(priority, msg) INDI::Logger::getInstance().print(getDeviceName(), priority, __FILE__, __LINE__,msg)
+#define DEBUGF(priority, msg, ...) INDI::Logger::getInstance().print(getDeviceName(), priority, __FILE__, __LINE__, msg, __VA_ARGS__)
+#define DEBUGDEVICE(device, priority, msg) INDI::Logger::getInstance().print(device, priority, __FILE__, __LINE__, msg)
+#define DEBUGFDEVICE(device, priority, msg, ...) INDI::Logger::getInstance().print(device, priority, __FILE__, __LINE__,  msg, __VA_ARGS__)
 
 namespace  INDI
 {
@@ -166,7 +166,7 @@ class Logger
         inline static void unlock();
 
  public:
-  enum VerbosityLevel 
+  enum VerbosityLevel
   {DBG_ERROR=0x1, DBG_WARNING=0x2, DBG_SESSION=0x4, DBG_DEBUG=0x8, DBG_EXTRA_1=0x10,
    DBG_EXTRA_2=0X20, DBG_EXTRA_3=0x40, DBG_EXTRA_4=0x80};
 
