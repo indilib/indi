@@ -82,12 +82,12 @@ void ISSnoopDevice(XMLEle *root) {
 
 int SXAO::aoCommand(const char *request, char *response, int nbytes) {
   if (isSimulation()) {
-  	IDMessage(getDeviceName(), "simulation: command %s", request);
-  	if (!strcmp(request, "X"))
-  		strcpy(response, "Y");
-  	else
-  		strcpy(response, "*");
-  	return TTY_OK;
+    IDMessage(getDeviceName(), "simulation: command %s", request);
+    if (!strcmp(request, "X"))
+      strcpy(response, "Y");
+    else
+      strcpy(response, "*");
+    return TTY_OK;
   }
   int actual;
   int rc = tty_write(PortFD, request, strlen(request), &actual);
@@ -113,9 +113,11 @@ const char * SXAO::getDefaultName() {
 }
 
 void SXAO::debugTriggered(bool enable) {
+  INDI_UNUSED(enable);
 }
 
 void SXAO::simulationTriggered(bool enable) {
+  INDI_UNUSED(enable);
 }
 
 bool SXAO::Connect() {
@@ -128,13 +130,13 @@ bool SXAO::Connect() {
   const char *port = PortT[0].text;
 
   if (isSimulation())
-  	IDMessage(getDeviceName(), "simulation: connected");
-	else {
-		if ((rc = tty_connect(port, 9600, 8, 0, 1, &PortFD)) != TTY_OK) {
-			tty_error_msg(rc, buf, MAXRBUF);
-			IDMessage(getDeviceName(), "Failed to connect to SXAO on %s (%s)", port, buf);
-			return false;
-		}
+    IDMessage(getDeviceName(), "simulation: connected");
+  else {
+    if ((rc = tty_connect(port, 9600, 8, 0, 1, &PortFD)) != TTY_OK) {
+      tty_error_msg(rc, buf, MAXRBUF);
+      IDMessage(getDeviceName(), "Failed to connect to SXAO on %s (%s)", port, buf);
+      return false;
+    }
   }
 
   rc = aoCommand("X", buf, 1);
@@ -159,9 +161,9 @@ bool SXAO::Connect() {
 
 bool SXAO::Disconnect() {
   if (isSimulation())
-  	IDMessage(getDeviceName(), "simulation: disconnected");
-	else
-	  tty_disconnect(PortFD);
+    IDMessage(getDeviceName(), "simulation: disconnected");
+  else
+    tty_disconnect(PortFD);
   IDMessage(getDeviceName(), "SXAO is disconnected.");
   return true;
 }
@@ -169,8 +171,8 @@ bool SXAO::Disconnect() {
 bool SXAO::initProperties() {
   DefaultDevice::initProperties();
   initGuiderProperties(getDeviceName(), GUIDE_CONTROL_TAB);
-	addDebugControl();
-	addSimulationControl();
+  addDebugControl();
+  addSimulationControl();
 #if __APPLE__
   IUFillText(&PortT[0], "PORT", "Port", "/dev/cu.usbserial-FTDFZ2FW");
 #else

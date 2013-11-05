@@ -33,8 +33,6 @@
 #include "sxconfig.h"
 #include "sxwheel.h"
 
-#define TRACE(c) (c)
-
 std::auto_ptr<SXWHEEL> sxwheel(0);
 
 void ISInit() {
@@ -48,31 +46,23 @@ void ISInit() {
 }
 
 void ISGetProperties(const char *dev) {
-  TRACE(fprintf(stderr, "-> ISGetProperties(%s)\n", dev));
   ISInit();
   sxwheel->ISGetProperties(dev);
-  TRACE(fprintf(stderr, "<- ISGetProperties\n"));
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num) {
-  TRACE(fprintf(stderr, "-> ISNewSwitch(%s, %s...)\n", dev, name));
   ISInit();
   sxwheel->ISNewSwitch(dev, name, states, names, num);
-  TRACE(fprintf(stderr, "<- ISNewSwitch\n"));
 }
 
 void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num) {
-  TRACE(fprintf(stderr, "-> ISNewText(%s, %s, ...)\n", dev, name));
   ISInit();
   sxwheel->ISNewText(dev, name, texts, names, num);
-  TRACE(fprintf(stderr, "<- ISNewText\n"));
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num) {
-  TRACE(fprintf(stderr, "-> ISNewNumber(%s, %s, ...)\n", dev, name));
   ISInit();
   sxwheel->ISNewNumber(dev, name, values, names, num);
-  TRACE(fprintf(stderr, "<- ISNewNumber\n"));
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n) {
@@ -90,22 +80,30 @@ void ISSnoopDevice(XMLEle *root) {
 }
 
 SXWHEEL::SXWHEEL() {
-  TRACE(fprintf(stderr, "-> SXWHEEL::SXWHEEL()\n"));
   FilterSlotN[0].min = 1;
   FilterSlotN[0].max = -1;
   CurrentFilter = 1;
   handle = 0;
   setDeviceName(getDefaultName());
   setVersion(VERSION_MAJOR, VERSION_MINOR);
-  TRACE(fprintf(stderr, "<- SXWHEEL::SXWHEEL\n"));
 }
 
 SXWHEEL::~SXWHEEL() {
-  TRACE(fprintf(stderr, "-> SXWHEEL::~SXWHEEL()\n"));
-  if (handle)
-    hid_close(handle);
-  hid_exit();
-  TRACE(fprintf(stderr, "<- SXWHEEL::~SXWHEEL\n"));
+  if (isSimulation())
+    IDMessage(getDeviceName(), "simulation: disconnected");
+  else { 
+    if (handle)
+      hid_close(handle);
+    hid_exit();
+  }
+}
+
+void SXWHEEL::debugTriggered(bool enable) {
+  INDI_UNUSED(enable);
+}
+
+void SXWHEEL::simulationTriggered(bool enable) {
+  INDI_UNUSED(enable);
 }
 
 const char * SXWHEEL::getDefaultName() {
@@ -113,85 +111,80 @@ const char * SXWHEEL::getDefaultName() {
 }
 
 bool SXWHEEL::Connect() {
-  TRACE(fprintf(stderr, "-> SXWHEEL::Connect()\n"));
-  if (!handle)
-    handle = hid_open(0x1278, 0x0920, NULL);
-  SelectFilter(CurrentFilter);
-  TRACE(fprintf(stderr, "<- SXWHEEL::Connect %d\n", handle != NULL));
+  if (isSimulation()) {
+    IDMessage(getDeviceName(), "simulation: connected");
+    handle = (hid_device *)1;
+  }
+  else {
+    if (!handle)
+      handle = hid_open(0x1278, 0x0920, NULL);
+    SelectFilter(CurrentFilter);
+  }
   return handle != NULL;
 }
 
 bool SXWHEEL::Disconnect() {
-  TRACE(fprintf(stderr, "-> SXWHEEL::Disconnect()\n"));
-  if (handle)
-    hid_close(handle);
+  if (isSimulation())
+    IDMessage(getDeviceName(), "simulation: disconnected");
+  else { 
+    if (handle)
+      hid_close(handle);
+  }
   handle = 0;
-  TRACE(fprintf(stderr, "<- SXWHEEL::Disconnect 1\n"));
   return true;
 }
 
 bool SXWHEEL::initProperties() {
-  TRACE(fprintf(stderr, "-> SXWHEEL::initProperties()\n"));
   INDI::FilterWheel::initProperties();
-  TRACE(fprintf(stderr, "<- SXWHEEL::initProperties 1"));
+  addDebugControl();
+  addSimulationControl();
   return true;
 }
 
 void SXWHEEL::ISGetProperties(const char *dev) {
-  TRACE(fprintf(stderr, "-> SXWHEEL::ISGetProperties()\n"));
   INDI::FilterWheel::ISGetProperties(dev);
-  TRACE(fprintf(stderr, "<- SXWHEEL::ISGetProperties\n"));
   return;
 }
 
 int SXWHEEL::SendWheelMessage(int a, int b) {
-  TRACE(fprintf(stderr, "-> SXWHEEL::SendWheelMessage(%d, %d)\n", a, b));
-
+  if (isSimulation()) {
+    IDMessage(getDeviceName(), "simulation: command %d %d", a, b);
+    if (a > 0)
+      CurrentFilter = a;
+    return 0;
+  }
   if (!handle) {
     IDMessage(getDeviceName(), "Filter wheel not connected\n");
-    TRACE(fprintf(stderr, "<- SXWHEEL::SendWheelMessage -1\n"));
     return -1;
   }
-
   unsigned char buf[2] = { a, b };
-
   int rc = hid_write(handle, buf, 2);
+  DEBUGF(INDI::Logger::DBG_DEBUG, "SendWheelMessage: hid_write( { %d, %d } ) -> %d\n", buf[0], buf[1], rc);
   if (rc != 2) {
     IDMessage(getDeviceName(), "Failed to write to wheel \n");
-    TRACE(fprintf(stderr, "<- SXWHEEL::SendWheelMessage (rc=%d) -1\n", rc));
     return -1;
   }
-
   usleep(100);
-
   rc = hid_read(handle, buf, 2);
+  DEBUGF(INDI::Logger::DBG_DEBUG, "SendWheelMessage: hid_read() -> { %d, %d } %d\n", buf[0], buf[1], rc);
   if (rc != 2) {
     IDMessage(getDeviceName(), "Failed to read from wheel\n");
-    TRACE(fprintf(stderr, "<- SXWHEEL::SendWheelMessage (rc=%d) -1\n", rc));
     return -1;
   }
-
   CurrentFilter = buf[0];
   FilterSlotN[0].max = buf[1];
-
-  TRACE(fprintf(stderr, "<- SXWHEEL::SendWheelMessage 0\n"));
-
   return 0;
 }
 
 int SXWHEEL::QueryFilter() {
-  TRACE(fprintf(stderr, "-> SXWHEEL::QueryFilter()\n"));
   SendWheelMessage(0, 0);
-  TRACE(fprintf(stderr, "<- SXWHEEL::QueryFilter %d\n", CurrentFilter));
   return CurrentFilter;
 }
 
 bool SXWHEEL::SelectFilter(int f) {
-  TRACE(fprintf(stderr, "-> SXWHEEL::SelectFilter(%d)\n", f));
   TargetFilter = f;
   SendWheelMessage(f, 0);
   SetTimer(250);
-  TRACE(fprintf(stderr, "<- SXWHEEL::SelectFilter 1\n"));
   return true;
 }
 

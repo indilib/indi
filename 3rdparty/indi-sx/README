@@ -14,7 +14,7 @@ Requirtments
 
 	libcfitsio3 is required to compile support for FITS.
 	
-+ libusb-1.0 >= 1.0.9
++ libusb >= 1.0
 
   libusb-1.0-dev is required.
   

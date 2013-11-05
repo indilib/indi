@@ -42,6 +42,9 @@ class SXWHEEL: public INDI::FilterWheel {
     SXWHEEL();
     ~SXWHEEL();
 
+    void debugTriggered(bool enable);
+    void simulationTriggered(bool enable);
+
     bool Connect();
     bool Disconnect();
     const char *getDefaultName();

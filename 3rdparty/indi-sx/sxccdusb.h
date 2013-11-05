@@ -134,6 +134,8 @@ struct t_sxccd_params {
 /*
  * Prototypes.
  */
+ 
+void sxDebug(bool enable);
 int sxList(DEVICE *sxDevices, const char **names, int maxCount);
 int sxOpen(HANDLE *sxHandles);
 int sxOpen(DEVICE sxDevice, HANDLE *sxHandle);

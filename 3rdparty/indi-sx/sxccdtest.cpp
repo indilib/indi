@@ -52,6 +52,8 @@ int main() {
   unsigned short us;
   unsigned long ul;
 
+	sxDebug(true);
+
   cout << "sx_ccd_test version " << VERSION_MAJOR << "." << VERSION_MINOR << endl << endl;
   n = sxList(devices, names, 20);
   cout << "sxList() -> " << n << endl << endl;

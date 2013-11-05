@@ -176,12 +176,21 @@ SXCCD::~SXCCD() {
     sxClose(&handle);
 }
 
+void SXCCD::debugTriggered(bool enable) {
+  sxDebug(enable);
+}
+
+void SXCCD::simulationTriggered(bool enable) {
+  INDI_UNUSED(enable);
+}
+
 const char *SXCCD::getDefaultName() {
   return name;
 }
 
 bool SXCCD::initProperties() {
   INDI::CCD::initProperties();
+  addDebugControl();
   IUFillNumber(&TemperatureN, "CCD_TEMPERATURE_VALUE", "CCD temperature", "%4.1f", -40, 35, 1, TemperatureRequest);
   IUFillNumberVector(&TemperatureNP, &TemperatureN, 1, getDeviceName(), "CCD_TEMPERATURE", "Temperature", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
   IUFillSwitch(&CoolerS[0], "DISCONNECT_COOLER", "Off", ISS_ON);
