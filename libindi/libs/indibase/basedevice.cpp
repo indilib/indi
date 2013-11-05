@@ -20,6 +20,7 @@
 #include <string.h>
 #include <errno.h>
 #include <zlib.h>
+#include <locale.h>
 
 #include "basedevice.h"
 #include "baseclient.h"

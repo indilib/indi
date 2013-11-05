@@ -25,6 +25,8 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <fcntl.h>
+#include <locale.h>
+#include <pthread.h>
 
 #include "baseclient.h"
 #include "basedevice.h"
