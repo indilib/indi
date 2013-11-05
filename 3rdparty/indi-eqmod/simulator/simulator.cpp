@@ -1,8 +1,6 @@
 
 #include "simulator.h"
 
-using namespace INDI;
-
 EQModSimulator::EQModSimulator(INDI::Telescope *t) 
 {
   telescope=t;
@@ -145,7 +143,7 @@ bool EQModSimulator::ISNewNumber (const char *dev, const char *name, double valu
       INumberVectorProperty *nvp =telescope->getNumber(name);
       if ((nvp != SimWormNP) && (nvp != SimRatioNP) & (nvp != SimMotorNP)) return false;
       if (telescope->isConnected()) {
-	DEBUGDEVICE(telescope->getDeviceName(), Logger::DBG_WARNING,"Can not change simulation settings when mount is already connected");
+    DEBUGDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_WARNING,"Can not change simulation settings when mount is already connected");
 	return false;
       }
 
@@ -166,7 +164,7 @@ bool EQModSimulator::ISNewSwitch (const char *dev, const char *name, ISState *st
       ISwitchVectorProperty *svp =telescope->getSwitch(name);
       if ((svp != SimModeSP) && (svp != SimHighSpeedSP)) return false;
       if (telescope->isConnected()) {
-	DEBUGDEVICE(telescope->getDeviceName(), Logger::DBG_WARNING,"Can not change simulation settings when mount is already connected");
+    DEBUGDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_WARNING,"Can not change simulation settings when mount is already connected");
 	return false;
       }
 
@@ -190,7 +188,7 @@ bool EQModSimulator::ISNewText (const char *dev, const char *name, char *texts[]
             if ((tvp != SimMCVersionTP)) return false;
             if (telescope->isConnected())
             {
-                DEBUGDEVICE(telescope->getDeviceName(), Logger::DBG_WARNING,"Can not change simulation settings when mount is already connected");
+                DEBUGDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_WARNING,"Can not change simulation settings when mount is already connected");
                 return false;
             }
 

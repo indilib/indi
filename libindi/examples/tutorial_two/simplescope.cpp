@@ -32,8 +32,6 @@ const int   POLLMS	 =	250;    			/* poll period, ms */
 
 std::auto_ptr<SimpleScope> simpleScope(0);
 
-using namespace INDI;
-
 /**************************************************************************************
 ** Initilize SimpleScope object
 ***************************************************************************************/
@@ -108,7 +106,7 @@ SimpleScope::SimpleScope()
     currentDEC = 90;
 
     // We add an additional debug level so we can log verbose scope status
-    DBG_SCOPE = Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
+    DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 }
 
 /**************************************************************************************
@@ -127,7 +125,7 @@ bool SimpleScope::initProperties()
 ***************************************************************************************/
 bool SimpleScope::Connect()
 {
-    DEBUG(Logger::DBG_SESSION, "Simple Scope connected successfully!");
+    DEBUG(INDI::Logger::DBG_SESSION, "Simple Scope connected successfully!");
 
     // Let's set a timer that checks telescopes status every POLLMS milliseconds.
     SetTimer(POLLMS);
@@ -140,7 +138,7 @@ bool SimpleScope::Connect()
 ***************************************************************************************/
 bool SimpleScope::Disconnect()
 {
-    DEBUG(Logger::DBG_SESSION, "Simple Scope disconnected successfully!");
+    DEBUG(INDI::Logger::DBG_SESSION, "Simple Scope disconnected successfully!");
     return true;
 }
 
@@ -169,7 +167,7 @@ bool SimpleScope::Goto(double ra, double dec)
     TrackState = SCOPE_SLEWING;
 
     // Inform client we are slewing to a new position
-    DEBUGF(Logger::DBG_SESSION, "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+    DEBUGF(INDI::Logger::DBG_SESSION, "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
 
     // Success!
     return true;
@@ -183,7 +181,7 @@ bool SimpleScope::Abort()
 
     TrackState = SCOPE_IDLE;
 
-    DEBUG(Logger::DBG_SESSION, "Simple Scope stopped.");
+    DEBUG(INDI::Logger::DBG_SESSION, "Simple Scope stopped.");
 
     return true;
 
@@ -256,7 +254,7 @@ bool SimpleScope::ReadScopeStatus()
             // Let's set state to TRACKING
             TrackState = SCOPE_TRACKING;
 
-            DEBUG(Logger::DBG_SESSION, "Telescope slew is complete. Tracking...");
+            DEBUG(INDI::Logger::DBG_SESSION, "Telescope slew is complete. Tracking...");
         }
         break;
 

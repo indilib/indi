@@ -21,8 +21,6 @@
 #include "eqmoderror.h"
 #include "eqmod.h"
 
-using namespace INDI;
-
 EQModError::EQModError(Severity sev, const char *msg, ...)
 {
   if (msg) {
@@ -49,14 +47,14 @@ bool EQModError::DefaultHandleException(EQMod *device) {
   case EQModError::ErrInvalidCmd:
   case EQModError::ErrCmdFailed:
   case EQModError::ErrInvalidParameter:
-    DEBUGFDEVICE(device->getDeviceName(), Logger::DBG_WARNING, "Warning: %s -> %s", severityString(), message);
+    DEBUGFDEVICE(device->getDeviceName(), INDI::Logger::DBG_WARNING, "Warning: %s -> %s", severityString(), message);
     return true;
   case EQModError::ErrDisconnect:   
-    DEBUGFDEVICE(device->getDeviceName(),Logger::DBG_ERROR, "Error: %s -> %s", severityString(), message);
+    DEBUGFDEVICE(device->getDeviceName(),INDI::Logger::DBG_ERROR, "Error: %s -> %s", severityString(), message);
     device->Disconnect();
     return false;
   default:
-    DEBUGFDEVICE(device->getDeviceName(), Logger::DBG_ERROR, "Unhandled exception: %s -> %s", severityString(), message);
+    DEBUGFDEVICE(device->getDeviceName(), INDI::Logger::DBG_ERROR, "Unhandled exception: %s -> %s", severityString(), message);
     device->Disconnect();
     return false;
     break;

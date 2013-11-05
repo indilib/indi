@@ -42,8 +42,6 @@
 
 #include "simulator/simulator.h"
 
-using namespace INDI;
-
 extern int DBG_SCOPE_STATUS;
 extern int DBG_COMM;
 extern int DBG_MOUNT;
@@ -175,25 +173,25 @@ unsigned long Skywatcher::GetDEEncoder()  throw (EQModError)
 
 unsigned long Skywatcher::GetRAEncoderZero()
 {
-  DEBUGF(Logger::DBG_DEBUG, "%s() = %ld", __FUNCTION__, RAStepInit);
+  DEBUGF(INDI::Logger::DBG_DEBUG, "%s() = %ld", __FUNCTION__, RAStepInit);
   return RAStepInit;
 }
 
 unsigned long Skywatcher::GetRAEncoderTotal()
 {
-  DEBUGF(Logger::DBG_DEBUG, "%s() = %ld", __FUNCTION__, RASteps360);
+  DEBUGF(INDI::Logger::DBG_DEBUG, "%s() = %ld", __FUNCTION__, RASteps360);
   return RASteps360;
 }
 
 unsigned long Skywatcher::GetDEEncoderZero()
 {
-  DEBUGF(Logger::DBG_DEBUG, "%s() = %ld", __FUNCTION__, DEStepInit);
+  DEBUGF(INDI::Logger::DBG_DEBUG, "%s() = %ld", __FUNCTION__, DEStepInit);
   return DEStepInit;
 }
 
 unsigned long Skywatcher::GetDEEncoderTotal()
 {
-  DEBUGF(Logger::DBG_DEBUG, "%s() = %ld", __FUNCTION__, DESteps360);
+  DEBUGF(INDI::Logger::DBG_DEBUG, "%s() = %ld", __FUNCTION__, DESteps360);
   return DESteps360;
 }
 
@@ -260,27 +258,27 @@ void Skywatcher::Init(ISwitchVectorProperty *parkSP) throw (EQModError)
     dispatch_command(GetAxisPosition, Axis2, NULL);
     read_eqmod();
     DEStepInit=Revu24str2long(response+1);
-    DEBUGF(Logger::DBG_DEBUG, "%s() : Motors not initialized -- read initial steps RA=%ld DE = %ld",
+    DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : Motors not initialized -- read initial steps RA=%ld DE = %ld",
 	    __FUNCTION__, RAStepInit, DEStepInit);
     if (parkSP->sp[0].s==ISS_ON) { 
       //TODO get Park position, set corresponding encoder values, mark mount as parked 
-      DEBUGF(Logger::DBG_DEBUG, "%s() : Mount in Park position", __FUNCTION__);
+      DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : Mount in Park position", __FUNCTION__);
     } else {
       //mount is supposed to be in the home position (pointing Celestial Pole)
       char cmdarg[7];
       RAStepHome=RAStepInit;
       DEStepHome=DEStepInit + (DESteps360 / 4);
-      DEBUGF(Logger::DBG_DEBUG, "%s() : Mount in Home position -- setting Home steps RA=%ld DE = %ld",
+      DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : Mount in Home position -- setting Home steps RA=%ld DE = %ld",
 	    __FUNCTION__, RAStepHome, DEStepHome);
       cmdarg[6]='\0';
       long2Revu24str(DEStepHome, cmdarg);
       dispatch_command(SetAxisPosition, Axis2, cmdarg);
       read_eqmod();
-    //DEBUGF(Logger::DBG_WARNING, "%s() : Mount is supposed to point North/South Celestial Pole", __FUNCTION__);
+    //DEBUGF(INDI::Logger::DBG_WARNING, "%s() : Mount is supposed to point North/South Celestial Pole", __FUNCTION__);
       //TODO mark mount as unparked?
     }
     // Energize motors
-    DEBUGF(Logger::DBG_DEBUG, "%s() : Powering motors", __FUNCTION__);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : Powering motors", __FUNCTION__);
     dispatch_command(Initialize, Axis1, NULL);
     read_eqmod();
     dispatch_command(Initialize, Axis2, NULL);
@@ -292,8 +290,8 @@ void Skywatcher::Init(ISwitchVectorProperty *parkSP) throw (EQModError)
     DEStepInit=0x800000;
     RAStepHome=RAStepInit;
     DEStepHome=DEStepInit + (DESteps360 / 4);
-    DEBUGF(Logger::DBG_WARNING, "%s() : Motors already initialized", __FUNCTION__);
-    DEBUGF(Logger::DBG_WARNING, "%s() : Setting default Init/Home steps --  RAInit=%ld DEInit = %ld, RAHome =%ld DEHome = %ld",
+    DEBUGF(INDI::Logger::DBG_WARNING, "%s() : Motors already initialized", __FUNCTION__);
+    DEBUGF(INDI::Logger::DBG_WARNING, "%s() : Setting default Init/Home steps --  RAInit=%ld DEInit = %ld, RAHome =%ld DEHome = %ld",
 	   __FUNCTION__, RAStepInit, DEStepInit, RAStepHome, DEStepHome);
 
     // TODO mark mount as unparked
@@ -338,7 +336,7 @@ void Skywatcher::InquireBoardVersion(ITextVectorProperty *boardTP) throw (EQModE
   // should test this is ok
   IUUpdateText(boardTP, boardinfo, (char **)boardinfopropnames, nprop);
   IDSetText(boardTP,NULL);
-  DEBUGF(Logger::DBG_DEBUG, "%s(): MountCode = %d, MCVersion = %lx, setting minperiods Axis1=%d Axis2=%d", 
+  DEBUGF(INDI::Logger::DBG_DEBUG, "%s(): MountCode = %d, MCVersion = %lx, setting minperiods Axis1=%d Axis2=%d",
 	 __FUNCTION__, MountCode, MCVersion,  minperiods[Axis1],  minperiods[Axis2]);
   /* Check supported mounts here */
   /*if ((MountCode == 0x80) || (MountCode == 0x81) || (MountCode == 0x82) || (MountCode == 0x90)) {
@@ -367,13 +365,13 @@ void Skywatcher::InquireRAEncoderInfo(INumberVectorProperty *encoderNP) throw (E
   // Overwrite the GearRatio reported by the MC for 80GT mount and 114GT mount.
   if ((MCVersion & 0x0000FF) == 0x80)
     {
-      DEBUGF(Logger::DBG_WARNING, "%s: forcing RAStepsWorm for 80GT Mount (%x in place of %x)",
+      DEBUGF(INDI::Logger::DBG_WARNING, "%s: forcing RAStepsWorm for 80GT Mount (%x in place of %x)",
 	     __FUNCTION__, 0x162B97, RAStepsWorm);
       RAStepsWorm = 0x162B97;           // for 80GT mount
     }
   if ((MCVersion & 0x0000FF) == 0x82)
     {
-      DEBUGF(Logger::DBG_WARNING, "%s: forcing RAStepsWorm for 114GT Mount (%x in place of %x)",
+      DEBUGF(INDI::Logger::DBG_WARNING, "%s: forcing RAStepsWorm for 114GT Mount (%x in place of %x)",
 	     __FUNCTION__, 0x205318, RAStepsWorm);
       RAStepsWorm = 0x205318;           // for 114GT mount
     }
@@ -408,13 +406,13 @@ void Skywatcher::InquireDEEncoderInfo(INumberVectorProperty *encoderNP) throw (E
   // Overwrite the GearRatio reported by the MC for 80GT mount and 114GT mount.
   if ((MCVersion & 0x0000FF) == 0x80)
     {
-      DEBUGF(Logger::DBG_WARNING, "%s: forcing DEStepsWorm for 80GT Mount (%x in place of %x)",
+      DEBUGF(INDI::Logger::DBG_WARNING, "%s: forcing DEStepsWorm for 80GT Mount (%x in place of %x)",
 	     __FUNCTION__, 0x162B97, DEStepsWorm);
       DEStepsWorm = 0x162B97;           // for 80GT mount
     }
   if ((MCVersion & 0x0000FF) == 0x82)
     {
-      DEBUGF(Logger::DBG_WARNING, "%s: forcing DEStepsWorm for 114GT Mount (%x in place of %x)",
+      DEBUGF(INDI::Logger::DBG_WARNING, "%s: forcing DEStepsWorm for 114GT Mount (%x in place of %x)",
 	     __FUNCTION__, 0x205318, DEStepsWorm);
       DEStepsWorm = 0x205318;           // for 114GT mount
     }
@@ -435,14 +433,14 @@ void Skywatcher::InquireDEEncoderInfo(INumberVectorProperty *encoderNP) throw (E
 bool Skywatcher::IsRARunning() throw (EQModError)
 {
   CheckMotorStatus(Axis1);
-  DEBUGF(Logger::DBG_DEBUG, "%s() = %s", __FUNCTION__, (RARunning?"true":"false"));
+  DEBUGF(INDI::Logger::DBG_DEBUG, "%s() = %s", __FUNCTION__, (RARunning?"true":"false"));
   return(RARunning);
 }
 
 bool Skywatcher::IsDERunning() throw (EQModError) 
 {
   CheckMotorStatus(Axis2);
-  DEBUGF(Logger::DBG_DEBUG, "%s() = %s", __FUNCTION__, (DERunning?"true":"false"));
+  DEBUGF(INDI::Logger::DBG_DEBUG, "%s() = %s", __FUNCTION__, (DERunning?"true":"false"));
   return(DERunning);
 }
 
@@ -476,7 +474,7 @@ void Skywatcher::SlewRA(double rate) throw (EQModError)
   bool useHighspeed=false; 
   SkywatcherAxisStatus newstatus;
 
-  DEBUGF(Logger::DBG_DEBUG, "%s() : rate = %g", __FUNCTION__, rate);
+  DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : rate = %g", __FUNCTION__, rate);
   
   if (RARunning && (RAStatus.slewmode==GOTO)) {
       throw  EQModError(EQModError::ErrInvalidCmd, "Can not slew while goto is in progress");
@@ -508,7 +506,7 @@ void Skywatcher::SlewDE(double rate) throw (EQModError)
   bool useHighspeed=false; 
   SkywatcherAxisStatus newstatus;
 
-  DEBUGF(Logger::DBG_DEBUG, "%s() : rate = %g", __FUNCTION__, rate);
+  DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : rate = %g", __FUNCTION__, rate);
   
   if (DERunning && (DEStatus.slewmode==GOTO)) {
       throw  EQModError(EQModError::ErrInvalidCmd, "Can not slew while goto is in progress");
@@ -526,7 +524,7 @@ void Skywatcher::SlewDE(double rate) throw (EQModError)
     //}
   period=(long)(((SKYWATCHER_STELLAR_DAY * (double)DEStepsWorm) / (double)DESteps360) / absrate);
 
-  DEBUGF(Logger::DBG_DEBUG, "Slewing DE at %.2f %.2f %x %f\n", rate, absrate, period, (((SKYWATCHER_STELLAR_DAY * (double)RAStepsWorm) / (double)RASteps360) / absrate));
+  DEBUGF(INDI::Logger::DBG_DEBUG, "Slewing DE at %.2f %.2f %x %f\n", rate, absrate, period, (((SKYWATCHER_STELLAR_DAY * (double)RAStepsWorm) / (double)RASteps360) / absrate));
 
   if (rate >= 0.0) newstatus.direction = FORWARD; else newstatus.direction = BACKWARD;
   newstatus.slewmode=SLEW;
@@ -543,7 +541,7 @@ void Skywatcher::SlewTo(long deltaraencoder, long deltadeencoder)
   unsigned long highperiod=10, lowperiod=18, lowspeedmargin = 20000, breaks=400;
   /* highperiod = RA 450X DE (+5) 200x, low period 32x */ 
 
-  DEBUGF(Logger::DBG_DEBUG, "%s() : deltaRA = %ld deltaDE = %ld", __FUNCTION__, deltaraencoder, deltadeencoder);
+  DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : deltaRA = %ld deltaDE = %ld", __FUNCTION__, deltaraencoder, deltadeencoder);
 
   newstatus.slewmode=GOTO;
   if (deltaraencoder >= 0) newstatus.direction = FORWARD; else newstatus.direction = BACKWARD;
@@ -583,7 +581,7 @@ void  Skywatcher::SetRARate(double rate)  throw (EQModError)
   bool useHighspeed=false; 
   SkywatcherAxisStatus newstatus;
 
-  DEBUGF(Logger::DBG_DEBUG, "%s() : rate = %g", __FUNCTION__, rate);
+  DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : rate = %g", __FUNCTION__, rate);
 
   if ((absrate < get_min_rate()) || (absrate > get_max_rate())) {
     throw  EQModError(EQModError::ErrInvalidParameter, "Speed rate out of limits: %.2fx Sidereal (min=%.2f, max=%.2f)", 
@@ -617,7 +615,7 @@ void  Skywatcher::SetDERate(double rate)  throw (EQModError)
   bool useHighspeed=false; 
   SkywatcherAxisStatus newstatus;
 
-  DEBUGF(Logger::DBG_DEBUG, "%s() : rate = %g", __FUNCTION__, rate);
+  DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : rate = %g", __FUNCTION__, rate);
 
   if ((absrate < get_min_rate()) || (absrate > get_max_rate())) {
     throw  EQModError(EQModError::ErrInvalidParameter, "Speed rate out of limits: %.2fx Sidereal (min=%.2f, max=%.2f)", 
@@ -649,7 +647,7 @@ void Skywatcher::StartRATracking(double trackspeed) throw (EQModError)
   double rate;
   if (trackspeed != 0.0) rate = trackspeed / SKYWATCHER_STELLAR_SPEED;
   else rate = 0.0;
-  DEBUGF(Logger::DBG_DEBUG, "%s() : trackspeed = %g arcsecs/s, computed rate = %g", __FUNCTION__, trackspeed, rate);
+  DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : trackspeed = %g arcsecs/s, computed rate = %g", __FUNCTION__, trackspeed, rate);
   if (rate != 0.0) {
     SetRARate(rate);
     if (!RARunning) StartMotor(Axis1);
@@ -662,7 +660,7 @@ void Skywatcher::StartDETracking(double trackspeed) throw (EQModError)
   double rate;
   if (trackspeed != 0.0) rate = trackspeed / SKYWATCHER_STELLAR_SPEED;
   else rate = 0.0;
-  DEBUGF(Logger::DBG_DEBUG, "%s() : trackspeed = %g arcsecs/s, computed rate = %g", __FUNCTION__, trackspeed, rate);
+  DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : trackspeed = %g arcsecs/s, computed rate = %g", __FUNCTION__, trackspeed, rate);
   if (rate != 0.0) {
     SetDERate(rate);
     if (!DERunning) StartMotor(Axis2);
@@ -680,7 +678,7 @@ void Skywatcher::SetSpeed(SkywatcherAxis axis, unsigned long period) throw (EQMo
   ReadMotorStatus(axis);
   if (axis == Axis1) currentstatus=&RAStatus; else currentstatus=&DEStatus;
   if ((currentstatus->speedmode==HIGHSPEED) && (period < minperiods[axis])) {
-    DEBUGF(Logger::DBG_WARNING, "Setting axis %c period to minimum. Requested is %d, minimum is %d\n", axis, period, minperiods[axis]);
+    DEBUGF(INDI::Logger::DBG_WARNING, "Setting axis %c period to minimum. Requested is %d, minimum is %d\n", axis, period, minperiods[axis]);
     period = minperiods[axis];
   }
   long2Revu24str(period, cmd);
@@ -720,13 +718,13 @@ void Skywatcher::StartMotor(SkywatcherAxis axis) throw (EQModError)
 
 void Skywatcher::StopRA()  throw (EQModError)
 {
-  DEBUGF(Logger::DBG_DEBUG, "%s() : calling RA StopWaitMotor", __FUNCTION__);
+  DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : calling RA StopWaitMotor", __FUNCTION__);
   StopWaitMotor(Axis1);
 }
 
 void Skywatcher::StopDE()  throw (EQModError)
 {
-  DEBUGF(Logger::DBG_DEBUG, "%s() : calling DE StopWaitMotor", __FUNCTION__);
+  DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : calling DE StopWaitMotor", __FUNCTION__);
   StopWaitMotor(Axis2); 
 }
 
@@ -843,7 +841,7 @@ bool Skywatcher::dispatch_command(SkywatcherCommand cmd, SkywatcherAxis axis, ch
     telescope->simulator->receive_cmd(command, &nbytes_written);
   }
 #endif
-  //if (Logger::debugSerial(cmd)) {
+  //if (INDI::Logger::debugSerial(cmd)) {
     command[nbytes_written-1]='\0'; //hmmm, remove \r, the  SkywatcherTrailingChar
     DEBUGF(DBG_COMM, "dispatch_command: \"%s\", %d bytes written", command, nbytes_written);
     debugnextread=true;

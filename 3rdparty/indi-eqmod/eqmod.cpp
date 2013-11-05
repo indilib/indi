@@ -47,8 +47,6 @@
 
 #include "skywatcher.h"
 
-using namespace INDI;
-
 #include <memory>
 
 #define DEVICE_NAME "EQMod Mount"
@@ -189,9 +187,9 @@ EQMod::EQMod()
       IDLog("OMG WE ARE IN SIMULATION!!\n");
   }
 
-  DBG_SCOPE_STATUS = Logger::getInstance().addDebugLevel("Scope Status", "SCOPE");
-  DBG_COMM         = Logger::getInstance().addDebugLevel("Serial Port", "COMM");
-  DBG_MOUNT        = Logger::getInstance().addDebugLevel("Verbose Mount", "MOUNT");
+  DBG_SCOPE_STATUS = INDI::Logger::getInstance().addDebugLevel("Scope Status", "SCOPE");
+  DBG_COMM         = INDI::Logger::getInstance().addDebugLevel("Serial Port", "COMM");
+  DBG_MOUNT        = INDI::Logger::getInstance().addDebugLevel("Verbose Mount", "MOUNT");
 
   mount=new Skywatcher(this);
 
@@ -235,8 +233,8 @@ void EQMod::setLogDebug (bool enable)
 {
   
   INDI::Telescope::setDebug(enable);
-  if (not Logger::updateProperties(enable, this)) 
-    DEBUG(Logger::DBG_WARNING,"setLogDebug: Logger error");
+  if (not INDI::Logger::updateProperties(enable, this))
+    DEBUG(INDI::Logger::DBG_WARNING,"setLogDebug: Logger error");
   //if (mount) mount->setDebug(enable);
 
 }
@@ -246,7 +244,7 @@ void EQMod::setStepperSimulation (bool enable)
   if ((enable && !isSimulation()) || (!enable && isSimulation())) {
     mount->setSimulation(enable); 
     if (not simulator->updateProperties(enable)) 
-      DEBUG(Logger::DBG_WARNING,"setStepperSimulator: Disable/Enable error");
+      DEBUG(INDI::Logger::DBG_WARNING,"setStepperSimulator: Disable/Enable error");
   }
   INDI::Telescope::setSimulation(enable);
 }
@@ -418,14 +416,14 @@ bool EQMod::updateProperties()
 
 	  if (isDebug()) {
         for (unsigned int i=0;i<MountInformationTP->ntp;i++)
-	      DEBUGF(Logger::DBG_DEBUG, "Got Board Property %s: %s\n", MountInformationTP->tp[i].name, MountInformationTP->tp[i].text);
+          DEBUGF(INDI::Logger::DBG_DEBUG, "Got Board Property %s: %s\n", MountInformationTP->tp[i].name, MountInformationTP->tp[i].text);
 	  }
 	
 	  mount->InquireRAEncoderInfo(SteppersNP);
 	  mount->InquireDEEncoderInfo(SteppersNP);
 	  if (isDebug()) {
         for (unsigned int i=0;i<SteppersNP->nnp;i++)
-	      DEBUGF(Logger::DBG_DEBUG,"Got Encoder Property %s: %.0f\n", SteppersNP->np[i].label, SteppersNP->np[i].value);
+          DEBUGF(INDI::Logger::DBG_DEBUG,"Got Encoder Property %s: %.0f\n", SteppersNP->np[i].label, SteppersNP->np[i].value);
 	  }
 	
 	  mount->Init(&ParkSP);
@@ -518,7 +516,7 @@ bool EQMod::Connect(char *port)
     return(e.DefaultHandleException(this));
   }
 
-  DEBUG(Logger::DBG_SESSION, "Successfully connected to EQMod Mount.");
+  DEBUG(INDI::Logger::DBG_SESSION, "Successfully connected to EQMod Mount.");
   return true;
 }
 
@@ -529,10 +527,10 @@ bool EQMod::Disconnect()
       mount->Disconnect();
     }
     catch(EQModError e) {
-      DEBUGF(Logger::DBG_ERROR, "Error when disconnecting mount -> %s", e.message);
+      DEBUGF(INDI::Logger::DBG_ERROR, "Error when disconnecting mount -> %s", e.message);
       return(false);
     }
-    DEBUG(Logger::DBG_SESSION,"Disconnected from EQMod Mount.");
+    DEBUG(INDI::Logger::DBG_SESSION,"Disconnected from EQMod Mount.");
     return true;
   } else return false;
 }
@@ -670,7 +668,7 @@ bool EQMod::ReadScopeStatus() {
       if (!(mount->IsRARunning()) && !(mount->IsDERunning())) {
 	// Goto iteration
 	gotoparams.iterative_count += 1;
-	DEBUGF(Logger::DBG_SESSION, "Iterative Goto (%d): RA diff = %4.2f arcsecs DE diff = %4.2f arcsecs",
+    DEBUGF(INDI::Logger::DBG_SESSION, "Iterative Goto (%d): RA diff = %4.2f arcsecs DE diff = %4.2f arcsecs",
 	       gotoparams.iterative_count, 3600 * fabs(gotoparams.ratarget - currentRA),  3600 * fabs(gotoparams.detarget - currentDEC));
         if ((gotoparams.iterative_count <= GOTO_ITERATIVE_LIMIT) &&
 	    (((3600 * fabs(gotoparams.ratarget - currentRA)) > RAGOTORESOLUTION) || 
@@ -679,7 +677,7 @@ bool EQMod::ReadScopeStatus() {
 	  gotoparams.racurrentencoder = currentRAEncoder; gotoparams.decurrentencoder = currentDEEncoder;
 	  EncoderTarget(&gotoparams);
 	  // Start iterative slewing
-	  DEBUGF(Logger::DBG_SESSION, "Iterative goto (%d): slew mount to RA increment = %ld, DE increment = %ld", gotoparams.iterative_count, 
+      DEBUGF(INDI::Logger::DBG_SESSION, "Iterative goto (%d): slew mount to RA increment = %ld, DE increment = %ld", gotoparams.iterative_count,
 		    gotoparams.ratargetencoder - gotoparams.racurrentencoder, gotoparams.detargetencoder - gotoparams.decurrentencoder);
 	  mount->SlewTo(gotoparams.ratargetencoder - gotoparams.racurrentencoder, gotoparams.detargetencoder - gotoparams.decurrentencoder);
 
@@ -689,7 +687,7 @@ bool EQMod::ReadScopeStatus() {
 	  if ((gotoparams.iterative_count > GOTO_ITERATIVE_LIMIT) &&
 	    (((3600 * abs(gotoparams.ratarget - currentRA)) > RAGOTORESOLUTION) || 
 	     ((3600 * abs(gotoparams.detarget - currentDEC)) > DEGOTORESOLUTION))) {
-	    DEBUGF(Logger::DBG_SESSION, "Iterative Goto Limit reached (%d iterations): RA diff = %4.2f arcsecs DE diff = %4.2f arcsecs",
+        DEBUGF(INDI::Logger::DBG_SESSION, "Iterative Goto Limit reached (%d iterations): RA diff = %4.2f arcsecs DE diff = %4.2f arcsecs",
 		   gotoparams.iterative_count, 3600 * fabs(gotoparams.ratarget - currentRA),  3600 * fabs(gotoparams.detarget - currentDEC));
 	  }
 	  if ((RememberTrackState == SCOPE_TRACKING) || ((sw != NULL) && (sw->s == ISS_ON))) {
@@ -698,10 +696,10 @@ bool EQMod::ReadScopeStatus() {
 	    IDSetSwitch(TrackModeSP,NULL);
 	    mount->StartRATracking(GetRATrackRate());
 	    mount->StartDETracking(GetDETrackRate());
-	    DEBUG(Logger::DBG_SESSION, "Telescope slew is complete. Tracking...");
+        DEBUG(INDI::Logger::DBG_SESSION, "Telescope slew is complete. Tracking...");
 	  } else {
 	    TrackState = SCOPE_IDLE;
-	    DEBUG(Logger::DBG_SESSION, "Telescope slew is complete. Stopping...");
+        DEBUG(INDI::Logger::DBG_SESSION, "Telescope slew is complete. Stopping...");
 	  }
 	  EqNP.s = IPS_OK;
 
@@ -859,7 +857,7 @@ double EQMod::rangeDec(double decdegrees) {
 void EQMod::SetSouthernHemisphere(bool southern) {
   const char *hemispherenames[]={"NORTH", "SOUTH"};
   ISState hemispherevalues[2];
-  DEBUGF(Logger::DBG_DEBUG, "Set southern %s\n", (southern?"true":"false"));
+  DEBUGF(INDI::Logger::DBG_DEBUG, "Set southern %s\n", (southern?"true":"false"));
   if (southern) Hemisphere=SOUTH;
   else Hemisphere=NORTH;
   RAInverted = (Hemisphere==SOUTH);
@@ -924,7 +922,7 @@ void EQMod::EncoderTarget(GotoParams *g)
       if ((targetraencoder > g->limiteast) || (targetraencoder < g->limitwest)) outsidelimits=true;
     }
     if (outsidelimits) {
-      DEBUG(Logger::DBG_WARNING, "Goto: RA Limits prevent Counterweights-up slew.");
+      DEBUG(INDI::Logger::DBG_WARNING, "Goto: RA Limits prevent Counterweights-up slew.");
       if (ha < 0.0) {// target EAST
 	if (Hemisphere == NORTH) targetpier = WEST; else targetpier = EAST;
 	targetra = range24(r - 12.0);
@@ -987,7 +985,7 @@ bool EQMod::Goto(double r,double d)
   juliandate=getJulianDate();
   lst=getLst(juliandate, getLongitude()); 
  
-  DEBUGF(Logger::DBG_SESSION,"Starting Goto RA=%g DE=%g (current RA=%g DE=%g)", r, d, currentRA, currentDEC);
+  DEBUGF(INDI::Logger::DBG_SESSION,"Starting Goto RA=%g DE=%g (current RA=%g DE=%g)", r, d, currentRA, currentDEC);
     targetRA=r;
     targetDEC=d;
     char RAStr[64], DecStr[64];
@@ -1018,7 +1016,7 @@ bool EQMod::Goto(double r,double d)
       mount->StopRA();
       mount->StopDE();
       // Start slewing
-      DEBUGF(Logger::DBG_SESSION, "Slewing mount: RA increment = %ld, DE increment = %ld", 
+      DEBUGF(INDI::Logger::DBG_SESSION, "Slewing mount: RA increment = %ld, DE increment = %ld",
 		gotoparams.ratargetencoder - gotoparams.racurrentencoder, gotoparams.detargetencoder - gotoparams.decurrentencoder);
       mount->SlewTo(gotoparams.ratargetencoder - gotoparams.racurrentencoder, gotoparams.detargetencoder - gotoparams.decurrentencoder);
     } catch(EQModError e) {
@@ -1038,7 +1036,7 @@ bool EQMod::Goto(double r,double d)
     TrackModeSP->s=IPS_IDLE;
     IDSetSwitch(TrackModeSP,NULL);
 
-    DEBUGF(Logger::DBG_SESSION, "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+    DEBUGF(INDI::Logger::DBG_SESSION, "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
 }
 
@@ -1058,7 +1056,7 @@ bool EQMod::Park()
     targetDEC=90;
     Parked=true;
     TrackState = SCOPE_PARKING;
-    DEBUG(Logger::DBG_SESSION, "Parking telescope in progress...");
+    DEBUG(INDI::Logger::DBG_SESSION, "Parking telescope in progress...");
     return true;
 }
 
@@ -1082,7 +1080,7 @@ bool EQMod::Sync(double ra,double dec)
     EqNP.s=IPS_ALERT;
     //IDSetNumber(&EqREqNP, NULL);
     IDSetNumber(&EqNP, NULL);
-    DEBUG(Logger::DBG_WARNING,"Syncs are allowed only when Tracking");
+    DEBUG(INDI::Logger::DBG_WARNING,"Syncs are allowed only when Tracking");
     return false;
   }
   /* remember the two last syncs to compute Polar alignment */
@@ -1138,7 +1136,7 @@ bool EQMod::Sync(double ra,double dec)
   //EqNP.s=IPS_OK;
   //IDSetNumber(&EqREqNP, NULL);
 
-  DEBUGF(Logger::DBG_SESSION, "Mount Synced (deltaRA = %.6f deltaDEC = %.6f)", syncdata.deltaRA, syncdata.deltaDEC);
+  DEBUGF(INDI::Logger::DBG_SESSION, "Mount Synced (deltaRA = %.6f deltaDEC = %.6f)", syncdata.deltaRA, syncdata.deltaDEC);
   //IDLog("Mount Synced (deltaRA = %.6f deltaDEC = %.6f)\n", syncdata.deltaRA, syncdata.deltaDEC);
   if (syncdata2.lst!=0.0) {
     computePolarAlign(syncdata2, syncdata, getLatitude(), &tpa_alt, &tpa_az);
@@ -1154,7 +1152,7 @@ bool EQMod::Sync(double ra,double dec)
 bool EQMod::GuideNorth(float ms) {
   double rateshift=0.0;
   rateshift = TRACKRATE_SIDEREAL * IUFindNumber(GuideRateNP, "GUIDE_RATE_NS")->value;
-  DEBUGF(Logger::DBG_SESSION, "Timed guide North %d ms at rate %g",(int)(ms), rateshift);
+  DEBUGF(INDI::Logger::DBG_SESSION, "Timed guide North %d ms at rate %g",(int)(ms), rateshift);
   if (DEInverted) rateshift = -rateshift;
   try {
     if (ms > 0.0) {
@@ -1171,7 +1169,7 @@ bool EQMod::GuideNorth(float ms) {
 bool EQMod::GuideSouth(float ms) {
   double rateshift=0.0;
   rateshift = TRACKRATE_SIDEREAL * IUFindNumber(GuideRateNP, "GUIDE_RATE_NS")->value;
-  DEBUGF(Logger::DBG_SESSION, "Timed guide South %d ms at rate %g",(int)(ms), rateshift);
+  DEBUGF(INDI::Logger::DBG_SESSION, "Timed guide South %d ms at rate %g",(int)(ms), rateshift);
   if (DEInverted) rateshift = -rateshift;
   try {
     if (ms > 0.0) {
@@ -1188,7 +1186,7 @@ bool EQMod::GuideSouth(float ms) {
 bool EQMod::GuideEast(float ms) {
   double rateshift=0.0;
   rateshift = TRACKRATE_SIDEREAL * IUFindNumber(GuideRateNP, "GUIDE_RATE_WE")->value;
-  DEBUGF(Logger::DBG_SESSION, "Timed guide East %d ms at rate %g",(int)(ms), rateshift);
+  DEBUGF(INDI::Logger::DBG_SESSION, "Timed guide East %d ms at rate %g",(int)(ms), rateshift);
   if (RAInverted) rateshift = -rateshift;
   try {
     if (ms > 0.0) {
@@ -1205,7 +1203,7 @@ bool EQMod::GuideEast(float ms) {
 bool EQMod::GuideWest(float ms) {
   double rateshift=0.0;
   rateshift = TRACKRATE_SIDEREAL * IUFindNumber(GuideRateNP, "GUIDE_RATE_WE")->value;
-  DEBUGF(Logger::DBG_SESSION, "Timed guide West %d ms at rate %g",(int)(ms), rateshift);
+  DEBUGF(INDI::Logger::DBG_SESSION, "Timed guide West %d ms at rate %g",(int)(ms), rateshift);
   if (RAInverted) rateshift = -rateshift;
   try {
     if (ms > 0.0) {
@@ -1245,7 +1243,7 @@ bool EQMod::ISNewNumber (const char *dev, const char *name, double values[], cha
 	  IUUpdateNumber(SlewSpeedsNP, values, names, n);
 	  SlewSpeedsNP->s = IPS_OK;
 	  IDSetNumber(SlewSpeedsNP, NULL);
-	  DEBUGF(Logger::DBG_SESSION, "Setting Slew rates - RA=%.2fx DE=%.2fx", 
+      DEBUGF(INDI::Logger::DBG_SESSION, "Setting Slew rates - RA=%.2fx DE=%.2fx",
 		      IUFindNumber(SlewSpeedsNP,"RASLEW")->value, IUFindNumber(SlewSpeedsNP,"DESLEW")->value);
 	  return true;
 	}
@@ -1267,7 +1265,7 @@ bool EQMod::ISNewNumber (const char *dev, const char *name, double values[], cha
 	  IUUpdateNumber(TrackRatesNP, values, names, n);
 	  TrackRatesNP->s = IPS_OK;
 	  IDSetNumber(TrackRatesNP, NULL);
-	  DEBUGF(Logger::DBG_SESSION, "Setting Custom Tracking Rates - RA=%.6f  DE=%.6f arcsec/s", 
+      DEBUGF(INDI::Logger::DBG_SESSION, "Setting Custom Tracking Rates - RA=%.6f  DE=%.6f arcsec/s",
 		      IUFindNumber(TrackRatesNP,"RATRACKRATE")->value, IUFindNumber(TrackRatesNP,"DETRACKRATE")->value);
 	  return true;
 	}
@@ -1282,7 +1280,7 @@ bool EQMod::ISNewNumber (const char *dev, const char *name, double values[], cha
           IDSetNumber(&GuideNSNP, NULL);
           GuideWENP.s = IPS_IDLE;
           IDSetNumber(&GuideWENP, NULL);
-	      DEBUG(Logger::DBG_WARNING, "Can not guide if not tracking.");
+          DEBUG(INDI::Logger::DBG_WARNING, "Can not guide if not tracking.");
 	      return true;
 	    }
 
@@ -1296,7 +1294,7 @@ bool EQMod::ISNewNumber (const char *dev, const char *name, double values[], cha
 	  IUUpdateNumber(GuideRateNP, values, names, n);
 	  GuideRateNP->s = IPS_OK;
 	  IDSetNumber(GuideRateNP, NULL);
-	  DEBUGF(Logger::DBG_SESSION, "Setting Custom Tracking Rates - RA=%1.1f arcsec/s DE=%1.1f arcsec/s", 
+      DEBUGF(INDI::Logger::DBG_SESSION, "Setting Custom Tracking Rates - RA=%1.1f arcsec/s DE=%1.1f arcsec/s",
 		      IUFindNumber(GuideRateNP,"GUIDE_RATE_WE")->value, IUFindNumber(GuideRateNP,"GUIDE_RATE_NS")->value);
 	  return true;
 	}
@@ -1315,7 +1313,7 @@ bool EQMod::ISNewNumber (const char *dev, const char *name, double values[], cha
 	      else SetSouthernHemisphere(false);
 	    }
 	  }   
-	  DEBUGF(Logger::DBG_SESSION,"Changed observer: long = %g lat = %g", lnobserver.lng, lnobserver.lat);
+      DEBUGF(INDI::Logger::DBG_SESSION,"Changed observer: long = %g lat = %g", lnobserver.lng, lnobserver.lat);
 	  return true;
 	}
      if(strcmp(name,"STANDARDSYNCPOINT")==0)
@@ -1338,7 +1336,7 @@ bool EQMod::ISNewNumber (const char *dev, const char *name, double values[], cha
 	 IUFindNumber(StandardSyncNP, "STANDARDSYNC_DE")->value=syncdata.deltaDEC;
 	 IDSetNumber(StandardSyncNP, NULL);
 
-	 DEBUGF(Logger::DBG_SESSION, "Mount manually Synced (deltaRA = %.6f deltaDEC = %.6f)", syncdata.deltaRA, syncdata.deltaDEC);
+     DEBUGF(INDI::Logger::DBG_SESSION, "Mount manually Synced (deltaRA = %.6f deltaDEC = %.6f)", syncdata.deltaRA, syncdata.deltaDEC);
 	 //IDLog("Mount Synced (deltaRA = %.6f deltaDEC = %.6f)\n", syncdata.deltaRA, syncdata.deltaDEC);
 	 if (syncdata2.lst!=0.0) {
 	   computePolarAlign(syncdata2, syncdata, getLatitude(), &tpa_alt, &tpa_az);
@@ -1423,7 +1421,7 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 	  ISwitch *sw;
 	  IUUpdateSwitch(SlewModeSP,states,names,n);
 	  sw=IUFindOnSwitch(SlewModeSP);
-	  DEBUGF(Logger::DBG_SESSION, "Slew mode :  %s", sw->label);
+      DEBUGF(INDI::Logger::DBG_SESSION, "Slew mode :  %s", sw->label);
 	  SlewModeSP->s=IPS_IDLE;
 	  IDSetSwitch(SlewModeSP,NULL);
 	  return true;
@@ -1435,11 +1433,11 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 	  swbefore=IUFindOnSwitch(TrackModeSP);
 	  IUUpdateSwitch(TrackModeSP,states,names,n);
 	  swafter=IUFindOnSwitch(TrackModeSP);
-	  //DEBUGF(Logger::DBG_SESSION, "Track mode :  from %s to %s.", swbefore->name, swafter->name);
+      //DEBUGF(INDI::Logger::DBG_SESSION, "Track mode :  from %s to %s.", swbefore->name, swafter->name);
 	  try {
 	    if (swbefore == swafter) {
 	      if ( TrackState == SCOPE_TRACKING) {
-		DEBUGF(Logger::DBG_SESSION, "Stop Tracking (%s).", swafter->name);
+        DEBUGF(INDI::Logger::DBG_SESSION, "Stop Tracking (%s).", swafter->name);
 		TrackState = SCOPE_IDLE;
 		TrackModeSP->s=IPS_IDLE;
 		IDSetSwitch(TrackModeSP,NULL);
@@ -1447,7 +1445,7 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 		mount->StopDE();
 	      } else {
 		if (TrackState == SCOPE_IDLE) {
-		  DEBUGF(Logger::DBG_SESSION, "Start Tracking (%s).", swafter->name);
+          DEBUGF(INDI::Logger::DBG_SESSION, "Start Tracking (%s).", swafter->name);
 		  TrackState = SCOPE_TRACKING;
 		  TrackModeSP->s=IPS_BUSY;
 		  IDSetSwitch(TrackModeSP,NULL);
@@ -1456,18 +1454,18 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 		} else {
 		  TrackModeSP->s=IPS_IDLE;
 		  IDSetSwitch(TrackModeSP,NULL);
-		  DEBUGF(Logger::DBG_WARNING, "Can not start Tracking (%s).", swafter->name);
+          DEBUGF(INDI::Logger::DBG_WARNING, "Can not start Tracking (%s).", swafter->name);
 		}
 	      }
 	    } else {
 	      if (TrackState == SCOPE_TRACKING) {
-		DEBUGF(Logger::DBG_SESSION, "Changed Tracking rate (%s).", swafter->name);
+        DEBUGF(INDI::Logger::DBG_SESSION, "Changed Tracking rate (%s).", swafter->name);
 		mount->StartRATracking(GetRATrackRate());
 		mount->StartDETracking(GetDETrackRate());
 	      } else {
 		TrackModeSP->s=IPS_IDLE;
 		IDSetSwitch(TrackModeSP,NULL);
-		DEBUGF(Logger::DBG_SESSION,"Changed Tracking mode (from %s to %s).", swbefore->name, swafter->name);
+        DEBUGF(INDI::Logger::DBG_SESSION,"Changed Tracking mode (from %s to %s).", swbefore->name, swafter->name);
 	      }
 	    }
 	    } catch(EQModError e) {
@@ -1498,7 +1496,7 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 	    IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_TELESCOPE_RA")->value=syncdata.telescopeRA;;
 	    IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_TELESCOPE_DE")->value=syncdata.telescopeDEC;;
 	    IDSetNumber(StandardSyncPointNP, NULL);
-	    DEBUG(Logger::DBG_SESSION, "Cleared current Sync Data");
+        DEBUG(INDI::Logger::DBG_SESSION, "Cleared current Sync Data");
 	    tpa_alt=0.0; tpa_az=0.0;
 	    IUFindNumber(SyncPolarAlignNP, "SYNCPOLARALIGN_ALT")->value=tpa_alt;
 	    IUFindNumber(SyncPolarAlignNP, "SYNCPOLARALIGN_AZ")->value=tpa_az;
@@ -1530,7 +1528,7 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 
           DEInverted = (ReverseDECSP->sp[0].s == ISS_ON) ? true : false;
 
-          DEBUG(Logger::DBG_SESSION, "Inverting Declination Axis.");
+          DEBUG(INDI::Logger::DBG_SESSION, "Inverting Declination Axis.");
 
           IDSetSwitch(ReverseDECSP, NULL);
 
@@ -1545,7 +1543,7 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
   }
 #endif
 
-    Logger::ISNewSwitch(dev,name,states,names,n);
+    INDI::Logger::ISNewSwitch(dev,name,states,names,n);
 
     //  Nobody has claimed this, so, ignore it
     return INDI::Telescope::ISNewSwitch(dev,name,states,names,n);
@@ -1605,7 +1603,7 @@ bool EQMod::updateTime(ln_date *lndate_utc, double utc_offset)
 
    strftime(IUFindText(&TimeTP, "UTC")->text, 32, "%Y-%m-%dT%H:%M:%S", &utc);
 
-   DEBUGF(Logger::DBG_SESSION, "Setting UTC Time to %s, Offset %g",
+   DEBUGF(INDI::Logger::DBG_SESSION, "Setting UTC Time to %s, Offset %g",
                 IUFindText(&TimeTP,"UTC")->text, utc_offset);
 
    return true;
@@ -1637,7 +1635,7 @@ bool EQMod::MoveNS(TelescopeMotionNS dir)
 {
   static int last_motion_ns=-1;
   if (TrackState == SCOPE_SLEWING) {
-    DEBUG(Logger::DBG_WARNING, "Can not slew while goto in progress.");
+    DEBUG(INDI::Logger::DBG_WARNING, "Can not slew while goto in progress.");
     IUResetSwitch(&MovementNSSP);
     MovementNSSP.s = IPS_IDLE;
     IDSetSwitch(&MovementNSSP, NULL);
@@ -1649,17 +1647,17 @@ bool EQMod::MoveNS(TelescopeMotionNS dir)
     case MOTION_NORTH:
       if (last_motion_ns != MOTION_NORTH)  {
 	double rate=GetDESlew();
-	DEBUG(Logger::DBG_SESSION, "Starting North slew.");
+    DEBUG(INDI::Logger::DBG_SESSION, "Starting North slew.");
 	if (DEInverted) rate=-rate;
 	mount->SlewDE(rate);
 	last_motion_ns = MOTION_NORTH;
 	RememberTrackState = TrackState;
       } else {
-	DEBUG(Logger::DBG_SESSION, "North Slew stopped");
+    DEBUG(INDI::Logger::DBG_SESSION, "North Slew stopped");
 	mount->StopDE();
 	last_motion_ns=-1;
 	if (RememberTrackState == SCOPE_TRACKING) {
-	  DEBUG(Logger::DBG_SESSION, "Restarting DE Tracking...");
+      DEBUG(INDI::Logger::DBG_SESSION, "Restarting DE Tracking...");
 	  TrackState = SCOPE_TRACKING;
 	  mount->StartDETracking(GetDETrackRate());
 	} else {
@@ -1674,17 +1672,17 @@ bool EQMod::MoveNS(TelescopeMotionNS dir)
     case MOTION_SOUTH:
       if (last_motion_ns != MOTION_SOUTH) {
 	double rate=-GetDESlew();
-	DEBUG(Logger::DBG_SESSION, "Starting South slew");
+    DEBUG(INDI::Logger::DBG_SESSION, "Starting South slew");
 	if (DEInverted) rate=-rate;
 	mount->SlewDE(rate);
 	last_motion_ns = MOTION_SOUTH;
 	RememberTrackState = TrackState;
       } else {
-	DEBUG(Logger::DBG_SESSION, "South Slew stopped.");
+    DEBUG(INDI::Logger::DBG_SESSION, "South Slew stopped.");
 	mount->StopDE();
 	last_motion_ns=-1;
 	if (RememberTrackState == SCOPE_TRACKING) {
-	    DEBUG(Logger::DBG_SESSION, "Restarting DE Tracking...");
+        DEBUG(INDI::Logger::DBG_SESSION, "Restarting DE Tracking...");
 	    TrackState = SCOPE_TRACKING;
 	    mount->StartDETracking(GetDETrackRate());
 	  } else {
@@ -1706,7 +1704,7 @@ bool EQMod::MoveWE(TelescopeMotionWE dir)
 {
     static int last_motion=-1;
     if (TrackState == SCOPE_SLEWING) {
-      DEBUG(Logger::DBG_WARNING, "Can not slew while goto in progress.");
+      DEBUG(INDI::Logger::DBG_WARNING, "Can not slew while goto in progress.");
       IUResetSwitch(&MovementWESP);
       MovementWESP.s = IPS_IDLE;
       IDSetSwitch(&MovementWESP, NULL);
@@ -1718,17 +1716,17 @@ bool EQMod::MoveWE(TelescopeMotionWE dir)
 	case MOTION_WEST:
 	  if (last_motion != MOTION_WEST) {
 	    double rate=GetRASlew();
-	    DEBUG(Logger::DBG_SESSION, "Starting West Slew");
+        DEBUG(INDI::Logger::DBG_SESSION, "Starting West Slew");
 	    if (RAInverted) rate=-rate;
 	    mount->SlewRA(rate);
 	    last_motion = MOTION_WEST;
 	    RememberTrackState = TrackState;
 	  } else {
-	    DEBUG(Logger::DBG_SESSION, "West Slew stopped");
+        DEBUG(INDI::Logger::DBG_SESSION, "West Slew stopped");
 	    mount->StopRA();
 	    last_motion=-1;
 	    if (RememberTrackState == SCOPE_TRACKING) {
-	      DEBUG(Logger::DBG_SESSION, "Restarting RA Tracking...");
+          DEBUG(INDI::Logger::DBG_SESSION, "Restarting RA Tracking...");
 	      TrackState = SCOPE_TRACKING;
 	      mount->StartRATracking(GetRATrackRate());
 	    } else {
@@ -1743,17 +1741,17 @@ bool EQMod::MoveWE(TelescopeMotionWE dir)
 	case MOTION_EAST:
 	  if (last_motion != MOTION_EAST) {
 	    double rate=-GetRASlew();
-	    DEBUG(Logger::DBG_SESSION,  "Starting East Slew");
+        DEBUG(INDI::Logger::DBG_SESSION,  "Starting East Slew");
 	    if (RAInverted) rate=-rate;
 	    mount->SlewRA(rate);
 	    last_motion = MOTION_EAST;
 	    RememberTrackState = TrackState;
 	  } else {
-	    DEBUG(Logger::DBG_SESSION,  "East Slew stopped");
+        DEBUG(INDI::Logger::DBG_SESSION,  "East Slew stopped");
 	    mount->StopRA();
 	    last_motion=-1;
 	    if (RememberTrackState == SCOPE_TRACKING) {
-	      DEBUG(Logger::DBG_SESSION,  "Restarting RA Tracking...");
+          DEBUG(INDI::Logger::DBG_SESSION,  "Restarting RA Tracking...");
 	      TrackState = SCOPE_TRACKING;
 	      mount->StartRATracking(GetRATrackRate());
 	    } else {
@@ -1778,14 +1776,14 @@ bool EQMod::Abort()
     mount->StopRA();
   } catch(EQModError e) {
     if (!(e.DefaultHandleException(this))) {
-      DEBUG(Logger::DBG_WARNING,  "Abort: error while stopping RA motor");
+      DEBUG(INDI::Logger::DBG_WARNING,  "Abort: error while stopping RA motor");
     }   
   }   
   try {
     mount->StopDE();
   } catch(EQModError e) {
     if (!(e.DefaultHandleException(this))) {
-      DEBUG(Logger::DBG_WARNING,  "Abort: error while stopping DE motor");
+      DEBUG(INDI::Logger::DBG_WARNING,  "Abort: error while stopping DE motor");
     }   
   }   
 
@@ -1840,7 +1838,7 @@ bool EQMod::Abort()
   AbortSP.s=IPS_OK;
   IUResetSwitch(&AbortSP);
   IDSetSwitch(&AbortSP, NULL);
-  DEBUG(Logger::DBG_SESSION, "Telescope Aborted");
+  DEBUG(INDI::Logger::DBG_SESSION, "Telescope Aborted");
   
   return true;
 }
@@ -1851,13 +1849,13 @@ void EQMod::timedguideNSCallback(void *userpointer) {
     p->mount->StartDETracking(p->GetDETrackRate());
   } catch(EQModError e) {
     if (!(e.DefaultHandleException(p))) {
-      DEBUGDEVICE(p->getDeviceName(), Logger::DBG_WARNING, "Timed guide North/South Error: can not restart tracking");
+      DEBUGDEVICE(p->getDeviceName(), INDI::Logger::DBG_WARNING, "Timed guide North/South Error: can not restart tracking");
     }   
   }
   p->GuideNSNP.s = IPS_IDLE;
   //p->GuideNSN[GUIDE_NORTH].value = p->GuideNSN[GUIDE_SOUTH].value = 0;
   IDSetNumber(&(p->GuideNSNP), NULL);
-  DEBUGDEVICE(p->getDeviceName(), Logger::DBG_SESSION, "End Timed guide North/South");
+  DEBUGDEVICE(p->getDeviceName(), INDI::Logger::DBG_SESSION, "End Timed guide North/South");
   IERmTimer(p->GuideTimerNS);
 }
 
@@ -1867,13 +1865,13 @@ void EQMod::timedguideWECallback(void *userpointer) {
   p->mount->StartRATracking(p->GetRATrackRate());
   } catch(EQModError e) {
     if (!(e.DefaultHandleException(p))) {
-      DEBUGDEVICE(p->getDeviceName(), Logger::DBG_WARNING, "Timed guide West/East Error: can not restart tracking");
+      DEBUGDEVICE(p->getDeviceName(), INDI::Logger::DBG_WARNING, "Timed guide West/East Error: can not restart tracking");
     }   
   }
   p->GuideWENP.s = IPS_IDLE;
   //p->GuideWEN[GUIDE_WEST].value = p->GuideWEN[GUIDE_EAST].value = 0;
   IDSetNumber(&(p->GuideWENP), NULL);
-  DEBUGDEVICE(p->getDeviceName(), Logger::DBG_SESSION, "End Timed guide West/East");
+  DEBUGDEVICE(p->getDeviceName(), INDI::Logger::DBG_SESSION, "End Timed guide West/East");
   IERmTimer(p->GuideTimerWE);
 }
 
@@ -1914,9 +1912,9 @@ From // // http://www.whim.org/nebula/math/pdf/twostar.pdf
   cosDelta2=sin(delta1) * sin(delta2) + (cos(delta1) * cos(delta2) * cos(alpha2 - alpha1));
 
   if (cosDelta1 != cosDelta2) 
-    DEBUGF(Logger::DBG_DEBUG, "PolarAlign -- Telescope axes are not perpendicular. Angular distances are:celestial=%g telescope=%g\n", acos(cosDelta1), acos(cosDelta2));
+    DEBUGF(INDI::Logger::DBG_DEBUG, "PolarAlign -- Telescope axes are not perpendicular. Angular distances are:celestial=%g telescope=%g\n", acos(cosDelta1), acos(cosDelta2));
   Delta = acos(cosDelta1);
-    DEBUGF(Logger::DBG_DEBUG, "Angular distance of the two stars is %g\n", Delta);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Angular distance of the two stars is %g\n", Delta);
 
   //cosd2md1 = sin(delta1) * sin(delta2) + cos(delta1) * cos(delta2);
   cosd2pd1 = ((cos(delta2 - delta1) * (1 + cos(alpha2 - alpha1))) - (2.0 * cosDelta2)) / (1 - cos(alpha2 - alpha1));
@@ -1933,7 +1931,7 @@ From // // http://www.whim.org/nebula/math/pdf/twostar.pdf
       
   d2 = (d2pd1 + delta2 - delta1) / 2.0;
   d1 = d2pd1 - d2;
-  DEBUGF(Logger::DBG_DEBUG,"Computed delta1 = %g (%g) delta2 = %g (%g)\n", d1, delta1, d2, delta2);
+  DEBUGF(INDI::Logger::DBG_DEBUG,"Computed delta1 = %g (%g) delta2 = %g (%g)\n", d1, delta1, d2, delta2);
 
   delta1 = d1;
   delta2 = d2;
@@ -1953,7 +1951,7 @@ From // // http://www.whim.org/nebula/math/pdf/twostar.pdf
   // tpadelta and tpaaplha are very near M_PI / 2 d: DON'T USE  atan2
   //tpaalpha=atan2(sintpaalpha, costpaalpha);
   tpaalpha=2 * atan2(sintpaalpha, (1.0 + costpaalpha));
-  DEBUGF(Logger::DBG_DEBUG,"Computed Telescope polar alignment (rad): delta(dec) = %g alpha(ha) = %g\n", tpadelta, tpaalpha);
+  DEBUGF(INDI::Logger::DBG_DEBUG,"Computed Telescope polar alignment (rad): delta(dec) = %g alpha(ha) = %g\n", tpadelta, tpaalpha);
 
   beta = ln_deg_to_rad(lat);
   *tpaalt = asin(sin(tpadelta) * sin(beta) + (cos(tpadelta) * cos(beta) * cos(tpaalpha)));
@@ -1964,14 +1962,14 @@ From // // http://www.whim.org/nebula/math/pdf/twostar.pdf
   *tpaaz=atan2(sinaz, cosaz);
   *tpaalt=ln_rad_to_deg(*tpaalt);
   *tpaaz = ln_rad_to_deg(*tpaaz);
-  DEBUGF(Logger::DBG_DEBUG,"Computed Telescope polar alignment (deg): alt = %g az = %g\n", *tpaalt, *tpaaz);  
+  DEBUGF(INDI::Logger::DBG_DEBUG,"Computed Telescope polar alignment (deg): alt = %g az = %g\n", *tpaalt, *tpaaz);
   
   starPolarAlign(s2.lst, s2.targetRA, s2.targetDEC, (M_PI / 2)-tpaalpha, (M_PI / 2) - tpadelta, &s2tra, &s2tdec);
   fs_sexa(s2trasexa, s2tra, 2, 3600);
   fs_sexa(s2tdecsexa, s2tdec, 3, 3600);
   fs_sexa(s2rasexa, s2.targetRA, 2, 3600);
   fs_sexa(s2decsexa, s2.targetDEC, 3, 3600);
-  DEBUGF(Logger::DBG_SESSION, "Star (RA=%s DEC=%s) Polar Align Coords: RA=%s DEC=%s", s2rasexa, s2decsexa, s2trasexa, s2tdecsexa);
+  DEBUGF(INDI::Logger::DBG_SESSION, "Star (RA=%s DEC=%s) Polar Align Coords: RA=%s DEC=%s", s2rasexa, s2decsexa, s2trasexa, s2tdecsexa);
   s2tra=s2.targetRA + (s2.targetRA-s2tra);
   s2tdec=s2.targetDEC + (s2.targetDEC-s2tdec);
   fs_sexa(s2trasexa, s2tra, 2, 3600);
@@ -1979,7 +1977,7 @@ From // // http://www.whim.org/nebula/math/pdf/twostar.pdf
   fs_sexa(s2rasexa, s2.targetRA, 2, 3600);
   fs_sexa(s2decsexa, s2.targetDEC, 3, 3600);
 
-  DEBUGF(Logger::DBG_SESSION, "Star (RA=%s DEC=%s) Polar Align Goto: RA=%s DEC=%s", s2rasexa, s2decsexa, s2trasexa, s2tdecsexa);
+  DEBUGF(INDI::Logger::DBG_SESSION, "Star (RA=%s DEC=%s) Polar Align Goto: RA=%s DEC=%s", s2rasexa, s2decsexa, s2trasexa, s2tdecsexa);
 }
 
 void EQMod::starPolarAlign(double lst, double ra, double dec, double theta, double gamma, double *tra, double *tdec)

@@ -42,8 +42,6 @@
 static int cameraCount;
 static SBIGCCD *cameras[MAX_DEVICES];
 
-using namespace INDI;
-
 /**********************************************************
  *
  *  IMPORRANT: List supported camera models in initializer of deviceTypes structure
@@ -452,12 +450,12 @@ bool SBIGCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
               }
               str += GetErrorString(res);
 
-              DEBUGF(Logger::DBG_ERROR, "%s", str.c_str());
+              DEBUGF(INDI::Logger::DBG_ERROR, "%s", str.c_str());
               IDSetSwitch(&FanStateSP, NULL);
               return false;
       }
 
-            DEBUGF(Logger::DBG_SESSION, "%s", str.c_str());
+            DEBUGF(INDI::Logger::DBG_SESSION, "%s", str.c_str());
             IDSetSwitch(&FanStateSP, NULL);
             return true;
       }
@@ -476,7 +474,7 @@ bool SBIGCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
         }else
         {
             str = "Cannot change CFW type while connected!";
-            DEBUGF(Logger::DBG_ERROR, "%s", str.c_str());
+            DEBUGF(INDI::Logger::DBG_ERROR, "%s", str.c_str());
             FilterTypeSP.s = IPS_ALERT;
         }
 
@@ -499,12 +497,12 @@ bool SBIGCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                 if(CFWConnect() == CE_NO_ERROR)
                 {
                     FilterConnectionSP.s = IPS_OK;
-                    DEBUG(Logger::DBG_SESSION, "CFW connected.");
+                    DEBUG(INDI::Logger::DBG_SESSION, "CFW connected.");
                     IDSetSwitch(&FilterConnectionSP, NULL);
                 }else
                 {
                     FilterConnectionSP.s = IPS_ALERT;
-                    DEBUG(Logger::DBG_ERROR, "CFW connection error!");
+                    DEBUG(INDI::Logger::DBG_ERROR, "CFW connection error!");
                     IDSetSwitch(&FilterConnectionSP, NULL);
                 }
             }else
@@ -513,7 +511,7 @@ bool SBIGCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                 if(CFWDisconnect() == CE_NO_ERROR)
                 {
                     FilterConnectionSP.s = IPS_ALERT;
-                    DEBUG(Logger::DBG_ERROR, "CFW disconnection error!");
+                    DEBUG(INDI::Logger::DBG_ERROR, "CFW disconnection error!");
                     IDSetSwitch(&FilterConnectionSP, NULL);
                 }else{
                     // Update CFW's Product/ID texts.
@@ -526,7 +524,7 @@ bool SBIGCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                     CFWUpdateProperties(CFWr);
                     // Remove connection text.
                     FilterConnectionSP.s = IPS_IDLE;
-                    DEBUG(Logger::DBG_SESSION, "CFW disconnected.");
+                    DEBUG(INDI::Logger::DBG_SESSION, "CFW disconnected.");
                     IDSetSwitch(&FilterConnectionSP, NULL);
                 }
             }
@@ -552,7 +550,7 @@ bool SBIGCCD::ISNewNumber(const char *dev, const char *name, double values[], ch
           if(values[0] < MIN_CCD_TEMP || values[0] > MAX_CCD_TEMP)
           {
                 TemperatureNP.s = IPS_ALERT;
-                DEBUGF(Logger::DBG_ERROR, "Error: Bad temperature value! Range is [%.1f, %.1f] [C].",
+                DEBUGF(INDI::Logger::DBG_ERROR, "Error: Bad temperature value! Range is [%.1f, %.1f] [C].",
                        MIN_CCD_TEMP, MAX_CCD_TEMP);
               IDSetNumber(&TemperatureNP, NULL);
               return false;
@@ -564,12 +562,12 @@ bool SBIGCCD::ISNewNumber(const char *dev, const char *name, double values[], ch
               //TemperatureN[0].value = values[0];
               TemperatureRequest = values[0];
               TemperatureNP.s = IPS_BUSY;
-              DEBUGF(Logger::DBG_SESSION, "Setting CCD temperature to %+.1f [C].",values[0]);
+              DEBUGF(INDI::Logger::DBG_SESSION, "Setting CCD temperature to %+.1f [C].",values[0]);
               IDSetNumber(&TemperatureNP, NULL);
           }else
           {
               TemperatureNP.s = IPS_ALERT;
-              DEBUGF(Logger::DBG_ERROR, "Error: Cannot set CCD temperature to %+.1f [C]. %s",
+              DEBUGF(INDI::Logger::DBG_ERROR, "Error: Cannot set CCD temperature to %+.1f [C]. %s",
                      values[0], GetErrorString(res).c_str());
               IDSetNumber(&TemperatureNP, NULL);
               return false;
@@ -618,7 +616,7 @@ bool SBIGCCD::Connect()
           if((res = EstablishLink()) == CE_NO_ERROR)
           {
                   // Link established.
-              DEBUG(Logger::DBG_SESSION, "SBIG CCD is online. Retrieving basic data.");
+              DEBUG(INDI::Logger::DBG_SESSION, "SBIG CCD is online. Retrieving basic data.");
               IEAddTimer(TEMPERATURE_POLL_MS, SBIGCCD::updateTemperatureHelper, this);
               return true;
           }
@@ -627,7 +625,7 @@ bool SBIGCCD::Connect()
                   // Establish link error.
                   str = "Error: Cannot establish link to SBIG CCD camera. ";
                   str += GetErrorString(res);
-                  DEBUGF(Logger::DBG_ERROR, "%s", str.c_str());
+                  DEBUGF(INDI::Logger::DBG_ERROR, "%s", str.c_str());
                   return false;
 
           }
@@ -638,7 +636,7 @@ bool SBIGCCD::Connect()
           str = "Error: Cannot open SBIG CCD camera device. ";
           str += GetErrorString(res);
 
-          DEBUGF(Logger::DBG_ERROR, "%s", str.c_str());
+          DEBUGF(INDI::Logger::DBG_ERROR, "%s", str.c_str());
 
           return false;
   }
@@ -658,7 +656,7 @@ bool SBIGCCD::Disconnect()
   // Close device.
   if((res = CloseDevice()) == CE_NO_ERROR)
   {
-        DEBUG(Logger::DBG_SESSION, "SBIG CCD is offline.");
+        DEBUG(INDI::Logger::DBG_SESSION, "SBIG CCD is offline.");
         return true;
   }
   else
@@ -666,7 +664,7 @@ bool SBIGCCD::Disconnect()
           // Close device error:
           str = "Error: Cannot close SBIG CCD camera device. ";
           str += GetErrorString(res);
-          DEBUGF(Logger::DBG_ERROR, "%s", str.c_str());
+          DEBUGF(INDI::Logger::DBG_ERROR, "%s", str.c_str());
   }
 
   return false;
@@ -676,7 +674,7 @@ bool SBIGCCD::Disconnect()
 bool SBIGCCD::setupParams()
 {
 
-  DEBUG(Logger::DBG_DEBUG, "Retrieving CCD Parameters...");
+  DEBUG(INDI::Logger::DBG_DEBUG, "Retrieving CCD Parameters...");
 
   float x_pixel_size, y_pixel_size;
   int bit_depth = 16;
@@ -693,7 +691,7 @@ bool SBIGCCD::setupParams()
 
   if (!sim && (res = getCCDSizeInfo(CCD_IMAGING, binning, wCcd, hCcd, wPixel, hPixel)) != CE_NO_ERROR)
   {
-      DEBUGF(Logger::DBG_ERROR, "Error getting CCD Size info. %s", GetErrorString(res).c_str());
+      DEBUGF(INDI::Logger::DBG_ERROR, "Error getting CCD Size info. %s", GetErrorString(res).c_str());
       return false;
   }
 
@@ -726,7 +724,7 @@ bool SBIGCCD::setupParams()
 
         if (!sim && (res = getCCDSizeInfo(CCD_TRACKING, binning, wCcd, hCcd, wPixel, hPixel)) != CE_NO_ERROR)
         {
-            DEBUGF(Logger::DBG_ERROR, "Error getting CCD Size info. %s", GetErrorString(res).c_str());
+            DEBUGF(INDI::Logger::DBG_ERROR, "Error getting CCD Size info. %s", GetErrorString(res).c_str());
             return false;
         }
 
@@ -764,9 +762,9 @@ bool SBIGCCD::setupParams()
   PrimaryCCD.setFrameBufferSize(nbuf);
 
   if (PrimaryCCD.getFrameBuffer() == NULL)
-        DEBUG(Logger::DBG_WARNING, "Unable to allocate memory for CCD Chip buffer!");
+        DEBUG(INDI::Logger::DBG_WARNING, "Unable to allocate memory for CCD Chip buffer!");
 
-  DEBUGF(Logger::DBG_DEBUG, "Created Primary CCD buffer %d bytes.", nbuf);
+  DEBUGF(INDI::Logger::DBG_DEBUG, "Created Primary CCD buffer %d bytes.", nbuf);
 
   if (HasGuideHead)
   {
@@ -774,7 +772,7 @@ bool SBIGCCD::setupParams()
       nbuf += 512;    //  leave a little extra at the end
       GuideCCD.setFrameBufferSize(nbuf);
 
-      DEBUGF(Logger::DBG_DEBUG, "Created Guide Head CCD buffer %d bytes.", nbuf);
+      DEBUGF(INDI::Logger::DBG_DEBUG, "Created Guide Head CCD buffer %d bytes.", nbuf);
   }
 
   // CCD PRODUCT:
@@ -805,7 +803,7 @@ int SBIGCCD::StartExposure(CCDChip *targetChip, double duration)
     // Is the expose time zero ?
     if(duration == 0)
     {
-            DEBUG(Logger::DBG_ERROR, "Please set non-zero exposure time and try again.");
+            DEBUG(INDI::Logger::DBG_ERROR, "Please set non-zero exposure time and try again.");
             return(CE_BAD_PARAMETER);
     }
 
@@ -852,7 +850,7 @@ int SBIGCCD::StartExposure(CCDChip *targetChip, double duration)
     }else if(!strcmp(frame_type.c_str(), "FRAME_BIAS")){
             msg = "Bias Frame exposure in progress...";
     }
-    DEBUGF(Logger::DBG_SESSION, "%s", msg.c_str());
+    DEBUGF(INDI::Logger::DBG_SESSION, "%s", msg.c_str());
 
     return (res);
 
@@ -865,10 +863,10 @@ int SBIGCCD::StartExposure(float duration)
         return -1;
 
   ExposureRequest = duration;
-  DEBUGF(Logger::DBG_DEBUG, "Exposure Time (s) is: %g\n", duration);
+  DEBUGF(INDI::Logger::DBG_DEBUG, "Exposure Time (s) is: %g\n", duration);
 
   gettimeofday(&ExpStart, NULL);
-  DEBUGF(Logger::DBG_SESSION, "Taking a %g seconds frame...", ExposureRequest);
+  DEBUGF(INDI::Logger::DBG_SESSION, "Taking a %g seconds frame...", ExposureRequest);
 
   InExposure = true;
 
@@ -882,10 +880,10 @@ int SBIGCCD::StartGuideExposure(float duration)
           return -1;
 
     GuideExposureRequest = duration;
-    DEBUGF(Logger::DBG_DEBUG, "Exposure Time (s) is: %g\n", duration);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Exposure Time (s) is: %g\n", duration);
 
     gettimeofday(&GuideExpStart, NULL);
-    DEBUGF(Logger::DBG_SESSION, "Taking a %g seconds frame...", GuideExposureRequest);
+    DEBUGF(INDI::Logger::DBG_SESSION, "Taking a %g seconds frame...", GuideExposureRequest);
 
     InGuideExposure = true;
 
@@ -917,7 +915,7 @@ bool SBIGCCD::AbortExposure()
 {
    int res;
 
-   DEBUG(Logger::DBG_DEBUG, "Aborting Primary CCD Exposure...");
+   DEBUG(INDI::Logger::DBG_DEBUG, "Aborting Primary CCD Exposure...");
 
     res = StopExposure(&PrimaryCCD);
 
@@ -927,12 +925,12 @@ bool SBIGCCD::AbortExposure()
   if(res == CE_NO_ERROR)
   {
       InExposure = false;
-      DEBUG(Logger::DBG_SESSION, "Exposure cancelled.");
+      DEBUG(INDI::Logger::DBG_SESSION, "Exposure cancelled.");
       return true;
   }
   else
   {
-      DEBUG(Logger::DBG_ERROR, "Stop exposure error.");
+      DEBUG(INDI::Logger::DBG_ERROR, "Stop exposure error.");
       return false;
   }
 }
@@ -941,7 +939,7 @@ bool SBIGCCD::AbortGuideExposure()
 {
    int res;
 
-   DEBUG(Logger::DBG_DEBUG, "Aborting Guide Head Exposure...");
+   DEBUG(INDI::Logger::DBG_DEBUG, "Aborting Guide Head Exposure...");
 
    res = StopExposure(&GuideCCD);
 
@@ -950,12 +948,12 @@ bool SBIGCCD::AbortGuideExposure()
   if(res == CE_NO_ERROR)
   {
       InGuideExposure = false;
-      DEBUG(Logger::DBG_SESSION, "Exposure cancelled.");
+      DEBUG(INDI::Logger::DBG_SESSION, "Exposure cancelled.");
       return true;
   }
   else
   {
-      DEBUG(Logger::DBG_ERROR, "Stop exposure error.");
+      DEBUG(INDI::Logger::DBG_ERROR, "Stop exposure error.");
       return false;
   }
 }
@@ -1009,7 +1007,7 @@ bool SBIGCCD::updateFrameProperties(CCDChip *targetChip)
 
 bool SBIGCCD::updateCCDFrame(int x, int y, int w, int h)
 {
-  DEBUGF(Logger::DBG_DEBUG, "The Final CCD image area is (%ld, %ld), (%ld, %ld)\n", x, y, w, h);
+  DEBUGF(INDI::Logger::DBG_DEBUG, "The Final CCD image area is (%ld, %ld), (%ld, %ld)\n", x, y, w, h);
 
   // Set UNBINNED coords
   PrimaryCCD.setFrame(x, y, w, h);
@@ -1019,14 +1017,14 @@ bool SBIGCCD::updateCCDFrame(int x, int y, int w, int h)
   nbuf += 512;    //  leave a little extra at the end
   PrimaryCCD.setFrameBufferSize(nbuf);
 
-  DEBUGF(Logger::DBG_DEBUG, "Setting CCD frame buffer size to %d bytes.\n", nbuf);
+  DEBUGF(INDI::Logger::DBG_DEBUG, "Setting CCD frame buffer size to %d bytes.\n", nbuf);
 
   return true;
 }
 
 bool SBIGCCD::updateGuideFrame(int x, int y, int w, int h)
 {
-  DEBUGF(Logger::DBG_DEBUG, "The Final Guide image area is (%ld, %ld), (%ld, %ld)\n", x, y, w, h);
+  DEBUGF(INDI::Logger::DBG_DEBUG, "The Final Guide image area is (%ld, %ld), (%ld, %ld)\n", x, y, w, h);
 
   // Set UNBINNED coords
   GuideCCD.setFrame(x, y, w, h);
@@ -1036,7 +1034,7 @@ bool SBIGCCD::updateGuideFrame(int x, int y, int w, int h)
   nbuf += 512;    //  leave a little extra at the end
   GuideCCD.setFrameBufferSize(nbuf);
 
-  DEBUGF(Logger::DBG_DEBUG, "Setting Guide head frame buffer size to %d bytes.\n", nbuf);
+  DEBUGF(INDI::Logger::DBG_DEBUG, "Setting Guide head frame buffer size to %d bytes.\n", nbuf);
 
   return true;
 }
@@ -1048,7 +1046,7 @@ bool SBIGCCD::updateCCDBin(int binx, int biny)
 
     if (binx != 1 && binx != 2 && binx != 3 && binx != 9)
     {
-        DEBUG(Logger::DBG_ERROR, "Error: Bad CCD binning mode! Use: 1x1, 2x2 or 3x3");
+        DEBUG(INDI::Logger::DBG_ERROR, "Error: Bad CCD binning mode! Use: 1x1, 2x2 or 3x3");
         return false;
     }
 
@@ -1064,7 +1062,7 @@ bool SBIGCCD::updateGuideBin(int binx, int biny)
 
     if (binx != 1 && binx != 2 && binx != 3 && binx != 9)
     {
-        DEBUG(Logger::DBG_ERROR, "Error: Bad CCD binning mode! Use: 1x1, 2x2 or 3x3");
+        DEBUG(INDI::Logger::DBG_ERROR, "Error: Bad CCD binning mode! Use: 1x1, 2x2 or 3x3");
         return false;
     }
 
@@ -1099,8 +1097,8 @@ bool SBIGCCD::grabImage(CCDChip *targetChip)
 
   if (sim)
   {
-      DEBUGF(Logger::DBG_DEBUG, "GrabImage X: %d Y: %d Width: %d - Height: %d\n", left, top, width, height);
-      DEBUGF(Logger::DBG_DEBUG, "Buf size: %d bytes.\n", width * height * 2);
+      DEBUGF(INDI::Logger::DBG_DEBUG, "GrabImage X: %d Y: %d Width: %d - Height: %d\n", left, top, width, height);
+      DEBUGF(INDI::Logger::DBG_DEBUG, "Buf size: %d bytes.\n", width * height * 2);
 
       char * image = targetChip->getFrameBuffer();
 
@@ -1112,16 +1110,16 @@ bool SBIGCCD::grabImage(CCDChip *targetChip)
       unsigned short *buffer = (unsigned short *) targetChip->getFrameBuffer();
 
       // Readout CCD:
-      DEBUG(Logger::DBG_SESSION, "CCD readout in progress...");
+      DEBUG(INDI::Logger::DBG_SESSION, "CCD readout in progress...");
 
       if(readoutCCD(left, top, width, height, buffer, targetChip) != CE_NO_ERROR)
       {
-              DEBUG(Logger::DBG_ERROR, "CCD readout error!");
+              DEBUG(INDI::Logger::DBG_ERROR, "CCD readout error!");
               return false;
       }
   }
 
-  DEBUG(Logger::DBG_SESSION, "Download complete.");
+  DEBUG(INDI::Logger::DBG_SESSION, "Download complete.");
 
   ExposureComplete(targetChip);
 
@@ -1144,7 +1142,7 @@ void SBIGCCD::resetFrame()
   updateCCDFrame(0, 0, PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
   IUResetSwitch(&ResetSP);
   ResetSP.s = IPS_IDLE;
-  DEBUG(Logger::DBG_SESSION, "Resetting frame and binning.");
+  DEBUG(INDI::Logger::DBG_SESSION, "Resetting frame and binning.");
   IDSetSwitch(&ResetSP, NULL);
 
   return;
@@ -1178,7 +1176,7 @@ void SBIGCCD::TimerHit()
    if (isExposureDone(targetChip))
    {
       /* We're done exposing */
-      DEBUG(Logger::DBG_SESSION, "Exposure done, downloading image...");
+      DEBUG(INDI::Logger::DBG_SESSION, "Exposure done, downloading image...");
 
       timeleft=0;
       targetChip->setExposureLeft(0);
@@ -1190,7 +1188,7 @@ void SBIGCCD::TimerHit()
             targetChip->setExposureFailed();
     }
      else
-       DEBUGF(Logger::DBG_DEBUG, "Exposure in progress with %g seconds left.", timeleft);
+       DEBUGF(INDI::Logger::DBG_DEBUG, "Exposure in progress with %g seconds left.", timeleft);
 
    if (InExposure || InGuideExposure)
         targetChip->setExposureLeft(timeleft);
@@ -1646,7 +1644,7 @@ int SBIGCCD::getBinningMode(CCDChip *targetChip, int &binning)
     else
     {
             res = CE_BAD_PARAMETER;
-            DEBUG(Logger::DBG_ERROR, "Error: Bad CCD binning mode! Use: 1x1, 2x2 or 3x3");
+            DEBUG(INDI::Logger::DBG_ERROR, "Error: Bad CCD binning mode! Use: 1x1, 2x2 or 3x3");
     }
 
     return(res);
@@ -1704,7 +1702,7 @@ int SBIGCCD::getShutterMode(CCDChip *targetChip, int &shutter)
     }else
     {
             res = CE_OS_ERROR;
-            DEBUGF(Logger::DBG_ERROR, "Error: Unknown selected CCD frame type! %s", frame_type.c_str());
+            DEBUGF(INDI::Logger::DBG_ERROR, "Error: Unknown selected CCD frame type! %s", frame_type.c_str());
     }
     return(res);
 }
@@ -1725,7 +1723,7 @@ bool SBIGCCD::SelectFilter(int position)
             {
                 sprintf(str, "CFW position %d reached.", CFWr.cfwPosition);
             }
-            DEBUGF(Logger::DBG_SESSION, "%s", str);
+            DEBUGF(INDI::Logger::DBG_SESSION, "%s", str);
             SelectFilterDone(CFWr.cfwPosition);
             CurrentFilter =CFWr.cfwPosition;
             return true;
@@ -1737,7 +1735,7 @@ bool SBIGCCD::SelectFilter(int position)
             FilterSlotNP.s = IPS_ALERT;
             IDSetNumber(&FilterSlotNP, NULL);
             sprintf(str, "Please Connect/Disconnect CFW, then try again...");
-            DEBUGF(Logger::DBG_ERROR, "%s", str);
+            DEBUGF(INDI::Logger::DBG_ERROR, "%s", str);
             return false;
    }
 
@@ -1803,7 +1801,7 @@ void SBIGCCD::updateTemperature()
     }
     else if( (res = QueryTemperatureStatus(enabled, ccdTemp, setpointTemp, percentTE)) == CE_NO_ERROR)
     {
-        DEBUGF(Logger::DBG_DEBUG, "ccdTemp: %g setpointTemp: %g TEMP_DIFF %g", ccdTemp, setpointTemp, TEMP_DIFF);
+        DEBUGF(INDI::Logger::DBG_DEBUG, "ccdTemp: %g setpointTemp: %g TEMP_DIFF %g", ccdTemp, setpointTemp, TEMP_DIFF);
 
         power = 100.0 * percentTE;
 
@@ -1814,7 +1812,7 @@ void SBIGCCD::updateTemperature()
         }else
         {
                 TemperatureNP.s = IPS_BUSY;
-                DEBUGF(Logger::DBG_DEBUG, "CCD temperature %+.1f [C], TE cooler: %.1f [%%].", ccdTemp, power);
+                DEBUGF(INDI::Logger::DBG_DEBUG, "CCD temperature %+.1f [C], TE cooler: %.1f [%%].", ccdTemp, power);
         }
 
         TemperatureN[0].value = ccdTemp;
@@ -1835,7 +1833,7 @@ void SBIGCCD::updateTemperature()
     }
     else
     {
-        DEBUGF(Logger::DBG_ERROR, "Erro reading temperature. %s", GetErrorString(res).c_str());
+        DEBUGF(INDI::Logger::DBG_ERROR, "Erro reading temperature. %s", GetErrorString(res).c_str());
         TemperatureNP.s = IPS_ALERT;
         IDSetNumber(&TemperatureNP, NULL);
     }
@@ -1906,7 +1904,7 @@ int SBIGCCD::readoutCCD(unsigned short left,	unsigned short top,
   srp.height		= height;
   if((res = StartReadout(&srp)) != CE_NO_ERROR)
   {
-            DEBUG(Logger::DBG_ERROR, "readoutCCD - StartReadout error!");
+            DEBUG(INDI::Logger::DBG_ERROR, "readoutCCD - StartReadout error!");
             return(res);
   }
 
@@ -1929,7 +1927,7 @@ int SBIGCCD::readoutCCD(unsigned short left,	unsigned short top,
     erp.ccd = ccd;
     if((res = EndReadout(&erp)) != CE_NO_ERROR)
     {
-            DEBUG(Logger::DBG_ERROR, "readoutCCD - EndReadout error!");
+            DEBUG(INDI::Logger::DBG_ERROR, "readoutCCD - EndReadout error!");
             return(res);
     }
 
@@ -1950,21 +1948,21 @@ int SBIGCCD::CFWConnect()
         // 1. CFWC_OPEN_DEVICE:
         if((res = CFWOpenDevice(&CFWr)) != CE_NO_ERROR){
             FilterConnectionSP.s = IPS_IDLE;
-            DEBUGF(Logger::DBG_ERROR, "CFWC_OPEN_DEVICE error: %s !",  GetErrorString(res).c_str());
+            DEBUGF(INDI::Logger::DBG_ERROR, "CFWC_OPEN_DEVICE error: %s !",  GetErrorString(res).c_str());
             continue;
         }
 
         // 2. CFWC_INIT:
         if((res = CFWInit(&CFWr)) != CE_NO_ERROR){
-            DEBUGF(Logger::DBG_ERROR,  "CFWC_INIT error: %s !",  GetErrorString(res).c_str());
+            DEBUGF(INDI::Logger::DBG_ERROR,  "CFWC_INIT error: %s !",  GetErrorString(res).c_str());
             CFWCloseDevice(&CFWr);
-            DEBUG(Logger::DBG_DEBUG, "CFWC_CLOSE_DEVICE called.");
+            DEBUG(INDI::Logger::DBG_DEBUG, "CFWC_CLOSE_DEVICE called.");
             continue;
         }
 
         // 3. CFWC_GET_INFO:
         if((res = CFWGetInfo(&CFWr)) != CE_NO_ERROR){
-            DEBUG(Logger::DBG_ERROR, "CFWC_GET_INFO error!");
+            DEBUG(INDI::Logger::DBG_ERROR, "CFWC_GET_INFO error!");
             continue;
         }
 
@@ -2206,13 +2204,13 @@ int SBIGCCD::GetCFWSelType()
 
 void SBIGCCD::CFWShowResults(string name, CFWResults CFWr)
 {
-    DEBUGF(Logger::DBG_SESSION, "%s", name.c_str());
-    DEBUGF(Logger::DBG_SESSION, "CFW Model:	%d", CFWr.cfwModel);
-    DEBUGF(Logger::DBG_SESSION, "CFW Position:	%d", CFWr.cfwPosition);
-    DEBUGF(Logger::DBG_SESSION, "CFW Status:	%d", CFWr.cfwStatus);
-    DEBUGF(Logger::DBG_SESSION, "CFW Error:	%d", CFWr.cfwError);
-    DEBUGF(Logger::DBG_SESSION, "CFW Result1:	%ld", CFWr.cfwResult1);
-    DEBUGF(Logger::DBG_SESSION, "CFW Result2:	%ld", CFWr.cfwResult2);
+    DEBUGF(INDI::Logger::DBG_SESSION, "%s", name.c_str());
+    DEBUGF(INDI::Logger::DBG_SESSION, "CFW Model:	%d", CFWr.cfwModel);
+    DEBUGF(INDI::Logger::DBG_SESSION, "CFW Position:	%d", CFWr.cfwPosition);
+    DEBUGF(INDI::Logger::DBG_SESSION, "CFW Status:	%d", CFWr.cfwStatus);
+    DEBUGF(INDI::Logger::DBG_SESSION, "CFW Error:	%d", CFWr.cfwError);
+    DEBUGF(INDI::Logger::DBG_SESSION, "CFW Result1:	%ld", CFWr.cfwResult1);
+    DEBUGF(INDI::Logger::DBG_SESSION, "CFW Result2:	%ld", CFWr.cfwResult2);
 }
 
 //==========================================================================

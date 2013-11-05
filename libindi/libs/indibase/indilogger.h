@@ -73,23 +73,21 @@ namespace  INDI
  * It is Pthread-safe. It allows to log on both file and screen, and to specify a verbosity threshold for both of them.
  *
  * - By default, the class defines 4 levels of debugging/logging levels:
- *      -# Errors: Use macro DEBUG(Logger::DBG_ERROR, "My Error Message)
+ *      -# Errors: Use macro DEBUG(INDI::Logger::DBG_ERROR, "My Error Message)
  *
- *      -# Warnings: Use macro DEBUG(Logger::DBG_WARNING, "My Warning Message)
+ *      -# Warnings: Use macro DEBUG(INDI::Logger::DBG_WARNING, "My Warning Message)
  *
- *      -# Session: Use macro DEBUG(Logger::DBG_SESSION, "My Message) Session messages are the regular status messages from the driver.
+ *      -# Session: Use macro DEBUG(INDI::Logger::DBG_SESSION, "My Message) Session messages are the regular status messages from the driver.
  *
- *      -# Driver Debug: Use macro DEBUG(Logger::DBG_DEBUG, "My Driver Debug Message)
+ *      -# Driver Debug: Use macro DEBUG(INDI::Logger::DBG_DEBUG, "My Driver Debug Message)
  *
- * \note Use DEBUGF macro if you have a variable list message. e.g. DEBUGF(Logger::DBG_SESSION, "Hello %s!", "There")
+ * \note Use DEBUGF macro if you have a variable list message. e.g. DEBUGF(INDI::Logger::DBG_SESSION, "Hello %s!", "There")
  *
  * The default \e active debug levels are Error, Warning, and Session. Driver Debug can be enabled by the client.
  *
  * To add a new debug level, call addDebugLevel(). You can add an additional 4 custom debug/logging levels.
  *
  * Check INDI Tutorial two for an example simple implementation.
- * \remarks Logger is part of the INDI namespace. To use it directly as Logger::DBG_XXXXX, you must declare \code using namespace INDI; \endcode in your driver files.
- * Otherwise, you need to refer to it as INDI::Logger::DBG_XXXXX.
  */
 class Logger
 {

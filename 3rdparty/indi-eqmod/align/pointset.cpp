@@ -195,8 +195,8 @@ void PointSet::AddPoint(AlignData aligndata, struct ln_lnlat_posn *pos)
   //IDLog("%f %f %f\n", it->second.cx, it->second.cy, it->second.cz);
   //}
   Triangulation->AddPoint(point.htmID);
-  DEBUGF(Logger::DBG_SESSION, "Align Pointset: added point %d alt = %g az = %g\n", point.index, point.celestialALT, point.celestialAZ);
-  DEBUGF(Logger::DBG_SESSION, "Align Triangulate: number of faces is %d\n", Triangulation->getFaces().size());
+  DEBUGF(INDI::Logger::DBG_SESSION, "Align Pointset: added point %d alt = %g az = %g\n", point.index, point.celestialALT, point.celestialAZ);
+  DEBUGF(INDI::Logger::DBG_SESSION, "Align Triangulate: number of faces is %d\n", Triangulation->getFaces().size());
 }
 
 PointSet::Point *PointSet::getPoint(HtmID htmid) {
@@ -496,12 +496,12 @@ std::vector<HtmID> PointSet::findFace(double currentRA, double currentDEC, doubl
     if (isPointInside(&point, (*it)->v, ingoto)) {
       currentFace=*it;
       current=(*it)->v;
-      DEBUGF(Logger::DBG_SESSION,"Align: current face is {%d, %d, %d}", PointSetMap->at(current[0]).index, PointSetMap->at(current[1]).index, PointSetMap->at(current[2]).index); 
+      DEBUGF(INDI::Logger::DBG_SESSION,"Align: current face is {%d, %d, %d}", PointSetMap->at(current[0]).index, PointSetMap->at(current[1]).index, PointSetMap->at(current[2]).index); 
       return current;
     }
     it++;
   }
-  if (current.size() > 0) DEBUG(Logger::DBG_SESSION,"Align: current face is empty");
+  if (current.size() > 0) DEBUG(INDI::Logger::DBG_SESSION,"Align: current face is empty");
   current.clear();
   return current;
 }

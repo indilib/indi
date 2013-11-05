@@ -351,7 +351,7 @@ void Align::AlignNStar(double jd, struct ln_lnlat_posn *position, double current
       pointset->RaDecFromAltAz(alignedalt, alignedaz, jd, alignedRA, alignedDEC, position);
       currentdeltaRA=*alignedRA - currentRA;
       currentdeltaDEC=*alignedDEC - currentDEC;
-      DEBUGF(Logger::DBG_SESSION,"GOTO ALign NStar: delta RA = %f, delta DEC  = %f alt=%f az=%f", currentdeltaRA, currentdeltaDEC, alignedalt, alignedaz);
+      DEBUGF(INDI::Logger::DBG_SESSION,"GOTO ALign NStar: delta RA = %f, delta DEC  = %f alt=%f az=%f", currentdeltaRA, currentdeltaDEC, alignedalt, alignedaz);
 
     }
     //IDLog("ALign NStar: delta RA = %f, delta DEC = %f\n", (*alignedRA - currentRA), (*alignedDEC - currentDEC));
@@ -372,7 +372,7 @@ void Align::AlignNearest(double jd, struct ln_lnlat_posn *position, double curre
     //IDLog("AlignNearest: empty set\n");
   } else {
     PointSet::Point *point = pointset->getPoint(sortedpoints->begin()->htmID);
-    if (lastnearestindex != point->index) DEBUGF(Logger::DBG_SESSION,"Align: current point is %d\n", point->index);
+    if (lastnearestindex != point->index) DEBUGF(INDI::Logger::DBG_SESSION,"Align: current point is %d\n", point->index);
     lastnearestindex=point->index;
     *alignedRA = currentRA;
     *alignedDEC = currentDEC;
@@ -384,7 +384,7 @@ void Align::AlignNearest(double jd, struct ln_lnlat_posn *position, double curre
       *alignedDEC -= (point->aligndata.targetDEC - point->aligndata.telescopeDEC);
       currentdeltaRA=*alignedRA - currentRA;
       currentdeltaDEC=*alignedDEC - currentDEC;
-      DEBUGF(Logger::DBG_SESSION, "GOTO ALign Nearest: delta RA = %f, delta DEC  = %f",  currentdeltaRA, currentdeltaDEC);
+      DEBUGF(INDI::Logger::DBG_SESSION, "GOTO ALign Nearest: delta RA = %f, delta DEC  = %f",  currentdeltaRA, currentdeltaDEC);
     }
     //IDLog("ALign Nearest: align point %s telescope alt = %f, az =%f\n", point->htmname, point->telescopeALT, point->telescopeAZ);
     //IDLog("ALign Nearest: delta RA = %c %f, delta DEC = %c %f\n", (ingoto?'-':'+'), (point->aligndata.targetRA - point->aligndata.telescopeRA), 
@@ -403,7 +403,7 @@ void Align::AlignGoto(SyncData globalsync, double jd, struct ln_lnlat_posn *posi
       currentdeltaDEC=-(syncdata.targetDEC - syncdata.telescopeDEC);
       *gotoRA -= (syncdata.targetRA - syncdata.telescopeRA) +  globalsync.deltaRA;
       *gotoDEC -= (syncdata.targetDEC - syncdata.telescopeDEC) +  globalsync.deltaDEC;
-      DEBUGF(Logger::DBG_SESSION,"GOTO ALign: delta RA = %f, delta DEC  = %f",  currentdeltaRA, currentdeltaDEC);
+      DEBUGF(INDI::Logger::DBG_SESSION,"GOTO ALign: delta RA = %f, delta DEC  = %f",  currentdeltaRA, currentdeltaDEC);
       break;
     case NEAREST:
       AlignNearest(jd, position, *gotoRA -  globalsync.deltaRA, *gotoDEC - globalsync.deltaDEC, gotoRA, gotoDEC, true);
@@ -445,7 +445,7 @@ void Align::AlignSync(SyncData globalsync, SyncData thissync)
   syncdata.telescopeDEC=thissync.telescopeDEC;
 
   pointset->AddPoint(syncdata, NULL);
-  DEBUGF(Logger::DBG_SESSION, "Align Sync: point added: lst=%.8f celestial RA %.8f DEC %.8f Telescope RA %.8f DEC %.8f", syncdata.lst, syncdata.targetRA, syncdata.targetDEC, syncdata.telescopeRA, syncdata.telescopeDEC);
+  DEBUGF(INDI::Logger::DBG_SESSION, "Align Sync: point added: lst=%.8f celestial RA %.8f DEC %.8f Telescope RA %.8f DEC %.8f", syncdata.lst, syncdata.targetRA, syncdata.targetDEC, syncdata.telescopeRA, syncdata.telescopeDEC);
   //IDLog(" Add Align point: %.8f %.8f %.8f %.8f %.8f\n", syncdata.lst, syncdata.targetRA, syncdata.targetDEC, syncdata.telescopeRA, syncdata.telescopeDEC);
   pointset->setBlobData(AlignDataBP);
   IDSetBLOB(AlignDataBP, NULL);
@@ -466,7 +466,7 @@ void Align::AlignStandardSync(SyncData globalsync, SyncData *thissync, struct ln
   //thissync->targetDEC -= globalsync.deltaDEC;
   thissync->deltaRA = thissync->targetRA - thissync->telescopeRA;
   thissync->deltaDEC= thissync->targetDEC - thissync->telescopeDEC;
-  //DEBUGF(Logger::DBG_SESSION, "Mount Synced (deltaRA = %.6f deltaDEC = %.6f)", thissync->deltaRA, thissync->deltaDEC);
+  //DEBUGF(INDI::Logger::DBG_SESSION, "Mount Synced (deltaRA = %.6f deltaDEC = %.6f)", thissync->deltaRA, thissync->deltaDEC);
 }
 
 Align::AlignmentMode Align::GetAlignmentMode() 
