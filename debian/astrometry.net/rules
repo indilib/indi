@@ -5,5 +5,5 @@
 d:=$$(pwd)/debian/astrometry.net
 
 override_dh_auto_install:
-	$(MAKE) INSTALL_DIR=$(d)/usr FINAL_DIR=/usr ETC_INSTALL_DIR=$(d)/etc DATA_FINAL_DIR=/usr/share/data DATA_INSTALL_DIR=$(d)/usr/share/data SYSTEM_GSL=yes py extra install
+	$(MAKE) INSTALL_DIR=$(d)/usr FINAL_DIR=/usr ETC_INSTALL_DIR=$(d)/etc DATA_FINAL_DIR=/usr/share/astrometry DATA_INSTALL_DIR=$(d)/usr/share/astrometry SYSTEM_GSL=yes py extra install
 
