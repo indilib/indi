@@ -355,7 +355,8 @@ void IUFillText(IText *tp, const char *name, const char * label, const char *ini
   tp->aux0 = NULL;
   tp->aux1 = NULL;
 
-  IUSaveText(tp, initialText);
+  if (strlen(initialText) > 0)
+    IUSaveText(tp, initialText);
 
 }
 
