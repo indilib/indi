@@ -1585,6 +1585,7 @@ bool EQMod::ISNewText (const char *dev, const char *name, char *texts[], char *n
 
 bool EQMod::updateTime(ln_date *lndate_utc, double utc_offset)
 {
+   char utc_time[32];
    lndate.seconds = lndate_utc->seconds;
    lndate.minutes = lndate_utc->minutes;
    lndate.hours   = lndate_utc->hours;
@@ -1601,10 +1602,10 @@ bool EQMod::updateTime(ln_date *lndate_utc, double utc_offset)
 
    gettimeofday(&lasttimeupdate, NULL);
 
-   strftime(IUFindText(&TimeTP, "UTC")->text, 32, "%Y-%m-%dT%H:%M:%S", &utc);
+   strftime(utc_time, 32, "%Y-%m-%dT%H:%M:%S", &utc);
 
    DEBUGF(INDI::Logger::DBG_SESSION, "Setting UTC Time to %s, Offset %g",
-                IUFindText(&TimeTP,"UTC")->text, utc_offset);
+                utc_time, utc_offset);
 
    return true;
 }
