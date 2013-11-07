@@ -130,6 +130,7 @@ int  SlewToCoords(double newRA, double newDec);
 int  SyncToCoords(double newRA, double newDec);
 int  CheckCoords(double desRA, double desDec, double tolRA, double tolDEC);
 int  isScopeSlewing();
+int updateLocation(double lng, double lat);
 
 void StopNSEW(void);
 int  SetSlewRate(void);

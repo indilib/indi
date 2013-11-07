@@ -387,7 +387,13 @@ bool CelestronGPS::ReadScopeStatus()
 bool CelestronGPS::Abort()
 {
     if (isSimulation() == false)
+    {
         StopNSEW();
+        StopSlew(NORTH);
+        StopSlew(SOUTH);
+        StopSlew(WEST);
+        StopSlew(EAST);
+    }
 
     TrackState = SCOPE_IDLE;
 
@@ -723,3 +729,9 @@ bool CelestronGPS::saveConfigItems(FILE *fp)
     return true;
 }
 
+bool CelestronGPS::updateLocation(double latitude, double longitude, double elevation)
+{
+    INDI_UNUSED(elevation);
+
+    return (::updateLocation(longitude, latitude) == 0);
+}

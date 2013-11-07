@@ -491,6 +491,35 @@ int SyncToCoords(double newRA, double newDec)
     return 0;
 }
 
+/* 2013-11-06 JM: support location update in Nextstar command set */
+int updateLocation(double lng, double lat)
+{
+    int lat_d, lat_m, lat_s;
+    int long_d, long_m ,long_s ;
+
+    char str[20];
+
+    getSexComponents(lat, &lat_d, &lat_m, &lat_s);
+    getSexComponents(lng, &long_d, &long_m, &long_s);
+
+    sprintf((char *)str, "W%x%x%x%x%x%x%x%x", lat_d, lat_m, lat_s, lat_d > 0 ? 0 : 1, long_d, long_m, long_s, long_m <= 180 ? 0 : 1);
+    writen(TelPortFD,str,9);
+
+    /* Look for '#' in response */
+    for (;;)
+    {
+      if ( readn(TelPortFD,str,1,2) )
+      {
+        if (str[0] == '#') break;
+      }
+      else
+      fprintf(stderr,"No acknowledgment from telescope after SyncToCoords.\n");
+      return 4;
+    }
+    return 0;
+
+
+}
 
 /* Slew to new coordinates */
 /* Coordinate sent to NexStar  = true coordinate + offset. */
