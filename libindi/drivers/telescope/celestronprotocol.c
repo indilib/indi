@@ -497,12 +497,26 @@ int updateLocation(double lng, double lat)
     int lat_d, lat_m, lat_s;
     int long_d, long_m ,long_s ;
 
-    char str[20];
+    char str[10];
+    char cmd[8];
 
     getSexComponents(lat, &lat_d, &lat_m, &lat_s);
     getSexComponents(lng, &long_d, &long_m, &long_s);
 
-    sprintf((char *)str, "W%x%x%x%x%x%x%x%x", lat_d, lat_m, lat_s, lat_d > 0 ? 0 : 1, long_d, long_m, long_s, long_m <= 180 ? 0 : 1);
+    // Convert from INDI standard to regular east/west -180 to 180
+    if (long_d > 180)
+        long_d -= 360;
+
+    cmd[0] = abs(lat_d);
+    cmd[1] = lat_m;
+    cmd[2] = lat_s;
+    cmd[3] = lat_d > 0 ? 0 : 1;
+    cmd[4] = abs(long_d);
+    cmd[5] = long_m;
+    cmd[6] = long_s;
+    cmd[7] = long_d > 0 ? 0 : 1;
+
+    sprintf((char *)str, "W%c%c%c%c%c%c%c%c", cmd[0], cmd[1], cmd[2], cmd[3], cmd[4], cmd[5], cmd[6], cmd[7]);
     writen(TelPortFD,str,9);
 
     /* Look for '#' in response */
@@ -518,6 +532,48 @@ int updateLocation(double lng, double lat)
     }
     return 0;
 
+
+}
+
+int updateTime(struct ln_date *utc, double utc_offset)
+{
+    char str[10];
+    char cmd[8];
+    struct ln_zonedate local_date;
+
+    // Celestron takes local time
+    ln_date_to_zonedate(utc, &local_date, utc_offset*3600);
+
+    cmd[0] = local_date.hours;
+    cmd[1] = local_date.minutes;
+    cmd[2] = local_date.seconds;
+    cmd[3] = local_date.months;
+    cmd[4] = local_date.days;
+    cmd[5] = local_date.years - 2000;
+
+    if (utc_offset < 0)
+        cmd[6] = 256 - ((unsigned int) fabs(utc_offset));
+    else
+        cmd[6] = ((unsigned int) fabs(utc_offset));
+
+    // Always assume standard time
+    cmd[7] = 0;
+
+    sprintf((char *)str, "H%c%c%c%c%c%c%c%c", cmd[0], cmd[1], cmd[2], cmd[3], cmd[4], cmd[5], cmd[6], cmd[7]);
+    writen(TelPortFD,str,9);
+
+    /* Look for '#' in response */
+    for (;;)
+    {
+      if ( readn(TelPortFD,str,1,2) )
+      {
+        if (str[0] == '#') break;
+      }
+      else
+      fprintf(stderr,"No acknowledgment from telescope after SyncToCoords.\n");
+      return 4;
+    }
+    return 0;
 
 }
 

@@ -735,3 +735,8 @@ bool CelestronGPS::updateLocation(double latitude, double longitude, double elev
 
     return (::updateLocation(longitude, latitude) == 0);
 }
+
+bool CelestronGPS::updateTime(ln_date *utc, double utc_offset)
+{
+    return (::updateTime(utc, utc_offset) == 0);
+}

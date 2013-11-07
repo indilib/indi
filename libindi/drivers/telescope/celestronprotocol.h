@@ -26,6 +26,8 @@
 #ifndef CELESTRON_PROTOCOL_H
 #define CELESTRON_PROTOCOL_H
 
+#include <libnova.h>
+
 /* These are user defined quantities that set the limits over which it */
 /* is safe to operate the telescope.  */
 
@@ -131,6 +133,7 @@ int  SyncToCoords(double newRA, double newDec);
 int  CheckCoords(double desRA, double desDec, double tolRA, double tolDEC);
 int  isScopeSlewing();
 int updateLocation(double lng, double lat);
+int updateTime(struct ln_date *utc, double utc_offset);
 
 void StopNSEW(void);
 int  SetSlewRate(void);

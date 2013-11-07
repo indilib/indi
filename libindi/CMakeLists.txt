@@ -201,7 +201,7 @@ set(lx200generic_SRCS
    ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200generic.cpp
    ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200classic.cpp)
 
-add_executable(indi_lx200generic ${lx200generic_SRCS}  ${liblilxml_SRCS} ${libindicom_SRCS})
+add_executable(indi_lx200generic ${lx200generic_SRCS})
 
 target_link_libraries(indi_lx200generic indidriver ${NOVA_LIBRARIES} m )
 
@@ -244,7 +244,7 @@ set(celestrongps_SRCS
    ${CMAKE_SOURCE_DIR}/drivers/telescope/celestronprotocol.c
    ${CMAKE_SOURCE_DIR}/drivers/telescope/celestrongps.cpp )
 
-add_executable(indi_celestron_gps ${celestrongps_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS} ${NOVA_LIBRARIES})
+add_executable(indi_celestron_gps ${celestrongps_SRCS})
 
 target_link_libraries(indi_celestron_gps indidriver ${NOVA_LIBRARIES} m )
 

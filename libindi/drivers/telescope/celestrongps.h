@@ -51,6 +51,9 @@ protected:
  virtual bool MoveWE(TelescopeMotionWE dir);
  virtual bool Abort();
 
+ virtual bool updateLocation(double latitude, double longitude, double elevation);
+ virtual bool updateTime(ln_date *utc, double utc_offset);
+
  virtual bool saveConfigItems(FILE *fp);
 
  bool Goto(double ra,double dec);
