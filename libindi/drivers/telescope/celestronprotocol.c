@@ -527,7 +527,7 @@ int updateLocation(double lng, double lat)
         if (str[0] == '#') break;
       }
       else
-      fprintf(stderr,"No acknowledgment from telescope after SyncToCoords.\n");
+      fprintf(stderr,"No acknowledgment from telescope after updateLocation.\n");
       return 4;
     }
     return 0;
@@ -570,7 +570,7 @@ int updateTime(struct ln_date *utc, double utc_offset)
         if (str[0] == '#') break;
       }
       else
-      fprintf(stderr,"No acknowledgment from telescope after SyncToCoords.\n");
+      fprintf(stderr,"No acknowledgment from telescope after updateTime.\n");
       return 4;
     }
     return 0;
