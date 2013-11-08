@@ -405,11 +405,11 @@ debian/kstars/changelog -text
 debian/kstars/compat -text
 debian/kstars/control -text
 debian/kstars/copyright -text
-debian/kstars/kstars-data.install -text
-debian/kstars/kstars.install -text
-debian/kstars/kstars.manpages -text
+debian/kstars/kstars-bleeding-data.install -text
+debian/kstars/kstars-bleeding.install -text
+debian/kstars/kstars-bleeding.manpages -text
 debian/kstars/man/kdeopt.part -text
-debian/kstars/man/kstars.man -text
+debian/kstars/man/kstars-bleeding.man -text
 debian/kstars/not-installed -text
 debian/kstars/patches/kubuntu_01_pthread_link.diff -text
 debian/kstars/patches/series -text
