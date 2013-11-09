@@ -109,6 +109,7 @@ set (indidriver_SRCS
         ${CMAKE_SOURCE_DIR}/libs/indibase/indiguiderinterface.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/indifilterinterface.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/indilogger.cpp
+        ${CMAKE_SOURCE_DIR}/libs/indibase/indicontroller.cpp
     )
 
 ######################################
@@ -673,7 +674,7 @@ ${CMAKE_SOURCE_DIR}/libs/indibase/indifocuser.h  ${CMAKE_SOURCE_DIR}/libs/indiba
 ${CMAKE_SOURCE_DIR}/libs/indibase/baseclient.h ${CMAKE_SOURCE_DIR}/libs/indibase/indiguiderinterface.h
 ${CMAKE_SOURCE_DIR}/libs/indibase/indifilterinterface.h ${CMAKE_SOURCE_DIR}/libs/indibase/indiproperty.h
 ${CMAKE_SOURCE_DIR}/libs/indicom.h ${CMAKE_SOURCE_DIR}/libs/indibase/indiusbdevice.h
-${CMAKE_SOURCE_DIR}/libs/indibase/indilogger.h
+${CMAKE_SOURCE_DIR}/libs/indibase/indilogger.h ${CMAKE_SOURCE_DIR}/libs/indibase/indicontroller.h
  DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libindi.pc.cmake ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc @ONLY)

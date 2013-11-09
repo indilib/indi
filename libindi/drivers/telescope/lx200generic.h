@@ -21,8 +21,9 @@
 #ifndef LX200GENERIC_H
 #define LX200GENERIC_H
 
-#include "indibase/indiguiderinterface.h"
-#include "indibase/inditelescope.h"
+#include "indiguiderinterface.h"
+#include "inditelescope.h"
+#include "indicontroller.h"
 
 #include "indidevapi.h"
 #include "indicom.h"
@@ -50,6 +51,9 @@ class LX200Generic: public INDI::Telescope, public INDI::GuiderInterface
 
     void updateFocusTimer();
     void guideTimeout();
+
+    static void joystickHelper(const char * joystick_n, double mag, double angle);
+    static void buttonHelper(const char * button_n, ISState state);
 
   protected:
 
@@ -84,9 +88,9 @@ class LX200Generic: public INDI::Telescope, public INDI::GuiderInterface
     static void updateFocusHelper(void *p);
     static void guideTimeoutHelper(void *p);
 
-    void enableJoystick();
-    void disableJoystick();
     void processNSWE(double mag, double angle);
+    void processJoystick(const char * joystick_n, double mag, double angle);
+    void processButton(const char * button_n, ISState state);
 
     int    GuideNSTID;
     int    GuideWETID;
@@ -100,6 +104,8 @@ class LX200Generic: public INDI::Telescope, public INDI::GuiderInterface
     double targetRA, targetDEC;
     double currentRA, currentDEC;
     int MaxReticleFlashRate;
+    INDI::Controller *controller;
+
 
   /* Telescope Alignment Mode */
   ISwitchVectorProperty AlignmentSP;
@@ -140,14 +146,6 @@ class LX200Generic: public INDI::Telescope, public INDI::GuiderInterface
   /* Focus Mode */
   ISwitchVectorProperty FocusModeSP;
   ISwitch  FocusModeS[3];
-
-  /* Joystick Support */
-  ISwitchVectorProperty UseJoystickSP;
-  ISwitch UseJoystickS[2];
-
-  ITextVectorProperty JoystickSettingTP;
-  IText JoystickSettingT[6];
-
 
 };
 

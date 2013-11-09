@@ -97,7 +97,7 @@ CCDSim::CCDSim()
     ShowStarField=true;
 
     HasSt4Port=true;
-    HasGuideHead=true;
+    //HasGuideHead=true;
 
     polarError=0;
     polarDrift=0;
@@ -181,7 +181,7 @@ CCDSim::~CCDSim()
 
 const char * CCDSim::getDefaultName()
 {
-        return (char *)"CCD Simulator";
+        return (char *)"Guide CCD";
 }
 
 bool CCDSim::initProperties()

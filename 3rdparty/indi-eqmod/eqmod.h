@@ -21,6 +21,7 @@
 #include <inditelescope.h>
 #include <indiguiderinterface.h>
 #include <libnova.h>
+#include <indicontroller.h>
 
 #include "config.h"
 #include "skywatcher.h"
@@ -95,9 +96,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 	INumberVectorProperty *StandardSyncNP;
 	INumberVectorProperty *StandardSyncPointNP;
 	INumberVectorProperty *SyncPolarAlignNP;
-	ISwitchVectorProperty *SyncManageSP;
-    ISwitchVectorProperty *UseJoystickSP;
-    ITextVectorProperty *JoystickSettingTP;
+	ISwitchVectorProperty *SyncManageSP;   
     ISwitchVectorProperty *ReverseDECSP;
 
 
@@ -119,6 +118,8 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 	SyncData syncdata, syncdata2;
 
 	double tpa_alt, tpa_az;
+
+    INDI::Controller *controller;
 
 	void EncodersToRADec(unsigned long rastep, unsigned long destep, double lst, double *ra, double *de, double *ha);
 	double EncoderToHours(unsigned long destep, unsigned long initdestep, unsigned long totalrastep, enum Hemisphere h);
@@ -147,13 +148,13 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 	void setLogDebug (bool enable);
 	void setStepperSimulation (bool enable);
 
-    void enableJoystick();
-    void disableJoystick();
     void processNSWE(double mag, double angle);
     void processSlewPresets(double mag, double angle);
+    void processJoystick(const char * joystick_n, double mag, double angle);
+    void processButton(const char * button_n, ISState state);
 
 	void computePolarAlign(SyncData s1, SyncData s2, double lat, double *tpaalt, double *tpaaz);
-	void starPolarAlign(double lst, double ra, double dec, double theta, double gamma, double *tra, double *tdec); 
+	void starPolarAlign(double lst, double ra, double dec, double theta, double gamma, double *tra, double *tdec);     
 
     public:
         EQMod();
@@ -196,6 +197,9 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
         double getLatitude();
         double getJulianDate();
         double getLst(double jd, double lng);
+
+        static void joystickHelper(const char * joystick_n, double mag, double angle);
+        static void buttonHelper(const char * button_n, ISState state);
 
 #ifdef WITH_SIMULATOR
 	EQModSimulator *simulator;

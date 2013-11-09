@@ -24,6 +24,7 @@
 #include <inditelescope.h>
 #include "indidevapi.h"
 #include "indicom.h"
+#include "indicontroller.h"
 
 #define	POLLMS		1000		/* poll period, ms */
 
@@ -45,6 +46,9 @@ class CelestronGPS : public INDI::Telescope
  virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
  virtual bool ISSnoopDevice(XMLEle *root);
 
+ static void joystickHelper(const char * joystick_n, double mag, double angle);
+ static void buttonHelper(const char * button_n, ISState state);
+
 protected:
 
  virtual bool MoveNS(TelescopeMotionNS dir);
@@ -64,9 +68,9 @@ protected:
  void slewError(int slewCode);
  void mountSim();
 
- void enableJoystick();
- void disableJoystick();
  void processNSWE(double mag, double angle);
+ void processJoystick(const char * joystick_n, double mag, double angle);
+ void processButton(const char * button_n, ISState state);
 
 
  /* Slew Speed */
@@ -80,17 +84,14 @@ private:
   double lastRA;
   double lastDEC;
 
+  INDI::Controller *controller;
+
   int lastSet;
   int currentSet;
   double currentRA, currentDEC;
   double targetRA, targetDEC;
 
-  /* Joystick Support */
-  ISwitchVectorProperty UseJoystickSP;
-  ISwitch UseJoystickS[2];
 
-  ITextVectorProperty JoystickSettingTP;
-  IText JoystickSettingT[6];
 
 };
 
