@@ -841,6 +841,8 @@ libindi/libs/indibase/defaultdevice.h -text
 libindi/libs/indibase/indibase.h -text
 libindi/libs/indibase/indiccd.cpp -text
 libindi/libs/indibase/indiccd.h -text
+libindi/libs/indibase/indicontroller.cpp -text
+libindi/libs/indibase/indicontroller.h -text
 libindi/libs/indibase/indidevice.cpp -text
 libindi/libs/indibase/indidevice.h -text
 libindi/libs/indibase/indifilterinterface.cpp -text
