@@ -42,18 +42,6 @@ class JoyStickDriver;
  * @brief The JoyStick class provides an INDI driver that displays event data from game pads. The INDI driver can be encapsulated in any other driver
  * via snooping on properties of interesting.
  *
- * The driver enumerates the game pad and provides three types of constrcuts:
- * <ul>
- * <li><b>Joysticks</b>: Each joystick displays a normalized magnitude [0 to 1] and an angle. The angle is measured counter clock wise starting from
- *  the right/east direction [0 to 360]. They are defined as JOYSTICK_# where # is the joystick number.</li>
- * <li><b>Axes</b>: Each joystick has two or more axes. Each axis has a raw value and angle. The raw value ranges from -32767.0 to 32767.0 They are
- * defined as AXIS_# where # is the axis number.</li>
- * <li><b>Buttons</b>: Buttons are either on or off. They are defined as BUTTON_# where # is the button number.</li>
- * </ul>
- *
- * To snoop on buttons, call IDSnoopDevice("Joystick", "JOYSTICK_BUTTONS") from your driver.
- *
- * \note All indexes start from 1. i.e. There is no BUTTON_0 or JOYSTICK_0. Telescope Simulator and INDI EQMod driver implmement joystick snooping.
  */
 class JoyStick : public INDI::DefaultDevice
 {

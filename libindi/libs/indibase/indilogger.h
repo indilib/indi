@@ -68,6 +68,7 @@ namespace  INDI
 {
 
 /**
+ * \class INDI::Logger
  * @brief The Logger class is a simple logger to log messages to file and INDI clients. This is the implementation of a simple
  *  logger in C++. It is implemented as a Singleton, so it can be easily called through two DEBUG macros.
  * It is Pthread-safe. It allows to log on both file and screen, and to specify a verbosity threshold for both of them.
