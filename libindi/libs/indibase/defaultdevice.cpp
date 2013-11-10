@@ -629,7 +629,7 @@ bool INDI::DefaultDevice::initProperties()
     logFile += "/tmp/";
     logFile += getDriverExec();
 
-    DEBUG_CONF(logFile,  Logger::file_on|Logger::screen_on, Logger::defaultlevel, Logger::defaultlevel);
+    DEBUG_CONF(logFile,  Logger::file_off|Logger::screen_on, Logger::defaultlevel, Logger::defaultlevel);
 
    return true;
 }
