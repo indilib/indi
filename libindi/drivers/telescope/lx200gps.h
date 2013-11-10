@@ -34,6 +34,7 @@ class LX200GPS : public LX200Autostar
   bool updateProperties();
   void ISGetProperties (const char *dev);
   bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+  virtual bool updateTime(ln_date *utc, double utc_offset);
 
  protected:
   ISwitchVectorProperty GPSPowerSP;

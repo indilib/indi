@@ -350,14 +350,14 @@ bool LX200Generic::Connect(char *port)
 
     if (tty_connect(port, 9600, 8, 0, 1, &PortFD) != TTY_OK)
     {
-      IDMessage(getDeviceName(), "Error connecting to port %s. Make sure you have BOTH write and read permission to your port.", port);
+      DEBUGF(INDI::Logger::DBG_ERROR, "Error connecting to port %s. Make sure you have BOTH write and read permission to your port.", port);
       return false;
     }
 
 
     if (check_lx200_connection(PortFD))
     {
-        IDMessage(getDeviceName(), "Error connecting to Telescope. Telescope is offline.");
+        DEBUG(INDI::Logger::DBG_ERROR, "Error connecting to Telescope. Telescope is offline.");
         return false;
     }
 
@@ -729,43 +729,30 @@ bool LX200Generic::updateTime(ln_date * utc, double utc_offset)
 
     JD = ln_get_julian_day(utc);
 
-    if (isDebug())
-      IDLog("New JD is %f\n", (float) JD);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "New JD is %f\n", (float) JD);
 
-    // Set Local Time
-    if (setLocalTime(PortFD, ltm.hours, ltm.minutes, ltm.seconds) < 0)
-    {
-        IDMessage(getDeviceName(), "Error setting local time.");
-        return false;
-    }
+        // Set Local Time
+        if (setLocalTime(PortFD, ltm.hours, ltm.minutes, ltm.seconds) < 0)
+        {
+            DEBUG(INDI::Logger::DBG_ERROR, "Error setting local time.");
+            return false;
+        }
 
-    // Special case for LX200 GPS
-    if (!strcmp(getDeviceName(), "LX200 GPS"))
-    {
-      if (setCalenderDate(PortFD, utc->days, utc->months, utc->years) < 0)
-      {
-          IDMessage(getDeviceName(), "Error setting UTC calender date.");
-          return false;
-      }
-   }
-   else
-   {
       if (setCalenderDate(PortFD, ltm.days, ltm.months, ltm.years) < 0)
       {
-          IDMessage(getDeviceName(), "Error setting local date.");
+          DEBUG(INDI::Logger::DBG_ERROR, "Error setting local date.");
           return false;
       }
-   }
 
     // Meade defines UTC Offset as the offset ADDED to local time to yield UTC, which
     // is the opposite of the standard definition of UTC offset!
     if (setUTCOffset(PortFD, (utc_offset * -1.0)) < 0)
     {
-        IDMessage(getDeviceName() , "Error setting UTC Offset.");
+        DEBUG(INDI::Logger::DBG_ERROR, "Error setting UTC Offset.");
         return false;
     }
 
-   IDMessage(getDeviceName() , "Time updated, updating planetary data...");
+   DEBUG(INDI::Logger::DBG_SESSION, "Time updated, updating planetary data...");
    return true;
 }
 
@@ -778,13 +765,13 @@ bool LX200Generic::updateLocation(double latitude, double longitude, double elev
 
     if (isSimulation() == false && setSiteLongitude(PortFD, 360.0 - longitude) < 0)
     {
-        IDMessage(getDeviceName(), "Error setting site longitude coordinates");
+        DEBUG(INDI::Logger::DBG_ERROR, "Error setting site longitude coordinates");
         return false;
     }
 
     if (isSimulation() == false && setSiteLatitude(PortFD, latitude) < 0)
     {
-        IDMessage(getDeviceName(), "Error setting site latitude coordinates");
+        DEBUG(INDI::Logger::DBG_ERROR, "Error setting site latitude coordinates");
         return false;
     }
 
@@ -832,8 +819,7 @@ bool LX200Generic::ISNewNumber (const char *dev, const char *name, double values
         if ( !strcmp (name, TrackingFreqNP.name) )
         {
 
-            if (isDebug())
-                IDLog("Trying to set track freq of: %f\n", values[0]);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Trying to set track freq of: %f\n", values[0]);
 
           if (isSimulation() == false && setTrackFreq(PortFD, values[0]) < 0)
           {
