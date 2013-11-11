@@ -19,7 +19,7 @@
 #ifndef CONTROLLER_H
 #define CONTROLLER_H
 
-#if __cplusplus >= 201103L
+#ifdef _LIBCPP_VERSION
 #include <functional>
 #else
 #include <tr1/functional>
@@ -74,7 +74,7 @@ class Controller
 
     typedef enum { CONTROLLER_JOYSTICK, CONTROLLER_AXIS, CONTROLLER_BUTTON, CONTROLLER_UNKNOWN } ControllerType;
 
-#if __cplusplus >= 201103L
+#ifdef _LIBCPP_VERSION
 
     /**
      * @brief joystickFunc Joystick callback function signature.
