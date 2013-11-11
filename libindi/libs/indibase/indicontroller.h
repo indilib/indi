@@ -19,6 +19,7 @@
 #ifndef CONTROLLER_H
 #define CONTROLLER_H
 
+#include <ciso646> // detect std::lib
 #ifdef _LIBCPP_VERSION
 #include <functional>
 #else
