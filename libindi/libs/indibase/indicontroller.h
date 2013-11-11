@@ -19,7 +19,11 @@
 #ifndef CONTROLLER_H
 #define CONTROLLER_H
 
+#if __cplusplus >= 201103L
+#include <functional>
+#else
 #include <tr1/functional>
+#endif
 
 #include <indiapi.h>
 #include <defaultdevice.h>
@@ -70,6 +74,25 @@ class Controller
 
     typedef enum { CONTROLLER_JOYSTICK, CONTROLLER_AXIS, CONTROLLER_BUTTON, CONTROLLER_UNKNOWN } ControllerType;
 
+#if __cplusplus >= 201103L
+
+    /**
+     * @brief joystickFunc Joystick callback function signature.
+     */
+    typedef std::function<void (const char * joystick_n, double mag, double angle)> joystickFunc;
+
+    /**
+     * @brief axisFunc Axis callback function signature.
+     */
+    typedef std::function<void (const char * axis_n, double value)> axisFunc;
+
+    /**
+     * @brief buttonFunc Button callback function signature.
+     */
+    typedef std::function<void (const char * button_n, ISState state)> buttonFunc;
+
+#else
+
     /**
      * @brief joystickFunc Joystick callback function signature.
      */
@@ -84,6 +107,8 @@ class Controller
      * @brief buttonFunc Button callback function signature.
      */
     typedef std::tr1::function<void (const char * button_n, ISState state)> buttonFunc;
+
+#endif
 
     /**
      * @brief Controller Default ctor

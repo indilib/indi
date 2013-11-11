@@ -22,6 +22,9 @@
 #include <vector>
 #include <string>
 
+#include <locale.h>
+#include <pthread.h>
+
 #include "indiapi.h"
 #include "indidevapi.h"
 #include "indibase.h"
