@@ -7,6 +7,8 @@ From 0.9.6 to 0.9.7
       + LX200, Celeston, and EQMod drivers support joystick input.
       + Improved LX200 & Celestron telescope drivers.
       + Improved simulator drivers.
+      + INDI server support for multiple devices per driver.
+      + New universal logging and debugging framework for INDI developers.
       + Fixed an issue in TCFS driver where a connect may fail if focuser is put into sleep mode.
       + Fixed an issue where the client thread in INDI::BaseClient is not being terminated gracefully in blocking mode.
       + Fixed an issue involving non-English clients that utilize INDI client library to communicate with INDI server.
