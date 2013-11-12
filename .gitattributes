@@ -470,7 +470,6 @@ debian/sbig/changelog -text
 debian/sbig/compat -text
 debian/sbig/control -text
 debian/sbig/copyright -text
-debian/sbig/libsbigudrv2-dev.links -text
 debian/sbig/libsbigudrv2.install -text
 debian/sbig/libsbigudrv2.links -text
 debian/sbig/rules -text
