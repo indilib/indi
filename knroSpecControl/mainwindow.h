@@ -23,15 +23,16 @@ public:
     ~MainWindow();
 
 protected:
-    virtual void newDevice(const char *device_name);
-    virtual void newProperty(const char *, const char *) {}
+    virtual void newDevice(INDI::BaseDevice *dv);
+    virtual void newProperty(INDI::Property *prop);
     virtual void newBLOB(IBLOB *bp);
     virtual void newSwitch(ISwitchVectorProperty *svp);
     virtual void newNumber(INumberVectorProperty *) {}
     virtual void newText(ITextVectorProperty *) {}
     virtual void newLight(ILightVectorProperty *) {}
+    virtual void newMessage(INDI::BaseDevice *dp) {}
     virtual void serverConnected() {}
-    virtual void serverDisconnected();
+    virtual void serverDisconnected(int);
 
 private:
     Ui::MainWindow *ui;

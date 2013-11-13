@@ -10,7 +10,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-#include <libindi/basedriver.h>
+#include <libindi/basedevice.h>
 
 #define MAX_FILENAME_LEN    1024
 #define TIMEOUT             10000
@@ -89,13 +89,28 @@ void MainWindow::disconnectServer()
 
 }
 
-void MainWindow::newDevice(const char *device_name)
+void MainWindow::newDevice(INDI::BaseDevice *dv)
 {
-    ui->msgQueue->append(QString("KNRO: Successfully received and constructed %1 device.").arg(device_name));
+    ui->msgQueue->append(QString("KNRO: Successfully received and constructed %1 device.").arg(dv->deviceName()));
 
-    setBLOBMode(B_ALSO, device_name);
+    setBLOBMode(B_ALSO, dv->deviceName());
 
     deviceReceived = true;
+}
+
+void MainWindow::newProperty(INDI::Property *prop)
+{
+    IDLog("Received new property %s for device %s\n", prop->getName(), prop->getDeviceName());
+
+    IDLog("Property inital state is %s\n", pstateStr(prop->getState()));
+
+    if (!strcmp(prop->getName(), "ACTIVE_DEVICES"))
+        sendNewText("SpectraCyber", "ACTIVE_DEVICES", "ACTIVE_TELESCOPE", "KNRO");
+
+    if (!strcmp(prop->getName(), "70 Mhz IF"))
+        sendNewNumber("SpectraCyber", "70 Mhz IF", "Gain (dB)", 17.55);
+
+
 }
 
 void MainWindow::newBLOB(IBLOB *bp)
@@ -137,13 +152,13 @@ void MainWindow::newBLOB(IBLOB *bp)
 
         if (currentSMode == ".ascii_cont")
         {
-            kstProcess->start(QString("kst -x 1 -y 2 %1").arg(specTempFile->fileName()));
+            kstProcess->start(QString("kst2 %1 -x 1 -y 2").arg(specTempFile->fileName()));
             ui->msgQueue->append(QString("KNRO: Starting continuum channel monitor..."));
             emit modeUpdated(0);
         }
         else
         {
-            kstProcess->start(QString("kst -x 3 -y 2 %1").arg(specTempFile->fileName()));
+            kstProcess->start(QString("kst2 %1 -x 3 -y 2").arg(specTempFile->fileName()));
             ui->msgQueue->append(QString("KNRO: Starting spectral channel monitor..."));
             emit modeUpdated(1);
 
@@ -211,8 +226,9 @@ void MainWindow::newSwitch(ISwitchVectorProperty *svp)
         BLOBDirty = true;
 }
 
-void MainWindow::serverDisconnected()
+void MainWindow::serverDisconnected(int exit_code)
 {
+    INDI_UNUSED(exit_code);
     ui->msgQueue->append(QString("KNRO: INDI server disconnected. Please try again..."));
     emit serverConnectionUpdated(false);
 }
