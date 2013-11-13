@@ -76,6 +76,8 @@ public:
     void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
  	
     void reset_all_properties();
+
+    void set_verbose(bool enable) { verbose = enable; }
      
 private: 
 
@@ -107,6 +109,7 @@ private:
 	inverterType type;
 	bool simulation;
 	bool debug;
+    bool verbose;
 	
 	string type_name;
 	string forward_motion;

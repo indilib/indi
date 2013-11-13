@@ -49,16 +49,28 @@ const int ENCODER_READ_BUFFER = 16;
 const int ENCODER_ERROR_BUFFER = 128;
 const int ENCODER_CMD_LEN = 4;
 
+/* Azimuth TICKs (encoder absolute counter) per degree */
 const double AZ_TPD = 202.5;
-const int AZ_HOME_TICKS = 221329;
+
+//**************** WARNING ###################//
+//**************** WARNING ###################//
+//**************** WARNING ###################//
+// TODO ENABLE AGAIN FIXME
+
+// Looking NORTH
+const int AZ_HOME_TICKS = 216727;
+//**************** WARNING ###################//
+//**************** WARNING ###################//
+//**************** WARNING ###################//
 
 // Limits to keep wrong values out.
 const int AZ_MAX_COUNT = 400000;
 const int AZ_MIN_COUNT = 300000;
 
 const double ALT_TPD = 225.9;
-const int ALT_HOME_TICKS = 260041;
-const double ALT_HOME_DEGREES = 89.4032;
+//const int ALT_HOME_TICKS = 234465;
+const int ALT_HOME_TICKS = 229990;
+const double ALT_HOME_DEGREES = 90;
 
 const int ALT_MAX_COUNT = 260000;
 const int ALT_MIN_COUNT = 200000;
@@ -172,12 +184,12 @@ void knroEncoder::set_type(encoderType new_type)
 	 if (type == AZ_ENCODER)
 	 {
 	 		type_name = string("Azimuth");
-	 		default_port = string("192.168.1.4");
+                        default_port = string("192.168.1.4");
 	 }
 	 else
 	 {
 	 		type_name = string("Altitude");
-	 		default_port = string("192.168.1.5");
+                        default_port = string("192.168.1.5");
 	 }		
 }
 
@@ -251,6 +263,10 @@ bool knroEncoder::init_encoder()
 void knroEncoder::disconnect()
 {
 	connection_status = -1;
+
+    if (simulation)
+        return;
+
 	tty_disconnect(sockfd);
 	sockfd=-1;
 }
@@ -439,7 +455,6 @@ void   knroEncoder::update_client(void)
 void * knroEncoder::update_encoder(void)
 {
 	char encoder_read[ENCODER_READ_BUFFER];
-	char encoder_junk[ENCODER_READ_BUFFER];
 	char encoder_error[ENCODER_ERROR_BUFFER];
 
         int nbytes_read =0;
@@ -452,7 +467,7 @@ void * knroEncoder::update_encoder(void)
 	if (simulation)
 	{
 		if (type == AZ_ENCODER)
-                  EncoderAbsPosN[0].value = 221329;
+                  EncoderAbsPosN[0].value = 88000;
 		else
                   EncoderAbsPosN[0].value = 260041;
 	}
@@ -465,10 +480,21 @@ void * knroEncoder::update_encoder(void)
 	{
 		if (simulation)
 		{
-				if (simulated_forward)
-					EncoderAbsPosN[0].value -= simulated_speed;
-				else
-					EncoderAbsPosN[0].value += simulated_speed;
+                                if (simulated_forward)
+                                {
+                                    if (type == AZ_ENCODER)
+                                        EncoderAbsPosN[0].value -= simulated_speed;
+                                    else
+                                        EncoderAbsPosN[0].value += simulated_speed;
+                                }
+                                else
+                                {
+
+                                    if (type == AZ_ENCODER)
+                                        EncoderAbsPosN[0].value += simulated_speed;
+                                    else
+                                        EncoderAbsPosN[0].value -= simulated_speed;
+                                }
 
 				calculate_angle();
 
@@ -496,12 +522,12 @@ void * knroEncoder::update_encoder(void)
 	  {
 		tty_error_msg(err_code, encoder_error, ENCODER_ERROR_BUFFER);
 		if (debug)
-		  IDLog("TTY error detected: %s\n", encoder_error);
+                  IDLog("%s encoder: TTY error detected (%s)\n", type_name.c_str(), encoder_error);
    		break;
 	  }
 	   
 	  if (debug)
-	    IDLog("Byte #%d=0x%X --- %d\n", i, ((unsigned char) encoder_read[counter]), ((unsigned char) encoder_read[counter]));
+            IDLog("%s Byte #%d=0x%X --- %d\n", type_name.c_str(), i, ((unsigned char) encoder_read[counter]), ((unsigned char) encoder_read[counter]));
 
 	   // If encountering line feed 0xA, then break;
 	   if (encoder_read[counter] == 0xA)
@@ -516,7 +542,7 @@ void * knroEncoder::update_encoder(void)
 	if (counter == 0)
 	{
 		if (debug)
-		  IDLog("Error, unable to read. Check connection.\n");
+                  IDLog("%s encoder. Error, unable to read. Check connection.\n", type_name.c_str());
                 usleep(ENCODER_POLLMS);
 		continue;
 	}
@@ -524,7 +550,7 @@ void * knroEncoder::update_encoder(void)
 	if ( ((unsigned char) encoder_read[0]) != 0x47)
 	{
 		if (debug)
-		  IDLog("Invalid encoder response!\n");
+                  IDLog("%s encoder. Invalid encoder response!\n", type_name.c_str());
                 usleep(ENCODER_POLLMS);
 		continue;
 	}
@@ -532,7 +558,7 @@ void * knroEncoder::update_encoder(void)
 	if ( (err_code = get_encoder_value(POSITION_VALUE, encoder_read, new_encoder_value)) != NO_ERROR)
 	{
 		if (debug)
-		  IDLog("Encoder error is %d\n", err_code);
+                  IDLog("%s encoder. Encoder error is %d\n", type_name.c_str(), err_code);
                 usleep(ENCODER_POLLMS);
 		continue;
 	}
@@ -559,14 +585,21 @@ void knroEncoder::calculate_angle()
 {
   	if (type == AZ_ENCODER)
 	{
-	 		current_angle = (AZ_HOME_TICKS - EncoderAbsPosN[0].value) / AZ_TPD;
+            //current_angle = (AZ_HOME_TICKS - EncoderAbsPosN[0].value) / AZ_TPD + 5.1;
+            //current_angle = (AZ_HOME_TICKS - EncoderAbsPosN[0].value) / AZ_TPD + 7.63;
+        //current_angle = (AZ_HOME_TICKS - EncoderAbsPosN[0].value) / AZ_TPD + 4.53;
+        current_angle = (AZ_HOME_TICKS - EncoderAbsPosN[0].value) / AZ_TPD + 2.697;
 			if (current_angle > 360) current_angle -= 360;
 			else if (current_angle < 0) current_angle += 360;
 			EncoderAbsPosN[1].value = current_angle;
 	}
 	else
 	{
-	 		current_angle = ALT_HOME_DEGREES - fabs((ALT_HOME_TICKS - EncoderAbsPosN[0].value) / ALT_TPD);
+            //current_angle = ALT_HOME_DEGREES - fabs((ALT_HOME_TICKS - EncoderAbsPosN[0].value) / ALT_TPD) - 1;
+            //current_angle = ALT_HOME_DEGREES - fabs((ALT_HOME_TICKS - EncoderAbsPosN[0].value) / ALT_TPD) - 3.62;
+            //current_angle = ALT_HOME_DEGREES - fabs((ALT_HOME_TICKS - EncoderAbsPosN[0].value) / ALT_TPD) - 3.12;
+            //current_angle = ALT_HOME_DEGREES - fabs((ALT_HOME_TICKS - EncoderAbsPosN[0].value) / ALT_TPD) + 1;
+            current_angle = ALT_HOME_DEGREES - fabs((ALT_HOME_TICKS - EncoderAbsPosN[0].value) / ALT_TPD) + 1.416;
 			if (current_angle > ALT_HOME_DEGREES) current_angle -= ALT_HOME_DEGREES;
 			else if (current_angle < 0) current_angle += ALT_HOME_DEGREES;
 			EncoderAbsPosN[1].value = current_angle;

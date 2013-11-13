@@ -108,7 +108,7 @@ class knroObservatory
    INumber UTCOffsetN[1];
    INumber SlewPrecisionN[2];
    INumber TrackPrecisionN[2];
-   INumber EquatorialCoordsRN[2];
+   INumber EquatorialCoordsN[2];
 
     /* BLOBs */
     
@@ -136,7 +136,7 @@ class knroObservatory
     INumberVectorProperty UTCOffsetNP;
     INumberVectorProperty SlewPrecisionNP;
     INumberVectorProperty TrackPrecisionNP;
-    INumberVectorProperty EquatorialCoordsRNP;
+    INumberVectorProperty EquatorialCoordsNP;
 
     /* Other */
 
@@ -158,21 +158,45 @@ class knroObservatory
 
     static const double ALT_MEDIUM_REGION = 5;
     static const double ALT_SLOW_REGION   = 2;
+    static const double ALT_ZENITH_LIMIT = 90.0;
+    static const double ALT_HORIZON_LIMIT = 46.1;
+
+    /* After 10 counters (10 x 500 ms POLL = 5 seconds), check to see if the motion was stopped due
+       to hitting the limit switch or due to some mechanical failure
+    */
+    static const int ALT_STOP_LIMIT = 10;
+
+    /* How far from ALT_HORIZON_LIMIT or ALT_ZENITH_LIMIT the dish must be to be considered in OK motion state
+       That is, it got stopped by a limit switch and not due to mechanical failure
+    */
+    static const int ALT_STOP_RANGE = 2;
+
 
     static const double AZ_MEDIUM_REGION = 15;
     static const double AZ_SLOW_REGION   = 5;
 
+    /* Limit switches are at 180 degrees */
+    static const double AZ_LIMIT = 180.0;
+    static const int AZ_STOP_LIMIT = 10;
+    static const int AZ_STOP_RANGE = 2;
+
     
     // Three basic speeds in Hz
     static const float AZ_KNRO_FAST = 50.0;
-    static const float AZ_KNRO_MEDIUM = 25.0;
-    static const float AZ_KNRO_SLOW = 7;
+    static const float AZ_KNRO_MEDIUM = 45.0;
+    static const float AZ_KNRO_SLOW = 40;
+    static const float AZ_KNRO_TRACK = 10;
     
     static const float ALT_KNRO_FAST = 50.0;
-    static const float ALT_KNRO_MEDIUM = 40.0;
-    static const float ALT_KNRO_SLOW = 15;
+    static const float ALT_KNRO_MEDIUM = 45.0;
+    static const float ALT_KNRO_SLOW = 40;
+    static const float ALT_KNRO_TRACK = 10;
 
-   
+
+    // Tracking threshold
+    static const float AZ_TRACKING_THRESHOLD = 5;
+    static const float ALT_TRACKING_THRESHOLD = 2.5;
+
     /* Functions */
  
     /* connect observatory */
@@ -187,7 +211,7 @@ class knroObservatory
     const char *get_knro_error_string(knroErrCode code);
 
     /* Send command buffer to inverter */
-    void execute_slew();
+    void execute_slew(bool track=false);
 
     /* Modular stop functions */
     knroErrCode stop_all();
@@ -217,8 +241,11 @@ class knroObservatory
     void reset_all_properties();
 
     /* Coordinates & Time */
-    double lastAZ;
+    double lastAz;
+    double lastAlt;
     double initialAz;
+    unsigned int maxAltStopCounter;
+    unsigned int maxAzStopCounter;
    
     /* Timing variables */
     static const int MAXIMUM_IDLE_TIME = 1800;			// Maximum 30 minutes idle time
@@ -254,6 +281,13 @@ class knroObservatory
 
     ln_hrz_posn HorObjectCoords;
     ln_lnlat_posn observer;
+    ln_equ_posn EqTrackObjCoords;
+
+
+    // TEMP, to calculate minimum speed, REMOVE
+    //struct timeval ExpStart;
+   // double initAz, initAlt;
+    //float calc_time_left();
 
 };
 

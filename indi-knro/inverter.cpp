@@ -39,7 +39,9 @@
 #include "inverter.h"
 
 const int ERROR_MAX_COUNT = 3;
-const int ERROR_TIMEOUT = 100000;
+//const int ERROR_TIMEOUT = 100000;
+
+const int ERROR_TIMEOUT = 2000000;
 
 /****************************************************************
 **
@@ -58,6 +60,7 @@ knroInverter::knroInverter(inverterType new_type) : SPEED_MODE_ADDRESS(3), REMOT
   
   debug = false;
   simulation = false;
+  verbose    = true;
   mb_param = NULL;
   
   set_type(new_type);
@@ -204,7 +207,10 @@ bool knroInverter::connect()
 *****************************************************************/   
 void knroInverter::disconnect()
 {
-	connection_status = -1;
+    connection_status = -1;
+
+    if (simulation)
+        return;
 	
 	modbus_close(mb_param);
 	modbus_free(mb_param);
@@ -236,7 +242,9 @@ bool knroInverter::move_forward()
 		MotionControlSP.s = IPS_BUSY;
 		IDSetSwitch(&MotionControlSP, "%s drive is moving %s", type_name.c_str(), forward_motion.c_str());
 		return true;
-	}
+        }
+
+        enable_drive();
 
 	for (int i=0; i < ERROR_MAX_COUNT; i++)
 	{
@@ -244,8 +252,12 @@ bool knroInverter::move_forward()
 	
            if (ret == 3)
 	   {
-		    MotionControlSP.s = IPS_BUSY;
-		    IDSetSwitch(&MotionControlSP, "%s drive is moving %s", type_name.c_str(), forward_motion.c_str());
+            MotionControlSP.s = IPS_BUSY;
+
+            if (verbose)
+                IDSetSwitch(&MotionControlSP, "%s drive is moving %s", type_name.c_str(), forward_motion.c_str());
+            else
+                IDSetSwitch(&MotionControlSP, NULL);
 		    return true;
  	   }
 
@@ -292,14 +304,19 @@ bool knroInverter::move_reverse()
 	    return true;
 	}
 
+    enable_drive();
+
 	for (int i=0; i < ERROR_MAX_COUNT; i++)
 	{
 	       ret = modbus_write_bits(mb_param, MOTION_CONTROL_ADDRESS, 3, Motion_Control_Coils);
 		
 	       if (ret == 3)
 	       {
-		    MotionControlSP.s = IPS_BUSY;
-		    IDSetSwitch(&MotionControlSP, "%s drive is moving %s", type_name.c_str(), reverse_motion.c_str());
+            MotionControlSP.s = IPS_BUSY;
+            if (verbose)
+                IDSetSwitch(&MotionControlSP, "%s drive is moving %s", type_name.c_str(), reverse_motion.c_str());
+            else
+                IDSetSwitch(&MotionControlSP, NULL);
 		    return true;
 		}
 
@@ -308,7 +325,7 @@ bool knroInverter::move_reverse()
 
 	if (debug)
 	{
-	        IDLog("Reverse Command ERROR. force_multiple_coils (%d)\n", ret);
+        IDLog("Reverse Command ERROR. force_multiple_coils (%d)\n", ret);
 		IDLog("Slave = %d, address = %d, nb = %d\n", SLAVE_ADDRESS, MOTION_CONTROL_ADDRESS, 3);
 	}
 
@@ -345,13 +362,18 @@ bool knroInverter::stop()
 	}
 
 	for (int i=0; i < ERROR_MAX_COUNT; i++)
-	{
+        {
+
 	    ret = modbus_write_bits(mb_param, MOTION_CONTROL_ADDRESS, 3, Motion_Control_Coils);
 	
 	    if (ret == 3)
 	    {
-		MotionControlSP.s = IPS_OK;
-		IDSetSwitch(&MotionControlSP, "%s motion stopped", type_name.c_str());
+                disable_drive();
+        MotionControlSP.s = IPS_OK;
+        if (verbose)
+            IDSetSwitch(&MotionControlSP, "%s motion stopped", type_name.c_str());
+        else
+            IDSetSwitch(&MotionControlSP, NULL);
 		return true;
 	    }
 	   usleep(ERROR_TIMEOUT);
@@ -361,6 +383,7 @@ bool knroInverter::stop()
 	IDLog("Slave = %d, address = %d, nb = %d\n", SLAVE_ADDRESS, MOTION_CONTROL_ADDRESS, 3);
         MotionControlSP.s = IPS_ALERT;
         IDSetSwitch(&MotionControlSP, "Error stopping motion for %s drive", type_name.c_str());
+
         return false;
 }
 
@@ -407,8 +430,11 @@ bool knroInverter::set_speed(float newHz)
     {
 	IDMessage(mydev, "%s drive: Simulating set speed command.", type_name.c_str());
 	InverterSpeedN[0].value = newHz;
-	InverterSpeedNP.s = IPS_OK;
-	IDSetNumber(&InverterSpeedNP, "%s drive speed updated to %g Hz.", type_name.c_str(), InverterSpeedN[0].value);
+    InverterSpeedNP.s = IPS_OK;
+    if (verbose)
+        IDSetNumber(&InverterSpeedNP, "%s drive speed updated to %g Hz.", type_name.c_str(), InverterSpeedN[0].value);
+    else
+        IDSetNumber(&InverterSpeedNP, NULL);
 	return true;
     }
 
@@ -431,8 +457,11 @@ bool knroInverter::set_speed(float newHz)
 			      IDLog("** READING ** Hz_Speed_Register[0] = %d - Hz_Speed_Register[1] = %d\n", Hz_Speed_Register[0], Hz_Speed_Register[1]);
     
 			InverterSpeedN[0].value = newHz;
-			InverterSpeedNP.s = IPS_OK;
-			IDSetNumber(&InverterSpeedNP, "%s drive speed updated to %g Hz.", type_name.c_str(), InverterSpeedN[0].value);
+            InverterSpeedNP.s = IPS_OK;
+            if (verbose)
+                IDSetNumber(&InverterSpeedNP, "%s drive speed updated to %g Hz.", type_name.c_str(), InverterSpeedN[0].value);
+            else
+                IDSetNumber(&InverterSpeedNP, NULL);
 			return true;
 		    }
 
@@ -503,12 +532,13 @@ bool knroInverter::disable_drive()
 {
 	int ret;
 	uint8_t inverter_send[1];
+        uint8_t inverter_read[1];
 	
 	if (!check_drive_connection())
 		return false;
 
-	inverter_send[0] = 0;							
-	stop();
+        inverter_send[0] = 0;
+        inverter_read[0] = 0;
 
 	if (simulation)
 	{
@@ -516,18 +546,41 @@ bool knroInverter::disable_drive()
 		return true;
 	}
 
-	for (int i=0; i < ERROR_MAX_COUNT; i++)
-	{
-		ret = modbus_write_bits(mb_param, DRIVE_ENABLE_ADDRESS, 1, inverter_send);
-	
-  	        if (ret == 1)
-			return true;
-		usleep(ERROR_TIMEOUT);
-	}
 
-     IDLog("Command: Disable Drive. ERROR force_single_coil (%d)\n", ret);
-     IDLog("Slave = %d, address = %d, value = %d (0x%X)\n", SLAVE_ADDRESS, DRIVE_ENABLE_ADDRESS, 0, 0);
-     return false;
+        ret = modbus_read_bits(mb_param, DRIVE_ENABLE_ADDRESS, 1, inverter_read);
+
+        if (inverter_read[0] == 1)
+        {
+            if (debug)
+             IDLog("Command: Disable Drive. Attempting to disable driver\n");
+
+
+                for (int i=0; i < ERROR_MAX_COUNT; i++)
+                {
+                    ret = modbus_write_bits(mb_param, DRIVE_ENABLE_ADDRESS, 1, inverter_send);
+	
+                    if (ret == 1)
+                    {
+                        if (debug)
+                            IDLog("Disable driver is successful.\n");
+                        return true;
+                    }
+
+		usleep(ERROR_TIMEOUT);
+                }
+
+                IDLog("Command: Disable Drive. ERROR force_single_coil (%d)\n", ret);
+                IDLog("Slave = %d, address = %d, value = %d (0x%X)\n", SLAVE_ADDRESS, DRIVE_ENABLE_ADDRESS, 0, 0);
+                return false;
+	}
+        else
+        {
+            if (debug)
+                IDLog("Driver is already disabled!\n");
+            return true;
+        }
+
+
 }
 
 /****************************************************************
@@ -607,7 +660,8 @@ bool knroInverter::init_drive()
                                      
 
    // Now the drive is ready to be used
-   return enable_drive();
+   //return enable_drive();
+   return true;
    
 }
     
@@ -678,7 +732,10 @@ void knroInverter::ISNewSwitch (const char *dev, const char *name, ISState *stat
 			if (move_reverse() != false)
 			{
 				MotionControlSP.s = IPS_BUSY;
-				IDSetSwitch(&MotionControlSP, "%s drive is moving %s", type_name.c_str(), reverse_motion.c_str());
+                if (verbose)
+                    IDSetSwitch(&MotionControlSP, "%s drive is moving %s", type_name.c_str(), reverse_motion.c_str());
+                else
+                    IDSetSwitch(&MotionControlSP, NULL);
 			}
 			else
 			{

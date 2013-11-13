@@ -47,8 +47,9 @@
 ***************************************************************************************/
 void knroObservatory::ISPoll()
 {
-    double delta_az=0, newRA, newDEC;
+    double delta_az=0, delta_alt=0, newRA=0, newDEC=0, objAz=0, objAlt=0;
     ln_equ_posn EqObjectCoords;
+
 
      if (is_connected() == false)
 	return;
@@ -67,15 +68,18 @@ void knroObservatory::ISPoll()
 
     ln_get_equ_from_hrz (&HorObjectCoords, &observer, ln_get_julian_from_sys(), &EqObjectCoords);
 
+
+
     newRA  = EqObjectCoords.ra/15.0;
     newDEC = EqObjectCoords.dec;
 
-    if (fabs(EquatorialCoordsRNP.np[0].value - newRA)  >= RA_TOLERANCE ||
-        fabs(EquatorialCoordsRNP.np[1].value - newDEC) >= DEC_TOLERANCE)
+
+    if (fabs(EquatorialCoordsNP.np[0].value - newRA)  >= RA_TOLERANCE ||
+        fabs(EquatorialCoordsNP.np[1].value - newDEC) >= DEC_TOLERANCE)
     {
-        EquatorialCoordsRNP.np[0].value = newRA;
-        EquatorialCoordsRNP.np[1].value = newDEC;
-        IDSetNumber(&EquatorialCoordsRNP, NULL);
+        EquatorialCoordsNP.np[0].value = newRA;
+        EquatorialCoordsNP.np[1].value = newDEC;
+        IDSetNumber(&EquatorialCoordsNP, NULL);
     }
 
      delta_az = currentAz - targetAz;
@@ -89,7 +93,39 @@ void knroObservatory::ISPoll()
 			break;
 
 		case IPS_OK:
-			break;
+            if (slew_stage != SLEW_TRACK)
+                break;
+
+
+
+
+            // Convert to Horizontal coords
+            ln_get_hrz_from_equ(&EqTrackObjCoords, &observer, ln_get_julian_from_sys(), &HorObjectCoords);
+
+            HorObjectCoords.az += 180;
+            if (HorObjectCoords.az > 360)
+                HorObjectCoords.az -= 360;
+
+            objAz  = HorObjectCoords.az;
+            objAlt = HorObjectCoords.alt;
+
+            /*
+                IDLog("EqTrackObj RA: %g - DEC: %g - its Horz Az: %g - Alt: %g\n, CurrentAz: %g - CurrentAlt: %g - fabs_az: %g, fabs_alt: %g\n",
+                  EqTrackObjCoords.ra, EqTrackObjCoords.dec, HorObjectCoords.az, HorObjectCoords.alt, currentAz, currentAlt,
+                  fabs(objAz - currentAz)*60, fabs(objAlt - currentAlt)*60);
+             */
+
+            // Now let's compare it to current encoder values
+            if (fabs (objAz - currentAz) * 60.0 > trackAZTolerance || fabs (objAlt - currentAlt) * 60.0 > trackALTTolerance)
+            {
+                targetAz  = objAz;
+                targetAlt = objAlt;
+
+                execute_slew(true);
+
+            }
+
+            break;
 
 		case IPS_BUSY:
 		      
@@ -99,6 +135,7 @@ void knroObservatory::ISPoll()
 				break;
 
 				case SLEW_NOW:
+                case SLEW_TRACK:
 				  
 				    
 					// If declination is done, stop n/s
@@ -126,19 +163,19 @@ void knroObservatory::ISPoll()
 
                                                 // Telescope moving west, but we need to avoid hitting limit switch which is @ 0
                                                 if (initialAz < 180 && targetAz > 180)
-							update_az_dir(KNRO_EAST);
+                                                        update_az_dir(KNRO_EAST);
 						else
 						// Otherwise proceed normally
-							update_az_dir(KNRO_WEST);
+                                                        update_az_dir(KNRO_WEST);
 					}
 					else
 					{
 						update_az_speed();
                                                 // Telescope moving east, but we need to avoid hitting limit switch which is @ 0
                                                 if (initialAz > 180 && targetAz < 180)
-							update_az_dir(KNRO_WEST);
+                                                        update_az_dir(KNRO_WEST);
 						else
-							update_az_dir(KNRO_EAST);
+                                                        update_az_dir(KNRO_EAST);
 					}
 
 					// if both ns and we are stopped, we're done and engage tracking.
@@ -156,7 +193,7 @@ void knroObservatory::ISPoll()
 							ParkSP.s = IPS_OK;
 							HorizontalCoordsNWP.s = IPS_OK;
 							HorizontalCoordsNRP.s = IPS_OK;
-                                                        EquatorialCoordsRNP.s = IPS_OK;
+                            EquatorialCoordsNP.s = IPS_OK;
 							
 							slew_stage = SLEW_NONE;
 							slew_busy.stop();
@@ -166,6 +203,7 @@ void knroObservatory::ISPoll()
 							IDSetSwitch(&ParkSP, "Telescope park complete.");
 							IDSetNumber(&HorizontalCoordsNWP, NULL);
 							IDSetNumber(&HorizontalCoordsNRP, NULL);
+                            IDSetNumber(&EquatorialCoordsNP, NULL);
 						
 							return;
 						}
@@ -175,51 +213,25 @@ void knroObservatory::ISPoll()
 						// We go to that mode
 						slew_busy.stop();
 						slew_complete.play();
-						slew_stage = SLEW_TRACK;
+
 						HorizontalCoordsNWP.s = IPS_OK;
 						HorizontalCoordsNRP.s = IPS_OK;
-						EquatorialCoordsRNP.s = IPS_OK;
-						IDSetNumber(&HorizontalCoordsNWP, "Slew complete. Engaging tracking...");
+                        EquatorialCoordsNP.s = IPS_OK;
+
+                        if (slew_stage != SLEW_TRACK)
+                        {
+                            IDSetNumber(&HorizontalCoordsNWP, "Slew complete. Engaging tracking...");
+                            slew_stage = SLEW_TRACK;
+                            AzInverter->set_verbose(false);
+                            AltInverter->set_verbose(false);
+                        }
+
 						IDSetNumber(&HorizontalCoordsNRP, NULL);
-						IDSetNumber(&EquatorialCoordsRNP, NULL);
+                        IDSetNumber(&EquatorialCoordsNP, NULL);
 						
 					}
 					break;
 
-				case SLEW_TRACK:
-				        #if 0
-					if (is_dec_done())
-						stop_ns();
-					else if (targetDEC - currentDEC > 0)
-					{
-						update_ns_speed();
-						update_ns_dir(UJARI_NORTH);
-					}
-					else
-					{
-						update_ns_speed();
-						update_ns_dir(UJARI_SOUTH);
-					}
-
-					requested_coords.setRA(targetRA);
-					requested_coords.setDec(targetDEC);
-					requested_coords.EquatorialToHorizontal(&SD_Time, observatory.lat());
-					/* Store Target Az */
-					targetDomeAz  = ( (int) requested_coords.az()->Degrees() ) % 360;
-					/*if (is_ra_done())
-						stop_we();
-					else if ( (delta_ra > 0 && delta_ra < 12) || delta_ra < -12)
-					{
-						update_we_speed();
-						update_we_dir(UJARI_WEST);
-					}
-					else
-					{
-						update_we_speed();
-						update_we_dir(UJARI_EAST);
-					}*/
-					#endif
-					break;
 					
 			}
 			break;
@@ -229,7 +241,5 @@ void knroObservatory::ISPoll()
 	}
 
   return;
-  
-
 
 }
