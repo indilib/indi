@@ -43,6 +43,15 @@
 3rdparty/indi-spectracyber/*.user*
 3rdparty/indi-sx/*.user*
 3rdparty/indi-tess/*.user*
+3rdparty/libapogee/*.user*
+3rdparty/libapogee/ApogeeNet/*.user*
+3rdparty/libapogee/ApogeeUsb/*.user*
+3rdparty/libapogee/FpgaRegs/*.user*
+3rdparty/libfli/*.user*
+3rdparty/libqsi/*.user*
+3rdparty/libqsi/demo_src/*.user*
+3rdparty/libqsi/doc/*.user*
+3rdparty/sbig/*.user*
 cmake_modules/*.user*
 debian/*.user*
 debian/astrometry.net/*.user*
@@ -63,11 +72,6 @@ debian/libindi/source/*.user*
 debian/libqsi/*.user*
 debian/maxdomeii/*.user*
 debian/sbig/*.user*
-libapogee/*.user*
-libapogee/ApogeeNet/*.user*
-libapogee/ApogeeUsb/*.user*
-libapogee/FpgaRegs/*.user*
-libfli/*.user*
 libindi/*.user*
 libindi/drivers/*.user*
 libindi/drivers/auxiliary/*.user*
@@ -87,7 +91,3 @@ libindi/libs/*.user*
 libindi/libs/indibase/*.user*
 libindi/libs/webcam/*.user*
 libindi/tools/*.user*
-libqsi/*.user*
-libqsi/demo_src/*.user*
-libqsi/doc/*.user*
-sbig/*.user*
