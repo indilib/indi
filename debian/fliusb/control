@@ -1,7 +1,7 @@
 Source: fliusb-dkms
 Section: libs
 Priority: optional
-Maintainer: Dynamic Kernel Modules Support Team <pkg-dkms-maint@lists.alioth.debian.org>
+Maintainer: Jasem Mutlaq <mutlaqja@ikarustech.com>
 Build-Depends: debhelper (>= 7), dkms
 Standards-Version: 3.8.1
 
