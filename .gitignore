@@ -1,7 +1,6 @@
 /*.user*
 3rdparty/*.user*
 3rdparty/fliusb/*.user*
-3rdparty/fliusb/fliusb-1.2/*.user*
 3rdparty/generic-ccd/*.user*
 3rdparty/gerry/*.user*
 3rdparty/gerry/cmake_modules/*.user*

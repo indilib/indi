@@ -5,13 +5,6 @@ number, when a recognized FLI USB device is attached.  The character
 special file provides two ways to communicate with FLI USB devices;
 through read()/write() system calls or by using ioctl().
 
-Warning
-=======
-We observed strange problems under 2.6.27 kernels - camera caused kernel
-panic,.. We aren't sure if FLI driver is responsible for those. But if you will
-experience strange problems from the driver, please try drivers with 2.6.26
-kernel. Contact Petr Kubanek if you have further questions (petr@kubanek.net).
-
 Compiling
 =========
 

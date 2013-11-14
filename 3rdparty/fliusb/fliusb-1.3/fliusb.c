@@ -44,16 +44,14 @@
 #include <linux/version.h>
 #include <linux/init.h>
 #include <linux/module.h>
-#include <linux/mutex.h>
 #include <linux/kernel.h>
 #include <linux/kref.h>
 #include <linux/errno.h>
 #include <linux/usb.h>
 #include <linux/fs.h>
 #include <linux/fcntl.h>
-#include <asm/uaccess.h>
 #include <linux/slab.h>
-
+#include <asm/uaccess.h>
 
 #ifdef SGREAD
 #include <linux/mm.h>
@@ -67,7 +65,17 @@
 
 MODULE_AUTHOR("Finger Lakes Instrumentation, L.L.C. <support@flicamera.com>");
 MODULE_LICENSE("Dual BSD/GPL");
-MODULE_VERSION("1.1");
+MODULE_VERSION("1.3");
+
+/* initMUTEX was removed in 2.6.37, I hate Linux, minor revision changes
+ * should include a warning when this shit is going to happen with
+ * suggested alternatives! */
+
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 36) && !defined(init_MUTEX)
+#define init_MUTEX(sem)	sema_init(sem, 1)
+#endif 
+
+struct mutex fliusb_mutex;
 
 /* Module parameters */
 typedef struct {
@@ -79,8 +87,6 @@ static fliusb_param_t defaults = {
   .buffersize =	FLIUSB_BUFFERSIZE,
   .timeout =	FLIUSB_TIMEOUT,
 };
-
-struct mutex flimutex;
 
 #define FLIUSB_MOD_PARAMETERS						     \
   FLIUSB_MOD_PARAM(buffersize, uint, "USB bulk transfer buffer size")	     \
@@ -115,11 +121,11 @@ static ssize_t fliusb_read(struct file *file, char __user *buffer,
 			   size_t count, loff_t *ppos);
 static ssize_t fliusb_write(struct file *file, const char __user *user_buffer,
 			    size_t count, loff_t *ppos);
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,36)
-static int fliusb_ioctl(struct inode *inode, struct file *file,
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 36)
+static long fliusb_ioctl(struct file *file,
 			unsigned int cmd, unsigned long arg);
 #else
-static long fliusb_ioctl(struct file *file,
+static int fliusb_ioctl(struct inode *inode, struct file *file,
 			unsigned int cmd, unsigned long arg);
 #endif
 
@@ -127,11 +133,11 @@ static struct file_operations fliusb_fops = {
   .owner		= THIS_MODULE,
   .read			= fliusb_read,
   .write		= fliusb_write,
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,36)
-  .ioctl		= fliusb_ioctl,
-#else
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 36)
   .unlocked_ioctl	= fliusb_ioctl,
-#endif  
+#else
+  .ioctl		= fliusb_ioctl,
+#endif
   .open			= fliusb_open,
   .release		= fliusb_release,
 };
@@ -387,8 +393,8 @@ static int fliusb_sg_bulk_read(fliusb_t *dev, unsigned int pipe,
 
   if (dev->usbsg.sgreq.status)
   {
-    FLIUSB_ERR("bulk read error %d; transfered %zd bytes",
-	       dev->usbsg.sgreq.status, dev->usbsg.sgreq.bytes);
+    FLIUSB_ERR("bulk read error %d; transfered %d bytes",
+	       (int) dev->usbsg.sgreq.status, (int) dev->usbsg.sgreq.bytes);
     err = dev->usbsg.sgreq.status;
     goto done;
   }
@@ -454,6 +460,9 @@ static int fliusb_bulk_write(fliusb_t *dev, unsigned int pipe,
 			  timeout)))
   {
     cnt = err;
+    // reset USB in case of an error
+    err = usb_reset_configuration (dev->usbdev);
+    FLIUSB_DBG("configuration return: %d", err);
   }
 
  done:
@@ -574,11 +583,11 @@ static ssize_t fliusb_write(struct file *file, const char __user *userbuffer,
 			   userbuffer, count, dev->timeout);
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,36)
-static int fliusb_ioctl(struct inode *inode, struct file *file,
-			unsigned int cmd, unsigned long arg)
-#else
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 36)
 static long fliusb_ioctl(struct file *file,
+                        unsigned int cmd, unsigned long arg)
+#else
+static int fliusb_ioctl(struct inode *inode, struct file *file,
 			unsigned int cmd, unsigned long arg)
 #endif
 {
@@ -799,22 +808,14 @@ static int fliusb_initdev(fliusb_t **dev, struct usb_interface *interface,
     goto fail;
   }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,37)
   init_MUTEX(&tmpdev->buffsem);
-#else
-  sema_init(&tmpdev->buffsem, 1);
-#endif  
   if ((err = fliusb_allocbuffer(tmpdev, defaults.buffersize)))
     goto fail;
 
 #ifdef SGREAD
   tmpdev->usbsg.maxpg = NUMSGPAGE;
   init_timer(&tmpdev->usbsg.timer);
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,37)  
   init_MUTEX(&tmpdev->usbsg.sem);
-#else
-  sema_init(&tmpdev->usbsg.sem, 1);
-#endif  
 #endif /* SGREAD */
 
   if ((err = usb_string(tmpdev->usbdev, tmpdev->usbdev->descriptor.iProduct,
@@ -870,7 +871,7 @@ static void fliusb_disconnect(struct usb_interface *interface)
   /* this is to block entry to fliusb_open() while the device is being
      disconnected
   */
-  mutex_lock(&flimutex);
+  mutex_lock(&fliusb_mutex);
 
   dev = usb_get_intfdata(interface);
   usb_set_intfdata(interface, NULL);
@@ -878,7 +879,7 @@ static void fliusb_disconnect(struct usb_interface *interface)
   /* give back the minor number we were using */
   usb_deregister_dev(interface, &fliusb_class);
 
-  mutex_unlock(&flimutex);
+  mutex_unlock(&fliusb_mutex);
 
   /* decrement usage count */
   kref_put(&dev->kref, fliusb_delete);
@@ -893,7 +894,7 @@ static int __init fliusb_init(void)
   if ((err = usb_register(&fliusb_driver)))
     FLIUSB_ERR("usb_register() failed: %d", err);
 
-  mutex_init(&flimutex);
+  mutex_init(&fliusb_mutex);
 
   FLIUSB_INFO(FLIUSB_NAME " module loaded");
 
