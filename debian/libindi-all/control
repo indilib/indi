@@ -1,4 +1,4 @@
-Source: libindi-all
+Source: indi-full
 Section: misc
 Priority: optional
 Maintainer: Jasem Mutlaq <mutlaqja@ikarustech.com>
@@ -8,12 +8,11 @@ Homepage: http://www.indilib.org/
 Vcs-Git: git://anonscm.debian.org/pkg-kde/krap/libindi.git
 Vcs-Browser: http://anonscm.debian.org/gitweb/?p=pkg-kde/krap/libindi.git
 
-Package: libindi-all
+Package: indi-full
 Section: libs
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libindi0 (>= ${source:Version}), libindi-data (>= ${source:Version}), indi-bin (>= ${source:Version}), indi-eqmod, indi-sx, indi-sbig,
-  indi-fli, indi-apogee, indi-gphoto, indi-qhy, indi-qsi
-Description: Instrument-Neutral Device Interface library -- shared library
+Depends: ${shlibs:Depends}, ${misc:Depends}, libindi0 (>= 0.9.7), libindi-data (>= 0.9.7), indi-bin (>= 0.9.7), indi-eqmod, indi-sx, indi-sbig, indi-fli, indi-apogee, indi-gphoto, indi-qhy, indi-qsi, indi-maxdomeii
+Description: Instrument-Neutral Device Interface library - Full INDI
  INDI (Instrument-Neutral Device Interface) is a distributed XML-based
  control protocol designed to operate astronomical instrumentation.
  INDI is small, flexible, easy to parse, scalable, and stateless.
