@@ -440,6 +440,12 @@ debian/libfli/libfli1.links -text
 debian/libfli/postinst.ex -text
 debian/libfli/postrm.ex -text
 debian/libfli/rules -text
+debian/libindi-all/changelog -text
+debian/libindi-all/compat -text
+debian/libindi-all/control -text
+debian/libindi-all/copyright -text
+debian/libindi-all/rules -text
+debian/libindi-all/source/format -text
 debian/libindi/changelog -text
 debian/libindi/compat -text
 debian/libindi/control -text
