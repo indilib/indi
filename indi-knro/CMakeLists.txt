@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 2.4.7)
+project(indi-knro C CXX)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
 set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
@@ -16,6 +17,7 @@ find_package(ZLIB REQUIRED)
 find_package(MODBUS REQUIRED)
 find_package(Nova REQUIRED)
 find_package(ALUT REQUIRED)
+find_package(OpenAL REQUIRED)
 
 if (ALUT_FOUND STREQUAL "NO")
  message (FATAL_ERROR "Alut library was not found on this system. Please install Alut development files.")
@@ -54,7 +56,7 @@ add_executable(indi_knro ${indiknro_SRCS})
 
 # openal alut vorbis vorbisfile
 
-target_link_libraries(indi_knro ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${MODBUS_LIBRARIES} ${CFITSIO_LIBRARIES} ${ALUT_LIBRARY} ${VORBIS_LIBRARY} ${VORBISFILE_LIBRARY} z pthread)
+target_link_libraries(indi_knro ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${MODBUS_LIBRARIES} ${CFITSIO_LIBRARIES} ${OPENAL_LIBRARY} ${ALUT_LIBRARY} ${VORBIS_LIBRARY} ${VORBISFILE_LIBRARY} z pthread)
 
 if (NOVA_FOUND)
   target_link_libraries(indi_knro ${NOVA_LIBRARIES})
