@@ -268,6 +268,10 @@ bool CCDSim::updateProperties()
         defineNumber(&FilterSlotNP);
         if (FilterNameT != NULL)
             defineText(FilterNameTP);
+    } else
+    {
+        deleteProperty(FilterSlotNP.name);
+        deleteProperty(FilterNameTP->name);
     }
 
     return true;
