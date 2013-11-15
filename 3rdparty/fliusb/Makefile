@@ -1,28 +1,21 @@
-#/usr/bin/make
-SRC = $(DESTDIR)/usr/src
-SHARE = $(DESTDIR)/usr/share/$(NAME)-dkms
+obj-m		:= fliusb.o
 
-all:
+KDIR		?= /lib/modules/$(shell uname -r)/build
+PWD		:= $(shell pwd)
 
-clean:
+EXTRA_CFLAGS		+= -O2 -Wall
 
-install:
+#EXTRA_CFLAGS		+= -DDEBUG	# enable debug messages
+#EXTRA_CFLAGS		+= -DASYNCWRITE	# enable asynchronous writes
+EXTRA_CFLAGS		+= -DSGREAD	# enable scatter-gather reads
 
-#source tree
-ifeq ("$(wildcard $(NAME)-$(VERSION))", "$(NAME)-$(VERSION)")
-	install -d "$(SRC)"
-	cp -a $(NAME)-$(VERSION) $(SRC)
-	chmod 644 -R "$(SRC)/$(NAME)-$(VERSION)"
-endif
+all: module cleanup
 
-#tarball, possibly with binaries
-ifeq ("$(wildcard $(NAME)-$(VERSION).dkms.tar.gz)", "$(NAME)-$(VERSION).dkms.tar.gz")
-	install -d "$(SHARE)"
-	install -m 644 $(NAME)-$(VERSION).dkms.tar.gz "$(SHARE)"
-endif
+module:
+	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules
 
-#postinst, only if we are supporting legacy mode
-ifeq ("$(wildcard common.postinst)", "common.postinst")
-	install -d "$(SHARE)"
-	install -m 755 $(PREFIX)/usr/lib/dkms/common.postinst $(SHARE)/postinst
-endif
+cleanup:
+	rm -f *.o .*.cmd *.mod.c; rm -rf .tmp_versions
+
+clean: cleanup
+	rm -f *.ko test
