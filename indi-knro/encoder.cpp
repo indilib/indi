@@ -44,6 +44,7 @@
 #include <indicom.h>
 
 #include "encoder.h"
+#include "knro.h"
 
 const int ENCODER_READ_BUFFER = 16;
 const int ENCODER_ERROR_BUFFER = 128;
@@ -84,13 +85,14 @@ const int SIMULATED_ENCODER_POLLMS = 250000;
 **
 **
 *****************************************************************/
-knroEncoder::knroEncoder(encoderType new_type)
+knroEncoder::knroEncoder(encoderType new_type, knroObservatory *scope)
 {
 
   connection_status = -1;
   
   debug = false;
   
+  telescope = scope;
   simulation = false;
   simulated_forward = true;
   simulated_speed = 0;
@@ -105,8 +107,6 @@ knroEncoder::knroEncoder(encoderType new_type)
   encoder_command[2] = (char) 0x0D ;
   // Line Feed
   encoder_command[3] = (char) 0x0A ;
-
-  init_properties();
 
 }
 
@@ -126,7 +126,7 @@ knroEncoder::~knroEncoder()
 **
 **
 *****************************************************************/
-void knroEncoder::init_properties()
+bool knroEncoder::initProperties()
 {
 
   IUFillNumber(&EncoderAbsPosN[0], "Value" , "", "%g", 0., 16777216., 0., 0.);
@@ -136,16 +136,17 @@ void knroEncoder::init_properties()
 
   if (type == AZ_ENCODER)
   {
-    	IUFillNumberVector(&EncoderAbsPosNP, EncoderAbsPosN, NARRAY(EncoderAbsPosN), mydev, "Absolute Az", "", ENCODER_GROUP, IP_RO, 0, IPS_OK);
-    	IUFillTextVector(&PortTP, PortT, NARRAY(PortT), mydev, "AZIMUTH_ENCODER_PORT", "Azimuth", ENCODER_GROUP, IP_RW, 0, IPS_IDLE);
+        IUFillNumberVector(&EncoderAbsPosNP, EncoderAbsPosN, 2, telescope->getDeviceName(), "Absolute Az", "", ENCODER_GROUP, IP_RO, 0, IPS_OK);
+        IUFillTextVector(&PortTP, PortT, 1, telescope->getDeviceName(), "AZIMUTH_ENCODER_PORT", "Azimuth", ENCODER_GROUP, IP_RW, 0, IPS_IDLE);
   }
   else
   {
-    	IUFillTextVector(&PortTP, PortT, NARRAY(PortT), mydev, "ALTITUDE_ENCODER_PORT", "Altitude", ENCODER_GROUP, IP_RW, 0, IPS_IDLE);
-    	IUFillNumberVector(&EncoderAbsPosNP, EncoderAbsPosN, NARRAY(EncoderAbsPosN), mydev, "Absolute Alt", "", ENCODER_GROUP, IP_RO, 0, IPS_OK);
+        IUFillTextVector(&PortTP, PortT, 1, telescope->getDeviceName(), "ALTITUDE_ENCODER_PORT", "Altitude", ENCODER_GROUP, IP_RW, 0, IPS_IDLE);
+        IUFillNumberVector(&EncoderAbsPosNP, EncoderAbsPosN, 2, telescope->getDeviceName(), "Absolute Alt", "", ENCODER_GROUP, IP_RO, 0, IPS_OK);
 
   }
 
+  return true;
   
 }
 
@@ -153,10 +154,20 @@ void knroEncoder::init_properties()
 **
 **
 *****************************************************************/
-void knroEncoder::ISGetProperties()
+bool knroEncoder::updateProperties(bool connected)
 {
-   IDDefNumber(&EncoderAbsPosNP, NULL);
-   IDDefText(&PortTP, NULL);
+    if (connected)
+    {
+        telescope->defineNumber(&EncoderAbsPosNP);
+        telescope->defineText(&PortTP);
+    }
+    else
+    {
+        telescope->deleteProperty(EncoderAbsPosNP.name);
+        telescope->deleteProperty(PortTP.name);
+    }
+
+    return true;
 }
 
 /****************************************************************
@@ -205,7 +216,7 @@ bool knroEncoder::connect()
 
     if (simulation)
     {
-    	IDMessage(mydev, "%s Encoder: Simulating connecting to port %s.", type_name.c_str(), PortT[0].text);
+        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_SESSION,  "%s Encoder: Simulating connecting to port %s.", type_name.c_str(), PortT[0].text);
         connection_status = 0;
 	return true;
     }
@@ -218,19 +229,20 @@ bool knroEncoder::connect()
 	return false;
   }*/
 
-    if (debug)
-      IDLog("Attempting to communicate with encoder...\n");
+      DEBUGDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG, "Attempting to communicate with encoder...");
 
     if (openEncoderServer(default_port.c_str(), 10001) == false)
     {
 	    EncoderAbsPosNP.s = IPS_ALERT;
-	    IDSetNumber (&EncoderAbsPosNP, "connection to %s encoder failed. Please insure encoder is online.", type_name.c_str());
+        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_ERROR, "connection to %s encoder failed. Please insure encoder is online.", type_name.c_str());
+        IDSetNumber (&EncoderAbsPosNP, NULL);
 	    return false;
     }
 
     connection_status = 0;
     EncoderAbsPosNP.s = IPS_OK;
-    IDSetNumber (&EncoderAbsPosNP, "%s encoder is online. Retrieving positional data...", type_name.c_str());
+    DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_SESSION, "%s encoder is online. Retrieving positional data...", type_name.c_str());
+    IDSetNumber (&EncoderAbsPosNP, NULL);
 
     return init_encoder();
 	
@@ -249,7 +261,7 @@ bool knroEncoder::init_encoder()
    // Enable speed mode
    if (simulation)
    {
-		IDMessage(mydev, "%s Encoder: Simulating encoder init.", type_name.c_str());
+        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_SESSION, "%s Encoder: Simulating encoder init.", type_name.c_str());
    }
    	
    return true;
@@ -281,10 +293,8 @@ void knroEncoder::enable_simulation ()
 		return;
 		
 	 simulation = true;
-	 IDMessage(mydev, "Notice: %s encoder simulation is enabled.", type_name.c_str());
+     DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_SESSION, "Notice: %s encoder simulation is enabled.", type_name.c_str());
 	
-	 if (debug)
-	  IDLog("Notice: %s drive encoder is enabled.\n", type_name.c_str());
 }
 
 /****************************************************************
@@ -301,10 +311,8 @@ void knroEncoder::disable_simulation()
 	 
 	 simulation = false;
 	  
-	 IDMessage(mydev, "Caution: %s encoder simulation is disabled.", type_name.c_str());
+     DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_SESSION, "Caution: %s encoder simulation is disabled.", type_name.c_str());
 	
-	 if (debug)
-	  IDLog("Caution: %s drive encoder is disabled.\n", type_name.c_str());
 }
     
 /****************************************************************
@@ -326,9 +334,10 @@ bool knroEncoder::check_drive_connection()
 **
 **
 *****************************************************************/
-void knroEncoder::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+bool knroEncoder::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
 	
+    return true;
 	
 }
 
@@ -336,19 +345,22 @@ void knroEncoder::ISNewNumber (const char *dev, const char *name, double values[
 **
 **
 *****************************************************************/
-void knroEncoder::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+bool knroEncoder::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
 	// Device Port Text
 	if (!strcmp(PortTP.name, name))
 	{
 		if (IUUpdateText(&PortTP, texts, names, n) < 0)
-			return;
+            return false;
 
 		PortTP.s = IPS_OK;
-		IDSetText(&PortTP, "Please reconnect when ready.");
+        DEBUGDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_SESSION, "Please reconnect when ready.");
+        IDSetText(&PortTP, NULL);
 
-		return;
+        return true;
 	}
+
+    return false;
 	
 }
 
@@ -356,9 +368,9 @@ void knroEncoder::ISNewText (const char *dev, const char *name, char *texts[], c
 **
 **
 *****************************************************************/
-void knroEncoder::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool knroEncoder::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-
+   return true;
 }
 
 bool knroEncoder::dispatch_command(encoderCommand command)
@@ -370,8 +382,7 @@ bool knroEncoder::dispatch_command(encoderCommand command)
    if  ( (err_code = tty_write(sockfd, encoder_command, ENCODER_CMD_LEN, &nbytes_written) != TTY_OK))
    {
 	tty_error_msg(err_code, encoder_error, ENCODER_ERROR_BUFFER);
-	if (debug)
-	      IDLog("TTY error detected: %s\n", encoder_error);
+    DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_WARNING, "TTY error detected: %s\n", encoder_error);
    	return false;
    }
 
@@ -407,13 +418,11 @@ knroEncoder::encoderError knroEncoder::get_encoder_value(encoderCommand command,
 
 		memcpy(&big_endian_int, response + 2, 4);
 		// Now convert big endian to little endian
-		encoder_position = (big_endian_int >>24) | ((big_endian_int <<8) & 0x00FF0000) | ((big_endian_int >>8) & 0x0000FF00) | (big_endian_int<<24);
+        encoder_position = (big_endian_int >>24) | ((big_endian_int <<8) & 0x00FF0000) | ((big_endian_int >>8) & 0x0000FF00) | (big_endian_int<<24);
 
-		if (debug)
-		{
-		  IDLog("**** %s encoder ****** - Big Endian INT: %d - Current encoder position is: %d\n", type_name.c_str(), big_endian_int, encoder_position);
-		  IDLog("response[0]: %d , response[1]: %d , response[2]: %d , response[3]: %d\n", response[0], response[1], response[2], response[3]);
-		}
+        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG, "**** %s encoder ****** - Big Endian INT: %d - Current encoder position is: %d\n", type_name.c_str(), big_endian_int, encoder_position);
+        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG, "response[0]: %d , response[1]: %d , response[2]: %d , response[3]: %d\n", response[0], response[1], response[2], response[3]);
+
 		
 		#if 0
 		// TODO FIXME Enable this back after calibration is done!!!!!
@@ -435,9 +444,8 @@ knroEncoder::encoderError knroEncoder::get_encoder_value(encoderCommand command,
 		  // Reject ridicislous values
 		  if ( (encoder_value != 0) && fabs(encoder_value - encoder_position) > 2000)
 		  {
-		  if (debug)
-		      IDLog("Rejecting large change. Old value: %g - new Value: %d\n", encoder_value, encoder_position);
-		  break;
+            DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG, "Rejecting large change. Old value: %g - new Value: %d\n", encoder_value, encoder_position);
+            break;
 		  }
 		encoder_value = encoder_position;
 
@@ -467,9 +475,9 @@ void * knroEncoder::update_encoder(void)
 	if (simulation)
 	{
 		if (type == AZ_ENCODER)
-                  EncoderAbsPosN[0].value = 88000;
+                  EncoderAbsPosN[0].value = 217273;
 		else
-                  EncoderAbsPosN[0].value = 260041;
+                  EncoderAbsPosN[0].value = 229670;
 	}
 
 	while (1)
@@ -485,7 +493,7 @@ void * knroEncoder::update_encoder(void)
                                     if (type == AZ_ENCODER)
                                         EncoderAbsPosN[0].value -= simulated_speed;
                                     else
-                                        EncoderAbsPosN[0].value += simulated_speed;
+                                        EncoderAbsPosN[0].value -= simulated_speed;
                                 }
                                 else
                                 {
@@ -493,7 +501,7 @@ void * knroEncoder::update_encoder(void)
                                     if (type == AZ_ENCODER)
                                         EncoderAbsPosN[0].value += simulated_speed;
                                     else
-                                        EncoderAbsPosN[0].value -= simulated_speed;
+                                        EncoderAbsPosN[0].value += simulated_speed;
                                 }
 
 				calculate_angle();
@@ -509,9 +517,8 @@ void * knroEncoder::update_encoder(void)
 
 	if (dispatch_command(POSITION_VALUE) == false)
 	{
-		if (debug)
-		  IDLog("Error dispatching command to encoder...\n");
-                usleep(ENCODER_POLLMS);
+        DEBUGDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_ERROR,"Error dispatching command to encoder...\n");
+        usleep(ENCODER_POLLMS);
 		continue;
 
 	}
@@ -521,13 +528,11 @@ void * knroEncoder::update_encoder(void)
 	  if ( (err_code = tty_read(sockfd, encoder_read+counter, 1, 1, &nbytes_read)) != TTY_OK)
 	  {
 		tty_error_msg(err_code, encoder_error, ENCODER_ERROR_BUFFER);
-		if (debug)
-                  IDLog("%s encoder: TTY error detected (%s)\n", type_name.c_str(), encoder_error);
+        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_ERROR,"%s encoder: TTY error detected (%s)\n", type_name.c_str(), encoder_error);
    		break;
 	  }
 	   
-	  if (debug)
-            IDLog("%s Byte #%d=0x%X --- %d\n", type_name.c_str(), i, ((unsigned char) encoder_read[counter]), ((unsigned char) encoder_read[counter]));
+      DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG,"%s Byte #%d=0x%X --- %d\n", type_name.c_str(), i, ((unsigned char) encoder_read[counter]), ((unsigned char) encoder_read[counter]));
 
 	   // If encountering line feed 0xA, then break;
 	   if (encoder_read[counter] == 0xA)
@@ -541,25 +546,22 @@ void * knroEncoder::update_encoder(void)
 
 	if (counter == 0)
 	{
-		if (debug)
-                  IDLog("%s encoder. Error, unable to read. Check connection.\n", type_name.c_str());
+        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_ERROR, "%s encoder. Error, unable to read. Check connection.", type_name.c_str());
                 usleep(ENCODER_POLLMS);
 		continue;
 	}
 
 	if ( ((unsigned char) encoder_read[0]) != 0x47)
 	{
-		if (debug)
-                  IDLog("%s encoder. Invalid encoder response!\n", type_name.c_str());
-                usleep(ENCODER_POLLMS);
+        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_ERROR,"%s encoder. Invalid encoder response!\n", type_name.c_str());
+        usleep(ENCODER_POLLMS);
 		continue;
 	}
 
 	if ( (err_code = get_encoder_value(POSITION_VALUE, encoder_read, new_encoder_value)) != NO_ERROR)
 	{
-		if (debug)
-                  IDLog("%s encoder. Encoder error is %d\n", type_name.c_str(), err_code);
-                usleep(ENCODER_POLLMS);
+        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_ERROR,"%s encoder. Encoder error is %d\n", type_name.c_str(), err_code);
+        usleep(ENCODER_POLLMS);
 		continue;
 	}
 
@@ -569,11 +571,8 @@ void * knroEncoder::update_encoder(void)
 	    calculate_angle();
 	}
 	
-	if (debug)
-	  //IDLog("We got encoder test value of %g, Degree %g\n", EncoderAbsPosN[0].value, EncoderAbsPosN[1].value);
-	  IDLog("We got encoder test value of %g, Degree %g\n", new_encoder_value, EncoderAbsPosN[1].value);
-
-        usleep(ENCODER_POLLMS);
+     DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG,"We got encoder test value of %g, Degree %g\n", new_encoder_value, EncoderAbsPosN[1].value);
+     usleep(ENCODER_POLLMS);
 
      }
 
@@ -642,12 +641,7 @@ bool knroEncoder::openEncoderServer (const char * host, int indi_port)
 	    return false;
 	}
 
-	/*fp = fdopen (sockfd, "r+");
-	if (!fp)
-	    return false;*/
-
-	if (debug)
-	  IDLog("Successfully connected to a server!\n");
+    DEBUGDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG,"Successfully connected to encoder server!");
 
 	/* ok */
 	return true;

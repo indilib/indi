@@ -39,109 +39,65 @@
 
 #include "knro.h"
 
-#define RA_TOLERANCE 0.01
-#define DEC_TOLERANCE 0.01
+
 
 /**************************************************************************************
 **
 ***************************************************************************************/
-void knroObservatory::ISPoll()
+bool knroObservatory::ReadScopeStatus()
 {
-    double delta_az=0, delta_alt=0, newRA=0, newDEC=0, objAz=0, objAlt=0;
-    ln_equ_posn EqObjectCoords;
+    double delta_az=0, newRA=0, newDEC=0;
 
+    if (isConnected() == false)
+        return false;
 
-     if (is_connected() == false)
-	return;
-
-    AzEncoder->update_client();
-    AltEncoder->update_client();
-    currentAz   = AzEncoder->get_angle();
-    currentAlt  = AltEncoder->get_angle();
-    IDSetNumber(&HorizontalCoordsNRP, NULL);
 
     // Convert to Libnova odd Azimuth convention where Az=0 is due south.
-    HorObjectCoords.az = currentAz - 180;
-    if (HorObjectCoords.az < 0)
-        HorObjectCoords.az += 360;
-    HorObjectCoords.alt = currentAlt;
+    currentHorCoords.az = AzEncoder->get_angle() - 180;
+    if (currentHorCoords.az < 0)
+        currentHorCoords.az += 360;
+    currentHorCoords.alt = AltEncoder->get_angle();
 
-    ln_get_equ_from_hrz (&HorObjectCoords, &observer, ln_get_julian_from_sys(), &EqObjectCoords);
+    // Get RA/DEC from current horizontal coords
+    ln_get_equ_from_hrz (&currentHorCoords, &observer, ln_get_julian_from_sys(), &currentEQCoords);
 
+    // Use our convention again
+    currentHorCoords.az = AzEncoder->get_angle();
 
+    // Update targetAz, targetDEC from targetRA, targetDEC
+    ln_get_hrz_from_equ(&targetEQCoords, &observer, ln_get_julian_from_sys(), &targetHorCoords);
 
-    newRA  = EqObjectCoords.ra/15.0;
-    newDEC = EqObjectCoords.dec;
+    newRA  = currentEQCoords.ra/15.0;
+    newDEC = currentEQCoords.dec;
 
+    targetHorCoords.az += 180;
+    if (targetHorCoords.az > 360)
+        targetHorCoords.az -= 360;
 
-    if (fabs(EquatorialCoordsNP.np[0].value - newRA)  >= RA_TOLERANCE ||
-        fabs(EquatorialCoordsNP.np[1].value - newDEC) >= DEC_TOLERANCE)
-    {
-        EquatorialCoordsNP.np[0].value = newRA;
-        EquatorialCoordsNP.np[1].value = newDEC;
-        IDSetNumber(&EquatorialCoordsNP, NULL);
-    }
+    delta_az = currentHorCoords.az - targetHorCoords.az;
 
-     delta_az = currentAz - targetAz;
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Current Alt %g - Current Az %g - target Alt %g - target Az %g", currentHorCoords.alt, currentHorCoords.az, targetHorCoords.alt, targetHorCoords.az);
 	 
 	/***************************************************************
         // Check Status of Horizontal Coord Request
 	****************************************************************/
-	switch(HorizontalCoordsNWP.s)
+    switch(TrackState)
 	{
-		case IPS_IDLE:
+        case SCOPE_IDLE:
+        case SCOPE_PARKED:
 			break;
 
-		case IPS_OK:
-            if (slew_stage != SLEW_TRACK)
-                break;
-
-
-
-
-            // Convert to Horizontal coords
-            ln_get_hrz_from_equ(&EqTrackObjCoords, &observer, ln_get_julian_from_sys(), &HorObjectCoords);
-
-            HorObjectCoords.az += 180;
-            if (HorObjectCoords.az > 360)
-                HorObjectCoords.az -= 360;
-
-            objAz  = HorObjectCoords.az;
-            objAlt = HorObjectCoords.alt;
-
-            /*
-                IDLog("EqTrackObj RA: %g - DEC: %g - its Horz Az: %g - Alt: %g\n, CurrentAz: %g - CurrentAlt: %g - fabs_az: %g, fabs_alt: %g\n",
-                  EqTrackObjCoords.ra, EqTrackObjCoords.dec, HorObjectCoords.az, HorObjectCoords.alt, currentAz, currentAlt,
-                  fabs(objAz - currentAz)*60, fabs(objAlt - currentAlt)*60);
-             */
-
-            // Now let's compare it to current encoder values
-            if (fabs (objAz - currentAz) * 60.0 > trackAZTolerance || fabs (objAlt - currentAlt) * 60.0 > trackALTTolerance)
-            {
-                targetAz  = objAz;
-                targetAlt = objAlt;
-
-                execute_slew(true);
-
-            }
-
+        case SCOPE_TRACKING:
+        if (fabs(currentHorCoords.az - targetHorCoords.az) > AZ_TRACKING_THRESHOLD || fabs(currentHorCoords.alt - targetHorCoords.alt) > ALT_TRACKING_THRESHOLD)
+            TrackState = SCOPE_SLEWING;
             break;
 
-		case IPS_BUSY:
-		      
-			switch (slew_stage)
-			{
-				case SLEW_NONE:
-				break;
-
-				case SLEW_NOW:
-                case SLEW_TRACK:
-				  
-				    
+        case SCOPE_SLEWING:
+        case SCOPE_PARKING:
 					// If declination is done, stop n/s
 					if (is_alt_done())
 						stop_alt();
-					else if (currentAlt - targetAlt > 0)
+                    else if (currentHorCoords.alt - targetHorCoords.alt > 0)
 					{
 						update_alt_speed();
 						update_alt_dir(KNRO_NORTH);
@@ -161,21 +117,21 @@ void knroObservatory::ISPoll()
 					{
 						update_az_speed();
 
-                                                // Telescope moving west, but we need to avoid hitting limit switch which is @ 0
-                                                if (initialAz < 180 && targetAz > 180)
-                                                        update_az_dir(KNRO_EAST);
+                        // Telescope moving west, but we need to avoid hitting limit switch which is @ 0
+                        if (initialAz < 180 && targetHorCoords.az > 180)
+                             update_az_dir(KNRO_EAST);
 						else
 						// Otherwise proceed normally
-                                                        update_az_dir(KNRO_WEST);
+                             update_az_dir(KNRO_WEST);
 					}
 					else
 					{
 						update_az_speed();
-                                                // Telescope moving east, but we need to avoid hitting limit switch which is @ 0
-                                                if (initialAz > 180 && targetAz < 180)
-                                                        update_az_dir(KNRO_WEST);
+                        // Telescope moving east, but we need to avoid hitting limit switch which is @ 0
+                        if (initialAz > 180 && targetHorCoords.az < 180)
+                             update_az_dir(KNRO_WEST);
 						else
-                                                        update_az_dir(KNRO_EAST);
+                           update_az_dir(KNRO_EAST);
 					}
 
 					// if both ns and we are stopped, we're done and engage tracking.
@@ -187,59 +143,52 @@ void knroObservatory::ISPoll()
 
 						// If we're parking, finish off here
 						
-						if (ParkSP.s == IPS_BUSY)
+                        if (TrackState == SCOPE_PARKING)
 						{
-						        IUResetSwitch(&ParkSP);
+                            IUResetSwitch(&ParkSP);
 							ParkSP.s = IPS_OK;
-							HorizontalCoordsNWP.s = IPS_OK;
-							HorizontalCoordsNRP.s = IPS_OK;
-                            EquatorialCoordsNP.s = IPS_OK;
-							
-							slew_stage = SLEW_NONE;
+                            HorizontalCoordsNP.s = IPS_OK;
+                            TrackState = SCOPE_PARKED;
+
 							slew_busy.stop();
 							slew_complete.play();
 
 
-							IDSetSwitch(&ParkSP, "Telescope park complete.");
-							IDSetNumber(&HorizontalCoordsNWP, NULL);
-							IDSetNumber(&HorizontalCoordsNRP, NULL);
-                            IDSetNumber(&EquatorialCoordsNP, NULL);
-						
-							return;
+                            DEBUG(INDI::Logger::DBG_SESSION, "Telescope park complete.");
+                            IDSetSwitch(&ParkSP, NULL);
+
 						}
-
-						// FIXME Make sure to check whether on_set_coords is set to SLEW or TRACK
-						// Because when slewing, we're done here, but if there is tracking, then
-						// We go to that mode
-						slew_busy.stop();
-						slew_complete.play();
-
-						HorizontalCoordsNWP.s = IPS_OK;
-						HorizontalCoordsNRP.s = IPS_OK;
-                        EquatorialCoordsNP.s = IPS_OK;
-
-                        if (slew_stage != SLEW_TRACK)
+                        else
                         {
-                            IDSetNumber(&HorizontalCoordsNWP, "Slew complete. Engaging tracking...");
-                            slew_stage = SLEW_TRACK;
+                            // FIXME Make sure to check whether on_set_coords is set to SLEW or TRACK
+                            // Because when slewing, we're done here, but if there is tracking, then
+                            // We go to that mode
+                            slew_busy.stop();
+                            slew_complete.play();
+
+                            HorizontalCoordsNP.s = IPS_OK;
+
+                            DEBUG(INDI::Logger::DBG_SESSION, "Slew complete. Engaging tracking...");
+                            TrackState = SCOPE_TRACKING;
+
                             AzInverter->set_verbose(false);
                             AltInverter->set_verbose(false);
                         }
 
-						IDSetNumber(&HorizontalCoordsNRP, NULL);
-                        IDSetNumber(&EquatorialCoordsNP, NULL);
-						
 					}
-					break;
+            break;
 
 					
-			}
-			break;
+     }
 
-		case IPS_ALERT:
-			break;
-	}
+    AzEncoder->update_client();
+    AltEncoder->update_client();
+    HorizontalCoordsN[0].value = currentHorCoords.az;
+    HorizontalCoordsN[1].value = currentHorCoords.alt;
+    IDSetNumber(&HorizontalCoordsNP, NULL);
 
-  return;
+    NewRaDec(newRA, newDEC);
+
+    return true;
 
 }

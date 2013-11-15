@@ -25,6 +25,9 @@
 
 */
 
+#ifndef KNRO_ENCODER_H
+#define KNRO_ENCODER_H
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
@@ -43,6 +46,8 @@
 
 using namespace std;
 
+class knroObservatory;
+
 class knroEncoder
 {
 
@@ -52,7 +57,7 @@ public:
     enum encoderCommand { SSI_OUTPUT_MODE = 1, NUM_OF_TURNS = 2, FULL_COUNT = 3, BAUD_RATE = 4, ENCODER_TYPE = 5, POSITION_VALUE = 9 };
     enum encoderError { NO_ERROR, BAUD_RATE_ERROR, FLASH_MEMORY_ERROR, WRONG_COMMAND_ERROR, WRONG_PARAMETER_ERROR, FATAL_ERROR };
 
-    knroEncoder(encoderType new_type);
+    knroEncoder(encoderType new_type, knroObservatory *scope);
     ~knroEncoder();
 
     unsigned int get_abs_encoder_count() { return abs_encoder_count; }
@@ -76,10 +81,11 @@ public:
     void disable_debug() { debug = false; }
     
     // Standard INDI interface fucntions
-    void ISGetProperties();
-    void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-    void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool initProperties();
+    virtual bool updateProperties(bool connected);
+    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
  	
     void reset_all_properties();
     void   update_client(void);
@@ -89,8 +95,8 @@ public:
     void simulate_reverse() { simulated_forward = false; }
     void simulate_stop() { simulated_speed = 0; }
     void simulate_track() { simulated_speed = 10; }
-    void simulate_slow() { simulated_speed = 40; }
-    void simulate_medium() { simulated_speed = 45; }
+    void simulate_slow() { simulated_speed = 15; }
+    void simulate_medium() { simulated_speed = 30; }
     void simulate_fast() { simulated_speed = 50; }
 
 private: 
@@ -104,7 +110,6 @@ private:
     IText PortT[1];
 
     // Functions
-    void init_properties();
     bool init_encoder();
     void calculate_angle();
     void * update_encoder(void);
@@ -132,5 +137,8 @@ private:
     char encoder_command[4];
     int sockfd;  
 
+    knroObservatory *telescope;
+
 };
 
+#endif

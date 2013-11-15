@@ -25,6 +25,9 @@
 
 */
 
+#ifndef KNRO_INVERTER_H
+#define KNRO_INVERTER_H
+
 #include <modbus.h>
 
 #include <indidevapi.h>
@@ -37,6 +40,8 @@
 
 using namespace std;
 
+class knroObservatory;
+
 class knroInverter
 {
 
@@ -45,7 +50,7 @@ public:
     enum inverterType { AZ_INVERTER, ALT_INVERTER };
     enum inverterMotion { INVERTER_STOP, INVERTER_FORWARD, INVERTER_REVERSE};
     
-	knroInverter(inverterType new_type);
+    knroInverter(inverterType new_type, knroObservatory *scope);
 	~knroInverter();
 
       bool move_forward();
@@ -70,10 +75,11 @@ public:
     void disable_debug() { debug = false; if (mb_param != NULL) modbus_set_debug(mb_param, debug);}
     
     // Standard INDI interface fucntions
-    void ISGetProperties();
-    void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-    void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool initProperties();
+    virtual bool updateProperties(bool connected);
+    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
  	
     void reset_all_properties();
 
@@ -101,7 +107,6 @@ private:
 	IText PortT[1];
 	
 	// Functions
-	void init_properties();
 	bool check_drive_connection();
 
 	// Variable
@@ -116,8 +121,7 @@ private:
 	string reverse_motion;
 	string default_port;
 	
-	//modbus_param_t mb_param;
-        modbus_t * mb_param;
+    modbus_t * mb_param;
 	
 	uint SLAVE_ADDRESS;
 	const uint SPEED_MODE_ADDRESS;
@@ -126,11 +130,15 @@ private:
 	const uint DRIVE_ENABLE_ADDRESS;
 	const uint REMOTE_ENABLE_ADDRESS;
 	const uint FORWARD_ADDRESS;	
-        const uint REVERSE_ADDRESS;
+    const uint REVERSE_ADDRESS;
 	const uint HZ_HOLD_ADDRESS;
 	
 	// Stop, Forward, Reverse
 	uint8_t Motion_Control_Coils[3];
 	uint16_t Hz_Speed_Register[2];
+
+    knroObservatory *telescope;
 	
 };
+
+#endif

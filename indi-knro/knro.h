@@ -28,45 +28,51 @@
 #include <list>
 #include <libnova.h>
 
+#include <ogg_util.h>
+
+#include <inditelescope.h>
+#include <indilogger.h>
+
 #include "encoder.h"
 #include "inverter.h"
 
 using std::string;
 using std::list;
 
-// Handy macros
-#define currentAz		HorizontalCoordsNR[0].value
-#define currentAlt		HorizontalCoordsNR[1].value
-#define targetAz		HorizontalCoordsNW[0].value
-#define targetAlt		HorizontalCoordsNW[1].value
-
-#define currentLat 		GeoCoordsN[0].value
-#define currentLong     	GeoCoordsN[1].value
-#define slewAZTolerance		SlewPrecisionN[0].value
-#define slewALTTolerance	SlewPrecisionN[1].value
-#define trackAZTolerance	TrackPrecisionN[0].value
-#define trackALTTolerance	TrackPrecisionN[1].value
-#define KNRO_DEBUG		DebugS[0].s==ISS_ON
-
 #define CMD_BUF_SIZE		512
 
-class knroObservatory
+class knroObservatory : public INDI::Telescope
 {
  public:
 
  knroObservatory();
  ~knroObservatory();
 
- void ISGetProperties (const char *dev);
- void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
- void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
- void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
- void ISPoll ();
+ virtual const char *getDefaultName();
+ virtual bool Connect();
+ virtual bool Disconnect();
+ virtual bool ReadScopeStatus();
+ virtual bool initProperties();
+ virtual void ISGetProperties (const char *dev);
+ virtual bool updateProperties();
+ virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+ virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+ virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
 
- inline bool is_connected() { return ((ConnectS[0].s == ISS_ON) ? true : false); }
+protected:
 
- void enable_debug();
- void disable_debug();
+ virtual bool MoveNS(TelescopeMotionNS dir);
+ virtual bool MoveWE(TelescopeMotionWE dir);
+ virtual bool Abort();
+
+ virtual bool updateLocation(double latitude, double longitude, double elevation);
+
+ bool Goto(double RA,double DEC);
+ bool Park();
+ bool canSync() { return false;}
+ bool canPark() { return true;}
+
+ void simulationTriggered(bool enable);
  
  private:
 
@@ -84,64 +90,16 @@ class knroObservatory
     ISwitchVectorProperty ALTEncSP;
     /**** END SIMULATION ****/
 
-    /* Switches */
-    ISwitch ConnectS[2];
-    ISwitch AbortSlewS[1];
-    ISwitch StopAllS[1];
-    ISwitch OnCoordSetS[1];
-    ISwitch ParkS[1];
-    ISwitch DebugS[2];
-    ISwitch SimulationS[2];
-    ISwitch MovementNSS[2];
-    ISwitch MovementWES[2];
-
-    /* Texts */
-    IText PortT[1];
-
-    /* Lights */
-    ILight AzSafetyL[1];
-
-    /* Numbers */
-   INumber HorizontalCoordsNR[2];
-   INumber HorizontalCoordsNW[2];
-   INumber GeoCoordsN[2];
-   INumber UTCOffsetN[1];
-   INumber SlewPrecisionN[2];
-   INumber TrackPrecisionN[2];
-   INumber EquatorialCoordsN[2];
-
-    /* BLOBs */
-    
-    /* Switch vectors */
-    ISwitchVectorProperty ConnectSP;				/* Connection switch */
-    ISwitchVectorProperty AbortSlewSP;				/* Abort Slew */
-    ISwitchVectorProperty StopAllSP;				/* Stop All, exactly like Abort Slew */
-    ISwitchVectorProperty OnCoordSetSP;				/* What happens when new coords are set */
-    ISwitchVectorProperty ParkSP;				/* Park Telescope */
-    ISwitchVectorProperty DebugSP;				/* Debugging Switch */
-    ISwitchVectorProperty SimulationSP;				/* Simulation Switch */
-    ISwitchVectorProperty MovementNSSP;				/* North/South Movement */
-    ISwitchVectorProperty MovementWESP;				/* West/East Movement */
-
-    /* Text Vectors */
-    ITextVectorProperty PortTP;
-
-    /* Light Vectors */
+    /* Az Safety */
+    ILight AzSafetyL[1];  
     ILightVectorProperty AzSafetyLP;
 
-    /* Number vectors */
-    INumberVectorProperty HorizontalCoordsNRP;
-    INumberVectorProperty HorizontalCoordsNWP;
-    INumberVectorProperty GeoCoordsNP;
-    INumberVectorProperty UTCOffsetNP;
-    INumberVectorProperty SlewPrecisionNP;
-    INumberVectorProperty TrackPrecisionNP;
-    INumberVectorProperty EquatorialCoordsNP;
-
+    /* Horizontal Coords */
+    INumber               HorizontalCoordsN[2];
+    INumberVectorProperty HorizontalCoordsNP;
     /* Other */
 
     enum SlewSpeed { SLOW_SPEED = 0 , MEDIUM_SPEED, FAST_SPEED };
-    enum SlewStages { SLEW_NONE, SLEW_NOW, SLEW_TRACK };
     enum HorzCoords { KNRO_AZ = 0, KNRO_ALT =1 };
     enum AltDirection { KNRO_NORTH = 0, KNRO_SOUTH = 1};
     enum AzDirection { KNRO_WEST = 0, KNRO_EAST = 1 };
@@ -158,22 +116,25 @@ class knroObservatory
 
     static const double ALT_MEDIUM_REGION = 5;
     static const double ALT_SLOW_REGION   = 2;
+    static const double AZ_MEDIUM_REGION = 15;
+    static const double AZ_SLOW_REGION   = 5;
+
+    // Telescope mechanical limits.
     static const double ALT_ZENITH_LIMIT = 90.0;
     static const double ALT_HORIZON_LIMIT = 46.1;
 
     /* After 10 counters (10 x 500 ms POLL = 5 seconds), check to see if the motion was stopped due
        to hitting the limit switch or due to some mechanical failure
+       NOTE: Should find an active way of monitoring the limit switch.
     */
     static const int ALT_STOP_LIMIT = 10;
 
     /* How far from ALT_HORIZON_LIMIT or ALT_ZENITH_LIMIT the dish must be to be considered in OK motion state
        That is, it got stopped by a limit switch and not due to mechanical failure
+       NOTE: Should find an active way of monitoring the limit switch.
     */
     static const int ALT_STOP_RANGE = 2;
 
-
-    static const double AZ_MEDIUM_REGION = 15;
-    static const double AZ_SLOW_REGION   = 5;
 
     /* Limit switches are at 180 degrees */
     static const double AZ_LIMIT = 180.0;
@@ -193,35 +154,25 @@ class knroObservatory
     static const float ALT_KNRO_TRACK = 10;
 
 
-    // Tracking threshold
-    static const float AZ_TRACKING_THRESHOLD = 5;
-    static const float ALT_TRACKING_THRESHOLD = 2.5;
+    // Slewing & Tracking threshold
+    static const float AZ_TRACKING_THRESHOLD = 0.5;
+    static const float ALT_TRACKING_THRESHOLD = 0.25;
+    static const float AZ_SLEWING_THRESHOLD = 0.1;
+    static const float ALT_SLEWING_THRESHOLD = 0.1;
 
     /* Functions */
- 
-    /* connect observatory */
-    void connect();
-    void disconnect();
-    
+     
     /* Safety checks functions */
     void check_safety();
-    void check_slew_state();
 
     /* Error log functions */
     const char *get_knro_error_string(knroErrCode code);
-
-    /* Send command buffer to inverter */
-    void execute_slew(bool track=false);
 
     /* Modular stop functions */
     knroErrCode stop_all();
     bool stop_az();
     bool stop_alt();
     
-    /* Simulation */
-    void enable_simulation();
-    void disable_simulation();    
-
     void park_telescope();
     void terminate_parking();
 
@@ -236,10 +187,6 @@ class knroObservatory
     void update_az_speed();
     void update_az_dir(AzDirection dir);
 
-    /* General functions */
-    void init_properties();
-    void reset_all_properties();
-
     /* Coordinates & Time */
     double lastAz;
     double lastAlt;
@@ -252,9 +199,6 @@ class knroObservatory
     time_t last_execute_time;
     time_t now;
 
-    /* Type of active slew stage */
-    SlewStages slew_stage;
-
    /* Threading variables */
     pthread_t az_encoder_thread;
     pthread_t alt_encoder_thread;
@@ -263,10 +207,7 @@ class knroObservatory
    
     /* Warning sounds */
     /*OggFile park_alert;
-    
-
     OggFile calibration_error;*/
- 
     OggFile slew_complete;
     OggFile slew_error;
     OggFile slew_busy;
@@ -274,20 +215,13 @@ class knroObservatory
     /* Simulation */
     bool simulation;
     
-    list <ISwitchVectorProperty *> switch_list;
-    list <INumberVectorProperty *> number_list;
-    list <ITextVectorProperty *> text_list;
-    list <ILightVectorProperty *> light_list;
-
-    ln_hrz_posn HorObjectCoords;
     ln_lnlat_posn observer;
-    ln_equ_posn EqTrackObjCoords;
 
+    ln_hrz_posn currentHorCoords;
+    ln_hrz_posn targetHorCoords;
 
-    // TEMP, to calculate minimum speed, REMOVE
-    //struct timeval ExpStart;
-   // double initAz, initAlt;
-    //float calc_time_left();
+    ln_equ_posn currentEQCoords;
+    ln_equ_posn targetEQCoords;
 
 };
 

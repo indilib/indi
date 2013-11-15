@@ -37,6 +37,7 @@
 #include <indicom.h>
 
 #include "inverter.h"
+#include "knro.h"
 
 const int ERROR_MAX_COUNT = 3;
 //const int ERROR_TIMEOUT = 100000;
@@ -49,12 +50,14 @@ const int ERROR_TIMEOUT = 2000000;
 * N.B. Make sure that the stating address are correct since Modbus ref 17, for example, should be addressed as 16.
 * Not sure if libmodbus takes care of that or not.
 *****************************************************************/
-knroInverter::knroInverter(inverterType new_type) : SPEED_MODE_ADDRESS(3), REMOTE_ENABLE_ADDRESS(34), NETWORK_COMMAND_SOURCE_ADDRESS(35), MOTION_CONTROL_ADDRESS(78), DRIVE_ENABLE_ADDRESS(82), FORWARD_ADDRESS(79), REVERSE_ADDRESS(89),  HZ_HOLD_ADDRESS(40013)
+knroInverter::knroInverter(inverterType new_type, knroObservatory *scope) : SPEED_MODE_ADDRESS(3), REMOTE_ENABLE_ADDRESS(34), NETWORK_COMMAND_SOURCE_ADDRESS(35), MOTION_CONTROL_ADDRESS(78), DRIVE_ENABLE_ADDRESS(82), FORWARD_ADDRESS(79), REVERSE_ADDRESS(89),  HZ_HOLD_ADDRESS(40013)
 {
 
   // Initially, not connected
   connection_status = -1;
   
+  telescope = scope;
+
   // Default value
   type = AZ_INVERTER;
   
@@ -64,8 +67,6 @@ knroInverter::knroInverter(inverterType new_type) : SPEED_MODE_ADDRESS(3), REMOT
   mb_param = NULL;
   
   set_type(new_type);
-
-  init_properties();
 
 }
 
@@ -110,7 +111,7 @@ void knroInverter::set_type(inverterType new_type)
 **
 **
 *****************************************************************/
-void knroInverter::init_properties()
+bool knroInverter::initProperties()
 {
 
     IUFillText(&PortT[0], "PORT", "Port", default_port.c_str());
@@ -122,20 +123,22 @@ void knroInverter::init_properties()
        
   if (type == AZ_INVERTER)
   {
-  	IUFillTextVector(&PortTP, PortT, NARRAY(PortT), mydev, "AZ_INVERTER_PORT", "Az Port", INVERTER_GROUP, IP_RW, 0, IPS_IDLE);
+    IUFillTextVector(&PortTP, PortT, NARRAY(PortT), telescope->getDeviceName(), "AZ_INVERTER_PORT", "Az Port", INVERTER_GROUP, IP_RW, 0, IPS_IDLE);
   	
-  	IUFillSwitchVector(&MotionControlSP, MotionControlS, NARRAY(MotionControlS), mydev, "AZ_MOTION_CONTROL", "Az Motion", INVERTER_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&MotionControlSP, MotionControlS, NARRAY(MotionControlS), telescope->getDeviceName(), "AZ_MOTION_CONTROL", "Az Motion", INVERTER_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
   	
-    IUFillNumberVector(&InverterSpeedNP, InverterSpeedN, NARRAY(InverterSpeedN), mydev, "AZ_SPEED" , "Az Speed", INVERTER_GROUP, IP_RW, 0, IPS_IDLE);	
+    IUFillNumberVector(&InverterSpeedNP, InverterSpeedN, NARRAY(InverterSpeedN), telescope->getDeviceName(), "AZ_SPEED" , "Az Speed", INVERTER_GROUP, IP_RW, 0, IPS_IDLE);
   }
   else
   {
-  	IUFillTextVector(&PortTP, PortT, NARRAY(PortT), mydev, "ALT_INVERTER_PORT", "Alt Port", INVERTER_GROUP, IP_RW, 0, IPS_IDLE);
+    IUFillTextVector(&PortTP, PortT, NARRAY(PortT), telescope->getDeviceName(), "ALT_INVERTER_PORT", "Alt Port", INVERTER_GROUP, IP_RW, 0, IPS_IDLE);
   	
-  	IUFillSwitchVector(&MotionControlSP, MotionControlS, NARRAY(MotionControlS), mydev, "ALT_MOTION_CONTROL", "Alt Motion", INVERTER_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&MotionControlSP, MotionControlS, NARRAY(MotionControlS), telescope->getDeviceName(), "ALT_MOTION_CONTROL", "Alt Motion", INVERTER_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
   	
-  	IUFillNumberVector(&InverterSpeedNP, InverterSpeedN, NARRAY(InverterSpeedN), mydev, "ALT_SPEED" , "Alt Speed", INVERTER_GROUP, IP_RW, 0, IPS_IDLE);  	
+    IUFillNumberVector(&InverterSpeedNP, InverterSpeedN, NARRAY(InverterSpeedN), telescope->getDeviceName(), "ALT_SPEED" , "Alt Speed", INVERTER_GROUP, IP_RW, 0, IPS_IDLE);
   }
+
+  return true;
  
 }
 
@@ -165,7 +168,7 @@ bool knroInverter::connect()
 
     if (simulation)
     {
-    	IDMessage(mydev, "%s drive: Simulating connecting to port %s.", type_name.c_str(), PortT[0].text);
+        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_SESSION, "%s drive: Simulating connecting to port %s.", type_name.c_str(), PortT[0].text);
         connection_status = 0;
 	return true;
     }
@@ -177,11 +180,11 @@ bool knroInverter::connect()
 	modbus_set_slave(mb_param, SLAVE_ADDRESS);
 	
 	// Enable debug
-	modbus_set_debug(mb_param, FALSE);
+    modbus_set_debug(mb_param, FALSE);
     
     if ( (connection_status = modbus_connect(mb_param)) == -1)
     {
-       IDMessage(mydev, "%s drive: Connection failed to inverter @ port %s", type_name.c_str(), PortT[0].text);
+       DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_SESSION, "%s drive: Connection failed to inverter @ port %s", type_name.c_str(), PortT[0].text);
        if (debug)
 	 IDLog("%s drive: Connection failed to inverter @ port %s\n", type_name.c_str(), PortT[0].text);
        return false;
@@ -238,7 +241,7 @@ bool knroInverter::move_forward()
 	
 	if (simulation)
 	{
-		IDMessage(mydev, "%s drive: Simulating forward command.", type_name.c_str());
+        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_SESSION, "%s drive: Simulating forward command.", type_name.c_str());
 		MotionControlSP.s = IPS_BUSY;
 		IDSetSwitch(&MotionControlSP, "%s drive is moving %s", type_name.c_str(), forward_motion.c_str());
 		return true;
@@ -298,7 +301,7 @@ bool knroInverter::move_reverse()
 	
 	if (simulation)
 	{
-	    IDMessage(mydev, "%s drive: Simulating reverse command.", type_name.c_str());
+        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_SESSION, "%s drive: Simulating reverse command.", type_name.c_str());
 	    MotionControlSP.s = IPS_BUSY;
 	    IDSetSwitch(&MotionControlSP, "%s drive is moving %s", type_name.c_str(), reverse_motion.c_str());
 	    return true;
@@ -355,7 +358,7 @@ bool knroInverter::stop()
 	
 	if (simulation)
         {
-	    	IDMessage(mydev, "%s drive: Simulating stop command.", type_name.c_str());
+            DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_SESSION, "%s drive: Simulating stop command.", type_name.c_str());
 		MotionControlSP.s = IPS_OK;
 		IDSetSwitch(&MotionControlSP, "%s motion stopped", type_name.c_str());
 		return true;
@@ -428,7 +431,7 @@ bool knroInverter::set_speed(float newHz)
     
     if (simulation)
     {
-	IDMessage(mydev, "%s drive: Simulating set speed command.", type_name.c_str());
+    DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_SESSION, "%s drive: Simulating set speed command.", type_name.c_str());
 	InverterSpeedN[0].value = newHz;
     InverterSpeedNP.s = IPS_OK;
     if (verbose)
@@ -453,15 +456,14 @@ bool knroInverter::set_speed(float newHz)
 		    ret = modbus_read_registers(mb_param, HZ_HOLD_ADDRESS, 2, Hz_Speed_Register);
 		    if (ret == 2)
 		    {
-			if (debug)
-			      IDLog("** READING ** Hz_Speed_Register[0] = %d - Hz_Speed_Register[1] = %d\n", Hz_Speed_Register[0], Hz_Speed_Register[1]);
+               DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG, "** READING ** Hz_Speed_Register[0] = %d - Hz_Speed_Register[1] = %d\n", Hz_Speed_Register[0], Hz_Speed_Register[1]);
     
 			InverterSpeedN[0].value = newHz;
             InverterSpeedNP.s = IPS_OK;
             if (verbose)
-                IDSetNumber(&InverterSpeedNP, "%s drive speed updated to %g Hz.", type_name.c_str(), InverterSpeedN[0].value);
-            else
-                IDSetNumber(&InverterSpeedNP, NULL);
+                DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_SESSION, "%s drive speed updated to %g Hz.", type_name.c_str(), InverterSpeedN[0].value);
+
+            IDSetNumber(&InverterSpeedNP, NULL);
 			return true;
 		    }
 
@@ -471,10 +473,11 @@ bool knroInverter::set_speed(float newHz)
        usleep(ERROR_TIMEOUT);
       }
 
-      IDLog("set_speed ERROR! read or write holding_registers (%d)\n", ret);
-      IDLog("Slave = %d, address = %d, nb = %d\n", SLAVE_ADDRESS, HZ_HOLD_ADDRESS, 2);
+      DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG, "set_speed ERROR! read or write holding_registers (%d)\n", ret);
+      DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG,"Slave = %d, address = %d, nb = %d\n", SLAVE_ADDRESS, HZ_HOLD_ADDRESS, 2);
       InverterSpeedNP.s = IPS_ALERT;
-      IDSetNumber(&InverterSpeedNP, "Error: could not update speed for %s drive.", type_name.c_str());
+      DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_ERROR,"Error: could not update speed for %s drive.", type_name.c_str());
+      IDSetNumber(&InverterSpeedNP, NULL);
       return false;
 	
 }
@@ -498,7 +501,7 @@ bool knroInverter::enable_drive()
 
 	if (simulation)
 	{
-		IDMessage(mydev, "%s drive: Simulating enabling drive.", type_name.c_str());
+        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_SESSION, "%s drive: Simulating enabling drive.", type_name.c_str());
 		return true;
 	}
 
@@ -542,7 +545,7 @@ bool knroInverter::disable_drive()
 
 	if (simulation)
 	{
-		IDMessage(mydev, "%s drive: Simulating disabling drive.", type_name.c_str());
+        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_SESSION, "%s drive: Simulating disabling drive.", type_name.c_str());
 		return true;
 	}
 
@@ -551,8 +554,7 @@ bool knroInverter::disable_drive()
 
         if (inverter_read[0] == 1)
         {
-            if (debug)
-             IDLog("Command: Disable Drive. Attempting to disable driver\n");
+            DEBUGDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG, "Command: Disable Drive. Attempting to disable driver");
 
 
                 for (int i=0; i < ERROR_MAX_COUNT; i++)
@@ -561,22 +563,20 @@ bool knroInverter::disable_drive()
 	
                     if (ret == 1)
                     {
-                        if (debug)
-                            IDLog("Disable driver is successful.\n");
+                         DEBUGDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG, "Disable driver is successful.");
                         return true;
                     }
 
 		usleep(ERROR_TIMEOUT);
                 }
 
-                IDLog("Command: Disable Drive. ERROR force_single_coil (%d)\n", ret);
-                IDLog("Slave = %d, address = %d, value = %d (0x%X)\n", SLAVE_ADDRESS, DRIVE_ENABLE_ADDRESS, 0, 0);
+                DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG, "Command: Disable Drive. ERROR force_single_coil (%d)\n", ret);
+                DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG, "Slave = %d, address = %d, value = %d (0x%X)\n", SLAVE_ADDRESS, DRIVE_ENABLE_ADDRESS, 0, 0);
                 return false;
 	}
         else
         {
-            if (debug)
-                IDLog("Driver is already disabled!\n");
+            DEBUGDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG, "Driver is already disabled!\n");
             return true;
         }
 
@@ -606,7 +606,7 @@ bool knroInverter::init_drive()
    if (simulation)
    {
 		ret = 1;
-		IDMessage(mydev, "%s drive: Simulating setting motion mode to SPEED.", type_name.c_str());
+        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_SESSION, "%s drive: Simulating setting motion mode to SPEED.", type_name.c_str());
    }
    else
    {
@@ -636,7 +636,7 @@ bool knroInverter::init_drive()
   if (simulation)
    {
 		ret = 1;
-		IDMessage(mydev, "%s drive: Simulating setting command source for Network registers.", type_name.c_str());
+        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_SESSION, "%s drive: Simulating setting command source for Network registers.", type_name.c_str());
    }
    else
    {
@@ -669,26 +669,37 @@ bool knroInverter::init_drive()
 **
 **
 *****************************************************************/    
-void knroInverter::ISGetProperties()
+bool knroInverter::updateProperties(bool connected)
 {
-   IDDefSwitch(&MotionControlSP, NULL);
-   IDDefNumber(&InverterSpeedNP, NULL);
-   IDDefText(&PortTP, NULL);
+    if (connected)
+    {
+        telescope->defineSwitch(&MotionControlSP);
+        telescope->defineNumber(&InverterSpeedNP);
+        telescope->defineText(&PortTP);
+    }
+    else
+    {
+        telescope->deleteProperty(MotionControlSP.name);
+        telescope->deleteProperty(InverterSpeedNP.name);
+        telescope->deleteProperty(PortTP.name);
+    }
 }
 
 /****************************************************************
 **
 **
 *****************************************************************/
-void knroInverter::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+bool knroInverter::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
 	if (!strcmp(InverterSpeedNP.name, name))
 	{
 		set_speed(values[0]);
 		
 
-		return;
+        return true;
 	}
+
+    return false;
 	
 }
 
@@ -696,32 +707,34 @@ void knroInverter::ISNewNumber (const char *dev, const char *name, double values
 **
 **
 *****************************************************************/
-void knroInverter::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+bool knroInverter::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
 	// Device Port Text
 	if (!strcmp(PortTP.name, name))
 	{
 		if (IUUpdateText(&PortTP, texts, names, n) < 0)
-			return;
+            return false;
 
 		PortTP.s = IPS_OK;
 		IDSetText(&PortTP, "Please reconnect when ready.");
 
-		return;
+        return true;
 	}
+
+    return false;
 }
 
 /****************************************************************
 **
 **
 *****************************************************************/
-void knroInverter::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool knroInverter::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
 		
 	if (!strcmp(MotionControlSP.name, name))
 	{
 		if (IUUpdateSwitch(&MotionControlSP, states, names, n) < 0)
-			return;
+            return false;
 			
 		if (MotionControlS[INVERTER_STOP].s == ISS_ON)
 		  stop();
@@ -733,19 +746,24 @@ void knroInverter::ISNewSwitch (const char *dev, const char *name, ISState *stat
 			{
 				MotionControlSP.s = IPS_BUSY;
                 if (verbose)
-                    IDSetSwitch(&MotionControlSP, "%s drive is moving %s", type_name.c_str(), reverse_motion.c_str());
-                else
-                    IDSetSwitch(&MotionControlSP, NULL);
+                    DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_SESSION, "%s drive is moving %s", type_name.c_str(), reverse_motion.c_str());
+
+                IDSetSwitch(&MotionControlSP, NULL);
 			}
 			else
 			{
 				MotionControlSP.s = IPS_ALERT;
 				IUResetSwitch(&MotionControlSP);
 				MotionControlS[INVERTER_STOP].s = ISS_ON;
-				IDSetSwitch(&MotionControlSP, "Error: %s drive failed to move %s", type_name.c_str(), reverse_motion.c_str());
+                DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_ERROR, "Error: %s drive failed to move %s", type_name.c_str(), reverse_motion.c_str());
+                IDSetSwitch(&MotionControlSP, NULL);
 			}
 		}
+
+        return true;
      }
+
+    return false;
      
 }
 
@@ -777,8 +795,7 @@ void knroInverter::enable_simulation ()
 		return;
 		
 	 simulation = true;
-	 IDMessage(mydev, "Notice: %s drive simulation is enabled.", type_name.c_str());
-	 IDLog("Notice: %s drive simulation is enabled.\n", type_name.c_str());
+     DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_SESSION, "Notice: %s drive simulation is enabled.", type_name.c_str());
 }
 
 /****************************************************************
@@ -795,8 +812,7 @@ void knroInverter::disable_simulation()
 	 
 	 simulation = false;
 	  
-	 IDMessage(mydev, "Caution: %s drive simulation is disabled.", type_name.c_str());
-	 IDLog("Caution: %s drive simulation is disabled.\n", type_name.c_str());
+     DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_SESSION, "Caution: %s drive simulation is disabled.", type_name.c_str());
 }
 
 bool knroInverter::is_in_motion()
