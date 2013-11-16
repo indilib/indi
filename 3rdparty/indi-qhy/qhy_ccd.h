@@ -1,6 +1,9 @@
 /*******************************************************************************
   Copyright(c) 2012 Jasem Mutlaq. All rights reserved.
 
+  Upgrade to libusb 1.0 by CloudMakers, s. r. o.
+  Copyright(c) 2013 CloudMakers, s. r. o. All rights reserved.
+
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the Free
   Software Foundation; either version 2 of the License, or (at your option)

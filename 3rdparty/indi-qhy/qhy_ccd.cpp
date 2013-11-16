@@ -1,6 +1,9 @@
 /*******************************************************************************
   Copyright(c) 2012 Jasem Mutlaq. All rights reserved.
 
+  Upgrade to libusb 1.0 by CloudMakers, s. r. o.
+  Copyright(c) 2013 CloudMakers, s. r. o. All rights reserved.
+
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the Free
   Software Foundation; either version 2 of the License, or (at your option)
@@ -169,7 +172,7 @@ bool QHYCCD::Connect()
         driver->setDebug(false);
 
     rc=driver->Connect();
-    return rc;
+    return rc >= 0;
     
 }
 
@@ -384,7 +387,7 @@ void QHYCCD::ReadCameraFrame()
 {
     int binw = PrimaryCCD.getBinX();
     int binh = PrimaryCCD.getBinY();
-    char *ccdBuffer = PrimaryCCD.getFrameBuffer();
+    unsigned char *ccdBuffer = (unsigned char *)PrimaryCCD.getFrameBuffer();
 
     int impixw=PrimaryCCD.getSubW();
     int impixh=PrimaryCCD.getSubH();
@@ -413,11 +416,11 @@ void QHYCCD::ReadCameraFrame()
 
         IDLog("scaling to new_wd: %d - new_ht: %d\n", new_wd, new_ht);
 
-        char *d_ptr = ccdBuffer;
+        unsigned char *d_ptr = ccdBuffer;
 
         for( int j = 0;j < new_ht ;j++ )
         {
-            char *s_ptr = driver->GetRow(j*ky);
+            unsigned char *s_ptr = driver->GetRow(j*ky);
             for( int i = 0;i < new_wd;i++ )
             {
                 *d_ptr = *(s_ptr + (i * kx));

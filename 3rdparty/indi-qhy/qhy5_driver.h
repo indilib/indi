@@ -1,6 +1,9 @@
 /*******************************************************************************
   Copyright(c) 2012 Jasem Mutlaq. All rights reserved.
 
+  Upgrade to libusb 1.0 by CloudMakers, s. r. o.
+  Copyright(c) 2013 CloudMakers, s. r. o. All rights reserved.
+
   Based on driver by Geoffrey Hausheer.
 
   This program is free software; you can redistribute it and/or modify it
@@ -53,7 +56,7 @@ class QHY5Driver :  public INDI::USBDevice
         int SetParams(int in_width, int in_height, int in_offw, int in_offh, int in_gain, int *pixw, int *pixh);
         int GetDefaultParam(int *width, int *height, int *gain);
 
-        char *GetRow(int row);
+        unsigned char *GetRow(int row);
         int ReadExposure();
         int StartExposure(unsigned int exposure);
 
@@ -76,7 +79,7 @@ class QHY5Driver :  public INDI::USBDevice
         bool simulation;
         bool debug;
 
-        char *imageBuffer;
+        unsigned char *imageBuffer;
         int imageBufferSize;
 
         fitsfile* fptr;

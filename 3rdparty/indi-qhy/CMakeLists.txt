@@ -8,7 +8,7 @@ SET(CMAKE_C_FLAGS "-Wall" )
 SET(CMAKE_C_FLAGS_DEBUG "-Werror" )
 
 find_package(CFITSIO REQUIRED)
-find_package(USB REQUIRED)
+find_package(USB-1 REQUIRED)
 find_package(INDI REQUIRED)
 find_package(ZLIB REQUIRED)
 
@@ -25,7 +25,7 @@ set(indiqhy_SRCS
 
 add_executable(indi_qhy_ccd ${indiqhy_SRCS})
 
-target_link_libraries(indi_qhy_ccd ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${ZLIB_LIBRARIES} ${LIBUSB_LIBRARIES})
+target_link_libraries(indi_qhy_ccd ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${ZLIB_LIBRARIES} ${LIBUSB_1_LIBRARIES})
 
 install(TARGETS indi_qhy_ccd RUNTIME DESTINATION bin )
 

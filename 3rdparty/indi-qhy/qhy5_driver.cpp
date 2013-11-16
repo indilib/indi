@@ -1,6 +1,9 @@
 /*******************************************************************************
   Copyright(c) 2012 Jasem Mutlaq. All rights reserved.
 
+  Upgrade to libusb 1.0 by CloudMakers, s. r. o.
+  Copyright(c) 2013 CloudMakers, s. r. o. All rights reserved.
+
   Based on driver by Geoffrey Hausheer.
 
   This program is free software; you can redistribute it and/or modify it
@@ -74,6 +77,7 @@ bool QHY5Driver::Connect()
         IDLog("Error: No QHY5 Cameras found\n");
         return false;
     }
+    /*
     usb_handle=usb_open(dev);
     if(usb_handle != NULL)
     {
@@ -103,6 +107,8 @@ bool QHY5Driver::Connect()
         if (rc== 0)
             return true;
     }
+    */
+    Open();
 
    return false;
 }
@@ -111,9 +117,7 @@ bool QHY5Driver::Disconnect()
 {
     if (simulation)
         return true;
-
-    usb_release_interface(usb_handle, 0);
-    usb_close(usb_handle);
+    Close();
     return true;
 }
 
@@ -163,7 +167,7 @@ int QHY5Driver::Pulse(int direction, int duration_msec)
         } else {
             cmd = 0x21;
                 }
-        return ControlMessage(0xc2, cmd, 0, 0, (char *)&ret, sizeof(ret));
+        return ControlMessage(0xc2, cmd, 0, 0, (unsigned char *)&ret, sizeof(ret));
     }
     if (direction & QHY_NORTH) {
         cmd |= 0x20;
@@ -179,12 +183,12 @@ int QHY5Driver::Pulse(int direction, int duration_msec)
         cmd |= 0x80;
         duration[0] = duration_msec;
     }
-    return ControlMessage(0x42, 0x10, 0, cmd, (char *)&duration, sizeof(duration));
+    return ControlMessage(0x42, 0x10, 0, cmd, (unsigned char *)&duration, sizeof(duration));
 }
 
 int QHY5Driver::SetParams(int in_width, int in_height, int in_offw, int in_offh, int in_gain, int *pixw, int *pixh)
 {
-    char reg[19];
+    unsigned char reg[19];
     int offset, value, index;
     int gain_val;
 
@@ -239,7 +243,7 @@ int QHY5Driver::SetParams(int in_width, int in_height, int in_offw, int in_offh,
     if (imageBufferSize < 1558 * (height + 26) * bpp)
     {
         imageBufferSize = 1558 * (height + 26) * bpp;
-        imageBuffer = (char *) realloc(imageBuffer, imageBufferSize);
+        imageBuffer = (unsigned char *) realloc(imageBuffer, imageBufferSize);
     }
 
     if (debug)
@@ -251,7 +255,7 @@ int QHY5Driver::StartExposure(unsigned int exposure)
 {
 
     int index, value;
-    char buffer[11] = "DEADEADEAD"; // for debug purposes
+    unsigned char buffer[11] = "DEADEADEAD"; // for debug purposes
     index = exposure >> 16;
     value = exposure & 0xffff;
 
@@ -316,7 +320,7 @@ int QHY5Driver::ReadExposure()
     if (debug)
         IDLog( "QH5Driver: Reading %08x bytes\n", (unsigned int)imageBufferSize);
 
-    result = usb_bulk_read(usb_handle, 0x82, imageBuffer, imageBufferSize, 20000);
+    result = ReadBulk(imageBuffer, imageBufferSize, 20000);
     /*if (result == imageBufferSize)
     {
         if (debug)
@@ -343,7 +347,7 @@ int QHY5Driver::ReadExposure()
     return 0;
 }
 
-char * QHY5Driver::GetRow(int row)
+unsigned char * QHY5Driver::GetRow(int row)
 {
     return (imageBuffer + 1558 * row + offh + 20);
 }

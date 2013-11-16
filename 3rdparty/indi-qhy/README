@@ -6,7 +6,7 @@ This package provides the INDI driver for QHY CCDs (currently only QHY5)
 Requirtments
 ============
 
-+ libindi0 >= v0.6 (http://indi.sf.net)
++ libindi0 >= v0.9.7 (http://indi.sf.net)
 
 	You need to install both libindi0 and libindi0-devel to build this package.
 	
@@ -14,9 +14,9 @@ Requirtments
 
 	libcfitsio3 is required to compile support for FITS.
 	
-+ libusb
++ libusb 1.0
 
-	libusb-devel is required.
+	libusb-1.0.0-devel is required.
 	
 Installation
 ============

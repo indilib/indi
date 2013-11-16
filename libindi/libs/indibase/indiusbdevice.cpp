@@ -60,14 +60,14 @@ libusb_device* INDI::USBDevice::FindDevice(int vendor, int product, int searchin
         if (index == searchindex) {
           libusb_ref_device(device);
           libusb_free_device_list(usb_devices, 1);
-          fprintf(stderr, "Found device %04x/%04x/%d\n", vendor, product, searchindex);
+          fprintf(stderr, "Found device %04x/%04x/%d\n", descriptor.idVendor, descriptor.idProduct, index);
           return device;
         } else {
-          fprintf(stderr, "Skipping device %04x/%04x/%d\n", vendor, product, index);
+          fprintf(stderr, "Skipping device %04x/%04x/%d\n", descriptor.idVendor, descriptor.idProduct, index);
           index++;
         }
       } else {
-        fprintf(stderr, "Skipping device %04x/%04x\n", vendor, product);
+        fprintf(stderr, "Skipping device %04x/%04x\n", descriptor.idVendor, descriptor.idProduct);
       }
     }
   }
@@ -118,11 +118,11 @@ int INDI::USBDevice::FindEndpoints() {
     int dir = interface->endpoint[i].bEndpointAddress & LIBUSB_ENDPOINT_DIR_MASK;
 		if (dir == LIBUSB_ENDPOINT_IN) {
 			fprintf(stderr, "Got an input endpoint\n");
-			InputEndpoint = interface->endpoint[i].bEndpointAddress & LIBUSB_ENDPOINT_ADDRESS_MASK;
+			InputEndpoint = interface->endpoint[i].bEndpointAddress;
 			InputType = interface->endpoint[i].bmAttributes & LIBUSB_TRANSFER_TYPE_MASK;
 		} else if (dir == LIBUSB_ENDPOINT_OUT) {
 			fprintf(stderr, "Got an output endpoint\n");
-			OutputEndpoint = interface->endpoint[i].bEndpointAddress & LIBUSB_ENDPOINT_ADDRESS_MASK;
+			OutputEndpoint = interface->endpoint[i].bEndpointAddress;
 			OutputType = interface->endpoint[i].bmAttributes & LIBUSB_TRANSFER_TYPE_MASK;
 		}
   }
