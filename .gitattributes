@@ -2,7 +2,6 @@
 /.svnignore -text
 3rdparty/fliusb/Makefile -text
 3rdparty/fliusb/Makefile.dkms -text
-3rdparty/fliusb/common.postinst -text
 3rdparty/fliusb/dkms/dkms.conf -text
 3rdparty/fliusb/fliusb.c -text
 3rdparty/fliusb/fliusb.h -text
