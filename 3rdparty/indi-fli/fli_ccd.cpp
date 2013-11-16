@@ -513,11 +513,9 @@ bool FLICCD::setupParams()
 
 }
 
-int FLICCD::StartExposure(float duration)
+bool FLICCD::StartExposure(float duration)
 {
-
         int err=0;
-        bool shortExposure = false;
 
         if(duration < minDuration)
         {
@@ -528,10 +526,7 @@ int FLICCD::StartExposure(float duration)
         if (imageFrameType == CCDChip::BIAS_FRAME)
         {
             duration = minDuration;
-            shortExposure=true;
             IDMessage(getDeviceName(), "Bias Frame (s) : %g\n", minDuration);
-            if (isDebug())
-                IDLog("Bias Frame (s) : %g\n", minDuration);
         }
 
         if (!sim && (err = FLISetExposureTime(fli_dev, (long)(duration * 1000))))
@@ -542,7 +537,7 @@ int FLICCD::StartExposure(float duration)
             if (isDebug())
                 IDLog("FLISetExposureTime() failed. %s.\n", strerror((int)-err));
 
-            return -1;
+            return false;
         }
         // yes, we need to push the release 
         if (!sim && (err =FLIExposeFrame(fli_dev)))
@@ -553,7 +548,7 @@ int FLICCD::StartExposure(float duration)
             if (isDebug())
                 IDLog("FLIxposeFrame() failed. %s.\n", strerror((int)-err));
 
-            return -1;
+            return false;
         }
 
         PrimaryCCD.setExposureDuration(duration);
@@ -565,7 +560,7 @@ int FLICCD::StartExposure(float duration)
         IDMessage(getDeviceName(), "Taking a %g seconds frame...", ExposureRequest);
 
         InExposure = true;
-        return (shortExposure ? 1 : 0);
+        return true;
 }
 
 

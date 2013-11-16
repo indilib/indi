@@ -109,7 +109,7 @@ public:
     bool Connect();
     bool Disconnect();
 
-    int StartExposure(float duration);
+    bool StartExposure(float duration);
     bool AbortExposure();
 
     void TimerHit();
