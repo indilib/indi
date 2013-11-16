@@ -19,17 +19,17 @@ ENDIF(UNIX AND NOT WIN32 AND NOT APPLE)
 
 
 if (LIB_64)
-exec_program(cp ARGS ${CMAKE_SOURCE_DIR}/libfishcamp64.bin ${CMAKE_BINARY_DIR}/libfishcamp.so.${LIBFISHCAMP_VERSION})
+exec_program(cp ARGS ${CMAKE_SOURCE_DIR}/libfishcamp64.bin ${CMAKE_BINARY_DIR}/libFcLinux.so.${LIBFISHCAMP_VERSION})
 else (LIB_64)
-exec_program(cp ARGS ${CMAKE_SOURCE_DIR}/libfishcamp32.bin ${CMAKE_BINARY_DIR}/libfishcamp.so.${LIBFISHCAMP_VERSION})
+exec_program(cp ARGS ${CMAKE_SOURCE_DIR}/libfishcamp32.bin ${CMAKE_BINARY_DIR}/libFcLinux.so.${LIBFISHCAMP_VERSION})
 endif(LIB_64)
 
 # Make sure symbolic links are installed
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/make_libfishcamp_symlink.cmake "
-exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${LIB_INSTALL_DIR}${LIB_POSTFIX}/libfishcamp.so.${LIBFISHCAMP_VERSION} ${LIB_INSTALL_DIR}${LIB_POSTFIX}/libfishcamp.so.${LIBFISHCAMP_SOVERSION})\n
-exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${LIB_INSTALL_DIR}${LIB_POSTFIX}/libfishcamp.so.${LIBFISHCAMP_SOVERSION} ${LIB_INSTALL_DIR}${LIB_POSTFIX}/libfishcamp.so)\n
+exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${LIB_INSTALL_DIR}${LIB_POSTFIX}/libFcLinux.so.${LIBFISHCAMP_VERSION} ${LIB_INSTALL_DIR}${LIB_POSTFIX}/libFcLinux.so.${LIBFISHCAMP_SOVERSION})\n
+exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${LIB_INSTALL_DIR}${LIB_POSTFIX}/libFcLinux.so.${LIBFISHCAMP_SOVERSION} ${LIB_INSTALL_DIR}${LIB_POSTFIX}/libFcLinux.so)\n
 ")
 
-install( FILES ${CMAKE_BINARY_DIR}/libfishcamp.so.${LIBFISHCAMP_VERSION} DESTINATION ${LIB_INSTALL_DIR}${LIB_POSTFIX})
+install( FILES ${CMAKE_BINARY_DIR}/libFcLinux.so.${LIBFISHCAMP_VERSION} DESTINATION ${LIB_INSTALL_DIR}${LIB_POSTFIX})
 install( FILES gdr_usb.hex Guider_mono_rev16_intel.srec DESTINATION ${FIRMWARE_INSTALL_DIR})
 install( SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_libfishcamp_symlink.cmake)
