@@ -177,7 +177,8 @@
 3rdparty/indi-fishcamp/INSTALL -text
 3rdparty/indi-fishcamp/README -text
 3rdparty/indi-fishcamp/config.h.cmake -text
-3rdparty/indi-fishcamp/fishcamp.c -text
+3rdparty/indi-fishcamp/indi_fishcamp.cpp -text
+3rdparty/indi-fishcamp/indi_fishcamp.h -text
 3rdparty/indi-fishcamp/indi_fishcamp.xml -text
 3rdparty/indi-fishcamp/libFcLinux.h -text
 3rdparty/indi-fli/AUTHORS -text
