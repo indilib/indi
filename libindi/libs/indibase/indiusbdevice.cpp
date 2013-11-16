@@ -60,14 +60,14 @@ libusb_device* INDI::USBDevice::FindDevice(int vendor, int product, int searchin
         if (index == searchindex) {
           libusb_ref_device(device);
           libusb_free_device_list(usb_devices, 1);
-          fprintf(stderr, "Found device %04x/%04x/%d", vendor, product, searchindex);
+          fprintf(stderr, "Found device %04x/%04x/%d\n", vendor, product, searchindex);
           return device;
         } else {
-          fprintf(stderr, "Skipping device %04x/%04x/%d", vendor, product, index);
+          fprintf(stderr, "Skipping device %04x/%04x/%d\n", vendor, product, index);
           index++;
         }
       } else {
-        fprintf(stderr, "Skipping device %04x/%04x", vendor, product);
+        fprintf(stderr, "Skipping device %04x/%04x\n", vendor, product);
       }
     }
   }
@@ -84,13 +84,13 @@ int INDI::USBDevice::Open() {
   if (rc >= 0) {
     if (libusb_kernel_driver_active(usb_handle, 0) == 1) {
       rc = libusb_detach_kernel_driver(usb_handle, 0);
-      if (rc <= 0) {
+      if (rc < 0) {
         fprintf(stderr, "USBDevice: libusb_detach_kernel_driver -> %s\n", libusb_error_name(rc));
       }
     }    
     if (rc >= 0) {
       rc = libusb_claim_interface(usb_handle, 0);
-      if (rc <= 0) {
+      if (rc < 0) {
         fprintf(stderr, "USBDevice: libusb_claim_interface -> %s\n", libusb_error_name(rc));
       }
     }
@@ -107,7 +107,7 @@ int INDI::USBDevice::FindEndpoints() {
   struct libusb_config_descriptor *config;
   struct libusb_interface_descriptor *interface;
   int rc = libusb_get_config_descriptor(dev, 0, &config);
-  if (rc <= 0) {
+  if (rc < 0) {
     fprintf(stderr, "USBDevice: libusb_get_config_descriptor -> %s\n", libusb_error_name(rc));
     return rc;
   }
@@ -132,7 +132,7 @@ int INDI::USBDevice::FindEndpoints() {
 int INDI::USBDevice::ReadInterrupt(unsigned char *buf, int count, int timeout) {
   int transferred;
 	int rc = libusb_interrupt_transfer(usb_handle, InputEndpoint, buf, count, &transferred, timeout);
-  if (rc <= 0) {
+  if (rc < 0) {
     fprintf(stderr, "USBDevice: libusb_interrupt_transfer -> %s\n", libusb_error_name(rc));	
   }
 	return rc < 0 ? rc : transferred;
@@ -141,7 +141,7 @@ int INDI::USBDevice::ReadInterrupt(unsigned char *buf, int count, int timeout) {
 int INDI::USBDevice::WriteInterrupt(unsigned char *buf, int count, int timeout) {
   int transferred;
 	int rc = libusb_interrupt_transfer(usb_handle, OutputEndpoint, buf, count, &transferred, timeout);
-  if (rc <= 0) {
+  if (rc < 0) {
     fprintf(stderr, "USBDevice: libusb_interrupt_transfer -> %s\n", libusb_error_name(rc));	
   }
 	return rc < 0 ? rc : transferred;
@@ -150,7 +150,7 @@ int INDI::USBDevice::WriteInterrupt(unsigned char *buf, int count, int timeout) 
 int INDI::USBDevice::ReadBulk(unsigned char *buf, int count, int timeout) {
   int transferred;
 	int rc = libusb_bulk_transfer(usb_handle, InputEndpoint, buf, count, &transferred, timeout);
-  if (rc <= 0) {
+  if (rc < 0) {
     fprintf(stderr, "USBDevice: libusb_bulk_transfer -> %s\n", libusb_error_name(rc));	
   }
 	return rc < 0 ? rc : transferred;
@@ -159,7 +159,7 @@ int INDI::USBDevice::ReadBulk(unsigned char *buf, int count, int timeout) {
 int INDI::USBDevice::WriteBulk(unsigned char *buf,int count,int timeout) {
   int transferred;
 	int rc = libusb_bulk_transfer(usb_handle, OutputEndpoint, buf, count, &transferred, timeout);
-  if (rc <= 0) {
+  if (rc < 0) {
     fprintf(stderr, "USBDevice: libusb_bulk_transfer -> %s\n", libusb_error_name(rc));	
   }
 	return rc < 0 ? rc : transferred;
@@ -167,7 +167,7 @@ int INDI::USBDevice::WriteBulk(unsigned char *buf,int count,int timeout) {
 
 int INDI::USBDevice::ControlMessage(unsigned char request_type, unsigned char request, unsigned int value, unsigned int index, unsigned char *data, unsigned char len) {
   int rc = libusb_control_transfer(usb_handle, request_type,	request, value, index, data, len, 5000);
-  if (rc <= 0) {
+  if (rc < 0) {
     fprintf(stderr, "USBDevice: libusb_control_transfer -> %s\n", libusb_error_name(rc));	
   }
 	return rc;
