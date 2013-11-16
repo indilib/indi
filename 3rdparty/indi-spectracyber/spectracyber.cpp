@@ -293,36 +293,27 @@ bool SpectraCyber::Connect()
 
     if (isSimulation())
     {
-        setConnected(true);
-        IDSetSwitch(ConnectionSP, "%s Spectrometer: Simulating connection to port %s.", type_name.c_str(), tProp->tp[0].text);
-	return true;
+        DEBUGF(INDI::Logger::DBG_SESSION, "%s Spectrometer: Simulating connection to port %s.", type_name.c_str(), tProp->tp[0].text);
+        return true;
     }
 
-    if (isDebug())
-        IDLog("Attempting to connect to spectrometer....\n");
 
     if (tty_connect(tProp->tp[0].text, 2400, 8, 0, 1, &fd) != TTY_OK)
     {
-        ConnectionSP->s = IPS_ALERT;
-        IDSetSwitch (ConnectionSP, "Error connecting to port %s. Make sure you have BOTH read and write permission to the port.", tProp->tp[0].text);
-	return false;
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error connecting to port %s. Make sure you have BOTH read and write permission to the port.", tProp->tp[0].text);
+        return false;
     }
 
     // We perform initial handshake check by resetting all parameter and watching for echo reply
     if (reset() == true)
     {
-        setConnected(true);
-        IDSetSwitch (ConnectionSP, "Spectrometer is online. Retrieving preliminary data...");
-
+        DEBUG(INDI::Logger::DBG_SESSION, "Spectrometer is online. Retrieving preliminary data...");
         return init_spectrometer();
    }
    else
    {
-        if (isDebug())
-            IDLog("Echo test failed.\n");
-        ConnectionSP->s = IPS_ALERT;
-        IDSetSwitch (ConnectionSP, "Spectrometer echo test failed. Please recheck connection to spectrometer and try again.");
-	return false;
+        DEBUG(INDI::Logger::DBG_ERROR, "Spectrometer echo test failed. Please recheck connection to spectrometer and try again.");
+        return false;
    }
 	
 }
