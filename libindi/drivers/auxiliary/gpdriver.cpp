@@ -39,9 +39,6 @@ GPUSBDriver::~GPUSBDriver()
 
 bool GPUSBDriver::Connect()
 {
-    if (debug)
-        usb_set_debug(2);
-
     dev=FindDevice(0x134A, 0x9020,0);
 
     if(dev==NULL)
@@ -50,44 +47,13 @@ bool GPUSBDriver::Connect()
          return false;
      }
 
-     usb_handle=usb_open(dev);
-     if(usb_handle != NULL)
-     {
-         int rc;
-
-         rc=FindEndpoints();
-
-         rc = usb_detach_kernel_driver_np(usb_handle,0);
-
-         if (debug)
-             IDLog("Detach Kernel returns %d\n",rc);
-
-         rc = usb_set_configuration(usb_handle,1);
-         if (debug)
-             IDLog("Set Configuration returns %d\n",rc);
-
-         rc=usb_claim_interface(usb_handle,0);
-
-         if (debug)
-             IDLog("claim interface returns %d\n",rc);
-
-         rc= usb_set_altinterface(usb_handle,0);
-
-         if (debug)
-             IDLog("set alt interface returns %d\n",rc);
-
-         if (rc== 0)
-             return true;
-     }
-
-    return false;
+   return Open();
     
 }
 
 bool GPUSBDriver::Disconnect()
 {
-    usb_release_interface(usb_handle, 0);
-    usb_close(usb_handle);
+    Close();
     return true;
 }
 
@@ -121,7 +87,7 @@ bool GPUSBDriver::startPulse(int direction)
     if (debug)
         IDLog("start command value is 0x%X\n", guideCMD[0]);
 
-    rc=WriteBulk(guideCMD,1,1000);
+    rc=WriteBulk((unsigned char *)guideCMD,1,1000);
 
     if (debug)
         IDLog("startPulse WriteBulk returns %d\n",rc);
@@ -170,7 +136,7 @@ bool GPUSBDriver::stopPulse(int direction)
     if (debug)
         IDLog("stop command value is 0x%X\n", guideCMD[0]);
 
-    rc=WriteBulk(guideCMD,1,1000);
+    rc=WriteBulk((unsigned char *)guideCMD,1,1000);
 
     if (debug)
         IDLog("stopPulse WriteBulk returns %d\n",rc);
