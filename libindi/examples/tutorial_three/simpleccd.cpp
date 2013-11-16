@@ -205,7 +205,7 @@ void SimpleCCD::setupParams()
 /**************************************************************************************
 ** Client is asking us to start an exposure
 ***************************************************************************************/
-int SimpleCCD::StartExposure(float duration)
+bool SimpleCCD::StartExposure(float duration)
 {
     ExposureRequest=duration;
 
@@ -217,7 +217,7 @@ int SimpleCCD::StartExposure(float duration)
     InExposure=true;
 
     // We're done
-    return 0;
+    return true;
 }
 
 /**************************************************************************************

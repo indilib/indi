@@ -1,5 +1,11 @@
 /*******************************************************************************
-  Copyright(c) 2010, 2011 Gerry Rozema, Jasem Mutlaq. All rights reserved.
+ Copyright(c) 2010, 2011 Gerry Rozema, Jasem Mutlaq. All rights reserved.
+
+ Rapid Guide support added by CloudMakers, s. r. o.
+ Copyright(c) 2013 CloudMakers, s. r. o. All rights reserved.
+  
+ Star detection algorithm is based on PHD Guiding by Craig Stark
+ Copyright (c) 2006-2010 Craig Stark. All rights reserved.
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
@@ -29,7 +35,7 @@
 extern const char *IMAGE_SETTINGS_TAB;
 extern const char *IMAGE_INFO_TAB;
 extern const char *GUIDE_HEAD_TAB;
-extern const char *GUIDE_CONTROL_TAB;
+extern const char *RAPIDGUIDE_TAB;
 
 /**
  * @brief The CCDChip class provides functionality of a CCD Chip within a CCD.
@@ -285,7 +291,7 @@ private:
     INumberVectorProperty *ImagePixelSizeNP;
     INumber ImagePixelSizeN[6];
 
-    ISwitch FrameTypeS[4];
+    ISwitch FrameTypeS[5];
     ISwitchVectorProperty *FrameTypeSP;
 
     ISwitch CompressS[2];
@@ -293,6 +299,15 @@ private:
 
     IBLOB FitsB;
     IBLOBVectorProperty *FitsBP;
+
+    ISwitch RapidGuideS[2];
+    ISwitchVectorProperty *RapidGuideSP;
+
+    ISwitch RapidGuideSetupS[3];
+    ISwitchVectorProperty *RapidGuideSetupSP;
+
+    INumber RapidGuideDataN[3];
+    INumberVectorProperty *RapidGuideDataNP;
 
     friend class INDI::CCD;
 };
@@ -323,10 +338,10 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
      protected:
         /** \brief Start exposing primary CCD chip
             \param duration Duration in seconds
-            \return 0 if OK and exposure will take some time to complete, 1 if exposure is short and complete already (e.g. bias), -1 on error.
+            \return true if OK and exposure will take some time to complete, false on error.
             \note This function is not implemented in INDI::CCD, it must be implemented in the child class
         */
-        virtual int StartExposure(float duration);
+        virtual bool StartExposure(float duration);
 
         /** \brief Uploads target Chip exposed buffer as FITS to the client. Dervied classes should class this function when an exposure is complete.
              \note This function is not implemented in INDI::CCD, it must be implemented in the child class
@@ -341,10 +356,10 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
 
         /** \brief Start exposing guide CCD chip
             \param duration Duration in seconds
-            \return 0 if OK and exposure will take some time to complete, 1 if exposure is short and complete already (e.g. bias), -1 on error.
+            \return true if OK and exposure will take some time to complete, false on error.
             \note This function is not implemented in INDI::CCD, it must be implemented in the child class
         */
-        virtual int StartGuideExposure(float duration);
+        virtual bool StartGuideExposure(float duration);
 
         /** \brief Abort ongoing exposure
             \return true is abort is successful, false otherwise.
@@ -493,6 +508,18 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         bool HasSt4Port;
         bool InExposure;
         bool InGuideExposure;
+        bool RapidGuideEnabled;
+        bool GuiderRapidGuideEnabled;
+
+        bool AutoLoop;
+        bool GuiderAutoLoop;
+        bool SendImage;
+        bool GuiderSendImage;
+        bool ShowMarker;
+        bool GuiderShowMarker;
+        
+        float ExposureTime;
+        float GuiderExposureTime;
 
         CCDChip PrimaryCCD;
         CCDChip GuideCCD;

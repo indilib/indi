@@ -123,8 +123,8 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         bool Connect();
         bool Disconnect();
 
-        int StartExposure(float duration);
-        int StartGuideExposure(float);
+        bool StartExposure(float duration);
+        bool StartGuideExposure(float);
 
         bool AbortExposure();
         bool AbortGuideExposure();

@@ -32,7 +32,7 @@ INDI::FilterInterface::FilterInterface()
 void INDI::FilterInterface::initFilterProperties(const char *deviceName, const char* groupName)
 {
     IUFillNumber(&FilterSlotN[0],"FILTER_SLOT_VALUE","Filter","%3.0f",1.0,12.0,1.0,1.0);
-    IUFillNumberVector(&FilterSlotNP,FilterSlotN,1,deviceName,"FILTER_SLOT","Filter",groupName,IP_RW,60,IPS_IDLE);
+    IUFillNumberVector(&FilterSlotNP,FilterSlotN,1,deviceName,"FILTER_SLOT","Filter Slot",groupName,IP_RW,60,IPS_IDLE);
 }
 
 INDI::FilterInterface::~FilterInterface()

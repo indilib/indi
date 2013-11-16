@@ -43,7 +43,7 @@ protected:
     bool updateProperties();
 
     // CCD specific functions
-    int StartExposure(float duration);
+    bool StartExposure(float duration);
     bool AbortExposure();
     void TimerHit();
     void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip);
