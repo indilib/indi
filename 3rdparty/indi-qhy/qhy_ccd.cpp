@@ -112,6 +112,7 @@ bool QHYCCD::initProperties()
     IUFillNumber(&GainN[0],"GAIN","Gain","%0.f", 1., 100, 1., 1.);
     IUFillNumberVector(&GainNP,GainN,1,getDeviceName(),"CCD_GAIN","Gain",IMAGE_SETTINGS_TAB,IP_RW,60,IPS_IDLE);
 
+    return true;
 }
 
 void QHYCCD::ISGetProperties(const char *dev)
@@ -233,7 +234,7 @@ float QHYCCD::CalcPulseTimeLeft()
 }
 
 
-int QHYCCD::StartExposure(float n)
+bool QHYCCD::StartExposure(float n)
 {
     ExposureRequest=n;
     gettimeofday(&ExpStart,NULL);
@@ -260,7 +261,7 @@ int QHYCCD::StartExposure(float n)
 
      SetTimer(tval);
 
-    return 0;
+    return true;
 }
 
 /*bool QHYCCD::AbortGuideExposure()
@@ -442,6 +443,7 @@ bool QHYCCD::updateCCDFrame(int x, int y, int w, int h)
 
     PrimaryCCD.setFrame(x, y, pixw, pixh);
 
+    return true;
 }
 
 bool QHYCCD::updateCCDBin(int hor, int ver)

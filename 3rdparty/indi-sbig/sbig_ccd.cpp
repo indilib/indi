@@ -860,7 +860,7 @@ int SBIGCCD::StartExposure(float duration)
 {
 
   if (!sim && StartExposure(&PrimaryCCD, duration) != CE_NO_ERROR)
-        return -1;
+        return false;
 
   ExposureRequest = duration;
   DEBUGF(INDI::Logger::DBG_DEBUG, "Exposure Time (s) is: %g\n", duration);
@@ -870,14 +870,14 @@ int SBIGCCD::StartExposure(float duration)
 
   InExposure = true;
 
-  return (0);
+  return true;
 
 }
 
-int SBIGCCD::StartGuideExposure(float duration)
+bool SBIGCCD::StartGuideExposure(float duration)
 {
     if (!sim && StartExposure(&GuideCCD, duration) != CE_NO_ERROR)
-          return -1;
+          return false;
 
     GuideExposureRequest = duration;
     DEBUGF(INDI::Logger::DBG_DEBUG, "Exposure Time (s) is: %g\n", duration);
@@ -887,7 +887,7 @@ int SBIGCCD::StartGuideExposure(float duration)
 
     InGuideExposure = true;
 
-    return (0);
+    return true;
 
 }
 

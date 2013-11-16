@@ -314,7 +314,7 @@ void SXCCD::TimerHit() {
     SetTimer(TIMER);
 }
 
-int SXCCD::StartExposure(float n) {
+bool SXCCD::StartExposure(float n) {
   InExposure = true;
   PrimaryCCD.setExposureDuration(n);
   if (PrimaryCCD.isInterlaced() && PrimaryCCD.getBinY() == 1) {
@@ -336,7 +336,7 @@ int SXCCD::StartExposure(float n) {
   DidLatch = false;
   ExposureTimeLeft = n;
   ExposureTimerID = IEAddTimer(time, ExposureTimerCallback, this);
-  return 0;
+  return true;
 }
 
 bool SXCCD::AbortExposure() {
@@ -413,7 +413,7 @@ void SXCCD::ExposureTimerHit() {
   }
 }
 
-int SXCCD::StartGuideExposure(float n) {
+bool SXCCD::StartGuideExposure(float n) {
   InGuideExposure = true;
   GuideCCD.setExposureDuration(n);
   sxClearPixels(handle, CCD_EXP_FLAGS_FIELD_BOTH, 1);
@@ -422,7 +422,7 @@ int SXCCD::StartGuideExposure(float n) {
     time = 1;
   ExposureTimeLeft = n;
   GuideExposureTimerID = IEAddTimer(time, GuideExposureTimerCallback, this);
-  return 0;
+  return true;
 }
 
 bool SXCCD::AbortGuideExposure() {

@@ -218,10 +218,10 @@ public:
     bool Connect();
     bool Disconnect();
 
-    int StartExposure(float duration);
+    bool StartExposure(float duration);
     bool AbortExposure();
 
-    int StartGuideExposure(float duration);
+    bool StartGuideExposure(float duration);
     bool AbortGuideExposure();
 
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);

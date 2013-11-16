@@ -74,9 +74,9 @@ class SXCCD : public INDI::CCD
     bool updateCCDBin(int hor, int ver);
     bool Connect();
     bool Disconnect();
-    int StartExposure(float n);
+    bool StartExposure(float n);
     bool AbortExposure();
-    int StartGuideExposure(float n);
+    bool StartGuideExposure(float n);
     bool AbortGuideExposure();
     void TimerHit();
     void ExposureTimerHit();

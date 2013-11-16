@@ -56,7 +56,7 @@ class QHYCCD : public INDI::CCD
     virtual bool initProperties();
 
     virtual bool updateProperties();
-    int StartExposure(float);
+    bool StartExposure(float);
 
     void TimerHit();
     //virtual int SetParams(int XRes,int YRes,int CamBits,float pixwidth,float pixheight);
