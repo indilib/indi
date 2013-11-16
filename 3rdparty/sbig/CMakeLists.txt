@@ -20,9 +20,9 @@ ENDIF(UNIX AND NOT WIN32 AND NOT APPLE)
 
 
 if (LIB_64)
-exec_program(cp ARGS ${CMAKE_SOURCE_DIR}/libsbigudrv64.bin ${CMAKE_BINARY_DIR}/libsbigudrv.so.${SBIG_VERSION})
+exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/libsbigudrv64.bin ${CMAKE_BINARY_DIR}/libsbigudrv.so.${SBIG_VERSION})
 else (LIB_64)
-exec_program(cp ARGS ${CMAKE_SOURCE_DIR}/libsbigudrv32.bin ${CMAKE_BINARY_DIR}/libsbigudrv.so.${SBIG_VERSION})
+exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/libsbigudrv32.bin ${CMAKE_BINARY_DIR}/libsbigudrv.so.${SBIG_VERSION})
 endif(LIB_64)
 
 # Make sure symbolic links are installed

@@ -856,7 +856,7 @@ int SBIGCCD::StartExposure(CCDChip *targetChip, double duration)
 
 }
 
-int SBIGCCD::StartExposure(float duration)
+bool SBIGCCD::StartExposure(float duration)
 {
 
   if (!sim && StartExposure(&PrimaryCCD, duration) != CE_NO_ERROR)

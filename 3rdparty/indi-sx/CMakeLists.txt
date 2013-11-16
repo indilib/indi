@@ -1,29 +1,28 @@
 cmake_minimum_required(VERSION 2.4.7)
 PROJECT(sxccd CXX C)
 
-cmake_policy(SET CMP0003 NEW)
-
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 set(RULES_INSTALL_DIR "/etc/udev/rules.d")
 
 set (VERSION_MAJOR 1)
 set (VERSION_MINOR 4)
  
 configure_file (
-  "${CMAKE_SOURCE_DIR}/sxconfig.h.in"
-  "${CMAKE_SOURCE_DIR}/sxconfig.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/sxconfig.h.in"
+  "${CMAKE_CURRENT_SOURCE_DIR}/sxconfig.h"
   )
 
 find_package(USB-1 REQUIRED)
 find_package(INDI REQUIRED)
+find_package(Threads REQUIRED)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
-include_directories(${CMAKE_SOURCE_DIR})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${INDI_INCLUDE_DIR})
 
 set(indisxccd_SRCS
-   ${CMAKE_SOURCE_DIR}/sxccd.cpp
-   ${CMAKE_SOURCE_DIR}/sxccdusb.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/sxccd.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/sxccdusb.cpp
    )
 
 add_executable(indi_sx_ccd ${indisxccd_SRCS})
@@ -31,19 +30,19 @@ target_link_libraries(indi_sx_ccd ${INDI_DRIVER_LIBRARIES} ${LIBUSB_1_LIBRARIES}
 
 IF (APPLE)
 set(indisxwheel_SRCS
-  ${CMAKE_SOURCE_DIR}/sxwheel.cpp
-  ${CMAKE_SOURCE_DIR}/hid_mac.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/sxwheel.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/hid_mac.c
   )
 ELSEIF (WIN32)
 set(indisxwheel_SRCS
-  ${CMAKE_SOURCE_DIR}/sxwheel.cpp
-  ${CMAKE_SOURCE_DIR}/hid_win.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/sxwheel.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/hid_win.c
   )
 ELSE ()
 include_directories(${LIBUSB_1_INCLUDE_DIRS})
 set(indisxwheel_SRCS
-  ${CMAKE_SOURCE_DIR}/sxwheel.cpp
-  ${CMAKE_SOURCE_DIR}/hid_libusb.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/sxwheel.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/hid_libusb.c
   )
 ENDIF()
 
@@ -53,19 +52,19 @@ set(CMAKE_EXE_LINKER_FLAGS "-framework IOKit -framework CoreFoundation")
 target_link_libraries(indi_sx_wheel ${INDI_DRIVER_LIBRARIES} ${LIBUSB_LIBRARIES})
 ELSEIF (WIN32)
 ELSE ()
-target_link_libraries(indi_sx_wheel ${INDI_DRIVER_LIBRARIES} ${LIBUSB_1_LIBRARIES} pthread)
+target_link_libraries(indi_sx_wheel ${INDI_DRIVER_LIBRARIES} ${LIBUSB_1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 ENDIF()
 
 set(indisxao_SRCS
-   ${CMAKE_SOURCE_DIR}/sxao.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/sxao.cpp
    )
 
 add_executable(indi_sx_ao ${indisxao_SRCS})
 target_link_libraries(indi_sx_ao ${INDI_DRIVER_LIBRARIES})
 
 set(sx_ccd_test_SRCS
-   ${CMAKE_SOURCE_DIR}/sxccdtest.cpp
-   ${CMAKE_SOURCE_DIR}/sxccdusb.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/sxccdtest.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/sxccdusb.cpp
    )
 
 add_executable(sx_ccd_test ${sx_ccd_test_SRCS})

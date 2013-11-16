@@ -1,12 +1,12 @@
 cmake_minimum_required(VERSION 2.4.7)
 PROJECT(indi_gphoto C CXX)
 
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 
 SET(CMAKE_CXX_FLAGS "-Wall" )
-SET(CMAKE_CXX_FLAGS_DEBUG "-Werror -O0 -g -DDEBUG_FITS" )
+SET(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -DDEBUG_FITS" )
 SET(CMAKE_C_FLAGS "-Wall" )
-SET(CMAKE_C_FLAGS_DEBUG "-Werror -O0 -g -DDEBUG_FITS" )
+SET(CMAKE_C_FLAGS_DEBUG "-O0 -g -DDEBUG_FITS" )
 
 find_package(USB REQUIRED)
 find_package(CFITSIO REQUIRED)
@@ -17,25 +17,21 @@ find_package(Threads REQUIRED)
 find_package(JPEG REQUIRED)
 
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
-include_directories( ${CMAKE_SOURCE_DIR})
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
 include_directories( ${INDI_INCLUDE_DIR})
 include_directories( ${CFITSIO_INCLUDE_DIR})
-include_directories( ${LIBGPHOTO2_INCLUDE_DIR})
+include_directories( ${GPHOTO2_INCLUDE_DIR})
 
 ########### Gphoto ###########
 set(indigphoto_SRCS
-   ${CMAKE_SOURCE_DIR}/gphoto_ccd.cpp
-   ${CMAKE_SOURCE_DIR}/gphoto_driver.c
-   ${CMAKE_SOURCE_DIR}/gphoto_readimage.c
+   ${CMAKE_CURRENT_SOURCE_DIR}/gphoto_ccd.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/gphoto_driver.c
+   ${CMAKE_CURRENT_SOURCE_DIR}/gphoto_readimage.c
    )
-
-if(COMMAND cmake_policy)
-  cmake_policy(SET CMP0003 NEW)
-endif(COMMAND cmake_policy)
 
 add_executable(indi_gphoto_ccd ${indigphoto_SRCS})
 
-target_link_libraries(indi_gphoto_ccd ${INDI_MAIN_LIBRARIES} ${CFITSIO_LIBRARIES} ${LIBGPHOTO2_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${JPEG_LIBRARIES} ${ZLIB_LIBRARIES} gphoto2_port )
+target_link_libraries(indi_gphoto_ccd ${INDI_MAIN_LIBRARIES} ${CFITSIO_LIBRARIES} ${GPHOTO2_LIBRARY} ${GPHOTO2_PORT_LIBRARY} ${CMAKE_THREAD_LIBS_INIT} ${JPEG_LIBRARIES} ${ZLIB_LIBRARIES})
 install(TARGETS indi_gphoto_ccd RUNTIME DESTINATION bin )
 
 install(FILES indi_gphoto.xml DESTINATION ${INDI_DATA_DIR})

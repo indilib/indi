@@ -1,0 +1,22 @@
+cmake_minimum_required(VERSION 2.6)
+
+PROJECT(libindi-3rdparty CXX C)
+
+add_subdirectory(indi-eqmod)
+add_subdirectory(indi-sx)
+add_subdirectory(indi-qhy)
+add_subdirectory(indi-maxdomeii)
+add_subdirectory(indi-spectracyber)
+
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+add_subdirectory(libqsi)
+add_subdirectory(indi-qsi)
+add_subdirectory(sbig)
+add_subdirectory(indi-sbig)
+add_subdirectory(libfli)
+add_subdirectory(indi-fli)
+add_subdirectory(indi-duino)
+add_subdirectory(indi-gphoto)
+add_subdirectory(libapogee)
+add_subdirectory(indi-apogee)
+endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")

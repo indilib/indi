@@ -19,9 +19,9 @@ ENDIF(UNIX AND NOT WIN32 AND NOT APPLE)
 
 
 if (LIB_64)
-exec_program(cp ARGS ${CMAKE_SOURCE_DIR}/libfishcamp64.bin ${CMAKE_BINARY_DIR}/libFcLinux.so.${LIBFISHCAMP_VERSION})
+exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/libfishcamp64.bin ${CMAKE_BINARY_DIR}/libFcLinux.so.${LIBFISHCAMP_VERSION})
 else (LIB_64)
-exec_program(cp ARGS ${CMAKE_SOURCE_DIR}/libfishcamp32.bin ${CMAKE_BINARY_DIR}/libFcLinux.so.${LIBFISHCAMP_VERSION})
+exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/libfishcamp32.bin ${CMAKE_BINARY_DIR}/libFcLinux.so.${LIBFISHCAMP_VERSION})
 endif(LIB_64)
 
 # Make sure symbolic links are installed

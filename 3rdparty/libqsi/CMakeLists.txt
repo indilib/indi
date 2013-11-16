@@ -1,7 +1,7 @@
 #this is just a basic CMakeLists.txt, for more information see the cmake manpage
 cmake_minimum_required(VERSION 2.4.7)
 
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 
 FIND_PACKAGE(FTDI REQUIRED)
 
@@ -13,7 +13,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY
 ADD_DEFINITIONS(-Wall -O2 -fPIC -g -fpermissive)
 
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
-include_directories( ${CMAKE_SOURCE_DIR})
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
 
 set(qsi_LIB_SRCS
    CameraID.cpp CCDCamera.cpp Filter.cpp FilterWheel.cpp HotPixelMap.cpp qsiapi.cpp QSIFeatures.cpp QSI_Interface.cpp QSILog.cpp QSI_PacketWrapper.cpp QSI_USBWrapper.cpp
@@ -36,7 +36,7 @@ INSTALL(TARGETS qsiapi LIBRARY DESTINATION lib)
 # build API test
 set(qsiapitest_SRCS
    ${qsi_LIB_SRCS}
-   ${CMAKE_SOURCE_DIR}/demo_src/qsiapitest.cpp )
+   ${CMAKE_CURRENT_SOURCE_DIR}/demo_src/qsiapitest.cpp )
 
 add_executable(qsiapitest ${qsiapitest_SRCS})
 
@@ -48,7 +48,7 @@ install(TARGETS qsiapitest RUNTIME DESTINATION bin )
 # build demo
 set(qsidemo_SRCS
    ${qsi_LIB_SRCS}
-   ${CMAKE_SOURCE_DIR}/demo_src/qsidemo.cpp)
+   ${CMAKE_CURRENT_SOURCE_DIR}/demo_src/qsidemo.cpp)
 
 add_executable(qsidemo ${qsidemo_SRCS})
 

@@ -254,7 +254,7 @@ int Home_Azimuth_MaxDomeII(int fd)
 int Goto_Azimuth_MaxDomeII(int fd, int nDir, int nTicks)
 {
     char cMessage[MAX_BUFFER];
-    int nErrorType;
+    int nErrorType=0;
     int nBytesWrite;
 	int nReturn;
 	
