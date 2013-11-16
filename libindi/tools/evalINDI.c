@@ -317,9 +317,9 @@ getProps(FILE *fp)
 		continue;
 	    if (verbose)
 		fprintf (stderr, "sending getProperties for %.*s\n",
-					strchr (ops[i],'.')-ops[i], ops[i]);
+                    (int)(strchr (ops[i],'.')-ops[i]), ops[i]);
 	    fprintf (fp, "<getProperties version='%g' device='%.*s'/>\n", INDIV,
-					strchr (ops[i],'.')-ops[i], ops[i]);
+                    (int)(strchr (ops[i],'.')-ops[i]), ops[i]);
 	}
 }
 
