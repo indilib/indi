@@ -1,5 +1,8 @@
 /*******************************************************************************
-  Copyright(c) 2011 Gerry Rozema. All rights reserved.
+ Copyright(c) 2011 Gerry Rozema. All rights reserved.
+ 
+ Upgrade to libusb 1.0 by CloudMakers, s. r. o.
+ Copyright(c) 2013 CloudMakers, s. r. o. All rights reserved.
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
@@ -15,168 +18,157 @@
  the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
+
 #include "indiusbdevice.h"
 
 #include <string.h>
 
-INDI::USBDevice::USBDevice()
-{
+static libusb_context *ctx = NULL;
+
+INDI::USBDevice::USBDevice() {
 	dev=NULL;
 	usb_handle=NULL;
 	OutputEndpoint=0;
 	InputEndpoint=0;
 
-	usb_init();
-	usb_find_busses();
-	usb_find_devices();
+  if (ctx == NULL) {
+    int rc = libusb_init(&ctx);
+    if (rc < 0) {
+      fprintf(stderr, "USBDevice: Can't initialize libusb\n");
+    }
+  }
 }
 
 
-INDI::USBDevice::~USBDevice()
-{
+INDI::USBDevice::~USBDevice() {
+  libusb_exit(ctx);
 }
 
-struct usb_device * INDI::USBDevice::FindDevice(int vendor, int product, int searchindex)
-{
-    struct usb_device *dev;
-    struct usb_bus *usb_bus;
-    int index=0;
-
-    for(usb_bus=usb_busses; usb_bus; usb_bus=usb_bus->next) {
-        for(dev=usb_bus->devices; dev; dev=dev->next) {
-            if(dev->descriptor.idVendor==vendor) {
-                if(dev->descriptor.idProduct==product) {
-                    if(index==searchindex) {
-                        fprintf(stderr,"Device has %d configurations\n",dev->descriptor.bNumConfigurations);
-                        return dev;
-                    }
-                    else index++;
-                }
-            }
+libusb_device* INDI::USBDevice::FindDevice(int vendor, int product, int searchindex) {
+  int index = 0;
+  libusb_device **usb_devices;
+  struct libusb_device_descriptor descriptor;
+  ssize_t total = libusb_get_device_list(ctx, &usb_devices);
+  if (total < 0) {
+    fprintf(stderr, "USBDevice: Can't get device list\n");
+    return 0;
+  }
+  for (int i = 0; i < total; i++) {
+    libusb_device *device = usb_devices[i];
+    if (!libusb_get_device_descriptor(device, &descriptor)) {
+      if (descriptor.idVendor == vendor && descriptor.idProduct == product) {
+        if (index == searchindex) {
+          libusb_ref_device(device);
+          libusb_free_device_list(usb_devices, 1);
+          fprintf(stderr, "Found device %04x/%04x/%d", vendor, product, searchindex);
+          return device;
+        } else {
+          fprintf(stderr, "Skipping device %04x/%04x/%d", vendor, product, index);
+          index++;
         }
+      } else {
+        fprintf(stderr, "Skipping device %04x/%04x", vendor, product);
+      }
     }
-    return NULL;
-
+  }
+  libusb_free_device_list(usb_devices, 1);
+  return NULL;
 }
 
-int INDI::USBDevice::Open()
-{
-	if(dev==NULL) return -1;
+int INDI::USBDevice::Open() {
+	if(dev == NULL)
+	  return -1;
 
-	usb_handle=usb_open(dev);
-	if(usb_handle != NULL) {
-		//printf("Opened ok\n");
+  int rc = libusb_open(dev, &usb_handle);
 
+  if (rc >= 0) {
+    if (libusb_kernel_driver_active(usb_handle, 0) == 1) {
+      rc = libusb_detach_kernel_driver(usb_handle, 0);
+      if (rc <= 0) {
+        fprintf(stderr, "USBDevice: libusb_detach_kernel_driver -> %s\n", libusb_error_name(rc));
+      }
+    }    
+    if (rc >= 0) {
+      rc = libusb_claim_interface(usb_handle, 0);
+      if (rc <= 0) {
+        fprintf(stderr, "USBDevice: libusb_claim_interface -> %s\n", libusb_error_name(rc));
+      }
+    }
 		return FindEndpoints();
-		//return 0;
-	}
-	return -1;
+  }
+  return rc;
 }
 
-int INDI::USBDevice::FindEndpoints()
-{
+void INDI::USBDevice::Close() {
+  libusb_close(usb_handle);
+}
 
-	int rc=0;
-	struct usb_interface_descriptor *intf;
-
-
-
-	intf=&dev->config[0].interface[0].altsetting[0];
-	for(int i=0; i<intf->bNumEndpoints; i++) {
-		fprintf(stderr,"%04x %04x\n",
-			   intf->endpoint[i].bEndpointAddress,
-			   intf->endpoint[i].bmAttributes
-			   );
-
-		int dir;
-		int addr;
-		addr=intf->endpoint[i].bEndpointAddress;
-		addr = addr & (USB_ENDPOINT_DIR_MASK^0xffff);
-		//printf("%02x ",addr);
-
-		int attr;
-		int tp;
-		attr=intf->endpoint[i].bmAttributes;
-		tp=attr&USB_ENDPOINT_TYPE_MASK;
-		//if(tp==USB_ENDPOINT_TYPE_BULK) printf("Bulk  ");
-		//if(tp==USB_ENDPOINT_TYPE_INTERRUPT) printf("Interrupt ");
-
-
-
-		dir=intf->endpoint[i].bEndpointAddress;
-		dir=dir&USB_ENDPOINT_DIR_MASK;
-		if(dir==USB_ENDPOINT_IN) {
-			//printf("Input  ");
-			fprintf(stderr,"Got an input endpoint\n");
-			InputEndpoint=addr;
-			InputType=tp;
+int INDI::USBDevice::FindEndpoints() {
+  struct libusb_config_descriptor *config;
+  struct libusb_interface_descriptor *interface;
+  int rc = libusb_get_config_descriptor(dev, 0, &config);
+  if (rc <= 0) {
+    fprintf(stderr, "USBDevice: libusb_get_config_descriptor -> %s\n", libusb_error_name(rc));
+    return rc;
+  }
+  
+  interface = (struct libusb_interface_descriptor *)&(config->interface[0].altsetting[0]);
+  for (int i = 0; i < interface->bNumEndpoints; i++) {
+    fprintf(stderr, "Endpoint %04x %04x\n", interface->endpoint[i].bEndpointAddress, interface->endpoint[i].bmAttributes);
+    int dir = interface->endpoint[i].bEndpointAddress & LIBUSB_ENDPOINT_DIR_MASK;
+		if (dir == LIBUSB_ENDPOINT_IN) {
+			fprintf(stderr, "Got an input endpoint\n");
+			InputEndpoint = interface->endpoint[i].bEndpointAddress & LIBUSB_ENDPOINT_ADDRESS_MASK;
+			InputType = interface->endpoint[i].bmAttributes & LIBUSB_TRANSFER_TYPE_MASK;
+		} else if (dir == LIBUSB_ENDPOINT_OUT) {
+			fprintf(stderr, "Got an output endpoint\n");
+			OutputEndpoint = interface->endpoint[i].bEndpointAddress & LIBUSB_ENDPOINT_ADDRESS_MASK;
+			OutputType = interface->endpoint[i].bmAttributes & LIBUSB_TRANSFER_TYPE_MASK;
 		}
-		if(dir==USB_ENDPOINT_OUT) {
-			//printf("Output ");
-			fprintf(stderr,"got an output endpoint\n");
-			OutputEndpoint=addr;
-			OutputType=tp;
-		}
-		//printf("\n");
-	}
-
-	//printf("claim interface returns %d\n",rc);
-	return rc;
-
+  }
+  return 0;
 }
 
-int INDI::USBDevice::ReadInterrupt(char *buf,int c,int timeout)
-{
-	int rc;
-
-	rc=usb_interrupt_read(usb_handle,InputEndpoint,buf,c,timeout);
-	//rc=usb_bulk_read(usb_handle,InputEndpoint,buf,c,timeout);
-	return rc;
-
+int INDI::USBDevice::ReadInterrupt(unsigned char *buf, int count, int timeout) {
+  int transferred;
+	int rc = libusb_interrupt_transfer(usb_handle, InputEndpoint, buf, count, &transferred, timeout);
+  if (rc <= 0) {
+    fprintf(stderr, "USBDevice: libusb_interrupt_transfer -> %s\n", libusb_error_name(rc));	
+  }
+	return rc < 0 ? rc : transferred;
 }
 
-int INDI::USBDevice::WriteInterrupt(char *buf,int c,int timeout)
-{
-	int rc;
-
-	//printf("Writing %02x to endpoint %d\n",buf[0],OutputEndpoint);
-	rc=usb_interrupt_write(usb_handle,OutputEndpoint,buf,c,timeout);
-	return rc;
-
+int INDI::USBDevice::WriteInterrupt(unsigned char *buf, int count, int timeout) {
+  int transferred;
+	int rc = libusb_interrupt_transfer(usb_handle, OutputEndpoint, buf, count, &transferred, timeout);
+  if (rc <= 0) {
+    fprintf(stderr, "USBDevice: libusb_interrupt_transfer -> %s\n", libusb_error_name(rc));	
+  }
+	return rc < 0 ? rc : transferred;
 }
 
-int INDI::USBDevice::ReadBulk(char *buf,int nbytes,int timeout)
-{
-	int rc;
-
-	//rc=usb_interrupt_read(usb_handle,InputEndpoint,buf,c,timeout);
-        rc=usb_bulk_read(usb_handle,InputEndpoint,buf,nbytes,timeout);
-	return rc;
-
+int INDI::USBDevice::ReadBulk(unsigned char *buf, int count, int timeout) {
+  int transferred;
+	int rc = libusb_bulk_transfer(usb_handle, InputEndpoint, buf, count, &transferred, timeout);
+  if (rc <= 0) {
+    fprintf(stderr, "USBDevice: libusb_bulk_transfer -> %s\n", libusb_error_name(rc));	
+  }
+	return rc < 0 ? rc : transferred;
 }
 
-int INDI::USBDevice::WriteBulk(char *buf,int nbytes,int timeout)
-{
-	int rc;
-
-	//printf("Writing %02x to endpoint %d\n",buf[0],OutputEndpoint);
-	//rc=usb_interrupt_write(usb_handle,OutputEndpoint,buf,c,timeout);
-    rc=usb_bulk_write(usb_handle,OutputEndpoint,buf,nbytes,timeout);
-	return rc;
-
+int INDI::USBDevice::WriteBulk(unsigned char *buf,int count,int timeout) {
+  int transferred;
+	int rc = libusb_bulk_transfer(usb_handle, OutputEndpoint, buf, count, &transferred, timeout);
+  if (rc <= 0) {
+    fprintf(stderr, "USBDevice: libusb_bulk_transfer -> %s\n", libusb_error_name(rc));	
+  }
+	return rc < 0 ? rc : transferred;
 }
 
-int INDI::USBDevice::ControlMessage(unsigned char request_type, unsigned char request, unsigned int value, unsigned int index, char *data, unsigned char len)
-{
-    int result;
-
-    //dprintf("Sending %s command 0x%02x, 0x%02x, 0x%04x, 0x%04x, %d bytes\n",(request_type & USB_ENDPOINT_IN) ? "recv" : "send",	request_type, request, value, index, len);
-
-    result =  usb_control_msg(usb_handle, request_type,	request, value, index, data, len, 5000);
-    /*for(i = 0; i < len; i++)
-    {
-        dprintf(" %02x", (unsigned char)data[i]);
-    }
-    dprintf("\n");*/
-    return result;
+int INDI::USBDevice::ControlMessage(unsigned char request_type, unsigned char request, unsigned int value, unsigned int index, unsigned char *data, unsigned char len) {
+  int rc = libusb_control_transfer(usb_handle, request_type,	request, value, index, data, len, 5000);
+  if (rc <= 0) {
+    fprintf(stderr, "USBDevice: libusb_control_transfer -> %s\n", libusb_error_name(rc));	
+  }
+	return rc;
 }

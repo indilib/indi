@@ -1,5 +1,8 @@
 /*******************************************************************************
-  Copyright(c) 2011 Gerry Rozema. All rights reserved.
+ Copyright(c) 2011 Gerry Rozema. All rights reserved.
+ 
+ Upgrade to libusb 1.0 by CloudMakers, s. r. o.
+ Copyright(c) 2013 CloudMakers, s. r. o. All rights reserved.
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
@@ -26,7 +29,7 @@
 #include <unistd.h>
 #include <errno.h>
 
-#include <usb.h>
+#include <libusb-1.0/libusb.h>
 
 #include "indibase.h"
 
@@ -35,15 +38,12 @@
    \brief Class to provide general functionality of a generic USB device.
 
    Developers need to subclass INDI::USBDevice to implement any driver within INDI that requires direct read/write/control over USB.
-
-\author Gerry Rozema
-\note This class implements legacy libusb API v0.1
 */
 class INDI::USBDevice
 {
 protected:
-	struct usb_device *dev;
-	struct usb_dev_handle *usb_handle;
+	libusb_device *dev;
+	libusb_device_handle *usb_handle;
 
 	int ProductId;
 	int VendorId;
@@ -53,20 +53,21 @@ protected:
 	int InputType;
 	int InputEndpoint;
 
-	struct usb_device * FindDevice(int,int,int);
+	libusb_device *FindDevice(int,int,int);
 
 public:
-	int WriteInterrupt(char *,int,int);
-	int ReadInterrupt(char *,int,int);
-    int ControlMessage(unsigned char request_type, unsigned char request, unsigned int value, unsigned int index, char *data, unsigned char len);
+	int WriteInterrupt(unsigned char *, int, int);
+	int ReadInterrupt(unsigned char *, int, int);
+  int ControlMessage(unsigned char request_type, unsigned char request, unsigned int value, unsigned int index, unsigned char *data, unsigned char len);
 
-    int WriteBulk(char *buf,int nbytes,int timeout);
-    int ReadBulk(char *buf,int nbytes,int timeout);
+  int WriteBulk(unsigned char *buf, int nbytes, int timeout);
+  int ReadBulk(unsigned char *buf, int nbytes, int timeout);
 	int FindEndpoints();
 	int Open();
-    USBDevice(void);
-    USBDevice(struct usb_device *);
-    virtual ~USBDevice(void);
+	void Close();
+  USBDevice(void);
+  USBDevice(libusb_device *dev);
+  virtual ~USBDevice(void);
 };
 
 #endif // USBDEVICE_H

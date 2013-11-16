@@ -34,7 +34,7 @@ include (MacroBoolTo01)
 include (CheckIncludeFiles)
 
 FIND_PACKAGE(ZLIB REQUIRED)
-FIND_PACKAGE(USB REQUIRED)
+FIND_PACKAGE(USB-1 REQUIRED)
 FIND_PACKAGE(CFITSIO REQUIRED)
 FIND_PACKAGE(Nova REQUIRED)
 
@@ -158,7 +158,7 @@ set_target_properties(indimain PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} S
 # To link with main() and indibase classes  ######
 ##################################################
 add_library(indidriver SHARED ${libindicom_SRCS} ${liblilxml_SRCS} ${indimain_SRCS} ${indidriver_SRCS})
-target_link_libraries(indidriver ${LIBUSB_LIBRARIES} ${NOVA_LIBRARIES})
+target_link_libraries(indidriver ${LIBUSB_1_LIBRARIES} ${NOVA_LIBRARIES})
 if (CFITSIO_FOUND)
 target_link_libraries(indidriver ${CFITSIO_LIBRARIES})
 endif(CFITSIO_FOUND)
