@@ -225,7 +225,7 @@ int IUUpdateNumber(INumberVectorProperty *nvp, double values[], char *names[], i
     if (values[i] < np->min || values[i] > np->max)
     {
        nvp->s = IPS_IDLE;
-       IDSetNumber(nvp, "Error: Invalid range. Valid range is from %g to %g", np->min, np->max);
+       IDSetNumber(nvp, "Error: Invalid range for %s. Valid range is from %g to %g. Requested value is %g", np->name, np->min, np->max, values[i]);
        return -1;
     }
       
