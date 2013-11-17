@@ -1,21 +1,33 @@
-obj-m		:= fliusb.o
+modname := fliusb
+obj-m := $(modname).o
 
-KDIR		?= /lib/modules/$(shell uname -r)/build
-PWD		:= $(shell pwd)
+KVERSION := $(shell uname -r)
+KDIR := /lib/modules/$(KVERSION)/build
+PWD := "$$(pwd)"
 
-EXTRA_CFLAGS		+= -O2 -Wall
+ifdef DEBUG
+CFLAGS_$(obj-m) := -DDEBUG
+endif
 
-#EXTRA_CFLAGS		+= -DDEBUG	# enable debug messages
-#EXTRA_CFLAGS		+= -DASYNCWRITE	# enable asynchronous writes
 EXTRA_CFLAGS		+= -DSGREAD	# enable scatter-gather reads
 
-all: module cleanup
+default:
+	$(MAKE) -C $(KDIR) M=$(PWD) modules
 
-module:
-	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules
+clean:
+	$(MAKE) O=$(PWD) -C $(KDIR) M=$(PWD) clean
 
-cleanup:
-	rm -f *.o .*.cmd *.mod.c; rm -rf .tmp_versions
+load:
+	-rmmod $(modname)
+	insmod $(modname).ko
 
-clean: cleanup
-	rm -f *.ko test
+install:
+	mkdir -p /lib/modules/$(KVERSION)/misc/$(modname)
+	install -m 0755 -o root -g root $(modname).ko /lib/modules/$(KVERSION)/misc/$(modname)
+	depmod -a
+
+uninstall:
+	rm /lib/modules/$(KVERSION)/misc/$(modname)/$(modname).ko
+	rmdir /lib/modules/$(KVERSION)/misc/$(modname)
+	rmdir /lib/modules/$(KVERSION)/misc
+	depmod -a
