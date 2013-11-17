@@ -1,54 +1,66 @@
-# - Try to find libgphoto2
-# Once done this will define
+# - Find the native sqlite3 includes and library
 #
-#  LIBGPHOTO2_FOUND - system has libgphoto2
-#  LIBGPHOTO2_INCLUDE_DIR - the libgphoto2 include directory
-#  LIBGPHOTO2_LIBRARIES - Link these to use libghoto2
-
-# Copyright (c) 2009, Geoffrey Hausheer
-# Based on FindINDI by Jasem Mutlaq <mutlaqja@ikarustech.com>
+# This module defines
+#  GPHOTO2_INCLUDE_DIR, where to find libgphoto2 header files
+#  GPHOTO2_LIBRARIES, the libraries to link against to use libgphoto2
+#  GPHOTO2_FOUND, If false, do not try to use libgphoto2.
+#  GPHOTO2_VERSION_STRING, e.g. 2.4.14
+#  GPHOTO2_VERSION_MAJOR, e.g. 2
+#  GPHOTO2_VERSION_MINOR, e.g. 4
+#  GPHOTO2_VERSION_PATCH, e.g. 14
 #
-# Redistribution and use is allowed according to the terms of the BSD license.
-# For details see the accompanying COPYING-CMAKE-SCRIPTS file.
-
-if (LIBGPHOTO2_INCLUDE_DIR AND LIBGPHOTO2_LIBRARIES)
-
-  # in cache already
-  set(LIBGPHOTO2_FOUND TRUE)
-  message(STATUS "Found libgphoto2: ${LIBGPHOTO2_LIBRARIES}")
+# also defined, but not for general use are
+#  GPHOTO2_LIBRARY, where to find the sqlite3 library.
 
 
-else (LIBGPHOTO2_INCLUDE_DIR AND LIBGPHOTO2_LIBRARIES)
+#=============================================================================
+# Copyright 2010 henrik andersson
+#=============================================================================
 
-  find_path(LIBGPHOTO2_INCLUDE_DIR gphoto2.h
-    PATH_SUFFIXES gphoto2
-    ${_obIncDir}
-    ${GNUWIN32_DIR}/include
-  )
+SET(GPHOTO2_FIND_REQUIRED ${Gphoto2_FIND_REQUIRED})
 
-  find_library(LIBGPHOTO2_LIBRARIES NAMES gphoto2
-    PATHS
-    ${_obLinkDir}
-    ${GNUWIN32_DIR}/lib
-  )
+find_path(GPHOTO2_INCLUDE_DIR gphoto2/gphoto2.h)
+mark_as_advanced(GPHOTO2_INCLUDE_DIR)
 
-  if(LIBGPHOTO2_INCLUDE_DIR AND LIBGPHOTO2_LIBRARIES)
-    set(LIBGPHOTO2_FOUND TRUE)
-  else (LIBGPHOTO2_INCLUDE_DIR AND LIBGPHOTO2_LIBRARIES)
-    set(LIBGPHOTO2_FOUND FALSE)
-  endif(LIBGPHOTO2_INCLUDE_DIR AND LIBGPHOTO2_LIBRARIES)
+set(GPHOTO2_NAMES ${GPHOTO2_NAMES} gphoto2 libgphoto2)
+set(GPHOTO2_PORT_NAMES ${GPHOTO2_PORT_NAMES} gphoto2_port libgphoto2_port)
+find_library(GPHOTO2_LIBRARY NAMES ${GPHOTO2_NAMES} )
+find_library(GPHOTO2_PORT_LIBRARY NAMES ${GPHOTO2_PORT_NAMES} )
+mark_as_advanced(GPHOTO2_LIBRARY)
+mark_as_advanced(GPHOTO2_PORT_LIBRARY)
 
+# Detect libgphoto2 version
+FIND_PROGRAM(GPHOTO2CONFIG_EXECUTABLE NAMES gphoto2-config)
+IF(GPHOTO2CONFIG_EXECUTABLE)
+  EXEC_PROGRAM(${GPHOTO2CONFIG_EXECUTABLE} ARGS --version RETURN_VALUE _return_VALUE OUTPUT_VARIABLE GPHOTO2_VERSION)
+  string(REGEX REPLACE "^.*libgphoto2 ([0-9]+).*$" "\\1" GPHOTO2_VERSION_MAJOR "${GPHOTO2_VERSION}")
+  string(REGEX REPLACE "^.*libgphoto2 [0-9]+\\.([0-9]+).*$" "\\1" GPHOTO2_VERSION_MINOR  "${GPHOTO2_VERSION}")
+  string(REGEX REPLACE "^.*libgphoto2 [0-9]+\\.[0-9]+\\.([0-9]+).*$" "\\1" GPHOTO2_VERSION_PATCH "${GPHOTO2_VERSION}")
 
-  if (LIBGPHOTO2_FOUND)
-    if (NOT LIBGPHOTO2_FIND_QUIETLY)
-      message(STATUS "Found libgphoto2: ${LIBGPHOTO2_LIBRARIES}")
-    endif (NOT LIBGPHOTO2_FIND_QUIETLY)
-  else (LIBGPHOTO2_FOUND)
-    if (LIBGPHOTO2_FIND_REQUIRED)
-      message(FATAL_ERROR "libgphoto2 not found.")
-    endif (LIBGPHOTO2_FIND_REQUIRED)
-  endif (LIBGPHOTO2_FOUND)
+  set(GPHOTO2_VERSION_STRING "${GPHOTO2_VERSION_MAJOR}.${GPHOTO2_VERSION_MINOR}.${GPHOTO2_VERSION_PATCH}")
+ENDIF(GPHOTO2CONFIG_EXECUTABLE)
 
-  mark_as_advanced(LIBGPHOTO2_INCLUDE_DIR LIBGPHOTO2_LIBRARIES)
+# handle the QUIETLY and REQUIRED arguments and set GPHOTO2_FOUND to TRUE if
+# all listed variables are TRUE
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(GPHOTO2 DEFAULT_MSG GPHOTO2_LIBRARY GPHOTO2_INCLUDE_DIR)
 
-endif (LIBGPHOTO2_INCLUDE_DIR AND LIBGPHOTO2_LIBRARIES)
+IF(GPHOTO2_FOUND)
+  SET(Gphoto2_LIBRARIES ${GPHOTO2_LIBRARY} ${GPHOTO2_PORT_LIBRARY})
+  SET(Gphoto2_INCLUDE_DIRS ${GPHOTO2_INCLUDE_DIR})
+
+  # libgphoto2 dynamically loads and unloads usb library
+  # without calling any cleanup functions (since they are absent from libusb-0.1).
+  # This leaves usb event handling threads running with invalid callback and return addresses,
+  # which causes a crash after any usb event is generated, at least in Mac OS X. 
+  # libusb1 backend does correctly call exit function, but ATM it crashes anyway.
+  # Workaround is to link against libusb so that it wouldn't get unloaded.
+  IF(APPLE)
+    find_library(USB_LIBRARY NAMES usb-1.0 libusb-1.0)
+    mark_as_advanced(USB_LIBRARY)
+    IF(USB_LIBRARY)
+      SET(Gphoto2_LIBRARIES ${Gphoto2_LIBRARIES} ${USB_LIBRARY})
+    ENDIF(USB_LIBRARY)
+  ENDIF(APPLE)
+
+ENDIF(GPHOTO2_FOUND)
