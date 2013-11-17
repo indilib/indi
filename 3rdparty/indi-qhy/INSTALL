@@ -1,10 +1,14 @@
-In order to build the INDI qhy5 drivers, you must have:
+In order to build the INDI qhy drivers, you must have:
 cmake installed
-libusb 1.x  along with the header files (libusb-1.0.0-dev)
-INDI installed along with the header files.
+libusb 1.0.xx (libusb 0.1 is not supported) along with the header files,
+INDI installed along with the header files,
 cfitsio installed
 
 Run:
 cmake .
 make
 sudo make install
+
+To test the build execute standalone application (requires libusb 1.0 only)
+
+qhy_test

@@ -1,0 +1,15 @@
+/*
+ * QHY CCD INDI Driver
+ *
+ * Copyright (c) 2013 CloudMakers, s. r. o. All Rights Reserved.
+ *
+ * The code is based upon Linux library source developed by
+ * QHYCCD Inc. It is provided by CloudMakers and contributors
+ * "AS IS", without warranty of any kind.
+ * 
+ * Copyright (C) 2013 QHYCCD Inc.
+ */
+ 
+
+#define VERSION_MAJOR @VERSION_MAJOR@
+#define VERSION_MINOR @VERSION_MINOR@
