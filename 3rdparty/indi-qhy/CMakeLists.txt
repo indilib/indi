@@ -38,13 +38,14 @@ set(qhytest_SRCS
    )
 
 add_executable(indi_qhy_ccd ${indiqhy_SRCS})
-add_executable(qhy_test ${qhytest_SRCS})
+add_executable(qhy_ccd_test ${qhytest_SRCS})
 
 
 target_link_libraries(indi_qhy_ccd ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${ZLIB_LIBRARIES} ${LIBUSB_1_LIBRARIES})
-target_link_libraries(qhy_test ${LIBUSB_1_LIBRARIES})
+target_link_libraries(qhy_ccd_test ${LIBUSB_1_LIBRARIES})
 
 install(TARGETS indi_qhy_ccd RUNTIME DESTINATION bin )
+install(TARGETS qhy_ccd_test RUNTIME DESTINATION bin )
 
 install(FILES indi_qhy.xml DESTINATION ${INDI_DATA_DIR} )
 
