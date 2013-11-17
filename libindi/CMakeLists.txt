@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.4.7)
 PROJECT(libindi C CXX)
 
+cmake_policy(SET CMP0003 NEW)
+
 ##################  INDI version  ################################
 set(INDI_SOVERSION "0")
 set(CMAKE_INDI_VERSION_MAJOR 0)
@@ -149,8 +151,8 @@ set_target_properties(indimain PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} S
 ##################################################
 add_library(indidriver SHARED ${libindicom_SRCS} ${liblilxml_SRCS} ${indimain_SRCS} ${indidriver_SRCS})
 target_link_libraries(indidriver ${LIBUSB_1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY})
-install(TARGETS indidriver LIBRARY DESTINATION ${LIB_DESTINATION})
 set_target_properties(indidriver PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION})
+install(TARGETS indidriver LIBRARY DESTINATION ${LIB_DESTINATION})
 
 #install(TARGETS indidriver ARCHIVE DESTINATION ${LIB_DESTINATION})
 
@@ -181,7 +183,6 @@ install(TARGETS indi_lx200basic RUNTIME DESTINATION bin )
 
 ########### LX200 Generic ###########
 set(lx200generic_SRCS
-   ${indimain_SRCS}
    ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200driver.c
    ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200autostar.cpp
    ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200_16.cpp
@@ -191,7 +192,7 @@ set(lx200generic_SRCS
 
 add_executable(indi_lx200generic ${lx200generic_SRCS})
 
-target_link_libraries(indi_lx200generic indidriver ${NOVA_LIBRARIES} ${M_LIB} )
+target_link_libraries(indi_lx200generic indidriver)
 
 install(TARGETS indi_lx200generic RUNTIME DESTINATION bin )
 
@@ -228,7 +229,6 @@ set_target_properties(indi_lx200genericlegacy PROPERTIES POST_INSTALL_SCRIPT ${C
 
 ########### Celestron GPS ############
 set(celestrongps_SRCS
-   ${indimain_SRCS}
    ${CMAKE_SOURCE_DIR}/drivers/telescope/celestronprotocol.c
    ${CMAKE_SOURCE_DIR}/drivers/telescope/celestrongps.cpp )
 
