@@ -340,7 +340,7 @@ bool INDI::CCD::initProperties()
 
     IUFillSwitch(&GuideCCD.RapidGuideS[0], "ENABLE", "Enable", ISS_OFF);
     IUFillSwitch(&GuideCCD.RapidGuideS[1], "DISABLE", "Disable", ISS_ON);
-    IUFillSwitchVector(GuideCCD.RapidGuideSP, GuideCCD.RapidGuideS, 2, getDeviceName(), "GUIDER_RAPID_GUIDE", "Guder Head Rapid Guide", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(GuideCCD.RapidGuideSP, GuideCCD.RapidGuideS, 2, getDeviceName(), "GUIDER_RAPID_GUIDE", "Guider Head Rapid Guide", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillSwitch(&GuideCCD.RapidGuideSetupS[0], "AUTO_LOOP", "Auto loop", ISS_ON);
     IUFillSwitch(&GuideCCD.RapidGuideSetupS[1], "SEND_IMAGE", "Send image", ISS_OFF);
@@ -1058,6 +1058,9 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
           targetChip->RapidGuideDataN[0].value = sumX/total;
           targetChip->RapidGuideDataN[1].value = sumY/total;
           targetChip->RapidGuideDataNP->s=IPS_OK;
+
+          DEBUGF(INDI::Logger::DBG_DEBUG, "Guide Star X: %g Y: %g FIT: %g", targetChip->RapidGuideDataN[0].value, targetChip->RapidGuideDataN[1].value,
+                  targetChip->RapidGuideDataN[2].value);
         }
         else
           targetChip->RapidGuideDataNP->s=IPS_ALERT;
@@ -1073,7 +1076,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
         int ymin = std::max(iy - 10, 0);
         int ymax = std::min(iy + 10, height - 1);
         
-        fprintf(stderr, "%d %d %d %d\n", xmin, xmax, ymin, ymax);
+        //fprintf(stderr, "%d %d %d %d\n", xmin, xmax, ymin, ymax);
         
         if (ymin > 0)
         {
@@ -1153,8 +1156,8 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
 
       nelements = naxes[0] * naxes[1];
 
-      DEBUGF(Logger::DBG_DEBUG, "Exposure complete. Image Depth: %s. Width: %d Height: %d nelements: %d", bit_depth.c_str(), naxes[0],
-              naxes[1], nelements);
+      /*DEBUGF(Logger::DBG_DEBUG, "Exposure complete. Image Depth: %s. Width: %d Height: %d nelements: %d", bit_depth.c_str(), naxes[0],
+              naxes[1], nelements);*/
 
       //  Now we have to send fits format data to the client
       memsize=5760;
@@ -1200,7 +1203,6 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
       targetChip->FitsB.size=memsize;
       strcpy(targetChip->FitsB.format,".fits");
       targetChip->FitsBP->s=IPS_OK;
-      //IDLog("Enter Uploadfile with %d total sending via %s, and format %s\n",total,targetChip->FitsB.name, targetChip->FitsB.format);
       IDSetBLOB(targetChip->FitsBP,NULL);
 
       free(memptr);
@@ -1218,7 +1220,11 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
         if (StartExposure(ExposureTime))
            PrimaryCCD.ImageExposureNP->s=IPS_BUSY;
         else
+        {
+           DEBUG(INDI::Logger::DBG_DEBUG, "Autoloop: Primary CCD Exposure Error!");
            PrimaryCCD.ImageExposureNP->s=IPS_ALERT;
+        }
+
         IDSetNumber(PrimaryCCD.ImageExposureNP,NULL);
       }
       else
@@ -1228,7 +1234,11 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
         if (StartGuideExposure(GuiderExposureTime))
            GuideCCD.ImageExposureNP->s=IPS_BUSY;
         else
+        {
+           DEBUG(INDI::Logger::DBG_DEBUG, "Autoloop: Guide CCD Exposure Error!");
            GuideCCD.ImageExposureNP->s=IPS_ALERT;
+        }
+
         IDSetNumber(GuideCCD.ImageExposureNP,NULL);
       }
     }
