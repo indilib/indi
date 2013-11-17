@@ -13,7 +13,7 @@
 #include <stdio.h> 
 #include <unistd.h>
 #include <stdlib.h>
-#include <strings.h>
+#include <string.h>
 #include <libusb-1.0/libusb.h>
 
 #include "qhygeneric.h"
