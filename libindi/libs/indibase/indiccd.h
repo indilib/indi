@@ -336,6 +336,71 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         virtual bool ISSnoopDevice (XMLEle *root);
 
      protected:
+        /**
+         * @brief Sets whether the CCD has a guide head (2nd chip) designated for guiding.
+         * @param enable Set to true if CCD has guide head.
+         */
+        void SetGuideHead(bool enable) { hasGuideHead = enable; }
+
+        /**
+         * @brief Set whether the CCD has an ST4 port for guiding.
+         * @param enable Set to true if CCD has ST4 port.
+         */
+        void SetST4Port(bool enable)   { hasST4Port = enable; }
+
+        /**
+         * @brief Sets whether the CCD has a cooler and the temperature can be controlled.
+         * @param enable Set to true if CCD temperature can be queried and controlled.
+         */
+        void SetCooler(bool enable)    { hasCooler = enable; }
+
+        /**
+         * @brief Sets whether the CCD has an electronic or mechanical shutter.
+         * @param enable Set to true if the CCD has either an electronic or mechanical shutter.
+         */
+        void SetShutter(bool enable)   { hasShutter = enable; }
+
+        /**
+         * @return True if CCD has a guide head, false otherwise.
+         */
+        bool HasGuideHead() { return hasGuideHead; }
+
+        /**
+         * @return True if CCD has an ST4 port, false otherwise.
+         */
+        bool HasST4Port()   { return hasST4Port; }
+
+        /**
+         * @return True if CCD has a cooler, false otherwise.
+         */
+        bool HasCooler()    { return hasCooler; }
+
+        /**
+         * @return True if CCD has either an electronic or mechanical shutter, false otherwise.
+         */
+        bool HasShutter()   { return hasShutter; }
+
+
+        /**
+         * @brief Set primary CCD features.
+         * @param hasGuideHead Does it have a guide head?
+         * @param hasST4Port Does it have an ST4 port?
+         * @param hasCooler Does it have a cooler?
+         * @param hasShutter Does it have an electronic or mechanical shutter?
+         */
+        void SetCCDFeatures(bool hasGuideHead, bool hasST4Port, bool hasCooler, bool hasShutter);
+
+        /**
+         * @brief Set CCD temperature
+         * @param temperature CCD temperature in degrees celcius.
+         * @return 0 or 1 if setting the temperature call to the hardware is successful. -1 if an error is encountered.
+         *         Return 0 if setting the temperature to the requested value takes time. Return 1 if setting the temperature to the
+         *         requested value is complete.
+         * \note Upon returning 0, the property becomes BUSY. Once the temperature reaches the requested value, change the state to OK.
+         * \note This function is not implemented in INDI::CCD, it must be implemented in the child class
+         */
+        virtual int SetTemperature(double temperature);
+
         /** \brief Start exposing primary CCD chip
             \param duration Duration in seconds
             \return true if OK and exposure will take some time to complete, false on error.
@@ -376,7 +441,7 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
             \return true is CCD chip update is successful, false otherwise.
             \note This function is not implemented in INDI::CCD, it must be implemented in the child class
         */
-        virtual bool updateCCDFrame(int x, int y, int w, int h);
+        virtual bool UpdateCCDFrame(int x, int y, int w, int h);
 
 
         /** \brief INDI::CCD calls this function when Guide head frame dimension is updated by the client. Derived classes should implement this function
@@ -388,7 +453,7 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
             \return true is CCD chip update is successful, false otherwise.
             \note This function is not implemented in INDI::CCD, it must be implemented in the child class
         */
-        virtual bool updateGuideFrame(int x, int y, int w, int h);
+        virtual bool UpdateGuideFrame(int x, int y, int w, int h);
 
 
         /** \brief INDI::CCD calls this function when CCD Binning needs to be updated in the hardware. Derived classes should implement this function
@@ -397,7 +462,7 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
             \return true is CCD chip update is successful, false otherwise.
             \note This function is not implemented in INDI::CCD, it must be implemented in the child class
         */
-        virtual bool updateCCDBin(int hor, int ver);
+        virtual bool UpdateCCDBin(int hor, int ver);
 
 
         /** \brief INDI::CCD calls this function when Guide head binning is updated by the client. Derived classes should implement this function
@@ -406,7 +471,7 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
             \return true is CCD chip update is successful, false otherwise.
             \note This function is not implemented in INDI::CCD, it must be implemented in the child class
         */
-        virtual bool updateGuideBin(int hor, int ver);
+        virtual bool UpdateGuideBin(int hor, int ver);
 
         /** \brief INDI::CCD calls this function when CCD frame type needs to be updated in the hardware.
             \param fType Frame type
@@ -414,7 +479,7 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
             \note It is \e not mandotary to implement this function in the child class. The CCD hardware layer may either set the frame type when this function
              is called, or (optionally) before an exposure is started.
         */
-        virtual bool updateCCDFrameType(CCDChip::CCD_FRAME fType);
+        virtual bool UpdateCCDFrameType(CCDChip::CCD_FRAME fType);
 
         /** \brief INDI::CCD calls this function when Guide frame type is updated by the client.
             \param fType Frame type
@@ -422,7 +487,7 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
             \note It is \e not mandotary to implement this function in the child class. The CCD hardware layer may either set the frame type when this function
              is called, or (optionally) before an exposure is started.
         */
-        virtual bool updateGuideFrameType(CCDChip::CCD_FRAME fType);
+        virtual bool UpdateGuideFrameType(CCDChip::CCD_FRAME fType);
 
         /** \brief Setup CCD paramters for primary CCD. Child classes call this function to update CCD paramaters
             \param x Frame X coordinates in pixels.
@@ -502,10 +567,9 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
 
         virtual bool saveConfigItems(FILE *fp);
 
+
         float RA;
         float Dec;
-        bool HasGuideHead;
-        bool HasSt4Port;
         bool InExposure;
         bool InGuideExposure;
         bool RapidGuideEnabled;
@@ -531,7 +595,14 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         ITextVectorProperty *ActiveDeviceTP;
         IText ActiveDeviceT[2];
 
+        INumber                 TemperatureN[1];
+        INumberVectorProperty   TemperatureNP;
+
      private:
+        bool hasGuideHead;
+        bool hasST4Port;
+        bool hasShutter;
+        bool hasCooler;
         void getMinMax(double *min, double *max, CCDChip *targetChip);
 
 

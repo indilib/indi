@@ -96,8 +96,7 @@ CCDSim::CCDSim()
     AbortPrimaryFrame = false;
     ShowStarField=true;
 
-    HasSt4Port=true;
-    HasGuideHead=true;
+    SetCCDFeatures(true, true, false, true);
 
     polarError=0;
     polarDrift=0;
@@ -258,7 +257,7 @@ bool CCDSim::updateProperties()
     {
         SetupParms();
 
-        if(HasGuideHead)
+        if(HasGuideHead())
         {
             SetGuideHeadParams(500,290,16,9.8,12.6);
             GuideCCD.setFrameBufferSize(GuideCCD.getXRes() * GuideCCD.getYRes() * 2);

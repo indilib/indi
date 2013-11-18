@@ -215,8 +215,10 @@ void CCDChip::setExposureFailed()
 INDI::CCD::CCD()
 {
     //ctor
-    HasGuideHead=false;
-    HasSt4Port=false;
+    hasGuideHead=false;
+    hasST4Port=false;
+    hasShutter=false;
+    hasCooler=false;
     InExposure=false;
     InGuideExposure=false;
     RapidGuideEnabled=false;
@@ -242,9 +244,21 @@ INDI::CCD::~CCD()
     delete ActiveDeviceTP;
 }
 
+void INDI::CCD::SetCCDFeatures(bool hasGuideHead, bool hasST4Port, bool hasCooler, bool hasShutter)
+{
+    SetGuideHead(hasGuideHead);
+    SetST4Port(hasST4Port);
+    SetCooler(hasCooler);
+    SetShutter(hasShutter);
+}
+
 bool INDI::CCD::initProperties()
 {
     DefaultDevice::initProperties();   //  let the base class flesh in what it wants
+
+    // CCD Temperature
+    IUFillNumber(&TemperatureN[0], "CCD_TEMPERATURE_VALUE", "Temperature (C)", "%5.2f", -50.0, 50.0, 0., 0.);
+    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "CCD_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     // PRIMARY CCD Init
 
@@ -392,40 +406,42 @@ bool INDI::CCD::updateProperties()
         defineNumber(PrimaryCCD.ImageFrameNP);
         defineNumber(PrimaryCCD.ImageBinNP);
 
-        if(HasGuideHead)
+        if(hasGuideHead)
         {
-           // IDLog("Sending Guider Stuff\n");
             defineNumber(GuideCCD.ImageExposureNP);
             defineSwitch(GuideCCD.AbortExposureSP);
             defineNumber(GuideCCD.ImageFrameNP);
         }
 
+        if (hasCooler)
+            defineNumber(&TemperatureNP);
+
         defineNumber(PrimaryCCD.ImagePixelSizeNP);
-        if(HasGuideHead)
+        if(hasGuideHead)
         {
             defineNumber(GuideCCD.ImagePixelSizeNP);
             defineNumber(GuideCCD.ImageBinNP);
         }
         defineSwitch(PrimaryCCD.CompressSP);
         defineBLOB(PrimaryCCD.FitsBP);
-        if(HasGuideHead)
+        if(hasGuideHead)
         {
             defineSwitch(GuideCCD.CompressSP);
             defineBLOB(GuideCCD.FitsBP);
         }
-        if(HasSt4Port)
+        if(hasST4Port)
         {
             defineNumber(&GuideNSNP);
             defineNumber(&GuideWENP);
         }
         defineSwitch(PrimaryCCD.FrameTypeSP);
         
-        if (HasGuideHead)
+        if (hasGuideHead)
             defineSwitch(GuideCCD.FrameTypeSP);
         
         defineSwitch(PrimaryCCD.RapidGuideSP);
 
-        if (HasGuideHead)
+        if (hasGuideHead)
           defineSwitch(GuideCCD.RapidGuideSP);
             
         if (RapidGuideEnabled) {
@@ -453,7 +469,7 @@ bool INDI::CCD::updateProperties()
           deleteProperty(PrimaryCCD.RapidGuideSetupSP->name);
           deleteProperty(PrimaryCCD.RapidGuideDataNP->name);
         }
-        if(HasGuideHead)
+        if(hasGuideHead)
         {
             deleteProperty(GuideCCD.ImageExposureNP->name);
             deleteProperty(GuideCCD.AbortExposureSP->name);
@@ -470,7 +486,9 @@ bool INDI::CCD::updateProperties()
               deleteProperty(GuideCCD.RapidGuideDataNP->name);
             }
         }
-        if(HasSt4Port)
+        if (hasCooler)
+            deleteProperty(TemperatureNP.name);
+        if(hasST4Port)
         {
             deleteProperty(GuideNSNP.name);
             deleteProperty(GuideWENP.name);
@@ -579,7 +597,7 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
             IUUpdateNumber(PrimaryCCD.ImageBinNP,values,names,n);
 
 
-            if (updateCCDBin(PrimaryCCD.ImageBinN[0].value, PrimaryCCD.ImageBinN[1].value) == false)
+            if (UpdateCCDBin(PrimaryCCD.ImageBinN[0].value, PrimaryCCD.ImageBinN[1].value) == false)
             {
                 PrimaryCCD.ImageBinNP->s = IPS_ALERT;
                 IDSetNumber (PrimaryCCD.ImageBinNP, NULL);
@@ -596,7 +614,7 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
             IUUpdateNumber(GuideCCD.ImageBinNP,values,names,n);
 
 
-            if (updateGuideBin(GuideCCD.ImageBinN[0].value, GuideCCD.ImageBinN[1].value) == false)
+            if (UpdateGuideBin(GuideCCD.ImageBinN[0].value, GuideCCD.ImageBinN[1].value) == false)
             {
                 GuideCCD.ImageBinNP->s = IPS_ALERT;
                 IDSetNumber (GuideCCD.ImageBinNP, NULL);
@@ -612,7 +630,7 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
             PrimaryCCD.ImageFrameNP->s=IPS_OK;
             IUUpdateNumber(PrimaryCCD.ImageFrameNP,values,names,n);
 
-            if (updateCCDFrame(PrimaryCCD.ImageFrameN[0].value, PrimaryCCD.ImageFrameN[1].value, PrimaryCCD.ImageFrameN[2].value,
+            if (UpdateCCDFrame(PrimaryCCD.ImageFrameN[0].value, PrimaryCCD.ImageFrameN[1].value, PrimaryCCD.ImageFrameN[2].value,
                                PrimaryCCD.ImageFrameN[3].value) == false)
                 PrimaryCCD.ImageFrameNP->s = IPS_ALERT;
 
@@ -629,7 +647,7 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
             DEBUGF(Logger::DBG_DEBUG, "GuiderFrame set to %4.0f,%4.0f %4.0f x %4.0f",
                   GuideCCD.ImageFrameN[0].value,GuideCCD.ImageFrameN[1].value,GuideCCD.ImageFrameN[2].value,GuideCCD.ImageFrameN[3].value);
 
-            if (updateGuideFrame(GuideCCD.ImageFrameN[0].value, GuideCCD.ImageFrameN[1].value, GuideCCD.ImageFrameN[2].value,
+            if (UpdateGuideFrame(GuideCCD.ImageFrameN[0].value, GuideCCD.ImageFrameN[1].value, GuideCCD.ImageFrameN[2].value,
                                GuideCCD.ImageFrameN[3].value) == false)
                 GuideCCD.ImageFrameNP->s = IPS_ALERT;
 
@@ -660,6 +678,32 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
             return true;
         }
 
+        // CCD TEMPERATURE:
+        if(!strcmp(name, TemperatureNP.name))
+        {
+
+            if(values[0] < TemperatureN[0].min || values[0] > TemperatureN[0].max)
+            {
+                TemperatureNP.s = IPS_ALERT;
+                DEBUGF(INDI::Logger::DBG_ERROR, "Error: Bad temperature value! Range is [%.1f, %.1f] [C].",
+                        TemperatureN[0].min, TemperatureN[0].max);
+                IDSetNumber(&TemperatureNP, NULL);
+                return false;
+
+            }
+
+            int rc= SetTemperature(values[0]);
+
+            if (rc == 0)
+                TemperatureNP.s = IPS_BUSY;
+            else if (rc == 1)
+                TemperatureNP.s = IPS_OK;
+            else
+                TemperatureNP.s = IPS_ALERT;
+
+            IDSetNumber(&TemperatureNP, NULL);
+            return true;
+        }
     }
     //  if we didn't process it, continue up the chain, let somebody else
     //  give it a shot
@@ -757,7 +801,7 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
             else if(PrimaryCCD.FrameTypeS[2].s==ISS_ON) PrimaryCCD.setFrameType(CCDChip::DARK_FRAME);
             else if(PrimaryCCD.FrameTypeS[3].s==ISS_ON) PrimaryCCD.setFrameType(CCDChip::FLAT_FRAME);
 
-            if (updateCCDFrameType(PrimaryCCD.getFrameType()) == false)
+            if (UpdateCCDFrameType(PrimaryCCD.getFrameType()) == false)
                 PrimaryCCD.FrameTypeSP->s = IPS_ALERT;
 
             IDSetSwitch(PrimaryCCD.FrameTypeSP,NULL);
@@ -775,7 +819,7 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
             else if(GuideCCD.FrameTypeS[2].s==ISS_ON) GuideCCD.setFrameType(CCDChip::DARK_FRAME);
             else if(GuideCCD.FrameTypeS[3].s==ISS_ON) GuideCCD.setFrameType(CCDChip::FLAT_FRAME);
 
-            if (updateGuideFrameType(GuideCCD.getFrameType()) == false)
+            if (UpdateGuideFrameType(GuideCCD.getFrameType()) == false)
                 GuideCCD.FrameTypeSP->s = IPS_ALERT;
 
             IDSetSwitch(GuideCCD.FrameTypeSP,NULL);
@@ -853,59 +897,72 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
     return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
+int INDI::CCD::SetTemperature(double temperature)
+{
+    INDI_UNUSED(temperature);
+    DEBUGF(INDI::Logger::DBG_WARNING, "INDI::CCD::SetTemperature %4.2f -  Should never get here", temperature);
+    return -1;
+}
+
 bool INDI::CCD::StartExposure(float duration)
 {
-    IDLog("INDI::CCD::StartExposure %4.2f -  Should never get here\n",duration);
+    DEBUGF(INDI::Logger::DBG_WARNING, "INDI::CCD::StartExposure %4.2f -  Should never get here",duration);
     return false;
 }
 
 bool INDI::CCD::StartGuideExposure(float duration)
 {
-    IDLog("INDI::CCD::StartGuide Exposure %4.2f -  Should never get here\n",duration);
+    DEBUGF(INDI::Logger::DBG_WARNING, "INDI::CCD::StartGuide Exposure %4.2f -  Should never get here",duration);
     return false;
 }
 
 bool INDI::CCD::AbortExposure()
 {
-    IDLog("INDI::CCD::AbortExposure -  Should never get here\n");
+    DEBUG(INDI::Logger::DBG_WARNING, "INDI::CCD::AbortExposure -  Should never get here");
     return false;
 }
 
-bool INDI::CCD::updateCCDFrame(int x, int y, int w, int h)
+bool INDI::CCD::AbortGuideExposure()
+{
+    DEBUG(INDI::Logger::DBG_WARNING, "INDI::CCD::AbortGuideExposure -  Should never get here");
+    return false;
+}
+
+bool INDI::CCD::UpdateCCDFrame(int x, int y, int w, int h)
 {
     // Just set value, unless HW layer overrides this and performs its own processing
     PrimaryCCD.setFrame(x, y, w, h);
     return true;
 }
 
-bool INDI::CCD::updateGuideFrame(int x, int y, int w, int h)
+bool INDI::CCD::UpdateGuideFrame(int x, int y, int w, int h)
 {
     GuideCCD.setFrame(x,y, w,h);
     return true;
 }
 
-bool INDI::CCD::updateCCDBin(int hor, int ver)
+bool INDI::CCD::UpdateCCDBin(int hor, int ver)
 {
     // Just set value, unless HW layer overrides this and performs its own processing
     PrimaryCCD.setBin(hor, ver);
     return true;
 }
 
-bool INDI::CCD::updateGuideBin(int hor, int ver)
+bool INDI::CCD::UpdateGuideBin(int hor, int ver)
 {
     // Just set value, unless HW layer overrides this and performs its own processing
     GuideCCD.setBin(hor, ver);
     return true;
 }
 
-bool INDI::CCD::updateCCDFrameType(CCDChip::CCD_FRAME fType)
+bool INDI::CCD::UpdateCCDFrameType(CCDChip::CCD_FRAME fType)
 {
     INDI_UNUSED(fType);
     // Child classes can override this
     return true;
 }
 
-bool INDI::CCD::updateGuideFrameType(CCDChip::CCD_FRAME fType)
+bool INDI::CCD::UpdateGuideFrameType(CCDChip::CCD_FRAME fType)
 {
     INDI_UNUSED(fType);
     // Child classes can override this
@@ -1258,18 +1315,13 @@ void INDI::CCD::SetCCDParams(int x,int y,int bpp,float xf,float yf)
 
 void INDI::CCD::SetGuideHeadParams(int x,int y,int bpp,float xf,float yf)
 {
-    HasGuideHead=true;
+    hasGuideHead=true;
 
     GuideCCD.setResolutoin(x, y);
     GuideCCD.setFrame(0, 0, x, y);
     GuideCCD.setPixelSize(xf, yf);
     GuideCCD.setBPP(bpp);
 
-}
-
-bool INDI::CCD::AbortGuideExposure()
-{
-    return false;
 }
 
 bool INDI::CCD::saveConfigItems(FILE *fp)
