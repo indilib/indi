@@ -127,15 +127,13 @@ bool FLICCD::initProperties()
     IUFillSwitch(&ResetS[0], "RESET", "Reset", ISS_OFF);
     IUFillSwitchVector(&ResetSP, ResetS, 1, getDeviceName(), "FRAME_RESET", "Frame Values", IMAGE_SETTINGS_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillNumber(&TemperatureN[0], "CCD_TEMPERATURE_VALUE", "Temperature (C)", "%5.2f", MIN_CCD_TEMP, MAX_CCD_TEMP, 0., 0.);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "CCD_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
-
     IUFillText(&CamInfoT[0],"Model","","");
     IUFillText(&CamInfoT[1],"HW Rev","","");
     IUFillText(&CamInfoT[2],"FW Rev","","");
     IUFillTextVector(&CamInfoTP,CamInfoT,3,getDeviceName(),"Model","",IMAGE_INFO_TAB,IP_RO,60,IPS_IDLE);
 
-
+    // No guide head, no ST4 port, has cooler and has shutter.
+    SetCCDFeatures(false, false, true, true);
 
 }
 
@@ -155,7 +153,6 @@ bool FLICCD::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&TemperatureNP);
         defineSwitch(&ResetSP);
         defineText(&CamInfoTP);
 
@@ -165,8 +162,6 @@ bool FLICCD::updateProperties()
     }
     else
     {
-
-        deleteProperty(TemperatureNP.name);
         deleteProperty(ResetSP.name);
         deleteProperty(CamInfoTP.name);
 
@@ -206,56 +201,6 @@ bool FLICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
 
     //  Nobody has claimed this, so, ignore it
     return INDI::CCD::ISNewSwitch(dev,name,states,names,n);
-}
-
-bool FLICCD::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    INumber *np;
-    int err=0;
-
-    if(strcmp(dev,getDeviceName())==0)
-    {
-
-        /* Temperature*/
-        if (!strcmp(TemperatureNP.name, name))
-        {
-            TemperatureNP.s = IPS_IDLE;
-
-            np = IUFindNumber(&TemperatureNP, names[0]);
-
-            if (!np)
-            {
-                IDSetNumber(&TemperatureNP, "Unknown error. %s is not a member of %s property.", names[0], name);
-                return false;
-            }
-
-            if (values[0] < MIN_CCD_TEMP || values[0] > MAX_CCD_TEMP)
-            {
-                IDSetNumber(&TemperatureNP, "Error: valid range of temperature is from %d to %d", MIN_CCD_TEMP, MAX_CCD_TEMP);
-                return false;
-            }
-
-            if (!sim && (err = FLISetTemperature(fli_dev, values[0])))
-            {
-                IDSetNumber(&TemperatureNP, "FLISetTemperature() failed. %s.", strerror((int)-err));
-                IDLog("FLISetTemperature() failed. %s.", strerror((int)-err));
-                return false;
-            }
-
-            FLICam.temperature = values[0];
-
-            TemperatureNP.s = IPS_BUSY;
-
-            IDSetNumber(&TemperatureNP, "Setting CCD temperature to %+06.2f C", values[0]);
-            if (isDebug())
-                IDLog("Setting CCD temperature to %+06.2f C\n", values[0]);
-            return true;
-        }
-    }
-
-    //  if we didn't process it, continue up the chain, let somebody else
-    //  give it a shot
-    return INDI::CCD::ISNewNumber(dev,name,values,names,n);
 }
 
 bool FLICCD::Connect()
@@ -466,6 +411,11 @@ bool FLICCD::setupParams()
         IDLog("The CCD Temperature is %f.\n", FLICam.temperature);
 
     TemperatureN[0].value = FLICam.temperature;			/* CCD chip temperatre (degrees C) */
+    TemperatureN[0].min = MIN_CCD_TEMP;
+    TemperatureN[0].max = MAX_CCD_TEMP;
+
+    IUUpdateMinMax(&TemperatureNP);
+    IDSetNumber(&TemperatureNP, NULL);
 
     SetCCDParams(FLICam.Visible_Area[2] - FLICam.Visible_Area[0], FLICam.Visible_Area[3] - FLICam.Visible_Area[1], 16, FLICam.x_pixel_size, FLICam.y_pixel_size);
 
@@ -502,8 +452,6 @@ bool FLICCD::setupParams()
       return false;
     }
 
-    IDSetNumber(&TemperatureNP, NULL);
-
     int nbuf;
     nbuf=PrimaryCCD.getXRes()*PrimaryCCD.getYRes() * PrimaryCCD.getBPP()/8;                 //  this is pixel count
     nbuf+=512;                      //  leave a little extra at the end
@@ -511,6 +459,23 @@ bool FLICCD::setupParams()
 
     return true;
 
+}
+
+int FLICCD::SetTemperature(double temperature)
+{
+    int err=0;
+
+    if (!sim && (err = FLISetTemperature(fli_dev, temperature)))
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "FLISetTemperature() failed. %s.", strerror((int)-err));
+        return -1;
+    }
+
+    FLICam.temperature = temperature;
+
+
+    DEBUGF(INDI::Logger::DBG_ERROR, "Setting CCD temperature to %+06.2f C", temperature);
+    return 0;
 }
 
 bool FLICCD::StartExposure(float duration)
@@ -583,7 +548,7 @@ bool FLICCD::AbortExposure()
     return true;
 }
 
-bool FLICCD::updateCCDFrameType(CCDChip::CCD_FRAME fType)
+bool FLICCD::UpdateCCDFrameType(CCDChip::CCD_FRAME fType)
 {
     int err=0;
     CCDChip::CCD_FRAME imageFrameType = PrimaryCCD.getFrameType();
@@ -618,7 +583,7 @@ bool FLICCD::updateCCDFrameType(CCDChip::CCD_FRAME fType)
 
 }
 
-bool FLICCD::updateCCDFrame(int x, int y, int w, int h)
+bool FLICCD::UpdateCCDFrame(int x, int y, int w, int h)
 {
     int err=0;
 
@@ -663,7 +628,7 @@ bool FLICCD::updateCCDFrame(int x, int y, int w, int h)
     return true;
 }
 
-bool FLICCD::updateCCDBin(int binx, int biny)
+bool FLICCD::UpdateCCDBin(int binx, int biny)
 {
 
     int err=0;
@@ -689,7 +654,7 @@ bool FLICCD::updateCCDBin(int binx, int biny)
 
     PrimaryCCD.setBin(binx, biny);
 
-    return updateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
+    return UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
 }
 
 float FLICCD::CalcTimeLeft()
@@ -759,8 +724,8 @@ void FLICCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
 
 void FLICCD::resetFrame()
 {    
-        updateCCDBin(1, 1);
-        updateCCDFrame(0,0, PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
+        UpdateCCDBin(1, 1);
+        UpdateCCDFrame(0,0, PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
         IUResetSwitch(&ResetSP);
         ResetSP.s = IPS_IDLE;
         IDSetSwitch(&ResetSP, "Resetting frame and binning.");

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.4.7)
 PROJECT(qhyccd CXX)
 
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 set(FIRMWARE_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/lib/firmware")
 set(UDEVRULES_INSTALL_DIR "/etc/udev/rules.d")
 
@@ -9,8 +9,8 @@ set (VERSION_MAJOR 0)
 set (VERSION_MINOR 1)
 
 configure_file (
-  "${CMAKE_SOURCE_DIR}/qhyconfig.h.in"
-  "${CMAKE_SOURCE_DIR}/qhyconfig.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/qhyconfig.h.in"
+  "${CMAKE_CURRENT_SOURCE_DIR}/qhyconfig.h"
   )
 
 find_package(CFITSIO REQUIRED)
@@ -20,21 +20,21 @@ find_package(USB-1 REQUIRED)
 
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
-include_directories(${CMAKE_SOURCE_DIR})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${USB_1_INCLUDE_DIR})
 include_directories(${INDI_INCLUDE_DIR})
 include_directories(${CFITSIO_INCLUDE_DIR})
 
 set(indiqhy_SRCS
-   ${CMAKE_SOURCE_DIR}/qhyccd.cpp
-   ${CMAKE_SOURCE_DIR}/qhygeneric.cpp
-   ${CMAKE_SOURCE_DIR}/qhyspecific.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/qhyccd.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/qhygeneric.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/qhyspecific.cpp
    )
 
 set(qhytest_SRCS
-   ${CMAKE_SOURCE_DIR}/qhytest.cpp
-   ${CMAKE_SOURCE_DIR}/qhygeneric.cpp
-   ${CMAKE_SOURCE_DIR}/qhyspecific.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/qhytest.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/qhygeneric.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/qhyspecific.cpp
    )
 
 add_executable(indi_qhy_ccd ${indiqhy_SRCS})

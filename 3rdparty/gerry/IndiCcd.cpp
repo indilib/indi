@@ -32,7 +32,7 @@ IndiCcd::IndiCcd()
     SendCompressed=false;
     GuiderCompressed=false;
     HasGuideHead=false;
-    HasSt4Port=false;
+    HasST4Port=false;
 
     RawFrame=NULL;
     RawFrameSize=0;
@@ -186,7 +186,7 @@ bool IndiCcd::UpdateProperties()
             IDDefSwitch(&GuiderCompressSV,NULL);
             IDDefBLOB(&GuiderBV, NULL);
         }
-        if(HasSt4Port) {
+        if(HasST4Port) {
             IDDefNumber(&GuideNSV, NULL);
             IDDefNumber(&GuideEWV, NULL);
         }
@@ -206,7 +206,7 @@ bool IndiCcd::UpdateProperties()
             DeleteProperty(GuiderBV.name);
             DeleteProperty(GuiderCompressSV.name);
         }
-        if(HasSt4Port) {
+        if(HasST4Port) {
             DeleteProperty(GuideNSV.name);
             DeleteProperty(GuideEWV.name);
 

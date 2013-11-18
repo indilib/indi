@@ -55,10 +55,10 @@ public:
 protected:
 
   void TimerHit();
-  virtual bool updateCCDFrame(int x, int y, int w, int h);
-  virtual bool updateCCDBin(int binx, int biny);
+  virtual bool UpdateCCDFrame(int x, int y, int w, int h);
+  virtual bool UpdateCCDBin(int binx, int biny);
   virtual void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip);
-  virtual bool updateCCDFrameType(CCDChip::CCD_FRAME fType);
+  virtual bool UpdateCCDFrameType(CCDChip::CCD_FRAME fType);
 
   // Guide Port
   virtual bool GuideNorth(float);

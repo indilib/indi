@@ -46,8 +46,6 @@ class SXCCD : public INDI::CCD
     unsigned short model;
     char name[32];
     char *evenBuf, *oddBuf;
-    INumber TemperatureN;
-    INumberVectorProperty TemperatureNP;
     ISwitch CoolerS[2];
     ISwitchVectorProperty CoolerSP;
     ISwitch ShutterS[2];
@@ -71,9 +69,10 @@ class SXCCD : public INDI::CCD
     bool initProperties();
     void getCameraParams();
     bool updateProperties();
-    bool updateCCDBin(int hor, int ver);
+    bool UpdateCCDBin(int hor, int ver);
     bool Connect();
     bool Disconnect();
+    int SetTemperature(double temperature);
     bool StartExposure(float n);
     bool AbortExposure();
     bool StartGuideExposure(float n);
@@ -91,6 +90,8 @@ class SXCCD : public INDI::CCD
   public:
     bool HasCooler;
     bool HasShutter;
+    bool HasST4Port;
+    bool HasGuideHead;
     SXCCD(DEVICE device, const char *name);
     virtual ~SXCCD();
     void debugTriggered(bool enable);

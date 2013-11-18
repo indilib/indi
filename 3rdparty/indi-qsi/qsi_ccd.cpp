@@ -319,7 +319,9 @@ bool QSICCD::setupParams()
 
     try
     {
-        QSICam.get_CanPulseGuide(&HasSt4Port);
+        bool hasST4Port=false;
+        QSICam.get_CanPulseGuide(&hasST4Port);
+        SetST4Port(hasST4Port);
     }
     catch (std::runtime_error err)
     {
@@ -354,6 +356,43 @@ bool QSICCD::setupParams()
     PrimaryCCD.setFrameBufferSize(nbuf);
 
     return true;
+}
+
+int QSICCD::SetTemperature(double temperature)
+{
+    bool canSetTemp;
+    try
+    {
+        QSICam.get_CanSetCCDTemperature(&canSetTemp);
+    } catch (std::runtime_error err)
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "CanSetCCDTemperature() failed. %s.", err.what());
+        return -1;
+    }
+
+    if(!canSetTemp)
+    {
+        DEBUG(INDI::Logger::DBG_SESSION, "Cannot set CCD temperature, CanSetCCDTemperature == false\n");
+        return -1;
+    }
+
+    // If less than 0.1 of a degree, let's just return OK
+    if (fabs(temperature - TemperatureN[0].value) < 0.1)
+        return 1;
+
+    activateCooler(true);
+
+    try
+    {
+        QSICam.put_SetCCDTemperature(temperature);
+    } catch (std::runtime_error err)
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "put_SetCCDTemperature() failed. %s.", err.what());
+        return -1;
+    }
+
+    DEBUGF(INDI::Logger::DBG_SESSION, "Setting CCD temperature to %+06.2f C", temperature);
+    return 0;
 }
 
 bool QSICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
@@ -495,64 +534,6 @@ bool QSICCD::ISNewNumber(const char *dev, const char *name, double values[], cha
 
     if(strcmp(dev,getDeviceName())==0)
     {
-
-        /* Temperature*/
-        if (!strcmp(TemperatureNP.name, name))
-        {
-            TemperatureNP.s = IPS_IDLE;
-
-            np = IUFindNumber(&TemperatureNP, names[0]);
-
-            if (!np)
-            {
-                IDSetNumber(&TemperatureNP, "Unknown error. %s is not a member of %s property.", names[0], name);
-                return false;
-            }
-
-            if (values[0] < MIN_CCD_TEMP || values[0] > MAX_CCD_TEMP)
-            {
-                IDSetNumber(&TemperatureNP, "Error: valid range of temperature is from %d to %d", MIN_CCD_TEMP, MAX_CCD_TEMP);
-                return false;
-            }
-
-            bool canSetTemp;
-            try
-            {
-                QSICam.get_CanSetCCDTemperature(&canSetTemp);
-            } catch (std::runtime_error err)
-            {
-                IDSetNumber(&TemperatureNP, "CanSetCCDTemperature() failed. %s.", err.what());
-                if (isDebug())
-                    IDLog("CanSetCCDTemperature() failed. %s.", err.what());
-                return false;
-            }
-            if(!canSetTemp)
-            {
-                DEBUG(INDI::Logger::DBG_SESSION, "Cannot set CCD temperature, CanSetCCDTemperature == false\n");
-                return false;
-            }
-
-            activateCooler(true);
-
-            try
-            {
-                QSICam.put_SetCCDTemperature(values[0]);
-            } catch (std::runtime_error err)
-            {
-                IDSetNumber(&TemperatureNP, "put_SetCCDTemperature() failed. %s.", err.what());
-                if (isDebug())
-                    IDLog("put_SetCCDTemperature() failed. %s.", err.what());
-                return false;
-            }
-
-            TemperatureNP.s = IPS_BUSY;
-
-            IDSetNumber(&TemperatureNP, "Setting CCD temperature to %+06.2f C", values[0]);
-            if (isDebug())
-                IDLog("Setting CCD temperature to %+06.2f C\n", values[0]);
-            return true;
-        }
-
         if (!strcmp(FilterSlotNP.name, name))
         {
 
@@ -720,7 +701,7 @@ float QSICCD::CalcTimeLeft(timeval start,float req)
     return timeleft;
 }
 
-bool QSICCD::updateCCDFrame(int x, int y, int w, int h)
+bool QSICCD::UpdateCCDFrame(int x, int y, int w, int h)
 {
     char errmsg[ERRMSG_SIZE];
 
@@ -773,7 +754,7 @@ bool QSICCD::updateCCDFrame(int x, int y, int w, int h)
     return true;
 }
 
-bool QSICCD::updateCCDBin(int binx, int biny)
+bool QSICCD::UpdateCCDBin(int binx, int biny)
 {
     try
     {
@@ -795,7 +776,7 @@ bool QSICCD::updateCCDBin(int binx, int biny)
 
     PrimaryCCD.setBin(binx, biny);
 
-    return updateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
+    return UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
 }
 
 /* Downloads the image from the CCD.
@@ -895,7 +876,7 @@ int QSICCD::manageDefaults(char errmsg[])
 
         DEBUGF(INDI::Logger::DBG_DEBUG, "Setting default binning %d x %d.\n", PrimaryCCD.getBinX(), PrimaryCCD.getBinY());
 
-        updateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
+        UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
 
 
         /* Success */
@@ -1063,7 +1044,7 @@ void QSICCD::resetFrame()
         IDSetSwitch(&ResetSP, NULL);
 
         PrimaryCCD.setBin(1,1);
-        updateCCDFrame(0,0, imageWidth, imageHeight);
+        UpdateCCDFrame(0,0, imageWidth, imageHeight);
 
         return;
 }

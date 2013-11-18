@@ -61,9 +61,6 @@ class QSICCD : public INDI::CCD, public INDI::FilterInterface
     ISwitch ShutterS[2];
     ISwitchVectorProperty ShutterSP;
 
-    INumber TemperatureN[1];
-    INumberVectorProperty TemperatureNP;
-
     ISwitch FilterS[2];
     ISwitchVectorProperty FilterSP;
 
@@ -109,13 +106,14 @@ public:
     bool Connect();
     bool Disconnect();
 
+    int  SetTemperature(double temperature);
     bool StartExposure(float duration);
     bool AbortExposure();
 
     void TimerHit();
 
-    virtual bool updateCCDFrame(int x, int y, int w, int h);
-    virtual bool updateCCDBin(int binx, int biny);
+    virtual bool UpdateCCDFrame(int x, int y, int w, int h);
+    virtual bool UpdateCCDBin(int binx, int biny);
     virtual void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip);
 
     virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);

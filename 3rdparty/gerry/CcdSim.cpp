@@ -43,7 +43,7 @@ CcdSim::CcdSim()
     AbortGuideFrame=false;
     ShowStarField=true;
 
-    HasSt4Port=true;
+    HasST4Port=true;
     HasGuideHead=false;
 
 

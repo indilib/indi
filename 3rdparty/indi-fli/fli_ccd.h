@@ -48,17 +48,16 @@ public:
     bool StartExposure(float duration);
     bool AbortExposure();
 
-
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
     virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
 
     protected:
 
     void TimerHit();
-    virtual bool updateCCDFrame(int x, int y, int w, int h);
-    virtual bool updateCCDBin(int binx, int biny);
+    virtual int  SetTemperature(double temperature);
+    virtual bool UpdateCCDFrame(int x, int y, int w, int h);
+    virtual bool UpdateCCDBin(int binx, int biny);
     virtual void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip);
-    virtual bool updateCCDFrameType(CCDChip::CCD_FRAME fType);
+    virtual bool UpdateCCDFrameType(CCDChip::CCD_FRAME fType);
 
     private:
 
@@ -84,9 +83,6 @@ public:
 
     ISwitch ResetS[1];
     ISwitchVectorProperty ResetSP;
-
-    INumber TemperatureN[1];
-    INumberVectorProperty TemperatureNP;
 
     IText CamInfoT[3];
     ITextVectorProperty CamInfoTP;

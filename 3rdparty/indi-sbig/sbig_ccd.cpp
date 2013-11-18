@@ -255,11 +255,7 @@ bool SBIGCCD::initProperties()
 
   // Reset Frame Settings
   IUFillSwitch(&ResetS[0], "RESET", "Reset", ISS_OFF);
-  IUFillSwitchVector(&ResetSP, ResetS, 1, getDeviceName(), "FRAME_RESET", "Frame Values", IMAGE_SETTINGS_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
-
-  // CCD Temperature
-  IUFillNumber(&TemperatureN[0], "CCD_TEMPERATURE_VALUE", "Temperature (C)", "%5.2f", MIN_CCD_TEMP, MAX_CCD_TEMP, 0., 0.);
-  IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "CCD_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+  IUFillSwitchVector(&ResetSP, ResetS, 1, getDeviceName(), "FRAME_RESET", "Frame Values", IMAGE_SETTINGS_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);  
 
   // CCD PRODUCT:
   IUFillText(&ProductInfoT[0], "NAME", "Name", "");
@@ -309,6 +305,10 @@ bool SBIGCCD::initProperties()
   FilterSlotN[0].min = 1;
   FilterSlotN[0].max = MAX_CFW_TYPES;
 
+  // The CCD camera has a cooler and a shutter
+  SetCooler(true);
+  SetShutter(true);
+
   return true;
 }
 
@@ -325,15 +325,17 @@ void SBIGCCD::ISGetProperties(const char *dev)
 bool SBIGCCD::updateProperties()
 {
     if(getNumberOfCCDChips() > 1)
-        HasGuideHead = true;
+        SetGuideHead(true);
+
+  // TODO: Check if we support guiding
+  //SetST4Port(true);
 
   INDI::CCD::updateProperties();
 
   if (isConnected())
   {
-    defineText(&ProductInfoTP);
     defineNumber(&CoolerNP);
-    defineNumber(&TemperatureNP);
+    defineText(&ProductInfoTP);
 
     if (IsFanControlAvailable())
         defineSwitch(&FanStateSP);
@@ -353,10 +355,9 @@ bool SBIGCCD::updateProperties()
     timerID = SetTimer(POLLMS);
   } else
   {
-
-    deleteProperty(ProductInfoTP.name);
     deleteProperty(CoolerNP.name);
-    deleteProperty(TemperatureNP.name);
+    deleteProperty(ProductInfoTP.name);
+
 
     deleteProperty(FanStateSP.name);
     deleteProperty(ResetSP.name);
@@ -539,45 +540,11 @@ bool SBIGCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
 
 bool SBIGCCD::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-  int res=CE_NO_ERROR;
 
   if (strcmp(dev, getDeviceName()) == 0)
   {
-      // CCD TEMPERATURE:
-      if(!strcmp(name, TemperatureNP.name))
-      {
 
-          if(values[0] < MIN_CCD_TEMP || values[0] > MAX_CCD_TEMP)
-          {
-                TemperatureNP.s = IPS_ALERT;
-                DEBUGF(INDI::Logger::DBG_ERROR, "Error: Bad temperature value! Range is [%.1f, %.1f] [C].",
-                       MIN_CCD_TEMP, MAX_CCD_TEMP);
-              IDSetNumber(&TemperatureNP, NULL);
-              return false;
-
-          }
-          if((res = SetTemperatureRegulation(values[0])) == CE_NO_ERROR)
-          {
-              // Set property to busy and poll in ISPoll for CCD temp
-              //TemperatureN[0].value = values[0];
-              TemperatureRequest = values[0];
-              TemperatureNP.s = IPS_BUSY;
-              DEBUGF(INDI::Logger::DBG_SESSION, "Setting CCD temperature to %+.1f [C].",values[0]);
-              IDSetNumber(&TemperatureNP, NULL);
-          }else
-          {
-              TemperatureNP.s = IPS_ALERT;
-              DEBUGF(INDI::Logger::DBG_ERROR, "Error: Cannot set CCD temperature to %+.1f [C]. %s",
-                     values[0], GetErrorString(res).c_str());
-              IDSetNumber(&TemperatureNP, NULL);
-              return false;
-          }
-
-          return true;
-
-      }
-
-      if (strcmp(name, FilterSlotNP.name)==0)
+     if (strcmp(name, FilterSlotNP.name)==0)
       {
           processFilterSlot(dev, values, names);
           return true;
@@ -604,7 +571,7 @@ bool SBIGCCD::Connect()
 
   if (sim)
   {
-    HasGuideHead = true;
+    SetGuideHead(true);
     IEAddTimer(TEMPERATURE_POLL_MS, SBIGCCD::updateTemperatureHelper, this);
     return true;
   }
@@ -715,7 +682,7 @@ bool SBIGCCD::setupParams()
 
     SetCCDParams(x_2 - x_1, y_2 - y_1, bit_depth, x_pixel_size, y_pixel_size);
 
-    if (HasGuideHead)
+    if (HasGuideHead())
     {
         if ( (res = getBinningMode(&GuideCCD, binning)) != CE_NO_ERROR)
         {
@@ -766,7 +733,7 @@ bool SBIGCCD::setupParams()
 
   DEBUGF(INDI::Logger::DBG_DEBUG, "Created Primary CCD buffer %d bytes.", nbuf);
 
-  if (HasGuideHead)
+  if (HasGuideHead())
   {
       nbuf = GuideCCD.getXRes() * GuideCCD.getYRes() * GuideCCD.getBPP() / 8;    //  this is pixel cameraCount
       nbuf += 512;    //  leave a little extra at the end
@@ -774,6 +741,11 @@ bool SBIGCCD::setupParams()
 
       DEBUGF(INDI::Logger::DBG_DEBUG, "Created Guide Head CCD buffer %d bytes.", nbuf);
   }
+
+  // Update CCD Temperature Min & Max limits
+  TemperatureN[0].min = MIN_CCD_TEMP;
+  TemperatureN[0].max = MAX_CCD_TEMP;
+  IUUpdateMinMax(&TemperatureNP);
 
   // CCD PRODUCT:
   IText *pIText;
@@ -788,6 +760,31 @@ bool SBIGCCD::setupParams()
   IDSetText(&ProductInfoTP, NULL);
 
   return true;
+
+}
+
+int SBIGCCD::SetTemperature(double temperature)
+{
+    int res=CE_NO_ERROR;
+
+    if (fabs(temperature - TemperatureN[0].value) < 0.1)
+        return 1;
+
+    if((res = SetTemperatureRegulation(temperature)) == CE_NO_ERROR)
+    {
+        // Set property to busy and poll in ISPoll for CCD temp
+        //TemperatureN[0].value = values[0];
+        TemperatureRequest = temperature;
+        DEBUGF(INDI::Logger::DBG_SESSION, "Setting CCD temperature to %+.1f [C].",temperature);
+        return 0;
+    }else
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error: Cannot set CCD temperature to %+.1f [C]. %s",
+               temperature, GetErrorString(res).c_str());
+        return -1;
+    }
+
+    return -1;
 
 }
 
@@ -958,7 +955,7 @@ bool SBIGCCD::AbortGuideExposure()
   }
 }
 
-bool SBIGCCD::updateCCDFrameType(CCDChip::CCD_FRAME fType)
+bool SBIGCCD::UpdateCCDFrameType(CCDChip::CCD_FRAME fType)
 {
   CCDChip::CCD_FRAME imageFrameType = PrimaryCCD.getFrameType();
 
@@ -995,9 +992,9 @@ bool SBIGCCD::updateFrameProperties(CCDChip *targetChip)
         targetChip->setResolutoin(wCcd, hCcd);
 
         if (targetChip == &PrimaryCCD)
-            updateCCDFrame(0, 0, wCcd, hCcd);
+            UpdateCCDFrame(0, 0, wCcd, hCcd);
         else
-            updateGuideFrame(0,0, wCcd, hCcd);
+            UpdateGuideFrame(0,0, wCcd, hCcd);
 
         return true;
     }
@@ -1005,7 +1002,7 @@ bool SBIGCCD::updateFrameProperties(CCDChip *targetChip)
     return false;
 }
 
-bool SBIGCCD::updateCCDFrame(int x, int y, int w, int h)
+bool SBIGCCD::UpdateCCDFrame(int x, int y, int w, int h)
 {
   DEBUGF(INDI::Logger::DBG_DEBUG, "The Final CCD image area is (%ld, %ld), (%ld, %ld)\n", x, y, w, h);
 
@@ -1022,7 +1019,7 @@ bool SBIGCCD::updateCCDFrame(int x, int y, int w, int h)
   return true;
 }
 
-bool SBIGCCD::updateGuideFrame(int x, int y, int w, int h)
+bool SBIGCCD::UpdateGuideFrame(int x, int y, int w, int h)
 {
   DEBUGF(INDI::Logger::DBG_DEBUG, "The Final Guide image area is (%ld, %ld), (%ld, %ld)\n", x, y, w, h);
 
@@ -1039,7 +1036,7 @@ bool SBIGCCD::updateGuideFrame(int x, int y, int w, int h)
   return true;
 }
 
-bool SBIGCCD::updateCCDBin(int binx, int biny)
+bool SBIGCCD::UpdateCCDBin(int binx, int biny)
 {
     if (binx != biny)
         biny = binx;
@@ -1055,7 +1052,7 @@ bool SBIGCCD::updateCCDBin(int binx, int biny)
   return updateFrameProperties(&PrimaryCCD);
 }
 
-bool SBIGCCD::updateGuideBin(int binx, int biny)
+bool SBIGCCD::UpdateGuideBin(int binx, int biny)
 {
     if (binx != biny)
         biny = binx;
@@ -1138,8 +1135,8 @@ void SBIGCCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
 
 void SBIGCCD::resetFrame()
 {
-  updateCCDBin(1, 1);
-  updateCCDFrame(0, 0, PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
+  UpdateCCDBin(1, 1);
+  UpdateCCDFrame(0, 0, PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
   IUResetSwitch(&ResetSP);
   ResetSP.s = IPS_IDLE;
   DEBUG(INDI::Logger::DBG_SESSION, "Resetting frame and binning.");

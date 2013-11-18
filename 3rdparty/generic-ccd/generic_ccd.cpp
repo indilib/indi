@@ -284,7 +284,7 @@ bool GenericCCD::Connect() {
   // Do we have a guide port?
 
   if (sim)
-    HasSt4Port = true;
+    HasST4Port = true;
 
   if (sim)
     return true;
@@ -498,7 +498,7 @@ bool GenericCCD::AbortExposure() {
   return true;
 }
 
-bool GenericCCD::updateCCDFrameType(CCDChip::CCD_FRAME fType) {
+bool GenericCCD::UpdateCCDFrameType(CCDChip::CCD_FRAME fType) {
   int err = 0;
   CCDChip::CCD_FRAME imageFrameType = PrimaryCCD.getFrameType();
 
@@ -551,7 +551,7 @@ bool GenericCCD::updateCCDFrameType(CCDChip::CCD_FRAME fType) {
 
 }
 
-bool GenericCCD::updateCCDFrame(int x, int y, int w, int h) {
+bool GenericCCD::UpdateCCDFrame(int x, int y, int w, int h) {
   /* Add the X and Y offsets */
   long x_1 = x;
   long y_1 = y;
@@ -601,7 +601,7 @@ bool GenericCCD::updateCCDFrame(int x, int y, int w, int h) {
   return true;
 }
 
-bool GenericCCD::updateCCDBin(int binx, int biny) {
+bool GenericCCD::UpdateCCDBin(int binx, int biny) {
 
   /**********************************************************
    *
@@ -618,7 +618,7 @@ bool GenericCCD::updateCCDBin(int binx, int biny) {
 
   PrimaryCCD.setBin(binx, biny);
 
-  return updateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
+  return UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
 }
 
 float GenericCCD::CalcTimeLeft() {
@@ -686,8 +686,8 @@ void GenericCCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip) {
 }
 
 void GenericCCD::resetFrame() {
-  updateCCDBin(1, 1);
-  updateCCDFrame(0, 0, PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
+  UpdateCCDBin(1, 1);
+  UpdateCCDFrame(0, 0, PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
   IUResetSwitch(&ResetSP);
   ResetSP.s = IPS_IDLE;
   IDSetSwitch(&ResetSP, "Resetting frame and binning.");

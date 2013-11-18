@@ -47,10 +47,11 @@ class QHYCCD : public INDI::CCD
     const char *getDefaultName();
     bool initProperties();
     bool updateProperties();
-    bool updateCCDFrame(int x, int y, int w, int h);
-    bool updateCCDBin(int hor, int ver);
+    bool UpdateCCDFrame(int x, int y, int w, int h);
+    bool UpdateCCDBin(int hor, int ver);
     bool Connect();
     bool Disconnect();
+    int  SetTemperature(double temperature);
     bool StartExposure(float n);
     bool AbortExposure();
     void TimerHit();

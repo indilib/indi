@@ -153,6 +153,9 @@ bool QHYCCD::initProperties() {
   INDI::CCD::initProperties();
   IUFillNumber(&GainN[0], "GAIN", "Gain", "%0.f", 1., 100, 1., 1.);
   IUFillNumberVector(&GainNP, GainN, 1, getDeviceName(), "CCD_GAIN", "Gain", IMAGE_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
+
+  // JM: Peter please check this. Do we know this here, or after we connected?
+  SetCCDFeatures(false, device->hasGuidePort(), device->hasCooler(), device->hasShutter());
   return true;
 }
 
@@ -170,7 +173,7 @@ bool QHYCCD::updateProperties() {
   return true;
 }
 
-bool QHYCCD::updateCCDBin(int hor, int ver) {
+bool QHYCCD::UpdateCCDBin(int hor, int ver) {
   float pixelSizeX, pixelSizeY;
   unsigned pixelCountX, pixelCountY, bitsPerPixel, maxBinX, maxBinY;
   device->getParameters(&pixelCountX, &pixelCountY, &pixelSizeX, &pixelSizeY, &bitsPerPixel, &maxBinX, &maxBinY);
@@ -182,7 +185,7 @@ bool QHYCCD::updateCCDBin(int hor, int ver) {
   return true;
 }
 
-bool QHYCCD::updateCCDFrame(int x, int y, int w, int h) {
+bool QHYCCD::UpdateCCDFrame(int x, int y, int w, int h) {
   return device->setParameters(x, y, w, h, 100);
 }
 
@@ -202,6 +205,13 @@ bool QHYCCD::Disconnect() {
   return true;
 }
 
+int QHYCCD::SetTemperature(double temperature)
+{
+    // FIXME TODO
+    return -1;
+
+}
+
 void QHYCCD::TimerHit() {
   if (InExposure && ExposureTimeLeft >= 0)
     PrimaryCCD.setExposureLeft(ExposureTimeLeft--);
@@ -212,7 +222,7 @@ void QHYCCD::TimerHit() {
 bool QHYCCD::StartExposure(float n) {
   InExposure = true;
   PrimaryCCD.setExposureDuration(n);
-  device->startExposure(n);
+  device->StartExposure(n);
   int time = (int) (1000 * n);
   if (time < 1)
     time = 1;
@@ -246,28 +256,28 @@ void QHYCCD::ExposureTimerHit() {
 }
 
 bool QHYCCD::GuideWest(float time) {
-  if (!HasSt4Port || time < 1) {
+  if (!HasST4Port() || time < 1) {
     return false;
   }
   return device->guidePulse(GUIDE_WEST, time);
 }
 
 bool QHYCCD::GuideEast(float time) {
-  if (!HasSt4Port || time < 1) {
+  if (!HasST4Port() || time < 1) {
     return false;
   }
   return device->guidePulse(GUIDE_EAST, time);
 }
 
 bool QHYCCD::GuideNorth(float time) {
-  if (!HasSt4Port || time < 1) {
+  if (!HasST4Port() || time < 1) {
     return false;
   }
   return device->guidePulse(GUIDE_NORTH, time);
 }
 
 bool QHYCCD::GuideSouth(float time) {
-  if (!HasSt4Port || time < 1) {
+  if (!HasST4Port() || time < 1) {
     return false;
   }
   return device->guidePulse(GUIDE_SOUTH, time);

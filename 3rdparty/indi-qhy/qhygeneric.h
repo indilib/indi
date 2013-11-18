@@ -63,7 +63,7 @@ class QHYDevice {
     virtual bool getCCDTemp(float *temperature);
     virtual bool setCooler(unsigned power, bool fan);
     virtual bool guidePulse(unsigned mask, unsigned duration);
-    virtual bool startExposure(float time);
+    virtual bool StartExposure(float time);
     virtual bool readExposure(void *pixels);
     virtual bool reset();
     virtual void close();

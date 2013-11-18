@@ -158,6 +158,8 @@ SXCCD::SXCCD(DEVICE device, const char *name) {
   GuideExposureTimeLeft = 0.0;
   HasShutter = false;
   HasCooler = false;
+  HasST4Port = false;
+  HasGuideHead = false;
   ExposureTimerID = 0;
   DidFlush = false;
   DidLatch = false;
@@ -190,9 +192,7 @@ const char *SXCCD::getDefaultName() {
 
 bool SXCCD::initProperties() {
   INDI::CCD::initProperties();
-  addDebugControl();
-  IUFillNumber(&TemperatureN, "CCD_TEMPERATURE_VALUE", "CCD temperature", "%4.1f", -40, 35, 1, TemperatureRequest);
-  IUFillNumberVector(&TemperatureNP, &TemperatureN, 1, getDeviceName(), "CCD_TEMPERATURE", "Temperature", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+  addDebugControl();  
   IUFillSwitch(&CoolerS[0], "DISCONNECT_COOLER", "Off", ISS_ON);
   IUFillSwitch(&CoolerS[1], "CONNECT_COOLER", "On", ISS_OFF);
   IUFillSwitchVector(&CoolerSP, CoolerS, 2, getDeviceName(), "COOLER_CONNECTION", "Cooler", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
@@ -207,7 +207,6 @@ bool SXCCD::updateProperties() {
   INDI::CCD::updateProperties();
   if (isConnected()) {
     if (HasCooler) {
-      defineNumber(&TemperatureNP);
       defineSwitch(&CoolerSP);
     }
     if (HasShutter)
@@ -224,7 +223,6 @@ bool SXCCD::updateProperties() {
     }
   } else {
     if (HasCooler) {
-      deleteProperty(TemperatureNP.name);
       deleteProperty(CoolerSP.name);
     }
     if (HasShutter)
@@ -233,7 +231,7 @@ bool SXCCD::updateProperties() {
   return true;
 }
 
-bool SXCCD::updateCCDBin(int hor, int ver) {
+bool SXCCD::UpdateCCDBin(int hor, int ver) {
   if (hor == 3 || ver == 3) {
     IDMessage(getDeviceName(), "3x3 binning is not supported.");
     return false;
@@ -285,7 +283,8 @@ void SXCCD::getCameraParams() {
   HasGuideHead = params.extra_caps & SXCCD_CAPS_GUIDER;
   HasCooler = params.extra_caps & SXUSB_CAPS_COOLER;
   HasShutter = params.extra_caps & SXUSB_CAPS_SHUTTER;
-  HasSt4Port = params.extra_caps & SXCCD_CAPS_STAR2K;
+  HasST4Port = params.extra_caps & SXCCD_CAPS_STAR2K;
+  SetCCDFeatures(HasGuideHead, HasST4Port, HasCooler, HasShutter);
   SetTimer(TIMER);
 }
 
@@ -295,9 +294,9 @@ void SXCCD::TimerHit() {
       unsigned char status;
       unsigned short temperature;
       sxSetCooler(handle, (unsigned char) (CoolerS[1].s == ISS_ON), (unsigned short) (TemperatureRequest * 10 + 2730), &status, &temperature);
-      TemperatureN.value = (temperature - 2730) / 10.0;
-      if (TemperatureReported != TemperatureN.value) {
-        TemperatureReported = TemperatureN.value;
+      TemperatureN[0].value = (temperature - 2730) / 10.0;
+      if (TemperatureReported != TemperatureN[0].value) {
+        TemperatureReported = TemperatureN[0].value;
         if (abs(TemperatureRequest - TemperatureReported) < 1)
           TemperatureNP.s = IPS_OK;
         else
@@ -312,6 +311,28 @@ void SXCCD::TimerHit() {
     GuideCCD.setExposureLeft(GuideExposureTimeLeft--);
   if (isConnected())
     SetTimer(TIMER);
+}
+
+int SXCCD::SetTemperature(double temperature)
+{
+
+    int result=0;
+    TemperatureRequest = temperature;
+    unsigned char status;
+    unsigned short sx_temperature;
+    sxSetCooler(handle, (unsigned char) (CoolerS[1].s == ISS_ON), (unsigned short) (TemperatureRequest * 10 + 2730), &status, &sx_temperature);
+    TemperatureReported = TemperatureN[0].value = (sx_temperature - 2730) / 10.0;
+    if (abs(TemperatureRequest - TemperatureReported) < 1)
+      result = 1;
+    else
+      result = 0;
+
+    CoolerSP.s = IPS_OK;
+    CoolerS[0].s = ISS_OFF;
+    CoolerS[1].s = ISS_ON;
+    IDSetSwitch(&CoolerSP, NULL);
+
+    return result;
 }
 
 bool SXCCD::StartExposure(float n) {
@@ -463,7 +484,7 @@ void SXCCD::GuideExposureTimerHit() {
 }
 
 bool SXCCD::GuideWest(float time) {
-  if (!HasSt4Port || time < 1) {
+  if (!HasST4Port || time < 1) {
     return false;
   }
   if (WEGuiderTimerID) {
@@ -483,7 +504,7 @@ bool SXCCD::GuideWest(float time) {
 }
 
 bool SXCCD::GuideEast(float time) {
-  if (!HasSt4Port || time < 1) {
+  if (!HasST4Port || time < 1) {
     return false;
   }
   if (WEGuiderTimerID) {
@@ -509,7 +530,7 @@ void SXCCD::WEGuiderTimerHit() {
 }
 
 bool SXCCD::GuideNorth(float time) {
-  if (!HasSt4Port || time < 1) {
+  if (!HasST4Port || time < 1) {
     return false;
   }
   if (NSGuiderTimerID) {
@@ -529,7 +550,7 @@ bool SXCCD::GuideNorth(float time) {
 }
 
 bool SXCCD::GuideSouth(float time) {
-  if (!HasSt4Port || time < 1) {
+  if (!HasST4Port || time < 1) {
     return false;
   }
   if (NSGuiderTimerID) {
@@ -574,7 +595,7 @@ bool SXCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char
     unsigned char status;
     unsigned short temperature;
     sxSetCooler(handle, (unsigned char) (CoolerS[1].s == ISS_ON), (unsigned short) (TemperatureRequest * 10 + 2730), &status, &temperature);
-    TemperatureReported = TemperatureN.value = (temperature - 2730) / 10.0;
+    TemperatureReported = TemperatureN[0].value = (temperature - 2730) / 10.0;
     TemperatureNP.s = IPS_OK;
     IDSetNumber(&TemperatureNP, NULL);
     result = true;
@@ -585,24 +606,7 @@ bool SXCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char
 
 bool SXCCD::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) {
   bool result = false;
-  if (strcmp(name, TemperatureNP.name) == 0) {
-    IUUpdateNumber(&TemperatureNP, values, names, n);
-    TemperatureRequest = TemperatureN.value;
-    unsigned char status;
-    unsigned short temperature;
-    sxSetCooler(handle, (unsigned char) (CoolerS[1].s == ISS_ON), (unsigned short) (TemperatureRequest * 10 + 2730), &status, &temperature);
-    TemperatureReported = TemperatureN.value = (temperature - 2730) / 10.0;
-    if (abs(TemperatureRequest - TemperatureReported) < 1)
-      TemperatureNP.s = IPS_OK;
-    else
-      TemperatureNP.s = IPS_BUSY;
-    IDSetNumber(&TemperatureNP, NULL);
-    CoolerSP.s = IPS_OK;
-    CoolerS[0].s = ISS_OFF;
-    CoolerS[1].s = ISS_ON;
-    IDSetSwitch(&CoolerSP, NULL);
-    result = true;
-  } else
+
     result = INDI::CCD::ISNewNumber(dev, name, values, names, n);
   return result;
 }

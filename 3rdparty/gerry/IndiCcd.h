@@ -52,7 +52,7 @@ class IndiCcd : public IndiDevice
         float PixelSizey;   //  pixel size in microns, y direction
         bool SendCompressed;
 
-        bool HasSt4Port;
+        bool HasST4Port;
 
         //  If the camera has a second ccd, or integrated guide head
         //  we need information on that one too

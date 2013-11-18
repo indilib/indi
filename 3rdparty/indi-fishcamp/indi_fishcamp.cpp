@@ -411,7 +411,7 @@ bool FishCampCCD::AbortExposure()
   return true;
 }
 
-bool FishCampCCD::updateCCDFrameType(CCDChip::CCD_FRAME fType)
+bool FishCampCCD::UpdateCCDFrameType(CCDChip::CCD_FRAME fType)
 {
     // We only support light frames
     if (fType != CCDChip::LIGHT_FRAME)
@@ -425,7 +425,7 @@ bool FishCampCCD::updateCCDFrameType(CCDChip::CCD_FRAME fType)
 
 }
 
-bool FishCampCCD::updateCCDFrame(int x, int y, int w, int h)
+bool FishCampCCD::UpdateCCDFrame(int x, int y, int w, int h)
 {
   int rc=0;
   /* Add the X and Y offsets */
@@ -462,7 +462,7 @@ bool FishCampCCD::updateCCDFrame(int x, int y, int w, int h)
   return true;
 }
 
-bool FishCampCCD::updateCCDBin(int binx, int biny)
+bool FishCampCCD::UpdateCCDBin(int binx, int biny)
 {
     if (binx != 1 || biny !=1)
     {
@@ -525,8 +525,8 @@ void FishCampCCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
 
 void FishCampCCD::resetFrame()
 {
-  updateCCDBin(1, 1);
-  updateCCDFrame(0, 0, PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
+  UpdateCCDBin(1, 1);
+  UpdateCCDFrame(0, 0, PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
   IUResetSwitch(&ResetSP);
   ResetSP.s = IPS_IDLE;
   IDSetSwitch(&ResetSP, "Resetting frame and binning.");
