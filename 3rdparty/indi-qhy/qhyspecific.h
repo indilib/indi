@@ -35,10 +35,10 @@ class QHY5 : public QHYDevice {
 		bool getCCDTemp(float *temperature) { return false; }
 		bool getParameters(unsigned* pixelCountX, unsigned* pixelCountY, float* pixelSizeX, float* pixelSizeY, unsigned *bitsPerPixel, unsigned* maxBinX, unsigned* maxBinY);
 		bool setParameters(unsigned left, unsigned top, unsigned width, unsigned height, unsigned gain);
-    bool StartExposure(float time);
-    bool readExposure(void *pixels);
+        bool startExposure(float time);
+        bool readExposure(void *pixels);
 		bool guidePulse(unsigned mask, unsigned duration);
-    bool reset();
+        bool reset();
 };
 
 class QHY5II : public QHYDevice {

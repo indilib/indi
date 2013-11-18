@@ -101,7 +101,7 @@ int main() {
       cout << "---------------------------------- set frame parameters " << endl;
 			camera->setParameters(0, 0, W, H, 90);
       cout << "---------------------------------- start exposure " << endl;
-      camera->StartExposure(1.0);
+      camera->startExposure(1.0);
       cout << "---------------------------------- read image " << endl;
       usleep(1000*1000);
       if (bitsPerPixel == 8) {

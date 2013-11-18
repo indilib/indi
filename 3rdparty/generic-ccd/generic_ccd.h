@@ -46,10 +46,10 @@ public:
   bool Connect();
   bool Disconnect();
 
-  int StartExposure(float duration);
+  int  SetTemperature(double temperature);
+  bool StartExposure(float duration);
   bool AbortExposure();
 
-  virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
   virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
 protected:
@@ -72,9 +72,6 @@ private:
 
   ISwitch ResetS[1];
   ISwitchVectorProperty ResetSP;
-
-  INumber TemperatureN[1];
-  INumberVectorProperty TemperatureNP;
 
   double ccdTemp;
   double minDuration;

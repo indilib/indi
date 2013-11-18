@@ -98,7 +98,6 @@ class SXCCD : public INDI::CCD
     void simulationTriggered(bool enable);
     void ISGetProperties(const char *dev);
     bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
 
   friend void ::ExposureTimerCallback(void *p);
   friend void ::GuideExposureTimerCallback(void *p);

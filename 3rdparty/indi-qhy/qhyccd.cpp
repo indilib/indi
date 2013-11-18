@@ -222,7 +222,7 @@ void QHYCCD::TimerHit() {
 bool QHYCCD::StartExposure(float n) {
   InExposure = true;
   PrimaryCCD.setExposureDuration(n);
-  device->StartExposure(n);
+  device->startExposure(n);
   int time = (int) (1000 * n);
   if (time < 1)
     time = 1;

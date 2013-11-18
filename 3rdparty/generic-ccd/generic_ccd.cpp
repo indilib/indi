@@ -176,8 +176,9 @@ bool GenericCCD::initProperties() {
   IUFillSwitch(&ResetS[0], "RESET", "Reset", ISS_OFF);
   IUFillSwitchVector(&ResetSP, ResetS, 1, getDeviceName(), "FRAME_RESET", "Frame Values", IMAGE_SETTINGS_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
 
-  IUFillNumber(&TemperatureN[0], "CCD_TEMPERATURE_VALUE", "Temperature (C)", "%5.2f", MIN_CCD_TEMP, MAX_CCD_TEMP, 0., 0.);
-  IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "CCD_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+  // Set CCD Features
+  // In Generic CCD example: No Guide Head. We have ST4 Port. We have cooler. We have Shutter
+  SetCCDFeatures(false, true, true, true);
   return true;
 }
 
@@ -192,7 +193,6 @@ bool GenericCCD::updateProperties() {
   INDI::CCD::updateProperties();
 
   if (isConnected()) {
-    defineNumber(&TemperatureNP);
     defineSwitch(&ResetSP);
 
     // Let's get parameters now from CCD
@@ -200,8 +200,6 @@ bool GenericCCD::updateProperties() {
 
     timerID = SetTimer(POLLMS);
   } else {
-
-    deleteProperty(TemperatureNP.name);
     deleteProperty(ResetSP.name);
 
     rmTimer(timerID);
@@ -228,52 +226,6 @@ bool GenericCCD::ISNewSwitch(const char *dev, const char *name, ISState *states,
   return INDI::CCD::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool GenericCCD::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) {
-  INumber *np;
-
-  if (strcmp(dev, getDeviceName()) == 0) {
-
-    /* Temperature*/
-    if (!strcmp(TemperatureNP.name, name)) {
-      TemperatureNP.s = IPS_IDLE;
-
-      np = IUFindNumber(&TemperatureNP, names[0]);
-
-      if (!np) {
-        IDSetNumber(&TemperatureNP, "Unknown error. %s is not a member of %s property.", names[0], name);
-        return false;
-      }
-
-      if (values[0] < MIN_CCD_TEMP || values[0] > MAX_CCD_TEMP) {
-        IDSetNumber(&TemperatureNP, "Error: valid range of temperature is from %d to %d", MIN_CCD_TEMP, MAX_CCD_TEMP);
-        return false;
-      }
-
-      /**********************************************************
-       *
-       *
-       *
-       *  IMPORRANT: Put here your CCD Set Temperature Function
-       *
-       *
-       *
-       **********************************************************/
-
-      TemperatureRequest = values[0];
-      TemperatureNP.s = IPS_BUSY;
-
-      IDSetNumber(&TemperatureNP, "Setting CCD temperature to %+06.2f C", values[0]);
-      if (isDebug())
-        IDLog("Setting CCD temperature to %+06.2f C\n", values[0]);
-      return true;
-    }
-  }
-
-  //  if we didn't process it, continue up the chain, let somebody else
-  //  give it a shot
-  return INDI::CCD::ISNewNumber(dev, name, values, names, n);
-}
-
 bool GenericCCD::Connect() {
 
   sim = isSimulation();
@@ -284,7 +236,7 @@ bool GenericCCD::Connect() {
   // Do we have a guide port?
 
   if (sim)
-    HasST4Port = true;
+    SetST4Port(true);
 
   if (sim)
     return true;
@@ -436,21 +388,42 @@ bool GenericCCD::setupParams() {
 
 }
 
-int GenericCCD::StartExposure(float duration) {
+int GenericCCD::SetTemperature(double temperature)
+{
+    // If there difference, for example, is less than 0.1 degrees, let's immediately return OK.
+    if (fabs(temperature- TemperatureN[0].value))
+        return 1;
 
-  bool shortExposure = false;
+    /**********************************************************
+     *
+     *  IMPORRANT: Put here your CCD Set Temperature Function
+     *  We return 0 if setting the temperature will take some time
+     *  If the requested is the same as current temperature, or very
+     *  close, we return 1 and INDI::CCD will mark the temperature status as OK
+     *  If we return 0, INDI::CCD will mark the temperature status as BUSY
+     **********************************************************/
 
-  if (duration < minDuration) {
-    IDMessage(getDeviceName(), "Exposure shorter than minimum duration %g s requested. \n Setting exposure time to %g s.", duration, minDuration);
+    // Otherwise, we set the temperature request and we update the status in TimerHit() function.
+    TemperatureRequest = temperature;
+    DEBUGF(INDI::Logger::DBG_SESSION, "Setting CCD temperature to %+06.2f C", temperature);
+    return 0;
+}
+
+
+
+bool GenericCCD::StartExposure(float duration)
+{
+
+  if (duration < minDuration)
+  {
+    DEBUGF(INDI::Logger::DBG_WARNING, "Exposure shorter than minimum duration %g s requested. \n Setting exposure time to %g s.", duration, minDuration);
     duration = minDuration;
   }
 
-  if (imageFrameType == CCDChip::BIAS_FRAME) {
+  if (imageFrameType == CCDChip::BIAS_FRAME)
+  {
     duration = minDuration;
-    shortExposure = true;
-    IDMessage(getDeviceName(), "Bias Frame (s) : %g\n", minDuration);
-    if (isDebug())
-      IDLog("Bias Frame (s) : %g\n", minDuration);
+    DEBUGF(INDI::Logger::DBG_SESSION, "Bias Frame (s) : %g\n", minDuration);
   }
 
   /**********************************************************
@@ -469,14 +442,13 @@ int GenericCCD::StartExposure(float duration) {
 
   PrimaryCCD.setExposureDuration(duration);
   ExposureRequest = duration;
-  if (isDebug())
-    IDLog("Exposure Time (s) is: %g\n", duration);
 
   gettimeofday(&ExpStart, NULL);
-  IDMessage(getDeviceName(), "Taking a %g seconds frame...", ExposureRequest);
+  DEBUGF(INDI::Logger::DBG_SESSION, "Taking a %g seconds frame...", ExposureRequest);
 
   InExposure = true;
-  return (shortExposure ? 1 : 0);
+
+  return true;
 }
 
 bool GenericCCD::AbortExposure() {

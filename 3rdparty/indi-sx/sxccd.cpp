@@ -604,10 +604,3 @@ bool SXCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char
   return result;
 }
 
-bool SXCCD::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) {
-  bool result = false;
-
-    result = INDI::CCD::ISNewNumber(dev, name, values, names, n);
-  return result;
-}
-

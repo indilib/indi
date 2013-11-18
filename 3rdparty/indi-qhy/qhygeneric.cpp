@@ -432,7 +432,7 @@ bool QHYDevice::guidePulse(unsigned mask, unsigned duration) {
   return false;
 }
 
-bool QHYDevice::StartExposure(float time) {
+bool QHYDevice::startExposure(float time) {
   return false;
 }
 

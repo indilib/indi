@@ -99,7 +99,7 @@ bool QHY5::setParameters(unsigned left, unsigned top, unsigned width, unsigned h
   return rc >= 0;
 }
 
-bool QHY5::StartExposure(float time) {
+bool QHY5::startExposure(float time) {
   int index, value;
   unsigned char buffer[2];
   unsigned exposure = (unsigned) time;
