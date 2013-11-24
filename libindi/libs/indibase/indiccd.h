@@ -275,6 +275,8 @@ private:
     CCD_FRAME FrameType;
     double exposureDuration;
     timeval startExposureTime;
+    int lastRapidX;
+    int lastRapidY;
 
     INumberVectorProperty *ImageExposureNP;
     INumber ImageExposureN[1];

@@ -60,6 +60,7 @@ CCDChip::CCDChip()
     RapidGuideSP = new ISwitchVectorProperty;
     RapidGuideSetupSP = new ISwitchVectorProperty;
     RapidGuideDataNP = new INumberVectorProperty;
+    lastRapidX = lastRapidY = -1;
 }
 
 CCDChip::~CCDChip()
@@ -1058,9 +1059,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
     if (sendData)
     {
       static double P0 = 0.906, P1 = 0.584, P2 = 0.365, P3 = 0.117, P4 = 0.049, P5 = -0.05, P6 = -0.064, P7 = -0.074, P8 = -0.094;
-
       targetChip->RapidGuideDataNP->s=IPS_BUSY;
-
       int width = targetChip->getSubW() / targetChip->getBinX();
       int height = targetChip->getSubH() / targetChip->getBinY();
       unsigned short *src = (unsigned short *) targetChip->getFrameBuffer();
@@ -1069,8 +1068,18 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
       int xM4;
       unsigned short *p;
       double average, fit, bestFit = 0;
-      for (int x = 4; x < width - 4; x++)
-        for (int y = 4; y < height - 4; y++)
+      int minx = 4;
+      int maxx = width -4;
+      int miny = 4;
+      int maxy = height -4;
+      if (targetChip->lastRapidX > 0 && targetChip->lastRapidY > 0) {
+        minx = std::max(targetChip->lastRapidX - 20, 4);
+        maxx = std::min(targetChip->lastRapidX + 20, width - 4);
+        miny = std::max(targetChip->lastRapidY - 20, 4);
+        maxy = std::min(targetChip->lastRapidY + 20, height -4);
+      }
+      for (int x = minx; x < maxx; x++)
+        for (int y = miny; y < maxy; y++)
         {
           i0 = i1 = i2 = i3 = i4 = i5 = i6 = i7 = i8 = 0;
           xM4 = x - 4; 
@@ -1096,6 +1105,8 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
       targetChip->RapidGuideDataN[0].value = ix;
       targetChip->RapidGuideDataN[1].value = iy;
       targetChip->RapidGuideDataN[2].value = bestFit;
+      targetChip->lastRapidX = ix;
+      targetChip->lastRapidY = iy;
       if (bestFit > 50)
       {        
         double sumX = 0;
@@ -1119,11 +1130,15 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
           DEBUGF(INDI::Logger::DBG_DEBUG, "Guide Star X: %g Y: %g FIT: %g", targetChip->RapidGuideDataN[0].value, targetChip->RapidGuideDataN[1].value,
                   targetChip->RapidGuideDataN[2].value);
         }
-        else
+        else {
           targetChip->RapidGuideDataNP->s=IPS_ALERT;
+          targetChip->lastRapidX = targetChip->lastRapidY = -1;
+        }
       }
-      else
+      else {
         targetChip->RapidGuideDataNP->s=IPS_ALERT;
+        targetChip->lastRapidX = targetChip->lastRapidY = -1;
+      }
       IDSetNumber(targetChip->RapidGuideDataNP,NULL);
       
       if (showMarker)

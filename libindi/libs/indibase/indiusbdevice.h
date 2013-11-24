@@ -58,10 +58,9 @@ protected:
 public:
 	int WriteInterrupt(unsigned char *, int, int);
 	int ReadInterrupt(unsigned char *, int, int);
-  int ControlMessage(unsigned char request_type, unsigned char request, unsigned int value, unsigned int index, unsigned char *data, unsigned char len);
-
   int WriteBulk(unsigned char *buf, int nbytes, int timeout);
   int ReadBulk(unsigned char *buf, int nbytes, int timeout);
+  int ControlMessage(unsigned char request_type, unsigned char request, unsigned int value, unsigned int index, unsigned char *data, unsigned char len);
 	int FindEndpoints();
 	int Open();
 	void Close();
