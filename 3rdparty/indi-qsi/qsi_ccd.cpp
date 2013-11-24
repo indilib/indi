@@ -174,23 +174,17 @@ bool QSICCD::initProperties()
     IUFillNumber(&CoolerN[0], "CCD_COOLER_VALUE", "Cooling Power (%)", "%+06.2f", 0., 1., .2, 0.0);
     IUFillNumberVector(&CoolerNP, CoolerN, 1, getDeviceName(), "CCD_COOLER", "Cooling Power", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
-    IUFillNumber(&TemperatureN[0], "CCD_TEMPERATURE_VALUE", "Temperature (C)", "%5.2f", MIN_CCD_TEMP, MAX_CCD_TEMP, 0., 0.);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "CCD_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
-
     IUFillSwitch(&ReadOutS[0], "QUALITY_HIGH", "High Quality", ISS_OFF);
     IUFillSwitch(&ReadOutS[1], "QUALITY_LOW", "Fast", ISS_OFF);
     IUFillSwitchVector(&ReadOutSP, ReadOutS, 2, getDeviceName(), "READOUT_QUALITY", "Readout Speed", OPTIONS_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
-
-    //IUFillNumber(&FilterN[0], "FILTER_SLOT_VALUE", "Active Filter", "%2.0f", FIRST_FILTER, LAST_FILTER, 1, 0);
-    //IUFillNumberVector(&FilterSlotNP, FilterN, 1, getDeviceName(), "FILTER_SLOT", "Filter", FILTER_WHEEL_TAB, IP_RW, 60, IPS_IDLE);
 
     IUFillSwitch(&FilterS[0], "FILTER_CW", "+", ISS_OFF);
     IUFillSwitch(&FilterS[1], "FILTER_CCW", "-", ISS_OFF);
     IUFillSwitchVector(&FilterSP, FilterS, 2, getDeviceName(), "FILTER_WHEEL_MOTION", "Turn Wheel", FILTER_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
-    //initGuiderProperties(getDeviceName(), GUIDER_TAB);
     initFilterProperties(getDeviceName(), FILTER_TAB);
 
+    SetCCDFeatures(false, false, true, true);
 
     addDebugControl();
 }
@@ -202,7 +196,6 @@ bool QSICCD::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&TemperatureNP);
         defineSwitch(&ResetSP);
         defineSwitch(&CoolerSP);
         defineSwitch(&ShutterSP);
@@ -248,9 +241,6 @@ bool QSICCD::updateProperties()
 bool QSICCD::setupParams()
 {
 
-    if (isDebug())
-        IDLog("In setupParams\n");
-
     string name,model;
     double temperature;
     double pixel_size_x,pixel_size_y;
@@ -272,9 +262,6 @@ bool QSICCD::setupParams()
 
 
     DEBUGF(INDI::Logger::DBG_SESSION, "The CCD Temperature is %f.", temperature);
-
-    if (isDebug())
-        IDLog("The CCD Temperature is %f.\n", temperature);
 
     TemperatureN[0].value = temperature;			/* CCD chip temperatre (degrees C) */
 
@@ -312,22 +299,10 @@ bool QSICCD::setupParams()
     FilterSlotNP.s = IPS_OK;
 
     IUUpdateMinMax(&FilterSlotNP);
-    IDSetNumber(&FilterSlotNP, "Setting max number of filters.\n");
+    IDSetNumber(&FilterSlotNP, "Setting max number of filters.");
 
     FilterSP.s = IPS_OK;
     IDSetSwitch(&FilterSP,NULL);
-
-    try
-    {
-        bool hasST4Port=false;
-        QSICam.get_CanPulseGuide(&hasST4Port);
-        SetST4Port(hasST4Port);
-    }
-    catch (std::runtime_error err)
-    {
-          DEBUGF(INDI::Logger::DBG_ERROR, "get_canPulseGuide() failed. %s.", err.what());
-          return false;
-    }
 
     GetFilterNames(FILTER_TAB);
 
@@ -910,6 +885,19 @@ bool QSICCD::Connect()
                     return false;
                 }
             }
+
+            try
+            {
+                bool hasST4Port=false;
+                QSICam.get_CanPulseGuide(&hasST4Port);
+                SetST4Port(hasST4Port);
+            }
+            catch (std::runtime_error err)
+            {
+                  DEBUGF(INDI::Logger::DBG_ERROR, "get_canPulseGuide() failed. %s.", err.what());
+                  return false;
+            }
+
 
             /* Success! */
             DEBUG(INDI::Logger::DBG_SESSION, "CCD is online. Retrieving basic data.");
