@@ -209,19 +209,12 @@ bool QSICCD::updateProperties()
         if (FilterNameT != NULL)
             defineText(FilterNameTP);
 
-        char msg[1024];
-
-        if (manageDefaults(msg))
-        {
-            DEBUG(INDI::Logger::DBG_SESSION, msg);
-            return false;
-        }
+        manageDefaults();
 
         timerID = SetTimer(POLLMS);
     }
     else
     {
-        deleteProperty(TemperatureNP.name);
         deleteProperty(ResetSP.name);
         deleteProperty(CoolerSP.name);
         deleteProperty(ShutterSP.name);
@@ -240,7 +233,6 @@ bool QSICCD::updateProperties()
 
 bool QSICCD::setupParams()
 {
-
     string name,model;
     double temperature;
     double pixel_size_x,pixel_size_y;
@@ -372,7 +364,6 @@ int QSICCD::SetTemperature(double temperature)
 
 bool QSICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-
     if(strcmp(dev,getDeviceName())==0)
     {
 
@@ -825,18 +816,15 @@ void QSICCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
         fits_write_date(fptr, &status);
 }
 
-int QSICCD::manageDefaults(char errmsg[])
+bool QSICCD::manageDefaults()
 {
-
-        long err;
-  
         /* X horizontal binning */
         try
         {
             QSICam.put_BinX(PrimaryCCD.getBinX());
         } catch (std::runtime_error err) {
             DEBUGF(INDI::Logger::DBG_ERROR, "Error: put_BinX() failed. %s.", err.what());
-            return -1;
+            return false;
         }
 
         /* Y vertical binning */
@@ -845,7 +833,7 @@ int QSICCD::manageDefaults(char errmsg[])
         } catch (std::runtime_error err)
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "Error: put_BinY() failed. %s.", err.what());
-            return -1;
+            return false;
         }
 
 
@@ -855,7 +843,7 @@ int QSICCD::manageDefaults(char errmsg[])
 
 
         /* Success */
-        return 0;
+        return true;
 }
 
 

@@ -82,7 +82,7 @@ class QSICCD : public INDI::CCD, public INDI::FilterInterface
     float CalcTimeLeft(timeval,float);
     int grabImage();
     bool setupParams();
-    int manageDefaults(char errmsg[]);
+    bool manageDefaults();
     void activateCooler(bool enable);
     void resetFrame();
     void shutterControl();
