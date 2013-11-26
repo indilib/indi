@@ -109,7 +109,7 @@ void * INDI::BaseDevice::getRawProperty(const char *name, INDI_TYPE type)
     void *pPtr;
     bool pRegistered = false;
 
-    typename std::vector<INDI::Property *>::iterator orderi = pAll.begin();
+    std::vector<INDI::Property *>::iterator orderi = pAll.begin();
 
     INumberVectorProperty *nvp;
     ITextVectorProperty *tvp;
