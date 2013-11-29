@@ -43,6 +43,8 @@ public:
     virtual bool Move(FocusDirection dir, int speed, int duration);
     virtual int MoveAbs(int ticks);
     virtual int MoveRel(FocusDirection dir, unsigned int ticks);
+    virtual bool Abort();
+    virtual void TimerHit();
 
 protected:
     bool saveConfigItems(FILE *fp);
@@ -50,6 +52,7 @@ protected:
 private:
 
     int PortFD;
+    double targetPos;
 
     unsigned char CheckSum(char *rf_cmd);
     unsigned char CalculateSum(char *rf_cmd);

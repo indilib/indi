@@ -73,6 +73,12 @@ class INDI::Focuser : public INDI::DefaultDevice
         */
         virtual int MoveRel(FocusDirection dir, unsigned int ticks);
 
+        /**
+         * @brief Abort all focus motion
+         * @return True if abort is successful, false otherwise.
+         */
+        virtual bool Abort();
+
         INumberVectorProperty FocusSpeedNP;
         INumber FocusSpeedN[1];
         ISwitchVectorProperty FocusMotionSP; //  A Switch in the client interface to park the scope
@@ -83,6 +89,8 @@ class INDI::Focuser : public INDI::DefaultDevice
         INumber FocusAbsPosN[1];
         INumberVectorProperty FocusRelPosNP;
         INumber FocusRelPosN[1];
+        ISwitchVectorProperty AbortSP;
+        ISwitch AbortS[1];
 
 };
 

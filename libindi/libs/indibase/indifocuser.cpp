@@ -38,7 +38,6 @@ bool INDI::Focuser::initProperties()
     IUFillNumber(&FocusTimerN[0],"FOCUS_TIMER_VALUE","Focus Timer","%4.0f",0.0,1000.0,10.0,1000.0);
     IUFillNumberVector(&FocusTimerNP,FocusTimerN,1,getDeviceName(),"FOCUS_TIMER","Timer",MAIN_CONTROL_TAB,IP_RW,60,IPS_OK);
 
-
     IUFillSwitch(&FocusMotionS[0],"FOCUS_INWARD","Focus In",ISS_ON);
     IUFillSwitch(&FocusMotionS[1],"FOCUS_OUTWARD","Focus Out",ISS_OFF);
     IUFillSwitchVector(&FocusMotionSP,FocusMotionS,2,getDeviceName(),"FOCUS_MOTION","Direction",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_OK);
@@ -49,6 +48,9 @@ bool INDI::Focuser::initProperties()
 
     IUFillNumber(&FocusRelPosN[0],"RELATIVE_ABSOLUTE_POSITION","Ticks","%4.0f",0.0,100000.0,1000.0,50000.0);
     IUFillNumberVector(&FocusRelPosNP,FocusRelPosN,1,getDeviceName(),"REL_FOCUS_POSITION","Relative Position",MAIN_CONTROL_TAB,IP_RW,60,IPS_OK);
+
+    IUFillSwitch(&AbortS[0],"ABORT","Abort",ISS_OFF);
+    IUFillSwitchVector(&AbortSP,AbortS,1,getDeviceName(),"FOCUS_ABORT_MOTION","Abort Motion",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
     addDebugControl();
 
@@ -71,11 +73,13 @@ bool INDI::Focuser::updateProperties()
         defineSwitch(&FocusMotionSP);
         defineNumber(&FocusSpeedNP);
         defineNumber(&FocusTimerNP);
+        defineSwitch(&AbortSP);
     } else
     {
         deleteProperty(FocusMotionSP.name);
         deleteProperty(FocusSpeedNP.name);
         deleteProperty(FocusTimerNP.name);
+        deleteProperty(AbortSP.name);
     }
     return true;
 }
@@ -201,6 +205,19 @@ bool INDI::Focuser::ISNewSwitch (const char *dev, const char *name, ISState *sta
             return true;
         }
 
+        if(strcmp(name,"FOCUS_ABORT_MOTION")==0)
+        {
+            IUResetSwitch(&AbortSP);
+
+            if (Abort())
+                AbortSP.s = IPS_OK;
+            else
+                AbortSP.s = IPS_ALERT;
+
+            IDSetSwitch(&AbortSP, NULL);
+            return true;
+        }
+
     }
 
     //  Nobody has claimed this, so, ignore it
@@ -243,5 +260,13 @@ int INDI::Focuser::MoveAbs(int ticks)
 bool INDI::Focuser::ISSnoopDevice (XMLEle *root)
 {
     return INDI::DefaultDevice::ISSnoopDevice(root);
+}
+
+bool INDI::Focuser::Abort()
+{
+    //  This should be a virtual function, because the low level hardware class
+    //  must override this
+    DEBUG(INDI::Logger::DBG_ERROR, "Focuser does not support abort motion.");
+    return false;
 }
 
