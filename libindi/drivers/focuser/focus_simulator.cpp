@@ -290,3 +290,8 @@ int FocusSim::MoveAbs(int targetTicks)
     return 0;
 
 }
+
+bool FocusSim::Abort()
+{
+    return true;
+}
