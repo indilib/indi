@@ -239,8 +239,10 @@ bool TCFS::Connect()
     if (tty_connect(tProp->tp[0].text, 19200, 8, 0, 1, &fd) != TTY_OK)
     {
         IDMessage(getDeviceName(), "Error connecting to port %s. Make sure you have BOTH read and write permission to the port.", tProp->tp[0].text);
-	return false;
+        return false;
     }
+
+    dispatch_command(FMMODE);
 
     IDMessage(getDeviceName(), "Successfully connected to TCF-S Focuser in Manual Mode.");
 
