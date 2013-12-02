@@ -313,9 +313,7 @@ void SXCCD::TimerHit() {
     SetTimer(TIMER);
 }
 
-int SXCCD::SetTemperature(double temperature)
-{
-
+int SXCCD::SetTemperature(double temperature) {
     int result=0;
     TemperatureRequest = temperature;
     unsigned char status;
@@ -407,11 +405,11 @@ void SXCCD::ExposureTimerHit() {
           if (rc)
             rc = sxReadPixels(handle, (unsigned short *) buf, size);
         } else {
-          rc = sxLatchPixels(handle, CCD_EXP_FLAGS_FIELD_EVEN | CCD_EXP_FLAGS_SPARE2, 0, subX, subY, subW, subH / 2, binX, 1);
+          rc = sxLatchPixels(handle, CCD_EXP_FLAGS_FIELD_EVEN | CCD_EXP_FLAGS_SPARE2, 0, subX, subY / 2, subW, subH / 2, binX, 1);
           if (rc)
             rc = sxReadPixels(handle, (unsigned short *) evenBuf, size / 2);
           if (rc)
-            rc = sxLatchPixels(handle, CCD_EXP_FLAGS_FIELD_ODD | CCD_EXP_FLAGS_SPARE2, 0, subX, subY, subW, subH / 2, binX, 1);
+            rc = sxLatchPixels(handle, CCD_EXP_FLAGS_FIELD_ODD | CCD_EXP_FLAGS_SPARE2, 0, subX, subY / 2, subW, subH / 2, binX, 1);
           if (rc)
             rc = sxReadPixels(handle, (unsigned short *) oddBuf, size / 2);
           if (rc)
