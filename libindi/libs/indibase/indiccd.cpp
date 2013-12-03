@@ -794,13 +794,24 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
 
         if(strcmp(name,PrimaryCCD.FrameTypeSP->name)==0)
         {
-            //  Compression Update
             IUUpdateSwitch(PrimaryCCD.FrameTypeSP,states,names,n);
             PrimaryCCD.FrameTypeSP->s=IPS_OK;
-            if(PrimaryCCD.FrameTypeS[0].s==ISS_ON) PrimaryCCD.setFrameType(CCDChip::LIGHT_FRAME);
-            else if(PrimaryCCD.FrameTypeS[1].s==ISS_ON) PrimaryCCD.setFrameType(CCDChip::BIAS_FRAME);
-            else if(PrimaryCCD.FrameTypeS[2].s==ISS_ON) PrimaryCCD.setFrameType(CCDChip::DARK_FRAME);
-            else if(PrimaryCCD.FrameTypeS[3].s==ISS_ON) PrimaryCCD.setFrameType(CCDChip::FLAT_FRAME);
+            if(PrimaryCCD.FrameTypeS[0].s==ISS_ON)
+                PrimaryCCD.setFrameType(CCDChip::LIGHT_FRAME);
+            else if(PrimaryCCD.FrameTypeS[1].s==ISS_ON)
+            {
+                PrimaryCCD.setFrameType(CCDChip::BIAS_FRAME);
+                if (hasShutter == false)
+                    DEBUG(INDI::Logger::DBG_WARNING, "The CCD does not have a shutter. Cover the camera in order to take a bias frame.");
+            }
+            else if(PrimaryCCD.FrameTypeS[2].s==ISS_ON)
+            {
+                PrimaryCCD.setFrameType(CCDChip::DARK_FRAME);
+                if (hasShutter == false)
+                    DEBUG(INDI::Logger::DBG_WARNING, "The CCD does not have a shutter. Cover the camera in order to take a dark frame.");
+            }
+            else if(PrimaryCCD.FrameTypeS[3].s==ISS_ON)
+                PrimaryCCD.setFrameType(CCDChip::FLAT_FRAME);
 
             if (UpdateCCDFrameType(PrimaryCCD.getFrameType()) == false)
                 PrimaryCCD.FrameTypeSP->s = IPS_ALERT;
@@ -815,10 +826,22 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
             //  Compression Update
             IUUpdateSwitch(GuideCCD.FrameTypeSP,states,names,n);
             GuideCCD.FrameTypeSP->s=IPS_OK;
-            if(GuideCCD.FrameTypeS[0].s==ISS_ON) GuideCCD.setFrameType(CCDChip::LIGHT_FRAME);
-            else if(GuideCCD.FrameTypeS[1].s==ISS_ON) GuideCCD.setFrameType(CCDChip::BIAS_FRAME);
-            else if(GuideCCD.FrameTypeS[2].s==ISS_ON) GuideCCD.setFrameType(CCDChip::DARK_FRAME);
-            else if(GuideCCD.FrameTypeS[3].s==ISS_ON) GuideCCD.setFrameType(CCDChip::FLAT_FRAME);
+            if(GuideCCD.FrameTypeS[0].s==ISS_ON)
+                GuideCCD.setFrameType(CCDChip::LIGHT_FRAME);
+            else if(GuideCCD.FrameTypeS[1].s==ISS_ON)
+            {
+                GuideCCD.setFrameType(CCDChip::BIAS_FRAME);
+                if (hasShutter == false)
+                    DEBUG(INDI::Logger::DBG_WARNING, "The CCD does not have a shutter. Cover the camera in order to take a bias frame.");
+            }
+            else if(GuideCCD.FrameTypeS[2].s==ISS_ON)
+            {
+                GuideCCD.setFrameType(CCDChip::DARK_FRAME);
+                if (hasShutter == false)
+                    DEBUG(INDI::Logger::DBG_WARNING, "The CCD does not have a shutter. Cover the camera in order to take a dark frame.");
+            }
+            else if(GuideCCD.FrameTypeS[3].s==ISS_ON)
+                GuideCCD.setFrameType(CCDChip::FLAT_FRAME);
 
             if (UpdateGuideFrameType(GuideCCD.getFrameType()) == false)
                 GuideCCD.FrameTypeSP->s = IPS_ALERT;
