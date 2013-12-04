@@ -1116,14 +1116,19 @@ int V4L2_Base::setcapturesize(unsigned int w, unsigned int h, char *errmsg) {
     return errno_exit ("VIDIOC_TRY_FMT", errmsg);
   }
   if (-1 == xioctl (fd, VIDIOC_S_FMT, &fmt)) {
+      fmt.fmt.pix.width = oldw;
+      fmt.fmt.pix.height = oldh;
       return errno_exit ("VIDIOC_S_FMT", errmsg);
   }
   // Drivers may change sizes
   if (-1 == xioctl (fd, VIDIOC_G_FMT, &fmt)) {
+      fmt.fmt.pix.width = oldw;
+      fmt.fmt.pix.height = oldh;
     return errno_exit ("VIDIOC_G_FMT", errmsg);
   }
   reallocate_buffers=true;
   cropset=false;
+  allocBuffers();
   return 0;
 }
 
@@ -1192,6 +1197,7 @@ int V4L2_Base::setcroprect(int x, int y, int w, int h, char *errmsg) {
     } 
   }
   cropset=true;
+  allocBuffers();
   return 0;
 }
 
