@@ -143,6 +143,10 @@
                 <driver name="CCD Simulator">indi_simulator_ccd</driver>
                 <version>1.0</version>
         </device>
+        <device label="V4L2 CCD">
+                <driver name="V4L2 CCD">indi_v4l2driver_ccd</driver>
+                <version>0.1</version>
+        </device>
 </devGroup>
 <devGroup group="Filter Wheels">
 	<device label="TruTech Wheel">

@@ -348,7 +348,7 @@ void V4L_Driver::ISNewNumber (const char *dev, const char *name, double values[]
      for (int i=0; i < ImageAdjustNP.nnp; i++)
      {
          ctrl_id = *((unsigned int *) ImageAdjustNP.np[i].aux0);
-         if (v4l_base->setINTControl( ctrl_id , ImageAdjustNP.np[i].value, errmsg) < 0)
+         if (v4l_base->setINTControl( ctrl_id , ImageAdjustNP.np[i].value, false, errmsg) < 0)
          {
             ImageAdjustNP.s = IPS_ALERT;
             IDSetNumber(&ImageAdjustNP, "Unable to adjust setting. %s", errmsg);
@@ -684,7 +684,7 @@ void V4L_Driver::connectCamera()
       PowerS[1].s = ISS_ON;
       PowerSP.s = IPS_IDLE;
       
-      v4l_base->disconnectCam();
+      v4l_base->disconnectCam(true);
       
       IDSetSwitch(&PowerSP, "Video4Linux Generic Device is offline.");
       

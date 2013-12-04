@@ -533,7 +533,7 @@ void V4L_Philips::connectCamera()
       PowerS[1].s = ISS_ON;
       PowerSP.s = IPS_IDLE;
       
-      v4l_base->disconnectCam();
+      v4l_base->disconnectCam(true);
       
       IDSetSwitch(&PowerSP, "Philips Webcam is offline.");
       

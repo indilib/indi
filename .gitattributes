@@ -887,9 +887,12 @@ libindi/drivers/telescope/temmadriver.h -text
 libindi/drivers/video/indi_lpi.cpp -text
 libindi/drivers/video/indi_philips.cpp -text
 libindi/drivers/video/indi_v4l.cpp -text
+libindi/drivers/video/indi_v4l2driver.cpp -text
 libindi/drivers/video/stv.c -text
 libindi/drivers/video/stvdriver.c -text
 libindi/drivers/video/stvdriver.h -text
+libindi/drivers/video/v4l2driver.cpp -text
+libindi/drivers/video/v4l2driver.h -text
 libindi/drivers/video/v4ldriver.cpp -text
 libindi/drivers/video/v4ldriver.h -text
 libindi/drivers/video/v4lphilips.cpp -text
@@ -954,6 +957,8 @@ libindi/libs/indicom.c -text
 libindi/libs/indicom.h -text
 libindi/libs/lilxml.c -text
 libindi/libs/lilxml.h -text
+libindi/libs/lx/Lx.cpp -text
+libindi/libs/lx/Lx.h -text
 libindi/libs/webcam/PPort.cpp -text
 libindi/libs/webcam/PPort.h -text
 libindi/libs/webcam/ccvt.h -text

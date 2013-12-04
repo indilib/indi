@@ -112,6 +112,10 @@ set (indidriver_SRCS
         ${CMAKE_SOURCE_DIR}/libs/indibase/indicontroller.cpp
     )
 
+set (lx_SRCS
+     ${CMAKE_SOURCE_DIR}/libs/lx/Lx.cpp
+)
+
 ######################################
 ########### INDI SERVER ##############
 ######################################
@@ -485,7 +489,7 @@ endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 #################################################################################
 
-########### Generic V4L Driver ###############
+########### Old Generic V4L Driver ###############
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 if (CFITSIO_FOUND)
 
@@ -500,6 +504,20 @@ add_executable(indi_v4l_generic ${v4ldriver_SRCS} ${libwebcam_SRCS} ${liblilxml_
 target_link_libraries(indi_v4l_generic ${M_LIB} ${ZLIB_LIBRARY} ${NOVA_LIBRARIES} ${CFITSIO_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
 install(TARGETS indi_v4l_generic RUNTIME DESTINATION bin )
+
+########### New INDI::CCD V4L Driver ###############
+
+set(v4l2driverccd_SRCS
+        ${lx_SRCS}
+        ${CMAKE_SOURCE_DIR}/drivers/video/v4l2driver.cpp
+        ${CMAKE_SOURCE_DIR}/drivers/video/indi_v4l2driver.cpp)
+
+add_executable(indi_v4l2_ccd ${v4l2driverccd_SRCS} ${libwebcam_SRCS} ${lx_SRCS})
+
+target_link_libraries(indi_v4l2_ccd indidriver)
+
+install(TARGETS indi_v4l2_ccd RUNTIME DESTINATION bin )
+
 
 endif (CFITSIO_FOUND)
 endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")

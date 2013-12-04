@@ -80,7 +80,7 @@ void Meade_LPI::connectCamera()
       
       free(V4LFrame->compressedFrame);
       V4LFrame->compressedFrame = NULL;
-      v4l_base->disconnectCam();
+      v4l_base->disconnectCam(true);
       
       IDSetSwitch(&PowerSP, "Meade LPI is offline.");
       

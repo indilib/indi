@@ -25,7 +25,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "videodev2.h"
+//#include "videodev2.h"
+#include <linux/videodev2.h>
 #include "eventloop.h"
 #include "indidevapi.h"
 
@@ -47,35 +48,23 @@ class V4L2_Base
 
   /* Connection */
   virtual int connectCam(const char * devpath, char *errmsg, int pixelFormat = -1 , int width = -1, int height = -1);
-  virtual void disconnectCam();
+  virtual void disconnectCam(bool stopcapture);
   char * getDeviceName();
 
-  /* Image settings */
-  int  getBrightness();
-  int  getContrast();
-  int  getColor();
-  int  getHue();
-  int  getWhiteness();
-  void setContrast(int val);
-  void setBrightness(int val);
-  void setColor(int val);
-  void setHue(int val);
-  void setWhiteness(int val);
 
   /* Updates */
   void callFrame(void *p);
-  void setPictureSettings();
-  void getPictureSettings();
 
-  /* Image Size */
+  /* Image Format/Size */
+  int getFormat();
   int getWidth();
   int getHeight();
   virtual int setSize(int x, int y);
   virtual void getMaxMinSize(int & x_max, int & y_max, int & x_min, int & y_min);
 
   /* Frame rate */
-  void setFPS(int fps);
-  int  getFPS();
+  int (V4L2_Base::*setframerate)(struct v4l2_fract frate, char *errmsg);
+  struct v4l2_fract (V4L2_Base::*getframerate)();
 
   void allocBuffers();
   unsigned char * getY();
@@ -92,9 +81,20 @@ class V4L2_Base
   void enumerate_ctrl (void);
   void enumerate_menu (void);
   int  queryINTControls(INumberVectorProperty *nvp);
-  int  setINTControl(unsigned int ctrl_id, double new_value, char *errmsg);
+  void  queryControls(INumberVectorProperty *nvp, unsigned int *nnumber, unsigned int*starnumext, ISwitchVectorProperty **options, unsigned int *noptions, unsigned int *startoptext, const char *dev, const char *group);
+  int  setINTControl(unsigned int ctrl_id, double new_value, bool ext, char *errmsg);
+  int  setOPTControl(unsigned int ctrl_id, unsigned int new_value, bool ext, char *errmsg);
 
   int  query_ctrl(unsigned int ctrl_id, double & ctrl_min, double & ctrl_max, double & ctrl_step, double & ctrl_value, char *errmsg);
+  void getinputs(ISwitchVectorProperty *inputssp);
+  int setinput(unsigned int inputindex, char *errmsg);
+  void getcaptureformats(ISwitchVectorProperty *captureformatssp);
+  int setcaptureformat(unsigned int captureformatindex, char *errmsg);
+  void getcapturesizes(ISwitchVectorProperty *capturesizessp, INumberVectorProperty *capturesizenp);
+  int setcapturesize(unsigned int w, unsigned int h, char *errmsg);
+  void getframerates(ISwitchVectorProperty *frameratessp, INumberVectorProperty *frameratenp);
+  int setcroprect(int x, int y, int w, int h, char *errmsg);
+  struct v4l2_rect getcroprect();
 
   protected:
 
@@ -102,7 +102,8 @@ class V4L2_Base
   int read_frame(char *errsg);
   int uninit_device(char *errmsg);
   int open_device(const char *devpath, char *errmsg);
-  int init_device(char *errmsg, int pixelFormat , int width, int height); 
+  int check_device(char *errmsg); 
+  int init_device(char *errmsg); 
   int init_mmap(char *errmsg);
   int errno_exit(const char *s, char *errmsg);
   
@@ -112,10 +113,22 @@ class V4L2_Base
 
   void findMinMax();
   
+  /* Frame rate */
+  int stdsetframerate(struct v4l2_fract frate, char *errmsg);
+  int pwcsetframerate(struct v4l2_fract frate, char *errmsg);
+  struct v4l2_fract stdgetframerate();
+
+
   struct v4l2_capability cap;
   struct v4l2_cropcap cropcap;
   struct v4l2_crop crop;
   struct v4l2_format fmt;
+  struct v4l2_input input;
+  struct v4l2_buffer buf;
+
+  bool cancrop;
+  bool cropset;
+  bool cansetrate;
 
   struct v4l2_queryctrl queryctrl;
   struct v4l2_querymenu querymenu;
@@ -127,15 +140,16 @@ class V4L2_Base
   int           fd;
   struct buffer *buffers;
   unsigned int  n_buffers;
-
+  bool reallocate_buffers;
   bool		dropFrame;
 
   
-  int frameRate;
+  struct v4l2_fract frameRate;
   int  xmax, xmin, ymax, ymin;
   int  selectCallBackID;
-  unsigned char * YBuf,*UBuf,*VBuf, *colorBuffer, *rgb24_buffer;
-
+  unsigned char * YBuf,*UBuf,*VBuf, *colorBuffer, *rgb24_buffer, *cropbuf;
+  
+  friend class V4L2_Driver;
 };
    
 #endif
