@@ -56,7 +56,6 @@
 // Long Exposure
 #include "lx/Lx.h"
 
-#define COMM_GROUP	"Main Control"
 #define IMAGE_CONTROL   "Image Control"
 #define IMAGE_GROUP	"V4L2 Control"
 #define IMAGE_BOOLEAN	"V4L2 Options"
@@ -127,6 +126,7 @@ class V4L2_Driver: public INDI::CCD
     INumber *FrameN;
      
     /* BLOBs */
+    IBLOBVectorProperty *imageBP;
     IBLOB *imageB;
     
     /* Switch vectors */
@@ -148,7 +148,7 @@ class V4L2_Driver: public INDI::CCD
 
     /* Number vectors */
     INumberVectorProperty *ExposeTimeNP;				/* Exposure */
-   INumberVectorProperty CaptureSizesNP;    			/* Select Capture size switch (Step/Continuous)*/
+    INumberVectorProperty CaptureSizesNP;    			/* Select Capture size switch (Step/Continuous)*/
     INumberVectorProperty FrameRateNP;				/* Frame rate (Step/Continuous) */
     INumberVectorProperty *FrameNP;				/* Frame dimenstion */
     INumberVectorProperty ImageAdjustNP;			/* Image controls */
@@ -157,8 +157,6 @@ class V4L2_Driver: public INDI::CCD
     ITextVectorProperty PortTP;
     ITextVectorProperty camNameTP;
     
-    /* BLOB vectors */
-    IBLOBVectorProperty *imageBP;				/* Data stream */
 
    /* Initilization functions */
    //virtual void connectCamera(void);
@@ -169,11 +167,6 @@ class V4L2_Driver: public INDI::CCD
  
    void allocateBuffers();
    void releaseBuffers();
-
-   /* Helper functions */
-   int  checkPowerN(INumberVectorProperty *np);
-   int  checkPowerS(ISwitchVectorProperty *sp);
-   int  checkPowerT(ITextVectorProperty *tp);
 
    virtual void updateV4L2Controls();
    V4L2_Base *v4l_base;
