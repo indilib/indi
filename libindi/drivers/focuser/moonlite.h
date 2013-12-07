@@ -92,6 +92,12 @@ private:
     ISwitch TemperatureCompensateS[2];
     ISwitchVectorProperty TemperatureCompensateSP;
 
+    INumber PresetN[3];
+    INumberVectorProperty PresetNP;
+
+    ISwitch PresetGotoS[3];
+    ISwitchVectorProperty PresetGotoSP;
+
 };
 
 #endif // MOONLITE_H

@@ -137,6 +137,17 @@ bool MoonLite::initProperties()
     IUFillSwitch(&TemperatureCompensateS[1], "Disable", "", ISS_ON);
     IUFillSwitchVector(&TemperatureCompensateSP, TemperatureCompensateS, 2, getDeviceName(), "Temperature Compensate", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+    // Presets
+    IUFillNumber(&PresetN[0], "Preset 1", "", "%6.2f", 0, 60000, 1000, 0);
+    IUFillNumber(&PresetN[1], "Preset 2", "", "%6.2f", 0, 60000, 1000, 0);
+    IUFillNumber(&PresetN[2], "Preset 3", "", "%6.2f", 0, 60000, 1000, 0);
+    IUFillNumberVector(&PresetNP, PresetN, 3, getDeviceName(), "Presets", "", "Presets", IP_RW, 0, IPS_IDLE);
+
+    //Preset GOTO
+    IUFillSwitch(&PresetGotoS[0], "Preset 1", "", ISS_OFF);
+    IUFillSwitch(&PresetGotoS[1], "Preset 2", "", ISS_OFF);
+    IUFillSwitch(&PresetGotoS[2], "Preset 3", "", ISS_OFF);
+    IUFillSwitchVector(&PresetGotoSP, PresetGotoS, 3, getDeviceName(), "Goto", "", "Presets", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     /* Relative and absolute movement */
     FocusRelPosN[0].min = 0.;
@@ -175,6 +186,8 @@ bool MoonLite::updateProperties()
         defineSwitch(&StepModeSP);
         defineNumber(&TemperatureSettingNP);
         defineSwitch(&TemperatureCompensateSP);
+        defineNumber(&PresetNP);
+        defineSwitch(&PresetGotoSP);
 
         GetFocusParams();
 
@@ -188,6 +201,8 @@ bool MoonLite::updateProperties()
         deleteProperty(StepModeSP.name);
         deleteProperty(TemperatureSettingNP.name);
         deleteProperty(TemperatureCompensateSP.name);
+        deleteProperty(PresetNP.name);
+        deleteProperty(PresetGotoSP.name);
     }
 
     return true;
@@ -654,6 +669,24 @@ bool MoonLite::ISNewSwitch (const char *dev, const char *name, ISState *states, 
             IDSetSwitch(&TemperatureCompensateSP, NULL);
             return true;
         }
+
+        if (!strcmp(PresetGotoSP.name, name))
+        {
+            IUUpdateSwitch(&PresetGotoSP, states, names, n);
+            int index = IUFindOnSwitchIndex(&PresetGotoSP);
+            int rc = MoveAbs(PresetN[index].value);
+            if (rc >= 0)
+            {
+                PresetGotoSP.s = IPS_OK;
+                DEBUGF(INDI::Logger::DBG_SESSION, "Moving to Preset %d with position %g.", index+1, PresetN[index].value);
+                IDSetSwitch(&PresetGotoSP, NULL);
+                return true;
+            }
+
+            PresetGotoSP.s = IPS_ALERT;
+            IDSetSwitch(&PresetGotoSP, NULL);
+            return false;
+        }
     }
 
 
@@ -686,6 +719,13 @@ bool MoonLite::ISNewNumber (const char *dev, const char *name, double values[], 
 
             TemperatureSettingNP.s = IPS_OK;
             IDSetNumber(&TemperatureSettingNP, NULL);
+        }
+
+        if (!strcmp(name, PresetNP.name))
+        {
+            IUUpdateNumber(&PresetNP, values, names, n);
+            PresetNP.s = IPS_OK;
+            IDSetNumber(&PresetNP, NULL);
         }
     }
 
@@ -796,6 +836,7 @@ int MoonLite::MoveRel(FocusDirection dir, unsigned int ticks)
 bool MoonLite::saveConfigItems(FILE *fp)
 {
     IUSaveConfigText(fp, &PortTP);
+    IUSaveConfigNumber(fp, &PresetNP);
 }
 
 void MoonLite::TimerHit()
