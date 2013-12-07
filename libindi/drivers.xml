@@ -129,6 +129,10 @@
                 <driver name="RoboFocus">indi_robo_focus</driver>
 		<version>1.0</version>
 	</device>
+        <device label="MoonLite">
+                <driver name="MoonLite">indi_moonlite_focus</driver>
+                <version>1.0</version>
+        </device>
         <device label="Optec TCF-S">
                 <driver name="Optec TCF-S">indi_tcfs_focus</driver>
                 <version>0.1</version>

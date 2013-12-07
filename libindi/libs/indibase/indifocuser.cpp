@@ -22,6 +22,10 @@
 
 INDI::Focuser::Focuser()
 {
+    canAbsMove = false;
+    canRelMove = false;
+    canAbort   = false;
+    variableSpeed = false;
 }
 
 INDI::Focuser::~Focuser()
@@ -71,15 +75,32 @@ bool INDI::Focuser::updateProperties()
     {
         //  Now we add our focusser specific stuff
         defineSwitch(&FocusMotionSP);
-        defineNumber(&FocusSpeedNP);
-        defineNumber(&FocusTimerNP);
-        defineSwitch(&AbortSP);
+
+        if (variableSpeed)
+        {
+            defineNumber(&FocusSpeedNP);
+            defineNumber(&FocusTimerNP);
+        }
+        if (canRelMove)
+            defineNumber(&FocusRelPosNP);
+        if (canAbsMove)
+            defineNumber(&FocusAbsPosNP);
+        if (canAbort)
+            defineSwitch(&AbortSP);
     } else
     {
         deleteProperty(FocusMotionSP.name);
-        deleteProperty(FocusSpeedNP.name);
-        deleteProperty(FocusTimerNP.name);
-        deleteProperty(AbortSP.name);
+        if (variableSpeed)
+        {
+            deleteProperty(FocusSpeedNP.name);
+            deleteProperty(FocusTimerNP.name);
+        }
+        if (canRelMove)
+            deleteProperty(FocusRelPosNP.name);
+        if (canAbsMove)
+            deleteProperty(FocusAbsPosNP.name);
+        if (canAbort)
+            deleteProperty(AbortSP.name);
     }
     return true;
 }
@@ -121,9 +142,14 @@ bool INDI::Focuser::ISNewNumber (const char *dev, const char *name, double value
         if(strcmp(name,"FOCUS_SPEED")==0)
         {
             FocusSpeedNP.s=IPS_OK;
+            int current_speed = FocusSpeedN[0].value;
             IUUpdateNumber(&FocusSpeedNP,values,names,n);
 
-
+            if (SetSpeed(FocusSpeedN[0].value) == false)
+            {
+                FocusSpeedN[0].value = current_speed;
+                FocusSpeedNP.s = IPS_ALERT;
+            }
 
             //  Update client display
             IDSetNumber(&FocusSpeedNP,NULL);
@@ -269,4 +295,23 @@ bool INDI::Focuser::Abort()
     DEBUG(INDI::Logger::DBG_ERROR, "Focuser does not support abort motion.");
     return false;
 }
+
+bool INDI::Focuser::SetSpeed(int speed)
+{
+    INDI_UNUSED(speed);
+
+    //  This should be a virtual function, because the low level hardware class
+    //  must override this
+    DEBUG(INDI::Logger::DBG_ERROR, "Focuser does not support variable speed.");
+    return false;
+}
+
+void INDI::Focuser::setFocuserFeatures(bool CanAbsMove, bool CanRelMove, bool CanAbort, bool VariableSpeed)
+{
+    canAbsMove = CanAbsMove;
+    canRelMove = CanRelMove;
+    canAbort   = CanAbort;
+    variableSpeed = VariableSpeed;
+}
+
 

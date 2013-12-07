@@ -378,6 +378,17 @@ add_executable(indi_robo_focus ${robofocus_SRCS})
 target_link_libraries(indi_robo_focus indidriver)
 install(TARGETS indi_robo_focus RUNTIME DESTINATION bin )
 
+
+################ Moonlite Focuser ################
+
+set(moonlite_SRCS
+        ${CMAKE_SOURCE_DIR}/drivers/focuser/moonlite.cpp
+   )
+
+add_executable(indi_moonlite_focus ${moonlite_SRCS})
+target_link_libraries(indi_moonlite_focus indidriver)
+install(TARGETS indi_moonlite_focus RUNTIME DESTINATION bin )
+
 ################ Optec TCF-S ################
 
 set(tcfs_SRCS

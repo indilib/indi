@@ -50,6 +50,13 @@ class INDI::Focuser : public INDI::DefaultDevice
 
     protected:
 
+        /**
+         * @brief SetSpeed Set Focuser speed
+         * @param speed focuser speed
+         * @return true if successful, false otherwise
+         */
+        virtual bool SetSpeed(int speed);
+
         /** \brief Move the focuser in a particular direction with a specific speed for a finite duration.
             \param dir Direction of focuser, either FOCUS_INWARD or FOCUS_OUTWARD.
             \param speed Speed of focuser if supported by the focuser.
@@ -79,6 +86,15 @@ class INDI::Focuser : public INDI::DefaultDevice
          */
         virtual bool Abort();
 
+        /**
+         * @brief setFocuserFeatures Sets Focuser features
+         * @param CanAbsMove can the focuser move by absolute position?
+         * @param CanRelMove can the focuser move by relative position?
+         * @param CanAbort is it possible to abort focuser motion?
+         * @param VariableSpeed Can you control the focuser motor speed?
+         */
+        void setFocuserFeatures(bool CanAbsMove, bool CanRelMove, bool CanAbort, bool VariableSpeed);
+
         INumberVectorProperty FocusSpeedNP;
         INumber FocusSpeedN[1];
         ISwitchVectorProperty FocusMotionSP; //  A Switch in the client interface to park the scope
@@ -91,6 +107,8 @@ class INDI::Focuser : public INDI::DefaultDevice
         INumber FocusRelPosN[1];
         ISwitchVectorProperty AbortSP;
         ISwitch AbortS[1];
+
+        bool canAbort, canAbsMove, canRelMove, variableSpeed;
 
 };
 
