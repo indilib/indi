@@ -191,6 +191,8 @@ bool MoonLite::updateProperties()
 
         GetFocusParams();
 
+        loadConfig();
+
         DEBUG(INDI::Logger::DBG_SESSION, "MoonLite paramaters updated, focuser ready for use.");
     }
     else
