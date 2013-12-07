@@ -726,6 +726,8 @@ bool MoonLite::ISNewNumber (const char *dev, const char *name, double values[], 
             IUUpdateNumber(&PresetNP, values, names, n);
             PresetNP.s = IPS_OK;
             IDSetNumber(&PresetNP, NULL);
+
+            saveConfig();
         }
     }
 
