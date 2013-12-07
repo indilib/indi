@@ -113,6 +113,7 @@ std::auto_ptr<RoboFocus> roboFocus(0);
 
 RoboFocus::RoboFocus()
 {
+    setFocuserFeatures(true, true, true, false);
 
 }
 

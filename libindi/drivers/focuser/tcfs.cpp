@@ -388,16 +388,6 @@ bool TCFS::ISNewSwitch (const char *dev, const char *name, ISState *states, char
     if (sProp == NULL)
         return false;
 
-    /*if (!strcmp(sProp->name, "CONNECTION"))
-    {
-        if (!strcmp(names[0], "CONNECT"))
-            connect();
-        else
-            disconnect();
-        return true;
-    }*/
-
-
     if (isConnected() == false)
     {
       resetProperties();
