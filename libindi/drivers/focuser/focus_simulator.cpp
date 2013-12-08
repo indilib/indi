@@ -92,7 +92,7 @@ void ISSnoopDevice (XMLEle *root)
 
 FocusSim::FocusSim()
 {
-    setFocuserFeatures(true, true, true, true);
+    setFocuserFeatures(true, false, true, true);
 
 }
 
