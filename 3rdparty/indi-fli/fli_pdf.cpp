@@ -93,6 +93,7 @@ const flidomain_t Domains[] = { FLIDOMAIN_USB, FLIDOMAIN_SERIAL, FLIDOMAIN_PARAL
 FLIPDF::FLIPDF()
 {
    sim = false;
+   setFocuserFeatures(true, true, false, false);
 }
 
 
@@ -510,15 +511,6 @@ int FLIPDF::MoveAbs(int targetTicks)
 
     // We are still moving, didn't reach target yet
     return 1;
-}
-
-bool FLIPDF::Move(FocusDirection dir, int speed, int duration)
-{
-    INDI_UNUSED(speed);
-  
-    long ticks;
-    ticks= FocusSpeedN[0].value * duration;
-    return MoveRel(dir, ticks);
 }
 
 int FLIPDF::MoveRel(FocusDirection dir, unsigned int ticks)

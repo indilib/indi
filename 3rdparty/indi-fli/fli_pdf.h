@@ -49,7 +49,6 @@ public:
 
     protected:
 
-    virtual bool Move(FocusDirection dir, int speed, int duration);
     virtual int MoveAbs(int ticks);
     virtual int MoveRel(FocusDirection dir, unsigned int ticks);
     void TimerHit();
