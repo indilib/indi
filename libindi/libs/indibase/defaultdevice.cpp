@@ -66,17 +66,20 @@ INDI::DefaultDevice::~DefaultDevice()
 {
 }
 
-bool INDI::DefaultDevice::loadConfig()
+bool INDI::DefaultDevice::loadConfig(bool silent)
 {
     char errmsg[MAXRBUF];
     bool pResult = false;
 
     pResult = IUReadConfig(NULL, deviceID, errmsg) == 0 ? true : false;
 
-   if (pResult)
-        DEBUG(INDI::Logger::DBG_SESSION, "Configuration successfully loaded.");
-	else
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error loading configuration. %s", errmsg);
+   if (silent == false)
+   {
+    if (pResult)
+            DEBUG(INDI::Logger::DBG_SESSION, "Configuration successfully loaded.");
+        else
+            DEBUGF(INDI::Logger::DBG_ERROR, "Error loading configuration. %s", errmsg);
+   }
 
    IUSaveDefaultConfig(NULL, NULL, deviceID);
 

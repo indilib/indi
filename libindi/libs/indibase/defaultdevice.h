@@ -229,9 +229,10 @@ protected:
     // Configuration
 
     /** \brief Load the last saved configuration file
+     *  \param silent if true, don't report any error or messages.
         \return True if successful, false otherwise.
     */
-    virtual bool loadConfig();
+    virtual bool loadConfig(bool silent=false);
 
     /** \brief Save the current properties in a configuration file
         \return True if successful, false otherwise.
