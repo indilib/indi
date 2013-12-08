@@ -26,7 +26,7 @@
 
 #include <indidevapi.h>
 #include <indicom.h>
-#include <indibase/defaultdevice.h>
+#include <indibase/indifocuser.h>
 
 using namespace std;
 
@@ -34,7 +34,7 @@ using namespace std;
 #define TCFS_MAX_TRIES      3
 #define TCFS_ERROR_BUFFER   1024
 
-class TCFS : public INDI::DefaultDevice
+class TCFS : public INDI::Focuser
 {
 
 public:
@@ -54,40 +54,30 @@ public:
 			     };
 
     enum TCFSMode { TCFS_MANUAL_MODE, TCFS_A_MODE, TCFS_B_MODE };
-    enum TCFSMotion { TCFS_INWARD, TCFS_OUTWARD };
     enum TCFSError { NO_ERROR, ER_1, ER_2, ER_3 };
 
     TCFS();
     ~TCFS();
    
+    // Standard INDI interface fucntions
     virtual bool Connect();
     virtual bool Disconnect();
-
-    // Standard INDI interface fucntions
+    const char *getDefaultName();
+    virtual bool updateProperties();
     virtual void ISGetProperties(const char *dev);
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
     virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
- 	
 
-    void ISPoll();
-
+protected:
+    virtual int MoveAbs(int ticks);
+    virtual int MoveRel(FocusDirection dir, unsigned int ticks);
+    virtual void TimerHit();
 
 private: 
 
-    ISwitchVectorProperty *ConnectSP;
     ISwitchVectorProperty *FocusPowerSP;
     ISwitchVectorProperty *FocusModeSP;
-    INumberVectorProperty *FocusStepNP;
-    INumberVectorProperty *FocusPositionNP;
-    INumberVectorProperty *FocusPositionRequestNP;
     INumberVectorProperty *FocusTemperatureNP;
 
-    // Functions
-    void init_properties();
-    bool move_focuser(TCFSMotion dir);
-
-    const char *getDefaultName();
     bool read_tcfs();
     bool dispatch_command(TCFSCommand command);
 
@@ -99,9 +89,9 @@ private:
     char response[TCFS_MAX_CMD];
 
     unsigned int simulated_position;
-    unsigned int target_position;
     float simulated_temperature;
 
+    unsigned int targetTicks, targetPosition;
     bool isTCFS3;
 
 };

@@ -861,28 +861,6 @@ int RoboFocus::updateRFSetPosition(double *value)
   return 0;
 }
 
-bool RoboFocus::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    if(strcmp(dev,getDeviceName())==0)
-    {
-        // ===================================
-        // Port Name
-        // ===================================
-        if (!strcmp(name, PortTP.name) )
-        {
-          if (IUUpdateText(&PortTP, texts, names, n) < 0)
-                return false;
-
-          PortTP.s = IPS_OK;
-          IDSetText (&PortTP, NULL);
-          return true;
-        }
-
-    }
-
-     return INDI::Focuser::ISNewText(dev, name, texts, names, n);
-}
-
 bool RoboFocus::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if(strcmp(dev,getDeviceName())==0)

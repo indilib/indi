@@ -107,6 +107,8 @@ class INDI::Focuser : public INDI::DefaultDevice
         INumber FocusRelPosN[1];
         ISwitchVectorProperty AbortSP;
         ISwitch AbortS[1];
+        ITextVectorProperty PortTP;
+        IText PortT[1];
 
         bool canAbort, canAbsMove, canRelMove, variableSpeed;
 

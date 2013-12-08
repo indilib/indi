@@ -1,17 +1,4 @@
 <INDIDriver>
-<defSwitchVector device="Optec TCF-S" name="CONNECTION" label="Connection" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="60">
-    <defSwitch name="CONNECT" label="Connect">
-Off
-    </defSwitch>
-    <defSwitch name="DISCONNECT" label="Disconnect">
-On
-    </defSwitch>
-</defSwitchVector>
-<defTextVector device="Optec TCF-S" name="DEVICE_PORT" label="Focuser" group="Main Control" state="Idle" perm="rw" timeout="0">
-    <defText name="PORT" label="Port">
-/dev/ttyUSB0
-    </defText>
-</defTextVector>
 <defSwitchVector device="Optec TCF-S" name="FOCUS_MODE" label="Mode" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="0">
     <defSwitch name="Manual" label="">
 Off
@@ -20,14 +7,6 @@ Off
 Off
     </defSwitch>
     <defSwitch name="Auto B" label="">
-Off
-    </defSwitch>
-</defSwitchVector>
-<defSwitchVector device="Optec TCF-S" name="FOCUS_MOTION" label="Motion" group="Operation" state="Idle" perm="rw" rule="OneOfMany" timeout="0">
-    <defSwitch name="FOCUS_INWARD" label="Inward">
-Off
-    </defSwitch>
-    <defSwitch name="FOCUS_OUTWARD" label="Outward">
 Off
     </defSwitch>
 </defSwitchVector>
@@ -45,21 +24,6 @@ Off
 Off
     </defSwitch>
 </defSwitchVector>
-<defNumberVector device="Optec TCF-S" name="FOCUS_STEP" label="Step" group="Operation" state="Idle" perm="rw" timeout="0">
-    <defNumber name="FOCUS_STEP_VALUE" label="# Steps" format="%.3f" min="0" max="1000" step="5">
-100
-    </defNumber>
-</defNumberVector>
-<defNumberVector device="Optec TCF-S" name="FOCUS_POSITION_REQUEST" label="Position" group="Operation" state="Idle" perm="wo" timeout="0">
-    <defNumber name="FOCUS_POSITION_VALUE" label="Current" format="%.3f" min="0" max="7000" step="0">
-0
-    </defNumber>
-</defNumberVector>
-<defNumberVector device="Optec TCF-S" name="FOCUS_POSITION" label="Position" group="Operation" state="Idle" perm="ro" timeout="0">
-    <defNumber name="FOCUS_POSITION_VALUE" label="Target" format="%.3f" min="0" max="9999" step="0">
-0
-    </defNumber>
-</defNumberVector>
 <defNumberVector device="Optec TCF-S" name="FOCUS_TEMPERATURE" label="Probe" group="Operation" state="Idle" perm="ro" timeout="0">
     <defNumber name="FOCUS_TEMPERATURE_VALUE" label="Temperature (c)" format="%.3f" min="-50" max="80" step="0">
 0

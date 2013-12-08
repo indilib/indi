@@ -108,11 +108,7 @@ bool MoonLite::initProperties()
 
     FocusSpeedN[0].min = 1;
     FocusSpeedN[0].max = 5;
-    FocusSpeedN[0].value = 1;
-
-    /* Port */
-    IUFillText(&PortT[0], "PORT", "Port", "/dev/ttyUSB0");
-    IUFillTextVector(&PortTP, PortT, 1, getDeviceName(), "DEVICE_PORT", "Ports", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+    FocusSpeedN[0].value = 1;    
 
     /* Step Mode */
     IUFillSwitch(&StepModeS[0], "Half Step", "", ISS_OFF);
@@ -593,26 +589,6 @@ bool MoonLite::setTemperatureCompensation(bool enable)
 
     return true;
 
-}
-
-bool MoonLite::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    if(strcmp(dev,getDeviceName())==0)
-    {
-        // Port Name
-        if (!strcmp(name, PortTP.name) )
-        {
-          if (IUUpdateText(&PortTP, texts, names, n) < 0)
-                return false;
-
-          PortTP.s = IPS_OK;
-          IDSetText (&PortTP, NULL);
-          return true;
-        }
-
-    }
-
-     return INDI::Focuser::ISNewText(dev, name, texts, names, n);
 }
 
 bool MoonLite::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)

@@ -36,6 +36,10 @@ bool INDI::Focuser::initProperties()
 {
     DefaultDevice::initProperties();   //  let the base class flesh in what it wants
 
+    /* Port */
+    IUFillText(&PortT[0], "PORT", "Port", "/dev/ttyUSB0");
+    IUFillTextVector(&PortTP, PortT, 1, getDeviceName(), "DEVICE_PORT", "Ports", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+
     IUFillNumber(&FocusSpeedN[0],"FOCUS_SPEED_VALUE","Focus Speed","%3.0f",0.0,255.0,1.0,255.0);
     IUFillNumberVector(&FocusSpeedNP,FocusSpeedN,1,getDeviceName(),"FOCUS_SPEED","Speed",MAIN_CONTROL_TAB,IP_RW,60,IPS_OK);
 
@@ -65,6 +69,8 @@ void INDI::Focuser::ISGetProperties (const char *dev)
 {
     //  First we let our parent populate
     DefaultDevice::ISGetProperties(dev);
+
+    defineText(&PortTP);
 
     return;
 }
@@ -198,6 +204,7 @@ bool INDI::Focuser::ISNewNumber (const char *dev, const char *name, double value
             }
             else if (ret == 1)
             {
+                 IUUpdateNumber(&FocusRelPosNP,values,names,n);
                  FocusRelPosNP.s=IPS_BUSY;
                  IDSetNumber(&FocusAbsPosNP, "Focuser is moving %d steps...", newPos);
                  return true;
@@ -252,6 +259,17 @@ bool INDI::Focuser::ISNewSwitch (const char *dev, const char *name, ISState *sta
 
 bool INDI::Focuser::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
+    if(strcmp(dev,getDeviceName())==0)
+    {
+        if (!strcmp(name, PortTP.name))
+        {
+            IUUpdateText(&PortTP, texts, names, n);
+            PortTP.s = IPS_OK;
+            IDSetText(&PortTP, NULL);
+            return true;
+        }
+    }
+
     return DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
 

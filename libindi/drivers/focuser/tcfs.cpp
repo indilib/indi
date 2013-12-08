@@ -36,14 +36,10 @@
 #include "tcfs.h"
 
 #define mydev                   "Optec TCF-S"
-#define nFocusSteps             FocusStepNP->np[0].value
-#define nFocusCurrentPosition   FocusPositionNP->np[0].value
-#define nFocusTargetPosition    FocusPositionRequestNP->np[0].value
-#define nFocusTemperature       FocusTemperatureNP->np[0].value
+#define currentPosition         FocusAbsPosN[0].value
 #define isFocusSleep            (FocusPowerSP->sp[0].s == ISS_ON)
 
-const int POLLMS = 1000;
-
+const int POLLMS = 500;
 
 // We declare an auto pointer to TCFS.
 auto_ptr<TCFS> tcfs(0);
@@ -60,42 +56,35 @@ void ISInit()
 
     isInit = 1;
     if(tcfs.get() == 0) tcfs.reset(new TCFS());
-    IEAddTimer(POLLMS, ISPoll, NULL);
 
-}
-
-void ISPoll(void *p)
-{
-    tcfs->ISPoll();
-    IEAddTimer(POLLMS, ISPoll, NULL);
 }
 
 void ISGetProperties(const char *dev)
 { 
 	if(dev && strcmp(mydev, dev)) return;
 	ISInit();
-        tcfs->ISGetProperties(dev);
+    tcfs->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
 	if(dev && strcmp (mydev, dev)) return;
 	ISInit();
-        tcfs->ISNewSwitch(dev, name, states, names, num);
+    tcfs->ISNewSwitch(dev, name, states, names, num);
 }
 
 void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
 {
 	if(dev && strcmp (mydev, dev)) return;
 	ISInit();
-        tcfs->ISNewText(dev, name, texts, names, num);
+    tcfs->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
 	if(dev && strcmp (mydev, dev)) return;
 	ISInit();
-        tcfs->ISNewNumber(dev, name, values, names, num);
+    tcfs->ISNewNumber(dev, name, values, names, num);
 }
 
 void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n) 
@@ -120,23 +109,10 @@ void ISSnoopDevice (XMLEle *root)
 *****************************************************************/
 TCFS::TCFS()
 {
-    const char *skelFileName = "/usr/share/indi/indi_tcfs_sk.xml";
-    struct stat st;
+    setFocuserFeatures(true, true, false, false);
 
-    char *skel = getenv("INDISKEL");
-    if (skel)
-      buildSkeleton(skel);
-    else if (stat(skelFileName,&st) == 0)
-       buildSkeleton(skelFileName);
-    else
-       IDLog("No skeleton file was specified. Set environment variable INDISKEL to the skeleton path and try again.\n");
-
-     // Optional: Add aux controls for configuration, debug & simulation
-     addAuxControls();
-
-     simulated_position    = 3000;
-     simulated_temperature = 25.4;
-
+    simulated_position    = 3000;
+    simulated_temperature = 25.4;
 }
 
 /****************************************************************
@@ -153,47 +129,77 @@ TCFS::~TCFS()
 *****************************************************************/
 void TCFS::ISGetProperties(const char *dev)
 {
-    static int propInit=0;
+    INDI::Focuser::ISGetProperties(dev);
 
-    INDI::DefaultDevice::ISGetProperties(dev);
-
-    if (propInit == 0)
-    {
-        init_properties();
-
-        loadConfig();
-
-        isTCFS3 = false;
-
-        // Set upper limit for TCF-S3 focuser
-        if (!strcmp(me, "indi_tcfs3_focus"))
-        {
-            isTCFS3 = true;
-
-            FocusPositionRequestNP->np[0].max = 9999;
-            IUUpdateMinMax(FocusPositionRequestNP);
-            if (isDebug())
-               IDLog("TCF-S3 detected. Updating maximum position value to 9999.\n");
-        }
-
-        propInit = 1;      
-    }
-
+    // Optional: Add aux controls for configuration, debug & simulation
+    addAuxControls();
 }
 
 /****************************************************************
 **
 **
 *****************************************************************/
-void TCFS::init_properties()
+bool TCFS::updateProperties()
 {
-    ConnectSP = getSwitch("CONNECTION");
-    FocusStepNP = getNumber("FOCUS_STEP");
-    FocusPositionNP = getNumber("FOCUS_POSITION");
-    FocusPositionRequestNP = getNumber("FOCUS_POSITION_REQUEST");
-    FocusTemperatureNP = getNumber("FOCUS_TEMPERATURE");
-    FocusPowerSP = getSwitch("FOCUS_POWER");
-    FocusModeSP  = getSwitch("FOCUS_MODE");
+    INDI::Focuser::updateProperties();
+
+    if (isConnected())
+    {
+        const char *skelFileName = "/usr/share/indi/indi_tcfs_sk.xml";
+        struct stat st;
+
+        char *skel = getenv("INDISKEL");
+        if (skel)
+          buildSkeleton(skel);
+        else if (stat(skelFileName,&st) == 0)
+           buildSkeleton(skelFileName);
+        else
+           IDLog("No skeleton file was specified. Set environment variable INDISKEL to the skeleton path and try again.\n");
+
+         FocusTemperatureNP = getNumber("FOCUS_TEMPERATURE");
+         FocusPowerSP = getSwitch("FOCUS_POWER");
+         FocusModeSP  = getSwitch("FOCUS_MODE");
+
+         isTCFS3 = false;
+
+         // Set upper limit for TCF-S3 focuser
+         if (!strcmp(me, "indi_tcfs3_focus"))
+         {
+             isTCFS3 = true;
+
+             FocusAbsPosN[0].max = 9999;
+             FocusRelPosN[0].max = 9999;
+             FocusRelPosN[0].value = 0;
+             IUUpdateMinMax(&FocusAbsPosNP);
+             IUUpdateMinMax(&FocusRelPosNP);
+             DEBUG(INDI::Logger::DBG_DEBUG, "TCF-S3 detected. Updating maximum position value to 9999.");
+         }
+         else
+         {
+             isTCFS3 = false;
+
+             FocusAbsPosN[0].max = 7000;
+             FocusRelPosN[0].max = 7000;
+             FocusRelPosN[0].value = 0;
+             IUUpdateMinMax(&FocusAbsPosNP);
+             IUUpdateMinMax(&FocusRelPosNP);
+             DEBUG(INDI::Logger::DBG_DEBUG, "TCF-S detected. Updating maximum position value to 7000.");
+
+         }
+
+         FocusTemperatureNP->s = IPS_OK;
+         defineNumber(FocusTemperatureNP);
+         defineSwitch(FocusPowerSP);
+         defineSwitch(FocusModeSP);
+
+         SetTimer(POLLMS);
+    }
+    else
+    {
+        deleteProperty(FocusTemperatureNP->name);
+        deleteProperty(FocusPowerSP->name);
+        deleteProperty(FocusModeSP->name);
+    }
 }
 
 /****************************************************************
@@ -202,63 +208,28 @@ void TCFS::init_properties()
 *****************************************************************/   
 bool TCFS::Connect()
 {
-    ITextVectorProperty *tProp = getText("DEVICE_PORT");
-
    if (isConnected())
 		return true;
 
-    if (tProp == NULL)
-        return false;
-
     if (isSimulation())
     {
-        setConnected(true);
-
-        IDSetSwitch(ConnectSP, "TCF-S: Simulating connection to port %s.", tProp->tp[0].text);
+        DEBUGF(INDI::Logger::DBG_SESSION, "TCF-S: Simulating connection to port %s.", PortT[0].text);
 
         fd=-1;
-        IUResetSwitch(FocusModeSP);
-        FocusModeSP->sp[0].s = ISS_ON;
-        FocusModeSP->s       = IPS_OK;
-        IDSetSwitch(FocusModeSP, NULL);
-
-        FocusPositionNP->s = IPS_OK;
-        IDSetNumber(FocusPositionNP, NULL);
-
-        FocusTemperatureNP->s = IPS_OK;
-        IDSetNumber(FocusTemperatureNP, NULL);
-
-        IUResetSwitch(FocusPowerSP);
-        IDSetSwitch(FocusPowerSP, NULL);
-	return true;
+        return true;
     }
 
-    if (isDebug())
-        IDLog("Attempting to connect to TCF-S focuser....\n");
+    DEBUG(INDI::Logger::DBG_DEBUG, "Attempting to connect to TCF-S focuser....");
 
-    if (tty_connect(tProp->tp[0].text, 19200, 8, 0, 1, &fd) != TTY_OK)
+    if (tty_connect(PortT[0].text, 19200, 8, 0, 1, &fd) != TTY_OK)
     {
-        IDMessage(getDeviceName(), "Error connecting to port %s. Make sure you have BOTH read and write permission to the port.", tProp->tp[0].text);
+        DEBUGF(INDI::Logger::DBG_SESSION, "Error connecting to port %s. Make sure you have BOTH read and write permission to the port.", PortT[0].text);
         return false;
     }
 
     dispatch_command(FMMODE);
 
-    IDMessage(getDeviceName(), "Successfully connected to TCF-S Focuser in Manual Mode.");
-
-    IUResetSwitch(FocusModeSP);
-    FocusModeSP->sp[0].s = ISS_ON;
-    FocusModeSP->s       = IPS_OK;
-    IDSetSwitch(FocusModeSP, NULL);
-
-    FocusPositionNP->s = IPS_OK;
-    IDSetNumber(FocusPositionNP, NULL);
-
-    FocusTemperatureNP->s = IPS_OK;
-    IDSetNumber(FocusTemperatureNP, NULL);
-
-    IUResetSwitch(FocusPowerSP);
-    IDSetSwitch(FocusPowerSP, NULL);
+    DEBUG(INDI::Logger::DBG_SESSION, "Successfully connected to TCF-S Focuser in Manual Mode.");
 
     return true;
 }
@@ -269,18 +240,12 @@ bool TCFS::Connect()
 *****************************************************************/   
 bool TCFS::Disconnect()
 {
-
-    FocusPositionNP->s = IPS_IDLE;
-    IDSetNumber(FocusPositionNP, NULL);
-
     FocusTemperatureNP->s = IPS_IDLE;
     IDSetNumber(FocusTemperatureNP, NULL);
 
     dispatch_command(FFMODE);
 
     tty_disconnect(fd);
-
-    setConnected(false, IPS_OK, "Disconnected from TCF-S.");
 
     return true;
 }
@@ -289,95 +254,8 @@ bool TCFS::Disconnect()
 **
 **
 *****************************************************************/
-bool TCFS::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
-{
-
-  INumberVectorProperty *nProp = getNumber(name);
-
-  if (nProp == NULL)
-      return false;
-
-  if (isConnected() == false)
-  {
-      resetProperties();
-      IDMessage(getDeviceName(), "TCF-S is offline. Connect before issiuing any commands.");
-      return false;
-  }
-
-  if (!strcmp(nProp->name, "FOCUS_STEP"))
-  {
-      IUUpdateNumber(nProp, values, names, n);
-      nProp->s = IPS_OK;
-      IDSetNumber(nProp, NULL);
-      return true;
-  }
-
-  if (isFocusSleep)
-  {
-      nProp->s = IPS_IDLE;
-      IDSetNumber(nProp, "Focuser is still in sleep mode. Wake up in order to issue commands.");
-      return true;
-  }
-
-  if (!strcmp(nProp->name, "FOCUS_POSITION_REQUEST"))
-  {
-      int current_step = nFocusSteps;
-      IUUpdateNumber(nProp, values, names, n);
-
-      nFocusSteps = fabs(nFocusTargetPosition - nFocusCurrentPosition);
-
-      if ( (nFocusTargetPosition - nFocusCurrentPosition) > 0)
-          move_focuser(TCFS_OUTWARD);
-      else
-          move_focuser(TCFS_INWARD);
-
-      nFocusSteps = current_step;
-
-      FocusPositionNP->s = IPS_BUSY;
-      nProp->s = IPS_BUSY;
-      IDSetNumber(nProp, "Moving focuser to new position %g...", nFocusTargetPosition);
-      return true;
-  }
-
-  return DefaultDevice::ISNewNumber (dev, name, values, names, n);
-    
-}
-
-/****************************************************************
-**
-**
-*****************************************************************/
-bool TCFS::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    ITextVectorProperty * tProp = getText(name);
-
-    if (tProp == NULL)
-        return false;
-
-    // Device Port Text
-    if (!strcmp(tProp->name, "DEVICE_PORT"))
-    {
-        if (IUUpdateText(tProp, texts, names, n) < 0)
-                        return false;
-
-                tProp->s = IPS_OK;
-                IDSetText(tProp, "Port updated.");
-
-                return true;
-    }
-
-
-    return DefaultDevice::ISNewText(dev, name, texts, names, n);
-	
-}
-
-/****************************************************************
-**
-**
-*****************************************************************/
 bool TCFS::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-
     ISwitch *current_active_switch = NULL, *target_active_switch = NULL;
     // First process parent!
     if (INDI::DefaultDevice::ISNewSwitch(getDeviceName(), name, states, names, n) == true)
@@ -387,13 +265,6 @@ bool TCFS::ISNewSwitch (const char *dev, const char *name, ISState *states, char
 
     if (sProp == NULL)
         return false;
-
-    if (isConnected() == false)
-    {
-      resetProperties();
-      IDMessage(getDeviceName(), "TCF-S is offline. Connect before issiuing any commands.");
-      return false;
-    }
 
     // Which switch is CURRENTLY on?
     current_active_switch = IUFindOnSwitch(sProp);
@@ -405,13 +276,9 @@ bool TCFS::ISNewSwitch (const char *dev, const char *name, ISState *states, char
 
     if (target_active_switch == NULL)
     {
-        if (isDebug())
-        {
-            IDLog("Error: no ON switch found in %s property.\n", sProp->name);
-        }
-        return true;
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error: no ON switch found in %s property.", sProp->name);
+        return false;
     }
-
 
     if (!strcmp(sProp->name, "FOCUS_POWER"))
     {
@@ -444,8 +311,8 @@ bool TCFS::ISNewSwitch (const char *dev, const char *name, ISState *states, char
                 {
                     sProp->s = IPS_OK;
                     IDSetSwitch(sProp, "Focuser is set into sleep mode.");
-                    FocusPositionNP->s = IPS_IDLE;
-                    IDSetNumber(FocusPositionNP, NULL);
+                    FocusAbsPosNP.s = IPS_IDLE;
+                    IDSetNumber(&FocusAbsPosNP, NULL);
                     FocusTemperatureNP->s = IPS_IDLE;
                     IDSetNumber(FocusTemperatureNP, NULL);
                     return true;
@@ -466,8 +333,8 @@ bool TCFS::ISNewSwitch (const char *dev, const char *name, ISState *states, char
                 {
                     sProp->s = IPS_OK;
                     IDSetSwitch(sProp, "Focuser is awake.");
-                    FocusPositionNP->s = IPS_OK;
-                    IDSetNumber(FocusPositionNP, NULL);
+                    FocusAbsPosNP.s = IPS_OK;
+                    IDSetNumber(&FocusAbsPosNP, NULL);
                     FocusTemperatureNP->s = IPS_OK;
                     IDSetNumber(FocusTemperatureNP, NULL);
                     return true;
@@ -539,32 +406,16 @@ bool TCFS::ISNewSwitch (const char *dev, const char *name, ISState *states, char
         return true;
     }
 
-    if (!strcmp(sProp->name, "FOCUS_MOTION"))
-    {
-        // Inward
-        if (!strcmp(target_active_switch->name, "FOCUS_INWARD"))
-          move_focuser(TCFS_INWARD);
-        // Outward
-        else
-            move_focuser(TCFS_OUTWARD);
-
-        return true;
-
-     }
-
     if (!strcmp(sProp->name, "FOCUS_GOTO"))
     {
-        int currentStep = nFocusSteps;
-
-        FocusPositionNP->s = IPS_BUSY;
+        FocusAbsPosNP.s = IPS_BUSY;
         sProp->s = IPS_OK;
 
         // Min
         if (!strcmp(target_active_switch->name, "FOCUS_MIN"))
         {
-            nFocusSteps = nFocusCurrentPosition;
-            move_focuser(TCFS_INWARD);
-            nFocusSteps = currentStep;
+            targetTicks = currentPosition;
+            MoveRel(FOCUS_INWARD, targetTicks);
             IUResetSwitch(sProp);
             IDSetSwitch(sProp, "Moving focuser to minimum position...");
         }
@@ -581,13 +432,21 @@ bool TCFS::ISNewSwitch (const char *dev, const char *name, ISState *states, char
             {
                 IUResetSwitch(sProp);
                 sProp->s = IPS_OK;
-                FocusPositionNP->s = IPS_BUSY;
-                if (isTCFS3)
-                    nFocusTargetPosition = 5000;
-                else
-                    nFocusTargetPosition = 3500;
+                FocusAbsPosNP.s = IPS_BUSY;
 
-                IDSetSwitch(sProp, "Moving focuser to center position %g...", nFocusTargetPosition);
+                int delta = 0;
+                if (isTCFS3)
+                    delta = 5000 - currentPosition;
+                else
+                    delta = 3500 - currentPosition;
+
+                // Need to focus in
+                if (delta < 0)
+                    MoveRel(FOCUS_INWARD, (unsigned int) delta);
+                else
+                    MoveRel(FOCUS_OUTWARD, (unsigned int) delta);
+
+                IDSetSwitch(sProp, "Moving focuser to center position %d...", isTCFS3 ? 5000 : 3500);
                 return true;
             }
             else
@@ -601,11 +460,11 @@ bool TCFS::ISNewSwitch (const char *dev, const char *name, ISState *states, char
         // Max
         else if (!strcmp(target_active_switch->name, "FOCUS_MAX"))
         {
-            nFocusSteps = FocusPositionRequestNP->np[0].max - nFocusCurrentPosition;
-            move_focuser(TCFS_OUTWARD);
-            nFocusSteps = currentStep;
+            unsigned int delta = 0;
+            delta = FocusAbsPosN[0].max - currentPosition;
+            MoveRel(FOCUS_OUTWARD, delta);
             IUResetSwitch(sProp);
-            IDSetSwitch(sProp, "Moving focuser to maximum position %g...", FocusPositionRequestNP->np[0].max);
+            IDSetSwitch(sProp, "Moving focuser to maximum position %g...", FocusAbsPosN[0].max);
         }
         // Home
         else if (!strcmp(target_active_switch->name, "FOCUS_HOME"))
@@ -620,7 +479,6 @@ bool TCFS::ISNewSwitch (const char *dev, const char *name, ISState *states, char
             {
                 IUResetSwitch(sProp);
                 sProp->s = IPS_OK;
-                //FocusInfoNP->s = IPS_BUSY;
                 IDSetSwitch(sProp, "Moving focuser to new calculated position based on temperature...");
                 return true;
             }
@@ -636,57 +494,65 @@ bool TCFS::ISNewSwitch (const char *dev, const char *name, ISState *states, char
         return true;
     }
 
-
-
-    return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
+    return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool TCFS::move_focuser(TCFSMotion dir)
+int TCFS::MoveAbs(int ticks)
 {
-    ISwitchVectorProperty *sProp = getSwitch("FOCUS_MOTION");
+    int delta=0;
 
-    if (sProp == NULL)
-        return false;
+    delta = ticks - currentPosition;
+
+    targetPosition = ticks;
+
+    if (delta < 0)
+        MoveRel(FOCUS_INWARD, (unsigned int) delta);
+    else
+        MoveRel(FOCUS_OUTWARD, (unsigned int) delta);
+
+    IDSetNumber(&FocusAbsPosNP, NULL);
+}
+
+int TCFS::MoveRel(FocusDirection dir, unsigned int ticks)
+{
+    targetTicks = ticks;
+    targetPosition = currentPosition;
 
     // Inward
-    if (dir == TCFS_INWARD)
+    if (dir == FOCUS_INWARD)
     {
+        targetPosition -= ticks;
         dispatch_command(FIN);
-        nFocusTargetPosition = nFocusCurrentPosition - nFocusSteps;
     }
     // Outward
     else
     {
+        targetPosition += ticks;
         dispatch_command(FOUT);
-        nFocusTargetPosition = nFocusCurrentPosition + nFocusSteps;
     }
 
-     if (read_tcfs() == false)
-     {
-          IUResetSwitch(sProp);
-          sProp->s = IPS_ALERT;
-          IDSetSwitch(sProp, "Error reading TCF-S reply.");
-          return false;
-     }
+    if (read_tcfs() == false)
+    {
+          DEBUG(INDI::Logger::DBG_ERROR, "Error reading TCF-S reply.");
+          return -1;
+    }
 
-        if (isSimulation())
-            strncpy(response, "*", TCFS_MAX_CMD);
+    if (isSimulation())
+        strncpy(response, "*", TCFS_MAX_CMD);
 
-        if (!strcmp(response, "*"))
-        {
-            IUResetSwitch(sProp);
-            sProp->s = IPS_OK;
-            FocusPositionNP->s = IPS_BUSY;
-            IDSetSwitch(sProp, "Moving focuser %s %d steps to position %g.", (dir == TCFS_INWARD) ? "inward" : "outward", ((int) nFocusSteps), nFocusTargetPosition);
-            return true;
-        }
-        else
-        {
-            IUResetSwitch(sProp);
-            sProp->s = IPS_ALERT;
-            IDSetSwitch(sProp, "Failed to move focuser %s!", (dir == TCFS_INWARD) ? "inward" : "outward");
-            return true;
-        }
+    if (!strcmp(response, "*"))
+    {
+        DEBUGF(INDI::Logger::DBG_DEBUG, "Moving focuser %s %d steps to position %g.", (dir == FOCUS_INWARD) ? "inward" : "outward", targetTicks, targetPosition);
+        FocusAbsPosNP.s = IPS_BUSY;
+        return 1;
+    }
+    else
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Failed to move focuser %s!", (dir == FOCUS_INWARD) ? "inward" : "outward");
+        return -1;
+    }
+
+
 }
 
 bool TCFS::dispatch_command(TCFSCommand command_type)
@@ -727,26 +593,16 @@ bool TCFS::dispatch_command(TCFSCommand command_type)
 
        // Focuser In “nnnn”
        case FIN:
-                 simulated_position = nFocusCurrentPosition;
+                 simulated_position = currentPosition;
 
-                    /* if ( (nFocusTargetPosition - nFocusSteps) >= FocusInfoNP->np[0].min)
-                            nFocusTargetPosition -= nFocusSteps;
-                     else
-                         return false;*/
-
-                 snprintf(command, TCFS_MAX_CMD, "FI%04d", ((int) nFocusSteps));
+                 snprintf(command, TCFS_MAX_CMD, "FI%04d", targetTicks);
                  break;
 
       // Focuser Out “nnnn”
       case FOUT:
-                 simulated_position = nFocusCurrentPosition;
+                 simulated_position = currentPosition;
 
-                 /*if ( (nFocusTargetPosition + nFocusSteps) <= FocusInfoNP->np[0].max)
-                    nFocusTargetPosition += nFocusSteps;
-                 else
-                     return false;*/
-
-                 snprintf(command, TCFS_MAX_CMD, "FO%04d", ((int) nFocusSteps));
+                 snprintf(command, TCFS_MAX_CMD, "FO%04d", targetTicks);
                  break;
 
        // Focuser Position Read Out
@@ -773,8 +629,7 @@ bool TCFS::dispatch_command(TCFSCommand command_type)
                break;
    }
 		
-   if (isDebug())
-        IDLog("Dispatching command #%s#\n", command);
+   DEBUGF(INDI::Logger::DBG_DEBUG, "Dispatching command #%s#\n", command);
 
    if (isSimulation())
        return true;
@@ -784,9 +639,8 @@ bool TCFS::dispatch_command(TCFSCommand command_type)
    if  ( (err_code = tty_write(fd, command, TCFS_MAX_CMD, &nbytes_written) != TTY_OK))
    {
         tty_error_msg(err_code, tcfs_error, TCFS_ERROR_BUFFER);
-        if (isDebug())
-            IDLog("TTY error detected: %s\n", tcfs_error);
-   	return false;
+        DEBUGF(INDI::Logger::DBG_ERROR, "TTY error detected: %s\n", tcfs_error);
+        return false;
    }
 
    return true;
@@ -794,15 +648,20 @@ bool TCFS::dispatch_command(TCFSCommand command_type)
 
 
 
-void TCFS::ISPoll()
+void TCFS::TimerHit()
 {
-   if (!isConnected())
+   static double lastPosition=0, lastTemperature=0;
+
+   if (isConnected() == false)
+   {
+       SetTimer(POLLMS);
        return;
+   }
 
    int f_position=0;
    float f_temperature=0;
 
-   if (FocusPositionNP->s != IPS_IDLE)
+   if (FocusAbsPosNP.s != IPS_IDLE)
    {
        // Read Position
        // Manual Mode
@@ -810,35 +669,41 @@ void TCFS::ISPoll()
              dispatch_command(FPOSRO);
 
        if (read_tcfs() == false)
-                   return;
+       {
+           SetTimer(POLLMS);
+           return;
+       }
 
        if (isSimulation())
        {
-            if (FocusPositionNP->s == IPS_BUSY)
+            if (FocusAbsPosNP.s == IPS_BUSY)
             {
-               if ( static_cast<int>(nFocusTargetPosition - simulated_position) > 0)
-                    simulated_position += FocusStepNP->np[0].step;
-               else if ( static_cast<int>(nFocusTargetPosition - simulated_position) < 0)
-                    simulated_position -= FocusStepNP->np[0].step;
+               int delta = currentPosition - targetPosition;
+               if ( delta > 0)
+                    simulated_position -= FocusRelPosN[0].value/5;
+               else
+                    simulated_position += FocusRelPosN[0].value/5;
            }
 
           snprintf(response, TCFS_MAX_CMD, "P=%04d", simulated_position);
-          if (isDebug())
-               IDLog("Target Position: %g -- Simulated position: #%s#\n", nFocusTargetPosition, response);
+          DEBUGF(INDI::Logger::DBG_DEBUG, "Target Position: %d -- Simulated position: #%s#", targetTicks, response);
        }
 
         sscanf(response, "P=%d", &f_position);
+        currentPosition = f_position;
 
-        nFocusCurrentPosition = f_position;
-
-        if (nFocusCurrentPosition == nFocusTargetPosition)
+        if (FocusAbsPosNP.s == IPS_BUSY && currentPosition == targetPosition)
         {
-             FocusPositionNP->s = IPS_OK;
-             FocusPositionRequestNP->s = IPS_OK;
-             IDSetNumber(FocusPositionRequestNP, NULL);
-         }
+             FocusRelPosNP.s = IPS_OK;
+             IDSetNumber(&FocusRelPosNP, NULL);
+             FocusAbsPosNP.s = IPS_OK;
+        }
 
-        IDSetNumber(FocusPositionNP, NULL);
+        if (lastPosition != currentPosition)
+        {
+            lastPosition = currentPosition;
+            IDSetNumber(&FocusAbsPosNP, NULL);
+        }
      }
 
 
@@ -850,21 +715,29 @@ void TCFS::ISPoll()
             dispatch_command(FTMPRO);
 
        if (read_tcfs() == false)
+       {
+           SetTimer(POLLMS);
            return;
+       }
 
        if (isSimulation())
        {
            snprintf(response, TCFS_MAX_CMD, "T=%0.1f", simulated_temperature);
-           if (isDebug())
-               IDLog("Simulated temperature: #%s#\n", response);
+           DEBUGF(INDI::Logger::DBG_DEBUG, "Simulated temperature: #%s#", response);
        }
 
        sscanf(response, "T=%f", &f_temperature);
 
-       nFocusTemperature = f_temperature;      
-       IDSetNumber(FocusTemperatureNP, NULL);
+       FocusTemperatureNP->np[0].value  = f_temperature;
 
+       if (lastTemperature != FocusTemperatureNP->np[0].value)
+       {
+           lastTemperature = FocusTemperatureNP->np[0].value;
+           IDSetNumber(FocusTemperatureNP, NULL);
+       }
    }
+
+   SetTimer(POLLMS);
 
 }
 
@@ -897,8 +770,7 @@ bool TCFS::read_tcfs()
     // Remove LF & CR
     response[nbytes_read-2] = '\0';
 
-    if (isDebug())
-        IDLog("Bytes Read: %d - strlen(response): %ld - Response from TCF-S: #%s#\n", nbytes_read, strlen(response), response);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Bytes Read: %d - strlen(response): %ld - Response from TCF-S: #%s#", nbytes_read, strlen(response), response);
 
     return true;
 }
