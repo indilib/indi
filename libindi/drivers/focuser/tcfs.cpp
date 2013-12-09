@@ -127,6 +127,37 @@ TCFS::~TCFS()
 **
 **
 *****************************************************************/
+bool TCFS::initProperties()
+{
+    INDI::Focuser::initProperties();
+
+    // Set upper limit for TCF-S3 focuser
+    if (!strcmp(me, "indi_tcfs3_focus"))
+    {
+        isTCFS3 = true;
+
+        FocusAbsPosN[0].max = 9999;
+        FocusRelPosN[0].max = 2000;
+        FocusRelPosN[0].step = FocusAbsPosN[0].step = 100;
+        FocusRelPosN[0].value = 0;
+        DEBUG(INDI::Logger::DBG_DEBUG, "TCF-S3 detected. Updating maximum position value to 9999.");
+    }
+    else
+    {
+        isTCFS3 = false;
+
+        FocusAbsPosN[0].max = 7000;
+        FocusRelPosN[0].max = 2000;
+        FocusRelPosN[0].step = FocusAbsPosN[0].step = 100;
+        FocusRelPosN[0].value = 0;
+        DEBUG(INDI::Logger::DBG_DEBUG, "TCF-S detected. Updating maximum position value to 7000.");
+    }
+}
+
+/****************************************************************
+**
+**
+*****************************************************************/
 void TCFS::ISGetProperties(const char *dev)
 {
     INDI::Focuser::ISGetProperties(dev);
@@ -159,43 +190,21 @@ bool TCFS::updateProperties()
          FocusTemperatureNP = getNumber("FOCUS_TEMPERATURE");
          FocusPowerSP = getSwitch("FOCUS_POWER");
          FocusModeSP  = getSwitch("FOCUS_MODE");
-
-         isTCFS3 = false;
-
-         // Set upper limit for TCF-S3 focuser
-         if (!strcmp(me, "indi_tcfs3_focus"))
-         {
-             isTCFS3 = true;
-
-             FocusAbsPosN[0].max = 9999;
-             FocusRelPosN[0].max = 9999;
-             FocusRelPosN[0].value = 0;
-             IUUpdateMinMax(&FocusAbsPosNP);
-             IUUpdateMinMax(&FocusRelPosNP);
-             DEBUG(INDI::Logger::DBG_DEBUG, "TCF-S3 detected. Updating maximum position value to 9999.");
-         }
-         else
-         {
-             isTCFS3 = false;
-
-             FocusAbsPosN[0].max = 7000;
-             FocusRelPosN[0].max = 7000;
-             FocusRelPosN[0].value = 0;
-             IUUpdateMinMax(&FocusAbsPosNP);
-             IUUpdateMinMax(&FocusRelPosNP);
-             DEBUG(INDI::Logger::DBG_DEBUG, "TCF-S detected. Updating maximum position value to 7000.");
-
-         }
+         FocusGotoSP  = getSwitch("FOCUS_GOTO");
 
          FocusTemperatureNP->s = IPS_OK;
+         defineSwitch(FocusGotoSP);
          defineNumber(FocusTemperatureNP);
          defineSwitch(FocusPowerSP);
          defineSwitch(FocusModeSP);
+
+         loadConfig(true);
 
          SetTimer(POLLMS);
     }
     else
     {
+        deleteProperty(FocusGotoSP->name);
         deleteProperty(FocusTemperatureNP->name);
         deleteProperty(FocusPowerSP->name);
         deleteProperty(FocusModeSP->name);
@@ -408,14 +417,13 @@ bool TCFS::ISNewSwitch (const char *dev, const char *name, ISState *states, char
 
     if (!strcmp(sProp->name, "FOCUS_GOTO"))
     {
-        FocusAbsPosNP.s = IPS_BUSY;
         sProp->s = IPS_OK;
 
         // Min
         if (!strcmp(target_active_switch->name, "FOCUS_MIN"))
         {
             targetTicks = currentPosition;
-            MoveRel(FOCUS_INWARD, targetTicks);
+            MoveRel(FOCUS_INWARD, currentPosition);
             IUResetSwitch(sProp);
             IDSetSwitch(sProp, "Moving focuser to minimum position...");
         }
@@ -434,17 +442,13 @@ bool TCFS::ISNewSwitch (const char *dev, const char *name, ISState *states, char
                 sProp->s = IPS_OK;
                 FocusAbsPosNP.s = IPS_BUSY;
 
-                int delta = 0;
                 if (isTCFS3)
-                    delta = 5000 - currentPosition;
+                    targetPosition = 5000;
                 else
-                    delta = 3500 - currentPosition;
+                    targetPosition = 3500;
 
-                // Need to focus in
-                if (delta < 0)
-                    MoveRel(FOCUS_INWARD, (unsigned int) delta);
-                else
-                    MoveRel(FOCUS_OUTWARD, (unsigned int) delta);
+                if (isSimulation())
+                    simulated_position = currentPosition;
 
                 IDSetSwitch(sProp, "Moving focuser to center position %d...", isTCFS3 ? 5000 : 3500);
                 return true;
@@ -503,14 +507,11 @@ int TCFS::MoveAbs(int ticks)
 
     delta = ticks - currentPosition;
 
-    targetPosition = ticks;
-
     if (delta < 0)
-        MoveRel(FOCUS_INWARD, (unsigned int) delta);
+        MoveRel(FOCUS_INWARD, (unsigned int) fabs(delta));
     else
-        MoveRel(FOCUS_OUTWARD, (unsigned int) delta);
+        MoveRel(FOCUS_OUTWARD, (unsigned int) fabs(delta));
 
-    IDSetNumber(&FocusAbsPosNP, NULL);
 }
 
 int TCFS::MoveRel(FocusDirection dir, unsigned int ticks)
@@ -521,15 +522,19 @@ int TCFS::MoveRel(FocusDirection dir, unsigned int ticks)
     // Inward
     if (dir == FOCUS_INWARD)
     {
-        targetPosition -= ticks;
+        targetPosition -= targetTicks;
         dispatch_command(FIN);
     }
     // Outward
     else
     {
-        targetPosition += ticks;
+        targetPosition += targetTicks;
         dispatch_command(FOUT);
     }
+
+    FocusAbsPosNP.s == IPS_BUSY;
+    IDSetNumber(&FocusAbsPosNP, NULL);
+
 
     if (read_tcfs() == false)
     {
@@ -680,13 +685,26 @@ void TCFS::TimerHit()
             {
                int delta = currentPosition - targetPosition;
                if ( delta > 0)
-                    simulated_position -= FocusRelPosN[0].value/5;
+               {
+                    simulated_position -= 100;
+                    if (simulated_position < FocusAbsPosN[0].min)
+                        simulated_position=FocusAbsPosN[0].min;
+               }
                else
-                    simulated_position += FocusRelPosN[0].value/5;
+               {
+                    simulated_position += 100;
+                    if (simulated_position > FocusAbsPosN[0].max)
+                        simulated_position=FocusAbsPosN[0].min;
+               }
+
+               if (fabs(simulated_position - targetPosition) < 100)
+                   simulated_position = targetPosition;
            }
 
           snprintf(response, TCFS_MAX_CMD, "P=%04d", simulated_position);
-          DEBUGF(INDI::Logger::DBG_DEBUG, "Target Position: %d -- Simulated position: #%s#", targetTicks, response);
+
+          if (FocusAbsPosNP.s == IPS_BUSY)
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Target Position: %d -- Simulated position: #%s#", targetTicks, response);
        }
 
         sscanf(response, "P=%d", &f_position);
@@ -721,10 +739,7 @@ void TCFS::TimerHit()
        }
 
        if (isSimulation())
-       {
            snprintf(response, TCFS_MAX_CMD, "T=%0.1f", simulated_temperature);
-           DEBUGF(INDI::Logger::DBG_DEBUG, "Simulated temperature: #%s#", response);
-       }
 
        sscanf(response, "T=%f", &f_temperature);
 

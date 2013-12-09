@@ -63,6 +63,7 @@ public:
     virtual bool Connect();
     virtual bool Disconnect();
     const char *getDefaultName();
+    virtual bool initProperties();
     virtual bool updateProperties();
     virtual void ISGetProperties(const char *dev);
     virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
@@ -76,6 +77,7 @@ private:
 
     ISwitchVectorProperty *FocusPowerSP;
     ISwitchVectorProperty *FocusModeSP;
+    ISwitchVectorProperty *FocusGotoSP;
     INumberVectorProperty *FocusTemperatureNP;
 
     bool read_tcfs();

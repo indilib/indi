@@ -46,9 +46,6 @@ public:
     virtual bool Abort();
     virtual void TimerHit();
 
-protected:
-    bool saveConfigItems(FILE *fp);
-
 private:
 
     int PortFD;
@@ -87,12 +84,6 @@ private:
 
     ISwitch TemperatureCompensateS[2];
     ISwitchVectorProperty TemperatureCompensateSP;
-
-    INumber PresetN[3];
-    INumberVectorProperty PresetNP;
-
-    ISwitch PresetGotoS[3];
-    ISwitchVectorProperty PresetGotoSP;
 
 };
 

@@ -87,6 +87,13 @@ class INDI::Focuser : public INDI::DefaultDevice
         virtual bool Abort();
 
         /**
+         * @brief saveConfigItems Saves the Device Port and Focuser Presets in the configuration file
+         * @param fp pointer to configuration file
+         * @return true if successful, false otherwise.
+         */
+        virtual bool saveConfigItems(FILE *fp);
+
+        /**
          * @brief setFocuserFeatures Sets Focuser features
          * @param CanAbsMove can the focuser move by absolute position?
          * @param CanRelMove can the focuser move by relative position?
@@ -109,6 +116,10 @@ class INDI::Focuser : public INDI::DefaultDevice
         ISwitch AbortS[1];
         ITextVectorProperty PortTP;
         IText PortT[1];
+        INumber PresetN[3];
+        INumberVectorProperty PresetNP;
+        ISwitch PresetGotoS[3];
+        ISwitchVectorProperty PresetGotoSP;
 
         bool canAbort, canAbsMove, canRelMove, variableSpeed;
 

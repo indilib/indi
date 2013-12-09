@@ -10,7 +10,7 @@ Off
 Off
     </defSwitch>
 </defSwitchVector>
-<defSwitchVector device="Optec TCF-S" name="FOCUS_GOTO" label="Go to" group="Operation" state="Idle" perm="rw" rule="OneOfMany" timeout="0">
+<defSwitchVector device="Optec TCF-S" name="FOCUS_GOTO" label="Go to" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="0">
     <defSwitch name="FOCUS_MIN" label="Min">
 Off
     </defSwitch>
