@@ -706,8 +706,10 @@ void TCFS::TimerHit()
            DEBUGF(INDI::Logger::DBG_DEBUG, "Moving focuser %d steps to position %d.", targetTicks, targetPosition);
            FocusAbsPosNP.s = IPS_OK;
            FocusRelPosNP.s = IPS_OK;
+           FocusGotoSP->s  = IPS_OK;
            IDSetNumber(&FocusAbsPosNP, NULL);
            IDSetNumber(&FocusRelPosNP, NULL);
+           IDSetSwitch(FocusGotoSP, NULL);
        }
        else
        {
