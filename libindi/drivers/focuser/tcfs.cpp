@@ -616,7 +616,7 @@ bool TCFS::dispatch_command(TCFSCommand command_type)
 
 void TCFS::TimerHit()
 {
-   static double lastPosition=0, lastTemperature=0;
+   static double lastPosition=-1, lastTemperature=-1000;
 
    if (isConnected() == false)
    {
@@ -690,6 +690,14 @@ void TCFS::TimerHit()
            return;
        }
 
+       // Ignore error
+       if (strstr(response, "ER"))
+       {
+           DEBUGF(INDI::Logger::DBG_DEBUG, "Received error: %s", response);
+           SetTimer(POLLMS);
+           return;
+       }
+
        if (isSimulation())
            strncpy(response, "*", TCFS_MAX_CMD);
 
@@ -704,7 +712,7 @@ void TCFS::TimerHit()
        else
        {
            FocusAbsPosNP.s = IPS_ALERT;
-           DEBUG(INDI::Logger::DBG_ERROR, "Unable to read response from focuser.");
+           DEBUGF(INDI::Logger::DBG_ERROR, "Unable to read response from focuser #%s#.", response);
            IDSetNumber(&FocusAbsPosNP, NULL);
        }
        break;
