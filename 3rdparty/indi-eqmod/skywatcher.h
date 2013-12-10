@@ -60,8 +60,10 @@ public:
     unsigned long GetDEEncoder()  throw (EQModError);
     unsigned long GetRAEncoderZero();
     unsigned long GetRAEncoderTotal();
+    unsigned long GetRAEncoderHome();
     unsigned long GetDEEncoderZero();
     unsigned long GetDEEncoderTotal();
+    unsigned long GetDEEncoderHome();
     unsigned long GetRAPeriod()  throw (EQModError);
     unsigned long GetDEPeriod()  throw (EQModError);
     void GetRAMotorStatus(ILightVectorProperty *motorLP) throw (EQModError);

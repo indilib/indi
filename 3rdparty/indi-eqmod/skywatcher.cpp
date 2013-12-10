@@ -183,6 +183,12 @@ unsigned long Skywatcher::GetRAEncoderTotal()
   return RASteps360;
 }
 
+unsigned long Skywatcher::GetRAEncoderHome()
+{
+  DEBUGF(INDI::Logger::DBG_DEBUG, "%s() = %ld", __FUNCTION__, RAStepHome);
+  return RAStepHome;
+}
+
 unsigned long Skywatcher::GetDEEncoderZero()
 {
   DEBUGF(INDI::Logger::DBG_DEBUG, "%s() = %ld", __FUNCTION__, DEStepInit);
@@ -193,6 +199,12 @@ unsigned long Skywatcher::GetDEEncoderTotal()
 {
   DEBUGF(INDI::Logger::DBG_DEBUG, "%s() = %ld", __FUNCTION__, DESteps360);
   return DESteps360;
+}
+
+unsigned long Skywatcher::GetDEEncoderHome()
+{
+  DEBUGF(INDI::Logger::DBG_DEBUG, "%s() = %ld", __FUNCTION__, DEStepHome);
+  return DEStepHome;
 }
 
 unsigned long Skywatcher::GetRAPeriod() throw (EQModError)

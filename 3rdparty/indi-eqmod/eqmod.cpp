@@ -181,6 +181,9 @@ EQMod::EQMod()
   currentRA=0;
   currentDEC=90;
   Parked=false;
+  gotoparams.completed=true;
+  last_motion_ns=-1;
+  last_motion_ew=-1;
 
   controller = new INDI::Controller(this);
 
@@ -431,8 +434,13 @@ bool EQMod::updateProperties()
 	
 	  zeroRAEncoder=mount->GetRAEncoderZero();
 	  totalRAEncoder=mount->GetRAEncoderTotal();
+	  homeRAEncoder=mount->GetRAEncoderHome();
 	  zeroDEEncoder=mount->GetDEEncoderZero();
 	  totalDEEncoder=mount->GetDEEncoderTotal();
+	  homeDEEncoder=mount->GetDEEncoderHome();
+
+	  parkRAEncoder=homeRAEncoder;
+	  parkDEEncoder=homeDEEncoder;
 
 	  latitude=IUFindNumber(&LocationNP, "LAT");
 	  if ((latitude) && (latitude->value < 0.0)) SetSouthernHemisphere(true);
@@ -441,7 +449,10 @@ bool EQMod::updateProperties()
 	  if (ParkSP.sp[0].s==ISS_ON) {
 	    //TODO unpark mount if desired
 	  }
-	
+
+	  IUResetSwitch(&ParkSP);
+	  Parked=false;
+
 	  TrackState=SCOPE_IDLE;
 	} 
 	catch(EQModError e) {
@@ -666,7 +677,7 @@ bool EQMod::ReadScopeStatus() {
     IUUpdateNumber(PeriodsNP, periods, (char **)periodsnames, 2);
     IDSetNumber(PeriodsNP, NULL);
 
-    if (TrackState == SCOPE_SLEWING) {
+    if (gotoInProgress()) {
       if (!(mount->IsRARunning()) && !(mount->IsDERunning())) {
 	// Goto iteration
 	gotoparams.iterative_count += 1;
@@ -703,10 +714,20 @@ bool EQMod::ReadScopeStatus() {
 	    TrackState = SCOPE_IDLE;
         DEBUG(INDI::Logger::DBG_SESSION, "Telescope slew is complete. Stopping...");
 	  }
+	  gotoparams.completed=true;
 	  EqNP.s = IPS_OK;
 
 	}
       } 
+    }
+    if (TrackState == SCOPE_PARKING) {
+      if (!(mount->IsRARunning()) && !(mount->IsDERunning())) {
+	    ParkSP.s=IPS_OK;
+	    IDSetSwitch(&ParkSP, NULL);
+	    Parked=true;
+	    TrackState = SCOPE_PARKED;
+	    DEBUG(INDI::Logger::DBG_SESSION, "Telescope Parked...");
+      }
     }
   } catch(EQModError e) {
     return(e.DefaultHandleException(this));
@@ -979,10 +1000,22 @@ double EQMod::GetDETrackRate()
   return rate;
 }
 
+bool EQMod::gotoInProgress()
+{
+  return (!gotoparams.completed);
+}
+
 bool EQMod::Goto(double r,double d)
 {
   double juliandate;
   double lst;
+
+  if ((TrackState == SCOPE_SLEWING)  || (TrackState == SCOPE_PARKING) || (TrackState == SCOPE_PARKED)){
+    DEBUG(INDI::Logger::DBG_WARNING, "Can not perform goto while goto/park in progress, or scope parked.");
+    EqNP.s    = IPS_IDLE;
+    IDSetNumber(&EqNP, NULL);
+    return true;
+  }
 
   juliandate=getJulianDate();
   lst=getLst(juliandate, getLongitude()); 
@@ -1028,7 +1061,6 @@ bool EQMod::Goto(double r,double d)
     fs_sexa(RAStr, targetRA, 2, 3600);
     fs_sexa(DecStr, targetDEC, 2, 3600);
 
-    Parked=false;
     RememberTrackState = TrackState;
     TrackState = SCOPE_SLEWING;
 
@@ -1049,17 +1081,47 @@ bool EQMod::canSync()
 
 bool EQMod::canPark()
 {
-  return false;
+  return true;
 }
 
 bool EQMod::Park()
-{
-    targetRA=0;
-    targetDEC=90;
-    Parked=true;
+{ 
+  if (!Parked) {
+    if (TrackState == SCOPE_SLEWING) {
+      DEBUG(INDI::Logger::DBG_SESSION, "Can not park while slewing...");
+      ParkSP.s=IPS_ALERT;
+      IDSetSwitch(&ParkSP, NULL);
+      return false;
+    }
+    currentRAEncoder=mount->GetRAEncoder();
+    currentDEEncoder=mount->GetDEEncoder();
+    try {    
+      // stop motor
+      mount->StopRA();
+      mount->StopDE();
+      // Start slewing
+      DEBUGF(INDI::Logger::DBG_SESSION, "Parking mount: RA increment = %ld, DE increment = %ld",
+		parkRAEncoder - currentRAEncoder, parkDEEncoder - currentDEEncoder);
+      mount->SlewTo(parkRAEncoder - currentRAEncoder, parkDEEncoder - currentDEEncoder);
+    } catch(EQModError e) {
+      return(e.DefaultHandleException(this));
+    }    
+    TrackModeSP->s=IPS_IDLE;
+    IDSetSwitch(TrackModeSP,NULL);
     TrackState = SCOPE_PARKING;
-    DEBUG(INDI::Logger::DBG_SESSION, "Parking telescope in progress...");
-    return true;
+    ParkSP.s=IPS_BUSY;
+    IDSetSwitch(&ParkSP, NULL);
+    //TrackState = SCOPE_PARKED;
+    DEBUG(INDI::Logger::DBG_SESSION, "Telescope park in progress...");
+    //DEBUG(INDI::Logger::DBG_SESSION, "Telescope Parked...");
+  } else {
+    Parked=false;
+    TrackState = SCOPE_IDLE;
+    ParkSP.s=IPS_IDLE;
+    IDSetSwitch(&ParkSP, NULL);
+    DEBUG(INDI::Logger::DBG_SESSION, "Telescope unparked.");
+  }
+  return true;
 }
 
 bool EQMod::Sync(double ra,double dec)
@@ -1606,35 +1668,36 @@ double EQMod::GetDESlew() {
 
 bool EQMod::MoveNS(TelescopeMotionNS dir)
 {
-  static int last_motion_ns=-1;
-  if (TrackState == SCOPE_SLEWING) {
-    DEBUG(INDI::Logger::DBG_WARNING, "Can not slew while goto in progress.");
-    IUResetSwitch(&MovementNSSP);
-    MovementNSSP.s = IPS_IDLE;
-    IDSetSwitch(&MovementNSSP, NULL);
-    return true;
-  }
+
   try {
   switch (dir)
     {
     case MOTION_NORTH:
       if (last_motion_ns != MOTION_NORTH)  {
 	double rate=GetDESlew();
-    DEBUG(INDI::Logger::DBG_SESSION, "Starting North slew.");
+	if (gotoInProgress()  || (TrackState == SCOPE_PARKING) || (TrackState == SCOPE_PARKED)){
+	  DEBUG(INDI::Logger::DBG_WARNING, "Can not slew while goto/park in progress, or scope parked.");
+	  IUResetSwitch(&MovementNSSP);
+	  MovementNSSP.s = IPS_IDLE;
+	  IDSetSwitch(&MovementNSSP, NULL);
+	  return true;
+	}
+	DEBUG(INDI::Logger::DBG_SESSION, "Starting North slew.");
 	if (DEInverted) rate=-rate;
 	mount->SlewDE(rate);
 	last_motion_ns = MOTION_NORTH;
 	RememberTrackState = TrackState;
+	TrackState = SCOPE_SLEWING;
       } else {
-    DEBUG(INDI::Logger::DBG_SESSION, "North Slew stopped");
+	DEBUG(INDI::Logger::DBG_SESSION, "North Slew stopped");
 	mount->StopDE();
 	last_motion_ns=-1;
 	if (RememberTrackState == SCOPE_TRACKING) {
-      DEBUG(INDI::Logger::DBG_SESSION, "Restarting DE Tracking...");
+	  DEBUG(INDI::Logger::DBG_SESSION, "Restarting DE Tracking...");
 	  TrackState = SCOPE_TRACKING;
 	  mount->StartDETracking(GetDETrackRate());
 	} else {
-	  TrackState = SCOPE_IDLE;
+	  if (last_motion_ew == -1) TrackState = SCOPE_IDLE;
 	}
 	IUResetSwitch(&MovementNSSP);
 	MovementNSSP.s = IPS_IDLE;
@@ -1645,22 +1708,30 @@ bool EQMod::MoveNS(TelescopeMotionNS dir)
     case MOTION_SOUTH:
       if (last_motion_ns != MOTION_SOUTH) {
 	double rate=-GetDESlew();
-    DEBUG(INDI::Logger::DBG_SESSION, "Starting South slew");
+	if (gotoInProgress() || (TrackState == SCOPE_PARKING) || (TrackState == SCOPE_PARKED)){
+	  DEBUG(INDI::Logger::DBG_WARNING, "Can not slew while goto/park in progress, or scope parked.");
+	  IUResetSwitch(&MovementNSSP);
+	  MovementNSSP.s = IPS_IDLE;
+	  IDSetSwitch(&MovementNSSP, NULL);
+	  return true;
+	}
+	DEBUG(INDI::Logger::DBG_SESSION, "Starting South slew");
 	if (DEInverted) rate=-rate;
 	mount->SlewDE(rate);
 	last_motion_ns = MOTION_SOUTH;
 	RememberTrackState = TrackState;
+	TrackState = SCOPE_SLEWING;
       } else {
-    DEBUG(INDI::Logger::DBG_SESSION, "South Slew stopped.");
+	DEBUG(INDI::Logger::DBG_SESSION, "South Slew stopped.");
 	mount->StopDE();
 	last_motion_ns=-1;
 	if (RememberTrackState == SCOPE_TRACKING) {
-        DEBUG(INDI::Logger::DBG_SESSION, "Restarting DE Tracking...");
-	    TrackState = SCOPE_TRACKING;
-	    mount->StartDETracking(GetDETrackRate());
-	  } else {
-	    TrackState = SCOPE_IDLE;
-	  }
+	  DEBUG(INDI::Logger::DBG_SESSION, "Restarting DE Tracking...");
+	  TrackState = SCOPE_TRACKING;
+	  mount->StartDETracking(GetDETrackRate());
+	} else {
+	  if (last_motion_ew == -1) TrackState = SCOPE_IDLE;
+	}
 	IUResetSwitch(&MovementNSSP);
 	MovementNSSP.s = IPS_IDLE;
 	IDSetSwitch(&MovementNSSP, NULL);
@@ -1675,35 +1746,36 @@ bool EQMod::MoveNS(TelescopeMotionNS dir)
 
 bool EQMod::MoveWE(TelescopeMotionWE dir)
 {
-    static int last_motion=-1;
-    if (TrackState == SCOPE_SLEWING) {
-      DEBUG(INDI::Logger::DBG_WARNING, "Can not slew while goto in progress.");
-      IUResetSwitch(&MovementWESP);
-      MovementWESP.s = IPS_IDLE;
-      IDSetSwitch(&MovementWESP, NULL);
-      return true;
-    }
+
     try {
       switch (dir)
 	{
 	case MOTION_WEST:
-	  if (last_motion != MOTION_WEST) {
+	  if (last_motion_ew != MOTION_WEST) {
 	    double rate=GetRASlew();
-        DEBUG(INDI::Logger::DBG_SESSION, "Starting West Slew");
+	    if (gotoInProgress() || (TrackState == SCOPE_PARKING) || (TrackState == SCOPE_PARKED)) {
+	      DEBUG(INDI::Logger::DBG_WARNING, "Can not slew while goto/park in progress, or scope parked.");
+	      IUResetSwitch(&MovementWESP);
+	      MovementWESP.s = IPS_IDLE;
+	      IDSetSwitch(&MovementWESP, NULL);
+	      return true;
+	    }
+	    DEBUG(INDI::Logger::DBG_SESSION, "Starting West Slew");
 	    if (RAInverted) rate=-rate;
 	    mount->SlewRA(rate);
-	    last_motion = MOTION_WEST;
+	    last_motion_ew = MOTION_WEST;
 	    RememberTrackState = TrackState;
+	    TrackState = SCOPE_SLEWING;
 	  } else {
-        DEBUG(INDI::Logger::DBG_SESSION, "West Slew stopped");
+	    DEBUG(INDI::Logger::DBG_SESSION, "West Slew stopped");
 	    mount->StopRA();
-	    last_motion=-1;
+	    last_motion_ew=-1;
 	    if (RememberTrackState == SCOPE_TRACKING) {
-          DEBUG(INDI::Logger::DBG_SESSION, "Restarting RA Tracking...");
+	      DEBUG(INDI::Logger::DBG_SESSION, "Restarting RA Tracking...");
 	      TrackState = SCOPE_TRACKING;
 	      mount->StartRATracking(GetRATrackRate());
 	    } else {
-	      TrackState = SCOPE_IDLE;
+	      if (last_motion_ns == -1) TrackState = SCOPE_IDLE;
 	    }
 	    IUResetSwitch(&MovementWESP);
 	    MovementWESP.s = IPS_IDLE;
@@ -1712,23 +1784,31 @@ bool EQMod::MoveWE(TelescopeMotionWE dir)
 	  break;
 	  
 	case MOTION_EAST:
-	  if (last_motion != MOTION_EAST) {
+	  if (last_motion_ew != MOTION_EAST) {
 	    double rate=-GetRASlew();
-        DEBUG(INDI::Logger::DBG_SESSION,  "Starting East Slew");
+	    if (gotoInProgress() || (TrackState == SCOPE_PARKING) || (TrackState == SCOPE_PARKED)) {
+	      DEBUG(INDI::Logger::DBG_WARNING, "Can not slew while goto/park in progress, or scope parked.");
+	      IUResetSwitch(&MovementWESP);
+	      MovementWESP.s = IPS_IDLE;
+	      IDSetSwitch(&MovementWESP, NULL);
+	      return true;
+	    }
+	    DEBUG(INDI::Logger::DBG_SESSION,  "Starting East Slew");
 	    if (RAInverted) rate=-rate;
 	    mount->SlewRA(rate);
-	    last_motion = MOTION_EAST;
+	    last_motion_ew = MOTION_EAST;
 	    RememberTrackState = TrackState;
+	    TrackState = SCOPE_SLEWING;
 	  } else {
-        DEBUG(INDI::Logger::DBG_SESSION,  "East Slew stopped");
+	    DEBUG(INDI::Logger::DBG_SESSION,  "East Slew stopped");
 	    mount->StopRA();
-	    last_motion=-1;
+	    last_motion_ew=-1;
 	    if (RememberTrackState == SCOPE_TRACKING) {
-          DEBUG(INDI::Logger::DBG_SESSION,  "Restarting RA Tracking...");
+	      DEBUG(INDI::Logger::DBG_SESSION,  "Restarting RA Tracking...");
 	      TrackState = SCOPE_TRACKING;
 	      mount->StartRATracking(GetRATrackRate());
 	    } else {
-	      TrackState = SCOPE_IDLE;
+	      if (last_motion_ns == -1) TrackState = SCOPE_IDLE;
 	    }
 	    IUResetSwitch(&MovementWESP);
 	    MovementWESP.s = IPS_IDLE;

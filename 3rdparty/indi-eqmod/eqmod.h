@@ -49,7 +49,10 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 
 	unsigned long currentRAEncoder, zeroRAEncoder, totalRAEncoder;
 	unsigned long currentDEEncoder, zeroDEEncoder, totalDEEncoder;
-	
+
+	unsigned long homeRAEncoder, parkRAEncoder;
+	unsigned long homeDEEncoder, parkDEEncoder;	
+
     double currentRA, currentHA;
     double currentDEC;
 	double alignedRA, alignedDEC;
@@ -57,6 +60,8 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
     double targetDEC;
 	TelescopeStatus RememberTrackState;
     bool Parked;
+    int last_motion_ns;
+    int last_motion_ew;
 	
 	/* for use with libnova */
 	struct ln_equ_posn lnradec;
@@ -113,7 +118,6 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 	Hemisphere Hemisphere;
 	PierSide pierside;
 	bool RAInverted, DEInverted;
-	bool isParked;
         GotoParams gotoparams;
 	SyncData syncdata, syncdata2;
 
@@ -143,6 +147,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 	static void timedguideWECallback(void *userpointer);
 	double GetRASlew();
 	double GetDESlew();
+	bool gotoInProgress();
 
     bool loadProperties();
 	void setLogDebug (bool enable);
