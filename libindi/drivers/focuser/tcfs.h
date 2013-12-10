@@ -80,7 +80,7 @@ private:
     ISwitchVectorProperty *FocusGotoSP;
     INumberVectorProperty *FocusTemperatureNP;
 
-    bool read_tcfs();
+    bool read_tcfs(bool silent=false);
     bool dispatch_command(TCFSCommand command);
 
     // Variables
@@ -94,6 +94,7 @@ private:
     float simulated_temperature;
 
     unsigned int targetTicks, targetPosition;
+    TCFSCommand currentCommand;
     bool isTCFS3;
 
 };
