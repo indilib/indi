@@ -38,6 +38,7 @@
 #define mydev                   "Optec TCF-S"
 #define currentPosition         FocusAbsPosN[0].value
 #define isFocusSleep            (FocusPowerSP->sp[0].s == ISS_ON)
+#define inAutoMode              (FocusModeSP->sp[0].s != ISS_ON)
 
 const int POLLMS = 500;
 
@@ -422,6 +423,14 @@ bool TCFS::ISNewSwitch (const char *dev, const char *name, ISState *states, char
 
     if (!strcmp(sProp->name, "FOCUS_GOTO"))
     {
+        if (inAutoMode)
+        {
+            sProp->s = IPS_IDLE;
+            IDSetSwitch(sProp, NULL);
+            DEBUG(INDI::Logger::DBG_WARNING, "The focuser can only be moved in Manual mode.");
+            return false;
+        }
+
         sProp->s = IPS_BUSY;
 
         // Min
@@ -435,7 +444,9 @@ bool TCFS::ISNewSwitch (const char *dev, const char *name, ISState *states, char
         else if (!strcmp(target_active_switch->name, "FOCUS_CENTER"))
         {
             dispatch_command(FCENTR);
-
+            FocusAbsPosNP.s = FocusRelPosNP.s = IPS_BUSY;
+            IDSetNumber(&FocusAbsPosNP, NULL);
+            IDSetNumber(&FocusRelPosNP, NULL);
             IDSetSwitch(sProp, "Moving focuser to center position %d...", isTCFS3 ? 5000 : 3500);
             return true;
         }
@@ -494,6 +505,13 @@ int TCFS::MoveAbs(int ticks)
 
 int TCFS::MoveRel(FocusDirection dir, unsigned int ticks)
 {
+
+    if (inAutoMode)
+    {
+        DEBUG(INDI::Logger::DBG_WARNING, "The focuser can only be moved in Manual mode.");
+        return -1;
+    }
+
     targetTicks = ticks;
     targetPosition = currentPosition;
 
