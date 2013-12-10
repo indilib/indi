@@ -56,6 +56,7 @@ private:
     float focusMoveRequest;
 
     void GetFocusParams();
+    bool reset();
     bool updateStepMode();
     bool updateTemperature();
     bool updatePosition();
@@ -84,6 +85,9 @@ private:
 
     ISwitch TemperatureCompensateS[2];
     ISwitchVectorProperty TemperatureCompensateSP;
+
+    ISwitch ResetS[1];
+    ISwitchVectorProperty ResetSP;
 
 };
 

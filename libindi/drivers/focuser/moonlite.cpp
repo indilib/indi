@@ -133,6 +133,10 @@ bool MoonLite::initProperties()
     IUFillSwitch(&TemperatureCompensateS[1], "Disable", "", ISS_ON);
     IUFillSwitchVector(&TemperatureCompensateSP, TemperatureCompensateS, 2, getDeviceName(), "Temperature Compensate", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+    // Reset
+    IUFillSwitch(&ResetS[0], "Zero", "", ISS_OFF);
+    IUFillSwitchVector(&ResetSP, ResetS, 2, getDeviceName(), "Reset", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
     /* Relative and absolute movement */
     FocusRelPosN[0].min = 0.;
     FocusRelPosN[0].max = 30000.;
@@ -168,6 +172,7 @@ bool MoonLite::updateProperties()
         defineSwitch(&StepModeSP);
         defineNumber(&TemperatureSettingNP);
         defineSwitch(&TemperatureCompensateSP);
+        defineSwitch(&ResetSP);
 
         GetFocusParams();
 
@@ -183,6 +188,7 @@ bool MoonLite::updateProperties()
         deleteProperty(StepModeSP.name);
         deleteProperty(TemperatureSettingNP.name);
         deleteProperty(TemperatureCompensateSP.name);
+        deleteProperty(ResetSP.name);
     }
 
     return true;
@@ -464,6 +470,25 @@ bool MoonLite::setTemperatureCoefficient(double coefficient)
 
 }
 
+bool MoonLite::reset()
+{
+    int nbytes_written=0, rc=-1;
+    char errstr[MAXRBUF];
+    char cmd[9];
+
+    strncpy(cmd, ":SP0000#", 9);
+
+    // Set Position
+    if ( (rc = tty_write(PortFD, cmd, 8, &nbytes_written)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "reset error: %s.", errstr);
+        return false;
+    }
+
+    return true;
+
+}
 
 bool MoonLite::Move(unsigned int position)
 {
@@ -627,6 +652,19 @@ bool MoonLite::ISNewSwitch (const char *dev, const char *name, ISState *states, 
 
             TemperatureCompensateSP.s = IPS_OK;
             IDSetSwitch(&TemperatureCompensateSP, NULL);
+            return true;
+        }
+
+        if (!strcmp(ResetSP.name, name))
+        {
+            IUResetSwitch(&ResetSP);
+
+            if (reset())
+                ResetSP.s = IPS_OK;
+            else
+                ResetSP.s = IPS_ALERT;
+
+            IDSetSwitch(&ResetSP, NULL);
             return true;
         }
 
