@@ -147,7 +147,7 @@ class V4L2_Base
   struct v4l2_fract frameRate;
   int  xmax, xmin, ymax, ymin;
   int  selectCallBackID;
-  unsigned char * YBuf,*UBuf,*VBuf, *colorBuffer, *rgb24_buffer, *cropbuf;
+  unsigned char * YBuf,*UBuf,*VBuf, *yuvBuffer, *colorBuffer, *rgb24_buffer, *cropbuf;
   
   friend class V4L2_Driver;
 };

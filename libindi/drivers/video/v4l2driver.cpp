@@ -314,6 +314,17 @@ bool V4L2_Driver::ISNewSwitch (const char *dev, const char *name, ISState *state
                 return false;
             }
 
+   if (FrameRatesSP.sp != NULL)
+       deleteProperty(FrameRatesSP.name);
+    else if  (FrameRateNP.np != NULL)
+       deleteProperty(FrameRateNP.name);
+	    v4l_base->getframerates(&FrameRatesSP, &FrameRateNP);
+   if (FrameRatesSP.sp != NULL)
+       defineSwitch(&FrameRatesSP);
+    else if  (FrameRateNP.np != NULL)
+       defineNumber(&FrameRateNP);
+
+
             PrimaryCCD.setFrame(0, 0, w, h);
             V4LFrame->width = w;
             V4LFrame->height= h;
@@ -609,10 +620,17 @@ void V4L2_Driver::lxtimerCallback(void *userpointer)
   p->v4l_base->start_capturing(errmsg); // jump to new/updateFrame
 }
 
-bool V4L2_Driver::updateCCDFrame(int x, int y, int w, int h)
+bool V4L2_Driver::UpdateCCDBin(int hor, int ver)
+{
+  return false;
+}
+
+bool V4L2_Driver::UpdateCCDFrame(int x, int y, int w, int h)
 {
   char errmsg[ERRMSGSIZ];
        
+  //DEBUGF(INDI::Logger::DBG_SESSION, "calling updateCCDFrame: %d %d %d %d", x, y, w, h);
+  //IDLog("calling updateCCDFrame: %d %d %d %d\n", x, y, w, h);
     if (v4l_base->setcroprect(x, y, w, h, errmsg) != -1)
       {
 	struct v4l2_rect crect;
@@ -623,6 +641,8 @@ bool V4L2_Driver::updateCCDFrame(int x, int y, int w, int h)
     PrimaryCCD.setFrame(x, y, w, h);
     frameBytes  = ImageTypeS[0].s == ISS_ON ? V4LFrame->width * V4LFrame->height : V4LFrame->width * V4LFrame->height * 4;
     PrimaryCCD.setFrameBufferSize(frameBytes);
+    //DEBUGF(INDI::Logger::DBG_SESSION, "updateCCDFrame ok: %d %d %d %d", x, y, w, h);
+    //IDLog("updateCCDFrame ok: %d %d %d %d\n", x, y, w, h);
 	return true;
       }
     else

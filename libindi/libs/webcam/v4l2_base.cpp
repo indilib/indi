@@ -78,6 +78,7 @@ V4L2_Base::V4L2_Base()
    YBuf         = NULL;
    UBuf         = NULL;
    VBuf         = NULL;
+   yuvBuffer    = NULL;
    colorBuffer  = NULL;
    rgb24_buffer = NULL;
    callback     = NULL;
@@ -88,12 +89,12 @@ V4L2_Base::V4L2_Base()
 
 V4L2_Base::~V4L2_Base()
 {
-
-  delete (YBuf);
-  delete (UBuf);
-  delete (VBuf);
-  delete (colorBuffer);
-  delete (rgb24_buffer);
+   YBuf = NULL;
+   UBuf = NULL;
+   VBuf = NULL;
+   if (yuvBuffer) delete (yuvBuffer); yuvBuffer = NULL;
+   if (colorBuffer) delete (colorBuffer); colorBuffer = NULL;
+   if (rgb24_buffer) delete (rgb24_buffer); rgb24_buffer = NULL;
 
 }
 
@@ -140,10 +141,12 @@ int V4L2_Base::connectCam(const char * devpath, char *errmsg , int pixelFormat ,
 void V4L2_Base::disconnectCam(bool stopcapture)
 {
    char errmsg[ERRMSGSIZ];
-   delete YBuf;
-   delete UBuf;
-   delete VBuf;
-   YBuf = UBuf = VBuf = NULL;
+   YBuf = NULL;
+   UBuf = NULL;
+   VBuf = NULL;
+   if (yuvBuffer) delete (yuvBuffer); yuvBuffer = NULL;
+   if (colorBuffer) delete (colorBuffer); colorBuffer = NULL;
+   if (rgb24_buffer) delete (rgb24_buffer); rgb24_buffer = NULL;
    
    if (selectCallBackID != -1)
      rmCallback(selectCallBackID);
@@ -207,7 +210,8 @@ int V4L2_Base::read_frame(char *errmsg)
 		}
 
                 assert (buf.index < n_buffers);
-		//IDLog("v4l2_base: dequeuing buffer %d for fd=%d\n", buf.index, fd);
+
+		//IDLog("v4l2_base: dequeuing buffer %d for fd=%d, cropset %c\n", buf.index, fd, (cropset?'Y':'N'));
                 switch (fmt.fmt.pix.pixelformat)
                 {
                   case V4L2_PIX_FMT_YUV420:
@@ -215,6 +219,7 @@ int V4L2_Base::read_frame(char *errmsg)
 		      unsigned char *src=(unsigned char *)buffers[buf.index].start + crop.c.left + (crop.c.top * fmt.fmt.pix.width);
 		      unsigned char *dest=YBuf;
 		      unsigned int i;
+		      //IDLog("grabImage: src=%d dest=%d\n", src, dest);
 		      for (i= 0; i < crop.c.height; i++) { 
 			memcpy(dest, src, crop.c.width);
 			src += fmt.fmt.pix.width;
@@ -887,7 +892,7 @@ int V4L2_Base::check_device(char *errmsg)
 }
 
 int V4L2_Base::init_device(char *errmsg) {
-        findMinMax();
+  //findMinMax();
 
         allocBuffers();
 
@@ -1007,7 +1012,8 @@ void V4L2_Base::getcaptureformats(ISwitchVectorProperty *captureformatssp) {
     strncpy(formats[fmt_avail.index].name, (const char *)fmt_avail.description , MAXINDINAME);
     strncpy(formats[fmt_avail.index].label,(const char *)fmt_avail.description, MAXINDILABEL);
     //assert(sizeof(void *) == sizeof(int));
-    formats[fmt_avail.index].aux=&(fmt_avail.pixelformat);
+    formats[fmt_avail.index].aux=(int *)malloc(sizeof(int));
+    *(int *)(formats[fmt_avail.index].aux) = fmt_avail.pixelformat;
     //IDLog("\t%s (%c%c%c%c)\n", fmt_avail.description, (fmt_avail.pixelformat >> 24)&0xFF,
     //	  (fmt_avail.pixelformat >> 16)&0xFF, (fmt_avail.pixelformat >> 8)&0xFF, 
     //	  (fmt_avail.pixelformat)&0xFF);
@@ -1274,23 +1280,28 @@ char * V4L2_Base::getDeviceName()
 
 void V4L2_Base::allocBuffers()
 {
-   delete (YBuf); YBuf = NULL;
-   delete (UBuf); UBuf = NULL;
-   delete (VBuf); VBuf = NULL;
-   delete (colorBuffer); colorBuffer = NULL;
-   delete (rgb24_buffer); rgb24_buffer = NULL;
+   YBuf = NULL;
+   UBuf = NULL;
+   VBuf = NULL;
+   if (yuvBuffer) delete (yuvBuffer); yuvBuffer = NULL;
+   if (colorBuffer) delete (colorBuffer); colorBuffer = NULL;
+   if (rgb24_buffer) delete (rgb24_buffer); rgb24_buffer = NULL;
    if (cropset) {
-     YBuf= new unsigned char[ crop.c.width * crop.c.height];
-     UBuf= new unsigned char[ crop.c.width * crop.c.height];
-     VBuf= new unsigned char[ crop.c.width * crop.c.height];
+     yuvBuffer=new unsigned char[(crop.c.width * crop.c.height) + ((crop.c.width * crop.c.height) / 2)];
+     //YBuf= new unsigned char[ crop.c.width * crop.c.height];
+     //UBuf= new unsigned char[ (crop.c.width * crop.c.height) / 4];
+     //VBuf= new unsigned char[ (crop.c.width * crop.c.height) / 4];
+     YBuf=yuvBuffer; UBuf=yuvBuffer + (crop.c.width * crop.c.height); VBuf=UBuf + ((crop.c.width * crop.c.height) / 4);
      colorBuffer = new unsigned char[crop.c.width * crop.c.height * 4];
 
      if (fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_SBGGR8)
        rgb24_buffer = new unsigned char[crop.c.width * crop.c.height * 3];
    } else {
-     YBuf= new unsigned char[ fmt.fmt.pix.width * fmt.fmt.pix.height];
-     UBuf= new unsigned char[ fmt.fmt.pix.width * fmt.fmt.pix.height];
-     VBuf= new unsigned char[ fmt.fmt.pix.width * fmt.fmt.pix.height];
+     yuvBuffer=new unsigned char[(fmt.fmt.pix.width * fmt.fmt.pix.height) + ((fmt.fmt.pix.width * fmt.fmt.pix.height) / 2)];
+     //YBuf= new unsigned char[ fmt.fmt.pix.width * fmt.fmt.pix.height];
+     //UBuf= new unsigned char[ (fmt.fmt.pix.width * fmt.fmt.pix.height) / 4];
+     //VBuf= new unsigned char[ (fmt.fmt.pix.width * fmt.fmt.pix.height) / 4];
+     YBuf=yuvBuffer; UBuf=yuvBuffer + (fmt.fmt.pix.width * fmt.fmt.pix.height); VBuf=UBuf + ((fmt.fmt.pix.width * fmt.fmt.pix.height) / 4);
      colorBuffer = new unsigned char[fmt.fmt.pix.width * fmt.fmt.pix.height * 4];
 
      if (fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_SBGGR8)
@@ -1355,43 +1366,14 @@ unsigned char * V4L2_Base::getColorBuffer()
   //cerr << "in get color buffer " << endl;
 
   if (cropset) {
-    unsigned int i, j;
-    unsigned char *sy1, *sy2, *su, *sv, *d1, *d2;
-    unsigned int cb, cg, cr;
-    sy1=YBuf; sy2 = YBuf + crop.c.width; su = UBuf, sv = VBuf; d1=colorBuffer; d2=colorBuffer + 4 * crop.c.width;
     switch (fmt.fmt.pix.pixelformat) 
       {
       case V4L2_PIX_FMT_YUV420:
       case V4L2_PIX_FMT_YUYV:
-	for (i=0; i < crop.c.height / 2; i++) {
-	  for (j=0;j < crop.c.width / 2; j++) {
-	    cb=((*su - 128) * 454) >> 8;
-	    cg=(((*sv - 128) * 183) + ((*su++ - 128) * 88)) >> 8;
-	    cr=((*sv++ - 128) * 359) >> 8;
-	    *d1++=*sy1 + cb;
-	    *d1++=*sy1 - cg;
-	    *d1++=*sy1++ + cr;
-	    *d1++=0;
-	    *d1++=*sy1 + cb;
-	    *d1++=*sy1 - cg;
-	    *d1++=*sy1++ + cr;
-	    *d1++=0;
-	    *d2++=*sy2 + cb;
-	    *d2++=*sy2 - cg;
-	    *d2++=*sy2++ + cr;
-	    *d2++=0;
-	    *d2++=*sy2 + cb;
-	    *d2++=*sy2 - cg;
-	    *d2++=*sy2++ + cr;
-	    *d2++=0;
-	  }
-	  d1 += 4 * crop.c.width;
-	  d2 += 4 * crop.c.width;
-	  sy1+=crop.c.width;
-	  sy2+=crop.c.width;
-	}
+	     ccvt_420p_bgr32(crop.c.width, crop.c.height,
+			yuvBuffer, (void*)colorBuffer);
 	break;
-      }
+      }	
   } else {
     switch (fmt.fmt.pix.pixelformat) 
       {
@@ -1680,7 +1662,8 @@ void  V4L2_Base::queryControls(INumberVectorProperty *nvp, unsigned int *nnumber
 	      IUFillSwitch(sw+1, swoffname, "On", (control.value?ISS_ON:ISS_OFF));
 	      queryctrl.name[31]='\0';
 	      IUFillSwitchVector (&opt[nopt], sw, 2, dev, optname, (const char *)entityXML((char *)queryctrl.name), group, IP_RW, ISR_1OFMANY, 0.0, IPS_IDLE);
-          opt[nopt].aux=&(queryctrl.id);
+              opt[nopt].aux=malloc(sizeof(unsigned int));
+	      *(unsigned int *)(opt[nopt].aux)=(queryctrl.id);
 
 	      IDLog("Adding switch  %s (%s)\n", queryctrl.name, (control.value?"On":"Off"));
 	      nopt += 1;
@@ -1726,7 +1709,8 @@ void  V4L2_Base::queryControls(INumberVectorProperty *nvp, unsigned int *nnumber
 	      
 	      queryctrl.name[31]='\0';
 	      IUFillSwitchVector (&opt[nopt], sw, nmenuopt, dev, menuname, (const char *)entityXML((char *)queryctrl.name), group, IP_RW, ISR_1OFMANY, 0.0, IPS_IDLE);
-          opt[nopt].aux=&(queryctrl.id);
+	      opt[nopt].aux=malloc(sizeof(unsigned int));
+	      *(unsigned int *)(opt[nopt].aux)=(queryctrl.id);
 
 	      IDLog("Adding menu  %s (item %d set)\n", queryctrl.name, control.value);
 	      nopt += 1;
@@ -1800,7 +1784,9 @@ void  V4L2_Base::queryControls(INumberVectorProperty *nvp, unsigned int *nnumber
 	      IUFillSwitch(sw+1, swoffname, "Off", (control.value?ISS_OFF:ISS_ON));
 	      queryctrl.name[31]='\0';
 	      IUFillSwitchVector (&opt[nopt], sw, 2, dev, optname, (const char *)entityXML((char *)queryctrl.name), group, IP_RW, ISR_1OFMANY, 0.0, IPS_IDLE);
-          opt[nopt].aux=&(queryctrl.id);
+
+	      opt[nopt].aux=malloc(sizeof(unsigned int));
+	      *(unsigned int *)(opt[nopt].aux)=(queryctrl.id);
 
 	      IDLog("Adding ext. switch  %s (%s)\n", queryctrl.name, (control.value?"On":"Off"));
 	      nopt += 1;
@@ -1846,7 +1832,9 @@ void  V4L2_Base::queryControls(INumberVectorProperty *nvp, unsigned int *nnumber
 	      
 	      queryctrl.name[31]='\0';
 	      IUFillSwitchVector (&opt[nopt], sw, nmenuopt, dev, menuname, (const char *)entityXML((char *)queryctrl.name), group, IP_RW, ISR_1OFMANY, 0.0, IPS_IDLE);
-          opt[nopt].aux=&(queryctrl.id);
+
+	      opt[nopt].aux=malloc(sizeof(unsigned int));
+	      *(unsigned int *)(opt[nopt].aux)=(queryctrl.id);
 
 	      IDLog("Adding ext. menu  %s (item %d set)\n", queryctrl.name, control.value);
 	      nopt += 1;
@@ -1857,7 +1845,7 @@ void  V4L2_Base::queryControls(INumberVectorProperty *nvp, unsigned int *nnumber
   } 
   
   /* Store numbers in aux0 */
-  for (int i=0; i < nnum; i++)
+  for (int i=0; i < nnum; i++) 
     numbers[i].aux0 = &num_ctrls[i];
   
   nvp->np  = numbers;

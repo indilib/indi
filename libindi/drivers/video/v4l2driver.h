@@ -78,12 +78,14 @@ class V4L2_Driver: public INDI::CCD
     virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
     virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
     virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+    bool UpdateCCDFrame(int x, int y, int w, int h);
+    bool UpdateCCDBin(int hor, int ver);
 
     virtual void initCamBase();
     virtual bool initProperties();
     virtual bool updateProperties ();
 
-    bool updateCCDFrame(int x, int y, int w, int h);
+
     bool AbortExposure();
 
     static void newFrame(void *p);
@@ -94,6 +96,7 @@ class V4L2_Driver: public INDI::CCD
     virtual bool Connect();
     virtual bool Disconnect();
     virtual const char *getDefaultName();
+
 
    /* Structs */
    typedef struct {
