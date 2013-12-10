@@ -240,8 +240,12 @@ bool TCFS::Connect()
         return false;
     }
 
+    dispatch_command(FWAKUP);
+    read_tcfs();
+
     dispatch_command(FMMODE);
     read_tcfs();
+
     tcflush(fd, TCIOFLUSH);
 
     DEBUG(INDI::Logger::DBG_SESSION, "Successfully connected to TCF-S Focuser in Manual Mode.");
