@@ -35,7 +35,7 @@ Package: libindi-dev
 Section: libdevel
 Architecture: any
 Depends: libindi0 (= ${binary:Version}), ${misc:Depends},
- libboost-dev, libusb-dev
+ libboost-dev, libusb-1.0-0-dev
 Description: Instrument-Neutral Device Interface library -- development files
  INDI (Instrument-Neutral Device Interface) is a distributed XML-based
  control protocol designed to operate astronomical instrumentation.
