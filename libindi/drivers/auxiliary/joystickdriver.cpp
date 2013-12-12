@@ -23,6 +23,7 @@
 #include <string.h>
 #include "joystickdriver.h"
 
+#define MAX_JOYSTICKS   3
 
 JoyStickDriver::JoyStickDriver()
 {
@@ -126,8 +127,11 @@ void JoyStickDriver::readEv()
             int joystick_n = joystick_ev->number;
             if (joystick_n % 2 != 0)
                 joystick_n--;
-             joystick_position pos = joystickPosition(joystick_n);
-             joystickCallbackFunc(joystick_n/2, pos.r, pos.theta);
+            if (joystick_n/2.0 < MAX_JOYSTICKS)
+            {
+                joystick_position pos = joystickPosition(joystick_n);
+                joystickCallbackFunc(joystick_n/2, pos.r, pos.theta);
+            }
 
              axisCallbackFunc(joystick_ev->number, joystick_ev->value);
         }
@@ -233,7 +237,12 @@ __u32 JoyStickDriver::getVersion()
 
 __u8 JoyStickDriver::getNumOfJoysticks()
 {
-    return axes/2;
+    int n_joysticks = axes/2;
+
+    if (n_joysticks > MAX_JOYSTICKS)
+        n_joysticks = MAX_JOYSTICKS;
+
+    return n_joysticks;
 }
 
 __u8 JoyStickDriver::getNumOfAxes()
