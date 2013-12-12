@@ -288,6 +288,9 @@ bool JoyStick::ISNewText (const char *dev, const char *name, char *texts[], char
             IUUpdateText(&PortTP,texts,names,n);
             //  Update client display
             IDSetText(&PortTP,NULL);
+
+            driver->setPort(PortT[0].text);
+
             return true;
         }
     }
