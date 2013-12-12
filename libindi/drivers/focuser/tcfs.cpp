@@ -193,6 +193,7 @@ bool TCFS::updateProperties()
          FocusModeSP  = getSwitch("FOCUS_MODE");
          FocusGotoSP  = getSwitch("FOCUS_GOTO");
 
+         FocusAbsPosNP.s = IPS_OK;
          FocusTemperatureNP->s = IPS_OK;
          FocusModeSP->sp[0].s = ISS_ON;
          defineSwitch(FocusGotoSP);
