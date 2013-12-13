@@ -1,2 +1,3 @@
 usr/bin/indi_qhy_ccd
+usr/bin/qhy_ccd_test
 usr/share/indi/indi_qhy.xml
