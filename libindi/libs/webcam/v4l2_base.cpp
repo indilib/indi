@@ -931,9 +931,9 @@ int V4L2_Base::open_device(const char *devpath, char *errmsg)
         strncpy(dev_name, devpath, 64);
 
         if (-1 == stat (dev_name, &st)) {
-                fprintf (stderr, "Cannot identify '%s': %d, %s\n",
+                fprintf (stderr, "Cannot identify %s: %d, %s\n",
                          dev_name, errno, strerror (errno));
-                snprintf(errmsg, ERRMSGSIZ, "Cannot identify '%s': %d, %s\n",
+                snprintf(errmsg, ERRMSGSIZ, "Cannot identify %s: %d, %s\n",
                          dev_name, errno, strerror (errno));
                 return -1;
         }
@@ -949,9 +949,9 @@ int V4L2_Base::open_device(const char *devpath, char *errmsg)
 
         if (-1 == fd)
         {
-                fprintf (stderr, "Cannot open '%s': %d, %s\n",
+                fprintf (stderr, "Cannot open %s: %d, %s\n",
                          dev_name, errno, strerror (errno));
-                snprintf(errmsg, ERRMSGSIZ, "Cannot open '%s': %d, %s\n",
+                snprintf(errmsg, ERRMSGSIZ, "Cannot open %s: %d, %s\n",
                          dev_name, errno, strerror (errno));
                 return -1;
         }
