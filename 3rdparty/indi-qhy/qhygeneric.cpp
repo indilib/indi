@@ -145,6 +145,10 @@ static bool upload(libusb_device_handle *handle, const char *hex) {
     image = fopen(path, "r");
   }
   if (!image) {
+    sprintf(path, "/usr/lib/firmware/%s", hex);
+    image = fopen(path, "r");
+  }
+  if (!image) {
     sprintf(path, "/usr/local/lib/firmware/%s", hex);
     image = fopen(path, "r");
   }
@@ -275,18 +279,21 @@ QHYDevice::QHYDevice(libusb_device *device) {
   buffer = NULL;
 }
 
+// qhyccd_vTXD
 bool QHYDevice::controlWrite(unsigned req, unsigned char* data, unsigned length) {
   int rc = libusb_control_transfer(handle, QHYCCD_REQUEST_WRITE, req, 0, 0, data, length, 0);
   _DEBUG(Log("libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK" ));
   return rc >= 0;
 }
 
+// qhyccd_vRXD
 bool QHYDevice::controlRead(unsigned req, unsigned char* data, unsigned length) {
   int rc = libusb_control_transfer(handle, QHYCCD_REQUEST_READ, req, 0, 0, data, length, 0);
   _DEBUG(Log("libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK" ));
   return rc >= 0;
 }
 
+// qhyccd_iTXD
 bool QHYDevice::write(unsigned char *data, unsigned length) {
   int length_transfered;
   int rc = libusb_bulk_transfer(handle, QHYCCD_INTERRUPT_WRITE_ENDPOINT, data, length, &length_transfered, 0);
@@ -294,10 +301,28 @@ bool QHYDevice::write(unsigned char *data, unsigned length) {
   return rc >= 0;
 }
 
+// qhyccd_iRXD
 bool QHYDevice::read(unsigned char *data, unsigned length) {
   int length_transfered;
   int rc = libusb_bulk_transfer(handle, QHYCCD_INTERRUPT_READ_ENDPOINT, data, length, &length_transfered, 0);
   _DEBUG(Log("libusb_bulk_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK" ));
+  return rc >= 0;
+}
+
+bool QHYDevice::i2cWrite(unsigned addr,unsigned short value) {
+  unsigned char data[2];
+  data[0] = (value & 0xff00) >> 8;
+  data[1] = value & 0x00FF;
+  int rc = libusb_control_transfer(handle, QHYCCD_REQUEST_WRITE, 0xbb, 0, addr, data, 2, 0);
+  _DEBUG(Log("libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK" ));
+  return rc >= 0;
+}
+
+bool QHYDevice::i2cRead(unsigned addr, unsigned short *value) {
+  unsigned char data[2];
+  int rc = libusb_control_transfer(handle, QHYCCD_REQUEST_READ, 0xb7, 0, addr, data, 2, 0);
+  _DEBUG(Log("libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK" ));
+  *value = data[0] * 256 + data[1];
   return rc >= 0;
 }
 

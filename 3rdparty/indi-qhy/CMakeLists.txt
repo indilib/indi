@@ -2,11 +2,15 @@ cmake_minimum_required(VERSION 2.4.7)
 PROJECT(qhyccd CXX)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
-set(FIRMWARE_INSTALL_DIR "/lib/firmware")
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+  set(FIRMWARE_INSTALL_DIR "/lib/firmware")
+else ()
+  set(FIRMWARE_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/lib/firmware")
+endif ()
 set(UDEVRULES_INSTALL_DIR "/etc/udev/rules.d")
 
 set (VERSION_MAJOR 0)
-set (VERSION_MINOR 1)
+set (VERSION_MINOR 2)
 
 configure_file (
   "${CMAKE_CURRENT_SOURCE_DIR}/qhyconfig.h.in"
@@ -29,12 +33,16 @@ set(indiqhy_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/qhyccd.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/qhygeneric.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/qhyspecific.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/qhy5.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/qhy5ii.cpp
    )
 
 set(qhytest_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/qhytest.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/qhygeneric.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/qhyspecific.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/qhy5.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/qhy5ii.cpp
    )
 
 add_executable(indi_qhy_ccd ${indiqhy_SRCS})
@@ -67,7 +75,7 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   set (CPACK_PACKAGING_INSTALL_PREFIX "/usr/local")
   set (CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}")
 elseif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-	install(FILES 85-qhyccd.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
+  install(FILES 85-qhyccd.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
   set (CPACK_DEBIAN_PACKAGE_DESCRIPTION "${CPACK_PACKAGE_DESCRIPTION_SUMMARY}\n  ${CPACK_PACKAGE_DESCRIPTION}")
   set (CPACK_RPM_PACKAGE_DESCRIPTION ${CPACK_PACKAGE_DESCRIPTION})
   set (CPACK_GENERATOR "DEB;RPM")

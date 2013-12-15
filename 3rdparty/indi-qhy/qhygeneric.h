@@ -45,6 +45,9 @@ class QHYDevice {
     bool controlRead(unsigned req, unsigned char* data, unsigned length);
     bool write(unsigned char *data, unsigned length);
     bool read(unsigned char *data, unsigned length);
+    bool i2cWrite(unsigned addr,unsigned short value);
+    bool i2cRead(unsigned addr, unsigned short *value);
+
 	  ~QHYDevice();
 	public:
 		static void makeRules();

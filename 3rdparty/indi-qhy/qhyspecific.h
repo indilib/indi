@@ -35,10 +35,10 @@ class QHY5 : public QHYDevice {
 		bool getCCDTemp(float *temperature) { return false; }
 		bool getParameters(unsigned* pixelCountX, unsigned* pixelCountY, float* pixelSizeX, float* pixelSizeY, unsigned *bitsPerPixel, unsigned* maxBinX, unsigned* maxBinY);
 		bool setParameters(unsigned left, unsigned top, unsigned width, unsigned height, unsigned gain);
-        bool startExposure(float time);
-        bool readExposure(void *pixels);
+    bool startExposure(float time);
+    bool readExposure(void *pixels);
 		bool guidePulse(unsigned mask, unsigned duration);
-        bool reset();
+    bool reset();
 };
 
 class QHY5II : public QHYDevice {
@@ -46,7 +46,10 @@ class QHY5II : public QHYDevice {
 		QHY5II(libusb_device *device);
 		const char *getName() { return "QHY5II"; }
 		bool hasGuidePort() { return true; }
+		bool getCCDTemp(float *temperature);
 		bool getParameters(unsigned* pixelCountX, unsigned* pixelCountY, float* pixelSizeX, float* pixelSizeY, unsigned *bitsPerPixel, unsigned* maxBinX, unsigned* maxBinY);
+		bool setParameters(unsigned left, unsigned top, unsigned width, unsigned height, unsigned gain);
+    bool startExposure(float time);
 };
 
 class QHY6 : public QHYDevice {
