@@ -141,7 +141,7 @@ static bool upload(libusb_device_handle *handle, const char *hex) {
   sprintf(path, "firmware/%s", hex);
   image = fopen(path, "r");
   if (!image) {
-    sprintf(path, "/usr/lib/firmware/%s", hex);
+    sprintf(path, "/lib/firmware/%s", hex);
     image = fopen(path, "r");
   }
   if (!image) {

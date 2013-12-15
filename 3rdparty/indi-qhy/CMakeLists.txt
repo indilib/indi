@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.4.7)
 PROJECT(qhyccd CXX)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
-set(FIRMWARE_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/lib/firmware")
+set(FIRMWARE_INSTALL_DIR "/lib/firmware")
 set(UDEVRULES_INSTALL_DIR "/etc/udev/rules.d")
 
 set (VERSION_MAJOR 0)
