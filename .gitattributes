@@ -250,6 +250,8 @@
 3rdparty/indi-qhy/firmware/QHY9.HEX -text
 3rdparty/indi-qhy/firmware/QHY9L.HEX -text
 3rdparty/indi-qhy/indi_qhy.xml -text
+3rdparty/indi-qhy/qhy5.cpp -text
+3rdparty/indi-qhy/qhy5ii.cpp -text
 3rdparty/indi-qhy/qhyccd.cpp -text
 3rdparty/indi-qhy/qhyccd.h -text
 3rdparty/indi-qhy/qhyconfig.h.in -text
