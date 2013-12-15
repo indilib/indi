@@ -1,17 +1,5 @@
-indi-qhy (1.0-ubuntu2) precise; urgency=low
+indi-qhy (1.2) saucy; urgency=low
 
-  * Packaging fixes, thanks to Pawel T. Jochym for the patch.
+  * New upstream release.
 
- -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Fri, 27 Jul 2012 12:00:20 +0200
-
-indi-qhy (1.0-ubuntu1) oneiric; urgency=low
-
-  * New release in sync with libindi 0.9
-
- -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sat, 14 Jan 2012 11:59:07 +0300
-
-indi-qhy (1.0) jaunty; urgency=low
-
-  * Initial release
-
- -- Geoffrey Hausheer <astro@phracturedblue.com>  Tue, 25 Aug 2009 06:13:28 -0700
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sun, 15 Dec 2013 12:00:20 +0200
