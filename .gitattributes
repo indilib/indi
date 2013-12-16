@@ -1,6 +1,7 @@
 * text=auto !eol
 /.svnignore -text
 3rdparty/CMakeLists.txt -text
+3rdparty/README -text
 3rdparty/fliusb/Makefile -text
 3rdparty/fliusb/Makefile.dkms -text
 3rdparty/fliusb/dkms/dkms.conf -text

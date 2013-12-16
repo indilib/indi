@@ -1,0 +1,18 @@
+INDI Library 3rd party drivers
+==============================
+
+You must install INDI Library before installing any 3rd party driver. By default, all 3rd party drivers are built and installed. 
+
+# To get a list of all options, type:
+
+$ cmake -L
+
+# To build and install all the drivers:
+
+$ cmake -DCMAKE_INSTALL_PREFIX=/usr .
+$ make
+$ sudo make install
+
+# To turn off a specific driver (for example INDI QHY)
+
+$ cmake -DCMAKE_INSTALL_PREFIX=/usr -DWITH_QHY:OPTION=OFF .
