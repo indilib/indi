@@ -370,14 +370,13 @@ bool FishCampCCD::Disconnect()
 
 
 
-int FishCampCCD::StartExposure(float duration)
+bool FishCampCCD::StartExposure(float duration)
 {
-
-  bool shortExposure = false;
-  int rc=0;
 
   PrimaryCCD.setExposureDuration(duration);
   ExposureRequest = duration;
+
+  bool rc = false;
 
   DEBUGF(INDI::Logger::DBG_DEBUG, "Exposure Time (s) is: %g\n", duration);
 
@@ -396,7 +395,7 @@ int FishCampCCD::StartExposure(float duration)
 
   InExposure = true;
 
-  return (shortExposure ? 1 : 0);
+  return rc;
 }
 
 bool FishCampCCD::AbortExposure()

@@ -25,7 +25,10 @@
 #include <indiccd.h>
 #include <iostream>
 
+extern "C"
+{
 #include "libFcLinux.h"
+}
 
 using namespace std;
 
@@ -45,7 +48,7 @@ public:
   bool Connect();
   bool Disconnect();
 
-  int StartExposure(float duration);
+  bool StartExposure(float duration);
   bool AbortExposure();
 
   virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
