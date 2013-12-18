@@ -132,8 +132,17 @@ bool FLICCD::initProperties()
     IUFillText(&CamInfoT[2],"FW Rev","","");
     IUFillTextVector(&CamInfoTP,CamInfoT,3,getDeviceName(),"Model","",IMAGE_INFO_TAB,IP_RO,60,IPS_IDLE);
 
-    // No guide head, no ST4 port, has cooler and has shutter.
-    SetCCDFeatures(false, false, true, true);
+    Capability cap;
+
+    cap.canAbort = true;
+    cap.canBin = true;
+    cap.canSubFrame = true;
+    cap.hasCooler = true;
+    cap.hasGuideHead = false;
+    cap.hasShutter = true;
+    cap.hasST4Port = false;
+
+    SetCapability(&cap);
 
 }
 

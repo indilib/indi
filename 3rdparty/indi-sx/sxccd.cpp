@@ -284,7 +284,19 @@ void SXCCD::getCameraParams() {
   HasCooler = params.extra_caps & SXUSB_CAPS_COOLER;
   HasShutter = params.extra_caps & SXUSB_CAPS_SHUTTER;
   HasST4Port = params.extra_caps & SXCCD_CAPS_STAR2K;
-  SetCCDFeatures(HasGuideHead, HasST4Port, HasCooler, HasShutter);
+
+  Capability cap;
+
+  cap.canAbort = true;
+  cap.canBin = true;
+  cap.canSubFrame = true;
+  cap.hasCooler = HasCooler;
+  cap.hasGuideHead = HasGuideHead;
+  cap.hasShutter = HasShutter;
+  cap.hasST4Port = HasST4Port;
+
+  SetCapability(&cap);
+
   SetTimer(TIMER);
 }
 

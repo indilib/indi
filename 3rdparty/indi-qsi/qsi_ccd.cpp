@@ -184,8 +184,6 @@ bool QSICCD::initProperties()
 
     initFilterProperties(getDeviceName(), FILTER_TAB);
 
-    SetCCDFeatures(false, false, true, true);
-
     addDebugControl();
 }
 
@@ -306,16 +304,6 @@ bool QSICCD::setupParams()
         DEBUGF(INDI::Logger::DBG_ERROR, "get_MinExposureTime() failed. %s.", err.what());
         return false;
     }
-
-    try
-    {
-        QSICam.get_CanAbortExposure(&canAbort);
-    } catch (std::runtime_error err)
-    {
-        DEBUGF(INDI::Logger::DBG_ERROR, "get_CanAbortExposure() failed. %s.", err.what());
-        return false;
-    }
-
 
     int nbuf;
     nbuf=PrimaryCCD.getXRes()*PrimaryCCD.getYRes() * PrimaryCCD.getBPP()/8;                 //  this is pixel count
@@ -874,11 +862,10 @@ bool QSICCD::Connect()
                 }
             }
 
+            bool hasST4Port=false;
             try
             {
-                bool hasST4Port=false;
                 QSICam.get_CanPulseGuide(&hasST4Port);
-                SetST4Port(hasST4Port);
             }
             catch (std::runtime_error err)
             {
@@ -886,6 +873,26 @@ bool QSICCD::Connect()
                   return false;
             }
 
+            try
+            {
+                QSICam.get_CanAbortExposure(&canAbort);
+            } catch (std::runtime_error err)
+            {
+                DEBUGF(INDI::Logger::DBG_ERROR, "get_CanAbortExposure() failed. %s.", err.what());
+                return false;
+            }
+
+            Capability cap;
+
+            cap.canAbort = canAbort;
+            cap.canBin = true;
+            cap.canSubFrame = true;
+            cap.hasCooler = true;
+            cap.hasGuideHead = false;
+            cap.hasShutter = true;
+            cap.hasST4Port = hasST4Port;
+
+            SetCapability(&cap);
 
             /* Success! */
             DEBUG(INDI::Logger::DBG_SESSION, "CCD is online. Retrieving basic data.");
