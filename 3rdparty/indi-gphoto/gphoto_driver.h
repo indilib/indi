@@ -49,4 +49,5 @@ extern int gphoto_set_widget_num(gphoto_driver *gphoto, gphoto_widget *widget, f
 extern int gphoto_set_widget_text(gphoto_driver *gphoto, gphoto_widget *widget, const char *str);
 extern int gphoto_read_widget(gphoto_widget *widget);
 extern int gphoto_widget_changed(gphoto_widget *widget);
+extern int gphoto_get_dimensions(gphoto_driver *gphoto, int *width, int *height);
 #endif

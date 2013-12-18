@@ -311,11 +311,9 @@ static void *stop_bulb(void *arg)
 	int timeout_set = 0;
 	gphoto_driver *gphoto = arg;
 	CameraEventType event;
-	void    *data = NULL;
 	long timeleft;
 	struct timespec timeout;
 	struct timeval curtime;
-	int result=0;
 
 	pthread_mutex_lock(&gphoto->mutex);
 	pthread_cond_signal(&gphoto->signal);
@@ -688,7 +686,13 @@ gphoto_driver *gphoto_open(const char *shutter_release_port)
              (gphoto->exposure_widget = find_widget(gphoto, "eos-shutterspeed")) )
 	{
 		gphoto->exposure = parse_shutterspeed(gphoto->exposure_widget->choices, gphoto->exposure_widget->choice_cnt);
-        } else {
+    } else if ((gphoto->exposure_widget = find_widget(gphoto, "capturetarget")))
+    {
+       const char *choices[1] = { "1/1" };
+       gphoto->exposure = parse_shutterspeed(choices, 1);
+    }
+    else
+    {
 		fprintf(stderr, "WARNING: Didn't find an exposure widget!\n");
 		fprintf(stderr, "Are you sure the camera is set to 'Manual' mode?\n");
 	}

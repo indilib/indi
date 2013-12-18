@@ -90,7 +90,7 @@ void addFITSKeywords(fitsfile *fptr)
   fits_write_date(fptr, &status);
 }
 
-int read_ppm(FILE *handle, struct dcraw_header *header, void **memptr, size_t *memsize)
+int read_ppm(FILE *handle, struct dcraw_header *header, char **memptr, size_t *memsize, int *n_axis, int *w, int *h, int *bitsperpixel)
 {
 	char prefix[] = {0, 0};
 	int bpp, maxcolor, row, i;
@@ -98,120 +98,109 @@ int read_ppm(FILE *handle, struct dcraw_header *header, void **memptr, size_t *m
 	unsigned char *r_data = NULL, *g_data, *b_data;
 	int width, height;
 	int naxis = 2;
-	long naxes[3];
-	int status = 0;
-	fitsfile *fptr = NULL;
 
 	prefix[0] = fgetc(handle);
 	prefix[1] = fgetc(handle);
         if (prefix[0] != 'P' || (prefix[1] != '6' && prefix[1] != '5')) {
 		fprintf(stderr, "read_ppm: got unexpected prefix %x %x\n", prefix[0], prefix[1]);
-		goto err_release;
+        return -1;
 	}
 
-	if (prefix[1] == '6') {
+    if (prefix[1] == '6')
 		naxis = 3;
-		naxes[2] = 3;
-	}
+
+    *n_axis = naxis;
 
 	width = read_uint(handle);
 	height = read_uint(handle);
-	if (width != header->width || height != header->height) {
+    if (width != header->width || height != header->height)
+    {
 		fprintf(stderr, "read_ppm: Expected (%d x %d) but image is actually (%d x %d)\n", header->width, header->height, width, height);
-		goto err_release;
+        return -1;
 	}
-	naxes[0] = width;
-	naxes[1] = height;
+    *w = width;
+    *h = height;
 	maxcolor = read_uint(handle);
 	fgetc(handle);
-	if (maxcolor > 65535) {
+    if (maxcolor > 65535)
+    {
 		fprintf(stderr, "read_ppm: 32bit PPM isn't supported\n");
-		goto err_release;
-	} else if (maxcolor > 255) {
+        return -1;
+    } else if (maxcolor > 255)
+    {
 		bpp = 2;
-	} else {
+        *bitsperpixel = 16;
+    } else
+    {
 		bpp = 1;
-	}
-	*memsize = 2 * 2048;
-	*memptr = malloc(*memsize);
-	fits_create_memfile(&fptr, memptr, memsize, 2880, &tstrealloc, &status);
-	if (status) {
-		fprintf(stderr, "Error: Failed to create memfile (memsize: %lu)\n", *(unsigned long *)memsize);
-		fits_report_error(stderr, status);  /* print out any error messages */
-		goto err_release;
-	}
-	fits_create_img(fptr, bpp == 1 ? BYTE_IMG : USHORT_IMG, naxis, naxes, &status);
-	if (status)
-	{
-		fprintf(stderr, "Error: Failed to create FITS image\n");
-		fits_report_error(stderr, status);  /* print out any error messages */
-		goto err_release;
+        *bitsperpixel = 8;
 	}
 
-        addFITSKeywords(fptr);
-
-	ppm = malloc(width * bpp * (naxis == 2 ? 1 : 3));
-	if (naxis == 3) {
-		r_data = malloc(width * bpp * 3);
-		g_data = r_data + width * bpp;
-		b_data = r_data + 2 * width * bpp;
+    *memsize = width * height * bpp * (naxis == 2 ? 1 : 3);
+    *memptr = realloc(*memptr, *memsize);
+    ppm = malloc(width * bpp);
+    if (naxis == 3)
+    {
+        r_data = (unsigned char *) *memptr;
+        g_data = r_data + width * height * bpp;
+        b_data = r_data + 2 * width * height * bpp;
 	}
 
-	for (row = 0; row < height; row++) {
+    for (row = 0; row < height; row++)
+    {
 		int len;
-		len = fread(ppm, 1, width * bpp, handle);
-		if (len != width * bpp) {
+        len = fread(ppm, 1, width * bpp, handle);
+        if (len != width * bpp)
+        {
 			fprintf(stderr, "read_ppm: aborted during PPM reading at row: %d, read %d bytes\n", row, len);
-			goto err_release;
+            free(ppm);
+            return -1;
 		}
-		if (bpp == 2) {
+        if (bpp == 2)
+        {
 			unsigned short *ppm16 = (unsigned short *)ppm;
-			if (htons(0x55aa) != 0x55aa) {
+            if (htons(0x55aa) != 0x55aa)
+            {
 				swab(ppm, ppm,  width * bpp);
 			}
-			if (naxis == 3) {
-				for (i = 0; i < width; i++) {
-					((unsigned short *)r_data)[i] = *ppm16++;
-					((unsigned short *)g_data)[i] = *ppm16++;
-					((unsigned short *)b_data)[i] = *ppm16++;
+            if (naxis == 3)
+            {
+                for (i = 0; i < width; i++)
+                {
+                    *(unsigned short *)r_data++ = *ppm16++;
+                    *(unsigned short *)g_data++ = *ppm16++;
+                    *(unsigned short *)b_data++ = *ppm16++;
 				}
-				fits_write_img(fptr, TUSHORT, 1                      + row * width, width, r_data, &status);
-				fits_write_img(fptr, TUSHORT, 1 + width * height     + row * width, width, g_data, &status);
-				fits_write_img(fptr, TUSHORT, 1 + 2 * width * height + row * width, width, b_data, &status);
-			} else {
-				fits_write_img(fptr, TUSHORT, 1 + row * width, width, ppm16, &status);
+
+            } else
+            {
+                memcpy(*memptr, ppm16, width*bpp);
+                *memptr += width*bpp;
 			}
 			
-		} else {
+        } else
+        {
 			unsigned char *ppm8 = ppm;
-			if (naxis == 3) {
-				for (i = 0; i < width; i++) {
-					r_data[i] = *ppm8++;
-					g_data[i] = *ppm8++;
-					b_data[i] = *ppm8++;
+            if (naxis == 3)
+            {
+                for (i = 0; i < width; i++)
+                {
+                    *r_data++ = *ppm8++;
+                    *g_data++ = *ppm8++;
+                    *b_data++ = *ppm8++;
 				}
-				fits_write_img(fptr, TBYTE, 1                      + row * width, width, r_data, &status);
-				fits_write_img(fptr, TBYTE, 1 + width * height     + row * width, width, g_data, &status);
-				fits_write_img(fptr, TBYTE, 1 + 2 * width * height + row * width, width, b_data, &status);
-			} else {
-				fits_write_img(fptr, TBYTE, 1 + row * width, width, ppm8, &status);
+
+            } else
+            {
+                memcpy(*memptr, ppm8, width*bpp);
+                *memptr += width*bpp;
 			}
 		}
 	}
-	if (ppm)
-		free(ppm);
-	if (r_data)
-		free(r_data);
-  	fits_close_file(fptr, &status);            /* close the file */
+
+    free(ppm);
 	return 0;
-err_release:
-	if (ppm) 
-		free(ppm);
-	if (r_data)
-		free(r_data);
-	if (fptr)
-  	fits_close_file(fptr, &status);            /* close the file */
-	return 1;
+
 }
 
 int dcraw_parse_time(char *month, int day, int year, char *timestr)
@@ -282,51 +271,39 @@ int dcraw_parse_header_info(const char *filename, struct dcraw_header *header)
 	return 0;
 }
 
-int read_dcraw(const char *filename, void **memptr, size_t *memsize)
+int read_dcraw(const char *filename, char **memptr, size_t *memsize, int *n_axis, int *w, int *h, int *bitsperpixel)
 {
 	struct dcraw_header header;
 	FILE *handle = NULL;
 	char *cmd;
 
-
-	if (dcraw_parse_header_info(filename, &header)
-	    || ! header.width  || ! header.height)
+    if (dcraw_parse_header_info(filename, &header)  || ! header.width  || ! header.height)
 	{
 		fprintf(stderr, "read_file_from_dcraw: failed to parse header\n");
-		return 1;
+        return -1;
 	}
 	*memptr = NULL;
 	fprintf(stderr, "Reading exposure %d x %d\n", header.width, header.height);
 	asprintf(&cmd, "%s -c -4 -D %s", dcraw_cmd, filename);
 	handle = popen(cmd, "r");
 	free(cmd);
-	if (handle == NULL) {
+    if (handle == NULL)
+    {
 		fprintf(stderr, "read_file_from_dcraw: failed to run dcraw\n");
-		goto err_release;
+        return -1;
 	}
 
-	if (read_ppm(handle, &header, memptr, memsize)) {
-		goto err_release;
-	}
+    int rc= read_ppm(handle, &header, memptr, memsize, n_axis, w, h, bitsperpixel);
 
 	pclose(handle);
-	return 0;
-err_release:
-	if(handle)
-		pclose(handle);
-	if(*memptr)
-		free(*memptr);
-	return 1;
+
+    return rc;
 }
 
-int read_jpeg(const char *filename, void **memptr, size_t *memsize )
+int read_jpeg(const char *filename, char **memptr, size_t *memsize, int *naxis, int *w, int *h )
 {
 	int row;
-	int naxis = 2;
-	long naxes[3];
-	int status = 0;
-	fitsfile *fptr = NULL;
-	unsigned char *r_data = NULL, *g_data, *b_data;
+    unsigned char *r_data = NULL, *g_data, *b_data;
 
 	/* these are standard libjpeg structures for reading(decompression) */
 	struct jpeg_decompress_struct cinfo;
@@ -351,37 +328,47 @@ int read_jpeg(const char *filename, void **memptr, size_t *memsize )
 	/* reading the image header which contains image information */
 	jpeg_read_header( &cinfo, TRUE );
 
-	*memsize = 2 * 2048;
-	*memptr = malloc(*memsize);
-	fits_create_memfile(&fptr, memptr, memsize, 2880, &tstrealloc, &status);
+    //*memsize = 2 * 2048;
+    //*memptr = malloc(*memsize);
+    /*fits_create_memfile(&fptr, memptr, memsize, 2880, &tstrealloc, &status);
 	if (status) {
 		fprintf(stderr, "Error: Failed to create memfile (memsize: %lu)\n", *(unsigned long *)memsize);
-		fits_report_error(stderr, status);  /* print out any error messages */
+        fits_report_error(stderr, status);
 		goto err_release;
-	}
-	if (cinfo.num_components == 3) {
+    }*/
+    /*if (cinfo.num_components == 3)
+    {
+
 		naxis = 3;
 		naxes[2] = 3;
-	}
-	naxes[0] = cinfo.image_width;
-	naxes[1] = cinfo.image_height;
-	fits_create_img(fptr, BYTE_IMG, naxis, naxes, &status);
+    }*/
+
+    //naxes[0] = cinfo.image_width;
+    //naxes[1] = cinfo.image_height;
+    /*fits_create_img(fptr, BYTE_IMG, naxis, naxes, &status);
 	if (status)
 	{
 		fprintf(stderr, "Error: Failed to create FITS image\n");
-		fits_report_error(stderr, status);  /* print out any error messages */
+        fits_report_error(stderr, status);
 		goto err_release;
-	}
+    }*/
 
 	/* Start decompression jpeg here */
 	jpeg_start_decompress( &cinfo );
 
+    *memsize = cinfo.output_width * cinfo.output_height * cinfo.num_components;
+    *memptr = realloc(*memptr, *memsize);
+    *naxis = cinfo.num_components;
+    *w = cinfo.output_width;
+    *h = cinfo.output_height;
+
 	/* now actually read the jpeg into the raw buffer */
 	row_pointer[0] = (unsigned char *)malloc( cinfo.output_width*cinfo.num_components );
-	if (naxis == 3) {
-		r_data = malloc(cinfo.output_width * 3);
-		g_data = r_data + cinfo.output_width;
-		b_data = r_data + 2 * cinfo.output_width;
+    if (cinfo.num_components)
+    {
+        r_data = (unsigned char *) *memptr;
+        g_data = r_data + cinfo.output_width * cinfo.output_height;
+        b_data = r_data + 2 * cinfo.output_width * cinfo.output_height;
 	}
 	/* read one scan line at a time */
 	for (row = 0; row < cinfo.image_height; row++)
@@ -389,39 +376,54 @@ int read_jpeg(const char *filename, void **memptr, size_t *memsize )
 		unsigned char *ppm8 = row_pointer[0];
 		jpeg_read_scanlines( &cinfo, row_pointer, 1 );
 
-		if (naxis == 3) {
-			for (i = 0; i < cinfo.output_width; i++) {
-				r_data[i] = *ppm8++;
-				g_data[i] = *ppm8++;
-				b_data[i] = *ppm8++;
+        if (cinfo.num_components == 3)
+        {
+            for (i = 0; i < cinfo.output_width; i++)
+            {
+                //r_data[i] = *ppm8++;
+                //g_data[i] = *ppm8++;
+                //b_data[i] = *ppm8++;
+                *r_data++ = *ppm8++;
+                *g_data++ = *ppm8++;
+                *b_data++ = *ppm8++;
 			}
-			fits_write_img(fptr, TBYTE, 1                                               + row * cinfo.output_width, cinfo.output_width, r_data, &status);
-			fits_write_img(fptr, TBYTE, 1 + cinfo.output_width * cinfo.image_height     + row * cinfo.output_width, cinfo.output_width, g_data, &status);
-			fits_write_img(fptr, TBYTE, 1 + cinfo.output_width * cinfo.image_height * 2 + row * cinfo.output_width, cinfo.output_width, b_data, &status);
-		} else {
-			fits_write_img(fptr, TBYTE, 1 + row * cinfo.output_width, cinfo.output_width, ppm8, &status);
+        }
+        else
+        {
+            memcpy(*memptr, ppm8, cinfo.output_width);
+            *memptr += cinfo.output_width;
 		}
 	}
+
+    // naxis =3
+    //fits_write_img(fptr, TBYTE, 1                                               + row * cinfo.output_width, cinfo.output_width, r_data, &status);
+    //fits_write_img(fptr, TBYTE, 1 + cinfo.output_width * cinfo.image_height     + row * cinfo.output_width, cinfo.output_width, g_data, &status);
+    //fits_write_img(fptr, TBYTE, 1 + cinfo.output_width * cinfo.image_height * 2 + row * cinfo.output_width, cinfo.output_width, b_data, &status);
+
+    //naxis = 2
+    //fits_write_img(fptr, TBYTE, 1 + row * cinfo.output_width, cinfo.output_width, ppm8, &status);
+
 	/* wrap up decompression, destroy objects, free pointers and close open files */
 	jpeg_finish_decompress( &cinfo );
 	jpeg_destroy_decompress( &cinfo );
 
 	if (row_pointer[0] )
 		free( row_pointer[0] );
-	if(r_data)
-		free(r_data);
+    //if(r_data)
+        //free(r_data);
 	if(infile)
 		fclose( infile );
-  	fits_close_file(fptr, &status);            /* close the file */
+    //fits_close_file(fptr, &status);            /* close the file */
 	return 0;
-err_release:
+/*err_release:
 	if (row_pointer[0] )
 		free( row_pointer[0] );
 	if(r_data)
 		free(r_data);
 	if(infile)
 		fclose( infile );
-  	fits_close_file(fptr, &status);            /* close the file */
-	return 1;
+    fits_close_file(fptr, &status);            */
+
+    //return 1;
 }
 

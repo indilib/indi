@@ -1,6 +1,6 @@
 <devGroup group="CCDs">
-	<device label="GPhoto">
-		<driver name="GPHOTO DRIVER">indi_gphoto_ccd</driver>
-		<version>1.1</version>
+        <device label="GPhoto CCD">
+                <driver name="GPhoto CCD">indi_gphoto_ccd</driver>
+                <version>1.2</version>
 	</device>
 </devGroup>

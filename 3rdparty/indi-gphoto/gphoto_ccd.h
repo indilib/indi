@@ -1,100 +1,134 @@
+/*
+    Driver type: GPhoto Camera INDI Driver
+
+    Copyright (C) 2009 Geoffrey Hausheer
+    Copyright (C) 2013 Jasem Mutlaq (mutlaqja AT ikarustech DOT com)
+
+    This library is free software; you can redistribute it and/or modify
+    it under the terms of the GNU Lesser General Public License as published
+    by the Free Software Foundation; either version 2.1 of the License, or
+    (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+    or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
+    License for more details.
+
+    You should have received a copy of the GNU Lesser General Public License
+    along with this library; if not, write to the Free Software Foundation,
+    Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
+
+*/
+
+#ifndef GPHOTO_CCD_H
+#define GPHOTO_CCD_H
+
+#include <indiccd.h>
+#include <iostream>
 #include <map>
 #include <string>
 #include <cstring>
-using namespace std;
-
-#define MYDEV "GPHOTO DRIVER"			/* Device name we call ourselves */
-
-#define COMM_GROUP	"Communication"
-#define EXPOSE_GROUP	"Expose"
-#define IMAGE_GROUP	"Image Settings"
-#define DATA_GROUP      "Data Channel"
 
 #define	MAXEXPERR	10		/* max err in exp time we allow, secs */
 #define	OPENDT		5		/* open retry delay, secs */
 
+using namespace std;
 
 enum { ON_S, OFF_S };
-enum { FITS_S, ZFITS_S, NATIVE_S };
 
-/********************************************
- Property: CCD Image BLOB
-*********************************************/
-
-/* Pixels BLOB parameter */
-typedef enum {	/* N.B. order must match array below */
-    IMG_B, N_B
-} PixelsIndex;
-
-typedef struct {
-	gphoto_widget *widget;
-	union {
-		INumber	num;
-		ISwitch	*sw;
-		IText	text;
-	} item;
-	union {
-		INumberVectorProperty	num;
-		ISwitchVectorProperty	sw;
-		ITextVectorProperty	text;
-	} prop;
+typedef struct
+{
+    gphoto_widget *widget;
+    union
+    {
+        INumber	num;
+        ISwitch	*sw;
+        IText	text;
+    } item;
+    union
+    {
+        INumberVectorProperty	num;
+        ISwitchVectorProperty	sw;
+        ITextVectorProperty	text;
+    } prop;
 } cam_opt;
 
-class GPhotoCam
+class GPhotoCCD: public INDI::CCD
 {
 public:
-	GPhotoCam();
-	~GPhotoCam();
-	void ISGetProperties(void);
-	void ISNewSwitch (const char *name, ISState *states, char *names[], int n);
-	void ISNewNumber (const char *name, double *doubles, char *names[], int n);
-	void ISNewText   (const char *name, char *texts[], char *names[], int n);
+    GPhotoCCD();
+    GPhotoCCD(const char* device_name);
+    virtual	~GPhotoCCD();
 
-	static void ExposureUpdate(void *vp);
-	void ExposureUpdate();
+    const char *getDefaultName();
 
-	static void UpdateExtendedOptions(void *vp);
-	void UpdateExtendedOptions(bool force = false);
+    bool initProperties();
+    void ISGetProperties(const char *dev);
+    bool updateProperties();
+
+    bool Connect();
+    bool Disconnect();
+
+    bool StartExposure(float duration);
+
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+
+    static void ExposureUpdate(void *vp);
+    void ExposureUpdate();
+
+    static void UpdateExtendedOptions(void *vp);
+    void UpdateExtendedOptions(bool force = false);
+
+protected:
+
+    void TimerHit();
+
 private:
-	void InitVars(void);
-	void getStartConditions(void);	
-	void uploadFile(const void *fitsData, size_t totalBytes, const char *ext);
+    ISwitch *create_switch(const char *basestr, const char **options, int max_opts, int setidx);
+    void AddWidget(gphoto_widget *widget);
+    void UpdateWidget(cam_opt *opt);
+    void ShowExtendedOptions(void);
+    void HideExtendedOptions(void);
 
-	ISwitch *create_switch(const char *basestr, const char **options, int max_opts, int setidx);
-	int Connect();
-	void Reset();
-	void AddWidget(gphoto_widget *widget);
-	void UpdateWidget(cam_opt *opt);
-	void ShowExtendedOptions(void);
-	void HideExtendedOptions(void);
-private:
-	gphoto_driver *gphotodrv;
-	map<string, cam_opt *> CamOptions;
-	int expTID;			/* exposure callback timer id, if any */
-	int optTID;			/* callback for exposure timer id */
+    float CalcTimeLeft();
+    bool grabImage();
 
-	/* info when exposure started */
-	struct timeval exp0;		/* when exp started */
+    char name[MAXINDINAME];
+    struct timeval ExpStart;
+    float ExposureRequest;
+    bool sim;
 
-	char *on_off[2];
+    gphoto_driver *gphotodrv;
+    map<string, cam_opt *> CamOptions;
+    int expTID;			/* exposure callback timer id, if any */
+    int optTID;			/* callback for exposure timer id */
 
-	ISwitch mConnectS[2];
-	ISwitchVectorProperty mConnectSP;
-	IText mPortT[1];
-	ITextVectorProperty mPortTP;
-	ISwitch mExtendedS[2];
-	ISwitchVectorProperty mExtendedSP;
+    char *on_off[2];
+    int timerID;
 
-	INumber mExposureN[1];
-	INumberVectorProperty mExposureNP;
+    ISwitch mConnectS[2];
+    ISwitchVectorProperty mConnectSP;
+    IText mPortT[1];
+    ITextVectorProperty PortTP;
 
-	ISwitch *mIsoS;
-	ISwitchVectorProperty mIsoSP;
-	ISwitch *mFormatS;
-	ISwitchVectorProperty mFormatSP;
-	ISwitch mTransferS[3];
-	ISwitchVectorProperty mTransferSP;
+    INumber mExposureN[1];
+    INumberVectorProperty mExposureNP;
 
-	IBLOB mFitsB[1];
-	IBLOBVectorProperty mFitsBP;
+    ISwitch *mIsoS;
+    ISwitchVectorProperty mIsoSP;
+    ISwitch *mFormatS;
+    ISwitchVectorProperty mFormatSP;
+
+    ISwitch transferFormatS[2];
+    ISwitchVectorProperty transferFormatSP;
+
+    friend void ::ISGetProperties(const char *dev);
+    friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);
+    friend void ::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num);
+    friend void ::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num);
+    friend void ::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
 };
+
+#endif
