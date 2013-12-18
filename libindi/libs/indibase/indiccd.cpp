@@ -637,15 +637,36 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
         if(strcmp(name,"CCD_BINNING")==0)
         {
             //  We are being asked to set camera binning
-            PrimaryCCD.ImageBinNP->s=IPS_OK;
-            IUUpdateNumber(PrimaryCCD.ImageBinNP,values,names,n);
-
-
-            if (UpdateCCDBin(PrimaryCCD.ImageBinN[0].value, PrimaryCCD.ImageBinN[1].value) == false)
+            INumber *np = IUFindNumber(PrimaryCCD.ImageBinNP, names[0]);
+            if (np == NULL)
             {
                 PrimaryCCD.ImageBinNP->s = IPS_ALERT;
                 IDSetNumber (PrimaryCCD.ImageBinNP, NULL);
+                return false;
             }
+
+            int binx,biny;
+            if (!strcmp(np->name, "HOR_BIN"))
+            {
+                binx = values[0];
+                biny = values[1];
+            }
+            else
+            {
+                binx = values[1];
+                biny = values[0];
+            }
+
+            if (UpdateCCDBin(binx, biny))
+            {
+                IUUpdateNumber(PrimaryCCD.ImageBinNP,values,names,n);
+                PrimaryCCD.ImageBinNP->s=IPS_OK;
+
+            }
+            else
+                PrimaryCCD.ImageBinNP->s = IPS_ALERT;
+
+            IDSetNumber (PrimaryCCD.ImageBinNP, NULL);
 
             return true;
 
@@ -654,17 +675,39 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
         if(strcmp(name,"GUIDE_BINNING")==0)
         {
             //  We are being asked to set camera binning
-            GuideCCD.ImageBinNP->s=IPS_OK;
-            IUUpdateNumber(GuideCCD.ImageBinNP,values,names,n);
-
-
-            if (UpdateGuideBin(GuideCCD.ImageBinN[0].value, GuideCCD.ImageBinN[1].value) == false)
+            INumber *np = IUFindNumber(GuideCCD.ImageBinNP, names[0]);
+            if (np == NULL)
             {
                 GuideCCD.ImageBinNP->s = IPS_ALERT;
                 IDSetNumber (GuideCCD.ImageBinNP, NULL);
+                return false;
             }
 
+            int binx,biny;
+            if (!strcmp(np->name, "HOR_BIN"))
+            {
+                binx = values[0];
+                biny = values[1];
+            }
+            else
+            {
+                binx = values[1];
+                biny = values[0];
+            }
+
+            if (UpdateCCDBin(binx, biny))
+            {
+                IUUpdateNumber(GuideCCD.ImageBinNP,values,names,n);
+                GuideCCD.ImageBinNP->s=IPS_OK;
+
+            }
+            else
+                GuideCCD.ImageBinNP->s = IPS_ALERT;
+
+            IDSetNumber (GuideCCD.ImageBinNP, NULL);
+
             return true;
+
 
         }
 
@@ -1011,7 +1054,8 @@ bool INDI::CCD::UpdateGuideFrame(int x, int y, int w, int h)
 bool INDI::CCD::UpdateCCDBin(int hor, int ver)
 {
     // Just set value, unless HW layer overrides this and performs its own processing
-    PrimaryCCD.setBin(hor, ver);
+    INDI_UNUSED(hor);
+    INDI_UNUSED(ver);
     return true;
 }
 

@@ -25,10 +25,6 @@ V4L2_Driver::V4L2_Driver()
 {
   allocateBuffers();
 
-  camNameT[0].text  = NULL; 
-  PortT[0].text     = NULL;
-  IUSaveText(&PortT[0], "/dev/video0");
-
   divider = 128.;
   strncpy(device_name, "V4L2 CCD", MAXINDIDEVICE);
   
@@ -45,7 +41,6 @@ V4L2_Driver::V4L2_Driver()
   cap.hasShutter = false;
 
   SetCapability(&cap);
-
 
   Options=NULL;
   v4loptions=0;
@@ -65,9 +60,6 @@ bool V4L2_Driver::initProperties()
 {
   
    INDI::CCD::initProperties();
- 
-  ConnectSP=getSwitch("CONNECTION");
-  ConnectS=ConnectSP->sp;
  
  /* Port */
   IUFillText(&PortT[0], "PORT", "Port", "/dev/video0");
@@ -133,12 +125,11 @@ bool V4L2_Driver::updateProperties ()
 { 
   INDI::CCD::updateProperties();
 
-  if (isConnected()) {
-
-
+  if (isConnected())
+  {
     ExposeTimeNP=getNumber("CCD_EXPOSURE");
     ExposeTimeN=ExposeTimeNP->np;
-    
+
     imageBP=getBLOB("CCD1");
     imageB=imageBP->bp;
     
@@ -368,17 +359,6 @@ bool V4L2_Driver::ISNewSwitch (const char *dev, const char *name, ISState *state
         return true;
      }
 
-     /* Compression
-	if (CompressSP && (!strcmp(name, CompressSP->name)))
-     {
-       IUResetSwitch(CompressSP);
-       IUUpdateSwitch(CompressSP, states, names, n);
-       CompressSP->s = IPS_OK;
-       
-       IDSetSwitch(CompressSP, NULL);
-       return true;
-     }    */
-
      /* Image Type */
      if (!strcmp(name, ImageTypeSP.name))
      {
@@ -540,6 +520,9 @@ bool V4L2_Driver::ISNewNumber (const char *dev, const char *name, double values[
 	 V4LFrame->height= h;
 	 PrimaryCCD.setResolutoin(w, h);
 	 CaptureSizesNP.s = IPS_OK;
+     frameBytes  = (ImageTypeS[0].s == ISS_ON) ? (PrimaryCCD.getSubW() * PrimaryCCD.getSubH()):
+                                                 (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * 4);
+     PrimaryCCD.setFrameBufferSize(frameBytes);
 	 IDSetNumber(&CaptureSizesNP, "Capture size (step/cont): %dx%d", w, h);
 	 return true;
      }
@@ -588,8 +571,8 @@ bool V4L2_Driver::ISNewNumber (const char *dev, const char *name, double values[
         ExposeTimeNP->s   = IPS_BUSY;
 	if (IUUpdateNumber(ExposeTimeNP, values, names, n) < 0)
 	  return false;
-	frameBytes  = ImageTypeS[0].s == ISS_ON ? width * height : width * height * 4;
-	PrimaryCCD.setFrameBufferSize(frameBytes);
+    //frameBytes  = (ImageTypeS[0].s == ISS_ON) ? width * height : width * height * 4;
+    //PrimaryCCD.setFrameBufferSize(frameBytes);
 	/*  if (ImageTypeS[0].s == ISS_ON) {
 	    V4LFrame->stackedFrame =(unsigned char *) realloc (V4LFrame->stackedFrame, sizeof(unsigned char) * frameBytes );
 	    V4LFrame->Y=V4LFrame->stackedFrame;
@@ -634,7 +617,65 @@ void V4L2_Driver::lxtimerCallback(void *userpointer)
 
 bool V4L2_Driver::UpdateCCDBin(int hor, int ver)
 {
-  return false;
+    if (hor != ver)
+    {
+        DEBUGF(INDI::Logger::DBG_WARNING, "Cannot accept asymmetrical binning %dx%d.", hor, ver);
+        return false;
+    }
+
+    if (hor != 1 && hor != 2 && hor !=4)
+    {
+        DEBUG(INDI::Logger::DBG_WARNING, "Can only accept 1x1, 2x2, and 4x4 binning.");
+        return false;
+    }
+
+    PrimaryCCD.setBin(hor, ver);
+
+  return true;
+}
+
+void V4L2_Driver::binFrame()
+{
+    int bin;
+    if ( (bin = PrimaryCCD.getBinX()) == 1)
+        return;
+
+    int w = PrimaryCCD.getSubW();
+    int h = PrimaryCCD.getSubH();
+
+    int bin_w = w / bin;
+    int bin_h = h / bin;
+
+    unsigned char *bin_buffer = (unsigned char *) malloc(bin_w * bin_h * sizeof(char));
+    unsigned char *buffer = (unsigned char *) PrimaryCCD.getFrameBuffer();
+    //unsigned char *bin_buffer = buffer;
+
+    memset(bin_buffer, 0, bin_w * bin_h * sizeof(char));
+
+    unsigned char *bin_buf = bin_buffer;
+
+    unsigned char val;
+    for (int i=0; i < h; i+= bin)
+        for (int j=0; j < w; j+= bin)
+        {
+            for (int k=0; k < bin; k++)
+            {
+                for (int l=0; l < bin; l++)
+                {
+                    val = *(buffer + j + (i+k) * w + l);
+                    if (val + *bin_buf > 255)
+                        *bin_buffer = 255;
+                    else
+                        *bin_buf  += val;
+                }
+            }
+
+            bin_buf++;
+        }
+
+    PrimaryCCD.setFrameBuffer((char *) bin_buffer);
+    PrimaryCCD.setFrameBufferSize(bin_w * bin_h * sizeof(char), false);
+    free (buffer);
 }
 
 bool V4L2_Driver::UpdateCCDFrame(int x, int y, int w, int h)
@@ -651,7 +692,8 @@ bool V4L2_Driver::UpdateCCDFrame(int x, int y, int w, int h)
 	V4LFrame->width = crect.width;
 	V4LFrame->height= crect.height;
     PrimaryCCD.setFrame(x, y, w, h);
-    frameBytes  = ImageTypeS[0].s == ISS_ON ? V4LFrame->width * V4LFrame->height : V4LFrame->width * V4LFrame->height * 4;
+    frameBytes  = (ImageTypeS[0].s == ISS_ON) ? (PrimaryCCD.getSubW() * PrimaryCCD.getSubH()):
+                                                (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * 4);
     PrimaryCCD.setFrameBufferSize(frameBytes);
     //DEBUGF(INDI::Logger::DBG_SESSION, "updateCCDFrame ok: %d %d %d %d", x, y, w, h);
     //IDLog("updateCCDFrame ok: %d %d %d %d\n", x, y, w, h);
@@ -700,6 +742,8 @@ void V4L2_Driver::updateFrame()
       for (i=0; i< frameBytes; i++)
 	*(dest++) += *(src++);
 
+    binFrame();
+
     frameCount+=1;
     if (lx->isenabled())
     {
@@ -707,7 +751,8 @@ void V4L2_Driver::updateFrame()
       {
             v4l_base->stop_capturing(errmsg);
             DEBUGF(INDI::Logger::DBG_SESSION, "Capture of LX frame took %ld.%06ld seconds.\n", current_exposure.tv_sec, current_exposure.tv_usec);
-            INDI::CCD::ExposureComplete(&PrimaryCCD);
+            ExposureComplete(&PrimaryCCD);
+            PrimaryCCD.setFrameBufferSize(frameBytes);
       }
     } else
     {
@@ -715,7 +760,8 @@ void V4L2_Driver::updateFrame()
       {
             v4l_base->stop_capturing(errmsg);
             DEBUGF(INDI::Logger::DBG_SESSION, "Capture of ONE frame (%d stacked frames) took %ld.%06ld seconds.\n", frameCount, current_exposure.tv_sec, current_exposure.tv_usec);
-           INDI::CCD::ExposureComplete(&PrimaryCCD);
+           ExposureComplete(&PrimaryCCD);
+           PrimaryCCD.setFrameBufferSize(frameBytes);
       }
     }
   }
@@ -731,7 +777,7 @@ void V4L2_Driver::updateStream()
    unsigned char *targetFrame;
    int r;
    
-   if (ConnectS[0].s == ISS_OFF || StreamS[0].s == ISS_OFF) return;
+   if (StreamS[0].s == ISS_OFF) return;
    
    if (ImageTypeS[0].s == ISS_ON)
       V4LFrame->Y      		= v4l_base->getY();
@@ -817,11 +863,8 @@ bool V4L2_Driver::Connect()
 bool V4L2_Driver::Disconnect()
 {
   if (isConnected())
-  {
-
     v4l_base->disconnectCam((StreamSP.s == IPS_BUSY) ||  (ExposeTimeNP->s == IPS_BUSY));    
-    IDSetSwitch(ConnectSP, "Video4Linux Generic Device is offline.");
-  }
+
   return true;
 }
 
@@ -867,6 +910,13 @@ void V4L2_Driver::getBasicData()
   Options=NULL;
   v4loptions=0;
   updateV4L2Controls();
+
+
+  PrimaryCCD.setResolutoin(w, h);
+  PrimaryCCD.setFrame(0,0, w,h);
+  frameBytes  = (ImageTypeS[0].s == ISS_ON) ? (PrimaryCCD.getSubW() * PrimaryCCD.getSubH()):
+                                              (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * 4);
+  PrimaryCCD.setFrameBufferSize(frameBytes);
      
 }
 

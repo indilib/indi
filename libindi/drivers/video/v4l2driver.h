@@ -78,15 +78,10 @@ class V4L2_Driver: public INDI::CCD
     virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
     virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
     virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    bool UpdateCCDFrame(int x, int y, int w, int h);
-    bool UpdateCCDBin(int hor, int ver);
 
-    virtual void initCamBase();
     virtual bool initProperties();
     virtual bool updateProperties ();
-
-
-    bool AbortExposure();
+    virtual void initCamBase();
 
     static void newFrame(void *p);
     void updateFrame();
@@ -95,8 +90,11 @@ class V4L2_Driver: public INDI::CCD
 
     virtual bool Connect();
     virtual bool Disconnect();
-    virtual const char *getDefaultName();
 
+    virtual const char *getDefaultName();
+    bool AbortExposure();
+    bool UpdateCCDFrame(int x, int y, int w, int h);
+    bool UpdateCCDBin(int hor, int ver);
 
    /* Structs */
    typedef struct {
@@ -113,7 +111,6 @@ class V4L2_Driver: public INDI::CCD
 
 
    /* Switches */
-    ISwitch *ConnectS;
     ISwitch StreamS[2];
     ISwitch *CompressS;
     ISwitch ImageTypeS[2];
@@ -133,7 +130,6 @@ class V4L2_Driver: public INDI::CCD
     IBLOB *imageB;
     
     /* Switch vectors */
-    ISwitchVectorProperty *ConnectSP;				/* Connection switch */
     ISwitchVectorProperty StreamSP;				/* Stream switch */
     ISwitchVectorProperty *CompressSP;				/* Compress stream switch */
     ISwitchVectorProperty ImageTypeSP;				/* Color or grey switch */
@@ -170,6 +166,8 @@ class V4L2_Driver: public INDI::CCD
  
    void allocateBuffers();
    void releaseBuffers();
+
+   void binFrame();
 
    virtual void updateV4L2Controls();
    V4L2_Base *v4l_base;
