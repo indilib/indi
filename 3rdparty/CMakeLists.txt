@@ -35,6 +35,7 @@ option(WITH_FLI "Install FLI Driver" On)
 option(WITH_DUINO "Install Ariduino Driver" On)
 option(WITH_GPHOTO "Install GPhoto Driver" On)
 option(WITH_APOGEE "Install Apogee Driver" On)
+option(WITH_FISHCAMP "Install Fishcamp Driver" On)
 
 if (WITH_QSI)
 add_subdirectory(libqsi)
@@ -63,5 +64,10 @@ endif(WITH_APOGEE)
 if (WITH_GPHOTO)
 add_subdirectory(indi-gphoto)
 endif(WITH_GPHOTO)
+
+if (WITH_FISHCAMP)
+add_subdirectory(libfishcamp)
+add_subdirectory(indi-fishcamp)
+endif(WITH_FISHCAMP)
 
 endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
