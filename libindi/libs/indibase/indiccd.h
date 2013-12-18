@@ -150,6 +150,14 @@ public:
     inline char *getFrameBuffer() { return RawFrame; }
 
     /**
+     * @brief setFrameBuffer Set raw frame buffer pointer.
+     * @param buffer pointer to frame buffer
+     * /note CCD Chip allocates the frame buffer internally once SetFrameBufferSize is called with allocMem set to true which is the default behavior.
+     *       If you allocated the memory yourself (i.e. allocMem is false), then you must call this function to set the pointer to the raw frame buffer.
+     */
+    void setFrameBuffer(char *buffer) { RawFrame = buffer; }
+
+    /**
      * @brief isCompressed
      * @return True if frame is compressed, false otherwise.
      */
@@ -221,8 +229,9 @@ public:
      * desired frame resolution (Left, Top, Width, Height), depth of the CCD chip (bpp), and binning settings. You must set the frame size any time
      * any of the prior parameters gets updated.
      * @param nbuf size of buffer in bytes.
+     * @param allocMem if True, it will allocate memory of nbut size bytes.
      */
-    void setFrameBufferSize(int nbuf);
+    void setFrameBufferSize(int nbuf, bool allocMem=true);
 
     /**
      * @brief setBPP Set depth of CCD chip.
@@ -254,6 +263,32 @@ public:
      */
     void setExposureFailed();
 
+    /**
+     * @return Get number of FITS axis in image. By default 2
+     */
+    int getNAxis() const;
+
+    /**
+     * @brief setNAxis Set FITS number of axis
+     * @param value number of axis
+     */
+    void setNAxis(int value);
+
+    /**
+     * @brief setImageExtension Set image exntension
+     * @param ext extension (fits, jpeg, raw..etc)
+     */
+    void setImageExtension(const char *ext);
+
+    /**
+     * @return Return image extension (fits, jpeg, raw..etc)
+     */
+    char *getImageExtension() { return imageExtention;}
+
+    /**
+     * @return True if CCD is currently exposing, false otherwise.
+     */
+    bool isExposing() { return (ImageExposureNP->s == IPS_BUSY); }
 
 private:
 
@@ -265,6 +300,7 @@ private:
     int SubH;   //  UNBINNED height of the subframe
     int BinX;   //  Binning requested in the x direction
     int BinY;   //  Binning requested in the Y direction
+    int NAxis;  //  # of Axis
     float PixelSizex;   //  pixel size in microns, x direction
     float PixelSizey;   //  pixel size in microns, y direction
     int BPP;            //  Bytes per Pixel
@@ -277,6 +313,7 @@ private:
     timeval startExposureTime;
     int lastRapidX;
     int lastRapidY;
+    char imageExtention[MAXINDIBLOBFMT];
 
     INumberVectorProperty *ImageExposureNP;
     INumber ImageExposureN[1];
@@ -329,6 +366,17 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         CCD();
         virtual ~CCD();
 
+        typedef struct
+        {
+            bool hasGuideHead;
+            bool hasST4Port;
+            bool hasShutter;
+            bool hasCooler;
+            bool canBin;
+            bool canSubFrame;
+            bool canAbort;
+        } Capability;
+
         virtual bool initProperties();
         virtual bool updateProperties();
         virtual void ISGetProperties (const char *dev);
@@ -338,59 +386,44 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         virtual bool ISSnoopDevice (XMLEle *root);
 
      protected:
-        /**
-         * @brief Sets whether the CCD has a guide head (2nd chip) designated for guiding.
-         * @param enable Set to true if CCD has guide head.
-         */
-        void SetGuideHead(bool enable) { hasGuideHead = enable; }
+
+        Capability GetCapability() const { return capability;}
+        void SetCapability(Capability * cap);
 
         /**
-         * @brief Set whether the CCD has an ST4 port for guiding.
-         * @param enable Set to true if CCD has ST4 port.
-         */
-        void SetST4Port(bool enable)   { hasST4Port = enable; }
+         * @return True if CCD can abort exposure. False otherwise.
+        */
+        bool CanAbort() { return capability.canAbort;}
 
         /**
-         * @brief Sets whether the CCD has a cooler and the temperature can be controlled.
-         * @param enable Set to true if CCD temperature can be queried and controlled.
-         */
-        void SetCooler(bool enable)    { hasCooler = enable; }
+         * @return True if CCD supports binning. False otherwise.
+        */
+        bool CanBin() { return capability.canBin;}
 
         /**
-         * @brief Sets whether the CCD has an electronic or mechanical shutter.
-         * @param enable Set to true if the CCD has either an electronic or mechanical shutter.
-         */
-        void SetShutter(bool enable)   { hasShutter = enable; }
+         * @return True if CCD supports subframing. False otherwise.
+        */
+        bool CanSubFrame() { return capability.canSubFrame;}
 
         /**
-         * @return True if CCD has a guide head, false otherwise.
+         * @return True if CCD has guide head. False otherwise.
          */
-        bool HasGuideHead() { return hasGuideHead; }
+        bool HasGuideHead() { return capability.hasGuideHead; }
 
         /**
-         * @return True if CCD has an ST4 port, false otherwise.
+         * @return True if CCD has mechanical or electronic shutter. False otherwise.
          */
-        bool HasST4Port()   { return hasST4Port; }
+        bool HasShutter() { return capability.hasShutter;}
 
         /**
-         * @return True if CCD has a cooler, false otherwise.
+         * @return True if CCD has ST4 port for guiding. False otherwise.
          */
-        bool HasCooler()    { return hasCooler; }
+        bool HasST4Port() { return capability.hasST4Port;}
 
         /**
-         * @return True if CCD has either an electronic or mechanical shutter, false otherwise.
+         * @return True if CCD has cooler and temperature can be controlled. False otherwise.
          */
-        bool HasShutter()   { return hasShutter; }
-
-
-        /**
-         * @brief Set primary CCD features.
-         * @param hasGuideHead Does it have a guide head?
-         * @param hasST4Port Does it have an ST4 port?
-         * @param hasCooler Does it have a cooler?
-         * @param hasShutter Does it have an electronic or mechanical shutter?
-         */
-        void SetCCDFeatures(bool hasGuideHead, bool hasST4Port, bool hasCooler, bool hasShutter);
+        bool HasCooler() { return capability.hasCooler;}
 
         /**
          * @brief Set CCD temperature
@@ -601,10 +634,9 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         INumberVectorProperty   TemperatureNP;
 
      private:
-        bool hasGuideHead;
-        bool hasST4Port;
-        bool hasShutter;
-        bool hasCooler;
+        Capability capability;
+
+        bool uploadFile(CCDChip * targetChip, const void *fitsData, size_t totalBytes);
         void getMinMax(double *min, double *max, CCDChip *targetChip);
 
 

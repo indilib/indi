@@ -96,7 +96,17 @@ CCDSim::CCDSim()
     AbortPrimaryFrame = false;
     ShowStarField=true;
 
-    SetCCDFeatures(true, true, false, true);
+    Capability cap;
+
+    cap.canAbort = true;
+    cap.canBin = true;
+    cap.canSubFrame = true;
+    cap.hasCooler = false;
+    cap.hasGuideHead = true;
+    cap.hasShutter = true;
+    cap.hasST4Port = true;
+
+    SetCapability(&cap);
 
     polarError=0;
     polarDrift=0;

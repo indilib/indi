@@ -33,7 +33,19 @@ V4L2_Driver::V4L2_Driver()
   strncpy(device_name, "V4L2 CCD", MAXINDIDEVICE);
   
   // No guide head, no ST4 port, no cooling, no shutter
-  SetCCDFeatures(false, false, false, false);
+
+  Capability cap;
+
+  cap.canAbort = false;
+  cap.canBin = true;
+  cap.canSubFrame = true;
+  cap.hasGuideHead = false;
+  cap.hasCooler = false;
+  cap.hasST4Port = false;
+  cap.hasShutter = false;
+
+  SetCapability(&cap);
+
 
   Options=NULL;
   v4loptions=0;

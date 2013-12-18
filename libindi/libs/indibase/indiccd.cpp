@@ -42,10 +42,14 @@ CCDChip::CCDChip()
     SendCompressed=false;
     Interlaced=false;
 
-    RawFrame=NULL;
+    RawFrame= (char *) malloc(sizeof(char)); // Seed for realloc
     RawFrameSize=0;
 
+    BPP = 8;
     BinX = BinY = 1;
+    NAxis = 2;
+
+    strncpy(imageExtention, "fits", MAXINDIBLOBFMT);
 
     FrameType=LIGHT_FRAME;
     
@@ -157,19 +161,17 @@ void CCDChip::setBPP(int bbp)
     IDSetNumber(ImagePixelSizeNP, NULL);
 }
 
-void CCDChip::setFrameBufferSize(int nbuf)
+void CCDChip::setFrameBufferSize(int nbuf, bool allocMem)
 {
     if (nbuf == RawFrameSize)
         return;
 
-    if (RawFrame != NULL)
-        delete RawFrame;
-
-
     RawFrameSize = nbuf;
 
-    RawFrame = new char[nbuf];
+    if (allocMem == false)
+        return;
 
+    RawFrame = (char *) realloc(RawFrame, nbuf * sizeof(char));
 }
 
 void CCDChip::setExposureLeft(double duration)
@@ -213,13 +215,32 @@ void CCDChip::setExposureFailed()
     IDSetNumber(ImageExposureNP, NULL);
 }
 
+int CCDChip::getNAxis() const
+{
+    return NAxis;
+}
+
+void CCDChip::setNAxis(int value)
+{
+    NAxis = value;
+}
+
+void CCDChip::setImageExtension(const char *ext)
+{
+    strncpy(imageExtention, ext, MAXINDINAME);
+}
+
 INDI::CCD::CCD()
 {
     //ctor
-    hasGuideHead=false;
-    hasST4Port=false;
-    hasShutter=false;
-    hasCooler=false;
+    capability.hasGuideHead=false;
+    capability.hasST4Port=false;
+    capability.hasShutter=false;
+    capability.hasCooler=false;
+    capability.canBin=false;
+    capability.canSubFrame=false;
+    capability.canAbort=false;
+
     InExposure=false;
     InGuideExposure=false;
     RapidGuideEnabled=false;
@@ -245,12 +266,15 @@ INDI::CCD::~CCD()
     delete ActiveDeviceTP;
 }
 
-void INDI::CCD::SetCCDFeatures(bool hasGuideHead, bool hasST4Port, bool hasCooler, bool hasShutter)
+void INDI::CCD::SetCapability(Capability *cap)
 {
-    SetGuideHead(hasGuideHead);
-    SetST4Port(hasST4Port);
-    SetCooler(hasCooler);
-    SetShutter(hasShutter);
+    capability.canAbort     = cap->canAbort;
+    capability.canBin       = cap->canBin;
+    capability.canSubFrame  = cap->canSubFrame;
+    capability.hasCooler    = cap->hasCooler;
+    capability.hasGuideHead = cap->hasGuideHead;
+    capability.hasShutter   = cap->hasShutter;
+    capability.hasST4Port   = cap->hasST4Port;
 }
 
 bool INDI::CCD::initProperties()
@@ -273,7 +297,7 @@ bool INDI::CCD::initProperties()
     IUFillSwitch(&PrimaryCCD.FrameTypeS[1],"FRAME_BIAS","Bias",ISS_OFF);
     IUFillSwitch(&PrimaryCCD.FrameTypeS[2],"FRAME_DARK","Dark",ISS_OFF);
     IUFillSwitch(&PrimaryCCD.FrameTypeS[3],"FRAME_FLAT","Flat",ISS_OFF);
-    IUFillSwitchVector(PrimaryCCD.FrameTypeSP,PrimaryCCD.FrameTypeS,4,getDeviceName(),"CCD_FRAME_TYPE","FrameType",IMAGE_SETTINGS_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    IUFillSwitchVector(PrimaryCCD.FrameTypeSP,PrimaryCCD.FrameTypeS,4,getDeviceName(),"CCD_FRAME_TYPE","Frame Type",IMAGE_SETTINGS_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
     IUFillNumber(&PrimaryCCD.ImageExposureN[0],"CCD_EXPOSURE_VALUE","Duration (s)","%5.2f",0,36000,0,1.0);
     IUFillNumberVector(PrimaryCCD.ImageExposureNP,PrimaryCCD.ImageExposureN,1,getDeviceName(),"CCD_EXPOSURE","Expose",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
@@ -338,7 +362,7 @@ bool INDI::CCD::initProperties()
     IUFillSwitch(&GuideCCD.FrameTypeS[1],"FRAME_BIAS","Bias",ISS_OFF);
     IUFillSwitch(&GuideCCD.FrameTypeS[2],"FRAME_DARK","Dark",ISS_OFF);
     IUFillSwitch(&GuideCCD.FrameTypeS[3],"FRAME_FLAT","Flat",ISS_OFF);
-    IUFillSwitchVector(GuideCCD.FrameTypeSP,GuideCCD.FrameTypeS,4,getDeviceName(),"GUIDE_FRAME_TYPE","FrameType",GUIDE_HEAD_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    IUFillSwitchVector(GuideCCD.FrameTypeSP,GuideCCD.FrameTypeS,4,getDeviceName(),"GUIDE_FRAME_TYPE","Frame Type",GUIDE_HEAD_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
     IUFillNumber(&GuideCCD.ImageExposureN[0],"GUIDER_EXPOSURE_VALUE","Duration (s)","%5.2f",0,36000,0,1.0);
     IUFillNumberVector(GuideCCD.ImageExposureNP,GuideCCD.ImageExposureN,1,getDeviceName(),"GUIDER_EXPOSURE","Guide Head",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
@@ -403,53 +427,65 @@ bool INDI::CCD::updateProperties()
     if(isConnected())
     {
        defineNumber(PrimaryCCD.ImageExposureNP);
-       defineSwitch(PrimaryCCD.AbortExposureSP);
-        defineNumber(PrimaryCCD.ImageFrameNP);
-        defineNumber(PrimaryCCD.ImageBinNP);
 
-        if(hasGuideHead)
+       if (capability.canAbort)
+            defineSwitch(PrimaryCCD.AbortExposureSP);
+       if (capability.canSubFrame == false)
+           PrimaryCCD.ImageFrameNP->p = IP_RO;
+
+        defineNumber(PrimaryCCD.ImageFrameNP);
+       if (capability.canBin)
+            defineNumber(PrimaryCCD.ImageBinNP);
+
+        if(capability.hasGuideHead)
         {
             defineNumber(GuideCCD.ImageExposureNP);
-            defineSwitch(GuideCCD.AbortExposureSP);
+            if (capability.canAbort)
+                defineSwitch(GuideCCD.AbortExposureSP);
+            if (capability.canSubFrame == false)
+                GuideCCD.ImageFrameNP->p = IP_RO;
             defineNumber(GuideCCD.ImageFrameNP);
         }
 
-        if (hasCooler)
+        if (capability.hasCooler)
             defineNumber(&TemperatureNP);
 
         defineNumber(PrimaryCCD.ImagePixelSizeNP);
-        if(hasGuideHead)
+        if(capability.hasGuideHead)
         {
             defineNumber(GuideCCD.ImagePixelSizeNP);
-            defineNumber(GuideCCD.ImageBinNP);
+            if (capability.canBin)
+                defineNumber(GuideCCD.ImageBinNP);
         }
         defineSwitch(PrimaryCCD.CompressSP);
         defineBLOB(PrimaryCCD.FitsBP);
-        if(hasGuideHead)
+        if(capability.hasGuideHead)
         {
             defineSwitch(GuideCCD.CompressSP);
             defineBLOB(GuideCCD.FitsBP);
         }
-        if(hasST4Port)
+        if(capability.hasST4Port)
         {
             defineNumber(&GuideNSNP);
             defineNumber(&GuideWENP);
         }
         defineSwitch(PrimaryCCD.FrameTypeSP);
         
-        if (hasGuideHead)
+        if (capability.hasGuideHead)
             defineSwitch(GuideCCD.FrameTypeSP);
         
         defineSwitch(PrimaryCCD.RapidGuideSP);
 
-        if (hasGuideHead)
+        if (capability.hasGuideHead)
           defineSwitch(GuideCCD.RapidGuideSP);
             
-        if (RapidGuideEnabled) {
+        if (RapidGuideEnabled)
+        {
           defineSwitch(PrimaryCCD.RapidGuideSetupSP);
           defineNumber(PrimaryCCD.RapidGuideDataNP);
         }
-        if (GuiderRapidGuideEnabled) {
+        if (GuiderRapidGuideEnabled)
+        {
           defineSwitch(GuideCCD.RapidGuideSetupSP);
           defineNumber(GuideCCD.RapidGuideDataNP);
         }
@@ -458,38 +494,47 @@ bool INDI::CCD::updateProperties()
     else
     {
         deleteProperty(PrimaryCCD.ImageFrameNP->name);
-        deleteProperty(PrimaryCCD.ImageBinNP->name);
         deleteProperty(PrimaryCCD.ImagePixelSizeNP->name);
+
+        if (capability.canBin)
+            deleteProperty(PrimaryCCD.ImageBinNP->name);
+
         deleteProperty(PrimaryCCD.ImageExposureNP->name);
-        deleteProperty(PrimaryCCD.AbortExposureSP->name);
+        if (capability.canAbort)
+            deleteProperty(PrimaryCCD.AbortExposureSP->name);
         deleteProperty(PrimaryCCD.FitsBP->name);
         deleteProperty(PrimaryCCD.CompressSP->name);
         deleteProperty(PrimaryCCD.RapidGuideDataNP->name);
         deleteProperty(PrimaryCCD.RapidGuideSP->name);
-        if (RapidGuideEnabled) {
+        if (RapidGuideEnabled)
+        {
           deleteProperty(PrimaryCCD.RapidGuideSetupSP->name);
           deleteProperty(PrimaryCCD.RapidGuideDataNP->name);
         }
-        if(hasGuideHead)
+        if(capability.hasGuideHead)
         {
             deleteProperty(GuideCCD.ImageExposureNP->name);
-            deleteProperty(GuideCCD.AbortExposureSP->name);
-            deleteProperty(GuideCCD.ImageFrameNP->name);
-            deleteProperty(GuideCCD.ImagePixelSizeNP->name);
+            if (capability.canAbort)
+                deleteProperty(GuideCCD.AbortExposureSP->name);
+                deleteProperty(GuideCCD.ImageFrameNP->name);
+                deleteProperty(GuideCCD.ImagePixelSizeNP->name);
+
             deleteProperty(GuideCCD.FitsBP->name);
-            deleteProperty(GuideCCD.ImageBinNP->name);
+            if (capability.canBin)
+                deleteProperty(GuideCCD.ImageBinNP->name);
             deleteProperty(GuideCCD.CompressSP->name);
             deleteProperty(GuideCCD.FrameTypeSP->name);
             deleteProperty(GuideCCD.RapidGuideDataNP->name);
             deleteProperty(GuideCCD.RapidGuideSP->name);
-            if (GuiderRapidGuideEnabled) {
+            if (GuiderRapidGuideEnabled)
+            {
               deleteProperty(GuideCCD.RapidGuideSetupSP->name);
               deleteProperty(GuideCCD.RapidGuideDataNP->name);
             }
         }
-        if (hasCooler)
+        if (capability.hasCooler)
             deleteProperty(TemperatureNP.name);
-        if(hasST4Port)
+        if(capability.hasST4Port)
         {
             deleteProperty(GuideNSNP.name);
             deleteProperty(GuideWENP.name);
@@ -568,8 +613,6 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
 
             if (PrimaryCCD.ImageExposureNP->s==IPS_BUSY)
                 AbortExposure();
-
-            PrimaryCCD.ImageExposureNP->s=IPS_BUSY;
 
             if (StartExposure(ExposureTime))
                PrimaryCCD.ImageExposureNP->s=IPS_BUSY;
@@ -801,13 +844,13 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
             else if(PrimaryCCD.FrameTypeS[1].s==ISS_ON)
             {
                 PrimaryCCD.setFrameType(CCDChip::BIAS_FRAME);
-                if (hasShutter == false)
+                if (capability.hasShutter == false)
                     DEBUG(INDI::Logger::DBG_WARNING, "The CCD does not have a shutter. Cover the camera in order to take a bias frame.");
             }
             else if(PrimaryCCD.FrameTypeS[2].s==ISS_ON)
             {
                 PrimaryCCD.setFrameType(CCDChip::DARK_FRAME);
-                if (hasShutter == false)
+                if (capability.hasShutter == false)
                     DEBUG(INDI::Logger::DBG_WARNING, "The CCD does not have a shutter. Cover the camera in order to take a dark frame.");
             }
             else if(PrimaryCCD.FrameTypeS[3].s==ISS_ON)
@@ -831,13 +874,13 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
             else if(GuideCCD.FrameTypeS[1].s==ISS_ON)
             {
                 GuideCCD.setFrameType(CCDChip::BIAS_FRAME);
-                if (hasShutter == false)
+                if (capability.hasShutter == false)
                     DEBUG(INDI::Logger::DBG_WARNING, "The CCD does not have a shutter. Cover the camera in order to take a bias frame.");
             }
             else if(GuideCCD.FrameTypeS[2].s==ISS_ON)
             {
                 GuideCCD.setFrameType(CCDChip::DARK_FRAME);
-                if (hasShutter == false)
+                if (capability.hasShutter == false)
                     DEBUG(INDI::Logger::DBG_WARNING, "The CCD does not have a shutter. Cover the camera in order to take a dark frame.");
             }
             else if(GuideCCD.FrameTypeS[3].s==ISS_ON)
@@ -1004,7 +1047,8 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
     double pixSize1,pixSize2;
     unsigned int xbin, ybin;
 
-    getMinMax(&min_val, &max_val, targetChip);
+    if (targetChip->getNAxis() == 2)
+        getMinMax(&min_val, &max_val, targetChip);
 
     xbin = targetChip->getBinX();
     ybin = targetChip->getBinY();
@@ -1043,8 +1087,13 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
     fits_update_key_s(fptr, TUINT, "XBINNING", &(xbin) , "Binning factor in width", &status);
     fits_update_key_s(fptr, TUINT, "YBINNING", &(ybin), "Binning factor in height", &status);
     fits_update_key_s(fptr, TSTRING, "FRAME", frame_s, "Frame Type", &status);
-    fits_update_key_s(fptr, TDOUBLE, "DATAMIN", &min_val, "Minimum value", &status);
-    fits_update_key_s(fptr, TDOUBLE, "DATAMAX", &max_val, "Maximum value", &status);
+
+    if (targetChip->getNAxis() == 2)
+    {
+        fits_update_key_s(fptr, TDOUBLE, "DATAMIN", &min_val, "Minimum value", &status);
+        fits_update_key_s(fptr, TDOUBLE, "DATAMAX", &max_val, "Maximum value", &status);
+    }
+
     fits_update_key_s(fptr, TSTRING, "INSTRUME", dev_name, "CCD Name", &status);
     fits_update_key_s(fptr, TSTRING, "DATE-OBS", exp_start, "UTC start date of observation", &status);
 
@@ -1207,100 +1256,108 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
 
     if (sendImage)    
     {
-      void *memptr;
-      size_t memsize;
-      int img_type=0;
-      int byte_type=0;
-      int status=0;
-      long naxes[2];
-      long naxis=2;
-      int nelements=0;
-      std::string bit_depth;
-
-      fitsfile *fptr=NULL;
-
-      naxes[0]=targetChip->getSubW()/targetChip->getBinX();
-      naxes[1]=targetChip->getSubH()/targetChip->getBinY();
-
-      switch (targetChip->getBPP())
+      if (!strcmp(targetChip->getImageExtension(), "fits"))
       {
-          case 8:
-              byte_type = TBYTE;
-              img_type  = BYTE_IMG;
-              bit_depth = "8 bits per pixel";
-              break;
+          void *memptr;
+          size_t memsize;
+          int img_type=0;
+          int byte_type=0;
+          int status=0;
+          long naxis=targetChip->getNAxis();
+          long naxes[naxis];
+          int nelements=0;
+          std::string bit_depth;
 
-          case 16:
-              byte_type = TUSHORT;
-              img_type = USHORT_IMG;
-              bit_depth = "16 bits per pixel";
-              break;
+          fitsfile *fptr=NULL;
 
-          case 32:
-              byte_type = TULONG;
-              img_type = ULONG_IMG;
-              bit_depth = "32 bits per pixel";
-              break;
+          naxes[0]=targetChip->getSubW()/targetChip->getBinX();
+          naxes[1]=targetChip->getSubH()/targetChip->getBinY();
 
-           default:
-              DEBUGF(Logger::DBG_WARNING, "Unsupported bits per pixel value %d\n", targetChip->getBPP() );
-              return false;
-              break;
+          switch (targetChip->getBPP())
+          {
+              case 8:
+                  byte_type = TBYTE;
+                  img_type  = BYTE_IMG;
+                  bit_depth = "8 bits per pixel";
+                  break;
+
+              case 16:
+                  byte_type = TUSHORT;
+                  img_type = USHORT_IMG;
+                  bit_depth = "16 bits per pixel";
+                  break;
+
+              case 32:
+                  byte_type = TULONG;
+                  img_type = ULONG_IMG;
+                  bit_depth = "32 bits per pixel";
+                  break;
+
+               default:
+                  DEBUGF(Logger::DBG_WARNING, "Unsupported bits per pixel value %d\n", targetChip->getBPP() );
+                  return false;
+                  break;
+          }
+
+          nelements = naxes[0] * naxes[1];
+          if (naxis== 3)
+          {
+              nelements *= 3;
+              naxes[2] = 3;
+          }
+
+          /*DEBUGF(Logger::DBG_DEBUG, "Exposure complete. Image Depth: %s. Width: %d Height: %d nelements: %d", bit_depth.c_str(), naxes[0],
+                  naxes[1], nelements);*/
+
+          //  Now we have to send fits format data to the client
+          memsize=5760;
+          memptr=malloc(memsize);
+          if(!memptr)
+          {
+              IDLog("Error: failed to allocate memory: %lu\n",(unsigned long)memsize);
+          }
+
+          fits_create_memfile(&fptr,&memptr,&memsize,2880,realloc,&status);
+
+          if(status)
+          {
+            IDLog("Error: Failed to create FITS image\n");
+            fits_report_error(stderr, status);  /* print out any error messages */
+            return false;
+          }
+
+          fits_create_img(fptr, img_type , naxis, naxes, &status);
+
+          if (status)
+          {
+            IDLog("Error: Failed to create FITS image\n");
+            fits_report_error(stderr, status);  /* print out any error messages */
+            return false;
+          }
+
+          addFITSKeywords(fptr, targetChip);
+
+          fits_write_img(fptr,byte_type,1,nelements,targetChip->getFrameBuffer(),&status);
+
+          if (status)
+          {
+            IDLog("Error: Failed to write FITS image\n");
+            fits_report_error(stderr, status);  /* print out any error messages */
+            return false;
+          }
+
+          fits_close_file(fptr,&status);
+
+          uploadFile(targetChip, memptr, memsize);
+
+          free(memptr);
+      }
+      else
+      {
+          uploadFile(targetChip, targetChip->getFrameBuffer(), targetChip->getFrameBufferSize());
       }
 
 
-      nelements = naxes[0] * naxes[1];
-
-      /*DEBUGF(Logger::DBG_DEBUG, "Exposure complete. Image Depth: %s. Width: %d Height: %d nelements: %d", bit_depth.c_str(), naxes[0],
-              naxes[1], nelements);*/
-
-      //  Now we have to send fits format data to the client
-      memsize=5760;
-      memptr=malloc(memsize);
-      if(!memptr)
-      {
-          IDLog("Error: failed to allocate memory: %lu\n",(unsigned long)memsize);
-      }
-
-      fits_create_memfile(&fptr,&memptr,&memsize,2880,realloc,&status);
-
-      if(status)
-      {
-        IDLog("Error: Failed to create FITS image\n");
-        fits_report_error(stderr, status);  /* print out any error messages */
-        return false;
-      }
-
-      fits_create_img(fptr, img_type , naxis, naxes, &status);
-
-      if (status)
-      {
-        IDLog("Error: Failed to create FITS image\n");
-        fits_report_error(stderr, status);  /* print out any error messages */
-        return false;
-      }
-
-      addFITSKeywords(fptr, targetChip);
-
-      fits_write_img(fptr,byte_type,1,nelements,targetChip->getFrameBuffer(),&status);
-
-      if (status)
-      {
-        IDLog("Error: Failed to write FITS image\n");
-        fits_report_error(stderr, status);  /* print out any error messages */
-        return false;
-      }
-
-      fits_close_file(fptr,&status);
-
-      targetChip->FitsB.blob=memptr;
-      targetChip->FitsB.bloblen=memsize;
-      targetChip->FitsB.size=memsize;
-      strcpy(targetChip->FitsB.format,".fits");
-      targetChip->FitsBP->s=IPS_OK;
-      IDSetBLOB(targetChip->FitsBP,NULL);
-
-      free(memptr);
     } 
 
     targetChip->ImageExposureNP->s=IPS_OK;
@@ -1341,6 +1398,52 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
     return true;
 }
 
+bool INDI::CCD::uploadFile(CCDChip * targetChip, const void *fitsData, size_t totalBytes)
+{
+    unsigned char *compressedData = NULL;
+    uLongf compressedBytes=0;
+
+    if (targetChip->SendCompressed)
+    {
+        compressedBytes = sizeof(char) * totalBytes + totalBytes / 64 + 16 + 3;
+        compressedData = (unsigned char *) malloc (compressedBytes);
+
+        if (fitsData == NULL || compressedData == NULL)
+        {
+            if (compressedData)
+                free(compressedData);
+            DEBUG(INDI::Logger::DBG_ERROR, "Error: Ran out of memory compressing image");
+            return false;
+        }
+
+        int r = compress2(compressedData, &compressedBytes, (const Bytef*)fitsData, totalBytes, 9);
+        if (r != Z_OK)
+        {
+            /* this should NEVER happen */
+            DEBUG(INDI::Logger::DBG_ERROR, "Error: Failed to compress image");
+            return false;
+        }
+
+        targetChip->FitsB.blob=compressedData;
+        targetChip->FitsB.bloblen=compressedBytes;
+        snprintf(targetChip->FitsB.format, MAXINDIBLOBFMT, ".%s.z", targetChip->getImageExtension());
+    } else
+    {
+        targetChip->FitsB.blob=(unsigned char *)fitsData;
+        targetChip->FitsB.bloblen=totalBytes;
+        snprintf(targetChip->FitsB.format, MAXINDIBLOBFMT, ".%s", targetChip->getImageExtension());
+    }
+
+    targetChip->FitsB.size = totalBytes;
+    targetChip->FitsBP->s=IPS_OK;
+    IDSetBLOB(targetChip->FitsBP,NULL);
+
+    if (compressedData)
+        free (compressedData);
+
+    return true;
+}
+
 void INDI::CCD::SetCCDParams(int x,int y,int bpp,float xf,float yf)
 {
     PrimaryCCD.setResolutoin(x, y);
@@ -1353,7 +1456,7 @@ void INDI::CCD::SetCCDParams(int x,int y,int bpp,float xf,float yf)
 
 void INDI::CCD::SetGuideHeadParams(int x,int y,int bpp,float xf,float yf)
 {
-    hasGuideHead=true;
+    capability.hasGuideHead=true;
 
     GuideCCD.setResolutoin(x, y);
     GuideCCD.setFrame(0, 0, x, y);
