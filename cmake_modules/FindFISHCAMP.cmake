@@ -18,7 +18,7 @@ if (FISHCAMP_LIBRARIES)
 
 else (FISHCAMP_LIBRARIES)
 
-  find_library(FISHCAMP_LIBRARIES NAMES fishcamp
+  find_library(FISHCAMP_LIBRARIES NAMES FcLinux
     PATHS
     ${_obLinkDir}
     ${GNUWIN32_DIR}/lib
