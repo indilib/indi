@@ -140,6 +140,8 @@ SBIGCCD::SBIGCCD()
     // For now let's set name to default name. In the future, we need to to support multiple devices per one driver
     strncpy(name, getDefaultName(), MAXINDINAME);
 
+    setVersion(1, 5);
+
 }
 //==========================================================================
 SBIGCCD::SBIGCCD(const char* devName)
@@ -305,10 +307,6 @@ bool SBIGCCD::initProperties()
   FilterSlotN[0].min = 1;
   FilterSlotN[0].max = MAX_CFW_TYPES;
 
-  // The CCD camera has a cooler and a shutter
-  SetCooler(true);
-  SetShutter(true);
-
   return true;
 }
 
@@ -324,8 +322,7 @@ void SBIGCCD::ISGetProperties(const char *dev)
 
 bool SBIGCCD::updateProperties()
 {
-    if(getNumberOfCCDChips() > 1)
-        SetGuideHead(true);
+
 
   // TODO: Check if we support guiding
   //SetST4Port(true);
@@ -570,8 +567,7 @@ bool SBIGCCD::Connect()
   // Do we have a guide port?
 
   if (sim)
-  {
-    SetGuideHead(true);
+  {    
     IEAddTimer(TEMPERATURE_POLL_MS, SBIGCCD::updateTemperatureHelper, this);
     return true;
   }
@@ -585,6 +581,23 @@ bool SBIGCCD::Connect()
                   // Link established.
               DEBUG(INDI::Logger::DBG_SESSION, "SBIG CCD is online. Retrieving basic data.");
               IEAddTimer(TEMPERATURE_POLL_MS, SBIGCCD::updateTemperatureHelper, this);
+
+              bool hasCooler;
+              double temp, setPoint,power;
+              QueryTemperatureStatus(hasCooler, temp, setPoint, power);
+
+              Capability cap;
+
+              cap.canAbort = true;
+              cap.canBin = true;
+              cap.canSubFrame = true;
+              cap.hasCooler = hasCooler;
+              cap.hasGuideHead = (getNumberOfCCDChips() > 1);
+              cap.hasShutter = true;
+              cap.hasST4Port = true;
+
+              SetCapability(&cap);
+
               return true;
           }
           else
@@ -1068,6 +1081,60 @@ bool SBIGCCD::UpdateGuideBin(int binx, int biny)
   return updateFrameProperties(&GuideCCD);
 }
 
+bool SBIGCCD::GuideNorth(float duration)
+{
+   ActivateRelayParams rp;
+   rp.tXMinus = rp.tXPlus = rp.tYMinus = rp.tYPlus = 0;
+   unsigned short dur = duration / 10.0;
+
+   rp.tYMinus = dur;
+
+   ActivateRelay(&rp);
+
+   return true;
+
+}
+
+bool SBIGCCD::GuideSouth(float duration)
+{
+    ActivateRelayParams rp;
+    rp.tXMinus = rp.tXPlus = rp.tYMinus = rp.tYPlus = 0;
+    unsigned short dur = duration / 10.0;
+
+    rp.tYPlus = dur;
+
+    ActivateRelay(&rp);
+
+    return true;
+
+}
+
+bool SBIGCCD::GuideEast(float duration)
+{
+    ActivateRelayParams rp;
+    rp.tXMinus = rp.tXPlus = rp.tYMinus = rp.tYPlus = 0;
+    unsigned short dur = duration / 10.0;
+
+    rp.tXPlus = dur;
+
+    ActivateRelay(&rp);
+
+    return true;
+
+}
+
+bool SBIGCCD::GuideWest(float duration)
+{
+    ActivateRelayParams rp;
+    rp.tXMinus = rp.tXPlus = rp.tYMinus = rp.tYPlus = 0;
+    unsigned short dur = duration / 10.0;
+
+    rp.tXMinus = dur;
+
+    ActivateRelay(&rp);
+
+    return true;
+}
 
 float SBIGCCD::CalcTimeLeft(timeval start,float req)
 {

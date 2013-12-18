@@ -125,6 +125,118 @@ public:
     SBIGCCD(const char* device_name);
     virtual	~SBIGCCD();
 
+    const char *getDefaultName();
+
+    bool initProperties();
+    void ISGetProperties(const char *dev);
+    bool updateProperties();
+
+    bool Connect();
+    bool Disconnect();
+
+    bool StartExposure(float duration);
+    bool AbortExposure();
+
+    bool StartGuideExposure(float duration);
+    bool AbortGuideExposure();
+
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+
+    void 		updateTemperature();
+    static void updateTemperatureHelper(void *);
+    bool 		isExposureDone(CCDChip *targetChip);
+
+
+protected:
+
+    void TimerHit();
+    virtual int  SetTemperature(double temperature);
+    virtual bool UpdateCCDFrame(int x, int y, int w, int h);
+    virtual bool UpdateGuideFrame(int x, int y, int w, int h);
+    virtual bool UpdateCCDBin(int binx, int biny);
+    virtual bool UpdateGuideBin(int binx, int biny);
+    virtual void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip);
+    virtual bool UpdateCCDFrameType(CCDChip::CCD_FRAME fType);
+
+    bool GuideNorth(float);
+    bool GuideSouth(float);
+    bool GuideEast(float);
+    bool GuideWest(float);
+
+    // Filter Wheel CFW
+    virtual int  QueryFilter();
+    virtual bool SelectFilter(int position);
+    virtual bool SetFilterNames();
+    virtual bool GetFilterNames(const char *groupName);
+
+
+    int						m_fd;
+    CAMERA_TYPE             m_camera_type;
+    int						m_drv_handle;
+    bool					m_link_status;
+    char					m_dev_name[PATH_MAX];
+    string					m_start_exposure_timestamp;
+
+    void                    InitVars();
+    int     				OpenDriver();
+    int                 	CloseDriver();
+    unsigned short          CalcSetpoint(double temperature);
+    double                  CalcTemperature(short thermistorType, short ccdSetpoint);
+    double                  BcdPixel2double(ulong bcd);
+
+private:
+    DEVICE device;
+    char name[MAXINDINAME];
+
+    ISwitch                 ResetS[1];
+    ISwitchVectorProperty   ResetSP;
+
+    IText                   ProductInfoT[2];
+    ITextVectorProperty     ProductInfoTP;
+
+    IText                   PortT[1];
+    ITextVectorProperty     PortTP;
+
+    // TEMPERATURE GROUP:
+    ISwitch                 FanStateS[2];
+    ISwitchVectorProperty	FanStateSP;
+
+    INumber                 CoolerN[1];
+    INumberVectorProperty	CoolerNP;
+
+    // CFW GROUP:
+    IText					FilterProdcutT[2];
+    ITextVectorProperty     FilterProdcutTP;
+
+    ISwitch                 FilterTypeS[MAX_CFW_TYPES];
+    ISwitchVectorProperty	FilterTypeSP;
+
+    ISwitch 				FilterConnectionS[2];
+    ISwitchVectorProperty	FilterConnectionSP;
+
+    double ccdTemp;
+    unsigned short *imageBuffer;
+    int timerID;
+
+    CCDChip::CCD_FRAME imageFrameType;
+
+    struct timeval ExpStart;
+    struct timeval GuideExpStart;
+
+    float ExposureRequest;
+    float GuideExposureRequest;
+    float TemperatureRequest;
+
+
+    float CalcTimeLeft(timeval,float);
+    bool grabImage(CCDChip *targetChip);
+    bool setupParams();
+    void resetFrame();
+
+    bool sim;
+
     inline int			GetFileDescriptor(){return(m_fd);}
     inline void		SetFileDescriptor(int val = -1){m_fd = val;}
     inline bool		IsDeviceOpen(){return((m_fd == -1) ? false : true);}
@@ -209,25 +321,6 @@ public:
     int				getNumberOfCCDChips();
     bool			IsFanControlAvailable();
 
-    const char *getDefaultName();
-
-    bool initProperties();
-    void ISGetProperties(const char *dev);
-    bool updateProperties();
-
-    bool Connect();
-    bool Disconnect();
-
-    bool StartExposure(float duration);
-    bool AbortExposure();
-
-    bool StartGuideExposure(float duration);
-    bool AbortGuideExposure();
-
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-
     bool  			updateFrameProperties(CCDChip *targetChip);
     int 	 			UpdateCFWProperties();
     int  			StartExposure(CCDChip *targetChip, double duration);
@@ -251,94 +344,6 @@ public:
 
     int 				readoutCCD(	unsigned short left, 	 unsigned short top, unsigned short width, unsigned short height,
                                               unsigned short *buffer, CCDChip *targetChip);
-
-    void 		updateTemperature();
-    static void updateTemperatureHelper(void *);
-    bool 		isExposureDone(CCDChip *targetChip);
-
-
-protected:
-
-    void TimerHit();
-    virtual int  SetTemperature(double temperature);
-    virtual bool UpdateCCDFrame(int x, int y, int w, int h);
-    virtual bool UpdateGuideFrame(int x, int y, int w, int h);
-    virtual bool UpdateCCDBin(int binx, int biny);
-    virtual bool UpdateGuideBin(int binx, int biny);
-    virtual void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip);
-    virtual bool UpdateCCDFrameType(CCDChip::CCD_FRAME fType);
-
-    // Filter Wheel CFW
-    virtual int  QueryFilter();
-    virtual bool SelectFilter(int position);
-    virtual bool SetFilterNames();
-    virtual bool GetFilterNames(const char *groupName);
-
-
-    int						m_fd;
-    CAMERA_TYPE             m_camera_type;
-    int						m_drv_handle;
-    bool					m_link_status;
-    char					m_dev_name[PATH_MAX];
-    string					m_start_exposure_timestamp;
-
-    void                    InitVars();
-    int     				OpenDriver();
-    int                 	CloseDriver();
-    unsigned short          CalcSetpoint(double temperature);
-    double                  CalcTemperature(short thermistorType, short ccdSetpoint);
-    double                  BcdPixel2double(ulong bcd);
-
-private:
-    DEVICE device;
-    char name[MAXINDINAME];
-
-    ISwitch                 ResetS[1];
-    ISwitchVectorProperty   ResetSP;
-
-    IText                   ProductInfoT[2];
-    ITextVectorProperty     ProductInfoTP;
-
-    IText                   PortT[1];
-    ITextVectorProperty     PortTP;
-
-    // TEMPERATURE GROUP:
-    ISwitch                 FanStateS[2];
-    ISwitchVectorProperty	FanStateSP;
-
-    INumber                 CoolerN[1];
-    INumberVectorProperty	CoolerNP;
-
-    // CFW GROUP:
-    IText					FilterProdcutT[2];
-    ITextVectorProperty     FilterProdcutTP;
-
-    ISwitch                 FilterTypeS[MAX_CFW_TYPES];
-    ISwitchVectorProperty	FilterTypeSP;
-
-    ISwitch 				FilterConnectionS[2];
-    ISwitchVectorProperty	FilterConnectionSP;
-
-    double ccdTemp;
-    unsigned short *imageBuffer;
-    int timerID;
-
-    CCDChip::CCD_FRAME imageFrameType;
-
-    struct timeval ExpStart;
-    struct timeval GuideExpStart;
-
-    float ExposureRequest;
-    float GuideExposureRequest;
-    float TemperatureRequest;
-
-
-    float CalcTimeLeft(timeval,float);
-    bool grabImage(CCDChip *targetChip);
-    bool setupParams();
-    void resetFrame();
-
-    bool sim;
 
     friend void ::ISGetProperties(const char *dev);
     friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);
