@@ -282,7 +282,7 @@ int read_dcraw(const char *filename, char **memptr, size_t *memsize, int *n_axis
 		fprintf(stderr, "read_file_from_dcraw: failed to parse header\n");
         return -1;
 	}
-	*memptr = NULL;
+
 	fprintf(stderr, "Reading exposure %d x %d\n", header.width, header.height);
 	asprintf(&cmd, "%s -c -4 -D %s", dcraw_cmd, filename);
 	handle = popen(cmd, "r");
