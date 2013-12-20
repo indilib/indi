@@ -137,18 +137,22 @@ int read_ppm(FILE *handle, struct dcraw_header *header, char **memptr, size_t *m
 	}
 
     *memsize = width * height * bpp * (naxis == 2 ? 1 : 3);
+    
     *memptr = realloc(*memptr, *memsize);
+    
+    char *oldmem = *memptr; // if you do some ugly pointer math, remember to restore the original pointer or some random crashes will happen. This is why I do not like pointers!!
+    
     ppm = malloc(width * bpp);
     if (naxis == 3)
     {
         r_data = (unsigned char *) *memptr;
         g_data = r_data + width * height * bpp;
         b_data = r_data + 2 * width * height * bpp;
-	}
+    }
 
     for (row = 0; row < height; row++)
     {
-		int len;
+	int len;
         len = fread(ppm, 1, width * bpp, handle);
         if (len != width * bpp)
         {
@@ -165,6 +169,7 @@ int read_ppm(FILE *handle, struct dcraw_header *header, char **memptr, size_t *m
 			}
             if (naxis == 3)
             {
+
                 for (i = 0; i < width; i++)
                 {
                     *(unsigned short *)r_data++ = *ppm16++;
@@ -199,6 +204,9 @@ int read_ppm(FILE *handle, struct dcraw_header *header, char **memptr, size_t *m
 	}
 
     free(ppm);
+    
+    *memptr = oldmem;
+    
 	return 0;
 
 }
@@ -295,7 +303,9 @@ int read_dcraw(const char *filename, char **memptr, size_t *memsize, int *n_axis
 
     int rc= read_ppm(handle, &header, memptr, memsize, n_axis, w, h, bitsperpixel);
 
-	pclose(handle);
+
+
+    pclose(handle);
 
     return rc;
 }
@@ -358,6 +368,7 @@ int read_jpeg(const char *filename, char **memptr, size_t *memsize, int *naxis, 
 
     *memsize = cinfo.output_width * cinfo.output_height * cinfo.num_components;
     *memptr = realloc(*memptr, *memsize);
+    char *oldmem = *memptr; // if you do some ugly pointer math, remember to restore the original pointer or some random crashes will happen. This is why I do not like pointers!!
     *naxis = cinfo.num_components;
     *w = cinfo.output_width;
     *h = cinfo.output_height;
@@ -414,6 +425,10 @@ int read_jpeg(const char *filename, char **memptr, size_t *memsize, int *naxis, 
 	if(infile)
 		fclose( infile );
     //fits_close_file(fptr, &status);            /* close the file */
+	
+
+	*memptr = oldmem;
+	
 	return 0;
 /*err_release:
 	if (row_pointer[0] )

@@ -584,23 +584,29 @@ bool GPhotoCCD::grabImage()
     char *memptr = PrimaryCCD.getFrameBuffer();
 	size_t memsize;
     int fd, naxis=2, w, h, bpp=8;
-    char tmpfile[] = "/tmp/indi_XXXXXX";
 
-    //dcraw can't read from stdin, so we need to write to disk then read it back
-    fd = mkstemp(tmpfile);
-    gphoto_read_exposure_fd(gphotodrv, fd);
-    if (fd == -1)
-    {
-        DEBUG(INDI::Logger::DBG_ERROR, "Exposure failed to save image...");
-        unlink(tmpfile);
-        return false;
-    }
-
-    /* We're done exposing */
-    DEBUG(INDI::Logger::DBG_SESSION, "Exposure done, downloading image...");
 
     if (transferFormatS[0].s == ISS_ON)
     {
+	    
+        char tmpfile[] = "/tmp/indi_XXXXXX";
+
+        //dcraw can't read from stdin, so we need to write to disk then read it back
+        fd = mkstemp(tmpfile);
+
+        gphoto_read_exposure_fd(gphotodrv, fd);
+
+        if (fd == -1)
+        {
+            DEBUG(INDI::Logger::DBG_ERROR, "Exposure failed to save image...");
+            unlink(tmpfile);
+            return false;
+        }
+
+        /* We're done exposing */
+        DEBUG(INDI::Logger::DBG_SESSION, "Exposure done, downloading image...");
+    
+    
         if(strcasecmp(gphoto_get_file_extension(gphotodrv), "jpg") == 0 ||
            strcasecmp(gphoto_get_file_extension(gphotodrv), "jpeg") == 0)
         {
@@ -615,11 +621,11 @@ bool GPhotoCCD::grabImage()
         {
                 if (read_dcraw(tmpfile, &memptr, &memsize, &naxis, &w, &h, &bpp))
                 {
-                    DEBUG(INDI::Logger::DBG_ERROR, "Exposure failed to prase raw image.");
+                    DEBUG(INDI::Logger::DBG_ERROR, "Exposure failed to parse raw image.");
                     unlink(tmpfile);
                     return false;
                 }
-
+		
                 unlink(tmpfile);
         }
 
@@ -629,6 +635,9 @@ bool GPhotoCCD::grabImage()
     {
         gphoto_get_dimensions(gphotodrv, &w, &h);
         gphoto_read_exposure(gphotodrv);
+	
+	/* We're done exposing */
+        DEBUG(INDI::Logger::DBG_SESSION, "Exposure done, downloading image...");
         gphoto_get_buffer(gphotodrv, (const char **)&memptr, &memsize);
 
         PrimaryCCD.setImageExtension(gphoto_get_file_extension(gphotodrv));
