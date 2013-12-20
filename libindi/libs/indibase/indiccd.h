@@ -183,11 +183,11 @@ public:
     const char *getFrameTypeName(CCD_FRAME fType);
 
     /**
-     * @brief setResolutoin set CCD Chip resolution
+     * @brief setResolution set CCD Chip resolution
      * @param x width
      * @param y height
      */
-    void setResolutoin(int x, int y);
+    void setResolution(int x, int y);
 
     /**
      * @brief setFrame Set desired frame resolutoin for an exposure.

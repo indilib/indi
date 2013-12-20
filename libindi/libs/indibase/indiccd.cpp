@@ -91,7 +91,7 @@ void CCDChip::setFrameType(CCD_FRAME type)
     FrameType=type;
 }
 
-void CCDChip::setResolutoin(int x, int y)
+void CCDChip::setResolution(int x, int y)
 {
     XRes = x;
     YRes = y;
@@ -1490,7 +1490,7 @@ bool INDI::CCD::uploadFile(CCDChip * targetChip, const void *fitsData, size_t to
 
 void INDI::CCD::SetCCDParams(int x,int y,int bpp,float xf,float yf)
 {
-    PrimaryCCD.setResolutoin(x, y);
+    PrimaryCCD.setResolution(x, y);
     PrimaryCCD.setFrame(0, 0, x, y);
     PrimaryCCD.setBin(1,1);
     PrimaryCCD.setPixelSize(xf, yf);
@@ -1502,7 +1502,7 @@ void INDI::CCD::SetGuideHeadParams(int x,int y,int bpp,float xf,float yf)
 {
     capability.hasGuideHead=true;
 
-    GuideCCD.setResolutoin(x, y);
+    GuideCCD.setResolution(x, y);
     GuideCCD.setFrame(0, 0, x, y);
     GuideCCD.setPixelSize(xf, yf);
     GuideCCD.setBPP(bpp);

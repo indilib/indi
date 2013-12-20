@@ -331,7 +331,7 @@ bool V4L2_Driver::ISNewSwitch (const char *dev, const char *name, ISState *state
             PrimaryCCD.setFrame(0, 0, w, h);
             V4LFrame->width = w;
             V4LFrame->height= h;
-            PrimaryCCD.setResolutoin(w, h);
+            PrimaryCCD.setResolution(w, h);
             CaptureSizesSP.s = IPS_OK;
             IDSetSwitch(&CaptureSizesSP, "Capture size (discrete): %d. %s", index, CaptureSizesSP.sp[index].name);
             return true;
@@ -518,7 +518,7 @@ bool V4L2_Driver::ISNewNumber (const char *dev, const char *name, double values[
 	 IUUpdateNumber(&CaptureSizesNP, rsizes, names, n);
 	 V4LFrame->width = w;
 	 V4LFrame->height= h;
-	 PrimaryCCD.setResolutoin(w, h);
+	 PrimaryCCD.setResolution(w, h);
 	 CaptureSizesNP.s = IPS_OK;
      frameBytes  = (ImageTypeS[0].s == ISS_ON) ? (PrimaryCCD.getSubW() * PrimaryCCD.getSubH()):
                                                  (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * 4);
@@ -912,7 +912,7 @@ void V4L2_Driver::getBasicData()
   updateV4L2Controls();
 
 
-  PrimaryCCD.setResolutoin(w, h);
+  PrimaryCCD.setResolution(w, h);
   PrimaryCCD.setFrame(0,0, w,h);
   frameBytes  = (ImageTypeS[0].s == ISS_ON) ? (PrimaryCCD.getSubW() * PrimaryCCD.getSubH()):
                                               (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * 4);
