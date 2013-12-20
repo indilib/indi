@@ -645,7 +645,7 @@ bool GPhotoCCD::grabImage()
 
     PrimaryCCD.setFrameBuffer(memptr);
     PrimaryCCD.setFrameBufferSize(memsize, false);
-    PrimaryCCD.setResolutoin(w, h);
+    PrimaryCCD.setResolution(w, h);
     PrimaryCCD.setFrame(0, 0, w, h);
     PrimaryCCD.setNAxis(naxis);
     PrimaryCCD.setBPP(bpp);
