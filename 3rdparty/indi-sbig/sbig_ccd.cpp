@@ -1002,7 +1002,7 @@ bool SBIGCCD::updateFrameProperties(CCDChip *targetChip)
         wCcd *= targetChip->getBinX();
         hCcd *= targetChip->getBinY();
 
-        targetChip->setResolutoin(wCcd, hCcd);
+        targetChip->setResolution(wCcd, hCcd);
 
         if (targetChip == &PrimaryCCD)
             UpdateCCDFrame(0, 0, wCcd, hCcd);
