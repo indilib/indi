@@ -16,6 +16,15 @@ find_package(GPHOTO2 REQUIRED)
 find_package(Threads REQUIRED)
 find_package(JPEG REQUIRED)
 
+find_program(DCRAW_EXECUTABLE NAMES dcraw
+    PATHS
+    /usr/bin
+    /usr/local/bin)
+
+if (NOT DCRAW_EXECUTABLE)
+    message(FATAL_ERROR "dcraw not found. Please install dcraw and try again.")
+endif (NOT DCRAW_EXECUTABLE)
+
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
 include_directories( ${INDI_INCLUDE_DIR})

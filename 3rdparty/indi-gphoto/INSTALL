@@ -4,6 +4,7 @@ libgphoto installed
 INDI installed along with the header files.
 cfitsio installed
 libpthread installed
+dcraw installed
 
 Run:
 cmake .
