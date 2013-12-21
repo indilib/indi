@@ -7,6 +7,6 @@ Standards-Version: 3.7.2
 
 Package: indi-gphoto
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: INDI GPHOTO Camera Driver. This driver is compatible with any INDI client such as KStars or Xephem.  Currently only the Canon EOS DSLR cameras are supported.
+Depends: ${shlibs:Depends}, ${misc:Depends}, dcraw
+Description: INDI GPHOTO Camera Driver. This driver is compatible with any INDI client such as KStars or Xephem.  The driver can operate any camera supported by GPhoto2.
 
