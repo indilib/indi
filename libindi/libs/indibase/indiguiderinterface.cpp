@@ -50,49 +50,40 @@ void INDI::GuiderInterface::processGuiderProperties(const char *name, double val
     if(strcmp(name,GuideNSNP.name)==0)
     {
         //  We are being asked to send a guide pulse north/south on the st4 port
-        GuideNSNP.s=IPS_BUSY;
         IUUpdateNumber(&GuideNSNP,values,names,n);
-        //  Update client display
-        IDSetNumber(&GuideNSNP,NULL);
-
+        bool rc= false;
 
         if(GuideNSN[0].value != 0)
         {
-            GuideNorth(GuideNSN[0].value);
+            GuideNSN[1].value = 0;
+            rc = GuideNorth(GuideNSN[0].value);
         }
-        if(GuideNSN[1].value != 0) {
-            GuideSouth(GuideNSN[1].value);
+        else if(GuideNSN[1].value != 0)
+        {
+            rc = GuideSouth(GuideNSN[1].value);
         }
-        GuideNSN[0].value=0;
-        GuideNSN[1].value=0;
-        GuideNSNP.s=IPS_OK;
-        IDSetNumber(&GuideNSNP,NULL);
 
+        GuideNSNP.s= rc ? IPS_OK : IPS_ALERT;
+        IDSetNumber(&GuideNSNP,NULL);
         return;
     }
 
     if(strcmp(name,GuideWENP.name)==0)
     {
         //  We are being asked to send a guide pulse north/south on the st4 port
-        GuideWENP.s=IPS_BUSY;
         IUUpdateNumber(&GuideWENP,values,names,n);
-        //  Update client display
-        IDSetNumber(&GuideWENP,NULL);
-
+        bool rc=false;
 
         if(GuideWEN[0].value != 0)
         {
-            GuideEast(GuideWEN[0].value);
-        } else
-        {
-            GuideWest(GuideWEN[1].value);
+            GuideWEN[1].value = 0;
+            rc = GuideEast(GuideWEN[0].value);
         }
+        else if(GuideWEN[1].value != 0)
+            rc = GuideWest(GuideWEN[1].value);
 
-        GuideWEN[0].value=0;
-        GuideWEN[1].value=0;
-        GuideWENP.s=IPS_OK;
+        GuideWENP.s= rc ? IPS_OK : IPS_ALERT;
         IDSetNumber(&GuideWENP,NULL);
-
         return;
     }
 }
