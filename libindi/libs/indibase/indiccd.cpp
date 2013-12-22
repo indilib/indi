@@ -504,7 +504,6 @@ bool INDI::CCD::updateProperties()
             deleteProperty(PrimaryCCD.AbortExposureSP->name);
         deleteProperty(PrimaryCCD.FitsBP->name);
         deleteProperty(PrimaryCCD.CompressSP->name);
-        deleteProperty(PrimaryCCD.RapidGuideDataNP->name);
         deleteProperty(PrimaryCCD.RapidGuideSP->name);
         if (RapidGuideEnabled)
         {
@@ -524,7 +523,6 @@ bool INDI::CCD::updateProperties()
                 deleteProperty(GuideCCD.ImageBinNP->name);
             deleteProperty(GuideCCD.CompressSP->name);
             deleteProperty(GuideCCD.FrameTypeSP->name);
-            deleteProperty(GuideCCD.RapidGuideDataNP->name);
             deleteProperty(GuideCCD.RapidGuideSP->name);
             if (GuiderRapidGuideEnabled)
             {
