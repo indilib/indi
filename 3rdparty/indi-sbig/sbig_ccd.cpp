@@ -847,6 +847,9 @@ int SBIGCCD::StartExposure(CCDChip *targetChip, double duration)
       sep.width       = width;
       sep.height      = height;
 
+      DEBUGF(INDI::Logger::DBG_DEBUG, "Exposure Params. CCD (%d) openShutter(%d), exposureTime(%ld), binnig (%d), left (%d), top (%d), w(%d), h(%d)", sep.ccd, sep.openShutter,
+             sep.exposureTime,  sep.readoutMode, sep.left , sep.top , sep.width , sep.height);
+
      // Must call immediatley before starting exposure
     targetChip->setExposureDuration(duration);
 
@@ -863,7 +866,7 @@ int SBIGCCD::StartExposure(CCDChip *targetChip, double duration)
     }else if(!strcmp(frame_type.c_str(), "FRAME_BIAS")){
             msg = "Bias Frame exposure in progress...";
     }
-    DEBUGF(INDI::Logger::DBG_SESSION, "%s", msg.c_str());
+    DEBUGF(INDI::Logger::DBG_DEBUG, "%s", msg.c_str());
 
     return (res);
 
@@ -876,10 +879,9 @@ bool SBIGCCD::StartExposure(float duration)
         return false;
 
   ExposureRequest = duration;
-  DEBUGF(INDI::Logger::DBG_DEBUG, "Exposure Time (s) is: %g\n", duration);
 
   gettimeofday(&ExpStart, NULL);
-  DEBUGF(INDI::Logger::DBG_SESSION, "Taking a %g seconds frame...", ExposureRequest);
+  DEBUGF(INDI::Logger::DBG_DEBUG, "Taking a %g seconds frame...", ExposureRequest);
 
   InExposure = true;
 
@@ -1177,7 +1179,7 @@ bool SBIGCCD::grabImage(CCDChip *targetChip)
       unsigned short *buffer = (unsigned short *) targetChip->getFrameBuffer();
 
       // Readout CCD:
-      DEBUG(INDI::Logger::DBG_SESSION, "CCD readout in progress...");
+      DEBUG(INDI::Logger::DBG_DEBUG, "CCD readout in progress...");
 
       if(readoutCCD(left, top, width, height, buffer, targetChip) != CE_NO_ERROR)
       {
@@ -1186,7 +1188,7 @@ bool SBIGCCD::grabImage(CCDChip *targetChip)
       }
   }
 
-  DEBUG(INDI::Logger::DBG_SESSION, "Download complete.");
+  DEBUG(INDI::Logger::DBG_DEBUG, "Download complete.");
 
   ExposureComplete(targetChip);
 
@@ -1243,7 +1245,7 @@ void SBIGCCD::TimerHit()
    if (isExposureDone(targetChip))
    {
       /* We're done exposing */
-      DEBUG(INDI::Logger::DBG_SESSION, "Exposure done, downloading image...");
+      DEBUG(INDI::Logger::DBG_DEBUG, "Exposure done, downloading image...");
 
       timeleft=0;
       targetChip->setExposureLeft(0);
@@ -1255,7 +1257,7 @@ void SBIGCCD::TimerHit()
             targetChip->setExposureFailed();
     }
      else
-       DEBUGF(INDI::Logger::DBG_DEBUG, "Exposure in progress with %g seconds left.", timeleft);
+       DEBUGF(INDI::Logger::DBG_DEBUG, "Exposure in progress with %ld seconds left.", timeleft);
 
    if (InExposure || InGuideExposure)
         targetChip->setExposureLeft(timeleft);
