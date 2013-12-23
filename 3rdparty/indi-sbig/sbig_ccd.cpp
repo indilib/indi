@@ -727,7 +727,7 @@ bool SBIGCCD::setupParams()
             y_2 = hCcd;
          }
 
-          SetGuideHeadParams(x_2 - x_1, y_2 - y_1, bit_depth, x_pixel_size, y_pixel_size);
+          SetGuiderParams(x_2 - x_1, y_2 - y_1, bit_depth, x_pixel_size, y_pixel_size);
     }
 
   // Now we usually do the following in the hardware
@@ -1007,7 +1007,7 @@ bool SBIGCCD::updateFrameProperties(CCDChip *targetChip)
         if (targetChip == &PrimaryCCD)
             UpdateCCDFrame(0, 0, wCcd, hCcd);
         else
-            UpdateGuideFrame(0,0, wCcd, hCcd);
+            UpdateGuiderFrame(0,0, wCcd, hCcd);
 
         return true;
     }
@@ -1032,7 +1032,7 @@ bool SBIGCCD::UpdateCCDFrame(int x, int y, int w, int h)
   return true;
 }
 
-bool SBIGCCD::UpdateGuideFrame(int x, int y, int w, int h)
+bool SBIGCCD::UpdateGuiderFrame(int x, int y, int w, int h)
 {
   DEBUGF(INDI::Logger::DBG_DEBUG, "The Final Guide image area is (%ld, %ld), (%ld, %ld)\n", x, y, w, h);
 
@@ -1054,7 +1054,7 @@ bool SBIGCCD::UpdateCCDBin(int binx, int biny)
     if (binx != biny)
         biny = binx;
 
-    if (binx != 1 && binx != 2 && binx != 3 && binx != 9)
+    if (binx <1 || binx > 3)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error: Bad CCD binning mode! Use: 1x1, 2x2 or 3x3");
         return false;
@@ -1065,12 +1065,12 @@ bool SBIGCCD::UpdateCCDBin(int binx, int biny)
   return updateFrameProperties(&PrimaryCCD);
 }
 
-bool SBIGCCD::UpdateGuideBin(int binx, int biny)
+bool SBIGCCD::UpdateGuiderBin(int binx, int biny)
 {
     if (binx != biny)
         biny = binx;
 
-    if (binx != 1 && binx != 2 && binx != 3 && binx != 9)
+    if (binx <1 || binx > 3)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error: Bad CCD binning mode! Use: 1x1, 2x2 or 3x3");
         return false;
