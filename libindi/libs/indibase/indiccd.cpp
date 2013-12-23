@@ -348,7 +348,7 @@ bool INDI::CCD::initProperties()
 
     IUFillNumber(&GuideCCD.ImageBinN[0],"HOR_BIN","X","%2.0f",1,4,1,1);
     IUFillNumber(&GuideCCD.ImageBinN[1],"VER_BIN","Y","%2.0f",1,4,1,1);
-    IUFillNumberVector(GuideCCD.ImageBinNP,GuideCCD.ImageBinN,2,getDeviceName(),"GUIDE_BINNING","Binning",GUIDE_HEAD_TAB,IP_RW,60,IPS_IDLE);
+    IUFillNumberVector(GuideCCD.ImageBinNP,GuideCCD.ImageBinN,2,getDeviceName(),"GUIDER_BINNING","Binning",GUIDE_HEAD_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillNumber(&GuideCCD.ImagePixelSizeN[0],"CCD_MAX_X","Resolution x","%4.0f",1,40,0,6.45);
     IUFillNumber(&GuideCCD.ImagePixelSizeN[1],"CCD_MAX_Y","Resolution y","%4.0f",1,40,0,6.45);
@@ -362,7 +362,7 @@ bool INDI::CCD::initProperties()
     IUFillSwitch(&GuideCCD.FrameTypeS[1],"FRAME_BIAS","Bias",ISS_OFF);
     IUFillSwitch(&GuideCCD.FrameTypeS[2],"FRAME_DARK","Dark",ISS_OFF);
     IUFillSwitch(&GuideCCD.FrameTypeS[3],"FRAME_FLAT","Flat",ISS_OFF);
-    IUFillSwitchVector(GuideCCD.FrameTypeSP,GuideCCD.FrameTypeS,4,getDeviceName(),"GUIDE_FRAME_TYPE","Frame Type",GUIDE_HEAD_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    IUFillSwitchVector(GuideCCD.FrameTypeSP,GuideCCD.FrameTypeS,4,getDeviceName(),"GUIDER_FRAME_TYPE","Frame Type",GUIDE_HEAD_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
     IUFillNumber(&GuideCCD.ImageExposureN[0],"GUIDER_EXPOSURE_VALUE","Duration (s)","%5.2f",0,36000,0,1.0);
     IUFillNumberVector(GuideCCD.ImageExposureNP,GuideCCD.ImageExposureN,1,getDeviceName(),"GUIDER_EXPOSURE","Guide Head",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
@@ -670,7 +670,7 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
 
         }
 
-        if(strcmp(name,"GUIDE_BINNING")==0)
+        if(strcmp(name,"GUIDER_BINNING")==0)
         {
             //  We are being asked to set camera binning
             INumber *np = IUFindNumber(GuideCCD.ImageBinNP, names[0]);
@@ -693,7 +693,7 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
                 biny = values[0];
             }
 
-            if (UpdateCCDBin(binx, biny))
+            if (UpdateGuiderBin(binx, biny))
             {
                 IUUpdateNumber(GuideCCD.ImageBinNP,values,names,n);
                 GuideCCD.ImageBinNP->s=IPS_OK;
@@ -732,7 +732,7 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
             DEBUGF(Logger::DBG_DEBUG, "GuiderFrame set to %4.0f,%4.0f %4.0f x %4.0f",
                   GuideCCD.ImageFrameN[0].value,GuideCCD.ImageFrameN[1].value,GuideCCD.ImageFrameN[2].value,GuideCCD.ImageFrameN[3].value);
 
-            if (UpdateGuideFrame(GuideCCD.ImageFrameN[0].value, GuideCCD.ImageFrameN[1].value, GuideCCD.ImageFrameN[2].value,
+            if (UpdateGuiderFrame(GuideCCD.ImageFrameN[0].value, GuideCCD.ImageFrameN[1].value, GuideCCD.ImageFrameN[2].value,
                                GuideCCD.ImageFrameN[3].value) == false)
                 GuideCCD.ImageFrameNP->s = IPS_ALERT;
 
@@ -927,7 +927,7 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
             else if(GuideCCD.FrameTypeS[3].s==ISS_ON)
                 GuideCCD.setFrameType(CCDChip::FLAT_FRAME);
 
-            if (UpdateGuideFrameType(GuideCCD.getFrameType()) == false)
+            if (UpdateGuiderFrameType(GuideCCD.getFrameType()) == false)
                 GuideCCD.FrameTypeSP->s = IPS_ALERT;
 
             IDSetSwitch(GuideCCD.FrameTypeSP,NULL);
@@ -1043,7 +1043,7 @@ bool INDI::CCD::UpdateCCDFrame(int x, int y, int w, int h)
     return true;
 }
 
-bool INDI::CCD::UpdateGuideFrame(int x, int y, int w, int h)
+bool INDI::CCD::UpdateGuiderFrame(int x, int y, int w, int h)
 {
     GuideCCD.setFrame(x,y, w,h);
     return true;
@@ -1052,12 +1052,11 @@ bool INDI::CCD::UpdateGuideFrame(int x, int y, int w, int h)
 bool INDI::CCD::UpdateCCDBin(int hor, int ver)
 {
     // Just set value, unless HW layer overrides this and performs its own processing
-    INDI_UNUSED(hor);
-    INDI_UNUSED(ver);
+    PrimaryCCD.setBin(hor,ver);
     return true;
 }
 
-bool INDI::CCD::UpdateGuideBin(int hor, int ver)
+bool INDI::CCD::UpdateGuiderBin(int hor, int ver)
 {
     // Just set value, unless HW layer overrides this and performs its own processing
     GuideCCD.setBin(hor, ver);
@@ -1071,7 +1070,7 @@ bool INDI::CCD::UpdateCCDFrameType(CCDChip::CCD_FRAME fType)
     return true;
 }
 
-bool INDI::CCD::UpdateGuideFrameType(CCDChip::CCD_FRAME fType)
+bool INDI::CCD::UpdateGuiderFrameType(CCDChip::CCD_FRAME fType)
 {
     INDI_UNUSED(fType);
     // Child classes can override this
@@ -1496,7 +1495,7 @@ void INDI::CCD::SetCCDParams(int x,int y,int bpp,float xf,float yf)
 
 }
 
-void INDI::CCD::SetGuideHeadParams(int x,int y,int bpp,float xf,float yf)
+void INDI::CCD::SetGuiderParams(int x,int y,int bpp,float xf,float yf)
 {
     capability.hasGuideHead=true;
 

@@ -269,7 +269,7 @@ bool CCDSim::updateProperties()
 
         if(HasGuideHead())
         {
-            SetGuideHeadParams(500,290,16,9.8,12.6);
+            SetGuiderParams(500,290,16,9.8,12.6);
             GuideCCD.setFrameBufferSize(GuideCCD.getXRes() * GuideCCD.getYRes() * 2);
         }
 
