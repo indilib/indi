@@ -187,6 +187,11 @@ bool GPUSB::ISSnoopDevice (XMLEle *root)
     return INDI::DefaultDevice::ISSnoopDevice(root);
 }
 
+void GPUSB::debugTriggered(bool enable)
+{
+    driver->setDebug(enable);
+}
+
 float GPUSB::CalcWEPulseTimeLeft()
 {
     double timesince;
@@ -319,7 +324,7 @@ bool GPUSB::GuideNorth(float ms)
 
     NSDir = GPUSB_NORTH;
 
-    IDLog("Starting NORTH guide\n");
+    DEBUG(INDI::Logger::DBG_DEBUG, "Starting NORTH guide");
 
     if (ms <= POLLMS)
     {
@@ -348,7 +353,7 @@ bool GPUSB::GuideSouth(float ms)
 
     driver->startPulse(GPUSB_SOUTH);
 
-    IDLog("Starting SOUTH guide\n");
+    DEBUG(INDI::Logger::DBG_DEBUG, "Starting SOUTH guide");
 
     NSDir = GPUSB_SOUTH;
 
@@ -380,7 +385,7 @@ bool GPUSB::GuideEast(float ms)
 
     driver->startPulse(GPUSB_EAST);
 
-    IDLog("Starting EAST guide\n");
+    DEBUG(INDI::Logger::DBG_DEBUG, "Starting EAST guide");
 
     WEDir = GPUSB_EAST;
 
@@ -409,7 +414,7 @@ bool GPUSB::GuideWest(float ms)
 
     driver->startPulse(GPUSB_WEST);
 
-    IDLog("Starting WEST guide\n");
+    DEBUG(INDI::Logger::DBG_DEBUG, "Starting WEST guide");
 
     WEDir = GPUSB_WEST;
 

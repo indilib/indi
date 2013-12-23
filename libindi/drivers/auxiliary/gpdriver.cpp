@@ -47,7 +47,9 @@ bool GPUSBDriver::Connect()
          return false;
      }
 
-   return Open();
+    int rc = Open();
+
+   return (rc != -1);
     
 }
 

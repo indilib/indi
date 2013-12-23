@@ -60,6 +60,7 @@ class GPUSB : public INDI::GuiderInterface, public INDI::DefaultDevice
     bool Connect();
     bool Disconnect();
     const char *getDefaultName();
+    void debugTriggered(bool enable);
 
     void TimerHit();
 
