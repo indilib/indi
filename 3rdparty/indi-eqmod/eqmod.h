@@ -101,7 +101,9 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 	INumberVectorProperty *StandardSyncNP;
 	INumberVectorProperty *StandardSyncPointNP;
 	INumberVectorProperty *SyncPolarAlignNP;
-	ISwitchVectorProperty *SyncManageSP;   
+	ISwitchVectorProperty *SyncManageSP; 
+  	INumberVectorProperty *ParkPositionNP;
+	ISwitchVectorProperty *ParkOptionSP;
     ISwitchVectorProperty *ReverseDECSP;
 
 

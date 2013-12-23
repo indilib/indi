@@ -369,6 +369,8 @@ bool EQMod::loadProperties()
     StandardSyncPointNP=getNumber("STANDARDSYNCPOINT");
     SyncPolarAlignNP=getNumber("SYNCPOLARALIGN");
     SyncManageSP=getSwitch("SYNCMANAGE");
+    ParkPositionNP=getNumber("PARKPOSITION");
+    ParkOptionSP=getSwitch("PARKOPTION");
 
     //IDLog("initProperties: connected=%d %s", (isConnected()?1:0), this->getDeviceName());
 
@@ -384,7 +386,10 @@ bool EQMod::loadProperties()
 
 bool EQMod::updateProperties()
 {
-    INumber *latitude;
+    INumber *latitude;  
+    double parkpositionvalues[2];
+    const char *parkpositionnames[]={"PARKRA", "PARKDE"};
+
     INDI::Telescope::updateProperties();
     //IDMessage(this->getDeviceName(),"updateProperties: connected=%d %s", (isConnected()?1:0), this->getDeviceName());
     if (isConnected())
@@ -414,6 +419,8 @@ bool EQMod::updateProperties()
 	defineNumber(StandardSyncPointNP);
 	defineNumber(SyncPolarAlignNP);
 	defineSwitch(SyncManageSP);
+	defineNumber(ParkPositionNP);
+	defineSwitch(ParkOptionSP);
 
 	try {
 	  mount->InquireBoardVersion(MountInformationTP);
@@ -439,21 +446,31 @@ bool EQMod::updateProperties()
 	  totalDEEncoder=mount->GetDEEncoderTotal();
 	  homeDEEncoder=mount->GetDEEncoderHome();
 
-	  parkRAEncoder=homeRAEncoder;
-	  parkDEEncoder=homeDEEncoder;
+	  parkRAEncoder=mount->GetRAEncoderPark();
+	  parkDEEncoder=mount->GetDEEncoderPark();
+	  parkpositionvalues[0]=parkRAEncoder;
+	  parkpositionvalues[1]=parkDEEncoder;
+	  IUUpdateNumber(ParkPositionNP, parkpositionvalues, (char **)parkpositionnames, 2);
+	  IDSetNumber(ParkPositionNP, NULL);
+
+	  Parked=false;	
+	  if (mount->isParked()) {
+	    //TODO unpark mount if desired
+	    Parked=true;
+	  }
+
+	  IUResetSwitch(&ParkSP);
+	  if (Parked) {
+	    ParkSP.s=IPS_OK;
+	    IDSetSwitch(&ParkSP, NULL);
+	    TrackState = SCOPE_PARKED;
+	  } else 
+	    TrackState=SCOPE_IDLE;
 
 	  latitude=IUFindNumber(&LocationNP, "LAT");
 	  if ((latitude) && (latitude->value < 0.0)) SetSouthernHemisphere(true);
 	  else  SetSouthernHemisphere(false);
-	
-	  if (ParkSP.sp[0].s==ISS_ON) {
-	    //TODO unpark mount if desired
-	  }
 
-	  IUResetSwitch(&ParkSP);
-	  Parked=false;
-
-	  TrackState=SCOPE_IDLE;
 	} 
 	catch(EQModError e) {
 	  return(e.DefaultHandleException(this));
@@ -485,6 +502,8 @@ bool EQMod::updateProperties()
 	  deleteProperty(StandardSyncPointNP->name);
 	  deleteProperty(SyncPolarAlignNP->name);
 	  deleteProperty(SyncManageSP->name);
+	  deleteProperty(ParkPositionNP->name);
+	  deleteProperty(ParkOptionSP->name);
 	  MountInformationTP=NULL;
 	} 
       }
@@ -726,6 +745,7 @@ bool EQMod::ReadScopeStatus() {
 	    IDSetSwitch(&ParkSP, NULL);
 	    Parked=true;
 	    TrackState = SCOPE_PARKED;
+	    mount->SetParked(true);
 	    DEBUG(INDI::Logger::DBG_SESSION, "Telescope Parked...");
       }
     }
@@ -1093,12 +1113,13 @@ bool EQMod::Park()
       IDSetSwitch(&ParkSP, NULL);
       return false;
     }
-    currentRAEncoder=mount->GetRAEncoder();
-    currentDEEncoder=mount->GetDEEncoder();
+
     try {    
       // stop motor
       mount->StopRA();
       mount->StopDE();
+      currentRAEncoder=mount->GetRAEncoder();
+      currentDEEncoder=mount->GetDEEncoder();
       // Start slewing
       DEBUGF(INDI::Logger::DBG_SESSION, "Parking mount: RA increment = %ld, DE increment = %ld",
 		parkRAEncoder - currentRAEncoder, parkDEEncoder - currentDEEncoder);
@@ -1116,6 +1137,7 @@ bool EQMod::Park()
     //DEBUG(INDI::Logger::DBG_SESSION, "Telescope Parked...");
   } else {
     Parked=false;
+    mount->SetParked(false);
     TrackState = SCOPE_IDLE;
     ParkSP.s=IPS_IDLE;
     IDSetSwitch(&ParkSP, NULL);
@@ -1414,6 +1436,25 @@ bool EQMod::ISNewNumber (const char *dev, const char *name, double values[], cha
 
        }
 
+      if(strcmp(name,"PARKPOSITION")==0)
+	{ 
+	  for (int i=0; i<n; i++) {
+	    if (strcmp(names[i], "PARKRA") == 0) mount->SetRAEncoderPark(values[i]);
+	    else if  (strcmp(names[i], "PARKDE") == 0) mount->SetDEEncoderPark(values[i]);
+	  }
+	  parkRAEncoder=mount->GetRAEncoderPark();
+	  parkDEEncoder=mount->GetDEEncoderPark();
+	  for (int i=0; i<n; i++) {
+	    if (strcmp(names[i], "PARKRA") == 0) values[i]=parkRAEncoder;
+	    else if  (strcmp(names[i], "PARKDE") == 0) values[i]=parkDEEncoder;
+	  }
+	  IUUpdateNumber(ParkPositionNP, values, names, n);
+	  ParkPositionNP->s = IPS_OK;
+	  IDSetNumber(ParkPositionNP, NULL);
+	  DEBUGF(INDI::Logger::DBG_SESSION, "Setting Park Position - RA Encoder=%ld DE Encoder=%ld",
+		      parkRAEncoder, parkDEEncoder);
+	  return true;
+	}
       
     }
 
@@ -1569,6 +1610,56 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 	  }
 	}
 
+      if (!strcmp(name, "PARKOPTION"))
+	{
+	  ISwitchVectorProperty *svp = getSwitch(name);
+	  IUUpdateSwitch(svp, states, names, n);
+	  ISwitch *sp = IUFindOnSwitch(svp);
+	  if (!sp)
+	    return false;
+	  IDSetSwitch(svp, NULL);
+	  if (TrackState != SCOPE_IDLE) {
+	    DEBUG(INDI::Logger::DBG_SESSION, "Can not change park position while moving...");
+	    svp->s=IPS_ALERT;
+	    IDSetSwitch(svp, NULL);
+	    return false;
+	  }
+
+	  if (!strcmp(sp->name, "PARKSETCURRENT")) {
+	    parkRAEncoder=currentRAEncoder;
+	    parkDEEncoder=currentDEEncoder;
+	    mount->SetRAEncoderPark(parkRAEncoder);
+	    mount->SetDEEncoderPark(parkDEEncoder);
+	    IUFindNumber(ParkPositionNP, "PARKRA")->value=parkRAEncoder;
+	    IUFindNumber(ParkPositionNP, "PARKDE")->value=parkDEEncoder;
+	    IDSetNumber(ParkPositionNP, NULL);
+	    DEBUGF(INDI::Logger::DBG_SESSION, "Setting Park Position to current- RA Encoder=%ld DE Encoder=%ld",
+		      parkRAEncoder, parkDEEncoder);
+	  }
+
+	  if (!strcmp(sp->name, "PARKSETDEFAULT")) {
+	    parkRAEncoder=mount->GetRAEncoderParkDefault();
+	    parkDEEncoder=mount->GetDEEncoderParkDefault();
+	    mount->SetRAEncoderPark(parkRAEncoder);
+	    mount->SetDEEncoderPark(parkDEEncoder);
+	    IUFindNumber(ParkPositionNP, "PARKRA")->value=parkRAEncoder;
+	    IUFindNumber(ParkPositionNP, "PARKDE")->value=parkDEEncoder;
+	    IDSetNumber(ParkPositionNP, NULL);
+	    DEBUGF(INDI::Logger::DBG_SESSION, "Setting Park Position to default- RA Encoder=%ld DE Encoder=%ld",
+		      parkRAEncoder, parkDEEncoder);
+	  }
+
+	  if (!strcmp(sp->name, "PARKWRITEDATA")) {
+	    if (mount->WriteParkData()) 
+	      DEBUGF(INDI::Logger::DBG_SESSION, "Saved Park Status/Position- RA Encoder=%ld DE Encoder=%ld, Parked=%s",
+		     parkRAEncoder, parkDEEncoder, (Parked?"yes":"no"));
+	    else
+	      DEBUG(INDI::Logger::DBG_WARNING, "Can not save Park Status/Position");
+	  }
+
+	  return true;
+	}
+
       if (!strcmp(name, "REVERSEDEC"))
       {
           IUUpdateSwitch(ReverseDECSP, states, names, n);
@@ -1582,6 +1673,8 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
           IDSetSwitch(ReverseDECSP, NULL);
 
       }
+
+
     }
 
     controller->ISNewSwitch(dev, name, states, names, n);

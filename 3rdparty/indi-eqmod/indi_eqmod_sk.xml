@@ -26,10 +26,10 @@
 <defNumber name="DESteps360" label="DE Steps (Total)" format="%.0f" min="0.0" max="16777215.0" step="1.0">
 1.0
 </defNumber>
-<defNumber name="RAStepsWorm" label="RA Steps (Worm)" format="%.0f" min="0.0" max="16777215.0" step="1.0">
+<defNumber name="RAStepsWorm" label="RA IT Freq." format="%.0f" min="0.0" max="16777215.0" step="1.0">
 1.0
 </defNumber>
-<defNumber name="DEStepsWorm" label="DE Steps (Worm)" format="%.0f" min="0.0" max="16777215.0" step="1.0">
+<defNumber name="DEStepsWorm" label="DE IT Freq." format="%.0f" min="0.0" max="16777215.0" step="1.0">
 1.0
 </defNumber>
 <defNumber name="RAHighspeedRatio" label="RA Highspeed ratio" format="%.0f" min="1.0" max="256.0" step="1.0">
@@ -231,4 +231,24 @@ Off
 Off
 </defSwitch>
 </defSwitchVector>
+<defNumberVector device="EQMod Mount" name="PARKPOSITION" label="Park Position" group="Site Management" state="Idle" perm="rw">
+<defNumber name="PARKRA" label="RA Encoder" format="%.0f" min="0.0" max="16777215.0" step="1.0">
+1.0
+</defNumber>
+<defNumber name="PARKDE" label="DE Encoder" format="%.0f" min="0.0" max="16777215.0" step="1.0">
+1.0
+</defNumber>
+</defNumberVector>
+<defSwitchVector device="EQMod Mount" name="PARKOPTION" label="Park Options" group="Site Management" state="Idle" perm="rw" rule="OneOfMany">
+<defSwitch name="PARKSETCURRENT" label="Current">
+Off
+</defSwitch>
+<defSwitch name="PARKSETDEFAULT" label="Default">
+Off
+</defSwitch>
+<defSwitch name="PARKWRITEDATA" label="Write data">
+Off
+</defSwitch>
+</defSwitchVector>
+
 </INDIDriver>

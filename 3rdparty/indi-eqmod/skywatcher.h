@@ -21,6 +21,8 @@
 #include <sys/time.h>
 #include <time.h>
 #include <inditelescope.h>
+#include <lilxml.h>
+
 #include "eqmoderror.h"
 //#include "eqmod.h"
 class EQMod; // TODO
@@ -88,6 +90,19 @@ public:
     bool isSimulation();
     bool simulation;
 #endif
+    // Park 
+    unsigned long GetRAEncoderPark();
+    unsigned long GetRAEncoderParkDefault();
+    unsigned long GetDEEncoderPark();
+    unsigned long GetDEEncoderParkDefault();
+    unsigned long SetRAEncoderPark(unsigned long steps);
+    unsigned long SetRAEncoderParkDefault(unsigned long steps);
+    unsigned long SetDEEncoderPark(unsigned long steps);
+    unsigned long SetDEEncoderParkDefault(unsigned long steps);
+    void SetParked(bool parked);
+    bool isParked();
+    bool WriteParkData();
+
  private: 
 
     // Official Skywatcher Protocol
@@ -188,6 +203,7 @@ public:
     unsigned long DEPeriod;  // Current DE worm period
 
     bool RAInitialized, DEInitialized, RARunning, DERunning;
+    bool wasinitialized;
     SkywatcherAxisStatus RAStatus, DEStatus;
 
     int fd;
@@ -199,6 +215,18 @@ public:
     bool debugnextread;
     EQMod *telescope;
 
+    //Park
+    void initPark();
+    char *LoadParkData(const char *filename);
+    char *WriteParkData(const char *filename);
+    unsigned long RAParkPosition;
+    unsigned long RADefaultParkPosition;
+    unsigned long DEParkPosition;
+    unsigned long DEDefaultParkPosition;
+    bool parked;
+    const char *ParkDeviceName;
+    const char * Parkdatafile;
+    XMLEle *ParkdataXmlRoot, *ParkdeviceXml, *ParkstatusXml, *ParkpositionXml, *ParkpositionRAXml, *ParkpositionDEXml;
 };
 
 #endif

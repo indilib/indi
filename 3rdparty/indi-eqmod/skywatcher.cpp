@@ -28,6 +28,7 @@
 #include <sys/stat.h>
 #include <termios.h>
 #include <memory>
+#include <wordexp.h>
 
 #include <libnova.h>
 
@@ -53,7 +54,7 @@ Skywatcher::Skywatcher(EQMod *t)
   debugnextread=false;
   simulation=false;
   telescope = t;
-
+  Parkdatafile= "~/.indi/ParkData.xml";
 }
 
 Skywatcher::~Skywatcher(void)
@@ -260,6 +261,7 @@ void Skywatcher::GetDEMotorStatus(ILightVectorProperty *motorLP) throw (EQModErr
 
 void Skywatcher::Init(ISwitchVectorProperty *parkSP) throw (EQModError) 
 {
+  wasinitialized=false;
   ReadMotorStatus(Axis1);
   ReadMotorStatus(Axis2);
   if (!RAInitialized && !DEInitialized) {
@@ -270,45 +272,70 @@ void Skywatcher::Init(ISwitchVectorProperty *parkSP) throw (EQModError)
     dispatch_command(GetAxisPosition, Axis2, NULL);
     read_eqmod();
     DEStepInit=Revu24str2long(response+1);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : Motors not initialized -- read initial steps RA=%ld DE = %ld",
+    DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : Motors not initialized -- read Init steps RAInit=%ld DEInit = %ld",
 	    __FUNCTION__, RAStepInit, DEStepInit);
-    if (parkSP->sp[0].s==ISS_ON) { 
-      //TODO get Park position, set corresponding encoder values, mark mount as parked 
-      DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : Mount in Park position", __FUNCTION__);
-    } else {
-      //mount is supposed to be in the home position (pointing Celestial Pole)
-      char cmdarg[7];
-      RAStepHome=RAStepInit;
-      DEStepHome=DEStepInit + (DESteps360 / 4);
-      DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : Mount in Home position -- setting Home steps RA=%ld DE = %ld",
-	    __FUNCTION__, RAStepHome, DEStepHome);
-      cmdarg[6]='\0';
-      long2Revu24str(DEStepHome, cmdarg);
-      dispatch_command(SetAxisPosition, Axis2, cmdarg);
-      read_eqmod();
-    //DEBUGF(INDI::Logger::DBG_WARNING, "%s() : Mount is supposed to point North/South Celestial Pole", __FUNCTION__);
-      //TODO mark mount as unparked?
-    }
     // Energize motors
     DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : Powering motors", __FUNCTION__);
     dispatch_command(Initialize, Axis1, NULL);
     read_eqmod();
     dispatch_command(Initialize, Axis2, NULL);
     read_eqmod();
+    RAStepHome=RAStepInit;
+    DEStepHome=DEStepInit + (DESteps360 / 4);
 
   } else { // Mount already initialized by another driver / driver instance
     // use default configuration && leave unchanged encoder values
+    wasinitialized=true;
     RAStepInit=0x800000;
     DEStepInit=0x800000;
     RAStepHome=RAStepInit;
     DEStepHome=DEStepInit + (DESteps360 / 4);
     DEBUGF(INDI::Logger::DBG_WARNING, "%s() : Motors already initialized", __FUNCTION__);
-    DEBUGF(INDI::Logger::DBG_WARNING, "%s() : Setting default Init/Home steps --  RAInit=%ld DEInit = %ld, RAHome =%ld DEHome = %ld",
-	   __FUNCTION__, RAStepInit, DEStepInit, RAStepHome, DEStepHome);
-
-    // TODO mark mount as unparked
+    DEBUGF(INDI::Logger::DBG_WARNING, "%s() : Setting default Init steps --  RAInit=%ld DEInit = %ld",
+	   __FUNCTION__, RAStepInit, DEStepInit);
   }
-
+  DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : Setting Home steps RAHome=%ld DEHome = %ld",
+	 __FUNCTION__, RAStepHome, DEStepHome);
+  //Park status
+  initPark();
+  if (isParked()) { 
+    //TODO get Park position, set corresponding encoder values, mark mount as parked 
+    //parkSP->sp[0].s==ISS_ON
+    DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : Mount was parked", __FUNCTION__);
+    if (wasinitialized) {
+      DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : leaving encoders unchanged",
+	     __FUNCTION__);
+    } else {
+      char cmdarg[7];
+      DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : Mount in Park position -- setting encoders RA=%ld DE = %ld",
+	     __FUNCTION__, RAParkPosition, DEParkPosition);
+      cmdarg[6]='\0';
+      long2Revu24str(RAParkPosition, cmdarg);
+      dispatch_command(SetAxisPosition, Axis1, cmdarg);
+      read_eqmod();
+      cmdarg[6]='\0';
+      long2Revu24str(DEParkPosition, cmdarg);
+      dispatch_command(SetAxisPosition, Axis2, cmdarg);
+      read_eqmod();
+    }
+  } else {
+    DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : Mount was not parked", __FUNCTION__);
+    if (wasinitialized) {
+      DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : leaving encoders unchanged",
+	     __FUNCTION__);
+    } else {
+      //mount is supposed to be in the home position (pointing Celestial Pole)
+      char cmdarg[7];
+      DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : Mount in Home position -- setting encoders RA=%ld DE = %ld",
+	     __FUNCTION__, RAStepHome, DEStepHome);
+      cmdarg[6]='\0';
+      long2Revu24str(DEStepHome, cmdarg);
+      dispatch_command(SetAxisPosition, Axis2, cmdarg);
+      read_eqmod();
+      //DEBUGF(INDI::Logger::DBG_WARNING, "%s() : Mount is supposed to point North/South Celestial Pole", __FUNCTION__);
+      //TODO mark mount as unparked?
+    }
+  }
 }
 
 void Skywatcher::InquireBoardVersion(ITextVectorProperty *boardTP) throw (EQModError)
@@ -933,4 +960,168 @@ char hexa[16] = {'0', '1', '2', '3', '4', '5', '6', '7',
    str[4]=hexa[(n & 0xF00000) >> 20];
    str[5]=hexa[(n & 0x0F0000) >> 16];
    str[6]='\0';
+}
+
+// Park 
+unsigned long Skywatcher::GetRAEncoderPark()
+{
+  return RAParkPosition;
+}
+unsigned long Skywatcher::GetRAEncoderParkDefault()
+{
+  return RADefaultParkPosition;
+}
+unsigned long Skywatcher::GetDEEncoderPark()
+{
+  return DEParkPosition;
+}
+unsigned long Skywatcher::GetDEEncoderParkDefault()
+{
+  return DEDefaultParkPosition;
+}
+unsigned long Skywatcher::SetRAEncoderPark(unsigned long steps)
+{
+  RAParkPosition=steps;
+}
+unsigned long Skywatcher::SetRAEncoderParkDefault(unsigned long steps)
+{
+  RADefaultParkPosition=steps;
+}
+unsigned long Skywatcher::SetDEEncoderPark(unsigned long steps)
+{
+  DEParkPosition=steps;
+}
+unsigned long Skywatcher::SetDEEncoderParkDefault(unsigned long steps)
+{
+  DEDefaultParkPosition=steps;
+}
+void Skywatcher::SetParked(bool isparked)
+{
+  parked=isparked;
+  WriteParkData();
+}
+bool Skywatcher::isParked()
+{
+  return parked;
+}
+
+void Skywatcher::initPark()
+{
+  char *loadres;
+  loadres=LoadParkData(Parkdatafile);
+  if (loadres) {
+    DEBUGF(INDI::Logger::DBG_SESSION, "initPark: No Park data in file %s: %s", Parkdatafile, loadres);
+    RAParkPosition = RAStepHome;
+    RADefaultParkPosition = RAStepHome;
+    DEParkPosition = DEStepHome;
+    DEDefaultParkPosition = DEStepHome;
+    parked=false;
+  }
+}
+
+char *Skywatcher::LoadParkData(const char *filename)
+{
+  wordexp_t wexp;
+  FILE *fp;
+  LilXML *lp;
+  static char errmsg[512];
+
+  XMLEle *parkxml, *devicexml;
+  XMLAtt *ap;
+  bool devicefound=false;
+
+  ParkDeviceName = getDeviceName();
+  ParkstatusXml=NULL;
+  ParkdeviceXml=NULL;
+  ParkpositionXml = NULL;
+  ParkpositionRAXml = NULL;
+  ParkpositionDEXml = NULL;
+
+  if (wordexp(filename, &wexp, 0)) {
+    wordfree(&wexp);
+    return (char *)("Badly formed filename");
+  }
+
+  if (!(fp=fopen(wexp.we_wordv[0], "r"))) {
+    wordfree(&wexp);
+    return strerror(errno);
+  }
+  wordfree(&wexp);
+ 
+ lp = newLilXML();
+ if (ParkdataXmlRoot)
+    delXMLEle(ParkdataXmlRoot);
+  ParkdataXmlRoot = readXMLFile(fp, lp, errmsg);
+  delLilXML(lp);
+  if (!ParkdataXmlRoot) return errmsg;
+  if (!strcmp(tagXMLEle(nextXMLEle(ParkdataXmlRoot, 1)), "parkdata")) return (char *)("Not a park data file");
+  parkxml=nextXMLEle(ParkdataXmlRoot, 1);
+  while (parkxml) {
+    if (strcmp(tagXMLEle(parkxml), "device")) { parkxml=nextXMLEle(ParkdataXmlRoot, 0); continue;}
+    ap = findXMLAtt(parkxml, "name");
+    if (ap && (!strcmp(valuXMLAtt(ap), ParkDeviceName))) { devicefound = true; break; }
+    parkxml=nextXMLEle(ParkdataXmlRoot, 0);
+  }
+  if (!devicefound) return (char *)"No park data found for this device";
+  ParkdeviceXml=parkxml;
+  ParkstatusXml = findXMLEle(parkxml, "parkstatus");
+  ParkpositionXml = findXMLEle(parkxml, "parkposition");
+  ParkpositionRAXml = findXMLEle(ParkpositionXml, "raencoder");
+  ParkpositionDEXml = findXMLEle(ParkpositionXml, "deencoder");
+  parked=false;
+  if (!strcmp(pcdataXMLEle(ParkstatusXml), "true")) parked=true;
+  sscanf(pcdataXMLEle(ParkpositionRAXml), "%ld", &RAParkPosition);
+  sscanf(pcdataXMLEle(ParkpositionDEXml), "%ld", &DEParkPosition);
+  RADefaultParkPosition = RAStepHome;
+  DEDefaultParkPosition = DEStepHome;
+  return NULL;
+}
+
+bool Skywatcher::WriteParkData()
+{
+  char *writeres;
+  writeres=WriteParkData(Parkdatafile);
+  if (writeres) {
+    DEBUGF(INDI::Logger::DBG_SESSION, "WriteParkData: can not write file %s: %s", Parkdatafile, writeres);
+    return false;
+  } else {
+    return true;
+  }
+}
+
+char *Skywatcher::WriteParkData(const char *filename)
+{  
+  wordexp_t wexp;
+  FILE *fp;
+  char pcdata[30];
+
+  if (wordexp(filename, &wexp, 0)) {
+    wordfree(&wexp);
+    return (char *)("Badly formed filename");
+  }
+  
+  if (!(fp=fopen(wexp.we_wordv[0], "w"))) {
+    wordfree(&wexp);
+    return strerror(errno);
+  }
+
+  if (!ParkdataXmlRoot) ParkdataXmlRoot=addXMLEle(NULL, "parkdata");
+  if (!ParkdeviceXml) {
+    ParkdeviceXml=addXMLEle(ParkdataXmlRoot, "device");
+    addXMLAtt(ParkdeviceXml, "name", ParkDeviceName);
+  }
+  if (!ParkstatusXml) ParkstatusXml=addXMLEle(ParkdeviceXml, "parkstatus");
+  if (!ParkpositionXml) ParkpositionXml=addXMLEle(ParkdeviceXml, "parkposition");
+  if (!ParkpositionRAXml) ParkpositionRAXml=addXMLEle(ParkpositionXml, "raencoder");
+  if (!ParkpositionDEXml) ParkpositionDEXml=addXMLEle(ParkpositionXml, "deencoder");
+  editXMLEle(ParkstatusXml, (parked?"true":"false"));
+  snprintf(pcdata, sizeof(pcdata), "%ld", RAParkPosition);
+  editXMLEle(ParkpositionRAXml, pcdata);
+  snprintf(pcdata, sizeof(pcdata), "%ld", DEParkPosition);
+  editXMLEle(ParkpositionDEXml, pcdata);
+
+  prXMLEle(fp, ParkdataXmlRoot, 0);
+  fclose(fp);
+  return NULL;
+
 }
