@@ -331,7 +331,8 @@ bool SBIGCCD::updateProperties()
 
   if (isConnected())
   {
-    defineNumber(&CoolerNP);
+    if (HasCooler())
+        defineNumber(&CoolerNP);
     defineText(&ProductInfoTP);
 
     if (IsFanControlAvailable())
@@ -580,11 +581,13 @@ bool SBIGCCD::Connect()
           {
                   // Link established.
               DEBUG(INDI::Logger::DBG_SESSION, "SBIG CCD is online. Retrieving basic data.");
-              IEAddTimer(TEMPERATURE_POLL_MS, SBIGCCD::updateTemperatureHelper, this);
 
               bool hasCooler;
               double temp, setPoint,power;
               QueryTemperatureStatus(hasCooler, temp, setPoint, power);
+
+              if (hasCooler)
+                  IEAddTimer(TEMPERATURE_POLL_MS, SBIGCCD::updateTemperatureHelper, this);
 
               Capability cap;
 
@@ -1657,7 +1660,7 @@ int SBIGCCD::getNumberOfCCDChips()
 bool SBIGCCD::IsFanControlAvailable()
 {
     CAMERA_TYPE camera = GetCameraType();
-    if(camera == ST5C_CAMERA || camera == ST402_CAMERA) return(false);
+    if(camera == ST5C_CAMERA || camera == ST402_CAMERA || camera == STI_CAMERA) return(false);
     return(true);
 }
 //==========================================================================
