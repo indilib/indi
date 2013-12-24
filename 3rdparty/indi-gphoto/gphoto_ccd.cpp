@@ -634,7 +634,13 @@ bool GPhotoCCD::grabImage()
     else
     {
         gphoto_get_dimensions(gphotodrv, &w, &h);
-        gphoto_read_exposure(gphotodrv);
+        int rc = gphoto_read_exposure(gphotodrv);
+
+        if (rc != 0)
+        {
+            DEBUG(INDI::Logger::DBG_ERROR, "Failed to expose.");
+            return rc;
+        }
 	
         /* We're done exposing */
          DEBUG(INDI::Logger::DBG_DEBUG, "Exposure done, downloading image...");
