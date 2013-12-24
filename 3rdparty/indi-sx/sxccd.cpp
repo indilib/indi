@@ -219,7 +219,7 @@ bool SXCCD::updateProperties() {
     SetCCDParams(params.width, params.height, params.bits_per_pixel, params.pix_width, params.pix_height);
     if (HasGuideHead) {
        sxGetCameraParams(handle, 1, &params);
-       SetGuideHeadParams(params.width, params.height, params.bits_per_pixel, params.pix_width, params.pix_height);
+       SetGuiderParams(params.width, params.height, params.bits_per_pixel, params.pix_width, params.pix_height);
     }
   } else {
     if (HasCooler) {
