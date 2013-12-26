@@ -529,10 +529,12 @@
 3rdparty/libapogee/test_hatalta.cpp -text
 3rdparty/libapogee/testnet.cpp -text
 3rdparty/libfishcamp/CMakeLists.txt -text
+3rdparty/libfishcamp/COPYING.LIB -text
 3rdparty/libfishcamp/Guider_mono_rev16_intel.srec -text
+3rdparty/libfishcamp/fishcamp.c -text
+3rdparty/libfishcamp/fishcamp.h -text
+3rdparty/libfishcamp/fishcamp_common.h -text
 3rdparty/libfishcamp/gdr_usb.hex -text
-3rdparty/libfishcamp/libfishcamp32.bin -text
-3rdparty/libfishcamp/libfishcamp64.bin -text
 3rdparty/libfli/.cproject -text
 3rdparty/libfli/.project -text
 3rdparty/libfli/CMakeLists.txt -text
