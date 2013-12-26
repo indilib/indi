@@ -243,7 +243,7 @@ crackSpec (int *acp, char **avp[])
 	INDIDef *dp = NULL;
 
 	/* check if first arg is type indicator */
-	if (spec[0] == '-') {
+	if ((*acp > 0) && (spec[0] == '-')) {
 	    switch (spec[1]) {
 	    case 'x':	dp = &defs[0]; break;
 	    case 'n':	dp = &defs[1]; break;
@@ -256,6 +256,10 @@ crackSpec (int *acp, char **avp[])
 	    (*avp)++;
 	    spec = *avp[0];
 	}
+        if (*acp <= 0) {
+            fprintf (stderr, "Missing spec\n");
+            usage();
+        }
 
 	/* then scan arg for property spec */
 	if (sscanf (spec, "%[^.].%[^.].%s", d, p, ev) != 3) {

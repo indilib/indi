@@ -189,11 +189,11 @@ main (int ac, char *av[])
 	if (directfd >= 0) {
 	    svrwfp = fdopen (directfd, "w");
 	    svrrfp = fdopen (directfd, "r");
-	    setbuf (svrrfp, NULL);	/* don't absorb next guy's stuff */
 	    if (!svrwfp || !svrrfp) {
 		fprintf (stderr, "Direct fd %d: %s\n",directfd,strerror(errno));
 		exit(1);
 	    }
+	    setbuf (svrrfp, NULL);	/* don't absorb next guy's stuff */
 	    if (verbose)
 		fprintf (stderr, "Using direct fd %d\n", directfd);
 	} else {
