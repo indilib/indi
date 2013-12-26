@@ -25,10 +25,7 @@
 #include <indiccd.h>
 #include <iostream>
 
-extern "C"
-{
-#include "libFcLinux.h"
-}
+#include <fishcamp.h>
 
 using namespace std;
 

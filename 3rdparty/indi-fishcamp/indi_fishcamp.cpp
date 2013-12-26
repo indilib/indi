@@ -25,8 +25,8 @@
 #include <unistd.h>
 #include <sys/time.h>
 
-#include "indidevapi.h"
-#include "eventloop.h"
+#include <indidevapi.h>
+#include <eventloop.h>
 
 #include "indi_fishcamp.h"
 
@@ -150,6 +150,8 @@ FishCampCCD::FishCampCCD(int CamNum)
 {
 
   cameraNum = CamNum;
+
+  fcUsb_setLogging(true);
 
   int rc = fcUsb_OpenCamera(cameraNum);
 
@@ -469,7 +471,6 @@ bool FishCampCCD::UpdateCCDBin(int binx, int biny)
         return false;
     }
 
-  PrimaryCCD.setBin(binx, biny);
   return true;
 }
 
