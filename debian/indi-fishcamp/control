@@ -1,0 +1,14 @@
+Source: indi-fishcamp
+Section: science
+Priority: extra
+Maintainer: Jasem Mutlaq <mutlaqja@ikarustech.com>
+Build-Depends: debhelper (>= 6), cdbs, cmake, libindi-dev, zlib1g-dev, libusb-1.0-0-dev, libfishcamp-dev
+Standards-Version: 3.9.2
+
+Package: indi-fishcamp
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: INDI Fishcamp CCD Driver.
+ .
+ This driver is compatible with any INDI client such as KStars or Xephem.
+
