@@ -25,8 +25,8 @@ else (FISHCAMP_LIBRARIES AND FISHCAMP_INCLUDE_DIR)
     ${GNUWIN32_DIR}/lib
   )
   
-  find_path(NOVA_INCLUDE_DIR fishcamp.h
-    PATHS
+  find_path(FISHCAMP_INCLUDE_DIR fishcamp.h
+    PATH_SUFFIXES fishcamp
     ${_obIncDir}
     ${GNUWIN32_DIR}/include
   )
