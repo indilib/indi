@@ -62,7 +62,7 @@ void ISInit()
 
       cameraCount = fcUsb_FindCameras();
 
-      IDLog("Found %d fishcamp cameras.", cameraCount);
+      IDLog("Found %d fishcamp cameras.\n", cameraCount);
 
       for (int i=0; i < cameraCount; i++)
           cameras[i] = new FishCampCCD(i+1);
@@ -75,6 +75,13 @@ void ISInit()
 void ISGetProperties(const char *dev)
 {
   ISInit();
+
+  if (cameraCount == 0)
+  {
+      IDLog("Unable to find Fishcamp CCD. Power OK? Please check the log file under ~/.indi for more details.\n");
+      return;
+  }
+
   for (int i = 0; i < cameraCount; i++)
   {
     FishCampCCD *camera = cameras[i];
