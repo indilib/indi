@@ -289,7 +289,7 @@ bool QSICCD::setupParams()
     FilterSlotNP.s = IPS_OK;
 
     IUUpdateMinMax(&FilterSlotNP);
-    IDSetNumber(&FilterSlotNP, "Setting max number of filters.");
+    IDSetNumber(&FilterSlotNP, NULL);
 
     FilterSP.s = IPS_OK;
     IDSetSwitch(&FilterSP,NULL);
@@ -522,7 +522,7 @@ bool QSICCD::ISNewNumber(const char *dev, const char *name, double values[], cha
             IUUpdateNumber(&FilterSlotNP, values, names, n);
 
             FilterSlotNP.s = IPS_BUSY;
-            DEBUGF(INDI::Logger::DBG_SESSION, "Setting current filter to slot %d", targetFilter);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Setting current filter to slot %d", targetFilter);
             IDSetNumber(&FilterSlotNP, NULL);
 
 
@@ -535,7 +535,7 @@ bool QSICCD::ISNewNumber(const char *dev, const char *name, double values[], cha
             {
                 FilterSlotN[0].value = targetFilter;
                 FilterSlotNP.s = IPS_OK;
-                DEBUGF(INDI::Logger::DBG_SESSION, "Filter set to slot #%d", targetFilter);
+                DEBUGF(INDI::Logger::DBG_DEBUG, "Filter set to slot #%d", targetFilter);
                 IDSetNumber(&FilterSlotNP, NULL);
                 return true;
             }
@@ -552,9 +552,6 @@ bool QSICCD::ISNewNumber(const char *dev, const char *name, double values[], cha
 
 bool QSICCD::StartExposure(float duration)
 {
-
-        bool shortExposure = false;
-
         if(ExposureRequest < minDuration)
         {
             ExposureRequest = minDuration;
@@ -615,7 +612,7 @@ bool QSICCD::StartExposure(float duration)
             }
 
             gettimeofday(&ExpStart,NULL);
-            DEBUGF(INDI::Logger::DBG_SESSION, "Taking a %g seconds frame...", ExposureRequest);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Taking a %g seconds frame...", ExposureRequest);
 
             InExposure = true;
             return true;
@@ -839,7 +836,7 @@ bool QSICCD::Connect()
 {
     bool connected;
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Attempting to find the QSI CCD...");
+    DEBUG(INDI::Logger::DBG_SESSION, "Attempting to find QSI CCD...");
 
             try
             {
@@ -1284,7 +1281,7 @@ void QSICCD::turnWheel()
             FilterS[0].s = ISS_OFF;
             FilterS[1].s = ISS_OFF;
             FilterSP.s = IPS_OK;
-            DEBUGF(INDI::Logger::DBG_SESSION, "The current filter is %d", current_filter);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "The current filter is %d", current_filter);
             IDSetSwitch(&FilterSP, NULL);
             break;
 
@@ -1310,7 +1307,7 @@ void QSICCD::turnWheel()
             FilterS[0].s = ISS_OFF;
             FilterS[1].s = ISS_OFF;
             FilterSP.s = IPS_OK;
-            DEBUGF(INDI::Logger::DBG_SESSION, "The current filter is %d\n", current_filter);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "The current filter is %d\n", current_filter);
             IDSetSwitch(&FilterSP, NULL);
             IDSetNumber(&FilterSlotNP, NULL);
             break;
