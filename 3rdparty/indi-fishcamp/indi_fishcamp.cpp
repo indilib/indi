@@ -58,6 +58,8 @@ void ISInit()
       // initialize the driver framework
       fcUsb_init();
 
+      fcUsb_setLogging(true);
+
       cameraCount = fcUsb_FindCameras();
 
       IDLog("Found %d fishcamp cameras.", cameraCount);
@@ -148,10 +150,7 @@ void ISSnoopDevice(XMLEle *root)
 
 FishCampCCD::FishCampCCD(int CamNum)
 {
-
   cameraNum = CamNum;
-
-  fcUsb_setLogging(true);
 
   int rc = fcUsb_OpenCamera(cameraNum);
 
