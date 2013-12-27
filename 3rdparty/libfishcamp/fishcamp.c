@@ -35,6 +35,7 @@
 
 //#include <stdexcept>
 
+#include <errno.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -44,6 +45,7 @@
 
 #include <libusb-1.0/libusb.h>
 
+#define MAXRBUF    512
 //#include <tiffio.h>
 
 //#include <math.h>
@@ -175,7 +177,9 @@ bool haveStarfishLogFile()
 	retValue = false;
 
 	// Open for read (will fail if file does not exist)
-    if( (theLogFile  = fopen( "/lib/firmware/starfish_log.txt", "r" )) == NULL )
+    char filename[MAXRBUF];
+    snprintf(filename, MAXRBUF, "%s/.indi/starfish_log.txt", getenv("HOME"));
+    if( (theLogFile  = fopen( filename, "r" )) == NULL )
 		{
 		// no such file
 //		printf("haveStarfishLogFile = FALSE\n");
@@ -204,8 +208,13 @@ void creatStarfishLogFile()
 
 	if (! haveStarfishLogFile() )
 		{
-//		printf("Creating Starfish Log File.\n");
-        theLogFile  = fopen( "~/.indi/starfish_log.txt", "a+" );
+        char filename[MAXRBUF];
+        snprintf(filename, MAXRBUF, "%s/.indi/starfish_log.txt", getenv("HOME"));
+        if (!(theLogFile  = fopen( filename, "w" )))
+        {
+            fprintf(stderr, "Error opening Starfish log file (%s) : %s\n", filename, strerror(errno));
+            return;
+        }
 		fclose( theLogFile );
 		}
 
@@ -227,7 +236,9 @@ void check4tooLongLogFile()
 	if ( haveStarfishLogFile() )
 		{
 		// Open for write
-        theLogFile = fopen( "~/.indi/starfish_log.txt", "a+" );
+        char filename[MAXRBUF];
+        snprintf(filename, MAXRBUF, "%s/.indi/starfish_log.txt", getenv("HOME"));
+        theLogFile = fopen( filename, "a+" );
 		fseek( theLogFile, 0, SEEK_END);
 		length = ftell( theLogFile );
 		fclose( theLogFile );
@@ -236,7 +247,7 @@ void check4tooLongLogFile()
 			{
 			// file too big, need to reset it and start over
 //			printf("Re-creating (smaller) Starfish Log File.\n");
-            theLogFile = fopen( "~/.indi/starfish_log.txt", "w" );	// "w" will re-create the file
+            theLogFile = fopen( filename, "w" );	// "w" will re-create the file
 			fclose( theLogFile );
 			}
 
