@@ -62,6 +62,7 @@ private:
     bool updatePosition();
     bool updateSpeed();
     bool isMoving();
+    bool Ack();
 
     bool Move(unsigned int position);
     bool setStepMode(FocusStepMode mode);

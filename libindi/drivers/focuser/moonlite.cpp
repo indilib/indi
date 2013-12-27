@@ -29,7 +29,7 @@
 #include <math.h>
 #include <memory>
 
-#define MOONLITE_TIMEOUT   10
+#define MOONLITE_TIMEOUT   3
 
 #define POLLMS  250
 
@@ -135,7 +135,7 @@ bool MoonLite::initProperties()
 
     // Reset
     IUFillSwitch(&ResetS[0], "Zero", "", ISS_OFF);
-    IUFillSwitchVector(&ResetSP, ResetS, 2, getDeviceName(), "Reset", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&ResetSP, ResetS, 1, getDeviceName(), "Reset", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     /* Relative and absolute movement */
     FocusRelPosN[0].min = 0.;
@@ -210,11 +210,15 @@ bool MoonLite::Connect()
 
     }
 
-    DEBUG(INDI::Logger::DBG_SESSION, "MoonLite is online. Getting focus parameters...");
+    if (Ack())
+    {
+        DEBUG(INDI::Logger::DBG_SESSION, "MoonLite is online. Getting focus parameters...");
+        SetTimer(POLLMS);
+        return true;
+    }
 
-    SetTimer(POLLMS);
-
-    return true;
+    DEBUG(INDI::Logger::DBG_SESSION, "Error retreiving data from MoonLite, please ensure MoonLite controller is powered and the port is correct.");
+    return false;
 }
 
 bool MoonLite::Disconnect()
@@ -227,6 +231,38 @@ bool MoonLite::Disconnect()
 const char * MoonLite::getDefaultName()
 {
     return "MoonLite";
+}
+
+bool MoonLite::Ack()
+{
+    int nbytes_written=0, nbytes_read=0, rc=-1;
+    char errstr[MAXRBUF];
+    char resp[5];
+    short pos=-1;
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    if ( (rc = tty_write(PortFD, ":GP#", 4, &nbytes_written)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "updatePostion error: %s.", errstr);
+        return false;
+    }
+
+    if ( (rc = tty_read(PortFD, resp, 5, 2, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "updatePostion error: %s.", errstr);
+        return false;
+    }
+
+    rc = sscanf(resp, "%hX#", &pos);
+
+    if (rc > 0)
+        return true;
+    else
+        return false;
+
 }
 
 bool MoonLite::updateStepMode()
@@ -313,6 +349,8 @@ bool MoonLite::updatePosition()
     char errstr[MAXRBUF];
     char resp[5];
     short pos=-1;
+
+    tcflush(PortFD, TCIOFLUSH);
 
     if ( (rc = tty_write(PortFD, ":GP#", 4, &nbytes_written)) != TTY_OK)
     {
