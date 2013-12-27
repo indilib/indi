@@ -1,4 +1,12 @@
 <devGroup group="CCDs">
+        <device label="Cannon DSLR">
+                <driver name="GPhoto CCD">indi_gphoto_ccd</driver>
+                <version>1.2</version>
+        </device>
+        <device label="Nikon DSLR">
+                <driver name="GPhoto CCD">indi_gphoto_ccd</driver>
+                <version>1.2</version>
+        </device>
         <device label="GPhoto CCD">
                 <driver name="GPhoto CCD">indi_gphoto_ccd</driver>
                 <version>1.2</version>
