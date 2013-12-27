@@ -326,7 +326,9 @@ void Starfish_Log (char *logString)
 		// simple way of assuring the log file doesn't get too big
 		check4tooLongLogFile();
 
-        if( (theLogFile = fopen( "~/.indi/starfish_log.txt", "a+" )) != NULL )
+        char filename[MAXRBUF];
+        snprintf(filename, MAXRBUF, "%s/.indi/starfish_log.txt", getenv("HOME"));
+        if( (theLogFile = fopen( filename, "a+" )) != NULL )
 			{
 			// get operating system-style date and time. 
 			timestamp(theLogFile);
