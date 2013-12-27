@@ -9,7 +9,7 @@ set(LIB_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/lib")
 
 find_package(USB-1 REQUIRED)
 
-add_compile_options(-Wno-multichar)
+ADD_DEFINITIONS(-Wno-multichar)
 
 set(LIBFISHCAMP_VERSION "1.0")
 set(LIBFISHCAMP_SOVERSION "1")
