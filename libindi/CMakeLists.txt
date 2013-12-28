@@ -169,6 +169,21 @@ target_link_libraries(indiclient indi ${CMAKE_THREAD_LIBS_INIT})
 install(TARGETS indiclient ARCHIVE DESTINATION ${LIB_DESTINATION})
 
 #####################################
+######## AGENT GROUP #########
+#####################################
+
+########### Imager ##############
+set(imager_SRCS
+        ${CMAKE_SOURCE_DIR}/drivers/agent/agent_imager.cpp
+   )
+
+add_executable(indi_imager_agent ${imager_SRCS})
+target_link_libraries(indi_imager_agent indidriver)
+install(TARGETS indi_imager_agent RUNTIME DESTINATION bin )
+
+#################################################################################
+
+#####################################
 ########## TELESCOPE GROUP ##########
 #####################################
 
