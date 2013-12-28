@@ -844,6 +844,8 @@ libindi/base64.c -text
 libindi/base64.h -text
 libindi/config.h.cmake -text
 libindi/drivers.xml -text
+libindi/drivers/agent/agent_imager.cpp -text
+libindi/drivers/agent/agent_imager.h -text
 libindi/drivers/auxiliary/99-gpusb.rules -text
 libindi/drivers/auxiliary/gpdriver.cpp -text
 libindi/drivers/auxiliary/gpdriver.h -text
