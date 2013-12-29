@@ -250,7 +250,6 @@
 3rdparty/indi-qhy/firmware/QHY8PRO.HEX -text
 3rdparty/indi-qhy/firmware/QHY9.HEX -text
 3rdparty/indi-qhy/firmware/QHY9L.HEX -text
-3rdparty/indi-qhy/indi-qhy.xcodeproj/project.pbxproj -text
 3rdparty/indi-qhy/indi_qhy.xml -text
 3rdparty/indi-qhy/qhy5.cpp -text
 3rdparty/indi-qhy/qhy5ii.cpp -text
