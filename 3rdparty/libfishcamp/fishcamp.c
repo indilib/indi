@@ -2905,11 +2905,13 @@ int fcUsb_OpenCamera(int camNum)
 				// we have a RAW starfish camera being opened
 				product = gCamerasFound[camNum - 1].camRawProduct;
 
+                Starfish_Log("Opening raw USB device with vendor: %08x prodcut: %08x\n", vendor, product);
 				usb_handle = libusb_open_device_with_vid_pid(gCtx, vendor, product);
 				gCamerasFound[camNum - 1].dev = usb_handle;
 			    if (usb_handle == NULL)
 					{
 			    	Starfish_Log("Unable to open the raw USB device\n");
+                    return -1;
 				    }
 
 				// the ReleaseNumber is used by fishcamp as a camera serial number.  Store it away
@@ -2924,6 +2926,8 @@ int fcUsb_OpenCamera(int camNum)
 					{
 					sprintf(buffer, "unable to download to device: %08x\n", kr);
 					Starfish_Log( buffer );
+                    libusb_close(usb_handle);
+                    return -1;
 			        }
 
 			    libusb_close(usb_handle);
