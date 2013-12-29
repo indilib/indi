@@ -56,10 +56,13 @@ void ISInit()
   if (!isInit)
   {
       // initialize the driver framework
+      IDLog("About to call fcUsb_init()\n");
       fcUsb_init();
 
+      IDLog("About to call set logging\n");
       fcUsb_setLogging(true);
 
+      IDLog("About to call find Cameras\n");
       cameraCount = fcUsb_FindCameras();
 
       IDLog("Found %d fishcamp cameras.\n", cameraCount);
@@ -161,15 +164,15 @@ FishCampCCD::FishCampCCD(int CamNum)
 
   int rc = fcUsb_OpenCamera(cameraNum);
 
-  IDLog("fcUsb_OpenCamera opening cam #%d, returns %d", cameraNum, rc);
+  IDLog("fcUsb_OpenCamera opening cam #%d, returns %d\n", cameraNum, rc);
 
   rc = fcUsb_cmd_getinfo(cameraNum, &camInfo);
 
-  IDLog("fcUsb_cmd_getinfo opening cam #%d, returns %d", cameraNum, rc);
+  IDLog("fcUsb_cmd_getinfo opening cam #%d, returns %d\n", cameraNum, rc);
 
   strncpy(name, (char *) &camInfo.camNameStr, MAXINDINAME);
 
-  IDLog("Cam #%d with name %s", cameraNum, name);
+  IDLog("Cam #%d with name %s\n", cameraNum, name);
 
   setDeviceName(name);
 
@@ -228,6 +231,8 @@ bool FishCampCCD::initProperties()
   nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;    //  this is pixel cameraCount
   nbuf += 512;    //  leave a little extra at the end
   PrimaryCCD.setFrameBufferSize(nbuf);
+
+  delete[] strBuf;
 
   return true;
 }
