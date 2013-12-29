@@ -16,6 +16,8 @@
         disclaimer in the documentation and/or other materials
         provided with the distribution.
 
+  Modified by: Jasem Mutlaq (2013)
+
   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
   ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
@@ -193,6 +195,8 @@ void	fcUsb_init(void);
 //
 void	fcUsb_setLogging(bool loggingState);
 
+// Call this routine to enable simulation mode
+void    fcUsb_setSimulation(bool simState);
 
 // This is the framework close routine and needs to be called just before application termination
 void	fcUsb_close(void);

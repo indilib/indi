@@ -16,6 +16,8 @@
         disclaimer in the documentation and/or other materials
         provided with the distribution.
 
+  Modified by: Jasem Mutlaq (2013)
+
   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
   ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
@@ -33,8 +35,6 @@
 
 #include "fishcamp.h"
 
-//#include <stdexcept>
-
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
@@ -46,24 +46,6 @@
 #include <libusb-1.0/libusb.h>
 
 #define MAXRBUF    512
-//#include <tiffio.h>
-
-//#include <math.h>
-
-
-// gcc -c  FcLinuxLib.cpp		// don't link
-
-// gcc -o test FcLinuxLib.c -lusb-1.0 -ltiff -lm
-
-
-
-// gcc -Wall -fPIC -c libFcLinux.c
-// gcc -shared -Wl,-soname,libFcLinux.so.1 -o libFcLinux.so.1.0 libFcLinux.o
-// mv libFcLinux.so.1.0 /usr/lib
-// ln -sf /usr/lib/libFcLinux.so.1.0 /usr/lib/libFcLinux.so
-// ln -sf /usr/lib/libFcLinux.so.1.0 /usr/lib/libFcLinux.so.1
-// ldconfig -n /usr/lib
-//
 
 // globals
 struct libusb_context *gCtx;
@@ -114,6 +96,7 @@ bool			gProWantColNormalization;			// true if we want column normalization
 //CCyUSBDevice*		gUSBDevice;
 
 bool			gDoLogging;							// set to TRUE to enable logging to the log file
+bool            gDoSimulation;                      // set to TRUE to enable simulation
 
 int				gCameraImageFilter[kNumCamsSupported];	// type of image filter for post processing on this camera
 
@@ -256,7 +239,7 @@ void check4tooLongLogFile()
 }
 
 
-void timestamp(FILE *out) 
+void fc_timestamp(FILE *out)
 {
 	time_t			t;
 	struct timeval	tv;
@@ -269,32 +252,6 @@ void timestamp(FILE *out)
 	fprintf(out, "%s.%02ld ", 
                 timestamp, tv.tv_usec / 10000);
 }
-
-
-
-//void Starfish_Log(const char *fmt, ...) 
-//{
-//	static int	starting_new_line = 1;
-//	va_list		ap;
-//        
-//	if (starting_new_line)
-//		timestamp(stderr);
-//        
-//	va_start(ap, fmt);
-//	vfprintf (stderr, fmt, ap);
-//	va_end(ap);
-//        
-//	if (fmt[strlen(fmt)-1] == '\n')
-//		starting_new_line = 1;
-//	else
-//		starting_new_line = 0;
-//}
-
-
-
-
-
-
 
 // 
 // routine to add a log entry to the Starfish log file
@@ -331,7 +288,7 @@ void Starfish_Log (char *logString)
         if( (theLogFile = fopen( filename, "a+" )) != NULL )
 			{
 			// get operating system-style date and time. 
-			timestamp(theLogFile);
+            fc_timestamp(theLogFile);
 
 			sprintf( buffer, "- %s", logString ); 
 
@@ -345,14 +302,6 @@ void Starfish_Log (char *logString)
 	
 		}
 }
-
-
-
-
-
-
-
-
 
 // utility routine to see if we have already discovered that a certain
 // camera was connected to this computer.  Will return TRUE if so.
@@ -391,10 +340,6 @@ bool sawThisCameraAlready (UInt16 vendor, UInt16 rawProduct, UInt16 finalProduct
 	
 	return retValue;
 }
-
-
-
-
 
 // utility routine to return the index of the camera in the local 'gCamerasFound' array
 // will return 0 -> (kNumCamsSupported - 1) if we have the camera in our data base
@@ -435,12 +380,6 @@ int getCameraDBIndex (UInt16 vendor, UInt16 rawProduct, UInt16 finalProduct, UIn
 	return retValue;
 }
 
-
-
-
-
-
-
 // utility routine to return the DB index of the next available slot in the local 'gCamerasFound' array
 // will return 0 -> (kNumCamsSupported - 1) if we have room in our data base
 // will return -1 if we don't.
@@ -464,14 +403,6 @@ int getNextFreeDBIndex (void)
 	
 	return retValue;
 }
-
-
-
-
-
-
-
-
 
 // utility debug routine used to print out the camera data base
 //
@@ -501,43 +432,6 @@ void printOutDiscoveredCamerasDB (void)
 	
 }
 
-
-
-
-
-
-
-
-
-
-//void ConfigureAnchorDevice(void)
-//{
-//    UCHAR			numConf;
-//	UCHAR			myConfigValue;
-// 	char			buffer[200];
-//
-//
-//    Starfish_Log("ConfigureAnchorDevice routine\n");
-//
-//    numConf = gUSBDevice->ConfigCount();
-//    sprintf(buffer, "     ConfigureAnchorDevice numConf = %d\n", numConf);
-//	Starfish_Log( buffer );
-//    
-//	myConfigValue = gUSBDevice->ConfigValue;
-//    sprintf(buffer, "     ConfigureAnchorDevice ConfigValue = %d\n", myConfigValue);
-//	Starfish_Log( buffer );
-//
-//	gUSBDevice->SetConfig(myConfigValue);
-//    
-//}
-
-
-
-
-
-
-
-
 void AnchorWrite(struct libusb_device_handle *dev_handle, UInt16 anchorAddress, UInt16 count, UInt8 writeBuffer[])
 {
 	int retval;
@@ -556,32 +450,6 @@ void AnchorWrite(struct libusb_device_handle *dev_handle, UInt16 anchorAddress, 
 		Starfish_Log("Error in control transfer.\n");
 	
 }
-
-
-
-//void AnchorWrite(UInt16 anchorAddress, UInt16 count, UInt8 writeBuffer[])
-//{
-//	CCyControlEndPoint *ept;
-//	long	buflen;
-//
-//
-//	ept = gUSBDevice->ControlEndPt;
-//	ept->Target = TGT_DEVICE;
-//	ept->ReqType = REQ_VENDOR;
-//	ept->Direction = DIR_TO_DEVICE;
-//	ept->ReqCode = 0xa0;
-//	ept->Value = anchorAddress;
-//	ept->Index = 0;
-//
-//	buflen = (long)count;
-//	ept->XferData(writeBuffer, buflen);
-//}
-
-
-
-
-
-
 
 FILE *openFile(UInt16 vendor, UInt16 product)
 {
@@ -611,7 +479,7 @@ FILE *openFile(UInt16 vendor, UInt16 product)
     return(hexFile);
 }
 
-#if 0
+/*
     Description of Intel hex records.
 
 Position	Description
@@ -630,20 +498,19 @@ Last 2 characters	Checksum: The last two characters of the line are a checksum f
                         checksum value is calculated by taking the twos complement of the sum of all 
                         the preceeding data bytes, excluding the checksum byte itself and the colon 
                         at the beginning of the line.
-#endif
-
+*/
 int hexRead(INTEL_HEX_RECORD *record, FILE *hexFile, UInt16 vendor, UInt16 product)
 {	// Read the next hex record from the file into the structure
 
     // **** Need to impliment checksum checking ****
-    
-    
+    if (gDoSimulation)
+        return 0;
+
 	char	c;
     UInt16	i;
     UInt16	newChecksum;
 	int		n, c1, check, len;
  	char	buffer[200];
-
 
 	c = getc(hexFile);
     
@@ -731,13 +598,17 @@ int hexRead(INTEL_HEX_RECORD *record, FILE *hexFile, UInt16 vendor, UInt16 produ
 // routine used to load the USB chip's firmware.
 // called from RawDeviceAdded,
 //
-int DownloadToAnchorDevice(struct libusb_device_handle *dev, UInt16 vendor, UInt16 product) {
+int DownloadToAnchorDevice(struct libusb_device_handle *dev, UInt16 vendor, UInt16 product)
+{
     UInt8 				writeVal;
     int					kr;
 	FILE				*hexFile;
 	INTEL_HEX_RECORD	anchorCode;
     
     Starfish_Log("DownloadToAnchorDevice routine\n");
+
+    if (gDoSimulation)
+        return 0;
 
     hexFile = openFile(vendor, product);
     if (hexFile == NULL) {
@@ -766,60 +637,6 @@ int DownloadToAnchorDevice(struct libusb_device_handle *dev, UInt16 vendor, UInt
     return 0;
 }
 
-// routine used to load the USB chip's firmware.
-// called from RawDeviceAdded,
-//
-//int DownloadToAnchorDevice(UInt16 vendor, UInt16 product)
-//{
-//    UInt8 				writeVal;
-//    int					kr;
-//	FILE				*hexFile;
-//	INTEL_HEX_RECORD	anchorCode;
-//    
-//
-//    Starfish_Log("DownloadToAnchorDevice routine\n");
-//
-//    hexFile = openFile(vendor, product);
-//    if(hexFile == NULL)
-//    {
-//        Starfish_Log("DownloadToAnchorDevice could not open file.\n");
-//        return(-1);
-//    }
-//
-//    // Assert reset
-//    writeVal = 1;
-//    AnchorWrite(k8051_USBCS, 1, &writeVal);
-//    
-//    // Download code
-//    while (1) 
-//    {
-//        kr = hexRead(&anchorCode, hexFile, vendor, product);
-//        if(anchorCode.Type != 0)
-//        {
-//            break;
-//        }
-//        if(kr == 0)
-//        {
-//            AnchorWrite(anchorCode.Address, anchorCode.Length, anchorCode.Data);
-//        }
-////        printf("%04lx ",anchorCode.Address);
-//    }
-////    printf("\n");
-//
-//    // De-assert reset
-//    writeVal = 0;
-//    AnchorWrite(k8051_USBCS, 1, &writeVal);
-//
-//	if (product == 0x0008)
-//		Sleep(10000);	// gives time for the fpga to load and the usb program to start running
-//
-//
-//    return 0;
-//}
-      
-
-
-
 // Routine to search the 'fishcamp' directory for the latest version of the
 // MicroBlaze SREC file.  The following file name format is assumed
 //		"\etc\fishcamp\Guider_mono_revXX_intel.srec";
@@ -837,41 +654,7 @@ int GetLatestSrecFileRevNumber(void)
 	FILE		*srecFile;
  	char		buffer[200];
 
-//	struct		_finddata_t srec_file;
-//	intptr_t	hFile;
-
-
 	Starfish_Log("GetLatestSrecFileRevNumber\n");
-
-//	returnNumber = 0;
-//
-//	// Find first .srec file in fishcamp directory 
-//	if( (hFile = _findfirst( "\\etc\\fishcamp\\Guider_mono_rev*_intel.srec", &srec_file )) == -1L )
-//		{
-//		// no valid files found
-//		Starfish_Log("  Could not find an SREC file **********\n");
-//		returnNumber = -1;
-//		}
-//	else
-//		{
-//		do {
-//			sscanf( &srec_file.name[15], "%d", &tempInt ); 
-//			if (returnNumber < tempInt)
-//				returnNumber = tempInt;
-//		} while( _findnext( hFile, &srec_file ) == 0 );
-//
-//		_findclose( hFile );
-//
-//		sprintf(fileName, "\\etc\\fishcamp\\Guider_mono_rev%02d_intel.srec", returnNumber);
-//		sprintf(buffer, "  Most recent SREC file is - \"%s\"\n", fileName);
-//		Starfish_Log( buffer );
-//		}
-//
-//
-//	return( returnNumber );
-
-
-
 
 	returnNumber = 16;		// rev 16 is the latest version released
 	done = false;
@@ -901,7 +684,6 @@ int GetLatestSrecFileRevNumber(void)
 			}
 		}
 
-
 	returnNumber--;
 
 	if (returnNumber == 15)
@@ -922,8 +704,6 @@ int GetLatestSrecFileRevNumber(void)
 }
 
 
-
-
 // routine to open the file containing the program to be executed by
 // the camera's microBlaze processor.  File is S-records
 //
@@ -939,7 +719,6 @@ FILE *openSrecFile(UInt16 vendor, UInt16 rawProduct)
 	FILE *srecFile;
 
     Starfish_Log("openSrecFile routine\n");
-
 
 	if (rawProduct == starfish_ibis13_raw_deviceID)
 		{
@@ -985,24 +764,15 @@ FILE *openSrecFile(UInt16 vendor, UInt16 rawProduct)
     return(srecFile);
 }
 
-
-
-
-
 char* srecRead(UInt8 *record, FILE *srecFile)
-{	// Read the next srecord from the file into the buffer    
-
+{
+    // Read the next srecord from the file into the buffer
 	int	maxLineSize;
-	
 
 	maxLineSize = 100;
 	return (fgets((char*)record, maxLineSize, srecFile));
 
 }
-
-
-
-
 
 // will download the application program to the MicroBlaze processor in the camera.
 // At boot-up, the camera is looking for srecords.  After the download the processor
@@ -1027,12 +797,14 @@ void DownloadtToMicroBlaze(int camNum)
 
     Starfish_Log("DownloadtToMicroBlaze routine\n");
 
+    if (gDoSimulation)
+        return;
+
 	vendor		 = gCamerasFound[camNum - 1].camVendor;
 	rawProduct	 = gCamerasFound[camNum - 1].camRawProduct;
 	finalProduct = gCamerasFound[camNum - 1].camFinalProduct;
 	release		 = gCamerasFound[camNum - 1].camRelease;
 	USBdev       = gCamerasFound[camNum - 1].dev;
-
 
 	mySrecFile = openSrecFile(vendor, rawProduct);
 
@@ -1056,13 +828,6 @@ void DownloadtToMicroBlaze(int camNum)
 		}
 
 }
-
-
-
-
-
-
-
 
 // Notification.  Here when we discover that the guider camera is first plugged in.
 //
@@ -1122,11 +887,6 @@ void DownloadtToMicroBlaze(int camNum)
 //        }
 //
 //}
-
-
-
-
-
 
 
 //Notfication.  here when we discover our newly programmed guider device
@@ -1227,22 +987,6 @@ void DownloadtToMicroBlaze(int camNum)
 ////	printOutDiscoveredCamerasDB();	
 //}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // given a pointer to a command parameter struct, this routine will 
 // calculate the correct cksum field
 UInt16	fcUsb_GetUsbCmdCksum(UInt16 *cmdParams)
@@ -1271,13 +1015,6 @@ UInt16	fcUsb_GetUsbCmdCksum(UInt16 *cmdParams)
 	
 }
 
-
-
-
-
-
-
-
 // helper routine for fcImage_doFullFrameRowLevelNormalization.
 // will calculate the average level of the pixels in the
 // black cols of the image sensor
@@ -1290,8 +1027,6 @@ float fcImage_calcFullFrameAllColAvg(UInt16 *frameBufferPtr, int imageWidth, int
 	bool			evenRow;
     UInt16			*inputPtr;
     UInt16			aPixel;
-	
-
 
 	retValue = 0.0;
 	
@@ -1318,15 +1053,6 @@ float fcImage_calcFullFrameAllColAvg(UInt16 *frameBufferPtr, int imageWidth, int
 	return retValue;
 }
 
-
-
-
-
-
-
-
-
-
 // helper routine for fcImage_doFullFrameRowLevelNormalization.
 // will calculate the average level of the pixels in the
 // defined ROW's black columns
@@ -1342,9 +1068,6 @@ float fcImage_calcFullFrameRowAvgForRow(UInt16 *frameBufferPtr, int imageWidth, 
     UInt16			lowPixel;
     UInt16			hiPixel;
 	
-
-
-
 	retValue = 0.0;
 
 	lowPixel = 0xffff;
@@ -1384,16 +1107,6 @@ float fcImage_calcFullFrameRowAvgForRow(UInt16 *frameBufferPtr, int imageWidth, 
 	return retValue;
 }
 
-
-
-
-
-
-
-
-
-
-
 // routine to perform line level normalization on the RAW camera image
 // Used to get rid of the camera's read noise associated with ROWs
 // enter with pointer to 16 bit image
@@ -1414,9 +1127,20 @@ float fcImage_calcFullFrameRowAvgForRow(UInt16 *frameBufferPtr, int imageWidth, 
 	float			floatPixel;
 	
 
+    if (gDoSimulation)
+    {
+        srand(time(NULL));
+        int i=0,j=0;
+
+        for (i=0; i < imageHeight ; i++)
+          for (j=0; j < imageWidth; j++)
+              frameBufferPtr[i*imageWidth+j] = rand() % 65535;
+
+        return;
+    }
+
 	// make sure we are dealing with 16 bit pixels
-	
-//	printf("fcImage_doFullFrameRowLevelNormalization\n");
+	//	printf("fcImage_doFullFrameRowLevelNormalization\n");
 	
 	// calculate the average of all the black pixels
 	frameAvg = fcImage_calcFullFrameAllColAvg(frameBufferPtr, imageWidth, imageHeight);
@@ -1461,12 +1185,6 @@ float fcImage_calcFullFrameRowAvgForRow(UInt16 *frameBufferPtr, int imageWidth, 
 		
 }
 
-
-
-
-
-
-
 // routine to strip the black columns form the image read from the camera.  the camera's image is
 // assumed to be in gFrameBuffer and the pointer passed to this routine is where we will put the 
 // stripped image;
@@ -1487,7 +1205,6 @@ void fcImage_StripBlackCols(int camNum, UInt16 *frameBuffer)
 	float			colOffset;
 	float			floatPixel;
 	
-
 	imageHeight = (gRoi_bottom[camNum - 1] - gRoi_top[camNum - 1])  + 1;
 	imageWidth  = (gRoi_right[camNum - 1]  - gRoi_left[camNum - 1]) + 1;
 	
@@ -1511,30 +1228,8 @@ void fcImage_StripBlackCols(int camNum, UInt16 *frameBuffer)
 		
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // the following three routines are used to touch up the images from the IBIS1300 sensor
 // it normalizes the offsets in the columns.
-
-
-
-
 // clear out the black row vector for the IBIS1300 image sensor
 void fcImage_IBIS_clearBlackRowAverage(void)
 {
@@ -1543,11 +1238,6 @@ void fcImage_IBIS_clearBlackRowAverage(void)
 	for (i = 0; i < 1280; i++)
 		gBlackOffsets[i] = 0;
 }
-
-
-
-
-
 
 // accumulate another image's first black row from the IBIS image sensor
 void fcImage_IBIS_accumulateBlackRowAverage(void)
@@ -1570,10 +1260,6 @@ void fcImage_IBIS_accumulateBlackRowAverage(void)
 		}
 }
 
-
-
-
-
 // here after we accumulated all of the images first black row.  now divide by the num of images taken
 void fcImage_IBIS_divideBlackRowAverage(void)
 {
@@ -1582,11 +1268,6 @@ void fcImage_IBIS_divideBlackRowAverage(void)
 	for (i = 0; i < 1280; i++)
 		gBlackOffsets[i] = gBlackOffsets[i] / 4;
 }
-
-
-
-
-
 
 // helper routine for fcImage_IBIS_doFullFrameColLevelNormalization.
 // will calculate the average level of the pixels in the
@@ -1601,8 +1282,6 @@ float fcImage_IBIS_calcFirstBlackRowAverage(UInt16 *frameBufferPtr, int imageWid
     UInt16			*inputPtr;
 	SInt32			aPixel;
 	
-
-
 	retValue = 0.0;
 	
 	// we will average all of the pixels in the first row
@@ -1622,13 +1301,6 @@ float fcImage_IBIS_calcFirstBlackRowAverage(UInt16 *frameBufferPtr, int imageWid
 	
 	return retValue;
 }
-
-
-
-
-
-
-
 
 // routine which will subtract out the offset pedestal from the image.  It looks at the 
 // first row of black pixels to determine the average of the row.  Then it subtracts out
@@ -1651,7 +1323,6 @@ void fcImage_IBIS_subtractPedestal(UInt16 *frameBufferPtr, int imageWidth, int i
 	float			floatPixel;
 	
 
-	
 	// calculate the average of all the black pixels in the first row
 	frameAvg = fcImage_IBIS_calcFirstBlackRowAverage(frameBufferPtr, imageWidth, imageHeight);
 	thePedestal = (SInt32) frameAvg;
@@ -1682,10 +1353,6 @@ void fcImage_IBIS_subtractPedestal(UInt16 *frameBufferPtr, int imageWidth, int i
 		}
 		
 }
-
-
-
-
 
 // this routine is called everytime the gain setting is changed on the IBIS1300 image sensor.  I takes 8 frames 
 // and stores the average of the first black row of pixels in the sensor.  The resulting vector is then used
@@ -1751,13 +1418,6 @@ void fcImage_IBIS_computeAvgColOffsets(int camNum)
 	fcUsb_cmd_setIntegrationTime(camNum, savedIntegrationTime);
 }
 
-
-
-
-
-
-
-
 // routine to perform column level normalization on the RAW camera image
 // Used to get rid of the camera's fixed pattern noise associated with COLs
 // enter with pointer to 16 bit image
@@ -1820,25 +1480,6 @@ void fcImage_IBIS_computeAvgColOffsets(int camNum)
 		}
 		
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // routine to compute the column level offsets in the image.
 // We do this by examining the vertical overscan region in the image
@@ -1908,11 +1549,6 @@ void fcImage_PRO_calcColOffsets(UInt16 *frameBufferPtr, int imageWidth, int imag
 		}
 }
 
-
-
-
-
-
 // routine to perform column level normalization on the RAW camera image
 // Used to get rid of the sensor's fixed pattern noise associated with COLs
 // enter with pointer to 16 bit image
@@ -1932,7 +1568,6 @@ void fcImage_PRO_calcColOffsets(UInt16 *frameBufferPtr, int imageWidth, int imag
 	float			colOffset;
 	float			floatPixel;
 	
-
 	
 //	printf("fcImage_PRO_doFullFrameColLevelNormalization\n");
 	Starfish_Log("fcImage_PRO_doFullFrameColLevelNormalization\n");
@@ -1970,16 +1605,6 @@ void fcImage_PRO_calcColOffsets(UInt16 *frameBufferPtr, int imageWidth, int imag
 		
 }
 
-
-
-
-
-
-
-
-
-
-
 // this routine is used internally to calibrate the PRO series cameras.  We do this each time
 // the fcPROP_NUMSAMPLES property is changed or if the sensor's temperature changes by more than 1 degree C.
 //
@@ -1996,10 +1621,10 @@ void fcImage_PRO_calibrateProCamera(int camNum, UInt16 *frameBufferPtr, int imag
 	int		i;
 	bool	savedWantNorm;
 	
-	
-	
 	Starfish_Log("fcImage_PRO_calibrateProCamera\n");
-	
+
+    if (gDoSimulation)
+        return;
 	
 	// remember the current integration time setting so that we can put it back when we are done.
 	savedIntegrationTime = gCurrentIntegrationTime[camNum - 1];
@@ -2008,8 +1633,6 @@ void fcImage_PRO_calibrateProCamera(int camNum, UInt16 *frameBufferPtr, int imag
 	gProWantColNormalization = false;
 
 	// set a short integration time.  bias frame = 1ms exposure
-
-
 	fcUsb_cmd_setIntegrationTime(camNum, 1);	// 1 ms
 	
 	for (i = 0; i < 2; i++)
@@ -2041,21 +1664,6 @@ void fcImage_PRO_calibrateProCamera(int camNum, UInt16 *frameBufferPtr, int imag
 	gProWantColNormalization = savedWantNorm;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // routine to perform a 3x3 kernel filter on the image buffer
 //
 void fcImage_do_3x3_kernel(UInt16 imageHeight, UInt16 imageWidth, UInt16 *frameBuffer)
@@ -2068,7 +1676,6 @@ void fcImage_do_3x3_kernel(UInt16 imageHeight, UInt16 imageWidth, UInt16 *frameB
     UInt32			accumPixel;
     UInt16			*tempBuffer;
 	size_t			size;
-
 
 	// this routine will work 'in place'.  We will first allocate a temporary image buffer	
 	// we copy the image to it and then fill the original buffer with the filtered image
@@ -2144,13 +1751,6 @@ void fcImage_do_3x3_kernel(UInt16 imageHeight, UInt16 imageWidth, UInt16 *frameB
 
 }
 
-
-
-
-
-
-
-
 // routine to perform a 5x5 kernel filter on the image buffer
 //
 void fcImage_do_5x5_kernel(UInt16 imageHeight, UInt16 imageWidth, UInt16 *frameBuffer)
@@ -2221,8 +1821,6 @@ void fcImage_do_5x5_kernel(UInt16 imageHeight, UInt16 imageWidth, UInt16 *frameB
 		}
 
 }
-
-
 
 // routine to perform hot pixel removal filter on the image buffer
 //
@@ -2360,6 +1958,7 @@ void fcUsb_init(void)
 
 
 	gDoLogging = true;	// default to do logging
+    gDoSimulation = false;
 
 	Starfish_Log("fcUsb_init routine\n");
 
@@ -2424,6 +2023,11 @@ void fcUsb_setLogging(bool loggingState)
 	gDoLogging = loggingState;
 }
 
+void fcUsb_setSimulation(bool simState)
+{
+    gDoSimulation = simState;
+}
+
 // This is the framework close routine and needs to be called just before application termination
 void fcUsb_close(void)
 {
@@ -2446,8 +2050,6 @@ void fcUsb_close(void)
 			gCamerasFound[i].dev = 0;
 			}
 		}
-
-
 
 	libusb_exit(gCtx);
 }
@@ -2651,30 +2253,28 @@ int fcUsb_FindCameras(void)
 	int			kr;
  	char		buffer[200];
 
-
-
 	Starfish_Log("fcUsb_FindCameras routine\n");
 
 	gNumCamerasDiscovered   = 0;	
 	gFindCamState			= fcFindCam_looking4supported;
 	gFindCamPercentComplete = 20.0;
 
+    if (gDoSimulation)
+    {
+        gFindCamState			= fcFindCam_finished;
+        gFindCamPercentComplete = 100.0;
 
-// 	printf("This program will dump the device"
-// 	    " active config descriptor for all the"
-// 	    " present devices.\n");
- 
-//	cdesc = malloc(sizeof(struct libusb_config_descriptor));
-//	if (cdesc == NULL) {
-//		perror("test1");
-//		return (EXIT_FAILURE);
-//	}
+        gCamerasFound[0].camVendor       = fishcamp_USB_VendorID;
+        gCamerasFound[0].camRawProduct   = starfish_mono_rev2_raw_deviceID;
+        gCamerasFound[0].camFinalProduct = starfish_mono_rev2_final_deviceID;
+        gCamerasFound[0].camRelease      = 12345;
+        gCamerasFound[0].dev             = 0;
 
-// 	if (libusb_init(&ctx) != 0) {
-// 		fprintf(stderr, "libusb_init failed\n");
-// 		return (EXIT_FAILURE);
-// 	}
- 
+        gNumCamerasDiscovered = 1;
+
+        return gNumCamerasDiscovered;
+    }
+
 	if ((cnt = libusb_get_device_list(gCtx, &devs_list)) < 0) 
 		{
 		sprintf(buffer, "  libusb_get_device_list failed with 0x%x error code\n", cnt);
@@ -2729,8 +2329,6 @@ int fcUsb_FindCameras(void)
 
 			}
 
-
-
 		if ((vendor == fishcamp_USB_VendorID) && (product == starfish_mono_rev2_final_deviceID))
 			{
 			// put the new initialized camera in our data base
@@ -2775,10 +2373,6 @@ int fcUsb_FindCameras(void)
 				Starfish_Log( buffer );
 				}
 			}
-
-
-
-
 
 
 		retValue = libusb_get_active_config_descriptor(devs_list[i], &cdesc);
@@ -2871,7 +2465,6 @@ float fcUsb_GetFindCamsPercentComplete(void)
 	return gFindCamPercentComplete;
 }
 
-
 // need to open the camera before using it.
 // valid camNum is 1 -> fcUsb_GetNumCameras()
 //
@@ -2892,6 +2485,13 @@ int fcUsb_OpenCamera(int camNum)
 
 	Starfish_Log("fcUsb_OpenCamera routine\n");
 	
+    if (gDoSimulation)
+    {
+        sprintf(buffer, "Found Starfish - SN%04d\n", gCamerasFound[camNum - 1].camRelease);
+        Starfish_Log( buffer );
+        fcUsb_setStarfishDefaultRegs(camNum);
+        return 0;
+    }
 
 	if (gCamerasFound[camNum - 1].dev == 0)
 		{
@@ -3025,6 +2625,9 @@ int fcUsb_OpenCamera(int camNum)
 //
 int fcUsb_CloseCamera(int camNum)
 {
+    if (gDoSimulation)
+        return 0;
+
 	if (gCamerasFound[camNum - 1].dev)
 		{
 		libusb_release_interface(gCamerasFound[camNum - 1].dev, 0);
@@ -3036,14 +2639,12 @@ int fcUsb_CloseCamera(int camNum)
 
 }
 
-
 // call this routine to know how many of our supported cameras are available for use.
 //
 int fcUsb_GetNumCameras(void)
 {
 	return gNumCamerasDiscovered;
 }
-
 
 bool fcUsb_haveCamera(void)
 {
@@ -3092,10 +2693,11 @@ int fcUsb_cmd_nop(int camNum)
 	int			maxBytes;
 
 	Starfish_Log("fcUsb_cmd_nop\n");
+
+    if (gDoSimulation)
+        return 0;
 	
-    //myParameters.header = 'fc';
-    // JM 2013-12-27
-    myParameters.header = 0xFC;
+    myParameters.header = 'fc';
 	myParameters.command = fcNOP;
 	myParameters.length = sizeof(myParameters);
 	myParameters.cksum = fcUsb_GetUsbCmdCksum(&myParameters.header);
@@ -3119,8 +2721,10 @@ int fcUsb_cmd_rst(int camNum)
     UInt32		numBytesRead;
 	int			maxBytes;
 
-
 	Starfish_Log("fcUsb_cmd_rst\n");
+
+    if (gDoSimulation)
+        return 0;
 	
 	myParameters.header = 'fc';
 	myParameters.command = fcRST;
@@ -3151,30 +2755,44 @@ int	fcUsb_cmd_getinfo(int camNum, fc_camInfo *camInfo)
 	char		buffer[200];
 	int			maxBytes;
 	
-
 	Starfish_Log("fcUsb_cmd_getinfo\n");
 
-	// send the command to the camera
-	myParameters.header = 'fc';
-	myParameters.command = fcGETINFO;
-	myParameters.length = sizeof(myParameters);
-	myParameters.cksum = fcUsb_GetUsbCmdCksum(&myParameters.header);
+    if (gDoSimulation)
+    {
+        camInfo->boardRevision = 1;
+        camInfo->boardVersion = 2;
+        camInfo->fpgaRevision = 1;
+        camInfo->fpgaVersion = 2;
+        camInfo->pixelHeight = 7;
+        camInfo->pixelWidth = 7;
+        camInfo->width = 1280;
+        camInfo->height = 1024;
+    }
+    else
+    {
+        // send the command to the camera
+        myParameters.header = 'fc';
+        myParameters.command = fcGETINFO;
+        myParameters.length = sizeof(myParameters);
+        myParameters.cksum = fcUsb_GetUsbCmdCksum(&myParameters.header);
 
-	msgSize = sizeof(myParameters);
-	SendUSB(camNum, (unsigned char*)&myParameters, (int)msgSize);
-	
-	// get the response to the command
-	maxBytes = 512;
-	numBytesRead = RcvUSB(camNum, (unsigned char*)&gBuffer, maxBytes);
+        msgSize = sizeof(myParameters);
+        SendUSB(camNum, (unsigned char*)&myParameters, (int)msgSize);
+
+        // get the response to the command
+        maxBytes = 512;
+        numBytesRead = RcvUSB(camNum, (unsigned char*)&gBuffer, maxBytes);
 
 
-	// we have the ACK message in gBuffer.  It is proceeded by two words before the fc_camInfo
-	// data.  copy the real data to the user's data structure.
-    wordPtr1 = (UInt16 *)&gBuffer[4];
-    wordPtr2 = (UInt16 *)camInfo;
-	
-	for (i = 0; i < sizeof(fc_camInfo); i = i + 2)
-		*wordPtr2++ = *wordPtr1++;
+        // we have the ACK message in gBuffer.  It is proceeded by two words before the fc_camInfo
+        // data.  copy the real data to the user's data structure.
+        wordPtr1 = (UInt16 *)&gBuffer[4];
+        wordPtr2 = (UInt16 *)camInfo;
+
+        for (i = 0; i < sizeof(fc_camInfo); i = i + 2)
+            *wordPtr2++ = *wordPtr1++;
+
+    }
 
 	// bug fix.  The starfish puts out garbled text for the camera name string
 	camInfo->camNameStr[0]  = 'S';
@@ -3201,7 +2819,6 @@ int	fcUsb_cmd_getinfo(int camNum, fc_camInfo *camInfo)
 		camInfo->camSerialStr[i] = (UInt8)buffer[i];
 
 	camInfo->camSerialStr[19] = 0;
-
 
 	// print out the information returned
 	Starfish_Log("fcUsb_cmd_getinfo:\n");
@@ -3260,6 +2877,9 @@ int fcUsb_cmd_setRegister(int camNum, UInt16 regAddress, UInt16 dataValue)
 
 	Starfish_Log("fcUsb_cmd_setRegister\n");
 
+    if (gDoSimulation)
+        return 0;
+
 	myParameters.header = 'fc';
 	myParameters.command = fcSETREG;
 	myParameters.length = sizeof(myParameters);
@@ -3292,6 +2912,9 @@ UInt16 fcUsb_cmd_getRegister(int camNum, UInt16 regAddress)
 
 	
 	Starfish_Log("fcUsb_cmd_getRegister\n");
+
+    if (gDoSimulation)
+        return 0;
 	
 	myParameters.header = 'fc';
 	myParameters.command = fcGETREG;
@@ -3364,6 +2987,9 @@ int fcUsb_cmd_setIntegrationTime(int camNum, UInt32 theTime)
 
 	Starfish_Log("fcUsb_cmd_setIntegrationTime\n");
 
+    if (gDoSimulation)
+        return 0;
+
 	// store the time away so we can decide if we want to read the black columns
 	gCurrentIntegrationTime[camNum - 1] = theTime;
 
@@ -3413,6 +3039,9 @@ int fcUsb_cmd_setGuiderIntegrationTime(int camNum, UInt32 theTime)
 
 	Starfish_Log("fcUsb_cmd_setGuiderIntegrationTime\n");
 
+    if (gDoSimulation)
+        return 0;
+
 	// store the time away so we can decide if we want to read the black columns
 	gCurrentIntegrationTime[camNum - 1] = theTime;
 
@@ -3451,9 +3080,11 @@ int fcUsb_cmd_startExposure(int camNum)
 	fc_no_param	myParameters;
     UInt32		numBytesRead;
 	int			maxBytes;
-	
 
 	Starfish_Log("fcUsb_cmd_startExposure\n");
+
+    if (gDoSimulation)
+        return 0;
 
 	myParameters.header = 'fc';
 	myParameters.command = fcSTARTEXP;
@@ -3479,9 +3110,11 @@ int fcUsb_cmd_startGuiderExposure(int camNum)
 	fc_no_param	myParameters;
     UInt32		numBytesRead;
 	int			maxBytes;
-
 	
 	Starfish_Log("fcUsb_cmd_startGuiderExposure\n");
+
+    if (gDoSimulation)
+        return 0;
 
 	// only the ibis1300 camera supports this right now
 	if (gCamerasFound[camNum - 1].camFinalProduct == starfish_ibis13_final_deviceID)
@@ -3511,8 +3144,10 @@ int fcUsb_cmd_abortExposure(int camNum)
     UInt32		numBytesRead;
 	int			maxBytes;
 
-	
 	Starfish_Log("fcUsb_cmd_abortExposure\n");
+
+    if (gDoSimulation)
+        return 0;
 
 	myParameters.header = 'fc';
 	myParameters.command = fcABORTEXP;
@@ -3541,8 +3176,10 @@ int fcUsb_cmd_abortGuiderExposure(int camNum)
     UInt32		numBytesRead;
 	int			maxBytes;
 
-	
 	Starfish_Log("fcUsb_cmd_abortGuiderExposure\n");
+
+    if (gDoSimulation)
+        return 0;
 
 	// only the ibis1300 camera supports this right now
 	if (gCamerasFound[camNum - 1].camFinalProduct == starfish_ibis13_final_deviceID)
@@ -3574,6 +3211,8 @@ UInt16 fcUsb_cmd_getState(int camNum)
 	fc_regInfo	myRegInfo;
 	int			maxBytes;
 
+    if (gDoSimulation)
+        return 0;
 	
 //	printf("fcUsb_cmd_getState:\n");
 //	Starfish_Log("fcUsb_cmd_getState\n");
@@ -3627,6 +3266,9 @@ UInt16 fcUsb_cmd_getGuiderState(int camNum)
 //	printf("fcUsb_cmd_getGuiderState:\n");
 	Starfish_Log("fcUsb_cmd_getGuiderState\n");
 
+    if (gDoSimulation)
+        return 0;
+
 	// only the ibis1300 camera supports this right now
 	if (gCamerasFound[camNum - 1].camFinalProduct == starfish_ibis13_final_deviceID)
 		{
@@ -3674,6 +3316,9 @@ int fcUsb_cmd_setFrameGrabberTestPattern(int camNum, UInt16 state)
 
 	
 	Starfish_Log("fcUsb_cmd_setFrameGrabberTestPattern\n");
+
+    if (gDoSimulation)
+        return 0;
 
 	myParameters.header = 'fc';
 	myParameters.command = fcSETFGTP;
@@ -3764,7 +3409,6 @@ int fcUsb_cmd_setRoi(int camNum, UInt16 left, UInt16 top, UInt16 right, UInt16 b
     UInt16			regVal;
 	int				maxBytes;
 
-
 	Starfish_Log("fcUsb_cmd_setRoi\n");
 
 	// store user requested number away
@@ -3772,6 +3416,9 @@ int fcUsb_cmd_setRoi(int camNum, UInt16 left, UInt16 top, UInt16 right, UInt16 b
 	gRoi_top[camNum - 1]    = top;
 	gRoi_right[camNum - 1]  = right;
 	gRoi_bottom[camNum - 1] = bottom;
+
+    if (gDoSimulation)
+        return 0;
 
 	myParameters.header = 'fc';
 	myParameters.command = fcSETROI;
@@ -3830,8 +3477,10 @@ int	fcUsb_cmd_setBin(int camNum, UInt16 binMode)
     UInt16			regVal;
 	int				maxBytes;
 	
-
 	Starfish_Log("fcUsb_cmd_setBin\n");
+
+    if (gDoSimulation)
+        return 0;
 
 	myParameters.header = 'fc';
 	myParameters.command = fcSETBIN;
@@ -3864,8 +3513,10 @@ int	fcUsb_cmd_setRelay(int camNum, int whichRelay)
     UInt16					regVal;
 	int						maxBytes;
 	
-	
 	Starfish_Log("fcUsb_cmd_setRelay\n");
+
+    if (gDoSimulation)
+        return 0;
 
 	myParameters.header = 'fc';
 	myParameters.command = fcSETRELAY;
@@ -3892,9 +3543,11 @@ int	fcUsb_cmd_clearRelay(int camNum, int whichRelay)
     UInt32					numBytesRead;
     UInt16					regVal;
 	int						maxBytes;	
-	
 
 	Starfish_Log("fcUsb_cmd_clearRelay\n");
+
+    if (gDoSimulation)
+        return 0;
 
 	myParameters.header = 'fc';
 	myParameters.command = fcCLRRELAY;
@@ -3924,8 +3577,10 @@ int	fcUsb_cmd_pulseRelay(int camNum, int whichRelay, int onMs, int offMs, bool r
     UInt16				regVal;
 	int					maxBytes;	
 	
-	
 	Starfish_Log("fcUsb_cmd_pulseRelay\n");
+
+    if (gDoSimulation)
+        return 0;
 
 	myParameters.header = 'fc';
 	myParameters.command = fcPULSERELAY;
@@ -3959,7 +3614,9 @@ int fcUsb_cmd_setTemperature(int camNum, SInt16 theTemp)
     UInt32				numBytesRead;
 	int					maxBytes;	
 	
-	
+    if (gDoSimulation)
+        return 0;
+
 	Starfish_Log("fcUsb_cmd_setTemperature\n");
 
 	myParameters.header = 'fc';
@@ -3990,9 +3647,11 @@ SInt16 fcUsb_cmd_getTemperature(int camNum)
 	float		theCurTemperature;
 	char		buffer[200];
 	int			maxBytes;	
-
 	
 	Starfish_Log("fcUsb_cmd_getTemperature\n");
+
+    if (gDoSimulation)
+        return 25;
 
 	myParameters.header = 'fc';
 	myParameters.command = fcGETTEMP;
@@ -4028,9 +3687,11 @@ UInt16 fcUsb_cmd_getTECPowerLevel(int camNum)
 	char		buffer[200];
     UInt16		theCurPower;
 	int			maxBytes;	
-
 	
 	Starfish_Log("fcUsb_cmd_getTECPowerLevel\n");
+
+    if (gDoSimulation)
+        return 50;
 
 	myParameters.header = 'fc';
 	myParameters.command = fcGETTEMP;
@@ -4065,8 +3726,10 @@ bool fcUsb_cmd_getTECInPowerOK(int camNum)
 	fc_tempInfo	myTemperatureInfo;
 	int			maxBytes;
 		
-	
 	Starfish_Log("fcUsb_cmd_getTECInPowerOK\n");
+
+    if (gDoSimulation)
+        return true;
 
 	myParameters.header = 'fc';
 	myParameters.command = fcGETTEMP;
@@ -4098,8 +3761,10 @@ int fcUsb_cmd_turnOffCooler(int camNum)
     UInt32		numBytesRead;
 	int			maxBytes;	
 
-	
 	Starfish_Log("fcUsb_cmd_turnOffCooler\n");
+
+    if (gDoSimulation)
+        return 0;
 
 	myParameters.header = 'fc';
 	myParameters.command = fcTURNOFFTEC;
@@ -4134,6 +3799,9 @@ int fcUsb_cmd_getRawFrame(int camNum, UInt16 numRows, UInt16 numCols, UInt16 *fr
 	
 
 	Starfish_Log("fcUsb_cmd_getRawFrame\n");
+
+    if (gDoSimulation)
+        return 0;
 
 	// send the command to the camera
 	myParameters.header = 'fc';
@@ -4233,8 +3901,10 @@ int fcUsb_cmd_setCameraGain(int camNum, UInt16 theGain)
     UInt32				numBytesRead;
 	int					maxBytes;	
 	
-	
 	Starfish_Log("fcUsb_cmd_setCameraGain\n");
+
+    if (gDoSimulation)
+        return 0;
 
 	myParameters.header = 'fc';
 	myParameters.command = fcSETGAIN;
@@ -4272,8 +3942,10 @@ int fcUsb_cmd_setCameraOffset(int camNum, UInt16 theOffset)
     UInt32				numBytesRead;
 	int					maxBytes;	
 	
-	
 	Starfish_Log("fcUsb_cmd_setCameraOffset\n");
+
+    if (gDoSimulation)
+        return 0;
 
 	myParameters.header = 'fc';
 	myParameters.command = fcSETOFFSET;
@@ -4313,8 +3985,10 @@ int	fcUsb_cmd_setReadMode(int camNum, int DataXfrReadMode, int DataFormat)
 	bool					ReadBlack;
 	int						maxBytes;		
 
-
 	Starfish_Log("fcUsb_cmd_setReadMode\n");
+
+    if (gDoSimulation)
+        return 0;
 
 	if (gCamerasFound[camNum - 1].camFinalProduct == starfish_ibis13_final_deviceID)
 		{
@@ -4398,9 +4072,10 @@ void fcUsb_setStarfishDefaultRegs(int camNum)
 {
     UInt16		regValue;
 
-
-
 	Starfish_Log("fcUsb_setStarfishDefaultRegs\n");
+
+    if (gDoSimulation)
+        return;
 
 	// Turn off auto black level compensation in the micron image sensor
 	regValue = fcUsb_cmd_getRegister(camNum, 0x5F);
@@ -4447,8 +4122,10 @@ UInt16 fcUsb_cmd_getBlackPedestal(int camNum)
     UInt16					retValue;
 	int						maxBytes;	
 	
-
 	Starfish_Log("fcUsb_cmd_getBlackPedestal\n");
+
+    if (gDoSimulation)
+        return 0;
 	
 	myParameters.header = 'fc';
 	myParameters.command = fcGETPEDESTAL;
@@ -4518,6 +4195,8 @@ UInt16 fcUsb_cmd_getBlackPedestal(int camNum)
 
 	Starfish_Log("fcUsb_cmd_setCameraProperty\n");
 
+    if (gDoSimulation)
+        return;
 
 	if (propertyType == fcPROP_COLNORM)
 		{
