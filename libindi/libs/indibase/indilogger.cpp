@@ -20,6 +20,7 @@
 
 #include "indilogger.h"
 #include <indicom.h>
+#include <cstdio>
 
 #include <iostream>
 
@@ -289,19 +290,11 @@ void Logger::configure (const std::string&	outputFile,
 			out_.close();
 
 		// Compute a new file name, if needed
-		if (outputFile != logFile_){
-			std::ostringstream oss;
-			time_t currTime;
-			time(&currTime);
-            //struct tm *currTm = localtime(&currTime);
-			oss << outputFile << "_" << timestamp() << ".log";
-			  //		currTm->tm_mday << "_" <<
-			  //		currTm->tm_mon << "_" <<
-			  //		(1900 + currTm->tm_year) << "_" <<
-			  //		currTm->tm_hour << "-" <<
-			  //		currTm->tm_min << "-" <<
-			  //		currTm->tm_sec << ".log";
-			logFile_ = oss.str().c_str();
+        if (outputFile != logFile_)
+        {
+            char logFileBuf[512];
+            snprintf(logFileBuf, 512, "%s_%s.log", outputFile.c_str(), timestamp());
+            logFile_ = logFileBuf;
 		}
 
 		// Open a new stream, if needed
