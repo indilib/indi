@@ -220,7 +220,7 @@
 3rdparty/indi-meadedsi/INSTALL -text
 3rdparty/indi-meadedsi/README -text
 3rdparty/indi-meadedsi/indi_meadedsi_ccd.xml -text
-3rdparty/indi-qhy/85-qhyccd.rules -text
+3rdparty/indi-qhy/99-qhyccd.rules -text
 3rdparty/indi-qhy/AUTHORS -text
 3rdparty/indi-qhy/CMakeLists.txt -text
 3rdparty/indi-qhy/COPYING.LIB -text
