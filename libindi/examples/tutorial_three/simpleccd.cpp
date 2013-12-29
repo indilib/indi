@@ -131,9 +131,18 @@ bool SimpleCCD::initProperties()
     // Must init parent properties first!
     INDI::CCD::initProperties();
 
-    // We init the property details. This is a stanard property of the INDI Library.
-    IUFillNumber(&TemperatureN[0], "CCD_TEMPERATURE_VALUE", "Temperature (C)", "%5.2f", MIN_CCD_TEMP, MAX_CCD_TEMP, 0., 0.);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "CCD_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+    // We set the CCD capabilities
+    Capability cap;
+
+    cap.canAbort = true;
+    cap.canBin   = true;
+    cap.canSubFrame = true;
+    cap.hasCooler = true;
+    cap.hasGuideHead = false;
+    cap.hasShutter = true;
+    cap.hasST4Port = false;
+
+    SetCapability(&cap);
 
     // Add Debug, Simulator, and Configuration controls
     addAuxControls();
@@ -169,19 +178,11 @@ bool SimpleCCD::updateProperties()
 
     if (isConnected())
     {
-        // Define our only property temperature
-        defineNumber(&TemperatureNP);
-
         // Let's get parameters now from CCD
         setupParams();
 
         // Start the timer
         SetTimer(POLLMS);
-    }
-    else
-    // We're disconnected
-    {
-        deleteProperty(TemperatureNP.name);
     }
 
     return true;
@@ -247,66 +248,6 @@ float SimpleCCD::CalcTimeLeft()
 }
 
 /**************************************************************************************
-** Client is asking us to set a new number
-***************************************************************************************/
-bool SimpleCCD::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    INumber *np;
-
-    if(strcmp(dev,getDeviceName())==0)
-    {
-
-        /* Temperature*/
-        if (!strcmp(TemperatureNP.name, name))
-        {
-            TemperatureNP.s = IPS_IDLE;
-
-            // Let's find the temperature value
-            np = IUFindNumber(&TemperatureNP, names[0]);
-
-            // If it doesn't exist...
-            if (np == NULL)
-            {
-                IDSetNumber(&TemperatureNP, "Unknown error. %s is not a member of %s property.", names[0], name);
-                return false;
-            }
-
-            // If it's out of range ...
-            if (values[0] < MIN_CCD_TEMP || values[0] > MAX_CCD_TEMP)
-            {
-                IDSetNumber(&TemperatureNP, "Error: valid range of temperature is from %d to %d", MIN_CCD_TEMP, MAX_CCD_TEMP);
-                return false;
-            }
-
-            // All OK, let's set the requested temperature
-            TemperatureRequest = values[0];
-            TemperatureNP.s = IPS_BUSY;
-
-            IDSetNumber(&TemperatureNP, "Setting CCD temperature to %+06.2f C", values[0]);
-            return true;
-        }
-    }
-
-    // If we didn't process anything above, let the parent handle it.
-    return INDI::CCD::ISNewNumber(dev,name,values,names,n);
-}
-
-/**************************************************************************************
-** INDI is asking us to add any FITS keywords to the FITS header
-***************************************************************************************/
-void SimpleCCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
-{
-    // Let's first add parent keywords
-    INDI::CCD::addFITSKeywords(fptr, targetChip);
-
-    // Add temperature to FITS header
-    int status=0;
-    fits_update_key_s(fptr, TDOUBLE, "CCD-TEMP", &(TemperatureN[0].value), "CCD Temperature (Celcius)", &status);
-    fits_write_date(fptr, &status);
-
-}
-
-/**************************************************************************************
 ** Main device loop. We check for exposure and temperature progress here
 ***************************************************************************************/
 void SimpleCCD::TimerHit()
@@ -343,6 +284,7 @@ void SimpleCCD::TimerHit()
 
     }
 
+    // TemperatureNP is defined in INDI::CCD
     switch (TemperatureNP.s)
     {
       case IPS_IDLE:
