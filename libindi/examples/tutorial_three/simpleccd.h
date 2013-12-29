@@ -44,6 +44,7 @@ protected:
     // CCD specific functions
     bool StartExposure(float duration);
     bool AbortExposure();
+    int SetTemperature(double temperature);
     void TimerHit();
 
 private:

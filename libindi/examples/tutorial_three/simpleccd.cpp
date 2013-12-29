@@ -231,6 +231,17 @@ bool SimpleCCD::AbortExposure()
 }
 
 /**************************************************************************************
+** Client is asking us to set a new temperature
+***************************************************************************************/
+int SimpleCCD::SetTemperature(double temperature)
+{
+    TemperatureRequest = temperature;
+
+    // 1 means it will take a while to change the temperature
+    return 1;
+}
+
+/**************************************************************************************
 ** How much longer until exposure is done?
 ***************************************************************************************/
 float SimpleCCD::CalcTimeLeft()
