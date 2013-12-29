@@ -1,0 +1,198 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXFileReference section */
+		5926FDE81870DFD700095857 /* .DS_Store */ = {isa = PBXFileReference; lastKnownFileType = file; path = .DS_Store; sourceTree = "<group>"; };
+		5926FDE91870DFD700095857 /* 85-qhyccd.rules */ = {isa = PBXFileReference; lastKnownFileType = text; path = "85-qhyccd.rules"; sourceTree = "<group>"; };
+		5926FDEA1870DFD700095857 /* AUTHORS */ = {isa = PBXFileReference; lastKnownFileType = text; path = AUTHORS; sourceTree = "<group>"; };
+		5926FDEB1870DFD700095857 /* cmake_install.cmake */ = {isa = PBXFileReference; lastKnownFileType = text; path = cmake_install.cmake; sourceTree = "<group>"; };
+		5926FDEC1870DFD700095857 /* cmake_modules */ = {isa = PBXFileReference; lastKnownFileType = folder; path = cmake_modules; sourceTree = "<group>"; };
+		5926FDED1870DFD700095857 /* CMakeCache.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = CMakeCache.txt; sourceTree = "<group>"; };
+		5926FDEE1870DFD700095857 /* CMakeFiles */ = {isa = PBXFileReference; lastKnownFileType = folder; path = CMakeFiles; sourceTree = "<group>"; };
+		5926FDEF1870DFD700095857 /* CMakeLists.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+		5926FDF01870DFD700095857 /* COPYING.LIB */ = {isa = PBXFileReference; lastKnownFileType = text; path = COPYING.LIB; sourceTree = "<group>"; };
+		5926FDF11870DFD700095857 /* COPYRIGHT.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = COPYRIGHT.txt; sourceTree = "<group>"; };
+		5926FDF21870DFD700095857 /* CPackConfig.cmake */ = {isa = PBXFileReference; lastKnownFileType = text; path = CPackConfig.cmake; sourceTree = "<group>"; };
+		5926FDF31870DFD700095857 /* CPackSourceConfig.cmake */ = {isa = PBXFileReference; lastKnownFileType = text; path = CPackSourceConfig.cmake; sourceTree = "<group>"; };
+		5926FDF41870DFD700095857 /* firmware */ = {isa = PBXFileReference; lastKnownFileType = folder; path = firmware; sourceTree = "<group>"; };
+		5926FDF51870DFD700095857 /* indi_qhy.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = indi_qhy.xml; sourceTree = "<group>"; };
+		5926FDF61870DFD700095857 /* indi_qhy_ccd */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = indi_qhy_ccd; sourceTree = "<group>"; };
+		5926FDF71870DFD700095857 /* INSTALL */ = {isa = PBXFileReference; lastKnownFileType = text; path = INSTALL; sourceTree = "<group>"; };
+		5926FDF81870DFD700095857 /* Makefile */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.make; path = Makefile; sourceTree = "<group>"; };
+		5926FDF91870DFD700095857 /* qhy5.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5.cpp; sourceTree = "<group>"; };
+		5926FDFA1870DFD700095857 /* qhy5ii.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5ii.cpp; sourceTree = "<group>"; };
+		5926FDFB1870DFD700095857 /* qhy_ccd_test */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = qhy_ccd_test; sourceTree = "<group>"; };
+		5926FDFC1870DFD700095857 /* qhy_test */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = qhy_test; sourceTree = "<group>"; };
+		5926FDFD1870DFD700095857 /* qhyccd.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = qhyccd.cpp; sourceTree = "<group>"; };
+		5926FDFE1870DFD700095857 /* qhyccd.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = qhyccd.h; sourceTree = "<group>"; };
+		5926FDFF1870DFD700095857 /* qhyconfig.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = qhyconfig.h; sourceTree = "<group>"; };
+		5926FE001870DFD700095857 /* qhyconfig.h.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = qhyconfig.h.in; sourceTree = "<group>"; };
+		5926FE011870DFD700095857 /* qhygeneric.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = qhygeneric.cpp; sourceTree = "<group>"; };
+		5926FE021870DFD700095857 /* qhygeneric.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = qhygeneric.h; sourceTree = "<group>"; };
+		5926FE031870DFD700095857 /* qhyspecific.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = qhyspecific.cpp; sourceTree = "<group>"; };
+		5926FE041870DFD700095857 /* qhyspecific.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = qhyspecific.h; sourceTree = "<group>"; };
+		5926FE051870DFD700095857 /* qhytest.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = qhytest.cpp; sourceTree = "<group>"; };
+		5926FE061870DFD700095857 /* README */ = {isa = PBXFileReference; lastKnownFileType = text; path = README; sourceTree = "<group>"; };
+		5926FE071870DFD700095857 /* README.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = README.txt; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		5926FDE21870DFD700095857 = {
+			isa = PBXGroup;
+			children = (
+				5926FDE81870DFD700095857 /* .DS_Store */,
+				5926FDE91870DFD700095857 /* 85-qhyccd.rules */,
+				5926FDEA1870DFD700095857 /* AUTHORS */,
+				5926FDEB1870DFD700095857 /* cmake_install.cmake */,
+				5926FDEC1870DFD700095857 /* cmake_modules */,
+				5926FDED1870DFD700095857 /* CMakeCache.txt */,
+				5926FDEE1870DFD700095857 /* CMakeFiles */,
+				5926FDEF1870DFD700095857 /* CMakeLists.txt */,
+				5926FDF01870DFD700095857 /* COPYING.LIB */,
+				5926FDF11870DFD700095857 /* COPYRIGHT.txt */,
+				5926FDF21870DFD700095857 /* CPackConfig.cmake */,
+				5926FDF31870DFD700095857 /* CPackSourceConfig.cmake */,
+				5926FDF41870DFD700095857 /* firmware */,
+				5926FDF51870DFD700095857 /* indi_qhy.xml */,
+				5926FDF61870DFD700095857 /* indi_qhy_ccd */,
+				5926FDF71870DFD700095857 /* INSTALL */,
+				5926FDF81870DFD700095857 /* Makefile */,
+				5926FDF91870DFD700095857 /* qhy5.cpp */,
+				5926FDFA1870DFD700095857 /* qhy5ii.cpp */,
+				5926FDFB1870DFD700095857 /* qhy_ccd_test */,
+				5926FDFC1870DFD700095857 /* qhy_test */,
+				5926FDFD1870DFD700095857 /* qhyccd.cpp */,
+				5926FDFE1870DFD700095857 /* qhyccd.h */,
+				5926FDFF1870DFD700095857 /* qhyconfig.h */,
+				5926FE001870DFD700095857 /* qhyconfig.h.in */,
+				5926FE011870DFD700095857 /* qhygeneric.cpp */,
+				5926FE021870DFD700095857 /* qhygeneric.h */,
+				5926FE031870DFD700095857 /* qhyspecific.cpp */,
+				5926FE041870DFD700095857 /* qhyspecific.h */,
+				5926FE051870DFD700095857 /* qhytest.cpp */,
+				5926FE061870DFD700095857 /* README */,
+				5926FE071870DFD700095857 /* README.txt */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXLegacyTarget section */
+		5926FDE71870DFD700095857 /* indi-qhy */ = {
+			isa = PBXLegacyTarget;
+			buildArgumentsString = "$(ACTION)";
+			buildConfigurationList = 5926FE081870DFD700095857 /* Build configuration list for PBXLegacyTarget "indi-qhy" */;
+			buildPhases = (
+			);
+			buildToolPath = /usr/bin/make;
+			buildWorkingDirectory = "/Users/polakovic/Development/indi/3rdparty/indi-qhy";
+			dependencies = (
+			);
+			name = "indi-qhy";
+			passBuildSettingsInEnvironment = 1;
+			productName = "indi-qhy";
+		};
+/* End PBXLegacyTarget section */
+
+/* Begin PBXProject section */
+		5926FDE31870DFD700095857 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+			};
+			buildConfigurationList = 5926FDE61870DFD700095857 /* Build configuration list for PBXProject "indi-qhy" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = 5926FDE21870DFD700095857;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				5926FDE71870DFD700095857 /* indi-qhy */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin XCBuildConfiguration section */
+		5926FDE41870DFD700095857 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
+				COPY_PHASE_STRIP = NO;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx10.6;
+			};
+			name = Debug;
+		};
+		5926FDE51870DFD700095857 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
+				COPY_PHASE_STRIP = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				SDKROOT = macosx10.6;
+			};
+			name = Release;
+		};
+		5926FE091870DFD700095857 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = NO;
+				DEBUGGING_SYMBOLS = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_FIX_AND_CONTINUE = YES;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
+				PRODUCT_NAME = "indi-qhy";
+			};
+			name = Debug;
+		};
+		5926FE0A1870DFD700095857 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
+				PRODUCT_NAME = "indi-qhy";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		5926FDE61870DFD700095857 /* Build configuration list for PBXProject "indi-qhy" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5926FDE41870DFD700095857 /* Debug */,
+				5926FDE51870DFD700095857 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5926FE081870DFD700095857 /* Build configuration list for PBXLegacyTarget "indi-qhy" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5926FE091870DFD700095857 /* Debug */,
+				5926FE0A1870DFD700095857 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 5926FDE31870DFD700095857 /* Project object */;
+}

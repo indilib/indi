@@ -342,7 +342,7 @@ void QHYDevice::makeRules() {
     fprintf(rules, "SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"%04x\", ATTRS{idProduct}==\"%04x\", MODE=\"0666\"\n", uninitialized_cameras[i].vid, uninitialized_cameras[i].pid);
   fprintf(rules, "\n# initialized devices\n\n");
   for (int i=0; initialized_cameras[i].vid; i++)
-    fprintf(rules, "SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"%04x\", ATTRS{idProduct}==\"%04x\", MODE=\"0666\"\n", uninitialized_cameras[i].vid, uninitialized_cameras[i].pid);
+    fprintf(rules, "SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"%04x\", ATTRS{idProduct}==\"%04x\", MODE=\"0666\"\n", initialized_cameras[i].vid, initialized_cameras[i].pid);
   fclose(rules);
 }
 
