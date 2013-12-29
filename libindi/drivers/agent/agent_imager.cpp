@@ -16,6 +16,8 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
+#include <memory>
+
 #include "agent_imager.h"
 
 #define DEVICE_NAME   "Imager"
