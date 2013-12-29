@@ -528,6 +528,7 @@
 3rdparty/libapogee/test_apogee.cpp -text
 3rdparty/libapogee/test_hatalta.cpp -text
 3rdparty/libapogee/testnet.cpp -text
+3rdparty/libfishcamp/99-fishcamp.rules -text
 3rdparty/libfishcamp/CMakeLists.txt -text
 3rdparty/libfishcamp/COPYING.LIB -text
 3rdparty/libfishcamp/Guider_mono_rev16_intel.srec -text
