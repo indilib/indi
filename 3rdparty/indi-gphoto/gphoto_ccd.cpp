@@ -137,7 +137,7 @@ void ISSnoopDevice(XMLEle *root) {
 GPhotoCCD::GPhotoCCD()
 {
     // For now let's set name to default name. In the future, we need to to support multiple devices per one driver
-    strncpy(name, getDefaultName(), MAXINDINAME);
+    strncpy(name, getDeviceName(), MAXINDINAME);
 
     gphotodrv = NULL;
     on_off[0] = strdup("On");
@@ -444,7 +444,7 @@ bool GPhotoCCD::Connect()
   mIsoSP.sp = mIsoS;
   mIsoSP.nsp = max_opts;
 
-  DEBUG(INDI::Logger::DBG_SESSION, "GPhoto CCD is online.");
+  DEBUGF(INDI::Logger::DBG_SESSION, "%s is online.", getDeviceName());
 
   return true;
 
@@ -454,7 +454,7 @@ bool GPhotoCCD::Disconnect()
 {
    gphoto_close(gphotodrv);
    gphotodrv = NULL;
-   DEBUG(INDI::Logger::DBG_SESSION, "GPhoto CCD is offline.");
+   DEBUGF(INDI::Logger::DBG_SESSION, "%s is offline.", getDeviceName());
   return true;
 
 }
@@ -667,11 +667,19 @@ ISwitch *GPhotoCCD::create_switch(const char *basestr, const char **options, int
 {
 	int i;
 	ISwitch *sw = (ISwitch *)calloc(sizeof(ISwitch), max_opts);
+    ISwitch *one_sw = sw;
+
+    char sw_name[MAXINDINAME];
+    char sw_label[MAXINDILABEL];
+    ISState sw_state;
+
     for(i = 0; i < max_opts; i++)
     {
-		sprintf(sw[i].name, "%s%d", basestr, i);
-		strcpy(sw[i].label, options[i]);
-		sw[i].s = (i == setidx) ? ISS_ON : ISS_OFF;
+        snprintf(sw_name, MAXINDINAME, "%s%d", basestr, i);
+        strncpy(sw_label, options[i], MAXINDILABEL);
+        sw_state = (i == setidx) ? ISS_ON : ISS_OFF;
+
+        IUFillSwitch(one_sw++, sw_name, sw_label, sw_state);
 	}
 	return sw;
 }
