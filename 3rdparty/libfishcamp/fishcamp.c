@@ -2365,6 +2365,8 @@ void fcUsb_init(void)
 
     libusb_init(&gCtx);
 
+    libusb_set_debug(gCtx, 3);
+
 	if (!gFWInitialized)
 		{
 		for (i = 0; i < kNumCamsSupported; i++)
