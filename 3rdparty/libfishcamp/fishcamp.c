@@ -2905,7 +2905,8 @@ int fcUsb_OpenCamera(int camNum)
 				// we have a RAW starfish camera being opened
 				product = gCamerasFound[camNum - 1].camRawProduct;
 
-                Starfish_Log("Opening raw USB device with vendor: %08x prodcut: %08x\n", vendor, product);
+                sprintf(buffer, "Opening raw USB device with vendor: %08x prodcut: %08x\n", vendor, product);
+                Starfish_Log(buffer);
 				usb_handle = libusb_open_device_with_vid_pid(gCtx, vendor, product);
 				gCamerasFound[camNum - 1].dev = usb_handle;
 			    if (usb_handle == NULL)
