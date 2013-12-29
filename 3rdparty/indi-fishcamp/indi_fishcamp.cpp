@@ -59,6 +59,8 @@ void ISInit()
       IDLog("About to call fcUsb_init()\n");
       fcUsb_init();
 
+      //fcUsb_setSimulation(true);
+
       IDLog("About to call set logging\n");
       fcUsb_setLogging(true);
 
@@ -232,6 +234,18 @@ bool FishCampCCD::initProperties()
   nbuf += 512;    //  leave a little extra at the end
   PrimaryCCD.setFrameBufferSize(nbuf);
 
+  Capability cap;
+
+  cap.canAbort = true;
+  cap.canBin = false;
+  cap.canSubFrame = true;
+  cap.hasCooler = true;
+  cap.hasGuideHead = false;
+  cap.hasShutter = true;
+  cap.hasST4Port = true;
+
+  SetCapability(&cap);
+
   delete[] strBuf;
 
   return true;
@@ -252,7 +266,6 @@ bool FishCampCCD::updateProperties()
   if (isConnected())
   {
     defineText(&CamInfoTP);
-    defineNumber(&TemperatureNP);
     defineNumber(&CoolerNP);
     defineNumber(&GainNP);
     defineSwitch(&ResetSP);
@@ -261,7 +274,6 @@ bool FishCampCCD::updateProperties()
   } else {
 
     deleteProperty(CamInfoTP.name);
-    deleteProperty(TemperatureNP.name);
     deleteProperty(CoolerNP.name);
     deleteProperty(GainNP.name);
     deleteProperty(ResetSP.name);
@@ -293,52 +305,25 @@ bool FishCampCCD::ISNewSwitch(const char *dev, const char *name, ISState *states
   return INDI::CCD::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool FishCampCCD::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+int FishCampCCD::SetTemperature(double temperature)
 {
-  INumber *np;
+    TemperatureRequest = temperature;
 
-  if (strcmp(dev, getDeviceName()) == 0)
-  {
+    int rc = fcUsb_cmd_setTemperature(cameraNum, TemperatureRequest);
 
-    /* Temperature*/
-    if (!strcmp(TemperatureNP.name, name))
-    {
-      TemperatureNP.s = IPS_IDLE;
+    DEBUGF(INDI::Logger::DBG_DEBUG, "fcUsb_cmd_setTemperature returns %d", rc);
 
-      np = IUFindNumber(&TemperatureNP, names[0]);
+    if (fcUsb_cmd_getTECInPowerOK(cameraNum))
+        CoolerNP.s = IPS_OK;
+    else
+        CoolerNP.s = IPS_IDLE;
 
-      if (!np) {
-        IDSetNumber(&TemperatureNP, "Unknown error. %s is not a member of %s property.", names[0], name);
-        return false;
-      }
+    TemperatureNP.s = IPS_BUSY;
+    IDSetNumber(&TemperatureNP, NULL);
 
-      if (values[0] < MIN_CCD_TEMP || values[0] > MAX_CCD_TEMP) {
-        IDSetNumber(&TemperatureNP, "Error: valid range of temperature is from %d to %d", MIN_CCD_TEMP, MAX_CCD_TEMP);
-        return false;
-      }
+    DEBUGF(INDI::Logger::DBG_SESSION, "Setting CCD temperature to %+06.2f C", temperature);
 
-      TemperatureRequest = values[0];
-
-      int rc = fcUsb_cmd_setTemperature(cameraNum, TemperatureRequest);
-
-      if (fcUsb_cmd_getTECInPowerOK(cameraNum))
-          CoolerNP.s = IPS_OK;
-      else
-          CoolerNP.s = IPS_IDLE;
-
-      TemperatureNP.s = IPS_BUSY;
-      IDSetNumber(&TemperatureNP, NULL);
-
-      DEBUGF(INDI::Logger::DBG_SESSION, "Setting CCD temperature to %+06.2f C", values[0]);
-      DEBUGF(INDI::Logger::DBG_DEBUG, "fcUsb_cmd_setTemperature returns %d", rc);
-
-      return true;
-    }
-  }
-
-  //  if we didn't process it, continue up the chain, let somebody else
-  //  give it a shot
-  return INDI::CCD::ISNewNumber(dev, name, values, names, n);
+    return 0;
 }
 
 bool FishCampCCD::Connect()
@@ -372,12 +357,14 @@ bool FishCampCCD::Connect()
 
 bool FishCampCCD::Disconnect()
 {
+
+  DEBUG(INDI::Logger::DBG_SESSION, "Fishcamp CCD is offline.");
+
   if (sim)
     return true;
 
-  //fcUsb_CloseCamera(cameraNum);
+  fcUsb_CloseCamera(cameraNum);
 
-  IDMessage(getDeviceName(), "Fishcamp CCD is offline.");
   return true;
 }
 
@@ -391,7 +378,7 @@ bool FishCampCCD::StartExposure(float duration)
 
   bool rc = false;
 
-  DEBUGF(INDI::Logger::DBG_DEBUG, "Exposure Time (s) is: %g\n", duration);
+  DEBUGF(INDI::Logger::DBG_DEBUG, "Exposure Time (s) is: %g", duration);
 
   // setup the exposure time in ms.
   rc = fcUsb_cmd_setIntegrationTime(cameraNum, duration);
@@ -408,7 +395,7 @@ bool FishCampCCD::StartExposure(float duration)
 
   InExposure = true;
 
-  return rc;
+  return (rc == 0);
 }
 
 bool FishCampCCD::AbortExposure()
@@ -522,16 +509,6 @@ int FishCampCCD::grabImage()
   ExposureComplete(&PrimaryCCD);
 
   return 0;
-}
-
-void FishCampCCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
-{
-  INDI::CCD::addFITSKeywords(fptr, targetChip);
-
-  int status = 0;
-  fits_update_key_s(fptr, TDOUBLE, "CCD-TEMP", &(TemperatureN[0].value), "CCD Temperature (Celcius)", &status);
-  fits_write_date(fptr, &status);
-
 }
 
 void FishCampCCD::resetFrame()
