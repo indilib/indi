@@ -42,9 +42,9 @@
 
 /* output a string expanding special characters into xml/html escape sequences */
 /* N.B. You must free the returned buffer after use! */
-char * escapeXML(const char *s)
+char * escapeXML(const char *s, unsigned int MAX_BUF_SIZE)
 {
-        char *buf = malloc(sizeof(char)*MAXINDILABEL);
+        char *buf = malloc(sizeof(char)*MAX_BUF_SIZE);
         char *out = buf;
         unsigned int i=0;
 
@@ -354,32 +354,42 @@ int IUSaveBLOB(IBLOB *bp, int size, int blobsize, char *blob, char *format)
 
 void IUFillSwitch(ISwitch *sp, const char *name, const char * label, ISState s)
 {
-  char *escapedXML = escapeXML(label);
-  strncpy(sp->name, name, MAXINDINAME);
-  strncpy(sp->label, escapedXML, MAXINDILABEL);
+  char *escapedName = escapeXML(name, MAXINDINAME);
+  char *escapedLabel = escapeXML(label, MAXINDILABEL);
+
+  strncpy(sp->name, escapedName, MAXINDINAME);
+  strncpy(sp->label, escapedLabel, MAXINDILABEL);
   sp->s = s;
   sp->svp = NULL;
   sp->aux = NULL;
-  free(escapedXML);
+
+  free(escapedName);
+  free(escapedLabel);
 }
 
 void IUFillLight(ILight *lp, const char *name, const char * label, IPState s)
 {
-  char *escapedXML = escapeXML(label);
-  strncpy(lp->name, name, MAXINDINAME);
-  strncpy(lp->label, escapedXML, MAXINDILABEL);
+  char *escapedName = escapeXML(name, MAXINDINAME);
+  char *escapedLabel = escapeXML(label, MAXINDILABEL);
+
+  strncpy(lp->name, escapedName, MAXINDINAME);
+  strncpy(lp->label, escapedLabel, MAXINDILABEL);
   lp->s = s;
   lp->lvp = NULL;
   lp->aux = NULL;
-  free(escapedXML);
+
+  free(escapedName);
+  free(escapedLabel);
 }
 
 
 void IUFillNumber(INumber *np, const char *name, const char * label, const char *format, double min, double max, double step, double value)
 {
-  char *escapedXML = escapeXML(label);
-  strncpy(np->name, name, MAXINDINAME);
-  strncpy(np->label, escapedXML, MAXINDILABEL);
+  char *escapedName = escapeXML(name, MAXINDINAME);
+  char *escapedLabel = escapeXML(label, MAXINDILABEL);
+
+  strncpy(np->name, escapedName, MAXINDINAME);
+  strncpy(np->label, escapedLabel, MAXINDILABEL);
   strncpy(np->format, format, MAXINDIFORMAT);
   
   np->min	= min;
@@ -390,15 +400,17 @@ void IUFillNumber(INumber *np, const char *name, const char * label, const char 
   np->aux0	= NULL;
   np->aux1	= NULL;
 
-  free(escapedXML);
+  free(escapedName);
+  free(escapedLabel);
 }
 
 void IUFillText(IText *tp, const char *name, const char * label, const char *initialText)
 {
+  char *escapedName = escapeXML(name, MAXINDINAME);
+  char *escapedLabel = escapeXML(label, MAXINDILABEL);
 
-  char *escapedXML = escapeXML(label);
-  strncpy(tp->name, name, MAXINDINAME);
-  strncpy(tp->label, escapedXML, MAXINDILABEL);
+  strncpy(tp->name, escapedName, MAXINDINAME);
+  strncpy(tp->label, escapedLabel, MAXINDILABEL);
   tp->text = NULL;
   tp->tvp  = NULL;
   tp->aux0 = NULL;
@@ -407,16 +419,20 @@ void IUFillText(IText *tp, const char *name, const char * label, const char *ini
   if (initialText && strlen(initialText) > 0)
     IUSaveText(tp, initialText);
 
-  free(escapedXML);
+  free(escapedName);
+  free(escapedLabel);
+
 }
 
 void IUFillBLOB(IBLOB *bp, const char *name, const char * label, const char *format)
 {
-    char *escapedXML = escapeXML(label);
+    char *escapedName = escapeXML(name, MAXINDINAME);
+    char *escapedLabel = escapeXML(label, MAXINDILABEL);
+
     memset(bp, 0, sizeof(IBLOB));
-    strncpy(bp->name, name, MAXINDINAME);
-    strncpy(bp->label, escapedXML, MAXINDILABEL);
-    strncpy(bp->format, label, MAXINDIBLOBFMT);
+    strncpy(bp->name, escapedName, MAXINDINAME);
+    strncpy(bp->label, escapedLabel, MAXINDILABEL);
+    strncpy(bp->format, format, MAXINDIBLOBFMT);
     bp->blob     = 0;
     bp->bloblen  = 0;
     bp->size     = 0;
@@ -425,15 +441,18 @@ void IUFillBLOB(IBLOB *bp, const char *name, const char * label, const char *for
     bp->aux1     = 0;
     bp->aux2     = 0;
 
-    free(escapedXML);
+    free(escapedName);
+    free(escapedLabel);
 }
 
 void IUFillSwitchVector(ISwitchVectorProperty *svp, ISwitch *sp, int nsp, const char * dev, const char *name, const char *label, const char *group, IPerm p, ISRule r, double timeout, IPState s)
 {
-  char *escapedXML = escapeXML(label);
+  char *escapedName = escapeXML(name, MAXINDINAME);
+  char *escapedLabel = escapeXML(label, MAXINDILABEL);
+
   strncpy(svp->device, dev, MAXINDIDEVICE);
-  strncpy(svp->name, name, MAXINDINAME);
-  strncpy(svp->label, escapedXML, MAXINDILABEL);
+  strncpy(svp->name, escapedName, MAXINDINAME);
+  strncpy(svp->label, escapedLabel, MAXINDILABEL);
   strncpy(svp->group, group, MAXINDIGROUP);
   
   svp->p	= p;
@@ -443,15 +462,19 @@ void IUFillSwitchVector(ISwitchVectorProperty *svp, ISwitch *sp, int nsp, const 
   svp->sp	= sp;
   svp->nsp	= nsp;
 
-  free(escapedXML);
+  free(escapedName);
+  free(escapedLabel);
+
 }
 
 void IUFillLightVector(ILightVectorProperty *lvp, ILight *lp, int nlp, const char * dev, const char *name, const char *label, const char *group, IPState s)
 {
-    char *escapedXML = escapeXML(label);
+    char *escapedName = escapeXML(name, MAXINDINAME);
+    char *escapedLabel = escapeXML(label, MAXINDILABEL);
+
     strncpy(lvp->device, dev, MAXINDIDEVICE);
-    strncpy(lvp->name, name, MAXINDINAME);
-    strncpy(lvp->label, escapedXML, MAXINDILABEL);
+    strncpy(lvp->name, escapedName, MAXINDINAME);
+    strncpy(lvp->label, escapedLabel, MAXINDILABEL);
     strncpy(lvp->group, group, MAXINDIGROUP);
     strcpy(lvp->timestamp, "");
   
@@ -459,16 +482,19 @@ void IUFillLightVector(ILightVectorProperty *lvp, ILight *lp, int nlp, const cha
   lvp->lp	= lp;
   lvp->nlp	= nlp;
 
-  free(escapedXML);
+  free(escapedName);
+  free(escapedLabel);
 
 }
  
 void IUFillNumberVector(INumberVectorProperty *nvp, INumber *np, int nnp, const char * dev, const char *name, const char *label, const char* group, IPerm p, double timeout, IPState s)
 {
- char *escapedXML = escapeXML(label);
+ char *escapedName = escapeXML(name, MAXINDINAME);
+ char *escapedLabel = escapeXML(label, MAXINDILABEL);
+
  strncpy(nvp->device, dev, MAXINDIDEVICE);
- strncpy(nvp->name, name, MAXINDINAME);
- strncpy(nvp->label, escapedXML, MAXINDILABEL);
+ strncpy(nvp->name, escapedName, MAXINDINAME);
+ strncpy(nvp->label, escapedLabel, MAXINDILABEL);
  strncpy(nvp->group, group, MAXINDIGROUP);
  strcpy(nvp->timestamp, "");
   
@@ -478,35 +504,42 @@ void IUFillNumberVector(INumberVectorProperty *nvp, INumber *np, int nnp, const 
   nvp->np	= np;
   nvp->nnp	= nnp;
 
-  free(escapedXML);
+  free(escapedName);
+  free(escapedLabel);
+
   
 }
 
 void IUFillTextVector(ITextVectorProperty *tvp, IText *tp, int ntp, const char * dev, const char *name, const char *label, const char* group, IPerm p, double timeout, IPState s)
 {
-    char *escapedXML = escapeXML(label);
+    char *escapedName = escapeXML(name, MAXINDINAME);
+    char *escapedLabel = escapeXML(label, MAXINDILABEL);
+
     strncpy(tvp->device, dev, MAXINDIDEVICE);
-    strncpy(tvp->name, name, MAXINDINAME);
-    strncpy(tvp->label, escapedXML, MAXINDILABEL);
+    strncpy(tvp->name, escapedName, MAXINDINAME);
+    strncpy(tvp->label, escapedLabel, MAXINDILABEL);
     strncpy(tvp->group, group, MAXINDIGROUP);
     strcpy(tvp->timestamp, "");
   
-  tvp->p	= p;
-  tvp->timeout	= timeout;
-  tvp->s	= s;
-  tvp->tp	= tp;
-  tvp->ntp	= ntp;
+    tvp->p	= p;
+    tvp->timeout	= timeout;
+    tvp->s	= s;
+    tvp->tp	= tp;
+    tvp->ntp	= ntp;
 
-  free(escapedXML);
+    free(escapedName);
+    free(escapedLabel);
 }
 
 void IUFillBLOBVector(IBLOBVectorProperty *bvp, IBLOB *bp, int nbp, const char * dev, const char *name, const char *label, const char* group, IPerm p, double timeout, IPState s)
 {
-    char *escapedXML = escapeXML(label);
+    char *escapedName = escapeXML(name, MAXINDINAME);
+    char *escapedLabel = escapeXML(label, MAXINDILABEL);
+
     memset(bvp, 0, sizeof(IBLOBVectorProperty));
     strncpy(bvp->device, dev, MAXINDIDEVICE);
-    strncpy(bvp->name, name, MAXINDINAME);
-    strncpy(bvp->label, escapedXML, MAXINDILABEL);
+    strncpy(bvp->name, escapedName, MAXINDINAME);
+    strncpy(bvp->label, escapedLabel, MAXINDILABEL);
     strncpy(bvp->group, group, MAXINDIGROUP);
     strcpy(bvp->timestamp, "");
 
@@ -516,7 +549,8 @@ void IUFillBLOBVector(IBLOBVectorProperty *bvp, IBLOB *bp, int nbp, const char *
     bvp->bp	= bp;
     bvp->nbp	= nbp;
 
-    free(escapedXML);
+    free(escapedName);
+    free(escapedLabel);
 }
 
 /*****************************************************************************
