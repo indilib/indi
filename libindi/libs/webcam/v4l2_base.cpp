@@ -214,35 +214,63 @@ int V4L2_Base::read_frame(char *errmsg)
 		//IDLog("v4l2_base: dequeuing buffer %d for fd=%d, cropset %c\n", buf.index, fd, (cropset?'Y':'N'));
                 switch (fmt.fmt.pix.pixelformat)
                 {
+                  case V4L2_PIX_FMT_GREY:
+                    if (cropset)
+                    {
+                      unsigned char *src=(unsigned char *)buffers[buf.index].start + crop.c.left + (crop.c.top * fmt.fmt.pix.width);
+                      unsigned char *dest=YBuf;
+                      unsigned int i;
+                      //IDLog("grabImage: src=%d dest=%d\n", src, dest);
+                      for (i= 0; i < crop.c.height; i++)
+                      {
+                          memcpy(dest, src, crop.c.width);
+                          src += fmt.fmt.pix.width;
+                          dest += crop.c.width;
+                      }
+                    }
+                    else
+                    {
+                        memcpy(YBuf,((unsigned char *) buffers[buf.index].start), fmt.fmt.pix.width * fmt.fmt.pix.height);
+                    }
+                    break;
+
                   case V4L2_PIX_FMT_YUV420:
-		    if (cropset) {
-		      unsigned char *src=(unsigned char *)buffers[buf.index].start + crop.c.left + (crop.c.top * fmt.fmt.pix.width);
-		      unsigned char *dest=YBuf;
-		      unsigned int i;
-		      //IDLog("grabImage: src=%d dest=%d\n", src, dest);
-		      for (i= 0; i < crop.c.height; i++) { 
-			memcpy(dest, src, crop.c.width);
-			src += fmt.fmt.pix.width;
-			dest += crop.c.width;
-		      }
-		      dest=UBuf; src=(unsigned char*)buffers[buf.index].start + (fmt.fmt.pix.width * fmt.fmt.pix.height) + ((crop.c.left + (crop.c.top * fmt.fmt.pix.width)) / 2);
-		      for (i= 0; i < crop.c.height / 2; i++) {
-			memcpy(dest, src, crop.c.width / 2);
-			src += fmt.fmt.pix.width / 2;
-			dest += crop.c.width / 2;
-		      }
-		      dest=VBuf; src=(unsigned char *)buffers[buf.index].start + (fmt.fmt.pix.width * fmt.fmt.pix.height) + ((fmt.fmt.pix.width * fmt.fmt.pix.height) / 4 )+ ((crop.c.left + (crop.c.top * fmt.fmt.pix.width)) / 2);
-		      for (i= 0; i < crop.c.height / 2; i++) {
-			memcpy(dest, src, crop.c.width / 2);
-			src += fmt.fmt.pix.width / 2;
-			dest += crop.c.width / 2;
-		      }
-		    } else {
+                  if (cropset)
+                  {
+                    unsigned char *src=(unsigned char *)buffers[buf.index].start + crop.c.left + (crop.c.top * fmt.fmt.pix.width);
+                    unsigned char *dest=YBuf;
+                    unsigned int i;
+                    //IDLog("grabImage: src=%d dest=%d\n", src, dest);
+                    for (i= 0; i < crop.c.height; i++)
+                    {
+                        memcpy(dest, src, crop.c.width);
+                        src += fmt.fmt.pix.width;
+                        dest += crop.c.width;
+                    }
+
+                   dest=UBuf; src=(unsigned char*)buffers[buf.index].start + (fmt.fmt.pix.width * fmt.fmt.pix.height) + ((crop.c.left + (crop.c.top * fmt.fmt.pix.width)) / 2);
+                   for (i= 0; i < crop.c.height / 2; i++)
+                   {
+                        memcpy(dest, src, crop.c.width / 2);
+                        src += fmt.fmt.pix.width / 2;
+                        dest += crop.c.width / 2;
+                   }
+
+                   dest=VBuf; src=(unsigned char *)buffers[buf.index].start + (fmt.fmt.pix.width * fmt.fmt.pix.height) + ((fmt.fmt.pix.width * fmt.fmt.pix.height) / 4 )+ ((crop.c.left + (crop.c.top * fmt.fmt.pix.width)) / 2);
+                   for (i= 0; i < crop.c.height / 2; i++)
+                   {
+                        memcpy(dest, src, crop.c.width / 2);
+                        src += fmt.fmt.pix.width / 2;
+                        dest += crop.c.width / 2;
+                   }
+                 }
+                  else
+                  {
                     memcpy(YBuf,((unsigned char *) buffers[buf.index].start), fmt.fmt.pix.width * fmt.fmt.pix.height);
                     memcpy(UBuf,((unsigned char *) buffers[buf.index].start) + fmt.fmt.pix.width * fmt.fmt.pix.height, (fmt.fmt.pix.width/2) * (fmt.fmt.pix.height/2));
                     memcpy(VBuf,((unsigned char *) buffers[buf.index].start) + fmt.fmt.pix.width * fmt.fmt.pix.height + (fmt.fmt.pix.width/2) * (fmt.fmt.pix.height/2), (fmt.fmt.pix.width/2) * (fmt.fmt.pix.height/2));
-		    }
-		    break;
+                 }
+                break;
 
                   case V4L2_PIX_FMT_YUYV:
 		    if (cropset) {
@@ -886,6 +914,9 @@ int V4L2_Base::check_device(char *errmsg)
         case V4L2_PIX_FMT_SBGGR8:
          cerr << "pixel format: V4L2_PIX_FMT_SBGGR8" << endl;
          break;
+        case V4L2_PIX_FMT_GREY:
+           cerr << "pixel format: V4L2_PIX_FMT_GREY" << endl;
+           break;
        default:
 	 cerr << "pixel format; " << fmt.fmt.pix.pixelformat << " UNSUPPORTED" << endl;
        }
