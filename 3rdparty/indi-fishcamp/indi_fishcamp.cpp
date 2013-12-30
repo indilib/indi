@@ -227,7 +227,7 @@ bool FishCampCCD::initProperties()
 
   IUFillTextVector(&CamInfoTP, CamInfoT, 6, getDeviceName(), "Camera Info", "", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
-  SetCCDParams(camInfo.width, camInfo.height, 16, camInfo.pixelWidth, camInfo.pixelHeight);
+  SetCCDParams(camInfo.width, camInfo.height, 16, camInfo.pixelWidth/10.0, camInfo.pixelHeight/10.0);
 
   int nbuf;
   nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;    //  this is pixel cameraCount
@@ -284,6 +284,24 @@ bool FishCampCCD::updateProperties()
   return true;
 }
 
+bool FishCampCCD::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+{
+
+    if (strcmp(dev, getDeviceName()) == 0)
+    {
+        if (!strcmp(name, GainNP.name))
+        {
+            IUUpdateNumber(&GainNP, values, names, n);
+            setGain(GainN[0].value);
+            GainNP.s = IPS_OK;
+            IDSetNumber(&GainNP, NULL);
+            return true;
+        }
+    }
+
+    return INDI::CCD::ISNewNumber(dev, name, values, names, n);
+}
+
 bool FishCampCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
 
@@ -303,6 +321,16 @@ bool FishCampCCD::ISNewSwitch(const char *dev, const char *name, ISState *states
 
   //  Nobody has claimed this, so, ignore it
   return INDI::CCD::ISNewSwitch(dev, name, states, names, n);
+}
+
+bool FishCampCCD::setGain(double gain)
+{
+    int rc = fcUsb_cmd_setCameraGain(cameraNum, ((int) gain));
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "fcUsb_cmd_setCameraGain returns %d", rc);
+
+    return true;
+
 }
 
 int FishCampCCD::SetTemperature(double temperature)
@@ -367,7 +395,6 @@ bool FishCampCCD::Disconnect()
 
   return true;
 }
-
 
 
 bool FishCampCCD::StartExposure(float duration)
@@ -633,7 +660,7 @@ void FishCampCCD::TimerHit()
     case IPS_OK:
       CoolerN[0].value = fcUsb_cmd_getTECPowerLevel(cameraNum);
       IDSetNumber(&CoolerNP, NULL);
-      DEBUGF(INDI::Logger::DBG_DEBUG, "Cooler power level %%g", CoolerN[0].value);
+      DEBUGF(INDI::Logger::DBG_DEBUG, "Cooler power level %g %", CoolerN[0].value);
       break;
 
     default:
