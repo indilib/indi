@@ -996,6 +996,8 @@ libindi/libs/webcam/ccvt.h -text
 libindi/libs/webcam/ccvt_c2.c -text
 libindi/libs/webcam/ccvt_misc.c -text
 libindi/libs/webcam/ccvt_types.h -text
+libindi/libs/webcam/jpegutils.c -text
+libindi/libs/webcam/jpegutils.h -text
 libindi/libs/webcam/port.cpp -text
 libindi/libs/webcam/port.h -text
 libindi/libs/webcam/pwc-ioctl.h -text

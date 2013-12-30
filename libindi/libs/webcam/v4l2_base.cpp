@@ -295,6 +295,11 @@ int V4L2_Base::read_frame(char *errmsg)
                  case V4L2_PIX_FMT_SBGGR8:
                          bayer2rgb24(rgb24_buffer, ((unsigned char *) buffers[buf.index].start), fmt.fmt.pix.width, fmt.fmt.pix.height);
                          break;
+
+                 case V4L2_PIX_FMT_JPEG:
+                 case V4L2_PIX_FMT_MJPEG:
+                    mjpegtoyuv420p(rgb24_buffer, ((unsigned char *) buffers[buf.index].start), fmt.fmt.pix.width, fmt.fmt.pix.height, buffers[buf.index].length);
+                    break;
                 }
                   
                 /*if (dropFrame)
@@ -917,6 +922,10 @@ int V4L2_Base::check_device(char *errmsg)
         case V4L2_PIX_FMT_GREY:
            cerr << "pixel format: V4L2_PIX_FMT_GREY" << endl;
            break;
+       case V4L2_PIX_FMT_JPEG:
+       case V4L2_PIX_FMT_MJPEG:
+           cerr << "pixel format: V4L2_PIX_FMT_MJPEG" << endl;
+           break;
        default:
 	 cerr << "pixel format; " << fmt.fmt.pix.pixelformat << " UNSUPPORTED" << endl;
        }
@@ -1317,25 +1326,22 @@ void V4L2_Base::allocBuffers()
    if (yuvBuffer) delete (yuvBuffer); yuvBuffer = NULL;
    if (colorBuffer) delete (colorBuffer); colorBuffer = NULL;
    if (rgb24_buffer) delete (rgb24_buffer); rgb24_buffer = NULL;
-   if (cropset) {
+   if (cropset)
+   {
      yuvBuffer=new unsigned char[(crop.c.width * crop.c.height) + ((crop.c.width * crop.c.height) / 2)];
-     //YBuf= new unsigned char[ crop.c.width * crop.c.height];
-     //UBuf= new unsigned char[ (crop.c.width * crop.c.height) / 4];
-     //VBuf= new unsigned char[ (crop.c.width * crop.c.height) / 4];
      YBuf=yuvBuffer; UBuf=yuvBuffer + (crop.c.width * crop.c.height); VBuf=UBuf + ((crop.c.width * crop.c.height) / 4);
      colorBuffer = new unsigned char[crop.c.width * crop.c.height * 4];
 
-     if (fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_SBGGR8)
+
+     if (fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_SBGGR8 || fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_JPEG || fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_MJPEG)
        rgb24_buffer = new unsigned char[crop.c.width * crop.c.height * 3];
-   } else {
+   } else
+   {
      yuvBuffer=new unsigned char[(fmt.fmt.pix.width * fmt.fmt.pix.height) + ((fmt.fmt.pix.width * fmt.fmt.pix.height) / 2)];
-     //YBuf= new unsigned char[ fmt.fmt.pix.width * fmt.fmt.pix.height];
-     //UBuf= new unsigned char[ (fmt.fmt.pix.width * fmt.fmt.pix.height) / 4];
-     //VBuf= new unsigned char[ (fmt.fmt.pix.width * fmt.fmt.pix.height) / 4];
      YBuf=yuvBuffer; UBuf=yuvBuffer + (fmt.fmt.pix.width * fmt.fmt.pix.height); VBuf=UBuf + ((fmt.fmt.pix.width * fmt.fmt.pix.height) / 4);
      colorBuffer = new unsigned char[fmt.fmt.pix.width * fmt.fmt.pix.height * 4];
 
-     if (fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_SBGGR8)
+     if (fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_SBGGR8 || fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_JPEG || fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_MJPEG)
        rgb24_buffer = new unsigned char[fmt.fmt.pix.width * fmt.fmt.pix.height * 3];
    }
 }
@@ -1376,7 +1382,7 @@ int V4L2_Base::setSize(int x, int y)
 
 unsigned char * V4L2_Base::getY()
 {
-  if (fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_SBGGR8)
+  if (fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_SBGGR8 || fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_JPEG || fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_MJPEG)
       RGB2YUV(fmt.fmt.pix.width, fmt.fmt.pix.height, rgb24_buffer, YBuf, UBuf, VBuf, 0);
 
   return YBuf;
@@ -1408,6 +1414,8 @@ unsigned char * V4L2_Base::getColorBuffer()
   } else {
     switch (fmt.fmt.pix.pixelformat) 
       {
+      case V4L2_PIX_FMT_JPEG:
+      case V4L2_PIX_FMT_MJPEG:
       case V4L2_PIX_FMT_YUV420:
         ccvt_420p_bgr32(fmt.fmt.pix.width, fmt.fmt.pix.height,
 			buffers[buf.index].start, (void*)colorBuffer);

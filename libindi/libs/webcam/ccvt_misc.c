@@ -60,6 +60,7 @@
 
 #include "ccvt.h"
 #include "ccvt_types.h"
+#include "jpegutils.h"
 #include <stdlib.h>
 
 static float RGBYUV02990[256], RGBYUV05870[256], RGBYUV01140[256];
@@ -230,6 +231,55 @@ void bayer2rgb24(unsigned char *dst, unsigned char *src, long int WIDTH, long in
 	rawpt++;
     }
 
+}
+
+/*
+ * mjpegtoyuv420p
+ *
+ * Return values
+ *  -1 on fatal error
+ *  0  on success
+ *  2  if jpeg lib threw a "corrupt jpeg data" warning.
+ *     in this case, "a damaged output image is likely."
+ *
+ * Copyright 2000 by Jeroen Vreeken (pe1rxq@amsat.org)
+ * 2006 by Krzysztof Blaszkowski (kb@sysmikro.com.pl)
+ * 2007 by Angel Carpinteo (ack@telefonica.net)
+ */
+
+int mjpegtoyuv420p(unsigned char *map, unsigned char *cap_map, int width, int height, unsigned int size)
+{
+    unsigned char *yuv[3];
+    unsigned char *y, *u, *v;
+    int loop, ret;
+
+    yuv[0] = malloc(width * height * sizeof(yuv[0][0]));
+    yuv[1] = malloc(width * height / 4 * sizeof(yuv[1][0]));
+    yuv[2] = malloc(width * height / 4 * sizeof(yuv[2][0]));
+
+    ret = decode_jpeg_raw(cap_map, size, 0, 420, width, height, yuv[0], yuv[1], yuv[2]);
+
+    y = map;
+    u = y + width * height;
+    v = u + (width * height) / 4;
+    memset(y, 0, width * height);
+    memset(u, 0, width * height / 4);
+    memset(v, 0, width * height / 4);
+
+    for(loop = 0; loop < width * height; loop++)
+        *map++=yuv[0][loop];
+
+    for(loop = 0; loop < width * height / 4; loop++)
+        *map++=yuv[1][loop];
+
+    for(loop = 0; loop < width * height / 4; loop++)
+        *map++=yuv[2][loop];
+
+    free(yuv[0]);
+    free(yuv[1]);
+    free(yuv[2]);
+
+    return ret;
 }
 
 /************************************************************************

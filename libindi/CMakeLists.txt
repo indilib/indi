@@ -41,6 +41,7 @@ FIND_PACKAGE(USB-1 REQUIRED)
 FIND_PACKAGE(CFITSIO REQUIRED)
 FIND_PACKAGE(Nova REQUIRED)
 FIND_PACKAGE(Threads REQUIRED)
+FIND_PACKAGE(JPEG REQUIRED)
 
 if (NOT CFITSIO_FOUND OR CFITSIO_VERSION_MAJOR LESS 3)
   message(FATAL_ERROR "CFITSIO version too old, Please install cfitsio 3.x and try again. http://heasarc.gsfc.nasa.gov/fitsio/fitsio.html")
@@ -63,6 +64,7 @@ include_directories( ${CMAKE_SOURCE_DIR})
 include_directories( ${CMAKE_SOURCE_DIR}/libs)
 include_directories( ${CMAKE_SOURCE_DIR}/libs/indibase)
 include_directories( ${CMAKE_SOURCE_DIR}/libs/webcam)
+include_directories( ${JPEG_INCLUDE_DIR} )
 
 if (CFITSIO_FOUND)
   include_directories(${CFITSIO_INCLUDE_DIR})
@@ -83,6 +85,7 @@ set(libwebcam_SRCS
 	${CMAKE_SOURCE_DIR}/libs/webcam/v4l2_base.cpp
 	${CMAKE_SOURCE_DIR}/libs/webcam/ccvt_c2.c
 	${CMAKE_SOURCE_DIR}/libs/webcam/ccvt_misc.c
+        ${CMAKE_SOURCE_DIR}/libs/webcam/jpegutils.c
 	)
 
 set (indimain_SRCS
@@ -484,7 +487,7 @@ set(meade_lpi_SRCS
 
 add_executable(indi_meade_lpi ${meade_lpi_SRCS} ${libwebcam_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
 
-target_link_libraries(indi_meade_lpi z ${NOVA_LIBRARIES} ${CFITSIO_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(indi_meade_lpi z ${JPEG_LIBRARY} ${NOVA_LIBRARIES} ${CFITSIO_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
 install(TARGETS indi_meade_lpi RUNTIME DESTINATION bin )
 
@@ -506,7 +509,7 @@ set(v4lphilips_SRCS
 
 add_executable(indi_v4l_philips ${v4lphilips_SRCS} ${libwebcam_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
 
-target_link_libraries(indi_v4l_philips ${M_LIB} ${ZLIB_LIBRARY} ${NOVA_LIBRARIES} ${CFITSIO_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(indi_v4l_philips ${JPEG_LIBRARY} ${M_LIB} ${ZLIB_LIBRARY} ${NOVA_LIBRARIES} ${CFITSIO_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
 install(TARGETS indi_v4l_philips RUNTIME DESTINATION bin )
 
@@ -527,7 +530,7 @@ set(v4ldriver_SRCS
 
 add_executable(indi_v4l_generic ${v4ldriver_SRCS} ${libwebcam_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
 
-target_link_libraries(indi_v4l_generic ${M_LIB} ${ZLIB_LIBRARY} ${NOVA_LIBRARIES} ${CFITSIO_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(indi_v4l_generic ${JPEG_LIBRARY} ${M_LIB} ${ZLIB_LIBRARY} ${NOVA_LIBRARIES} ${CFITSIO_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
 install(TARGETS indi_v4l_generic RUNTIME DESTINATION bin )
 
@@ -540,7 +543,7 @@ set(v4l2driverccd_SRCS
 
 add_executable(indi_v4l2_ccd ${v4l2driverccd_SRCS} ${libwebcam_SRCS} ${lx_SRCS})
 
-target_link_libraries(indi_v4l2_ccd indidriver)
+target_link_libraries(indi_v4l2_ccd ${JPEG_LIBRARY} indidriver)
 
 install(TARGETS indi_v4l2_ccd RUNTIME DESTINATION bin )
 

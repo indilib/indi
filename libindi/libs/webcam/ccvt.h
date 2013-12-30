@@ -118,6 +118,8 @@ void ccvt_rgb32_rgb24(int width, int height, const void *const src, void *const 
 
 int RGB2YUV (int x_dim, int y_dim, void *bmp, void *y_out, void *u_out, void *v_out, int flip);
 
+int mjpegtoyuv420p(unsigned char *map, unsigned char *cap_map, int width, int height, unsigned int size);
+
 /*
  * BAYER2RGB24 ROUTINE TAKEN FROM:
  *
