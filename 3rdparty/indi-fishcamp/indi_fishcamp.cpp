@@ -241,7 +241,7 @@ bool FishCampCCD::initProperties()
   cap.canSubFrame = true;
   cap.hasCooler = true;
   cap.hasGuideHead = false;
-  cap.hasShutter = true;
+  cap.hasShutter = false;
   cap.hasST4Port = true;
 
   SetCapability(&cap);
