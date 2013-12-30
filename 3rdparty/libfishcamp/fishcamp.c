@@ -2820,6 +2820,10 @@ int	fcUsb_cmd_getinfo(int camNum, fc_camInfo *camInfo)
 
 	camInfo->camSerialStr[19] = 0;
 
+    // JM (2013-12-13) camInfo->pixelWidth returns 1312 (0x520) which is wrong
+    camInfo->pixelWidth = 52;
+    camInfo->pixelHeight = 52;
+
 	// print out the information returned
 	Starfish_Log("fcUsb_cmd_getinfo:\n");
 	sprintf(buffer, "     boardVersion  - 0x%02x\n", camInfo->boardVersion);
