@@ -147,6 +147,9 @@ bool INDI::BaseClient::disconnectServer()
     if (svrwfp != NULL)
         fclose(svrwfp);
    svrwfp = NULL;
+    
+   cDevices.clear();
+   cDeviceNames.clear();
 
    pthread_join(listen_thread, NULL);
 
