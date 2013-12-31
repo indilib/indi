@@ -59,6 +59,8 @@ protected:
   virtual bool UpdateCCDFrameType(CCDChip::CCD_FRAME fType);
   virtual int SetTemperature(double temperature);
 
+  virtual void simulationTriggered(bool enable);
+
   // Guide Port
   virtual bool GuideNorth(float);
   virtual bool GuideSouth(float);

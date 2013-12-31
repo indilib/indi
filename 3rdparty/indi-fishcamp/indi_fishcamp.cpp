@@ -59,8 +59,6 @@ void ISInit()
       IDLog("About to call fcUsb_init()\n");
       fcUsb_init();
 
-      //fcUsb_setSimulation(true);
-
       IDLog("About to call set logging\n");
       fcUsb_setLogging(true);
 
@@ -354,6 +352,12 @@ int FishCampCCD::SetTemperature(double temperature)
     return 0;
 }
 
+void FishCampCCD::simulationTriggered(bool enable)
+{
+    sim = enable;
+    fcUsb_setSimulation(enable);
+}
+
 bool FishCampCCD::Connect()
 {
 
@@ -520,17 +524,8 @@ int FishCampCCD::grabImage()
   int width = PrimaryCCD.getSubW() / PrimaryCCD.getBinX() * PrimaryCCD.getBPP() / 8;
   int height = PrimaryCCD.getSubH() / PrimaryCCD.getBinY();
 
-  if (sim)
-  {
-    for (int i = 0; i < height; i++)
-      for (int j = 0; j < width; j++)
-        image[i * width + j] = rand() % 255;
-  } else
-  {
-    UInt16 *frameBuffer = (UInt16 *) image;
-    fcUsb_cmd_getRawFrame(cameraNum, PrimaryCCD.getSubW(), PrimaryCCD.getSubH(), frameBuffer);
-  }
-
+  UInt16 *frameBuffer = (UInt16 *) image;
+  fcUsb_cmd_getRawFrame(cameraNum, PrimaryCCD.getSubW(), PrimaryCCD.getSubH(), frameBuffer);
   DEBUG(INDI::Logger::DBG_SESSION, "Download complete.");
 
   ExposureComplete(&PrimaryCCD);
@@ -551,9 +546,9 @@ void FishCampCCD::resetFrame()
 
 void FishCampCCD::TimerHit()
 {
-  int timerID = -1, state=-1, rc=-1;
+  int timerHitID = -1, state=-1, rc=-1;
   long timeleft;
-  double ccdTemp, coolerPower;
+  double ccdTemp;
 
   if (isConnected() == false)
     return;  //  No need to reset timer if we are not connected anymore
@@ -568,12 +563,12 @@ void FishCampCCD::TimerHit()
       {
         //  a quarter of a second or more
         //  just set a tighter timer
-        timerID = SetTimer(250);
+        timerHitID = SetTimer(250);
       } else
       {
         if (timeleft > 0.07) {
           //  use an even tighter timer
-          timerID = SetTimer(50);
+          timerHitID = SetTimer(50);
         } else
         {
           //  it's real close now, so spin on it
@@ -668,7 +663,7 @@ void FishCampCCD::TimerHit()
 
   }
 
-  if (timerID == -1)
+  if (timerHitID == -1)
     SetTimer(POLLMS);
   return;
 }
