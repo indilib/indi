@@ -1,6 +1,6 @@
 <devGroup group="CCDs">
-	<device label="FishCamp CCD">
-		<driver name="FishCamp CCD">indi_fishcamp_ccd</driver>
+	<device label="Starfish CCD">
+		<driver name="Starfish CCD">indi_fishcamp_ccd</driver>
 		<version>1.0</version>
 	</device>
 </devGroup>
