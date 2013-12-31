@@ -41,7 +41,9 @@ FIND_PACKAGE(USB-1 REQUIRED)
 FIND_PACKAGE(CFITSIO REQUIRED)
 FIND_PACKAGE(Nova REQUIRED)
 FIND_PACKAGE(Threads REQUIRED)
-FIND_PACKAGE(JPEG REQUIRED)
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+  FIND_PACKAGE(JPEG REQUIRED)
+endif ()
 
 if (NOT CFITSIO_FOUND OR CFITSIO_VERSION_MAJOR LESS 3)
   message(FATAL_ERROR "CFITSIO version too old, Please install cfitsio 3.x and try again. http://heasarc.gsfc.nasa.gov/fitsio/fitsio.html")
@@ -63,8 +65,11 @@ include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_SOURCE_DIR})
 include_directories( ${CMAKE_SOURCE_DIR}/libs)
 include_directories( ${CMAKE_SOURCE_DIR}/libs/indibase)
-include_directories( ${CMAKE_SOURCE_DIR}/libs/webcam)
-include_directories( ${JPEG_INCLUDE_DIR} )
+
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+  include_directories( ${CMAKE_SOURCE_DIR}/libs/webcam)
+  include_directories( ${JPEG_INCLUDE_DIR} )
+endif()
 
 if (CFITSIO_FOUND)
   include_directories(${CFITSIO_INCLUDE_DIR})
@@ -79,7 +84,8 @@ set(libindicom_SRCS
 	${CMAKE_SOURCE_DIR}/base64.c
 	)
 
-set(libwebcam_SRCS
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+  set(libwebcam_SRCS
 	${CMAKE_SOURCE_DIR}/libs/webcam/PPort.cpp
 	${CMAKE_SOURCE_DIR}/libs/webcam/port.cpp
 	${CMAKE_SOURCE_DIR}/libs/webcam/v4l2_base.cpp
@@ -87,6 +93,7 @@ set(libwebcam_SRCS
 	${CMAKE_SOURCE_DIR}/libs/webcam/ccvt_misc.c
         ${CMAKE_SOURCE_DIR}/libs/webcam/jpegutils.c
 	)
+endif()
 
 set (indimain_SRCS
         ${CMAKE_SOURCE_DIR}/indidriver.c
