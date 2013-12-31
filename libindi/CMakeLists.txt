@@ -181,7 +181,7 @@ set(imager_SRCS
    )
 
 add_executable(indi_imager_agent ${imager_SRCS})
-target_link_libraries(indi_imager_agent indidriver)
+target_link_libraries(indi_imager_agent indidriver indiclient)
 install(TARGETS indi_imager_agent RUNTIME DESTINATION bin )
 
 #################################################################################
