@@ -137,7 +137,10 @@ void ISSnoopDevice(XMLEle *root) {
 GPhotoCCD::GPhotoCCD()
 {
     // For now let's set name to default name. In the future, we need to to support multiple devices per one driver
-    strncpy(name, getDeviceName(), MAXINDINAME);
+    if (*getDeviceName() == '\0')
+        strncpy(name, getDefaultName(), MAXINDINAME);
+    else
+        strncpy(name, getDeviceName(), MAXINDINAME);
 
     gphotodrv = NULL;
     on_off[0] = strdup("On");
