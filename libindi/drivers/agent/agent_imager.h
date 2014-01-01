@@ -29,7 +29,6 @@
 
 class Group {
 private:
-  int id;
   char groupName[16];
   char groupSettingsName[32];
   
@@ -42,14 +41,15 @@ public:
   
   void defineProperties();
   void deleteProperties();
-  void makeReadOnly();
-  void makeReadWrite();
 };
 
 class Imager : public virtual INDI::DefaultDevice, public virtual INDI::BaseClient {
   
 private:
   
+  char format[16];
+  int group, maxGroup;
+  int image, maxImage;
   char *controlledCCD;
   char *controlledFilterWheel;
   
@@ -58,28 +58,39 @@ private:
   INumberVectorProperty GroupCountNP;
   INumber GroupCountN[1];
   INumberVectorProperty ProgressNP;
-  INumber ProgressN[2];
-  ISwitchVectorProperty ExecuteSP;
-  ISwitch ExecuteS[2];
+  INumber ProgressN[3];
+  ISwitchVectorProperty BatchSP;
+  ISwitch BatchS[2];
   ILightVectorProperty StatusLP;
   ILight StatusL[2];
+  ITextVectorProperty ImageFolderTP;
+  IText ImageFolderT[1];
   INumberVectorProperty DownloadNP;
   INumber DownloadN[2];
   IBLOBVectorProperty FitsBP;
   IBLOB FitsB[1];
   
+  
   INumberVectorProperty CCDImageExposureNP;
   INumber CCDImageExposureN[1];
+  INumberVectorProperty CCDImageBinNP;
+  INumber CCDImageBinN[2];
+  INumberVectorProperty FilterSlotNP;
+  INumber FilterSlotN[1];
+
   
-  Group *group[MAX_GROUP_COUNT];
+  Group *groups[MAX_GROUP_COUNT];
   
+  bool isRunning();
+  bool isCCDConnected();
+  bool isFilterConnected();
   void defineProperties();
   void deleteProperties();
-  void makeReadOnly();
-  void makeReadWrite();
   void initiateNextCapture();
-  void runBatch();
-  void stopBatch();
+  void startBatch();
+  void abortBatch();
+  void batchDone();
+  void initiateDownload();
 
 protected:
   
