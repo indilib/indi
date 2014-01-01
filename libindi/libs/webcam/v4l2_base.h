@@ -50,7 +50,7 @@ class V4L2_Base
   virtual int connectCam(const char * devpath, char *errmsg, int pixelFormat = -1 , int width = -1, int height = -1);
   virtual void disconnectCam(bool stopcapture);
   char * getDeviceName();
-
+  bool isLXmodCapable();
 
   /* Updates */
   void callFrame(void *p);
@@ -80,10 +80,13 @@ class V4L2_Base
   
   void enumerate_ctrl (void);
   void enumerate_menu (void);
+  bool enumerate_ext_ctrl (void);
   int  queryINTControls(INumberVectorProperty *nvp);
-  void  queryControls(INumberVectorProperty *nvp, unsigned int *nnumber, unsigned int*starnumext, ISwitchVectorProperty **options, unsigned int *noptions, unsigned int *startoptext, const char *dev, const char *group);
-  int  setINTControl(unsigned int ctrl_id, double new_value, bool ext, char *errmsg);
-  int  setOPTControl(unsigned int ctrl_id, unsigned int new_value, bool ext, char *errmsg);
+  bool queryExtControls(INumberVectorProperty *nvp, unsigned int *nnumber,  ISwitchVectorProperty **options, unsigned int *noptions, const char *dev, const char *group);
+  void queryControls(INumberVectorProperty *nvp, unsigned int *nnumber,  ISwitchVectorProperty **options, unsigned int *noptions, const char *dev, const char *group);
+
+  int  setINTControl(unsigned int ctrl_id, double new_value, char *errmsg);
+  int  setOPTControl(unsigned int ctrl_id, unsigned int new_value, char *errmsg);
 
   int  query_ctrl(unsigned int ctrl_id, double & ctrl_min, double & ctrl_max, double & ctrl_step, double & ctrl_value, char *errmsg);
   void getinputs(ISwitchVectorProperty *inputssp);
@@ -129,6 +132,7 @@ class V4L2_Base
   bool cancrop;
   bool cropset;
   bool cansetrate;
+  bool streamedonce;
 
   struct v4l2_queryctrl queryctrl;
   struct v4l2_querymenu querymenu;
@@ -136,6 +140,7 @@ class V4L2_Base
   WPF *callback;
   void *uptr;
   char          dev_name[64];
+  const char *path;
   io_method	io;
   int           fd;
   struct buffer *buffers;

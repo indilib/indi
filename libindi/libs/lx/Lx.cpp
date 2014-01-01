@@ -1,5 +1,18 @@
 #include "Lx.h"
 #include <indicom.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <termios.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
+// from indicom.cpp for tty_connect
+#define PARITY_NONE 0
+#define PARITY_EVEN 1
+#define PARITY_ODD 2 
 
 void Lx::setCamerafd(int fd) {
   camerafd=fd;
@@ -25,8 +38,8 @@ bool Lx::initProperties(INDI::DefaultDevice *device) {
   IUFillSwitchVector(&LxModeSP, LxModeS, NARRAY(LxModeS), device_name, "LX Mode", "", LX_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
   IUFillText(&LxPortT[0], "Port", "", "/dev/ttyS0");
   IUFillTextVector(&LxPortTP, LxPortT, NARRAY(LxPortT), device_name, "Lx port", "", LX_TAB, IP_RW, 0, IPS_IDLE);
-  IUFillSwitch(&LxSerialOptionS[0], "Use RTS (pin 7)", "", ISS_ON);
-  IUFillSwitch(&LxSerialOptionS[1], "Use DTR (pin 4)", "", ISS_OFF);
+  IUFillSwitch(&LxSerialOptionS[0], "Use DTR (pin 4)", "", ISS_ON);
+  IUFillSwitch(&LxSerialOptionS[1], "Use RTS (pin 7)", "", ISS_OFF);
   IUFillSwitch(&LxSerialOptionS[2], "Use Serial command", "", ISS_OFF);
   IUFillSwitchVector(&LxSerialOptionSP, LxSerialOptionS, NARRAY(LxSerialOptionS), device_name, "Serial Options", "", LX_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
   IUFillSwitch(&LxParallelOptionS[0], "Use Data 0 (pin 2)", "", ISS_OFF);
@@ -39,13 +52,39 @@ bool Lx::initProperties(INDI::DefaultDevice *device) {
   IUFillSwitch(&LxParallelOptionS[7], "Use Data 7 (pin 9)", "", ISS_OFF);
   IUFillSwitch(&LxParallelOptionS[8], "Use Parallel command", "", ISS_OFF);
   IUFillSwitchVector(&LxParallelOptionSP, LxParallelOptionS, NARRAY(LxParallelOptionS), device_name, "Parallel Options", "", LX_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-  IUFillText(&LxStartStopCmdT[0], "Start command", "", ":01");
-  IUFillText(&LxStartStopCmdT[1], "Stop command", "", ":01");
+  IUFillText(&LxStartStopCmdT[0], "Start command", "", ":O1");
+  IUFillText(&LxStartStopCmdT[1], "Stop command", "", ":O0");
   IUFillTextVector(&LxStartStopCmdTP, LxStartStopCmdT, NARRAY(LxStartStopCmdT), device_name, "Start/Stop commands", "", LX_TAB, IP_RW, 0, IPS_IDLE);
   IUFillSwitch(&LxLogicalLevelS[0], "Low to High", "", ISS_ON);
   IUFillSwitch(&LxLogicalLevelS[1], "High to Low", "", ISS_OFF);
   IUFillSwitchVector(&LxLogicalLevelSP, LxLogicalLevelS, NARRAY(LxLogicalLevelS), device_name, "Start Transition", "", LX_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
+  IUFillSwitch(&LxSerialSpeedS[0], "1200", "", ISS_OFF);
+  IUFillSwitch(&LxSerialSpeedS[1], "2400", "", ISS_OFF);
+  IUFillSwitch(&LxSerialSpeedS[2], "4800", "", ISS_OFF);
+  IUFillSwitch(&LxSerialSpeedS[3], "9600", "", ISS_ON);
+  IUFillSwitch(&LxSerialSpeedS[4], "19200", "", ISS_OFF);
+  IUFillSwitch(&LxSerialSpeedS[5], "38400", "", ISS_OFF);
+  IUFillSwitch(&LxSerialSpeedS[6], "57600", "", ISS_OFF);
+  IUFillSwitch(&LxSerialSpeedS[7], "115200", "", ISS_OFF);
+  IUFillSwitch(&LxSerialSpeedS[8], "230400", "", ISS_OFF);
+  IUFillSwitchVector(&LxSerialSpeedSP, LxSerialSpeedS, NARRAY(LxSerialSpeedS), device_name, "Serial speed", "", LX_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+  IUFillSwitch(&LxSerialSizeS[0], "5", "", ISS_OFF);
+  IUFillSwitch(&LxSerialSizeS[1], "6", "", ISS_OFF);
+  IUFillSwitch(&LxSerialSizeS[2], "7", "", ISS_OFF);
+  IUFillSwitch(&LxSerialSizeS[3], "8", "", ISS_ON);
+  IUFillSwitchVector(&LxSerialSizeSP, LxSerialSizeS, NARRAY(LxSerialSizeS), device_name, "Serial size", "", LX_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+  IUFillSwitch(&LxSerialParityS[0], "None", "", ISS_ON);
+  IUFillSwitch(&LxSerialParityS[1], "Even", "", ISS_OFF);
+  IUFillSwitch(&LxSerialParityS[2], "Odd", "", ISS_OFF);
+  IUFillSwitchVector(&LxSerialParitySP, LxSerialParityS, NARRAY(LxSerialParityS), device_name, "Serial parity", "", LX_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+  IUFillSwitch(&LxSerialStopS[0], "1", "", ISS_ON);
+  IUFillSwitch(&LxSerialStopS[1], "2", "", ISS_OFF);
+  IUFillSwitchVector(&LxSerialStopSP, LxSerialStopS, NARRAY(LxSerialStopS), device_name, "Serial stop", "", LX_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+  IUFillSwitch(&LxSerialAddeolS[0], "None", "", ISS_OFF);
+  IUFillSwitch(&LxSerialAddeolS[1], "CR (OxD, \\r)", "", ISS_ON);
+  IUFillSwitch(&LxSerialAddeolS[2], "LF (0xA, \\n)", "", ISS_OFF);
+  IUFillSwitch(&LxSerialAddeolS[3], "CR+LF", "", ISS_OFF);
+  IUFillSwitchVector(&LxSerialAddeolSP, LxSerialAddeolS, NARRAY(LxSerialAddeolS), device_name, "Add EOL", "", LX_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
   return true;
 }
 
@@ -58,6 +97,11 @@ bool Lx::updateProperties() {
     dev->defineSwitch(&LxParallelOptionSP);
     dev->defineText(&LxStartStopCmdTP);
     dev->defineSwitch(&LxLogicalLevelSP);
+    dev->defineSwitch(&LxSerialSpeedSP);
+    dev->defineSwitch(&LxSerialSizeSP);
+    dev->defineSwitch(&LxSerialParitySP);
+    dev->defineSwitch(&LxSerialStopSP);
+    dev->defineSwitch(&LxSerialAddeolSP);
   } else {
     dev->deleteProperty(LxEnableSP.name);
     dev->deleteProperty(LxModeSP.name);
@@ -66,6 +110,11 @@ bool Lx::updateProperties() {
     dev->deleteProperty(LxParallelOptionSP.name);
     dev->deleteProperty(LxStartStopCmdTP.name);
     dev->deleteProperty(LxLogicalLevelSP.name);
+    dev->deleteProperty(LxSerialSpeedSP.name);
+    dev->deleteProperty(LxSerialSizeSP.name);
+    dev->deleteProperty(LxSerialParitySP.name);
+    dev->deleteProperty(LxSerialStopSP.name);
+    dev->deleteProperty(LxSerialAddeolSP.name);
   }
   return true;
 }
@@ -138,6 +187,62 @@ bool Lx::ISNewSwitch (const char *devname, const char *name, ISState *states, ch
       IDSetSwitch(&LxLogicalLevelSP, "Setting Lx logical levels for start transition: %s", LxLogicalLevelS[index].name);
       return true;
     }
+
+  if (!strcmp(name, LxSerialSpeedSP.name))
+    {
+      unsigned int index;
+      IUResetSwitch(&LxSerialSpeedSP);
+      IUUpdateSwitch(&LxSerialSpeedSP, states, names, n);
+      LxSerialSpeedSP.s = IPS_OK;
+      index=IUFindOnSwitchIndex(&LxSerialSpeedSP);   
+      IDSetSwitch(&LxSerialSpeedSP, "Setting Lx serial speed: %s", LxSerialSpeedS[index].name);
+      return true;
+    }
+
+  if (!strcmp(name, LxSerialSizeSP.name))
+    {
+      unsigned int index;
+      IUResetSwitch(&LxSerialSizeSP);
+      IUUpdateSwitch(&LxSerialSizeSP, states, names, n);
+      LxSerialSizeSP.s = IPS_OK;
+      index=IUFindOnSwitchIndex(&LxSerialSizeSP);   
+      IDSetSwitch(&LxSerialSizeSP, "Setting Lx serial word size: %s", LxSerialSizeS[index].name);
+      return true;
+    }
+
+  if (!strcmp(name, LxSerialParitySP.name))
+    {
+      unsigned int index;
+      IUResetSwitch(&LxSerialParitySP);
+      IUUpdateSwitch(&LxSerialParitySP, states, names, n);
+      LxSerialParitySP.s = IPS_OK;
+      index=IUFindOnSwitchIndex(&LxSerialParitySP);   
+      IDSetSwitch(&LxSerialParitySP, "Setting Lx serial parity: %s", LxSerialParityS[index].name);
+      return true;
+    }
+
+  if (!strcmp(name, LxSerialStopSP.name))
+    {
+      unsigned int index;
+      IUResetSwitch(&LxSerialStopSP);
+      IUUpdateSwitch(&LxSerialStopSP, states, names, n);
+      LxSerialStopSP.s = IPS_OK;
+      index=IUFindOnSwitchIndex(&LxSerialStopSP);   
+      IDSetSwitch(&LxSerialStopSP, "Setting Lx serial stop bits: %s", LxSerialStopS[index].name);
+      return true;
+    }
+
+  if (!strcmp(name, LxSerialAddeolSP.name))
+    {
+      unsigned int index;
+      IUResetSwitch(&LxSerialAddeolSP);
+      IUUpdateSwitch(&LxSerialAddeolSP, states, names, n);
+      LxSerialAddeolSP.s = IPS_OK;
+      index=IUFindOnSwitchIndex(&LxSerialAddeolSP);   
+      IDSetSwitch(&LxSerialAddeolSP, "Setting Lx End of Line: %s", LxSerialAddeolS[index].name);
+      return true;
+    }
+
   return true; // not ours, don't care
 }
 
@@ -183,6 +288,8 @@ int Lx::startLx() {
   IDMessage(device_name, "Starting Long Exposure");
   index=IUFindOnSwitchIndex(&LxModeSP);   
   switch(index) {
+  case 0:
+    return startLxSerial();
   case 2:
     return startLxPWC();
   default:
@@ -196,6 +303,8 @@ int Lx::stopLx() {
   IDMessage(device_name, "Stopping Long Exposure");
   index=IUFindOnSwitchIndex(&LxModeSP);   
   switch(index) {
+  case 0:
+    return stopLxSerial();
   case 2:
     return stopLxPWC();
   default:
@@ -204,6 +313,185 @@ int Lx::stopLx() {
 
   return 0;
 }
+
+// Serial Stuff
+
+void Lx::closeserial(int fd)
+{
+    tcsetattr(fd, TCSANOW, &oldterminfo);
+    if (close(fd) < 0)
+        perror("closeserial()");
+}
+
+
+int Lx::openserial(char *devicename)
+{
+    int fd;
+    struct termios attr;
+
+    if ((fd = open(devicename, O_RDWR)) == -1) {
+        IDLog("openserial(): open()");
+        return 0;
+    }
+    if (tcgetattr(fd, &oldterminfo) == -1) {
+        IDLog("openserial(): tcgetattr()");
+        return 0;
+    }
+    attr = oldterminfo;
+    //attr.c_cflag |= CRTSCTS | CLOCAL;
+    attr.c_cflag |= CLOCAL;
+    attr.c_oflag = 0;
+    if (tcflush(fd, TCIOFLUSH) == -1) {
+        IDLog("openserial(): tcflush()");
+        return 0;
+    }
+    if (tcsetattr(fd, TCSANOW, &attr) == -1) {
+        IDLog("initserial(): tcsetattr()");
+        return 0;
+    }
+    return fd;
+}
+
+
+int Lx::setRTS(int fd, int level)
+{
+    int status;
+    int mcr;
+    // does not work for RTS
+    //if (ioctl(fd, TIOCMGET, &status) == -1) {
+    //    IDLog("setRTS(): TIOCMGET");
+    //    return 0;
+    //}
+    //if (level)
+    //    status |= TIOCM_RTS;
+    //else
+    //    status &= ~TIOCM_RTS;
+    //if (ioctl(fd, TIOCMSET, &status) == -1) {
+    //    IDLog("setRTS(): TIOCMSET");
+    //    return 0;
+    //}
+    mcr=TIOCM_RTS;
+    if (level) {
+      if (ioctl(fd, TIOCMBIS, &mcr) == -1) {
+        IDLog("setRTS(): TIOCMBIS");
+        return 0;
+      }
+    } else {
+      if (ioctl(fd, TIOCMBIC, &mcr) == -1) {
+        IDLog("setRTS(): TIOCMBIC");
+        return 0;
+      }
+    }
+    return 1;
+}
+
+int Lx::setDTR(int fd, int level)
+{
+    int status;
+
+    if (ioctl(fd, TIOCMGET, &status) == -1) {
+        IDLog("setDTR(): TIOCMGET");
+        return 0;
+    }
+    if (level)
+        status |= TIOCM_DTR;
+    else
+        status &= ~TIOCM_DTR;
+    if (ioctl(fd, TIOCMSET, &status) == -1) {
+        IDLog("setDTR(): TIOCMSET");
+        return 0;
+    }
+    return 1;
+}
+
+void Lx::getSerialOptions(unsigned int *speed, unsigned int *wordsize, unsigned int *parity, unsigned int *stops)
+{
+ unsigned int index;
+ unsigned int speedopts[] = {1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400 };
+ unsigned int sizeopts[] = {5, 6, 7, 8};
+ unsigned int parityopts[] = {PARITY_NONE, PARITY_EVEN, PARITY_ODD};
+ unsigned int stopopts[] = {1, 2};
+ index=IUFindOnSwitchIndex(&LxSerialSpeedSP);
+ *speed=speedopts[index];
+ index=IUFindOnSwitchIndex(&LxSerialSizeSP);
+ *wordsize=sizeopts[index];
+ index=IUFindOnSwitchIndex(&LxSerialParitySP);
+ *parity=parityopts[index];
+ index=IUFindOnSwitchIndex(&LxSerialStopSP);
+ *stops=stopopts[index];
+}
+
+const char * Lx::getSerialEOL() 
+{
+   unsigned int index;
+   index=IUFindOnSwitchIndex(&LxSerialAddeolSP);
+   switch (index) {
+   case 0: return "";
+   case 1: return "\r";
+   case 2: return "\n";
+   case 3: return "\r\n";
+   }
+}
+
+int Lx::startLxSerial() {  
+  unsigned int index;
+  unsigned int speed, wordsize, parity, stops;
+  const char *eol;
+  index=IUFindOnSwitchIndex(&LxSerialOptionSP);   
+
+  switch(index) {
+  case 0:
+    fd = openserial(LxPortT[0].text);
+    if (LxLogicalLevelS[0].s == ISS_ON)
+      setDTR(fd, 1);
+    else
+      setDTR(fd, 0);
+    break;
+  case 1:
+    fd = openserial(LxPortT[0].text);
+    if (LxLogicalLevelS[0].s == ISS_ON)
+      setRTS(fd, 1);
+    else
+      setRTS(fd, 0);
+    break;
+  case 2:
+    getSerialOptions(&speed, &wordsize, &parity, &stops);
+    eol=getSerialEOL();
+    tty_connect(LxPortT[0].text, speed, wordsize, parity, stops, &fd);
+    write(fd, LxStartStopCmdT[0].text, strlen(LxStartStopCmdT[0].text));
+    write(fd, eol, strlen(eol));
+    break;
+    }
+  return 0;
+}
+
+int Lx::stopLxSerial() {
+  unsigned int index;
+  const char *eol;
+  index=IUFindOnSwitchIndex(&LxSerialOptionSP);   
+  switch(index) {
+  case 0:
+    if (LxLogicalLevelS[0].s == ISS_ON)
+      setDTR(fd, 0);
+    else
+      setDTR(fd, 1);
+    break;
+  case 1:
+    if (LxLogicalLevelS[0].s == ISS_ON)
+      setRTS(fd, 0);
+    else
+      setRTS(fd, 1);
+    break;
+  case 2:
+    write(fd, LxStartStopCmdT[1].text, strlen(LxStartStopCmdT[1].text));
+    eol=getSerialEOL();
+    write(fd, eol, strlen(eol));
+    break;
+    }
+  close(fd);
+  return 0;
+}
+
 
 // PWC Stuff
 bool Lx::checkPWC() {

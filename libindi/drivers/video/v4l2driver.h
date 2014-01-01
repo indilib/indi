@@ -140,10 +140,8 @@ class V4L2_Driver: public INDI::CCD
     ISwitchVectorProperty FrameRatesSP;				/* Select Frame rate (Discrete) */ 
     ISwitchVectorProperty *Options;
     unsigned int v4loptions;
-    unsigned int v4lstartextoptions; //unuseful TODO
     unsigned int v4ladjustments;
-    unsigned int v4lstartextadjustments; //unuseful TODO
-
+    bool useExtCtrl;
 
     /* Number vectors */
     INumberVectorProperty *ExposeTimeNP;				/* Exposure */

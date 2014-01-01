@@ -85,6 +85,7 @@ V4L2_Base::V4L2_Base()
    cropbuf = NULL;
    cancrop=true;
    cansetrate=true;
+   streamedonce=false;
 }
 
 V4L2_Base::~V4L2_Base()
@@ -125,11 +126,14 @@ int V4L2_Base::connectCam(const char * devpath, char *errmsg , int pixelFormat ,
    cropbuf = NULL;
    cancrop=true;
    cansetrate=true;
+   streamedonce=false;
    frameRate.numerator=1;
    frameRate.denominator=25;
 
     if (open_device (devpath, errmsg) < 0)
       return -1;
+
+    path=devpath;
 
     if (check_device(errmsg) < 0)
       return -1;
@@ -141,12 +145,7 @@ int V4L2_Base::connectCam(const char * devpath, char *errmsg , int pixelFormat ,
 void V4L2_Base::disconnectCam(bool stopcapture)
 {
    char errmsg[ERRMSGSIZ];
-   YBuf = NULL;
-   UBuf = NULL;
-   VBuf = NULL;
-   if (yuvBuffer) delete (yuvBuffer); yuvBuffer = NULL;
-   if (colorBuffer) delete (colorBuffer); colorBuffer = NULL;
-   if (rgb24_buffer) delete (rgb24_buffer); rgb24_buffer = NULL;
+
    
    if (selectCallBackID != -1)
      rmCallback(selectCallBackID);
@@ -159,6 +158,13 @@ void V4L2_Base::disconnectCam(bool stopcapture)
    close_device ();
      
    fprintf(stderr, "Disconnect cam\n");
+}
+
+bool V4L2_Base::isLXmodCapable()
+{
+  if (!(strcmp((const char *)cap.driver, "pwc")))
+    return true;
+  else return false;
 }
 
 int V4L2_Base::read_frame(char *errmsg)
@@ -361,23 +367,26 @@ int V4L2_Base::read_frame(char *errmsg)
 int V4L2_Base::stop_capturing(char *errmsg)
 {
         enum v4l2_buf_type type;
-
+	unsigned int i;
 	switch (io) {
 	case IO_METHOD_READ:
 		/* Nothing to do. */
 		break;
 
 	case IO_METHOD_MMAP:
+	  /* Kernel 3.11 problem with streamoff: vb2_is_busy(queue) remains true so we can not change anything without diconnecting */
+	  /* It seems that device should be closed/reopened to change any capture format settings. From V4L2 API Spec. (Data Negotiation) */
+	  /* Switching the logical stream or returning into "panel mode" is possible by closing and reopening the device. */
+	  /* Drivers may support a switch using VIDIOC_S_FMT. */
 	case IO_METHOD_USERPTR:
-		type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-
-                IERmCallback(selectCallBackID);
-                selectCallBackID = -1;
-
                 // N.B. I used this as a hack to solve a problem with capturing a frame
 		// long time ago. I recently tried taking this hack off, and it worked fine!
 		//dropFrame = true;
 
+		type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+
+                IERmCallback(selectCallBackID);
+                selectCallBackID = -1;
 		if (-1 == xioctl (fd, VIDIOC_STREAMOFF, &type))
 			return errno_exit ("VIDIOC_STREAMOFF", errmsg);
 
@@ -385,7 +394,7 @@ int V4L2_Base::stop_capturing(char *errmsg)
 
 		break;
 	}
-	uninit_device(errmsg);
+	//uninit_device(errmsg);
 	if (cropset && cropbuf) {
 	  free(cropbuf); cropbuf=NULL;
 	}
@@ -397,7 +406,7 @@ int V4L2_Base::start_capturing(char * errmsg)
         unsigned int i;
         enum v4l2_buf_type type;
 
-	init_device(errmsg);
+	if (!streamedonce) init_device(errmsg);
 
 	switch (io) {
 	case IO_METHOD_READ:
@@ -456,6 +465,7 @@ int V4L2_Base::start_capturing(char * errmsg)
 		break;
 	}
 
+	streamedonce=true;
   return 0;
 
 }
@@ -742,12 +752,14 @@ int V4L2_Base::check_device(char *errmsg)
 
     cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     
+    cancrop=true;
     if (-1 == xioctl (fd, VIDIOC_CROPCAP, &cropcap)) {
       perror("VIDIOC_CROPCAP");
       crop.c.top=-1;
       cancrop=false;
                 /* Errors ignored. */
     }
+    if (cancrop) {
     IDLog("Crop capabilities: bounds = (top=%d, left=%d, width=%d, height=%d)\n", cropcap.bounds.top,
 	  cropcap.bounds.left, cropcap.bounds.width, cropcap.bounds.height);
     IDLog("Crop capabilities: defrect = (top=%d, left=%d, width=%d, height=%d)\n", cropcap.defrect.top,
@@ -771,7 +783,7 @@ int V4L2_Base::check_device(char *errmsg)
       /* Errors ignored. */
     }
     cropset=false;
-    
+    }
   // Enumerating capture format
   { struct v4l2_fmtdesc fmt_avail;
     fmt_avail.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -959,12 +971,19 @@ int V4L2_Base::init_device(char *errmsg) {
 
 void V4L2_Base::close_device(void)
 {
-        char errmsg[ERRMSGSIZ];
-
-        if (-1 == close (fd))
-	        errno_exit ("close", errmsg);
-
-        fd = -1;
+  char errmsg[ERRMSGSIZ];
+  YBuf = NULL;
+  UBuf = NULL;
+  VBuf = NULL;
+  if (yuvBuffer) delete (yuvBuffer); yuvBuffer = NULL;
+  if (colorBuffer) delete (colorBuffer); colorBuffer = NULL;
+  if (rgb24_buffer) delete (rgb24_buffer); rgb24_buffer = NULL;
+  uninit_device(errmsg);
+  
+  if (-1 == close (fd))
+    errno_exit ("close", errmsg);
+  
+  fd = -1;
 }
 
 int V4L2_Base::open_device(const char *devpath, char *errmsg)
@@ -999,6 +1018,8 @@ int V4L2_Base::open_device(const char *devpath, char *errmsg)
                 return -1;
         }
 
+	streamedonce=false;
+
   return 0;
 }
 
@@ -1031,6 +1052,10 @@ void V4L2_Base::getinputs(ISwitchVectorProperty *inputssp) {
 
 int V4L2_Base::setinput(unsigned int inputindex, char *errmsg) {
   IDLog("Setting Video input to %d\n", inputindex);
+  if (streamedonce) {
+    close_device();
+    open_device(path, errmsg);
+  }
   if (-1 == ioctl (fd, VIDIOC_S_INPUT, &inputindex)) {
     return errno_exit ("VIDIOC_S_INPUT", errmsg);
   }
@@ -1088,6 +1113,10 @@ int V4L2_Base::setcaptureformat(unsigned int captureformat, char *errmsg) {
   unsigned int oldformat;
   oldformat = fmt.fmt.pix.pixelformat;
   fmt.fmt.pix.pixelformat = captureformat;
+  if (streamedonce) {
+    close_device();
+    open_device(path ,errmsg);
+  }
     //     //fmt.fmt.pix.field       = V4L2_FIELD_INTERLACED;
   if (-1 == xioctl (fd, VIDIOC_TRY_FMT, &fmt)) {
     fmt.fmt.pix.pixelformat = oldformat;
@@ -1158,7 +1187,10 @@ int V4L2_Base::setcapturesize(unsigned int w, unsigned int h, char *errmsg) {
   fmt.fmt.pix.width = w;
   fmt.fmt.pix.height = h;
     //     //fmt.fmt.pix.field       = V4L2_FIELD_INTERLACED;
-
+  if (streamedonce) {
+    close_device();
+    open_device(path, errmsg);
+  }
   if (-1 == xioctl (fd, VIDIOC_TRY_FMT, &fmt)) {
     fmt.fmt.pix.width = oldw;
     fmt.fmt.pix.height = oldh;
@@ -1364,7 +1396,10 @@ int V4L2_Base::setSize(int x, int y)
 
    fmt.fmt.pix.width  = x;
    fmt.fmt.pix.height = y;
-
+  if (streamedonce) {
+    close_device();
+    open_device(path, errmsg);
+  }
    if (-1 == xioctl (fd, VIDIOC_S_FMT, &fmt))
    {
         fmt.fmt.pix.width  = oldW;
@@ -1378,7 +1413,7 @@ int V4L2_Base::setSize(int x, int y)
    //   xioctl (fd, VIDIOC_S_FMT, &fmt);
  
   
-   allocBuffers();
+   //allocBuffers();
 
   return 0;
 }
@@ -1503,14 +1538,14 @@ void V4L2_Base::enumerate_ctrl (void)
 	}
 	cerr << "Control " << queryctrl.name << endl;
 	
-	if ((queryctrl.type == V4L2_CTRL_TYPE_MENU))//|| (queryctrl.type == V4L2_CTRL_TYPE_INTEGER_MENU))
+	if ((queryctrl.type == V4L2_CTRL_TYPE_MENU))//|| (queryctrl.type == V4L2_CTRL_TYPE_INTEGER_MENU)) // not in < 3.5
 	  enumerate_menu ();
 	if (queryctrl.type == V4L2_CTRL_TYPE_BOOLEAN)
 	  cerr << "  boolean" <<endl;
 	if (queryctrl.type == V4L2_CTRL_TYPE_INTEGER)
 	  cerr << "  integer" <<endl;
-	if (queryctrl.type == V4L2_CTRL_TYPE_BITMASK)
-	  cerr << "  bitmask" <<endl;	
+	//if (queryctrl.type == V4L2_CTRL_TYPE_BITMASK) //not in < 3.1
+	//  cerr << "  bitmask" <<endl;	
 	if (queryctrl.type == V4L2_CTRL_TYPE_BUTTON)
 	  cerr << "  button" <<endl;
       } else
@@ -1541,8 +1576,8 @@ void V4L2_Base::enumerate_ctrl (void)
 	  cerr << "  boolean" <<endl;
 	if (queryctrl.type == V4L2_CTRL_TYPE_INTEGER)
 	  cerr << "  integer" <<endl;
-	if (queryctrl.type == V4L2_CTRL_TYPE_BITMASK)
-	  cerr << "  bitmask" <<endl;	
+	//if (queryctrl.type == V4L2_CTRL_TYPE_BITMASK)
+	//  cerr << "  bitmask" <<endl;	
 	if (queryctrl.type == V4L2_CTRL_TYPE_BUTTON)
 	  cerr << "  button" <<endl;
       } else {
@@ -1570,11 +1605,12 @@ void V4L2_Base::enumerate_menu (void)
       if (0 == xioctl (fd, VIDIOC_QUERYMENU, &querymenu))
 	{
 	  cerr << "  " <<  querymenu.name << endl;
-	} else
-	{
-	  errno_exit("VIDIOC_QUERYMENU", errmsg);
-	  return;
-	}
+	} 
+      //else
+      //{
+      //  errno_exit("VIDIOC_QUERYMENU", errmsg);
+      //  return;
+      //}
     }
 }
 
@@ -1623,7 +1659,7 @@ int  V4L2_Base::query_ctrl(unsigned int ctrl_id, double & ctrl_min, double & ctr
 
 }
 
-void  V4L2_Base::queryControls(INumberVectorProperty *nvp, unsigned int *nnumber, unsigned int*startnumext, ISwitchVectorProperty **options, unsigned int *noptions, unsigned int *startoptext, const char *dev, const char *group) {
+void  V4L2_Base::queryControls(INumberVectorProperty *nvp, unsigned int *nnumber, ISwitchVectorProperty **options, unsigned int *noptions, const char *dev, const char *group) {
   struct v4l2_control control;
   char errmsg[ERRMSGSIZ];
   
@@ -1763,8 +1799,7 @@ void  V4L2_Base::queryControls(INumberVectorProperty *nvp, unsigned int *nnumber
 	}
       }
     }
-  *startnumext=nnum;
-  *startoptext=nopt;
+
   for (queryctrl.id = V4L2_CID_PRIVATE_BASE;  ;  queryctrl.id++)
   {
     if (0 == ioctl (fd, VIDIOC_QUERYCTRL, &queryctrl))
@@ -2006,7 +2041,7 @@ int  V4L2_Base::queryINTControls(INumberVectorProperty *nvp)
 
 }
 
-int  V4L2_Base::setINTControl(unsigned int ctrl_id, double new_value, bool ext, char *errmsg)
+int  V4L2_Base::setINTControl(unsigned int ctrl_id, double new_value,  char *errmsg)
 {
    struct v4l2_control control;
 
@@ -2016,17 +2051,12 @@ int  V4L2_Base::setINTControl(unsigned int ctrl_id, double new_value, bool ext, 
 
    control.id = ctrl_id;
    control.value = (int) new_value;
-   if (ext) {
-     if (-1 == xioctl(fd, VIDIOC_S_CTRL, &control))
-       return errno_exit ("VIDIOC_S_EXT_CTRL", errmsg);
-   } else {
-     if (-1 == xioctl(fd, VIDIOC_S_CTRL, &control))
-       return errno_exit ("VIDIOC_S_CTRL", errmsg);
-   }
+   if (-1 == xioctl(fd, VIDIOC_S_CTRL, &control))
+     return errno_exit ("VIDIOC_S_CTRL", errmsg);
    return 0;
 }
 
-int  V4L2_Base::setOPTControl(unsigned int ctrl_id, unsigned int new_value, bool ext, char *errmsg)
+int  V4L2_Base::setOPTControl(unsigned int ctrl_id, unsigned int new_value, char *errmsg)
 {
    struct v4l2_control control;
 
@@ -2036,13 +2066,216 @@ int  V4L2_Base::setOPTControl(unsigned int ctrl_id, unsigned int new_value, bool
 
    control.id = ctrl_id;
    control.value = new_value;
-   if (ext) {
-     if (-1 == xioctl(fd, VIDIOC_S_CTRL, &control))
-       return errno_exit ("VIDIOC_S_EXT_CTRL", errmsg);
-   } else {
-     if (-1 == xioctl(fd, VIDIOC_S_CTRL, &control))
-       return errno_exit ("VIDIOC_S_CTRL", errmsg);
-   }
-
+   if (-1 == xioctl(fd, VIDIOC_S_CTRL, &control))
+     return errno_exit ("VIDIOC_S_CTRL", errmsg);
    return 0;
+}
+
+bool V4L2_Base::enumerate_ext_ctrl (void)
+{
+  //struct v4l2_queryctrl queryctrl;
+  
+  char errmsg[ERRMSGSIZ];
+  CLEAR(queryctrl);
+  
+  queryctrl.id = V4L2_CTRL_FLAG_NEXT_CTRL;
+  if (-1 == ioctl (fd, VIDIOC_QUERYCTRL, &queryctrl)) return false;
+  
+  queryctrl.id = V4L2_CTRL_FLAG_NEXT_CTRL;
+  while (0 == xioctl (fd, VIDIOC_QUERYCTRL, &queryctrl))
+      {
+	if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED) {
+	  cerr << "DISABLED--Control " << queryctrl.name << endl;
+	  continue;
+	}
+
+	if (queryctrl.type == V4L2_CTRL_TYPE_CTRL_CLASS) {
+	  cerr << "Control Class " << queryctrl.name << endl;
+	  continue;
+	}
+	
+	cerr << "Control " << queryctrl.name << endl;
+	
+	if ((queryctrl.type == V4L2_CTRL_TYPE_MENU))//|| (queryctrl.type == V4L2_CTRL_TYPE_INTEGER_MENU)) // not in < 3.5
+	  enumerate_menu ();
+	if (queryctrl.type == V4L2_CTRL_TYPE_BOOLEAN)
+	  cerr << "  boolean" <<endl;
+	if (queryctrl.type == V4L2_CTRL_TYPE_INTEGER)
+	  cerr << "  integer" <<endl;
+	//if (queryctrl.type == V4L2_CTRL_TYPE_BITMASK) //not in < 3.1
+	//  cerr << "  bitmask" <<endl;	
+	if (queryctrl.type == V4L2_CTRL_TYPE_BUTTON)
+	  cerr << "  button" <<endl;
+	queryctrl.id |= V4L2_CTRL_FLAG_NEXT_CTRL;
+      } 
+    return true;
+}
+  
+// TODO free opt/menu aux placeholders
+
+bool  V4L2_Base::queryExtControls(INumberVectorProperty *nvp, unsigned int *nnumber, ISwitchVectorProperty **options, unsigned int *noptions, const char *dev, const char *group) {
+  struct v4l2_control control;
+  char errmsg[ERRMSGSIZ];
+  
+  INumber *numbers = NULL;
+  unsigned int *num_ctrls = NULL;
+  int nnum=0;
+  ISwitchVectorProperty *opt=NULL;
+  unsigned int nopt=0;
+  char optname[]="OPT000";
+  char swonname[]="SET_OPT000";
+  char swoffname[]="UNSET_OPT000";
+  char menuname[]="MENU000";
+  char menuoptname[]="MENU000_OPT000";
+  *noptions = 0;
+  *nnumber = 0;
+  
+  CLEAR(queryctrl);
+
+  queryctrl.id = V4L2_CTRL_FLAG_NEXT_CTRL;
+  if (-1 == ioctl (fd, VIDIOC_QUERYCTRL, &queryctrl)) return false;
+  
+  CLEAR(queryctrl);
+  queryctrl.id = V4L2_CTRL_FLAG_NEXT_CTRL;
+  while (0 == xioctl (fd, VIDIOC_QUERYCTRL, &queryctrl))
+    {
+      
+      if (queryctrl.type == V4L2_CTRL_TYPE_CTRL_CLASS) {
+	cerr << "Control Class " << queryctrl.name << endl;
+	continue;
+      }
+      
+      if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED)
+	{
+	  cerr << queryctrl.name << " is disabled." << endl;
+	  continue;
+	}
+      
+      
+      if (queryctrl.type == V4L2_CTRL_TYPE_INTEGER)
+	{
+	  numbers = (numbers == NULL) ? (INumber *) malloc (sizeof(INumber)) :
+	    (INumber *) realloc (numbers, (nnum+1) * sizeof (INumber));
+	  
+	  num_ctrls = (num_ctrls == NULL) ? (unsigned int *) malloc  (sizeof (unsigned int)) :
+	    (unsigned int *) realloc (num_ctrls, (nnum+1) * sizeof (unsigned int));
+	  
+	  strncpy(numbers[nnum].name, (const char *)entityXML((char *) queryctrl.name) , MAXINDINAME);
+	  strncpy(numbers[nnum].label, (const char *)entityXML((char *) queryctrl.name), MAXINDILABEL);
+	  strncpy(numbers[nnum].format, "%0.f", MAXINDIFORMAT);
+	  numbers[nnum].min    = queryctrl.minimum;
+	  numbers[nnum].max    = queryctrl.maximum;
+	  numbers[nnum].step   = queryctrl.step;
+	  numbers[nnum].value  = queryctrl.default_value;
+	      
+	  /* Get current value if possible */
+	  CLEAR(control);
+	  control.id = queryctrl.id;
+	  if (0 == xioctl(fd, VIDIOC_G_CTRL, &control))
+	    numbers[nnum].value = control.value;
+	  
+	  /* Store ID info in INumber. This is the first time ever I make use of aux0!! */
+	  num_ctrls[nnum] = queryctrl.id;
+	  
+	  cerr << "Adding " << queryctrl.name << " -- min: " << queryctrl.minimum << " max: " << queryctrl.maximum << 
+	    " step: " << queryctrl.step << " value: " << numbers[nnum].value << endl;
+	  
+	  nnum++;
+          
+	}
+      if (queryctrl.type == V4L2_CTRL_TYPE_BOOLEAN)
+	{
+	  ISwitch *sw = (ISwitch *)malloc(2*sizeof(ISwitch));
+	  snprintf(optname+3, 4, "%03d", nopt);
+	  snprintf(swonname+7, 4, "%03d", nopt);
+	  snprintf(swoffname+9, 4, "%03d", nopt);
+	  
+	  opt = (opt == NULL) ? (ISwitchVectorProperty *) malloc (sizeof(ISwitchVectorProperty)) :
+	    (ISwitchVectorProperty *) realloc (opt, (nopt+1) * sizeof (ISwitchVectorProperty));
+	  
+	  CLEAR(control);
+	  control.id = queryctrl.id;
+	  xioctl(fd, VIDIOC_G_CTRL, &control);
+	  
+	  IUFillSwitch(sw, swonname, "Off", (control.value?ISS_OFF:ISS_ON));
+	  sw->aux=NULL;
+	  IUFillSwitch(sw+1, swoffname, "On", (control.value?ISS_ON:ISS_OFF));
+	  (sw+1)->aux=NULL;
+	  queryctrl.name[31]='\0';
+	  IUFillSwitchVector (&opt[nopt], sw, 2, dev, optname, (const char *)entityXML((char *)queryctrl.name), group, IP_RW, ISR_1OFMANY, 0.0, IPS_IDLE);
+	  opt[nopt].aux=malloc(sizeof(unsigned int));
+	  *(unsigned int *)(opt[nopt].aux)=(queryctrl.id);
+	  
+	  IDLog("Adding switch  %s (%s)\n", queryctrl.name, (control.value?"On":"Off"));
+	  nopt += 1;
+	}
+      if (queryctrl.type == V4L2_CTRL_TYPE_MENU)
+	{
+	  ISwitch *sw = NULL;
+	  unsigned int nmenuopt=0;
+	  char sname[32];
+	  snprintf(menuname+4, 4, "%03d", nopt);
+	  snprintf(menuoptname+4, 4, "%03d", nopt);
+	  menuoptname[7]='_';
+	  
+	  opt = (opt == NULL) ? (ISwitchVectorProperty *) malloc (sizeof(ISwitchVectorProperty)) :
+	    (ISwitchVectorProperty *) realloc (opt, (nopt+1) * sizeof (ISwitchVectorProperty));
+	  
+	  CLEAR(control);
+	  control.id = queryctrl.id;
+	  xioctl(fd, VIDIOC_G_CTRL, &control);
+	  
+	  CLEAR(querymenu);
+	  querymenu.id = queryctrl.id;
+	  
+	  for (querymenu.index = queryctrl.minimum;  querymenu.index <= queryctrl.maximum; querymenu.index++)
+	    {
+	      if (0 == xioctl (fd, VIDIOC_QUERYMENU, &querymenu))
+		{
+		  sw = (sw == NULL) ? (ISwitch *) malloc (sizeof(ISwitch)) :
+		    (ISwitch *) realloc (sw, (nmenuopt+1) * sizeof (ISwitch));
+		  snprintf(menuoptname+11, 4, "%03d", nmenuopt);
+		  snprintf(sname, 31, "%s", querymenu.name);
+		  sname[31]='\0';
+		  IDLog("Adding menu item %s %s %s item %d index %d\n", querymenu.name, sname, menuoptname, nmenuopt, querymenu.index);
+		  //IUFillSwitch(&sw[nmenuopt], menuoptname, (const char *)sname, (control.value==nmenuopt?ISS_ON:ISS_OFF));
+		  IUFillSwitch(&sw[nmenuopt], menuoptname, (const char *)entityXML((char *)querymenu.name), (control.value==nmenuopt?ISS_ON:ISS_OFF));
+		  sw[nmenuopt].aux=malloc(sizeof(unsigned int));
+		  *(unsigned int *)(sw[nmenuopt].aux)=(querymenu.index);
+		  nmenuopt+=1;
+		} else
+		{
+		  //errno_exit("VIDIOC_QUERYMENU", errmsg);
+		  //exit(3);
+		}
+	    }
+	  
+	  queryctrl.name[31]='\0';
+	  IUFillSwitchVector (&opt[nopt], sw, nmenuopt, dev, menuname, (const char *)entityXML((char *)queryctrl.name), group, IP_RW, ISR_1OFMANY, 0.0, IPS_IDLE);
+	  opt[nopt].aux=malloc(sizeof(unsigned int));
+	  *(unsigned int *)(opt[nopt].aux)=(queryctrl.id);
+	  
+	  IDLog("Adding menu  %s (item %d set)\n", queryctrl.name, control.value);
+	  nopt += 1;
+	}
+
+      //if (queryctrl.type == V4L2_CTRL_TYPE_INTEGER_MENU)
+      //	{
+      //  IDLog("Control type not implemented\n");
+      //}
+
+	queryctrl.id |= V4L2_CTRL_FLAG_NEXT_CTRL;
+    }
+
+  /* Store numbers in aux0 */
+  for (int i=0; i < nnum; i++) 
+    numbers[i].aux0 = &num_ctrls[i];
+  
+  nvp->np  = numbers;
+  nvp->nnp = nnum;
+  *nnumber=nnum;
+  
+  *options=opt;
+  *noptions=nopt;
+
 }

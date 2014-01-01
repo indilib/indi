@@ -60,7 +60,8 @@ bool V4L2_Driver::initProperties()
 {
   
    INDI::CCD::initProperties();
- 
+   addDebugControl();
+
  /* Port */
   IUFillText(&PortT[0], "PORT", "Port", "/dev/video0");
   IUFillTextVector(&PortTP, PortT, NARRAY(PortT), getDeviceName(), "DEVICE_PORT", "Ports", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
@@ -164,13 +165,14 @@ bool V4L2_Driver::updateProperties ()
    else
        PrimaryCCD.setBPP(32);
 
-   lx->updateProperties();
+   if (v4l_base->isLXmodCapable()) lx->updateProperties();
 
   } else
   {
     unsigned int i;
-   
-    lx->updateProperties();
+    
+    if (v4l_base->isLXmodCapable()) lx->updateProperties();
+    
     
     deleteProperty(camNameTP.name);
     deleteProperty(StreamSP.name);
@@ -418,7 +420,8 @@ bool V4L2_Driver::ISNewSwitch (const char *dev, const char *name, ISState *state
 	 break;
      if (iopt < v4loptions)
        {
-	 unsigned int ctrl_id, optindex;
+	 unsigned int ctrl_id, optindex, ctrlindex;
+	 
      DEBUGF(INDI::Logger::DBG_DEBUG, "Toggle switch %s=%s\n", Options[iopt].name, Options[iopt].label);
        
 	 Options[iopt].s = IPS_IDLE;
@@ -427,9 +430,11 @@ bool V4L2_Driver::ISNewSwitch (const char *dev, const char *name, ISState *state
 	   return false;
 	
 	 optindex=IUFindOnSwitchIndex(&Options[iopt]);
+	 if (Options[iopt].sp[optindex].aux != NULL) ctrlindex= *(unsigned int *)(Options[iopt].sp[optindex].aux);
+	 else ctrlindex=optindex;
          ctrl_id = (*((unsigned int*) Options[iopt].aux));
-     DEBUGF(INDI::Logger::DBG_DEBUG, "  On switch is (%d) %s=\"%s\", ctrl_id = %d\n", optindex, Options[iopt].sp[optindex].name, Options[iopt].sp[optindex].label, ctrl_id);
-         if (v4l_base->setOPTControl( ctrl_id , optindex, ((iopt >= v4lstartextoptions)?true:false), errmsg) < 0)
+	 DEBUGF(INDI::Logger::DBG_DEBUG, "  On switch is (%d) %s=\"%s\", ctrl_id = 0x%X ctrl_index=%d\n", optindex, Options[iopt].sp[optindex].name, Options[iopt].sp[optindex].label, ctrl_id, ctrlindex);
+         if (v4l_base->setOPTControl( ctrl_id , ctrlindex,  errmsg) < 0)
          {
             Options[iopt].s = IPS_ALERT;
             IDSetSwitch(&Options[iopt], NULL);
@@ -539,7 +544,10 @@ bool V4L2_Driver::ISNewNumber (const char *dev, const char *name, double values[
      for (int i=0; i < ImageAdjustNP.nnp; i++)
      {
          ctrl_id = *((unsigned int *) ImageAdjustNP.np[i].aux0);
-         if (v4l_base->setINTControl( ctrl_id , ImageAdjustNP.np[i].value, ((i >= v4lstartextadjustments)?true:false), errmsg) < 0)
+
+	 DEBUGF(INDI::Logger::DBG_DEBUG, "  Setting %s (%s) to %d, ctrl_id = 0x%X \n", ImageAdjustNP.np[i].name, ImageAdjustNP.np[i].label, (int)ImageAdjustNP.np[i].value, ctrl_id);
+
+         if (v4l_base->setINTControl( ctrl_id , ImageAdjustNP.np[i].value, errmsg) < 0)
          {
             ImageAdjustNP.s = IPS_ALERT;
             IDSetNumber(&ImageAdjustNP, "Unable to adjust setting. %s", errmsg);
@@ -929,7 +937,12 @@ void V4L2_Driver::updateV4L2Controls()
   
   //if (v4l_base->queryINTControls(&ImageAdjustNP) > 0)
   //defineNumber(&ImageAdjustNP);
-  v4l_base->queryControls(&ImageAdjustNP, &v4ladjustments, &v4lstartextadjustments, &Options, &v4loptions, &v4lstartextoptions, device_name, IMAGE_BOOLEAN) ;
+  v4l_base->enumerate_ext_ctrl();
+  useExtCtrl=false;
+  if  (v4l_base->queryExtControls(&ImageAdjustNP, &v4ladjustments, &Options, &v4loptions, device_name, IMAGE_BOOLEAN)) 
+    useExtCtrl=true;
+  else
+    v4l_base->queryControls(&ImageAdjustNP, &v4ladjustments, &Options, &v4loptions, device_name, IMAGE_BOOLEAN) ;
   if (v4ladjustments > 0) defineNumber(&ImageAdjustNP);
   for (i=0; i < v4loptions; i++) {
       //IDLog("Def switch %d %s\n", i, Options[i].label);
