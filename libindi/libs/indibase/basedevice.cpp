@@ -393,9 +393,10 @@ int INDI::BaseDevice::buildProp(XMLEle *root, char *errmsg)
         return -1;
     }
 
-
     if (!strcmp (rtag, "defNumberVector"))
     {
+        setlocale(LC_NUMERIC,"C");
+        
         INDI::Property *indiProp = new INDI::Property();
         INumberVectorProperty *nvp = new INumberVectorProperty;
 
@@ -471,6 +472,8 @@ int INDI::BaseDevice::buildProp(XMLEle *root, char *errmsg)
     }
     else
         IDLog("%s: newNumberVector with no valid members\n",rname);
+
+    setlocale(LC_NUMERIC,"");
   }
   else if (!strcmp (rtag, "defSwitchVector"))
   {
@@ -780,14 +783,16 @@ int INDI::BaseDevice::setValue (XMLEle *root, char * errmsg)
         stateSet = true;
     }
 
-    setlocale(LC_NUMERIC,"C");
-
     /* allow changing the timeout */
     ap = findXMLAtt (root, "timeout");
     if (ap)
     {
+        setlocale(LC_NUMERIC,"C");
+        
         timeout = atof(valuXMLAtt(ap));
         timeoutSet = true;
+
+        setlocale(LC_NUMERIC,"");
     }
 
     checkMessage (root);
@@ -807,6 +812,8 @@ int INDI::BaseDevice::setValue (XMLEle *root, char * errmsg)
         if (timeoutSet)
             nvp->timeout = timeout;
 
+        setlocale(LC_NUMERIC,"C");
+        
        for (ep = nextXMLEle (root, 1); ep != NULL; ep = nextXMLEle (root, 0))
         {
            INumber *np =  IUFindNumber(nvp, findXMLAttValu(ep, "name"));

@@ -28,6 +28,7 @@
 #include <errno.h>
 #include <time.h>
 #include <unistd.h>
+#include <locale.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -1265,7 +1266,8 @@ void IUSaveConfigNumber (FILE *fp, const INumberVectorProperty *nvp)
 {
     int i;
 
-    fprintf (fp, "<newNumberVector device='%s' name='%s'>\n", nvp->device, nvp->name);
+    setlocale(LC_NUMERIC,"C");
+   fprintf (fp, "<newNumberVector device='%s' name='%s'>\n", nvp->device, nvp->name);
 
     for (i = 0; i < nvp->nnp; i++)
     {
@@ -1276,6 +1278,7 @@ void IUSaveConfigNumber (FILE *fp, const INumberVectorProperty *nvp)
     }
 
     fprintf (fp, "</newNumberVector>\n");
+    setlocale(LC_NUMERIC,"");
 }
 
 void IUSaveConfigText (FILE *fp, const ITextVectorProperty *tvp)
@@ -1352,6 +1355,7 @@ IDDefText (const ITextVectorProperty *tvp, const char *fmt, ...)
         ROSC *SC;
 
         xmlv1();
+        setlocale(LC_NUMERIC,"C");
         printf ("<defTextVector\n");
         printf ("  device='%s'\n", tvp->device);
         printf ("  name='%s'\n", tvp->name);
@@ -1393,6 +1397,7 @@ IDDefText (const ITextVectorProperty *tvp, const char *fmt, ...)
                 SC->perm = tvp->p;
         }
 
+        setlocale(LC_NUMERIC,"");
         fflush (stdout);
 }
 
@@ -1404,6 +1409,7 @@ IDDefNumber (const INumberVectorProperty *n, const char *fmt, ...)
         ROSC *SC;
 
         xmlv1();
+        setlocale(LC_NUMERIC,"C");
         printf ("<defNumberVector\n");
         printf ("  device='%s'\n", n->device);
         printf ("  name='%s'\n", n->name);
@@ -1456,6 +1462,7 @@ IDDefNumber (const INumberVectorProperty *n, const char *fmt, ...)
 
         }
 
+        setlocale(LC_NUMERIC,"");
         fflush (stdout);
 }
 
@@ -1468,6 +1475,7 @@ IDDefSwitch (const ISwitchVectorProperty *s, const char *fmt, ...)
         ROSC *SC;
 
         xmlv1();
+        setlocale(LC_NUMERIC,"C");
         printf ("<defSwitchVector\n");
         printf ("  device='%s'\n", s->device);
         printf ("  name='%s'\n", s->name);
@@ -1510,6 +1518,7 @@ IDDefSwitch (const ISwitchVectorProperty *s, const char *fmt, ...)
                 SC->perm = s->p;
         }
 
+        setlocale(LC_NUMERIC,"");
         fflush (stdout);
 }
 
@@ -1558,6 +1567,7 @@ IDDefBLOB (const IBLOBVectorProperty *b, const char *fmt, ...)
   ROSC *SC;
 
         xmlv1();
+        setlocale(LC_NUMERIC,"C");
         printf ("<defBLOBVector\n");
         printf ("  device='%s'\n", b->device);
         printf ("  name='%s'\n", b->name);
@@ -1598,6 +1608,7 @@ IDDefBLOB (const IBLOBVectorProperty *b, const char *fmt, ...)
                 SC->perm = b->p;
         }
 
+        setlocale(LC_NUMERIC,"");
         fflush (stdout);
 }
 
@@ -1608,6 +1619,7 @@ IDSetText (const ITextVectorProperty *tvp, const char *fmt, ...)
         int i;
 
         xmlv1();
+        setlocale(LC_NUMERIC,"C");
         printf ("<setTextVector\n");
         printf ("  device='%s'\n", tvp->device);
         printf ("  name='%s'\n", tvp->name);
@@ -1632,6 +1644,7 @@ IDSetText (const ITextVectorProperty *tvp, const char *fmt, ...)
         }
 
         printf ("</setTextVector>\n");
+        setlocale(LC_NUMERIC,"");
         fflush (stdout);
 }
 
@@ -1642,6 +1655,7 @@ IDSetNumber (const INumberVectorProperty *nvp, const char *fmt, ...)
         int i;
 
         xmlv1();
+        setlocale(LC_NUMERIC,"C");
         printf ("<setNumberVector\n");
         printf ("  device='%s'\n", nvp->device);
         printf ("  name='%s'\n", nvp->name);
@@ -1666,6 +1680,7 @@ IDSetNumber (const INumberVectorProperty *nvp, const char *fmt, ...)
         }
 
         printf ("</setNumberVector>\n");
+        setlocale(LC_NUMERIC,"");
         fflush (stdout);
 }
 
@@ -1676,6 +1691,7 @@ IDSetSwitch (const ISwitchVectorProperty *svp, const char *fmt, ...)
         int i;
 
         xmlv1();
+        setlocale(LC_NUMERIC,"C");
         printf ("<setSwitchVector\n");
         printf ("  device='%s'\n", svp->device);
         printf ("  name='%s'\n", svp->name);
@@ -1700,7 +1716,8 @@ IDSetSwitch (const ISwitchVectorProperty *svp, const char *fmt, ...)
         }
 
         printf ("</setSwitchVector>\n");
-        fflush (stdout);
+        setlocale(LC_NUMERIC,"");
+       fflush (stdout);
 }
 
 /* tell client to update an existing lights vector property */
@@ -1743,6 +1760,7 @@ IDSetBLOB (const IBLOBVectorProperty *bvp, const char *fmt, ...)
         int i;
 
         xmlv1();
+        setlocale(LC_NUMERIC,"C");
         printf ("<setBLOBVector\n");
         printf ("  device='%s'\n", bvp->device);
         printf ("  name='%s'\n", bvp->name);
@@ -1779,6 +1797,7 @@ IDSetBLOB (const IBLOBVectorProperty *bvp, const char *fmt, ...)
         }
 
   printf ("</setBLOBVector>\n");
+  setlocale(LC_NUMERIC,"");
   fflush (stdout);
 }
 
@@ -1788,6 +1807,7 @@ void IUUpdateMinMax(const INumberVectorProperty *nvp)
   int i;
 
   xmlv1();
+  setlocale(LC_NUMERIC,"C");
   printf ("<setNumberVector\n");
   printf ("  device='%s'\n", nvp->device);
   printf ("  name='%s'\n", nvp->name);
@@ -1808,6 +1828,7 @@ void IUUpdateMinMax(const INumberVectorProperty *nvp)
   }
 
   printf ("</setNumberVector>\n");
+  setlocale(LC_NUMERIC,"");
   fflush (stdout);
 }
 
