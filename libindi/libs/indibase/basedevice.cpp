@@ -964,7 +964,11 @@ int INDI::BaseDevice::setBLOB(IBLOBVectorProperty *bvp, XMLEle * root, char * er
 
                 /* Blob size = 0 when only state changes */
                 if (blobEL->size == 0)
+                {
+                    if (mediator)
+                       mediator->newBLOB(blobEL);
                     continue;
+                }
 
                  blobEL->blob = (unsigned char *) realloc (blobEL->blob, 3*pcdatalenXMLEle(ep)/4);
 
