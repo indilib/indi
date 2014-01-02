@@ -237,7 +237,7 @@ int gphoto_set_config (Camera *camera, CameraWidget *config, GPContext *context)
 				break;
 			case GP_ERROR_CAMERA_BUSY:
 				fprintf(stderr, "Failed to set new configuration value (camera busy), retrying...\n");
-				usleep(500);
+                usleep(500 * 1000);
 				break;
 			default:
 				fprintf(stderr, "Failed to set new configuration value (GP result: %d)\n", ret);
