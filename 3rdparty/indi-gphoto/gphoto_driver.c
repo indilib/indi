@@ -83,11 +83,10 @@ enum {
 
 static int debug = 0;
 
-static void errordumper(GPLogLevel level, const char *domain, const char *format,
-                 va_list args, void *data) {
+static void errordumper(GPLogLevel level, const char *domain, const char *str,
+                 void *data) {
 	if (debug) {
-		vfprintf(stderr, format, args);
-		fprintf(stderr, "\n");
+		fprintf(stderr, "%s\n", str);
 	}
 }
 
@@ -223,6 +222,32 @@ out:
 	return NULL;
 }
 
+int gphoto_set_config (Camera *camera, CameraWidget *config, GPContext *context)
+{
+	int	ret;
+	int	retry;
+
+	for (retry = 0; retry < 5; retry++)
+	{
+		ret = gp_camera_set_config (camera, config, context);
+		switch (ret)
+		{
+			case GP_OK:
+				return ret;
+				break;
+			case GP_ERROR_CAMERA_BUSY:
+				fprintf(stderr, "Failed to set new configuration value (camera busy), retrying...\n");
+				usleep(500);
+				break;
+			default:
+				fprintf(stderr, "Failed to set new configuration value (GP result: %d)\n", ret);
+				return ret;
+				break;
+		}
+	}
+	return ret;
+}
+
 int gphoto_set_widget_num(gphoto_driver *gphoto, gphoto_widget *widget, float value)
 {
 	int		ret;
@@ -250,9 +275,7 @@ int gphoto_set_widget_num(gphoto_driver *gphoto, gphoto_widget *widget, float va
 		return 1;
 	}
         if (ret == GP_OK) {
-                ret = gp_camera_set_config (gphoto->camera, gphoto->config, gphoto->context);
-                if (ret != GP_OK)
-                        fprintf(stderr, "Failed to set new configuration value\n");
+	        ret = gphoto_set_config (gphoto->camera, gphoto->config, gphoto->context);
         }
 
 	return ret;
@@ -268,9 +291,7 @@ int gphoto_set_widget_text(gphoto_driver *gphoto, gphoto_widget *widget, const c
 	}
 	ret = gp_widget_set_value (widget->widget, str);
         if (ret == GP_OK) {
-                ret = gp_camera_set_config (gphoto->camera, gphoto->config, gphoto->context);
-                if (ret != GP_OK)
-                        fprintf(stderr, "Failed to set new configuration value\n");
+	        ret = gphoto_set_config (gphoto->camera, gphoto->config, gphoto->context);
         }
 
 	return ret;
@@ -292,7 +313,7 @@ static double * parse_shutterspeed(const char **choices, int count)
 		return NULL;
 	exposure = calloc(sizeof(double), count);
 	for(i = 0; i <  count; i++) {
-        if ( (strncmp(choices[i], "bulb", 4) == 0) || (strncmp(choices[i], "429496.7295s", 4) == 0))
+        if ( (strncmp(choices[i], "bulb", 4) == 0) || (strcmp(choices[i], "65535/65535") == 0))
         {
               exposure[i] = -1;
         } else if (sscanf(choices[i], "%d/%d", &num, &denom) == 2)
@@ -342,7 +363,7 @@ static void *stop_bulb(void *arg)
 			gettimeofday(&curtime, NULL);
 			timeleft = ((gphoto->bulb_end.tv_sec - curtime.tv_sec)*1000)+((gphoto->bulb_end.tv_usec - curtime.tv_usec)/1000);
 			gp_dprintf("Time left: %ld\n", timeleft);
-			if (timeleft < 0) {
+			if (timeleft <= 0) {
 				//shut off bulb mode
 				gp_dprintf("Closing shutter\n");
 				if (gphoto->bulb_widget) {
@@ -487,11 +508,9 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec)
 			gphoto_set_widget_num(gphoto, gphoto->exposure_widget, idx);
 		
 			gettimeofday(&gphoto->bulb_end, NULL);
-			gphoto->bulb_end.tv_usec += exptime_msec * 1000;
-			while(gphoto->bulb_end.tv_usec > 1000000) {
-				gphoto->bulb_end.tv_sec ++;
-				gphoto->bulb_end.tv_usec -= 1000000;
-			}
+			unsigned int usec = gphoto->bulb_end.tv_usec + exptime_msec % 1000 * 1000;
+			gphoto->bulb_end.tv_sec = gphoto->bulb_end.tv_sec + exptime_msec / 1000 + usec / 1000000;
+			gphoto->bulb_end.tv_usec = usec % 1000000;
 			if (gphoto->bulb_port[0]) {
 				gphoto->bulb_fd = open(gphoto->bulb_port, O_RDWR, O_NONBLOCK);
 				if(gphoto->bulb_fd < 0) {
@@ -686,7 +705,8 @@ gphoto_driver *gphoto_open(const char *shutter_release_port)
 		widget_free(widget);
 	}
 
-	if ( (gphoto->exposure_widget = find_widget(gphoto, "shutterspeed")) ||
+	if ( (gphoto->exposure_widget = find_widget(gphoto, "shutterspeed2")) ||
+	     (gphoto->exposure_widget = find_widget(gphoto, "shutterspeed")) ||
              (gphoto->exposure_widget = find_widget(gphoto, "eos-shutterspeed")) )
 	{
 		gphoto->exposure = parse_shutterspeed(gphoto->exposure_widget->choices, gphoto->exposure_widget->choice_cnt);
@@ -711,8 +731,10 @@ gphoto_driver *gphoto_open(const char *shutter_release_port)
 
 	if ( !(gphoto->bulb_widget = find_widget(gphoto, "bulb")) )
 	{
-	     gphoto->bulb_widget = find_widget(gphoto, "eosremoterelease");
-    	     gp_dprintf("Using eosremoterelease command\n");	
+	     if ( !(gphoto->bulb_widget = find_widget(gphoto, "eosremoterelease")) )
+	     {
+    	          gp_dprintf("Using eosremoterelease command\n");	
+	     }
 	}
 
 	if(shutter_release_port) {

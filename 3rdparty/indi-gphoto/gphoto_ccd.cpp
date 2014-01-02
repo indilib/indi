@@ -208,6 +208,8 @@ void GPhotoCCD::ISGetProperties(const char *dev)
         defineSwitch(&mFormatSP);
 
       defineSwitch(&transferFormatSP);
+
+      ShowExtendedOptions();
   }
 
   // Add Debug, Simulator, and Configuration controls
