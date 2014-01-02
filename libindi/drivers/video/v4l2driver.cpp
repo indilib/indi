@@ -598,7 +598,7 @@ bool V4L2_Driver::ISNewNumber (const char *dev, const char *name, double values[
 	frameCount=0;
     gettimeofday(&capture_start, NULL);
 
-    if (V4LFrame->expose > 1)
+    if (AbsExposureN && ManualExposureSP)
     {
      bool rc = setManualExposure(V4LFrame->expose);
      if (rc == false)
