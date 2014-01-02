@@ -621,47 +621,54 @@ bool V4L2_Driver::setManualExposure(double duration)
     unsigned int ctrl_id, ctrlindex;
 
     /* N.B. Check how this differs from one camera to another. This is just a proof of concept for now */
-    double curVal = AbsExposureN->value;
-    AbsExposureN->value = duration * 10000;
-
-    for (int i=0; i < ImageAdjustNP.nnp; i++)
+    if (duration * 10000 != AbsExposureN->value)
     {
-        ctrl_id = *((unsigned int *) ImageAdjustNP.np[i].aux0);
+        double curVal = AbsExposureN->value;
+        AbsExposureN->value = duration * 10000;
 
-        if (v4l_base->setINTControl( ctrl_id , ImageAdjustNP.np[i].value, errmsg) < 0)
+        for (int i=0; i < ImageAdjustNP.nnp; i++)
         {
-           ImageAdjustNP.s = IPS_ALERT;
-           AbsExposureN->value = curVal;
-           IDSetNumber(&ImageAdjustNP, "Unable to adjust setting. %s", errmsg);
-           return false;
+            ctrl_id = *((unsigned int *) ImageAdjustNP.np[i].aux0);
+
+            if (v4l_base->setINTControl( ctrl_id , ImageAdjustNP.np[i].value, errmsg) < 0)
+            {
+               ImageAdjustNP.s = IPS_ALERT;
+               AbsExposureN->value = curVal;
+               IDSetNumber(&ImageAdjustNP, "Unable to adjust setting. %s", errmsg);
+               return false;
+            }
         }
+
+        ImageAdjustNP.s = IPS_OK;
+        IDSetNumber(&ImageAdjustNP, NULL);
     }
 
-    ImageAdjustNP.s = IPS_OK;
-    IDSetNumber(&ImageAdjustNP, NULL);
-
-    ManualExposureSP->sp[0].s = ISS_ON;
-    ManualExposureSP->sp[1].s = ISS_OFF;
-    ManualExposureSP->s = IPS_IDLE;
-
-    if (ManualExposureSP->sp[0].aux != NULL)
-          ctrlindex= *(unsigned int *)(ManualExposureSP->sp[0].aux);
-    else
-         ctrlindex=0;
-
-    ctrl_id = (*((unsigned int*) ManualExposureSP->aux));
-    if (v4l_base->setOPTControl( ctrl_id , ctrlindex,  errmsg) < 0)
+    if (ManualExposureSP->sp[0].s == ISS_OFF)
     {
-           ManualExposureSP->sp[0].s = ISS_OFF;
-           ManualExposureSP->sp[1].s = ISS_ON;
-           ManualExposureSP->s = IPS_ALERT;
-           IDSetSwitch(ManualExposureSP, NULL);
-           DEBUGF(INDI::Logger::DBG_ERROR, "Unable to adjust setting. %s", errmsg);
-           return false;
+        ManualExposureSP->sp[0].s = ISS_ON;
+        ManualExposureSP->sp[1].s = ISS_OFF;
+        ManualExposureSP->s = IPS_IDLE;
+
+        if (ManualExposureSP->sp[0].aux != NULL)
+              ctrlindex= *(unsigned int *)(ManualExposureSP->sp[0].aux);
+        else
+             ctrlindex=0;
+
+        ctrl_id = (*((unsigned int*) ManualExposureSP->aux));
+        if (v4l_base->setOPTControl( ctrl_id , ctrlindex,  errmsg) < 0)
+        {
+               ManualExposureSP->sp[0].s = ISS_OFF;
+               ManualExposureSP->sp[1].s = ISS_ON;
+               ManualExposureSP->s = IPS_ALERT;
+               IDSetSwitch(ManualExposureSP, NULL);
+               DEBUGF(INDI::Logger::DBG_ERROR, "Unable to adjust setting. %s", errmsg);
+               return false;
+        }
+
+        ManualExposureSP->s = IPS_OK;
+        IDSetSwitch(ManualExposureSP, NULL);
     }
 
-    ManualExposureSP->s = IPS_OK;
-    IDSetSwitch(ManualExposureSP, NULL);
     return true;
 
 }
