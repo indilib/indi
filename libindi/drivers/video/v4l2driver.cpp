@@ -43,8 +43,9 @@ V4L2_Driver::V4L2_Driver()
   SetCapability(&cap);
 
   Options=NULL;
-  v4loptions=0;
-
+  v4loptions=0; 
+  AbsExposureN=NULL;
+  ManualExposureSP=NULL;
   stackMode=0;
 
   lx=new Lx();
@@ -596,6 +597,9 @@ bool V4L2_Driver::ISNewNumber (const char *dev, const char *name, double values[
                                  * 1000000.0) ;
 	frameCount=0;
     gettimeofday(&capture_start, NULL);
+
+    if (V4LFrame->expose > 1)
+        setManualExposure(V4LFrame->expose);
 	if (lx->isenabled())
 	  startlongexposure(ExposeTimeN[0].value);
 	else
@@ -606,6 +610,60 @@ bool V4L2_Driver::ISNewNumber (const char *dev, const char *name, double values[
       
     return INDI::CCD::ISNewNumber(dev, name, values, names, n);
   	
+}
+
+bool V4L2_Driver::setManualExposure(double duration)
+{
+    if (AbsExposureN == NULL || ManualExposureSP == NULL)
+        return false;
+
+    char errmsg[MAXRBUF];
+    unsigned int ctrl_id, ctrlindex;
+
+    /* N.B. Check how this differs from one camera to another. This is just a proof of concept for now */
+    double curVal = AbsExposureN->value;
+    AbsExposureN->value = duration * 10000;
+
+    for (int i=0; i < ImageAdjustNP.nnp; i++)
+    {
+        ctrl_id = *((unsigned int *) ImageAdjustNP.np[i].aux0);
+
+        if (v4l_base->setINTControl( ctrl_id , ImageAdjustNP.np[i].value, errmsg) < 0)
+        {
+           ImageAdjustNP.s = IPS_ALERT;
+           AbsExposureN->value = curVal;
+           IDSetNumber(&ImageAdjustNP, "Unable to adjust setting. %s", errmsg);
+           return false;
+        }
+    }
+
+    ImageAdjustNP.s = IPS_OK;
+    IDSetNumber(&ImageAdjustNP, NULL);
+
+    ManualExposureSP->sp[0].s = ISS_ON;
+    ManualExposureSP->sp[1].s = ISS_OFF;
+    ManualExposureSP->s = IPS_IDLE;
+
+    if (ManualExposureSP->sp[0].aux != NULL)
+          ctrlindex= *(unsigned int *)(ManualExposureSP->sp[0].aux);
+    else
+         ctrlindex=0;
+
+    ctrl_id = (*((unsigned int*) ManualExposureSP->aux));
+    if (v4l_base->setOPTControl( ctrl_id , ctrlindex,  errmsg) < 0)
+    {
+           ManualExposureSP->sp[0].s = ISS_OFF;
+           ManualExposureSP->sp[1].s = ISS_ON;
+           ManualExposureSP->s = IPS_ALERT;
+           IDSetSwitch(ManualExposureSP, NULL);
+           DEBUGF(INDI::Logger::DBG_ERROR, "Unable to adjust setting. %s", errmsg);
+           return false;
+    }
+
+    ManualExposureSP->s = IPS_OK;
+    IDSetSwitch(ManualExposureSP, NULL);
+    return true;
+
 }
 
 void V4L2_Driver::startlongexposure(double timeinsec)
@@ -943,10 +1001,26 @@ void V4L2_Driver::updateV4L2Controls()
     useExtCtrl=true;
   else
     v4l_base->queryControls(&ImageAdjustNP, &v4ladjustments, &Options, &v4loptions, device_name, IMAGE_BOOLEAN) ;
-  if (v4ladjustments > 0) defineNumber(&ImageAdjustNP);
-  for (i=0; i < v4loptions; i++) {
+  if (v4ladjustments > 0)
+  {
+      defineNumber(&ImageAdjustNP);
+
+      for (int i=0; i < ImageAdjustNP.nnp; i++)
+      {
+          if (!strcmp(ImageAdjustNP.np[i].label,  "Exposure (Absolute)"))
+          {
+              AbsExposureN = ImageAdjustNP.np+i;
+              break;
+          }
+      }
+  }
+  for (i=0; i < v4loptions; i++)
+  {
       //IDLog("Def switch %d %s\n", i, Options[i].label);
       defineSwitch(&Options[i]);
+
+      if (!strcmp(Options[i].label, "Exposure, Auto"))
+          ManualExposureSP = Options+i;
   }
       
   //v4l_base->enumerate_ctrl();
