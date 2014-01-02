@@ -599,7 +599,11 @@ bool V4L2_Driver::ISNewNumber (const char *dev, const char *name, double values[
     gettimeofday(&capture_start, NULL);
 
     if (V4LFrame->expose > 1)
-        setManualExposure(V4LFrame->expose);
+    {
+     bool rc = setManualExposure(V4LFrame->expose);
+     if (rc == false)
+         DEBUG(INDI::Logger::DBG_WARNING, "Unable to set manual exposure, falling back to auto exposure.");
+    }
 	if (lx->isenabled())
 	  startlongexposure(ExposeTimeN[0].value);
 	else
