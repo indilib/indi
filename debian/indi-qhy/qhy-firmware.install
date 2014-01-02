@@ -19,5 +19,5 @@ lib/firmware/QHY6PRO.HEX
 lib/firmware/QHY8.HEX
 lib/firmware/QHY8M.HEX
 lib/firmware/QHY5LOADER.HEX
-etc/udev/rules.d/85-qhyccd.rules
+etc/udev/rules.d/99-qhyccd.rules
 
