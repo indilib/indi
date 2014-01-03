@@ -26,7 +26,6 @@ V4L2_Driver::V4L2_Driver()
   allocateBuffers();
 
   divider = 128.;
-  strncpy(device_name, "V4L2 CCD", MAXINDIDEVICE);
   
   // No guide head, no ST4 port, no cooling, no shutter
 
@@ -114,12 +113,31 @@ void V4L2_Driver::initCamBase()
 void V4L2_Driver::ISGetProperties (const char *dev)
 { 
 
-  if (dev && strcmp (device_name, dev))
+  if (dev && strcmp (getDeviceName(), dev))
     return;
 
   INDI::CCD::ISGetProperties(dev);
 
   defineText(&PortTP);
+
+  if (isConnected())
+  {
+    defineText(&camNameTP);
+    defineSwitch(&StreamSP);
+    defineSwitch(&StackModeSP);
+    defineSwitch(&ImageTypeSP);
+    defineSwitch(&InputsSP);
+    defineSwitch(&CaptureFormatsSP);
+
+    if (CaptureSizesSP.sp != NULL)
+        defineSwitch(&CaptureSizesSP);
+    else if  (CaptureSizesNP.np != NULL)
+        defineNumber(&CaptureSizesNP);
+   if (FrameRatesSP.sp != NULL)
+       defineSwitch(&FrameRatesSP);
+    else if  (FrameRateNP.np != NULL)
+       defineNumber(&FrameRateNP);
+  }
   
 }
 
@@ -208,7 +226,7 @@ bool V4L2_Driver::ISNewSwitch (const char *dev, const char *name, ISState *state
      unsigned int iopt;
 
      /* ignore if not ours */
-     if (dev && strcmp (device_name, dev))
+     if (dev && strcmp (getDeviceName(), dev))
        return true;
 	    
      /* Input */
@@ -457,7 +475,7 @@ bool V4L2_Driver::ISNewText (const char *dev, const char *name, char *texts[], c
 	IText *tp;
 
        /* ignore if not ours */ 
-       if (dev && strcmp (device_name, dev))
+       if (dev && strcmp (getDeviceName(), dev))
          return true;
 
 	if (!strcmp(name, PortTP.name) )
@@ -480,7 +498,7 @@ bool V4L2_Driver::ISNewNumber (const char *dev, const char *name, double values[
   char errmsg[ERRMSGSIZ];
 
   /* ignore if not ours */
-  if (dev && strcmp (device_name, dev))
+  if (dev && strcmp (getDeviceName(), dev))
     return true;
 
        /* Capture Size (Step/Continuous) */
@@ -947,7 +965,7 @@ bool V4L2_Driver::Disconnect()
 
 const char *V4L2_Driver::getDefaultName()
 {
-  return device_name;
+  return (char *) "V4L2 CCD";
 }
 
 
@@ -1008,10 +1026,10 @@ void V4L2_Driver::updateV4L2Controls()
   //defineNumber(&ImageAdjustNP);
   v4l_base->enumerate_ext_ctrl();
   useExtCtrl=false;
-  if  (v4l_base->queryExtControls(&ImageAdjustNP, &v4ladjustments, &Options, &v4loptions, device_name, IMAGE_BOOLEAN)) 
+  if  (v4l_base->queryExtControls(&ImageAdjustNP, &v4ladjustments, &Options, &v4loptions, getDeviceName(), IMAGE_BOOLEAN))
     useExtCtrl=true;
   else
-    v4l_base->queryControls(&ImageAdjustNP, &v4ladjustments, &Options, &v4loptions, device_name, IMAGE_BOOLEAN) ;
+    v4l_base->queryControls(&ImageAdjustNP, &v4ladjustments, &Options, &v4loptions, getDeviceName(), IMAGE_BOOLEAN) ;
   if (v4ladjustments > 0)
   {
       defineNumber(&ImageAdjustNP);
