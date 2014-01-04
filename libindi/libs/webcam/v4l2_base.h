@@ -85,6 +85,7 @@ class V4L2_Base
   bool queryExtControls(INumberVectorProperty *nvp, unsigned int *nnumber,  ISwitchVectorProperty **options, unsigned int *noptions, const char *dev, const char *group);
   void queryControls(INumberVectorProperty *nvp, unsigned int *nnumber,  ISwitchVectorProperty **options, unsigned int *noptions, const char *dev, const char *group);
 
+  int  getControl(unsigned int ctrl_id, double *value,  char *errmsg);
   int  setINTControl(unsigned int ctrl_id, double new_value, char *errmsg);
   int  setOPTControl(unsigned int ctrl_id, unsigned int new_value, char *errmsg);
 

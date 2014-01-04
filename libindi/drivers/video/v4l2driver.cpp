@@ -552,85 +552,79 @@ bool V4L2_Driver::ISNewNumber (const char *dev, const char *name, double values[
      }
     }
   
-   if (!strcmp (ImageAdjustNP.name, name))
-   {      
-     ImageAdjustNP.s = IPS_IDLE;
-     
-     if (IUUpdateNumber(&ImageAdjustNP, values, names, n) < 0)
-       return false;
-     
-     unsigned int ctrl_id;
-     for (int i=0; i < ImageAdjustNP.nnp; i++)
-     {
-         ctrl_id = *((unsigned int *) ImageAdjustNP.np[i].aux0);
-
-	 DEBUGF(INDI::Logger::DBG_DEBUG, "  Setting %s (%s) to %d, ctrl_id = 0x%X \n", ImageAdjustNP.np[i].name, ImageAdjustNP.np[i].label, (int)ImageAdjustNP.np[i].value, ctrl_id);
-
-         if (v4l_base->setINTControl( ctrl_id , ImageAdjustNP.np[i].value, errmsg) < 0)
-         {
-            ImageAdjustNP.s = IPS_ALERT;
-            IDSetNumber(&ImageAdjustNP, "Unable to adjust setting. %s", errmsg);
-            return false;
-         }
-     }
-     
-     ImageAdjustNP.s = IPS_OK;
-     IDSetNumber(&ImageAdjustNP, NULL);
-     return true;
-   }
+  if (!strcmp (ImageAdjustNP.name, name))
+    {      
+      ImageAdjustNP.s = IPS_IDLE;
+      
+      if (IUUpdateNumber(&ImageAdjustNP, values, names, n) < 0)
+	return false;
+      
+      unsigned int ctrl_id;
+      for (int i=0; i < ImageAdjustNP.nnp; i++)
+	{
+	  ctrl_id = *((unsigned int *) ImageAdjustNP.np[i].aux0);
+	  
+	  DEBUGF(INDI::Logger::DBG_DEBUG, "  Setting %s (%s) to %d, ctrl_id = 0x%X \n", ImageAdjustNP.np[i].name, ImageAdjustNP.np[i].label, (int)ImageAdjustNP.np[i].value, ctrl_id);
+	  
+	  if (v4l_base->setINTControl( ctrl_id , ImageAdjustNP.np[i].value, errmsg) < 0)
+	    {
+	      /* Some controls may become read-only depending on selected options
+	      ImageAdjustNP.s = IPS_ALERT;
+	      IDSetNumber(&ImageAdjustNP, "Unable to adjust setting. %s", errmsg);
+	      return false;
+	      */
+	      DEBUGF(INDI::Logger::DBG_WARNING,"Unable to adjust %s (ctrl_id =  0x%X)",  ImageAdjustNP.np[i].label, ctrl_id);
+	      v4l_base->getControl(ctrl_id, &(ImageAdjustNP.np[i].value), errmsg);
+	    }
+	}
+      
+      ImageAdjustNP.s = IPS_OK;
+      IDSetNumber(&ImageAdjustNP, NULL);
+      return true;
+    }
    
-    /* Exposure */
-    if (!strcmp (ExposeTimeNP->name, name))
+   /* Exposure */
+  if (!strcmp (ExposeTimeNP->name, name))
     {
       int width  = v4l_base->getWidth();
       int height = v4l_base->getHeight();
-    
-        if (StreamS[0].s == ISS_ON)
-	  v4l_base->stop_capturing(errmsg);
-
-	StreamS[0].s  = ISS_OFF;
-	StreamS[1].s  = ISS_ON;
-	StreamSP.s    = IPS_IDLE;
-    IDSetSwitch(&StreamSP, NULL);
-        
-	V4LFrame->expose = values[0];
-
-        ExposeTimeNP->s   = IPS_BUSY;
-	if (IUUpdateNumber(ExposeTimeNP, values, names, n) < 0)
-	  return false;
-    //frameBytes  = (ImageTypeS[0].s == ISS_ON) ? width * height : width * height * 4;
-    //PrimaryCCD.setFrameBufferSize(frameBytes);
-	/*  if (ImageTypeS[0].s == ISS_ON) {
-	    V4LFrame->stackedFrame =(unsigned char *) realloc (V4LFrame->stackedFrame, sizeof(unsigned char) * frameBytes );
-	    V4LFrame->Y=V4LFrame->stackedFrame;
-	  } else {
-	    V4LFrame->stackedFrame = (unsigned char *) realloc (V4LFrame->stackedFrame, sizeof(unsigned char) * frameBytes);
-	    V4LFrame->colorBuffer=V4LFrame->stackedFrame;
-	  }
-  	}
-	*/
-	timerclear(&exposure_duration);
-	exposure_duration.tv_sec = (long) values[0] ;
-	exposure_duration.tv_usec = (long) ((values[0] - (double) exposure_duration.tv_sec)
-                                 * 1000000.0) ;
-	frameCount=0;
-    gettimeofday(&capture_start, NULL);
-
-    if (AbsExposureN && ManualExposureSP)
-    {
-     bool rc = setManualExposure(V4LFrame->expose);
-     if (rc == false)
-         DEBUG(INDI::Logger::DBG_WARNING, "Unable to set manual exposure, falling back to auto exposure.");
-    }
-	if (lx->isenabled())
-	  startlongexposure(ExposeTimeN[0].value);
-	else
-	  v4l_base->start_capturing(errmsg);
-	
-        return true;
-    } 
       
-    return INDI::CCD::ISNewNumber(dev, name, values, names, n);
+      if (StreamS[0].s == ISS_ON)
+	v4l_base->stop_capturing(errmsg);
+      
+      StreamS[0].s  = ISS_OFF;
+      StreamS[1].s  = ISS_ON;
+      StreamSP.s    = IPS_IDLE;
+      IDSetSwitch(&StreamSP, NULL);
+      
+      V4LFrame->expose = values[0];
+ 
+      if (AbsExposureN && ManualExposureSP && (AbsExposureN->max >= (V4LFrame->expose * 10000)))
+	{
+	  bool rc = setManualExposure(V4LFrame->expose);
+	  if (rc == false)
+	    DEBUG(INDI::Logger::DBG_WARNING, "Unable to set manual exposure, falling back to auto exposure.");
+	}
+      
+      timerclear(&exposure_duration);
+      exposure_duration.tv_sec = (long) values[0] ;
+      exposure_duration.tv_usec = (long) ((values[0] - (double) exposure_duration.tv_sec)
+					  * 1000000.0) ;
+      frameCount=0;
+      gettimeofday(&capture_start, NULL);
+      if (lx->isenabled())
+	startlongexposure(ExposeTimeN[0].value);
+      else
+	v4l_base->start_capturing(errmsg);
+      
+      ExposeTimeNP->s   = IPS_BUSY;
+      if (IUUpdateNumber(ExposeTimeNP, values, names, n) < 0)
+	return false;
+      
+      return true;
+    } 
+  
+  return INDI::CCD::ISNewNumber(dev, name, values, names, n);
   	
 }
 
@@ -642,29 +636,7 @@ bool V4L2_Driver::setManualExposure(double duration)
     char errmsg[MAXRBUF];
     unsigned int ctrl_id, ctrlindex;
 
-    /* N.B. Check how this differs from one camera to another. This is just a proof of concept for now */
-    if (duration * 10000 != AbsExposureN->value)
-    {
-        double curVal = AbsExposureN->value;
-        AbsExposureN->value = duration * 10000;
-
-        for (int i=0; i < ImageAdjustNP.nnp; i++)
-        {
-            ctrl_id = *((unsigned int *) ImageAdjustNP.np[i].aux0);
-
-            if (v4l_base->setINTControl( ctrl_id , ImageAdjustNP.np[i].value, errmsg) < 0)
-            {
-               ImageAdjustNP.s = IPS_ALERT;
-               AbsExposureN->value = curVal;
-               IDSetNumber(&ImageAdjustNP, "Unable to adjust setting. %s", errmsg);
-               return false;
-            }
-        }
-
-        ImageAdjustNP.s = IPS_OK;
-        IDSetNumber(&ImageAdjustNP, NULL);
-    }
-
+    // Manual mode should be set before changing Exposure (Auto)
     if (ManualExposureSP->sp[0].s == ISS_OFF)
     {
         ManualExposureSP->sp[0].s = ISS_ON;
@@ -690,6 +662,38 @@ bool V4L2_Driver::setManualExposure(double duration)
         ManualExposureSP->s = IPS_OK;
         IDSetSwitch(ManualExposureSP, NULL);
     }
+
+    /* N.B. Check how this differs from one camera to another. This is just a proof of concept for now */
+    if (duration * 10000 != AbsExposureN->value)
+    {
+        double curVal = AbsExposureN->value;
+        AbsExposureN->value = duration * 10000;
+	ctrl_id = *((unsigned int *)  AbsExposureN->aux0);
+	if (v4l_base->setINTControl( ctrl_id , AbsExposureN->value, errmsg) < 0)
+            {
+               ImageAdjustNP.s = IPS_ALERT;
+               AbsExposureN->value = curVal;
+               IDSetNumber(&ImageAdjustNP, "Unable to adjust AbsExposure. %s", errmsg);
+               return false;
+            }
+	
+	/*  for (int i=0; i < ImageAdjustNP.nnp; i++)
+        {
+            ctrl_id = *((unsigned int *) ImageAdjustNP.np[i].aux0);
+
+            if (v4l_base->setINTControl( ctrl_id , ImageAdjustNP.np[i].value, errmsg) < 0)
+            {
+               ImageAdjustNP.s = IPS_ALERT;
+               AbsExposureN->value = curVal;
+               IDSetNumber(&ImageAdjustNP, "Unable to adjust setting. %s", errmsg);
+               return false;
+            }
+        }
+	*/
+        ImageAdjustNP.s = IPS_OK;
+        IDSetNumber(&ImageAdjustNP, NULL);
+    }
+
 
     return true;
 
@@ -844,20 +848,19 @@ void V4L2_Driver::updateFrame()
     {
       if (!stackMode)
       {
-            v4l_base->stop_capturing(errmsg);
-            DEBUGF(INDI::Logger::DBG_SESSION, "Capture of LX frame took %ld.%06ld seconds.\n", current_exposure.tv_sec, current_exposure.tv_usec);
-            ExposureComplete(&PrimaryCCD);
-            PrimaryCCD.setFrameBufferSize(frameBytes);
+	v4l_base->stop_capturing(errmsg);
+	DEBUGF(INDI::Logger::DBG_SESSION, "Capture of LX frame took %ld.%06ld seconds.\n", current_exposure.tv_sec, current_exposure.tv_usec);
+	ExposureComplete(&PrimaryCCD);
+	PrimaryCCD.setFrameBufferSize(frameBytes);
       }
-    } else
-    {
+    } else {
       if (!stackMode || timercmp(&current_exposure, &exposure_duration, >))
-      {
-            v4l_base->stop_capturing(errmsg);
-            DEBUGF(INDI::Logger::DBG_SESSION, "Capture of ONE frame (%d stacked frames) took %ld.%06ld seconds.\n", frameCount, current_exposure.tv_sec, current_exposure.tv_usec);
-           ExposureComplete(&PrimaryCCD);
-           PrimaryCCD.setFrameBufferSize(frameBytes);
-      }
+	{
+	  v4l_base->stop_capturing(errmsg);
+	  DEBUGF(INDI::Logger::DBG_SESSION, "Capture of ONE frame (%d stacked frames) took %ld.%06ld seconds.\n", frameCount, current_exposure.tv_sec, current_exposure.tv_usec);
+	  ExposureComplete(&PrimaryCCD);
+	  PrimaryCCD.setFrameBufferSize(frameBytes);
+	}
     }
   }
 

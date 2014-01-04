@@ -216,7 +216,7 @@ int V4L2_Base::read_frame(char *errmsg)
 		}
 
                 assert (buf.index < n_buffers);
-
+		//IDLog("v4l2_base: dequeuing buffer %d, bytesused = %d, flags = 0x%X, field = %d, sequence = %d\n", buf.index, buf.bytesused, buf.flags, buf.field, buf.sequence);
 		//IDLog("v4l2_base: dequeuing buffer %d for fd=%d, cropset %c\n", buf.index, fd, (cropset?'Y':'N'));
                 switch (fmt.fmt.pix.pixelformat)
                 {
@@ -307,7 +307,8 @@ int V4L2_Base::read_frame(char *errmsg)
 
                  case V4L2_PIX_FMT_JPEG:
                  case V4L2_PIX_FMT_MJPEG:
-                    mjpegtoyuv420p(yuvBuffer, ((unsigned char *) buffers[buf.index].start), fmt.fmt.pix.width, fmt.fmt.pix.height, buffers[buf.index].length);
+		   //mjpegtoyuv420p(yuvBuffer, ((unsigned char *) buffers[buf.index].start), fmt.fmt.pix.width, fmt.fmt.pix.height, buffers[buf.index].length);
+		   mjpegtoyuv420p(yuvBuffer, ((unsigned char *) buffers[buf.index].start), fmt.fmt.pix.width, fmt.fmt.pix.height, buf.bytesused);
                     break;
                 }
                   
@@ -2039,6 +2040,19 @@ int  V4L2_Base::queryINTControls(INumberVectorProperty *nvp)
 
   return nnum;
 
+}
+
+int  V4L2_Base::getControl(unsigned int ctrl_id, double *value,  char *errmsg)
+{
+   struct v4l2_control control;
+
+   CLEAR(control);
+   control.id = ctrl_id;
+
+   if (-1 == xioctl(fd, VIDIOC_G_CTRL, &control))
+     return errno_exit ("VIDIOC_G_CTRL", errmsg);
+   *value = (double)control.value;
+   return 0;
 }
 
 int  V4L2_Base::setINTControl(unsigned int ctrl_id, double new_value,  char *errmsg)
