@@ -879,8 +879,8 @@ int CCDSim::AddToPixel(CCDChip *targetChip, int x,int y,int val)
     int nwidth = targetChip->getSubW() / targetChip->getBinX();
     int nheight = targetChip->getSubH() / targetChip->getBinY();
 
-    x -= targetChip->getSubX();
-    y -= targetChip->getSubY();
+    x -= targetChip->getSubX() / targetChip->getBinX();
+    y -= targetChip->getSubY() / targetChip->getBinY();
 
     int drew=0;
     if(x >= 0) {
