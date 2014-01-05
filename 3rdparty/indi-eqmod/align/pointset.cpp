@@ -208,6 +208,11 @@ int PointSet::getNbPoints()
   return PointSetMap->size();
 }
 
+int PointSet::getNbTriangles()
+{
+  return Triangulation->getFaces().size();
+}
+
 void PointSet::Init()
 {
   //  PointSetMap=NULL;

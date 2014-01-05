@@ -1185,7 +1185,7 @@ bool EQMod::Sync(double ra,double dec)
     targetra = ra;
   }
   tmpsyncdata.targetRAEncoder=EncoderFromRA(targetra, 0.0, lst, zeroRAEncoder, totalRAEncoder, Hemisphere);
-  tmpsyncdata.targetDECEncoder==EncoderFromDec(dec, targetpier, zeroDEEncoder, totalDEEncoder, Hemisphere);
+  tmpsyncdata.targetDECEncoder=EncoderFromDec(dec, targetpier, zeroDEEncoder, totalDEEncoder, Hemisphere);
 
   try {
     EncodersToRADec( tmpsyncdata.telescopeRAEncoder, tmpsyncdata.telescopeDECEncoder, lst, &tmpsyncdata.telescopeRA, &tmpsyncdata.telescopeDEC, NULL);
@@ -1386,6 +1386,7 @@ bool EQMod::ISNewNumber (const char *dev, const char *name, double values[], cha
 	}
       
       // Observer
+      /*
       if(strcmp(name,"GEOGRAPHIC_COORD")==0)
 	{
 	  unsigned int i;
@@ -1402,6 +1403,7 @@ bool EQMod::ISNewNumber (const char *dev, const char *name, double values[], cha
       DEBUGF(INDI::Logger::DBG_SESSION,"Changed observer: long = %g lat = %g", lnobserver.lng, lnobserver.lat);
 	  return true;
 	}
+      */
      if(strcmp(name,"STANDARDSYNCPOINT")==0)
        {
 	 syncdata2=syncdata;
@@ -2332,3 +2334,12 @@ void EQMod::buttonHelper(const char * button_n, ISState state)
     eqmod->processButton(button_n, state);
 }
 
+bool EQMod::updateLocation(double latitude, double longitude, double elevation)
+{
+  lnobserver.lng =  longitude;
+  lnobserver.lat =  latitude;
+  if (latitude < 0.0) SetSouthernHemisphere(true); 
+  else SetSouthernHemisphere(false);
+  DEBUGF(INDI::Logger::DBG_SESSION,"updateLocation: long = %g lat = %g", lnobserver.lng, lnobserver.lat);
+  return true;
+}

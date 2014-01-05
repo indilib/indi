@@ -64,6 +64,7 @@ public:
   void AddPoint(AlignData aligndata, struct ln_lnlat_posn *pos);
   Point *getPoint(HtmID htmid);
   int getNbPoints();
+  int getNbTriangles();
   void Init();
   void Reset();
   char *LoadDataFile(const char *filename);

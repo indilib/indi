@@ -453,6 +453,7 @@ void Align::AlignSync(SyncData globalsync, SyncData thissync)
   IUUpdateNumber(AlignPointNP, values, (char **)names, 6);
   IDSetNumber(AlignPointNP, NULL);
   IUFindNumber(AlignCountNP, "ALIGNCOUNT_POINTS")->value = pointset->getNbPoints();
+  IUFindNumber(AlignCountNP, "ALIGNCOUNT_TRIANGLES")->value = pointset->getNbTriangles();
   IDSetNumber(AlignCountNP, NULL);
 }
 
@@ -563,13 +564,13 @@ bool Align::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 
       if(AlignSyncModeSP && strcmp(name, AlignSyncModeSP->name)==0)
 	{
-	  //ISwitch *sw;
+	  ISwitch *sw;
 	  AlignSyncModeSP->s=IPS_OK;
 	  IUUpdateSwitch(AlignSyncModeSP,states,names,n);
-	  for (int i=0; i < n; i++)
-	    IDLog("AlignSyncMode Switch %s %d\n", names[i], states[i]);
-	  //sw=IUFindOnSwitch(AlignModeSP);
-	  IDSetSwitch(AlignSyncModeSP, NULL);
+	  //for (int i=0; i < n; i++)
+	  //  IDLog("AlignSyncMode Switch %s %d\n", names[i], states[i]);
+	  sw=IUFindOnSwitch(AlignSyncModeSP);
+	  IDSetSwitch(AlignSyncModeSP, "Sync mode set to %s", sw->label);
 	  return true;
 	}
 
@@ -584,6 +585,7 @@ bool Align::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 	    pointset->setBlobData(AlignDataBP);
 	    IDSetBLOB(AlignDataBP, NULL);
 	    IUFindNumber(AlignCountNP, "ALIGNCOUNT_POINTS")->value = pointset->getNbPoints();
+	    IUFindNumber(AlignCountNP, "ALIGNCOUNT_TRIANGLES")->value = pointset->getNbTriangles();
 	    IDSetNumber(AlignCountNP, NULL);
 	  } else if (!strcmp(sw->name,"ALIGNLISTCLEAR")) {
 	    pointset->Reset();
@@ -591,6 +593,7 @@ bool Align::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 	    pointset->setBlobData(AlignDataBP);
 	    IDSetBLOB(AlignDataBP, NULL);
 	    IUFindNumber(AlignCountNP, "ALIGNCOUNT_POINTS")->value = pointset->getNbPoints();
+	    IUFindNumber(AlignCountNP, "ALIGNCOUNT_TRIANGLES")->value = pointset->getNbTriangles();
 	    IDSetNumber(AlignCountNP, NULL);
 	  } else if (!strcmp(sw->name,"ALIGNWRITEFILE")) {
 	    char *res;
@@ -612,6 +615,7 @@ bool Align::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 	    pointset->setBlobData(AlignDataBP);
 	    IDSetBLOB(AlignDataBP, NULL);
 	    IUFindNumber(AlignCountNP, "ALIGNCOUNT_POINTS")->value = pointset->getNbPoints();
+	    IUFindNumber(AlignCountNP, "ALIGNCOUNT_TRIANGLES")->value = pointset->getNbTriangles();
 	    IDSetNumber(AlignCountNP, NULL);
 	  }
 

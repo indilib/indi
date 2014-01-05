@@ -199,6 +199,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
         virtual bool canPark();
 
         bool updateTime(ln_date *lndate_utc, double utc_offset);
+	bool updateLocation(double latitude, double longitude, double elevation);
 
         double getLongitude();
         double getLatitude();
