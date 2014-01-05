@@ -56,7 +56,8 @@ class SXWHEEL: public INDI::FilterWheel {
     int QueryFilter();
     bool SelectFilter(int);
     void TimerHit();
-    bool GetFilterNames(const char *, const char *);
+    virtual bool SetFilterNames() { return true; }
+    bool GetFilterNames(const char *);
 
 };
 
