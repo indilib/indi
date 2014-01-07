@@ -899,6 +899,7 @@ void MoonLite::TimerHit()
             FocusRelPosNP.s = IPS_OK;
             IDSetNumber(&FocusAbsPosNP, NULL);
             IDSetNumber(&FocusRelPosNP, NULL);
+            lastPos = FocusAbsPosN[0].value;
             DEBUG(INDI::Logger::DBG_SESSION, "Focuser reached requested position.");
         }
     }
