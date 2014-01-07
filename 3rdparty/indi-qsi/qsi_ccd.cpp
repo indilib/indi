@@ -657,18 +657,18 @@ bool QSICCD::UpdateCCDFrame(int x, int y, int w, int h)
     char errmsg[ERRMSG_SIZE];
 
     /* Add the X and Y offsets */
-    long x_1 = x;
-    long y_1 = y;
+    long x_1 = x / PrimaryCCD.getBinX();
+    long y_1 = y / PrimaryCCD.getBinY();
 
     long x_2 = x_1 + (w / PrimaryCCD.getBinX());
     long y_2 = y_1 + (h / PrimaryCCD.getBinY());
 
-    if (x_2 > PrimaryCCD.getXRes())
+    if (x_2 > PrimaryCCD.getXRes() / PrimaryCCD.getBinX())
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Error: invalid width requested %ld", x_2);
         return false;
     }
-    else if (y_2 > PrimaryCCD.getYRes())
+    else if (y_2 > PrimaryCCD.getYRes() / PrimaryCCD.getBinY())
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Error: invalid height request %ld", y_2);
         return false;
