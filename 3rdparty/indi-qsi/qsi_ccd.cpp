@@ -663,12 +663,12 @@ bool QSICCD::UpdateCCDFrame(int x, int y, int w, int h)
     long x_2 = x_1 + (w / PrimaryCCD.getBinX());
     long y_2 = y_1 + (h / PrimaryCCD.getBinY());
 
-    if (x_2 > PrimaryCCD.getXRes() / PrimaryCCD.getBinX())
+    if (x_2 > PrimaryCCD.getXRes())
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Error: invalid width requested %ld", x_2);
         return false;
     }
-    else if (y_2 > PrimaryCCD.getYRes() / PrimaryCCD.getBinY())
+    else if (y_2 > PrimaryCCD.getYRes())
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Error: invalid height request %ld", y_2);
         return false;
@@ -695,8 +695,7 @@ bool QSICCD::UpdateCCDFrame(int x, int y, int w, int h)
     }
 
     // Set UNBINNED coords
-    PrimaryCCD.setFrame(x_1, y_1, w,  h);
-
+    PrimaryCCD.setFrame(x, y, w,  h);
     int nbuf;
     nbuf=(imageWidth*imageHeight * PrimaryCCD.getBPP()/8);                 //  this is pixel count
     nbuf+=512;                      //  leave a little extra at the end
