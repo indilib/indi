@@ -37,6 +37,7 @@ extern "C" {
 
 #include "gphoto_ccd.h"
 
+#define FOCUS_TAB           "Focus"
 #define MAX_DEVICES         5      /* Max device cameraCount */
 #define POLLMS              1000
 
@@ -167,6 +168,7 @@ bool GPhotoCCD::initProperties()
   // Init parent properties first
   INDI::CCD::initProperties();
 
+  initFocuserProperties(getDeviceName(), FOCUS_TAB);
 
   IUFillText(&mPortT[0], "PORT" , "Port", "");
   IUFillTextVector(&PortTP, mPortT, NARRAY(mPortT), getDeviceName(),	"SHUTTER_PORT" , "Shutter Release", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
@@ -174,6 +176,9 @@ bool GPhotoCCD::initProperties()
   //We don't know how many items will be in the switch yet
   IUFillSwitchVector(&mIsoSP, NULL, 0, getDeviceName(), "ISO", "ISO", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
   IUFillSwitchVector(&mFormatSP, NULL, 0, getDeviceName(), "CAPTURE_FORMAT", "Capture Format", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+  IUFillSwitch(&autoFocusS[0], "Set", "", ISS_OFF);
+  IUFillSwitchVector(&autoFocusSP, autoFocusS, 1, getDeviceName(), "Auto Focus", "", FOCUS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
   IUFillSwitch(&transferFormatS[0], "FITS", "", ISS_ON);
   IUFillSwitch(&transferFormatS[1], "Native", "", ISS_OFF);
@@ -190,6 +195,13 @@ bool GPhotoCCD::initProperties()
   cap.hasST4Port = false;
 
   SetCapability(&cap);
+
+  setFocuserFeatures(true, false, false, false);
+
+  FocusAbsPosN[0].min = 0;
+  FocusAbsPosN[0].max = 6;
+  FocusAbsPosN[0].step = 1;
+  FocusAbsPosN[0].value = 3;
 
   return true;
 }
@@ -208,6 +220,8 @@ void GPhotoCCD::ISGetProperties(const char *dev)
         defineSwitch(&mFormatSP);
 
       defineSwitch(&transferFormatSP);
+      defineSwitch(&autoFocusSP);
+      defineNumber(&FocusAbsPosNP);
 
       ShowExtendedOptions();
   }
@@ -227,7 +241,9 @@ bool GPhotoCCD::updateProperties()
       if (mFormatSP.nsp > 0)
         defineSwitch(&mFormatSP);
 
-      defineSwitch(&transferFormatSP);
+      defineSwitch(&transferFormatSP);      
+      defineSwitch(&autoFocusSP);
+      defineNumber(&FocusAbsPosNP);
 
     ShowExtendedOptions();
 
@@ -243,6 +259,8 @@ bool GPhotoCCD::updateProperties()
     if (mFormatSP.nsp > 0)
        deleteProperty(mFormatSP.name);
 
+    deleteProperty(autoFocusSP.name);
+    deleteProperty(FocusAbsPosNP.name);
     deleteProperty(transferFormatSP.name);
 
     HideExtendedOptions();
@@ -336,6 +354,18 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
           return true;
       }
 
+      if (!strcmp(name, autoFocusSP.name))
+      {
+          IUResetSwitch(&autoFocusSP);
+          if (gphoto_auto_focus == GP_OK)
+              autoFocusSP.s = IPS_OK;
+          else
+              autoFocusSP.s = IPS_ALERT;
+
+          IDSetSwitch(&autoFocusSP, NULL);
+          return true;
+      }
+
       if(CamOptions.find(name) != CamOptions.end())
       {
           cam_opt *opt = CamOptions[name];
@@ -386,6 +416,9 @@ bool GPhotoCCD::ISNewNumber(const char *dev, const char *name, double values[], 
 
   if (strcmp(dev, getDeviceName()) == 0)
   {
+      if (strstr(name, "FOCUS_"))
+          return processFocuserNumber(dev, name, values, names, n);
+
       if(CamOptions.find(name) != CamOptions.end())
       {
           cam_opt *opt = CamOptions[name];
@@ -835,5 +868,21 @@ GPhotoCCD::HideExtendedOptions(void)
 		delete opt;
 		CamOptions.erase(CamOptions.begin());
 	}
+}
+
+int GPhotoCCD::MoveAbs(int targetTicks)
+{
+    if (targetTicks < FocusAbsPosN[0].min || targetTicks > FocusAbsPosN[0].max)
+    {
+        IDMessage(getDeviceName(), "Error, requested absolute position is out of range.");
+        return -1;
+    }
+
+    if ( gphoto_manual_focus(gphotodrv, targetTicks-3) != GP_OK)
+        return -1;
+
+    FocusAbsPosN[0].value = targetTicks;
+
+    return 0;
 }
 

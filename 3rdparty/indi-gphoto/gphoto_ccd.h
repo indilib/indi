@@ -24,6 +24,8 @@
 #define GPHOTO_CCD_H
 
 #include <indiccd.h>
+#include <indifocuserinterface.h>
+
 #include <iostream>
 #include <map>
 #include <string>
@@ -53,7 +55,7 @@ typedef struct
     } prop;
 } cam_opt;
 
-class GPhotoCCD: public INDI::CCD
+class GPhotoCCD: public INDI::CCD, public INDI::FocuserInterface
 {
 public:
     GPhotoCCD();
@@ -84,6 +86,7 @@ public:
 protected:
 
     void TimerHit();
+    int MoveAbs(int ticks);
 
 private:
     ISwitch *create_switch(const char *basestr, const char **options, int max_opts, int setidx);
@@ -123,6 +126,9 @@ private:
 
     ISwitch transferFormatS[2];
     ISwitchVectorProperty transferFormatSP;
+
+    ISwitch autoFocusS[1];
+    ISwitchVectorProperty autoFocusSP;
 
     friend void ::ISGetProperties(const char *dev);
     friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);
