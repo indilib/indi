@@ -114,6 +114,7 @@ set (indidriver_SRCS
         ${CMAKE_SOURCE_DIR}/libs/indibase/indiccd.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/inditelescope.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/indifilterwheel.cpp
+        ${CMAKE_SOURCE_DIR}/libs/indibase/indifocuserinterface.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/indifocuser.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/indiusbdevice.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/indiguiderinterface.cpp
@@ -715,8 +716,8 @@ install( FILES drivers.xml ${CMAKE_SOURCE_DIR}/drivers/focuser/indi_tcfs_sk.xml 
 install( FILES indiapi.h indidevapi.h base64.h eventloop.h indidriver.h ${CMAKE_SOURCE_DIR}/libs/lilxml.h ${CMAKE_SOURCE_DIR}/libs/indibase/indibase.h
 ${CMAKE_SOURCE_DIR}/libs/indibase/basedevice.h  ${CMAKE_SOURCE_DIR}/libs/indibase/defaultdevice.h
 ${CMAKE_SOURCE_DIR}/libs/indibase/indiccd.h  ${CMAKE_SOURCE_DIR}/libs/indibase/indifilterwheel.h
-${CMAKE_SOURCE_DIR}/libs/indibase/indifocuser.h  ${CMAKE_SOURCE_DIR}/libs/indibase/inditelescope.h
-${CMAKE_SOURCE_DIR}/libs/indibase/baseclient.h ${CMAKE_SOURCE_DIR}/libs/indibase/indiguiderinterface.h
+${CMAKE_SOURCE_DIR}/libs/indibase/indifocuserinterface.h  ${CMAKE_SOURCE_DIR}/libs/indibase/indifocuser.h
+${CMAKE_SOURCE_DIR}/libs/indibase/inditelescope.h ${CMAKE_SOURCE_DIR}/libs/indibase/baseclient.h ${CMAKE_SOURCE_DIR}/libs/indibase/indiguiderinterface.h
 ${CMAKE_SOURCE_DIR}/libs/indibase/indifilterinterface.h ${CMAKE_SOURCE_DIR}/libs/indibase/indiproperty.h
 ${CMAKE_SOURCE_DIR}/libs/indicom.h ${CMAKE_SOURCE_DIR}/libs/indibase/indiusbdevice.h
 ${CMAKE_SOURCE_DIR}/libs/indibase/indilogger.h ${CMAKE_SOURCE_DIR}/libs/indibase/indicontroller.h

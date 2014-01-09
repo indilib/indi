@@ -20,6 +20,7 @@
 #define INDIFOCUSSER_H
 
 #include "defaultdevice.h"
+#include "indifocuserinterface.h"
 
 /**
  * \class INDI::Focuser
@@ -32,13 +33,11 @@
 \author Jasem Mutlaq
 \author Gerry Rozema
 */
-class INDI::Focuser : public INDI::DefaultDevice
+class INDI::Focuser : public INDI::DefaultDevice, public INDI::FocuserInterface
 {
     public:
         Focuser();
         virtual ~Focuser();
-
-        enum FocusDirection { FOCUS_INWARD, FOCUS_OUTWARD };
 
         virtual bool initProperties();
         virtual void ISGetProperties (const char *dev);
@@ -51,77 +50,19 @@ class INDI::Focuser : public INDI::DefaultDevice
     protected:
 
         /**
-         * @brief SetSpeed Set Focuser speed
-         * @param speed focuser speed
-         * @return true if successful, false otherwise
-         */
-        virtual bool SetSpeed(int speed);
-
-        /** \brief Move the focuser in a particular direction with a specific speed for a finite duration.
-            \param dir Direction of focuser, either FOCUS_INWARD or FOCUS_OUTWARD.
-            \param speed Speed of focuser if supported by the focuser.
-            \param duration The timeout in milliseconds before the focus motion halts.
-            \return True if succssfull, false otherwise.
-        */
-        virtual bool Move(FocusDirection dir, int speed, int duration);
-
-        /** \brief Move the focuser to an absolute position.
-            \param ticks The new position of the focuser.
-            \return Return 0 if motion is completed and focuser reached requested position. Return 1 if focuser started motion to requested position and is in progress.
-                    Return -1 if there is an error.
-        */
-        virtual int MoveAbs(int ticks);
-
-        /** \brief Move the focuser to an relative position.
-            \param dir Direction of focuser, either FOCUS_INWARD or FOCUS_OUTWARD.
-            \param ticks The relative ticks to move.
-            \return Return 0 if motion is completed and focuser reached requested position. Return 1 if focuser started motion to requested position and is in progress.
-                    Return -1 if there is an error.
-        */
-        virtual int MoveRel(FocusDirection dir, unsigned int ticks);
-
-        /**
-         * @brief Abort all focus motion
-         * @return True if abort is successful, false otherwise.
-         */
-        virtual bool Abort();
-
-        /**
          * @brief saveConfigItems Saves the Device Port and Focuser Presets in the configuration file
          * @param fp pointer to configuration file
          * @return true if successful, false otherwise.
          */
         virtual bool saveConfigItems(FILE *fp);
 
-        /**
-         * @brief setFocuserFeatures Sets Focuser features
-         * @param CanAbsMove can the focuser move by absolute position?
-         * @param CanRelMove can the focuser move by relative position?
-         * @param CanAbort is it possible to abort focuser motion?
-         * @param VariableSpeed Can you control the focuser motor speed?
-         */
-        void setFocuserFeatures(bool CanAbsMove, bool CanRelMove, bool CanAbort, bool VariableSpeed);
-
-        INumberVectorProperty FocusSpeedNP;
-        INumber FocusSpeedN[1];
-        ISwitchVectorProperty FocusMotionSP; //  A Switch in the client interface to park the scope
-        ISwitch FocusMotionS[2];
-        INumberVectorProperty FocusTimerNP;
-        INumber FocusTimerN[1];
-        INumberVectorProperty FocusAbsPosNP;
-        INumber FocusAbsPosN[1];
-        INumberVectorProperty FocusRelPosNP;
-        INumber FocusRelPosN[1];
-        ISwitchVectorProperty AbortSP;
-        ISwitch AbortS[1];
         ITextVectorProperty PortTP;
         IText PortT[1];
+
         INumber PresetN[3];
         INumberVectorProperty PresetNP;
         ISwitch PresetGotoS[3];
         ISwitchVectorProperty PresetGotoSP;
-
-        bool canAbort, canAbsMove, canRelMove, variableSpeed;
 
 };
 

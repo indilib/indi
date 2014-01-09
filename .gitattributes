@@ -976,6 +976,8 @@ libindi/libs/indibase/indifilterwheel.cpp -text
 libindi/libs/indibase/indifilterwheel.h -text
 libindi/libs/indibase/indifocuser.cpp -text
 libindi/libs/indibase/indifocuser.h -text
+libindi/libs/indibase/indifocuserinterface.cpp -text
+libindi/libs/indibase/indifocuserinterface.h -text
 libindi/libs/indibase/indiguiderinterface.cpp -text
 libindi/libs/indibase/indiguiderinterface.h -text
 libindi/libs/indibase/indilogger.cpp -text

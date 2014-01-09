@@ -40,6 +40,7 @@ namespace INDI
     class DefaultDevice;
     class FilterInterface;
     class GuiderInterface;
+    class FocuserInterface;
     class CCD;
     class Telescope;
     class FilterWheel;

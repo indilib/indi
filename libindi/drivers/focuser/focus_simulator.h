@@ -64,7 +64,7 @@ class FocusSim : public INDI::Focuser
 
         virtual bool Move(FocusDirection dir, int speed, int duration);
         virtual int MoveAbs(int ticks);
-        virtual bool Abort();
+
 
 };
 
