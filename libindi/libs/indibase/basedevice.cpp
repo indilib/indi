@@ -739,7 +739,7 @@ bool INDI::BaseDevice::isConnected()
     if (!sp)
         return false;
 
-    if (sp->s == ISS_ON)
+    if (sp->s == ISS_ON && svp->s == IPS_OK)
         return true;
     else
         return false;
