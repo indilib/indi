@@ -800,6 +800,8 @@ clientMsgCB (int fd, void *arg)
 int
 dispatch (XMLEle *root, char msg[])
 {
+
+
         char *rtag = tagXMLEle(root);
         XMLEle *ep;
         int n,i=0;
@@ -819,6 +821,16 @@ dispatch (XMLEle *root, char msg[])
             if (crackDN (root, &dev, &name, msg) < 0)
                 return (-1);
 
+            /* ensure property is not RO */
+            for (i=0; i < nroCheck; i++)
+            {
+              if (!strcmp(roCheck[i].propName, name))
+              {
+               if (roCheck[i].perm == IP_RO)
+                 return -1;
+              }
+            }
+
             /* seed for reallocs */
             if (!doubles) {
                 doubles = (double *) malloc (1);
@@ -826,6 +838,7 @@ dispatch (XMLEle *root, char msg[])
             }
 
             /* pull out each name/value pair */
+            setlocale(LC_NUMERIC,"C");
             for (n = 0, ep = nextXMLEle(root,1); ep; ep = nextXMLEle(root,0)) {
                 if (strcmp (tagXMLEle(ep), "oneNumber") == 0) {
                     XMLAtt *na = findXMLAtt (ep, "name");
@@ -845,16 +858,7 @@ dispatch (XMLEle *root, char msg[])
                     }
                 }
             }
-
-            /* insure property is not RO */
-            for (i=0; i < nroCheck; i++)
-            {
-              if (!strcmp(roCheck[i].propName, name))
-              {
-               if (roCheck[i].perm == IP_RO)
-                 return -1;
-              }
-            }
+            setlocale(LC_NUMERIC,"");
 
             /* invoke driver if something to do, but not an error if not */
             if (n > 0)
@@ -874,6 +878,16 @@ dispatch (XMLEle *root, char msg[])
             /* pull out device and name */
             if (crackDN (root, &dev, &name, msg) < 0)
                 return (-1);
+
+            /* ensure property is not RO */
+            for (i=0; i < nroCheck; i++)
+            {
+              if (!strcmp(roCheck[i].propName, name))
+              {
+               if (roCheck[i].perm == IP_RO)
+                 return -1;
+              }
+            }
 
             /* seed for reallocs */
             if (!states) {
@@ -907,16 +921,6 @@ dispatch (XMLEle *root, char msg[])
                 }
             }
 
-            /* insure property is not RO */
-            for (i=0; i < nroCheck; i++)
-            {
-              if (!strcmp(roCheck[i].propName, name))
-              {
-               if (roCheck[i].perm == IP_RO)
-                 return -1;
-              }
-            }
-
             /* invoke driver if something to do, but not an error if not */
             if (n > 0)
                 ISNewSwitch (dev, name, states, names, n);
@@ -934,6 +938,16 @@ dispatch (XMLEle *root, char msg[])
             /* pull out device and name */
             if (crackDN (root, &dev, &name, msg) < 0)
                 return (-1);
+
+            /* ensure property is not RO */
+            for (i=0; i < nroCheck; i++)
+            {
+              if (!strcmp(roCheck[i].propName, name))
+              {
+               if (roCheck[i].perm == IP_RO)
+                 return -1;
+              }
+            }
 
             /* seed for reallocs */
             if (!texts) {
@@ -956,16 +970,6 @@ dispatch (XMLEle *root, char msg[])
                         n++;
                     }
                 }
-            }
-
-            /* insure property is not RO */
-            for (i=0; i < nroCheck; i++)
-            {
-              if (!strcmp(roCheck[i].propName, name))
-              {
-               if (roCheck[i].perm == IP_RO)
-                 return -1;
-              }
             }
 
             /* invoke driver if something to do, but not an error if not */
