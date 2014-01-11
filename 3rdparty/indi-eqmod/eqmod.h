@@ -95,6 +95,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 	ISwitchVectorProperty *HemisphereSP;
 	ISwitchVectorProperty *PierSideSP;
 	ISwitchVectorProperty *TrackModeSP;
+	ISwitchVectorProperty *TrackDefaultSP;
        	INumberVectorProperty *TrackRatesNP;
 	//ISwitchVectorProperty *AbortMotionSP;
 	INumberVectorProperty *HorizontalCoordNP;
@@ -145,6 +146,8 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 	PierSide SideOfPier(double ha);
 	double GetRATrackRate();
 	double GetDETrackRate();
+	double GetDefaultRATrackRate();
+	double GetDefaultDETrackRate();
 	static void timedguideNSCallback(void *userpointer);
 	static void timedguideWECallback(void *userpointer);
 	double GetRASlew();

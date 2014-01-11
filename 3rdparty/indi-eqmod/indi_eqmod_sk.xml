@@ -117,6 +117,20 @@ Off
 </defSwitchVector>
 <defSwitchVector device="EQMod Mount" name="TRACKMODE" label="Track Mode" group="Main Control" state="Idle" perm="rw" rule="OneOfMany">
 <defSwitch name="SIDEREAL" label="Sidereal">
+Off
+</defSwitch>
+<defSwitch name="LUNAR" label="Lunar">
+Off
+</defSwitch>
+<defSwitch name="SOLAR" label="Solar">
+Off
+</defSwitch>
+<defSwitch name="CUSTOM" label="Custom">
+Off
+</defSwitch>
+</defSwitchVector>
+<defSwitchVector device="EQMod Mount" name="TRACKDEFAULT" label="Track Default" group="Advanced" state="Idle" perm="rw" rule="OneOfMany">
+<defSwitch name="SIDEREAL" label="Sidereal">
 On
 </defSwitch>
 <defSwitch name="LUNAR" label="Lunar">

@@ -351,6 +351,7 @@ bool EQMod::loadProperties()
     HemisphereSP=getSwitch("HEMISPHERE");
     PierSideSP=getSwitch("PIERSIDE");
     TrackModeSP=getSwitch("TRACKMODE");
+    TrackDefaultSP=getSwitch("TRACKDEFAULT");
     TrackRatesNP=getNumber("TRACKRATES");
     ReverseDECSP=getSwitch("REVERSEDEC");
 
@@ -411,6 +412,7 @@ bool EQMod::updateProperties()
 	defineLight(DEStatusLP);
 	defineSwitch(HemisphereSP);
 	defineSwitch(TrackModeSP);
+
 	defineNumber(TrackRatesNP);
 	defineNumber(HorizontalCoordNP);
 	defineSwitch(PierSideSP);
@@ -421,6 +423,8 @@ bool EQMod::updateProperties()
 	defineSwitch(SyncManageSP);
 	defineNumber(ParkPositionNP);
 	defineSwitch(ParkOptionSP);
+
+	defineSwitch(TrackDefaultSP);
 
 	try {
 	  mount->InquireBoardVersion(MountInformationTP);
@@ -462,7 +466,7 @@ bool EQMod::updateProperties()
 	  IUResetSwitch(&ParkSP);
 	  if (Parked) {
 	    ParkSP.s=IPS_OK;
-	    IDSetSwitch(&ParkSP, NULL);
+	    IDSetSwitch(&ParkSP, "Mount is parked.");
 	    TrackState = SCOPE_PARKED;
 	  } else 
 	    TrackState=SCOPE_IDLE;
@@ -504,6 +508,7 @@ bool EQMod::updateProperties()
 	  deleteProperty(SyncManageSP->name);
 	  deleteProperty(ParkPositionNP->name);
 	  deleteProperty(ParkOptionSP->name);
+	  deleteProperty(TrackDefaultSP->name);
 	  MountInformationTP=NULL;
 	} 
       }
@@ -723,12 +728,27 @@ bool EQMod::ReadScopeStatus() {
 		   gotoparams.iterative_count, 3600 * fabs(gotoparams.ratarget - currentRA),  3600 * fabs(gotoparams.detarget - currentDEC));
 	  }
 	  if ((RememberTrackState == SCOPE_TRACKING) || ((sw != NULL) && (sw->s == ISS_ON))) {
+	    char *name;
 	    TrackState = SCOPE_TRACKING;
+
+	    if (RememberTrackState == SCOPE_TRACKING) {
+	      sw = IUFindOnSwitch(TrackModeSP);
+	      name=sw->name;
+	      mount->StartRATracking(GetRATrackRate());
+	      mount->StartDETracking(GetDETrackRate());
+	    } else {
+	      ISState   	state;
+	      sw = IUFindOnSwitch(TrackDefaultSP);
+	      name=sw->name;
+	      state=ISS_ON;
+	      mount->StartRATracking(GetDefaultRATrackRate());
+	      mount->StartDETracking(GetDefaultDETrackRate());
+	      IUResetSwitch(TrackModeSP);
+	      IUUpdateSwitch(TrackModeSP,&state,&name,1);
+	    }
 	    TrackModeSP->s=IPS_BUSY;
 	    IDSetSwitch(TrackModeSP,NULL);
-	    mount->StartRATracking(GetRATrackRate());
-	    mount->StartDETracking(GetDETrackRate());
-        DEBUG(INDI::Logger::DBG_SESSION, "Telescope slew is complete. Tracking...");
+	    DEBUGF(INDI::Logger::DBG_SESSION, "Telescope slew is complete. Tracking %s...", name);
 	  } else {
 	    TrackState = SCOPE_IDLE;
         DEBUG(INDI::Logger::DBG_SESSION, "Telescope slew is complete. Stopping...");
@@ -1006,6 +1026,44 @@ double EQMod::GetDETrackRate()
   double rate = 0.0;
   ISwitch *sw;
   sw=IUFindOnSwitch(TrackModeSP);
+  if (!sw) return 0.0;
+  if (!strcmp(sw->name,"SIDEREAL")) {
+    rate = 0.0;
+  } else if (!strcmp(sw->name,"LUNAR")) {
+    rate = 0.0;
+  } else if (!strcmp(sw->name,"SOLAR")) {
+    rate = 0.0;
+  } else if (!strcmp(sw->name,"CUSTOM")) {
+    rate = IUFindNumber(TrackRatesNP, "DETRACKRATE")->value;
+  } else return 0.0;
+  if (DEInverted) rate=-rate;
+  return rate;
+}
+
+double EQMod::GetDefaultRATrackRate() 
+{
+  double rate = 0.0;
+  ISwitch *sw;
+  sw=IUFindOnSwitch(TrackDefaultSP);
+  if (!sw) return 0.0;
+  if (!strcmp(sw->name,"SIDEREAL")) {
+    rate = TRACKRATE_SIDEREAL;
+  } else if (!strcmp(sw->name,"LUNAR")) {
+    rate = TRACKRATE_LUNAR;
+  } else if (!strcmp(sw->name,"SOLAR")) {
+    rate = TRACKRATE_SOLAR;
+  } else if (!strcmp(sw->name,"CUSTOM")) {
+    rate = IUFindNumber(TrackRatesNP, "RATRACKRATE")->value;
+  } else return 0.0;
+  if (RAInverted) rate=-rate;
+  return rate;
+}
+
+double EQMod::GetDefaultDETrackRate() 
+{
+  double rate = 0.0;
+  ISwitch *sw;
+  sw=IUFindOnSwitch(TrackDefaultSP);
   if (!sw) return 0.0;
   if (!strcmp(sw->name,"SIDEREAL")) {
     rate = 0.0;
@@ -1535,6 +1593,68 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 	}
 
       if(strcmp(name,"TRACKMODE")==0)
+ 	{ 
+	  ISwitch *swbefore, *swafter;
+	  swbefore=IUFindOnSwitch(TrackModeSP);
+	  IUUpdateSwitch(TrackModeSP,states,names,n);
+	  swafter=IUFindOnSwitch(TrackModeSP);
+	  //DEBUGF(INDI::Logger::DBG_SESSION, "Track mode :  from %s to %s.", (swbefore?swbefore->name:"None"), swafter->name);
+	  try {
+	    if (swbefore == NULL) {
+	      if (TrackState == SCOPE_IDLE) {
+		DEBUGF(INDI::Logger::DBG_SESSION, "Start Tracking (%s).", swafter->name);
+		TrackState = SCOPE_TRACKING;
+		TrackModeSP->s=IPS_BUSY;
+		IDSetSwitch(TrackModeSP,NULL);
+		mount->StartRATracking(GetRATrackRate());
+		mount->StartDETracking(GetDETrackRate());
+	      } else {
+		TrackModeSP->s=IPS_IDLE;
+		IDSetSwitch(TrackModeSP,NULL);
+		DEBUGF(INDI::Logger::DBG_WARNING, "Can not start Tracking (%s). Scope not idle", swafter->name);
+	      } 
+	    } else {
+	      if (swbefore == swafter) {
+		if ( TrackState == SCOPE_TRACKING) {
+		  DEBUGF(INDI::Logger::DBG_SESSION, "Stop Tracking (%s).", swafter->name);
+		  TrackState = SCOPE_IDLE;
+		  TrackModeSP->s=IPS_IDLE;
+		  IUResetSwitch(TrackModeSP);
+		  IDSetSwitch(TrackModeSP,NULL);
+		  mount->StopRA();
+		  mount->StopDE();
+		}
+	      } else {
+		if (TrackState == SCOPE_TRACKING) {
+		  DEBUGF(INDI::Logger::DBG_SESSION, "Changed Tracking rate (%s).", swafter->name);
+		  mount->StartRATracking(GetRATrackRate());
+		  mount->StartDETracking(GetDETrackRate());
+		} 
+	      }
+	    }
+	  } catch(EQModError e) {
+	    return(e.DefaultHandleException(this));
+	  }   
+	  return true;	
+	}
+
+      if(strcmp(name,"TRACKDEFAULT")==0)
+ 	{  
+	  ISwitch *swbefore, *swafter;
+	  swbefore=IUFindOnSwitch(TrackDefaultSP);
+	  IUUpdateSwitch(TrackDefaultSP,states,names,n);
+	  swafter=IUFindOnSwitch(TrackDefaultSP);
+	  if (swbefore != swafter) {
+	    TrackDefaultSP->s=IPS_IDLE;
+	    IDSetSwitch(TrackDefaultSP,NULL);
+	    DEBUGF(INDI::Logger::DBG_SESSION,"Changed Track Default (from %s to %s).", swbefore->name, swafter->name);
+	  }
+	  return true;
+	}
+
+      //DEBUGF(INDI::Logger::DBG_SESSION, "Track mode :  from %s to %s.", swbefore->name, swafter->name);
+      /*
+      if(strcmp(name,"TRACKMODE")==0)
  	{  
 	  ISwitch *swbefore, *swafter;
 	  swbefore=IUFindOnSwitch(TrackModeSP);
@@ -1580,6 +1700,7 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 	  }   
 	  return true;	
 	}
+      */
 
       if (!strcmp(name, "SYNCMANAGE"))
 	{
