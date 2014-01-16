@@ -134,7 +134,7 @@ set(indiserver_SRCS indiserver.c fq.c)
 
 add_executable(indiserver ${indiserver_SRCS} ${liblilxml_SRCS})
 
-target_link_libraries(indiserver ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(indiserver ${CMAKE_THREAD_LIBS_INIT})
 
 install(TARGETS indiserver RUNTIME DESTINATION bin)
 
