@@ -41,7 +41,7 @@
  * Clients that get more than maxqsiz bytes behind are shut down.
  */
 
-#include <config.h>
+#include "config.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -193,12 +193,25 @@ static void Bye(void);
 int
 main (int ac, char *av[])
 {
+  
+  
 	/* log startup */
 	logStartup(ac, av);
 
 	/* save our name */
 	me = av[0];
 
+#ifdef OSX_HELPER_MODE
+  
+  mode_t cmask = umask(0);
+  mkfifo("/tmp/indiserverFIFO", 0666);
+  umask(cmask);
+  fifo.name = "/tmp/indiserverFIFO";
+  verbose = 1;
+  ac = 0;
+  
+#else
+  
 	/* crack args */
 	while ((--ac > 0) && ((*++av)[0] == '-')) {
 	    char *s;
@@ -228,14 +241,14 @@ main (int ac, char *av[])
 		    port = atoi(*++av);
 		    ac--;
 		    break;
-                case 'f':
-                    if (ac < 2) {
-                        fprintf (stderr, "-f requires fifo node\n");
-                        usage();
-                    }
-                    fifo.name = *++av;
-                    ac--;
-                    break;
+    case 'f':
+        if (ac < 2) {
+            fprintf (stderr, "-f requires fifo node\n");
+            usage();
+        }
+        fifo.name = *++av;
+        ac--;
+        break;
 		case 'v':
 		    verbose++;
 		    break;
@@ -243,6 +256,8 @@ main (int ac, char *av[])
 		    usage();
 		}
 	}
+#endif
+  
 
 	/* at this point there are ac args in av[] to name our drivers */
         if (ac == 0 && !fifo.name)
