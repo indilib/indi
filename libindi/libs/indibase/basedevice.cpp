@@ -338,9 +338,6 @@ void INDI::BaseDevice::buildSkeleton(const char *filename)
     FILE *fp = NULL;
     XMLEle *root = NULL, *fproot = NULL;
 
-      IDLog("Asking %s\n", filename);
-
-    
     char pathname[MAXRBUF];
     struct stat st;
     const char *indiskel = getenv("INDISKEL");
@@ -358,9 +355,11 @@ void INDI::BaseDevice::buildSkeleton(const char *filename)
         if (slash)
           filename = slash + 1;
         const char *indiprefix = getenv("INDIPREFIX");
-        if (!indiprefix)
-          indiprefix = DATA_INSTALL_DIR;
-        snprintf(pathname, MAXRBUF-1, "%s/share/indi/%s", indiprefix, filename);
+        if (indiprefix) {
+          snprintf(pathname, MAXRBUF-1, "%s/share/indi/%s", indiprefix, filename);
+        } else {
+          snprintf(pathname, MAXRBUF-1, "%s/%s", DATA_INSTALL_DIR, filename);
+        }
         pathname[MAXRBUF-1] = 0;
         IDLog("Using prefix %s\n", pathname);
       }
