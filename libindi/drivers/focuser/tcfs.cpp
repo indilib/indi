@@ -177,16 +177,7 @@ bool TCFS::updateProperties()
 
     if (isConnected())
     {
-        const char *skelFileName = "/usr/share/indi/indi_tcfs_sk.xml";
-        struct stat st;
-
-        char *skel = getenv("INDISKEL");
-        if (skel)
-          buildSkeleton(skel);
-        else if (stat(skelFileName,&st) == 0)
-           buildSkeleton(skelFileName);
-        else
-           IDLog("No skeleton file was specified. Set environment variable INDISKEL to the skeleton path and try again.\n");
+         buildSkeleton("indi_tcfs_sk.xml");
 
          FocusTemperatureNP = getNumber("FOCUS_TEMPERATURE");
          FocusPowerSP = getSwitch("FOCUS_POWER");

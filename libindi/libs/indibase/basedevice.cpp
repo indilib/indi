@@ -21,7 +21,11 @@
 #include <errno.h>
 #include <zlib.h>
 #include <locale.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
+#include "config.h"
 #include "basedevice.h"
 #include "baseclient.h"
 #include "indicom.h"
@@ -334,11 +338,39 @@ void INDI::BaseDevice::buildSkeleton(const char *filename)
     FILE *fp = NULL;
     XMLEle *root = NULL, *fproot = NULL;
 
-    fp = fopen(filename, "r");
+      IDLog("Asking %s\n", filename);
+
+    
+    char pathname[MAXRBUF];
+    struct stat st;
+    const char *indiskel = getenv("INDISKEL");
+    if (indiskel) {
+      strncpy(pathname, indiskel, MAXRBUF-1);
+      pathname[MAXRBUF-1] = 0;
+      IDLog("Using INDISKEL %s\n", pathname);
+    } else {
+      if (stat(filename, &st) == 0) {
+        strncpy(pathname, filename, MAXRBUF-1);
+        pathname[MAXRBUF-1] = 0;
+        IDLog("Using %s\n", pathname);
+      } else {
+        char *slash = strrchr(filename, '/');
+        if (slash)
+          filename = slash + 1;
+        const char *indiprefix = getenv("INDIPREFIX");
+        if (!indiprefix)
+          indiprefix = DATA_INSTALL_DIR;
+        snprintf(pathname, MAXRBUF-1, "%s/share/indi/%s", indiprefix, filename);
+        pathname[MAXRBUF-1] = 0;
+        IDLog("Using prefix %s\n", pathname);
+      }
+    }
+    
+    fp = fopen(pathname, "r");
 
     if (fp == NULL)
     {
-        IDLog("Unable to build skeleton. Error loading file %s: %s\n", filename, strerror(errno));
+        IDLog("Unable to build skeleton. Error loading file %s: %s\n", pathname, strerror(errno));
         return;
     }
 
