@@ -74,7 +74,7 @@
 /* associate a usage count with queuded client or device message */
 typedef struct {
     int count;				/* number of consumers left */
-    unsigned int cl;			/* content length */
+    unsigned long cl;			/* content length */
     char *cp;				/* content: buf or malloced */
     char buf[MAXWSIZ];		/* local buf for most messages */
 } Msg;
@@ -122,6 +122,10 @@ static int nclinfo;			/* n total (not active) */
 /* info for each connected driver */
 typedef struct {
     char name[MAXINDINAME];		/* persistent name */
+    char envDev[MAXSBUF];
+    char envConfig[MAXSBUF];
+    char envSkel[MAXSBUF];
+    char envPrefix[MAXSBUF];
     //char dev[MAXINDIDEVICE];		/* device served by this driver */
     char **dev;             /* device served by this driver */
     int ndev;               /* number of devices served by this driver */
@@ -439,8 +443,28 @@ startLocalDvr (DvrInfo *dp)
 	    for (fd = 3; fd < 100; fd++)
 		(void) close (fd);
 
-	    /* go -- should never return */
-	    execlp (dp->name, dp->name, NULL);
+	    if (*dp->envDev)
+	      setenv("INDIDEV", dp->envDev, 1);
+	    else
+	      unsetenv("INDIDEV");
+	    if (*dp->envConfig)
+	      setenv("INDICONFIG", dp->envConfig, 1);
+	    else
+	      unsetenv("INDICONFIG");
+	    if (*dp->envSkel)
+	      setenv("INDISKEL", dp->envSkel, 1);
+	    else
+	      unsetenv("INDISKEL");
+	    char executable[MAXSBUF];
+	    if (*dp->envPrefix) {
+	      setenv("INDIPREFIX", dp->envPrefix, 1);
+	      snprintf(executable, MAXSBUF, "%s/bin/%s", dp->envPrefix, dp->name);
+		    execlp (executable, dp->name, NULL);
+      } else {
+	      unsetenv("INDIPREFIX");
+  	    execlp (dp->name, dp->name, NULL);
+	    }
+
 	    fprintf (stderr, "%s: Driver %s: execlp: %s\n", indi_tstamp(NULL),
 						dp->name, strerror(errno));
 	    _exit (1);	/* parent will notice EOF shortly */
@@ -804,16 +828,17 @@ static void newFIFO(void)
      if (verbose)
             fprintf(stderr, "FIFO: %s\n", line);
 
-     char cmd[MAXSBUF], arg[3][1], var[3][MAXSBUF], tDriver[MAXSBUF], tName[MAXSBUF], envDev[MAXSBUF], envConfig[MAXSBUF], envSkel[MAXSBUF];
+     char cmd[MAXSBUF], arg[4][1], var[4][MAXSBUF], tDriver[MAXSBUF], tName[MAXSBUF], envDev[MAXSBUF], envConfig[MAXSBUF], envSkel[MAXSBUF], envPrefix[MAXSBUF];
 
      memset(&tDriver[0], 0, sizeof(MAXSBUF));
      memset(&tName[0], 0, sizeof(MAXSBUF));
      memset(&envDev[0], 0, sizeof(MAXSBUF));
      memset(&envConfig[0], 0, sizeof(MAXSBUF));
      memset(&envSkel[0], 0, sizeof(MAXSBUF));
+     memset(&envPrefix[0], 0, sizeof(MAXSBUF));
 
-     int n = sscanf(line, "%s %s -%1c \"%512[^\"]\" -%1c \"%512[^\"]\" -%1c \"%512[^\"]\"", cmd, tDriver, arg[0], var[0], arg[1], var[1]
-                    , arg[2], var[2]);
+     int n = sscanf(line, "%s %s -%1c \"%512[^\"]\" -%1c \"%512[^\"]\" -%1c \"%512[^\"]\" -%1c \"%512[^\"]\"", cmd, tDriver, arg[0], var[0], arg[1], var[1]
+                    , arg[2], var[2], arg[3], var[3]);
 
 
      int n_args = (n - 2)/2;
@@ -828,33 +853,34 @@ static void newFIFO(void)
          {
              strncpy(tName, var[j], MAXSBUF-1);
              tName[MAXSBUF-1] = '\0';
-             snprintf(envDev, MAXSBUF, "INDIDEV=%s", tName);
+
              if (verbose)
                 fprintf(stderr, "With name: %s\n", envDev);
-
-             putenv(envDev);
          }
          else if (arg[j][0] == 'c')
          {
-             snprintf(envConfig, MAXSBUF, "INDICONFIG=%s", var[j]);
+             strncpy(envConfig, var[j], MAXSBUF-1);
+             envConfig[MAXSBUF-1] = '\0';
 
              if (verbose)
               fprintf(stderr, "With config: %s\n", envConfig);
-
-             putenv(envConfig);
-
          }
          else if (arg[j][0] == 's')
          {
-             snprintf(envSkel, MAXSBUF, "INDISKEL=%s", var[j]);
+             strncpy(envSkel, var[j], MAXSBUF-1);
+             envSkel[MAXSBUF-1] = '\0';
 
              if (verbose)
               fprintf(stderr, "With skeketon: %s\n", envSkel);
-
-             putenv(envSkel);
-
          }
+         else if (arg[j][0] == 'p')
+         {
+             strncpy(envPrefix, var[j], MAXSBUF-1);
+             envPrefix[MAXSBUF-1] = '\0';
 
+             if (verbose)
+              fprintf(stderr, "With prefix: %s\n", envPrefix);
+         }
      }
 
      if (!strcmp(cmd, "start"))
@@ -869,6 +895,10 @@ static void newFIFO(void)
           dp = allocDvr();
           strncpy(dp->name, tDriver, MAXINDIDEVICE);
           //strncpy(dp->dev, tName, MAXINDIDEVICE);
+          strncpy(dp->envDev, tName, MAXSBUF);
+          strncpy(dp->envConfig, envConfig, MAXSBUF);
+          strncpy(dp->envSkel, envSkel, MAXSBUF);
+          strncpy(dp->envPrefix, envPrefix, MAXSBUF);
           startDvr (dp);
     }
     else
@@ -967,7 +997,7 @@ readFromClient (ClInfo *cp)
 {
 	char buf[MAXRBUF];
 	int shutany = 0;
-	int i, nr;
+	ssize_t i, nr;
 
 	/* read client */
 	nr = read (cp->s, buf, sizeof(buf));
@@ -1041,7 +1071,7 @@ readFromClient (ClInfo *cp)
 		fprintf (stderr, "%s: Client %d: XML error: %s\n", ts,
 								cp->s, err);
 		fprintf (stderr, "%s: Client %d: XML read: %.*s\n", ts,
-							    cp->s, nr, buf);
+							    cp->s, (int)nr, buf);
 		shutdownClient (cp);
 		return (-1);
 	    }
@@ -1059,7 +1089,7 @@ readFromDriver (DvrInfo *dp)
 {
 	char buf[MAXRBUF];
 	int shutany = 0;
-	int i, nr;
+	ssize_t i, nr;
 
 	/* read driver */
 	nr = read (dp->rfd, buf, sizeof(buf));
@@ -1154,7 +1184,7 @@ readFromDriver (DvrInfo *dp)
 		fprintf (stderr, "%s: Driver %s: XML error: %s\n", ts,
 								dp->name, err);
 		fprintf (stderr, "%s: Driver %s: XML read: %.*s\n", ts,
-							    dp->name, nr, buf);
+							    dp->name, (int)nr, buf);
                 shutdownDvr (dp, 1);
 		return (-1);
 	    }
@@ -1171,7 +1201,7 @@ stderrFromDriver (DvrInfo *dp)
 {
 	static char exbuf[MAXRBUF];
 	static int nexbuf;
-	int i, nr;
+	ssize_t i, nr;
 
 	/* read more */
 	nr = read (dp->efd, exbuf+nexbuf, sizeof(exbuf)-nexbuf);
@@ -1191,7 +1221,7 @@ stderrFromDriver (DvrInfo *dp)
 	for (i = 0; i < nexbuf; i++) {
 	    if (exbuf[i] == '\n') {
 		fprintf (stderr, "%s: Driver %s: %.*s\n", indi_tstamp(NULL),
-							    dp->name, i, exbuf);
+							    dp->name, (int)i, exbuf);
 		i++;				  /* count including nl */
 		nexbuf -= i;			  /* remove from nexbuf */
 		memmove (exbuf, exbuf+i, nexbuf); /* slide remaining to front */
@@ -1528,7 +1558,7 @@ freeMsg (Msg *mp)
 static int
 sendClientMsg (ClInfo *cp)
 {
-	int nsend, nw;
+	ssize_t nsend, nw;
 	Msg *mp;
 
 	/* get current message */
@@ -1556,7 +1586,7 @@ sendClientMsg (ClInfo *cp)
 	if (verbose > 2) {
 	    fprintf(stderr, "%s: Client %d: sending msg copy %d nq %d:\n%.*s\n",
 				indi_tstamp(NULL), cp->s, mp->count, nFQ(cp->msgq),
-				nw, &mp->cp[cp->nsent]);
+				(int)nw, &mp->cp[cp->nsent]);
 	} else if (verbose > 1) {
 	    fprintf(stderr, "%s: Client %d: sending %.50s\n", indi_tstamp(NULL),
 						    cp->s, &mp->cp[cp->nsent]);
@@ -1585,7 +1615,7 @@ sendClientMsg (ClInfo *cp)
 static int
 sendDriverMsg (DvrInfo *dp)
 {
-	int nsend, nw;
+	ssize_t nsend, nw;
 	Msg *mp;
 
 	/* get current message */
@@ -1613,7 +1643,7 @@ sendDriverMsg (DvrInfo *dp)
 	if (verbose > 2) {
 	    fprintf(stderr, "%s: Driver %s: sending msg copy %d nq %d:\n%.*s\n",
 			    indi_tstamp(NULL), dp->name, mp->count, nFQ(dp->msgq),
-			    nw, &mp->cp[dp->nsent]);
+			    (int)nw, &mp->cp[dp->nsent]);
 	} else if (verbose > 1) {
 	    fprintf(stderr, "%s: Driver %s: sending %.50s\n", indi_tstamp(NULL),
 						dp->name, &mp->cp[dp->nsent]);
@@ -1657,7 +1687,7 @@ static void
 addClDevice (ClInfo *cp, const char *dev, const char *name, int isblob)
 {
 	Property *pp;
-	char *ip;
+	//char *ip;
         int i=0;
 
         if (isblob)
