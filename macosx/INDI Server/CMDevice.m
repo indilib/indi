@@ -3,7 +3,7 @@
 //  INDI Server
 //
 //  Created by Peter Polakovic on 13/01/14.
-//  Copyright (c) 2014 CloudMaker. All rights reserved.
+//  Copyright (c) 2014 CloudMakers, s. r. o. All rights reserved.
 //
 //  This library is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU Library General Public
