@@ -24,6 +24,8 @@ option(WITH_SIMULATOR "Enable Simulator" ON)
 option(WITH_NOFMANY "Use NOFMANY switches" ON)
 option(STOP_WHEN_MOTION_CHANGED "Stop motors when motion mode changes" ON)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
+set(INDI_DATA_DIR "${CMAKE_INSTALL_PREFIX}/share/indi")
+
 
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})

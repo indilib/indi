@@ -113,18 +113,8 @@ bool Align::initProperties()
 {
     /* Load properties from the skeleton file */
 
-      char skelPath[MAX_PATH_LENGTH];
-    const char *skelFileName = "indi_align_sk.xml";
-    snprintf(skelPath, MAX_PATH_LENGTH, "%s/%s", INDI_DATA_DIR, skelFileName);
-    struct stat st;
-    
-    char *skel = getenv("INDISKEL");
-    if (skel) 
-      telescope->buildSkeleton(skel);
-    else if (stat(skelPath,&st) == 0) 
-      telescope->buildSkeleton(skelPath);
-    else 
-      IDLog("No skeleton file was specified. Set environment variable INDISKEL to the skeleton path and try again.\n"); 
+    telescope->buildSkeleton("indi_align_sk.xml");
+
     AlignDataFileTP=telescope->getText("ALIGNDATAFILE");
     AlignDataBP=telescope->getBLOB("ALIGNDATA");
     AlignPointNP=telescope->getNumber("ALIGNPOINT");

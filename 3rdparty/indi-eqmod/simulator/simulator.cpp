@@ -81,18 +81,7 @@ void EQModSimulator::send_reply(char *buf, int *sent)
 
 bool EQModSimulator::initProperties()
 {
-      char skelPath[MAX_PATH_LENGTH];
-      const char *skelFileName = "indi_eqmod_simulator_sk.xml";
-      snprintf(skelPath, MAX_PATH_LENGTH, "%s/%s", INDI_DATA_DIR, skelFileName);
-      struct stat st;
-
-      if (stat(skelPath,&st) == 0)
-        telescope->buildSkeleton(skelPath);
-      else
-      {
-        IDLog("EQMod Simulator Skeleton file %s not found.\n", skelPath);
-        return false;
-      }
+      telescope->buildSkeleton("indi_eqmod_simulator_sk.xml");
 
       SimWormNP=telescope->getNumber("SIMULATORWORM");
       SimRatioNP=telescope->getNumber("SIMULATORRATIO");
