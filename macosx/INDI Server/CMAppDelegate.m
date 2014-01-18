@@ -260,6 +260,7 @@
 
 -(void) applicationWillTerminate:(NSNotification *)notification {
   [self stopServer];
+  unlink(PIPE_NAME);
 }
 
 // CMAppDelegate

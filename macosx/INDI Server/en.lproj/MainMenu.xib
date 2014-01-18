@@ -23,10 +23,6 @@
                                     <action selector="orderFrontStandardAboutPanel:" target="-2" id="142"/>
                                 </connections>
                             </menuItem>
-                            <menuItem isSeparatorItem="YES" id="236">
-                                <modifierMask key="keyEquivalentModifierMask" command="YES"/>
-                            </menuItem>
-                            <menuItem title="Preferences…" keyEquivalent="," id="129"/>
                             <menuItem isSeparatorItem="YES" id="144">
                                 <modifierMask key="keyEquivalentModifierMask" command="YES"/>
                             </menuItem>
@@ -72,7 +68,7 @@
             </items>
         </menu>
         <window title="INDI Server" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" releasedWhenClosed="NO" animationBehavior="default" id="371">
-            <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES"/>
+            <windowStyleMask key="styleMask" titled="YES" miniaturizable="YES" resizable="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
             <rect key="contentRect" x="335" y="390" width="400" height="330"/>
             <rect key="screenRect" x="0.0" y="0.0" width="1440" height="878"/>
@@ -81,14 +77,14 @@
                 <autoresizingMask key="autoresizingMask"/>
                 <subviews>
                     <scrollView autohidesScrollers="YES" horizontalLineScroll="19" horizontalPageScroll="10" verticalLineScroll="19" verticalPageScroll="10" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Myq-eJ-Fri">
-                        <rect key="frame" x="20" y="68" width="364" height="242"/>
+                        <rect key="frame" x="20" y="38" width="364" height="272"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                         <clipView key="contentView" id="N9A-l2-LWN">
-                            <rect key="frame" x="1" y="1" width="362" height="240"/>
+                            <rect key="frame" x="1" y="1" width="362" height="270"/>
                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                             <subviews>
                                 <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="lastColumnOnly" columnReordering="NO" columnSelection="YES" columnResizing="NO" multipleSelection="NO" autosaveColumns="NO" id="d5E-gd-MAh">
-                                    <rect key="frame" x="0.0" y="0.0" width="362" height="240"/>
+                                    <rect key="frame" x="0.0" y="0.0" width="362" height="270"/>
                                     <autoresizingMask key="autoresizingMask"/>
                                     <size key="intercellSpacing" width="3" height="2"/>
                                     <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
@@ -127,7 +123,7 @@
                         </scroller>
                     </scrollView>
                     <button toolTip="Add driver to INDI server" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="NFc-AS-Pal">
-                        <rect key="frame" x="20" y="49" width="21" height="21"/>
+                        <rect key="frame" x="20" y="19" width="21" height="21"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                         <constraints>
                             <constraint firstAttribute="height" constant="19" id="ZhE-mn-Q0n"/>
@@ -142,7 +138,7 @@
                         </connections>
                     </button>
                     <button toolTip="Remove from INDI server" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="vEI-A5-gNU">
-                        <rect key="frame" x="40" y="49" width="21" height="21"/>
+                        <rect key="frame" x="40" y="19" width="21" height="21"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                         <constraints>
                             <constraint firstAttribute="width" constant="21" id="2UL-v4-fUv"/>
@@ -157,7 +153,7 @@
                         </connections>
                     </button>
                     <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="2GV-sK-6x6">
-                        <rect key="frame" x="60" y="49" width="304" height="21"/>
+                        <rect key="frame" x="60" y="19" width="304" height="21"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                         <constraints>
                             <constraint firstAttribute="height" constant="19" id="0JP-81-dyn"/>
@@ -168,7 +164,7 @@
                         </buttonCell>
                     </button>
                     <button toolTip="Restart driver" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="vYJ-XW-KDi">
-                        <rect key="frame" x="363" y="49" width="21" height="21"/>
+                        <rect key="frame" x="363" y="19" width="21" height="21"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                         <constraints>
                             <constraint firstAttribute="height" constant="19" id="cst-uy-s5l"/>
@@ -187,16 +183,16 @@
                     <constraint firstItem="Myq-eJ-Fri" firstAttribute="top" secondItem="372" secondAttribute="top" constant="20" id="8Uh-Td-bgZ"/>
                     <constraint firstItem="2GV-sK-6x6" firstAttribute="leading" secondItem="NFc-AS-Pal" secondAttribute="trailing" constant="19" id="CHw-BO-ALW"/>
                     <constraint firstAttribute="trailing" secondItem="vYJ-XW-KDi" secondAttribute="trailing" constant="16" id="JTW-pQ-RsH"/>
-                    <constraint firstAttribute="bottom" secondItem="Myq-eJ-Fri" secondAttribute="bottom" constant="68" id="LcI-9y-bU0"/>
+                    <constraint firstAttribute="bottom" secondItem="Myq-eJ-Fri" secondAttribute="bottom" constant="38" id="LcI-9y-bU0"/>
                     <constraint firstItem="NFc-AS-Pal" firstAttribute="leading" secondItem="372" secondAttribute="leading" constant="20" id="OJJ-IO-WHk"/>
                     <constraint firstItem="Myq-eJ-Fri" firstAttribute="leading" secondItem="372" secondAttribute="leading" constant="20" id="YRy-Wn-VUd"/>
                     <constraint firstAttribute="trailing" secondItem="2GV-sK-6x6" secondAttribute="trailing" constant="36" id="bA8-IO-FxS"/>
-                    <constraint firstAttribute="bottom" secondItem="NFc-AS-Pal" secondAttribute="bottom" constant="50" id="cXJ-rP-Dg1"/>
-                    <constraint firstAttribute="bottom" secondItem="2GV-sK-6x6" secondAttribute="bottom" constant="50" id="m5v-sG-Wgq"/>
-                    <constraint firstAttribute="bottom" secondItem="vEI-A5-gNU" secondAttribute="bottom" constant="50" id="upB-mn-E6s"/>
+                    <constraint firstAttribute="bottom" secondItem="NFc-AS-Pal" secondAttribute="bottom" constant="20" id="cXJ-rP-Dg1"/>
+                    <constraint firstAttribute="bottom" secondItem="2GV-sK-6x6" secondAttribute="bottom" constant="20" id="m5v-sG-Wgq"/>
+                    <constraint firstAttribute="bottom" secondItem="vEI-A5-gNU" secondAttribute="bottom" constant="20" id="upB-mn-E6s"/>
                     <constraint firstAttribute="trailing" secondItem="Myq-eJ-Fri" secondAttribute="trailing" constant="16" id="us5-xz-cIO"/>
                     <constraint firstItem="vEI-A5-gNU" firstAttribute="leading" secondItem="372" secondAttribute="leading" constant="40" id="vjJ-M1-2hD"/>
-                    <constraint firstAttribute="bottom" secondItem="vYJ-XW-KDi" secondAttribute="bottom" constant="50" id="wNv-4H-tGI"/>
+                    <constraint firstAttribute="bottom" secondItem="vYJ-XW-KDi" secondAttribute="bottom" constant="20" id="wNv-4H-tGI"/>
                 </constraints>
             </view>
         </window>
