@@ -189,7 +189,7 @@ class V4L2_Driver: public INDI::CCD
    //Long Exposure
    Lx *lx;
    int lxtimer;
-   void startlongexposure(double timeinsec);
+   bool startlongexposure(double timeinsec);
    static void lxtimerCallback(void *userpointer);
 };
    

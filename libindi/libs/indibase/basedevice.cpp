@@ -351,7 +351,7 @@ void INDI::BaseDevice::buildSkeleton(const char *filename)
         pathname[MAXRBUF-1] = 0;
         IDLog("Using %s\n", pathname);
       } else {
-        char *slash = strrchr(filename, '/');
+        const char *slash = strrchr(filename, '/');
         if (slash)
           filename = slash + 1;
         const char *indiprefix = getenv("INDIPREFIX");

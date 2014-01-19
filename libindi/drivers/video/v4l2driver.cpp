@@ -586,6 +586,7 @@ bool V4L2_Driver::ISNewNumber (const char *dev, const char *name, double values[
    /* Exposure */
   if (!strcmp (ExposeTimeNP->name, name))
     {
+      bool rc;
       int width  = v4l_base->getWidth();
       int height = v4l_base->getHeight();
       
@@ -601,7 +602,7 @@ bool V4L2_Driver::ISNewNumber (const char *dev, const char *name, double values[
  
       if (AbsExposureN && ManualExposureSP && (AbsExposureN->max >= (V4LFrame->expose * 10000)))
 	{
-	  bool rc = setManualExposure(V4LFrame->expose);
+	  rc = setManualExposure(V4LFrame->expose);
 	  if (rc == false)
 	    DEBUG(INDI::Logger::DBG_WARNING, "Unable to set manual exposure, falling back to auto exposure.");
 	}
@@ -612,9 +613,12 @@ bool V4L2_Driver::ISNewNumber (const char *dev, const char *name, double values[
 					  * 1000000.0) ;
       frameCount=0;
       gettimeofday(&capture_start, NULL);
-      if (lx->isenabled())
-	startlongexposure(ExposeTimeN[0].value);
-      else
+      if (lx->isenabled()) {
+	//startlongexposure(ExposeTimeN[0].value);
+	rc=startlongexposure(V4LFrame->expose);
+        if (rc == false)
+	  DEBUG(INDI::Logger::DBG_WARNING, "Unable to start long exposure, falling back to auto exposure.");
+      } else
 	v4l_base->start_capturing(errmsg);
       
       ExposeTimeNP->s   = IPS_BUSY;
@@ -699,10 +703,10 @@ bool V4L2_Driver::setManualExposure(double duration)
 
 }
 
-void V4L2_Driver::startlongexposure(double timeinsec)
+bool V4L2_Driver::startlongexposure(double timeinsec)
 {
   lxtimer=IEAddTimer((int)(timeinsec*1000.0), (IE_TCF *)lxtimerCallback, this);
-  lx->startLx();
+  return (lx->startLx());
 }
 
 void V4L2_Driver::lxtimerCallback(void *userpointer)
@@ -846,13 +850,13 @@ void V4L2_Driver::updateFrame()
     frameCount+=1;
     if (lx->isenabled())
     {
-      if (!stackMode)
-      {
+      //if (!stackMode)
+      //{
 	v4l_base->stop_capturing(errmsg);
 	DEBUGF(INDI::Logger::DBG_SESSION, "Capture of LX frame took %ld.%06ld seconds.\n", current_exposure.tv_sec, current_exposure.tv_usec);
 	ExposureComplete(&PrimaryCCD);
 	PrimaryCCD.setFrameBufferSize(frameBytes);
-      }
+	//}
     } else {
       if (!stackMode || timercmp(&current_exposure, &exposure_duration, >))
 	{

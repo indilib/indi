@@ -14,12 +14,19 @@
 #include <sys/ioctl.h>
 
 #define LX_TAB "Long Exposure"
+// LX Modes
+#define LXSERIAL 0
+#define LXLED 1
+#define LXPARALLEL 2
+#define LXGPIO 3
+
+#define LXMODENUM 2
 
 class Lx {
 public:
 ISwitch LxEnableS[2];
 ISwitchVectorProperty LxEnableSP;
-ISwitch LxModeS[4];
+ISwitch LxModeS[LXMODENUM];
 ISwitchVectorProperty LxModeSP;
 IText LxPortT[1];
 ITextVectorProperty LxPortTP;
@@ -48,7 +55,7 @@ bool initProperties(INDI::DefaultDevice *device);
 bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
 bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
 bool updateProperties();
-int startLx();
+bool startLx();
 int stopLx();
 
 private:
@@ -57,13 +64,13 @@ const char *device_name;
 int camerafd;
 
 // Serial 
-int fd;
+int serialfd;
 struct termios oldterminfo;
 void closeserial(int fd);
 int openserial(char *devicename);
 int setRTS(int fd, int level);
 int setDTR(int fd, int level);
-int startLxSerial();
+bool startLxSerial();
 int stopLxSerial();
 void getSerialOptions(unsigned int *speed, unsigned int *wordsize, unsigned int *parity, unsigned int *stops);
 const char * getSerialEOL();
@@ -72,7 +79,7 @@ const char * getSerialEOL();
 struct pwc_probe probe;  
 bool checkPWC();
 void pwcsetLed(int on, int off);
-int startLxPWC();
+bool startLxPWC();
 int stopLxPWC();
 };
 #endif /* LX_H */

@@ -2100,11 +2100,13 @@ bool V4L2_Base::enumerate_ext_ctrl (void)
       {
 	if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED) {
 	  cerr << "DISABLED--Control " << queryctrl.name << endl;
+	  queryctrl.id |= V4L2_CTRL_FLAG_NEXT_CTRL;
 	  continue;
 	}
 
 	if (queryctrl.type == V4L2_CTRL_TYPE_CTRL_CLASS) {
 	  cerr << "Control Class " << queryctrl.name << endl;
+	  queryctrl.id |= V4L2_CTRL_FLAG_NEXT_CTRL;
 	  continue;
 	}
 	
@@ -2156,12 +2158,14 @@ bool  V4L2_Base::queryExtControls(INumberVectorProperty *nvp, unsigned int *nnum
       
       if (queryctrl.type == V4L2_CTRL_TYPE_CTRL_CLASS) {
 	cerr << "Control Class " << queryctrl.name << endl;
+	queryctrl.id |= V4L2_CTRL_FLAG_NEXT_CTRL;
 	continue;
       }
       
       if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED)
 	{
 	  cerr << queryctrl.name << " is disabled." << endl;
+	  queryctrl.id |= V4L2_CTRL_FLAG_NEXT_CTRL;
 	  continue;
 	}
       
