@@ -2,7 +2,9 @@
 #define _GPHOTO_DRIVER_H_
 
 #include <gphoto2/gphoto2.h>
-typedef struct {
+
+typedef struct
+{
 	CameraWidget		*widget;
 	CameraWidgetType	type;
 	const char		*name;
@@ -51,6 +53,6 @@ extern int gphoto_read_widget(gphoto_widget *widget);
 extern int gphoto_widget_changed(gphoto_widget *widget);
 extern int gphoto_get_dimensions(gphoto_driver *gphoto, int *width, int *height);
 extern int gphoto_auto_focus(gphoto_driver *gphoto);
-extern int gphoto_manual_focus (gphoto_driver *gphoto, int xx);
+extern int gphoto_manual_focus (gphoto_driver *gphoto, int xx, char *errMsg);
 
 #endif

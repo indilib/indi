@@ -40,6 +40,7 @@ extern "C" {
 #define FOCUS_TAB           "Focus"
 #define MAX_DEVICES         5      /* Max device cameraCount */
 #define POLLMS              1000
+#define FOCUS_TIMER         500
 
 static int cameraCount;
 static GPhotoCCD *cameras[MAX_DEVICES];
@@ -196,12 +197,12 @@ bool GPhotoCCD::initProperties()
 
   SetCapability(&cap);
 
-  setFocuserFeatures(true, false, false, false);
+  setFocuserFeatures(false, false, false, true);
 
-  FocusAbsPosN[0].min = 0;
-  FocusAbsPosN[0].max = 6;
-  FocusAbsPosN[0].step = 1;
-  FocusAbsPosN[0].value = 3;
+  FocusSpeedN[0].min=0;
+  FocusSpeedN[0].max=3;
+  FocusSpeedN[0].step=1;
+  FocusSpeedN[0].value=0;
 
   return true;
 }
@@ -221,7 +222,10 @@ void GPhotoCCD::ISGetProperties(const char *dev)
 
       defineSwitch(&transferFormatSP);
       defineSwitch(&autoFocusSP);
-      defineNumber(&FocusAbsPosNP);
+
+      defineSwitch(&FocusMotionSP);
+      defineNumber(&FocusSpeedNP);
+      defineNumber(&FocusTimerNP);
 
       ShowExtendedOptions();
   }
@@ -243,7 +247,11 @@ bool GPhotoCCD::updateProperties()
 
       defineSwitch(&transferFormatSP);      
       defineSwitch(&autoFocusSP);
-      defineNumber(&FocusAbsPosNP);
+
+      defineSwitch(&FocusMotionSP);
+      defineNumber(&FocusSpeedNP);
+      defineNumber(&FocusTimerNP);
+
 
     ShowExtendedOptions();
 
@@ -259,9 +267,11 @@ bool GPhotoCCD::updateProperties()
     if (mFormatSP.nsp > 0)
        deleteProperty(mFormatSP.name);
 
-    deleteProperty(autoFocusSP.name);
-    deleteProperty(FocusAbsPosNP.name);
+    deleteProperty(autoFocusSP.name);    
     deleteProperty(transferFormatSP.name);
+    deleteProperty(FocusMotionSP.name);
+    deleteProperty(FocusSpeedNP.name);
+    deleteProperty(FocusTimerNP.name);
 
     HideExtendedOptions();
     rmTimer(timerID);
@@ -587,6 +597,30 @@ void GPhotoCCD::TimerHit()
 
     }
 
+  if (FocusTimerNP.s == IPS_BUSY)
+  {
+      char errMsg[MAXRBUF];
+      if ( gphoto_manual_focus(gphotodrv, focusSpeed, errMsg) != GP_OK)
+      {
+          DEBUGF(INDI::Logger::DBG_ERROR, "Focusing failed: %s", errMsg);
+          FocusTimerNP.s = IPS_ALERT;
+          FocusTimerN[0].value = 0 ;
+      }
+      else
+      {
+          FocusTimerN[0].value -= FOCUS_TIMER;
+          if (FocusTimerN[0].value <= 0)
+          {
+              FocusTimerN[0].value = 0;
+              FocusTimerNP.s = IPS_OK;
+          }
+          else
+              timerID = SetTimer(FOCUS_TIMER);
+      }
+
+      IDSetNumber(&FocusTimerNP, NULL);
+  }
+
   if (timerID == -1)
     SetTimer(POLLMS);
 }
@@ -870,19 +904,28 @@ GPhotoCCD::HideExtendedOptions(void)
 	}
 }
 
-int GPhotoCCD::MoveAbs(int targetTicks)
+int GPhotoCCD::Move(FocusDirection dir, int speed, int duration)
 {
-    if (targetTicks < FocusAbsPosN[0].min || targetTicks > FocusAbsPosN[0].max)
-    {
-        IDMessage(getDeviceName(), "Error, requested absolute position is out of range.");
-        return -1;
-    }
+   char errMsg[MAXRBUF];
+   if (dir == FOCUS_INWARD)
+       focusSpeed = speed * -1;
+   else
+       focusSpeed = speed;
 
-    if ( gphoto_manual_focus(gphotodrv, targetTicks-3) != GP_OK)
-        return -1;
+   if (duration <= FOCUS_TIMER)
+   {
+       if ( gphoto_manual_focus(gphotodrv, focusSpeed, errMsg) != GP_OK)
+       {
+           DEBUGF(INDI::Logger::DBG_ERROR, "Focusing failed: %s", errMsg);
+           return -1;
+       }
 
-    FocusAbsPosN[0].value = targetTicks;
+       return 0;
+   }
 
-    return 0;
+   SetTimer(FOCUS_TIMER);
+
+   return 1;
 }
+
 

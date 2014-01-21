@@ -35,6 +35,7 @@
 
 #include "gphoto_driver.h"
 
+#define MAXRBUF 512
 
 struct _gphoto_widget_list {
 	struct _gphoto_widget_list	*next;
@@ -1035,7 +1036,7 @@ out:
 /* Manual focusing a camera...
  * xx is -3 / -2 / -1 / 0 / 1 / 2 / 3
  */
-int gphoto_manual_focus (gphoto_driver *gphoto, int xx)
+int gphoto_manual_focus (gphoto_driver *gphoto, int xx, char *errMsg)
 {
     CameraWidget		*widget = NULL, *child = NULL;
     CameraWidgetType	type;
@@ -1044,20 +1045,23 @@ int gphoto_manual_focus (gphoto_driver *gphoto, int xx)
     char			*mval;
 
     ret = gp_camera_get_config (gphoto->camera, &widget, gphoto->context);
-    if (ret < GP_OK) {
-        fprintf (stderr, "camera_get_config failed: %d\n", ret);
+    if (ret < GP_OK)
+    {
+        snprintf(errMsg, MAXRBUF, "camera_get_config failed: %d", ret);
         return ret;
     }
     ret = _lookup_widget (widget, "manualfocusdrive", &child);
-    if (ret < GP_OK) {
-        fprintf (stderr, "lookup 'manualfocusdrive' failed: %d\n", ret);
+    if (ret < GP_OK)
+    {
+        snprintf(errMsg, MAXRBUF, "lookup manualfocusdrive failed: %d", ret);
         goto out;
     }
 
     /* check that this is a toggle */
     ret = gp_widget_get_type (child, &type);
-    if (ret < GP_OK) {
-        fprintf (stderr, "widget get type failed: %d\n", ret);
+    if (ret < GP_OK)
+    {
+        snprintf(errMsg, MAXRBUF, "widget get type failed: %d", ret);
         goto out;
     }
     switch (type) {
@@ -1065,29 +1069,33 @@ int gphoto_manual_focus (gphoto_driver *gphoto, int xx)
         int choices = gp_widget_count_choices (child);
 
         ret = gp_widget_get_value (child, &mval);
-        if (ret < GP_OK) {
-            fprintf (stderr, "could not get widget value: %d\n", ret);
+        if (ret < GP_OK)
+        {
+            snprintf(errMsg, MAXRBUF, "could not get widget value: %d", ret);
             goto out;
         }
         if (choices == 7) { /* see what Canon has in EOS_MFDrive */
             ret = gp_widget_get_choice (child, xx+4, (const char**)&mval);
-            if (ret < GP_OK) {
-                fprintf (stderr, "could not get widget choice %d: %d\n", xx+2, ret);
+            if (ret < GP_OK)
+            {
+                snprintf(errMsg, MAXRBUF, "could not get widget choice %d: %d", xx+2, ret);
                 goto out;
             }
             fprintf(stderr,"manual focus %d -> %s\n", xx, mval);
         }
         ret = gp_widget_set_value (child, mval);
-        if (ret < GP_OK) {
-            fprintf (stderr, "could not set widget value to 1: %d\n", ret);
+        if (ret < GP_OK)
+        {
+            snprintf(errMsg, MAXRBUF, "could not set widget value to 1: %d", ret);
             goto out;
         }
         break;
     }
         case GP_WIDGET_RANGE:
         ret = gp_widget_get_value (child, &rval);
-        if (ret < GP_OK) {
-            fprintf (stderr, "could not get widget value: %d\n", ret);
+        if (ret < GP_OK)
+        {
+            snprintf(errMsg, MAXRBUF, "could not get widget value: %d", ret);
             goto out;
         }
 
@@ -1106,21 +1114,23 @@ int gphoto_manual_focus (gphoto_driver *gphoto, int xx)
         fprintf(stderr,"manual focus %d -> %f\n", xx, rval);
 
         ret = gp_widget_set_value (child, &rval);
-        if (ret < GP_OK) {
-            fprintf (stderr, "could not set widget value to 1: %d\n", ret);
+        if (ret < GP_OK)
+        {
+            snprintf(errMsg, MAXRBUF, "could not set widget value to 1: %d", ret);
             goto out;
         }
         break;
     default:
-        fprintf (stderr, "widget has bad type %d\n", type);
+        snprintf(errMsg, MAXRBUF, "widget has bad type %d", type);
         ret = GP_ERROR_BAD_PARAMETERS;
         goto out;
     }
 
 
     ret = gp_camera_set_config (gphoto->camera, widget, gphoto->context);
-    if (ret < GP_OK) {
-        fprintf (stderr, "could not set config tree to autofocus: %d\n", ret);
+    if (ret < GP_OK)
+    {
+        snprintf(errMsg, MAXRBUF, "could not set config tree to autofocus: %d", ret);
         goto out;
     }
 out:

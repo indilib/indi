@@ -86,7 +86,7 @@ public:
 protected:
 
     void TimerHit();
-    int MoveAbs(int ticks);
+    int Move(FocusDirection dir, int speed, int duration);
 
 private:
     ISwitch *create_switch(const char *basestr, const char **options, int max_opts, int setidx);
@@ -107,6 +107,7 @@ private:
     map<string, cam_opt *> CamOptions;
     int expTID;			/* exposure callback timer id, if any */
     int optTID;			/* callback for exposure timer id */
+    int focusSpeed;
 
     char *on_off[2];
     int timerID;
