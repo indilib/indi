@@ -218,7 +218,7 @@ bool FocusSim::ISNewSwitch (const char *dev, const char *name, ISState *states, 
     return INDI::Focuser::ISNewSwitch(dev,name,states,names,n);
 }
 
-bool FocusSim::Move(FocusDirection dir, int speed, int duration)
+int FocusSim::Move(FocusDirection dir, int speed, int duration)
 {
     double targetTicks = (speed * duration) / (FocusSpeedN[0].max * FocusTimerN[0].max);
     double plannedTicks=ticks;
@@ -237,7 +237,7 @@ bool FocusSim::Move(FocusDirection dir, int speed, int duration)
     if (plannedAbsPos < FocusAbsPosN[0].min || plannedAbsPos > FocusAbsPosN[0].max)
     {
         IDMessage(getDeviceName(), "Error, requested position is out of range.");
-        return false;
+        return -1;
     }
 
     ticks = plannedTicks;
@@ -255,7 +255,7 @@ bool FocusSim::Move(FocusDirection dir, int speed, int duration)
     IDSetNumber(&FWHMNP, NULL);
     IDSetNumber(&FocusAbsPosNP, NULL);
 
-    return true;
+    return 0;
 
 }
 

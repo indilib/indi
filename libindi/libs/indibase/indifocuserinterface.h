@@ -78,9 +78,10 @@ protected:
         \param dir Direction of focuser, either FOCUS_INWARD or FOCUS_OUTWARD.
         \param speed Speed of focuser if supported by the focuser.
         \param duration The timeout in milliseconds before the focus motion halts.
-        \return True if succssfull, false otherwise.
+        \return Return 0 if motion is completed and focuser reached requested position. Return 1 if focuser started motion to requested position and is in progress.
+                Return -1 if there is an error.
     */
-    virtual bool Move(FocusDirection dir, int speed, int duration);
+    virtual int Move(FocusDirection dir, int speed, int duration);
 
     /** \brief Move the focuser to an absolute position.
         \param ticks The new position of the focuser.

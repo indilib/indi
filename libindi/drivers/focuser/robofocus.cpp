@@ -1371,7 +1371,7 @@ void RoboFocus::GetFocusParams ()
 
 }
 
-bool RoboFocus::Move(FocusDirection dir, int speed, int duration)
+int RoboFocus::Move(FocusDirection dir, int speed, int duration)
 {
     INDI_UNUSED(speed);
     double pos=0;
@@ -1399,7 +1399,7 @@ bool RoboFocus::Move(FocusDirection dir, int speed, int duration)
       // IDLog("dt is: %g --- duration is: %d -- pos: %g\n", dt, duration, pos);
     }
 
-   return true;
+   return 0;
 }
 
 

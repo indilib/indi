@@ -778,7 +778,7 @@ bool MoonLite::SetSpeed(int speed)
     return true;
 }
 
-bool MoonLite::Move(FocusDirection dir, int speed, int duration)
+int MoonLite::Move(FocusDirection dir, int speed, int duration)
 {
     if (speed != currentSpeed)
     {
@@ -786,7 +786,7 @@ bool MoonLite::Move(FocusDirection dir, int speed, int duration)
 
         rc = setSpeed(speed);
         if (rc == false)
-            return false;
+            return -1;
     }
 
     gettimeofday(&focusMoveStart,NULL);
@@ -803,9 +803,7 @@ bool MoonLite::Move(FocusDirection dir, int speed, int duration)
         Abort();
     }
 
-    FocusTimerNP.s = IPS_BUSY;
-
-    return true;
+    return 1;
 }
 
 

@@ -68,14 +68,11 @@ bool INDI::FocuserInterface::processFocuserNumber (const char *dev, const char *
     //  Now lets see if it's something we process here
     if(strcmp(name,"FOCUS_TIMER")==0)
     {
-        //  Ok, gotta move the focusser now
         FocusDirection dir;
         int speed;
-        int t;
+        int t, rc;
 
-        //IDLog(")
         //  first we get all the numbers just sent to us
-        FocusTimerNP.s=IPS_OK;
         IUUpdateNumber(&FocusTimerNP,values,names,n);
 
         //  Now lets find what we need for this move
@@ -84,7 +81,13 @@ bool INDI::FocuserInterface::processFocuserNumber (const char *dev, const char *
         else dir=FOCUS_OUTWARD;
         t=FocusTimerN[0].value;
 
-        if (Move(dir,speed,t) == false)
+        rc = Move(dir,speed,t);
+
+        if (rc == 0)
+            FocusTimerNP.s = IPS_OK;
+        else if (rc == 1)
+            FocusTimerNP.s = IPS_BUSY;
+        else
             FocusTimerNP.s = IPS_ALERT;
 
         IDSetNumber(&FocusTimerNP,NULL);
@@ -229,13 +232,13 @@ void INDI::FocuserInterface::setFocuserFeatures(bool CanAbsMove, bool CanRelMove
     variableSpeed = VariableSpeed;
 }
 
-bool INDI::FocuserInterface::Move(FocusDirection dir, int speed, int duration)
+int INDI::FocuserInterface::Move(FocusDirection dir, int speed, int duration)
 {
     //  This should be a virtual function, because the low level hardware class
     //  must override this
     //  but it's much easier early development if the method actually
     //  exists for now
-    return false;
+    return -1;
 }
 
 int INDI::FocuserInterface::MoveRel(FocusDirection dir, unsigned int ticks)
