@@ -845,6 +845,7 @@ libindi/README -text
 libindi/TODO -text
 libindi/base64.c -text
 libindi/base64.h -text
+libindi/config.h -text
 libindi/config.h.cmake -text
 libindi/drivers.xml -text
 libindi/drivers/agent/agent_imager.cpp -text

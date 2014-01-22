@@ -71,6 +71,12 @@
 #define	MAXWSIZ		4096		/* max bytes/write */
 #define	DEFMAXQSIZ	10		/* default max q behind, MB */
 
+#ifdef OSX_HELPER_MODE
+#define LOGNAME "/Users/%s/Library/Logs/indiserver.log"
+#define FIFONAME "/tmp/indiserverFIFO"
+#endif
+
+
 /* associate a usage count with queuded client or device message */
 typedef struct {
     int count;				/* number of consumers left */
@@ -197,8 +203,8 @@ static void Bye(void);
 int
 main (int ac, char *av[])
 {
-  
-  
+
+
 	/* log startup */
 	logStartup(ac, av);
 
@@ -206,16 +212,18 @@ main (int ac, char *av[])
 	me = av[0];
 
 #ifdef OSX_HELPER_MODE
-  
-  mode_t cmask = umask(0);
-  mkfifo("/tmp/indiserverFIFO", 0666);
-  umask(cmask);
-  fifo.name = "/tmp/indiserverFIFO";
+
+  char logname[128];
+  snprintf(logname, 128, LOGNAME, getlogin());
+  fprintf(stderr, "switching stderr to %s", logname);
+  freopen(logname, "w", stderr);
+
+  fifo.name = FIFONAME;
   verbose = 1;
   ac = 0;
-  
+
 #else
-  
+
 	/* crack args */
 	while ((--ac > 0) && ((*++av)[0] == '-')) {
 	    char *s;
@@ -261,7 +269,7 @@ main (int ac, char *av[])
 		}
 	}
 #endif
-  
+
 
 	/* at this point there are ac args in av[] to name our drivers */
         if (ac == 0 && !fifo.name)
@@ -409,6 +417,10 @@ startLocalDvr (DvrInfo *dp)
 	int rp[2], wp[2], ep[2];
 	int pid;
 
+#ifdef OSX_HELPER_MODE
+  fprintf(stderr, "STARTING \"%s\"\n", dp->name); fflush(stderr);
+#endif
+
 	/* build three pipes: r, w and error*/
 	if (pipe (rp) < 0) {
 	    fprintf (stderr, "%s: read pipe: %s\n", indi_tstamp(NULL),
@@ -465,6 +477,9 @@ startLocalDvr (DvrInfo *dp)
   	    execlp (dp->name, dp->name, NULL);
 	    }
 
+#ifdef OSX_HELPER_MODE
+  fprintf(stderr, "FAILED \"%s\"\n", dp->name); fflush(stderr);
+#endif
 	    fprintf (stderr, "%s: Driver %s: execlp: %s\n", indi_tstamp(NULL),
 						dp->name, strerror(errno));
 	    _exit (1);	/* parent will notice EOF shortly */
@@ -1155,6 +1170,11 @@ readFromDriver (DvrInfo *dp)
             strncpy (dp->dev[dp->ndev], dev, MAXINDIDEVICE-1);
             dp->dev[dp->ndev][MAXINDIDEVICE-1] = '\0';
 
+#ifdef OSX_HELPER_MODE
+            if (!dp->ndev)
+              fprintf(stderr, "STARTED \"%s\"\n", dp->name); fflush(stderr);
+#endif
+
             dp->ndev++;
         }
 
@@ -1278,6 +1298,10 @@ shutdownDvr (DvrInfo *dp, int restart)
 	    close (dp->rfd);
 	    close (dp->efd);
 	}
+
+#ifdef OSX_HELPER_MODE
+  fprintf(stderr, "STOPPED \"%s\"\n", dp->name); fflush(stderr);
+#endif
 
 	/* free memory */
 	free (dp->sprops);
@@ -1775,7 +1799,7 @@ static void crackBLOBHandling(const char *dev, const char *name, const char *ena
     for (i = 0; i < cp->nprops; i++)
     {
         Property *pp = &cp->props[i];
-        if (!name[0])           
+        if (!name[0])
             crackBLOB(enableBLOB, &pp->blob);
         else if (!strcmp (pp->dev, dev) && (!strcmp(pp->name, name)))
         {
