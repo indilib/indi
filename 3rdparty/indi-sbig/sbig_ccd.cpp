@@ -32,6 +32,7 @@
 #include "indidevapi.h"
 #include "eventloop.h"
 #include <indilogger.h>
+#include <ccvt.h>
 
 #include "sbig_ccd.h"
 
@@ -139,6 +140,8 @@ SBIGCCD::SBIGCCD()
 
     // For now let's set name to default name. In the future, we need to to support multiple devices per one driver
     strncpy(name, getDefaultName(), MAXINDINAME);
+
+    isColor = false;
 
     setVersion(1, 5);
 
@@ -1186,6 +1189,18 @@ bool SBIGCCD::grabImage(CCDChip *targetChip)
               DEBUG(INDI::Logger::DBG_ERROR, "CCD readout error!");
               return false;
       }
+
+      // Bayer to RGB if it is a color camera
+      if (isColor)
+      {
+          unsigned short * dst = (unsigned short *) malloc(targetChip->getFrameBufferSize());
+          bayer16_2_rgb24(dst, buffer, targetChip->getSubW(), targetChip->getSubH());
+          char *memBuffer = (char *) dst;
+          targetChip->setFrameBuffer(memBuffer);
+          targetChip->setNAxis(3);
+          free(buffer);
+      }
+
   }
 
   DEBUG(INDI::Logger::DBG_DEBUG, "Download complete.");
@@ -1546,9 +1561,11 @@ string SBIGCCD::GetCameraName()
 
     gccdip.request = CCD_INFO_IMAGING;  // request 0
     res = SBIGUnivDrvCommand(CC_GET_CCD_INFO, &gccdip, &gccdir);
-    if(res == CE_NO_ERROR){
+    if(res == CE_NO_ERROR)
+    {
         name = gccdir.name;
-        switch(gccdir.cameraType){
+        switch(gccdir.cameraType)
+        {
             case	ST237_CAMERA:
                     if(gccdir.readoutInfo[0].gain >= 0x100) name += 'A';
                             break;
@@ -1566,6 +1583,9 @@ string SBIGCCD::GetCameraName()
             default:
                             break;
         }
+
+        if (name.find("Color") != -1)
+            isColor = true;
     }
     return(name);
 }

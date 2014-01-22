@@ -236,6 +236,7 @@ private:
     void resetFrame();
 
     bool sim;
+    bool isColor;
 
     inline int			GetFileDescriptor(){return(m_fd);}
     inline void		SetFileDescriptor(int val = -1){m_fd = val;}
