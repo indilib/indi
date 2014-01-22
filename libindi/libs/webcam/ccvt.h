@@ -149,6 +149,7 @@ int mjpegtoyuv420p(unsigned char *map, unsigned char *cap_map, int width, int he
  */
 
 void bayer2rgb24(unsigned char *dst, unsigned char *src, long int WIDTH, long int HEIGHT);
+void bayer16_2_rgb24(unsigned short *dst, unsigned short *src, long int WIDTH, long int HEIGHT);
 
 #ifdef __cplusplus
 }
