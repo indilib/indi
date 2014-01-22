@@ -290,6 +290,7 @@
 -(void) logReader:(NSString *)logname {
   char buffer[1024];
   char driver[128];
+  int count;
   FILE *log = NULL;
   long pos;
   NSLog(@"logReader started");
@@ -298,7 +299,7 @@
     log = fopen([logname cStringUsingEncoding:NSASCIIStringEncoding], "r");
   }
   _statusImage.image = [NSImage imageNamed:@"NSStatusAvailable"];
-  _statusLabel.stringValue = @"Server is running...";
+  _statusLabel.stringValue = @"Server is running (idle)";
   while (true) {
     pos = ftell(log);
     while (!fgets(buffer, 1024, log)) {
@@ -314,6 +315,19 @@
     } else if (sscanf(buffer, "FAILED \"%128[^\"]\"", driver) == 1) {
       NSLog(@"failed %s", driver);
       [self setStatus:FAILED to:[NSString stringWithCString:driver encoding:NSASCIIStringEncoding]];
+    } else if (sscanf(buffer, "CLIENTS %d", &count) == 1) {
+      NSLog(@"count %d", count);
+      switch (count) {
+        case 0:
+          _statusLabel.stringValue = @"Server is running (idle)";
+          break;
+        case 1:
+          _statusLabel.stringValue = @"Server is running (1 client)";
+          break;
+        default:
+          _statusLabel.stringValue = [NSString stringWithFormat:@"Server is running (%d clients)", count];
+          break;
+      }
     }
   }
 }
@@ -403,6 +417,10 @@
 -(IBAction)click:(id)sender {
   [_removeButton setEnabled:YES];
   [_reloadButton setEnabled:YES];
+}
+
+- (IBAction)help:(id)sender {
+  [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"http://www.cloudmakers.eu/indi"]];
 }
 
 -(void)startDriver:(CMDevice *)device {

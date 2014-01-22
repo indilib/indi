@@ -1001,6 +1001,13 @@ newClient()
 			    indi_tstamp(NULL), cp->s, inet_ntoa(addr.sin_addr),
 							ntohs(addr.sin_port));
 	}
+#ifdef OSX_HELPER_MODE
+  int active = 0;
+  for (int i = 0; i < nclinfo; i++)
+    if (clinfo[i].active)
+      active++;
+  fprintf(stderr, "CLIENTS %d\n", active); fflush(stderr);
+#endif
 }
 
 /* read more from the given client, send to each appropriate driver when see
@@ -1278,6 +1285,13 @@ shutdownClient (ClInfo *cp)
 	if (verbose > 0)
 	    fprintf (stderr, "%s: Client %d: shut down complete - bye!\n",
 							indi_tstamp(NULL), cp->s);
+#ifdef OSX_HELPER_MODE
+  int active = 0;
+  for (int i = 0; i < nclinfo; i++)
+    if (clinfo[i].active)
+      active++;
+  fprintf(stderr, "CLIENTS %d\n", active); fflush(stderr);
+#endif
 }
 
 /* close down the given driver and restart */
