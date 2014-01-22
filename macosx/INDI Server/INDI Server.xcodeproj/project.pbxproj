@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		591991A8188FC9AD007DD2DE /* indiserver.c in Sources */ = {isa = PBXBuildFile; fileRef = 591991A7188FC9AD007DD2DE /* indiserver.c */; };
+		591991AB188FC9BA007DD2DE /* fq.c in Sources */ = {isa = PBXBuildFile; fileRef = 591991A9188FC9BA007DD2DE /* fq.c */; };
+		591991AE188FC9CB007DD2DE /* lilxml.c in Sources */ = {isa = PBXBuildFile; fileRef = 591991AC188FC9CA007DD2DE /* lilxml.c */; };
 		596EBB55188AC60700190323 /* CMAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 596EBB46188AC60700190323 /* CMAppDelegate.m */; };
 		596EBB56188AC60700190323 /* CMDevice.m in Sources */ = {isa = PBXBuildFile; fileRef = 596EBB48188AC60700190323 /* CMDevice.m */; };
 		596EBB57188AC60700190323 /* CMGroup.m in Sources */ = {isa = PBXBuildFile; fileRef = 596EBB4A188AC60700190323 /* CMGroup.m */; };
@@ -19,9 +22,28 @@
 		597B890F1887E6FF0093873A /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 597B890D1887E6FF0093873A /* Security.framework */; };
 		597B89121887E77F0093873A /* ServiceManagement.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 597B89111887E77F0093873A /* ServiceManagement.framework */; };
 		597B893D188837E10093873A /* indiserver in CopyFiles */ = {isa = PBXBuildFile; fileRef = 597B89241888016F0093873A /* indiserver */; };
-		59A4062B188AC9FD00FAFE20 /* indiserver.c in Sources */ = {isa = PBXBuildFile; fileRef = 59A4062A188AC9FD00FAFE20 /* indiserver.c */; };
-		59A4062E188ACA2A00FAFE20 /* fq.c in Sources */ = {isa = PBXBuildFile; fileRef = 59A4062D188ACA2A00FAFE20 /* fq.c */; };
-		59A40631188ACA3900FAFE20 /* lilxml.c in Sources */ = {isa = PBXBuildFile; fileRef = 59A40630188ACA3900FAFE20 /* lilxml.c */; };
+		59AABF17188E669A00B454C8 /* QHY2.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 59AABF01188E669A00B454C8 /* QHY2.HEX */; };
+		59AABF18188E669A00B454C8 /* QHY2PRO.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 59AABF02188E669A00B454C8 /* QHY2PRO.HEX */; };
+		59AABF19188E669A00B454C8 /* QHY5.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 59AABF03188E669A00B454C8 /* QHY5.HEX */; };
+		59AABF1A188E669A00B454C8 /* QHY5II.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 59AABF04188E669A00B454C8 /* QHY5II.HEX */; };
+		59AABF1B188E669A00B454C8 /* QHY5LOADER.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 59AABF05188E669A00B454C8 /* QHY5LOADER.HEX */; };
+		59AABF1C188E669A00B454C8 /* QHY6.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 59AABF06188E669A00B454C8 /* QHY6.HEX */; };
+		59AABF1D188E669A00B454C8 /* QHY6PRO.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 59AABF07188E669A00B454C8 /* QHY6PRO.HEX */; };
+		59AABF1E188E669A00B454C8 /* QHY7.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 59AABF08188E669A00B454C8 /* QHY7.HEX */; };
+		59AABF1F188E669A00B454C8 /* QHY8.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 59AABF09188E669A00B454C8 /* QHY8.HEX */; };
+		59AABF20188E669A00B454C8 /* QHY8L.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 59AABF0A188E669A00B454C8 /* QHY8L.HEX */; };
+		59AABF21188E669A00B454C8 /* QHY8M.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 59AABF0B188E669A00B454C8 /* QHY8M.HEX */; };
+		59AABF22188E669A00B454C8 /* QHY8PRO.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 59AABF0C188E669A00B454C8 /* QHY8PRO.HEX */; };
+		59AABF23188E669A00B454C8 /* QHY9.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 59AABF0D188E669A00B454C8 /* QHY9.HEX */; };
+		59AABF24188E669A00B454C8 /* QHY9L.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 59AABF0E188E669A00B454C8 /* QHY9L.HEX */; };
+		59AABF25188E669A00B454C8 /* QHY10.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 59AABF0F188E669A00B454C8 /* QHY10.HEX */; };
+		59AABF26188E669A00B454C8 /* QHY11.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 59AABF10188E669A00B454C8 /* QHY11.HEX */; };
+		59AABF27188E669A00B454C8 /* QHY12.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 59AABF11188E669A00B454C8 /* QHY12.HEX */; };
+		59AABF28188E669A00B454C8 /* QHY15.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 59AABF12188E669A00B454C8 /* QHY15.HEX */; };
+		59AABF29188E669A00B454C8 /* QHY16.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 59AABF13188E669A00B454C8 /* QHY16.HEX */; };
+		59AABF2A188E669A00B454C8 /* QHY20.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 59AABF14188E669A00B454C8 /* QHY20.HEX */; };
+		59AABF2B188E669A00B454C8 /* QHY21.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 59AABF15188E669A00B454C8 /* QHY21.HEX */; };
+		59AABF2C188E669A00B454C8 /* QHY22.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 59AABF16188E669A00B454C8 /* QHY22.HEX */; };
 		59D95CB6188540560008EFEE /* indi_atik_ccd in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE026718830F46007E5AE2 /* indi_atik_ccd */; };
 		59D95CB7188540560008EFEE /* indi_atik_wheel in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE026818830F46007E5AE2 /* indi_atik_wheel */; };
 		59D95CB8188540560008EFEE /* indi_celestron_gps in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE026918830F46007E5AE2 /* indi_celestron_gps */; };
@@ -68,28 +90,6 @@
 		59F91266188AC43900EF5ED8 /* libindimain.0.9.7.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F9122E188AC3C300EF5ED8 /* libindimain.0.9.7.dylib */; };
 		59F91267188AC43900EF5ED8 /* libnova-0.15.0.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F9122F188AC3C300EF5ED8 /* libnova-0.15.0.dylib */; };
 		59F91268188AC43900EF5ED8 /* libusb-1.0.0.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F91230188AC3C300EF5ED8 /* libusb-1.0.0.dylib */; };
-		59F91269188AC44900EF5ED8 /* QHY2.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F91237188AC3E900EF5ED8 /* QHY2.HEX */; };
-		59F9126A188AC44900EF5ED8 /* QHY2PRO.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F91238188AC3E900EF5ED8 /* QHY2PRO.HEX */; };
-		59F9126B188AC44900EF5ED8 /* QHY5.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F91239188AC3E900EF5ED8 /* QHY5.HEX */; };
-		59F9126C188AC44900EF5ED8 /* QHY5II.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F9123A188AC3E900EF5ED8 /* QHY5II.HEX */; };
-		59F9126D188AC44900EF5ED8 /* QHY5LOADER.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F9123B188AC3E900EF5ED8 /* QHY5LOADER.HEX */; };
-		59F9126E188AC44900EF5ED8 /* QHY6.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F9123C188AC3E900EF5ED8 /* QHY6.HEX */; };
-		59F9126F188AC44900EF5ED8 /* QHY6PRO.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F9123D188AC3E900EF5ED8 /* QHY6PRO.HEX */; };
-		59F91270188AC44900EF5ED8 /* QHY7.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F9123E188AC3E900EF5ED8 /* QHY7.HEX */; };
-		59F91271188AC44900EF5ED8 /* QHY8.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F9123F188AC3E900EF5ED8 /* QHY8.HEX */; };
-		59F91272188AC44900EF5ED8 /* QHY8L.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F91240188AC3E900EF5ED8 /* QHY8L.HEX */; };
-		59F91273188AC44900EF5ED8 /* QHY8M.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F91241188AC3E900EF5ED8 /* QHY8M.HEX */; };
-		59F91274188AC44900EF5ED8 /* QHY8PRO.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F91242188AC3E900EF5ED8 /* QHY8PRO.HEX */; };
-		59F91275188AC44900EF5ED8 /* QHY9.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F91243188AC3E900EF5ED8 /* QHY9.HEX */; };
-		59F91276188AC44900EF5ED8 /* QHY9L.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F91244188AC3E900EF5ED8 /* QHY9L.HEX */; };
-		59F91277188AC44900EF5ED8 /* QHY10.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F91245188AC3E900EF5ED8 /* QHY10.HEX */; };
-		59F91278188AC44900EF5ED8 /* QHY11.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F91246188AC3E900EF5ED8 /* QHY11.HEX */; };
-		59F91279188AC44900EF5ED8 /* QHY12.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F91247188AC3E900EF5ED8 /* QHY12.HEX */; };
-		59F9127A188AC44900EF5ED8 /* QHY15.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F91248188AC3E900EF5ED8 /* QHY15.HEX */; };
-		59F9127B188AC44900EF5ED8 /* QHY16.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F91249188AC3E900EF5ED8 /* QHY16.HEX */; };
-		59F9127C188AC44900EF5ED8 /* QHY20.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F9124A188AC3E900EF5ED8 /* QHY20.HEX */; };
-		59F9127D188AC44900EF5ED8 /* QHY21.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F9124B188AC3E900EF5ED8 /* QHY21.HEX */; };
-		59F9127E188AC44900EF5ED8 /* QHY22.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F9124C188AC3E900EF5ED8 /* QHY22.HEX */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -201,34 +201,18 @@
 			dstPath = lib/firmware;
 			dstSubfolderSpec = 7;
 			files = (
-				59F91269188AC44900EF5ED8 /* QHY2.HEX in CopyFiles */,
-				59F9126A188AC44900EF5ED8 /* QHY2PRO.HEX in CopyFiles */,
-				59F9126B188AC44900EF5ED8 /* QHY5.HEX in CopyFiles */,
-				59F9126C188AC44900EF5ED8 /* QHY5II.HEX in CopyFiles */,
-				59F9126D188AC44900EF5ED8 /* QHY5LOADER.HEX in CopyFiles */,
-				59F9126E188AC44900EF5ED8 /* QHY6.HEX in CopyFiles */,
-				59F9126F188AC44900EF5ED8 /* QHY6PRO.HEX in CopyFiles */,
-				59F91270188AC44900EF5ED8 /* QHY7.HEX in CopyFiles */,
-				59F91271188AC44900EF5ED8 /* QHY8.HEX in CopyFiles */,
-				59F91272188AC44900EF5ED8 /* QHY8L.HEX in CopyFiles */,
-				59F91273188AC44900EF5ED8 /* QHY8M.HEX in CopyFiles */,
-				59F91274188AC44900EF5ED8 /* QHY8PRO.HEX in CopyFiles */,
-				59F91275188AC44900EF5ED8 /* QHY9.HEX in CopyFiles */,
-				59F91276188AC44900EF5ED8 /* QHY9L.HEX in CopyFiles */,
-				59F91277188AC44900EF5ED8 /* QHY10.HEX in CopyFiles */,
-				59F91278188AC44900EF5ED8 /* QHY11.HEX in CopyFiles */,
-				59F91279188AC44900EF5ED8 /* QHY12.HEX in CopyFiles */,
-				59F9127A188AC44900EF5ED8 /* QHY15.HEX in CopyFiles */,
-				59F9127B188AC44900EF5ED8 /* QHY16.HEX in CopyFiles */,
-				59F9127C188AC44900EF5ED8 /* QHY20.HEX in CopyFiles */,
-				59F9127D188AC44900EF5ED8 /* QHY21.HEX in CopyFiles */,
-				59F9127E188AC44900EF5ED8 /* QHY22.HEX in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		591991A6188FC99E007DD2DE /* indiserver-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "indiserver-Info.plist"; sourceTree = "<group>"; };
+		591991A7188FC9AD007DD2DE /* indiserver.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = indiserver.c; path = ../../libindi/indiserver.c; sourceTree = "<group>"; };
+		591991A9188FC9BA007DD2DE /* fq.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fq.c; path = ../../libindi/fq.c; sourceTree = "<group>"; };
+		591991AA188FC9BA007DD2DE /* fq.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = fq.h; path = ../../libindi/fq.h; sourceTree = "<group>"; };
+		591991AC188FC9CA007DD2DE /* lilxml.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = lilxml.c; path = ../../libindi/libs/lilxml.c; sourceTree = "<group>"; };
+		591991AD188FC9CA007DD2DE /* lilxml.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = lilxml.h; path = ../../libindi/libs/lilxml.h; sourceTree = "<group>"; };
 		594D0B33188300ED00B50F4E /* INDI Server.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "INDI Server.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		594D0B36188300ED00B50F4E /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		594D0B39188300ED00B50F4E /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
@@ -252,12 +236,28 @@
 		597B890E1887E6FF0093873A /* SecurityFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SecurityFoundation.framework; path = System/Library/Frameworks/SecurityFoundation.framework; sourceTree = SDKROOT; };
 		597B89111887E77F0093873A /* ServiceManagement.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ServiceManagement.framework; path = System/Library/Frameworks/ServiceManagement.framework; sourceTree = SDKROOT; };
 		597B89241888016F0093873A /* indiserver */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indiserver; sourceTree = BUILT_PRODUCTS_DIR; };
-		597B8936188807ED0093873A /* indiserver-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist; path = "indiserver-Info.plist"; sourceTree = "<group>"; };
-		59A4062A188AC9FD00FAFE20 /* indiserver.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = indiserver.c; path = ../../../libindi/indiserver.c; sourceTree = "<group>"; };
-		59A4062C188ACA2A00FAFE20 /* fq.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = fq.h; path = ../../../libindi/fq.h; sourceTree = "<group>"; };
-		59A4062D188ACA2A00FAFE20 /* fq.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fq.c; path = ../../../libindi/fq.c; sourceTree = "<group>"; };
-		59A4062F188ACA3900FAFE20 /* lilxml.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = lilxml.h; path = ../../../libindi/libs/lilxml.h; sourceTree = "<group>"; };
-		59A40630188ACA3900FAFE20 /* lilxml.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = lilxml.c; path = ../../../libindi/libs/lilxml.c; sourceTree = "<group>"; };
+		59AABF01188E669A00B454C8 /* QHY2.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY2.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7.1393/lib/firmware/QHY2.HEX"; sourceTree = "<group>"; };
+		59AABF02188E669A00B454C8 /* QHY2PRO.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY2PRO.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7.1393/lib/firmware/QHY2PRO.HEX"; sourceTree = "<group>"; };
+		59AABF03188E669A00B454C8 /* QHY5.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY5.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7.1393/lib/firmware/QHY5.HEX"; sourceTree = "<group>"; };
+		59AABF04188E669A00B454C8 /* QHY5II.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY5II.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7.1393/lib/firmware/QHY5II.HEX"; sourceTree = "<group>"; };
+		59AABF05188E669A00B454C8 /* QHY5LOADER.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY5LOADER.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7.1393/lib/firmware/QHY5LOADER.HEX"; sourceTree = "<group>"; };
+		59AABF06188E669A00B454C8 /* QHY6.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY6.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7.1393/lib/firmware/QHY6.HEX"; sourceTree = "<group>"; };
+		59AABF07188E669A00B454C8 /* QHY6PRO.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY6PRO.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7.1393/lib/firmware/QHY6PRO.HEX"; sourceTree = "<group>"; };
+		59AABF08188E669A00B454C8 /* QHY7.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY7.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7.1393/lib/firmware/QHY7.HEX"; sourceTree = "<group>"; };
+		59AABF09188E669A00B454C8 /* QHY8.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY8.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7.1393/lib/firmware/QHY8.HEX"; sourceTree = "<group>"; };
+		59AABF0A188E669A00B454C8 /* QHY8L.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY8L.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7.1393/lib/firmware/QHY8L.HEX"; sourceTree = "<group>"; };
+		59AABF0B188E669A00B454C8 /* QHY8M.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY8M.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7.1393/lib/firmware/QHY8M.HEX"; sourceTree = "<group>"; };
+		59AABF0C188E669A00B454C8 /* QHY8PRO.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY8PRO.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7.1393/lib/firmware/QHY8PRO.HEX"; sourceTree = "<group>"; };
+		59AABF0D188E669A00B454C8 /* QHY9.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY9.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7.1393/lib/firmware/QHY9.HEX"; sourceTree = "<group>"; };
+		59AABF0E188E669A00B454C8 /* QHY9L.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY9L.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7.1393/lib/firmware/QHY9L.HEX"; sourceTree = "<group>"; };
+		59AABF0F188E669A00B454C8 /* QHY10.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY10.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7.1393/lib/firmware/QHY10.HEX"; sourceTree = "<group>"; };
+		59AABF10188E669A00B454C8 /* QHY11.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY11.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7.1393/lib/firmware/QHY11.HEX"; sourceTree = "<group>"; };
+		59AABF11188E669A00B454C8 /* QHY12.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY12.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7.1393/lib/firmware/QHY12.HEX"; sourceTree = "<group>"; };
+		59AABF12188E669A00B454C8 /* QHY15.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY15.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7.1393/lib/firmware/QHY15.HEX"; sourceTree = "<group>"; };
+		59AABF13188E669A00B454C8 /* QHY16.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY16.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7.1393/lib/firmware/QHY16.HEX"; sourceTree = "<group>"; };
+		59AABF14188E669A00B454C8 /* QHY20.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY20.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7.1393/lib/firmware/QHY20.HEX"; sourceTree = "<group>"; };
+		59AABF15188E669A00B454C8 /* QHY21.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY21.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7.1393/lib/firmware/QHY21.HEX"; sourceTree = "<group>"; };
+		59AABF16188E669A00B454C8 /* QHY22.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY22.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7.1393/lib/firmware/QHY22.HEX"; sourceTree = "<group>"; };
 		59B7AD0718872403005B06B4 /* SecurityInterface.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SecurityInterface.framework; path = System/Library/Frameworks/SecurityInterface.framework; sourceTree = SDKROOT; };
 		59DE026718830F46007E5AE2 /* indi_atik_ccd */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_atik_ccd; path = /usr/local/bin/indi_atik_ccd; sourceTree = "<absolute>"; };
 		59DE026818830F46007E5AE2 /* indi_atik_wheel */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_atik_wheel; path = /usr/local/bin/indi_atik_wheel; sourceTree = "<absolute>"; };
@@ -305,28 +305,6 @@
 		59F9122E188AC3C300EF5ED8 /* libindimain.0.9.7.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libindimain.0.9.7.dylib; path = ../../../../../../usr/local/lib/libindimain.0.9.7.dylib; sourceTree = "<group>"; };
 		59F9122F188AC3C300EF5ED8 /* libnova-0.15.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libnova-0.15.0.dylib"; path = "../../../../../../usr/local/lib/libnova-0.15.0.dylib"; sourceTree = "<group>"; };
 		59F91230188AC3C300EF5ED8 /* libusb-1.0.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libusb-1.0.0.dylib"; path = "../../../../../../usr/local/lib/libusb-1.0.0.dylib"; sourceTree = "<group>"; };
-		59F91237188AC3E900EF5ED8 /* QHY2.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY2.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7/lib/firmware/QHY2.HEX"; sourceTree = "<group>"; };
-		59F91238188AC3E900EF5ED8 /* QHY2PRO.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY2PRO.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7/lib/firmware/QHY2PRO.HEX"; sourceTree = "<group>"; };
-		59F91239188AC3E900EF5ED8 /* QHY5.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY5.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7/lib/firmware/QHY5.HEX"; sourceTree = "<group>"; };
-		59F9123A188AC3E900EF5ED8 /* QHY5II.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY5II.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7/lib/firmware/QHY5II.HEX"; sourceTree = "<group>"; };
-		59F9123B188AC3E900EF5ED8 /* QHY5LOADER.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY5LOADER.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7/lib/firmware/QHY5LOADER.HEX"; sourceTree = "<group>"; };
-		59F9123C188AC3E900EF5ED8 /* QHY6.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY6.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7/lib/firmware/QHY6.HEX"; sourceTree = "<group>"; };
-		59F9123D188AC3E900EF5ED8 /* QHY6PRO.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY6PRO.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7/lib/firmware/QHY6PRO.HEX"; sourceTree = "<group>"; };
-		59F9123E188AC3E900EF5ED8 /* QHY7.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY7.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7/lib/firmware/QHY7.HEX"; sourceTree = "<group>"; };
-		59F9123F188AC3E900EF5ED8 /* QHY8.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY8.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7/lib/firmware/QHY8.HEX"; sourceTree = "<group>"; };
-		59F91240188AC3E900EF5ED8 /* QHY8L.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY8L.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7/lib/firmware/QHY8L.HEX"; sourceTree = "<group>"; };
-		59F91241188AC3E900EF5ED8 /* QHY8M.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY8M.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7/lib/firmware/QHY8M.HEX"; sourceTree = "<group>"; };
-		59F91242188AC3E900EF5ED8 /* QHY8PRO.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY8PRO.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7/lib/firmware/QHY8PRO.HEX"; sourceTree = "<group>"; };
-		59F91243188AC3E900EF5ED8 /* QHY9.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY9.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7/lib/firmware/QHY9.HEX"; sourceTree = "<group>"; };
-		59F91244188AC3E900EF5ED8 /* QHY9L.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY9L.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7/lib/firmware/QHY9L.HEX"; sourceTree = "<group>"; };
-		59F91245188AC3E900EF5ED8 /* QHY10.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY10.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7/lib/firmware/QHY10.HEX"; sourceTree = "<group>"; };
-		59F91246188AC3E900EF5ED8 /* QHY11.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY11.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7/lib/firmware/QHY11.HEX"; sourceTree = "<group>"; };
-		59F91247188AC3E900EF5ED8 /* QHY12.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY12.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7/lib/firmware/QHY12.HEX"; sourceTree = "<group>"; };
-		59F91248188AC3E900EF5ED8 /* QHY15.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY15.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7/lib/firmware/QHY15.HEX"; sourceTree = "<group>"; };
-		59F91249188AC3E900EF5ED8 /* QHY16.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY16.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7/lib/firmware/QHY16.HEX"; sourceTree = "<group>"; };
-		59F9124A188AC3E900EF5ED8 /* QHY20.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY20.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7/lib/firmware/QHY20.HEX"; sourceTree = "<group>"; };
-		59F9124B188AC3E900EF5ED8 /* QHY21.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY21.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7/lib/firmware/QHY21.HEX"; sourceTree = "<group>"; };
-		59F9124C188AC3E900EF5ED8 /* QHY22.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = QHY22.HEX; path = "../../../../../../usr/local/Cellar/indi-qhy/0.9.7/lib/firmware/QHY22.HEX"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -350,12 +328,25 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		591991AF188FC9D3007DD2DE /* indiserver */ = {
+			isa = PBXGroup;
+			children = (
+				591991A6188FC99E007DD2DE /* indiserver-Info.plist */,
+				591991A7188FC9AD007DD2DE /* indiserver.c */,
+				591991A9188FC9BA007DD2DE /* fq.c */,
+				591991AA188FC9BA007DD2DE /* fq.h */,
+				591991AC188FC9CA007DD2DE /* lilxml.c */,
+				591991AD188FC9CA007DD2DE /* lilxml.h */,
+			);
+			name = indiserver;
+			sourceTree = "<group>";
+		};
 		594D0B2A188300ED00B50F4E = {
 			isa = PBXGroup;
 			children = (
 				59DE01F618830E3C007E5AE2 /* INDI */,
+				591991AF188FC9D3007DD2DE /* indiserver */,
 				594D0B3C188300ED00B50F4E /* INDI Server */,
-				597B89251888016F0093873A /* indiserver */,
 				594D0B35188300ED00B50F4E /* Frameworks */,
 				594D0B34188300ED00B50F4E /* Products */,
 			);
@@ -425,45 +416,31 @@
 			path = en.lproj;
 			sourceTree = SOURCE_ROOT;
 		};
-		597B89251888016F0093873A /* indiserver */ = {
-			isa = PBXGroup;
-			children = (
-				59A4062A188AC9FD00FAFE20 /* indiserver.c */,
-				59A4062C188ACA2A00FAFE20 /* fq.h */,
-				59A4062D188ACA2A00FAFE20 /* fq.c */,
-				59A4062F188ACA3900FAFE20 /* lilxml.h */,
-				59A40630188ACA3900FAFE20 /* lilxml.c */,
-				597B8936188807ED0093873A /* indiserver-Info.plist */,
-			);
-			name = indiserver;
-			path = indiserverHelper;
-			sourceTree = "<group>";
-		};
 		59D95CE6188546D60008EFEE /* firmware */ = {
 			isa = PBXGroup;
 			children = (
-				59F91237188AC3E900EF5ED8 /* QHY2.HEX */,
-				59F91238188AC3E900EF5ED8 /* QHY2PRO.HEX */,
-				59F91239188AC3E900EF5ED8 /* QHY5.HEX */,
-				59F9123A188AC3E900EF5ED8 /* QHY5II.HEX */,
-				59F9123B188AC3E900EF5ED8 /* QHY5LOADER.HEX */,
-				59F9123C188AC3E900EF5ED8 /* QHY6.HEX */,
-				59F9123D188AC3E900EF5ED8 /* QHY6PRO.HEX */,
-				59F9123E188AC3E900EF5ED8 /* QHY7.HEX */,
-				59F9123F188AC3E900EF5ED8 /* QHY8.HEX */,
-				59F91240188AC3E900EF5ED8 /* QHY8L.HEX */,
-				59F91241188AC3E900EF5ED8 /* QHY8M.HEX */,
-				59F91242188AC3E900EF5ED8 /* QHY8PRO.HEX */,
-				59F91243188AC3E900EF5ED8 /* QHY9.HEX */,
-				59F91244188AC3E900EF5ED8 /* QHY9L.HEX */,
-				59F91245188AC3E900EF5ED8 /* QHY10.HEX */,
-				59F91246188AC3E900EF5ED8 /* QHY11.HEX */,
-				59F91247188AC3E900EF5ED8 /* QHY12.HEX */,
-				59F91248188AC3E900EF5ED8 /* QHY15.HEX */,
-				59F91249188AC3E900EF5ED8 /* QHY16.HEX */,
-				59F9124A188AC3E900EF5ED8 /* QHY20.HEX */,
-				59F9124B188AC3E900EF5ED8 /* QHY21.HEX */,
-				59F9124C188AC3E900EF5ED8 /* QHY22.HEX */,
+				59AABF01188E669A00B454C8 /* QHY2.HEX */,
+				59AABF02188E669A00B454C8 /* QHY2PRO.HEX */,
+				59AABF03188E669A00B454C8 /* QHY5.HEX */,
+				59AABF04188E669A00B454C8 /* QHY5II.HEX */,
+				59AABF05188E669A00B454C8 /* QHY5LOADER.HEX */,
+				59AABF06188E669A00B454C8 /* QHY6.HEX */,
+				59AABF07188E669A00B454C8 /* QHY6PRO.HEX */,
+				59AABF08188E669A00B454C8 /* QHY7.HEX */,
+				59AABF09188E669A00B454C8 /* QHY8.HEX */,
+				59AABF0A188E669A00B454C8 /* QHY8L.HEX */,
+				59AABF0B188E669A00B454C8 /* QHY8M.HEX */,
+				59AABF0C188E669A00B454C8 /* QHY8PRO.HEX */,
+				59AABF0D188E669A00B454C8 /* QHY9.HEX */,
+				59AABF0E188E669A00B454C8 /* QHY9L.HEX */,
+				59AABF0F188E669A00B454C8 /* QHY10.HEX */,
+				59AABF10188E669A00B454C8 /* QHY11.HEX */,
+				59AABF11188E669A00B454C8 /* QHY12.HEX */,
+				59AABF12188E669A00B454C8 /* QHY15.HEX */,
+				59AABF13188E669A00B454C8 /* QHY16.HEX */,
+				59AABF14188E669A00B454C8 /* QHY20.HEX */,
+				59AABF15188E669A00B454C8 /* QHY21.HEX */,
+				59AABF16188E669A00B454C8 /* QHY22.HEX */,
 			);
 			name = firmware;
 			sourceTree = "<group>";
@@ -602,6 +579,7 @@
 				ORGANIZATIONNAME = CloudMaker;
 				TargetAttributes = {
 					594D0B32188300ED00B50F4E = {
+						DevelopmentTeam = AG8BXW65A2;
 						SystemCapabilities = {
 							com.apple.Sandbox = {
 								enabled = 0;
@@ -634,10 +612,32 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				59AABF26188E669A00B454C8 /* QHY11.HEX in Resources */,
 				596EBB5A188AC60700190323 /* Images.xcassets in Resources */,
+				59AABF2C188E669A00B454C8 /* QHY22.HEX in Resources */,
+				59AABF27188E669A00B454C8 /* QHY12.HEX in Resources */,
 				596EBB59188AC60700190323 /* InfoPlist.strings in Resources */,
 				596EBB58188AC60700190323 /* Credits.rtf in Resources */,
+				59AABF2B188E669A00B454C8 /* QHY21.HEX in Resources */,
+				59AABF1C188E669A00B454C8 /* QHY6.HEX in Resources */,
+				59AABF17188E669A00B454C8 /* QHY2.HEX in Resources */,
+				59AABF19188E669A00B454C8 /* QHY5.HEX in Resources */,
+				59AABF2A188E669A00B454C8 /* QHY20.HEX in Resources */,
+				59AABF29188E669A00B454C8 /* QHY16.HEX in Resources */,
 				5979B2F9188ACE7200360C07 /* MainMenu.xib in Resources */,
+				59AABF1A188E669A00B454C8 /* QHY5II.HEX in Resources */,
+				59AABF28188E669A00B454C8 /* QHY15.HEX in Resources */,
+				59AABF20188E669A00B454C8 /* QHY8L.HEX in Resources */,
+				59AABF22188E669A00B454C8 /* QHY8PRO.HEX in Resources */,
+				59AABF1E188E669A00B454C8 /* QHY7.HEX in Resources */,
+				59AABF1B188E669A00B454C8 /* QHY5LOADER.HEX in Resources */,
+				59AABF1F188E669A00B454C8 /* QHY8.HEX in Resources */,
+				59AABF18188E669A00B454C8 /* QHY2PRO.HEX in Resources */,
+				59AABF1D188E669A00B454C8 /* QHY6PRO.HEX in Resources */,
+				59AABF21188E669A00B454C8 /* QHY8M.HEX in Resources */,
+				59AABF25188E669A00B454C8 /* QHY10.HEX in Resources */,
+				59AABF23188E669A00B454C8 /* QHY9.HEX in Resources */,
+				59AABF24188E669A00B454C8 /* QHY9L.HEX in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -676,9 +676,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				59A40631188ACA3900FAFE20 /* lilxml.c in Sources */,
-				59A4062E188ACA2A00FAFE20 /* fq.c in Sources */,
-				59A4062B188AC9FD00FAFE20 /* indiserver.c in Sources */,
+				591991A8188FC9AD007DD2DE /* indiserver.c in Sources */,
+				591991AE188FC9CB007DD2DE /* lilxml.c in Sources */,
+				591991AB188FC9BA007DD2DE /* fq.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -791,6 +791,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "Developer ID Application";
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "INDI Server-Prefix.pch";
 				INFOPLIST_FILE = "INDI Server-Info.plist";
@@ -803,6 +804,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "Developer ID Application";
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "INDI Server-Prefix.pch";
 				INFOPLIST_FILE = "INDI Server-Info.plist";

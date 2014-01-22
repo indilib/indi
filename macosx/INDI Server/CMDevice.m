@@ -29,6 +29,7 @@
     _name = [coder decodeObjectForKey:@"name"];
     _driver = [coder decodeObjectForKey:@"driver"];
     _version = [coder decodeObjectForKey:@"version"];
+    _status = IDLE;
   }
   return self;
 }

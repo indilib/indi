@@ -27,7 +27,8 @@
 #import "CMGroup.h"
 #import "CMDevice.h"
 
-#define PIPE_NAME "/tmp/indiserverFIFO"
+#define LOGNAME "/Users/%s/Library/Logs/indiserver.log"
+#define FIFONAME "/tmp/indiserverFIFO"
 
 @interface CMAppDelegate() {
   NSString *serverId;
@@ -48,7 +49,8 @@
 @property (weak) IBOutlet NSButton *addButton;
 @property (weak) IBOutlet NSButton *removeButton;
 @property (weak) IBOutlet NSButton *reloadButton;
-@property (weak) IBOutlet NSButton *startButton;
+@property (weak) IBOutlet NSImageView *statusImage;
+@property (weak) IBOutlet NSTextField *statusLabel;
 @property (unsafe_unretained) IBOutlet NSPanel *addDeviceSheet;
 
 @end
@@ -138,17 +140,30 @@
 
 - (id)tableView:(NSTableView *)tableView objectValueForTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row {
   CMDevice *device = devices[row];
-  if (device) {
-    return device.description;
-  }
-  return nil;
+  return device;
 }
 
-- (void)tableView:(NSTableView *)tableView setObjectValue:(id)object forTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row {
-  CMDevice *device = devices[row];
-  device.running = [(NSNumber *)object boolValue];
+- (NSView *)tableView:(NSTableView *)tableView viewForTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row {
+  NSTableCellView *cell = [tableView makeViewWithIdentifier:@"cell" owner:self];
+  CMDevice *device = [self tableView:tableView objectValueForTableColumn:tableColumn row:row];
+  cell.textField.stringValue = device.name;
+  switch (device.status) {
+    case STARTING:
+      cell.imageView.image = [NSImage imageNamed:@"NSStatusPartiallyAvailable"];
+      break;
+    case STARTED:
+      cell.imageView.image = [NSImage imageNamed:@"NSStatusAvailable"];
+      break;
+    case FAILED:
+      cell.imageView.image = [NSImage imageNamed:@"NSStatusUnavailable"];
+      break;
+    default:
+      cell.imageView.image = [NSImage imageNamed:@"NSStatusNone"];
+      break;
+  }
+  return cell;
 }
-  
+
 // NSXMLParserDelegate
 
 - (void)parser:(NSXMLParser *)parser didStartElement:(NSString *)elementName namespaceURI:(NSString *)namespaceURI qualifiedName:(NSString *)qName attributes:(NSDictionary *)attributeDict {
@@ -211,14 +226,7 @@
 // NSApplicationDelegate
 
 - (void)applicationDidFinishLaunching:(NSNotification *)notification {
-  unlink(PIPE_NAME);
   [self startServer];
-  for (int i = 0; i < 10; i++) {
-    pipe = open(PIPE_NAME, O_RDWR);
-    if (pipe > 0)
-      break;
-    [NSThread sleepForTimeInterval:1.0];
-  }
   NSError *error = nil;
   NSMutableString *root = [NSMutableString stringWithString:@"<?xml version='1.0' encoding='UTF-8'?>"];
   [root appendString:@"<root>"];
@@ -236,6 +244,7 @@
   [parser setShouldReportNamespacePrefixes:NO];
   [parser setShouldResolveExternalEntities:YES];
   [parser parse];
+  [_deviceTree reloadData];
   devices = [NSMutableArray array];
   NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
   NSData *data = [defaults objectForKey:@"devices"];
@@ -245,14 +254,15 @@
       for (CMGroup *group in groups) {
         for (CMDevice *device in group.devices) {
           if ([device.name isEqualToString:savedDevice.name]) {
-            [devices addObject:device];
+            @synchronized(devices) {
+              [devices addObject:device];
+            }
             [self startDriver:device];
           }
         }
       }
     }
   }
-  [_deviceTree reloadData];
   [_deviceList reloadData];
   [_removeButton setEnabled:NO];
   [_reloadButton setEnabled:NO];
@@ -260,12 +270,67 @@
 
 -(void) applicationWillTerminate:(NSNotification *)notification {
   [self stopServer];
-  unlink(PIPE_NAME);
 }
 
 // CMAppDelegate
 
+-(void) setStatus:(CMStatus)status to:(NSString *)driver {
+  @synchronized(devices) {
+    for (CMDevice *device in devices) {
+      if ([device.driver isEqualToString:driver]) {
+        device.status = status;
+        [_deviceList performSelectorOnMainThread:@selector(reloadData) withObject:nil waitUntilDone:NO];
+        return;
+      }
+    }
+  }
+  NSLog(@"%@ not found in %@", driver, devices);
+}
+
+-(void) logReader:(NSString *)logname {
+  char buffer[1024];
+  char driver[128];
+  FILE *log = NULL;
+  long pos;
+  NSLog(@"logReader started");
+  while (!log) {
+    sleep(1);
+    log = fopen([logname cStringUsingEncoding:NSASCIIStringEncoding], "r");
+  }
+  _statusImage.image = [NSImage imageNamed:@"NSStatusAvailable"];
+  _statusLabel.stringValue = @"Server is running...";
+  while (true) {
+    pos = ftell(log);
+    while (!fgets(buffer, 1024, log)) {
+      sleep(1);
+      fseek(log, pos, SEEK_SET);
+    }
+    if (sscanf(buffer, "STARTING \"%128[^\"]\"", driver) == 1) {
+      NSLog(@"starting %s", driver);
+      [self setStatus:STARTING to:[NSString stringWithCString:driver encoding:NSASCIIStringEncoding]];
+    } else if (sscanf(buffer, "STARTED \"%128[^\"]\"", driver) == 1) {
+      NSLog(@"started %s", driver);
+      [self setStatus:STARTED to:[NSString stringWithCString:driver encoding:NSASCIIStringEncoding]];
+    } else if (sscanf(buffer, "FAILED \"%128[^\"]\"", driver) == 1) {
+      NSLog(@"failed %s", driver);
+      [self setStatus:FAILED to:[NSString stringWithCString:driver encoding:NSASCIIStringEncoding]];
+    }
+  }
+}
+
 -(void) startServer {
+  _statusImage.image = [NSImage imageNamed:@"NSStatusPartiallyAvailable"];
+  _statusLabel.stringValue = @"Clean up...";
+  char logname[1024];
+  snprintf(logname, 1024, LOGNAME, getlogin());
+  unlink(logname);
+  unlink(FIFONAME);
+  mode_t cmask = umask(0);
+  mkfifo(FIFONAME, 0666);
+  umask(cmask);
+  pipe = open(FIFONAME, O_RDWR);
+  
+  _statusLabel.stringValue = @"Installing server job...";
   SMJobRemove(kSMDomainUserLaunchd, (__bridge CFStringRef)serverId, nil, false, NULL);
   NSMutableDictionary *plist = [NSMutableDictionary dictionary];
   [plist setObject:serverId forKey:@"Label"];
@@ -274,18 +339,19 @@
   CFErrorRef error;
   if (SMJobSubmit(kSMDomainUserLaunchd, (__bridge CFDictionaryRef)plist, nil, &error)) {
   } else {
-    NSLog(@"Submit failed with error %@", error);
+    _statusImage.image = [NSImage imageNamed:@"NSStatusUnavailable"];
+    _statusLabel.stringValue = @"Server job failed!";
+    NSLog(@"Server job failed %@", error);
   }
   if ( error ) {
     CFRelease(error);
   }
+  [[[NSThread alloc] initWithTarget:self selector:@selector(logReader:) object:[NSString stringWithCString:logname encoding:NSASCIIStringEncoding]] start];
 }
 
 -(void) stopServer {
   SMJobRemove(kSMDomainUserLaunchd, (__bridge CFStringRef)serverId, nil, false, NULL);
-}
-
--(IBAction)startServer:(id)sender {
+  unlink(FIFONAME);
 }
 
 - (IBAction) showAddSheet:(id)sender {
@@ -296,7 +362,9 @@
   long row = _deviceList.selectedRow;
   CMDevice *item = devices[row];
   [self stopDriver:item];
-  [devices removeObject:item];
+  @synchronized(devices) {
+    [devices removeObject:item];
+  }
   [_deviceList reloadData];
   [self save];
   if (_deviceList.selectedRow >= 0) {
@@ -310,7 +378,9 @@
   CMDevice *item = [_deviceTree itemAtRow:row];
   if ([item class] == [CMDevice class] && ![devices containsObject:item]) {
     [self startDriver:item];
-    [devices addObject:item];
+    @synchronized(devices) {
+      [devices addObject:item];
+    }
     [_deviceList reloadData];
     [self save];
   }

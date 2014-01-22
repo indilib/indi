@@ -23,8 +23,10 @@
 
 @interface CMDevice : NSObject
 
+typedef enum { IDLE, STARTING, STARTED, FAILED } CMStatus;
+
 @property NSString *name;
 @property NSString *driver;
 @property NSString *version;
-@property bool running;
+@property CMStatus status;
 @end
