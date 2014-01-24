@@ -7,31 +7,32 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		590FEAF21892BC5C00F85808 /* QHY10.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 591F82CC189051AF00EA2E8C /* QHY10.HEX */; };
+		590FEAF31892BC5C00F85808 /* QHY11.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 591F82CD189051AF00EA2E8C /* QHY11.HEX */; };
+		590FEAF41892BC5C00F85808 /* QHY12.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 591F82CE189051AF00EA2E8C /* QHY12.HEX */; };
+		590FEAF51892BC5C00F85808 /* QHY15.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 591F82CF189051AF00EA2E8C /* QHY15.HEX */; };
+		590FEAF61892BC5C00F85808 /* QHY16.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 591F82D0189051AF00EA2E8C /* QHY16.HEX */; };
+		590FEAF71892BC5C00F85808 /* QHY2.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 591F82D1189051AF00EA2E8C /* QHY2.HEX */; };
+		590FEAF81892BC5C00F85808 /* QHY20.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 591F82D2189051AF00EA2E8C /* QHY20.HEX */; };
+		590FEAF91892BC5D00F85808 /* QHY21.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 591F82D3189051AF00EA2E8C /* QHY21.HEX */; };
+		590FEAFA1892BC5D00F85808 /* QHY22.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 591F82D4189051AF00EA2E8C /* QHY22.HEX */; };
+		590FEAFB1892BC5D00F85808 /* QHY2PRO.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 591F82D5189051AF00EA2E8C /* QHY2PRO.HEX */; };
+		590FEAFC1892BC5D00F85808 /* QHY5.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 591F82D6189051AF00EA2E8C /* QHY5.HEX */; };
+		590FEAFD1892BC5D00F85808 /* QHY5II.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 591F82D7189051AF00EA2E8C /* QHY5II.HEX */; };
+		590FEAFE1892BC5D00F85808 /* QHY5LOADER.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 591F82D8189051AF00EA2E8C /* QHY5LOADER.HEX */; };
+		590FEAFF1892BC5D00F85808 /* QHY6.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 591F82D9189051AF00EA2E8C /* QHY6.HEX */; };
+		590FEB001892BC5D00F85808 /* QHY6PRO.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 591F82DA189051AF00EA2E8C /* QHY6PRO.HEX */; };
+		590FEB011892BC5D00F85808 /* QHY7.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 591F82DB189051AF00EA2E8C /* QHY7.HEX */; };
+		590FEB021892BC5D00F85808 /* QHY8.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 591F82DC189051AF00EA2E8C /* QHY8.HEX */; };
+		590FEB031892BC5D00F85808 /* QHY8L.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 591F82DD189051AF00EA2E8C /* QHY8L.HEX */; };
+		590FEB041892BC5D00F85808 /* QHY8M.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 591F82DE189051AF00EA2E8C /* QHY8M.HEX */; };
+		590FEB051892BC5D00F85808 /* QHY8PRO.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 591F82DF189051AF00EA2E8C /* QHY8PRO.HEX */; };
+		590FEB061892BC5D00F85808 /* QHY9.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 591F82E0189051AF00EA2E8C /* QHY9.HEX */; };
+		590FEB071892BC5D00F85808 /* QHY9L.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 591F82E1189051AF00EA2E8C /* QHY9L.HEX */; };
+		590FEB0D1892BFFF00F85808 /* libindidriver.0.9.7.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 590FEB081892BCDC00F85808 /* libindidriver.0.9.7.dylib */; };
 		591991A8188FC9AD007DD2DE /* indiserver.c in Sources */ = {isa = PBXBuildFile; fileRef = 591991A7188FC9AD007DD2DE /* indiserver.c */; };
 		591991AB188FC9BA007DD2DE /* fq.c in Sources */ = {isa = PBXBuildFile; fileRef = 591991A9188FC9BA007DD2DE /* fq.c */; };
 		591991AE188FC9CB007DD2DE /* lilxml.c in Sources */ = {isa = PBXBuildFile; fileRef = 591991AC188FC9CA007DD2DE /* lilxml.c */; };
-		591F82E2189051AF00EA2E8C /* QHY10.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 591F82CC189051AF00EA2E8C /* QHY10.HEX */; };
-		591F82E3189051AF00EA2E8C /* QHY11.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 591F82CD189051AF00EA2E8C /* QHY11.HEX */; };
-		591F82E4189051AF00EA2E8C /* QHY12.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 591F82CE189051AF00EA2E8C /* QHY12.HEX */; };
-		591F82E5189051AF00EA2E8C /* QHY15.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 591F82CF189051AF00EA2E8C /* QHY15.HEX */; };
-		591F82E6189051AF00EA2E8C /* QHY16.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 591F82D0189051AF00EA2E8C /* QHY16.HEX */; };
-		591F82E7189051AF00EA2E8C /* QHY2.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 591F82D1189051AF00EA2E8C /* QHY2.HEX */; };
-		591F82E8189051AF00EA2E8C /* QHY20.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 591F82D2189051AF00EA2E8C /* QHY20.HEX */; };
-		591F82E9189051AF00EA2E8C /* QHY21.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 591F82D3189051AF00EA2E8C /* QHY21.HEX */; };
-		591F82EA189051AF00EA2E8C /* QHY22.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 591F82D4189051AF00EA2E8C /* QHY22.HEX */; };
-		591F82EB189051AF00EA2E8C /* QHY2PRO.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 591F82D5189051AF00EA2E8C /* QHY2PRO.HEX */; };
-		591F82EC189051AF00EA2E8C /* QHY5.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 591F82D6189051AF00EA2E8C /* QHY5.HEX */; };
-		591F82ED189051AF00EA2E8C /* QHY5II.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 591F82D7189051AF00EA2E8C /* QHY5II.HEX */; };
-		591F82EE189051AF00EA2E8C /* QHY5LOADER.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 591F82D8189051AF00EA2E8C /* QHY5LOADER.HEX */; };
-		591F82EF189051AF00EA2E8C /* QHY6.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 591F82D9189051AF00EA2E8C /* QHY6.HEX */; };
-		591F82F0189051AF00EA2E8C /* QHY6PRO.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 591F82DA189051AF00EA2E8C /* QHY6PRO.HEX */; };
-		591F82F1189051AF00EA2E8C /* QHY7.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 591F82DB189051AF00EA2E8C /* QHY7.HEX */; };
-		591F82F2189051AF00EA2E8C /* QHY8.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 591F82DC189051AF00EA2E8C /* QHY8.HEX */; };
-		591F82F3189051AF00EA2E8C /* QHY8L.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 591F82DD189051AF00EA2E8C /* QHY8L.HEX */; };
-		591F82F4189051AF00EA2E8C /* QHY8M.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 591F82DE189051AF00EA2E8C /* QHY8M.HEX */; };
-		591F82F5189051AF00EA2E8C /* QHY8PRO.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 591F82DF189051AF00EA2E8C /* QHY8PRO.HEX */; };
-		591F82F6189051AF00EA2E8C /* QHY9.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 591F82E0189051AF00EA2E8C /* QHY9.HEX */; };
-		591F82F7189051AF00EA2E8C /* QHY9L.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 591F82E1189051AF00EA2E8C /* QHY9L.HEX */; };
 		596EBB55188AC60700190323 /* CMAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 596EBB46188AC60700190323 /* CMAppDelegate.m */; };
 		596EBB56188AC60700190323 /* CMDevice.m in Sources */ = {isa = PBXBuildFile; fileRef = 596EBB48188AC60700190323 /* CMDevice.m */; };
 		596EBB57188AC60700190323 /* CMGroup.m in Sources */ = {isa = PBXBuildFile; fileRef = 596EBB4A188AC60700190323 /* CMGroup.m */; };
@@ -86,7 +87,6 @@
 		59F9121E188AC2A400EF5ED8 /* indi_qhy_ccd in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F9121C188AC29800EF5ED8 /* indi_qhy_ccd */; };
 		59F91263188AC43900EF5ED8 /* libcfitsio.2.3.36.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F9122B188AC3C300EF5ED8 /* libcfitsio.2.3.36.dylib */; };
 		59F91264188AC43900EF5ED8 /* libindi.0.9.7.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F9122C188AC3C300EF5ED8 /* libindi.0.9.7.dylib */; };
-		59F91265188AC43900EF5ED8 /* libindidriver.0.9.7.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F9122D188AC3C300EF5ED8 /* libindidriver.0.9.7.dylib */; };
 		59F91266188AC43900EF5ED8 /* libindimain.0.9.7.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F9122E188AC3C300EF5ED8 /* libindimain.0.9.7.dylib */; };
 		59F91267188AC43900EF5ED8 /* libnova-0.15.0.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F9122F188AC3C300EF5ED8 /* libnova-0.15.0.dylib */; };
 		59F91268188AC43900EF5ED8 /* libusb-1.0.0.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F91230188AC3C300EF5ED8 /* libusb-1.0.0.dylib */; };
@@ -167,9 +167,9 @@
 			dstPath = lib;
 			dstSubfolderSpec = 7;
 			files = (
+				590FEB0D1892BFFF00F85808 /* libindidriver.0.9.7.dylib in CopyFiles */,
 				59F91263188AC43900EF5ED8 /* libcfitsio.2.3.36.dylib in CopyFiles */,
 				59F91264188AC43900EF5ED8 /* libindi.0.9.7.dylib in CopyFiles */,
-				59F91265188AC43900EF5ED8 /* libindidriver.0.9.7.dylib in CopyFiles */,
 				59F91266188AC43900EF5ED8 /* libindimain.0.9.7.dylib in CopyFiles */,
 				59F91267188AC43900EF5ED8 /* libnova-0.15.0.dylib in CopyFiles */,
 				59F91268188AC43900EF5ED8 /* libusb-1.0.0.dylib in CopyFiles */,
@@ -201,12 +201,35 @@
 			dstPath = lib/firmware;
 			dstSubfolderSpec = 7;
 			files = (
+				590FEAF21892BC5C00F85808 /* QHY10.HEX in CopyFiles */,
+				590FEAF31892BC5C00F85808 /* QHY11.HEX in CopyFiles */,
+				590FEAF41892BC5C00F85808 /* QHY12.HEX in CopyFiles */,
+				590FEAF51892BC5C00F85808 /* QHY15.HEX in CopyFiles */,
+				590FEAF61892BC5C00F85808 /* QHY16.HEX in CopyFiles */,
+				590FEAF71892BC5C00F85808 /* QHY2.HEX in CopyFiles */,
+				590FEAF81892BC5C00F85808 /* QHY20.HEX in CopyFiles */,
+				590FEAF91892BC5D00F85808 /* QHY21.HEX in CopyFiles */,
+				590FEAFA1892BC5D00F85808 /* QHY22.HEX in CopyFiles */,
+				590FEAFB1892BC5D00F85808 /* QHY2PRO.HEX in CopyFiles */,
+				590FEAFC1892BC5D00F85808 /* QHY5.HEX in CopyFiles */,
+				590FEAFD1892BC5D00F85808 /* QHY5II.HEX in CopyFiles */,
+				590FEAFE1892BC5D00F85808 /* QHY5LOADER.HEX in CopyFiles */,
+				590FEAFF1892BC5D00F85808 /* QHY6.HEX in CopyFiles */,
+				590FEB001892BC5D00F85808 /* QHY6PRO.HEX in CopyFiles */,
+				590FEB011892BC5D00F85808 /* QHY7.HEX in CopyFiles */,
+				590FEB021892BC5D00F85808 /* QHY8.HEX in CopyFiles */,
+				590FEB031892BC5D00F85808 /* QHY8L.HEX in CopyFiles */,
+				590FEB041892BC5D00F85808 /* QHY8M.HEX in CopyFiles */,
+				590FEB051892BC5D00F85808 /* QHY8PRO.HEX in CopyFiles */,
+				590FEB061892BC5D00F85808 /* QHY9.HEX in CopyFiles */,
+				590FEB071892BC5D00F85808 /* QHY9L.HEX in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		590FEB081892BCDC00F85808 /* libindidriver.0.9.7.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libindidriver.0.9.7.dylib; path = ../../../../../../usr/local/lib/libindidriver.0.9.7.dylib; sourceTree = "<group>"; };
 		591991A6188FC99E007DD2DE /* indiserver-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "indiserver-Info.plist"; sourceTree = "<group>"; };
 		591991A7188FC9AD007DD2DE /* indiserver.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = indiserver.c; path = ../../libindi/indiserver.c; sourceTree = "<group>"; };
 		591991A9188FC9BA007DD2DE /* fq.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fq.c; path = ../../libindi/fq.c; sourceTree = "<group>"; };
@@ -301,7 +324,6 @@
 		59F9121C188AC29800EF5ED8 /* indi_qhy_ccd */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_qhy_ccd; path = ../../../../../../usr/local/bin/indi_qhy_ccd; sourceTree = "<group>"; };
 		59F9122B188AC3C300EF5ED8 /* libcfitsio.2.3.36.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libcfitsio.2.3.36.dylib; path = ../../../../../../usr/local/lib/libcfitsio.2.3.36.dylib; sourceTree = "<group>"; };
 		59F9122C188AC3C300EF5ED8 /* libindi.0.9.7.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libindi.0.9.7.dylib; path = ../../../../../../usr/local/lib/libindi.0.9.7.dylib; sourceTree = "<group>"; };
-		59F9122D188AC3C300EF5ED8 /* libindidriver.0.9.7.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libindidriver.0.9.7.dylib; path = ../../../../../../usr/local/lib/libindidriver.0.9.7.dylib; sourceTree = "<group>"; };
 		59F9122E188AC3C300EF5ED8 /* libindimain.0.9.7.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libindimain.0.9.7.dylib; path = ../../../../../../usr/local/lib/libindimain.0.9.7.dylib; sourceTree = "<group>"; };
 		59F9122F188AC3C300EF5ED8 /* libnova-0.15.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libnova-0.15.0.dylib"; path = "../../../../../../usr/local/lib/libnova-0.15.0.dylib"; sourceTree = "<group>"; };
 		59F91230188AC3C300EF5ED8 /* libusb-1.0.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libusb-1.0.0.dylib"; path = "../../../../../../usr/local/lib/libusb-1.0.0.dylib"; sourceTree = "<group>"; };
@@ -498,8 +520,8 @@
 			isa = PBXGroup;
 			children = (
 				59F9122B188AC3C300EF5ED8 /* libcfitsio.2.3.36.dylib */,
+				590FEB081892BCDC00F85808 /* libindidriver.0.9.7.dylib */,
 				59F9122C188AC3C300EF5ED8 /* libindi.0.9.7.dylib */,
-				59F9122D188AC3C300EF5ED8 /* libindidriver.0.9.7.dylib */,
 				59F9122E188AC3C300EF5ED8 /* libindimain.0.9.7.dylib */,
 				59F9122F188AC3C300EF5ED8 /* libnova-0.15.0.dylib */,
 				59F91230188AC3C300EF5ED8 /* libusb-1.0.0.dylib */,
@@ -612,32 +634,10 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				591F82F3189051AF00EA2E8C /* QHY8L.HEX in Resources */,
 				596EBB5A188AC60700190323 /* Images.xcassets in Resources */,
 				596EBB59188AC60700190323 /* InfoPlist.strings in Resources */,
-				591F82F2189051AF00EA2E8C /* QHY8.HEX in Resources */,
-				591F82EA189051AF00EA2E8C /* QHY22.HEX in Resources */,
-				591F82E4189051AF00EA2E8C /* QHY12.HEX in Resources */,
-				591F82E7189051AF00EA2E8C /* QHY2.HEX in Resources */,
-				591F82EB189051AF00EA2E8C /* QHY2PRO.HEX in Resources */,
-				591F82F6189051AF00EA2E8C /* QHY9.HEX in Resources */,
-				591F82ED189051AF00EA2E8C /* QHY5II.HEX in Resources */,
-				591F82F0189051AF00EA2E8C /* QHY6PRO.HEX in Resources */,
-				591F82F1189051AF00EA2E8C /* QHY7.HEX in Resources */,
-				591F82EE189051AF00EA2E8C /* QHY5LOADER.HEX in Resources */,
-				591F82E3189051AF00EA2E8C /* QHY11.HEX in Resources */,
-				591F82E9189051AF00EA2E8C /* QHY21.HEX in Resources */,
-				591F82EC189051AF00EA2E8C /* QHY5.HEX in Resources */,
-				591F82F4189051AF00EA2E8C /* QHY8M.HEX in Resources */,
-				591F82F7189051AF00EA2E8C /* QHY9L.HEX in Resources */,
-				591F82EF189051AF00EA2E8C /* QHY6.HEX in Resources */,
-				591F82F5189051AF00EA2E8C /* QHY8PRO.HEX in Resources */,
-				591F82E5189051AF00EA2E8C /* QHY15.HEX in Resources */,
-				591F82E2189051AF00EA2E8C /* QHY10.HEX in Resources */,
 				596EBB58188AC60700190323 /* Credits.rtf in Resources */,
 				5979B2F9188ACE7200360C07 /* MainMenu.xib in Resources */,
-				591F82E8189051AF00EA2E8C /* QHY20.HEX in Resources */,
-				591F82E6189051AF00EA2E8C /* QHY16.HEX in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -656,7 +656,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "cd \"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/lib\"\nfor F in *\ndo\necho \"fixing $F\"\ninstall_name_tool -change /usr/local/lib/libindi.0.9.7.dylib @executable_path/../lib/libindi.0.9.7.dylib \"$F\"\ninstall_name_tool -change /usr/local/lib/libindidriver.0.9.7.dylib @executable_path/../lib/libindidriver.0.9.7.dylib \"$F\"\ninstall_name_tool -change /usr/local/lib/libindimain.0.9.7.dylib @executable_path/../lib/libindimain.0.9.7.dylib \"$F\"\ninstall_name_tool -change /usr/local/lib/libcfitsio.2.3.36.dylib @executable_path/../lib/libcfitsio.2.3.36.dylib \"$F\"\ninstall_name_tool -change /usr/local/lib/libnova-0.15.0.dylib @executable_path/../lib/libnova-0.15.0.dylib \"$F\"\ninstall_name_tool -change /usr/local/lib/libusb-1.0.0.dylib @executable_path/../lib/libusb-1.0.0.dylib \"$F\"\ndone\n\ncd \"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/bin\"\n\nfor F in *\ndo\necho \"fixing $F\"\ninstall_name_tool -change /usr/local/lib/libindi.0.9.7.dylib @executable_path/../lib/libindi.0.9.7.dylib \"$F\"\ninstall_name_tool -change /usr/local/lib/libindidriver.0.9.7.dylib @executable_path/../lib/libindidriver.0.9.7.dylib \"$F\"\ninstall_name_tool -change /usr/local/lib/libindimain.0.9.7.dylib @executable_path/../lib/libindimain.0.9.7.dylib \"$F\"\ninstall_name_tool -change /usr/local/lib/libcfitsio.2.3.36.dylib @executable_path/../lib/libcfitsio.2.3.36.dylib \"$F\"\ninstall_name_tool -change /usr/local/lib/libnova-0.15.0.dylib @executable_path/../lib/libnova-0.15.0.dylib \"$F\"\ninstall_name_tool -change /usr/local/lib/libusb-1.0.0.dylib @executable_path/../lib/libusb-1.0.0.dylib \"$F\"\ndone\n\n[ -f indi_lx200_16 ] && echo \"Found\" || ln -s indi_lx200generic indi_lx200_16\n[ -f indi_lx200ap ] && echo \"Found\" || ln -s indi_lx200genericlegacy indi_lx200ap\n[ -f indi_lx200autostar ] && echo \"Found\" || ln -s indi_lx200generic indi_lx200autostar\n[ -f indi_lx200classic ] && echo \"Found\" || ln -s indi_lx200generic indi_lx200classic\n[ -f indi_lx200fs2 ] && echo \"Found\" || ln -s indi_lx200genericlegacy indi_lx200fs2\n[ -f indi_lx200gps ] && echo \"Found\" || ln -s indi_lx200generic indi_lx200gps\n[ -f indi_tcfs3_focus ] && echo \"Found\" || ln -s indi_tcfs_focus indi_tcfs3_focus\n";
+			shellScript = "cd \"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/lib\"\nfor F in *.dylib\ndo\nF=`basename $F`\nfor L in `otool -L $F | grep \"/usr/local\" | awk '{ print $1 }'`\ndo\nBL=`basename $L`\nif [[ \"$F\" == \"$BL\" ]]\nthen\necho \"renaming $F\"\ninstall_name_tool -id @executable_path/../lib/$BL $F\nelse\necho \"fixing $BL in $F\"\ninstall_name_tool -change $L @executable_path/../lib/$BL $F\nfi\ndone\ndone\n\n[ -f libindi.0.dylib ] && echo \"Found\" || ln -s libindi.0.9.7.dylib libindi.0.dylib\n[ -f libindi.dylib ] && echo \"Found\" || ln -s libindi.0.dylib libindi.dylib\n\n[ -f libindidriver.0.dylib ] && echo \"Found\" || ln -s libindidriver.0.9.7.dylib libindidriver.0.dylib\n[ -f libindidriver.dylib ] && echo \"Found\" || ln -s libindidriver.0.dylib libindidriver\n\n[ -f libindimain.0.dylib ] && echo \"Found\" || ln -s libindimain.0.9.7.dylib libindimain.0.dylib\n[ -f libindimain.dylib ] && echo \"Found\" || ln -s libindimain.0.dylib libindimain\n\n[ -f libnova.dylib ] && echo \"Found\" || ln -s libnova.0.15.0.dylib libnova.dylib\n\n[ -f libusb.1.0.dylib ] && echo \"Found\" || ln -s libusb.1.0.0.dylib libusb.1.0.dylib\n\n[ -f libcfitsio.2.dylib ] && echo \"Found\" || ln -s libcfitsio.2.3.36.dylib libcfitsio.2.dylib\n[ -f libcfitsio.dylib ] && echo \"Found\" || ln -s libcfitsio.2.dylib libcfitsio.dylib\n\n\ncd \"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/bin\"\n\nfor F in *\ndo\nF=`basename $F`\nfor L in `otool -L $F | grep \"/usr/local\" | awk '{ print $1 }'`\ndo\nBL=`basename $L`\necho \"fixing $BL in $F\"\ninstall_name_tool -change $L @executable_path/../lib/$BL $F\ndone\ndone\n\n[ -f indi_lx200_16 ] && echo \"Found\" || ln -s indi_lx200generic indi_lx200_16\n[ -f indi_lx200ap ] && echo \"Found\" || ln -s indi_lx200genericlegacy indi_lx200ap\n[ -f indi_lx200autostar ] && echo \"Found\" || ln -s indi_lx200generic indi_lx200autostar\n[ -f indi_lx200classic ] && echo \"Found\" || ln -s indi_lx200generic indi_lx200classic\n[ -f indi_lx200fs2 ] && echo \"Found\" || ln -s indi_lx200genericlegacy indi_lx200fs2\n[ -f indi_lx200gps ] && echo \"Found\" || ln -s indi_lx200generic indi_lx200gps\n[ -f indi_tcfs3_focus ] && echo \"Found\" || ln -s indi_tcfs_focus indi_tcfs3_focus\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
