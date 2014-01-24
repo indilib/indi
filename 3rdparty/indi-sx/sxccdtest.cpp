@@ -26,7 +26,7 @@
  The full GNU General Public License is included in this distribution in the
  file called LICENSE.
  */
- 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -57,12 +57,12 @@ int main() {
   cout << "sx_ccd_test version " << VERSION_MAJOR << "." << VERSION_MINOR << endl << endl;
   n = sxList(devices, names, 20);
   cout << "sxList() -> " << n << endl << endl;
-  
+
   for (int j = 0; j < n; j++) {
     HANDLE handle;
-  
+
     cout << "testing " << names[j] << " -----------------------------------" << endl << endl;
-    
+
     i = sxOpen(devices[j], &handle);
     cout << "sxOpen() -> " << i << endl << endl;
 
@@ -77,11 +77,11 @@ int main() {
 
     //us = sxGetBuildNumber(handle);
     //cout << "sxGetBuildNumber() -> " << us << endl << endl;
-     
+
     memset(&params, 0, sizeof(params));
     i = sxGetCameraParams(handle, 0, &params);
     cout << "sxGetCameraParams() -> " << i << endl << endl;
-    
+
 
     i = sxSetTimer(handle, 900);
     cout << "sxSetTimer(900) -> " << i << endl << endl;
@@ -108,16 +108,16 @@ int main() {
     }
 
     i = sxClearPixels(handle, 0, 0);
-    cout << "sxClearPixels() -> " << i << endl << endl;
+    cout << "sxClearPixels(..., 0) -> " << i << endl << endl;
 
     usleep(1000);
 
     i = sxLatchPixels(handle, 0, 0, 0, 0, 10, 10, 1, 1);
-    cout << "sxLatchPixels() -> " << i << endl << endl;
+    cout << "sxLatchPixels(..., 0, ...) -> " << i << endl << endl;
 
     i = sxReadPixels(handle, pixels, 10*10);
     cout << "sxReadPixels() -> " << i << endl << endl;
-    
+
     for (int i=0; i<10; i++) {
       for (int j=0; j<10; j++)
         cout << pixels[i*10+j] << " ";
@@ -125,6 +125,25 @@ int main() {
     }
     cout << endl;
 
+    if (params.extra_caps & SXCCD_CAPS_GUIDER) {
+      i = sxClearPixels(handle, 0, 1);
+      cout << "sxClearPixels(..., 1) -> " << i << endl << endl;
+
+      usleep(1000);
+
+      i = sxLatchPixels(handle, 0, 1, 0, 0, 10, 10, 1, 1);
+      cout << "sxLatchPixels(..., 1, ...) -> " << i << endl << endl;
+
+      i = sxReadPixels(handle, pixels, 10*10);
+      cout << "sxReadPixels() -> " << i << endl << endl;
+
+      for (int i=0; i<10; i++) {
+        for (int j=0; j<10; j++)
+          cout << pixels[i*10+j] << " ";
+        cout << endl;
+      }
+      cout << endl;
+    }
 
     sxClose(&handle);
     cout << "sxClose() " << endl << endl;
