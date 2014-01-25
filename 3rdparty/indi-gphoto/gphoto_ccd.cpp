@@ -376,6 +376,11 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
           return true;
       }
 
+      if (strstr(name, "FOCUS"))
+      {
+          return processFocuserSwitch(dev, name, states, names, n);
+      }
+
       if(CamOptions.find(name) != CamOptions.end())
       {
           cam_opt *opt = CamOptions[name];
