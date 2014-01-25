@@ -464,6 +464,8 @@ bool EQMod::updateProperties()
 	  if ((latitude) && (latitude->value < 0.0)) SetSouthernHemisphere(true);
 	  else  SetSouthernHemisphere(false);
 
+      loadConfig(true);
+
 	} 
 	catch(EQModError e) {
 	  return(e.DefaultHandleException(this));

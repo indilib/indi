@@ -147,7 +147,10 @@ bool CelestronGPS::updateProperties()
     INDI::Telescope::updateProperties();
 
     if (isConnected())
+    {
         defineSwitch(&SlewModeSP);
+        loadConfig(true);
+    }
     else
         deleteProperty(SlewModeSP.name);
 

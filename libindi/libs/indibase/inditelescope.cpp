@@ -138,8 +138,6 @@ bool INDI::Telescope::updateProperties()
             defineSwitch(&ParkSP);
         defineNumber(&ScopeParametersNP);
 
-        loadConfig(true);
-
     }
     else
     {
