@@ -86,6 +86,7 @@ public:
 protected:
 
     void TimerHit();
+    bool SetSpeed(int speed);
     int Move(FocusDirection dir, int speed, int duration);
 
 private:

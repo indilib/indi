@@ -930,4 +930,12 @@ int GPhotoCCD::Move(FocusDirection dir, int speed, int duration)
    return 1;
 }
 
+bool GPhotoCCD::SetSpeed(int speed)
+{
+    if (speed >= FocusSpeedN[0].min && speed <= FocusSpeedN[0].max)
+        return true;
+
+    return false;
+}
+
 
