@@ -912,6 +912,8 @@ int GPhotoCCD::Move(FocusDirection dir, int speed, int duration)
    else
        focusSpeed = speed;
 
+   DEBUGF(INDI::Logger::DBG_DEBUG, "Setting focuser speed to %d", focusSpeed);
+
    if (duration <= FOCUS_TIMER)
    {
        if ( gphoto_manual_focus(gphotodrv, focusSpeed, errMsg) != GP_OK)
