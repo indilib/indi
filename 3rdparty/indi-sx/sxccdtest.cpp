@@ -80,7 +80,7 @@ int main() {
 
     memset(&params, 0, sizeof(params));
     i = sxGetCameraParams(handle, 0, &params);
-    cout << "sxGetCameraParams() -> " << i << endl << endl;
+    cout << "sxGetCameraParams(..., 0,...) -> " << i << endl << endl;
 
 
     i = sxSetTimer(handle, 900);
@@ -126,6 +126,10 @@ int main() {
     cout << endl;
 
     if (params.extra_caps & SXCCD_CAPS_GUIDER) {
+      memset(&params, 0, sizeof(params));
+      i = sxGetCameraParams(handle, 1, &params);
+      cout << "sxGetCameraParams(..., 1,...) -> " << i << endl << endl;
+
       i = sxClearPixels(handle, 0, 1);
       cout << "sxClearPixels(..., 1) -> " << i << endl << endl;
 

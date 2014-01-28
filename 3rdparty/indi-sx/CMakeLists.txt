@@ -5,7 +5,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 set(RULES_INSTALL_DIR "/etc/udev/rules.d")
 
 set (VERSION_MAJOR 1)
-set (VERSION_MINOR 5)
+set (VERSION_MINOR 6)
 
 configure_file (
   "${CMAKE_CURRENT_SOURCE_DIR}/sxconfig.h.in"

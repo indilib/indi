@@ -134,7 +134,7 @@ struct t_sxccd_params {
 /*
  * Prototypes.
  */
- 
+
 void sxDebug(bool enable);
 int sxList(DEVICE *sxDevices, const char **names, int maxCount);
 int sxOpen(HANDLE *sxHandles);
@@ -149,7 +149,7 @@ int sxClearPixels(HANDLE sxHandle, unsigned short flags, unsigned short camIndex
 int sxLatchPixels(HANDLE sxHandle, unsigned short flags, unsigned short camIndex, unsigned short xoffset, unsigned short yoffset, unsigned short width, unsigned short height, unsigned short xbin, unsigned short ybin);
 int sxExposePixels(HANDLE sxHandle, unsigned short flags, unsigned short camIndex, unsigned short xoffset, unsigned short yoffset, unsigned short width, unsigned short height, unsigned short xbin, unsigned short ybin, unsigned long msec);
 int sxExposePixelsGated(HANDLE sxHandle, unsigned short flags, unsigned short camIndex, unsigned short xoffset, unsigned short yoffset, unsigned short width, unsigned short height, unsigned short xbin, unsigned short ybin, unsigned long msec);
-int sxReadPixels(HANDLE sxHandle, unsigned short *pixels, unsigned long count);
+int sxReadPixels(HANDLE sxHandle, void *pixels, unsigned long count);
 int sxSetShutter(HANDLE sxHandle, unsigned short state);
 int sxSetTimer(HANDLE sxHandle, unsigned long msec);
 unsigned long sxGetTimer(HANDLE sxHandle);

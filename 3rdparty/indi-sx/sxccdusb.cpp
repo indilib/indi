@@ -150,7 +150,7 @@ static struct {
     { 0x200, "MX Camera" },
     { 0, NULL }
   };
-  
+
 libusb_context *ctx = NULL;
 
 #ifdef NO_ERROR_NAME
@@ -244,7 +244,7 @@ int sxOpen(DEVICE sxDevice, HANDLE *sxHandle) {
     if (libusb_kernel_driver_active(*sxHandle, 0) == 1) {
       rc = libusb_detach_kernel_driver(*sxHandle, 0);
       DEBUG(log(true, "sxOpen: libusb_detach_kernel_driver -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
-    }    
+    }
 //    if (rc >= 0) {
 //      rc = libusb_set_configuration(*sxHandle, 1);
 //      DEBUG(log(true, "sxOpen: libusb_set_configuration -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
@@ -617,8 +617,7 @@ int sxExposePixelsGated(HANDLE sxHandle, unsigned short flags, unsigned short ca
   return rc >= 0;
 }
 
-int sxReadPixels(HANDLE sxHandle, unsigned short *pixels, unsigned long count) {
-  count *= 2;
+int sxReadPixels(HANDLE sxHandle, void *pixels, unsigned long count) {
   int transferred;
   unsigned long read=0;
   int rc=0;

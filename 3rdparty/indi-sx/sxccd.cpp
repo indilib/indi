@@ -192,7 +192,7 @@ const char *SXCCD::getDefaultName() {
 
 bool SXCCD::initProperties() {
   INDI::CCD::initProperties();
-  addDebugControl();  
+  addDebugControl();
   IUFillSwitch(&CoolerS[0], "DISCONNECT_COOLER", "Off", ISS_ON);
   IUFillSwitch(&CoolerS[1], "CONNECT_COOLER", "On", ISS_OFF);
   IUFillSwitchVector(&CoolerSP, CoolerS, 2, getDeviceName(), "COOLER_CONNECTION", "Cooler", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
@@ -206,25 +206,13 @@ bool SXCCD::updateProperties() {
   struct t_sxccd_params params;
   INDI::CCD::updateProperties();
   if (isConnected()) {
-    if (HasCooler) {
+    if (HasCooler)
       defineSwitch(&CoolerSP);
-    }
     if (HasShutter)
       defineSwitch(&ShutterSP);
-    sxGetCameraParams(handle, 0, &params);
-    if (PrimaryCCD.isInterlaced()) {
-      params.pix_height /= 2;
-      params.height *= 2;
-    }
-    SetCCDParams(params.width, params.height, params.bits_per_pixel, params.pix_width, params.pix_height);
-    if (HasGuideHead) {
-       sxGetCameraParams(handle, 1, &params);
-       SetGuiderParams(params.width, params.height, params.bits_per_pixel, params.pix_width, params.pix_height);
-    }
   } else {
-    if (HasCooler) {
+    if (HasCooler)
       deleteProperty(CoolerSP.name);
-    }
     if (HasShutter)
       deleteProperty(ShutterSP.name);
   }
@@ -260,7 +248,6 @@ bool SXCCD::Disconnect() {
 
 void SXCCD::getCameraParams() {
   struct t_sxccd_params params;
-  //sxReset(handle);
   model = sxGetCameraModel(handle);
   bool isInterlaced = sxIsInterlaced(model);
   PrimaryCCD.setInterlaced(isInterlaced);
@@ -269,6 +256,7 @@ void SXCCD::getCameraParams() {
     params.pix_height /= 2;
     params.height *= 2;
   }
+  SetCCDParams(params.width, params.height, params.bits_per_pixel, params.pix_width, params.pix_height);
   int nbuf = params.width * params.height;
   if (params.bits_per_pixel == 16)
     nbuf *= 2;
@@ -285,8 +273,16 @@ void SXCCD::getCameraParams() {
   HasShutter = params.extra_caps & SXUSB_CAPS_SHUTTER;
   HasST4Port = params.extra_caps & SXCCD_CAPS_STAR2K;
 
-  Capability cap;
+  if (HasGuideHead) {
+    GuideCCD.setInterlaced(false);
+    sxGetCameraParams(handle, 1, &params);
+    nbuf = params.width * params.height;
+    nbuf += 512;
+    GuideCCD.setFrameBufferSize(nbuf);
+    SetGuiderParams(params.width, params.height, params.bits_per_pixel, params.pix_width, params.pix_height);
+  }
 
+  Capability cap;
   cap.canAbort = true;
   cap.canBin = true;
   cap.canSubFrame = true;
@@ -294,7 +290,6 @@ void SXCCD::getCameraParams() {
   cap.hasGuideHead = HasGuideHead;
   cap.hasShutter = HasShutter;
   cap.hasST4Port = HasST4Port;
-
   SetCapability(&cap);
 
   SetTimer(TIMER);
@@ -415,15 +410,15 @@ void SXCCD::ExposureTimerHit() {
         if (binY > 1) {
           rc = sxLatchPixels(handle, CCD_EXP_FLAGS_FIELD_BOTH, 0, subX, subY, subW, subH / 2, binX, binY / 2);
           if (rc)
-            rc = sxReadPixels(handle, (unsigned short *) buf, size);
+            rc = sxReadPixels(handle, buf, size * 2);
         } else {
           rc = sxLatchPixels(handle, CCD_EXP_FLAGS_FIELD_EVEN | CCD_EXP_FLAGS_SPARE2, 0, subX, subY / 2, subW, subH / 2, binX, 1);
           if (rc)
-            rc = sxReadPixels(handle, (unsigned short *) evenBuf, size / 2);
+            rc = sxReadPixels(handle, evenBuf, size);
           if (rc)
             rc = sxLatchPixels(handle, CCD_EXP_FLAGS_FIELD_ODD | CCD_EXP_FLAGS_SPARE2, 0, subX, subY / 2, subW, subH / 2, binX, 1);
           if (rc)
-            rc = sxReadPixels(handle, (unsigned short *) oddBuf, size / 2);
+            rc = sxReadPixels(handle, oddBuf, size);
           if (rc)
             for (int i = 0, j = 0; i < subH; i += 2, j++) {
               memcpy(buf + i * subWW, evenBuf + (j * subWW), subWW);
@@ -433,7 +428,7 @@ void SXCCD::ExposureTimerHit() {
       } else {
         rc = sxLatchPixels(handle, CCD_EXP_FLAGS_FIELD_BOTH, 0, subX, subY, subW, subH, binX, binY);
         if (rc)
-          rc = sxReadPixels(handle, (unsigned short *) buf, size);
+          rc = sxReadPixels(handle, buf, size * 2);
       }
       DidLatch = false;
       InExposure = false;
@@ -479,12 +474,11 @@ void SXCCD::GuideExposureTimerHit() {
     int binX = GuideCCD.getBinX();
     int binY = GuideCCD.getBinY();
     int size = subW * subH / binX / binY;
-    int subWW = subW * 2;
     char *buf = GuideCCD.getFrameBuffer();
     DidGuideLatch = true;
     rc = sxLatchPixels(handle, CCD_EXP_FLAGS_FIELD_BOTH, 1, subX, subY, subW, subH, binX, binY);
     if (rc)
-      rc = sxReadPixels(handle, (unsigned short *) buf, size);
+      rc = sxReadPixels(handle, buf, size);
     DidGuideLatch = false;
     InGuideExposure = false;
     GuideCCD.setExposureLeft(GuideExposureTimeLeft = 0);
