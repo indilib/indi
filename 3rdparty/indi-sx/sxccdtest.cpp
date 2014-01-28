@@ -115,7 +115,7 @@ int main() {
     i = sxLatchPixels(handle, 0, 0, 0, 0, 10, 10, 1, 1);
     cout << "sxLatchPixels(..., 0, ...) -> " << i << endl << endl;
 
-    i = sxReadPixels(handle, pixels, 10*10);
+    i = sxReadPixels(handle, pixels, 2*10*10);
     cout << "sxReadPixels() -> " << i << endl << endl;
 
     for (int x=0; x<10; x++) {
