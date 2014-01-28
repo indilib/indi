@@ -932,8 +932,6 @@ static void newFIFO(void)
            if (verbose)
                fprintf(stderr, "FIFO: Shutting down driver: %s\n", tDriver);
 
-            shutdownDvr(dp, 0);
-
             for (i=0; i < dp->ndev; i++)
             {
                 /* Inform clients that this driver is dead */
@@ -951,6 +949,7 @@ static void newFIFO(void)
               delXMLEle (root);
             }
 
+            shutdownDvr(dp, 0);
          break;
          }
      }
