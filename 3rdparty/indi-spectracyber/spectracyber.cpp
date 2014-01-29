@@ -102,7 +102,7 @@ void ISPoll(void *p)
 }
 
 void ISGetProperties(const char *dev)
-{ 
+{
 	if(dev && strcmp(mydev, dev)) return;
 	ISInit();
         spectracyber->ISGetProperties(dev);
@@ -129,7 +129,7 @@ void ISNewNumber(const char *dev, const char *name, double values[], char *names
 	spectracyber->ISNewNumber(name, values, names, num);
 }
 
-void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n) 
+void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
 {
   INDI_UNUSED(dev);
   INDI_UNUSED(name);
@@ -140,7 +140,7 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
   INDI_UNUSED(names);
   INDI_UNUSED(n);
 }
-void ISSnoopDevice (XMLEle *root) 
+void ISSnoopDevice (XMLEle *root)
 {
     ISInit();
     spectracyber->ISSnoopDevice(root);
@@ -152,8 +152,6 @@ void ISSnoopDevice (XMLEle *root)
 *****************************************************************/
 SpectraCyber::SpectraCyber()
 {
-    const char *skelFileName = "/usr/share/indi/indi_spectracyber_sk.xml";
-    struct stat st;
     // Command pre-limeter
     command[0] = '!';
 
@@ -161,13 +159,7 @@ SpectraCyber::SpectraCyber()
 
     srand( time(NULL));
 
-    char *skel = getenv("INDISKEL");
-    if (skel)
-      buildSkeleton(skel);
-    else if (stat(skelFileName,&st) == 0)
-       buildSkeleton(skelFileName);
-    else
-       IDLog("No skeleton file was specified. Set environment variable INDISKEL to the skeleton path and try again.\n");
+    buildSkeleton("indi_spectracyber_sk.xml");
 
      // Optional: Add aux controls for configuration, debug & simulation
      addAuxControls();
@@ -225,12 +217,12 @@ bool SpectraCyber::ISSnoopDevice (XMLEle *root)
     {
         if (isDebug())
             IDLog("Error processing snooped EQUATORIAL_EOD_COORD_REQUEST value! No RA/DEC information available.\n");
-	
+
 	return true;
     }
     //else
     //    IDLog("Received RA: %g - DEC: %g\n", EquatorialCoordsRNP.np[0].value, EquatorialCoordsRNP.np[1].value);
-    
+
     return false;
 }
 
@@ -280,7 +272,7 @@ bool SpectraCyber::initProperties()
 /****************************************************************
 **
 **
-*****************************************************************/   
+*****************************************************************/
 bool SpectraCyber::Connect()
 {
     ITextVectorProperty *tProp = getText("DEVICE_PORT");
@@ -315,13 +307,13 @@ bool SpectraCyber::Connect()
         DEBUG(INDI::Logger::DBG_ERROR, "Spectrometer echo test failed. Please recheck connection to spectrometer and try again.");
         return false;
    }
-	
+
 }
 
 /****************************************************************
 **
 **
-*****************************************************************/   
+*****************************************************************/
 bool SpectraCyber::init_spectrometer()
 {
 
@@ -334,13 +326,13 @@ bool SpectraCyber::init_spectrometer()
 
 
    return true;
-	
+
 }
 
 /****************************************************************
 **
 **
-*****************************************************************/   
+*****************************************************************/
 bool SpectraCyber::Disconnect()
 {
 	tty_disconnect(fd);
@@ -373,10 +365,10 @@ bool SpectraCyber::ISNewNumber (const char *name, double values[], char *names[]
     if (!strcmp(nProp->name, "70 Mhz IF"))
     {
           double last_value = nProp->np[0].value;
-	  
+
           if (IUUpdateNumber(nProp, values, names, n) < 0)
             return false;
-	  
+
 	  if (dispatch_command(IF_GAIN) == false)
 	  {
             nProp->np[0].value = last_value;
@@ -384,20 +376,20 @@ bool SpectraCyber::ISNewNumber (const char *name, double values[], char *names[]
             IDSetNumber(nProp, "Error dispatching IF gain command to spectrometer. Check logs.");
             return false;
 	  }
-	  
+
           nProp->s = IPS_OK;
           IDSetNumber(nProp, NULL);
-	 
+
           return true;
     }
-	
+
 	// DC Offset
         if (!strcmp(nProp->name, "DC Offset"))
 	{
-	  
+
           if (IUUpdateNumber(nProp, values, names, n) < 0)
             return false;
-	  
+
 	  // Check which offset change, if none, return gracefully
           if (nProp->np[CONTINUUM_CHANNEL].value != cont_offset)
 	  {
@@ -408,10 +400,10 @@ bool SpectraCyber::ISNewNumber (const char *name, double values[], char *names[]
               IDSetNumber(nProp, "Error dispatching continuum DC offset command to spectrometer. Check logs.");
               return false;
 	    }
-	    
+
             cont_offset = nProp->np[CONTINUUM_CHANNEL].value;
 	  }
-	  
+
           if (nProp->np[SPECTRAL_CHANNEL].value != spec_offset)
 	  {
 	     if (dispatch_command(SPEC_OFFSET) == false)
@@ -421,13 +413,13 @@ bool SpectraCyber::ISNewNumber (const char *name, double values[], char *names[]
               IDSetNumber(nProp, "Error dispatching spectral DC offset command to spectrometer. Check logs.");
               return false;
              }
-	    
+
             spec_offset = nProp->np[SPECTRAL_CHANNEL].value;
 	  }
 
 	  // No Change, return
           nProp->s = IPS_OK;
-          IDSetNumber(nProp, NULL);	 
+          IDSetNumber(nProp, NULL);
           return true;
 	}
 
@@ -445,7 +437,7 @@ bool SpectraCyber::ISNewNumber (const char *name, double values[], char *names[]
             IDSetNumber(nProp, NULL);
             return true;
         }
-    
+
 }
 
 /****************************************************************
@@ -496,7 +488,7 @@ bool SpectraCyber::ISNewText (const char *name, char *texts[], char *names[], in
 
 
     return false;
-	
+
 }
 
 /****************************************************************
@@ -575,7 +567,7 @@ bool SpectraCyber::ISNewSwitch (const char *name, ISState *states, char *names[]
         if (!strcmp(sProp->name, "Continuum Gain"))
 	{
                 int last_switch = get_on_switch(sProp);
-		
+
                 if (IUUpdateSwitch(sProp, states, names, n) < 0)
                         return false;
 
@@ -593,12 +585,12 @@ bool SpectraCyber::ISNewSwitch (const char *name, ISState *states, char *names[]
 
                 return true;
 	}
-	
+
 	// Spectral Gain Control
         if (!strcmp(sProp->name, "Spectral Gain"))
 	{
                 int last_switch = get_on_switch(sProp);
-		
+
                 if (IUUpdateSwitch(sProp, states, names, n) < 0)
                         return false;
 
@@ -613,15 +605,15 @@ bool SpectraCyber::ISNewSwitch (const char *name, ISState *states, char *names[]
 
                 sProp->s = IPS_OK;
                 IDSetSwitch(sProp, NULL);
-		
+
                 return true;
 	}
-	
+
 	// Continuum Integration Control
         if (!strcmp(sProp->name, "Continuum Integration (s)"))
 	{
                 int last_switch = get_on_switch(sProp);
-		
+
                 if (IUUpdateSwitch(sProp, states, names, n) < 0)
                         return false;
 
@@ -639,12 +631,12 @@ bool SpectraCyber::ISNewSwitch (const char *name, ISState *states, char *names[]
 
                 return true;
 	}
-	
+
 	// Spectral Integration Control
         if (!strcmp(sProp->name, "Spectral Integration (s)"))
 	{
                 int last_switch = get_on_switch(sProp);
-		
+
                 if (IUUpdateSwitch(sProp, states, names, n) < 0)
                         return false;
 
@@ -662,12 +654,12 @@ bool SpectraCyber::ISNewSwitch (const char *name, ISState *states, char *names[]
 
                 return true;
 	}
-	
+
 	// Bandwidth Control
         if (!strcmp(sProp->name, "Bandwidth (Khz)"))
 	{
                 int last_switch = get_on_switch(sProp);
-		
+
                 if (IUUpdateSwitch(sProp, states, names, n) < 0)
                         return false;
 
@@ -865,7 +857,7 @@ bool SpectraCyber::dispatch_command(SpectrometerCommand command_type)
                 final_value = get_on_switch(ChannelSP);
                 command[4] = (final_value == 0) ? '0' : '1';
 		break;
-		
+
 	// Bandwidth
 	case BANDWIDTH:
                 sProp = getSwitch("Bandwidth (Khz)");
@@ -887,7 +879,7 @@ bool SpectraCyber::dispatch_command(SpectrometerCommand command_type)
 		command[4] = '0';
 		break;
    }
-		
+
    if (isDebug())
         IDLog("Dispatching command #%s#\n", command);
 
