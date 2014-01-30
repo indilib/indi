@@ -33,6 +33,16 @@
 		591991A8188FC9AD007DD2DE /* indiserver.c in Sources */ = {isa = PBXBuildFile; fileRef = 591991A7188FC9AD007DD2DE /* indiserver.c */; };
 		591991AB188FC9BA007DD2DE /* fq.c in Sources */ = {isa = PBXBuildFile; fileRef = 591991A9188FC9BA007DD2DE /* fq.c */; };
 		591991AE188FC9CB007DD2DE /* lilxml.c in Sources */ = {isa = PBXBuildFile; fileRef = 591991AC188FC9CA007DD2DE /* lilxml.c */; };
+		596355D3189949C7009B1A39 /* indi_spectracyber in Resources */ = {isa = PBXBuildFile; fileRef = 596355D2189949C7009B1A39 /* indi_spectracyber */; };
+		596355D5189949D8009B1A39 /* indi_maxdomeii in Resources */ = {isa = PBXBuildFile; fileRef = 596355D4189949D8009B1A39 /* indi_maxdomeii */; };
+		596355D7189949F4009B1A39 /* indi_maxdomeii.xml in Resources */ = {isa = PBXBuildFile; fileRef = 596355D6189949F4009B1A39 /* indi_maxdomeii.xml */; };
+		596355DA189949FF009B1A39 /* indi_spectracyber_sk.xml in Resources */ = {isa = PBXBuildFile; fileRef = 596355D8189949FF009B1A39 /* indi_spectracyber_sk.xml */; };
+		596355DB189949FF009B1A39 /* indi_spectracyber.xml in Resources */ = {isa = PBXBuildFile; fileRef = 596355D9189949FF009B1A39 /* indi_spectracyber.xml */; };
+		596355DC18994A18009B1A39 /* indi_maxdomeii in CopyFiles */ = {isa = PBXBuildFile; fileRef = 596355D4189949D8009B1A39 /* indi_maxdomeii */; };
+		596355DD18994A18009B1A39 /* indi_spectracyber in CopyFiles */ = {isa = PBXBuildFile; fileRef = 596355D2189949C7009B1A39 /* indi_spectracyber */; };
+		596355DE18994A25009B1A39 /* indi_maxdomeii.xml in CopyFiles */ = {isa = PBXBuildFile; fileRef = 596355D6189949F4009B1A39 /* indi_maxdomeii.xml */; };
+		596355DF18994A25009B1A39 /* indi_spectracyber_sk.xml in CopyFiles */ = {isa = PBXBuildFile; fileRef = 596355D8189949FF009B1A39 /* indi_spectracyber_sk.xml */; };
+		596355E018994A25009B1A39 /* indi_spectracyber.xml in CopyFiles */ = {isa = PBXBuildFile; fileRef = 596355D9189949FF009B1A39 /* indi_spectracyber.xml */; };
 		596EBB55188AC60700190323 /* CMAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 596EBB46188AC60700190323 /* CMAppDelegate.m */; };
 		596EBB56188AC60700190323 /* CMDevice.m in Sources */ = {isa = PBXBuildFile; fileRef = 596EBB48188AC60700190323 /* CMDevice.m */; };
 		596EBB57188AC60700190323 /* CMGroup.m in Sources */ = {isa = PBXBuildFile; fileRef = 596EBB4A188AC60700190323 /* CMGroup.m */; };
@@ -109,6 +119,8 @@
 			dstPath = bin;
 			dstSubfolderSpec = 7;
 			files = (
+				596355DC18994A18009B1A39 /* indi_maxdomeii in CopyFiles */,
+				596355DD18994A18009B1A39 /* indi_spectracyber in CopyFiles */,
 				59F9121E188AC2A400EF5ED8 /* indi_qhy_ccd in CopyFiles */,
 				59D95CB6188540560008EFEE /* indi_atik_ccd in CopyFiles */,
 				59D95CB7188540560008EFEE /* indi_atik_wheel in CopyFiles */,
@@ -182,6 +194,9 @@
 			dstPath = share/indi;
 			dstSubfolderSpec = 7;
 			files = (
+				596355DE18994A25009B1A39 /* indi_maxdomeii.xml in CopyFiles */,
+				596355DF18994A25009B1A39 /* indi_spectracyber_sk.xml in CopyFiles */,
+				596355E018994A25009B1A39 /* indi_spectracyber.xml in CopyFiles */,
 				59F9121B188AC27500EF5ED8 /* indi_qhy.xml in CopyFiles */,
 				59D95CDC188543140008EFEE /* drivers.xml in CopyFiles */,
 				59D95CDD188543140008EFEE /* indi_align_sk.xml in CopyFiles */,
@@ -264,6 +279,11 @@
 		594D0B3A188300ED00B50F4E /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = System/Library/Frameworks/CoreData.framework; sourceTree = SDKROOT; };
 		594D0B3B188300ED00B50F4E /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		594D0B55188300ED00B50F4E /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = Library/Frameworks/XCTest.framework; sourceTree = DEVELOPER_DIR; };
+		596355D2189949C7009B1A39 /* indi_spectracyber */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_spectracyber; path = ../../../../../../usr/local/bin/indi_spectracyber; sourceTree = "<group>"; };
+		596355D4189949D8009B1A39 /* indi_maxdomeii */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_maxdomeii; path = ../../../../../../usr/local/bin/indi_maxdomeii; sourceTree = "<group>"; };
+		596355D6189949F4009B1A39 /* indi_maxdomeii.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = indi_maxdomeii.xml; path = ../../../../../../usr/local/share/indi/indi_maxdomeii.xml; sourceTree = "<group>"; };
+		596355D8189949FF009B1A39 /* indi_spectracyber_sk.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = indi_spectracyber_sk.xml; path = ../../../../../../usr/local/share/indi/indi_spectracyber_sk.xml; sourceTree = "<group>"; };
+		596355D9189949FF009B1A39 /* indi_spectracyber.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = indi_spectracyber.xml; path = ../../../../../../usr/local/share/indi/indi_spectracyber.xml; sourceTree = "<group>"; };
 		596EBB45188AC60700190323 /* CMAppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CMAppDelegate.h; sourceTree = SOURCE_ROOT; };
 		596EBB46188AC60700190323 /* CMAppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CMAppDelegate.m; sourceTree = SOURCE_ROOT; };
 		596EBB47188AC60700190323 /* CMDevice.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CMDevice.h; sourceTree = SOURCE_ROOT; };
@@ -495,6 +515,7 @@
 				59DE027618830F46007E5AE2 /* indi_lx200generic */,
 				59DE027718830F46007E5AE2 /* indi_lx200genericlegacy */,
 				59DE027918830F46007E5AE2 /* indi_magellan1 */,
+				596355D4189949D8009B1A39 /* indi_maxdomeii */,
 				59DE027A18830F46007E5AE2 /* indi_moonlite_focus */,
 				59DE027B18830F46007E5AE2 /* indi_robo_focus */,
 				59DE027C18830F46007E5AE2 /* indi_sbig_stv */,
@@ -505,6 +526,7 @@
 				59DE028018830F46007E5AE2 /* indi_simulator_telescope */,
 				59DE028118830F46007E5AE2 /* indi_simulator_wheel */,
 				59DE028218830F46007E5AE2 /* indi_skycommander */,
+				596355D2189949C7009B1A39 /* indi_spectracyber */,
 				59DE028318830F46007E5AE2 /* indi_sx_ao */,
 				59DE028418830F46007E5AE2 /* indi_sx_ccd */,
 				59DE028518830F46007E5AE2 /* indi_sx_wheel */,
@@ -533,6 +555,9 @@
 		59DE041B1883340E007E5AE2 /* share */ = {
 			isa = PBXGroup;
 			children = (
+				596355D6189949F4009B1A39 /* indi_maxdomeii.xml */,
+				596355D8189949FF009B1A39 /* indi_spectracyber_sk.xml */,
+				596355D9189949FF009B1A39 /* indi_spectracyber.xml */,
 				59DE041C188334EB007E5AE2 /* drivers.xml */,
 				59DE041D188334EB007E5AE2 /* indi_align_sk.xml */,
 				59DE041E188334EB007E5AE2 /* indi_atik.xml */,
@@ -634,10 +659,15 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				596355D5189949D8009B1A39 /* indi_maxdomeii in Resources */,
 				596EBB5A188AC60700190323 /* Images.xcassets in Resources */,
 				596EBB59188AC60700190323 /* InfoPlist.strings in Resources */,
+				596355D7189949F4009B1A39 /* indi_maxdomeii.xml in Resources */,
 				596EBB58188AC60700190323 /* Credits.rtf in Resources */,
 				5979B2F9188ACE7200360C07 /* MainMenu.xib in Resources */,
+				596355DA189949FF009B1A39 /* indi_spectracyber_sk.xml in Resources */,
+				596355D3189949C7009B1A39 /* indi_spectracyber in Resources */,
+				596355DB189949FF009B1A39 /* indi_spectracyber.xml in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

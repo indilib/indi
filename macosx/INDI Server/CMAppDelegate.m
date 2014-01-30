@@ -236,6 +236,8 @@
   [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_qhy" ofType: @"xml" inDirectory:@"share/indi"] encoding:NSUTF8StringEncoding error:&error]];
   [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_sx" ofType: @"xml" inDirectory:@"share/indi"] encoding:NSUTF8StringEncoding error:&error]];
   [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_shoestring" ofType: @"xml" inDirectory:@"share/indi"] encoding:NSUTF8StringEncoding error:&error]];
+  [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_maxdomeii" ofType: @"xml" inDirectory:@"share/indi"] encoding:NSUTF8StringEncoding error:&error]];
+  [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_spectracyber" ofType: @"xml" inDirectory:@"share/indi"] encoding:NSUTF8StringEncoding error:&error]];
   [root appendString:@"</root>"];
   groups = [NSMutableArray array];
   NSXMLParser *parser = [[NSXMLParser alloc] initWithData:[root dataUsingEncoding:NSUTF8StringEncoding]];
