@@ -9,7 +9,7 @@ else ()
 endif ()
 set(UDEVRULES_INSTALL_DIR "/etc/udev/rules.d")
 
-set (VERSION_MAJOR 0)
+set (VERSION_MAJOR 1)
 set (VERSION_MINOR 2)
 
 configure_file (

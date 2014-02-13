@@ -1,10 +1,25 @@
 /*
- * QHY CCD INDI Driver
- *
- * Copyright (c) 2013 CloudMakers, s. r. o. All Rights Reserved.
- *
- * The code is provided by CloudMakers and contributors "AS IS",
- * without warranty of any kind.
+ QHY CCD INDI Driver
+
+ Copyright (c) 2013 Cloudmakers, s. r. o.
+ All Rights Reserved.
+
+ This program is free software; you can redistribute it and/or modify it
+ under the terms of the GNU General Public License as published by the Free
+ Software Foundation; either version 2 of the License, or (at your option)
+ any later version.
+
+ This program is distributed in the hope that it will be useful, but WITHOUT
+ ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+ more details.
+
+ You should have received a copy of the GNU General Public License along with
+ this program; if not, write to the Free Software Foundation, Inc., 59
+ Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+
+ The full GNU General Public License is included in this distribution in the
+ file called LICENSE.
  */
 
 #include <iostream>
@@ -26,7 +41,7 @@ int main() {
 
   QHYDevice *cameras[10];
 	int count = QHYDevice::list(cameras, 10);
-	
+
 	for (int i=0; i< count; i++) {
 	  QHYDevice *camera = cameras[i];
 		cout << "---------------------------------- testing " << camera->getName() << endl;
@@ -64,7 +79,7 @@ int main() {
 				camera->setCooler(255, true);
 				while (ccdTemp2 > ccdTemp1 - 2) {
 					usleep(3*1000*1000);
-					if (camera->getCCDTemp(&ccdTemp2)) 
+					if (camera->getCCDTemp(&ccdTemp2))
 						cout << "CCD temp:    " << ccdTemp2 << endl;
 					else {
 						cout << "getCCDTemp() failed!" << endl;

@@ -1,13 +1,25 @@
 /*
- * QHY CCD INDI Driver
- *
- * Copyright (c) 2013 CloudMakers, s. r. o. All Rights Reserved.
- *
- * The code is based upon Linux library source developed by
- * QHYCCD Inc. It is provided by CloudMakers and contributors
- * "AS IS", without warranty of any kind.
- * 
- * Copyright (C) 2013 QHYCCD Inc.
+ QHY CCD INDI Driver
+
+ Copyright (c) 2013 Cloudmakers, s. r. o.
+ All Rights Reserved.
+
+ This program is free software; you can redistribute it and/or modify it
+ under the terms of the GNU General Public License as published by the Free
+ Software Foundation; either version 2 of the License, or (at your option)
+ any later version.
+
+ This program is distributed in the hope that it will be useful, but WITHOUT
+ ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+ more details.
+
+ You should have received a copy of the GNU General Public License along with
+ this program; if not, write to the Free Software Foundation, Inc., 59
+ Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+
+ The full GNU General Public License is included in this distribution in the
+ file called LICENSE.
  */
 
 #include <stdio.h>
@@ -445,9 +457,9 @@ bool QHYDevice::setCooler(unsigned power, bool fan) {
     data[2]=data[2] &~ 0x80;
    else
     data[2]=data[2] | 0x80;
-  if (fan)   
+  if (fan)
      data[2]=data[2] | 0x01;
-  else            
+  else
     data[2]=data[2] &~ 0x01;
   bool result=write(data, 3);
   return result;

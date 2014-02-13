@@ -226,6 +226,7 @@
 3rdparty/indi-qhy/COPYING.LIB -text
 3rdparty/indi-qhy/COPYRIGHT.txt -text
 3rdparty/indi-qhy/INSTALL -text
+3rdparty/indi-qhy/LICENSE -text
 3rdparty/indi-qhy/README -text
 3rdparty/indi-qhy/firmware/LICENSE -text
 3rdparty/indi-qhy/firmware/QHY10.HEX -text
