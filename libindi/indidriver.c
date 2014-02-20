@@ -1117,6 +1117,7 @@ int IUReadConfig(const char *filename, const char *dev, char errmsg[])
     if (fproot == NULL)
     {
         snprintf(errmsg, MAXRBUF, "Unable to parse config XML: %s", errmsg);
+        fclose(fp);
         return -1;
     }
 
@@ -1125,7 +1126,10 @@ int IUReadConfig(const char *filename, const char *dev, char errmsg[])
 
         /* pull out device and name */
         if (crackDN (root, &rdev, &rname, errmsg) < 0)
+        {
+            fclose(fp);
             return -1;
+        }
 
         // It doesn't belong to our device??
         if (strcmp(dev, rdev))
@@ -1181,9 +1185,9 @@ void IUSaveDefaultConfig(const char *source_config, const char *dest_config, con
           while((ch = getc(fpin)) != EOF)
             putc(ch, fpout);
 
-          fclose(fpin);
-          fclose(fpout);
+          fclose(fpin);          
        }
+        fclose(fpout);
     }
   }
 
