@@ -176,9 +176,18 @@ bool GenericCCD::initProperties() {
   IUFillSwitch(&ResetS[0], "RESET", "Reset", ISS_OFF);
   IUFillSwitchVector(&ResetSP, ResetS, 1, getDeviceName(), "FRAME_RESET", "Frame Values", IMAGE_SETTINGS_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
 
-  // Set CCD Features
-  // In Generic CCD example: No Guide Head. We have ST4 Port. We have cooler. We have Shutter
-  SetCCDFeatures(false, true, true, true);
+  Capability cap;
+
+  cap.canAbort = true;
+  cap.canBin = true;
+  cap.canSubFrame = true;
+  cap.hasCooler = false;
+  cap.hasGuideHead = false;
+  cap.hasShutter = true;
+  cap.hasST4Port = true;
+
+  SetCapability(&cap);
+
   return true;
 }
 
@@ -234,9 +243,6 @@ bool GenericCCD::Connect() {
   // Guide Port?
   ///////////////////////////
   // Do we have a guide port?
-
-  if (sim)
-    SetST4Port(true);
 
   if (sim)
     return true;
