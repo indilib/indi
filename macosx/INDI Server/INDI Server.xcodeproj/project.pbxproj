@@ -33,11 +33,8 @@
 		591991A8188FC9AD007DD2DE /* indiserver.c in Sources */ = {isa = PBXBuildFile; fileRef = 591991A7188FC9AD007DD2DE /* indiserver.c */; };
 		591991AB188FC9BA007DD2DE /* fq.c in Sources */ = {isa = PBXBuildFile; fileRef = 591991A9188FC9BA007DD2DE /* fq.c */; };
 		591991AE188FC9CB007DD2DE /* lilxml.c in Sources */ = {isa = PBXBuildFile; fileRef = 591991AC188FC9CA007DD2DE /* lilxml.c */; };
-		596355D3189949C7009B1A39 /* indi_spectracyber in Resources */ = {isa = PBXBuildFile; fileRef = 596355D2189949C7009B1A39 /* indi_spectracyber */; };
 		596355D5189949D8009B1A39 /* indi_maxdomeii in Resources */ = {isa = PBXBuildFile; fileRef = 596355D4189949D8009B1A39 /* indi_maxdomeii */; };
 		596355D7189949F4009B1A39 /* indi_maxdomeii.xml in Resources */ = {isa = PBXBuildFile; fileRef = 596355D6189949F4009B1A39 /* indi_maxdomeii.xml */; };
-		596355DA189949FF009B1A39 /* indi_spectracyber_sk.xml in Resources */ = {isa = PBXBuildFile; fileRef = 596355D8189949FF009B1A39 /* indi_spectracyber_sk.xml */; };
-		596355DB189949FF009B1A39 /* indi_spectracyber.xml in Resources */ = {isa = PBXBuildFile; fileRef = 596355D9189949FF009B1A39 /* indi_spectracyber.xml */; };
 		596355DC18994A18009B1A39 /* indi_maxdomeii in CopyFiles */ = {isa = PBXBuildFile; fileRef = 596355D4189949D8009B1A39 /* indi_maxdomeii */; };
 		596355DD18994A18009B1A39 /* indi_spectracyber in CopyFiles */ = {isa = PBXBuildFile; fileRef = 596355D2189949C7009B1A39 /* indi_spectracyber */; };
 		596355DE18994A25009B1A39 /* indi_maxdomeii.xml in CopyFiles */ = {isa = PBXBuildFile; fileRef = 596355D6189949F4009B1A39 /* indi_maxdomeii.xml */; };
@@ -55,6 +52,10 @@
 		597B890F1887E6FF0093873A /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 597B890D1887E6FF0093873A /* Security.framework */; };
 		597B89121887E77F0093873A /* ServiceManagement.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 597B89111887E77F0093873A /* ServiceManagement.framework */; };
 		597B893D188837E10093873A /* indiserver in CopyFiles */ = {isa = PBXBuildFile; fileRef = 597B89241888016F0093873A /* indiserver */; };
+		59B1F12118BBB02800A7AC9A /* indi_aagcloudwatcher_sk.xml in Resources */ = {isa = PBXBuildFile; fileRef = 59B1F11F18BBB02800A7AC9A /* indi_aagcloudwatcher_sk.xml */; };
+		59B1F12318BBB04300A7AC9A /* indi_aagcloudwatcher in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59B1F11D18BBB00500A7AC9A /* indi_aagcloudwatcher */; };
+		59B1F12418BBB04F00A7AC9A /* indi_aagcloudwatcher_sk.xml in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59B1F11F18BBB02800A7AC9A /* indi_aagcloudwatcher_sk.xml */; };
+		59B1F12518BBB04F00A7AC9A /* indi_aagcloudwatcher.xml in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59B1F12018BBB02800A7AC9A /* indi_aagcloudwatcher.xml */; };
 		59D95CB6188540560008EFEE /* indi_atik_ccd in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE026718830F46007E5AE2 /* indi_atik_ccd */; };
 		59D95CB7188540560008EFEE /* indi_atik_wheel in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE026818830F46007E5AE2 /* indi_atik_wheel */; };
 		59D95CB8188540560008EFEE /* indi_celestron_gps in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE026918830F46007E5AE2 /* indi_celestron_gps */; };
@@ -119,6 +120,7 @@
 			dstPath = bin;
 			dstSubfolderSpec = 7;
 			files = (
+				59B1F12318BBB04300A7AC9A /* indi_aagcloudwatcher in CopyFiles */,
 				596355DC18994A18009B1A39 /* indi_maxdomeii in CopyFiles */,
 				596355DD18994A18009B1A39 /* indi_spectracyber in CopyFiles */,
 				59F9121E188AC2A400EF5ED8 /* indi_qhy_ccd in CopyFiles */,
@@ -194,6 +196,8 @@
 			dstPath = share/indi;
 			dstSubfolderSpec = 7;
 			files = (
+				59B1F12418BBB04F00A7AC9A /* indi_aagcloudwatcher_sk.xml in CopyFiles */,
+				59B1F12518BBB04F00A7AC9A /* indi_aagcloudwatcher.xml in CopyFiles */,
 				596355DE18994A25009B1A39 /* indi_maxdomeii.xml in CopyFiles */,
 				596355DF18994A25009B1A39 /* indi_spectracyber_sk.xml in CopyFiles */,
 				596355E018994A25009B1A39 /* indi_spectracyber.xml in CopyFiles */,
@@ -301,6 +305,9 @@
 		597B890E1887E6FF0093873A /* SecurityFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SecurityFoundation.framework; path = System/Library/Frameworks/SecurityFoundation.framework; sourceTree = SDKROOT; };
 		597B89111887E77F0093873A /* ServiceManagement.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ServiceManagement.framework; path = System/Library/Frameworks/ServiceManagement.framework; sourceTree = SDKROOT; };
 		597B89241888016F0093873A /* indiserver */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indiserver; sourceTree = BUILT_PRODUCTS_DIR; };
+		59B1F11D18BBB00500A7AC9A /* indi_aagcloudwatcher */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_aagcloudwatcher; path = ../../../../../../usr/local/bin/indi_aagcloudwatcher; sourceTree = "<group>"; };
+		59B1F11F18BBB02800A7AC9A /* indi_aagcloudwatcher_sk.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = indi_aagcloudwatcher_sk.xml; path = ../../../../../../usr/local/share/indi/indi_aagcloudwatcher_sk.xml; sourceTree = "<group>"; };
+		59B1F12018BBB02800A7AC9A /* indi_aagcloudwatcher.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = indi_aagcloudwatcher.xml; path = ../../../../../../usr/local/share/indi/indi_aagcloudwatcher.xml; sourceTree = "<group>"; };
 		59B7AD0718872403005B06B4 /* SecurityInterface.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SecurityInterface.framework; path = System/Library/Frameworks/SecurityInterface.framework; sourceTree = SDKROOT; };
 		59DE026718830F46007E5AE2 /* indi_atik_ccd */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_atik_ccd; path = /usr/local/bin/indi_atik_ccd; sourceTree = "<absolute>"; };
 		59DE026818830F46007E5AE2 /* indi_atik_wheel */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_atik_wheel; path = /usr/local/bin/indi_atik_wheel; sourceTree = "<absolute>"; };
@@ -502,6 +509,7 @@
 		59DE01F718830E42007E5AE2 /* bin */ = {
 			isa = PBXGroup;
 			children = (
+				59B1F11D18BBB00500A7AC9A /* indi_aagcloudwatcher */,
 				59DE026718830F46007E5AE2 /* indi_atik_ccd */,
 				59DE026818830F46007E5AE2 /* indi_atik_wheel */,
 				59DE026918830F46007E5AE2 /* indi_celestron_gps */,
@@ -555,6 +563,8 @@
 		59DE041B1883340E007E5AE2 /* share */ = {
 			isa = PBXGroup;
 			children = (
+				59B1F11F18BBB02800A7AC9A /* indi_aagcloudwatcher_sk.xml */,
+				59B1F12018BBB02800A7AC9A /* indi_aagcloudwatcher.xml */,
 				596355D6189949F4009B1A39 /* indi_maxdomeii.xml */,
 				596355D8189949FF009B1A39 /* indi_spectracyber_sk.xml */,
 				596355D9189949FF009B1A39 /* indi_spectracyber.xml */,
@@ -663,11 +673,9 @@
 				596EBB5A188AC60700190323 /* Images.xcassets in Resources */,
 				596EBB59188AC60700190323 /* InfoPlist.strings in Resources */,
 				596355D7189949F4009B1A39 /* indi_maxdomeii.xml in Resources */,
+				59B1F12118BBB02800A7AC9A /* indi_aagcloudwatcher_sk.xml in Resources */,
 				596EBB58188AC60700190323 /* Credits.rtf in Resources */,
 				5979B2F9188ACE7200360C07 /* MainMenu.xib in Resources */,
-				596355DA189949FF009B1A39 /* indi_spectracyber_sk.xml in Resources */,
-				596355D3189949C7009B1A39 /* indi_spectracyber in Resources */,
-				596355DB189949FF009B1A39 /* indi_spectracyber.xml in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
