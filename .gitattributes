@@ -55,6 +55,22 @@
 3rdparty/gerry/testclient/main.cpp -text
 3rdparty/gerry/testclient/testclient.cpp -text
 3rdparty/gerry/testclient/testclient.h -text
+3rdparty/indi-aagcloudwatcher/CMakeLists.txt -text
+3rdparty/indi-aagcloudwatcher/CloudWatcherController.cpp -text
+3rdparty/indi-aagcloudwatcher/CloudWatcherController.h -text
+3rdparty/indi-aagcloudwatcher/INSTALL.txt -text
+3rdparty/indi-aagcloudwatcher/LICENSE.txt -text
+3rdparty/indi-aagcloudwatcher/README.txt -text
+3rdparty/indi-aagcloudwatcher/docs/RainSensorControl.pdf -text
+3rdparty/indi-aagcloudwatcher/docs/RainSensorHeaterAlgorithm.pdf -text
+3rdparty/indi-aagcloudwatcher/docs/Rs232_Comms_v100.pdf -text
+3rdparty/indi-aagcloudwatcher/docs/Rs232_Comms_v110.pdf -text
+3rdparty/indi-aagcloudwatcher/docs/Rs232_Comms_v120.pdf -text svneol=unset#unset
+3rdparty/indi-aagcloudwatcher/docs/SkyTemperatureModel.pdf -text
+3rdparty/indi-aagcloudwatcher/indi_aagcloudwatcher.cpp -text
+3rdparty/indi-aagcloudwatcher/indi_aagcloudwatcher.h -text
+3rdparty/indi-aagcloudwatcher/indi_aagcloudwatcher_sk.xml -text
+3rdparty/indi-aagcloudwatcher/main.cpp -text
 3rdparty/indi-apogee/.cproject -text
 3rdparty/indi-apogee/.project -text
 3rdparty/indi-apogee/AUTHORS -text
