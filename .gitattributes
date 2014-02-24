@@ -69,6 +69,7 @@
 3rdparty/indi-aagcloudwatcher/docs/SkyTemperatureModel.pdf -text
 3rdparty/indi-aagcloudwatcher/indi_aagcloudwatcher.cpp -text
 3rdparty/indi-aagcloudwatcher/indi_aagcloudwatcher.h -text
+3rdparty/indi-aagcloudwatcher/indi_aagcloudwatcher.xml -text
 3rdparty/indi-aagcloudwatcher/indi_aagcloudwatcher_sk.xml -text
 3rdparty/indi-aagcloudwatcher/main.cpp -text
 3rdparty/indi-apogee/.cproject -text

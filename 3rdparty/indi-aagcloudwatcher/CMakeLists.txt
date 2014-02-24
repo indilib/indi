@@ -30,4 +30,5 @@ add_executable(aagcloudwatcher_test ${test_SRCS})
 
 install(TARGETS indi_aagcloudwatcher RUNTIME DESTINATION bin)
 install(TARGETS aagcloudwatcher_test RUNTIME DESTINATION bin)
+install(FILES indi_aagcloudwatcher.xml DESTINATION ${INDI_DATA_DIR})
 install(FILES indi_aagcloudwatcher_sk.xml DESTINATION ${INDI_DATA_DIR})
