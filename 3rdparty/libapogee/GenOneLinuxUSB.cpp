@@ -10,11 +10,11 @@
 */ 
 
 #include "GenOneLinuxUSB.h" 
-#include "../ApnUsbSys.h"
-#include "../apgHelper.h"
-#include "../CamHelpers.h"  // for UsbFrmwr namespace
-#include "../helpers.h"
-#include "../ApgLogger.h" 
+#include "ApnUsbSys.h"
+#include "apgHelper.h"
+#include "CamHelpers.h"  // for UsbFrmwr namespace
+#include "helpers.h"
+#include "ApgLogger.h"
 #include <cstring>
 #include <sstream>
 

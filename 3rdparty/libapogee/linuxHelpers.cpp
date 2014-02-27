@@ -10,8 +10,8 @@
 */ 
 
 #include "linuxHelpers.h"
-#include "../CamHelpers.h" // for UsbFrmwr namespace
-#include "../apgHelper.h"
+#include "CamHelpers.h" // for UsbFrmwr namespace
+#include "apgHelper.h"
 #include <libusb-1.0/libusb.h>
 #include <sstream>
 

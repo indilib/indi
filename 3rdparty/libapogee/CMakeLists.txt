@@ -5,7 +5,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
 set(INCLUDE_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/include")
 
-set(APOGEE_VERSION "0.2")
+set(APOGEE_VERSION "3.0.2")
 set(APOGEE_SOVERSION "3")
 
 find_package(USB-1 REQUIRED)
@@ -85,7 +85,7 @@ add_library(apogee SHARED ${libapogee_SRCS})
 
 set_target_properties(apogee PROPERTIES VERSION ${APOGEE_VERSION} SOVERSION ${APOGEE_SOVERSION})
 
-target_link_libraries(apogee ${LIBUSB_1_LIBRARIES} ${CURL_LIBRARY} ${CURL_INCLUDE_DIR})
+target_link_libraries(apogee ${LIBUSB_1_LIBRARIES} ${CURL_LIBRARY} ${CURL_LIBRARY})
 
 install(TARGETS apogee LIBRARY DESTINATION lib${LIB_POSTFIX} )
 

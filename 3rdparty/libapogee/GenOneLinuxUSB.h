@@ -17,7 +17,7 @@
 #include <vector>
 #include <libusb-1.0/libusb.h>
 
-#include "../IUsb.h"
+#include "IUsb.h"
 
 class GenOneLinuxUSB : public IUsb
 { 

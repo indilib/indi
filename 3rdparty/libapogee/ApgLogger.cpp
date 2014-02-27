@@ -15,7 +15,7 @@
     #include "windozeHelpers.h" 
     #include "LoggerWin.h" 
 #else
-    #include "linux/LoggerSyslog.h" 
+    #include "LoggerSyslog.h"
 #endif
 
 

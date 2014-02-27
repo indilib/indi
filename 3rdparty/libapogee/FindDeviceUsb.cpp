@@ -25,7 +25,7 @@
 #if defined (WIN_OS)
     #include "windozeHelpers.h" 
 #else
-    #include "linux/linuxHelpers.h"
+    #include "linuxHelpers.h"
 #endif
 
 

@@ -13,7 +13,7 @@
 #ifndef UDPSOCKETLINUX_INCLUDE_H__ 
 #define UDPSOCKETLINUX_INCLUDE_H__ 
 
-#include "../UdpSocketBase.h"
+#include "UdpSocketBase.h"
 
 class UdpSocketLinux : public UdpSocketBase
 { 

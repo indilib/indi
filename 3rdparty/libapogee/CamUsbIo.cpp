@@ -26,7 +26,7 @@
 #ifdef WIN_OS
    #include "GenTwoWinUSB.h" 
 #else
-    #include "linux/GenOneLinuxUSB.h"
+    #include "GenOneLinuxUSB.h"
 #endif
 
 

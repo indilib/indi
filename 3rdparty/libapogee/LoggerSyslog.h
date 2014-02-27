@@ -13,7 +13,7 @@
 #ifndef LOGGERSYSLOG_INCLUDE_H__ 
 #define LOGGERSYSLOG_INCLUDE_H__ 
 
-#include "../ILog.h"
+#include "ILog.h"
 #include <string>
 
 class LoggerSyslog : public ILog
