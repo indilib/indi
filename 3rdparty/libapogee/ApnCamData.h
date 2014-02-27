@@ -1,4 +1,7 @@
 /////////////////////////////////////////////////////////////
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this file,
+// You can obtain one at http://mozilla.org/MPL/2.0/.
 //
 // ApnCamData.h:  Interface file for the CApnCamData class.
 //
@@ -6,136 +9,92 @@
 //
 /////////////////////////////////////////////////////////////
 
-#if !defined(AFX_APNCAMDATA_H__32231556_A1FD_421B_94F8_295D4148E195__INCLUDED_)
-#define AFX_APNCAMDATA_H__32231556_A1FD_421B_94F8_295D4148E195__INCLUDED_
+#if !defined(APN_CAMDATA_H__)
+#define APN_CAMDATA_H__
 
-#if _MSC_VER > 1000
-#pragma once
-#endif // _MSC_VER > 1000
+#include <string>
+#include <stdint.h>
+#include "CamCfgMatrix.h"
+#include "DefDllExport.h"
 
-
-#define APN_MAX_HBINNING		10
-#define APN_MAX_PATTERN_ENTRIES 256
-
-
-typedef struct _APN_VPATTERN_FILE {
-	unsigned short	Mask;
-	unsigned short	NumElements;
-	unsigned short	*PatternData;
-} APN_VPATTERN_FILE;
-
-typedef struct _APN_HPATTERN_FILE {
-	unsigned short	Mask;
-	unsigned short	BinningLimit;
-	unsigned short	RefNumElements;
-	unsigned short	BinNumElements[APN_MAX_HBINNING];
-	unsigned short	SigNumElements;
-	unsigned short	*RefPatternData;
-	unsigned short	*BinPatternData[APN_MAX_HBINNING];
-	unsigned short	*SigPatternData;
-} APN_HPATTERN_FILE;
-
-typedef enum ApnAdType {
-	ApnAdType_None,
-	ApnAdType_Alta_Sixteen,
-	ApnAdType_Alta_Twelve,
-	ApnAdType_Ascent_Sixteen
-};
-
-
-class CApnCamData  
+class DLL_EXPORT CApnCamData  
 {
-public:
-	CApnCamData();
-	virtual ~CApnCamData();
+    public:
 
-	virtual void Initialize() = 0;
+	    CApnCamData();
+        CApnCamData(const CamCfg::APN_CAMERA_METADATA & meta,
+            const CamCfg::APN_VPATTERN_FILE & vert,
+            const CamCfg::APN_HPATTERN_FILE & clampNorm,
+            const CamCfg::APN_HPATTERN_FILE & skipNorm,
+            const CamCfg::APN_HPATTERN_FILE & roiNorm,
+            const CamCfg::APN_HPATTERN_FILE & clampFast,
+            const CamCfg::APN_HPATTERN_FILE & skipFast,
+            const CamCfg::APN_HPATTERN_FILE & roiFast,
+            const CamCfg::APN_VPATTERN_FILE & vertVideo,
+            const CamCfg::APN_HPATTERN_FILE & clampVideo,
+            const CamCfg::APN_HPATTERN_FILE & skipVideo,
+            const CamCfg::APN_HPATTERN_FILE & roiVideo,
+            const CamCfg::APN_HPATTERN_FILE & clampNormDual,
+            const CamCfg::APN_HPATTERN_FILE & skipNormDual,
+            const CamCfg::APN_HPATTERN_FILE & roiNormDual,
+            const CamCfg::APN_HPATTERN_FILE & clampFastDual,
+            const CamCfg::APN_HPATTERN_FILE & skipFastDual,
+            const CamCfg::APN_HPATTERN_FILE & roiFastDual );
 
+        CApnCamData( const CApnCamData &rhs );
+        CApnCamData& operator=(CApnCamData const&d);
+       
+	    virtual ~CApnCamData();
 
-	char			m_Sensor[20];
-	char			m_CameraModel[20];
+        void Set(const std::string & path, 
+                      const std::string & cfgFile,
+                      uint16_t CamId);
+        void Clear();
+		void Write2File( const std::string & fname );
 
-	unsigned short	m_CameraId;
+        CamCfg::APN_CAMERA_METADATA m_MetaData;
 
-	bool			m_InterlineCCD;
-	bool			m_SupportsSerialA;
-	bool			m_SupportsSerialB;
-	bool			m_SensorTypeCCD;
+	    // Pattern Files
+        CamCfg::APN_VPATTERN_FILE m_VerticalPattern;
+	    CamCfg::APN_HPATTERN_FILE m_ClampPatternNormal;
+	    CamCfg::APN_HPATTERN_FILE m_SkipPatternNormal;
+	    CamCfg::APN_HPATTERN_FILE m_RoiPatternNormal;
 
-	unsigned short	m_TotalColumns;
-	unsigned short	m_ImagingColumns;
+	    CamCfg::APN_HPATTERN_FILE m_ClampPatternFast;
+	    CamCfg::APN_HPATTERN_FILE m_SkipPatternFast;
+	    CamCfg::APN_HPATTERN_FILE m_RoiPatternFast;
 
-	unsigned short	m_ClampColumns;
-	unsigned short	m_PreRoiSkipColumns;
-	unsigned short	m_PostRoiSkipColumns;
-	unsigned short	m_OverscanColumns;
+        CamCfg::APN_VPATTERN_FILE m_VerticalPatternVideo;
+	    CamCfg::APN_HPATTERN_FILE m_ClampPatternVideo;
+	    CamCfg::APN_HPATTERN_FILE m_SkipPatternVideo;
+	    CamCfg::APN_HPATTERN_FILE m_RoiPatternVideo;
 
-	unsigned short	m_TotalRows;
-	unsigned short	m_ImagingRows;
+        CamCfg::APN_HPATTERN_FILE m_ClampPatternNormalDual;
+	    CamCfg::APN_HPATTERN_FILE m_SkipPatternNormalDual;
+	    CamCfg::APN_HPATTERN_FILE m_RoiPatternNormalDual;
 
-	unsigned short	m_UnderscanRows;
-	unsigned short	m_OverscanRows;
+	    CamCfg::APN_HPATTERN_FILE m_ClampPatternFastDual;
+	    CamCfg::APN_HPATTERN_FILE m_SkipPatternFastDual;
+	    CamCfg::APN_HPATTERN_FILE m_RoiPatternFastDual;
 
-	unsigned short	m_VFlushBinning;
+    private:
+        std::string m_FileName;
 
-	bool			m_EnableSingleRowOffset;
-	unsigned short	m_RowOffsetBinning;
+        void LoadVertical( const std::string & name, 
+            CamCfg::APN_VPATTERN_FILE & vpattern );
 
-	bool			m_HFlushDisable;
+        void LoadHorizontal( const std::string & name, 
+            CamCfg::APN_HPATTERN_FILE & hpattern );
 
-	unsigned short	m_ShutterCloseDelay;
+        void WriteMeta( const std::string & fname );
+        void WriteVPattern( const std::string & fname, 
+            const CamCfg::APN_VPATTERN_FILE & vert );
+        void WriteHPattern( const std::string & fname,
+                                const CamCfg::APN_HPATTERN_FILE & horiztonal);
 
-	double			m_PixelSizeX;
-	double			m_PixelSizeY;
-
-	bool			m_Color;
-	
-	double			m_ReportedGainSixteenBit;
-
-	double			m_MinSuggestedExpTime;
-
-	bool			m_CoolingSupported;
-	bool			m_RegulatedCoolingSupported;
-
-	double			m_TempSetPoint;
-	unsigned short	m_TempRampRateOne;
-	unsigned short	m_TempRampRateTwo;
-	double			m_TempBackoffPoint;
-
-	ApnAdType		m_PrimaryADType;
-	ApnAdType		m_AlternativeADType;
-
-	int				m_DefaultGainLeft;
-	int				m_DefaultOffsetLeft;
-	int				m_DefaultGainRight;
-	int				m_DefaultOffsetRight;
-
-	unsigned short	m_DefaultRVoltage;
-
-	unsigned short	m_DefaultSpeed;
-	bool			m_DefaultDataReduction;
-
-
-	// Pattern Files
-	APN_VPATTERN_FILE m_VerticalPattern;
-	
-	APN_HPATTERN_FILE m_ClampPatternSixteen;
-	APN_HPATTERN_FILE m_SkipPatternSixteen;
-	APN_HPATTERN_FILE m_RoiPatternSixteen;
-
-	APN_HPATTERN_FILE m_ClampPatternTwelve;
-	APN_HPATTERN_FILE m_SkipPatternTwelve;
-	APN_HPATTERN_FILE m_RoiPatternTwelve;
-
-
-private:
-
-	void init_vpattern( );
-	void clear_vpattern( );
-
-	void init_hpattern( APN_HPATTERN_FILE *Pattern );
-	void clear_hpattern( APN_HPATTERN_FILE *Pattern );
+       
+    
 
 };
 
-#endif // !defined(AFX_APNCAMDATA_H__32231556_A1FD_421B_94F8_295D4148E195__INCLUDED_)
+#endif // !defined APN_CAMDATA_H__

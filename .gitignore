@@ -43,9 +43,6 @@
 3rdparty/indi-sx/*.user*
 3rdparty/indi-tess/*.user*
 3rdparty/libapogee/*.user*
-3rdparty/libapogee/ApogeeNet/*.user*
-3rdparty/libapogee/ApogeeUsb/*.user*
-3rdparty/libapogee/FpgaRegs/*.user*
 3rdparty/libfli/*.user*
 3rdparty/libqsi/*.user*
 3rdparty/libqsi/demo_src/*.user*

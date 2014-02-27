@@ -5,136 +5,89 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
 set(INCLUDE_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/include")
 
-set(APOGEE_VERSION "2.3")
-set(APOGEE_SOVERSION "2")
+set(APOGEE_VERSION "0.2")
+set(APOGEE_SOVERSION "3")
 
-Include (CheckCXXSourceCompiles)
-include (MacroOptionalFindPackage)
-include (MacroLogFeature)
-include (MacroBoolTo01)
-include (CheckIncludeFiles)
-
-find_package(USB REQUIRED)
+find_package(USB-1 REQUIRED)
 find_package(CURL REQUIRED)
+
+set(Boost_USE_STATIC_LIBS OFF) 
+set(Boost_USE_MULTITHREADED ON)  
+set(Boost_USE_STATIC_RUNTIME OFF) 
+find_package(Boost REQUIRED COMPONENTS regex)
 
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/ApogeeNet)
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/ApogeeUsb)
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/FpgaRegs)
+include_directories( ${Boost_INCLUDE_DIRS})
+include_directories( ${CURL_INCLUDE_DIR})
 
-set(AltaCommon_SRCS
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAF6303E.cpp                                            
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAI11000ML.cpp                                          
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAF4202.cpp                                             
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAI2020C.cpp                                            
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_CCD5520.cpp                                             
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData.cpp                                                     
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_CCD4710ALT.cpp                                          
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAI4020C.cpp                                            
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAF1301E.cpp                                            
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_CCD4240B.cpp                                            
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAI4020CLB.cpp                                          
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_ASCENT0402ME3.cpp                                       
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAI11000CL.cpp                                          
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAF09000.cpp                                            
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAI2001CL.cpp                                           
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAF16801E.cpp                                           
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAI2001ML.cpp                                           
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAI4020M.cpp                                            
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAF16803.cpp                                            
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_CCD4720B.cpp                                            
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAF1301EB.cpp                                           
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_CCD5710F.cpp                                            
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAI2020CL.cpp                                           
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAF1001EB.cpp                                           
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_CCD7700.cpp                                             
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_CCD4240.cpp                                             
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_S101401107.cpp                                          
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAF1001E.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAI4020MLB.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_CCD4710B.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_ASCENT16000.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAF0401E.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAI2001M.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAF1401E.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAI11000C.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAF0261E.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_CCD5520B.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_CCD5710B.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_CCD5710.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAI11000M.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAF1602EB.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAI2020MLB.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAF0261EB.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAI4020CL.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_ASCENT4000.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAF3200EB.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAF10011105.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_CCD3011.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_ASCENT2000.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAF1001ENS.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAF6303EB.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_ASCENT0402ME2.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAI4020ML.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAI2020ML.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_ASCENT340.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAF0401EB.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_CCD7700B.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_ASCENT0402ME4.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAF3200E.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_ASCENT0402ME.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_TH7899.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_CCD3011B.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAI2020M.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAF1602E.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_CCD4720.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAF09000X.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_CCD4710.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAI2020CLB.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_KAF09000H.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData_S101401109.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamTable.cpp
+set(libapogee_SRCS
+   ${CMAKE_CURRENT_SOURCE_DIR}/GenOneLinuxUSB.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/linuxHelpers.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/LinuxTimer.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/LoggerSyslog.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/UdpSocketLinux.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/AltaCcdAcqParams.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/Alta.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/AltaData.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/AltaEthernetIo.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/AltaF.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/AltaIo.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/AltaModeFsm.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/AltaUsbIo.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/apgHelper.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/ApgLogger.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/ApgTimer.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamData.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/ApogeeCam.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/Ascent.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/AscentBasedIo.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/AscentBasedUsbIo.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/AscentData.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/CamCfgMatrix.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/CameraIo.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/CameraInfo.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/CameraStatusRegs.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/CamGen2Base.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/CamGen2CcdAcqParams.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/CamGen2ModeFsm.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/CamHelpers.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/CamRegMirror.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/CamUsbIo.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/CcdAcqParams.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/FilterWheelIo.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/FindDeviceEthernet.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/FindDeviceUsb.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/Aspen.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/AspenEthernetIo.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/AspenIo.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/AspenUsbIo.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/helpers.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/HiC.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/IAltaSerialPortIo.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/ICamIo.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/ILog.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/ImgFix.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/ITimer.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/libCurlWrap.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/LoggerException.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/ModeFsm.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/parseCfgTabDelim.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/PlatformData.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/IUsb.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/UdpSocketBase.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/ApogeeFilterWheel.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/PromFx2Io.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/Quad.cpp
    )
+  
+add_library(apogee SHARED ${libapogee_SRCS})
 
-add_definitions("-O2 -g -fpic -DWall -DLINUX -DALTA_STANDALONE -DHAVE_STRERROR")
+set_target_properties(apogee PROPERTIES VERSION ${APOGEE_VERSION} SOVERSION ${APOGEE_SOVERSION})
 
-########### libapogeeAltaU ###########
-set(AltaU_SRCS
-   ${CMAKE_CURRENT_SOURCE_DIR}/libapogee.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamera.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamera_USB.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamera_Linux.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApogeeUsb/ApogeeUsbLinux.cpp
-   ${AltaCommon_SRCS}
-   )
-   
-add_library(apogeeu SHARED ${AltaU_SRCS})
+target_link_libraries(apogee ${LIBUSB_1_LIBRARIES} ${CURL_LIBRARY} ${CURL_INCLUDE_DIR})
 
-set_target_properties(apogeeu PROPERTIES VERSION ${APOGEE_VERSION} SOVERSION ${APOGEE_SOVERSION})
+install(TARGETS apogee LIBRARY DESTINATION lib${LIB_POSTFIX} )
 
-target_link_libraries(apogeeu ${LIBUSB_LIBRARIES})
-
-install(TARGETS apogeeu LIBRARY DESTINATION lib${LIB_POSTFIX} )
-
- ########### libapogeeAltaE ###########
-set(AltaE_SRCS
-   ${CMAKE_CURRENT_SOURCE_DIR}/libapogee.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamera.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamera_NET.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApnCamera_Linux.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApogeeNet/ApogeeNet.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ApogeeNet/ApogeeNetLinux.c
-   ${AltaCommon_SRCS}
-   )
-   
-add_library(apogeee SHARED ${AltaE_SRCS})
-
-set_target_properties(apogeee PROPERTIES VERSION ${APOGEE_VERSION} SOVERSION ${APOGEE_SOVERSION})
-
-target_link_libraries(apogeee ${LIBUSB_LIBRARIES} ${CURL_LIBRARIES})
-
-install(TARGETS apogeee LIBRARY DESTINATION lib${LIB_POSTFIX} )
-
-install( FILES libapogee.h DESTINATION ${INCLUDE_INSTALL_DIR}/libapogee COMPONENT Devel)
+install( FILES ApogeeCam.h Alta.h AltaF.h Ascent.h CamGen2Base.h CameraInfo.h CameraStatusRegs.h Aspen.h FindDeviceEthernet.h FindDeviceUsb.h HiC.h ApogeeFilterWheel.h Quad.h DefDllExport.h versionNo.h doc.h DESTINATION ${INCLUDE_INSTALL_DIR}/libapogee COMPONENT Devel)
 
