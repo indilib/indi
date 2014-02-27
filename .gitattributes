@@ -347,6 +347,7 @@
 3rdparty/indi-tess/tess_sk.xml -text
 3rdparty/libapogee/.cproject -text
 3rdparty/libapogee/.project -text
+3rdparty/libapogee/99-apogee.rules -text
 3rdparty/libapogee/Alta.cpp -text
 3rdparty/libapogee/Alta.h -text
 3rdparty/libapogee/AltaCcdAcqParams.cpp -text

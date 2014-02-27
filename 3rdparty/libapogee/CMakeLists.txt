@@ -4,6 +4,7 @@ PROJECT(libapogee C CXX)
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
 set(INCLUDE_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/include")
+set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for udev rules")
 
 set(APOGEE_VERSION "3.0.2")
 set(APOGEE_SOVERSION "3")
@@ -90,4 +91,5 @@ target_link_libraries(apogee ${LIBUSB_1_LIBRARIES} ${CURL_LIBRARY} ${CURL_LIBRAR
 install(TARGETS apogee LIBRARY DESTINATION lib${LIB_POSTFIX} )
 
 install( FILES ApogeeCam.h Alta.h AltaF.h Ascent.h CamGen2Base.h CameraInfo.h CameraStatusRegs.h Aspen.h FindDeviceEthernet.h FindDeviceUsb.h HiC.h ApogeeFilterWheel.h Quad.h DefDllExport.h versionNo.h doc.h DESTINATION ${INCLUDE_INSTALL_DIR}/libapogee COMPONENT Devel)
+install(FILES 99-apogee.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
 

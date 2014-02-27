@@ -1,0 +1,12 @@
+# apogee.rules a udev rules file for apogee usb cameras
+SUBSYSTEM!="usb", ACTION!="add", GOTO="apogee_rules_end"
+# Apogee Alta-U
+ATTRS{idVendor}=="125c", ATTRS{idProduct}=="0010", GROUP="users", MODE="666"
+# Apogee Ascent and AltaF
+ATTRS{idVendor}=="125c", ATTRS{idProduct}=="0020",GROUP="users", MODE="666"
+# Apogee Aspen
+ATTRS{idVendor}=="125c", ATTRS{idProduct}=="0030",GROUP="users", MODE="666"
+# Apogee USB Filter Wheel
+ATTRS{idVendor}=="125c", ATTRS{idProduct}=="0100",GROUP="users", MODE="666"
+LABEL="apogee_rules_end"
+
