@@ -206,6 +206,14 @@ public:
     void setBin(int hor, int ver);
 
     /**
+     * @brief setMaxBin Set Maximum CCD Chip binning
+     * @param max_hor Maximum horizontal binning
+     * @param max_ver Maximum vertical binning
+     */
+    void setMaxBin(int max_hor, int max_ver);
+
+
+    /**
      * @brief setPixelSize Set CCD Chip pixel size
      * @param x Horziontal pixel size in microns.
      * @param y Vertical pixel size in microns.

@@ -139,6 +139,15 @@ void CCDChip::setBin(int hor, int ver)
     IDSetNumber(ImageBinNP, NULL);
 }
 
+
+void CCDChip::setMaxBin(int max_hor, int max_ver)
+{
+    ImageBinN[BIN_W].max = max_hor;
+    ImageBinN[BIN_H].max = max_ver;
+
+    IUUpdateMinMax(ImageBinNP);
+}
+
 void CCDChip::setPixelSize(float x, float y)
 {
     PixelSizex = x;
