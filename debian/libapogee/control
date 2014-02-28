@@ -1,17 +1,17 @@
-Source: libapogee2
+Source: libapogee3
 Section: libs
 Priority: extra
 Maintainer: Jasem Mutlaq <mutlaqja@ikarustech.com>
-Build-Depends: debhelper (>= 5), cmake, libusb-dev, libcurl4-gnutls-dev
+Build-Depends: debhelper (>= 5), cdbs, cmake, libcurl4-gnutls-dev, libboost-regex-dev, libusb-1.0-0-dev
 Standards-Version: 3.9.1
 
-Package: libapogee2
+Package: libapogee3
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: This package is primarily intended for developers wishing to add Alta camera control options to other packages (e.g. Kstars/INDI), the library includes a set of INDI compatible entry points, the ApnGlueXXX routines.
+Description: This package includes library to control Apogee CCDs and Filter Wheels.
 
-Package: libapogee2-dev
+Package: libapogee3-dev
 Architecture: any
-Depends: libapogee2, ${shlibs:Depends}, ${misc:Depends}
-Description: This package includes development headers for Apogee Alta CCDs.
+Depends: libapogee3, ${shlibs:Depends}, ${misc:Depends}
+Description: This package includes development headers for Apogee CCDs and Filter Wheels.
 

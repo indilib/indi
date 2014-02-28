@@ -1,3 +1,9 @@
+libapogee3 (3.0.2) natty; urgency=low
+
+  * New upstream release
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Fri, 28 Feb 2014 12:00:00 +0300
+
 libapogee2 (2.3-ubuntu1~ppa1) natty; urgency=low
 
   * Fix depdendency
