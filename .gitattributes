@@ -80,6 +80,8 @@
 3rdparty/indi-apogee/ChangeLog -text
 3rdparty/indi-apogee/INSTALL -text
 3rdparty/indi-apogee/README -text
+3rdparty/indi-apogee/apogee_ccd.cpp -text
+3rdparty/indi-apogee/apogee_ccd.h -text
 3rdparty/indi-apogee/indi_apogee.xml -text
 3rdparty/indi-duino/CMakeLists.txt -text
 3rdparty/indi-duino/README -text
