@@ -84,6 +84,11 @@ enum {
 
 static int debug = 0;
 
+void gphoto_set_debug(int value)
+{
+    debug = value;
+}
+
 static void errordumper(GPLogLevel level, const char *domain, const char *str,
                  void *data) {
 	if (debug) {
@@ -464,7 +469,7 @@ static void download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
 	} else {
 		result = gp_file_new_from_fd(&gphoto->camerafile, fd);
 	}
-	gp_dprintf("  Retval: %d\n", result);
+    gp_dprintf("  Retval: %d\n", result);
 	gp_dprintf("Downloading %s/%s\n", fn->folder, fn->name);
 	result = gp_camera_file_get(gphoto->camera, fn->folder, fn->name,
 		     GP_FILE_TYPE_NORMAL, gphoto->camerafile, gphoto->context);
@@ -731,7 +736,8 @@ gphoto_driver *gphoto_open(const char *shutter_release_port)
 	gphoto->iso = -1;
 
 	if ( !(gphoto->bulb_widget = find_widget(gphoto, "bulb")) )
-	{
+    {
+        gp_dprintf("bulb widget found\n");
 	     if ( !(gphoto->bulb_widget = find_widget(gphoto, "eosremoterelease")) )
 	     {
     	          gp_dprintf("Using eosremoterelease command\n");	

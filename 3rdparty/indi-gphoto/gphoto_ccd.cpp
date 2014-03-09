@@ -164,6 +164,11 @@ const char * GPhotoCCD::getDefaultName()
     return (const char *)"GPhoto CCD";
 }
 
+void GPhotoCCD::debugTriggered(bool enable)
+{
+    gphoto_set_debug(enable ? 1 : 0);
+}
+
 bool GPhotoCCD::initProperties()
 {
   // Init parent properties first

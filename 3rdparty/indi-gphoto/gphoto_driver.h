@@ -54,5 +54,6 @@ extern int gphoto_widget_changed(gphoto_widget *widget);
 extern int gphoto_get_dimensions(gphoto_driver *gphoto, int *width, int *height);
 extern int gphoto_auto_focus(gphoto_driver *gphoto);
 extern int gphoto_manual_focus (gphoto_driver *gphoto, int xx, char *errMsg);
+extern void gphoto_set_debug(int value);
 
 #endif

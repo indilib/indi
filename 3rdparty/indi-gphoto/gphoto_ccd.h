@@ -88,6 +88,7 @@ protected:
     void TimerHit();
     bool SetSpeed(int speed);
     int Move(FocusDirection dir, int speed, int duration);
+    virtual void debugTriggered(bool enable);
 
 private:
     ISwitch *create_switch(const char *basestr, const char **options, int max_opts, int setidx);
