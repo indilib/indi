@@ -318,8 +318,9 @@ static double * parse_shutterspeed(const char **choices, int count)
 	if(count <= 0)
 		return NULL;
 	exposure = calloc(sizeof(double), count);
-	for(i = 0; i <  count; i++) {
-        if ( (strncmp(choices[i], "bulb", 4) == 0) || (strcmp(choices[i], "65535/65535") == 0))
+    for(i = 0; i <  count; i++)
+    {
+        if ( (strncasecmp(choices[i], "bulb", 4) == 0) || (strcmp(choices[i], "65535/65535") == 0))
         {
               exposure[i] = -1;
         } else if (sscanf(choices[i], "%d/%d", &num, &denom) == 2)
