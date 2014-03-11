@@ -5,7 +5,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
 set(INCLUDE_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/include")
 set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for udev rules")
-set(CONF_DIR "/etc/Apogee" CACHE STRING "Configuration directory")
+set(CONF_DIR "/etc/Apogee/camera" CACHE STRING "Configuration directory")
 
 set(APOGEE_VERSION "3.0.2")
 set(APOGEE_SOVERSION "3")
