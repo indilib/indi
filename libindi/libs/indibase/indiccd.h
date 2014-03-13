@@ -611,8 +611,7 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         virtual bool saveConfigItems(FILE *fp);
 
 
-        float RA;
-        float Dec;
+        double RA, Dec;
         bool InExposure;
         bool InGuideExposure;
         bool RapidGuideEnabled;
