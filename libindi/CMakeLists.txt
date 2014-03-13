@@ -226,7 +226,10 @@ set(lx200generic_SRCS
    ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200_16.cpp
    ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200gps.cpp
    ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200generic.cpp
-   ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200classic.cpp)
+   ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200classic.cpp
+   ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200apdriver.c
+   ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200ap.cpp
+)
 
 add_executable(indi_lx200generic ${lx200generic_SRCS})
 
@@ -239,6 +242,7 @@ file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/make_lx200generic_symlink.cmake
 exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200autostar)\n
 exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200_16)\n
 exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200gps)\n
+exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200ap)\n
 ")
 set_target_properties(indi_lx200generic PROPERTIES POST_INSTALL_SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_lx200generic_symlink.cmake)
 #################################################################################
@@ -248,8 +252,6 @@ set(lx200genericlegacy_SRCS
    ${indimain_SRCS}
    ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200driver.c
    ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200genericlegacy.cpp
-   ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200apdriver.c
-   ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200ap.cpp
    ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200fs2.cpp)
 
 add_executable(indi_lx200genericlegacy ${lx200genericlegacy_SRCS}  ${liblilxml_SRCS} ${libindicom_SRCS})
@@ -259,9 +261,7 @@ target_link_libraries(indi_lx200genericlegacy ${NOVA_LIBRARIES} ${M_LIB} )
 install(TARGETS indi_lx200genericlegacy RUNTIME DESTINATION bin )
 
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/make_lx200genericlegacy_symlink.cmake
-"exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200genericlegacy \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200ap)\n
-exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200genericlegacy \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200fs2)\n
-")
+"exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200genericlegacy \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200fs2)\n")
 set_target_properties(indi_lx200genericlegacy PROPERTIES POST_INSTALL_SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_lx200genericlegacy_symlink.cmake)
 #################################################################################
 

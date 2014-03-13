@@ -313,7 +313,6 @@ void changeLX200GenericLegacyDeviceName(const char * newName)
 void changeAllDeviceNames(const char *newName)
 {
   changeLX200GenericLegacyDeviceName(newName);
-  changeLX200AstroPhysicsDeviceName(newName);
   changeLX200FS2DeviceName(newName);
 }
 
@@ -337,31 +336,7 @@ void ISInit()
   *((int *) UTCOffsetN[0].aux0) = 0;
   
   
- if (strstr(me, "indi_lx200ap"))
- {
-   fprintf(stderr , "initializing from ap device...\n");
-  
-
-   // 2. device = sub_class
-   telescope = new LX200AstroPhysics();
-
-   if (envDev != NULL)
-   {
-       // 1. change device name
-       changeAllDeviceNames(envDev);
-       telescope->setCurrentDeviceName(envDev);
-   }
-   else
-   {
-       // 1. change device name
-       changeAllDeviceNames("LX200 Astro-Physics");
-        telescope->setCurrentDeviceName("LX200 Astro-Physics");
-    }
-
-
-   MaxReticleFlashRate = 9;
- }
- else if (strstr(me, "indi_lx200fs2"))
+ if (strstr(me, "indi_lx200fs2"))
  {
    fprintf(stderr , "initializing from fs2 device...\n");
   

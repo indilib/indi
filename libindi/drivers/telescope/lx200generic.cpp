@@ -38,6 +38,7 @@
 #include "lx200gps.h"
 #include "lx200_16.h"
 #include "lx200classic.h"
+#include "lx200ap.h"
 
 // We declare an auto pointer to LX200Generic.
 std::auto_ptr<LX200Generic> telescope(0);
@@ -98,6 +99,12 @@ void ISInit()
   
    if(telescope.get() == 0) telescope.reset(new LX200Autostar());
 
+ }
+ else if (strstr(me, "indi_lx200ap"))
+ {
+    IDLog("initializing from Astrophysics device...\n");
+
+    if(telescope.get() == 0) telescope.reset(new LX200AstroPhysics());
 
  }
  // be nice and give them a generic device
