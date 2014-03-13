@@ -198,9 +198,7 @@ int ConnectTel(char *port)
   returnStr[numRead] = '\0';
 
   /* Diagnostic tests */
-
   fprintf(stderr, "ConnectTel read %d characters: %s\n",numRead,returnStr);
-  fprintf(stderr, "TelConnectFlag set to: %d\n",TelConnectFlag);
 
   if (numRead == 2)
   {
