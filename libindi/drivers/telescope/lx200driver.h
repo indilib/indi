@@ -245,6 +245,8 @@ int selectSite(int fd, int siteNum);
 int selectCatalogObject(int fd, int catalog, int NNNN);
 /* Select a sub catalog */
 int selectSubCatalog(int fd, int catalog, int subCatalog);
+/* Set Debug */
+void setLX200Debug(int value);
 
 #ifdef __cplusplus
 }

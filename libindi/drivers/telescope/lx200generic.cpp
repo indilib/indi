@@ -180,6 +180,11 @@ LX200Generic::~LX200Generic()
     delete(controller);
 }
 
+void LX200Generic::debugTriggered(bool enable)
+{
+   setLX200Debug(enable ? 1 : 0);
+}
+
 const char * LX200Generic::getDefaultName()
 {
     return (char *)"LX200 Generic";

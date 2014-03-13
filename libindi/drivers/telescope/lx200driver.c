@@ -39,6 +39,7 @@
 #define LX200_TIMEOUT	5		/* FD timeout in seconds */
 
 int controller_format;
+int lx200_debug = 0;
 
 /**************************************************************************
  Diagnostics
@@ -155,6 +156,11 @@ int selectCatalogObject(int fd, int catalog, int NNNN);
 /* Select a sub catalog */
 int selectSubCatalog(int fd, int catalog, int subCatalog);
 
+void setLX200Debug(int value)
+{
+    lx200_debug = value;
+}
+
 int check_lx200_connection(int in_fd)
 {
 
@@ -163,9 +169,8 @@ int check_lx200_connection(int in_fd)
   char MountAlign[64];
   int nbytes_read=0;
 
-  #ifdef INDI_DEBUG
-  IDLog("Testing telescope's connection using ACK...\n");
-  #endif
+  if (lx200_debug)
+    IDLog("%s Testing telescope's connection using ACK...\n", __FUNCTION__);
 
   if (in_fd <= 0) return -1;
 
@@ -197,7 +202,6 @@ char ACK(int fd)
   if (nbytes_write < 0)
     return -1;
  
-  /*read_ret = portRead(MountAlign, 1, LX200_TIMEOUT);*/
   error_type = tty_read(fd, MountAlign, 1, LX200_TIMEOUT, &nbytes_read);
   
   if (nbytes_read == 1)
@@ -217,9 +221,6 @@ int getCommandSexa(int fd, double *value, const char * cmd)
   if ( (error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
    return error_type;
   
-  /*if ( (read_ret = portRead(temp_string, -1, LX200_TIMEOUT)) < 1)
-     return read_ret;*/
-
   error_type = tty_read_section(fd, temp_string, '#', LX200_TIMEOUT, &nbytes_read);
   tcflush(fd, TCIFLUSH);
   if (error_type != TTY_OK)
@@ -227,13 +228,14 @@ int getCommandSexa(int fd, double *value, const char * cmd)
 
   temp_string[nbytes_read - 1] = '\0';
   
-  /*IDLog("getComandSexa: %s\n", temp_string);*/
+  if (lx200_debug)
+    IDLog("getComandSexa: %s\n", temp_string);
 
   if (f_scansexa(temp_string, value))
   {
-   #ifdef INDI_DEBUG
-   IDLog("unable to process [%s]\n", temp_string);
-   #endif
+   if (lx200_debug)
+    IDLog("%s unable to process [%s]\n", __FUNCTION__, temp_string);
+
    return -1;
   }
  
@@ -283,13 +285,9 @@ int getCommandString(int fd, char *data, const char* cmd)
     int error_type;
     int nbytes_write=0, nbytes_read=0;
     
-   /*if (portWrite(cmd) < 0)
-      return -1;*/
-
    if ( (error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
     return error_type;
 
-    /*read_ret = portRead(data, -1, LX200_TIMEOUT);*/
     error_type = tty_read_section(fd, data, '#', LX200_TIMEOUT, &nbytes_read);
     tcflush(fd, TCIFLUSH);
 
@@ -300,9 +298,8 @@ int getCommandString(int fd, char *data, const char* cmd)
     if (term)
       *term = '\0';
 
-   #ifdef INDI_DEBUG
-    /*IDLog("Requested data: %s\n", data);*/
-   #endif
+   if (lx200_debug)
+    IDLog("%s Requested data: %s\n", __FUNCTION__, data);
 
     return 0;
 }
@@ -338,12 +335,10 @@ int getCalenderDate(int fd, char *date)
  int nbytes_read=0;
  char mell_prefix[3];
  
-
  if ( (error_type = getCommandString(fd, date, "#:GC#")) )
    return error_type;
 
- /* Meade format is MM/DD/YY */
-
+  /* Meade format is MM/DD/YY */
   nbytes_read = sscanf(date, "%d%*c%d%*c%d", &mm, &dd, &yy);
   if (nbytes_read < 3)
    return -1;
@@ -356,6 +351,9 @@ int getCalenderDate(int fd, char *date)
 
  /* We need to have in in YYYY/MM/DD format */
  snprintf(date, 16, "%s%02d/%02d/%02d", mell_prefix, yy, mm, dd);
+
+ if (lx200_debug)
+     IDLog("%s Date: %s\n", __FUNCTION__, date);
 
  return (0);
 
@@ -479,10 +477,12 @@ int getSiteLatitude(int fd, int *dd, int *mm)
   if (sscanf (temp_string, "%d%*c%d", dd, mm) < 2)
    return -1;
 
-  #ifdef INDI_DEBUG
-  fprintf(stderr, "Requested site latitude in String %s\n", temp_string);
-  fprintf(stderr, "Requested site latitude %d:%d\n", *dd, *mm);
-  #endif
+  if (lx200_debug)
+  {
+    IDLog("%s Requested site latitude in String %s\n", __FUNCTION__, temp_string);
+    IDLog("%s Requested site latitude %d:%d\n", __FUNCTION__, *dd, *mm);
+  }
+
 
   return 0;
 }
@@ -511,10 +511,11 @@ int getSiteLongitude(int fd, int *ddd, int *mm)
   if (sscanf (temp_string, "%d%*c%d", ddd, mm) < 2)
    return -1;
 
-  #ifdef INDI_DEBUG
-  fprintf(stderr, "Requested site longitude in String %s\n", temp_string);
-  fprintf(stderr, "Requested site longitude %d:%d\n", *ddd, *mm);
-  #endif
+  if (lx200_debug)
+  {
+    fprintf(stderr, "%s Requested site longitude in String %s\n", __FUNCTION__, temp_string);
+    fprintf(stderr, "%s Requested site longitude %d:%d\n", __FUNCTION__, *ddd, *mm);
+  }
 
   return 0;
 }
@@ -548,9 +549,9 @@ int getTrackFreq(int fd, double *value)
    
     *value = (double) Freq;
     
-    #ifdef INDI_DEBUG
-    fprintf(stderr, "Tracking frequency value is %f\n", Freq);
-    #endif
+    if (lx200_debug)
+        IDLog("%s Tracking frequency value is %f\n", __FUNCTION__, Freq);
+
 
     return 0;
 }
@@ -732,18 +733,15 @@ int setStandardProcedure(int fd, const char * data)
 
  if (bool_return[0] == '0')
  {
-     #ifdef INDI_DEBUG
-     IDLog("%s Failed.\n", data);
-     #endif
+     if (lx200_debug)
+         IDLog("%s %s Failed.\n", __FUNCTION__, data);
      return -1;
  }
 
- #ifdef INDI_DEBUG
- IDLog("%s Successful\n", data);
- #endif
+ if (lx200_debug)
+    IDLog("%s %s Successful\n", __FUNCTION__, data);
 
  return 0;
-
 
 }
 
@@ -756,10 +754,15 @@ int setCommandInt(int fd, int data, const char *cmd)
   snprintf(temp_string, sizeof( temp_string ), "%s%d#", cmd, data);
 
   if ( (error_type = tty_write_string(fd, temp_string, &nbytes_write)) != TTY_OK)
-    	return error_type;
+  {
+      if (lx200_debug)
+          IDLog("%s %s Failed.\n", __FUNCTION__, temp_string);
 
- /*  if (portWrite(temp_string) < 0)
-    return -1;*/
+    	return error_type;
+  }
+
+  if (lx200_debug)
+     IDLog("%s %s Successful\n", __FUNCTION__, temp_string);
 
   return 0;
 }
@@ -812,7 +815,9 @@ int setObjectRA(int fd, double ra)
  else
 	snprintf(temp_string, sizeof( temp_string ), "#:Sr %02d:%02d.%01d#", h, m, frac_m);
 	
- /*IDLog("Set Object RA String %s\n", temp_string);*/
+ if (lx200_debug)
+    IDLog("%s Set Object RA String %s\n", __FUNCTION__, temp_string);
+
  return (setStandardProcedure(fd, temp_string));
 }
 
@@ -844,7 +849,8 @@ int setObjectDEC(int fd, double dec)
     break;
   }
 
-  /*IDLog("Set Object DEC String %s\n", temp_string);*/
+  if (lx200_debug)
+    IDLog("%s Set Object DEC String %s\n", __FUNCTION__, temp_string);
   
   return (setStandardProcedure(fd, temp_string));
 
@@ -933,7 +939,8 @@ int setUTCOffset(int fd, double hours)
 
    snprintf(temp_string, sizeof( temp_string ), "#:SG %+03d#", (int) hours);
 
-   /*IDLog("UTC string is %s\n", temp_string);*/
+   if (lx200_debug)
+    IDLog("%s UTC string is %s\n", __FUNCTION__, temp_string);
 
    return (setStandardProcedure(fd, temp_string));
 
@@ -1207,19 +1214,15 @@ int MoveTo(int fd, int direction)
   {
     case LX200_NORTH:
     tty_write_string(fd, "#:Mn#", &nbytes_write);
-    /*portWrite("#:Mn#");*/
     break;
     case LX200_WEST:
     tty_write_string(fd, "#:Mw#", &nbytes_write);
-    /*portWrite("#:Mw#");*/
     break;
     case LX200_EAST:
     tty_write_string(fd, "#:Me#", &nbytes_write);
-    /*portWrite("#:Me#");*/
     break;
     case LX200_SOUTH:
     tty_write_string(fd, "#:Ms#", &nbytes_write);
-    /*portWrite("#:Ms#");*/
     break;
     default:
     break;
@@ -1256,32 +1259,22 @@ int HaltMovement(int fd, int direction)
   switch (direction)
   {
     case LX200_NORTH:
-     /*if (portWrite("#:Qn#") < 0)
-      return -1;*/
        if ( (error_type = tty_write_string(fd, "#:Qn#", &nbytes_write)) != TTY_OK)
     	return error_type;
      break;
     case LX200_WEST:
-     /*if (portWrite("#:Qw#") < 0)
-      return -1;*/
      if ( (error_type = tty_write_string(fd, "#:Qw#", &nbytes_write)) != TTY_OK)
     	return error_type;
      break;
     case LX200_EAST:
-     /*if (portWrite("#:Qe#") < 0)
-      return -1;*/
       if ( (error_type = tty_write_string(fd, "#:Qe#", &nbytes_write)) != TTY_OK)
     	return error_type;
      break;
     case LX200_SOUTH:
     if ( (error_type = tty_write_string(fd, "#:Qs#", &nbytes_write)) != TTY_OK)
     	return error_type;
-     /*if (portWrite("#:Qs#") < 0)
-       return -1;*/
     break;
     case LX200_ALL:
-     /*if (portWrite("#:Q#") < 0)
-       return -1;*/
 	if ( (error_type = tty_write_string(fd, "#:Q#", &nbytes_write)) != TTY_OK)
     	   return error_type;
      break;
@@ -1297,8 +1290,6 @@ int HaltMovement(int fd, int direction)
 
 int abortSlew(int fd)
 {
- /*if (portWrite("#:Q#") < 0)
-  return -1;*/
   int error_type;
   int nbytes_write=0;
 
@@ -1317,9 +1308,6 @@ int Sync(int fd, char *matchedObject)
   if ( (error_type = tty_write_string(fd, "#:CM#", &nbytes_write)) != TTY_OK)
     	   return error_type;
 
-  /*portWrite("#:CM#");*/
-
-  /*read_ret = portRead(matchedObject, -1, LX200_TIMEOUT);*/
     error_type = tty_read_section(fd, matchedObject, '#', LX200_TIMEOUT, &nbytes_read);
   
   if (nbytes_read < 1)
@@ -1327,7 +1315,8 @@ int Sync(int fd, char *matchedObject)
    
   matchedObject[nbytes_read-1] = '\0';
 
-  /*IDLog("Matched Object: %s\n", matchedObject);*/
+  if (lx200_debug)
+    IDLog("%s Matched Object: %s\n", __FUNCTION__, matchedObject);
   
   /* Sleep 10ms before flushing. This solves some issues with LX200 compatible devices. */
   usleep(10000);
@@ -1466,31 +1455,25 @@ int selectTrackingMode(int fd, int trackMode)
    switch (trackMode)
    {
     case LX200_TRACK_DEFAULT:
-      #ifdef INDI_DEBUG
-      IDLog("Setting tracking mode to sidereal.\n");
-      #endif
+       if (lx200_debug)
+          IDLog("%s Setting tracking mode to sidereal.\n", __FUNCTION__);
+
      if ( (error_type = tty_write_string(fd, "#:TQ#", &nbytes_write)) != TTY_OK)
     	   return error_type;
-     /*if (portWrite("#:TQ#") < 0)
-       return -1;*/
      break;
     case LX200_TRACK_LUNAR:
-      #ifdef INDI_DEBUG
-      IDLog("Setting tracking mode to LUNAR.\n");
-      #endif
+       if (lx200_debug)
+          IDLog("%s Setting tracking mode to lunar.\n", __FUNCTION__);
       if ( (error_type = tty_write_string(fd, "#:TL#", &nbytes_write)) != TTY_OK)
     	   return error_type;
      /*if (portWrite("#:TL#") < 0)
        return -1;*/
      break;
    case LX200_TRACK_MANUAL:
-     #ifdef INDI_DEBUG
-     IDLog("Setting tracking mode to CUSTOM.\n");
-     #endif
+       if (lx200_debug)
+          IDLog("%s Setting tracking mode to custom.\n", __FUNCTION__);
      if ( (error_type = tty_write_string(fd, "#:TM#", &nbytes_write)) != TTY_OK)
     	   return error_type;
-     /*if (portWrite("#:TM#") < 0)
-      return -1;*/
      break;
    default:
     return -1;
