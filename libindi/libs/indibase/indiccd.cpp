@@ -1519,6 +1519,12 @@ bool INDI::CCD::saveConfigItems(FILE *fp)
 {
     IUSaveConfigText(fp, ActiveDeviceTP);
 
+    if (capability.canSubFrame)
+        IUSaveConfigNumber(fp, PrimaryCCD.ImageFrameNP);
+
+    if (capability.canBin)
+        IUSaveConfigNumber(fp, PrimaryCCD.ImageBinNP);
+
     return true;
 }
 
