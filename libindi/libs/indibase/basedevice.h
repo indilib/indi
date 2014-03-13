@@ -103,6 +103,7 @@ public:
 
     /** \brief Build driver properties from a skeleton file.
         \param filename full path name of the file.
+        \return true if successful, false otherwise.
 
     A skeloton file defines the properties supported by this driver. It is a list of defXXX elements enclosed by @<INDIDriver>@
  and @</INDIDriver>@ opening and closing tags. After the properties are created, they can be rerieved, manipulated, and defined
@@ -111,7 +112,7 @@ public:
  \see An example skeleton file can be found under examples/tutorial_four_sk.xml
 
     */
-    void buildSkeleton(const char *filename);
+    bool buildSkeleton(const char *filename);
 
     /** \return True if the device is connected (CONNECT=ON), False otherwise */
     bool isConnected();

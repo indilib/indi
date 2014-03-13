@@ -332,7 +332,7 @@ int INDI::BaseDevice::removeProperty(const char *name, char *errmsg)
     return INDI_PROPERTY_INVALID;
 }
 
-void INDI::BaseDevice::buildSkeleton(const char *filename)
+bool INDI::BaseDevice::buildSkeleton(const char *filename)
 {
     char errmsg[MAXRBUF];
     FILE *fp = NULL;
@@ -370,7 +370,7 @@ void INDI::BaseDevice::buildSkeleton(const char *filename)
     if (fp == NULL)
     {
         IDLog("Unable to build skeleton. Error loading file %s: %s\n", pathname, strerror(errno));
-        return;
+        return false;
     }
 
     fproot = readXMLFile(fp, lp, errmsg);
@@ -378,7 +378,7 @@ void INDI::BaseDevice::buildSkeleton(const char *filename)
     if (fproot == NULL)
     {
         IDLog("Unable to parse skeleton XML: %s", errmsg);
-        return;
+        return false;
     }
 
     //prXMLEle(stderr, fproot, 0);
@@ -386,6 +386,7 @@ void INDI::BaseDevice::buildSkeleton(const char *filename)
     for (root = nextXMLEle (fproot, 1); root != NULL; root = nextXMLEle (fproot, 0))
             buildProp(root, errmsg);
 
+    return true;
     /**************************************************************************/
 }
 
