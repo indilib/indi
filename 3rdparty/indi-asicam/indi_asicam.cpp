@@ -155,20 +155,17 @@ const char * AsicamCCD::getDefaultName()
   return (const char *) "ASI CCD";
 }
 
-bool AsicamCCD::initProperties() {
+bool AsicamCCD::initProperties()
+{
   // Init parent properties first
   INDI::CCD::initProperties();
-  bool is_auto;
 
   // reset settings
   IUFillSwitch(&ResetS[0], "RESET", "Reset", ISS_OFF);
   IUFillSwitchVector(&ResetSP, ResetS, 1, getDeviceName(), "FRAME_RESET", "Frame Values", IMAGE_SETTINGS_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
 
-  // gain
-  if (isAvailable(CONTROL_GAIN)) {
-    IUFillNumber(&GainN[0], "GAIN", "Gain", "%0.f", getMin(CONTROL_GAIN), getMax(CONTROL_GAIN), 1., getValue(CONTROL_GAIN, &is_auto));
-    IUFillNumberVector(&GainNP, GainN, 1, getDeviceName(), "CCD_GAIN", "Gain", IMAGE_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
-  }
+  IUFillNumber(&GainN[0], "GAIN", "Gain", "%0.f", 0., 0., 1., 0.);
+  IUFillNumberVector(&GainNP, GainN, 1, getDeviceName(), "CCD_GAIN", "Gain", IMAGE_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
 
   // image mode
   IUFillSwitch(&ModeS[0], "Y8", "Y8", ISS_ON);
@@ -190,30 +187,44 @@ bool AsicamCCD::initProperties() {
   return true;
 }
 
-void AsicamCCD::ISGetProperties(const char *dev) {
+void AsicamCCD::ISGetProperties(const char *dev)
+{
   INDI::CCD::ISGetProperties(dev);
 
   // Add Debug, Simulator, and Configuration controls
   addAuxControls();
 }
 
-bool AsicamCCD::updateProperties() {
+bool AsicamCCD::updateProperties()
+{
   INDI::CCD::updateProperties();
 
-  if (isConnected()) {
+  if (isConnected())
+  {
     bool is_auto;
     defineSwitch(&ResetSP);
     defineSwitch(&ModeSP);
-    GainN[0].value = getValue(CONTROL_GAIN, &is_auto);
-    defineNumber(&GainNP);
+
+    // gain
+    if (isAvailable(CONTROL_GAIN))
+    {
+      GainN[0].min = getMin(CONTROL_GAIN);
+      GainN[0].max = getMax(CONTROL_GAIN);
+      GainN[0].value = getValue(CONTROL_GAIN, &is_auto);
+      defineNumber(&GainNP);
+    }
 
     // Let's get parameters now from CCD
     setupParams();
 
     timerID = SetTimer(POLLMS);
-  } else {
+  } else
+  {
     deleteProperty(ResetSP.name);
-    deleteProperty(GainNP.name);
+
+    if (isAvailable(CONTROL_GAIN))
+        deleteProperty(GainNP.name);
+
     deleteProperty(ModeSP.name);
     rmTimer(timerID);
   }
