@@ -35,7 +35,7 @@ using namespace std;
 class AsicamCCD: public INDI::CCD {
 public:
 
-  AsicamCCD(DEVICE device, const char *name);
+  AsicamCCD(DEVICE device);
   virtual ~AsicamCCD();
 
   const char *getDefaultName();

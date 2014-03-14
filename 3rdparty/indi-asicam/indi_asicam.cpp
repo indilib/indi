@@ -62,77 +62,11 @@ void ISInit() {
   static bool isInit = false;
   if (getenv("INDI_ASICAM_VERBOSE"))
       do_debug = 1;
-  if (!isInit) {
-    /**********************************************************
-     *
-     *  IMPORRANT: If available use CCD API function for enumeration available CCD's otherwise use code like this:
-     *
-     **********************************************************
-
-     cameraCount = 0;
-     for (struct usb_bus *bus = usb_get_busses(); bus && cameraCount < MAX_DEVICES; bus = bus->next) {
-       for (struct usb_device *dev = bus->devices; dev && cameraCount < MAX_DEVICES; dev = dev->next) {
-         int vid = dev->descriptor.idVendor;
-         int pid = dev->descriptor.idProduct;
-         for (int i = 0; deviceTypes[i].pid; i++) {
-           if (vid == deviceTypes[i].vid && pid == deviceTypes[i].pid) {
-             cameras[i] = new AsicamCCD(dev, deviceTypes[i].name);
-             break;
-           }
-         }
-       }
-     }
-
-     */    
-    int asin = getNumberOfConnectedCameras();
-    pid_t pid = getpid();
-    char fname[255];
-    snprintf(fname, 255, "/proc/%d/cmdline", pid);
-    int fd = open(fname, O_RDONLY);
-    if (fd == -1) {
-      IDLog("Cannot open cmdline <%d>\n", fname);
-    }
-    else {
-      char cmdline[100] = {0};
-      char *p;
-      const char *name = "indi_asicam";
-      read(fd, cmdline, 100);
-      p = strstr(cmdline, name);
-      if (!p) {
-	IDLog("Cannot find my number: <%s>.\n", cmdline);
-      }
-      else {
-	unsigned int myn = atoi(&p[strlen(name)]);
-	IDLog("Controlling asicamera %d out of %d.\n", myn, asin);
-	if (myn < asin) {
-	  if (!openCamera(myn)) {
-	    IDLog("Open asicamera %d failed.\n", myn);
-	  }
-	  else {
-	    if (!initCamera()) {
-	      IDLog("Init asicamera %d failed.\n", myn);
-	    }
-	    else {
-	      bool is_auto;
-	      int val;
-	      val = getValue(CONTROL_GAIN, &is_auto);
-	      setValue(CONTROL_GAIN, val, false); 
-	      val = getValue(CONTROL_EXPOSURE, &is_auto);
-	      setValue(CONTROL_EXPOSURE, val, false);
-	      setImageFormat(getMaxWidth(), getMaxHeight(),  1, isColorCam() ? IMG_Y8: IMG_RAW8);
-	      SetMisc(false, false);
-	      setStartPos(0, 0);
-	      cameraCount = 1;
-	      char n[200];
-	      snprintf(n, 200, "asicamera%d: %s", myn, getCameraModel(myn));
-	      IDLog("<%s> up and running!\n", n);
-	      cameras[0] = new AsicamCCD(0, n);
-	      atexit(cleanup);
-	    }
-	  }
-	}
-      }
-    }
+  if (!isInit)
+  {
+    cameraCount=1;
+    cameras[0] = new AsicamCCD(0);
+    atexit(cleanup);
     isInit = true;
   }
 }
@@ -199,10 +133,14 @@ void ISSnoopDevice(XMLEle *root) {
   INDI_UNUSED(root);
 }
 
-AsicamCCD::AsicamCCD(DEVICE device, const char *name) {
+AsicamCCD::AsicamCCD(DEVICE device)
+{
   this->device = device;
-  snprintf(this->name, 32, "SX CCD %s", name);
-  setDeviceName(this->name);
+
+    if (*getDeviceName() == '\0')
+        strncpy(name, getDefaultName(), MAXINDINAME);
+    else
+        strncpy(name, getDeviceName(), MAXINDINAME);
 
   sim = false;
   need_flush = false;
@@ -212,8 +150,9 @@ AsicamCCD::~AsicamCCD() {
 
 }
 
-const char * AsicamCCD::getDefaultName() {
-  return name;
+const char * AsicamCCD::getDefaultName()
+{
+  return (const char *) "ASI CCD";
 }
 
 bool AsicamCCD::initProperties() {
@@ -321,60 +260,103 @@ bool AsicamCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
   return INDI::CCD::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool AsicamCCD::Connect() {
+bool AsicamCCD::Connect()
+{
 
   sim = isSimulation();
 
+  DEBUG(INDI::Logger::DBG_SESSION, "Attempting to find the Asicam CCD...");
+
   if (sim)
+  {
+    DEBUG(INDI::Logger::DBG_SESSION, "Simulated Asicam is online.");
     return true;
-  else {
-    startCapture();
+  }
+  else
+  {
+
+      int asin = getNumberOfConnectedCameras();
+
+      if (asin <= 0)
+      {
+          DEBUG(INDI::Logger::DBG_ERROR, "Unable to find any connected cameras. Please check your connection and try again.");
+          return false;
+      }
+
+      pid_t pid = getpid();
+      char fname[255];
+      snprintf(fname, 255, "/proc/%d/cmdline", pid);
+      int fd = open(fname, O_RDONLY);
+      if (fd == -1)
+      {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Cannot open cmdline <%s>", fname);
+        return false;
+      }
+
+      char cmdline[100] = {0};
+      char *p;
+      const char *name = "indi_asicam";
+      read(fd, cmdline, 100);
+      p = strstr(cmdline, name);
+      if (!p)
+      {
+          DEBUGF(INDI::Logger::DBG_ERROR,"Cannot find my number: <%s>.", cmdline);
+          return false;
+      }
+
+      unsigned int myn = atoi(&p[strlen(name)]);
+
+      if (myn > asin)
+      {
+          DEBUGF(INDI::Logger::DBG_ERROR, "Error: Camera number is %d while available number of cameras is %d.", myn, asin);
+          return false;
+      }
+
+      DEBUGF(INDI::Logger::DBG_DEBUG ,"Controlling asicamera %d out of %d.", myn, asin);
+
+      if (!openCamera(myn))
+      {
+          DEBUGF(INDI::Logger::DBG_ERROR, "Open asicamera %d failed.", myn);
+          return false;
+      }
+
+      if (!initCamera())
+      {
+           DEBUGF(INDI::Logger::DBG_ERROR, "Init asicamera %d failed.", myn);
+           return false;
+      }
+
+      bool is_auto;
+      int val;
+      val = getValue(CONTROL_GAIN, &is_auto);
+      ::setValue(CONTROL_GAIN, val, false);
+      val = getValue(CONTROL_EXPOSURE, &is_auto);
+      ::setValue(CONTROL_EXPOSURE, val, false);
+      setImageFormat(getMaxWidth(), getMaxHeight(),  1, isColorCam() ? IMG_Y8: IMG_RAW8);
+      SetMisc(false, false);
+      setStartPos(0, 0);
+      char n[200];
+      snprintf(n, 200, "asicamera%d: %s", myn, getCameraModel(myn));
+
+      DEBUGF(INDI::Logger::DBG_SESSION, "<%s> up and running!", n);
+
+      startCapture();
+
+      /* Success! */
+      DEBUG(INDI::Logger::DBG_SESSION, "CCD is online. Retrieving basic data.");
+
+    return true;
   }
 
-  IDMessage(getDeviceName(), "Attempting to find the Asicam CCD...");
 
-  if (do_debug) {
-    IDLog("Connecting CCD\n");
-    IDLog("Attempting to find the camera\n");
-  }
+  return false;
 
-  /**********************************************************
-   *
-   *
-   *
-   *  IMPORRANT: Put here your CCD Connect function
-   *  If you encameraCounter an error, send the client a message
-   *  e.g.
-   *  IDMessage(getDeviceName(), "Error, unable to connect due to ...");
-   *  return false;
-   *
-   *
-   **********************************************************/
-
-  /* Success! */
-  IDMessage(getDeviceName(), "CCD is online. Retrieving basic data.");
-  if (do_debug)
-    IDLog("CCD is online. Retrieving basic data.\n");
-
-  return true;
 }
 
-bool AsicamCCD::Disconnect() {
+bool AsicamCCD::Disconnect()
+{
   if (sim)
     return true;
-
-  /**********************************************************
-   *
-   *
-   *
-   *  IMPORRANT: Put here your CCD disonnect function
-   *  If you encameraCounter an error, send the client a message
-   *  e.g.
-   *  IDMessage(getDeviceName(), "Error, unable to disconnect due to ...");
-   *  return false;
-   *
-   *
-   **********************************************************/
 
   stopCapture();
   IDMessage(getDeviceName(), "CCD is offline.");
@@ -389,22 +371,6 @@ bool AsicamCCD::setupParams() {
   float x_pixel_size, y_pixel_size;
   int bit_depth, mode;
   int x_1, y_1, x_2, y_2;
-
-  /**********************************************************
-   *
-   *
-   *
-   *  IMPORRANT: Get basic CCD parameters here such as
-   *  + Pixel Size X
-   *  + Pixel Size Y
-   *  + Bit Depth?
-   *  + X, Y, W, H of frame
-   *  + Temperature
-   *  + ...etc
-   *
-   *
-   *
-   **********************************************************/
 
   ///////////////////////////
   // 1. Get Pixel size
@@ -443,14 +409,12 @@ bool AsicamCCD::setupParams() {
     TemperatureN[0].value = getSensorTemp();
   }
 
-  IDMessage(getDeviceName(), "The CCD Temperature is %f.\n", TemperatureN[0].value);
   IDSetNumber(&TemperatureNP, NULL);
 
-  if (do_debug)
-    IDLog("The CCD Temperature is %f.\n", TemperatureN[0].value);
+  DEBUGF(INDI::Logger::DBG_SESSION, "The CCD Temperature is %g.", TemperatureN[0].value);
 
   ///////////////////////////
-  // 4. Get temperature
+  // 4. Get Image Type
   ///////////////////////////
 
   mode = getImgType();
@@ -464,9 +428,8 @@ bool AsicamCCD::setupParams() {
   }
 
   SetCCDParams(x_2 - x_1, y_2 - y_1, bit_depth, x_pixel_size, y_pixel_size);
-  if (do_debug) {
-    IDLog("SetCCDParams %d %d - %d - %f %f\n", x_2 - x_1, y_2 - y_1, bit_depth, x_pixel_size, y_pixel_size);
-  }
+
+  DEBUGF(INDI::Logger::DBG_DEBUG, "SetCCDParams %d %d - %d - %f %f\n", x_2 - x_1, y_2 - y_1, bit_depth, x_pixel_size, y_pixel_size);
 
   if (sim)
     minDuration = 0.05;
@@ -495,29 +458,15 @@ bool AsicamCCD::StartExposure(float duration)
 
   if (duration < minDuration)
   {
-    IDLog("Exposure shorter than minimum duration %g s requested. \n Setting exposure time to %g s.", duration, minDuration);
+    DEBUGF(INDI::Logger::DBG_WARNING,"Exposure shorter than minimum duration %g s requested. \n Setting exposure time to %g s.", duration, minDuration);
     duration = minDuration;
   }
 
   if (imageFrameType == CCDChip::BIAS_FRAME)
   {
     duration = minDuration;
-    IDLog("Bias Frame (s) : %g\n", minDuration);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Bias Frame (s) : %g", minDuration);
   }
-
-  /**********************************************************
-   *
-   *
-   *
-   *  IMPORRANT: Put here your CCD start exposure here
-   *  Please note that duration passed is in seconds.
-   *  If there is an error, report it back to client
-   *  e.g.
-   *  IDMessage(getDeviceName(), "Error, unable to start exposure due to ...");
-   *  return -1;
-   *
-   *
-   **********************************************************/
 
   PrimaryCCD.setExposureDuration(duration);
   ExposureRequest = duration;
@@ -543,9 +492,7 @@ bool AsicamCCD::StartExposure(float duration)
     }
 
     while (getImageData((unsigned char *) image, getWidth() *  getHeight() * BPP, 0) && i < 10) {
-      if (do_debug) {
-	IDLog("flushing\n");
-      }
+      DEBUG(INDI::Logger::DBG_DEBUG, "Flushing...");
       i++;
     }
     need_flush = false;
@@ -559,7 +506,7 @@ bool AsicamCCD::StartExposure(float duration)
 
     gain = getValue(CONTROL_GAIN, &gain_auto);
     exp = getValue(CONTROL_EXPOSURE, &exp_auto);
-    IDLog("Cur: %d+%d  %dx%d bin %d type %d exp %d/%d gain %d/%d\n",
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Cur: %d+%d  %dx%d bin %d type %d exp %d/%d gain %d/%d\n",
 	  getStartX(), getStartY(),
 	  getWidth(), getHeight(),
 	  getBin(), getImgType(),
@@ -572,26 +519,15 @@ bool AsicamCCD::StartExposure(float duration)
   return true;
 }
 
-bool AsicamCCD::AbortExposure() {
-
-  /**********************************************************
-   *
-   *
-   *
-   *  IMPORRANT: Put here your CCD abort exposure here
-   *  If there is an error, report it back to client
-   *  e.g.
-   *  IDMessage(getDeviceName(), "Error, unable to abort exposure due to ...");
-   *  return false;
-   *
-   *
-   **********************************************************/
+bool AsicamCCD::AbortExposure()
+{
 
   InExposure = false;
   return true;
 }
 
-bool AsicamCCD::UpdateCCDFrameType(CCDChip::CCD_FRAME fType) {
+bool AsicamCCD::UpdateCCDFrameType(CCDChip::CCD_FRAME fType)
+{
   int err = 0;
   CCDChip::CCD_FRAME imageFrameType = PrimaryCCD.getFrameType();
 
@@ -648,7 +584,8 @@ bool AsicamCCD::UpdateCCDFrameType(CCDChip::CCD_FRAME fType) {
 
 }
 
-bool AsicamCCD::UpdateCCDFrame(int x, int y, int w, int h) {
+bool AsicamCCD::UpdateCCDFrame(int x, int y, int w, int h)
+{
   /* Add the X and Y offsets */
   long x_1 = x;
   long y_1 = y;
@@ -656,19 +593,17 @@ bool AsicamCCD::UpdateCCDFrame(int x, int y, int w, int h) {
   long bin_width = (w / PrimaryCCD.getBinX());
   long bin_height = (h / PrimaryCCD.getBinY());
 
-  if (do_debug)
-    IDLog("Asked image area is (%ld, %ld), (%ld, %ld)\n", x_1, y_1, bin_width, bin_height);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Asked image area is (%ld, %ld), (%ld, %ld)\n", x_1, y_1, bin_width, bin_height);
 
   if (bin_width > PrimaryCCD.getXRes() / PrimaryCCD.getBinX()) {
-    IDMessage(getDeviceName(), "Error: invalid width requested %d", w);
+    DEBUGF(INDI::Logger::DBG_ERROR, "Error: invalid width requested %d", w);
     return false;
   } else if (bin_height > PrimaryCCD.getYRes() / PrimaryCCD.getBinY()) {
-    IDMessage(getDeviceName(), "Error: invalid height request %d", h);
+    DEBUGF(INDI::Logger::DBG_ERROR, "Error: invalid height request %d", h);
     return false;
   }
 
-  if (do_debug)
-    IDLog("The Final image area is (%ld, %ld), (%ld, %ld) bin %d\n", x_1, y_1, bin_width, bin_height, getBin());
+  DEBUGF(INDI::Logger::DBG_DEBUG,"The Final image area is (%ld, %ld), (%ld, %ld) bin %d\n", x_1, y_1, bin_width, bin_height, getBin());
 
   /**********************************************************
    *
@@ -687,14 +622,15 @@ bool AsicamCCD::UpdateCCDFrame(int x, int y, int w, int h) {
    *
    **********************************************************/
 
-  if (((x_1 * y_1) % 1024 !=0) || ((bin_width * bin_height) % 1024 !=0)) {
-    IDMessage(getDeviceName(), "Error, unable to set frame to width*height must be multiple of 1024\n");
+  if (((x_1 * y_1) % 1024 !=0) || ((bin_width * bin_height) % 1024 !=0))
+  {
+    DEBUG(INDI::Logger::DBG_ERROR, "Error, unable to set frame to width*height must be multiple of 1024");
     return false;
   }
   setImageFormat(bin_width, bin_height, getBin(), getImgType());
   setStartPos(x_1, y_1);
-  if (do_debug)
-    IDLog("Reall image area is (%ld, %ld), (%ld, %ld) bin %d\n", getStartX(), getStartY(), getWidth(), getHeight(), getBin());
+
+  DEBUGF(INDI::Logger::DBG_DEBUG, "Real image area is (%d, %d), (%d, %d) bin %d\n", getStartX(), getStartY(), getWidth(), getHeight(), getBin());
 
   // Set UNBINNED coords
   PrimaryCCD.setFrame(x_1, y_1, w, h);
@@ -706,31 +642,19 @@ bool AsicamCCD::UpdateCCDFrame(int x, int y, int w, int h) {
 
   need_flush = true;
 
-  if (do_debug)
-    IDLog("Setting frame buffer size to %d bytes.\n", nbuf);
+  DEBUGF(INDI::Logger::DBG_DEBUG, "Setting frame buffer size to %d bytes.", nbuf);
 
   return true;
 }
 
-bool AsicamCCD::UpdateCCDBin(int binx, int biny) {
+bool AsicamCCD::UpdateCCDBin(int binx, int biny)
+{
 
-  if (do_debug)
-    IDLog("Asked for bin %dx%d.\n", binx, biny);
+  DEBUGF(INDI::Logger::DBG_DEBUG, "Asked for bin %dx%d.\n", binx, biny);
 
-  /**********************************************************
-   *
-   *
-   *
-   *  IMPORRANT: Put here your CCD Binning call
-   *  If there is an error, report it back to client
-   *  e.g.
-   *  IDMessage(getDeviceName(), "Error, unable to set binning to ...");
-   *  return false;
-   *
-   *
-   **********************************************************/
-  if (binx != biny) {
-    IDMessage(getDeviceName(), "Error, unable to set binning, must be equal");
+  if (binx != biny)
+  {
+    DEBUG(INDI::Logger::DBG_DEBUG, "Error, unable to set binning, must be equal");
     return false;
   }
   if (!isBinSupported(binx)) {
@@ -738,11 +662,12 @@ bool AsicamCCD::UpdateCCDBin(int binx, int biny) {
     return false;
   }
   need_flush = true;
-  if (do_debug)
-    IDLog("Set bin %dx%d.\n", binx, biny);
+
+  DEBUGF(INDI::Logger::DBG_DEBUG, "Set bin %dx%d.\n", binx, biny);
+
   setImageFormat(getWidth() / binx, getHeight() / biny, binx, getImgType());
-  if (do_debug)
-    IDLog("Got bin %d.\n", getBin());
+
+  DEBUGF(INDI::Logger::DBG_DEBUG, "Got bin %d.\n", getBin());
 
   PrimaryCCD.setBin(binx, biny);
 
@@ -751,7 +676,8 @@ bool AsicamCCD::UpdateCCDBin(int binx, int biny) {
 
 /* Downloads the image from the CCD.
  N.B. No processing is done on the image */
-int AsicamCCD::grabImage() {
+int AsicamCCD::grabImage()
+{
   char * image = PrimaryCCD.getFrameBuffer();
   int width = PrimaryCCD.getSubW() / PrimaryCCD.getBinX() * PrimaryCCD.getBPP() / 8;
   int height = PrimaryCCD.getSubH() / PrimaryCCD.getBinY();
@@ -795,11 +721,7 @@ int AsicamCCD::grabImage() {
     }
   }
 
-  if (do_debug)
-    IDMessage(getDeviceName(), "Download complete.\n");
-
-  if (do_debug)
-    IDLog("Download complete.\n");
+  DEBUG(INDI::Logger::DBG_DEBUG, "Download Complete.");
 
   ExposureComplete(&PrimaryCCD);
 
@@ -842,121 +764,54 @@ void AsicamCCD::TimerHit() {
   return;
 }
 
-bool AsicamCCD::GuideNorth(float duration) {
-  /**********************************************************
-   *
-   *
-   *
-   *  IMPORRANT: Put here your CCD Guide call
-   *  Some CCD API support pulse guiding directly (i.e. without timers)
-   *  Others implement GUIDE_ON and GUIDE_OFF for each direction, and you
-   *  will have to start a timer and then stop it after the 'duration' seconds
-   *  For an example on timer usage, please refer to indi-sx and indi-gpusb drivers
-   *  available in INDI 3rd party repository
-   *  If there is an error, report it back to client
-   *  e.g.
-   *  IDMessage(getDeviceName(), "Error, unable to guide due ...");
-   *  return false;
-   *
-   *
-   **********************************************************/
+bool AsicamCCD::GuideNorth(float duration)
+{
+  DEBUGF(INDI::Logger::DBG_DEBUG, "Guide N %f\n", duration);
 
-  if (do_debug) {
-    IDLog("N %f\n", duration);
-  }
   pulseGuide(guideNorth, duration);
   return true;
 }
 
-bool AsicamCCD::GuideSouth(float duration) {
-  /**********************************************************
-   *
-   *
-   *
-   *  IMPORRANT: Put here your CCD Guide call
-   *  Some CCD API support pulse guiding directly (i.e. without timers)
-   *  Others implement GUIDE_ON and GUIDE_OFF for each direction, and you
-   *  will have to start a timer and then stop it after the 'duration' seconds
-   *  For an example on timer usage, please refer to indi-sx and indi-gpusb drivers
-   *  available in INDI 3rd party repository
-   *  If there is an error, report it back to client
-   *  e.g.
-   *  IDMessage(getDeviceName(), "Error, unable to guide due ...");
-   *  return false;
-   *
-   *
-   **********************************************************/
+bool AsicamCCD::GuideSouth(float duration)
+{
 
-  if (do_debug) {
-    IDLog("S %f\n", duration);
-  }
-  pulseGuide(guideSouth, duration);
-  return true;
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Guide S %f\n", duration);
+
+    pulseGuide(guideSouth, duration);
+
+    return true;
 }
 
-bool AsicamCCD::GuideEast(float duration) {
-  /**********************************************************
-   *
-   *
-   *
-   *  IMPORRANT: Put here your CCD Guide call
-   *  Some CCD API support pulse guiding directly (i.e. without timers)
-   *  Others implement GUIDE_ON and GUIDE_OFF for each direction, and you
-   *  will have to start a timer and then stop it after the 'duration' seconds
-   *  For an example on timer usage, please refer to indi-sx and indi-gpusb drivers
-   *  available in INDI 3rd party repository
-   *  If there is an error, report it back to client
-   *  e.g.
-   *  IDMessage(getDeviceName(), "Error, unable to guide due ...");
-   *  return false;
-   *
-   *
-   **********************************************************/
+bool AsicamCCD::GuideEast(float duration)
+{
 
-  if (do_debug) {
-    IDLog("E %f\n", duration);
-  }
+  DEBUGF(INDI::Logger::DBG_DEBUG, "Guide E %f\n", duration);
+
   pulseGuide(guideEast, duration);
   return true;
 }
 
-bool AsicamCCD::GuideWest(float duration) {
-  /**********************************************************
-   *
-   *
-   *
-   *  IMPORRANT: Put here your CCD Guide call
-   *  Some CCD API support pulse guiding directly (i.e. without timers)
-   *  Others implement GUIDE_ON and GUIDE_OFF for each direction, and you
-   *  will have to start a timer and then stop it after the 'duration' seconds
-   *  For an example on timer usage, please refer to indi-sx and indi-gpusb drivers
-   *  available in INDI 3rd party repository
-   *  If there is an error, report it back to client
-   *  e.g.
-   *  IDMessage(getDeviceName(), "Error, unable to guide due ...");
-   *  return false;
-   *
-   *
-   **********************************************************/
+bool AsicamCCD::GuideWest(float duration)
+{
  
-  if (do_debug) {
-    IDLog("W %f\n", duration);
-  }
+  DEBUGF(INDI::Logger::DBG_DEBUG, "Guide W %f\n", duration);
+
   pulseGuide(guideWest, duration);
   return true;
 }
 
 bool AsicamCCD::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) {
   if (!strcmp(dev, getDeviceName())) {
-    if (!strcmp(name, "CCD_GAIN")) {
+    if (!strcmp(name, "CCD_GAIN"))
+    {
       GainNP.s = IPS_BUSY;
       IDSetNumber(&GainNP, NULL);
       IUUpdateNumber(&GainNP, values, names, n);
       need_flush = true;
       ::setValue(CONTROL_GAIN, GainN[0].value, false);
-      if (do_debug) {
-	IDLog("Gain %d\n", GainN[0].value);
-      }
+
+      DEBUGF(INDI::Logger::DBG_DEBUG, "Gain %g", GainN[0].value);
+
       GainNP.s = IPS_OK;
       IDSetNumber(&GainNP, NULL);
       return true;
