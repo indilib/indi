@@ -940,6 +940,12 @@ debian/indi-apogee/control -text
 debian/indi-apogee/copyright -text
 debian/indi-apogee/rules -text
 debian/indi-apogee/source/format -text
+debian/indi-asicam/changelog -text
+debian/indi-asicam/compat -text
+debian/indi-asicam/control -text
+debian/indi-asicam/copyright -text
+debian/indi-asicam/rules -text
+debian/indi-asicam/source/format -text
 debian/indi-eqmod/changelog -text
 debian/indi-eqmod/compat -text
 debian/indi-eqmod/control -text
