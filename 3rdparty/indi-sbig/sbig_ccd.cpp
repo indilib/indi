@@ -139,7 +139,10 @@ SBIGCCD::SBIGCCD()
     OpenDriver();
 
     // For now let's set name to default name. In the future, we need to to support multiple devices per one driver
-    strncpy(name, getDefaultName(), MAXINDINAME);
+    if (*getDeviceName() == '\0')
+        strncpy(name, getDefaultName(), MAXINDINAME);
+    else
+        strncpy(name, getDeviceName(), MAXINDINAME);
 
     isColor = false;
 
