@@ -64,8 +64,21 @@ void ISInit() {
       do_debug = 1;
   if (!isInit)
   {
+    cameraCount=getNumberOfConnectedCameras();
+
+    if (cameraCount <= 0)
+    {
+        IDLog("Unable to find any connected cameras. Please check your connection and try again.");
+        return;
+    }
+
+    //for(int i= 0; i < cameraCount; i++)
+      //  cameras[i] = new AsicamCCD(i, getCameraModel(i));
+
+    // JM: Create only one camera object since the API does not allow controlling multiple cams for now
     cameraCount=1;
     cameras[0] = new AsicamCCD(0);
+
     atexit(cleanup);
     isInit = true;
   }
@@ -133,21 +146,41 @@ void ISSnoopDevice(XMLEle *root) {
   INDI_UNUSED(root);
 }
 
-AsicamCCD::AsicamCCD(DEVICE device)
+#if 0
+AsicamCCD::AsicamCCD(DEVICE device, const char *camName)
 {
-  this->device = device;
 
-    if (*getDeviceName() == '\0')
-        strncpy(name, getDefaultName(), MAXINDINAME);
-    else
-        strncpy(name, getDeviceName(), MAXINDINAME);
+  this->device = device;
+  strncpy(this->name, camName, MAXINDIDEVICE);
+
+  setDeviceName(camName);
 
   sim = false;
   need_flush = false;
+
+}
+#endif
+
+AsicamCCD::AsicamCCD(DEVICE device)
+{
+
+  this->device = device;
+
+  if (*getDeviceName() == '\0')
+      strncpy(name, getDefaultName(), MAXINDINAME);
+  else
+      strncpy(name, getDeviceName(), MAXINDINAME);
+
+  sim = false;
+  need_flush = false;
+
+  AvailableCameraS = NULL;
+
 }
 
-AsicamCCD::~AsicamCCD() {
-
+AsicamCCD::~AsicamCCD()
+{
+    delete (AvailableCameraS);
 }
 
 const char * AsicamCCD::getDefaultName()
@@ -190,6 +223,23 @@ bool AsicamCCD::initProperties()
 void AsicamCCD::ISGetProperties(const char *dev)
 {
   INDI::CCD::ISGetProperties(dev);
+
+  int n = getNumberOfConnectedCameras();
+
+  if (AvailableCameraS == NULL)
+  {
+      AvailableCameraS = (ISwitch *) malloc(sizeof(ISwitch)*n);
+
+      for (int i=0; i < n; i++)
+          IUFillSwitch(&AvailableCameraS[i], getCameraModel(i), getCameraModel(i), ISS_OFF);
+
+      AvailableCameraS[0].s = ISS_ON;
+
+      IUFillSwitchVector(&AvailableCameraSP, AvailableCameraS, n, getDeviceName(), "Available Cams", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+  }
+
+  if (n > 0)
+    defineSwitch(&AvailableCameraSP);
 
   // Add Debug, Simulator, and Configuration controls
   addAuxControls();
@@ -234,18 +284,30 @@ bool AsicamCCD::updateProperties()
 
 bool AsicamCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) {
 
-  if (strcmp(dev, getDeviceName()) == 0) {
+  if (strcmp(dev, getDeviceName()) == 0)
+  {
 
     /* Reset */
-    if (!strcmp(name, ResetSP.name)) {
+    if (!strcmp(name, ResetSP.name))
+    {
       if (IUUpdateSwitch(&ResetSP, states, names, n) < 0)
         return false;
       resetFrame();
       return true;
     }
 
+    // available cams
+    if (!strcmp, name, AvailableCameraSP.name)
+    {
+        IUUpdateSwitch(&AvailableCameraSP, states, names, n);
+        AvailableCameraSP.s = IPS_OK;
+        IDSetSwitch(&AvailableCameraSP, NULL);
+        return true;
+    }
+
     // change mode
-    if (!strcmp(name, ModeSP.name)) {
+    if (!strcmp(name, ModeSP.name))
+    {
       if (IUUpdateSwitch(&ModeSP, states, names, n) < 0)
         return false;
       ISwitch *p = IUFindOnSwitch(&ModeSP);
@@ -256,7 +318,8 @@ bool AsicamCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 	fmt = IMG_RAW16;
       else if (!strcmp(p->name, "Y8"))
 	fmt = IMG_Y8;
-      if (do_debug) {
+      if (do_debug)
+      {
 	IDLog("Setting format to %dx%d bin %d fmt %d\n",
 	      getWidth(), getHeight(),  getBin(), fmt);
       }
@@ -286,7 +349,7 @@ bool AsicamCCD::Connect()
   else
   {
 
-      int asin = getNumberOfConnectedCameras();
+      /*int asin = getNumberOfConnectedCameras();
 
       if (asin <= 0)
       {
@@ -324,16 +387,19 @@ bool AsicamCCD::Connect()
       }
 
       DEBUGF(INDI::Logger::DBG_DEBUG ,"Controlling asicamera %d out of %d.", myn, asin);
+      */
 
-      if (!openCamera(myn))
+      device = IUFindOnSwitchIndex(&AvailableCameraSP);
+
+      if (!openCamera(device))
       {
-          DEBUGF(INDI::Logger::DBG_ERROR, "Open asicamera %d failed.", myn);
+          DEBUGF(INDI::Logger::DBG_ERROR, "Open asicamera %d failed.", device);
           return false;
       }
 
       if (!initCamera())
       {
-           DEBUGF(INDI::Logger::DBG_ERROR, "Init asicamera %d failed.", myn);
+           DEBUGF(INDI::Logger::DBG_ERROR, "Init asicamera %d failed.", device);
            return false;
       }
 
@@ -346,15 +412,15 @@ bool AsicamCCD::Connect()
       setImageFormat(getMaxWidth(), getMaxHeight(),  1, isColorCam() ? IMG_Y8: IMG_RAW8);
       SetMisc(false, false);
       setStartPos(0, 0);
-      char n[200];
-      snprintf(n, 200, "asicamera%d: %s", myn, getCameraModel(myn));
+      //char n[200];
+      //snprintf(n, 200, "asicamera%d: %s", myn, getCameraModel(myn));
 
-      DEBUGF(INDI::Logger::DBG_SESSION, "<%s> up and running!", n);
+      DEBUGF(INDI::Logger::DBG_SESSION, "<%s> up and running! Retrieving basic data.", AvailableCameraS[device].name);
 
       startCapture();
 
       /* Success! */
-      DEBUG(INDI::Logger::DBG_SESSION, "CCD is online. Retrieving basic data.");
+      //DEBUG(INDI::Logger::DBG_SESSION, "CCD is online. Retrieving basic data.");
 
     return true;
   }

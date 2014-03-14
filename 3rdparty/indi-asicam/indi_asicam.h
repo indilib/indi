@@ -35,6 +35,7 @@ using namespace std;
 class AsicamCCD: public INDI::CCD {
 public:
 
+  //AsicamCCD(DEVICE device, const char *camName);
   AsicamCCD(DEVICE device);
   virtual ~AsicamCCD();
 
@@ -69,7 +70,7 @@ protected:
 
 private:
   DEVICE device;
-  char name[32];
+  char name[MAXINDIDEVICE];
 
   ISwitch ResetS[1];
   ISwitchVectorProperty ResetSP;
@@ -79,6 +80,9 @@ private:
 
   ISwitch ModeS[4];
   ISwitchVectorProperty	ModeSP;
+
+  ISwitch *AvailableCameraS;
+  ISwitchVectorProperty AvailableCameraSP;
 
   double minDuration;
   unsigned short *imageBuffer;
