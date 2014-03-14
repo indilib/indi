@@ -1,0 +1,7 @@
+<devGroup group="CCDs">
+	<device label="ZWO ASICamera">
+		<driver name="ZWO ASICamera">indi_asicam0</driver>
+		<version>0.1</version>
+	</device>
+</devGroup>
+

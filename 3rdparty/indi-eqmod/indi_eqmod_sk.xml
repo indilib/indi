@@ -129,7 +129,7 @@ Off
 Off
 </defSwitch>
 </defSwitchVector>
-<defSwitchVector device="EQMod Mount" name="TRACKDEFAULT" label="Track Default" group="Advanced" state="Idle" perm="rw" rule="OneOfMany">
+<defSwitchVector device="EQMod Mount" name="TRACKDEFAULT" label="Track Default" group="Motion Control" state="Idle" perm="rw" rule="OneOfMany">
 <defSwitch name="SIDEREAL" label="Sidereal">
 On
 </defSwitch>
