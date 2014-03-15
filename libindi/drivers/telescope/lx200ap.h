@@ -53,6 +53,7 @@ class LX200AstroPhysics : public LX200Generic
  virtual bool Park();
  virtual bool Sync(double ra, double dec);
  virtual bool Connect(char *);
+ virtual bool updateTime(ln_date * utc, double utc_offset);
 
  virtual void debugTriggered(bool enable);
 
