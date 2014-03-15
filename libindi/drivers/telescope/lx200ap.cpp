@@ -1075,3 +1075,90 @@ double LDRAtoHA( double RA, double longitude)
 #endif
 
 } 
+
+bool LX200AstroPhysics::Park()
+{
+    if (isSimulation() == false)
+    {
+        // If scope is moving, let's stop it first.
+        if (EqNP.s == IPS_BUSY)
+        {
+           if (isSimulation() == false && abortSlew(PortFD) < 0)
+           {
+              AbortSP.s = IPS_ALERT;
+              IDSetSwitch(&AbortSP, "Abort slew failed.");
+              return false;
+            }
+
+             AbortSP.s    = IPS_OK;
+             EqNP.s       = IPS_IDLE;
+             IDSetSwitch(&AbortSP, "Slew aborted.");
+             IDSetNumber(&EqNP, NULL);
+
+             if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+             {
+                   MovementNSSP.s  = MovementWESP.s =  IPS_IDLE;
+                   EqNP.s       = IPS_IDLE;
+                   IUResetSwitch(&MovementNSSP);
+                   IUResetSwitch(&MovementWESP);
+
+                   IDSetSwitch(&MovementNSSP, NULL);
+                   IDSetSwitch(&MovementWESP, NULL);
+              }
+
+             // sleep for 100 msec
+             usleep(100000);
+         }
+
+          if (isSimulation() == false && setAPPark(PortFD) < 0)
+          {
+            ParkSP.s = IPS_ALERT;
+            IDSetSwitch(&ParkSP, "Parking Failed.");
+            return false;
+          }
+
+    }
+
+    ParkSP.s = IPS_OK;
+    //Parked=true;
+    TrackState = SCOPE_PARKING;
+    IDMessage(getDeviceName(), "Parking telescope in progress...");
+    return true;
+}
+
+bool LX200AstroPhysics::Connect(char *port)
+{
+    if (isSimulation())
+    {
+        IDMessage (getDeviceName(), "Simulated Astrophysics is online. Retrieving basic data...");
+        return true;
+    }
+
+    if (tty_connect(port, 9600, 8, 0, 1, &PortFD) != TTY_OK)
+    {
+      DEBUGF(INDI::Logger::DBG_ERROR, "Error connecting to port %s. Make sure you have BOTH write and read permission to your port.", port);
+      return false;
+    }
+
+
+    if (check_lx200ap_connection(PortFD))
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Error connecting to Telescope. Telescope is offline.");
+        return false;
+    }
+
+   //*((int *) UTCOffsetN[0].aux0) = 0;
+
+   IDMessage (getDeviceName(), "Telescope is online. Retrieving basic data...");
+
+   return true;
+}
+
+void LX200AstroPhysics::debugTriggered(bool enable)
+{
+   setLX200Debug(enable ? 1 : 0);
+   set_lx200ap_debug(enable ? 1 : 0);
+}
+
+
+

@@ -35,6 +35,7 @@
 extern "C" {
 #endif
 
+void set_lx200ap_debug(int value);
 int check_lx200ap_connection(int fd) ;
 int initializeAPmount(int fd) ;
 int getAPUTCOffset (int fd, double *value) ;

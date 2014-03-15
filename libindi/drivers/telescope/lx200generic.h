@@ -71,9 +71,9 @@ class LX200Generic: public INDI::Telescope, public INDI::GuiderInterface
 
     virtual bool saveConfigItems(FILE *fp);
 
-    bool Goto(double,double);
-    bool Park();
-    bool Sync(double ra, double dec);
+    virtual bool Goto(double,double);
+    virtual bool Park();
+    virtual bool Sync(double ra, double dec);
     virtual bool canSync();
     virtual bool canPark();
 

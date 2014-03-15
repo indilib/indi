@@ -50,6 +50,11 @@ class LX200AstroPhysics : public LX200Generic
 
  virtual bool ReadScopeStatus();
 
+ virtual bool Park();
+ virtual bool Connect(char *);
+
+ virtual void debugTriggered(bool enable);
+
  int  setBasicDataPart0();
  int  setBasicDataPart1();
 
