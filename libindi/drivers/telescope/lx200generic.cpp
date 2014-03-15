@@ -1704,10 +1704,9 @@ bool LX200Generic::canSync()
     return true;
 }
 
-// Don't assume generic can, let children decide
 bool LX200Generic::canPark()
 {
-    return false;
+    return true;
 }
 
 bool LX200Generic::ISSnoopDevice(XMLEle *root)
