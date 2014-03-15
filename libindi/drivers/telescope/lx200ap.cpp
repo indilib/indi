@@ -1154,6 +1154,46 @@ bool LX200AstroPhysics::Connect(char *port)
    return true;
 }
 
+bool LX200AstroPhysics::Sync(double ra, double dec)
+{
+    char syncString[256];
+
+    int i = IUFindOnSwitchIndex(&SyncCMRSP);
+
+    if (i == 0)
+        return LX200Generic::Sync(ra, dec);
+
+    if (isSimulation() == false &&
+            (setObjectRA(PortFD, ra) < 0 || (setObjectDEC(PortFD, dec)) < 0))
+    {
+        EqNP.s = IPS_ALERT;
+        IDSetNumber(&EqNP, "Error setting RA/DEC. Unable to Sync.");
+        return false;
+    }
+
+    if (isSimulation() == false && APSyncCMR(PortFD, syncString) < 0)
+    {
+        EqNP.s = IPS_ALERT;
+        IDSetNumber(&EqNP , "Synchronization failed.");
+        return false;
+    }
+
+    currentRA  = ra;
+    currentDEC = dec;
+
+    if (isDebug())
+        IDLog("Synchronization successful %s\n", syncString);
+
+    IDMessage(getDeviceName(), "Synchronization successful.");
+
+    TrackState = SCOPE_IDLE;
+    EqNP.s    = IPS_OK;
+
+    NewRaDec(currentRA, currentDEC);
+
+    return true;
+}
+
 void LX200AstroPhysics::debugTriggered(bool enable)
 {
    setLX200Debug(enable ? 1 : 0);
