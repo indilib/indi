@@ -30,6 +30,9 @@ endif ()
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/SDK)
 add_definitions(-D_LIN)
 
+message(STATUS "Cmake current source dir ${CMAKE_CURRENT_SOURCE_DIR}")
+message(STATUS "Cmake current binary dir ${CMAKE_CURRENT_BINARY_DIR}")
+
 set(indi_asicam_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/indi_asicam.cpp
    )
