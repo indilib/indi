@@ -33,6 +33,11 @@ add_definitions(-D_LIN)
 message(STATUS "Cmake current source dir ${CMAKE_CURRENT_SOURCE_DIR}")
 message(STATUS "Cmake current binary dir ${CMAKE_CURRENT_BINARY_DIR}")
 
+message(STATUS "Listing source directory...")
+exec_program(ls ARGS -lR ${CMAKE_CURRENT_SOURCE_DIR})
+message(STATUS "Listing binary directory...")
+exec_program(ls ARGS -lR ${CMAKE_CURRENT_BINARY_DIR})
+
 set(indi_asicam_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/indi_asicam.cpp
    )
