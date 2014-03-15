@@ -9,7 +9,8 @@ Build-Depends: debhelper (>= 8.1.3~),
  libnova-dev,
  libusb-1.0-0-dev,
  zlib1g-dev,
- libjpeg-dev
+ libjpeg-dev,
+ libgsl0-dev
 Standards-Version: 3.9.2
 Homepage: http://www.indilib.org/
 Vcs-Git: git://anonscm.debian.org/pkg-kde/krap/libindi.git
