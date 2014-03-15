@@ -70,7 +70,7 @@ protected:
 
 private:
   DEVICE device;
-  char name[MAXINDIDEVICE];
+  char name[MAXINDINAME];
 
   ISwitch ResetS[1];
   ISwitchVectorProperty ResetSP;

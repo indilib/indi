@@ -297,7 +297,7 @@ bool AsicamCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
     }
 
     // available cams
-    if (!strcmp, name, AvailableCameraSP.name)
+    if (!strcmp(name, AvailableCameraSP.name))
     {
         IUUpdateSwitch(&AvailableCameraSP, states, names, n);
         AvailableCameraSP.s = IPS_OK;
