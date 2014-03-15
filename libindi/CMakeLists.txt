@@ -67,7 +67,7 @@ include_directories( ${CMAKE_SOURCE_DIR}/libs)
 include_directories( ${CMAKE_SOURCE_DIR}/libs/indibase)
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-  include_directories( ${CMAKE_SOURCE_DIR}/libs/webcam)
+include_directories( ${CMAKE_SOURCE_DIR}/libs/webcam)
   include_directories( ${JPEG_INCLUDE_DIR} )
 endif()
 
@@ -85,7 +85,7 @@ set(libindicom_SRCS
 	)
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-  set(libwebcam_SRCS
+set(libwebcam_SRCS
 	${CMAKE_SOURCE_DIR}/libs/webcam/PPort.cpp
 	${CMAKE_SOURCE_DIR}/libs/webcam/port.cpp
 	${CMAKE_SOURCE_DIR}/libs/webcam/v4l2_base.cpp
@@ -185,6 +185,11 @@ install(TARGETS indidriverstatic ARCHIVE DESTINATION ${LIB_DESTINATION})
 add_library(indiclient STATIC ${indiclient_SRCS})
 target_link_libraries(indiclient indi ${CMAKE_THREAD_LIBS_INIT})
 install(TARGETS indiclient ARCHIVE DESTINATION ${LIB_DESTINATION})
+
+##################################################
+########### INDI Alignment Subsystem #############
+##################################################
+add_subdirectory(${CMAKE_SOURCE_DIR}/libs/indibase/alignment)
 
 #####################################
 ######## AGENT GROUP #########
@@ -449,7 +454,7 @@ set(trutechwheel_SRCS
 	${CMAKE_SOURCE_DIR}/drivers/filter_wheel/trutech_wheel.c
    )
 
-add_executable(indi_trutech_wheel ${trutechwheel_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
+add_executable(indi_trutech_wheel ${trutechwheel_SRCS}  ${liblilxml_SRCS} ${libindicom_SRCS})
 
 target_link_libraries(indi_trutech_wheel ${NOVA_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY})
 
@@ -584,7 +589,7 @@ add_executable(indi_gpusb ${gpusb_SRCS})
 target_link_libraries(indi_gpusb indidriver)
 install(TARGETS indi_gpusb RUNTIME DESTINATION bin )
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-  install(FILES ${CMAKE_SOURCE_DIR}/drivers/auxiliary/99-gpusb.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
+install(FILES ${CMAKE_SOURCE_DIR}/drivers/auxiliary/99-gpusb.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
 endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")

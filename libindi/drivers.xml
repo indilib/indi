@@ -119,6 +119,10 @@
                 <driver name="Telescope Simulator">indi_simulator_telescope</driver>
                 <version>1.0</version>
         </device>
+        <device label="Skywatcher API Mount" focal_length="" aperture="">
+                <driver name="Skywatcher API Mount">indi_skywatcherAPIMount</driver>
+                <version>1.0</version>
+        </device>
 </devGroup>
 <devGroup group="Focusers">
         <device label="Focuser Simulator">
@@ -198,5 +202,5 @@
     <device label="Imager Agent">
         <driver name="Imager Agent">indi_imager_agent</driver>
         <version>1.0</version>
-    </device>
+        </device>
 </devGroup>

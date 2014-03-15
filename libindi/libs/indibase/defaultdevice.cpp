@@ -35,6 +35,7 @@ const char *OPTIONS_TAB = "Options";
 const char *FILTER_TAB = "Filter Wheel";
 const char *FOCUS_TAB = "Focuser";
 const char *GUIDE_TAB = "Guide";
+const char *ALIGNMENT_TAB = "Alignment";
 
 void timerfunc(void *t)
 {
@@ -199,7 +200,7 @@ bool INDI::DefaultDevice::ISNewSwitch (const char *dev, const char *name, ISStat
      if(!strcmp(svp->name,ConnectionSP.name))
      {
         bool rc;
-        
+
       for (int i=0; i < n; i++)
       {
         if ( !strcmp(names[i], "CONNECT") && (states[i] == ISS_ON))

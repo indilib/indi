@@ -1,0 +1,19 @@
+TODO list, open questions and ideas.
+====================================
+
+Anyone feel free to edit this.
+If you cannot commit an edit then send your version to me and I will commit it.
+
+Roger.
+
+1. More debug logging in alignment subsystem
+
+2. Alpha testing.
+
+3. Improve error handling in throughout.
+
+4. Modify my coordinate conversion layer driver to use the new architecture.
+
+5. Implement an example client program to load eqmod format databases into the alignment subsystem (50% complete).
+
+
