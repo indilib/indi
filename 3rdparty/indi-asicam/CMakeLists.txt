@@ -30,13 +30,16 @@ endif ()
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/SDK)
 add_definitions(-D_LIN)
 
+# Launchpad only works if we copy the static library to the binary dir
+exec_program(cp ARGS ${ASILIB} ${CMAKE_BINARY_DIR})
+
 set(indi_asicam_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/indi_asicam.cpp
    )
 
 add_executable(indi_asicam ${indi_asicam_SRCS})
 
-target_link_libraries(indi_asicam ${ASILIB} ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${LIBUSB_1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(indi_asicam ${CMAKE_BINARY_DIR}/libASICamera.a ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${LIBUSB_1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
 install(TARGETS indi_asicam RUNTIME DESTINATION bin )
 
