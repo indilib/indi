@@ -87,10 +87,10 @@
 3rdparty/indi-asicam/COPYING.LGPL -text
 3rdparty/indi-asicam/README.md -text
 3rdparty/indi-asicam/SDK/ASICamera.h -text
-3rdparty/indi-asicam/SDK/amd64/libASICamera.a -text
-3rdparty/indi-asicam/SDK/armel/libASICamera.a -text
-3rdparty/indi-asicam/SDK/armhf/libASICamera.a -text
-3rdparty/indi-asicam/SDK/i386/libASICamera.a -text
+3rdparty/indi-asicam/SDK/amd64/libASICamera.bin -text
+3rdparty/indi-asicam/SDK/armel/libASICamera.bin -text
+3rdparty/indi-asicam/SDK/armhf/libASICamera.bin -text
+3rdparty/indi-asicam/SDK/i386/libASICamera.bin -text
 3rdparty/indi-asicam/indi_asicam.cpp -text
 3rdparty/indi-asicam/indi_asicam.h -text
 3rdparty/indi-asicam/indi_asiccd.xml -text
