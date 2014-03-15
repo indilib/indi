@@ -938,6 +938,12 @@ debian/fliusb/dkms -text
 debian/fliusb/rules -text
 debian/fliusb/rules.modules -text
 debian/fliusb/source/format -text
+debian/indi-aagcloudwatcher/changelog -text
+debian/indi-aagcloudwatcher/compat -text
+debian/indi-aagcloudwatcher/control -text
+debian/indi-aagcloudwatcher/copyright -text
+debian/indi-aagcloudwatcher/rules -text
+debian/indi-aagcloudwatcher/source/format -text
 debian/indi-apogee/changelog -text
 debian/indi-apogee/compat -text
 debian/indi-apogee/control -text
