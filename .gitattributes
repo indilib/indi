@@ -93,7 +93,7 @@
 3rdparty/indi-asicam/SDK/i386/libASICamera.a -text
 3rdparty/indi-asicam/indi_asicam.cpp -text
 3rdparty/indi-asicam/indi_asicam.h -text
-3rdparty/indi-asicam/indi_asicam.xml -text
+3rdparty/indi-asicam/indi_asiccd.xml -text
 3rdparty/indi-duino/CMakeLists.txt -text
 3rdparty/indi-duino/README -text
 3rdparty/indi-duino/add-on/meteostationWEB/README -text
