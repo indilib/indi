@@ -64,13 +64,13 @@ void ISInit() {
       do_debug = 1;
   if (!isInit)
   {
-    cameraCount=getNumberOfConnectedCameras();
+    /*cameraCount=getNumberOfConnectedCameras();
 
     if (cameraCount <= 0)
     {
         IDLog("Unable to find any connected cameras. Please check your connection and try again.");
         return;
-    }
+    }*/
 
     //for(int i= 0; i < cameraCount; i++)
       //  cameras[i] = new AsicamCCD(i, getCameraModel(i));
@@ -226,6 +226,12 @@ void AsicamCCD::ISGetProperties(const char *dev)
 
   int n = getNumberOfConnectedCameras();
 
+  if (n <=0)
+  {
+      DEBUG(INDI::Logger::DBG_ERROR, "Unable to find any connected cameras. Please check your connection and try again.");
+      return;
+  }
+
   if (AvailableCameraS == NULL)
   {
       AvailableCameraS = (ISwitch *) malloc(sizeof(ISwitch)*n);
@@ -238,8 +244,7 @@ void AsicamCCD::ISGetProperties(const char *dev)
       IUFillSwitchVector(&AvailableCameraSP, AvailableCameraS, n, getDeviceName(), "Available Cams", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
   }
 
-  if (n > 0)
-    defineSwitch(&AvailableCameraSP);
+  defineSwitch(&AvailableCameraSP);
 
   // Add Debug, Simulator, and Configuration controls
   addAuxControls();
