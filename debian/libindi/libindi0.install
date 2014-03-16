@@ -4,3 +4,6 @@ usr/lib/*/libindimain.so.0
 usr/lib/*/libindimain.so.0.9.8
 usr/lib/*/libindidriver.so.0
 usr/lib/*/libindidriver.so.0.9.8
+usr/lib/*/libAlignmentDriver.so
+usr/share/indi/MathPlugins/*_MathPlugin.so
+
