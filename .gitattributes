@@ -1266,10 +1266,8 @@ libindi/libs/indibase/alignment/MathPluginManagerClient.h -text
 libindi/libs/indibase/alignment/MathPluginManagerMain.cpp -text
 libindi/libs/indibase/alignment/SVDMathPlugin.cpp -text
 libindi/libs/indibase/alignment/SVDMathPlugin.h -text
-libindi/libs/indibase/alignment/TODO[!!-~]and[!!-~]Ideas -text
 libindi/libs/indibase/alignment/TelescopeDirectionVectorSupportFunctions.cpp -text
 libindi/libs/indibase/alignment/TelescopeDirectionVectorSupportFunctions.h -text
-libindi/libs/indibase/alignment/loader.cbp -text
 libindi/libs/indibase/baseclient.cpp -text
 libindi/libs/indibase/baseclient.h -text
 libindi/libs/indibase/basedevice.cpp -text
