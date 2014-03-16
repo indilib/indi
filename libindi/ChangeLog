@@ -1,3 +1,26 @@
+From 0.9.7 to 0.9.8
+
+      + Support for Telescope Alignment Subsystem Infrastructure. This includes an implementation of Markley's singular value decomposition (SVD) based algorithm for the computation of sky/telescope
+coordinate conversion transforms, in addition to multiple plugin support.
+      + Suppprt for SkyWatcherAPI Mount with Alignment Subsystem.
+      + Support for ZWO Optics ASI Cameras (3rd party)
+      + Support for AAG Cloud Watcher station (3rd Party).
+      + Support for MoonLite focusers.
+      + Support for Fishcamp CCDs (3rd Party).
+      + Support for Imager Agent.      
+      + Improved EQMod driver including custom parking position.
+      + New and updated Astrophysics mount driver.
+      + New and updated QHY CCD Driver (3rd Party).      
+      + New and improved GPhoto driver to support DSLRs.
+      + New and updated Video4Linux CCD Driver including support for long exposures (LX) and Imaging Source cameras.
+      + New and improved Apogee CCD driver.
+      + Improved support for SBIG CCDs including ST-I.
+      + Updated and improved TCFS Focuser drivers.      
+      + Drivers migrated to libusb 1.0 framework.
+      + Rapid Guide Support for CCD Drivers.
+      + Improved compatibility with Mac OSX including INDI Server and GUI.
+      + Various bug fixes and improvements.
+
 From 0.9.6 to 0.9.7
 
       + Support for EQMod mount driver (3rd party).
