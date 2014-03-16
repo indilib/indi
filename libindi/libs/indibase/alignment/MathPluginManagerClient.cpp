@@ -50,8 +50,7 @@ void MathPluginManagerClient::Test()
 {
     MathPluginsList AvailableMathPlugins;
 
-
-    cout <"Testing Enumerate available plugins\n";
+    cout << "Testing Enumerate available plugins\n";
 
     if (EnumerateMathPlugins(AvailableMathPlugins))
     {
