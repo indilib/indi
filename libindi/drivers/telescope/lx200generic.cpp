@@ -743,7 +743,7 @@ bool LX200Generic::updateTime(ln_date * utc, double utc_offset)
 
     JD = ln_get_julian_day(utc);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "New JD is %f\n", (float) JD);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "New JD is %f", (float) JD);
 
         // Set Local Time
         if (setLocalTime(PortFD, ltm.hours, ltm.minutes, ltm.seconds) < 0)

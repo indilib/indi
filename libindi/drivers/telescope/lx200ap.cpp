@@ -38,6 +38,7 @@
 /* Constructor */
 LX200AstroPhysics::LX200AstroPhysics() : LX200Generic()
 {
+    timeUpdated = locationUpdated = false;
 
 }
 
@@ -98,14 +99,10 @@ bool LX200AstroPhysics::initProperties()
 bool LX200AstroPhysics::updateProperties()
 {
 
-    LX200Generic::updateProperties();
+    INDI::Telescope::updateProperties();
 
     if (isConnected())
     {
-        //defineNumber(&HorizontalCoordsNP);
-
-        // AstroPhysics has no alignment mode
-        IDDelete(getDeviceName(), "Alignment", NULL);
         defineSwitch(&StartUpSP);
         defineText(&VersionInfo);
         defineNumber(&HourangleCoordsNP) ;
@@ -113,35 +110,19 @@ bool LX200AstroPhysics::updateProperties()
         defineText(&DeclinationAxisTP);
         defineNumber(&APSiderealTimeNP);
 
-        // AstroPhysics, we have no focuser, therefore, we don't need the classical one
-        IDDelete(getDeviceName(), "FOCUS_MODE", NULL);
-        IDDelete(getDeviceName(), "FOCUS_MOTION", NULL);
-        IDDelete(getDeviceName(), "FOCUS_TIMER", NULL);
-
-        /* Motion group */
-        IDDelete(getDeviceName(), "Slew rate", NULL);
-        IDDelete(getDeviceName(), "Tracking Mode", NULL);
-        IDDelete(getDeviceName(), "Tracking Frequency", NULL); /* AP does not have :GT, :ST commands */
-
+        /* Motion group */        
         defineSwitch (&TrackModeSP);
         defineSwitch (&MoveToRateSP);
         defineSwitch (&SlewRateSP);
         defineSwitch (&SwapSP);
         defineSwitch (&SyncCMRSP);
 
-        /* Site management */
-        /* Astro Physics has no commands to retrieve the values */
-        /* True for all three control boxes and the software  and C-KE1, G-L*/
-        IDDelete(getDeviceName(), "Sites", NULL);
-        IDDelete(getDeviceName(), "Site Name", NULL);
+        loadConfig(true);
 
-        DEBUG(INDI::Logger::DBG_SESSION, "Please initialize the mount before issuing any command.");
-
+        DEBUG(INDI::Logger::DBG_SESSION, "Please initialize the mount before issuing any command.");        
     }
     else
     {
-        //deleteProperty(HorizontalCoordsNP.name);
-
         deleteProperty(StartUpSP.name);
         deleteProperty(VersionInfo.name);
         deleteProperty(HourangleCoordsNP.name);
@@ -153,6 +134,8 @@ bool LX200AstroPhysics::updateProperties()
         deleteProperty(SwapSP.name);
         deleteProperty(SyncCMRSP.name);
     }
+
+    controller->updateProperties();
 }
 
 bool LX200AstroPhysics::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
@@ -273,7 +256,6 @@ bool LX200AstroPhysics::ISNewSwitch (const char *dev, const char *name, ISState 
     // ============================================================
     if (!strcmp (name, StartUpSP.name))
     {
-	int ret ;
 	int switch_nr ;
 	static int mount_status= MOUNTNOTINITIALIZED ;
 
@@ -281,25 +263,34 @@ bool LX200AstroPhysics::ISNewSwitch (const char *dev, const char *name, ISState 
 
     if ( mount_status == MOUNTNOTINITIALIZED)
 	{
-	    mount_status=MOUNTINITIALIZED;
+        if (timeUpdated == false || locationUpdated == false)
+        {
+            StartUpSP.s = IPS_ALERT;
+            DEBUG(INDI::Logger::DBG_ERROR, "Time and location must be set before mount initialization is invoked.");
+            IDSetSwitch(&StartUpSP, NULL);
+            return false;
+        }
+
+        mount_status=MOUNTINITIALIZED;
 	
-	    if(( ret= setBasicDataPart0())< 0)
+        /*if( setBasicDataPart0() == false)
 	    {
-		// ToDo do something if needed
-		StartUpSP.s = IPS_ALERT ;
-		IDSetSwitch(&StartUpSP, "Mount initialization failed") ;
-        return false ;
-	    }
+            StartUpSP.s = IPS_ALERT ;
+            IDSetSwitch(&StartUpSP, "Mount initialization failed") ;
+            return false ;
+        }*/
+
 	    if( StartUpSP.sp[0].s== ISS_ON) // do it only in case a power on (cold start) 
 	    {
-		if(( ret= setBasicDataPart1())< 0)
-		{
-		    // ToDo do something if needed
-		    StartUpSP.s = IPS_ALERT ;
-            IDSetSwitch(&StartUpSP, "Cold mount initialization failed.") ;
-            return false ;
-		}
+
+            if( setBasicDataPart1() == false)
+            {
+                StartUpSP.s = IPS_ALERT ;
+                IDSetSwitch(&StartUpSP, "Cold mount initialization failed.") ;
+                return false ;
+            }
 	    }
+
 	    // Make sure that the mount is setup according to the properties	    
         switch_nr =  IUFindOnSwitchIndex(&TrackModeSP);
 
@@ -309,10 +300,11 @@ bool LX200AstroPhysics::ISNewSwitch (const char *dev, const char *name, ISState 
             return false;
 	    }
 
-            TrackModeSP.s = IPS_OK;
-            IDSetSwitch(&TrackModeSP, NULL);
-            //ToDo set button swapping acording telescope east west
-            // ... some code here
+        TrackModeSP.s = IPS_OK;
+        IDSetSwitch(&TrackModeSP, NULL);
+
+        //ToDo set button swapping acording telescope east west
+        // ... some code here
 
         switch_nr = IUFindOnSwitchIndex(&MoveToRateSP);
 	  
@@ -335,7 +327,7 @@ bool LX200AstroPhysics::ISNewSwitch (const char *dev, const char *name, ISState 
 	    IDSetSwitch(&SlewRateSP, NULL);
 
 	    StartUpSP.s = IPS_OK ;
-	    IDSetSwitch(&StartUpSP, "Mount initialized") ;
+        IDSetSwitch(&StartUpSP, "Mount initialized.") ;
 
         if (isSimulation())
         {
@@ -608,37 +600,37 @@ bool LX200AstroPhysics::ReadScopeStatus()
      return rc;
 }
 
-int LX200AstroPhysics::setBasicDataPart0()
+bool LX200AstroPhysics::setBasicDataPart0()
 {
     int err ;
-    struct ln_date utm;
-    struct ln_zonedate ltm;
+    //struct ln_date utm;
+    //struct ln_zonedate ltm;
 
     if (isSimulation() == true)
     {
         DEBUG(INDI::Logger::DBG_SESSION, "setBasicDataPart0 simulation complete.");
-        return 0;
+        return true;
     }
 
     if( (err = setAPClearBuffer( PortFD)) < 0)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Error clearing the buffer (%d).", err);
-        return -1;
+        return false;
     }
 
     if( (err = setAPLongFormat( PortFD)) < 0)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Error setting long format failed (%d).", err);
-        return -1;
+        return false;
     }
     
-    // ToDo make a property
     if( (err = setAPBackLashCompensation(PortFD, 0,0,0)) < 0)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Error setting back lash compensation (%d).", err);
-        return -1;
+        return false;
     }
 
+    /*
     ln_get_date_from_sys( &utm) ;
     ln_date_to_zonedate(&utm, &ltm, 3600);
 
@@ -653,20 +645,21 @@ int LX200AstroPhysics::setBasicDataPart0()
         return -1;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "UT time is: %04d/%02d/%02d T %02d:%02d:%02d\n", utm.years, utm.months, utm.days, utm.hours, utm.minutes, (int)utm.seconds);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Local time is: %04d/%02d/%02d T %02d:%02d:%02d\n", ltm.years, ltm.months, ltm.days, ltm.hours, ltm.minutes, (int)ltm.seconds);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "UT time is: %04d/%02d/%02d T %02d:%02d:%02d", utm.years, utm.months, utm.days, utm.hours, utm.minutes, (int)utm.seconds);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Local time is: %04d/%02d/%02d T %02d:%02d:%02d", ltm.years, ltm.months, ltm.days, ltm.hours, ltm.minutes, (int)ltm.seconds);
+    */
 
-    return 0 ;
+    return true;
 }
 
-int LX200AstroPhysics::setBasicDataPart1()
+bool LX200AstroPhysics::setBasicDataPart1()
 {
     int err ;
 
     if (isSimulation() == true)
     {
         DEBUG(INDI::Logger::DBG_SESSION, "setBasicDataPart1 simulation complete.");
-        return 0;
+        return true;
     }
 
     if((err = setAPUnPark( PortFD)) < 0)
@@ -1140,18 +1133,25 @@ bool LX200AstroPhysics::Connect(char *port)
       return false;
     }
 
-
     if (check_lx200ap_connection(PortFD))
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error connecting to Telescope. Telescope is offline.");
         return false;
     }
 
-   //*((int *) UTCOffsetN[0].aux0) = 0;
+   DEBUG(INDI::Logger::DBG_SESSION, "Telescope is online.");
 
-   IDMessage (getDeviceName(), "Telescope is online. Retrieving basic data...");
+   setBasicDataPart0();
 
    return true;
+}
+
+bool LX200AstroPhysics::Disconnect()
+{
+    timeUpdated = false;
+    locationUpdated = false;
+
+    return LX200Generic::Disconnect();
 }
 
 bool LX200AstroPhysics::Sync(double ra, double dec)
@@ -1205,7 +1205,7 @@ bool LX200AstroPhysics::updateTime(ln_date * utc, double utc_offset)
 
     JD = ln_get_julian_day(utc);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "New JD is %f\n", (float) JD);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "New JD is %f", (float) JD);
 
         // Set Local Time
         if (setLocalTime(PortFD, ltm.hours, ltm.minutes, ltm.seconds) < 0)
@@ -1220,16 +1220,27 @@ bool LX200AstroPhysics::updateTime(ln_date * utc, double utc_offset)
           return false;
       }
 
-    if (setAPUTCOffset(PortFD, (utc_offset)) < 0)
+    if (setAPUTCOffset(PortFD, (utc_offset * -1)) < 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting UTC Offset.");
         return false;
     }
 
-   DEBUG(INDI::Logger::DBG_SESSION, "Time updated, updating planetary data...");
+   DEBUG(INDI::Logger::DBG_SESSION, "Time updated.");
+
+   timeUpdated = true;
+
    return true;
 }
 
+bool LX200AstroPhysics::updateLocation(double latitude, double longitude, double elevation)
+{
+    bool rc = LX200Generic::updateLocation(latitude, longitude, elevation);
+
+    locationUpdated = rc;
+
+    return rc;
+}
 
 void LX200AstroPhysics::debugTriggered(bool enable)
 {

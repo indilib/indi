@@ -53,12 +53,14 @@ class LX200AstroPhysics : public LX200Generic
  virtual bool Park();
  virtual bool Sync(double ra, double dec);
  virtual bool Connect(char *);
+ virtual bool Disconnect();
  virtual bool updateTime(ln_date * utc, double utc_offset);
+ virtual bool updateLocation(double latitude, double longitude, double elevation);
 
  virtual void debugTriggered(bool enable);
 
- int  setBasicDataPart0();
- int  setBasicDataPart1();
+ bool  setBasicDataPart0();
+ bool  setBasicDataPart1();
 
  void setupTelescope();
  //void handleAltAzSlew();
@@ -98,6 +100,8 @@ protected:
 
  INumber APSiderealTimeN[1];
  INumberVectorProperty APSiderealTimeNP;
+
+ bool timeUpdated, locationUpdated;
 
 };
 
