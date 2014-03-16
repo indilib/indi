@@ -1248,5 +1248,59 @@ void LX200AstroPhysics::debugTriggered(bool enable)
    set_lx200ap_debug(enable ? 1 : 0);
 }
 
+void LX200AstroPhysics::processButton(const char * button_n, ISState state)
+{
+    //ignore OFF
+    if (state == ISS_OFF)
+        return;
+
+    // Max Slew speed
+    if (!strcmp(button_n, "Slew Max"))
+    {
+        selectAPMoveToRate(PortFD, 0);
+        IUResetSwitch(&MoveToRateSP);
+        MoveToRateS[0].s = ISS_ON;
+        IDSetSwitch(&MoveToRateSP, NULL);
+    }
+    // Find Slew speed
+    else if (!strcmp(button_n, "Slew Find"))
+    {
+        selectAPMoveToRate(PortFD, 1);
+        IUResetSwitch(&MoveToRateSP);
+        MoveToRateS[1].s = ISS_ON;
+        IDSetSwitch(&MoveToRateSP, NULL);
+    }
+    // Centering Slew
+    else if (!strcmp(button_n, "Slew Centering"))
+    {
+        selectAPMoveToRate(PortFD, 2);
+        IUResetSwitch(&MoveToRateSP);
+        MoveToRateS[2].s = ISS_ON;
+        IDSetSwitch(&MoveToRateSP, NULL);
+
+    }
+    // Guide Slew
+    else if (!strcmp(button_n, "Slew Guide"))
+    {
+        selectAPMoveToRate(PortFD, 3);
+        IUResetSwitch(&MoveToRateSP);
+        MoveToRateS[3].s = ISS_ON;
+        IDSetSwitch(&MoveToRateSP, NULL);
+    }
+    // Abort
+    else if (!strcmp(button_n, "Abort Motion"))
+    {
+        // Only abort if we have some sort of motion going on
+        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY || EqNP.s == IPS_BUSY
+                || GuideNSNP.s == IPS_BUSY || GuideWENP.s == IPS_BUSY)
+        {
+
+            Abort();
+        }
+    }
+
+}
+
+
 
 

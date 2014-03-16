@@ -89,9 +89,9 @@ class LX200Generic: public INDI::Telescope, public INDI::GuiderInterface
     static void updateFocusHelper(void *p);
     static void guideTimeoutHelper(void *p);
 
-    void processNSWE(double mag, double angle);
-    void processJoystick(const char * joystick_n, double mag, double angle);
-    void processButton(const char * button_n, ISState state);
+    virtual void processNSWE(double mag, double angle);
+    virtual void processJoystick(const char * joystick_n, double mag, double angle);
+    virtual void processButton(const char * button_n, ISState state);
 
     int    GuideNSTID;
     int    GuideWETID;

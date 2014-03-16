@@ -44,6 +44,12 @@ class LX200AstroPhysics : public LX200Generic
  virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
  virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
 
+ void setupTelescope();
+
+ bool isMountInit(void) ;
+
+protected:
+
  virtual const char *getDefaultName();
  bool initProperties();
  bool updateProperties();
@@ -58,18 +64,9 @@ class LX200AstroPhysics : public LX200Generic
  virtual bool updateLocation(double latitude, double longitude, double elevation);
 
  virtual void debugTriggered(bool enable);
-
+ virtual void processButton(const char * button_n, ISState state);
  bool  setBasicDataPart0();
  bool  setBasicDataPart1();
-
- void setupTelescope();
- //void handleAltAzSlew();
- //void handleAZCoordSet() ;
- //void handleEqCoordSet() ;
- //void ISInit() ;
- bool isMountInit(void) ;
-
-protected:
 
  ISwitch StartUpS[2];
  ISwitchVectorProperty StartUpSP;
