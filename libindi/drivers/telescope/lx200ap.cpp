@@ -1113,8 +1113,8 @@ bool LX200AstroPhysics::Park()
     }
 
     ParkSP.s = IPS_OK;
-    TrackState = SCOPE_PARKED;
-    DEBUG(INDI::Logger::DBG_SESSION, "Telescope is parked.");
+    TrackState = SCOPE_PARKING;
+    DEBUG(INDI::Logger::DBG_SESSION, "Telescope parking in progress...");
     return true;
 }
 
