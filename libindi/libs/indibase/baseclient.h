@@ -23,6 +23,8 @@
 #include <map>
 #include <string>
 
+#include <pthread.h>
+
 #include "indiapi.h"
 #include "indidevapi.h"
 #include "indibase.h"
