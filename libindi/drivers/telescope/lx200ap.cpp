@@ -676,7 +676,7 @@ bool LX200AstroPhysics::setBasicDataPart1()
         return -1;
     }
 
-    return 0 ;
+    return true ;
 }
 
 #if 0
@@ -1076,7 +1076,7 @@ bool LX200AstroPhysics::Park()
         // If scope is moving, let's stop it first.
         if (EqNP.s == IPS_BUSY)
         {
-           if (isSimulation() == false && abortSlew(PortFD) < 0)
+           if (abortSlew(PortFD) < 0)
            {
               AbortSP.s = IPS_ALERT;
               IDSetSwitch(&AbortSP, "Abort slew failed.");
@@ -1103,7 +1103,7 @@ bool LX200AstroPhysics::Park()
              usleep(100000);
          }
 
-          if (isSimulation() == false && setAPPark(PortFD) < 0)
+          if (setAPPark(PortFD) < 0)
           {
             ParkSP.s = IPS_ALERT;
             IDSetSwitch(&ParkSP, "Parking Failed.");
@@ -1113,9 +1113,8 @@ bool LX200AstroPhysics::Park()
     }
 
     ParkSP.s = IPS_OK;
-    //Parked=true;
-    TrackState = SCOPE_PARKING;
-    IDMessage(getDeviceName(), "Parking telescope in progress...");
+    TrackState = SCOPE_PARKED;
+    DEBUG(INDI::Logger::DBG_SESSION, "Telescope is parked.");
     return true;
 }
 
