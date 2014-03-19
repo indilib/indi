@@ -15,7 +15,14 @@
 
 #include "indilogger.h"
 
+/// \defgroup AlignmentSubsystem INDI Alignment Subsystem
+
 namespace INDI {
+/// \namespace INDI::AlignmentSubsystem
+/// \brief Namespace to encapsulate the INDI Alignment Subsystem classes.
+/// For more information see "INDI Alignment Subsystem" in "Related Pages" accessible via the banner at the
+/// top of this page.
+/// \ingroup AlignmentSubsystem
 namespace AlignmentSubsystem {
 
 /** \enum MountAlignment

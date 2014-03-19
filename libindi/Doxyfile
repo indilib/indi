@@ -118,7 +118,8 @@ FILE_PATTERNS          = *.c \
                          *.patch \
                          *.moc \
                          *.xpm \
-                         *.dox
+                         *.dox \
+                         *.md
 RECURSIVE              = YES
 EXCLUDE                = /home/jasem/Projects/indi/trunk/libindi/drivers \
                          /home/jasem/Projects/indi/trunk/libindi/tools \
@@ -133,7 +134,7 @@ EXCLUDE_SYMBOLS        =
 EXAMPLE_PATH           = /home/jasem/Projects/indi/trunk/libindi/examples
 EXAMPLE_PATTERNS       = *
 EXAMPLE_RECURSIVE      = YES
-IMAGE_PATH             =
+IMAGE_PATH             = libs/indibase/alignment
 INPUT_FILTER           =
 FILTER_PATTERNS        =
 FILTER_SOURCE_FILES    = NO
