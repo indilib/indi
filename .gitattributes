@@ -1268,6 +1268,17 @@ libindi/libs/indibase/alignment/SVDMathPlugin.cpp -text
 libindi/libs/indibase/alignment/SVDMathPlugin.h -text
 libindi/libs/indibase/alignment/TelescopeDirectionVectorSupportFunctions.cpp -text
 libindi/libs/indibase/alignment/TelescopeDirectionVectorSupportFunctions.h -text
+libindi/libs/indibase/alignment/alignment_white_paper.md -text
+libindi/libs/indibase/alignment/controlpanel1.png -text
+libindi/libs/indibase/alignment/controlpanel2.png -text
+libindi/libs/indibase/alignment/controlpanel3.png -text
+libindi/libs/indibase/alignment/controlpanel4.png -text
+libindi/libs/indibase/alignment/controlpanel5.png -text
+libindi/libs/indibase/alignment/crosshair.png -text
+libindi/libs/indibase/alignment/devicemanager.png -text
+libindi/libs/indibase/alignment/findobject.png -text
+libindi/libs/indibase/alignment/objectpopup.png -text
+libindi/libs/indibase/alignment/toolsmenu.png -text
 libindi/libs/indibase/baseclient.cpp -text
 libindi/libs/indibase/baseclient.h -text
 libindi/libs/indibase/basedevice.cpp -text
