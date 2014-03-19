@@ -43,9 +43,9 @@ The easiest way to use a telescope driver that supports the Alignment Subsystem 
 
 1. Firstly connect the mount to the computer that is to run the driver. I use a readily available PL2303 chip based serial to USB converter cable.
 2. From the handset utility menu select PC direct mode. As it is the computer that will be driving the mount not the handset, you can enter whatever values you want to get through the handset initialisation process.
-3. Start indiserver and the indi_SkyWatcherAPIMount driver. Using the following command in a terminal.
+3. Start indiserver and the indi_SkyWatcherAPIMount driver. Using the following command in a terminal:
 
-	indiserver -vvv indi_skywatcherAPIMount
+        indiserver -vvv indi_skywatcherAPIMount
 
 4. Start KStars and from the tools menu select "Devices" and then "Device Manager".
 ![Tools menu](toolsmenu.png)
@@ -85,3 +85,73 @@ The easiest way to use a telescope driver that supports the Alignment Subsystem 
 
 ## Adding Alignment Subsystem support to an INDI driver
 TBD
+
+## Developing Alignment Subsystem clients
+The Alignment Subsystem provides two API classes for use in clients. These are ClientAPIForAlignmentDatabase and ClientAPIForMathPluginManagement. Client developers can use these classes individually, however, the easiest way to use them is via the AlignmentSubsystemForClients class. To use this class simply ensure that is a parent of your client class.
+
+	class LoaderClient : public INDI::BaseClient, INDI::AlignmentSubsystem::AlignmentSubsystemForClients
+
+Somewhere in the initialisation of your client make a call to the Initalise method of the AlignmentSubsystemForClients class for example:
+
+    void LoaderClient::Initialise(int argc, char* argv[])
+    {
+        std::string HostName("localhost");
+        int Port = 7624;
+
+        if (argc > 1)
+            DeviceName = argv[1];
+        if (argc > 2)
+            HostName = argv[2];
+        if (argc > 3)
+        {
+            std::istringstream Parameter(argv[3]);
+            Parameter >> Port;
+        }
+
+        AlignmentSubsystemForClients::Initialise(DeviceName.c_str(), this);
+
+        setServer(HostName.c_str(), Port);
+
+        watchDevice(DeviceName.c_str());
+
+        connectServer();
+
+        setBLOBMode(B_ALSO, DeviceName.c_str(), NULL);
+    }
+
+To hook the Alignment Subsystem into the clients property handling you must ensure that the following virtual functions are overriden.
+
+    virtual void newBLOB(IBLOB *bp);
+    virtual void newDevice(INDI::BaseDevice *dp);
+    virtual void newNumber(INumberVectorProperty *nvp);
+    virtual void newProperty(INDI::Property *property);
+    virtual void newSwitch(ISwitchVectorProperty *svp);
+
+A call to the Alignment Subsystems property handling functions must then be placed in the body of these functions.
+
+    void LoaderClient::newBLOB(IBLOB *bp)
+    {
+        ProcessNewBLOB(bp);
+    }
+
+    void LoaderClient::newDevice(INDI::BaseDevice *dp)
+    {
+        ProcessNewDevice(dp);
+    }
+
+    void LoaderClient::newNumber(INumberVectorProperty *nvp)
+    {
+        ProcessNewNumber(nvp);
+    }
+
+    void LoaderClient::newProperty(INDI::Property *property)
+    {
+        ProcessNewProperty(property);
+    }
+
+    void LoaderClient::newSwitch(ISwitchVectorProperty *svp)
+    {
+        ProcessNewSwitch(svp);
+    }
+
+See the documentation for the ClientAPIForAlignmentDatabase and ClientAPIForMathPluginManagement to see what other functionality is available.
