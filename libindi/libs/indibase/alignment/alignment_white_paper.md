@@ -166,11 +166,460 @@ AlignmentSubsystemForDrivers::ProcessSwitchProperties, AlignmentSubsystemForDriv
 
 The next step is to add the handling of sync points into your drivers Sync function.
 
-TBD - add sample code. I will do this when I can work out what the simulator is doing with snooped properties!
+TBD - add sample code. I will do this  for the scope simulator when I can work out what it is doing with snooped properties!
+
+    bool SkywatcherAPIMount::Sync(double ra, double dec)
+    {
+        DEBUG(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "SkywatcherAPIMount::Sync");
+
+        // Compute a telescope direction vector from the current encoders
+        if (!GetEncoder(AXIS1))
+            return false;
+        if (!GetEncoder(AXIS2))
+            return false;
+
+        // Might as well do this
+        UpdateDetailedMountInformation(true);
+
+        struct ln_hrz_posn AltAz;
+        AltAz.alt = MicrostepsToDegrees(AXIS2, CurrentEncoders[AXIS2] - ZeroPositionEncoders[AXIS2]);
+        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Axis2 encoder %ld initial %ld alt(degrees) %lf", CurrentEncoders[AXIS2], ZeroPositionEncoders[AXIS2], AltAz.alt);
+        AltAz.az = MicrostepsToDegrees(AXIS1, CurrentEncoders[AXIS1] - ZeroPositionEncoders[AXIS1]);
+        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Axis1 encoder %ld initial %ld az(degrees) %lf", CurrentEncoders[AXIS1], ZeroPositionEncoders[AXIS1], AltAz.az);
+
+        AlignmentDatabaseEntry NewEntry;
+    #ifdef USE_INITIAL_JULIAN_DATE
+        NewEntry.ObservationJulianDate = InitialJulianDate;
+    #else
+        NewEntry.ObservationJulianDate = ln_get_julian_from_sys();
+    #endif
+        NewEntry.RightAscension = ra;
+        NewEntry.Declination = dec;
+        NewEntry.TelescopeDirection = TelescopeDirectionVectorFromAltitudeAzimuth(AltAz);
+        NewEntry.PrivateDataSize = 0;
+
+        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "New sync point Date %lf RA %lf DEC %lf TDV(x %lf y %lf z %lf)",
+                        NewEntry.ObservationJulianDate, NewEntry.RightAscension, NewEntry.Declination,
+                        NewEntry.TelescopeDirection.x, NewEntry.TelescopeDirection.y, NewEntry.TelescopeDirection.z);
+
+        if (!CheckForDuplicateSyncPoint(NewEntry))
+        {
+
+            GetAlignmentDatabase().push_back(NewEntry);
+
+            // Tell the client about size change
+            UpdateSize();
+
+            // Tell the math plugin to reinitialise
+            Initialise(this);
+
+            return true;
+        }
+        return false;
+    }
+
 
 The final step is to add coordinate conversion to ReadScopeStatus, TimerHit (for tracking), and Goto.
 
-TBD - add sample code. I will do this when I can work out what the simulator is doing with snooped properties!
+TBD - add sample code. I will do this  for the scope simulator when I can work out what it is doing with snooped properties!
+
+    bool SkywatcherAPIMount::ReadScopeStatus()
+    {
+        DEBUG(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "SkywatcherAPIMount::ReadScopeStatus");
+
+        // Horrible hack to get over the fact that the base class calls ReadScopeStatus from inside Connect
+        // before I have a chance to set up the serial port
+        SetSerialPort(PortFD);
+
+        // leave the following stuff in for the time being it is mostly harmless
+
+        // Quick check of the mount
+        if (!GetMotorBoardVersion(AXIS1))
+            return false;
+
+        if (!GetStatus(AXIS1))
+            return false;
+
+        if (!GetStatus(AXIS2))
+            return false;
+
+        // Update Axis Position
+        if (!GetEncoder(AXIS1))
+            return false;
+        if (!GetEncoder(AXIS2))
+            return false;
+
+        UpdateDetailedMountInformation(true);
+
+        // Calculate new RA DEC
+        struct ln_hrz_posn AltAz;
+        AltAz.alt = MicrostepsToDegrees(AXIS2, CurrentEncoders[AXIS2] - ZeroPositionEncoders[AXIS2]);
+        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Axis2 encoder %ld initial %ld alt(degrees) %lf", CurrentEncoders[AXIS2], ZeroPositionEncoders[AXIS2], AltAz.alt);
+        AltAz.az = MicrostepsToDegrees(AXIS1, CurrentEncoders[AXIS1] - ZeroPositionEncoders[AXIS1]);
+        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Axis1 encoder %ld initial %ld az(degrees) %lf", CurrentEncoders[AXIS1], ZeroPositionEncoders[AXIS1], AltAz.az);
+        TelescopeDirectionVector TDV = TelescopeDirectionVectorFromAltitudeAzimuth(AltAz);
+        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "TDV x %lf y %lf z %lf", TDV.x, TDV.y, TDV.z);
+
+        double RightAscension, Declination;
+        if (TransformTelescopeToCelestial( TDV, RightAscension, Declination))
+            DEBUG(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Conversion OK");
+        else
+        {
+            bool HavePosition = false;
+            ln_lnlat_posn Position;
+            if ((NULL != IUFindNumber(&LocationNP, "LAT")) && ( 0 != IUFindNumber(&LocationNP, "LAT")->value)
+                && (NULL != IUFindNumber(&LocationNP, "LONG")) && ( 0 != IUFindNumber(&LocationNP, "LONG")->value))
+            {
+                // I assume that being on the equator and exactly on the prime meridian is unlikely
+                Position.lat = IUFindNumber(&LocationNP, "LAT")->value;
+                Position.lng = IUFindNumber(&LocationNP, "LONG")->value;
+                HavePosition = true;
+            }
+            struct ln_equ_posn EquatorialCoordinates;
+            if (HavePosition)
+            {
+                TelescopeDirectionVector RotatedTDV(TDV);
+                switch (GetApproximateMountAlignment())
+                {
+                    case ZENITH:
+                        break;
+
+                    case NORTH_CELESTIAL_POLE:
+                        // Rotate the TDV coordinate system anticlockwise (positive) around the y axis by 90 minus
+                        // the (positive)observatory latitude. The vector itself is rotated clockwise
+                        RotatedTDV.RotateAroundY(90.0 - Position.lat);
+                        AltitudeAzimuthFromTelescopeDirectionVector(RotatedTDV, AltAz);
+                        break;
+
+                    case SOUTH_CELESTIAL_POLE:
+                        // Rotate the TDV coordinate system clockwise (negative) around the y axis by 90 plus
+                        // the (negative)observatory latitude. The vector itself is rotated anticlockwise
+                        RotatedTDV.RotateAroundY(-90.0 - Position.lat);
+                        AltitudeAzimuthFromTelescopeDirectionVector(RotatedTDV, AltAz);
+                        break;
+                }
+    #ifdef USE_INITIAL_JULIAN_DATE
+                ln_get_equ_from_hrz(&AltAz, &Position, InitialJulianDate, &EquatorialCoordinates);
+    #else
+                ln_get_equ_from_hrz(&AltAz, &Position, ln_get_julian_from_sys(), &EquatorialCoordinates);
+    #endif
+            }
+            else
+                // The best I can do is just do a direct conversion to RA/DEC
+                EquatorialCoordinatesFromTelescopeDirectionVector(TDV, EquatorialCoordinates);
+            // libnova works in decimal degrees
+            RightAscension = EquatorialCoordinates.ra * 24.0 / 360.0;
+            Declination = EquatorialCoordinates.dec;
+            DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Conversion Failed - HavePosition %d RA (degrees) %lf DEC (degrees) %lf", HavePosition, EquatorialCoordinates.ra, EquatorialCoordinates.dec);
+        }
+
+        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "New RA %lf (hours) DEC %lf (degrees)", RightAscension, Declination);
+        NewRaDec(RightAscension, Declination);
+
+        return true;
+    }
+
+    void SkywatcherAPIMount::TimerHit()
+    {
+        // By default this method is called every POLLMS milliseconds
+
+        // Call the base class handler
+        // This normally just calls ReadScopeStatus
+        INDI::Telescope::TimerHit();
+
+        // Do my own timer stuff assuming ReadScopeStatus has just been called
+
+        switch(TrackState)
+        {
+            case SCOPE_SLEWING:
+                if ((AxesStatus[AXIS1].FullStop) && (AxesStatus[AXIS2].FullStop))
+                {
+                    if (ISS_ON == IUFindSwitch(&CoordSP,"TRACK")->s)
+                    {
+                        // Goto has finished start tracking
+                        TrackState = SCOPE_TRACKING;
+                        // Fall through to tracking case
+                    }
+                    else
+                    {
+                        TrackState = SCOPE_IDLE;
+                        break;
+                    }
+                }
+                else
+                    break;
+
+            case SCOPE_TRACKING:
+            {
+                // Continue or start tracking
+                // Calculate where the mount needs to be in POLLMS time
+                // POLLMS is hardcoded to be one second
+                double JulianOffset = 1.0 / (24.0 * 60 * 60); // TODO may need to make this longer to get a meaningful result
+                TelescopeDirectionVector TDV;
+                ln_hrz_posn AltAz;
+                if (TransformCelestialToTelescope(CurrentTrackingTarget.ra, CurrentTrackingTarget.dec,
+    #ifdef USE_INITIAL_JULIAN_DATE
+                                                    0, TDV))
+    #else
+                                                    JulianOffset, TDV))
+    #endif
+                    AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAz);
+                else
+                {
+                    // Try a conversion with the stored observatory position if any
+                    bool HavePosition = false;
+                    ln_lnlat_posn Position;
+                    if ((NULL != IUFindNumber(&LocationNP, "LAT")) && ( 0 != IUFindNumber(&LocationNP, "LAT")->value)
+                        && (NULL != IUFindNumber(&LocationNP, "LONG")) && ( 0 != IUFindNumber(&LocationNP, "LONG")->value))
+                    {
+                        // I assume that being on the equator and exactly on the prime meridian is unlikely
+                        Position.lat = IUFindNumber(&LocationNP, "LAT")->value;
+                        Position.lng = IUFindNumber(&LocationNP, "LONG")->value;
+                        HavePosition = true;
+                    }
+                    struct ln_equ_posn EquatorialCoordinates;
+                    // libnova works in decimal degrees
+                    EquatorialCoordinates.ra = CurrentTrackingTarget.ra * 360.0 / 24.0;
+                    EquatorialCoordinates.dec = CurrentTrackingTarget.dec;
+                    if (HavePosition)
+                        ln_get_hrz_from_equ(&EquatorialCoordinates, &Position,
+    #ifdef USE_INITIAL_JULIAN_DATE
+                                                InitialJulianDate, &AltAz);
+    #else
+                                                ln_get_julian_from_sys() + JulianOffset, &AltAz);
+    #endif
+                    else
+                    {
+                        // No sense in tracking in this case
+                        TrackState = SCOPE_IDLE;
+                        break;
+                    }
+                }
+                DEBUGF(INDI::Logger::DBG_SESSION, "Tracking AXIS1 CurrentEncoder %ld OldTrackingTarget %ld AXIS2 CurrentEncoder %ld OldTrackingTarget %ld",
+                                                CurrentEncoders[AXIS1], OldTrackingTarget[AXIS1], CurrentEncoders[AXIS2], OldTrackingTarget[AXIS2]);
+                DEBUGF(INDI::Logger::DBG_SESSION, "New Tracking Target Altitude %lf degrees %ld microsteps Azimuth %lf degrees %ld microsteps",
+                                    AltAz.alt, DegreesToMicrosteps(AXIS2, AltAz.alt), AltAz.az, DegreesToMicrosteps(AXIS1, AltAz.az));
+
+                long AltitudeOffsetMicrosteps = DegreesToMicrosteps(AXIS2, AltAz.alt) + ZeroPositionEncoders[AXIS2] - CurrentEncoders[AXIS2];
+                long AzimuthOffsetMicrosteps = DegreesToMicrosteps(AXIS1, AltAz.az) + ZeroPositionEncoders[AXIS1] - CurrentEncoders[AXIS1];
+
+                DEBUGF(INDI::Logger::DBG_SESSION, "New Tracking Target AltitudeOffset %ld microsteps AzimuthOffset %ld microsteps",
+                                    AltitudeOffsetMicrosteps, AzimuthOffsetMicrosteps);
+
+                if (AzimuthOffsetMicrosteps > MicrostepsPerRevolution[AXIS1] / 2)
+                {
+                    DEBUG(INDI::Logger::DBG_SESSION, "Tracking AXIS1 going long way round");
+                    // Going the long way round - send it the other way
+                    AzimuthOffsetMicrosteps -= MicrostepsPerRevolution[AXIS1];
+                }
+                if (0 != AzimuthOffsetMicrosteps)
+                {
+                    // Calculate the slewing rates needed to reach that position
+                    // at the correct time.
+                    long AzimuthRate = StepperClockFrequency[AXIS1] / AzimuthOffsetMicrosteps;
+                    if (!AxesStatus[AXIS1].FullStop &&
+                        ((AxesStatus[AXIS1].SlewingForward && (AzimuthRate < 0)) || (!AxesStatus[AXIS1].SlewingForward && (AzimuthRate > 0))))
+                    {
+                        // Direction change whilst axis running
+                        // Abandon tracking for this clock tick
+                        DEBUG(INDI::Logger::DBG_SESSION, "Tracking - AXIS1 direction change");
+                        SlowStop(AXIS1);
+                    }
+                    else
+                    {
+                        char Direction = AzimuthRate > 0 ? '0' : '1';
+                        AzimuthRate = std::abs(AzimuthRate);
+                        SetClockTicksPerMicrostep(AXIS1, AzimuthRate < 1 ? 1 : AzimuthRate);
+                        if (AxesStatus[AXIS1].FullStop)
+                        {
+                            DEBUG(INDI::Logger::DBG_SESSION, "Tracking - AXIS1 restart");
+                            SetMotionMode(AXIS1, '1', Direction);
+                            StartMotion(AXIS1);
+                        }
+                        DEBUGF(INDI::Logger::DBG_SESSION, "Tracking - AXIS1 offset %ld microsteps rate %ld direction %c",
+                                                                    AzimuthOffsetMicrosteps, AzimuthRate, Direction);
+                    }
+                }
+                else
+                {
+                    // Nothing to do - stop the axis
+                    DEBUG(INDI::Logger::DBG_SESSION, "Tracking - AXIS1 zero offset");
+                    SlowStop(AXIS1);
+                }
+
+                // Do I need to take out any complete revolutions before I do this test?
+                if (AltitudeOffsetMicrosteps > MicrostepsPerRevolution[AXIS2] / 2)
+                {
+                    DEBUG(INDI::Logger::DBG_SESSION, "Tracking AXIS2 going long way round");
+                    // Going the long way round - send it the other way
+                    AltitudeOffsetMicrosteps -= MicrostepsPerRevolution[AXIS2];
+                }
+                if (0 != AltitudeOffsetMicrosteps)
+                {
+                     // Calculate the slewing rates needed to reach that position
+                    // at the correct time.
+                    long AltitudeRate = StepperClockFrequency[AXIS2] / AltitudeOffsetMicrosteps;
+
+                    if (!AxesStatus[AXIS2].FullStop &&
+                        ((AxesStatus[AXIS2].SlewingForward && (AltitudeRate < 0)) || (!AxesStatus[AXIS2].SlewingForward && (AltitudeRate > 0))))
+                    {
+                        // Direction change whilst axis running
+                        // Abandon tracking for this clock tick
+                        DEBUG(INDI::Logger::DBG_SESSION, "Tracking - AXIS2 direction change");
+                        SlowStop(AXIS2);
+                    }
+                    else
+                    {
+                        char Direction = AltitudeRate > 0 ? '0' : '1';
+                        AltitudeRate = std::abs(AltitudeRate);
+                        SetClockTicksPerMicrostep(AXIS2, AltitudeRate < 1 ? 1 : AltitudeRate);
+                        if (AxesStatus[AXIS2].FullStop)
+                        {
+                            DEBUG(INDI::Logger::DBG_SESSION, "Tracking - AXIS2 restart");
+                            SetMotionMode(AXIS2, '1', Direction);
+                            StartMotion(AXIS2);
+                        }
+                        DEBUGF(INDI::Logger::DBG_SESSION, "Tracking - AXIS2 offset %ld microsteps rate %ld direction %c",
+                                                                        AltitudeOffsetMicrosteps, AltitudeRate, Direction);
+                    }
+                }
+                else
+                {
+                    // Nothing to do - stop the axis
+                    DEBUG(INDI::Logger::DBG_SESSION, "Tracking - AXIS2 zero offset");
+                    SlowStop(AXIS2);
+                }
+
+
+                DEBUGF(INDI::Logger::DBG_SESSION, "Tracking - AXIS1 error %d AXIS2 error %d",
+                                                                    OldTrackingTarget[AXIS1] - CurrentEncoders[AXIS1],
+                                                                    OldTrackingTarget[AXIS2] - CurrentEncoders[AXIS2]);
+
+                OldTrackingTarget[AXIS1] = AzimuthOffsetMicrosteps + CurrentEncoders[AXIS1];
+                OldTrackingTarget[AXIS2] = AltitudeOffsetMicrosteps + CurrentEncoders[AXIS2];
+                break;
+            }
+
+            default:
+                break;
+        }
+    }
+
+    bool SkywatcherAPIMount::Goto(double ra,double dec)
+    {
+        DEBUG(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "SkywatcherAPIMount::Goto");
+
+        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "RA %lf DEC %lf", ra, dec);
+
+        if (ISS_ON == IUFindSwitch(&CoordSP,"TRACK")->s)
+        {
+            char RAStr[32], DecStr[32];
+            fs_sexa(RAStr, ra, 2, 3600);
+            fs_sexa(DecStr, dec, 2, 3600);
+            CurrentTrackingTarget.ra = ra;
+            CurrentTrackingTarget.dec = dec;
+            DEBUGF(INDI::Logger::DBG_SESSION, "New Tracking target RA %s DEC %s", RAStr, DecStr);
+        }
+
+        TelescopeDirectionVector TDV;
+        ln_hrz_posn AltAz;
+        if (TransformCelestialToTelescope(ra, dec, 0.0, TDV))
+        {
+            AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAz);
+            DEBUG(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Conversion OK");
+        }
+        else
+        {
+            // Try a conversion with the stored observatory position if any
+            bool HavePosition = false;
+            ln_lnlat_posn Position;
+            if ((NULL != IUFindNumber(&LocationNP, "LAT")) && ( 0 != IUFindNumber(&LocationNP, "LAT")->value)
+                && (NULL != IUFindNumber(&LocationNP, "LONG")) && ( 0 != IUFindNumber(&LocationNP, "LONG")->value))
+            {
+                // I assume that being on the equator and exactly on the prime meridian is unlikely
+                Position.lat = IUFindNumber(&LocationNP, "LAT")->value;
+                Position.lng = IUFindNumber(&LocationNP, "LONG")->value;
+                HavePosition = true;
+            }
+            struct ln_equ_posn EquatorialCoordinates;
+            // libnova works in decimal degrees
+            EquatorialCoordinates.ra = ra * 360.0 / 24.0;
+            EquatorialCoordinates.dec = dec;
+            if (HavePosition)
+            {
+    #ifdef USE_INITIAL_JULIAN_DATE
+                ln_get_hrz_from_equ(&EquatorialCoordinates, &Position, InitialJulianDate, &AltAz);
+    #else
+                ln_get_hrz_from_equ(&EquatorialCoordinates, &Position, ln_get_julian_from_sys(), &AltAz);
+    #endif
+                TDV = TelescopeDirectionVectorFromAltitudeAzimuth(AltAz);
+                switch (GetApproximateMountAlignment())
+                {
+                    case ZENITH:
+                        break;
+
+                    case NORTH_CELESTIAL_POLE:
+                        // Rotate the TDV coordinate system clockwise (negative) around the y axis by 90 minus
+                        // the (positive)observatory latitude. The vector itself is rotated anticlockwise
+                        TDV.RotateAroundY(Position.lat - 90.0);
+                        break;
+
+                    case SOUTH_CELESTIAL_POLE:
+                        // Rotate the TDV coordinate system anticlockwise (positive) around the y axis by 90 plus
+                        // the (negative)observatory latitude. The vector itself is rotated clockwise
+                        TDV.RotateAroundY(Position.lat + 90.0);
+                        break;
+                }
+                AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAz);
+            }
+            else
+            {
+                // The best I can do is just do a direct conversion to Alt/Az
+                TDV = TelescopeDirectionVectorFromEquatorialCoordinates(EquatorialCoordinates);
+                AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAz);
+            }
+            DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Conversion Failed - HavePosition %d", HavePosition);
+        }
+        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "New Altitude %lf degrees %ld microsteps Azimuth %lf degrees %ld microsteps",
+                                        AltAz.alt, DegreesToMicrosteps(AXIS2, AltAz.alt), AltAz.az, DegreesToMicrosteps(AXIS1, AltAz.az));
+
+        // Update the current encoder positions
+        GetEncoder(AXIS1);
+        GetEncoder(AXIS2);
+
+        long AltitudeOffsetMicrosteps = DegreesToMicrosteps(AXIS2, AltAz.alt) + ZeroPositionEncoders[AXIS2] - CurrentEncoders[AXIS2];
+        long AzimuthOffsetMicrosteps = DegreesToMicrosteps(AXIS1, AltAz.az) + ZeroPositionEncoders[AXIS1] - CurrentEncoders[AXIS1];
+
+        // Do I need to take out any complete revolutions before I do this test?
+        if (AltitudeOffsetMicrosteps > MicrostepsPerRevolution[AXIS2] / 2)
+        {
+            // Going the long way round - send it the other way
+            AltitudeOffsetMicrosteps -= MicrostepsPerRevolution[AXIS2];
+        }
+
+        if (AzimuthOffsetMicrosteps > MicrostepsPerRevolution[AXIS1] / 2)
+        {
+            // Going the long way round - send it the other way
+            AzimuthOffsetMicrosteps -= MicrostepsPerRevolution[AXIS1];
+        }
+        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Initial Axis2 %ld microsteps Axis1 %ld microsteps",
+                                                        ZeroPositionEncoders[AXIS2], ZeroPositionEncoders[AXIS1]);
+        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Current Axis2 %ld microsteps Axis1 %ld microsteps",
+                                                        CurrentEncoders[AXIS2], CurrentEncoders[AXIS1]);
+        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Altitude offset %ld microsteps Azimuth offset %ld microsteps",
+                                                        AltitudeOffsetMicrosteps, AzimuthOffsetMicrosteps);
+
+        SlewTo(AXIS1, AzimuthOffsetMicrosteps);
+        SlewTo(AXIS2, AltitudeOffsetMicrosteps);
+
+        TrackState = SCOPE_SLEWING;
+
+        EqNP.s    = IPS_BUSY;
+
+        return true;
+    }
+
+
 
 ## Developing Alignment Subsystem clients
 The Alignment Subsystem provides two API classes for use in clients. These are ClientAPIForAlignmentDatabase and ClientAPIForMathPluginManagement. Client developers can use these classes individually, however, the easiest way to use them is via the AlignmentSubsystemForClients class. To use this class simply ensure that is a parent of your client class.
