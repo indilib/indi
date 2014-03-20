@@ -36,6 +36,7 @@ public:
 
     /** \brief This routine should be called before any connections to devices are made.
         \param[in] DeviceName The device name of INDI driver instance to be used.
+        \param[in] BaseClient A pointer to the child INDI::BaseClient class
     */
     void Initialise(const char * DeviceName, INDI::BaseClient * BaseClient);
 

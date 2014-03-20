@@ -90,11 +90,11 @@ protected:
     void processFilterSlot(const char *deviceName, double values[], char *names[]);
 
     /** \brief Process client request to change filter name(s). Call this function in the filter wheel
-         implementation class ISNewNumber() function.
+         implementation class ISNewText() function.
         \param deviceName Name of the primary device
-        \param values values from ISNewNumber().
-        \param names names from ISNewNumber();
-        \param n n from ISNewNumber();
+        \param texts values from ISNewText().
+        \param names names from ISNewText();
+        \param n n from ISNewtext();
     */
     void processFilterName(const char *deviceName, char *texts[], char *names[], int n);
 

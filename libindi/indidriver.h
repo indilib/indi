@@ -111,9 +111,9 @@ extern void IUSaveDefaultConfig(const char *source_config, const char *dest_conf
 
 /** \brief Add opening or closing tag to a configuration file.
 
-  A configuration file root XML element is @<INDIDriver>@. This functions add @<INDIDriver>@ or @</INDIDriver>@ as required.
+  A configuration file root XML element is \<INDIDriver\>. This functions add \<INDIDriver\> or \</INDIDriver\> as required.
     \param fp file pointer to a configuration file.
-    \param ctag If 0, @<INDIDriver>@ is appened to the configuration file, otherwise @</INDIDriver>@ is appeneded and the <i>fp</i> is closed.
+    \param ctag If 0, \<INDIDriver\> is appened to the configuration file, otherwise \</INDIDriver\> is appeneded and the <i>fp</i> is closed.
 */
 extern void IUSaveConfigTag(FILE *fp, int ctag);
 

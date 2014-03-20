@@ -54,14 +54,14 @@ public:
     /// \brief Get the alignment corrected telescope pointing direction for the supplied celestial coordinates
     /// \param[in] RightAscension Right Ascension (Decimal Hours).
     /// \param[in] Declination Declination (Decimal Degrees).
-    /// \param[in] Offset to be applied to the current julian date.
-    /// \param[out] TelescopeDirectionVector Parameter to receive the corrected telescope direction
+    /// \param[in] JulianOffset to be applied to the current julian date.
+    /// \param[out] ApparentTelescopeDirectionVector Parameter to receive the corrected telescope direction
     /// \return True if successful
     virtual bool TransformCelestialToTelescope(const double RightAscension, const double Declination, double JulianOffset,
                                                 TelescopeDirectionVector& ApparentTelescopeDirectionVector) = 0;
 
     /// \brief Get the true celestial coordinates for the supplied telescope pointing direction
-    /// \param[in] TelescopeDirectionVector the telescope direction
+    /// \param[in] ApparentTelescopeDirectionVector the telescope direction
     /// \param[out] RightAscension Parameter to receive the Right Ascension (Decimal Hours).
     /// \param[out] Declination Parameter to receive the Declination (Decimal Degrees).
     /// \return True if successful

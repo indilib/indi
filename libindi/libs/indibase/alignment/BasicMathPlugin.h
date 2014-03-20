@@ -56,7 +56,7 @@ protected:
 
     /// \brief Print out a 3 vector to debug
     /// \param[in] Label A label to identify the vector
-    /// \param[in] pMatrix The matrix to print
+    /// \param[in] pVector The vector to print
     void Dump3(const char *Label, gsl_vector *pVector);
 
     /// \brief Print out a 3x3 matrix to debug
@@ -64,7 +64,7 @@ protected:
     /// \param[in] pMatrix The matrix to print
     void Dump3x3(const char *Label, gsl_matrix *pMatrix);
 
-    /// \breif Caluclate the determinant of the supplied matrix
+    /// \brief Caluclate the determinant of the supplied matrix
     /// \param[in] pMatrix Pointer to the 3x3 matrix
     /// \return The determinant
     double Matrix3x3Determinant(gsl_matrix *pMatrix);

@@ -28,23 +28,23 @@
 *
 \author Elwood C. Downey
 \author Jasem Mutlaq
-     
+
 This file is divided into two main sections:\n
 <ol><li> Functions the INDI device driver framework defines which the Driver may
 call:</li>
- 
+
 <ul><li>IDxxx functions to send messages to an INDI client.</li>
 <li>IExxx functions to implement the event driven model.</li>
 <li>IUxxx functions to perform handy utility functions.</li></ul>
- 
+
 <li>Functions the INDI device driver framework calls which the Driver must
 define:</li>
- 
+
 <ul><li>ISxxx to respond to messages from a Client.</li></ul></ol>
 
 <p>These functions are the interface to the INDI C-language Device Driver
 reference implementation library. Any driver that uses this interface is
-expected to #include "indidevapi.h" and to link with indidrivermain.o and
+expected to \#include "indidevapi.h" and to link with indidrivermain.o and
 eventloop.o. Indidevapi.h further includes indiapi.h. The former contains
 the prototypes for the functions documented here, although many functions
 take arguments defined in the latter.</p>
@@ -85,7 +85,7 @@ circumstance must be written according to a well defined prototype since,
 after all, the framework must know how to call the callback correctlty.</p>
 
 */
- 
+
 
 /*******************************************************************************
  * get the data structures
@@ -118,8 +118,8 @@ expressed interest in messages from the Device indicated in the message.</p>
 <p>In addition to type-specific arguments, all end with a printf-style format
 string, and appropriate subsequent arguments, that form the \param msg
 attribute within the INDI message. If the format argument is NULL, no message
-attribute is included with the message. Note that a \e timestamp 
-attribute is also always added automatically based on the clock on the 
+attribute is included with the message. Note that a \e timestamp
+attribute is also always added automatically based on the clock on the
 computer on which this driver is running.</p>
 
 */
@@ -244,9 +244,9 @@ extern void IDSetBLOB (const IBLOBVectorProperty *b, const char *msg, ...)
 
 
 /** \brief Function Drivers call to send log messages to Clients.
- 
+
     If dev is specified the Client shall associate the message with that device; if dev is NULL the Client shall treat the message as generic from no specific Device.
-    
+
     \param dev device name
     \param msg message in printf style to send to the client.
 */
@@ -269,9 +269,9 @@ extern void IDDelete (const char *dev, const char *name, const char *msg, ...)
 ;
 
 /** \brief Function Drivers call to log a message locally.
- 
+
     The message is not sent to any Clients.
-    
+
     \param msg message in printf style to send to the client.
 */
 extern void IDLog (const char *msg, ...)
@@ -284,14 +284,14 @@ extern void IDLog (const char *msg, ...)
 
 /**
  * \defgroup snoopFunctions ISnoop Functions: Functions drivers call to snoop on other drivers.
- 
+
  */
 /*@{*/
 
 
 /** \typedef BLOBHandling
     \brief How drivers handle BLOBs incoming from snooping drivers */
-typedef enum 
+typedef enum
 {
   B_NEVER=0,	/*!< Never receive BLOBs */
   B_ALSO,	/*!< Receive BLOBs along with normal messages */
@@ -314,11 +314,11 @@ extern void IDSnoopBLOBs (const char *snooped_device, BLOBHandling bh);
 
 /**
  * \defgroup deventFunctions IE Functions: Functions drivers call to register with the INDI event utilities.
- 
+
      Callbacks are called when a read on a file descriptor will not block. Timers are called once after a specified interval. Workprocs are called when there is nothing else to do. The "Add" functions return a unique id for use with their corresponding "Rm" removal function. An arbitrary pointer may be specified when a function is registered which will be stored and forwarded unchanged when the function is later invoked.
  */
 /*@{*/
-     
+
  /* signature of a callback, timout caller and work procedure function */
 
 /** \typedef IE_CBF
@@ -351,7 +351,7 @@ extern int  IEAddCallback (int readfiledes, IE_CBF *fp, void *userpointer);
 extern void IERmCallback (int callbackid);
 
 /** \brief Register a new timer function, \e fp, to be called with \e ud as argument after \e ms.
- 
+
  Add to list in order of decreasing time from epoch, ie, last entry runs soonest. The timer will only invoke the callback function \b once. You need to call addTimer again if you want to repeat the process.
 *
 * \param millisecs timer period in milliseconds.
@@ -444,9 +444,9 @@ extern IBLOB *IUFindBLOB(const IBLOBVectorProperty *bvp, const char *name);
 /** \brief Returns the first ON switch it finds in the vector switch property.
 
 *   \note This is only valid for ISR_1OFMANY mode. That is, when only one switch out of many is allowed to be ON. Do not use this function if you can have multiple ON switches in the same vector property.
-*        
+*
 * \param sp a pointer to a switch vector property.
-* \return a pointer to the \e first ON ISwitch member if found. If all switches are off, NULL is returned. 
+* \return a pointer to the \e first ON ISwitch member if found. If all switches are off, NULL is returned.
 */
 extern ISwitch *IUFindOnSwitch (const ISwitchVectorProperty *sp);
 
@@ -536,7 +536,7 @@ extern void IUUpdateMinMax(const INumberVectorProperty *nvp);
 
 /** \brief Function to reliably save new text in a IText.
     \param tp pointer to an IText member.
-    \param newtext the new text to be saved     
+    \param newtext the new text to be saved
 */
 extern void IUSaveText (IText *tp, const char *newtext);
 
@@ -594,7 +594,7 @@ extern void IUFillBLOB(IBLOB *bp, const char *name, const char * label, const ch
     \param group the vector property group
     \param p the vector property permission
     \param r the switches behavior
-    \param timeout vector property timeout in seconds 
+    \param timeout vector property timeout in seconds
     \param s the vector property initial state.
 */
 extern void IUFillSwitchVector(ISwitchVectorProperty *svp, ISwitch *sp, int nsp, const char * dev, const char *name, const char *label, const char *group, IPerm p, ISRule r, double timeout, IPState s);
@@ -620,7 +620,7 @@ extern void IUFillLightVector(ILightVectorProperty *lvp, ILight *lp, int nlp, co
     \param label the vector property label
     \param group the vector property group
     \param p the vector property permission
-    \param timeout vector property timeout in seconds 
+    \param timeout vector property timeout in seconds
     \param s the vector property initial state.
 */
 extern void IUFillNumberVector(INumberVectorProperty *nvp, INumber *np, int nnp, const char * dev, const char *name, const char *label, const char* group, IPerm p, double timeout, IPState s);
@@ -634,7 +634,7 @@ extern void IUFillNumberVector(INumberVectorProperty *nvp, INumber *np, int nnp,
     \param label the vector property label
     \param group the vector property group
     \param p the vector property permission
-    \param timeout vector property timeout in seconds 
+    \param timeout vector property timeout in seconds
     \param s the vector property initial state.
 */
 extern void IUFillTextVector(ITextVectorProperty *tvp, IText *tp, int ntp, const char * dev, const char *name, const char *label, const char* group, IPerm p, double timeout, IPState s);
@@ -705,7 +705,7 @@ extern int IUSnoopBLOB (XMLEle *root, IBLOBVectorProperty *bvp);
 
 /**
  * \defgroup dcuFunctions IS Functions: Functions all drivers must define.
- 
+
 This section defines functions that must be defined in each driver. These
 functions are never called by the driver, but are called by the driver
 framework. These must always be defined even if they do nothing.
@@ -724,7 +724,7 @@ is implementing, or dev is NULL, the driver must respond by sending one defXXX
 message to describe each property defined by this device, including its
 current (or initial) value. The recommended way to send these messages is to
 call the appropriate IDDef functions.
-*/  
+*/
 extern void ISGetProperties (const char *dev);
 
 
@@ -737,7 +737,7 @@ extern void ISGetProperties (const char *dev);
     \note You do not need to call this function, it is called by INDI when new text values arrive from the client.
 */
 extern void ISNewText (const char *dev, const char *name, char *texts[],
-    char *names[], int n); 
+    char *names[], int n);
 
 /** \brief Update the value of an existing number vector property.
     \param dev the name of the device.
@@ -748,7 +748,7 @@ extern void ISNewText (const char *dev, const char *name, char *texts[],
     \note You do not need to call this function, it is called by INDI when new number values arrive from the client.
 */
 extern void ISNewNumber (const char *dev, const char *name, double *doubles,
-    char *names[], int n); 
+    char *names[], int n);
 
 /** \brief Update the value of an existing switch vector property.
     \param dev the name of the device.
@@ -759,7 +759,7 @@ extern void ISNewNumber (const char *dev, const char *name, double *doubles,
     \note You do not need to call this function, it is called by INDI when new switch values arrive from the client.
 */
 extern void ISNewSwitch (const char *dev, const char *name, ISState *states,
-    char *names[], int n); 
+    char *names[], int n);
 
 /** \brief Update data of an existing blob vector property.
     \param dev the name of the device.
@@ -768,13 +768,13 @@ extern void ISNewSwitch (const char *dev, const char *name, ISState *states,
     \param blobsizes an array of the sizes of blobs \e after decoding from base64.
     \param blobs an array of decoded data. Each blob size is found in \e blobsizes array.
     \param formats Blob data format (e.g. fits.z).
-    \param names names of blob members to update. 
+    \param names names of blob members to update.
     \param n the number of blobs to update.
     \note You do not need to call this function, it is called by INDI when new blob values arrive from the client.
           e.g. BLOB element with name names[0] has data located in blobs[0] with size sizes[0] and format formats[0].
 */
 
-extern void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n); 
+extern void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
 
 /** \brief Function defined by Drivers that is called when another Driver it is snooping (by having previously called IDSnoopDevice()) sent any INDI message.
     \param root The argument contains the full message exactly as it was sent by the driver.
