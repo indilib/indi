@@ -58,6 +58,7 @@ protected:
 
  virtual bool Park();
  virtual bool Sync(double ra, double dec);
+ virtual bool Goto(double, double);
  virtual bool Connect(char *);
  virtual bool Disconnect();
  virtual bool updateTime(ln_date * utc, double utc_offset);
