@@ -1,0 +1,25 @@
+Ujari Observatory INDI Driver
+==================
+
+This package provides the INDI driver for Ujari observatory, dome, and shutter door.
+
+Requirements
+============
+
++ libindi0 >= v0.9 (http://indi.sf.net)
+
+	You need to install both libindi0 and libindi-dev to build this package.
+	
++ libnova 
+
+	You need to install both libnova and libnova-devel to build this package.
+	
+Installation
+============
+
+	See INSTALL
+	
+How to Use
+==========
+
+	TODO
