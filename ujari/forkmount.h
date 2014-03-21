@@ -66,7 +66,6 @@ public:
         void setDebug (bool enable);
         const char *getDeviceName ();
 
-
         unsigned long GetRAEncoder()  throw (UjariError);
         unsigned long GetDEEncoder()  throw (UjariError);
         unsigned long GetRAEncoderZero();
@@ -86,7 +85,7 @@ public:
         void StopDE() throw (UjariError);
         void SetRARate(double rate)  throw (UjariError);
         void SetDERate(double rate)  throw (UjariError);
-        void SlewTo(long deltaraencoder, long deltadeencoder);
+        void SlewTo(long deltaraencoder, long deltadeencoder);        
         void StartRATracking(double trackspeed) throw (UjariError);
         void StartDETracking(double trackspeed) throw (UjariError);
         bool IsRARunning() throw (UjariError);
@@ -114,44 +113,12 @@ public:
         AMCController *RAMotor, *DECMotor;
         Encoder *RAEncoder, *DECEncoder;
 
-        // Official ForkMount Protocol
-        // See http://code.google.com/p/ForkMount/wiki/ForkMountProtocol
-        // Constants
-        static const char ForkMountLeadingChar = ':';
-        static const char ForkMountTrailingChar= 0x0d;
         static const double MIN_RATE=0.05;
         static const double MAX_RATE=800.0;
         unsigned long minperiods[2];
 
-        // Types
-        enum ForkMountCommand {
-          Initialize ='F',
-          InquireMotorBoardVersion='e',
-          InquireGridPerRevolution='a',
-          InquireTimerInterruptFreq='b',
-          InquireHighSpeedRatio='g',
-          InquirePECPeriod='s',
-          InstantAxisStop='L',
-          NotInstantAxisStop='K',
-          SetAxisPosition='E',
-          GetAxisPosition='j',
-          GetAxisStatus='f',
-          SetSwitch='O',
-          SetMotionMode='G',
-          SetGotoTargetIncrement='H',
-          SetBreakPointIncrement='M',
-          SetBreakSteps='U',
-          SetStepPeriod='I',
-          StartMotion='J',
-          GetStepPeriod='D', // See Merlin protocol http://www.papywizard.org/wiki/DevelopGuide
-          ActivateMotor='B', // See eq6direct implementation http://pierre.nerzic.free.fr/INDI/
-          SetGuideRate='P',  // See EQASCOM driver
-          Deactivate='d',
-          NUMBER_OF_FORKMOUNTCommand
-        };
-
-
-        enum ForkMountAxis {
+        enum ForkMountAxis
+        {
           Axis1='1',       // RA/AZ
           Axis2='2',       // DE/ALT
           NUMBER_OF_FORKMOUNTAXIS
@@ -170,16 +137,11 @@ public:
         void CheckMotorStatus(ForkMountAxis axis)  throw (UjariError);
         void ReadMotorStatus(ForkMountAxis axis) throw (UjariError);
         void SetMotion(ForkMountAxis axis, ForkMountAxisStatus newstatus) throw (UjariError);
-        void SetSpeed(ForkMountAxis axis, unsigned long period) throw (UjariError);
+        void SetSpeed(ForkMountAxis axis, double rpm) throw (UjariError);
         void SetTarget(ForkMountAxis axis, unsigned long increment) throw (UjariError);
-        void SetTargetBreaks(ForkMountAxis axis, unsigned long increment) throw (UjariError);
         void StartMotor(ForkMountAxis axis) throw (UjariError);
         void StopMotor(ForkMountAxis axis)  throw (UjariError);
-        void InstantStopMotor(ForkMountAxis axis)  throw (UjariError);
-        void StopWaitMotor(ForkMountAxis axis) throw (UjariError);
-
-        bool read_eqmod()  throw (UjariError);
-        bool dispatch_command(ForkMountCommand cmd, ForkMountAxis axis, char *arg)  throw (UjariError);
+        //void StopWaitMotor(ForkMountAxis axis) throw (UjariError);
 
         unsigned long Revu24str2long(char *);
         unsigned long Highstr2long(char *);
@@ -192,8 +154,8 @@ public:
         // Variables
         //string default_port;
         // See ForkMount protocol
-        unsigned long MCVersion; // Motor Controller Version
-        unsigned long MountCode; //
+        //unsigned long MCVersion; // Motor Controller Version
+        //unsigned long MountCode; //
 
         unsigned long RASteps360;
         unsigned long DESteps360;
@@ -216,12 +178,12 @@ public:
         ForkMountAxisStatus RAStatus, DEStatus;
 
         int fd;
-        char command[FORKMOUNT_MAX_CMD];
-        char response[FORKMOUNT_MAX_CMD];
+        //char command[FORKMOUNT_MAX_CMD];
+        //char response[FORKMOUNT_MAX_CMD];
 
         bool debug;
         const char *deviceName;
-        bool debugnextread;
+        //bool debugnextread;
         Ujari *telescope;
 
         //Park

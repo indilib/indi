@@ -51,7 +51,7 @@ ForkMount::ForkMount(Ujari *t)
 {
   fd=-1;
   debug=false;
-  debugnextread=false;
+  //debugnextread=false;
   simulation=false;
   telescope = t;
 
@@ -438,9 +438,19 @@ bool ForkMount::IsDERunning() throw (UjariError)
   return(DERunning);
 }
 
+void ForkMount::StartMotor(ForkMountAxis axis) throw (UjariError)
+{
+  DEBUGF(DBG_MOUNT, "%s() : Axis = %c", __FUNCTION__, axis);
+
+  // TODO Start Motion
+
+  //dispatch_command(StartMotion, axis, NULL);
+  //read_eqmod();
+}
+
 void ForkMount::ReadMotorStatus(ForkMountAxis axis)  throw (UjariError)
 {
-  dispatch_command(GetAxisStatus, axis, NULL);
+ /* dispatch_command(GetAxisStatus, axis, NULL);
   read_eqmod();
   switch (axis) {
   case Axis1:
@@ -457,16 +467,15 @@ void ForkMount::ReadMotorStatus(ForkMountAxis axis)  throw (UjariError)
     if (response[1] & 0x02 ) DEStatus.direction=BACKWARD; else DEStatus.direction=FORWARD;
     if (response[1] & 0x04 ) DEStatus.speedmode=HIGHSPEED; else DEStatus.speedmode=LOWSPEED;
   default: ;
-  }
+  }*/
   gettimeofday (&lastreadmotorstatus[axis], NULL);
 }
 
 void ForkMount::SlewRA(double rate) throw (UjariError)
 {
   double absrate=fabs(rate);
-  unsigned long period=0;
-  bool useHighspeed=false;
   ForkMountAxisStatus newstatus;
+  unsigned long period=0;
 
   DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : rate = %g", __FUNCTION__, rate);
 
@@ -480,122 +489,140 @@ void ForkMount::SlewRA(double rate) throw (UjariError)
     throw  UjariError(UjariError::ErrInvalidParameter, "Speed rate out of limits: %.2fx Sidereal (min=%.2f, max=%.2f)",
               absrate, MIN_RATE, MAX_RATE);
   }
-  //if (MountCode != 0xF0) {
-    if (absrate > FORKMOUNT_LOWSPEED_RATE)
-    {
-      absrate = absrate / RAHighspeedRatio;
-      useHighspeed = true;
-    }
-    //}
-  period=(long)(((FORKMOUNT_STELLAR_DAY * (double)RAStepsWorm) / (double)RASteps360) / absrate);
-  if (rate >= 0.0) newstatus.direction = FORWARD; else newstatus.direction = BACKWARD;
+
+  // TODO rate to RPM convertion
+  //period=(long)(((FORKMOUNT_STELLAR_DAY * (double)RAStepsWorm) / (double)RASteps360) / absrate);
+  if (rate >= 0.0)
+      newstatus.direction = FORWARD;
+  else
+      newstatus.direction = BACKWARD;
+
   newstatus.slewmode=SLEW;
-  if (useHighspeed) newstatus.speedmode = HIGHSPEED; else newstatus.speedmode = LOWSPEED;
+
+  //if (useHighspeed) newstatus.speedmode = HIGHSPEED; else newstatus.speedmode = LOWSPEED;
   SetMotion(Axis1, newstatus);
   SetSpeed(Axis1, period);
-  if (!RARunning) StartMotor(Axis1);
+
+  if (!RARunning)
+      StartMotor(Axis1);
 }
 
 void ForkMount::SlewDE(double rate) throw (UjariError)
 {
   double absrate=fabs(rate);
-  unsigned long period=0;
-  bool useHighspeed=false;
   ForkMountAxisStatus newstatus;
+  unsigned long period=0;
 
   DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : rate = %g", __FUNCTION__, rate);
 
-  if (DERunning && (DEStatus.slewmode==GOTO)) {
+  if (DERunning && (DEStatus.slewmode==GOTO))
+  {
       throw  UjariError(UjariError::ErrInvalidCmd, "Can not slew while goto is in progress");
   }
 
-  if ((absrate < get_min_rate()) || (absrate > get_max_rate())) {
-    throw  UjariError(UjariError::ErrInvalidParameter, "Speed rate out of limits: %.2fx Sidereal (min=%.2f, max=%.2f)",
-              absrate, MIN_RATE, MAX_RATE);
-  }
-  //if (MountCode != 0xF0) {
-    if (absrate > FORKMOUNT_LOWSPEED_RATE) {
-      absrate = absrate / DEHighspeedRatio;
-      useHighspeed = true;
-    }
-    //}
-  period=(long)(((FORKMOUNT_STELLAR_DAY * (double)DEStepsWorm) / (double)DESteps360) / absrate);
+  // TODO Rate to RPM conversion
+  //period=(long)(((FORKMOUNT_STELLAR_DAY * (double)DEStepsWorm) / (double)DESteps360) / absrate);
 
   DEBUGF(INDI::Logger::DBG_DEBUG, "Slewing DE at %.2f %.2f %x %f\n", rate, absrate, period, (((FORKMOUNT_STELLAR_DAY * (double)RAStepsWorm) / (double)RASteps360) / absrate));
 
-  if (rate >= 0.0) newstatus.direction = FORWARD; else newstatus.direction = BACKWARD;
+  if (rate >= 0.0)
+      newstatus.direction = FORWARD;
+  else
+      newstatus.direction = BACKWARD;
   newstatus.slewmode=SLEW;
-  if (useHighspeed) newstatus.speedmode = HIGHSPEED; else newstatus.speedmode = LOWSPEED;
+
+  //if (useHighspeed) newstatus.speedmode = HIGHSPEED; else newstatus.speedmode = LOWSPEED;
   SetMotion(Axis2, newstatus);
   SetSpeed(Axis2, period);
-  if (!DERunning) StartMotor(Axis2);
+  if (!DERunning)
+      StartMotor(Axis2);
 }
 
 void ForkMount::SlewTo(long deltaraencoder, long deltadeencoder)
 {
   ForkMountAxisStatus newstatus;
-  bool useHighSpeed=false;
-  unsigned long highperiod=10, lowperiod=18, lowspeedmargin = 20000, breaks=400;
-  /* highperiod = RA 450X DE (+5) 200x, low period 32x */
 
   DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : deltaRA = %ld deltaDE = %ld", __FUNCTION__, deltaraencoder, deltadeencoder);
 
   newstatus.slewmode=GOTO;
-  if (deltaraencoder >= 0) newstatus.direction = FORWARD; else newstatus.direction = BACKWARD;
-  if (deltaraencoder < 0) deltaraencoder = -deltaraencoder;
-  if (deltaraencoder > lowspeedmargin) useHighSpeed = true; else useHighSpeed = false;
-  if (useHighSpeed) newstatus.speedmode = HIGHSPEED; else newstatus.speedmode = LOWSPEED;
-  if (deltaraencoder > 0) {
+
+  if (deltaraencoder >= 0)
+      newstatus.direction = FORWARD;
+  else
+      newstatus.direction = BACKWARD;
+
+  if (deltaraencoder < 0)
+      deltaraencoder = -deltaraencoder;
+
+  if (deltaraencoder > 0)
+  {
     SetMotion(Axis1, newstatus);
-    if (useHighSpeed) SetSpeed(Axis1, minperiods[Axis1]); else SetSpeed(Axis1, lowperiod);
+    SetSpeed(Axis1, minperiods[Axis1]);
     SetTarget(Axis1, deltaraencoder);
-    if (useHighSpeed) breaks=((deltaraencoder > 3200) ? 3200 : deltaraencoder);
-    else  breaks=((deltaraencoder > 200) ? 200 : deltaraencoder);
-    SetTargetBreaks(Axis1, breaks);
+
     StartMotor(Axis1);
   }
 
-  if (deltadeencoder >= 0) newstatus.direction = FORWARD; else newstatus.direction = BACKWARD;
-  if (deltadeencoder < 0) deltadeencoder = -deltadeencoder;
-  if (deltadeencoder > lowspeedmargin) useHighSpeed = true; else useHighSpeed = false;
-  if (useHighSpeed) newstatus.speedmode = HIGHSPEED; else newstatus.speedmode = LOWSPEED;
-  if (deltadeencoder > 0) {
+  if (deltadeencoder >= 0)
+      newstatus.direction = FORWARD;
+  else
+      newstatus.direction = BACKWARD;
+
+  if (deltadeencoder < 0)
+      deltadeencoder = -deltadeencoder;
+
+  if (deltadeencoder > 0)
+  {
     SetMotion(Axis2, newstatus);
-    if (useHighSpeed) SetSpeed(Axis2, minperiods[Axis2]); else SetSpeed(Axis2, lowperiod);
+    SetSpeed(Axis2, minperiods[Axis2]);
     SetTarget(Axis2, deltadeencoder);
-    if (useHighSpeed) breaks=((deltadeencoder > 3200) ? 3200 : deltadeencoder);
-    else  breaks=((deltadeencoder > 200) ? 200 : deltadeencoder);
-    SetTargetBreaks(Axis2, breaks);
     StartMotor(Axis2);
   }
 
+}
+
+void ForkMount::SetTarget(ForkMountAxis axis, unsigned long increment) throw (UjariError)
+{
+  char cmd[7];
+  DEBUGF(DBG_MOUNT, "%s() : Axis = %c -- increment=%ld", __FUNCTION__, axis, increment);
+  long2Revu24str(increment, cmd);
+
+  // TODO Do we need this in Ujari?
+
+  //dispatch_command(SetGotoTargetIncrement, axis, cmd);
+  //read_eqmod();
 }
 
 void  ForkMount::SetRARate(double rate)  throw (UjariError)
 {
   double absrate=fabs(rate);
   unsigned long period=0;
-  bool useHighspeed=false;
   ForkMountAxisStatus newstatus;
 
   DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : rate = %g", __FUNCTION__, rate);
 
-  if ((absrate < get_min_rate()) || (absrate > get_max_rate())) {
+  if ((absrate < get_min_rate()) || (absrate > get_max_rate()))
+  {
     throw  UjariError(UjariError::ErrInvalidParameter, "Speed rate out of limits: %.2fx Sidereal (min=%.2f, max=%.2f)",
               absrate, MIN_RATE, MAX_RATE);
   }
-  //if (MountCode != 0xF0) {
+
+  /*
     if (absrate > FORKMOUNT_LOWSPEED_RATE) {
       absrate = absrate / RAHighspeedRatio;
       useHighspeed = true;
     }
-    //}
-  period=(long)(((FORKMOUNT_STELLAR_DAY * (double)RAStepsWorm) / (double)RASteps360) / absrate);
+    */
+
+
+   // TODO Calcualte rate to RPM
+  //period=(long)(((FORKMOUNT_STELLAR_DAY * (double)RAStepsWorm) / (double)RASteps360) / absrate);
   newstatus.direction = ((rate >= 0.0)? FORWARD: BACKWARD);
   //newstatus.slewmode=RAStatus.slewmode;
   newstatus.slewmode=SLEW;
-  if (useHighspeed) newstatus.speedmode = HIGHSPEED; else newstatus.speedmode = LOWSPEED;
-  if (RARunning) {
+  //if (useHighspeed) newstatus.speedmode = HIGHSPEED; else newstatus.speedmode = LOWSPEED;
+  if (RARunning)
+  {
     if (newstatus.speedmode != RAStatus.speedmode)
       throw  UjariError(UjariError::ErrInvalidParameter, "Can not change rate while motor is running (speedmode differs).");
     if (newstatus.direction != RAStatus.direction)
@@ -614,22 +641,20 @@ void  ForkMount::SetDERate(double rate)  throw (UjariError)
 
   DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : rate = %g", __FUNCTION__, rate);
 
-  if ((absrate < get_min_rate()) || (absrate > get_max_rate())) {
+  if ((absrate < get_min_rate()) || (absrate > get_max_rate()))
+  {
     throw  UjariError(UjariError::ErrInvalidParameter, "Speed rate out of limits: %.2fx Sidereal (min=%.2f, max=%.2f)",
               absrate, MIN_RATE, MAX_RATE);
   }
-  //if (MountCode != 0xF0) {
-    if (absrate > FORKMOUNT_LOWSPEED_RATE) {
-      absrate = absrate / DEHighspeedRatio;
-      useHighspeed = true;
-    }
-    //}
-  period=(long)(((FORKMOUNT_STELLAR_DAY * (double)DEStepsWorm) / (double)DESteps360) / absrate);
+
+  // TODO Rate to RPM
+  //period=(long)(((FORKMOUNT_STELLAR_DAY * (double)DEStepsWorm) / (double)DESteps360) / absrate);
   newstatus.direction = ((rate >= 0.0)? FORWARD: BACKWARD);
   //newstatus.slewmode=DEStatus.slewmode;
   newstatus.slewmode=SLEW;
-  if (useHighspeed) newstatus.speedmode = HIGHSPEED; else newstatus.speedmode = LOWSPEED;
-  if (DERunning) {
+
+  if (DERunning)
+  {
     if (newstatus.speedmode != DEStatus.speedmode)
       throw  UjariError(UjariError::ErrInvalidParameter, "Can not change rate while motor is running (speedmode differs).");
     if (newstatus.direction != DEStatus.direction)
@@ -642,92 +667,74 @@ void  ForkMount::SetDERate(double rate)  throw (UjariError)
 void ForkMount::StartRATracking(double trackspeed) throw (UjariError)
 {
   double rate;
-  if (trackspeed != 0.0) rate = trackspeed / FORKMOUNT_STELLAR_SPEED;
-  else rate = 0.0;
+  if (trackspeed != 0.0)
+      rate = trackspeed / FORKMOUNT_STELLAR_SPEED;
+  else
+      rate = 0.0;
   DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : trackspeed = %g arcsecs/s, computed rate = %g", __FUNCTION__, trackspeed, rate);
-  if (rate != 0.0) {
+  if (rate != 0.0)
+  {
     SetRARate(rate);
-    if (!RARunning) StartMotor(Axis1);
-  } else
+    if (!RARunning)
+        StartMotor(Axis1);
+  }
+  else
     StopMotor(Axis1);
 }
 
 void ForkMount::StartDETracking(double trackspeed) throw (UjariError)
 {
   double rate;
-  if (trackspeed != 0.0) rate = trackspeed / FORKMOUNT_STELLAR_SPEED;
-  else rate = 0.0;
+  if (trackspeed != 0.0)
+      rate = trackspeed / FORKMOUNT_STELLAR_SPEED;
+  else
+      rate = 0.0;
   DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : trackspeed = %g arcsecs/s, computed rate = %g", __FUNCTION__, trackspeed, rate);
-  if (rate != 0.0) {
+
+  if (rate != 0.0)
+  {
     SetDERate(rate);
-    if (!DERunning) StartMotor(Axis2);
-  } else
+    if (!DERunning)
+        StartMotor(Axis2);
+  }
+  else
     StopMotor(Axis2);
 }
 
-void ForkMount::SetSpeed(ForkMountAxis axis, unsigned long period) throw (UjariError)
+void ForkMount::SetSpeed(ForkMountAxis axis, double rpm) throw (UjariError)
 {
-  char cmd[7];
   ForkMountAxisStatus *currentstatus;
 
-  DEBUGF(DBG_MOUNT, "%s() : Axis = %c -- period=%ld", __FUNCTION__, axis, period);
+  DEBUGF(DBG_MOUNT, "%s() : Axis = %c -- rpm=%g", __FUNCTION__, axis, rpm);
 
   ReadMotorStatus(axis);
-  if (axis == Axis1) currentstatus=&RAStatus; else currentstatus=&DEStatus;
-  if ((currentstatus->speedmode==HIGHSPEED) && (period < minperiods[axis])) {
-    DEBUGF(INDI::Logger::DBG_WARNING, "Setting axis %c period to minimum. Requested is %d, minimum is %d\n", axis, period, minperiods[axis]);
-    period = minperiods[axis];
-  }
-  long2Revu24str(period, cmd);
-  if (axis==Axis1) RAPeriod=period; else DEPeriod=period;
+  if (axis == Axis1)
+      currentstatus=&RAStatus;
+  else
+      currentstatus=&DEStatus;
 
-  dispatch_command(SetStepPeriod, axis, cmd);
-  read_eqmod();
-}
+  // TODO Set Speed
 
-void ForkMount::SetTarget(ForkMountAxis axis, unsigned long increment) throw (UjariError)
-{
-  char cmd[7];
-  DEBUGF(DBG_MOUNT, "%s() : Axis = %c -- increment=%ld", __FUNCTION__, axis, increment);
-  long2Revu24str(increment, cmd);
-  //IDLog("Setting target for axis %c  to %d\n", axis, increment);
-  dispatch_command(SetGotoTargetIncrement, axis, cmd);
-  read_eqmod();
-}
-
-void ForkMount::SetTargetBreaks(ForkMountAxis axis, unsigned long increment) throw (UjariError)
-{
-  char cmd[7];
-  DEBUGF(DBG_MOUNT, "%s() : Axis = %c -- increment=%ld", __FUNCTION__, axis, increment);
-  long2Revu24str(increment, cmd);
-  //IDLog("Setting target for axis %c  to %d\n", axis, increment);
-  dispatch_command(SetBreakPointIncrement, axis, cmd);
-  read_eqmod();
-}
-
-
-void ForkMount::StartMotor(ForkMountAxis axis) throw (UjariError)
-{
-  DEBUGF(DBG_MOUNT, "%s() : Axis = %c", __FUNCTION__, axis);
-  dispatch_command(StartMotion, axis, NULL);
-  read_eqmod();
 }
 
 void ForkMount::StopRA()  throw (UjariError)
 {
   DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : calling RA StopWaitMotor", __FUNCTION__);
-  StopWaitMotor(Axis1);
+  //StopWaitMotor(Axis1);
+
+  // TODO Stop RA Motor
 }
 
 void ForkMount::StopDE()  throw (UjariError)
 {
   DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : calling DE StopWaitMotor", __FUNCTION__);
-  StopWaitMotor(Axis2);
+  //StopWaitMotor(Axis2);
+
+  // TODO Stop Motor
 }
 
 void ForkMount::SetMotion(ForkMountAxis axis, ForkMountAxisStatus newstatus) throw (UjariError)
 {
-  char motioncmd[3];
   ForkMountAxisStatus *currentstatus;
 
   DEBUGF(DBG_MOUNT, "%s() : Axis = %c -- dir=%s mode=%s speedmode=%s", __FUNCTION__, axis,
@@ -736,59 +743,45 @@ void ForkMount::SetMotion(ForkMountAxis axis, ForkMountAxisStatus newstatus) thr
      ((newstatus.speedmode == LOWSPEED)?"lowspeed":"highspeed"));
 
   CheckMotorStatus(axis);
-  if (axis == Axis1) currentstatus=&RAStatus; else currentstatus=&DEStatus;
-  motioncmd[2]='\0';
-  switch (newstatus.slewmode) {
-  case SLEW: if (newstatus.speedmode == LOWSPEED) motioncmd[0] ='1'; else  motioncmd[0]='3'; break;
-  case GOTO: if (newstatus.speedmode == LOWSPEED) motioncmd[0] ='2'; else  motioncmd[0]='0'; break;
-  default: motioncmd[0] ='1'; break;
-  }
-  if (newstatus.direction == FORWARD) motioncmd[1] = '0'; else motioncmd[1] = '1';
+  if (axis == Axis1)
+      currentstatus=&RAStatus;
+  else
+      currentstatus=&DEStatus;
+
+/*
+  if (newstatus.direction == FORWARD)
+      motioncmd[1] = '0';
+  else
+      motioncmd[1] = '1';
 #ifdef STOP_WHEN_MOTION_CHANGED
   StopWaitMotor(axis);
   dispatch_command(SetMotionMode, axis, motioncmd);
   read_eqmod();
 #else
+*/
+
+  // TODO Stop Motor on Motion Direction control
   if ((newstatus.direction != currentstatus->direction) || (newstatus.speedmode != currentstatus->speedmode)
-      || (newstatus.slewmode != currentstatus->slewmode)) {
-    StopWaitMotor(axis);
-    dispatch_command(SetMotionMode, axis, motioncmd);
-    read_eqmod();
+      || (newstatus.slewmode != currentstatus->slewmode))
+  {
+    //StopWaitMotor(axis);
+    //dispatch_command(SetMotionMode, axis, motioncmd);
+    //read_eqmod();
   }
-#endif
+//#endif
 }
 
 
 void ForkMount::StopMotor(ForkMountAxis axis)  throw (UjariError)
 {
   DEBUGF(DBG_MOUNT, "%s() : Axis = %c", __FUNCTION__, axis);
-  dispatch_command(NotInstantAxisStop, axis, NULL);
-  read_eqmod();
+
+  // TODO Stop Motor
+
+  //dispatch_command(NotInstantAxisStop, axis, NULL);
+  //read_eqmod();
 }
 
-void ForkMount::InstantStopMotor(ForkMountAxis axis)  throw (UjariError)
-{
-  DEBUGF(DBG_MOUNT, "%s() : Axis = %c", __FUNCTION__, axis);
-  dispatch_command(InstantAxisStop, axis, NULL);
-  read_eqmod();
-}
-
-
-void ForkMount::StopWaitMotor(ForkMountAxis axis)  throw (UjariError)
-{
-  bool *motorrunning;
-  struct timespec wait;
-  DEBUGF(DBG_MOUNT, "%s() : Axis = %c", __FUNCTION__, axis);
-  dispatch_command(NotInstantAxisStop, axis, NULL);
-  read_eqmod();
-  if (axis == Axis1) motorrunning=&RARunning; else motorrunning=&DERunning;
-  wait.tv_sec=0; wait.tv_nsec=100000000; // 100ms
-  ReadMotorStatus(axis);
-  while (*motorrunning) {
-    nanosleep(&wait, NULL);
-    ReadMotorStatus(axis);
-  }
-}
 
 /* Utilities */
 
@@ -807,85 +800,6 @@ double ForkMount::get_min_rate() {
 
 double ForkMount::get_max_rate() {
   return MAX_RATE;
-}
-
-bool ForkMount::dispatch_command(ForkMountCommand cmd, ForkMountAxis axis, char *command_arg) throw (UjariError)
-{
-  int err_code = 0, nbytes_written=0, nbytes_read=0;
-
-  // Clear string
-  command[0] = '\0';
-
-  if (command_arg==NULL)
-    snprintf(command, FORKMOUNT_MAX_CMD, "%c%c%c%c", ForkMountLeadingChar, cmd, axis, ForkMountTrailingChar);
-  else
-    snprintf(command, FORKMOUNT_MAX_CMD, "%c%c%c%s%c", ForkMountLeadingChar, cmd, axis, command_arg, ForkMountTrailingChar);
-#ifdef WITH_SIMULATOR
-  if (!isSimulation()) {
-#endif
-  tcflush(fd, TCIOFLUSH);
-
-  if  ( (err_code = tty_write_string(fd, command, &nbytes_written) != TTY_OK))
-    {
-      char ttyerrormsg[ERROR_MSG_LENGTH];
-      tty_error_msg(err_code, ttyerrormsg, ERROR_MSG_LENGTH);
-      throw UjariError(UjariError::ErrDisconnect, "tty write failed, check connection: %s",
-               ttyerrormsg);
-      return false;
-   }
-#ifdef WITH_SIMULATOR
-  } else {
-    telescope->simulator->receive_cmd(command, &nbytes_written);
-  }
-#endif
-  //if (INDI::Logger::debugSerial(cmd)) {
-    command[nbytes_written-1]='\0'; //hmmm, remove \r, the  ForkMountTrailingChar
-    DEBUGF(DBG_COMM, "dispatch_command: \"%s\", %d bytes written", command, nbytes_written);
-    debugnextread=true;
-  //}
-  return true;
-}
-
-
-
-bool ForkMount::read_eqmod() throw (UjariError)
-{
-    int err_code = 0, nbytes_written=0, nbytes_read=0;
-
-    // Clear string
-    response[0] = '\0';
-#ifdef WITH_SIMULATOR
-  if (!isSimulation()) {
-#endif
-    //Have to onsider cases when we read ! (error) or 0x01 (buffer overflow)
-    // Read until encountring a CR
-    if ( (err_code = tty_read_section(fd, response, 0x0D, 15, &nbytes_read)) != TTY_OK)
-    {
-      char ttyerrormsg[ERROR_MSG_LENGTH];
-      tty_error_msg(err_code, ttyerrormsg, ERROR_MSG_LENGTH);
-      throw UjariError(UjariError::ErrDisconnect, "tty read failed, check connection: %s",
-               ttyerrormsg);
-      return false;
-    }
-#ifdef WITH_SIMULATOR
-  } else {
-    telescope->simulator->send_reply(response, &nbytes_read);
-  }
-#endif
-    // Remove CR
-    response[nbytes_read-1] = '\0';
-
-    if (debugnextread) {
-      DEBUGF(DBG_COMM, "read_eqmod: \"%s\", %d bytes read", response, nbytes_read);
-      debugnextread=false;
-    }
-    switch (response[0]) {
-    case '=': break;
-    case '!': throw  UjariError(UjariError::ErrCmdFailed,"Failed command %s - Reply %s", command, response); return false;
-    default:  throw  UjariError(UjariError::ErrInvalidCmd,"Invalid response to command %s - Reply %s", command, response); return false;
-    }
-
-    return true;
 }
 
 unsigned long ForkMount::Revu24str2long(char *s) {
@@ -967,7 +881,8 @@ void ForkMount::initPark()
 {
   char *loadres;
   loadres=LoadParkData(Parkdatafile);
-  if (loadres) {
+  if (loadres)
+  {
     DEBUGF(INDI::Logger::DBG_SESSION, "initPark: No Park data in file %s: %s", Parkdatafile, loadres);
     RAParkPosition = RAStepHome;
     RADefaultParkPosition = RAStepHome;
