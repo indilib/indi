@@ -69,7 +69,7 @@
 #define MAXSBUF     512
 #define	MAXRBUF		4096		/* max read buffering here */
 #define	MAXWSIZ		4096		/* max bytes/write */
-#define	DEFMAXQSIZ	10		/* default max q behind, MB */
+#define	DEFMAXQSIZ	64		/* default max q behind, MB */
 
 #ifdef OSX_HELPER_MODE
 #define LOGNAME "/Users/%s/Library/Logs/indiserver.log"
