@@ -548,11 +548,11 @@ set(v4ldriver_SRCS
 	${CMAKE_SOURCE_DIR}/drivers/video/indi_v4l.cpp
    )
 
-add_executable(indi_v4l_generic ${v4ldriver_SRCS} ${libwebcam_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
+add_executable(indi_v4l_legacy ${v4ldriver_SRCS} ${libwebcam_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
 
-target_link_libraries(indi_v4l_generic ${JPEG_LIBRARY} ${M_LIB} ${ZLIB_LIBRARY} ${NOVA_LIBRARIES} ${CFITSIO_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(indi_v4l_legacy ${JPEG_LIBRARY} ${M_LIB} ${ZLIB_LIBRARY} ${NOVA_LIBRARIES} ${CFITSIO_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
-install(TARGETS indi_v4l_generic RUNTIME DESTINATION bin )
+install(TARGETS indi_v4l_legacy RUNTIME DESTINATION bin )
 
 ########### New INDI::CCD V4L Driver ###############
 

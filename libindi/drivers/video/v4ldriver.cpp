@@ -670,7 +670,7 @@ void V4L_Driver::connectCamera()
       PowerS[0].s = ISS_ON;
       PowerS[1].s = ISS_OFF;
       PowerSP.s = IPS_OK;
-      IDSetSwitch(&PowerSP, "Video4Linux Generic Device is online. Retrieving basic data.");
+      IDSetSwitch(&PowerSP, "Video4Linux Legacy Device is online. Retrieving basic data.");
 
       v4l_base->registerCallback(newFrame, this);
       
@@ -686,7 +686,7 @@ void V4L_Driver::connectCamera()
       
       v4l_base->disconnectCam(true);
       
-      IDSetSwitch(&PowerSP, "Video4Linux Generic Device is offline.");
+      IDSetSwitch(&PowerSP, "Video4Linux Legacy Device is offline.");
       
       break;
      }

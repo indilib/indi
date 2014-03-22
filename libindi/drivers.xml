@@ -171,14 +171,6 @@
         </device>
 </devGroup>
 <devGroup group="Video">
-	<device label="Generic Video4Linux">
-                <driver name="Generic Video4Linux">indi_v4l_generic</driver>
-		<version>1.0</version>
-	</device>
-	<device label="Philips Webcam">
-                <driver name="Generic Video4Linux">indi_v4l_philips</driver>
-		<version>1.0</version>
-	</device>
 	<device label="Meade LPI">
 		<driver name="Meade LPI">indi_meade_lpi</driver>
 		<version>0.1</version>
