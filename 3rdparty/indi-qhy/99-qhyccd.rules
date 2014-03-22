@@ -25,6 +25,7 @@ SUBSYSTEMS=="usb", ATTRS{idVendor}=="1618", ATTRS{idProduct}=="6740", MODE="0666
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="1618", ATTRS{idProduct}=="6940", MODE="0666"
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="1618", ATTRS{idProduct}=="8140", MODE="0666"
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="16c0", ATTRS{idProduct}=="296a", MODE="0666"
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="16c0", ATTRS{idProduct}=="0818", MODE="0666"
 
 # initialized devices
 
