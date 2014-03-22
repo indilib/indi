@@ -911,8 +911,8 @@ int setCalenderDate(int fd, int dd, int mm, int yy)
    if ( (error_type = tty_write_string(fd, temp_string, &nbytes_write)) != TTY_OK)
     	return error_type;
 
-   /*if (portWrite(temp_string) < 0)
-    return -1;*/
+   if (lx200_debug)
+       IDLog("Date String: %s\n", temp_string);
 
    /*read_ret = portRead(boolRet, 1, LX200_TIMEOUT);*/
    error_type = tty_read(fd, bool_return, 1, LX200_TIMEOUT, &nbytes_read);
