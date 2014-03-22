@@ -1299,11 +1299,32 @@ bool LX200AstroPhysics::updateTime(ln_date * utc, double utc_offset)
 
 bool LX200AstroPhysics::updateLocation(double latitude, double longitude, double elevation)
 {
-    bool rc = LX200Generic::updateLocation(latitude, longitude, elevation);
+    INDI_UNUSED(elevation);
 
-    locationUpdated = rc;
+    if (isSimulation())
+        return true;
 
-    return rc;
+    if (isSimulation() == false && setAPSiteLongitude(PortFD, 360.0 - longitude) < 0)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Error setting site longitude coordinates");
+        return false;
+    }
+
+    if (isSimulation() == false && setAPSiteLatitude(PortFD, latitude) < 0)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Error setting site latitude coordinates");
+        return false;
+    }
+
+    char l[32], L[32];
+    fs_sexa (l, latitude, 3, 3600);
+    fs_sexa (L, longitude, 4, 3600);
+
+    IDMessage(getDeviceName(), "Site location updated to Lat %.32s - Long %.32s", l, L);
+
+    locationUpdated = true;
+
+    return true;
 }
 
 void LX200AstroPhysics::debugTriggered(bool enable)
