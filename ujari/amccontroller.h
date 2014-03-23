@@ -31,7 +31,8 @@ class AMCController
 
 public:
     typedef enum { RA_MOTOR, DEC_MOTOR } motorType;
-    enum motorMotion { MOTOR_STOP, MOTOR_FORWARD, MOTOR_REVERSE};
+    typedef enum { MOTOR_STOP, MOTOR_FORWARD, MOTOR_REVERSE} motorMotion;
+    typedef enum { AMC_COMMAND_COMPLETE, AMC_COMMAND_INCOMPLETE, AMC_INVALID_COMMAND, AMC_NO_WRITE_ACCESS, AMC_CRC_ERROR, AMC_TTY_ERROR, AMC_UNKNOWN_ERROR } driveStatus;
 
     AMCController(motorType type, Ujari* scope);
     ~AMCController();
@@ -52,7 +53,6 @@ public:
     bool move_forward();
     bool move_reverse();
     bool stop();
-    bool is_in_motion();
 
     // Simulation
     void set_simulation(bool enable) { simulation = enable;}
@@ -63,8 +63,6 @@ public:
 
     motorType getType() const;
     void setType(const motorType &value);
-
-
 
 private:
 
@@ -77,8 +75,10 @@ private:
     bool setDeceleration(motorMotion dir, double rpmDeAcceleration);
 
     bool setMotion(motorMotion dir);
-
     bool isMotionActive();
+    driveStatus readDriveStatus();
+
+    const char *driveStatusString(driveStatus status);
 
     // Inverter Port
     ITextVectorProperty PortTP;

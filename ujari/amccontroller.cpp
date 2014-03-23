@@ -261,6 +261,14 @@ bool AMCController::setMotion(motorMotion dir)
         return false;
     }
 
+    driveStatus status;
+
+    if ( (status = readDriveStatus()) != AMC_COMMAND_COMPLETE)
+    {
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "%s Drive status error: %s", __FUNCTION__, driveStatusString(status));
+        return false;
+    }
+
     currentRPM = (dir == MOTOR_FORWARD ? targetRPM : targetRPM * -1);
 
     return true;
@@ -663,6 +671,14 @@ bool AMCController::setAcceleration(motorMotion dir, double rpmAcceleration)
         return false;
     }
 
+    driveStatus status;
+
+    if ( (status = readDriveStatus()) != AMC_COMMAND_COMPLETE)
+    {
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "%s Drive status error: %s", __FUNCTION__, driveStatusString(status));
+        return false;
+    }
+
     return true;
 
 }
@@ -756,6 +772,14 @@ bool AMCController::setDeceleration(motorMotion dir, double rpmDeAcceleration)
         return false;
     }
 
+    driveStatus status;
+
+    if ( (status = readDriveStatus()) != AMC_COMMAND_COMPLETE)
+    {
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "%s Drive status error: %s", __FUNCTION__, driveStatusString(status));
+        return false;
+    }
+
     return true;
 
 }
@@ -786,5 +810,80 @@ void AMCController::CrunchCRC (char x)
 
         accum &= 0x0ffff;
         x <<= 1;
+    }
+}
+
+AMCController::driveStatus AMCController::readDriveStatus()
+{
+    char response[8];
+    char errmsg[MAXRBUF];
+    int err=0, nbytes_read=0;
+
+    if ( (err = tty_read(fd, response, 8, 5, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(err, errmsg, MAXRBUF);
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "readDriveStatus: TTY error: %s", errmsg);
+        return AMC_TTY_ERROR;
+    }
+
+    if (nbytes_read != 8)
+    {
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "readDriveStatus: nbytes read is %d while it should be 8", nbytes_read);
+        return AMC_TTY_ERROR;
+    }
+
+    if (response[0] != SOF)
+    {
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "readDriveStatus: Invalid Start of Frame %c", response[0]);
+        return AMC_TTY_ERROR;
+    }
+
+    if (response[3] == 0x01)
+        return AMC_COMMAND_COMPLETE;
+    else if (response[3] == 0x02)
+        return AMC_COMMAND_INCOMPLETE;
+    else if (response[3] == 0x04)
+        return AMC_INVALID_COMMAND;
+    else if (response[3] == 0x06)
+        return AMC_NO_WRITE_ACCESS;
+    else if (response[3] == 0x08)
+        return AMC_CRC_ERROR;
+    else
+        return AMC_UNKNOWN_ERROR;
+
+}
+
+const char * AMCController::driveStatusString(driveStatus status)
+{
+    switch (status)
+    {
+        case AMC_COMMAND_COMPLETE:
+            return (char *) "Command Complete";
+            break;
+
+        case AMC_COMMAND_INCOMPLETE:
+            return (char *) "Command Incomplete";
+            break;
+
+        case AMC_INVALID_COMMAND:
+            return (char *) "Invalid Command";
+            break;
+
+        case AMC_NO_WRITE_ACCESS:
+            return (char *) "Do not have write access";
+            break;
+
+        case AMC_CRC_ERROR:
+            return (char *) "Frame or CRC error";
+            break;
+
+         case AMC_TTY_ERROR:
+            return (char *) "TTY error";
+            break;
+
+         case AMC_UNKNOWN_ERROR:
+         default:
+            return (char *) "Unknown error";
+            break;
     }
 }
