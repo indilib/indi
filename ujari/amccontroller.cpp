@@ -18,6 +18,9 @@
 
 #endif
 
+#include <indicom.h>
+
+#include <math.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <arpa/inet.h>
@@ -178,18 +181,104 @@ void AMCController::disconnect()
 **
 **
 *****************************************************************/
+bool AMCController::setMotion(motorMotion dir)
+{
+    int err=0, nbytes_written=0;
+    char errmsg[MAXRBUF];
+
+    // Address 45.00h
+    // Offset 0
+    // Date Type: Signed 32bit (4 bytes, 2 words)
+
+    /*****************************
+    *** START OF HEADER SECTION **
+    ******************************/
+
+    command[0] = SOF;               // Start of Frame
+    command[1] = SLAVE_ADDRESS;     // Node Address
+    command[2] = 0x02;              // Write
+    command[3] = 0x45;              // Index
+    command[4] = 0;                 // Offset
+    command[5] = 2;                 // 2 Words = 32bit
+
+    // Reset & Calculate CRC
+    ResetCRC();
+
+    for (int i=0; i<=5; i++)
+            CrunchCRC(command[i]);
+
+    CrunchCRC(0);
+    CrunchCRC(0);
+
+    // CRC - MSB First
+    command[6] =  accum >> 8;
+    command[7] =  accum & 0xFF;
+
+    /******************************
+    **** END OF HEADER SECTION ****
+    ******************************/
+
+    /******************************
+    **** START OF DATA SECTION ****
+    ******************************/
+
+    // Formula to calculate drive velocity from AMC
+    int velocityValue = (dir == MOTOR_FORWARD ? targetRPM : targetRPM * -1) * S_FACTOR * pow(2, 13) / 10;
+
+    // Break it down into 32bit signed integer (4 bytes) starting with LSB
+    command[8] = velocityValue & 0xFF;
+    command[9] = (velocityValue >> 8) & 0xFF;
+    command[10] = (velocityValue >> 16) & 0xFF;
+    command[11] = (velocityValue >> 24) & 0xFF;
+
+    /******************************
+    **** END OF DATA SECTION ****
+    ******************************/
+
+    // Reset & Calculate CRC
+    ResetCRC();
+
+    for (int i=8; i<=11; i++)
+            CrunchCRC(command[i]);
+
+    CrunchCRC(0);
+    CrunchCRC(0);
+
+    // CRC - MSB First
+    command[12] =  accum >> 8;
+    command[13] =  accum & 0xFF;
+
+    char * buf = (char *) command;
+
+    if ( (err = tty_write(fd, buf, 13, &nbytes_written)) < 0)
+    {
+        tty_error_msg(err, errmsg, MAXRBUF);
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error writing velocity to %s drive. %s", type_name.c_str(), errmsg);
+        MotionControlSP.s = IPS_ALERT;
+        IUResetSwitch(&MotionControlSP);
+        MotionControlS[MOTOR_STOP].s = ISS_ON;
+        IDSetSwitch(&MotionControlSP, NULL);
+        return false;
+    }
+
+    currentRPM = (dir == MOTOR_FORWARD ? targetRPM : targetRPM * -1);
+
+    return true;
+
+}
+
+/****************************************************************
+**
+**
+*****************************************************************/
 bool AMCController::move_forward()
 {
-    //int ret;
-
     if (!check_drive_connection())
         return false;
 
     // Already moving forward
-   //if (MotionCommand[0] == INVERTER_FORWARD)
-        //return true;
-
-    //MotionCommand[0] = INVERTER_FORWARD;
+    if (MotionControlS[MOTOR_FORWARD].s == ISS_ON && currentRPM == targetRPM)
+        return true;
 
     if (simulation)
     {
@@ -199,17 +288,9 @@ bool AMCController::move_forward()
         return true;
     }
 
-    /*
-    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_SESSION, "Forward Command ERROR. force_multiple_coils (%d)\n", ret);
-    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_SESSION, "Slave = %d, address = %d, nb = %d\n", SLAVE_ADDRESS, WRITE_ADDRESS, 1);
 
-    MotionCommand[0] = 0;
-    MotionControlSP.s = IPS_ALERT;
-    IUResetSwitch(&MotionControlSP);
-    MotionControlS[0].s = ISS_ON;
-    IDSetSwitch(&MotionControlSP, "Error: %s drive failed to move %s", type_name.c_str(), forward_motion.c_str());
-    */
-    return false;
+    return setMotion(MOTOR_FORWARD);
+
 }
 
 /****************************************************************
@@ -224,10 +305,8 @@ bool AMCController::move_reverse()
         return false;
 
     // Already moving backwards
-    //if (MotionCommand[0] == INVERTER_REVERSE)
-        //return true;
-
-    //MotionCommand[0] = INVERTER_REVERSE;
+    if (MotionControlS[MOTOR_REVERSE].s == ISS_ON && currentRPM == targetRPM)
+        return true;
 
     if (simulation)
     {
@@ -237,17 +316,8 @@ bool AMCController::move_reverse()
         return true;
     }
 
-   /*
-    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_SESSION, "Forward Command ERROR. force_multiple_coils (%d)\n", ret);
-    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_SESSION, "Slave = %d, address = %d, nb = %d\n", SLAVE_ADDRESS, WRITE_ADDRESS, 1);
 
-    MotionCommand[0] = 0;
-    MotionControlSP.s = IPS_ALERT;
-    IUResetSwitch(&MotionControlSP);
-    MotionControlS[0].s = ISS_ON;
-    IDSetSwitch(&MotionControlSP, "Error: %s drive failed to move %s", type_name.c_str(), reverse_motion.c_str());
-    */
-    return false;
+    return setMotion(MOTOR_REVERSE);
 
 }
 
@@ -263,10 +333,8 @@ bool AMCController::stop()
         return false;
 
     // Already moving backwards
-    //if (MotionCommand[0] == INVERTER_STOP)
-        //return true;
-
-    //MotionCommand[0] = INVERTER_STOP;
+    if (MotionControlS[MOTOR_STOP].s == ISS_ON)
+        return true;
 
     if (simulation)
     {
@@ -276,15 +344,8 @@ bool AMCController::stop()
         return true;
      }
 
-   /* DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_SESSION, "Stop Command ERROR. force_multiple_coils (%d)\n", ret);
-    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_SESSION, "Slave = %d, address = %d, nb = %d\n", SLAVE_ADDRESS, WRITE_ADDRESS, 1);
+    // TODO Impement STOP for AMC Drive
 
-    MotionCommand[0] = 0;
-    MotionControlSP.s = IPS_ALERT;
-    IUResetSwitch(&MotionControlSP);
-    MotionControlS[0].s = ISS_ON;
-    IDSetSwitch(&MotionControlSP, "Error: %s drive failed to stop", type_name.c_str());
-    */
     return false;
 
 }
@@ -311,9 +372,27 @@ bool AMCController::set_speed(double rpm)
         IDSetNumber(&MotorSpeedNP, NULL);
         return true;
     }
-    // TODO: Set drive speed here
+
+
+    targetRPM = rpm;
+
+    if (targetRPM == currentRPM)
+        return true;
+
+    if (isMotionActive())
+    {
+        if (MotionControlS[MOTOR_FORWARD].s == ISS_ON)
+            move_forward();
+        else
+            move_reverse();
+    }
 
     return false;
+}
+
+bool AMCController::isMotionActive()
+{
+    return (MotionControlSP.s == IPS_BUSY);
 }
 
 /****************************************************************
@@ -387,19 +466,29 @@ bool AMCController::ISNewText (const char *dev, const char *name, char *texts[],
 **
 *****************************************************************/
 bool AMCController::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-
+{      
     if (!strcmp(MotionControlSP.name, name))
     {
         if (IUUpdateSwitch(&MotionControlSP, states, names, n) < 0)
             return false;
 
-        if (MotionControlS[MOTOR_STOP].s == ISS_ON)
-          stop();
+        bool rc=false;
+
+        if (MotionControlS[MOTOR_STOP].s == ISS_ON)       
+          rc= stop();
         else if (MotionControlS[MOTOR_FORWARD].s == ISS_ON)
-          move_forward();
+          rc = move_forward();
         else if (MotionControlS[MOTOR_REVERSE].s == ISS_ON)
-            move_reverse();
+           rc = move_reverse();
+
+        if (rc == false)
+            MotionControlSP.s = IPS_ALERT;
+        else if (MotionControlS[MOTOR_STOP].s == ISS_ON)
+            MotionControlSP.s = IPS_OK;
+        else
+            MotionControlSP.s = IPS_BUSY;
+
+        IDSetSwitch(&MotionControlSP, NULL);
 
         return true;
      }
@@ -487,6 +576,9 @@ bool AMCController::setupDriveParameters()
 
 bool AMCController::setAcceleration(motorMotion dir, double rpmAcceleration)
 {
+    int err=0, nbytes_written=0;
+    char errmsg[MAXRBUF];
+
     /*****************************
     *** START OF HEADER SECTION **
     ******************************/
@@ -538,9 +630,38 @@ bool AMCController::setAcceleration(motorMotion dir, double rpmAcceleration)
     **** START OF DATA SECTION ****
     ******************************/
 
+    // Formula to calculate drive acceleration from AMC
+    unsigned long accelValue = rpmAcceleration * S_FACTOR * pow(2, 29) / pow(10, 5);
 
+    // Break it down into 48bit unsigned integer (6 bytes) starting with LSB
+    command[8] = accelValue & 0xFF;
+    command[9] = (accelValue >> 8) & 0xFF;
+    command[10] = (accelValue >> 16) & 0xFF;
+    command[11] = (accelValue >> 24) & 0xFF;
+    command[12] = (accelValue >> 32) & 0xFF;
+    command[13] = (accelValue >> 40) & 0xFF;
 
+    // Reset & Calculate CRC
+    ResetCRC();
 
+    for (int i=8; i<=13; i++)
+            CrunchCRC(command[i]);
+
+    CrunchCRC(0);
+    CrunchCRC(0);
+
+    // CRC - MSB First
+    command[14] =  accum >> 8;
+    command[15] =  accum & 0xFF;
+
+    char * buf = (char *) command;
+
+    if ( (err = tty_write(fd, buf, 16, &nbytes_written)) < 0)
+    {
+        tty_error_msg(err, errmsg, MAXRBUF);
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error writing acceleration to %s drive. %s", type_name.c_str(), errmsg);
+        return false;
+    }
 
     return true;
 
@@ -548,12 +669,30 @@ bool AMCController::setAcceleration(motorMotion dir, double rpmAcceleration)
 
 bool AMCController::setDeceleration(motorMotion dir, double rpmDeAcceleration)
 {
+    int err=0, nbytes_written=0;
+    char errmsg[MAXRBUF];
+
+    /*****************************
+    *** START OF HEADER SECTION **
+    ******************************/
+
+    command[0] = SOF;               // Start of Frame
+    command[1] = SLAVE_ADDRESS;     // Node Address
+    command[2] = 0x02;              // Write
+    command[3] = 0x3C;              // Index
+
     switch (dir)
     {
+        // 3C.03h
+        // Offset 0
         case MOTOR_FORWARD:
+        command[4] = 3;
         break;
 
+        // 3C.09h
+        // Offset 9
         case MOTOR_REVERSE:
+        command[4] = 9;
         break;
 
         default:
@@ -561,7 +700,61 @@ bool AMCController::setDeceleration(motorMotion dir, double rpmDeAcceleration)
 
     }
 
+    command[5] = 3;     // 3 words (48 bit = 6 bytes)
 
+    // Reset & Calculate CRC
+    ResetCRC();
+
+    for (int i=0; i<=5; i++)
+            CrunchCRC(command[i]);
+
+    CrunchCRC(0);
+    CrunchCRC(0);
+
+    // CRC - MSB First
+    command[6] =  accum >> 8;
+    command[7] =  accum & 0xFF;
+
+    /******************************
+    **** END OF HEADER SECTION ****
+    ******************************/
+
+    /******************************
+    **** START OF DATA SECTION ****
+    ******************************/
+
+    // Formula to calculate drive acceleration from AMC
+    unsigned long accelValue = rpmDeAcceleration * S_FACTOR * pow(2, 29) / pow(10, 5);
+
+    // Break it down into 48bit unsigned integer (6 bytes) starting with LSB
+    command[8] = accelValue & 0xFF;
+    command[9] = (accelValue >> 8) & 0xFF;
+    command[10] = (accelValue >> 16) & 0xFF;
+    command[11] = (accelValue >> 24) & 0xFF;
+    command[12] = (accelValue >> 32) & 0xFF;
+    command[13] = (accelValue >> 40) & 0xFF;
+
+    // Reset & Calculate CRC
+    ResetCRC();
+
+    for (int i=8; i<=13; i++)
+            CrunchCRC(command[i]);
+
+    CrunchCRC(0);
+    CrunchCRC(0);
+
+    // CRC - MSB First
+    command[14] =  accum >> 8;
+    command[15] =  accum & 0xFF;
+
+    char *buf = (char *) command;
+
+    if ( (err = tty_write(fd, buf, 16, &nbytes_written)) < 0)
+    {
+        tty_error_msg(err, errmsg, MAXRBUF);
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error writing deceleration to %s drive. %s", type_name.c_str(), errmsg);
+        return false;
+    }
 
     return true;
 

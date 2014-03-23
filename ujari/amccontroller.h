@@ -76,6 +76,10 @@ private:
     bool setAcceleration(motorMotion dir, double rpmAcceleration);
     bool setDeceleration(motorMotion dir, double rpmDeAcceleration);
 
+    bool setMotion(motorMotion dir);
+
+    bool isMotionActive();
+
     // Inverter Port
     ITextVectorProperty PortTP;
     IText PortT[1];
@@ -101,7 +105,8 @@ private:
     unsigned char SLAVE_ADDRESS;
     const unsigned int Gr1;
     unsigned int accum;
-    unsigned char command[8];
+    unsigned char command[16];
+    double currentRPM, targetRPM;
 
     Ujari *telescope;
    
