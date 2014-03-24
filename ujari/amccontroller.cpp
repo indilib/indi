@@ -142,6 +142,8 @@ bool AMCController::check_drive_connection()
 *****************************************************************/
 bool AMCController::connect()
 {
+    bool rc = true;
+
     if (check_drive_connection())
         return true;
 
@@ -160,7 +162,14 @@ bool AMCController::connect()
         return false;
     }
 
-    return false;
+    rc = enableWriteAccess();
+
+    if (rc == false)
+        return rc;
+
+    rc = enableBridge();
+
+    return rc;
 }
 
 /****************************************************************
@@ -175,6 +184,168 @@ void AMCController::disconnect()
         return;
 
 
+}
+
+/****************************************************************
+**
+**
+*****************************************************************/
+bool AMCController::enableWriteAccess()
+{
+    int err=0, nbytes_written=0;
+    char errmsg[MAXRBUF];
+
+    // Address 07.00h
+    // Offset 0
+    // Date Type: unsigned 16bit (2 bytes, 1 word)
+
+    /*****************************
+    *** START OF HEADER SECTION **
+    ******************************/
+
+    command[0] = SOF;               // Start of Frame
+    command[1] = SLAVE_ADDRESS;     // Node Address
+    command[2] = 0x02;              // Write
+    command[3] = 0x07;              // Index
+    command[4] = 0;                 // Offset
+    command[5] = 1;                 // 1 Word = 16bit
+
+    // Reset & Calculate CRC
+    ResetCRC();
+
+    for (int i=0; i<=5; i++)
+            CrunchCRC(command[i]);
+
+    CrunchCRC(0);
+    CrunchCRC(0);
+
+    // CRC - MSB First
+    command[6] =  accum >> 8;
+    command[7] =  accum & 0xFF;
+
+    /******************************
+    **** END OF HEADER SECTION ****
+    ******************************/
+
+    /******************************
+    **** START OF DATA SECTION ****
+    ******************************/
+
+    command[8] = 0xF;
+    command[9] = 0;
+
+    /******************************
+    **** END OF DATA SECTION ****
+    ******************************/
+
+    // Reset & Calculate CRC
+    ResetCRC();
+
+    for (int i=8; i<=9; i++)
+            CrunchCRC(command[i]);
+
+    CrunchCRC(0);
+    CrunchCRC(0);
+
+    // CRC - MSB First
+    command[10] =  accum >> 8;
+    command[11] =  accum & 0xFF;
+
+    char * buf = (char *) command;
+
+    if ( (err = tty_write(fd, buf, 12, &nbytes_written)) < 0)
+    {
+        tty_error_msg(err, errmsg, MAXRBUF);
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error gaining write access to %s drive. %s", type_name.c_str(), errmsg);
+        return false;
+    }
+
+    driveStatus status;
+
+    if ( (status = readDriveStatus()) != AMC_COMMAND_COMPLETE)
+    {
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "%s Drive status error: %s", __FUNCTION__, driveStatusString(status));
+        return false;
+    }
+
+    return true;
+
+}
+
+/****************************************************************
+**
+**
+*****************************************************************/
+bool AMCController::enableBridge()
+{
+    int err=0, nbytes_written=0;
+    char errmsg[MAXRBUF];
+
+    // Address 01.00h
+    // Offset 0
+    // Date Type: unsigned 16bit (2 bytes, 1 word)
+
+    /*****************************
+    *** START OF HEADER SECTION **
+    ******************************/
+
+    command[0] = SOF;               // Start of Frame
+    command[1] = SLAVE_ADDRESS;     // Node Address
+    command[2] = 0x02;              // Write
+    command[3] = 0x01;              // Index
+    command[4] = 0;                 // Offset
+    command[5] = 1;                 // 1 Word = 16bit
+
+    // Reset & Calculate CRC
+    ResetCRC();
+
+    for (int i=0; i<=5; i++)
+            CrunchCRC(command[i]);
+
+    CrunchCRC(0);
+    CrunchCRC(0);
+
+    // CRC - MSB First
+    command[6] =  accum >> 8;
+    command[7] =  accum & 0xFF;
+
+    /******************************
+    **** END OF HEADER SECTION ****
+    ******************************/
+
+    /******************************
+    **** START OF DATA SECTION ****
+    ******************************/
+
+    command[8] = 0;
+    command[9] = 0;
+
+    /******************************
+    **** END OF DATA SECTION ****
+    ******************************/
+
+    // No need to calculate CRC for data since it is 0
+    command[10] = 0;
+    command[11] = 0;
+
+    char * buf = (char *) command;
+
+    if ( (err = tty_write(fd, buf, 12, &nbytes_written)) < 0)
+    {
+        tty_error_msg(err, errmsg, MAXRBUF);
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error gaining write access to %s drive. %s", type_name.c_str(), errmsg);
+        return false;
+    }
+
+    driveStatus status;
+
+    if ( (status = readDriveStatus()) != AMC_COMMAND_COMPLETE)
+    {
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "%s Drive status error: %s", __FUNCTION__, driveStatusString(status));
+        return false;
+    }
+
+    return true;
 }
 
 /****************************************************************
@@ -223,7 +394,7 @@ bool AMCController::setMotion(motorMotion dir)
     ******************************/
 
     // Formula to calculate drive velocity from AMC
-    int velocityValue = (dir == MOTOR_FORWARD ? targetRPM : targetRPM * -1) * S_FACTOR * pow(2, 13) / 10;
+    int velocityValue = round ((dir == MOTOR_FORWARD ? targetRPM : targetRPM * -1) * S_FACTOR * pow(2, 13) / 10);
 
     // Break it down into 32bit signed integer (4 bytes) starting with LSB
     command[8] = velocityValue & 0xFF;
@@ -639,7 +810,7 @@ bool AMCController::setAcceleration(motorMotion dir, double rpmAcceleration)
     ******************************/
 
     // Formula to calculate drive acceleration from AMC
-    unsigned long accelValue = rpmAcceleration * S_FACTOR * pow(2, 29) / pow(10, 5);
+    unsigned long accelValue = round (rpmAcceleration * S_FACTOR * pow(2, 29) / pow(10, 5));
 
     // Break it down into 48bit unsigned integer (6 bytes) starting with LSB
     command[8] = accelValue & 0xFF;

@@ -71,6 +71,8 @@ private:
     void ResetCRC();
     void CrunchCRC (char x);
 
+    bool enableWriteAccess();
+    bool enableBridge();
     bool setAcceleration(motorMotion dir, double rpmAcceleration);
     bool setDeceleration(motorMotion dir, double rpmDeAcceleration);
 
