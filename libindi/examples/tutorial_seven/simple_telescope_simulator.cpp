@@ -11,6 +11,8 @@
 
 #include <memory>
 
+using namespace INDI::AlignmentSubsystem;
+
 // We declare an auto pointer to ScopeSim.
 std::auto_ptr<ScopeSim> telescope_sim(0);
 
@@ -123,24 +125,96 @@ const char * ScopeSim::getDefaultName()
     return (char *)"Simple Telescope Simulator";
 }
 
-bool ScopeSim::Goto(double r,double d)
+bool ScopeSim::Goto(double ra,double dec)
 {
-/*
-    //IDLog("ScopeSim Goto\n");
-    targetRA=r;
-    targetDEC=d;
-    char RAStr[64], DecStr[64];
+    if (ISS_ON == IUFindSwitch(&CoordSP,"TRACK")->s)
+    {
+        char RAStr[32], DecStr[32];
+        fs_sexa(RAStr, ra, 2, 3600);
+        fs_sexa(DecStr, dec, 2, 3600);
+        CurrentTrackingTarget.ra = ra;
+        CurrentTrackingTarget.dec = dec;
+    }
 
-    fs_sexa(RAStr, targetRA, 2, 3600);
-    fs_sexa(DecStr, targetDEC, 2, 3600);
+    TelescopeDirectionVector TDV;
+    ln_hrz_posn AltAz;
+    if (TransformCelestialToTelescope(ra, dec, 0.0, TDV))
+    {
+        AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAz);
+    }
+    else
+    {
+        // Try a conversion with the stored observatory position if any
+        bool HavePosition = false;
+        ln_lnlat_posn Position;
+        if ((NULL != IUFindNumber(&LocationNP, "LAT")) && ( 0 != IUFindNumber(&LocationNP, "LAT")->value)
+            && (NULL != IUFindNumber(&LocationNP, "LONG")) && ( 0 != IUFindNumber(&LocationNP, "LONG")->value))
+        {
+            // I assume that being on the equator and exactly on the prime meridian is unlikely
+            Position.lat = IUFindNumber(&LocationNP, "LAT")->value;
+            Position.lng = IUFindNumber(&LocationNP, "LONG")->value;
+            HavePosition = true;
+        }
+        struct ln_equ_posn EquatorialCoordinates;
+        // libnova works in decimal degrees
+        EquatorialCoordinates.ra = ra * 360.0 / 24.0;
+        EquatorialCoordinates.dec = dec;
+        if (HavePosition)
+        {
+            ln_get_hrz_from_equ(&EquatorialCoordinates, &Position, ln_get_julian_from_sys(), &AltAz);
+            TDV = TelescopeDirectionVectorFromAltitudeAzimuth(AltAz);
+            switch (GetApproximateMountAlignment())
+            {
+                case ZENITH:
+                    break;
 
-    Parked=false;
+                case NORTH_CELESTIAL_POLE:
+                    // Rotate the TDV coordinate system clockwise (negative) around the y axis by 90 minus
+                    // the (positive)observatory latitude. The vector itself is rotated anticlockwise
+                    TDV.RotateAroundY(Position.lat - 90.0);
+                    break;
+
+                case SOUTH_CELESTIAL_POLE:
+                    // Rotate the TDV coordinate system anticlockwise (positive) around the y axis by 90 plus
+                    // the (negative)observatory latitude. The vector itself is rotated clockwise
+                    TDV.RotateAroundY(Position.lat + 90.0);
+                    break;
+            }
+            AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAz);
+        }
+        else
+        {
+            // The best I can do is just do a direct conversion to Alt/Az
+            TDV = TelescopeDirectionVectorFromEquatorialCoordinates(EquatorialCoordinates);
+            AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAz);
+        }
+    }
+
+    long AltitudeTargetMicrosteps = int(AltAz.alt * MICROSTEPS_PER_DEGREE);
+    long AzimuthTargetMicrosteps = int(AltAz.az * MICROSTEPS_PER_DEGREE);
+
+    // Do I need to take out any complete revolutions before I do this test?
+    if (AltitudeTargetMicrosteps > MICROSTEPS_PER_REVOLUTION / 2)
+    {
+        // Going the long way round - send it the other way
+        AltitudeTargetMicrosteps -= MICROSTEPS_PER_REVOLUTION;
+    }
+
+    if (AzimuthTargetMicrosteps > MICROSTEPS_PER_REVOLUTION / 2)
+    {
+        // Going the long way round - send it the other way
+        AzimuthTargetMicrosteps -= MICROSTEPS_PER_REVOLUTION;
+    }
+
+    GotoTargetMicrostepsDEC = AltitudeTargetMicrosteps;
+    AxisStatusDEC = SLEWING_TO;
+    GotoTargetMicrostepsRA = AzimuthTargetMicrosteps;
+    AxisStatusRA = SLEWING_TO;
+
     TrackState = SCOPE_SLEWING;
 
     EqNP.s    = IPS_BUSY;
 
-    DEBUGF(INDI::Logger::DBG_SESSION,"Slewing to RA: %s - DEC: %s", RAStr, DecStr);
-*/
     return true;
 }
 
@@ -283,34 +357,93 @@ bool ScopeSim::MoveWE(TelescopeMotionWE dir)
 
 bool ScopeSim::ReadScopeStatus()
 {
-/*
+    struct ln_hrz_posn AltAz;
+    AltAz.alt = double(CurrentEncoderMicrostepsDEC) / MICROSTEPS_PER_DEGREE;
+    AltAz.az = double(CurrentEncoderMicrostepsRA) / MICROSTEPS_PER_DEGREE;
+    TelescopeDirectionVector TDV = TelescopeDirectionVectorFromAltitudeAzimuth(AltAz);
 
-    DEBUGF(DBG_SCOPE, "Current RA: %s Current DEC: %s", RAStr, DecStr);
+    double RightAscension, Declination;
+    if (!TransformTelescopeToCelestial( TDV, RightAscension, Declination))
+    {
+        bool HavePosition = false;
+        ln_lnlat_posn Position;
+        if ((NULL != IUFindNumber(&LocationNP, "LAT")) && ( 0 != IUFindNumber(&LocationNP, "LAT")->value)
+            && (NULL != IUFindNumber(&LocationNP, "LONG")) && ( 0 != IUFindNumber(&LocationNP, "LONG")->value))
+        {
+            // I assume that being on the equator and exactly on the prime meridian is unlikely
+            Position.lat = IUFindNumber(&LocationNP, "LAT")->value;
+            Position.lng = IUFindNumber(&LocationNP, "LONG")->value;
+            HavePosition = true;
+        }
+        struct ln_equ_posn EquatorialCoordinates;
+        if (HavePosition)
+        {
+            TelescopeDirectionVector RotatedTDV(TDV);
+            switch (GetApproximateMountAlignment())
+            {
+                case ZENITH:
+                    break;
 
-    NewRaDec(currentRA, currentDEC);
-*/
+                case NORTH_CELESTIAL_POLE:
+                    // Rotate the TDV coordinate system anticlockwise (positive) around the y axis by 90 minus
+                    // the (positive)observatory latitude. The vector itself is rotated clockwise
+                    RotatedTDV.RotateAroundY(90.0 - Position.lat);
+                    AltitudeAzimuthFromTelescopeDirectionVector(RotatedTDV, AltAz);
+                    break;
+
+                case SOUTH_CELESTIAL_POLE:
+                    // Rotate the TDV coordinate system clockwise (negative) around the y axis by 90 plus
+                    // the (negative)observatory latitude. The vector itself is rotated anticlockwise
+                    RotatedTDV.RotateAroundY(-90.0 - Position.lat);
+                    AltitudeAzimuthFromTelescopeDirectionVector(RotatedTDV, AltAz);
+                    break;
+            }
+#ifdef USE_INITIAL_JULIAN_DATE
+            ln_get_equ_from_hrz(&AltAz, &Position, InitialJulianDate, &EquatorialCoordinates);
+#else
+            ln_get_equ_from_hrz(&AltAz, &Position, ln_get_julian_from_sys(), &EquatorialCoordinates);
+#endif
+        }
+        else
+            // The best I can do is just do a direct conversion to RA/DEC
+            EquatorialCoordinatesFromTelescopeDirectionVector(TDV, EquatorialCoordinates);
+        // libnova works in decimal degrees
+        RightAscension = EquatorialCoordinates.ra * 24.0 / 360.0;
+        Declination = EquatorialCoordinates.dec;
+    }
+
+    NewRaDec(RightAscension, Declination);
+
     return true;
 }
 
 bool ScopeSim::Sync(double ra, double dec)
 {
-/*
-    // For the purpose of showing how to integrate the Alignment Subsystem
-    // I treat the values of the property EQUATORIAL_EOD_COORD as being in
-    // the celestial reference frame and evrything else as being in the telescope
-    // reference frame
-    currentRA  = ra;
-    currentDEC = dec;
+    struct ln_hrz_posn AltAz;
+    AltAz.alt = double(CurrentEncoderMicrostepsDEC) / MICROSTEPS_PER_DEGREE;
+    AltAz.az = double(CurrentEncoderMicrostepsRA) / MICROSTEPS_PER_DEGREE;
 
-    DEBUG(INDI::Logger::DBG_SESSION,"Sync is successful.");
+    AlignmentDatabaseEntry NewEntry;
+    NewEntry.ObservationJulianDate = ln_get_julian_from_sys();
+    NewEntry.RightAscension = ra;
+    NewEntry.Declination = dec;
+    NewEntry.TelescopeDirection = TelescopeDirectionVectorFromAltitudeAzimuth(AltAz);
+    NewEntry.PrivateDataSize = 0;
 
-    TrackState = SCOPE_IDLE;
-    EqNP.s    = IPS_OK;
+    if (!CheckForDuplicateSyncPoint(NewEntry))
+    {
 
+        GetAlignmentDatabase().push_back(NewEntry);
 
-    NewRaDec(currentRA, currentDEC);
-*/
-    return true;
+        // Tell the client about size change
+        UpdateSize();
+
+        // Tell the math plugin to reinitialise
+        Initialise(this);
+
+        return true;
+    }
+    return false;
 }
 
 void ScopeSim::TimerHit()
@@ -332,9 +465,9 @@ void ScopeSim::TimerHit()
 
 
     // RA axis
-    int SlewSteps = dt * AxisSlewRateRA;
+    long SlewSteps = dt * AxisSlewRateRA;
 
-    DEBUGF(DBG_SCOPE, "TimerHit - RA Current Encoder %d SlewSteps %d Direction %d Target %d Status %d",
+    DEBUGF(DBG_SCOPE, "TimerHit - RA Current Encoder %ld SlewSteps %ld Direction %d Target %ld Status %d",
                         CurrentEncoderMicrostepsRA, SlewSteps, AxisDirectionRA, GotoTargetMicrostepsRA, AxisStatusRA);
 
     switch(AxisStatusRA)
@@ -402,7 +535,7 @@ void ScopeSim::TimerHit()
     // DEC axis
     SlewSteps = dt * AxisSlewRateDEC;
 
-    DEBUGF(DBG_SCOPE, "TimerHit - DEC Current Encoder %d SlewSteps %d Direction %d Target %d Status %d",
+    DEBUGF(DBG_SCOPE, "TimerHit - DEC Current Encoder %ld SlewSteps %d Direction %ld Target %ld Status %d",
                         CurrentEncoderMicrostepsDEC, SlewSteps, AxisDirectionDEC, GotoTargetMicrostepsDEC, AxisStatusDEC);
 
     switch(AxisStatusDEC)
@@ -468,5 +601,117 @@ void ScopeSim::TimerHit()
     DEBUGF(DBG_SCOPE, "TimerHit - DEC New Encoder %d New Status %d",  CurrentEncoderMicrostepsDEC, AxisStatusDEC);
 
     INDI::Telescope::TimerHit(); // This will call ReadScopeStatus
+
+    // OK I have updated the celestial reference frame RA/DEC in ReadScopeStatus
+    // Now handle the tracking state
+    switch(TrackState)
+    {
+        case SCOPE_SLEWING:
+            if ((STOPPED == AxisStatusRA) && (STOPPED == AxisStatusDEC))
+            {
+                if (ISS_ON == IUFindSwitch(&CoordSP,"TRACK")->s)
+                {
+                    // Goto has finished start tracking
+                    TrackState = SCOPE_TRACKING;
+                    // Fall through to tracking case
+                }
+                else
+                {
+                    TrackState = SCOPE_IDLE;
+                    break;
+                }
+            }
+            else
+                break;
+
+        case SCOPE_TRACKING:
+        {
+            // Continue or start tracking
+            // Calculate where the mount needs to be in POLLMS time
+            // POLLMS is hardcoded to be one second
+            double JulianOffset = 1.0 / (24.0 * 60 * 60); // TODO may need to make this longer to get a meaningful result
+            TelescopeDirectionVector TDV;
+            ln_hrz_posn AltAz;
+            if (TransformCelestialToTelescope(CurrentTrackingTarget.ra, CurrentTrackingTarget.dec,
+                                                JulianOffset, TDV))
+                AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAz);
+            else
+            {
+                // Try a conversion with the stored observatory position if any
+                bool HavePosition = false;
+                ln_lnlat_posn Position;
+                if ((NULL != IUFindNumber(&LocationNP, "LAT")) && ( 0 != IUFindNumber(&LocationNP, "LAT")->value)
+                    && (NULL != IUFindNumber(&LocationNP, "LONG")) && ( 0 != IUFindNumber(&LocationNP, "LONG")->value))
+                {
+                    // I assume that being on the equator and exactly on the prime meridian is unlikely
+                    Position.lat = IUFindNumber(&LocationNP, "LAT")->value;
+                    Position.lng = IUFindNumber(&LocationNP, "LONG")->value;
+                    HavePosition = true;
+                }
+                struct ln_equ_posn EquatorialCoordinates;
+                // libnova works in decimal degrees
+                EquatorialCoordinates.ra = CurrentTrackingTarget.ra * 360.0 / 24.0;
+                EquatorialCoordinates.dec = CurrentTrackingTarget.dec;
+                if (HavePosition)
+                    ln_get_hrz_from_equ(&EquatorialCoordinates, &Position,
+#ifdef USE_INITIAL_JULIAN_DATE
+                                            InitialJulianDate, &AltAz);
+#else
+                                            ln_get_julian_from_sys() + JulianOffset, &AltAz);
+#endif
+                else
+                {
+                    // No sense in tracking in this case
+                    TrackState = SCOPE_IDLE;
+                    break;
+                }
+            }
+            long AltitudeOffsetMicrosteps = int(AltAz.alt * MICROSTEPS_PER_DEGREE - CurrentEncoderMicrostepsDEC);
+            long AzimuthOffsetMicrosteps = int(AltAz.az * MICROSTEPS_PER_DEGREE - CurrentEncoderMicrostepsRA);
+
+            if (AzimuthOffsetMicrosteps > MICROSTEPS_PER_REVOLUTION / 2)
+            {
+                // Going the long way round - send it the other way
+                AzimuthOffsetMicrosteps -= MICROSTEPS_PER_REVOLUTION;
+            }
+            if (0 != AzimuthOffsetMicrosteps)
+            {
+                // Calculate the slewing rates needed to reach that position
+                // at the correct time. This is simple as interval is one second
+                AxisSlewRateRA = abs(AzimuthOffsetMicrosteps);
+                AxisDirectionRA = AzimuthOffsetMicrosteps > 0 ? FORWARD : REVERSE;  // !!!! BEWARE INERTIA FREE MOUNT
+            }
+            else
+            {
+                // Nothing to do - stop the axis
+                AxisStatusRA = STOPPED; // !!!! BEWARE INERTIA FREE MOUNT
+            }
+
+            if (AltitudeOffsetMicrosteps > MICROSTEPS_PER_REVOLUTION / 2)
+            {
+                // Going the long way round - send it the other way
+                AltitudeOffsetMicrosteps -= MICROSTEPS_PER_REVOLUTION;
+            }
+            if (0 != AltitudeOffsetMicrosteps)
+            {
+                 // Calculate the slewing rates needed to reach that position
+                // at the correct time.
+                AxisSlewRateDEC = abs(AltitudeOffsetMicrosteps);
+                AxisDirectionDEC = AltitudeOffsetMicrosteps > 0 ? FORWARD : REVERSE;  // !!!! BEWARE INERTIA FREE MOUNT
+            }
+            else
+            {
+                // Nothing to do - stop the axis
+                AxisStatusDEC = STOPPED;  // !!!! BEWARE INERTIA FREE MOUNT
+            }
+
+            OldTrackingTargetMicrostepsDEC = AzimuthOffsetMicrosteps + CurrentEncoderMicrostepsRA;
+            OldTrackingTargetMicrostepsDEC = AltitudeOffsetMicrosteps + CurrentEncoderMicrostepsDEC;
+            break;
+        }
+
+        default:
+            break;
+    }
 }
 

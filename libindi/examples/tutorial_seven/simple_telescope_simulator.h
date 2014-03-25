@@ -23,7 +23,7 @@ private:
     virtual bool Connect();
     virtual bool Disconnect();
     virtual const char *getDefaultName();
-    bool Goto(double,double);
+    bool Goto(double ra,double dec);
     virtual bool initProperties();
     friend void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
     virtual bool ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
@@ -39,7 +39,7 @@ private:
     bool Sync(double ra, double dec);
     virtual void TimerHit();
 
-    static const int MICROSTEPS_PER_REVOLUTION = 1000000;
+    static const long MICROSTEPS_PER_REVOLUTION = 1000000;
     static const double MICROSTEPS_PER_DEGREE = MICROSTEPS_PER_REVOLUTION / 360.0;
     static const double DEFAULT_SLEW_RATE;
 
@@ -49,15 +49,21 @@ private:
     AxisStatus AxisStatusDEC;
     AxisDirection AxisDirectionDEC;
     double AxisSlewRateDEC;
-    double CurrentEncoderMicrostepsDEC;
-    double GotoTargetMicrostepsDEC;
+    long CurrentEncoderMicrostepsDEC;
+    long GotoTargetMicrostepsDEC;
+    long OldTrackingTargetMicrostepsDEC;
 
     AxisStatus AxisStatusRA;
     AxisDirection AxisDirectionRA;
     double AxisSlewRateRA;
-    double CurrentEncoderMicrostepsRA;
-    double GotoTargetMicrostepsRA;
+    long CurrentEncoderMicrostepsRA;
+    long GotoTargetMicrostepsRA;
+    long OldTrackingTargetMicrostepsRA;
 
+
+    // Tracking
+    ln_equ_posn CurrentTrackingTarget;
+    long OldTrackingTarget[2];
 
     unsigned int DBG_SCOPE;
 };
