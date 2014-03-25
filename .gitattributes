@@ -775,8 +775,6 @@
 3rdparty/libapogee/conf/MV4B.txt -text
 3rdparty/libapogee/conf/MV7.txt -text
 3rdparty/libapogee/conf/MV7i.txt -text
-3rdparty/libapogee/conf/Makefile.am -text
-3rdparty/libapogee/conf/Makefile.in -text
 3rdparty/libapogee/conf/NA694R.txt -text
 3rdparty/libapogee/conf/NCG16.txt -text
 3rdparty/libapogee/conf/NCG16070.txt -text
