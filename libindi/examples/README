@@ -39,7 +39,7 @@ Enter "127.0.0.1" in the host name and "8000" in the port entry (without the quo
 
 ------------------------------------------------------------------------------------------
 
-3. In the src/examples directory, run each tutorial 
+3. In the src/examples/tutorial_xxx directory, run each tutorial 
 
 $ indiserver -v -p 8000 ./tutorial_NUM
 

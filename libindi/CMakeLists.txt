@@ -652,75 +652,9 @@ install(TARGETS indi_eval RUNTIME DESTINATION bin )
 
 #################################################################################
 ## Build Examples. Not installation
-########### Tutorial one ##############
-set(tutorialone_SRCS
-	${indimain_SRCS}
-        ${CMAKE_SOURCE_DIR}/examples/tutorial_one/simpledevice.cpp
-   )
 
-add_executable(tutorial_one ${tutorialone_SRCS})
+add_subdirectory(${CMAKE_SOURCE_DIR}/examples)
 
-target_link_libraries(tutorial_one indidriver)
-
-########### Tutorial two ##############
-set(tutorialtwo_SRCS
-	${indimain_SRCS}
-        ${CMAKE_SOURCE_DIR}/examples/tutorial_two/simplescope.cpp
-   )
-
-add_executable(tutorial_two ${tutorialtwo_SRCS})
-
-target_link_libraries(tutorial_two indidriver)
-
-########### Tutorial three ##############
-if (CFITSIO_FOUND)
-set(tutorialthree_SRCS
-	${indimain_SRCS}
-        ${CMAKE_SOURCE_DIR}/examples/tutorial_three/simpleccd.cpp
-   )
-
-add_executable(tutorial_three ${tutorialthree_SRCS})
-
-target_link_libraries(tutorial_three indidriver)
-endif (CFITSIO_FOUND)
-########### Tutorial four ##############
-set(tutorialfour_SRCS
-        ${indimain_SRCS}
-        ${CMAKE_SOURCE_DIR}/examples/tutorial_four/simpleskeleton.cpp
-   )
-
-add_executable(tutorial_four ${tutorialfour_SRCS})
-
-target_link_libraries(tutorial_four indidriver)
-
-########### Tutorial five - dome driver ##############
-set(tutorialdome_SRCS
-	${indimain_SRCS}
-        ${CMAKE_SOURCE_DIR}/examples/tutorial_five/dome.cpp
-   )
-
-add_executable(tutorial_dome ${tutorialdome_SRCS})
-
-target_link_libraries(tutorial_dome indidriver)
-
-########### Tutorial five - rain driver ##############
-set(tutorialrain_SRCS
-	${indimain_SRCS}
-        ${CMAKE_SOURCE_DIR}/examples/tutorial_five/raindetector.cpp
-   )
-
-add_executable(tutorial_rain ${tutorialrain_SRCS})
-
-target_link_libraries(tutorial_rain indidriver)
-
-########### Client Tutorial ##############
-set(tutorialclient_SRCS
-        ${CMAKE_SOURCE_DIR}/examples/tutorial_six/tutorial_client.cpp
-   )
-
-add_executable(tutorial_client ${tutorialclient_SRCS})
-
-target_link_libraries(tutorial_client indiclient)
 #################################################################################
 
 install( FILES drivers.xml ${CMAKE_SOURCE_DIR}/drivers/focuser/indi_tcfs_sk.xml DESTINATION ${DATA_INSTALL_DIR})

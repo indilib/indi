@@ -1,0 +1,7 @@
+add_subdirectory(tutorial_one)
+add_subdirectory(tutorial_two)
+add_subdirectory(tutorial_three)
+add_subdirectory(tutorial_four)
+add_subdirectory(tutorial_five)
+add_subdirectory(tutorial_six)
+add_subdirectory(tutorial_seven)
