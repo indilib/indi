@@ -99,6 +99,7 @@ private:
     std::string default_port;
     std::string type_name;
 
+    motorMotion state;
     bool simulation;
     bool debug;
     bool verbose;

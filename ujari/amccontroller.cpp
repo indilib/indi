@@ -53,6 +53,8 @@ AMCController::AMCController(motorType type, Ujari* scope) : Gr1(0x0810)
         debug = false;
         simulation = false;
         verbose    = true;
+
+        state = MOTOR_STOP;
 }
 
 AMCController::~AMCController()
@@ -456,7 +458,7 @@ bool AMCController::move_forward()
         return false;
 
     // Already moving forward
-    if (MotionControlS[MOTOR_FORWARD].s == ISS_ON && currentRPM == targetRPM)
+    if (state == MOTOR_FORWARD && currentRPM == targetRPM)
         return true;
 
     if (simulation)
@@ -468,7 +470,12 @@ bool AMCController::move_forward()
     }
 
 
-    return setMotion(MOTOR_FORWARD);
+    bool rc = setMotion(MOTOR_FORWARD);
+
+    if (rc)
+        state = MOTOR_FORWARD;
+
+    return rc;
 
 }
 
@@ -484,7 +491,7 @@ bool AMCController::move_reverse()
         return false;
 
     // Already moving backwards
-    if (MotionControlS[MOTOR_REVERSE].s == ISS_ON && currentRPM == targetRPM)
+    if (state == MOTOR_REVERSE && currentRPM == targetRPM)
         return true;
 
     if (simulation)
@@ -496,7 +503,10 @@ bool AMCController::move_reverse()
     }
 
 
-    return setMotion(MOTOR_REVERSE);
+    bool rc = setMotion(MOTOR_REVERSE);
+
+    if (rc)
+        state = MOTOR_REVERSE;
 
 }
 
@@ -506,13 +516,13 @@ bool AMCController::move_reverse()
 *****************************************************************/
 bool AMCController::stop()
 {
-    //int ret;
+
 
     if (!check_drive_connection())
         return false;
 
-    // Already moving backwards
-    if (MotionControlS[MOTOR_STOP].s == ISS_ON)
+    // Already stopped
+    if (state == MOTOR_STOP)
         return true;
 
     if (simulation)
@@ -523,9 +533,15 @@ bool AMCController::stop()
         return true;
      }
 
-    // TODO Impement STOP for AMC Drive
+    targetRPM = 0;
 
-    return false;
+    // Doesn't matter what motion direction we choose since it is 0 RPM
+    bool rc =  setMotion(MOTOR_FORWARD);
+
+    if (rc)
+        state = MOTOR_STOP;
+
+    return rc;
 
 }
 
