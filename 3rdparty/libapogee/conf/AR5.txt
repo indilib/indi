@@ -4,7 +4,7 @@ CCD:	Ascent 285		#NAME?
 System:	Ascent 		- step 0 must be final resting  state																
 Pattern	AR5 3.33 MHZ																		
 Date:	6/10/2011	Time (nS)	Latching	ADD/FIFO	RIGHT	FIFO		SAM 2L	SAM 1L	SAM 2R	SAM 1R	ADCLK	SW	S3	S2	S1	R	Stop	Row
-	Mask		1	0	1	0	1	0	0	0	0	0	0	0	1	1	0	0	
+	Mask		1	0	1	0	1	0	0	0	1	0	0	0	1	1	0	0	
 	BIN 1	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	1
 		10	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	0	2
 		20	0	0	0	0	0	0	0	0	0	1	0	0	0	1	1	0	3
