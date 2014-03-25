@@ -24,15 +24,9 @@ static std::vector<uint8_t> bufferVect;
 static int32_t vectWriter(uint8_t *data, size_t size, size_t nmemb,  
                   std::vector<uint8_t> &bufferVect) 
 {
- 
-    const int32_t numBytes = apgHelper::SizeT2Int32(size) * apgHelper::SizeT2Int32(nmemb);
-
-    for(int32_t i = 0; i < numBytes; ++i)
-    {
-        bufferVect.push_back( data[i] );
-    }
-
-    return numBytes;
+	const int32_t numBytes = apgHelper::SizeT2Int32(size) * apgHelper::SizeT2Int32(nmemb);
+	bufferVect.insert( bufferVect.end(), &data[0], &data[numBytes] );
+	return numBytes;
 }
  
 //////////////////////////// 
@@ -63,7 +57,7 @@ CLibCurlWrap::CLibCurlWrap() : m_curlHandle( 0 ),
                                m_fileName( __FILE__ )
 { 
     m_curlHandle = curl_easy_init();
-
+	m_timeout = OPERATION_TIMEOUT;
     if( !m_curlHandle )
     {
         std::string errStr("curl_easy_init failed");
@@ -95,8 +89,8 @@ void CLibCurlWrap::HttpGet(const std::string & url,
 void CLibCurlWrap::HttpGet(const std::string & url,
             std::vector<uint8_t> & result)
 {
-    CurlSetupVectWrite ( url );
-    result = ExecuteVect();
+    CurlSetupVectWrite ( url, result );
+    ExecuteVect( result );
 }
 
 //////////////////////////// 
@@ -117,10 +111,10 @@ void CLibCurlWrap::HttpPost(const std::string & url,
             const std::string & postFields, 
             std::vector<uint8_t> & result)
 {
-    CurlSetupVectWrite ( url );
+    CurlSetupVectWrite ( url, result );
     curl_easy_setopt(m_curlHandle, CURLOPT_POSTFIELDS, postFields.c_str());
 
-    result = ExecuteVect();
+    ExecuteVect( result );
 }
 
 
@@ -133,20 +127,20 @@ void CLibCurlWrap::CurlSetupStrWrite(const std::string & url)
     curl_easy_setopt(m_curlHandle, CURLOPT_URL, url.c_str());  
     curl_easy_setopt(m_curlHandle, CURLOPT_WRITEFUNCTION, strWriter);  
     curl_easy_setopt(m_curlHandle, CURLOPT_WRITEDATA, &bufferStr); 
-    curl_easy_setopt(m_curlHandle, CURLOPT_TIMEOUT,OPERATION_TIMEOUT);
+    curl_easy_setopt(m_curlHandle, CURLOPT_TIMEOUT, m_timeout);
     
 }
 
 //////////////////////////// 
 // CURL     SETUP       VECTOR          WRITE
-void CLibCurlWrap::CurlSetupVectWrite(const std::string & url)
+void CLibCurlWrap::CurlSetupVectWrite(const std::string & url, const std::vector<uint8_t> & result)
 {
      // Now set up all of the curl options  
     curl_easy_setopt(m_curlHandle, CURLOPT_ERRORBUFFER, errorBuffer);  
     curl_easy_setopt(m_curlHandle, CURLOPT_URL, url.c_str());  
     curl_easy_setopt(m_curlHandle, CURLOPT_WRITEFUNCTION, vectWriter);  
-    curl_easy_setopt(m_curlHandle, CURLOPT_WRITEDATA, &bufferVect); 
-    curl_easy_setopt(m_curlHandle, CURLOPT_TIMEOUT,OPERATION_TIMEOUT);
+    curl_easy_setopt(m_curlHandle, CURLOPT_WRITEDATA, &result); 
+    curl_easy_setopt(m_curlHandle, CURLOPT_TIMEOUT, m_timeout);
 }
 
 //////////////////////////// 
@@ -172,15 +166,15 @@ std::string CLibCurlWrap::ExecuteStr()
 
 //////////////////////////// 
 // EXECUTE  VECT
-std::vector<uint8_t> CLibCurlWrap::ExecuteVect()
+void CLibCurlWrap::ExecuteVect( std::vector<uint8_t> & result )
 {
     //clear out the vector
-    bufferVect.clear();
+    result.resize(0);
 
-    //perform the transfer
-    const CURLcode result = curl_easy_perform(m_curlHandle);
+	//perform the transfer
+    const CURLcode returnCode = curl_easy_perform(m_curlHandle);
 
-    if( CURLE_OK != result )
+    if( CURLE_OK != returnCode )
     {
         std::string curlError( errorBuffer );
 
@@ -188,7 +182,27 @@ std::vector<uint8_t> CLibCurlWrap::ExecuteVect()
             __LINE__, Apg::ErrorType_Critical );
     }
 
-    return bufferVect;
+}
+
+//////////////////////////// 
+//      SET TIMEOUT
+void CLibCurlWrap::setTimeout( int timeout )
+{
+    if (timeout < 0)
+	{
+		m_timeout = OPERATION_TIMEOUT;
+	}
+	else
+	{
+		m_timeout = timeout;
+	}
+}
+
+//////////////////////////// 
+//      GET TIMEOUT
+unsigned int CLibCurlWrap::getTimeout()
+{
+    return m_timeout;
 }
 
 //////////////////////////// 

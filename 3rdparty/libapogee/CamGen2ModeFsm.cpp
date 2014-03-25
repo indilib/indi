@@ -39,23 +39,29 @@ CamGen2ModeFsm::~CamGen2ModeFsm()
 //////////////////////////// 
 // IS      TDI      AVAILABLE 
 bool CamGen2ModeFsm::IsTdiAvailable()
-{
-     std::string vinfo = apgHelper::mkMsg( m_fileName, 
-        "Gen2 cameras do not support TDI mode.", __LINE__);
-    ApgLogger::Instance().Write(ApgLogger::LEVEL_DEBUG,"warn",vinfo);
+{ // TODO - Ascents don't support this
+	if( IsInterlineCcd() )
+	{
+        std::string vinfo = apgHelper::mkMsg( m_fileName, "Interline ccds do not support TDI mode.", __LINE__);
+        ApgLogger::Instance().Write(ApgLogger::LEVEL_RELEASE,"warn",vinfo);
+        return false;
+	}
 
-    return false;
+    return true;
 }
 
 //////////////////////////// 
 // IS      KINETICS      AVAILABLE 
 bool CamGen2ModeFsm::IsKineticsAvailable()
-{
-    std::string vinfo = apgHelper::mkMsg( m_fileName, 
-        "Gen2cameras do not support kinetics mode.", __LINE__);
-    ApgLogger::Instance().Write(ApgLogger::LEVEL_DEBUG,"warn",vinfo);
+{ // TODO - Ascents don't support this
+	if( IsInterlineCcd() )
+	{
+        std::string vinfo = apgHelper::mkMsg( m_fileName, "Interline ccds do not support Kinetics mode.", __LINE__);
+        ApgLogger::Instance().Write(ApgLogger::LEVEL_RELEASE,"warn",vinfo);
+        return false;
+	}
 
-    return false;
+    return true;
 }
 
 //////////////////////////// 

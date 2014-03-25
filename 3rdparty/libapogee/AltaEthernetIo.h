@@ -29,7 +29,7 @@ class AltaEthernetIo : public ICamIo, public IAltaSerialPortIo
         std::map<uint16_t,uint16_t> ReadRegs(const std::vector<uint16_t> & Regs );
 
         uint16_t ReadReg( uint16_t reg ) const;
-	    void WriteReg( uint16_t reg, uint16_t val ) const;
+	    void WriteReg( uint16_t reg, uint16_t val ) ;
 
         void WriteSRMD( uint16_t reg, const std::vector<uint16_t> & data );
 

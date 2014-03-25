@@ -44,6 +44,9 @@ class ModeFsm
         void SetBulkDownload( bool TurnOn );
         bool IsBulkDownloadOn() { return m_IsBulkDownloadOn; }
 
+        void SetPipelineDownload( bool TurnOn );
+        bool IsPipelineDownloadOn() { return m_IsPipelineDownloadOn; }
+
         void SetExternalTrigger( bool TurnOn, Apg::TriggerMode trigMode,
             Apg::TriggerType trigType);
 
@@ -107,6 +110,7 @@ class ModeFsm
         uint16_t m_FirmwareVersion;
 
         bool m_IsBulkDownloadOn;
+        bool m_IsPipelineDownloadOn;
         bool m_IsFastSequeceOn;
 
      private:

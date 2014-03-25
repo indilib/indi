@@ -34,7 +34,7 @@ class AspenEthernetIo : public ICamIo
 
 
         uint16_t ReadReg( uint16_t reg ) const;
-	    void WriteReg( uint16_t reg, uint16_t val ) const;
+	    void WriteReg( uint16_t reg, uint16_t val ) ;
 
         void GetImageData( std::vector<uint16_t> & data );
 
@@ -79,6 +79,10 @@ class AspenEthernetIo : public ICamIo
         const std::string m_fileName;
         std::string m_sessionKey;
         std::string m_sessionKeyUrlStr;
+
+		unsigned int getLastExposureTime();
+		uint16_t m_lastExposureTimeRegHigh;
+		uint16_t m_lastExposureTimeRegLow;
 
         void StartSession();
         void EndSession();

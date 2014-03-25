@@ -65,7 +65,7 @@ class ICamIo
          * \param[in] reg Register to write to.
          * \param[out] val Data value in the register
          */
-	    virtual void WriteReg( uint16_t reg, uint16_t val ) const = 0;
+	    virtual void WriteReg( uint16_t reg, uint16_t val ) = 0;
 
         /*!
          *  Writes data to a Single Request Multiple Data (SRMD) controller on the camera

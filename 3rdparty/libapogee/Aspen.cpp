@@ -14,7 +14,7 @@
 #include "AspenIo.h"  
 #include "CamHelpers.h" 
 #include "ApnCamData.h"
-#include "AscentData.h"
+#include "AspenData.h"
 #include "CamGen2ModeFsm.h" 
 #include "CamGen2CcdAcqParams.h" 
 #include "ImgFix.h" 
@@ -29,7 +29,7 @@ Aspen::Aspen() :
 {
 
     //alloc and set the camera constants
-    m_CameraConsts = std::tr1::shared_ptr<PlatformData>( new AscentData() );
+    m_CameraConsts = std::tr1::shared_ptr<PlatformData>( new AspenData() );
 
 } 
 
@@ -91,8 +91,11 @@ void Aspen::OpenConnection( const std::string & ioType,
     CfgCamFromId( m_Id );
 
     // overwrite cfg matrix data with
-    // information from the camera
-    UpdateCfgWithStrDbInfo();
+    // information from the camera.
+	// use data from registers to
+	// avoid accessing string database
+	// and resetting the fpga.
+    UpdateCfgWithRegisterInfo();
 
     //set the camera mode fsm
     m_CamMode = std::tr1::shared_ptr<ModeFsm>( new CamGen2ModeFsm(m_CamIo,
@@ -159,6 +162,36 @@ void Aspen::CfgCamFromId( const uint16_t CameraId )
     DefaultCfgCamFromId( CameraId );
 }
 
+
+//////////////////////////// 
+//      UPDATE     CFG        WITH       REGISTER       INFO
+void Aspen::UpdateCfgWithRegisterInfo()
+{
+    const uint16_t AD1Default = m_CamIo->ReadReg( CameraRegs::AD1_DEFAULT_VALUES );
+    const uint16_t AD2Default = m_CamIo->ReadReg( CameraRegs::AD2_DEFAULT_VALUES );
+	if( AD1Default & CameraRegs::AD_DEFAULT_VALID_BIT )
+    {
+		uint16_t AD1Gain = ( AD1Default & CameraRegs::AD_DEFAULT_GAIN_BITS ) >> 
+								CameraRegs::AD_DEFAULT_GAIN_SHIFT;
+		uint16_t AD1Offset = ( AD1Default & CameraRegs::AD_DEFAULT_OFFSET_BITS ) >> 
+								CameraRegs::AD_DEFAULT_OFFSET_SHIFT;
+		
+		m_CamCfgData->m_MetaData.DefaultGainLeft = AD1Gain;
+		m_CamCfgData->m_MetaData.DefaultOffsetLeft = AD1Offset;
+
+    }
+	if( AD2Default & CameraRegs::AD_DEFAULT_VALID_BIT )
+    {
+		uint16_t AD2Gain = ( AD2Default & CameraRegs::AD_DEFAULT_GAIN_BITS ) >> 
+								CameraRegs::AD_DEFAULT_GAIN_SHIFT;
+		uint16_t AD2Offset = ( AD2Default & CameraRegs::AD_DEFAULT_OFFSET_BITS ) >> 
+								CameraRegs::AD_DEFAULT_OFFSET_SHIFT;
+        
+		m_CamCfgData->m_MetaData.DefaultGainRight = AD2Gain;
+		m_CamCfgData->m_MetaData.DefaultOffsetRight = AD2Offset;
+
+    }
+}
 
 //////////////////////////// 
 //      UPDATE     CFG        WITH       STR    DB       INFO
@@ -353,16 +386,13 @@ void Aspen::Init()
 
     DefaultInit();
 
-    // once we have initalized the camera 
-    // put the input id against the StrDb
-    // save the value to a register in the camera so that
-    // the firmware can see it
-    WriteId2CamReg();
-
     SetIsInterlineBit();
 
      //single readout by default
      SetDualReadout( false );
+
+
+
 }
 
 //////////////////////////// 

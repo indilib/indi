@@ -172,6 +172,83 @@ CamInfo::StrDb CamInfo::GetNoOpDb()
 
 
 //////////////////////////// 
+//      MK   U8        VECT      FROM     NET     DB
+std::vector< uint8_t > CamInfo::MkU8VectFromNetDb( const CamInfo::NetDb & input )
+{
+    std::vector< uint8_t > out;
+    out.push_back( input.Magic >> 24 & 0xff );
+    out.push_back( input.Magic >> 16 & 0xff );
+    out.push_back( input.Magic >> 8 & 0xff );
+    out.push_back( input.Magic & 0xff );
+	out.push_back( input.IP[0] );
+	out.push_back( input.IP[1] );
+	out.push_back( input.IP[2] );
+	out.push_back( input.IP[3] );
+	out.push_back( input.Gateway[0] );
+	out.push_back( input.Gateway[1] );
+	out.push_back( input.Gateway[2] );
+	out.push_back( input.Gateway[3] );
+	out.push_back( input.Netmask[0] );
+	out.push_back( input.Netmask[1] );
+	out.push_back( input.Netmask[2] );
+	out.push_back( input.Netmask[3] );
+	out.push_back( input.Port[0] );
+	out.push_back( input.Port[1] );
+	out.push_back( input.Flags[0] );
+	out.push_back( input.Flags[1] );
+	out.push_back( input.Flags[2] );
+	out.push_back( input.Flags[3] );
+	out.push_back( input.MAC[0] );
+	out.push_back( input.MAC[1] );
+	out.push_back( input.MAC[2] );
+	out.push_back( input.MAC[3] );
+	out.push_back( input.MAC[4] );
+	out.push_back( input.MAC[5] );
+	out.push_back( input.Timeout >> 24 & 0xff );
+	out.push_back( input.Timeout >> 16 & 0xff );
+	out.push_back( input.Timeout >> 8 & 0xff );
+	out.push_back( input.Timeout & 0xff );
+
+    return out;
+}
+
+//////////////////////////// 
+//  MK      STR        DB        FROM     STR     VECT
+CamInfo::NetDb CamInfo::MkNetDbFromU8Vect( const std::vector< uint8_t > & input )
+{
+        CamInfo::NetDb out;
+        out.Magic = input.at(0) << 24 | input.at(1) << 16 | input.at(2) << 8 | input.at(3);
+        out.IP[0] = input.at(4);
+        out.IP[1] = input.at(5);
+        out.IP[2] = input.at(6);
+        out.IP[3] = input.at(7);
+        out.Gateway[0] = input.at(8);
+        out.Gateway[1] = input.at(9);
+        out.Gateway[2] = input.at(10);
+        out.Gateway[3] = input.at(11);
+        out.Netmask[0] = input.at(12);
+        out.Netmask[1] = input.at(13);
+        out.Netmask[2] = input.at(14);
+        out.Netmask[3] = input.at(15);
+        out.Port[0] = input.at(16);
+        out.Port[1] = input.at(17);
+        out.Flags[0] = input.at(18);
+        out.Flags[1] = input.at(19);
+        out.Flags[2] = input.at(20);
+        out.Flags[3] = input.at(21);
+        out.MAC[0] = input.at(22);
+        out.MAC[1] = input.at(23);
+        out.MAC[2] = input.at(24);
+        out.MAC[3] = input.at(25);
+        out.MAC[4] = input.at(26);
+        out.MAC[5] = input.at(27);
+        out.Timeout = input.at(28) << 24 | input.at(29) << 16 | input.at(30) << 8 | input.at(31);
+
+        return out;
+    
+}
+
+//////////////////////////// 
 // GET     PLATFORM
 CamModel::PlatformType CamModel::GetPlatformType( const uint16_t FixedId, bool IsEthernet )
 {

@@ -38,13 +38,18 @@ class CLibCurlWrap
             const std::string & postFields, 
             std::vector<uint8_t> & result);
 
+		void setTimeout( int timeout );
+		unsigned int getTimeout();
+
         std::string GetVerison();
     private:
+		unsigned int m_timeout;
+
         void CurlSetupStrWrite(const std::string & url);
         std::string ExecuteStr();
 
-        void CurlSetupVectWrite(const std::string & url);
-        std::vector<uint8_t> ExecuteVect();
+        void CurlSetupVectWrite(const std::string & url, const std::vector<uint8_t> & result);
+        void ExecuteVect(std::vector<uint8_t> & result);
 
         CURL * m_curlHandle;
         const std::string m_fileName;

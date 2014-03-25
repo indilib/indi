@@ -35,7 +35,7 @@ class CamUsbIo : public ICamIo
         virtual ~CamUsbIo(); 
 
         uint16_t ReadReg( uint16_t reg ) const;
-	    void WriteReg( uint16_t reg, uint16_t val ) const;
+	    void WriteReg( uint16_t reg, uint16_t val ) ;
 
         void WriteSRMD( uint16_t reg, const std::vector<uint16_t> & data );
         void WriteMRMD( uint16_t reg, const std::vector<uint16_t> & data );

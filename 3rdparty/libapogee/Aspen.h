@@ -93,6 +93,8 @@ class DLL_EXPORT Aspen : public CamGen2Base
         void SetIsInterlineBit();
 
     private:
+        void UpdateCfgWithRegisterInfo();
+
         void UpdateCfgWithStrDbInfo();
         
         const std::string m_fileName;

@@ -294,7 +294,7 @@ std::map<uint16_t,uint16_t> AltaEthernetIo::ReadRegs(const std::vector<uint16_t>
    
 //////////////////////////// 
 // WRITE        REG 
-void AltaEthernetIo::WriteReg( uint16_t reg, uint16_t val ) const
+void AltaEthernetIo::WriteReg( uint16_t reg, uint16_t val ) 
 {
     std::string fullUrl = m_url + "/FPGA?WR=" +
         help::uShort2Str(reg) + "&WD=" + help::uShort2Str(val, true);

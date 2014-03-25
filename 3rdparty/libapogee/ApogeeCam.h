@@ -453,10 +453,29 @@ class DLL_EXPORT ApogeeCam
         void SetBulkDownload( bool TurnOn );
 
         /*! 
-         * Retruns the state of bulk downloads (true = on, false = off)
+         * Returns the state of bulk downloads (true = on, false = off)
          * \exception std::runtime_error
          */
         bool IsBulkDownloadOn();
+
+        /*! 
+         * For USB camera systems, this variable is used to determine 
+         * when ImageReady status is returned. When on, camera will return ImageReady
+         * status as soon as there is any data to download. When off, camera will 
+         * not return ImageReady status until all data has been digitized and is ready
+         * for download. Turn on for faster downloads and increased frame rate in exchange
+         * for higher noise. Which option is best depends on your application.
+         * The default value for this variable after initialization is true.
+         * \param [in] TurnOn true enables pipelined download, false disables this feature
+         * \exception std::runtime_error
+         */
+        void SetPipelineDownload( bool TurnOn );
+
+        /*! 
+         * Returns the state of pipelined downloads (true = on, false = off)
+         * \exception std::runtime_error
+         */
+        bool IsPipelineDownloadOn();
 
         /*! 
          * Defines the signal usage for the I/O port.  This function is only valid on AltaU 

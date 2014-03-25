@@ -132,6 +132,7 @@ bool UsbFrmwr::IsApgDevice(const uint16_t vid,
 	{
 		if(pid == ALTA_USB_PID ||
 		   pid == ASCENT_USB_PID ||
+		   pid == ASPEN_USB_PID ||
 		   pid == FILTER_WHEEL_PID)
 		{
 			return true;

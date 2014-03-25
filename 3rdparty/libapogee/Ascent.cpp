@@ -190,15 +190,6 @@ void Ascent::OpenConnection( const std::string & ioType,
         new CamGen2CcdAcqParams(m_CamCfgData,m_CamIo,m_CameraConsts) );
 
     
-    //set up the camera mode fsm
-    m_CamMode = std::tr1::shared_ptr<ModeFsm>( new CamGen2ModeFsm(m_CamIo,
-        m_CamCfgData, m_FirmwareVersion) );
-
-  
-    //create the adc and pattern file handler object
-    m_CcdAcqSettings = std::tr1::shared_ptr<CcdAcqParams>( 
-        new CamGen2CcdAcqParams(m_CamCfgData, m_CamIo, m_CameraConsts) );
-
     m_IsConnected = true;
     LogConnectAndDisconnect( true );
 }

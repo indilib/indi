@@ -106,8 +106,25 @@ namespace CameraRegs
     const uint16_t SHUTTER_STROBE_POSITION		= 23;
     const uint16_t SHUTTER_STROBE_PERIOD			= 24;
 
-    const uint16_t FAN_SPEED_CONTROL				                = 25;
-    const uint16_t LED_DRIVE						                                = 26;
+    const uint16_t FAN_SPEED_CONTROL				  = 25;
+
+	// Never actually implemented
+    const uint16_t LED_DRIVE						  = 26;
+
+	// For Aspen systems, these default values are loaded
+	// into registers on powerup by microblaze processor
+	// so that the fpga doesn't have to be reset
+	// to access the string database. Valid bit will be
+	// high if default values were programmed in the db.
+    const uint16_t AD1_DEFAULT_VALUES                 = 26;
+    const uint16_t AD2_DEFAULT_VALUES                 = 46;
+    const uint16_t AD_DEFAULT_GAIN_BITS               = 0xFC00;
+    const uint16_t AD_DEFAULT_OFFSET_BITS             = 0x03FE;
+    const uint16_t AD_DEFAULT_VALID_BIT               = 0x0001;
+    const uint16_t AD_DEFAULT_GAIN_SHIFT              = 10;
+    const uint16_t AD_DEFAULT_OFFSET_SHIFT            = 1;
+
+
     const uint16_t SUBSTRATE_ADJUST				                    = 27;
     const uint16_t MASK_FAN_SPEED_CONTROL_ALTA		= 0x0FFF;
     const uint16_t MASK_LED_ILLUMINATION_ALTA			    = 0x0FFF;

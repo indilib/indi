@@ -76,7 +76,7 @@ uint16_t CamUsbIo::ReadReg( uint16_t reg ) const
 
 //////////////////////////// 
 // WRITE        REG 
-void CamUsbIo::WriteReg( uint16_t reg, uint16_t val )const 
+void CamUsbIo::WriteReg( uint16_t reg, uint16_t val ) 
 {
 #ifdef DEBUGGING_CAMERA
     apgHelper::DebugMsg( "CamUsbIo::WriteReg -> reg = 0x%X, val = 0x%X", reg, val );
@@ -225,8 +225,28 @@ void CamUsbIo::GetStatus(CameraStatusRegs::BasicStatus & status)
 // GET  STATUS
 void CamUsbIo::GetStatus(CameraStatusRegs::AdvStatus & status)
 {
-    m_Usb->GetStatus( reinterpret_cast<uint8_t*>(&status),
-        sizeof(status) );
+	int MaxRetries = 2;
+    for (int RetryNumber = 0; RetryNumber <= MaxRetries; RetryNumber++)
+	{
+		try
+		{
+			m_Usb->GetStatus( reinterpret_cast<uint8_t*>(&status),
+				sizeof(status) );
+			break;
+		}
+		catch(std::exception & err )
+		{
+			if ( RetryNumber == MaxRetries )
+			{
+                std::stringstream msg;
+				msg << "CamUsbIo::GetStatus (adv) failed after ";
+				msg << RetryNumber << " retries with error ";
+				msg <<  err.what();
+				apgHelper::throwRuntimeException( m_fileName, msg.str(), 
+					__LINE__, Apg::ErrorType_Critical );
+			}
+		}
+	}
 }
 
 //////////////////////////// 

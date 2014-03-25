@@ -14,6 +14,7 @@
 #define ASPENUSBIO_INCLUDE_H__ 
 
 #include "CamUsbIo.h" 
+#include "CameraInfo.h" 
 
 class AspenUsbIo : public CamUsbIo
 { 
@@ -40,11 +41,15 @@ class AspenUsbIo : public CamUsbIo
         void WriteStrDatabase( const std::vector<std::string> & info );
         std::vector<std::string> ReadStrDatabase();
 
+        void WriteNetDatabase( const CamInfo::NetDb & input );
+        CamInfo::NetDb ReadNetDatabase();
+
         std::vector<uint8_t> GetFlashBuffer( uint32_t StartAddr, uint32_t numBytes );
 
         private:
             void EraseEntireFlash();
             void EraseStrDb();
+            void EraseNetDb();
 
             void EnableFlashProgramMode();
             void DisableFlashProgramMode();

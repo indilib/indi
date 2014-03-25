@@ -82,6 +82,14 @@ void AspenIo::Program(const std::string & FilenameFpga,
 //      GET ID
 uint16_t AspenIo::GetId()
 {
+    const uint16_t rawId = GetIdFromReg();
+    return( rawId & CamModel::GEN2_CAMERA_ID_MASK );
+}
+
+//////////////////////////// 
+// GET   ID   FROM   STR   DB
+uint16_t AspenIo::GetIdFromStrDB()
+{
     CamInfo::StrDb db = ReadStrDatabase();
     
     if( 0 != db.Id.compare("Not Set") )
@@ -92,8 +100,7 @@ uint16_t AspenIo::GetId()
             return id;
     }
   
-    const uint16_t rawId = GetIdFromReg();
-    return( rawId & CamModel::GEN2_CAMERA_ID_MASK );
+    return 0;
 }
 
 //////////////////////////// 
@@ -163,3 +170,37 @@ CamInfo::StrDb AspenIo::ReadStrDatabase()
     return std::tr1::dynamic_pointer_cast<AspenUsbIo>(
         m_Interface)->GetFlashBuffer( StartAddr, numBytes );
  }
+ 
+//////////////////////////// 
+//      READ        NET         DATA      BASE
+CamInfo::NetDb AspenIo::ReadNetDatabase()
+{
+     CamInfo::NetDb result;
+     
+    if( CamModel::ETHERNET == m_type )
+    { // this can be done, but has not been implemented yet.
+         std::string errStr("cannot write net db via ethernet");
+        apgHelper::throwRuntimeException( m_fileName, errStr, 
+         __LINE__, Apg::ErrorType_InvalidOperation );
+    }
+
+    result = std::tr1::dynamic_pointer_cast<AspenUsbIo>(
+		m_Interface)->ReadNetDatabase();
+
+     return result;
+}
+
+//////////////////////////// 
+//      WRITE        NET         DATA      BASE
+void AspenIo::WriteNetDatabase( const CamInfo::NetDb & input )
+{
+    if( CamModel::ETHERNET == m_type )
+    { // this can be done, but has not been implemented yet.
+         std::string errStr("cannot write net db via ethernet");
+        apgHelper::throwRuntimeException( m_fileName, errStr, 
+         __LINE__, Apg::ErrorType_InvalidOperation );
+    }
+
+    std::tr1::dynamic_pointer_cast<AspenUsbIo>(
+        m_Interface)->WriteNetDatabase( input );
+}

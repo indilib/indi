@@ -87,6 +87,9 @@ AspenEthernetIo::AspenEthernetIo( const std::string url ) : m_url( url ),
     m_sessionKeyUrlStr.append( m_sessionKey );
     
     StartSession();
+
+	m_lastExposureTimeRegHigh = 0;
+	m_lastExposureTimeRegLow = 0;
 }
 
 //////////////////////////// 
@@ -165,7 +168,7 @@ uint16_t AspenEthernetIo::ReadReg( uint16_t reg ) const
    
 //////////////////////////// 
 // WRITE        REG 
-void AspenEthernetIo::WriteReg( uint16_t reg, uint16_t val ) const
+void AspenEthernetIo::WriteReg( uint16_t reg, uint16_t val ) 
 {
     const std::string fullUrl = m_url + "/camcmd.cgi?req=CC_Reg_Wr&wIndex=" +
         help::uShort2Str(reg) + "&wValue=1&param=" + 
@@ -181,6 +184,16 @@ void AspenEthernetIo::WriteReg( uint16_t reg, uint16_t val ) const
             __LINE__, Apg::ErrorType_Critical );
     }
    
+	
+	if (CameraRegs::TIMER_UPPER == reg)
+	{
+		m_lastExposureTimeRegHigh = val;
+	}
+	if (CameraRegs::TIMER_LOWER == reg)
+	{
+		m_lastExposureTimeRegLow = val;
+	}
+
 }
 
 //////////////////////////// 
@@ -193,7 +206,12 @@ void AspenEthernetIo::GetImageData(std::vector<uint16_t> & ImageData)
     std::string fullUrl = m_url + "/aspen.bin?keyval=" + m_sessionKey;
     
     std::vector<uint8_t> result;
+	// set container capacity so it doesn't waste time
+	// dynamically allocating space
+	result.reserve( NumBytesExpected );
+	m_libcurl->setTimeout( 60 + getLastExposureTime() ); // set extended timeout
     m_libcurl->HttpGet( fullUrl, result );
+	m_libcurl->setTimeout( -1 ); // restore default timeout
 
     if( NumBytesExpected !=  apgHelper::SizeT2Int32( result.size() ) )
     {
@@ -217,18 +235,33 @@ void AspenEthernetIo::SetupImgXfer(uint16_t Rows,
             uint16_t Cols, 
             uint16_t NumOfImages, bool IsBulkSeq)
 {
-
-    //TODO figure out if there is anything we need to do with the 
-    //IsContinous and IsBulkSeq parameters.
-    NO_OP_PARAMETER(IsBulkSeq);
-
-    const uint32_t numPixels = Rows * Cols * NumOfImages;
-
+	std::string fullUrl;
     std::stringstream ss;
-    ss << numPixels;
+    std::stringstream FrameCount;
 
-    const std::string fullUrl = m_url + "/camcmd.cgi?req=Start_Image&imgSize=" +
-        ss.str() + "&param=0" + m_sessionKeyUrlStr;
+
+	if ( IsBulkSeq || NumOfImages == 1)
+    {
+		// download all as 1 image
+		const uint32_t numPixels = Rows * Cols * NumOfImages;
+
+		ss << numPixels;
+
+		fullUrl = m_url + "/camcmd.cgi?req=Start_Image&imgSize=" +
+			ss.str() + "&param=0" + m_sessionKeyUrlStr;
+	}
+	else
+    {
+		// download as a set of individual images
+		const uint32_t numPixels = Rows * Cols;
+
+		ss << numPixels;
+		FrameCount << NumOfImages;
+
+		fullUrl = m_url + "/camcmd.cgi?req=Start_Image&imgSize=" +
+			ss.str() + "&frmCount=" + FrameCount.str() + 
+			"&param=0" + m_sessionKeyUrlStr;
+	}
       
     
     std::string result;
@@ -356,6 +389,14 @@ std::string AspenEthernetIo::GetNetworkSettings()
 //    info = std::tr1::regex_replace(info, rx, replacement);
 
     return info;
+}
+
+//////////////////////////// 
+//  GET    LAST   EXPOSURE  TIME
+unsigned int AspenEthernetIo::getLastExposureTime()
+{
+    uint32_t LastExpTime = ((uint32_t)m_lastExposureTimeRegHigh << 16) | (uint32_t)m_lastExposureTimeRegLow;
+    return LastExpTime * 0.00000133; 
 }
 
 //////////////////////////// 

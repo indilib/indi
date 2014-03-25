@@ -61,7 +61,7 @@ namespace
     const double APN_TEMP_HEATSINK_MAX_ASCENT         = 240;
                                                         
     const long APN_TEMP_SETPOINT_ZERO_POINT_ASCENT    = 2458;  // emperically determined zero celuius point
-    const long APN_TEMP_HEATSINK_ZERO_POINT_ASCENT    = 1351;
+    const long APN_TEMP_HEATSINK_ZERO_POINT_ASCENT    = 2458;
                                                         
     const double APN_TEMP_DEGREES_PER_BIT_ASCENT      = 0.025146;
                                                         

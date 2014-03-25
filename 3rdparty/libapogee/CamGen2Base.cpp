@@ -248,32 +248,46 @@ Apg::Status CamGen2Base::GetImagingStatus()
     {
         const bool ImgDone = IsImgDone( StatusObj );
 
-       //see if we are doing a sequence
-        if( GetImageCount() > 1 )
+        //see if we are in tdi mode
+        if( Apg::CameraMode_TDI != GetCameraMode() ) 
         {
-            if( m_CamMode->IsBulkDownloadOn() )
-            {               
+            //see if we are doing a sequence
+            if( GetImageCount() > 1 )
+            {
+                if( m_CamMode->IsBulkDownloadOn() )
+                {               
+                    if( ImgDone )
+                    {
+                         return LogAndReturnStatus( Apg::Status_ImageReady, StatusObj );
+                    }
+                }
+                else if( GetImgSequenceCount() > m_NumImgsDownloaded )
+                {
+                    return LogAndReturnStatus( Apg::Status_ImageReady, StatusObj );
+                }
+            }
+            else
+            {
+                //use this logic for a single image
                 if( ImgDone )
+                {
+                    return LogAndReturnStatus( Apg::Status_ImageReady, StatusObj );
+                }
+            }
+        }
+
+        //made up mode for TDI
+        if( Apg::CameraMode_TDI == GetCameraMode() ) 
+        {
+                if( IsBulkDownloadOn() && ImgDone )
                 {
                      return LogAndReturnStatus( Apg::Status_ImageReady, StatusObj );
                 }
-            }
-            else if( GetImgSequenceCount() > m_NumImgsDownloaded )
-            {
-                // TODO - determine if I need to worry about
-                //tdi mode
-                return LogAndReturnStatus( Apg::Status_ImageReady, StatusObj );
-            }
+                else
+                {
+                    return LogAndReturnStatus( Apg::Status_ImagingActive, StatusObj );
+                }
         }
-        else
-        {
-            //use this logic for a single image
-            if( ImgDone )
-            {
-                return LogAndReturnStatus( Apg::Status_ImageReady, StatusObj );
-            }
-        }
-       
     }
 
     //exposing OR active
@@ -311,10 +325,15 @@ void CamGen2Base::GetImage( std::vector<uint16_t> & out )
 
 
     //pre-condition make sure the image is ready
-    Apg::Status actualStatus = Apg::Status_Idle;
+    Apg::Status actualStatus = GetImagingStatus();
 
-    if( !CheckAndWaitForStatus( Apg::Status_ImageReady, actualStatus ) )
-    {
+	switch (actualStatus)
+	{
+	case Apg::Status_Exposing:
+	case Apg::Status_ImagingActive:
+	case Apg::Status_ImageReady:
+		break;
+	default:
         std::stringstream msg;
         msg << "Invalid imaging status, " << actualStatus;
         msg << ", for getting image data.";
@@ -334,7 +353,7 @@ void CamGen2Base::GetImage( std::vector<uint16_t> & out )
     const uint16_t z = GetImageZ();
     std::vector<uint16_t>  datafromCam( r*c*z );
 
-    const int32_t dataLen = GetRoiNumRows()*z;
+    const int32_t dataLen = r*z;
     const int32_t numCols = GetRoiNumCols();
     
     if( dataLen*numCols != apgHelper::SizeT2Int32( out.size() ) )
@@ -361,14 +380,25 @@ void CamGen2Base::GetImage( std::vector<uint16_t> & out )
         
     ++m_NumImgsDownloaded;
 
-    if( IsBulkDownloadOn() )
+    //determine if we are done imaging     
+    if( m_CamMode->GetMode() == Apg::CameraMode_TDI )
     {
-        m_ImageInProgress = false;
+        if( GetTdiRows() == m_NumImgsDownloaded ||
+            IsBulkDownloadOn() )
+        {
+            m_ImageInProgress = false;
+            Reset( true );
+        }
     }
-     else if( GetImageCount() == m_NumImgsDownloaded )
-     {
-         m_ImageInProgress = false;
-     }
+    else
+    {
+        if( IsBulkDownloadOn() ||
+             GetImageCount() == m_NumImgsDownloaded )
+        {
+            m_ImageInProgress = false;
+        }
+    
+    }
     
     // at a minimum removing the AD garbage pixels at the beginning of every row
     FixImgFromCamera( datafromCam, out, dataLen, numCols );
@@ -390,6 +420,12 @@ uint16_t CamGen2Base::ExposureZ()
 #endif
 
     //detemine number of images
+    if( Apg::CameraMode_TDI == m_CamMode->GetMode() )
+    {
+            return GetTdiRows();
+    }
+
+    //detemine number of images
     return GetImageCount();  
 }
 
@@ -401,6 +437,13 @@ uint16_t CamGen2Base::GetImageZ()
     apgHelper::DebugMsg( "CamGen2Base::GetImageZ" );
 #endif
     
+    if( Apg::CameraMode_TDI == m_CamMode->GetMode() &&
+        m_CamMode->IsBulkDownloadOn() )
+    {
+            return GetTdiRows();
+    }
+    
+
     return( m_CamMode->IsBulkDownloadOn() ? GetImageCount() : 1 );
 }
 
@@ -480,8 +523,10 @@ double CamGen2Base::GetCoolerDrive()
 //  GET    TEMP      HEATSINK
 double CamGen2Base::GetTempHeatsink()
 {
-    // no heatsink temp on all gen2 camera, ascent, altaf, aspen(altag)
-    double const temp = -255.0;
+    // there was no heatsink temp on all gen2 camera, ascent, altaf, aspen(altag)
+	// but newer revisions of the altaf have a heatsink temp, and future ascents might
+	// return the temperature as if there is a heatsink, just in case there is
+    double const temp = DefaultGetTempHeatsink();
 
  #ifdef DEBUGGING_CAMERA
     apgHelper::DebugMsg( "CamGen2Base::GetTempHeatsink -> temp = %f", temp );

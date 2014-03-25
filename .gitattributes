@@ -397,6 +397,8 @@
 3rdparty/libapogee/AscentData.h -text
 3rdparty/libapogee/Aspen.cpp -text
 3rdparty/libapogee/Aspen.h -text
+3rdparty/libapogee/AspenData.cpp -text
+3rdparty/libapogee/AspenData.h -text
 3rdparty/libapogee/AspenEthernetIo.cpp -text
 3rdparty/libapogee/AspenEthernetIo.h -text
 3rdparty/libapogee/AspenIo.cpp -text

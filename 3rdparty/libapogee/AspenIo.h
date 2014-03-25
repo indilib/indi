@@ -32,10 +32,15 @@ class DLL_EXPORT AspenIo : public CameraIo
 
         uint16_t GetId();
 
+        uint16_t GetIdFromStrDB();
+
         std::string GetMacAddress();
 
         void WriteStrDatabase( const CamInfo::StrDb & info );
         CamInfo::StrDb ReadStrDatabase();
+
+        void WriteNetDatabase( const CamInfo::NetDb & input );
+        CamInfo::NetDb ReadNetDatabase();
 
         std::vector<uint8_t> GetFlashBuffer( uint32_t StartAddr, uint32_t numBytes );
 

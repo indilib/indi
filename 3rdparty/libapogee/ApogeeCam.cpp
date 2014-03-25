@@ -1207,14 +1207,15 @@ void ApogeeCam::IsThereAStatusError( const uint16_t statusReg )
 //  IS     IMG     DONE
 bool ApogeeCam::IsImgDone( const CameraStatusRegs & statusObj)
 {
-    if( m_CamIo->GetInterfaceType() == CamModel::ETHERNET )
+    if( m_CamIo->GetInterfaceType() == CamModel::ETHERNET || false == IsPipelineDownloadOn())
     {
+
         return( statusObj.GetStatus() & CameraRegs::STATUS_IMAGE_DONE_BIT ? 
             true : false);
     }
     else
     {
-        //have to use data available flag in USB mode along with done bit
+        //pipeline download by reporting image done as soon as data is available
         const bool doneBitSet = statusObj.GetStatus() & CameraRegs::STATUS_IMAGE_DONE_BIT ? 
             true : false;
         const bool dataFlag = statusObj.GetDataAvailFlag();
@@ -1328,6 +1329,29 @@ bool ApogeeCam::IsBulkDownloadOn()
 #endif
 
      return m_CamMode->IsBulkDownloadOn();
+}
+
+
+//////////////////////////// 
+//  SET         PIPELINE      DOWNLOAD
+void ApogeeCam::SetPipelineDownload( const bool TurnOn )
+{
+#ifdef DEBUGGING_CAMERA
+    apgHelper::DebugMsg( "ApogeeCam::SetPipelineDownload -> TurnOn = %d", TurnOn );
+#endif
+
+    m_CamMode->SetPipelineDownload( TurnOn );
+}
+
+//////////////////////////// 
+//      IS         PIPELINE          DOWNLOAD   ON
+bool ApogeeCam::IsPipelineDownloadOn()
+{
+#ifdef DEBUGGING_CAMERA
+    apgHelper::DebugMsg( "ApogeeCam::IsPipelineDownloadOn" );
+#endif
+
+     return m_CamMode->IsPipelineDownloadOn();
 }
 
 //////////////////////////// 

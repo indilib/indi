@@ -34,6 +34,8 @@ namespace
     const uint32_t WEBSERVER_BIN_FLASH_ADDR = 0x100000;
     const uint32_t WEBPAGE_BIN_FLASH_ADDR = 0x180000;
     const uint32_t NETCONF_BIN_FLASH_ADDR = 0x1FC000;
+    const uint32_t NETCONF_BIN_FLASH_ADDR_FACTORY = 0x1FD00C;
+    const uint32_t NETCONF_BIN_FLASH_ADDR_USER = 0x1FD000;
     const uint32_t STR_DB_FLASH_ADDR = 0x1F8000;
     
     const uint8_t FX2_PROM_BANK = 0;
@@ -2528,7 +2530,7 @@ namespace
 //////////////////////////// 
 // CTOR 
 AspenUsbIo::AspenUsbIo( const std::string & DeviceEnum ) :
-                                        CamUsbIo( DeviceEnum, MAX_USB_BUFFER_SIZE, true ),
+                                        CamUsbIo( DeviceEnum, MAX_USB_BUFFER_SIZE, false ),
                                         m_fileName( __FILE__)
 {
 }
@@ -2577,6 +2579,9 @@ void AspenUsbIo::DisableFlashProgramMode()
 {
     m_Usb->UsbReqOutWithExtendedTimeout(VND_APOGEE_PROGMODE,
         0, 0, 0, 0);
+
+	// wait to return until the fpga configuration is loaded
+	apgHelper::ApogeeSleep( 5000 ); 
 }
 
 //////////////////////////// 
@@ -2862,6 +2867,26 @@ void AspenUsbIo::EraseStrDb()
 }
 
 //////////////////////////// 
+//      ERASE     NET      DB
+void AspenUsbIo::EraseNetDb()
+{
+    EnableFlashProgramMode();
+
+    //erase the flash section we are going to write to
+    const uint16_t ADDR = 0x01FD;
+    const uint16_t NUM_4K_BLOCKS = 1;
+    
+    m_Usb->UsbRequestOut(VND_APOGEE_DFERA,
+        ADDR, 
+        NUM_4K_BLOCKS, 
+        0, 
+        0);
+
+    DisableFlashProgramMode();
+
+}
+
+//////////////////////////// 
 //      READ       STR     DATABASE
 std::vector<std::string> AspenUsbIo::ReadStrDatabase()
 {
@@ -2884,4 +2909,35 @@ std::vector<std::string> AspenUsbIo::ReadStrDatabase()
 
     return buffer;
  }
+
+//////////////////////////// 
+//      READ       NET     DATABASE
+CamInfo::NetDb AspenUsbIo::ReadNetDatabase()
+{
+	CamInfo::NetDb out;
+
+	std::vector<uint8_t> buffer( sizeof(out) );
+
+	ReadFlash( NETCONF_BIN_FLASH_ADDR_USER, buffer );
+	out = CamInfo::MkNetDbFromU8Vect( buffer );
+	if ( out.Magic != CamInfo::NET_MAGIC_VALID ) 
+	{
+		ReadFlash( NETCONF_BIN_FLASH_ADDR_FACTORY, buffer );
+		out = CamInfo::MkNetDbFromU8Vect( buffer );
+	}
+
+	return out;
+}
+
+//////////////////////////// 
+//      WRITE       NET     DATABASE
+void AspenUsbIo::WriteNetDatabase( const CamInfo::NetDb & input )
+{
+    std::vector<uint8_t> buffer =  CamInfo::MkU8VectFromNetDb( input );
+    
+    EraseNetDb();
+
+    // write the Net DB to flash
+    WriteFlash( NETCONF_BIN_FLASH_ADDR_USER, buffer );
+}
 

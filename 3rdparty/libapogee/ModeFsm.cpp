@@ -30,6 +30,7 @@ ModeFsm::ModeFsm( std::tr1::shared_ptr<CameraIo> & io,
                  m_CamData(camData),
                  m_FirmwareVersion(rev),
                  m_IsBulkDownloadOn(false),
+                 m_IsPipelineDownloadOn(true),
                   m_TdiRows( 1 )
 {
 }
@@ -151,6 +152,8 @@ void  ModeFsm::EnterNewMode( Apg::CameraMode newMode )
 // SET       BULK         DOWNLOAD
 void ModeFsm::SetBulkDownload( bool TurnOn )
 {
+	/* Turn this check off for Aspen
+
     //checking pre-conditions
     if( false == TurnOn && CamModel::ETHERNET == m_CamIo->GetInterfaceType() )
     {
@@ -160,8 +163,26 @@ void ModeFsm::SetBulkDownload( bool TurnOn )
             __LINE__, Apg::ErrorType_InvalidOperation);
 
     }
-    
+    */
     m_IsBulkDownloadOn = TurnOn;
+}
+
+
+
+//////////////////////////// 
+// SET       PIPELINE         DOWNLOAD
+void ModeFsm::SetPipelineDownload( bool TurnOn )
+{
+    //checking pre-conditions
+    if( true == TurnOn && CamModel::ETHERNET == m_CamIo->GetInterfaceType() )
+    {
+        // This property does not apply to ethernet systems, 
+		// because there is no way to tell if data is in the fifo.
+        return;
+
+    }
+    
+    m_IsPipelineDownloadOn = TurnOn;
 }
 
 

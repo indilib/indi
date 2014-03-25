@@ -65,6 +65,20 @@ namespace CamInfo
     CamInfo::StrDb DLL_EXPORT MkStrDbFromStrVect( const std::vector< std::string > & strVect );
     CamInfo::StrDb DLL_EXPORT GetNoOpDb();
 
+    const uint32_t NET_MAGIC_VALID = 0x63626160;	
+	struct DLL_EXPORT NetDb {
+		uint32_t Magic;          // 0x63626160 when struct is valid
+		uint8_t  IP[4];          // IP address
+		uint8_t  Gateway[4];     // Gateway
+		uint8_t  Netmask[4];     // mask
+		uint8_t  Port[2];        // Webserver port
+		uint8_t  Flags[4];       // flag[0].0 DHCP enable
+		uint8_t  MAC[6];         // MAC
+		uint32_t Timeout;        // session timeout (minutes)
+	};
+    std::vector< uint8_t > DLL_EXPORT MkU8VectFromNetDb( const CamInfo::NetDb & DbStruct );
+    CamInfo::NetDb DLL_EXPORT MkNetDbFromU8Vect( const std::vector< uint8_t > & u8Vect );
+
 }
 
 /*! 

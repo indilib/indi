@@ -94,6 +94,7 @@ void AltaF::OpenConnection( const std::string & ioType,
     m_CcdAcqSettings = std::tr1::shared_ptr<CcdAcqParams>( 
         new CamGen2CcdAcqParams(m_CamCfgData,m_CamIo,m_CameraConsts) );
 
+    m_IsConnected = true;
     LogConnectAndDisconnect( true );
 } 
 
@@ -291,7 +292,14 @@ void AltaF::ExposureAndGetImgRC(uint16_t & r, uint16_t & c)
 #endif
 
     //detemine the exposure height
-    r = m_CcdAcqSettings->GetRoiNumRows();
+    if( Apg::CameraMode_TDI == m_CamMode->GetMode() )
+    {
+        r =  1;
+    }
+    else
+    {
+        r = m_CcdAcqSettings->GetRoiNumRows();
+    }
 
     //detemine the exposure width
     if( 2 == m_CamCfgData->m_MetaData.NumAdOutputs )
