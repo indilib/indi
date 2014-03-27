@@ -66,7 +66,9 @@ void ISSnoopDevice (XMLEle *root)
     INDI_UNUSED(root);
 }
 
-// static consts initialised from static const doubles cannot be inside class definitions - weird but true.
+// One definition rule (ODR) constants
+const long ScopeSim::MICROSTEPS_PER_REVOLUTION = 1000000;
+const double ScopeSim::MICROSTEPS_PER_DEGREE = MICROSTEPS_PER_REVOLUTION / 360.0;
 const double ScopeSim::DEFAULT_SLEW_RATE = MICROSTEPS_PER_DEGREE * 2.0;
 
 // Private methods

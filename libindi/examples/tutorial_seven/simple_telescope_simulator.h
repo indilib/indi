@@ -39,8 +39,8 @@ private:
     bool Sync(double ra, double dec);
     virtual void TimerHit();
 
-    static const long MICROSTEPS_PER_REVOLUTION = 1000000;
-    static const double MICROSTEPS_PER_DEGREE = MICROSTEPS_PER_REVOLUTION / 360.0;
+    static const long MICROSTEPS_PER_REVOLUTION;
+    static const double MICROSTEPS_PER_DEGREE;
     static const double DEFAULT_SLEW_RATE;
 
     enum AxisStatus { STOPPED, SLEWING, SLEWING_TO };

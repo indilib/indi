@@ -50,8 +50,8 @@ class SkywatcherAPI
 public:
     enum AXISID { AXIS1 = 0, AXIS2 = 1 };
 
-    static const double SIDEREALRATE = (2 * M_PI / 86164.09065); // Radians per second
-    static const double MAX_SPEED = 500; // Radians per second
+    static const double SIDEREALRATE; // Radians per second
+    static const double MAX_SPEED; // Radians per second
     static const double LOW_SPEED_MARGIN; // Radians per second
 
     SkywatcherAPI();

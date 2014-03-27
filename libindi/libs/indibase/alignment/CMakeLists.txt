@@ -47,6 +47,7 @@ target_link_libraries(AlignmentDriver dl)
 if (GSL_FOUND)
 	target_link_libraries(AlignmentDriver ${GSL_LIBRARIES})
 endif (GSL_FOUND)
+set_target_properties(AlignmentDriver PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indiAlignmentDriver)
 install(TARGETS AlignmentDriver LIBRARY DESTINATION ${LIB_DESTINATION})
 
 ##################################################
@@ -60,6 +61,7 @@ set (AlignmentClient_SRCS
     )
 
 add_library(AlignmentClient ${AlignmentClient_SRCS})
+set_target_properties(AlignmentClient PROPERTIES OUTPUT_NAME indiAlignmentClient)
 install(TARGETS AlignmentClient ARCHIVE DESTINATION ${LIB_DESTINATION})
 
 ##################################################

@@ -51,7 +51,10 @@ void AXISSTATUS::SetSlewingTo(bool forward, bool highspeed)
     HighSpeed = highspeed;
 }
 
+// One definition rule (ODR) constants
+const double SkywatcherAPI::SIDEREALRATE = (2 * M_PI / 86164.09065); // Radians per second
 const double SkywatcherAPI::LOW_SPEED_MARGIN = 128.0 * SIDEREALRATE;
+const double SkywatcherAPI::MAX_SPEED = 500.0; // Radians per second
 
 
 // Constructor
