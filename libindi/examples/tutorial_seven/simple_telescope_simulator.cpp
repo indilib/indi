@@ -13,10 +13,10 @@
 
 using namespace INDI::AlignmentSubsystem;
 
+#define POLLMS 1000 // Default timer tick
+
 // We declare an auto pointer to ScopeSim.
 std::auto_ptr<ScopeSim> telescope_sim(0);
-
-void ISPoll(void *p);
 
 void ISInit()
 {
@@ -27,8 +27,6 @@ void ISInit()
 
     isInit = 1;
     if(telescope_sim.get() == 0) telescope_sim.reset(new ScopeSim());
-    //IEAddTimer(POLLMS, ISPoll, NULL);
-
 }
 
 void ISGetProperties(const char *dev)
@@ -114,6 +112,7 @@ bool ScopeSim::canSync()
 
 bool ScopeSim::Connect()
 {
+    SetTimer(POLLMS);
     return true;
 }
 
@@ -138,15 +137,19 @@ bool ScopeSim::Goto(double ra,double dec)
         CurrentTrackingTarget.dec = dec;
     }
 
+    // Call the alignment subsystem to translate the celestial reference frame coordinate
+    // into a telescope reference frame coordinate
     TelescopeDirectionVector TDV;
     ln_hrz_posn AltAz;
     if (TransformCelestialToTelescope(ra, dec, 0.0, TDV))
     {
+        // The alignment subsystem has successfully transformed my coordinate
         AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAz);
     }
     else
     {
-        // Try a conversion with the stored observatory position if any
+        // The alignment subsystem cannot transform the coordinate.
+        // Try some simple rotations using the stored observatory position if any
         bool HavePosition = false;
         ln_lnlat_posn Position;
         if ((NULL != IUFindNumber(&LocationNP, "LAT")) && ( 0 != IUFindNumber(&LocationNP, "LAT")->value)
@@ -294,67 +297,88 @@ bool ScopeSim::ISNewText (const char *dev, const char *name, char *texts[], char
 
 bool ScopeSim::MoveNS(TelescopeMotionNS dir)
 {
-    static int last_motion=-1;
-
     switch (dir)
     {
-      case MOTION_NORTH:
-        if (last_motion != MOTION_NORTH)
-            last_motion = MOTION_NORTH;
-        else
-        {
-            IUResetSwitch(&MovementNSSP);
-            MovementNSSP.s = IPS_IDLE;
-            IDSetSwitch(&MovementNSSP, NULL);
-        }
-        break;
+        case MOTION_NORTH:
+            if (PreviousNSMotion != PREVIOUS_NS_MOTION_NORTH)
+            {
+                AxisSlewRateDEC = DEFAULT_SLEW_RATE;
+                AxisDirectionDEC = FORWARD;
+                AxisStatusDEC = SLEWING;
+                PreviousNSMotion = PREVIOUS_NS_MOTION_NORTH;
+            }
+            else
+            {
+                AxisStatusDEC = STOPPED;
+                PreviousNSMotion = PREVIOUS_NS_MOTION_UNKNOWN;
+                IUResetSwitch(&MovementNSSP);
+                MovementNSSP.s = IPS_IDLE;
+                IDSetSwitch(&MovementNSSP, NULL);
+            }
+            break;
 
-    case MOTION_SOUTH:
-      if (last_motion != MOTION_SOUTH)
-          last_motion = MOTION_SOUTH;
-      else
-      {
-          IUResetSwitch(&MovementNSSP);
-          MovementNSSP.s = IPS_IDLE;
-          IDSetSwitch(&MovementNSSP, NULL);
-      }
-      break;
+        case MOTION_SOUTH:
+            if (PreviousNSMotion != PREVIOUS_NS_MOTION_SOUTH)
+            {
+                AxisSlewRateDEC = DEFAULT_SLEW_RATE;
+                AxisDirectionDEC = REVERSE;
+                AxisStatusDEC = SLEWING;
+                PreviousNSMotion = PREVIOUS_NS_MOTION_SOUTH;
+            }
+            else
+            {
+                AxisStatusDEC = STOPPED;
+                PreviousNSMotion = PREVIOUS_NS_MOTION_UNKNOWN;
+                IUResetSwitch(&MovementNSSP);
+                MovementNSSP.s = IPS_IDLE;
+                IDSetSwitch(&MovementNSSP, NULL);
+            }
+            break;
     }
-
-    return true;
+    return false;
 }
 
 bool ScopeSim::MoveWE(TelescopeMotionWE dir)
 {
-    static int last_motion=-1;
-
     switch (dir)
     {
-      case MOTION_WEST:
-        if (last_motion != MOTION_WEST)
-            last_motion = MOTION_WEST;
-        else
-        {
-            IUResetSwitch(&MovementWESP);
-            MovementWESP.s = IPS_IDLE;
-            IDSetSwitch(&MovementWESP, NULL);
-        }
-        break;
+        case MOTION_WEST:
+            if (PreviousWEMotion != PREVIOUS_WE_MOTION_WEST)
+            {
+                AxisSlewRateRA = DEFAULT_SLEW_RATE;
+                AxisDirectionRA = FORWARD;
+                AxisStatusRA = SLEWING;
+                PreviousWEMotion = PREVIOUS_WE_MOTION_WEST;
+            }
+            else
+            {
+                AxisStatusRA = STOPPED;
+                PreviousWEMotion = PREVIOUS_WE_MOTION_UNKNOWN;
+                IUResetSwitch(&MovementWESP);
+                MovementWESP.s = IPS_IDLE;
+                IDSetSwitch(&MovementWESP, NULL);
+            }
+            break;
 
-    case MOTION_EAST:
-      if (last_motion != MOTION_EAST)
-          last_motion = MOTION_EAST;
-      else
-      {
-          IUResetSwitch(&MovementWESP);
-          MovementWESP.s = IPS_IDLE;
-          IDSetSwitch(&MovementWESP, NULL);
-      }
-      break;
+        case MOTION_EAST:
+            if (PreviousWEMotion != PREVIOUS_WE_MOTION_EAST)
+            {
+                AxisSlewRateRA = DEFAULT_SLEW_RATE;
+                AxisDirectionRA = REVERSE;
+                AxisStatusRA = SLEWING;
+                PreviousWEMotion = PREVIOUS_WE_MOTION_EAST;
+            }
+            else
+            {
+                AxisStatusRA = STOPPED;
+                PreviousWEMotion = PREVIOUS_WE_MOTION_UNKNOWN;
+                IUResetSwitch(&MovementWESP);
+                MovementWESP.s = IPS_IDLE;
+                IDSetSwitch(&MovementWESP, NULL);
+            }
+            break;
     }
-
-    return true;
-
+    return false;
 }
 
 bool ScopeSim::ReadScopeStatus()
@@ -400,11 +424,7 @@ bool ScopeSim::ReadScopeStatus()
                     AltitudeAzimuthFromTelescopeDirectionVector(RotatedTDV, AltAz);
                     break;
             }
-#ifdef USE_INITIAL_JULIAN_DATE
-            ln_get_equ_from_hrz(&AltAz, &Position, InitialJulianDate, &EquatorialCoordinates);
-#else
             ln_get_equ_from_hrz(&AltAz, &Position, ln_get_julian_from_sys(), &EquatorialCoordinates);
-#endif
         }
         else
             // The best I can do is just do a direct conversion to RA/DEC
@@ -656,11 +676,7 @@ void ScopeSim::TimerHit()
                 EquatorialCoordinates.dec = CurrentTrackingTarget.dec;
                 if (HavePosition)
                     ln_get_hrz_from_equ(&EquatorialCoordinates, &Position,
-#ifdef USE_INITIAL_JULIAN_DATE
-                                            InitialJulianDate, &AltAz);
-#else
                                             ln_get_julian_from_sys() + JulianOffset, &AltAz);
-#endif
                 else
                 {
                     // No sense in tracking in this case

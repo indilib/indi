@@ -14,6 +14,8 @@ public:
                 AxisSlewRateRA(DEFAULT_SLEW_RATE), CurrentEncoderMicrostepsRA(0),
                 AxisStatusDEC(STOPPED), AxisDirectionDEC(FORWARD),
                 AxisSlewRateDEC(DEFAULT_SLEW_RATE), CurrentEncoderMicrostepsDEC(90.0 * MICROSTEPS_PER_DEGREE),
+                PreviousNSMotion(PREVIOUS_NS_MOTION_UNKNOWN),
+                PreviousWEMotion(PREVIOUS_WE_MOTION_UNKNOWN),
                 DBG_SCOPE(INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE")) {}
 
 
@@ -60,6 +62,15 @@ private:
     long GotoTargetMicrostepsRA;
     long OldTrackingTargetMicrostepsRA;
 
+    // Previous motion direction
+    typedef enum { PREVIOUS_NS_MOTION_NORTH = MOTION_NORTH,
+                    PREVIOUS_NS_MOTION_SOUTH = MOTION_SOUTH,
+                    PREVIOUS_NS_MOTION_UNKNOWN = -1} PreviousNSMotion_t;
+    PreviousNSMotion_t PreviousNSMotion;
+    typedef enum { PREVIOUS_WE_MOTION_WEST = MOTION_WEST,
+                    PREVIOUS_WE_MOTION_EAST = MOTION_EAST,
+                    PREVIOUS_WE_MOTION_UNKNOWN = -1} PreviousWEMotion_t;
+    PreviousWEMotion_t PreviousWEMotion;
 
     // Tracking
     ln_equ_posn CurrentTrackingTarget;
