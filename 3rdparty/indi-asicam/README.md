@@ -36,6 +36,15 @@ If you want to have the ability to auto-start the driver there is an
 XML fragment provided, but keep in mind the problem with multiple
 cameras.
 
+AVAILABLE CONTROLS
+
+You can set the exposure time and the gain (in the range between 1 and
+100) You can also change the USB Bandwidth control. It defaults to -1
+which mean auto. If you have problems with overload USB bus try a
+value between 40 and 80. For example on ARM systems it's advised to
+set a value of 40 if you find problems with many broken frames.
+
+
 TESTING
 
 The driver was tested with OpenPHD and KStars/EKOS as a remote INDI

@@ -78,6 +78,9 @@ private:
   INumber GainN[1];
   INumberVectorProperty GainNP;
 
+  INumber USBBWN[1];
+  INumberVectorProperty USBBWNP;
+
   ISwitch ModeS[4];
   ISwitchVectorProperty	ModeSP;
 

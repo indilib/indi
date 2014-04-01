@@ -197,8 +197,13 @@ bool AsicamCCD::initProperties()
   IUFillSwitch(&ResetS[0], "RESET", "Reset", ISS_OFF);
   IUFillSwitchVector(&ResetSP, ResetS, 1, getDeviceName(), "FRAME_RESET", "Frame Values", IMAGE_SETTINGS_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
 
+  // gain
   IUFillNumber(&GainN[0], "GAIN", "Gain", "%0.f", 0., 0., 1., 0.);
   IUFillNumberVector(&GainNP, GainN, 1, getDeviceName(), "CCD_GAIN", "Gain", IMAGE_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
+
+  // USB bandwidth 
+  IUFillNumber(&USBBWN[0], "USB BANDWIDTH", "USB Bandwidth", "%f", -1, 100, 1, -1);
+  IUFillNumberVector(&USBBWNP, USBBWN, 1, getDeviceName(), "CCD_USBBW", "USB Bandwidth", IMAGE_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
 
   // image mode
   IUFillSwitch(&ModeS[0], "Y8", "Y8", ISS_ON);
@@ -269,6 +274,17 @@ bool AsicamCCD::updateProperties()
       defineNumber(&GainNP);
     }
 
+    // USB Bandwidth
+    if (isAvailable(CONTROL_BANDWIDTHOVERLOAD))
+    {
+      USBBWN[0].min = -1;
+      USBBWN[0].max = getMax(CONTROL_BANDWIDTHOVERLOAD);
+      USBBWN[0].value = getValue(CONTROL_BANDWIDTHOVERLOAD, &is_auto);
+      if (is_auto)
+	  USBBWN[0].value = -1;
+      defineNumber(&USBBWNP);
+    }
+
     // Let's get parameters now from CCD
     setupParams();
 
@@ -278,7 +294,10 @@ bool AsicamCCD::updateProperties()
     deleteProperty(ResetSP.name);
 
     if (isAvailable(CONTROL_GAIN))
-        deleteProperty(GainNP.name);
+        deleteProperty(USBBWNP.name);
+
+    if (isAvailable(CONTROL_BANDWIDTHOVERLOAD))
+        deleteProperty(USBBWNP.name);
 
     deleteProperty(ModeSP.name);
     rmTimer(timerID);
@@ -412,6 +431,7 @@ bool AsicamCCD::Connect()
       int val;
       val = getValue(CONTROL_GAIN, &is_auto);
       ::setValue(CONTROL_GAIN, val, false);
+      ::setValue(CONTROL_BANDWIDTHOVERLOAD, 50, true);
       val = getValue(CONTROL_EXPOSURE, &is_auto);
       ::setValue(CONTROL_EXPOSURE, val, false);
       setImageFormat(getMaxWidth(), getMaxHeight(),  1, isColorCam() ? IMG_Y8: IMG_RAW8);
@@ -898,7 +918,23 @@ bool AsicamCCD::ISNewNumber(const char *dev, const char *name, double values[], 
       IDSetNumber(&GainNP, NULL);
       return true;
     }
+    if (!strcmp(name, "CCD_USBBW"))
+    {
+      USBBWNP.s = IPS_BUSY;
+      IDSetNumber(&USBBWNP, NULL);
+      IUUpdateNumber(&USBBWNP, values, names, n);
+      need_flush = true;
+      if (USBBWN[0].value < 0)
+	  ::setValue(CONTROL_BANDWIDTHOVERLOAD, USBBWN[0].value, true);
+      else
+	  ::setValue(CONTROL_BANDWIDTHOVERLOAD, USBBWN[0].value, false);
 
+      DEBUGF(INDI::Logger::DBG_DEBUG, "USBBW %d", USBBWN[0].value);
+
+      USBBWNP.s = IPS_OK;
+      IDSetNumber(&USBBWNP, NULL);
+      return true;
+    }
   }
   return INDI::CCD::ISNewNumber(dev, name, values, names, n);
 }
