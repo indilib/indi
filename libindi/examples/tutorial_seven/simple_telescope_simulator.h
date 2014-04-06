@@ -13,10 +13,10 @@ public:
     ScopeSim() : AxisStatusRA(STOPPED), AxisDirectionRA(FORWARD),
                 AxisSlewRateRA(DEFAULT_SLEW_RATE), CurrentEncoderMicrostepsRA(0),
                 AxisStatusDEC(STOPPED), AxisDirectionDEC(FORWARD),
-                AxisSlewRateDEC(DEFAULT_SLEW_RATE), CurrentEncoderMicrostepsDEC(90.0 * MICROSTEPS_PER_DEGREE),
+                AxisSlewRateDEC(DEFAULT_SLEW_RATE), CurrentEncoderMicrostepsDEC(0),
                 PreviousNSMotion(PREVIOUS_NS_MOTION_UNKNOWN),
                 PreviousWEMotion(PREVIOUS_WE_MOTION_UNKNOWN),
-                DBG_SCOPE(INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE")) {}
+                DBG_SIMULATOR(INDI::Logger::getInstance().addDebugLevel("Simulator Verbose", "SIMULATOR")) {}
 
 
 private:
@@ -44,6 +44,8 @@ private:
     static const long MICROSTEPS_PER_REVOLUTION;
     static const double MICROSTEPS_PER_DEGREE;
     static const double DEFAULT_SLEW_RATE;
+    static const long MAX_DEC;
+    static const long MIN_DEC;
 
     enum AxisStatus { STOPPED, SLEWING, SLEWING_TO };
     enum AxisDirection { FORWARD, REVERSE };
@@ -76,7 +78,7 @@ private:
     ln_equ_posn CurrentTrackingTarget;
     long OldTrackingTarget[2];
 
-    unsigned int DBG_SCOPE;
+    unsigned int DBG_SIMULATOR;
 };
 
 #endif // SCOPESIM_H

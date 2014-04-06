@@ -68,6 +68,8 @@ void ISSnoopDevice (XMLEle *root)
 const long ScopeSim::MICROSTEPS_PER_REVOLUTION = 1000000;
 const double ScopeSim::MICROSTEPS_PER_DEGREE = MICROSTEPS_PER_REVOLUTION / 360.0;
 const double ScopeSim::DEFAULT_SLEW_RATE = MICROSTEPS_PER_DEGREE * 2.0;
+const long ScopeSim::MAX_DEC = 90.0 * MICROSTEPS_PER_DEGREE;
+const long ScopeSim::MIN_DEC = -90.0 * MICROSTEPS_PER_DEGREE;
 
 // Private methods
 
@@ -489,7 +491,7 @@ void ScopeSim::TimerHit()
     // RA axis
     long SlewSteps = dt * AxisSlewRateRA;
 
-    DEBUGF(DBG_SCOPE, "TimerHit - RA Current Encoder %ld SlewSteps %ld Direction %d Target %ld Status %d",
+    DEBUGF(DBG_SIMULATOR, "TimerHit - RA Current Encoder %ld SlewSteps %ld Direction %d Target %ld Status %d",
                         CurrentEncoderMicrostepsRA, SlewSteps, AxisDirectionRA, GotoTargetMicrostepsRA, AxisStatusRA);
 
     switch(AxisStatusRA)
@@ -552,12 +554,12 @@ void ScopeSim::TimerHit()
         }
     }
 
-    DEBUGF(DBG_SCOPE, "TimerHit - RA New Encoder %d New Status %d",  CurrentEncoderMicrostepsRA, AxisStatusRA);
+    DEBUGF(DBG_SIMULATOR, "TimerHit - RA New Encoder %d New Status %d",  CurrentEncoderMicrostepsRA, AxisStatusRA);
 
     // DEC axis
     SlewSteps = dt * AxisSlewRateDEC;
 
-    DEBUGF(DBG_SCOPE, "TimerHit - DEC Current Encoder %ld SlewSteps %d Direction %ld Target %ld Status %d",
+    DEBUGF(DBG_SIMULATOR, "TimerHit - DEC Current Encoder %ld SlewSteps %d Direction %ld Target %ld Status %d",
                         CurrentEncoderMicrostepsDEC, SlewSteps, AxisDirectionDEC, GotoTargetMicrostepsDEC, AxisStatusDEC);
 
     switch(AxisStatusDEC)
@@ -574,10 +576,18 @@ void ScopeSim::TimerHit()
                 CurrentEncoderMicrostepsDEC += SlewSteps;
             else
                 CurrentEncoderMicrostepsDEC -= SlewSteps;
-            if (CurrentEncoderMicrostepsDEC < 0)
-                CurrentEncoderMicrostepsDEC += MICROSTEPS_PER_REVOLUTION;
-            else if (CurrentEncoderMicrostepsDEC >= MICROSTEPS_PER_REVOLUTION)
-                CurrentEncoderMicrostepsDEC -= MICROSTEPS_PER_REVOLUTION;
+            if (CurrentEncoderMicrostepsDEC > MAX_DEC)
+            {
+                CurrentEncoderMicrostepsDEC = MAX_DEC;
+                AxisStatusDEC = STOPPED; // Hit the buffers
+                DEBUG(DBG_SIMULATOR, "TimerHit - DEC axis hit the buffers at MAX_DEC");
+            }
+            else if(CurrentEncoderMicrostepsDEC < MIN_DEC)
+            {
+                CurrentEncoderMicrostepsDEC = MIN_DEC;
+                AxisStatusDEC = STOPPED; // Hit the buffers
+                DEBUG(DBG_SIMULATOR, "TimerHit - DEC axis hit the buffers at MIN_DEC");
+            }
             break;
         }
 
@@ -620,7 +630,7 @@ void ScopeSim::TimerHit()
         }
     }
 
-    DEBUGF(DBG_SCOPE, "TimerHit - DEC New Encoder %d New Status %d",  CurrentEncoderMicrostepsDEC, AxisStatusDEC);
+    DEBUGF(DBG_SIMULATOR, "TimerHit - DEC New Encoder %d New Status %d",  CurrentEncoderMicrostepsDEC, AxisStatusDEC);
 
     INDI::Telescope::TimerHit(); // This will call ReadScopeStatus
 
