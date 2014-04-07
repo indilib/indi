@@ -166,41 +166,18 @@ AlignmentSubsystemForDrivers::ProcessSwitchProperties, AlignmentSubsystemForDriv
 
 The next step is to add the handling of sync points into your drivers Sync function.
 
-TBD - add sample code. I will do this  for the scope simulator when I can work out what it is doing with snooped properties!
-
-    bool SkywatcherAPIMount::Sync(double ra, double dec)
+    bool ScopeSim::Sync(double ra, double dec)
     {
-        DEBUG(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "SkywatcherAPIMount::Sync");
-
-        // Compute a telescope direction vector from the current encoders
-        if (!GetEncoder(AXIS1))
-            return false;
-        if (!GetEncoder(AXIS2))
-            return false;
-
-        // Might as well do this
-        UpdateDetailedMountInformation(true);
-
         struct ln_hrz_posn AltAz;
-        AltAz.alt = MicrostepsToDegrees(AXIS2, CurrentEncoders[AXIS2] - ZeroPositionEncoders[AXIS2]);
-        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Axis2 encoder %ld initial %ld alt(degrees) %lf", CurrentEncoders[AXIS2], ZeroPositionEncoders[AXIS2], AltAz.alt);
-        AltAz.az = MicrostepsToDegrees(AXIS1, CurrentEncoders[AXIS1] - ZeroPositionEncoders[AXIS1]);
-        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Axis1 encoder %ld initial %ld az(degrees) %lf", CurrentEncoders[AXIS1], ZeroPositionEncoders[AXIS1], AltAz.az);
+        AltAz.alt = double(CurrentEncoderMicrostepsDEC) / MICROSTEPS_PER_DEGREE;
+        AltAz.az = double(CurrentEncoderMicrostepsRA) / MICROSTEPS_PER_DEGREE;
 
         AlignmentDatabaseEntry NewEntry;
-    #ifdef USE_INITIAL_JULIAN_DATE
-        NewEntry.ObservationJulianDate = InitialJulianDate;
-    #else
         NewEntry.ObservationJulianDate = ln_get_julian_from_sys();
-    #endif
         NewEntry.RightAscension = ra;
         NewEntry.Declination = dec;
         NewEntry.TelescopeDirection = TelescopeDirectionVectorFromAltitudeAzimuth(AltAz);
         NewEntry.PrivateDataSize = 0;
-
-        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "New sync point Date %lf RA %lf DEC %lf TDV(x %lf y %lf z %lf)",
-                        NewEntry.ObservationJulianDate, NewEntry.RightAscension, NewEntry.Declination,
-                        NewEntry.TelescopeDirection.x, NewEntry.TelescopeDirection.y, NewEntry.TelescopeDirection.z);
 
         if (!CheckForDuplicateSyncPoint(NewEntry))
         {
@@ -218,52 +195,17 @@ TBD - add sample code. I will do this  for the scope simulator when I can work o
         return false;
     }
 
-
 The final step is to add coordinate conversion to ReadScopeStatus, TimerHit (for tracking), and Goto.
 
-TBD - add sample code. I will do this  for the scope simulator when I can work out what it is doing with snooped properties!
-
-    bool SkywatcherAPIMount::ReadScopeStatus()
+    bool ScopeSim::ReadScopeStatus()
     {
-        DEBUG(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "SkywatcherAPIMount::ReadScopeStatus");
-
-        // Horrible hack to get over the fact that the base class calls ReadScopeStatus from inside Connect
-        // before I have a chance to set up the serial port
-        SetSerialPort(PortFD);
-
-        // leave the following stuff in for the time being it is mostly harmless
-
-        // Quick check of the mount
-        if (!GetMotorBoardVersion(AXIS1))
-            return false;
-
-        if (!GetStatus(AXIS1))
-            return false;
-
-        if (!GetStatus(AXIS2))
-            return false;
-
-        // Update Axis Position
-        if (!GetEncoder(AXIS1))
-            return false;
-        if (!GetEncoder(AXIS2))
-            return false;
-
-        UpdateDetailedMountInformation(true);
-
-        // Calculate new RA DEC
         struct ln_hrz_posn AltAz;
-        AltAz.alt = MicrostepsToDegrees(AXIS2, CurrentEncoders[AXIS2] - ZeroPositionEncoders[AXIS2]);
-        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Axis2 encoder %ld initial %ld alt(degrees) %lf", CurrentEncoders[AXIS2], ZeroPositionEncoders[AXIS2], AltAz.alt);
-        AltAz.az = MicrostepsToDegrees(AXIS1, CurrentEncoders[AXIS1] - ZeroPositionEncoders[AXIS1]);
-        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Axis1 encoder %ld initial %ld az(degrees) %lf", CurrentEncoders[AXIS1], ZeroPositionEncoders[AXIS1], AltAz.az);
+        AltAz.alt = double(CurrentEncoderMicrostepsDEC) / MICROSTEPS_PER_DEGREE;
+        AltAz.az = double(CurrentEncoderMicrostepsRA) / MICROSTEPS_PER_DEGREE;
         TelescopeDirectionVector TDV = TelescopeDirectionVectorFromAltitudeAzimuth(AltAz);
-        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "TDV x %lf y %lf z %lf", TDV.x, TDV.y, TDV.z);
 
         double RightAscension, Declination;
-        if (TransformTelescopeToCelestial( TDV, RightAscension, Declination))
-            DEBUG(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Conversion OK");
-        else
+        if (!TransformTelescopeToCelestial( TDV, RightAscension, Declination))
         {
             bool HavePosition = false;
             ln_lnlat_posn Position;
@@ -298,11 +240,7 @@ TBD - add sample code. I will do this  for the scope simulator when I can work o
                         AltitudeAzimuthFromTelescopeDirectionVector(RotatedTDV, AltAz);
                         break;
                 }
-    #ifdef USE_INITIAL_JULIAN_DATE
-                ln_get_equ_from_hrz(&AltAz, &Position, InitialJulianDate, &EquatorialCoordinates);
-    #else
                 ln_get_equ_from_hrz(&AltAz, &Position, ln_get_julian_from_sys(), &EquatorialCoordinates);
-    #endif
             }
             else
                 // The best I can do is just do a direct conversion to RA/DEC
@@ -310,29 +248,27 @@ TBD - add sample code. I will do this  for the scope simulator when I can work o
             // libnova works in decimal degrees
             RightAscension = EquatorialCoordinates.ra * 24.0 / 360.0;
             Declination = EquatorialCoordinates.dec;
-            DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Conversion Failed - HavePosition %d RA (degrees) %lf DEC (degrees) %lf", HavePosition, EquatorialCoordinates.ra, EquatorialCoordinates.dec);
         }
 
-        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "New RA %lf (hours) DEC %lf (degrees)", RightAscension, Declination);
         NewRaDec(RightAscension, Declination);
 
         return true;
     }
 
-    void SkywatcherAPIMount::TimerHit()
+    void ScopeSim::TimerHit()
     {
-        // By default this method is called every POLLMS milliseconds
+        // Simulate mount movement
+        
+        ...
 
-        // Call the base class handler
-        // This normally just calls ReadScopeStatus
-        INDI::Telescope::TimerHit();
+        INDI::Telescope::TimerHit(); // This will call ReadScopeStatus
 
-        // Do my own timer stuff assuming ReadScopeStatus has just been called
-
+        // OK I have updated the celestial reference frame RA/DEC in ReadScopeStatus
+        // Now handle the tracking state
         switch(TrackState)
         {
             case SCOPE_SLEWING:
-                if ((AxesStatus[AXIS1].FullStop) && (AxesStatus[AXIS2].FullStop))
+                if ((STOPPED == AxisStatusRA) && (STOPPED == AxisStatusDEC))
                 {
                     if (ISS_ON == IUFindSwitch(&CoordSP,"TRACK")->s)
                     {
@@ -358,11 +294,7 @@ TBD - add sample code. I will do this  for the scope simulator when I can work o
                 TelescopeDirectionVector TDV;
                 ln_hrz_posn AltAz;
                 if (TransformCelestialToTelescope(CurrentTrackingTarget.ra, CurrentTrackingTarget.dec,
-    #ifdef USE_INITIAL_JULIAN_DATE
-                                                    0, TDV))
-    #else
                                                     JulianOffset, TDV))
-    #endif
                     AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAz);
                 else
                 {
@@ -383,11 +315,7 @@ TBD - add sample code. I will do this  for the scope simulator when I can work o
                     EquatorialCoordinates.dec = CurrentTrackingTarget.dec;
                     if (HavePosition)
                         ln_get_hrz_from_equ(&EquatorialCoordinates, &Position,
-    #ifdef USE_INITIAL_JULIAN_DATE
-                                                InitialJulianDate, &AltAz);
-    #else
                                                 ln_get_julian_from_sys() + JulianOffset, &AltAz);
-    #endif
                     else
                     {
                         // No sense in tracking in this case
@@ -395,108 +323,47 @@ TBD - add sample code. I will do this  for the scope simulator when I can work o
                         break;
                     }
                 }
-                DEBUGF(INDI::Logger::DBG_SESSION, "Tracking AXIS1 CurrentEncoder %ld OldTrackingTarget %ld AXIS2 CurrentEncoder %ld OldTrackingTarget %ld",
-                                                CurrentEncoders[AXIS1], OldTrackingTarget[AXIS1], CurrentEncoders[AXIS2], OldTrackingTarget[AXIS2]);
-                DEBUGF(INDI::Logger::DBG_SESSION, "New Tracking Target Altitude %lf degrees %ld microsteps Azimuth %lf degrees %ld microsteps",
-                                    AltAz.alt, DegreesToMicrosteps(AXIS2, AltAz.alt), AltAz.az, DegreesToMicrosteps(AXIS1, AltAz.az));
+                long AltitudeOffsetMicrosteps = int(AltAz.alt * MICROSTEPS_PER_DEGREE - CurrentEncoderMicrostepsDEC);
+                long AzimuthOffsetMicrosteps = int(AltAz.az * MICROSTEPS_PER_DEGREE - CurrentEncoderMicrostepsRA);
 
-                long AltitudeOffsetMicrosteps = DegreesToMicrosteps(AXIS2, AltAz.alt) + ZeroPositionEncoders[AXIS2] - CurrentEncoders[AXIS2];
-                long AzimuthOffsetMicrosteps = DegreesToMicrosteps(AXIS1, AltAz.az) + ZeroPositionEncoders[AXIS1] - CurrentEncoders[AXIS1];
-
-                DEBUGF(INDI::Logger::DBG_SESSION, "New Tracking Target AltitudeOffset %ld microsteps AzimuthOffset %ld microsteps",
-                                    AltitudeOffsetMicrosteps, AzimuthOffsetMicrosteps);
-
-                if (AzimuthOffsetMicrosteps > MicrostepsPerRevolution[AXIS1] / 2)
+                if (AzimuthOffsetMicrosteps > MICROSTEPS_PER_REVOLUTION / 2)
                 {
-                    DEBUG(INDI::Logger::DBG_SESSION, "Tracking AXIS1 going long way round");
                     // Going the long way round - send it the other way
-                    AzimuthOffsetMicrosteps -= MicrostepsPerRevolution[AXIS1];
+                    AzimuthOffsetMicrosteps -= MICROSTEPS_PER_REVOLUTION;
                 }
                 if (0 != AzimuthOffsetMicrosteps)
                 {
                     // Calculate the slewing rates needed to reach that position
-                    // at the correct time.
-                    long AzimuthRate = StepperClockFrequency[AXIS1] / AzimuthOffsetMicrosteps;
-                    if (!AxesStatus[AXIS1].FullStop &&
-                        ((AxesStatus[AXIS1].SlewingForward && (AzimuthRate < 0)) || (!AxesStatus[AXIS1].SlewingForward && (AzimuthRate > 0))))
-                    {
-                        // Direction change whilst axis running
-                        // Abandon tracking for this clock tick
-                        DEBUG(INDI::Logger::DBG_SESSION, "Tracking - AXIS1 direction change");
-                        SlowStop(AXIS1);
-                    }
-                    else
-                    {
-                        char Direction = AzimuthRate > 0 ? '0' : '1';
-                        AzimuthRate = std::abs(AzimuthRate);
-                        SetClockTicksPerMicrostep(AXIS1, AzimuthRate < 1 ? 1 : AzimuthRate);
-                        if (AxesStatus[AXIS1].FullStop)
-                        {
-                            DEBUG(INDI::Logger::DBG_SESSION, "Tracking - AXIS1 restart");
-                            SetMotionMode(AXIS1, '1', Direction);
-                            StartMotion(AXIS1);
-                        }
-                        DEBUGF(INDI::Logger::DBG_SESSION, "Tracking - AXIS1 offset %ld microsteps rate %ld direction %c",
-                                                                    AzimuthOffsetMicrosteps, AzimuthRate, Direction);
-                    }
+                    // at the correct time. This is simple as interval is one second
+                    AxisSlewRateRA = abs(AzimuthOffsetMicrosteps);
+                    AxisDirectionRA = AzimuthOffsetMicrosteps > 0 ? FORWARD : REVERSE;  // !!!! BEWARE INERTIA FREE MOUNT
                 }
                 else
                 {
                     // Nothing to do - stop the axis
-                    DEBUG(INDI::Logger::DBG_SESSION, "Tracking - AXIS1 zero offset");
-                    SlowStop(AXIS1);
+                    AxisStatusRA = STOPPED; // !!!! BEWARE INERTIA FREE MOUNT
                 }
 
-                // Do I need to take out any complete revolutions before I do this test?
-                if (AltitudeOffsetMicrosteps > MicrostepsPerRevolution[AXIS2] / 2)
+                if (AltitudeOffsetMicrosteps > MICROSTEPS_PER_REVOLUTION / 2)
                 {
-                    DEBUG(INDI::Logger::DBG_SESSION, "Tracking AXIS2 going long way round");
                     // Going the long way round - send it the other way
-                    AltitudeOffsetMicrosteps -= MicrostepsPerRevolution[AXIS2];
+                    AltitudeOffsetMicrosteps -= MICROSTEPS_PER_REVOLUTION;
                 }
                 if (0 != AltitudeOffsetMicrosteps)
                 {
                      // Calculate the slewing rates needed to reach that position
                     // at the correct time.
-                    long AltitudeRate = StepperClockFrequency[AXIS2] / AltitudeOffsetMicrosteps;
-
-                    if (!AxesStatus[AXIS2].FullStop &&
-                        ((AxesStatus[AXIS2].SlewingForward && (AltitudeRate < 0)) || (!AxesStatus[AXIS2].SlewingForward && (AltitudeRate > 0))))
-                    {
-                        // Direction change whilst axis running
-                        // Abandon tracking for this clock tick
-                        DEBUG(INDI::Logger::DBG_SESSION, "Tracking - AXIS2 direction change");
-                        SlowStop(AXIS2);
-                    }
-                    else
-                    {
-                        char Direction = AltitudeRate > 0 ? '0' : '1';
-                        AltitudeRate = std::abs(AltitudeRate);
-                        SetClockTicksPerMicrostep(AXIS2, AltitudeRate < 1 ? 1 : AltitudeRate);
-                        if (AxesStatus[AXIS2].FullStop)
-                        {
-                            DEBUG(INDI::Logger::DBG_SESSION, "Tracking - AXIS2 restart");
-                            SetMotionMode(AXIS2, '1', Direction);
-                            StartMotion(AXIS2);
-                        }
-                        DEBUGF(INDI::Logger::DBG_SESSION, "Tracking - AXIS2 offset %ld microsteps rate %ld direction %c",
-                                                                        AltitudeOffsetMicrosteps, AltitudeRate, Direction);
-                    }
+                    AxisSlewRateDEC = abs(AltitudeOffsetMicrosteps);
+                    AxisDirectionDEC = AltitudeOffsetMicrosteps > 0 ? FORWARD : REVERSE;  // !!!! BEWARE INERTIA FREE MOUNT
                 }
                 else
                 {
                     // Nothing to do - stop the axis
-                    DEBUG(INDI::Logger::DBG_SESSION, "Tracking - AXIS2 zero offset");
-                    SlowStop(AXIS2);
+                    AxisStatusDEC = STOPPED;  // !!!! BEWARE INERTIA FREE MOUNT
                 }
 
-
-                DEBUGF(INDI::Logger::DBG_SESSION, "Tracking - AXIS1 error %d AXIS2 error %d",
-                                                                    OldTrackingTarget[AXIS1] - CurrentEncoders[AXIS1],
-                                                                    OldTrackingTarget[AXIS2] - CurrentEncoders[AXIS2]);
-
-                OldTrackingTarget[AXIS1] = AzimuthOffsetMicrosteps + CurrentEncoders[AXIS1];
-                OldTrackingTarget[AXIS2] = AltitudeOffsetMicrosteps + CurrentEncoders[AXIS2];
+                OldTrackingTargetMicrostepsDEC = AzimuthOffsetMicrosteps + CurrentEncoderMicrostepsRA;
+                OldTrackingTargetMicrostepsDEC = AltitudeOffsetMicrosteps + CurrentEncoderMicrostepsDEC;
                 break;
             }
 
@@ -505,12 +372,8 @@ TBD - add sample code. I will do this  for the scope simulator when I can work o
         }
     }
 
-    bool SkywatcherAPIMount::Goto(double ra,double dec)
+    bool ScopeSim::Goto(double ra,double dec)
     {
-        DEBUG(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "SkywatcherAPIMount::Goto");
-
-        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "RA %lf DEC %lf", ra, dec);
-
         if (ISS_ON == IUFindSwitch(&CoordSP,"TRACK")->s)
         {
             char RAStr[32], DecStr[32];
@@ -518,19 +381,21 @@ TBD - add sample code. I will do this  for the scope simulator when I can work o
             fs_sexa(DecStr, dec, 2, 3600);
             CurrentTrackingTarget.ra = ra;
             CurrentTrackingTarget.dec = dec;
-            DEBUGF(INDI::Logger::DBG_SESSION, "New Tracking target RA %s DEC %s", RAStr, DecStr);
         }
 
+        // Call the alignment subsystem to translate the celestial reference frame coordinate
+        // into a telescope reference frame coordinate
         TelescopeDirectionVector TDV;
         ln_hrz_posn AltAz;
         if (TransformCelestialToTelescope(ra, dec, 0.0, TDV))
         {
+            // The alignment subsystem has successfully transformed my coordinate
             AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAz);
-            DEBUG(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Conversion OK");
         }
         else
         {
-            // Try a conversion with the stored observatory position if any
+            // The alignment subsystem cannot transform the coordinate.
+            // Try some simple rotations using the stored observatory position if any
             bool HavePosition = false;
             ln_lnlat_posn Position;
             if ((NULL != IUFindNumber(&LocationNP, "LAT")) && ( 0 != IUFindNumber(&LocationNP, "LAT")->value)
@@ -547,11 +412,7 @@ TBD - add sample code. I will do this  for the scope simulator when I can work o
             EquatorialCoordinates.dec = dec;
             if (HavePosition)
             {
-    #ifdef USE_INITIAL_JULIAN_DATE
-                ln_get_hrz_from_equ(&EquatorialCoordinates, &Position, InitialJulianDate, &AltAz);
-    #else
                 ln_get_hrz_from_equ(&EquatorialCoordinates, &Position, ln_get_julian_from_sys(), &AltAz);
-    #endif
                 TDV = TelescopeDirectionVectorFromAltitudeAzimuth(AltAz);
                 switch (GetApproximateMountAlignment())
                 {
@@ -578,39 +439,28 @@ TBD - add sample code. I will do this  for the scope simulator when I can work o
                 TDV = TelescopeDirectionVectorFromEquatorialCoordinates(EquatorialCoordinates);
                 AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAz);
             }
-            DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Conversion Failed - HavePosition %d", HavePosition);
         }
-        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "New Altitude %lf degrees %ld microsteps Azimuth %lf degrees %ld microsteps",
-                                        AltAz.alt, DegreesToMicrosteps(AXIS2, AltAz.alt), AltAz.az, DegreesToMicrosteps(AXIS1, AltAz.az));
 
-        // Update the current encoder positions
-        GetEncoder(AXIS1);
-        GetEncoder(AXIS2);
-
-        long AltitudeOffsetMicrosteps = DegreesToMicrosteps(AXIS2, AltAz.alt) + ZeroPositionEncoders[AXIS2] - CurrentEncoders[AXIS2];
-        long AzimuthOffsetMicrosteps = DegreesToMicrosteps(AXIS1, AltAz.az) + ZeroPositionEncoders[AXIS1] - CurrentEncoders[AXIS1];
+        long AltitudeTargetMicrosteps = int(AltAz.alt * MICROSTEPS_PER_DEGREE);
+        long AzimuthTargetMicrosteps = int(AltAz.az * MICROSTEPS_PER_DEGREE);
 
         // Do I need to take out any complete revolutions before I do this test?
-        if (AltitudeOffsetMicrosteps > MicrostepsPerRevolution[AXIS2] / 2)
+        if (AltitudeTargetMicrosteps > MICROSTEPS_PER_REVOLUTION / 2)
         {
             // Going the long way round - send it the other way
-            AltitudeOffsetMicrosteps -= MicrostepsPerRevolution[AXIS2];
+            AltitudeTargetMicrosteps -= MICROSTEPS_PER_REVOLUTION;
         }
 
-        if (AzimuthOffsetMicrosteps > MicrostepsPerRevolution[AXIS1] / 2)
+        if (AzimuthTargetMicrosteps > MICROSTEPS_PER_REVOLUTION / 2)
         {
             // Going the long way round - send it the other way
-            AzimuthOffsetMicrosteps -= MicrostepsPerRevolution[AXIS1];
+            AzimuthTargetMicrosteps -= MICROSTEPS_PER_REVOLUTION;
         }
-        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Initial Axis2 %ld microsteps Axis1 %ld microsteps",
-                                                        ZeroPositionEncoders[AXIS2], ZeroPositionEncoders[AXIS1]);
-        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Current Axis2 %ld microsteps Axis1 %ld microsteps",
-                                                        CurrentEncoders[AXIS2], CurrentEncoders[AXIS1]);
-        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Altitude offset %ld microsteps Azimuth offset %ld microsteps",
-                                                        AltitudeOffsetMicrosteps, AzimuthOffsetMicrosteps);
 
-        SlewTo(AXIS1, AzimuthOffsetMicrosteps);
-        SlewTo(AXIS2, AltitudeOffsetMicrosteps);
+        GotoTargetMicrostepsDEC = AltitudeTargetMicrosteps;
+        AxisStatusDEC = SLEWING_TO;
+        GotoTargetMicrostepsRA = AzimuthTargetMicrosteps;
+        AxisStatusRA = SLEWING_TO;
 
         TrackState = SCOPE_SLEWING;
 
@@ -618,7 +468,6 @@ TBD - add sample code. I will do this  for the scope simulator when I can work o
 
         return true;
     }
-
 
 
 ## Developing Alignment Subsystem clients
