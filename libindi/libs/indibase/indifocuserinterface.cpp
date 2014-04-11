@@ -55,7 +55,7 @@ void INDI::FocuserInterface::initFocuserProperties(const char *deviceName, const
     IUFillNumber(&FocusAbsPosN[0],"FOCUS_ABSOLUTE_POSITION","Ticks","%4.0f",0.0,100000.0,1000.0,50000.0);
     IUFillNumberVector(&FocusAbsPosNP,FocusAbsPosN,1,deviceName,"ABS_FOCUS_POSITION","Absolute Position",groupName,IP_RW,60,IPS_OK);
 
-    IUFillNumber(&FocusRelPosN[0],"RELATIVE_ABSOLUTE_POSITION","Ticks","%4.0f",0.0,100000.0,1000.0,50000.0);
+    IUFillNumber(&FocusRelPosN[0],"FOCUS_RELATIVE_POSITION","Ticks","%4.0f",0.0,100000.0,1000.0,50000.0);
     IUFillNumberVector(&FocusRelPosNP,FocusRelPosN,1,deviceName,"REL_FOCUS_POSITION","Relative Position",groupName,IP_RW,60,IPS_OK);
 
     IUFillSwitch(&AbortS[0],"ABORT","Abort",ISS_OFF);
