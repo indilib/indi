@@ -29,13 +29,13 @@
 		590FEB051892BC5D00F85808 /* QHY8PRO.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 591F82DF189051AF00EA2E8C /* QHY8PRO.HEX */; };
 		590FEB061892BC5D00F85808 /* QHY9.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 591F82E0189051AF00EA2E8C /* QHY9.HEX */; };
 		590FEB071892BC5D00F85808 /* QHY9L.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 591F82E1189051AF00EA2E8C /* QHY9L.HEX */; };
+		591944BA18F9543700837724 /* libindiAlignmentDriver.0.9.8.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 591944B818F9541500837724 /* libindiAlignmentDriver.0.9.8.dylib */; };
 		591991A8188FC9AD007DD2DE /* indiserver.c in Sources */ = {isa = PBXBuildFile; fileRef = 591991A7188FC9AD007DD2DE /* indiserver.c */; };
 		591991AB188FC9BA007DD2DE /* fq.c in Sources */ = {isa = PBXBuildFile; fileRef = 591991A9188FC9BA007DD2DE /* fq.c */; };
 		591991AE188FC9CB007DD2DE /* lilxml.c in Sources */ = {isa = PBXBuildFile; fileRef = 591991AC188FC9CA007DD2DE /* lilxml.c */; };
 		5950C16718D6F4A500B587B2 /* libindi.0.9.8.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5950C16118D6F21700B587B2 /* libindi.0.9.8.dylib */; };
 		5950C16818D6F4A500B587B2 /* libindidriver.0.9.8.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5950C16218D6F21700B587B2 /* libindidriver.0.9.8.dylib */; };
 		5950C16918D6F4A500B587B2 /* libindimain.0.9.8.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5950C16318D6F21700B587B2 /* libindimain.0.9.8.dylib */; };
-		5950C16A18D6F4A500B587B2 /* libAlignmentDriver.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5950C15F18D6F20800B587B2 /* libAlignmentDriver.dylib */; };
 		596355DC18994A18009B1A39 /* indi_maxdomeii in CopyFiles */ = {isa = PBXBuildFile; fileRef = 596355D4189949D8009B1A39 /* indi_maxdomeii */; };
 		596355DD18994A18009B1A39 /* indi_spectracyber in CopyFiles */ = {isa = PBXBuildFile; fileRef = 596355D2189949C7009B1A39 /* indi_spectracyber */; };
 		596355DE18994A25009B1A39 /* indi_maxdomeii.xml in CopyFiles */ = {isa = PBXBuildFile; fileRef = 596355D6189949F4009B1A39 /* indi_maxdomeii.xml */; };
@@ -179,10 +179,10 @@
 			dstPath = lib;
 			dstSubfolderSpec = 7;
 			files = (
+				591944BA18F9543700837724 /* libindiAlignmentDriver.0.9.8.dylib in CopyFiles */,
 				5950C16718D6F4A500B587B2 /* libindi.0.9.8.dylib in CopyFiles */,
 				5950C16818D6F4A500B587B2 /* libindidriver.0.9.8.dylib in CopyFiles */,
 				5950C16918D6F4A500B587B2 /* libindimain.0.9.8.dylib in CopyFiles */,
-				5950C16A18D6F4A500B587B2 /* libAlignmentDriver.dylib in CopyFiles */,
 				59F91263188AC43900EF5ED8 /* libcfitsio.2.3.36.dylib in CopyFiles */,
 				59F91267188AC43900EF5ED8 /* libnova-0.15.0.dylib in CopyFiles */,
 				59F91268188AC43900EF5ED8 /* libusb-1.0.0.dylib in CopyFiles */,
@@ -247,6 +247,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		591944B818F9541500837724 /* libindiAlignmentDriver.0.9.8.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libindiAlignmentDriver.0.9.8.dylib; path = ../../../../../../usr/local/lib/libindiAlignmentDriver.0.9.8.dylib; sourceTree = "<group>"; };
 		591991A6188FC99E007DD2DE /* indiserver-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "indiserver-Info.plist"; sourceTree = "<group>"; };
 		591991A7188FC9AD007DD2DE /* indiserver.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = indiserver.c; path = ../../libindi/indiserver.c; sourceTree = "<group>"; };
 		591991A9188FC9BA007DD2DE /* fq.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fq.c; path = ../../libindi/fq.c; sourceTree = "<group>"; };
@@ -281,7 +282,6 @@
 		594D0B3A188300ED00B50F4E /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = System/Library/Frameworks/CoreData.framework; sourceTree = SDKROOT; };
 		594D0B3B188300ED00B50F4E /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		594D0B55188300ED00B50F4E /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = Library/Frameworks/XCTest.framework; sourceTree = DEVELOPER_DIR; };
-		5950C15F18D6F20800B587B2 /* libAlignmentDriver.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libAlignmentDriver.dylib; path = ../../../../../../usr/local/lib/libAlignmentDriver.dylib; sourceTree = "<group>"; };
 		5950C16118D6F21700B587B2 /* libindi.0.9.8.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libindi.0.9.8.dylib; path = ../../../../../../usr/local/lib/libindi.0.9.8.dylib; sourceTree = "<group>"; };
 		5950C16218D6F21700B587B2 /* libindidriver.0.9.8.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libindidriver.0.9.8.dylib; path = ../../../../../../usr/local/lib/libindidriver.0.9.8.dylib; sourceTree = "<group>"; };
 		5950C16318D6F21700B587B2 /* libindimain.0.9.8.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libindimain.0.9.8.dylib; path = ../../../../../../usr/local/lib/libindimain.0.9.8.dylib; sourceTree = "<group>"; };
@@ -552,10 +552,10 @@
 				5950C16118D6F21700B587B2 /* libindi.0.9.8.dylib */,
 				5950C16218D6F21700B587B2 /* libindidriver.0.9.8.dylib */,
 				5950C16318D6F21700B587B2 /* libindimain.0.9.8.dylib */,
-				5950C15F18D6F20800B587B2 /* libAlignmentDriver.dylib */,
 				59F9122B188AC3C300EF5ED8 /* libcfitsio.2.3.36.dylib */,
 				59F9122F188AC3C300EF5ED8 /* libnova-0.15.0.dylib */,
 				59F91230188AC3C300EF5ED8 /* libusb-1.0.0.dylib */,
+				591944B818F9541500837724 /* libindiAlignmentDriver.0.9.8.dylib */,
 			);
 			name = lib;
 			path = "/Users/polakovic/Development/indi-code/macosx/INDI Server";
@@ -692,7 +692,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "cd \"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/lib\"\nchmod u+w *\nfor F in *.dylib\ndo\nF=`basename $F`\nfor L in `otool -L $F | grep \"/usr/local\" | awk '{ print $1 }'`\ndo\nBL=`basename $L`\nif [[ \"$F\" == \"$BL\" ]]\nthen\necho \"renaming $F\"\ninstall_name_tool -id @executable_path/../lib/$BL $F\nelse\necho \"fixing $BL in $F\"\ninstall_name_tool -change $L @executable_path/../lib/$BL $F\nfi\ndone\ndone\n\n[ -f libindi.0.dylib ] && echo \"Found\" || ln -s libindi.0.9.8.dylib libindi.0.dylib\n[ -f libindi.dylib ] && echo \"Found\" || ln -s libindi.0.dylib libindi.dylib\n\n[ -f libindidriver.0.dylib ] && echo \"Found\" || ln -s libindidriver.0.9.8.dylib libindidriver.0.dylib\n[ -f libindidriver.dylib ] && echo \"Found\" || ln -s libindidriver.0.dylib libindidriver\n\n[ -f libindimain.0.dylib ] && echo \"Found\" || ln -s libindimain.0.9.8.dylib libindimain.0.dylib\n[ -f libindimain.dylib ] && echo \"Found\" || ln -s libindimain.0.dylib libindimain\n\n[ -f libnova.dylib ] && echo \"Found\" || ln -s libnova-0.15.0.dylib libnova.dylib\n\n[ -f libusb.1.0.dylib ] && echo \"Found\" || ln -s libusb-1.0.0.dylib libusb-1.0.dylib\n\n[ -f libcfitsio.2.dylib ] && echo \"Found\" || ln -s libcfitsio.2.3.36.dylib libcfitsio.2.dylib\n[ -f libcfitsio.dylib ] && echo \"Found\" || ln -s libcfitsio.2.dylib libcfitsio.dylib\n\n\ncd \"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/bin\"\n\nchmod u+w *\nfor F in *\ndo\nF=`basename $F`\nfor L in `otool -L $F | grep \"/usr/local\" | awk '{ print $1 }'`\ndo\nBL=`basename $L`\necho \"fixing $BL in $F\"\ninstall_name_tool -change $L @executable_path/../lib/$BL $F\ndone\ndone\n\n[ -f indi_lx200_16 ] && echo \"Found\" || ln -s indi_lx200generic indi_lx200_16\n[ -f indi_lx200ap ] && echo \"Found\" || ln -s indi_lx200genericlegacy indi_lx200ap\n[ -f indi_lx200autostar ] && echo \"Found\" || ln -s indi_lx200generic indi_lx200autostar\n[ -f indi_lx200classic ] && echo \"Found\" || ln -s indi_lx200generic indi_lx200classic\n[ -f indi_lx200fs2 ] && echo \"Found\" || ln -s indi_lx200genericlegacy indi_lx200fs2\n[ -f indi_lx200gps ] && echo \"Found\" || ln -s indi_lx200generic indi_lx200gps\n[ -f indi_tcfs3_focus ] && echo \"Found\" || ln -s indi_tcfs_focus indi_tcfs3_focus\n";
+			shellScript = "cd \"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/lib\"\nchmod u+w *\nfor F in *.dylib\ndo\nF=`basename $F`\nfor L in `otool -L $F | grep \"/usr/local\" | awk '{ print $1 }'`\ndo\nBL=`basename $L`\nif [[ \"$F\" == \"$BL\" ]]\nthen\necho \"renaming $F\"\ninstall_name_tool -id @executable_path/../lib/$BL $F\nelse\necho \"fixing $BL in $F\"\ninstall_name_tool -change $L @executable_path/../lib/$BL $F\nfi\ndone\ndone\n\n[ -f libindi.0.dylib ] && echo \"Found\" || ln -s libindi.0.9.8.dylib libindi.0.dylib\n[ -f libindi.dylib ] && echo \"Found\" || ln -s libindi.0.dylib libindi.dylib\n\n[ -f libindidriver.0.dylib ] && echo \"Found\" || ln -s libindidriver.0.9.8.dylib libindidriver.0.dylib\n[ -f libindidriver.dylib ] && echo \"Found\" || ln -s libindidriver.0.dylib libindidriver.dylib\n\n[ -f libindimain.0.dylib ] && echo \"Found\" || ln -s libindimain.0.9.8.dylib libindimain.0.dylib\n[ -f libindimain.dylib ] && echo \"Found\" || ln -s libindimain.0.dylib libindimain.dylib\n\n[ -f libindiAlignmentDriver.0.dylib ] && echo \"Found\" || ln -s libindiAlignmentDriver.0.9.8.dylib libindiAlignmentDriver.0.dylib\n[ -f libindiAlignmentDriver ] && echo \"Found\" || ln -s libindiAlignmentDriver.0.dylib libindiAlignmentDriver.dylib\n\n[ -f libnova.dylib ] && echo \"Found\" || ln -s libnova-0.15.0.dylib libnova.dylib\n\n[ -f libusb.1.0.dylib ] && echo \"Found\" || ln -s libusb-1.0.0.dylib libusb-1.0.dylib\n\n[ -f libcfitsio.2.dylib ] && echo \"Found\" || ln -s libcfitsio.2.3.36.dylib libcfitsio.2.dylib\n[ -f libcfitsio.dylib ] && echo \"Found\" || ln -s libcfitsio.2.dylib libcfitsio.dylib\n\n\ncd \"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/bin\"\n\nchmod u+w *\nfor F in *\ndo\nF=`basename $F`\nfor L in `otool -L $F | grep \"/usr/local\" | awk '{ print $1 }'`\ndo\nBL=`basename $L`\necho \"fixing $BL in $F\"\ninstall_name_tool -change $L @executable_path/../lib/$BL $F\ndone\ndone\n\n[ -f indi_lx200_16 ] && echo \"Found\" || ln -s indi_lx200generic indi_lx200_16\n[ -f indi_lx200ap ] && echo \"Found\" || ln -s indi_lx200genericlegacy indi_lx200ap\n[ -f indi_lx200autostar ] && echo \"Found\" || ln -s indi_lx200generic indi_lx200autostar\n[ -f indi_lx200classic ] && echo \"Found\" || ln -s indi_lx200generic indi_lx200classic\n[ -f indi_lx200fs2 ] && echo \"Found\" || ln -s indi_lx200genericlegacy indi_lx200fs2\n[ -f indi_lx200gps ] && echo \"Found\" || ln -s indi_lx200generic indi_lx200gps\n[ -f indi_tcfs3_focus ] && echo \"Found\" || ln -s indi_tcfs_focus indi_tcfs3_focus\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
