@@ -30,7 +30,6 @@ knroSpecControl/mainwindow.h -text
 knroSpecControl/mainwindow.ui -text
 ujari/AUTHORS -text
 ujari/CMakeLists.txt -text
-ujari/CMakeLists.txt.user -text
 ujari/INSTALL -text
 ujari/README -text
 ujari/amccontroller.cpp -text
