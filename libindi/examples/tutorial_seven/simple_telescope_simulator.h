@@ -16,6 +16,8 @@ public:
                 AxisSlewRateDEC(DEFAULT_SLEW_RATE), CurrentEncoderMicrostepsDEC(0),
                 PreviousNSMotion(PREVIOUS_NS_MOTION_UNKNOWN),
                 PreviousWEMotion(PREVIOUS_WE_MOTION_UNKNOWN),
+                TraceThisTickCount(0),
+                TraceThisTick(false),
                 DBG_SIMULATOR(INDI::Logger::getInstance().addDebugLevel("Simulator Verbose", "SIMULATOR")) {}
 
 
@@ -40,6 +42,7 @@ private:
     virtual bool ReadScopeStatus();
     bool Sync(double ra, double dec);
     virtual void TimerHit();
+    virtual bool updateLocation(double latitude, double longitude, double elevation);
 
     static const long MICROSTEPS_PER_REVOLUTION;
     static const double MICROSTEPS_PER_DEGREE;
@@ -55,14 +58,12 @@ private:
     double AxisSlewRateDEC;
     long CurrentEncoderMicrostepsDEC;
     long GotoTargetMicrostepsDEC;
-    long OldTrackingTargetMicrostepsDEC;
 
     AxisStatus AxisStatusRA;
     AxisDirection AxisDirectionRA;
     double AxisSlewRateRA;
     long CurrentEncoderMicrostepsRA;
     long GotoTargetMicrostepsRA;
-    long OldTrackingTargetMicrostepsRA;
 
     // Previous motion direction
     typedef enum { PREVIOUS_NS_MOTION_NORTH = MOTION_NORTH,
@@ -77,6 +78,10 @@ private:
     // Tracking
     ln_equ_posn CurrentTrackingTarget;
     long OldTrackingTarget[2];
+
+    // Tracing in timer tick
+    int TraceThisTickCount;
+    bool TraceThisTick;
 
     unsigned int DBG_SIMULATOR;
 };

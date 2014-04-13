@@ -163,6 +163,15 @@ AlignmentSubsystemForDrivers::ProcessSwitchProperties, AlignmentSubsystemForDriv
         // Pass it up the chain
         return INDI::Telescope::ISNewText(dev, name, texts, names, n);
     }
+    
+Then make sure you override the INDI::Telescope::updateLocation function and call the AligmmentSubsystemForDrivers::UpdateLocation function.
+
+    bool ScopeSim::updateLocation(double latitude, double longitude, double elevation)
+    {
+        UpdateLocation(latitude, longitude, elevation);
+        return true;
+    }
+
 
 The next step is to add the handling of sync points into your drivers Sync function.
 
