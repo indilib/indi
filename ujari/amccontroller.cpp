@@ -71,19 +71,19 @@ void AMCController::setType(const motorType &value)
     type = value;
 
     // FIXME change to real IP address of RS485 to Ethernet adapter
-    default_port = std::string("192.168.1.XXX");
+    default_port = std::string("192.168.0.10");
 
     if (type == RA_MOTOR)
     {
       type_name = std::string("RA Motor");
       // TODO FIXME - SET Address of RA Motor in Hardware
-      SLAVE_ADDRESS = 0x3F;
+      SLAVE_ADDRESS = 0x1;
     }
     else
     {
       // TODO FIXME - SET Address of DEC Motor in Hardware
       type_name = std::string("DEC Motor");
-      SLAVE_ADDRESS = 0x3F;
+      SLAVE_ADDRESS = 0x2;
     }
 }
 
@@ -160,9 +160,11 @@ bool AMCController::connect()
 
     if (fd == -1)
     {
-        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_SESSION, "%s drive: Failed to connect to RS485 server at %s.", type_name.c_str(), PortT[0].text);
+        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_ERROR, "%s drive: Failed to connect to RS485 server at %s.", type_name.c_str(), PortT[0].text);
         return false;
     }
+
+    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "RS485 server FD is %d", fd);
 
     rc = enableWriteAccess();
 
@@ -255,10 +257,9 @@ bool AMCController::enableWriteAccess()
 
     char * buf = (char *) command;
 
-    if ( (err = tty_write(fd, buf, 12, &nbytes_written)) < 0)
+    if ( (nbytes_written = send(fd, buf, 12, 0)) !=  12)
     {
-        tty_error_msg(err, errmsg, MAXRBUF);
-        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error gaining write access to %s drive. %s", type_name.c_str(), errmsg);
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error gaining write access to %s drive. %s", type_name.c_str(), strerror(errno));
         return false;
     }
 
@@ -332,10 +333,9 @@ bool AMCController::enableBridge()
 
     char * buf = (char *) command;
 
-    if ( (err = tty_write(fd, buf, 12, &nbytes_written)) < 0)
+    if ( (nbytes_written = send(fd, buf, 12, 0)) != 12)
     {
-        tty_error_msg(err, errmsg, MAXRBUF);
-        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error gaining write access to %s drive. %s", type_name.c_str(), errmsg);
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error gaining write access to %s drive. %s", type_name.c_str(), strerror(errno));
         return false;
     }
 
@@ -423,10 +423,9 @@ bool AMCController::setMotion(motorMotion dir)
 
     char * buf = (char *) command;
 
-    if ( (err = tty_write(fd, buf, 13, &nbytes_written)) < 0)
+    if ( (nbytes_written = send(fd, buf, 13, 0)) != 13)
     {
-        tty_error_msg(err, errmsg, MAXRBUF);
-        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error writing velocity to %s drive. %s", type_name.c_str(), errmsg);
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error writing velocity to %s drive. %s", type_name.c_str(), strerror(errno));
         MotionControlSP.s = IPS_ALERT;
         IUResetSwitch(&MotionControlSP);
         MotionControlS[MOTOR_STOP].s = ISS_ON;
@@ -744,6 +743,9 @@ bool AMCController::setupDriveParameters()
     */
     rc = setAcceleration(MOTOR_FORWARD, MOTOR_ACCELERATION);
 
+    if (rc == false)
+        return rc;
+
     /* Linear Ramp Positive Target Negative Change
      * This parameter limits the deceleration for a velocity
      * commanded in the positive direction.
@@ -751,6 +753,9 @@ bool AMCController::setupDriveParameters()
      * Offset : 3 bytes
     */
     rc = setDeceleration(MOTOR_FORWARD, MOTOR_DECELERATION);
+
+    if (rc == false)
+        return rc;
 
     /* Linear Ramp Negative Target Negative Change
      * This parameter limits the acceleration for a velocity
@@ -760,6 +765,9 @@ bool AMCController::setupDriveParameters()
     */
     rc = setAcceleration(MOTOR_REVERSE, MOTOR_ACCELERATION);
 
+    if (rc == false)
+        return rc;
+
     /*  Linear Ramp Negative Target Positive Change
      *  This parameter limits the deceleration for a velocity
      *  commanded in the negative direction.
@@ -767,6 +775,8 @@ bool AMCController::setupDriveParameters()
      *  Offset : 9 bytes
     */
     rc = setDeceleration(MOTOR_REVERSE, MOTOR_DECELERATION);
+
+    return rc;
 }
 
 bool AMCController::setAcceleration(motorMotion dir, double rpmAcceleration)
@@ -851,10 +861,9 @@ bool AMCController::setAcceleration(motorMotion dir, double rpmAcceleration)
 
     char * buf = (char *) command;
 
-    if ( (err = tty_write(fd, buf, 16, &nbytes_written)) < 0)
+    if ( (nbytes_written = send(fd, buf, 16, 0)) != 16)
     {
-        tty_error_msg(err, errmsg, MAXRBUF);
-        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error writing acceleration to %s drive. %s", type_name.c_str(), errmsg);
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error writing acceleration to %s drive. %s", type_name.c_str(), strerror(errno));
         return false;
     }
 
@@ -952,7 +961,7 @@ bool AMCController::setDeceleration(motorMotion dir, double rpmDeAcceleration)
 
     char *buf = (char *) command;
 
-    if ( (err = tty_write(fd, buf, 16, &nbytes_written)) < 0)
+    if ( (nbytes_written = send(fd, buf, 16, 0)) != 16)
     {
         tty_error_msg(err, errmsg, MAXRBUF);
         DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error writing deceleration to %s drive. %s", type_name.c_str(), errmsg);
@@ -1003,26 +1012,29 @@ void AMCController::CrunchCRC (char x)
 AMCController::driveStatus AMCController::readDriveStatus()
 {
     char response[8];
-    char errmsg[MAXRBUF];
-    int err=0, nbytes_read=0;
+    //char errmsg[MAXRBUF];
+    int /*err=0, */ nbytes_read=0;
 
-    if ( (err = tty_read(fd, response, 8, 5, &nbytes_read)) != TTY_OK)
+    if ( (nbytes_read = recv(fd, response, 8, 0)) <= 0)
     {
-        tty_error_msg(err, errmsg, MAXRBUF);
-        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "readDriveStatus: TTY error: %s", errmsg);
-        return AMC_TTY_ERROR;
+        // RS485 server disconnected
+        if (nbytes_read == 0)
+            DEBUGDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveStatus: Lost connection to RS485 server.");
+        else
+            DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveStatus: read error: %s", strerror(errno));
+        return AMC_COMM_ERROR;
     }
 
     if (nbytes_read != 8)
     {
-        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "readDriveStatus: nbytes read is %d while it should be 8", nbytes_read);
-        return AMC_TTY_ERROR;
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveStatus: nbytes read is %d while it should be 8", nbytes_read);
+        return AMC_COMM_ERROR;
     }
 
     if (response[0] != SOF)
     {
-        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "readDriveStatus: Invalid Start of Frame %c", response[0]);
-        return AMC_TTY_ERROR;
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveStatus: Invalid Start of Frame %c", response[0]);
+        return AMC_COMM_ERROR;
     }
 
     if (response[3] == 0x01)
@@ -1064,8 +1076,8 @@ const char * AMCController::driveStatusString(driveStatus status)
             return (char *) "Frame or CRC error";
             break;
 
-         case AMC_TTY_ERROR:
-            return (char *) "TTY error";
+         case AMC_COMM_ERROR:
+            return (char *) "Communication error";
             break;
 
          case AMC_UNKNOWN_ERROR:

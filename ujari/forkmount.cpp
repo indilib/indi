@@ -163,9 +163,9 @@ bool ForkMount::Connect()  throw (UjariError)
   bool raMotorRC=false, decMotorRC=false, raEncoderRC=false, decEncoderRC=false;
 
   raMotorRC    = RAMotor->connect();
-  decMotorRC   = DECMotor->connect();
-  raEncoderRC  = RAEncoder->connect();
-  decEncoderRC = DECEncoder->connect();
+  decMotorRC   = true;//DECMotor->connect();
+  raEncoderRC  = true;//RAEncoder->connect();
+  decEncoderRC = true;//DECEncoder->connect();
 
   if (raMotorRC && decMotorRC && raEncoderRC && decEncoderRC)
       return true;

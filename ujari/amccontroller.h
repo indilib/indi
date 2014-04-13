@@ -32,7 +32,7 @@ class AMCController
 public:
     typedef enum { RA_MOTOR, DEC_MOTOR } motorType;
     typedef enum { MOTOR_STOP, MOTOR_FORWARD, MOTOR_REVERSE} motorMotion;
-    typedef enum { AMC_COMMAND_COMPLETE, AMC_COMMAND_INCOMPLETE, AMC_INVALID_COMMAND, AMC_NO_WRITE_ACCESS, AMC_CRC_ERROR, AMC_TTY_ERROR, AMC_UNKNOWN_ERROR } driveStatus;
+    typedef enum { AMC_COMMAND_COMPLETE, AMC_COMMAND_INCOMPLETE, AMC_INVALID_COMMAND, AMC_NO_WRITE_ACCESS, AMC_CRC_ERROR, AMC_COMM_ERROR, AMC_UNKNOWN_ERROR } driveStatus;
 
     AMCController(motorType type, Ujari* scope);
     ~AMCController();
