@@ -216,6 +216,9 @@ The final step is to add coordinate conversion to ReadScopeStatus, TimerHit (for
         double RightAscension, Declination;
         if (!TransformTelescopeToCelestial( TDV, RightAscension, Declination))
         {
+            if (TraceThisTick)
+                DEBUG(DBG_SIMULATOR, "ReadScopeStatus - TransformTelescopeToCelestial failed");
+
             bool HavePosition = false;
             ln_lnlat_posn Position;
             if ((NULL != IUFindNumber(&LocationNP, "LAT")) && ( 0 != IUFindNumber(&LocationNP, "LAT")->value)
@@ -229,13 +232,19 @@ The final step is to add coordinate conversion to ReadScopeStatus, TimerHit (for
             struct ln_equ_posn EquatorialCoordinates;
             if (HavePosition)
             {
+                if (TraceThisTick)
+                    DEBUG(DBG_SIMULATOR, "ReadScopeStatus - HavePosition true");
                 TelescopeDirectionVector RotatedTDV(TDV);
                 switch (GetApproximateMountAlignment())
                 {
                     case ZENITH:
+                        if (TraceThisTick)
+                            DEBUG(DBG_SIMULATOR, "ReadScopeStatus - ApproximateMountAlignment ZENITH");
                         break;
 
                     case NORTH_CELESTIAL_POLE:
+                        if (TraceThisTick)
+                            DEBUG(DBG_SIMULATOR, "ReadScopeStatus - ApproximateMountAlignment NORTH_CELESTIAL_POLE");
                         // Rotate the TDV coordinate system anticlockwise (positive) around the y axis by 90 minus
                         // the (positive)observatory latitude. The vector itself is rotated clockwise
                         RotatedTDV.RotateAroundY(90.0 - Position.lat);
@@ -243,6 +252,8 @@ The final step is to add coordinate conversion to ReadScopeStatus, TimerHit (for
                         break;
 
                     case SOUTH_CELESTIAL_POLE:
+                        if (TraceThisTick)
+                            DEBUG(DBG_SIMULATOR, "ReadScopeStatus - ApproximateMountAlignment SOUTH_CELESTIAL_POLE");
                         // Rotate the TDV coordinate system clockwise (negative) around the y axis by 90 plus
                         // the (negative)observatory latitude. The vector itself is rotated anticlockwise
                         RotatedTDV.RotateAroundY(-90.0 - Position.lat);
@@ -252,16 +263,53 @@ The final step is to add coordinate conversion to ReadScopeStatus, TimerHit (for
                 ln_get_equ_from_hrz(&AltAz, &Position, ln_get_julian_from_sys(), &EquatorialCoordinates);
             }
             else
+            {
+                if (TraceThisTick)
+                    DEBUG(DBG_SIMULATOR, "ReadScopeStatus - HavePosition false");
+
                 // The best I can do is just do a direct conversion to RA/DEC
                 EquatorialCoordinatesFromTelescopeDirectionVector(TDV, EquatorialCoordinates);
+            }
             // libnova works in decimal degrees
             RightAscension = EquatorialCoordinates.ra * 24.0 / 360.0;
             Declination = EquatorialCoordinates.dec;
         }
 
+        if (TraceThisTick)
+            DEBUGF(DBG_SIMULATOR, "ReadScopeStatus - RA %lf hours DEC %lf degrees", RightAscension, Declination);
+
         NewRaDec(RightAscension, Declination);
 
         return true;
+    }
+
+    bool ScopeSim::Sync(double ra, double dec)
+    {
+        struct ln_hrz_posn AltAz;
+        AltAz.alt = double(CurrentEncoderMicrostepsDEC) / MICROSTEPS_PER_DEGREE;
+        AltAz.az = double(CurrentEncoderMicrostepsRA) / MICROSTEPS_PER_DEGREE;
+
+        AlignmentDatabaseEntry NewEntry;
+        NewEntry.ObservationJulianDate = ln_get_julian_from_sys();
+        NewEntry.RightAscension = ra;
+        NewEntry.Declination = dec;
+        NewEntry.TelescopeDirection = TelescopeDirectionVectorFromAltitudeAzimuth(AltAz);
+        NewEntry.PrivateDataSize = 0;
+
+        if (!CheckForDuplicateSyncPoint(NewEntry))
+        {
+
+            GetAlignmentDatabase().push_back(NewEntry);
+
+            // Tell the client about size change
+            UpdateSize();
+
+            // Tell the math plugin to reinitialise
+            Initialise(this);
+
+            return true;
+        }
+        return false;
     }
 
     void ScopeSim::TimerHit()
@@ -282,6 +330,7 @@ The final step is to add coordinate conversion to ReadScopeStatus, TimerHit (for
                     if (ISS_ON == IUFindSwitch(&CoordSP,"TRACK")->s)
                     {
                         // Goto has finished start tracking
+                        DEBUG(DBG_SIMULATOR, "TimerHit - Goto finished start tracking");
                         TrackState = SCOPE_TRACKING;
                         // Fall through to tracking case
                     }
@@ -332,57 +381,112 @@ The final step is to add coordinate conversion to ReadScopeStatus, TimerHit (for
                         break;
                     }
                 }
+
+                // My altitude encoder runs -90 to +90
+                if ((AltAz.alt > 90.0) || (AltAz.alt < -90.0))
+                {
+                    DEBUG(DBG_SIMULATOR, "TimerHit tracking - Altitude out of range");
+                    // This should not happen
+                    return;
+                }
+
+                // My polar encoder runs 0 to +360
+                if ((AltAz.az > 360.0) || (AltAz.az < -360.0))
+                {
+                    DEBUG(DBG_SIMULATOR, "TimerHit tracking - Azimuth out of range");
+                    // This should not happen
+                    return;
+                }
+
+                if (AltAz.az < 0.0)
+                {
+                    DEBUG(DBG_SIMULATOR, "TimerHit tracking - Azimuth negative");
+                    AltAz.az = 360.0 + AltAz.az;
+                }
+
                 long AltitudeOffsetMicrosteps = int(AltAz.alt * MICROSTEPS_PER_DEGREE - CurrentEncoderMicrostepsDEC);
                 long AzimuthOffsetMicrosteps = int(AltAz.az * MICROSTEPS_PER_DEGREE - CurrentEncoderMicrostepsRA);
 
-                if (AzimuthOffsetMicrosteps > MICROSTEPS_PER_REVOLUTION / 2)
-                {
-                    // Going the long way round - send it the other way
-                    AzimuthOffsetMicrosteps -= MICROSTEPS_PER_REVOLUTION;
-                }
+                DEBUGF(DBG_SIMULATOR, "TimerHit - Tracking AltitudeOffsetMicrosteps %d AzimuthOffsetMicrosteps %d",
+                        AltitudeOffsetMicrosteps, AzimuthOffsetMicrosteps);
+
                 if (0 != AzimuthOffsetMicrosteps)
                 {
                     // Calculate the slewing rates needed to reach that position
                     // at the correct time. This is simple as interval is one second
+                    if (AzimuthOffsetMicrosteps > 0)
+                    {
+                        if (AzimuthOffsetMicrosteps < MICROSTEPS_PER_REVOLUTION / 2.0)
+                        {
+                            // Foward
+                            AxisDirectionRA = FORWARD;
+                            AxisSlewRateRA = AzimuthOffsetMicrosteps;
+                        }
+                        else
+                        {
+                            // Reverse
+                            AxisDirectionRA = REVERSE;
+                            AxisSlewRateRA = MICROSTEPS_PER_REVOLUTION - AzimuthOffsetMicrosteps;
+                        }
+                    }
+                    else
+                    {
+                        AzimuthOffsetMicrosteps = abs(AzimuthOffsetMicrosteps);
+                        if (AzimuthOffsetMicrosteps < MICROSTEPS_PER_REVOLUTION / 2.0)
+                        {
+                            // Foward
+                            AxisDirectionRA = REVERSE;
+                            AxisSlewRateRA = AzimuthOffsetMicrosteps;
+                        }
+                        else
+                        {
+                            // Reverse
+                            AxisDirectionRA = FORWARD;
+                            AxisSlewRateRA = MICROSTEPS_PER_REVOLUTION - AzimuthOffsetMicrosteps;
+                        }
+                    }
                     AxisSlewRateRA = abs(AzimuthOffsetMicrosteps);
                     AxisDirectionRA = AzimuthOffsetMicrosteps > 0 ? FORWARD : REVERSE;  // !!!! BEWARE INERTIA FREE MOUNT
+                    AxisStatusRA = SLEWING;
+                    DEBUGF(DBG_SIMULATOR, "TimerHit - Tracking AxisSlewRateRA %lf AxisDirectionRA %d",
+                        AxisSlewRateRA, AxisDirectionRA);
                 }
                 else
                 {
                     // Nothing to do - stop the axis
                     AxisStatusRA = STOPPED; // !!!! BEWARE INERTIA FREE MOUNT
+                    DEBUG(DBG_SIMULATOR, "TimerHit - Tracking nothing to do stopping RA axis");
                 }
 
-                if (AltitudeOffsetMicrosteps > MICROSTEPS_PER_REVOLUTION / 2)
-                {
-                    // Going the long way round - send it the other way
-                    AltitudeOffsetMicrosteps -= MICROSTEPS_PER_REVOLUTION;
-                }
                 if (0 != AltitudeOffsetMicrosteps)
                 {
                      // Calculate the slewing rates needed to reach that position
                     // at the correct time.
                     AxisSlewRateDEC = abs(AltitudeOffsetMicrosteps);
                     AxisDirectionDEC = AltitudeOffsetMicrosteps > 0 ? FORWARD : REVERSE;  // !!!! BEWARE INERTIA FREE MOUNT
+                    AxisStatusDEC = SLEWING;
+                    DEBUGF(DBG_SIMULATOR, "TimerHit - Tracking AxisSlewRateDEC %lf AxisDirectionDEC %d",
+                        AxisSlewRateDEC, AxisDirectionDEC);
                 }
                 else
                 {
                     // Nothing to do - stop the axis
                     AxisStatusDEC = STOPPED;  // !!!! BEWARE INERTIA FREE MOUNT
+                    DEBUG(DBG_SIMULATOR, "TimerHit - Tracking nothing to do stopping DEC axis");
                 }
 
-                OldTrackingTargetMicrostepsDEC = AzimuthOffsetMicrosteps + CurrentEncoderMicrostepsRA;
-                OldTrackingTargetMicrostepsDEC = AltitudeOffsetMicrosteps + CurrentEncoderMicrostepsDEC;
                 break;
             }
 
             default:
                 break;
         }
-    }
 
     bool ScopeSim::Goto(double ra,double dec)
     {
+
+        DEBUGF(DBG_SIMULATOR, "Goto - Celestial reference frame target right ascension %lf(%lf) declination %lf", ra * 360.0 / 24.0, ra, dec);
+
         if (ISS_ON == IUFindSwitch(&CoordSP,"TRACK")->s)
         {
             char RAStr[32], DecStr[32];
@@ -390,6 +494,7 @@ The final step is to add coordinate conversion to ReadScopeStatus, TimerHit (for
             fs_sexa(DecStr, dec, 2, 3600);
             CurrentTrackingTarget.ra = ra;
             CurrentTrackingTarget.dec = dec;
+            DEBUG(DBG_SIMULATOR, "Goto - tracking requested");
         }
 
         // Call the alignment subsystem to translate the celestial reference frame coordinate
@@ -450,26 +555,52 @@ The final step is to add coordinate conversion to ReadScopeStatus, TimerHit (for
             }
         }
 
-        long AltitudeTargetMicrosteps = int(AltAz.alt * MICROSTEPS_PER_DEGREE);
-        long AzimuthTargetMicrosteps = int(AltAz.az * MICROSTEPS_PER_DEGREE);
-
-        // Do I need to take out any complete revolutions before I do this test?
-        if (AltitudeTargetMicrosteps > MICROSTEPS_PER_REVOLUTION / 2)
+        // My altitude encoder runs -90 to +90
+        if ((AltAz.alt > 90.0) || (AltAz.alt < -90.0))
         {
-            // Going the long way round - send it the other way
-            AltitudeTargetMicrosteps -= MICROSTEPS_PER_REVOLUTION;
+            DEBUG(DBG_SIMULATOR, "Goto - Altitude out of range");
+            // This should not happen
+            return false;
         }
 
-        if (AzimuthTargetMicrosteps > MICROSTEPS_PER_REVOLUTION / 2)
+        // My polar encoder runs 0 to +360
+        if ((AltAz.az > 360.0) || (AltAz.az < -360.0))
         {
-            // Going the long way round - send it the other way
-            AzimuthTargetMicrosteps -= MICROSTEPS_PER_REVOLUTION;
+            DEBUG(DBG_SIMULATOR, "Goto - Azimuth out of range");
+            // This should not happen
+            return false;
         }
 
-        GotoTargetMicrostepsDEC = AltitudeTargetMicrosteps;
-        AxisStatusDEC = SLEWING_TO;
-        GotoTargetMicrostepsRA = AzimuthTargetMicrosteps;
-        AxisStatusRA = SLEWING_TO;
+        if (AltAz.az < 0.0)
+        {
+            DEBUG(DBG_SIMULATOR, "Goto - Azimuth negative");
+            AltAz.az = 360.0 + AltAz.az;
+        }
+
+        DEBUGF(DBG_SIMULATOR, "Goto - Scope reference frame target altitude %lf azimuth %lf", AltAz.alt, AltAz.az);
+
+        GotoTargetMicrostepsDEC = int(AltAz.alt * MICROSTEPS_PER_DEGREE);
+        if (GotoTargetMicrostepsDEC == CurrentEncoderMicrostepsDEC)
+            AxisStatusDEC = STOPPED;
+        else
+        {
+            if (GotoTargetMicrostepsDEC > CurrentEncoderMicrostepsDEC)
+                AxisDirectionDEC = FORWARD;
+            else
+                AxisDirectionDEC = REVERSE;
+            AxisStatusDEC = SLEWING_TO;
+        }
+        GotoTargetMicrostepsRA = int(AltAz.az * MICROSTEPS_PER_DEGREE);
+        if (GotoTargetMicrostepsRA == CurrentEncoderMicrostepsRA)
+            AxisStatusRA = STOPPED;
+        else
+        {
+            if (GotoTargetMicrostepsRA > CurrentEncoderMicrostepsRA)
+                AxisDirectionRA = (GotoTargetMicrostepsRA - CurrentEncoderMicrostepsRA) < MICROSTEPS_PER_REVOLUTION / 2.0 ? FORWARD : REVERSE;
+            else
+                AxisDirectionRA = (CurrentEncoderMicrostepsRA - GotoTargetMicrostepsRA) < MICROSTEPS_PER_REVOLUTION / 2.0 ? REVERSE : FORWARD;
+            AxisStatusRA = SLEWING_TO;
+        }
 
         TrackState = SCOPE_SLEWING;
 
