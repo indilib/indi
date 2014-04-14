@@ -417,6 +417,17 @@ target_link_libraries(indi_robo_focus indidriver)
 install(TARGETS indi_robo_focus RUNTIME DESTINATION bin )
 
 
+################ Rigelsys NFocus Focuser ################
+
+set(nfocus_SRCS
+        ${CMAKE_SOURCE_DIR}/drivers/focuser/nfocus.cpp
+   )
+
+add_executable(indi_nfocus ${nfocus_SRCS})
+target_link_libraries(indi_nfocus indidriver)
+install(TARGETS indi_nfocus RUNTIME DESTINATION bin )
+
+
 ################ Moonlite Focuser ################
 
 set(moonlite_SRCS

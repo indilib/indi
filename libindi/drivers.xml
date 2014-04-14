@@ -133,6 +133,10 @@
                 <driver name="RoboFocus">indi_robo_focus</driver>
 		<version>1.0</version>
 	</device>
+	<device label="Rigelsys NFocus">
+                <driver name="Rigelsys NFocus">indi_nfocus</driver>
+		<version>1.0</version>
+	</device>
         <device label="MoonLite">
                 <driver name="MoonLite">indi_moonlite_focus</driver>
                 <version>1.0</version>
