@@ -1244,7 +1244,6 @@ bool Ujari::Sync(double ra,double dec)
 
 bool Ujari::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
-  bool compose=true;
   //  first check if it's for our device
   if(strcmp(dev,getDeviceName())==0)
     {

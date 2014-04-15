@@ -24,6 +24,7 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <unistd.h>
 #include <errno.h>
 
 #include "amccontroller.h"
@@ -169,9 +170,19 @@ bool AMCController::connect()
     rc = enableWriteAccess();
 
     if (rc == false)
+    {
+        close (fd);
         return rc;
+    }
 
     rc = enableBridge();
+
+    if (rc == false)
+        close (fd);
+
+    connection_status = 0;
+
+    setupDriveParameters();
 
     return rc;
 }
@@ -196,8 +207,7 @@ void AMCController::disconnect()
 *****************************************************************/
 bool AMCController::enableWriteAccess()
 {
-    int err=0, nbytes_written=0;
-    char errmsg[MAXRBUF];
+    int nbytes_written=0;
 
     // Address 07.00h
     // Offset 0
@@ -255,9 +265,10 @@ bool AMCController::enableWriteAccess()
     command[10] =  accum >> 8;
     command[11] =  accum & 0xFF;
 
-    char * buf = (char *) command;
+    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "EnableWriteAccess Command: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
+                     command[0], command[1],command[2],command[3],command[4],command[5],command[6],command[7],command[8],command[9],command[10],command[11]);
 
-    if ( (nbytes_written = send(fd, buf, 12, 0)) !=  12)
+    if ( (nbytes_written = send(fd, command, 12, 0)) !=  12)
     {
         DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error gaining write access to %s drive. %s", type_name.c_str(), strerror(errno));
         return false;
@@ -331,9 +342,10 @@ bool AMCController::enableBridge()
     command[10] = 0;
     command[11] = 0;
 
-    char * buf = (char *) command;
+    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "EnableBridge Command: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
+                     command[0], command[1],command[2],command[3],command[4],command[5],command[6],command[7],command[8],command[9],command[10],command[11]);
 
-    if ( (nbytes_written = send(fd, buf, 12, 0)) != 12)
+    if ( (nbytes_written = send(fd, command, 12, 0)) != 12)
     {
         DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error gaining write access to %s drive. %s", type_name.c_str(), strerror(errno));
         return false;
@@ -356,8 +368,7 @@ bool AMCController::enableBridge()
 *****************************************************************/
 bool AMCController::setMotion(motorMotion dir)
 {
-    int err=0, nbytes_written=0;
-    char errmsg[MAXRBUF];
+    int nbytes_written=0;
 
     // Address 45.00h
     // Offset 0
@@ -421,9 +432,10 @@ bool AMCController::setMotion(motorMotion dir)
     command[12] =  accum >> 8;
     command[13] =  accum & 0xFF;
 
-    char * buf = (char *) command;
+    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "SetMotion Command: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
+                     command[0], command[1],command[2],command[3],command[4],command[5],command[6],command[7],command[8],command[9],command[10],command[11],command[12],command[13]);
 
-    if ( (nbytes_written = send(fd, buf, 13, 0)) != 13)
+    if ( (nbytes_written = send(fd, command, 14, 0)) != 14)
     {
         DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error writing velocity to %s drive. %s", type_name.c_str(), strerror(errno));
         MotionControlSP.s = IPS_ALERT;
@@ -468,6 +480,7 @@ bool AMCController::move_forward()
         return true;
     }
 
+    targetRPM = MotorSpeedN[0].value;
 
     bool rc = setMotion(MOTOR_FORWARD);
 
@@ -501,6 +514,8 @@ bool AMCController::move_reverse()
         return true;
     }
 
+
+    targetRPM = MotorSpeedN[0].value;
 
     bool rc = setMotion(MOTOR_REVERSE);
 
@@ -581,7 +596,7 @@ bool AMCController::set_speed(double rpm)
             move_reverse();
     }
 
-    return false;
+    return true;
 }
 
 bool AMCController::isMotionActive()
@@ -625,7 +640,17 @@ bool AMCController::ISNewNumber (const char *dev, const char *name, double value
 {
     if (!strcmp(MotorSpeedNP.name, name))
     {
-        set_speed(values[0]);
+        bool rc = set_speed(values[0]);
+
+        if (rc)
+        {
+            IUUpdateNumber(&MotorSpeedNP, values, names, n);
+            MotorSpeedNP.s = IPS_OK;
+        }
+        else
+            MotorSpeedNP.s = IPS_ALERT;
+
+        IDSetNumber(&MotorSpeedNP, NULL);
 
         return true;
     }
@@ -717,14 +742,14 @@ int AMCController::openRS485Server (const char * host, int rs485_port)
     serv_addr.sin_port = htons(rs485_port);
     if ((sockfd = socket (AF_INET, SOCK_STREAM, 0)) < 0)
     {
-        fprintf (stderr, "socket(%s,%d): %s\n", host, rs485_port,strerror(errno));
+        DEBUGFDEVICE (telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "socket(%s,%d): %s", host, rs485_port,strerror(errno));
         return -1;
     }
 
     /* connect */
     if (::connect (sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr))<0)
     {
-        fprintf (stderr, "connect(%s,%d): %s\n", host,rs485_port,strerror(errno));
+        DEBUGFDEVICE (telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "connect(%s,%d): %s", host,rs485_port,strerror(errno));
         return -1;
     }
 
@@ -859,9 +884,11 @@ bool AMCController::setAcceleration(motorMotion dir, double rpmAcceleration)
     command[14] =  accum >> 8;
     command[15] =  accum & 0xFF;
 
-    char * buf = (char *) command;
+    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "setAcceleration Command: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
+                     command[0], command[1],command[2],command[3],command[4],command[5],command[6],command[7],command[8],command[9],command[10],command[11],command[12],command[13],command[14],command[15]);
 
-    if ( (nbytes_written = send(fd, buf, 16, 0)) != 16)
+
+    if ( (nbytes_written = send(fd, command, 16, 0)) != 16)
     {
         DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error writing acceleration to %s drive. %s", type_name.c_str(), strerror(errno));
         return false;
@@ -959,9 +986,10 @@ bool AMCController::setDeceleration(motorMotion dir, double rpmDeAcceleration)
     command[14] =  accum >> 8;
     command[15] =  accum & 0xFF;
 
-    char *buf = (char *) command;
+    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "Set Decelration Command: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
+                     command[0], command[1],command[2],command[3],command[4],command[5],command[6],command[7],command[8],command[9],command[10],command[11],command[12],command[13],command[14],command[15]);
 
-    if ( (nbytes_written = send(fd, buf, 16, 0)) != 16)
+    if ( (nbytes_written = send(fd, command, 16, 0)) != 16)
     {
         tty_error_msg(err, errmsg, MAXRBUF);
         DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error writing deceleration to %s drive. %s", type_name.c_str(), errmsg);
@@ -1011,7 +1039,7 @@ void AMCController::CrunchCRC (char x)
 
 AMCController::driveStatus AMCController::readDriveStatus()
 {
-    char response[8];
+    unsigned char response[8];
     int nbytes_read=0;
 
     fd_set          rd;
@@ -1026,42 +1054,54 @@ AMCController::driveStatus AMCController::readDriveStatus()
     FD_ZERO(&rd);
     FD_SET(fd, &rd);
 
-    rc = select(fd + 1, &rd, NULL, NULL, &t);
-    if (rc == -1)
+    for (int retry=0; retry < 3; retry++)
     {
-      /* select( ) error */
-        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveStatus: select() error %s.", strerror(errno));
-        return AMC_COMM_ERROR;
-    }
-    else if (rc == 0)
-    {
-      /* no input available */
-        DEBUGDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveStatus: No input available.");
-        return AMC_COMM_ERROR;
-    }
-    else if (FD_ISSET(fd, &rd))
-    {
-        if ( (nbytes_read = recv(fd, response, 8, 0)) <= 0)
+        rc = select(fd + 1, &rd, NULL, NULL, &t);
+        if (rc == -1)
         {
-            // RS485 server disconnected
-            if (nbytes_read == 0)
-                DEBUGDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveStatus: Lost connection to RS485 server.");
-            else
-                DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveStatus: read error: %s", strerror(errno));
+          /* select( ) error */
+            DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveStatus: select() error %s.", strerror(errno));
             return AMC_COMM_ERROR;
         }
+        else if (rc == 0)
+        {
+          /* no input available */
+            DEBUGDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveStatus: No input available.");
+            return AMC_COMM_ERROR;
+        }
+        else if (FD_ISSET(fd, &rd))
+        {
+            if ( (nbytes_read += recv(fd, response+nbytes_read, 8-nbytes_read, 0)) <= 0)
+            {
+                // RS485 server disconnected
+                if (nbytes_read == 0)
+                    DEBUGDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveStatus: Lost connection to RS485 server.");
+                else
+                    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveStatus: read error: %s", strerror(errno));
+                return AMC_COMM_ERROR;
+            }
 
-        if (nbytes_read != 8)
-        {
-            DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveStatus: nbytes read is %d while it should be 8", nbytes_read);
-            return AMC_COMM_ERROR;
-        }
+            if (nbytes_read != 8)
+                continue;
 
-        if (response[0] != SOF)
-        {
-            DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveStatus: Invalid Start of Frame %c", response[0]);
-            return AMC_COMM_ERROR;
+            for (int i=0; i < nbytes_read; i++)
+                DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "response[%d]=%02X", i, response[i]);
+
+            if (response[0] != SOF)
+            {
+                DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveStatus: Invalid Start of Frame %02X (%s,%d)", response[0], response, nbytes_read);
+                return AMC_COMM_ERROR;
+            }
+
+            break;
         }
+    }
+
+    if (nbytes_read != 8)
+    {
+
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveStatus: nbytes read is %d while it should be 8", nbytes_read);
+        return AMC_COMM_ERROR;
     }
 
     if (response[3] == 0x01)
