@@ -1012,29 +1012,56 @@ void AMCController::CrunchCRC (char x)
 AMCController::driveStatus AMCController::readDriveStatus()
 {
     char response[8];
-    //char errmsg[MAXRBUF];
-    int /*err=0, */ nbytes_read=0;
+    int nbytes_read=0;
 
-    if ( (nbytes_read = recv(fd, response, 8, 0)) <= 0)
+    fd_set          rd;
+    int             rc;
+    struct timeval  t;
+
+    /* 3 second waiting */
+    t.tv_sec = 3;
+    t.tv_usec = 0;
+
+    /* set descriptor */
+    FD_ZERO(&rd);
+    FD_SET(fd, &rd);
+
+    rc = select(fd + 1, &rd, NULL, NULL, &t);
+    if (rc == -1)
     {
-        // RS485 server disconnected
-        if (nbytes_read == 0)
-            DEBUGDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveStatus: Lost connection to RS485 server.");
-        else
-            DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveStatus: read error: %s", strerror(errno));
+      /* select( ) error */
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveStatus: select() error %s.", strerror(errno));
         return AMC_COMM_ERROR;
     }
-
-    if (nbytes_read != 8)
+    else if (rc == 0)
     {
-        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveStatus: nbytes read is %d while it should be 8", nbytes_read);
+      /* no input available */
+        DEBUGDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveStatus: No input available.");
         return AMC_COMM_ERROR;
     }
-
-    if (response[0] != SOF)
+    else if (FD_ISSET(fd, &rd))
     {
-        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveStatus: Invalid Start of Frame %c", response[0]);
-        return AMC_COMM_ERROR;
+        if ( (nbytes_read = recv(fd, response, 8, 0)) <= 0)
+        {
+            // RS485 server disconnected
+            if (nbytes_read == 0)
+                DEBUGDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveStatus: Lost connection to RS485 server.");
+            else
+                DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveStatus: read error: %s", strerror(errno));
+            return AMC_COMM_ERROR;
+        }
+
+        if (nbytes_read != 8)
+        {
+            DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveStatus: nbytes read is %d while it should be 8", nbytes_read);
+            return AMC_COMM_ERROR;
+        }
+
+        if (response[0] != SOF)
+        {
+            DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveStatus: Invalid Start of Frame %c", response[0]);
+            return AMC_COMM_ERROR;
+        }
     }
 
     if (response[3] == 0x01)
