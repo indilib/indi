@@ -407,7 +407,8 @@ bool AMCController::setMotion(motorMotion dir)
     ******************************/
 
     // Formula to calculate drive velocity from AMC
-    int velocityValue = round ((dir == MOTOR_FORWARD ? targetRPM : targetRPM * -1) * S_FACTOR * pow(2, 13) / 10);
+    //int velocityValue = round ((dir == MOTOR_FORWARD ? targetRPM : targetRPM * -1) * S_FACTOR * pow(2, 13) / 10);
+    int velocityValue = round ((dir == MOTOR_FORWARD ? targetRPM : targetRPM * -1) * pow(2, 14));
 
     // Break it down into 32bit signed integer (4 bytes) starting with LSB
     command[8] = velocityValue & 0xFF;
@@ -806,8 +807,7 @@ bool AMCController::setupDriveParameters()
 
 bool AMCController::setAcceleration(motorMotion dir, double rpmAcceleration)
 {
-    int err=0, nbytes_written=0;
-    char errmsg[MAXRBUF];
+    int nbytes_written=0;
 
     /*****************************
     *** START OF HEADER SECTION **
@@ -861,7 +861,7 @@ bool AMCController::setAcceleration(motorMotion dir, double rpmAcceleration)
     ******************************/
 
     // Formula to calculate drive acceleration from AMC
-    unsigned long accelValue = round (rpmAcceleration * S_FACTOR * pow(2, 29) / pow(10, 5));
+    unsigned long accelValue = round (rpmAcceleration * S_FACTOR * pow(2, 29) / pow(10, 3));
 
     // Break it down into 48bit unsigned integer (6 bytes) starting with LSB
     command[8] = accelValue & 0xFF;
@@ -908,8 +908,7 @@ bool AMCController::setAcceleration(motorMotion dir, double rpmAcceleration)
 
 bool AMCController::setDeceleration(motorMotion dir, double rpmDeAcceleration)
 {
-    int err=0, nbytes_written=0;
-    char errmsg[MAXRBUF];
+    int nbytes_written=0;
 
     /*****************************
     *** START OF HEADER SECTION **
@@ -963,7 +962,7 @@ bool AMCController::setDeceleration(motorMotion dir, double rpmDeAcceleration)
     ******************************/
 
     // Formula to calculate drive acceleration from AMC
-    unsigned long accelValue = rpmDeAcceleration * S_FACTOR * pow(2, 29) / pow(10, 5);
+    unsigned long accelValue = rpmDeAcceleration * S_FACTOR * pow(2, 29) / pow(10, 3);
 
     // Break it down into 48bit unsigned integer (6 bytes) starting with LSB
     command[8] = accelValue & 0xFF;
@@ -991,8 +990,7 @@ bool AMCController::setDeceleration(motorMotion dir, double rpmDeAcceleration)
 
     if ( (nbytes_written = send(fd, command, 16, 0)) != 16)
     {
-        tty_error_msg(err, errmsg, MAXRBUF);
-        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error writing deceleration to %s drive. %s", type_name.c_str(), errmsg);
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error writing deceleration to %s drive. %s", type_name.c_str(), strerror(errno));
         return false;
     }
 
