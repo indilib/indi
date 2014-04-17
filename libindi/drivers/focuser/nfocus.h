@@ -55,7 +55,6 @@ private:
 
     int PortFD;
 
-//    unsigned char CheckSum(char *rf_cmd);
     unsigned char CalculateSum(char *rf_cmd);
     int SendCommand(char *rf_cmd);
     int SendRequest(char *rf_cmd);
@@ -84,10 +83,6 @@ private:
 
     INumber SettingsN[3];
     INumberVectorProperty SettingsNP;
-
-// kraemerf
-//    ISwitch PowerSwitchesS[4];
-//    ISwitchVectorProperty PowerSwitchesSP;
 
     INumber MinMaxPositionN[2];
     INumberVectorProperty MinMaxPositionNP;

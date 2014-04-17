@@ -40,7 +40,7 @@
 #define NF_MAX_TRIES    3
 #define NF_MAX_DELAY    100000
 
-#define BACKLASH_READOUT 99999
+#define BACKLASH_READOUT 0
 #define MAXTRAVEL_READOUT 99999
 #define INOUTSCALAR_READOUT 1
 
@@ -70,7 +70,6 @@ std::auto_ptr<NFocus> nFocus(0);
 
      isInit = 1;
      if(nFocus.get() == 0) nFocus.reset(new NFocus());
-     //IEAddTimer(POLLMS, ISPoll, NULL);
 
  }
 
@@ -145,15 +144,13 @@ bool NFocus::initProperties()
     IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     /* Timed move Settings */
-/* kraemerf */
     IUFillNumber(&FocusTimerN[0],"FOCUS_TIMER_VALUE","Focus Timer","%5.0f",0.0,10000.0,10.0,10000.0);
     IUFillNumberVector(&FocusTimerNP,FocusTimerN,1,getDeviceName(),"FOCUS_TIMER","Timer",MAIN_CONTROL_TAB,IP_RW,60,IPS_OK);
 
     /* Settings of the Nfocus */
-/* kraemerf */
-    IUFillNumber(&SettingsN[0], "ON time", "ON waiting time", "%6.0f", 10., 250., 0., 1.0);
-    IUFillNumber(&SettingsN[1], "OFF time", "OFF waiting time", "%6.0f", 1., 250., 0., 1.0);
-    IUFillNumber(&SettingsN[2], "Fast Mode Delay", "Fast Mode Delay", "%6.0f", 0., 255., 0., 1.0);
+    IUFillNumber(&SettingsN[0], "ON time", "ON waiting time", "%6.0f", 10., 250., 0., 73.);
+    IUFillNumber(&SettingsN[1], "OFF time", "OFF waiting time", "%6.0f", 1., 250., 0., 15.);
+    IUFillNumber(&SettingsN[2], "Fast Mode Delay", "Fast Mode Delay", "%6.0f", 0., 255., 0., 9.);
     IUFillNumberVector(&SettingsNP, SettingsN, 3, getDeviceName(), "FOCUS_SETTINGS", "Settings", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     /* tick scaling factor. Inward dir ticks times this factor is considered to 
@@ -212,7 +209,6 @@ bool NFocus::updateProperties()
     if (isConnected())
     {
         defineNumber(&TemperatureNP);
-        //defineSwitch(&PowerSwitchesSP);
         defineNumber(&SettingsNP);
         defineNumber(&InOutScalarNP);
         defineNumber(&MinMaxPositionNP);
@@ -232,7 +228,6 @@ bool NFocus::updateProperties()
         deleteProperty(TemperatureNP.name);
         deleteProperty(SettingsNP.name);
         deleteProperty(InOutScalarNP.name);
-        //deleteProperty(PowerSwitchesSP.name);
         deleteProperty(MinMaxPositionNP.name);
         deleteProperty(MaxTravelNP.name);
         deleteProperty(SetRegisterPositionNP.name);
@@ -286,7 +281,6 @@ const char * NFocus::getDefaultName()
     return "NFocus";
 }
 
-/* kraemerf - hier mit Laengenbegrenzung!!! */
 int NFocus::SendCommand(char *rf_cmd)
 {
 
@@ -296,7 +290,7 @@ int NFocus::SendCommand(char *rf_cmd)
 
   if (isDebug())
   {
-   fprintf(stderr, "strlen(rf_cmd) %ld\n", strlen(rf_cmd)) ;
+   fprintf(stderr, "strlen(rf_cmd) %d\n", strlen(rf_cmd)) ;
    fprintf(stderr, "WRITE: ") ;
    for(int i=0; i < strlen(rf_cmd); i++)
    {
@@ -359,8 +353,6 @@ int NFocus::ReadResponse(char *buf, int nbytes, int timeout)
 ;
   while (totalBytesRead < nbytes)
   {
-      //IDLog("Nbytes: %d\n", nbytes);
-
       if ( (err_code = tty_read(PortFD, buf+totalBytesRead, nbytes-totalBytesRead, timeout, &bytesRead)) != TTY_OK)
       {
               tty_error_msg(err_code, nfocus_error, MAXRBUF);
@@ -472,8 +464,7 @@ int NFocus::updateNFMotorSettings(double *onTime, double *offTime, double *fastD
   if ((ret_read_tmp= SendCommand( rf_cmd)) < 0)
     return ret_read_tmp;
 
-  //sprintf(rf_cmd, ":RO\0");
-  strncpy(rf_cmd, ":RO", 3);
+  strncpy(rf_cmd, ":RO\0", 4);
   if ((ret_read_tmp= SendRequest( rf_cmd)) < 0)
     return ret_read_tmp;
  
@@ -490,8 +481,7 @@ int NFocus::updateNFMotorSettings(double *onTime, double *offTime, double *fastD
   if ((ret_read_tmp= SendCommand( rf_cmd)) < 0)
     return ret_read_tmp;
 
-  //sprintf(rf_cmd, ":RF\0");
-  strncpy(rf_cmd, ":RF", 3);
+  strncpy(rf_cmd, ":RF\0", 4);
   if ((ret_read_tmp= SendRequest( rf_cmd)) < 0)
     return ret_read_tmp;
  
@@ -504,8 +494,7 @@ int NFocus::updateNFMotorSettings(double *onTime, double *offTime, double *fastD
   if ((ret_read_tmp= SendCommand( rf_cmd)) < 0)
     return ret_read_tmp;
 
-  //sprintf(rf_cmd, ":RS\0");
-  strncpy(rf_cmd, ":RS", 3);
+  strncpy(rf_cmd, ":RS\0", 4);
   if ((ret_read_tmp= SendRequest( rf_cmd)) < 0)
     return ret_read_tmp;
  
@@ -526,13 +515,10 @@ int NFocus::updateNFPositionRelativeInward(double *value)
   int newval = (int)(currentInOutScalar * (*value));
   IDMessage(getDeviceName(),"Moving %d real steps but virtually counting %.0f\n",newval,*value);
 
- /* kraemerf */
   do {
     if ( newval > 999) { 
-      //sprintf( rf_cmd, ":F01999#\0") ;
-        strncpy(rf_cmd, ":F01999#", 8) ;
+        strncpy(rf_cmd, ":F01999#\0", 9) ;
       newval -= 999;
-//      currentPosition -= 999;
     } else if(newval > 99) {
       snprintf( rf_cmd, 32, ":F01%3d#", (int) newval) ;
       newval = 0;
@@ -548,8 +534,7 @@ int NFocus::updateNFPositionRelativeInward(double *value)
       return ret_read_tmp;
     
     do {
-     //sprintf( rf_cmd, "S\0" );
-     strncpy(rf_cmd, "S", 1);
+     strncpy(rf_cmd, "S\0", 2);
      if ((ret_read_tmp= SendRequest( rf_cmd)) < 0)
        return ret_read_tmp;
     } while ( (int)atoi(rf_cmd) );
@@ -571,10 +556,8 @@ int NFocus::updateNFPositionRelativeOutward(double *value)
   int newval = (int)(*value);
   do {
     if ( newval > 999) { 
-      //sprintf( rf_cmd, ":F11999#\0") ;
-        strncpy( rf_cmd, ":F11999#", 8) ;
+      strncpy( rf_cmd, ":F11999#\0", 9) ;
       newval -= 999;
-    //  currentPosition += 999;
     } else if(newval > 99) {
       snprintf( rf_cmd, 32, ":F11%3d#", (int) newval) ;
       newval = 0;
@@ -590,8 +573,7 @@ int NFocus::updateNFPositionRelativeOutward(double *value)
       return ret_read_tmp;
   
     do {
-     //sprintf( rf_cmd, "S\0" );
-        strncpy(rf_cmd, "S", 1);
+     strncpy(rf_cmd, "S\0", 2);
      if ((ret_read_tmp= SendRequest( rf_cmd)) < 0)
        return ret_read_tmp;
     } while ( (int)atoi(rf_cmd) );
