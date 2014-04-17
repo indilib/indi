@@ -23,13 +23,13 @@
 #ifndef INVERTER_H
 #define INVERTER_H
 
-#include <modbus.h>
-
 #include <indidevapi.h>
 #include <indicom.h>
 #include <string>
 #include <bitset>
 #include <iostream>
+
+#include "hy_modbus.h"
 
 using namespace std;
 
@@ -65,8 +65,8 @@ class Inverter
         void setSimulation(bool enable);
         bool isSimulation() { return simulation;}
 
-        void enable_debug() { debug = true; if (mb_param != NULL) modbus_set_debug(mb_param, debug); }
-        void disable_debug() { debug = false; if (mb_param != NULL) modbus_set_debug(mb_param, debug);}
+        void enable_debug() { debug = true; mb_param.debug = 1; }
+        void disable_debug() { debug = false; mb_param.debug = 0;}
 
         // Standard INDI interface fucntions
         virtual bool initProperties();
@@ -116,16 +116,15 @@ class Inverter
         string reverse_motion;
         string default_port;
 
-        modbus_t * mb_param;
+        //modbus_t * mb_param;
+
+        modbus_param_t mb_param;
+        modbus_data_t mb_data;
 
         uint SLAVE_ADDRESS;
-        const uint WRITE_ADDRESS;
-        const uint READ_ADDRESS;
-        const uint CONTROL_ADDRESS;
 
         // Stop, Forward, Reverse
-        uint8_t MotionCommand[1];
-        uint8_t Hz_Speed_Register[3];
+        inverterMotion motionStatus;
 
         Ujari *telescope;
 
