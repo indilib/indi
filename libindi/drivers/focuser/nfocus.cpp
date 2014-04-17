@@ -290,7 +290,7 @@ int NFocus::SendCommand(char *rf_cmd)
 
   if (isDebug())
   {
-   fprintf(stderr, "strlen(rf_cmd) %d\n", strlen(rf_cmd)) ;
+   fprintf(stderr, "strlen(rf_cmd) %ld\n", strlen(rf_cmd)) ;
    fprintf(stderr, "WRITE: ") ;
    for(int i=0; i < strlen(rf_cmd); i++)
    {
