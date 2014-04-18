@@ -502,6 +502,7 @@ Group::Group(int id) {
 bool Group::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) {
   if (strcmp(name, groupSettingsName) == 0) {
     IUUpdateNumber(&GroupSettingsNP, values, names, n);
+    GroupSettingsNP.s = IPS_OK;
     IDSetNumber(&GroupSettingsNP, NULL);
     return true;
   }
