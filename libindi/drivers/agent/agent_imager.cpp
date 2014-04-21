@@ -20,7 +20,7 @@
 
 #include "agent_imager.h"
 
-#define DEVICE_NAME       "Imager"
+#define DEVICE_NAME       "Imager Agent"
 #define DOWNLOAD_TAB      "Download images"
 #define IMAGE_NAME        "%s/img_%d_%03d%s"
 
@@ -92,6 +92,31 @@ bool Imager::isFilterConnected() {
 Imager::~Imager() {
 }
 
+void Imager::initiateNextFilter() {
+  if (isRunning()) {
+    if (group > 0 && image > 0 && group <= maxGroup && image <= maxImage) {
+      INumber *groupSettings = groups[group - 1]->GroupSettingsN;
+      int filterSlot = groupSettings[2].value;
+      if (!isFilterConnected()) {
+        if (filterSlot) {
+          ProgressNP.s = IPS_ALERT;
+          IDSetNumber(&ProgressNP, "Filter wheel is not connected");
+          return;
+        } else {
+          initiateNextCapture();
+        }
+      }
+      if (filterSlot && FilterSlotN[0].value != filterSlot) {
+        FilterSlotN[0].value = filterSlot;
+        sendNewNumber(&FilterSlotNP);
+//        IDLog("Group %d of %d, image %d of %d, filer %d, filter set initiated on %s\n", group, maxGroup, image, maxImage, (int)FilterSlotN[0].value, FilterSlotNP.device);
+      } else {
+        initiateNextCapture();
+      }
+    }
+  }
+}
+
 void Imager::initiateNextCapture() {
   if (isRunning()) {
     if (group > 0 && image > 0 && group <= maxGroup && image <= maxImage) {
@@ -101,20 +126,11 @@ void Imager::initiateNextCapture() {
         return;
       }
       INumber *groupSettings = groups[group - 1]->GroupSettingsN;
-      int filterSlot = groupSettings[2].value;
-      if (!isFilterConnected() && filterSlot) {
-        ProgressNP.s = IPS_ALERT;
-        IDSetNumber(&ProgressNP, "Filter wheel is not connected");
-        return;
-      }
       CCDImageBinN[0].value = CCDImageBinN[1].value = groupSettings[1].value;
-      if (filterSlot)
-        FilterSlotN[0].value = filterSlot;
       CCDImageExposureN[0].value = groupSettings[3].value;
       sendNewNumber(&CCDImageBinNP);
-      sendNewNumber(&FilterSlotNP);
       sendNewNumber(&CCDImageExposureNP);
-//      IDLog("Group %d of %d, image %d of %d, durarion %.1gs, binning %d, filer %d, capture initiated on %s\n", group, maxGroup, image, maxImage, CCDImageExposureN[0].value, (int)CCDImageBinN[0].value, (int)FilterSlotN[0].value, CCDImageExposureNP.device);
+//      IDLog("Group %d of %d, image %d of %d, duration %.1gs, binning %d, capture initiated on %s\n", group, maxGroup, image, maxImage, CCDImageExposureN[0].value, (int)CCDImageBinN[0].value,CCDImageExposureNP.device);
     }
   }
 }
@@ -126,19 +142,17 @@ void Imager::startBatch() {
   maxImage = (int)groups[group - 1]->GroupSettingsN[0].value;
   ProgressNP.s = IPS_BUSY;
   IDSetNumber(&ProgressNP, NULL);
-  initiateNextCapture();
+  initiateNextFilter();
 }
 
 void Imager::abortBatch() {
   ProgressNP.s = IPS_ALERT;
-  IDSetNumber(&ProgressNP, NULL);
-//  IDLog("Batch aborted\n");
+  IDSetNumber(&ProgressNP, "Batch aborted");
 }
 
 void Imager::batchDone() {
   ProgressNP.s = IPS_OK;
-  IDSetNumber(&ProgressNP, NULL);
-//  IDLog("Batch done\n");
+  IDSetNumber(&ProgressNP, "Batch done");
 }
 
 void Imager::initiateDownload() {
@@ -161,7 +175,7 @@ void Imager::initiateDownload() {
     remove(name);
 //    IDLog("Group %d, image %d, download initiated\n", group, image);
     DownloadNP.s = IPS_BUSY;
-    IDSetNumber(&DownloadNP, NULL);
+    IDSetNumber(&DownloadNP, "Download initiated");
     strcpy(FitsB[0].format, format);
     FitsB[0].blob = data;
     FitsB[0].bloblen = FitsB[0].size = size;
@@ -430,12 +444,12 @@ void Imager::newBLOB(IBLOB *bp) {
         ProgressN[0].value = group = group + 1;
         ProgressN[1].value = image = 1;
         IDSetNumber(&ProgressNP, NULL);
-        initiateNextCapture();
+        initiateNextFilter();
       }
     } else {
       ProgressN[1].value = image = image + 1;
       IDSetNumber(&ProgressNP, NULL);
-      initiateNextCapture();
+      initiateNextFilter();
     }
   }
 }
@@ -467,6 +481,12 @@ void Imager::newNumber(INumberVectorProperty *nvp) {
     if (!strcmp(nvp->name, "CCD_EXPOSURE")) {
       ProgressN[2].value = nvp->np[0].value;
       IDSetNumber(&ProgressNP, NULL);
+    }
+  } else if (!strcmp(deviceName, controlledFilterWheel)) {
+    if (!strcmp(nvp->name, "FILTER_SLOT")) {
+      FilterSlotN[0].value = nvp->np->value;
+      if (nvp->s == IPS_OK)
+        initiateNextCapture();
     }
   }
 }

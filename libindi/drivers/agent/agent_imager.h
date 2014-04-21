@@ -86,6 +86,7 @@ private:
   bool isFilterConnected();
   void defineProperties();
   void deleteProperties();
+  void initiateNextFilter();
   void initiateNextCapture();
   void startBatch();
   void abortBatch();

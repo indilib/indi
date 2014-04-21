@@ -16,7 +16,7 @@
  Boston, MA 02110-1301, USA.
  *******************************************************************************/
 
-IMAGER AGENT version 1.0
+IMAGER AGENT version 1.1
 
 Purpose of this virtual driver is an unattended capture of a batch of groups of images.
 Each group can have different settings for a number of images, binning, filter slot and
