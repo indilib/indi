@@ -41,7 +41,7 @@ class Inverter
     public:
 
         enum inverterType { DOME_INVERTER, SHUTTER_INVERTER };
-        enum inverterMotion { INVERTER_FORWARD=1, INVERTER_REVERSE, INVERTER_STOP};
+        enum inverterMotion { INVERTER_STOP, INVERTER_FORWARD, INVERTER_REVERSE};
 
 
         Inverter(inverterType new_type, Ujari *scope);

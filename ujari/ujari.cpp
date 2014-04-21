@@ -470,13 +470,15 @@ bool Ujari::updateProperties()
 
 bool Ujari::Connect()
 {
-    bool rc=false;
+    bool mount_rc=false, dome_rc=false, shutter_rc=false;
 
     if(isConnected()) return true;
 
     try
     {
-      rc = mount->Connect();
+      mount_rc = mount->Connect();
+      dome_rc = true; //dome->connect();
+      shutter_rc = true;//shutter->connect();
     } catch(UjariError e)
     {
       return(e.DefaultHandleException(this));
@@ -485,7 +487,7 @@ bool Ujari::Connect()
     DEBUG(INDI::Logger::DBG_SESSION, "Successfully connected to Ujari Mount.");
     SetTimer(POLLMS);
 
-    return rc;
+    return (mount_rc && dome_rc && shutter_rc);
 }
 
 bool Ujari::Disconnect()

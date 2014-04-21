@@ -163,7 +163,7 @@ bool ForkMount::Connect()  throw (UjariError)
   bool raMotorRC=false, decMotorRC=false, raEncoderRC=false, decEncoderRC=false;
 
   raMotorRC    = RAMotor->connect();
-  decMotorRC   = true;//DECMotor->connect();
+  decMotorRC   = DECMotor->connect();
   raEncoderRC  = true;//RAEncoder->connect();
   decEncoderRC = true;//DECEncoder->connect();
 

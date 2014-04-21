@@ -84,7 +84,7 @@ void AMCController::setType(const motorType &value)
     {
       // TODO FIXME - SET Address of DEC Motor in Hardware
       type_name = std::string("DEC Motor");
-      SLAVE_ADDRESS = 0x2;
+      SLAVE_ADDRESS = 0x02;
     }
 }
 
@@ -172,13 +172,17 @@ bool AMCController::connect()
     if (rc == false)
     {
         close (fd);
+        fd=-1;
         return rc;
     }
 
     rc = enableBridge();
 
     if (rc == false)
+    {
         close (fd);
+        fd=-1;
+    }
 
     connection_status = 0;
 
@@ -523,6 +527,8 @@ bool AMCController::move_reverse()
     if (rc)
         state = MOTOR_REVERSE;
 
+    return rc;
+
 }
 
 /****************************************************************
@@ -537,7 +543,7 @@ bool AMCController::stop()
         return false;
 
     // Already stopped
-    if (state == MOTOR_STOP)
+    if (state == MOTOR_STOP && MotionControlSP.s != IPS_ALERT)
         return true;
 
     if (simulation)
@@ -583,8 +589,9 @@ bool AMCController::set_speed(double rpm)
         return true;
     }
 
-
     targetRPM = rpm;
+
+    MotorSpeedN[0].value = targetRPM;
 
     if (targetRPM == currentRPM)
         return true;
@@ -727,6 +734,9 @@ int AMCController::openRS485Server (const char * host, int rs485_port)
     struct sockaddr_in serv_addr;
     struct hostent *hp;
     int sockfd;
+
+    if (fd != -1)
+        return fd;
 
     /* lookup host address */
     hp = gethostbyname (host);

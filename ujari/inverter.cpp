@@ -114,7 +114,7 @@ void Inverter::set_type(inverterType new_type)
   
   forward_motion = string("Forward");
   reverse_motion = string("Reverse");
-  default_port = string("192.168.1.3");
+  default_port = string("192.168.0.20");
 
   if (type == DOME_INVERTER)
   {
@@ -213,7 +213,7 @@ bool Inverter::connect()
 	// Enable debug
     //modbus_set_debug(mb_param, FALSE);
 
-    modbus_init_rtu(&mb_param, PortT[0].text, 502, telescope);
+    modbus_init_rtu(&mb_param, PortT[0].text, 10001, telescope);
     mb_param.debug = 1;
     mb_param.print_errors = 1;
     
