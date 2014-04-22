@@ -91,6 +91,7 @@
 3rdparty/indi-asicam/SDK/armel/libASICamera.bin -text
 3rdparty/indi-asicam/SDK/armhf/libASICamera.bin -text
 3rdparty/indi-asicam/SDK/i386/libASICamera.bin -text
+3rdparty/indi-asicam/SDK/mac/libASICamera.bin -text
 3rdparty/indi-asicam/indi_asicam.cpp -text
 3rdparty/indi-asicam/indi_asicam.h -text
 3rdparty/indi-asicam/indi_asiccd.xml -text
