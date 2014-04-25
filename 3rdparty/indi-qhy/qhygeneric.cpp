@@ -47,6 +47,7 @@ static struct uninitialized_cameras {
   { 0x0547, 0x1002, "QHY5LOADER.HEX", "QHY5.HEX" },
   { 0x16c0, 0x296a, "QHY5LOADER.HEX", "QHY5.HEX" },
   { 0x16c0, 0x0818, "QHY5LOADER.HEX", "QHY5.HEX" },
+  { 0x16c0, 0x081a, "QHY5LOADER.HEX", "QHY5.HEX" },
   { 0x16c0, 0x296e, "QHY5LOADER.HEX", "QHY5.HEX" },
   { 0x16c0, 0x296c, "QHY5LOADER.HEX", "QHY5.HEX" },
   { 0x16c0, 0x2986, "QHY5LOADER.HEX", "QHY5.HEX" },
