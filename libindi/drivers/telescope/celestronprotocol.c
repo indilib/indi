@@ -498,12 +498,12 @@ int updateLocation(double lng, double lat)
     char str[10];
     char cmd[8];
 
+    // Convert from INDI standard to regular east/west -180 to 180
+    if (lng > 180)
+        lng -= 360;
+
     getSexComponents(lat, &lat_d, &lat_m, &lat_s);
     getSexComponents(lng, &long_d, &long_m, &long_s);
-
-    // Convert from INDI standard to regular east/west -180 to 180
-    if (long_d > 180)
-        long_d -= 360;
 
     cmd[0] = abs(lat_d);
     cmd[1] = lat_m;
