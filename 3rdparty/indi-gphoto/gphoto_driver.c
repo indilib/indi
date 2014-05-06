@@ -719,8 +719,8 @@ gphoto_driver *gphoto_open(const char *shutter_release_port)
 		gphoto->exposure = parse_shutterspeed(gphoto->exposure_widget->choices, gphoto->exposure_widget->choice_cnt);
     } else if ((gphoto->exposure_widget = find_widget(gphoto, "capturetarget")))
     {
-       const char *choices[1] = { "1/1" };
-       gphoto->exposure = parse_shutterspeed(choices, 1);
+       const char *choices[2] = { "1/1","bulb" };
+       gphoto->exposure = parse_shutterspeed(choices, 2);
     }
     else
     {
