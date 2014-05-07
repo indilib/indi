@@ -1,3 +1,9 @@
+libqsi (6.4.1-ubuntu1) trusty; urgency=low
+
+  * Upped libtiff version to 5
+
+ -- Roger James <roger@beardandsandals.co.uk>  Tue, 06 May 2014 18:52:56 +0100
+
 libqsi (6.4.1-ubuntu0) precise; urgency=low
 
   * Moving to CMake
