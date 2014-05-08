@@ -89,6 +89,7 @@ protected:
     bool SetSpeed(int speed);
     int Move(FocusDirection dir, int speed, int duration);
     virtual void debugTriggered(bool enable);
+    bool capturePreview();
 
 private:
     ISwitch *create_switch(const char *basestr, const char **options, int max_opts, int setidx);
@@ -132,6 +133,12 @@ private:
 
     ISwitch autoFocusS[1];
     ISwitchVectorProperty autoFocusSP;
+
+    ISwitch livePreviewS[2];
+    ISwitchVectorProperty livePreviewSP;
+
+    IBLOBVectorProperty *imageBP;
+    IBLOB *imageB;
 
     friend void ::ISGetProperties(const char *dev);
     friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);

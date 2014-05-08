@@ -40,7 +40,9 @@ extern "C" {
 #define FOCUS_TAB           "Focus"
 #define MAX_DEVICES         5      /* Max device cameraCount */
 #define POLLMS              1000
+#define STREAMPOLLMS        50
 #define FOCUS_TIMER         500
+#define MAX_RETRIES         3
 
 static int cameraCount;
 static GPhotoCCD *cameras[MAX_DEVICES];
@@ -190,6 +192,10 @@ bool GPhotoCCD::initProperties()
   IUFillSwitch(&transferFormatS[1], "Native", "", ISS_OFF);
   IUFillSwitchVector(&transferFormatSP, transferFormatS, 2, getDeviceName(), "Transfer Format", "", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+  IUFillSwitch(&livePreviewS[0], "Enable", "", ISS_OFF);
+  IUFillSwitch(&livePreviewS[1], "Disable", "", ISS_ON);
+  IUFillSwitchVector(&livePreviewSP, livePreviewS, 2, getDeviceName(), "VIDEO_STREAM", "Preview", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
   Capability cap;
 
   cap.canAbort = false;
@@ -226,6 +232,7 @@ void GPhotoCCD::ISGetProperties(const char *dev)
         defineSwitch(&mFormatSP);
 
       defineSwitch(&transferFormatSP);
+      defineSwitch(&livePreviewSP);
       defineSwitch(&autoFocusSP);
 
       defineSwitch(&FocusMotionSP);
@@ -251,12 +258,15 @@ bool GPhotoCCD::updateProperties()
         defineSwitch(&mFormatSP);
 
       defineSwitch(&transferFormatSP);      
+      defineSwitch(&livePreviewSP);
       defineSwitch(&autoFocusSP);
 
       defineSwitch(&FocusMotionSP);
       defineNumber(&FocusSpeedNP);
       defineNumber(&FocusTimerNP);
 
+      imageBP=getBLOB("CCD1");
+      imageB=imageBP->bp;
 
     ShowExtendedOptions();
 
@@ -272,6 +282,7 @@ bool GPhotoCCD::updateProperties()
     if (mFormatSP.nsp > 0)
        deleteProperty(mFormatSP.name);
 
+    deleteProperty(livePreviewSP.name);
     deleteProperty(autoFocusSP.name);    
     deleteProperty(transferFormatSP.name);
     deleteProperty(FocusMotionSP.name);
@@ -378,6 +389,20 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
               autoFocusSP.s = IPS_ALERT;
 
           IDSetSwitch(&autoFocusSP, NULL);
+          return true;
+      }
+
+      if (!strcmp(name, livePreviewSP.name))
+      {
+          IUUpdateSwitch(&livePreviewSP, states, names, n);
+          if (livePreviewS[0].s == ISS_ON)
+          {
+              livePreviewSP.s = IPS_BUSY;
+              SetTimer(STREAMPOLLMS);
+          }
+          else
+              livePreviewSP.s = IPS_IDLE;
+          IDSetSwitch(&livePreviewSP, NULL);
           return true;
       }
 
@@ -567,6 +592,24 @@ void GPhotoCCD::TimerHit()
 
   if (isConnected() == false)
     return;
+
+  if (livePreviewSP.s == IPS_BUSY)
+  {
+      bool rc = capturePreview();
+
+      if (rc)          
+          SetTimer(STREAMPOLLMS);
+      else
+      {
+          livePreviewSP.s = IPS_ALERT;
+          DEBUG(INDI::Logger::DBG_ERROR, "Error capturing preview.");
+          livePreviewS[0].s = ISS_OFF;
+          livePreviewS[1].s = ISS_ON;
+          IDSetSwitch(&livePreviewSP, NULL);
+      }
+
+      return;
+  }
 
   if (InExposure)
   {
@@ -948,4 +991,63 @@ bool GPhotoCCD::SetSpeed(int speed)
     return false;
 }
 
+bool GPhotoCCD::capturePreview()
+{
+
+    int rc = GP_OK;
+    char errMsg[MAXRBUF];
+    const char* previewData;
+    unsigned long int previewSize;
+
+    CameraFile* previewFile = NULL;
+
+    rc = gp_file_new(&previewFile);
+    if (rc != GP_OK)
+    {
+       DEBUGF(INDI::Logger::DBG_ERROR, "Error creating gphoto file: %s", gp_result_as_string(rc));
+      return false;
+    }
+
+    for (int i=0; i < MAX_RETRIES; i++)
+    {
+        rc = gphoto_capture_preview(gphotodrv, previewFile, errMsg);
+        if (rc == true)
+            break;
+    }
+
+    if (rc != GP_OK)
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errMsg);
+        return false;
+    }
+
+    if (rc >= GP_OK)
+    {
+       rc = gp_file_get_data_and_size(previewFile, &previewData, &previewSize);
+       if (rc != GP_OK)
+       {
+           DEBUGF(INDI::Logger::DBG_ERROR, "Error getting preview image data and size: %s", gp_result_as_string(rc));
+           return false;
+       }
+    }
+
+    //DEBUGF(INDI::Logger::DBG_DEBUG, "Preview capture size %d bytes.", previewSize);
+
+   char *previewBlob = (char *) previewData;
+
+   imageB->blob = previewBlob;
+   imageB->bloblen = previewSize;
+   imageB->size = previewSize;
+   strncpy(imageB->format, "stream_jpeg", MAXINDIBLOBFMT);
+
+   IDSetBLOB (imageBP, NULL);
+
+    if (previewFile)
+    {
+       gp_file_unref(previewFile);
+       previewFile = NULL;
+    }
+
+    return true;
+}
 

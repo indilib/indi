@@ -1040,6 +1040,18 @@ out:
 }
 
 
+int gphoto_capture_preview(gphoto_driver *gphoto,  CameraFile* previewFile, char *errMsg)
+{
+   int rc = GP_OK;
+
+   rc = gp_camera_capture_preview(gphoto->camera, previewFile, gphoto->context);
+   if (rc != GP_OK)
+      snprintf(errMsg, MAXRBUF, "Error capturing preview: %s", gp_result_as_string(rc));
+
+   return rc;
+}
+
+
 /* Manual focusing a camera...
  * xx is -3 / -2 / -1 / 0 / 1 / 2 / 3
  */
