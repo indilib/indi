@@ -179,10 +179,7 @@ bool V4L2_Driver::updateProperties ()
 
    SetCCDParams(V4LFrame->width, V4LFrame->height, 8, 5.6, 5.6);
 
-   if (ImageTypeS[0].s == ISS_ON)
-       PrimaryCCD.setBPP(8);
-   else
-       PrimaryCCD.setBPP(32);
+   PrimaryCCD.setImageExtension("fits");
 
    if (v4l_base->isLXmodCapable()) lx->updateProperties();
 
@@ -387,8 +384,20 @@ bool V4L2_Driver::ISNewSwitch (const char *dev, const char *name, ISState *state
        IUUpdateSwitch(&ImageTypeSP, states, names, n);
        ImageTypeSP.s = IPS_OK;
        if (ImageTypeS[0].s == ISS_ON)
+       {
            PrimaryCCD.setBPP(8);
-       else PrimaryCCD.setBPP(32);
+           PrimaryCCD.setNAxis(2);
+       }
+       else
+       {
+           //PrimaryCCD.setBPP(32);
+           PrimaryCCD.setBPP(8);
+           PrimaryCCD.setNAxis(3);
+       }
+
+       frameBytes  = (ImageTypeS[0].s == ISS_ON) ? (PrimaryCCD.getSubW() * PrimaryCCD.getSubH()):
+                                                   (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * 4);
+       PrimaryCCD.setFrameBufferSize(frameBytes);
 
        IDSetSwitch(&ImageTypeSP, NULL);
        return true;
@@ -826,28 +835,45 @@ void V4L2_Driver::updateFrame()
   }
   else if (ExposeTimeNP->s == IPS_BUSY)
   {
+    PrimaryCCD.setExposureDuration(ExposeTimeN[0].value);
     struct timeval current_exposure;
     unsigned int i;
     unsigned char *src, *dest;
     
     gettimeofday(&capture_end,NULL);
     timersub(&capture_end, &capture_start, &current_exposure);
-    if (ImageTypeS[0].s == ISS_ON) {
+    if (ImageTypeS[0].s == ISS_ON)
+    {
       src = v4l_base->getY();
-    } else	{
-      src = v4l_base->getColorBuffer(); 
-    }  
-    dest = (unsigned char *)PrimaryCCD.getFrameBuffer();;
-    if (frameCount==0) 
-      for (i=0; i< frameBytes; i++)
-	*(dest++) = *(src++);
-    else
-      for (i=0; i< frameBytes; i++)
-	*(dest++) += *(src++);
+      dest = (unsigned char *)PrimaryCCD.getFrameBuffer();
+      if (frameCount==0)
+        for (i=0; i< frameBytes; i++)
+      *(dest++) = *(src++);
+      else
+        for (i=0; i< frameBytes; i++)
+      *(dest++) += *(src++);
 
-    binFrame();
+      binFrame();
+    }
+    // Binning not supported in color images for now
+    else
+    {
+      src = v4l_base->getColorBuffer();
+      dest = (unsigned char *)PrimaryCCD.getFrameBuffer();
+      unsigned char *red = dest;
+      unsigned char *green = dest + v4l_base->getWidth() * v4l_base->getHeight();
+      unsigned char *blue = dest + v4l_base->getWidth() * v4l_base->getHeight() * 2;
+
+      for (int i=0; i <  frameBytes; i+=4)
+      {
+          *(blue++) = *(src+i);
+          *(green++) = *(src+i+1);
+          *(red++) = *(src+i+2);
+      }
+    }
 
     frameCount+=1;
+
     if (lx->isenabled())
     {
       //if (!stackMode)
@@ -909,7 +935,7 @@ void V4L2_Driver::updateStream()
    	imageB->blob = V4LFrame->compressedFrame;
    	imageB->bloblen = compressedBytes;
    	imageB->size = totalBytes;
-   	strcpy(imageB->format, ".stream.z");
+    strcpy(imageB->format, ".stream.z");
      }
      else
      {

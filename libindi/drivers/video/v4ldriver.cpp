@@ -102,7 +102,7 @@ void V4L_Driver::initProperties(const char *dev)
   #endif 
 
   // We need to setup the BLOB (Binary Large Object) below. Using this property, we can send FITS to our client
-  strcpy(imageB.name, "CCD1");
+  strcpy(imageB.name, "RAW_BLOB");
   strcpy(imageB.label, "Feed");
   strcpy(imageB.format, "");
   imageB.blob    = 0;
@@ -114,7 +114,7 @@ void V4L_Driver::initProperties(const char *dev)
   imageB.aux2    = 0;
   
   strcpy(imageBP.device, dev);
-  strcpy(imageBP.name, "Video");
+  strcpy(imageBP.name, "RAW_STREAM");
   strcpy(imageBP.label, "Video");
   strcpy(imageBP.group, COMM_GROUP);
   strcpy(imageBP.timestamp, "");
@@ -467,7 +467,7 @@ void V4L_Driver::updateStream()
    	imageB.blob = V4LFrame->compressedFrame;
    	imageB.bloblen = compressedBytes;
    	imageB.size = totalBytes;
-   	strcpy(imageB.format, ".stream.z");
+    strcpy(imageB.format, ".stream.z");
      }
      else
      {
@@ -475,7 +475,7 @@ void V4L_Driver::updateStream()
         imageB.blob = targetFrame;
    	imageB.bloblen = totalBytes;
    	imageB.size = totalBytes;
-   	strcpy(imageB.format, ".stream");
+    strcpy(imageB.format, ".stream");
      }
         
    imageBP.s = IPS_OK;
