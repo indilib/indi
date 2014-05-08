@@ -1662,7 +1662,6 @@ int  V4L2_Base::query_ctrl(unsigned int ctrl_id, double & ctrl_min, double & ctr
 
 void  V4L2_Base::queryControls(INumberVectorProperty *nvp, unsigned int *nnumber, ISwitchVectorProperty **options, unsigned int *noptions, const char *dev, const char *group) {
   struct v4l2_control control;
-  char errmsg[ERRMSGSIZ];
   
   INumber *numbers = NULL;
   unsigned int *num_ctrls = NULL;
@@ -2131,7 +2130,6 @@ bool V4L2_Base::enumerate_ext_ctrl (void)
 
 bool  V4L2_Base::queryExtControls(INumberVectorProperty *nvp, unsigned int *nnumber, ISwitchVectorProperty **options, unsigned int *noptions, const char *dev, const char *group) {
   struct v4l2_control control;
-  char errmsg[ERRMSGSIZ];
   
   INumber *numbers = NULL;
   unsigned int *num_ctrls = NULL;
@@ -2295,5 +2293,7 @@ bool  V4L2_Base::queryExtControls(INumberVectorProperty *nvp, unsigned int *nnum
   
   *options=opt;
   *noptions=nopt;
+
+  return true;
 
 }
