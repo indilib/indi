@@ -6,5 +6,6 @@ usr/lib/*/libindidriver.so.0
 usr/lib/*/libindidriver.so.0.9.8
 usr/lib/*/libindiAlignmentDriver.so.0
 usr/lib/*/libindiAlignmentDriver.so.0.9.8
+usr/lib/*/indi/MathPlugins/
 
 

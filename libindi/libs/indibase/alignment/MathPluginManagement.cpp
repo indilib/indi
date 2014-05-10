@@ -296,7 +296,7 @@ void MathPluginManagement::EnumeratePlugins()
     dirent* de;
     DIR* dp;
 
-    //sleep(30); // Uncomment this to give time to attach debugger
+    sleep(30); // Uncomment this to give time to attach debugger
 
     MathPluginFiles.clear();
     MathPluginDisplayNames.clear();
