@@ -1,4 +1,4 @@
-indi-fli (1.0-0ubuntu3) maverick; urgency=low
+indi-fli (1.0.0ubuntu3) maverick; urgency=low
 
   * Fix failure to build due to missing libfli-dev 
 
