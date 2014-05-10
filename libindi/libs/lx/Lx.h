@@ -57,6 +57,8 @@ bool ISNewText (const char *dev, const char *name, char *texts[], char *names[],
 bool updateProperties();
 bool startLx();
 int stopLx();
+unsigned int getLxmode();
+
 
 private:
 INDI::DefaultDevice *dev;

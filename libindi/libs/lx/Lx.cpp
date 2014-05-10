@@ -38,10 +38,10 @@ bool Lx::initProperties(INDI::DefaultDevice *device) {
   //IUFillSwitch(&LxModeS[LXGPIO], "GPIO (Arm/RPI)", "", ISS_OFF);
   //  IUFillSwitch(&LxModeS[4], "IndiDuino Switcher", "", ISS_OFF); // Snooping is not enough
   IUFillSwitchVector(&LxModeSP, LxModeS, NARRAY(LxModeS), device_name, "LX Mode", "", LX_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-  IUFillText(&LxPortT[0], "Port", "", "/dev/ttyS0");
+  IUFillText(&LxPortT[0], "Port", "", "/dev/ttyUSB0");
   IUFillTextVector(&LxPortTP, LxPortT, NARRAY(LxPortT), device_name, "Lx port", "", LX_TAB, IP_RW, 0, IPS_IDLE);
-  IUFillSwitch(&LxSerialOptionS[0], "Use DTR (pin 4)", "", ISS_ON);
-  IUFillSwitch(&LxSerialOptionS[1], "Use RTS (pin 7)", "", ISS_OFF);
+  IUFillSwitch(&LxSerialOptionS[0], "Use DTR (pin 4)", "", ISS_OFF);
+  IUFillSwitch(&LxSerialOptionS[1], "Use RTS (pin 7)", "", ISS_ON);
   IUFillSwitch(&LxSerialOptionS[2], "Use Serial command", "", ISS_OFF);
   IUFillSwitchVector(&LxSerialOptionSP, LxSerialOptionS, NARRAY(LxSerialOptionS), device_name, "Serial Options", "", LX_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
   IUFillSwitch(&LxParallelOptionS[0], "Use Data 0 (pin 2)", "", ISS_OFF);
@@ -283,6 +283,10 @@ bool Lx::ISNewText (const char *devname, const char *name, char *texts[], char *
 
 
   return true; // not ours, don't care
+}
+
+unsigned int Lx::getLxmode() {
+	return IUFindOnSwitchIndex(&LxModeSP);   
 }
 
 bool Lx::startLx() {

@@ -623,12 +623,17 @@ bool V4L2_Driver::ISNewNumber (const char *dev, const char *name, double values[
       frameCount=0;
       gettimeofday(&capture_start, NULL);
       if (lx->isenabled()) {
-	//startlongexposure(ExposeTimeN[0].value);
-	rc=startlongexposure(V4LFrame->expose);
+		rc=startlongexposure(V4LFrame->expose);
         if (rc == false)
-	  DEBUG(INDI::Logger::DBG_WARNING, "Unable to start long exposure, falling back to auto exposure.");
-      } else
-	v4l_base->start_capturing(errmsg);
+			DEBUG(INDI::Logger::DBG_WARNING, "Unable to start long exposure, falling back to auto exposure.");
+		else {
+			if( lx->getLxmode() == LXSERIAL ) {
+				v4l_base->start_capturing( errmsg ); 
+			}
+		}
+	  }
+	  else
+		v4l_base->start_capturing(errmsg);
       
       ExposeTimeNP->s   = IPS_BUSY;
       if (IUUpdateNumber(ExposeTimeNP, values, names, n) < 0)
@@ -715,6 +720,7 @@ bool V4L2_Driver::setManualExposure(double duration)
 bool V4L2_Driver::startlongexposure(double timeinsec)
 {
   lxtimer=IEAddTimer((int)(timeinsec*1000.0), (IE_TCF *)lxtimerCallback, this);
+  v4l_base->setlxstate( LX_ACCUMULATING );
   return (lx->startLx());
 }
 
@@ -723,8 +729,10 @@ void V4L2_Driver::lxtimerCallback(void *userpointer)
   char errmsg[ERRMSGSIZ];
   V4L2_Driver *p = (V4L2_Driver *)userpointer;
   p->lx->stopLx();
+  p->v4l_base->setlxstate( LX_TRIGGERED );
   IERmTimer(p->lxtimer);
-  p->v4l_base->start_capturing(errmsg); // jump to new/updateFrame
+  if( !p->v4l_base->isstreamactive() )
+	p->v4l_base->start_capturing(errmsg); // jump to new/updateFrame
 }
 
 bool V4L2_Driver::UpdateCCDBin(int hor, int ver)

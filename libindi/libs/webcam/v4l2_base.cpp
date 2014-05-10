@@ -320,9 +320,15 @@ int V4L2_Base::read_frame(char *errmsg)
 		if (-1 == xioctl (fd, VIDIOC_QBUF, &buf))
 		  return errno_exit ("ReadFrame IO_METHOD_MMAP: VIDIOC_QBUF", errmsg);
 
+		if( lxstate == LX_ACTIVE ) {
+
                 /* Call provided callback function if any */
                  if (callback)
                 	(*callback)(uptr);
+		}
+		
+		if( lxstate == LX_TRIGGERED )
+			lxstate = LX_ACTIVE;
 
 		break;
 
@@ -399,6 +405,7 @@ int V4L2_Base::stop_capturing(char *errmsg)
 	if (cropset && cropbuf) {
 	  free(cropbuf); cropbuf=NULL;
 	}
+	streamactive = false;
    return 0;
 }
 
@@ -438,7 +445,8 @@ int V4L2_Base::start_capturing(char * errmsg)
 
                 
 
-                selectCallBackID = IEAddCallback(fd, newFrame, this);
+        selectCallBackID = IEAddCallback(fd, newFrame, this);
+        streamactive = true;
 
 		break;
 
@@ -951,6 +959,8 @@ int V4L2_Base::init_device(char *errmsg) {
   //findMinMax();
 
         allocBuffers();
+
+	lxstate = LX_ACTIVE;
 
 	switch (io)
         {

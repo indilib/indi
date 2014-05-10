@@ -32,6 +32,13 @@
 
 #define VIDEO_COMPRESSION_LEVEL		4
 
+enum {
+	LX_ACTIVE = 0,
+	LX_TRIGGERED,
+	LX_ACCUMULATING
+};
+
+
 class V4L2_Base
 {
   public:
@@ -100,6 +107,10 @@ class V4L2_Base
   int setcroprect(int x, int y, int w, int h, char *errmsg);
   struct v4l2_rect getcroprect();
 
+  void setlxstate( short s ) { lxstate = s; }
+  short getlxstate() { return lxstate; }
+  bool isstreamactive() { return streamactive; }
+
   protected:
 
   int xioctl(int fd, int request, void *arg);
@@ -134,6 +145,9 @@ class V4L2_Base
   bool cropset;
   bool cansetrate;
   bool streamedonce;
+  bool streamactive;
+  
+  short lxstate;
 
   struct v4l2_queryctrl queryctrl;
   struct v4l2_querymenu querymenu;

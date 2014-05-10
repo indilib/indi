@@ -66,7 +66,6 @@
 
 #define TEMPFILE_LEN	16
 
-
 class V4L2_Driver: public INDI::CCD
 {
   public:
@@ -85,7 +84,7 @@ class V4L2_Driver: public INDI::CCD
 
     static void newFrame(void *p);
     void updateFrame();
-
+    
    protected:
 
     virtual bool Connect();
@@ -191,6 +190,7 @@ class V4L2_Driver: public INDI::CCD
    int lxtimer;
    bool startlongexposure(double timeinsec);
    static void lxtimerCallback(void *userpointer);
+   short lxstate;
 };
    
 #endif
