@@ -36,9 +36,20 @@
 #include <unistd.h>
 
 #ifdef __linux__
-  #if !defined(arm) && !defined(__hppa__) && !defined(__sparc__) && !defined(__ppc__) && !defined(__powerpc__) && !defined(__s390__) && !defined(__s390x__) && !defined(__mips__) && !defined(__mc68000__)
+#if defined(arm) || defined(__hppa__) || defined(__sparc__) || defined(__ppc__) \
+	|| defined(__powerpc__) || defined(__s390__) || defined(__s390x__)\
+	|| defined(__mips__) || defined(__mc68000__) || defined(__sh__)\
+	|| defined(__aarch64__)
+#define NO_SYSIO
+#endif /* architechtures */
+#endif /* __linux__ */
+
+#ifdef __linux__
+  #if defined(NO_SYSIO)
+  #include <fcntl.h>
+  #else
   #include <sys/io.h>
-  #endif /* !arm */
+  #endif /* NO_SYSIO */
 #elif defined(QNX)
 #include <conio.h>
 #elif defined(__FreeBSD__)
@@ -56,7 +67,7 @@
 #error Please define a platform in the Makefile
 #endif
 
-#if defined(arm) || defined(__hppa__) || defined(__sparc__) || defined(__ppc__) || defined(__powerpc__) || defined(__s390__) || defined(__s390x__) || defined(__mips__) || defined(__mc68000__)
+#if defined(NO_SYSIO)
 static char ports_temp;
 
 #ifdef inb
@@ -115,7 +126,7 @@ private:
 #ifdef FREEBSD
   FILE *devio;
 #endif
-#if defined(__linux__) && (defined(arm) || defined(__hppa__) || defined(__sparc__) || defined(__ppc__) || defined(__powerpc__) || defined(__s390__) || defined(__s390x__) || defined(__mips__) || defined(__mc68000__))
+#if defined(NO_SYSIO)
   int devport;
 #endif
 };

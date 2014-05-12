@@ -37,36 +37,6 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #endif /* LOCKING */
-#ifdef __linux__
-#if defined(arm) || defined(__hppa__) || defined(__sparc__) || defined(__ppc__) \
-	|| defined(__powerpc__) || defined(__s390__) || defined(__s390x__)\
-	|| defined(__mips__) || defined(__mc68000__) || defined(__sh__)
-#define NO_SYSIO
-#endif /* architechtures */
-#endif /* __linux__ */
-
-#ifdef __linux__
-  #if defined(NO_SYSIO)
-  #include <fcntl.h>
-  #else
-  #include <sys/io.h>
-  #endif /* NO_SYSIO */
-#elif defined(QNX)
-#include <conio.h>
-#elif defined(__FreeBSD__)
-#include <sys/types.h>
-#include <machine/cpufunc.h>
-#elif defined(BSDI)
-#include <machine/inline.h>
-#elif defined(OPENBSD)
-#include <machine/pio.h>
-#elif defined(LYNX)
-#include "lynx-io.h"
-#elif defined(SOLARIS)
-#include "solaris-io.h"
-#else
-#error Please define a platform in the Makefile
-#endif /* which OS */
 
 #include "port.h"
 
