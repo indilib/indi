@@ -959,6 +959,9 @@ GPhotoCCD::HideExtendedOptions(void)
 
 int GPhotoCCD::Move(FocusDirection dir, int speed, int duration)
 {
+ 
+   /* gphoto works with steps */ 
+   
    char errMsg[MAXRBUF];
    if (dir == FOCUS_INWARD)
        focusSpeed = speed * -1;
@@ -967,20 +970,16 @@ int GPhotoCCD::Move(FocusDirection dir, int speed, int duration)
 
    DEBUGF(INDI::Logger::DBG_DEBUG, "Setting focuser speed to %d", focusSpeed);
 
-   if (duration <= FOCUS_TIMER)
+   while (duration-->0)
    {
        if ( gphoto_manual_focus(gphotodrv, focusSpeed, errMsg) != GP_OK)
        {
            DEBUGF(INDI::Logger::DBG_ERROR, "Focusing failed: %s", errMsg);
            return -1;
        }
-
-       return 0;
    }
 
-   SetTimer(FOCUS_TIMER);
-
-   return 1;
+   return 0;
 }
 
 bool GPhotoCCD::SetSpeed(int speed)

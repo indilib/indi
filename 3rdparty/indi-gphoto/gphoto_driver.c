@@ -591,6 +591,8 @@ int gphoto_read_exposure_fd(gphoto_driver *gphoto, int fd)
 		switch (event) {
 
 		case GP_EVENT_CAPTURE_COMPLETE:
+			gp_dprintf("Capture completed\n");
+			break;
 		case GP_EVENT_FILE_ADDED:
 			gp_dprintf("Captured an image\n");
 			fn = (CameraFilePath*)data;
@@ -604,9 +606,9 @@ int gphoto_read_exposure_fd(gphoto_driver *gphoto, int fd)
 		default:
 			gp_dprintf("Got unexpected message: %d\n", event);
 		}
-		pthread_mutex_unlock(&gphoto->mutex);
-		usleep(500 * 1000);
-		pthread_mutex_lock(&gphoto->mutex);
+		//pthread_mutex_unlock(&gphoto->mutex);
+		//usleep(500 * 1000);
+		//pthread_mutex_lock(&gphoto->mutex);
 	}
 	pthread_mutex_unlock(&gphoto->mutex);
 	return 0;
@@ -1054,6 +1056,13 @@ int gphoto_capture_preview(gphoto_driver *gphoto,  CameraFile* previewFile, char
 
 /* Manual focusing a camera...
  * xx is -3 / -2 / -1 / 0 / 1 / 2 / 3
+ * Choice: 0 (-3) Near 1
+ * Choice: 1 (-2) Near 2
+ * Choice: 2 (-1) Near 3
+ * Choice: 3 ( 0) None
+ * Choice: 4 (+1) Far 1
+ * Choice: 5 (+2) Far 2
+ * Choice: 6 (+3) Far 3
  */
 int gphoto_manual_focus (gphoto_driver *gphoto, int xx, char *errMsg)
 {
@@ -1062,6 +1071,12 @@ int gphoto_manual_focus (gphoto_driver *gphoto, int xx, char *errMsg)
     int			ret;
     float			rval;
     char			*mval;
+
+    // Hack. -3 should be -1 and -1 should be -3
+    switch (xx) {
+    case -3:  xx=-1; break;
+    case -1:  xx=-3; break;
+    }
 
     ret = gp_camera_get_config (gphoto->camera, &widget, gphoto->context);
     if (ret < GP_OK)
@@ -1094,10 +1109,10 @@ int gphoto_manual_focus (gphoto_driver *gphoto, int xx, char *errMsg)
             goto out;
         }
         if (choices == 7) { /* see what Canon has in EOS_MFDrive */
-            ret = gp_widget_get_choice (child, xx+4, (const char**)&mval);
+            ret = gp_widget_get_choice (child, xx+3, (const char**)&mval);
             if (ret < GP_OK)
             {
-                snprintf(errMsg, MAXRBUF, "could not get widget choice %d: %d", xx+2, ret);
+                snprintf(errMsg, MAXRBUF, "could not get widget choice %d: %d", xx+3, ret);
                 goto out;
             }
             fprintf(stderr,"manual focus %d -> %s\n", xx, mval);
