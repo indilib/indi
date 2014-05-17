@@ -266,6 +266,9 @@ bool SkywatcherAPIMount::initProperties()
     // Add alignment properties
     InitProperties(this);
 
+    // Force the alignment system to always be on
+    getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")->sp[0].s = ISS_ON;
+
     // Set up property variables
     IUFillNumber(&BasicMountInfo[MOTOR_CONTROL_FIRMWARE_VERSION], "MOTOR_CONTROL_FIRMWARE_VERSION",
                                                             "Motor control fimware version",

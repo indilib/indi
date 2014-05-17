@@ -10,7 +10,6 @@
 
 #include <cfloat>
 #include <cstdlib>
-#include <unistd.h> // for sleep
 
 namespace INDI {
 namespace AlignmentSubsystem {

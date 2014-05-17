@@ -98,6 +98,10 @@ public:
     /// \param[in] pDatabase A pointer to the current in memory database
     void SetCurrentInMemoryDatabase(InMemoryDatabase* pDatabase) { CurrentInMemoryDatabase = pDatabase; }
 
+    /// \brief Return status of alignment subsystem
+    /// \return True if active
+    const bool IsAlignmentSubsystemActive() const { return AlignmentSubsystemActive.s == ISS_ON ? true : false; }
+
     // These must match the function signatures in MathPlugin
     MountAlignment_t GetApproximateMountAlignment();
     bool Initialise(InMemoryDatabase* pInMemoryDatabase);
@@ -116,6 +120,9 @@ private:
     ISwitchVectorProperty AlignmentSubsystemMathPluginsV;
     ISwitch AlignmentSubsystemMathPluginInitialise;
     ISwitchVectorProperty AlignmentSubsystemMathPluginInitialiseV;
+    ISwitch AlignmentSubsystemActive;
+    ISwitchVectorProperty AlignmentSubsystemActiveV;
+
 
     InMemoryDatabase* CurrentInMemoryDatabase;
 

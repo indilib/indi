@@ -36,6 +36,11 @@ void MathPluginManagement::InitProperties(Telescope* ChildTelescope)
                     "ALIGNMENT_SUBSYSTEM_MATH_PLUGIN_INITIALISE", "(Re)Initialise Plugin", ALIGNMENT_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
     ChildTelescope->registerProperty(&AlignmentSubsystemMathPluginInitialiseV, INDI_SWITCH);
 
+    IUFillSwitch(&AlignmentSubsystemActive, "ALIGNMENT SUBSYSTEM ACTIVE", "Alignment Subsystem Active", ISS_OFF);
+    IUFillSwitchVector(&AlignmentSubsystemActiveV, &AlignmentSubsystemActive, 1, ChildTelescope->getDeviceName(),
+                    "ALIGNMENT_SUBSYSTEM_ACTIVE", "Activate alignment subsystem", ALIGNMENT_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+    ChildTelescope->registerProperty(&AlignmentSubsystemActiveV, INDI_SWITCH);
+
     // The following property is used for configuration purposes only and is not exposed to the client.
     IUFillText(&AlignmentSubsystemCurrentMathPlugin, "ALIGNMENT_SUBSYSTEM_CURRENT_MATH_PLUGIN", "Current Math Plugin",
         AlignmentSubsystemMathPlugins.get()[0].label);
@@ -237,11 +242,19 @@ void MathPluginManagement::ProcessSwitchProperties(Telescope* pTelescope, const 
         // Initialise or reinitialise the current math plugin
         Initialise(CurrentInMemoryDatabase);
     }
+    else if (strcmp(name, AlignmentSubsystemActiveV.name) == 0)
+    {
+        AlignmentSubsystemActiveV.s=IPS_OK;
+        if (0 == IUUpdateSwitch(&AlignmentSubsystemActiveV, states, names, n))
+            //  Update client
+            IDSetSwitch(&AlignmentSubsystemActiveV, NULL);
+    }
 }
 
 void MathPluginManagement::SaveConfigProperties(FILE *fp)
 {
     IUSaveConfigText(fp, &AlignmentSubsystemCurrentMathPluginV);
+    IUSaveConfigSwitch(fp, &AlignmentSubsystemActiveV);
 }
 
 void MathPluginManagement::SetApproximateMountAlignmentFromMountType(MountType_t Type)
@@ -283,20 +296,24 @@ void MathPluginManagement::SetApproximateMountAlignment(MountAlignment_t Approxi
 bool MathPluginManagement::TransformCelestialToTelescope(const double RightAscension, const double Declination, double JulianOffset,
                                                         TelescopeDirectionVector& ApparentTelescopeDirectionVector)
 {
-    return (pLoadedMathPlugin->*pTransformCelestialToTelescope)(RightAscension, Declination, JulianOffset, ApparentTelescopeDirectionVector);
+    if (AlignmentSubsystemActive.s == ISS_ON)
+        return (pLoadedMathPlugin->*pTransformCelestialToTelescope)(RightAscension, Declination, JulianOffset, ApparentTelescopeDirectionVector);
+    else
+        return false;
 }
 
 bool MathPluginManagement::TransformTelescopeToCelestial(const TelescopeDirectionVector& ApparentTelescopeDirectionVector, double& RightAscension, double& Declination)
 {
-    return (pLoadedMathPlugin->*pTransformTelescopeToCelestial)(ApparentTelescopeDirectionVector, RightAscension, Declination);
+    if (AlignmentSubsystemActive.s == ISS_ON)
+        return (pLoadedMathPlugin->*pTransformTelescopeToCelestial)(ApparentTelescopeDirectionVector, RightAscension, Declination);
+    else
+        return false;
 }
 
 void MathPluginManagement::EnumeratePlugins()
 {
     dirent* de;
     DIR* dp;
-
-    sleep(30); // Uncomment this to give time to attach debugger
 
     MathPluginFiles.clear();
     MathPluginDisplayNames.clear();
@@ -330,15 +347,15 @@ void MathPluginManagement::EnumeratePlugins()
 
             // Try to get the plugin display name
             typedef const char* GetDisplayName_t();
-            GetDisplayName_t* GetDisplayName = (GetDisplayName_t*)dlsym(Handle, "GetDisplayName");
-            if (NULL == GetDisplayName)
+            GetDisplayName_t* GetDisplayNamePtr = (GetDisplayName_t*)dlsym(Handle, "GetDisplayName");
+            if (NULL == GetDisplayNamePtr)
             {
                 IDLog("EnumeratePlugins - cannot get plugin %s DisplayName error %s\n", PluginPath.c_str(), dlerror());
                 continue;
             }
-            IDLog("EnumeratePlugins - found plugin %s\n", GetDisplayName());
+            IDLog("EnumeratePlugins - found plugin %s\n", GetDisplayNamePtr());
 
-            MathPluginDisplayNames.push_back(GetDisplayName());
+            MathPluginDisplayNames.push_back(GetDisplayNamePtr());
             MathPluginFiles.push_back( PluginPath );
             dlclose(Handle);
         }
