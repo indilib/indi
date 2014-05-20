@@ -183,6 +183,11 @@ public:
     const char *getFrameTypeName(CCD_FRAME fType);
 
     /**
+      * @brief Make CCD Info writable
+    */
+    void setCCDInfoWritable();
+
+    /**
      * @brief setResolution set CCD Chip resolution
      * @param x width
      * @param y height

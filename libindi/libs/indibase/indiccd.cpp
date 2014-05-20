@@ -86,6 +86,11 @@ CCDChip::~CCDChip()
     delete RapidGuideDataNP;
 }
 
+void CCDChip::setCCDInfoWritable()
+{
+ ImagePixelSizeNP->p = IP_RW;
+}
+
 void CCDChip::setFrameType(CCD_FRAME type)
 {
     FrameType=type;
@@ -798,6 +803,34 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
             IDSetNumber(&TemperatureNP, NULL);
             return true;
         }
+
+        // Primary CCD Info
+        if (!strcmp(name, PrimaryCCD.ImagePixelSizeNP->name))
+        {
+            IUUpdateNumber(PrimaryCCD.ImagePixelSizeNP, values, names, n);
+            PrimaryCCD.ImagePixelSizeNP->s = IPS_OK;
+            PrimaryCCD.XRes = PrimaryCCD.ImagePixelSizeNP->np[0].value;
+            PrimaryCCD.YRes = PrimaryCCD.ImagePixelSizeNP->np[1].value;
+            PrimaryCCD.PixelSizex = PrimaryCCD.ImagePixelSizeNP->np[2].value;
+            PrimaryCCD.PixelSizey = PrimaryCCD.ImagePixelSizeNP->np[3].value;
+            IDSetNumber(PrimaryCCD.ImagePixelSizeNP, NULL);
+            return true;
+        }
+
+        // Guide CCD Info
+        if (!strcmp(name, GuideCCD.ImagePixelSizeNP->name))
+        {
+            IUUpdateNumber(GuideCCD.ImagePixelSizeNP, values, names, n);
+            GuideCCD.ImagePixelSizeNP->s = IPS_OK;
+            GuideCCD.XRes = GuideCCD.ImagePixelSizeNP->np[0].value;
+            GuideCCD.YRes = GuideCCD.ImagePixelSizeNP->np[1].value;
+            GuideCCD.PixelSizex = GuideCCD.ImagePixelSizeNP->np[2].value;
+            GuideCCD.PixelSizey = GuideCCD.ImagePixelSizeNP->np[3].value;
+            IDSetNumber(GuideCCD.ImagePixelSizeNP, NULL);
+            return true;
+        }
+
+
     }
     //  if we didn't process it, continue up the chain, let somebody else
     //  give it a shot
