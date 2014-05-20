@@ -215,6 +215,9 @@ bool GPhotoCCD::initProperties()
   FocusSpeedN[0].step=1;
   FocusSpeedN[0].value=0;
 
+  /* JM 2014-05-20 Make PrimaryCCD.ImagePixelSizeNP writable since we can't know for now the pixel size and bit depth from gphoto */
+  PrimaryCCD.setCCDInfoWritable();
+
   return true;
 }
 
