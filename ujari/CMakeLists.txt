@@ -31,7 +31,6 @@ set(ujari_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/forkmount.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/encoder.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/inverter.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/hy_modbus.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/amccontroller.cpp
    )
 

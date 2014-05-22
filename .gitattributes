@@ -39,8 +39,6 @@ ujari/encoder.cpp -text
 ujari/encoder.h -text
 ujari/forkmount.cpp -text
 ujari/forkmount.h -text
-ujari/hy_modbus.cpp -text
-ujari/hy_modbus.h -text
 ujari/indi_ujari.xml -text
 ujari/indi_ujari_sk.xml -text
 ujari/inverter.cpp -text

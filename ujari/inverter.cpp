@@ -1,8 +1,6 @@
 #if 0
-    INDI Ujari Driver - Inverter
+    INDI Ujari Driver - Hitachi Inverter
     Copyright (C) 2014 Jasem Mutlaq
-
-    Based on EQMod INDI Driver by Jean-Luc
     
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -37,31 +35,6 @@
 #include "ujari.h"
 
 
-// bits in Status Data
-#define STATUS_SetF 		0x00
-#define STATUS_OutF			0x01
-#define STATUS_OutA 		0x02
-#define STATUS_RoTT 		0x03
-#define STATUS_DCV 			0x04
-#define STATUS_ACV 			0x05
-#define STATUS_Cont 		0x06
-#define STATUS_Tmp 			0x07
-
-// control commands CNTR
-#define CONTROL_Run_Fwd		0x01
-#define CONTROL_Run_Rev		0x11
-#define CONTROL_Stop		0x08
-
-// control responses CNST
-#define CONTROL_Run			0x01
-#define CONTROL_Jog			0x02
-#define CONTROL_Command_rf	0x04
-#define CONTROL_Running		0x08
-#define CONTROL_Jogging		0x10
-#define CONTROL_Running_rf	0x20
-#define CONTROL_Bracking	0x40
-#define CONTROL_Track_Start	0x80
-
 #define INVERTER_GROUP "Inverter"
 
 const int ERROR_MAX_COUNT = 3;
@@ -74,7 +47,7 @@ const int ERROR_TIMEOUT = 2000000;
 * N.B. Make sure that the stating address are correct since Modbus ref 17, for example, should be addressed as 16.
 * Not sure if libmodbus takes care of that or not.
 *****************************************************************/
-Inverter::Inverter(inverterType new_type, Ujari *scope)
+Inverter::Inverter(inverterType new_type, Ujari *scope) : OPERATION_COMMAND_ADDRESS(1), DIRECTION_COMMAND_ADDRESS(2), HZ_HOLD_ADDRESS(1)
 {
 
   // Initially, not connected
@@ -203,38 +176,21 @@ bool Inverter::connect()
         connection_status = 0;
         return true;
     }
-	
-	// 19200 baud is default, no parity, 8 bits, 1 stop bit
-	//modbus_init_rtu(&mb_param, SLAVE_ADDRESS, PortT[0].text, 19200, "none", 8, 1);
-	//modbus_init_tcp(&mb_param, PortT[0].text, 502, SLAVE_ADDRESS);
-    //mb_param = modbus_new_tcp(PortT[0].text, 502);
-    //modbus_set_slave(mb_param, SLAVE_ADDRESS);
-	
-	// Enable debug
-    //modbus_set_debug(mb_param, FALSE);
+	   
+    mb_param = modbus_new_tcp(PortT[0].text, 502);
+    modbus_set_slave(mb_param, SLAVE_ADDRESS);
 
-    modbus_init_rtu(&mb_param, PortT[0].text, 10001, telescope);
-    mb_param.debug = 1;
-    mb_param.print_errors = 1;
-    
-    if ( (connection_status = modbus_connect(&mb_param)) != 0)
+    if ( (connection_status = modbus_connect(mb_param)) == -1)
     {
-       DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_SESSION, "%s drive: Connection failed to inverter @ port %s", type_name.c_str(), PortT[0].text);
+       DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_ERROR, "%s drive: Connection failed to inverter @ port %s", type_name.c_str(), PortT[0].text);
        return false;
     }
-    
-    if (init_drive())
-    {
-		MotionControlSP.s = IPS_OK;
-		IDSetSwitch(&MotionControlSP, "%s inverter is online and ready for use.", type_name.c_str());
-		return true;
-    }
-    else
-    {
-		MotionControlSP.s = IPS_ALERT;
-		IDSetSwitch(&MotionControlSP, "%s inverter failed to initialize. Please check power and cabling.", type_name.c_str());
-		return false;
-    }
+
+
+    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_SESSION, "%s inverter is online and ready for use.", type_name.c_str());
+
+    return true;
+
 }
 
 /****************************************************************
@@ -248,7 +204,8 @@ void Inverter::disconnect()
     if (simulation)
         return;
 	
-    modbus_close(&mb_param);
+    modbus_close(mb_param);
+    modbus_free(mb_param);
 	
 }
 
@@ -258,7 +215,7 @@ void Inverter::disconnect()
 *****************************************************************/
 bool Inverter::move_forward()
 {
-    int retval=0;
+    int ret=0;
 
 	if (!check_drive_connection())
 		return false;
@@ -266,28 +223,49 @@ bool Inverter::move_forward()
 	// Already moving forward
     if (motionStatus == INVERTER_FORWARD)
 	    return true;
-	
+
+    Motion_Control_Coils[INVERTER_OPERATION] = 1;
+    Motion_Control_Coils[INVERTER_DIRECTION] = 0;
+
 	if (simulation)
 	{
         DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_SESSION, "%s drive: Simulating forward command.", type_name.c_str());
 		return true;
      }
 
-    mb_data.function = WRITE_CONTROL_DATA;
-    mb_data.parameter = 0x00;
-    mb_data.data = CONTROL_Run_Fwd;
-
-    if ((retval = hy_modbusN(&mb_param, &mb_data)) != 0)
+    for (int i=0; i < ERROR_MAX_COUNT; i++)
     {
-        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error: %s drive failed to move %s (%s)", type_name.c_str(), forward_motion.c_str(), modbus_strerror(retval));
-        return false;
-    }
+       ret = modbus_write_bits(mb_param, OPERATION_COMMAND_ADDRESS, 2, Motion_Control_Coils);
 
-    motionStatus = INVERTER_FORWARD;
+       if (ret == 2)
+       {
+            MotionControlSP.s = IPS_BUSY;
 
-    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "%s drive is moving %s", type_name.c_str(), forward_motion.c_str());
+            if (verbose)
+                DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_SESSION, "%s drive is moving %s", type_name.c_str(), forward_motion.c_str());
 
-    return true;
+            IDSetSwitch(&MotionControlSP, NULL);
+
+            motionStatus = INVERTER_FORWARD;
+
+            return true;
+       }
+
+       usleep(ERROR_TIMEOUT);
+     }
+
+    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "Forward Command ERROR. force_multiple_coils (%d)\n", ret);
+    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "Slave = %d, address = %d, nb = %d\n", SLAVE_ADDRESS, OPERATION_COMMAND_ADDRESS, 2);
+
+    Motion_Control_Coils[0] = 0;
+    Motion_Control_Coils[1] = 0;
+    MotionControlSP.s = IPS_ALERT;
+    IUResetSwitch(&MotionControlSP);
+    MotionControlS[INVERTER_STOP].s = ISS_ON;
+
+    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR,  "Error: %s drive failed to move %s", type_name.c_str(), forward_motion.c_str());
+    IDSetSwitch(&MotionControlSP, NULL);
+    return false;
 
 }
 
@@ -297,8 +275,7 @@ bool Inverter::move_forward()
 *****************************************************************/
 bool Inverter::move_reverse()
 {
-    int retval=0;
-
+    int ret=0;
     if (!check_drive_connection())
         return false;
 
@@ -306,27 +283,50 @@ bool Inverter::move_reverse()
     if (motionStatus == INVERTER_REVERSE)
         return true;
 
+    Motion_Control_Coils[INVERTER_OPERATION] = 1;
+    Motion_Control_Coils[INVERTER_DIRECTION] = 1;
+
     if (simulation)
     {
         DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_SESSION, "%s drive: Simulating reverse command.", type_name.c_str());
         return true;
-     }
-
-    mb_data.function = WRITE_CONTROL_DATA;
-    mb_data.parameter = 0x00;
-    mb_data.data = CONTROL_Run_Rev;
-
-    if ((retval = hy_modbusN(&mb_param, &mb_data)) != 0)
-    {
-        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error: %s drive failed to move %s (%s)", type_name.c_str(), reverse_motion.c_str(), modbus_strerror(retval));
-        return false;
     }
 
-    motionStatus = INVERTER_REVERSE;
+    for (int i=0; i < ERROR_MAX_COUNT; i++)
+    {
+       ret = modbus_write_bits(mb_param, OPERATION_COMMAND_ADDRESS, 2, Motion_Control_Coils);
 
-    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "%s drive is moving %s", type_name.c_str(), reverse_motion.c_str());
+       if (ret == 2)
+       {
+            MotionControlSP.s = IPS_BUSY;
 
-    return true;
+            if (verbose)
+                DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_SESSION, "%s drive is moving %s", type_name.c_str(), reverse_motion.c_str());
+
+            IDSetSwitch(&MotionControlSP, NULL);
+
+            motionStatus = INVERTER_REVERSE;
+
+            return true;
+       }
+
+       usleep(ERROR_TIMEOUT);
+     }
+
+    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "Reverse Command ERROR. force_multiple_coils (%d)\n", ret);
+    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "Slave = %d, address = %d, nb = %d\n", SLAVE_ADDRESS, OPERATION_COMMAND_ADDRESS, 2);
+
+    Motion_Control_Coils[0] = 0;
+    Motion_Control_Coils[1] = 0;
+    MotionControlSP.s = IPS_ALERT;
+    IUResetSwitch(&MotionControlSP);
+    MotionControlS[INVERTER_STOP].s = ISS_ON;
+
+    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR,  "Error: %s drive failed to move %s", type_name.c_str(), reverse_motion.c_str());
+    IDSetSwitch(&MotionControlSP, NULL);
+    return false;
+
+
 
 }
 
@@ -336,7 +336,7 @@ bool Inverter::move_reverse()
 *****************************************************************/
 bool Inverter::stop()
 {
-    int retval=0;
+    int ret=0;
 
     if (!check_drive_connection())
         return false;
@@ -345,29 +345,47 @@ bool Inverter::stop()
     if (motionStatus == INVERTER_STOP)
         return true;
 
+    Motion_Control_Coils[INVERTER_OPERATION] = 0;
+
     if (simulation)
     {
         DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_SESSION, "%s drive: Simulating stop command.", type_name.c_str());
         return true;
      }
 
-    mb_data.function = WRITE_CONTROL_DATA;
-    mb_data.parameter = 0x00;
-    mb_data.data = CONTROL_Stop;
 
-    if ((retval = hy_modbusN(&mb_param, &mb_data)) != 0)
+    for (int i=0; i < ERROR_MAX_COUNT; i++)
     {
-        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error: %s drive failed to stop (%s)", type_name.c_str(),  modbus_strerror(retval));
-        return false;
-    }
+       ret = modbus_write_bits(mb_param, OPERATION_COMMAND_ADDRESS, 1, Motion_Control_Coils);
 
-    motionStatus = INVERTER_STOP;
+       if (ret == 1)
+       {
+            MotionControlSP.s = IPS_IDLE;
 
-    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "%s drive stopped.", type_name.c_str());
+            if (verbose)
+                DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_SESSION, "%s drive stoppped.", type_name.c_str());
 
-    return true;
+            IDSetSwitch(&MotionControlSP, NULL);
 
+            motionStatus = INVERTER_STOP;
 
+            return true;
+       }
+
+       usleep(ERROR_TIMEOUT);
+     }
+
+    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "Stop Command ERROR. force_multiple_coils (%d)", ret);
+    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "Slave = %d, address = %d, nb = %d", SLAVE_ADDRESS, OPERATION_COMMAND_ADDRESS, 2);
+
+    Motion_Control_Coils[0] = 0;
+    Motion_Control_Coils[1] = 0;
+    MotionControlSP.s = IPS_ALERT;
+    IUResetSwitch(&MotionControlSP);
+
+    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR,  "Error: %s drive failed to stop", type_name.c_str());
+    IDSetSwitch(&MotionControlSP, NULL);
+    return false;
 }
 
 /****************************************************************
@@ -376,8 +394,7 @@ bool Inverter::stop()
 *****************************************************************/   
 bool Inverter::set_speed(float newHz)
 {
-    int retval=0;
-	
+    int ret=0;
 	if (!check_drive_connection())
 		return false;
 	
@@ -387,50 +404,58 @@ bool Inverter::set_speed(float newHz)
 		return false;
     }
 
-    /*
-    mb_data->function = WRITE_FREQ_DATA;
-    mb_data->parameter = 0x00;
+    int invFreq = newHz * 100;
 
-    hzcalc = 50.0 / *(haldata->rated_motor_rev);
-    freq =  abs((int)(*(haldata->speed_command)*hzcalc*100));
-    */
+    /* Write to 0001h (F001) High order and 0002h (F001) Low Order registers */
+    Hz_Speed_Register[0] = (invFreq >> 16) & 0xFFFF;
+    Hz_Speed_Register[1] = invFreq & 0xFFFF;
 
-    // NOTE: Do I need to scale it to rated_motor_rev ??!
-    int speedHz = abs(newHz * 100);
-
-    mb_data.function = WRITE_FREQ_DATA;
-    mb_data.parameter = 0x00;
-    mb_data.data = speedHz;
+    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "Requested Speed is: %f", newHz);
+    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "Hz_Speed_Register[0] = %X - Hz_Speed_Register[1] = %X", Hz_Speed_Register[0], Hz_Speed_Register[1]);
 
     if (simulation)
     {
         DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_SESSION, "%s drive: Simulating set speed command.", type_name.c_str());
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "%s drive speed updated to %g Hz.", type_name.c_str(), InverterSpeedN[0].value);
         return true;
     }
 
-    if ((retval = hy_modbusN(&mb_param, &mb_data)) != 0)
+    for (int i=0; i < ERROR_MAX_COUNT; i++)
     {
-        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_ERROR, "%s driver: Error setting speed %g (%s)", type_name.c_str(), newHz, modbus_strerror(retval));
-        return false;
-    }
 
-   return true;
+    ret = modbus_write_registers(mb_param, HZ_HOLD_ADDRESS, 2, Hz_Speed_Register);
+
+    if (ret == 2)
+    {
+        Hz_Speed_Register[0] = 0;
+        Hz_Speed_Register[1] = 0;
+
+        for (int j=0; i < ERROR_MAX_COUNT; j++)
+        {
+            ret = modbus_read_registers(mb_param, HZ_HOLD_ADDRESS, 2, Hz_Speed_Register);
+            if (ret == 2)
+            {
+               DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG, "** READING ** Hz_Speed_Register[0] = %X - Hz_Speed_Register[1] = %X", Hz_Speed_Register[0], Hz_Speed_Register[1]);
+
+                if (verbose)
+                    DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_SESSION, "%s drive speed updated to %g Hz.", type_name.c_str(), InverterSpeedN[0].value);
+
+                return true;
+            }
+
+           usleep(ERROR_TIMEOUT);
+       }
+    }
+       usleep(ERROR_TIMEOUT);
+  }
+
+  DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG, "set_speed ERROR! read or write holding_registers (%d)\n", ret);
+  DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG,"Slave = %d, address = %d, nb = %d\n", SLAVE_ADDRESS, HZ_HOLD_ADDRESS, 2);
+  DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_ERROR,"Error: could not update speed for %s drive.", type_name.c_str());
+  return false;
 	
 }
 
-/****************************************************************
-**
-**
-*****************************************************************/   
-bool Inverter::init_drive()
-{
-
-    mb_data.slave = SLAVE_ADDRESS;
-
-   return true;
-   
-}
-    
 /****************************************************************
 **
 **

@@ -1,8 +1,6 @@
 #if 0
-    INDI Ujari Driver - Inverter
+    INDI Ujari Driver - Hitachi Inverter
     Copyright (C) 2014 Jasem Mutlaq
-
-    Based on EQMod INDI Driver by Jean-Luc
     
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -23,13 +21,15 @@
 #ifndef INVERTER_H
 #define INVERTER_H
 
+#include <modbus.h>
+
 #include <indidevapi.h>
 #include <indicom.h>
 #include <string>
 #include <bitset>
 #include <iostream>
 
-#include "hy_modbus.h"
+#include <modbus.h>
 
 using namespace std;
 
@@ -42,6 +42,7 @@ class Inverter
 
         enum inverterType { DOME_INVERTER, SHUTTER_INVERTER };
         enum inverterMotion { INVERTER_STOP, INVERTER_FORWARD, INVERTER_REVERSE};
+        enum inverterCommand { INVERTER_OPERATION, INVERTER_DIRECTION };
 
 
         Inverter(inverterType new_type, Ujari *scope);
@@ -65,8 +66,8 @@ class Inverter
         void setSimulation(bool enable);
         bool isSimulation() { return simulation;}
 
-        void enable_debug() { debug = true; mb_param.debug = 1; }
-        void disable_debug() { debug = false; mb_param.debug = 0;}
+        inline void enable_debug() { debug = true;     modbus_set_debug(mb_param, true);}
+        inline void disable_debug() { debug = false;   modbus_set_debug(mb_param, false);}
 
         // Standard INDI interface fucntions
         virtual bool initProperties();
@@ -85,7 +86,6 @@ class Inverter
         // Modbus functions
         bool enable_drive();
         bool disable_drive();
-        bool init_drive();
 
         // INDI Properties
 
@@ -114,19 +114,25 @@ class Inverter
         string type_name;
         string forward_motion;
         string reverse_motion;
-        string default_port;
-
-        //modbus_t * mb_param;
-
-        modbus_param_t mb_param;
-        modbus_data_t mb_data;
-
-        uint SLAVE_ADDRESS;
+        string default_port;        
 
         // Stop, Forward, Reverse
         inverterMotion motionStatus;
 
         Ujari *telescope;
+
+        modbus_t * mb_param;
+
+        uint SLAVE_ADDRESS;
+
+        const uint OPERATION_COMMAND_ADDRESS;
+        const uint DIRECTION_COMMAND_ADDRESS;
+        const uint HZ_HOLD_ADDRESS;
+
+        // 1st coil: Run (1) & Stop (0). 2nd coil: Reverse (1), Forward (0)
+        uint8_t Motion_Control_Coils[2];
+        // Frequency in Hz
+        uint16_t Hz_Speed_Register[2];
 
 };
 
