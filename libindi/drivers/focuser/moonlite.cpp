@@ -348,7 +348,7 @@ bool MoonLite::updatePosition()
     int nbytes_written=0, nbytes_read=0, rc=-1;
     char errstr[MAXRBUF];
     char resp[5];
-    short pos=-1;
+    int pos=-1;
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -366,7 +366,7 @@ bool MoonLite::updatePosition()
         return false;
     }
 
-    rc = sscanf(resp, "%hX#", &pos);
+    rc = sscanf(resp, "%X#", &pos);
 
     if (rc > 0)
     {
