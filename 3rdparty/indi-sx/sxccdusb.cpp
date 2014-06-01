@@ -232,7 +232,7 @@ int sxList(DEVICE *sxDevices, const char **names, int maxCount) {
       }
     }
   }
-   libusb_free_device_list(usb_devices, 1);
+  libusb_free_device_list(usb_devices, 1);
   return count;
 }
 
@@ -250,12 +250,14 @@ int sxOpen(DEVICE sxDevice, HANDLE *sxHandle) {
 //      DEBUG(log(true, "sxOpen: libusb_set_configuration -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
 //    }
     if (rc >= 0) {
-#ifdef __APPLE__
-      rc = libusb_claim_interface(*sxHandle, 0);
-#else
-      rc = libusb_claim_interface(*sxHandle, 1);
-#endif
-      DEBUG(log(true, "sxOpen: libusb_claim_interface -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
+      struct libusb_config_descriptor *config;
+      rc = libusb_get_config_descriptor(sxDevice, 0, &config);
+      DEBUG(log(true, "sxOpen: libusb_get_config_descriptor -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
+      if (rc >= 0) {
+        int interface = config->interface->altsetting->bInterfaceNumber;
+        rc = libusb_claim_interface(*sxHandle, interface);
+        DEBUG(log(true, "sxOpen: libusb_claim_interface(%d) -> %s\n", interface, rc < 0 ? libusb_error_name(rc) : "OK"));
+      }
     }
   }
   return rc >= 0;
@@ -282,8 +284,6 @@ int sxOpen(HANDLE *sxHandles) {
 
 void sxClose(HANDLE *sxHandle) {
   int rc;
-//  rc = libusb_release_interface(*sxHandle, 0);
-//  DEBUG(log(true, "sxClose: libusb_release_interface -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
   libusb_close(*sxHandle);
   *sxHandle = NULL;
   DEBUG(log(true, "sxClose: libusb_close\n"));
