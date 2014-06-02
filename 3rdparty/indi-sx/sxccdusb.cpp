@@ -245,10 +245,6 @@ int sxOpen(DEVICE sxDevice, HANDLE *sxHandle) {
       rc = libusb_detach_kernel_driver(*sxHandle, 0);
       DEBUG(log(true, "sxOpen: libusb_detach_kernel_driver -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
     }
-//    if (rc >= 0) {
-//      rc = libusb_set_configuration(*sxHandle, 1);
-//      DEBUG(log(true, "sxOpen: libusb_set_configuration -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
-//    }
     if (rc >= 0) {
       struct libusb_config_descriptor *config;
       rc = libusb_get_config_descriptor(sxDevice, 0, &config);
