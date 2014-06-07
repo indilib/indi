@@ -2,7 +2,7 @@ Source: astrometry.net
 Section: science
 Priority: extra
 Maintainer: Jasem Mutlaq <mutlaqja@ikarustech.com>
-Build-Depends: debhelper (>= 8.0.0), autotools-dev, libcfitsio3-dev,  zlib1g-dev, libcairo2-dev, python-dev, libpng12-dev, libjpeg-dev, python-numpy, libnetpbm10-dev, libgsl0-dev, swig 
+Build-Depends: debhelper (>= 8.0.0), autotools-dev, libcfitsio3-dev,  zlib1g-dev, libcairo2-dev, python-dev, libpng12-dev, libjpeg-dev, python-numpy, libnetpbm10-dev, libgsl0-dev, swig, libbz2-dev 
 Standards-Version: 3.9.4
 Homepage: www.astrometry.net
 
