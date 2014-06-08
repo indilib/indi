@@ -574,8 +574,21 @@ bool SBIGCCD::Connect()
   // Do we have a guide port?
 
   if (sim)
-  {    
+  {           
+    Capability cap;
+
+    cap.canAbort = true;
+    cap.canBin = true;
+    cap.canSubFrame = true;
+    cap.hasCooler = true;
+    cap.hasGuideHead = false;
+    cap.hasShutter = true;
+    cap.hasST4Port = true;
+
+    SetCapability(&cap);
+
     IEAddTimer(TEMPERATURE_POLL_MS, SBIGCCD::updateTemperatureHelper, this);
+
     return true;
   }
 
@@ -1260,7 +1273,7 @@ void SBIGCCD::TimerHit()
       return;
   }
 
-   if (isExposureDone(targetChip))
+   if (isExposureDone(targetChip) || (isSimulation() && timeleft <= 0))
    {
       /* We're done exposing */
       DEBUG(INDI::Logger::DBG_DEBUG, "Exposure done, downloading image...");
