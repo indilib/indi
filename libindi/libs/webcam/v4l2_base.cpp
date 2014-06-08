@@ -304,7 +304,10 @@ int V4L2_Base::read_frame(char *errmsg)
                  case V4L2_PIX_FMT_SBGGR8:
                          bayer2rgb24(rgb24_buffer, ((unsigned char *) buffers[buf.index].start), fmt.fmt.pix.width, fmt.fmt.pix.height);
                          break;
-
+		 case V4L2_PIX_FMT_SRGGB8:
+                         bayer_rggb_2rgb24(rgb24_buffer, ((unsigned char *) buffers[buf.index].start), fmt.fmt.pix.width, fmt.fmt.pix.height);
+                         break;
+			
                  case V4L2_PIX_FMT_JPEG:
                  case V4L2_PIX_FMT_MJPEG:
 		   //mjpegtoyuv420p(yuvBuffer, ((unsigned char *) buffers[buf.index].start), fmt.fmt.pix.width, fmt.fmt.pix.height, buffers[buf.index].length);
@@ -943,6 +946,9 @@ int V4L2_Base::check_device(char *errmsg)
         case V4L2_PIX_FMT_SBGGR8:
          cerr << "pixel format: V4L2_PIX_FMT_SBGGR8" << endl;
          break;
+       case V4L2_PIX_FMT_SRGGB8:
+        cerr << "pixel format: V4L2_PIX_FMT_SRGGB8" << endl;
+        break;
         case V4L2_PIX_FMT_GREY:
            cerr << "pixel format: V4L2_PIX_FMT_GREY" << endl;
            break;
@@ -1379,7 +1385,7 @@ void V4L2_Base::allocBuffers()
      colorBuffer = new unsigned char[crop.c.width * crop.c.height * 4];
 
 
-     if (fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_SBGGR8)
+     if ((fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_SBGGR8)||(fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_SRGGB8))
        rgb24_buffer = new unsigned char[crop.c.width * crop.c.height * 3];
    } else
    {
@@ -1387,7 +1393,7 @@ void V4L2_Base::allocBuffers()
      YBuf=yuvBuffer; UBuf=yuvBuffer + (fmt.fmt.pix.width * fmt.fmt.pix.height); VBuf=UBuf + ((fmt.fmt.pix.width * fmt.fmt.pix.height) / 4);
      colorBuffer = new unsigned char[fmt.fmt.pix.width * fmt.fmt.pix.height * 4];
 
-     if (fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_SBGGR8)
+       if ((fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_SBGGR8)||(fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_SRGGB8))
        rgb24_buffer = new unsigned char[fmt.fmt.pix.width * fmt.fmt.pix.height * 3];
    }
 }
@@ -1431,7 +1437,7 @@ int V4L2_Base::setSize(int x, int y)
 
 unsigned char * V4L2_Base::getY()
 {
-  if (fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_SBGGR8)
+    if ((fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_SBGGR8)||(fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_SRGGB8))
       RGB2YUV(fmt.fmt.pix.width, fmt.fmt.pix.height, rgb24_buffer, YBuf, UBuf, VBuf, 0);
 
   return YBuf;
@@ -1481,6 +1487,9 @@ unsigned char * V4L2_Base::getColorBuffer()
       case V4L2_PIX_FMT_SBGGR8:
         ccvt_rgb24_bgr32(fmt.fmt.pix.width, fmt.fmt.pix.height,rgb24_buffer, (void*)colorBuffer);
         break;
+    case V4L2_PIX_FMT_SRGGB8:
+      ccvt_rgb24_bgr32(fmt.fmt.pix.width, fmt.fmt.pix.height,rgb24_buffer, (void*)colorBuffer);
+      break;
 	
       default:
         break;
