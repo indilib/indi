@@ -1382,13 +1382,14 @@ int SBIGCCD::QueryTemperatureStatus(	bool &enabled, double &ccdTemp,
 
     if(CheckLink()){
         res = SBIGUnivDrvCommand(CC_QUERY_TEMPERATURE_STATUS, 0, &qtsr);
-        if(res == CE_NO_ERROR){
-                enabled      = qtsr.enabled;
+        if(res == CE_NO_ERROR)
+        {
+                enabled      = (qtsr.enabled != 0);
                 ccdTemp      = CalcTemperature(CCD_THERMISTOR, qtsr.ccdThermistor);
                 setpointTemp = CalcTemperature(CCD_THERMISTOR, qtsr.ccdSetpoint);
                 power        = qtsr.power/255.0;
 
-                DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Enabled (%s) ccdTemp (%g) setpointTemp (%g) power (%g)", __FUNCTION__, enabled ? "True": "False", ccdTemp, setpointTemp, power);
+                DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Enabled (%s) qtsr.enabled (%d) ccdTemp (%g) setpointTemp (%g) power (%g)", __FUNCTION__, enabled ? "True": "False", qtsr.enabled, ccdTemp, setpointTemp, power);
         }
     }else{
         res = CE_DEVICE_NOT_OPEN;
