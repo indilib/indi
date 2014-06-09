@@ -1387,6 +1387,8 @@ int SBIGCCD::QueryTemperatureStatus(	bool &enabled, double &ccdTemp,
                 ccdTemp      = CalcTemperature(CCD_THERMISTOR, qtsr.ccdThermistor);
                 setpointTemp = CalcTemperature(CCD_THERMISTOR, qtsr.ccdSetpoint);
                 power        = qtsr.power/255.0;
+
+                DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Enabled (%s) ccdTemp (%g) setpointTemp (%g) power (%g)", __FUNCTION__, enabled ? "True": "False", ccdTemp, setpointTemp, power);
         }
     }else{
         res = CE_DEVICE_NOT_OPEN;
