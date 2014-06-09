@@ -159,6 +159,7 @@ protected:
     virtual bool UpdateGuiderBin(int binx, int biny);
     virtual void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip);
     virtual bool UpdateCCDFrameType(CCDChip::CCD_FRAME fType);
+    virtual bool saveConfigItems(FILE *fp);
 
     bool GuideNorth(float);
     bool GuideSouth(float);

@@ -1236,6 +1236,16 @@ void SBIGCCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
 
 }
 
+bool SBIGCCD::saveConfigItems(FILE *fp)
+{
+    INDI::CCD::saveConfigItems(fp);
+
+    IUSaveConfigNumber(fp, &FilterSlotNP);
+    IUSaveConfigText(fp, FilterNameTP);
+
+    return true;
+}
+
 void SBIGCCD::resetFrame()
 {
   UpdateCCDBin(1, 1);
