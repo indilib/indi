@@ -602,8 +602,9 @@ bool SBIGCCD::Connect()
               DEBUG(INDI::Logger::DBG_SESSION, "SBIG CCD is online. Retrieving basic data.");
 
               bool hasCooler;
-              double temp, setPoint,power;
-              QueryTemperatureStatus(hasCooler, temp, setPoint, power);
+              //double temp, setPoint,power;
+              //QueryTemperatureStatus(hasCooler, temp, setPoint, power);
+              hasCooler = (GetCameraType() != STI_CAMERA);
 
               if (hasCooler)
                   IEAddTimer(TEMPERATURE_POLL_MS, SBIGCCD::updateTemperatureHelper, this);
@@ -1399,7 +1400,7 @@ int SBIGCCD::QueryTemperatureStatus(	bool &enabled, double &ccdTemp,
                 setpointTemp = CalcTemperature(CCD_THERMISTOR, qtsr.ccdSetpoint);
                 power        = qtsr.power/255.0;
 
-                DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Enabled (%s) qtsr.enabled (%d) ccdTemp (%g) setpointTemp (%g) power (%g)", __FUNCTION__, enabled ? "True": "False", qtsr.enabled, ccdTemp, setpointTemp, power);
+                DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Regulation Enabled (%s) ccdTemp (%g) setpointTemp (%g) power (%g)", __FUNCTION__, enabled ? "True": "False", qtsr.enabled, ccdTemp, setpointTemp, power);
         }
     }else{
         res = CE_DEVICE_NOT_OPEN;
