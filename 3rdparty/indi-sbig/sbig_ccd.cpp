@@ -510,7 +510,11 @@ bool SBIGCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                     DEBUG(INDI::Logger::DBG_ERROR, "CFW connection error!");
                     IDSetSwitch(&FilterConnectionSP, NULL);
                 }
-            }else
+
+                // Load filter names from file
+                loadConfig(true);
+            }
+            else
             {
                 // Close device.
                 if(CFWDisconnect() == CE_NO_ERROR)
@@ -2282,6 +2286,7 @@ void SBIGCCD::CFWUpdateProperties(CFWResults CFWr)
     GetFilterNames(FILTER_TAB);
 
     defineText(FilterNameTP);
+
 }
 
 //==========================================================================
