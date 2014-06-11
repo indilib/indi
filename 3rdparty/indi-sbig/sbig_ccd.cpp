@@ -517,7 +517,7 @@ bool SBIGCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
             else
             {
                 // Close device.
-                if(CFWDisconnect() == CE_NO_ERROR)
+                if(CFWDisconnect() != CE_NO_ERROR)
                 {
                     FilterConnectionSP.s = IPS_ALERT;
                     DEBUG(INDI::Logger::DBG_ERROR, "CFW disconnection error!");
