@@ -641,7 +641,11 @@ void GPhotoCCD::TimerHit()
           PrimaryCCD.setExposureLeft(0);
           InExposure = false;
           /* grab and save image */
-          grabImage();
+          bool rc = grabImage();
+          if (rc == false)
+          {
+              PrimaryCCD.setExposureFailed();
+          }
         }
       }
     }
@@ -729,6 +733,12 @@ bool GPhotoCCD::grabImage()
             DEBUG(INDI::Logger::DBG_ERROR, "Exposure failed to save image...");
             unlink(tmpfile);
             return false;
+        }
+
+        if (!strcmp(gphoto_get_file_extension(gphotodrv), "unknown"))
+        {
+                DEBUG(INDI::Logger::DBG_ERROR, "Exposure failed.");
+                return false;
         }
 
         /* We're done exposing */

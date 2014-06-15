@@ -960,7 +960,11 @@ void gphoto_free_buffer(gphoto_driver *gphoto)
 
 const char *gphoto_get_file_extension(gphoto_driver *gphoto)
 {
-	return strchr(gphoto->filename, '.')+1;
+
+    if (gphoto->filename[0])
+        return strchr(gphoto->filename, '.')+1;
+    else
+        return "unknown";
 }
 
 int gphoto_get_dimensions(gphoto_driver *gphoto, int *width, int *height)
