@@ -1,8 +1,8 @@
 /*
     Driver type: SBIG CCD Camera INDI Driver
 
+    Copyright (C) 2013-2014 Jasem Mutlaq (mutlaqja AT ikarustech DOT com)
     Copyright (C) 2005-2006 Jan Soldan (jsoldan AT asu DOT cas DOT cz)
-    Copyright (C) 2013 Jasem Mutlaq (mutlaqja AT ikarustech DOT com)
 
     Acknowledgement:
     Matt Longmire 	(matto AT sbig DOT com)
@@ -279,9 +279,15 @@ bool SBIGCCD::initProperties()
   IUFillSwitch(&FanStateS[1], "OFF", "Off", ISS_OFF);
   IUFillSwitchVector(&FanStateSP, FanStateS, 2, getDeviceName(), "CCD_FAN", "Fan", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_OK);
 
+  // CCD Cooler Switch
+  IUFillSwitch(&CoolerS[0], "ON", "On", ISS_OFF);
+  IUFillSwitch(&CoolerS[1], "OFF", "Off", ISS_ON);
+  IUFillSwitchVector(&CoolerSP, CoolerS, 2, getDeviceName(), "CCD_REGULATION", "Cooler", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_OK);
+
+
   // CCD COOLER:
   IUFillNumber(	&CoolerN[0], "COOLER","[%]", "%.1f", 0, 0, 0, 0);
-  IUFillNumberVector(&CoolerNP, CoolerN, 1, getDeviceName(), "CCD_COOLER","Cooler", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+  IUFillNumberVector(&CoolerNP, CoolerN, 1, getDeviceName(), "CCD_COOLER","Cooler %", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
   // CFW PRODUCT
   IUFillText(&FilterProdcutT[0], "NAME", "Name", "");
@@ -337,12 +343,17 @@ bool SBIGCCD::updateProperties()
 
   if (isConnected())
   {
+      if (IsFanControlAvailable())
+          defineSwitch(&FanStateSP);
+
     if (HasCooler())
+    {
+        defineSwitch(&CoolerSP);
         defineNumber(&CoolerNP);
+    }
     defineText(&ProductInfoTP);
 
-    if (IsFanControlAvailable())
-        defineSwitch(&FanStateSP);
+
 
     defineSwitch(&ResetSP);
 
@@ -359,9 +370,9 @@ bool SBIGCCD::updateProperties()
     timerID = SetTimer(POLLMS);
   } else
   {
+    deleteProperty(CoolerSP.name);
     deleteProperty(CoolerNP.name);
     deleteProperty(ProductInfoTP.name);
-
 
     deleteProperty(FanStateSP.name);
     deleteProperty(ResetSP.name);
@@ -370,6 +381,9 @@ bool SBIGCCD::updateProperties()
     deleteProperty(FilterProdcutTP.name);
     deleteProperty(FilterTypeSP.name);
     deleteProperty(FilterSlotNP.name);
+
+    if (FilterNameT != NULL)
+        deleteProperty(FilterNameTP->name);
 
     rmTimer(timerID);
   }
@@ -488,6 +502,22 @@ bool SBIGCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
         return true;
        }
 
+      if (!strcmp(name, CoolerSP.name))
+      {
+          IUUpdateSwitch(&CoolerSP, states, names, n);
+
+          if (SetTemperatureRegulation(TemperatureN[0].value, CoolerS[0].s == ISS_ON) == CE_NO_ERROR)
+            CoolerSP.s = (CoolerS[0].s == ISS_ON) ? IPS_BUSY : IPS_IDLE;
+          else
+          {
+              DEBUG(INDI::Logger::DBG_ERROR, "Setting temperature regulation failed.");
+              CoolerSP.s = IPS_ALERT;
+          }
+
+          IDSetSwitch(&CoolerSP, NULL);
+          return true;
+      }
+
         // CFW CONNECTION:
       if(!strcmp(name, FilterConnectionSP.name))
       {
@@ -498,6 +528,19 @@ bool SBIGCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
             IDSetSwitch(&FilterConnectionSP, 0);
             if(FilterConnectionS[0].s == ISS_ON)
             {
+
+                ISwitch *p = IUFindOnSwitch(&FilterTypeSP);
+                if (p == NULL)
+                {
+
+                    FilterConnectionSP.s = IPS_IDLE;
+                    IUResetSwitch(&FilterConnectionSP);
+                    FilterConnectionSP.sp[1].s = ISS_ON;
+                    DEBUG(INDI::Logger::DBG_WARNING, "Please select filter type before connecting.");
+                    IDSetSwitch(&FilterConnectionSP, NULL);
+                    return false;
+                }
+
                 // Open device.
                 if(CFWConnect() == CE_NO_ERROR)
                 {
@@ -507,6 +550,8 @@ bool SBIGCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                 }else
                 {
                     FilterConnectionSP.s = IPS_ALERT;
+                    IUResetSwitch(&FilterConnectionSP);
+                    FilterConnectionSP.sp[1].s = ISS_ON;
                     DEBUG(INDI::Logger::DBG_ERROR, "CFW connection error!");
                     IDSetSwitch(&FilterConnectionSP, NULL);
                 }
@@ -530,7 +575,7 @@ bool SBIGCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                     CFWr.cfwError		= CFWE_DEVICE_NOT_OPEN;
                     CFWr.cfwResult1		= 0;
                     CFWr.cfwResult2		= 0;
-                    CFWUpdateProperties(CFWr);
+                    //CFWUpdateProperties(CFWr);
                     // Remove connection text.
                     FilterConnectionSP.s = IPS_IDLE;
                     DEBUG(INDI::Logger::DBG_SESSION, "CFW disconnected.");
@@ -605,9 +650,7 @@ bool SBIGCCD::Connect()
                   // Link established.
               DEBUG(INDI::Logger::DBG_SESSION, "SBIG CCD is online. Retrieving basic data.");
 
-              bool hasCooler;
-              //double temp, setPoint,power;
-              //QueryTemperatureStatus(hasCooler, temp, setPoint, power);
+              bool hasCooler = false;
               hasCooler = (GetCameraType() != STI_CAMERA);
 
               if (hasCooler)
@@ -696,20 +739,13 @@ bool SBIGCCD::setupParams()
       return false;
   }
 
-  if (!sim && (res = getCCDSizeInfo(CCD_IMAGING, binning, wCcd, hCcd, wPixel, hPixel)) != CE_NO_ERROR)
+  if (res = getCCDSizeInfo(CCD_IMAGING, binning, wCcd, hCcd, wPixel, hPixel) != CE_NO_ERROR)
   {
       DEBUGF(INDI::Logger::DBG_ERROR, "Error getting CCD Size info. %s", GetErrorString(res).c_str());
       return false;
   }
 
-  if (sim)
-  {
-      x_pixel_size = y_pixel_size = 5.4;
-      x_1 = y_1 = 0;
-      x_2 = 1024;
-      y_2 = 1024;
-  }
-  else if(res == CE_NO_ERROR)
+  if(res == CE_NO_ERROR)
   {
       // CCD INFO:
       x_pixel_size  = wPixel;
@@ -729,21 +765,13 @@ bool SBIGCCD::setupParams()
             return false;
         }
 
-        if (!sim && (res = getCCDSizeInfo(CCD_TRACKING, binning, wCcd, hCcd, wPixel, hPixel)) != CE_NO_ERROR)
+        if (res = getCCDSizeInfo(CCD_TRACKING, binning, wCcd, hCcd, wPixel, hPixel) != CE_NO_ERROR)
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "Error getting CCD Size info. %s", GetErrorString(res).c_str());
             return false;
         }
 
-
-        if (sim)
-        {
-            x_pixel_size = y_pixel_size = 5.0;
-            x_1 = y_1 = 0;
-            x_2 = 512;
-            y_2 = 512;
-        }
-        else if(res == CE_NO_ERROR)
+        if(res == CE_NO_ERROR)
         {
             // CCD INFO:
             x_pixel_size  = wPixel;
@@ -782,6 +810,20 @@ bool SBIGCCD::setupParams()
       DEBUGF(INDI::Logger::DBG_DEBUG, "Created Guide Head CCD buffer %d bytes.", nbuf);
   }
 
+  // CCD Cooler
+  if (HasCooler())
+  {
+    bool regulationEnabled = false;
+    double temp, setPoint,power;
+    QueryTemperatureStatus(regulationEnabled, temp, setPoint, power);
+    CoolerS[0].s = regulationEnabled ? ISS_ON : ISS_OFF;
+    CoolerS[1].s = regulationEnabled ? ISS_OFF: ISS_ON;
+    IDSetSwitch(&CoolerSP, NULL);
+
+    CoolerN[0].value = power * 100;
+    IDSetNumber(&CoolerNP, NULL);
+  }
+
   // Update CCD Temperature Min & Max limits
   TemperatureN[0].min = MIN_CCD_TEMP;
   TemperatureN[0].max = MAX_CCD_TEMP;
@@ -816,6 +858,14 @@ int SBIGCCD::SetTemperature(double temperature)
         //TemperatureN[0].value = values[0];
         TemperatureRequest = temperature;
         DEBUGF(INDI::Logger::DBG_SESSION, "Setting CCD temperature to %+.1f [C].",temperature);
+
+        if (CoolerS[0].s != ISS_ON)
+        {
+            CoolerS[0].s = ISS_ON;
+            CoolerS[1].s = ISS_OFF;
+            CoolerSP.s = IPS_BUSY;
+            IDSetSwitch(&CoolerSP, NULL);
+        }
         return 0;
     }else
     {
@@ -1379,6 +1429,12 @@ int SBIGCCD::SetTemperatureRegulation(double temperature, bool enable)
     int res;
     SetTemperatureRegulationParams strp;
 
+    if (sim)
+    {
+        TemperatureN[0].value = temperature;
+        return CE_NO_ERROR;
+    }
+
     if(CheckLink()){
         strp.regulation  = enable ? REGULATION_ON : REGULATION_OFF;
         strp.ccdSetpoint = CalcSetpoint(temperature);
@@ -1394,6 +1450,16 @@ int SBIGCCD::QueryTemperatureStatus(	bool &enabled, double &ccdTemp,
 {
     int res;
     QueryTemperatureStatusResults qtsr;
+
+    if (sim)
+    {
+        enabled = (CoolerS[0].s == ISS_ON);
+        ccdTemp = TemperatureN[0].value;
+        setpointTemp = ccdTemp;
+        power = enabled ? 0.5 : 0;
+
+        return CE_NO_ERROR;
+    }
 
     if(CheckLink()){
         res = SBIGUnivDrvCommand(CC_QUERY_TEMPERATURE_STATUS, 0, &qtsr);
@@ -1506,6 +1572,24 @@ int	SBIGCCD::getCCDSizeInfo(	int ccd, int binning, int &frmW, int &frmH,
     int res;
     GetCCDInfoParams		gcp;
   GetCCDInfoResults0	gcr;
+  if (sim)
+  {
+      if (ccd == CCD_IMAGING)
+      {
+          frmW = 1024;
+          frmH = 1024;
+      }
+      else
+      {
+          frmW = 512;
+          frmH = 512;
+      }
+
+      pixW = 5.2;
+      pixH = 5.2;
+
+      return CE_NO_ERROR;
+  }
 
   gcp.request = ccd;
     res = SBIGUnivDrvCommand(CC_GET_CCD_INFO, &gcp, &gcr);
@@ -1660,6 +1744,10 @@ int SBIGCCD::SBIGUnivDrvCommand(PAR_COMMAND command, void *params, void *results
 {
     int res;
     SetDriverHandleParams sdhp;
+
+    if (sim)
+        return CE_NO_ERROR;
+
     // Make sure we have a valid handle to the driver.
     if(GetDriverHandle() == INVALID_HANDLE_VALUE){
             res = CE_DRIVER_NOT_OPEN;
@@ -1868,6 +1956,7 @@ bool SBIGCCD::SelectFilter(int position)
 bool SBIGCCD::SetFilterNames()
 {
     // Cannot save it in hardware, so let's just save it in the config file to be loaded later
+    saveConfig();
     return true;
 }
 
@@ -1915,14 +2004,7 @@ void SBIGCCD::updateTemperature()
     bool   	enabled;
     double 	ccdTemp, setpointTemp, percentTE, power;
 
-    // Get temperature status, ignore possible errors.
-    if (sim)
-    {
-        TemperatureN[0].value = TemperatureRequest;
-        TemperatureNP.s = IPS_OK;
-        IDSetNumber(&TemperatureNP, NULL);
-    }
-    else if( (res = QueryTemperatureStatus(enabled, ccdTemp, setpointTemp, percentTE)) == CE_NO_ERROR)
+    if( (res = QueryTemperatureStatus(enabled, ccdTemp, setpointTemp, percentTE)) == CE_NO_ERROR)
     {
         DEBUGF(INDI::Logger::DBG_DEBUG, "ccdTemp: %g setpointTemp: %g TEMP_DIFF %g", ccdTemp, setpointTemp, TEMP_DIFF);
 
@@ -1949,7 +2031,6 @@ void SBIGCCD::updateTemperature()
                 CoolerNP.s = IPS_BUSY;
         }
         CoolerN[0].value = power;
-
 
         IDSetNumber(&TemperatureNP, NULL);
         IDSetNumber(&CoolerNP, 0);
@@ -2089,14 +2170,23 @@ int SBIGCCD::CFWConnect()
             continue;
         }
 
-        // 4. CFWUpdateProperties:
-        CFWUpdateProperties(CFWr);
+        if (sim)
+        {
+            int cfwsim[10] = {  2, 5 , 6 , 8, 4, 10, 10, 8, 9, 10};
+            int filnum = IUFindOnSwitchIndex(&FilterTypeSP);
+            if (filnum < 0)
+                CFWr.cfwResult2 = 5;
+            else
+                CFWr.cfwResult2 = cfwsim[filnum];
+        }
 
-        // 5. Set CFW's filter min/max values:
+        // 4. Set CFW's filter min/max values:
         FilterSlotN[0].min = 1;
         FilterSlotN[0].max = CFWr.cfwResult2;
         IUUpdateMinMax(&FilterSlotNP);
 
+        // 5. CFWUpdateProperties:
+        CFWUpdateProperties(CFWr);
 
 
     }while(0);
@@ -2113,6 +2203,9 @@ int SBIGCCD::CFWDisconnect()
     if(!p) return(CE_OS_ERROR);
 
     deleteProperty(FilterNameTP->name);
+
+    if (sim)
+        return CE_NO_ERROR;
 
     // Close CFW device:
     return(CFWCloseDevice(&CFWr));
@@ -2205,7 +2298,16 @@ int SBIGCCD::CFWGoto(CFWResults *CFWr, int position)
     CFWp.cfwModel 		= GetCFWSelType();
     CFWp.cfwCommand 	= CFWC_GOTO;
     CFWp.cfwParam1	= (unsigned long)position;
-    if((res = SBIGUnivDrvCommand(CC_CFW, &CFWp, CFWr)) != CE_NO_ERROR) return(res);
+
+    if (sim)
+    {
+        CFWr->cfwPosition = position;
+        return CE_NO_ERROR;
+    }
+
+    if((res = SBIGUnivDrvCommand(CC_CFW, &CFWp, CFWr)) != CE_NO_ERROR)
+        return(res);
+
     return(CFWGotoMonitor(CFWr));
 }
 
@@ -2214,6 +2316,10 @@ int SBIGCCD::CFWGoto(CFWResults *CFWr, int position)
 int SBIGCCD::CFWGotoMonitor(CFWResults *CFWr)
 {
     int res;
+
+    if (sim)
+        return CE_NO_ERROR;
+
     do{
             if((res = CFWQuery(CFWr)) != CE_NO_ERROR) return(res);
     }while(CFWr->cfwStatus != CFWS_IDLE);

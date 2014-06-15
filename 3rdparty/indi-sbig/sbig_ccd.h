@@ -1,8 +1,8 @@
 /*
     Driver type: SBIG CCD Camera INDI Driver
 
+    Copyright (C) 2013-2014 Jasem Mutlaq (mutlaqja AT ikarustech DOT com)
     Copyright (C) 2005-2006 Jan Soldan (jsoldan AT asu DOT cas DOT cz)
-    Copyright (C) 2013 Jasem Mutlaq (mutlaqja AT ikarustech DOT com)
 
     Acknowledgement:
     Matt Longmire 	(matto AT sbig DOT com)
@@ -203,6 +203,9 @@ private:
     // TEMPERATURE GROUP:
     ISwitch                 FanStateS[2];
     ISwitchVectorProperty	FanStateSP;
+
+    ISwitch                 CoolerS[2];
+    ISwitchVectorProperty   CoolerSP;
 
     INumber                 CoolerN[1];
     INumberVectorProperty	CoolerNP;
