@@ -593,7 +593,7 @@ bool INDI::CCD::ISNewText (const char *dev, const char *name, char *texts[], cha
             rc=IUUpdateText(ActiveDeviceTP,texts,names,n);
             //  Update client display
             IDSetText(ActiveDeviceTP,NULL);
-            saveConfig();
+            //saveConfig();
 
             // Update the property name!
             strncpy(EqNP.device, ActiveDeviceT[0].text, MAXINDIDEVICE);
@@ -724,10 +724,15 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
         }
 
         if(strcmp(name,"CCD_FRAME")==0)
-        {
-            //  We are being asked to set camera binning
-            PrimaryCCD.ImageFrameNP->s=IPS_OK;
-            IUUpdateNumber(PrimaryCCD.ImageFrameNP,values,names,n);
+        { 
+            //  We are being asked to set CCD Frame
+            if (IUUpdateNumber(PrimaryCCD.ImageFrameNP,values,names,n) < 0)
+                return false;
+
+            PrimaryCCD.ImageFrameNP->s=IPS_OK;   
+
+            DEBUGF(Logger::DBG_DEBUG, "Requested CCD Frame is %4.0f,%4.0f %4.0f x %4.0f",
+                  values[0],values[1],values[2],values[4]);
 
             if (UpdateCCDFrame(PrimaryCCD.ImageFrameN[0].value, PrimaryCCD.ImageFrameN[1].value, PrimaryCCD.ImageFrameN[2].value,
                                PrimaryCCD.ImageFrameN[3].value) == false)
@@ -739,12 +744,14 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
 
         if(strcmp(name,"GUIDER_FRAME")==0)
         {
-            //  We are being asked to set camera binning
-            GuideCCD.ImageFrameNP->s=IPS_OK;
-            IUUpdateNumber(GuideCCD.ImageFrameNP,values,names,n);
+            //  We are being asked to set guide frame
+            if (IUUpdateNumber(GuideCCD.ImageFrameNP,values,names,n) < 0)
+                return false;
 
-            DEBUGF(Logger::DBG_DEBUG, "GuiderFrame set to %4.0f,%4.0f %4.0f x %4.0f",
-                  GuideCCD.ImageFrameN[0].value,GuideCCD.ImageFrameN[1].value,GuideCCD.ImageFrameN[2].value,GuideCCD.ImageFrameN[3].value);
+            GuideCCD.ImageFrameNP->s=IPS_OK;
+
+            DEBUGF(Logger::DBG_DEBUG, "Requested Guide Frame is %4.0f,%4.0f %4.0f x %4.0f",
+                  values[0],values[1],values[2],values[4]);
 
             if (UpdateGuiderFrame(GuideCCD.ImageFrameN[0].value, GuideCCD.ImageFrameN[1].value, GuideCCD.ImageFrameN[2].value,
                                GuideCCD.ImageFrameN[3].value) == false)
