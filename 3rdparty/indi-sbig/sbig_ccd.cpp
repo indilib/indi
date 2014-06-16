@@ -2387,6 +2387,7 @@ void SBIGCCD::CFWUpdateProperties(CFWResults CFWr)
     {
             FilterSlotN[0].min = 1;
             FilterSlotN[0].max = CFWr.cfwResult2;
+            FilterSlotN[0].value = CFWr.cfwPosition;
             IUUpdateMinMax(&FilterSlotNP);
     }
 
