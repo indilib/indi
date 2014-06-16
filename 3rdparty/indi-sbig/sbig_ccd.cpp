@@ -2305,7 +2305,8 @@ int SBIGCCD::CFWGoto(CFWResults *CFWr, int position)
         return CE_NO_ERROR;
     }
 
-    if((res = SBIGUnivDrvCommand(CC_CFW, &CFWp, CFWr)) != CE_NO_ERROR)
+    // 2014-06-16: Do we need to also checking if the position is reached here? A test will determine.
+    if((res = SBIGUnivDrvCommand(CC_CFW, &CFWp, CFWr)) != CE_NO_ERROR && CFWp.cfwParam1 == CFWr->cfwPosition)
         return(res);
 
     return(CFWGotoMonitor(CFWr));
