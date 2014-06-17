@@ -87,7 +87,7 @@ void Inverter::set_type(inverterType new_type)
   
   forward_motion = string("Forward");
   reverse_motion = string("Reverse");
-  default_port = string("192.168.0.20");
+  default_port = string("172.16.15.4");
 
   if (type == DOME_INVERTER)
   {
