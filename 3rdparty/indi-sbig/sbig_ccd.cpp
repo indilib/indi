@@ -2407,6 +2407,10 @@ void SBIGCCD::CFWUpdateProperties(CFWResults CFWr)
     FilterSlotN[0].min = 1;
     FilterSlotN[0].max = CFWr.cfwResult2;
     FilterSlotN[0].value = CFWr.cfwPosition;
+    if (FilterSlotN[0].value < FilterSlotN[0].min)
+        FilterSlotN[0].value = FilterSlotN[0].min;
+    else if (FilterSlotN[0].value > FilterSlotN[0].max)
+        FilterSlotN[0].value = FilterSlotN[0].max;
     IUUpdateMinMax(&FilterSlotNP);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CFW min: 1 Max: %g Current Slot: %g", FilterSlotN[0].max, FilterSlotN[0].value);
