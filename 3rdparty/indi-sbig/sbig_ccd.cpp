@@ -1930,6 +1930,7 @@ bool SBIGCCD::SelectFilter(int position)
             if(type == CFWSEL_CFW6A || type == CFWSEL_CFW8)
             {
                 sprintf(str, "CFW position reached.");
+                CFWr.cfwPosition = position;
             }else
             {
                 sprintf(str, "CFW position %d reached.", CFWr.cfwPosition);
@@ -2180,12 +2181,7 @@ int SBIGCCD::CFWConnect()
                 CFWr.cfwResult2 = cfwsim[filnum];
         }
 
-        // 4. Set CFW's filter min/max values:
-        FilterSlotN[0].min = 1;
-        FilterSlotN[0].max = CFWr.cfwResult2;
-        IUUpdateMinMax(&FilterSlotNP);
-
-        // 5. CFWUpdateProperties:
+        // 4. CFWUpdateProperties:
         CFWUpdateProperties(CFWr);
 
 
@@ -2305,10 +2301,15 @@ int SBIGCCD::CFWGoto(CFWResults *CFWr, int position)
         return CE_NO_ERROR;
     }
 
+     DEBUGF(INDI::Logger::DBG_DEBUG, "CFW GOTO: %d", position);
     // 2014-06-16: Do we need to also checking if the position is reached here? A test will determine.
     if((res = SBIGUnivDrvCommand(CC_CFW, &CFWp, CFWr)) != CE_NO_ERROR && CFWp.cfwParam1 == CFWr->cfwPosition)
+    {
+        DEBUGF(INDI::Logger::DBG_DEBUG, "CFW Reached position %d", CFWr->cfwPosition);
         return(res);
+    }
 
+    DEBUG(INDI::Logger::DBG_DEBUG, "CFW did not reach position yet, invoking CFWGotoMonitor");
     return(CFWGotoMonitor(CFWr));
 }
 
@@ -2322,7 +2323,23 @@ int SBIGCCD::CFWGotoMonitor(CFWResults *CFWr)
         return CE_NO_ERROR;
 
     do{
-            if((res = CFWQuery(CFWr)) != CE_NO_ERROR) return(res);
+            if((res = CFWQuery(CFWr)) != CE_NO_ERROR)
+                return(res);
+
+            switch (CFWr->cfwStatus)
+            {
+                case CFWS_IDLE:
+                DEBUG(INDI::Logger::DBG_DEBUG, "CFW Status Idle.");
+                break;
+                case CFWS_BUSY:
+                DEBUG(INDI::Logger::DBG_DEBUG, "CFW Status Busy.");
+                break;
+                default:
+                DEBUG(INDI::Logger::DBG_DEBUG, "CFW Status unknown.");
+                break;
+            }
+
+
     }while(CFWr->cfwStatus != CFWS_IDLE);
     return(res);
 }
@@ -2371,6 +2388,8 @@ void SBIGCCD::CFWUpdateProperties(CFWResults CFWr)
     IText *pIText = IUFindText(&FilterProdcutTP, "NAME");
     if(pIText) IUSaveText(pIText, str);
 
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CFW Product ID: %s", str);
+
     // Set CFW's firmware version:
     if(bClear){
             sprintf(str, "%s", "Unknown");
@@ -2382,14 +2401,15 @@ void SBIGCCD::CFWUpdateProperties(CFWResults CFWr)
     FilterProdcutTP.s = IPS_OK;
     IDSetText(&FilterProdcutTP, 0);
 
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CFW Firmware: %s", str);
+
     // Set CFW's filter min/max values:
-    if(!bClear)
-    {
-            FilterSlotN[0].min = 1;
-            FilterSlotN[0].max = CFWr.cfwResult2;
-            FilterSlotN[0].value = CFWr.cfwPosition;
-            IUUpdateMinMax(&FilterSlotNP);
-    }
+    FilterSlotN[0].min = 1;
+    FilterSlotN[0].max = CFWr.cfwResult2;
+    FilterSlotN[0].value = CFWr.cfwPosition;
+    IUUpdateMinMax(&FilterSlotNP);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CFW min: 1 Max: %g Current Slot: %g", FilterSlotN[0].max, FilterSlotN[0].value);
 
     GetFilterNames(FILTER_TAB);
 
