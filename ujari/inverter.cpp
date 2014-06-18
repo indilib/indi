@@ -292,8 +292,8 @@ bool Inverter::update_status()
     StatusLP.s = IPS_ALERT;
     IDSetLight(&StatusLP, NULL);
 
-    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "Inverter Status Command ERROR. modbus_read_bits (%d)", ret);
-    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "Slave = %d, address = %d, nb = %d", SLAVE_ADDRESS, INVERTER_STATUS_ADDRESS, 3);
+    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "Inverter Status Command ERROR. modbus_read_bits (%s)", modbus_strerror(ret));
+    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "Slave = %d, address = 0x%X, nb = %d", SLAVE_ADDRESS, INVERTER_STATUS_ADDRESS, 3);
     return false;
 }
 
@@ -331,8 +331,8 @@ bool Inverter::update_freq()
        usleep(ERROR_TIMEOUT);
   }
 
-  DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG, "read_speed ERROR! read  holding_registers (%d)\n", ret);
-  DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG,"Slave = %d, address = %d, nb = %d\n", SLAVE_ADDRESS, FREQ_OUTPUT_ADDRESS, 2);
+  DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG, "read_speed ERROR! read  holding_registers (%s)", modbus_strerror(ret));
+  DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG,"Slave = %d, address = 0x%X, nb = %d", SLAVE_ADDRESS, FREQ_OUTPUT_ADDRESS, 2);
   DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_ERROR,"Error: could not update speed for %s drive.", type_name.c_str());
   return false;
 
@@ -395,8 +395,8 @@ bool Inverter::move_forward()
        usleep(ERROR_TIMEOUT);
      }
 
-    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "Forward Command ERROR. force_multiple_coils (%d)\n", ret);
-    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "Slave = %d, address = %d, nb = %d\n", SLAVE_ADDRESS, OPERATION_COMMAND_ADDRESS, 2);
+    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "Forward Command ERROR. force_multiple_coils (%s)", modbus_strerror(ret));
+    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "Slave = %d, address = 0x%X, nb = %d\n", SLAVE_ADDRESS, OPERATION_COMMAND_ADDRESS, 2);
 
     Motion_Control_Coils[0] = 0;
     Motion_Control_Coils[1] = 0;
@@ -457,8 +457,8 @@ bool Inverter::move_reverse()
        usleep(ERROR_TIMEOUT);
      }
 
-    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "Reverse Command ERROR. force_multiple_coils (%d)\n", ret);
-    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "Slave = %d, address = %d, nb = %d\n", SLAVE_ADDRESS, OPERATION_COMMAND_ADDRESS, 2);
+    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "Reverse Command ERROR. force_multiple_coils (%d)", modbus_strerror(ret));
+    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "Slave = %d, address = 0x%X, nb = %d\n", SLAVE_ADDRESS, OPERATION_COMMAND_ADDRESS, 2);
 
     Motion_Control_Coils[0] = 0;
     Motion_Control_Coils[1] = 0;
@@ -519,8 +519,8 @@ bool Inverter::stop()
        usleep(ERROR_TIMEOUT);
      }
 
-    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "Stop Command ERROR. force_multiple_coils (%d)", ret);
-    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "Slave = %d, address = %d, nb = %d", SLAVE_ADDRESS, OPERATION_COMMAND_ADDRESS, 2);
+    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "Stop Command ERROR. force_multiple_coils (%s)", modbus_strerror(ret));
+    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "Slave = %d, address = 0x%X, nb = %d", SLAVE_ADDRESS, OPERATION_COMMAND_ADDRESS, 1);
 
     Motion_Control_Coils[0] = 0;
     Motion_Control_Coils[1] = 0;
@@ -595,8 +595,8 @@ bool Inverter::set_speed(float newHz)
        usleep(ERROR_TIMEOUT);
   }
 
-  DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG, "set_speed ERROR! read or write holding_registers (%d)\n", ret);
-  DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG,"Slave = %d, address = %d, nb = %d\n", SLAVE_ADDRESS, FREQ_SOURCE_ADDRESS, 2);
+  DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG, "set_speed ERROR! read or write holding_registers (%s)", modbus_strerror(ret));
+  DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG,"Slave = %d, address = 0x%X, nb = %d", SLAVE_ADDRESS, FREQ_SOURCE_ADDRESS, 2);
   DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_ERROR,"Error: could not update speed for %s drive.", type_name.c_str());
   return false;
 	

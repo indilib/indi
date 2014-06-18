@@ -476,8 +476,8 @@ bool Ujari::Connect()
 
     try
     {
-      mount_rc = mount->Connect();
-      dome_rc = true; //dome->connect();
+      mount_rc = //mount->Connect();
+      dome_rc = dome->connect();
       shutter_rc = true;//shutter->connect();
     } catch(UjariError e)
     {
