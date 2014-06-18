@@ -512,7 +512,10 @@ void Ujari::TimerHit()
     {
       bool rc;
 
+      dome->update();
+      shutter->update();
       rc=ReadScopeStatus();
+
       //IDLog("TrackState after read is %d\n",TrackState);
       if(rc == false)
     {

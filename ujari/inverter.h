@@ -43,6 +43,8 @@ class Inverter
         enum inverterType { DOME_INVERTER, SHUTTER_INVERTER };
         enum inverterMotion { INVERTER_STOP, INVERTER_FORWARD, INVERTER_REVERSE};
         enum inverterCommand { INVERTER_OPERATION, INVERTER_DIRECTION };
+        enum modbusCommand { MODBUS_STOP, MODBUS_RUN};
+        enum modbusDirection { MODBUS_FORWARD, MODBUS_REVERSE};
 
 
         Inverter(inverterType new_type, Ujari *scope);
@@ -52,6 +54,10 @@ class Inverter
           bool move_reverse();
           bool stop();
 
+          bool update_status();
+          bool update_freq();
+          bool is_ready();
+
           bool set_speed(float newHz);
           float get_speed() { return InverterSpeedN[0].value; }
 
@@ -60,6 +66,7 @@ class Inverter
 
           bool connect();
           void disconnect();
+          bool update();
 
         bool is_in_motion();
         // Simulation
@@ -76,6 +83,8 @@ class Inverter
         virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
         virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
         virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+
+
 
         void reset_all_properties();
 
@@ -101,6 +110,10 @@ class Inverter
         ITextVectorProperty PortTP;
         IText PortT[1];
 
+        // Inverter Status
+        ILightVectorProperty StatusLP;
+        ILight  StatusL[3];
+
         // Functions
         bool check_drive_connection();
 
@@ -114,7 +127,9 @@ class Inverter
         string type_name;
         string forward_motion;
         string reverse_motion;
-        string default_port;        
+        string default_port;
+
+        double reqFreq;
 
         // Stop, Forward, Reverse
         inverterMotion motionStatus;
@@ -127,11 +142,15 @@ class Inverter
 
         const uint OPERATION_COMMAND_ADDRESS;
         const uint DIRECTION_COMMAND_ADDRESS;
-        const uint HZ_HOLD_ADDRESS;
+        const uint INVERTER_STATUS_ADDRESS;
+        const uint FREQ_SOURCE_ADDRESS;
+        const uint FREQ_OUTPUT_ADDRESS;
 
         // 1st coil: Run (1) & Stop (0). 2nd coil: Reverse (1), Forward (0)
         uint8_t Motion_Control_Coils[2];
-        // Frequency in Hz
+        // #1 Ready/Not Ready. #2 Forward Rotation. #3 Reverse Rotation
+        uint8_t Inverter_Status_Coils[3];
+        // Source Frequency in Hz
         uint16_t Hz_Speed_Register[2];
 
 };
