@@ -72,6 +72,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 	struct tm utc;
 	struct ln_date lndate;
 	struct timeval lasttimeupdate;
+	struct timespec lastclockupdate;
 	double juliandate;
 
 	int GuideTimerNS;

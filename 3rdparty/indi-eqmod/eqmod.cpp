@@ -219,6 +219,7 @@ EQMod::EQMod()
   lndate.days = utc.tm_mday;
   lndate.months = utc.tm_mon + 1;
   lndate.years = utc.tm_year + 1900;
+  clock_gettime(CLOCK_MONOTONIC, &lastclockupdate);
   //IDLog("Setting UTC in constructor: %s", asctime(&utc));
   /* initialize random seed: */
   srand ( time(NULL) );
@@ -270,23 +271,46 @@ double EQMod::getLatitude()
 
 double EQMod::getJulianDate()
 {
-  
+  /*
   struct timeval currenttime, difftime;
   double usecs;
   gettimeofday(&currenttime, NULL);
   if (timeval_subtract(&difftime, &currenttime, &lasttimeupdate) == -1)
     return juliandate;
+  */
+  struct timespec currentclock, diffclock;
+  double nsecs;
+  clock_gettime(CLOCK_MONOTONIC, &currentclock);
+  diffclock.tv_sec = currentclock.tv_sec - lastclockupdate.tv_sec;
+  diffclock.tv_nsec = currentclock.tv_nsec - lastclockupdate.tv_nsec;
+  while (diffclock.tv_nsec > 1000000000) {
+    diffclock.tv_sec++;
+    diffclock.tv_nsec -= 1000000000;
+  }
+  while (diffclock.tv_nsec < 0) {
+    diffclock.tv_sec--;
+    diffclock.tv_nsec += 1000000000;
+  }
+  //IDLog("Get Julian; ln_date was %02d:%02d:%.9f\n", lndate.hours, lndate.minutes, lndate.seconds);
+  //IDLog("Clocks last: %d secs %d nsecs current: %d secs %d nsecs\n", lastclockupdate.tv_sec,  lastclockupdate.tv_nsec, currentclock.tv_sec,  currentclock.tv_nsec);
+  //IDLog("Diff %d secs %d nsecs\n", diffclock.tv_sec,  diffclock.tv_nsec);
   //IDLog("Diff %d %d\n", difftime.tv_sec,  difftime.tv_usec);
-  lndate.seconds += (difftime.tv_sec + (difftime.tv_usec / 1000000));
-  usecs=lndate.seconds - floor(lndate.seconds);
+  //lndate.seconds += (difftime.tv_sec + (difftime.tv_usec / 1000000));
+  //usecs=lndate.seconds - floor(lndate.seconds);
+  lndate.seconds += (diffclock.tv_sec + ((double)diffclock.tv_nsec / 1000000000.0));
+  nsecs=lndate.seconds - floor(lndate.seconds);
   utc.tm_sec=lndate.seconds;
   utc.tm_isdst = -1; // let mktime find if DST already in effect in utc
   //IDLog("Get julian: setting UTC secs to %f", utc.tm_sec); 
   mktime(&utc); // normalize time
   //IDLog("Get Julian; UTC is now %s", asctime(&utc));
   ln_get_date_from_tm(&utc, &lndate);
-  lndate.seconds+=usecs;
-  lasttimeupdate = currenttime;
+  //IDLog("Get Julian; ln_date is now %02d:%02d:%.9f\n", lndate.hours, lndate.minutes, lndate.seconds);
+  //lndate.seconds+=usecs;
+  //lasttimeupdate = currenttime;
+  lndate.seconds+=nsecs;
+  //IDLog("     ln_date with nsecs %02d:%02d:%.9f\n", lndate.hours, lndate.minutes, lndate.seconds);
+  lastclockupdate=currentclock;
   juliandate=ln_get_julian_day(&lndate);
   return juliandate;
 }
@@ -1842,6 +1866,7 @@ bool EQMod::updateTime(ln_date *lndate_utc, double utc_offset)
    utc.tm_year = lndate.years - 1900;
 
    gettimeofday(&lasttimeupdate, NULL);
+   clock_gettime(CLOCK_MONOTONIC, &lastclockupdate);
 
    strftime(utc_time, 32, "%Y-%m-%dT%H:%M:%S", &utc);
 
