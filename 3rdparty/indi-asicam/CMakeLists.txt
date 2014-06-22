@@ -3,6 +3,7 @@ PROJECT(indi_asicam CXX C)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
+set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for udev rules")
 
 cmake_policy(SET CMP0003 NEW)
 
@@ -41,3 +42,5 @@ target_link_libraries(indi_asi_ccd ${ASILIB} ${INDI_DRIVER_LIBRARIES} ${CFITSIO_
 install(TARGETS indi_asi_ccd RUNTIME DESTINATION bin )
 
 install(FILES indi_asiccd.xml DESTINATION ${INDI_DATA_DIR})
+
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/99-asi.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
