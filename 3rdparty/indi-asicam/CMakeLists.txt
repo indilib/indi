@@ -20,7 +20,7 @@ include_directories( ${CFITSIO_INCLUDE_DIR})
 ########### indi_asicam ###########
 
 if (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm.*")
-set(ASILIB "${CMAKE_CURRENT_SOURCE_DIR}/SDK/armel/libASICamera.bin")
+set(ASILIB "${CMAKE_CURRENT_SOURCE_DIR}/SDK/armhf/libASICamera.bin")
 elseif (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "x86_64")
 set(ASILIB "${CMAKE_CURRENT_SOURCE_DIR}/SDK/amd64/libASICamera.bin")
 elseif (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "i[3-6]86")
