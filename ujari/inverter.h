@@ -73,8 +73,7 @@ class Inverter
         void setSimulation(bool enable);
         bool isSimulation() { return simulation;}
 
-        inline void enable_debug() { debug = true;     modbus_set_debug(mb_param, true);}
-        inline void disable_debug() { debug = false;   modbus_set_debug(mb_param, false);}
+        void setDebug(bool enable);
 
         // Standard INDI interface fucntions
         virtual bool initProperties();
@@ -101,6 +100,10 @@ class Inverter
         // Inverter Speed (Hz)
         INumber InverterSpeedN[1];
         INumberVectorProperty InverterSpeedNP;
+
+        // Output Frequency
+        INumber OutputFreqN[1];
+        INumberVectorProperty OutputFreqNP;
 
         // Motion Control
         ISwitch MotionControlS[3];

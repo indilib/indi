@@ -476,9 +476,9 @@ bool Ujari::Connect()
 
     try
     {
-      mount_rc = //mount->Connect();
       dome_rc = dome->connect();
-      shutter_rc = true;//shutter->connect();
+      shutter_rc = shutter->connect();
+      mount_rc = mount->Connect();
     } catch(UjariError e)
     {
       return(e.DefaultHandleException(this));
@@ -495,6 +495,8 @@ bool Ujari::Disconnect()
   if (isConnected()) {
     try {
       mount->Disconnect();
+      dome->disconnect();
+      shutter->disconnect();
     }
     catch(UjariError e) {
       DEBUGF(INDI::Logger::DBG_ERROR, "Error when disconnecting mount -> %s", e.message);
@@ -2203,4 +2205,11 @@ bool Ujari::updateLocation(double latitude, double longitude, double elevation)
   else SetSouthernHemisphere(false);
   DEBUGF(INDI::Logger::DBG_SESSION,"updateLocation: long = %g lat = %g", lnobserver.lng, lnobserver.lat);
   return true;
+}
+
+void Ujari::debugTriggered(bool enable)
+{
+    mount->setDebug(enable);
+    dome->setDebug(enable);
+    shutter->setDebug(enable);
 }

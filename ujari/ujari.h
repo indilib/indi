@@ -191,6 +191,8 @@ class Ujari : public INDI::Telescope
             virtual bool canSync();
             virtual bool canPark();
 
+            void debugTriggered(bool enable);
+
             bool updateTime(ln_date *lndate_utc, double utc_offset);
             bool updateLocation(double latitude, double longitude, double elevation);
 

@@ -103,7 +103,7 @@ bool AMCController::initProperties()
     IUFillSwitch(&MotionControlS[1], "FORWARD", "Forward", ISS_OFF);
     IUFillSwitch(&MotionControlS[2], "REVERSE" , "Reverse", ISS_OFF);
 
-    IUFillNumber(&MotorSpeedN[0], "SPEED", "RPM", "%g",  0., 5., .1, 0.);
+    IUFillNumber(&MotorSpeedN[0], "SPEED", "RPM", "%g",  0., 2., .1, 0.);
 
   if (type == RA_MOTOR)
   {
