@@ -118,10 +118,10 @@ void ForkMount::setSimulation (bool enable)
 {
   simulation=enable;
 
-  RAMotor->set_simulation(enable);
-  DECMotor->set_simulation(enable);
-  RAEncoder->set_simulation(enable);
-  DECEncoder->set_simulation(enable);
+  RAMotor->setSimulation(enable);
+  DECMotor->setSimulation(enable);
+  RAEncoder->setSimulation(enable);
+  DECEncoder->setSimulation(enable);
 
 }
 bool ForkMount::isSimulation ()

@@ -169,7 +169,7 @@ void Inverter::ISGetProperties()
 **
 **
 *****************************************************************/
-bool Inverter::check_drive_connection()
+bool Inverter::isDriveOnline()
 {
 	if (simulation)
 		return true;
@@ -186,7 +186,7 @@ bool Inverter::check_drive_connection()
 *****************************************************************/   
 bool Inverter::connect()
 {
-	if (check_drive_connection())
+	if (isDriveOnline())
 		return true;
 
     if (simulation)
@@ -249,7 +249,7 @@ void Inverter::disconnect()
 bool Inverter::update()
 {
     // Not connected yet, nothing to update
-    if (check_drive_connection() == false)
+    if (isDriveOnline() == false)
         return true;
 
     bool rc_status = update_status();    
@@ -328,7 +328,7 @@ bool Inverter::update_status()
 bool Inverter::update_freq()
 {
     int ret=0;
-    if (!check_drive_connection())
+    if (!isDriveOnline())
         return false;
 
     /* Read to 1001h (D001) High order and 1002h (D001) Low Order registers */
@@ -378,11 +378,11 @@ bool Inverter::is_ready()
 **
 **
 *****************************************************************/
-bool Inverter::move_forward()
+bool Inverter::moveForward()
 {
     int ret=0;
 
-	if (!check_drive_connection())
+	if (!isDriveOnline())
 		return false;
 	
 	// Already moving forward
@@ -454,10 +454,10 @@ bool Inverter::move_forward()
 **
 **
 *****************************************************************/
-bool Inverter::move_reverse()
+bool Inverter::moveReverse()
 {
     int ret=0;
-    if (!check_drive_connection())
+    if (!isDriveOnline())
         return false;
 
     // Already moving forward
@@ -529,7 +529,7 @@ bool Inverter::stop()
 {
     int ret=0;
 
-    if (!check_drive_connection())
+    if (!isDriveOnline())
         return false;
 
     // Already moving forward
@@ -586,15 +586,15 @@ bool Inverter::stop()
 **
 **
 *****************************************************************/   
-bool Inverter::set_speed(float newHz)
+bool Inverter::setSpeed(float newHz)
 {
     int ret=0;
-	if (!check_drive_connection())
+	if (!isDriveOnline())
 		return false;
 	
 	if (newHz < 0. || newHz > 50.)
 	{
-        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "set_speed: newHz %g is outside boundary limits (0,50) Hz", newHz);
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "setSpeed: newHz %g is outside boundary limits (0,50) Hz", newHz);
 		return false;
     }
 
@@ -645,7 +645,7 @@ bool Inverter::set_speed(float newHz)
         return true;
     }
 
-    DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG, "#%d set_speed ERROR (%s) read or write holding_registers (%d)", i+1, modbus_strerror(ret), ret);
+    DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG, "#%d setSpeed ERROR (%s) read or write holding_registers (%d)", i+1, modbus_strerror(ret), ret);
     DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG,"#%d Slave = %d, address = 0x%X, nb = %d", i+1, SLAVE_ADDRESS, FREQ_SOURCE_ADDRESS, 2);
 
        usleep(ERROR_TIMEOUT);
@@ -688,7 +688,7 @@ bool Inverter::ISNewNumber (const char *dev, const char *name, double values[], 
 {
 	if (!strcmp(InverterSpeedNP.name, name))
 	{
-        bool rc = set_speed(values[0]);
+        bool rc = setSpeed(values[0]);
 
         if (rc)
         {
@@ -748,9 +748,9 @@ bool Inverter::ISNewSwitch (const char *dev, const char *name, ISState *states, 
 		if (MotionControlS[INVERTER_STOP].s == ISS_ON)
           rc = stop();
 		else if (MotionControlS[INVERTER_FORWARD].s == ISS_ON)
-          rc = move_forward();
+          rc = moveForward();
 		else if (MotionControlS[INVERTER_REVERSE].s == ISS_ON)
-           rc = move_reverse();
+           rc = moveReverse();
 
         if (rc)
         {

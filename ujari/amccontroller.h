@@ -26,6 +26,30 @@
 
 class Ujari;
 
+
+// Drive Status Bits
+#define DS_BRIDGE                   1<<0
+#define DS_DYNAMIC_BRAKE            1<<1
+#define DS_STOP                     1<<2
+#define DS_POSITIVE_STOP            1<<3
+#define DS_NEGATIVE_STOP            1<<4
+#define DS_POSITIVE_TORQUE_INHIBIT  1<<5
+#define DS_NEGATIVE_TORQUE_INHIBIT  1<<6
+#define DS_EXTERNAL_BRAKE           1<<7
+
+// Drive Protection Bits
+#define DP_DRIVE_RESET              1<<0
+#define DP_DRIVE_INTERNAL_ERROR     1<<1
+#define DP_SHORT_CIRCUT             1<<2
+#define DP_CURRENT_OVERSHOOT        1<<3
+#define DP_UNDER_VOLTAGE            1<<4
+#define DP_OVER_VOLTAGE             1<<5
+#define DP_DRIVE_OVER_TEMPERATURE   1<<6
+
+// Drive Control Parameters
+#define CP_COMMANDED_STOP           1<<6
+#define CP_RESET_EVENTS             1<<12
+
 class AMCController
 {
 
@@ -47,19 +71,23 @@ public:
 
     bool connect();
     void disconnect();
-    bool check_drive_connection();
+    bool isDriveOnline();
 
-    bool set_speed(double rpm);
-    bool move_forward();
-    bool move_reverse();
+    bool setSpeed(double rpm);
+    bool moveForward();
+    bool moveReverse();
     bool stop();
 
+    bool update();
+    bool resetFault();
+    bool setControlParameter(unsigned short command);
+
     // Simulation
-    void set_simulation(bool enable) { simulation = enable;}
+    void setSimulation(bool enable) { simulation = enable;}
     // Debug
-    void set_debug(bool enable) { debug = enable; }
+    void setDebug(bool enable) { debug = enable; }
     // Verbose
-    void set_verbose(bool enable) { verbose = enable; }
+    void setVerbose(bool enable) { verbose = enable; }
 
     motorType getType() const;
     void setType(const motorType &value);
@@ -79,6 +107,7 @@ private:
     bool setMotion(motorMotion dir);
     bool isMotionActive();
     driveStatus readDriveStatus();
+    driveStatus readDriveData(unsigned char *data, unsigned char len);
 
     const char *driveStatusString(driveStatus status);
 
@@ -93,6 +122,15 @@ private:
     // Motion Control
     ISwitch MotionControlS[3];
     ISwitchVectorProperty MotionControlSP;
+
+    ISwitch ResetFaultS[1];
+    ISwitchVectorProperty ResetFaultSP;
+
+    ILight DriveStatusL[8];
+    ILightVectorProperty DriveStatusLP;
+
+    ILight DriveProtectionL[7];
+    ILightVectorProperty DriveProtectionLP;
 
     motorType type;
 

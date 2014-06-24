@@ -50,11 +50,11 @@ public:
         void disconnect();
 
         // Simulation
-        void set_simulation(bool enable) { simulation = enable;}
+        void setSimulation(bool enable) { simulation = enable;}
         // Debug
-        void set_debug(bool enable) { debug = enable; }
+        void setDebug(bool enable) { debug = enable; }
         // Verbose
-        void set_verbose(bool enable) { verbose = enable; }
+        void setVerbose(bool enable) { verbose = enable; }
 
         encoderType getType() const;
         void setType(const encoderType &value);

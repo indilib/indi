@@ -38,9 +38,6 @@
 #define MOTOR_ACCELERATION  0.1         // Acceleration is 0.25 RPM per Second
 #define MOTOR_DECELERATION  0.1         // Deceleration is 0.25 RPM per Second
 
-
-//const unsigned int AMCController::Gr1 = 0x0810;
-
 AMCController::AMCController(motorType type, Ujari* scope) : Gr1(0x0810)
 {
         // Initially, not connected
@@ -103,7 +100,27 @@ bool AMCController::initProperties()
     IUFillSwitch(&MotionControlS[1], "FORWARD", "Forward", ISS_OFF);
     IUFillSwitch(&MotionControlS[2], "REVERSE" , "Reverse", ISS_OFF);
 
+    IUFillSwitch(&ResetFaultS[0], "Reset", "", ISS_OFF);
+
     IUFillNumber(&MotorSpeedN[0], "SPEED", "RPM", "%g",  0., 2., .1, 0.);
+
+    IUFillLight(&DriveStatusL[0], "Bridge", "", IPS_IDLE);
+    IUFillLight(&DriveStatusL[1], "Dynamic Brake", "", IPS_IDLE);
+    IUFillLight(&DriveStatusL[2], "Stop", "", IPS_IDLE);
+    IUFillLight(&DriveStatusL[3], "Positive Stop", "", IPS_IDLE);
+    IUFillLight(&DriveStatusL[4], "Negative Stop", "", IPS_IDLE);
+    IUFillLight(&DriveStatusL[5], "Positive Torque", "", IPS_IDLE);
+    IUFillLight(&DriveStatusL[6], "Negative Torque", "", IPS_IDLE);
+    IUFillLight(&DriveStatusL[7], "External Brake", "", IPS_IDLE);
+
+    IUFillLight(&DriveProtectionL[0], "Drive Reset", "", IPS_IDLE);
+    IUFillLight(&DriveProtectionL[1], "Drive Internal Error", "", IPS_IDLE);
+    IUFillLight(&DriveProtectionL[2], "Short Circuit", "", IPS_IDLE);
+    IUFillLight(&DriveProtectionL[3], "Current Overshoot", "", IPS_IDLE);
+    IUFillLight(&DriveProtectionL[4], "Under Voltage", "", IPS_IDLE);
+    IUFillLight(&DriveProtectionL[5], "Over Voltage", "", IPS_IDLE);
+    IUFillLight(&DriveProtectionL[6], "Drive Over Temperature", "", IPS_IDLE);
+
 
   if (type == RA_MOTOR)
   {
@@ -112,6 +129,13 @@ bool AMCController::initProperties()
     IUFillSwitchVector(&MotionControlSP, MotionControlS, NARRAY(MotionControlS), telescope->getDeviceName(), "RA_MOTION_CONTROL", "RA Motion", AMC_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillNumberVector(&MotorSpeedNP, MotorSpeedN, NARRAY(MotorSpeedN), telescope->getDeviceName(), "RA_SPEED" , "RA Speed", AMC_GROUP, IP_RW, 0, IPS_IDLE);
+
+    IUFillSwitchVector(&ResetFaultSP, ResetFaultS, NARRAY(ResetFaultS), telescope->getDeviceName(), "RA_FAULT_RESET", "Fault", AMC_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    IUFillLightVector(&DriveStatusLP, DriveStatusL, NARRAY(DriveStatusL), telescope->getDeviceName(), "RA_DRIVE_STATUS", "Status", AMC_GROUP, IPS_IDLE);
+
+    IUFillLightVector(&DriveProtectionLP, DriveProtectionL, NARRAY(DriveProtectionL), telescope->getDeviceName(), "RA_PROTECTION_STATUS", "Protection", AMC_GROUP, IPS_IDLE);
+
   }
   else
   {
@@ -120,6 +144,13 @@ bool AMCController::initProperties()
     IUFillSwitchVector(&MotionControlSP, MotionControlS, NARRAY(MotionControlS), telescope->getDeviceName(), "DEC_MOTION_CONTROL", "DEC Motion", AMC_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillNumberVector(&MotorSpeedNP, MotorSpeedN, NARRAY(MotorSpeedN), telescope->getDeviceName(), "DEC_SPEED" , "DEC Speed", AMC_GROUP, IP_RW, 0, IPS_IDLE);
+
+    IUFillSwitchVector(&ResetFaultSP, ResetFaultS, NARRAY(ResetFaultS), telescope->getDeviceName(), "DEC_FAULT_RESET", "Fault", AMC_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    IUFillLightVector(&DriveStatusLP, DriveStatusL, NARRAY(DriveStatusL), telescope->getDeviceName(), "DEC_DRIVE_STATUS", "Status", AMC_GROUP, IPS_IDLE);
+
+    IUFillLightVector(&DriveProtectionLP, DriveProtectionL, NARRAY(DriveProtectionL), telescope->getDeviceName(), "DEC_PROTECTION_STATUS", "Protection", AMC_GROUP, IPS_IDLE);
+
   }
 
   return true;
@@ -130,7 +161,7 @@ bool AMCController::initProperties()
 **
 **
 *****************************************************************/
-bool AMCController::check_drive_connection()
+bool AMCController::isDriveOnline()
 {
     if (simulation)
         return true;
@@ -149,7 +180,7 @@ bool AMCController::connect()
 {
     bool rc = true;
 
-    if (check_drive_connection())
+    if (isDriveOnline())
         return true;
 
     if (simulation)
@@ -470,9 +501,9 @@ bool AMCController::setMotion(motorMotion dir)
 **
 **
 *****************************************************************/
-bool AMCController::move_forward()
+bool AMCController::moveForward()
 {
-    if (!check_drive_connection())
+    if (!isDriveOnline())
         return false;
 
     // Already moving forward
@@ -502,11 +533,11 @@ bool AMCController::move_forward()
 **
 **
 *****************************************************************/
-bool AMCController::move_reverse()
+bool AMCController::moveReverse()
 {
     //int ret;
 
-    if (!check_drive_connection())
+    if (!isDriveOnline())
         return false;
 
     // Already moving backwards
@@ -541,7 +572,7 @@ bool AMCController::stop()
 {
 
 
-    if (!check_drive_connection())
+    if (!isDriveOnline())
         return false;
 
     // Already stopped
@@ -559,7 +590,12 @@ bool AMCController::stop()
     targetRPM = 0;
 
     // Doesn't matter what motion direction we choose since it is 0 RPM
-    bool rc =  setMotion(MOTOR_FORWARD);
+    //bool rc =  setMotion(MOTOR_FORWARD);
+
+    // Alternative Method , STOP DRIVE
+    unsigned short param = CP_COMMANDED_STOP;
+
+    bool rc = setControlParameter(param);
 
     if (rc)
         state = MOTOR_STOP;
@@ -572,14 +608,14 @@ bool AMCController::stop()
 **
 **
 *****************************************************************/
-bool AMCController::set_speed(double rpm)
+bool AMCController::setSpeed(double rpm)
 {
-    if (!check_drive_connection())
+    if (!isDriveOnline())
         return false;
 
     if (rpm < 0. || rpm > 5.)
     {
-        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "set_speed: requested RPM %g is outside boundary limits (0,5) RPM", rpm);
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "setSpeed: requested RPM %g is outside boundary limits (0,5) RPM", rpm);
         return false;
     }
 
@@ -601,9 +637,9 @@ bool AMCController::set_speed(double rpm)
     if (isMotionActive())
     {
         if (MotionControlS[MOTOR_FORWARD].s == ISS_ON)
-            move_forward();
+            moveForward();
         else
-            move_reverse();
+            moveReverse();
     }
 
     return true;
@@ -633,12 +669,18 @@ bool AMCController::updateProperties(bool connected)
     {
         telescope->defineSwitch(&MotionControlSP);
         telescope->defineNumber(&MotorSpeedNP);
+        telescope->defineSwitch(&ResetFaultSP);
+        telescope->defineLight(&DriveStatusLP);
+        telescope->defineLight(&DriveProtectionLP);
 
     }
     else
     {
         telescope->deleteProperty(MotionControlSP.name);
         telescope->deleteProperty(MotorSpeedNP.name);
+        telescope->deleteProperty(ResetFaultSP.name);
+        telescope->deleteProperty(DriveStatusLP.name);
+        telescope->deleteProperty(DriveProtectionLP.name);
     }
 }
 
@@ -650,7 +692,7 @@ bool AMCController::ISNewNumber (const char *dev, const char *name, double value
 {
     if (!strcmp(MotorSpeedNP.name, name))
     {
-        bool rc = set_speed(values[0]);
+        bool rc = setSpeed(values[0]);
 
         if (rc)
         {
@@ -706,9 +748,9 @@ bool AMCController::ISNewSwitch (const char *dev, const char *name, ISState *sta
         if (MotionControlS[MOTOR_STOP].s == ISS_ON)       
           rc= stop();
         else if (MotionControlS[MOTOR_FORWARD].s == ISS_ON)
-          rc = move_forward();
+          rc = moveForward();
         else if (MotionControlS[MOTOR_REVERSE].s == ISS_ON)
-           rc = move_reverse();
+           rc = moveReverse();
 
         if (rc == false)
             MotionControlSP.s = IPS_ALERT;
@@ -722,8 +764,16 @@ bool AMCController::ISNewSwitch (const char *dev, const char *name, ISState *sta
         return true;
      }
 
-    return false;
+    if (!strcmp(ResetFaultSP.name, name))
+    {
+        bool rc = resetFault();
+        ResetFaultSP.s = rc ? IPS_OK : IPS_ALERT;
+        IUResetSwitch(&ResetFaultSP);
+        IDSetSwitch(&ResetFaultSP, NULL);
+        return true;
+    }
 
+    return false;
 }
 
 /****************************************************************
@@ -1129,6 +1179,67 @@ AMCController::driveStatus AMCController::readDriveStatus()
 
 }
 
+AMCController::driveStatus AMCController::readDriveData(unsigned char *data, unsigned char len)
+{
+    int nbytes_read=0;
+    unsigned char data_crc[2];
+
+    fd_set          rd;
+    int             rc;
+    struct timeval  t;
+
+    /* 3 second waiting */
+    t.tv_sec = 3;
+    t.tv_usec = 0;
+
+    /* set descriptor */
+    FD_ZERO(&rd);
+    FD_SET(fd, &rd);
+
+    for (int retry=0; retry < 3; retry++)
+    {
+        rc = select(fd + 1, &rd, NULL, NULL, &t);
+        if (rc == -1)
+        {
+          /* select( ) error */
+            DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveData: select() error %s.", strerror(errno));
+            return AMC_COMM_ERROR;
+        }
+        else if (rc == 0)
+        {
+          /* no input available */
+            DEBUGDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveData: No input available.");
+            return AMC_COMM_ERROR;
+        }
+        else if (FD_ISSET(fd, &rd))
+        {
+            if ( (nbytes_read += recv(fd, data+nbytes_read, len-nbytes_read, 0)) <= 0)
+            {
+                // RS485 server disconnected
+                if (nbytes_read == 0)
+                    DEBUGDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveData: Lost connection to RS485 server.");
+                else
+                    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveData: read error: %s", strerror(errno));
+                return AMC_COMM_ERROR;
+            }
+
+            if (nbytes_read != len)
+                continue;
+
+            // Read CRC
+            recv(fd, data_crc, 2, 0);
+
+            break;
+        }
+    }
+
+    if (nbytes_read == len)
+        return AMC_COMMAND_COMPLETE;
+    else
+        return AMC_UNKNOWN_ERROR;
+
+}
+
 const char * AMCController::driveStatusString(driveStatus status)
 {
     switch (status)
@@ -1162,4 +1273,120 @@ const char * AMCController::driveStatusString(driveStatus status)
             return (char *) "Unknown error";
             break;
     }
+}
+
+bool AMCController::update()
+{
+    if (isDriveOnline() == false)
+        return true;
+
+    // TODO
+
+    // Write command with CONTROL BYTE = 1
+    // Read Drive Response
+    // Read Drive Data (unsigned char * 2)
+    // Make them into unsigned short
+    // Do bit & to find out which bits are ON and change lights accordingly
+    // Send for both drive status and drive protection
+    // Rinse and repeat
+    // Make sure to call this update() from Ujari class as well.
+    // Go to bed NOW!
+
+}
+
+bool AMCController::resetFault()
+{
+    if (!isDriveOnline())
+        return false;
+
+    if (simulation)
+    {
+        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_SESSION, "%s drive: Simulating reset fault.", type_name.c_str());
+        return true;
+     }
+
+     unsigned short param = CP_RESET_EVENTS;
+
+     return setControlParameter(param);
+}
+
+bool AMCController::setControlParameter(unsigned short param)
+{
+    int nbytes_written=0;
+
+    // Address 01.00h
+    // Offset 0
+    // Date Type: unsigned 16bit (2 bytes, 1 word)
+
+    /*****************************
+    *** START OF HEADER SECTION **
+    ******************************/
+
+    command[0] = SOF;               // Start of Frame
+    command[1] = SLAVE_ADDRESS;     // Node Address
+    command[2] = 0x02;              // Write
+    command[3] = 0x01;              // Index
+    command[4] = 0;                 // Offset
+    command[5] = 1;                 // 1 Word = 16bit
+
+    // Reset & Calculate CRC
+    ResetCRC();
+
+    for (int i=0; i<=5; i++)
+            CrunchCRC(command[i]);
+
+    CrunchCRC(0);
+    CrunchCRC(0);
+
+    // CRC - MSB First
+    command[6] =  accum >> 8;
+    command[7] =  accum & 0xFF;
+
+    /******************************
+    **** END OF HEADER SECTION ****
+    ******************************/
+
+    /******************************
+    **** START OF DATA SECTION ****
+    ******************************/
+
+    command[8] = param & 0xFF;
+    command[9] = (param >> 8) & 0xFF;
+
+    /******************************
+    **** END OF DATA SECTION ****
+    ******************************/
+
+    // Reset & Calculate CRC
+    ResetCRC();
+
+    for (int i=8; i<=9; i++)
+            CrunchCRC(command[i]);
+
+    CrunchCRC(0);
+    CrunchCRC(0);
+
+    // CRC - MSB First
+    command[10] =  accum >> 8;
+    command[11] =  accum & 0xFF;
+
+    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "SetControlParameter Command: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
+                     command[0], command[1],command[2],command[3],command[4],command[5],command[6],command[7],command[8],command[9],command[10],command[11]);
+
+    if ( (nbytes_written = send(fd, command, 12, 0)) !=  12)
+    {
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error gaining write access to %s drive. %s", type_name.c_str(), strerror(errno));
+        return false;
+    }
+
+    driveStatus status;
+
+    if ( (status = readDriveStatus()) != AMC_COMMAND_COMPLETE)
+    {
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "%s Drive status error: %s", __FUNCTION__, driveStatusString(status));
+        return false;
+    }
+
+    return true;
+
 }

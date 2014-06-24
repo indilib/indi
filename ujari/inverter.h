@@ -50,15 +50,15 @@ class Inverter
         Inverter(inverterType new_type, Ujari *scope);
         ~Inverter();
 
-          bool move_forward();
-          bool move_reverse();
+          bool moveForward();
+          bool moveReverse();
           bool stop();
 
           bool update_status();
           bool update_freq();
           bool is_ready();
 
-          bool set_speed(float newHz);
+          bool setSpeed(float newHz);
           float get_speed() { return InverterSpeedN[0].value; }
 
           void set_type(inverterType new_type);
@@ -87,7 +87,7 @@ class Inverter
 
         void reset_all_properties();
 
-        void set_verbose(bool enable) { verbose = enable; }
+        void setVerbose(bool enable) { verbose = enable; }
 
     private:
 
@@ -118,7 +118,7 @@ class Inverter
         ILight  StatusL[3];
 
         // Functions
-        bool check_drive_connection();
+        bool isDriveOnline();
 
         // Variable
         int connection_status;
