@@ -77,6 +77,7 @@ public:
     bool moveForward();
     bool moveReverse();
     bool stop();
+    bool enableMotion();
 
     bool update();
     bool resetFault();
@@ -111,6 +112,8 @@ private:
 
     driveStatus readDriveStatus();
     driveStatus readDriveData(unsigned char *data, unsigned char len);
+
+    void flushFD();
 
     const char *driveStatusString(driveStatus status);
 

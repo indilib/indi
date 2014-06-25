@@ -26,6 +26,8 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <errno.h>
+#include <signal.h>
+#include <err.h>
 
 #include "amccontroller.h"
 #include "ujari.h"
@@ -39,6 +41,18 @@
 #define SOF                 0xA5        // Start of Frame
 #define MOTOR_ACCELERATION  0.1         // Acceleration is 0.25 RPM per Second
 #define MOTOR_DECELERATION  0.1         // Deceleration is 0.25 RPM per Second
+
+void ignore_sigpipe(void)
+{
+        struct sigaction act;
+        int r;
+        memset(&act, 0, sizeof(act));
+        act.sa_handler = SIG_IGN;
+        act.sa_flags = SA_RESTART;
+        r = sigaction(SIGPIPE, &act, NULL);
+        if (r)
+            err(1, "sigaction");
+}
 
 AMCController::AMCController(motorType type, Ujari* scope) : Gr1(0x0810)
 {
@@ -307,6 +321,8 @@ bool AMCController::enableWriteAccess()
     DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "EnableWriteAccess Command: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
                      command[0], command[1],command[2],command[3],command[4],command[5],command[6],command[7],command[8],command[9],command[10],command[11]);
 
+    flushFD();
+
     if ( (nbytes_written = send(fd, command, 12, 0)) !=  12)
     {
         DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error gaining write access to %s drive. %s", type_name.c_str(), strerror(errno));
@@ -383,6 +399,8 @@ bool AMCController::enableBridge()
 
     DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "EnableBridge Command: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
                      command[0], command[1],command[2],command[3],command[4],command[5],command[6],command[7],command[8],command[9],command[10],command[11]);
+
+    flushFD();
 
     if ( (nbytes_written = send(fd, command, 12, 0)) != 12)
     {
@@ -475,6 +493,8 @@ bool AMCController::setMotion(motorMotion dir)
     DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "SetMotion Command: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
                      command[0], command[1],command[2],command[3],command[4],command[5],command[6],command[7],command[8],command[9],command[10],command[11],command[12],command[13]);
 
+    flushFD();
+
     if ( (nbytes_written = send(fd, command, 14, 0)) != 14)
     {
         DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error writing velocity to %s drive. %s", type_name.c_str(), strerror(errno));
@@ -511,6 +531,8 @@ bool AMCController::moveForward()
     // Already moving forward
     if (state == MOTOR_FORWARD && currentRPM == targetRPM)
         return true;
+    else if (state == MOTOR_REVERSE)
+        stop();
 
     if (simulation)
     {
@@ -522,10 +544,25 @@ bool AMCController::moveForward()
 
     targetRPM = MotorSpeedN[0].value;
 
+    enableMotion();
+
     bool rc = setMotion(MOTOR_FORWARD);
 
     if (rc)
+    {
+        IUResetSwitch(&MotionControlSP);
+        MotionControlS[MOTOR_FORWARD].s = ISS_ON;
+        MotionControlSP.s = IPS_BUSY;
         state = MOTOR_FORWARD;
+    }
+    else
+    {
+        IUResetSwitch(&MotionControlSP);
+        MotionControlS[MOTOR_STOP].s = ISS_ON;
+        MotionControlSP.s = IPS_ALERT;
+    }
+
+    IDSetSwitch(&MotionControlSP, NULL);
 
     return rc;
 
@@ -545,6 +582,8 @@ bool AMCController::moveReverse()
     // Already moving backwards
     if (state == MOTOR_REVERSE && currentRPM == targetRPM)
         return true;
+    else if (state == MOTOR_FORWARD)
+        stop();
 
     if (simulation)
     {
@@ -554,13 +593,27 @@ bool AMCController::moveReverse()
         return true;
     }
 
-
     targetRPM = MotorSpeedN[0].value;
+
+    enableMotion();
 
     bool rc = setMotion(MOTOR_REVERSE);
 
     if (rc)
+    {
+        IUResetSwitch(&MotionControlSP);
+        MotionControlS[MOTOR_REVERSE].s = ISS_ON;
+        MotionControlSP.s = IPS_BUSY;
         state = MOTOR_REVERSE;
+    }
+    else
+    {
+        IUResetSwitch(&MotionControlSP);
+        MotionControlS[MOTOR_STOP].s = ISS_ON;
+        MotionControlSP.s = IPS_ALERT;
+    }
+
+    IDSetSwitch(&MotionControlSP, NULL);
 
     return rc;
 
@@ -572,14 +625,12 @@ bool AMCController::moveReverse()
 *****************************************************************/
 bool AMCController::stop()
 {
-
-
     if (!isDriveOnline())
         return false;
 
     // Already stopped
-    if (state == MOTOR_STOP && MotionControlSP.s != IPS_ALERT)
-        return true;
+    /*if (state == MOTOR_STOP && MotionControlSP.s != IPS_ALERT)
+        return true;*/
 
     if (simulation)
     {
@@ -591,16 +642,22 @@ bool AMCController::stop()
 
     targetRPM = 0;
 
-    // Doesn't matter what motion direction we choose since it is 0 RPM
-    //bool rc =  setMotion(MOTOR_FORWARD);
-
     // Alternative Method , STOP DRIVE
     unsigned short param = CP_COMMANDED_STOP;
 
     bool rc = setControlParameter(param);
 
     if (rc)
+    {
+        IUResetSwitch(&MotionControlSP);
+        MotionControlS[MOTOR_STOP].s = ISS_ON;
+        MotionControlSP.s = IPS_OK;
         state = MOTOR_STOP;
+    }
+    else
+        MotionControlSP.s = IPS_ALERT;
+
+    IDSetSwitch(&MotionControlSP, NULL);
 
     return rc;
 
@@ -613,11 +670,17 @@ bool AMCController::stop()
 bool AMCController::setSpeed(double rpm)
 {
     if (!isDriveOnline())
+    {
+        MotorSpeedNP.s = IPS_IDLE;
+        IDSetNumber(&MotorSpeedNP, NULL);
         return false;
+    }
 
     if (rpm < MIN_RPM || rpm > MAX_RPM)
     {
         DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "setSpeed: requested RPM %g is outside boundary limits (0,5) RPM", rpm);
+        MotorSpeedNP.s = IPS_ALERT;
+        IDSetNumber(&MotorSpeedNP, NULL);
         return false;
     }
 
@@ -632,6 +695,8 @@ bool AMCController::setSpeed(double rpm)
     targetRPM = rpm;
 
     MotorSpeedN[0].value = targetRPM;
+    MotorSpeedNP.s = IPS_OK;
+    IDSetNumber(&MotorSpeedNP, NULL);
 
     if (targetRPM == currentRPM)
         return true;
@@ -696,17 +761,7 @@ bool AMCController::ISNewNumber (const char *dev, const char *name, double value
     {
         bool rc = setSpeed(values[0]);
 
-        if (rc)
-        {
-            IUUpdateNumber(&MotorSpeedNP, values, names, n);
-            MotorSpeedNP.s = IPS_OK;
-        }
-        else
-            MotorSpeedNP.s = IPS_ALERT;
-
-        IDSetNumber(&MotorSpeedNP, NULL);
-
-        return true;
+        return rc;
     }
 
     return false;
@@ -754,16 +809,7 @@ bool AMCController::ISNewSwitch (const char *dev, const char *name, ISState *sta
         else if (MotionControlS[MOTOR_REVERSE].s == ISS_ON)
            rc = moveReverse();
 
-        if (rc == false)
-            MotionControlSP.s = IPS_ALERT;
-        else if (MotionControlS[MOTOR_STOP].s == ISS_ON)
-            MotionControlSP.s = IPS_OK;
-        else
-            MotionControlSP.s = IPS_BUSY;
-
-        IDSetSwitch(&MotionControlSP, NULL);
-
-        return true;
+        return rc;
      }
 
     if (!strcmp(ResetFaultSP.name, name))
@@ -817,6 +863,8 @@ int AMCController::openRS485Server (const char * host, int rs485_port)
         DEBUGFDEVICE (telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "connect(%s,%d): %s", host,rs485_port,strerror(errno));
         return -1;
     }
+
+    ignore_sigpipe();
 
     /* ok */
     return (sockfd);
@@ -951,6 +999,7 @@ bool AMCController::setAcceleration(motorMotion dir, double rpmAcceleration)
     DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "setAcceleration Command: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
                      command[0], command[1],command[2],command[3],command[4],command[5],command[6],command[7],command[8],command[9],command[10],command[11],command[12],command[13],command[14],command[15]);
 
+    flushFD();
 
     if ( (nbytes_written = send(fd, command, 16, 0)) != 16)
     {
@@ -1051,6 +1100,8 @@ bool AMCController::setDeceleration(motorMotion dir, double rpmDeAcceleration)
 
     DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "Set Decelration Command: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
                      command[0], command[1],command[2],command[3],command[4],command[5],command[6],command[7],command[8],command[9],command[10],command[11],command[12],command[13],command[14],command[15]);
+
+    flushFD();
 
     if ( (nbytes_written = send(fd, command, 16, 0)) != 16)
     {
@@ -1296,9 +1347,13 @@ bool AMCController::update()
 
     int nbytes_written=0;
 
-    // Address 02.00h
+    // STATUS: Address 02.00h
     // Offset 0
     // Date Type: unsigned 16bit (2 bytes, 1 word)
+    // PROTECTION: Address 02.01h
+    // Offset 1
+    // Date Type: unsigned 16bit (2 bytes, 1 word)
+    // Total: 32bit = 4 bytes
 
     /*****************************
     *** START OF HEADER SECTION **
@@ -1309,7 +1364,7 @@ bool AMCController::update()
     command[2] = 0x01;              // Read
     command[3] = 0x02;              // Index
     command[4] = 0;                 // Offset
-    command[5] = 2;                 // 1 Word = 16bit
+    command[5] = 2;                 // 2 Words = 32bit
 
     // Reset & Calculate CRC
     ResetCRC();
@@ -1328,25 +1383,12 @@ bool AMCController::update()
     **** END OF HEADER SECTION ****
     ******************************/
 
-    /******************************
-    **** START OF DATA SECTION ****
-    ******************************/
+    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "UpdateStatus Command: %02X %02X %02X %02X %02X %02X %02X %02X",
+                     command[0], command[1],command[2],command[3],command[4],command[5],command[6],command[7]);
 
-    command[8] = 0;
-    command[9] = 0;
+    flushFD();
 
-    /******************************
-    **** END OF DATA SECTION ****
-    ******************************/
-
-    // No need to calculate CRC for data since it is 0
-    command[10] = 0;
-    command[11] = 0;
-
-    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "UpdateStatus Command: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
-                     command[0], command[1],command[2],command[3],command[4],command[5],command[6],command[7],command[8],command[9],command[10],command[11]);
-
-    if (simulation == false && (nbytes_written = send(fd, command, 12, 0)) != 12)
+    if (simulation == false && (nbytes_written = send(fd, command, 8, 0)) != 8)
     {
         DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error updating status for %s drive. %s", type_name.c_str(), strerror(errno));
         return false;
@@ -1484,6 +1526,8 @@ bool AMCController::setControlParameter(unsigned short param)
     DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "SetControlParameter Command: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
                      command[0], command[1],command[2],command[3],command[4],command[5],command[6],command[7],command[8],command[9],command[10],command[11]);
 
+    flushFD();
+
     if ( (nbytes_written = send(fd, command, 12, 0)) !=  12)
     {
         DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error gaining write access to %s drive. %s", type_name.c_str(), strerror(errno));
@@ -1500,4 +1544,36 @@ bool AMCController::setControlParameter(unsigned short param)
 
     return true;
 
+}
+
+bool AMCController::enableMotion()
+{
+    if (!isDriveOnline())
+        return false;
+
+    if (simulation)
+    {
+        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_SESSION, "%s drive: Simulating enable motion.", type_name.c_str());
+        return true;
+     }
+
+     unsigned short param = 0;
+
+     return setControlParameter(param);
+
+}
+
+void AMCController::flushFD()
+{
+    fd_set rd;
+    struct timeval t;
+    char buff[100];
+    t.tv_sec=0;
+    t.tv_usec=0;
+    FD_ZERO(&rd);
+    FD_SET(fd,&rd);
+    while(select(fd+1,&rd,NULL,NULL,&t))
+    {
+        read(fd,buff,100);
+    }
 }
