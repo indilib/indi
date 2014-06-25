@@ -31,8 +31,10 @@
 #include "ujari.h"
 
 #define AMC_GROUP "Motors"
+#define AMC_STATUS_GROUP "Motor Status"
 
 #define MAX_RPM             2.0         // 2 RPM
+#define MIN_RPM             0           // 0 RPM
 #define S_FACTOR            0.2/1.0     // 0.2 Volts / 1 RPM
 #define SOF                 0xA5        // Start of Frame
 #define MOTOR_ACCELERATION  0.1         // Acceleration is 0.25 RPM per Second
@@ -102,7 +104,7 @@ bool AMCController::initProperties()
 
     IUFillSwitch(&ResetFaultS[0], "Reset", "", ISS_OFF);
 
-    IUFillNumber(&MotorSpeedN[0], "SPEED", "RPM", "%g",  0., 2., .1, 0.);
+    IUFillNumber(&MotorSpeedN[0], "SPEED", "RPM", "%g",  MIN_RPM, MAX_RPM, .1, 0.);
 
     IUFillLight(&DriveStatusL[0], "Bridge", "", IPS_IDLE);
     IUFillLight(&DriveStatusL[1], "Dynamic Brake", "", IPS_IDLE);
@@ -130,11 +132,11 @@ bool AMCController::initProperties()
 
     IUFillNumberVector(&MotorSpeedNP, MotorSpeedN, NARRAY(MotorSpeedN), telescope->getDeviceName(), "RA_SPEED" , "RA Speed", AMC_GROUP, IP_RW, 0, IPS_IDLE);
 
-    IUFillSwitchVector(&ResetFaultSP, ResetFaultS, NARRAY(ResetFaultS), telescope->getDeviceName(), "RA_FAULT_RESET", "Fault", AMC_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&ResetFaultSP, ResetFaultS, NARRAY(ResetFaultS), telescope->getDeviceName(), "RA_FAULT_RESET", "RA Fault", AMC_STATUS_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillLightVector(&DriveStatusLP, DriveStatusL, NARRAY(DriveStatusL), telescope->getDeviceName(), "RA_DRIVE_STATUS", "Status", AMC_GROUP, IPS_IDLE);
+    IUFillLightVector(&DriveStatusLP, DriveStatusL, NARRAY(DriveStatusL), telescope->getDeviceName(), "RA_DRIVE_STATUS", "RA Status", AMC_STATUS_GROUP, IPS_IDLE);
 
-    IUFillLightVector(&DriveProtectionLP, DriveProtectionL, NARRAY(DriveProtectionL), telescope->getDeviceName(), "RA_PROTECTION_STATUS", "Protection", AMC_GROUP, IPS_IDLE);
+    IUFillLightVector(&DriveProtectionLP, DriveProtectionL, NARRAY(DriveProtectionL), telescope->getDeviceName(), "RA_PROTECTION_STATUS", "RA Protection", AMC_STATUS_GROUP, IPS_IDLE);
 
   }
   else
@@ -145,11 +147,11 @@ bool AMCController::initProperties()
 
     IUFillNumberVector(&MotorSpeedNP, MotorSpeedN, NARRAY(MotorSpeedN), telescope->getDeviceName(), "DEC_SPEED" , "DEC Speed", AMC_GROUP, IP_RW, 0, IPS_IDLE);
 
-    IUFillSwitchVector(&ResetFaultSP, ResetFaultS, NARRAY(ResetFaultS), telescope->getDeviceName(), "DEC_FAULT_RESET", "Fault", AMC_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&ResetFaultSP, ResetFaultS, NARRAY(ResetFaultS), telescope->getDeviceName(), "DEC_FAULT_RESET", "DEC Fault", AMC_STATUS_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillLightVector(&DriveStatusLP, DriveStatusL, NARRAY(DriveStatusL), telescope->getDeviceName(), "DEC_DRIVE_STATUS", "Status", AMC_GROUP, IPS_IDLE);
+    IUFillLightVector(&DriveStatusLP, DriveStatusL, NARRAY(DriveStatusL), telescope->getDeviceName(), "DEC_DRIVE_STATUS", "DEC Status", AMC_STATUS_GROUP, IPS_IDLE);
 
-    IUFillLightVector(&DriveProtectionLP, DriveProtectionL, NARRAY(DriveProtectionL), telescope->getDeviceName(), "DEC_PROTECTION_STATUS", "Protection", AMC_GROUP, IPS_IDLE);
+    IUFillLightVector(&DriveProtectionLP, DriveProtectionL, NARRAY(DriveProtectionL), telescope->getDeviceName(), "DEC_PROTECTION_STATUS", "DEC Protection", AMC_STATUS_GROUP, IPS_IDLE);
 
   }
 
@@ -613,7 +615,7 @@ bool AMCController::setSpeed(double rpm)
     if (!isDriveOnline())
         return false;
 
-    if (rpm < 0. || rpm > 5.)
+    if (rpm < MIN_RPM || rpm > MAX_RPM)
     {
         DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "setSpeed: requested RPM %g is outside boundary limits (0,5) RPM", rpm);
         return false;
@@ -1106,6 +1108,9 @@ AMCController::driveStatus AMCController::readDriveStatus()
     int             rc;
     struct timeval  t;
 
+    if (simulation)
+        return AMC_COMMAND_COMPLETE;
+
     /* 3 second waiting */
     t.tv_sec = 3;
     t.tv_usec = 0;
@@ -1183,6 +1188,15 @@ AMCController::driveStatus AMCController::readDriveData(unsigned char *data, uns
 {
     int nbytes_read=0;
     unsigned char data_crc[2];
+
+    if (simulation)
+    {
+        data[0] = 1;
+        for (int i=1; i < len; i++)
+            data[i] = 0;
+
+        return AMC_COMMAND_COMPLETE;
+    }
 
     fd_set          rd;
     int             rc;
@@ -1280,17 +1294,114 @@ bool AMCController::update()
     if (isDriveOnline() == false)
         return true;
 
-    // TODO
+    int nbytes_written=0;
 
-    // Write command with CONTROL BYTE = 1
-    // Read Drive Response
-    // Read Drive Data (unsigned char * 2)
-    // Make them into unsigned short
-    // Do bit & to find out which bits are ON and change lights accordingly
-    // Send for both drive status and drive protection
-    // Rinse and repeat
-    // Make sure to call this update() from Ujari class as well.
-    // Go to bed NOW!
+    // Address 02.00h
+    // Offset 0
+    // Date Type: unsigned 16bit (2 bytes, 1 word)
+
+    /*****************************
+    *** START OF HEADER SECTION **
+    ******************************/
+
+    command[0] = SOF;               // Start of Frame
+    command[1] = SLAVE_ADDRESS;     // Node Address
+    command[2] = 0x01;              // Read
+    command[3] = 0x02;              // Index
+    command[4] = 0;                 // Offset
+    command[5] = 2;                 // 1 Word = 16bit
+
+    // Reset & Calculate CRC
+    ResetCRC();
+
+    for (int i=0; i<=5; i++)
+            CrunchCRC(command[i]);
+
+    CrunchCRC(0);
+    CrunchCRC(0);
+
+    // CRC - MSB First
+    command[6] =  accum >> 8;
+    command[7] =  accum & 0xFF;
+
+    /******************************
+    **** END OF HEADER SECTION ****
+    ******************************/
+
+    /******************************
+    **** START OF DATA SECTION ****
+    ******************************/
+
+    command[8] = 0;
+    command[9] = 0;
+
+    /******************************
+    **** END OF DATA SECTION ****
+    ******************************/
+
+    // No need to calculate CRC for data since it is 0
+    command[10] = 0;
+    command[11] = 0;
+
+    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "UpdateStatus Command: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
+                     command[0], command[1],command[2],command[3],command[4],command[5],command[6],command[7],command[8],command[9],command[10],command[11]);
+
+    if (simulation == false && (nbytes_written = send(fd, command, 12, 0)) != 12)
+    {
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error updating status for %s drive. %s", type_name.c_str(), strerror(errno));
+        return false;
+    }
+
+    driveStatus status;
+
+    if ( (status = readDriveStatus()) != AMC_COMMAND_COMPLETE)
+    {
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "%s Drive status error: %s", __FUNCTION__, driveStatusString(status));
+        return false;
+    }
+
+    // Read 2x16bit words, 32 bit data or 4 bytes
+    unsigned char status_data[4];
+    unsigned short dStatus, dProtection=0;
+
+    if ( (status = readDriveData(status_data, 4)) != AMC_COMMAND_COMPLETE)
+    {
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "%s Drive data read error: %s", __FUNCTION__, driveStatusString(status));
+        DriveStatusLP.s = IPS_ALERT;
+        DriveProtectionLP.s = IPS_ALERT;
+        IDSetLight(&DriveStatusLP, NULL);
+        IDSetLight(&DriveProtectionLP, NULL);
+        return false;
+    }
+
+    // Though not strictly necessary since status bits are LSB always, let's put them back as 16bit unsigned shorts
+    dStatus     = (status_data[0] | (status_data[1] << 8));
+    dProtection = (status_data[2] | (status_data[3] << 8));
+
+    DriveStatusL[0].s = (dStatus & DS_BRIDGE) ? IPS_OK : IPS_ALERT;
+    DriveStatusL[1].s = (dStatus & DS_DYNAMIC_BRAKE) ? IPS_OK : IPS_IDLE;
+    DriveStatusL[2].s = (dStatus & DS_STOP) ? IPS_OK : IPS_IDLE;
+    DriveStatusL[3].s = (dStatus & DS_POSITIVE_STOP) ? IPS_OK : IPS_IDLE;
+    DriveStatusL[4].s = (dStatus & DS_NEGATIVE_STOP) ? IPS_OK : IPS_IDLE;
+    DriveStatusL[5].s = (dStatus & DS_POSITIVE_TORQUE_INHIBIT) ? IPS_OK : IPS_IDLE;
+    DriveStatusL[6].s = (dStatus & DS_NEGATIVE_TORQUE_INHIBIT) ? IPS_OK : IPS_IDLE;
+    DriveStatusL[7].s = (dStatus & DS_EXTERNAL_BRAKE) ? IPS_OK : IPS_IDLE;
+
+    DriveProtectionL[0].s = (dProtection & DP_DRIVE_RESET) ? IPS_ALERT : IPS_IDLE;
+    DriveProtectionL[1].s = (dProtection & DP_DRIVE_INTERNAL_ERROR) ? IPS_ALERT : IPS_IDLE;
+    DriveProtectionL[2].s = (dProtection & DP_SHORT_CIRCUT) ? IPS_ALERT : IPS_IDLE;
+    DriveProtectionL[3].s = (dProtection & DP_CURRENT_OVERSHOOT) ? IPS_ALERT : IPS_IDLE;
+    DriveProtectionL[4].s = (dProtection & DP_UNDER_VOLTAGE) ? IPS_ALERT : IPS_IDLE;
+    DriveProtectionL[5].s = (dProtection & DP_OVER_VOLTAGE) ? IPS_ALERT : IPS_IDLE;
+    DriveProtectionL[6].s = (dProtection & DP_DRIVE_OVER_TEMPERATURE) ? IPS_ALERT : IPS_IDLE;
+
+    DriveStatusLP.s = IPS_OK;
+    DriveProtectionLP.s = IPS_OK;
+
+    IDSetLight(&DriveStatusLP, NULL);
+    IDSetLight(&DriveProtectionLP, NULL);
+
+    return true;
 
 }
 

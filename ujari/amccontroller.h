@@ -92,6 +92,9 @@ public:
     motorType getType() const;
     void setType(const motorType &value);
 
+    motorMotion getMotionStatus() { return state; }
+    bool isMotionActive();
+
 private:
 
     int openRS485Server (const char *host, int rs485_port);
@@ -105,7 +108,7 @@ private:
     bool setDeceleration(motorMotion dir, double rpmDeAcceleration);
 
     bool setMotion(motorMotion dir);
-    bool isMotionActive();
+
     driveStatus readDriveStatus();
     driveStatus readDriveData(unsigned char *data, unsigned char len);
 

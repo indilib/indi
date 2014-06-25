@@ -69,7 +69,7 @@ std::auto_ptr<Ujari> ujari(0);
 
 /* Preset Slew Speeds */
 #define SLEWMODES 11
-double slewspeeds[SLEWMODES - 1] = { 1.0, 2.0, 4.0, 8.0, 32.0, 64.0, 128.0, 600.0, 700.0, 800.0 };
+double slewspeeds[SLEWMODES - 1] = { 1.0, 2.0, 4.0, 8.0, 32.0, 96.0, 200.0, 300.0, 400.0, 600.0};
 double defaultspeed=64.0;
 
 #define RA_AXIS         0
@@ -189,8 +189,6 @@ Ujari::Ujari()
 
   pierside = EAST;
   RAInverted = DEInverted = false;
-  bzero(&syncdata, sizeof(syncdata));
-  bzero(&syncdata2, sizeof(syncdata2));
 
   /* initialize time */
   tzset();
@@ -202,6 +200,7 @@ Ujari::Ujari()
   lndate.days = utc.tm_mday;
   lndate.months = utc.tm_mon + 1;
   lndate.years = utc.tm_year + 1900;
+  clock_gettime(CLOCK_MONOTONIC, &lastclockupdate);
   /* initialize random seed: */
   srand ( time(NULL) );
 }
@@ -241,25 +240,33 @@ double Ujari::getLatitude()
 
 double Ujari::getJulianDate()
 {
+    struct timespec currentclock, diffclock;
+    double nsecs;
+    clock_gettime(CLOCK_MONOTONIC, &currentclock);
+    diffclock.tv_sec = currentclock.tv_sec - lastclockupdate.tv_sec;
+    diffclock.tv_nsec = currentclock.tv_nsec - lastclockupdate.tv_nsec;
+    while (diffclock.tv_nsec > 1000000000) {
+      diffclock.tv_sec++;
+      diffclock.tv_nsec -= 1000000000;
+    }
+    while (diffclock.tv_nsec < 0) {
+      diffclock.tv_sec--;
+      diffclock.tv_nsec += 1000000000;
+    }
 
-  struct timeval currenttime, difftime;
-  double usecs;
-  gettimeofday(&currenttime, NULL);
-  if (timeval_subtract(&difftime, &currenttime, &lasttimeupdate) == -1)
+    lndate.seconds += (diffclock.tv_sec + ((double)diffclock.tv_nsec / 1000000000.0));
+    nsecs=lndate.seconds - floor(lndate.seconds);
+    utc.tm_sec=lndate.seconds;
+    utc.tm_isdst = -1; // let mktime find if DST already in effect in utc
+    //IDLog("Get julian: setting UTC secs to %f", utc.tm_sec);
+    mktime(&utc); // normalize time
+    //IDLog("Get Julian; UTC is now %s", asctime(&utc));
+    ln_get_date_from_tm(&utc, &lndate);
+    lndate.seconds+=nsecs;
+    lastclockupdate=currentclock;
+    juliandate=ln_get_julian_day(&lndate);
+
     return juliandate;
-  //IDLog("Diff %d %d\n", difftime.tv_sec,  difftime.tv_usec);
-  lndate.seconds += (difftime.tv_sec + (difftime.tv_usec / 1000000));
-  usecs=lndate.seconds - floor(lndate.seconds);
-  utc.tm_sec=lndate.seconds;
-  utc.tm_isdst = -1; // let mktime find if DST already in effect in utc
-  //IDLog("Get julian: setting UTC secs to %f", utc.tm_sec);
-  mktime(&utc); // normalize time
-  //IDLog("Get Julian; UTC is now %s", asctime(&utc));
-  ln_get_date_from_tm(&utc, &lndate);
-  lndate.seconds+=usecs;
-  lasttimeupdate = currenttime;
-  juliandate=ln_get_julian_day(&lndate);
-  return juliandate;
 }
 
 double Ujari::getLst(double jd, double lng)
@@ -303,12 +310,11 @@ bool Ujari::loadProperties()
 {
     buildSkeleton("indi_ujari_sk.xml");
 
-    CurrentSteppersNP=getNumber("CURRENTSTEPPERS");
-    PeriodsNP=getNumber("PERIODS");
+    //CurrentSteppersNP=getNumber("CURRENTSTEPPERS");
     JulianNP=getNumber("JULIAN");
     TimeLSTNP=getNumber("TIME_LST");
-    RAStatusLP=getLight("RASTATUS");
-    DEStatusLP=getLight("DESTATUS");
+    //RAStatusLP=getLight("RASTATUS");
+    //DEStatusLP=getLight("DESTATUS");
     SlewSpeedsNP=getNumber("SLEWSPEEDS");
     SlewModeSP=getSwitch("SLEWMODE");
     HemisphereSP=getSwitch("HEMISPHERE");
@@ -329,13 +335,8 @@ bool Ujari::loadProperties()
         SlewModeSP->sp[i].aux=(void *)&defaultspeed;
       }
     }
-    StandardSyncNP=getNumber("STANDARDSYNC");
-    StandardSyncPointNP=getNumber("STANDARDSYNCPOINT");
-    SyncManageSP=getSwitch("SYNCMANAGE");
     ParkPositionNP=getNumber("PARKPOSITION");
     ParkOptionSP=getSwitch("PARKOPTION");
-
-    //IDLog("initProperties: connected=%d %s", (isConnected()?1:0), this->getDeviceName());
 
     controller->mapController("MOTIONDIR", "N/S/W/E Control", INDI::Controller::CONTROLLER_JOYSTICK, "JOYSTICK_1");
     controller->mapController("SLEWPRESET", "Slew Presets", INDI::Controller::CONTROLLER_JOYSTICK, "JOYSTICK_2");
@@ -359,12 +360,11 @@ bool Ujari::updateProperties()
 
     defineSwitch(SlewModeSP);
     defineNumber(SlewSpeedsNP);
-    defineNumber(CurrentSteppersNP);
-    defineNumber(PeriodsNP);
+    //defineNumber(CurrentSteppersNP);
     defineNumber(JulianNP);
     defineNumber(TimeLSTNP);
-    defineLight(RAStatusLP);
-    defineLight(DEStatusLP);
+    //defineLight(RAStatusLP);
+    //defineLight(DEStatusLP);
     defineSwitch(HemisphereSP);
     defineSwitch(TrackModeSP);
 
@@ -372,9 +372,6 @@ bool Ujari::updateProperties()
     defineNumber(HorizontalCoordNP);
     defineSwitch(PierSideSP);
     defineSwitch(ReverseDECSP);
-    defineNumber(StandardSyncNP);
-    defineNumber(StandardSyncPointNP);
-    defineSwitch(SyncManageSP);
     defineNumber(ParkPositionNP);
     defineSwitch(ParkOptionSP);
 
@@ -435,12 +432,11 @@ bool Ujari::updateProperties()
       }
     else
       {
-      deleteProperty(CurrentSteppersNP->name);
-      deleteProperty(PeriodsNP->name);
+      //deleteProperty(CurrentSteppersNP->name);
       deleteProperty(JulianNP->name);
       deleteProperty(TimeLSTNP->name);
-      deleteProperty(RAStatusLP->name);
-      deleteProperty(DEStatusLP->name);
+      //deleteProperty(RAStatusLP->name);
+      //deleteProperty(DEStatusLP->name);
       deleteProperty(SlewSpeedsNP->name);
       deleteProperty(SlewModeSP->name);
       deleteProperty(HemisphereSP->name);
@@ -449,9 +445,6 @@ bool Ujari::updateProperties()
       deleteProperty(HorizontalCoordNP->name);
       deleteProperty(PierSideSP->name);
       deleteProperty(ReverseDECSP->name);
-      deleteProperty(StandardSyncNP->name);
-      deleteProperty(StandardSyncPointNP->name);
-      deleteProperty(SyncManageSP->name);
       deleteProperty(ParkPositionNP->name);
       deleteProperty(ParkOptionSP->name);
       deleteProperty(TrackDefaultSP->name);
@@ -509,11 +502,12 @@ bool Ujari::Disconnect()
 
 void Ujari::TimerHit()
 {
-  //IDLog("Telescope Timer Hit\n");
+
   if(isConnected())
     {
       bool rc;
 
+      mount->update();
       dome->update();
       shutter->update();
       rc=ReadScopeStatus();
@@ -530,36 +524,19 @@ void Ujari::TimerHit()
     }
 }
 
-bool Ujari::ReadScopeStatus() {
-  //static struct timeval ltv;
-  //struct timeval tv;
-  //double dt=0;
-
-  /* update elapsed time since last poll, don't presume exactly POLLMS */
-  // gettimeofday (&tv, NULL);
-
-  //if (ltv.tv_sec == 0 && ltv.tv_usec == 0)
-  //  ltv = tv;
-
-  //dt = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec)/1e6;
-  //ltv = tv;
-  //TODO use dt to track mount desynchronisation/inactivity?
-
+bool Ujari::ReadScopeStatus()
+{
   // Time
   double juliandate;
   double lst;
-  //double datevalues[2];
   char hrlst[12];
-  char hrutc[32];
   const char *datenames[]={"LST", "JULIANDATE", "UTC"};
   const char *piersidenames[]={"EAST", "WEST"};
   ISState piersidevalues[2];
-  double periods[2];
-  const char *periodsnames[]={"RAPERIOD", "DEPERIOD"};
   double horizvalues[2];
   const char *horiznames[2]={"AZ", "ALT"};
-  double steppervalues[2];
-  const char *steppernames[]={"RAStepsCurrent", "DEStepsCurrent"};
+  //double steppervalues[2];
+  //const char *steppernames[]={"RAStepsCurrent", "DEStepsCurrent"};
 
   juliandate=getJulianDate();
   lst=getLst(juliandate, getLongitude());
@@ -567,8 +544,6 @@ bool Ujari::ReadScopeStatus() {
   fs_sexa(hrlst, lst, 2, 360000);
   hrlst[11]='\0';
   DEBUGF(DBG_SCOPE_STATUS, "Compute local time: lst=%2.8f (%s) - julian date=%8.8f", lst, hrlst, juliandate);
-  //DateNP->s=IPS_BUSY;
-  //datevalues[0]=lst; datevalues[1]=juliandate;
   IUUpdateNumber(TimeLSTNP, &lst, (char **)(datenames), 1);
   TimeLSTNP->s=IPS_OK;
   IDSetNumber(TimeLSTNP, NULL);
@@ -576,7 +551,6 @@ bool Ujari::ReadScopeStatus() {
   JulianNP->s=IPS_OK;
   IDSetNumber(JulianNP, NULL);
   strftime(IUFindText(&TimeTP, "UTC")->text, 32, "%Y-%m-%dT%H:%M:%S", &utc);
-  //IUUpdateText(TimeTP, (char **)(&hrutc), (char **)(datenames  +2), 1);
   TimeTP.s=IPS_OK;
   IDSetText(&TimeTP, NULL);
 
@@ -587,27 +561,10 @@ bool Ujari::ReadScopeStatus() {
     DEBUGF(DBG_SCOPE_STATUS, "Current encoders RA=%ld DE=%ld", currentRAEncoder, currentDEEncoder);
     EncodersToRADec(currentRAEncoder, currentDEEncoder, lst, &currentRA, &currentDEC, &currentHA);
 
-   if (syncdata.lst != 0.0)
-    {
-        // should check values are in range!
-        alignedRA += syncdata.deltaRA;
-        alignedDEC += syncdata.deltaDEC;
-        if (alignedDEC > 90.0 || alignedDEC < 90.0)
-        {
-            alignedRA += 12.00;
-            if (alignedDEC > 0.0) alignedDEC = 180.0 - alignedDEC;
-           else alignedDEC = -180.0 - alignedDEC;
-        }
-
-        alignedRA=range24(alignedRA);
-    }
-
-
     NewRaDec(alignedRA, alignedDEC);
     lnradec.ra =(alignedRA * 360.0) / 24.0;
     lnradec.dec =alignedDEC;
     /* uses sidereal time, not local sidereal time */
-    /*ln_get_hrz_from_equ_sidereal_time(&lnradec, &lnobserver, lst, &lnaltaz);*/
     ln_get_hrz_from_equ(&lnradec, &lnobserver, juliandate, &lnaltaz);
     /* libnova measures azimuth from south towards west */
     horizvalues[0]=range360(lnaltaz.az + 180);
@@ -627,22 +584,15 @@ bool Ujari::ReadScopeStatus() {
     }
     IDSetSwitch(PierSideSP, NULL);
 
-    steppervalues[0]=currentRAEncoder;
-    steppervalues[1]=currentDEEncoder;
-    IUUpdateNumber(CurrentSteppersNP, steppervalues, (char **)steppernames, 2);
-    IDSetNumber(CurrentSteppersNP, NULL);
+    //steppervalues[0]=currentRAEncoder;
+    //steppervalues[1]=currentDEEncoder;
+    //IUUpdateNumber(CurrentSteppersNP, steppervalues, (char **)steppernames, 2);
+    //IDSetNumber(CurrentSteppersNP, NULL);
 
-    /*mount->GetRAMotorStatus(RAStatusLP);
-    mount->GetDEMotorStatus(DEStatusLP);
-    IDSetLight(RAStatusLP, NULL);
-    IDSetLight(DEStatusLP, NULL);
-    */
-
-    /*periods[0]=mount->GetRAPeriod();
-    periods[1]=mount->GetDEPeriod();
-    IUUpdateNumber(PeriodsNP, periods, (char **)periodsnames, 2);
-    IDSetNumber(PeriodsNP, NULL);
-    */
+    //mount->GetRAMotorStatus(RAStatusLP);
+    //mount->GetDEMotorStatus(DEStatusLP);
+    //IDSetLight(RAStatusLP, NULL);
+    //IDSetLight(DEStatusLP, NULL);
 
     if (gotoInProgress())
     {
@@ -655,13 +605,16 @@ bool Ujari::ReadScopeStatus() {
             if ((gotoparams.iterative_count <= GOTO_ITERATIVE_LIMIT) && (((3600 * fabs(gotoparams.ratarget - currentRA)) > RAGOTORESOLUTION) ||
                     ((3600 * fabs(gotoparams.detarget - currentDEC)) > DEGOTORESOLUTION)))
             {
-                gotoparams.racurrent = currentRA; gotoparams.decurrent = currentDEC;
-                gotoparams.racurrentencoder = currentRAEncoder; gotoparams.decurrentencoder = currentDEEncoder;
+                gotoparams.racurrent = currentRA;
+                gotoparams.decurrent = currentDEC;
+                gotoparams.racurrentencoder = currentRAEncoder;
+                gotoparams.decurrentencoder = currentDEEncoder;
                 EncoderTarget(&gotoparams);
                 // Start iterative slewing
                 DEBUGF(INDI::Logger::DBG_SESSION, "Iterative goto (%d): slew mount to RA increment = %ld, DE increment = %ld", gotoparams.iterative_count,
                     gotoparams.ratargetencoder - gotoparams.racurrentencoder, gotoparams.detargetencoder - gotoparams.decurrentencoder);
-                mount->SlewTo(gotoparams.ratargetencoder - gotoparams.racurrentencoder, gotoparams.detargetencoder - gotoparams.decurrentencoder);
+                //mount->SlewTo(gotoparams.ratargetencoder - gotoparams.racurrentencoder, gotoparams.detargetencoder - gotoparams.decurrentencoder);
+                mount->SlewTo(gotoparams.ratargetencoder, gotoparams.detargetencoder);
 
            }
            else
@@ -1072,16 +1025,13 @@ bool Ujari::Goto(double r,double d)
 
     // Compute encoder targets and check RA limits if forced
     bzero(&gotoparams, sizeof(gotoparams));
-    gotoparams.ratarget = r;  gotoparams.detarget = d;
-    gotoparams.racurrent = currentRA; gotoparams.decurrent = currentDEC;
-    if (syncdata.lst != 0.0)
-    {
-    gotoparams.ratarget -= syncdata.deltaRA;
-    gotoparams.detarget -= syncdata.deltaDEC;
+    gotoparams.ratarget = r;
+    gotoparams.detarget = d;
+    gotoparams.racurrent = currentRA;
+    gotoparams.decurrent = currentDEC;
 
-    }
-
-    gotoparams.racurrentencoder = currentRAEncoder; gotoparams.decurrentencoder = currentDEEncoder;
+    gotoparams.racurrentencoder = currentRAEncoder;
+    gotoparams.decurrentencoder = currentDEEncoder;
     gotoparams.completed = false;
     gotoparams.checklimits = true;
     gotoparams.forcecwup = false;
@@ -1096,7 +1046,8 @@ bool Ujari::Goto(double r,double d)
       // Start slewing
       DEBUGF(INDI::Logger::DBG_SESSION, "Slewing mount: RA increment = %ld, DE increment = %ld",
         gotoparams.ratargetencoder - gotoparams.racurrentencoder, gotoparams.detargetencoder - gotoparams.decurrentencoder);
-      mount->SlewTo(gotoparams.ratargetencoder - gotoparams.racurrentencoder, gotoparams.detargetencoder - gotoparams.decurrentencoder);
+      //mount->SlewTo(gotoparams.ratargetencoder - gotoparams.racurrentencoder, gotoparams.detargetencoder - gotoparams.decurrentencoder);
+      mount->SlewTo(gotoparams.ratargetencoder, gotoparams.detargetencoder);
     } catch(UjariError e) {
       return(e.DefaultHandleException(this));
     }
@@ -1148,7 +1099,8 @@ bool Ujari::Park()
       // Start slewing
       DEBUGF(INDI::Logger::DBG_SESSION, "Parking mount: RA increment = %ld, DE increment = %ld",
         parkRAEncoder - currentRAEncoder, parkDEEncoder - currentDEEncoder);
-      mount->SlewTo(parkRAEncoder - currentRAEncoder, parkDEEncoder - currentDEEncoder);
+     // mount->SlewTo(parkRAEncoder - currentRAEncoder, parkDEEncoder - currentDEEncoder);
+       mount->SlewTo(parkRAEncoder , parkDEEncoder );
     } catch(UjariError e)
     {
       return(e.DefaultHandleException(this));
@@ -1177,13 +1129,12 @@ bool Ujari::Sync(double ra,double dec)
 {
   double juliandate;
   double lst;
-  SyncData tmpsyncdata;
   double ha, targetra;
   PierSide targetpier;
 
 // get current mount position asap
-  tmpsyncdata.telescopeRAEncoder=mount->GetRAEncoder();
-  tmpsyncdata.telescopeDECEncoder=mount->GetDEEncoder();
+ // tmpsyncdata.telescopeRAEncoder=mount->GetRAEncoder();
+  //tmpsyncdata.telescopeDECEncoder=mount->GetDEEncoder();
 
   juliandate=getJulianDate();
   lst=getLst(juliandate, getLongitude());
@@ -1198,10 +1149,10 @@ bool Ujari::Sync(double ra,double dec)
     return false;
   }
   /* remember the two last syncs to compute Polar alignment */
-  tmpsyncdata.lst=lst;
-  tmpsyncdata.jd=juliandate;
-  tmpsyncdata.targetRA=ra;
-  tmpsyncdata.targetDEC=dec;
+  //tmpsyncdata.lst=lst;
+  //tmpsyncdata.jd=juliandate;
+  //tmpsyncdata.targetRA=ra;
+  //tmpsyncdata.targetDEC=dec;
 
   ha = rangeHA(ra - lst);
   if (ha < 0.0) {// target EAST
@@ -1211,39 +1162,27 @@ bool Ujari::Sync(double ra,double dec)
     if (Hemisphere == NORTH) targetpier = EAST; else targetpier = WEST;
     targetra = ra;
   }
-  tmpsyncdata.targetRAEncoder=EncoderFromRA(targetra, 0.0, lst, zeroRAEncoder, totalRAEncoder, Hemisphere);
-  tmpsyncdata.targetDECEncoder=EncoderFromDec(dec, targetpier, zeroDEEncoder, totalDEEncoder, Hemisphere);
+
+  //tmpsyncdata.targetRAEncoder=EncoderFromRA(targetra, 0.0, lst, zeroRAEncoder, totalRAEncoder, Hemisphere);
+  //tmpsyncdata.targetDECEncoder=EncoderFromDec(dec, targetpier, zeroDEEncoder, totalDEEncoder, Hemisphere);
 
   try {
-    EncodersToRADec( tmpsyncdata.telescopeRAEncoder, tmpsyncdata.telescopeDECEncoder, lst, &tmpsyncdata.telescopeRA, &tmpsyncdata.telescopeDEC, NULL);
+    //EncodersToRADec( tmpsyncdata.telescopeRAEncoder, tmpsyncdata.telescopeDECEncoder, lst, &tmpsyncdata.telescopeRA, &tmpsyncdata.telescopeDEC, NULL);
   } catch(UjariError e) {
     return(e.DefaultHandleException(this));
   }
 
 
-  tmpsyncdata.deltaRA = tmpsyncdata.targetRA - tmpsyncdata.telescopeRA;
-  tmpsyncdata.deltaDEC= tmpsyncdata.targetDEC - tmpsyncdata.telescopeDEC;
-  tmpsyncdata.deltaRAEncoder = tmpsyncdata.targetRAEncoder - tmpsyncdata.telescopeRAEncoder;
-  tmpsyncdata.deltaDECEncoder= tmpsyncdata.targetDECEncoder - tmpsyncdata.telescopeDECEncoder;
+  //tmpsyncdata.deltaRA = tmpsyncdata.targetRA - tmpsyncdata.telescopeRA;
+  //tmpsyncdata.deltaDEC= tmpsyncdata.targetDEC - tmpsyncdata.telescopeDEC;
+  //tmpsyncdata.deltaRAEncoder = tmpsyncdata.targetRAEncoder - tmpsyncdata.telescopeRAEncoder;
+  //tmpsyncdata.deltaDECEncoder= tmpsyncdata.targetDECEncoder - tmpsyncdata.telescopeDECEncoder;
 
-  syncdata2=syncdata;
-  syncdata=tmpsyncdata;
-
-  IUFindNumber(StandardSyncNP, "STANDARDSYNC_RA")->value=syncdata.deltaRA;
-  IUFindNumber(StandardSyncNP, "STANDARDSYNC_DE")->value=syncdata.deltaDEC;
-  IDSetNumber(StandardSyncNP, NULL);
-  IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_JD")->value=juliandate;
-  IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_SYNCTIME")->value=lst;
-  IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_CELESTIAL_RA")->value=syncdata.targetRA;;
-  IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_CELESTIAL_DE")->value=syncdata.targetDEC;;
-  IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_TELESCOPE_RA")->value=syncdata.telescopeRA;;
-  IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_TELESCOPE_DE")->value=syncdata.telescopeDEC;;
-  IDSetNumber(StandardSyncPointNP, NULL);
   //EqREqNP.s=IPS_IDLE;
   //EqNP.s=IPS_OK;
   //IDSetNumber(&EqREqNP, NULL);
 
-  DEBUGF(INDI::Logger::DBG_SESSION, "Mount Synced (deltaRA = %.6f deltaDEC = %.6f)", syncdata.deltaRA, syncdata.deltaDEC);
+  //DEBUGF(INDI::Logger::DBG_SESSION, "Mount Synced (deltaRA = %.6f deltaDEC = %.6f)", syncdata.deltaRA, syncdata.deltaDEC);
   //IDLog("Mount Synced (deltaRA = %.6f deltaDEC = %.6f)\n", syncdata.deltaRA, syncdata.deltaDEC);
 
   return true;
@@ -1300,32 +1239,6 @@ bool Ujari::ISNewNumber (const char *dev, const char *name, double values[], cha
               IUFindNumber(TrackRatesNP,"RATRACKRATE")->value, IUFindNumber(TrackRatesNP,"DETRACKRATE")->value);
       return true;
     }
-
-     if(strcmp(name,"STANDARDSYNCPOINT")==0)
-     {
-     syncdata2=syncdata;
-     bzero(&syncdata, sizeof(syncdata));
-     IUUpdateNumber(StandardSyncPointNP, values, names,n);
-     StandardSyncPointNP->s = IPS_OK;
-
-     syncdata.jd=IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_JD")->value;
-     syncdata.lst=IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_SYNCTIME")->value;
-     syncdata.targetRA=IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_CELESTIAL_RA")->value;
-     syncdata.targetDEC=IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_CELESTIAL_DE")->value;
-     syncdata.telescopeRA=IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_TELESCOPE_RA")->value;
-     syncdata.telescopeDEC=IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_TELESCOPE_DE")->value;
-     syncdata.deltaRA = syncdata.targetRA - syncdata.telescopeRA;
-     syncdata.deltaDEC = syncdata.targetDEC - syncdata.telescopeDEC;
-     IDSetNumber(StandardSyncPointNP, NULL);
-     IUFindNumber(StandardSyncNP, "STANDARDSYNC_RA")->value=syncdata.deltaRA;
-     IUFindNumber(StandardSyncNP, "STANDARDSYNC_DE")->value=syncdata.deltaDEC;
-     IDSetNumber(StandardSyncNP, NULL);
-
-     DEBUGF(INDI::Logger::DBG_SESSION, "Mount manually Synced (deltaRA = %.6f deltaDEC = %.6f)", syncdata.deltaRA, syncdata.deltaDEC);
-
-     return true;
-
-       }
 
       if(strcmp(name,"PARKPOSITION")==0)
     {
@@ -1489,35 +1402,6 @@ bool Ujari::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
         DEBUGF(INDI::Logger::DBG_SESSION,"Changed Track Default (from %s to %s).", swbefore->name, swafter->name);
       }
       return true;
-    }
-
-      if (!strcmp(name, "SYNCMANAGE"))
-    {
-      ISwitchVectorProperty *svp = getSwitch(name);
-      IUUpdateSwitch(svp, states, names, n);
-      ISwitch *sp = IUFindOnSwitch(svp);
-      if (!sp)
-        return false;
-      IDSetSwitch(svp, NULL);
-
-      if (!strcmp(sp->name, "SYNCCLEARDELTA"))
-      {
-        bzero(&syncdata, sizeof(syncdata));
-        bzero(&syncdata2, sizeof(syncdata2));
-        IUFindNumber(StandardSyncNP, "STANDARDSYNC_RA")->value=syncdata.deltaRA;
-        IUFindNumber(StandardSyncNP, "STANDARDSYNC_DE")->value=syncdata.deltaDEC;
-        IDSetNumber(StandardSyncNP, NULL);
-        IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_JD")->value=syncdata.jd;
-        IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_SYNCTIME")->value=syncdata.lst;
-        IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_CELESTIAL_RA")->value=syncdata.targetRA;;
-        IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_CELESTIAL_DE")->value=syncdata.targetDEC;;
-        IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_TELESCOPE_RA")->value=syncdata.telescopeRA;;
-        IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_TELESCOPE_DE")->value=syncdata.telescopeDEC;;
-        IDSetNumber(StandardSyncPointNP, NULL);
-        DEBUG(INDI::Logger::DBG_SESSION, "Cleared current Sync Data");
-        tpa_alt=0.0; tpa_az=0.0;
-        return true;
-      }
     }
 
       if (!strcmp(name, "PARKOPTION"))
@@ -1885,163 +1769,6 @@ bool Ujari::Abort()
   DEBUG(INDI::Logger::DBG_SESSION, "Telescope Aborted");
 
   return true;
-}
-
-void Ujari::computePolarAlign(SyncData s1, SyncData s2, double lat, double *tpaalt, double *tpaaz)
-/*
-From // // http://www.whim.org/nebula/math/pdf/twostar.pdf
- */
-{
-  double delta1, alpha1, delta2, alpha2;
-  double d1, d2; /* corrected delta1/delta2 */
-  double cdelta1, calpha1, cdelta2, calpha2;
-  double Delta;
-  double cosDelta1, cosDelta2;
-  double cosd2md1, cosd2pd1, d2pd1;
-  double tpadelta, tpaalpha;
-  double sintpadelta, costpaalpha, sintpaalpha;
-  double cosama1, cosama2;
-  double cosaz, sinaz;
-  double beta;
-
-  // Star s2 polar align
-  double s2tra, s2tdec;
-  char s2trasexa[13], s2tdecsexa[13];
-  char s2rasexa[13], s2decsexa[13];
-
-  alpha1 = ln_deg_to_rad((s1.telescopeRA - s1.lst) * 360.0 / 24.0);
-  delta1 = ln_deg_to_rad(s1.telescopeDEC);
-  alpha2 = ln_deg_to_rad((s2.telescopeRA - s2.lst) * 360.0 / 24.0);
-  delta2 = ln_deg_to_rad(s2.telescopeDEC);
-  calpha1 = ln_deg_to_rad((s1.targetRA - s1.lst) * 360.0 / 24.0);
-  cdelta1 = ln_deg_to_rad(s1.targetDEC);
-  calpha2 = ln_deg_to_rad((s2.targetRA - s2.lst) * 360.0 / 24.0);
-  cdelta2 = ln_deg_to_rad(s2.targetDEC);
-
-  if ((calpha2 == calpha1) || (alpha1 == alpha2)) return;
-
-  cosDelta1=sin(cdelta1) * sin(cdelta2) + (cos(cdelta1) * cos(cdelta2) * cos(calpha2 - calpha1));
-  cosDelta2=sin(delta1) * sin(delta2) + (cos(delta1) * cos(delta2) * cos(alpha2 - alpha1));
-
-  if (cosDelta1 != cosDelta2)
-    DEBUGF(INDI::Logger::DBG_DEBUG, "PolarAlign -- Telescope axes are not perpendicular. Angular distances are:celestial=%g telescope=%g\n", acos(cosDelta1), acos(cosDelta2));
-  Delta = acos(cosDelta1);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Angular distance of the two stars is %g\n", Delta);
-
-  //cosd2md1 = sin(delta1) * sin(delta2) + cos(delta1) * cos(delta2);
-  cosd2pd1 = ((cos(delta2 - delta1) * (1 + cos(alpha2 - alpha1))) - (2.0 * cosDelta2)) / (1 - cos(alpha2 - alpha1));
-  d2pd1=acos(cosd2pd1);
-  if (delta2 * delta1 > 0.0) {/* same sign */
-    if (delta1 < 0.0) d2pd1 = -d2pd1;
-  } else {
-    if (fabs(delta1) > fabs(delta2)) {
-      if (delta1 < 0.0) d2pd1 = -d2pd1;
-    } else {
-      if (delta2 < 0.0) d2pd1 = -d2pd1;
-    }
-  }
-
-  d2 = (d2pd1 + delta2 - delta1) / 2.0;
-  d1 = d2pd1 - d2;
-  DEBUGF(INDI::Logger::DBG_DEBUG,"Computed delta1 = %g (%g) delta2 = %g (%g)\n", d1, delta1, d2, delta2);
-
-  delta1 = d1;
-  delta2 = d2;
-
-  sintpadelta = (sin(delta1) * sin(cdelta1)) + (sin(delta2) * sin(cdelta2))
-    - cosDelta1 * ((sin(delta1) * sin(cdelta2)) + (sin(cdelta1) * sin(delta2)))
-    + (cos(delta1) * cos(delta2) *  sin(alpha2 - alpha1)  * cos(cdelta1) * cos(cdelta2) *  sin(calpha2 - calpha1));
-  sintpadelta = sintpadelta / (sin(Delta) * sin(Delta));
-  tpadelta = asin(sintpadelta);
-  cosama1 = (sin(delta1) - (sin(cdelta1) * sintpadelta)) / (cos(cdelta1) * cos(tpadelta));
-  cosama2 = (sin(delta2) - (sin(cdelta2) * sintpadelta)) / (cos(cdelta2) * cos(tpadelta));
-
-  costpaalpha = (sin(calpha2) * cosama1 - sin(calpha1) * cosama2) / sin(calpha2 - calpha1);
-  sintpaalpha = (cos(calpha1) * cosama2 - cos(calpha2) * cosama1) / sin(calpha2 - calpha1);
-  //tpaalpha = acos(costpaalpha);
-  //if (sintpaalpha < 0) tpaalpha = 2 * M_PI - tpaalpha;
-  // tpadelta and tpaaplha are very near M_PI / 2 d: DON'T USE  atan2
-  //tpaalpha=atan2(sintpaalpha, costpaalpha);
-  tpaalpha=2 * atan2(sintpaalpha, (1.0 + costpaalpha));
-  DEBUGF(INDI::Logger::DBG_DEBUG,"Computed Telescope polar alignment (rad): delta(dec) = %g alpha(ha) = %g\n", tpadelta, tpaalpha);
-
-  beta = ln_deg_to_rad(lat);
-  *tpaalt = asin(sin(tpadelta) * sin(beta) + (cos(tpadelta) * cos(beta) * cos(tpaalpha)));
-  cosaz = (sin(tpadelta) - (sin(*tpaalt) * sin(beta))) / (cos(*tpaalt) * cos(beta));
-  sinaz = (cos(tpadelta) * sin(tpaalpha)) / cos(*tpaalt);
-  //*tpaaz = acos(cosaz);
-  //if (sinaz < 0) *tpaaz = 2 * M_PI - *tpaaz;
-  *tpaaz=atan2(sinaz, cosaz);
-  *tpaalt=ln_rad_to_deg(*tpaalt);
-  *tpaaz = ln_rad_to_deg(*tpaaz);
-  DEBUGF(INDI::Logger::DBG_DEBUG,"Computed Telescope polar alignment (deg): alt = %g az = %g\n", *tpaalt, *tpaaz);
-
-  starPolarAlign(s2.lst, s2.targetRA, s2.targetDEC, (M_PI / 2)-tpaalpha, (M_PI / 2) - tpadelta, &s2tra, &s2tdec);
-  fs_sexa(s2trasexa, s2tra, 2, 3600);
-  fs_sexa(s2tdecsexa, s2tdec, 3, 3600);
-  fs_sexa(s2rasexa, s2.targetRA, 2, 3600);
-  fs_sexa(s2decsexa, s2.targetDEC, 3, 3600);
-  DEBUGF(INDI::Logger::DBG_SESSION, "Star (RA=%s DEC=%s) Polar Align Coords: RA=%s DEC=%s", s2rasexa, s2decsexa, s2trasexa, s2tdecsexa);
-  s2tra=s2.targetRA + (s2.targetRA-s2tra);
-  s2tdec=s2.targetDEC + (s2.targetDEC-s2tdec);
-  fs_sexa(s2trasexa, s2tra, 2, 3600);
-  fs_sexa(s2tdecsexa, s2tdec, 3, 3600);
-  fs_sexa(s2rasexa, s2.targetRA, 2, 3600);
-  fs_sexa(s2decsexa, s2.targetDEC, 3, 3600);
-
-  DEBUGF(INDI::Logger::DBG_SESSION, "Star (RA=%s DEC=%s) Polar Align Goto: RA=%s DEC=%s", s2rasexa, s2decsexa, s2trasexa, s2tdecsexa);
-}
-
-void Ujari::starPolarAlign(double lst, double ra, double dec, double theta, double gamma, double *tra, double *tdec)
-{
-  double rotz[3][3];
-  double rotx[3][3];
-  double mat[3][3];
-
-  double H;
-  double Lc, Mc, Nc;
-
-  double mra, mdec;
-  double L, M, N;
-  int i, j, k;
-
-  H=(lst - ra) * M_PI / 12.0;
-  dec=dec * M_PI / 180.0;
-
-  rotz[0][0]=cos(theta); rotz[0][1]=-sin(theta); rotz[0][2]=0.0;
-  rotz[1][0]=sin(theta); rotz[1][1]=cos(theta); rotz[1][2]=0.0;
-  rotz[2][0]=0.0; rotz[2][1]=0.0; rotz[2][2]=1.0;
-
-  rotx[0][0]=1.0; rotx[0][1]=0.0; rotx[0][2]=0.0;
-  rotx[1][0]=0.0; rotx[1][1]=cos(gamma); rotx[1][2]=-sin(gamma);
-  rotx[2][0]=0.0; rotx[2][1]=sin(gamma); rotx[2][2]=cos(gamma);
-
-  for (i=0; i < 3; i++) {
-    for (j=0; j < 3; j++) {
-      mat[i][j] = 0.0;
-      for (k=0; k < 3; k++)
-    mat[i][j] += rotx[i][k] * rotz[k][j];
-    }
-  }
-
-  Lc=cos(dec) * cos(-H);
-  Mc=cos(dec) * sin(-H);
-  Nc=sin(dec);
-
-  L=mat[0][0] * Lc + mat[0][1] * Mc + mat[0][2] * Nc;
-  M=mat[1][0] * Lc + mat[1][1] * Mc + mat[1][2] * Nc;
-  N=mat[2][0] * Lc + mat[2][1] * Mc + mat[2][2] * Nc;
-
-  mra=atan2(M,L) * 12.0 / M_PI;
-  //mra=atan(M/L) * 12.0 / M_PI;
-  //printf("atan(M/L) %g L=%g M=%g N=%g\n", mra, L, M, N);
-  //if (L < 0.0) mra = 12.0 + mra;
-  mra+=lst;
-  while (mra<0.0) mra+=24.0;
-  while (mra>24.0) mra-=24.0;
-  mdec=asin(N) * 180.0 / M_PI;
-  *tra = mra;
-  *tdec=mdec;
 }
 
 bool Ujari::ISSnoopDevice(XMLEle *root)

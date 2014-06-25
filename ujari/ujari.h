@@ -29,17 +29,6 @@
 
 #include "config.h"
 
-typedef struct SyncData
-{
-      double lst,jd;
-      double targetRA, targetDEC;
-      double telescopeRA, telescopeDEC;
-      double deltaRA, deltaDEC;
-      unsigned long targetRAEncoder, targetDECEncoder;
-      unsigned long telescopeRAEncoder, telescopeDECEncoder;
-      long deltaRAEncoder, deltaDECEncoder;
-} SyncData;
-
 class ForkMount;
 class UjariSimulator;
 class Inverter;
@@ -53,7 +42,6 @@ class Ujari : public INDI::Telescope
         Inverter *dome;
         Inverter *shutter;
         Encoder *domeEncoder;
-
 
         unsigned long currentRAEncoder, zeroRAEncoder, totalRAEncoder;
         unsigned long currentDEEncoder, zeroDEEncoder, totalDEEncoder;
@@ -80,15 +68,15 @@ class Ujari : public INDI::Telescope
         struct tm utc;
         struct ln_date lndate;
         struct timeval lasttimeupdate;
+        struct timespec lastclockupdate;
         double juliandate;
 
-        INumberVectorProperty *CurrentSteppersNP;
-        INumberVectorProperty *PeriodsNP;
+        //INumberVectorProperty *CurrentSteppersNP;
         INumberVectorProperty *JulianNP;
         INumberVectorProperty *TimeLSTNP;
         ITextVectorProperty *TimeUTCTP;
-        ILightVectorProperty *RAStatusLP;
-        ILightVectorProperty *DEStatusLP;
+        //ILightVectorProperty *RAStatusLP;
+        //ILightVectorProperty *DEStatusLP;
         INumberVectorProperty *SlewSpeedsNP;
         ISwitchVectorProperty *SlewModeSP;
         ISwitchVectorProperty *HemisphereSP;
@@ -97,9 +85,6 @@ class Ujari : public INDI::Telescope
         ISwitchVectorProperty *TrackDefaultSP;
         INumberVectorProperty *TrackRatesNP;
         INumberVectorProperty *HorizontalCoordNP;
-        INumberVectorProperty *StandardSyncNP;
-        INumberVectorProperty *StandardSyncPointNP;
-        ISwitchVectorProperty *SyncManageSP;
         INumberVectorProperty *ParkPositionNP;
         ISwitchVectorProperty *ParkOptionSP;
         ISwitchVectorProperty *ReverseDECSP;
@@ -118,8 +103,7 @@ class Ujari : public INDI::Telescope
         Hemisphere Hemisphere;
         PierSide pierside;
         bool RAInverted, DEInverted;
-            GotoParams gotoparams;
-        SyncData syncdata, syncdata2;
+        GotoParams gotoparams;
 
         double tpa_alt, tpa_az;
 
@@ -159,9 +143,6 @@ class Ujari : public INDI::Telescope
         void processSlewPresets(double mag, double angle);
         void processJoystick(const char * joystick_n, double mag, double angle);
         void processButton(const char * button_n, ISState state);
-
-        void computePolarAlign(SyncData s1, SyncData s2, double lat, double *tpaalt, double *tpaaz);
-        void starPolarAlign(double lst, double ra, double dec, double theta, double gamma, double *tra, double *tdec);
 
         public:
             Ujari();

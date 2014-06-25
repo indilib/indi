@@ -42,6 +42,8 @@
 #define FORKMOUNT_LOWSPEED_RATE 128
 #define FORKMOUNT_MAXREFRESH 0.5
 
+#define FORKMOUNT_RATE_TO_RPM   300.0
+
 #define HEX(c) (((c) < 'A')?((c)-'0'):((c) - 'A') + 10)
 
 class Ujari;
@@ -85,12 +87,13 @@ public:
         void StopDE() throw (UjariError);
         void SetRARate(double rate)  throw (UjariError);
         void SetDERate(double rate)  throw (UjariError);
-        void SlewTo(long deltaraencoder, long deltadeencoder);        
+        void SlewTo(long targetraencoder, long targetdeencoder);
         void StartRATracking(double trackspeed) throw (UjariError);
         void StartDETracking(double trackspeed) throw (UjariError);
         bool IsRARunning() throw (UjariError);
         bool IsDERunning() throw (UjariError);
 
+        bool update();
         void setSimulation(bool);
         bool isSimulation();
         bool simulation;
@@ -113,9 +116,10 @@ public:
         AMCController *RAMotor, *DECMotor;
         Encoder *RAEncoder, *DECEncoder;
 
+        // TODO Check if this is valid for Ujari
         static const double MIN_RATE=0.05;
-        static const double MAX_RATE=800.0;
-        unsigned long minperiods[2];
+        static const double MAX_RATE=600.0;
+        double minrpms[2];
 
         enum ForkMountAxis
         {
@@ -126,8 +130,7 @@ public:
 
         enum ForkMountDirection {BACKWARD=0, FORWARD=1};
         enum ForkMountSlewMode { SLEW=0, GOTO=1  };
-        enum ForkMountSpeedMode { LOWSPEED=0, HIGHSPEED=1  };
-        typedef struct ForkMountAxisStatus {ForkMountDirection direction; ForkMountSlewMode slewmode; ForkMountSpeedMode speedmode; } ForkMountAxisStatus;
+        typedef struct ForkMountAxisStatus {ForkMountDirection direction; ForkMountSlewMode slewmode; } ForkMountAxisStatus;
         enum ForkMountError { NO_ERROR, ER_1, ER_2, ER_3 };
 
         struct timeval lastreadmotorstatus[NUMBER_OF_FORKMOUNTAXIS];
@@ -138,10 +141,9 @@ public:
         void ReadMotorStatus(ForkMountAxis axis) throw (UjariError);
         void SetMotion(ForkMountAxis axis, ForkMountAxisStatus newstatus) throw (UjariError);
         void SetSpeed(ForkMountAxis axis, double rpm) throw (UjariError);
-        void SetTarget(ForkMountAxis axis, unsigned long increment) throw (UjariError);
-        void StartMotor(ForkMountAxis axis) throw (UjariError);
+        void StartMotor(ForkMountAxis axis, ForkMountAxisStatus newstatus) throw (UjariError);
         void StopMotor(ForkMountAxis axis)  throw (UjariError);
-        //void StopWaitMotor(ForkMountAxis axis) throw (UjariError);
+        void StopWaitMotor(ForkMountAxis axis) throw (UjariError);
 
         unsigned long Revu24str2long(char *);
         unsigned long Highstr2long(char *);
@@ -151,35 +153,22 @@ public:
         double get_max_rate();
         bool isDebug();
 
-        // Variables
-        //string default_port;
-        // See ForkMount protocol
-        //unsigned long MCVersion; // Motor Controller Version
-        //unsigned long MountCode; //
-
         unsigned long RASteps360;
         unsigned long DESteps360;
-        unsigned long RAStepsWorm;
-        unsigned long DEStepsWorm;
-        unsigned long RAHighspeedRatio; // Motor controller multiplies speed values by this ratio when in low speed mode
-        unsigned long DEHighspeedRatio; // This is a reflect of either using a timer interrupt with an interrupt count greater than 1 for low speed
-                                        // or of using microstepping only for low speeds and half/full stepping for high speeds
         unsigned long RAStep;  // Current RA encoder position in step
         unsigned long DEStep;  // Current DE encoder position in step
         unsigned long RAStepInit;  // Initial RA position in step
         unsigned long DEStepInit;  // Initial DE position in step
         unsigned long RAStepHome;  // Home RA position in step
         unsigned long DEStepHome;  // Home DE position in step
-        unsigned long RAPeriod;  // Current RA worm period
-        unsigned long DEPeriod;  // Current DE worm period
+        unsigned long RAEncoderTarget;  // RA Encoder Target
+        unsigned long DEEncoderTarget;  // DEC Encoder Target
 
         bool RAInitialized, DEInitialized, RARunning, DERunning;
         bool wasinitialized;
         ForkMountAxisStatus RAStatus, DEStatus;
 
         int fd;
-        //char command[FORKMOUNT_MAX_CMD];
-        //char response[FORKMOUNT_MAX_CMD];
 
         bool debug;
         const char *deviceName;

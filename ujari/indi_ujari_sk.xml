@@ -36,9 +36,6 @@ Idle
     <defLight name="RAForward" label="Backward/Forward">
 Idle
     </defLight>
-    <defLight name="RAHighspeed" label="Lowspeed/Highspeed">
-Idle
-    </defLight>
 </defLightVector>
 <defLightVector device="Ujari Observatory" name="DESTATUS" label="DE Motor Status" group="Motor Status" state="Idle" perm="ro">
     <defLight name="DEInitialized" label="Initialized">
@@ -51,9 +48,6 @@ Idle
 Idle
     </defLight>
     <defLight name="DEForward" label="Backward/Forward">
-Idle
-    </defLight>
-    <defLight name="DEHighspeed" label="Lowspeed/Highspeed">
 Idle
     </defLight>
 </defLightVector>
@@ -73,14 +67,6 @@ Idle
 </defNumber>
 <defNumber name="DESLEW" label="DE Slew" format="%3.2fx" min="0.05" max="800.0" step="0.05">
 64.0
-</defNumber>
-</defNumberVector>
-<defNumberVector device="Ujari Observatory" name="PERIODS" label="Worm Periods" group="Motor Status" state="Idle" perm="ro">
-<defNumber name="RAPERIOD" label="RA Period" format="%.0f" min="0.0" max="16384.0" step="1.0">
-256.0
-</defNumber>
-<defNumber name="DEPERIOD" label="DE Period" format="%.0f" min="0.0" max="16384.0" step="1.0">
-256.0
 </defNumber>
 </defNumberVector>
 <defSwitchVector device="Ujari Observatory" name="TRACKMODE" label="Track Mode" group="Main Control" state="Idle" perm="rw" rule="OneOfMany">

@@ -281,7 +281,8 @@ bool Inverter::update_status()
 
     memset(Inverter_Status_Coils, 0, sizeof(Inverter_Status_Coils));
 
-    modbus_flush(mb_param);
+    if (simulation == false)
+        modbus_flush(mb_param);
 
     for (int i=0; i < ERROR_MAX_COUNT; i++)
     {
@@ -334,13 +335,13 @@ bool Inverter::update_freq()
     /* Read to 1001h (D001) High order and 1002h (D001) Low Order registers */
     uint16_t Output_Speed_Register[2];
 
-    modbus_flush(mb_param);
-
     if (simulation)
     {
         OutputFreqN[0].value = reqFreq;
         return true;
     }
+
+    modbus_flush(mb_param);
 
     for (int i=0; i < ERROR_MAX_COUNT; i++)
     {
