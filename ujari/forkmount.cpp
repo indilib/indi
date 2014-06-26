@@ -1057,24 +1057,30 @@ bool ForkMount::update()
     DEStep = DEEncoder->getEncoderValue();
 
     // Now check how far RAEncoderTarget is from RAStep
-    separation = fabs(RAStep - RAEncoderTarget)/RAEncoder->getTicksToDegreeRatio();
-    if (fabs(separation) * 3600 <= RAGOTORESOLUTION)
-        RAMotor->stop();
-    else
+    if (RAStatus.slewmode == GOTO)
     {
-        speed = GetGotoSpeed(Axis1);
-        if (speed != RAMotor->getSpeed())
-            RAMotor->setSpeed(speed);
+        separation = fabs(RAStep - RAEncoderTarget)/RAEncoder->getTicksToDegreeRatio();
+        if (fabs(separation) * 3600 <= RAGOTORESOLUTION)
+            RAMotor->stop();
+        else
+        {
+          speed = GetGotoSpeed(Axis1);
+            if (speed != RAMotor->getSpeed())
+                RAMotor->setSpeed(speed);
+        }
     }
 
-    separation = fabs(DEStep - DEEncoderTarget)/DEEncoder->getTicksToDegreeRatio();
-    if (fabs(separation) * 3600 <= DEGOTORESOLUTION)
-        DEMotor->stop();
-    else
+    if (DEStatus.slewmode == GOTO)
     {
-        speed = GetGotoSpeed(Axis2);
-        if (speed != DEMotor->getSpeed())
-            DEMotor->setSpeed(speed);
+        separation = fabs(DEStep - DEEncoderTarget)/DEEncoder->getTicksToDegreeRatio();
+        if (fabs(separation) * 3600 <= DEGOTORESOLUTION)
+            DEMotor->stop();
+        else
+        {
+            speed = GetGotoSpeed(Axis2);
+            if (speed != DEMotor->getSpeed())
+                DEMotor->setSpeed(speed);
+        }
     }
 
     return (raMotorRC && decMotorRC);

@@ -149,7 +149,7 @@ bool Encoder::connect()
     }
 
 
-    unsigned long result = AIOUSB_Init();
+    /*unsigned long result = AIOUSB_Init();
     if( result != AIOUSB_SUCCESS )
     {
         DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_ERROR, "%s encoder: Can't initialize AIOUSB USB device.", type_name.c_str());
@@ -165,7 +165,7 @@ bool Encoder::connect()
     {
         DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_ERROR, "%s encoder: failed to configure all ports as input.", type_name.c_str());
         return false;
-    }
+    }*/
 
     connection_status = 0;
     return true;
@@ -183,7 +183,7 @@ void Encoder::disconnect()
         return;
 
 
-    AIOUSB_CloseDevice(diOnly);
+
 }
 
 /****************************************************************
