@@ -18,6 +18,8 @@
 
 #endif
 
+#include <aiousb.h>
+
 #include "encoder.h"
 #include "ujari.h"
 
@@ -48,9 +50,6 @@ Encoder::encoderType Encoder::getType() const
 void Encoder::setType(const encoderType &value)
 {
     type = value;
-
-    // FIXME change to real IP address of RS485 to Ethernet adapter
-    default_port = std::string("192.168.1.XXX");
 
     switch (type)
     {
@@ -106,12 +105,12 @@ void Encoder::setTicksToDegreeRatio(double value)
 *****************************************************************/
 bool Encoder::initProperties()
 {
-    IUFillNumber(&encoderSettingsN[0], "HOME_POSITION", "Home Position", "%g", 0, 1000000, 1000, 0);
-    IUFillNumber(&encoderSettingsN[1], "HOME_OFFSET", "Home Offset", "%g", 0, 1000000, 1000, 0);
-    IUFillNumber(&encoderSettingsN[2], "TICKS_DEGREE_RATIO", "T/D Ratio", "%g", 0, 1000000, 1000, 0);
+    IUFillNumber(&encoderSettingsN[EN_HOME_POSITION], "HOME_POSITION", "Home Position", "%g", 0, 1000000, 1000, 0);
+    IUFillNumber(&encoderSettingsN[EN_HOME_OFFSET], "HOME_OFFSET", "Home Offset", "%g", 0, 1000000, 1000, 0);
+    IUFillNumber(&encoderSettingsN[EN_TICKS_DEGREES_RATIO], "TICKS_DEGREE_RATIO", "T/D Ratio", "%g", 0, 1000000, 1000, 0);
 
-    IUFillNumber(&encoderValueN[0], "ENCODER_RAW_VALUE", "Value", "%g", 0, 1000000, 1000, 0);
-    IUFillNumber(&encoderValueN[1], "ENCODER_ANGLE", "Angle", "%g", 0, 1000000, 1000, 0);
+    IUFillNumber(&encoderValueN[EN_RAW_VALUE], "ENCODER_RAW_VALUE", "Value", "%g", 0, 1000000, 1000, 0);
+    IUFillNumber(&encoderValueN[EN_ANGLE_VALUE], "ENCODER_ANGLE", "Angle", "%g", 0, 1000000, 1000, 0);
 
     switch (type)
     {
@@ -142,7 +141,6 @@ bool Encoder::initProperties()
 *****************************************************************/
 bool Encoder::connect()
 {
-
     if (simulation)
     {
         DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_SESSION, "%s: Simulating connecting to NI6509 board.", type_name.c_str());
@@ -151,7 +149,26 @@ bool Encoder::connect()
     }
 
 
-    return false;
+    unsigned long result = AIOUSB_Init();
+    if( result != AIOUSB_SUCCESS )
+    {
+        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_ERROR, "%s encoder: Can't initialize AIOUSB USB device.", type_name.c_str());
+        return false;
+    }
+
+    //AIOUSB_ListDevices();
+
+    // All input
+    result = DIO_Configure(diOnly, AIOUSB_FALSE, 0, 0);
+
+    if( result != AIOUSB_SUCCESS )
+    {
+        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_ERROR, "%s encoder: failed to configure all ports as input.", type_name.c_str());
+        return false;
+    }
+
+    connection_status = 0;
+    return true;
 }
 
 /****************************************************************
@@ -166,6 +183,7 @@ void Encoder::disconnect()
         return;
 
 
+    AIOUSB_CloseDevice(diOnly);
 }
 
 /****************************************************************
@@ -233,7 +251,7 @@ bool Encoder::ISNewText (const char *dev, const char *name, char *texts[], char 
 *****************************************************************/
 unsigned long Encoder::GetEncoder()  throw (UjariError)
 {
-    return 0;
+    return static_cast<unsigned long>(encoderValueN[EN_RAW_VALUE].value);
 
 }
 
@@ -243,7 +261,7 @@ unsigned long Encoder::GetEncoder()  throw (UjariError)
 *****************************************************************/
 unsigned long Encoder::GetEncoderZero()
 {
-    return 0;
+    return static_cast<unsigned long>(encoderSettingsN[EN_HOME_POSITION].value+encoderSettingsN[EN_HOME_OFFSET].value);
 }
 
 /****************************************************************
@@ -252,7 +270,7 @@ unsigned long Encoder::GetEncoderZero()
 *****************************************************************/
 unsigned long Encoder::GetEncoderTotal()
 {
-    return 0;
+    return static_cast<unsigned long>(encoderValueN[EN_RAW_VALUE].max);
 
 }
 
@@ -262,6 +280,7 @@ unsigned long Encoder::GetEncoderTotal()
 *****************************************************************/
 unsigned long Encoder::GetEncoderHome()
 {
-    return 0;
+    return static_cast<unsigned long>(encoderSettingsN[EN_HOME_POSITION].value+encoderSettingsN[EN_HOME_OFFSET].value);
+
 }
 

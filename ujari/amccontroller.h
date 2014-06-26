@@ -74,8 +74,11 @@ public:
     bool isDriveOnline();
 
     bool setSpeed(double rpm);
+    double getSpeed() { return MotorSpeedN[0].value; }
+
     bool moveForward();
     bool moveReverse();
+
     bool stop();
     bool enableMotion();
 

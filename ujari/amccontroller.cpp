@@ -84,19 +84,14 @@ void AMCController::setType(const motorType &value)
 {
     type = value;
 
-    // FIXME change to real IP address of RS485 to Ethernet adapter
-
-
     if (type == RA_MOTOR)
     {
       type_name = std::string("RA Motor");
-      // TODO FIXME - SET Address of RA Motor in Hardware
       SLAVE_ADDRESS = 0x1;
       default_port = std::string("172.16.15.2");
     }
     else
     {
-      // TODO FIXME - SET Address of DEC Motor in Hardware
       type_name = std::string("DEC Motor");
       SLAVE_ADDRESS = 0x02;
       default_port = std::string("172.16.15.3");
@@ -1344,6 +1339,9 @@ bool AMCController::update()
 {
     if (isDriveOnline() == false)
         return true;
+
+    //TODO MUST Send heatbeat to driver. Configure drive to ABORT if heatbeat is missed.
+    //TODO Set heartbeat for 2000ms in AMC drive to be safe.
 
     int nbytes_written=0;
 

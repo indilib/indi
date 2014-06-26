@@ -113,8 +113,8 @@ public:
 
      private:
 
-        AMCController *RAMotor, *DECMotor;
-        Encoder *RAEncoder, *DECEncoder;
+        AMCController *RAMotor, *DEMotor;
+        Encoder *RAEncoder, *DEEncoder;
 
         // TODO Check if this is valid for Ujari
         static const double MIN_RATE=0.05;
@@ -129,7 +129,7 @@ public:
         };
 
         enum ForkMountDirection {BACKWARD=0, FORWARD=1};
-        enum ForkMountSlewMode { SLEW=0, GOTO=1  };
+        enum ForkMountSlewMode { SLEW=0, GOTO=1, TRACK=2  };
         typedef struct ForkMountAxisStatus {ForkMountDirection direction; ForkMountSlewMode slewmode; } ForkMountAxisStatus;
         enum ForkMountError { NO_ERROR, ER_1, ER_2, ER_3 };
 
@@ -144,6 +144,7 @@ public:
         void StartMotor(ForkMountAxis axis, ForkMountAxisStatus newstatus) throw (UjariError);
         void StopMotor(ForkMountAxis axis)  throw (UjariError);
         void StopWaitMotor(ForkMountAxis axis) throw (UjariError);
+        double GetGotoSpeed(ForkMountAxis axis);
 
         unsigned long Revu24str2long(char *);
         unsigned long Highstr2long(char *);
@@ -169,10 +170,8 @@ public:
         ForkMountAxisStatus RAStatus, DEStatus;
 
         int fd;
-
         bool debug;
         const char *deviceName;
-        //bool debugnextread;
         Ujari *telescope;
 
         //Park

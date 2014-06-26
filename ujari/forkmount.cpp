@@ -47,6 +47,22 @@ extern int DBG_SCOPE_STATUS;
 extern int DBG_COMM;
 extern int DBG_MOUNT;
 
+#define GOTO_LIMIT      5                               /* Move at GOTO_RATE until distance from target is GOTO_LIMIT degrees */
+#define SLEW_LIMIT      2                               /* Move at SLEW_LIMIT until distance from target is SLEW_LIMIT degrees */
+#define FINE_SLEW_LIMIT 0.5                             /* Move at FINE_SLEW_RATE until distance from target is FINE_SLEW_LIMIT degrees */
+
+#define RA_GOTO_SPEED   1.5
+#define RA_SLEW_SPEED   0.5
+#define RA_FINE_SPEED   0.2
+
+#define DE_GOTO_SPEED   1.5
+#define DE_SLEW_SPEED   0.5
+#define DE_FINE_SPEED   0.2
+
+#define RAGOTORESOLUTION 5        /* GOTO Resolution in arcsecs */
+#define DEGOTORESOLUTION 5        /* GOTO Resolution in arcsecs */
+
+
 ForkMount::ForkMount(Ujari *t)
 {
   fd=-1;
@@ -56,10 +72,10 @@ ForkMount::ForkMount(Ujari *t)
   telescope = t;
 
   RAMotor  = new AMCController(AMCController::RA_MOTOR, t);
-  DECMotor = new AMCController(AMCController::DEC_MOTOR, t);
+  DEMotor = new AMCController(AMCController::DEC_MOTOR, t);
 
   RAEncoder   = new Encoder(Encoder::RA_ENCODER, t);
-  DECEncoder  = new Encoder(Encoder::DEC_ENCODER, t);
+  DEEncoder  = new Encoder(Encoder::DEC_ENCODER, t);
 
   Parkdatafile= "~/.indi/ParkData.xml";
 }
@@ -73,10 +89,10 @@ bool ForkMount::ISNewNumber (const char *dev, const char *name, double values[],
 {
 
     RAMotor->ISNewNumber(dev, name, values, names, n);
-    DECMotor->ISNewNumber(dev, name, values, names, n);
+    DEMotor->ISNewNumber(dev, name, values, names, n);
 
     RAEncoder->ISNewNumber(dev, name, values, names, n);
-    DECEncoder->ISNewNumber(dev, name, values, names, n);
+    DEEncoder->ISNewNumber(dev, name, values, names, n);
 
     return true;
 }
@@ -85,10 +101,10 @@ bool ForkMount::ISNewSwitch (const char *dev, const char *name, ISState *states,
 {
 
     RAMotor->ISNewSwitch(dev, name, states, names, n);
-    DECMotor->ISNewSwitch(dev, name, states, names, n);
+    DEMotor->ISNewSwitch(dev, name, states, names, n);
 
     //RAEncoder->ISNewSwitch(dev, name, states, names, n);
-    //DECEncoder->ISNewSwitch(dev, name, states, names, n);
+    //DEEncoder->ISNewSwitch(dev, name, states, names, n);
 
     return true;
 }
@@ -96,10 +112,10 @@ bool ForkMount::ISNewSwitch (const char *dev, const char *name, ISState *states,
 bool ForkMount::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     RAMotor->ISNewText(dev, name, texts, names, n);
-    DECMotor->ISNewText(dev, name, texts, names, n);
+    DEMotor->ISNewText(dev, name, texts, names, n);
 
     RAEncoder->ISNewText(dev, name, texts, names, n);
-    DECEncoder->ISNewText(dev, name, texts, names, n);
+    DEEncoder->ISNewText(dev, name, texts, names, n);
 
     return true;
 }
@@ -119,9 +135,9 @@ void ForkMount::setSimulation (bool enable)
   simulation=enable;
 
   RAMotor->setSimulation(enable);
-  DECMotor->setSimulation(enable);
+  DEMotor->setSimulation(enable);
   RAEncoder->setSimulation(enable);
-  DECEncoder->setSimulation(enable);
+  DEEncoder->setSimulation(enable);
 
 }
 bool ForkMount::isSimulation ()
@@ -137,23 +153,23 @@ const char *ForkMount::getDeviceName ()
 bool ForkMount::initProperties()
 {
     RAMotor->initProperties();
-    DECMotor->initProperties();
+    DEMotor->initProperties();
     RAEncoder->initProperties();
-    DECEncoder->initProperties();
+    DEEncoder->initProperties();
 }
 
 void ForkMount::ISGetProperties(const char *dev)
 {
     RAMotor->ISGetProperties();
-    DECMotor->ISGetProperties();
+    DEMotor->ISGetProperties();
 }
 
 bool ForkMount::updateProperties()
 {
     RAMotor->updateProperties(telescope->isConnected());
-    DECMotor->updateProperties(telescope->isConnected());
+    DEMotor->updateProperties(telescope->isConnected());
     RAEncoder->updateProperties(telescope->isConnected());
-    DECEncoder->updateProperties(telescope->isConnected());
+    DEEncoder->updateProperties(telescope->isConnected());
 }
 
 /* API */
@@ -163,9 +179,9 @@ bool ForkMount::Connect()  throw (UjariError)
   bool raMotorRC=false, decMotorRC=false, raEncoderRC=false, decEncoderRC=false;
 
   raMotorRC    = RAMotor->connect();
-  decMotorRC   = DECMotor->connect();
+  decMotorRC   = DEMotor->connect();
   raEncoderRC  = true;//RAEncoder->connect();
-  decEncoderRC = true;//DECEncoder->connect();
+  decEncoderRC = true;//DEEncoder->connect();
 
   if (raMotorRC && decMotorRC && raEncoderRC && decEncoderRC)
       return true;
@@ -258,21 +274,21 @@ unsigned long ForkMount::GetRAEncoderHome()
 
 unsigned long ForkMount::GetDEEncoderZero()
 {
-  DEStepInit = DECEncoder->GetEncoderZero();
+  DEStepInit = DEEncoder->GetEncoderZero();
   DEBUGF(INDI::Logger::DBG_DEBUG, "%s() = %ld", __FUNCTION__, DEStepInit);
   return DEStepInit;
 }
 
 unsigned long ForkMount::GetDEEncoderTotal()
 {
-  DESteps360 = DECEncoder->GetEncoderTotal();
+  DESteps360 = DEEncoder->GetEncoderTotal();
   DEBUGF(INDI::Logger::DBG_DEBUG, "%s() = %ld", __FUNCTION__, DESteps360);
   return DESteps360;
 }
 
 unsigned long ForkMount::GetDEEncoderHome()
 {
-  DEStepHome = DECEncoder->GetEncoderHome();
+  DEStepHome = DEEncoder->GetEncoderHome();
   DEBUGF(INDI::Logger::DBG_DEBUG, "%s() = %ld", __FUNCTION__, DEStepHome);
   return DEStepHome;
 }
@@ -418,7 +434,7 @@ bool ForkMount::IsRARunning() throw (UjariError)
 bool ForkMount::IsDERunning() throw (UjariError)
 {
   //CheckMotorStatus(Axis2);
-  DERunning = DECMotor->isMotionActive();
+  DERunning = DEMotor->isMotionActive();
   DEBUGF(INDI::Logger::DBG_DEBUG, "%s() = %s", __FUNCTION__, (DERunning?"true":"false"));
   return(DERunning);
 }
@@ -442,9 +458,9 @@ void ForkMount::StartMotor(ForkMountAxis axis, ForkMountAxisStatus newstatus) th
 
     case Axis2:
       if (newstatus.direction == FORWARD)
-          rc = DECMotor->moveForward();
+          rc = DEMotor->moveForward();
       else
-          rc = DECMotor->moveReverse();
+          rc = DEMotor->moveReverse();
 
       if (rc == false)
           throw(UjariError::ErrCmdFailed, "RA Motor start motion failed.");
@@ -473,14 +489,14 @@ void ForkMount::ReadMotorStatus(ForkMountAxis axis)  throw (UjariError)
         RAStatus.direction=FORWARD;
     break;
   case Axis2:
-      DEInitialized=DECMotor->isDriveOnline();
-      DERunning=DECMotor->isMotionActive();
+      DEInitialized=DEMotor->isDriveOnline();
+      DERunning=DEMotor->isMotionActive();
       /* FIXME Is this necessary ?
        * DEStatus.slewmode=SLEW; else DECStatus.slewmode=GOTO;
        */
-      if (DECMotor->getMotionStatus() == AMCController::MOTOR_REVERSE)
+      if (DEMotor->getMotionStatus() == AMCController::MOTOR_REVERSE)
           DEStatus.direction= BACKWARD;
-      else if (DECMotor->getMotionStatus() == AMCController::MOTOR_FORWARD)
+      else if (DEMotor->getMotionStatus() == AMCController::MOTOR_FORWARD)
           DEStatus.direction=FORWARD;
 
   default: ;
@@ -495,9 +511,9 @@ void ForkMount::SlewRA(double rate) throw (UjariError)
 
   DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : rate = %g", __FUNCTION__, rate);
 
-  if (RARunning && (RAStatus.slewmode==GOTO))
+  if (RARunning && (RAStatus.slewmode==GOTO || RAStatus.slewmode==TRACK))
   {
-      throw  UjariError(UjariError::ErrInvalidCmd, "Can not slew while goto is in progress");
+      throw  UjariError(UjariError::ErrInvalidCmd, "Can not slew while goto or tracking is in progress");
   }
 
   if ((absrate < get_min_rate()) || (absrate > get_max_rate()))
@@ -529,9 +545,9 @@ void ForkMount::SlewDE(double rate) throw (UjariError)
 
   DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : rate = %g", __FUNCTION__, rate);
 
-  if (DERunning && (DEStatus.slewmode==GOTO))
+  if (DERunning && (DEStatus.slewmode==GOTO || DEStatus.slewmode==TRACK))
   {
-      throw  UjariError(UjariError::ErrInvalidCmd, "Can not slew while goto is in progress");
+      throw  UjariError(UjariError::ErrInvalidCmd, "Can not slew while goto or tracking is in progress");
   }
 
   if (rate >= 0.0)
@@ -566,9 +582,8 @@ void ForkMount::SlewTo(long targetraencoder, long targetdeencoder)
 
   newstatus.slewmode=GOTO;
 
-  // TODO, need to change minrpms per delta encoder range?
-  minrpms[Axis1] = 0.1;
-  minrpms[Axis2] = 0.1;
+  minrpms[Axis1] = GetGotoSpeed(Axis1);
+  minrpms[Axis2] = GetGotoSpeed(Axis2);
 
   if (deltaraencoder >= 0)
       newstatus.direction = FORWARD;
@@ -674,7 +689,7 @@ void ForkMount::StartRATracking(double trackspeed) throw (UjariError)
         ForkMountAxisStatus newstatus;
         newstatus.direction = FORWARD;
         // Is it still considered GOTO? Not sure, find out later
-        newstatus.slewmode = GOTO;
+        newstatus.slewmode = TRACK;
         StartMotor(Axis1, newstatus);
     }
   }
@@ -701,7 +716,7 @@ void ForkMount::StartDETracking(double trackspeed) throw (UjariError)
         ForkMountAxisStatus newstatus;
         newstatus.direction = FORWARD;
         // Is it still considered GOTO? Not sure, find out later
-        newstatus.slewmode = GOTO;
+        newstatus.slewmode = TRACK;
         StartMotor(Axis2, newstatus);
     }
   }
@@ -724,7 +739,7 @@ void ForkMount::SetSpeed(ForkMountAxis axis, double rpm) throw (UjariError)
   else
   {
       //currentstatus=&DEStatus;
-      DECMotor->setSpeed(rpm);
+      DEMotor->setSpeed(rpm);
   }
 
 }
@@ -750,9 +765,16 @@ void ForkMount::StopWaitMotor(ForkMountAxis axis)  throw (UjariError)
   struct timespec wait;
 
   if (axis == Axis1)
+  {
       RAMotor->stop();
+      // FIXME Resetting it to SLEW here, CHECK!
+      RAStatus.slewmode = SLEW;
+  }
   else
-      DECMotor->stop();
+  {
+      DEMotor->stop();
+      DEStatus.slewmode = SLEW;
+  }
 
   if (axis == Axis1)
       motorrunning=&RARunning;
@@ -798,9 +820,15 @@ void ForkMount::StopMotor(ForkMountAxis axis)  throw (UjariError)
   DEBUGF(DBG_MOUNT, "%s() : Axis = %c", __FUNCTION__, axis);
 
   if (axis == Axis1)
+  {
       RAMotor->stop();
+      RAStatus.slewmode = SLEW;
+  }
   else
-      DECMotor->stop();
+  {
+      DEMotor->stop();
+      DEStatus.slewmode = SLEW;
+  }
 }
 
 /* Utilities */
@@ -1021,18 +1049,64 @@ char *ForkMount::WriteParkData(const char *filename)
 
 bool ForkMount::update()
 {
+    double separation, speed;
     bool raMotorRC    = RAMotor->update();
-    bool decMotorRC   = DECMotor->update();
+    bool decMotorRC   = DEMotor->update();
 
     RAStep = RAEncoder->getEncoderValue();
-    DEStep = DECEncoder->getEncoderValue();
+    DEStep = DEEncoder->getEncoderValue();
 
     // Now check how far RAEncoderTarget is from RAStep
-    // Adjust speed, make getTargetSpeed(Axis, deltaencoder or deltaangle)
-    // If angle is within range (say 1-2 arcmins) then issue STOP to the respective axis
-    // ujari will detect stop and if GOTO is completely will switch to tracking if it was selected
-    // set tracking rate will be called
-    //
+    separation = fabs(RAStep - RAEncoderTarget)/RAEncoder->getTicksToDegreeRatio();
+    if (fabs(separation) * 3600 <= RAGOTORESOLUTION)
+        RAMotor->stop();
+    else
+    {
+        speed = GetGotoSpeed(Axis1);
+        if (speed != RAMotor->getSpeed())
+            RAMotor->setSpeed(speed);
+    }
+
+    separation = fabs(DEStep - DEEncoderTarget)/DEEncoder->getTicksToDegreeRatio();
+    if (fabs(separation) * 3600 <= DEGOTORESOLUTION)
+        DEMotor->stop();
+    else
+    {
+        speed = GetGotoSpeed(Axis2);
+        if (speed != DEMotor->getSpeed())
+            DEMotor->setSpeed(speed);
+    }
 
     return (raMotorRC && decMotorRC);
+}
+
+double ForkMount::GetGotoSpeed(ForkMountAxis axis)
+{
+    double speed;
+    double separation;
+
+    switch (axis)
+    {
+        case Axis1:
+        separation = fabs(RAStep - RAEncoderTarget)/RAEncoder->getTicksToDegreeRatio();
+            if (separation > GOTO_LIMIT)
+                speed = RA_GOTO_SPEED;
+            else if (separation > SLEW_LIMIT)
+                speed = RA_SLEW_SPEED;
+            else
+                speed = RA_FINE_SPEED;
+        break;
+
+        case Axis2:
+        separation = fabs(DEStep - DEEncoderTarget)/DEEncoder->getTicksToDegreeRatio();
+            if (separation > GOTO_LIMIT)
+                speed = DE_GOTO_SPEED;
+            else if (separation > SLEW_LIMIT)
+                speed = DE_SLEW_SPEED;
+            else
+                speed = DE_FINE_SPEED;
+        break;
+    }
+
+    return speed;
 }

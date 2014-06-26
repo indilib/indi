@@ -35,6 +35,8 @@ class Encoder
 
 public:
         typedef enum { RA_ENCODER, DEC_ENCODER, DOME_ENCODER } encoderType;
+        enum { EN_HOME_POSITION, EN_HOME_OFFSET, EN_TICKS_DEGREES_RATIO };
+        enum { EN_RAW_VALUE, EN_ANGLE_VALUE};
 
         Encoder(encoderType value, Ujari *scope);
         ~Encoder();
@@ -48,6 +50,7 @@ public:
 
         bool connect();
         void disconnect();
+        bool update();
 
         // Simulation
         void setSimulation(bool enable) { simulation = enable;}
@@ -84,7 +87,6 @@ private:
 
         encoderType type;
 
-        std::string default_port;
         std::string type_name;
 
         bool simulation;
