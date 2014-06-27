@@ -170,6 +170,7 @@ Ujari::Ujari()
   currentDEC=90;
   Parked=false;
   gotoparams.completed=true;
+  gotoparams.aborted=false;
   last_motion_ns=-1;
   last_motion_ew=-1;
 
@@ -665,6 +666,17 @@ bool Ujari::ReadScopeStatus()
 
             }
       }
+      else
+      {
+          //WARN We will continiously update the mount regarding on the updated encoder positions since GOTO started.
+          gotoparams.racurrent = currentRA;
+          gotoparams.decurrent = currentDEC;
+          gotoparams.racurrentencoder = currentRAEncoder;
+          gotoparams.decurrentencoder = currentDEEncoder;
+          EncoderTarget(&gotoparams);
+          mount->SetRATargetEncoder(gotoparams.ratargetencoder);
+          mount->SetDETargetEncoder(gotoparams.detargetencoder);
+      }
     }
 
     if (TrackState == SCOPE_PARKING)
@@ -1019,7 +1031,7 @@ double Ujari::GetDefaultDETrackRate()
 
 bool Ujari::gotoInProgress()
 {
-  return (!gotoparams.completed);
+  return (!gotoparams.completed && !gotoparams.aborted);
 }
 
 bool Ujari::Goto(double r,double d)
@@ -1053,6 +1065,7 @@ bool Ujari::Goto(double r,double d)
     gotoparams.racurrentencoder = currentRAEncoder;
     gotoparams.decurrentencoder = currentDEEncoder;
     gotoparams.completed = false;
+    gotoparams.aborted = false;
     gotoparams.checklimits = true;
     //TODO made forcecwup true, check if this is causes trouble
     gotoparams.forcecwup = true;
@@ -1787,6 +1800,8 @@ bool Ujari::Abort()
   AbortSP.s=IPS_OK;
   IUResetSwitch(&AbortSP);
   IDSetSwitch(&AbortSP, NULL);
+  if (gotoInProgress())
+      gotoparams.aborted = true;
   DEBUG(INDI::Logger::DBG_SESSION, "Telescope Aborted");
 
   return true;

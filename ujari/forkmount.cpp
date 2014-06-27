@@ -48,8 +48,7 @@ extern int DBG_COMM;
 extern int DBG_MOUNT;
 
 #define GOTO_LIMIT      5                               /* Move at GOTO_RATE until distance from target is GOTO_LIMIT degrees */
-#define SLEW_LIMIT      0.5                               /* Move at SLEW_LIMIT until distance from target is SLEW_LIMIT degrees */
-#define FINE_SLEW_LIMIT 0.1                             /* Move at FINE_SLEW_RATE until distance from target is FINE_SLEW_LIMIT degrees */
+#define SLEW_LIMIT      0.25                             /* Move at SLEW_LIMIT until distance from target is SLEW_LIMIT degrees */
 
 #define RA_GOTO_SPEED   1.5
 #define RA_SLEW_SPEED   0.5
@@ -427,7 +426,7 @@ bool ForkMount::IsRARunning() throw (UjariError)
 {
   //CheckMotorStatus(Axis1);
   RARunning = RAMotor->isMotionActive();
-  DEBUGF(INDI::Logger::DBG_DEBUG, "%s() = %s", __FUNCTION__, (RARunning?"true":"false"));
+  DEBUGF(DBG_MOUNT, "%s() = %s", __FUNCTION__, (RARunning?"true":"false"));
   return(RARunning);
 }
 
@@ -435,7 +434,7 @@ bool ForkMount::IsDERunning() throw (UjariError)
 {
   //CheckMotorStatus(Axis2);
   DERunning = DEMotor->isMotionActive();
-  DEBUGF(INDI::Logger::DBG_DEBUG, "%s() = %s", __FUNCTION__, (DERunning?"true":"false"));
+  DEBUGF(DBG_MOUNT, "%s() = %s", __FUNCTION__, (DERunning?"true":"false"));
   return(DERunning);
 }
 
@@ -453,8 +452,11 @@ void ForkMount::StartMotor(ForkMountAxis axis, ForkMountAxisStatus newstatus) th
           rc = RAMotor->moveReverse();
 
       if (rc)
+      {
           // FIXME Make sure this doesn't break anything
           RAStatus.slewmode = newstatus.slewmode;
+          RAStatus.direction = newstatus.direction;
+      }
       else
           throw(UjariError::ErrCmdFailed, "RA Motor start motion failed.");
       break;
@@ -466,7 +468,10 @@ void ForkMount::StartMotor(ForkMountAxis axis, ForkMountAxisStatus newstatus) th
           rc = DEMotor->moveReverse();
 
       if (rc)
+      {
           DEStatus.slewmode = newstatus.slewmode;
+          DEStatus.direction = newstatus.direction;
+      }
       else
           throw(UjariError::ErrCmdFailed, "RA Motor start motion failed.");            
       break;
@@ -1075,27 +1080,56 @@ bool ForkMount::update()
     // Now check how far RAEncoderTarget is from RAStep
     if (RAStatus.slewmode == GOTO)
     {
-        separation = (fabs(RAStep - RAEncoderTarget)/ (double) RAEncoder->GetEncoderTotal())*360.0;
-        if (fabs(separation) * 3600 <= RAGOTORESOLUTION)
-            RAMotor->stop();
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "RAStep: %ld RATarget: %ld", RAStep, RAEncoderTarget);
+        if (RAStep > RAEncoderTarget)
+        {
+            separation = ((RAStep - RAEncoderTarget)/ (double) RAEncoder->GetEncoderTotal())*360.0;
+            // If for some reason encoder values jumped and direction changed, we need to stop
+            if (RAStatus.direction == FORWARD)
+                separation =0;
+        }
+        else
+        {
+            separation = ((RAEncoderTarget - RAStep)/ (double) RAEncoder->GetEncoderTotal())*360.0;
+            // If for some reason encoder values jumped and direction changed, we need to stop
+            if (RAStatus.direction == BACKWARD)
+                separation =0;
+        }
+        if ((separation * 3600) <= RAGOTORESOLUTION)
+            StopRA();
         else
         {
           speed = GetGotoSpeed(Axis1);
             if (speed != RAMotor->getSpeed())
-                RAMotor->setSpeed(speed);
+                //RAMotor->setSpeed(speed);
+                SetSpeed(Axis1, speed);
         }
     }
 
     if (DEStatus.slewmode == GOTO)
     {
-        separation = (fabs(DEStep - DEEncoderTarget)/ (double)  DEEncoder->GetEncoderTotal())*360.0;
-        if (fabs(separation) * 3600 <= DEGOTORESOLUTION)
-            DEMotor->stop();
+        if (DEStep > DEEncoderTarget)
+        {
+            separation = ((DEStep - DEEncoderTarget)/ (double)  DEEncoder->GetEncoderTotal())*360.0;
+            // If for some reason encoder values jumped and direction changed, we need to stop
+            if (DEStatus.direction == FORWARD)
+                separation =0;
+        }
+        else
+        {
+            separation = ((DEEncoderTarget - DEStep)/ (double)  DEEncoder->GetEncoderTotal())*360.0;
+            // If for some reason encoder values jumped and direction changed, we need to stop
+            if (DEStatus.direction == BACKWARD)
+                separation =0;
+        }
+        if ((separation * 3600) <= DEGOTORESOLUTION)
+            StopDE();
         else
         {
             speed = GetGotoSpeed(Axis2);
             if (speed != DEMotor->getSpeed())
-                DEMotor->setSpeed(speed);
+                //DEMotor->setSpeed(speed);
+                SetSpeed(Axis2, speed);
         }
     }
 
@@ -1110,17 +1144,23 @@ double ForkMount::GetGotoSpeed(ForkMountAxis axis)
     switch (axis)
     {
         case Axis1:
-        separation = (fabs(RAStep - RAEncoderTarget)/RAEncoder->GetEncoderTotal())*360.0;
+        if (RAStep > RAEncoderTarget)
+            separation = ((RAStep - RAEncoderTarget)/ (double) RAEncoder->GetEncoderTotal())*360.0;
+        else
+            separation = ((RAEncoderTarget - RAStep)/ (double) RAEncoder->GetEncoderTotal())*360.0;
             if (separation > GOTO_LIMIT)
                 speed = RA_GOTO_SPEED;
             else if (separation > SLEW_LIMIT)
-                speed = RA_SLEW_SPEED;
+                    speed = RA_SLEW_SPEED;
             else
                 speed = RA_FINE_SPEED;
         break;
 
         case Axis2:
-        separation = (fabs(DEStep - DEEncoderTarget)/DEEncoder->GetEncoderTotal())*360.0;
+        if (DEStep > DEEncoderTarget)
+            separation = ((DEStep - DEEncoderTarget)/ (double) DEEncoder->GetEncoderTotal())*360.0;
+        else
+            separation = ((DEEncoderTarget - DEStep)/ (double) DEEncoder->GetEncoderTotal())*360.0;
             if (separation > GOTO_LIMIT)
                 speed = DE_GOTO_SPEED;
             else if (separation > SLEW_LIMIT)
@@ -1132,3 +1172,15 @@ double ForkMount::GetGotoSpeed(ForkMountAxis axis)
 
     return speed;
 }
+
+void ForkMount::SetRATargetEncoder(unsigned long tEncoder)
+{
+    RAEncoderTarget = tEncoder;
+}
+
+void ForkMount::SetDETargetEncoder(unsigned long tEncoder)
+{
+    DEEncoderTarget = tEncoder;
+}
+
+

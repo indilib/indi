@@ -69,6 +69,8 @@ Inverter::Inverter(inverterType new_type, Ujari *scope) : OPERATION_COMMAND_ADDR
   verbose    = true;
   motionStatus = INVERTER_STOP;
 
+  mb_param = NULL;
+
   memset(Inverter_Status_Coils, 0, sizeof(Inverter_Status_Coils));
   
   set_type(new_type);
@@ -831,7 +833,8 @@ bool Inverter::is_in_motion()
 void Inverter::setDebug(bool enable)
 {
     debug = enable;
-    modbus_set_debug(mb_param, debug ? TRUE : FALSE);
+    if (mb_param != NULL)
+        modbus_set_debug(mb_param, debug ? TRUE : FALSE);
 }
 
 

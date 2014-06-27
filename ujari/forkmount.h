@@ -92,6 +92,8 @@ public:
         void StartDETracking(double trackspeed) throw (UjariError);
         bool IsRARunning() throw (UjariError);
         bool IsDERunning() throw (UjariError);
+        void SetRATargetEncoder(unsigned long tEncoder);
+        void SetDETargetEncoder(unsigned long tEncoder);
 
         bool update();
         void setSimulation(bool);
@@ -143,7 +145,7 @@ public:
         void SetSpeed(ForkMountAxis axis, double rpm) throw (UjariError);
         void StartMotor(ForkMountAxis axis, ForkMountAxisStatus newstatus) throw (UjariError);
         void StopMotor(ForkMountAxis axis)  throw (UjariError);
-        void StopWaitMotor(ForkMountAxis axis) throw (UjariError);
+        void StopWaitMotor(ForkMountAxis axis) throw (UjariError);        
         double GetGotoSpeed(ForkMountAxis axis);
 
         unsigned long Revu24str2long(char *);

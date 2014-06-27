@@ -96,7 +96,7 @@ class Ujari : public INDI::Telescope
           unsigned long ratargetencoder, detargetencoder, racurrentencoder, decurrentencoder;
               unsigned long limiteast, limitwest;
           unsigned int iterative_count;
-          bool forcecwup, checklimits, outsidelimits, completed;
+          bool forcecwup, checklimits, outsidelimits, completed, aborted;
         } GotoParams;
 
         Hemisphere Hemisphere;

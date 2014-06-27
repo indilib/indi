@@ -125,16 +125,16 @@ bool Encoder::connect()
     if (simulation)
     {
         DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_SESSION, "%s: Simulating connecting to DIO-48 USB.", type_name.c_str());
-        encoderSettingsN[EN_HOME_POSITION].value = 10000;
+        encoderSettingsN[EN_HOME_POSITION].value = 400000;
         encoderSettingsN[EN_HOME_OFFSET].value = 0;
-        encoderSettingsN[EN_TOTAL].value = 20000;
-        encoderValueN[0].value = 10000;
+        encoderSettingsN[EN_TOTAL].value = 800000;
+        encoderValueN[0].value = 400000;
         connection_status = 0;
         return true;
     }
 
 
-    /*unsigned long result = AIOUSB_Init();
+    unsigned long result = AIOUSB_Init();
     if( result != AIOUSB_SUCCESS )
     {
         DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_ERROR, "%s encoder: Can't initialize AIOUSB USB device.", type_name.c_str());
@@ -150,7 +150,7 @@ bool Encoder::connect()
     {
         DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_ERROR, "%s encoder: failed to configure all ports as input.", type_name.c_str());
         return false;
-    }*/
+    }
 
     connection_status = 0;
     return true;
@@ -276,10 +276,12 @@ unsigned long Encoder::GetEncoderHome()
 void Encoder::simulateEncoder(double speed, int dir)
 {
     // Make fast speed faster
-    if (speed >= 0.5)
+    if (speed > 0.5)
         speed *= 10;
+    else if (speed > 0.1)
+        speed *= 3;
 
-    int deltaencoder = speed * 10;
+    int deltaencoder = speed * (speed > 0.1 ? 400 : 200);
     if (dir == 0)
         deltaencoder *= -1;
 

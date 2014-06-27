@@ -42,6 +42,10 @@
 #define MOTOR_ACCELERATION  0.1         // Acceleration is 0.25 RPM per Second
 #define MOTOR_DECELERATION  0.1         // Deceleration is 0.25 RPM per Second
 
+extern int DBG_SCOPE_STATUS;
+extern int DBG_COMM;
+extern int DBG_MOUNT;
+
 void ignore_sigpipe(void)
 {
         struct sigaction act;
@@ -313,7 +317,7 @@ bool AMCController::enableWriteAccess()
     command[10] =  accum >> 8;
     command[11] =  accum & 0xFF;
 
-    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "EnableWriteAccess Command: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
+    DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "EnableWriteAccess Command: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
                      command[0], command[1],command[2],command[3],command[4],command[5],command[6],command[7],command[8],command[9],command[10],command[11]);
 
     flushFD();
@@ -392,7 +396,7 @@ bool AMCController::enableBridge()
     command[10] = 0;
     command[11] = 0;
 
-    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "EnableBridge Command: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
+    DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "EnableBridge Command: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
                      command[0], command[1],command[2],command[3],command[4],command[5],command[6],command[7],command[8],command[9],command[10],command[11]);
 
     flushFD();
@@ -485,7 +489,7 @@ bool AMCController::setMotion(motorMotion dir)
     command[12] =  accum >> 8;
     command[13] =  accum & 0xFF;
 
-    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "SetMotion Command: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
+    DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "SetMotion Command: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
                      command[0], command[1],command[2],command[3],command[4],command[5],command[6],command[7],command[8],command[9],command[10],command[11],command[12],command[13]);
 
     flushFD();
@@ -681,7 +685,7 @@ bool AMCController::setSpeed(double rpm)
 
     if (simulation)
     {
-        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_SESSION, "Simulating set speed to %g RPM", rpm);
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_SESSION, "%s: Simulating set speed to %g RPM", type_name.c_str(), rpm);
         targetRPM = rpm;
         MotorSpeedN[0].value = targetRPM;
         MotorSpeedNP.s = IPS_OK;
@@ -993,7 +997,7 @@ bool AMCController::setAcceleration(motorMotion dir, double rpmAcceleration)
     command[14] =  accum >> 8;
     command[15] =  accum & 0xFF;
 
-    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "setAcceleration Command: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
+    DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "setAcceleration Command: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
                      command[0], command[1],command[2],command[3],command[4],command[5],command[6],command[7],command[8],command[9],command[10],command[11],command[12],command[13],command[14],command[15]);
 
     flushFD();
@@ -1095,7 +1099,7 @@ bool AMCController::setDeceleration(motorMotion dir, double rpmDeAcceleration)
     command[14] =  accum >> 8;
     command[15] =  accum & 0xFF;
 
-    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "Set Decelration Command: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
+    DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "Set Decelration Command: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
                      command[0], command[1],command[2],command[3],command[4],command[5],command[6],command[7],command[8],command[9],command[10],command[11],command[12],command[13],command[14],command[15]);
 
     flushFD();
@@ -1383,7 +1387,7 @@ bool AMCController::update()
     **** END OF HEADER SECTION ****
     ******************************/
 
-    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "UpdateStatus Command: %02X %02X %02X %02X %02X %02X %02X %02X",
+    DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "UpdateStatus Command: %02X %02X %02X %02X %02X %02X %02X %02X",
                      command[0], command[1],command[2],command[3],command[4],command[5],command[6],command[7]);
 
     flushFD();
@@ -1523,7 +1527,7 @@ bool AMCController::setControlParameter(unsigned short param)
     command[10] =  accum >> 8;
     command[11] =  accum & 0xFF;
 
-    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "SetControlParameter Command: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
+    DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "SetControlParameter Command: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
                      command[0], command[1],command[2],command[3],command[4],command[5],command[6],command[7],command[8],command[9],command[10],command[11]);
 
     flushFD();
