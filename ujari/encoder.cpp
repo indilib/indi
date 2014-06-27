@@ -71,32 +71,14 @@ void Encoder::setType(const encoderType &value)
     }
 
 }
-unsigned int Encoder::getEncoderValue() const
+unsigned long Encoder::getEncoderValue()
 {
-    return encoderValue;
+    return static_cast<unsigned long>(encoderValueN[0].value);
 }
 
-void Encoder::setEncoderValue(unsigned int value)
+void Encoder::setEncoderValue(unsigned long value)
 {
-    encoderValue = value;
-}
-double Encoder::getEncoderAngle() const
-{
-    return encoderAngle;
-}
-
-void Encoder::setEncoderAngle(double value)
-{
-    encoderAngle = value;
-}
-double Encoder::getTicksToDegreeRatio() const
-{
-    return ticksToDegreeRatio;
-}
-
-void Encoder::setTicksToDegreeRatio(double value)
-{
-    ticksToDegreeRatio = value;
+    encoderValueN[0].value = value;
 }
 
 /****************************************************************
@@ -107,26 +89,25 @@ bool Encoder::initProperties()
 {
     IUFillNumber(&encoderSettingsN[EN_HOME_POSITION], "HOME_POSITION", "Home Position", "%g", 0, 1000000, 1000, 0);
     IUFillNumber(&encoderSettingsN[EN_HOME_OFFSET], "HOME_OFFSET", "Home Offset", "%g", 0, 1000000, 1000, 0);
-    IUFillNumber(&encoderSettingsN[EN_TICKS_DEGREES_RATIO], "TICKS_DEGREE_RATIO", "T/D Ratio", "%g", 0, 1000000, 1000, 0);
+    IUFillNumber(&encoderSettingsN[EN_TOTAL], "TOTAL_COUNT", "Total", "%g", 0, 1000000, 1000, 0);
 
-    IUFillNumber(&encoderValueN[EN_RAW_VALUE], "ENCODER_RAW_VALUE", "Value", "%g", 0, 1000000, 1000, 0);
-    IUFillNumber(&encoderValueN[EN_ANGLE_VALUE], "ENCODER_ANGLE", "Angle", "%g", 0, 1000000, 1000, 0);
+    IUFillNumber(&encoderValueN[0], "ENCODER_RAW_VALUE", "Value", "%g", 0, 1000000, 1000, 0);
 
     switch (type)
     {
         case RA_ENCODER:
          IUFillNumberVector(&encoderSettingsNP, encoderSettingsN, 3, telescope->getDeviceName(), "RA_SETTINGS", "RA Settings", ENCODER_GROUP, IP_RW, 0, IPS_IDLE);
-         IUFillNumberVector(&encoderValueNP, encoderValueN, 2, telescope->getDeviceName(), "RA_VALUES", "RA", ENCODER_GROUP, IP_RO, 0, IPS_IDLE);
+         IUFillNumberVector(&encoderValueNP, encoderValueN, 1, telescope->getDeviceName(), "RA_VALUES", "RA", ENCODER_GROUP, IP_RO, 0, IPS_IDLE);
         break;
 
         case DEC_ENCODER:
         IUFillNumberVector(&encoderSettingsNP, encoderSettingsN, 3, telescope->getDeviceName(), "DEC_SETTINGS", "DEC Settings", ENCODER_GROUP, IP_RW, 0, IPS_IDLE);
-        IUFillNumberVector(&encoderValueNP, encoderValueN, 2, telescope->getDeviceName(), "DEC_VALUES", "DEC", ENCODER_GROUP, IP_RO, 0, IPS_IDLE);
+        IUFillNumberVector(&encoderValueNP, encoderValueN, 1, telescope->getDeviceName(), "DEC_VALUES", "DEC", ENCODER_GROUP, IP_RO, 0, IPS_IDLE);
         break;
 
         case DOME_ENCODER:
         IUFillNumberVector(&encoderSettingsNP, encoderSettingsN, 3, telescope->getDeviceName(), "DOME_SETTINGS", "Dome Settings", ENCODER_GROUP, IP_RW, 0, IPS_IDLE);
-        IUFillNumberVector(&encoderValueNP, encoderValueN, 2, telescope->getDeviceName(), "DOME_VALUES", "Dome", ENCODER_GROUP, IP_RO, 0, IPS_IDLE);
+        IUFillNumberVector(&encoderValueNP, encoderValueN, 1, telescope->getDeviceName(), "DOME_VALUES", "Dome", ENCODER_GROUP, IP_RO, 0, IPS_IDLE);
         break;
 
     }
@@ -143,7 +124,11 @@ bool Encoder::connect()
 {
     if (simulation)
     {
-        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_SESSION, "%s: Simulating connecting to NI6509 board.", type_name.c_str());
+        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_SESSION, "%s: Simulating connecting to DIO-48 USB.", type_name.c_str());
+        encoderSettingsN[EN_HOME_POSITION].value = 10000;
+        encoderSettingsN[EN_HOME_OFFSET].value = 0;
+        encoderSettingsN[EN_TOTAL].value = 20000;
+        encoderValueN[0].value = 10000;
         connection_status = 0;
         return true;
     }
@@ -251,7 +236,7 @@ bool Encoder::ISNewText (const char *dev, const char *name, char *texts[], char 
 *****************************************************************/
 unsigned long Encoder::GetEncoder()  throw (UjariError)
 {
-    return static_cast<unsigned long>(encoderValueN[EN_RAW_VALUE].value);
+    return static_cast<unsigned long>(encoderValueN[0].value);
 
 }
 
@@ -261,7 +246,7 @@ unsigned long Encoder::GetEncoder()  throw (UjariError)
 *****************************************************************/
 unsigned long Encoder::GetEncoderZero()
 {
-    return static_cast<unsigned long>(encoderSettingsN[EN_HOME_POSITION].value+encoderSettingsN[EN_HOME_OFFSET].value);
+    return static_cast<unsigned long>(encoderSettingsN[EN_HOME_POSITION].value);
 }
 
 /****************************************************************
@@ -270,7 +255,7 @@ unsigned long Encoder::GetEncoderZero()
 *****************************************************************/
 unsigned long Encoder::GetEncoderTotal()
 {
-    return static_cast<unsigned long>(encoderValueN[EN_RAW_VALUE].max);
+    return static_cast<unsigned long>(encoderSettingsN[EN_TOTAL].value);
 
 }
 
@@ -282,5 +267,39 @@ unsigned long Encoder::GetEncoderHome()
 {
     return static_cast<unsigned long>(encoderSettingsN[EN_HOME_POSITION].value+encoderSettingsN[EN_HOME_OFFSET].value);
 
+}
+
+/****************************************************************
+**
+**
+*****************************************************************/
+void Encoder::simulateEncoder(double speed, int dir)
+{
+    // Make fast speed faster
+    if (speed >= 0.5)
+        speed *= 10;
+
+    int deltaencoder = speed * 10;
+    if (dir == 0)
+        deltaencoder *= -1;
+
+    encoderValueN[0].value += deltaencoder;
+}
+
+/****************************************************************
+**
+**
+*****************************************************************/
+bool Encoder::update()
+{
+    static double lastEncoderValue=0;
+
+    if (lastEncoderValue != encoderValueN[0].value)
+    {
+        IDSetNumber(&encoderValueNP, NULL);
+        lastEncoderValue = encoderValueN[0].value;
+    }
+
+    return true;
 }
 

@@ -561,9 +561,9 @@ bool Ujari::ReadScopeStatus()
     DEBUGF(DBG_SCOPE_STATUS, "Current encoders RA=%ld DE=%ld", currentRAEncoder, currentDEEncoder);
     EncodersToRADec(currentRAEncoder, currentDEEncoder, lst, &currentRA, &currentDEC, &currentHA);
 
-    NewRaDec(alignedRA, alignedDEC);
-    lnradec.ra =(alignedRA * 360.0) / 24.0;
-    lnradec.dec =alignedDEC;
+    NewRaDec(currentRA, currentDEC);
+    lnradec.ra =(currentRA * 360.0) / 24.0;
+    lnradec.dec =currentDEC;
     /* uses sidereal time, not local sidereal time */
     ln_get_hrz_from_equ(&lnradec, &lnobserver, juliandate, &lnaltaz);
     /* libnova measures azimuth from south towards west */
@@ -704,6 +704,10 @@ void Ujari::EncodersToRADec(unsigned long rastep, unsigned long destep, double l
   HACurrent = rangeHA(HACurrent);
   RACurrent = range24(RACurrent);
   DECurrent = rangeDec(DECurrent);
+
+  // Ujari observatory zero home position is at Zenith
+  DECurrent += lnobserver.lat;
+
   *ra=RACurrent;
   *de=DECurrent;
   if (ha) *ha=HACurrent;
@@ -712,17 +716,27 @@ void Ujari::EncodersToRADec(unsigned long rastep, unsigned long destep, double l
 double Ujari::EncoderToHours(unsigned long step, unsigned long initstep, unsigned long totalstep, enum Hemisphere h)
 {
   double result=0.0;
-  if (step > initstep) {
+
+  if (step > initstep)
+    result = ((double)(step - initstep) / totalstep) * 24.0;
+  else
+      result = ((double)(initstep - step) / totalstep) * -24.0;
+
+  /*if (step > initstep) {
     result = ((double)(step - initstep) / totalstep) * 24.0;
     result = 24.0 - result;
   } else {
     result = ((double)(initstep - step) / totalstep) * 24.0;
   }
 
+  //TODO See if removing the 6 introduces any issues...
   if (h == NORTH)
-    result = range24(result + 6.0);
+    //result = range24(result + 6.0);
+      result = range24(result);
   else
-    result = range24((24 - result) + 6.0);
+    //result = range24((24 - result) + 6.0);
+      result = range24((24 - result));
+  */
   return result;
 }
 
@@ -748,17 +762,19 @@ double Ujari::EncoderToDegrees(unsigned long step, unsigned long initstep, unsig
 double Ujari::EncoderFromHour(double hour, unsigned long initstep, unsigned long totalstep, enum Hemisphere h)
 {
   double shifthour=0.0;
-  shifthour=range24(hour - 6);
+  //shifthour=range24(hour - 6);
+  //TODO Check if this creates any problem since we remove substraction of 6 hours
+  shifthour=range24(hour);
   if (h == NORTH)
-    if (shifthour < 12.0)
-      return (initstep - ((shifthour / 24.0) * totalstep));
-    else
-      return (initstep + (((24.0 - shifthour) / 24.0) * totalstep));
-  else
     if (shifthour < 12.0)
       return (initstep + ((shifthour / 24.0) * totalstep));
     else
       return (initstep - (((24.0 - shifthour) / 24.0) * totalstep));
+  else
+    if (shifthour < 12.0)
+      return (initstep - ((shifthour / 24.0) * totalstep));
+    else
+      return (initstep + (((24.0 - shifthour) / 24.0) * totalstep));
 }
 
 double Ujari::EncoderFromRA(double ratarget, double detarget, double lst,
@@ -782,6 +798,10 @@ double Ujari::EncoderFromDegree(double degree, PierSide p, unsigned long initste
   double target = 0.0;
   target = degree;
   if (h == SOUTH)  target = 360.0 - target;
+
+  //TODO check if this one works for Ujari
+  target -= lnobserver.lat;
+
   if ((target > 180.0) && (p == EAST))
     return (initstep - (((360.0 - target) / 360.0) * totalstep));
   else
@@ -1034,7 +1054,8 @@ bool Ujari::Goto(double r,double d)
     gotoparams.decurrentencoder = currentDEEncoder;
     gotoparams.completed = false;
     gotoparams.checklimits = true;
-    gotoparams.forcecwup = false;
+    //TODO made forcecwup true, check if this is causes trouble
+    gotoparams.forcecwup = true;
     gotoparams.outsidelimits = false;
     gotoparams.limiteast = zeroRAEncoder - (totalRAEncoder / 4) - (totalRAEncoder / 24); // 13h
     gotoparams.limitwest = zeroRAEncoder + (totalRAEncoder / 4) + (totalRAEncoder / 24); // 23h

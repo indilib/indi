@@ -51,7 +51,6 @@ class Ujari : public INDI::Telescope
 
         double currentRA, currentHA;
         double currentDEC;
-        double alignedRA, alignedDEC;
         double targetRA;
         double targetDEC;
         TelescopeStatus RememberTrackState;

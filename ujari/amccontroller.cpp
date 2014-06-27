@@ -682,6 +682,8 @@ bool AMCController::setSpeed(double rpm)
     if (simulation)
     {
         DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_SESSION, "Simulating set speed to %g RPM", rpm);
+        targetRPM = rpm;
+        MotorSpeedN[0].value = targetRPM;
         MotorSpeedNP.s = IPS_OK;
         IDSetNumber(&MotorSpeedNP, NULL);
         return true;

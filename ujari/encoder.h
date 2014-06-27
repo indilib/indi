@@ -35,8 +35,7 @@ class Encoder
 
 public:
         typedef enum { RA_ENCODER, DEC_ENCODER, DOME_ENCODER } encoderType;
-        enum { EN_HOME_POSITION, EN_HOME_OFFSET, EN_TICKS_DEGREES_RATIO };
-        enum { EN_RAW_VALUE, EN_ANGLE_VALUE};
+        enum { EN_HOME_POSITION, EN_HOME_OFFSET, EN_TOTAL };
 
         Encoder(encoderType value, Ujari *scope);
         ~Encoder();
@@ -62,19 +61,16 @@ public:
         encoderType getType() const;
         void setType(const encoderType &value);
 
-        unsigned int getEncoderValue() const;
-        void setEncoderValue(unsigned int value);
-
-        double getEncoderAngle() const;
-        void setEncoderAngle(double value);
-
-        double getTicksToDegreeRatio() const;
-        void setTicksToDegreeRatio(double value);
+        unsigned long getEncoderValue();
+        void setEncoderValue(unsigned long value);
 
         unsigned long GetEncoder()  throw (UjariError);
         unsigned long GetEncoderZero();
         unsigned long GetEncoderTotal();
         unsigned long GetEncoderHome();
+
+        // 0 forward/1 reverese
+        void simulateEncoder(double speed, int dir);
 
 private:
         // Encoder settings
@@ -82,7 +78,7 @@ private:
         INumberVectorProperty encoderSettingsNP;
 
         // encoder value
-        INumber encoderValueN[2];
+        INumber encoderValueN[1];
         INumberVectorProperty encoderValueNP;
 
         encoderType type;
@@ -95,7 +91,6 @@ private:
         int connection_status;
         unsigned short SLAVE_ADDRESS;
 
-        unsigned int encoderValue;
         double encoderAngle;
         double ticksToDegreeRatio;
 

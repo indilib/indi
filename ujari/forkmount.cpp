@@ -48,16 +48,16 @@ extern int DBG_COMM;
 extern int DBG_MOUNT;
 
 #define GOTO_LIMIT      5                               /* Move at GOTO_RATE until distance from target is GOTO_LIMIT degrees */
-#define SLEW_LIMIT      2                               /* Move at SLEW_LIMIT until distance from target is SLEW_LIMIT degrees */
-#define FINE_SLEW_LIMIT 0.5                             /* Move at FINE_SLEW_RATE until distance from target is FINE_SLEW_LIMIT degrees */
+#define SLEW_LIMIT      0.5                               /* Move at SLEW_LIMIT until distance from target is SLEW_LIMIT degrees */
+#define FINE_SLEW_LIMIT 0.1                             /* Move at FINE_SLEW_RATE until distance from target is FINE_SLEW_LIMIT degrees */
 
 #define RA_GOTO_SPEED   1.5
 #define RA_SLEW_SPEED   0.5
-#define RA_FINE_SPEED   0.2
+#define RA_FINE_SPEED   0.1
 
 #define DE_GOTO_SPEED   1.5
 #define DE_SLEW_SPEED   0.5
-#define DE_FINE_SPEED   0.2
+#define DE_FINE_SPEED   0.1
 
 #define RAGOTORESOLUTION 5        /* GOTO Resolution in arcsecs */
 #define DEGOTORESOLUTION 5        /* GOTO Resolution in arcsecs */
@@ -180,8 +180,8 @@ bool ForkMount::Connect()  throw (UjariError)
 
   raMotorRC    = RAMotor->connect();
   decMotorRC   = DEMotor->connect();
-  raEncoderRC  = true;//RAEncoder->connect();
-  decEncoderRC = true;//DEEncoder->connect();
+  raEncoderRC  = RAEncoder->connect();
+  decEncoderRC = DEEncoder->connect();
 
   if (raMotorRC && decMotorRC && raEncoderRC && decEncoderRC)
       return true;
@@ -452,7 +452,10 @@ void ForkMount::StartMotor(ForkMountAxis axis, ForkMountAxisStatus newstatus) th
       else
           rc = RAMotor->moveReverse();
 
-      if (rc == false)
+      if (rc)
+          // FIXME Make sure this doesn't break anything
+          RAStatus.slewmode = newstatus.slewmode;
+      else
           throw(UjariError::ErrCmdFailed, "RA Motor start motion failed.");
       break;
 
@@ -462,13 +465,15 @@ void ForkMount::StartMotor(ForkMountAxis axis, ForkMountAxisStatus newstatus) th
       else
           rc = DEMotor->moveReverse();
 
-      if (rc == false)
-          throw(UjariError::ErrCmdFailed, "RA Motor start motion failed.");
+      if (rc)
+          DEStatus.slewmode = newstatus.slewmode;
+      else
+          throw(UjariError::ErrCmdFailed, "RA Motor start motion failed.");            
       break;
   }
 
-  // FIXME Make sure this doesn't break anything
-  RAStatus.slewmode = newstatus.slewmode;
+
+
 
 }
 
@@ -1053,13 +1058,24 @@ bool ForkMount::update()
     bool raMotorRC    = RAMotor->update();
     bool decMotorRC   = DEMotor->update();
 
+    if (simulation)
+    {
+        if (RAStatus.slewmode == GOTO)
+            RAEncoder->simulateEncoder(RAMotor->getSpeed(), RAStatus.direction);
+        if (DEStatus.slewmode == GOTO)
+            DEEncoder->simulateEncoder(DEMotor->getSpeed(), DEStatus.direction);
+    }
+
+    RAEncoder->update();
+    DEEncoder->update();
+
     RAStep = RAEncoder->getEncoderValue();
     DEStep = DEEncoder->getEncoderValue();
 
     // Now check how far RAEncoderTarget is from RAStep
     if (RAStatus.slewmode == GOTO)
     {
-        separation = fabs(RAStep - RAEncoderTarget)/RAEncoder->getTicksToDegreeRatio();
+        separation = (fabs(RAStep - RAEncoderTarget)/ (double) RAEncoder->GetEncoderTotal())*360.0;
         if (fabs(separation) * 3600 <= RAGOTORESOLUTION)
             RAMotor->stop();
         else
@@ -1072,7 +1088,7 @@ bool ForkMount::update()
 
     if (DEStatus.slewmode == GOTO)
     {
-        separation = fabs(DEStep - DEEncoderTarget)/DEEncoder->getTicksToDegreeRatio();
+        separation = (fabs(DEStep - DEEncoderTarget)/ (double)  DEEncoder->GetEncoderTotal())*360.0;
         if (fabs(separation) * 3600 <= DEGOTORESOLUTION)
             DEMotor->stop();
         else
@@ -1094,7 +1110,7 @@ double ForkMount::GetGotoSpeed(ForkMountAxis axis)
     switch (axis)
     {
         case Axis1:
-        separation = fabs(RAStep - RAEncoderTarget)/RAEncoder->getTicksToDegreeRatio();
+        separation = (fabs(RAStep - RAEncoderTarget)/RAEncoder->GetEncoderTotal())*360.0;
             if (separation > GOTO_LIMIT)
                 speed = RA_GOTO_SPEED;
             else if (separation > SLEW_LIMIT)
@@ -1104,7 +1120,7 @@ double ForkMount::GetGotoSpeed(ForkMountAxis axis)
         break;
 
         case Axis2:
-        separation = fabs(DEStep - DEEncoderTarget)/DEEncoder->getTicksToDegreeRatio();
+        separation = (fabs(DEStep - DEEncoderTarget)/DEEncoder->GetEncoderTotal())*360.0;
             if (separation > GOTO_LIMIT)
                 speed = DE_GOTO_SPEED;
             else if (separation > SLEW_LIMIT)
