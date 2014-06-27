@@ -44,3 +44,14 @@ Description: data files for KStars desktop planetarium
  .
  This package is part of the KDE education module.
 
+Package: kstars-bleeding-dbg
+Architecture: any
+Section: debug
+Depends: kstars-bleeding
+conflicts: kstars-dbg
+replaces: kstars-dbg
+Description: debug information for KStars desktop planetarium
+ This package provides debug information for kstars. Install it to help
+ identifying the routine that caused a crash, e.g. to allow the submission
+ through the KDE Crash Handler. The package can be installed at any time,
+ i.e. also after the bug occurred.
