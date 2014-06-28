@@ -1,9 +1,9 @@
-kstars-bleeding (4:4.13-ubuntu1) trusty; urgency=low
+kstars-bleeding (4:4.14) trusty; urgency=medium
 
-  * Added debug package
+  * Upsteam 4.14 release
 
- -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sat, 28 June 2014 10:40:55 +0300
- 
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sat, 28 Jun 2014 20:23:56 +0300
+
 kstars-bleeding (4:4.13) saucy; urgency=low
 
   * Initial release
