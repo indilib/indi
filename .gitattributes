@@ -1071,8 +1071,6 @@ debian/kstars/kstars-bleeding.manpages -text
 debian/kstars/man/kdeopt.part -text
 debian/kstars/man/kstars-bleeding.man -text
 debian/kstars/not-installed -text
-debian/kstars/patches/kubuntu_01_pthread_link.diff -text
-debian/kstars/patches/series -text
 debian/kstars/rules -text
 debian/kstars/source/format -text
 debian/kstars/watch -text
