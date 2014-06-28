@@ -1,6 +1,6 @@
-kstars-bleeding (4:4.14) trusty; urgency=low
+kstars-bleeding (4:4.13-ubuntu1) trusty; urgency=low
 
-  * Updated to 4.14
+  * Added debug package
 
  -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sat, 28 June 2014 10:40:55 +0300
  
