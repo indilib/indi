@@ -31,8 +31,6 @@ class SimpleCCD : public INDI::CCD
 public:
     SimpleCCD();
 
-    void ISGetProperties(const char *dev);
-
 protected:
     // General device functions
     bool Connect();
@@ -61,10 +59,6 @@ private:
     float ExposureRequest;
     float TemperatureRequest;
     int   timerID;
-
-    // We declare the CCD temperature property
-    INumber TemperatureN[1];
-    INumberVectorProperty TemperatureNP;
 
 };
 

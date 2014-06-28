@@ -151,22 +151,6 @@ bool SimpleCCD::initProperties()
 
 }
 
-/**************************************************************************************
-** INDI is asking us to submit list of properties for the device
-***************************************************************************************/
-void SimpleCCD::ISGetProperties(const char *dev)
-{
-    INDI::CCD::ISGetProperties(dev);
-
-    // If we are _already_ connected, let's define our temperature property to the client now
-    if (isConnected())
-    {
-        // Define our only property temperature
-        defineNumber(&TemperatureNP);
-    }
-
-}
-
 /********************************************************************************************
 ** INDI is asking us to update the properties because there is a change in CONNECTION status
 ** This fucntion is called whenever the device is connected or disconnected.
@@ -237,8 +221,8 @@ int SimpleCCD::SetTemperature(double temperature)
 {
     TemperatureRequest = temperature;
 
-    // 1 means it will take a while to change the temperature
-    return 1;
+    // 0 means it will take a while to change the temperature
+    return 0;
 }
 
 /**************************************************************************************
