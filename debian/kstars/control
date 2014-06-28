@@ -47,7 +47,7 @@ Description: data files for KStars desktop planetarium
 Package: kstars-bleeding-dbg
 Architecture: any
 Section: debug
-Depends: kstars-bleeding
+Depends: kstars-bleeding (= ${binary:Version}), kdelibs5-dbg
 conflicts: kstars-dbg
 replaces: kstars-dbg
 Description: debug information for KStars desktop planetarium
