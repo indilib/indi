@@ -2,4 +2,6 @@
 
 include /usr/share/pkg-kde-tools/qt-kde-team/2/debian-qt-kde.mk
 
+DEB_DH_STRIP_ARGS := --dbg-package=kstars-bleeding-dbg
+
 .PHONY: override_dh_auto_test
