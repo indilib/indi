@@ -2,7 +2,6 @@ Source: kstars-bleeding
 Section: kde
 Priority: optional
 Maintainer: Kubuntu Developers <kubuntu-devel@lists.ubuntu.com>
-XSBC-Original-Maintainer: Debian Qt/KDE Maintainers <debian-qt-kde@lists.debian.org>
 Uploaders: Pino Toscano <pino@debian.org>,
  Maximiliano Curia <maxy@debian.org>
 Build-Depends: kde-sc-dev-latest (>= 4:4.10.2),
@@ -47,11 +46,8 @@ Description: data files for KStars desktop planetarium
 Package: kstars-bleeding-dbg
 Architecture: any
 Section: debug
-Depends: kstars-bleeding (= ${binary:Version}), kdelibs5-dbg
-conflicts: kstars-dbg
-replaces: kstars-dbg
-Description: debug information for KStars desktop planetarium
- This package provides debug information for kstars. Install it to help
- identifying the routine that caused a crash, e.g. to allow the submission
- through the KDE Crash Handler. The package can be installed at any time,
- i.e. also after the bug occurred.
+Priority: extra
+Depends: kstars-bleeding (= ${binary:Version}), ${misc:Depends}
+Description: debug information for the desktop planetarium for KDE
+ This package contains debugging files used to investigate problems with the
+ desktop planetarium for KDE.
