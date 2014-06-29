@@ -167,7 +167,7 @@ int gphoto_read_widget(gphoto_widget *widget)
 {
 	const char *ptr;
 	int i;
-	int ret;
+    int ret = GP_OK;
 
 	switch(widget->type) {
 	case GP_WIDGET_TEXT:
@@ -184,13 +184,15 @@ int gphoto_read_widget(gphoto_widget *widget)
 	case GP_WIDGET_MENU:
 		ret = gp_widget_get_value (widget->widget, &ptr);
                 if (ret != GP_OK)
-			return ret;
+                    return ret;
 		if (! widget->choices) {
 			widget->choice_cnt = gp_widget_count_choices (widget->widget);
 			widget->choices = calloc(sizeof(char *), widget->choice_cnt + 1);
 			for ( i=0; i<widget->choice_cnt; i++) {
 				const char *choice;
 				ret = gp_widget_get_choice (widget->widget, i, &choice);
+                if (ret != GP_OK)
+                    return ret;
 				if (strcmp(choice, ptr) == 0)
 					widget->value.index = i;
 				widget->choices[i] = choice;
@@ -203,7 +205,7 @@ int gphoto_read_widget(gphoto_widget *widget)
 	default:
 		fprintf(stderr, "WARNING: Widget type: %d is unsupported\n", widget->type);
 	}
-	return 0;
+    return ret;
 }
 
 static gphoto_widget *find_widget (gphoto_driver *gphoto, const char *name) {
