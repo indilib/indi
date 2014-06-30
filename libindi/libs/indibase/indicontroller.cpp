@@ -132,7 +132,7 @@ bool Controller::ISNewText (const char *dev, const char *name, char *texts[], ch
     {
         if (!strcmp(name, "JOYSTICKSETTINGS"))
         {
-            for (int i=0; i < JoystickSettingTP.ntp; i++)
+            for (int i=0; i < n; i++)
             {
                 IText *tp = IUFindText(&JoystickSettingTP, names[i]);
                 if (tp)
@@ -154,7 +154,7 @@ bool Controller::ISNewText (const char *dev, const char *name, char *texts[], ch
             IUUpdateText(&JoystickSettingTP, texts, names, n);
 
 
-            for (int i=0; i < JoystickSettingTP.ntp; i++)
+            for (int i=0; i < n; i++)
             {
                 if (strstr(JoystickSettingT[i].text, "JOYSTICK_"))
                     IDSnoopDevice("Joystick", JoystickSettingT[i].text);
