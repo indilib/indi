@@ -179,8 +179,8 @@ bool ForkMount::Connect()  throw (UjariError)
 
   raMotorRC    = RAMotor->connect();
   decMotorRC   = DEMotor->connect();
-  raEncoderRC  = RAEncoder->connect();
-  decEncoderRC = DEEncoder->connect();
+  raEncoderRC  = true;//RAEncoder->connect();
+  decEncoderRC = true;//DEEncoder->connect();
 
   if (raMotorRC && decMotorRC && raEncoderRC && decEncoderRC)
       return true;
@@ -438,7 +438,7 @@ bool ForkMount::IsDERunning() throw (UjariError)
   return(DERunning);
 }
 
-void ForkMount::StartMotor(ForkMountAxis axis, ForkMountAxisStatus newstatus) throw (UjariError)
+bool ForkMount::StartMotor(ForkMountAxis axis, ForkMountAxisStatus newstatus)
 {
   DEBUGF(DBG_MOUNT, "%s() : Axis = %c", __FUNCTION__, axis);
 
@@ -458,7 +458,7 @@ void ForkMount::StartMotor(ForkMountAxis axis, ForkMountAxisStatus newstatus) th
           RAStatus.direction = newstatus.direction;
       }
       else
-          throw(UjariError::ErrCmdFailed, "RA Motor start motion failed.");
+          DEBUGDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "RA Motor start motion failed.");
       break;
 
     case Axis2:
@@ -473,12 +473,12 @@ void ForkMount::StartMotor(ForkMountAxis axis, ForkMountAxisStatus newstatus) th
           DEStatus.direction = newstatus.direction;
       }
       else
-          throw(UjariError::ErrCmdFailed, "RA Motor start motion failed.");            
+          DEBUGDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "DEC Motor start motion failed.");
       break;
   }
 
 
-
+   return rc;
 
 }
 
@@ -545,7 +545,12 @@ void ForkMount::SlewRA(double rate) throw (UjariError)
   SetSpeed(Axis1, rpm);
 
   if (!RARunning)
-      StartMotor(Axis1, newstatus);
+  {
+     bool rc = StartMotor(Axis1, newstatus);
+     if (rc == false)
+         throw UjariError(UjariError::ErrCmdFailed, "RA Motor failed to start motion.");
+  }
+
 }
 
 void ForkMount::SlewDE(double rate) throw (UjariError)
@@ -573,7 +578,11 @@ void ForkMount::SlewDE(double rate) throw (UjariError)
   SetMotion(Axis2, newstatus);
   SetSpeed(Axis2, rpm);
   if (!DERunning)
-      StartMotor(Axis2, newstatus);
+  {
+     bool rc = StartMotor(Axis2, newstatus);
+     if (rc == false)
+         throw UjariError(UjariError::ErrCmdFailed, "RA Motor failed to start motion.");
+  }
 }
 
 void ForkMount::SlewTo(long targetraencoder, long targetdeencoder)
@@ -1071,8 +1080,8 @@ bool ForkMount::update()
             DEEncoder->simulateEncoder(DEMotor->getSpeed(), DEStatus.direction);
     }
 
-    RAEncoder->update();
-    DEEncoder->update();
+    //RAEncoder->update();
+    //DEEncoder->update();
 
     RAStep = RAEncoder->getEncoderValue();
     DEStep = DEEncoder->getEncoderValue();
@@ -1183,4 +1192,10 @@ void ForkMount::SetDETargetEncoder(unsigned long tEncoder)
     DEEncoderTarget = tEncoder;
 }
 
+bool ForkMount::saveConfigItems(FILE *fp)
+{
+    RAEncoder->saveConfigItems(fp);
+    DEEncoder->saveConfigItems(fp);
 
+    return true;
+}

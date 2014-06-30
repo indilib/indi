@@ -42,6 +42,8 @@
 #define MOTOR_ACCELERATION  0.1         // Acceleration is 0.25 RPM per Second
 #define MOTOR_DECELERATION  0.1         // Deceleration is 0.25 RPM per Second
 
+#define AMC_MAX_REFRESH     2       // Update drive status and protection every 2 seconds
+
 extern int DBG_SCOPE_STATUS;
 extern int DBG_COMM;
 extern int DBG_MOUNT;
@@ -233,6 +235,11 @@ bool AMCController::connect()
     }
 
     connection_status = 0;
+
+    last_update.tv_sec=0;
+    last_update.tv_usec=0;
+
+    stop();
 
     setupDriveParameters();
 
@@ -541,14 +548,13 @@ bool AMCController::moveForward()
         return true;
     }
 
-    targetRPM = MotorSpeedN[0].value;
-
-    enableMotion();
+    targetRPM = MotorSpeedN[0].value;   
 
     bool rc = setMotion(MOTOR_FORWARD);
 
     if (rc)
     {
+        enableMotion();
         IUResetSwitch(&MotionControlSP);
         MotionControlS[MOTOR_FORWARD].s = ISS_ON;
         MotionControlSP.s = IPS_BUSY;
@@ -594,12 +600,13 @@ bool AMCController::moveReverse()
 
     targetRPM = MotorSpeedN[0].value;
 
-    enableMotion();
+
 
     bool rc = setMotion(MOTOR_REVERSE);
 
     if (rc)
     {
+        enableMotion();
         IUResetSwitch(&MotionControlSP);
         MotionControlS[MOTOR_REVERSE].s = ISS_ON;
         MotionControlSP.s = IPS_BUSY;
@@ -1163,9 +1170,9 @@ AMCController::driveStatus AMCController::readDriveStatus()
     if (simulation)
         return AMC_COMMAND_COMPLETE;
 
-    /* 3 second waiting */
-    t.tv_sec = 3;
-    t.tv_usec = 0;
+    /* 0.25 second waiting */
+    t.tv_sec = 0;
+    t.tv_usec = 250000;
 
     /* set descriptor */
     FD_ZERO(&rd);
@@ -1177,47 +1184,73 @@ AMCController::driveStatus AMCController::readDriveStatus()
         if (rc == -1)
         {
           /* select( ) error */
-            DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveStatus: select() error %s.", strerror(errno));
-            return AMC_COMM_ERROR;
+            DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "readDriveStatus: select() error %s.", strerror(errno));
+            continue;
         }
         else if (rc == 0)
         {
           /* no input available */
-            DEBUGDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveStatus: No input available.");
-            return AMC_COMM_ERROR;
+            DEBUGDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "readDriveStatus: No input available.");
+            t.tv_usec += 250000;
+            continue;
         }
         else if (FD_ISSET(fd, &rd))
         {
-            if ( (nbytes_read += recv(fd, response+nbytes_read, 8-nbytes_read, 0)) <= 0)
+            /*if ( (nbytes_read += recv(fd, response+nbytes_read, 8-nbytes_read, 0)) <= 0)
             {
                 // RS485 server disconnected
                 if (nbytes_read == 0)
-                    DEBUGDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveStatus: Lost connection to RS485 server.");
+                    DEBUGDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "readDriveStatus: Lost connection to RS485 server.");
                 else
-                    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveStatus: read error: %s", strerror(errno));
-                return AMC_COMM_ERROR;
+                    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "readDriveStatus: read error: %s", strerror(errno));
+                //return AMC_COMM_ERROR;
+                continue;
             }
 
             if (nbytes_read != 8)
                 continue;
 
             for (int i=0; i < nbytes_read; i++)
-                DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "response[%d]=%02X", i, response[i]);
+                DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "response[%d]=%02X", i, response[i]);
 
             if (response[0] != SOF)
             {
                 DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveStatus: Invalid Start of Frame %02X (%s,%d)", response[0], response, nbytes_read);
                 return AMC_COMM_ERROR;
+            }*/
+
+            bool SOFFound=false;
+            while ( (nbytes_read = recv(fd, response, 1, 0)) > 0)
+            {
+                if (response[0] == SOF)
+                {
+                    SOFFound = true;
+                    break;
+                }
             }
 
-            break;
+            if (SOFFound)
+            {
+                nbytes_read=1;
+                int response_size;
+                while ((response_size = recv(fd, response+nbytes_read, 8-nbytes_read, 0)) > 0)
+                {
+                    nbytes_read += response_size;
+                    if (nbytes_read ==8)
+                    {
+                       DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "<%02X><%02X><%02X><%02X><%02X><%02X><%02X><%02X>", response[0],
+                               response[1],response[2],response[3],response[4],response[5],response[6],response[7]);
+                        break;
+                    }
+                }
+                break;
+            }
         }
     }
 
     if (nbytes_read != 8)
     {
-
-        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveStatus: nbytes read is %d while it should be 8", nbytes_read);
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "readDriveStatus: nbytes read is %d while it should be 8", nbytes_read);
         return AMC_COMM_ERROR;
     }
 
@@ -1254,9 +1287,9 @@ AMCController::driveStatus AMCController::readDriveData(unsigned char *data, uns
     int             rc;
     struct timeval  t;
 
-    /* 3 second waiting */
-    t.tv_sec = 3;
-    t.tv_usec = 0;
+    /* 0.25 second waiting */
+    t.tv_sec = 0;
+    t.tv_usec = 250000;
 
     /* set descriptor */
     FD_ZERO(&rd);
@@ -1268,14 +1301,14 @@ AMCController::driveStatus AMCController::readDriveData(unsigned char *data, uns
         if (rc == -1)
         {
           /* select( ) error */
-            DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveData: select() error %s.", strerror(errno));
-            return AMC_COMM_ERROR;
+            DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "readDriveData: select() error %s.", strerror(errno));
+            continue;
         }
         else if (rc == 0)
         {
           /* no input available */
-            DEBUGDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveData: No input available.");
-            return AMC_COMM_ERROR;
+            DEBUGDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "readDriveData: No input available.");
+            continue;
         }
         else if (FD_ISSET(fd, &rd))
         {
@@ -1283,9 +1316,9 @@ AMCController::driveStatus AMCController::readDriveData(unsigned char *data, uns
             {
                 // RS485 server disconnected
                 if (nbytes_read == 0)
-                    DEBUGDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveData: Lost connection to RS485 server.");
+                    DEBUGDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "readDriveData: Lost connection to RS485 server.");
                 else
-                    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveData: read error: %s", strerror(errno));
+                    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "readDriveData: read error: %s", strerror(errno));
                 return AMC_COMM_ERROR;
             }
 
@@ -1302,7 +1335,7 @@ AMCController::driveStatus AMCController::readDriveData(unsigned char *data, uns
     if (nbytes_read == len)
         return AMC_COMMAND_COMPLETE;
     else
-        return AMC_UNKNOWN_ERROR;
+        return AMC_COMM_ERROR;
 
 }
 
@@ -1344,6 +1377,16 @@ const char * AMCController::driveStatusString(driveStatus status)
 bool AMCController::update()
 {
     if (isDriveOnline() == false)
+        return true;
+
+    struct timeval now;
+    gettimeofday (&now, NULL);
+    if (((now.tv_sec - last_update.tv_sec) + ((now.tv_usec - last_update.tv_usec)/1e6)) > AMC_MAX_REFRESH)
+    {
+        last_update.tv_sec=now.tv_sec;
+        last_update.tv_usec=now.tv_usec;
+    }
+    else
         return true;
 
     //TODO MUST Send heatbeat to driver. Configure drive to ABORT if heatbeat is missed.
@@ -1402,7 +1445,7 @@ bool AMCController::update()
 
     if ( (status = readDriveStatus()) != AMC_COMMAND_COMPLETE)
     {
-        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "%s Drive status error: %s", __FUNCTION__, driveStatusString(status));
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "%s Drive status error: %s", __FUNCTION__, driveStatusString(status));
         return false;
     }
 

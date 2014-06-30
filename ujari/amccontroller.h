@@ -157,6 +157,7 @@ private:
     unsigned int accum;
     unsigned char command[16];
     double currentRPM, targetRPM;
+    struct timeval last_update;
 
     Ujari *telescope;
    

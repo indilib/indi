@@ -311,13 +311,13 @@ bool Inverter::update_status()
             return true;
        }
 
-       DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "#%i: Inverter Status Command ERROR (%s). modbus_read_bits ret=%d", i+1, modbus_strerror(ret), ret);
+       DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "%s #%i: Inverter Status Command ERROR (%s). modbus_read_bits ret=%d", type_name.c_str(), i+1, modbus_strerror(ret), ret);
        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "#%i: Slave = %d, address = 0x%X, nb = %d", i+1, SLAVE_ADDRESS, INVERTER_STATUS_ADDRESS, 3);
 
        usleep(ERROR_TIMEOUT);
      }
 
-    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Failed to updated status of %s inverter", type_name.c_str());
+    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "Failed to updated status of %s inverter", type_name.c_str());
     StatusLP.s = IPS_ALERT;
     IDSetLight(&StatusLP, NULL);
 
@@ -357,7 +357,7 @@ bool Inverter::update_freq()
             return true;
         }
 
-        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG, "#%d read_speed ERROR (%s) read  holding_registers (%d)", i+1, modbus_strerror(ret), ret);
+        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG, "%s #%d read_speed ERROR (%s) read  holding_registers (%d)", type_name.c_str(), i+1, modbus_strerror(ret), ret);
         DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG,"#%d Slave = %d, address = 0x%X, nb = %d", i+1, SLAVE_ADDRESS, FREQ_OUTPUT_ADDRESS, 2);
         usleep(ERROR_TIMEOUT);
   }

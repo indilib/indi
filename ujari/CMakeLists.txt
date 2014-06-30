@@ -38,7 +38,7 @@ set(ujari_SRCS
 
 add_executable(indi_ujari_telescope ${ujari_SRCS})
 
-target_link_libraries(indi_ujari_telescope ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${NOVA_LIBRARIES} ${AIOUSB_CPP_LIBRARIES} ${MODBUS_LIBRARIES})
+target_link_libraries(indi_ujari_telescope ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${NOVA_LIBRARIES} ${AIOUSB_LIBRARIES} ${MODBUS_LIBRARIES})
 
 install(TARGETS indi_ujari_telescope RUNTIME DESTINATION bin )
 

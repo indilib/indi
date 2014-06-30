@@ -46,6 +46,7 @@ public:
         virtual void ISGetProperties();
         virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
         virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+        virtual bool saveConfigItems(FILE *fp);
 
         bool connect();
         void disconnect();

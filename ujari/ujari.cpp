@@ -478,8 +478,11 @@ bool Ujari::Connect()
       return(e.DefaultHandleException(this));
     }
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Successfully connected to Ujari Mount.");
-    SetTimer(POLLMS);
+    if (mount_rc && dome_rc && shutter_rc)
+    {
+       DEBUG(INDI::Logger::DBG_SESSION, "Successfully connected to Ujari Mount.");
+        SetTimer(POLLMS);
+    }
 
     return (mount_rc && dome_rc && shutter_rc);
 }
@@ -1944,6 +1947,8 @@ void Ujari::processSlewPresets(double mag, double angle)
 bool Ujari::saveConfigItems(FILE *fp)
 {
     controller->saveConfigItems(fp);
+
+    mount->saveConfigItems(fp);
 
     return INDI::Telescope::saveConfigItems(fp);
 

@@ -305,3 +305,13 @@ bool Encoder::update()
     return true;
 }
 
+/****************************************************************
+**
+**
+*****************************************************************/
+bool Encoder::saveConfigItems(FILE *fp)
+{
+    IUSaveConfigNumber(fp, &encoderSettingsNP);
+    return true;
+}
+

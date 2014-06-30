@@ -65,6 +65,8 @@ public:
         virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
         virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
         virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+        virtual bool saveConfigItems(FILE *fp);
+
         void setDebug (bool enable);
         const char *getDeviceName ();
 
@@ -143,7 +145,7 @@ public:
         void ReadMotorStatus(ForkMountAxis axis) throw (UjariError);
         void SetMotion(ForkMountAxis axis, ForkMountAxisStatus newstatus) throw (UjariError);
         void SetSpeed(ForkMountAxis axis, double rpm) throw (UjariError);
-        void StartMotor(ForkMountAxis axis, ForkMountAxisStatus newstatus) throw (UjariError);
+        bool StartMotor(ForkMountAxis axis, ForkMountAxisStatus newstatus);
         void StopMotor(ForkMountAxis axis)  throw (UjariError);
         void StopWaitMotor(ForkMountAxis axis) throw (UjariError);        
         double GetGotoSpeed(ForkMountAxis axis);
