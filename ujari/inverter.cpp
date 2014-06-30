@@ -39,7 +39,7 @@
 
 const int ERROR_MAX_COUNT = 3;
 const double FREQ_DIFF_LIMIT = 0.5;
-const int ERROR_TIMEOUT = 2000000;
+const int ERROR_TIMEOUT = 200000;
 
 /****************************************************************
 **
