@@ -15,6 +15,7 @@ find_package(ZLIB REQUIRED)
 find_package(MODBUS REQUIRED)
 find_package(AIOUSB REQUIRED)
 find_package(Threads REQUIRED)
+find_package(USB-1 REQUIRED)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 set(INDI_DATA_DIR "${CMAKE_INSTALL_PREFIX}/share/indi")
@@ -25,6 +26,7 @@ include_directories( ${INDI_INCLUDE_DIR})
 include_directories( ${NOVA_INCLUDE_DIR})
 include_directories( ${MODBUS_INCLUDE_DIR})
 include_directories( ${AIOUSB_INCLUDE_DIR})
+include_directories( ${LIBUSB_1_INCLUDE_DIRS})
 
 ########### Ujari ###############
 set(ujari_SRCS
@@ -36,9 +38,11 @@ set(ujari_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/amccontroller.cpp
    )
 
+SET(CMAKE_CXX_FLAGS "-D__aiousb_cplusplus" )
+
 add_executable(indi_ujari_telescope ${ujari_SRCS})
 
-target_link_libraries(indi_ujari_telescope ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${NOVA_LIBRARIES} ${AIOUSB_LIBRARIES} ${MODBUS_LIBRARIES})
+target_link_libraries(indi_ujari_telescope ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${NOVA_LIBRARIES} ${AIOUSB_CPP_LIBRARIES} ${MODBUS_LIBRARIES})
 
 install(TARGETS indi_ujari_telescope RUNTIME DESTINATION bin )
 

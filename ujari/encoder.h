@@ -35,7 +35,9 @@ class Encoder
 
 public:
         typedef enum { RA_ENCODER, DEC_ENCODER, DOME_ENCODER } encoderType;
+        typedef enum { EN_CW, EN_CCW} encoderDirection;
         enum { EN_HOME_POSITION, EN_HOME_OFFSET, EN_TOTAL };
+
 
         Encoder(encoderType value, Ujari *scope);
         ~Encoder();
@@ -74,6 +76,10 @@ public:
         void simulateEncoder(double speed, int dir);
 
 private:
+
+        unsigned long getRange(unsigned long startEncoder, unsigned long endEncoder, encoderDirection dir);
+        int getMin(unsigned long CWEncoder, unsigned long CCWEncoder);
+
         // Encoder settings
         INumber encoderSettingsN[3];
         INumberVectorProperty encoderSettingsNP;
@@ -92,8 +98,7 @@ private:
         int connection_status;
         unsigned short SLAVE_ADDRESS;
 
-        double encoderAngle;
-        double ticksToDegreeRatio;
+        int startupEncoderValue;
 
         Ujari *telescope;
    

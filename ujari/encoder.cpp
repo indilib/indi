@@ -23,7 +23,16 @@
 #include "encoder.h"
 #include "ujari.h"
 
+using namespace AIOUSB;
+
+// 12bit encoder for BEI H25
+#define MAX_ENCODER_COUNT   4096
+
 #define ENCODER_GROUP "Encoders"
+
+extern int DBG_SCOPE_STATUS;
+extern int DBG_COMM;
+extern int DBG_MOUNT;
 
 Encoder::Encoder(encoderType type, Ujari* scope)
 {
@@ -36,6 +45,8 @@ Encoder::Encoder(encoderType type, Ujari* scope)
         debug = false;
         simulation = false;
         verbose    = true;
+
+        startupEncoderValue = -1;
 }
 
 Encoder::~Encoder()
@@ -246,7 +257,7 @@ unsigned long Encoder::GetEncoder()  throw (UjariError)
 *****************************************************************/
 unsigned long Encoder::GetEncoderZero()
 {
-    return static_cast<unsigned long>(encoderSettingsN[EN_HOME_POSITION].value);
+    return static_cast<unsigned long>(startupEncoderValue+encoderSettingsN[EN_HOME_POSITION].value+encoderSettingsN[EN_HOME_OFFSET].value);
 }
 
 /****************************************************************
@@ -265,7 +276,7 @@ unsigned long Encoder::GetEncoderTotal()
 *****************************************************************/
 unsigned long Encoder::GetEncoderHome()
 {
-    return static_cast<unsigned long>(encoderSettingsN[EN_HOME_POSITION].value+encoderSettingsN[EN_HOME_OFFSET].value);
+    return static_cast<unsigned long>(encoderSettingsN[EN_HOME_POSITION].value);
 
 }
 
@@ -296,6 +307,31 @@ bool Encoder::update()
 {
     static double lastEncoderValue=0;
 
+    if (simulation == false)
+    {
+        DIOBuf *buf= NewDIOBuf(0);
+        int LSB, MSB, encoderRAW;
+        DIO_ReadAll( diOnly, buf );
+        DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "%s enocder Binary was: %s", type_name.c_str(), DIOBufToString( buf ) );
+        DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "%s enocder Hex was: %s", type_name.c_str(),  DIOBufToHex( buf ) );
+
+        // RA Encoder bits 0-11
+        // DE Encoder bits 12-23
+        // Dome Encoder bits 24-35? or just 8 bits for dome encoder IIRC?
+
+        // RA 12bit connected to DIO-48 ports 47 (I/O 0) to 25 (I/O 11)
+        // DE 12bit connected to DIO-38 ports 23 (I/O 12) to 1 (I/O 23)
+        DIO_Read8( diOnly, 0, &LSB  );
+        DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "LSB Single data was : hex:%x, int:%d", (int)LSB, (int)LSB );
+
+        DIO_Read8( diOnly, 1, &MSB  );
+        DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "MSB Single data was : hex:%x, int:%d", (int)MSB, (int)MSB );
+
+        // 0x0FFF picks up only first 12bits
+        encoderRAW = ((MSB << 8) | LSB) & 0x0FFF;
+
+    }
+
     if (lastEncoderValue != encoderValueN[0].value)
     {
         IDSetNumber(&encoderValueNP, NULL);
@@ -315,3 +351,35 @@ bool Encoder::saveConfigItems(FILE *fp)
     return true;
 }
 
+/****************************************************************
+**
+**
+*****************************************************************/
+unsigned long Encoder::getRange(unsigned long startEncoder, unsigned long endEncoder, encoderDirection dir)
+{
+    switch (dir)
+    {
+        case EN_CW:
+        if (endEncoder > startEncoder)
+            return (endEncoder - startEncoder);
+
+        return (endEncoder + MAX_ENCODER_COUNT - startEncoder);
+
+        break;
+
+    case EN_CCW:
+        if (startEncoder > endEncoder)
+            return (startEncoder - endEncoder);
+        else
+            return (MAX_ENCODER_COUNT - (startEncoder + endEncoder));
+        break;
+    }
+}
+
+int Encoder::getMin(unsigned long CWEncoder, unsigned long CCWEncoder)
+{
+    if (CWEncoder < CCWEncoder)
+        return ((int) CWEncoder);
+    // Sounds redundant, but we need to make sure it'
+    else return ((int)CCWEncoder)*-1;
+}
