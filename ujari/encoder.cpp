@@ -47,6 +47,7 @@ Encoder::Encoder(encoderType type, Ujari* scope)
         verbose    = true;
 
         startupEncoderValue = -1;
+
 }
 
 Encoder::~Encoder()
@@ -98,11 +99,11 @@ void Encoder::setEncoderValue(unsigned long value)
 *****************************************************************/
 bool Encoder::initProperties()
 {
-    IUFillNumber(&encoderSettingsN[EN_HOME_POSITION], "HOME_POSITION", "Home Position", "%g", 0, 1000000, 1000, 0);
-    IUFillNumber(&encoderSettingsN[EN_HOME_OFFSET], "HOME_OFFSET", "Home Offset", "%g", 0, 1000000, 1000, 0);
-    IUFillNumber(&encoderSettingsN[EN_TOTAL], "TOTAL_COUNT", "Total", "%g", 0, 1000000, 1000, 0);
+    IUFillNumber(&encoderSettingsN[EN_HOME_POSITION], "HOME_POSITION", "Home Position", "%g", 0, 10000000, 1000, 400000);
+    IUFillNumber(&encoderSettingsN[EN_HOME_OFFSET], "HOME_OFFSET", "Home Offset", "%g", 0, 10000000, 1000, 0);
+    IUFillNumber(&encoderSettingsN[EN_TOTAL], "TOTAL_COUNT", "Total", "%g", 0, 10000000, 1000, 800000);
 
-    IUFillNumber(&encoderValueN[0], "ENCODER_RAW_VALUE", "Value", "%g", 0, 1000000, 1000, 0);
+    IUFillNumber(&encoderValueN[0], "ENCODER_RAW_VALUE", "Value", "%g", 0, 10000000, 1000, 400000);
 
     switch (type)
     {
