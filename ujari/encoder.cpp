@@ -316,16 +316,9 @@ bool Encoder::update()
    if (encoderRaw == lastEncoderRaw)
           return true;
 
-   int diff = getEncoderDiff(lastEncoderRaw, encoderRaw);
-
-   if (diff > 0)
-   {
-       diff = diff;
-   }
-   encoderValueN[0].value += diff;
+   encoderValueN[0].value += getEncoderDiff(lastEncoderRaw, encoderRaw);
 
    lastEncoderRaw = encoderRaw;
-
 
     if (lastEncoderValue != encoderValueN[0].value)
     {

@@ -42,7 +42,8 @@
 #define FORKMOUNT_LOWSPEED_RATE 128
 #define FORKMOUNT_MAXREFRESH 0.5
 
-#define FORKMOUNT_RATE_TO_RPM   300.0
+// FIXME This should equal the RPM required to achive sidereal tracking
+#define FORKMOUNT_RATE_TO_RPM   1.0/250.0
 
 #define HEX(c) (((c) < 'A')?((c)-'0'):((c) - 'A') + 10)
 

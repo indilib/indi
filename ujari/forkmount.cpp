@@ -549,7 +549,7 @@ void ForkMount::SlewRA(double rate) throw (UjariError)
               absrate, MIN_RATE, MAX_RATE);
   }
 
-  double rpm = absrate / FORKMOUNT_RATE_TO_RPM;
+  double rpm = absrate * FORKMOUNT_RATE_TO_RPM;
 
   if (rate >= 0.0)
       newstatus.direction = FORWARD;
@@ -588,7 +588,7 @@ void ForkMount::SlewDE(double rate) throw (UjariError)
       newstatus.direction = BACKWARD;
   newstatus.slewmode=SLEW;
 
-  double rpm = absrate / FORKMOUNT_RATE_TO_RPM;
+  double rpm = absrate * FORKMOUNT_RATE_TO_RPM;
 
   DEBUGF(INDI::Logger::DBG_DEBUG, "Slewing DE at %.2f %.2f %x %g RPM", rate, absrate, rpm);
 
@@ -669,6 +669,9 @@ void  ForkMount::SetRARate(double rate)  throw (UjariError)
               absrate, MIN_RATE, MAX_RATE);
   }
 
+  // 1 x FORKMOUNT_RATE_TO_RPM = Actual sideral tracking of Ujari
+  // Find out the RPM required to achive sideral tracking
+  // Then put real limits for the slew rates (1x to 500x..etc)
   double rpm = absrate * FORKMOUNT_RATE_TO_RPM;
   newstatus.direction = ((rate >= 0.0)? FORWARD: BACKWARD);
   newstatus.slewmode=SLEW;
@@ -723,7 +726,7 @@ void ForkMount::StartRATracking(double trackspeed) throw (UjariError)
     {
         // FIXME is this the right direction for tracking?!!
         ForkMountAxisStatus newstatus;
-        newstatus.direction = FORWARD;
+        newstatus.direction = BACKWARD;
         // Is it still considered GOTO? Not sure, find out later
         newstatus.slewmode = TRACK;
         StartMotor(Axis1, newstatus);
@@ -1091,9 +1094,9 @@ bool ForkMount::update()
 
     if (simulation)
     {
-        if (RAStatus.slewmode == GOTO && RAMotor->isMotionActive())
+        if (/*RAStatus.slewmode == GOTO && */RAMotor->isMotionActive())
             RAEncoder->simulateEncoder(RAMotor->getSpeed());
-        if (DEStatus.slewmode == GOTO && DEMotor->isMotionActive())
+        if (/*DEStatus.slewmode == GOTO && */DEMotor->isMotionActive())
             DEEncoder->simulateEncoder(DEMotor->getSpeed());
     }
 
