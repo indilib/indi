@@ -165,7 +165,7 @@ int gphoto_widget_changed(gphoto_widget *widget)
 
 int gphoto_read_widget(gphoto_widget *widget)
 {
-	const char *ptr;
+    const char *ptr=NULL;
 	int i;
     int ret = GP_OK;
 
@@ -189,13 +189,18 @@ int gphoto_read_widget(gphoto_widget *widget)
 			widget->choice_cnt = gp_widget_count_choices (widget->widget);
 			widget->choices = calloc(sizeof(char *), widget->choice_cnt + 1);
 			for ( i=0; i<widget->choice_cnt; i++) {
-				const char *choice;
+                const char *choice=NULL;
 				ret = gp_widget_get_choice (widget->widget, i, &choice);
                 if (ret != GP_OK)
                     return ret;
-				if (strcmp(choice, ptr) == 0)
-					widget->value.index = i;
-				widget->choices[i] = choice;
+                if (ptr && choice)
+                {
+                    if (strcmp(choice, ptr) == 0)
+                        widget->value.index = i;
+                    widget->choices[i] = choice;
+                }
+                else
+                    return GP_ERROR;
 			}
 		}
 		break;
@@ -223,8 +228,9 @@ static gphoto_widget *find_widget (gphoto_driver *gphoto, const char *name) {
 		fprintf (stderr, "widget get type failed: %d\n", ret);
 		goto out;
 	}
-	gphoto_read_widget(widget);
-	return widget;
+    ret =gphoto_read_widget(widget);
+    if (ret == GP_OK)
+        return widget;
 out:
 	free(widget);
 	return NULL;
@@ -813,9 +819,14 @@ gphoto_widget *gphoto_get_widget_info(gphoto_driver *gphoto, gphoto_widget_list 
 	if(! *iter)
 		return NULL;
 	widget = (*iter)->widget;
-	gphoto_read_widget(widget);
-	*iter=(*iter)->next;
-	return widget;
+    int ret = gphoto_read_widget(widget);
+    if (ret == GP_OK)
+    {
+        *iter=(*iter)->next;
+        return widget;
+    }
+    else
+        return NULL;
 }
 
 void show_widget(gphoto_widget *widget, char *prefix) {
@@ -932,9 +943,10 @@ void gphoto_show_options(gphoto_driver *gphoto)
 		fprintf(stderr, "Available options\n");
 		while(list) {
 			fprintf(stderr, "\t%s:\n", list->widget->name);
-			gphoto_read_widget(list->widget);
-			show_widget(list->widget, "\t\t");
-			list = list->next;
+            int ret = gphoto_read_widget(list->widget);
+            if (ret == GP_OK)
+                show_widget(list->widget, "\t\t");
+            list = list->next;
 		}
 	}
 	if(gphoto->format_widget) {
