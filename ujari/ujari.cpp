@@ -1073,8 +1073,8 @@ bool Ujari::Goto(double r,double d)
     //TODO made forcecwup true, check if this is causes trouble
     gotoparams.forcecwup = true;
     gotoparams.outsidelimits = false;
-    gotoparams.limiteast = zeroRAEncoder - (totalRAEncoder / 4) - (totalRAEncoder / 24); // 13h
-    gotoparams.limitwest = zeroRAEncoder + (totalRAEncoder / 4) + (totalRAEncoder / 24); // 23h
+    gotoparams.limiteast = zeroRAEncoder - (totalRAEncoder / 24)*5 ; // -5 HA
+    gotoparams.limitwest = zeroRAEncoder + (totalRAEncoder / 24)*5; //  +5 HA
     EncoderTarget(&gotoparams);
     try {
       // stop motor
@@ -1347,6 +1347,7 @@ bool Ujari::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
       {
         mount->setSimulation(true);
         dome->setSimulation(true);
+        domeEncoder->setSimulation(true);
         shutter->setSimulation(true);
         DEBUG(INDI::Logger::DBG_SESSION, "Simulation is enabled.");
       }
@@ -1354,6 +1355,7 @@ bool Ujari::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
       {
         mount->setSimulation(false);
         dome->setSimulation(false);
+        domeEncoder->setSimulation(false);
         shutter->setSimulation(false);
         DEBUG(INDI::Logger::DBG_SESSION, "Simulation is disabled.");
       }

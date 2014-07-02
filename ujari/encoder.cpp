@@ -46,7 +46,11 @@ Encoder::Encoder(encoderType type, Ujari* scope)
         simulation = false;
         verbose    = true;
 
-        startupEncoderValue = -1;
+        startupEncoderValue = 0;
+        lastEncoderRaw=0;
+
+        simDir=0;
+        simSpeed=0;
 
 }
 
@@ -82,15 +86,6 @@ void Encoder::setType(const encoderType &value)
 
     }
 
-}
-unsigned long Encoder::getEncoderValue()
-{
-    return static_cast<unsigned long>(encoderValueN[0].value);
-}
-
-void Encoder::setEncoderValue(unsigned long value)
-{
-    encoderValueN[0].value = value;
 }
 
 /****************************************************************
@@ -200,8 +195,12 @@ bool Encoder::updateProperties(bool connected)
 {
     if (connected)
     {
+        lastEncoderRaw = startupEncoderValue = readEncoder();
+
+        encoderValueN[0].value = GetEncoderZero();
+
         telescope->defineNumber(&encoderSettingsNP);
-        telescope->defineNumber(&encoderValueNP);
+        telescope->defineNumber(&encoderValueNP);        
     }
     else
     {
@@ -253,12 +252,13 @@ unsigned long Encoder::GetEncoder()  throw (UjariError)
 }
 
 /****************************************************************
-**
-**
+** Zero Encoder Value = Home + (StartUpEncoder - Offset)
+** If startupEncoder == Offset, then ZeroEncoder=HomeEncoder
+** which is the ideal case
 *****************************************************************/
 unsigned long Encoder::GetEncoderZero()
 {
-    return static_cast<unsigned long>(startupEncoderValue+encoderSettingsN[EN_HOME_POSITION].value+encoderSettingsN[EN_HOME_OFFSET].value);
+    return static_cast<unsigned long>(encoderSettingsN[EN_HOME_POSITION].value+(((int)startupEncoderValue)-encoderSettingsN[EN_HOME_OFFSET].value));
 }
 
 /****************************************************************
@@ -287,6 +287,9 @@ unsigned long Encoder::GetEncoderHome()
 *****************************************************************/
 void Encoder::simulateEncoder(double speed, int dir)
 {
+    simSpeed = speed;
+    simDir   = dir;
+    /*
     // Make fast speed faster
     if (speed > 0.5)
         speed *= 10;
@@ -297,7 +300,7 @@ void Encoder::simulateEncoder(double speed, int dir)
     if (dir == 0)
         deltaencoder *= -1;
 
-    encoderValueN[0].value += deltaencoder;
+    encoderValueN[0].value += deltaencoder;*/
 }
 
 /****************************************************************
@@ -308,30 +311,18 @@ bool Encoder::update()
 {
     static double lastEncoderValue=0;
 
-    if (simulation == false)
-    {
-        DIOBuf *buf= NewDIOBuf(0);
-        int LSB, MSB, encoderRAW;
-        DIO_ReadAll( diOnly, buf );
-        DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "%s enocder Binary was: %s", type_name.c_str(), DIOBufToString( buf ) );
-        DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "%s enocder Hex was: %s", type_name.c_str(),  DIOBufToHex( buf ) );
+    unsigned long encoderRaw = readEncoder();
 
-        // RA Encoder bits 0-11
-        // DE Encoder bits 12-23
-        // Dome Encoder bits 24-35? or just 8 bits for dome encoder IIRC?
+   // No change, let's return
+   if (encoderRaw == lastEncoderRaw)
+          return true;
 
-        // RA 12bit connected to DIO-48 ports 47 (I/O 0) to 25 (I/O 11)
-        // DE 12bit connected to DIO-38 ports 23 (I/O 12) to 1 (I/O 23)
-        DIO_Read8( diOnly, 0, &LSB  );
-        DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "LSB Single data was : hex:%x, int:%d", (int)LSB, (int)LSB );
+   unsigned long CWEncoder = getRange(lastEncoderRaw, encoderRaw, EN_CW);
+   unsigned long CCWEncoder = getRange(lastEncoderRaw, encoderRaw, EN_CCW);
+   encoderValueN[0].value += getMin(CWEncoder, CCWEncoder);
 
-        DIO_Read8( diOnly, 1, &MSB  );
-        DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "MSB Single data was : hex:%x, int:%d", (int)MSB, (int)MSB );
+   lastEncoderRaw = encoderRaw;
 
-        // 0x0FFF picks up only first 12bits
-        encoderRAW = ((MSB << 8) | LSB) & 0x0FFF;
-
-    }
 
     if (lastEncoderValue != encoderValueN[0].value)
     {
@@ -350,6 +341,86 @@ bool Encoder::saveConfigItems(FILE *fp)
 {
     IUSaveConfigNumber(fp, &encoderSettingsNP);
     return true;
+}
+
+/****************************************************************
+**
+**
+*****************************************************************/
+unsigned long Encoder::readEncoder()
+{
+    unsigned long encoderRAW;
+    int LSBIndex, MSBIndex, LSB, MSB;
+    unsigned char LSBMask, MSBMask;
+
+    if (simulation)
+    {
+        double speed = simSpeed;
+        // Make fast speed faster
+        if (speed > 0.5)
+            speed *= 10;
+        else if (speed > 0.1)
+            speed *= 3;
+
+        int deltaencoder = speed * (speed > 0.1 ? 400 : 200);
+        if (simDir == 0)
+            deltaencoder *= -1;
+
+        simDir=0;
+        simSpeed=0;
+
+        return (encoderValueN[0].value+deltaencoder);
+    }
+
+    /* Each port on the DIO-48 is 8-bits. The encoder use 12bit gray code
+       # D000-D011 for Dome Encoder
+       # D012-D023 for RA Encoder
+       # D024-D035 for DEC Encoder
+       * Dome: Ports 0 & 1 --> 8 bits of port 0, first 4 bits of port 1
+       * RA  : Ports 1 & 2 --> last 4 bits of port 1, 8 bits of port 2
+       * DEC : Ports 3 & 4 --> 8 bits of port 3, first 4 bits of port 4
+       *  Masks: Dome LSB 0xFF, MSB 0x0F
+       *  Masks: RA LSB 0xF0, MSB 0xFF
+       *  Masks: DEC LSB 0xFF, MSB, 0x0F
+       */
+    switch(type)
+    {
+        case DOME_ENCODER:
+            LSBIndex=0;
+            MSBIndex=1;
+            LSBMask = 0xFF;
+            MSBMask = 0x0F;
+            break;
+        case RA_ENCODER:
+            LSBIndex=1;
+            MSBIndex=2;
+            LSBMask=0xF0;
+            MSBMask=0xFF;
+            break;
+        case DEC_ENCODER:
+            LSBIndex=3;
+            MSBIndex=4;
+            LSBMask = 0xFF;
+            MSBMask = 0x0F;
+            break;
+    }
+
+
+    DIO_Read8( diOnly, 0, &LSB  );
+
+    LSB &= LSBMask;
+
+    DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "LSB Single data was : hex:%x, int:%d", (int)LSB, (int)LSB );
+
+    DIO_Read8( diOnly, 1, &MSB  );
+
+    MSB &= MSBMask;
+    DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "MSB Single data was : hex:%x, int:%d", (int)MSB, (int)MSB );
+
+    encoderRAW = ((MSB << 8) | LSB);
+
+    return encoderRAW;
+
 }
 
 /****************************************************************
@@ -381,6 +452,5 @@ int Encoder::getMin(unsigned long CWEncoder, unsigned long CCWEncoder)
 {
     if (CWEncoder < CCWEncoder)
         return ((int) CWEncoder);
-    // Sounds redundant, but we need to make sure it'
     else return ((int)CCWEncoder)*-1;
 }

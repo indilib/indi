@@ -1069,8 +1069,6 @@ char *ForkMount::WriteParkData(const char *filename)
 bool ForkMount::update()
 {
     double separation, speed;
-    bool raMotorRC    = RAMotor->update();
-    bool decMotorRC   = DEMotor->update();
 
     if (simulation)
     {
@@ -1080,11 +1078,13 @@ bool ForkMount::update()
             DEEncoder->simulateEncoder(DEMotor->getSpeed(), DEStatus.direction);
     }
 
-    //RAEncoder->update();
-    //DEEncoder->update();
+    bool raEncoderRC  = RAEncoder->update();
+    bool deEncoderRC  = DEEncoder->update();
+    bool raMotorRC    = RAMotor->update();
+    bool decMotorRC   = DEMotor->update();
 
-    RAStep = RAEncoder->getEncoderValue();
-    DEStep = DEEncoder->getEncoderValue();
+    RAStep = RAEncoder->GetEncoder();
+    DEStep = DEEncoder->GetEncoder();
 
     // Now check how far RAEncoderTarget is from RAStep
     if (RAStatus.slewmode == GOTO)

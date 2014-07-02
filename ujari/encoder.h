@@ -64,9 +64,6 @@ public:
         encoderType getType() const;
         void setType(const encoderType &value);
 
-        unsigned long getEncoderValue();
-        void setEncoderValue(unsigned long value);
-
         unsigned long GetEncoder()  throw (UjariError);
         unsigned long GetEncoderZero();
         unsigned long GetEncoderTotal();
@@ -77,6 +74,7 @@ public:
 
 private:
 
+        unsigned long readEncoder();
         unsigned long getRange(unsigned long startEncoder, unsigned long endEncoder, encoderDirection dir);
         int getMin(unsigned long CWEncoder, unsigned long CCWEncoder);
 
@@ -98,7 +96,11 @@ private:
         int connection_status;
         unsigned short SLAVE_ADDRESS;
 
-        int startupEncoderValue;
+        unsigned long startupEncoderValue;
+        unsigned long lastEncoderRaw;
+
+        double simSpeed;
+        int    simDir;
 
         Ujari *telescope;
    
