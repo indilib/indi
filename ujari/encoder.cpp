@@ -49,8 +49,9 @@ Encoder::Encoder(encoderType type, Ujari* scope)
         startupEncoderValue = 0;
         lastEncoderRaw=0;
 
-        simDir=0;
         simSpeed=0;
+
+        direction = EN_NONE;
 
 }
 
@@ -94,11 +95,11 @@ void Encoder::setType(const encoderType &value)
 *****************************************************************/
 bool Encoder::initProperties()
 {
-    IUFillNumber(&encoderSettingsN[EN_HOME_POSITION], "HOME_POSITION", "Home Position", "%g", 0, 10000000, 1000, 400000);
+    IUFillNumber(&encoderSettingsN[EN_HOME_POSITION], "HOME_POSITION", "Home Position", "%g", 0, 10000000, 1000, 122800);
     IUFillNumber(&encoderSettingsN[EN_HOME_OFFSET], "HOME_OFFSET", "Home Offset", "%g", 0, 10000000, 1000, 0);
-    IUFillNumber(&encoderSettingsN[EN_TOTAL], "TOTAL_COUNT", "Total", "%g", 0, 10000000, 1000, 800000);
+    IUFillNumber(&encoderSettingsN[EN_TOTAL], "TOTAL_COUNT", "Total", "%g", 0, 10000000, 1000, 204800);
 
-    IUFillNumber(&encoderValueN[0], "ENCODER_RAW_VALUE", "Value", "%g", 0, 10000000, 1000, 400000);
+    IUFillNumber(&encoderValueN[0], "ENCODER_RAW_VALUE", "Value", "%g", 0, 10000000, 1000, 122800);
 
     switch (type)
     {
@@ -132,10 +133,10 @@ bool Encoder::connect()
     if (simulation)
     {
         DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_SESSION, "%s: Simulating connecting to DIO-48 USB.", type_name.c_str());
-        encoderSettingsN[EN_HOME_POSITION].value = 400000;
+        encoderSettingsN[EN_HOME_POSITION].value = 122800;
         encoderSettingsN[EN_HOME_OFFSET].value = 0;
-        encoderSettingsN[EN_TOTAL].value = 800000;
-        encoderValueN[0].value = 400000;
+        encoderSettingsN[EN_TOTAL].value = 409600;
+        encoderValueN[0].value = 122800;
         connection_status = 0;
         return true;
     }
@@ -195,9 +196,11 @@ bool Encoder::updateProperties(bool connected)
 {
     if (connected)
     {
-        lastEncoderRaw = startupEncoderValue = readEncoder();
+        startupEncoderValue = lastEncoderRaw = readEncoder();
 
         encoderValueN[0].value = GetEncoderZero();
+
+        //lastEncoderRaw = encoderValueN[0].value;
 
         telescope->defineNumber(&encoderSettingsNP);
         telescope->defineNumber(&encoderValueNP);        
@@ -285,22 +288,18 @@ unsigned long Encoder::GetEncoderHome()
 **
 **
 *****************************************************************/
-void Encoder::simulateEncoder(double speed, int dir)
+void Encoder::setDirection(encoderDirection dir)
+{
+    direction = dir;
+}
+
+/****************************************************************
+**
+**
+*****************************************************************/
+void Encoder::simulateEncoder(double speed)
 {
     simSpeed = speed;
-    simDir   = dir;
-    /*
-    // Make fast speed faster
-    if (speed > 0.5)
-        speed *= 10;
-    else if (speed > 0.1)
-        speed *= 3;
-
-    int deltaencoder = speed * (speed > 0.1 ? 400 : 200);
-    if (dir == 0)
-        deltaencoder *= -1;
-
-    encoderValueN[0].value += deltaencoder;*/
 }
 
 /****************************************************************
@@ -317,9 +316,13 @@ bool Encoder::update()
    if (encoderRaw == lastEncoderRaw)
           return true;
 
-   unsigned long CWEncoder = getRange(lastEncoderRaw, encoderRaw, EN_CW);
-   unsigned long CCWEncoder = getRange(lastEncoderRaw, encoderRaw, EN_CCW);
-   encoderValueN[0].value += getMin(CWEncoder, CCWEncoder);
+   int diff = getEncoderDiff(lastEncoderRaw, encoderRaw);
+
+   if (diff > 0)
+   {
+       diff = diff;
+   }
+   encoderValueN[0].value += diff;
 
    lastEncoderRaw = encoderRaw;
 
@@ -357,19 +360,20 @@ unsigned long Encoder::readEncoder()
     {
         double speed = simSpeed;
         // Make fast speed faster
-        if (speed > 0.5)
-            speed *= 10;
-        else if (speed > 0.1)
-            speed *= 3;
+        if (speed > 1)
+            speed *= 5;
 
-        int deltaencoder = speed * (speed > 0.1 ? 400 : 200);
-        if (simDir == 0)
-            deltaencoder *= -1;
+        int absEnc = lastEncoderRaw;
+        int deltaencoder = ( (speed * (speed > 0.1 ? 200 : 100)) + rand() % 5) * (direction == EN_CW ? 1 : -1);
+        absEnc += deltaencoder;
+        if (absEnc >= MAX_ENCODER_COUNT)
+            absEnc -= MAX_ENCODER_COUNT;
+        else if (absEnc < 0)
+            absEnc += MAX_ENCODER_COUNT;
 
-        simDir=0;
         simSpeed=0;
 
-        return (encoderValueN[0].value+deltaencoder);
+        return (absEnc);
     }
 
     /* Each port on the DIO-48 is 8-bits. The encoder use 12bit gray code
@@ -427,30 +431,34 @@ unsigned long Encoder::readEncoder()
 **
 **
 *****************************************************************/
-unsigned long Encoder::getRange(unsigned long startEncoder, unsigned long endEncoder, encoderDirection dir)
+int Encoder::getEncoderDiff(unsigned long startEncoder, unsigned long endEncoder)
 {
-    switch (dir)
+    int diff=0;
+
+    switch (direction)
     {
         case EN_CW:
         if (endEncoder > startEncoder)
-            return (endEncoder - startEncoder);
-
-        return (endEncoder + MAX_ENCODER_COUNT - startEncoder);
-
+           diff = endEncoder - startEncoder;
+        else
+           diff = endEncoder + MAX_ENCODER_COUNT - startEncoder;
         break;
 
     case EN_CCW:
         if (startEncoder > endEncoder)
-            return (startEncoder - endEncoder);
+            diff = startEncoder - endEncoder;
         else
-            return (MAX_ENCODER_COUNT - (startEncoder + endEncoder));
+            diff = startEncoder + (MAX_ENCODER_COUNT - endEncoder);
+        break;
+     default:
         break;
     }
+
+    if (diff > MAX_ENCODER_COUNT)
+        diff -= MAX_ENCODER_COUNT;
+    else if (diff < 0)
+        diff += MAX_ENCODER_COUNT;
+
+    return (direction == EN_CW ? diff : diff * -1);
 }
 
-int Encoder::getMin(unsigned long CWEncoder, unsigned long CCWEncoder)
-{
-    if (CWEncoder < CCWEncoder)
-        return ((int) CWEncoder);
-    else return ((int)CCWEncoder)*-1;
-}

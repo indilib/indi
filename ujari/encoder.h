@@ -35,7 +35,7 @@ class Encoder
 
 public:
         typedef enum { RA_ENCODER, DEC_ENCODER, DOME_ENCODER } encoderType;
-        typedef enum { EN_CW, EN_CCW} encoderDirection;
+        typedef enum { EN_CW, EN_CCW, EN_NONE} encoderDirection;
         enum { EN_HOME_POSITION, EN_HOME_OFFSET, EN_TOTAL };
 
 
@@ -69,14 +69,13 @@ public:
         unsigned long GetEncoderTotal();
         unsigned long GetEncoderHome();
 
-        // 0 forward/1 reverese
-        void simulateEncoder(double speed, int dir);
+        void setDirection(encoderDirection dir);
+        void simulateEncoder(double speed);
 
 private:
 
         unsigned long readEncoder();
-        unsigned long getRange(unsigned long startEncoder, unsigned long endEncoder, encoderDirection dir);
-        int getMin(unsigned long CWEncoder, unsigned long CCWEncoder);
+        int getEncoderDiff(unsigned long startEncoder, unsigned long endEncoder);
 
         // Encoder settings
         INumber encoderSettingsN[3];
@@ -95,12 +94,12 @@ private:
         bool verbose;
         int connection_status;
         unsigned short SLAVE_ADDRESS;
+        encoderDirection direction;
 
         unsigned long startupEncoderValue;
         unsigned long lastEncoderRaw;
 
         double simSpeed;
-        int    simDir;
 
         Ujari *telescope;
    

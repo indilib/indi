@@ -57,9 +57,11 @@ std::auto_ptr<Ujari> ujari(0);
 
 #define POLLMS 1000
 
+#define MAX_HOUR_ANGLE  4
+
 #define GOTO_ITERATIVE_LIMIT 5     /* Max GOTO Iterations */
-#define RAGOTORESOLUTION 5        /* GOTO Resolution in arcsecs */
-#define DEGOTORESOLUTION 5        /* GOTO Resolution in arcsecs */
+#define RAGOTORESOLUTION 20        /* GOTO Resolution in arcsecs */
+#define DEGOTORESOLUTION 20        /* GOTO Resolution in arcsecs */
 
 #define STELLAR_DAY 86164.098903691
 #define TRACKRATE_SIDEREAL ((360.0 * 3600.0) / STELLAR_DAY)
@@ -817,17 +819,20 @@ double Ujari::EncoderFromDegree(double degree, PierSide p, unsigned long initste
   //TODO check if this one works for Ujari
   target -= lnobserver.lat;
 
-  if ((target > 180.0) && (p == EAST))
+  return (initstep + ((target / 360.0) * totalstep));
+
+  /*if ((target > 180.0) && (p == EAST))
     return (initstep - (((360.0 - target) / 360.0) * totalstep));
   else
-    return (initstep + ((target / 360.0) * totalstep));
+    return (initstep + ((target / 360.0) * totalstep));*/
 }
 double Ujari::EncoderFromDec( double detarget, PierSide p,
                   unsigned long initstep, unsigned long totalstep, enum Hemisphere h)
 {
   double target=0.0;
   target = detarget;
-  if (p == WEST) target = 180.0 - target;
+  // FIXME Check if disabling this breaks anything
+  //if (p == WEST) target = 180.0 - target;
   return EncoderFromDegree(target, p, initstep, totalstep, h);
 }
 
@@ -910,23 +915,25 @@ void Ujari::EncoderTarget(GotoParams *g)
   juliandate=getJulianDate();
   lst=getLst(juliandate, getLongitude());
 
+  targetra = r;
   ha = rangeHA(r - lst);
-  if (ha < 0.0) {// target EAST
-    if (g->forcecwup) {
-      if (Hemisphere == NORTH) targetpier = EAST; else targetpier = WEST;
-      targetra = r;
-    } else {
-      if (Hemisphere == NORTH) targetpier = WEST; else targetpier = EAST;
-      targetra = range24(r - 12.0);
-    }
-  } else {
-    if (g->forcecwup) {
-      if (Hemisphere == NORTH) targetpier = WEST; else targetpier = EAST;
-      targetra = range24(r - 12.0);
-    } else {
-      if (Hemisphere == NORTH) targetpier = EAST; else targetpier = WEST;
-      targetra = r;
-    }
+
+  if (ha < 0.0)
+  {
+    // target EAST
+    if (Hemisphere == NORTH)
+        targetpier = WEST;
+    else targetpier = EAST;
+
+  }
+  else
+  {
+    if (Hemisphere == NORTH)
+        targetpier = EAST;
+    else
+        targetpier = WEST;
+
+      targetra = r;    
   }
 
   targetraencoder=EncoderFromRA(targetra, 0.0, lst, zeroRAEncoder, totalRAEncoder, Hemisphere);
@@ -938,9 +945,11 @@ void Ujari::EncoderTarget(GotoParams *g)
     } else {
       if ((targetraencoder > g->limiteast) || (targetraencoder < g->limitwest)) outsidelimits=true;
     }
-    if (outsidelimits) {
-      DEBUG(INDI::Logger::DBG_WARNING, "Goto: RA Limits prevent Counterweights-up slew.");
-      if (ha < 0.0) {// target EAST
+
+    if (outsidelimits)
+    {
+      DEBUGF(INDI::Logger::DBG_ERROR, "Goto: RA Limits exceeed. Requested HA %g", ha);
+    /*  if (ha < 0.0) {// target EAST
     if (Hemisphere == NORTH) targetpier = WEST; else targetpier = EAST;
     targetra = range24(r - 12.0);
       } else {
@@ -949,6 +958,7 @@ void Ujari::EncoderTarget(GotoParams *g)
       }
       targetraencoder=EncoderFromRA(targetra, 0.0, lst, zeroRAEncoder, totalRAEncoder, Hemisphere);
       targetdecencoder=EncoderFromDec(d, targetpier, zeroDEEncoder, totalDEEncoder, Hemisphere);
+    }*/
     }
   }
   g->outsidelimits = outsidelimits;
@@ -1073,9 +1083,27 @@ bool Ujari::Goto(double r,double d)
     //TODO made forcecwup true, check if this is causes trouble
     gotoparams.forcecwup = true;
     gotoparams.outsidelimits = false;
-    gotoparams.limiteast = zeroRAEncoder - (totalRAEncoder / 24)*5 ; // -5 HA
-    gotoparams.limitwest = zeroRAEncoder + (totalRAEncoder / 24)*5; //  +5 HA
+    gotoparams.limiteast = zeroRAEncoder - (totalRAEncoder / 24)*MAX_HOUR_ANGLE ; // -4 HA
+    gotoparams.limitwest = zeroRAEncoder + (totalRAEncoder / 24)*MAX_HOUR_ANGLE; //  +4 HA
     EncoderTarget(&gotoparams);
+
+    if (gotoparams.outsidelimits)
+    {
+        try
+        {
+          // stop motor
+          mount->StopRA();
+          mount->StopDE();
+        }
+         catch(UjariError e)
+         {
+               return(e.DefaultHandleException(this));
+         }
+
+        gotoparams.aborted = true;
+        return false;
+    }
+
     try {
       // stop motor
       mount->StopRA();
@@ -1951,6 +1979,7 @@ bool Ujari::saveConfigItems(FILE *fp)
     controller->saveConfigItems(fp);
 
     mount->saveConfigItems(fp);
+    domeEncoder->saveConfigItems(fp);
 
     return INDI::Telescope::saveConfigItems(fp);
 

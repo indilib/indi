@@ -200,8 +200,7 @@ bool Inverter::connect()
 	   
     mb_param = modbus_new_tcp(PortT[0].text, 502);   
     modbus_set_slave(mb_param, SLAVE_ADDRESS);
-    modbus_set_debug(mb_param, debug ? TRUE : FALSE);
-
+    modbus_set_debug(mb_param, debug ? TRUE : FALSE);  
 
     if ( (connection_status = modbus_connect(mb_param)) == -1)
     {

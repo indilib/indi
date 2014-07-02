@@ -149,6 +149,8 @@ public:
         void StopMotor(ForkMountAxis axis)  throw (UjariError);
         void StopWaitMotor(ForkMountAxis axis) throw (UjariError);        
         double GetGotoSpeed(ForkMountAxis axis);
+        double GetRADiff();
+        double GetDEDiff();
 
         unsigned long Revu24str2long(char *);
         unsigned long Highstr2long(char *);
