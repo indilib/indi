@@ -333,6 +333,11 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
                     if((sw != NULL)&&( sw->s==ISS_ON ))
                     {
                        rc=Sync(ra,dec);
+                       if (rc)
+                           CoordSP .s = IPS_OK;
+                       else
+                           CoordSP.s = IPS_ALERT;
+                       IDSetSwitch(&CoordSP, NULL);
                        return rc;
                     }
                 }
@@ -341,6 +346,11 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
                 ParkSP.s=IPS_IDLE;
                 IUResetSwitch(&ParkSP);
                 rc=Goto(ra,dec);
+                if (rc)
+                    CoordSP .s = IPS_OK;
+                else
+                    CoordSP.s = IPS_ALERT;
+                IDSetSwitch(&CoordSP, NULL);
 
                 //  Ok, now we have to put our switches back
             }
