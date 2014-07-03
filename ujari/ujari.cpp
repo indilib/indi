@@ -483,13 +483,14 @@ bool Ujari::updateProperties()
 
 bool Ujari::Connect()
 {
-    bool mount_rc=false, dome_rc=false, shutter_rc=false;
+    bool mount_rc=false, dome_rc=false, shutter_rc=false, dome_encoder_rc=false;
 
     if(isConnected()) return true;
 
     try
     {
       dome_rc = dome->connect();
+      dome_encoder_rc = domeEncoder->connect();
       shutter_rc = shutter->connect();
       mount_rc = mount->Connect();
     } catch(UjariError e)
@@ -497,13 +498,13 @@ bool Ujari::Connect()
       return(e.DefaultHandleException(this));
     }
 
-    if (mount_rc && dome_rc && shutter_rc)
+    if (mount_rc && dome_rc && shutter_rc && dome_encoder_rc)
     {
        DEBUG(INDI::Logger::DBG_SESSION, "Successfully connected to Ujari Mount.");
         SetTimer(POLLMS);
     }
 
-    return (mount_rc && dome_rc && shutter_rc);
+    return (mount_rc && dome_rc && shutter_rc && dome_encoder_rc);
 }
 
 bool Ujari::Disconnect()
@@ -512,6 +513,7 @@ bool Ujari::Disconnect()
     try {
       mount->Disconnect();
       dome->disconnect();
+      domeEncoder->disconnect();
       shutter->disconnect();
     }
     catch(UjariError e) {
@@ -531,6 +533,7 @@ void Ujari::TimerHit()
       bool rc;
 
       mount->update();
+      domeEncoder->update();
       dome->update();
       shutter->update();
       rc=ReadScopeStatus();

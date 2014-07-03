@@ -149,16 +149,8 @@ bool Encoder::connect()
         return false;
     }
 
-    //AIOUSB_ListDevices();
-
-    // All input
-    result = DIO_Configure(diOnly, AIOUSB_FALSE, 0, 0);
-
-    if( result != AIOUSB_SUCCESS )
-    {
-        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_ERROR, "%s encoder: failed to configure all ports as input.", type_name.c_str());
-        return false;
-    }
+    AIOUSB_Reset( 0 );
+    AIOUSB_SetCommTimeout( 0, 1000);
 
     connection_status = 0;
     return true;
@@ -403,13 +395,13 @@ unsigned long Encoder::readEncoder()
     }
 
 
-    DIO_Read8( diOnly, 0, &LSB  );
+    DIO_Read8( 0, LSBIndex, &LSB  );
 
     LSB &= LSBMask;
 
     DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "LSB Single data was : hex:%x, int:%d", (int)LSB, (int)LSB );
 
-    DIO_Read8( diOnly, 1, &MSB  );
+    DIO_Read8( 0, MSBIndex, &MSB  );
 
     MSB &= MSBMask;
     DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "MSB Single data was : hex:%x, int:%d", (int)MSB, (int)MSB );
@@ -427,6 +419,21 @@ unsigned long Encoder::readEncoder()
 int Encoder::getEncoderDiff(unsigned long startEncoder, unsigned long endEncoder)
 {
     int diff=0;
+    bool directionDetection=false;
+
+    // Try to detect direction
+    if (direction == EN_NONE)
+    {
+        direction = EN_CW;
+        int CWEncoder = getEncoderDiff(startEncoder, endEncoder);
+        direction = EN_CCW;
+        int CCWEncoder = getEncoderDiff(startEncoder, endEncoder);
+        if (abs(CWEncoder) < abs(CCWEncoder))
+            direction = EN_CW;
+        else
+            direction = EN_CCW;
+        directionDetection = true;
+    }
 
     switch (direction)
     {
@@ -452,6 +459,11 @@ int Encoder::getEncoderDiff(unsigned long startEncoder, unsigned long endEncoder
     else if (diff < 0)
         diff += MAX_ENCODER_COUNT;
 
-    return (direction == EN_CW ? diff : diff * -1);
+    int finalDiff = (direction == EN_CW ? diff : diff * -1);
+
+    if (directionDetection)
+        direction = EN_NONE;
+
+    return finalDiff;
 }
 
