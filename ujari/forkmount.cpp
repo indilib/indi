@@ -1257,3 +1257,8 @@ bool ForkMount::saveConfigItems(FILE *fp)
 
     return true;
 }
+
+bool ForkMount::isProtectionTrigged()
+{
+    return (RAMotor->isProtectionTriggered() || DEMotor->isProtectionTriggered());
+}

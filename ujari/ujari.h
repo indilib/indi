@@ -27,6 +27,7 @@
 #include <libnova.h>
 #include <indicontroller.h>
 
+#include "ogg_util.h"
 #include "config.h"
 
 class ForkMount;
@@ -36,8 +37,52 @@ class Encoder;
 
 class Ujari : public INDI::Telescope
 {
-        protected:
-        private:
+public:
+    Ujari();
+    virtual ~Ujari();
+
+    virtual const char *getDefaultName();
+    virtual bool Connect();
+    virtual bool Disconnect();
+    virtual void TimerHit();
+    virtual bool ReadScopeStatus();
+    virtual bool initProperties();
+    virtual bool updateProperties();
+    virtual void ISGetProperties(const char *dev);
+    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual bool ISSnoopDevice(XMLEle *root);
+    virtual bool saveConfigItems(FILE *fp);
+
+    virtual bool MoveNS(TelescopeMotionNS dir);
+    virtual bool MoveWE(TelescopeMotionWE dir);
+    virtual bool Abort();
+
+    virtual bool Goto(double ra,double dec);
+    virtual bool Park();
+    virtual bool Sync(double ra,double dec);
+    virtual bool canSync();
+    virtual bool canPark();
+
+    virtual void debugTriggered(bool enable);
+    virtual void simulationTriggered(bool enable);
+
+    bool updateTime(ln_date *lndate_utc, double utc_offset);
+    bool updateLocation(double latitude, double longitude, double elevation);
+
+    double getLongitude();
+    double getLatitude();
+    double getJulianDate();
+    double getLst(double jd, double lng);
+
+    void SetPanicAlarm(bool enable);
+
+    static void joystickHelper(const char * joystick_n, double mag, double angle);
+    static void buttonHelper(const char * button_n, ISState state);
+
+    protected:
+    private:
         ForkMount *mount;
         Inverter *dome;
         Inverter *shutter;
@@ -88,13 +133,15 @@ class Ujari : public INDI::Telescope
         ISwitchVectorProperty *ParkOptionSP;
         ISwitchVectorProperty *ReverseDECSP;
 
+        INDI::Controller *controller;
 
         enum Hemisphere {NORTH=0, SOUTH=1 };
         enum PierSide {WEST=0, EAST=1};
-        typedef struct GotoParams {
+        typedef struct GotoParams
+        {
           double ratarget, detarget, racurrent, decurrent;
           unsigned long ratargetencoder, detargetencoder, racurrentencoder, decurrentencoder;
-              unsigned long limiteast, limitwest;
+          unsigned long limiteast, limitwest;
           unsigned int iterative_count;
           bool forcecwup, checklimits, outsidelimits, completed, aborted;
         } GotoParams;
@@ -103,11 +150,15 @@ class Ujari : public INDI::Telescope
         PierSide pierside;
         bool RAInverted, DEInverted;
         GotoParams gotoparams;
-
         double tpa_alt, tpa_az;
 
-        INDI::Controller *controller;
+        /* Warning sounds */
+        OggFile SlewCompleteAlarm;
+        OggFile SlewErrorAlarm;
+        OggFile TrackBusyAlarm;
+        OggFile PanicAlarm;
 
+        /* Encoder Functions */
         void EncodersToRADec(unsigned long rastep, unsigned long destep, double lst, double *ra, double *de, double *ha);
         double EncoderToHours(unsigned long destep, unsigned long initdestep, unsigned long totalrastep, enum Hemisphere h);
         double EncoderToDegrees(unsigned long destep, unsigned long initdestep, unsigned long totalrastep, enum Hemisphere h);
@@ -118,72 +169,32 @@ class Ujari : public INDI::Telescope
         double EncoderFromDec( double detarget, PierSide p,
                           unsigned long initstep, unsigned long totalstep, enum Hemisphere h);
         void EncoderTarget(GotoParams *g);
-        double rangeHA(double r);
-        double range24(double r);
-        double range360(double r);
-        double rangeDec(double r);
+
+        /* Motion and Rate Functions */
         void SetSouthernHemisphere(bool southern);
         PierSide SideOfPier(double ha);
         double GetRATrackRate();
         double GetDETrackRate();
         double GetDefaultRATrackRate();
         double GetDefaultDETrackRate();
-        static void timedguideNSCallback(void *userpointer);
-        static void timedguideWECallback(void *userpointer);
         double GetRASlew();
         double GetDESlew();
         bool gotoInProgress();
 
-        bool loadProperties();
-        void setLogDebug (bool enable);
-        void setStepperSimulation (bool enable);
+        /* Utility Functions */
+        double rangeHA(double r);
+        double range24(double r);
+        double range360(double r);
+        double rangeDec(double r);
+        bool loadProperties();        
 
+        /* Joystick Function */
         void processNSWE(double mag, double angle);
         void processSlewPresets(double mag, double angle);
         void processJoystick(const char * joystick_n, double mag, double angle);
         void processButton(const char * button_n, ISState state);
-
-        public:
-            Ujari();
-            virtual ~Ujari();
-
-            virtual const char *getDefaultName();
-            virtual bool Connect();
-            virtual bool Disconnect();
-            virtual void TimerHit();
-            virtual bool ReadScopeStatus();
-            virtual bool initProperties();
-            virtual bool updateProperties();
-            virtual void ISGetProperties(const char *dev);
-            virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-            virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-            virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-            virtual bool ISSnoopDevice(XMLEle *root);
-            virtual bool saveConfigItems(FILE *fp);
-
-            virtual bool MoveNS(TelescopeMotionNS dir);
-            virtual bool MoveWE(TelescopeMotionWE dir);
-            virtual bool Abort();
-
-            bool Goto(double ra,double dec);
-            bool Park();
-            bool Sync(double ra,double dec);
-            virtual bool canSync();
-            virtual bool canPark();
-
-            void debugTriggered(bool enable);
-
-            bool updateTime(ln_date *lndate_utc, double utc_offset);
-            bool updateLocation(double latitude, double longitude, double elevation);
-
-            double getLongitude();
-            double getLatitude();
-            double getJulianDate();
-            double getLst(double jd, double lng);
-
-            static void joystickHelper(const char * joystick_n, double mag, double angle);
-            static void buttonHelper(const char * button_n, ISState state);
-
+        static void timedguideNSCallback(void *userpointer);
+        static void timedguideWECallback(void *userpointer);
 
     };
 #endif

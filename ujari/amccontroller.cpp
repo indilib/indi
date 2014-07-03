@@ -28,6 +28,7 @@
 #include <errno.h>
 #include <signal.h>
 #include <err.h>
+#include <stdlib.h>
 
 #include "amccontroller.h"
 #include "ujari.h"
@@ -202,7 +203,7 @@ bool AMCController::connect()
 
     if (simulation)
     {
-        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_SESSION, "%s drive: Simulating connecting to port %s.", type_name.c_str(), PortT[0].text);
+        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG, "%s drive: Simulating connecting to port %s.", type_name.c_str(), PortT[0].text);
         connection_status = 0;
         return true;
     }
@@ -542,7 +543,7 @@ bool AMCController::moveForward()
 
     if (simulation)
     {
-        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_SESSION, "%s drive: Simulating forward command.", type_name.c_str());
+        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG, "%s drive: Simulating forward command.", type_name.c_str());
         MotionControlSP.s = IPS_BUSY;
         IDSetSwitch(&MotionControlSP, NULL);
         return true;
@@ -592,7 +593,7 @@ bool AMCController::moveReverse()
 
     if (simulation)
     {
-        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_SESSION, "%s drive: Simulating reverse command.", type_name.c_str());
+        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG, "%s drive: Simulating reverse command.", type_name.c_str());
         MotionControlSP.s = IPS_BUSY;
         IDSetSwitch(&MotionControlSP, NULL);
         return true;
@@ -1494,6 +1495,12 @@ bool AMCController::update()
 
 }
 
+bool AMCController::isProtectionTriggered()
+{
+    return (DriveProtectionL[2].s == IPS_ALERT || DriveProtectionL[3].s == IPS_ALERT || DriveProtectionL[4].s == IPS_ALERT ||
+            DriveProtectionL[5].s == IPS_ALERT || DriveProtectionL[6].s == IPS_ALERT);
+}
+
 bool AMCController::resetFault()
 {
     if (!isDriveOnline())
@@ -1501,7 +1508,7 @@ bool AMCController::resetFault()
 
     if (simulation)
     {
-        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_SESSION, "%s drive: Simulating reset fault.", type_name.c_str());
+        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG, "%s drive: Simulating reset fault.", type_name.c_str());
         return true;
      }
 
@@ -1600,7 +1607,7 @@ bool AMCController::enableMotion()
 
     if (simulation)
     {
-        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_SESSION, "%s drive: Simulating enable motion.", type_name.c_str());
+        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG, "%s drive: Simulating enable motion.", type_name.c_str());
         return true;
      }
 

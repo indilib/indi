@@ -43,6 +43,14 @@ ujari/indi_ujari.xml -text
 ujari/indi_ujari_sk.xml -text
 ujari/inverter.cpp -text
 ujari/inverter.h -text
+ujari/ogg_util.cpp -text
+ujari/ogg_util.h -text
+ujari/sounds/alarm2.ogg -text
+ujari/sounds/calibration_error.ogg -text
+ujari/sounds/panic_alarm.ogg -text
+ujari/sounds/slew_busy.ogg -text
+ujari/sounds/slew_complete.ogg -text
+ujari/sounds/slew_error.ogg -text
 ujari/ujari.cpp -text
 ujari/ujari.h -text
 ujari/ujarierror.cpp -text

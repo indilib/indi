@@ -193,6 +193,22 @@ Ujari::Ujari()
   pierside = EAST;
   RAInverted = DEInverted = false;
 
+  string soundFile;
+
+  soundFile = string(INDI_DATA_DIR) + string("/sounds/slew_complete.ogg");
+  SlewCompleteAlarm.load_file(soundFile.c_str());
+
+  soundFile = string(INDI_DATA_DIR) + string("/sounds/slew_error.ogg");
+  SlewErrorAlarm.load_file(soundFile.c_str());
+
+  soundFile = string(INDI_DATA_DIR) + string("/sounds/slew_busy.ogg");
+  TrackBusyAlarm.load_file(soundFile.c_str());
+  TrackBusyAlarm.set_looping(true);
+
+  soundFile = string(INDI_DATA_DIR) + string("/sounds/panic_alarm.ogg");
+  PanicAlarm.load_file(soundFile.c_str());
+  PanicAlarm.set_looping(true);
+
   /* initialize time */
   tzset();
   gettimeofday(&lasttimeupdate, NULL); // takes care of DST
@@ -216,19 +232,20 @@ Ujari::~Ujari()
 
 }
 
-void Ujari::setLogDebug (bool enable)
-{
-
-  INDI::Telescope::setDebug(enable);
-  if (not INDI::Logger::updateProperties(enable, this))
-    DEBUG(INDI::Logger::DBG_WARNING,"setLogDebug: Logger error");
-  //if (mount) mount->setDebug(enable);
-
-}
-
 const char * Ujari::getDefaultName()
 {
     return (char *)DEVICE_NAME;
+}
+
+void Ujari::SetPanicAlarm(bool enable)
+{
+    if (enable)
+    {
+        if (PanicAlarm.is_playing() == false)
+            PanicAlarm.play();
+    }
+    else
+        PanicAlarm.stop();
 }
 
 double Ujari::getLongitude()
@@ -600,6 +617,26 @@ bool Ujari::ReadScopeStatus()
     //IDSetLight(RAStatusLP, NULL);
     //IDSetLight(DEStatusLP, NULL);
 
+    if (mount->isProtectionTrigged())
+    {
+        SetPanicAlarm(true);
+
+        DEBUG(INDI::Logger::DBG_WARNING, "Controller Fault Detected. Check Motor Status Immediately.");
+
+        try
+        {
+          // stop motor
+          mount->StopRA();
+          mount->StopDE();
+        }
+         catch(UjariError e)
+         {
+               return(e.DefaultHandleException(this));
+         }
+    }
+    else
+        SetPanicAlarm(false);
+
     if (gotoInProgress())
     {
       if (!(mount->IsRARunning()) && !(mount->IsDERunning()))
@@ -666,6 +703,8 @@ bool Ujari::ReadScopeStatus()
                     TrackState = SCOPE_IDLE;
                     DEBUG(INDI::Logger::DBG_SESSION, "Telescope slew is complete. Stopping...");
                 }
+
+                SlewCompleteAlarm.play();
                 gotoparams.completed=true;
                 EqNP.s = IPS_OK;
 
@@ -1100,6 +1139,7 @@ bool Ujari::Goto(double r,double d)
                return(e.DefaultHandleException(this));
          }
 
+        SlewErrorAlarm.play();
         gotoparams.aborted = true;
         return false;
     }
@@ -1113,7 +1153,9 @@ bool Ujari::Goto(double r,double d)
         gotoparams.ratargetencoder - gotoparams.racurrentencoder, gotoparams.detargetencoder - gotoparams.decurrentencoder);
       //mount->SlewTo(gotoparams.ratargetencoder - gotoparams.racurrentencoder, gotoparams.detargetencoder - gotoparams.decurrentencoder);
       mount->SlewTo(gotoparams.ratargetencoder, gotoparams.detargetencoder);
-    } catch(UjariError e) {
+    } catch(UjariError e)
+    {
+      SlewErrorAlarm.play();
       return(e.DefaultHandleException(this));
     }
 
@@ -1250,6 +1292,8 @@ bool Ujari::Sync(double ra,double dec)
   //DEBUGF(INDI::Logger::DBG_SESSION, "Mount Synced (deltaRA = %.6f deltaDEC = %.6f)", syncdata.deltaRA, syncdata.deltaDEC);
   //IDLog("Mount Synced (deltaRA = %.6f deltaDEC = %.6f)\n", syncdata.deltaRA, syncdata.deltaDEC);
 
+  SlewCompleteAlarm.play();
+
   return true;
 }
 
@@ -1347,51 +1391,6 @@ bool Ujari::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 
     if(strcmp(dev,getDeviceName())==0)
     {
-      if (!strcmp(name, "DEBUG"))
-    {
-      ISwitchVectorProperty *svp = getSwitch(name);
-      IUUpdateSwitch(svp, states, names, n);
-      ISwitch *sp = IUFindOnSwitch(svp);
-      if (!sp)
-        return false;
-
-      if (!strcmp(sp->name, "ENABLE"))
-        setLogDebug(true);
-      else
-        setLogDebug(false);
-      return true;
-    }
-
-
-    if (!strcmp(name, "SIMULATION"))
-    {
-      ISwitchVectorProperty *svp = getSwitch(name);
-      IUUpdateSwitch(svp, states, names, n);
-      ISwitch *sp = IUFindOnSwitch(svp);
-      if (!sp)
-        return false;
-
-      if (!strcmp(sp->name, "ENABLE"))
-      {
-        mount->setSimulation(true);
-        dome->setSimulation(true);
-        domeEncoder->setSimulation(true);
-        shutter->setSimulation(true);
-        DEBUG(INDI::Logger::DBG_SESSION, "Simulation is enabled.");
-      }
-      else
-      {
-        mount->setSimulation(false);
-        dome->setSimulation(false);
-        domeEncoder->setSimulation(false);
-        shutter->setSimulation(false);
-        DEBUG(INDI::Logger::DBG_SESSION, "Simulation is disabled.");
-      }
-
-      svp->s = IPS_OK;
-      IDSetSwitch(svp, NULL);
-      return true;
-    }
 
       if(strcmp(name,"HEMISPHERE")==0)
     {
@@ -2011,4 +2010,16 @@ void Ujari::debugTriggered(bool enable)
     mount->setDebug(enable);
     dome->setDebug(enable);
     shutter->setDebug(enable);
+}
+
+void Ujari::simulationTriggered(bool enable)
+{
+
+   mount->setSimulation(enable);
+   dome->setSimulation(enable);
+   domeEncoder->setSimulation(enable);
+   shutter->setSimulation(enable);
+   DEBUGF(INDI::Logger::DBG_SESSION, "Simulation is %s.", enable ? "Enabled":"Disabled");
+
+
 }

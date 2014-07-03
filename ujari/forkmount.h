@@ -70,6 +70,11 @@ public:
 
         void setDebug (bool enable);
         const char *getDeviceName ();
+        bool update();
+        void setSimulation(bool);
+        bool isSimulation();
+        bool simulation;
+        bool isProtectionTrigged();
 
         unsigned long GetRAEncoder()  throw (UjariError);
         unsigned long GetDEEncoder()  throw (UjariError);
@@ -97,11 +102,6 @@ public:
         bool IsDERunning() throw (UjariError);
         void SetRATargetEncoder(unsigned long tEncoder);
         void SetDETargetEncoder(unsigned long tEncoder);
-
-        bool update();
-        void setSimulation(bool);
-        bool isSimulation();
-        bool simulation;
 
         // Park
         unsigned long GetRAEncoderPark();

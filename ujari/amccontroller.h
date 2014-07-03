@@ -85,6 +85,7 @@ public:
     bool update();
     bool resetFault();
     bool setControlParameter(unsigned short command);
+    bool isProtectionTriggered();
 
     // Simulation
     void setSimulation(bool enable) { simulation = enable;}

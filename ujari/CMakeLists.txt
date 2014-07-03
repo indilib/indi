@@ -16,6 +16,20 @@ find_package(MODBUS REQUIRED)
 find_package(AIOUSB REQUIRED)
 find_package(Threads REQUIRED)
 find_package(USB-1 REQUIRED)
+find_package(ALUT REQUIRED)
+find_package(OpenAL REQUIRED)
+
+if (ALUT_FOUND STREQUAL "NO")
+ message (FATAL_ERROR "Alut library was not found on this system. Please install Alut development files.")
+else (ALUT_FOUND STREQUAL "NO")
+ message (STATUS "Found Alut: " ${ALUT_LIBRARY})
+endif(ALUT_FOUND STREQUAL "NO")
+
+find_package(Vorbis REQUIRED)
+
+if (NOT VORBIS_FOUND)
+ message (FATAL_ERROR "Vorbis library was not found on this system. Please install Vorbis development files.")
+endif (NOT VORBIS_FOUND)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 set(INDI_DATA_DIR "${CMAKE_INSTALL_PREFIX}/share/indi")
@@ -27,6 +41,7 @@ include_directories( ${NOVA_INCLUDE_DIR})
 include_directories( ${MODBUS_INCLUDE_DIR})
 include_directories( ${AIOUSB_INCLUDE_DIR})
 include_directories( ${LIBUSB_1_INCLUDE_DIRS})
+include_directories( ${ALUT_INCLUDE_DIR})
 
 ########### Ujari ###############
 set(ujari_SRCS
@@ -36,14 +51,19 @@ set(ujari_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/encoder.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/inverter.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/amccontroller.cpp
+   ${CMAKE_SOURCE_DIR}/ogg_util.cpp
    )
 
 SET(CMAKE_CXX_FLAGS "-D__aiousb_cplusplus" )
 
 add_executable(indi_ujari_telescope ${ujari_SRCS})
 
-target_link_libraries(indi_ujari_telescope ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${NOVA_LIBRARIES} ${AIOUSB_CPP_LIBRARIES} ${MODBUS_LIBRARIES})
+target_link_libraries(indi_ujari_telescope ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${NOVA_LIBRARIES} ${AIOUSB_CPP_LIBRARIES}
+ ${MODBUS_LIBRARIES} ${OPENAL_LIBRARY} ${ALUT_LIBRARY} ${VORBIS_LIBRARY} ${VORBISFILE_LIBRARY})
 
 install(TARGETS indi_ujari_telescope RUNTIME DESTINATION bin )
 
 install( FILES  indi_ujari.xml indi_ujari_sk.xml DESTINATION ${INDI_DATA_DIR})
+
+INSTALL( DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/sounds DESTINATION ${INDI_DATA_DIR} )
+
