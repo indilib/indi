@@ -86,7 +86,7 @@ static int debug = 0;
 
 void gphoto_set_debug(int value)
 {
-    debug = value;
+    debug = value;    
 }
 
 static void errordumper(GPLogLevel level, const char *domain, const char *str,

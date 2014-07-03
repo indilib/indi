@@ -14,6 +14,8 @@
 
 char dcraw_cmd[] = "dcraw";
 
+static int debug =0;
+
 #define err_printf IDLog,
 struct dcraw_header {
 	time_t time;
@@ -31,7 +33,13 @@ enum {
 	CFA_RGGB,
 };
 
-void *tstrealloc(void *ptr, size_t size) {
+void gphoto_read_set_debug(int enable)
+{
+    debug = enable;
+}
+
+void *tstrealloc(void *ptr, size_t size)
+{
 	fprintf(stderr, "Realloc: %lu\n", (unsigned long)size);
 	return realloc(ptr, size);
 }
@@ -101,7 +109,8 @@ int read_ppm(FILE *handle, struct dcraw_header *header, char **memptr, size_t *m
 
 	prefix[0] = fgetc(handle);
 	prefix[1] = fgetc(handle);
-        if (prefix[0] != 'P' || (prefix[1] != '6' && prefix[1] != '5')) {
+        if (prefix[0] != 'P' || (prefix[1] != '6' && prefix[1] != '5'))
+        {
 		fprintf(stderr, "read_ppm: got unexpected prefix %x %x\n", prefix[0], prefix[1]);
         return -1;
 	}
@@ -246,13 +255,19 @@ int dcraw_parse_header_info(const char *filename, struct dcraw_header *header)
 
 	memset(header, 0, sizeof(struct dcraw_header));
 	asprintf(&cmd, "%s -i -v %s 2> /dev/null", dcraw_cmd, filename);
+    if (debug)
+        fprintf(stderr, "%s\n", cmd);
 	handle = popen(cmd, "r");
 	free(cmd);
 	if (handle == NULL) {
 		return 1;
 	}
 
-	while (fgets(line, sizeof(line), handle)) {
+    while (fgets(line, sizeof(line), handle))
+    {
+        if (debug)
+            fprintf(stderr, "%s\n", line);
+
 		if (sscanf(line, "Timestamp: %s %s %d %s %d", daystr, month, &day, timestr, &year) )
 			header->time = dcraw_parse_time(month, day, year, timestr);
 		else if (sscanf(line, "Shutter: 1/%f sec", &header->exposure) )
@@ -261,8 +276,10 @@ int dcraw_parse_header_info(const char *filename, struct dcraw_header *header)
 			;
 		else if (sscanf(line, "Output size: %d x %d", &header->width, &header->height) )
 			;
-		else if (sscanf(line, "Filter pattern: %s", cfa) ) {
-			if(strncmp(cfa, "RGGBRGGBRGGBRGGB", sizeof(cfa)) == 0) {
+        else if (sscanf(line, "Filter pattern: %s", cfa) )
+        {
+            if(strncmp(cfa, "RGGBRGGBRGGBRGGB", sizeof(cfa)) == 0)
+            {
 				header->cfa_type = CFA_RGGB;
 			}
 		}
@@ -293,6 +310,8 @@ int read_dcraw(const char *filename, char **memptr, size_t *memsize, int *n_axis
 
 	fprintf(stderr, "Reading exposure %d x %d\n", header.width, header.height);
 	asprintf(&cmd, "%s -c -4 -D %s", dcraw_cmd, filename);
+    if (debug)
+        fprintf(stderr, "%s\n", cmd);
 	handle = popen(cmd, "r");
 	free(cmd);
     if (handle == NULL)
@@ -302,8 +321,6 @@ int read_dcraw(const char *filename, char **memptr, size_t *memsize, int *n_axis
 	}
 
     int rc= read_ppm(handle, &header, memptr, memsize, n_axis, w, h, bitsperpixel);
-
-
 
     pclose(handle);
 
@@ -338,31 +355,6 @@ int read_jpeg(const char *filename, char **memptr, size_t *memsize, int *naxis, 
 	/* reading the image header which contains image information */
 	jpeg_read_header( &cinfo, TRUE );
 
-    //*memsize = 2 * 2048;
-    //*memptr = malloc(*memsize);
-    /*fits_create_memfile(&fptr, memptr, memsize, 2880, &tstrealloc, &status);
-	if (status) {
-		fprintf(stderr, "Error: Failed to create memfile (memsize: %lu)\n", *(unsigned long *)memsize);
-        fits_report_error(stderr, status);
-		goto err_release;
-    }*/
-    /*if (cinfo.num_components == 3)
-    {
-
-		naxis = 3;
-		naxes[2] = 3;
-    }*/
-
-    //naxes[0] = cinfo.image_width;
-    //naxes[1] = cinfo.image_height;
-    /*fits_create_img(fptr, BYTE_IMG, naxis, naxes, &status);
-	if (status)
-	{
-		fprintf(stderr, "Error: Failed to create FITS image\n");
-        fits_report_error(stderr, status);
-		goto err_release;
-    }*/
-
 	/* Start decompression jpeg here */
 	jpeg_start_decompress( &cinfo );
 
@@ -391,9 +383,6 @@ int read_jpeg(const char *filename, char **memptr, size_t *memsize, int *naxis, 
         {
             for (i = 0; i < cinfo.output_width; i++)
             {
-                //r_data[i] = *ppm8++;
-                //g_data[i] = *ppm8++;
-                //b_data[i] = *ppm8++;
                 *r_data++ = *ppm8++;
                 *g_data++ = *ppm8++;
                 *b_data++ = *ppm8++;
@@ -406,39 +395,18 @@ int read_jpeg(const char *filename, char **memptr, size_t *memsize, int *naxis, 
 		}
 	}
 
-    // naxis =3
-    //fits_write_img(fptr, TBYTE, 1                                               + row * cinfo.output_width, cinfo.output_width, r_data, &status);
-    //fits_write_img(fptr, TBYTE, 1 + cinfo.output_width * cinfo.image_height     + row * cinfo.output_width, cinfo.output_width, g_data, &status);
-    //fits_write_img(fptr, TBYTE, 1 + cinfo.output_width * cinfo.image_height * 2 + row * cinfo.output_width, cinfo.output_width, b_data, &status);
-
-    //naxis = 2
-    //fits_write_img(fptr, TBYTE, 1 + row * cinfo.output_width, cinfo.output_width, ppm8, &status);
-
 	/* wrap up decompression, destroy objects, free pointers and close open files */
 	jpeg_finish_decompress( &cinfo );
 	jpeg_destroy_decompress( &cinfo );
 
 	if (row_pointer[0] )
 		free( row_pointer[0] );
-    //if(r_data)
-        //free(r_data);
 	if(infile)
 		fclose( infile );
-    //fits_close_file(fptr, &status);            /* close the file */
 	
 
 	*memptr = oldmem;
 	
 	return 0;
-/*err_release:
-	if (row_pointer[0] )
-		free( row_pointer[0] );
-	if(r_data)
-		free(r_data);
-	if(infile)
-		fclose( infile );
-    fits_close_file(fptr, &status);            */
-
-    //return 1;
 }
 

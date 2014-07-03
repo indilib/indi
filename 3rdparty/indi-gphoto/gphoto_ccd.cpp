@@ -169,6 +169,7 @@ const char * GPhotoCCD::getDefaultName()
 void GPhotoCCD::debugTriggered(bool enable)
 {
     gphoto_set_debug(enable ? 1 : 0);
+    gphoto_read_set_debug(enable ? 1 : 0);
 }
 
 bool GPhotoCCD::initProperties()
