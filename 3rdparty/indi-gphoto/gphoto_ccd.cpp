@@ -727,11 +727,14 @@ bool GPhotoCCD::grabImage()
         //dcraw can't read from stdin, so we need to write to disk then read it back
         fd = mkstemp(tmpfile);
 
-        gphoto_read_exposure_fd(gphotodrv, fd);
+        int ret = gphoto_read_exposure_fd(gphotodrv, fd);
 
-        if (fd == -1)
+        if (ret != GP_OK || fd == -1)
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Exposure failed to save image...");
+            if (fd == -1)
+                DEBUGF(INDI::Logger::DBG_ERROR, "Exposure failed to save image. Cannot create temp file %s", tmpfile);
+            else
+                DEBUGF(INDI::Logger::DBG_ERROR, "Exposure failed to save image... %s", gp_result_as_string(ret));
             unlink(tmpfile);
             return false;
         }

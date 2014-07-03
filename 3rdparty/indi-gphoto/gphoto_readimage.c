@@ -252,7 +252,6 @@ int dcraw_parse_header_info(const char *filename, struct dcraw_header *header)
 	char *cmd, timestr[10], month[10], daystr[10];
 	int day, year;
 	float r, g, b, gp;
-    int thumb_w, thumb_h;
 
 	memset(header, 0, sizeof(struct dcraw_header));
 	asprintf(&cmd, "%s -i -v %s 2> /dev/null", dcraw_cmd, filename);
@@ -294,20 +293,6 @@ int dcraw_parse_header_info(const char *filename, struct dcraw_header *header)
 			header->wbb = b/r;
 		}
 	}
-
-    // Hack since dcraw on raspberry PI retrun thumb size larger than image size and the thumb size is the correct one.
-    if (thumb_w > header->width)
-    {
-        fprintf(stderr, "Warning! dcraw reported image width as %d and thumb width as %d. Using thumb width as final image width.",
-                    header->width, thumb_w);
-        header->width = thumb_w;
-    }
-    if (thumb_h > header->height)
-    {
-        fprintf(stderr, "Warning! dcraw reported image height as %d and thumb height as %d. Using thumb height as final image height.",
-                    header->height, thumb_h);
-        header->height = thumb_h;
-    }
 
 	pclose(handle);
 	return 0;
