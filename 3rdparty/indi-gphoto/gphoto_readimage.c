@@ -256,7 +256,7 @@ int dcraw_parse_header_info(const char *filename, struct dcraw_header *header)
 	memset(header, 0, sizeof(struct dcraw_header));
 	asprintf(&cmd, "%s -i -v %s 2> /dev/null", dcraw_cmd, filename);
     if (debug)
-        fprintf(stderr, "%s\n", cmd);
+        fprintf(stderr, "%s", cmd);
 	handle = popen(cmd, "r");
 	free(cmd);
 	if (handle == NULL) {
@@ -266,7 +266,7 @@ int dcraw_parse_header_info(const char *filename, struct dcraw_header *header)
     while (fgets(line, sizeof(line), handle))
     {
         if (debug)
-            fprintf(stderr, "%s\n", line);
+            fprintf(stderr, "%s", line);
 
 		if (sscanf(line, "Timestamp: %s %s %d %s %d", daystr, month, &day, timestr, &year) )
 			header->time = dcraw_parse_time(month, day, year, timestr);
@@ -311,7 +311,7 @@ int read_dcraw(const char *filename, char **memptr, size_t *memsize, int *n_axis
 	fprintf(stderr, "Reading exposure %d x %d\n", header.width, header.height);
 	asprintf(&cmd, "%s -c -4 -D %s", dcraw_cmd, filename);
     if (debug)
-        fprintf(stderr, "%s\n", cmd);
+        fprintf(stderr, "%s", cmd);
 	handle = popen(cmd, "r");
 	free(cmd);
     if (handle == NULL)
