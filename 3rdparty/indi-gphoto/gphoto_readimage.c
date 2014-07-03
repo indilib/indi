@@ -276,8 +276,6 @@ int dcraw_parse_header_info(const char *filename, struct dcraw_header *header)
 			;
 		else if (sscanf(line, "Output size: %d x %d", &header->width, &header->height) )
 			;
-        else if (sscanf(line, "Thumb size: %d x %d", &thumb_w, &thumb_h) )
-            ;
         else if (sscanf(line, "Filter pattern: %s", cfa) )
         {
             if(strncmp(cfa, "RGGBRGGBRGGBRGGB", sizeof(cfa)) == 0)
