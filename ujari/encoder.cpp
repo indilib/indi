@@ -27,12 +27,18 @@ using namespace AIOUSB;
 
 // 12bit encoder for BEI H25
 #define MAX_ENCODER_COUNT   4096
+// Wait 200ms between updates
+#define MAX_THREAD_WAIT     200000
 
 #define ENCODER_GROUP "Encoders"
 
 extern int DBG_SCOPE_STATUS;
 extern int DBG_COMM;
 extern int DBG_MOUNT;
+
+pthread_mutex_t dome_encoder_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t ra_encoder_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t de_encoder_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 Encoder::Encoder(encoderType type, Ujari* scope)
 {
@@ -48,6 +54,7 @@ Encoder::Encoder(encoderType type, Ujari* scope)
 
         startupEncoderValue = 0;
         lastEncoderRaw=0;
+        lastEncoderValue=0;
 
         simSpeed=0;
 
@@ -153,6 +160,7 @@ bool Encoder::connect()
     AIOUSB_SetCommTimeout( 0, 1000);
 
     connection_status = 0;
+
     return true;
 }
 
@@ -166,8 +174,6 @@ void Encoder::disconnect()
 
     if (simulation)
         return;
-
-
 
 }
 
@@ -190,17 +196,24 @@ bool Encoder::updateProperties(bool connected)
     {
         startupEncoderValue = lastEncoderRaw = readEncoder();
 
-        encoderValueN[0].value = GetEncoderZero();
-
-        //lastEncoderRaw = encoderValueN[0].value;
+        lastEncoderValue = encoderValueN[0].value = GetEncoderZero();
 
         telescope->defineNumber(&encoderSettingsNP);
-        telescope->defineNumber(&encoderValueNP);        
+        telescope->defineNumber(&encoderValueNP);
+
+        int err = pthread_create(&encoder_thread, NULL, &Encoder::update_helper, this);
+        if (err != 0)
+        {
+            DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_ERROR, "%s encoder: Can't create encoder thread (%s)", type_name.c_str(), strerror(err));
+            return false;
+        }
     }
     else
     {
         telescope->deleteProperty(encoderSettingsNP.name);
         telescope->deleteProperty(encoderValueNP.name);
+
+        pthread_join(encoder_thread, NULL);
     }
 }
 
@@ -241,9 +254,18 @@ bool Encoder::ISNewText (const char *dev, const char *name, char *texts[], char 
 **
 *****************************************************************/
 unsigned long Encoder::GetEncoder()  throw (UjariError)
-{
-    return static_cast<unsigned long>(encoderValueN[0].value);
+{       
+    lock_mutex();
+    unsigned long value = static_cast<unsigned long>(encoderValueN[0].value);
 
+    if (lastEncoderValue != encoderValueN[0].value)
+    {
+        IDSetNumber(&encoderValueNP, NULL);
+        lastEncoderValue = encoderValueN[0].value;
+    }
+    unlock_mutex();
+
+    return value;
 }
 
 /****************************************************************
@@ -282,7 +304,9 @@ unsigned long Encoder::GetEncoderHome()
 *****************************************************************/
 void Encoder::setDirection(encoderDirection dir)
 {
+    lock_mutex();
     direction = dir;
+    unlock_mutex();
 }
 
 /****************************************************************
@@ -291,7 +315,19 @@ void Encoder::setDirection(encoderDirection dir)
 *****************************************************************/
 void Encoder::simulateEncoder(double speed)
 {
+    lock_mutex();
     simSpeed = speed;
+    unlock_mutex();
+}
+
+/****************************************************************
+**
+**
+*****************************************************************/
+void * Encoder::update_helper(void *context)
+{
+    ((Encoder *)context)->update();
+    return 0;
 }
 
 /****************************************************************
@@ -300,22 +336,30 @@ void Encoder::simulateEncoder(double speed)
 *****************************************************************/
 bool Encoder::update()
 {
-    static double lastEncoderValue=0;
+    unsigned long encoderRaw=0;
 
-    unsigned long encoderRaw = readEncoder();
-
-   // No change, let's return
-   if (encoderRaw == lastEncoderRaw)
-          return true;
-
-   encoderValueN[0].value += getEncoderDiff(lastEncoderRaw, encoderRaw);
-
-   lastEncoderRaw = encoderRaw;
-
-    if (lastEncoderValue != encoderValueN[0].value)
+    while (connection_status != -1)
     {
-        IDSetNumber(&encoderValueNP, NULL);
-        lastEncoderValue = encoderValueN[0].value;
+        lock_mutex();
+
+        encoderRaw = readEncoder();
+
+         // No change, let's return
+        if (encoderRaw == lastEncoderRaw)
+        {
+              unlock_mutex();
+              usleep(MAX_THREAD_WAIT);              
+              continue;
+        }
+
+
+        encoderValueN[0].value += getEncoderDiff(lastEncoderRaw, encoderRaw);
+
+        unlock_mutex();
+
+        lastEncoderRaw = encoderRaw;
+
+        usleep(MAX_THREAD_WAIT);
     }
 
     return true;
@@ -349,7 +393,9 @@ unsigned long Encoder::readEncoder()
             speed *= 5;
 
         int absEnc = lastEncoderRaw;
-        int deltaencoder = ( (speed * (speed > 0.1 ? 200 : 100)) + rand() % 5) * (direction == EN_CW ? 1 : -1);
+        int deltaencoder=0;
+        if (speed > 0)
+            deltaencoder = ( (speed * (speed > 0.1 ? 200 : 100)) + rand() % 5) * (direction == EN_CW ? 1 : -1);
         absEnc += deltaencoder;
         if (absEnc >= MAX_ENCODER_COUNT)
             absEnc -= MAX_ENCODER_COUNT;
@@ -399,12 +445,13 @@ unsigned long Encoder::readEncoder()
 
     LSB &= LSBMask;
 
-    DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "LSB Single data was : hex:%x, int:%d", (int)LSB, (int)LSB );
+    DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "LSB Single data was : hex (0x%X), int(%d)", (int)LSB, (int)LSB );
 
     DIO_Read8( 0, MSBIndex, &MSB  );
 
     MSB &= MSBMask;
-    DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "MSB Single data was : hex:%x, int:%d", (int)MSB, (int)MSB );
+
+    DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "MSB Single data was : hex(0x%X) int(%d)", (int)MSB, (int)MSB );
 
     encoderRAW = ((MSB << 8) | LSB);
 
@@ -467,3 +514,46 @@ int Encoder::getEncoderDiff(unsigned long startEncoder, unsigned long endEncoder
     return finalDiff;
 }
 
+/****************************************************************
+**
+**
+*****************************************************************/
+void Encoder::lock_mutex()
+{
+    switch (type)
+    {
+        case DOME_ENCODER:
+          pthread_mutex_lock( &dome_encoder_mutex );
+          break;
+
+       case RA_ENCODER:
+            pthread_mutex_lock( &ra_encoder_mutex );
+            break;
+
+        case DEC_ENCODER:
+            pthread_mutex_lock( &de_encoder_mutex );
+            break;
+    }
+}
+
+/****************************************************************
+**
+**
+*****************************************************************/
+void Encoder::unlock_mutex()
+{
+    switch (type)
+    {
+        case DOME_ENCODER:
+          pthread_mutex_unlock( &dome_encoder_mutex );
+          break;
+
+       case RA_ENCODER:
+            pthread_mutex_unlock( &ra_encoder_mutex );
+            break;
+
+        case DEC_ENCODER:
+            pthread_mutex_unlock( &de_encoder_mutex );
+            break;
+    }
+}

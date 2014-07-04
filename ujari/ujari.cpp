@@ -71,7 +71,7 @@ std::auto_ptr<Ujari> ujari(0);
 
 /* Preset Slew Speeds */
 #define SLEWMODES 11
-double slewspeeds[SLEWMODES - 1] = { 1.0, 2.0, 4.0, 8.0, 32.0, 96.0, 200.0, 300.0, 400.0, 500.0};
+double slewspeeds[SLEWMODES - 1] = { 1.0, 2.0, 4.0, 8.0, 32.0, 64.0, 128.0, 200.0, 300.0, 400.0};
 double defaultspeed=64.0;
 
 #define RA_AXIS         0
@@ -533,9 +533,9 @@ void Ujari::TimerHit()
       bool rc;
 
       mount->update();
-      domeEncoder->update();
-      dome->update();
-      shutter->update();
+      //domeEncoder->update();
+      dome->refresh();
+      shutter->refresh();
       rc=ReadScopeStatus();
 
       //IDLog("TrackState after read is %d\n",TrackState);

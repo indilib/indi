@@ -45,6 +45,12 @@
 
 #define AMC_MAX_REFRESH     2       // Update drive status and protection every 2 seconds
 
+// Wait 200ms between updates
+#define MAX_THREAD_WAIT     200000
+
+pthread_mutex_t ra_motor_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t de_motor_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 extern int DBG_SCOPE_STATUS;
 extern int DBG_COMM;
 extern int DBG_MOUNT;
@@ -66,7 +72,6 @@ AMCController::AMCController(motorType type, Ujari* scope) : Gr1(0x0810)
         // Initially, not connected
         connection_status = -1;
         fd = -1;
-        accum =0;
 
         setType(type);
         telescope = scope;
@@ -80,6 +85,7 @@ AMCController::AMCController(motorType type, Ujari* scope) : Gr1(0x0810)
 
 AMCController::~AMCController()
 {
+    pthread_join(controller_thread, NULL);
 }
 
 AMCController::motorType AMCController::getType() const
@@ -267,6 +273,8 @@ void AMCController::disconnect()
 *****************************************************************/
 bool AMCController::enableWriteAccess()
 {
+    unsigned char command[16];
+    unsigned int accum=0;
     int nbytes_written=0;
 
     // Address 07.00h
@@ -284,14 +292,11 @@ bool AMCController::enableWriteAccess()
     command[4] = 0;                 // Offset
     command[5] = 1;                 // 1 Word = 16bit
 
-    // Reset & Calculate CRC
-    ResetCRC();
-
     for (int i=0; i<=5; i++)
-            CrunchCRC(command[i]);
+            CrunchCRC(accum, command[i]);
 
-    CrunchCRC(0);
-    CrunchCRC(0);
+    CrunchCRC(accum,0);
+    CrunchCRC(accum,0);
 
     // CRC - MSB First
     command[6] =  accum >> 8;
@@ -312,14 +317,13 @@ bool AMCController::enableWriteAccess()
     **** END OF DATA SECTION ****
     ******************************/
 
-    // Reset & Calculate CRC
-    ResetCRC();
+    accum=0;
 
     for (int i=8; i<=9; i++)
-            CrunchCRC(command[i]);
+            CrunchCRC(accum, command[i]);
 
-    CrunchCRC(0);
-    CrunchCRC(0);
+    CrunchCRC(accum,0);
+    CrunchCRC(accum,0);
 
     // CRC - MSB First
     command[10] =  accum >> 8;
@@ -328,21 +332,27 @@ bool AMCController::enableWriteAccess()
     DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "EnableWriteAccess Command: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
                      command[0], command[1],command[2],command[3],command[4],command[5],command[6],command[7],command[8],command[9],command[10],command[11]);
 
+    lock_mutex();
+
     flushFD();
 
     if ( (nbytes_written = send(fd, command, 12, 0)) !=  12)
     {
         DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error gaining write access to %s drive. %s", type_name.c_str(), strerror(errno));
+        unlock_mutex();
         return false;
     }
 
     driveStatus status;
 
     if ( (status = readDriveStatus()) != AMC_COMMAND_COMPLETE)
-    {
+    {        
         DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "%s Drive status error: %s", __FUNCTION__, driveStatusString(status));
+        unlock_mutex();
         return false;
     }
+
+    unlock_mutex();
 
     return true;
 
@@ -354,8 +364,9 @@ bool AMCController::enableWriteAccess()
 *****************************************************************/
 bool AMCController::enableBridge()
 {
-    int err=0, nbytes_written=0;
-    char errmsg[MAXRBUF];
+    unsigned char command[16];
+    unsigned int accum=0;
+    int nbytes_written=0;
 
     // Address 01.00h
     // Offset 0
@@ -372,14 +383,13 @@ bool AMCController::enableBridge()
     command[4] = 0;                 // Offset
     command[5] = 1;                 // 1 Word = 16bit
 
-    // Reset & Calculate CRC
-    ResetCRC();
+    accum=0;
 
     for (int i=0; i<=5; i++)
-            CrunchCRC(command[i]);
+            CrunchCRC(accum, command[i]);
 
-    CrunchCRC(0);
-    CrunchCRC(0);
+    CrunchCRC(accum, 0);
+    CrunchCRC(accum, 0);
 
     // CRC - MSB First
     command[6] =  accum >> 8;
@@ -407,11 +417,14 @@ bool AMCController::enableBridge()
     DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "EnableBridge Command: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
                      command[0], command[1],command[2],command[3],command[4],command[5],command[6],command[7],command[8],command[9],command[10],command[11]);
 
+    lock_mutex();
+
     flushFD();
 
     if ( (nbytes_written = send(fd, command, 12, 0)) != 12)
     {
         DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error gaining write access to %s drive. %s", type_name.c_str(), strerror(errno));
+        unlock_mutex();
         return false;
     }
 
@@ -420,8 +433,11 @@ bool AMCController::enableBridge()
     if ( (status = readDriveStatus()) != AMC_COMMAND_COMPLETE)
     {
         DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "%s Drive status error: %s", __FUNCTION__, driveStatusString(status));
+        unlock_mutex();
         return false;
     }
+
+    unlock_mutex();
 
     return true;
 }
@@ -433,6 +449,8 @@ bool AMCController::enableBridge()
 bool AMCController::setMotion(motorMotion dir)
 {
     int nbytes_written=0;
+    unsigned char command[16];
+    unsigned int accum;
 
     // Address 45.00h
     // Offset 0
@@ -449,14 +467,13 @@ bool AMCController::setMotion(motorMotion dir)
     command[4] = 0;                 // Offset
     command[5] = 2;                 // 2 Words = 32bit
 
-    // Reset & Calculate CRC
-    ResetCRC();
+    accum=0;
 
     for (int i=0; i<=5; i++)
-            CrunchCRC(command[i]);
+            CrunchCRC(accum, command[i]);
 
-    CrunchCRC(0);
-    CrunchCRC(0);
+    CrunchCRC(accum, 0);
+    CrunchCRC(accum, 0);
 
     // CRC - MSB First
     command[6] =  accum >> 8;
@@ -484,14 +501,13 @@ bool AMCController::setMotion(motorMotion dir)
     **** END OF DATA SECTION ****
     ******************************/
 
-    // Reset & Calculate CRC
-    ResetCRC();
+    accum=0;
 
     for (int i=8; i<=11; i++)
-            CrunchCRC(command[i]);
+            CrunchCRC(accum, command[i]);
 
-    CrunchCRC(0);
-    CrunchCRC(0);
+    CrunchCRC(accum, 0);
+    CrunchCRC(accum, 0);
 
     // CRC - MSB First
     command[12] =  accum >> 8;
@@ -499,6 +515,8 @@ bool AMCController::setMotion(motorMotion dir)
 
     DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "SetMotion Command: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
                      command[0], command[1],command[2],command[3],command[4],command[5],command[6],command[7],command[8],command[9],command[10],command[11],command[12],command[13]);
+
+    lock_mutex();
 
     flushFD();
 
@@ -509,6 +527,7 @@ bool AMCController::setMotion(motorMotion dir)
         IUResetSwitch(&MotionControlSP);
         MotionControlS[MOTOR_STOP].s = ISS_ON;
         IDSetSwitch(&MotionControlSP, NULL);
+        unlock_mutex();
         return false;
     }
 
@@ -517,8 +536,11 @@ bool AMCController::setMotion(motorMotion dir)
     if ( (status = readDriveStatus()) != AMC_COMMAND_COMPLETE)
     {
         DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "%s Drive status error: %s", __FUNCTION__, driveStatusString(status));
+        unlock_mutex();
         return false;
     }
+
+    unlock_mutex();
 
     currentRPM = (dir == MOTOR_FORWARD ? targetRPM : targetRPM * -1);
 
@@ -546,6 +568,7 @@ bool AMCController::moveForward()
         DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG, "%s drive: Simulating forward command.", type_name.c_str());
         MotionControlSP.s = IPS_BUSY;
         IDSetSwitch(&MotionControlSP, NULL);
+        state = MOTOR_FORWARD;
         return true;
     }
 
@@ -596,12 +619,11 @@ bool AMCController::moveReverse()
         DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG, "%s drive: Simulating reverse command.", type_name.c_str());
         MotionControlSP.s = IPS_BUSY;
         IDSetSwitch(&MotionControlSP, NULL);
+        state = MOTOR_REVERSE;
         return true;
     }
 
     targetRPM = MotorSpeedN[0].value;
-
-
 
     bool rc = setMotion(MOTOR_REVERSE);
 
@@ -644,6 +666,7 @@ bool AMCController::stop()
         DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_SESSION, "%s drive: Simulating stop command.", type_name.c_str());
         MotionControlSP.s = IPS_IDLE;
         IDSetSwitch(&MotionControlSP, "%s drive is stopped", type_name.c_str());
+        state = MOTOR_STOP;
         return true;
      }
 
@@ -749,6 +772,13 @@ bool AMCController::updateProperties(bool connected)
         telescope->defineLight(&DriveStatusLP);
         telescope->defineLight(&DriveProtectionLP);
 
+        int err = pthread_create(&controller_thread, NULL, &AMCController::update_helper, this);
+        if (err != 0)
+        {
+            DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_ERROR, "%s controller: Can't create controller thread (%s)", type_name.c_str(), strerror(err));
+            return false;
+        }
+
     }
     else
     {
@@ -757,6 +787,8 @@ bool AMCController::updateProperties(bool connected)
         telescope->deleteProperty(ResetFaultSP.name);
         telescope->deleteProperty(DriveStatusLP.name);
         telescope->deleteProperty(DriveProtectionLP.name);
+
+        pthread_join(controller_thread, NULL);
     }
 }
 
@@ -879,6 +911,10 @@ int AMCController::openRS485Server (const char * host, int rs485_port)
     return (sockfd);
 }
 
+/****************************************************************
+**
+**
+*****************************************************************/
 bool AMCController::setupDriveParameters()
 {
     bool rc = false;
@@ -926,9 +962,15 @@ bool AMCController::setupDriveParameters()
     return rc;
 }
 
+/****************************************************************
+**
+**
+*****************************************************************/
 bool AMCController::setAcceleration(motorMotion dir, double rpmAcceleration)
 {
     int nbytes_written=0;
+    unsigned char command[16];
+    unsigned int accum;
 
     /*****************************
     *** START OF HEADER SECTION **
@@ -960,14 +1002,13 @@ bool AMCController::setAcceleration(motorMotion dir, double rpmAcceleration)
 
     command[5] = 3;     // 3 words (48 bit = 6 bytes)
 
-    // Reset & Calculate CRC
-    ResetCRC();
+    accum=0;
 
     for (int i=0; i<=5; i++)
-            CrunchCRC(command[i]);
+            CrunchCRC(accum,command[i]);
 
-    CrunchCRC(0);
-    CrunchCRC(0);
+    CrunchCRC(accum,0);
+    CrunchCRC(accum,0);
 
     // CRC - MSB First
     command[6] =  accum >> 8;
@@ -992,14 +1033,13 @@ bool AMCController::setAcceleration(motorMotion dir, double rpmAcceleration)
     command[12] = (accelValue >> 32) & 0xFF;
     command[13] = (accelValue >> 40) & 0xFF;
 
-    // Reset & Calculate CRC
-    ResetCRC();
+    accum=0;
 
     for (int i=8; i<=13; i++)
-            CrunchCRC(command[i]);
+            CrunchCRC(accum,command[i]);
 
-    CrunchCRC(0);
-    CrunchCRC(0);
+    CrunchCRC(accum,0);
+    CrunchCRC(accum,0);
 
     // CRC - MSB First
     command[14] =  accum >> 8;
@@ -1008,11 +1048,14 @@ bool AMCController::setAcceleration(motorMotion dir, double rpmAcceleration)
     DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "setAcceleration Command: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
                      command[0], command[1],command[2],command[3],command[4],command[5],command[6],command[7],command[8],command[9],command[10],command[11],command[12],command[13],command[14],command[15]);
 
+    lock_mutex();
+
     flushFD();
 
     if ( (nbytes_written = send(fd, command, 16, 0)) != 16)
     {
         DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error writing acceleration to %s drive. %s", type_name.c_str(), strerror(errno));
+        unlock_mutex();
         return false;
     }
 
@@ -1021,15 +1064,24 @@ bool AMCController::setAcceleration(motorMotion dir, double rpmAcceleration)
     if ( (status = readDriveStatus()) != AMC_COMMAND_COMPLETE)
     {
         DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "%s Drive status error: %s", __FUNCTION__, driveStatusString(status));
+        unlock_mutex();
         return false;
     }
+
+    unlock_mutex();
 
     return true;
 
 }
 
+/****************************************************************
+**
+**
+*****************************************************************/
 bool AMCController::setDeceleration(motorMotion dir, double rpmDeAcceleration)
 {
+    unsigned char command[16];
+    unsigned int accum;
     int nbytes_written=0;
 
     /*****************************
@@ -1062,14 +1114,13 @@ bool AMCController::setDeceleration(motorMotion dir, double rpmDeAcceleration)
 
     command[5] = 3;     // 3 words (48 bit = 6 bytes)
 
-    // Reset & Calculate CRC
-    ResetCRC();
+    accum=0;
 
     for (int i=0; i<=5; i++)
-            CrunchCRC(command[i]);
+            CrunchCRC(accum,command[i]);
 
-    CrunchCRC(0);
-    CrunchCRC(0);
+    CrunchCRC(accum,0);
+    CrunchCRC(accum,0);
 
     // CRC - MSB First
     command[6] =  accum >> 8;
@@ -1094,14 +1145,13 @@ bool AMCController::setDeceleration(motorMotion dir, double rpmDeAcceleration)
     command[12] = (accelValue >> 32) & 0xFF;
     command[13] = (accelValue >> 40) & 0xFF;
 
-    // Reset & Calculate CRC
-    ResetCRC();
+    accum=0;
 
     for (int i=8; i<=13; i++)
-            CrunchCRC(command[i]);
+            CrunchCRC(accum, command[i]);
 
-    CrunchCRC(0);
-    CrunchCRC(0);
+    CrunchCRC(accum,0);
+    CrunchCRC(accum,0);
 
     // CRC - MSB First
     command[14] =  accum >> 8;
@@ -1110,11 +1160,14 @@ bool AMCController::setDeceleration(motorMotion dir, double rpmDeAcceleration)
     DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "Set Decelration Command: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
                      command[0], command[1],command[2],command[3],command[4],command[5],command[6],command[7],command[8],command[9],command[10],command[11],command[12],command[13],command[14],command[15]);
 
+    lock_mutex();
+
     flushFD();
 
     if ( (nbytes_written = send(fd, command, 16, 0)) != 16)
     {
         DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error writing deceleration to %s drive. %s", type_name.c_str(), strerror(errno));
+        unlock_mutex();
         return false;
     }
 
@@ -1123,22 +1176,22 @@ bool AMCController::setDeceleration(motorMotion dir, double rpmDeAcceleration)
     if ( (status = readDriveStatus()) != AMC_COMMAND_COMPLETE)
     {
         DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "%s Drive status error: %s", __FUNCTION__, driveStatusString(status));
+        unlock_mutex();
         return false;
     }
+
+    unlock_mutex();
 
     return true;
 
 }
 
 
-void AMCController::ResetCRC()
-{
-    // Resets the Accumulator
-    // Call before each new CRCaccum = 0;
-    accum = 0;
-}
-
-void AMCController::CrunchCRC (char x)
+/****************************************************************
+**
+**
+*****************************************************************/
+void AMCController::CrunchCRC (unsigned int &accum, char x)
 {
     // Compute CRC using BitbyBit
     int i, k;
@@ -1159,6 +1212,10 @@ void AMCController::CrunchCRC (char x)
     }
 }
 
+/****************************************************************
+**
+**
+*****************************************************************/
 AMCController::driveStatus AMCController::readDriveStatus()
 {
     unsigned char response[8];
@@ -1270,6 +1327,10 @@ AMCController::driveStatus AMCController::readDriveStatus()
 
 }
 
+/****************************************************************
+**
+**
+*****************************************************************/
 AMCController::driveStatus AMCController::readDriveData(unsigned char *data, unsigned char len)
 {
     int nbytes_read=0;
@@ -1340,6 +1401,10 @@ AMCController::driveStatus AMCController::readDriveData(unsigned char *data, uns
 
 }
 
+/****************************************************************
+**
+**
+*****************************************************************/
 const char * AMCController::driveStatusString(driveStatus status)
 {
     switch (status)
@@ -1375,12 +1440,35 @@ const char * AMCController::driveStatusString(driveStatus status)
     }
 }
 
+/****************************************************************
+**
+**
+*****************************************************************/
+void AMCController::refresh()
+{
+     lock_mutex();
+     IDSetLight(&DriveStatusLP, NULL);
+     IDSetLight(&DriveProtectionLP, NULL);
+     unlock_mutex();
+}
+
+/****************************************************************
+**
+**
+*****************************************************************/
+void * AMCController::update_helper(void *context)
+{
+    ((AMCController*)context)->update();
+    return 0;
+}
+
+/****************************************************************
+**
+**
+*****************************************************************/
 bool AMCController::update()
 {
-    if (isDriveOnline() == false)
-        return true;
-
-    struct timeval now;
+    /*struct timeval now;
     gettimeofday (&now, NULL);
     if (((now.tv_sec - last_update.tv_sec) + ((now.tv_usec - last_update.tv_usec)/1e6)) > AMC_MAX_REFRESH)
     {
@@ -1389,11 +1477,14 @@ bool AMCController::update()
     }
     else
         return true;
+        */
 
     //TODO MUST Send heatbeat to driver. Configure drive to ABORT if heatbeat is missed.
     //TODO Set heartbeat for 2000ms in AMC drive to be safe.
 
     int nbytes_written=0;
+    unsigned char command[16];
+    unsigned int accum=0;
 
     // STATUS: Address 02.00h
     // Offset 0
@@ -1414,14 +1505,13 @@ bool AMCController::update()
     command[4] = 0;                 // Offset
     command[5] = 2;                 // 2 Words = 32bit
 
-    // Reset & Calculate CRC
-    ResetCRC();
+    accum=0;
 
     for (int i=0; i<=5; i++)
-            CrunchCRC(command[i]);
+            CrunchCRC(accum,command[i]);
 
-    CrunchCRC(0);
-    CrunchCRC(0);
+    CrunchCRC(accum,0);
+    CrunchCRC(accum,0);
 
     // CRC - MSB First
     command[6] =  accum >> 8;
@@ -1431,8 +1521,13 @@ bool AMCController::update()
     **** END OF HEADER SECTION ****
     ******************************/
 
-    DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "UpdateStatus Command: %02X %02X %02X %02X %02X %02X %02X %02X",
+    DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "UpdateStatus command: %02X %02X %02X %02X %02X %02X %02X %02X",
                      command[0], command[1],command[2],command[3],command[4],command[5],command[6],command[7]);
+
+    while (connection_status != -1)
+    {
+
+    lock_mutex();
 
     flushFD();
 
@@ -1488,8 +1583,13 @@ bool AMCController::update()
     DriveStatusLP.s = IPS_OK;
     DriveProtectionLP.s = IPS_OK;
 
-    IDSetLight(&DriveStatusLP, NULL);
-    IDSetLight(&DriveProtectionLP, NULL);
+    unlock_mutex();
+
+   // IDSetLight(&DriveStatusLP, NULL);
+   // IDSetLight(&DriveProtectionLP, NULL);
+
+    usleep(MAX_THREAD_WAIT);
+  }
 
     return true;
 
@@ -1497,8 +1597,12 @@ bool AMCController::update()
 
 bool AMCController::isProtectionTriggered()
 {
-    return (DriveProtectionL[2].s == IPS_ALERT || DriveProtectionL[3].s == IPS_ALERT || DriveProtectionL[4].s == IPS_ALERT ||
-            DriveProtectionL[5].s == IPS_ALERT || DriveProtectionL[6].s == IPS_ALERT);
+    bool triggered=false;
+    lock_mutex();
+    triggered =  (DriveProtectionL[2].s == IPS_ALERT || DriveProtectionL[3].s == IPS_ALERT || DriveProtectionL[4].s == IPS_ALERT || DriveProtectionL[5].s == IPS_ALERT || DriveProtectionL[6].s == IPS_ALERT);
+    unlock_mutex();
+
+    return triggered;
 }
 
 bool AMCController::resetFault()
@@ -1520,6 +1624,8 @@ bool AMCController::resetFault()
 bool AMCController::setControlParameter(unsigned short param)
 {
     int nbytes_written=0;
+    unsigned char command[16];
+    unsigned int accum=0;
 
     // Address 01.00h
     // Offset 0
@@ -1536,14 +1642,13 @@ bool AMCController::setControlParameter(unsigned short param)
     command[4] = 0;                 // Offset
     command[5] = 1;                 // 1 Word = 16bit
 
-    // Reset & Calculate CRC
-    ResetCRC();
+    accum=0;
 
     for (int i=0; i<=5; i++)
-            CrunchCRC(command[i]);
+            CrunchCRC(accum,command[i]);
 
-    CrunchCRC(0);
-    CrunchCRC(0);
+    CrunchCRC(accum,0);
+    CrunchCRC(accum,0);
 
     // CRC - MSB First
     command[6] =  accum >> 8;
@@ -1564,14 +1669,13 @@ bool AMCController::setControlParameter(unsigned short param)
     **** END OF DATA SECTION ****
     ******************************/
 
-    // Reset & Calculate CRC
-    ResetCRC();
+    accum=0;
 
     for (int i=8; i<=9; i++)
-            CrunchCRC(command[i]);
+            CrunchCRC(accum,command[i]);
 
-    CrunchCRC(0);
-    CrunchCRC(0);
+    CrunchCRC(accum,0);
+    CrunchCRC(accum,0);
 
     // CRC - MSB First
     command[10] =  accum >> 8;
@@ -1580,11 +1684,14 @@ bool AMCController::setControlParameter(unsigned short param)
     DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "SetControlParameter Command: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
                      command[0], command[1],command[2],command[3],command[4],command[5],command[6],command[7],command[8],command[9],command[10],command[11]);
 
+    lock_mutex();
+
     flushFD();
 
     if ( (nbytes_written = send(fd, command, 12, 0)) !=  12)
     {
         DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error gaining write access to %s drive. %s", type_name.c_str(), strerror(errno));
+        unlock_mutex();
         return false;
     }
 
@@ -1593,8 +1700,11 @@ bool AMCController::setControlParameter(unsigned short param)
     if ( (status = readDriveStatus()) != AMC_COMMAND_COMPLETE)
     {
         DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "%s Drive status error: %s", __FUNCTION__, driveStatusString(status));
+        unlock_mutex();
         return false;
     }
+
+    unlock_mutex();
 
     return true;
 
@@ -1629,5 +1739,44 @@ void AMCController::flushFD()
     while(select(fd+1,&rd,NULL,NULL,&t))
     {
         read(fd,buff,100);
+    }
+}
+
+/****************************************************************
+**
+**
+*****************************************************************/
+void AMCController::lock_mutex()
+{
+    switch (type)
+    {
+        case RA_MOTOR:
+          pthread_mutex_lock( &ra_motor_mutex );
+          break;
+
+       case DEC_MOTOR:
+            pthread_mutex_lock( &de_motor_mutex );
+            break;
+
+    }
+}
+
+/****************************************************************
+**
+**
+*****************************************************************/
+void AMCController::unlock_mutex()
+{
+
+    switch (type)
+    {
+        case RA_MOTOR:
+          pthread_mutex_unlock( &ra_motor_mutex );
+          break;
+
+       case DEC_MOTOR:
+            pthread_mutex_unlock( &de_motor_mutex );
+            break;
+
     }
 }

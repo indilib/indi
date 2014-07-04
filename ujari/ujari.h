@@ -115,12 +115,9 @@ public:
         struct timespec lastclockupdate;
         double juliandate;
 
-        //INumberVectorProperty *CurrentSteppersNP;
         INumberVectorProperty *JulianNP;
         INumberVectorProperty *TimeLSTNP;
         ITextVectorProperty *TimeUTCTP;
-        //ILightVectorProperty *RAStatusLP;
-        //ILightVectorProperty *DEStatusLP;
         INumberVectorProperty *SlewSpeedsNP;
         ISwitchVectorProperty *SlewModeSP;
         ISwitchVectorProperty *HemisphereSP;

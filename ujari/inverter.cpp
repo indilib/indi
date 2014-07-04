@@ -35,7 +35,13 @@
 #include "ujari.h"
 
 
-#define INVERTER_GROUP "Inverter"
+#define INVERTER_GROUP "Inverters"
+
+pthread_mutex_t dome_inverter_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t shutter_inverter_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+// Wait 200ms between updates
+#define MAX_THREAD_WAIT     200000
 
 const int ERROR_MAX_COUNT = 3;
 const double FREQ_DIFF_LIMIT = 0.5;
@@ -85,6 +91,7 @@ Inverter::Inverter(inverterType new_type, Ujari *scope) : OPERATION_COMMAND_ADDR
 Inverter::~Inverter()
 {
 	disconnect();
+    pthread_join(inverter_thread, NULL);
 }
 
 /****************************************************************
@@ -200,15 +207,13 @@ bool Inverter::connect()
 	   
     mb_param = modbus_new_tcp(PortT[0].text, 502);   
     modbus_set_slave(mb_param, SLAVE_ADDRESS);
-    modbus_set_debug(mb_param, debug ? TRUE : FALSE);  
+    modbus_set_debug(mb_param, debug ? TRUE : FALSE);
 
     if ( (connection_status = modbus_connect(mb_param)) == -1)
     {
        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_ERROR, "%s drive: Connection failed to inverter @ port %s", type_name.c_str(), PortT[0].text);
        return false;
     }
-
-    //modbus_set_response_timeout(mb_param, 0, 100000);
 
     modbus_set_error_recovery(mb_param, (modbus_error_recovery_mode) (MODBUS_ERROR_RECOVERY_LINK | MODBUS_ERROR_RECOVERY_PROTOCOL));
 
@@ -247,29 +252,51 @@ void Inverter::disconnect()
 **
 **
 *****************************************************************/
-bool Inverter::update()
+void Inverter::refresh()
 {
-    // Not connected yet, nothing to update
-    if (isDriveOnline() == false)
-        return true;
+    lock_mutex();
 
-    bool rc_status = update_status();    
-
-    if (StatusL[1].s == IPS_BUSY || StatusL[2].s == IPS_BUSY ||
-            (OutputFreqN[0].value > 0 && motionStatus == INVERTER_STOP))
+    if (fabs(OutputFreqN[0].value - InverterSpeedN[0].value) <= FREQ_DIFF_LIMIT)
     {
-        bool rc_freq   = update_freq();
-
-        if (fabs(OutputFreqN[0].value - InverterSpeedN[0].value) <= FREQ_DIFF_LIMIT)
-        {
-            OutputFreqNP.s = IPS_OK;
-            IDSetNumber(&OutputFreqNP, NULL);
-        }
-
-        return (rc_status && rc_freq);
+        OutputFreqNP.s = IPS_OK;
+        IDSetNumber(&OutputFreqNP, NULL);
     }
 
-    return (rc_status);
+    IDSetLight(&StatusLP, NULL);
+
+    unlock_mutex();
+}
+
+/****************************************************************
+**
+**
+*****************************************************************/
+void * Inverter::update_helper(void *context)
+{
+    ((Inverter *)context)->update();
+    return 0;
+}
+
+/****************************************************************
+**
+**
+*****************************************************************/
+bool Inverter::update()
+{
+
+    while (connection_status != -1)
+    {
+        lock_mutex();
+
+        update_status();
+        update_freq();
+
+        unlock_mutex();
+
+       usleep(MAX_THREAD_WAIT);
+    }
+
+    return true;
 }
 
 /****************************************************************
@@ -306,7 +333,7 @@ bool Inverter::update_status()
             StatusL[1].s = (Inverter_Status_Coils[1] == 1) ? IPS_BUSY : IPS_IDLE;
             StatusL[2].s = (Inverter_Status_Coils[2] == 1) ? IPS_BUSY : IPS_IDLE;
             StatusLP.s = IPS_OK;
-            IDSetLight(&StatusLP, NULL);
+            //IDSetLight(&StatusLP, NULL);
             return true;
        }
 
@@ -318,7 +345,7 @@ bool Inverter::update_status()
 
     DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "Failed to updated status of %s inverter", type_name.c_str());
     StatusLP.s = IPS_ALERT;
-    IDSetLight(&StatusLP, NULL);
+    //IDSetLight(&StatusLP, NULL);
 
     return false;
 }
@@ -352,7 +379,7 @@ bool Inverter::update_freq()
         {
             double outputFreq = (Output_Speed_Register[0] << 16) | Output_Speed_Register[1];
             OutputFreqN[0].value = outputFreq / 100.0;
-            IDSetNumber(&OutputFreqNP, NULL);
+            //IDSetNumber(&OutputFreqNP, NULL);
             return true;
         }
 
@@ -670,7 +697,13 @@ bool Inverter::updateProperties(bool connected)
         telescope->defineNumber(&InverterSpeedNP);
         telescope->defineNumber(&OutputFreqNP);
         telescope->defineLight(&StatusLP);
-        telescope->defineText(&PortTP);
+
+        int err = pthread_create(&inverter_thread, NULL, &Inverter::update_helper, this);
+        if (err != 0)
+        {
+            DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_ERROR, "%s encoder: Can't create inverter thread (%s)", type_name.c_str(), strerror(err));
+            return false;
+        }
     }
     else
     {
@@ -678,7 +711,8 @@ bool Inverter::updateProperties(bool connected)
         telescope->deleteProperty(InverterSpeedNP.name);
         telescope->deleteProperty(OutputFreqNP.name);
         telescope->deleteProperty(StatusLP.name);
-        telescope->deleteProperty(PortTP.name);
+
+        pthread_join(inverter_thread, NULL);
     }
 }
 
@@ -836,5 +870,39 @@ void Inverter::setDebug(bool enable)
         modbus_set_debug(mb_param, debug ? TRUE : FALSE);
 }
 
+/****************************************************************
+**
+**
+*****************************************************************/
+void Inverter::lock_mutex()
+{
+    switch (type)
+    {
+        case DOME_INVERTER:
+          pthread_mutex_lock( &dome_inverter_mutex );
+          break;
 
+       case SHUTTER_INVERTER:
+            pthread_mutex_lock( &shutter_inverter_mutex );
+            break;
 
+    }
+}
+
+/****************************************************************
+**
+**
+*****************************************************************/
+void Inverter::unlock_mutex()
+{
+    switch (type)
+    {
+        case DOME_INVERTER:
+          pthread_mutex_unlock( &dome_inverter_mutex );
+          break;
+
+       case SHUTTER_INVERTER:
+          pthread_mutex_unlock( &shutter_inverter_mutex );
+          break;
+    }
+}

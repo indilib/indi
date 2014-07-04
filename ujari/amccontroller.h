@@ -82,7 +82,6 @@ public:
     bool stop();
     bool enableMotion();
 
-    bool update();
     bool resetFault();
     bool setControlParameter(unsigned short command);
     bool isProtectionTriggered();
@@ -100,12 +99,16 @@ public:
     motorMotion getMotionStatus() { return state; }
     bool isMotionActive();
 
+    // Update
+    static void * update_helper(void *context);
+    bool update();
+    void refresh();
+
 private:
 
     int openRS485Server (const char *host, int rs485_port);
     bool setupDriveParameters();
-    void ResetCRC();
-    void CrunchCRC (char x);
+    void CrunchCRC (unsigned int &accum, char x);
 
     bool enableWriteAccess();
     bool enableBridge();
@@ -120,6 +123,9 @@ private:
     void flushFD();
 
     const char *driveStatusString(driveStatus status);
+
+    void lock_mutex();
+    void unlock_mutex();
 
     // Inverter Port
     ITextVectorProperty PortTP;
@@ -155,12 +161,12 @@ private:
     int fd;
     unsigned char SLAVE_ADDRESS;
     const unsigned int Gr1;
-    unsigned int accum;
-    unsigned char command[16];
     double currentRPM, targetRPM;
     struct timeval last_update;
 
     Ujari *telescope;
+
+    pthread_t controller_thread;
    
 };
 

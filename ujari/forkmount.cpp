@@ -215,6 +215,10 @@ bool ForkMount::Disconnect() throw (UjariError)
   }
   */
 
+  RAMotor->disconnect();
+  DEMotor->disconnect();
+  RAEncoder->disconnect();
+  DEEncoder->disconnect();
   if (!isSimulation())
   {
 
@@ -508,6 +512,12 @@ void ForkMount::ReadMotorStatus(ForkMountAxis axis)  throw (UjariError)
         RAEncoder->setDirection(Encoder::EN_CW);
         RAStatus.direction=FORWARD;
     }
+
+    if (simulation)
+    {
+        double speed = RARunning ? RAMotor->getSpeed() : 0;
+        RAEncoder->simulateEncoder(speed);
+    }
     break;
   case Axis2:
       DEInitialized=DEMotor->isDriveOnline();
@@ -524,6 +534,11 @@ void ForkMount::ReadMotorStatus(ForkMountAxis axis)  throw (UjariError)
       {
           DEEncoder->setDirection(Encoder::EN_CW);
           DEStatus.direction=FORWARD;
+      }
+      if (simulation)
+      {
+          double speed = DERunning ? DEMotor->getSpeed() : 0;
+          DEEncoder->simulateEncoder(speed);
       }
 
   default: ;
@@ -1092,18 +1107,11 @@ bool ForkMount::update()
 {
     double separation, speed;
 
-    if (simulation)
-    {
-        if (/*RAStatus.slewmode == GOTO && */RAMotor->isMotionActive())
-            RAEncoder->simulateEncoder(RAMotor->getSpeed());
-        if (/*DEStatus.slewmode == GOTO && */DEMotor->isMotionActive())
-            DEEncoder->simulateEncoder(DEMotor->getSpeed());
-    }
+    ReadMotorStatus(Axis1);
+    ReadMotorStatus(Axis2);
 
-    bool raEncoderRC  = RAEncoder->update();
-    bool deEncoderRC  = DEEncoder->update();
-    bool raMotorRC    = RAMotor->update();
-    bool decMotorRC   = DEMotor->update();
+    RAMotor->refresh();
+    DEMotor->refresh();
 
     RAStep = RAEncoder->GetEncoder();
     DEStep = DEEncoder->GetEncoder();
@@ -1156,7 +1164,7 @@ bool ForkMount::update()
         }
     }
 
-    return (raMotorRC && decMotorRC);
+    return true;
 }
 
 double ForkMount::GetRADiff()

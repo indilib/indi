@@ -66,7 +66,7 @@ class Inverter
 
           bool connect();
           void disconnect();
-          bool update();
+
 
         bool is_in_motion();
         // Simulation
@@ -83,17 +83,21 @@ class Inverter
         virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
         virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
 
-
-
         void reset_all_properties();
 
         void setVerbose(bool enable) { verbose = enable; }
 
+
+
+        // Update
+        static void * update_helper(void *context);
+        bool update();
+        void refresh();
+
     private:
 
-        // Modbus functions
-        bool enable_drive();
-        bool disable_drive();
+        void lock_mutex();
+        void unlock_mutex();
 
         // INDI Properties
 
@@ -155,6 +159,8 @@ class Inverter
         uint8_t Inverter_Status_Coils[3];
         // Source Frequency in Hz
         uint16_t Hz_Speed_Register[2];
+
+        pthread_t inverter_thread;
 
 };
 

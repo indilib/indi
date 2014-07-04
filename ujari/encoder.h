@@ -72,10 +72,15 @@ public:
         void setDirection(encoderDirection dir);
         void simulateEncoder(double speed);
 
+        // Update
+        static void * update_helper(void *context);
+
 private:
 
         unsigned long readEncoder();
         int getEncoderDiff(unsigned long startEncoder, unsigned long endEncoder);
+        void lock_mutex();
+        void unlock_mutex();
 
         // Encoder settings
         INumber encoderSettingsN[3];
@@ -98,10 +103,13 @@ private:
 
         unsigned long startupEncoderValue;
         unsigned long lastEncoderRaw;
+        double lastEncoderValue;
 
         double simSpeed;
 
         Ujari *telescope;
+
+        pthread_t encoder_thread;
    
 };
 

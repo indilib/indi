@@ -15,42 +15,6 @@
 0.3
 </defNumber>
 </defNumberVector>
-<defNumberVector device="Ujari Observatory" name="CURRENTSTEPPERS" label="Stepper Position" group="Motor Status" state="Idle" perm="ro">
-<defNumber name="RAStepsCurrent" label="RA Steps" format="%.0f" min="0.0" max="16777215.0" step="1.0">
-1.0
-</defNumber>
-<defNumber name="DEStepsCurrent" label="DE Steps" format="%.0f" min="0.0" max="16777215.0" step="1.0">
-1.0
-</defNumber>
-</defNumberVector>
-<defLightVector device="Ujari Observatory" name="RASTATUS" label="RA Motor Status" group="Motor Status" state="Idle" perm="ro">
-    <defLight name="RAInitialized" label="Initialized">
-Alert
-    </defLight>
-    <defLight name="RARunning" label="Running">
-Idle
-    </defLight>
-    <defLight name="RAGoto" label="Slew/Goto">
-Idle
-    </defLight>
-    <defLight name="RAForward" label="Backward/Forward">
-Idle
-    </defLight>
-</defLightVector>
-<defLightVector device="Ujari Observatory" name="DESTATUS" label="DE Motor Status" group="Motor Status" state="Idle" perm="ro">
-    <defLight name="DEInitialized" label="Initialized">
-Alert
-    </defLight>
-    <defLight name="DERunning" label="Running">
-Idle
-    </defLight>
-    <defLight name="DEGoto" label="Slew/Goto">
-Idle
-    </defLight>
-    <defLight name="DEForward" label="Backward/Forward">
-Idle
-    </defLight>
-</defLightVector>
 <defNumberVector device="Ujari Observatory" name="JULIAN" label="JD" group="Site Management" state="Idle" perm="ro">
 <defNumber name="JULIANDATE" label="Julian Date" format="%8.8f" min="0.0" max="9999999999.0" step="0.00000000001">
 0.0
@@ -180,39 +144,6 @@ Off
 On
 </defSwitch>
 <defSwitch name="SOUTH" label="South">
-Off
-</defSwitch>
-</defSwitchVector>
-<defNumberVector device="Ujari Observatory" name="STANDARDSYNC" label="Delta" group="Sync" state="Idle" perm="ro">
-<defNumber name="STANDARDSYNC_RA" label="Delta RA (hh:mm:ss)" format="%010.6m" min="0.0" max="24.0" step="0.0">
-0.0
-</defNumber>
-<defNumber name="STANDARDSYNC_DE" label="Delta DE (dd:mm:ss)" format="%010.6m" min="-90.0" max="90.0" step="0.0">
-0.0
-</defNumber>
-</defNumberVector>
-<defNumberVector device="Ujari Observatory" name="STANDARDSYNCPOINT" label="Sync Data" group="Sync" state="Idle" perm="rw">
-<defNumber name="STANDARDSYNCPOINT_JD" label="Sync Date" format="%08.8f" min="0.0" max="9999999999" step="0.0">
-0.0
-</defNumber>
-<defNumber name="STANDARDSYNCPOINT_SYNCTIME" label="Sync LST" format="%010.6m" min="0.0" max="24.0" step="0.000000000001">
-0.0
-</defNumber>
-<defNumber name="STANDARDSYNCPOINT_CELESTIAL_RA" label="Celestial RA (hh:mm:ss)" format="%010.6m" min="0.0" max="24.0" step="0.0">
-0.0
-</defNumber>
-<defNumber name="STANDARDSYNCPOINT_CELESTIAL_DE" label="Celestial DE (dd:mm:ss)" format="%010.6m" min="-90.0" max="90.0" step="0.0">
-0.0
-</defNumber>
-<defNumber name="STANDARDSYNCPOINT_TELESCOPE_RA" label="Telescope RA (hh:mm:ss)" format="%010.6m" min="0.0" max="24.0" step="0.0">
-0.0
-</defNumber>
-<defNumber name="STANDARDSYNCPOINT_TELESCOPE_DE" label="Telescope DE (dd:mm:ss)" format="%010.6m" min="-90.0" max="90.0" step="0.0">
-0.0
-</defNumber>
-</defNumberVector>
-<defSwitchVector device="Ujari Observatory" name="SYNCMANAGE" label="Manage Sync" group="Sync" state="Idle" perm="rw" rule="OneOfMany">
-<defSwitch name="SYNCCLEARDELTA" label="Clear Sync Delta">
 Off
 </defSwitch>
 </defSwitchVector>
