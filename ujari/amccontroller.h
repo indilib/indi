@@ -102,7 +102,6 @@ public:
     // Update
     static void * update_helper(void *context);
     bool update();
-    void refresh();
 
 private:
 

@@ -40,7 +40,7 @@
 pthread_mutex_t dome_inverter_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t shutter_inverter_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-// Wait 200ms between updates
+// Wait 500ms between updates
 #define MAX_THREAD_WAIT     200000
 
 const int ERROR_MAX_COUNT = 3;
@@ -207,7 +207,7 @@ bool Inverter::connect()
 	   
     mb_param = modbus_new_tcp(PortT[0].text, 502);   
     modbus_set_slave(mb_param, SLAVE_ADDRESS);
-    modbus_set_debug(mb_param, debug ? TRUE : FALSE);
+    //modbus_set_debug(mb_param, debug ? TRUE : FALSE);
 
     if ( (connection_status = modbus_connect(mb_param)) == -1)
     {
@@ -216,6 +216,8 @@ bool Inverter::connect()
     }
 
     modbus_set_error_recovery(mb_param, (modbus_error_recovery_mode) (MODBUS_ERROR_RECOVERY_LINK | MODBUS_ERROR_RECOVERY_PROTOCOL));
+
+    stop();
 
     update_status();
 
@@ -252,25 +254,6 @@ void Inverter::disconnect()
 **
 **
 *****************************************************************/
-void Inverter::refresh()
-{
-    lock_mutex();
-
-    if (fabs(OutputFreqN[0].value - InverterSpeedN[0].value) <= FREQ_DIFF_LIMIT)
-    {
-        OutputFreqNP.s = IPS_OK;
-        IDSetNumber(&OutputFreqNP, NULL);
-    }
-
-    IDSetLight(&StatusLP, NULL);
-
-    unlock_mutex();
-}
-
-/****************************************************************
-**
-**
-*****************************************************************/
 void * Inverter::update_helper(void *context)
 {
     ((Inverter *)context)->update();
@@ -290,6 +273,36 @@ bool Inverter::update()
 
         update_status();
         update_freq();
+
+        if (MotionControlSP.s == IPS_ALERT)
+        {
+            if (StatusL[1].s == IPS_BUSY)
+            {
+                IUResetSwitch(&MotionControlSP);
+                MotionControlS[1].s = ISS_ON;
+                MotionControlSP.s = IPS_BUSY;
+            }
+            else if (StatusL[2].s == IPS_BUSY)
+            {
+                IUResetSwitch(&MotionControlSP);
+                MotionControlS[2].s = ISS_ON;
+                MotionControlSP.s = IPS_BUSY;
+            }
+            else
+            {
+                IUResetSwitch(&MotionControlSP);
+                MotionControlS[0].s = ISS_ON;
+                MotionControlSP.s = IPS_IDLE;
+            }
+
+        IDSetSwitch(&MotionControlSP, NULL);
+        }
+
+        if (fabs(OutputFreqN[0].value - InverterSpeedN[0].value) <= FREQ_DIFF_LIMIT)
+             OutputFreqNP.s = IPS_OK;
+
+        IDSetNumber(&OutputFreqNP, NULL);
+        IDSetLight(&StatusLP, NULL);
 
         unlock_mutex();
 
@@ -337,11 +350,12 @@ bool Inverter::update_status()
             return true;
        }
 
-       DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "%s #%i: Inverter Status Command ERROR (%s). modbus_read_bits ret=%d", type_name.c_str(), i+1, modbus_strerror(ret), ret);
-       DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "#%i: Slave = %d, address = 0x%X, nb = %d", i+1, SLAVE_ADDRESS, INVERTER_STATUS_ADDRESS, 3);
 
-       usleep(ERROR_TIMEOUT);
+       //usleep(ERROR_TIMEOUT);
      }
+
+    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "%s: Inverter Status Command ERROR (%s). modbus_read_bits ret=%d", type_name.c_str(), modbus_strerror(ret), ret);
+    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "Slave = %d, address = 0x%X, nb = %d", SLAVE_ADDRESS, INVERTER_STATUS_ADDRESS, 3);
 
     DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "Failed to updated status of %s inverter", type_name.c_str());
     StatusLP.s = IPS_ALERT;
@@ -383,13 +397,13 @@ bool Inverter::update_freq()
             return true;
         }
 
-        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG, "%s #%d read_speed ERROR (%s) read  holding_registers (%d)", type_name.c_str(), i+1, modbus_strerror(ret), ret);
-        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG,"#%d Slave = %d, address = 0x%X, nb = %d", i+1, SLAVE_ADDRESS, FREQ_OUTPUT_ADDRESS, 2);
-        usleep(ERROR_TIMEOUT);
+        //usleep(ERROR_TIMEOUT);
   }
 
 
-  DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_ERROR,"Error: could not update speed for %s drive.", type_name.c_str());
+  DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG, "%s read_speed ERROR (%s) read  holding_registers (%d)", type_name.c_str(), modbus_strerror(ret), ret);
+  DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG,"Slave = %d, address = 0x%X, nb = %d", SLAVE_ADDRESS, FREQ_OUTPUT_ADDRESS, 2);
+  DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG,"Error: could not update speed for %s drive.", type_name.c_str());
   return false;
 
 }
@@ -445,27 +459,25 @@ bool Inverter::moveForward()
 
           if (ret == 1)
           {
-            MotionControlSP.s = IPS_BUSY;
 
             if (verbose)
-                DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_SESSION, "%s drive is moving %s", type_name.c_str(), forward_motion.c_str());
-
-            IDSetSwitch(&MotionControlSP, NULL);
+                DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_SESSION, "%s drive is moving %s", type_name.c_str(), forward_motion.c_str());            
 
             motionStatus = INVERTER_FORWARD;
 
-            update_status();
+            MotionControlSP.s = IPS_BUSY;
+            IDSetSwitch(&MotionControlSP, NULL);
 
             return true;
           }
        }
 
-       DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "#%d: Forward Command ERROR (%s). force_multiple_coils (%d)", i+1, modbus_strerror(ret), ret);
-       DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "#%d: Slave = %d, address = 0x%X, nb = %d\n", i+1, SLAVE_ADDRESS, OPERATION_COMMAND_ADDRESS, 2);
-
-       usleep(ERROR_TIMEOUT);
+       //usleep(ERROR_TIMEOUT);
      }
 
+
+    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "Forward Command ERROR (%s). force_multiple_coils (%d)", modbus_strerror(ret), ret);
+    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "Slave = %d, address = 0x%X, nb = %d\n", SLAVE_ADDRESS, OPERATION_COMMAND_ADDRESS, 2);
 
     Motion_Control_Coils[0] = 0;
     Motion_Control_Coils[1] = 0;
@@ -518,26 +530,23 @@ bool Inverter::moveReverse()
            if (ret == 1)
            {
 
-            MotionControlSP.s = IPS_BUSY;
-
             if (verbose)
                 DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_SESSION, "%s drive is moving %s", type_name.c_str(), reverse_motion.c_str());
 
-            IDSetSwitch(&MotionControlSP, NULL);
-
             motionStatus = INVERTER_REVERSE;
 
-            update_status();
+            MotionControlSP.s = IPS_BUSY;
+            IDSetSwitch(&MotionControlSP, NULL);
 
             return true;
            }
        }
 
-       DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "#%d Reverse Command ERROR (%s). force_multiple_coils (%d)", i+1, modbus_strerror(ret), ret);
-       DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "#%d Slave = %d, address = 0x%X, nb = %d", i+1, SLAVE_ADDRESS, OPERATION_COMMAND_ADDRESS, 2);
-       usleep(ERROR_TIMEOUT);
+       //usleep(ERROR_TIMEOUT);
      }
 
+    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "Reverse Command ERROR (%s). force_multiple_coils (%d)", modbus_strerror(ret), ret);
+    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "Slave = %d, address = 0x%X, nb = %d", SLAVE_ADDRESS, OPERATION_COMMAND_ADDRESS, 2);
 
     Motion_Control_Coils[0] = 0;
     Motion_Control_Coils[1] = 0;
@@ -562,8 +571,8 @@ bool Inverter::stop()
         return false;
 
     // Already moving forward
-    if (motionStatus == INVERTER_STOP)
-        return true;
+    //if (motionStatus == INVERTER_STOP)
+        //return true;
 
     Motion_Control_Coils[INVERTER_OPERATION] = MODBUS_STOP;
 
@@ -581,26 +590,23 @@ bool Inverter::stop()
        ret = modbus_write_bit(mb_param, OPERATION_COMMAND_ADDRESS, 0);
 
        if (ret == 1)
-       {
-            MotionControlSP.s = IPS_IDLE;
-
+       {           
             if (verbose)
                 DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_SESSION, "%s drive stoppped.", type_name.c_str());
 
             IDSetSwitch(&MotionControlSP, NULL);
 
+            MotionControlSP.s = IPS_IDLE;
             motionStatus = INVERTER_STOP;
-
-            update_status();
 
             return true;
        }
 
-       DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "#%d Stop Command ERROR (%s). force_multiple_coils (%d)", i+1, modbus_strerror(ret), ret);
-       DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "#%d Slave = %d, address = 0x%X, nb = %d", i+1, SLAVE_ADDRESS, OPERATION_COMMAND_ADDRESS, 1);
-       usleep(ERROR_TIMEOUT);
+       //usleep(ERROR_TIMEOUT);
      }
 
+    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "Stop Command ERROR (%s). force_multiple_coils (%d)", modbus_strerror(ret), ret);
+    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "Slave = %d, address = 0x%X, nb = %d", SLAVE_ADDRESS, OPERATION_COMMAND_ADDRESS, 1);
     Motion_Control_Coils[0] = 0;
     Motion_Control_Coils[1] = 0;
     MotionControlSP.s = IPS_ALERT;
@@ -668,18 +674,17 @@ bool Inverter::setSpeed(float newHz)
                 return true;
             }
 
-           usleep(ERROR_TIMEOUT);
+           //usleep(ERROR_TIMEOUT);
        }
 
         return true;
     }
 
-    DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG, "#%d setSpeed ERROR (%s) read or write holding_registers (%d)", i+1, modbus_strerror(ret), ret);
-    DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG,"#%d Slave = %d, address = 0x%X, nb = %d", i+1, SLAVE_ADDRESS, FREQ_SOURCE_ADDRESS, 2);
-
-       usleep(ERROR_TIMEOUT);
+       //usleep(ERROR_TIMEOUT);
   }
 
+    DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG, "setSpeed ERROR (%s) read or write holding_registers (%d)", modbus_strerror(ret), ret);
+    DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG,"Slave = %d, address = 0x%X, nb = %d", SLAVE_ADDRESS, FREQ_SOURCE_ADDRESS, 2);
   DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_ERROR,"Error: could not update speed for %s drive.", type_name.c_str());
   return false;
 	
@@ -778,8 +783,13 @@ bool Inverter::ISNewSwitch (const char *dev, const char *name, ISState *states, 
 	{
         bool rc = false;
 
+        lock_mutex();
+
 		if (IUUpdateSwitch(&MotionControlSP, states, names, n) < 0)
+        {
+            unlock_mutex();
             return false;
+        }
 			
 		if (MotionControlS[INVERTER_STOP].s == ISS_ON)
           rc = stop();
@@ -810,6 +820,8 @@ bool Inverter::ISNewSwitch (const char *dev, const char *name, ISState *states, 
         }
 
         IDSetSwitch(&MotionControlSP, NULL);
+
+        unlock_mutex();
 
         return true;
      }
@@ -866,8 +878,8 @@ bool Inverter::is_in_motion()
 void Inverter::setDebug(bool enable)
 {
     debug = enable;
-    if (mb_param != NULL)
-        modbus_set_debug(mb_param, debug ? TRUE : FALSE);
+    //if (mb_param != NULL)
+        //modbus_set_debug(mb_param, debug ? TRUE : FALSE);
 }
 
 /****************************************************************

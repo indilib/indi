@@ -169,7 +169,7 @@ void ForkMount::ISGetProperties(const char *dev)
 bool ForkMount::updateProperties()
 {
     RAMotor->updateProperties(telescope->isConnected());
-    DEMotor->updateProperties(telescope->isConnected());
+    DEMotor->updateProperties(telescope->isConnected());    
     RAEncoder->updateProperties(telescope->isConnected());
     DEEncoder->updateProperties(telescope->isConnected());
 }
@@ -182,8 +182,8 @@ bool ForkMount::Connect()  throw (UjariError)
 
   raMotorRC    = RAMotor->connect();
   decMotorRC   = DEMotor->connect();
-  raEncoderRC  = true;//RAEncoder->connect();
-  decEncoderRC = true;//DEEncoder->connect();
+  raEncoderRC  = RAEncoder->connect();
+  decEncoderRC = DEEncoder->connect();
 
   if (raMotorRC && decMotorRC && raEncoderRC && decEncoderRC)
       return true;
@@ -1109,9 +1109,6 @@ bool ForkMount::update()
 
     ReadMotorStatus(Axis1);
     ReadMotorStatus(Axis2);
-
-    RAMotor->refresh();
-    DEMotor->refresh();
 
     RAStep = RAEncoder->GetEncoder();
     DEStep = DEEncoder->GetEncoder();

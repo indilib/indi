@@ -257,12 +257,6 @@ unsigned long Encoder::GetEncoder()  throw (UjariError)
 {       
     lock_mutex();
     unsigned long value = static_cast<unsigned long>(encoderValueN[0].value);
-
-    if (lastEncoderValue != encoderValueN[0].value)
-    {
-        IDSetNumber(&encoderValueNP, NULL);
-        lastEncoderValue = encoderValueN[0].value;
-    }
     unlock_mutex();
 
     return value;
@@ -355,10 +349,15 @@ bool Encoder::update()
 
         encoderValueN[0].value += getEncoderDiff(lastEncoderRaw, encoderRaw);
 
-        unlock_mutex();
-
         lastEncoderRaw = encoderRaw;
 
+        if (lastEncoderValue != encoderValueN[0].value)
+        {
+            IDSetNumber(&encoderValueNP, NULL);
+            lastEncoderValue = encoderValueN[0].value;
+        }
+
+        unlock_mutex();
         usleep(MAX_THREAD_WAIT);
     }
 

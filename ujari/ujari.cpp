@@ -533,9 +533,6 @@ void Ujari::TimerHit()
       bool rc;
 
       mount->update();
-      //domeEncoder->update();
-      dome->refresh();
-      shutter->refresh();
       rc=ReadScopeStatus();
 
       //IDLog("TrackState after read is %d\n",TrackState);
