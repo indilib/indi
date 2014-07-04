@@ -31,6 +31,7 @@
 #include <locale.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <pthread.h>
 
 #include "lilxml.h"
 #include "base64.h"
@@ -38,6 +39,8 @@
 #include "indidevapi.h"
 #include "indicom.h"
 #include "indidriver.h"
+
+pthread_mutex_t stdout_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 #define MAXRBUF 2048
 
@@ -89,6 +92,8 @@ char * escapeXML(const char *s, unsigned int MAX_BUF_SIZE)
 void
 IDDelete (const char *dev, const char *name, const char *fmt, ...)
 {
+    pthread_mutex_lock(&stdout_mutex);
+
 	xmlv1();
 	printf ("<delProperty\n  device='%s'\n", dev);
 	if (name)
@@ -104,6 +109,8 @@ IDDelete (const char *dev, const char *name, const char *fmt, ...)
 	}
 	printf ("/>\n");
 	fflush (stdout);
+
+    pthread_mutex_unlock(&stdout_mutex);
 }
 
 /* tell indiserver we want to snoop on the given device/property.
@@ -112,6 +119,7 @@ IDDelete (const char *dev, const char *name, const char *fmt, ...)
 void
 IDSnoopDevice (const char *snooped_device_name, const char *snooped_property_name)
 {
+    pthread_mutex_lock(&stdout_mutex);
 	xmlv1();
 	if (snooped_property_name && snooped_property_name[0])
 	    printf ("<getProperties device='%s' name='%s'/>\n",
@@ -119,6 +127,7 @@ IDSnoopDevice (const char *snooped_device_name, const char *snooped_property_nam
 	else
 	    printf ("<getProperties device='%s'/>\n", snooped_device_name);
 	fflush (stdout);
+    pthread_mutex_unlock(&stdout_mutex);
 }
 
 /* tell indiserver whether we want BLOBs from the given snooped device.
@@ -136,10 +145,12 @@ IDSnoopBLOBs (const char *snooped_device, BLOBHandling bh)
 	default: return;
 	}
 
+    pthread_mutex_lock(&stdout_mutex);
 	xmlv1();
 	printf ("<enableBLOB device='%s'>%s</enableBLOB>\n",
 						snooped_device, how);
 	fflush (stdout);
+    pthread_mutex_unlock(&stdout_mutex);
 }
 
 /* "INDI" wrappers to the more generic eventloop facility. */
@@ -1200,6 +1211,8 @@ void
 IDMessage (const char *dev, const char *fmt, ...)
 {
 
+    pthread_mutex_lock(&stdout_mutex);
+
         xmlv1();
         printf ("<message\n");
         if (dev)
@@ -1215,6 +1228,8 @@ IDMessage (const char *dev, const char *fmt, ...)
         }
         printf ("/>\n");
         fflush (stdout);
+
+     pthread_mutex_unlock(&stdout_mutex);
 }
 
 FILE * IUGetConfigFP(const char *filename, const char *dev, char errmsg[])
@@ -1361,6 +1376,8 @@ IDDefText (const ITextVectorProperty *tvp, const char *fmt, ...)
         int i;
         ROSC *SC;
 
+        pthread_mutex_lock(&stdout_mutex);
+
         xmlv1();
         setlocale(LC_NUMERIC,"C");
         printf ("<defTextVector\n");
@@ -1406,6 +1423,8 @@ IDDefText (const ITextVectorProperty *tvp, const char *fmt, ...)
 
         setlocale(LC_NUMERIC,"");
         fflush (stdout);
+
+        pthread_mutex_unlock(&stdout_mutex);
 }
 
 /* tell client to create a new numeric vector property */
@@ -1414,6 +1433,8 @@ IDDefNumber (const INumberVectorProperty *n, const char *fmt, ...)
 {
         int i;
         ROSC *SC;
+
+        pthread_mutex_lock(&stdout_mutex);
 
         xmlv1();
         setlocale(LC_NUMERIC,"C");
@@ -1471,6 +1492,8 @@ IDDefNumber (const INumberVectorProperty *n, const char *fmt, ...)
 
         setlocale(LC_NUMERIC,"");
         fflush (stdout);
+
+        pthread_mutex_unlock(&stdout_mutex);
 }
 
 /* tell client to create a new switch vector property */
@@ -1480,6 +1503,8 @@ IDDefSwitch (const ISwitchVectorProperty *s, const char *fmt, ...)
 {
         int i;
         ROSC *SC;
+
+        pthread_mutex_lock(&stdout_mutex);
 
         xmlv1();
         setlocale(LC_NUMERIC,"C");
@@ -1527,6 +1552,8 @@ IDDefSwitch (const ISwitchVectorProperty *s, const char *fmt, ...)
 
         setlocale(LC_NUMERIC,"");
         fflush (stdout);
+
+        pthread_mutex_unlock(&stdout_mutex);
 }
 
 /* tell client to create a new lights vector property */
@@ -1534,6 +1561,8 @@ void
 IDDefLight (const ILightVectorProperty *lvp, const char *fmt, ...)
 {
         int i;
+
+        pthread_mutex_lock(&stdout_mutex);
 
         xmlv1();
         printf ("<defLightVector\n");
@@ -1564,6 +1593,8 @@ IDDefLight (const ILightVectorProperty *lvp, const char *fmt, ...)
 
         printf ("</defLightVector>\n");
         fflush (stdout);
+
+        pthread_mutex_unlock(&stdout_mutex);
 }
 
 /* tell client to create a new BLOB vector property */
@@ -1572,6 +1603,8 @@ IDDefBLOB (const IBLOBVectorProperty *b, const char *fmt, ...)
 {
   int i;
   ROSC *SC;
+
+  pthread_mutex_lock(&stdout_mutex);
 
         xmlv1();
         setlocale(LC_NUMERIC,"C");
@@ -1617,6 +1650,8 @@ IDDefBLOB (const IBLOBVectorProperty *b, const char *fmt, ...)
 
         setlocale(LC_NUMERIC,"");
         fflush (stdout);
+
+        pthread_mutex_unlock(&stdout_mutex);
 }
 
 /* tell client to update an existing text vector property */
@@ -1624,6 +1659,8 @@ void
 IDSetText (const ITextVectorProperty *tvp, const char *fmt, ...)
 {
         int i;
+
+        pthread_mutex_lock(&stdout_mutex);
 
         xmlv1();
         setlocale(LC_NUMERIC,"C");
@@ -1653,6 +1690,8 @@ IDSetText (const ITextVectorProperty *tvp, const char *fmt, ...)
         printf ("</setTextVector>\n");
         setlocale(LC_NUMERIC,"");
         fflush (stdout);
+
+        pthread_mutex_unlock(&stdout_mutex);
 }
 
 /* tell client to update an existing numeric vector property */
@@ -1660,6 +1699,8 @@ void
 IDSetNumber (const INumberVectorProperty *nvp, const char *fmt, ...)
 {
         int i;
+
+        pthread_mutex_lock(&stdout_mutex);
 
         xmlv1();
         setlocale(LC_NUMERIC,"C");
@@ -1689,6 +1730,8 @@ IDSetNumber (const INumberVectorProperty *nvp, const char *fmt, ...)
         printf ("</setNumberVector>\n");
         setlocale(LC_NUMERIC,"");
         fflush (stdout);
+
+        pthread_mutex_unlock(&stdout_mutex);
 }
 
 /* tell client to update an existing switch vector property */
@@ -1696,6 +1739,8 @@ void
 IDSetSwitch (const ISwitchVectorProperty *svp, const char *fmt, ...)
 {
         int i;
+
+        pthread_mutex_lock(&stdout_mutex);
 
         xmlv1();
         setlocale(LC_NUMERIC,"C");
@@ -1725,6 +1770,8 @@ IDSetSwitch (const ISwitchVectorProperty *svp, const char *fmt, ...)
         printf ("</setSwitchVector>\n");
         setlocale(LC_NUMERIC,"");
        fflush (stdout);
+
+       pthread_mutex_unlock(&stdout_mutex);
 }
 
 /* tell client to update an existing lights vector property */
@@ -1732,6 +1779,8 @@ void
 IDSetLight (const ILightVectorProperty *lvp, const char *fmt, ...)
 {
         int i;
+
+        pthread_mutex_lock(&stdout_mutex);
 
         xmlv1();
         printf ("<setLightVector\n");
@@ -1758,6 +1807,8 @@ IDSetLight (const ILightVectorProperty *lvp, const char *fmt, ...)
 
         printf ("</setLightVector>\n");
         fflush (stdout);
+
+        pthread_mutex_unlock(&stdout_mutex);
 }
 
 /* tell client to update an existing BLOB vector property */
@@ -1765,6 +1816,8 @@ void
 IDSetBLOB (const IBLOBVectorProperty *bvp, const char *fmt, ...)
 {
         int i;
+
+        pthread_mutex_lock(&stdout_mutex);
 
         xmlv1();
         setlocale(LC_NUMERIC,"C");
@@ -1806,6 +1859,8 @@ IDSetBLOB (const IBLOBVectorProperty *bvp, const char *fmt, ...)
   printf ("</setBLOBVector>\n");
   setlocale(LC_NUMERIC,"");
   fflush (stdout);
+
+  pthread_mutex_unlock(&stdout_mutex);
 }
 
 /* tell client to update min/max elements of an existing number vector property */
@@ -1813,6 +1868,7 @@ void IUUpdateMinMax(const INumberVectorProperty *nvp)
 {
   int i;
 
+  pthread_mutex_lock(&stdout_mutex);
   xmlv1();
   setlocale(LC_NUMERIC,"C");
   printf ("<setNumberVector\n");
@@ -1837,6 +1893,7 @@ void IUUpdateMinMax(const INumberVectorProperty *nvp)
   printf ("</setNumberVector>\n");
   setlocale(LC_NUMERIC,"");
   fflush (stdout);
+  pthread_mutex_unlock(&stdout_mutex);
 }
 
 /* Return 1 is property is already cached, 0 otherwise */
