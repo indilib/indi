@@ -40,6 +40,14 @@ pthread_mutex_t dome_encoder_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t ra_encoder_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t de_encoder_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+unsigned char reverse(unsigned char b)
+{
+   b = (b & 0xF0) >> 4 | (b & 0x0F) << 4;
+   b = (b & 0xCC) >> 2 | (b & 0x33) << 2;
+   b = (b & 0xAA) >> 1 | (b & 0x55) << 1;
+   return b;
+}
+
 Encoder::Encoder(encoderType type, Ujari* scope)
 {
         // Initially, not connected
@@ -452,7 +460,14 @@ unsigned long Encoder::readEncoder()
 
     DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "MSB Single data was : hex(0x%X) int(%d)", (int)MSB, (int)MSB );
 
-    encoderRAW = ((MSB << 8) | LSB);
+    //encoderRAW = ((MSB << 8) | LSB);
+
+    // For dome and dec encoders, we shift the 4-bit MSB to the left and combine it the LSB, all reversed.
+    if (type == DOME_ENCODER || type == DEC_ENCODER)
+        encoderRAW = reverse(LSB) | (reverse(MSB) << 8);
+    else
+    // For ra encoder, we shift the LSB to the right and combine it with shifted MSB to the left by 4 places so that LSB can reside there.
+        encoderRAW = reverse(LSB) >> 4 | reverse(MSB) << 4;
 
     return encoderRAW;
 
