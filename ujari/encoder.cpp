@@ -40,12 +40,22 @@ pthread_mutex_t dome_encoder_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t ra_encoder_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t de_encoder_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-unsigned char reverse(unsigned char b)
+/****************************************************************
+** Convert 12bit Gray Code to Natural Binary and return
+** result as unsigned short
+*****************************************************************/
+unsigned short Gray2Binary(const char *s, int n)
 {
-   b = (b & 0xF0) >> 4 | (b & 0x0F) << 4;
-   b = (b & 0xCC) >> 2 | (b & 0x33) << 2;
-   b = (b & 0xAA) >> 1 | (b & 0x55) << 1;
-   return b;
+    int state = s[n]=='1' ? 1 : 0;
+    unsigned short finalResult=state;
+
+    for (int i=n-1; i >= n-11; i--)
+    {
+       state ^= (s[i]=='1') ? 1 : 0;
+       finalResult = (finalResult << 1) | state;
+    }
+
+    return finalResult;
 }
 
 Encoder::Encoder(encoderType type, Ujari* scope)
@@ -358,7 +368,6 @@ bool Encoder::update()
               continue;
         }
 
-
         double encoderDiff = getEncoderDiff(lastEncoderRaw, encoderRaw2);
 
         if (type == RA_ENCODER)
@@ -398,8 +407,7 @@ bool Encoder::saveConfigItems(FILE *fp)
 unsigned long Encoder::readEncoder()
 {
     unsigned long encoderRAW;
-    int LSBIndex, MSBIndex, LSB, MSB;
-    unsigned char LSBMask, MSBMask;
+    int MSBIndex;
 
     if (simulation)
     {
@@ -430,52 +438,28 @@ unsigned long Encoder::readEncoder()
        * Dome: Ports 0 & 1 --> 8 bits of port 0, first 4 bits of port 1
        * RA  : Ports 1 & 2 --> last 4 bits of port 1, 8 bits of port 2
        * DEC : Ports 3 & 4 --> 8 bits of port 3, first 4 bits of port 4
-       *  Masks: Dome LSB 0xFF, MSB 0x0F
-       *  Masks: RA LSB 0xF0, MSB 0xFF
-       *  Masks: DEC LSB 0xFF, MSB, 0x0F
        */
     switch(type)
     {
         case DOME_ENCODER:
-            LSBIndex=0;
-            MSBIndex=1;
-            LSBMask = 0xFF;
-            MSBMask = 0xF0;
+            MSBIndex=11;
             break;
         case RA_ENCODER:
-            LSBIndex=1;
-            MSBIndex=2;
-            LSBMask=0x0F;
-            MSBMask=0xFF;
+            MSBIndex=23;
             break;
         case DEC_ENCODER:
-            LSBIndex=3;
-            MSBIndex=4;
-            LSBMask = 0xFF;
-            MSBMask = 0xF0;
+            MSBIndex=35;
             break;
     }
 
+    DIOBuf *buf = NewDIOBuf(0);
+    DIO_ReadAll(0, buf);
 
-    DIO_Read8( 0, LSBIndex, &LSB  );
+    DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "%s Gray Code (%s)", type_name.c_str(), DIOBufToString(buf));
 
-    LSB &= LSBMask;
+    encoderRAW = Gray2Binary(DIOBufToString(buf), MSBIndex);
 
-
-    DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "%s LSB Single data was : hex (0x%X), int(%d)", type_name.c_str(), (int)LSB, (int)LSB );
-
-    DIO_Read8( 0, MSBIndex, &MSB  );
-
-    MSB &= MSBMask;
-
-    DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "%s MSB Single data was : hex(0x%X) int(%d)", type_name.c_str(), (int)MSB, (int)MSB );
-
-    // For dome and dec encoders, we shift the 4-bit MSB to the left and combine it the LSB, all reversed.
-    if (type == DOME_ENCODER || type == DEC_ENCODER)
-        encoderRAW = reverse(LSB) | ((reverse(MSB >> 4) << 4));
-    else
-    // For ra encoder, we shift the LSB to the right and combine it with shifted MSB to the left by 4 places so that LSB can reside there.
-        encoderRAW = (reverse(LSB) >> 4) | (reverse(MSB) << 4);
+    DeleteDIOBuf(buf);
 
     return encoderRAW;
 
