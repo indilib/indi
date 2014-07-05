@@ -373,18 +373,15 @@ bool Ujari::updateProperties()
     const char *parkpositionnames[]={"PARKRA", "PARKDE"};
 
     INDI::Telescope::updateProperties();
-    //IDMessage(this->getDeviceName(),"updateProperties: connected=%d %s", (isConnected()?1:0), this->getDeviceName());
     if (isConnected())
     {
     loadProperties();
 
     defineSwitch(SlewModeSP);
     defineNumber(SlewSpeedsNP);
-    //defineNumber(CurrentSteppersNP);
     defineNumber(JulianNP);
     defineNumber(TimeLSTNP);
-    //defineLight(RAStatusLP);
-    //defineLight(DEStatusLP);
+
     defineSwitch(HemisphereSP);
     defineSwitch(TrackModeSP);
 
@@ -398,9 +395,9 @@ bool Ujari::updateProperties()
     defineSwitch(TrackDefaultSP);
 
     mount->updateProperties();
-    dome->updateProperties(true);
+    //dome->updateProperties(true);
     domeEncoder->updateProperties(true);
-    shutter->updateProperties(true);
+    //shutter->updateProperties(true);
 
     try
     {
@@ -489,9 +486,9 @@ bool Ujari::Connect()
 
     try
     {
-      dome_rc = dome->connect();
+      dome_rc = true;//dome->connect();
       dome_encoder_rc = domeEncoder->connect();
-      shutter_rc = shutter->connect();
+      shutter_rc = true;//shutter->connect();
       mount_rc = mount->Connect();
     } catch(UjariError e)
     {

@@ -28,7 +28,7 @@ using namespace AIOUSB;
 // 12bit encoder for BEI H25
 #define MAX_ENCODER_COUNT   4096
 // Wait 200ms between updates
-#define MAX_THREAD_WAIT     200000
+#define MAX_THREAD_WAIT     50000
 
 #define ENCODER_GROUP "Encoders"
 
@@ -338,16 +338,20 @@ void * Encoder::update_helper(void *context)
 *****************************************************************/
 bool Encoder::update()
 {
-    unsigned long encoderRaw=0;
+    unsigned long encoderRaw1=0;
+    unsigned long encoderRaw2=0;
 
     while (connection_status != -1)
     {
         lock_mutex();
 
-        encoderRaw = readEncoder();
+        encoderRaw1 = encoderRaw2 = readEncoder();
+
+        if (encoderRaw1 != lastEncoderRaw)
+            encoderRaw2 = readEncoder();
 
          // No change, let's return
-        if (encoderRaw == lastEncoderRaw)
+        if (encoderRaw2 == lastEncoderRaw)
         {
               unlock_mutex();
               usleep(MAX_THREAD_WAIT);              
@@ -355,9 +359,14 @@ bool Encoder::update()
         }
 
 
-        encoderValueN[0].value += getEncoderDiff(lastEncoderRaw, encoderRaw);
+        double encoderDiff = getEncoderDiff(lastEncoderRaw, encoderRaw2);
 
-        lastEncoderRaw = encoderRaw;
+        if (type == RA_ENCODER)
+            DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_SESSION, "CurrentEncoder: %ld LastEncoder: %ld Diff: %g", encoderRaw2, lastEncoderRaw, encoderDiff);
+
+        encoderValueN[0].value += encoderDiff;
+
+        lastEncoderRaw = encoderRaw2;
 
         if (lastEncoderValue != encoderValueN[0].value)
         {
@@ -431,19 +440,19 @@ unsigned long Encoder::readEncoder()
             LSBIndex=0;
             MSBIndex=1;
             LSBMask = 0xFF;
-            MSBMask = 0x0F;
+            MSBMask = 0xF0;
             break;
         case RA_ENCODER:
             LSBIndex=1;
             MSBIndex=2;
-            LSBMask=0xF0;
+            LSBMask=0x0F;
             MSBMask=0xFF;
             break;
         case DEC_ENCODER:
             LSBIndex=3;
             MSBIndex=4;
             LSBMask = 0xFF;
-            MSBMask = 0x0F;
+            MSBMask = 0xF0;
             break;
     }
 
@@ -452,22 +461,21 @@ unsigned long Encoder::readEncoder()
 
     LSB &= LSBMask;
 
-    DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "LSB Single data was : hex (0x%X), int(%d)", (int)LSB, (int)LSB );
+
+    DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "%s LSB Single data was : hex (0x%X), int(%d)", type_name.c_str(), (int)LSB, (int)LSB );
 
     DIO_Read8( 0, MSBIndex, &MSB  );
 
     MSB &= MSBMask;
 
-    DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "MSB Single data was : hex(0x%X) int(%d)", (int)MSB, (int)MSB );
-
-    //encoderRAW = ((MSB << 8) | LSB);
+    DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "%s MSB Single data was : hex(0x%X) int(%d)", type_name.c_str(), (int)MSB, (int)MSB );
 
     // For dome and dec encoders, we shift the 4-bit MSB to the left and combine it the LSB, all reversed.
     if (type == DOME_ENCODER || type == DEC_ENCODER)
-        encoderRAW = reverse(LSB) | (reverse(MSB) << 8);
+        encoderRAW = reverse(LSB) | ((reverse(MSB >> 4) << 4));
     else
     // For ra encoder, we shift the LSB to the right and combine it with shifted MSB to the left by 4 places so that LSB can reside there.
-        encoderRAW = reverse(LSB) >> 4 | reverse(MSB) << 4;
+        encoderRAW = (reverse(LSB) >> 4) | (reverse(MSB) << 4);
 
     return encoderRAW;
 
@@ -485,6 +493,7 @@ int Encoder::getEncoderDiff(unsigned long startEncoder, unsigned long endEncoder
     // Try to detect direction
     if (direction == EN_NONE)
     {
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "EN_NONE, Trying to detect direction. Start: %ld End: %ld", type_name.c_str(), startEncoder, endEncoder);
         direction = EN_CW;
         int CWEncoder = getEncoderDiff(startEncoder, endEncoder);
         direction = EN_CCW;
@@ -494,6 +503,8 @@ int Encoder::getEncoderDiff(unsigned long startEncoder, unsigned long endEncoder
         else
             direction = EN_CCW;
         directionDetection = true;
+
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "%s EN_NONE, Determined direction %s", type_name.c_str(), direction == EN_CW ? "EN_CW" : "EN_CCW");
     }
 
     switch (direction)
@@ -521,6 +532,8 @@ int Encoder::getEncoderDiff(unsigned long startEncoder, unsigned long endEncoder
         diff += MAX_ENCODER_COUNT;
 
     int finalDiff = (direction == EN_CW ? diff : diff * -1);
+
+    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "%s Direction: %s FinalEncoderDiff: %g", type_name.c_str(), direction == EN_CW ? "EN_CW" : "EN_CCW", finalDiff);
 
     if (directionDetection)
         direction = EN_NONE;

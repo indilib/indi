@@ -168,8 +168,8 @@ void ForkMount::ISGetProperties(const char *dev)
 
 bool ForkMount::updateProperties()
 {
-    RAMotor->updateProperties(telescope->isConnected());
-    DEMotor->updateProperties(telescope->isConnected());    
+    //RAMotor->updateProperties(telescope->isConnected());
+    //DEMotor->updateProperties(telescope->isConnected());
     RAEncoder->updateProperties(telescope->isConnected());
     DEEncoder->updateProperties(telescope->isConnected());
 }
@@ -180,8 +180,8 @@ bool ForkMount::Connect()  throw (UjariError)
 {
   bool raMotorRC=false, decMotorRC=false, raEncoderRC=false, decEncoderRC=false;
 
-  raMotorRC    = RAMotor->connect();
-  decMotorRC   = DEMotor->connect();
+  raMotorRC    = true;//RAMotor->connect();
+  decMotorRC   = true;//DEMotor->connect();
   raEncoderRC  = RAEncoder->connect();
   decEncoderRC = DEEncoder->connect();
 
@@ -1105,6 +1105,8 @@ char *ForkMount::WriteParkData(const char *filename)
 
 bool ForkMount::update()
 {
+    return true;
+
     double separation, speed;
 
     ReadMotorStatus(Axis1);
