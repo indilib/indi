@@ -1234,7 +1234,7 @@ AMCController::driveStatus AMCController::readDriveStatus()
     if (simulation)
         return AMC_COMMAND_COMPLETE;
 
-    /* 0.25 second waiting */
+    /* 0.1 second waiting */
     t.tv_sec = 0;
     t.tv_usec = 100000;
 
@@ -1247,15 +1247,12 @@ AMCController::driveStatus AMCController::readDriveStatus()
         rc = select(fd + 1, &rd, NULL, NULL, &t);
         if (rc == -1)
         {
-          /* select( ) error */
-            DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "readDriveStatus: select() error %s.", strerror(errno));
-            continue;
+          /* select( ) error */            
+            break;
         }
         else if (rc == 0)
         {
-          /* no input available */
-            DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "%s readDriveStatus: No input available.", type_name.c_str());
-            //t.tv_usec += 250000;
+          /* no input available */            
             continue;
         }
         else if (FD_ISSET(fd, &rd))
@@ -1311,6 +1308,19 @@ AMCController::driveStatus AMCController::readDriveStatus()
                 break;
             }
         }
+    }
+
+    if (rc < 0)
+    {
+            DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "readDriveStatus: select() error %s.", strerror(errno));
+            restartCommunication();
+            return AMC_COMM_FAILURE;
+    }
+
+    if (rc == 0)
+    {
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "%s readDriveStatus: No input available.", type_name.c_str());
+        return AMC_COMM_ERROR;
     }
 
     if (nbytes_read != 8)
@@ -1772,4 +1782,29 @@ void AMCController::unlock_mutex()
             break;
 
     }
+}
+
+/****************************************************************
+**
+**
+*****************************************************************/
+void AMCController::restartCommunication()
+{
+    close(fd);
+    fd = -1;
+
+    for (int retry=0; retry < 3; retry++)
+    {
+        fd = openRS485Server(default_port.c_str(), 10001);
+
+        if (fd > 0)
+            break;
+    }
+
+    if (fd == -1)
+    {
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "%s Failed to restart communication (%s). Please shutdown driver and reconnect later.", type_name.c_str(), strerror(errno));
+        disconnect();
+    }
+
 }

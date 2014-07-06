@@ -27,7 +27,7 @@ using namespace AIOUSB;
 
 // 12bit encoder for BEI H25
 #define MAX_ENCODER_COUNT   4096
-// Wait 200ms between updates
+// Wait 50ms between updates
 #define MAX_THREAD_WAIT     50000
 
 #define ENCODER_GROUP "Encoders"
@@ -93,23 +93,31 @@ void Encoder::setType(const encoderType &value)
 {
     type = value;
 
+    /* Each port on the DIO-48 is 8-bits. The encoder use 12bit gray code
+       # D000-D011 for Dome Encoder
+       # D012-D023 for RA Encoder
+       # D024-D035 for DEC Encoder
+       * Dome: Ports 0 & 1 --> 8 bits of port 0, first 4 bits of port 1
+       * RA  : Ports 1 & 2 --> last 4 bits of port 1, 8 bits of port 2
+       * DEC : Ports 3 & 4 --> 8 bits of port 3, first 4 bits of port 4
+       * MSBIndex is the index of the most significant bit for each encoder
+       */
     switch (type)
     {
+        case DOME_ENCODER:
+            type_name = std::string("Dome Encoder");
+            MSBIndex=11;
+            break;
+
         case RA_ENCODER:
-        type_name = std::string("RA Encoder");
-        SLAVE_ADDRESS = 1;
-        break;
+            type_name = std::string("RA Encoder");
+            MSBIndex=23;
+            break;
 
         case DEC_ENCODER:
-        type_name = std::string("DEC Encoder");
-        SLAVE_ADDRESS = 2;
-        break;
-
-        case DOME_ENCODER:
-        type_name = std::string("Dome Encoder");
-        SLAVE_ADDRESS = 3;
-        break;
-
+            type_name = std::string("DEC Encoder");
+            MSBIndex=35;
+            break;
     }
 
 }
@@ -429,27 +437,6 @@ unsigned long Encoder::readEncoder()
         simSpeed=0;
 
         return (absEnc);
-    }
-
-    /* Each port on the DIO-48 is 8-bits. The encoder use 12bit gray code
-       # D000-D011 for Dome Encoder
-       # D012-D023 for RA Encoder
-       # D024-D035 for DEC Encoder
-       * Dome: Ports 0 & 1 --> 8 bits of port 0, first 4 bits of port 1
-       * RA  : Ports 1 & 2 --> last 4 bits of port 1, 8 bits of port 2
-       * DEC : Ports 3 & 4 --> 8 bits of port 3, first 4 bits of port 4
-       */
-    switch(type)
-    {
-        case DOME_ENCODER:
-            MSBIndex=11;
-            break;
-        case RA_ENCODER:
-            MSBIndex=23;
-            break;
-        case DEC_ENCODER:
-            MSBIndex=35;
-            break;
     }
 
     DIOBuf *buf = NewDIOBuf(0);

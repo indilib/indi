@@ -97,8 +97,8 @@ private:
         bool simulation;
         bool debug;
         bool verbose;
+        int MSBIndex;
         int connection_status;
-        unsigned short SLAVE_ADDRESS;
         encoderDirection direction;
 
         unsigned long startupEncoderValue;
