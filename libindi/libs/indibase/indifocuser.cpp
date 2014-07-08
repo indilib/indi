@@ -200,6 +200,8 @@ bool INDI::Focuser::ISNewText (const char *dev, const char *name, char *texts[],
 
 bool INDI::Focuser::ISSnoopDevice (XMLEle *root)
 {
+    controller->ISSnoopDevice(root);
+
     return INDI::DefaultDevice::ISSnoopDevice(root);
 }
 

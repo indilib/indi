@@ -168,6 +168,8 @@ bool INDI::FilterWheel::GetFilterNames(const char* groupName)
 
 bool INDI::FilterWheel::ISSnoopDevice (XMLEle *root)
 {
+    controller->ISSnoopDevice(root);
+
     return INDI::DefaultDevice::ISSnoopDevice(root);
 }
 
