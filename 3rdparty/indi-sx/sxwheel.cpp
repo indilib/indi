@@ -76,7 +76,8 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
   INDI_UNUSED(n);
 }
 void ISSnoopDevice(XMLEle *root) {
-  INDI_UNUSED(root);
+  ISInit();
+  sxwheel->ISSnoopDevice(root);
 }
 
 SXWHEEL::SXWHEEL() {

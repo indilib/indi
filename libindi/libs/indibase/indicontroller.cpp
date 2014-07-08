@@ -215,7 +215,7 @@ bool Controller::ISSnoopDevice(XMLEle *root)
             const char *setting = getControllerSetting(elemName);
 
             if (setting == NULL)
-                return false;
+                continue;
 
             buttonCallbackFunc(setting, strcmp(pcdataXMLEle(ep), "Off") ? ISS_ON : ISS_OFF, device);
 

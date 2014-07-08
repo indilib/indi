@@ -84,7 +84,8 @@ const flidomain_t Domains[] = { FLIDOMAIN_USB, FLIDOMAIN_SERIAL, FLIDOMAIN_PARAL
  }
  void ISSnoopDevice (XMLEle *root)
  {
-     INDI_UNUSED(root);
+     ISInit();
+     fliCFW->ISSnoopDevice(root);
  }
 
 

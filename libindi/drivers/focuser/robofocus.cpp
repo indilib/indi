@@ -108,6 +108,7 @@ std::auto_ptr<RoboFocus> roboFocus(0);
  void ISSnoopDevice (XMLEle *root)
  {
      ISInit();
+     roboFocus->ISSnoopDevice(root);
  }
 
 

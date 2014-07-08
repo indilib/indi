@@ -76,7 +76,7 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
 }
 void ISSnoopDevice (XMLEle *root)
 {
-    INDI_UNUSED(root);
+    filter_sim->ISSnoopDevice(root);
 }
 
 

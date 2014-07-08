@@ -85,6 +85,7 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
 void ISSnoopDevice (XMLEle *root)
 {
      ISInit();
+     moonLite->ISSnoopDevice(root);
 }
 
 MoonLite::MoonLite()

@@ -112,6 +112,7 @@ std::auto_ptr<NFocus> nFocus(0);
  void ISSnoopDevice (XMLEle *root)
  {
      ISInit();
+     nFocus->ISSnoopDevice(root);
  }
 
 
