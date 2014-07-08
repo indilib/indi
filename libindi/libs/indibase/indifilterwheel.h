@@ -20,6 +20,7 @@
 #define INDI_FILTERWHEEL_H
 
 #include "defaultdevice.h"
+#include "indicontroller.h"
 #include "indifilterinterface.h"
 
 /**
@@ -40,13 +41,16 @@ protected:
 
 public:
 
-        virtual bool initProperties();
-        virtual bool updateProperties();    
-        virtual void ISGetProperties (const char *dev);
-        virtual bool ISSnoopDevice (XMLEle *root);
-        virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-        virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-        virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);          
+    virtual bool initProperties();
+    virtual bool updateProperties();
+    virtual void ISGetProperties (const char *dev);
+    virtual bool ISSnoopDevice (XMLEle *root);
+    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+
+    static void joystickHelper(const char * joystick_n, double mag, double angle, void *context);
+    static void buttonHelper(const char * button_n, ISState state, void *context);
 
    protected:
 
@@ -55,6 +59,11 @@ public:
     virtual bool SelectFilter(int);
     virtual bool SetFilterNames();
     virtual bool GetFilterNames(const char* groupName);
+
+    void processJoystick(const char * joystick_n, double mag, double angle);
+    void processButton(const char * button_n, ISState state);
+
+    INDI::Controller *controller;
 
 };
 

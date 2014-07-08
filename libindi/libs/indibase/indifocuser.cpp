@@ -22,7 +22,9 @@
 
 INDI::Focuser::Focuser()
 {
+    controller = new INDI::Controller(this);
 
+    controller->setButtonCallback(buttonHelper);
 }
 
 INDI::Focuser::~Focuser()
@@ -53,6 +55,11 @@ bool INDI::Focuser::initProperties()
 
     addDebugControl();
 
+    controller->mapController("Focus In", "Focus In", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_1");
+    controller->mapController("Focus Out", "Focus Out", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_2");
+
+    controller->initProperties();
+
     return true;
 }
 
@@ -63,6 +70,7 @@ void INDI::Focuser::ISGetProperties (const char *dev)
 
     defineText(&PortTP);
 
+    controller->ISGetProperties(dev);
     return;
 }
 
@@ -109,6 +117,8 @@ bool INDI::Focuser::updateProperties()
             deleteProperty(PresetGotoSP.name);
         }
     }
+
+    controller->updateProperties();
     return true;
 }
 
@@ -134,13 +144,11 @@ bool INDI::Focuser::ISNewNumber (const char *dev, const char *name, double value
 
     }
 
-
     return DefaultDevice::ISNewNumber(dev,name,values,names,n);
 }
 
 bool INDI::Focuser::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-
     if(strcmp(dev,getDeviceName())==0)
     {
         if (!strcmp(PresetGotoSP.name, name))
@@ -166,6 +174,8 @@ bool INDI::Focuser::ISNewSwitch (const char *dev, const char *name, ISState *sta
 
     }
 
+    controller->ISNewSwitch(dev, name, states, names, n);
+
     //  Nobody has claimed this, so, ignore it
     return DefaultDevice::ISNewSwitch(dev,name,states,names,n);
 }
@@ -183,6 +193,8 @@ bool INDI::Focuser::ISNewText (const char *dev, const char *name, char *texts[],
         }
     }
 
+    controller->ISNewText(dev, name, texts, names, n);
+
     return DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
 
@@ -196,6 +208,36 @@ bool INDI::Focuser::saveConfigItems(FILE *fp)
     IUSaveConfigText(fp, &PortTP);
     IUSaveConfigNumber(fp, &PresetNP);
 
+    controller->saveConfigItems(fp);
+
     return true;
 }
 
+void INDI::Focuser::buttonHelper(const char *button_n, ISState state, void *context)
+{
+     static_cast<INDI::Focuser *>(context)->processButton(button_n, state);
+}
+
+void INDI::Focuser::processButton(const char * button_n, ISState state)
+{
+    //ignore OFF
+    if (state == ISS_OFF)
+        return;
+
+    // Focus In
+    if (!strcmp(button_n, "Focus In"))
+    {
+        if (variableSpeed)
+            Move(FOCUS_INWARD, FocusSpeedN[0].value, FocusTimerN[0].value);
+        else if (canRelMove)
+            MoveRel(FOCUS_INWARD, FocusRelPosN[0].value);
+    }
+    else if (!strcmp(button_n, "Focus Out"))
+    {
+        if (variableSpeed)
+            Move(FOCUS_OUTWARD, FocusSpeedN[0].value, FocusTimerN[0].value);
+        else if (canRelMove)
+            MoveRel(FOCUS_OUTWARD, FocusRelPosN[0].value);
+    }
+
+}

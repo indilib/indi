@@ -46,8 +46,8 @@ class CelestronGPS : public INDI::Telescope
  virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
  virtual bool ISSnoopDevice(XMLEle *root);
 
- static void joystickHelper(const char * joystick_n, double mag, double angle);
- static void buttonHelper(const char * button_n, ISState state);
+ static void joystickHelper(const char * joystick_n, double mag, double angle, void *context);
+ static void buttonHelper(const char * button_n, ISState state, void *context);
 
 protected:
 

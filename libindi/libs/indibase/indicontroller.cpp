@@ -57,6 +57,19 @@ void Controller::mapController(const char *propertyName, const char *propertyLab
 
 }
 
+void Controller::clearMap()
+{
+    for (int i=0; i < JoystickSettingTP.ntp; i++)
+    {
+        free(JoystickSettingT[i].aux0);
+        free(JoystickSettingT[i].text);
+    }
+
+    JoystickSettingTP.ntp=0;
+    free(JoystickSettingT);
+    JoystickSettingT = NULL;
+}
+
 bool Controller::initProperties()
 {
     IUFillSwitch(&UseJoystickS[0], "ENABLE", "Enable", ISS_OFF);
@@ -190,7 +203,7 @@ bool Controller::ISSnoopDevice(XMLEle *root)
 
             mag = atof(pcdataXMLEle(ep));
 
-            axisCallbackFunc(setting, mag);
+            axisCallbackFunc(setting, mag, device);
         }
     }
     // Check buttons
@@ -204,7 +217,7 @@ bool Controller::ISSnoopDevice(XMLEle *root)
             if (setting == NULL)
                 return false;
 
-            buttonCallbackFunc(setting, strcmp(pcdataXMLEle(ep), "Off") ? ISS_ON : ISS_OFF);
+            buttonCallbackFunc(setting, strcmp(pcdataXMLEle(ep), "Off") ? ISS_ON : ISS_OFF, device);
 
         }
     }
@@ -225,7 +238,7 @@ bool Controller::ISSnoopDevice(XMLEle *root)
                 angle = atof(pcdataXMLEle(ep));
         }
 
-        joystickCallbackFunc(setting, mag, angle);
+        joystickCallbackFunc(setting, mag, angle, device);
     }
 
 }
@@ -273,23 +286,26 @@ void Controller::setButtonCallback(buttonFunc buttonCallback)
     buttonCallbackFunc = buttonCallback;
 }
 
-void Controller::joystickEvent(const char * joystick_n, double mag, double angle)
+void Controller::joystickEvent(const char * joystick_n, double mag, double angle, void *context)
 {
-    (void)joystick_n;
-    (void)mag;
-    (void)angle;
+    INDI_UNUSED(joystick_n);
+    INDI_UNUSED(mag);
+    INDI_UNUSED(angle);
+    INDI_UNUSED(context);
 }
 
-void Controller::axisEvent(const char *axis_n, int value)
+void Controller::axisEvent(const char *axis_n, int value, void *context)
 {
-    (void)axis_n;
-    (void)value;
+    INDI_UNUSED(axis_n);
+    INDI_UNUSED(value);
+    INDI_UNUSED(context);
 }
 
-void Controller::buttonEvent(const char *button_n, int button_value)
+void Controller::buttonEvent(const char *button_n, int button_value, void *context)
 {
-    (void)button_n;
-    (void)button_value;
+    INDI_UNUSED(button_n);
+    INDI_UNUSED(button_value);
+    INDI_UNUSED(context);
 }
 
 Controller::ControllerType Controller::getControllerType(const char *name)

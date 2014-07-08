@@ -22,7 +22,10 @@
 
 INDI::FilterWheel::FilterWheel()
 {
-    //ctor
+    controller = new INDI::Controller(this);
+
+    controller->setJoystickCallback(joystickHelper);
+    controller->setButtonCallback(buttonHelper);
 }
 
 INDI::FilterWheel::~FilterWheel()
@@ -36,6 +39,11 @@ bool INDI::FilterWheel::initProperties()
     DefaultDevice::initProperties();
 
     initFilterProperties(getDeviceName(), FILTER_TAB);
+
+    controller->mapController("Change Filter","Change Filter", INDI::Controller::CONTROLLER_JOYSTICK, "JOYSTICK_1");
+    controller->mapController("Reset", "Reset", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_1");
+
+    controller->initProperties();
 
     return true;
 }
@@ -52,6 +60,8 @@ void INDI::FilterWheel::ISGetProperties (const char *dev)
         if (GetFilterNames(FILTER_TAB))
             defineText(FilterNameTP);
     }
+
+    controller->ISGetProperties(dev);
     return;
 }
 
@@ -72,11 +82,13 @@ bool INDI::FilterWheel::updateProperties()
         deleteProperty(FilterNameTP->name);
     }
 
+    controller->updateProperties();
     return true;
 }
 
 bool INDI::FilterWheel::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
+    controller->ISNewSwitch(dev, name, states, names, n);
     return DefaultDevice::ISNewSwitch(dev, name, states, names,n);
 }
 
@@ -117,6 +129,7 @@ bool INDI::FilterWheel::ISNewText (const char *dev, const char *name, char *text
 
     }
 
+    controller->ISNewText(dev, name, texts, names, n);
     return DefaultDevice::ISNewText(dev,name,texts,names,n);
 }
 
@@ -124,6 +137,9 @@ bool INDI::FilterWheel::saveConfigItems(FILE *fp)
 {
     IUSaveConfigNumber(fp, &FilterSlotNP);
     IUSaveConfigText(fp, FilterNameTP);
+
+    controller->saveConfigItems(fp);
+
     return true;
 }
 
@@ -153,4 +169,67 @@ bool INDI::FilterWheel::GetFilterNames(const char* groupName)
 bool INDI::FilterWheel::ISSnoopDevice (XMLEle *root)
 {
     return INDI::DefaultDevice::ISSnoopDevice(root);
+}
+
+
+void INDI::FilterWheel::joystickHelper(const char * joystick_n, double mag, double angle, void *context)
+{
+    static_cast<INDI::FilterWheel *>(context)->processJoystick(joystick_n, mag, angle);
+}
+
+void INDI::FilterWheel::buttonHelper(const char *button_n, ISState state, void *context)
+{
+     static_cast<INDI::FilterWheel *>(context)->processButton(button_n, state);
+}
+
+void INDI::FilterWheel::processJoystick(const char * joystick_n, double mag, double angle)
+{
+    if (!strcmp(joystick_n, "Change Filter"))
+    {
+        // Put high threshold
+        if (mag > 0.9)
+        {
+            // North
+            if (angle > 0 && angle < 180)
+            {
+                // Previous switch
+                if (FilterSlotN[0].value == FilterSlotN[0].min)
+                    TargetFilter = FilterSlotN[0].max;
+                else
+                    TargetFilter = FilterSlotN[0].value-1;
+
+                SelectFilter(TargetFilter);
+
+            }
+            // South
+            if (angle > 180 && angle < 360)
+            {
+                // Next Switch
+                if (FilterSlotN[0].value == FilterSlotN[0].max)
+                    TargetFilter = FilterSlotN[0].min;
+                else
+                    TargetFilter = FilterSlotN[0].value+1;
+
+                SelectFilter(TargetFilter);
+
+            }
+
+         }
+    }
+
+}
+
+void INDI::FilterWheel::processButton(const char * button_n, ISState state)
+{
+    //ignore OFF
+    if (state == ISS_OFF)
+        return;
+
+    // Max Slew speed
+    if (!strcmp(button_n, "Reset"))
+    {
+        TargetFilter = FilterSlotN[0].min;
+        SelectFilter(TargetFilter);
+    }
+
 }

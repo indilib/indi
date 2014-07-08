@@ -1851,14 +1851,14 @@ void LX200Generic::processJoystick(const char * joystick_n, double mag, double a
 }
 
 
-void LX200Generic::joystickHelper(const char * joystick_n, double mag, double angle)
+void LX200Generic::joystickHelper(const char * joystick_n, double mag, double angle, void *context)
 {
-    telescope->processJoystick(joystick_n, mag, angle);
+    static_cast<LX200Generic *>(context)->processJoystick(joystick_n, mag, angle);
 
 }
 
-void LX200Generic::buttonHelper(const char * button_n, ISState state)
+void LX200Generic::buttonHelper(const char * button_n, ISState state, void *context)
 {
-    telescope->processButton(button_n, state);
+    static_cast<LX200Generic *>(context)->processButton(button_n, state);
 }
 

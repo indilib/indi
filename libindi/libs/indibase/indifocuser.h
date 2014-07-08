@@ -20,6 +20,7 @@
 #define INDIFOCUSSER_H
 
 #include "defaultdevice.h"
+#include "indicontroller.h"
 #include "indifocuserinterface.h"
 
 /**
@@ -47,6 +48,8 @@ class INDI::Focuser : public INDI::DefaultDevice, public INDI::FocuserInterface
         virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
         virtual bool ISSnoopDevice (XMLEle *root);
 
+        static void buttonHelper(const char * button_n, ISState state, void *context);
+
     protected:
 
         /**
@@ -62,7 +65,11 @@ class INDI::Focuser : public INDI::DefaultDevice, public INDI::FocuserInterface
         INumber PresetN[3];
         INumberVectorProperty PresetNP;
         ISwitch PresetGotoS[3];
-        ISwitchVectorProperty PresetGotoSP;
+        ISwitchVectorProperty PresetGotoSP; 
+
+        void processButton(const char * button_n, ISState state);
+
+        INDI::Controller *controller;
 
 };
 

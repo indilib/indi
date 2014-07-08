@@ -689,14 +689,14 @@ void CelestronGPS::processJoystick(const char * joystick_n, double mag, double a
 }
 
 
-void CelestronGPS::joystickHelper(const char * joystick_n, double mag, double angle)
+void CelestronGPS::joystickHelper(const char * joystick_n, double mag, double angle, void *context)
 {
-    telescope->processJoystick(joystick_n, mag, angle);
+    static_cast<CelestronGPS *>(context)->processJoystick(joystick_n, mag, angle);
 
 }
 
-void CelestronGPS::buttonHelper(const char * button_n, ISState state)
+void CelestronGPS::buttonHelper(const char * button_n, ISState state, void *context)
 {
-    telescope->processButton(button_n, state);
+    static_cast<CelestronGPS *>(context)->processButton(button_n, state);
 }
 

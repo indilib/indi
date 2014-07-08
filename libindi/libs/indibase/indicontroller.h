@@ -80,34 +80,34 @@ class Controller
     /**
      * @brief joystickFunc Joystick callback function signature.
      */
-    typedef std::function<void (const char * joystick_n, double mag, double angle)> joystickFunc;
+    typedef std::function<void (const char * joystick_n, double mag, double angle, void *context)> joystickFunc;
 
     /**
      * @brief axisFunc Axis callback function signature.
      */
-    typedef std::function<void (const char * axis_n, double value)> axisFunc;
+    typedef std::function<void (const char * axis_n, double value, void *context)> axisFunc;
 
     /**
      * @brief buttonFunc Button callback function signature.
      */
-    typedef std::function<void (const char * button_n, ISState state)> buttonFunc;
+    typedef std::function<void (const char * button_n, ISState state, void *context)> buttonFunc;
 
 #else
 
     /**
      * @brief joystickFunc Joystick callback function signature.
      */
-    typedef std::tr1::function<void (const char * joystick_n, double mag, double angle)> joystickFunc;
+    typedef std::tr1::function<void (const char * joystick_n, double mag, double angle, void *context)> joystickFunc;
 
     /**
      * @brief axisFunc Axis callback function signature.
      */
-    typedef std::tr1::function<void (const char * axis_n, double value)> axisFunc;
+    typedef std::tr1::function<void (const char * axis_n, double value, void *context)> axisFunc;
 
     /**
      * @brief buttonFunc Button callback function signature.
      */
-    typedef std::tr1::function<void (const char * button_n, ISState state)> buttonFunc;
+    typedef std::tr1::function<void (const char * button_n, ISState state, void *context)> buttonFunc;
 
 #endif
 
@@ -136,6 +136,11 @@ class Controller
     void mapController(const char *propertyName, const char *propertyLabel, ControllerType type, const char *initialValue);
 
     /**
+     * @brief clearMap clears all properties added previously by mapController()
+     */
+    void clearMap();
+
+    /**
      * @brief setJoystickCallback Sets the callback function when a new joystick input is detected.
      * @param joystickCallback the callback function.
      */
@@ -158,9 +163,9 @@ class Controller
 
     protected:
 
-    static void joystickEvent(const char * joystick_n, double mag, double angle);
-    static void axisEvent(const char * axis_n, int value);
-    static void buttonEvent(const char * button_n, int value);
+    static void joystickEvent(const char * joystick_n, double mag, double angle, void*context);
+    static void axisEvent(const char * axis_n, int value, void *context);
+    static void buttonEvent(const char * button_n, int value, void *context);
 
     void enableJoystick();
     void disableJoystick();
@@ -181,7 +186,6 @@ class Controller
 
     ITextVectorProperty JoystickSettingTP;
     IText *JoystickSettingT;
-
 
 };
 
