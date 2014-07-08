@@ -18,6 +18,8 @@
 
 #endif
 
+#include <algorithm>
+
 #include <aiousb.h>
 
 #include "encoder.h"
@@ -28,7 +30,7 @@ using namespace AIOUSB;
 // 12bit encoder for BEI H25
 #define MAX_ENCODER_COUNT   4096
 // Wait 50ms between updates
-#define MAX_THREAD_WAIT     50000
+#define MAX_THREAD_WAIT     10000
 
 #define ENCODER_GROUP "Encoders"
 
@@ -40,11 +42,7 @@ pthread_mutex_t dome_encoder_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t ra_encoder_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t de_encoder_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-/****************************************************************
-** Convert 12bit Gray Code to Natural Binary and return
-** result as unsigned short
-*****************************************************************/
-unsigned short Gray2Binary(const char *s, int n)
+/*unsigned short Gray2Binary(const char *s, int n)
 {
     int state = s[n]=='1' ? 1 : 0;
     unsigned short finalResult=state;
@@ -56,6 +54,16 @@ unsigned short Gray2Binary(const char *s, int n)
     }
 
     return finalResult;
+}*/
+
+void Binary2Str(int value, int bitsCount, char* output)
+{
+    int i;
+    output[bitsCount] = '\0';
+    for (i = bitsCount - 1; i >= 0; --i, value >>= 1)
+    {
+        output[i] = (value & 1) + '0';
+    }
 }
 
 Encoder::Encoder(encoderType type, Ujari* scope)
@@ -106,17 +114,26 @@ void Encoder::setType(const encoderType &value)
     {
         case DOME_ENCODER:
             type_name = std::string("Dome Encoder");
-            MSBIndex=11;
+            MSBIndex=12;
+            MSBCount=3;
+            LSBIndex=0;
+            LSBCount=7;
             break;
 
         case RA_ENCODER:
             type_name = std::string("RA Encoder");
-            MSBIndex=23;
+            MSBIndex=16;
+            MSBCount=7;
+            LSBIndex=8;
+            LSBCount=3;
             break;
 
         case DEC_ENCODER:
             type_name = std::string("DEC Encoder");
-            MSBIndex=35;
+            MSBIndex=36;
+            MSBCount=3;
+            LSBIndex=24;
+            LSBCount=7;
             break;
     }
 
@@ -182,8 +199,16 @@ bool Encoder::connect()
         return false;
     }
 
+    unsigned long deviceMask = GetDevices();
+    if( deviceMask == 0 )
+    {
+        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_ERROR, "%s encoder: No DIO USB devices attached! Check USB Cable.", type_name.c_str());
+        return false;
+    }
+
     AIOUSB_Reset( 0 );
     AIOUSB_SetCommTimeout( 0, 1000);
+
 
     connection_status = 0;
 
@@ -356,34 +381,26 @@ void * Encoder::update_helper(void *context)
 *****************************************************************/
 bool Encoder::update()
 {
-    unsigned long encoderRaw1=0;
-    unsigned long encoderRaw2=0;
+    unsigned long encoderRaw=0;
 
     while (connection_status != -1)
     {
         lock_mutex();
 
-        encoderRaw1 = encoderRaw2 = readEncoder();
+        encoderRaw = readEncoder();
 
-        if (encoderRaw1 != lastEncoderRaw)
-            encoderRaw2 = readEncoder();
 
          // No change, let's return
-        if (encoderRaw2 == lastEncoderRaw)
+        if (encoderRaw == lastEncoderRaw)
         {
               unlock_mutex();
               usleep(MAX_THREAD_WAIT);              
               continue;
         }
 
-        double encoderDiff = getEncoderDiff(lastEncoderRaw, encoderRaw2);
+        encoderValueN[0].value += getEncoderDiff(lastEncoderRaw, encoderRaw);
 
-        if (type == RA_ENCODER)
-            DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_SESSION, "CurrentEncoder: %ld LastEncoder: %ld Diff: %g", encoderRaw2, lastEncoderRaw, encoderDiff);
-
-        encoderValueN[0].value += encoderDiff;
-
-        lastEncoderRaw = encoderRaw2;
+        lastEncoderRaw = encoderRaw;
 
         if (lastEncoderValue != encoderValueN[0].value)
         {
@@ -415,7 +432,6 @@ bool Encoder::saveConfigItems(FILE *fp)
 unsigned long Encoder::readEncoder()
 {
     unsigned long encoderRAW;
-    int MSBIndex;
 
     if (simulation)
     {
@@ -442,9 +458,7 @@ unsigned long Encoder::readEncoder()
     DIOBuf *buf = NewDIOBuf(0);
     DIO_ReadAll(0, buf);
 
-    DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "%s Gray Code (%s)", type_name.c_str(), DIOBufToString(buf));
-
-    encoderRAW = Gray2Binary(DIOBufToString(buf), MSBIndex);
+    encoderRAW = Gray2Binary(DIOBufToString(buf));
 
     DeleteDIOBuf(buf);
 
@@ -464,7 +478,7 @@ int Encoder::getEncoderDiff(unsigned long startEncoder, unsigned long endEncoder
     // Try to detect direction
     if (direction == EN_NONE)
     {
-        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "EN_NONE, Trying to detect direction. Start: %ld End: %ld", type_name.c_str(), startEncoder, endEncoder);
+        //DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "EN_NONE, Trying to detect direction. Start: %ld End: %ld", type_name.c_str(), startEncoder, endEncoder);
         direction = EN_CW;
         int CWEncoder = getEncoderDiff(startEncoder, endEncoder);
         direction = EN_CCW;
@@ -475,7 +489,7 @@ int Encoder::getEncoderDiff(unsigned long startEncoder, unsigned long endEncoder
             direction = EN_CCW;
         directionDetection = true;
 
-        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "%s EN_NONE, Determined direction %s", type_name.c_str(), direction == EN_CW ? "EN_CW" : "EN_CCW");
+        //DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "%s EN_NONE, Determined direction %s", type_name.c_str(), direction == EN_CW ? "EN_CW" : "EN_CCW");
     }
 
     switch (direction)
@@ -504,7 +518,7 @@ int Encoder::getEncoderDiff(unsigned long startEncoder, unsigned long endEncoder
 
     int finalDiff = (direction == EN_CW ? diff : diff * -1);
 
-    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "%s Direction: %s FinalEncoderDiff: %g", type_name.c_str(), direction == EN_CW ? "EN_CW" : "EN_CCW", finalDiff);
+    //DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "%s Direction: %s FinalEncoderDiff: %g", type_name.c_str(), direction == EN_CW ? "EN_CW" : "EN_CCW", finalDiff);
 
     if (directionDetection)
         direction = EN_NONE;
@@ -554,4 +568,35 @@ void Encoder::unlock_mutex()
             pthread_mutex_unlock( &de_encoder_mutex );
             break;
     }
+}
+
+/****************************************************************
+** Convert 12bit Gray Code to Natural Binary and return
+** result as unsigned short
+*****************************************************************/
+unsigned short Encoder::Gray2Binary(const char *s)
+{
+    int state = s[MSBIndex]=='1' ? 1 : 0;
+    unsigned short finalResult=state;
+
+    for (int i=MSBIndex+1; i <= (MSBIndex+MSBCount); i++)
+    {
+        state ^= (s[i]=='1') ? 1 : 0;
+        finalResult = (finalResult << 1) | state;
+    }
+
+    for (int i=LSBIndex; i <= (LSBIndex+LSBCount); i++)
+    {
+       state ^= (s[i]=='1') ? 1 : 0;
+       finalResult = (finalResult << 1) | state;
+    }
+
+    char grayCode[13];
+    strncpy(grayCode, s+MSBIndex, MSBCount+1);
+    strncpy(grayCode+MSBCount+1, s+LSBIndex, LSBCount+1);
+    grayCode[12]='\0';
+
+    //DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "%s Gray (%s)", type_name.c_str(), grayCode);
+
+    return finalResult;
 }

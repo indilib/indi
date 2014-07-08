@@ -45,8 +45,8 @@
 
 #define AMC_MAX_REFRESH     2       // Update drive status and protection every 2 seconds
 
-// Wait 0.5s between updates
-#define MAX_THREAD_WAIT     500000
+// Wait 0.15s between updates
+#define MAX_THREAD_WAIT     100000
 
 pthread_mutex_t ra_motor_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t de_motor_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -334,20 +334,32 @@ bool AMCController::enableWriteAccess()
 
     lock_mutex();
 
-    //flushFD();
+    driveStatus status;
 
-    if ( (nbytes_written = send(fd, command, 12, 0)) !=  12)
+    for (int i=0; i < MAX_RETRIES; i++)
+    {
+        if ( (nbytes_written = send(fd, command, 12, 0)) !=  12)
+        {
+            usleep(MAX_ERROR_WAIT);
+            continue;
+        }
+
+        if ( (status = readDriveStatus()) != AMC_COMMAND_COMPLETE)
+        {
+            usleep(MAX_ERROR_WAIT);
+            continue;
+        }
+    }
+
+    if (nbytes_written !=  12)
     {
         DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error gaining write access to %s drive. %s", type_name.c_str(), strerror(errno));
         unlock_mutex();
         return false;
     }
-
-    driveStatus status;
-
-    if ( (status = readDriveStatus()) != AMC_COMMAND_COMPLETE)
-    {        
-        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "%s Drive status error: %s", __FUNCTION__, driveStatusString(status));
+    else if (status != AMC_COMMAND_COMPLETE)
+    {
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "%s %s Drive status error: %s", type_name.c_str(), __FUNCTION__, driveStatusString(status));
         unlock_mutex();
         return false;
     }
@@ -518,11 +530,26 @@ bool AMCController::setMotion(motorMotion dir)
 
     lock_mutex();
 
-    DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG, "%s drive: setMotion flush FD.", type_name.c_str());
-    //flushFD();
-
     DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG, "%s drive: setMotion Sending command.", type_name.c_str());
-    if ( (nbytes_written = send(fd, command, 14, 0)) != 14)
+
+    driveStatus status;
+
+    for (int i=0; i < MAX_RETRIES; i++)
+    {
+        if ( (nbytes_written = send(fd, command, 14, 0)) != 14)
+        {
+            usleep(MAX_ERROR_WAIT);
+            continue;
+        }
+
+        if ( (status = readDriveStatus()) != AMC_COMMAND_COMPLETE)
+        {
+            usleep(MAX_ERROR_WAIT);
+            continue;
+        }
+    }
+
+    if (nbytes_written != 14)
     {
         DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error writing velocity to %s drive. %s", type_name.c_str(), strerror(errno));
         MotionControlSP.s = IPS_ALERT;
@@ -532,10 +559,7 @@ bool AMCController::setMotion(motorMotion dir)
         unlock_mutex();
         return false;
     }
-
-    driveStatus status;
-
-    if ( (status = readDriveStatus()) != AMC_COMMAND_COMPLETE)
+    else if (status != AMC_COMMAND_COMPLETE)
     {
         DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "%s Drive status error: %s", __FUNCTION__, driveStatusString(status));
         unlock_mutex();
@@ -1056,20 +1080,34 @@ bool AMCController::setAcceleration(motorMotion dir, double rpmAcceleration)
 
     lock_mutex();
 
-    //flushFD();
+    driveStatus status;
 
-    if ( (nbytes_written = send(fd, command, 16, 0)) != 16)
+    for (int i=0; i < MAX_RETRIES; i++)
+    {
+        if ( (nbytes_written = send(fd, command, 16, 0)) != 16)
+        {
+            usleep(MAX_ERROR_WAIT);
+            continue;
+        }
+
+        if ( (status = readDriveStatus()) != AMC_COMMAND_COMPLETE)
+        {
+            usleep(MAX_ERROR_WAIT);
+            continue;
+        }
+        else
+            break;
+    }
+
+    if (nbytes_written != 16)
     {
         DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error writing acceleration to %s drive. %s", type_name.c_str(), strerror(errno));
         unlock_mutex();
         return false;
     }
-
-    driveStatus status;
-
-    if ( (status = readDriveStatus()) != AMC_COMMAND_COMPLETE)
+    else if (status != AMC_COMMAND_COMPLETE)
     {
-        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "%s Drive status error: %s", __FUNCTION__, driveStatusString(status));
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "%s %s Drive status error: %s", type_name.c_str(), __FUNCTION__, driveStatusString(status));
         unlock_mutex();
         return false;
     }
@@ -1168,20 +1206,35 @@ bool AMCController::setDeceleration(motorMotion dir, double rpmDeAcceleration)
 
     lock_mutex();
 
-    //flushFD();
+    driveStatus status;
 
-    if ( (nbytes_written = send(fd, command, 16, 0)) != 16)
+    for (int i=0; i < MAX_RETRIES; i++)
+    {
+
+        if ( (nbytes_written = send(fd, command, 16, 0)) != 16)
+        {
+            usleep(MAX_ERROR_WAIT);
+            continue;
+        }
+
+        if ( (status = readDriveStatus()) != AMC_COMMAND_COMPLETE)
+        {
+            usleep(MAX_ERROR_WAIT);
+            continue;
+        }
+        else
+            break;
+    }
+
+    if (nbytes_written != 16)
     {
         DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error writing deceleration to %s drive. %s", type_name.c_str(), strerror(errno));
         unlock_mutex();
         return false;
     }
-
-    driveStatus status;
-
-    if ( (status = readDriveStatus()) != AMC_COMMAND_COMPLETE)
+    else if (status != AMC_COMMAND_COMPLETE)
     {
-        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "%s Drive status error: %s", __FUNCTION__, driveStatusString(status));
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "%s %s Drive status error: %s", type_name.c_str(), __FUNCTION__, driveStatusString(status));
         unlock_mutex();
         return false;
     }
@@ -1242,7 +1295,7 @@ AMCController::driveStatus AMCController::readDriveStatus()
     FD_ZERO(&rd);
     FD_SET(fd, &rd);
 
-    for (int retry=0; retry < 3; retry++)
+    for (int retry=0; retry < MAX_RETRIES; retry++)
     {
         rc = select(fd + 1, &rd, NULL, NULL, &t);
         if (rc == -1)
@@ -1295,11 +1348,20 @@ AMCController::driveStatus AMCController::readDriveStatus()
             {
                 nbytes_read=1;
                 int response_size;
-                while ((response_size = recv(fd, response+nbytes_read, 8-nbytes_read, 0)) > 0)
+
+                //while ((response_size = recv(fd, response+nbytes_read, 8-nbytes_read, MSG_DONTWAIT)) > 0)
+                for (int i=0; i < MAX_RETRIES*2; i++)
                 {
-                    nbytes_read += response_size;
+                    //while ((response_size = recv(fd, response+nbytes_read, 8-nbytes_read, MSG_DONTWAIT)) > 0)
+                //{
+                    response_size = recv(fd, response+nbytes_read, 8-nbytes_read, MSG_DONTWAIT);
+                    if (response_size > 0)
+                        nbytes_read += response_size;
+                    else
+                        continue;
                     if (nbytes_read ==8)
                     {
+                       rc=nbytes_read;
                        DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "%s <%02X><%02X><%02X><%02X><%02X><%02X><%02X><%02X>", type_name.c_str(), response[0],
                                response[1],response[2],response[3],response[4],response[5],response[6],response[7]);
                         break;
@@ -1312,7 +1374,7 @@ AMCController::driveStatus AMCController::readDriveStatus()
 
     if (rc < 0)
     {
-            DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "readDriveStatus: select() error %s.", strerror(errno));
+            DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "%s readDriveStatus: select() error %s.", type_name.c_str(), strerror(errno));
             restartCommunication();
             return AMC_COMM_FAILURE;
     }
@@ -1374,7 +1436,7 @@ AMCController::driveStatus AMCController::readDriveData(unsigned char *data, uns
     FD_ZERO(&rd);
     FD_SET(fd, &rd);
 
-    for (int retry=0; retry < 3; retry++)
+    for (int retry=0; retry < MAX_RETRIES; retry++)
     {
         rc = select(fd + 1, &rd, NULL, NULL, &t);
         if (rc == -1)
@@ -1539,24 +1601,43 @@ bool AMCController::update()
 
     //flushFD();
 
-    if (simulation == false && (nbytes_written = send(fd, command, 8, 0)) != 8)
+    driveStatus driveStatus, dataStatus;
+
+    for (int i=0; i < MAX_RETRIES; i++)
+    {
+        if (simulation == false && (nbytes_written = send(fd, command, 8, 0)) != 8)
+        {
+            usleep(MAX_ERROR_WAIT);
+            continue;
+        }
+
+        if ( (driveStatus = readDriveStatus()) != AMC_COMMAND_COMPLETE)
+        {
+            usleep(MAX_ERROR_WAIT);
+            continue;
+        }
+
+        if ( (dataStatus = readDriveData(status_data, 4)) != AMC_COMMAND_COMPLETE)
+        {
+            usleep(MAX_ERROR_WAIT);
+            continue;
+        }
+    }
+
+    if (nbytes_written != 8)
     {
         DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error updating status for %s drive. %s", type_name.c_str(), strerror(errno));
+        restartCommunication();
         goto unlock;
     }
-
-    driveStatus status;
-
-    if ( (status = readDriveStatus()) != AMC_COMMAND_COMPLETE)
+    else if (driveStatus != AMC_COMMAND_COMPLETE)
     {
-        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "%s Drive status error: %s", __FUNCTION__, driveStatusString(status));
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "%s %s Drive status error: %s", type_name.c_str(), __FUNCTION__, driveStatusString(driveStatus));
         goto unlock;
-
     }
-
-    if ( (status = readDriveData(status_data, 4)) != AMC_COMMAND_COMPLETE)
+    else if (dataStatus != AMC_COMMAND_COMPLETE)
     {
-        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "%s Drive data read error: %s", __FUNCTION__, driveStatusString(status));
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "%s %s Drive data read error: %s", type_name.c_str(), __FUNCTION__, driveStatusString(dataStatus));
         DriveStatusLP.s = IPS_ALERT;
         DriveProtectionLP.s = IPS_ALERT;
         goto unlock;
@@ -1586,6 +1667,15 @@ bool AMCController::update()
     DriveStatusLP.s = IPS_OK;
     DriveProtectionLP.s = IPS_OK;
 
+    if (MotionControlSP.s == IPS_ALERT && DriveStatusL[2].s == IPS_OK)
+    {
+
+        MotionControlSP.s = IPS_IDLE;
+        IUResetSwitch(&MotionControlSP);
+        MotionControlS[MOTOR_STOP].s = ISS_ON;
+        IDSetSwitch(&MotionControlSP, NULL);
+    }
+
     IDSetLight(&DriveStatusLP, NULL);
     IDSetLight(&DriveProtectionLP, NULL);
 
@@ -1595,7 +1685,6 @@ unlock:
   }
 
     return true;
-
 }
 
 bool AMCController::isProtectionTriggered()
@@ -1689,20 +1778,32 @@ bool AMCController::setControlParameter(unsigned short param)
 
     lock_mutex();
 
-    //flushFD();
+    driveStatus status;
 
-    if ( (nbytes_written = send(fd, command, 12, 0)) !=  12)
+    for (int i=0; i < MAX_RETRIES; i++)
     {
-        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error gaining write access to %s drive. %s", type_name.c_str(), strerror(errno));
+        if ( (nbytes_written = send(fd, command, 12, 0)) !=  12)
+        {
+            usleep(MAX_ERROR_WAIT);
+            continue;
+        }
+
+        if ( (status = readDriveStatus()) != AMC_COMMAND_COMPLETE)
+        {
+            usleep(MAX_ERROR_WAIT);
+            continue;
+        }
+    }
+
+    if (nbytes_written != 12)
+    {
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "Error set control parameter to %s drive. %s", type_name.c_str(), strerror(errno));
         unlock_mutex();
         return false;
     }
-
-    driveStatus status;
-
-    if ( (status = readDriveStatus()) != AMC_COMMAND_COMPLETE)
+    else if (status != AMC_COMMAND_COMPLETE)
     {
-        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "%s Drive status error: %s", __FUNCTION__, driveStatusString(status));
+        DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "%s %s Drive status error: %s", type_name.c_str(), __FUNCTION__, driveStatusString(status));
         unlock_mutex();
         return false;
     }

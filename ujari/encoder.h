@@ -79,6 +79,7 @@ private:
 
         unsigned long readEncoder();
         int getEncoderDiff(unsigned long startEncoder, unsigned long endEncoder);
+        unsigned short Gray2Binary(const char *s);
         void lock_mutex();
         void unlock_mutex();
 
@@ -97,14 +98,13 @@ private:
         bool simulation;
         bool debug;
         bool verbose;
-        int MSBIndex;
+        int MSBIndex, LSBIndex, MSBCount, LSBCount;
         int connection_status;
         encoderDirection direction;
 
         unsigned long startupEncoderValue;
-        unsigned long lastEncoderRaw;
+        unsigned long lastEncoderRaw;        
         double lastEncoderValue;
-
         double simSpeed;
 
         Ujari *telescope;

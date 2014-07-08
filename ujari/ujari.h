@@ -35,6 +35,9 @@ class UjariSimulator;
 class Inverter;
 class Encoder;
 
+#define MAX_RETRIES     3
+#define MAX_ERROR_WAIT  25000
+
 class Ujari : public INDI::Telescope
 {
 public:

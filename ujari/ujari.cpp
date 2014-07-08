@@ -395,9 +395,9 @@ bool Ujari::updateProperties()
     defineSwitch(TrackDefaultSP);
 
     mount->updateProperties();
-    //dome->updateProperties(true);
+    dome->updateProperties(true);
     domeEncoder->updateProperties(true);
-    //shutter->updateProperties(true);
+    shutter->updateProperties(true);
 
     try
     {
@@ -486,9 +486,9 @@ bool Ujari::Connect()
 
     try
     {
-      dome_rc = true;//dome->connect();
+      dome_rc = dome->connect();
       dome_encoder_rc = domeEncoder->connect();
-      shutter_rc = true;//shutter->connect();
+      shutter_rc = shutter->connect();
       mount_rc = mount->Connect();
     } catch(UjariError e)
     {
@@ -1628,14 +1628,14 @@ bool Ujari::MoveNS(TelescopeMotionNS dir)
       IDSetSwitch(&MovementNSSP, NULL);
       return true;
     }
-    DEBUG(INDI::Logger::DBG_SESSION, "Starting North slew.");
+    DEBUG(DBG_MOUNT, "Starting North slew.");
     if (DEInverted) rate=-rate;
     mount->SlewDE(rate);
     last_motion_ns = MOTION_NORTH;
     RememberTrackState = TrackState;
     TrackState = SCOPE_SLEWING;
       } else {
-    DEBUG(INDI::Logger::DBG_SESSION, "North Slew stopped");
+    DEBUG(DBG_MOUNT, "North Slew stopped");
     mount->StopDE();
     last_motion_ns=-1;
     if (RememberTrackState == SCOPE_TRACKING) {
@@ -1662,14 +1662,14 @@ bool Ujari::MoveNS(TelescopeMotionNS dir)
       IDSetSwitch(&MovementNSSP, NULL);
       return true;
     }
-    DEBUG(INDI::Logger::DBG_SESSION, "Starting South slew");
+    DEBUG(DBG_MOUNT, "Starting South slew");
     if (DEInverted) rate=-rate;
     mount->SlewDE(rate);
     last_motion_ns = MOTION_SOUTH;
     RememberTrackState = TrackState;
     TrackState = SCOPE_SLEWING;
       } else {
-    DEBUG(INDI::Logger::DBG_SESSION, "South Slew stopped.");
+    DEBUG(DBG_MOUNT, "South Slew stopped.");
     mount->StopDE();
     last_motion_ns=-1;
     if (RememberTrackState == SCOPE_TRACKING) {
@@ -1708,14 +1708,14 @@ bool Ujari::MoveWE(TelescopeMotionWE dir)
           IDSetSwitch(&MovementWESP, NULL);
           return true;
         }
-        DEBUG(INDI::Logger::DBG_SESSION, "Starting West Slew");
+        DEBUG(DBG_MOUNT, "Starting West Slew");
         if (RAInverted) rate=-rate;
         mount->SlewRA(rate);
         last_motion_ew = MOTION_WEST;
         RememberTrackState = TrackState;
         TrackState = SCOPE_SLEWING;
       } else {
-        DEBUG(INDI::Logger::DBG_SESSION, "West Slew stopped");
+        DEBUG(DBG_MOUNT, "West Slew stopped");
         mount->StopRA();
         last_motion_ew=-1;
         if (RememberTrackState == SCOPE_TRACKING) {
@@ -1741,14 +1741,14 @@ bool Ujari::MoveWE(TelescopeMotionWE dir)
           IDSetSwitch(&MovementWESP, NULL);
           return true;
         }
-        DEBUG(INDI::Logger::DBG_SESSION,  "Starting East Slew");
+        DEBUG(DBG_MOUNT,  "Starting East Slew");
         if (RAInverted) rate=-rate;
         mount->SlewRA(rate);
         last_motion_ew = MOTION_EAST;
         RememberTrackState = TrackState;
         TrackState = SCOPE_SLEWING;
       } else {
-        DEBUG(INDI::Logger::DBG_SESSION,  "East Slew stopped");
+        DEBUG(DBG_MOUNT,  "East Slew stopped");
         mount->StopRA();
         last_motion_ew=-1;
         if (RememberTrackState == SCOPE_TRACKING) {
@@ -2007,6 +2007,7 @@ void Ujari::debugTriggered(bool enable)
     mount->setDebug(enable);
     dome->setDebug(enable);
     shutter->setDebug(enable);
+    domeEncoder->setDebug(enable);
 }
 
 void Ujari::simulationTriggered(bool enable)

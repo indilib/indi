@@ -125,6 +125,12 @@ bool ForkMount::ISNewText (const char *dev, const char *name, char *texts[], cha
 void ForkMount::setDebug (bool enable)
 {
   debug=enable;
+
+  RAMotor->setDebug(enable);
+  DEMotor->setDebug(enable);
+
+  RAEncoder->setDebug(enable);
+  DEEncoder->setDebug(enable);
 }
 bool ForkMount::isDebug ()
 {
@@ -168,8 +174,8 @@ void ForkMount::ISGetProperties(const char *dev)
 
 bool ForkMount::updateProperties()
 {
-    //RAMotor->updateProperties(telescope->isConnected());
-    //DEMotor->updateProperties(telescope->isConnected());
+    RAMotor->updateProperties(telescope->isConnected());
+    DEMotor->updateProperties(telescope->isConnected());
     RAEncoder->updateProperties(telescope->isConnected());
     DEEncoder->updateProperties(telescope->isConnected());
 }
@@ -180,8 +186,8 @@ bool ForkMount::Connect()  throw (UjariError)
 {
   bool raMotorRC=false, decMotorRC=false, raEncoderRC=false, decEncoderRC=false;
 
-  raMotorRC    = true;//RAMotor->connect();
-  decMotorRC   = true;//DEMotor->connect();
+  raMotorRC    = RAMotor->connect();
+  decMotorRC   = DEMotor->connect();
   raEncoderRC  = RAEncoder->connect();
   decEncoderRC = DEEncoder->connect();
 
@@ -578,7 +584,16 @@ void ForkMount::SlewRA(double rate) throw (UjariError)
 
   if (!RARunning)
   {
-     bool rc = StartMotor(Axis1, newstatus);
+     bool rc = false;
+
+     for (int i=0; i < 3; i++)
+     {
+         rc = StartMotor(Axis1, newstatus);
+         if (rc)
+             break;
+         else
+             usleep(100000);
+     }
      if (rc == false)
          throw UjariError(UjariError::ErrCmdFailed, "RA Motor failed to start motion.");
   }
@@ -611,7 +626,16 @@ void ForkMount::SlewDE(double rate) throw (UjariError)
   SetSpeed(Axis2, rpm);
   if (!DERunning)
   {
-     bool rc = StartMotor(Axis2, newstatus);
+     bool rc = false;
+
+     for (int i=0; i <3; i++)
+     {
+         rc = StartMotor(Axis2, newstatus);
+         if (rc)
+             break;
+         else
+             usleep(100000);
+     }
      if (rc == false)
          throw UjariError(UjariError::ErrCmdFailed, "RA Motor failed to start motion.");
   }
@@ -1105,8 +1129,6 @@ char *ForkMount::WriteParkData(const char *filename)
 
 bool ForkMount::update()
 {
-    return true;
-
     double separation, speed;
 
     ReadMotorStatus(Axis1);
