@@ -601,7 +601,7 @@ knroObservatory::knroErrCode knroObservatory::stop_all()
 ***************************************************************************************/
 void  knroObservatory::park_telescope()
 {	
-    targetEQCoords.dec = 90 - observer.lat;
+    targetEQCoords.dec = observer.lat;
     targetEQCoords.ra  = ln_get_mean_sidereal_time(ln_get_julian_from_sys()) * 15.0;
 
     TrackState = SCOPE_PARKING;

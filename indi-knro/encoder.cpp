@@ -79,6 +79,7 @@ const int ALT_MIN_COUNT = 200000;
 
 // 1000ms sleep for encoder thread
 const int ENCODER_POLLMS = 10000;
+const int ENCODER_ERROR_WAIT = 500000;
 const int SIMULATED_ENCODER_POLLMS = 250000;
 
 /****************************************************************
@@ -382,7 +383,7 @@ bool knroEncoder::dispatch_command(encoderCommand command)
    if  ( (err_code = tty_write(sockfd, encoder_command, ENCODER_CMD_LEN, &nbytes_written) != TTY_OK))
    {
 	tty_error_msg(err_code, encoder_error, ENCODER_ERROR_BUFFER);
-    DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_WARNING, "TTY error detected: %s\n", encoder_error);
+    DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_WARNING, "TTY error detected: %s", encoder_error);
    	return false;
    }
 
@@ -528,11 +529,13 @@ void * knroEncoder::update_encoder(void)
 	  if ( (err_code = tty_read(sockfd, encoder_read+counter, 1, 1, &nbytes_read)) != TTY_OK)
 	  {
 		tty_error_msg(err_code, encoder_error, ENCODER_ERROR_BUFFER);
-        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_ERROR,"%s encoder: TTY error detected (%s)\n", type_name.c_str(), encoder_error);
+        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_ERROR,"%s encoder: TTY error detected (%s)", type_name.c_str(), encoder_error);
+        EncoderAbsPosNP.s = IPS_ALERT;
+        IDSetNumber(&EncoderAbsPosNP, NULL);
    		break;
 	  }
 	   
-      DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG,"%s Byte #%d=0x%X --- %d\n", type_name.c_str(), i, ((unsigned char) encoder_read[counter]), ((unsigned char) encoder_read[counter]));
+      DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG,"%s Byte #%d=0x%X --- %d", type_name.c_str(), i, ((unsigned char) encoder_read[counter]), ((unsigned char) encoder_read[counter]));
 
 	   // If encountering line feed 0xA, then break;
 	   if (encoder_read[counter] == 0xA)
@@ -547,21 +550,27 @@ void * knroEncoder::update_encoder(void)
 	if (counter == 0)
 	{
         DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_ERROR, "%s encoder. Error, unable to read. Check connection.", type_name.c_str());
-                usleep(ENCODER_POLLMS);
+        EncoderAbsPosNP.s = IPS_ALERT;
+        IDSetNumber(&EncoderAbsPosNP, NULL);
+        usleep(ENCODER_ERROR_WAIT);
 		continue;
 	}
 
 	if ( ((unsigned char) encoder_read[0]) != 0x47)
 	{
-        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_ERROR,"%s encoder. Invalid encoder response!\n", type_name.c_str());
-        usleep(ENCODER_POLLMS);
+        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_ERROR,"%s encoder. Invalid encoder response!", type_name.c_str());
+        EncoderAbsPosNP.s = IPS_ALERT;
+        IDSetNumber(&EncoderAbsPosNP, NULL);
+        usleep(ENCODER_ERROR_WAIT);
 		continue;
 	}
 
 	if ( (err_code = get_encoder_value(POSITION_VALUE, encoder_read, new_encoder_value)) != NO_ERROR)
 	{
-        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_ERROR,"%s encoder. Encoder error is %d\n", type_name.c_str(), err_code);
-        usleep(ENCODER_POLLMS);
+        DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_ERROR,"%s encoder. Encoder error is %d", type_name.c_str(), err_code);
+        EncoderAbsPosNP.s = IPS_ALERT;
+        IDSetNumber(&EncoderAbsPosNP, NULL);
+        usleep(ENCODER_ERROR_WAIT);
 		continue;
 	}
 
@@ -571,7 +580,7 @@ void * knroEncoder::update_encoder(void)
 	    calculate_angle();
 	}
 	
-     DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG,"We got encoder test value of %g, Degree %g\n", new_encoder_value, EncoderAbsPosN[1].value);
+     DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG,"We got encoder test value of %g, Degree %g", new_encoder_value, EncoderAbsPosN[1].value);
      usleep(ENCODER_POLLMS);
 
      }
@@ -598,7 +607,7 @@ void knroEncoder::calculate_angle()
             //current_angle = ALT_HOME_DEGREES - fabs((ALT_HOME_TICKS - EncoderAbsPosN[0].value) / ALT_TPD) - 3.62;
             //current_angle = ALT_HOME_DEGREES - fabs((ALT_HOME_TICKS - EncoderAbsPosN[0].value) / ALT_TPD) - 3.12;
             //current_angle = ALT_HOME_DEGREES - fabs((ALT_HOME_TICKS - EncoderAbsPosN[0].value) / ALT_TPD) + 1;
-            current_angle = ALT_HOME_DEGREES - fabs((ALT_HOME_TICKS - EncoderAbsPosN[0].value) / ALT_TPD) + 1.416;
+            current_angle = ALT_HOME_DEGREES - fabs((ALT_HOME_TICKS - EncoderAbsPosN[0].value) / ALT_TPD);// + 1.416;
 			if (current_angle > ALT_HOME_DEGREES) current_angle -= ALT_HOME_DEGREES;
 			else if (current_angle < 0) current_angle += ALT_HOME_DEGREES;
 			EncoderAbsPosN[1].value = current_angle;
