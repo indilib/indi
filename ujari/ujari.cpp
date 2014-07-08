@@ -1981,15 +1981,15 @@ bool Ujari::saveConfigItems(FILE *fp)
 
 }
 
-void Ujari::joystickHelper(const char * joystick_n, double mag, double angle)
+void Ujari::joystickHelper(const char * joystick_n, double mag, double angle, void *context)
 {
-    ujari->processJoystick(joystick_n, mag, angle);
+    static_cast<Ujari*>(context)->processJoystick(joystick_n, mag, angle);
 
 }
 
-void Ujari::buttonHelper(const char * button_n, ISState state)
+void Ujari::buttonHelper(const char * button_n, ISState state, void *context)
 {
-    ujari->processButton(button_n, state);
+    static_cast<Ujari*>(context)->processButton(button_n, state);
 }
 
 bool Ujari::updateLocation(double latitude, double longitude, double elevation)

@@ -81,8 +81,8 @@ public:
 
     void SetPanicAlarm(bool enable);
 
-    static void joystickHelper(const char * joystick_n, double mag, double angle);
-    static void buttonHelper(const char * button_n, ISState state);
+    static void joystickHelper(const char * joystick_n, double mag, double angle, void *context);
+    static void buttonHelper(const char * button_n, ISState state, void *context);
 
     protected:
     private:

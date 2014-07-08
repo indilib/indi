@@ -45,8 +45,8 @@
 
 #define AMC_MAX_REFRESH     2       // Update drive status and protection every 2 seconds
 
-// Wait 0.15s between updates
-#define MAX_THREAD_WAIT     100000
+// Wait 250ms between updates
+#define MAX_THREAD_WAIT     250000
 
 pthread_mutex_t ra_motor_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t de_motor_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -937,6 +937,12 @@ int AMCController::openRS485Server (const char * host, int rs485_port)
 
     ignore_sigpipe();
 
+    // Recv timeout
+    struct timeval tv;
+    tv.tv_sec = 1;  /* 1 Timeout */
+    tv.tv_usec = 0;
+    setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv,sizeof(struct timeval));
+
     /* ok */
     return (sockfd);
 }
@@ -1279,6 +1285,7 @@ AMCController::driveStatus AMCController::readDriveStatus()
 {
     unsigned char response[8];
     int nbytes_read=0;
+    bool SOFFound=false;
 
     fd_set          rd;
     int             rc;
@@ -1310,55 +1317,25 @@ AMCController::driveStatus AMCController::readDriveStatus()
         }
         else if (FD_ISSET(fd, &rd))
         {
-            /*if ( (nbytes_read += recv(fd, response+nbytes_read, 8-nbytes_read, 0)) <= 0)
-            {
-                // RS485 server disconnected
-                if (nbytes_read == 0)
-                    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "%s readDriveStatus: Lost connection to RS485 server.", type_name.c_str());
-                else
-                    DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "%s readDriveStatus: read error: %s", strerror(errno));
-                //return AMC_COMM_ERROR;
-                continue;
-            }
-
-            if (nbytes_read != 8)
-                continue;
-
-            //for (int i=0; i < nbytes_read; i++)
-            //DEBUGFDEVICE(telescope->getDeviceName(), DBG_COMM, "response[%d]=%02X", i, response[i]);
-
-            if (response[0] != SOF)
-            {
-                DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "readDriveStatus: Invalid Start of Frame %02X (%s,%d)", response[0], response, nbytes_read);
-                //return AMC_COMM_ERROR;
-                continue;
-            }*/
-
-            bool SOFFound=false;
-            while ( (nbytes_read = recv(fd, response, 1, 0)) > 0)
+            // Loop until you encounter SOF
+            while ( SOFFound == false && (nbytes_read = recv(fd, response, 1, 0)) > 0)
             {
                 if (response[0] == SOF)
                 {
                     SOFFound = true;
+                    nbytes_read=1;
                     break;
                 }
             }
 
             if (SOFFound)
-            {
-                nbytes_read=1;
+            {                
                 int response_size;
 
-                //while ((response_size = recv(fd, response+nbytes_read, 8-nbytes_read, MSG_DONTWAIT)) > 0)
-                for (int i=0; i < MAX_RETRIES*2; i++)
+                while ((response_size = recv(fd, response+nbytes_read, 8-nbytes_read,0)) > 0)
                 {
-                    //while ((response_size = recv(fd, response+nbytes_read, 8-nbytes_read, MSG_DONTWAIT)) > 0)
-                //{
-                    response_size = recv(fd, response+nbytes_read, 8-nbytes_read, MSG_DONTWAIT);
-                    if (response_size > 0)
-                        nbytes_read += response_size;
-                    else
-                        continue;
+                    nbytes_read += response_size;
+
                     if (nbytes_read ==8)
                     {
                        rc=nbytes_read;
@@ -1428,9 +1405,9 @@ AMCController::driveStatus AMCController::readDriveData(unsigned char *data, uns
     int             rc;
     struct timeval  t;
 
-    /* 0.25 second waiting */
+    /* 0.1 second waiting */
     t.tv_sec = 0;
-    t.tv_usec = 250000;
+    t.tv_usec = 100000;
 
     /* set descriptor */
     FD_ZERO(&rd);
