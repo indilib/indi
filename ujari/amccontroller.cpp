@@ -226,20 +226,20 @@ bool AMCController::connect()
 
     rc = enableWriteAccess();
 
-    if (rc == false)
+   /* if (rc == false)
     {
         close (fd);
         fd=-1;
         return rc;
-    }
+    }*/
 
     rc = enableBridge();
 
-    if (rc == false)
+    /*if (rc == false)
     {
         close (fd);
         fd=-1;
-    }
+    }*/
 
     connection_status = 0;
 
@@ -250,7 +250,7 @@ bool AMCController::connect()
 
     setupDriveParameters();
 
-    return rc;
+    return true;
 }
 
 /****************************************************************
@@ -349,6 +349,7 @@ bool AMCController::enableWriteAccess()
             usleep(MAX_ERROR_WAIT);
             continue;
         }
+        else break;
     }
 
     if (nbytes_written !=  12)
@@ -433,16 +434,33 @@ bool AMCController::enableBridge()
 
     //flushFD();
 
-    if ( (nbytes_written = send(fd, command, 12, 0)) != 12)
+    driveStatus status;
+
+    for (int i=0; i < MAX_RETRIES; i++)
+    {
+        if ( (nbytes_written = send(fd, command, 12, 0)) != 12)
+        {
+            usleep(MAX_ERROR_WAIT);
+            continue;
+        }
+
+
+        if ( (status = readDriveStatus()) != AMC_COMMAND_COMPLETE)
+        {
+            usleep(MAX_ERROR_WAIT);
+            continue;
+        }
+        else
+            break;
+    }
+
+    if ( nbytes_written != 12)
     {
         DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "Error gaining write access to %s drive. %s", type_name.c_str(), strerror(errno));
         unlock_mutex();
         return false;
     }
-
-    driveStatus status;
-
-    if ( (status = readDriveStatus()) != AMC_COMMAND_COMPLETE)
+    else if (status != AMC_COMMAND_COMPLETE)
     {
         DEBUGFDEVICE(telescope->getDeviceName(), INDI::Logger::DBG_ERROR, "%s Drive status error: %s", __FUNCTION__, driveStatusString(status));
         unlock_mutex();
@@ -547,6 +565,8 @@ bool AMCController::setMotion(motorMotion dir)
             usleep(MAX_ERROR_WAIT);
             continue;
         }
+        else
+            break;
     }
 
     if (nbytes_written != 14)
@@ -1332,7 +1352,7 @@ AMCController::driveStatus AMCController::readDriveStatus()
             {                
                 int response_size;
 
-                while ((response_size = recv(fd, response+nbytes_read, 8-nbytes_read,0)) > 0)
+                while ((response_size = recv(fd, response+nbytes_read, 8-nbytes_read,MSG_WAITALL)) > 0)
                 {
                     nbytes_read += response_size;
 
@@ -1599,6 +1619,7 @@ bool AMCController::update()
             usleep(MAX_ERROR_WAIT);
             continue;
         }
+        else break;
     }
 
     if (nbytes_written != 8)
@@ -1770,6 +1791,7 @@ bool AMCController::setControlParameter(unsigned short param)
             usleep(MAX_ERROR_WAIT);
             continue;
         }
+        else break;
     }
 
     if (nbytes_written != 12)
