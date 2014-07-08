@@ -2460,15 +2460,15 @@ bool EQMod::saveConfigItems(FILE *fp)
 
 }
 
-void EQMod::joystickHelper(const char * joystick_n, double mag, double angle)
+void EQMod::joystickHelper(const char * joystick_n, double mag, double angle, void *context)
 {
-    eqmod->processJoystick(joystick_n, mag, angle);
+    static_cast<EQMod*>(context)->processJoystick(joystick_n, mag, angle);
 
 }
 
-void EQMod::buttonHelper(const char * button_n, ISState state)
+void EQMod::buttonHelper(const char * button_n, ISState state, void *context)
 {
-    eqmod->processButton(button_n, state);
+    static_cast<EQMod*>(context)->processButton(button_n, state);
 }
 
 bool EQMod::updateLocation(double latitude, double longitude, double elevation)

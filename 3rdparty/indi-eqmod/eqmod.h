@@ -203,15 +203,15 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
         virtual bool canPark();
 
         bool updateTime(ln_date *lndate_utc, double utc_offset);
-	bool updateLocation(double latitude, double longitude, double elevation);
+        bool updateLocation(double latitude, double longitude, double elevation);
 
         double getLongitude();
         double getLatitude();
         double getJulianDate();
         double getLst(double jd, double lng);
 
-        static void joystickHelper(const char * joystick_n, double mag, double angle);
-        static void buttonHelper(const char * button_n, ISState state);
+        static void joystickHelper(const char * joystick_n, double mag, double angle, void *context);
+        static void buttonHelper(const char * button_n, ISState state, void *context);
 
 #ifdef WITH_SIMULATOR
 	EQModSimulator *simulator;
