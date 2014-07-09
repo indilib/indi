@@ -413,17 +413,8 @@ bool LX200Generic::ReadScopeStatus()
             SlewModeS[2].s = ISS_ON;
             IDSetSwitch(&SlewModeSP, NULL);
 
-            //  Nothing to do here
-            if(TrackState==SCOPE_PARKING)
-            {
-                TrackState=SCOPE_PARKED;
-                IDMessage(getDeviceName(),"Telescope is Parked.");
-            }
-            else
-            {
-                TrackState=SCOPE_TRACKING;
-                IDMessage(getDeviceName(),"Slew is complete. Tracking...");
-            }
+            TrackState=SCOPE_TRACKING;
+            IDMessage(getDeviceName(),"Slew is complete. Tracking...");
 
         }
     }
@@ -436,7 +427,6 @@ bool LX200Generic::ReadScopeStatus()
             IDSetSwitch(&ParkSP,NULL);
             IDMessage(getDeviceName(),"Telescope is Parked.");
         }
-
     }
 
     if ( getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0)
