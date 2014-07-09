@@ -130,20 +130,25 @@ knroEncoder::~knroEncoder()
 bool knroEncoder::initProperties()
 {
 
+ IUFillNumber(&EncoderSettingsN[EN_HOME_POSITION], "HOME_POSITION", "Home Position", "%g", 0, 10000000, 1000, 122800);
+ IUFillNumber(&EncoderSettingsN[EN_HOME_OFFSET], "HOME_OFFSET", "Home Offset", "%g", 0, 10000000, 1000, 0);
+ IUFillNumber(&EncoderSettingsN[EN_TOTAL], "TOTAL_COUNT", "Total", "%g", 0, 10000000, 1000, 204800);
+
   IUFillNumber(&EncoderAbsPosN[0], "Value" , "", "%g", 0., 16777216., 0., 0.);
-  IUFillNumber(&EncoderAbsPosN[1], "Angle" , "", "%.2f", 0., 360., 0., 0.);
 
    IUFillText(&PortT[0], "PORT", "Port", default_port.c_str());
 
   if (type == AZ_ENCODER)
   {
-        IUFillNumberVector(&EncoderAbsPosNP, EncoderAbsPosN, 2, telescope->getDeviceName(), "Absolute Az", "", ENCODER_GROUP, IP_RO, 0, IPS_OK);
-        IUFillTextVector(&PortTP, PortT, 1, telescope->getDeviceName(), "AZIMUTH_ENCODER_PORT", "Azimuth", ENCODER_GROUP, IP_RW, 0, IPS_IDLE);
+       IUFillNumberVector(&EncoderSettingsNP, EncoderSettingsN, 3, telescope->getDeviceName(), "AZ_SETTINGS", "AZ Settings", ENCODER_GROUP, IP_RW, 0, IPS_IDLE);
+       IUFillNumberVector(&EncoderAbsPosNP, EncoderAbsPosN, 1, telescope->getDeviceName(), "Absolute Az", "", ENCODER_GROUP, IP_RO, 0, IPS_OK);
+       IUFillTextVector(&PortTP, PortT, 1, telescope->getDeviceName(), "AZIMUTH_ENCODER_PORT", "Azimuth", ENCODER_GROUP, IP_RW, 0, IPS_IDLE);
   }
   else
   {
-        IUFillTextVector(&PortTP, PortT, 1, telescope->getDeviceName(), "ALTITUDE_ENCODER_PORT", "Altitude", ENCODER_GROUP, IP_RW, 0, IPS_IDLE);
-        IUFillNumberVector(&EncoderAbsPosNP, EncoderAbsPosN, 2, telescope->getDeviceName(), "Absolute Alt", "", ENCODER_GROUP, IP_RO, 0, IPS_OK);
+      IUFillNumberVector(&EncoderSettingsNP, EncoderSettingsN, 3, telescope->getDeviceName(), "ALT_SETTINGS", "ALT Settings", ENCODER_GROUP, IP_RW, 0, IPS_IDLE);
+      IUFillNumberVector(&EncoderAbsPosNP, EncoderAbsPosN, 1, telescope->getDeviceName(), "Absolute Alt", "", ENCODER_GROUP, IP_RO, 0, IPS_OK);
+      IUFillTextVector(&PortTP, PortT, 1, telescope->getDeviceName(), "ALTITUDE_ENCODER_PORT", "Altitude", ENCODER_GROUP, IP_RW, 0, IPS_IDLE);
 
   }
 
@@ -159,11 +164,13 @@ bool knroEncoder::updateProperties(bool connected)
 {
     if (connected)
     {
+        telescope->defineNumber(&EncoderSettingsNP);
         telescope->defineNumber(&EncoderAbsPosNP);
         telescope->defineText(&PortTP);
     }
     else
     {
+        telescope->deleteProperty(EncoderSettingsNP.name);
         telescope->deleteProperty(EncoderAbsPosNP.name);
         telescope->deleteProperty(PortTP.name);
     }
@@ -177,8 +184,9 @@ bool knroEncoder::updateProperties(bool connected)
 *****************************************************************/
 void knroEncoder::reset_all_properties()
 {
-		EncoderAbsPosNP.s 	= IPS_IDLE;
-		PortTP.s		= IPS_IDLE;
+    EncoderSettingsNP.s = IPS_IDLE;
+    EncoderAbsPosNP.s 	= IPS_IDLE;
+    PortTP.s		= IPS_IDLE;
 	
 	
 	IDSetNumber(&EncoderAbsPosNP, NULL);
@@ -196,12 +204,12 @@ void knroEncoder::set_type(encoderType new_type)
 	 if (type == AZ_ENCODER)
 	 {
 	 		type_name = string("Azimuth");
-                        default_port = string("192.168.1.4");
+            default_port = string("192.168.1.4");
 	 }
 	 else
 	 {
 	 		type_name = string("Altitude");
-                        default_port = string("192.168.1.5");
+            default_port = string("192.168.1.5");
 	 }		
 }
 
@@ -221,14 +229,6 @@ bool knroEncoder::connect()
         connection_status = 0;
 	return true;
     }
-
-
-    /*if (tty_connect(PortT[0].text, 9600, 8, 0, 1, &fd) != TTY_OK)
-    {
-	EncoderAbsPosNP.s = IPS_ALERT;
-	IDSetNumber (&EncoderAbsPosNP, "Error connecting to port %s. Make sure you have BOTH read and write permission to the port.", PortT[0].text);
-	return false;
-  }*/
 
       DEBUGDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG, "Attempting to communicate with encoder...");
 
@@ -505,7 +505,7 @@ void * knroEncoder::update_encoder(void)
                                         EncoderAbsPosN[0].value += simulated_speed;
                                 }
 
-				calculate_angle();
+                //calculate_angle();
 
 				usleep(SIMULATED_ENCODER_POLLMS);
 
@@ -577,7 +577,7 @@ void * knroEncoder::update_encoder(void)
 	if (fabs(EncoderAbsPosN[0].value - new_encoder_value) > ENCODER_NOISE_TOLERANCE)
 	{
 	    EncoderAbsPosN[0].value = new_encoder_value;
-	    calculate_angle();
+        //calculate_angle();
 	}
 	
      DEBUGFDEVICE(telescope->getDeviceName(),INDI::Logger::DBG_DEBUG,"We got encoder test value of %g, Degree %g", new_encoder_value, EncoderAbsPosN[1].value);
@@ -589,6 +589,7 @@ void * knroEncoder::update_encoder(void)
 
 }
 
+#if 0
 void knroEncoder::calculate_angle()
 {
   	if (type == AZ_ENCODER)
@@ -613,6 +614,7 @@ void knroEncoder::calculate_angle()
 			EncoderAbsPosN[1].value = current_angle;
 	}  
 }
+#endif
 
 void * knroEncoder::update_helper(void *context)
 {
@@ -656,3 +658,43 @@ bool knroEncoder::openEncoderServer (const char * host, int indi_port)
 	return true;
 }
 
+/****************************************************************
+**
+**
+*****************************************************************/
+unsigned long knroEncoder::GetEncoder()
+{
+    unsigned long value = static_cast<unsigned long>(EncoderAbsPosN[0].value);
+
+    return value;
+}
+
+/****************************************************************
+** Zero Encoder Value = Home + (StartUpEncoder - Offset)
+** If startupEncoder == Offset, then ZeroEncoder=HomeEncoder
+** which is the ideal case
+*****************************************************************/
+unsigned long knroEncoder::GetEncoderZero()
+{
+    return static_cast<unsigned long>(EncoderSettingsN[EN_HOME_POSITION].value+(((int)startupEncoderValue)-EncoderSettingsN[EN_HOME_OFFSET].value));
+}
+
+/****************************************************************
+**
+**
+*****************************************************************/
+unsigned long knroEncoder::GetEncoderTotal()
+{
+    return static_cast<unsigned long>(EncoderSettingsN[EN_TOTAL].value);
+
+}
+
+/****************************************************************
+**
+**
+*****************************************************************/
+unsigned long knroEncoder::GetEncoderHome()
+{
+    return static_cast<unsigned long>(EncoderSettingsN[EN_HOME_POSITION].value);
+
+}

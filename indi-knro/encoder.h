@@ -56,9 +56,15 @@ public:
     enum encoderType { AZ_ENCODER, ALT_ENCODER };
     enum encoderCommand { SSI_OUTPUT_MODE = 1, NUM_OF_TURNS = 2, FULL_COUNT = 3, BAUD_RATE = 4, ENCODER_TYPE = 5, POSITION_VALUE = 9 };
     enum encoderError { NO_ERROR, BAUD_RATE_ERROR, FLASH_MEMORY_ERROR, WRONG_COMMAND_ERROR, WRONG_PARAMETER_ERROR, FATAL_ERROR };
+    enum { EN_HOME_POSITION, EN_HOME_OFFSET, EN_TOTAL };
 
     knroEncoder(encoderType new_type, knroObservatory *scope);
     ~knroEncoder();
+
+    unsigned long GetEncoder();
+    unsigned long GetEncoderZero();
+    unsigned long GetEncoderTotal();
+    unsigned long GetEncoderHome();
 
     unsigned int get_abs_encoder_count() { return abs_encoder_count; }
     double get_angle() { return current_angle; }
@@ -100,10 +106,14 @@ public:
     void simulate_fast() { simulated_speed = 50; }
 
 private: 
-    // INDI Properties
     // Encoder Absolute Position
-    INumber EncoderAbsPosN[2];
+    INumber EncoderAbsPosN[1];
     INumberVectorProperty EncoderAbsPosNP;
+
+    // Encoder settings
+    INumber EncoderSettingsN[3];
+    INumberVectorProperty EncoderSettingsNP;
+
 	
     // Encoder Port number
     ITextVectorProperty PortTP;
@@ -111,7 +121,7 @@ private:
 
     // Functions
     bool init_encoder();
-    void calculate_angle();
+   // void calculate_angle();
     void * update_encoder(void);
     bool check_drive_connection();
     bool dispatch_command(encoderCommand command);
@@ -131,6 +141,7 @@ private:
     bool debug;
 		
     unsigned int abs_encoder_count;
+    unsigned long startupEncoderValue;
     double current_angle;
     encoderType type;
 
