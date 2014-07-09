@@ -96,6 +96,32 @@ bool LX200AstroPhysics::initProperties()
     return true;
 }
 
+void LX200AstroPhysics::ISGetProperties(const char *dev)
+{
+    LX200Generic::ISGetProperties(dev);
+
+    if (isConnected())
+    {
+        defineSwitch(&StartUpSP);
+        defineText(&VersionInfo);
+        defineNumber(&HourangleCoordsNP) ;
+
+        defineText(&DeclinationAxisTP);
+        defineNumber(&APSiderealTimeNP);
+
+        /* Motion group */
+        defineSwitch (&TrackModeSP);
+        defineSwitch (&MoveToRateSP);
+        defineSwitch (&SlewRateSP);
+        defineSwitch (&SwapSP);
+        defineSwitch (&SyncCMRSP);
+
+        loadConfig(true);
+
+        DEBUG(INDI::Logger::DBG_SESSION, "Please initialize the mount before issuing any command.");
+    }
+}
+
 bool LX200AstroPhysics::updateProperties()
 {
 
@@ -1245,10 +1271,9 @@ bool LX200AstroPhysics::Sync(double ra, double dec)
     currentRA  = ra;
     currentDEC = dec;
 
-    if (isDebug())
-        IDLog("Synchronization successful %s\n", syncString);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Synchronization successful %s", syncString);
 
-    IDMessage(getDeviceName(), "Synchronization successful.");
+    DEBUG(INDI::Logger::DBG_SESSION, "Synchronization successful.");
 
     TrackState = SCOPE_IDLE;
     EqNP.s    = IPS_OK;
