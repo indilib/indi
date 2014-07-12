@@ -173,7 +173,7 @@ bool RoboFocus::initProperties()
     /* Relative and absolute movement */
     FocusRelPosN[0].min = -65000.;
     FocusRelPosN[0].max = 65000.;
-    FocusRelPosN[0].value = 0;
+    FocusRelPosN[0].value = 100;
     FocusRelPosN[0].step = 100;
 
     FocusAbsPosN[0].min = 0.;
