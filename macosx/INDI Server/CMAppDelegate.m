@@ -352,7 +352,7 @@
   NSMutableDictionary *plist = [NSMutableDictionary dictionary];
   [plist setObject:serverId forKey:@"Label"];
   [plist setObject:[NSNumber numberWithBool:YES] forKey:@"KeepAlive"];
-  [plist setObject:[mainBundle pathForAuxiliaryExecutable:@"indiserver"] forKey:@"Program"];
+  [plist setObject:[mainBundle pathForResource:@"indiserver" ofType:nil inDirectory:@"bin"] forKey:@"Program"];
   CFErrorRef error;
   if (SMJobSubmit(kSMDomainUserLaunchd, (__bridge CFDictionaryRef)plist, nil, &error)) {
   } else {

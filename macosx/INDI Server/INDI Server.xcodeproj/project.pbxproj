@@ -29,15 +29,15 @@
 		590FEB051892BC5D00F85808 /* QHY8PRO.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 591F82DF189051AF00EA2E8C /* QHY8PRO.HEX */; };
 		590FEB061892BC5D00F85808 /* QHY9.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 591F82E0189051AF00EA2E8C /* QHY9.HEX */; };
 		590FEB071892BC5D00F85808 /* QHY9L.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 591F82E1189051AF00EA2E8C /* QHY9L.HEX */; };
-		591944BA18F9543700837724 /* libindiAlignmentDriver.0.9.8.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 591944B818F9541500837724 /* libindiAlignmentDriver.0.9.8.dylib */; };
+		591944BA18F9543700837724 /* libindiAlignmentDriver.0.9.8.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 591944B818F9541500837724 /* libindiAlignmentDriver.0.9.8.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		591991A8188FC9AD007DD2DE /* indiserver.c in Sources */ = {isa = PBXBuildFile; fileRef = 591991A7188FC9AD007DD2DE /* indiserver.c */; };
 		591991AB188FC9BA007DD2DE /* fq.c in Sources */ = {isa = PBXBuildFile; fileRef = 591991A9188FC9BA007DD2DE /* fq.c */; };
 		591991AE188FC9CB007DD2DE /* lilxml.c in Sources */ = {isa = PBXBuildFile; fileRef = 591991AC188FC9CA007DD2DE /* lilxml.c */; };
-		5950C16718D6F4A500B587B2 /* libindi.0.9.8.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5950C16118D6F21700B587B2 /* libindi.0.9.8.dylib */; };
-		5950C16818D6F4A500B587B2 /* libindidriver.0.9.8.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5950C16218D6F21700B587B2 /* libindidriver.0.9.8.dylib */; };
-		5950C16918D6F4A500B587B2 /* libindimain.0.9.8.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5950C16318D6F21700B587B2 /* libindimain.0.9.8.dylib */; };
-		596355DC18994A18009B1A39 /* indi_maxdomeii in CopyFiles */ = {isa = PBXBuildFile; fileRef = 596355D4189949D8009B1A39 /* indi_maxdomeii */; };
-		596355DD18994A18009B1A39 /* indi_spectracyber in CopyFiles */ = {isa = PBXBuildFile; fileRef = 596355D2189949C7009B1A39 /* indi_spectracyber */; };
+		5950C16718D6F4A500B587B2 /* libindi.0.9.8.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5950C16118D6F21700B587B2 /* libindi.0.9.8.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		5950C16818D6F4A500B587B2 /* libindidriver.0.9.8.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5950C16218D6F21700B587B2 /* libindidriver.0.9.8.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		5950C16918D6F4A500B587B2 /* libindimain.0.9.8.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5950C16318D6F21700B587B2 /* libindimain.0.9.8.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		596355DC18994A18009B1A39 /* indi_maxdomeii in CopyFiles */ = {isa = PBXBuildFile; fileRef = 596355D4189949D8009B1A39 /* indi_maxdomeii */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		596355DD18994A18009B1A39 /* indi_spectracyber in CopyFiles */ = {isa = PBXBuildFile; fileRef = 596355D2189949C7009B1A39 /* indi_spectracyber */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		596355DE18994A25009B1A39 /* indi_maxdomeii.xml in CopyFiles */ = {isa = PBXBuildFile; fileRef = 596355D6189949F4009B1A39 /* indi_maxdomeii.xml */; };
 		596355DF18994A25009B1A39 /* indi_spectracyber_sk.xml in CopyFiles */ = {isa = PBXBuildFile; fileRef = 596355D8189949FF009B1A39 /* indi_spectracyber_sk.xml */; };
 		596355E018994A25009B1A39 /* indi_spectracyber.xml in CopyFiles */ = {isa = PBXBuildFile; fileRef = 596355D9189949FF009B1A39 /* indi_spectracyber.xml */; };
@@ -52,39 +52,39 @@
 		597B890C1887E6BE0093873A /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 594D0B36188300ED00B50F4E /* Cocoa.framework */; };
 		597B890F1887E6FF0093873A /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 597B890D1887E6FF0093873A /* Security.framework */; };
 		597B89121887E77F0093873A /* ServiceManagement.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 597B89111887E77F0093873A /* ServiceManagement.framework */; };
-		597B893D188837E10093873A /* indiserver in CopyFiles */ = {isa = PBXBuildFile; fileRef = 597B89241888016F0093873A /* indiserver */; };
-		59B1F12318BBB04300A7AC9A /* indi_aagcloudwatcher in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59B1F11D18BBB00500A7AC9A /* indi_aagcloudwatcher */; };
+		597B893D188837E10093873A /* indiserver in CopyFiles */ = {isa = PBXBuildFile; fileRef = 597B89241888016F0093873A /* indiserver */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59B1F12318BBB04300A7AC9A /* indi_aagcloudwatcher in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59B1F11D18BBB00500A7AC9A /* indi_aagcloudwatcher */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		59B1F12418BBB04F00A7AC9A /* indi_aagcloudwatcher_sk.xml in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59B1F11F18BBB02800A7AC9A /* indi_aagcloudwatcher_sk.xml */; };
 		59B1F12518BBB04F00A7AC9A /* indi_aagcloudwatcher.xml in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59B1F12018BBB02800A7AC9A /* indi_aagcloudwatcher.xml */; };
-		59D95CB6188540560008EFEE /* indi_atik_ccd in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE026718830F46007E5AE2 /* indi_atik_ccd */; };
-		59D95CB7188540560008EFEE /* indi_atik_wheel in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE026818830F46007E5AE2 /* indi_atik_wheel */; };
-		59D95CB8188540560008EFEE /* indi_celestron_gps in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE026918830F46007E5AE2 /* indi_celestron_gps */; };
-		59D95CB9188540560008EFEE /* indi_eqmod_telescope in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE026A18830F46007E5AE2 /* indi_eqmod_telescope */; };
-		59D95CBA188540560008EFEE /* indi_fcusb_focuser in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE026B18830F46007E5AE2 /* indi_fcusb_focuser */; };
-		59D95CBB188540560008EFEE /* indi_ieq45_8406 in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE026C18830F46007E5AE2 /* indi_ieq45_8406 */; };
-		59D95CBC188540560008EFEE /* indi_ieq45_8407 in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE026D18830F46007E5AE2 /* indi_ieq45_8407 */; };
-		59D95CBD188540560008EFEE /* indi_imager_agent in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE026E18830F46007E5AE2 /* indi_imager_agent */; };
-		59D95CBE188540560008EFEE /* indi_intelliscope in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE026F18830F46007E5AE2 /* indi_intelliscope */; };
-		59D95CBF188540560008EFEE /* indi_lx200basic in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE027318830F46007E5AE2 /* indi_lx200basic */; };
-		59D95CC0188540560008EFEE /* indi_lx200generic in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE027618830F46007E5AE2 /* indi_lx200generic */; };
-		59D95CC1188540560008EFEE /* indi_lx200genericlegacy in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE027718830F46007E5AE2 /* indi_lx200genericlegacy */; };
-		59D95CC2188540560008EFEE /* indi_magellan1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE027918830F46007E5AE2 /* indi_magellan1 */; };
-		59D95CC3188540560008EFEE /* indi_moonlite_focus in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE027A18830F46007E5AE2 /* indi_moonlite_focus */; };
-		59D95CC5188540560008EFEE /* indi_robo_focus in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE027B18830F46007E5AE2 /* indi_robo_focus */; };
-		59D95CC6188540560008EFEE /* indi_sbig_stv in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE027C18830F46007E5AE2 /* indi_sbig_stv */; };
-		59D95CC7188540560008EFEE /* indi_setprop in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE027D18830F46007E5AE2 /* indi_setprop */; };
-		59D95CC8188540560008EFEE /* indi_simulator_ccd in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE027E18830F46007E5AE2 /* indi_simulator_ccd */; };
-		59D95CC9188540560008EFEE /* indi_simulator_focus in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE027F18830F46007E5AE2 /* indi_simulator_focus */; };
-		59D95CCA188540560008EFEE /* indi_simulator_telescope in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE028018830F46007E5AE2 /* indi_simulator_telescope */; };
-		59D95CCB188540560008EFEE /* indi_simulator_wheel in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE028118830F46007E5AE2 /* indi_simulator_wheel */; };
-		59D95CCC188540560008EFEE /* indi_skycommander in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE028218830F46007E5AE2 /* indi_skycommander */; };
-		59D95CCD188540560008EFEE /* indi_sx_ao in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE028318830F46007E5AE2 /* indi_sx_ao */; };
-		59D95CCE188540560008EFEE /* indi_sx_ccd in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE028418830F46007E5AE2 /* indi_sx_ccd */; };
-		59D95CCF188540560008EFEE /* indi_sx_wheel in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE028518830F46007E5AE2 /* indi_sx_wheel */; };
-		59D95CD0188540560008EFEE /* indi_synscan in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE028618830F46007E5AE2 /* indi_synscan */; };
-		59D95CD1188540560008EFEE /* indi_tcfs_focus in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE028718830F46007E5AE2 /* indi_tcfs_focus */; };
-		59D95CD2188540560008EFEE /* indi_temma in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE028918830F46007E5AE2 /* indi_temma */; };
-		59D95CD3188540560008EFEE /* indi_trutech_wheel in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE028A18830F46007E5AE2 /* indi_trutech_wheel */; };
+		59D95CB6188540560008EFEE /* indi_atik_ccd in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE026718830F46007E5AE2 /* indi_atik_ccd */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59D95CB7188540560008EFEE /* indi_atik_wheel in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE026818830F46007E5AE2 /* indi_atik_wheel */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59D95CB8188540560008EFEE /* indi_celestron_gps in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE026918830F46007E5AE2 /* indi_celestron_gps */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59D95CB9188540560008EFEE /* indi_eqmod_telescope in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE026A18830F46007E5AE2 /* indi_eqmod_telescope */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59D95CBA188540560008EFEE /* indi_fcusb_focuser in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE026B18830F46007E5AE2 /* indi_fcusb_focuser */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59D95CBB188540560008EFEE /* indi_ieq45_8406 in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE026C18830F46007E5AE2 /* indi_ieq45_8406 */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59D95CBC188540560008EFEE /* indi_ieq45_8407 in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE026D18830F46007E5AE2 /* indi_ieq45_8407 */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59D95CBD188540560008EFEE /* indi_imager_agent in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE026E18830F46007E5AE2 /* indi_imager_agent */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59D95CBE188540560008EFEE /* indi_intelliscope in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE026F18830F46007E5AE2 /* indi_intelliscope */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59D95CBF188540560008EFEE /* indi_lx200basic in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE027318830F46007E5AE2 /* indi_lx200basic */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59D95CC0188540560008EFEE /* indi_lx200generic in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE027618830F46007E5AE2 /* indi_lx200generic */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59D95CC1188540560008EFEE /* indi_lx200genericlegacy in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE027718830F46007E5AE2 /* indi_lx200genericlegacy */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59D95CC2188540560008EFEE /* indi_magellan1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE027918830F46007E5AE2 /* indi_magellan1 */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59D95CC3188540560008EFEE /* indi_moonlite_focus in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE027A18830F46007E5AE2 /* indi_moonlite_focus */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59D95CC5188540560008EFEE /* indi_robo_focus in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE027B18830F46007E5AE2 /* indi_robo_focus */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59D95CC6188540560008EFEE /* indi_sbig_stv in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE027C18830F46007E5AE2 /* indi_sbig_stv */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59D95CC7188540560008EFEE /* indi_setprop in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE027D18830F46007E5AE2 /* indi_setprop */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59D95CC8188540560008EFEE /* indi_simulator_ccd in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE027E18830F46007E5AE2 /* indi_simulator_ccd */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59D95CC9188540560008EFEE /* indi_simulator_focus in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE027F18830F46007E5AE2 /* indi_simulator_focus */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59D95CCA188540560008EFEE /* indi_simulator_telescope in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE028018830F46007E5AE2 /* indi_simulator_telescope */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59D95CCB188540560008EFEE /* indi_simulator_wheel in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE028118830F46007E5AE2 /* indi_simulator_wheel */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59D95CCC188540560008EFEE /* indi_skycommander in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE028218830F46007E5AE2 /* indi_skycommander */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59D95CCD188540560008EFEE /* indi_sx_ao in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE028318830F46007E5AE2 /* indi_sx_ao */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59D95CCE188540560008EFEE /* indi_sx_ccd in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE028418830F46007E5AE2 /* indi_sx_ccd */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59D95CCF188540560008EFEE /* indi_sx_wheel in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE028518830F46007E5AE2 /* indi_sx_wheel */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59D95CD0188540560008EFEE /* indi_synscan in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE028618830F46007E5AE2 /* indi_synscan */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59D95CD1188540560008EFEE /* indi_tcfs_focus in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE028718830F46007E5AE2 /* indi_tcfs_focus */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59D95CD2188540560008EFEE /* indi_temma in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE028918830F46007E5AE2 /* indi_temma */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59D95CD3188540560008EFEE /* indi_trutech_wheel in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE028A18830F46007E5AE2 /* indi_trutech_wheel */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		59D95CDC188543140008EFEE /* drivers.xml in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE041C188334EB007E5AE2 /* drivers.xml */; };
 		59D95CDD188543140008EFEE /* indi_align_sk.xml in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE041D188334EB007E5AE2 /* indi_align_sk.xml */; };
 		59D95CDE188543140008EFEE /* indi_atik.xml in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE041E188334EB007E5AE2 /* indi_atik.xml */; };
@@ -94,13 +94,12 @@
 		59D95CE3188543140008EFEE /* indi_shoestring.xml in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE0422188334EB007E5AE2 /* indi_shoestring.xml */; };
 		59D95CE4188543140008EFEE /* indi_sx.xml in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE0423188334EB007E5AE2 /* indi_sx.xml */; };
 		59D95CE5188543140008EFEE /* indi_tcfs_sk.xml in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE0424188334EB007E5AE2 /* indi_tcfs_sk.xml */; };
-		59F8EE571969DA6E00E0044F /* libatikccd.0.12.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 59F8EE561969DA6E00E0044F /* libatikccd.0.12.dylib */; };
-		59F8EE581969DAF600E0044F /* libatikccd.0.12.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F8EE561969DA6E00E0044F /* libatikccd.0.12.dylib */; };
+		59F8EE581969DAF600E0044F /* libatikccd.0.12.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F8EE561969DA6E00E0044F /* libatikccd.0.12.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		59F9121B188AC27500EF5ED8 /* indi_qhy.xml in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F91219188AC25E00EF5ED8 /* indi_qhy.xml */; };
-		59F9121E188AC2A400EF5ED8 /* indi_qhy_ccd in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F9121C188AC29800EF5ED8 /* indi_qhy_ccd */; };
-		59F91263188AC43900EF5ED8 /* libcfitsio.2.3.36.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F9122B188AC3C300EF5ED8 /* libcfitsio.2.3.36.dylib */; };
-		59F91267188AC43900EF5ED8 /* libnova-0.15.0.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F9122F188AC3C300EF5ED8 /* libnova-0.15.0.dylib */; };
-		59F91268188AC43900EF5ED8 /* libusb-1.0.0.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F91230188AC3C300EF5ED8 /* libusb-1.0.0.dylib */; };
+		59F9121E188AC2A400EF5ED8 /* indi_qhy_ccd in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F9121C188AC29800EF5ED8 /* indi_qhy_ccd */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59F91263188AC43900EF5ED8 /* libcfitsio.2.3.36.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F9122B188AC3C300EF5ED8 /* libcfitsio.2.3.36.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59F91267188AC43900EF5ED8 /* libnova-0.15.0.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F9122F188AC3C300EF5ED8 /* libnova-0.15.0.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59F91268188AC43900EF5ED8 /* libusb-1.0.0.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F91230188AC3C300EF5ED8 /* libusb-1.0.0.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -159,8 +158,8 @@
 		597B88F41887E0920093873A /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 6;
+			dstPath = bin;
+			dstSubfolderSpec = 7;
 			files = (
 				597B893D188837E10093873A /* indiserver in CopyFiles */,
 			);
@@ -365,7 +364,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				59F8EE571969DA6E00E0044F /* libatikccd.0.12.dylib in Frameworks */,
 				597B89121887E77F0093873A /* ServiceManagement.framework in Frameworks */,
 				597B890F1887E6FF0093873A /* Security.framework in Frameworks */,
 				597B890C1887E6BE0093873A /* Cocoa.framework in Frameworks */,
@@ -665,8 +663,8 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				594D0B32188300ED00B50F4E /* INDI Server */,
 				597B89231888016F0093873A /* indiserver */,
+				594D0B32188300ED00B50F4E /* INDI Server */,
 			);
 		};
 /* End PBXProject section */
