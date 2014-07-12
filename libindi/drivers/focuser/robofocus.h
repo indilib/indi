@@ -52,6 +52,8 @@ private:
 
     int PortFD;
     double targetPos;
+    double simulatedTemperature;
+    double simulatedPosition;
 
     unsigned char CheckSum(char *rf_cmd);
     unsigned char CalculateSum(char *rf_cmd);

@@ -181,7 +181,11 @@ bool RoboFocus::initProperties()
     FocusAbsPosN[0].value = 0;
     FocusAbsPosN[0].step = 10000;
 
+    simulatedTemperature=600.0;
+    simulatedPosition=20000;
+
     addDebugControl();
+    addSimulationControl();
 
     return true;
 
@@ -241,9 +245,14 @@ bool RoboFocus::Connect()
     char errorMsg[MAXRBUF];
     char firmeware[]="FV0000000";
 
-
-    if (isDebug())
-        IDLog("connecting to %s\n",PortT[0].text);
+    if (isSimulation())
+    {
+        SetTimer(POLLMS);
+        IDMessage(getDeviceName(), "Simulated Robofocus is online. Getting focus parameters...");
+        FocusAbsPosN[0].value = simulatedPosition;
+        updateRFFirmware(firmeware);
+        return true;
+    }
 
     if ( (connectrc = tty_connect(PortT[0].text, 9600, 8, 0, 1, &PortFD)) != TTY_OK)
     {
@@ -273,6 +282,13 @@ bool RoboFocus::Connect()
 
 bool RoboFocus::Disconnect()
 {
+
+    if (isSimulation())
+    {
+        IDMessage(getDeviceName(), "Simulated Robofocus is offline.");
+        return true;
+    }
+
     tty_disconnect(PortFD);
     IDMessage(getDeviceName(), "RoboFocus is offline.");
     return true;
@@ -353,6 +369,9 @@ int RoboFocus::SendCommand(char *rf_cmd)
   }
 
 
+  if (isSimulation())
+      return 0;
+
   tcflush(PortFD, TCIOFLUSH);
 
    if  ( (err_code = tty_write(PortFD, rf_cmd_cks, RF_MAX_CMD, &nbytes_written) != TTY_OK))
@@ -386,6 +405,9 @@ int RoboFocus::ReadResponse(char *buf, int nbytes, int timeout)
   int bytesRead = 0;
   int totalBytesRead = 0;
   int err_code;
+
+  if (isSimulation())
+      return 9;
 
   if (isDebug())
       IDLog("##########################################\n");
@@ -479,12 +501,22 @@ int RoboFocus::updateRFPosition(double *value)
   char rf_cmd[32] ;
   int ret_read_tmp ;
 
+  if (isSimulation())
+  {
+      *value = simulatedPosition;
+      return 0;
+  }
+
   strcpy(rf_cmd, "FG000000" ) ;
 
   if ((ret_read_tmp= SendCommand(  rf_cmd)) < 0){
 
     return ret_read_tmp;
   }
+
+  if (isSimulation())
+      snprintf(rf_cmd, 32, "FD%6g", simulatedPosition);
+
    if (sscanf(rf_cmd, "FD%6f", &temp) < 1){
 
     return -1;
@@ -508,6 +540,8 @@ int RoboFocus::updateRFTemperature(double *value)
   if ((ret_read_tmp= SendCommand( rf_cmd)) < 0)
     return ret_read_tmp;
 
+  if (isSimulation())
+      snprintf(rf_cmd, 32, "FT%6g", simulatedTemperature);
 
   if (sscanf(rf_cmd, "FT%6f", &temp) < 1)
     return -1;
@@ -525,6 +559,9 @@ int RoboFocus::updateRFBacklash(double *value)
   char vl_tmp[4] ;
   int ret_read_tmp ;
   int sign= 0 ;
+
+  if (isSimulation())
+      return 0;
 
   if(*value== BACKLASH_READOUT) {
 
@@ -584,6 +621,9 @@ int RoboFocus::updateRFFirmware(char *rf_cmd)
   if ((ret_read_tmp= SendCommand( rf_cmd)) < 0)
     return ret_read_tmp;
 
+  if (isSimulation())
+      strcpy(rf_cmd, "SIM");
+
   return 0;
 }
 
@@ -592,6 +632,14 @@ int RoboFocus::updateRFMotorSettings(double *duty, double *delay, double *ticks)
 
   char rf_cmd[32] ;
   int ret_read_tmp ;
+
+  if (isSimulation())
+  {
+     *duty = 100;
+     *delay = 0;
+     *ticks = 0;
+     return 0;
+  }
 
   if(( *duty== 0 ) && (*delay== 0) && (*ticks== 0) ){
 
@@ -629,6 +677,13 @@ int RoboFocus::updateRFPositionRelativeInward(double *value)
   float temp ;
   rf_cmd[0]= 0 ;
 
+  if (isSimulation())
+  {
+      simulatedPosition+= *value;
+      *value = simulatedPosition;
+      return 0;
+  }
+
   if(*value > 9999) {
     sprintf( rf_cmd, "FI0%5d", (int) *value) ;
   } else if(*value > 999) {
@@ -659,6 +714,13 @@ int RoboFocus::updateRFPositionRelativeOutward(double *value)
   char rf_cmd[32] ;
   int ret_read_tmp ;
   float temp ;
+
+  if (isSimulation())
+  {
+      simulatedPosition-= *value;
+      *value = simulatedPosition;
+      return 0;
+  }
 
   rf_cmd[0]= 0 ;
 
@@ -694,6 +756,12 @@ int RoboFocus::updateRFPositionAbsolute(double *value)
   int ret_read_tmp ;
   float temp ;
 
+  if (isSimulation())
+  {
+      simulatedPosition = *value;
+      return 0;
+  }
+
   rf_cmd[0]= 0 ;
 
   if(*value > 9999) {
@@ -727,6 +795,11 @@ int RoboFocus::updateRFPowerSwitches(int s, int  new_sn, int *cur_s1LL, int *cur
   int ret_read_tmp ;
   int i = 0 ;
 
+
+  if (isSimulation())
+  {
+      return 0;
+  }
 
     /* Get first the status */
     strcpy(rf_cmd_tmp, "FP000000" ) ;
@@ -782,6 +855,11 @@ int RoboFocus::updateRFMaxPosition(double *value)
   int ret_read_tmp ;
   char waste[1] ;
 
+  if (isSimulation())
+  {
+      return 0;
+  }
+
   if(*value== MAXTRAVEL_READOUT) {
 
     strcpy(rf_cmd, "FL000000" ) ;
@@ -833,6 +911,12 @@ int RoboFocus::updateRFSetPosition(double *value)
   char rf_cmd[32] ;
   char vl_tmp[6] ;
   int ret_read_tmp ;
+
+  if (isSimulation())
+  {
+      simulatedPosition= *value;
+      return 0;
+  }
 
   rf_cmd[0]=  'F' ;
   rf_cmd[1]=  'S' ;
@@ -1498,10 +1582,12 @@ int RoboFocus::MoveRel(FocusDirection dir, unsigned int ticks)
 }
 
 bool RoboFocus::saveConfigItems(FILE *fp)
-{
+{        
     IUSaveConfigText(fp, &PortTP);
     IUSaveConfigNumber(fp, &SettingsNP);
     IUSaveConfigNumber(fp, &SetBacklashNP);
+
+    return INDI::Focuser::saveConfigItems(fp);
 }
 
 void RoboFocus::TimerHit()

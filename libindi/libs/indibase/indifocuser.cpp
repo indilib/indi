@@ -226,20 +226,66 @@ void INDI::Focuser::processButton(const char * button_n, ISState state)
     if (state == ISS_OFF)
         return;
 
+    int rc=0;
     // Focus In
     if (!strcmp(button_n, "Focus In"))
     {
         if (variableSpeed)
-            Move(FOCUS_INWARD, FocusSpeedN[0].value, FocusTimerN[0].value);
+        {
+           rc = Move(FOCUS_INWARD, FocusSpeedN[0].value, FocusTimerN[0].value);
+            if (rc == 0)
+                FocusTimerNP.s = IPS_OK;
+            else if (rc == 1)
+                FocusTimerNP.s = IPS_BUSY;
+            else
+                FocusTimerNP.s = IPS_ALERT;
+
+            IDSetNumber(&FocusTimerNP,NULL);
+        }
         else if (canRelMove)
-            MoveRel(FOCUS_INWARD, FocusRelPosN[0].value);
+        {
+            rc=MoveRel(FOCUS_INWARD, FocusRelPosN[0].value);
+            if (rc == 0)
+            {
+               FocusRelPosNP.s=IPS_OK;
+               IDSetNumber(&FocusRelPosNP, "Focuser moved %d steps inward", (int) FocusRelPosN[0].value);
+               IDSetNumber(&FocusAbsPosNP, NULL);
+            }
+            else if (rc == 1)
+            {
+                 FocusRelPosNP.s=IPS_BUSY;
+                 IDSetNumber(&FocusAbsPosNP, "Focuser is moving %d steps inward...", (int) FocusRelPosN[0].value);
+            }
+        }
     }
     else if (!strcmp(button_n, "Focus Out"))
     {
         if (variableSpeed)
-            Move(FOCUS_OUTWARD, FocusSpeedN[0].value, FocusTimerN[0].value);
-        else if (canRelMove)
-            MoveRel(FOCUS_OUTWARD, FocusRelPosN[0].value);
-    }
+        {
+           rc = Move(FOCUS_OUTWARD, FocusSpeedN[0].value, FocusTimerN[0].value);
+            if (rc == 0)
+                FocusTimerNP.s = IPS_OK;
+            else if (rc == 1)
+                FocusTimerNP.s = IPS_BUSY;
+            else
+                FocusTimerNP.s = IPS_ALERT;
 
+            IDSetNumber(&FocusTimerNP,NULL);
+        }
+        else if (canRelMove)
+        {
+            rc=MoveRel(FOCUS_OUTWARD, FocusRelPosN[0].value);
+            if (rc == 0)
+            {
+               FocusRelPosNP.s=IPS_OK;
+               IDSetNumber(&FocusRelPosNP, "Focuser moved %d steps outward", (int) FocusRelPosN[0].value);
+               IDSetNumber(&FocusAbsPosNP, NULL);
+            }
+            else if (rc == 1)
+            {
+                 FocusRelPosNP.s=IPS_BUSY;
+                 IDSetNumber(&FocusAbsPosNP, "Focuser is moving %d steps outward...", (int) FocusRelPosN[0].value);
+            }
+        }
+    }
 }
