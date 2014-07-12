@@ -820,9 +820,10 @@ gphoto_widget *gphoto_get_widget_info(gphoto_driver *gphoto, gphoto_widget_list 
 		return NULL;
 	widget = (*iter)->widget;
     int ret = gphoto_read_widget(widget);
+    // Read next iterator regrardless of return value.
+    *iter=(*iter)->next;
     if (ret == GP_OK)
-    {
-        *iter=(*iter)->next;
+    {        
         return widget;
     }
     else
