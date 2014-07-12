@@ -1976,7 +1976,7 @@ bool SBIGCCD::GetFilterNames(const char* groupName)
     for (int i=0; i < MaxFilter; i++)
     {
         snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i+1);
-        snprintf(filterLabel, MAXINDILABEL, "Filter #%d", i+1);
+        snprintf(filterLabel, MAXINDILABEL, "Filter#%d", i+1);
         snprintf(filterBand, MAXINDILABEL, "Filter #%d", i+1);
         IUFillText(&FilterNameT[i], filterName, filterLabel, filterBand);
     }
