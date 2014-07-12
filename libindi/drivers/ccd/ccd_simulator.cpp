@@ -952,6 +952,23 @@ bool CCDSim::GuideWest(float v)
     return true;
 }
 
+bool CCDSim::ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int n)
+{
+    if(strcmp(dev,getDeviceName())==0)
+    {
+        //  This is for our device
+        //  Now lets see if it's something we process here
+        if(strcmp(name,FilterNameTP->name)==0)
+        {
+            processFilterName(dev, texts, names, n);
+            return true;
+        }
+
+    }
+
+    return INDI::CCD::ISNewText(dev,name,texts,names,n);
+}
+
 bool CCDSim::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
     //  first check if it's for our device
@@ -1131,7 +1148,7 @@ bool CCDSim::GetFilterNames(const char* groupName)
     for (int i=0; i < MaxFilter; i++)
     {
         snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i+1);
-        snprintf(filterLabel, MAXINDILABEL, "Filter #%d", i+1);
+        snprintf(filterLabel, MAXINDILABEL, "Filter#%d", i+1);
         IUFillText(&FilterNameT[i], filterName, filterLabel, filterDesignation[i]);
     }
 

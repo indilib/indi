@@ -104,7 +104,7 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
 
         // Filter
         bool SelectFilter(int);
-        bool SetFilterNames() { return false; }
+        bool SetFilterNames() { return true; }
         bool GetFilterNames(const char* groupName);
         int QueryFilter();
 
@@ -144,6 +144,7 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
 
         virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
         virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+        virtual bool ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num);
         virtual bool ISSnoopDevice (XMLEle *root);
 
 };
