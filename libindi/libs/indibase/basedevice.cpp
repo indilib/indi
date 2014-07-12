@@ -52,11 +52,7 @@ INDI::BaseDevice::BaseDevice()
 INDI::BaseDevice::~BaseDevice()
 {
     delLilXML (lp);
-    while(!pAll.empty())
-    {
-      delete pAll.back();
-      pAll.pop_back();
-    }
+    while(!pAll.empty()) { delete pAll.back(), pAll.pop_back(); }
 
     delete[] deviceID;
 }
