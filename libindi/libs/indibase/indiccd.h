@@ -456,10 +456,12 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         */
         virtual bool StartExposure(float duration);
 
-        /** \brief Uploads target Chip exposed buffer as FITS to the client. Dervied classes should class this function when an exposure is complete.
+        /** \brief Uploads target Chip exposed buffer as FITS to the client. Dervied classes should class this functon when an exposure is complete.
+         * @param targetChip chip that contains upload image data
+         * @param sendImageToClient By default it is set to true and image is uploaded to client. Set to false to disable upload to client. Please note rapid guide settings override this setting.
              \note This function is not implemented in INDI::CCD, it must be implemented in the child class
         */
-        virtual bool ExposureComplete(CCDChip *targetChip);
+        virtual bool ExposureComplete(CCDChip *targetChip, bool sendImageToClient=true);
 
         /** \brief Abort ongoing exposure
             \return true is abort is successful, false otherwise.

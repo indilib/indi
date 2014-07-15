@@ -1201,9 +1201,9 @@ void INDI::CCD::fits_update_key_s(fitsfile* fptr, int type, std::string name, vo
         fits_update_key(fptr,type,name.c_str(),p, const_cast<char*>(explanation.c_str()), status);
 }
 
-bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
+bool INDI::CCD::ExposureComplete(CCDChip *targetChip, bool sendImageToClient)
 {
-    bool sendImage = true;
+    bool sendImage = sendImageToClient;
     bool showMarker = false;
     bool autoLoop = false;
     bool sendData = false;
