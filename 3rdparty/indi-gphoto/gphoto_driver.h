@@ -3,6 +3,10 @@
 
 #include <gphoto2/gphoto2.h>
 
+#define GP_UPLOAD_CLIENT    0
+#define GP_UPLOAD_SDCARD    1
+#define GP_UPLOAD_ALL       2
+
 typedef struct
 {
 	CameraWidget		*widget;
@@ -33,6 +37,7 @@ typedef struct _gphoto_widget_list gphoto_widget_list;
 extern int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec);
 extern int gphoto_read_exposure(gphoto_driver *gphoto);
 extern int gphoto_read_exposure_fd(gphoto_driver *gphoto, int fd);
+extern void gphoto_set_upload_settings(gphoto_driver *gphoto, int setting);
 extern const char **gphoto_get_formats(gphoto_driver *gphoto, int *cnt);
 extern const char **gphoto_get_iso(gphoto_driver *gphoto, int *cnt);
 extern void gphoto_set_iso(gphoto_driver *gphoto, int iso);

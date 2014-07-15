@@ -137,6 +137,9 @@ private:
     ISwitch livePreviewS[2];
     ISwitchVectorProperty livePreviewSP;
 
+    ISwitch uploadS[3];
+    ISwitchVectorProperty uploadSP;
+
     IBLOBVectorProperty *imageBP;
     IBLOB *imageB;
 

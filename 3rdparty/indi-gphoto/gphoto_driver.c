@@ -66,6 +66,7 @@ struct _gphoto_driver {
 
 	int			iso;
 	int			format;
+    int         upload_settings;
 
 	gphoto_widget_list	*widgets;
 	gphoto_widget_list	*iter;
@@ -368,7 +369,7 @@ static void *stop_bulb(void *arg)
 		timeout_set = 0;
 		// All camera opertions take place with the mutex held, so we are thread-safe
 		pthread_cond_timedwait(&gphoto->signal, &gphoto->mutex, &timeout);
-		gp_dprintf("timeout expired\n");
+        //gp_dprintf("timeout expired\n");
 		if (! (gphoto->command & DSLR_CMD_DONE) && (gphoto->command & DSLR_CMD_BULB_CAPTURE)) {
 			//result = gp_camera_wait_for_event(gphoto->camera, 1, &event, &data, gphoto->context);
 			switch (event) {
@@ -461,6 +462,11 @@ int find_exposure_setting(gphoto_driver *gphoto, gphoto_widget *widget, int expt
 	return best_idx;
 }
 
+void gphoto_set_upload_settings(gphoto_driver *gphoto, int setting)
+{
+    gphoto->upload_settings = setting;
+}
+
 static void download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
 {
 	int result;
@@ -483,11 +489,15 @@ static void download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
 	result = gp_camera_file_get(gphoto->camera, fn->folder, fn->name,
 		     GP_FILE_TYPE_NORMAL, gphoto->camerafile, gphoto->context);
 	gp_dprintf("  Retval: %d\n", result);
-	gp_dprintf("Deleting.\n");
-	result = gp_camera_file_delete(gphoto->camera, fn->folder, fn->name,
-			gphoto->context);
-	gp_dprintf("  Retval: %d\n", result);
-	if(fd >= 0) {
+    if (gphoto->upload_settings == GP_UPLOAD_CLIENT)
+    {
+        gp_dprintf("Deleting.\n");
+        result = gp_camera_file_delete(gphoto->camera, fn->folder, fn->name, gphoto->context);
+        gp_dprintf("  Retval: %d\n", result);
+    }
+
+    if(fd >= 0)
+    {
 		// This will close the file descriptor
 		gp_file_free(gphoto->camerafile);
 		gphoto->camerafile = NULL;
@@ -511,7 +521,8 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec)
 	if (gphoto->format >= 0)
 		gphoto_set_widget_num(gphoto, gphoto->format_widget, gphoto->format);
 
-	if (exptime_msec > 5000) {
+    if (exptime_msec > 5000)
+    {
 		if ((! gphoto->bulb_port[0] && ! gphoto->bulb_widget) ||
   		    (idx = find_bulb_exposure(gphoto, gphoto->exposure_widget)) == -1)
 		{
@@ -550,7 +561,11 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec)
 		}
 	}
 	// Not using bulb mode
-	idx = find_exposure_setting(gphoto, gphoto->exposure_widget, exptime_msec);
+    // If we need to save to SD card as well, set idx to 1
+    if (gphoto->upload_settings != GP_UPLOAD_CLIENT)
+        idx = 1;
+    else
+        idx = find_exposure_setting(gphoto, gphoto->exposure_widget, exptime_msec);
 	gp_dprintf("Using exposure time: %s\n", gphoto->exposure_widget->choices[idx]);
 	gphoto_set_widget_num(gphoto, gphoto->exposure_widget, idx);
 	gphoto->command = DSLR_CMD_CAPTURE;
@@ -725,7 +740,7 @@ gphoto_driver *gphoto_open(const char *shutter_release_port)
 	if ( (gphoto->exposure_widget = find_widget(gphoto, "shutterspeed2")) ||
 	     (gphoto->exposure_widget = find_widget(gphoto, "shutterspeed")) ||
              (gphoto->exposure_widget = find_widget(gphoto, "eos-shutterspeed")) )
-	{
+	{        
 		gphoto->exposure = parse_shutterspeed(gphoto->exposure_widget->choices, gphoto->exposure_widget->choice_cnt);
     } else if ((gphoto->exposure_widget = find_widget(gphoto, "capturetarget")))
     {
@@ -738,8 +753,10 @@ gphoto_driver *gphoto_open(const char *shutter_release_port)
 		fprintf(stderr, "Are you sure the camera is set to 'Manual' mode?\n");
 	}
 
+    gp_dprintf("using %s as capture widget\n", gphoto->exposure_widget->name);
 	gphoto->format_widget = find_widget(gphoto, "imageformat");
 	gphoto->format = -1;
+    gphoto->upload_settings = GP_UPLOAD_CLIENT;
 	gphoto->iso_widget = find_widget(gphoto, "iso");
 	if (! gphoto->iso_widget) {
 		gphoto->iso_widget = find_widget(gphoto, "eos-iso");

@@ -197,6 +197,11 @@ bool GPhotoCCD::initProperties()
   IUFillSwitch(&livePreviewS[1], "Disable", "", ISS_ON);
   IUFillSwitchVector(&livePreviewSP, livePreviewS, 2, getDeviceName(), "VIDEO_STREAM", "Preview", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+  IUFillSwitch(&uploadS[0], "Client", "", ISS_ON);
+  IUFillSwitch(&uploadS[1], "SD Card", "", ISS_OFF);
+  IUFillSwitch(&uploadS[2], "Both", "", ISS_OFF);
+  IUFillSwitchVector(&uploadSP, uploadS, 3, getDeviceName(), "UPLOAD_SETTINGS", "Upload", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
   Capability cap;
 
   cap.canAbort = false;
@@ -236,6 +241,7 @@ void GPhotoCCD::ISGetProperties(const char *dev)
         defineSwitch(&mFormatSP);
 
       defineSwitch(&transferFormatSP);
+      defineSwitch(&uploadSP);
       defineSwitch(&livePreviewSP);
       defineSwitch(&autoFocusSP);
 
@@ -261,7 +267,8 @@ bool GPhotoCCD::updateProperties()
       if (mFormatSP.nsp > 0)
         defineSwitch(&mFormatSP);
 
-      defineSwitch(&transferFormatSP);      
+      defineSwitch(&transferFormatSP);
+      defineSwitch(&uploadSP);
       defineSwitch(&livePreviewSP);
       defineSwitch(&autoFocusSP);
 
@@ -287,6 +294,7 @@ bool GPhotoCCD::updateProperties()
        deleteProperty(mFormatSP.name);
 
     deleteProperty(livePreviewSP.name);
+    deleteProperty(uploadSP.name);
     deleteProperty(autoFocusSP.name);    
     deleteProperty(transferFormatSP.name);
     deleteProperty(FocusMotionSP.name);
@@ -396,6 +404,14 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
           return true;
       }
 
+      if (!strcmp(name, uploadSP.name))
+      {
+          IUUpdateSwitch(&uploadSP, states, names, n);
+          uploadSP.s = IPS_OK;
+          IDSetSwitch(&uploadSP, NULL);
+          gphoto_set_upload_settings(gphotodrv, IUFindOnSwitchIndex(&uploadSP));
+          return true;
+      }
       if (!strcmp(name, livePreviewSP.name))
       {
           IUUpdateSwitch(&livePreviewSP, states, names, n);
@@ -453,7 +469,7 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
           opt->prop.sw.s = IPS_OK;
           IDSetSwitch(&opt->prop.sw, NULL);
           return true;
-      }
+      }            
   }
 
   return INDI::CCD::ISNewSwitch(dev, name, states, names, n);
@@ -718,6 +734,13 @@ bool GPhotoCCD::grabImage()
 	size_t memsize;
     int fd, naxis=2, w, h, bpp=8;
 
+    // If only save to SD Card, let's not upload back to client
+    if (uploadS[GP_UPLOAD_SDCARD].s == ISS_ON)
+    {
+        DEBUG(INDI::Logger::DBG_SESSION, "Exposure complete. Image saved to SD Card.");
+        ExposureComplete(&PrimaryCCD, false);
+        return true;
+    }
 
     if (transferFormatS[0].s == ISS_ON)
     {
@@ -937,6 +960,10 @@ GPhotoCCD::ShowExtendedOptions(void)
 		gphoto_widget *widget = gphoto_get_widget_info(gphotodrv, &iter);
 		AddWidget(widget);
 	}
+
+    if (isDebug())
+        gphoto_show_options(gphotodrv);
+
     optTID = IEAddTimer (1000, GPhotoCCD::UpdateExtendedOptions, this);
 }
 
