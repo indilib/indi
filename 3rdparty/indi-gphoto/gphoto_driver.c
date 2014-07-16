@@ -527,8 +527,14 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec)
   		    (idx = find_bulb_exposure(gphoto, gphoto->exposure_widget)) == -1)
 		{
 			fprintf(stderr, "Warning: Bulb mode isn't supported.  exposure limited to maximum camera exposure\n");
-		} else {
+        } else
+        {
 			//Bulb mode is supported
+            // If we need to save to SD card as well, set idx to 1
+            // Setting to 1 doesn't work in BULB exposures!
+            //if (gphoto->upload_settings != GP_UPLOAD_CLIENT)
+            //idx = 1;
+
 			gp_dprintf("Using bulb mode. idx:%u\n",idx);
 		        
 			gphoto_set_widget_num(gphoto, gphoto->exposure_widget, idx);
@@ -537,14 +543,17 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec)
 			unsigned int usec = gphoto->bulb_end.tv_usec + exptime_msec % 1000 * 1000;
 			gphoto->bulb_end.tv_sec = gphoto->bulb_end.tv_sec + exptime_msec / 1000 + usec / 1000000;
 			gphoto->bulb_end.tv_usec = usec % 1000000;
-			if (gphoto->bulb_port[0]) {
+            if (gphoto->bulb_port[0])
+            {
 				gphoto->bulb_fd = open(gphoto->bulb_port, O_RDWR, O_NONBLOCK);
-				if(gphoto->bulb_fd < 0) {
+                if(gphoto->bulb_fd < 0)
+                {
 					fprintf(stderr, "Failed to open serial port: %s\n", gphoto->bulb_port);
 					pthread_mutex_unlock(&gphoto->mutex);
 					return 1;
 				}
-			} else {
+            } else
+            {
 				gp_dprintf("Using widget:%s\n",gphoto->bulb_widget->name);
 				if(strcmp(gphoto->bulb_widget->name, "eosremoterelease") == 0 ) 
 				{
