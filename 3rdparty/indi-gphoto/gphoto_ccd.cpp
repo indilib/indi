@@ -279,7 +279,8 @@ bool GPhotoCCD::updateProperties()
       imageBP=getBLOB("CCD1");
       imageB=imageBP->bp;
 
-    ShowExtendedOptions();
+    if (sim == false)
+        ShowExtendedOptions();
 
     // Dummy value
     PrimaryCCD.setPixelSize(5, 5);
@@ -559,6 +560,8 @@ bool GPhotoCCD::Connect()
 
 bool GPhotoCCD::Disconnect()
 {
+    if (sim)
+        return true;
    gphoto_close(gphotodrv);
    gphotodrv = NULL;
    DEBUGF(INDI::Logger::DBG_SESSION, "%s is offline.", getDeviceName());
@@ -581,7 +584,8 @@ bool GPhotoCCD::StartExposure(float duration)
 
     PrimaryCCD.setExposureDuration(duration);
 
-    if (gphoto_start_exposure(gphotodrv, expms) < 0)
+
+    if (sim == false && gphoto_start_exposure(gphotodrv, expms) < 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error starting exposure");
         return false;
@@ -739,7 +743,7 @@ bool GPhotoCCD::grabImage()
     int fd, naxis=2, w, h, bpp=8;
 
     // If only save to SD Card, let's not upload back to client
-    if (uploadS[GP_UPLOAD_SDCARD].s == ISS_ON)
+    if (uploadS[GP_UPLOAD_SDCARD].s == ISS_ON || sim)
     {
         DEBUG(INDI::Logger::DBG_SESSION, "Exposure complete. Image saved to SD Card.");
         ExposureComplete(&PrimaryCCD, false);
@@ -1010,6 +1014,9 @@ int GPhotoCCD::Move(FocusDirection dir, int speed, int duration)
  
    /* gphoto works with steps */ 
    
+    if (sim)
+        return 0;
+
    char errMsg[MAXRBUF];
    if (dir == FOCUS_INWARD)
        focusSpeed = speed * -1;
