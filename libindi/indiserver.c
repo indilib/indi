@@ -906,7 +906,7 @@ static void newFIFO(void)
     if (startCmd)
     {
           if (verbose)
-             fprintf(stderr, "FIFO: Starting driver %s\n", tDriver);
+             fprintf(stderr, "FIFO: Starting driver %s with name (%s)\n", tDriver, tName);
           dp = allocDvr();
           strncpy(dp->name, tDriver, MAXINDIDEVICE);
           //strncpy(dp->dev, tName, MAXINDIDEVICE);
