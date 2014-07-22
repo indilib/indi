@@ -1274,7 +1274,7 @@ bool SBIGCCD::grabImage(CCDChip *targetChip)
 
   }
 
-  DEBUG(INDI::Logger::DBG_DEBUG, "Download complete.");
+  DEBUGF(INDI::Logger::DBG_DEBUG, "%s CCD Download complete.", (targetChip == &PrimaryCCD) ? "Primary" : "Guide");
 
   ExposureComplete(targetChip);
 
@@ -1315,9 +1315,8 @@ void SBIGCCD::resetFrame()
 
 void SBIGCCD::TimerHit()
 {
-  int timerID = -1;
   long timeleft=1e6;
-  CCDChip *targetChip;
+  CCDChip *targetChip=NULL;
 
   if (isConnected() == false)
     return;  //  No need to reset timer if we are not connected anymore
@@ -1326,22 +1325,11 @@ void SBIGCCD::TimerHit()
   {
    targetChip = &PrimaryCCD;
    timeleft = CalcTimeLeft(ExpStart,ExposureRequest);
-  }
-  else if (InGuideExposure)
-  {
-    targetChip = &GuideCCD;
-    timeleft = CalcTimeLeft(GuideExpStart,GuideExposureRequest);
-  }
-  else
-  {
-      SetTimer(POLLMS);
-      return;
-  }
 
    if (isExposureDone(targetChip) || (isSimulation() && timeleft <= 0))
    {
       /* We're done exposing */
-      DEBUG(INDI::Logger::DBG_DEBUG, "Exposure done, downloading image...");
+      DEBUG(INDI::Logger::DBG_DEBUG, "Primay CCD exposure done, downloading image...");
 
       timeleft=0;
       targetChip->setExposureLeft(0);
@@ -1353,13 +1341,36 @@ void SBIGCCD::TimerHit()
             targetChip->setExposureFailed();
     }
      else
-       DEBUGF(INDI::Logger::DBG_DEBUG, "Exposure in progress with %ld seconds left.", timeleft);
+       DEBUGF(INDI::Logger::DBG_DEBUG, "Primary CCD exposure in progress with %ld seconds left.", timeleft);
+  }
+
+  if (InGuideExposure)
+  {
+    targetChip = &GuideCCD;
+    timeleft = CalcTimeLeft(GuideExpStart,GuideExposureRequest);
+
+    if (isExposureDone(targetChip) || (isSimulation() && timeleft <= 0))
+    {
+       /* We're done exposing */
+       DEBUG(INDI::Logger::DBG_DEBUG, "Guide chip exposure done, downloading image...");
+
+       timeleft=0;
+       targetChip->setExposureLeft(0);
+       InExposure = false;
+       InGuideExposure = false;
+
+       /* grab and save image */
+       if (grabImage(targetChip) == false)
+             targetChip->setExposureFailed();
+     }
+      else
+        DEBUGF(INDI::Logger::DBG_DEBUG, "Guide chip exposure in progress with %ld seconds left.", timeleft);
+  }
 
    if (InExposure || InGuideExposure)
         targetChip->setExposureLeft(timeleft);
 
-  if (timerID == -1)
-    SetTimer(POLLMS);
+  SetTimer(POLLMS);
   return;
 }
 
