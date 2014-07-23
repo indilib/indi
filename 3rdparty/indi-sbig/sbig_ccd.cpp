@@ -643,6 +643,9 @@ bool SBIGCCD::Connect()
 
     SetCapability(&cap);
 
+    pthread_create( &primary_thread, NULL, &grabPrimaryCCD, this);
+    pthread_create( &guide_thread, NULL, &grabGuideCCD, this);
+
     IEAddTimer(TEMPERATURE_POLL_MS, SBIGCCD::updateTemperatureHelper, this);
 
     return true;
