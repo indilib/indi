@@ -36,16 +36,18 @@
 
 #include "sbig_ccd.h"
 
-#define TEMPERATURE_POLL_MS 10000    /* Temperature Polling time (ms) */
+#define TEMPERATURE_POLL_MS 5000    /* Temperature Polling time (ms) */
 #define POLLMS          	1000	/* Polling time (ms) */
 #define MAX_DEVICES         20      /* Max device cameraCount */
+#define MAX_THREAD_RETRIES  3
+#define MAX_THREAD_WAIT     300000
 
 static int cameraCount;
 static SBIGCCD *cameras[MAX_DEVICES];
 pthread_cond_t      GrabPrimaryCond  = PTHREAD_COND_INITIALIZER;
 pthread_cond_t      GrabGuideCond    = PTHREAD_COND_INITIALIZER;
-pthread_mutex_t     Primarymutex     = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t     Guidemutex       = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t     condMutex     = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t     readMutex = PTHREAD_MUTEX_INITIALIZER;
 
 /**********************************************************
  *
@@ -710,17 +712,17 @@ bool SBIGCCD::Connect()
 bool SBIGCCD::Disconnect()
 {
 
-  pthread_mutex_lock(&Primarymutex);
+  pthread_mutex_lock(&condMutex);
   primaryPredicate=true;
   terminateThread=true;
   pthread_cond_signal(&GrabPrimaryCond);
-  pthread_mutex_unlock(&Primarymutex);
+  pthread_mutex_unlock(&condMutex);
 
-  pthread_mutex_lock(&Guidemutex);
+  pthread_mutex_lock(&condMutex);
   guidePredicate=true;
   terminateThread=true;
   pthread_cond_signal(&GrabGuideCond);
-  pthread_mutex_unlock(&Guidemutex);
+  pthread_mutex_unlock(&condMutex);
 
   int res=CE_NO_ERROR;
   string str;
@@ -949,10 +951,20 @@ int SBIGCCD::StartExposure(CCDChip *targetChip, double duration)
       DEBUGF(INDI::Logger::DBG_DEBUG, "Exposure Params. CCD (%d) openShutter(%d), exposureTime(%ld), binnig (%d), left (%d), top (%d), w(%d), h(%d)", sep.ccd, sep.openShutter,
              sep.exposureTime,  sep.readoutMode, sep.left , sep.top , sep.width , sep.height);
 
-     // Must call immediatley before starting exposure
-    targetChip->setExposureDuration(duration);
 
-    if((res = StartExposure(&sep)) != CE_NO_ERROR) return(res);
+    for (int i=0; i < MAX_THREAD_RETRIES; i++)
+    {
+        if((res = StartExposure(&sep)) == CE_NO_ERROR)
+        {
+                targetChip->setExposureDuration(duration);
+                break;
+        }
+
+        usleep(MAX_THREAD_WAIT);
+    }
+
+    if (res != CE_NO_ERROR)
+        return(res);
 
     string msg, frame_type;
     if((res = getFrameType(targetChip, frame_type)) != CE_NO_ERROR) return(res);
@@ -974,8 +986,14 @@ int SBIGCCD::StartExposure(CCDChip *targetChip, double duration)
 bool SBIGCCD::StartExposure(float duration)
 {
 
-  if (!sim && StartExposure(&PrimaryCCD, duration) != CE_NO_ERROR)
-        return false;
+    if (!sim)
+    {
+        pthread_mutex_lock(&readMutex);
+        int res = StartExposure(&PrimaryCCD, duration);
+        pthread_mutex_unlock(&readMutex);
+        if (res != CE_NO_ERROR)
+            return false;
+    }
 
   ExposureRequest = duration;
 
@@ -991,8 +1009,14 @@ bool SBIGCCD::StartExposure(float duration)
 
 bool SBIGCCD::StartGuideExposure(float duration)
 {
-    if (!sim && StartExposure(&GuideCCD, duration) != CE_NO_ERROR)
-          return false;
+    if (!sim)
+    {
+        pthread_mutex_lock(&readMutex);
+        int res = StartExposure(&GuideCCD, duration);
+        pthread_mutex_unlock(&readMutex);
+        if (res != CE_NO_ERROR)
+            return false;
+    }
 
     GuideExposureRequest = duration;
     DEBUGF(INDI::Logger::DBG_DEBUG, "Guide Exposure Time (s) is: %g\n", duration);
@@ -1021,7 +1045,10 @@ int SBIGCCD::StopExposure(CCDChip *targetChip)
     // END_EXPOSURE:
     EndExposureParams eep;
     eep.ccd = (unsigned short)ccd;
+
+    pthread_mutex_lock(&readMutex);
     res = EndExposure(&eep);
+    pthread_mutex_unlock(&readMutex);
 
     return(res);
 }
@@ -1032,20 +1059,23 @@ bool SBIGCCD::AbortExposure()
 
    DEBUG(INDI::Logger::DBG_DEBUG, "Aborting Primary CCD Exposure...");
 
-    res = StopExposure(&PrimaryCCD);
+   for (int i=0; i < MAX_THREAD_RETRIES; i++)
+   {
+        if ( (res = StopExposure(&PrimaryCCD)) == CE_NO_ERROR)
+            break;
 
-
-   // Update expose time property:
+        usleep(MAX_THREAD_WAIT);
+   }
 
   if(res == CE_NO_ERROR)
   {
       InExposure = false;
-      DEBUG(INDI::Logger::DBG_SESSION, "Exposure cancelled.");
+      DEBUG(INDI::Logger::DBG_DEBUG, "Exposure cancelled.");
       return true;
   }
   else
   {
-      DEBUG(INDI::Logger::DBG_ERROR, "Stop exposure error.");
+      DEBUGF(INDI::Logger::DBG_ERROR, "Stop exposure error. %s", GetErrorString(res).c_str());
       return false;
   }
 }
@@ -1056,19 +1086,23 @@ bool SBIGCCD::AbortGuideExposure()
 
    DEBUG(INDI::Logger::DBG_DEBUG, "Aborting Guide Head Exposure...");
 
-   res = StopExposure(&GuideCCD);
+   for (int i=0; i < MAX_THREAD_RETRIES; i++)
+   {
+        if ( (res = StopExposure(&GuideCCD)) == CE_NO_ERROR)
+            break;
 
-   // Update expose time property:
+        usleep(MAX_THREAD_WAIT);
+   }
 
   if(res == CE_NO_ERROR)
   {
       InGuideExposure = false;
-      DEBUG(INDI::Logger::DBG_SESSION, "Exposure cancelled.");
+      DEBUG(INDI::Logger::DBG_DEBUG, "Exposure cancelled.");
       return true;
   }
   else
   {
-      DEBUG(INDI::Logger::DBG_ERROR, "Stop exposure error.");
+      DEBUGF(INDI::Logger::DBG_ERROR, "Stop exposure error. %s", GetErrorString(res).c_str());
       return false;
   }
 }
@@ -1268,26 +1302,30 @@ void* SBIGCCD::grabPrimaryCCD()
 {
   CCDChip *targetChip = &PrimaryCCD;
 
-  pthread_mutex_lock(&Primarymutex);
+  pthread_mutex_lock(&condMutex);
 
   while (true)
   {
       while (!primaryPredicate)
-                  pthread_cond_wait(&GrabPrimaryCond, &Primarymutex);
+                  pthread_cond_wait(&GrabPrimaryCond, &condMutex);
 
       primaryPredicate=false;
       if (terminateThread)
           break;
 
-     pthread_mutex_unlock(&Primarymutex);
+      pthread_mutex_lock(&readMutex);
+      if (grabImage(targetChip) == false)
+          targetChip->setExposureFailed();
+      pthread_mutex_unlock(&readMutex);
 
-     if (grabImage(targetChip) == false)
-         targetChip->setExposureFailed();
+     //pthread_mutex_unlock(&condMutex);
 
-     pthread_mutex_lock(&Primarymutex);
+
+
+     //pthread_mutex_lock(&condMutex);
   }
 
-  pthread_mutex_unlock(&Primarymutex);
+  pthread_mutex_unlock(&condMutex);
   return 0;
 }
 
@@ -1295,31 +1333,35 @@ void* SBIGCCD::grabGuideCCD()
 {
   CCDChip *targetChip = &GuideCCD;
 
-  pthread_mutex_lock(&Guidemutex);
+  pthread_mutex_lock(&condMutex);
 
   while (true)
   {
       while (!guidePredicate)
-                  pthread_cond_wait(&GrabGuideCond, &Guidemutex);
+                  pthread_cond_wait(&GrabGuideCond, &condMutex);
 
       guidePredicate = false;
       if (terminateThread)
           break;
 
-     pthread_mutex_unlock(&Guidemutex);
+      pthread_mutex_lock(&readMutex);
+      if (grabImage(targetChip) == false)
+          targetChip->setExposureFailed();
+      pthread_mutex_unlock(&readMutex);
 
-     if (grabImage(targetChip) == false)
-         targetChip->setExposureFailed();
+    // pthread_mutex_unlock(&condMutex);
 
-     pthread_mutex_lock(&Guidemutex);
+
+    // pthread_mutex_lock(&condMutex);
   }
 
-  pthread_mutex_unlock(&Guidemutex);
+  pthread_mutex_unlock(&condMutex);
   return 0;
 }
 
 bool SBIGCCD::grabImage(CCDChip *targetChip)
 {
+    int res=0;
     unsigned short left	= (unsigned short)targetChip->getSubX();
     unsigned short top	= (unsigned short)targetChip->getSubY();
     unsigned short width	= (unsigned short)targetChip->getSubW()/targetChip->getBinX();
@@ -1342,9 +1384,17 @@ bool SBIGCCD::grabImage(CCDChip *targetChip)
       // Readout CCD:
       DEBUGF(INDI::Logger::DBG_DEBUG, "%s CCD readout in progress...", targetChip == &PrimaryCCD ? "Primary":"Guide");
 
-      if(readoutCCD(left, top, width, height, buffer, targetChip) != CE_NO_ERROR)
+      for (int i=0; i < MAX_THREAD_RETRIES; i++)
       {
-              DEBUG(INDI::Logger::DBG_ERROR, "CCD readout error!");
+           if ( (res=readoutCCD(left, top, width, height, buffer, targetChip)) == CE_NO_ERROR)
+               break;
+
+          usleep(MAX_THREAD_WAIT);
+      }
+
+      if (res != CE_NO_ERROR)
+      {
+              DEBUGF(INDI::Logger::DBG_ERROR, "%s CCD readout error %s!", (targetChip == &PrimaryCCD ? "Primary":"Guide"), GetErrorString(res).c_str());
               return false;
       }
 
@@ -1428,9 +1478,9 @@ void SBIGCCD::TimerHit()
       /* grab and save image */
       //if (grabImage(targetChip) == false)
       //      targetChip->setExposureFailed();
-      pthread_mutex_lock(&Primarymutex);
+      pthread_mutex_lock(&condMutex);
       primaryPredicate=true;
-      pthread_mutex_unlock(&Primarymutex);
+      pthread_mutex_unlock(&condMutex);
       pthread_cond_signal(&GrabPrimaryCond);
 
     }
@@ -1458,9 +1508,9 @@ void SBIGCCD::TimerHit()
        /* grab and save image */
        //if (grabImage(targetChip) == false)
        //      targetChip->setExposureFailed();
-       pthread_mutex_lock(&Guidemutex);
+       pthread_mutex_lock(&condMutex);
        guidePredicate=true;
-       pthread_mutex_unlock(&Guidemutex);
+       pthread_mutex_unlock(&condMutex);
        pthread_cond_signal(&GrabGuideCond);
 
      }
