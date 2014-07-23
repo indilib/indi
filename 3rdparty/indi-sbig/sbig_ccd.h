@@ -146,6 +146,8 @@ public:
 
     void 		updateTemperature();
     static void updateTemperatureHelper(void *);
+    static void * grabPrimaryCCD(void* context);
+    static void * grabGuideCCD(void* context);
     bool 		isExposureDone(CCDChip *targetChip);
 
 
@@ -236,8 +238,17 @@ private:
 
     float CalcTimeLeft(timeval,float);
     bool grabImage(CCDChip *targetChip);
+    void * grabPrimaryCCD();
+    void * grabGuideCCD();
     bool setupParams();
     void resetFrame();
+
+    /* Threading variables */
+    pthread_t primary_thread;
+    pthread_t guide_thread;
+    bool primaryPredicate;
+    bool guidePredicate;
+    bool terminateThread;
 
     bool sim;
     bool isColor;

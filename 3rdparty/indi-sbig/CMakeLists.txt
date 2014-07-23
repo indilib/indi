@@ -8,6 +8,7 @@ find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(SBIG REQUIRED)
+find_package(Threads REQUIRED)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 
@@ -25,7 +26,7 @@ set(sbigccd_SRCS
 
 add_executable(indi_sbig_ccd ${sbigccd_SRCS})
 
-target_link_libraries(indi_sbig_ccd ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${SBIG_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY})
+target_link_libraries(indi_sbig_ccd ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${SBIG_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
 
 install(TARGETS indi_sbig_ccd RUNTIME DESTINATION bin)
 
