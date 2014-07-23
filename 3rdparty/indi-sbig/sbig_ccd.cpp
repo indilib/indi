@@ -1415,7 +1415,7 @@ void SBIGCCD::TimerHit()
    targetChip = &PrimaryCCD;
    timeleft = CalcTimeLeft(ExpStart,ExposureRequest);
 
-   if (isExposureDone(targetChip) || (isSimulation() && timeleft <= 0))
+   if (isExposureDone(targetChip))
    {
       /* We're done exposing */
       DEBUG(INDI::Logger::DBG_DEBUG, "Primay CCD exposure done, downloading image...");
@@ -1445,7 +1445,7 @@ void SBIGCCD::TimerHit()
     targetChip = &GuideCCD;
     timeleft = CalcTimeLeft(GuideExpStart,GuideExposureRequest);
 
-    if (isExposureDone(targetChip) || (isSimulation() && timeleft <= 0))
+    if (isExposureDone(targetChip))
     {
        /* We're done exposing */
        DEBUG(INDI::Logger::DBG_DEBUG, "Guide chip exposure done, downloading image...");
@@ -2183,6 +2183,21 @@ void SBIGCCD::updateTemperature()
 bool SBIGCCD::isExposureDone(CCDChip *targetChip)
 {
     int ccd;
+
+    if (isSimulation())
+    {
+        long timeleft=1e6;
+
+         if (targetChip == &PrimaryCCD)
+            timeleft = CalcTimeLeft(ExpStart,ExposureRequest);
+         else
+            timeleft = CalcTimeLeft(GuideExpStart,GuideExposureRequest);
+
+         if (timeleft <= 0)
+             return true;
+         else
+             return false;
+    }
 
     if (targetChip == &PrimaryCCD)
         ccd = CCD_IMAGING;
