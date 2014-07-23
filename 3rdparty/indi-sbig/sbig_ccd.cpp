@@ -637,7 +637,7 @@ bool SBIGCCD::Connect()
     cap.canBin = true;
     cap.canSubFrame = true;
     cap.hasCooler = true;
-    cap.hasGuideHead = false;
+    cap.hasGuideHead = true;
     cap.hasShutter = true;
     cap.hasST4Port = true;
 
