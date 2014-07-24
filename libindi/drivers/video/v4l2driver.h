@@ -99,7 +99,8 @@ class V4L2_Driver: public INDI::CCD
    typedef struct {
 	int  width;
 	int  height;
-	int  expose;
+     //int  expose;
+        double  expose;
 	unsigned char  *Y;
 	unsigned char  *U;
 	unsigned char  *V;

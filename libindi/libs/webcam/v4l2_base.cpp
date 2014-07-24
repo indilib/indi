@@ -297,6 +297,34 @@ int V4L2_Base::read_frame(char *errmsg)
                 ccvt_yuyv_420p( (cropset?crop.c.width:fmt.fmt.pix.width) , (cropset?crop.c.height:fmt.fmt.pix.height), (cropset?cropbuf:buffers[buf.index].start), YBuf, UBuf, VBuf);
                 break;
 
+		case V4L2_PIX_FMT_UYVY:
+		    unsigned char *src;
+		    unsigned int i, j, width, height;
+		    unsigned char *yp, *up ,*vp;
+                    if (cropset)
+                    {
+		      src=(unsigned char *)buffers[buf.index].start + 2*(crop.c.left + (crop.c.top * fmt.fmt.pix.width));
+		      width=crop.c.width;
+		      height=crop.c.height;
+		    } else {
+		      src=(unsigned char *)buffers[buf.index].start;
+		      width=fmt.fmt.pix.width;
+		      height=fmt.fmt.pix.height;
+		    }
+		    yp=YBuf, up=UBuf; vp=VBuf;
+		    for (i=0; i < height; i++)
+		      { 
+			unsigned char *s=src;
+			for (j=0; j < width / 2; j++) {
+			  *(vp++)=*(s++);
+			  *(yp++)=*(s++);
+			  *(up++)=*(s++);
+			  *(yp++)=*(s++);
+			}
+			src+= 2*fmt.fmt.pix.width;
+		      }
+		    break;
+
                  case V4L2_PIX_FMT_RGB24:
                     RGB2YUV(fmt.fmt.pix.width, fmt.fmt.pix.height, buffers[buf.index].start, YBuf, UBuf, VBuf, 0);
                         break;
@@ -929,36 +957,37 @@ int V4L2_Base::check_device(char *errmsg)
 
         cerr << "width: " << fmt.fmt.pix.width << " - height: " << fmt.fmt.pix.height << endl;
 
-       switch (fmt.fmt.pix.pixelformat)
-       {
-        case V4L2_PIX_FMT_YUV420:
-         cerr << "pixel format: V4L2_PIX_FMT_YUV420"  << endl;
-        break;
-
-        case V4L2_PIX_FMT_YUYV:
-          cerr << "pixel format: V4L2_PIX_FMT_YUYV" << endl;
-         break;
-
-        case V4L2_PIX_FMT_RGB24:
-          cerr << "pixel format: V4L2_PIX_FMT_RGB24" << endl;
-         break;
-
-        case V4L2_PIX_FMT_SBGGR8:
-         cerr << "pixel format: V4L2_PIX_FMT_SBGGR8" << endl;
-         break;
-       case V4L2_PIX_FMT_SRGGB8:
-        cerr << "pixel format: V4L2_PIX_FMT_SRGGB8" << endl;
-        break;
-        case V4L2_PIX_FMT_GREY:
+	switch (fmt.fmt.pix.pixelformat)
+	 {
+	 case V4L2_PIX_FMT_YUV420:
+	   cerr << "pixel format: V4L2_PIX_FMT_YUV420"  << endl;
+	   break;
+	   
+	 case V4L2_PIX_FMT_YUYV:
+	   cerr << "pixel format: V4L2_PIX_FMT_YUYV" << endl;
+	   break;
+	 case V4L2_PIX_FMT_UYVY:
+	   cerr << "pixel format: V4L2_PIX_FMT_UYVY" << endl;
+	   break;
+	 case V4L2_PIX_FMT_RGB24:
+	   cerr << "pixel format: V4L2_PIX_FMT_RGB24" << endl;
+	   break;
+	 case V4L2_PIX_FMT_SBGGR8:
+	   cerr << "pixel format: V4L2_PIX_FMT_SBGGR8" << endl;
+	   break;
+	 case V4L2_PIX_FMT_SRGGB8:
+	   cerr << "pixel format: V4L2_PIX_FMT_SRGGB8" << endl;
+	   break;
+	 case V4L2_PIX_FMT_GREY:
            cerr << "pixel format: V4L2_PIX_FMT_GREY" << endl;
            break;
-       case V4L2_PIX_FMT_JPEG:
-       case V4L2_PIX_FMT_MJPEG:
+	 case V4L2_PIX_FMT_JPEG:
+	 case V4L2_PIX_FMT_MJPEG:
            cerr << "pixel format: V4L2_PIX_FMT_MJPEG" << endl;
            break;
-       default:
-	 cerr << "pixel format; " << fmt.fmt.pix.pixelformat << " UNSUPPORTED" << endl;
-       }
+	 default:
+	   cerr << "pixel format; " << fmt.fmt.pix.pixelformat << " UNSUPPORTED" << endl;
+	 }
 }
 
 int V4L2_Base::init_device(char *errmsg) {
@@ -1378,6 +1407,7 @@ void V4L2_Base::allocBuffers()
    if (yuvBuffer) delete (yuvBuffer); yuvBuffer = NULL;
    if (colorBuffer) delete (colorBuffer); colorBuffer = NULL;
    if (rgb24_buffer) delete (rgb24_buffer); rgb24_buffer = NULL;
+   
    if (cropset)
    {
      yuvBuffer=new unsigned char[(crop.c.width * crop.c.height) + ((crop.c.width * crop.c.height) / 2)];
@@ -1466,6 +1496,7 @@ unsigned char * V4L2_Base::getColorBuffer()
         case V4L2_PIX_FMT_MJPEG:
         case V4L2_PIX_FMT_YUV420:
         case V4L2_PIX_FMT_YUYV:
+        case V4L2_PIX_FMT_UYVY:
          ccvt_420p_bgr32(crop.c.width, crop.c.height, yuvBuffer, (void*)colorBuffer);
          break;
       }	
@@ -1477,6 +1508,7 @@ unsigned char * V4L2_Base::getColorBuffer()
       case V4L2_PIX_FMT_MJPEG:
       case V4L2_PIX_FMT_YUV420:
       case V4L2_PIX_FMT_YUYV:
+      case V4L2_PIX_FMT_UYVY:
         ccvt_420p_bgr32(fmt.fmt.pix.width, fmt.fmt.pix.height, yuvBuffer, (void*)colorBuffer);
         break;
 	

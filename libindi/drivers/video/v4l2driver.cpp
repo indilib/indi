@@ -611,6 +611,7 @@ bool V4L2_Driver::ISNewNumber (const char *dev, const char *name, double values[
  
       if (AbsExposureN && ManualExposureSP && (AbsExposureN->max >= (V4LFrame->expose * 10000)))
 	{
+	  DEBUGF(INDI::Logger::DBG_SESSION, "Using device manual exposure (max %f, required %f).", AbsExposureN->max, (V4LFrame->expose * 10000));
 	  rc = setManualExposure(V4LFrame->expose);
 	  if (rc == false)
 	    DEBUG(INDI::Logger::DBG_WARNING, "Unable to set manual exposure, falling back to auto exposure.");
