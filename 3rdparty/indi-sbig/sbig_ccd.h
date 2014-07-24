@@ -146,8 +146,7 @@ public:
 
     void 		updateTemperature();
     static void updateTemperatureHelper(void *);
-    static void * grabPrimaryCCD(void* context);
-    static void * grabGuideCCD(void* context);
+    static void * grabCCDHelper(void* context);
     bool 		isExposureDone(CCDChip *targetChip);
 
 
@@ -190,6 +189,8 @@ protected:
     double                  BcdPixel2double(ulong bcd);
 
 private:
+    enum { GRAB_NO_CCD, GRAB_PRIMARY_CCD, GRAB_GUIDE_CCD };
+
     DEVICE device;
     char name[MAXINDINAME];
 
@@ -238,16 +239,13 @@ private:
 
     float CalcTimeLeft(timeval,float);
     bool grabImage(CCDChip *targetChip);
-    void * grabPrimaryCCD();
-    void * grabGuideCCD();
+    void * grabCCD();
     bool setupParams();
     void resetFrame();
 
     /* Threading variables */
     pthread_t primary_thread;
-    pthread_t guide_thread;
-    bool primaryPredicate;
-    bool guidePredicate;
+    int grabPredicate;
     bool terminateThread;
 
     bool sim;
