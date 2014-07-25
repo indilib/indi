@@ -458,10 +458,9 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
 
         /** \brief Uploads target Chip exposed buffer as FITS to the client. Dervied classes should class this functon when an exposure is complete.
          * @param targetChip chip that contains upload image data
-         * @param sendImageToClient By default it is set to true and image is uploaded to client. Set to false to disable upload to client. Please note rapid guide settings override this setting.
              \note This function is not implemented in INDI::CCD, it must be implemented in the child class
         */
-        virtual bool ExposureComplete(CCDChip *targetChip, bool sendImageToClient=true);
+        virtual bool ExposureComplete(CCDChip *targetChip);
 
         /** \brief Abort ongoing exposure
             \return true is abort is successful, false otherwise.
@@ -647,11 +646,18 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         INumber                 TemperatureN[1];
         INumberVectorProperty   TemperatureNP;
 
+        ISwitch UploadS[3];
+        ISwitchVectorProperty UploadSP;
+
+        IText   UploadSettingsT[2];
+        ITextVectorProperty UploadSettingsTP;
+
      private:
         Capability capability;
 
-        bool uploadFile(CCDChip * targetChip, const void *fitsData, size_t totalBytes);
+        bool uploadFile(CCDChip * targetChip, const void *fitsData, size_t totalBytes, bool sendImage, bool saveImage);
         void getMinMax(double *min, double *max, CCDChip *targetChip);
+        int getFileIndex(const char *dir, const char *prefix, const char *ext);
 
 
 };

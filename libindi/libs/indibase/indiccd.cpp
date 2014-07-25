@@ -28,6 +28,8 @@
 #include <time.h>
 #include <sys/time.h>
 #include <zlib.h>
+#include <errno.h>
+#include <dirent.h>
 
 #include <fitsio.h>
 
@@ -334,6 +336,7 @@ bool INDI::CCD::initProperties()
     IUFillSwitch(&PrimaryCCD.CompressS[0],"COMPRESS","Compress",ISS_ON);
     IUFillSwitch(&PrimaryCCD.CompressS[1],"RAW","Raw",ISS_OFF);
     IUFillSwitchVector(PrimaryCCD.CompressSP,PrimaryCCD.CompressS,2,getDeviceName(),"CCD_COMPRESSION","Image",IMAGE_SETTINGS_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    PrimaryCCD.SendCompressed = true;
 
     IUFillBLOB(&PrimaryCCD.FitsB,"CCD1","Image","");
     IUFillBLOBVector(PrimaryCCD.FitsBP,&PrimaryCCD.FitsB,1,getDeviceName(),"CCD1","Image Data",IMAGE_INFO_TAB,IP_RO,60,IPS_IDLE);
@@ -387,6 +390,7 @@ bool INDI::CCD::initProperties()
     IUFillSwitch(&GuideCCD.CompressS[0],"GCOMPRESS","Compress",ISS_ON);
     IUFillSwitch(&GuideCCD.CompressS[1],"GRAW","Raw",ISS_OFF);
     IUFillSwitchVector(GuideCCD.CompressSP,GuideCCD.CompressS,2,getDeviceName(),"GUIDER_COMPRESSION","Image",GUIDE_HEAD_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    GuideCCD.SendCompressed = true;
 
     IUFillBLOB(&GuideCCD.FitsB,"CCD2","Guider Image","");
     IUFillBLOBVector(GuideCCD.FitsBP,&GuideCCD.FitsB,1,getDeviceName(),"CCD2","Image Data",IMAGE_INFO_TAB,IP_RO,60,IPS_IDLE);
@@ -406,6 +410,15 @@ bool INDI::CCD::initProperties()
     IUFillNumberVector(GuideCCD.RapidGuideDataNP,GuideCCD.RapidGuideDataN,3,getDeviceName(),"GUIDER_RAPID_GUIDE_DATA","Rapid Guide Data",RAPIDGUIDE_TAB,IP_RO,60,IPS_IDLE);
 
     // CCD Class Init
+
+    IUFillSwitch(&UploadS[0], "UPLOAD_CLIENT", "Client", ISS_ON);
+    IUFillSwitch(&UploadS[1], "UPLOAD_LOCAL", "Local", ISS_OFF);
+    IUFillSwitch(&UploadS[2], "UPLOAD_BOTH", "Both", ISS_OFF);
+    IUFillSwitchVector(&UploadSP, UploadS, 3, getDeviceName(), "UPLOAD_MODE", "Upload", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    IUFillText(&UploadSettingsT[0],"UPLOAD_DIR","Dir","");
+    IUFillText(&UploadSettingsT[1],"UPLOAD_PREFIX","Prefix","IMAGE_XX");
+    IUFillTextVector(&UploadSettingsTP,UploadSettingsT,2,getDeviceName(),"UPLOAD_SETTINGS","Upload Settings",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillText(&ActiveDeviceT[0],"ACTIVE_TELESCOPE","Telescope","Telescope Simulator");
     IUFillText(&ActiveDeviceT[1],"ACTIVE_FOCUSER","Focuser","Focuser Simulator");
@@ -504,6 +517,11 @@ bool INDI::CCD::updateProperties()
           defineNumber(GuideCCD.RapidGuideDataNP);
         }
         defineText(ActiveDeviceTP);
+        defineSwitch(&UploadSP);
+
+        if (UploadSettingsT[0].text == NULL)
+            IUSaveText(&UploadSettingsT[0], getenv("HOME"));
+        defineText(&UploadSettingsTP);
     }
     else
     {
@@ -553,6 +571,8 @@ bool INDI::CCD::updateProperties()
         }
         deleteProperty(PrimaryCCD.FrameTypeSP->name);
         deleteProperty(ActiveDeviceTP->name);
+        deleteProperty(UploadSP.name);
+        deleteProperty(UploadSettingsTP.name);
     }
     return true;
 }
@@ -603,6 +623,13 @@ bool INDI::CCD::ISNewText (const char *dev, const char *name, char *texts[], cha
             activeDevicesUpdated();
 
             //  We processed this one, so, tell the world we did it
+            return true;
+        }
+
+        if (strcmp(name, UploadSettingsTP.name)==0)
+        {
+            IUUpdateText(&UploadSettingsTP, texts, names, n);
+            IDSetText(&UploadSettingsTP, NULL);
             return true;
         }
 
@@ -848,7 +875,22 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
 {
 
     if(strcmp(dev,getDeviceName())==0)
-    {
+    {        
+        if (!strcmp(name, UploadSP.name))
+        {
+            IUUpdateSwitch(&UploadSP, states, names, n);
+            UploadSP.s = IPS_OK;
+            IDSetSwitch(&UploadSP, NULL);
+
+            if (UploadS[0].s == ISS_ON)
+                DEBUG(INDI::Logger::DBG_SESSION, "Upload settings set to client only.");
+            else if (UploadS[1].s == ISS_ON)
+                DEBUG(INDI::Logger::DBG_SESSION, "Upload settings set to local only.");
+            else
+                DEBUG(INDI::Logger::DBG_SESSION, "Upload settings set to client and local.");
+            return true;
+        }
+
         if(strcmp(name,PrimaryCCD.AbortExposureSP->name)==0)
         {
             IUResetSwitch(PrimaryCCD.AbortExposureSP);
@@ -1201,19 +1243,21 @@ void INDI::CCD::fits_update_key_s(fitsfile* fptr, int type, std::string name, vo
         fits_update_key(fptr,type,name.c_str(),p, const_cast<char*>(explanation.c_str()), status);
 }
 
-bool INDI::CCD::ExposureComplete(CCDChip *targetChip, bool sendImageToClient)
+bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
 {
-    bool sendImage = sendImageToClient;
+    bool sendImage = (UploadS[0].s == ISS_ON || UploadS[2].s == ISS_ON);
+    bool saveImage = (UploadS[1].s == ISS_ON || UploadS[2].s == ISS_ON);
     bool showMarker = false;
     bool autoLoop = false;
     bool sendData = false;
     
     if (RapidGuideEnabled && targetChip == &PrimaryCCD)
     {
-      autoLoop = AutoLoop;
+      autoLoop = AutoLoop;      
       sendImage = SendImage;
       showMarker = ShowMarker;
       sendData = true;
+      saveImage = false;
     }
     
     if (GuiderRapidGuideEnabled && targetChip == &GuideCCD)
@@ -1222,6 +1266,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip, bool sendImageToClient)
       sendImage = GuiderSendImage;
       showMarker = GuiderShowMarker;
       sendData = true;
+      saveImage = false;
     }
     
     if (sendData)
@@ -1350,7 +1395,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip, bool sendImageToClient)
       }
     }
 
-    if (sendImage)    
+    if (sendImage || saveImage)
     {
       if (!strcmp(targetChip->getImageExtension(), "fits"))
       {
@@ -1444,13 +1489,13 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip, bool sendImageToClient)
 
           fits_close_file(fptr,&status);
 
-          uploadFile(targetChip, memptr, memsize);
+          uploadFile(targetChip, memptr, memsize, sendImage, saveImage);
 
           free(memptr);
       }
       else
       {
-          uploadFile(targetChip, targetChip->getFrameBuffer(), targetChip->getFrameBufferSize());
+          uploadFile(targetChip, targetChip->getFrameBuffer(), targetChip->getFrameBufferSize(), sendImage, saveImage);
       }
 
 
@@ -1494,10 +1539,51 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip, bool sendImageToClient)
     return true;
 }
 
-bool INDI::CCD::uploadFile(CCDChip * targetChip, const void *fitsData, size_t totalBytes)
+bool INDI::CCD::uploadFile(CCDChip * targetChip, const void *fitsData, size_t totalBytes, bool sendImage, bool saveImage)
 {
     unsigned char *compressedData = NULL;
     uLongf compressedBytes=0;
+
+    if (saveImage)
+    {
+        targetChip->FitsB.blob=(unsigned char *)fitsData;
+        targetChip->FitsB.bloblen=totalBytes;
+        snprintf(targetChip->FitsB.format, MAXINDIBLOBFMT, ".%s", targetChip->getImageExtension());
+
+        FILE *fp = NULL;
+        char imageFileName[MAXRBUF];
+        std::string prefix = UploadSettingsT[1].text;
+        int maxIndex = getFileIndex(UploadSettingsT[0].text, UploadSettingsT[1].text, targetChip->FitsB.format);
+
+        if (maxIndex < 0)
+        {
+            DEBUGF(INDI::Logger::DBG_ERROR, "Error iterating directory %s. %s", UploadSettingsT[0].text, strerror(errno));
+            return false;
+        }
+
+        if (maxIndex > 0)
+        {
+            char indexString[3];
+            snprintf(indexString, 3, "%02d", maxIndex);
+            std::string prefixIndex = indexString;
+            prefix.replace(prefix.find("XX"), 2, prefixIndex);
+        }
+
+        snprintf(imageFileName, MAXRBUF, "%s/%s%s", UploadSettingsT[0].text, prefix.c_str(), targetChip->FitsB.format);
+        fp = fopen(imageFileName, "w");
+        if (fp == NULL)
+        {
+            DEBUGF(INDI::Logger::DBG_ERROR, "Unable to save image file (%s). %s", imageFileName, strerror(errno));
+            return false;
+        }
+
+        int n=0;
+        for (int nr=0; nr < (int) targetChip->FitsB.bloblen; nr += n)
+            n = fwrite( (static_cast<char *>(targetChip->FitsB.blob) + nr), 1, targetChip->FitsB.bloblen - nr, fp);
+
+        DEBUGF(INDI::Logger::DBG_SESSION, "Image saved to %s", imageFileName);
+        fclose(fp);
+    }
 
     if (targetChip->SendCompressed)
     {
@@ -1532,7 +1618,9 @@ bool INDI::CCD::uploadFile(CCDChip * targetChip, const void *fitsData, size_t to
 
     targetChip->FitsB.size = totalBytes;
     targetChip->FitsBP->s=IPS_OK;
-    IDSetBLOB(targetChip->FitsBP,NULL);
+
+    if (sendImage)
+        IDSetBLOB(targetChip->FitsBP,NULL);
 
     if (compressedData)
         free (compressedData);
@@ -1564,6 +1652,13 @@ void INDI::CCD::SetGuiderParams(int x,int y,int bpp,float xf,float yf)
 bool INDI::CCD::saveConfigItems(FILE *fp)
 {
     IUSaveConfigText(fp, ActiveDeviceTP);
+    IUSaveConfigSwitch(fp, &UploadSP);
+    IUSaveConfigText(fp, &UploadSettingsTP);
+
+    IUSaveConfigSwitch(fp, PrimaryCCD.CompressSP);
+
+    if (capability.hasGuideHead)
+        IUSaveConfigSwitch(fp, GuideCCD.CompressSP);
 
     if (capability.canSubFrame)
         IUSaveConfigNumber(fp, PrimaryCCD.ImageFrameNP);
@@ -1656,6 +1751,49 @@ void INDI::CCD::getMinMax(double *min, double *max, CCDChip *targetChip)
     }
         *min = lmin;
         *max = lmax;
+}
+
+int INDI::CCD::getFileIndex(const char *dir, const char *prefix, const char *ext)
+{
+    DIR *dpdf;
+    struct dirent *epdf;
+    std::vector<std::string> files = std::vector<std::string>();
+
+    std::string prefixIndex = prefix;
+    if (prefixIndex.find("XX") == std::string::npos)
+        return 0;
+
+    std::string prefixSearch = prefix;
+    prefixSearch.replace(prefixSearch.find("XX"), 2, "");
+
+    dpdf = opendir(dir);
+    if (dpdf != NULL)
+    {
+       while (epdf = readdir(dpdf))
+       {
+          if (strstr(epdf->d_name, prefixSearch.c_str()))
+              files.push_back(epdf->d_name);
+       }
+    }
+    else
+        return -1;
+
+    int maxIndex=0;
+
+    std::string filterIndex = "%d";
+    prefixIndex.replace(prefixIndex.find("XX"), 2, filterIndex);
+    char filter[MAXRBUF];
+    snprintf(filter, MAXRBUF, "%s%s", prefixIndex.c_str(), ext);
+    for (int i=0; i < files.size(); i++)
+    {
+        int index=-1;
+        sscanf(files.at(i).c_str(), filter, &index);
+        if (index > maxIndex)
+            maxIndex=index;
+    }
+
+    return (maxIndex+1);
+
 }
 
 
