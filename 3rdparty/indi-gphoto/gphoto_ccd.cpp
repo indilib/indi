@@ -197,11 +197,6 @@ bool GPhotoCCD::initProperties()
   IUFillSwitch(&livePreviewS[1], "Disable", "", ISS_ON);
   IUFillSwitchVector(&livePreviewSP, livePreviewS, 2, getDeviceName(), "VIDEO_STREAM", "Preview", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-  IUFillSwitch(&uploadS[0], "Client", "", ISS_ON);
-  IUFillSwitch(&uploadS[1], "SD Card", "", ISS_OFF);
-  IUFillSwitch(&uploadS[2], "Both", "", ISS_OFF);
-  IUFillSwitchVector(&uploadSP, uploadS, 3, getDeviceName(), "UPLOAD_SETTINGS", "Upload", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
   Capability cap;
 
   cap.canAbort = false;
@@ -241,7 +236,6 @@ void GPhotoCCD::ISGetProperties(const char *dev)
         defineSwitch(&mFormatSP);
 
       defineSwitch(&transferFormatSP);
-      defineSwitch(&uploadSP);
       defineSwitch(&livePreviewSP);
       defineSwitch(&autoFocusSP);
 
@@ -268,7 +262,6 @@ bool GPhotoCCD::updateProperties()
         defineSwitch(&mFormatSP);
 
       defineSwitch(&transferFormatSP);
-      defineSwitch(&uploadSP);
       defineSwitch(&livePreviewSP);
       defineSwitch(&autoFocusSP);
 
@@ -295,7 +288,6 @@ bool GPhotoCCD::updateProperties()
        deleteProperty(mFormatSP.name);
 
     deleteProperty(livePreviewSP.name);
-    deleteProperty(uploadSP.name);
     deleteProperty(autoFocusSP.name);    
     deleteProperty(transferFormatSP.name);
     deleteProperty(FocusMotionSP.name);
@@ -405,18 +397,21 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
           return true;
       }
 
-      if (!strcmp(name, uploadSP.name))
+      if (!strcmp(name, UploadSP.name))
       {
-          IUUpdateSwitch(&uploadSP, states, names, n);
-          uploadSP.s = IPS_OK;
-          IDSetSwitch(&uploadSP, NULL);
-          gphoto_set_upload_settings(gphotodrv, IUFindOnSwitchIndex(&uploadSP));
+          IUUpdateSwitch(&UploadSP, states, names, n);
+          UploadSP.s = IPS_OK;
+          IDSetSwitch(&UploadSP, NULL);
+
+          if (!sim)
+              gphoto_set_upload_settings(gphotodrv, IUFindOnSwitchIndex(&UploadSP));
 
           //FIXME saving to SD Card doesn't work now on bulb exposures, don't know how to do it
-          if (uploadS[0].s != ISS_ON)
+          if (UploadS[0].s != ISS_ON)
               DEBUG(INDI::Logger::DBG_WARNING, "Warning! Saving to SD card is not supported for BULB exposures currently.");
           return true;
       }
+
       if (!strcmp(name, livePreviewSP.name))
       {
           IUUpdateSwitch(&livePreviewSP, states, names, n);
@@ -742,13 +737,37 @@ bool GPhotoCCD::grabImage()
 	size_t memsize;
     int fd, naxis=2, w, h, bpp=8;
 
+    if (sim)
+    {
+
+      w= 512;
+      h= 512;
+      memsize = w*h + 512;
+      memptr = (char *) malloc(memsize);
+      for (int i = 0; i < h; i++)
+        for (int j = 0; j < w; j++)
+          memptr[i * w + j] = rand() % 255;
+
+      PrimaryCCD.setFrameBuffer(memptr);
+      PrimaryCCD.setFrameBufferSize(memsize, false);
+      PrimaryCCD.setResolution(w, h);
+      PrimaryCCD.setFrame(0, 0, w, h);
+      PrimaryCCD.setNAxis(naxis);
+      PrimaryCCD.setBPP(bpp);
+
+      ExposureComplete(&PrimaryCCD);
+      return true;
+
+    }
+
     // If only save to SD Card, let's not upload back to client
-    if (uploadS[GP_UPLOAD_SDCARD].s == ISS_ON || sim)
+    /*if (UploadS[GP_UPLOAD_SDCARD].s == ISS_ON)
     {
         DEBUG(INDI::Logger::DBG_SESSION, "Exposure complete. Image saved to SD Card.");
-        ExposureComplete(&PrimaryCCD, false);
+        ExposureComplete(&PrimaryCCD);
         return true;
-    }
+    }*/
+
 
     if (transferFormatS[0].s == ISS_ON)
     {
@@ -1047,6 +1066,9 @@ bool GPhotoCCD::SetSpeed(int speed)
 
 bool GPhotoCCD::capturePreview()
 {
+
+    if (sim)
+        return false;
 
     int rc = GP_OK;
     char errMsg[MAXRBUF];
