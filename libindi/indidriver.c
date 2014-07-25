@@ -1098,7 +1098,7 @@ dispatch (XMLEle *root, char msg[])
 
 int IUReadConfig(const char *filename, const char *dev, char errmsg[])
 {
-    char configFileName[MAXRBUF], configDefaultFileName[MAXRBUF];
+    char configFileName[MAXRBUF];
     char *rname, *rdev;
     XMLEle *root = NULL, *fproot = NULL;
     LilXML *lp = newLilXML();
@@ -1132,6 +1132,9 @@ int IUReadConfig(const char *filename, const char *dev, char errmsg[])
         return -1;
     }
 
+    if (nXMLEle(fproot) > 0)
+        IDMessage(dev, "Loading device configuration...");
+
     for (root = nextXMLEle (fproot, 1); root != NULL; root = nextXMLEle (fproot, 0))
     {
 
@@ -1148,6 +1151,9 @@ int IUReadConfig(const char *filename, const char *dev, char errmsg[])
 
         dispatch(root, errmsg);
     }
+
+    if (nXMLEle(fproot) > 0)
+        IDMessage(dev, "Device configuration applied.");
 
     fclose(fp);
     delXMLEle(fproot);
