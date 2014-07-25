@@ -670,7 +670,7 @@ int ApogeeCCD::grabImage()
            {
                for (int i=0; i < imageHeight; i++)
                    for (int j=0; j < imageWidth; j++)
-                       image[i*imageHeight+j] = rand() % 65535;
+                       image[i*imageWidth+j] = rand() % 65535;
            }
            else
            {
