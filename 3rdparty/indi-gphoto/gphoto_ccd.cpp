@@ -272,10 +272,13 @@ bool GPhotoCCD::updateProperties()
       imageBP=getBLOB("CCD1");
       imageB=imageBP->bp;
 
+      // Dummy values until first capture is done
+      SetCCDParams(1280, 1024, 8, 5.4, 5.4);
+
     if (sim == false)
     {
         ShowExtendedOptions();
-        DEBUG(INDI::Logger::DBG_SESSION, "Please update the camera's pixel size in the Image Info section. The camera's resolution will be updated after the first exposure is complete.");
+        DEBUG(INDI::Logger::DBG_SESSION, "Please update the camera pixel size in the Image Info section. The camera resolution will be updated after the first exposure is complete.");
     }
 
     timerID = SetTimer(POLLMS);
@@ -514,10 +517,7 @@ bool GPhotoCCD::Connect()
   sim = isSimulation();
 
   if (sim)
-  {
-      SetCCDParams(1280, 1024, 8, 5.4, 5.4);
       return true;
-  }
 
   int setidx;
   const char **options;
@@ -549,8 +549,6 @@ bool GPhotoCCD::Connect()
   mIsoSP.sp = mIsoS;
   mIsoSP.nsp = max_opts;
 
-  // Dummy values until first capture is done
-  SetCCDParams(1280, 1024, 8, 5.4, 5.4);
   DEBUGF(INDI::Logger::DBG_SESSION, "%s is online.", getDeviceName());
 
   return true;
