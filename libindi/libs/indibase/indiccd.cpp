@@ -843,10 +843,7 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
         {
             IUUpdateNumber(PrimaryCCD.ImagePixelSizeNP, values, names, n);
             PrimaryCCD.ImagePixelSizeNP->s = IPS_OK;
-            PrimaryCCD.XRes = PrimaryCCD.ImagePixelSizeNP->np[0].value;
-            PrimaryCCD.YRes = PrimaryCCD.ImagePixelSizeNP->np[1].value;
-            PrimaryCCD.PixelSizex = PrimaryCCD.ImagePixelSizeNP->np[2].value;
-            PrimaryCCD.PixelSizey = PrimaryCCD.ImagePixelSizeNP->np[3].value;
+            SetCCDParams(PrimaryCCD.ImagePixelSizeNP->np[0].value, PrimaryCCD.ImagePixelSizeNP->np[1].value, PrimaryCCD.getBPP(), PrimaryCCD.ImagePixelSizeNP->np[2].value, PrimaryCCD.ImagePixelSizeNP->np[3].value);
             IDSetNumber(PrimaryCCD.ImagePixelSizeNP, NULL);
             return true;
         }
@@ -856,11 +853,8 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
         {
             IUUpdateNumber(GuideCCD.ImagePixelSizeNP, values, names, n);
             GuideCCD.ImagePixelSizeNP->s = IPS_OK;
-            GuideCCD.XRes = GuideCCD.ImagePixelSizeNP->np[0].value;
-            GuideCCD.YRes = GuideCCD.ImagePixelSizeNP->np[1].value;
-            GuideCCD.PixelSizex = GuideCCD.ImagePixelSizeNP->np[2].value;
-            GuideCCD.PixelSizey = GuideCCD.ImagePixelSizeNP->np[3].value;
-            IDSetNumber(GuideCCD.ImagePixelSizeNP, NULL);
+            SetGuiderParams(GuideCCD.ImagePixelSizeNP->np[0].value, GuideCCD.ImagePixelSizeNP->np[1].value, GuideCCD.getBPP(), GuideCCD.ImagePixelSizeNP->np[2].value, GuideCCD.ImagePixelSizeNP->np[3].value);
+            IDSetNumber(GuideCCD.ImagePixelSizeNP, NULL);            
             return true;
         }
 
@@ -1632,7 +1626,8 @@ void INDI::CCD::SetCCDParams(int x,int y,int bpp,float xf,float yf)
 {
     PrimaryCCD.setResolution(x, y);
     PrimaryCCD.setFrame(0, 0, x, y);
-    PrimaryCCD.setBin(1,1);
+    if (capability.canBin)
+        PrimaryCCD.setBin(1,1);
     PrimaryCCD.setPixelSize(xf, yf);
     PrimaryCCD.setBPP(bpp);
 
