@@ -278,6 +278,7 @@ bool GPhotoCCD::updateProperties()
     // Dummy value
     PrimaryCCD.setPixelSize(5, 5);
     PrimaryCCD.setBPP(8);
+    DEBUG(INDI::Logger::DBG_SESSION, "Please update the camera's pixel size in the Image Info section. The camera's resolution will be updated after the first exposure is complete.");
 
     timerID = SetTimer(POLLMS);
   } else
