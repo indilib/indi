@@ -143,9 +143,9 @@ bool Controller::ISNewText (const char *dev, const char *name, char *texts[], ch
 {
     if(strcmp(dev,device->getDeviceName())==0)
     {
-        if (!strcmp(name, "JOYSTICKSETTINGS"))
+        if (!strcmp(name, "JOYSTICKSETTINGS") && n <= JoystickSettingTP.ntp)
         {
-            for (int i=0; i < n; i++)
+            for (int i=0; i < JoystickSettingTP.ntp; i++)
             {
                 IText *tp = IUFindText(&JoystickSettingTP, names[i]);
                 if (tp)

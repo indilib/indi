@@ -488,6 +488,8 @@ bool EQMod::updateProperties()
 	  if ((latitude) && (latitude->value < 0.0)) SetSouthernHemisphere(true);
 	  else  SetSouthernHemisphere(false);
 
+      controller->updateProperties();
+
       loadConfig(true);
 
 	} 
@@ -497,6 +499,7 @@ bool EQMod::updateProperties()
       }
     else
       {
+        controller->updateProperties();
 	if (MountInformationTP) {
       deleteProperty(GuideNSNP.name);
       deleteProperty(GuideWENP.name);
@@ -527,8 +530,6 @@ bool EQMod::updateProperties()
 	  MountInformationTP=NULL;
 	} 
       }
-
-    controller->updateProperties();
 
     if (align) {
       if (!align->updateProperties()) return false;
