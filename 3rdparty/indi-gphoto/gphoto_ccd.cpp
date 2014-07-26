@@ -740,8 +740,8 @@ bool GPhotoCCD::grabImage()
     if (sim)
     {
 
-      w= 512;
-      h= 512;
+      w= PrimaryCCD.getXRes();
+      h= PrimaryCCD.getYRes();
       memsize = w*h + 512;
       memptr = (char *) malloc(memsize);
       for (int i = 0; i < h; i++)
