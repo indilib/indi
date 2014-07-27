@@ -26,7 +26,7 @@
 #define JOYSTICK_H
 
 #include <iostream>
-#include <tr1/functional>
+#include <functional>
 #include <fcntl.h>
 #include <pthread.h>
 #include <math.h>
@@ -70,9 +70,9 @@ public:
   JoyStickDriver();
   ~JoyStickDriver();
 
-  typedef std::tr1::function<void (int joystick_n, double mag, double angle)> joystickFunc;
-  typedef std::tr1::function<void (int axis_n, double value)> axisFunc;
-  typedef std::tr1::function<void (int button_n, int value)> buttonFunc;
+  typedef std::function<void (int joystick_n, double mag, double angle)> joystickFunc;
+  typedef std::function<void (int axis_n, double value)> axisFunc;
+  typedef std::function<void (int button_n, int value)> buttonFunc;
 
   bool Connect();
   bool Disconnect();

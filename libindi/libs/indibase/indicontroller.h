@@ -20,12 +20,7 @@
 #define CONTROLLER_H
 
 #include <ciso646> // detect std::lib
-#ifdef _LIBCPP_VERSION
 #include <functional>
-#else
-#include <tr1/functional>
-#endif
-
 #include <indiapi.h>
 #include <defaultdevice.h>
 
@@ -75,8 +70,6 @@ class Controller
 
     typedef enum { CONTROLLER_JOYSTICK, CONTROLLER_AXIS, CONTROLLER_BUTTON, CONTROLLER_UNKNOWN } ControllerType;
 
-#ifdef _LIBCPP_VERSION
-
     /**
      * @brief joystickFunc Joystick callback function signature.
      */
@@ -91,25 +84,6 @@ class Controller
      * @brief buttonFunc Button callback function signature.
      */
     typedef std::function<void (const char * button_n, ISState state, void *context)> buttonFunc;
-
-#else
-
-    /**
-     * @brief joystickFunc Joystick callback function signature.
-     */
-    typedef std::tr1::function<void (const char * joystick_n, double mag, double angle, void *context)> joystickFunc;
-
-    /**
-     * @brief axisFunc Axis callback function signature.
-     */
-    typedef std::tr1::function<void (const char * axis_n, double value, void *context)> axisFunc;
-
-    /**
-     * @brief buttonFunc Button callback function signature.
-     */
-    typedef std::tr1::function<void (const char * button_n, ISState state, void *context)> buttonFunc;
-
-#endif
 
     /**
      * @brief Controller Default ctor

@@ -110,8 +110,8 @@ public:
     // Constants
     static const char SkywatcherLeadingChar = ':';
     static const char SkywatcherTrailingChar= 0x0d;
-    static const double MIN_RATE=0.05;
-    static const double MAX_RATE=800.0;
+    static constexpr double MIN_RATE=0.05;
+    static constexpr double MAX_RATE=800.0;
     unsigned long minperiods[2];
 
     // Types

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.4.7)
 PROJECT(libindi C CXX)
 
 cmake_policy(SET CMP0003 NEW)
-
+set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
 ##################  INDI version  ################################
 set(INDI_SOVERSION "0")
 set(CMAKE_INDI_VERSION_MAJOR 0)

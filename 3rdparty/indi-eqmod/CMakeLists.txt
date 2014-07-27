@@ -4,6 +4,7 @@ cmake_minimum_required(VERSION 2.4.7)
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
 
+set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
 Include (CheckCXXSourceCompiles)
 
 #SET(CMAKE_CXX_FLAGS "-Wall" )
