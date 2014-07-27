@@ -407,10 +407,6 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
           if (!sim)
               gphoto_set_upload_settings(gphotodrv, IUFindOnSwitchIndex(&UploadSP));
-
-          //FIXME saving to SD Card doesn't work now on bulb exposures, don't know how to do it
-          if (UploadS[0].s != ISS_ON)
-              DEBUG(INDI::Logger::DBG_WARNING, "Warning! Saving to SD card is not supported for BULB exposures currently.");
           return true;
       }
 
