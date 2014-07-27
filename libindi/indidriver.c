@@ -832,6 +832,9 @@ dispatch (XMLEle *root, char msg[])
             if (crackDN (root, &dev, &name, msg) < 0)
                 return (-1);
 
+            if (!isPropDefined(name))
+                return -1;
+
             /* ensure property is not RO */
             for (i=0; i < nroCheck; i++)
             {
@@ -839,6 +842,8 @@ dispatch (XMLEle *root, char msg[])
               {
                if (roCheck[i].perm == IP_RO)
                  return -1;
+               else
+                   break;
               }
             }
 
@@ -890,6 +895,9 @@ dispatch (XMLEle *root, char msg[])
             if (crackDN (root, &dev, &name, msg) < 0)
                 return (-1);
 
+            if (!isPropDefined(name))
+                return -1;
+
             /* ensure property is not RO */
             for (i=0; i < nroCheck; i++)
             {
@@ -897,6 +905,8 @@ dispatch (XMLEle *root, char msg[])
               {
                if (roCheck[i].perm == IP_RO)
                  return -1;
+               else
+                   break;
               }
             }
 
@@ -950,6 +960,9 @@ dispatch (XMLEle *root, char msg[])
             if (crackDN (root, &dev, &name, msg) < 0)
                 return (-1);
 
+            if (!isPropDefined(name))
+                return -1;
+
             /* ensure property is not RO */
             for (i=0; i < nroCheck; i++)
             {
@@ -957,6 +970,8 @@ dispatch (XMLEle *root, char msg[])
               {
                if (roCheck[i].perm == IP_RO)
                  return -1;
+               else
+                   break;
               }
             }
 
@@ -1004,6 +1019,9 @@ dispatch (XMLEle *root, char msg[])
             /* pull out device and name */
             if (crackDN (root, &dev, &name, msg) < 0)
                 return (-1);
+
+            if (!isPropDefined(name))
+                return -1;
 
             /* seed for reallocs */
             if (!blobs) {
