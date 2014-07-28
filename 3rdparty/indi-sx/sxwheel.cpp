@@ -174,7 +174,7 @@ int SXWHEEL::SendWheelMessage(int a, int b) {
     IDMessage(getDeviceName(), "Filter wheel not connected\n");
     return -1;
   }
-  unsigned char buf[2] = { a, b };
+  unsigned char buf[2] = { static_cast<unsigned char>(a), static_cast<unsigned char>(b) };
   int rc = hid_write(handle, buf, 2);
   DEBUGF(INDI::Logger::DBG_DEBUG, "SendWheelMessage: hid_write( { %d, %d } ) -> %d\n", buf[0], buf[1], rc);
   if (rc != 2) {
