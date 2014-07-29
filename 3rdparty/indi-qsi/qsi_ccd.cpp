@@ -1015,15 +1015,12 @@ void QSICCD::resetFrame()
             return;
         }
 
-        SetCCDParams(imageWidth, imageHeight, 16, 1, 1);
+        SetCCDParams(imageWidth, imageHeight, 16, PrimaryCCD.getPixelSizeX(), PrimaryCCD.getPixelSizeY());
 
         IUResetSwitch(&ResetSP);
         ResetSP.s = IPS_IDLE;
         DEBUG(INDI::Logger::DBG_SESSION, "Resetting frame and binning.");
         IDSetSwitch(&ResetSP, NULL);
-
-        PrimaryCCD.setBin(1,1);
-        UpdateCCDFrame(0,0, imageWidth, imageHeight);
 
         return;
 }
