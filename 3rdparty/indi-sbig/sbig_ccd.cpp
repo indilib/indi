@@ -175,13 +175,16 @@ int SBIGCCD::OpenDriver()
     GetDriverHandleResults gdhr;
     SetDriverHandleParams  sdhp;
 
+    DEBUG(INDI::Logger::DBG_DEBUG, "OpenDriver()");
     // Call the driver directly.
     if((res = ::SBIGUnivDrvCommand(CC_OPEN_DRIVER, 0, 0)) == CE_NO_ERROR)
     {
+        DEBUG(INDI::Logger::DBG_DEBUG, "The driver was not open, so record the driver handle...");
         // The driver was not open, so record the driver handle.
         res = ::SBIGUnivDrvCommand(CC_GET_DRIVER_HANDLE, 0, &gdhr);
     }else if(res == CE_DRIVER_NOT_CLOSED)
     {
+        DEBUG(INDI::Logger::DBG_DEBUG, "The driver is already open, get a new handle...");
         // The driver is already open which we interpret as having been
         // opened by another instance of the class so get the driver to
         // allocate a new handle and then record it.
@@ -189,13 +192,21 @@ int SBIGCCD::OpenDriver()
         res = ::SBIGUnivDrvCommand(CC_SET_DRIVER_HANDLE, &sdhp, 0);
         if(res == CE_NO_ERROR)
         {
+            DEBUG(INDI::Logger::DBG_DEBUG, "Setting handle success, trying to open the driver again...");
                 if((res = ::SBIGUnivDrvCommand(CC_OPEN_DRIVER, 0, 0)) == CE_NO_ERROR)
                 {
+                    DEBUG(INDI::Logger::DBG_DEBUG, "Open driver success, trying to get the driver handle now...");
                         res = ::SBIGUnivDrvCommand(CC_GET_DRIVER_HANDLE, 0, &gdhr);
                 }
+
+                if (res != CE_NO_ERROR)
+                    DEBUGF(INDI::Logger::DBG_ERROR, "%s Error: %s", __FUNCTION__, GetErrorString(res).c_str());
         }
     }
-    if(res == CE_NO_ERROR) SetDriverHandle(gdhr.handle);
+    if(res == CE_NO_ERROR)
+        SetDriverHandle(gdhr.handle);
+    else
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s Error: %s", __FUNCTION__, GetErrorString(res).c_str());
     return(res);
 }
 //==========================================================================
@@ -240,6 +251,8 @@ int SBIGCCD::OpenDevice(const char *devName)
             SetDeviceName(devName);
             SetFileDescriptor(true);
     }
+    else
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s Error: %s", __FUNCTION__, GetErrorString(res).c_str());
     return(res);
 }
 //==========================================================================
