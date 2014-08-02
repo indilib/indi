@@ -212,7 +212,7 @@ bool SER_Recorder::writeFrameColor(unsigned char *frame) {
 
 void SER_Recorder::setDefaultMono() {
   number_of_planes=1;
-  serh.PixelDepth =1;
+  serh.PixelDepth =8;
   serh.ColorID=SER_MONO; 
 } 
 
