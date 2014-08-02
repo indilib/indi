@@ -1394,6 +1394,14 @@ libindi/libs/webcam/port.h -text
 libindi/libs/webcam/pwc-ioctl.h -text
 libindi/libs/webcam/v4l2_base.cpp -text
 libindi/libs/webcam/v4l2_base.h -text
+libindi/libs/webcam/v4l2_decode/v4l2_builtin_decoder.cpp -text
+libindi/libs/webcam/v4l2_decode/v4l2_builtin_decoder.h -text
+libindi/libs/webcam/v4l2_decode/v4l2_decode.cpp -text
+libindi/libs/webcam/v4l2_decode/v4l2_decode.h -text
+libindi/libs/webcam/v4l2_record/ser_recorder.cpp -text
+libindi/libs/webcam/v4l2_record/ser_recorder.h -text
+libindi/libs/webcam/v4l2_record/v4l2_record.cpp -text
+libindi/libs/webcam/v4l2_record/v4l2_record.h -text
 libindi/libs/webcam/vcvt.h -text
 libindi/libs/webcam/videodev.h -text
 libindi/libs/webcam/videodev2.h -text

@@ -1,8 +1,8 @@
 #if 0
     V4L2 INDI Driver
     INDI Interface for V4L2 devices
-    Copyright (C) 2013 Geehalel (geehalel@gmail.com)
     Copyright (C) 2003-2005 Jasem Mutlaq (mutlaqja@ikarustech.com)
+    Copyright (C) 2013 Geehalel (geehalel@gmail.com)
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -51,6 +51,7 @@
 #include <config.h>
 
 #include "webcam/v4l2_base.h"
+#include "webcam/v4l2_record/v4l2_record.h"
 #include "indiccd.h"
 
 // Long Exposure
@@ -115,10 +116,12 @@ class V4L2_Driver: public INDI::CCD
     ISwitch *CompressS;
     ISwitch ImageTypeS[2];
     ISwitch StackModeS[2];
-    
+    ISwitch RecordS[2];
+	
     /* Texts */
     IText PortT[1];
     IText camNameT[1];
+    IText RecordFileT[1];
 
     /* Numbers */
     INumber *ExposeTimeN;
@@ -142,6 +145,7 @@ class V4L2_Driver: public INDI::CCD
     unsigned int v4loptions;
     unsigned int v4ladjustments;
     bool useExtCtrl;
+    ISwitchVectorProperty RecordSP;				/* Record switch */
 
     /* Number vectors */
     INumberVectorProperty *ExposeTimeNP;				/* Exposure */
@@ -153,7 +157,8 @@ class V4L2_Driver: public INDI::CCD
     /* Text vectors */
     ITextVectorProperty PortTP;
     ITextVectorProperty camNameTP;
-    
+    ITextVectorProperty RecordFileTP;    
+
     /* Pointers to optional properties */
     INumber               *AbsExposureN;
     ISwitchVectorProperty *ManualExposureSP;
@@ -164,6 +169,7 @@ class V4L2_Driver: public INDI::CCD
 
    /* Stream/FITS functions */
    void updateStream();
+   void recordStream();
  
    void allocateBuffers();
    void releaseBuffers();
@@ -192,6 +198,11 @@ class V4L2_Driver: public INDI::CCD
    bool startlongexposure(double timeinsec);
    static void lxtimerCallback(void *userpointer);
    short lxstate;
+
+   // Record frames
+   V4L2_Record *v4l2_record;
+   V4L2_Recorder *recorder;
+   bool direct_record;
 };
    
 #endif

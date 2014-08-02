@@ -92,8 +92,14 @@ set(libwebcam_SRCS
 	${CMAKE_SOURCE_DIR}/libs/webcam/ccvt_c2.c
 	${CMAKE_SOURCE_DIR}/libs/webcam/ccvt_misc.c
         ${CMAKE_SOURCE_DIR}/libs/webcam/jpegutils.c
+	${CMAKE_SOURCE_DIR}/libs/webcam/v4l2_decode/v4l2_decode.cpp
+	${CMAKE_SOURCE_DIR}/libs/webcam/v4l2_decode/v4l2_builtin_decoder.cpp
+	${CMAKE_SOURCE_DIR}/libs/webcam/v4l2_record/v4l2_record.cpp
+	${CMAKE_SOURCE_DIR}/libs/webcam/v4l2_record/ser_recorder.cpp
 	)
 endif()
+
+
 
 set (indimain_SRCS
         ${CMAKE_SOURCE_DIR}/indidriver.c
@@ -183,6 +189,16 @@ install(TARGETS indidriverstatic ARCHIVE DESTINATION ${LIB_DESTINATION})
 ########### INDI Client Static Library ###########
 ##################################################
 add_library(indiclient STATIC ${indiclient_SRCS})
+#-----------------------------------------------------------------------------
+#
+# To fix compilation problem: relocation R_X86_64_32 against `a local symbol' can not be
+# used when making a shared object; recompile with -fPIC
+# See http://www.cmake.org/pipermail/cmake/2007-May/014350.html
+#
+IF( CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" )
+  SET_TARGET_PROPERTIES(indiclient PROPERTIES COMPILE_FLAGS "-fPIC")
+ENDIF( CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" )
+
 target_link_libraries(indiclient indi ${CMAKE_THREAD_LIBS_INIT})
 install(TARGETS indiclient ARCHIVE DESTINATION ${LIB_DESTINATION})
 

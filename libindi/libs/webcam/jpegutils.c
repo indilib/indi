@@ -294,7 +294,7 @@ static void my_emit_message(j_common_ptr cinfo, int msg_level)
         myerr->warning_seen = 1;
 
     /* call original emit_message() */
-    (myerr->original_emit_message)(cinfo, msg_level);
+    /* geehalel (myerr->original_emit_message)(cinfo, msg_level); */
 }
 
 #define MAX_LUMA_WIDTH   4096

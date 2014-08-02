@@ -48,6 +48,13 @@ V4L2_Driver::V4L2_Driver()
   stackMode=0;
 
   lx=new Lx();
+
+  v4l2_record=new V4L2_Record();
+  recorder=v4l2_record->getDefaultRecorder();
+  recorder->init();
+  direct_record=false;
+  //const std::vector<unsigned int> &vsuppformats=decoder->getsupportedformats();
+  IDLog("Using default recorder '%s'\n", recorder->getName());
 }
 
 V4L2_Driver::~V4L2_Driver()
@@ -83,7 +90,7 @@ bool V4L2_Driver::initProperties()
   /* Stacking Mode */
   IUFillSwitch(&StackModeS[0], "None", "", ISS_ON);
   IUFillSwitch(&StackModeS[1], "Additive", "", ISS_OFF);
-  IUFillSwitchVector(&StackModeSP, StackModeS, NARRAY(StackModeS), getDeviceName(), "Stacking Mode", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+  IUFillSwitchVector(&StackModeSP, StackModeS, NARRAY(StackModeS), getDeviceName(), "Stack", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
   stackMode=0;
 
   /* Inputs */
@@ -100,6 +107,19 @@ bool V4L2_Driver::initProperties()
   /* V4L2 Settings */  
   IUFillNumberVector(&ImageAdjustNP, NULL, 0, getDeviceName(), "Image Adjustments", "", IMAGE_GROUP, IP_RW, 60, IPS_IDLE);
 
+  /* Record Frames */
+  /* File */
+  IUFillText(&RecordFileT[0], "RECORD_FILE_NAME", "File name", "/tmp/indimovie.ser");
+  IUFillTextVector(&RecordFileTP, RecordFileT, NARRAY(RecordFileT), getDeviceName(), "RECORD_FILE", "Record File", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+
+ /* Video Record Switch */
+  IUFillSwitch(&RecordS[0], "ON", "Record On", ISS_OFF);
+  IUFillSwitch(&RecordS[1], "OFF", "Record Off", ISS_ON);
+  IUFillSwitchVector(&RecordSP, RecordS, NARRAY(RecordS), getDeviceName(), "VIDEO_RECORD", "Video Record", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+
+  PrimaryCCD.setCCDInfoWritable();
+
   if (!lx->initProperties(this))
     DEBUG(INDI::Logger::DBG_WARNING, "Can not init Long Exposure");
   return true;
@@ -108,6 +128,7 @@ bool V4L2_Driver::initProperties()
 void V4L2_Driver::initCamBase()
 {
     v4l_base = new V4L2_Base();
+    v4l_base->setRecorder(recorder);
 }
 
 void V4L2_Driver::ISGetProperties (const char *dev)
@@ -138,7 +159,7 @@ void V4L2_Driver::ISGetProperties (const char *dev)
     else if  (FrameRateNP.np != NULL)
        defineNumber(&FrameRateNP);
   }
-  
+
 }
 
 bool V4L2_Driver::updateProperties ()
@@ -177,9 +198,14 @@ bool V4L2_Driver::updateProperties ()
     else if  (FrameRateNP.np != NULL)
        defineNumber(&FrameRateNP);
 
+   defineSwitch(&RecordSP);  
+   defineText(&RecordFileTP);
+
    SetCCDParams(V4LFrame->width, V4LFrame->height, 8, 5.6, 5.6);
+   
 
    PrimaryCCD.setImageExtension("fits");
+
 
    if (v4l_base->isLXmodCapable()) lx->updateProperties();
 
@@ -213,28 +239,30 @@ bool V4L2_Driver::updateProperties ()
     if (Options) free(Options);
     Options=NULL;
     v4loptions=0;
-    
+
+    deleteProperty(RecordFileTP.name);
+    deleteProperty(RecordSP.name);
   }
 }
 
 bool V4L2_Driver::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-     char errmsg[ERRMSGSIZ];
-     unsigned int iopt;
-
-     /* ignore if not ours */
-     if (dev && strcmp (getDeviceName(), dev))
-       return true;
-	    
-     /* Input */
-	if ((!strcmp(name, InputsSP.name)))
-     {
-      if ((StreamSP.s == IPS_BUSY) ||  (ExposeTimeNP->s == IPS_BUSY)) {
-     DEBUG(INDI::Logger::DBG_ERROR, "Can not set input while capturing.");
-	 InputsSP.s = IPS_BUSY;
-     IDSetSwitch(&InputsSP, NULL);
-	 return false;
-       } else {
+  char errmsg[ERRMSGSIZ];
+  unsigned int iopt;
+  
+  /* ignore if not ours */
+  if (dev && strcmp (getDeviceName(), dev))
+    return true;
+  
+  /* Input */
+  if ((!strcmp(name, InputsSP.name)))
+    {
+      if ((StreamSP.s == IPS_BUSY) ||  (ExposeTimeNP->s == IPS_BUSY) || (RecordSP.s == IPS_BUSY)) {
+	DEBUG(INDI::Logger::DBG_ERROR, "Can not set input while capturing.");
+	InputsSP.s = IPS_BUSY;
+	IDSetSwitch(&InputsSP, NULL);
+	return false;
+      } else {
 	unsigned int inputindex, oldindex;
 	oldindex=IUFindOnSwitchIndex(&InputsSP);
 	IUResetSwitch(&InputsSP);
@@ -245,238 +273,279 @@ bool V4L2_Driver::ISNewSwitch (const char *dev, const char *name, ISState *state
 	  IUResetSwitch(&InputsSP);
 	  InputsSP.sp[oldindex].s=ISS_ON;
 	  InputsSP.s = IPS_ALERT;
-      IDSetSwitch(&InputsSP, NULL);
+	  IDSetSwitch(&InputsSP, NULL);
 	  return false;
 	}
 	deleteProperty(CaptureFormatsSP.name);
 	v4l_base->getcaptureformats(&CaptureFormatsSP);
-    defineSwitch(&CaptureFormatsSP);
-    if (CaptureSizesSP.sp != NULL)
-        deleteProperty(CaptureSizesSP.name);
-    else if  (CaptureSizesNP.np != NULL)
-        deleteProperty(CaptureSizesNP.name);
-
+	defineSwitch(&CaptureFormatsSP);
+	if (CaptureSizesSP.sp != NULL)
+	  deleteProperty(CaptureSizesSP.name);
+	else if  (CaptureSizesNP.np != NULL)
+	  deleteProperty(CaptureSizesNP.name);
+	
 	v4l_base->getcapturesizes(&CaptureSizesSP, &CaptureSizesNP);
-
-    if (CaptureSizesSP.sp != NULL)
-        defineSwitch(&CaptureSizesSP);
-    else if  (CaptureSizesNP.np != NULL)
-        defineNumber(&CaptureSizesNP);
+	
+	if (CaptureSizesSP.sp != NULL)
+	  defineSwitch(&CaptureSizesSP);
+	else if  (CaptureSizesNP.np != NULL)
+	  defineNumber(&CaptureSizesNP);
 	InputsSP.s = IPS_OK;
-    IDSetSwitch(&InputsSP, NULL);
-    DEBUGF(INDI::Logger::DBG_SESSION, "Capture input: %d. %s", inputindex, InputsSP.sp[inputindex].name);
+	IDSetSwitch(&InputsSP, NULL);
+	DEBUGF(INDI::Logger::DBG_SESSION, "Capture input: %d. %s", inputindex, InputsSP.sp[inputindex].name);
 	return true;
       }
-     }    
+    }    
 	
-     /* Capture Format */
-	if ((!strcmp(name, CaptureFormatsSP.name)))
-     {
-       if ((StreamSP.s == IPS_BUSY) ||  (ExposeTimeNP->s == IPS_BUSY))
-       {
-            DEBUG(INDI::Logger::DBG_ERROR, "Can not set format while capturing.");
-            CaptureFormatsSP.s = IPS_BUSY;
-            IDSetSwitch(&CaptureFormatsSP, NULL);
-            return false;
-       } else
-       {
-        unsigned int index, oldindex;
-        oldindex=IUFindOnSwitchIndex(&CaptureFormatsSP);
-        IUResetSwitch(&CaptureFormatsSP);
-        IUUpdateSwitch(&CaptureFormatsSP, states, names, n);
-        index=IUFindOnSwitchIndex(&CaptureFormatsSP);
-        if (v4l_base->setcaptureformat(*((unsigned int *)CaptureFormatsSP.sp[index].aux), errmsg) == -1)
-        {
-            DEBUGF(INDI::Logger::DBG_SESSION, "ERROR (setformat): %s", errmsg);
-            IUResetSwitch(&CaptureFormatsSP);
-            CaptureFormatsSP.sp[oldindex].s=ISS_ON;
-            CaptureFormatsSP.s = IPS_ALERT;
-            IDSetSwitch(&CaptureFormatsSP, NULL);
-            return false;
-        }
+  /* Capture Format */
+  if ((!strcmp(name, CaptureFormatsSP.name))) {
+    if ((StreamSP.s == IPS_BUSY) ||  (ExposeTimeNP->s == IPS_BUSY) || (RecordSP.s == IPS_BUSY)) {
+      DEBUG(INDI::Logger::DBG_ERROR, "Can not set format while capturing.");
+      CaptureFormatsSP.s = IPS_BUSY;
+      IDSetSwitch(&CaptureFormatsSP, NULL);
+      return false;
+    } else {
+      unsigned int index, oldindex;
+      oldindex=IUFindOnSwitchIndex(&CaptureFormatsSP);
+      IUResetSwitch(&CaptureFormatsSP);
+      IUUpdateSwitch(&CaptureFormatsSP, states, names, n);
+      index=IUFindOnSwitchIndex(&CaptureFormatsSP);
+      if (v4l_base->setcaptureformat(*((unsigned int *)CaptureFormatsSP.sp[index].aux), errmsg) == -1) {
+	DEBUGF(INDI::Logger::DBG_SESSION, "ERROR (setformat): %s", errmsg);
+	IUResetSwitch(&CaptureFormatsSP);
+	CaptureFormatsSP.sp[oldindex].s=ISS_ON;
+	CaptureFormatsSP.s = IPS_ALERT;
+	IDSetSwitch(&CaptureFormatsSP, NULL);
+	return false;
+      }
+      
+      if (CaptureSizesSP.sp != NULL)
+	deleteProperty(CaptureSizesSP.name);
+      else if  (CaptureSizesNP.np != NULL)
+	deleteProperty(CaptureSizesNP.name);
+      v4l_base->getcapturesizes(&CaptureSizesSP, &CaptureSizesNP);
+      
+      if (CaptureSizesSP.sp != NULL)
+	defineSwitch(&CaptureSizesSP);
+      else if  (CaptureSizesNP.np != NULL)
+	defineNumber(&CaptureSizesNP);
+      CaptureFormatsSP.s = IPS_OK;
+      
+      direct_record=recorder->setpixelformat(v4l_base->fmt.fmt.pix.pixelformat);
+      
+      IDSetSwitch(&CaptureFormatsSP, "Capture format: %d. %s", index, CaptureFormatsSP.sp[index].name);
+      return true;
+    }
+  }
+  
+  /* Capture Size (Discrete) */
+  if ((!strcmp(name, CaptureSizesSP.name))) {
+    if ((StreamSP.s == IPS_BUSY) ||  (ExposeTimeNP->s == IPS_BUSY) || (RecordSP.s == IPS_BUSY)) {
+      DEBUG(INDI::Logger::DBG_ERROR, "Can not set capture size while capturing.");
+      CaptureSizesSP.s = IPS_BUSY;
+      IDSetSwitch(&CaptureSizesSP, NULL);
+      return false;
+    } else {
+      unsigned int index, w, h;
+      IUUpdateSwitch(&CaptureSizesSP, states, names, n);
+      index=IUFindOnSwitchIndex(&CaptureSizesSP);
+      sscanf(CaptureSizesSP.sp[index].name, "%dx%d", &w, &h);
+      if (v4l_base->setcapturesize(w, h, errmsg) == -1) {
+	DEBUGF(INDI::Logger::DBG_SESSION, "ERROR (setsize): %s", errmsg);
+	CaptureSizesSP.s = IPS_ALERT;
+	IDSetSwitch(&CaptureSizesSP, NULL);
+	return false;
+      }
+      
+      if (FrameRatesSP.sp != NULL)
+	deleteProperty(FrameRatesSP.name);
+      else if  (FrameRateNP.np != NULL)
+	deleteProperty(FrameRateNP.name);
+      v4l_base->getframerates(&FrameRatesSP, &FrameRateNP);
+      if (FrameRatesSP.sp != NULL)
+	defineSwitch(&FrameRatesSP);
+	 else if  (FrameRateNP.np != NULL)
+	   defineNumber(&FrameRateNP);
+      
+      PrimaryCCD.setFrame(0, 0, w, h);
+      V4LFrame->width = w;
+      V4LFrame->height= h;
+      PrimaryCCD.setResolution(w, h);
+      
+      recorder->setsize(w, h);
+      
+      CaptureSizesSP.s = IPS_OK;
+      IDSetSwitch(&CaptureSizesSP, "Capture size (discrete): %d. %s", index, CaptureSizesSP.sp[index].name);
+      return true;
+    }
+  }
 
-        if (CaptureSizesSP.sp != NULL)
-            deleteProperty(CaptureSizesSP.name);
-        else if  (CaptureSizesNP.np != NULL)
-            deleteProperty(CaptureSizesNP.name);
-        v4l_base->getcapturesizes(&CaptureSizesSP, &CaptureSizesNP);
+  /* Frame Rate (Discrete) */
+  if ((!strcmp(name, FrameRatesSP.name)))  {
+    unsigned int index;
+    struct v4l2_fract frate;
+    IUUpdateSwitch(&FrameRatesSP, states, names, n);
+    index=IUFindOnSwitchIndex(&FrameRatesSP);
+    sscanf(FrameRatesSP.sp[index].name, "%d/%d", &frate.numerator, &frate.denominator);
+    if ((v4l_base->*(v4l_base->setframerate))(frate, errmsg) == -1)
+      {
+	DEBUGF(INDI::Logger::DBG_SESSION, "ERROR (setframerate): %s", errmsg);
+	FrameRatesSP.s = IPS_ALERT;
+	IDSetSwitch(&FrameRatesSP, NULL);
+	return false;
+      }
+    
+    FrameRatesSP.s = IPS_OK;
+    IDSetSwitch(&FrameRatesSP, "Frame Period (discrete): %d. %s", index, FrameRatesSP.sp[index].name);
+    return true;
+  }
+  
+  /* Image Type */
+  if (!strcmp(name, ImageTypeSP.name)) {
+    IUResetSwitch(&ImageTypeSP);
+    IUUpdateSwitch(&ImageTypeSP, states, names, n);
+    ImageTypeSP.s = IPS_OK;
+    if (ImageTypeS[0].s == ISS_ON) {
+      PrimaryCCD.setBPP(8);
+      PrimaryCCD.setNAxis(2);
+    } else {
+      //PrimaryCCD.setBPP(32);
+      PrimaryCCD.setBPP(8);
+      PrimaryCCD.setNAxis(3);
+    }
+    
+    frameBytes  = (ImageTypeS[0].s == ISS_ON) ? (PrimaryCCD.getSubW() * PrimaryCCD.getSubH()):
+      (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * 4);
+    PrimaryCCD.setFrameBufferSize(frameBytes);
+    
+    IDSetSwitch(&ImageTypeSP, NULL);
+    return true;
+  }
+  
+  /* Stacking Mode */
+  if (!strcmp(name, StackModeSP.name)) {
+    IUResetSwitch(&StackModeSP);
+    IUUpdateSwitch(&StackModeSP, states, names, n);
+    StackModeSP.s = IPS_OK;
+    stackMode=IUFindOnSwitchIndex(&StackModeSP);
+    
+    IDSetSwitch(&StackModeSP, "Setting Stacking Mode: %s", StackModeS[stackMode].name);
+    return true;
+  }
+  
+  /* Video Stream */
+  if (!strcmp(name, StreamSP.name)) {
+    bool is_streaming = (StreamSP.s == IPS_BUSY);
+    bool is_recording = (RecordSP.s == IPS_BUSY);
+    IUResetSwitch(&StreamSP);
+    IUUpdateSwitch(&StreamSP, states, names, n);
+    
+    if (StreamS[0].s == ISS_ON) {
+      if ((!is_streaming) && (!is_recording)) { 
+	StreamSP.s  = IPS_BUSY; 
+	frameCount = 0;
+	DEBUG(INDI::Logger::DBG_DEBUG, "Starting the video stream.\n");
+	v4l_base->start_capturing(errmsg);
+      } else {
+	if (!is_streaming) StreamSP.s=IPS_IDLE;
+      }
+    } else {
+      StreamSP.s = IPS_IDLE;       
+      if (is_streaming) {
+	DEBUGF(INDI::Logger::DBG_DEBUG, "The video stream has been disabled. Frame count %d\n", frameCount);
+	v4l_base->stop_capturing(errmsg);
+      }
+    }
+    
+    IDSetSwitch(&StreamSP, NULL);
+    return true;
+  }
+  
+  /* Record Stream */
+  if (!strcmp(name, RecordSP.name)) {
+    bool is_streaming = (StreamSP.s == IPS_BUSY);
+    bool is_recording = (RecordSP.s == IPS_BUSY);
+    IUResetSwitch(&RecordSP);
+    IUUpdateSwitch(&RecordSP, states, names, n);
+    
+    if (RecordS[0].s == ISS_ON) {
+      if ((!is_streaming) && (!is_recording)) { 
+	frameCount = 0;
+	DEBUG(INDI::Logger::DBG_SESSION, "Recording the video stream (no binning).\n");
+	RecordSP.s  = IPS_BUSY; 
+	if (!recorder->open(RecordFileT[0].text, errmsg)) {
+	  RecordSP.s = IPS_ALERT;
+	  IDSetSwitch(&RecordSP, NULL);
+	  DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+	  return false;
+	}
+	if (direct_record) {
+	  DEBUG(INDI::Logger::DBG_SESSION, "Using direct recording (no soft crop, no frame count).\n");
+	  v4l_base->doDecode(false);
+	  v4l_base->doRecord(true);
+	} else {
+	  if (ImageTypeS[0].s == ISS_ON) 
+	    recorder->setDefaultMono();
+	  else
+	    recorder->setDefaultColor();
+	}
+	v4l_base->start_capturing(errmsg);
+      } else {
+	if (!is_recording) RecordSP.s=IPS_IDLE;
+      }
+    } else {
+      RecordSP.s = IPS_IDLE;   
+      if (is_recording) {
+	v4l_base->stop_capturing(errmsg);
+	if (direct_record) {
+	  v4l_base->doDecode(true);
+	  v4l_base->doRecord(false);
+	}
+	recorder->close();
+	DEBUGF(INDI::Logger::DBG_SESSION, "Recording stream has been disabled. Frame count %d\n", frameCount);
+      }
+    }
+    
+    IDSetSwitch(&RecordSP, NULL);
+    return true;
+  }
 
-        if (CaptureSizesSP.sp != NULL)
-            defineSwitch(&CaptureSizesSP);
-        else if  (CaptureSizesNP.np != NULL)
-            defineNumber(&CaptureSizesNP);
-        CaptureFormatsSP.s = IPS_OK;
+  /* V4L2 Options/Menus */
+  for (iopt=0; iopt<v4loptions; iopt++) 
+    if (!strcmp (Options[iopt].name, name))
+      break;
+  if (iopt < v4loptions) {
+    unsigned int ctrl_id, optindex, ctrlindex;
+    
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Toggle switch %s=%s\n", Options[iopt].name, Options[iopt].label);
+    
+    Options[iopt].s = IPS_IDLE;
+    IUResetSwitch(&Options[iopt]);
+    if (IUUpdateSwitch(&Options[iopt], states, names, n) < 0)
+      return false;
+    
+    optindex=IUFindOnSwitchIndex(&Options[iopt]);
+    if (Options[iopt].sp[optindex].aux != NULL) 
+      ctrlindex= *(unsigned int *)(Options[iopt].sp[optindex].aux);
+    else 
+      ctrlindex=optindex;
+    ctrl_id = (*((unsigned int*) Options[iopt].aux));
+    DEBUGF(INDI::Logger::DBG_DEBUG, "  On switch is (%d) %s=\"%s\", ctrl_id = 0x%X ctrl_index=%d\n", optindex, 
+	   Options[iopt].sp[optindex].name, Options[iopt].sp[optindex].label, ctrl_id, ctrlindex);
+    if (v4l_base->setOPTControl( ctrl_id , ctrlindex,  errmsg) < 0) {
+      Options[iopt].s = IPS_ALERT;
+      IDSetSwitch(&Options[iopt], NULL);
+      DEBUGF(INDI::Logger::DBG_ERROR, "Unable to adjust setting. %s", errmsg);
+      return false;
+    }
+    Options[iopt].s = IPS_OK;
+    IDSetSwitch(&Options[iopt], NULL);
+    return true;
+  }
 
-        IDSetSwitch(&CaptureFormatsSP, "Capture format: %d. %s", index, CaptureFormatsSP.sp[index].name);
-        return true;
-       }
-     }
-
-     /* Capture Size (Discrete) */
-	if ((!strcmp(name, CaptureSizesSP.name)))
-     {
-       if ((StreamSP.s == IPS_BUSY) ||  (ExposeTimeNP->s == IPS_BUSY))
-       {
-            DEBUG(INDI::Logger::DBG_ERROR, "Can not set capture size while capturing.");
-            CaptureSizesSP.s = IPS_BUSY;
-            IDSetSwitch(&CaptureSizesSP, NULL);
-            return false;
-       } else
-       {
-            unsigned int index, w, h;
-            IUUpdateSwitch(&CaptureSizesSP, states, names, n);
-            index=IUFindOnSwitchIndex(&CaptureSizesSP);
-            sscanf(CaptureSizesSP.sp[index].name, "%dx%d", &w, &h);
-            if (v4l_base->setcapturesize(w, h, errmsg) == -1)
-            {
-                DEBUGF(INDI::Logger::DBG_SESSION, "ERROR (setsize): %s", errmsg);
-                CaptureSizesSP.s = IPS_ALERT;
-                IDSetSwitch(&CaptureSizesSP, NULL);
-                return false;
-            }
-
-   if (FrameRatesSP.sp != NULL)
-       deleteProperty(FrameRatesSP.name);
-    else if  (FrameRateNP.np != NULL)
-       deleteProperty(FrameRateNP.name);
-	    v4l_base->getframerates(&FrameRatesSP, &FrameRateNP);
-   if (FrameRatesSP.sp != NULL)
-       defineSwitch(&FrameRatesSP);
-    else if  (FrameRateNP.np != NULL)
-       defineNumber(&FrameRateNP);
-
-
-            PrimaryCCD.setFrame(0, 0, w, h);
-            V4LFrame->width = w;
-            V4LFrame->height= h;
-            PrimaryCCD.setResolution(w, h);
-            CaptureSizesSP.s = IPS_OK;
-            IDSetSwitch(&CaptureSizesSP, "Capture size (discrete): %d. %s", index, CaptureSizesSP.sp[index].name);
-            return true;
-       }
-     }
-
-     /* Frame Rate (Discrete) */
-	if ((!strcmp(name, FrameRatesSP.name)))
-     {
-         unsigned int index;
-         struct v4l2_fract frate;
-         IUUpdateSwitch(&FrameRatesSP, states, names, n);
-         index=IUFindOnSwitchIndex(&FrameRatesSP);
-         sscanf(FrameRatesSP.sp[index].name, "%d/%d", &frate.numerator, &frate.denominator);
-         if ((v4l_base->*(v4l_base->setframerate))(frate, errmsg) == -1)
-         {
-            DEBUGF(INDI::Logger::DBG_SESSION, "ERROR (setframerate): %s", errmsg);
-            FrameRatesSP.s = IPS_ALERT;
-            IDSetSwitch(&FrameRatesSP, NULL);
-            return false;
-        }
-
-        FrameRatesSP.s = IPS_OK;
-        IDSetSwitch(&FrameRatesSP, "Frame Period (discrete): %d. %s", index, FrameRatesSP.sp[index].name);
-        return true;
-     }
-
-     /* Image Type */
-     if (!strcmp(name, ImageTypeSP.name))
-     {
-       IUResetSwitch(&ImageTypeSP);
-       IUUpdateSwitch(&ImageTypeSP, states, names, n);
-       ImageTypeSP.s = IPS_OK;
-       if (ImageTypeS[0].s == ISS_ON)
-       {
-           PrimaryCCD.setBPP(8);
-           PrimaryCCD.setNAxis(2);
-       }
-       else
-       {
-           //PrimaryCCD.setBPP(32);
-           PrimaryCCD.setBPP(8);
-           PrimaryCCD.setNAxis(3);
-       }
-
-       frameBytes  = (ImageTypeS[0].s == ISS_ON) ? (PrimaryCCD.getSubW() * PrimaryCCD.getSubH()):
-                                                   (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * 4);
-       PrimaryCCD.setFrameBufferSize(frameBytes);
-
-       IDSetSwitch(&ImageTypeSP, NULL);
-       return true;
-     }
-     
-     /* Stacking Mode */
-     if (!strcmp(name, StackModeSP.name))
-     {
-       IUResetSwitch(&StackModeSP);
-       IUUpdateSwitch(&StackModeSP, states, names, n);
-       StackModeSP.s = IPS_OK;
-       stackMode=IUFindOnSwitchIndex(&StackModeSP);
-
-       IDSetSwitch(&StackModeSP, "Setting Stacking Mode: %s", StackModeS[stackMode].name);
-       return true;
-     }
-
-     /* Video Stream */
-     if (!strcmp(name, StreamSP.name))
-     {
-           
-       IUResetSwitch(&StreamSP);
-       IUUpdateSwitch(&StreamSP, states, names, n);
-       StreamSP.s = IPS_IDLE;       
-          
-       //v4l_base->stop_capturing(errmsg);
-
-       if (StreamS[0].s == ISS_ON)
-       {
-         frameCount = 0;
-         DEBUG(INDI::Logger::DBG_DEBUG, "Starting the video stream.\n");
-	 StreamSP.s  = IPS_BUSY; 
-	 v4l_base->start_capturing(errmsg);
-       }
-       else
-       {
-         DEBUGF(INDI::Logger::DBG_DEBUG, "The video stream has been disabled. Frame count %d\n", frameCount);
-         v4l_base->stop_capturing(errmsg);
-       }
-       
-       IDSetSwitch(&StreamSP, NULL);
-       return true;
-     }
-
-     /* V4L2 Options/Menus */
-     for (iopt=0; iopt<v4loptions; iopt++) 
-       if (!strcmp (Options[iopt].name, name))
-	 break;
-     if (iopt < v4loptions)
-       {
-	 unsigned int ctrl_id, optindex, ctrlindex;
-	 
-     DEBUGF(INDI::Logger::DBG_DEBUG, "Toggle switch %s=%s\n", Options[iopt].name, Options[iopt].label);
-       
-	 Options[iopt].s = IPS_IDLE;
-	 IUResetSwitch(&Options[iopt]);
-	 if (IUUpdateSwitch(&Options[iopt], states, names, n) < 0)
-	   return false;
-	
-	 optindex=IUFindOnSwitchIndex(&Options[iopt]);
-	 if (Options[iopt].sp[optindex].aux != NULL) ctrlindex= *(unsigned int *)(Options[iopt].sp[optindex].aux);
-	 else ctrlindex=optindex;
-         ctrl_id = (*((unsigned int*) Options[iopt].aux));
-	 DEBUGF(INDI::Logger::DBG_DEBUG, "  On switch is (%d) %s=\"%s\", ctrl_id = 0x%X ctrl_index=%d\n", optindex, Options[iopt].sp[optindex].name, Options[iopt].sp[optindex].label, ctrl_id, ctrlindex);
-         if (v4l_base->setOPTControl( ctrl_id , ctrlindex,  errmsg) < 0)
-         {
-            Options[iopt].s = IPS_ALERT;
-            IDSetSwitch(&Options[iopt], NULL);
-            DEBUGF(INDI::Logger::DBG_ERROR, "Unable to adjust setting. %s", errmsg);
-            return false;
-         }
-	 Options[iopt].s = IPS_OK;
-     IDSetSwitch(&Options[iopt], NULL);
-	 return true;
-       }
-
-     lx->ISNewSwitch (dev, name, states, names, n);
-     return INDI::CCD::ISNewSwitch (dev, name, states, names, n);
-     
+  lx->ISNewSwitch (dev, name, states, names, n);
+  return INDI::CCD::ISNewSwitch (dev, name, states, names, n);
+  
 }
 
 bool V4L2_Driver::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
@@ -493,8 +562,19 @@ bool V4L2_Driver::ISNewText (const char *dev, const char *name, char *texts[], c
 	  tp = IUFindText( &PortTP, names[0] );	  
 	  if (!tp)
 	   return false;
-      IUSaveText(tp, texts[0]);
-      IDSetText (&PortTP, NULL);
+	  IUSaveText(tp, texts[0]);
+	  IDSetText (&PortTP, NULL);
+	  return true;
+	}
+
+	if (!strcmp(name, RecordFileTP.name) )
+	{
+	  RecordFileTP.s = IPS_OK;
+	  tp = IUFindText( &RecordFileTP, names[0] );	  
+	  if (!tp)
+	   return false;
+	  IUSaveText(tp, texts[0]);
+	  IDSetText (&RecordFileTP, NULL);
 	  return true;
 	}
        
@@ -513,7 +593,7 @@ bool V4L2_Driver::ISNewNumber (const char *dev, const char *name, double values[
        /* Capture Size (Step/Continuous) */
   if ((!strcmp(name, CaptureSizesNP.name)))
      {
-       if ((StreamSP.s == IPS_BUSY) ||  (ExposeTimeNP->s == IPS_BUSY)) {
+       if ((StreamSP.s == IPS_BUSY) ||  (ExposeTimeNP->s == IPS_BUSY) || (RecordSP.s == IPS_BUSY)) {
      DEBUG(INDI::Logger::DBG_ERROR, "Can not set capture size while capturing.");
 	 CaptureSizesNP.s = IPS_BUSY;
      IDSetNumber(&CaptureSizesNP, NULL);
@@ -548,16 +628,19 @@ bool V4L2_Driver::ISNewNumber (const char *dev, const char *name, double values[
 	 }
 
      PrimaryCCD.setFrame(0, 0, w, h);
-	 IUUpdateNumber(&CaptureSizesNP, rsizes, names, n);
-	 V4LFrame->width = w;
-	 V4LFrame->height= h;
-	 PrimaryCCD.setResolution(w, h);
-	 CaptureSizesNP.s = IPS_OK;
+     IUUpdateNumber(&CaptureSizesNP, rsizes, names, n);
+     V4LFrame->width = w;
+     V4LFrame->height= h;
+     PrimaryCCD.setResolution(w, h);
+     CaptureSizesNP.s = IPS_OK;
      frameBytes  = (ImageTypeS[0].s == ISS_ON) ? (PrimaryCCD.getSubW() * PrimaryCCD.getSubH()):
                                                  (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * 4);
      PrimaryCCD.setFrameBufferSize(frameBytes);
-	 IDSetNumber(&CaptureSizesNP, "Capture size (step/cont): %dx%d", w, h);
-	 return true;
+     
+     recorder->setsize(w, h);
+
+     IDSetNumber(&CaptureSizesNP, "Capture size (step/cont): %dx%d", w, h);
+     return true;
      }
     }
   
@@ -647,75 +730,68 @@ bool V4L2_Driver::ISNewNumber (const char *dev, const char *name, double values[
   	
 }
 
-bool V4L2_Driver::setManualExposure(double duration)
-{
-    if (AbsExposureN == NULL || ManualExposureSP == NULL)
-        return false;
+bool V4L2_Driver::setManualExposure(double duration) {
 
-    char errmsg[MAXRBUF];
-    unsigned int ctrl_id, ctrlindex;
-
-    // Manual mode should be set before changing Exposure (Auto)
-    if (ManualExposureSP->sp[0].s == ISS_OFF)
-    {
-        ManualExposureSP->sp[0].s = ISS_ON;
-        ManualExposureSP->sp[1].s = ISS_OFF;
-        ManualExposureSP->s = IPS_IDLE;
-
-        if (ManualExposureSP->sp[0].aux != NULL)
-              ctrlindex= *(unsigned int *)(ManualExposureSP->sp[0].aux);
-        else
-             ctrlindex=0;
-
-        ctrl_id = (*((unsigned int*) ManualExposureSP->aux));
-        if (v4l_base->setOPTControl( ctrl_id , ctrlindex,  errmsg) < 0)
-        {
-               ManualExposureSP->sp[0].s = ISS_OFF;
-               ManualExposureSP->sp[1].s = ISS_ON;
-               ManualExposureSP->s = IPS_ALERT;
-               IDSetSwitch(ManualExposureSP, NULL);
-               DEBUGF(INDI::Logger::DBG_ERROR, "Unable to adjust setting. %s", errmsg);
-               return false;
-        }
-
-        ManualExposureSP->s = IPS_OK;
-        IDSetSwitch(ManualExposureSP, NULL);
+  if (AbsExposureN == NULL || ManualExposureSP == NULL)
+    return false;
+  
+  char errmsg[MAXRBUF];
+  unsigned int ctrl_id, ctrlindex;
+  
+  // Manual mode should be set before changing Exposure (Auto)
+  if (ManualExposureSP->sp[0].s == ISS_OFF) {
+    ManualExposureSP->sp[0].s = ISS_ON;
+    ManualExposureSP->sp[1].s = ISS_OFF;
+    ManualExposureSP->s = IPS_IDLE;
+    
+    if (ManualExposureSP->sp[0].aux != NULL)
+      ctrlindex= *(unsigned int *)(ManualExposureSP->sp[0].aux);
+    else
+      ctrlindex=0;
+    
+    ctrl_id = (*((unsigned int*) ManualExposureSP->aux));
+    if (v4l_base->setOPTControl( ctrl_id , ctrlindex,  errmsg) < 0) {
+      ManualExposureSP->sp[0].s = ISS_OFF;
+      ManualExposureSP->sp[1].s = ISS_ON;
+      ManualExposureSP->s = IPS_ALERT;
+      IDSetSwitch(ManualExposureSP, NULL);
+      DEBUGF(INDI::Logger::DBG_ERROR, "Unable to adjust setting. %s", errmsg);
+      return false;
     }
-
-    /* N.B. Check how this differs from one camera to another. This is just a proof of concept for now */
-    if (duration * 10000 != AbsExposureN->value)
-    {
-        double curVal = AbsExposureN->value;
-        AbsExposureN->value = duration * 10000;
-	ctrl_id = *((unsigned int *)  AbsExposureN->aux0);
-	if (v4l_base->setINTControl( ctrl_id , AbsExposureN->value, errmsg) < 0)
-            {
-               ImageAdjustNP.s = IPS_ALERT;
-               AbsExposureN->value = curVal;
-               IDSetNumber(&ImageAdjustNP, "Unable to adjust AbsExposure. %s", errmsg);
-               return false;
-            }
-	
-	/*  for (int i=0; i < ImageAdjustNP.nnp; i++)
-        {
-            ctrl_id = *((unsigned int *) ImageAdjustNP.np[i].aux0);
-
-            if (v4l_base->setINTControl( ctrl_id , ImageAdjustNP.np[i].value, errmsg) < 0)
-            {
-               ImageAdjustNP.s = IPS_ALERT;
-               AbsExposureN->value = curVal;
-               IDSetNumber(&ImageAdjustNP, "Unable to adjust setting. %s", errmsg);
-               return false;
-            }
-        }
-	*/
-        ImageAdjustNP.s = IPS_OK;
-        IDSetNumber(&ImageAdjustNP, NULL);
+    
+    ManualExposureSP->s = IPS_OK;
+    IDSetSwitch(ManualExposureSP, NULL);
+  }
+  
+  /* N.B. Check how this differs from one camera to another. This is just a proof of concept for now */
+  if (duration * 10000 != AbsExposureN->value) {
+    double curVal = AbsExposureN->value;
+    AbsExposureN->value = duration * 10000;
+    ctrl_id = *((unsigned int *)  AbsExposureN->aux0);
+    if (v4l_base->setINTControl( ctrl_id , AbsExposureN->value, errmsg) < 0) {
+      ImageAdjustNP.s = IPS_ALERT;
+      AbsExposureN->value = curVal;
+      IDSetNumber(&ImageAdjustNP, "Unable to adjust AbsExposure. %s", errmsg);
+      return false;
     }
-
-
-    return true;
-
+    
+    /*
+      for (int i=0; i < ImageAdjustNP.nnp; i++) {
+      ctrl_id = *((unsigned int *) ImageAdjustNP.np[i].aux0);
+      
+      if (v4l_base->setINTControl( ctrl_id , ImageAdjustNP.np[i].value, errmsg) < 0) {
+      ImageAdjustNP.s = IPS_ALERT;
+      AbsExposureN->value = curVal;
+      IDSetNumber(&ImageAdjustNP, "Unable to adjust setting. %s", errmsg);
+      return false;
+      }
+      }
+    */
+    ImageAdjustNP.s = IPS_OK;
+    IDSetNumber(&ImageAdjustNP, NULL);
+  }
+  
+  return true;
 }
 
 bool V4L2_Driver::startlongexposure(double timeinsec)
@@ -805,27 +881,25 @@ bool V4L2_Driver::UpdateCCDFrame(int x, int y, int w, int h)
        
   //DEBUGF(INDI::Logger::DBG_SESSION, "calling updateCCDFrame: %d %d %d %d", x, y, w, h);
   //IDLog("calling updateCCDFrame: %d %d %d %d\n", x, y, w, h);
-    if (v4l_base->setcroprect(x, y, w, h, errmsg) != -1)
-      {
-	struct v4l2_rect crect;
-	crect=v4l_base->getcroprect();
-	
-	V4LFrame->width = crect.width;
-	V4LFrame->height= crect.height;
+  if (v4l_base->setcroprect(x, y, w, h, errmsg) != -1) {
+    struct v4l2_rect crect;
+    crect=v4l_base->getcroprect();
+    
+    V4LFrame->width = crect.width;
+    V4LFrame->height= crect.height;
     PrimaryCCD.setFrame(x, y, w, h);
     frameBytes  = (ImageTypeS[0].s == ISS_ON) ? (PrimaryCCD.getSubW() * PrimaryCCD.getSubH()):
-                                                (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * 4);
+      (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * 4);
     PrimaryCCD.setFrameBufferSize(frameBytes);
+    recorder->setsize(w, h);
     //DEBUGF(INDI::Logger::DBG_SESSION, "updateCCDFrame ok: %d %d %d %d", x, y, w, h);
     //IDLog("updateCCDFrame ok: %d %d %d %d\n", x, y, w, h);
-	return true;
-      }
-    else
-      {
+    return true;
+  } else {
     DEBUGF(INDI::Logger::DBG_SESSION, "ERROR (setcroprect): %s", errmsg);
-      }
-    
-    return false;
+  }
+
+  return false;
 }
 
 void V4L2_Driver::newFrame(void *p)
@@ -842,6 +916,11 @@ void V4L2_Driver::updateFrame()
 	frameCount++;
 	updateStream();
   }
+  else if (RecordSP.s == IPS_BUSY)
+  {
+	frameCount++;
+	recordStream();
+  }
   else if (ExposeTimeNP->s == IPS_BUSY)
   {
     PrimaryCCD.setExposureDuration(ExposeTimeN[0].value);
@@ -851,28 +930,25 @@ void V4L2_Driver::updateFrame()
     
     gettimeofday(&capture_end,NULL);
     timersub(&capture_end, &capture_start, &current_exposure);
-    if (ImageTypeS[0].s == ISS_ON)
-    {
+
+    if (ImageTypeS[0].s == ISS_ON) {
       src = v4l_base->getY();
       dest = (unsigned char *)PrimaryCCD.getFrameBuffer();
       if (frameCount==0)
         for (i=0; i< frameBytes; i++)
-      *(dest++) = *(src++);
+	  *(dest++) = *(src++);
       else
         for (i=0; i< frameBytes; i++)
-      *(dest++) += *(src++);
-
+	  *(dest++) += *(src++);
       binFrame();
-    }
-    // Binning not supported in color images for now
-    else
-    {
+    } else {
+      // Binning not supported in color images for now
       src = v4l_base->getColorBuffer();
       dest = (unsigned char *)PrimaryCCD.getFrameBuffer();
       unsigned char *red = dest;
       unsigned char *green = dest + v4l_base->getWidth() * v4l_base->getHeight();
       unsigned char *blue = dest + v4l_base->getWidth() * v4l_base->getHeight() * 2;
-
+      
       for (int i=0; i <  frameBytes; i+=4)
       {
           *(blue++) = *(src+i);
@@ -903,6 +979,15 @@ void V4L2_Driver::updateFrame()
     }
   }
 
+}
+
+void V4L2_Driver::recordStream()
+{
+  if (RecordS[0].s == ISS_OFF) return;
+  if (ImageTypeS[0].s == ISS_ON)
+    recorder->writeFrameMono(v4l_base->getY());
+  else
+    recorder->writeFrameColor(v4l_base->getRGBBuffer());
 }
 
 void V4L2_Driver::updateStream()
@@ -989,6 +1074,8 @@ bool V4L2_Driver::Connect()
     
     lx->setCamerafd(v4l_base->fd);
 
+
+
     if (!(strcmp((const char *)v4l_base->cap.driver, "pwc")))
       DEBUG(INDI::Logger::DBG_SESSION,"To use SPCLED Long exposure mode, load pwc module with \"modprobe pwc leds=0,255\"");
 
@@ -999,9 +1086,11 @@ bool V4L2_Driver::Connect()
 
 bool V4L2_Driver::Disconnect()
 {
-  if (isConnected())
-    v4l_base->disconnectCam((StreamSP.s == IPS_BUSY) ||  (ExposeTimeNP->s == IPS_BUSY));    
-
+  if (isConnected()) {
+    v4l_base->disconnectCam((StreamSP.s == IPS_BUSY) ||  (ExposeTimeNP->s == IPS_BUSY) || (RecordSP.s == IPS_BUSY)); 
+    if ((StreamSP.s == IPS_BUSY) ||  (ExposeTimeNP->s == IPS_BUSY) || (RecordSP.s == IPS_BUSY))
+      recorder->close();
+  }
   return true;
 }
 
@@ -1054,6 +1143,9 @@ void V4L2_Driver::getBasicData()
   frameBytes  = (ImageTypeS[0].s == ISS_ON) ? (PrimaryCCD.getSubW() * PrimaryCCD.getSubH()):
                                               (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * 4);
   PrimaryCCD.setFrameBufferSize(frameBytes);
+
+  direct_record=recorder->setpixelformat(v4l_base->fmt.fmt.pix.pixelformat);
+  recorder->setsize(w, h);
      
 }
 

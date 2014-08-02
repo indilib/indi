@@ -1,5 +1,6 @@
 /*
     Copyright (C) 2005 by Jasem Mutlaq <mutlaqja@ikarustech.com>
+    Copyright (C) 2013 Geehalel (geehalel@gmail.com)
 
     Based on V4L 2 Example
     http://v4l2spec.bytesex.org/spec-single/v4l2.html#CAPTURE-EXAMPLE
@@ -27,8 +28,15 @@
 #include <stdlib.h>
 //#include "videodev2.h"
 #include <linux/videodev2.h>
-#include "eventloop.h"
-#include "indidevapi.h"
+#include <eventloop.h>
+#include <indidevapi.h>
+// this adds add dependency to indidriver for v4l_legacy, meade_lpi
+
+// Can't use logger as legacy drivers don't use defaultdevice
+//#include <indilogger.h>
+#include "v4l2_decode/v4l2_decode.h"
+// for direct recording
+#include "v4l2_record/v4l2_record.h"
 
 #define VIDEO_COMPRESSION_LEVEL		4
 
@@ -73,11 +81,11 @@ class V4L2_Base
   int (V4L2_Base::*setframerate)(struct v4l2_fract frate, char *errmsg);
   struct v4l2_fract (V4L2_Base::*getframerate)();
 
-  void allocBuffers();
   unsigned char * getY();
   unsigned char * getU();
   unsigned char * getV();
   unsigned char * getColorBuffer();
+  unsigned char * getRGBBuffer();
 
   void registerCallback(WPF *fp, void *ud);
 
@@ -107,9 +115,15 @@ class V4L2_Base
   int setcroprect(int x, int y, int w, int h, char *errmsg);
   struct v4l2_rect getcroprect();
 
+
+
   void setlxstate( short s ) { lxstate = s; }
   short getlxstate() { return lxstate; }
   bool isstreamactive() { return streamactive; }
+
+  void doDecode(bool);
+  void setRecorder(V4L2_Recorder *r);
+  void doRecord(bool);
 
   protected:
 
@@ -127,12 +141,12 @@ class V4L2_Base
   void init_read(unsigned int buffer_size);
 
   void findMinMax();
+
   
   /* Frame rate */
   int stdsetframerate(struct v4l2_fract frate, char *errmsg);
   int pwcsetframerate(struct v4l2_fract frate, char *errmsg);
   struct v4l2_fract stdgetframerate();
-
 
   struct v4l2_capability cap;
   struct v4l2_cropcap cropcap;
@@ -167,8 +181,15 @@ class V4L2_Base
   struct v4l2_fract frameRate;
   int  xmax, xmin, ymax, ymin;
   int  selectCallBackID;
-  unsigned char * YBuf,*UBuf,*VBuf, *yuvBuffer, *colorBuffer, *rgb24_buffer, *cropbuf;
+  //unsigned char * YBuf,*UBuf,*VBuf, *yuvBuffer, *colorBuffer, *rgb24_buffer, *cropbuf;
   
+  V4L2_Decode *v4l2_decode;
+  V4L2_Decoder *decoder;
+  bool dodecode;
+
+  V4L2_Recorder *recorder;
+  bool dorecord;
+
   friend class V4L2_Driver;
 };
    
