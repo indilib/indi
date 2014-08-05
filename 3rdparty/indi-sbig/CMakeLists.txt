@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 2.7)
 PROJECT(indi_sbig CXX C)
 
-set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
   
@@ -32,16 +31,5 @@ target_link_libraries(indi_sbig_ccd ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES
 install(TARGETS indi_sbig_ccd RUNTIME DESTINATION bin)
 
 endif (CFITSIO_FOUND)
-
-############# SBIG Wheel ###############
-set(sbigwheel_SRCS
-        ${CMAKE_CURRENT_SOURCE_DIR}/sbig_wheel.cpp
-)
-
-add_executable(indi_sbig_wheel ${sbigwheel_SRCS})
-
-target_link_libraries(indi_sbig_wheel ${INDI_DRIVER_LIBRARIES} ${SBIG_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
-
-install(TARGETS indi_sbig_wheel RUNTIME DESTINATION bin)
 
 install(FILES indi_sbig.xml DESTINATION ${INDI_DATA_DIR})

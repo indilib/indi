@@ -175,16 +175,13 @@ int SBIGCCD::OpenDriver()
     GetDriverHandleResults gdhr;
     SetDriverHandleParams  sdhp;
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "OpenDriver()");
     // Call the driver directly.
     if((res = ::SBIGUnivDrvCommand(CC_OPEN_DRIVER, 0, 0)) == CE_NO_ERROR)
     {
-        DEBUG(INDI::Logger::DBG_DEBUG, "The driver was not open, so record the driver handle...");
         // The driver was not open, so record the driver handle.
         res = ::SBIGUnivDrvCommand(CC_GET_DRIVER_HANDLE, 0, &gdhr);
     }else if(res == CE_DRIVER_NOT_CLOSED)
     {
-        DEBUG(INDI::Logger::DBG_DEBUG, "The driver is already open, get a new handle...");
         // The driver is already open which we interpret as having been
         // opened by another instance of the class so get the driver to
         // allocate a new handle and then record it.
@@ -192,21 +189,13 @@ int SBIGCCD::OpenDriver()
         res = ::SBIGUnivDrvCommand(CC_SET_DRIVER_HANDLE, &sdhp, 0);
         if(res == CE_NO_ERROR)
         {
-            DEBUG(INDI::Logger::DBG_DEBUG, "Setting handle success, trying to open the driver again...");
                 if((res = ::SBIGUnivDrvCommand(CC_OPEN_DRIVER, 0, 0)) == CE_NO_ERROR)
                 {
-                    DEBUG(INDI::Logger::DBG_DEBUG, "Open driver success, trying to get the driver handle now...");
                         res = ::SBIGUnivDrvCommand(CC_GET_DRIVER_HANDLE, 0, &gdhr);
                 }
-
-                if (res != CE_NO_ERROR)
-                    DEBUGF(INDI::Logger::DBG_ERROR, "%s Error: %s", __FUNCTION__, GetErrorString(res).c_str());
         }
     }
-    if(res == CE_NO_ERROR)
-        SetDriverHandle(gdhr.handle);
-    else
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s Error: %s", __FUNCTION__, GetErrorString(res).c_str());
+    if(res == CE_NO_ERROR) SetDriverHandle(gdhr.handle);
     return(res);
 }
 //==========================================================================
@@ -251,8 +240,6 @@ int SBIGCCD::OpenDevice(const char *devName)
             SetDeviceName(devName);
             SetFileDescriptor(true);
     }
-    else
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s Error: %s", __FUNCTION__, GetErrorString(res).c_str());
     return(res);
 }
 //==========================================================================
@@ -309,6 +296,36 @@ bool SBIGCCD::initProperties()
   IUFillNumber(	&CoolerN[0], "COOLER","[%]", "%.1f", 0, 0, 0, 0);
   IUFillNumberVector(&CoolerNP, CoolerN, 1, getDeviceName(), "CCD_COOLER","Cooler %", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
+  // CFW PRODUCT
+  IUFillText(&FilterProdcutT[0], "NAME", "Name", "");
+  IUFillText(&FilterProdcutT[1], "LABEL", "Label", "");
+  IUFillTextVector(	&FilterProdcutTP, FilterProdcutT, 2, getDeviceName(), "CFW_PRODUCT" , "Product", FILTER_TAB, IP_RO, 0, IPS_IDLE);
+
+  // CFW_MODEL:
+  IUFillSwitch(&FilterTypeS[0], "CFW1", "CFW-2", ISS_OFF);
+  IUFillSwitch(&FilterTypeS[1],"CFW2" , "CFW-5", ISS_OFF);
+  IUFillSwitch(&FilterTypeS[2], "CFW3","CFW-6A" , ISS_OFF);
+  IUFillSwitch(&FilterTypeS[3], "CFW4", "CFW-8", ISS_OFF);
+  IUFillSwitch(&FilterTypeS[4], "CFW5", "CFW-402", ISS_OFF);
+  IUFillSwitch(&FilterTypeS[5], "CFW6", "CFW-10", ISS_OFF);
+  IUFillSwitch(&FilterTypeS[6], "CFW7", "CFW-10 SA", ISS_OFF);
+  IUFillSwitch(&FilterTypeS[7], "CFW8", "CFW-L", ISS_OFF);
+  IUFillSwitch(&FilterTypeS[8], "CFW9", "CFW-9", ISS_OFF);
+  #ifdef	 USE_CFW_AUTO
+  IUFillSwitch(&FilterTypeS[9], "CFW10", "CFW-Auto", ISS_OFF);
+  #endif
+  IUFillSwitchVector(&FilterTypeSP, FilterTypeS, MAX_CFW_TYPES, getDeviceName(),"CFW_TYPE", "Type", FILTER_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+  // CFW CONNECTION:
+  IUFillSwitch(&FilterConnectionS[0], "CONNECT", "Connect", ISS_OFF);
+  IUFillSwitch(&FilterConnectionS[1], "DISCONNECT", "Disconnect", ISS_ON);
+  IUFillSwitchVector(&FilterConnectionSP, FilterConnectionS, 2, getDeviceName(), "CFW_CONNECTION", "Connect", FILTER_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+  initFilterProperties(getDeviceName(), FILTER_TAB);
+
+  FilterSlotN[0].min = 1;
+  FilterSlotN[0].max = MAX_CFW_TYPES;
+
   return true;
 }
 
@@ -347,6 +364,12 @@ bool SBIGCCD::updateProperties()
 
     defineSwitch(&ResetSP);
 
+    defineSwitch(&FilterConnectionSP);
+    defineText(&FilterProdcutTP);
+    defineSwitch(&FilterTypeSP);
+
+    defineNumber(&FilterSlotNP);
+
     // Let's get parameters now from CCD
     setupParams();
 
@@ -360,6 +383,14 @@ bool SBIGCCD::updateProperties()
 
     deleteProperty(FanStateSP.name);
     deleteProperty(ResetSP.name);
+
+    deleteProperty(FilterConnectionSP.name);
+    deleteProperty(FilterProdcutTP.name);
+    deleteProperty(FilterTypeSP.name);
+    deleteProperty(FilterSlotNP.name);
+
+    if (FilterNameT != NULL)
+        deleteProperty(FilterNameTP->name);
 
     rmTimer(timerID);
   }
@@ -376,6 +407,12 @@ bool SBIGCCD::ISNewText (const char *dev, const char *name, char *texts[], char 
             PortTP.s=IPS_OK;
             IUUpdateText(&PortTP,texts,names,n);
             IDSetText(&PortTP, NULL);
+            return true;
+        }
+
+        if (strcmp(name, FilterNameTP->name) == 0)
+        {
+            processFilterName(dev, texts, names, n);
             return true;
         }
 
@@ -449,6 +486,17 @@ bool SBIGCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
             return true;
       }
 
+        // CFW TYPE:
+        if(!strcmp(name, FilterTypeSP.name))
+        {
+          IUResetSwitch(&FilterTypeSP);
+          IUUpdateSwitch(&FilterTypeSP, states, names, n);
+          FilterTypeSP.s = IPS_OK;
+          IDSetSwitch(&FilterTypeSP, NULL);
+
+          return true;
+        }
+
       if (!strcmp(name, CoolerSP.name))
       {
           IUUpdateSwitch(&CoolerSP, states, names, n);
@@ -464,10 +512,97 @@ bool SBIGCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
           IDSetSwitch(&CoolerSP, NULL);
           return true;
       }
+
+        // CFW CONNECTION:
+      if(!strcmp(name, FilterConnectionSP.name))
+      {
+            CFWResults	CFWr;
+            IUResetSwitch(&FilterConnectionSP);
+            IUUpdateSwitch(&FilterConnectionSP, states, names, n);
+            FilterConnectionSP.s = IPS_BUSY;
+            IDSetSwitch(&FilterConnectionSP, 0);
+            if(FilterConnectionS[0].s == ISS_ON)
+            {
+
+                ISwitch *p = IUFindOnSwitch(&FilterTypeSP);
+                if (p == NULL)
+                {
+
+                    FilterConnectionSP.s = IPS_IDLE;
+                    IUResetSwitch(&FilterConnectionSP);
+                    FilterConnectionSP.sp[1].s = ISS_ON;
+                    DEBUG(INDI::Logger::DBG_WARNING, "Please select filter type before connecting.");
+                    IDSetSwitch(&FilterConnectionSP, NULL);
+                    return false;
+                }
+
+                // Open device.
+                if(CFWConnect() == CE_NO_ERROR)
+                {
+                    FilterConnectionSP.s = IPS_OK;
+                    DEBUG(INDI::Logger::DBG_SESSION, "CFW connected.");
+                    IDSetSwitch(&FilterConnectionSP, NULL);
+                }else
+                {
+                    FilterConnectionSP.s = IPS_ALERT;
+                    IUResetSwitch(&FilterConnectionSP);
+                    FilterConnectionSP.sp[1].s = ISS_ON;
+                    DEBUG(INDI::Logger::DBG_ERROR, "CFW connection error!");
+                    IDSetSwitch(&FilterConnectionSP, NULL);
+                }
+
+                // Load filter names from file
+                loadConfig(true);
+            }
+            else
+            {
+                // Close device.
+                if(CFWDisconnect() != CE_NO_ERROR)
+                {
+                    FilterConnectionSP.s = IPS_ALERT;
+                    DEBUG(INDI::Logger::DBG_ERROR, "CFW disconnection error!");
+                    IDSetSwitch(&FilterConnectionSP, NULL);
+                }else{
+                    // Update CFW's Product/ID texts.
+                    CFWr.cfwModel 		= CFWSEL_UNKNOWN;
+                    CFWr.cfwPosition    = CFWP_UNKNOWN;
+                    CFWr.cfwStatus		= CFWS_UNKNOWN;
+                    CFWr.cfwError		= CFWE_DEVICE_NOT_OPEN;
+                    CFWr.cfwResult1		= 0;
+                    CFWr.cfwResult2		= 0;
+                    //CFWUpdateProperties(CFWr);
+                    // Remove connection text.
+                    FilterConnectionSP.s = IPS_IDLE;
+                    DEBUG(INDI::Logger::DBG_SESSION, "CFW disconnected.");
+                    IDSetSwitch(&FilterConnectionSP, NULL);
+                }
+            }
+            return true;
+        }
+
   }
 
   //  Nobody has claimed this, so, ignore it
   return INDI::CCD::ISNewSwitch(dev, name, states, names, n);
+}
+
+bool SBIGCCD::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+{
+
+  if (strcmp(dev, getDeviceName()) == 0)
+  {
+
+     if (strcmp(name, FilterSlotNP.name)==0)
+      {
+          processFilterSlot(dev, values, names);
+          return true;
+      }
+
+  }
+
+  //  if we didn't process it, continue up the chain, let somebody else
+  //  give it a shot
+  return INDI::CCD::ISNewNumber(dev, name, values, names, n);
 }
 
 bool SBIGCCD::Connect()
@@ -1240,6 +1375,17 @@ void SBIGCCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
 
 }
 
+bool SBIGCCD::saveConfigItems(FILE *fp)
+{
+    INDI::CCD::saveConfigItems(fp);
+
+    IUSaveConfigNumber(fp, &FilterSlotNP);
+    IUSaveConfigText(fp, FilterNameTP);
+    IUSaveConfigSwitch(fp, &FilterTypeSP);
+
+    return true;
+}
+
 void SBIGCCD::resetFrame()
 {
   UpdateCCDBin(1, 1);
@@ -1507,6 +1653,11 @@ int SBIGCCD::AoTipTilt(AOTipTiltParams *aottp)
 int SBIGCCD::AoDelay(AODelayParams *aodp)
 {
     return(SBIGUnivDrvCommand(CC_AO_DELAY, aodp, 0));
+}
+//==========================================================================
+int SBIGCCD::CFW(CFWParams *CFWp, CFWResults *CFWr)
+{
+    return(SBIGUnivDrvCommand(CC_CFW, CFWp, CFWr));
 }
 //==========================================================================
 int SBIGCCD::EstablishLink()
@@ -1885,6 +2036,79 @@ int SBIGCCD::getShutterMode(CCDChip *targetChip, int &shutter)
     return(res);
 }
 
+bool SBIGCCD::SelectFilter(int position)
+{
+    CFWResults 	CFWr;
+    int 					type;
+    char					str[64];
+
+    if(CFWGoto(&CFWr, position) == CE_NO_ERROR)
+    {
+            type = GetCFWSelType();
+            if(type == CFWSEL_CFW6A || type == CFWSEL_CFW8)
+            {
+                sprintf(str, "CFW position reached.");
+                CFWr.cfwPosition = position;
+            }else
+            {
+                sprintf(str, "CFW position %d reached.", CFWr.cfwPosition);
+            }
+            DEBUGF(INDI::Logger::DBG_SESSION, "%s", str);
+            SelectFilterDone(CFWr.cfwPosition);
+            CurrentFilter =CFWr.cfwPosition;
+            return true;
+   }
+   else
+   {
+            // CFW error occurred, so report all the available infos to the client:
+            CFWShowResults("CFWGoto:", CFWr);
+            FilterSlotNP.s = IPS_ALERT;
+            IDSetNumber(&FilterSlotNP, NULL);
+            sprintf(str, "Please Connect/Disconnect CFW, then try again...");
+            DEBUGF(INDI::Logger::DBG_ERROR, "%s", str);
+            return false;
+   }
+
+    return false;
+}
+
+bool SBIGCCD::SetFilterNames()
+{
+    // Cannot save it in hardware, so let's just save it in the config file to be loaded later
+    saveConfig();
+    return true;
+}
+
+bool SBIGCCD::GetFilterNames(const char* groupName)
+{
+    char filterName[MAXINDINAME];
+    char filterLabel[MAXINDILABEL];
+    char filterBand[MAXINDILABEL];
+    int MaxFilter = FilterSlotN[0].max;
+
+    if (FilterNameT != NULL)
+        delete FilterNameT;
+
+    FilterNameT = new IText[MaxFilter];
+
+    for (int i=0; i < MaxFilter; i++)
+    {
+        snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i+1);
+        snprintf(filterLabel, MAXINDILABEL, "Filter#%d", i+1);
+        snprintf(filterBand, MAXINDILABEL, "Filter #%d", i+1);
+        IUFillText(&FilterNameT[i], filterName, filterLabel, filterBand);
+    }
+
+    IUFillTextVector(FilterNameTP, FilterNameT, MaxFilter, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW, 0, IPS_IDLE);
+
+    return true;
+}
+
+int SBIGCCD::QueryFilter()
+{
+    return CurrentFilter;
+}
+
 void SBIGCCD::updateTemperatureHelper(void *p)
 {
     if (static_cast<SBIGCCD*>(p)->isConnected())
@@ -2083,3 +2307,334 @@ int SBIGCCD::readoutCCD(unsigned short left,	unsigned short top,
     return(res);
 }
 
+//==========================================================================
+
+int SBIGCCD::CFWConnect()
+{
+    int				res;
+    CFWResults	CFWr;
+
+    ISwitch *p = IUFindOnSwitch(&FilterTypeSP);
+    if(!p) return(CE_OS_ERROR);
+
+    do{
+        // 1. CFWC_OPEN_DEVICE:
+        if((res = CFWOpenDevice(&CFWr)) != CE_NO_ERROR){
+            FilterConnectionSP.s = IPS_IDLE;
+            DEBUGF(INDI::Logger::DBG_ERROR, "CFWC_OPEN_DEVICE error: %s !",  GetErrorString(res).c_str());
+            continue;
+        }
+
+        // 2. CFWC_INIT:
+        if((res = CFWInit(&CFWr)) != CE_NO_ERROR){
+            DEBUGF(INDI::Logger::DBG_ERROR,  "CFWC_INIT error: %s !",  GetErrorString(res).c_str());
+            CFWCloseDevice(&CFWr);
+            DEBUG(INDI::Logger::DBG_DEBUG, "CFWC_CLOSE_DEVICE called.");
+            continue;
+        }
+
+        // 3. CFWC_GET_INFO:
+        if((res = CFWGetInfo(&CFWr)) != CE_NO_ERROR){
+            DEBUG(INDI::Logger::DBG_ERROR, "CFWC_GET_INFO error!");
+            continue;
+        }
+
+        if (sim)
+        {
+            int cfwsim[10] = {  2, 5 , 6 , 8, 4, 10, 10, 8, 9, 10};
+            int filnum = IUFindOnSwitchIndex(&FilterTypeSP);
+            if (filnum < 0)
+                CFWr.cfwResult2 = 5;
+            else
+                CFWr.cfwResult2 = cfwsim[filnum];
+        }
+
+        // 4. CFWUpdateProperties:
+        CFWUpdateProperties(CFWr);
+
+
+    }while(0);
+    return(res);
+}
+
+//==========================================================================
+
+int SBIGCCD::CFWDisconnect()
+{
+    CFWResults	CFWr;
+
+    ISwitch *p = IUFindOnSwitch(&FilterTypeSP);
+    if(!p) return(CE_OS_ERROR);
+
+    deleteProperty(FilterNameTP->name);
+
+    if (sim)
+        return CE_NO_ERROR;
+
+    // Close CFW device:
+    return(CFWCloseDevice(&CFWr));
+}
+
+//==========================================================================
+
+int SBIGCCD::CFWOpenDevice(CFWResults *CFWr)
+{
+    // Under Linux we always try to open the "sbigCFW" device. There has to be a
+  // symbolic link (ln -s) between the actual device and this name.
+
+    CFWParams 	CFWp;
+    int 				res = CE_NO_ERROR;
+    int				CFWModel = GetCFWSelType();
+
+    switch(CFWModel)
+    {
+        case 	CFWSEL_CFW10_SERIAL:
+                    CFWp.cfwModel 		= CFWModel;
+                    CFWp.cfwCommand 	= CFWC_OPEN_DEVICE;
+                    res = SBIGUnivDrvCommand(CC_CFW, &CFWp, CFWr);
+                    break;
+        default:
+                    break;
+    }
+    return(res);
+}
+
+//==========================================================================
+
+int SBIGCCD::CFWCloseDevice(CFWResults *CFWr)
+{
+    CFWParams CFWp;
+
+    CFWp.cfwModel 		= GetCFWSelType();
+    CFWp.cfwCommand 	= CFWC_CLOSE_DEVICE;
+    return(SBIGUnivDrvCommand(CC_CFW, &CFWp, CFWr));
+}
+
+//==========================================================================
+
+int SBIGCCD::CFWInit(CFWResults *CFWr)
+{
+    // Try to init CFW maximum three times:
+    int res;
+    CFWParams CFWp;
+
+    CFWp.cfwModel 		= GetCFWSelType();
+    CFWp.cfwCommand 	= CFWC_INIT;
+    for(int i=0; i < 3; i++){
+            if((res = SBIGUnivDrvCommand(CC_CFW, &CFWp, CFWr)) == CE_NO_ERROR) break;
+            sleep(1);
+    }
+
+    if(res != CE_NO_ERROR) return(res);
+    return(CFWGotoMonitor(CFWr));
+}
+
+//==========================================================================
+
+int SBIGCCD::CFWGetInfo(CFWResults *CFWr)
+{
+    CFWParams CFWp;
+
+    CFWp.cfwModel 		= GetCFWSelType();
+    CFWp.cfwCommand 	= CFWC_GET_INFO;
+    CFWp.cfwParam1		= CFWG_FIRMWARE_VERSION;
+    return(SBIGUnivDrvCommand(CC_CFW, &CFWp, CFWr));
+}
+
+//==========================================================================
+
+int SBIGCCD::CFWQuery(CFWResults *CFWr)
+{
+    CFWParams CFWp;
+
+    CFWp.cfwModel 		= GetCFWSelType();
+    CFWp.cfwCommand 	= CFWC_QUERY;
+    return(SBIGUnivDrvCommand(CC_CFW, &CFWp, CFWr));
+}
+
+//==========================================================================
+
+int SBIGCCD::CFWGoto(CFWResults *CFWr, int position)
+{
+    int res;
+    CFWParams CFWp;
+
+    CFWp.cfwModel 		= GetCFWSelType();
+    CFWp.cfwCommand 	= CFWC_GOTO;
+    CFWp.cfwParam1	= (unsigned long)position;
+
+    if (sim)
+    {
+        CFWr->cfwPosition = position;
+        return CE_NO_ERROR;
+    }
+
+     DEBUGF(INDI::Logger::DBG_DEBUG, "CFW GOTO: %d", position);
+    // 2014-06-16: Do we need to also checking if the position is reached here? A test will determine.
+    if((res = SBIGUnivDrvCommand(CC_CFW, &CFWp, CFWr)) != CE_NO_ERROR && CFWp.cfwParam1 == CFWr->cfwPosition)
+    {
+        DEBUGF(INDI::Logger::DBG_DEBUG, "CFW Reached position %d", CFWr->cfwPosition);
+        return(res);
+    }
+
+    DEBUG(INDI::Logger::DBG_DEBUG, "CFW did not reach position yet, invoking CFWGotoMonitor");
+    return(CFWGotoMonitor(CFWr));
+}
+
+//==========================================================================
+
+int SBIGCCD::CFWGotoMonitor(CFWResults *CFWr)
+{
+    int res;
+
+    if (sim)
+        return CE_NO_ERROR;
+
+    do{
+            if((res = CFWQuery(CFWr)) != CE_NO_ERROR)
+                return(res);
+
+            switch (CFWr->cfwStatus)
+            {
+                case CFWS_IDLE:
+                DEBUG(INDI::Logger::DBG_DEBUG, "CFW Status Idle.");
+                break;
+                case CFWS_BUSY:
+                DEBUG(INDI::Logger::DBG_DEBUG, "CFW Status Busy.");
+                break;
+                default:
+                DEBUG(INDI::Logger::DBG_DEBUG, "CFW Status unknown.");
+                break;
+            }
+
+
+    }while(CFWr->cfwStatus != CFWS_IDLE);
+    return(res);
+}
+
+//==========================================================================
+
+void SBIGCCD::CFWUpdateProperties(CFWResults CFWr)
+{
+    char 	str[64];
+    bool	bClear = false;
+
+    switch(CFWr.cfwModel){
+        case	CFWSEL_CFW2:
+                    sprintf(str, "%s", "CFW - 2");
+                    break;
+        case 	CFWSEL_CFW5:
+                    sprintf(str, "%s", "CFW - 5");
+                    break;
+        case 	CFWSEL_CFW6A:
+                    sprintf(str, "%s", "CFW - 6A");
+                    break;
+        case 	CFWSEL_CFW8:
+                    sprintf(str, "%s", "CFW - 8");
+                    break;
+        case 	CFWSEL_CFW402:
+                    sprintf(str, "%s", "CFW - 402");
+                    break;
+        case 	CFWSEL_CFW10:
+                    sprintf(str, "%s", "CFW - 10");
+                    break;
+        case 	CFWSEL_CFW10_SERIAL:
+                    sprintf(str, "%s", "CFW - 10SA");
+                    break;
+        case 	CFWSEL_CFWL:
+                    sprintf(str, "%s", "CFW - L");
+                    break;
+        case	CFWSEL_CFW9:
+                    sprintf(str, "%s", "CFW - 9");
+                    break ;
+        default:
+                    sprintf(str, "%s", "Unknown");
+                    bClear = true;
+                    break;
+    }
+    // Set CFW's product ID:
+    IText *pIText = IUFindText(&FilterProdcutTP, "NAME");
+    if(pIText) IUSaveText(pIText, str);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CFW Product ID: %s", str);
+
+    // Set CFW's firmware version:
+    if(bClear){
+            sprintf(str, "%s", "Unknown");
+    }else{
+            sprintf(str, "%d", (int)CFWr.cfwResult1);
+    }
+    pIText = IUFindText(&FilterProdcutTP, "ID");
+    if(pIText) IUSaveText(pIText, str);
+    FilterProdcutTP.s = IPS_OK;
+    IDSetText(&FilterProdcutTP, 0);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CFW Firmware: %s", str);
+
+    // Set CFW's filter min/max values:
+    FilterSlotN[0].min = 1;
+    FilterSlotN[0].max = CFWr.cfwResult2;
+    FilterSlotN[0].value = CFWr.cfwPosition;
+    if (FilterSlotN[0].value < FilterSlotN[0].min)
+        FilterSlotN[0].value = FilterSlotN[0].min;
+    else if (FilterSlotN[0].value > FilterSlotN[0].max)
+        FilterSlotN[0].value = FilterSlotN[0].max;
+    IUUpdateMinMax(&FilterSlotNP);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CFW min: 1 Max: %g Current Slot: %g", FilterSlotN[0].max, FilterSlotN[0].value);
+
+    GetFilterNames(FILTER_TAB);
+
+    defineText(FilterNameTP);
+
+}
+
+//==========================================================================
+
+int SBIGCCD::GetCFWSelType()
+{
+    int 	type = CFWSEL_UNKNOWN;;
+    ISwitch *p = IUFindOnSwitch(&FilterTypeSP);
+
+    if(p){
+        if(!strcmp(p->name, "CFW1")){
+                type = CFWSEL_CFW2;
+        }else if(!strcmp(p->name, "CFW2")){
+                type = CFWSEL_CFW5;
+        }else if(!strcmp(p->name, "CFW3")){
+                type = CFWSEL_CFW6A;
+        }else if(!strcmp(p->name, "CFW4")){
+                type = CFWSEL_CFW8;
+        }else if(!strcmp(p->name, "CFW5")){
+                type = CFWSEL_CFW402;
+        }else if(!strcmp(p->name, "CFW6")){
+                type = CFWSEL_CFW10;
+        }else if(!strcmp(p->name, "CFW7")){
+                type = CFWSEL_CFW10_SERIAL;
+        }else if(!strcmp(p->name, "CFW8")){
+                type = CFWSEL_CFWL;
+        }else if(!strcmp(p->name, "CFW9")){
+                type = CFWSEL_CFW9;
+        #ifdef	 USE_CFW_AUTO
+        }else if(!strcmp(p->name, "CFW10")){
+                type = CFWSEL_AUTO;
+        #endif
+        }
+    }
+    return(type);
+}
+
+//==========================================================================
+
+void SBIGCCD::CFWShowResults(string name, CFWResults CFWr)
+{
+    DEBUGF(INDI::Logger::DBG_SESSION, "%s", name.c_str());
+    DEBUGF(INDI::Logger::DBG_SESSION, "CFW Model:	%d", CFWr.cfwModel);
+    DEBUGF(INDI::Logger::DBG_SESSION, "CFW Position:	%d", CFWr.cfwPosition);
+    DEBUGF(INDI::Logger::DBG_SESSION, "CFW Status:	%d", CFWr.cfwStatus);
+    DEBUGF(INDI::Logger::DBG_SESSION, "CFW Error:	%d", CFWr.cfwError);
+    DEBUGF(INDI::Logger::DBG_SESSION, "CFW Result1:	%ld", CFWr.cfwResult1);
+    DEBUGF(INDI::Logger::DBG_SESSION, "CFW Result2:	%ld", CFWr.cfwResult2);
+}
+
+//==========================================================================

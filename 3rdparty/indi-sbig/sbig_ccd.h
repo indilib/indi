@@ -27,6 +27,7 @@
 #define SBIG_CCD_H
 
 #include <indiccd.h>
+#include <indifilterinterface.h>
 #include <iostream>
 #include "sbigudrv.h"
 
@@ -117,7 +118,7 @@ typedef enum
         AMBIENT_THERMISTOR
 }THERMISTOR_TYPE;
 
-class SBIGCCD: public INDI::CCD
+class SBIGCCD: public INDI::CCD, public INDI::FilterInterface
 {
 public:
     SBIGCCD();
@@ -139,6 +140,7 @@ public:
     bool StartGuideExposure(float duration);
     bool AbortGuideExposure();
 
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
     virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
 
@@ -158,11 +160,19 @@ protected:
     virtual bool UpdateGuiderBin(int binx, int biny);
     virtual void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip);
     virtual bool UpdateCCDFrameType(CCDChip::CCD_FRAME fType);
+    virtual bool saveConfigItems(FILE *fp);
 
     bool GuideNorth(float);
     bool GuideSouth(float);
     bool GuideEast(float);
     bool GuideWest(float);
+
+    // Filter Wheel CFW
+    virtual int  QueryFilter();
+    virtual bool SelectFilter(int position);
+    virtual bool SetFilterNames();
+    virtual bool GetFilterNames(const char *groupName);
+
 
     int						m_fd;
     CAMERA_TYPE             m_camera_type;
@@ -202,6 +212,16 @@ private:
 
     INumber                 CoolerN[1];
     INumberVectorProperty	CoolerNP;
+
+    // CFW GROUP:
+    IText					FilterProdcutT[2];
+    ITextVectorProperty     FilterProdcutTP;
+
+    ISwitch                 FilterTypeS[MAX_CFW_TYPES];
+    ISwitchVectorProperty	FilterTypeSP;
+
+    ISwitch 				FilterConnectionS[2];
+    ISwitchVectorProperty	FilterConnectionSP;
 
     double ccdTemp;
     unsigned short *imageBuffer;
@@ -254,7 +274,7 @@ private:
     }
 
     // Driver Related Commands:
-
+    int				GetCFWSelType();
     int 				OpenDevice(const char *name);
     int				CloseDevice();
     int				GetDriverInfo(GetDriverInfoParams *, void *);
@@ -283,7 +303,8 @@ private:
     int				GetSerialStatus(GetSerialStatusResults *);
     int				AoTipTilt(AOTipTiltParams *);
     int				AoSetFocus(AOSetFocusParams *);
-    int				AoDelay(AODelayParams *);    
+    int				AoDelay(AODelayParams *);
+    int 			CFW(CFWParams *, CFWResults *);
 
     // General Purpose Commands:
     int				EstablishLink();
@@ -322,7 +343,17 @@ private:
     int	 			getBinningMode(CCDChip *targetChip, int &binning);
     int				getFrameType(CCDChip *targetChip, string &frame_type);
     int	 			getShutterMode(CCDChip *targetChip, int &shutter);
-
+    int				CFWConnect();
+    int				CFWDisconnect();
+    int 				CFWOpenDevice(CFWResults *);
+    int		 		CFWCloseDevice(CFWResults *);
+    int		 		CFWInit(CFWResults *);
+    int		 		CFWGetInfo(CFWResults *);
+    int		 		CFWQuery(CFWResults*);
+    int				CFWGoto(CFWResults *, int position);
+    int				CFWGotoMonitor(CFWResults *);
+    void 			CFWShowResults(string name, CFWResults);
+    void			CFWUpdateProperties(CFWResults);
 
 
     int 				readoutCCD(	unsigned short left, 	 unsigned short top, unsigned short width, unsigned short height,

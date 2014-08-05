@@ -313,8 +313,6 @@
 3rdparty/indi-sbig/indi_sbig.xml -text
 3rdparty/indi-sbig/sbig_ccd.cpp -text
 3rdparty/indi-sbig/sbig_ccd.h -text
-3rdparty/indi-sbig/sbig_wheel.cpp -text
-3rdparty/indi-sbig/sbig_wheel.h -text
 3rdparty/indi-sbig/sbigudrv.h -text
 3rdparty/indi-spectracyber/.project -text
 3rdparty/indi-spectracyber/Authors -text
