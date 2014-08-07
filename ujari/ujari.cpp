@@ -661,8 +661,8 @@ bool Ujari::ReadScopeStatus()
             {
                 ISwitch *sw;
                 sw=IUFindSwitch(&CoordSP,"TRACK");
-                if ((gotoparams.iterative_count > GOTO_ITERATIVE_LIMIT) && (((3600 * abs(gotoparams.ratarget - currentRA)) > RAGOTORESOLUTION) ||
-                    ((3600 * abs(gotoparams.detarget - currentDEC)) > DEGOTORESOLUTION)))
+                if ((gotoparams.iterative_count > GOTO_ITERATIVE_LIMIT) && (((3600 * fabs(gotoparams.ratarget - currentRA)) > RAGOTORESOLUTION) ||
+                    ((3600 * fabs(gotoparams.detarget - currentDEC)) > DEGOTORESOLUTION)))
                 {
                     DEBUGF(INDI::Logger::DBG_SESSION, "Iterative Goto Limit reached (%d iterations): RA diff = %4.2f arcsecs DE diff = %4.2f arcsecs",
                     gotoparams.iterative_count, 3600 * fabs(gotoparams.ratarget - currentRA),  3600 * fabs(gotoparams.detarget - currentDEC));
@@ -1609,166 +1609,94 @@ double Ujari::GetDESlew()
   return rate;
 }
 
-bool Ujari::MoveNS(TelescopeMotionNS dir)
+bool Ujari::MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command)
 {
+    const char *dirStr = (dir == MOTION_NORTH) ? "North" : "South";
+    double rate= (dir == MOTION_NORTH) ? GetDESlew() : GetDESlew()*-1;
 
-  try
+  try {
+  switch (command)
     {
-  switch (dir)
-    {
-    case MOTION_NORTH:
-      if (last_motion_ns != MOTION_NORTH)
+    case MOTION_START:
+      if (gotoInProgress()  || (TrackState == SCOPE_PARKING) || (TrackState == SCOPE_PARKED))
       {
-    double rate=GetDESlew();
-    if (gotoInProgress()  || (TrackState == SCOPE_PARKING) || (TrackState == SCOPE_PARKED))
-    {
-      DEBUG(INDI::Logger::DBG_WARNING, "Can not slew while goto/park in progress, or scope parked.");
-      IUResetSwitch(&MovementNSSP);
-      MovementNSSP.s = IPS_IDLE;
-      IDSetSwitch(&MovementNSSP, NULL);
-      return true;
-    }
-    DEBUG(DBG_MOUNT, "Starting North slew.");
-    if (DEInverted) rate=-rate;
-    mount->SlewDE(rate);
-    last_motion_ns = MOTION_NORTH;
-    RememberTrackState = TrackState;
-    TrackState = SCOPE_SLEWING;
-      } else {
-    DEBUG(DBG_MOUNT, "North Slew stopped");
-    mount->StopDE();
-    last_motion_ns=-1;
-    if (RememberTrackState == SCOPE_TRACKING) {
-      DEBUG(INDI::Logger::DBG_SESSION, "Restarting DE Tracking...");
-      TrackState = SCOPE_TRACKING;
-      mount->StartDETracking(GetDETrackRate());
-    } else {
-      if (last_motion_ew == -1) TrackState = SCOPE_IDLE;
-    }
-    IUResetSwitch(&MovementNSSP);
-    MovementNSSP.s = IPS_IDLE;
-    IDSetSwitch(&MovementNSSP, NULL);
+        DEBUG(INDI::Logger::DBG_WARNING, "Can not slew while goto/park in progress, or scope parked.");
+        return false;
       }
+
+      DEBUGF(INDI::Logger::DBG_SESSION, "Starting %s slew.", dirStr);
+      if (DEInverted) rate=-rate;
+      mount->SlewDE(rate);
+      RememberTrackState = TrackState;
+      TrackState = SCOPE_SLEWING;
       break;
 
-    case MOTION_SOUTH:
-      if (last_motion_ns != MOTION_SOUTH)
-      {
-    double rate=-GetDESlew();
-    if (gotoInProgress() || (TrackState == SCOPE_PARKING) || (TrackState == SCOPE_PARKED)){
-      DEBUG(INDI::Logger::DBG_WARNING, "Can not slew while goto/park in progress, or scope parked.");
-      IUResetSwitch(&MovementNSSP);
-      MovementNSSP.s = IPS_IDLE;
-      IDSetSwitch(&MovementNSSP, NULL);
-      return true;
+    case MOTION_STOP:
+        DEBUGF(INDI::Logger::DBG_SESSION, "%s Slew stopped", dirStr);
+        mount->StopDE();
+        if (RememberTrackState == SCOPE_TRACKING)
+        {
+            DEBUG(INDI::Logger::DBG_SESSION, "Restarting DE Tracking...");
+            TrackState = SCOPE_TRACKING;
+            mount->StartDETracking(GetDETrackRate());
+        }
+        else
+        {
+            if (MovementWESP.s == IPS_IDLE)
+                TrackState = SCOPE_IDLE;
+        }
+        break;
     }
-    DEBUG(DBG_MOUNT, "Starting South slew");
-    if (DEInverted) rate=-rate;
-    mount->SlewDE(rate);
-    last_motion_ns = MOTION_SOUTH;
-    RememberTrackState = TrackState;
-    TrackState = SCOPE_SLEWING;
-      } else {
-    DEBUG(DBG_MOUNT, "South Slew stopped.");
-    mount->StopDE();
-    last_motion_ns=-1;
-    if (RememberTrackState == SCOPE_TRACKING) {
-      DEBUG(INDI::Logger::DBG_SESSION, "Restarting DE Tracking...");
-      TrackState = SCOPE_TRACKING;
-      mount->StartDETracking(GetDETrackRate());
-    } else {
-      if (last_motion_ew == -1) TrackState = SCOPE_IDLE;
-    }
-    IUResetSwitch(&MovementNSSP);
-    MovementNSSP.s = IPS_IDLE;
-    IDSetSwitch(&MovementNSSP, NULL);
-      }
-      break;
-    }
+
   } catch (UjariError e) {
     return e.DefaultHandleException(this);
   }
   return true;
 }
 
-bool Ujari::MoveWE(TelescopeMotionWE dir)
+bool Ujari::MoveWE(TelescopeMotionWE dir, TelescopeMotionCommand command)
 {
+    const char *dirStr = (dir == MOTION_WEST) ? "West" : "East";
+    double rate= (dir == MOTION_WEST) ? GetRASlew() : GetRASlew()*-1;
 
-    try {
-      switch (dir)
+  try {
+  switch (command)
     {
-    case MOTION_WEST:
-      if (last_motion_ew != MOTION_WEST) {
-        double rate=GetRASlew();
-        if (gotoInProgress() || (TrackState == SCOPE_PARKING) || (TrackState == SCOPE_PARKED))
+    case MOTION_START:
+      if (gotoInProgress()  || (TrackState == SCOPE_PARKING) || (TrackState == SCOPE_PARKED))
+      {
+        DEBUG(INDI::Logger::DBG_WARNING, "Can not slew while goto/park in progress, or scope parked.");
+        return false;
+      }
+
+      DEBUGF(INDI::Logger::DBG_SESSION, "Starting %s slew.", dirStr);
+      if (RAInverted) rate=-rate;
+      mount->SlewRA(rate);
+      RememberTrackState = TrackState;
+      TrackState = SCOPE_SLEWING;
+      break;
+
+    case MOTION_STOP:
+        DEBUGF(INDI::Logger::DBG_SESSION, "%s Slew stopped", dirStr);
+        mount->StopRA();
+        if (RememberTrackState == SCOPE_TRACKING)
         {
-          DEBUG(INDI::Logger::DBG_WARNING, "Can not slew while goto/park in progress, or scope parked.");
-          IUResetSwitch(&MovementWESP);
-          MovementWESP.s = IPS_IDLE;
-          IDSetSwitch(&MovementWESP, NULL);
-          return true;
+            DEBUG(INDI::Logger::DBG_SESSION, "Restarting DE Tracking...");
+            TrackState = SCOPE_TRACKING;
+            mount->StartRATracking(GetRATrackRate());
         }
-        DEBUG(DBG_MOUNT, "Starting West Slew");
-        if (RAInverted) rate=-rate;
-        mount->SlewRA(rate);
-        last_motion_ew = MOTION_WEST;
-        RememberTrackState = TrackState;
-        TrackState = SCOPE_SLEWING;
-      } else {
-        DEBUG(DBG_MOUNT, "West Slew stopped");
-        mount->StopRA();
-        last_motion_ew=-1;
-        if (RememberTrackState == SCOPE_TRACKING) {
-          DEBUG(INDI::Logger::DBG_SESSION, "Restarting RA Tracking...");
-          TrackState = SCOPE_TRACKING;
-          mount->StartRATracking(GetRATrackRate());
-        } else {
-          if (last_motion_ns == -1) TrackState = SCOPE_IDLE;
+        else
+        {
+            if (MovementNSSP.s == IPS_IDLE)
+                TrackState = SCOPE_IDLE;
         }
-        IUResetSwitch(&MovementWESP);
-        MovementWESP.s = IPS_IDLE;
-        IDSetSwitch(&MovementWESP, NULL);
-      }
-      break;
-
-    case MOTION_EAST:
-      if (last_motion_ew != MOTION_EAST) {
-        double rate=-GetRASlew();
-        if (gotoInProgress() || (TrackState == SCOPE_PARKING) || (TrackState == SCOPE_PARKED)) {
-          DEBUG(INDI::Logger::DBG_WARNING, "Can not slew while goto/park in progress, or scope parked.");
-          IUResetSwitch(&MovementWESP);
-          MovementWESP.s = IPS_IDLE;
-          IDSetSwitch(&MovementWESP, NULL);
-          return true;
-        }
-        DEBUG(DBG_MOUNT,  "Starting East Slew");
-        if (RAInverted) rate=-rate;
-        mount->SlewRA(rate);
-        last_motion_ew = MOTION_EAST;
-        RememberTrackState = TrackState;
-        TrackState = SCOPE_SLEWING;
-      } else {
-        DEBUG(DBG_MOUNT,  "East Slew stopped");
-        mount->StopRA();
-        last_motion_ew=-1;
-        if (RememberTrackState == SCOPE_TRACKING) {
-          DEBUG(INDI::Logger::DBG_SESSION,  "Restarting RA Tracking...");
-          TrackState = SCOPE_TRACKING;
-          mount->StartRATracking(GetRATrackRate());
-        } else {
-          if (last_motion_ns == -1) TrackState = SCOPE_IDLE;
-        }
-        IUResetSwitch(&MovementWESP);
-        MovementWESP.s = IPS_IDLE;
-        IDSetSwitch(&MovementWESP, NULL);
-      }
-      break;
+        break;
     }
-    } catch(UjariError e) {
-      return(e.DefaultHandleException(this));
-    }
-    return true;
 
+  } catch (UjariError e) {
+    return e.DefaultHandleException(this);
+  }
+  return true;
 }
 
 bool Ujari::Abort()
@@ -1875,11 +1803,11 @@ void Ujari::processNSWE(double mag, double angle)
     {
         // Moving in the same direction will make it stop
         if (MovementNSSP.s == IPS_BUSY)
-            MoveNS(MovementNSSP.sp[0].s == ISS_ON ? MOTION_NORTH : MOTION_SOUTH);
+            MoveNS(MovementNSSP.sp[0].s == ISS_ON ? MOTION_NORTH : MOTION_SOUTH, MOTION_STOP);
 
         // Moving in the same direction will make it stop
         if (MovementWESP.s == IPS_BUSY)
-            MoveWE(MovementWESP.sp[0].s == ISS_ON ? MOTION_WEST : MOTION_EAST);
+            MoveWE(MovementWESP.sp[0].s == ISS_ON ? MOTION_WEST : MOTION_EAST, MOTION_STOP);
 
     }
     // Put high threshold
@@ -1890,7 +1818,7 @@ void Ujari::processNSWE(double mag, double angle)
         {
             // Don't try to move if you're busy and moving in the same direction
             if (MovementNSSP.s != IPS_BUSY || MovementNSS[0].s != ISS_ON)
-                MoveNS(MOTION_NORTH);
+                MoveNS(MOTION_NORTH, MOTION_START);
 
             MovementNSSP.s = IPS_BUSY;
             MovementNSSP.sp[0].s = ISS_ON;
@@ -1902,7 +1830,7 @@ void Ujari::processNSWE(double mag, double angle)
         {
             // Don't try to move if you're busy and moving in the same direction
            if (MovementNSSP.s != IPS_BUSY  || MovementNSS[1].s != ISS_ON)
-            MoveNS(MOTION_SOUTH);
+            MoveNS(MOTION_SOUTH, MOTION_START);
 
             MovementNSSP.s = IPS_BUSY;
             MovementNSSP.sp[0].s = ISS_OFF;
@@ -1914,7 +1842,7 @@ void Ujari::processNSWE(double mag, double angle)
         {
             // Don't try to move if you're busy and moving in the same direction
            if (MovementWESP.s != IPS_BUSY  || MovementWES[1].s != ISS_ON)
-                MoveWE(MOTION_EAST);
+                MoveWE(MOTION_EAST, MOTION_START);
 
            MovementWESP.s = IPS_BUSY;
            MovementWESP.sp[0].s = ISS_OFF;
@@ -1928,7 +1856,7 @@ void Ujari::processNSWE(double mag, double angle)
 
             // Don't try to move if you're busy and moving in the same direction
            if (MovementWESP.s != IPS_BUSY  || MovementWES[0].s != ISS_ON)
-                MoveWE(MOTION_WEST);
+                MoveWE(MOTION_WEST, MOTION_START);
 
            MovementWESP.s = IPS_BUSY;
            MovementWESP.sp[0].s = ISS_ON;

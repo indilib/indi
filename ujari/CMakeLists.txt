@@ -54,7 +54,7 @@ set(ujari_SRCS
    ${CMAKE_SOURCE_DIR}/ogg_util.cpp
    )
 
-SET(CMAKE_CXX_FLAGS "-D__aiousb_cplusplus" )
+set(CMAKE_CXX_FLAGS "-D__aiousb_cplusplus -std=c++0x ${CMAKE_CXX_FLAGS}")
 
 add_executable(indi_ujari_telescope ${ujari_SRCS})
 

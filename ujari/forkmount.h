@@ -122,8 +122,8 @@ public:
         Encoder *RAEncoder, *DEEncoder;
 
         // TODO Check if this is valid for Ujari
-        static const double MIN_RATE=0.05;
-        static const double MAX_RATE=600.0;
+        static constexpr double MIN_RATE=0.05;
+        static constexpr double MAX_RATE=600.0;
         double minrpms[2];
 
         enum ForkMountAxis
