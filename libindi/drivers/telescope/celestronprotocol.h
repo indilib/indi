@@ -124,8 +124,8 @@ int  CheckConnectTel(void);
 
 void SetRate(int newRate);
 void SetLimits(double limitLower, double limitHigher);
-void StartSlew(int direction);
-void StopSlew(int direction);
+int StartSlew(int direction);
+int StopSlew(int direction);
 double GetRA(void);
 double GetDec(void);
 int  SlewToCoords(double newRA, double newDec);

@@ -510,92 +510,50 @@ bool SkywatcherAPIMount::ISNewText (const char *dev, const char *name, char *tex
     return INDI::Telescope::ISNewText(dev, name, texts, names, n);
 }
 
-bool SkywatcherAPIMount::MoveNS(TelescopeMotionNS dir)
+bool SkywatcherAPIMount::MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command)
 {
     DEBUG(DBG_SCOPE, "SkywatcherAPIMount::MoveNS");
-    switch (dir)
-    {
-        case MOTION_NORTH:
-            if (PreviousNSMotion != PREVIOUS_NS_MOTION_NORTH)
-            {
-                DEBUG(DBG_SCOPE, "Starting Slew North");
-                Slew(AXIS2, LOW_SPEED_MARGIN / 2);
-                PreviousNSMotion = PREVIOUS_NS_MOTION_NORTH;
-            }
-            else
-            {
-                DEBUG(DBG_SCOPE, "Stopping Slew North");
-                SlowStop(AXIS2);
-                PreviousNSMotion = PREVIOUS_NS_MOTION_UNKNOWN;
-                IUResetSwitch(&MovementNSSP);
-                MovementNSSP.s = IPS_IDLE;
-                IDSetSwitch(&MovementNSSP, NULL);
-            }
-            break;
 
-        case MOTION_SOUTH:
-            if (PreviousNSMotion != PREVIOUS_NS_MOTION_SOUTH)
-            {
-                DEBUG(DBG_SCOPE, "Starting Slew South");
-                Slew(AXIS2, -LOW_SPEED_MARGIN / 2);
-                PreviousNSMotion = PREVIOUS_NS_MOTION_SOUTH;
-            }
-            else
-            {
-                DEBUG(DBG_SCOPE, "Stopping Slew South");
-                SlowStop(AXIS2);
-                PreviousNSMotion = PREVIOUS_NS_MOTION_UNKNOWN;
-                IUResetSwitch(&MovementNSSP);
-                MovementNSSP.s = IPS_IDLE;
-                IDSetSwitch(&MovementNSSP, NULL);
-            }
-            break;
+    double speed = (dir == MOTION_NORTH) ? (LOW_SPEED_MARGIN / 2) : -(LOW_SPEED_MARGIN / 2);
+    const char *dirStr = (dir == MOTION_NORTH) ? "North" : "South";
+
+    switch (command)
+    {
+        case MOTION_START:
+        DEBUGF(DBG_SCOPE, "Starting Slew %s", dirStr);
+        Slew(AXIS2, speed);
+        break;
+
+        case MOTION_STOP:
+        DEBUGF(DBG_SCOPE, "Stopping Slew %s", dirStr);
+        SlowStop(AXIS2);
+        break;
     }
-    return false;
+
+    return true;
 }
 
-bool SkywatcherAPIMount::MoveWE(TelescopeMotionWE dir)
+bool SkywatcherAPIMount::MoveWE(TelescopeMotionWE dir, TelescopeMotionCommand command)
 {
     DEBUG(DBG_SCOPE, "SkywatcherAPIMount::MoveWE");
-    switch (dir)
-    {
-        case MOTION_WEST:
-            if (PreviousWEMotion != PREVIOUS_WE_MOTION_WEST)
-            {
-                DEBUG(DBG_SCOPE, "Starting Slew West");
-                Slew(AXIS1, LOW_SPEED_MARGIN / 2);
-                PreviousWEMotion = PREVIOUS_WE_MOTION_WEST;
-            }
-            else
-            {
-                DEBUG(DBG_SCOPE, "Stopping Slew West");
-                SlowStop(AXIS1);
-                PreviousWEMotion = PREVIOUS_WE_MOTION_UNKNOWN;
-                IUResetSwitch(&MovementWESP);
-                MovementWESP.s = IPS_IDLE;
-                IDSetSwitch(&MovementWESP, NULL);
-            }
-            break;
 
-        case MOTION_EAST:
-            if (PreviousWEMotion != PREVIOUS_WE_MOTION_EAST)
-            {
-                DEBUG(DBG_SCOPE, "Starting Slew East");
-                Slew(AXIS1, -LOW_SPEED_MARGIN / 2);
-                PreviousWEMotion = PREVIOUS_WE_MOTION_EAST;
-            }
-            else
-            {
-                DEBUG(DBG_SCOPE, "Stopping Slew East");
-                SlowStop(AXIS1);
-                PreviousWEMotion = PREVIOUS_WE_MOTION_UNKNOWN;
-                IUResetSwitch(&MovementWESP);
-                MovementWESP.s = IPS_IDLE;
-                IDSetSwitch(&MovementWESP, NULL);
-            }
-            break;
+    double speed = (dir == MOTION_WEST) ? (LOW_SPEED_MARGIN / 2) : -(LOW_SPEED_MARGIN / 2);
+    const char *dirStr = (dir == MOTION_WEST) ? "West" : "East";
+
+    switch (command)
+    {
+        case MOTION_START:
+        DEBUGF(DBG_SCOPE, "Starting Slew %s", dirStr);
+        Slew(AXIS1, speed);
+        break;
+
+        case MOTION_STOP:
+        DEBUGF(DBG_SCOPE, "Stopping Slew %s", dirStr);
+        SlowStop(AXIS1);
+        break;
     }
-    return false;
+
+    return true;
 }
 
 bool SkywatcherAPIMount::Park()

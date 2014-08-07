@@ -230,7 +230,7 @@ bool LX200Generic::initProperties()
 
     IUFillSwitch(&FocusMotionS[0], "IN", "Focus in", ISS_OFF);
     IUFillSwitch(&FocusMotionS[1], "OUT", "Focus out", ISS_OFF);
-    IUFillSwitchVector(&FocusMotionSP, FocusMotionS, 2, getDeviceName(), "FOCUS_MOTION", "Motion", FOCUS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&FocusMotionSP, FocusMotionS, 2, getDeviceName(), "FOCUS_MOTION", "Motion", FOCUS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     IUFillNumber(&FocusTimerN[0], "TIMER", "Timer (ms)", "%g", 0, 10000., 1000., 0);
     IUFillNumberVector(&FocusTimerNP, FocusTimerN, 1, getDeviceName(), "FOCUS_TIMER", "Focus Timer", FOCUS_TAB, IP_RW, 0, IPS_IDLE);
@@ -616,7 +616,7 @@ bool LX200Generic::MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command)
             return false;
         }
         else
-            DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.", (current_move == 0) ? "North" : "South");
+            DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.", (current_move == LX200_NORTH) ? "North" : "South");
         break;
     }
 
@@ -647,7 +647,7 @@ bool LX200Generic::MoveWE(TelescopeMotionWE dir, TelescopeMotionCommand command)
             return false;
         }
         else
-            DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.", (current_move == 0) ? "West" : "East");
+            DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.", (current_move == LX200_WEST) ? "West" : "East");
         break;
     }
 
@@ -698,6 +698,10 @@ bool LX200Generic::Abort()
      IDSetSwitch(&MovementNSSP, NULL);
      IDSetSwitch(&MovementWESP, NULL);
      IDSetNumber(&EqNP, NULL);
+     IUResetSwitch(&ParkSP);
+     ParkSP.s = IPS_IDLE;
+     IDSetSwitch(&ParkSP, NULL);
+
      IDMessage(getDeviceName(), "Slew aborted.");
      return true;
 }

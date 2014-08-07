@@ -38,8 +38,8 @@ public:
     virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
     virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
     virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool MoveNS(TelescopeMotionNS dir);
-    virtual bool MoveWE(TelescopeMotionWE dir);
+    virtual bool MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command);
+    virtual bool MoveWE(TelescopeMotionWE dir, TelescopeMotionCommand command);
     virtual bool Park();
     virtual bool ReadScopeStatus();
     virtual bool saveConfigItems(FILE *fp);

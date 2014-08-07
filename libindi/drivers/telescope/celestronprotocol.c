@@ -75,8 +75,6 @@ int  CheckConnectTel(void);
 
 void SetRate(int newRate);
 void SetLimits(double limitLower, double limitHigher);
-void StartSlew(int direction);
-void StopSlew(int direction);
 double GetRA(void);
 double GetDec(void);
 int  SlewToCoords(double newRA, double newDec);
@@ -238,7 +236,7 @@ void SetRate(int newRate)
 /* Start a slew in chosen direction at slewRate */
 /* Use auxilliary NexStar command set through the hand control computer */
 
-void StartSlew(int direction)
+int StartSlew(int direction)
 {
   char slewCmd[] = { 0x50, 0x02, 0x11, 0x24, 0x09, 0x00, 0x00, 0x00 };
   char inputStr[2048];
@@ -276,11 +274,13 @@ void StartSlew(int direction)
   {
     if ( readn(TelPortFD,inputStr,1,1) ) 
     {
-      if (inputStr[0] == '#') break;
+      if (inputStr[0] == '#')
+          return 0;
     }
     else 
     { 
       fprintf(stderr,"No acknowledgment from telescope in StartSlew.\n");
+      return -1;
     }
   }   
 }
@@ -288,7 +288,7 @@ void StartSlew(int direction)
 
 /* Stop the slew in chosen direction */
 
-void StopSlew(int direction)
+int StopSlew(int direction)
 {
   char slewCmd[] = { 0x50, 0x02, 0x11, 0x24, 0x00, 0x00, 0x00, 0x00 };
   char inputStr[2048];
@@ -322,11 +322,13 @@ void StopSlew(int direction)
   {
     if ( readn(TelPortFD,inputStr,1,1) ) 
     {
-      if (inputStr[0] == '#') break;
+      if (inputStr[0] == '#')
+          return 0;
     }
     else 
     { 
       fprintf(stderr,"No acknowledgment from telescope in StartSlew.\n");
+      return -1;
     }
   }  
 }

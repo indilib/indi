@@ -51,8 +51,8 @@ class CelestronGPS : public INDI::Telescope
 
 protected:
 
- virtual bool MoveNS(TelescopeMotionNS dir);
- virtual bool MoveWE(TelescopeMotionWE dir);
+ virtual bool MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command);
+ virtual bool MoveWE(TelescopeMotionWE dir, TelescopeMotionCommand command);
  virtual bool Abort();
 
  virtual bool updateLocation(double latitude, double longitude, double elevation);

@@ -440,6 +440,7 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
             {
                 if (MoveNS(last_ns_motion == 0 ? MOTION_NORTH : MOTION_SOUTH, MOTION_STOP))
                 {
+                    IUResetSwitch(&MovementNSSP);
                     MovementNSSP.s = IPS_IDLE;
                     last_ns_motion = -1;
                 }
@@ -477,6 +478,7 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
             {
                 if (MoveWE(last_we_motion == 0 ? MOTION_WEST : MOTION_EAST, MOTION_STOP))
                 {
+                    IUResetSwitch(&MovementWESP);
                     MovementWESP.s = IPS_IDLE;
                     last_we_motion = -1;
                 }

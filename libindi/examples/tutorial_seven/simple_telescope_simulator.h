@@ -37,8 +37,8 @@ private:
     virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
     friend void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
     virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool MoveNS(TelescopeMotionNS dir);
-    virtual bool MoveWE(TelescopeMotionWE dir);
+    virtual bool MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command);
+    virtual bool MoveWE(TelescopeMotionWE dir, TelescopeMotionCommand command);
     virtual bool ReadScopeStatus();
     bool Sync(double ra, double dec);
     virtual void TimerHit();

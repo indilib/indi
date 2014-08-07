@@ -327,90 +327,29 @@ bool ScopeSim::ISNewText (const char *dev, const char *name, char *texts[], char
     return INDI::Telescope::ISNewText(dev, name, texts, names, n);
 }
 
-bool ScopeSim::MoveNS(TelescopeMotionNS dir)
+bool ScopeSim::MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command)
 {
-    switch (dir)
-    {
-        case MOTION_NORTH:
-            if (PreviousNSMotion != PREVIOUS_NS_MOTION_NORTH)
-            {
-                AxisSlewRateDEC = DEFAULT_SLEW_RATE;
-                AxisDirectionDEC = FORWARD;
-                AxisStatusDEC = SLEWING;
-                PreviousNSMotion = PREVIOUS_NS_MOTION_NORTH;
-            }
-            else
-            {
-                AxisStatusDEC = STOPPED;
-                PreviousNSMotion = PREVIOUS_NS_MOTION_UNKNOWN;
-                IUResetSwitch(&MovementNSSP);
-                MovementNSSP.s = IPS_IDLE;
-                IDSetSwitch(&MovementNSSP, NULL);
-            }
-            break;
+    AxisDirection axisDir  = (dir == MOTION_NORTH) ? FORWARD : REVERSE;
+    AxisStatus    axisStat = (command == MOTION_START) ? SLEWING : STOPPED;
 
-        case MOTION_SOUTH:
-            if (PreviousNSMotion != PREVIOUS_NS_MOTION_SOUTH)
-            {
-                AxisSlewRateDEC = DEFAULT_SLEW_RATE;
-                AxisDirectionDEC = REVERSE;
-                AxisStatusDEC = SLEWING;
-                PreviousNSMotion = PREVIOUS_NS_MOTION_SOUTH;
-            }
-            else
-            {
-                AxisStatusDEC = STOPPED;
-                PreviousNSMotion = PREVIOUS_NS_MOTION_UNKNOWN;
-                IUResetSwitch(&MovementNSSP);
-                MovementNSSP.s = IPS_IDLE;
-                IDSetSwitch(&MovementNSSP, NULL);
-            }
-            break;
-    }
-    return false;
+    AxisSlewRateDEC = DEFAULT_SLEW_RATE;
+    AxisDirectionDEC = axisDir;
+    AxisStatusDEC = axisStat;
+
+    return true;
 }
 
-bool ScopeSim::MoveWE(TelescopeMotionWE dir)
+bool ScopeSim::MoveWE(TelescopeMotionWE dir, TelescopeMotionCommand command)
 {
-    switch (dir)
-    {
-        case MOTION_WEST:
-            if (PreviousWEMotion != PREVIOUS_WE_MOTION_WEST)
-            {
-                AxisSlewRateRA = DEFAULT_SLEW_RATE;
-                AxisDirectionRA = FORWARD;
-                AxisStatusRA = SLEWING;
-                PreviousWEMotion = PREVIOUS_WE_MOTION_WEST;
-            }
-            else
-            {
-                AxisStatusRA = STOPPED;
-                PreviousWEMotion = PREVIOUS_WE_MOTION_UNKNOWN;
-                IUResetSwitch(&MovementWESP);
-                MovementWESP.s = IPS_IDLE;
-                IDSetSwitch(&MovementWESP, NULL);
-            }
-            break;
 
-        case MOTION_EAST:
-            if (PreviousWEMotion != PREVIOUS_WE_MOTION_EAST)
-            {
-                AxisSlewRateRA = DEFAULT_SLEW_RATE;
-                AxisDirectionRA = REVERSE;
-                AxisStatusRA = SLEWING;
-                PreviousWEMotion = PREVIOUS_WE_MOTION_EAST;
-            }
-            else
-            {
-                AxisStatusRA = STOPPED;
-                PreviousWEMotion = PREVIOUS_WE_MOTION_UNKNOWN;
-                IUResetSwitch(&MovementWESP);
-                MovementWESP.s = IPS_IDLE;
-                IDSetSwitch(&MovementWESP, NULL);
-            }
-            break;
-    }
-    return false;
+    AxisDirection axisDir  = (dir == MOTION_WEST) ? FORWARD : REVERSE;
+    AxisStatus    axisStat = (command == MOTION_START) ? SLEWING : STOPPED;
+
+    AxisSlewRateRA = DEFAULT_SLEW_RATE;
+    AxisDirectionRA = axisDir;
+    AxisStatusRA = axisStat;
+
+    return true;
 }
 
     bool ScopeSim::ReadScopeStatus()

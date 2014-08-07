@@ -633,69 +633,14 @@ bool ScopeSim::Abort()
 }
 
 
-bool ScopeSim::MoveNS(TelescopeMotionNS dir)
+bool ScopeSim::MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command)
 {
-    static int last_motion=-1;
-
-    switch (dir)
-    {
-      case MOTION_NORTH:
-        if (last_motion != MOTION_NORTH)
-            last_motion = MOTION_NORTH;
-        else
-        {
-            IUResetSwitch(&MovementNSSP);
-            MovementNSSP.s = IPS_IDLE;
-            IDSetSwitch(&MovementNSSP, NULL);
-        }
-        break;
-
-    case MOTION_SOUTH:
-      if (last_motion != MOTION_SOUTH)
-          last_motion = MOTION_SOUTH;
-      else
-      {
-          IUResetSwitch(&MovementNSSP);
-          MovementNSSP.s = IPS_IDLE;
-          IDSetSwitch(&MovementNSSP, NULL);
-      }
-      break;
-    }
-
     return true;
 }
 
-bool ScopeSim::MoveWE(TelescopeMotionWE dir)
+bool ScopeSim::MoveWE(TelescopeMotionWE dir, TelescopeMotionCommand command)
 {
-    static int last_motion=-1;
-
-    switch (dir)
-    {
-      case MOTION_WEST:
-        if (last_motion != MOTION_WEST)
-            last_motion = MOTION_WEST;
-        else
-        {
-            IUResetSwitch(&MovementWESP);
-            MovementWESP.s = IPS_IDLE;
-            IDSetSwitch(&MovementWESP, NULL);
-        }
-        break;
-
-    case MOTION_EAST:
-      if (last_motion != MOTION_EAST)
-          last_motion = MOTION_EAST;
-      else
-      {
-          IUResetSwitch(&MovementWESP);
-          MovementWESP.s = IPS_IDLE;
-          IDSetSwitch(&MovementWESP, NULL);
-      }
-      break;
-    }
-
     return true;
-
 }
 
 bool ScopeSim::GuideNorth(float ms)

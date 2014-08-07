@@ -246,77 +246,66 @@ bool CelestronGPS::Sync(double targetRA, double targetDEC)
     return true;
 }
 
-bool CelestronGPS::MoveNS(TelescopeMotionNS dir)
+bool CelestronGPS::MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command)
 {
-    static int last_move=-1;
+    int current_move = (dir == MOTION_NORTH) ? NORTH : SOUTH;
 
-     int current_move = -1;
-
-    current_move = IUFindOnSwitchIndex(&MovementNSSP);
-
-    // Previosuly active switch clicked again, so let's stop.
-    if (current_move == last_move && current_move != -1)
+    switch (command)
     {
-        if (isSimulation() == false)
-            StopSlew((current_move == 0) ? NORTH : SOUTH);
+        case MOTION_START:
+        if (isSimulation() == false && StartSlew(current_move) < 0)
+        {
+            DEBUG(INDI::Logger::DBG_ERROR, "Error setting N/S motion direction.");
+            return false;
+        }
+        else
+           DEBUGF(INDI::Logger::DBG_SESSION,"Moving toward %s.", (current_move == NORTH) ? "North" : "South");
+        break;
 
-        IUResetSwitch(&MovementNSSP);
-        MovementNSSP.s = IPS_IDLE;
-        IDSetSwitch(&MovementNSSP, "Movement toward %s halted.", (current_move == 0) ? "North" : "South");
-        last_move = -1;
-        return true;
+        case MOTION_STOP:
+        if (isSimulation() == false && StopSlew(current_move) < 0)
+        {
+            DEBUG(INDI::Logger::DBG_ERROR, "Error stopping N/S motion.");
+            return false;
+        }
+        else
+            DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.", (current_move == NORTH) ? "North" : "South");
+        break;
     }
 
-    last_move = current_move;
+    return true;
 
-    if (isDebug())
-        IDLog("Current Move: %d - Previous Move: %d\n", current_move, last_move);
-
-    // Correction for LX200 Driver: North 0 - South 3
-    current_move = (dir == MOTION_NORTH) ? NORTH : SOUTH;
-
-    if (isSimulation() == false)
-        StartSlew(current_move);
-
-      MovementNSSP.s = IPS_BUSY;
-      IDSetSwitch(&MovementNSSP, "Moving toward %s.", (current_move == NORTH) ? "North" : "South");
-      return true;
 }
 
-bool CelestronGPS::MoveWE(TelescopeMotionWE dir)
+bool CelestronGPS::MoveWE(TelescopeMotionWE dir, TelescopeMotionCommand command)
 {
-   static int last_move=-1;
+    int current_move = (dir == MOTION_WEST) ? WEST : EAST;
 
-   int current_move = -1;
+    switch (command)
+    {
+        case MOTION_START:
+        if (isSimulation() == false && StartSlew(current_move) < 0)
+        {
+            DEBUG(INDI::Logger::DBG_ERROR, "Error setting W/E motion direction.");
+            return false;
+        }
+        else
+           DEBUGF(INDI::Logger::DBG_SESSION,"Moving toward %s.", (current_move == WEST) ? "West" : "East");
+        break;
 
-   current_move = IUFindOnSwitchIndex(&MovementWESP);
+        case MOTION_STOP:
+        if (isSimulation() == false && StopSlew(current_move) < 0)
+        {
+            DEBUG(INDI::Logger::DBG_ERROR, "Error stopping W/E motion.");
+            return false;
+        }
+        else
+            DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.", (current_move == WEST) ? "West" : "East");
+        break;
+    }
 
-  // Previosuly active switch clicked again, so let's stop.
-  if (current_move == last_move && current_move != -1)
-  {
-      if (isSimulation() == false)
-        StopSlew((current_move == 0) ? WEST : EAST);
-      IUResetSwitch(&MovementWESP);
-      MovementWESP.s = IPS_IDLE;
-      IDSetSwitch(&MovementWESP, "Movement toward %s halted.", (current_move == 0) ? "West" : "East");
-      last_move = -1;
-      return true;
-  }
-
-  last_move = current_move;
-
-  if (isDebug())
-      IDLog("Current Move: %d - Previous Move: %d\n", current_move, last_move);
-
-  current_move = (dir == MOTION_WEST) ? WEST : EAST;
-
-  if (isSimulation() == false)
-      StartSlew(current_move);
-
-
-    MovementWESP.s = IPS_BUSY;
-    IDSetSwitch(&MovementWESP, "Moving toward %s.", (current_move == WEST) ? "West" : "East");
     return true;
+
 }
 
 bool CelestronGPS::ReadScopeStatus()
@@ -606,7 +595,7 @@ void CelestronGPS::processNSWE(double mag, double angle)
         {
             // Don't try to move if you're busy and moving in the same direction
             if (MovementNSSP.s != IPS_BUSY || MovementNSS[0].s != ISS_ON)
-                MoveNS(MOTION_NORTH);
+                MoveNS(MOTION_NORTH, MOTION_START);
 
             MovementNSSP.s = IPS_BUSY;
             MovementNSSP.sp[0].s = ISS_ON;
@@ -618,7 +607,7 @@ void CelestronGPS::processNSWE(double mag, double angle)
         {
             // Don't try to move if you're busy and moving in the same direction
            if (MovementNSSP.s != IPS_BUSY  || MovementNSS[1].s != ISS_ON)
-            MoveNS(MOTION_SOUTH);
+            MoveNS(MOTION_SOUTH, MOTION_START);
 
             MovementNSSP.s = IPS_BUSY;
             MovementNSSP.sp[0].s = ISS_OFF;
@@ -630,7 +619,7 @@ void CelestronGPS::processNSWE(double mag, double angle)
         {
             // Don't try to move if you're busy and moving in the same direction
            if (MovementWESP.s != IPS_BUSY  || MovementWES[1].s != ISS_ON)
-                MoveWE(MOTION_EAST);
+                MoveWE(MOTION_EAST, MOTION_START);
 
            MovementWESP.s = IPS_BUSY;
            MovementWESP.sp[0].s = ISS_OFF;
@@ -644,7 +633,7 @@ void CelestronGPS::processNSWE(double mag, double angle)
 
             // Don't try to move if you're busy and moving in the same direction
            if (MovementWESP.s != IPS_BUSY  || MovementWES[0].s != ISS_ON)
-                MoveWE(MOTION_WEST);
+                MoveWE(MOTION_WEST, MOTION_START);
 
            MovementWESP.s = IPS_BUSY;
            MovementWESP.sp[0].s = ISS_ON;
