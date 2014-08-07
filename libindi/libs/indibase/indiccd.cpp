@@ -319,7 +319,7 @@ bool INDI::CCD::initProperties()
     IUFillNumberVector(PrimaryCCD.ImageExposureNP,PrimaryCCD.ImageExposureN,1,getDeviceName(),"CCD_EXPOSURE","Expose",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillSwitch(&PrimaryCCD.AbortExposureS[0],"ABORT","Abort",ISS_OFF);
-    IUFillSwitchVector(PrimaryCCD.AbortExposureSP,PrimaryCCD.AbortExposureS,1,getDeviceName(),"CCD_ABORT_EXPOSURE","Expose Abort",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    IUFillSwitchVector(PrimaryCCD.AbortExposureSP,PrimaryCCD.AbortExposureS,1,getDeviceName(),"CCD_ABORT_EXPOSURE","Expose Abort",MAIN_CONTROL_TAB,IP_RW,ISR_ATMOST1,60,IPS_IDLE);
 
     IUFillNumber(&PrimaryCCD.ImageBinN[0],"HOR_BIN","X","%2.0f",1,4,1,1);
     IUFillNumber(&PrimaryCCD.ImageBinN[1],"VER_BIN","Y","%2.0f",1,4,1,1);
@@ -385,7 +385,7 @@ bool INDI::CCD::initProperties()
     IUFillNumberVector(GuideCCD.ImageExposureNP,GuideCCD.ImageExposureN,1,getDeviceName(),"GUIDER_EXPOSURE","Guide Head",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillSwitch(&GuideCCD.AbortExposureS[0],"ABORT","Abort",ISS_OFF);
-    IUFillSwitchVector(GuideCCD.AbortExposureSP,GuideCCD.AbortExposureS,1,getDeviceName(),"GUIDER_ABORT_EXPOSURE","Guide Abort",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    IUFillSwitchVector(GuideCCD.AbortExposureSP,GuideCCD.AbortExposureS,1,getDeviceName(),"GUIDER_ABORT_EXPOSURE","Guide Abort",MAIN_CONTROL_TAB,IP_RW,ISR_ATMOST1,60,IPS_IDLE);
 
     IUFillSwitch(&GuideCCD.CompressS[0],"GCOMPRESS","Compress",ISS_ON);
     IUFillSwitch(&GuideCCD.CompressS[1],"GRAW","Raw",ISS_OFF);
@@ -933,6 +933,7 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
         {
 
             IUUpdateSwitch(PrimaryCCD.CompressSP,states,names,n);
+            PrimaryCCD.CompressSP->s = IPS_OK;
             IDSetSwitch(PrimaryCCD.CompressSP,NULL);
 
             if(PrimaryCCD.CompressS[0].s==ISS_ON    )
@@ -949,6 +950,7 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
         {
 
             IUUpdateSwitch(GuideCCD.CompressSP,states,names,n);
+            GuideCCD.CompressSP->s = IPS_OK;
             IDSetSwitch(GuideCCD.CompressSP,NULL);
 
             if(GuideCCD.CompressS[0].s==ISS_ON    )

@@ -49,7 +49,7 @@ void INDI::FocuserInterface::initFocuserProperties(const char *deviceName, const
 
     IUFillSwitch(&FocusMotionS[0],"FOCUS_INWARD","Focus In",ISS_ON);
     IUFillSwitch(&FocusMotionS[1],"FOCUS_OUTWARD","Focus Out",ISS_OFF);
-    IUFillSwitchVector(&FocusMotionSP,FocusMotionS,2,deviceName,"FOCUS_MOTION","Direction",groupName,IP_RW,ISR_1OFMANY,60,IPS_OK);
+    IUFillSwitchVector(&FocusMotionSP,FocusMotionS,2,deviceName,"FOCUS_MOTION","Direction",groupName,IP_RW,ISR_ATMOST1,60,IPS_OK);
 
     // Driver can define those to clients if there is support
     IUFillNumber(&FocusAbsPosN[0],"FOCUS_ABSOLUTE_POSITION","Ticks","%4.0f",0.0,100000.0,1000.0,50000.0);
@@ -59,7 +59,7 @@ void INDI::FocuserInterface::initFocuserProperties(const char *deviceName, const
     IUFillNumberVector(&FocusRelPosNP,FocusRelPosN,1,deviceName,"REL_FOCUS_POSITION","Relative Position",groupName,IP_RW,60,IPS_OK);
 
     IUFillSwitch(&AbortS[0],"ABORT","Abort",ISS_OFF);
-    IUFillSwitchVector(&AbortSP,AbortS,1,deviceName,"FOCUS_ABORT_MOTION","Abort Motion",groupName,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    IUFillSwitchVector(&AbortSP,AbortS,1,deviceName,"FOCUS_ABORT_MOTION","Abort Motion",groupName,IP_RW,ISR_ATMOST1,60,IPS_IDLE);
 }
 
 bool INDI::FocuserInterface::processFocuserNumber (const char *dev, const char *name, double values[], char *names[], int n)

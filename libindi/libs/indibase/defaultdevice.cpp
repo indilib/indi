@@ -626,7 +626,7 @@ bool INDI::DefaultDevice::initProperties()
     IUFillSwitch(&ConfigProcessS[0], "CONFIG_LOAD", "Load", ISS_OFF);
     IUFillSwitch(&ConfigProcessS[1], "CONFIG_SAVE", "Save", ISS_OFF);
     IUFillSwitch(&ConfigProcessS[2], "CONFIG_DEFAULT", "Default", ISS_OFF);
-    IUFillSwitchVector(&ConfigProcessSP, ConfigProcessS, NARRAY(ConfigProcessS), getDeviceName(), "CONFIG_PROCESS", "Configuration", "Options", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&ConfigProcessSP, ConfigProcessS, NARRAY(ConfigProcessS), getDeviceName(), "CONFIG_PROCESS", "Configuration", "Options", IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     // Ready the logger
     std::string logFile;
@@ -642,9 +642,13 @@ bool INDI::DefaultDevice::deleteProperty(const char *propertyName)
 {
     char errmsg[MAXRBUF];
 
-    removeProperty(propertyName, errmsg);
-    IDDelete(getDeviceName(), propertyName ,NULL);
-    return true;
+    if (removeProperty(propertyName, errmsg) == 0)
+    {
+        IDDelete(getDeviceName(), propertyName ,NULL);
+        return true;
+    }
+    else
+        return false;
 }
 
 void INDI::DefaultDevice::defineNumber(INumberVectorProperty *nvp)

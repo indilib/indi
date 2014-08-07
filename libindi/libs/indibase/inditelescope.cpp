@@ -26,6 +26,7 @@ INDI::Telescope::Telescope()
 {
     //ctor
 
+    last_we_motion = last_ns_motion = -1;
 }
 
 INDI::Telescope::~Telescope()
@@ -55,32 +56,27 @@ bool INDI::Telescope::initProperties()
     IUFillSwitch(&CoordS[2],"SYNC","Sync",ISS_OFF);
 
     if (canSync())
-        IUFillSwitchVector(&CoordSP,CoordS,3,getDeviceName(),"ON_COORD_SET","On Set",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+        IUFillSwitchVector(&CoordSP,CoordS,3,getDeviceName(),"ON_COORD_SET","On Set",MAIN_CONTROL_TAB,IP_RW,ISR_ATMOST1,60,IPS_IDLE);
     else
-        IUFillSwitchVector(&CoordSP,CoordS,2,getDeviceName(),"ON_COORD_SET","On Set",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
-
-    IUFillSwitch(&ConfigS[0], "CONFIG_LOAD", "Load", ISS_OFF);
-    IUFillSwitch(&ConfigS[1], "CONFIG_SAVE", "Save", ISS_OFF);
-    IUFillSwitch(&ConfigS[2], "CONFIG_DEFAULT", "Default", ISS_OFF);
-    IUFillSwitchVector(&ConfigSP, ConfigS, 3, getDeviceName(), "CONFIG_PROCESS", "Configuration", "Options", IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+        IUFillSwitchVector(&CoordSP,CoordS,2,getDeviceName(),"ON_COORD_SET","On Set",MAIN_CONTROL_TAB,IP_RW,ISR_ATMOST1,60,IPS_IDLE);
 
 
     IUFillSwitch(&ParkS[0],"PARK","Park",ISS_OFF);
-    IUFillSwitchVector(&ParkSP,ParkS,1,getDeviceName(),"TELESCOPE_PARK","Park",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    IUFillSwitchVector(&ParkSP,ParkS,1,getDeviceName(),"TELESCOPE_PARK","Park",MAIN_CONTROL_TAB,IP_RW,ISR_ATMOST1,60,IPS_IDLE);
 
     IUFillSwitch(&AbortS[0],"ABORT","Abort",ISS_OFF);
-    IUFillSwitchVector(&AbortSP,AbortS,1,getDeviceName(),"TELESCOPE_ABORT_MOTION","Abort Motion",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    IUFillSwitchVector(&AbortSP,AbortS,1,getDeviceName(),"TELESCOPE_ABORT_MOTION","Abort Motion",MAIN_CONTROL_TAB,IP_RW,ISR_ATMOST1,60,IPS_IDLE);
 
     IUFillText(&PortT[0],"PORT","Port","/dev/ttyUSB0");
     IUFillTextVector(&PortTP,PortT,1,getDeviceName(),"DEVICE_PORT","Ports",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillSwitch(&MovementNSS[MOTION_NORTH], "MOTION_NORTH", "North", ISS_OFF);
     IUFillSwitch(&MovementNSS[MOTION_SOUTH], "MOTION_SOUTH", "South", ISS_OFF);
-    IUFillSwitchVector(&MovementNSSP, MovementNSS, 2, getDeviceName(),"TELESCOPE_MOTION_NS", "North/South", MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&MovementNSSP, MovementNSS, 2, getDeviceName(),"TELESCOPE_MOTION_NS", "North/South", MOTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     IUFillSwitch(&MovementWES[MOTION_WEST], "MOTION_WEST", "West", ISS_OFF);
     IUFillSwitch(&MovementWES[MOTION_EAST], "MOTION_EAST", "East", ISS_OFF);
-    IUFillSwitchVector(&MovementWESP, MovementWES, 2, getDeviceName(),"TELESCOPE_MOTION_WE", "West/East", MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&MovementWESP, MovementWES, 2, getDeviceName(),"TELESCOPE_MOTION_WE", "West/East", MOTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     IUFillNumber(&ScopeParametersN[0],"TELESCOPE_APERTURE","Aperture (mm)","%g",50,4000,0,0.0);
     IUFillNumber(&ScopeParametersN[1],"TELESCOPE_FOCAL_LENGTH","Focal Length (mm)","%g",100,10000,0,0.0 );
@@ -98,10 +94,7 @@ void INDI::Telescope::ISGetProperties (const char *dev)
     //  First we let our parent populate
     DefaultDevice::ISGetProperties(dev);
 
-    //  We may need the port set before we can connect
-    //IDDefText(&PortTP,NULL);
     defineText(&PortTP);
-    defineSwitch(&ConfigSP);
 
     if(isConnected())
     {
@@ -114,7 +107,6 @@ void INDI::Telescope::ISGetProperties (const char *dev)
         defineSwitch(&ParkSP);
         defineSwitch(&MovementNSSP);
         defineSwitch(&MovementWESP);
-        defineSwitch(&ConfigSP);
         defineNumber(&ScopeParametersNP);
 
     }
@@ -214,8 +206,10 @@ bool INDI::Telescope::Sync(double ra,double dec)
     return false;
 }
 
-bool INDI::Telescope::MoveNS(TelescopeMotionNS dir)
+bool INDI::Telescope::MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command)
 {
+    INDI_UNUSED(dir);
+    INDI_UNUSED(command);
     DEBUG(Logger::DBG_ERROR, "Mount does not support North/South motion.");
     IUResetSwitch(&MovementNSSP);
     MovementNSSP.s = IPS_IDLE;
@@ -223,8 +217,10 @@ bool INDI::Telescope::MoveNS(TelescopeMotionNS dir)
     return false;
 }
 
-bool INDI::Telescope::MoveWE(TelescopeMotionWE dir)
+bool INDI::Telescope::MoveWE(TelescopeMotionWE dir, TelescopeMotionCommand command)
 {
+    INDI_UNUSED(dir);
+    INDI_UNUSED(command);
     DEBUG(Logger::DBG_ERROR,"Mount does not support West/East motion.");
     IUResetSwitch(&MovementWESP);
     MovementWESP.s = IPS_IDLE;
@@ -433,12 +429,35 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
         {
             IUUpdateSwitch(&MovementNSSP,states,names,n);
 
-            MovementNSSP.s = IPS_BUSY;
+            int current_motion = IUFindOnSwitchIndex(&MovementNSSP);
 
-            if (MovementNSS[MOTION_NORTH].s == ISS_ON)
-                MoveNS(MOTION_NORTH);
+            // if same move requested, return
+            if ( MovementNSSP.s == IPS_BUSY && current_motion == last_ns_motion)
+                return true;
+
+            // Time to stop motion
+            if (current_motion == -1 || (last_ns_motion != -1 && current_motion != last_ns_motion))
+            {
+                if (MoveNS(last_ns_motion == 0 ? MOTION_NORTH : MOTION_SOUTH, MOTION_STOP))
+                {
+                    MovementNSSP.s = IPS_IDLE;
+                    last_ns_motion = -1;
+                }
+                else
+                    MovementNSSP.s = IPS_ALERT;
+            }
             else
-                MoveNS(MOTION_SOUTH);
+            {
+                if (MoveNS(current_motion == 0 ? MOTION_NORTH : MOTION_SOUTH, MOTION_START))
+                {
+                    MovementNSSP.s = IPS_BUSY;
+                    last_ns_motion = current_motion;
+                }
+                else
+                    MovementNSSP.s = IPS_ALERT;
+            }
+
+            IDSetSwitch(&MovementNSSP, NULL);
 
             return true;
         }
@@ -447,12 +466,35 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
         {
             IUUpdateSwitch(&MovementWESP,states,names,n);
 
-            MovementWESP.s = IPS_BUSY;
+            int current_motion = IUFindOnSwitchIndex(&MovementWESP);
 
-            if (MovementWES[MOTION_WEST].s == ISS_ON)
-                MoveWE(MOTION_WEST);
+            // if same move requested, return
+            if ( MovementWESP.s == IPS_BUSY && current_motion == last_we_motion)
+                return true;
+
+            // Time to stop motion
+            if (current_motion == -1 || (last_we_motion != -1 && current_motion != last_we_motion))
+            {
+                if (MoveWE(last_we_motion == 0 ? MOTION_WEST : MOTION_EAST, MOTION_STOP))
+                {
+                    MovementWESP.s = IPS_IDLE;
+                    last_we_motion = -1;
+                }
+                else
+                    MovementWESP.s = IPS_ALERT;
+            }
             else
-                MoveWE(MOTION_EAST);
+            {
+                if (MoveWE(current_motion == 0 ? MOTION_WEST : MOTION_EAST, MOTION_START))
+                {
+                    MovementWESP.s = IPS_BUSY;
+                    last_we_motion = current_motion;
+                }
+                else
+                    MovementWESP.s = IPS_ALERT;
+            }
+
+            IDSetSwitch(&MovementWESP, NULL);
 
             return true;
         }

@@ -593,84 +593,64 @@ bool LX200Generic::Park()
     return true;
 }
 
-bool LX200Generic::MoveNS(TelescopeMotionNS dir)
+bool LX200Generic::MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command)
 {
-    static int last_move=-1;
+    int current_move = (dir == MOTION_NORTH) ? LX200_NORTH : LX200_SOUTH;
 
-     int current_move = -1;
-
-    current_move = IUFindOnSwitchIndex(&MovementNSSP);
-
-    // Previosuly active switch clicked again, so let's stop.
-    if (current_move == last_move && current_move != -1)
+    switch (command)
     {
-        if (isSimulation() == false)
-            HaltMovement(PortFD, (current_move == 0) ? LX200_NORTH : LX200_SOUTH);
+        case MOTION_START:
+        if (isSimulation() == false && MoveTo(PortFD, current_move) < 0)
+        {
+            DEBUG(INDI::Logger::DBG_ERROR, "Error setting N/S motion direction.");
+            return false;
+        }
+        else
+           DEBUGF(INDI::Logger::DBG_SESSION,"Moving toward %s.", (current_move == LX200_NORTH) ? "North" : "South");
+        break;
 
-        IUResetSwitch(&MovementNSSP);
-        MovementNSSP.s = IPS_IDLE;
-        IDSetSwitch(&MovementNSSP, "Movement toward %s halted.", (current_move == 0) ? "North" : "South");
-        last_move = -1;
-        return true;
+        case MOTION_STOP:
+        if (isSimulation() == false && HaltMovement(PortFD, current_move) < 0)
+        {
+            DEBUG(INDI::Logger::DBG_ERROR, "Error stopping N/S motion.");
+            return false;
+        }
+        else
+            DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.", (current_move == 0) ? "North" : "South");
+        break;
     }
 
-    last_move = current_move;
-
-    if (isDebug())
-        IDLog("Current Move: %d - Previous Move: %d\n", current_move, last_move);
-
-    // Correction for LX200 Driver: North 0 - South 3
-    current_move = (dir == MOTION_NORTH) ? LX200_NORTH : LX200_SOUTH;
-
-    if (isSimulation() == false && MoveTo(PortFD, current_move) < 0)
-    {
-        MovementNSSP.s = IPS_ALERT;
-        IDSetSwitch(&MovementNSSP, "Error setting N/S motion direction.");
-        return false;
-    }
-
-
-      MovementNSSP.s = IPS_BUSY;
-      IDSetSwitch(&MovementNSSP, "Moving toward %s.", (current_move == LX200_NORTH) ? "North" : "South");
-      return true;
+    return true;
 }
 
-bool LX200Generic::MoveWE(TelescopeMotionWE dir)
+bool LX200Generic::MoveWE(TelescopeMotionWE dir, TelescopeMotionCommand command)
 {
-    static int last_move=-1;
 
-   int current_move = -1;
+    int current_move = (dir == MOTION_WEST) ? LX200_WEST : LX200_EAST;
 
-   current_move = IUFindOnSwitchIndex(&MovementWESP);
+    switch (command)
+    {
+        case MOTION_START:
+        if (isSimulation() == false && MoveTo(PortFD, current_move) < 0)
+        {
+            DEBUG(INDI::Logger::DBG_ERROR, "Error setting W/E motion direction.");
+            return false;
+        }
+        else
+           DEBUGF(INDI::Logger::DBG_SESSION,"Moving toward %s.", (current_move == LX200_WEST) ? "West" : "East");
+        break;
 
-  // Previosuly active switch clicked again, so let's stop.
-  if (current_move == last_move && current_move != -1)
-  {
-      if (isSimulation() == false)
-        HaltMovement(PortFD, (current_move == 0) ? LX200_WEST : LX200_EAST);
-      IUResetSwitch(&MovementWESP);
-      MovementWESP.s = IPS_IDLE;
-      IDSetSwitch(&MovementWESP, "Movement toward %s halted.", (current_move == 0) ? "West" : "East");
-      last_move = -1;
-      return true;
-  }
+        case MOTION_STOP:
+        if (isSimulation() == false && HaltMovement(PortFD, current_move) < 0)
+        {
+            DEBUG(INDI::Logger::DBG_ERROR, "Error stopping W/E motion.");
+            return false;
+        }
+        else
+            DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.", (current_move == 0) ? "West" : "East");
+        break;
+    }
 
-  last_move = current_move;
-
-  if (isDebug())
-      IDLog("Current Move: %d - Previous Move: %d\n", current_move, last_move);
-
-  current_move = (dir == MOTION_WEST) ? LX200_WEST : LX200_EAST;
-
-  if (isSimulation() == false && MoveTo(PortFD, current_move) < 0)
-  {
-      MovementWESP.s = IPS_ALERT;
-      IDSetSwitch(&MovementWESP, "Error setting W/E motion direction.");
-      return false;
-  }
-
-    MovementWESP.s = IPS_BUSY;
-    IDSetSwitch(&MovementWESP, "Moving toward %s.", (current_move == LX200_WEST) ? "West" : "East");
     return true;
 }
 
@@ -1415,7 +1395,7 @@ bool LX200Generic::GuideNorth(float ms)
       {
           int dir = IUFindOnSwitchIndex(&MovementNSSP);
 
-          MoveNS(dir == 0 ? MOTION_NORTH : MOTION_SOUTH);
+          MoveNS(dir == 0 ? MOTION_NORTH : MOTION_SOUTH, MOTION_STOP);
 
       }
 
@@ -1438,7 +1418,7 @@ bool LX200Generic::GuideNorth(float ms)
         }
 
         MovementNSS[0].s = ISS_ON;
-        MoveNS(MOTION_NORTH);
+        MoveNS(MOTION_NORTH, MOTION_START);
       }
 
       // Set slew to guiding
@@ -1467,7 +1447,7 @@ bool LX200Generic::GuideSouth(float ms)
     {
         int dir = IUFindOnSwitchIndex(&MovementNSSP);
 
-        MoveNS(dir == 0 ? MOTION_NORTH : MOTION_SOUTH);
+        MoveNS(dir == 0 ? MOTION_NORTH : MOTION_SOUTH, MOTION_STOP);
 
     }
 
@@ -1490,7 +1470,7 @@ bool LX200Generic::GuideSouth(float ms)
       }
 
       MovementNSS[1].s = ISS_ON;
-      MoveNS(MOTION_SOUTH);
+      MoveNS(MOTION_SOUTH, MOTION_START);
     }
 
     // Set slew to guiding
@@ -1521,7 +1501,7 @@ bool LX200Generic::GuideEast(float ms)
     {
         int dir = IUFindOnSwitchIndex(&MovementWESP);
 
-        MoveWE(dir == 0 ? MOTION_WEST : MOTION_EAST);
+        MoveWE(dir == 0 ? MOTION_WEST : MOTION_EAST, MOTION_STOP);
 
     }
 
@@ -1544,7 +1524,7 @@ bool LX200Generic::GuideEast(float ms)
       }
 
       MovementWES[1].s = ISS_ON;
-      MoveWE(MOTION_EAST);
+      MoveWE(MOTION_EAST, MOTION_START);
     }
 
     // Set slew to guiding
@@ -1575,7 +1555,7 @@ bool LX200Generic::GuideWest(float ms)
     {
         int dir = IUFindOnSwitchIndex(&MovementWESP);
 
-        MoveWE(dir == 0 ? MOTION_WEST : MOTION_EAST);
+        MoveWE(dir == 0 ? MOTION_WEST : MOTION_EAST, MOTION_STOP);
 
     }
 
@@ -1598,7 +1578,7 @@ bool LX200Generic::GuideWest(float ms)
       }
 
       MovementWES[0].s = ISS_ON;
-      MoveWE(MOTION_WEST);
+      MoveWE(MOTION_WEST, MOTION_START);
     }
 
     // Set slew to guiding
@@ -1643,7 +1623,7 @@ void LX200Generic::guideTimeout()
 
         if (guide_direction == LX200_NORTH || guide_direction == LX200_SOUTH)
         {
-            MoveNS(guide_direction == LX200_NORTH ? MOTION_NORTH : MOTION_SOUTH);
+            MoveNS(guide_direction == LX200_NORTH ? MOTION_NORTH : MOTION_SOUTH, MOTION_STOP);
 
             if (guide_direction == LX200_NORTH)
                 GuideNSNP.np[0].value = 0;
@@ -1658,7 +1638,7 @@ void LX200Generic::guideTimeout()
         }
         if (guide_direction == LX200_WEST || guide_direction == LX200_EAST)
         {
-            MoveWE(guide_direction == LX200_WEST ? MOTION_WEST : MOTION_EAST);
+            MoveWE(guide_direction == LX200_WEST ? MOTION_WEST : MOTION_EAST, MOTION_STOP);
             if (guide_direction == LX200_WEST)
                 GuideWENP.np[0].value = 0;
             else
@@ -1776,7 +1756,7 @@ void LX200Generic::processNSWE(double mag, double angle)
         {
             // Don't try to move if you're busy and moving in the same direction
             if (MovementNSSP.s != IPS_BUSY || MovementNSS[0].s != ISS_ON)
-                MoveNS(MOTION_NORTH);
+                MoveNS(MOTION_NORTH, MOTION_START);
 
             MovementNSSP.s = IPS_BUSY;
             MovementNSSP.sp[0].s = ISS_ON;
@@ -1788,7 +1768,7 @@ void LX200Generic::processNSWE(double mag, double angle)
         {
             // Don't try to move if you're busy and moving in the same direction
            if (MovementNSSP.s != IPS_BUSY  || MovementNSS[1].s != ISS_ON)
-            MoveNS(MOTION_SOUTH);
+            MoveNS(MOTION_SOUTH, MOTION_START);
 
             MovementNSSP.s = IPS_BUSY;
             MovementNSSP.sp[0].s = ISS_OFF;
@@ -1800,7 +1780,7 @@ void LX200Generic::processNSWE(double mag, double angle)
         {
             // Don't try to move if you're busy and moving in the same direction
            if (MovementWESP.s != IPS_BUSY  || MovementWES[1].s != ISS_ON)
-                MoveWE(MOTION_EAST);
+                MoveWE(MOTION_EAST, MOTION_START);
 
            MovementWESP.s = IPS_BUSY;
            MovementWESP.sp[0].s = ISS_OFF;
@@ -1814,7 +1794,7 @@ void LX200Generic::processNSWE(double mag, double angle)
 
             // Don't try to move if you're busy and moving in the same direction
            if (MovementWESP.s != IPS_BUSY  || MovementWES[0].s != ISS_ON)
-                MoveWE(MOTION_WEST);
+                MoveWE(MOTION_WEST, MOTION_START);
 
            MovementWESP.s = IPS_BUSY;
            MovementWESP.sp[0].s = ISS_ON;

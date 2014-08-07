@@ -57,8 +57,8 @@ class LX200Generic: public INDI::Telescope, public INDI::GuiderInterface
 
   protected:
 
-    virtual bool MoveNS(TelescopeMotionNS dir);
-    virtual bool MoveWE(TelescopeMotionWE dir);
+    virtual bool MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command);
+    virtual bool MoveWE(TelescopeMotionWE dir, TelescopeMotionCommand command);
     virtual bool Abort();
 
     virtual bool updateTime(ln_date * utc, double utc_offset);

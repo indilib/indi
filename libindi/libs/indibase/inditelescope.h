@@ -54,6 +54,7 @@ class INDI::Telescope : public INDI::DefaultDevice
         enum TelescopeStatus { SCOPE_IDLE, SCOPE_SLEWING, SCOPE_TRACKING, SCOPE_PARKING, SCOPE_PARKED };
         enum TelescopeMotionNS { MOTION_NORTH, MOTION_SOUTH };
         enum TelescopeMotionWE { MOTION_WEST, MOTION_EAST };
+        enum TelescopeMotionCommand { MOTION_START, MOTION_STOP };
 
         virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
         virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
@@ -122,17 +123,21 @@ class INDI::Telescope : public INDI::DefaultDevice
         */
         virtual bool Sync(double ra,double dec);
 
-        /** \brief Move the telescope in the direction dir.
+        /** \brief Start or Stop the telescope motion in the direction dir.
+         *  \param dir direction of motion
+         *  \param command Start or Stop command
             \return True if successful, false otherewise
             \note This function is not implemented in INDI::Telescope, it must be implemented in the child class
         */
-        virtual bool MoveNS(TelescopeMotionNS dir);
+        virtual bool MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command);
 
         /** \brief Move the telescope in the direction dir.
+            \param dir direction of motion
+            \param command Start or Stop command
             \return True if successful, false otherewise
             \note This function is not implemented in INDI::Telescope, it must be implemented in the child class
         */
-        virtual bool MoveWE(TelescopeMotionWE dir);
+        virtual bool MoveWE(TelescopeMotionWE dir, TelescopeMotionCommand command);
 
         /** \brief Does the mount support park?
          *  \return True if park is supported, false otherwise.
@@ -190,9 +195,6 @@ class INDI::Telescope : public INDI::DefaultDevice
         ISwitchVectorProperty CoordSP; //  A switch vector that stores how we should readct
         ISwitch CoordS[3];              //  On a coord_set message, sync, or slew
 
-        ISwitchVectorProperty ConfigSP; //  A switch vector that stores how we should readct
-        ISwitch ConfigS[3];              //  On a coord_set message, sync, or slew
-
         INumberVectorProperty LocationNP;   //  A number vector that stores lattitude and longitude
         INumber LocationN[3];
 
@@ -213,6 +215,8 @@ class INDI::Telescope : public INDI::DefaultDevice
 
         IText TimeT[2];
         ITextVectorProperty TimeTP;
+
+        int last_we_motion, last_ns_motion;
 
 };
 
