@@ -819,6 +819,8 @@ int V4L2_Base::check_device(char *errmsg) {
 	fmt.fmt.pix.width,  fmt.fmt.pix.height, (fmt.fmt.pixelformat)&0xFF, (fmt.fmt.pixelformat >> 8)&0xFF,
 	(fmt.fmt.pixelformat >> 16)&0xFF, (fmt.fmt.pixelformat >> 24)&0xFF, (decoder->issupportedformat(fmt.fmt.pixelformat)?"supported":"UNSUPPORTED"));
   */
+
+  return 0;
 }
 
 int V4L2_Base::init_device(char *errmsg) {
