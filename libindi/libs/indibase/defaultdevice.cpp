@@ -79,7 +79,7 @@ bool INDI::DefaultDevice::loadConfig(bool silent)
     if (pResult)
             DEBUG(INDI::Logger::DBG_DEBUG, "Configuration successfully loaded.");
         else
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error loading configuration. %s", errmsg);
+            DEBUGF(INDI::Logger::DBG_ERROR, "Error loading user configuration. %s. To save user configuration, click Save under the Configuration property in the Options tab. ", errmsg);
    }
 
    IUSaveDefaultConfig(NULL, NULL, deviceID);

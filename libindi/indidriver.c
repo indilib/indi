@@ -1137,7 +1137,7 @@ int IUReadConfig(const char *filename, const char *dev, char errmsg[])
     fp = fopen(configFileName, "r");
     if (fp == NULL)
     {
-         snprintf(errmsg, MAXRBUF, "Unable to read config file. Error loading file %s: %s\n", configFileName, strerror(errno));
+         snprintf(errmsg, MAXRBUF, "Unable to read user config file. Error loading file %s: %s\n", configFileName, strerror(errno));
          return -1;
     }
 
