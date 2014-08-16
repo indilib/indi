@@ -29,6 +29,9 @@
 #ifdef WITH_SIMULATOR
 #include "simulator/simulator.h"
 #endif
+#ifdef WITH_SCOPE_LIMITS
+#include "scope-limits/scope-limits.h"
+#endif
 
 	typedef struct SyncData {
 	  double lst,jd;
@@ -58,7 +61,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 	double alignedRA, alignedDEC;
     double targetRA;
     double targetDEC;
-	TelescopeStatus RememberTrackState;
+    TelescopeStatus RememberTrackState;
     bool Parked;
     int last_motion_ns;
     int last_motion_ew;
@@ -107,7 +110,8 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
   	INumberVectorProperty *ParkPositionNP;
 	ISwitchVectorProperty *ParkOptionSP;
     ISwitchVectorProperty *ReverseDECSP;
-
+  	INumberVectorProperty *BacklashNP;
+	ISwitchVectorProperty *UseBacklashSP;
 
 	enum Hemisphere {NORTH=0, SOUTH=1 };
 	enum PierSide {WEST=0, EAST=1};
@@ -215,6 +219,10 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 
 #ifdef WITH_SIMULATOR
 	EQModSimulator *simulator;
+#endif
+
+#ifdef WITH_SCOPE_LIMITS
+	HorizonLimits *horizon;
 #endif
 
 };

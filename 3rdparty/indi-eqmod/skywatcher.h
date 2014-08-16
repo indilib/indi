@@ -43,6 +43,9 @@ class EQMod; // TODO
 #define SKYWATCHER_LOWSPEED_RATE 128
 #define SKYWATCHER_MAXREFRESH 0.5
 
+#define SKYWATCHER_BACKLASH_SPEED_RA 64
+#define SKYWATCHER_BACKLASH_SPEED_DE 64
+
 #define HEX(c) (((c) < 'A')?((c)-'0'):((c) - 'A') + 10)
 
 class Skywatcher 
@@ -102,6 +105,11 @@ public:
     void SetParked(bool parked);
     bool isParked();
     bool WriteParkData();
+    // Backlash
+    void SetBacklashRA(unsigned long backlash);
+    void SetBacklashUseRA(bool usebacklash);
+    void SetBacklashDE(unsigned long backlash);
+    void SetBacklashUseDE(bool usebacklash);
 
  private: 
 
@@ -227,6 +235,16 @@ public:
     const char *ParkDeviceName;
     const char * Parkdatafile;
     XMLEle *ParkdataXmlRoot, *ParkdeviceXml, *ParkstatusXml, *ParkpositionXml, *ParkpositionRAXml, *ParkpositionDEXml;
+
+    // Backlash
+    unsigned long Backlash[NUMBER_OF_SKYWATCHERAXIS];
+    bool UseBacklash[NUMBER_OF_SKYWATCHERAXIS];
+    unsigned long Target[NUMBER_OF_SKYWATCHERAXIS];
+    unsigned long TargetBreaks[NUMBER_OF_SKYWATCHERAXIS];
+    SkywatcherAxisStatus LastRunningStatus[NUMBER_OF_SKYWATCHERAXIS];
+    SkywatcherAxisStatus NewStatus[NUMBER_OF_SKYWATCHERAXIS];
+    unsigned long backlashperiod[NUMBER_OF_SKYWATCHERAXIS];
+
 };
 
 #endif

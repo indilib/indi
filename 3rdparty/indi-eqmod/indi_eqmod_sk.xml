@@ -100,10 +100,10 @@ Idle
 </defNumber>
 </defNumberVector>
 <defNumberVector device="EQMod Mount" name="PERIODS" label="Worm Periods" group="Motor Status" state="Idle" perm="ro">
-<defNumber name="RAPERIOD" label="RA Period" format="%.0f" min="0.0" max="16384.0" step="1.0">
+<defNumber name="RAPERIOD" label="RA Period" format="%.0f" min="0.0" max="16777215.0" step="1.0">
 256.0
 </defNumber>
-<defNumber name="DEPERIOD" label="DE Period" format="%.0f" min="0.0" max="16384.0" step="1.0">
+<defNumber name="DEPERIOD" label="DE Period" format="%.0f" min="0.0" max="16777215.0" step="1.0">
 256.0
 </defNumber>
 </defNumberVector>
@@ -264,5 +264,20 @@ Off
 Off
 </defSwitch>
 </defSwitchVector>
-
+<defNumberVector device="EQMod Mount" name="BACKLASH" label="Backlash" group="Options" state="Idle" perm="rw">
+<defNumber name="BACKLASHRA" label="RA Backlash (microsteps)" format="%.0f" min="10.0" max="16777215.0" step="1.0">
+1.0
+</defNumber>
+<defNumber name="BACKLASHDE" label="DE Backlash (microsteps)" format="%.0f" min="10.0" max="16777215.0" step="1.0">
+1.0
+</defNumber>
+</defNumberVector>
+<defSwitchVector device="EQMod Mount" name="USEBACKLASH" label="Use Backlash" group="Options" state="Idle" perm="rw" rule="AnyOfMany">
+<defSwitch name="USEBACKLASHRA" label="RA">
+Off
+</defSwitch>
+<defSwitch name="USEBACKLASHDE" label="DE">
+Off
+</defSwitch>
+</defSwitchVector>
 </INDIDriver>

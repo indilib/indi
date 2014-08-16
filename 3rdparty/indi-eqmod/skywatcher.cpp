@@ -336,6 +336,7 @@ void Skywatcher::Init(ISwitchVectorProperty *parkSP) throw (EQModError)
       //TODO mark mount as unparked?
     }
   }
+
 }
 
 void Skywatcher::InquireBoardVersion(ITextVectorProperty *boardTP) throw (EQModError)
@@ -365,7 +366,7 @@ void Skywatcher::InquireBoardVersion(ITextVectorProperty *boardTP) throw (EQModE
   case 0x81: strcpy(boardinfo[0],"MF"); break;
   case 0x82: strcpy(boardinfo[0],"114GT"); break;
   case 0x90: strcpy(boardinfo[0],"DOB"); break;
-  case 0xF0: strcpy(boardinfo[0],"GEEHALEL"); minperiods[Axis1]=12; minperiods[Axis2]=16;break;
+  case 0xF0: strcpy(boardinfo[0],"GEEHALEL"); minperiods[Axis1]=13; minperiods[Axis2]=16;break;
   default:  strcpy(boardinfo[0],"CUSTOM"); break;
   }
   
@@ -426,6 +427,9 @@ void Skywatcher::InquireRAEncoderInfo(INumberVectorProperty *encoderNP) throw (E
   // should test this is ok
   IUUpdateNumber(encoderNP, steppersvalues, (char **)steppersnames, 3);
   IDSetNumber(encoderNP, NULL);
+
+  backlashperiod[Axis1]=(long)(((SKYWATCHER_STELLAR_DAY * (double)RAStepsWorm) / (double)RASteps360) / SKYWATCHER_BACKLASH_SPEED_RA);
+
 }
 
 void Skywatcher::InquireDEEncoderInfo(INumberVectorProperty *encoderNP) throw (EQModError) {
@@ -467,6 +471,7 @@ void Skywatcher::InquireDEEncoderInfo(INumberVectorProperty *encoderNP) throw (E
   // should test this is ok
   IUUpdateNumber(encoderNP, steppersvalues, (char **)steppersnames, 3);
   IDSetNumber(encoderNP, NULL);
+  backlashperiod[Axis2]=(long)(((SKYWATCHER_STELLAR_DAY * (double)DEStepsWorm) / (double)DESteps360) / SKYWATCHER_BACKLASH_SPEED_DE);
 }
 
 bool Skywatcher::IsRARunning() throw (EQModError)
@@ -591,8 +596,8 @@ void Skywatcher::SlewTo(long deltaraencoder, long deltadeencoder)
     SetMotion(Axis1, newstatus);
     if (useHighSpeed) SetSpeed(Axis1, minperiods[Axis1]); else SetSpeed(Axis1, lowperiod); 
     SetTarget(Axis1, deltaraencoder);
-    if (useHighSpeed) breaks=((deltaraencoder > 3200) ? 3200 : deltaraencoder);
-    else  breaks=((deltaraencoder > 200) ? 200 : deltaraencoder);
+    if (useHighSpeed) breaks=((deltaraencoder > 3200) ? 3200 : deltaraencoder/10);
+    else  breaks=((deltaraencoder > 200) ? 200 : deltaraencoder/10);
     SetTargetBreaks(Axis1, breaks);
     StartMotor(Axis1);
   }
@@ -605,8 +610,8 @@ void Skywatcher::SlewTo(long deltaraencoder, long deltadeencoder)
     SetMotion(Axis2, newstatus);
     if (useHighSpeed) SetSpeed(Axis2, minperiods[Axis2]); else SetSpeed(Axis2, lowperiod); 
     SetTarget(Axis2, deltadeencoder);
-    if (useHighSpeed) breaks=((deltadeencoder > 3200) ? 3200 : deltadeencoder);
-    else  breaks=((deltadeencoder > 200) ? 200 : deltadeencoder);
+    if (useHighSpeed) breaks=((deltadeencoder > 3200) ? 3200 : deltadeencoder/10);
+    else  breaks=((deltadeencoder > 200) ? 200 : deltadeencoder/10);
     SetTargetBreaks(Axis2, breaks);
     StartMotor(Axis2);
   }
@@ -735,6 +740,7 @@ void Skywatcher::SetTarget(SkywatcherAxis axis, unsigned long increment) throw (
   //IDLog("Setting target for axis %c  to %d\n", axis, increment);
   dispatch_command(SetGotoTargetIncrement, axis, cmd);
   read_eqmod();  
+  Target[axis]=increment;
 }
 
 void Skywatcher::SetTargetBreaks(SkywatcherAxis axis, unsigned long increment) throw (EQModError)
@@ -744,13 +750,83 @@ void Skywatcher::SetTargetBreaks(SkywatcherAxis axis, unsigned long increment) t
   long2Revu24str(increment, cmd);
   //IDLog("Setting target for axis %c  to %d\n", axis, increment);
   dispatch_command(SetBreakPointIncrement, axis, cmd);
-  read_eqmod();  
+  read_eqmod();
+  TargetBreaks[axis]=increment;
 }
 
 
 void Skywatcher::StartMotor(SkywatcherAxis axis) throw (EQModError)
 {
+  bool usebacklash=UseBacklash[axis];
+  unsigned long backlash=Backlash[axis];
   DEBUGF(DBG_MOUNT, "%s() : Axis = %c", __FUNCTION__, axis);
+
+  if (usebacklash) {
+    DEBUGF(INDI::Logger::DBG_SESSION, "Checking backlash compensation for axis %c", axis);
+    if (NewStatus[axis].direction != LastRunningStatus[axis].direction) {
+      unsigned long currentsteps;
+      char cmd[7];
+      char motioncmd[3]="20"; // lowspeed goto
+      motioncmd[1]=(NewStatus[axis].direction==FORWARD?'0':'1'); // same direction 
+      bool *motorrunning;
+      struct timespec wait;
+      DEBUGF(INDI::Logger::DBG_SESSION, "Performing backlash compensation for axis %c, microsteps = %d", axis, backlash);
+      // Axis Position
+      dispatch_command(GetAxisPosition, axis, NULL);
+      read_eqmod();
+      currentsteps=Revu24str2long(response+1);
+      // Backlash Speed 
+      long2Revu24str(backlashperiod[axis], cmd);
+      dispatch_command(SetStepPeriod, axis, cmd);
+      read_eqmod();
+      // Backlash motion mode
+      dispatch_command(SetMotionMode, axis, motioncmd);
+      read_eqmod();
+      // Target for backlash
+      long2Revu24str(backlash, cmd);
+      dispatch_command(SetGotoTargetIncrement, axis, cmd);
+      read_eqmod();
+      // Target breaks for backlash (no break steps)
+      long2Revu24str(backlash/10, cmd);
+      dispatch_command(SetBreakPointIncrement, axis, cmd);
+      read_eqmod();
+      // Start Backlash
+      dispatch_command(StartMotion, axis, NULL);
+      read_eqmod();
+      // Wait end of backlash 
+      if (axis == Axis1) motorrunning=&RARunning; else motorrunning=&DERunning;
+      wait.tv_sec=0; wait.tv_nsec=100000000; // 100ms
+      ReadMotorStatus(axis);
+      while (*motorrunning) {
+	nanosleep(&wait, NULL);
+	ReadMotorStatus(axis);
+      }    
+      // Restore microsteps
+      long2Revu24str(currentsteps, cmd);
+      dispatch_command(SetAxisPosition, axis, cmd);
+      read_eqmod();
+      // Restore Speed 
+      long2Revu24str((axis==Axis1?RAPeriod:DEPeriod), cmd);
+      dispatch_command(SetStepPeriod, axis, cmd);
+      read_eqmod();
+      // Restore motion mode
+      switch (NewStatus[axis].slewmode) {
+      case SLEW: if (NewStatus[axis].speedmode == LOWSPEED) motioncmd[0] ='1'; else  motioncmd[0]='3'; break;
+      case GOTO: if (NewStatus[axis].speedmode == LOWSPEED) motioncmd[0] ='2'; else  motioncmd[0]='0'; break;
+      default: motioncmd[0] ='1'; break;
+      }
+      dispatch_command(SetMotionMode, axis, motioncmd);
+      read_eqmod();
+      // Restore Target
+      long2Revu24str(Target[axis], cmd);
+      dispatch_command(SetGotoTargetIncrement, axis, cmd);
+      read_eqmod();
+      // Restore Target breaks 
+      long2Revu24str(TargetBreaks[axis], cmd);
+      dispatch_command(SetBreakPointIncrement, axis, cmd);
+      read_eqmod();
+    }
+  }
   dispatch_command(StartMotion, axis, NULL);
   read_eqmod();
 }
@@ -798,11 +874,15 @@ void Skywatcher::SetMotion(SkywatcherAxis axis, SkywatcherAxisStatus newstatus) 
     read_eqmod();
   }
 #endif
+  NewStatus[axis]=newstatus;
 }
 
 
 void Skywatcher::StopMotor(SkywatcherAxis axis)  throw (EQModError)
 {
+  ReadMotorStatus(axis);
+  if (axis==Axis1 && RARunning) LastRunningStatus[Axis1]=RAStatus;
+  if (axis==Axis2 && DERunning) LastRunningStatus[Axis2]=DEStatus;
   DEBUGF(DBG_MOUNT, "%s() : Axis = %c", __FUNCTION__, axis);
   dispatch_command(NotInstantAxisStop, axis, NULL);
   read_eqmod();
@@ -810,6 +890,9 @@ void Skywatcher::StopMotor(SkywatcherAxis axis)  throw (EQModError)
 
 void Skywatcher::InstantStopMotor(SkywatcherAxis axis)  throw (EQModError)
 {
+  ReadMotorStatus(axis);
+  if (axis==Axis1 && RARunning) LastRunningStatus[Axis1]=RAStatus;
+  if (axis==Axis2 && DERunning) LastRunningStatus[Axis2]=DEStatus;
   DEBUGF(DBG_MOUNT, "%s() : Axis = %c", __FUNCTION__, axis);
   dispatch_command(InstantAxisStop, axis, NULL);
   read_eqmod();
@@ -820,6 +903,9 @@ void Skywatcher::StopWaitMotor(SkywatcherAxis axis)  throw (EQModError)
 {
   bool *motorrunning;
   struct timespec wait;
+  ReadMotorStatus(axis);
+  if (axis==Axis1 && RARunning) LastRunningStatus[Axis1]=RAStatus;
+  if (axis==Axis2 && DERunning) LastRunningStatus[Axis2]=DEStatus;
   DEBUGF(DBG_MOUNT, "%s() : Axis = %c", __FUNCTION__, axis);
   dispatch_command(NotInstantAxisStop, axis, NULL);
   read_eqmod();
@@ -1124,4 +1210,20 @@ char *Skywatcher::WriteParkData(const char *filename)
   fclose(fp);
   return NULL;
 
+}
+
+// Backlash
+void Skywatcher::SetBacklashRA(unsigned long backlash) {
+  Backlash[Axis1]=backlash;
+}
+
+void Skywatcher::SetBacklashUseRA(bool usebacklash) {
+  UseBacklash[Axis1]=usebacklash;
+}
+void Skywatcher::SetBacklashDE(unsigned long backlash) {
+  Backlash[Axis2]=backlash;
+}
+
+void Skywatcher::SetBacklashUseDE(bool usebacklash) {
+  UseBacklash[Axis2]=usebacklash;
 }

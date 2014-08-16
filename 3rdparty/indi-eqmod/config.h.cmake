@@ -12,6 +12,7 @@
 #cmakedefine WITH_LOGGER 
 #cmakedefine WITH_NOFMANY
 #cmakedefine STOP_WHEN_MOTION_CHANGED
+#cmakedefine WITH_SCOPE_LIMITS
 
 #define MAX_PATH_LENGTH 512
 

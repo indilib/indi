@@ -208,6 +208,10 @@ EQMod::EQMod()
 #ifdef WITH_SIMULATOR
   simulator=new EQModSimulator(this);
 #endif
+
+#ifdef WITH_SCOPE_LIMITS
+  horizon=new HorizonLimits(this);
+#endif
   
   /* initialize time */
   tzset();
@@ -330,6 +334,7 @@ bool EQMod::initProperties()
     /* Make sure to init parent properties first */
     INDI::Telescope::initProperties();
 
+
     return true;
 }
 
@@ -385,7 +390,8 @@ bool EQMod::loadProperties()
     SyncManageSP=getSwitch("SYNCMANAGE");
     ParkPositionNP=getNumber("PARKPOSITION");
     ParkOptionSP=getSwitch("PARKOPTION");
-
+    BacklashNP=getNumber("BACKLASH");
+    UseBacklashSP=getSwitch("USEBACKLASH");
     //IDLog("initProperties: connected=%d %s", (isConnected()?1:0), this->getDeviceName());
 
     controller->mapController("MOTIONDIR", "N/S/W/E Control", INDI::Controller::CONTROLLER_JOYSTICK, "JOYSTICK_1");
@@ -394,6 +400,12 @@ bool EQMod::loadProperties()
     controller->initProperties();
 
     INDI::GuiderInterface::initGuiderProperties(this->getDeviceName(), MOTION_TAB);
+
+#ifdef WITH_SCOPE_LIMITS
+    if (horizon) {
+      if (!horizon->initProperties()) return false;
+    }
+#endif
 
     return true;
 }
@@ -436,7 +448,8 @@ bool EQMod::updateProperties()
 	defineSwitch(SyncManageSP);
 	defineNumber(ParkPositionNP);
 	defineSwitch(ParkOptionSP);
-
+	defineNumber(BacklashNP);
+	defineSwitch(UseBacklashSP);
 	defineSwitch(TrackDefaultSP);
 
 	try {
@@ -527,6 +540,8 @@ bool EQMod::updateProperties()
 	  deleteProperty(ParkPositionNP->name);
 	  deleteProperty(ParkOptionSP->name);
 	  deleteProperty(TrackDefaultSP->name);
+	  deleteProperty(BacklashNP->name);
+	  deleteProperty(UseBacklashSP->name);
 	  MountInformationTP=NULL;
 	} 
       }
@@ -534,6 +549,11 @@ bool EQMod::updateProperties()
     if (align) {
       if (!align->updateProperties()) return false;
     }
+#ifdef WITH_SCOPE_LIMITS
+    if (horizon) {
+      if (!horizon->updateProperties()) return false;
+    }
+#endif
     return true;
 }
 
@@ -721,7 +741,7 @@ bool EQMod::ReadScopeStatus() {
       if (!(mount->IsRARunning()) && !(mount->IsDERunning())) {
 	// Goto iteration
 	gotoparams.iterative_count += 1;
-    DEBUGF(INDI::Logger::DBG_SESSION, "Iterative Goto (%d): RA diff = %4.2f arcsecs DE diff = %4.2f arcsecs",
+	DEBUGF(INDI::Logger::DBG_SESSION, "Iterative Goto (%d): RA diff = %4.2f arcsecs DE diff = %4.2f arcsecs",
 	       gotoparams.iterative_count, 3600 * fabs(gotoparams.ratarget - currentRA),  3600 * fabs(gotoparams.detarget - currentDEC));
         if ((gotoparams.iterative_count <= GOTO_ITERATIVE_LIMIT) &&
 	    (((3600 * fabs(gotoparams.ratarget - currentRA)) > RAGOTORESOLUTION) || 
@@ -730,7 +750,7 @@ bool EQMod::ReadScopeStatus() {
 	  gotoparams.racurrentencoder = currentRAEncoder; gotoparams.decurrentencoder = currentDEEncoder;
 	  EncoderTarget(&gotoparams);
 	  // Start iterative slewing
-      DEBUGF(INDI::Logger::DBG_SESSION, "Iterative goto (%d): slew mount to RA increment = %ld, DE increment = %ld", gotoparams.iterative_count,
+	  DEBUGF(INDI::Logger::DBG_SESSION, "Iterative goto (%d): slew mount to RA increment = %ld, DE increment = %ld", gotoparams.iterative_count,
 		    gotoparams.ratargetencoder - gotoparams.racurrentencoder, gotoparams.detargetencoder - gotoparams.decurrentencoder);
 	  mount->SlewTo(gotoparams.ratargetencoder - gotoparams.racurrentencoder, gotoparams.detargetencoder - gotoparams.decurrentencoder);
 
@@ -740,7 +760,7 @@ bool EQMod::ReadScopeStatus() {
 	  if ((gotoparams.iterative_count > GOTO_ITERATIVE_LIMIT) &&
 	    (((3600 * abs(gotoparams.ratarget - currentRA)) > RAGOTORESOLUTION) || 
 	     ((3600 * abs(gotoparams.detarget - currentDEC)) > DEGOTORESOLUTION))) {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Iterative Goto Limit reached (%d iterations): RA diff = %4.2f arcsecs DE diff = %4.2f arcsecs",
+	    DEBUGF(INDI::Logger::DBG_SESSION, "Iterative Goto Limit reached (%d iterations): RA diff = %4.2f arcsecs DE diff = %4.2f arcsecs",
 		   gotoparams.iterative_count, 3600 * fabs(gotoparams.ratarget - currentRA),  3600 * fabs(gotoparams.detarget - currentDEC));
 	  }
 	  if ((RememberTrackState == SCOPE_TRACKING) || ((sw != NULL) && (sw->s == ISS_ON))) {
@@ -761,13 +781,15 @@ bool EQMod::ReadScopeStatus() {
 	      mount->StartDETracking(GetDefaultDETrackRate());
 	      IUResetSwitch(TrackModeSP);
 	      IUUpdateSwitch(TrackModeSP,&state,&name,1);
+	      TrackModeSP->s=IPS_BUSY;
+	      IDSetSwitch(TrackModeSP,NULL);
 	    }
 	    TrackModeSP->s=IPS_BUSY;
 	    IDSetSwitch(TrackModeSP,NULL);
 	    DEBUGF(INDI::Logger::DBG_SESSION, "Telescope slew is complete. Tracking %s...", name);
 	  } else {
 	    TrackState = SCOPE_IDLE;
-        DEBUG(INDI::Logger::DBG_SESSION, "Telescope slew is complete. Stopping...");
+	    DEBUG(INDI::Logger::DBG_SESSION, "Telescope slew is complete. Stopping...");
 	  }
 	  gotoparams.completed=true;
 	  EqNP.s = IPS_OK;
@@ -775,6 +797,13 @@ bool EQMod::ReadScopeStatus() {
 	}
       } 
     }
+
+#ifdef WITH_SCOPE_LIMITS
+    if (horizon) {
+      if (horizon->checkLimits(horizvalues[0], horizvalues[1], TrackState, gotoInProgress())) Abort();
+    }
+#endif   
+
     if (TrackState == SCOPE_PARKING) {
       if (!(mount->IsRARunning()) && !(mount->IsDERunning())) {
 	    ParkSP.s=IPS_OK;
@@ -1103,6 +1132,12 @@ bool EQMod::Goto(double r,double d)
 {
   double juliandate;
   double lst;
+#ifdef WITH_SCOPE_LIMITS
+  struct ln_equ_posn gotoradec;
+  struct ln_hrz_posn gotoaltaz;
+  double gotoaz;
+  double gotoalt;
+#endif
 
   if ((TrackState == SCOPE_SLEWING)  || (TrackState == SCOPE_PARKING) || (TrackState == SCOPE_PARKED)){
     DEBUG(INDI::Logger::DBG_WARNING, "Can not perform goto while goto/park in progress, or scope parked.");
@@ -1114,6 +1149,26 @@ bool EQMod::Goto(double r,double d)
   juliandate=getJulianDate();
   lst=getLst(juliandate, getLongitude()); 
  
+
+#ifdef WITH_SCOPE_LIMITS
+  gotoradec.ra =(r * 360.0) / 24.0;
+  gotoradec.dec =d;
+  /* uses sidereal time, not local sidereal time */
+  /*ln_get_hrz_from_equ_sidereal_time(&lnradec, &lnobserver, lst, &lnaltaz);*/
+  ln_get_hrz_from_equ(&gotoradec, &lnobserver, juliandate, &gotoaltaz);
+  /* libnova measures azimuth from south towards west */
+  gotoaz=range360(gotoaltaz.az + 180);
+  gotoalt=gotoaltaz.alt;
+  if (horizon) {
+    if (!horizon->inGotoLimits(gotoaz, gotoalt)) {
+      DEBUG(INDI::Logger::DBG_WARNING, "Goto outside Horizon Limits.");
+      EqNP.s    = IPS_IDLE;
+      IDSetNumber(&EqNP, NULL);
+      return true;     
+    }
+  }
+#endif   
+
   DEBUGF(INDI::Logger::DBG_SESSION,"Starting Goto RA=%g DE=%g (current RA=%g DE=%g)", r, d, currentRA, currentDEC);
     targetRA=r;
     targetDEC=d;
@@ -1458,7 +1513,19 @@ bool EQMod::ISNewNumber (const char *dev, const char *name, double values[], cha
 		      IUFindNumber(GuideRateNP,"GUIDE_RATE_WE")->value, IUFindNumber(GuideRateNP,"GUIDE_RATE_NS")->value);
 	  return true;
 	}
-      
+
+      if(strcmp(name,"BACKLASH")==0)
+	{
+	  IUUpdateNumber(BacklashNP, values, names, n);
+	  BacklashNP->s = IPS_OK;
+	  IDSetNumber(BacklashNP, NULL);
+	  mount->SetBacklashRA((unsigned long)(IUFindNumber(BacklashNP,"BACKLASHRA")->value));
+	  mount->SetBacklashDE((unsigned long)(IUFindNumber(BacklashNP,"BACKLASHDE")->value));
+	  DEBUGF(INDI::Logger::DBG_SESSION, "Setting Backlash compensation - RA=%.0f microsteps DE=%.0f microsteps",
+		 IUFindNumber(BacklashNP,"BACKLASHRA")->value, IUFindNumber(BacklashNP,"BACKLASHDE")->value);
+	  return true;
+	}      
+
       // Observer
       /*
       if(strcmp(name,"GEOGRAPHIC_COORD")==0)
@@ -1543,6 +1610,12 @@ bool EQMod::ISNewNumber (const char *dev, const char *name, double values[], cha
   }
 #endif
 
+#ifdef WITH_SCOPE_LIMITS
+    if (horizon) {
+      compose=horizon->ISNewNumber(dev,name,values,names,n); if (compose) return true;
+    }
+#endif
+
     //  if we didn't process it, continue up the chain, let somebody else
     //  give it a shot
     return INDI::Telescope::ISNewNumber(dev,name,values,names,n);
@@ -1605,6 +1678,20 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
       DEBUGF(INDI::Logger::DBG_SESSION, "Slew mode :  %s", sw->label);
 	  SlewModeSP->s=IPS_IDLE;
 	  IDSetSwitch(SlewModeSP,NULL);
+	  return true;
+	}
+
+      if(strcmp(name,"USEBACKLASH")==0)
+ 	{  
+	  IUUpdateSwitch(UseBacklashSP,states,names,n);
+	  mount->SetBacklashUseRA((IUFindSwitch(UseBacklashSP, "USEBACKLASHRA")->s==ISS_ON?true:false));
+	  mount->SetBacklashUseDE((IUFindSwitch(UseBacklashSP, "USEBACKLASHDE")->s==ISS_ON?true:false));
+	  DEBUGF(INDI::Logger::DBG_SESSION, "Use Backlash :  RA: %s, DE: %s", 
+		 IUFindSwitch(UseBacklashSP, "USEBACKLASHRA")->s==ISS_ON?"True":"False",
+		 IUFindSwitch(UseBacklashSP, "USEBACKLASHDE")->s==ISS_ON?"True":"False"
+		 );
+	  UseBacklashSP->s=IPS_IDLE;
+	  IDSetSwitch(UseBacklashSP,NULL);
 	  return true;
 	}
 
@@ -1825,6 +1912,11 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
       compose=simulator->ISNewSwitch(dev,name,states,names,n); if (compose) return true;
   }
 #endif
+#ifdef WITH_SCOPE_LIMITS
+    if (horizon) {
+      compose=horizon->ISNewSwitch(dev,name,states,names,n); if (compose) return true;
+    }
+#endif
 
     INDI::Logger::ISNewSwitch(dev,name,states,names,n);
 
@@ -1845,6 +1937,12 @@ bool EQMod::ISNewText (const char *dev, const char *name, char *texts[], char *n
     compose=simulator->ISNewText(dev,name,texts,names,n); if (compose) return true;
   }
 #endif
+#ifdef WITH_SCOPE_LIMITS
+    if (horizon) {
+      compose=horizon->ISNewText(dev,name,texts,names,n); if (compose) return true;
+    }
+#endif
+
   //  Nobody has claimed this, so, ignore it
   return INDI::Telescope::ISNewText(dev,name,texts,names,n);
 }
@@ -2053,7 +2151,9 @@ bool EQMod::Abort()
       EqNP.s = IPS_IDLE;
       IDSetNumber(&EqNP, NULL);
     }   
-  
+
+  if (gotoparams.completed == false) gotoparams.completed=true;
+
   TrackState=SCOPE_IDLE;
   
   AbortSP.s=IPS_OK;
