@@ -33,10 +33,16 @@ include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
 include_directories( ${INDI_INCLUDE_DIR})
 include_directories( ${NOVA_INCLUDE_DIR})
+include_directories( ${NOVA_INCLUDE_DIR}/..)
 
 ########### EQMod ###############
 set(eqmod_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/eqmod.cpp ${CMAKE_CURRENT_SOURCE_DIR}/eqmoderror.cpp ${CMAKE_CURRENT_SOURCE_DIR}/skywatcher.cpp)
+
+if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  set(eqmod_SRCS ${eqmod_SRCS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/mach_gettime.cpp)
+endif()
 
 if(WITH_SIMULATOR)
   set(eqmod_SRCS ${eqmod_SRCS}
