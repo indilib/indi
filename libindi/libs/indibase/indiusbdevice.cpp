@@ -24,10 +24,10 @@
 #include <string.h>
 
 #ifdef NO_ERROR_NAME
-static char *libusb_error_name(int rc)
+const char * LIBUSB_CALL libusb_error_name(int errcode)
 {
   static char buffer[30];
-  sprintf(buffer, "error %d", rc);
+  sprintf(buffer, "error %d", errcode);
   return buffer;
 }
 #endif
