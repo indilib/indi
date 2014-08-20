@@ -196,6 +196,8 @@
 3rdparty/indi-eqmod/eqmoderror.h -text
 3rdparty/indi-eqmod/indi_eqmod.xml -text
 3rdparty/indi-eqmod/indi_eqmod_sk.xml -text
+3rdparty/indi-eqmod/mach_gettime.cpp -text
+3rdparty/indi-eqmod/mach_gettime.h -text
 3rdparty/indi-eqmod/scope-limits/indi_eqmod_scope_limits_sk.xml -text
 3rdparty/indi-eqmod/scope-limits/scope-limits.cpp -text
 3rdparty/indi-eqmod/scope-limits/scope-limits.h -text
