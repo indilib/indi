@@ -1,14 +1,15 @@
-cmake_minimum_required(VERSION 2.4.7)
+cmake_minimum_required(VERSION 2.8)
 PROJECT(libindi C CXX)
 
 cmake_policy(SET CMP0003 NEW)
-cmake_policy(SET CMP0042 OLD)
+#FIXME the following requires CMake v3.0
+#cmake_policy(SET CMP0042 OLD)
 set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
 ##################  INDI version  ################################
 set(INDI_SOVERSION "0")
 set(CMAKE_INDI_VERSION_MAJOR 0)
 set(CMAKE_INDI_VERSION_MINOR 9)
-set(CMAKE_INDI_VERSION_RELEASE 8)
+set(CMAKE_INDI_VERSION_RELEASE 9)
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
 
 ##################  Paths  ################################
