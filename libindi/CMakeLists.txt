@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.6)
 PROJECT(libindi C CXX)
 
 cmake_policy(SET CMP0003 NEW)
