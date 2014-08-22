@@ -1,3 +1,26 @@
+From 0.9.8 to 0.9.9
+
+      + Thread-safe INDI Library.
+      + Support for Rigelsys NFocus Focuser driver.
+      + 3rdparty: Additional VID/PID for QHY.
+      + 3rdparty: added USB Bandiwdth control for ZWO Optical cameras.
+      + 3rdparty: Updated and improved INDI Apogee driver and Apogee Library major update.
+      + 3rdparty: Live preview support for GPhoto driver. Tested on Canon.
+      + 3rdparty: Various bugfixes and improvements in INDI SBIG driver including working guide chip support.
+      + 3rdparty: Fixed time drift error in EQMod. Added Horizon limits. Added Backlash comp.
+      + Updated and improved Image Agent.
+      + Improved Astrophysics driver support.           
+      + Fixed location bug in Celestron GPS driver.                  
+      + Joystick support for focuser and filter wheel devices.
+      + Added option to enable local & remote save for FITS images in all CCD drivers.
+      + Older V4L driver is deprecated (indi_v4l_legacy) and is replaced by indi_v4l2_ccd
+      + V4L2: added recording (SER files) for use with Registax
+      + V4L2: added RGGB & UYVY pixel format support to V4L2 drivers.
+      + V4L2: fixed LX long exposure times.
+      + Updated and improved tutorials.
+      + Fixed few OSX compatibility issues.
+      + Various bug fixes and improvements.      
+      
 From 0.9.7 to 0.9.8
 
       + Support for Telescope Alignment Subsystem Infrastructure. This includes an implementation of Markley's singular value decomposition (SVD) based algorithm for the computation of sky/telescope
