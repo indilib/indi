@@ -1,3 +1,9 @@
+libindi (0.9.9) trusty; urgency=low
+
+  * New upstream release.
+  
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Wed, 27 Aug 2014 08:00:00 +0300
+ 
 libindi (0.9.8.1) trusty; urgency=low
 
   * Changed install location of math plugins to adhere to multi arch spec.
