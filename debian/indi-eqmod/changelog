@@ -1,3 +1,9 @@
+indi-eqmod (0.2) trusty; urgency=low
+
+  * New upstream version.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Thu, 28 Aug 2014 16:00:00 +0300
+ 
 indi-eqmod (0.1) unstable; urgency=low
 
   * New upstream version.
