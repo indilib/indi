@@ -271,6 +271,7 @@ INDI::CCD::CCD()
 
     ExposureTime = 0.0;
     GuiderExposureTime = 0.0;
+    CurrentFilterSlot=-1;
 
     RA=-1000;
     Dec=-1000;
@@ -422,13 +423,16 @@ bool INDI::CCD::initProperties()
 
     IUFillText(&ActiveDeviceT[0],"ACTIVE_TELESCOPE","Telescope","Telescope Simulator");
     IUFillText(&ActiveDeviceT[1],"ACTIVE_FOCUSER","Focuser","Focuser Simulator");
-    IUFillTextVector(ActiveDeviceTP,ActiveDeviceT,2,getDeviceName(),"ACTIVE_DEVICES","Snoop devices",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
+    IUFillText(&ActiveDeviceT[2],"ACTIVE_FILTER","Filter","CCD Simulator");
+    IUFillTextVector(ActiveDeviceTP,ActiveDeviceT,3,getDeviceName(),"ACTIVE_DEVICES","Snoop devices",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillNumber(&EqN[0],"RA","Ra (hh:mm:ss)","%010.6m",0,24,0,0);
     IUFillNumber(&EqN[1],"DEC","Dec (dd:mm:ss)","%010.6m",-90,90,0,0);
     IUFillNumberVector(&EqNP,EqN,2,ActiveDeviceT[0].text,"EQUATORIAL_EOD_COORD","EQ Coord","Main Control",IP_RW,60,IPS_IDLE);
 
     IDSnoopDevice(ActiveDeviceT[0].text,"EQUATORIAL_EOD_COORD");
+    IDSnoopDevice(ActiveDeviceT[2].text,"FILTER_SLOT");
+    IDSnoopDevice(ActiveDeviceT[2].text,"FILTER_NAME");
 
 
     // Guider Interface
@@ -579,6 +583,9 @@ bool INDI::CCD::updateProperties()
 
 bool INDI::CCD::ISSnoopDevice (XMLEle *root)
 {
+    XMLEle *ep=NULL;
+    const char *propName = findXMLAttValu(root, "name");
+
      if(IUSnoopNumber(root,&EqNP)==0)
      {
         float newra,newdec;
@@ -591,9 +598,24 @@ bool INDI::CCD::ISSnoopDevice (XMLEle *root)
             Dec=newdec;
         }
      }
-     else
+     else if (!strcmp(propName, "FILTER_NAME"))
      {
-        //fprintf(stderr,"Snoop Failed\n");
+         prXMLEle(stderr, root, 0);
+         FilterNames.clear();
+
+         for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
+         {
+             FilterNames.push_back(pcdataXMLEle(ep));
+         }
+
+     }
+     else if (!strcmp(propName, "FILTER_SLOT"))
+     {
+         CurrentFilterSlot=-1;
+         for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
+         {
+             CurrentFilterSlot = atoi(pcdataXMLEle(ep));
+         }
      }
 
      return INDI::DefaultDevice::ISSnoopDevice(root);
@@ -618,6 +640,8 @@ bool INDI::CCD::ISNewText (const char *dev, const char *name, char *texts[], cha
             // Update the property name!
             strncpy(EqNP.device, ActiveDeviceT[0].text, MAXINDIDEVICE);
             IDSnoopDevice(ActiveDeviceT[0].text,"EQUATORIAL_EOD_COORD");
+            IDSnoopDevice(ActiveDeviceT[2].text,"FILTER_SLOT");
+            IDSnoopDevice(ActiveDeviceT[2].text,"FILTER_NAME");
 
             // Tell children active devices was updated.
             activeDevicesUpdated();
@@ -1215,6 +1239,12 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
     fits_update_key_s(fptr, TUINT, "XBINNING", &(xbin) , "Binning factor in width", &status);
     fits_update_key_s(fptr, TUINT, "YBINNING", &(ybin), "Binning factor in height", &status);
     fits_update_key_s(fptr, TSTRING, "FRAME", frame_s, "Frame Type", &status);
+    if (CurrentFilterSlot != -1 && CurrentFilterSlot <= FilterNames.size())
+    {
+        char filter[32];
+        strncpy(filter, FilterNames.at(CurrentFilterSlot-1).c_str(), 32);
+        fits_update_key_s(fptr, TSTRING, "FILTER", filter, "Filter", &status);
+    }
 
     if (targetChip->getNAxis() == 2)
     {

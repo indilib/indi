@@ -633,6 +633,9 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         float ExposureTime;
         float GuiderExposureTime;
 
+        std::vector<std::string> FilterNames;
+        int CurrentFilterSlot;
+
         CCDChip PrimaryCCD;
         CCDChip GuideCCD;
 
@@ -641,7 +644,7 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         INumber EqN[2];
 
         ITextVectorProperty *ActiveDeviceTP;
-        IText ActiveDeviceT[2];
+        IText ActiveDeviceT[3];
 
         INumber                 TemperatureN[1];
         INumberVectorProperty   TemperatureNP;
