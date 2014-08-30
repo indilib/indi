@@ -222,6 +222,9 @@ bool AsicamCCD::initProperties()
   cap.hasST4Port = true;
   SetCapability(&cap);
 
+  // Add Debug, Simulator, and Configuration controls
+  addAuxControls();
+
   return true;
 }
 
@@ -251,8 +254,6 @@ void AsicamCCD::ISGetProperties(const char *dev)
 
   defineSwitch(&AvailableCameraSP);
 
-  // Add Debug, Simulator, and Configuration controls
-  addAuxControls();
 }
 
 bool AsicamCCD::updateProperties()
