@@ -10,7 +10,8 @@ From 0.9.8 to 0.9.9
       + 3rdparty: Fixed time drift error in EQMod. Added Horizon limits. Added Backlash comp.
       + Updated and improved Image Agent.
       + Improved Astrophysics driver support.           
-      + Fixed location bug in Celestron GPS driver.                  
+      + Fixed location bug in Celestron GPS driver.
+      + Additional information in FITS header such as filter name.
       + Joystick support for focuser and filter wheel devices.
       + Added option to enable local & remote save for FITS images in all CCD drivers.
       + Older V4L driver is deprecated (indi_v4l_legacy) and is replaced by indi_v4l2_ccd
