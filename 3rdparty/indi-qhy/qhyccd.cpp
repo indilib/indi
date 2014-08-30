@@ -115,8 +115,19 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
   INDI_UNUSED(n);
 }
 
-void ISSnoopDevice(XMLEle *root) {
-  INDI_UNUSED(root);
+void ISSnoopDevice(XMLEle *root)
+{
+    ISInit();
+    const char* dev = findXMLAttValu(root, "device");
+    for (int i = 0; i < count; i++) {
+      QHYCCD *camera = cameras[i];
+      if (dev == NULL || !strcmp(dev, camera->name)) {
+        camera->ISSnoopDevice(root);
+        if (dev != NULL)
+          break;
+      }
+    }
+
 }
 
 void ExposureTimerCallback(void *p) {
