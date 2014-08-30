@@ -1,4 +1,4 @@
-INDI Library Setup 0.9.6
+INDI Library Setup 0.9.9
 ========================
 
 You must have CMake >= 2.4.7 in order to build this package.
@@ -16,8 +16,8 @@ Refer to README.drivers for driver-specific information.
 Dependencies
 ============
 
-+ libusb-dev
 + libusb-1.0-0-dev
-+ libnova >= 0.12.2
-+ cfitsio >= 3.0
++ libnova-dev
++ cfitsio-dev
++ libgsl0-dev 
 
