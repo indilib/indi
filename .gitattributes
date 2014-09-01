@@ -1025,6 +1025,7 @@ debian/indi-sx/changelog -text
 debian/indi-sx/compat -text
 debian/indi-sx/control -text
 debian/indi-sx/copyright -text
+debian/indi-sx/indi-sx.install -text
 debian/indi-sx/rules -text
 debian/indi-sx/source/format -text
 debian/kstars/changelog -text
