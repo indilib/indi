@@ -29,13 +29,13 @@
 		590FEB051892BC5D00F85808 /* QHY8PRO.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 591F82DF189051AF00EA2E8C /* QHY8PRO.HEX */; };
 		590FEB061892BC5D00F85808 /* QHY9.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 591F82E0189051AF00EA2E8C /* QHY9.HEX */; };
 		590FEB071892BC5D00F85808 /* QHY9L.HEX in CopyFiles */ = {isa = PBXBuildFile; fileRef = 591F82E1189051AF00EA2E8C /* QHY9L.HEX */; };
-		591944BA18F9543700837724 /* libindiAlignmentDriver.0.9.8.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 591944B818F9541500837724 /* libindiAlignmentDriver.0.9.8.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		591944BA18F9543700837724 /* libindiAlignmentDriver.0.9.9.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 591944B818F9541500837724 /* libindiAlignmentDriver.0.9.9.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		591991A8188FC9AD007DD2DE /* indiserver.c in Sources */ = {isa = PBXBuildFile; fileRef = 591991A7188FC9AD007DD2DE /* indiserver.c */; };
 		591991AB188FC9BA007DD2DE /* fq.c in Sources */ = {isa = PBXBuildFile; fileRef = 591991A9188FC9BA007DD2DE /* fq.c */; };
 		591991AE188FC9CB007DD2DE /* lilxml.c in Sources */ = {isa = PBXBuildFile; fileRef = 591991AC188FC9CA007DD2DE /* lilxml.c */; };
-		5950C16718D6F4A500B587B2 /* libindi.0.9.8.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5950C16118D6F21700B587B2 /* libindi.0.9.8.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		5950C16818D6F4A500B587B2 /* libindidriver.0.9.8.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5950C16218D6F21700B587B2 /* libindidriver.0.9.8.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		5950C16918D6F4A500B587B2 /* libindimain.0.9.8.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5950C16318D6F21700B587B2 /* libindimain.0.9.8.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		5950C16718D6F4A500B587B2 /* libindi.0.9.9.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5950C16118D6F21700B587B2 /* libindi.0.9.9.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		5950C16818D6F4A500B587B2 /* libindidriver.0.9.9.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5950C16218D6F21700B587B2 /* libindidriver.0.9.9.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		5950C16918D6F4A500B587B2 /* libindimain.0.9.9.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5950C16318D6F21700B587B2 /* libindimain.0.9.9.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		596355DC18994A18009B1A39 /* indi_maxdomeii in CopyFiles */ = {isa = PBXBuildFile; fileRef = 596355D4189949D8009B1A39 /* indi_maxdomeii */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		596355DD18994A18009B1A39 /* indi_spectracyber in CopyFiles */ = {isa = PBXBuildFile; fileRef = 596355D2189949C7009B1A39 /* indi_spectracyber */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		596355DE18994A25009B1A39 /* indi_maxdomeii.xml in CopyFiles */ = {isa = PBXBuildFile; fileRef = 596355D6189949F4009B1A39 /* indi_maxdomeii.xml */; };
@@ -94,7 +94,7 @@
 		59D95CE3188543140008EFEE /* indi_shoestring.xml in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE0422188334EB007E5AE2 /* indi_shoestring.xml */; };
 		59D95CE4188543140008EFEE /* indi_sx.xml in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE0423188334EB007E5AE2 /* indi_sx.xml */; };
 		59D95CE5188543140008EFEE /* indi_tcfs_sk.xml in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE0424188334EB007E5AE2 /* indi_tcfs_sk.xml */; };
-		59F8EE581969DAF600E0044F /* libatikccd.0.14.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F8EE561969DA6E00E0044F /* libatikccd.0.14.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59F8EE581969DAF600E0044F /* libatikccd.0.15.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F8EE561969DA6E00E0044F /* libatikccd.0.15.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		59F9121B188AC27500EF5ED8 /* indi_qhy.xml in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F91219188AC25E00EF5ED8 /* indi_qhy.xml */; };
 		59F9121E188AC2A400EF5ED8 /* indi_qhy_ccd in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F9121C188AC29800EF5ED8 /* indi_qhy_ccd */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		59F91263188AC43900EF5ED8 /* libcfitsio.2.3.37.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59F9122B188AC3C300EF5ED8 /* libcfitsio.2.3.37.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
@@ -180,11 +180,11 @@
 			dstPath = lib;
 			dstSubfolderSpec = 7;
 			files = (
-				59F8EE581969DAF600E0044F /* libatikccd.0.14.dylib in CopyFiles */,
-				591944BA18F9543700837724 /* libindiAlignmentDriver.0.9.8.dylib in CopyFiles */,
-				5950C16718D6F4A500B587B2 /* libindi.0.9.8.dylib in CopyFiles */,
-				5950C16818D6F4A500B587B2 /* libindidriver.0.9.8.dylib in CopyFiles */,
-				5950C16918D6F4A500B587B2 /* libindimain.0.9.8.dylib in CopyFiles */,
+				59F8EE581969DAF600E0044F /* libatikccd.0.15.dylib in CopyFiles */,
+				591944BA18F9543700837724 /* libindiAlignmentDriver.0.9.9.dylib in CopyFiles */,
+				5950C16718D6F4A500B587B2 /* libindi.0.9.9.dylib in CopyFiles */,
+				5950C16818D6F4A500B587B2 /* libindidriver.0.9.9.dylib in CopyFiles */,
+				5950C16918D6F4A500B587B2 /* libindimain.0.9.9.dylib in CopyFiles */,
 				59F91263188AC43900EF5ED8 /* libcfitsio.2.3.37.dylib in CopyFiles */,
 				59F91267188AC43900EF5ED8 /* libnova-0.15.0.dylib in CopyFiles */,
 				59F91268188AC43900EF5ED8 /* libusb-1.0.0.dylib in CopyFiles */,
@@ -249,7 +249,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		591944B818F9541500837724 /* libindiAlignmentDriver.0.9.8.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libindiAlignmentDriver.0.9.8.dylib; path = ../../../../../../usr/local/lib/libindiAlignmentDriver.0.9.8.dylib; sourceTree = "<group>"; };
+		591944B818F9541500837724 /* libindiAlignmentDriver.0.9.9.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libindiAlignmentDriver.0.9.9.dylib; path = ../../../../../../usr/local/Cellar/libindi/0.9.9.1769/lib/libindiAlignmentDriver.0.9.9.dylib; sourceTree = "<group>"; };
 		591991A6188FC99E007DD2DE /* indiserver-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "indiserver-Info.plist"; sourceTree = "<group>"; };
 		591991A7188FC9AD007DD2DE /* indiserver.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = indiserver.c; path = ../../libindi/indiserver.c; sourceTree = "<group>"; };
 		591991A9188FC9BA007DD2DE /* fq.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fq.c; path = ../../libindi/fq.c; sourceTree = "<group>"; };
@@ -284,9 +284,9 @@
 		594D0B3A188300ED00B50F4E /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = System/Library/Frameworks/CoreData.framework; sourceTree = SDKROOT; };
 		594D0B3B188300ED00B50F4E /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		594D0B55188300ED00B50F4E /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = Library/Frameworks/XCTest.framework; sourceTree = DEVELOPER_DIR; };
-		5950C16118D6F21700B587B2 /* libindi.0.9.8.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libindi.0.9.8.dylib; path = ../../../../../../usr/local/lib/libindi.0.9.8.dylib; sourceTree = "<group>"; };
-		5950C16218D6F21700B587B2 /* libindidriver.0.9.8.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libindidriver.0.9.8.dylib; path = ../../../../../../usr/local/lib/libindidriver.0.9.8.dylib; sourceTree = "<group>"; };
-		5950C16318D6F21700B587B2 /* libindimain.0.9.8.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libindimain.0.9.8.dylib; path = ../../../../../../usr/local/lib/libindimain.0.9.8.dylib; sourceTree = "<group>"; };
+		5950C16118D6F21700B587B2 /* libindi.0.9.9.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libindi.0.9.9.dylib; path = ../../../../../../usr/local/Cellar/libindi/0.9.9.1769/lib/libindi.0.9.9.dylib; sourceTree = "<group>"; };
+		5950C16218D6F21700B587B2 /* libindidriver.0.9.9.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libindidriver.0.9.9.dylib; path = ../../../../../../usr/local/Cellar/libindi/0.9.9.1769/lib/libindidriver.0.9.9.dylib; sourceTree = "<group>"; };
+		5950C16318D6F21700B587B2 /* libindimain.0.9.9.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libindimain.0.9.9.dylib; path = ../../../../../../usr/local/Cellar/libindi/0.9.9.1769/lib/libindimain.0.9.9.dylib; sourceTree = "<group>"; };
 		596355D2189949C7009B1A39 /* indi_spectracyber */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_spectracyber; path = ../../../../../../usr/local/bin/indi_spectracyber; sourceTree = "<group>"; };
 		596355D4189949D8009B1A39 /* indi_maxdomeii */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_maxdomeii; path = ../../../../../../usr/local/bin/indi_maxdomeii; sourceTree = "<group>"; };
 		596355D6189949F4009B1A39 /* indi_maxdomeii.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = indi_maxdomeii.xml; path = ../../../../../../usr/local/share/indi/indi_maxdomeii.xml; sourceTree = "<group>"; };
@@ -351,7 +351,7 @@
 		59DE0422188334EB007E5AE2 /* indi_shoestring.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = indi_shoestring.xml; path = /usr/local/share/indi/indi_shoestring.xml; sourceTree = "<absolute>"; };
 		59DE0423188334EB007E5AE2 /* indi_sx.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = indi_sx.xml; path = /usr/local/share/indi/indi_sx.xml; sourceTree = "<absolute>"; };
 		59DE0424188334EB007E5AE2 /* indi_tcfs_sk.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = indi_tcfs_sk.xml; path = /usr/local/share/indi/indi_tcfs_sk.xml; sourceTree = "<absolute>"; };
-		59F8EE561969DA6E00E0044F /* libatikccd.0.14.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libatikccd.0.14.dylib; path = ../../../../../../usr/local/lib/libatikccd.0.14.dylib; sourceTree = "<group>"; };
+		59F8EE561969DA6E00E0044F /* libatikccd.0.15.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libatikccd.0.15.dylib; path = "../../../../../../usr/local/Cellar/indi-atik/0.15/lib/libatikccd.0.15.dylib"; sourceTree = "<group>"; };
 		59F91219188AC25E00EF5ED8 /* indi_qhy.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = indi_qhy.xml; path = ../../../../../../usr/local/share/indi/indi_qhy.xml; sourceTree = "<group>"; };
 		59F9121C188AC29800EF5ED8 /* indi_qhy_ccd */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_qhy_ccd; path = ../../../../../../usr/local/bin/indi_qhy_ccd; sourceTree = "<group>"; };
 		59F9122B188AC3C300EF5ED8 /* libcfitsio.2.3.37.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libcfitsio.2.3.37.dylib; path = ../../../../../../usr/local/lib/libcfitsio.2.3.37.dylib; sourceTree = "<group>"; };
@@ -552,14 +552,14 @@
 		59DE02B11883149F007E5AE2 /* lib */ = {
 			isa = PBXGroup;
 			children = (
-				59F8EE561969DA6E00E0044F /* libatikccd.0.14.dylib */,
-				5950C16118D6F21700B587B2 /* libindi.0.9.8.dylib */,
-				5950C16218D6F21700B587B2 /* libindidriver.0.9.8.dylib */,
-				5950C16318D6F21700B587B2 /* libindimain.0.9.8.dylib */,
+				59F8EE561969DA6E00E0044F /* libatikccd.0.15.dylib */,
+				5950C16118D6F21700B587B2 /* libindi.0.9.9.dylib */,
+				5950C16218D6F21700B587B2 /* libindidriver.0.9.9.dylib */,
+				5950C16318D6F21700B587B2 /* libindimain.0.9.9.dylib */,
 				59F9122B188AC3C300EF5ED8 /* libcfitsio.2.3.37.dylib */,
 				59F9122F188AC3C300EF5ED8 /* libnova-0.15.0.dylib */,
 				59F91230188AC3C300EF5ED8 /* libusb-1.0.0.dylib */,
-				591944B818F9541500837724 /* libindiAlignmentDriver.0.9.8.dylib */,
+				591944B818F9541500837724 /* libindiAlignmentDriver.0.9.9.dylib */,
 			);
 			name = lib;
 			path = "/Users/polakovic/Development/indi-code/macosx/INDI Server";
