@@ -3,7 +3,6 @@ PROJECT(indi-apogee CXX C)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
-set(RULES_INSTALL_DIR "/etc/udev/rules.d")
 
 find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)

@@ -7,7 +7,7 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 else ()
   set(FIRMWARE_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/lib/firmware")
 endif ()
-set(UDEVRULES_INSTALL_DIR "/etc/udev/rules.d")
+set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d/")
 
 set (VERSION_MAJOR 1)
 set (VERSION_MINOR 2)
