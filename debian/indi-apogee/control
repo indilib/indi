@@ -12,3 +12,12 @@ Description: INDI driver for Apogee CCDs and Filter Wheels
  INDI Driver for Apogee CCDs and Filter Wheels
  .
  This driver is compatible with any INDI client such as KStars or Xephem.
+
+Package: indi-apogee-dbg
+Architecture: any
+Depends: indi-apogee (= ${binary:Version}), ${misc:Depends}
+Description: INDI driver for Apogee CCDs and Filter Wheels
+ INDI Driver for Apogee CCDs and Filter Wheels
+ .
+ This driver is compatible with any INDI client such as KStars or Xephem.
+ This package contains the debug symbols for the this driver, useful to investigate problems in INDI.

@@ -12,3 +12,13 @@ Description: INDI FLI CCD & Focuser Driver.
  .
  This driver is compatible with any INDI client such as KStars or Xephem.
 
+Package: indi-fli-dbg
+Priority: extra
+Section: debug
+Architecture: any
+Depends: indi-fli (= ${binary:Version}), ${misc:Depends}
+Description: INDI FLI CCD & Focuser Driver.
+ .
+ This driver is compatible with any INDI client such as KStars or Xephem.
+ This package contains the debug symbols for the this driver, useful to investigate problems in INDI.
+

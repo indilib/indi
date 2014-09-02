@@ -13,3 +13,13 @@ Description: INDI EQMod Driver.
  This driver is compatible with any INDI client such as KStars or Xephem.
  This INDI driver interacts with a mount controller using the Skywatcher Protocol through a serial link.
  It can directly drive Skywatcher and similar mounts through a serial port after a conversion of signal levels (see EQDIRECT interface), or any other mount hardware which uses this protocol. 
+
+Package: indi-eqmod-dbg
+Priority: extra
+Section: debug
+Architecture: any
+Depends: indi-eqmod (= ${binary:Version}), ${misc:Depends}
+Description: INDI EQMod Driver.
+ .
+ This driver is compatible with any INDI client such as KStars or Xephem.
+ This package contains the debug symbols for the this driver, useful to investigate problems in INDI.

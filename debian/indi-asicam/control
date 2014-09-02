@@ -13,3 +13,14 @@ Description: INDI Driver for ZWO Optics ASI cameras
  Driver for ZWO Optics ASI cameras.
  .
  This driver is compatible with any INDI client such as KStars or Xephem.
+
+Package: indi-asicam-dbg
+Priority: extra
+Section: debug
+Architecture: any
+Depends: indi-asicam (= ${binary:Version}), ${misc:Depends}
+Description: INDI Driver for ZWO Optics ASI cameras
+ Driver for ZWO Optics ASI cameras.
+ .
+ This driver is compatible with any INDI client such as KStars or Xephem.
+ This package contains the debug symbols for the this driver, useful to investigate problems in INDI.

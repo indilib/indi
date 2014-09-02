@@ -12,3 +12,12 @@ Description: INDI QSI CCD Driver.
  .
  This driver is compatible with any INDI client such as KStars or Xephem.
 
+Package: indi-qsi-dbg
+Priority: extra
+Section: debug
+Architecture: any
+Depends: indi-qsi (= ${binary:Version}), ${misc:Depends}
+Description: INDI QSI CCD Driver.
+ .
+ This driver is compatible with any INDI client such as KStars or Xephem.
+ This package contains the debug symbols for the this driver, useful to investigate problems in INDI.

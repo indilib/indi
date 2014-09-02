@@ -13,3 +13,13 @@ Description: INDI SBIG Santa Barbra Instrument Group CCD Driver
  Driver for INDI SBIG Santa Barbra Instrument Group CCD.
  .
  This driver is compatible with any INDI client such as KStars or Xephem.
+
+Package: indi-sbig-dbg
+Priority: extra
+Section: debug
+Architecture: any
+Depends: indi-sbig (= ${binary:Version}), ${misc:Depends}
+Description: INDI SBIG Santa Barbra Instrument Group CCD Driver
+ .
+ This driver is compatible with any INDI client such as KStars or Xephem.
+ This package contains the debug symbols for the this driver, useful to investigate problems in INDI.
