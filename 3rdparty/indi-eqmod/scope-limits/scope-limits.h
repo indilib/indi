@@ -49,7 +49,7 @@ class HorizonLimits
   char *WriteDataFile(const char *filename);
   char *LoadDataFile(const char *filename);
   char errorline[128]; 
-  char *sline=errorline+23;
+  const char *sline=errorline+23;
 
 public:
 
