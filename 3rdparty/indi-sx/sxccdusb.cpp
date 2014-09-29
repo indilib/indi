@@ -110,7 +110,7 @@
 #define BULK_OUT                    0x0001
 
 #define BULK_COMMAND_TIMEOUT        2000
-#define BULK_DATA_TIMEOUT           30000
+#define BULK_DATA_TIMEOUT           5000
 
 #if 1
 #define TRACE(c) (c)
@@ -119,6 +119,8 @@
 #define TRACE(c)
 #define DEBUG(c)
 #endif
+
+#define MIN(X,Y) ((X) < (Y) ? (X) : (Y))
 
 static struct {
   int pid;
@@ -619,7 +621,8 @@ int sxReadPixels(HANDLE sxHandle, void *pixels, unsigned long count) {
   unsigned long read=0;
   int rc=0;
   while (read < count && rc >= 0) {
-    rc = libusb_bulk_transfer(sxHandle, BULK_IN, (unsigned char *)pixels + read, count - read, &transferred, BULK_DATA_TIMEOUT);
+    int size = MIN(1024*1024, count - read);
+    rc = libusb_bulk_transfer(sxHandle, BULK_IN, (unsigned char *)pixels + read, size, &transferred, BULK_DATA_TIMEOUT);
     DEBUG(log(true, "sxReadPixels: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
     if (transferred >= 0) {
       read+=transferred;
