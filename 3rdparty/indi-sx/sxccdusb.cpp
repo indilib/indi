@@ -55,6 +55,7 @@
 #define USB_REQ_LENGTH_L            6
 #define USB_REQ_LENGTH_H            7
 #define USB_REQ_DATA                8
+
 #define USB_REQ_DIR(r)              ((r)&(1<<7))
 #define USB_REQ_DATAOUT             0x00
 #define USB_REQ_DATAIN              0x80
@@ -108,8 +109,8 @@
 #define BULK_IN                     0x0082
 #define BULK_OUT                    0x0001
 
-#define BULK_COMMAND_TIMEOUT        1000
-#define BULK_DATA_TIMEOUT           15000
+#define BULK_COMMAND_TIMEOUT        2000
+#define BULK_DATA_TIMEOUT           30000
 
 #if 1
 #define TRACE(c) (c)
@@ -368,7 +369,7 @@ unsigned short sxGetBuildNumber(HANDLE sxHandle) {
     rc = libusb_bulk_transfer(sxHandle, BULK_IN, setup_data, 2, &transferred, BULK_COMMAND_TIMEOUT);
     DEBUG(log(true, "sxGetBuildNumber: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
     if (transferred == 2) {
-      int result=setup_data[0] | (setup_data[1] << 8);
+      unsigned long result=((unsigned long)setup_data[0] | ((unsigned long)setup_data[1] << 8) | ((unsigned long)setup_data[2] << 16) | ((unsigned long)setup_data[3] << 24));
       return result;
     }
   }
