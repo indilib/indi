@@ -46,7 +46,6 @@
 		596EBB57188AC60700190323 /* CMGroup.m in Sources */ = {isa = PBXBuildFile; fileRef = 596EBB4A188AC60700190323 /* CMGroup.m */; };
 		596EBB58188AC60700190323 /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 596EBB4C188AC60700190323 /* Credits.rtf */; };
 		596EBB59188AC60700190323 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 596EBB4E188AC60700190323 /* InfoPlist.strings */; };
-		596EBB5A188AC60700190323 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 596EBB50188AC60700190323 /* Images.xcassets */; };
 		596EBB5C188AC60700190323 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 596EBB53188AC60700190323 /* main.m */; };
 		5979B2F9188ACE7200360C07 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 5979B2F7188ACE7200360C07 /* MainMenu.xib */; };
 		597B890C1887E6BE0093873A /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 594D0B36188300ED00B50F4E /* Cocoa.framework */; };
@@ -56,6 +55,7 @@
 		59B1F12318BBB04300A7AC9A /* indi_aagcloudwatcher in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59B1F11D18BBB00500A7AC9A /* indi_aagcloudwatcher */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		59B1F12418BBB04F00A7AC9A /* indi_aagcloudwatcher_sk.xml in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59B1F11F18BBB02800A7AC9A /* indi_aagcloudwatcher_sk.xml */; };
 		59B1F12518BBB04F00A7AC9A /* indi_aagcloudwatcher.xml in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59B1F12018BBB02800A7AC9A /* indi_aagcloudwatcher.xml */; };
+		59C11FC319B50AEE00B21125 /* AppIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = 59C11FC219B50AEE00B21125 /* AppIcon.icns */; };
 		59D95CB6188540560008EFEE /* indi_atik_ccd in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE026718830F46007E5AE2 /* indi_atik_ccd */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		59D95CB7188540560008EFEE /* indi_atik_wheel in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE026818830F46007E5AE2 /* indi_atik_wheel */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		59D95CB8188540560008EFEE /* indi_celestron_gps in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59DE026918830F46007E5AE2 /* indi_celestron_gps */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
@@ -300,7 +300,6 @@
 		596EBB4A188AC60700190323 /* CMGroup.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CMGroup.m; sourceTree = SOURCE_ROOT; };
 		596EBB4D188AC60700190323 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; name = en; path = Credits.rtf; sourceTree = "<group>"; };
 		596EBB4F188AC60700190323 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = InfoPlist.strings; sourceTree = "<group>"; };
-		596EBB50188AC60700190323 /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = SOURCE_ROOT; };
 		596EBB51188AC60700190323 /* INDI Server-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "INDI Server-Info.plist"; sourceTree = SOURCE_ROOT; };
 		596EBB52188AC60700190323 /* INDI Server-Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "INDI Server-Prefix.pch"; sourceTree = SOURCE_ROOT; };
 		596EBB53188AC60700190323 /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = SOURCE_ROOT; };
@@ -313,6 +312,7 @@
 		59B1F11F18BBB02800A7AC9A /* indi_aagcloudwatcher_sk.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = indi_aagcloudwatcher_sk.xml; path = ../../../../../../usr/local/share/indi/indi_aagcloudwatcher_sk.xml; sourceTree = "<group>"; };
 		59B1F12018BBB02800A7AC9A /* indi_aagcloudwatcher.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = indi_aagcloudwatcher.xml; path = ../../../../../../usr/local/share/indi/indi_aagcloudwatcher.xml; sourceTree = "<group>"; };
 		59B7AD0718872403005B06B4 /* SecurityInterface.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SecurityInterface.framework; path = System/Library/Frameworks/SecurityInterface.framework; sourceTree = SDKROOT; };
+		59C11FC219B50AEE00B21125 /* AppIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = AppIcon.icns; sourceTree = "<group>"; };
 		59DE026718830F46007E5AE2 /* indi_atik_ccd */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_atik_ccd; path = /usr/local/bin/indi_atik_ccd; sourceTree = "<absolute>"; };
 		59DE026818830F46007E5AE2 /* indi_atik_wheel */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_atik_wheel; path = /usr/local/bin/indi_atik_wheel; sourceTree = "<absolute>"; };
 		59DE026918830F46007E5AE2 /* indi_celestron_gps */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_celestron_gps; path = /usr/local/bin/indi_celestron_gps; sourceTree = "<absolute>"; };
@@ -473,6 +473,7 @@
 		594D0B3C188300ED00B50F4E /* INDI Server */ = {
 			isa = PBXGroup;
 			children = (
+				59C11FC219B50AEE00B21125 /* AppIcon.icns */,
 				596EBB45188AC60700190323 /* CMAppDelegate.h */,
 				596EBB46188AC60700190323 /* CMAppDelegate.m */,
 				596EBB47188AC60700190323 /* CMDevice.h */,
@@ -480,7 +481,6 @@
 				596EBB49188AC60700190323 /* CMGroup.h */,
 				596EBB4A188AC60700190323 /* CMGroup.m */,
 				596EBB4B188AC60700190323 /* en.lproj */,
-				596EBB50188AC60700190323 /* Images.xcassets */,
 				596EBB51188AC60700190323 /* INDI Server-Info.plist */,
 				596EBB52188AC60700190323 /* INDI Server-Prefix.pch */,
 				596EBB53188AC60700190323 /* main.m */,
@@ -638,7 +638,7 @@
 			isa = PBXProject;
 			attributes = {
 				CLASSPREFIX = CM;
-				LastUpgradeCheck = 0510;
+				LastUpgradeCheck = 0610;
 				ORGANIZATIONNAME = CloudMaker;
 				TargetAttributes = {
 					594D0B32188300ED00B50F4E = {
@@ -674,8 +674,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				596EBB5A188AC60700190323 /* Images.xcassets in Resources */,
 				596EBB59188AC60700190323 /* InfoPlist.strings in Resources */,
+				59C11FC319B50AEE00B21125 /* AppIcon.icns in Resources */,
 				596EBB58188AC60700190323 /* Credits.rtf in Resources */,
 				5979B2F9188ACE7200360C07 /* MainMenu.xib in Resources */,
 			);
@@ -696,7 +696,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "cd \"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/lib\"\nchmod u+w *\nfor F in *.dylib\ndo\nF=`basename $F`\nfor L in `otool -L $F | grep \"/usr/local\" | awk '{ print $1 }'`\ndo\nBL=`basename $L`\nif [[ \"$F\" == \"$BL\" ]]\nthen\necho \"renaming $F\"\ninstall_name_tool -id @executable_path/../lib/$BL $F\nelse\necho \"fixing $BL in $F\"\ninstall_name_tool -change $L @executable_path/../lib/$BL $F\nfi\ndone\ndone\n\n[ -f libindi.0.dylib ] && echo \"Found\" || ln -s libindi.0.9.8.dylib libindi.0.dylib\n[ -f libindi.dylib ] && echo \"Found\" || ln -s libindi.0.dylib libindi.dylib\n\n[ -f libindidriver.0.dylib ] && echo \"Found\" || ln -s libindidriver.0.9.8.dylib libindidriver.0.dylib\n[ -f libindidriver.dylib ] && echo \"Found\" || ln -s libindidriver.0.dylib libindidriver.dylib\n\n[ -f libindimain.0.dylib ] && echo \"Found\" || ln -s libindimain.0.9.8.dylib libindimain.0.dylib\n[ -f libindimain.dylib ] && echo \"Found\" || ln -s libindimain.0.dylib libindimain.dylib\n\n[ -f libindiAlignmentDriver.0.dylib ] && echo \"Found\" || ln -s libindiAlignmentDriver.0.9.8.dylib libindiAlignmentDriver.0.dylib\n[ -f libindiAlignmentDriver ] && echo \"Found\" || ln -s libindiAlignmentDriver.0.dylib libindiAlignmentDriver.dylib\n\n[ -f libnova.dylib ] && echo \"Found\" || ln -s libnova-0.15.0.dylib libnova.dylib\n\n[ -f libusb.1.0.dylib ] && echo \"Found\" || ln -s libusb-1.0.0.dylib libusb-1.0.dylib\n\n[ -f libcfitsio.2.dylib ] && echo \"Found\" || ln -s libcfitsio.2.3.36.dylib libcfitsio.2.dylib\n[ -f libcfitsio.dylib ] && echo \"Found\" || ln -s libcfitsio.2.dylib libcfitsio.dylib\n\n[ -f libatikccd.0.dylib ] && echo \"Found\" || ln -s libatikccd.0.12.dylib libatikccd.0.dylib\n[ -f libatikccd.dylib ] && echo \"Found\" || ln -s libatikccd.0.12.dylib libatikccd.dylib\n\n\ncd \"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/bin\"\n\nchmod u+w *\nfor F in *\ndo\nF=`basename $F`\nfor L in `otool -L $F | grep \"/usr/local\" | awk '{ print $1 }'`\ndo\nBL=`basename $L`\necho \"fixing $BL in $F\"\ninstall_name_tool -change $L @executable_path/../lib/$BL $F\ndone\ndone\n\n[ -f indi_lx200_16 ] && echo \"Found\" || ln -s indi_lx200generic indi_lx200_16\n[ -f indi_lx200ap ] && echo \"Found\" || ln -s indi_lx200genericlegacy indi_lx200ap\n[ -f indi_lx200autostar ] && echo \"Found\" || ln -s indi_lx200generic indi_lx200autostar\n[ -f indi_lx200classic ] && echo \"Found\" || ln -s indi_lx200generic indi_lx200classic\n[ -f indi_lx200fs2 ] && echo \"Found\" || ln -s indi_lx200genericlegacy indi_lx200fs2\n[ -f indi_lx200gps ] && echo \"Found\" || ln -s indi_lx200generic indi_lx200gps\n[ -f indi_tcfs3_focus ] && echo \"Found\" || ln -s indi_tcfs_focus indi_tcfs3_focus\n";
+			shellScript = "cd \"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/lib\"\nchmod u+w *\nfor F in *.dylib\ndo\nF=`basename $F`\nfor L in `otool -L $F | grep \"/usr/local\" | awk '{ print $1 }'`\ndo\nBL=`basename $L`\nif [[ \"$F\" == \"$BL\" ]]\nthen\necho \"renaming $F\"\ninstall_name_tool -id @executable_path/../lib/$BL $F\nelse\necho \"fixing $BL in $F\"\ninstall_name_tool -change $L @executable_path/../lib/$BL $F\nfi\ndone\ndone\n\n[ -f libindi.0.dylib ] && echo \"Found\" || ln -s libindi.0.9.9.dylib libindi.0.dylib\n[ -f libindi.dylib ] && echo \"Found\" || ln -s libindi.0.dylib libindi.dylib\n\n[ -f libindidriver.0.dylib ] && echo \"Found\" || ln -s libindidriver.0.9.9.dylib libindidriver.0.dylib\n[ -f libindidriver.dylib ] && echo \"Found\" || ln -s libindidriver.0.dylib libindidriver.dylib\n\n[ -f libindimain.0.dylib ] && echo \"Found\" || ln -s libindimain.0.9.9.dylib libindimain.0.dylib\n[ -f libindimain.dylib ] && echo \"Found\" || ln -s libindimain.0.dylib libindimain.dylib\n\n[ -f libindiAlignmentDriver.0.dylib ] && echo \"Found\" || ln -s libindiAlignmentDriver.0.9.9.dylib libindiAlignmentDriver.0.dylib\n[ -f libindiAlignmentDriver ] && echo \"Found\" || ln -s libindiAlignmentDriver.0.dylib libindiAlignmentDriver.dylib\n\n[ -f libnova.dylib ] && echo \"Found\" || ln -s libnova-0.15.0.dylib libnova.dylib\n\n[ -f libusb.1.0.dylib ] && echo \"Found\" || ln -s libusb-1.0.0.dylib libusb-1.0.dylib\n\n[ -f libcfitsio.2.dylib ] && echo \"Found\" || ln -s libcfitsio.2.3.37.dylib libcfitsio.2.dylib\n[ -f libcfitsio.dylib ] && echo \"Found\" || ln -s libcfitsio.2.dylib libcfitsio.dylib\n\n[ -f libatikccd.0.dylib ] && echo \"Found\" || ln -s libatikccd.0.15.dylib libatikccd.0.dylib\n[ -f libatikccd.dylib ] && echo \"Found\" || ln -s libatikccd.0.15.dylib libatikccd.dylib\n\n\ncd \"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/bin\"\n\nchmod u+w *\nfor F in *\ndo\nF=`basename $F`\nfor L in `otool -L $F | grep \"/usr/local\" | awk '{ print $1 }'`\ndo\nBL=`basename $L`\necho \"fixing $BL in $F\"\ninstall_name_tool -change $L @executable_path/../lib/$BL $F\ndone\ndone\n\n[ -f indi_lx200_16 ] && echo \"Found\" || ln -s indi_lx200generic indi_lx200_16\n[ -f indi_lx200ap ] && echo \"Found\" || ln -s indi_lx200genericlegacy indi_lx200ap\n[ -f indi_lx200autostar ] && echo \"Found\" || ln -s indi_lx200generic indi_lx200autostar\n[ -f indi_lx200classic ] && echo \"Found\" || ln -s indi_lx200generic indi_lx200classic\n[ -f indi_lx200fs2 ] && echo \"Found\" || ln -s indi_lx200genericlegacy indi_lx200fs2\n[ -f indi_lx200gps ] && echo \"Found\" || ln -s indi_lx200generic indi_lx200gps\n[ -f indi_tcfs3_focus ] && echo \"Found\" || ln -s indi_tcfs_focus indi_tcfs3_focus\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -792,6 +792,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				"LIBRARY_SEARCH_PATHS[arch=*]" = /usr/local/lib;
 				MACOSX_DEPLOYMENT_TARGET = 10.8;
+				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
 			};
 			name = Debug;
@@ -830,7 +831,6 @@
 		594D0B65188300ED00B50F4E /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "Developer ID Application";
 				COMBINE_HIDPI_IMAGES = YES;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
@@ -848,7 +848,6 @@
 		594D0B66188300ED00B50F4E /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "Developer ID Application";
 				COMBINE_HIDPI_IMAGES = YES;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;

@@ -1383,6 +1383,7 @@ libindi/tools/compiler.c -text
 libindi/tools/evalINDI.c -text
 libindi/tools/getINDIproperty.c -text
 libindi/tools/setINDIproperty.c -text
+macosx/INDI[!!-~]Server/AppIcon.icns -text
 macosx/INDI[!!-~]Server/CMAppDelegate.h -text
 macosx/INDI[!!-~]Server/CMAppDelegate.m -text
 macosx/INDI[!!-~]Server/CMDevice.h -text
@@ -1392,17 +1393,6 @@ macosx/INDI[!!-~]Server/CMGroup.m -text
 macosx/INDI[!!-~]Server/INDI[!!-~]Server-Info.plist -text
 macosx/INDI[!!-~]Server/INDI[!!-~]Server-Prefix.pch -text
 macosx/INDI[!!-~]Server/INDI[!!-~]Server.xcodeproj/project.pbxproj -text
-macosx/INDI[!!-~]Server/Images.xcassets/AppIcon.appiconset/Contents.json -text
-macosx/INDI[!!-~]Server/Images.xcassets/AppIcon.appiconset/logo[!!-~]1024.png -text
-macosx/INDI[!!-~]Server/Images.xcassets/AppIcon.appiconset/logo[!!-~]128.png -text
-macosx/INDI[!!-~]Server/Images.xcassets/AppIcon.appiconset/logo[!!-~]16.png -text
-macosx/INDI[!!-~]Server/Images.xcassets/AppIcon.appiconset/logo[!!-~]256-1.png -text
-macosx/INDI[!!-~]Server/Images.xcassets/AppIcon.appiconset/logo[!!-~]256.png -text
-macosx/INDI[!!-~]Server/Images.xcassets/AppIcon.appiconset/logo[!!-~]32-1.png -text
-macosx/INDI[!!-~]Server/Images.xcassets/AppIcon.appiconset/logo[!!-~]32.png -text
-macosx/INDI[!!-~]Server/Images.xcassets/AppIcon.appiconset/logo[!!-~]512-1.png -text
-macosx/INDI[!!-~]Server/Images.xcassets/AppIcon.appiconset/logo[!!-~]512.png -text
-macosx/INDI[!!-~]Server/Images.xcassets/AppIcon.appiconset/logo[!!-~]64.png -text
 macosx/INDI[!!-~]Server/en.lproj/Credits.rtf -text
 macosx/INDI[!!-~]Server/en.lproj/InfoPlist.strings -text
 macosx/INDI[!!-~]Server/en.lproj/MainMenu.xib -text
