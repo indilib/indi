@@ -22,6 +22,7 @@ if (CFITSIO_FOUND)
 
 set(sbigccd_SRCS
 	${CMAKE_CURRENT_SOURCE_DIR}/sbig_ccd.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/bayer.c
 )
 
 add_executable(indi_sbig_ccd ${sbigccd_SRCS})

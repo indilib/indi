@@ -223,6 +223,9 @@ private:
     ISwitch 				FilterConnectionS[2];
     ISwitchVectorProperty	FilterConnectionSP;
 
+    ISwitch                 DebayerMethodS[8];
+    ISwitchVectorProperty   DebayerMethodSP;
+
     double ccdTemp;
     unsigned short *imageBuffer;
     int timerID;

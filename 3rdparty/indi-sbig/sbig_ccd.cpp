@@ -35,6 +35,7 @@
 #include <ccvt.h>
 
 #include "sbig_ccd.h"
+#include "bayer.h"
 
 #define TEMPERATURE_POLL_MS 5000    /* Temperature Polling time (ms) */
 #define POLLMS          	1000	/* Polling time (ms) */
@@ -321,6 +322,16 @@ bool SBIGCCD::initProperties()
   IUFillSwitch(&FilterConnectionS[1], "DISCONNECT", "Disconnect", ISS_ON);
   IUFillSwitchVector(&FilterConnectionSP, FilterConnectionS, 2, getDeviceName(), "CFW_CONNECTION", "Connect", FILTER_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+  IUFillSwitch(&DebayerMethodS[0], "Nearest", "", ISS_ON);
+  IUFillSwitch(&DebayerMethodS[1],"Simple" , "", ISS_OFF);
+  IUFillSwitch(&DebayerMethodS[2], "BiLinear","" , ISS_OFF);
+  IUFillSwitch(&DebayerMethodS[3], "HQLinear", "", ISS_OFF);
+  IUFillSwitch(&DebayerMethodS[4], "Downsample", "", ISS_OFF);
+  IUFillSwitch(&DebayerMethodS[5], "Edgesense", "", ISS_OFF);
+  IUFillSwitch(&DebayerMethodS[6], "VNG", "", ISS_OFF);
+  IUFillSwitch(&DebayerMethodS[7], "AHD", "", ISS_OFF);
+  IUFillSwitchVector(&DebayerMethodSP, DebayerMethodS, 8, getDeviceName(), "Debayer", "", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
   initFilterProperties(getDeviceName(), FILTER_TAB);
 
   FilterSlotN[0].min = 1;
@@ -373,6 +384,9 @@ bool SBIGCCD::updateProperties()
     // Let's get parameters now from CCD
     setupParams();
 
+    if (isColor)
+        defineSwitch(&DebayerMethodSP);
+
 
     timerID = SetTimer(POLLMS);
   } else
@@ -388,6 +402,7 @@ bool SBIGCCD::updateProperties()
     deleteProperty(FilterProdcutTP.name);
     deleteProperty(FilterTypeSP.name);
     deleteProperty(FilterSlotNP.name);
+    deleteProperty(DebayerMethodSP.name);
 
     if (FilterNameT != NULL)
         deleteProperty(FilterNameTP->name);
@@ -436,6 +451,16 @@ bool SBIGCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
         return false;
       resetFrame();
       return true;
+    }
+
+    if(!strcmp(name, DebayerMethodSP.name))
+    {
+        if (IUUpdateSwitch(&DebayerMethodSP, states, names, n) < 0)
+            return false;
+
+        DebayerMethodSP.s = IPS_OK;
+        IDSetSwitch(&DebayerMethodSP, NULL);
+        return true;
     }
 
     if(!strcmp(name, FanStateSP.name))
@@ -978,7 +1003,8 @@ bool SBIGCCD::StartExposure(float duration)
   ExposureRequest = duration;
 
   DEBUGF(INDI::Logger::DBG_DEBUG, "Primary CCD Exposure Time (s) is: %g", duration);
-  DEBUGF(INDI::Logger::DBG_SESSION, "Taking a %g seconds frame...", ExposureRequest);
+  if (ExposureRequest > 1)
+    DEBUGF(INDI::Logger::DBG_SESSION, "Taking a %g seconds frame...", ExposureRequest);
   gettimeofday(&ExpStart, NULL);
 
   InExposure = true;
@@ -1343,9 +1369,11 @@ bool SBIGCCD::grabImage(CCDChip *targetChip)
       // Bayer to RGB if it is a color camera
       if (isColor)
       {
-          unsigned short * dst = (unsigned short *) malloc(targetChip->getFrameBufferSize());
-          bayer16_2_rgb24(dst, buffer, targetChip->getSubW(), targetChip->getSubH());
+          int debayer = IUFindOnSwitchIndex(&DebayerMethodSP);
+          unsigned short * dst = (unsigned short *) malloc(width*height*2*3);
+          dc1394_bayer_decoding_16bit(buffer, dst, width, height, DC1394_COLOR_FILTER_BGGR, (dc1394bayer_method_t) debayer, 16);
           char *memBuffer = (char *) dst;
+          targetChip->setFrameBufferSize(width*height*2*3, false);
           targetChip->setFrameBuffer(memBuffer);
           targetChip->setNAxis(3);
           free(buffer);
@@ -1355,7 +1383,7 @@ bool SBIGCCD::grabImage(CCDChip *targetChip)
 
   DEBUGF(INDI::Logger::DBG_DEBUG, "%s CCD Download complete.", (targetChip == &PrimaryCCD) ? "Primary" : "Guide");
 
-  if (targetChip == &PrimaryCCD)
+  if (targetChip == &PrimaryCCD && targetChip->getExposureDuration() > 1)
     DEBUG(INDI::Logger::DBG_SESSION, "Download complete.");
 
   ExposureComplete(targetChip);
