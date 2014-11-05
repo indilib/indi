@@ -1,26 +1,35 @@
 Source: kstars-bleeding
 Section: kde
 Priority: optional
-Maintainer: Kubuntu Developers <kubuntu-devel@lists.ubuntu.com>
-Uploaders: Pino Toscano <pino@debian.org>,
- Maximiliano Curia <maxy@debian.org>
-Build-Depends: kde-sc-dev-latest (>= 4:4.10.2),
- cmake, debhelper (>= 7.3.16), pkg-kde-tools (>= 0.12),
- dpkg-dev (>= 1.15.5), kdelibs5-dev (>= 4:4.11.2),
- libeigen3-dev, zlib1g-dev, libcfitsio3-dev (>= 3.040), libglu1-mesa-dev [!armhf], libnova-dev, libqt4-opengl-dev [!armhf], pkg-config, libindi-dev (>= 0.9.7), wcslib-dev, libqjson-dev, xplanet
+Maintainer: Jasem Mutlaq <mutlaqja@ikarustech.com>
+Build-Depends: cmake, debhelper (>= 8.0~), pkg-config, pkg-project-neon5-tools (>= 208~),
+ project-neon5-qt5-dev, project-neon5-extra-cmake-modules,
+ project-neon5-kf5umbrella,
+ project-neon5-kconfig,
+ project-neon5-kdoctools,
+ project-neon5-kguiaddons,
+ project-neon5-knewstuff,
+ project-neon5-kdbusaddons, 
+ project-neon5-ki18n,
+ project-neon5-kinit,
+ project-neon5-kjobwidgets,
+ project-neon5-kio,
+ project-neon5-kwindowsystem,
+ project-neon5-ktexteditor,
+ project-neon5-kxmlgui, 
+ project-neon5-kplotting,
+ project-neon5-ktexteditor,
+ project-neon5-kiconthemes,
+ libeigen3-dev, zlib1g-dev, libcfitsio3-dev (>= 3.040), libglu1-mesa-dev [!armhf], libnova-dev, pkg-config, libindi-dev (>= 0.9.7), wcslib-dev, xplanet
 Standards-Version: 3.9.3
 Homepage: http://edu.kde.org/
-Vcs-Browser: http://bazaar.launchpad.net/~kubuntu-packagers/kubuntu-packaging/kstars
-Vcs-Bzr: https://code.launchpad.net/~kubuntu-packagers/kubuntu-packaging/kstars
-X-Vcs-Debian-Browser: http://git.debian.org/?p=pkg-kde/kde-sc/kstars.git
-X-Vcs-Debian-Git: git://git.debian.org/pkg-kde/kde-sc/kstars.git
 
 Package: kstars-bleeding
 Architecture: any
 Section: science
 conflicts: kstars
 replaces: kstars
-Depends: ${shlibs:Depends}, ${misc:Depends}, kstars-bleeding-data (>= ${source:Version}), indi-full, python-kde4, astrometry.net
+Depends: ${shlibs:Depends}, ${misc:Depends}, kstars-bleeding-data (>= ${source:Version}), indi-full, astrometry.net
 Description: desktop planetarium for KDE
  KStars is a desktop planetarium for KDE, depicting an accurate graphical
  simulation of the night sky, from any location on Earth, at any date and time.

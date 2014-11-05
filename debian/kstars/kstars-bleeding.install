@@ -1,2 +1,3 @@
-usr/bin/kstars
-usr/share/applications/kde4/kstars.desktop
+opt/project-neon5/bin/kstars
+opt/project-neon5/lib/
+opt/project-neon5/share/applications/org.kde.kstars.desktop
