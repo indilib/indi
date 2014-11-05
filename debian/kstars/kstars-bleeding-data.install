@@ -1,8 +1,6 @@
-opt/project-neon5/share/doc/HTML/en/kstars/
-opt/project-neon5/share/icons/
-opt/project-neon5/share/kstars/
-opt/project-neon5/share/config.kcfg/kstars.kcfg
-opt/project-neon5/etc/xdg/
-opt/project-neon5/share/kxmlgui5/
-opt/project-neon5/share/appdata/
-
+usr/share/doc
+usr/share/icons
+usr/share/kstars
+etc/xdg/*
+usr/share/kxmlgui5
+usr/share/config.kcfg/kstars.kcfg

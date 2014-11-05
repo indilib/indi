@@ -1,9 +1,8 @@
 #!/usr/bin/make -f
 
-# add custom dh options
-# dh =
+include /usr/share/pkg-kde-tools/qt-kde-team/2/debian-qt-kde.mk
 
-# add custom cmake options
-# cmake_opts = 
-
-include /opt/project-neon5/share/pkg-project-neon5/0/project-neon5.mk
+override_dh_strip:
+	dh_strip --dbg-package=kstars-bleeding-dbg
+	
+.PHONY: override_dh_auto_test

@@ -1,8 +1,8 @@
-kstars-bleeding (5:14.12) trusty; urgency=medium
+kstars-bleeding (5:14.12) utopic; urgency=medium
 
-  * KF5 based KStars 14.12
+  * KF5 release
 
- -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Wed, 05 Nov 2014 09:30:00 +0300
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Wed, 05 Nov 2014 15:00:00 +0300
  
 kstars-bleeding (4:4.14) trusty; urgency=medium
 
