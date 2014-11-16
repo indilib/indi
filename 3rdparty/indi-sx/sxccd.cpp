@@ -46,11 +46,35 @@ static SXCCD *cameras[20];
 
 #define TIMER 1000
 
-void cleanup() {
+static void cleanup() {
   for (int i = 0; i < count; i++) {
     delete cameras[i];
   }
 }
+
+static void deinterlace(unsigned short *data, int width, int height) {
+  int row, column;
+  long *averages = (long *)malloc((height+1)*sizeof(long));
+  for (row = 0; row < height; row++) {
+    long average = 0;
+    int r = row*width;
+    for (column = 0; column < width; column++) {
+      average += data[r+column];
+    }
+    averages[row] = average;
+  }
+  averages[row] = averages[row-1];
+  for (row = 1; row < height; row+=2) {
+    double q = (averages[row])/((averages[row-1]+averages[row+1])/2.0);
+    int r = row*width;
+    for (column = 0; column < width; column++) {
+      int c = r+column;
+      data[c] = (unsigned short)(data[c]/q);
+    }
+  }
+  free(averages);
+}
+
 
 void ISInit() {
   static bool isInit = false;
@@ -419,11 +443,13 @@ void SXCCD::ExposureTimerHit() {
             rc = sxLatchPixels(handle, CCD_EXP_FLAGS_FIELD_ODD | CCD_EXP_FLAGS_SPARE2, 0, subX, subY / 2, subW, subH / 2, binX, 1);
           if (rc)
             rc = sxReadPixels(handle, oddBuf, size);
-          if (rc)
+          if (rc) {
             for (int i = 0, j = 0; i < subH; i += 2, j++) {
               memcpy(buf + i * subWW, evenBuf + (j * subWW), subWW);
               memcpy(buf + ((i + 1) * subWW), oddBuf + (j * subWW), subWW);
             }
+            deinterlace((unsigned short *)buf, subW, subH);
+          }
         }
       } else {
         rc = sxLatchPixels(handle, CCD_EXP_FLAGS_FIELD_BOTH, 0, subX, subY, subW, subH, binX, binY);
