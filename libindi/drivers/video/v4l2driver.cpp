@@ -91,6 +91,12 @@ bool V4L2_Driver::initProperties()
   IUFillSwitch(&StackModeS[0], "None", "", ISS_ON);
   IUFillSwitch(&StackModeS[1], "Additive", "", ISS_OFF);
   IUFillSwitchVector(&StackModeSP, StackModeS, NARRAY(StackModeS), getDeviceName(), "Stack", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+  /* Drop Frames */
+  IUFillSwitch(&DropFrameS[0], "On", "", ISS_OFF);
+  IUFillSwitch(&DropFrameS[1], "Off", "", ISS_ON);
+  IUFillSwitchVector(&DropFrameSP, DropFrameS, NARRAY(DropFrameS), getDeviceName(), "Drop Frames", "", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
   stackMode=0;
 
   /* Inputs */
@@ -149,6 +155,7 @@ void V4L2_Driver::ISGetProperties (const char *dev)
     defineSwitch(&ImageTypeSP);
     defineSwitch(&InputsSP);
     defineSwitch(&CaptureFormatsSP);
+    defineSwitch(&DropFrameSP);
 
     if (CaptureSizesSP.sp != NULL)
         defineSwitch(&CaptureSizesSP);
@@ -188,6 +195,7 @@ bool V4L2_Driver::updateProperties ()
     defineSwitch(&ImageTypeSP);
     defineSwitch(&InputsSP);
     defineSwitch(&CaptureFormatsSP);
+    defineSwitch(&DropFrameSP);
 
     if (CaptureSizesSP.sp != NULL)
         defineSwitch(&CaptureSizesSP);
@@ -222,6 +230,7 @@ bool V4L2_Driver::updateProperties ()
     deleteProperty(ImageTypeSP.name);
     deleteProperty(InputsSP.name);
     deleteProperty(CaptureFormatsSP.name);
+    deleteProperty(DropFrameSP.name);
 
     if (CaptureSizesSP.sp != NULL)
         deleteProperty(CaptureSizesSP.name);
@@ -254,6 +263,16 @@ bool V4L2_Driver::ISNewSwitch (const char *dev, const char *name, ISState *state
   if (dev && strcmp (getDeviceName(), dev))
     return true;
   
+  /* Drop Frame */
+  if (!strcmp(name, DropFrameSP.name))
+  {
+      IUUpdateSwitch(&DropFrameSP, states, names, n);
+      v4l_base->setDropFrame(DropFrameS[0].s == ISS_ON);
+      DropFrameSP.s = IPS_OK;
+      IDSetSwitch(&DropFrameSP, NULL);
+      return true;
+  }
+
   /* Input */
   if ((!strcmp(name, InputsSP.name)))
     {

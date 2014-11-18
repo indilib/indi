@@ -66,6 +66,7 @@ V4L2_Base::V4L2_Base()
    frameRate.denominator=25;
 
    selectCallBackID = -1;
+   dropFrameEnabled=false;
    dropFrame = false;
   
    xmax = xmin = 160;
@@ -81,7 +82,7 @@ V4L2_Base::V4L2_Base()
 
    cancrop=true;
    cansetrate=true;
-   streamedonce=false;
+   streamedonce=false;   
    v4l2_decode=new V4L2_Decode();
    decoder=v4l2_decode->getDefaultDecoder();
    decoder->init();
@@ -231,12 +232,13 @@ int V4L2_Base::read_frame(char *errmsg) {
     //IDLog("V4L2_base read_frame: calling recorder(@ %x) %c\n", recorder, (dorecord?'Y':'N'));
     if (dorecord) recorder->writeFrame((unsigned char *)(buffers[buf.index].start));
     
-    /*
-      if (dropFrame) {
-      dropFrame = false;
-      return 0;
+
+      if (dropFrame)
+      {
+        dropFrame = false;
+        return 0;
       } 
-    */
+
     if (-1 == xioctl (fd, VIDIOC_QBUF, &buf))
       return errno_exit ("ReadFrame IO_METHOD_MMAP: VIDIOC_QBUF", errmsg);
 
@@ -303,7 +305,8 @@ int V4L2_Base::stop_capturing(char *errmsg) {
   case IO_METHOD_USERPTR:
     // N.B. I used this as a hack to solve a problem with capturing a frame
     // long time ago. I recently tried taking this hack off, and it worked fine!
-    //dropFrame = true;
+    if (dropFrameEnabled)
+        dropFrame = true;
     
     type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     

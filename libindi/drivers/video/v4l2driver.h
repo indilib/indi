@@ -117,6 +117,7 @@ class V4L2_Driver: public INDI::CCD
     ISwitch ImageTypeS[2];
     ISwitch StackModeS[2];
     ISwitch RecordS[2];
+    ISwitch DropFrameS[2];
 	
     /* Texts */
     IText PortT[1];
@@ -142,6 +143,8 @@ class V4L2_Driver: public INDI::CCD
     ISwitchVectorProperty CaptureSizesSP;    			/* Select Capture size switch (Discrete)*/
     ISwitchVectorProperty FrameRatesSP;				/* Select Frame rate (Discrete) */ 
     ISwitchVectorProperty *Options;
+    ISwitchVectorProperty DropFrameSP;
+
     unsigned int v4loptions;
     unsigned int v4ladjustments;
     bool useExtCtrl;
