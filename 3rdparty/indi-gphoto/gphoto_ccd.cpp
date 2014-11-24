@@ -1026,7 +1026,7 @@ GPhotoCCD::HideExtendedOptions(void)
 	}
 }
 
-int GPhotoCCD::Move(FocusDirection dir, int speed, int duration)
+int GPhotoCCD::MoveFocuser(FocusDirection dir, int speed, int duration)
 {
  
    /* gphoto works with steps */ 

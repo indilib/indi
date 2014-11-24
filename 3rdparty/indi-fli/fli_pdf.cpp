@@ -478,7 +478,7 @@ void FLIPDF::TimerHit()
     return;
 }
 
-int FLIPDF::MoveAbs(int targetTicks)
+int FLIPDF::MoveAbsFocuser(int targetTicks)
 {
     int err=0;
 
@@ -490,10 +490,10 @@ int FLIPDF::MoveAbs(int targetTicks)
     long current;
     if (( err = FLIGetStepperPosition(fli_dev, &current)))
     {
-        IDMessage(getDeviceName(), "FLIPDF::MoveAbs: FLIGetStepperPosition() failed. %s.", strerror((int)-err));
+        IDMessage(getDeviceName(), "FLIPDF::MoveAbsFocuser: FLIGetStepperPosition() failed. %s.", strerror((int)-err));
 
         if (isDebug())
-            IDLog("FLIPDF::MoveAbs: FLIGetStepperPosition() failed. %s.\n", strerror((int)-err));
+            IDLog("FLIPDF::MoveAbsFocuser: FLIGetStepperPosition() failed. %s.\n", strerror((int)-err));
         return false;
     }
     err = FLIStepMotorAsync(fli_dev, (targetTicks - current));
@@ -513,7 +513,7 @@ int FLIPDF::MoveAbs(int targetTicks)
     return 1;
 }
 
-int FLIPDF::MoveRel(FocusDirection dir, unsigned int ticks)
+int FLIPDF::MoveRelFocuser(FocusDirection dir, unsigned int ticks)
 {
 
       long cur_rpos=0 ;
@@ -526,7 +526,7 @@ int FLIPDF::MoveRel(FocusDirection dir, unsigned int ticks)
        else
            new_rpos = cur_rpos-ticks;
 
-       return MoveAbs(new_rpos);
+       return MoveAbsFocuser(new_rpos);
 }
 
 bool FLIPDF::findFLIPDF(flidomain_t domain)

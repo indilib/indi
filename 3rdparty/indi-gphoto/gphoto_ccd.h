@@ -87,7 +87,7 @@ protected:
 
     void TimerHit();
     bool SetSpeed(int speed);
-    int Move(FocusDirection dir, int speed, int duration);
+    int MoveFocuser(FocusDirection dir, int speed, int duration);
     virtual void debugTriggered(bool enable);
     bool capturePreview();
 
