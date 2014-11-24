@@ -20,9 +20,12 @@
 #ifndef INDIDOME_H
 #define INDIDOME_H
 
+#include <libnova.h>
+
 #include "defaultdevice.h"
 #include "indicontroller.h"
 #include "indidomeinterface.h"
+
 
 /**
  * \class INDI::Dome
@@ -60,8 +63,12 @@ class INDI::Dome : public INDI::DefaultDevice, public INDI::DomeInterface
          */
         virtual bool saveConfigItems(FILE *fp);
 
+
         ITextVectorProperty PortTP;
         IText PortT[1];
+
+        ITextVectorProperty ActiveDeviceTP;
+        IText ActiveDeviceT[1];
 
         INumber PresetN[3];
         INumberVectorProperty PresetNP;
@@ -72,6 +79,9 @@ class INDI::Dome : public INDI::DefaultDevice, public INDI::DomeInterface
 
         INDI::Controller *controller;
 
+        struct ln_lnlat_posn observer;
+        struct ln_hrz_posn hrz;
+        struct ln_equ_posn equ;
 };
 
 #endif // INDIDOME_H

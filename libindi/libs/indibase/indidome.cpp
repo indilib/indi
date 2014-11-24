@@ -54,12 +54,18 @@ bool INDI::Dome::initProperties()
     IUFillSwitch(&PresetGotoS[2], "Preset 3", "", ISS_OFF);
     IUFillSwitchVector(&PresetGotoSP, PresetGotoS, 3, getDeviceName(), "Goto", "", "Presets", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+    IUFillText(&ActiveDeviceT[0],"ACTIVE_TELESCOPE","Telescope","Telescope Simulator");
+    IUFillTextVector(&ActiveDeviceTP,ActiveDeviceT,1,getDeviceName(),"ACTIVE_DEVICES","Snoop devices",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
+
     addDebugControl();
 
     controller->mapController("Dome CW", "Dome CW", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_1");
     controller->mapController("Dome CCW", "Dome CCW", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_2");
 
     controller->initProperties();
+
+    IDSnoopDevice(ActiveDeviceT[0].text,"EQUATORIAL_EOD_COORD");
+    IDSnoopDevice(ActiveDeviceT[0].text,"GEOGRAPHIC_COORD");
 
     return true;
 }
@@ -79,6 +85,8 @@ bool INDI::Dome::updateProperties()
 {
     if(isConnected())
     {
+        defineText(&ActiveDeviceTP);
+
         if (capability.hasShutter)
             defineSwitch(&DomeShutterSP);
 
@@ -108,6 +116,8 @@ bool INDI::Dome::updateProperties()
         }
     } else
     {
+        deleteProperty(ActiveDeviceTP.name);
+
         if (capability.hasShutter)
             deleteProperty(DomeShutterSP.name);
 
@@ -215,6 +225,23 @@ bool INDI::Dome::ISNewText (const char *dev, const char *name, char *texts[], ch
             IDSetText(&PortTP, NULL);
             return true;
         }
+
+        if(strcmp(name,ActiveDeviceTP.name)==0)
+        {
+            int rc;
+            ActiveDeviceTP.s=IPS_OK;
+            rc=IUUpdateText(&ActiveDeviceTP,texts,names,n);
+            //  Update client display
+            IDSetText(&ActiveDeviceTP,NULL);
+            //saveConfig();
+
+            // Update the property name!
+            //strncpy(EqNP.device, ActiveDeviceT[0].text, MAXINDIDEVICE);
+            IDSnoopDevice(ActiveDeviceT[0].text,"EQUATORIAL_EOD_COORD");
+            IDSnoopDevice(ActiveDeviceT[0].text,"GEOGRAPHIC_COORD");
+            //  We processed this one, so, tell the world we did it
+            return true;
+        }
     }
 
     controller->ISNewText(dev, name, texts, names, n);
@@ -224,6 +251,43 @@ bool INDI::Dome::ISNewText (const char *dev, const char *name, char *texts[], ch
 
 bool INDI::Dome::ISSnoopDevice (XMLEle *root)
 {
+    XMLEle *ep=NULL;
+    const char *propName = findXMLAttValu(root, "name");
+
+    // Check EOD
+    if (!strcmp("EQUATORIAL_EOD_COORD", propName))
+    {
+        for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
+        {
+            const char *elemName = findXMLAttValu(ep, "name");
+            if (!strcmp(elemName, "RA"))
+                equ.ra = atof(pcdataXMLEle(ep))*15.0;
+            else if (!strcmp(elemName, "DEC"))
+                equ.dec = atof(pcdataXMLEle(ep));
+
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Snooped RA: %g - DEC: %g", equ.ra, equ.dec);
+        }
+
+        return true;
+     }
+
+    // Check Geographic coords
+    if (!strcmp("GEOGRAPHIC_COORD", propName))
+    {
+        for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
+        {
+            const char *elemName = findXMLAttValu(ep, "name");
+            if (!strcmp(elemName, "LONG"))
+                observer.lng = atof(pcdataXMLEle(ep));
+            else if (!strcmp(elemName, "LAT"))
+                observer.lat = atof(pcdataXMLEle(ep));
+        }
+
+        DEBUGF(INDI::Logger::DBG_DEBUG, "Snooped LONG: %g - LAT: %g", observer.lng, observer.lat);
+
+        return true;
+     }
+
     controller->ISSnoopDevice(root);
 
     return INDI::DefaultDevice::ISSnoopDevice(root);
@@ -231,6 +295,7 @@ bool INDI::Dome::ISSnoopDevice (XMLEle *root)
 
 bool INDI::Dome::saveConfigItems(FILE *fp)
 {
+    IUSaveConfigText(fp, &ActiveDeviceTP);
     IUSaveConfigText(fp, &PortTP);
     IUSaveConfigNumber(fp, &PresetNP);
     IUSaveConfigNumber(fp, &DomeParamNP);
