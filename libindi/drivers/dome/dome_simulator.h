@@ -1,5 +1,5 @@
 /*******************************************************************************
-  Copyright(c) 2012 Jasem Mutlaq. All rights reserved.
+ Copyright(c) 2014 Jasem Mutlaq. All rights reserved.
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
@@ -16,55 +16,44 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef FOCUSSIM_H
-#define FOCUSSIM_H
+#ifndef DomeSIM_H
+#define DomeSIM_H
 
-#include "indibase/indifocuser.h"
+#include "indibase/indidome.h"
 
 /*  Some headers we need */
 #include <math.h>
 #include <sys/time.h>
 
 
-class FocusSim : public INDI::Focuser
+class DomeSim : public INDI::Dome
 {
-    protected:
-    private:
-
-
-        double ticks;
-        double initTicks;
-
-        INumberVectorProperty SeeingNP;
-        INumberVectorProperty FWHMNP;
-        INumber SeeingN[1];
-        INumber FWHMN[1];
-
-        bool SetupParms();
 
     public:
-        FocusSim();
-        virtual ~FocusSim();
+        DomeSim();
+        virtual ~DomeSim();
 
         const char *getDefaultName();
-
-        bool initProperties();
         bool updateProperties();
-
-        void ISGetProperties (const char *dev);
-
 
         bool Connect();
         bool Disconnect();
 
         void TimerHit();
 
-        virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-        virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+        virtual int MoveRelDome(DomeDirection dir, double azDiff);
+        virtual int MoveAbsDome(double az);
+        virtual int ParkDome();
+        virtual int HomeDome();
+        virtual int ControlDomeShutter(ShutterOperation operation);
+        virtual bool AbortDome();
 
-        virtual int MoveFocuser(FocusDirection dir, int speed, int duration);
-        virtual int MoveAbsFocuser(int ticks);
+    protected:
+    private:
 
+        double targetAz;
+        double shutterTimer;
+        bool SetupParms();
 
 };
 

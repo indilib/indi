@@ -218,7 +218,7 @@ bool FocusSim::ISNewSwitch (const char *dev, const char *name, ISState *states, 
     return INDI::Focuser::ISNewSwitch(dev,name,states,names,n);
 }
 
-int FocusSim::Move(FocusDirection dir, int speed, int duration)
+int FocusSim::MoveFocuser(FocusDirection dir, int speed, int duration)
 {
     double targetTicks = (speed * duration) / (FocusSpeedN[0].max * FocusTimerN[0].max);
     double plannedTicks=ticks;
@@ -259,7 +259,7 @@ int FocusSim::Move(FocusDirection dir, int speed, int duration)
 
 }
 
-int FocusSim::MoveAbs(int targetTicks)
+int FocusSim::MoveAbsFocuser(int targetTicks)
 {
     if (targetTicks < FocusAbsPosN[0].min || targetTicks > FocusAbsPosN[0].max)
     {

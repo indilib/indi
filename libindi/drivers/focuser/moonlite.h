@@ -39,11 +39,11 @@ public:
     virtual void ISGetProperties(const char *dev);
     virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
     virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual int Move(FocusDirection dir, int speed, int duration);
-    virtual int MoveAbs(int ticks);
-    virtual int MoveRel(FocusDirection dir, unsigned int ticks);
-    virtual bool SetSpeed(int speed);
-    virtual bool Abort();
+    virtual int MoveFocuser(FocusDirection dir, int speed, int duration);
+    virtual int MoveAbsFocuser(int ticks);
+    virtual int MoveRelFocuser(FocusDirection dir, unsigned int ticks);
+    virtual bool SetFocuserSpeed(int speed);
+    virtual bool AbortFocuser();
     virtual void TimerHit();
 
 private:
@@ -64,7 +64,7 @@ private:
     bool isMoving();
     bool Ack();
 
-    bool Move(unsigned int position);
+    bool MoveFocuser(unsigned int position);
     bool setStepMode(FocusStepMode mode);
     bool setSpeed(unsigned short speed);
     bool setTemperatureCalibration(double calibration);

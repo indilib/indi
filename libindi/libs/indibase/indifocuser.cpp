@@ -155,7 +155,7 @@ bool INDI::Focuser::ISNewSwitch (const char *dev, const char *name, ISState *sta
         {
             IUUpdateSwitch(&PresetGotoSP, states, names, n);
             int index = IUFindOnSwitchIndex(&PresetGotoSP);
-            int rc = MoveAbs(PresetN[index].value);
+            int rc = MoveAbsFocuser(PresetN[index].value);
             if (rc >= 0)
             {
                 PresetGotoSP.s = IPS_OK;
@@ -232,7 +232,7 @@ void INDI::Focuser::processButton(const char * button_n, ISState state)
     {
         if (variableSpeed)
         {
-           rc = Move(FOCUS_INWARD, FocusSpeedN[0].value, FocusTimerN[0].value);
+           rc = MoveFocuser(FOCUS_INWARD, FocusSpeedN[0].value, FocusTimerN[0].value);
             if (rc == 0)
                 FocusTimerNP.s = IPS_OK;
             else if (rc == 1)
@@ -244,7 +244,7 @@ void INDI::Focuser::processButton(const char * button_n, ISState state)
         }
         else if (canRelMove)
         {
-            rc=MoveRel(FOCUS_INWARD, FocusRelPosN[0].value);
+            rc=MoveRelFocuser(FOCUS_INWARD, FocusRelPosN[0].value);
             if (rc == 0)
             {
                FocusRelPosNP.s=IPS_OK;
@@ -262,7 +262,7 @@ void INDI::Focuser::processButton(const char * button_n, ISState state)
     {
         if (variableSpeed)
         {
-           rc = Move(FOCUS_OUTWARD, FocusSpeedN[0].value, FocusTimerN[0].value);
+           rc = MoveFocuser(FOCUS_OUTWARD, FocusSpeedN[0].value, FocusTimerN[0].value);
             if (rc == 0)
                 FocusTimerNP.s = IPS_OK;
             else if (rc == 1)
@@ -274,7 +274,7 @@ void INDI::Focuser::processButton(const char * button_n, ISState state)
         }
         else if (canRelMove)
         {
-            rc=MoveRel(FOCUS_OUTWARD, FocusRelPosN[0].value);
+            rc=MoveRelFocuser(FOCUS_OUTWARD, FocusRelPosN[0].value);
             if (rc == 0)
             {
                FocusRelPosNP.s=IPS_OK;

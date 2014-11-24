@@ -68,41 +68,41 @@ protected:
     bool processFocuserSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
 
     /**
-     * @brief SetSpeed Set Focuser speed
+     * @brief SetFocuserSpeed Set Focuser speed
      * @param speed focuser speed
      * @return true if successful, false otherwise
      */
-    virtual bool SetSpeed(int speed);
+    virtual bool SetFocuserSpeed(int speed);
 
-    /** \brief Move the focuser in a particular direction with a specific speed for a finite duration.
+    /** \brief MoveFocuser the focuser in a particular direction with a specific speed for a finite duration.
         \param dir Direction of focuser, either FOCUS_INWARD or FOCUS_OUTWARD.
         \param speed Speed of focuser if supported by the focuser.
         \param duration The timeout in milliseconds before the focus motion halts.
         \return Return 0 if motion is completed and focuser reached requested position. Return 1 if focuser started motion to requested position and is in progress.
                 Return -1 if there is an error.
     */
-    virtual int Move(FocusDirection dir, int speed, int duration);
+    virtual int MoveFocuser(FocusDirection dir, int speed, int duration);
 
-    /** \brief Move the focuser to an absolute position.
+    /** \brief MoveFocuser the focuser to an absolute position.
         \param ticks The new position of the focuser.
         \return Return 0 if motion is completed and focuser reached requested position. Return 1 if focuser started motion to requested position and is in progress.
                 Return -1 if there is an error.
     */
-    virtual int MoveAbs(int ticks);
+    virtual int MoveAbsFocuser(int ticks);
 
-    /** \brief Move the focuser to an relative position.
+    /** \brief MoveFocuser the focuser to an relative position.
         \param dir Direction of focuser, either FOCUS_INWARD or FOCUS_OUTWARD.
         \param ticks The relative ticks to move.
         \return Return 0 if motion is completed and focuser reached requested position. Return 1 if focuser started motion to requested position and is in progress.
                 Return -1 if there is an error.
     */
-    virtual int MoveRel(FocusDirection dir, unsigned int ticks);
+    virtual int MoveRelFocuser(FocusDirection dir, unsigned int ticks);
 
     /**
-     * @brief Abort all focus motion
+     * @brief AbortFocuser all focus motion
      * @return True if abort is successful, false otherwise.
      */
-    virtual bool Abort();
+    virtual bool AbortFocuser();
 
     INumberVectorProperty FocusSpeedNP;
     INumber FocusSpeedN[1];

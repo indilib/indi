@@ -1181,7 +1181,7 @@ void NFocus::GetFocusParams ()
 
 }
 
-int NFocus::Move(FocusDirection dir, int speed, int duration)
+int NFocus::MoveFocuser(FocusDirection dir, int speed, int duration)
 {
     INDI_UNUSED(speed);
     double pos=0;
@@ -1221,7 +1221,7 @@ int NFocus::Move(FocusDirection dir, int speed, int duration)
 }
 
 
-int NFocus::MoveAbs(int targetTicks)
+int NFocus::MoveAbsFocuser(int targetTicks)
 {
     int ret= -1 ;
     double new_apos = targetTicks;
@@ -1261,7 +1261,7 @@ int NFocus::MoveAbs(int targetTicks)
     return 0;
 }
 
-int NFocus::MoveRel(FocusDirection dir, unsigned int ticks)
+int NFocus::MoveRelFocuser(FocusDirection dir, unsigned int ticks)
 {
       double cur_rpos=0 ;
       double new_rpos = 0 ;

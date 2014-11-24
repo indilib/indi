@@ -91,7 +91,7 @@ void ISSnoopDevice (XMLEle *root)
 MoonLite::MoonLite()
 {
 
-    // Can move in Absolute & Relative motions, can Abort motion, and has variable speed.
+    // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
     setFocuserFeatures(true, true, true, true);
 
     lastPos = 0;
@@ -529,7 +529,7 @@ bool MoonLite::reset()
 
 }
 
-bool MoonLite::Move(unsigned int position)
+bool MoonLite::MoveFocuser(unsigned int position)
 {
     int nbytes_written=0, rc=-1;
     char errstr[MAXRBUF];
@@ -557,11 +557,11 @@ bool MoonLite::Move(unsigned int position)
         return false;
     }
 
-    // Move to Position
+    // MoveFocuser to Position
     if ( (rc = tty_write(PortFD, ":FG#", 4, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Move error: %s.", errstr);
+        DEBUGF(INDI::Logger::DBG_ERROR, "MoveFocuser error: %s.", errstr);
         return false;
     }
 
@@ -762,7 +762,7 @@ void MoonLite::GetFocusParams ()
         IDSetSwitch(&StepModeSP, NULL);
 }
 
-bool MoonLite::SetSpeed(int speed)
+bool MoonLite::SetFocuserSpeed(int speed)
 {
     bool rc = false;
 
@@ -779,7 +779,7 @@ bool MoonLite::SetSpeed(int speed)
     return true;
 }
 
-int MoonLite::Move(FocusDirection dir, int speed, int duration)
+int MoonLite::MoveFocuser(FocusDirection dir, int speed, int duration)
 {
     if (speed != currentSpeed)
     {
@@ -794,27 +794,27 @@ int MoonLite::Move(FocusDirection dir, int speed, int duration)
     focusMoveRequest = duration/1000.0;
 
     if (dir == FOCUS_INWARD)
-        Move(0);
+        MoveFocuser(0);
     else
-        Move(FocusAbsPosN[0].value + MaxTravelN[0].value - 1);
+        MoveFocuser(FocusAbsPosN[0].value + MaxTravelN[0].value - 1);
 
     if (duration <= POLLMS)
     {
         usleep(POLLMS * 1000);
-        Abort();
+        AbortFocuser();
     }
 
     return 1;
 }
 
 
-int MoonLite::MoveAbs(int targetTicks)
+int MoonLite::MoveAbsFocuser(int targetTicks)
 {
     targetPos = targetTicks;
 
     bool rc = false;
 
-    rc = Move(targetPos);
+    rc = MoveFocuser(targetPos);
 
     if (rc == false)
         return -1;
@@ -824,7 +824,7 @@ int MoonLite::MoveAbs(int targetTicks)
     return 1;
 }
 
-int MoonLite::MoveRel(FocusDirection dir, unsigned int ticks)
+int MoonLite::MoveRelFocuser(FocusDirection dir, unsigned int ticks)
 {
     double newPosition=0;
     bool rc=false;
@@ -834,7 +834,7 @@ int MoonLite::MoveRel(FocusDirection dir, unsigned int ticks)
     else
         newPosition = FocusAbsPosN[0].value + ticks;
 
-    rc = Move(newPosition);
+    rc = MoveFocuser(newPosition);
 
     if (rc == false)
         return -1;
@@ -881,7 +881,7 @@ void MoonLite::TimerHit()
         {
             FocusTimerNP.s = IPS_OK;
             FocusTimerN[0].value = 0;
-            Abort();
+            AbortFocuser();
         }
         else
             FocusTimerN[0].value = remaining*1000.0;
@@ -909,7 +909,7 @@ void MoonLite::TimerHit()
 
 }
 
-bool MoonLite::Abort()
+bool MoonLite::AbortFocuser()
 {
     int nbytes_written;
     if (tty_write(PortFD, ":FQ#", 4, &nbytes_written) == TTY_OK)

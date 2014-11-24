@@ -1155,6 +1155,8 @@ libindi/drivers/auxiliary/joystickdriver.cpp -text
 libindi/drivers/auxiliary/joystickdriver.h -text
 libindi/drivers/ccd/ccd_simulator.cpp -text
 libindi/drivers/ccd/ccd_simulator.h -text
+libindi/drivers/dome/dome_simulator.cpp -text
+libindi/drivers/dome/dome_simulator.h -text
 libindi/drivers/filter_wheel/filter_simulator.cpp -text
 libindi/drivers/filter_wheel/filter_simulator.h -text
 libindi/drivers/filter_wheel/fli_wheel.c -text
@@ -1333,6 +1335,10 @@ libindi/libs/indibase/indicontroller.cpp -text
 libindi/libs/indibase/indicontroller.h -text
 libindi/libs/indibase/indidevice.cpp -text
 libindi/libs/indibase/indidevice.h -text
+libindi/libs/indibase/indidome.cpp -text
+libindi/libs/indibase/indidome.h -text
+libindi/libs/indibase/indidomeinterface.cpp -text
+libindi/libs/indibase/indidomeinterface.h -text
 libindi/libs/indibase/indifilterinterface.cpp -text
 libindi/libs/indibase/indifilterinterface.h -text
 libindi/libs/indibase/indifilterwheel.cpp -text

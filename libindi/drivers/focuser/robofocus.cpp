@@ -1456,7 +1456,7 @@ void RoboFocus::GetFocusParams ()
 
 }
 
-int RoboFocus::Move(FocusDirection dir, int speed, int duration)
+int RoboFocus::MoveFocuser(FocusDirection dir, int speed, int duration)
 {
     INDI_UNUSED(speed);
     double pos=0;
@@ -1488,7 +1488,7 @@ int RoboFocus::Move(FocusDirection dir, int speed, int duration)
 }
 
 
-int RoboFocus::MoveAbs(int targetTicks)
+int RoboFocus::MoveAbsFocuser(int targetTicks)
 {
     int ret= -1 ;
     targetPos = targetTicks;
@@ -1527,7 +1527,7 @@ int RoboFocus::MoveAbs(int targetTicks)
     return 1;
 }
 
-int RoboFocus::MoveRel(FocusDirection dir, unsigned int ticks)
+int RoboFocus::MoveRelFocuser(FocusDirection dir, unsigned int ticks)
 {
       double cur_rpos=0 ;
       double new_rpos = 0 ;
@@ -1622,7 +1622,7 @@ void RoboFocus::TimerHit()
 
 }
 
-bool RoboFocus::Abort()
+bool RoboFocus::AbortFocuser()
 {
     int nbytes_written;
     const char *buf = "\r";

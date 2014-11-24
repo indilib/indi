@@ -434,7 +434,7 @@ bool TCFS::ISNewSwitch (const char *dev, const char *name, ISState *states, char
         if (!strcmp(target_active_switch->name, "FOCUS_MIN"))
         {
             targetTicks = currentPosition;
-            MoveRel(FOCUS_INWARD, currentPosition);
+            MoveRelFocuser(FOCUS_INWARD, currentPosition);
             IDSetSwitch(sProp, "Moving focuser to minimum position...");
         }
         // Center
@@ -452,7 +452,7 @@ bool TCFS::ISNewSwitch (const char *dev, const char *name, ISState *states, char
         {
             unsigned int delta = 0;
             delta = FocusAbsPosN[0].max - currentPosition;
-            MoveRel(FOCUS_OUTWARD, delta);
+            MoveRelFocuser(FOCUS_OUTWARD, delta);
             IDSetSwitch(sProp, "Moving focuser to maximum position %g...", FocusAbsPosN[0].max);
         }
         // Home
@@ -487,20 +487,20 @@ bool TCFS::ISNewSwitch (const char *dev, const char *name, ISState *states, char
     return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
 }
 
-int TCFS::MoveAbs(int ticks)
+int TCFS::MoveAbsFocuser(int ticks)
 {
     int delta=0;
 
     delta = ticks - currentPosition;
 
     if (delta < 0)
-        MoveRel(FOCUS_INWARD, (unsigned int) fabs(delta));
+        MoveRelFocuser(FOCUS_INWARD, (unsigned int) fabs(delta));
     else
-        MoveRel(FOCUS_OUTWARD, (unsigned int) fabs(delta));
+        MoveRelFocuser(FOCUS_OUTWARD, (unsigned int) fabs(delta));
 
 }
 
-int TCFS::MoveRel(FocusDirection dir, unsigned int ticks)
+int TCFS::MoveRelFocuser(FocusDirection dir, unsigned int ticks)
 {
 
     if (inAutoMode)

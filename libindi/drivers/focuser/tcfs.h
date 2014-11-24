@@ -69,8 +69,8 @@ public:
     virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
 
 protected:
-    virtual int MoveAbs(int ticks);
-    virtual int MoveRel(FocusDirection dir, unsigned int ticks);
+    virtual int MoveAbsFocuser(int ticks);
+    virtual int MoveRelFocuser(FocusDirection dir, unsigned int ticks);
     virtual void TimerHit();
 
 private: 

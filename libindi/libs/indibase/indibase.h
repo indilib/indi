@@ -41,10 +41,12 @@ namespace INDI
     class FilterInterface;
     class GuiderInterface;
     class FocuserInterface;
+    class DomeInterface;
     class CCD;
     class Telescope;
     class FilterWheel;
     class Focuser;
+    class Dome;
     class USBDevice;
     class Property;
     class Controller;

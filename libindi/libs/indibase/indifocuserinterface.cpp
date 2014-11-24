@@ -81,7 +81,7 @@ bool INDI::FocuserInterface::processFocuserNumber (const char *dev, const char *
         else dir=FOCUS_OUTWARD;
         t=FocusTimerN[0].value;
 
-        rc = Move(dir,speed,t);
+        rc = MoveFocuser(dir,speed,t);
 
         if (rc == 0)
             FocusTimerNP.s = IPS_OK;
@@ -101,7 +101,7 @@ bool INDI::FocuserInterface::processFocuserNumber (const char *dev, const char *
         int current_speed = FocusSpeedN[0].value;
         IUUpdateNumber(&FocusSpeedNP,values,names,n);
 
-        if (SetSpeed(FocusSpeedN[0].value) == false)
+        if (SetFocuserSpeed(FocusSpeedN[0].value) == false)
         {
             FocusSpeedN[0].value = current_speed;
             FocusSpeedNP.s = IPS_ALERT;
@@ -118,7 +118,7 @@ bool INDI::FocuserInterface::processFocuserNumber (const char *dev, const char *
         int newPos = (int) values[0];
         int ret =0;
 
-        if ( (ret = MoveAbs(newPos)) == 0)
+        if ( (ret = MoveAbsFocuser(newPos)) == 0)
         {
            FocusAbsPosNP.s=IPS_OK;
            IUUpdateNumber(&FocusAbsPosNP,values,names,n);
@@ -168,7 +168,7 @@ bool INDI::FocuserInterface::processFocuserNumber (const char *dev, const char *
             }
         }
 
-        if ( (ret=MoveRel( (FocusMotionS[0].s == ISS_ON ? FOCUS_INWARD : FOCUS_OUTWARD), newPos)) == 0)
+        if ( (ret=MoveRelFocuser( (FocusMotionS[0].s == ISS_ON ? FOCUS_INWARD : FOCUS_OUTWARD), newPos)) == 0)
         {
            FocusRelPosNP.s=IPS_OK;
            IUUpdateNumber(&FocusRelPosNP,values,names,n);
@@ -211,7 +211,7 @@ bool INDI::FocuserInterface::processFocuserSwitch (const char *dev, const char *
     {
         IUResetSwitch(&AbortSP);
 
-        if (Abort())
+        if (AbortFocuser())
             AbortSP.s = IPS_OK;
         else
             AbortSP.s = IPS_ALERT;
@@ -232,7 +232,7 @@ void INDI::FocuserInterface::setFocuserFeatures(bool CanAbsMove, bool CanRelMove
     variableSpeed = VariableSpeed;
 }
 
-int INDI::FocuserInterface::Move(FocusDirection dir, int speed, int duration)
+int INDI::FocuserInterface::MoveFocuser(FocusDirection dir, int speed, int duration)
 {
     //  This should be a virtual function, because the low level hardware class
     //  must override this
@@ -241,7 +241,7 @@ int INDI::FocuserInterface::Move(FocusDirection dir, int speed, int duration)
     return -1;
 }
 
-int INDI::FocuserInterface::MoveRel(FocusDirection dir, unsigned int ticks)
+int INDI::FocuserInterface::MoveRelFocuser(FocusDirection dir, unsigned int ticks)
 {
     //  This should be a virtual function, because the low level hardware class
     //  must override this
@@ -250,7 +250,7 @@ int INDI::FocuserInterface::MoveRel(FocusDirection dir, unsigned int ticks)
     return -1;
 }
 
-int INDI::FocuserInterface::MoveAbs(int ticks)
+int INDI::FocuserInterface::MoveAbsFocuser(int ticks)
 {
     //  This should be a virtual function, because the low level hardware class
     //  must override this
@@ -260,7 +260,7 @@ int INDI::FocuserInterface::MoveAbs(int ticks)
 }
 
 
-bool INDI::FocuserInterface::Abort()
+bool INDI::FocuserInterface::AbortFocuser()
 {
     //  This should be a virtual function, because the low level hardware class
     //  must override this
@@ -268,7 +268,7 @@ bool INDI::FocuserInterface::Abort()
     return false;
 }
 
-bool INDI::FocuserInterface::SetSpeed(int speed)
+bool INDI::FocuserInterface::SetFocuserSpeed(int speed)
 {
     INDI_UNUSED(speed);
 

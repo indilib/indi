@@ -127,6 +127,8 @@ set (indidriver_SRCS
         ${CMAKE_SOURCE_DIR}/libs/indibase/indiusbdevice.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/indiguiderinterface.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/indifilterinterface.cpp
+        ${CMAKE_SOURCE_DIR}/libs/indibase/indidomeinterface.cpp
+        ${CMAKE_SOURCE_DIR}/libs/indibase/indidome.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/indilogger.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/indicontroller.cpp
     )
@@ -497,6 +499,23 @@ set(filtersimulator_SRCS
 add_executable(indi_simulator_wheel ${filtersimulator_SRCS})
 target_link_libraries(indi_simulator_wheel indidriver)
 install(TARGETS indi_simulator_wheel RUNTIME DESTINATION bin )
+
+#################################################################################
+
+#####################################
+########## DOME GROUP ############
+#####################################
+
+################ Dome Simulator ################
+
+set(domesimulator_SRCS
+        ${CMAKE_SOURCE_DIR}/drivers/dome/dome_simulator.cpp
+   )
+
+add_executable(indi_simulator_dome ${domesimulator_SRCS})
+target_link_libraries(indi_simulator_dome indidriver)
+install(TARGETS indi_simulator_dome RUNTIME DESTINATION bin )
+
 
 #################################################################################
 
