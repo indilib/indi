@@ -51,14 +51,14 @@ bool INDI::Telescope::initProperties()
     IUFillNumber(&LocationN[2],"ELEV","Elevation (m)","%g",-200,10000,0,0 );
     IUFillNumberVector(&LocationNP,LocationN,3,getDeviceName(),"GEOGRAPHIC_COORD","Scope Location",SITE_TAB,IP_RW,60,IPS_OK);
 
-    IUFillSwitch(&CoordS[0],"TRACK","Track",ISS_OFF);
+    IUFillSwitch(&CoordS[0],"TRACK","Track",ISS_ON);
     IUFillSwitch(&CoordS[1],"SLEW","Slew",ISS_OFF);
     IUFillSwitch(&CoordS[2],"SYNC","Sync",ISS_OFF);
 
     if (canSync())
-        IUFillSwitchVector(&CoordSP,CoordS,3,getDeviceName(),"ON_COORD_SET","On Set",MAIN_CONTROL_TAB,IP_RW,ISR_ATMOST1,60,IPS_IDLE);
+        IUFillSwitchVector(&CoordSP,CoordS,3,getDeviceName(),"ON_COORD_SET","On Set",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
     else
-        IUFillSwitchVector(&CoordSP,CoordS,2,getDeviceName(),"ON_COORD_SET","On Set",MAIN_CONTROL_TAB,IP_RW,ISR_ATMOST1,60,IPS_IDLE);
+        IUFillSwitchVector(&CoordSP,CoordS,2,getDeviceName(),"ON_COORD_SET","On Set",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
 
     IUFillSwitch(&ParkS[0],"PARK","Park",ISS_OFF);
