@@ -2,6 +2,8 @@
     MaxDome II 
     Copyright (C) 2009 Ferran Casarramona (ferran.casarramona@gmail.com)
 
+    Migrated to INDI::Dome by Jasem Mutlaq (2014)
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation; either
@@ -21,110 +23,84 @@
 #ifndef MAXDOMEII_H
 #define MAXDOMEII_H
 
-#include "indidevapi.h"
-#include "indicom.h"
+#include <indidevapi.h>
+#include <indicom.h>
+#include <indidome.h>
 
 #define MD_AZIMUTH_IDLE 0
 #define MD_AZIMUTH_MOVING 1
 #define MD_AZIMUTH_HOMING 2
 
-class MaxDomeII
+class MaxDomeII : public INDI::Dome
 {
  public:
  MaxDomeII();
  ~MaxDomeII();
 
- virtual void ISGetProperties (const char *dev);
- virtual void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
- virtual void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
- virtual void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
- virtual void ISPoll ();
+ const char *getDefaultName();
+ bool initProperties();
+ bool updateProperties();
 
- //virtual void connection_lost();
- //virtual void connection_resumed();
+ bool Connect();
+ bool Disconnect();
 
-private:
+ void TimerHit();
 
-  /* Switches */
-  ISwitch ConnectS[2];
-  ISwitch OnMovementTypeS[2];
-  ISwitch AbortS[1];
-  ISwitch ShutterS[3];
-  ISwitch ParkOnShutterS[2];
-  ISwitch ParkS[1];
-  ISwitch HomeS[1];
-  
-  /* Texts */
-  IText PortT[1];
-  
-  /* Numbers */
-  INumber AzimuthWN[1];
-  INumber AzimuthRN[1];
-  INumber TicksPerTurnN[1];
-  INumber ParkPositionN[1];
-  INumber HomeAzimuthN[1];
-  INumber WatchDogN[1];
-  INumber HomePosRN[1];
-    
-  /* Switch Vectors */
-  ISwitchVectorProperty ConnectSP;
-  ISwitchVectorProperty OnMovementTypeSP;
-  ISwitchVectorProperty AbortSP;
-  ISwitchVectorProperty ShutterSP;
-  ISwitchVectorProperty ParkOnShutterSP;
-  ISwitchVectorProperty ParkSP;
-  ISwitchVectorProperty HomeSP;
-  
-   /* Number Vectors */
-  INumberVectorProperty AzimuthWNP;
-  INumberVectorProperty AzimuthRNP;
-  INumberVectorProperty TicksPerTurnNP;
-  INumberVectorProperty ParkPositionNP;
-  INumberVectorProperty HomeAzimuthNP;
-  INumberVectorProperty WachDogNP;
-  INumberVectorProperty HomePosRNP;
-  
-  /* Text Vectors */
-  ITextVectorProperty PortTP;
-  
- /*******************************************************/
- /* Connection Routines
- ********************************************************/
- void init_properties();
- void get_initial_data();
- int Connect();
- bool is_connected(void);
- 
+ virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+ virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+
+ virtual int MoveAbsDome(double az);
+ virtual int ParkDome();
+ virtual int HomeDome();
+ virtual bool AbortDome();
+
+protected:
+
  /*******************************************************/
  /* Misc routines
  ********************************************************/
- int get_switch_index(ISwitchVectorProperty *sp);
  int AzimuthDistance(int nPos1, int nPos2);
- int GotoAzimuth(double newAZ);
  double TicksToAzimuth(int nTicks);
  int AzimuthToTicks(double nAzimuth);
-
- /*******************************************************/
- /* Error handling routines
- ********************************************************/
- void reset_all_properties();
  int handle_driver_error(int *error, int *nRetry); // Handles errors returned by driver
 
+ ISwitch OnMovementTypeS[2];
+ ISwitchVectorProperty OnMovementTypeSP;
+
+ ISwitch ShutterS[3];
+ ISwitchVectorProperty ShutterSP;
+
+ ISwitch ParkOnShutterS[2];
+ ISwitchVectorProperty ParkOnShutterSP;
+
+ INumber TicksPerTurnN[1];
+ INumberVectorProperty TicksPerTurnNP;
+
+ INumber WatchDogN[1];
+ INumberVectorProperty WatchDogNP;
+
+ INumber HomePosRN[1];
+ INumberVectorProperty HomePosRNP;
+
+private:
+
+ int nTicksPerTurn;             // Number of ticks per turn of azimuth dome
+ unsigned nCurrentTicks;        // Position as reported by the MaxDome II
+ int nCloseShutterBeforePark;   // 0 no close shutter
+ double nParkPosition;			// Park position
+ double nHomeAzimuth;			// Azimuth of home position
+ int nHomeTicks;				// Ticks from 0 azimuth to home
+ int fd;                        // Telescope tty file descriptor
+ int nTimeSinceShutterStart;	// Timer since shutter movement has started, in order to check timeouts
+ int nTimeSinceAzimuthStart;	// Timer since azimuth movement has started, in order to check timeouts
+ int nTargetAzimuth;
+ int nTimeSinceLastCommunication;  // Used by Watch Dog
+
+ double prev_az, prev_alt;
+
+ bool SetupParms();
 
 
- protected:
-
-  int nTicksPerTurn;	// Number of ticks per turn of azimuth dome
-  unsigned nCurrentTicks;	// Position as reported by the MaxDome II
-  int nCloseShutterBeforePark;  // 0 no close shutter
-  double nParkPosition;			// Park position
-  double nHomeAzimuth;			// Azimuth of home position
-  int nHomeTicks;				// Ticks from 0 azimuth to home
-  int fd;				/* Telescope tty file descriptor */
-  int nTimeSinceShutterStart;	// Timer since shutter movement has started, in order to check timeouts
-  int nTimeSinceAzimuthStart;	// Timer since azimuth movement has started, in order to check timeouts
-  int nTargetAzimuth;
-  int nTimeSinceLastCommunication;  // Used by Watch Dog
 };
 
 #endif
