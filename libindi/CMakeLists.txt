@@ -713,6 +713,7 @@ ${CMAKE_SOURCE_DIR}/libs/indibase/indiccd.h  ${CMAKE_SOURCE_DIR}/libs/indibase/i
 ${CMAKE_SOURCE_DIR}/libs/indibase/indifocuserinterface.h  ${CMAKE_SOURCE_DIR}/libs/indibase/indifocuser.h
 ${CMAKE_SOURCE_DIR}/libs/indibase/inditelescope.h ${CMAKE_SOURCE_DIR}/libs/indibase/baseclient.h ${CMAKE_SOURCE_DIR}/libs/indibase/indiguiderinterface.h
 ${CMAKE_SOURCE_DIR}/libs/indibase/indifilterinterface.h ${CMAKE_SOURCE_DIR}/libs/indibase/indiproperty.h
+${CMAKE_SOURCE_DIR}/libs/indibase/indidomeinterface.h ${CMAKE_SOURCE_DIR}/libs/indibase/indidome.h
 ${CMAKE_SOURCE_DIR}/libs/indicom.h ${CMAKE_SOURCE_DIR}/libs/indibase/indiusbdevice.h
 ${CMAKE_SOURCE_DIR}/libs/indibase/indilogger.h ${CMAKE_SOURCE_DIR}/libs/indibase/indicontroller.h
 ${CMAKE_SOURCE_DIR}/libs/webcam/ccvt.h ${CMAKE_SOURCE_DIR}/libs/webcam/ccvt_types.h

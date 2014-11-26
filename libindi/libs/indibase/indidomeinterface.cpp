@@ -62,8 +62,8 @@ void INDI::DomeInterface::initDomeProperties(const char *deviceName, const char*
     IUFillSwitch(&AbortS[0],"ABORT","Abort",ISS_OFF);
     IUFillSwitchVector(&AbortSP,AbortS,1,deviceName,"DOME_ABORT_MOTION","Abort Motion",groupName,IP_RW,ISR_ATMOST1,60,IPS_IDLE);
 
-    IUFillNumber(&DomeParamN[0],"HOME_POSITION","Home (deg)","%4.0f",0.0,360.0,1.0,0.0);
-    IUFillNumber(&DomeParamN[1],"PARK_POSITION","Park (deg)","%4.0f",0.0,360.0,1.0,0.0);
+    IUFillNumber(&DomeParamN[DOME_HOME],"HOME_POSITION","Home (deg)","%4.0f",0.0,360.0,1.0,0.0);
+    IUFillNumber(&DomeParamN[DOME_PARK],"PARK_POSITION","Park (deg)","%4.0f",0.0,360.0,1.0,0.0);
     IUFillNumberVector(&DomeParamNP,DomeParamN,2,deviceName,"DOME_PARAMS","Params",groupName,IP_RW,60,IPS_OK);
 
     IUFillSwitch(&DomeGotoS[0],"DOME_HOME","Home",ISS_OFF);
@@ -311,7 +311,7 @@ bool INDI::DomeInterface::processDomeSwitch (const char *dev, const char *name, 
 
         int gotoDome = IUFindOnSwitchIndex(&DomeGotoSP);
 
-        if (gotoDome == 0)
+        if (gotoDome == DOME_HOME)
             ret= HomeDome();
         else
             ret = ParkDome();
@@ -320,18 +320,18 @@ bool INDI::DomeInterface::processDomeSwitch (const char *dev, const char *name, 
         {
            DomeGotoSP.s=IPS_OK;
            IUResetSwitch(&DomeGotoSP);
-           IDSetSwitch(&DomeGotoSP, "Dome is %s.", (gotoDome == 0 ? "at home position" : "parked"));
+           IDSetSwitch(&DomeGotoSP, "Dome is %s.", (gotoDome == DOME_HOME ? "at home position" : "parked"));
            return true;
         }
         else if (ret == 1)
         {
              DomeGotoSP.s=IPS_BUSY;
-             IDSetSwitch(&DomeGotoSP, "Dome is %s...", (gotoDome == 0 ? "moving to home position" : "parking"));
+             IDSetSwitch(&DomeGotoSP, "Dome is %s...", (gotoDome == DOME_HOME ? "moving to home position" : "parking"));
              return true;
         }
 
         DomeGotoSP.s= IPS_ALERT;
-        IDSetNumber(&DomeRelPosNP, "Dome failed to %s.", (gotoDome == 0 ? "move to home position" : "park"));
+        IDSetNumber(&DomeRelPosNP, "Dome failed to %s.", (gotoDome == DOME_HOME ? "move to home position" : "park"));
         return false;
     }
 

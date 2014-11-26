@@ -40,6 +40,7 @@ class INDI::DomeInterface
 
 public:
     enum DomeDirection { DOME_CW, DOME_CCW };
+    enum DomeParam { DOME_HOME, DOME_PARK };
     enum ShutterOperation { SHUTTER_OPEN, SHUTTER_CLOSE};
 
     typedef struct
