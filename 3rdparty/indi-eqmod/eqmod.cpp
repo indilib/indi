@@ -762,8 +762,8 @@ bool EQMod::ReadScopeStatus() {
 	  ISwitch *sw;
 	  sw=IUFindSwitch(&CoordSP,"TRACK");
 	  if ((gotoparams.iterative_count > GOTO_ITERATIVE_LIMIT) &&
-	    (((3600 * abs(gotoparams.ratarget - currentRA)) > RAGOTORESOLUTION) || 
-	     ((3600 * abs(gotoparams.detarget - currentDEC)) > DEGOTORESOLUTION))) {
+        (((3600 * fabs(gotoparams.ratarget - currentRA)) > RAGOTORESOLUTION) ||
+         ((3600 * fabs(gotoparams.detarget - currentDEC)) > DEGOTORESOLUTION))) {
 	    DEBUGF(INDI::Logger::DBG_SESSION, "Iterative Goto Limit reached (%d iterations): RA diff = %4.2f arcsecs DE diff = %4.2f arcsecs",
 		   gotoparams.iterative_count, 3600 * fabs(gotoparams.ratarget - currentRA),  3600 * fabs(gotoparams.detarget - currentDEC));
 	  }
