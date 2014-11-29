@@ -84,8 +84,14 @@ void ISInit() {
          }
        }
      }
-
      */
+
+      /* For demo purposes we are creating two test devices */
+      cameraCount = 2;
+      struct usb_device *dev = NULL;
+      cameras[0] = new GenericCCD(dev, deviceTypes[0].name);
+      cameras[1] = new GenericCCD(dev, deviceTypes[1].name);
+
     atexit(cleanup);
     isInit = true;
   }
@@ -155,10 +161,10 @@ void ISSnoopDevice(XMLEle *root) {
 
 GenericCCD::GenericCCD(DEVICE device, const char *name) {
   this->device = device;
-  snprintf(this->name, 32, "SX CCD %s", name);
+  snprintf(this->name, 32, "Generic CCD %s", name);
   setDeviceName(this->name);
 
-  sim = false;
+  sim = true;
 }
 
 GenericCCD::~GenericCCD() {
@@ -181,7 +187,7 @@ bool GenericCCD::initProperties() {
   cap.canAbort = true;
   cap.canBin = true;
   cap.canSubFrame = true;
-  cap.hasCooler = false;
+  cap.hasCooler = true;
   cap.hasGuideHead = false;
   cap.hasShutter = true;
   cap.hasST4Port = true;
@@ -194,8 +200,7 @@ bool GenericCCD::initProperties() {
 void GenericCCD::ISGetProperties(const char *dev) {
   INDI::CCD::ISGetProperties(dev);
 
-  // Add Debug, Simulator, and Configuration controls
-  addAuxControls();
+  addConfigurationControl();
 }
 
 bool GenericCCD::updateProperties() {
@@ -237,7 +242,7 @@ bool GenericCCD::ISNewSwitch(const char *dev, const char *name, ISState *states,
 
 bool GenericCCD::Connect() {
 
-  sim = isSimulation();
+  sim = true;
 
   ///////////////////////////
   // Guide Port?
