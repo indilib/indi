@@ -1,5 +1,5 @@
 <devGroup group="CCDs">
-        <device label="SX CCD">
+        <device label="SX CCD" mdpd="true">
                 <driver name="SX CCD">indi_sx_ccd</driver>
 		<version>1.7</version>
 	</device>
