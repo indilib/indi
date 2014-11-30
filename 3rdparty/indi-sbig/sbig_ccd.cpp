@@ -1930,6 +1930,7 @@ int SBIGCCD::getNumberOfCCDChips()
         case 	ST7_CAMERA:
         case 	ST8_CAMERA:
         case 	ST9_CAMERA:
+        case    ST10_CAMERA:
         case 	ST2K_CAMERA:
                     res = 2;
                     break;
