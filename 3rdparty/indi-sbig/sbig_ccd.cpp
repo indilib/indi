@@ -1369,6 +1369,18 @@ bool SBIGCCD::grabImage(CCDChip *targetChip)
       // Bayer to RGB if it is a color camera
       if (isColor)
       {
+          if (isDebug())
+          {
+              FILE *bayerfile = fopen("/tmp/bayer.dat", "wb");
+              if (bayerfile)
+              {
+                  int n = width * height * 2 * 3;
+                  int nw = 0;
+                  while (nw < n)
+                    nw+= fwrite(buffer, 1,  n - nw, bayerfile);
+                  fclose(bayerfile);
+              }
+          }
           int debayer = IUFindOnSwitchIndex(&DebayerMethodSP);
           unsigned short * dst = (unsigned short *) malloc(width*height*2*3);
           dc1394_bayer_decoding_16bit(buffer, dst, width, height, DC1394_COLOR_FILTER_BGGR, (dc1394bayer_method_t) debayer, 16);
