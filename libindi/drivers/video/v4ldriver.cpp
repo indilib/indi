@@ -608,6 +608,7 @@ void V4L_Driver::uploadFile(const char * filename)
      if (nr <= 0)
      {
         IDLog("Error reading temporary FITS file.\n");
+        fclose(fitsFile);
         return;
      }
    }

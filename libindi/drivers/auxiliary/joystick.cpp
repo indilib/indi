@@ -203,10 +203,9 @@ bool JoyStick::updateProperties()
 
     INDI::DefaultDevice::updateProperties();
 
-    char buf[8];
-
     if (isConnected())
     {
+        char buf[8];
         // Name
         IUSaveText(&JoystickInfoT[0], driver->getName());
         // Version

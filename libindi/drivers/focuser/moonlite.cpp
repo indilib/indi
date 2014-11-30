@@ -270,7 +270,7 @@ bool MoonLite::updateStepMode()
 {
     int nbytes_written=0, nbytes_read=0, rc=-1;
     char errstr[MAXRBUF];
-    char resp[3];
+    char resp[4];
 
     tcflush(PortFD, TCIOFLUSH);
 

@@ -36,16 +36,16 @@
 
 #define JOYSTICK_DEV "/dev/input/js0"
 
-struct joystick_position
+typedef struct
 {
     float theta, r, x, y;
-};
+} joystick_position;
 
-struct joystick_state
+typedef struct
 {
     std::vector<signed short> button;
     std::vector<signed short> axis;
-};
+} joystick_state;
 
 /**
  * @brief The JoyStickDriver class provides basic functionality to read events from supported game pads under Linux.

@@ -91,6 +91,12 @@ void ISSnoopDevice (XMLEle *root)
 
 DomeSim::DomeSim()
 {
+
+   targetAz = 0;
+   shutterTimer=0;
+   prev_az=0;
+   prev_alt=0;
+
    DomeCapability cap;
 
    cap.canAbort = true;

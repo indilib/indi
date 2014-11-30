@@ -143,10 +143,7 @@ void ISSnoopDevice (XMLEle *root)
 }
 
 void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-	int err;
-	char error_message[ERRMSG_SIZE];
-
+{	
 	/* ignore if not ours */
 	if (dev && strcmp (dev, mydev))
 		return;
@@ -164,6 +161,7 @@ void ISNewSwitch (const char *dev, const char *name, ISState *states, char *name
 	/* Home Search */
 	if (!strcmp (name, HomeSP.name))
 	{
+        int err;
 		int nbytes=0;
 		unsigned char type = 0x03;
 		unsigned char chksum = COMM_INIT + type + COMM_FILL;
@@ -188,6 +186,7 @@ void ISNewSwitch (const char *dev, const char *name, ISState *states, char *name
 		if (err != TTY_OK)
 		{
 		
+            char error_message[ERRMSG_SIZE];
 			tty_error_msg(err, error_message, ERRMSG_SIZE);
 			
 			HomeSP.s = IPS_ALERT;
@@ -232,7 +231,6 @@ void ISNewNumber (const char *dev, const char *name, double values[], char *name
 {
 	long err;
 	INumber *np;
-	n = n;
 	
 	/* ignore if not ours */
 	if (dev && strcmp (dev, mydev))

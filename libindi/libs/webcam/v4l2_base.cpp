@@ -939,7 +939,7 @@ int V4L2_Base::setinput(unsigned int inputindex, char *errmsg) {
 void V4L2_Base::getcaptureformats(ISwitchVectorProperty *captureformatssp) {
   struct v4l2_fmtdesc fmt_avail;
   ISwitch *formats=NULL;
-  unsigned int i, initial;
+  unsigned int i;//, initial;
   if (captureformatssp->sp) free(captureformatssp->sp);
   fmt_avail.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
   // IDLog("Available Capture Image formats:\n");
@@ -970,7 +970,7 @@ void V4L2_Base::getcaptureformats(ISwitchVectorProperty *captureformatssp) {
     formats[i].s=ISS_OFF;
     if (fmt.fmt.pix.pixelformat == *((int *) (formats[i].aux))) {
       formats[i].s=ISS_ON;
-      initial=i;
+      //initial=i;
       IDLog("Current Capture format is (%d.) %c%c%c%c\n", i, (fmt.fmt.pix.pixelformat)&0xFF, (fmt.fmt.pix.pixelformat >> 8)&0xFF,
 	    (fmt.fmt.pix.pixelformat >> 16)&0xFF, (fmt.fmt.pix.pixelformat >> 24)&0xFF);
       //break;
@@ -1431,7 +1431,6 @@ void V4L2_Base::enumerate_ctrl (void)
 
 void V4L2_Base::enumerate_menu (void)
 {
-  char errmsg[ERRMSGSIZ];
   cerr << "  Menu items:" << endl;
 
   CLEAR(querymenu);
@@ -1924,7 +1923,6 @@ bool V4L2_Base::enumerate_ext_ctrl (void)
 {
   //struct v4l2_queryctrl queryctrl;
   
-  char errmsg[ERRMSGSIZ];
   CLEAR(queryctrl);
   
   queryctrl.id = V4L2_CTRL_FLAG_NEXT_CTRL;

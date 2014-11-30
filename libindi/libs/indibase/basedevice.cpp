@@ -1080,7 +1080,11 @@ void INDI::BaseDevice::doMessage (XMLEle *msg)
 
     /* finally! the msg */
     message = findXMLAtt(msg, "message");
-        if (!message) return;
+    if (!message)
+    {
+        delete [] msgBuffer;
+        return;
+    }
 
     if (time_stamp)
         snprintf(msgBuffer, MAXRBUF, "%s: %s ", valuXMLAtt(time_stamp), valuXMLAtt(message));
@@ -1090,6 +1094,7 @@ void INDI::BaseDevice::doMessage (XMLEle *msg)
     // Prepend to the log
    addMessage(msgBuffer);
 
+   delete [] msgBuffer;
 }
 
 

@@ -85,7 +85,9 @@ GPUSB::GPUSB()
 {
     driver = new GPUSBDriver();
     WEDir = NSDir = 0;
-    //ctor
+    InWEPulse = InNSPulse = false;
+    WEPulseRequest = NSPulseRequest =0;
+    WEtimerID = NStimerID = 0;
 }
 
 GPUSB::~GPUSB()
@@ -226,7 +228,6 @@ float GPUSB::CalcNSPulseTimeLeft()
 void GPUSB::TimerHit()
 {
     float timeleft;
-    int rc;
 
     if(InWEPulse)
     {

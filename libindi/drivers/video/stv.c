@@ -1698,7 +1698,11 @@ void uploadFile(const char* filename)
    fitsFile = fopen(filename, "r");
    
    if (fitsFile == NULL)
-    return;
+   {
+     free(fitsData);
+     free(compressedData);
+     return;
+   }
    
    /* #1 Read file from disk */ 
    for (i=0; i < totalBytes; i+= nr)
@@ -1708,6 +1712,8 @@ void uploadFile(const char* filename)
      if (nr <= 0)
      {
         IDLog("Error reading temporary FITS file.\n");
+        free(fitsData);
+        fclose(fitsFile);
         return;
      }
    }
@@ -1783,7 +1789,7 @@ int ISTerminateTXDisplay(void) {
 
 int ISRestoreTXDisplay(void) {
 
-  int res ;
+  int res=0 ;
 
   cb= IEAddCallback( fd, (IE_CBF *)ISCallBack, NULL) ;
 
