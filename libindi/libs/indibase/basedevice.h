@@ -128,17 +128,17 @@ public:
     /** \brief Add message to the driver's message queue.
         \param msg Message to add.
     */
-    void addMessage(const char *msg);
+    void addMessage(std::string msg);
 
 
     void checkMessage (XMLEle *root);
     void doMessage (XMLEle *msg);
 
     /** \return Returns a specific message. */
-    const char * messageQueue(int index);
+    std::string messageQueue(int index);
 
     /** \return Returns last message message. */
-    const char * lastMessage();
+    std::string lastMessage();
 
     /** \brief Set the driver's mediator to receive notification of news devices and updated property values. */
     void setMediator(INDI::BaseMediator *med) { mediator = med; }
@@ -177,7 +177,7 @@ private:
 
     LilXML *lp;
 
-    std::vector<const char *> messageLog;
+    std::vector<std::string> messageLog;
 
     INDI::BaseMediator *mediator;
 

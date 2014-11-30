@@ -205,7 +205,7 @@ void MyClient::newMessage(INDI::BaseDevice *dp, int messageID)
      if (strcmp(dp->getDeviceName(), MYCCD))
          return;
 
-     IDLog("Recveing message from Server:\n\n########################\n%s\n########################\n\n", dp->messageQueue(messageID));
+     IDLog("Recveing message from Server:\n\n########################\n%s\n########################\n\n", dp->messageQueue(messageID).c_str());
 }
 
 /**************************************************************************************

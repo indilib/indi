@@ -53,6 +53,7 @@ INDI::BaseDevice::~BaseDevice()
 {
     delLilXML (lp);
     while(!pAll.empty()) { delete pAll.back(), pAll.pop_back(); }
+    messageLog.clear();
 
     delete[] deviceID;
 }
@@ -1072,8 +1073,7 @@ void INDI::BaseDevice::doMessage (XMLEle *msg)
     XMLAtt *message;
     XMLAtt *time_stamp;
 
-    // FIXME: delete the buffer in the destructor!
-    char * msgBuffer = new char[MAXRBUF];
+    char msgBuffer[MAXRBUF];
 
     /* prefix our timestamp if not with msg */
     time_stamp = findXMLAtt (msg, "timestamp");
@@ -1081,24 +1081,22 @@ void INDI::BaseDevice::doMessage (XMLEle *msg)
     /* finally! the msg */
     message = findXMLAtt(msg, "message");
     if (!message)
-    {
-        delete [] msgBuffer;
         return;
-    }
 
     if (time_stamp)
         snprintf(msgBuffer, MAXRBUF, "%s: %s ", valuXMLAtt(time_stamp), valuXMLAtt(message));
     else
         snprintf(msgBuffer, MAXRBUF, "%s: %s ", timestamp(), valuXMLAtt(message));
 
-    // Prepend to the log
-   addMessage(msgBuffer);
+   string finalMsg = msgBuffer;
 
-   delete [] msgBuffer;
+    // Prepend to the log
+   addMessage(finalMsg);
+
 }
 
 
-void INDI::BaseDevice::addMessage(const char *msg)
+void INDI::BaseDevice::addMessage(string msg)
 {
     messageLog.push_back(msg);
 
@@ -1106,7 +1104,7 @@ void INDI::BaseDevice::addMessage(const char *msg)
         mediator->newMessage(this, messageLog.size()-1);
 }
 
-const char * INDI::BaseDevice::messageQueue(int index)
+string INDI::BaseDevice::messageQueue(int index)
 {
     if (index >= messageLog.size())
         return NULL;
@@ -1115,7 +1113,7 @@ const char * INDI::BaseDevice::messageQueue(int index)
 
 }
 
-const char * INDI::BaseDevice::lastMessage()
+string INDI::BaseDevice::lastMessage()
 {
     return messageLog.back();
 }
