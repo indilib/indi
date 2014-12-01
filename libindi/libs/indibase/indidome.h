@@ -31,12 +31,11 @@
  * \class INDI::Dome
    \brief Class to provide general functionality of a Dome device.
 
-   Both relative and absolute Dome supported. Furthermore, if no position feedback is available from the Dome,
-   an open-loop control is possible using timers, speed presets, and direction of motion.
+   Both relative and absolute position domes supported. Furthermore, if no position feedback is available from the dome,
+   an open-loop control is possible using timers, speed presets (RPM), and direction of motion (Clockwise and Counter Clockwise).
    Developers need to subclass INDI::Dome to implement any driver for Domes within INDI.
 
 \author Jasem Mutlaq
-\author Gerry Rozema
 */
 class INDI::Dome : public INDI::DefaultDevice, public INDI::DomeInterface
 {

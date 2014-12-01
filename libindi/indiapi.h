@@ -69,6 +69,7 @@ Simulators provide a great framework to test drivers and equipment alike. INDI L
  The simulator snoops FWHM from the focuser simulator which affects the generated images focus. All images are generated in standard FITS format.</li>
 <li><b>Filter Wheel Simulator</b>: Offers a simple simulator to change filter wheels and their corresponding designations.</li>
 <li><b>Focuser Simulator</b>: Offers a simple simualtor for an absolute position focuser. It generates a simulated FWHM value that may be used by other simulator such as the CCD simulator.</li>
+<li><b>Dome Simulator</b>: Offers a simple simulator for an absolute position dome with shutter.
 </ul>
 
 \section Help 
@@ -105,7 +106,7 @@ You can find information on INDI development in the <a href="http://www.indilib.
 typedef enum 
 {
     ISS_OFF,		/*!< Switch is OFF */
-    ISS_ON		/*!< Switch is ON */
+    ISS_ON          /*!< Switch is ON */
 } ISState;				/* switch state */
 
 /** \typedef IPState
@@ -114,7 +115,7 @@ typedef enum
 typedef enum 
 {
     IPS_IDLE,		/*!< State is idle */
-    IPS_OK,		/*!< State is ok */
+    IPS_OK,         /*!< State is ok */
     IPS_BUSY,		/*!< State is busy */
     IPS_ALERT		/*!< State is alert */
 } IPState;				/* property state */
@@ -124,8 +125,8 @@ typedef enum
 */
 typedef enum 
 {
-    ISR_1OFMANY,	/*!< Only 1 switch of many can be ON (e.g. radio buttons) */
-    ISR_ATMOST1,        /*!< There is only ONE switch */
+    ISR_1OFMANY,        /*!< Only 1 switch of many can be ON (e.g. radio buttons) */
+    ISR_ATMOST1,        /*!< At most one switch can be ON, but all switches can be off. It is similar to ISR_1OFMANY with the exception that all switches can be off. */
     ISR_NOFMANY         /*!< Any number of switches can be ON (e.g. check boxes) */
 } ISRule;				/* switch vector rule hint */
 

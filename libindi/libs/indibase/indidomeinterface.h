@@ -28,9 +28,10 @@
  * \class INDI::DomeInterface
    \brief Provides interface to implement Dome functionality.
 
-   A Dome can be an independent device, or an embedded Dome within another device (e.g. Telescope).
+   A Dome can be an independent device, or an embedded Dome within another device (e.g. Telescope). Before using any of the dome functions, you must define the capabilities of the dome and calling
+   SetDomeCapability() function. All positions are represented as degrees of azimuth.
 
-   \e IMPORTANT: initDomeProperties() must be called before any other function to initilize the Dome properties.
+   \e IMPORTANT: After SetDomeCapability(), initDomeProperties() must be called before any other function to initilize the Dome properties.
 
    \e IMPORTANT: processDomeNumber() and processDomeSwitch() must be called in your driver's ISNewNumber() and ISNewSwitch functions recepectively.
 \author Jasem Mutlaq
@@ -41,19 +42,45 @@ class INDI::DomeInterface
 public:
     enum DomeDirection { DOME_CW, DOME_CCW };
     enum DomeParam { DOME_HOME, DOME_PARK };
-    enum ShutterOperation { SHUTTER_OPEN, SHUTTER_CLOSE};
 
+    /** \typedef ShutterOperation
+        \brief Shutter operation command.
+    */
+    typedef enum
+    {
+        SHUTTER_OPEN, /*!< Open Shutter */
+        SHUTTER_CLOSE /*!< Close Shutter */
+    } ShutterOperation;
+
+
+    /** \struct DomeCapability
+        \brief Holds the capabilities of the dome.
+    */
     typedef struct
     {
+        /** Can the dome motion be aborted? */
         bool canAbort;
+        /** Can the dome move to an absolute azimuth position? */
         bool canAbsMove;
+        /** Can the dome move to a relative position a number of degrees away from current position? */
         bool canRelMove;
+        /** Does the dome support parking and homing? */
         bool canPark;
+        /** Does the dome has a shutter than can be opened and closed electronically? */
         bool hasShutter;
+        /** Can the dome move in different configurable speeds? */
         bool variableSpeed;
     } DomeCapability;
 
+    /**
+     * @brief GetDomeCapability returns the capability of the dome
+     */
     DomeCapability GetDomeCapability() const { return capability;}
+
+    /**
+     * @brief SetDomeCapability set the dome capabilities. All capabilities must be initialized.
+     * @param cap pointer to dome capability
+     */
     void SetDomeCapability(DomeCapability * cap);
 
 protected:
@@ -74,7 +101,7 @@ protected:
     bool processDomeSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
 
     /**
-     * @brief SetSpeed Set Dome speed
+     * @brief SetSpeed Set Dome speed. This does not initiate motion, it sets the speed for the next motion command. If motion is in progress, then change speed accordingly.
      * @param speed Dome speed (RPM)
      * @return true if successful, false otherwise
      */
@@ -111,14 +138,14 @@ protected:
     virtual bool AbortDome();
 
     /**
-     * \brief Goto Home Position
+     * \brief Goto Home Position. The home position is an absolute azimuth value.
      * \return Return 0 if motion is completed and Dome reached home position. Return 1 if Dome started motion to home position and is in progress.
                 Return -1 if there is an error.
      */
     virtual int HomeDome();
 
     /**
-     * \brief Goto Park Position
+     * \brief Goto Park Position. The park position is an absolute azimuth value.
      * \return Return 0 if motion is completed and Dome reached park position. Return 1 if Dome started motion to park requested position and is in progress.
                 Return -1 if there is an error.
      */
@@ -126,6 +153,7 @@ protected:
 
     /**
      * \brief Open or Close shutter
+     * \param operation Either open or close the shutter.
      * \return Return 0 if shutter operation is complete. Return 1 if shutter operation is in progress.
                 Return -1 if there is an error.
      */
