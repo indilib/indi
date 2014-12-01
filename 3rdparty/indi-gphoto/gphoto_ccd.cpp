@@ -1125,3 +1125,12 @@ bool GPhotoCCD::capturePreview()
     return true;
 }
 
+bool GPhotoCCD::saveConfigItems(FILE *fp)
+{
+    INDI::CCD::saveConfigItems(fp);
+
+    if (mIsoSP.nsp > 0)
+          IUSaveConfigSwitch(fp, &mIsoSP);
+
+    return true;
+}
