@@ -299,7 +299,7 @@ bool SBIGCCD::initProperties()
 
   // CFW PRODUCT
   IUFillText(&FilterProdcutT[0], "NAME", "Name", "");
-  IUFillText(&FilterProdcutT[1], "LABEL", "Label", "");
+  IUFillText(&FilterProdcutT[1], "ID", "ID", "");
   IUFillTextVector(	&FilterProdcutTP, FilterProdcutT, 2, getDeviceName(), "CFW_PRODUCT" , "Product", FILTER_TAB, IP_RO, 0, IPS_IDLE);
 
   // CFW_MODEL:
@@ -379,7 +379,7 @@ bool SBIGCCD::updateProperties()
     defineText(&FilterProdcutTP);
     defineSwitch(&FilterTypeSP);
 
-    defineNumber(&FilterSlotNP);
+    //defineNumber(&FilterSlotNP);
 
     // Let's get parameters now from CCD
     setupParams();
@@ -401,7 +401,7 @@ bool SBIGCCD::updateProperties()
     deleteProperty(FilterConnectionSP.name);
     deleteProperty(FilterProdcutTP.name);
     deleteProperty(FilterTypeSP.name);
-    deleteProperty(FilterSlotNP.name);
+    //deleteProperty(FilterSlotNP.name);
     deleteProperty(DebayerMethodSP.name);
 
     if (FilterNameT != NULL)
@@ -567,13 +567,15 @@ bool SBIGCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                     FilterConnectionSP.s = IPS_OK;
                     DEBUG(INDI::Logger::DBG_SESSION, "CFW connected.");
                     IDSetSwitch(&FilterConnectionSP, NULL);
+                    defineNumber(&FilterSlotNP);
+                    IUUpdateMinMax(&FilterSlotNP);
                 }else
                 {
                     FilterConnectionSP.s = IPS_ALERT;
                     IUResetSwitch(&FilterConnectionSP);
                     FilterConnectionSP.sp[1].s = ISS_ON;
                     DEBUG(INDI::Logger::DBG_ERROR, "CFW connection error!");
-                    IDSetSwitch(&FilterConnectionSP, NULL);
+                    IDSetSwitch(&FilterConnectionSP, NULL);                    
                 }
 
                 // Load filter names from file
@@ -586,7 +588,7 @@ bool SBIGCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                 {
                     FilterConnectionSP.s = IPS_ALERT;
                     DEBUG(INDI::Logger::DBG_ERROR, "CFW disconnection error!");
-                    IDSetSwitch(&FilterConnectionSP, NULL);
+                    IDSetSwitch(&FilterConnectionSP, NULL);                    
                 }else{
                     // Update CFW's Product/ID texts.
                     CFWr.cfwModel 		= CFWSEL_UNKNOWN;
@@ -600,6 +602,7 @@ bool SBIGCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                     FilterConnectionSP.s = IPS_IDLE;
                     DEBUG(INDI::Logger::DBG_SESSION, "CFW disconnected.");
                     IDSetSwitch(&FilterConnectionSP, NULL);
+                    deleteProperty(FilterSlotNP.name);
                 }
             }
             return true;
@@ -854,12 +857,12 @@ bool SBIGCCD::setupParams()
 
     CoolerN[0].value = power * 100;
     IDSetNumber(&CoolerNP, NULL);
-  }
 
-  // Update CCD Temperature Min & Max limits
-  TemperatureN[0].min = MIN_CCD_TEMP;
-  TemperatureN[0].max = MAX_CCD_TEMP;
-  IUUpdateMinMax(&TemperatureNP);
+    // Update CCD Temperature Min & Max limits
+    TemperatureN[0].min = MIN_CCD_TEMP;
+    TemperatureN[0].max = MAX_CCD_TEMP;
+    IUUpdateMinMax(&TemperatureNP);
+  }
 
   // CCD PRODUCT:
   IText *pIText;
@@ -1414,7 +1417,9 @@ void SBIGCCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
   int status=0;
 
   fits_update_key_s(fptr, TSTRING, "INSTRUME", ProductInfoT[0].text, "CCD Name" , &status);
-  fits_update_key_s(fptr, TDOUBLE, "CCD-TEMP" , &(TemperatureN[0].value), "CCD Temperature (Celcius)", &status);
+
+  if (HasCooler())
+    fits_update_key_s(fptr, TDOUBLE, "CCD-TEMP" , &(TemperatureN[0].value), "CCD Temperature (Celcius)", &status);
 
 }
 
@@ -1834,6 +1839,12 @@ string SBIGCCD::GetCameraName()
     GetCCDInfoResults0	gccdir;
     char               	*p1, *p2;
 
+    if (sim)
+    {
+        name = "Simulated SBIG";
+        return name;
+    }
+
     gccdip.request = CCD_INFO_IMAGING;  // request 0
     res = SBIGUnivDrvCommand(CC_GET_CCD_INFO, &gccdip, &gccdir);
     if(res == CE_NO_ERROR)
@@ -1870,6 +1881,12 @@ string SBIGCCD::GetCameraID()
     string            	str;
     GetCCDInfoParams		gccdip;
     GetCCDInfoResults2	gccdir2;
+
+    if (sim)
+    {
+        str = "SBIG 1.5";
+        return str;
+    }
 
     gccdip.request = 2;
     if(GetCcdInfo(&gccdip, (void *)&gccdir2) == CE_NO_ERROR){
@@ -2623,7 +2640,7 @@ void SBIGCCD::CFWUpdateProperties(CFWResults CFWr)
         FilterSlotN[0].value = FilterSlotN[0].min;
     else if (FilterSlotN[0].value > FilterSlotN[0].max)
         FilterSlotN[0].value = FilterSlotN[0].max;
-    IUUpdateMinMax(&FilterSlotNP);
+    //IUUpdateMinMax(&FilterSlotNP);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CFW min: 1 Max: %g Current Slot: %g", FilterSlotN[0].max, FilterSlotN[0].value);
 
