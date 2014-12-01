@@ -315,7 +315,7 @@ bool SBIGCCD::initProperties()
   #ifdef	 USE_CFW_AUTO
   IUFillSwitch(&FilterTypeS[9], "CFW10", "CFW-Auto", ISS_OFF);
   #endif
-  IUFillSwitchVector(&FilterTypeSP, FilterTypeS, MAX_CFW_TYPES, getDeviceName(),"CFW_TYPE", "Type", FILTER_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+  IUFillSwitchVector(&FilterTypeSP, FilterTypeS, MAX_CFW_TYPES, getDeviceName(),"CFW_TYPE", "Type", FILTER_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
   // CFW CONNECTION:
   IUFillSwitch(&FilterConnectionS[0], "CONNECT", "Connect", ISS_OFF);
@@ -1371,10 +1371,10 @@ bool SBIGCCD::grabImage(CCDChip *targetChip)
       {
           if (isDebug())
           {
-              FILE *bayerfile = fopen("/tmp/bayer.dat", "wb");
+              FILE *bayerfile = fopen("~/.indi/bayer.dat", "wb");
               if (bayerfile)
               {
-                  int n = width * height * 2 * 3;
+                  int n = width * height * 2;
                   int nw = 0;
                   while (nw < n)
                     nw+= fwrite(buffer, 1,  n - nw, bayerfile);
