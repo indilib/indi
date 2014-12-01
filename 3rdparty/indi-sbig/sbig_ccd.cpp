@@ -1371,7 +1371,9 @@ bool SBIGCCD::grabImage(CCDChip *targetChip)
       {
           if (isDebug())
           {
-              FILE *bayerfile = fopen("~/.indi/bayer.dat", "wb");
+              char fileLoc[512];
+              snprintf(fileLoc, 512, "%s/.indi/bayer.dat", getenv("HOME"));
+              FILE *bayerfile = fopen(fileLoc, "wb");
               if (bayerfile)
               {
                   int n = width * height * 2;
@@ -1382,10 +1384,11 @@ bool SBIGCCD::grabImage(CCDChip *targetChip)
               }
           }
           int debayer = IUFindOnSwitchIndex(&DebayerMethodSP);
-          unsigned short * dst = (unsigned short *) malloc(width*height*2*3);
-          dc1394_bayer_decoding_16bit(buffer, dst, width, height, DC1394_COLOR_FILTER_BGGR, (dc1394bayer_method_t) debayer, 16);
+          int rgb_size = width*height*3*PrimaryCCD.getBPP()/8;
+          unsigned short * dst = (unsigned short *) malloc(rgb_size);
+          dc1394_bayer_decoding_16bit(buffer, dst, width, height, DC1394_COLOR_FILTER_BGGR, (dc1394bayer_method_t) debayer, PrimaryCCD.getBPP());
           char *memBuffer = (char *) dst;
-          targetChip->setFrameBufferSize(width*height*2*3, false);
+          targetChip->setFrameBufferSize(rgb_size, false);
           targetChip->setFrameBuffer(memBuffer);
           targetChip->setNAxis(3);
           free(buffer);
