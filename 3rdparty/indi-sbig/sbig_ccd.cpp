@@ -981,7 +981,7 @@ bool SBIGCCD::StartExposure(float duration)
 
   DEBUGF(INDI::Logger::DBG_DEBUG, "Primary CCD Exposure Time (s) is: %g", duration);
   if (ExposureRequest > 1)
-    DEBUGF(INDI::Logger::DBG_SESSION, "Taking a %g seconds frame...", ExposureRequest);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Taking a %g seconds frame...", ExposureRequest);
   gettimeofday(&ExpStart, NULL);
 
   InExposure = true;
@@ -1364,7 +1364,23 @@ bool SBIGCCD::grabImage(CCDChip *targetChip)
           int rgb_size = width*height*3*PrimaryCCD.getBPP()/8;
           unsigned short * dst = (unsigned short *) malloc(rgb_size);
           dc1394_bayer_decoding_16bit(buffer, dst, width, height, DC1394_COLOR_FILTER_BGGR, (dc1394bayer_method_t) debayer, PrimaryCCD.getBPP());
-          char *memBuffer = (char *) dst;
+
+          // Data in R1G1B1, we need to copy them into 3 layers for FITS
+          unsigned short * rgb = (unsigned short *) malloc(rgb_size);
+          unsigned short * rBuff = rgb;
+          unsigned short * gBuff = rgb + width * height;
+          unsigned short * bBuff = rgb + width * height * 2;
+
+          int imax = (rgb_size/(PrimaryCCD.getBPP()/8)) - 3;
+          for (int i=0; i <= imax; i += 3)
+          {
+              *rBuff++ = dst[i];
+              *gBuff++ = dst[i+1];
+              *bBuff++ = dst[i+2];
+          }
+          free(dst);
+
+          char *memBuffer = (char *) rgb;
           targetChip->setFrameBufferSize(rgb_size, false);
           targetChip->setFrameBuffer(memBuffer);
           targetChip->setNAxis(3);
@@ -1375,7 +1391,7 @@ bool SBIGCCD::grabImage(CCDChip *targetChip)
 
   DEBUGF(INDI::Logger::DBG_DEBUG, "%s CCD Download complete.", (targetChip == &PrimaryCCD) ? "Primary" : "Guide");
 
-  if (targetChip == &PrimaryCCD && targetChip->getExposureDuration() > 1)
+  if (targetChip == &PrimaryCCD && targetChip->getExposureDuration() > 3)
     DEBUG(INDI::Logger::DBG_SESSION, "Download complete.");
 
   ExposureComplete(targetChip);
