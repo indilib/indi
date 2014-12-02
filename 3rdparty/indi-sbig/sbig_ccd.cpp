@@ -151,6 +151,7 @@ SBIGCCD::SBIGCCD()
         strncpy(name, getDeviceName(), MAXINDINAME);
 
     isColor = false;
+    useExternalTrackingCCD=false;
     grabPredicate = GRAB_NO_CCD;
     terminateThread= false;
 
@@ -248,6 +249,9 @@ int SBIGCCD::CloseDevice()
 {
     int res = CE_NO_ERROR;
 
+    if (sim)
+        return res;
+
     if(IsDeviceOpen())
     {
         if((res = SBIGUnivDrvCommand(CC_CLOSE_DEVICE, 0, 0)) == CE_NO_ERROR)
@@ -302,6 +306,9 @@ bool SBIGCCD::initProperties()
   IUFillText(&FilterProdcutT[1], "ID", "ID", "");
   IUFillTextVector(	&FilterProdcutTP, FilterProdcutT, 2, getDeviceName(), "CFW_PRODUCT" , "Product", FILTER_TAB, IP_RO, 0, IPS_IDLE);
 
+
+
+
   // CFW_MODEL:
   IUFillSwitch(&FilterTypeS[0], "CFW1", "CFW-2", ISS_OFF);
   IUFillSwitch(&FilterTypeS[1],"CFW2" , "CFW-5", ISS_OFF);
@@ -311,9 +318,16 @@ bool SBIGCCD::initProperties()
   IUFillSwitch(&FilterTypeS[5], "CFW6", "CFW-10", ISS_OFF);
   IUFillSwitch(&FilterTypeS[6], "CFW7", "CFW-10 SA", ISS_OFF);
   IUFillSwitch(&FilterTypeS[7], "CFW8", "CFW-L", ISS_OFF);
-  IUFillSwitch(&FilterTypeS[8], "CFW9", "CFW-9", ISS_OFF);
+  IUFillSwitch(&FilterTypeS[8], "CFW9", "CFW-9", ISS_OFF);  
+  IUFillSwitch(&FilterTypeS[9], "CFW10", "CFW-8LG", ISS_OFF);
+  IUFillSwitch(&FilterTypeS[10], "CFW11", "CFW-1603", ISS_OFF);
+  IUFillSwitch(&FilterTypeS[11], "CFW12", "CFW-FW5-STX", ISS_OFF);
+  IUFillSwitch(&FilterTypeS[12], "CFW13", "CFW-FW5-8300", ISS_OFF);
+  IUFillSwitch(&FilterTypeS[13], "CFW14", "CFW-FW8-8300", ISS_OFF);
+  IUFillSwitch(&FilterTypeS[14], "CFW15", "CFW-FW7-STX", ISS_OFF);
+  IUFillSwitch(&FilterTypeS[15], "CFW16", "CFW-FW8-STT", ISS_OFF);
   #ifdef	 USE_CFW_AUTO
-  IUFillSwitch(&FilterTypeS[9], "CFW10", "CFW-Auto", ISS_OFF);
+  IUFillSwitch(&FilterTypeS[16], "CFW17", "CFW-Auto", ISS_OFF);
   #endif
   IUFillSwitchVector(&FilterTypeSP, FilterTypeS, MAX_CFW_TYPES, getDeviceName(),"CFW_TYPE", "Type", FILTER_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
@@ -688,7 +702,7 @@ bool SBIGCCD::Connect()
               cap.canBin = true;
               cap.canSubFrame = true;
               cap.hasCooler = hasCooler;
-              cap.hasGuideHead = (getNumberOfCCDChips() > 1);
+              cap.hasGuideHead = (getNumberOfCCDChips() > 1) || (GetCFWSelType() == CFWSEL_FW8_STT);
               cap.hasShutter = true;
               cap.hasST4Port = true;
 
@@ -729,14 +743,15 @@ bool SBIGCCD::Disconnect()
   pthread_mutex_lock(&condMutex);
   grabPredicate=GRAB_PRIMARY_CCD;
   terminateThread=true;
+  useExternalTrackingCCD=false;
   pthread_cond_signal(&cv);
   pthread_mutex_unlock(&condMutex);
 
   int res=CE_NO_ERROR;
   string str;
 
-  if (sim)
-    return true;
+  if (FilterConnectionS[0].s == ISS_ON)
+      CFWDisconnect();
 
   // Close device.
   if((res = CloseDevice()) == CE_NO_ERROR)
@@ -800,7 +815,7 @@ bool SBIGCCD::setupParams()
             return false;
         }
 
-        if (res = getCCDSizeInfo(CCD_TRACKING, binning, wCcd, hCcd, wPixel, hPixel) != CE_NO_ERROR)
+        if (res = getCCDSizeInfo(useExternalTrackingCCD ? CCD_EXT_TRACKING : CCD_TRACKING, binning, wCcd, hCcd, wPixel, hPixel) != CE_NO_ERROR)
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "Error getting CCD Size info. %s", GetErrorString(res).c_str());
             return false;
@@ -942,7 +957,7 @@ int SBIGCCD::StartExposure(CCDChip *targetChip, double duration)
     if (targetChip == &PrimaryCCD)
         ccd = CCD_IMAGING;
     else
-        ccd = CCD_TRACKING;
+        ccd = useExternalTrackingCCD ? CCD_EXT_TRACKING : CCD_TRACKING;
 
       // Start exposure:
       StartExposureParams2	sep;
@@ -1046,7 +1061,7 @@ int SBIGCCD::StopExposure(CCDChip *targetChip)
     if (targetChip == &PrimaryCCD)
         ccd = CCD_IMAGING;
     else
-        ccd = CCD_TRACKING;
+        ccd = useExternalTrackingCCD ? CCD_EXT_TRACKING : CCD_TRACKING;
 
     // END_EXPOSURE:
     EndExposureParams eep;
@@ -1137,7 +1152,7 @@ bool SBIGCCD::updateFrameProperties(CCDChip *targetChip)
     if (targetChip == &PrimaryCCD)
         res = getCCDSizeInfo(CCD_IMAGING, binning, wCcd, hCcd, wPixel, hPixel);
     else
-        res = getCCDSizeInfo(CCD_TRACKING, binning, wCcd, hCcd, wPixel, hPixel);
+        res = getCCDSizeInfo(useExternalTrackingCCD ? CCD_EXT_TRACKING : CCD_TRACKING, binning, wCcd, hCcd, wPixel, hPixel);
 
 
     if(res == CE_NO_ERROR)
@@ -2066,9 +2081,7 @@ int SBIGCCD::getShutterMode(CCDChip *targetChip, int &shutter)
     if (targetChip == &PrimaryCCD)
         ccd = CCD_IMAGING;
     else if (targetChip == &GuideCCD)
-        ccd = CCD_TRACKING;
-    else
-        ccd = CCD_EXT_TRACKING;
+        ccd = useExternalTrackingCCD ? CCD_EXT_TRACKING : CCD_TRACKING;
 
     if(	!strcmp(frame_type.c_str(), "FRAME_LIGHT")	||  !strcmp(frame_type.c_str(), "FRAME_FLAT")
             ||  !strcmp(frame_type.c_str(), "FRAME_BIAS")		)
@@ -2269,7 +2282,7 @@ bool SBIGCCD::isExposureDone(CCDChip *targetChip)
     if (targetChip == &PrimaryCCD)
         ccd = CCD_IMAGING;
     else
-        ccd = CCD_TRACKING;
+        ccd = useExternalTrackingCCD ? CCD_EXT_TRACKING : CCD_TRACKING;
 
   EndExposureParams			eep;
   QueryCommandStatusParams	qcsp;
@@ -2319,7 +2332,7 @@ int SBIGCCD::readoutCCD(unsigned short left,	unsigned short top,
     if (targetChip == &PrimaryCCD)
         ccd = CCD_IMAGING;
     else
-        ccd = CCD_TRACKING;
+        ccd = useExternalTrackingCCD ? CCD_EXT_TRACKING : CCD_TRACKING;
 
     if((res = getBinningMode(targetChip, binning)) != CE_NO_ERROR) return(res);
 
@@ -2402,12 +2415,15 @@ int SBIGCCD::CFWConnect()
 
         if (sim)
         {
-            int cfwsim[10] = {  2, 5 , 6 , 8, 4, 10, 10, 8, 9, 10};
+            int cfwsim[16] = {  2, 5 , 6 , 8, 4, 10, 10, 8, 9, 8, 10, 5, 5,8 ,7 ,8};
+            int cfwmodel[16] = { CFWSEL_CFW2, CFWSEL_CFW5, CFWSEL_CFW6A, CFWSEL_CFW8, CFWSEL_CFW402, CFWSEL_CFW10, CFWSEL_CFW10_SERIAL, CFWSEL_CFWL, CFWSEL_CFW9, CFWSEL_CFWL8G, CFWSEL_CFW1603, CFWSEL_FW5_STX, CFWSEL_FW5_8300, CFWSEL_FW8_8300, CFWSEL_FW7_STX, CFWSEL_FW8_STT};
             int filnum = IUFindOnSwitchIndex(&FilterTypeSP);
             if (filnum < 0)
                 CFWr.cfwResult2 = 5;
             else
                 CFWr.cfwResult2 = cfwsim[filnum];
+
+            CFWr.cfwModel = cfwmodel[filnum];
         }
 
         // 4. CFWUpdateProperties:
@@ -2428,9 +2444,7 @@ int SBIGCCD::CFWDisconnect()
     if(!p) return(CE_OS_ERROR);
 
     deleteProperty(FilterNameTP->name);
-
-    if (sim)
-        return CE_NO_ERROR;
+    deleteProperty(FilterSlotNP.name);
 
     // Close CFW device:
     return(CFWCloseDevice(&CFWr));
@@ -2465,6 +2479,9 @@ int SBIGCCD::CFWOpenDevice(CFWResults *CFWr)
 int SBIGCCD::CFWCloseDevice(CFWResults *CFWr)
 {
     CFWParams CFWp;
+
+    if (sim)
+        return CE_NO_ERROR;
 
     CFWp.cfwModel 		= GetCFWSelType();
     CFWp.cfwCommand 	= CFWC_CLOSE_DEVICE;
@@ -2577,60 +2594,83 @@ int SBIGCCD::CFWGotoMonitor(CFWResults *CFWr)
 
 void SBIGCCD::CFWUpdateProperties(CFWResults CFWr)
 {
-    char 	str[64];
+    string str;
     bool	bClear = false;
 
     switch(CFWr.cfwModel){
         case	CFWSEL_CFW2:
-                    sprintf(str, "%s", "CFW - 2");
+                    str = "CFW - 2";
                     break;
         case 	CFWSEL_CFW5:
-                    sprintf(str, "%s", "CFW - 5");
+                    str = "CFW - 5";
                     break;
         case 	CFWSEL_CFW6A:
-                    sprintf(str, "%s", "CFW - 6A");
+                   str = "CFW - 6A";
                     break;
         case 	CFWSEL_CFW8:
-                    sprintf(str, "%s", "CFW - 8");
+                  str = "CFW - 8";
                     break;
         case 	CFWSEL_CFW402:
-                    sprintf(str, "%s", "CFW - 402");
+                  str = "CFW - 402";
                     break;
         case 	CFWSEL_CFW10:
-                    sprintf(str, "%s", "CFW - 10");
+                  str = "CFW - 10";
                     break;
         case 	CFWSEL_CFW10_SERIAL:
-                    sprintf(str, "%s", "CFW - 10SA");
+                  str = "CFW - 10SA";
                     break;
         case 	CFWSEL_CFWL:
-                    sprintf(str, "%s", "CFW - L");
+                  str = "CFW - L";
                     break;
         case	CFWSEL_CFW9:
-                    sprintf(str, "%s", "CFW - 9");
+                  str = "CFW - 9";
                     break ;
+        case    CFWSEL_CFWL8G:
+                 str = "CFW - L8G";
+            break ;
+        case    CFWSEL_CFW1603:
+                str = "CFW - 1603";
+            break ;
+        case    CFWSEL_FW5_STX:
+                str = "CFW - FW5 STX";
+            break ;
+        case    CFWSEL_FW5_8300:
+                str = "CFW - FW5 8300";
+            break ;
+        case    CFWSEL_FW8_8300:
+                str = "CFW - FW8 8300";
+            break ;
+        case    CFWSEL_FW7_STX:
+               str = "CFW - FW7 STX";
+            break ;
+        case    CFWSEL_FW8_STT:
+              str = "CFW - FW8 STT";
+            break ;
         default:
-                    sprintf(str, "%s", "Unknown");
-                    bClear = true;
-                    break;
+             str = "Unknown";
+             bClear = true;
+             break;
     }
     // Set CFW's product ID:
     IText *pIText = IUFindText(&FilterProdcutTP, "NAME");
-    if(pIText) IUSaveText(pIText, str);
+    if(pIText) IUSaveText(pIText, str.c_str());
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CFW Product ID: %s", str);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CFW Product ID: %s", str.c_str());
 
     // Set CFW's firmware version:
     if(bClear){
-            sprintf(str, "%s", "Unknown");
+            str = "Unknown";
     }else{
-            sprintf(str, "%d", (int)CFWr.cfwResult1);
+            ostringstream ss;
+            ss << (int)CFWr.cfwResult1;
+            str = ss.str();
     }
     pIText = IUFindText(&FilterProdcutTP, "ID");
-    if(pIText) IUSaveText(pIText, str);
+    if(pIText) IUSaveText(pIText, str.c_str());
     FilterProdcutTP.s = IPS_OK;
     IDSetText(&FilterProdcutTP, 0);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CFW Firmware: %s", str);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CFW Firmware: %s", str.c_str());
 
     // Set CFW's filter min/max values:
     FilterSlotN[0].min = 1;
@@ -2656,6 +2696,7 @@ int SBIGCCD::GetCFWSelType()
 {
     int 	type = CFWSEL_UNKNOWN;;
     ISwitch *p = IUFindOnSwitch(&FilterTypeSP);
+    useExternalTrackingCCD = false;
 
     if(p){
         if(!strcmp(p->name, "CFW1")){
@@ -2676,8 +2717,25 @@ int SBIGCCD::GetCFWSelType()
                 type = CFWSEL_CFWL;
         }else if(!strcmp(p->name, "CFW9")){
                 type = CFWSEL_CFW9;
-        #ifdef	 USE_CFW_AUTO
         }else if(!strcmp(p->name, "CFW10")){
+                type = CFWSEL_CFWL8G;
+        }else if(!strcmp(p->name, "CFW11")){
+                type = CFWSEL_CFW1603;
+        }else if(!strcmp(p->name, "CFW12")){
+                type = CFWSEL_FW5_STX;
+        }else if(!strcmp(p->name, "CFW13")){
+                type = CFWSEL_FW5_8300;
+        }else if(!strcmp(p->name, "CFW14")){
+                type = CFWSEL_FW8_8300;
+        }else if(!strcmp(p->name, "CFW15")){
+                type = CFWSEL_FW7_STX;
+        }else if(!strcmp(p->name, "CFW16")){
+                type = CFWSEL_FW8_STT;
+                if (useExternalTrackingCCD == false)
+                    DEBUG(INDI::Logger::DBG_DEBUG, "Use external tracking CCD for FW8 STT");
+                useExternalTrackingCCD=true;
+        #ifdef	 USE_CFW_AUTO
+        }else if(!strcmp(p->name, "CFW17")){
                 type = CFWSEL_AUTO;
         #endif
         }

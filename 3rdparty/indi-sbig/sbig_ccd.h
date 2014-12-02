@@ -105,9 +105,9 @@ const double		EXP_TIME_STEP       = 0.01;
 const double		DEF_EXP_TIME		= 1.0;
 
 #ifdef	 USE_CFW_AUTO
-    const int		MAX_CFW_TYPES = 10;
+    const int		MAX_CFW_TYPES = 17;
 #else
-    const int		MAX_CFW_TYPES = 9;
+    const int		MAX_CFW_TYPES = 16;
 #endif
 
 #define GET_BIG_ENDIAN(p) ( ((p & 0xff) << 8) | (p  >> 8))
@@ -253,6 +253,7 @@ private:
 
     bool sim;
     bool isColor;
+    bool useExternalTrackingCCD;
 
     inline int			GetFileDescriptor(){return(m_fd);}
     inline void		SetFileDescriptor(int val = -1){m_fd = val;}
