@@ -306,7 +306,7 @@ void SXCCD::getCameraParams() {
     SetGuiderParams(params.width, params.height, params.bits_per_pixel, params.pix_width, params.pix_height);
   }
 
-  Capability cap;
+  CCDCapability cap;
   cap.canAbort = true;
   cap.canBin = true;
   cap.canSubFrame = true;
@@ -314,7 +314,7 @@ void SXCCD::getCameraParams() {
   cap.hasGuideHead = HasGuideHead;
   cap.hasShutter = HasShutter;
   cap.hasST4Port = HasST4Port;
-  SetCapability(&cap);
+  SetCCDCapability(&cap);
 
   SetTimer(TIMER);
 }

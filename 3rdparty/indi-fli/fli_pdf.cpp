@@ -93,7 +93,14 @@ const flidomain_t Domains[] = { FLIDOMAIN_USB, FLIDOMAIN_SERIAL, FLIDOMAIN_PARAL
 FLIPDF::FLIPDF()
 {
    sim = false;
-   setFocuserFeatures(true, true, false, false);
+
+   FocuserCapability cap;
+   cap.canAbort=false;
+   cap.canAbsMove=true;
+   cap.canRelMove=true;
+   cap.variableSpeed=false;
+
+   SetFocuserCapability(&cap);
 }
 
 

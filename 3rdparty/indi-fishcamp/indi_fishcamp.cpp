@@ -232,7 +232,7 @@ bool FishCampCCD::initProperties()
   nbuf += 512;    //  leave a little extra at the end
   PrimaryCCD.setFrameBufferSize(nbuf);
 
-  Capability cap;
+  CCDCapability cap;
 
   cap.canAbort = true;
   cap.canBin = false;
@@ -242,7 +242,7 @@ bool FishCampCCD::initProperties()
   cap.hasShutter = false;
   cap.hasST4Port = true;
 
-  SetCapability(&cap);
+  SetCCDCapability(&cap);
 
   delete[] strBuf;
 

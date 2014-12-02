@@ -182,7 +182,7 @@ bool GenericCCD::initProperties() {
   IUFillSwitch(&ResetS[0], "RESET", "Reset", ISS_OFF);
   IUFillSwitchVector(&ResetSP, ResetS, 1, getDeviceName(), "FRAME_RESET", "Frame Values", IMAGE_SETTINGS_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
 
-  Capability cap;
+  CCDCapability cap;
 
   cap.canAbort = true;
   cap.canBin = true;
@@ -192,7 +192,7 @@ bool GenericCCD::initProperties() {
   cap.hasShutter = true;
   cap.hasST4Port = true;
 
-  SetCapability(&cap);
+  SetCCDCapability(&cap);
 
   return true;
 }

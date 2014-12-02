@@ -166,7 +166,7 @@ bool QHYCCD::initProperties() {
   IUFillNumberVector(&GainNP, GainN, 1, getDeviceName(), "CCD_GAIN", "Gain", IMAGE_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
 
   // JM: Peter please check this. Do we know this here, or after we connected?
-  Capability cap;
+  CCDCapability cap;
 
   cap.canAbort = true;
   cap.canBin = true;
@@ -176,7 +176,7 @@ bool QHYCCD::initProperties() {
   cap.hasShutter = device->hasShutter();
   cap.hasST4Port = device->hasGuidePort();
 
-  SetCapability(&cap);
+  SetCCDCapability(&cap);
 
   return true;
 }

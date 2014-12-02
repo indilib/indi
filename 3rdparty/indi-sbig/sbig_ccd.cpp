@@ -617,7 +617,7 @@ bool SBIGCCD::Connect()
 
   if (sim)
   {           
-    Capability cap;
+    CCDCapability cap;
 
     cap.canAbort = true;
     cap.canBin = true;
@@ -627,7 +627,7 @@ bool SBIGCCD::Connect()
     cap.hasShutter = true;
     cap.hasST4Port = true;
 
-    SetCapability(&cap);
+    SetCCDCapability(&cap);
 
     pthread_create( &primary_thread, NULL, &grabCCDHelper, this);
 
@@ -653,7 +653,7 @@ bool SBIGCCD::Connect()
               if (hasCooler)
                   IEAddTimer(TEMPERATURE_POLL_MS, SBIGCCD::updateTemperatureHelper, this);
 
-              Capability cap;
+              CCDCapability cap;
 
               cap.canAbort = true;
               cap.canBin = true;
@@ -663,7 +663,7 @@ bool SBIGCCD::Connect()
               cap.hasShutter = true;
               cap.hasST4Port = true;
 
-              SetCapability(&cap);
+              SetCCDCapability(&cap);
 
               pthread_create( &primary_thread, NULL, &grabCCDHelper, this);
               //pthread_create( &guide_thread, NULL, &grabGuideCCD, this);

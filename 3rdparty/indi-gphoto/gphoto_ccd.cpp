@@ -197,7 +197,7 @@ bool GPhotoCCD::initProperties()
   IUFillSwitch(&livePreviewS[1], "Disable", "", ISS_ON);
   IUFillSwitchVector(&livePreviewSP, livePreviewS, 2, getDeviceName(), "VIDEO_STREAM", "Preview", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-  Capability cap;
+  CCDCapability cap;
 
   cap.canAbort = false;
   cap.canBin = false;
@@ -207,9 +207,15 @@ bool GPhotoCCD::initProperties()
   cap.hasShutter = false;
   cap.hasST4Port = false;
 
-  SetCapability(&cap);
+  SetCCDCapability(&cap);
 
-  setFocuserFeatures(false, false, false, true);
+  FocuserCapability focusCap;
+  focusCap.canAbort=false;
+  focusCap.canAbsMove=false;
+  focusCap.canRelMove=false;
+  focusCap.variableSpeed=true;
+
+  SetFocuserCapability(&focusCap);
 
   FocusSpeedN[0].min=0;
   FocusSpeedN[0].max=3;

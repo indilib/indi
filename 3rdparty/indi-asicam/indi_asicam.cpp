@@ -212,7 +212,7 @@ bool AsicamCCD::initProperties()
   IUFillSwitch(&ModeS[3], "RAW8", "RAW8", ISS_OFF);
   IUFillSwitchVector(&ModeSP, ModeS, 4, getDeviceName(), "IMAGE_MODE", "Image Mode", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_OK);
 
-  Capability cap;
+  CCDCapability cap;
   cap.canAbort = true;
   cap.canBin = true;
   cap.canSubFrame = true;
@@ -220,7 +220,7 @@ bool AsicamCCD::initProperties()
   cap.hasGuideHead = false;
   cap.hasShutter = false;
   cap.hasST4Port = true;
-  SetCapability(&cap);
+  SetCCDCapability(&cap);
 
   // Add Debug, Simulator, and Configuration controls
   addAuxControls();

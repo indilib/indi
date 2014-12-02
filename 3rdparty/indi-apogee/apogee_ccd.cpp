@@ -986,7 +986,7 @@ bool ApogeeCCD::Connect()
          return false;
      }
 
-      Capability cap;
+      CCDCapability cap;
 
       cap.canAbort = true;
       cap.canBin = true;
@@ -996,7 +996,7 @@ bool ApogeeCCD::Connect()
       cap.hasShutter = true;
       cap.hasST4Port = false;
 
-      SetCapability(&cap);
+      SetCCDCapability(&cap);
 
       /* Success! */
       DEBUG(INDI::Logger::DBG_SESSION, "CCD is online. Retrieving basic data.");

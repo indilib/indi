@@ -878,7 +878,7 @@ bool QSICCD::Connect()
                 return false;
             }
 
-            Capability cap;
+            CCDCapability cap;
 
             cap.canAbort = canAbort;
             cap.canBin = true;
@@ -888,7 +888,7 @@ bool QSICCD::Connect()
             cap.hasShutter = true;
             cap.hasST4Port = hasST4Port;
 
-            SetCapability(&cap);
+            SetCCDCapability(&cap);
 
             /* Success! */
             DEBUG(INDI::Logger::DBG_SESSION, "CCD is online. Retrieving basic data.");
