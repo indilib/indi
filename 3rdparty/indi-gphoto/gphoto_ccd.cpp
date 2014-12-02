@@ -183,7 +183,7 @@ bool GPhotoCCD::initProperties()
   IUFillTextVector(&PortTP, mPortT, NARRAY(mPortT), getDeviceName(),	"SHUTTER_PORT" , "Shutter Release", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
   //We don't know how many items will be in the switch yet
-  IUFillSwitchVector(&mIsoSP, NULL, 0, getDeviceName(), "ISO", "ISO", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+  IUFillSwitchVector(&mIsoSP, NULL, 0, getDeviceName(), "ISO", "CAPTURE_ISO", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
   IUFillSwitchVector(&mFormatSP, NULL, 0, getDeviceName(), "CAPTURE_FORMAT", "Capture Format", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
   IUFillSwitch(&autoFocusS[0], "Set", "", ISS_OFF);
@@ -354,8 +354,10 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
           for (int i = 0; i < mIsoSP.nsp; i++)
           {
-              if (mIsoS[i].s == ISS_ON) {
-                  gphoto_set_iso(gphotodrv, i);
+              if (mIsoS[i].s == ISS_ON)
+              {
+                  if (sim == false)
+                      gphoto_set_iso(gphotodrv, i);
                   mIsoSP.s = IPS_OK;
                   IDSetSwitch(&mIsoSP, NULL);
                   break;
@@ -370,8 +372,10 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
           for (int i = 0; i < mFormatSP.nsp; i++)
           {
-              if (mFormatS[i].s == ISS_ON) {
-                  gphoto_set_format(gphotodrv, i);
+              if (mFormatS[i].s == ISS_ON)
+              {
+                  if (sim == false)
+                    gphoto_set_format(gphotodrv, i);
                   mFormatSP.s = IPS_OK;
                   IDSetSwitch(&mFormatSP, NULL);
                   break;
@@ -512,9 +516,6 @@ bool GPhotoCCD::Connect()
 
   sim = isSimulation();
 
-  if (sim)
-      return true;
-
   int setidx;
   const char **options;
   int max_opts;
@@ -523,7 +524,7 @@ bool GPhotoCCD::Connect()
   if(PortTP.tp[0].text && strlen(PortTP.tp[0].text))
       port = PortTP.tp[0].text;
 
-  if (! (gphotodrv = gphoto_open(port)))
+  if (sim == false && ! (gphotodrv = gphoto_open(port)))
   {
       DEBUG(INDI::Logger::DBG_ERROR, "Can not open camera: Power OK?");
       return false;
@@ -531,17 +532,40 @@ bool GPhotoCCD::Connect()
 
   if (mFormatS)
       free(mFormatS);
-  setidx = gphoto_get_format_current(gphotodrv);
-  options = gphoto_get_formats(gphotodrv, &max_opts);
+
+  if (sim)
+  {
+    setidx =0;
+    max_opts=1;
+    const char *fmts[] = { "Custom"};
+    options = fmts;
+  }
+  else
+  {
+      setidx = gphoto_get_format_current(gphotodrv);
+      options = gphoto_get_formats(gphotodrv, &max_opts);
+  }
   mFormatS = create_switch("FORMAT", options, max_opts, setidx);
   mFormatSP.sp = mFormatS;
   mFormatSP.nsp = max_opts;
 
   if (mIsoS)
       free(mIsoS);
-  setidx = gphoto_get_iso_current(gphotodrv);
-  options = gphoto_get_iso(gphotodrv, &max_opts);
-  mIsoS = create_switch("ISO", options, max_opts, setidx);
+
+  if (sim)
+  {
+      setidx=0;
+      max_opts=4;
+      const char *isos[] = { "100", "200", "400", "800" };
+      options = isos;
+  }
+  else
+  {
+    setidx = gphoto_get_iso_current(gphotodrv);
+    options = gphoto_get_iso(gphotodrv, &max_opts);
+  }
+
+  mIsoS = create_switch("ISO", options, max_opts, setidx);    
   mIsoSP.sp = mIsoS;
   mIsoSP.nsp = max_opts;
 
