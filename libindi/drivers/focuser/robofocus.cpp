@@ -113,8 +113,14 @@ std::auto_ptr<RoboFocus> roboFocus(0);
 
 
 RoboFocus::RoboFocus()
-{
-    setFocuserFeatures(true, true, true, false);
+{   
+    FocuserCapability cap;
+    cap.canAbort=true;
+    cap.canAbsMove=true;
+    cap.canRelMove=true;
+    cap.variableSpeed=false;
+
+    SetFocuserCapability(&cap);
 
 }
 

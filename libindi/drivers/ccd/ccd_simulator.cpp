@@ -96,7 +96,7 @@ CCDSim::CCDSim()
     AbortPrimaryFrame = false;
     ShowStarField=true;
 
-    Capability cap;
+    CCDCapability cap;
 
     cap.canAbort = true;
     cap.canBin = true;
@@ -106,7 +106,7 @@ CCDSim::CCDSim()
     cap.hasShutter = true;
     cap.hasST4Port = true;
 
-    SetCapability(&cap);
+    SetCCDCapability(&cap);
 
     polarError=0;
     polarDrift=0;

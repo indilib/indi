@@ -93,7 +93,15 @@ void ISSnoopDevice (XMLEle *root)
 FocusSim::FocusSim()
 {
     ticks=0;
-    setFocuserFeatures(true, false, false, true);
+
+    // FIXME change to AbsMove --> TRUE
+    FocuserCapability cap;
+    cap.canAbort=true;
+    cap.canAbsMove=false;
+    cap.canRelMove=true;
+    cap.variableSpeed=true;
+
+    SetFocuserCapability(&cap);
 
 }
 

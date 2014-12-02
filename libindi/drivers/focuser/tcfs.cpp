@@ -111,7 +111,13 @@ void ISSnoopDevice (XMLEle *root)
 *****************************************************************/
 TCFS::TCFS()
 {
-    setFocuserFeatures(true, true, false, false);
+    FocuserCapability cap;
+    cap.canAbort=false;
+    cap.canAbsMove=true;
+    cap.canRelMove=true;
+    cap.variableSpeed=false;
+
+    SetFocuserCapability(&cap);
 
     simulated_position    = 3000;
     simulated_temperature = 25.4;

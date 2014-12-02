@@ -81,18 +81,18 @@ bool INDI::Focuser::updateProperties()
         //  Now we add our focusser specific stuff
         defineSwitch(&FocusMotionSP);
 
-        if (variableSpeed)
+        if (capability.variableSpeed)
         {
             defineNumber(&FocusSpeedNP);
             defineNumber(&FocusTimerNP);
         }
-        if (canRelMove)
+        if (capability.canRelMove)
             defineNumber(&FocusRelPosNP);
-        if (canAbsMove)            
+        if (capability.canAbsMove)
             defineNumber(&FocusAbsPosNP);
-        if (canAbort)
+        if (capability.canAbort)
             defineSwitch(&AbortSP);
-        if (canAbsMove)
+        if (capability.canAbsMove)
         {
             defineNumber(&PresetNP);
             defineSwitch(&PresetGotoSP);
@@ -100,18 +100,18 @@ bool INDI::Focuser::updateProperties()
     } else
     {
         deleteProperty(FocusMotionSP.name);
-        if (variableSpeed)
+        if (capability.variableSpeed)
         {
             deleteProperty(FocusSpeedNP.name);
             deleteProperty(FocusTimerNP.name);
         }
-        if (canRelMove)
+        if (capability.canRelMove)
             deleteProperty(FocusRelPosNP.name);
-        if (canAbsMove)
+        if (capability.canAbsMove)
             deleteProperty(FocusAbsPosNP.name);
-        if (canAbort)
+        if (capability.canAbort)
             deleteProperty(AbortSP.name);
-        if (canAbsMove)
+        if (capability.canAbsMove)
         {
             deleteProperty(PresetNP.name);
             deleteProperty(PresetGotoSP.name);
@@ -230,7 +230,7 @@ void INDI::Focuser::processButton(const char * button_n, ISState state)
     // Focus In
     if (!strcmp(button_n, "Focus In"))
     {
-        if (variableSpeed)
+        if (capability.variableSpeed)
         {
            rc = MoveFocuser(FOCUS_INWARD, FocusSpeedN[0].value, FocusTimerN[0].value);
             if (rc == 0)
@@ -242,7 +242,7 @@ void INDI::Focuser::processButton(const char * button_n, ISState state)
 
             IDSetNumber(&FocusTimerNP,NULL);
         }
-        else if (canRelMove)
+        else if (capability.canRelMove)
         {
             rc=MoveRelFocuser(FOCUS_INWARD, FocusRelPosN[0].value);
             if (rc == 0)
@@ -260,7 +260,7 @@ void INDI::Focuser::processButton(const char * button_n, ISState state)
     }
     else if (!strcmp(button_n, "Focus Out"))
     {
-        if (variableSpeed)
+        if (capability.variableSpeed)
         {
            rc = MoveFocuser(FOCUS_OUTWARD, FocusSpeedN[0].value, FocusTimerN[0].value);
             if (rc == 0)
@@ -272,7 +272,7 @@ void INDI::Focuser::processButton(const char * button_n, ISState state)
 
             IDSetNumber(&FocusTimerNP,NULL);
         }
-        else if (canRelMove)
+        else if (capability.canRelMove)
         {
             rc=MoveRelFocuser(FOCUS_OUTWARD, FocusRelPosN[0].value);
             if (rc == 0)

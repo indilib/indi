@@ -25,10 +25,10 @@
 
 INDI::FocuserInterface::FocuserInterface()
 {
-    canAbsMove = false;
-    canRelMove = false;
-    canAbort   = false;
-    variableSpeed = false;
+    capability.canAbsMove = false;
+    capability.canRelMove = false;
+    capability.canAbort   = false;
+    capability.variableSpeed = false;
 
 }
 
@@ -144,7 +144,7 @@ bool INDI::FocuserInterface::processFocuserNumber (const char *dev, const char *
         int newPos = (int) values[0];
         int ret =0;
 
-        if (canAbsMove)
+        if (capability.canAbsMove)
         {
             if (FocusMotionS[0].s == ISS_ON)
             {
@@ -224,14 +224,6 @@ bool INDI::FocuserInterface::processFocuserSwitch (const char *dev, const char *
 
 }
 
-void INDI::FocuserInterface::setFocuserFeatures(bool CanAbsMove, bool CanRelMove, bool CanAbort, bool VariableSpeed)
-{
-    canAbsMove = CanAbsMove;
-    canRelMove = CanRelMove;
-    canAbort   = CanAbort;
-    variableSpeed = VariableSpeed;
-}
-
 int INDI::FocuserInterface::MoveFocuser(FocusDirection dir, int speed, int duration)
 {
     //  This should be a virtual function, because the low level hardware class
@@ -276,4 +268,12 @@ bool INDI::FocuserInterface::SetFocuserSpeed(int speed)
     //  must override this
     DEBUGDEVICE(focuserName, INDI::Logger::DBG_ERROR, "Focuser does not support variable speed.");
     return false;
+}
+
+void INDI::FocuserInterface::SetFocuserCapability(FocuserCapability *cap)
+{
+    capability.canAbort     = cap->canAbort;
+    capability.canAbsMove   = cap->canAbsMove;
+    capability.canRelMove   = cap->canRelMove;
+    capability.variableSpeed= cap->variableSpeed;
 }

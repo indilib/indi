@@ -29,7 +29,7 @@ V4L2_Driver::V4L2_Driver()
   
   // No guide head, no ST4 port, no cooling, no shutter
 
-  Capability cap;
+  CCDCapability cap;
 
   cap.canAbort = false;
   cap.canBin = true;
@@ -39,7 +39,7 @@ V4L2_Driver::V4L2_Driver()
   cap.hasST4Port = false;
   cap.hasShutter = false;
 
-  SetCapability(&cap);
+  SetCCDCapability(&cap);
 
   Options=NULL;
   v4loptions=0; 

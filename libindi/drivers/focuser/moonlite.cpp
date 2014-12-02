@@ -92,7 +92,13 @@ MoonLite::MoonLite()
 {
 
     // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
-    setFocuserFeatures(true, true, true, true);
+    FocuserCapability cap;
+    cap.canAbort=true;
+    cap.canAbsMove=true;
+    cap.canRelMove=true;
+    cap.variableSpeed=true;
+
+    SetFocuserCapability(&cap);
 
     lastPos = 0;
     lastTemperature = 0;

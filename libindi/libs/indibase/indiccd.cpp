@@ -283,7 +283,7 @@ INDI::CCD::~CCD()
     delete ActiveDeviceTP;
 }
 
-void INDI::CCD::SetCapability(Capability *cap)
+void INDI::CCD::SetCCDCapability(CCDCapability *cap)
 {
     capability.canAbort     = cap->canAbort;
     capability.canBin       = cap->canBin;

@@ -41,14 +41,31 @@ class INDI::FocuserInterface
 public:
     enum FocusDirection { FOCUS_INWARD, FOCUS_OUTWARD };
 
+    /** \struct FocuserCapability
+        \brief Holds the capabilities of a focuser.
+    */
+    typedef struct
+    {
+        /** Can the focuser move by absolute position? */
+        bool canAbsMove;
+        /** Can the focuser move by relative position? */
+        bool canRelMove;
+        /** Is it possible to abort focuser motion? */
+        bool canAbort;
+        /** Can the focuser move in different configurable speeds? */
+        bool variableSpeed;
+    } FocuserCapability;
+
     /**
-     * @brief setFocuserFeatures Sets Focuser features
-     * @param CanAbsMove can the focuser move by absolute position?
-     * @param CanRelMove can the focuser move by relative position?
-     * @param CanAbort is it possible to abort focuser motion?
-     * @param VariableSpeed Can you control the focuser motor speed?
+     * @brief GetFocuserCapability returns the capability of the focuser
      */
-    void setFocuserFeatures(bool CanAbsMove, bool CanRelMove, bool CanAbort, bool VariableSpeed);
+    FocuserCapability GetFocuserCapability() const { return capability;}
+
+    /**
+     * @brief SetFocuserCapability sets the focuser capabilities. All capabilities must be initialized.
+     * @param cap pointer to focuser capability struct.
+     */
+    void SetFocuserCapability(FocuserCapability * cap);
 
 protected:
 
@@ -117,7 +134,7 @@ protected:
     ISwitchVectorProperty AbortSP;
     ISwitch AbortS[1];
 
-    bool canAbort, canAbsMove, canRelMove, variableSpeed;
+    FocuserCapability capability;
 
     char focuserName[MAXINDIDEVICE];
 

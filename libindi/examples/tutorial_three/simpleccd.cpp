@@ -132,7 +132,7 @@ bool SimpleCCD::initProperties()
     INDI::CCD::initProperties();
 
     // We set the CCD capabilities
-    Capability cap;
+    CCDCapability cap;
 
     cap.canAbort = true;
     cap.canBin   = true;
@@ -142,7 +142,7 @@ bool SimpleCCD::initProperties()
     cap.hasShutter = true;
     cap.hasST4Port = false;
 
-    SetCapability(&cap);
+    SetCCDCapability(&cap);
 
     // Add Debug, Simulator, and Configuration controls
     addAuxControls();

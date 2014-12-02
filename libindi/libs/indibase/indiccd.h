@@ -371,7 +371,7 @@ private:
    It also implements the interface to perform guiding. The class enable the ability to \e snoop on telescope equatorial coordinates and record them in the
    FITS file before upload. Developers need to subclass INDI::CCD to implement any driver for CCD cameras within INDI.
 
-\author Gerry Rozema, Jasem Mutlaq
+\author Jasem Mutlaq, Gerry Rozema
 */
 class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
 {
@@ -379,16 +379,26 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         CCD();
         virtual ~CCD();
 
+        /** \struct CCDCapability
+            \brief Holds the capabilities of the CCD. All fields must be initialized.
+        */
         typedef struct
         {
+            /** Does the CCD have a guide head? */
             bool hasGuideHead;
+            /** Does the CCD have an ST4-compatible port to send guide pulses? */
             bool hasST4Port;
+            /** Does the CCD have a mechanical or electronic shutter? */
             bool hasShutter;
+            /** Does the CCD have a cooler and temperature can be controlled? */
             bool hasCooler;
+            /** Does the CCD supprt binning opertation either in software or hardware? */
             bool canBin;
+            /** Can the CCD send a subframe of the full image? */
             bool canSubFrame;
+            /** Can the CCD abort exposure? */
             bool canAbort;
-        } Capability;
+        } CCDCapability;
 
         virtual bool initProperties();
         virtual bool updateProperties();
@@ -400,8 +410,16 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
 
      protected:
 
-        Capability GetCapability() const { return capability;}
-        void SetCapability(Capability * cap);
+        /**
+         * @brief GetCCDCapability returns the CCD capabilities.
+         */
+        CCDCapability GetCCDCapability() const { return capability;}
+
+        /**
+         * @brief SetCCDCapability Set the CCD capabilities. Al fields must be initilized.
+         * @param cap pointer to CCDCapability struct.
+         */
+        void SetCCDCapability(CCDCapability * cap);
 
         /**
          * @return True if CCD can abort exposure. False otherwise.
@@ -656,7 +674,7 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         ITextVectorProperty UploadSettingsTP;
 
      private:
-        Capability capability;
+        CCDCapability capability;
 
         bool uploadFile(CCDChip * targetChip, const void *fitsData, size_t totalBytes, bool sendImage, bool saveImage);
         void getMinMax(double *min, double *max, CCDChip *targetChip);
