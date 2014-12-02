@@ -183,7 +183,7 @@ bool GPhotoCCD::initProperties()
   IUFillTextVector(&PortTP, mPortT, NARRAY(mPortT), getDeviceName(),	"SHUTTER_PORT" , "Shutter Release", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
   //We don't know how many items will be in the switch yet
-  IUFillSwitchVector(&mIsoSP, NULL, 0, getDeviceName(), "ISO", "CAPTURE_ISO", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+  IUFillSwitchVector(&mIsoSP, NULL, 0, getDeviceName(), "CCD_ISO", "ISO", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
   IUFillSwitchVector(&mFormatSP, NULL, 0, getDeviceName(), "CAPTURE_FORMAT", "Capture Format", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
   IUFillSwitch(&autoFocusS[0], "Set", "", ISS_OFF);
