@@ -359,6 +359,8 @@ void SBIGCCD::ISGetProperties(const char *dev)
   INDI::CCD::ISGetProperties(dev);
 
   defineText(&PortTP);
+  defineSwitch(&FilterConnectionSP);
+  defineSwitch(&FilterTypeSP);
 
   // Add Debug, Simulator, and Configuration controls
   addAuxControls();
@@ -366,10 +368,6 @@ void SBIGCCD::ISGetProperties(const char *dev)
 
 bool SBIGCCD::updateProperties()
 {
-
-
-  // TODO: Check if we support guiding
-  //SetST4Port(true);
 
   INDI::CCD::updateProperties();
 
@@ -384,16 +382,8 @@ bool SBIGCCD::updateProperties()
         defineNumber(&CoolerNP);
     }
     defineText(&ProductInfoTP);
-
-
-
-    defineSwitch(&ResetSP);
-
-    defineSwitch(&FilterConnectionSP);
+    defineSwitch(&ResetSP);    
     defineText(&FilterProdcutTP);
-    defineSwitch(&FilterTypeSP);
-
-    //defineNumber(&FilterSlotNP);
 
     // Let's get parameters now from CCD
     setupParams();
@@ -401,6 +391,10 @@ bool SBIGCCD::updateProperties()
     if (isColor)
         defineSwitch(&DebayerMethodSP);
 
+    // If filter type already selected (from config file), then try to connect to CFW
+    ISwitch *p = IUFindOnSwitch(&FilterTypeSP);
+    if (p != NULL && FilterConnectionS[0].s == ISS_OFF)
+        CFWConnect();
 
     timerID = SetTimer(POLLMS);
   } else
@@ -412,9 +406,9 @@ bool SBIGCCD::updateProperties()
     deleteProperty(FanStateSP.name);
     deleteProperty(ResetSP.name);
 
-    deleteProperty(FilterConnectionSP.name);
+    //deleteProperty(FilterConnectionSP.name);
     deleteProperty(FilterProdcutTP.name);
-    deleteProperty(FilterTypeSP.name);
+    //deleteProperty(FilterTypeSP.name);
     //deleteProperty(FilterSlotNP.name);
     deleteProperty(DebayerMethodSP.name);
 
@@ -555,11 +549,9 @@ bool SBIGCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
         // CFW CONNECTION:
       if(!strcmp(name, FilterConnectionSP.name))
       {
-            CFWResults	CFWr;
-            IUResetSwitch(&FilterConnectionSP);
             IUUpdateSwitch(&FilterConnectionSP, states, names, n);
             FilterConnectionSP.s = IPS_BUSY;
-            IDSetSwitch(&FilterConnectionSP, 0);
+
             if(FilterConnectionS[0].s == ISS_ON)
             {
 
@@ -575,49 +567,13 @@ bool SBIGCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                     return false;
                 }
 
-                // Open device.
-                if(CFWConnect() == CE_NO_ERROR)
-                {
-                    FilterConnectionSP.s = IPS_OK;
-                    DEBUG(INDI::Logger::DBG_SESSION, "CFW connected.");
-                    IDSetSwitch(&FilterConnectionSP, NULL);
-                    defineNumber(&FilterSlotNP);
-                    IUUpdateMinMax(&FilterSlotNP);
-                }else
-                {
-                    FilterConnectionSP.s = IPS_ALERT;
-                    IUResetSwitch(&FilterConnectionSP);
-                    FilterConnectionSP.sp[1].s = ISS_ON;
-                    DEBUG(INDI::Logger::DBG_ERROR, "CFW connection error!");
-                    IDSetSwitch(&FilterConnectionSP, NULL);                    
-                }
-
-                // Load filter names from file
-                loadConfig(true);
+                // Connect CFW
+                CFWConnect();
             }
             else
             {
-                // Close device.
-                if(CFWDisconnect() != CE_NO_ERROR)
-                {
-                    FilterConnectionSP.s = IPS_ALERT;
-                    DEBUG(INDI::Logger::DBG_ERROR, "CFW disconnection error!");
-                    IDSetSwitch(&FilterConnectionSP, NULL);                    
-                }else{
-                    // Update CFW's Product/ID texts.
-                    CFWr.cfwModel 		= CFWSEL_UNKNOWN;
-                    CFWr.cfwPosition    = CFWP_UNKNOWN;
-                    CFWr.cfwStatus		= CFWS_UNKNOWN;
-                    CFWr.cfwError		= CFWE_DEVICE_NOT_OPEN;
-                    CFWr.cfwResult1		= 0;
-                    CFWr.cfwResult2		= 0;
-                    //CFWUpdateProperties(CFWr);
-                    // Remove connection text.
-                    FilterConnectionSP.s = IPS_IDLE;
-                    DEBUG(INDI::Logger::DBG_SESSION, "CFW disconnected.");
-                    IDSetSwitch(&FilterConnectionSP, NULL);
-                    deleteProperty(FilterSlotNP.name);
-                }
+                // Disconnect CFW
+                CFWDisconnect();
             }
             return true;
         }
@@ -674,7 +630,8 @@ bool SBIGCCD::Connect()
     SetCapability(&cap);
 
     pthread_create( &primary_thread, NULL, &grabCCDHelper, this);
-    //pthread_create( &guide_thread, NULL, &grabGuideCCD, this);
+
+    loadConfig(true, "CFW_TYPE");
 
     IEAddTimer(TEMPERATURE_POLL_MS, SBIGCCD::updateTemperatureHelper, this);
 
@@ -710,6 +667,8 @@ bool SBIGCCD::Connect()
 
               pthread_create( &primary_thread, NULL, &grabCCDHelper, this);
               //pthread_create( &guide_thread, NULL, &grabGuideCCD, this);
+
+              loadConfig(true, "CFW_TYPE");
 
               return true;
           }
@@ -2388,8 +2347,16 @@ int SBIGCCD::CFWConnect()
     int				res;
     CFWResults	CFWr;
 
-    ISwitch *p = IUFindOnSwitch(&FilterTypeSP);
-    if(!p) return(CE_OS_ERROR);
+    IUResetSwitch(&FilterConnectionSP);
+
+    if (isConnected() == false)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "You must establish connection to CCD before connecting to filter wheel.");
+        FilterConnectionSP.s = IPS_IDLE;
+        FilterConnectionS[1].s = ISS_ON;
+        IDSetSwitch(&FilterConnectionSP, NULL);
+        return CE_OS_ERROR;
+    }
 
     do{
         // 1. CFWC_OPEN_DEVICE:
@@ -2431,6 +2398,29 @@ int SBIGCCD::CFWConnect()
 
 
     }while(0);
+
+    if (res == CE_NO_ERROR)
+    {
+        FilterConnectionSP.s = IPS_OK;
+        DEBUG(INDI::Logger::DBG_SESSION, "CFW connected.");
+        FilterConnectionS[0].s = ISS_ON;
+        IDSetSwitch(&FilterConnectionSP, NULL);
+        defineNumber(&FilterSlotNP);
+        loadConfig(true, "FILTER_SLOT");
+        IUUpdateMinMax(&FilterSlotNP);
+        // Load filter names from file
+        loadConfig(true, "FILTER_NAME");
+
+    }else
+    {
+        FilterConnectionSP.s = IPS_ALERT;
+        FilterConnectionS[1].s = ISS_ON;
+        IUResetSwitch(&FilterConnectionSP);
+        FilterConnectionSP.sp[1].s = ISS_ON;
+        DEBUG(INDI::Logger::DBG_ERROR, "CFW connection error!");
+        IDSetSwitch(&FilterConnectionSP, NULL);
+    }
+
     return(res);
 }
 
@@ -2440,14 +2430,37 @@ int SBIGCCD::CFWDisconnect()
 {
     CFWResults	CFWr;
 
-    ISwitch *p = IUFindOnSwitch(&FilterTypeSP);
-    if(!p) return(CE_OS_ERROR);
-
-    deleteProperty(FilterNameTP->name);
-    deleteProperty(FilterSlotNP.name);
+    IUResetSwitch(&FilterConnectionSP);
 
     // Close CFW device:
-    return(CFWCloseDevice(&CFWr));
+    int res = CFWCloseDevice(&CFWr);
+
+    if(res != CE_NO_ERROR)
+    {
+        FilterConnectionS[0].s = ISS_ON;
+        FilterConnectionSP.s = IPS_ALERT;
+        DEBUG(INDI::Logger::DBG_ERROR, "CFW disconnection error!");
+        IDSetSwitch(&FilterConnectionSP, NULL);
+    }else{
+        // Update CFW's Product/ID texts.
+        CFWr.cfwModel 		= CFWSEL_UNKNOWN;
+        CFWr.cfwPosition    = CFWP_UNKNOWN;
+        CFWr.cfwStatus		= CFWS_UNKNOWN;
+        CFWr.cfwError		= CFWE_DEVICE_NOT_OPEN;
+        CFWr.cfwResult1		= 0;
+        CFWr.cfwResult2		= 0;
+        //CFWUpdateProperties(CFWr);
+        // Remove connection text.
+        FilterConnectionS[1].s = ISS_ON;
+        FilterConnectionSP.s = IPS_IDLE;
+        DEBUG(INDI::Logger::DBG_SESSION, "CFW disconnected.");
+        IDSetSwitch(&FilterConnectionSP, NULL);
+        deleteProperty(FilterSlotNP.name);
+        deleteProperty(FilterNameTP->name);
+
+    }
+
+    return res;
 }
 
 //==========================================================================
@@ -2471,6 +2484,7 @@ int SBIGCCD::CFWOpenDevice(CFWResults *CFWr)
         default:
                     break;
     }
+
     return(res);
 }
 
@@ -2671,6 +2685,9 @@ void SBIGCCD::CFWUpdateProperties(CFWResults CFWr)
     IDSetText(&FilterProdcutTP, 0);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CFW Firmware: %s", str.c_str());
+
+    if (sim)
+        CFWr.cfwPosition = 1;
 
     // Set CFW's filter min/max values:
     FilterSlotN[0].min = 1;
