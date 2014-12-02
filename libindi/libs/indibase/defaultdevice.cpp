@@ -67,12 +67,12 @@ INDI::DefaultDevice::~DefaultDevice()
 {
 }
 
-bool INDI::DefaultDevice::loadConfig(bool silent)
+bool INDI::DefaultDevice::loadConfig(bool silent, const char *property)
 {
     char errmsg[MAXRBUF];
     bool pResult = false;
 
-    pResult = IUReadConfig(NULL, deviceID, errmsg) == 0 ? true : false;
+    pResult = IUReadConfig(NULL, deviceID, property, errmsg) == 0 ? true : false;
 
    if (silent == false)
    {
@@ -176,7 +176,7 @@ bool INDI::DefaultDevice::loadDefaultConfig()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "Requesting to load default config with: %s", configDefaultFileName);
 
-    pResult = IUReadConfig(configDefaultFileName, deviceID, errmsg) == 0 ? true : false;
+    pResult = IUReadConfig(configDefaultFileName, deviceID, NULL, errmsg) == 0 ? true : false;
 
     if (pResult)
         DEBUG(INDI::Logger::DBG_SESSION, "Default configuration loaded.");

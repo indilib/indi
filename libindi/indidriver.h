@@ -86,14 +86,17 @@ extern FILE * IUGetConfigFP(const char *filename, const char *dev, char errmsg[]
   Once a configuration file is successful loaded, the function will iterate over the enclosed newXXX commands, and dispatches
   each command to the driver. Subsequently, the driver receives the updated property value in the driver's ISNewXXX functions.
   The driver may call this function at any time. However, it is usually called either on driver startup or on device power up.
+  By default, all the properties are read from the configuration file. To load a specific property, pass the property name, otherwise
+  pass NULL to retrive all properties.
 
     \param filename full path of the configuration file. If set, the function will attempt to load the file.
            If set to NULL, it will attempt to generate the filename as described in the <b>Detailed Description</b> introduction and then load it.
     \param dev device name. This is used if the filename parameter is NULL, and INDICONFIG environment variable is not set as described in the <b>Detailed Description</b> introduction.
+    \param property Property name to load configuration for. If NULL, all properties within the configuration file will be processed.
     \param errmsg In case of errors, store the error message in this buffer. The size of the buffer must be at least MAXRBUF.
     \return 0 on successful, -1 if there is an error and errmsg is set.
 */
-extern int IUReadConfig(const char *filename, const char *dev, char errmsg[]);
+extern int IUReadConfig(const char *filename, const char *dev, const char *property, char errmsg[]);
 
 /** \brief Copies an existing configuration file into a default configuration file.
 

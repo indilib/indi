@@ -234,10 +234,11 @@ protected:
     // Configuration
 
     /** \brief Load the last saved configuration file
-     *  \param silent if true, don't report any error or messages.
+     *  \param silent if true, don't report any error or notification messages.
+     *  \param property Name of property to load configuration for. If NULL, all properties in the configuration file are loaded which is the default behavior.
         \return True if successful, false otherwise.
     */
-    virtual bool loadConfig(bool silent=false);
+    virtual bool loadConfig(bool silent=false, const char *property=NULL);
 
     /** \brief Save the current properties in a configuration file
         \return True if successful, false otherwise.

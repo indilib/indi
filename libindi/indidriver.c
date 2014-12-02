@@ -1114,7 +1114,7 @@ dispatch (XMLEle *root, char msg[])
         return(1);
 }
 
-int IUReadConfig(const char *filename, const char *dev, char errmsg[])
+int IUReadConfig(const char *filename, const char *dev, const char *property, char errmsg[])
 {
     char configFileName[MAXRBUF];
     char *rname, *rdev;
@@ -1167,7 +1167,9 @@ int IUReadConfig(const char *filename, const char *dev, char errmsg[])
         if (strcmp(dev, rdev))
             continue;
 
-        dispatch(root, errmsg);
+        if ( (property && !strcmp(property, rname)) || property == NULL)
+            dispatch(root, errmsg);
+
     }
 
     if (nXMLEle(fproot) > 0)
