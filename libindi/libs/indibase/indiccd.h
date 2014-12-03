@@ -361,6 +361,9 @@ private:
     INumber RapidGuideDataN[3];
     INumberVectorProperty *RapidGuideDataNP;
 
+    ISwitch                 ResetS[1];
+    ISwitchVectorProperty   *ResetSP;
+
     friend class INDI::CCD;
 };
 

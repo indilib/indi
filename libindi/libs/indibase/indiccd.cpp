@@ -66,6 +66,7 @@ CCDChip::CCDChip()
     RapidGuideSP = new ISwitchVectorProperty;
     RapidGuideSetupSP = new ISwitchVectorProperty;
     RapidGuideDataNP = new INumberVectorProperty;
+    ResetSP = new ISwitchVectorProperty;
     lastRapidX = lastRapidY = -1;
 }
 
@@ -86,6 +87,7 @@ CCDChip::~CCDChip()
     delete RapidGuideSP;
     delete RapidGuideSetupSP;
     delete RapidGuideDataNP;
+    delete ResetSP;
 }
 
 void CCDChip::setCCDInfoWritable()
@@ -356,6 +358,10 @@ bool INDI::CCD::initProperties()
     IUFillNumber(&PrimaryCCD.RapidGuideDataN[2],"GUIDESTAR_FIT","Guide star fit","%5.2f",0,1024,0,0);
     IUFillNumberVector(PrimaryCCD.RapidGuideDataNP,PrimaryCCD.RapidGuideDataN,3,getDeviceName(),"CCD_RAPID_GUIDE_DATA","Rapid Guide Data",RAPIDGUIDE_TAB,IP_RO,60,IPS_IDLE);
 
+    // Reset Frame Settings
+    IUFillSwitch(&PrimaryCCD.ResetS[0], "RESET", "Reset", ISS_OFF);
+    IUFillSwitchVector(PrimaryCCD.ResetSP, PrimaryCCD.ResetS, 1, getDeviceName(), "CCD_FRAME_RESET", "Frame Values", IMAGE_SETTINGS_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
+
     // GUIDER CCD Init
 
     IUFillNumber(&GuideCCD.ImageFrameN[0],"X","Left ","%4.0f",0,1392.0,0,0);
@@ -501,6 +507,9 @@ bool INDI::CCD::updateProperties()
             defineNumber(&GuideWENP);
         }
         defineSwitch(PrimaryCCD.FrameTypeSP);
+
+        if (capability.canBin || capability.canSubFrame)
+            defineSwitch(PrimaryCCD.ResetSP);
         
         if (capability.hasGuideHead)
             defineSwitch(GuideCCD.FrameTypeSP);
@@ -574,6 +583,8 @@ bool INDI::CCD::updateProperties()
             deleteProperty(GuideWENP.name);
         }
         deleteProperty(PrimaryCCD.FrameTypeSP->name);
+        if (capability.canBin || capability.canSubFrame)
+            deleteProperty(PrimaryCCD.ResetSP->name);
         deleteProperty(ActiveDeviceTP->name);
         deleteProperty(UploadSP.name);
         deleteProperty(UploadSettingsTP.name);
@@ -907,6 +918,20 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
             else
                 DEBUG(INDI::Logger::DBG_SESSION, "Upload settings set to client and local.");
             return true;
+        }
+
+        // Reset
+        if(strcmp(name,PrimaryCCD.ResetSP->name)==0)
+        {
+          IUResetSwitch(PrimaryCCD.ResetSP);
+          PrimaryCCD.ResetSP->s = IPS_OK;
+          if (capability.canBin)
+              UpdateCCDBin(1,1);
+          if (capability.canSubFrame)
+              UpdateCCDFrame(0,0, PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
+
+          IDSetSwitch(PrimaryCCD.ResetSP, NULL);
+          return true;
         }
 
         if(strcmp(name,PrimaryCCD.AbortExposureSP->name)==0)
