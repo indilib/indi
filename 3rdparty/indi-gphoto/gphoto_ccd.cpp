@@ -201,7 +201,8 @@ bool GPhotoCCD::initProperties()
 
   cap.canAbort = false;
   cap.canBin = false;
-  cap.canSubFrame = false;
+  //cap.canSubFrame = false;
+  cap.canSubFrame = true;
   cap.hasCooler = false;
   cap.hasGuideHead = false;
   cap.hasShutter = false;
@@ -623,6 +624,19 @@ bool GPhotoCCD::StartExposure(float duration)
     return true;
 }
 
+bool GPhotoCCD::UpdateCCDFrame(int x, int y, int w, int h)
+{
+    if (transferFormatS[0].s != ISS_ON)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Subframing is only supported in FITS transport mode.");
+        return false;
+    }
+
+    PrimaryCCD.setFrame(x,y,w,h);
+
+    return true;
+}
+
 float GPhotoCCD::CalcTimeLeft()
 {
     double timesince;
@@ -762,24 +776,30 @@ bool GPhotoCCD::grabImage()
 {
     //char ext[16];
     char *memptr = PrimaryCCD.getFrameBuffer();
+    char *ccdptr = memptr;
 	size_t memsize;
     int fd, naxis=2, w, h, bpp=8;
+    static bool firstGrab=true;
 
     if (sim)
     {
 
       w= PrimaryCCD.getXRes();
       h= PrimaryCCD.getYRes();
-      memsize = w*h + 512;
-      memptr = (char *) malloc(memsize);
+      size_t fullbuf_size = w*h + 512;
+      char * fullbuf = (char *) malloc(fullbuf_size);
       for (int i = 0; i < h; i++)
         for (int j = 0; j < w; j++)
-          memptr[i * w + j] = rand() % 255;
+          fullbuf[i * w + j] = rand() % 255;
+
+      // Starting address if subframing
+      memptr = fullbuf + (PrimaryCCD.getSubY() * PrimaryCCD.getXRes()) + PrimaryCCD.getSubX();
+      memsize = PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * PrimaryCCD.getBPP()/8;
 
       PrimaryCCD.setFrameBuffer(memptr);
       PrimaryCCD.setFrameBufferSize(memsize, false);
-      PrimaryCCD.setResolution(w, h);
-      PrimaryCCD.setFrame(0, 0, w, h);
+      //PrimaryCCD.setResolution(w, h);
+      //PrimaryCCD.setFrame(0, 0, w, h);
       PrimaryCCD.setNAxis(naxis);
       PrimaryCCD.setBPP(bpp);
 
@@ -850,6 +870,15 @@ bool GPhotoCCD::grabImage()
         }
 
         PrimaryCCD.setImageExtension("fits");
+
+        ccdptr = memptr;
+        memptr += ((PrimaryCCD.getSubY() * PrimaryCCD.getXRes()) + PrimaryCCD.getSubX()) *bpp/8 ;
+        memsize = PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * bpp/8;
+        if (firstGrab)
+        {
+            PrimaryCCD.setFrame(0, 0, w, h);
+            firstGrab = false;
+        }
     }
     else
     {
@@ -867,19 +896,24 @@ bool GPhotoCCD::grabImage()
          char *newMemptr = NULL;
          gphoto_get_buffer(gphotodrv, (const char **)&newMemptr, &memsize);
          memptr = (char *)realloc(memptr, memsize); // We copy the obtained memory pointer to avoid freeing some gphoto memory
+         ccdptr=memptr;
          memcpy(memptr, newMemptr, memsize); //
 
         PrimaryCCD.setImageExtension(gphoto_get_file_extension(gphotodrv));
+        PrimaryCCD.setFrame(0, 0, w, h);
     }
 
     PrimaryCCD.setFrameBuffer(memptr);
     PrimaryCCD.setFrameBufferSize(memsize, false);
-    PrimaryCCD.setResolution(w, h);
-    PrimaryCCD.setFrame(0, 0, w, h);
+    PrimaryCCD.setResolution(w, h);    
     PrimaryCCD.setNAxis(naxis);
     PrimaryCCD.setBPP(bpp);
 
     ExposureComplete(&PrimaryCCD);
+
+    // Restore old pointer
+    PrimaryCCD.setFrameBuffer(ccdptr);
+
     return true;
 }
 
