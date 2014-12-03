@@ -117,6 +117,7 @@ private:
 
     char *on_off[2];
     int timerID;
+    bool frameInitialized;
 
     ISwitch mConnectS[2];
     ISwitchVectorProperty mConnectSP;

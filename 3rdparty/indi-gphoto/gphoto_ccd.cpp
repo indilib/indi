@@ -147,6 +147,7 @@ GPhotoCCD::GPhotoCCD()
         strncpy(name, getDeviceName(), MAXINDINAME);
 
     gphotodrv = NULL;
+    frameInitialized=false;
     on_off[0] = strdup("On");
     on_off[1] = strdup("Off");
 
@@ -385,6 +386,8 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                     gphoto_set_format(gphotodrv, i);
                   mFormatSP.s = IPS_OK;
                   IDSetSwitch(&mFormatSP, NULL);
+                  // We need to get frame W and H if format changes
+                  frameInitialized = false;
                   break;
               }
           }
@@ -395,6 +398,8 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
           IUUpdateSwitch(&transferFormatSP, states, names, n);
           transferFormatSP.s = IPS_OK;
           IDSetSwitch(&transferFormatSP, NULL);
+          // We need to get frame W and H if transfer format changes
+          frameInitialized = false;
           return true;
       }
 
@@ -578,6 +583,8 @@ bool GPhotoCCD::Connect()
 
   DEBUGF(INDI::Logger::DBG_SESSION, "%s is online.", getDeviceName());
 
+  frameInitialized = false;
+
   return true;
 
 }
@@ -588,6 +595,7 @@ bool GPhotoCCD::Disconnect()
         return true;
    gphoto_close(gphotodrv);
    gphotodrv = NULL;
+   frameInitialized=false;
    DEBUGF(INDI::Logger::DBG_SESSION, "%s is offline.", getDeviceName());
   return true;
 
@@ -776,10 +784,8 @@ bool GPhotoCCD::grabImage()
 {
     //char ext[16];
     char *memptr = PrimaryCCD.getFrameBuffer();
-    char *ccdptr = memptr;
 	size_t memsize;
     int fd, naxis=2, w, h, bpp=8;
-    static bool firstGrab=true;
 
     if (sim)
     {
@@ -871,14 +877,47 @@ bool GPhotoCCD::grabImage()
 
         PrimaryCCD.setImageExtension("fits");
 
-        ccdptr = memptr;
-        memptr += ((PrimaryCCD.getSubY() * PrimaryCCD.getXRes()) + PrimaryCCD.getSubX()) *bpp/8 ;
-        memsize = PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * bpp/8;
-        if (firstGrab)
+        // If subframing is requested
+        if (frameInitialized && (PrimaryCCD.getSubH() < PrimaryCCD.getYRes() || PrimaryCCD.getSubW() < PrimaryCCD.getXRes()))
         {
-            PrimaryCCD.setFrame(0, 0, w, h);
-            firstGrab = false;
+            int subFrameSize  = PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * bpp/8 * ((naxis == 3) ? 3 : 1);
+            char *subframeBuf = (char *) malloc(subFrameSize);
+            char *subR = subframeBuf;
+            char *subG = subframeBuf + PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * bpp/8;
+            char *subB = subframeBuf + PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * bpp/8 * 2;
+
+            memcpy(subR, memptr +                       (PrimaryCCD.getSubY() * w + PrimaryCCD.getSubX()) * bbp/8 );
+            memcpy(subG, memptr + (w * h * bpp/8)     + (PrimaryCCD.getSubY() * w + PrimaryCCD.getSubX()) * bbp/8 );
+            memcpy(subB, memptr + (w * h * bpp/8 * 2) + (PrimaryCCD.getSubY() * w + PrimaryCCD.getSubX()) * bbp/8 );
+
+            PrimaryCCD.setFrameBuffer(subframeBuf);
+            PrimaryCCD.setFrameBufferSize(subFrameSize, false);
+            PrimaryCCD.setResolution(w, h);
+            PrimaryCCD.setNAxis(naxis);
+            PrimaryCCD.setBPP(bpp);
+
+            ExposureComplete(&PrimaryCCD);
+
+            // Restore old pointer and release memory
+            PrimaryCCD.setFrameBuffer(memptr);
+            PrimaryCCD.setFrameBufferSize(memsize, false);
+            free(subframeBuf);
         }
+        else
+        {
+            // We need to initially set the frame dimensions for the first time since it is unknown at the time of connection.
+            frameInitialized = true;
+
+            PrimaryCCD.setFrame(0, 0, w, h);
+            PrimaryCCD.setFrameBuffer(memptr);
+            PrimaryCCD.setFrameBufferSize(memsize, false);
+            PrimaryCCD.setResolution(w, h);
+            PrimaryCCD.setNAxis(naxis);
+            PrimaryCCD.setBPP(bpp);
+
+            ExposureComplete(&PrimaryCCD);
+        }
+
     }
     else
     {
@@ -896,23 +935,18 @@ bool GPhotoCCD::grabImage()
          char *newMemptr = NULL;
          gphoto_get_buffer(gphotodrv, (const char **)&newMemptr, &memsize);
          memptr = (char *)realloc(memptr, memsize); // We copy the obtained memory pointer to avoid freeing some gphoto memory
-         ccdptr=memptr;
          memcpy(memptr, newMemptr, memsize); //
 
         PrimaryCCD.setImageExtension(gphoto_get_file_extension(gphotodrv));
         PrimaryCCD.setFrame(0, 0, w, h);
+        PrimaryCCD.setFrameBuffer(memptr);
+        PrimaryCCD.setFrameBufferSize(memsize, false);
+        PrimaryCCD.setResolution(w, h);
+        PrimaryCCD.setNAxis(naxis);
+        PrimaryCCD.setBPP(bpp);
+
+        ExposureComplete(&PrimaryCCD);
     }
-
-    PrimaryCCD.setFrameBuffer(memptr);
-    PrimaryCCD.setFrameBufferSize(memsize, false);
-    PrimaryCCD.setResolution(w, h);    
-    PrimaryCCD.setNAxis(naxis);
-    PrimaryCCD.setBPP(bpp);
-
-    ExposureComplete(&PrimaryCCD);
-
-    // Restore old pointer
-    PrimaryCCD.setFrameBuffer(ccdptr);
 
     return true;
 }
