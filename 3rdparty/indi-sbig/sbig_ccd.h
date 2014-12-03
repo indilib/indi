@@ -312,16 +312,15 @@ private:
 
     // General Purpose Commands:
     int				EstablishLink();
-    int     			GetCcdInfo(GetCCDInfoParams *, void *);
-    int				QueryCommandStatus(	QueryCommandStatusParams *,
-                                        QueryCommandStatusResults *);
+    int     		GetCcdInfo(GetCCDInfoParams *, void *);
+    void            GetExtendedCCDInfo();
+    int				QueryCommandStatus(	QueryCommandStatusParams *, QueryCommandStatusResults *);
     int				MiscellaneousControl(MiscellaneousControlParams *);
     int				ReadOffset(ReadOffsetParams *, ReadOffsetResults *);
     int				GetLinkStatus(GetLinkStatusResults *);
     string			GetErrorString(int err);
     int				SetDriverControl(SetDriverControlParams *);
-    int				GetDriverControl(GetDriverControlParams *,
-                                GetDriverControlResults *);
+    int				GetDriverControl(GetDriverControlParams *, GetDriverControlResults *);
     int				UsbAdControl(USBADControlParams *);
     int				QueryUsb(QueryUSBResults *);
     int				RwUsbI2c(RWUSBI2CParams *);
