@@ -179,9 +179,6 @@ bool GenericCCD::initProperties() {
   // Init parent properties first
   INDI::CCD::initProperties();
 
-  IUFillSwitch(&ResetS[0], "RESET", "Reset", ISS_OFF);
-  IUFillSwitchVector(&ResetSP, ResetS, 1, getDeviceName(), "FRAME_RESET", "Frame Values", IMAGE_SETTINGS_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
-
   CCDCapability cap;
 
   cap.canAbort = true;
@@ -206,15 +203,15 @@ void GenericCCD::ISGetProperties(const char *dev) {
 bool GenericCCD::updateProperties() {
   INDI::CCD::updateProperties();
 
-  if (isConnected()) {
-    defineSwitch(&ResetSP);
+  if (isConnected())
+  {
 
     // Let's get parameters now from CCD
     setupParams();
 
     timerID = SetTimer(POLLMS);
-  } else {
-    deleteProperty(ResetSP.name);
+  } else
+  {
 
     rmTimer(timerID);
   }
@@ -222,25 +219,8 @@ bool GenericCCD::updateProperties() {
   return true;
 }
 
-bool GenericCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) {
-
-  if (strcmp(dev, getDeviceName()) == 0) {
-
-    /* Reset */
-    if (!strcmp(name, ResetSP.name)) {
-      if (IUUpdateSwitch(&ResetSP, states, names, n) < 0)
-        return false;
-      resetFrame();
-      return true;
-    }
-
-  }
-
-  //  Nobody has claimed this, so, ignore it
-  return INDI::CCD::ISNewSwitch(dev, name, states, names, n);
-}
-
-bool GenericCCD::Connect() {
+bool GenericCCD::Connect()
+{
 
   sim = true;
 
@@ -666,16 +646,6 @@ void GenericCCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip) {
   fits_update_key_s(fptr, TDOUBLE, "CCD-TEMP", &(TemperatureN[0].value), "CCD Temperature (Celcius)", &status);
   fits_write_date(fptr, &status);
 
-}
-
-void GenericCCD::resetFrame() {
-  UpdateCCDBin(1, 1);
-  UpdateCCDFrame(0, 0, PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
-  IUResetSwitch(&ResetSP);
-  ResetSP.s = IPS_IDLE;
-  IDSetSwitch(&ResetSP, "Resetting frame and binning.");
-
-  return;
 }
 
 void GenericCCD::TimerHit() {

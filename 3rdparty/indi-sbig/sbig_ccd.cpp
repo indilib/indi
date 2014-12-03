@@ -292,10 +292,6 @@ bool SBIGCCD::initProperties()
   // Init parent properties first
   INDI::CCD::initProperties();
 
-  // Reset Frame Settings
-  IUFillSwitch(&ResetS[0], "RESET", "Reset", ISS_OFF);
-  IUFillSwitchVector(&ResetSP, ResetS, 1, getDeviceName(), "FRAME_RESET", "Frame Values", IMAGE_SETTINGS_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);  
-
   // CCD PRODUCT:
   IUFillText(&ProductInfoT[0], "NAME", "Name", "");
   IUFillText(&ProductInfoT[1], "ID", "ID", "");
@@ -398,8 +394,7 @@ bool SBIGCCD::updateProperties()
         defineSwitch(&CoolerSP);
         defineNumber(&CoolerNP);
     }
-    defineText(&ProductInfoTP);
-    defineSwitch(&ResetSP);    
+    defineText(&ProductInfoTP);    
     defineText(&FilterProdcutTP);
 
     // Let's get parameters now from CCD
@@ -424,7 +419,6 @@ bool SBIGCCD::updateProperties()
     deleteProperty(ProductInfoTP.name);
 
     deleteProperty(FanStateSP.name);
-    deleteProperty(ResetSP.name);
 
     //deleteProperty(FilterConnectionSP.name);
     deleteProperty(FilterProdcutTP.name);
@@ -471,15 +465,6 @@ bool SBIGCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
 
   if (strcmp(dev, getDeviceName()) == 0)
   {
-
-    /* Reset */
-    if (!strcmp(name, ResetSP.name))
-    {
-      if (IUUpdateSwitch(&ResetSP, states, names, n) < 0)
-        return false;
-      resetFrame();
-      return true;
-    }
 
     if(!strcmp(name, DebayerMethodSP.name))
     {
@@ -1450,18 +1435,6 @@ bool SBIGCCD::saveConfigItems(FILE *fp)
     IUSaveConfigSwitch(fp, &FilterTypeSP);
 
     return true;
-}
-
-void SBIGCCD::resetFrame()
-{
-  UpdateCCDBin(1, 1);
-  UpdateCCDFrame(0, 0, PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
-  IUResetSwitch(&ResetSP);
-  ResetSP.s = IPS_IDLE;
-  DEBUG(INDI::Logger::DBG_SESSION, "Resetting frame and binning.");
-  IDSetSwitch(&ResetSP, NULL);
-
-  return;
 }
 
 void SBIGCCD::TimerHit()

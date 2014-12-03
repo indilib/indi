@@ -160,9 +160,6 @@ bool QSICCD::initProperties()
     // Init parent properties first
     INDI::CCD::initProperties();
 
-    IUFillSwitch(&ResetS[0], "RESET", "Reset", ISS_OFF);
-    IUFillSwitchVector(&ResetSP, ResetS, 1, getDeviceName(), "FRAME_RESET", "Frame Values", IMAGE_SETTINGS_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
-
     IUFillSwitch(&CoolerS[0], "CONNECT_COOLER", "ON", ISS_OFF);
     IUFillSwitch(&CoolerS[1], "DISCONNECT_COOLER", "OFF", ISS_OFF);
     IUFillSwitchVector(&CoolerSP, CoolerS, 2, getDeviceName(), "COOLER_CONNECTION", "Cooler", MAIN_CONTROL_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
@@ -194,7 +191,6 @@ bool QSICCD::updateProperties()
 
     if (isConnected())
     {
-        defineSwitch(&ResetSP);
         defineSwitch(&CoolerSP);
         defineSwitch(&ShutterSP);
         defineNumber(&CoolerNP);
@@ -213,7 +209,6 @@ bool QSICCD::updateProperties()
     }
     else
     {
-        deleteProperty(ResetSP.name);
         deleteProperty(CoolerSP.name);
         deleteProperty(ShutterSP.name);
         deleteProperty(CoolerNP.name);
@@ -412,15 +407,6 @@ bool QSICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
 
           return true;
         }
-
-        /* Reset */
-        if (!strcmp (name, ResetSP.name))
-        {
-          if (IUUpdateSwitch(&ResetSP, states, names, n) < 0) return false;
-          resetFrame();
-          return true;
-        }
-
 
         /* Shutter */
         if (!strcmp (name, ShutterSP.name))
@@ -989,42 +975,6 @@ void QSICCD::activateCooler(bool enable)
         }
 }
 
-void QSICCD::resetFrame()
-{
-
-        long sensorPixelSize_x,
-             sensorPixelSize_y;
-        try {
-            QSICam.get_CameraXSize(&sensorPixelSize_x);
-            QSICam.get_CameraYSize(&sensorPixelSize_y);
-        } catch (std::runtime_error err)
-        {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Getting image area size failed. %s.", err.what());
-        }
-
-        imageWidth  = sensorPixelSize_x;
-        imageHeight = sensorPixelSize_y;
-
-        try
-        {
-            QSICam.put_BinX(1);
-            QSICam.put_BinY(1);
-        } catch (std::runtime_error err)
-        {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Resetting BinX/BinY failed. %s.", err.what());
-            return;
-        }
-
-        SetCCDParams(imageWidth, imageHeight, 16, PrimaryCCD.getPixelSizeX(), PrimaryCCD.getPixelSizeY());
-
-        IUResetSwitch(&ResetSP);
-        ResetSP.s = IPS_IDLE;
-        DEBUG(INDI::Logger::DBG_SESSION, "Resetting frame and binning.");
-        IDSetSwitch(&ResetSP, NULL);
-
-        return;
-}
-
 void QSICCD::shutterControl()
 {
 
@@ -1226,18 +1176,6 @@ void QSICCD::TimerHit()
         IDSetNumber(&CoolerNP, NULL);
         break;
 
-      case IPS_ALERT:
-         break;
-    }
-
-    switch (ResetSP.s)
-    {
-      case IPS_IDLE:
-         break;
-      case IPS_OK:
-         break;
-      case IPS_BUSY:
-         break;
       case IPS_ALERT:
          break;
     }

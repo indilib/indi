@@ -194,9 +194,6 @@ private:
     DEVICE device;
     char name[MAXINDINAME];
 
-    ISwitch                 ResetS[1];
-    ISwitchVectorProperty   ResetSP;
-
     IText                   ProductInfoT[2];
     ITextVectorProperty     ProductInfoTP;
 
@@ -244,7 +241,6 @@ private:
     bool grabImage(CCDChip *targetChip);
     void * grabCCD();
     bool setupParams();
-    void resetFrame();
 
     /* Threading variables */
     pthread_t primary_thread;

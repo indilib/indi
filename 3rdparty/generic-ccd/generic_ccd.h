@@ -50,8 +50,6 @@ public:
   bool StartExposure(float duration);
   bool AbortExposure();
 
-  virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-
 protected:
 
   void TimerHit();
@@ -70,9 +68,6 @@ private:
   DEVICE device;
   char name[32];
 
-  ISwitch ResetS[1];
-  ISwitchVectorProperty ResetSP;
-
   double ccdTemp;
   double minDuration;
   unsigned short *imageBuffer;
@@ -89,8 +84,6 @@ private:
   float CalcTimeLeft();
   int grabImage();
   bool setupParams();
-  void resetFrame();
-
   bool sim;
 
   friend void ::ISGetProperties(const char *dev);

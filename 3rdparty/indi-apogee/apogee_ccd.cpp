@@ -144,9 +144,6 @@ bool ApogeeCCD::initProperties()
     // Init parent properties first
     INDI::CCD::initProperties();
 
-    IUFillSwitch(&ResetS[0], "RESET", "Reset", ISS_OFF);
-    IUFillSwitchVector(&ResetSP, ResetS, 1, getDeviceName(), "FRAME_RESET", "Frame Values", IMAGE_SETTINGS_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
-
     IUFillSwitch(&CoolerS[0], "CONNECT_COOLER", "ON", ISS_OFF);
     IUFillSwitch(&CoolerS[1], "DISCONNECT_COOLER", "OFF", ISS_OFF);
     IUFillSwitchVector(&CoolerSP, CoolerS, 2, getDeviceName(), "COOLER_CONNECTION", "Cooler", MAIN_CONTROL_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
@@ -194,7 +191,6 @@ bool ApogeeCCD::updateProperties()
     if (isConnected())
     {
         defineText(&CamInfoTP);
-        defineSwitch(&ResetSP);
         defineSwitch(&CoolerSP);
         defineNumber(&CoolerNP);
         defineSwitch(&ReadOutSP);
@@ -207,7 +203,6 @@ bool ApogeeCCD::updateProperties()
     }
     else
     {
-        deleteProperty(ResetSP.name);
         deleteProperty(CoolerSP.name);
         deleteProperty(CoolerNP.name);
         deleteProperty(ReadOutSP.name);
@@ -439,14 +434,6 @@ bool ApogeeCCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
           else
             activateCooler(false);
 
-          return true;
-        }
-
-        /* Reset */
-        if (!strcmp (name, ResetSP.name))
-        {
-          if (IUUpdateSwitch(&ResetSP, states, names, n) < 0) return false;
-          resetFrame();
           return true;
         }
 
@@ -1052,56 +1039,6 @@ void ApogeeCCD::activateCooler(bool enable)
        if (coolerSet)
             DEBUG(INDI::Logger::DBG_SESSION, enable ? "Cooler ON" : "Cooler Off");
        IDSetSwitch(&CoolerSP, NULL);
-}
-
-void ApogeeCCD::resetFrame()
-{
-        long sensorPixelSize_x,  sensorPixelSize_y;
-
-        if (isSimulation())
-        {
-            SetCCDParams(PrimaryCCD.getXRes(), PrimaryCCD.getYRes(), 16, 1, 1);
-            PrimaryCCD.setBin(1,1);
-            UpdateCCDFrame(0,0, PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
-            return;
-        }
-
-        try
-        {
-            sensorPixelSize_x = ApgCam->GetMaxImgCols();
-            sensorPixelSize_y = ApgCam->GetMaxBinRows();
-
-            ApgCam->SetRoiNumCols(sensorPixelSize_x);
-            ApgCam->SetRoiNumRows(sensorPixelSize_y);
-        } catch (std::runtime_error err)
-        {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Getting image area size failed. %s.", err.what());
-        }
-
-        imageWidth  = sensorPixelSize_x;
-        imageHeight = sensorPixelSize_y;
-
-        try
-        {
-            ApgCam->SetRoiBinCol(1);
-            ApgCam->SetRoiBinRow(1);
-        } catch (std::runtime_error err)
-        {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Resetting BinX/BinY failed. %s.", err.what());
-            return;
-        }
-
-        SetCCDParams(imageWidth, imageHeight, 16, 1, 1);
-
-        IUResetSwitch(&ResetSP);
-        ResetSP.s = IPS_IDLE;
-        DEBUG(INDI::Logger::DBG_SESSION, "Resetting frame and binning.");
-        IDSetSwitch(&ResetSP, NULL);
-
-        PrimaryCCD.setBin(1,1);
-        UpdateCCDFrame(0,0, imageWidth, imageHeight);
-
-        return;
 }
 
 void ApogeeCCD::TimerHit()

@@ -49,7 +49,6 @@ public:
   bool AbortExposure();
 
   virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-  virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
 protected:
 
@@ -69,12 +68,6 @@ protected:
 
 private:
   char name[MAXINDINAME];
-
-  ISwitch ResetS[1];
-  ISwitchVectorProperty ResetSP;
-
-  INumber TemperatureN[1];
-  INumberVectorProperty TemperatureNP;
 
   INumber GainN[1];
   INumberVectorProperty GainNP;
@@ -102,7 +95,6 @@ private:
   float CalcTimeLeft();
   int grabImage();
   bool setupParams();
-  void resetFrame();
   bool setGain(double gain);
 
   bool sim;

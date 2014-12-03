@@ -194,11 +194,6 @@ bool FishCampCCD::initProperties()
   // Init parent properties first
   INDI::CCD::initProperties();
 
-  IUFillSwitch(&ResetS[0], "RESET", "Reset", ISS_OFF);
-  IUFillSwitchVector(&ResetSP, ResetS, 1, getDeviceName(), "FRAME_RESET", "Frame Values", IMAGE_SETTINGS_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
-
-  IUFillNumber(&TemperatureN[0], "CCD_TEMPERATURE_VALUE", "Temperature (C)", "%5.2f", MIN_CCD_TEMP, MAX_CCD_TEMP, 0., 0.);
-  IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "CCD_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
   IUFillNumber(&GainN[0], "Range", "", "%g", 1, 15, 1., 4.);
   IUFillNumberVector(&GainNP, GainN, 1, getDeviceName(), "Gain", "", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
@@ -266,7 +261,6 @@ bool FishCampCCD::updateProperties()
     defineText(&CamInfoTP);
     defineNumber(&CoolerNP);
     defineNumber(&GainNP);
-    defineSwitch(&ResetSP);
 
     timerID = SetTimer(POLLMS);
   } else {
@@ -274,7 +268,6 @@ bool FishCampCCD::updateProperties()
     deleteProperty(CamInfoTP.name);
     deleteProperty(CoolerNP.name);
     deleteProperty(GainNP.name);
-    deleteProperty(ResetSP.name);
 
     rmTimer(timerID);
   }
@@ -298,27 +291,6 @@ bool FishCampCCD::ISNewNumber (const char *dev, const char *name, double values[
     }
 
     return INDI::CCD::ISNewNumber(dev, name, values, names, n);
-}
-
-bool FishCampCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-
-  if (strcmp(dev, getDeviceName()) == 0)
-  {
-
-    /* Reset */
-    if (!strcmp(name, ResetSP.name))
-    {
-      if (IUUpdateSwitch(&ResetSP, states, names, n) < 0)
-        return false;
-      resetFrame();
-      return true;
-    }
-
-  }
-
-  //  Nobody has claimed this, so, ignore it
-  return INDI::CCD::ISNewSwitch(dev, name, states, names, n);
 }
 
 bool FishCampCCD::setGain(double gain)
@@ -531,17 +503,6 @@ int FishCampCCD::grabImage()
   ExposureComplete(&PrimaryCCD);
 
   return 0;
-}
-
-void FishCampCCD::resetFrame()
-{
-  UpdateCCDBin(1, 1);
-  UpdateCCDFrame(0, 0, PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
-  IUResetSwitch(&ResetSP);
-  ResetSP.s = IPS_IDLE;
-  IDSetSwitch(&ResetSP, "Resetting frame and binning.");
-
-  return;
 }
 
 void FishCampCCD::TimerHit()

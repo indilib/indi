@@ -49,9 +49,6 @@ class QSICCD : public INDI::CCD, public INDI::FilterInterface
 
     QSICamera QSICam;
 
-    ISwitch ResetS[1];
-    ISwitchVectorProperty ResetSP;
-
     INumber CoolerN[1];
     INumberVectorProperty CoolerNP;
 
@@ -84,7 +81,6 @@ class QSICCD : public INDI::CCD, public INDI::FilterInterface
     bool setupParams();
     bool manageDefaults();
     void activateCooler(bool enable);
-    void resetFrame();
     void shutterControl();
     void turnWheel();
 

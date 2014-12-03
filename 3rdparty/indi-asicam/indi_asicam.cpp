@@ -193,10 +193,6 @@ bool AsicamCCD::initProperties()
   // Init parent properties first
   INDI::CCD::initProperties();
 
-  // reset settings
-  IUFillSwitch(&ResetS[0], "RESET", "Reset", ISS_OFF);
-  IUFillSwitchVector(&ResetSP, ResetS, 1, getDeviceName(), "FRAME_RESET", "Frame Values", IMAGE_SETTINGS_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
-
   // gain
   IUFillNumber(&GainN[0], "GAIN", "Gain", "%0.f", 0., 0., 1., 0.);
   IUFillNumberVector(&GainNP, GainN, 1, getDeviceName(), "CCD_GAIN", "Gain", IMAGE_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
@@ -263,7 +259,6 @@ bool AsicamCCD::updateProperties()
   if (isConnected())
   {
     bool is_auto;
-    defineSwitch(&ResetSP);
     defineSwitch(&ModeSP);
 
     // gain
@@ -292,8 +287,6 @@ bool AsicamCCD::updateProperties()
     timerID = SetTimer(POLLMS);
   } else
   {
-    deleteProperty(ResetSP.name);
-
     if (isAvailable(CONTROL_GAIN))
         deleteProperty(USBBWNP.name);
 
@@ -311,15 +304,6 @@ bool AsicamCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
   if (strcmp(dev, getDeviceName()) == 0)
   {
-
-    /* Reset */
-    if (!strcmp(name, ResetSP.name))
-    {
-      if (IUUpdateSwitch(&ResetSP, states, names, n) < 0)
-        return false;
-      resetFrame();
-      return true;
-    }
 
     // available cams
     if (!strcmp(name, AvailableCameraSP.name))
@@ -841,16 +825,6 @@ void AsicamCCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip) {
   fits_update_key_s(fptr, TDOUBLE, "CCD-TEMP", &(TemperatureN[0].value), "CCD Temperature (Celcius)", &status);
   fits_write_date(fptr, &status);
 
-}
-
-void AsicamCCD::resetFrame() {
-  UpdateCCDBin(1, 1);
-  UpdateCCDFrame(0, 0, PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
-  IUResetSwitch(&ResetSP);
-  ResetSP.s = IPS_IDLE;
-  IDSetSwitch(&ResetSP, "Resetting frame and binning.");
-
-  return;
 }
 
 void AsicamCCD::TimerHit() {

@@ -70,9 +70,6 @@ public:
 
     ApogeeCam *ApgCam;
 
-    ISwitch ResetS[1];
-    ISwitchVectorProperty ResetSP;
-
     INumber CoolerN[1];
     INumberVectorProperty CoolerNP;
 
@@ -129,7 +126,6 @@ public:
     int grabImage();
     bool getCameraParams();
     void activateCooler(bool enable);
-    void resetFrame();
 
 };
 

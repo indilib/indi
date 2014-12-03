@@ -72,9 +72,6 @@ private:
   DEVICE device;
   char name[MAXINDINAME];
 
-  ISwitch ResetS[1];
-  ISwitchVectorProperty ResetSP;
-
   INumber GainN[1];
   INumberVectorProperty GainNP;
 
@@ -101,7 +98,6 @@ private:
   float CalcTimeLeft();
   int grabImage();
   bool setupParams();
-  void resetFrame();
 
   bool sim;
 
