@@ -862,6 +862,8 @@ bool GPhotoCCD::grabImage()
                     unlink(tmpfile);
                     return false;
                 }
+
+                DEBUGF(INDI::Logger::DBG_DEBUG, "read_jpeg: memsize (%d) naxis (%d) w (%d) h (%d) bpp (%d)", memsize, naxis, w, h, bpp);
         }
         else
         {
@@ -872,6 +874,8 @@ bool GPhotoCCD::grabImage()
                     return false;
                 }
 		
+                DEBUGF(INDI::Logger::DBG_DEBUG, "read_dcraw: memsize (%d) naxis (%d) w (%d) h (%d) bpp (%d)", memsize, naxis, w, h, bpp);
+
                 unlink(tmpfile);
         }
 
@@ -881,14 +885,36 @@ bool GPhotoCCD::grabImage()
         if (frameInitialized && (PrimaryCCD.getSubH() < PrimaryCCD.getYRes() || PrimaryCCD.getSubW() < PrimaryCCD.getXRes()))
         {
             int subFrameSize  = PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * bpp/8 * ((naxis == 3) ? 3 : 1);
+            int oneFrameSize  = PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * bpp/8;
             char *subframeBuf = (char *) malloc(subFrameSize);
-            char *subR = subframeBuf;
-            char *subG = subframeBuf + PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * bpp/8;
-            char *subB = subframeBuf + PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * bpp/8 * 2;
 
-            memcpy(subR, memptr +                       (PrimaryCCD.getSubY() * w + PrimaryCCD.getSubX()) * bbp/8 );
-            memcpy(subG, memptr + (w * h * bpp/8)     + (PrimaryCCD.getSubY() * w + PrimaryCCD.getSubX()) * bbp/8 );
-            memcpy(subB, memptr + (w * h * bpp/8 * 2) + (PrimaryCCD.getSubY() * w + PrimaryCCD.getSubX()) * bbp/8 );
+            int startY= PrimaryCCD.getSubY();
+            int endY  = startY + PrimaryCCD.getSubH();
+            int lineW = PrimaryCCD.getSubW() * bpp/8;
+            int subX = PrimaryCCD.getSubX();
+
+            if (naxis == 2)
+            {
+                for (int i=startY ; i < endY; i++)
+                    memcpy(subframeBuf + (i - startY) * lineW, memptr + (i * w + subX) * bpp/8 , lineW);
+            }
+            else
+            {
+                char *subR = subframeBuf;
+                char *subG = subframeBuf + oneFrameSize;
+                char *subB = subframeBuf + oneFrameSize * 2;
+
+                char *startR = memptr;
+                char *startG = memptr + (w * h * bpp/8);
+                char *startB = memptr + (w * h * bpp/8 * 2);
+
+                for (int i=startY; i < endY; i++)
+                {
+                    memcpy(subR + (i-startY) * lineW, startR + (i * w + subX) * bpp/8 , lineW );
+                    memcpy(subG + (i-startY) * lineW, startG + (i * w + subX) * bpp/8 , lineW );
+                    memcpy(subB + (i-startY) * lineW, startB + (i * w + subX) * bpp/8 , lineW );
+                }
+            }
 
             PrimaryCCD.setFrameBuffer(subframeBuf);
             PrimaryCCD.setFrameBufferSize(subFrameSize, false);
