@@ -1317,8 +1317,8 @@ void* SBIGCCD::grabCCD()
 bool SBIGCCD::grabImage(CCDChip *targetChip)
 {
     int res=0;
-    unsigned short left	= (unsigned short)targetChip->getSubX();
-    unsigned short top	= (unsigned short)targetChip->getSubY();
+    unsigned short left	= (unsigned short)targetChip->getSubX()/targetChip->getBinX();
+    unsigned short top	= (unsigned short)targetChip->getSubY()/targetChip->getBinX();
     unsigned short width	= (unsigned short)targetChip->getSubW()/targetChip->getBinX();
     unsigned short height	= (unsigned short)targetChip->getSubH()/targetChip->getBinY();
 
