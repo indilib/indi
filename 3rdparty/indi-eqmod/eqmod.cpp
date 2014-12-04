@@ -2393,16 +2393,11 @@ void EQMod::processJoystick(const char * joystick_n, double mag, double angle)
 
 void EQMod::processNSWE(double mag, double angle)
 {
-    if (mag == 0)
+    if (mag < 0.5)
     {
         // Moving in the same direction will make it stop
-        if (MovementNSSP.s == IPS_BUSY)
-            MoveNS(MovementNSSP.sp[0].s == ISS_ON ? MOTION_NORTH : MOTION_SOUTH, MOTION_STOP);
-
-        // Moving in the same direction will make it stop
-        if (MovementWESP.s == IPS_BUSY)
-            MoveWE(MovementWESP.sp[0].s == ISS_ON ? MOTION_WEST : MOTION_EAST, MOTION_STOP);
-
+        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+            Abort();
     }
     // Put high threshold
     else if (mag > 0.9)
