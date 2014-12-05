@@ -1034,6 +1034,7 @@ cmake_modules/FindMEADE.cmake -text
 cmake_modules/FindMODBUS.cmake -text
 cmake_modules/FindNova.cmake -text
 cmake_modules/FindOpenAL.cmake -text
+cmake_modules/FindQHY.cmake -text
 cmake_modules/FindQSI.cmake -text
 cmake_modules/FindSBIG.cmake -text
 cmake_modules/FindUSB-1.cmake -text
