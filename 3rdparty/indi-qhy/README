@@ -1,0 +1,41 @@
+QHY CCD Driver
+==================
+
+This package provides QHY CCD INDI driver for QHY CCD & CMOS cameras.
+
+Requirtments
+============
+
++ INDI >= v0.9.9 (http://indi.sf.net)
+
+	You need to install both indi and indi-devel to build this package.
+	
++ cfitsio
+
+	cfitsio-devel is required to compile support for FITS.
+	
++ libusb-1
+
+	libusb-1 is required.
+	
++ libqhy
+	libqhy SDK is required.
+	
+Installation
+============
+
+	See INSTALL
+	
+How to Use
+==========
+
+	You can use the QHY INDI Driver in any INDI-compatible client such as KStars or Xephem. 
+	
+	To run the driver from the command line:
+	
+	$ indiserver indi_qhy_ccd
+	
+	You can then connect to the driver from any client, the default port is 7624.
+	If you're using KStars, the driver will be automatically listed in KStars' Device Manager,
+	no further configuration is necessary.
+	 
