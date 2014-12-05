@@ -608,6 +608,8 @@ bool QHYCCD::StartExposure(float duration)
     duration = MINIMUM_CCD_EXPOSURE;
   }
 
+  imageFrameType = PrimaryCCD.getFrameType();
+
   if (imageFrameType == CCDChip::BIAS_FRAME)
   {
     duration = MINIMUM_CCD_EXPOSURE;
