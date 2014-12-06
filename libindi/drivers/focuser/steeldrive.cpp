@@ -682,7 +682,7 @@ bool SteelDrive::updateTemperatureSettings()
         strncpy(enabled, tResp+3, 1);
         strncpy(selectedFocuser, tResp+4, 1);
 
-        TemperatureSettingN[FOCUS_T_COEFF].value = atof(coeff) / 100.0;
+        TemperatureSettingN[FOCUS_T_COEFF].value = atof(coeff) / 1000.0;
 
         IUResetSwitch(&TemperatureCompensateSP);
         if (enabled[0] == '0')
@@ -812,7 +812,7 @@ bool SteelDrive::updateCustomSettings()
 /************************************************************************************
  *
 * ***********************************************************************************/
-bool SteelDrive::setTemperatureSamples(unsigned int targetSamples)
+bool SteelDrive::setTemperatureSamples(unsigned int targetSamples, unsigned int *finalSample)
 {
     int nbytes_written=0, rc=-1;
     char errstr[MAXRBUF];
@@ -832,7 +832,17 @@ bool SteelDrive::setTemperatureSamples(unsigned int targetSamples)
         maxSample >>= 1;
     }
 
-    snprintf(cmd, STEELDRIVE_CMD, ":FI%5d#", sample);
+    int value=0;
+    if (sample == 16)
+        value = 5000;
+    else if (sample == 32)
+        value = 15000;
+    else if (sample == 64)
+        value = 25000;
+    else
+        value = 35000;
+
+    snprintf(cmd, STEELDRIVE_CMD, ":FI%05d#", value);
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -846,6 +856,7 @@ bool SteelDrive::setTemperatureSamples(unsigned int targetSamples)
     }
 
     TemperatureSettingN[FOCUS_T_SAMPLES].value = sample;
+    *finalSample = sample;
 
     return true;
 
@@ -864,7 +875,7 @@ bool SteelDrive::setTemperatureCompensation()
     bool enable  = TemperatureCompensateS[0].s == ISS_ON;
     int selectedFocus = IUFindOnSwitchIndex(&ModelSP);
 
-    snprintf(cmd, STEELDRIVE_CMD, ":F02%d%03d%d#", selectedFocus, (int) (coeff * 100), enable ? 2 : 0);
+    snprintf(cmd, STEELDRIVE_CMD, ":F%02d%03d%d#", selectedFocus, (int) (coeff * 1000), enable ? 2 : 0);
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -1088,11 +1099,11 @@ bool SteelDrive::ISNewSwitch (const char *dev, const char *name, ISState *states
 
         if (!strcmp(ModelSP.name, name))
         {
-            IUUpdateSwitch(&TemperatureCompensateSP, states, names, n);
+            IUUpdateSwitch(&ModelSP, states, names, n);
 
-            int i = IUFindOnSwitchIndex(&TemperatureCompensateSP);
+            int i = IUFindOnSwitchIndex(&ModelSP);
 
-            double focusMaxPos = floor(fSettings[i].maxTrip / fSettings[i].gearRatio);
+            double focusMaxPos = floor(fSettings[i].maxTrip / fSettings[i].gearRatio) * 100;
             FocusAbsPosN[0].max = focusMaxPos;
             IUUpdateMinMax(&FocusAbsPosNP);
 
@@ -1150,9 +1161,16 @@ bool SteelDrive::ISNewNumber (const char *dev, const char *name, double values[]
             else
                 targetSamples = (int) values[1];
 
-            if (setTemperatureSamples(targetSamples))
+            unsigned int finalSample = targetSamples;
+
+            if (setTemperatureSamples(targetSamples, &finalSample))
             {
                 IUUpdateNumber(&TemperatureSettingNP, values, names, n);
+                TemperatureSettingN[FOCUS_T_SAMPLES].value = finalSample;
+
+                if (TemperatureSettingN[FOCUS_T_COEFF].value > TemperatureSettingN[FOCUS_T_COEFF].max)
+                    TemperatureSettingN[FOCUS_T_COEFF].value = TemperatureSettingN[FOCUS_T_COEFF].max;
+
                 TemperatureSettingNP.s = IPS_OK;
                 IDSetNumber(&TemperatureSettingNP, NULL);
                 return true;
@@ -1174,7 +1192,8 @@ bool SteelDrive::ISNewNumber (const char *dev, const char *name, double values[]
             if (i != 4)
             {
                 CustomSettingNP.s = IPS_IDLE;
-                DEBUG(INDI::Logger::DBG_WARNING, "You can set custom values for a custom focuser.");
+                DEBUG(INDI::Logger::DBG_WARNING, "You can not set custom values for a non-custom focuser.");
+                IDSetNumber(&CustomSettingNP, NULL);
                 return false;
             }
 
@@ -1453,20 +1472,21 @@ bool SteelDrive::AbortFocuser()
 {
     int nbytes_written=0, rc=-1;
     char errstr[MAXRBUF];
-    char cmd[STEELDRIVE_CMD];
-
-    strncpy(cmd, ":F3STOP0#", STEELDRIVE_CMD);
 
     tcflush(PortFD, TCIOFLUSH);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    DEBUG(INDI::Logger::DBG_DEBUG, "CMD :F3STOP0#");
 
-    if (!sim && (rc = tty_write(PortFD, cmd, STEELDRIVE_CMD, &nbytes_written)) != TTY_OK)
+    if (!sim && (rc = tty_write(PortFD, ":F3STOP0#", STEELDRIVE_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Stop error: %s.", errstr);
+        DEBUGF(INDI::Logger::DBG_ERROR, ":F3STOP0# Stop error: %s.", errstr);
         return false;
     }
+
+    FocusTimerNP.s = FocusAbsPosNP.s = IPS_IDLE;
+    IDSetNumber(&FocusTimerNP, NULL);
+    IDSetNumber(&FocusAbsPosNP, NULL);
 
     return true;
 }

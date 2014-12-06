@@ -83,7 +83,7 @@ private:
     bool setSpeed(unsigned short speed);
     bool setCustomSettings(double maxTrip, double gearRatio);
     bool setAcceleration(unsigned short accel);
-    bool setTemperatureSamples(unsigned int targetSamples);
+    bool setTemperatureSamples(unsigned int targetSamples, unsigned int * finalSample);
     bool setTemperatureCompensation();
 
     bool Sync(unsigned int position);
