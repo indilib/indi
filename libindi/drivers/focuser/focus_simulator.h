@@ -51,9 +51,6 @@ class FocusSim : public INDI::Focuser
         bool initProperties();
         bool updateProperties();
 
-        void ISGetProperties (const char *dev);
-
-
         bool Connect();
         bool Disconnect();
 

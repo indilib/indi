@@ -94,10 +94,9 @@ FocusSim::FocusSim()
 {
     ticks=0;
 
-    // FIXME change to AbsMove --> TRUE
     FocuserCapability cap;
     cap.canAbort=true;
-    cap.canAbsMove=false;
+    cap.canAbsMove=true;
     cap.canRelMove=true;
     cap.variableSpeed=true;
 
@@ -129,8 +128,6 @@ const char * FocusSim::getDefaultName()
 
 bool FocusSim::initProperties()
 {
-    //  Most hardware layers wont actually have indi properties defined
-    //  but the simulators are a special case
     INDI::Focuser::initProperties();
 
     IUFillNumber(&SeeingN[0],"SIM_SEEING","arcseconds","%4.2f",0,60,0,3.5);
@@ -141,20 +138,7 @@ bool FocusSim::initProperties()
 
     ticks = initTicks = sqrt(FWHMN[0].value - SeeingN[0].value) / 0.75;
 
-    if (isDebug())
-        IDLog("Initial Ticks is %g\n", ticks);
-
     return true;
-}
-
-void FocusSim::ISGetProperties (const char *dev)
-{
-    //  First we let our parent populate
-    INDI::Focuser::ISGetProperties(dev);
-
-
-
-    return;
 }
 
 bool FocusSim::updateProperties()
@@ -164,14 +148,12 @@ bool FocusSim::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&FocusAbsPosNP);
         defineNumber(&SeeingNP);
         defineNumber(&FWHMNP);
         SetupParms();
     }
     else
     {
-        deleteProperty(FocusAbsPosNP.name);
         deleteProperty(SeeingNP.name);
         deleteProperty(FWHMNP.name);
     }
