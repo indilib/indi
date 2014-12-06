@@ -458,6 +458,17 @@ add_executable(indi_moonlite_focus ${moonlite_SRCS})
 target_link_libraries(indi_moonlite_focus indidriver)
 install(TARGETS indi_moonlite_focus RUNTIME DESTINATION bin )
 
+################ Baader SteelDrive Focuser ################
+
+set(steeldrive_SRCS
+        ${CMAKE_SOURCE_DIR}/drivers/focuser/steeldrive.cpp
+   )
+
+add_executable(indi_steeldrive_focus ${steeldrive_SRCS})
+target_link_libraries(indi_steeldrive_focus indidriver)
+install(TARGETS indi_steeldrive_focus RUNTIME DESTINATION bin )
+
+
 ################ Optec TCF-S ################
 
 set(tcfs_SRCS

@@ -1,0 +1,128 @@
+/*
+    Baader Steeldrive Focuser
+    Copyright (C) 2014 Jasem Mutlaq (mutlaqja@ikarustech.com)
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2.1 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+
+*/
+
+#ifndef STEELDRIVE_H
+#define STEELDRIVE_H
+
+#include <list>
+#include "indibase/indifocuser.h"
+
+class SteelDrive : public INDI::Focuser
+{
+public:
+    SteelDrive();
+    ~SteelDrive();
+
+    typedef struct
+    {
+        double maxTrip;
+        double gearRatio;
+    } FocusCustomSetting;
+
+    typedef enum { FOCUS_HALF_STEP, FOCUS_FULL_STEP } FocusStepMode;
+    enum { FOCUS_MAX_TRIP, FOCUS_GEAR_RATIO };
+    enum { FOCUS_T_COEFF, FOCUS_T_SAMPLES };
+
+    virtual bool Connect();
+    virtual bool Disconnect();
+    const char * getDefaultName();
+    virtual bool initProperties();
+    virtual bool updateProperties();
+    virtual bool saveConfigItems(FILE *fp);
+
+    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+
+
+    virtual int MoveFocuser(FocusDirection dir, int speed, int duration);
+    virtual int MoveAbsFocuser(int ticks);
+    virtual int MoveRelFocuser(FocusDirection dir, unsigned int ticks);
+    virtual bool SetFocuserSpeed(int speed);
+    virtual bool AbortFocuser();
+    virtual void TimerHit();
+
+private:
+
+    int PortFD;
+    double targetPos, lastPos, lastTemperature, simPosition;
+    unsigned int currentSpeed;
+    bool sim;
+
+    struct timeval focusMoveStart;
+    float focusMoveRequest;
+
+    // Get functions
+    bool updateVersion();
+    bool updateTemperature();
+    bool updateTemperatureSettings();
+    bool updatePosition();
+    bool updateSpeed();
+    bool updateAcceleration();
+    bool updateCustomSettings();
+
+
+    // Set functions
+    bool setStepMode(FocusStepMode mode);
+    bool setSpeed(unsigned short speed);
+    bool setCustomSettings(double maxTrip, double gearRatio);
+    bool setAcceleration(unsigned short accel);
+    bool setTemperatureSamples(unsigned int targetSamples);
+    bool setTemperatureCompensation();
+
+    bool Sync(unsigned int position);
+
+    // Motion functions
+    bool moveFocuser(unsigned int position);
+    bool stop();
+    bool startMotion(FocusDirection dir);
+
+    // Misc functions
+    bool Ack();
+    void GetFocusParams();
+    float CalcTimeLeft(timeval,float);
+
+    INumber TemperatureN[1];
+    INumberVectorProperty TemperatureNP;
+
+    INumber AccelerationN[1];
+    INumberVectorProperty AccelerationNP;
+
+    INumber TemperatureSettingN[2];
+    INumberVectorProperty TemperatureSettingNP;
+
+    ISwitch TemperatureCompensateS[2];
+    ISwitchVectorProperty TemperatureCompensateSP;
+
+    ISwitch ModelS[5];
+    ISwitchVectorProperty ModelSP;
+
+    INumber CustomSettingN[2];
+    INumberVectorProperty CustomSettingNP;
+
+    INumber SyncN[1];
+    INumberVectorProperty SyncNP;
+
+    IText VersionT[2];
+    ITextVectorProperty VersionTP;
+
+    FocusCustomSetting fSettings[5];
+};
+
+#endif // STEELDRIVE_H
