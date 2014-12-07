@@ -466,6 +466,9 @@ void BaaderDome::TimerHit()
 
     UpdatePosition();
 
+    // Check if we need to move
+    UpdateAutoSync(hrz.az);
+
     if (DomeAbsPosNP.s == IPS_BUSY)
     {
         if (sim)
