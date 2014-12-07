@@ -527,7 +527,15 @@ add_executable(indi_simulator_dome ${domesimulator_SRCS})
 target_link_libraries(indi_simulator_dome indidriver)
 install(TARGETS indi_simulator_dome RUNTIME DESTINATION bin )
 
+################ Dome Simulator ################
 
+set(baaderdome_SRCS
+        ${CMAKE_SOURCE_DIR}/drivers/dome/baader_dome.cpp
+   )
+
+add_executable(indi_baader_dome ${baaderdome_SRCS})
+target_link_libraries(indi_baader_dome indidriver)
+install(TARGETS indi_baader_dome RUNTIME DESTINATION bin )
 #################################################################################
 
 #########################################

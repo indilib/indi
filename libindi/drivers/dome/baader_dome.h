@@ -1,6 +1,8 @@
 /*******************************************************************************
  Copyright(c) 2014 Jasem Mutlaq. All rights reserved.
 
+ Baader Planetarium Dome INDI Driver
+
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
  License version 2 as published by the Free Software Foundation.
@@ -16,8 +18,8 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef DomeSIM_H
-#define DomeSIM_H
+#ifndef BaaderDome_H
+#define BaaderDome_H
 
 #include "indibase/indidome.h"
 
@@ -26,15 +28,16 @@
 #include <sys/time.h>
 
 
-class DomeSim : public INDI::Dome
+class BaaderDome : public INDI::Dome
 {
-
     public:
-        DomeSim();
-        virtual ~DomeSim();
+
+        BaaderDome();
+        virtual ~BaaderDome();
 
         const char *getDefaultName();
-        bool updateProperties();
+        virtual bool initProperties();
+        virtual bool updateProperties();
 
         bool Connect();
         bool Disconnect();
@@ -45,17 +48,30 @@ class DomeSim : public INDI::Dome
         virtual int MoveAbsDome(double az);
         virtual int ParkDome();
         virtual int HomeDome();
-        virtual int ControlDomeShutter(ShutterStatus operation);
-        virtual bool AbortDome();
+        virtual int ControlDomeShutter(ShutterOperation operation);
 
     protected:
-    private:
 
-        double targetAz;
-        double shutterTimer;
-        double prev_az, prev_alt;
+        // Commands
+        bool Ack();
+        bool UpdatePosition();
+        bool UpdateShutterStatus();
+
+        //Misc
+        unsigned short MountAzToDomeAz(double mountAz);
+        double DomeAzToMountAz(unsigned short domeAz);
         bool SetupParms();
 
+
+        double targetAz;
+        ShutterStatus targetShutter;
+        double prev_az, prev_alt;
+        int PortFD;
+
+
+        bool sim;
+        double simShutterTimer;
+        ShutterStatus simShutterStatus;
 };
 
 #endif

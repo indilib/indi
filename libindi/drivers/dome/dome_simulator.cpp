@@ -101,7 +101,6 @@ DomeSim::DomeSim()
 
    cap.canAbort = true;
    cap.canAbsMove = true;
-   cap.canPark = true;
    cap.canRelMove = true;
    cap.hasShutter = true;
    cap.variableSpeed = false;
@@ -179,6 +178,9 @@ void DomeSim::TimerHit()
         prev_alt = hrz.alt;
         DEBUGF(INDI::Logger::DBG_DEBUG, "Updated telescope Az: %g - Alt: %g", prev_az, prev_alt);
     }
+
+    // Check if we need to move
+    UpdateAutoSync(hrz.az);
 
     if (DomeAbsPosNP.s == IPS_BUSY)
     {
@@ -275,7 +277,7 @@ int DomeSim::HomeDome()
     return 1;
 }
 
-int DomeSim::ControlDomeShutter(ShutterOperation operation)
+int DomeSim::ControlDomeShutter(ShutterStatus operation)
 {
     INDI_UNUSED(operation);
     shutterTimer = SHUTTER_TIMER;

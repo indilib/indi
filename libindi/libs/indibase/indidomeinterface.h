@@ -31,6 +31,11 @@
    A Dome can be an independent device, or an embedded Dome within another device (e.g. Telescope). Before using any of the dome functions, you must define the capabilities of the dome and calling
    SetDomeCapability() function. All positions are represented as degrees of azimuth.
 
+   AutoSync is used to synchronizes the dome's azimuth position with that of the mount. The mount's azimuth position is snooped from the ACTIVE_TELESCOPE property in ACTIVE_DEVICES vector.
+   The AutoSync threshold is the difference in degrees between the dome's azimuth angle and the mount's azimuth angle that should trigger a dome motion. By default, it is set to 0.5 degrees which would
+   trigger dome motion due to any difference between the dome and mount azimuth angles that exceeds 0.5 degrees. For example, if the threshold is set to 5 degrees, the dome will only start moving to sync with the mount's azimuth angle once
+   the difference in azimuth angles is equal or exceeds 5 degrees.
+
    \e IMPORTANT: After SetDomeCapability(), initDomeProperties() must be called before any other function to initilize the Dome properties.
 
    \e IMPORTANT: processDomeNumber() and processDomeSwitch() must be called in your driver's ISNewNumber() and ISNewSwitch functions recepectively.
@@ -41,16 +46,27 @@ class INDI::DomeInterface
 
 public:
     enum DomeDirection { DOME_CW, DOME_CCW };
-    enum DomeParam { DOME_HOME, DOME_PARK };
+    enum DomeParam { DOME_HOME, DOME_PARK, DOME_AUTOSYNC };
 
     /** \typedef ShutterOperation
         \brief Shutter operation command.
     */
     typedef enum
     {
-        SHUTTER_OPEN, /*!< Open Shutter */
-        SHUTTER_CLOSE /*!< Close Shutter */
+        SHUTTER_OPEN,            /*!< Open Shutter */
+        SHUTTER_CLOSE            /*!< Close Shutter */
     } ShutterOperation;
+
+    /** \typedef ShutterStatus
+        \brief Shutter Status
+    */
+    typedef enum
+    {
+        SHUTTER_OPENED,           /*!< Shutter is open */
+        SHUTTER_CLOSED,           /*!< Shutter is closed */
+        SHUTTER_MOVING,           /*!< Shutter is in motion */
+        SHUTTER_UNKNOWN           /*!< Shutter status is unknown */
+    } ShutterStatus;
 
 
     /** \struct DomeCapability
@@ -64,8 +80,6 @@ public:
         bool canAbsMove;
         /** Can the dome move to a relative position a number of degrees away from current position? */
         bool canRelMove;
-        /** Does the dome support parking and homing? */
-        bool canPark;
         /** Does the dome has a shutter than can be opened and closed electronically? */
         bool hasShutter;
         /** Can the dome move in different configurable speeds? */
@@ -152,12 +166,26 @@ protected:
     virtual int ParkDome();
 
     /**
+     * @brief UpdateAutoSync Call this function to update mount's azimuth angle and check if the difference between the dome's and mount's azimuth angles exceeds the AutoSync threshold. If the threshold is exceeds, the dome will be commanded
+     * to sync to the mount azimuth position.
+     * @param mount_az Mount's azimuth
+     */
+    virtual void UpdateAutoSync(double mount_az);
+
+    /**
      * \brief Open or Close shutter
      * \param operation Either open or close the shutter.
      * \return Return 0 if shutter operation is complete. Return 1 if shutter operation is in progress.
                 Return -1 if there is an error.
      */
     virtual int ControlDomeShutter(ShutterOperation operation);
+
+    /**
+     * @brief getShutterStatusString
+     * @param status Status of shutter
+     * @return Returns string representation of the shutter status
+     */
+    const char * GetShutterStatusString(ShutterStatus status);
 
     INumberVectorProperty DomeSpeedNP;
     INumber DomeSpeedN[1];
@@ -174,11 +202,14 @@ protected:
     ISwitchVectorProperty DomeGotoSP;
     ISwitch DomeGotoS[2];
     INumberVectorProperty DomeParamNP;
-    INumber DomeParamN[2];
+    INumber DomeParamN[3];
     ISwitchVectorProperty DomeShutterSP;
     ISwitch DomeShutterS[2];
+    ISwitchVectorProperty DomeAutoSyncSP;
+    ISwitch DomeAutoSyncS[2];
 
     DomeCapability capability;
+    ShutterStatus shutterStatus;
     char DomeName[MAXINDIDEVICE];
 
 };

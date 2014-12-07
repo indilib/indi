@@ -19,6 +19,7 @@
 */
 
 #include <string.h>
+#include <math.h>
 
 #include "indidomeinterface.h"
 #include "indilogger.h"
@@ -27,10 +28,11 @@ INDI::DomeInterface::DomeInterface()
 {
     capability.canAbort=false;
     capability.canAbsMove=false;
-    capability.canPark=false;
     capability.canRelMove=true;
     capability.hasShutter=false;
     capability.variableSpeed=false;
+
+    shutterStatus = SHUTTER_UNKNOWN;
 }
 
 INDI::DomeInterface::~DomeInterface()
@@ -42,7 +44,7 @@ void INDI::DomeInterface::initDomeProperties(const char *deviceName, const char*
 {
     strncpy(DomeName, deviceName, MAXINDIDEVICE);
 
-    IUFillNumber(&DomeSpeedN[0],"DOME_SPEED_VALUE","RPM","%3.0f",0.0,10,0.1,1.0);
+    IUFillNumber(&DomeSpeedN[0],"DOME_SPEED_VALUE","RPM","%6.2f",0.0,10,0.1,1.0);
     IUFillNumberVector(&DomeSpeedNP,DomeSpeedN,1,deviceName,"DOME_SPEED","Speed",groupName,IP_RW,60,IPS_OK);
 
     IUFillNumber(&DomeTimerN[0],"DOME_TIMER_VALUE","Dome Timer (ms)","%4.0f",0.0,10000.0,50.0,1000.0);
@@ -53,18 +55,19 @@ void INDI::DomeInterface::initDomeProperties(const char *deviceName, const char*
     IUFillSwitchVector(&DomeMotionSP,DomeMotionS,2,deviceName,"DOME_MOTION","Direction",groupName,IP_RW,ISR_ATMOST1,60,IPS_OK);
 
     // Driver can define those to clients if there is support
-    IUFillNumber(&DomeAbsPosN[0],"DOME_ABSOLUTE_POSITION","Degrees","%4.0f",0.0,360.0,1.0,0.0);
+    IUFillNumber(&DomeAbsPosN[0],"DOME_ABSOLUTE_POSITION","Degrees","%6.2f",0.0,360.0,1.0,0.0);
     IUFillNumberVector(&DomeAbsPosNP,DomeAbsPosN,1,deviceName,"ABS_DOME_POSITION","Absolute Position",groupName,IP_RW,60,IPS_OK);
 
-    IUFillNumber(&DomeRelPosN[0],"DOME_RELATIVE_POSITION","Degrees","%4.0f",0.0,180.0,1.0,0.0);
+    IUFillNumber(&DomeRelPosN[0],"DOME_RELATIVE_POSITION","Degrees","%6.2f",0.0,180.0,1.0,0.0);
     IUFillNumberVector(&DomeRelPosNP,DomeRelPosN,1,deviceName,"REL_DOME_POSITION","Relative Position",groupName,IP_RW,60,IPS_OK);
 
     IUFillSwitch(&AbortS[0],"ABORT","Abort",ISS_OFF);
     IUFillSwitchVector(&AbortSP,AbortS,1,deviceName,"DOME_ABORT_MOTION","Abort Motion",groupName,IP_RW,ISR_ATMOST1,60,IPS_IDLE);
 
-    IUFillNumber(&DomeParamN[DOME_HOME],"HOME_POSITION","Home (deg)","%4.0f",0.0,360.0,1.0,0.0);
-    IUFillNumber(&DomeParamN[DOME_PARK],"PARK_POSITION","Park (deg)","%4.0f",0.0,360.0,1.0,0.0);
-    IUFillNumberVector(&DomeParamNP,DomeParamN,2,deviceName,"DOME_PARAMS","Params",groupName,IP_RW,60,IPS_OK);
+    IUFillNumber(&DomeParamN[DOME_HOME],"HOME_POSITION","Home (deg)","%6.2f",0.0,360.0,1.0,0.0);
+    IUFillNumber(&DomeParamN[DOME_PARK],"PARK_POSITION","Park (deg)","%6.2f",0.0,360.0,1.0,0.0);
+    IUFillNumber(&DomeParamN[DOME_AUTOSYNC],"AUTOSYNC_THRESHOLD","Autosync threshold (deg)","%6.2f",0.0,360.0,1.0,0.5);
+    IUFillNumberVector(&DomeParamNP,DomeParamN,3,deviceName,"DOME_PARAMS","Params",groupName,IP_RW,60,IPS_OK);
 
     IUFillSwitch(&DomeGotoS[0],"DOME_HOME","Home",ISS_OFF);
     IUFillSwitch(&DomeGotoS[1],"DOME_PARK","Park",ISS_OFF);
@@ -73,6 +76,10 @@ void INDI::DomeInterface::initDomeProperties(const char *deviceName, const char*
     IUFillSwitch(&DomeShutterS[0],"SHUTTER_OPEN","Open",ISS_OFF);
     IUFillSwitch(&DomeShutterS[1],"SHUTTER_CLOSE","Close",ISS_ON);
     IUFillSwitchVector(&DomeShutterSP,DomeShutterS,2,deviceName,"DOME_SHUTTER","Shutter",groupName,IP_RW,ISR_ATMOST1,60,IPS_OK);
+
+    IUFillSwitch(&DomeAutoSyncS[0],"DOME_AUTOSYNC_ENABLE","Enable",ISS_OFF);
+    IUFillSwitch(&DomeAutoSyncS[1],"DOME_AUTOSYNC_DISABLE","Disable",ISS_ON);
+    IUFillSwitchVector(&DomeAutoSyncSP,DomeAutoSyncS,2,deviceName,"DOME_AUTOSYNC","Auto Sync",groupName,IP_RW,ISR_ATMOST1,60,IPS_OK);
 
 }
 
@@ -258,6 +265,18 @@ bool INDI::DomeInterface::processDomeSwitch (const char *dev, const char *name, 
         return true;
     }
 
+    if (!strcmp(name, DomeAutoSyncSP.name))
+    {
+        IUUpdateSwitch(&DomeAutoSyncSP, states, names, n);
+        DomeAutoSyncSP.s = IPS_OK;
+        if (DomeAutoSyncS[0].s == ISS_ON)
+             IDSetSwitch(&DomeAutoSyncSP, "Dome will now be synced to mount azimuth position.");
+        else
+            IDSetSwitch(&DomeAutoSyncSP,  "Dome is no longer synced to mount azimuth position.");
+
+        return true;
+    }
+
     if (!strcmp(name, DomeShutterSP.name))
     {
         int ret=0;
@@ -326,7 +345,10 @@ bool INDI::DomeInterface::processDomeSwitch (const char *dev, const char *name, 
         else if (ret == 1)
         {
              DomeGotoSP.s=IPS_BUSY;
+             IUResetSwitch(&DomeGotoSP);
              IDSetSwitch(&DomeGotoSP, "Dome is %s...", (gotoDome == DOME_HOME ? "moving to home position" : "parking"));
+             DomeAbsPosNP.s = IPS_BUSY;
+             IDSetNumber(&DomeAbsPosNP, NULL);
              return true;
         }
 
@@ -415,9 +437,52 @@ void INDI::DomeInterface::SetDomeCapability(DomeCapability *cap)
 {
     capability.canAbort     = cap->canAbort;
     capability.canAbsMove   = cap->canAbsMove;
-    capability.canPark      = cap->canPark;
     capability.canRelMove   = cap->canRelMove;
     capability.hasShutter   = cap->hasShutter;
     capability.variableSpeed= cap->variableSpeed;
 }
 
+const char * INDI::DomeInterface::GetShutterStatusString(ShutterStatus status)
+{
+    switch (status)
+    {
+        case SHUTTER_OPENED:
+            return "Shutter is open.";
+            break;
+        case SHUTTER_CLOSED:
+            return "Shutter is closed.";
+            break;
+        case SHUTTER_MOVING:
+            return "Shutter is in motion.";
+            break;
+        case SHUTTER_UNKNOWN:
+            return "Shutter status is unknown.";
+            break;
+    }
+}
+
+void INDI::DomeInterface::UpdateAutoSync(double mount_az)
+{
+    if (DomeAbsPosNP.s != IPS_BUSY && DomeAutoSyncS[0].s == ISS_ON)
+    {
+        if (fabs(mount_az - DomeAbsPosN[0].value) >= DomeParamN[DOME_AUTOSYNC].value)
+        {
+            int ret = 0;
+            if ( (ret = MoveAbsDome(mount_az)) == 0)
+            {
+               DomeAbsPosNP.s=IPS_OK;
+               IDSetNumber(&DomeAbsPosNP, "Dome synced to position %g degrees.", mount_az);
+            }
+            else if (ret == 1)
+            {
+               DomeAbsPosNP.s=IPS_BUSY;
+               IDSetNumber(&DomeAbsPosNP, "Dome is syncing to position %g degrees...", mount_az);
+            }
+            else
+            {
+                DomeAbsPosNP.s = IPS_ALERT;
+                IDSetNumber(&DomeAbsPosNP, "Dome failed to sync to new requested position.");
+            }
+       }
+    }
+}

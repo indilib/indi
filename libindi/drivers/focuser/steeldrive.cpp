@@ -272,7 +272,7 @@ bool SteelDrive::Disconnect()
 
 const char * SteelDrive::getDefaultName()
 {
-    return "SteelDrive";
+    return "Baader SteelDrive";
 }
 
 /************************************************************************************

@@ -108,11 +108,9 @@ bool INDI::Dome::updateProperties()
         {
             defineNumber(&PresetNP);
             defineSwitch(&PresetGotoSP);
-        }
-        if (capability.canPark)
-        {
             defineNumber(&DomeParamNP);
             defineSwitch(&DomeGotoSP);
+            defineSwitch(&DomeAutoSyncSP);
         }
     } else
     {
@@ -137,13 +135,10 @@ bool INDI::Dome::updateProperties()
         {
             deleteProperty(PresetNP.name);
             deleteProperty(PresetGotoSP.name);
-        }
-        if (capability.canPark)
-        {
             deleteProperty(DomeParamNP.name);
             deleteProperty(DomeGotoSP.name);
+            deleteProperty(DomeAutoSyncSP.name);
         }
-
     }
 
     controller->updateProperties();
