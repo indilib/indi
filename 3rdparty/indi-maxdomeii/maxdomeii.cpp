@@ -115,7 +115,6 @@ MaxDomeII::MaxDomeII()
 
    cap.canAbort = true;
    cap.canAbsMove = true;
-   cap.canPark = true;
    cap.canRelMove = false;
 
    // We do have shutter, but we want to override INDI::Dome default shutter operation property
