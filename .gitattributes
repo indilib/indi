@@ -169,6 +169,17 @@
 3rdparty/indi-eqmod/simulator/skywatcher-simulator.h -text
 3rdparty/indi-eqmod/skywatcher.cpp -text
 3rdparty/indi-eqmod/skywatcher.h -text
+3rdparty/indi-ffmv/99-fireflymv.rules -text
+3rdparty/indi-ffmv/AUTHORS -text
+3rdparty/indi-ffmv/CMakeLists.txt -text
+3rdparty/indi-ffmv/INSTALL -text
+3rdparty/indi-ffmv/README -text
+3rdparty/indi-ffmv/cmake_modules/FindCFITSIO.cmake -text
+3rdparty/indi-ffmv/cmake_modules/FindDC1394.cmake -text
+3rdparty/indi-ffmv/cmake_modules/FindINDI.cmake -text
+3rdparty/indi-ffmv/ffmv_ccd.cpp -text
+3rdparty/indi-ffmv/ffmv_ccd.h -text
+3rdparty/indi-ffmv/indi_ffmv.xml -text
 3rdparty/indi-fishcamp/AUTHORS -text
 3rdparty/indi-fishcamp/CMakeLists.txt -text
 3rdparty/indi-fishcamp/ChangeLog -text

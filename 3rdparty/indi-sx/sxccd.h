@@ -108,6 +108,7 @@ class SXCCD : public INDI::CCD
   friend void ::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num);
   friend void ::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num);
   friend void ::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
+  friend void ::ISSnoopDevice(XMLEle *root);
 };
 
 

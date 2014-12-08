@@ -150,7 +150,15 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
 }
 
 void ISSnoopDevice(XMLEle *root) {
-  INDI_UNUSED(root);
+    ISInit();
+
+    for (int i = 0; i < count; i++) {
+      SXCCD *camera = cameras[i];
+      if (!strcmp(findXMLAttValu(root, "device"), camera->name)) {
+        camera->ISSnoopDevice(root);
+        break;
+      }
+    }
 }
 
 void ExposureTimerCallback(void *p) {
