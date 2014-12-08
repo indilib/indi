@@ -1116,6 +1116,13 @@ debian/indi-eqmod/copyright -text
 debian/indi-eqmod/indi-eqmod.install -text
 debian/indi-eqmod/rules -text
 debian/indi-eqmod/watch -text
+debian/indi-ffmv/changelog -text
+debian/indi-ffmv/compat -text
+debian/indi-ffmv/control -text
+debian/indi-ffmv/copyright -text
+debian/indi-ffmv/indi-ffmv.install -text
+debian/indi-ffmv/rules -text
+debian/indi-ffmv/source/format -text
 debian/indi-fishcamp/changelog -text
 debian/indi-fishcamp/compat -text
 debian/indi-fishcamp/control -text
