@@ -62,7 +62,7 @@ private:
 
     int PortFD;
     double targetPos, lastPos, lastTemperature, simPosition;
-    unsigned int currentSpeed;
+    unsigned int currentSpeed, temperatureUpdateCounter;
     bool sim;
 
     struct timeval focusMoveStart;
@@ -94,6 +94,7 @@ private:
     bool startMotion(FocusDirection dir);
 
     // Misc functions
+    bool saveFocuserConfig();
     bool Ack();
     void GetFocusParams();
     float CalcTimeLeft(timeval,float);

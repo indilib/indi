@@ -29,10 +29,11 @@
 #include <math.h>
 #include <memory>
 
-#define STEELDRIVE_TIMEOUT   3
-#define STEELDRIVE_MAXBUF   16
-#define STEELDRIVE_CMD      9
-#define STEELDRIVE_CMD_LONG 11
+#define STEELDRIVE_TIMEOUT          3
+#define STEELDRIVE_MAXBUF           16
+#define STEELDRIVE_CMD              9
+#define STEELDRIVE_CMD_LONG         11
+#define STEELDRIVE_TEMPERATURE_FREQ 20      /* Update every 20 POLLMS cycles. For POLLMS 250ms = 5 seconds freq */
 
 #define FOCUS_SETTINGS_TAB  "Settings"
 
@@ -119,6 +120,8 @@ bool SteelDrive::initProperties()
 {
     INDI::Focuser::initProperties();
 
+    IUSaveText(&PortT[0], "/dev/ttyAMC0");
+
     FocusSpeedN[0].min = 350;
     FocusSpeedN[0].max = 1000;
     FocusSpeedN[0].value = 500;
@@ -128,7 +131,7 @@ bool SteelDrive::initProperties()
     IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Temperature Settings
-    IUFillNumber(&TemperatureSettingN[FOCUS_T_COEFF], "Coefficient", "", "%.3f", 0, 0.999, 0, 0.0);
+    IUFillNumber(&TemperatureSettingN[FOCUS_T_COEFF], "Coefficient", "", "%.3f", 0, 0.999, 0, 0.1);
     IUFillNumber(&TemperatureSettingN[FOCUS_T_SAMPLES], "# of Samples", "", "%.01f", 16, 128, 0, 16);
     IUFillNumberVector(&TemperatureSettingNP, TemperatureSettingN, 2, getDeviceName(), "Temperature Settings", "", FOCUS_SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
 
@@ -165,7 +168,7 @@ bool SteelDrive::initProperties()
     IUFillNumberVector(&AccelerationNP, AccelerationN, 1, getDeviceName(), "FOCUS_ACCELERATION", "Acceleration", FOCUS_SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Focus Sync
-    IUFillNumber(&SyncN[0], "Position", "", "%.01f", 0., 200000., 100., 0.);
+    IUFillNumber(&SyncN[0], "Position (steps)", "", "%.01f", 0., 200000., 100., 0.);
     IUFillNumberVector(&SyncNP, SyncN, 1, getDeviceName(), "FOCUS_SYNC", "Sync", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     // Version
@@ -254,9 +257,11 @@ bool SteelDrive::Connect()
     if (Ack())
     {
         DEBUG(INDI::Logger::DBG_SESSION, "SteelDrive is online. Getting focus parameters...");
+        temperatureUpdateCounter=0;
         SetTimer(POLLMS);
         return true;
     }
+
 
     DEBUG(INDI::Logger::DBG_SESSION, "Error retreiving data from SteelDrive, please ensure SteelDrive controller is powered and the port is correct.");
     return false;
@@ -264,6 +269,7 @@ bool SteelDrive::Connect()
 
 bool SteelDrive::Disconnect()
 {
+    temperatureUpdateCounter=0;
     if (!sim)
         tty_disconnect(PortFD);
     DEBUG(INDI::Logger::DBG_SESSION, "SteelDrive is offline.");
@@ -299,7 +305,7 @@ bool SteelDrive::Ack()
     if (sim)
     {
         strncpy(resp, ":FV2.00812#", STEELDRIVE_CMD_LONG);
-        nbytes_read=STEELDRIVE_CMD;
+        nbytes_read=STEELDRIVE_CMD_LONG;
     }
     else if ( (rc = tty_read_section(PortFD, resp, '#', STEELDRIVE_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
@@ -375,7 +381,12 @@ bool SteelDrive::updateVersion()
     {
         strncpy(hwrev, hardware_string, 3);
         strncpy(hwdate, hardware_string+3, 4);
-        snprintf(hardware_string, MAXRBUF, "Version: %s Date: %s", hwrev, hwdate);
+        char mon[3], year[3];
+        memset(mon, 0, sizeof(mon));
+        memset(year, 0, sizeof(year));
+        strncpy(mon, hwdate, 2);
+        strncpy(year, hwdate+2, 2);
+        snprintf(hardware_string, MAXRBUF, "Version: %s Date: %s.%s", hwrev, mon, year);
         IUSaveText(&VersionT[0], hardware_string);
     }
     else
@@ -417,7 +428,12 @@ bool SteelDrive::updateVersion()
     {
         strncpy(fwrev, firmware_string, 3);
         strncpy(fwdate, firmware_string+3, 4);
-        snprintf(firmware_string, MAXRBUF, "Version: %s Date: %s", fwrev, fwdate);
+        char mon[3], year[3];
+        memset(mon, 0, sizeof(mon));
+        memset(year, 0, sizeof(year));
+        strncpy(mon, fwdate, 2);
+        strncpy(year, fwdate+2, 2);
+        snprintf(firmware_string, MAXRBUF, "Version: %s Date: %s.%s", fwrev, mon, year);
         IUSaveText(&VersionT[1], firmware_string);
     }
     else
@@ -453,8 +469,8 @@ bool SteelDrive::updateTemperature()
 
     if (sim)
     {
-        strncpy(resp, ":F5+1810#", 9);
-        nbytes_read=9;
+        strncpy(resp, ":F5+1810#", STEELDRIVE_CMD);
+        nbytes_read=STEELDRIVE_CMD;
     }
     else if ( (rc = tty_read_section(PortFD, resp, '#', STEELDRIVE_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
@@ -475,7 +491,15 @@ bool SteelDrive::updateTemperature()
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Unknown error: focuser temperature value (%s)", resp);
+        char junk[STEELDRIVE_MAXBUF];
+        rc = sscanf(resp, ":F5%s#", junk);
+        if (rc > 0)
+        {
+            TemperatureN[0].value = 0;
+            DEBUG(INDI::Logger::DBG_DEBUG, "Temperature probe is not connected.");
+        }
+        else
+            DEBUGF(INDI::Logger::DBG_ERROR, "Unknown error: focuser temperature value (%s)", resp);
         return false;
     }
 
@@ -816,7 +840,7 @@ bool SteelDrive::setTemperatureSamples(unsigned int targetSamples, unsigned int 
 {
     int nbytes_written=0, rc=-1;
     char errstr[MAXRBUF];
-    char cmd[STEELDRIVE_CMD];
+    char cmd[STEELDRIVE_MAXBUF];
 
     int maxSample = TemperatureSettingN[FOCUS_T_SAMPLES].max;
     int sample=0;
@@ -842,7 +866,7 @@ bool SteelDrive::setTemperatureSamples(unsigned int targetSamples, unsigned int 
     else
         value = 35000;
 
-    snprintf(cmd, STEELDRIVE_CMD, ":FI%05d#", value);
+    snprintf(cmd, STEELDRIVE_CMD+1, ":FI%05d#", value);
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -869,19 +893,19 @@ bool SteelDrive::setTemperatureCompensation()
 {
     int nbytes_written=0, rc=-1;
     char errstr[MAXRBUF];
-    char cmd[STEELDRIVE_CMD];
+    char cmd[STEELDRIVE_MAXBUF];
 
     double coeff = TemperatureSettingN[FOCUS_T_COEFF].value;
     bool enable  = TemperatureCompensateS[0].s == ISS_ON;
     int selectedFocus = IUFindOnSwitchIndex(&ModelSP);
 
-    snprintf(cmd, STEELDRIVE_CMD, ":F%02d%03d%d#", selectedFocus, (int) (coeff * 1000), enable ? 2 : 0);
+    snprintf(cmd, STEELDRIVE_CMD+1, ":F%02d%03d%d#", selectedFocus, (int) (coeff * 1000), enable ? 2 : 0);
 
     tcflush(PortFD, TCIOFLUSH);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
-    if (!sim && (rc = tty_write(PortFD, cmd, 6, &nbytes_written)) != TTY_OK)
+    if (!sim && (rc = tty_write(PortFD, cmd, STEELDRIVE_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "setTemperatureCoefficient error: %s.", errstr);
@@ -898,11 +922,11 @@ bool SteelDrive::setCustomSettings(double maxTrip, double gearRatio)
 {
     int nbytes_written=0, rc=-1;
     char errstr[MAXRBUF];
-    char cmd[STEELDRIVE_CMD_LONG];
+    char cmd[STEELDRIVE_MAXBUF];
 
     unsigned short mmTrip = (unsigned short int) (maxTrip/gearRatio * 100.0);
 
-    snprintf(cmd, STEELDRIVE_CMD_LONG, ":FC%07d#", mmTrip);
+    snprintf(cmd, STEELDRIVE_CMD_LONG+1, ":FC%07d#", mmTrip);
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -915,7 +939,7 @@ bool SteelDrive::setCustomSettings(double maxTrip, double gearRatio)
         return false;
     }
 
-    snprintf(cmd, STEELDRIVE_CMD, ":FE%05d#", (int) (gearRatio * 100000));
+    snprintf(cmd, STEELDRIVE_CMD+1, ":FE%05d#", (int) (gearRatio * 100000));
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -938,9 +962,9 @@ bool SteelDrive::Sync(unsigned int position)
 {
     int nbytes_written=0, rc=-1;
     char errstr[MAXRBUF];
-    char cmd[STEELDRIVE_CMD_LONG];
+    char cmd[STEELDRIVE_MAXBUF];
 
-    snprintf(cmd, STEELDRIVE_CMD_LONG, ":FB%07d#", position);
+    snprintf(cmd, STEELDRIVE_CMD_LONG+1, ":FB%07d#", position);
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -965,7 +989,7 @@ bool SteelDrive::moveFocuser(unsigned int position)
 {
     int nbytes_written=0, rc=-1;
     char errstr[MAXRBUF];
-    char cmd[STEELDRIVE_CMD_LONG];
+    char cmd[STEELDRIVE_MAXBUF];
 
     if (position < FocusAbsPosN[0].min || position > FocusAbsPosN[0].max)
     {
@@ -973,7 +997,7 @@ bool SteelDrive::moveFocuser(unsigned int position)
         return false;
     }
 
-    snprintf(cmd, STEELDRIVE_CMD_LONG, ":F9%07d#", position);
+    snprintf(cmd, STEELDRIVE_CMD_LONG+1, ":F9%07d#", position);
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -999,7 +1023,7 @@ bool SteelDrive::startMotion(FocusDirection dir)
 {
     int nbytes_written=0, rc=-1;
     char errstr[MAXRBUF];
-    char cmd[STEELDRIVE_CMD];
+    char cmd[STEELDRIVE_MAXBUF];
 
     // inward  --> decreasing value --> DOWN
     // outward --> increasing value --> UP
@@ -1026,9 +1050,9 @@ bool SteelDrive::setSpeed(unsigned short speed)
 {    
     int nbytes_written=0, rc=-1;
     char errstr[MAXRBUF];
-    char cmd[STEELDRIVE_CMD];
+    char cmd[STEELDRIVE_MAXBUF];
 
-    snprintf(cmd, STEELDRIVE_CMD, ":Fg%05d#", speed);
+    snprintf(cmd, STEELDRIVE_CMD+1, ":Fg%05d#", speed);
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -1051,9 +1075,9 @@ bool SteelDrive::setAcceleration(unsigned short accel)
 {
     int nbytes_written=0, rc=-1;
     char errstr[MAXRBUF];
-    char cmd[STEELDRIVE_CMD];
+    char cmd[STEELDRIVE_MAXBUF];
 
-    snprintf(cmd, STEELDRIVE_CMD, ":Fh%05d#", accel);
+    snprintf(cmd, STEELDRIVE_CMD+1, ":Fh%05d#", accel);
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -1377,15 +1401,22 @@ void SteelDrive::TimerHit()
         }
     }
 
-    rc = updateTemperature();
-    if (rc)
+    if (temperatureUpdateCounter++ > STEELDRIVE_TEMPERATURE_FREQ)
     {
-        if (fabs(lastTemperature - TemperatureN[0].value) >= 0.5)
+        temperatureUpdateCounter = 0;
+        rc = updateTemperature();
+        if (rc)
         {
-            IDSetNumber(&TemperatureNP, NULL);
-            lastTemperature = TemperatureN[0].value;
+            if (fabs(lastTemperature - TemperatureN[0].value) >= 0.5)
+                lastTemperature = TemperatureN[0].value;
         }
+        else
+            TemperatureNP.s = IPS_ALERT;
+
+
+        IDSetNumber(&TemperatureNP, NULL);
     }
+
 
     if (FocusTimerNP.s == IPS_BUSY)
     {
@@ -1521,7 +1552,30 @@ bool SteelDrive::saveConfigItems(FILE *fp)
     IUSaveConfigNumber(fp, &CustomSettingNP);
     IUSaveConfigSwitch(fp, &ModelSP);
 
+    return saveFocuserConfig();
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+bool SteelDrive::saveFocuserConfig()
+{
+    int nbytes_written=0, rc=-1;
+    char errstr[MAXRBUF];
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    DEBUG(INDI::Logger::DBG_DEBUG, "CMD :FFPOWER#");
+
+    if (!sim && (rc = tty_write(PortFD, ":FFPOWER#", STEELDRIVE_CMD, &nbytes_written)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, ":FFPOWER# saveFocuserConfig error: %s.", errstr);
+        return false;
+    }
+
     return true;
+
 }
 
 
