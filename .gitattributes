@@ -1032,6 +1032,7 @@ cmake_modules/FindAIOUSB.cmake -text
 cmake_modules/FindALUT.cmake -text
 cmake_modules/FindAPOGEE.cmake -text
 cmake_modules/FindCFITSIO.cmake -text
+cmake_modules/FindDC1394.cmake -text
 cmake_modules/FindFISHCAMP.cmake -text
 cmake_modules/FindFLI.cmake -text
 cmake_modules/FindFTDI.cmake -text
