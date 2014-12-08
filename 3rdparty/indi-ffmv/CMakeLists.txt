@@ -3,7 +3,7 @@ PROJECT(ffmvccd CXX C)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
-set(RULES_INSTALL_DIR "/etc/udev/rules.d")
+set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for udev rules")
 
 find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
@@ -30,5 +30,5 @@ target_link_libraries(indi_ffmv_ccd ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES
 install(TARGETS indi_ffmv_ccd RUNTIME DESTINATION bin )
 
 install(FILES indi_ffmv.xml DESTINATION ${INDI_DATA_DIR})
-install(FILES 99-fireflymv.rules DESTINATION ${RULES_INSTALL_DIR})
+install(FILES 99-fireflymv.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
 
