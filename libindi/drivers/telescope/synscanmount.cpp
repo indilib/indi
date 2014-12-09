@@ -92,6 +92,11 @@ void ISSnoopDevice (XMLEle *root)
 SynscanMount::SynscanMount()
 {
     //ctor
+    TelescopeCapability cap;
+
+    cap.canPark = true;
+    cap.canSync = false;
+    SetTelescopeCapability(&cap);
 }
 
 SynscanMount::~SynscanMount()
@@ -297,7 +302,3 @@ bool  SynscanMount::Abort()
     return true;
 }
 
-bool SynscanMount::canPark()
-{
-    return true;
-}

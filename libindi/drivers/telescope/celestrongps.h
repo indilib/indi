@@ -62,8 +62,6 @@ protected:
 
  bool Goto(double ra,double dec);
  bool Sync(double ra, double dec);
- virtual bool canSync();
- virtual bool canPark();
 
  void slewError(int slewCode);
  void mountSim();

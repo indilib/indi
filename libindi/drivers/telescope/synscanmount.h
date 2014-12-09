@@ -37,9 +37,7 @@ class SynscanMount : public INDI::Telescope
         bool ReadScopeStatus();
         bool Goto(double,double);
         bool Park();
-        bool Abort();
-
-        bool canPark();
+        bool Abort();        
 
 };
 

@@ -51,6 +51,28 @@ class INDI::Telescope : public INDI::DefaultDevice
         Telescope();
         virtual ~Telescope();
 
+        /** \struct TelescopeCapability
+            \brief Holds the capabilities of a telescope.
+        */
+        typedef struct
+        {
+            /** Can the telescope sync to specific coordinates? */
+            bool canSync;
+            /** Can the telescope park? */
+            bool canPark;
+        } TelescopeCapability;
+
+        /**
+         * @brief GetTelescopeCapability returns the capability of the Telescope
+         */
+        TelescopeCapability GetTelescopeCapability() const { return capability;}
+
+        /**
+         * @brief SetTelescopeCapability sets the Telescope capabilities. All capabilities must be initialized.
+         * @param cap pointer to Telescope capability struct.
+         */
+        void SetTelescopeCapability(TelescopeCapability * cap);
+
         enum TelescopeStatus { SCOPE_IDLE, SCOPE_SLEWING, SCOPE_TRACKING, SCOPE_PARKING, SCOPE_PARKED };
         enum TelescopeMotionNS { MOTION_NORTH, MOTION_SOUTH };
         enum TelescopeMotionWE { MOTION_WEST, MOTION_EAST };
@@ -111,12 +133,6 @@ class INDI::Telescope : public INDI::DefaultDevice
         */
         virtual bool Goto(double ra,double dec)=0;
 
-        /** \brief Does the mount support sync?
-         *  \return True if sync is supported, false otherwise.
-         *\note This function is not implemented in INDI::Telescope, it must be implemented in the child class
-        */
-        virtual bool canSync();
-
         /** \brief Set the telescope current RA and DEC coordinates to the supplied RA and DEC coordinates
             \return True if successful, false otherewise
             *\note This function implemented INDI::Telescope always returns false. Override the function to return true.
@@ -138,12 +154,6 @@ class INDI::Telescope : public INDI::DefaultDevice
             \note This function is not implemented in INDI::Telescope, it must be implemented in the child class
         */
         virtual bool MoveWE(TelescopeMotionWE dir, TelescopeMotionCommand command);
-
-        /** \brief Does the mount support park?
-         *  \return True if park is supported, false otherwise.
-         *\note This function defaults to return false unless subclassed by the child class.
-        */
-        virtual bool canPark();
 
         /** \brief Park the telescope to its home position.
             \return True if successful, false otherewise
@@ -216,6 +226,7 @@ class INDI::Telescope : public INDI::DefaultDevice
         IText TimeT[2];
         ITextVectorProperty TimeTP;
 
+        TelescopeCapability capability;
         int last_we_motion, last_ns_motion;
 
 };

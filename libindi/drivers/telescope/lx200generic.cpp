@@ -172,6 +172,12 @@ LX200Generic::LX200Generic()
    controller->setJoystickCallback(joystickHelper);
    controller->setButtonCallback(buttonHelper);
 
+   TelescopeCapability cap;
+
+   cap.canPark = true;
+   cap.canSync = true;
+   SetTelescopeCapability(&cap);
+
    IDLog("Initializing from generic LX200 device...\n");   
 }
 
@@ -1671,16 +1677,6 @@ void LX200Generic::guideTimeout()
         GuideWETID = 0;
         IDSetNumber(&GuideWENP, NULL);
     }
-}
-
-bool LX200Generic::canSync()
-{
-    return true;
-}
-
-bool LX200Generic::canPark()
-{
-    return true;
 }
 
 bool LX200Generic::ISSnoopDevice(XMLEle *root)

@@ -37,8 +37,6 @@ public:
     bool Goto(double,double);
     bool Park();
     bool Sync(double ra, double dec);
-    bool canSync();
-    bool canPark();
 
     private:
         double currentRA;

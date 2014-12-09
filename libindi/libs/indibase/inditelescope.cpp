@@ -25,7 +25,7 @@
 INDI::Telescope::Telescope()
 {
     //ctor
-
+    capability.canPark = capability.canSync = false;
     last_we_motion = last_ns_motion = -1;
 }
 
@@ -55,7 +55,7 @@ bool INDI::Telescope::initProperties()
     IUFillSwitch(&CoordS[1],"SLEW","Slew",ISS_OFF);
     IUFillSwitch(&CoordS[2],"SYNC","Sync",ISS_OFF);
 
-    if (canSync())
+    if (capability.canSync)
         IUFillSwitchVector(&CoordSP,CoordS,3,getDeviceName(),"ON_COORD_SET","On Set",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
     else
         IUFillSwitchVector(&CoordSP,CoordS,2,getDeviceName(),"ON_COORD_SET","On Set",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
@@ -126,7 +126,7 @@ bool INDI::Telescope::updateProperties()
         defineSwitch(&MovementWESP);
         defineText(&TimeTP);
         defineNumber(&LocationNP);
-        if (canPark())
+        if (capability.canPark)
             defineSwitch(&ParkSP);
         defineNumber(&ScopeParametersNP);
 
@@ -140,7 +140,7 @@ bool INDI::Telescope::updateProperties()
         deleteProperty(MovementWESP.name);
         deleteProperty(TimeTP.name);
         deleteProperty(LocationNP.name);
-        if (canPark())
+        if (capability.canPark)
             deleteProperty(ParkSP.name);
         deleteProperty(ScopeParametersNP.name);
     }
@@ -322,7 +322,7 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
                 //  perform the goto
                 //  Ok, lets see if we should be doing a goto
                 //  or a sync
-                if (canSync())
+                if (capability.canSync)
                 {
                     ISwitch *sw;
                     sw=IUFindSwitch(&CoordSP,"SYNC");
@@ -421,7 +421,7 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
 
         if(strcmp(name,"TELESCOPE_PARK")==0)
         {
-            ParkS[0].s = ISS_ON;
+            ParkS[0].s = ISS_OFF;
 
             if (ParkSP.s == IPS_BUSY)
             {
@@ -433,7 +433,10 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
             if (rc)
             {
                 if (TrackState == SCOPE_PARKING)
-                    ParkSP.s = IPS_BUSY;
+                {
+                     ParkS[0].s = ISS_ON;
+                     ParkSP.s = IPS_BUSY;
+                }
                 else
                     ParkSP.s = IPS_OK;
             }
@@ -673,16 +676,6 @@ bool INDI::Telescope::Park()
     return false;
 }
 
-bool INDI::Telescope::canSync()
-{
-    return false;
-}
-
-bool INDI::Telescope::canPark()
-{
-    return false;
-}
-
 bool INDI::Telescope::updateTime(ln_date *utc, double utc_offset)
 {
     INDI_UNUSED(utc);
@@ -698,4 +691,10 @@ bool INDI::Telescope::updateLocation(double latitude, double longitude, double e
     INDI_UNUSED(elevation);
 
     return true;
+}
+
+void INDI::Telescope::SetTelescopeCapability(TelescopeCapability *cap)
+{
+    capability.canPark      = cap->canPark;
+    capability.canSync      = cap->canSync;
 }

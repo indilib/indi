@@ -96,7 +96,11 @@ CelestronGPS::CelestronGPS()
    controller->setJoystickCallback(joystickHelper);
    controller->setButtonCallback(buttonHelper);
 
-   IDLog("initializing from Celeston GPS device...\n");
+   TelescopeCapability cap;
+
+   cap.canPark = false;
+   cap.canSync = true;
+   SetTelescopeCapability(&cap);
 
 }
 
@@ -510,16 +514,6 @@ void CelestronGPS::slewError(int slewCode)
        break;
     }
 
-}
-
-bool CelestronGPS::canSync()
-{
-    return true;
-}
-
-bool CelestronGPS::canPark()
-{
-    return false;
 }
 
 bool CelestronGPS::ISSnoopDevice(XMLEle *root)

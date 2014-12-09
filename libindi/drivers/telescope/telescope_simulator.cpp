@@ -97,6 +97,12 @@ ScopeSim::ScopeSim()
 
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
+    TelescopeCapability cap;
+
+    cap.canPark = true;
+    cap.canSync = true;
+    SetTelescopeCapability(&cap);
+
     /* initialize random seed: */
       srand ( time(NULL) );
 }
@@ -676,14 +682,4 @@ bool ScopeSim::GuideWest(float ms)
     guiderEWTarget[GUIDE_EAST] = 0;
     return true;
 
-}
-
-bool ScopeSim::canSync()
-{
-    return true;
-}
-
-bool ScopeSim::canPark()
-{
-    return true;
 }
