@@ -250,6 +250,8 @@ private:
     bool sim;
     bool isColor;
     bool useExternalTrackingCCD;
+    bool hasGuideHead;
+    bool hasFilterWheel;
 
     inline int			GetFileDescriptor(){return(m_fd);}
     inline void		SetFileDescriptor(int val = -1){m_fd = val;}
@@ -331,7 +333,7 @@ private:
     string			GetCameraID();
     int				getCCDSizeInfo(	int ccd, int rm, int &frmW, int &frmH,
                             double &pixW, double &pixH);
-    int				getNumberOfCCDChips();
+    /*int				getNumberOfCCDChips();*/
     bool			IsFanControlAvailable();
 
     bool  			updateFrameProperties(CCDChip *targetChip);

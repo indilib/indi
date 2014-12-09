@@ -152,7 +152,7 @@ SBIGCCD::SBIGCCD()
     InitVars();
     int res = OpenDriver();
     if (res != CE_NO_ERROR)
-        DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Error (%s)", __PRETTY_FUNCTION__, GetErrorString(res).c_str());
+        DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Error (%s)", __FUNCTION__, GetErrorString(res).c_str());
 
     // For now let's set name to default name. In the future, we need to to support multiple devices per one driver
     if (*getDeviceName() == '\0')
@@ -164,6 +164,8 @@ SBIGCCD::SBIGCCD()
     useExternalTrackingCCD=false;
     grabPredicate = GRAB_NO_CCD;
     terminateThread= false;
+    hasGuideHead=false;
+    hasFilterWheel=false;
 
     setVersion(1, 6);
 
@@ -177,7 +179,7 @@ SBIGCCD::SBIGCCD(const char* devName)
         OpenDevice(devName);
 
     if (res != CE_NO_ERROR)
-        DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Error (%s)", __PRETTY_FUNCTION__, GetErrorString(res).c_str());
+        DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Error (%s)", __FUNCTION__, GetErrorString(res).c_str());
 }
 //==========================================================================
 SBIGCCD::~SBIGCCD()
@@ -225,7 +227,7 @@ int SBIGCCD::CloseDriver()
     }
 
     if (res != CE_NO_ERROR)
-        DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Error (%s)", __PRETTY_FUNCTION__, GetErrorString(res).c_str());
+        DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Error (%s)", __FUNCTION__, GetErrorString(res).c_str());
 
     return(res);
 }
@@ -263,7 +265,7 @@ int SBIGCCD::OpenDevice(const char *devName)
     }
 
     if (res != CE_NO_ERROR)
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Error opening device %s (%s)", __PRETTY_FUNCTION__, devName, GetErrorString(res).c_str());
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Error opening device %s (%s)", __FUNCTION__, devName, GetErrorString(res).c_str());
 
     return(res);
 }
@@ -285,7 +287,7 @@ int SBIGCCD::CloseDevice()
     }
 
     if (res != CE_NO_ERROR)
-        DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Error (%s)", __PRETTY_FUNCTION__, GetErrorString(res).c_str());
+        DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Error (%s)", __FUNCTION__, GetErrorString(res).c_str());
 
     return(res);
 }
@@ -379,9 +381,7 @@ void SBIGCCD::ISGetProperties(const char *dev)
 {
   INDI::CCD::ISGetProperties(dev);
 
-  defineText(&PortTP);
-  defineSwitch(&FilterConnectionSP);
-  defineSwitch(&FilterTypeSP);
+  defineText(&PortTP);  
 
   // Add Debug, Simulator, and Configuration controls
   addAuxControls();
@@ -402,8 +402,14 @@ bool SBIGCCD::updateProperties()
         defineSwitch(&CoolerSP);
         defineNumber(&CoolerNP);
     }
-    defineText(&ProductInfoTP);    
-    defineText(&FilterProdcutTP);
+
+    if (hasFilterWheel)
+    {
+        defineSwitch(&FilterConnectionSP);
+        defineSwitch(&FilterTypeSP);
+        defineText(&ProductInfoTP);
+        defineText(&FilterProdcutTP);
+    }
 
     // Let's get parameters now from CCD
     setupParams();
@@ -412,11 +418,16 @@ bool SBIGCCD::updateProperties()
         defineSwitch(&DebayerMethodSP);
 
     // If filter type already selected (from config file), then try to connect to CFW
-    ISwitch *p = IUFindOnSwitch(&FilterTypeSP);
-    if (p != NULL && FilterConnectionS[0].s == ISS_OFF)
+    if (hasFilterWheel)
     {
-        DEBUG(INDI::Logger::DBG_DEBUG, "Filter type is already selected and filter is not connected. Will attempt to connect to filter now...");
-        CFWConnect();
+        loadConfig(true, "CFW_TYPE");
+
+        ISwitch *p = IUFindOnSwitch(&FilterTypeSP);
+        if (p != NULL && FilterConnectionS[0].s == ISS_OFF)
+        {
+            DEBUG(INDI::Logger::DBG_DEBUG, "Filter type is already selected and filter is not connected. Will attempt to connect to filter now...");
+            CFWConnect();
+        }
     }
 
     timerID = SetTimer(POLLMS);
@@ -428,14 +439,15 @@ bool SBIGCCD::updateProperties()
 
     deleteProperty(FanStateSP.name);
 
-    //deleteProperty(FilterConnectionSP.name);
-    deleteProperty(FilterProdcutTP.name);
-    //deleteProperty(FilterTypeSP.name);
-    //deleteProperty(FilterSlotNP.name);
-    deleteProperty(DebayerMethodSP.name);
-
-    if (FilterNameT != NULL)
-        deleteProperty(FilterNameTP->name);
+    if (hasFilterWheel)
+    {
+        deleteProperty(FilterConnectionSP.name);
+        deleteProperty(FilterTypeSP.name);
+        deleteProperty(FilterProdcutTP.name);
+        deleteProperty(DebayerMethodSP.name);
+        if (FilterNameT != NULL)
+            deleteProperty(FilterNameTP->name);
+    }
 
     rmTimer(timerID);
   }
@@ -622,15 +634,14 @@ bool SBIGCCD::Connect()
   sim = isSimulation();
   int res= CE_NO_ERROR;
   string str;
-
-  ///////////////////////////
-  // Guide Port?
-  ///////////////////////////
-  // Do we have a guide port?
+  hasGuideHead = false;
+  hasFilterWheel=false;
 
   if (sim)
   {           
     CCDCapability cap;
+
+    GetExtendedCCDInfo();
 
     cap.canAbort = true;
     cap.canBin = true;
@@ -643,9 +654,6 @@ bool SBIGCCD::Connect()
     SetCCDCapability(&cap);
 
     pthread_create( &primary_thread, NULL, &grabCCDHelper, this);
-
-    DEBUG(INDI::Logger::DBG_DEBUG, "Loading CFW_TYPE configuration...");
-    loadConfig(true, "CFW_TYPE");
 
     IEAddTimer(TEMPERATURE_POLL_MS, SBIGCCD::updateTemperatureHelper, this);
 
@@ -675,17 +683,13 @@ bool SBIGCCD::Connect()
               cap.canBin = true;
               cap.canSubFrame = true;
               cap.hasCooler = hasCooler;
-              cap.hasGuideHead = (getNumberOfCCDChips() > 1) || (useExternalTrackingCCD);
+              cap.hasGuideHead = hasGuideHead;
               cap.hasShutter = true;
               cap.hasST4Port = true;
 
               SetCCDCapability(&cap);
 
               pthread_create( &primary_thread, NULL, &grabCCDHelper, this);
-
-              DEBUG(INDI::Logger::DBG_DEBUG, "Loading CFW_TYPE configuration...");
-              loadConfig(true, "CFW_TYPE");
-
               return true;
           }
           else
@@ -719,6 +723,7 @@ bool SBIGCCD::Disconnect()
   grabPredicate=GRAB_PRIMARY_CCD;
   terminateThread=true;
   useExternalTrackingCCD=false;
+  hasGuideHead=false;
   pthread_cond_signal(&cv);
   pthread_mutex_unlock(&condMutex);
 
@@ -1147,14 +1152,14 @@ bool SBIGCCD::updateFrameProperties(CCDChip *targetChip)
         return true;
     }
     else
-       DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Error (%s)", __PRETTY_FUNCTION__, GetErrorString(res).c_str());
+       DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Error (%s)", __FUNCTION__, GetErrorString(res).c_str());
 
     return false;
 }
 
 bool SBIGCCD::UpdateCCDFrame(int x, int y, int w, int h)
 {
-  DEBUGF(INDI::Logger::DBG_DEBUG, "The Final CCD image area is (%ld, %ld), (%ld, %ld)\n", x, y, w, h);
+  DEBUGF(INDI::Logger::DBG_DEBUG, "The Final CCD image area is (%ld, %ld), (%ld, %ld)", x, y, w, h);
 
   // Set UNBINNED coords
   PrimaryCCD.setFrame(x, y, w, h);
@@ -1332,8 +1337,8 @@ bool SBIGCCD::grabImage(CCDChip *targetChip)
 
     if (sim)
     {
-          DEBUGF(INDI::Logger::DBG_DEBUG, "GrabImage X: %d Y: %d Width: %d - Height: %d\n", left, top, width, height);
-          DEBUGF(INDI::Logger::DBG_DEBUG, "Buf size: %d bytes.\n", width * height * 2);
+          DEBUGF(INDI::Logger::DBG_DEBUG, "GrabImage X: %d Y: %d Width: %d - Height: %d", left, top, width, height);
+          DEBUGF(INDI::Logger::DBG_DEBUG, "Buf size: %d bytes.", width * height * 2);
 
           char * image = targetChip->getFrameBuffer();
 
@@ -1382,9 +1387,9 @@ bool SBIGCCD::grabImage(CCDChip *targetChip)
           int rgb_size = width*height*3*PrimaryCCD.getBPP()/8;
           unsigned short * dst = (unsigned short *) malloc(rgb_size);
 
-          DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Debayering (%dx%d) debayer: %d", __PRETTY_FUNCTION__, width, height, debayer);
+          DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Debayering (%dx%d) debayer: %d", __FUNCTION__, width, height, debayer);
           dc1394_bayer_decoding_16bit(buffer, dst, width, height, DC1394_COLOR_FILTER_BGGR, (dc1394bayer_method_t) debayer, PrimaryCCD.getBPP());
-          DEBUGF(INDI::Logger::DBG_DEBUG, "%s Debayer complete.", __PRETTY_FUNCTION__);
+          DEBUGF(INDI::Logger::DBG_DEBUG, "%s Debayer complete.", __FUNCTION__);
 
           // Data in R1G1B1, we need to copy them into 3 layers for FITS
           unsigned short * rgb = (unsigned short *) malloc(rgb_size);
@@ -1630,7 +1635,7 @@ int SBIGCCD::QueryTemperatureStatus(bool &enabled, double &ccdTemp, double &setp
                 setpointTemp = CalcTemperature(CCD_THERMISTOR, qtsr.ccdSetpoint);
                 power        = qtsr.power/255.0;
 
-                DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Regulation Enabled (%s) ccdTemp (%g) setpointTemp (%g) power (%g)", __PRETTY_FUNCTION__, enabled ? "True": "False", qtsr.enabled, ccdTemp, setpointTemp, power);
+                DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Regulation Enabled (%s) ccdTemp (%g) setpointTemp (%g) power (%g)", __FUNCTION__, enabled ? "True": "False", qtsr.enabled, ccdTemp, setpointTemp, power);
         }
     }else{
         res = CE_DEVICE_NOT_OPEN;
@@ -1760,7 +1765,7 @@ int	SBIGCCD::getCCDSizeInfo(	int ccd, int binning, int &frmW, int &frmH,
             pixW = BcdPixel2double(gcr.readoutInfo[binning].pixelWidth);
             pixH = BcdPixel2double(gcr.readoutInfo[binning].pixelHeight);
 
-            DEBUGF(INDI::Logger::DBG_DEBUG, "%s: ccd (%d) binning (%d) width (%d) height (%d) pixW (%d) pixH (%d)", __PRETTY_FUNCTION__, ccd, binning, frmW, frmH, pixW, pixH);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "%s: ccd (%d) binning (%d) width (%d) height (%d) pixW (%d) pixH (%d)", __FUNCTION__, ccd, binning, frmW, frmH, pixW, pixH);
     }
     return(res);
 }
@@ -1871,11 +1876,6 @@ string SBIGCCD::GetCameraName()
                             break;
         }
 
-        if (name.find("Color") != -1)
-        {
-            DEBUG(INDI::Logger::DBG_DEBUG, "Camera name contains color string, setting camera to color...");
-            isColor = true;
-        }
     }
     return(name);
 }
@@ -1884,15 +1884,32 @@ void SBIGCCD::GetExtendedCCDInfo()
 {
     int res= CE_NO_ERROR;
     GetCCDInfoParams		gccdip;
-    GetCCDInfoResults4	results4;
+    GetCCDInfoResults4	imaging_ccd_results4;
+    GetCCDInfoResults4	tracking_ccd_results4;
     GetCCDInfoResults6	results6;
 
-    gccdip.request = 4;
-    if( (res = GetCcdInfo(&gccdip, (void *)&results4)) == CE_NO_ERROR)
+    if (sim)
     {
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Extended CCD Info 4. CapabilitiesBit: (%u) Dump Extra (%u)", results4.capabilitiesBits, results4.dumpExtra);
+        hasGuideHead   = true;
+        hasFilterWheel = true;
+        return;
+    }
 
-        if (results4.capabilitiesBits & CB_CCD_EXT_TRACKER_YES)
+    gccdip.request = 4;
+    if( (res = GetCcdInfo(&gccdip, (void *)&imaging_ccd_results4)) == CE_NO_ERROR)
+        DEBUGF(INDI::Logger::DBG_DEBUG, "CCD_IMAGING Extended CCD Info 4. CapabilitiesBit: (%u) Dump Extra (%u)", imaging_ccd_results4.capabilitiesBits, imaging_ccd_results4.dumpExtra);
+    else
+        DEBUGF(INDI::Logger::DBG_DEBUG, "Error getting extended CCD_IMAGING CCD Info 4 (%s)", GetErrorString(res).c_str());
+
+
+    gccdip.request = 5;
+    if( (res = GetCcdInfo(&gccdip, (void *)&tracking_ccd_results4)) == CE_NO_ERROR)
+    {
+        hasGuideHead = true;
+
+        DEBUGF(INDI::Logger::DBG_DEBUG, "TRACKING_CCD Extended CCD Info 4. CapabilitiesBit: (%u) Dump Extra (%u)", tracking_ccd_results4.capabilitiesBits, tracking_ccd_results4.dumpExtra);
+
+        if (tracking_ccd_results4.capabilitiesBits & CB_CCD_EXT_TRACKER_YES)
         {
             DEBUG(INDI::Logger::DBG_DEBUG, "External tracking CCD detected.");
             useExternalTrackingCCD = true;
@@ -1901,8 +1918,10 @@ void SBIGCCD::GetExtendedCCDInfo()
             useExternalTrackingCCD = false;
     }
     else
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Error getting extended CCD Info 4 (%s)", GetErrorString(res).c_str());
-
+    {
+        hasGuideHead = false;
+        DEBUGF(INDI::Logger::DBG_DEBUG, "TRACKING_CCD Error getting extended CCD Info 4 (%s). No guide head detected.", GetErrorString(res).c_str());
+    }
 
     gccdip.request = 6;
     if( (res = GetCcdInfo(&gccdip, (void *)&results6)) == CE_NO_ERROR)
@@ -1924,6 +1943,22 @@ void SBIGCCD::GetExtendedCCDInfo()
     else
         DEBUGF(INDI::Logger::DBG_DEBUG, "Error getting extended CCD Info 6 (%s)", GetErrorString(res).c_str());
 
+    // Try to detect if there is a filter wheel
+    CFWParams 	CFWp;
+    CFWResults  CFWr;
+    CFWp.cfwModel 		= CFWSEL_AUTO;
+    CFWp.cfwCommand 	= CFWC_GET_INFO;
+    CFWp.cfwParam1      = CFWG_FIRMWARE_VERSION;
+    if ( (res = SBIGUnivDrvCommand(CC_CFW, &CFWp, &CFWr)) == CE_NO_ERROR)
+    {
+        DEBUG(INDI::Logger::DBG_DEBUG, "Fitler wheel detected.");
+        hasFilterWheel = true;
+    }
+    else
+    {
+        DEBUGF(INDI::Logger::DBG_DEBUG, "No fitler wheel detected (%s)", GetErrorString(res).c_str());
+        hasFilterWheel = false;
+    }
 }
 //==========================================================================
 string SBIGCCD::GetCameraID()
@@ -1944,7 +1979,7 @@ string SBIGCCD::GetCameraID()
         str = gccdir2.serialNumber;
     }
     else
-        DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Error (%s)", __PRETTY_FUNCTION__, GetErrorString(res).c_str());
+        DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Error (%s)", __FUNCTION__, GetErrorString(res).c_str());
 
 
     return(str);
@@ -2005,7 +2040,7 @@ bool SBIGCCD::CheckLink()
     return(false);
 }
 //==========================================================================
-int SBIGCCD::getNumberOfCCDChips()
+/*int SBIGCCD::getNumberOfCCDChips()
 {
     int res;
 
@@ -2035,9 +2070,10 @@ int SBIGCCD::getNumberOfCCDChips()
                     break;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "%s Camera Type (%d) Number of chips (%d)", __PRETTY_FUNCTION__, GetCameraType(), res);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "%s Camera Type (%d) Number of chips (%d)", __FUNCTION__, GetCameraType(), res);
     return(res);
-}
+}*/
+
 //==========================================================================
 bool SBIGCCD::IsFanControlAvailable()
 {
@@ -2184,7 +2220,7 @@ bool SBIGCCD::SelectFilter(int position)
             FilterSlotNP.s = IPS_ALERT;
             IDSetNumber(&FilterSlotNP, NULL);
             DEBUG(INDI::Logger::DBG_SESSION, "Please Connect/Disconnect CFW, then try again...");
-            DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Error (%s)", __PRETTY_FUNCTION__, GetErrorString(res).c_str());
+            DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Error (%s)", __FUNCTION__, GetErrorString(res).c_str());
             return false;
    }
 
