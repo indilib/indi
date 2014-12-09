@@ -793,8 +793,7 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
 
             PrimaryCCD.ImageFrameNP->s=IPS_OK;   
 
-            DEBUGF(Logger::DBG_DEBUG, "Requested CCD Frame is %4.0f,%4.0f %4.0f x %4.0f",
-                  values[0],values[1],values[2],values[4]);
+            DEBUGF(Logger::DBG_DEBUG, "Requested CCD Frame is (%3.0f,%3.0f) (%3.0f x %3.0f)", values[0],values[1],values[2],values[3]);
 
             if (UpdateCCDFrame(PrimaryCCD.ImageFrameN[0].value, PrimaryCCD.ImageFrameN[1].value, PrimaryCCD.ImageFrameN[2].value,
                                PrimaryCCD.ImageFrameN[3].value) == false)
