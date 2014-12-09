@@ -226,10 +226,19 @@ void INDI::Focuser::processButton(const char * button_n, ISState state)
     if (state == ISS_OFF)
         return;
 
+    FocusTimerN[0].value = lastTimerValue;
+
     int rc=0;
     // Focus In
     if (!strcmp(button_n, "Focus In"))
     {
+        if (FocusMotionS[FOCUS_INWARD].s != ISS_ON)
+        {
+            FocusMotionS[FOCUS_INWARD].s = ISS_ON;
+            FocusMotionS[FOCUS_OUTWARD].s = ISS_OFF;
+            IDSetSwitch(&FocusMotionSP, NULL);
+        }
+
         if (capability.variableSpeed)
         {
            rc = MoveFocuser(FOCUS_INWARD, FocusSpeedN[0].value, FocusTimerN[0].value);
@@ -260,6 +269,13 @@ void INDI::Focuser::processButton(const char * button_n, ISState state)
     }
     else if (!strcmp(button_n, "Focus Out"))
     {
+        if (FocusMotionS[FOCUS_OUTWARD].s != ISS_ON)
+        {
+            FocusMotionS[FOCUS_INWARD].s = ISS_OFF;
+            FocusMotionS[FOCUS_OUTWARD].s = ISS_ON;
+            IDSetSwitch(&FocusMotionSP, NULL);
+        }
+
         if (capability.variableSpeed)
         {
            rc = MoveFocuser(FOCUS_OUTWARD, FocusSpeedN[0].value, FocusTimerN[0].value);

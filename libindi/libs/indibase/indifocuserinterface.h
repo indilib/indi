@@ -137,6 +137,7 @@ protected:
     FocuserCapability capability;
 
     char focuserName[MAXINDIDEVICE];
+    double lastTimerValue;
 
 };
 

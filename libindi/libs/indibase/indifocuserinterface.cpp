@@ -80,6 +80,7 @@ bool INDI::FocuserInterface::processFocuserNumber (const char *dev, const char *
         if(FocusMotionS[0].s==ISS_ON) dir=FOCUS_INWARD;
         else dir=FOCUS_OUTWARD;
         t=FocusTimerN[0].value;
+        lastTimerValue = t;
 
         rc = MoveFocuser(dir,speed,t);
 

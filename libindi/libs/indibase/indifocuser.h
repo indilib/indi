@@ -69,7 +69,7 @@ class INDI::Focuser : public INDI::DefaultDevice, public INDI::FocuserInterface
 
         void processButton(const char * button_n, ISState state);
 
-        INDI::Controller *controller;
+        INDI::Controller *controller;        
 
 };
 
