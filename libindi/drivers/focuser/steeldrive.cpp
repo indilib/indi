@@ -33,12 +33,12 @@
 #define STEELDRIVE_MAXBUF               16
 #define STEELDRIVE_CMD                  9
 #define STEELDRIVE_CMD_LONG             11
-#define STEELDRIVE_TEMPERATURE_FREQ     40      /* Update every 40 POLLMS cycles. For POLLMS 250ms = 10 seconds freq */
+#define STEELDRIVE_TEMPERATURE_FREQ     20      /* Update every 20 POLLMS cycles. For POLLMS 500ms = 10 seconds freq */
 #define STEELDIVE_POSITION_THRESHOLD    5       /* Only send position updates to client if the diff exceeds 5 steps */
 
 #define FOCUS_SETTINGS_TAB  "Settings"
 
-#define POLLMS  250
+#define POLLMS  500
 
 std::auto_ptr<SteelDrive> steelDrive(0);
 
@@ -126,15 +126,15 @@ bool SteelDrive::initProperties()
     FocusSpeedN[0].min = 350;
     FocusSpeedN[0].max = 1000;
     FocusSpeedN[0].value = 500;
-    FocusSpeedN[0].step = 100;
+    FocusSpeedN[0].step = 50;
 
     // Focuser temperature
     IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
     IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Temperature Settings
-    IUFillNumber(&TemperatureSettingN[FOCUS_T_COEFF], "Coefficient", "", "%.3f", 0, 0.999, 0, 0.1);
-    IUFillNumber(&TemperatureSettingN[FOCUS_T_SAMPLES], "# of Samples", "", "%.01f", 16, 128, 0, 16);
+    IUFillNumber(&TemperatureSettingN[FOCUS_T_COEFF], "Coefficient", "", "%.3f", 0, 0.999, 0.1, 0.1);
+    IUFillNumber(&TemperatureSettingN[FOCUS_T_SAMPLES], "# of Samples", "", "%3.0f", 16, 128, 16, 16);
     IUFillNumberVector(&TemperatureSettingNP, TemperatureSettingN, 2, getDeviceName(), "Temperature Settings", "", FOCUS_SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Compensate for temperature
@@ -166,11 +166,11 @@ bool SteelDrive::initProperties()
     IUFillNumberVector(&CustomSettingNP, CustomSettingN, 2, getDeviceName(), "Custom Settings", "", FOCUS_SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Focuser Accleration
-    IUFillNumber(&AccelerationN[0], "Ramp", "", "%4.0f", 1500., 3000., 100., 2000.);
+    IUFillNumber(&AccelerationN[0], "Ramp", "", "%3.0f", 1500., 3000., 100., 2000.);
     IUFillNumberVector(&AccelerationNP, AccelerationN, 1, getDeviceName(), "FOCUS_ACCELERATION", "Acceleration", FOCUS_SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Focus Sync
-    IUFillNumber(&SyncN[0], "Position (steps)", "", "%4.0f", 0., 200000., 100., 0.);
+    IUFillNumber(&SyncN[0], "Position (steps)", "", "%3.0f", 0., 200000., 100., 0.);
     IUFillNumberVector(&SyncNP, SyncN, 1, getDeviceName(), "FOCUS_SYNC", "Sync", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     // Version
@@ -944,7 +944,7 @@ bool SteelDrive::setCustomSettings(double maxTrip, double gearRatio)
         return false;
     }
 
-    snprintf(cmd, STEELDRIVE_CMD+1, ":FE%05d#", (int) (gearRatio * 100000));
+    snprintf(cmd, STEELDRIVE_CMD+1, ":FD%05d#", (int) (gearRatio * 100000));
 
     tcflush(PortFD, TCIOFLUSH);
 
