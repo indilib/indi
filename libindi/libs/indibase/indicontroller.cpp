@@ -189,6 +189,10 @@ bool Controller::ISSnoopDevice(XMLEle *root)
     XMLEle *ep=NULL;
     double mag=0, angle=0;
 
+    // If joystick is disabled, do not process anything.
+    if (UseJoystickSP.sp[0].s == ISS_OFF)
+        return false;
+
     const char *propName = findXMLAttValu(root, "name");
 
     // Check axis
