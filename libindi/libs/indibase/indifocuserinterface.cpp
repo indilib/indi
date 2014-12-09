@@ -44,8 +44,9 @@ void INDI::FocuserInterface::initFocuserProperties(const char *deviceName, const
     IUFillNumber(&FocusSpeedN[0],"FOCUS_SPEED_VALUE","Focus Speed","%3.0f",0.0,255.0,1.0,255.0);
     IUFillNumberVector(&FocusSpeedNP,FocusSpeedN,1,deviceName,"FOCUS_SPEED","Speed",groupName,IP_RW,60,IPS_OK);
 
-    IUFillNumber(&FocusTimerN[0],"FOCUS_TIMER_VALUE","Focus Timer (ms)","%4.0f",0.0,3000.0,50.0,1000.0);
+    IUFillNumber(&FocusTimerN[0],"FOCUS_TIMER_VALUE","Focus Timer (ms)","%4.0f",0.0,5000.0,50.0,1000.0);
     IUFillNumberVector(&FocusTimerNP,FocusTimerN,1,deviceName,"FOCUS_TIMER","Timer",groupName,IP_RW,60,IPS_OK);
+    lastTimerValue = 1000.0;
 
     IUFillSwitch(&FocusMotionS[0],"FOCUS_INWARD","Focus In",ISS_ON);
     IUFillSwitch(&FocusMotionS[1],"FOCUS_OUTWARD","Focus Out",ISS_OFF);
