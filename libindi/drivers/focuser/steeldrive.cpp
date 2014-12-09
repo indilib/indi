@@ -29,11 +29,12 @@
 #include <math.h>
 #include <memory>
 
-#define STEELDRIVE_TIMEOUT          3
-#define STEELDRIVE_MAXBUF           16
-#define STEELDRIVE_CMD              9
-#define STEELDRIVE_CMD_LONG         11
-#define STEELDRIVE_TEMPERATURE_FREQ 20      /* Update every 20 POLLMS cycles. For POLLMS 250ms = 5 seconds freq */
+#define STEELDRIVE_TIMEOUT              3
+#define STEELDRIVE_MAXBUF               16
+#define STEELDRIVE_CMD                  9
+#define STEELDRIVE_CMD_LONG             11
+#define STEELDRIVE_TEMPERATURE_FREQ     40      /* Update every 40 POLLMS cycles. For POLLMS 250ms = 10 seconds freq */
+#define STEELDIVE_POSITION_THRESHOLD    5       /* Only send position updates to client if the diff exceeds 5 steps */
 
 #define FOCUS_SETTINGS_TAB  "Settings"
 
@@ -125,6 +126,7 @@ bool SteelDrive::initProperties()
     FocusSpeedN[0].min = 350;
     FocusSpeedN[0].max = 1000;
     FocusSpeedN[0].value = 500;
+    FocusSpeedN[0].step = 100;
 
     // Focuser temperature
     IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
@@ -164,11 +166,11 @@ bool SteelDrive::initProperties()
     IUFillNumberVector(&CustomSettingNP, CustomSettingN, 2, getDeviceName(), "Custom Settings", "", FOCUS_SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Focuser Accleration
-    IUFillNumber(&AccelerationN[0], "Ramp", "", "%.01f", 1500., 3000., 100., 2000.);
+    IUFillNumber(&AccelerationN[0], "Ramp", "", "%4.0f", 1500., 3000., 100., 2000.);
     IUFillNumberVector(&AccelerationNP, AccelerationN, 1, getDeviceName(), "FOCUS_ACCELERATION", "Acceleration", FOCUS_SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Focus Sync
-    IUFillNumber(&SyncN[0], "Position (steps)", "", "%.01f", 0., 200000., 100., 0.);
+    IUFillNumber(&SyncN[0], "Position (steps)", "", "%4.0f", 0., 200000., 100., 0.);
     IUFillNumberVector(&SyncNP, SyncN, 1, getDeviceName(), "FOCUS_SYNC", "Sync", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     // Version
@@ -488,6 +490,7 @@ bool SteelDrive::updateTemperature()
     if (rc > 0)
     {
         TemperatureN[0].value = ( (double) temperature)/100.0;
+        TemperatureNP.s = IPS_OK;
     }
     else
     {
@@ -500,6 +503,8 @@ bool SteelDrive::updateTemperature()
         }
         else
             DEBUGF(INDI::Logger::DBG_ERROR, "Unknown error: focuser temperature value (%s)", resp);
+
+        TemperatureNP.s = IPS_ALERT;
         return false;
     }
 
@@ -1065,6 +1070,8 @@ bool SteelDrive::setSpeed(unsigned short speed)
         return false;
     }
 
+    currentSpeed = speed;
+
     return true;
 }
 
@@ -1382,6 +1389,7 @@ int SteelDrive::MoveRelFocuser(FocusDirection dir, unsigned int ticks)
 
     FocusRelPosN[0].value = ticks;
     FocusRelPosNP.s = IPS_BUSY;
+    FocusAbsPosNP.s = IPS_BUSY;
 
     return 1;
 }
@@ -1394,7 +1402,7 @@ void SteelDrive::TimerHit()
     bool rc = updatePosition();
     if (rc)
     {
-        if (fabs(lastPos - FocusAbsPosN[0].value) > 5)
+        if (fabs(lastPos - FocusAbsPosN[0].value) > STEELDIVE_POSITION_THRESHOLD)
         {
             IDSetNumber(&FocusAbsPosNP, NULL);
             lastPos = FocusAbsPosN[0].value;
@@ -1410,9 +1418,6 @@ void SteelDrive::TimerHit()
             if (fabs(lastTemperature - TemperatureN[0].value) >= 0.5)
                 lastTemperature = TemperatureN[0].value;
         }
-        else
-            TemperatureNP.s = IPS_ALERT;
-
 
         IDSetNumber(&TemperatureNP, NULL);
     }
@@ -1513,6 +1518,12 @@ bool SteelDrive::AbortFocuser()
         tty_error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, ":F3STOP0# Stop error: %s.", errstr);
         return false;
+    }
+
+    if (FocusRelPosNP.s == IPS_BUSY)
+    {
+        FocusRelPosNP.s = IPS_IDLE;
+        IDSetNumber(&FocusRelPosNP, NULL);
     }
 
     FocusTimerNP.s = FocusAbsPosNP.s = IPS_IDLE;
