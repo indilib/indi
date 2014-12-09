@@ -421,7 +421,26 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
 
         if(strcmp(name,"TELESCOPE_PARK")==0)
         {
-            Park();
+            ParkS[0].s = ISS_ON;
+
+            if (ParkSP.s == IPS_BUSY)
+            {
+                IDSetSwitch(&ParkSP, NULL);
+                return true;
+            }
+
+            bool rc = Park();
+            if (rc)
+            {
+                if (TrackState == SCOPE_PARKING)
+                    ParkSP.s = IPS_BUSY;
+                else
+                    ParkSP.s = IPS_OK;
+            }
+            else
+                ParkSP.s = IPS_ALERT;
+
+            IDSetSwitch(&ParkSP, NULL);
             return true;
         }
 
