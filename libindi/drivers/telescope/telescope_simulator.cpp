@@ -124,23 +124,23 @@ bool ScopeSim::initProperties()
     /* Enable client to manually add periodic error northward or southward for simulation purposes */
     IUFillSwitch(&PEErrNSS[MOTION_NORTH], "PE_N", "North", ISS_OFF);
     IUFillSwitch(&PEErrNSS[MOTION_SOUTH], "PE_S", "South", ISS_OFF);
-    IUFillSwitchVector(&PEErrNSSP, PEErrNSS, 2, getDeviceName(),"PE_NS", "PE N/S", MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&PEErrNSSP, PEErrNSS, 2, getDeviceName(),"PE_NS", "PE N/S", MOTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     /* Enable client to manually add periodic error westward or easthward for simulation purposes */
     IUFillSwitch(&PEErrWES[MOTION_WEST], "PE_W", "West", ISS_OFF);
     IUFillSwitch(&PEErrWES[MOTION_EAST], "PE_E", "East", ISS_OFF);
-    IUFillSwitchVector(&PEErrWESP, PEErrWES, 2, getDeviceName(),"PE_WE", "PE W/E", MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&PEErrWESP, PEErrWES, 2, getDeviceName(),"PE_WE", "PE W/E", MOTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     /* How fast do we guide compared to sidereal rate */
     IUFillNumber(&GuideRateN[RA_AXIS], "GUIDE_RATE_WE", "W/E Rate", "%g", 0, 1, 0.1, 0.3);
     IUFillNumber(&GuideRateN[DEC_AXIS], "GUIDE_RATE_NS", "N/S Rate", "%g", 0, 1, 0.1, 0.3);
     IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
-    // Let's simulate it to be an F/10 8" telescope
-    ScopeParametersN[0].value = 203;
-    ScopeParametersN[1].value = 2000;
-    ScopeParametersN[2].value = 203;
-    ScopeParametersN[3].value = 2000;
+    // Let's simulate it to be an F/7.5 120mm telescope
+    ScopeParametersN[0].value = 120;
+    ScopeParametersN[1].value = 900;
+    ScopeParametersN[2].value = 120;
+    ScopeParametersN[3].value = 900;
 
     TrackState=SCOPE_IDLE;
 
@@ -340,6 +340,9 @@ bool ScopeSim::ReadScopeStatus()
             else
             {
                 TrackState = SCOPE_PARKED;
+                IUResetSwitch(&ParkSP);
+                ParkSP.s=IPS_OK;
+                IDSetSwitch(&ParkSP,NULL);
                 EqNP.s = IPS_IDLE;
                 DEBUG(INDI::Logger::DBG_SESSION,"Telescope parked successfully.");
             }
