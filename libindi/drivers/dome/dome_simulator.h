@@ -53,7 +53,6 @@ class DomeSim : public INDI::Dome
 
         double targetAz;
         double shutterTimer;
-        double prev_az, prev_alt;
         bool SetupParms();
 
 };

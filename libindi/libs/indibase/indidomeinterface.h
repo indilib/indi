@@ -31,10 +31,10 @@
    A Dome can be an independent device, or an embedded Dome within another device (e.g. Telescope). Before using any of the dome functions, you must define the capabilities of the dome and calling
    SetDomeCapability() function. All positions are represented as degrees of azimuth.
 
-   AutoSync is used to synchronizes the dome's azimuth position with that of the mount. The mount's azimuth position is snooped from the ACTIVE_TELESCOPE property in ACTIVE_DEVICES vector.
+   Slaving is used to synchronizes the dome's azimuth position with that of the mount. The mount's azimuth position is snooped from the ACTIVE_TELESCOPE property in ACTIVE_DEVICES vector.
    The AutoSync threshold is the difference in degrees between the dome's azimuth angle and the mount's azimuth angle that should trigger a dome motion. By default, it is set to 0.5 degrees which would
    trigger dome motion due to any difference between the dome and mount azimuth angles that exceeds 0.5 degrees. For example, if the threshold is set to 5 degrees, the dome will only start moving to sync with the mount's azimuth angle once
-   the difference in azimuth angles is equal or exceeds 5 degrees.
+   the difference in azimuth angles is equal or exceeds 5 degrees. The dome will only commence movement once the mount completed slewing.
 
    \e IMPORTANT: After SetDomeCapability(), initDomeProperties() must be called before any other function to initilize the Dome properties.
 
@@ -68,20 +68,6 @@ public:
         SHUTTER_UNKNOWN           /*!< Shutter status is unknown */
     } ShutterStatus;
 
-
-    /** \typedef DomeMeasurements
-        \brief Measurements necessary for dome-slit synchronization. All values are in meters. The displacement are measured from the true dome centre, and the dome is supposed spherical.
-        \Note: The mount centre is the point where RA and Dec. axis crosses, no matter the kind of mount. For example, for a fork mount this displacement is typically 0 if it's perfectly centred with RA axis.
-    */
-    typedef enum
-    {
-        DM_DOME_DIAMETER,         /*!< Dome diameter */
-        DM_SHUTTER_WIDTH,         /*!< Shutter width */
-        DM_NORTH_DISPLACEMENT,    /*!< Displacement to north of the mount center */
-        DM_EAST_DISPLACEMENT,     /*!< Displacement to east of the mount center */
-        DM_UP_DISPLACEMENT,       /*!< Up Displacement of the mount center */
-        DM_OTA_OFFSET             /*!< Distance from the optical axis to the mount center*/
-    } DomeMeasurements;
 
     /** \struct DomeCapability
         \brief Holds the capabilities of the dome.
@@ -180,13 +166,6 @@ protected:
     virtual int ParkDome();
 
     /**
-     * @brief UpdateAutoSync Call this function to update mount's azimuth angle and check if the difference between the dome's and mount's azimuth angles exceeds the AutoSync threshold. If the threshold is exceeds, the dome will be commanded
-     * to sync to the mount azimuth position.
-     * @param mount_az Mount's azimuth
-     */
-    virtual void UpdateAutoSync(double mount_az);
-
-    /**
      * \brief Open or Close shutter
      * \param operation Either open or close the shutter.
      * \return Return 0 if shutter operation is complete. Return 1 if shutter operation is in progress.
@@ -219,10 +198,6 @@ protected:
     INumber DomeParamN[3];
     ISwitchVectorProperty DomeShutterSP;
     ISwitch DomeShutterS[2];
-    ISwitchVectorProperty DomeAutoSyncSP;
-    ISwitch DomeAutoSyncS[2];
-    INumber DomeMeasurementsN[6];
-    INumberVectorProperty DomeMeasurementsNP;
 
     DomeCapability capability;
     ShutterStatus shutterStatus;

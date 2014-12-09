@@ -131,7 +131,7 @@ bool DomeSim::Connect()
 
 DomeSim::~DomeSim()
 {
-    prev_az = prev_alt = 0;
+
 }
 
 const char * DomeSim::getDefaultName()
@@ -161,26 +161,7 @@ void DomeSim::TimerHit()
 {
     int nexttimer=1000;
 
-    if(isConnected() == false) return;  //  No need to reset timer if we are not connected anymore
-
-    ln_get_hrz_from_equ(&equ, &observer, ln_get_julian_from_sys(), &hrz);
-
-    hrz.az += 180;
-    if (hrz.az > 360)
-        hrz.az -= 360;
-    if (hrz.az < 0)
-        hrz.az += 360;
-
-    // Control debug flooding
-    if (fabs(hrz.az - prev_az) > 0.2 || fabs(hrz.alt - prev_alt) > 0.2)
-    {
-        prev_az  = hrz.az;
-        prev_alt = hrz.alt;
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Updated telescope Az: %g - Alt: %g", prev_az, prev_alt);
-    }
-
-    // Check if we need to move
-    UpdateAutoSync(hrz.az);
+    if(isConnected() == false) return;  //  No need to reset timer if we are not connected anymore    
 
     if (DomeAbsPosNP.s == IPS_BUSY)
     {
