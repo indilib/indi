@@ -198,6 +198,12 @@ EQMod::EQMod()
   DBG_COMM         = INDI::Logger::getInstance().addDebugLevel("Serial Port", "COMM");
   DBG_MOUNT        = INDI::Logger::getInstance().addDebugLevel("Verbose Mount", "MOUNT");
 
+  TelescopeCapability cap;
+
+  cap.canPark = true;
+  cap.canSync = true;
+  SetTelescopeCapability(&cap);
+
   mount=new Skywatcher(this);
 
   pierside = EAST;
@@ -1225,16 +1231,6 @@ bool EQMod::Goto(double r,double d)
 
     DEBUGF(INDI::Logger::DBG_SESSION, "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
-}
-
-bool EQMod::canSync()
-{
-  return true;
-}
-
-bool EQMod::canPark()
-{
-  return true;
 }
 
 bool EQMod::Park()
