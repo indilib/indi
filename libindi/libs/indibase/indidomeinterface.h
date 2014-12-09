@@ -69,6 +69,20 @@ public:
     } ShutterStatus;
 
 
+    /** \typedef DomeMeasurements
+        \brief Measurements necessary for dome-slit synchronization. All values are in meters. The displacement are measured from the true dome centre, and the dome is supposed spherical.
+        \Note: The mount centre is the point where RA and Dec. axis crosses, no matter the kind of mount. For example, for a fork mount this displacement is typically 0 if it's perfectly centred with RA axis.
+    */
+    typedef enum
+    {
+        DM_DOME_DIAMETER,         /*!< Dome diameter */
+        DM_SHUTTER_WIDTH,         /*!< Shutter width */
+        DM_NORTH_DISPLACEMENT,    /*!< Displacement to north of the mount center */
+        DM_EAST_DISPLACEMENT,     /*!< Displacement to east of the mount center */
+        DM_UP_DISPLACEMENT,       /*!< Up Displacement of the mount center */
+        DM_OTA_OFFSET             /*!< Distance from the optical axis to the mount center*/
+    } DomeMeasurements;
+
     /** \struct DomeCapability
         \brief Holds the capabilities of the dome.
     */
@@ -207,6 +221,8 @@ protected:
     ISwitch DomeShutterS[2];
     ISwitchVectorProperty DomeAutoSyncSP;
     ISwitch DomeAutoSyncS[2];
+    INumber DomeMeasurementsN[6];
+    INumberVectorProperty DomeMeasurementsNP;
 
     DomeCapability capability;
     ShutterStatus shutterStatus;

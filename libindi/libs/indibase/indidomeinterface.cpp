@@ -81,6 +81,15 @@ void INDI::DomeInterface::initDomeProperties(const char *deviceName, const char*
     IUFillSwitch(&DomeAutoSyncS[1],"DOME_AUTOSYNC_DISABLE","Disable",ISS_ON);
     IUFillSwitchVector(&DomeAutoSyncSP,DomeAutoSyncS,2,deviceName,"DOME_AUTOSYNC","Auto Sync",groupName,IP_RW,ISR_ATMOST1,60,IPS_OK);
 
+    IUFillNumber(&DomeMeasurementsN[DM_DOME_DIAMETER],"DM_DOME_DIAMETER","Diameter (m)","%6.2f",0.0,360.0,1.0,0.0);
+    IUFillNumber(&DomeMeasurementsN[DM_SHUTTER_WIDTH],"DM_SHUTTER_WIDTH","Shutter width (m)","%6.2f",0.0,360.0,1.0,0.0);
+    IUFillNumber(&DomeMeasurementsN[DM_NORTH_DISPLACEMENT],"DM_NORTH_DISPLACEMENT","N displacement (m)","%6.2f",0.0,360.0,1.0,0.0);
+    IUFillNumber(&DomeMeasurementsN[DM_EAST_DISPLACEMENT],"DM_EAST_DISPLACEMENT","E displacement (m)","%6.2f",0.0,360.0,1.0,0.0);
+    IUFillNumber(&DomeMeasurementsN[DM_UP_DISPLACEMENT],"DM_UP_DISPLACEMENT","Up displacement (m)","%6.2f",0.0,360.0,1.0,0.0);
+    IUFillNumber(&DomeMeasurementsN[DM_OTA_OFFSET],"DM_OTA_OFFSET","OTA offset (m)","%6.2f",0.0,360.0,1.0,0.0);
+    IUFillNumberVector(&DomeMeasurementsNP,DomeMeasurementsN,3,deviceName,"DOME_Measurements","Measurements",groupName,IP_RW,60,IPS_OK);
+
+
 }
 
 bool INDI::DomeInterface::processDomeNumber (const char *dev, const char *name, double values[], char *names[], int n)
