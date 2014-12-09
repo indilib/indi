@@ -1576,7 +1576,7 @@ bool SteelDrive::saveFocuserConfig()
 
     tcflush(PortFD, TCIOFLUSH);
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "CMD :FFPOWER#");
+    DEBUG(INDI::Logger::DBG_DEBUG, "CMD (:FFPOWER#)");
 
     if (!sim && (rc = tty_write(PortFD, ":FFPOWER#", STEELDRIVE_CMD, &nbytes_written)) != TTY_OK)
     {
