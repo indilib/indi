@@ -32,6 +32,9 @@ class BaaderDome : public INDI::Dome
 {
     public:
 
+        typedef enum { DOME_UNKNOWN, DOME_CALIBRATING, DOME_READY } DomeStatus;
+        typedef enum { CALIBRATION_STAGE1, CALIBRATION_STAGE2, CALIBRATION_STAGE3, CALIBRATION_COMPLETE } CalibrationStage;
+
         BaaderDome();
         virtual ~BaaderDome();
 
@@ -44,13 +47,19 @@ class BaaderDome : public INDI::Dome
 
         void TimerHit();
 
+        virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+
         virtual int MoveRelDome(DomeDirection dir, double azDiff);
         virtual int MoveAbsDome(double az);
         virtual int ParkDome();
         virtual int HomeDome();
         virtual int ControlDomeShutter(ShutterOperation operation);
+        virtual bool AbortDome();
 
     protected:
+
+        ISwitch CalibrateS[1];
+        ISwitchVectorProperty CalibrateSP;
 
         // Commands
         bool Ack();
@@ -63,15 +72,17 @@ class BaaderDome : public INDI::Dome
         bool SetupParms();
 
 
-        double targetAz;
+        DomeStatus status;
+        CalibrationStage calibrationStage;
+        double targetAz, calibrationStart, calibrationTarget1, calibrationTarget2;
         ShutterStatus targetShutter;
         double prev_az, prev_alt;
         int PortFD;
 
-
         bool sim;
         double simShutterTimer;
         ShutterStatus simShutterStatus;
+
 };
 
 #endif

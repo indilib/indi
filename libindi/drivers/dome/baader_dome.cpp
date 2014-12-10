@@ -38,11 +38,12 @@ std::auto_ptr<BaaderDome> baaderDome(0);
 #define POLLMS              1000            /* Update frequency 1000 ms */
 #define DOME_AZ_THRESHOLD   1               /* Error threshold in degrees*/
 #define DOME_CMD            9               /* Dome command in bytes */
-#define DOME_BUF            10              /* Dome command in bytes plus null terminating character */
+#define DOME_BUF            16              /* Dome command buffer */
 #define DOME_TIMEOUT        3               /* 3 seconds comm timeout */
 
 #define SIM_SHUTTER_TIMER   5.0             /* Simulated Shutter closes/open in 5 seconds */
-#define SIM_DOME_SPEED      2.0             /* Simulated dome speed 2 degrees per second, constant */
+#define SIM_DOME_HI_SPEED   5.0             /* Simulated dome speed 5.0 degrees per second, constant */
+#define SIM_DOME_LO_SPEED   0.5             /* Simulated dome speed 0.5 degrees per second, constant */
 
 void ISPoll(void *p);
 
@@ -108,9 +109,11 @@ BaaderDome::BaaderDome()
    prev_az=0;
    prev_alt=0;
 
+   status = DOME_UNKNOWN;
+
    DomeCapability cap;
 
-   cap.canAbort = false;
+   cap.canAbort = true;         // no real abort, we set target position to current position to "abort"
    cap.canAbsMove = true;
    cap.canRelMove = true;
    cap.hasShutter = true;
@@ -131,6 +134,9 @@ BaaderDome::~BaaderDome() {}
 bool BaaderDome::initProperties()
 {
     INDI::Dome::initProperties();
+
+    IUFillSwitch(&CalibrateS[0], "Start", "", ISS_OFF);
+    IUFillSwitchVector(&CalibrateSP, CalibrateS, 1, getDeviceName(), "Calibrate", "", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     addAuxControls();
 
@@ -212,10 +218,78 @@ bool BaaderDome::updateProperties()
 
     if (isConnected())
     {
+
+        defineSwitch(&CalibrateSP);
+
         SetupParms();
     }
+    else
+        deleteProperty(CalibrateSP.name);
+
 
     return true;
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+bool BaaderDome::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+{
+    if(strcmp(dev,getDeviceName())==0)
+    {
+        if (!strcmp(name, CalibrateSP.name))
+        {
+            IUResetSwitch(&CalibrateSP);
+
+            if (status == DOME_READY)
+            {
+                CalibrateSP.s = IPS_OK;
+                DEBUG(INDI::Logger::DBG_SESSION, "Dome is already calibrated.");
+                IDSetSwitch(&CalibrateSP, NULL);
+                return true;
+            }
+
+            if (CalibrateSP.s == IPS_BUSY)
+            {
+                AbortDome();
+                DEBUG(INDI::Logger::DBG_SESSION, "Calibration aborted.");
+                status = DOME_UNKNOWN;
+                CalibrateSP.s = IPS_IDLE;
+                IDSetSwitch(&CalibrateSP, NULL);
+                return true;
+            }
+
+            status = DOME_CALIBRATING;
+
+            DEBUG(INDI::Logger::DBG_SESSION, "Starting calibration procedure...");
+
+            calibrationStage = CALIBRATION_STAGE1;
+
+            calibrationStart = DomeAbsPosN[0].value;
+
+            // Goal of procedure is to reach south point to hit sensor
+            calibrationTarget1 = calibrationStart + 179;
+            if (calibrationTarget1 > 360)
+                calibrationTarget1 -= 360;
+
+            if (MoveAbsDome(calibrationTarget1) == false)
+            {
+                CalibrateSP.s = IPS_ALERT;
+                DEBUG(INDI::Logger::DBG_ERROR, "Calibration failue due to dome motion failure.");
+                status = DOME_UNKNOWN;
+                IDSetSwitch(&CalibrateSP, NULL);
+                return false;
+            }
+
+            DomeAbsPosNP.s = IPS_BUSY;
+            CalibrateSP.s = IPS_BUSY;
+            DEBUGF(INDI::Logger::DBG_SESSION, "Calibration is in progress. Moving to position %g.", calibrationTarget1);
+            IDSetSwitch(&CalibrateSP, NULL);
+            return true;
+        }
+    }
+
+    return INDI::Dome::ISNewSwitch(dev, name, states, names, n);
 }
 
 /************************************************************************************
@@ -289,11 +363,11 @@ bool BaaderDome::UpdateShutterStatus()
     {
 
         if (simShutterStatus == SHUTTER_CLOSED)
-            strncpy(resp, "d#shutclo", DOME_BUF);
+            strncpy(resp, "d#shutclo", DOME_CMD);
         else if (simShutterStatus == SHUTTER_OPENED)
-            strncpy(resp, "d#shutope", DOME_BUF);
+            strncpy(resp, "d#shutope", DOME_CMD);
         else if (simShutterStatus == SHUTTER_MOVING)
-            strncpy(resp, "d#shutrun", DOME_BUF);
+            strncpy(resp, "d#shutrun", DOME_CMD);
         nbytes_read=DOME_CMD;
     }
     else if ( (rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -373,7 +447,10 @@ bool BaaderDome::UpdatePosition()
     if (sim)
     {
 
-        snprintf(resp, DOME_BUF, "d#azr%04d", MountAzToDomeAz(DomeAbsPosN[0].value));
+        if (status == DOME_READY || calibrationStage == CALIBRATION_COMPLETE)
+            snprintf(resp, DOME_BUF, "d#azr%04d", MountAzToDomeAz(DomeAbsPosN[0].value));
+        else
+            snprintf(resp, DOME_BUF, "d#azi%04d", MountAzToDomeAz(DomeAbsPosN[0].value));
         nbytes_read=DOME_CMD;
     }
     else if ( (rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -391,11 +468,29 @@ bool BaaderDome::UpdatePosition()
 
     if (rc > 0)
     {
+        if (status == DOME_CALIBRATING)
+        {
+            status = DOME_READY;
+            calibrationStage = CALIBRATION_STAGE1;
+            DEBUG(INDI::Logger::DBG_SESSION, "Calibration complete.");
+            CalibrateSP.s = IPS_OK;
+            IDSetSwitch(&CalibrateSP, NULL);
+        }
+
         DomeAbsPosN[0].value = DomeAzToMountAz(domeAz);
         return true;
     }
     else
-        return false;
+    {
+        rc = sscanf(resp, "d#azi%hu", &domeAz);
+        if (rc > 0)
+        {
+            DomeAbsPosN[0].value = DomeAzToMountAz(domeAz);
+            return true;
+        }
+        else
+            return false;
+    }
 }
 
 /************************************************************************************
@@ -453,13 +548,19 @@ void BaaderDome::TimerHit()
     {
         if (sim)
         {
+            double speed = 0;
+            if (fabs(targetAz - DomeAbsPosN[0].value) > SIM_DOME_HI_SPEED)
+                speed = SIM_DOME_HI_SPEED;
+            else
+                speed = SIM_DOME_LO_SPEED;
+
             if (targetAz > DomeAbsPosN[0].value)
             {
-                DomeAbsPosN[0].value += SIM_DOME_SPEED;
+                DomeAbsPosN[0].value += speed;
             }
             else if (targetAz < DomeAbsPosN[0].value)
             {
-                DomeAbsPosN[0].value -= SIM_DOME_SPEED;
+                DomeAbsPosN[0].value -= speed;
             }
 
             if (DomeAbsPosN[0].value < DomeAbsPosN[0].min)
@@ -468,7 +569,7 @@ void BaaderDome::TimerHit()
                 DomeAbsPosN[0].value -= DomeAbsPosN[0].max;
         }
 
-        if (fabs(targetAz - DomeAbsPosN[0].value) <= DOME_AZ_THRESHOLD)
+        if (fabs(targetAz - DomeAbsPosN[0].value) < DomeParamN[DOME_AUTOSYNC].value)
         {
             DomeAbsPosN[0].value = targetAz;
             DomeAbsPosNP.s = IPS_OK;
@@ -478,10 +579,34 @@ void BaaderDome::TimerHit()
                 DomeGotoSP.s = IPS_OK;
                 IDSetSwitch(&DomeGotoSP, NULL);
             }
-            if (GetDomeCapability().canRelMove && DomeRelPosNP.s == IPS_BUSY)
+            if (DomeRelPosNP.s == IPS_BUSY)
             {
                 DomeRelPosNP.s = IPS_OK;
                 IDSetNumber(&DomeRelPosNP, NULL);
+            }
+
+            if (status == DOME_CALIBRATING)
+            {
+                if (calibrationStage == CALIBRATION_STAGE1)
+                {
+                    DEBUG(INDI::Logger::DBG_SESSION, "Calibration stage 1 complete. Starting stage 2...");
+                    calibrationTarget2 = DomeAbsPosN[0].value + 2;
+                    calibrationStage = CALIBRATION_STAGE2;
+                    MoveAbsDome(calibrationTarget2);
+                    DomeAbsPosNP.s = IPS_BUSY;
+                }
+                else if (calibrationStage == CALIBRATION_STAGE2)
+                {
+                    DEBUGF(INDI::Logger::DBG_SESSION, "Calibration stage 2 complete. Returning to initial position %g...", calibrationStart);
+                    calibrationStage = CALIBRATION_STAGE3;
+                    MoveAbsDome(calibrationStart);
+                    DomeAbsPosNP.s = IPS_BUSY;
+                }
+                else if (calibrationStage == CALIBRATION_STAGE3)
+                {
+                    calibrationStage = CALIBRATION_COMPLETE;
+                    DEBUG(INDI::Logger::DBG_SESSION, "Dome reached initial position.");
+                }
             }
         }
 
@@ -512,12 +637,19 @@ void BaaderDome::TimerHit()
  *
 * ***********************************************************************************/
 int BaaderDome::MoveAbsDome(double az)
-{
-    targetAz = az;
+{    
     int nbytes_written=0, nbytes_read=0, rc=-1;
     char errstr[MAXRBUF];
     char cmd[DOME_BUF];
     char resp[DOME_BUF];
+
+    if (status == DOME_UNKNOWN)
+    {
+        DEBUG(INDI::Logger::DBG_WARNING, "Dome is not calibrated. Please calibrate dome before issuing any commands.");
+        return -1;
+    }
+
+    targetAz = az;
 
     snprintf(cmd, DOME_BUF, "d#azi04%d", MountAzToDomeAz(targetAz));
 
@@ -534,7 +666,7 @@ int BaaderDome::MoveAbsDome(double az)
 
     if (sim)
     {
-        strncpy(resp, "d#gotmess", DOME_BUF);
+        strncpy(resp, "d#gotmess", DOME_CMD);
         nbytes_read=DOME_CMD;
     }
     else if ( (rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -605,12 +737,12 @@ int BaaderDome::ControlDomeShutter(ShutterOperation operation)
     if (operation == SHUTTER_OPEN)
     {
         targetShutter = SHUTTER_OPENED;
-        strncpy(cmd, "d#opeshut", DOME_BUF);
+        strncpy(cmd, "d#opeshut", DOME_CMD);
     }
     else
     {
         targetShutter = SHUTTER_CLOSED;
-        strncpy(cmd, "d#closhut", DOME_BUF);
+        strncpy(cmd, "d#closhut", DOME_CMD);
     }
 
     tcflush(PortFD, TCIOFLUSH);
@@ -627,7 +759,7 @@ int BaaderDome::ControlDomeShutter(ShutterOperation operation)
     if (sim)
     {
         simShutterTimer = SIM_SHUTTER_TIMER;
-        strncpy(resp, "d#gotmess", DOME_BUF);
+        strncpy(resp, "d#gotmess", DOME_CMD);
         nbytes_read=DOME_CMD;
     }
     else if ( (rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -648,4 +780,14 @@ int BaaderDome::ControlDomeShutter(ShutterOperation operation)
     }
     else
         return -1;
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+bool BaaderDome::AbortDome()
+{
+    DEBUGF(INDI::Logger::DBG_SESSION, "Attempting to abort dome motion by stopping at %g", DomeAbsPosN[0].value);
+    MoveAbsDome(DomeAbsPosN[0].value);
+    return true;
 }
