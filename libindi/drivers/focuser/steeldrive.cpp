@@ -29,6 +29,7 @@
 #include <math.h>
 #include <memory>
 
+#define STEELDRIVE_MAX_RETRIES          3
 #define STEELDRIVE_TIMEOUT              3
 #define STEELDRIVE_MAXBUF               16
 #define STEELDRIVE_CMD                  9
@@ -520,27 +521,41 @@ bool SteelDrive::updatePosition()
     char errstr[MAXRBUF];
     char resp[STEELDRIVE_MAXBUF];
     unsigned short pos=0;
+    int retries=0;
 
-    tcflush(PortFD, TCIOFLUSH);
-
-    if (!sim && (rc = tty_write(PortFD, ":F8ASKS0#", STEELDRIVE_CMD, &nbytes_written)) != TTY_OK)
+    for (retries=0; retries < STEELDRIVE_MAX_RETRIES; retries++)
     {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, ":F8ASKS0# updatePostion write error: %s.", errstr);
-        return false;
+        tcflush(PortFD, TCIOFLUSH);
+
+        if (!sim && (rc = tty_write(PortFD, ":F8ASKS0#", STEELDRIVE_CMD, &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(rc, errstr, MAXRBUF);
+            DEBUGF(INDI::Logger::DBG_ERROR, ":F8ASKS0# updatePostion write error: %s.", errstr);
+            return false;
+        }
+
+        DEBUG(INDI::Logger::DBG_DEBUG, "CMD (:F8ASKS0#)");
+
+        if (sim)
+        {
+            snprintf(resp, STEELDRIVE_CMD_LONG, ":F8%07u#", (int) simPosition);
+            nbytes_read=STEELDRIVE_CMD_LONG;
+            break;
+        }
+        else if ( (rc = tty_read_section(PortFD, resp, '#', STEELDRIVE_TIMEOUT-retries, &nbytes_read)) != TTY_OK)
+        {
+            tty_error_msg(rc, errstr, MAXRBUF);
+            resp[nbytes_read] = '\0';
+            DEBUGF(INDI::Logger::DBG_DEBUG, ":F8ASKS0# updatePosition read error: %s. Retry: %d. Bytes: %s. Buffer (%s)", retries, errstr, nbytes_read, resp);
+        }
+        else
+            break;
     }
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "CMD (:F8ASKS0#)");
 
-    if (sim)
+    if (retries == STEELDRIVE_MAX_RETRIES)
     {
-        snprintf(resp, STEELDRIVE_CMD_LONG, ":F8%07u#", (int) simPosition);
-        nbytes_read=STEELDRIVE_CMD_LONG;
-    }
-    else if ( (rc = tty_read_section(PortFD, resp, '#', STEELDRIVE_TIMEOUT, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, ":F8ASKS0# updatePostion read error: %s.", errstr);
+        DEBUG(INDI::Logger::DBG_ERROR, "UpdatePosition: failed to read.");
         return false;
     }
 
