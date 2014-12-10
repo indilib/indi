@@ -67,12 +67,12 @@ bool INDI::Dome::initProperties()
     IUFillTextVector(&ActiveDeviceTP,ActiveDeviceT,1,getDeviceName(),"ACTIVE_DEVICES","Snoop devices",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
 
     // Measurements
-    IUFillNumber(&DomeMeasurementsN[DM_DOME_RADIUS],"DM_DOME_RADIUS","Radius (m)","%6.2f",0.0,360.0,1.0,0.0);
-    IUFillNumber(&DomeMeasurementsN[DM_SHUTTER_WIDTH],"DM_SHUTTER_WIDTH","Shutter width (m)","%6.2f",0.0,360.0,1.0,0.0);
-    IUFillNumber(&DomeMeasurementsN[DM_NORTH_DISPLACEMENT],"DM_NORTH_DISPLACEMENT","N displacement (m)","%6.2f",0.0,360.0,1.0,0.0);
-    IUFillNumber(&DomeMeasurementsN[DM_EAST_DISPLACEMENT],"DM_EAST_DISPLACEMENT","E displacement (m)","%6.2f",0.0,360.0,1.0,0.0);
-    IUFillNumber(&DomeMeasurementsN[DM_UP_DISPLACEMENT],"DM_UP_DISPLACEMENT","Up displacement (m)","%6.2f",0.0,360.0,1.0,0.0);
-    IUFillNumber(&DomeMeasurementsN[DM_OTA_OFFSET],"DM_OTA_OFFSET","OTA offset (m)","%6.2f",0.0,360.0,1.0,0.0);
+    IUFillNumber(&DomeMeasurementsN[DM_DOME_RADIUS],"DM_DOME_RADIUS","Radius (m)","%6.2f",0.0,50.0,1.0,0.0);
+    IUFillNumber(&DomeMeasurementsN[DM_SHUTTER_WIDTH],"DM_SHUTTER_WIDTH","Shutter width (m)","%6.2f",0.0,10.0,1.0,0.0);
+    IUFillNumber(&DomeMeasurementsN[DM_NORTH_DISPLACEMENT],"DM_NORTH_DISPLACEMENT","N displacement (m)","%6.2f",-10.0,10.0,1.0,0.0);
+    IUFillNumber(&DomeMeasurementsN[DM_EAST_DISPLACEMENT],"DM_EAST_DISPLACEMENT","E displacement (m)","%6.2f",-10.0,10.0,1.0,0.0);
+    IUFillNumber(&DomeMeasurementsN[DM_UP_DISPLACEMENT],"DM_UP_DISPLACEMENT","Up displacement (m)","%6.2f",-10,10.0,1.0,0.0);
+    IUFillNumber(&DomeMeasurementsN[DM_OTA_OFFSET],"DM_OTA_OFFSET","OTA offset (m)","%6.2f",-10.0,10.0,1.0,0.0);
     IUFillNumberVector(&DomeMeasurementsNP,DomeMeasurementsN,6,getDeviceName(),"DOME_Measurements","Measurements",DOME_MEASUREMENTS_TAB,IP_RW,60,IPS_OK);
 
     IUFillSwitch(&DomeAutoSyncS[0],"DOME_AUTOSYNC_ENABLE","Enable",ISS_OFF);
@@ -670,7 +670,7 @@ void INDI::Dome::UpdateAutoSync()
 
         DEBUGF(INDI::Logger::DBG_DEBUG, "Calculated target azimuth is %g. MinAz: %g, MaxAz: %g", targetAz, minAz, maxAz);
 
-        if (fabs(targetAz - DomeAbsPosN[0].value) >= DomeParamN[DOME_AUTOSYNC].value)
+        if (fabs(targetAz - DomeAbsPosN[0].value) > DomeParamN[DOME_AUTOSYNC].value)
         {
             int ret = 0;
             if ( (ret = MoveAbsDome(targetAz)) == 0)
