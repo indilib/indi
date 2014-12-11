@@ -823,8 +823,6 @@ bool QSICCD::Connect()
 
     DEBUG(INDI::Logger::DBG_SESSION, "Attempting to find QSI CCD...");
 
-    return true;
-
             try
             {
                 QSICam.get_Connected(&connected);
