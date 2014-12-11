@@ -198,13 +198,15 @@ EQMod::EQMod()
   DBG_COMM         = INDI::Logger::getInstance().addDebugLevel("Serial Port", "COMM");
   DBG_MOUNT        = INDI::Logger::getInstance().addDebugLevel("Verbose Mount", "MOUNT");
 
+  mount=new Skywatcher(this);
+
   TelescopeCapability cap;
 
   cap.canPark = true;
   cap.canSync = true;
-  SetTelescopeCapability(&cap);
+  cap.canAbort = true;
 
-  mount=new Skywatcher(this);
+  SetTelescopeCapability(&cap);
 
   pierside = EAST;
   RAInverted = DEInverted = false;
@@ -343,7 +345,6 @@ bool EQMod::initProperties()
 {
     /* Make sure to init parent properties first */
     INDI::Telescope::initProperties();
-
 
     return true;
 }
