@@ -94,12 +94,13 @@ CelestronGPS::CelestronGPS()
    controller = new INDI::Controller(this);
 
    controller->setJoystickCallback(joystickHelper);
-   controller->setButtonCallback(buttonHelper);
+   controller->setButtonCallback(buttonHelper);   
 
    TelescopeCapability cap;
 
-   cap.canPark = false;
-   cap.canSync = true;
+   cap.canPark  = false;
+   cap.canSync  = true;
+   cap.canAbort = true;
    SetTelescopeCapability(&cap);
 
 }

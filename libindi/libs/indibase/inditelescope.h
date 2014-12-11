@@ -60,6 +60,8 @@ class INDI::Telescope : public INDI::DefaultDevice
             bool canSync;
             /** Can the telescope park? */
             bool canPark;
+            /** Can the telescope abort motion? */
+            bool canAbort;
         } TelescopeCapability;
 
         /**

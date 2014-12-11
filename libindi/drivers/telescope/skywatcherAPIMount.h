@@ -27,8 +27,7 @@ public:
     virtual ~SkywatcherAPIMount();
 
     //  overrides of base class virtual functions
-    virtual bool Abort();
-    virtual bool canSync();
+    virtual bool Abort();    
     virtual bool Connect();
     virtual const char *getDefaultName();
     virtual bool Goto(double,double);

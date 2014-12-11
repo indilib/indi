@@ -101,6 +101,7 @@ ScopeSim::ScopeSim()
 
     cap.canPark = true;
     cap.canSync = true;
+    cap.canAbort = true;
     SetTelescopeCapability(&cap);
 
     /* initialize random seed: */

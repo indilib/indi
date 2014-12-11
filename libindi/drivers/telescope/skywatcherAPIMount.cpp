@@ -91,6 +91,13 @@ SkywatcherAPIMount::SkywatcherAPIMount()
 #endif
     OldTrackingTarget[0] = 0;
     OldTrackingTarget[1] = 0;
+
+    TelescopeCapability cap;
+
+    cap.canPark = true;
+    cap.canSync = true;
+    cap.canAbort = true;
+    SetTelescopeCapability(&cap);
 }
 
 // destructor
@@ -110,11 +117,6 @@ bool  SkywatcherAPIMount::Abort()
     SlowStop(AXIS1);
     SlowStop(AXIS2);
 
-    return true;
-}
-
-bool SkywatcherAPIMount::canSync()
-{
     return true;
 }
 

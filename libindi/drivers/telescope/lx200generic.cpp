@@ -167,8 +167,7 @@ LX200Generic::LX200Generic()
    GuideNSTID     = 0;
    GuideWETID     = 0;
 
-   controller = new INDI::Controller(this);
-
+   controller = new INDI::Controller(this);   
    controller->setJoystickCallback(joystickHelper);
    controller->setButtonCallback(buttonHelper);
 
@@ -176,6 +175,7 @@ LX200Generic::LX200Generic()
 
    cap.canPark = true;
    cap.canSync = true;
+   cap.canAbort = true;
    SetTelescopeCapability(&cap);
 
    IDLog("Initializing from generic LX200 device...\n");   
@@ -254,7 +254,6 @@ bool LX200Generic::initProperties()
     controller->mapController("Abort Motion", "Abort Motion", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_5");
 
     controller->initProperties();
-
 
     TrackState=SCOPE_IDLE;
 

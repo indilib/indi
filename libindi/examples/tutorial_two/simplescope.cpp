@@ -107,6 +107,13 @@ SimpleScope::SimpleScope()
 
     // We add an additional debug level so we can log verbose scope status
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
+
+    TelescopeCapability cap;
+
+    cap.canPark = false;
+    cap.canSync = false;
+    cap.canAbort = true;
+    SetTelescopeCapability(&cap);
 }
 
 /**************************************************************************************
@@ -118,6 +125,7 @@ bool SimpleScope::initProperties()
     INDI::Telescope::initProperties();
 
     addDebugControl();
+
 }
 
 /**************************************************************************************

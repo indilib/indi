@@ -25,7 +25,7 @@
 INDI::Telescope::Telescope()
 {
     //ctor
-    capability.canPark = capability.canSync = false;
+    capability.canPark = capability.canSync = capability.canAbort = false;
     last_we_motion = last_ns_motion = -1;
 }
 
@@ -101,7 +101,8 @@ void INDI::Telescope::ISGetProperties (const char *dev)
         //  Now we add our telescope specific stuff
         defineSwitch(&CoordSP);
         defineNumber(&EqNP);
-        defineSwitch(&AbortSP);
+        if (capability.canAbort)
+            defineSwitch(&AbortSP);
         defineText(&TimeTP);
         defineNumber(&LocationNP);
         defineSwitch(&ParkSP);
@@ -121,7 +122,8 @@ bool INDI::Telescope::updateProperties()
         //  Now we add our telescope specific stuff
         defineSwitch(&CoordSP);
         defineNumber(&EqNP);
-        defineSwitch(&AbortSP);
+        if (capability.canAbort)
+            defineSwitch(&AbortSP);
         defineSwitch(&MovementNSSP);
         defineSwitch(&MovementWESP);
         defineText(&TimeTP);
@@ -135,7 +137,8 @@ bool INDI::Telescope::updateProperties()
     {
         deleteProperty(CoordSP.name);
         deleteProperty(EqNP.name);
-        deleteProperty(AbortSP.name);
+        if (capability.canAbort)
+            deleteProperty(AbortSP.name);
         deleteProperty(MovementNSSP.name);
         deleteProperty(MovementWESP.name);
         deleteProperty(TimeTP.name);
@@ -697,4 +700,5 @@ void INDI::Telescope::SetTelescopeCapability(TelescopeCapability *cap)
 {
     capability.canPark      = cap->canPark;
     capability.canSync      = cap->canSync;
+    capability.canAbort     = cap->canAbort;
 }
