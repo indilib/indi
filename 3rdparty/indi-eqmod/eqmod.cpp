@@ -1527,25 +1527,6 @@ bool EQMod::ISNewNumber (const char *dev, const char *name, double values[], cha
 	  return true;
 	}      
 
-      // Observer
-      /*
-      if(strcmp(name,"GEOGRAPHIC_COORD")==0)
-	{
-	  unsigned int i;
-	  //don't return boolean! if (!INDI::Telescope::ISNewNumber(dev,name,values,names,n)) return false;
-	  INDI::Telescope::ISNewNumber(dev,name,values,names,n);
-	  for (i=0; i< n; i++) {
-	    if (strcmp(names[i], "LONG")==0) lnobserver.lng =  values[i];
-	    if (strcmp(names[i], "LAT")==0) {
-	      lnobserver.lat =  values[i];
-	      if (values[i] < 0.0) SetSouthernHemisphere(true); 
-	      else SetSouthernHemisphere(false);
-	    }
-	  }   
-      DEBUGF(INDI::Logger::DBG_SESSION,"Changed observer: long = %g lat = %g", lnobserver.lng, lnobserver.lat);
-	  return true;
-	}
-      */
      if(strcmp(name,"STANDARDSYNCPOINT")==0)
        {
 	 syncdata2=syncdata;
@@ -1625,11 +1606,6 @@ bool EQMod::ISNewNumber (const char *dev, const char *name, double values[], cha
 bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
   bool compose=true;
-    //IDLog("Enter IsNewSwitch for %s\n",name);
-    //for(int x=0; x<n; x++) {
-    //    IDLog("Switch %s %d\n",names[x],states[x]);
-    //}
-
     if(strcmp(dev,getDeviceName())==0)
     {      
       if (!strcmp(name, "DEBUG"))
@@ -1756,57 +1732,7 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 	  return true;
 	}
 
-      //DEBUGF(INDI::Logger::DBG_SESSION, "Track mode :  from %s to %s.", swbefore->name, swafter->name);
-      /*
-      if(strcmp(name,"TRACKMODE")==0)
- 	{  
-	  ISwitch *swbefore, *swafter;
-	  swbefore=IUFindOnSwitch(TrackModeSP);
-	  IUUpdateSwitch(TrackModeSP,states,names,n);
-	  swafter=IUFindOnSwitch(TrackModeSP);
-      //DEBUGF(INDI::Logger::DBG_SESSION, "Track mode :  from %s to %s.", swbefore->name, swafter->name);
-	  try {
-	    if (swbefore == swafter) {
-	      if ( TrackState == SCOPE_TRACKING) {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Stop Tracking (%s).", swafter->name);
-		TrackState = SCOPE_IDLE;
-		TrackModeSP->s=IPS_IDLE;
-		IDSetSwitch(TrackModeSP,NULL);
-		mount->StopRA();
-		mount->StopDE();
-	      } else {
-		if (TrackState == SCOPE_IDLE) {
-          DEBUGF(INDI::Logger::DBG_SESSION, "Start Tracking (%s).", swafter->name);
-		  TrackState = SCOPE_TRACKING;
-		  TrackModeSP->s=IPS_BUSY;
-		  IDSetSwitch(TrackModeSP,NULL);
-		  mount->StartRATracking(GetRATrackRate());
-		  mount->StartDETracking(GetDETrackRate());
-		} else {
-		  TrackModeSP->s=IPS_IDLE;
-		  IDSetSwitch(TrackModeSP,NULL);
-          DEBUGF(INDI::Logger::DBG_WARNING, "Can not start Tracking (%s).", swafter->name);
-		}
-	      }
-	    } else {
-	      if (TrackState == SCOPE_TRACKING) {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Changed Tracking rate (%s).", swafter->name);
-		mount->StartRATracking(GetRATrackRate());
-		mount->StartDETracking(GetDETrackRate());
-	      } else {
-		TrackModeSP->s=IPS_IDLE;
-		IDSetSwitch(TrackModeSP,NULL);
-        DEBUGF(INDI::Logger::DBG_SESSION,"Changed Tracking mode (from %s to %s).", swbefore->name, swafter->name);
-	      }
-	    }
-	    } catch(EQModError e) {
-	      return(e.DefaultHandleException(this));
-	  }   
-	  return true;	
-	}
-      */
-
-      if (!strcmp(name, "SYNCMANAGE"))
+     if (!strcmp(name, "SYNCMANAGE"))
 	{
 	  ISwitchVectorProperty *svp = getSwitch(name);
 	  IUUpdateSwitch(svp, states, names, n);
@@ -2505,7 +2431,12 @@ void EQMod::buttonHelper(const char * button_n, ISState state, void *context)
 
 bool EQMod::updateLocation(double latitude, double longitude, double elevation)
 {
+  INDI_UNUSED(elevation);
+  // JM: INDI Longitude is 0 to 360 increasing EAST. libnova East is Positive, West is negative
   lnobserver.lng =  longitude;
+
+  if (lnobserver.lng > 180)
+      lnobserver.lng -= 360;
   lnobserver.lat =  latitude;
   if (latitude < 0.0) SetSouthernHemisphere(true); 
   else SetSouthernHemisphere(false);
