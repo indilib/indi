@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 2.4.7)
 PROJECT(indi_gphoto C CXX)
 
+set(INDI_GPHOTO_VERSION_MAJOR 1)
+set(INDI_GPHOTO_VERSION_MINOR 2)
+
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 
 SET(CMAKE_CXX_FLAGS "-Wall" )
@@ -15,6 +18,8 @@ find_package(ZLIB REQUIRED)
 find_package(GPHOTO2 REQUIRED)
 find_package(Threads REQUIRED)
 find_package(JPEG REQUIRED)
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 
 find_program(DCRAW_EXECUTABLE NAMES dcraw
     PATHS

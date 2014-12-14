@@ -206,6 +206,7 @@
 3rdparty/indi-gphoto/COPYING.LIB -text
 3rdparty/indi-gphoto/INSTALL -text
 3rdparty/indi-gphoto/README -text
+3rdparty/indi-gphoto/config.h.cmake -text
 3rdparty/indi-gphoto/gphoto_ccd.cpp -text
 3rdparty/indi-gphoto/gphoto_ccd.h -text
 3rdparty/indi-gphoto/gphoto_driver.c -text

@@ -30,6 +30,8 @@
 #include <eventloop.h>
 #include <indilogger.h>
 
+#include "config.h"
+
 extern "C" {
     #include "gphoto_driver.h"
     #include "gphoto_readimage.h"
@@ -151,7 +153,7 @@ GPhotoCCD::GPhotoCCD()
     on_off[0] = strdup("On");
     on_off[1] = strdup("Off");
 
-    setVersion(1, 2);
+    setVersion(INDI_GPHOTO_VERSION_MAJOR, INDI_GPHOTO_VERSION_MINOR);
 }
 //==========================================================================
 GPhotoCCD::~GPhotoCCD()
