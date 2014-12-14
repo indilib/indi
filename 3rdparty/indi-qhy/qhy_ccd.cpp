@@ -26,6 +26,7 @@
 #include <sys/time.h>
 
 #include "qhy_ccd.h"
+#include "config.h"
 
 #define POLLMS                  1000		/* Polling time (ms) */
 #define TEMPERATURE_POLL_MS     1000        /* Temperature Polling time (ms) */
@@ -204,8 +205,10 @@ QHYCCD::QHYCCD(const char *name)
     snprintf(this->name, MAXINDINAME, "QHY CCD %s", name);
     snprintf(this->camid,MAXINDINAME,"%s",name);
     setDeviceName(this->name);
+        
+    setVersion(INDI_QHY_VERSION_MAJOR, INDI_QHY_VERSION_MINOR);
 
-  sim = false;
+    sim = false;
 }
 
 QHYCCD::~QHYCCD()

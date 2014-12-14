@@ -268,7 +268,9 @@
 3rdparty/indi-qhy-old/qhyspecific.cpp -text
 3rdparty/indi-qhy-old/qhyspecific.h -text
 3rdparty/indi-qhy-old/qhytest.cpp -text
+3rdparty/indi-qhy/99-qhy.rules -text
 3rdparty/indi-qhy/AUTHORS -text
+3rdparty/indi-qhy/CMakeLists.txt -text
 3rdparty/indi-qhy/INSTALL -text
 3rdparty/indi-qhy/README -text
 3rdparty/indi-qhy/config.h.cmake -text

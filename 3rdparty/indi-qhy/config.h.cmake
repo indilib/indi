@@ -1,14 +1,11 @@
-/* Define to 1 if you have the <linux/videodev2.h> header file. */
-#cmakedefine HAVE_LINUX_VIDEODEV2_H 1
+#ifndef CONFIG_H
+#define CONFIG_H
 
-/* The symbol timezone is an int, not a function */
-#define TIMEZONE_IS_INT 1
+/* Define INDI Data Dir */
+#cmakedefine INDI_DATA_DIR "@INDI_DATA_DIR@"
 
-/* Define if you have termios.h */
-#cmakedefine   HAVE_TERMIOS_H 1
+/* Define Driver version */
+#define INDI_QHY_VERSION_MAJOR @INDI_QHY_VERSION_MAJOR@
+#define INDI_QHY_VERSION_MINOR @INDI_QHY_VERSION_MINOR@
 
-/* Define if you have fitsio.h */
-#cmakedefine   HAVE_CFITSIO_H 1
-
-/* Define if you have libnova.h */
-#cmakedefine   HAVE_NOVA_H 1
+#endif // CONFIG_H
