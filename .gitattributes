@@ -1145,6 +1145,11 @@ debian/indi-gphoto/control -text
 debian/indi-gphoto/copyright -text
 debian/indi-gphoto/indi-gphoto.install -text
 debian/indi-gphoto/rules -text
+debian/indi-maxdomeii/changelog -text
+debian/indi-maxdomeii/compat -text
+debian/indi-maxdomeii/control -text
+debian/indi-maxdomeii/copyright -text
+debian/indi-maxdomeii/rules -text
 debian/indi-qhy/changelog -text
 debian/indi-qhy/compat -text
 debian/indi-qhy/control -text
@@ -1248,11 +1253,6 @@ debian/libqsi/libqsi-dev.install -text
 debian/libqsi/libqsi6.install -text
 debian/libqsi/rules -text
 debian/libqsi/watch -text
-debian/maxdomeii/changelog -text
-debian/maxdomeii/compat -text
-debian/maxdomeii/control -text
-debian/maxdomeii/copyright -text
-debian/maxdomeii/rules -text
 debian/sbig/changelog -text
 debian/sbig/compat -text
 debian/sbig/control -text

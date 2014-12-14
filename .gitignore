@@ -54,6 +54,7 @@ debian/indi-apogee/*.user*
 debian/indi-eqmod/*.user*
 debian/indi-fli/*.user*
 debian/indi-gphoto/*.user*
+debian/indi-maxdomeii/*.user*
 debian/indi-qhy/*.user*
 debian/indi-qsi/*.user*
 debian/indi-sbig/*.user*
@@ -63,7 +64,6 @@ debian/libfli/*.user*
 debian/libindi/*.user*
 debian/libindi/source/*.user*
 debian/libqsi/*.user*
-debian/maxdomeii/*.user*
 debian/sbig/*.user*
 libindi/*.user*
 libindi/drivers/*.user*
