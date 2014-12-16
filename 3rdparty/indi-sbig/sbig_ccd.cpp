@@ -134,15 +134,14 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
   INDI_UNUSED(names);
   INDI_UNUSED(n);
 }
-void ISSnoopDevice(XMLEle *root) {
+void ISSnoopDevice(XMLEle *root)
+{
     ISInit();
 
-    for (int i = 0; i < cameraCount; i++) {
+    for (int i = 0; i < cameraCount; i++)
+    {
       SBIGCCD *camera = cameras[i];
-      if (!strcmp(findXMLAttValu(root, "device"), camera->name)) {
-        camera->ISSnoopDevice(root);
-        break;
-      }
+      camera->ISSnoopDevice(root);
     }
 }
 
