@@ -611,22 +611,16 @@ bool INDI::CCD::ISSnoopDevice (XMLEle *root)
      }
      else if (!strcmp(propName, "FILTER_NAME"))
      {
-         prXMLEle(stderr, root, 0);
          FilterNames.clear();
 
          for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
-         {
              FilterNames.push_back(pcdataXMLEle(ep));
-         }
-
      }
      else if (!strcmp(propName, "FILTER_SLOT"))
      {
          CurrentFilterSlot=-1;
          for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
-         {
              CurrentFilterSlot = atoi(pcdataXMLEle(ep));
-         }
      }
 
      return INDI::DefaultDevice::ISSnoopDevice(root);
