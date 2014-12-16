@@ -112,7 +112,8 @@ void ISNewText(const char *dev, const char *name, char *texts[], char *names[], 
   }
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num) {
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+{
   ISInit();
   for (int i = 0; i < cameraCount; i++) {
     GPhotoCCD *camera = cameras[i];
@@ -134,8 +135,15 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
   INDI_UNUSED(names);
   INDI_UNUSED(n);
 }
-void ISSnoopDevice(XMLEle *root) {
-  INDI_UNUSED(root);
+void ISSnoopDevice(XMLEle *root)
+{
+    ISInit();
+
+    for (int i = 0; i < cameraCount; i++)
+    {
+      GPhotoCCD *camera = cameras[i];
+      camera->ISSnoopDevice(root);
+    }
 }
 
 

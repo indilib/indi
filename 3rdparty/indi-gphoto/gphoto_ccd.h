@@ -144,6 +144,7 @@ private:
     IBLOBVectorProperty *imageBP;
     IBLOB *imageB;
 
+    friend void ::ISSnoopDevice(XMLEle *root);
     friend void ::ISGetProperties(const char *dev);
     friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);
     friend void ::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num);
