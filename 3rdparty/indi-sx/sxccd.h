@@ -69,6 +69,7 @@ class SXCCD : public INDI::CCD
     bool initProperties();
     void getCameraParams();
     bool updateProperties();
+    bool UpdateCCDFrame(int x, int y, int w, int h);
     bool UpdateCCDBin(int hor, int ver);
     bool Connect();
     bool Disconnect();

@@ -249,13 +249,49 @@ bool SXCCD::updateProperties() {
   return true;
 }
 
+bool SXCCD::UpdateCCDFrame(int x, int y, int w, int h)
+{
+    /* Add the X and Y offsets */
+    long x_1 = x / PrimaryCCD.getBinX();
+    long y_1 = y / PrimaryCCD.getBinY();
+
+    long x_2 = x_1 + (w / PrimaryCCD.getBinX());
+    long y_2 = y_1 + (h / PrimaryCCD.getBinY());
+
+    if (x_2 > PrimaryCCD.getXRes() / PrimaryCCD.getBinX())
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error: invalid width requested %ld", x_2);
+        return false;
+    }
+    else if (y_2 > PrimaryCCD.getYRes() / PrimaryCCD.getBinY())
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error: invalid height request %ld", y_2);
+        return false;
+    }
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "The Final image area is (%ld, %ld), (%ld, %ld)", x_1, y_1, x_2, y_2);
+
+    int imageWidth  = x_2 - x_1;
+    int imageHeight = y_2 - y_1;
+
+    // Set UNBINNED coords
+    PrimaryCCD.setFrame(x, y, w,  h);
+    int nbuf;
+    nbuf=(imageWidth*imageHeight * PrimaryCCD.getBPP()/8);                 //  this is pixel count
+    nbuf+=512;                      //  leave a little extra at the end
+    PrimaryCCD.setFrameBufferSize(nbuf);
+
+    return true;
+}
+
 bool SXCCD::UpdateCCDBin(int hor, int ver) {
   if (hor == 3 || ver == 3) {
     IDMessage(getDeviceName(), "3x3 binning is not supported.");
     return false;
   }
   PrimaryCCD.setBin(hor, ver);
-  return true;
+
+  return UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
 }
 
 bool SXCCD::Connect() {
