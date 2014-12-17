@@ -155,8 +155,15 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
   INDI_UNUSED(names);
   INDI_UNUSED(n);
 }
-void ISSnoopDevice(XMLEle *root) {
-  INDI_UNUSED(root);
+void ISSnoopDevice(XMLEle *root)
+{
+    ISInit();
+
+    for (int i = 0; i < cameraCount; i++)
+    {
+      GenericCCD *camera = cameras[i];
+      camera->ISSnoopDevice(root);
+    }
 }
 
 GenericCCD::GenericCCD(DEVICE device, const char *name) {

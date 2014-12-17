@@ -180,12 +180,10 @@ void ISSnoopDevice(XMLEle *root)
 {
     ISInit();
 
-    for (int i = 0; i < cameraCount; i++) {
+    for (int i = 0; i < cameraCount; i++)
+    {
       QHYCCD *camera = cameras[i];
-      if (!strcmp(findXMLAttValu(root, "device"), camera->name)) {
-        camera->ISSnoopDevice(root);
-        break;
-      }
+      camera->ISSnoopDevice(root);
     }
 }
 
