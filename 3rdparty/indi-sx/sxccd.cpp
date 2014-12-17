@@ -258,27 +258,24 @@ bool SXCCD::UpdateCCDFrame(int x, int y, int w, int h)
     long x_2 = x_1 + (w / PrimaryCCD.getBinX());
     long y_2 = y_1 + (h / PrimaryCCD.getBinY());
 
-    if (x_2 > PrimaryCCD.getXRes() / PrimaryCCD.getBinX())
+    if (x_2 > PrimaryCCD.getXRes())
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error: invalid width requested %ld", x_2);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error: Requested image out of bounds (%ld, %ld)", x_2, y_2);
         return false;
     }
-    else if (y_2 > PrimaryCCD.getYRes() / PrimaryCCD.getBinY())
+    else if (y_2 > PrimaryCCD.getYRes())
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error: invalid height request %ld", y_2);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error: Requested image out of bounds (%ld, %ld)", x_2, y_2);
         return false;
     }
-
-    DEBUGF(INDI::Logger::DBG_DEBUG, "The Final image area is (%ld, %ld), (%ld, %ld)", x_1, y_1, x_2, y_2);
-
-    int imageWidth  = x_2 - x_1;
-    int imageHeight = y_2 - y_1;
 
     // Set UNBINNED coords
     PrimaryCCD.setFrame(x, y, w,  h);
     int nbuf;
-    nbuf=(imageWidth*imageHeight * PrimaryCCD.getBPP()/8);                 //  this is pixel count
-    nbuf+=512;                      //  leave a little extra at the end
+    //  this is pixel count
+    nbuf=(w * h) / (PrimaryCCD.getBinX() * PrimaryCCD.getBinY()) * PrimaryCCD.getBPP()/8;
+    //  leave a little extra at the end
+    nbuf+=512;
     PrimaryCCD.setFrameBufferSize(nbuf);
 
     return true;
@@ -474,7 +471,7 @@ void SXCCD::ExposureTimerHit() {
       DidLatch = true;
       if (isInterlaced) {
         if (binY > 1) {
-          rc = sxLatchPixels(handle, CCD_EXP_FLAGS_FIELD_BOTH, 0, subX, subY, subW, subH / 2, binX, binY / 2);
+          rc = sxLatchPixels(handle, CCD_EXP_FLAGS_FIELD_BOTH, 0, subX, subY / binY, subW, subH / 2, binX, binY / 2);
           if (rc)
             rc = sxReadPixels(handle, buf, size * 2);
         } else {
