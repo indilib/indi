@@ -644,6 +644,18 @@ endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 ############ AUX GROUP ##############
 #####################################
 
+########### STAR2000 Driver ###############
+
+set(STAR2000_SRCS
+        ${CMAKE_SOURCE_DIR}/drivers/auxiliary/STAR2kdriver.c
+        ${CMAKE_SOURCE_DIR}/drivers/auxiliary/STAR2000.cpp
+   )
+
+add_executable(indi_star2000 ${STAR2000_SRCS})
+
+target_link_libraries(indi_star2000 indidriver)
+install(TARGETS indi_star2000 RUNTIME DESTINATION bin )
+
 ########### GPUSB Driver ###############
 
 set(gpusb_SRCS

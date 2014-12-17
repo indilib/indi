@@ -193,6 +193,10 @@
                 <driver name="GPUSB">indi_gpusb</driver>
                 <version>0.1</version>
         </device>
+	<device label="STAR2000">
+                <driver name="STAR2000">indi_star2000</driver>
+                <version>1.0</version>
+        </device>
         <device label="Joystick">
                 <driver name="Joystick">indi_joystick</driver>
                 <version>0.1</version>
