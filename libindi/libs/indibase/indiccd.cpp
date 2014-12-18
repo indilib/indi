@@ -336,8 +336,8 @@ bool INDI::CCD::initProperties()
     IUFillNumber(&PrimaryCCD.ImagePixelSizeN[5],"CCD_BITSPERPIXEL","Bits per pixel","%3.0f",8,64,0,8);
     IUFillNumberVector(PrimaryCCD.ImagePixelSizeNP,PrimaryCCD.ImagePixelSizeN,6,getDeviceName(),"CCD_INFO","CCD Information",IMAGE_INFO_TAB,IP_RO,60,IPS_IDLE);
 
-    IUFillSwitch(&PrimaryCCD.CompressS[0],"COMPRESS","Compress",ISS_OFF);
-    IUFillSwitch(&PrimaryCCD.CompressS[1],"RAW","Raw",ISS_ON);
+    IUFillSwitch(&PrimaryCCD.CompressS[0],"CCD_COMPRESS","Compress",ISS_OFF);
+    IUFillSwitch(&PrimaryCCD.CompressS[1],"CCD_RAW","Raw",ISS_ON);
     IUFillSwitchVector(PrimaryCCD.CompressSP,PrimaryCCD.CompressS,2,getDeviceName(),"CCD_COMPRESSION","Image",IMAGE_SETTINGS_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
     PrimaryCCD.SendCompressed = false;
 
@@ -394,8 +394,8 @@ bool INDI::CCD::initProperties()
     IUFillSwitch(&GuideCCD.AbortExposureS[0],"ABORT","Abort",ISS_OFF);
     IUFillSwitchVector(GuideCCD.AbortExposureSP,GuideCCD.AbortExposureS,1,getDeviceName(),"GUIDER_ABORT_EXPOSURE","Guide Abort",MAIN_CONTROL_TAB,IP_RW,ISR_ATMOST1,60,IPS_IDLE);
 
-    IUFillSwitch(&GuideCCD.CompressS[0],"GCOMPRESS","Compress",ISS_OFF);
-    IUFillSwitch(&GuideCCD.CompressS[1],"GRAW","Raw",ISS_ON);
+    IUFillSwitch(&GuideCCD.CompressS[0],"GUIDER_COMPRESS","Compress",ISS_OFF);
+    IUFillSwitch(&GuideCCD.CompressS[1],"GUIDER_RAW","Raw",ISS_ON);
     IUFillSwitchVector(GuideCCD.CompressSP,GuideCCD.CompressS,2,getDeviceName(),"GUIDER_COMPRESSION","Image",GUIDE_HEAD_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
     GuideCCD.SendCompressed = false;
 
