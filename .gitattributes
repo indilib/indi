@@ -904,6 +904,7 @@
 3rdparty/libqhy/firmware/IMG2P.HEX -text
 3rdparty/libqhy/firmware/IMG2S.HEX -text
 3rdparty/libqhy/firmware/IMG50.HEX -text
+3rdparty/libqhy/firmware/LICENSE.firmware -text
 3rdparty/libqhy/firmware/QHY10.HEX -text
 3rdparty/libqhy/firmware/QHY11.HEX -text
 3rdparty/libqhy/firmware/QHY12.HEX -text
@@ -1023,6 +1024,7 @@
 3rdparty/libqsi/wincompat.h -text
 3rdparty/sbig/51-sbig-debian.rules -text
 3rdparty/sbig/CMakeLists.txt -text
+3rdparty/sbig/LICENSE.firmware -text
 3rdparty/sbig/libsbigudrv32.bin -text
 3rdparty/sbig/libsbigudrv64.bin -text
 3rdparty/sbig/libsbigudrv_armhf.bin -text
