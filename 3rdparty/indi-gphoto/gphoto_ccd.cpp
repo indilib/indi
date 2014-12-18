@@ -416,7 +416,7 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
       if (!strcmp(name, autoFocusSP.name))
       {
           IUResetSwitch(&autoFocusSP);
-          if (gphoto_auto_focus == GP_OK)
+          if (gphoto_auto_focus(gphotodrv) == GP_OK)
               autoFocusSP.s = IPS_OK;
           else
               autoFocusSP.s = IPS_ALERT;
