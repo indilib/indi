@@ -1017,6 +1017,9 @@ bool SteelDrive::moveFocuser(unsigned int position)
         return false;
     }
 
+    if (FocusAbsPosNP.s == IPS_BUSY)
+        AbortFocuser();
+
     snprintf(cmd, STEELDRIVE_CMD_LONG+1, ":F9%07d#", position);
 
     tcflush(PortFD, TCIOFLUSH);
