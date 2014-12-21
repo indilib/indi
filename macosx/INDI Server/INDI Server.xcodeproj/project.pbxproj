@@ -33,6 +33,7 @@
 		591991A8188FC9AD007DD2DE /* indiserver.c in Sources */ = {isa = PBXBuildFile; fileRef = 591991A7188FC9AD007DD2DE /* indiserver.c */; };
 		591991AB188FC9BA007DD2DE /* fq.c in Sources */ = {isa = PBXBuildFile; fileRef = 591991A9188FC9BA007DD2DE /* fq.c */; };
 		591991AE188FC9CB007DD2DE /* lilxml.c in Sources */ = {isa = PBXBuildFile; fileRef = 591991AC188FC9CA007DD2DE /* lilxml.c */; };
+		594923A11A4768AB00E447C3 /* libatikccd.0.20.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5949239F1A47687600E447C3 /* libatikccd.0.20.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		5950C16718D6F4A500B587B2 /* libindi.0.9.9.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5950C16118D6F21700B587B2 /* libindi.0.9.9.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		5950C16818D6F4A500B587B2 /* libindidriver.0.9.9.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5950C16218D6F21700B587B2 /* libindidriver.0.9.9.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		5950C16918D6F4A500B587B2 /* libindimain.0.9.9.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5950C16318D6F21700B587B2 /* libindimain.0.9.9.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
@@ -52,7 +53,6 @@
 		597B890F1887E6FF0093873A /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 597B890D1887E6FF0093873A /* Security.framework */; };
 		597B89121887E77F0093873A /* ServiceManagement.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 597B89111887E77F0093873A /* ServiceManagement.framework */; };
 		597B893D188837E10093873A /* indiserver in CopyFiles */ = {isa = PBXBuildFile; fileRef = 597B89241888016F0093873A /* indiserver */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		59A3744619EC52950059E349 /* libatikccd.0.17.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59A3744319EC51EE0059E349 /* libatikccd.0.17.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		59B1F12318BBB04300A7AC9A /* indi_aagcloudwatcher in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59B1F11D18BBB00500A7AC9A /* indi_aagcloudwatcher */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		59B1F12418BBB04F00A7AC9A /* indi_aagcloudwatcher_sk.xml in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59B1F11F18BBB02800A7AC9A /* indi_aagcloudwatcher_sk.xml */; };
 		59B1F12518BBB04F00A7AC9A /* indi_aagcloudwatcher.xml in CopyFiles */ = {isa = PBXBuildFile; fileRef = 59B1F12018BBB02800A7AC9A /* indi_aagcloudwatcher.xml */; };
@@ -180,7 +180,7 @@
 			dstPath = lib;
 			dstSubfolderSpec = 7;
 			files = (
-				59A3744619EC52950059E349 /* libatikccd.0.17.dylib in CopyFiles */,
+				594923A11A4768AB00E447C3 /* libatikccd.0.20.dylib in CopyFiles */,
 				591944BA18F9543700837724 /* libindiAlignmentDriver.0.9.9.dylib in CopyFiles */,
 				5950C16718D6F4A500B587B2 /* libindi.0.9.9.dylib in CopyFiles */,
 				5950C16818D6F4A500B587B2 /* libindidriver.0.9.9.dylib in CopyFiles */,
@@ -278,6 +278,7 @@
 		591F82DF189051AF00EA2E8C /* QHY8PRO.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = QHY8PRO.HEX; sourceTree = "<group>"; };
 		591F82E0189051AF00EA2E8C /* QHY9.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = QHY9.HEX; sourceTree = "<group>"; };
 		591F82E1189051AF00EA2E8C /* QHY9L.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = QHY9L.HEX; sourceTree = "<group>"; };
+		5949239F1A47687600E447C3 /* libatikccd.0.20.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libatikccd.0.20.dylib; path = ../../../../../../usr/local/lib/libatikccd.0.20.dylib; sourceTree = "<group>"; };
 		594D0B33188300ED00B50F4E /* INDI Server.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "INDI Server.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		594D0B36188300ED00B50F4E /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		594D0B39188300ED00B50F4E /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
@@ -308,7 +309,6 @@
 		597B890E1887E6FF0093873A /* SecurityFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SecurityFoundation.framework; path = System/Library/Frameworks/SecurityFoundation.framework; sourceTree = SDKROOT; };
 		597B89111887E77F0093873A /* ServiceManagement.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ServiceManagement.framework; path = System/Library/Frameworks/ServiceManagement.framework; sourceTree = SDKROOT; };
 		597B89241888016F0093873A /* indiserver */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indiserver; sourceTree = BUILT_PRODUCTS_DIR; };
-		59A3744319EC51EE0059E349 /* libatikccd.0.17.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libatikccd.0.17.dylib; path = "../../../../../../usr/local/Cellar/indi-atik/0.17/lib/libatikccd.0.17.dylib"; sourceTree = "<group>"; };
 		59B1F11D18BBB00500A7AC9A /* indi_aagcloudwatcher */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_aagcloudwatcher; path = ../../../../../../usr/local/bin/indi_aagcloudwatcher; sourceTree = "<group>"; };
 		59B1F11F18BBB02800A7AC9A /* indi_aagcloudwatcher_sk.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = indi_aagcloudwatcher_sk.xml; path = ../../../../../../usr/local/share/indi/indi_aagcloudwatcher_sk.xml; sourceTree = "<group>"; };
 		59B1F12018BBB02800A7AC9A /* indi_aagcloudwatcher.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = indi_aagcloudwatcher.xml; path = ../../../../../../usr/local/share/indi/indi_aagcloudwatcher.xml; sourceTree = "<group>"; };
@@ -552,7 +552,7 @@
 		59DE02B11883149F007E5AE2 /* lib */ = {
 			isa = PBXGroup;
 			children = (
-				59A3744319EC51EE0059E349 /* libatikccd.0.17.dylib */,
+				5949239F1A47687600E447C3 /* libatikccd.0.20.dylib */,
 				5950C16118D6F21700B587B2 /* libindi.0.9.9.dylib */,
 				5950C16218D6F21700B587B2 /* libindidriver.0.9.9.dylib */,
 				5950C16318D6F21700B587B2 /* libindimain.0.9.9.dylib */,
@@ -642,6 +642,7 @@
 				ORGANIZATIONNAME = CloudMaker;
 				TargetAttributes = {
 					594D0B32188300ED00B50F4E = {
+						DevelopmentTeam = AG8BXW65A2;
 						SystemCapabilities = {
 							com.apple.Sandbox = {
 								enabled = 0;
@@ -696,7 +697,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "cd \"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/lib\"\nchmod u+w *\nfor F in *.dylib\ndo\nF=`basename $F`\nfor L in `otool -L $F | grep \"/usr/local\" | awk '{ print $1 }'`\ndo\nBL=`basename $L`\nif [[ \"$F\" == \"$BL\" ]]\nthen\necho \"renaming $F\"\ninstall_name_tool -id @executable_path/../lib/$BL $F\nelse\necho \"fixing $BL in $F\"\ninstall_name_tool -change $L @executable_path/../lib/$BL $F\nfi\ndone\ndone\n\n[ -f libindi.0.dylib ] && echo \"Found\" || ln -s libindi.0.9.9.dylib libindi.0.dylib\n[ -f libindi.dylib ] && echo \"Found\" || ln -s libindi.0.dylib libindi.dylib\n\n[ -f libindidriver.0.dylib ] && echo \"Found\" || ln -s libindidriver.0.9.9.dylib libindidriver.0.dylib\n[ -f libindidriver.dylib ] && echo \"Found\" || ln -s libindidriver.0.dylib libindidriver.dylib\n\n[ -f libindimain.0.dylib ] && echo \"Found\" || ln -s libindimain.0.9.9.dylib libindimain.0.dylib\n[ -f libindimain.dylib ] && echo \"Found\" || ln -s libindimain.0.dylib libindimain.dylib\n\n[ -f libindiAlignmentDriver.0.dylib ] && echo \"Found\" || ln -s libindiAlignmentDriver.0.9.9.dylib libindiAlignmentDriver.0.dylib\n[ -f libindiAlignmentDriver ] && echo \"Found\" || ln -s libindiAlignmentDriver.0.dylib libindiAlignmentDriver.dylib\n\n[ -f libnova.dylib ] && echo \"Found\" || ln -s libnova-0.15.0.dylib libnova.dylib\n\n[ -f libusb.1.0.dylib ] && echo \"Found\" || ln -s libusb-1.0.0.dylib libusb-1.0.dylib\n\n[ -f libcfitsio.2.dylib ] && echo \"Found\" || ln -s libcfitsio.2.3.37.dylib libcfitsio.2.dylib\n[ -f libcfitsio.dylib ] && echo \"Found\" || ln -s libcfitsio.2.dylib libcfitsio.dylib\n\n[ -f libatikccd.0.dylib ] && echo \"Found\" || ln -s libatikccd.0.17.dylib libatikccd.0.dylib\n[ -f libatikccd.dylib ] && echo \"Found\" || ln -s libatikccd.0.17.dylib libatikccd.dylib\n\n\ncd \"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/bin\"\n\nchmod u+w *\nfor F in *\ndo\nF=`basename $F`\nfor L in `otool -L $F | grep \"/usr/local\" | awk '{ print $1 }'`\ndo\nBL=`basename $L`\necho \"fixing $BL in $F\"\ninstall_name_tool -change $L @executable_path/../lib/$BL $F\ndone\ndone\n\n[ -f indi_lx200_16 ] && echo \"Found\" || ln -s indi_lx200generic indi_lx200_16\n[ -f indi_lx200ap ] && echo \"Found\" || ln -s indi_lx200genericlegacy indi_lx200ap\n[ -f indi_lx200autostar ] && echo \"Found\" || ln -s indi_lx200generic indi_lx200autostar\n[ -f indi_lx200classic ] && echo \"Found\" || ln -s indi_lx200generic indi_lx200classic\n[ -f indi_lx200fs2 ] && echo \"Found\" || ln -s indi_lx200genericlegacy indi_lx200fs2\n[ -f indi_lx200gps ] && echo \"Found\" || ln -s indi_lx200generic indi_lx200gps\n[ -f indi_tcfs3_focus ] && echo \"Found\" || ln -s indi_tcfs_focus indi_tcfs3_focus\n";
+			shellScript = "cd \"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/lib\"\nchmod u+w *\nfor F in *.dylib\ndo\nF=`basename $F`\nfor L in `otool -L $F | grep \"/usr/local\" | awk '{ print $1 }'`\ndo\nBL=`basename $L`\nif [[ \"$F\" == \"$BL\" ]]\nthen\necho \"renaming $F\"\ninstall_name_tool -id @executable_path/../lib/$BL $F\nelse\necho \"fixing $BL in $F\"\ninstall_name_tool -change $L @executable_path/../lib/$BL $F\nfi\ndone\ndone\n\n[ -f libindi.0.dylib ] && echo \"Found\" || ln -s libindi.0.9.9.dylib libindi.0.dylib\n[ -f libindi.dylib ] && echo \"Found\" || ln -s libindi.0.dylib libindi.dylib\n\n[ -f libindidriver.0.dylib ] && echo \"Found\" || ln -s libindidriver.0.9.9.dylib libindidriver.0.dylib\n[ -f libindidriver.dylib ] && echo \"Found\" || ln -s libindidriver.0.dylib libindidriver.dylib\n\n[ -f libindimain.0.dylib ] && echo \"Found\" || ln -s libindimain.0.9.9.dylib libindimain.0.dylib\n[ -f libindimain.dylib ] && echo \"Found\" || ln -s libindimain.0.dylib libindimain.dylib\n\n[ -f libindiAlignmentDriver.0.dylib ] && echo \"Found\" || ln -s libindiAlignmentDriver.0.9.9.dylib libindiAlignmentDriver.0.dylib\n[ -f libindiAlignmentDriver ] && echo \"Found\" || ln -s libindiAlignmentDriver.0.dylib libindiAlignmentDriver.dylib\n\n[ -f libnova.dylib ] && echo \"Found\" || ln -s libnova-0.15.0.dylib libnova.dylib\n\n[ -f libusb.1.0.dylib ] && echo \"Found\" || ln -s libusb-1.0.0.dylib libusb-1.0.dylib\n\n[ -f libcfitsio.2.dylib ] && echo \"Found\" || ln -s libcfitsio.2.3.37.dylib libcfitsio.2.dylib\n[ -f libcfitsio.dylib ] && echo \"Found\" || ln -s libcfitsio.2.dylib libcfitsio.dylib\n\n[ -f libatikccd.0.dylib ] && echo \"Found\" || ln -s libatikccd.0.20.dylib libatikccd.0.dylib\n[ -f libatikccd.dylib ] && echo \"Found\" || ln -s libatikccd.0.20.dylib libatikccd.dylib\n\n\ncd \"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/bin\"\n\nchmod u+w *\nfor F in *\ndo\nF=`basename $F`\nfor L in `otool -L $F | grep \"/usr/local\" | awk '{ print $1 }'`\ndo\nBL=`basename $L`\necho \"fixing $BL in $F\"\ninstall_name_tool -change $L @executable_path/../lib/$BL $F\ndone\ndone\n\n[ -f indi_lx200_16 ] && echo \"Found\" || ln -s indi_lx200generic indi_lx200_16\n[ -f indi_lx200ap ] && echo \"Found\" || ln -s indi_lx200genericlegacy indi_lx200ap\n[ -f indi_lx200autostar ] && echo \"Found\" || ln -s indi_lx200generic indi_lx200autostar\n[ -f indi_lx200classic ] && echo \"Found\" || ln -s indi_lx200generic indi_lx200classic\n[ -f indi_lx200fs2 ] && echo \"Found\" || ln -s indi_lx200genericlegacy indi_lx200fs2\n[ -f indi_lx200gps ] && echo \"Found\" || ln -s indi_lx200generic indi_lx200gps\n[ -f indi_tcfs3_focus ] && echo \"Found\" || ln -s indi_tcfs_focus indi_tcfs3_focus\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -839,7 +840,6 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)",
-					"/usr/local/Cellar/indi-atik/0.17/lib",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				WRAPPER_EXTENSION = app;
@@ -857,7 +857,6 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)",
-					"/usr/local/Cellar/indi-atik/0.17/lib",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				WRAPPER_EXTENSION = app;
@@ -875,10 +874,7 @@
 					"$(inherited)",
 				);
 				INFOPLIST_FILE = "indiserver-Info.plist";
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"/usr/local/Cellar/indi-atik/0.17/lib",
-				);
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = "-DOSX_HELPER_MODE";
@@ -895,10 +891,7 @@
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				INFOPLIST_FILE = "indiserver-Info.plist";
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"/usr/local/Cellar/indi-atik/0.17/lib",
-				);
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = "-DOSX_HELPER_MODE";
