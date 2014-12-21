@@ -26,7 +26,7 @@
 #include <indifilterinterface.h>
 #include <iostream>
 
-#include <qhyccd.h>
+#include <libqhyccd/qhyccd.h>
 
 using namespace std;
 
@@ -98,6 +98,10 @@ private:
 
   int camxbin;
   int camybin;
+  int camroix;
+  int camroiy;
+  int camroiwidth;
+  int camroiheight;
 
   bool IsFocusMode;
   bool HasUSBTraffic;

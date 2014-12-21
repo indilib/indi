@@ -26,21 +26,18 @@
 #include <sys/time.h>
 
 #include "qhy_ccd.h"
-#include "config.h"
 
-#define POLLMS                  1000		/* Polling time (ms) */
+#define POLLMS                  1000        /* Polling time (ms) */
 #define TEMPERATURE_POLL_MS     1000        /* Temperature Polling time (ms) */
 #define TEMP_THRESHOLD          0.2         /* Differential temperature threshold (C)*/
 #define MINIMUM_CCD_EXPOSURE    0.1         /* 0.1 seconds minimum exposure */
 #define MAX_DEVICES             4           /* Max device cameraCount */
 
 //NB Disable for real driver
-#define USE_SIMULATION
+//#define USE_SIMULATION
 
 static int cameraCount;
 static QHYCCD *cameras[MAX_DEVICES];
-
-//pthread_mutex_t     qhyMutex = PTHREAD_MUTEX_INITIALIZER;
 
 static void cleanup()
 {
@@ -180,10 +177,12 @@ void ISSnoopDevice(XMLEle *root)
 {
     ISInit();
 
-    for (int i = 0; i < cameraCount; i++)
-    {
+    for (int i = 0; i < cameraCount; i++) {
       QHYCCD *camera = cameras[i];
-      camera->ISSnoopDevice(root);
+      if (!strcmp(findXMLAttValu(root, "device"), camera->name)) {
+        camera->ISSnoopDevice(root);
+        break;
+      }
     }
 }
 
@@ -193,18 +192,15 @@ QHYCCD::QHYCCD(const char *name)
     FilterSlotN[0].min = 1;
     FilterSlotN[0].max = 5;
 
-    //HasUSBTraffic = false;
     HasUSBSpeed = false;
     HasGain = false;
     HasOffset = false;
     HasFilters = false;
     IsFocusMode = false;
 
-    snprintf(this->name, MAXINDINAME, "QHY CCD %s", name);
+    snprintf(this->name, MAXINDINAME, "QHYCCD %s", name);
     snprintf(this->camid,MAXINDINAME,"%s",name);
     setDeviceName(this->name);
-        
-    setVersion(INDI_QHY_VERSION_MAJOR, INDI_QHY_VERSION_MINOR);
 
     sim = false;
 }
@@ -241,11 +237,11 @@ bool QHYCCD::initProperties()
 
     // CCD Offset
     IUFillNumber(&OffsetN[0], "Offset", "Offset", "%3.0f", 0, 0, 1, 0);
-    IUFillNumberVector(&OffsetNP, OffsetN, 1, getDeviceName(), "CCD_OFFSET", "Offset", IMAGE_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillNumberVector(&OffsetNP, OffsetN, 1, getDeviceName(), "CCD_OFFSET", "Offset", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     // USB Speed
     IUFillNumber(&SpeedN[0], "Speed", "Speed", "%3.0f", 0, 0, 1, 0);
-    IUFillNumberVector(&SpeedNP, SpeedN, 1, getDeviceName(), "USB_SPEED", "USB Speed", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillNumberVector(&SpeedNP, SpeedN, 1, getDeviceName(), "USB_SPEED", "USB Speed", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     addAuxControls();
     return true;
@@ -255,7 +251,6 @@ void QHYCCD::ISGetProperties(const char *dev)
 {
   INDI::CCD::ISGetProperties(dev);
 
-  // JM: On initial ISGetProperties we are disconnected, but if more clients to us, we send the properties right away if we are already connected.
   if (isConnected())
   {
       if (HasCooler())
@@ -428,18 +423,18 @@ bool QHYCCD::Connect()
 
     int ret;
 
-    CCDCapability cap;
+    Capability cap;
 
     if (sim)
     {
-        cap.canSubFrame = false;
+        cap.canSubFrame = true;
         cap.hasGuideHead = false;
         cap.hasShutter = false;
         cap.canAbort = true;
         cap.hasCooler = true;
         cap.hasST4Port = true;
 
-        SetCCDCapability(&cap);
+        SetCapability(&cap);
 
         HasUSBSpeed = true;
         HasGain = true;
@@ -455,11 +450,20 @@ bool QHYCCD::Connect()
     {
         DEBUGF(INDI::Logger::DBG_SESSION, "Connected to %s.",camid);
 
-        cap.canSubFrame = false;
+        cap.canSubFrame = true;
         cap.hasGuideHead = false;
         cap.hasShutter = false;
         cap.canAbort = true;
         cap.hasCooler = false;
+
+        DEBUGF(INDI::Logger::DBG_DEBUG, "%s","initqhyccd.");
+
+        ret = InitQHYCCD(camhandle);
+        if(ret != QHYCCD_SUCCESS)
+        {
+            DEBUGF(INDI::Logger::DBG_ERROR, "Error: Init Camera failed (%d)", ret);
+            return false;
+        }
 
         ret = IsQHYCCDControlAvailable(camhandle,CONTROL_COOLER);
         if(ret == QHYCCD_SUCCESS)
@@ -497,19 +501,11 @@ bool QHYCCD::Connect()
             HasFilters = true;
         }
 
-        ret = InitQHYCCD(camhandle);
-        if(ret != QHYCCD_SUCCESS)
-        {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error: Init Camera failed (%d)", ret);
-            return false;
-        }
-
         ret = IsQHYCCDControlAvailable(camhandle,CAM_BIN1X1MODE);
         if(ret == QHYCCD_SUCCESS)
         {
             camxbin = 1;
             camybin = 1;
-            SetQHYCCDBinMode(camhandle,1,1);
         }
 
         ret &= IsQHYCCDControlAvailable(camhandle,CAM_BIN2X2MODE);
@@ -520,7 +516,7 @@ bool QHYCCD::Connect()
             cap.canBin = true;
         }
 
-        SetCCDCapability(&cap);
+        SetCapability(&cap);
 
         return true;
     }
@@ -536,9 +532,10 @@ bool QHYCCD::Disconnect()
   DEBUG(INDI::Logger::DBG_SESSION, "CCD is offline.");
 
   if (sim == false)
+  {
       CloseQHYCCD(camhandle);
+  }
   return true;
-
 }
 
 bool QHYCCD::setupParams()
@@ -558,19 +555,16 @@ bool QHYCCD::setupParams()
     {
         ret = GetQHYCCDChipInfo(camhandle,&chipw,&chiph,&imagew,&imageh,&pixelw,&pixelh,&bpp);
 
-        /* JM: Why do we need this? Use PrimaryCCD buffer */
-        /*
-        if(ret == QHYCCD_SUCCESS)
-        {
-            rawdata = new unsigned char[imagew * imageh * 2];
-        }*/
-
         /* JM: We need GetQHYCCDErrorString(ret) to get the string description of the error, please implement this in the SDK */
         if (ret != QHYCCD_SUCCESS)
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "Error: GetQHYCCDChipInfo() (%d)", ret);
             return false;
         }
+        camroix = 0;
+        camroiy = 0;
+        camroiwidth = imagew;
+        camroiheight = imageh;
     }
 
     SetCCDParams(imagew,imageh,bpp,pixelw,pixelh);
@@ -629,12 +623,36 @@ bool QHYCCD::StartExposure(float duration)
   if(ret != QHYCCD_SUCCESS)
   {
       DEBUGF(INDI::Logger::DBG_ERROR, "Set expose time failed (%d).", ret);
+      return false;
+  }
+
+  // lzr: we need to call the following apis every single exposure,the usleep(200000) is important
+  ret = SetQHYCCDBinMode(camhandle,camxbin,camybin);
+  if(ret != QHYCCD_SUCCESS)
+  {
+      DEBUGF(INDI::Logger::DBG_SESSION, "%s","Set QHYCCD Bin mode failed");
+      return false;
+  }
+
+  ret = SetQHYCCDResolution(camhandle,camroix,camroiy,camroiwidth,camroiheight);
+  if(ret != QHYCCD_SUCCESS)
+  {
+      DEBUGF(INDI::Logger::DBG_SESSION, "%s","Set QHYCCD ROI resolution failed");
+      return false;
+  }
+ 
+  ret = ExpQHYCCDSingleFrame(camhandle);
+  if(ret != QHYCCD_SUCCESS)
+  {
+      DEBUGF(INDI::Logger::DBG_SESSION, "%s","begin QHYCCD expose failed");
+      return false;
   }
 
   gettimeofday(&ExpStart, NULL);
   DEBUGF(INDI::Logger::DBG_SESSION, "Taking a %g seconds frame...", ExposureRequest);
 
   InExposure = true;
+
 
   return true;
 }
@@ -646,7 +664,7 @@ bool QHYCCD::AbortExposure()
     if (!InExposure || sim)
         return true;
 
-    ret = StopQHYCCDExpSingle(camhandle);
+    ret = CancelQHYCCDExposingAndReadout(camhandle);
     if(ret == QHYCCD_SUCCESS)
     {
         //AbortPrimaryFrame = true;
@@ -662,54 +680,38 @@ bool QHYCCD::AbortExposure()
 
 bool QHYCCD::UpdateCCDFrame(int x, int y, int w, int h)
 {
-  // FIXME FIXME
-  /* JM: Why isn't this implemented in QHY INDI driver? QHY can't subframe? */
-
   /* Add the X and Y offsets */
-  long x_1 = x;
-  long y_1 = y;
+  long x_1 = x / PrimaryCCD.getBinX();
+  long y_1 = y / PrimaryCCD.getBinY();
 
-  long bin_width = x_1 + (w / PrimaryCCD.getBinX());
-  long bin_height = y_1 + (h / PrimaryCCD.getBinY());
+  long x_2 = x_1 + (w / PrimaryCCD.getBinX());
+  long y_2 = y_1 + (h / PrimaryCCD.getBinY());
 
-  if (bin_width > PrimaryCCD.getXRes() / PrimaryCCD.getBinX())
+  if (x_2 > PrimaryCCD.getXRes() / PrimaryCCD.getBinX())
   {
-    DEBUGF(INDI::Logger::DBG_ERROR, "Error: invalid width requested %d", w);
-    return false;
-  } else if (bin_height > PrimaryCCD.getYRes() / PrimaryCCD.getBinY())
+      DEBUGF(INDI::Logger::DBG_ERROR, "Error: invalid width requested %ld", x_2);
+      return false;
+  }
+  else if (y_2 > PrimaryCCD.getYRes() / PrimaryCCD.getBinY())
   {
-    DEBUGF(INDI::Logger::DBG_ERROR, "Error: invalid height request %d", h);
-    return false;
+      DEBUGF(INDI::Logger::DBG_ERROR, "Error: invalid height request %ld", y_2);
+      return false;
   }
 
-  DEBUGF(INDI::Logger::DBG_DEBUG, "The Final image area is (%ld, %ld), (%ld, %ld)", x_1, y_1, bin_width, bin_height);
+  camroix = x_1;
+  camroiy = y_1;
+  camroiwidth = x_2 - x_1;
+  camroiheight = y_2 - y_1;
 
-  /**********************************************************
-   *
-   *
-   *
-   *  IMPORRANT: Put here your CCD Frame dimension call
-   *  The values calculated above are BINNED width and height
-   *  which is what most CCD APIs require, but in case your
-   *  CCD API implementation is different, don't forget to change
-   *  the above calculations.
-   *  If there is an error, report it back to client
-   *  e.g.
-   *  IDMessage(getDeviceName(), "Error, unable to set frame to ...");
-   *  return false;
-   *
-   *
-   **********************************************************/
+  DEBUGF(INDI::Logger::DBG_DEBUG, "The Final image area is (%d, %d), (%d, %d)\n", camroix, camroiy, camroiwidth, camroiheight);
+
 
   // Set UNBINNED coords
-  PrimaryCCD.setFrame(x_1, y_1, w, h);
-
+  PrimaryCCD.setFrame(x, y, w,  h);
   int nbuf;
-  nbuf = (bin_width * bin_height * PrimaryCCD.getBPP() / 8);    //  this is pixel count
-  nbuf += 512;    //  leave a little extra at the end
+  nbuf=(camroiwidth * camroiheight * PrimaryCCD.getBPP()/8);                 //  this is pixel count
+  nbuf+=512;                      //  leave a little extra at the end
   PrimaryCCD.setFrameBufferSize(nbuf);
-
-  DEBUGF(INDI::Logger::DBG_DEBUG, "Setting frame buffer size to %d bytes.", nbuf);
 
   return true;
 }
@@ -732,7 +734,7 @@ bool QHYCCD::UpdateCCDBin(int hor, int ver)
     }
     else if(hor == 2 && ver == 2)
     {
-        ret = IsQHYCCDControlAvailable(camhandle,CAM_BIN2X2MODE);
+        ret = IsQHYCCDControlAvailable(camhandle,CAM_BIN2X2MODE);  
     }
     else if(hor == 3 && ver == 3)
     {
@@ -740,7 +742,7 @@ bool QHYCCD::UpdateCCDBin(int hor, int ver)
     }
     else if(hor == 4 && ver == 4)
     {
-        ret = IsQHYCCDControlAvailable(camhandle,CAM_BIN4X4MODE);
+        ret = IsQHYCCDControlAvailable(camhandle,CAM_BIN4X4MODE); 
     }
 
     if(ret == QHYCCD_SUCCESS)
@@ -781,59 +783,14 @@ int QHYCCD::grabImage()
     for (int i = 0; i < height; i++)
       for (int j = 0; j < width; j++)
         image[i * width + j] = rand() % 255;
-  } else
+  } 
+  else
   {
 
     int ret;
     int w,h,bpp,channels;
 
-    /* JM: Why do we need this? We have have (char * image) above with the CCD buffer that was already allocated */
-    /*
-    unsigned short *pt;
-    unsigned char *pt8bit;
-
-    pt = (unsigned short int *)targetChip->getFrameBuffer();
-    pt8bit = (unsigned char *)malloc(GetQHYCCDMemLength(camhandle));
-
-
-    ret = GetQHYCCDSingleFrame(camhandle,&w,&h,&bpp,&channels,pt8bit);
-    DEBUGF(INDI::Logger::DBG_SESSION, "Current resolution is width:%d height:%d",w,h);
-    DEBUGF(INDI::Logger::DBG_SESSION, "Current bin mode is wbin:%d hbin:%d",PrimaryCCD.getBinX(),PrimaryCCD.getBinY());
-    */
-
-    // JM: Suggested call
     ret = GetQHYCCDSingleFrame(camhandle,&w,&h,&bpp,&channels,image);
-
-    /* JM: We don't need to do this, the image pointer above already has the image data */
-    /*
-    if(bpp == 8)
-    {
-        for(int i = 0;i < w * h;i++)
-        {
-            *pt = pt8bit[i];
-            pt++;
-        }
-    }
-    else
-    {
-        memcpy(pt,pt8bit,w * h * bpp / 8);
-    }
-    */
-
-    /* JM: Why are we updating CCD Frame? The width & height are already set and they are not suppose to change after an exposure */
-    /*
-    if(ret == QHYCCD_SUCCESS)
-    {
-        PrimaryCCD.setFrame(0,0,w * PrimaryCCD.getBinX(),h * PrimaryCCD.getBinY());
-    }
-
-
-    if(pt8bit)
-    {
-        free(pt8bit);
-    }
-    */
-
   }
 
   DEBUG(INDI::Logger::DBG_SESSION, "Download complete.");
@@ -862,13 +819,15 @@ void QHYCCD::TimerHit()
         //  a quarter of a second or more
         //  just set a tighter timer
         timerID = SetTimer(250);
-      } else
+      } 
+      else
       {
         if (timeleft > 0.07)
         {
           //  use an even tighter timer
           timerID = SetTimer(50);
-        } else
+        } 
+        else
         {
           /* JM: Is there a QHY API call to find if the frame is ready for download?? */
 
@@ -882,7 +841,8 @@ void QHYCCD::TimerHit()
 
         }
       }
-    } else
+    } 
+    else
     {
 
       DEBUGF(INDI::Logger::DBG_DEBUG, "Exposure in progress: Time left %ld", timeleft);
@@ -1072,21 +1032,6 @@ bool QHYCCD::ISNewNumber (const char *dev, const char *name, double values[], ch
             saveConfig();
             return true;
         }
-
-        /*
-        if(strcmp(name,USBTRAFFICNP->name) == 0)
-        {
-            USBTRAFFICNP->s = IPS_BUSY;
-            IDSetNumber(USBTRAFFICNP, NULL);
-            IUUpdateNumber(USBTRAFFICNP, values, names, n);
-            SetQHYCCDParam(camhandle,CONTROL_USBTRAFFIC,USBTRAFFICN[0].value);
-            DEBUGF(INDI::Logger::DBG_SESSION, "Current %s value %f",USBTRAFFICNP->name,USBTRAFFICN[0].value);
-            USBTRAFFICNP->s = IPS_OK;
-            IDSetNumber(USBTRAFFICNP, NULL);
-            saveConfig();
-            return true;
-        }
-    */
     }
     //  if we didn't process it, continue up the chain, let somebody else
     //  give it a shot
@@ -1105,8 +1050,7 @@ void QHYCCD::UpdateTemperature()
 
     if(temperatureFlag)
     {
-        //JM Why mutex lock required? It's all running in the same thread!
-        //pthread_mutex_lock(&qhyMutex);
+
         if (sim)
         {
             ccdtemp = TemperatureN[0].value;
@@ -1133,7 +1077,6 @@ void QHYCCD::UpdateTemperature()
         IDSetNumber(&TemperatureNP, NULL);
         IDSetNumber(&CoolerNP, NULL);
 
-        //pthread_mutex_unlock(&qhyMutex);
         temperatureID = IEAddTimer(TEMPERATURE_POLL_MS,QHYCCD::UpdateTemperatureHelper, this);
     }
 }
