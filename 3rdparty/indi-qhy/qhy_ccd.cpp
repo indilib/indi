@@ -26,6 +26,7 @@
 #include <sys/time.h>
 
 #include "qhy_ccd.h"
+#include "config.h"
 
 #define POLLMS                  1000        /* Polling time (ms) */
 #define TEMPERATURE_POLL_MS     1000        /* Temperature Polling time (ms) */
@@ -177,12 +178,10 @@ void ISSnoopDevice(XMLEle *root)
 {
     ISInit();
 
-    for (int i = 0; i < cameraCount; i++) {
+    for (int i = 0; i < cameraCount; i++)
+    {
       QHYCCD *camera = cameras[i];
-      if (!strcmp(findXMLAttValu(root, "device"), camera->name)) {
-        camera->ISSnoopDevice(root);
-        break;
-      }
+      camera->ISSnoopDevice(root);
     }
 }
 
@@ -198,9 +197,11 @@ QHYCCD::QHYCCD(const char *name)
     HasFilters = false;
     IsFocusMode = false;
 
-    snprintf(this->name, MAXINDINAME, "QHYCCD %s", name);
+    snprintf(this->name, MAXINDINAME, "QHY CCD %s", name);
     snprintf(this->camid,MAXINDINAME,"%s",name);
     setDeviceName(this->name);
+
+    setVersion(INDI_QHY_VERSION_MAJOR, INDI_QHY_VERSION_MINOR);
 
     sim = false;
 }
@@ -423,7 +424,7 @@ bool QHYCCD::Connect()
 
     int ret;
 
-    Capability cap;
+    CCDCapability cap;
 
     if (sim)
     {
@@ -434,7 +435,7 @@ bool QHYCCD::Connect()
         cap.hasCooler = true;
         cap.hasST4Port = true;
 
-        SetCapability(&cap);
+        SetCCDCapability(&cap);
 
         HasUSBSpeed = true;
         HasGain = true;
@@ -516,7 +517,7 @@ bool QHYCCD::Connect()
             cap.canBin = true;
         }
 
-        SetCapability(&cap);
+        SetCCDCapability(&cap);
 
         return true;
     }
