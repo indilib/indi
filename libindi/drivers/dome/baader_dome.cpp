@@ -734,7 +734,7 @@ int BaaderDome::MoveAbsDome(double az)
 
     targetAz = az;
 
-    snprintf(cmd, DOME_BUF, "d#azi04%d", MountAzToDomeAz(targetAz));
+    snprintf(cmd, DOME_BUF, "d#azi%04d", MountAzToDomeAz(targetAz));
 
     tcflush(PortFD, TCIOFLUSH);
 
