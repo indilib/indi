@@ -56,8 +56,9 @@
 
 #include "indidevapi.h"
 
-void getSexComponents(double value, int *d, int *m, int *s);
+int tty_debug = 0;
 
+void getSexComponents(double value, int *d, int *m, int *s);
 
 int extractISOTime(char *timestr, struct ln_date *iso_date)
 {
@@ -245,6 +246,11 @@ timestamp()
 	return (ts);
 }
 
+void tty_set_debug(int debug)
+{
+    tty_debug = debug;
+}
+
 int tty_timeout(int fd, int timeout)
 {
  if (fd == -1)
@@ -339,6 +345,9 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
   if (nbytes <=0)
 	return TTY_PARAM_ERROR;
 
+  if (tty_debug)
+      IDLog("%s: Request to read %d bytes with %d timeout for fd %d\n", __FUNCTION__, nbytes, timeout, fd);
+
   while (nbytes > 0)
   {
      if ( (err = tty_timeout(fd, timeout)) )
@@ -352,6 +361,13 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
      buf += bytesRead;
      *nbytes_read += bytesRead;
      nbytes -= bytesRead;
+
+     if (tty_debug)
+     {
+         int i=0;
+         for (i=0; i < (nbytes+*nbytes_read); i++)
+            IDLog("%s: buffer[%d]=%c\n", __FUNCTION__, i, buf[i]);
+     }
   }
 
   return TTY_OK;
@@ -366,6 +382,9 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
  int err = TTY_OK;
  *nbytes_read = 0;
 
+ if (tty_debug)
+     IDLog("%s: Request to read until stop char '%c' with %d timeout for fd %d\n", __FUNCTION__, stop_char, timeout, fd);
+
  for (;;)
  {
          if ( (err = tty_timeout(fd, timeout)) )
@@ -376,13 +395,17 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
          if (bytesRead < 0 )
             return TTY_READ_ERROR;
 
+         if (tty_debug)
+                IDLog("%s: buffer[%d]=%c\n", __FUNCTION__, (*nbytes_read), buf[(*nbytes_read)]);
+
         if (bytesRead)
           (*nbytes_read)++;
 
         if (*buf == stop_char)
-	   return TTY_OK;
+         return TTY_OK;
 
         buf += bytesRead;
+
   }
 
   return TTY_TIME_OUT;

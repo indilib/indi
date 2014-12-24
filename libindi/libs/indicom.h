@@ -132,6 +132,12 @@ int tty_disconnect(int fd);
 */
 void tty_error_msg(int err_code, char *err_msg, int err_msg_len);
 
+/**
+ * @brief tty_set_debug Enable or disable debug which prints verbose information.
+ * @param debug 1 to enable, 0 to disable
+ */
+void tty_set_debug(int debug);
+
 int tty_timeout(int fd, int timeout);
 /*@}*/
 
