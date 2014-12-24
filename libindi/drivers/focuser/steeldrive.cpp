@@ -122,7 +122,7 @@ bool SteelDrive::initProperties()
 {
     INDI::Focuser::initProperties();
 
-    IUSaveText(&PortT[0], "/dev/ttyAMC0");
+    IUSaveText(&PortT[0], "/dev/ttyACM0");
 
     FocusSpeedN[0].min = 350;
     FocusSpeedN[0].max = 1000;
