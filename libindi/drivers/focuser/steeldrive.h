@@ -58,6 +58,9 @@ public:
     virtual bool AbortFocuser();
     virtual void TimerHit();
 
+    void debugTriggered(bool enable);
+
+
 private:
 
     int PortFD;
