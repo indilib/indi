@@ -546,7 +546,7 @@ bool SteelDrive::updatePosition()
         {
             tty_error_msg(rc, errstr, MAXRBUF);
             resp[nbytes_read] = '\0';
-            DEBUGF(INDI::Logger::DBG_DEBUG, ":F8ASKS0# updatePosition read error: %s. Retry: %d. Bytes: %s. Buffer (%s)", errstr, retries, nbytes_read, resp);
+            DEBUGF(INDI::Logger::DBG_DEBUG, ":F8ASKS0# updatePosition read error: %s. Retry: %d. Bytes: %d. Buffer (%s)", errstr, retries, nbytes_read, resp);
         }
         else
             break;
