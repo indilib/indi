@@ -75,7 +75,7 @@ void INDI::DomeInterface::initDomeProperties(const char *deviceName, const char*
 
     IUFillSwitch(&DomeShutterS[0],"SHUTTER_OPEN","Open",ISS_OFF);
     IUFillSwitch(&DomeShutterS[1],"SHUTTER_CLOSE","Close",ISS_ON);
-    IUFillSwitchVector(&DomeShutterSP,DomeShutterS,2,deviceName,"DOME_SHUTTER","Shutter",groupName,IP_RW,ISR_ATMOST1,60,IPS_OK);
+    IUFillSwitchVector(&DomeShutterSP,DomeShutterS,2,deviceName,"DOME_SHUTTER","Shutter",groupName,IP_RW,ISR_1OFMANY,60,IPS_OK);
 
 }
 
