@@ -29,8 +29,8 @@
 #include <math.h>
 #include <memory>
 
-#define STEELDRIVE_MAX_RETRIES          3
-#define STEELDRIVE_TIMEOUT              3
+#define STEELDRIVE_MAX_RETRIES          1
+#define STEELDRIVE_TIMEOUT              1
 #define STEELDRIVE_MAXBUF               16
 #define STEELDRIVE_CMD                  9
 #define STEELDRIVE_CMD_LONG             11
