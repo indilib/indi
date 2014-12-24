@@ -33,7 +33,9 @@ class BaaderDome : public INDI::Dome
     public:
 
         typedef enum { DOME_UNKNOWN, DOME_CALIBRATING, DOME_READY } DomeStatus;
-        typedef enum { CALIBRATION_STAGE1, CALIBRATION_STAGE2, CALIBRATION_STAGE3, CALIBRATION_COMPLETE } CalibrationStage;
+        typedef enum { CALIBRATION_UNKNOWN, CALIBRATION_STAGE1, CALIBRATION_STAGE2, CALIBRATION_STAGE3, CALIBRATION_COMPLETE } CalibrationStage;
+        typedef enum { FLAP_OPEN, FLAP_CLOSE } FlapOperation;
+        typedef enum { FLAP_OPENED,  FLAP_CLOSED,  FLAP_MOVING, FLAP_UNKNOWN } FlapStatus;
 
         BaaderDome();
         virtual ~BaaderDome();
@@ -41,6 +43,7 @@ class BaaderDome : public INDI::Dome
         const char *getDefaultName();
         virtual bool initProperties();
         virtual bool updateProperties();
+        virtual bool saveConfigItems(FILE *fp);
 
         bool Connect();
         bool Disconnect();
@@ -61,10 +64,17 @@ class BaaderDome : public INDI::Dome
         ISwitch CalibrateS[1];
         ISwitchVectorProperty CalibrateSP;
 
+        ISwitch DomeFlapS[2];
+        ISwitchVectorProperty DomeFlapSP;
+
         // Commands
         bool Ack();
         bool UpdatePosition();
         bool UpdateShutterStatus();
+        int  ControlDomeFlap(FlapOperation operation);
+        bool UpdateFlapStatus();
+        bool SaveEncoderPosition();
+        const char * GetFlapStatusString(FlapStatus status);
 
         //Misc
         unsigned short MountAzToDomeAz(double mountAz);
@@ -73,16 +83,18 @@ class BaaderDome : public INDI::Dome
 
 
         DomeStatus status;
+        FlapStatus flapStatus;
         CalibrationStage calibrationStage;
         double targetAz, calibrationStart, calibrationTarget1, calibrationTarget2;
-        ShutterStatus targetShutter;
+        ShutterOperation targetShutter;
+        FlapOperation targetFlap;
         double prev_az, prev_alt;
         int PortFD;
 
         bool sim;
-        double simShutterTimer;
+        double simShutterTimer, simFlapTimer;
         ShutterStatus simShutterStatus;
-
+        FlapStatus simFlapStatus;
 };
 
 #endif
