@@ -3,7 +3,7 @@
 
  Rapid Guide support added by CloudMakers, s. r. o.
  Copyright(c) 2013 CloudMakers, s. r. o. All rights reserved.
-  
+
  Star detection algorithm is based on PHD Guiding by Craig Stark
  Copyright (c) 2006-2010 Craig Stark. All rights reserved.
 
@@ -54,7 +54,7 @@ CCDChip::CCDChip()
     strncpy(imageExtention, "fits", MAXINDIBLOBFMT);
 
     FrameType=LIGHT_FRAME;
-    
+
     ImageFrameNP = new INumberVectorProperty;
     AbortExposureSP = new ISwitchVectorProperty;
     FrameTypeSP = new ISwitchVectorProperty;
@@ -263,7 +263,7 @@ INDI::CCD::CCD()
     InGuideExposure=false;
     RapidGuideEnabled=false;
     GuiderRapidGuideEnabled=false;
-    
+
     AutoLoop=false;
     SendImage=false;
     ShowMarker=false;
@@ -510,15 +510,15 @@ bool INDI::CCD::updateProperties()
 
         if (capability.canBin || capability.canSubFrame)
             defineSwitch(PrimaryCCD.ResetSP);
-        
+
         if (capability.hasGuideHead)
             defineSwitch(GuideCCD.FrameTypeSP);
-        
+
         defineSwitch(PrimaryCCD.RapidGuideSP);
 
         if (capability.hasGuideHead)
           defineSwitch(GuideCCD.RapidGuideSP);
-            
+
         if (RapidGuideEnabled)
         {
           defineSwitch(PrimaryCCD.RapidGuideSetupSP);
@@ -780,12 +780,12 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
         }
 
         if(strcmp(name,"CCD_FRAME")==0)
-        { 
+        {
             //  We are being asked to set CCD Frame
             if (IUUpdateNumber(PrimaryCCD.ImageFrameNP,values,names,n) < 0)
                 return false;
 
-            PrimaryCCD.ImageFrameNP->s=IPS_OK;   
+            PrimaryCCD.ImageFrameNP->s=IPS_OK;
 
             DEBUGF(Logger::DBG_DEBUG, "Requested CCD Frame is (%3.0f,%3.0f) (%3.0f x %3.0f)", values[0],values[1],values[2],values[3]);
 
@@ -882,7 +882,7 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
             IUUpdateNumber(GuideCCD.ImagePixelSizeNP, values, names, n);
             GuideCCD.ImagePixelSizeNP->s = IPS_OK;
             SetGuiderParams(GuideCCD.ImagePixelSizeNP->np[0].value, GuideCCD.ImagePixelSizeNP->np[1].value, GuideCCD.getBPP(), GuideCCD.ImagePixelSizeNP->np[2].value, GuideCCD.ImagePixelSizeNP->np[3].value);
-            IDSetNumber(GuideCCD.ImagePixelSizeNP, NULL);            
+            IDSetNumber(GuideCCD.ImagePixelSizeNP, NULL);
             return true;
         }
 
@@ -897,7 +897,7 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
 {
 
     if(strcmp(dev,getDeviceName())==0)
-    {        
+    {
         if (!strcmp(name, UploadSP.name))
         {
             IUUpdateSwitch(&UploadSP, states, names, n);
@@ -1063,14 +1063,14 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
 
             return true;
         }
-        
-        
+
+
         if (strcmp(name, PrimaryCCD.RapidGuideSP->name)==0)
         {
             IUUpdateSwitch(PrimaryCCD.RapidGuideSP, states, names, n);
             PrimaryCCD.RapidGuideSP->s=IPS_OK;
             RapidGuideEnabled=(PrimaryCCD.RapidGuideS[0].s==ISS_ON);
-            
+
             if (RapidGuideEnabled) {
               defineSwitch(PrimaryCCD.RapidGuideSetupSP);
               defineNumber(PrimaryCCD.RapidGuideDataNP);
@@ -1079,7 +1079,7 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
               deleteProperty(PrimaryCCD.RapidGuideSetupSP->name);
               deleteProperty(PrimaryCCD.RapidGuideDataNP->name);
             }
-            
+
             IDSetSwitch(PrimaryCCD.RapidGuideSP,NULL);
             return true;
         }
@@ -1089,7 +1089,7 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
             IUUpdateSwitch(GuideCCD.RapidGuideSP, states, names, n);
             GuideCCD.RapidGuideSP->s=IPS_OK;
             GuiderRapidGuideEnabled=(GuideCCD.RapidGuideS[0].s==ISS_ON);
-            
+
             if (GuiderRapidGuideEnabled) {
               defineSwitch(GuideCCD.RapidGuideSetupSP);
               defineNumber(GuideCCD.RapidGuideDataNP);
@@ -1111,7 +1111,7 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
             AutoLoop=(PrimaryCCD.RapidGuideSetupS[0].s==ISS_ON);
             SendImage=(PrimaryCCD.RapidGuideSetupS[1].s==ISS_ON);
             ShowMarker=(PrimaryCCD.RapidGuideSetupS[2].s==ISS_ON);
-            
+
             IDSetSwitch(PrimaryCCD.RapidGuideSetupSP,NULL);
             return true;
         }
@@ -1124,7 +1124,7 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
             GuiderAutoLoop=(GuideCCD.RapidGuideSetupS[0].s==ISS_ON);
             GuiderSendImage=(GuideCCD.RapidGuideSetupS[1].s==ISS_ON);
             GuiderShowMarker=(GuideCCD.RapidGuideSetupS[2].s==ISS_ON);
-            
+
             IDSetSwitch(GuideCCD.RapidGuideSetupSP,NULL);
             return true;
         }
@@ -1294,16 +1294,16 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
     bool showMarker = false;
     bool autoLoop = false;
     bool sendData = false;
-    
+
     if (RapidGuideEnabled && targetChip == &PrimaryCCD)
     {
-      autoLoop = AutoLoop;      
+      autoLoop = AutoLoop;
       sendImage = SendImage;
       showMarker = ShowMarker;
       sendData = true;
       saveImage = false;
     }
-    
+
     if (GuiderRapidGuideEnabled && targetChip == &GuideCCD)
     {
       autoLoop = GuiderAutoLoop;
@@ -1312,7 +1312,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
       sendData = true;
       saveImage = false;
     }
-    
+
     if (sendData)
     {
       static double P0 = 0.906, P1 = 0.584, P2 = 0.365, P3 = 0.117, P4 = 0.049, P5 = -0.05, P6 = -0.064, P7 = -0.074, P8 = -0.094;
@@ -1339,7 +1339,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
         for (int y = miny; y < maxy; y++)
         {
           i0 = i1 = i2 = i3 = i4 = i5 = i6 = i7 = i8 = 0;
-          xM4 = x - 4; 
+          xM4 = x - 4;
           p = src + (y - 4) * width + xM4; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++;
           p = src + (y - 3) * width + xM4; i8 += *p++; i8 += *p++; i8 += *p++; i7 += *p++; i6 += *p++; i7 += *p++; i8 += *p++; i8 += *p++; i8 += *p++;
           p = src + (y - 2) * width + xM4; i8 += *p++; i8 += *p++; i5 += *p++; i4 += *p++; i3 += *p++; i4 += *p++; i5 += *p++; i8 += *p++; i8 += *p++;
@@ -1365,55 +1365,71 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
       targetChip->lastRapidX = ix;
       targetChip->lastRapidY = iy;
       if (bestFit > 50)
-      {        
-        double sumX = 0;
-        double sumY = 0;
-        double total = 0;
+      {
+        int sumX = 0;
+        int sumY = 0;
+        int total = 0;
+        int max = 0;
+        int treshold = 0;
         for (int y = iy - 4; y <= iy + 4; y++) {
           p = src + y * width + ix - 4;
           for (int x = ix - 4; x <= ix + 4; x++) {
-            double w = *p++;
+            int w = *p++;
+            treshold += w;
+            if (w > max)
+              max = w;
+          }
+        }
+        treshold = (treshold/81+max)/2; // set treshold between peak and average
+        for (int y = iy - 4; y <= iy + 4; y++) {
+          p = src + y * width + ix - 4;
+          for (int x = ix - 4; x <= ix + 4; x++) {
+            int w = *p++;
+            if (w < treshold)
+              w = 0;
             sumX += x * w;
             sumY += y * w;
             total += w;
           }
         }
         if (total > 0)
-        {    
-          targetChip->RapidGuideDataN[0].value = sumX/total;
-          targetChip->RapidGuideDataN[1].value = sumY/total;
+        {
+          targetChip->RapidGuideDataN[0].value = ((double)sumX)/total;
+          targetChip->RapidGuideDataN[1].value = ((double)sumY)/total;
           targetChip->RapidGuideDataNP->s=IPS_OK;
 
           DEBUGF(INDI::Logger::DBG_DEBUG, "Guide Star X: %g Y: %g FIT: %g", targetChip->RapidGuideDataN[0].value, targetChip->RapidGuideDataN[1].value,
                   targetChip->RapidGuideDataN[2].value);
         }
-        else {
+        else
+        {
           targetChip->RapidGuideDataNP->s=IPS_ALERT;
           targetChip->lastRapidX = targetChip->lastRapidY = -1;
         }
       }
-      else {
+      else
+      {
         targetChip->RapidGuideDataNP->s=IPS_ALERT;
         targetChip->lastRapidX = targetChip->lastRapidY = -1;
       }
       IDSetNumber(targetChip->RapidGuideDataNP,NULL);
-      
+
       if (showMarker)
       {
         int xmin = std::max(ix - 10, 0);
         int xmax = std::min(ix + 10, width - 1);
         int ymin = std::max(iy - 10, 0);
         int ymax = std::min(iy + 10, height - 1);
-        
+
         //fprintf(stderr, "%d %d %d %d\n", xmin, xmax, ymin, ymax);
-        
+
         if (ymin > 0)
         {
           p = src + ymin * width + xmin;
           for (int x = xmin; x <= xmax; x++)
             *p++ = 50000;
         }
-        
+
         if (xmin > 0)
         {
           for (int y = ymin; y<= ymax; y++)
@@ -1421,7 +1437,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
             *(src + y * width + xmin) = 50000;
           }
         }
-        
+
         if (xmax < width - 1)
         {
           for (int y = ymin; y<= ymax; y++)
@@ -1543,11 +1559,11 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
       }
 
 
-    } 
+    }
 
     targetChip->ImageExposureNP->s=IPS_OK;
     IDSetNumber(targetChip->ImageExposureNP,NULL);
-    
+
     if (autoLoop)
     {
       if (targetChip == &PrimaryCCD)
