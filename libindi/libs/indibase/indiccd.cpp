@@ -1370,22 +1370,22 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
         int sumY = 0;
         int total = 0;
         int max = 0;
-        int treshold = 0;
+        int noiseThreshold = 0;
         for (int y = iy - 4; y <= iy + 4; y++) {
           p = src + y * width + ix - 4;
           for (int x = ix - 4; x <= ix + 4; x++) {
             int w = *p++;
-            treshold += w;
+            noiseThreshold += w;
             if (w > max)
               max = w;
           }
         }
-        treshold = (treshold/81+max)/2; // set treshold between peak and average
+        noiseThreshold = (noiseThreshold/81+max)/2; // set threshold between peak and average
         for (int y = iy - 4; y <= iy + 4; y++) {
           p = src + y * width + ix - 4;
           for (int x = ix - 4; x <= ix + 4; x++) {
             int w = *p++;
-            if (w < treshold)
+            if (w < noiseThreshold)
               w = 0;
             sumX += x * w;
             sumY += y * w;
