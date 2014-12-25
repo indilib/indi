@@ -164,6 +164,8 @@ class Logger
          */
         inline static void unlock();
 
+        static INDI::DefaultDevice *parentDevice;
+
  public:
   enum VerbosityLevel
   {DBG_ERROR=0x1, DBG_WARNING=0x2, DBG_SESSION=0x4, DBG_DEBUG=0x8, DBG_EXTRA_1=0x10,
@@ -211,7 +213,8 @@ class Logger
     static ISwitch DebugLevelS[nlevels];
     static ISwitchVectorProperty DebugLevelSP;
     static bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-    static bool updateProperties(bool debugenable, INDI::DefaultDevice *device);
+    static bool initProperties(INDI::DefaultDevice *device);
+    static bool updateProperties(bool enable);
     static char Tags[nlevels][MAXINDINAME];
     static unsigned int rank(unsigned int l);
 

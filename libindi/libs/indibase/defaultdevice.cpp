@@ -380,7 +380,7 @@ void INDI::DefaultDevice::setDebug(bool enable)
     pDebug = enable;
 
     // Inform logger
-    if (Logger::updateProperties(enable, this) == false)
+    if (Logger::updateProperties(enable) == false)
       DEBUG(Logger::DBG_WARNING,"setLogDebug: Logger error");
 
     debugTriggered(enable);
@@ -627,6 +627,8 @@ bool INDI::DefaultDevice::initProperties()
     IUFillSwitch(&ConfigProcessS[1], "CONFIG_SAVE", "Save", ISS_OFF);
     IUFillSwitch(&ConfigProcessS[2], "CONFIG_DEFAULT", "Default", ISS_OFF);
     IUFillSwitchVector(&ConfigProcessSP, ConfigProcessS, NARRAY(ConfigProcessS), getDeviceName(), "CONFIG_PROCESS", "Configuration", "Options", IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+
+    INDI::Logger::initProperties(this);
 
     // Ready the logger
     std::string logFile;

@@ -65,6 +65,7 @@ ISwitchVectorProperty Logger::LoggingLevelSP;
 ISwitch Logger::ConfigurationS[2];
 ISwitchVectorProperty Logger::ConfigurationSP;
 
+INDI::DefaultDevice *Logger::parentDevice = NULL;
 unsigned int Logger::fileVerbosityLevel_=Logger::defaultlevel;
 unsigned int Logger::screenVerbosityLevel_=Logger::defaultlevel;
 unsigned int Logger::rememberscreenlevel_=Logger::defaultlevel;
@@ -86,36 +87,47 @@ int Logger::addDebugLevel(const char *debugLevelName, const char * loggingLevelN
     return DebugLevelSInit[customLevel++].levelmask;
 }
 
-bool Logger::updateProperties(bool debugenable, INDI::DefaultDevice *device) 
+bool Logger::initProperties(DefaultDevice *device)
 {
-  if (debugenable) 
+    for (unsigned int i=0; i<customLevel; i++)
     {
-      unsigned int i;
-      for (i=0; i<customLevel; i++)
-      {
-          IUFillSwitch(&DebugLevelS[i], DebugLevelSInit[i].name,DebugLevelSInit[i].label,DebugLevelSInit[i].state);
-          DebugLevelS[i].aux = (void *)&DebugLevelSInit[i].levelmask;
-          IUFillSwitch(&LoggingLevelS[i], LoggingLevelSInit[i].name,LoggingLevelSInit[i].label,LoggingLevelSInit[i].state);
-          LoggingLevelS[i].aux = (void *)&LoggingLevelSInit[i].levelmask;
-     }
+        IUFillSwitch(&DebugLevelS[i], DebugLevelSInit[i].name,DebugLevelSInit[i].label,DebugLevelSInit[i].state);
+        DebugLevelS[i].aux = (void *)&DebugLevelSInit[i].levelmask;
+        IUFillSwitch(&LoggingLevelS[i], LoggingLevelSInit[i].name,LoggingLevelSInit[i].label,LoggingLevelSInit[i].state);
+        LoggingLevelS[i].aux = (void *)&LoggingLevelSInit[i].levelmask;
+    }
 
-    IUFillSwitchVector(&DebugLevelSP, DebugLevelS, customLevel, device->getDeviceName(), "DEBUG_LEVEL" , "Debug Levels", OPTIONS_TAB, IP_RW, ISR_NOFMANY, 0, IPS_IDLE);
-    IUFillSwitchVector(&LoggingLevelSP, LoggingLevelS, customLevel, device->getDeviceName(), "LOGGING_LEVEL" , "Logging Levels", OPTIONS_TAB, IP_RW, ISR_NOFMANY, 0, IPS_IDLE);
-    device->defineSwitch(&DebugLevelSP);
-    device->defineSwitch(&LoggingLevelSP);
+  IUFillSwitchVector(&DebugLevelSP, DebugLevelS, customLevel, device->getDeviceName(), "DEBUG_LEVEL" , "Debug Levels", OPTIONS_TAB, IP_RW, ISR_NOFMANY, 0, IPS_IDLE);
+  IUFillSwitchVector(&LoggingLevelSP, LoggingLevelS, customLevel, device->getDeviceName(), "LOGGING_LEVEL" , "Logging Levels", OPTIONS_TAB, IP_RW, ISR_NOFMANY, 0, IPS_IDLE);
+
+  IUFillSwitch(&ConfigurationS[0], "CLIENT_DEBUG", "To Client", ISS_ON);
+  IUFillSwitch(&ConfigurationS[1], "FILE_DEBUG", "To Log File", ISS_OFF);
+  IUFillSwitchVector(&ConfigurationSP, ConfigurationS, 2, device->getDeviceName(), "LOG_OUTPUT", "Log Output", OPTIONS_TAB, IP_RW, ISR_NOFMANY, 0, IPS_IDLE);
+
+  parentDevice = device;
+
+  return true;
+
+}
+
+bool Logger::updateProperties(bool enable)
+{
+  if (enable)
+    {
+
+    parentDevice->defineSwitch(&DebugLevelSP);
+    parentDevice->defineSwitch(&LoggingLevelSP);
+
     screenVerbosityLevel_=rememberscreenlevel_;
 
-    IUFillSwitch(&ConfigurationS[0], "CLIENT_DEBUG", "To Client", ISS_ON);
-    IUFillSwitch(&ConfigurationS[1], "FILE_DEBUG", "To Log File", ISS_OFF);
-    IUFillSwitchVector(&ConfigurationSP, ConfigurationS, 2, device->getDeviceName(), "LOG_OUTPUT", "Log Output", OPTIONS_TAB, IP_RW, ISR_NOFMANY, 0, IPS_IDLE);
-    device->defineSwitch(&ConfigurationSP);
+    parentDevice->defineSwitch(&ConfigurationSP);
 
     } 
   else 
   {
-      device->deleteProperty(DebugLevelSP.name);
-      device->deleteProperty(LoggingLevelSP.name);
-      device->deleteProperty(ConfigurationSP.name);
+      parentDevice->deleteProperty(DebugLevelSP.name);
+      parentDevice->deleteProperty(LoggingLevelSP.name);
+      parentDevice->deleteProperty(ConfigurationSP.name);
       rememberscreenlevel_=screenVerbosityLevel_;
       screenVerbosityLevel_=defaultlevel;
   }
