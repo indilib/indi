@@ -160,7 +160,6 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 	bool gotoInProgress();
 
     bool loadProperties();
-	void setLogDebug (bool enable);
 	void setStepperSimulation (bool enable);
 
     void processNSWE(double mag, double angle);

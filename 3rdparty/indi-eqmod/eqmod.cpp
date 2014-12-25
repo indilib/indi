@@ -249,15 +249,6 @@ EQMod::~EQMod()
 
 }
 
-void EQMod::setLogDebug (bool enable) 
-{
-  
-  INDI::Telescope::setDebug(enable);
-  if (not INDI::Logger::updateProperties(enable, this))
-    DEBUG(INDI::Logger::DBG_WARNING,"setLogDebug: Logger error");
-  //if (mount) mount->setDebug(enable);
-
-}
 #ifdef WITH_SIMULATOR
 void EQMod::setStepperSimulation (bool enable) 
 {
@@ -1607,22 +1598,7 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 {
   bool compose=true;
     if(strcmp(dev,getDeviceName())==0)
-    {      
-      if (!strcmp(name, "DEBUG"))
-	{
-	  ISwitchVectorProperty *svp = getSwitch(name);
-	  IUUpdateSwitch(svp, states, names, n);
-	  ISwitch *sp = IUFindOnSwitch(svp);
-	  if (!sp)
-	    return false;
-	  
-	  if (!strcmp(sp->name, "ENABLE"))
-	    setLogDebug(true);
-	  else
-	    setLogDebug(false);
-	  return true;
-	}
-
+    {           
 #ifdef WITH_SIMULATOR
       if (!strcmp(name, "SIMULATION"))
 	{
