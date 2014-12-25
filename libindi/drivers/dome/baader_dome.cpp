@@ -106,8 +106,10 @@ BaaderDome::BaaderDome()
 {
 
    targetAz = 0;
-   shutterStatus= simShutterStatus = SHUTTER_UNKNOWN;
-   flapStatus   = simFlapStatus    = FLAP_UNKNOWN;
+   shutterStatus= SHUTTER_UNKNOWN;
+   flapStatus   = FLAP_UNKNOWN;
+   simShutterStatus = SHUTTER_CLOSED;
+   simFlapStatus    = FLAP_CLOSED;
    prev_az=0;
    prev_alt=0;
 
@@ -412,24 +414,24 @@ bool BaaderDome::UpdateShutterStatus()
 
     tcflush(PortFD, TCIOFLUSH);
 
-    if (!sim && (rc = tty_write(PortFD, "d#getflap", DOME_CMD, &nbytes_written)) != TTY_OK)
+    if (!sim && (rc = tty_write(PortFD, "d#getshut", DOME_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "d#getflap UpdateShutterStatus error: %s.", errstr);
+        DEBUGF(INDI::Logger::DBG_ERROR, "d#getshut UpdateShutterStatus error: %s.", errstr);
         return false;
     }
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "CMD (d#getflap)");
+    DEBUG(INDI::Logger::DBG_DEBUG, "CMD (d#getshut)");
 
     if (sim)
     {
 
         if (simShutterStatus == SHUTTER_CLOSED)
-            strncpy(resp, "d#flapclo", DOME_CMD);
+            strncpy(resp, "d#shutclo", DOME_CMD);
         else if (simShutterStatus == SHUTTER_OPENED)
-            strncpy(resp, "d#flapope", DOME_CMD);
+            strncpy(resp, "d#shutope", DOME_CMD);
         else if (simShutterStatus == SHUTTER_MOVING)
-            strncpy(resp, "d#flaprun", DOME_CMD);
+            strncpy(resp, "d#shutrun", DOME_CMD);
         nbytes_read=DOME_CMD;
     }
     else if ( (rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -443,7 +445,7 @@ bool BaaderDome::UpdateShutterStatus()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", resp);
 
-    rc = sscanf(resp, "d#flap%s", status);
+    rc = sscanf(resp, "d#shut%s", status);
 
     if (rc > 0)
     {
@@ -817,6 +819,8 @@ int BaaderDome::ControlDomeShutter(ShutterOperation operation)
     char cmd[DOME_BUF];
     char resp[DOME_BUF];
 
+    memset(cmd, 0, sizeof(cmd));
+
     if (operation == SHUTTER_OPEN)
     {
         targetShutter = operation;
@@ -906,6 +910,8 @@ int BaaderDome::ControlDomeFlap(FlapOperation operation)
     char errstr[MAXRBUF];
     char cmd[DOME_BUF];
     char resp[DOME_BUF];
+
+    memset(cmd, 0, sizeof(cmd));
 
     if (operation == FLAP_OPEN)
     {
@@ -1004,7 +1010,7 @@ bool BaaderDome::UpdateFlapStatus()
 
     if (rc > 0)
     {
-        DomeFlapSP.s = IPS_IDLE;
+        DomeFlapSP.s = IPS_OK;
         IUResetSwitch(&DomeFlapSP);
 
         if (!strcmp(status, "ope"))
