@@ -183,8 +183,6 @@ bool INDI::Dome::ISNewNumber (const char *dev, const char *name, double values[]
             PresetNP.s = IPS_OK;
             IDSetNumber(&PresetNP, NULL);
 
-            saveConfig();
-
             return true;
         }
 
@@ -193,8 +191,6 @@ bool INDI::Dome::ISNewNumber (const char *dev, const char *name, double values[]
             IUUpdateNumber(&DomeMeasurementsNP,values, names,n);
             DomeMeasurementsNP.s = IPS_OK;
             IDSetNumber(&DomeMeasurementsNP, NULL);
-
-            saveConfig();
 
             return true;
         }
