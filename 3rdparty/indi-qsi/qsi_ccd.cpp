@@ -161,7 +161,7 @@ bool QSICCD::initProperties()
     INDI::CCD::initProperties();
 
     IUFillSwitch(&CoolerS[0], "CONNECT_COOLER", "ON", ISS_OFF);
-    IUFillSwitch(&CoolerS[1], "DISCONNECT_COOLER", "OFF", ISS_OFF);
+    IUFillSwitch(&CoolerS[1], "DISCONNECT_COOLER", "OFF", ISS_ON);
     IUFillSwitchVector(&CoolerSP, CoolerS, 2, getDeviceName(), "COOLER_CONNECTION", "Cooler", MAIN_CONTROL_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillSwitch(&ShutterS[0], "SHUTTER_ON", "Manual open", ISS_OFF);
@@ -245,17 +245,20 @@ bool QSICCD::setupParams()
         return false;
     }
 
-
     DEBUGF(INDI::Logger::DBG_SESSION, "The CCD Temperature is %f.", temperature);
 
     TemperatureN[0].value = temperature;			/* CCD chip temperatre (degrees C) */
+    IDSetNumber(&TemperatureNP, NULL);
 
     SetCCDParams(sub_frame_x, sub_frame_y, 16, pixel_size_x, pixel_size_y);
 
     imageWidth  = PrimaryCCD.getSubW();
     imageHeight = PrimaryCCD.getSubH();
 
-    IDSetNumber(&TemperatureNP, NULL);
+    int nbuf;
+    nbuf=PrimaryCCD.getXRes()*PrimaryCCD.getYRes() * PrimaryCCD.getBPP()/8;                 //  this is pixel count
+    nbuf+=512;                      //  leave a little extra at the end
+    PrimaryCCD.setFrameBufferSize(nbuf);
 
     try
     {
@@ -300,10 +303,25 @@ bool QSICCD::setupParams()
         return false;
     }
 
-    int nbuf;
-    nbuf=PrimaryCCD.getXRes()*PrimaryCCD.getYRes() * PrimaryCCD.getBPP()/8;                 //  this is pixel count
-    nbuf+=512;                      //  leave a little extra at the end
-    PrimaryCCD.setFrameBufferSize(nbuf);
+    bool coolerOn=false;
+
+    try
+    {
+         QSICam.get_CoolerOn(&coolerOn);
+    } catch (std::runtime_error err)
+    {
+            CoolerSP.s = IPS_IDLE;
+            CoolerS[0].s = ISS_OFF;
+            CoolerS[1].s = ISS_ON;
+            DEBUGF(INDI::Logger::DBG_ERROR, "Error: CoolerOn() failed. %s.", err.what());
+            IDSetSwitch(&CoolerSP, NULL);
+            return false;
+    }
+
+    CoolerS[0].s = coolerOn ? ISS_ON : ISS_OFF;
+    CoolerS[1].s = coolerOn ? ISS_OFF : ISS_ON;
+    CoolerSP.s = IPS_OK;
+    IDSetSwitch(&CoolerSP, NULL);
 
     return true;
 }
