@@ -520,7 +520,8 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
         pa=targetFocalLength/targetChip->getPixelSizeX()*1000/targetChip->getBinX();
         pe=targetFocalLength/targetChip->getPixelSizeY()*1000/targetChip->getBinY();
 
-        //IDLog("Pixels are %4.2f %4.2f  pa %6.4f  pe %6.4f\n",PixelSizex,PixelSizey,pa,pe);
+        //IDLog("Focal length is %6.4f Pixels are %4.2f %4.2f  pa %6.4f  pe %6.4f\n",targetFocalLength,
+	//      targetChip->getPixelSizeX(), targetChip->getPixelSizeY(),pa,pe);
 
         //  these numbers are now pixels per radian
         float Scalex;
@@ -567,7 +568,7 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
         // Add declination drift, if any.
         decr += decDrift/3600.0 * 0.0174532925;
 
-        //fprintf(stderr,"decPE %7.5f  cameradec %7.5f  CenterOffsetDec %4.4f\n",decPE,cameradec,CenterOffsetDec);
+        //fprintf(stderr,"decPE %7.5f  cameradec %7.5f  CenterOffsetDec %4.4f\n",decPE,cameradec,decr);
         //  now lets calculate the radius we need to fetch
         float radius;
 
@@ -601,10 +602,11 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
         CCDChip::CCD_FRAME ftype = targetChip->getFrameType();
 
         if (ftype==CCDChip::LIGHT_FRAME)
-        {
+        {  
+            setlocale(LC_NUMERIC,"C");
             //sprintf(gsccmd,"gsc -c %8.6f %+8.6f -r 120 -m 0 9.1",rad+PEOffset,decPE);
             sprintf(gsccmd,"gsc -c %8.6f %+8.6f -r %4.1f -m 0 %4.2f -n 3000",rad+PEOffset,cameradec,radius,lookuplimit);
-            //fprintf(stderr,"gsccmd %s\n",gsccmd);
+            fprintf(stderr,"%s\n",gsccmd);
             pp=popen(gsccmd,"r");
             if(pp != NULL) {
                 char line[256];
@@ -672,10 +674,12 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
                     }
                 }
                 pclose(pp);
+		setlocale(LC_NUMERIC,"");
             } else
             {
                 IDMessage(getDeviceName(),"Error looking up stars, is gsc installed with appropriate environment variables set ??");
                 //fprintf(stderr,"Error doing gsc lookup\n");
+		setlocale(LC_NUMERIC,"");
             }
             if(drawn==0)
             {

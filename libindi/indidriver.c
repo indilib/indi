@@ -590,18 +590,24 @@ IUSnoopNumber (XMLEle *root, INumberVectorProperty *nvp)
 	(void) crackIPState (findXMLAttValu (root,"state"), &nvp->s);
 
 	/* match each INumber with a oneNumber */
+	setlocale(LC_NUMERIC,"C");
 	for (i = 0; i < nvp->nnp; i++) {
 	    for (ep = nextXMLEle(root,1); ep; ep = nextXMLEle(root,0)) {
-        if (!strcmp (tagXMLEle(ep)+3, "Number") &&
-			!strcmp (nvp->np[i].name, findXMLAttValu(ep, "name"))) {
-		    if (f_scansexa (pcdataXMLEle(ep), &nvp->np[i].value) < 0)
-			return (-1);	/* bad number format */
-		    break;
+	      if (!strcmp (tagXMLEle(ep)+3, "Number") &&
+		  !strcmp (nvp->np[i].name, findXMLAttValu(ep, "name"))) {
+		if (f_scansexa (pcdataXMLEle(ep), &nvp->np[i].value) < 0) {
+		  setlocale(LC_NUMERIC,"");
+		  return (-1);	/* bad number format */
 		}
+		break;
+	      }
 	    }
-	    if (!ep)
-		return (-1);	/* element not found */
+	    if (!ep) {
+	      setlocale(LC_NUMERIC,"");
+	      return (-1);	/* element not found */
+	    }
 	}
+	setlocale(LC_NUMERIC,"");
 
 	/* ok */
 	return (0);
