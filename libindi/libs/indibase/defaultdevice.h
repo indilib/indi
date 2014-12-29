@@ -93,7 +93,23 @@ drivers directly as it is linked with main(). Virtual drivers cannot employ INDI
 class INDI::DefaultDevice : public INDI::BaseDevice
 {
 
-public:
+public:       
+
+    /** \enum DeviceInterface
+        \brief Interfaces define the class of devices the driver implements. A driver may implement one or more interfaces.
+    */
+    enum
+    {
+        GENERAL_INTERFACE       = 0,                /*!< Default interface for all INDI devices */
+        TELESCOPE_INTERFACE     = (1 << 0),         /*!< Telescope interface, must subclass INDI::Telescope */
+        CCD_INTERFACE           = (1 << 1),         /*!< CCD interface, must subclass INDI::CCD */
+        GUIDER_INTERFACE        = (1 << 2),         /*!< Guider interface, must subclass INDI::GuiderInterface */
+        FOCUSER_INTERFACE       = (1 << 3),         /*!< Focuser interface, must subclass INDI::FocuserInterface */
+        FILTER_INTERFACE        = (1 << 4),         /*!< Filter interface, must subclass INDI::FilterInterface */
+        DOME_INTERFACE          = (1 << 5),         /*!< Dome interface, must subclass INDI::DomeInterface */
+        AUX_INTERFACE           = (1 << 6),         /*!< Auxiliary interface */
+    } DeviceInterface;
+
     DefaultDevice();
     virtual ~DefaultDevice();
 
@@ -229,6 +245,17 @@ to disconnect the device.
     */
     virtual bool ISSnoopDevice (XMLEle *root) { return false;}
 
+    /**
+     * @return getInterface Return the interface declared by the driver.
+     */
+    unsigned int getInterfaceDescriptor() const;
+
+    /**
+     * @brief setInterface Set driver interface. By default the driver interface is set to GENERAL_DEVICE. You may send an ORed list of DeviceInterface values.
+     * @param value ORed list of DeviceInterface values.
+     */
+    void setInterfaceDescriptor(unsigned int value);
+
 protected:
 
     // Configuration
@@ -328,10 +355,11 @@ private:
 
     bool isInit;
     bool pDebug;
-    bool pSimulation;
+    bool pSimulation;    
 
     unsigned int majorVersion;
     unsigned int minorVersion;
+    unsigned int interfaceDescriptor;
 
     ISwitch DebugS[2];
     ISwitch SimulationS[2];
@@ -344,7 +372,7 @@ private:
     ISwitchVectorProperty ConnectionSP;
 
 
-    IText DriverInfoT[3];
+    IText DriverInfoT[4];
     ITextVectorProperty DriverInfoTP;
 
 

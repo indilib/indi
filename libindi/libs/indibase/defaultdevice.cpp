@@ -597,12 +597,24 @@ bool INDI::DefaultDevice::updateProperties()
     return true;
 }
 
+unsigned int INDI::DefaultDevice::getInterfaceDescriptor() const
+{
+    return interfaceDescriptor;
+}
+
+void INDI::DefaultDevice::setInterfaceDescriptor(unsigned int value)
+{
+    interfaceDescriptor = value;
+}
+
 
 bool INDI::DefaultDevice::initProperties()
 {
     char versionStr[16];
+    char interfaceStr[16];
 
     snprintf(versionStr, 16, "%d.%d", majorVersion, minorVersion);
+    snprintf(interfaceStr, 16, "%d", interfaceDescriptor);
 
     IUFillSwitch(&ConnectionS[0],"CONNECT","Connect",ISS_OFF);
     IUFillSwitch(&ConnectionS[1],"DISCONNECT","Disconnect",ISS_ON);
@@ -612,7 +624,8 @@ bool INDI::DefaultDevice::initProperties()
     IUFillText(&DriverInfoT[0],"NAME","Name",getDefaultName());
     IUFillText(&DriverInfoT[1],"EXEC","Exec",getDriverName());
     IUFillText(&DriverInfoT[2],"VERSION","Version",versionStr);
-    IUFillTextVector(&DriverInfoTP,DriverInfoT,3,getDeviceName(),"DRIVER_INFO","Driver Info",OPTIONS_TAB,IP_RO,60,IPS_IDLE);
+    IUFillText(&DriverInfoT[3],"INTERFACES","Interfaces", interfaceStr);
+    IUFillTextVector(&DriverInfoTP,DriverInfoT,4,getDeviceName(),"DRIVER_INFO","Driver Info",OPTIONS_TAB,IP_RO,60,IPS_IDLE);
     registerProperty(&DriverInfoTP, INDI_TEXT);
 
     IUFillSwitch(&DebugS[0], "ENABLE", "Enable", ISS_OFF);
