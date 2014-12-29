@@ -182,6 +182,8 @@ bool QSICCD::initProperties()
     initFilterProperties(getDeviceName(), FILTER_TAB);
 
     addDebugControl();
+
+    setInterfaceDescriptor(getInterfaceDescriptor() | FILTER_INTERFACE);
 }
 
 bool QSICCD::updateProperties()

@@ -337,6 +337,8 @@ bool EQMod::initProperties()
     /* Make sure to init parent properties first */
     INDI::Telescope::initProperties();
 
+    setInterfaceDescriptor(getInterfaceDescriptor() | GUIDER_INTERFACE);
+
     return true;
 }
 

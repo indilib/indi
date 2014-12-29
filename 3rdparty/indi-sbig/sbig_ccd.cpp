@@ -373,6 +373,8 @@ bool SBIGCCD::initProperties()
   FilterSlotN[0].min = 1;
   FilterSlotN[0].max = MAX_CFW_TYPES;
 
+  setInterfaceDescriptor(getInterfaceDescriptor() | FILTER_INTERFACE);
+
   return true;
 }
 
