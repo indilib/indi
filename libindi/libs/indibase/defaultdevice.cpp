@@ -604,7 +604,10 @@ unsigned int INDI::DefaultDevice::getInterfaceDescriptor() const
 
 void INDI::DefaultDevice::setInterfaceDescriptor(unsigned int value)
 {
+    char interfaceStr[16];
     interfaceDescriptor = value;
+    snprintf(interfaceStr, 16, "%d", interfaceDescriptor);
+    IUSaveText(&DriverInfoT[3], interfaceStr);
 }
 
 
@@ -621,10 +624,10 @@ bool INDI::DefaultDevice::initProperties()
     IUFillSwitchVector(&ConnectionSP,ConnectionS,2,getDeviceName(),"CONNECTION","Connection","Main Control",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
     registerProperty(&ConnectionSP, INDI_SWITCH);
 
-    IUFillText(&DriverInfoT[0],"NAME","Name",getDefaultName());
-    IUFillText(&DriverInfoT[1],"EXEC","Exec",getDriverName());
-    IUFillText(&DriverInfoT[2],"VERSION","Version",versionStr);
-    IUFillText(&DriverInfoT[3],"INTERFACES","Interfaces", interfaceStr);
+    IUFillText(&DriverInfoT[0],"DRIVER_NAME","Name",getDefaultName());
+    IUFillText(&DriverInfoT[1],"DRIVER_EXEC","Exec",getDriverName());
+    IUFillText(&DriverInfoT[2],"DRIVER_VERSION","Version",versionStr);
+    IUFillText(&DriverInfoT[3],"DRIVER_INTERFACE","Interface", interfaceStr);
     IUFillTextVector(&DriverInfoTP,DriverInfoT,4,getDeviceName(),"DRIVER_INFO","Driver Info",OPTIONS_TAB,IP_RO,60,IPS_IDLE);
     registerProperty(&DriverInfoTP, INDI_TEXT);
 

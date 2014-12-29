@@ -60,6 +60,8 @@ bool INDI::Focuser::initProperties()
 
     controller->initProperties();
 
+    setInterfaceDescriptor(FOCUSER_INTERFACE);
+
     return true;
 }
 

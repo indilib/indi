@@ -89,6 +89,8 @@ bool INDI::Dome::initProperties()
     IDSnoopDevice(ActiveDeviceT[0].text,"EQUATORIAL_EOD_COORD");
     IDSnoopDevice(ActiveDeviceT[0].text,"GEOGRAPHIC_COORD");
 
+    setInterfaceDescriptor(DOME_INTERFACE);
+
     return true;
 }
 

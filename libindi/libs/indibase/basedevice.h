@@ -156,6 +156,16 @@ public:
      **/
     const char *getDriverExec();
 
+    /** \return driver version
+     *  \note This can only be valid if DRIVER_INFO is defined by the driver.
+     **/
+    const char *getDriverVersion();
+
+    /** \return driver interface descriptor
+     *  \note This can only be valid if DRIVER_INFO is defined by the driver.
+     **/
+    unsigned int getDriverInterface();
+
 protected:
 
     /** \brief Build a property given the supplied XML element (defXXX)

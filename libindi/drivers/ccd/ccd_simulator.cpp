@@ -243,6 +243,8 @@ bool CCDSim::initProperties()
 
     addDebugControl();
 
+    setInterfaceDescriptor(getInterfaceDescriptor() | FILTER_INTERFACE);
+
     return true;
 }
 

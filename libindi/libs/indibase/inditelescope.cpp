@@ -86,6 +86,8 @@ bool INDI::Telescope::initProperties()
 
     TrackState=SCOPE_PARKED;
 
+    setInterfaceDescriptor(TELESCOPE_INTERFACE);
+
     return true;
 }
 

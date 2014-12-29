@@ -440,9 +440,10 @@ bool INDI::CCD::initProperties()
     IDSnoopDevice(ActiveDeviceT[2].text,"FILTER_SLOT");
     IDSnoopDevice(ActiveDeviceT[2].text,"FILTER_NAME");
 
-
     // Guider Interface
     initGuiderProperties(getDeviceName(), GUIDE_CONTROL_TAB);
+
+    setInterfaceDescriptor(CCD_INTERFACE|GUIDER_INTERFACE);
 
     return true;
 }

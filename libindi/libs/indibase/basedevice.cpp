@@ -1216,7 +1216,7 @@ const char *INDI::BaseDevice::getDriverName()
     if (driverInfo == NULL)
         return NULL;
 
-    IText *driverName = IUFindText(driverInfo, "NAME");
+    IText *driverName = IUFindText(driverInfo, "DRIVER_NAME");
     if (driverName)
         return driverName->text;
 
@@ -1230,10 +1230,38 @@ const char *INDI::BaseDevice::getDriverExec()
     if (driverInfo == NULL)
         return NULL;
 
-    IText *driverExec = IUFindText(driverInfo, "EXEC");
+    IText *driverExec = IUFindText(driverInfo, "DRIVER_EXEC");
     if (driverExec)
         return driverExec->text;
 
     return NULL;
+}
+
+const char *INDI::BaseDevice::getDriverVersion()
+{
+    ITextVectorProperty *driverInfo = getText("DRIVER_INFO");
+
+    if (driverInfo == NULL)
+        return NULL;
+
+    IText *driverVersion = IUFindText(driverInfo, "DRIVER_VERSION");
+    if (driverVersion)
+        return driverVersion->text;
+
+    return NULL;
+}
+
+unsigned int INDI::BaseDevice::getDriverInterface()
+{
+    ITextVectorProperty *driverInfo = getText("DRIVER_INFO");
+
+    if (driverInfo == NULL)
+        return 0;
+
+    IText *driverInterface = IUFindText(driverInfo, "DRIVER_INTERFACE");
+    if (driverInterface)
+        return atoi(driverInterface->text);
+
+    return 0;
 }
 

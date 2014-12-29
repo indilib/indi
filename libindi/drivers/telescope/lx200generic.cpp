@@ -262,6 +262,8 @@ bool LX200Generic::initProperties()
     /* Add debug/simulation/config controls so we may debug driver if necessary */
     addAuxControls();
 
+    setInterfaceDescriptor(getInterfaceDescriptor() | GUIDER_INTERFACE);
+
     return true;
 }
 
