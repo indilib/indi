@@ -50,8 +50,8 @@ const char *BASIC_GROUP    = "Main Control";		// Main Group
 const char *OPTIONS_GROUP  = "Options";			// Options Group
 
 /* Handy Macros */
-#define currentRA	EquatorialCoordsRN[0].value
-#define currentDEC	EquatorialCoordsRN[1].value
+#define currentRA	EquatorialCoordsN[0].value
+#define currentDEC	EquatorialCoordsN[1].value
 
 static void ISPoll(void *);
 static void retry_connection(void *);
@@ -167,9 +167,9 @@ LX200Basic::LX200Basic()
    currentSet     = 0;
 
    IDLog("Initializing from LX200 Basic device...\n");
-   IDLog("Driver Version: 2007-09-28\n");
+   IDLog("Driver Version: 2014-12-31\n");
  
-   enable_simulation(false);  
+   enable_simulation(false);
 
  }
 
@@ -210,9 +210,9 @@ void LX200Basic::init_properties()
     IUFillTextVector(&ObjectTP, ObjectT, NARRAY(ObjectT), mydev, "OBJECT_INFO", "Object", BASIC_GROUP, IP_RW, 0, IPS_IDLE);
 
     // Equatorial Coords
-    IUFillNumber(&EquatorialCoordsRN[0], "RA", "RA  H:M:S", "%10.6m",  0., 24., 0., 0.);
-    IUFillNumber(&EquatorialCoordsRN[1], "DEC", "Dec D:M:S", "%10.6m", -90., 90., 0., 0.);
-    IUFillNumberVector(&EquatorialCoordsRNP, EquatorialCoordsRN, NARRAY(EquatorialCoordsRN), mydev, "EQUATORIAL_EOD_COORD" , "Equatorial JNow", BASIC_GROUP, IP_RO, 0, IPS_IDLE);
+    IUFillNumber(&EquatorialCoordsN[0], "RA", "RA  H:M:S", "%10.6m",  0., 24., 0., 0.);
+    IUFillNumber(&EquatorialCoordsN[1], "DEC", "Dec D:M:S", "%10.6m", -90., 90., 0., 0.);
+    IUFillNumberVector(&EquatorialCoordsNP, EquatorialCoordsN, NARRAY(EquatorialCoordsN), mydev, "EQUATORIAL_EOD_COORD" , "Equatorial JNow", BASIC_GROUP, IP_RW, 0, IPS_IDLE);
 
     // Slew threshold
     IUFillNumber(&SlewAccuracyN[0], "SlewRA",  "RA (arcmin)", "%10.6m",  0., 60., 1., 3.0);
@@ -238,7 +238,7 @@ void LX200Basic::ISGetProperties(const char *dev)
   IDDefSwitch(&ConnectSP, NULL);
   IDDefText(&PortTP, NULL);
   IDDefText(&ObjectTP, NULL);
-  IDDefNumber(&EquatorialCoordsRNP, NULL);
+  IDDefNumber(&EquatorialCoordsNP, NULL);
   IDDefSwitch(&OnCoordSetSP, NULL);
   IDDefSwitch(&AbortSlewSP, NULL);
 
@@ -312,19 +312,19 @@ void LX200Basic::ISNewNumber (const char *dev, const char *name, double values[]
 	// ===================================
         // Equatorial Coords
 	// ===================================
-    if (!strcmp (name, EquatorialCoordsRNP.name))
+    if (!strcmp (name, EquatorialCoordsNP.name))
 	{
 	  int i=0, nset=0, error_code=0;
 	  double newRA =0, newDEC =0;
 
 	    for (nset = i = 0; i < n; i++)
 	    {
-        INumber *eqp = IUFindNumber (&EquatorialCoordsRNP, names[i]);
-        if (eqp == &EquatorialCoordsRN[0])
+        INumber *eqp = IUFindNumber (&EquatorialCoordsNP, names[i]);
+        if (eqp == &EquatorialCoordsN[0])
 		{
                     newRA = values[i];
 		    nset += newRA >= 0 && newRA <= 24.0;
-        } else if (eqp == &EquatorialCoordsRN[1])
+        } else if (eqp == &EquatorialCoordsN[1])
 		{
 		    newDEC = values[i];
 		    nset += newDEC >= -90.0 && newDEC <= 90.0;
@@ -345,7 +345,7 @@ void LX200Basic::ISNewNumber (const char *dev, const char *name, double values[]
 	   
 	   if (!simulation && ( (error_code = setObjectRA(fd, newRA)) < 0 || ( error_code = setObjectDEC(fd, newDEC)) < 0))
 	   {
-         handle_error(&EquatorialCoordsRNP, error_code, "Setting RA/DEC");
+         handle_error(&EquatorialCoordsNP, error_code, "Setting RA/DEC");
 	     return;
 	   } 
 	   
@@ -354,15 +354,15 @@ void LX200Basic::ISNewNumber (const char *dev, const char *name, double values[]
 	   
 	   if (process_coords() == false)
 	   {
-         EquatorialCoordsRNP.s = IPS_ALERT;
-         IDSetNumber(&EquatorialCoordsRNP, NULL);
+         EquatorialCoordsNP.s = IPS_ALERT;
+         IDSetNumber(&EquatorialCoordsNP, NULL);
 	     
 	   }
 	} // end nset
 	else
 	{
-        EquatorialCoordsRNP.s = IPS_ALERT;
-        IDSetNumber(&EquatorialCoordsRNP, "RA or Dec missing or invalid");
+        EquatorialCoordsNP.s = IPS_ALERT;
+        IDSetNumber(&EquatorialCoordsNP, "RA or Dec missing or invalid");
 	}
 
 	    return;
@@ -455,12 +455,12 @@ void LX200Basic::ISNewSwitch (const char *dev, const char *name, ISState *states
 	  IUResetSwitch(&AbortSlewSP);
 	  abortSlew(fd);
 
-        if (EquatorialCoordsRNP.s == IPS_BUSY)
+        if (EquatorialCoordsNP.s == IPS_BUSY)
 	    {
             AbortSlewSP.s = IPS_OK;
-            EquatorialCoordsRNP.s       = IPS_IDLE;
+            EquatorialCoordsNP.s       = IPS_IDLE;
             IDSetSwitch(&AbortSlewSP, "Slew aborted.");
-            IDSetNumber(&EquatorialCoordsRNP, NULL);
+            IDSetNumber(&EquatorialCoordsNP, NULL);
         }
 
 	    return;
@@ -513,7 +513,7 @@ void LX200Basic::reset_all_properties()
     AbortSlewSP.s		= IPS_IDLE;
     PortTP.s			= IPS_IDLE;
     ObjectTP.s			= IPS_IDLE;
-    EquatorialCoordsRNP.s	= IPS_IDLE;
+    EquatorialCoordsNP.s	= IPS_IDLE;
     SlewAccuracyNP.s		= IPS_IDLE;
     TrackAccuracyNP.s		= IPS_IDLE;
 
@@ -529,7 +529,7 @@ void LX200Basic::reset_all_properties()
     IDSetSwitch(&AbortSlewSP, NULL);
     IDSetText(&PortTP, NULL);
     IDSetText(&ObjectTP, NULL);
-    IDSetNumber(&EquatorialCoordsRNP, NULL);
+    IDSetNumber(&EquatorialCoordsNP, NULL);
     IDSetNumber(&SlewAccuracyNP, NULL);
     IDSetNumber(&TrackAccuracyNP, NULL);
 }
@@ -577,7 +577,7 @@ void LX200Basic::ISPoll()
         double dx, dy;
 	int error_code=0;
 
-    switch (EquatorialCoordsRNP.s)
+    switch (EquatorialCoordsNP.s)
 	{
 		case IPS_IDLE:
 		getLX200RA(fd, &currentRA);
@@ -588,7 +588,7 @@ void LX200Basic::ISPoll()
 		{
             lastRA = currentRA;
 			lastDEC = currentDEC;
-			IDSetNumber (&EquatorialCoordsRNP, NULL);
+            IDSetNumber (&EquatorialCoordsNP, NULL);
 		}
         	break;
 
@@ -605,8 +605,8 @@ void LX200Basic::ISPoll()
 		        lastDEC = currentDEC;
 	       		IUResetSwitch(&OnCoordSetSP);
 	       		OnCoordSetSP.s = IPS_OK;
-                EquatorialCoordsRNP.s = IPS_OK;
-                IDSetNumber (&EquatorialCoordsRNP, NULL);
+                EquatorialCoordsNP.s = IPS_OK;
+                IDSetNumber (&EquatorialCoordsNP, NULL);
 
 			switch (currentSet)
 			{
@@ -626,14 +626,14 @@ void LX200Basic::ISPoll()
 		  
 	    	}
 		else
-			IDSetNumber (&EquatorialCoordsRNP, NULL);
+            IDSetNumber (&EquatorialCoordsNP, NULL);
 	    	break;
 
 		case IPS_OK:
 	  
 		if ( (error_code = getLX200RA(fd, &currentRA)) < 0 || (error_code = getLX200DEC(fd, &currentDEC)) < 0)
 		{
-	  		handle_error(&EquatorialCoordsRNP, error_code, "Getting RA/DEC");
+            handle_error(&EquatorialCoordsNP, error_code, "Getting RA/DEC");
 	  		return;
 		}
 	
@@ -644,7 +644,7 @@ void LX200Basic::ISPoll()
 		{
 		  	lastRA  = currentRA;
 			lastDEC = currentDEC;
-			IDSetNumber (&EquatorialCoordsRNP, NULL);
+            IDSetNumber (&EquatorialCoordsNP, NULL);
 		}
         	break;
 
@@ -670,7 +670,7 @@ bool LX200Basic::process_coords()
     // Slew
     case LX200_SLEW:
           lastSet = LX200_SLEW;
-      if (EquatorialCoordsRNP.s == IPS_BUSY)
+      if (EquatorialCoordsNP.s == IPS_BUSY)
 	  {
 	     IDLog("Aborting Slew\n");
 	     abortSlew(fd);
@@ -685,17 +685,17 @@ bool LX200Basic::process_coords()
 	    return false;
 	  }
 
-	  EquatorialCoordsRNP.s = IPS_BUSY;
+      EquatorialCoordsNP.s = IPS_BUSY;
 	  fs_sexa(RAStr, targetRA, 2, 3600);
 	  fs_sexa(DecStr, targetDEC, 2, 3600);
-      IDSetNumber(&EquatorialCoordsRNP, "Slewing to JNow RA %s - DEC %s", RAStr, DecStr);
+      IDSetNumber(&EquatorialCoordsNP, "Slewing to JNow RA %s - DEC %s", RAStr, DecStr);
 	  IDLog("Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
 	  break;
 
      // Track
      case LX200_TRACK:
           //IDLog("We're in LX200_TRACK\n");
-          if (EquatorialCoordsRNP.s == IPS_BUSY)
+          if (EquatorialCoordsNP.s == IPS_BUSY)
 	  {
 	     IDLog("Aborting Slew\n");
 	     abortSlew(fd);
@@ -717,19 +717,19 @@ bool LX200Basic::process_coords()
 
 		fs_sexa(RAStr, targetRA, 2, 3600);
 	        fs_sexa(DecStr, targetDEC, 2, 3600);
-		EquatorialCoordsRNP.s = IPS_BUSY;
-        IDSetNumber(&EquatorialCoordsRNP, "Slewing to JNow RA %s - DEC %s", RAStr, DecStr);
+        EquatorialCoordsNP.s = IPS_BUSY;
+        IDSetNumber(&EquatorialCoordsNP, "Slewing to JNow RA %s - DEC %s", RAStr, DecStr);
 		IDLog("Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
 	  }
 	  else
 	  {
 	    //IDLog("Tracking called, but tracking threshold not reached yet.\n");
-	    EquatorialCoordsRNP.s = IPS_OK;
+        EquatorialCoordsNP.s = IPS_OK;
 
 	    if (lastSet != LX200_TRACK)
-          IDSetNumber(&EquatorialCoordsRNP, "Tracking...");
+          IDSetNumber(&EquatorialCoordsNP, "Tracking...");
 	    else
-          IDSetNumber(&EquatorialCoordsRNP, NULL);
+          IDSetNumber(&EquatorialCoordsNP, NULL);
 
 	  }
 	  lastSet = LX200_TRACK;
@@ -739,23 +739,23 @@ bool LX200Basic::process_coords()
     case LX200_SYNC:
 
       lastSet = LX200_SYNC;
-      EquatorialCoordsRNP.s = IPS_IDLE;
+      EquatorialCoordsNP.s = IPS_IDLE;
 	   
 	  if ( !simulation && ( error_code = Sync(fd, syncString) < 0) )
 	  {
-            IDSetNumber( &EquatorialCoordsRNP , "Synchronization failed.");
+            IDSetNumber( &EquatorialCoordsNP , "Synchronization failed.");
 		return false;
 	  }
 
 	  if (simulation)
 	  {
-             EquatorialCoordsRN[0].value = EquatorialCoordsRN[0].value;
-             EquatorialCoordsRN[1].value = EquatorialCoordsRN[1].value;
+             EquatorialCoordsN[0].value = targetRA;
+             EquatorialCoordsN[1].value = targetDEC;
 	  }
 
-	  EquatorialCoordsRNP.s = IPS_OK;
+      EquatorialCoordsNP.s = IPS_OK;
       IDLog("Synchronization successful %s\n", syncString);
-      IDSetNumber(&EquatorialCoordsRNP, "Synchronization successful.");
+      IDSetNumber(&EquatorialCoordsNP, "Synchronization successful.");
 	  break;
     }
 
@@ -842,7 +842,7 @@ void LX200Basic::get_initial_data()
   getLX200RA(fd, &currentRA);
   getLX200DEC(fd, &currentDEC);
 
-  IDSetNumber (&EquatorialCoordsRNP, NULL);  
+  IDSetNumber (&EquatorialCoordsNP, NULL);
 }
 
 /**************************************************************************************

@@ -53,7 +53,7 @@ private:
   IText ObjectT[1];
 
   /* Numbers */
-  INumber EquatorialCoordsRN[2];
+  INumber EquatorialCoordsN[2];
   INumber SlewAccuracyN[2];
   INumber TrackAccuracyN[2];
   
@@ -63,7 +63,7 @@ private:
   ISwitchVectorProperty AbortSlewSP;
   
    /* Number Vectors */
-  INumberVectorProperty EquatorialCoordsRNP;
+  INumberVectorProperty EquatorialCoordsNP;
   INumberVectorProperty SlewAccuracyNP;
   INumberVectorProperty TrackAccuracyNP;
   
