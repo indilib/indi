@@ -249,7 +249,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		591944B818F9541500837724 /* libindiAlignmentDriver.0.9.9.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libindiAlignmentDriver.0.9.9.dylib; path = ../../../../../../usr/local/Cellar/libindi/0.9.9.1769/lib/libindiAlignmentDriver.0.9.9.dylib; sourceTree = "<group>"; };
+		591944B818F9541500837724 /* libindiAlignmentDriver.0.9.9.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libindiAlignmentDriver.0.9.9.dylib; sourceTree = "<group>"; };
 		591991A6188FC99E007DD2DE /* indiserver-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "indiserver-Info.plist"; sourceTree = "<group>"; };
 		591991A7188FC9AD007DD2DE /* indiserver.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = indiserver.c; path = ../../libindi/indiserver.c; sourceTree = "<group>"; };
 		591991A9188FC9BA007DD2DE /* fq.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fq.c; path = ../../libindi/fq.c; sourceTree = "<group>"; };
@@ -278,21 +278,21 @@
 		591F82DF189051AF00EA2E8C /* QHY8PRO.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = QHY8PRO.HEX; sourceTree = "<group>"; };
 		591F82E0189051AF00EA2E8C /* QHY9.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = QHY9.HEX; sourceTree = "<group>"; };
 		591F82E1189051AF00EA2E8C /* QHY9L.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = QHY9L.HEX; sourceTree = "<group>"; };
-		5949239F1A47687600E447C3 /* libatikccd.0.20.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libatikccd.0.20.dylib; path = ../../../../../../usr/local/lib/libatikccd.0.20.dylib; sourceTree = "<group>"; };
+		5949239F1A47687600E447C3 /* libatikccd.0.20.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libatikccd.0.20.dylib; sourceTree = "<group>"; };
 		594D0B33188300ED00B50F4E /* INDI Server.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "INDI Server.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		594D0B36188300ED00B50F4E /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		594D0B39188300ED00B50F4E /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
 		594D0B3A188300ED00B50F4E /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = System/Library/Frameworks/CoreData.framework; sourceTree = SDKROOT; };
 		594D0B3B188300ED00B50F4E /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		594D0B55188300ED00B50F4E /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = Library/Frameworks/XCTest.framework; sourceTree = DEVELOPER_DIR; };
-		5950C16118D6F21700B587B2 /* libindi.0.9.9.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libindi.0.9.9.dylib; path = ../../../../../../usr/local/Cellar/libindi/0.9.9.1769/lib/libindi.0.9.9.dylib; sourceTree = "<group>"; };
-		5950C16218D6F21700B587B2 /* libindidriver.0.9.9.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libindidriver.0.9.9.dylib; path = ../../../../../../usr/local/Cellar/libindi/0.9.9.1769/lib/libindidriver.0.9.9.dylib; sourceTree = "<group>"; };
-		5950C16318D6F21700B587B2 /* libindimain.0.9.9.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libindimain.0.9.9.dylib; path = ../../../../../../usr/local/Cellar/libindi/0.9.9.1769/lib/libindimain.0.9.9.dylib; sourceTree = "<group>"; };
-		596355D2189949C7009B1A39 /* indi_spectracyber */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_spectracyber; path = ../../../../../../usr/local/bin/indi_spectracyber; sourceTree = "<group>"; };
-		596355D4189949D8009B1A39 /* indi_maxdomeii */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_maxdomeii; path = ../../../../../../usr/local/bin/indi_maxdomeii; sourceTree = "<group>"; };
-		596355D6189949F4009B1A39 /* indi_maxdomeii.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = indi_maxdomeii.xml; path = ../../../../../../usr/local/share/indi/indi_maxdomeii.xml; sourceTree = "<group>"; };
-		596355D8189949FF009B1A39 /* indi_spectracyber_sk.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = indi_spectracyber_sk.xml; path = ../../../../../../usr/local/share/indi/indi_spectracyber_sk.xml; sourceTree = "<group>"; };
-		596355D9189949FF009B1A39 /* indi_spectracyber.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = indi_spectracyber.xml; path = ../../../../../../usr/local/share/indi/indi_spectracyber.xml; sourceTree = "<group>"; };
+		5950C16118D6F21700B587B2 /* libindi.0.9.9.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libindi.0.9.9.dylib; sourceTree = "<group>"; };
+		5950C16218D6F21700B587B2 /* libindidriver.0.9.9.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libindidriver.0.9.9.dylib; sourceTree = "<group>"; };
+		5950C16318D6F21700B587B2 /* libindimain.0.9.9.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libindimain.0.9.9.dylib; sourceTree = "<group>"; };
+		596355D2189949C7009B1A39 /* indi_spectracyber */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = indi_spectracyber; sourceTree = "<group>"; };
+		596355D4189949D8009B1A39 /* indi_maxdomeii */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = indi_maxdomeii; sourceTree = "<group>"; };
+		596355D6189949F4009B1A39 /* indi_maxdomeii.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = indi_maxdomeii.xml; sourceTree = "<group>"; };
+		596355D8189949FF009B1A39 /* indi_spectracyber_sk.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = indi_spectracyber_sk.xml; sourceTree = "<group>"; };
+		596355D9189949FF009B1A39 /* indi_spectracyber.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = indi_spectracyber.xml; sourceTree = "<group>"; };
 		596EBB45188AC60700190323 /* CMAppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CMAppDelegate.h; sourceTree = SOURCE_ROOT; };
 		596EBB46188AC60700190323 /* CMAppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CMAppDelegate.m; sourceTree = SOURCE_ROOT; };
 		596EBB47188AC60700190323 /* CMDevice.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CMDevice.h; sourceTree = SOURCE_ROOT; };
@@ -309,54 +309,54 @@
 		597B890E1887E6FF0093873A /* SecurityFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SecurityFoundation.framework; path = System/Library/Frameworks/SecurityFoundation.framework; sourceTree = SDKROOT; };
 		597B89111887E77F0093873A /* ServiceManagement.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ServiceManagement.framework; path = System/Library/Frameworks/ServiceManagement.framework; sourceTree = SDKROOT; };
 		597B89241888016F0093873A /* indiserver */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indiserver; sourceTree = BUILT_PRODUCTS_DIR; };
-		59B1F11D18BBB00500A7AC9A /* indi_aagcloudwatcher */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_aagcloudwatcher; path = ../../../../../../usr/local/bin/indi_aagcloudwatcher; sourceTree = "<group>"; };
-		59B1F11F18BBB02800A7AC9A /* indi_aagcloudwatcher_sk.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = indi_aagcloudwatcher_sk.xml; path = ../../../../../../usr/local/share/indi/indi_aagcloudwatcher_sk.xml; sourceTree = "<group>"; };
-		59B1F12018BBB02800A7AC9A /* indi_aagcloudwatcher.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = indi_aagcloudwatcher.xml; path = ../../../../../../usr/local/share/indi/indi_aagcloudwatcher.xml; sourceTree = "<group>"; };
+		59B1F11D18BBB00500A7AC9A /* indi_aagcloudwatcher */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = indi_aagcloudwatcher; sourceTree = "<group>"; };
+		59B1F11F18BBB02800A7AC9A /* indi_aagcloudwatcher_sk.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = indi_aagcloudwatcher_sk.xml; sourceTree = "<group>"; };
+		59B1F12018BBB02800A7AC9A /* indi_aagcloudwatcher.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = indi_aagcloudwatcher.xml; sourceTree = "<group>"; };
 		59B7AD0718872403005B06B4 /* SecurityInterface.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SecurityInterface.framework; path = System/Library/Frameworks/SecurityInterface.framework; sourceTree = SDKROOT; };
 		59C11FC219B50AEE00B21125 /* AppIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = AppIcon.icns; sourceTree = "<group>"; };
-		59DE026718830F46007E5AE2 /* indi_atik_ccd */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_atik_ccd; path = /usr/local/bin/indi_atik_ccd; sourceTree = "<absolute>"; };
-		59DE026818830F46007E5AE2 /* indi_atik_wheel */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_atik_wheel; path = /usr/local/bin/indi_atik_wheel; sourceTree = "<absolute>"; };
-		59DE026918830F46007E5AE2 /* indi_celestron_gps */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_celestron_gps; path = /usr/local/bin/indi_celestron_gps; sourceTree = "<absolute>"; };
-		59DE026A18830F46007E5AE2 /* indi_eqmod_telescope */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_eqmod_telescope; path = /usr/local/bin/indi_eqmod_telescope; sourceTree = "<absolute>"; };
-		59DE026B18830F46007E5AE2 /* indi_fcusb_focuser */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_fcusb_focuser; path = /usr/local/bin/indi_fcusb_focuser; sourceTree = "<absolute>"; };
-		59DE026C18830F46007E5AE2 /* indi_ieq45_8406 */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_ieq45_8406; path = /usr/local/bin/indi_ieq45_8406; sourceTree = "<absolute>"; };
-		59DE026D18830F46007E5AE2 /* indi_ieq45_8407 */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_ieq45_8407; path = /usr/local/bin/indi_ieq45_8407; sourceTree = "<absolute>"; };
-		59DE026E18830F46007E5AE2 /* indi_imager_agent */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_imager_agent; path = /usr/local/bin/indi_imager_agent; sourceTree = "<absolute>"; };
-		59DE026F18830F46007E5AE2 /* indi_intelliscope */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_intelliscope; path = /usr/local/bin/indi_intelliscope; sourceTree = "<absolute>"; };
-		59DE027318830F46007E5AE2 /* indi_lx200basic */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_lx200basic; path = /usr/local/bin/indi_lx200basic; sourceTree = "<absolute>"; };
-		59DE027618830F46007E5AE2 /* indi_lx200generic */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_lx200generic; path = /usr/local/bin/indi_lx200generic; sourceTree = "<absolute>"; };
-		59DE027718830F46007E5AE2 /* indi_lx200genericlegacy */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_lx200genericlegacy; path = /usr/local/bin/indi_lx200genericlegacy; sourceTree = "<absolute>"; };
-		59DE027918830F46007E5AE2 /* indi_magellan1 */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_magellan1; path = /usr/local/bin/indi_magellan1; sourceTree = "<absolute>"; };
-		59DE027A18830F46007E5AE2 /* indi_moonlite_focus */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_moonlite_focus; path = /usr/local/bin/indi_moonlite_focus; sourceTree = "<absolute>"; };
-		59DE027B18830F46007E5AE2 /* indi_robo_focus */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_robo_focus; path = /usr/local/bin/indi_robo_focus; sourceTree = "<absolute>"; };
-		59DE027C18830F46007E5AE2 /* indi_sbig_stv */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_sbig_stv; path = /usr/local/bin/indi_sbig_stv; sourceTree = "<absolute>"; };
-		59DE027D18830F46007E5AE2 /* indi_setprop */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_setprop; path = /usr/local/bin/indi_setprop; sourceTree = "<absolute>"; };
-		59DE027E18830F46007E5AE2 /* indi_simulator_ccd */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_simulator_ccd; path = /usr/local/bin/indi_simulator_ccd; sourceTree = "<absolute>"; };
-		59DE027F18830F46007E5AE2 /* indi_simulator_focus */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_simulator_focus; path = /usr/local/bin/indi_simulator_focus; sourceTree = "<absolute>"; };
-		59DE028018830F46007E5AE2 /* indi_simulator_telescope */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_simulator_telescope; path = /usr/local/bin/indi_simulator_telescope; sourceTree = "<absolute>"; };
-		59DE028118830F46007E5AE2 /* indi_simulator_wheel */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_simulator_wheel; path = /usr/local/bin/indi_simulator_wheel; sourceTree = "<absolute>"; };
-		59DE028218830F46007E5AE2 /* indi_skycommander */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_skycommander; path = /usr/local/bin/indi_skycommander; sourceTree = "<absolute>"; };
-		59DE028318830F46007E5AE2 /* indi_sx_ao */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_sx_ao; path = /usr/local/bin/indi_sx_ao; sourceTree = "<absolute>"; };
-		59DE028418830F46007E5AE2 /* indi_sx_ccd */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_sx_ccd; path = /usr/local/bin/indi_sx_ccd; sourceTree = "<absolute>"; };
-		59DE028518830F46007E5AE2 /* indi_sx_wheel */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_sx_wheel; path = /usr/local/bin/indi_sx_wheel; sourceTree = "<absolute>"; };
-		59DE028618830F46007E5AE2 /* indi_synscan */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_synscan; path = /usr/local/bin/indi_synscan; sourceTree = "<absolute>"; };
-		59DE028718830F46007E5AE2 /* indi_tcfs_focus */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_tcfs_focus; path = /usr/local/bin/indi_tcfs_focus; sourceTree = "<absolute>"; };
-		59DE028918830F46007E5AE2 /* indi_temma */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_temma; path = /usr/local/bin/indi_temma; sourceTree = "<absolute>"; };
-		59DE028A18830F46007E5AE2 /* indi_trutech_wheel */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_trutech_wheel; path = /usr/local/bin/indi_trutech_wheel; sourceTree = "<absolute>"; };
-		59DE041C188334EB007E5AE2 /* drivers.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = drivers.xml; path = /usr/local/share/indi/drivers.xml; sourceTree = "<absolute>"; };
-		59DE041D188334EB007E5AE2 /* indi_align_sk.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = indi_align_sk.xml; path = /usr/local/share/indi/indi_align_sk.xml; sourceTree = "<absolute>"; };
-		59DE041E188334EB007E5AE2 /* indi_atik.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = indi_atik.xml; path = /usr/local/share/indi/indi_atik.xml; sourceTree = "<absolute>"; };
-		59DE041F188334EB007E5AE2 /* indi_eqmod_simulator_sk.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = indi_eqmod_simulator_sk.xml; path = /usr/local/share/indi/indi_eqmod_simulator_sk.xml; sourceTree = "<absolute>"; };
-		59DE0420188334EB007E5AE2 /* indi_eqmod_sk.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = indi_eqmod_sk.xml; path = /usr/local/share/indi/indi_eqmod_sk.xml; sourceTree = "<absolute>"; };
-		59DE0421188334EB007E5AE2 /* indi_eqmod.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = indi_eqmod.xml; path = /usr/local/share/indi/indi_eqmod.xml; sourceTree = "<absolute>"; };
-		59DE0422188334EB007E5AE2 /* indi_shoestring.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = indi_shoestring.xml; path = /usr/local/share/indi/indi_shoestring.xml; sourceTree = "<absolute>"; };
-		59DE0423188334EB007E5AE2 /* indi_sx.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = indi_sx.xml; path = /usr/local/share/indi/indi_sx.xml; sourceTree = "<absolute>"; };
-		59DE0424188334EB007E5AE2 /* indi_tcfs_sk.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = indi_tcfs_sk.xml; path = /usr/local/share/indi/indi_tcfs_sk.xml; sourceTree = "<absolute>"; };
-		59F91219188AC25E00EF5ED8 /* indi_qhy.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = indi_qhy.xml; path = ../../../../../../usr/local/share/indi/indi_qhy.xml; sourceTree = "<group>"; };
-		59F9121C188AC29800EF5ED8 /* indi_qhy_ccd */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = indi_qhy_ccd; path = ../../../../../../usr/local/bin/indi_qhy_ccd; sourceTree = "<group>"; };
-		59F9122B188AC3C300EF5ED8 /* libcfitsio.2.3.37.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libcfitsio.2.3.37.dylib; path = ../../../../../../usr/local/lib/libcfitsio.2.3.37.dylib; sourceTree = "<group>"; };
-		59F9122F188AC3C300EF5ED8 /* libnova-0.15.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libnova-0.15.0.dylib"; path = "../../../../../../usr/local/lib/libnova-0.15.0.dylib"; sourceTree = "<group>"; };
-		59F91230188AC3C300EF5ED8 /* libusb-1.0.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libusb-1.0.0.dylib"; path = "../../../../../../usr/local/lib/libusb-1.0.0.dylib"; sourceTree = "<group>"; };
+		59DE026718830F46007E5AE2 /* indi_atik_ccd */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = indi_atik_ccd; sourceTree = "<group>"; };
+		59DE026818830F46007E5AE2 /* indi_atik_wheel */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = indi_atik_wheel; sourceTree = "<group>"; };
+		59DE026918830F46007E5AE2 /* indi_celestron_gps */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = indi_celestron_gps; sourceTree = "<group>"; };
+		59DE026A18830F46007E5AE2 /* indi_eqmod_telescope */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = indi_eqmod_telescope; sourceTree = "<group>"; };
+		59DE026B18830F46007E5AE2 /* indi_fcusb_focuser */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = indi_fcusb_focuser; sourceTree = "<group>"; };
+		59DE026C18830F46007E5AE2 /* indi_ieq45_8406 */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = indi_ieq45_8406; sourceTree = "<group>"; };
+		59DE026D18830F46007E5AE2 /* indi_ieq45_8407 */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = indi_ieq45_8407; sourceTree = "<group>"; };
+		59DE026E18830F46007E5AE2 /* indi_imager_agent */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = indi_imager_agent; sourceTree = "<group>"; };
+		59DE026F18830F46007E5AE2 /* indi_intelliscope */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = indi_intelliscope; sourceTree = "<group>"; };
+		59DE027318830F46007E5AE2 /* indi_lx200basic */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = indi_lx200basic; sourceTree = "<group>"; };
+		59DE027618830F46007E5AE2 /* indi_lx200generic */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = indi_lx200generic; sourceTree = "<group>"; };
+		59DE027718830F46007E5AE2 /* indi_lx200genericlegacy */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = indi_lx200genericlegacy; sourceTree = "<group>"; };
+		59DE027918830F46007E5AE2 /* indi_magellan1 */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = indi_magellan1; sourceTree = "<group>"; };
+		59DE027A18830F46007E5AE2 /* indi_moonlite_focus */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = indi_moonlite_focus; sourceTree = "<group>"; };
+		59DE027B18830F46007E5AE2 /* indi_robo_focus */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = indi_robo_focus; sourceTree = "<group>"; };
+		59DE027C18830F46007E5AE2 /* indi_sbig_stv */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = indi_sbig_stv; sourceTree = "<group>"; };
+		59DE027D18830F46007E5AE2 /* indi_setprop */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = indi_setprop; sourceTree = "<group>"; };
+		59DE027E18830F46007E5AE2 /* indi_simulator_ccd */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = indi_simulator_ccd; sourceTree = "<group>"; };
+		59DE027F18830F46007E5AE2 /* indi_simulator_focus */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = indi_simulator_focus; sourceTree = "<group>"; };
+		59DE028018830F46007E5AE2 /* indi_simulator_telescope */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = indi_simulator_telescope; sourceTree = "<group>"; };
+		59DE028118830F46007E5AE2 /* indi_simulator_wheel */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = indi_simulator_wheel; sourceTree = "<group>"; };
+		59DE028218830F46007E5AE2 /* indi_skycommander */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = indi_skycommander; sourceTree = "<group>"; };
+		59DE028318830F46007E5AE2 /* indi_sx_ao */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = indi_sx_ao; sourceTree = "<group>"; };
+		59DE028418830F46007E5AE2 /* indi_sx_ccd */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = indi_sx_ccd; sourceTree = "<group>"; };
+		59DE028518830F46007E5AE2 /* indi_sx_wheel */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = indi_sx_wheel; sourceTree = "<group>"; };
+		59DE028618830F46007E5AE2 /* indi_synscan */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = indi_synscan; sourceTree = "<group>"; };
+		59DE028718830F46007E5AE2 /* indi_tcfs_focus */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = indi_tcfs_focus; sourceTree = "<group>"; };
+		59DE028918830F46007E5AE2 /* indi_temma */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = indi_temma; sourceTree = "<group>"; };
+		59DE028A18830F46007E5AE2 /* indi_trutech_wheel */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = indi_trutech_wheel; sourceTree = "<group>"; };
+		59DE041C188334EB007E5AE2 /* drivers.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = drivers.xml; sourceTree = "<group>"; };
+		59DE041D188334EB007E5AE2 /* indi_align_sk.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = indi_align_sk.xml; sourceTree = "<group>"; };
+		59DE041E188334EB007E5AE2 /* indi_atik.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = indi_atik.xml; sourceTree = "<group>"; };
+		59DE041F188334EB007E5AE2 /* indi_eqmod_simulator_sk.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = indi_eqmod_simulator_sk.xml; sourceTree = "<group>"; };
+		59DE0420188334EB007E5AE2 /* indi_eqmod_sk.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = indi_eqmod_sk.xml; sourceTree = "<group>"; };
+		59DE0421188334EB007E5AE2 /* indi_eqmod.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = indi_eqmod.xml; sourceTree = "<group>"; };
+		59DE0422188334EB007E5AE2 /* indi_shoestring.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = indi_shoestring.xml; sourceTree = "<group>"; };
+		59DE0423188334EB007E5AE2 /* indi_sx.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = indi_sx.xml; sourceTree = "<group>"; };
+		59DE0424188334EB007E5AE2 /* indi_tcfs_sk.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = indi_tcfs_sk.xml; sourceTree = "<group>"; };
+		59F91219188AC25E00EF5ED8 /* indi_qhy.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = indi_qhy.xml; sourceTree = "<group>"; };
+		59F9121C188AC29800EF5ED8 /* indi_qhy_ccd */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = indi_qhy_ccd; sourceTree = "<group>"; };
+		59F9122B188AC3C300EF5ED8 /* libcfitsio.2.3.37.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libcfitsio.2.3.37.dylib; sourceTree = "<group>"; };
+		59F9122F188AC3C300EF5ED8 /* libnova-0.15.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = "libnova-0.15.0.dylib"; sourceTree = "<group>"; };
+		59F91230188AC3C300EF5ED8 /* libusb-1.0.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = "libusb-1.0.0.dylib"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -420,7 +420,7 @@
 				591F82E1189051AF00EA2E8C /* QHY9L.HEX */,
 			);
 			name = firmware;
-			path = ../../../../../../usr/local/lib/firmware;
+			path = /usr/local/lib/firmware;
 			sourceTree = "<group>";
 		};
 		594D0B2A188300ED00B50F4E = {
@@ -547,6 +547,7 @@
 				59DE028A18830F46007E5AE2 /* indi_trutech_wheel */,
 			);
 			name = bin;
+			path = /usr/local/bin;
 			sourceTree = "<group>";
 		};
 		59DE02B11883149F007E5AE2 /* lib */ = {
@@ -562,7 +563,7 @@
 				591944B818F9541500837724 /* libindiAlignmentDriver.0.9.9.dylib */,
 			);
 			name = lib;
-			path = "/Users/polakovic/Development/indi-code/macosx/INDI Server";
+			path = /usr/local/lib;
 			sourceTree = "<absolute>";
 		};
 		59DE041B1883340E007E5AE2 /* share */ = {
@@ -585,6 +586,7 @@
 				59DE0424188334EB007E5AE2 /* indi_tcfs_sk.xml */,
 			);
 			name = share;
+			path = /usr/local/share/indi;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -697,7 +699,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "cd \"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/lib\"\nchmod u+w *\nfor F in *.dylib\ndo\nF=`basename $F`\nfor L in `otool -L $F | grep \"/usr/local\" | awk '{ print $1 }'`\ndo\nBL=`basename $L`\nif [[ \"$F\" == \"$BL\" ]]\nthen\necho \"renaming $F\"\ninstall_name_tool -id @executable_path/../lib/$BL $F\nelse\necho \"fixing $BL in $F\"\ninstall_name_tool -change $L @executable_path/../lib/$BL $F\nfi\ndone\ndone\n\n[ -f libindi.0.dylib ] && echo \"Found\" || ln -s libindi.0.9.9.dylib libindi.0.dylib\n[ -f libindi.dylib ] && echo \"Found\" || ln -s libindi.0.dylib libindi.dylib\n\n[ -f libindidriver.0.dylib ] && echo \"Found\" || ln -s libindidriver.0.9.9.dylib libindidriver.0.dylib\n[ -f libindidriver.dylib ] && echo \"Found\" || ln -s libindidriver.0.dylib libindidriver.dylib\n\n[ -f libindimain.0.dylib ] && echo \"Found\" || ln -s libindimain.0.9.9.dylib libindimain.0.dylib\n[ -f libindimain.dylib ] && echo \"Found\" || ln -s libindimain.0.dylib libindimain.dylib\n\n[ -f libindiAlignmentDriver.0.dylib ] && echo \"Found\" || ln -s libindiAlignmentDriver.0.9.9.dylib libindiAlignmentDriver.0.dylib\n[ -f libindiAlignmentDriver ] && echo \"Found\" || ln -s libindiAlignmentDriver.0.dylib libindiAlignmentDriver.dylib\n\n[ -f libnova.dylib ] && echo \"Found\" || ln -s libnova-0.15.0.dylib libnova.dylib\n\n[ -f libusb.1.0.dylib ] && echo \"Found\" || ln -s libusb-1.0.0.dylib libusb-1.0.dylib\n\n[ -f libcfitsio.2.dylib ] && echo \"Found\" || ln -s libcfitsio.2.3.37.dylib libcfitsio.2.dylib\n[ -f libcfitsio.dylib ] && echo \"Found\" || ln -s libcfitsio.2.dylib libcfitsio.dylib\n\n[ -f libatikccd.0.dylib ] && echo \"Found\" || ln -s libatikccd.0.20.dylib libatikccd.0.dylib\n[ -f libatikccd.dylib ] && echo \"Found\" || ln -s libatikccd.0.20.dylib libatikccd.dylib\n\n\ncd \"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/bin\"\n\nchmod u+w *\nfor F in *\ndo\nF=`basename $F`\nfor L in `otool -L $F | grep \"/usr/local\" | awk '{ print $1 }'`\ndo\nBL=`basename $L`\necho \"fixing $BL in $F\"\ninstall_name_tool -change $L @executable_path/../lib/$BL $F\ndone\ndone\n\n[ -f indi_lx200_16 ] && echo \"Found\" || ln -s indi_lx200generic indi_lx200_16\n[ -f indi_lx200ap ] && echo \"Found\" || ln -s indi_lx200genericlegacy indi_lx200ap\n[ -f indi_lx200autostar ] && echo \"Found\" || ln -s indi_lx200generic indi_lx200autostar\n[ -f indi_lx200classic ] && echo \"Found\" || ln -s indi_lx200generic indi_lx200classic\n[ -f indi_lx200fs2 ] && echo \"Found\" || ln -s indi_lx200genericlegacy indi_lx200fs2\n[ -f indi_lx200gps ] && echo \"Found\" || ln -s indi_lx200generic indi_lx200gps\n[ -f indi_tcfs3_focus ] && echo \"Found\" || ln -s indi_tcfs_focus indi_tcfs3_focus\n";
+			shellScript = "cd \"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/lib\"\nchmod u+w *\n\n[ -f libindi.0.dylib ] && echo \"Found\" || ln -s libindi.0.9.9.dylib libindi.0.dylib\n[ -f libindi.dylib ] && echo \"Found\" || ln -s libindi.0.dylib libindi.dylib\n\n[ -f libindidriver.0.dylib ] && echo \"Found\" || ln -s libindidriver.0.9.9.dylib libindidriver.0.dylib\n[ -f libindidriver.dylib ] && echo \"Found\" || ln -s libindidriver.0.dylib libindidriver.dylib\n\n[ -f libindimain.0.dylib ] && echo \"Found\" || ln -s libindimain.0.9.9.dylib libindimain.0.dylib\n[ -f libindimain.dylib ] && echo \"Found\" || ln -s libindimain.0.dylib libindimain.dylib\n\n[ -f libindiAlignmentDriver.0.dylib ] && echo \"Found\" || ln -s libindiAlignmentDriver.0.9.9.dylib libindiAlignmentDriver.0.dylib\n[ -f libindiAlignmentDriver ] && echo \"Found\" || ln -s libindiAlignmentDriver.0.dylib libindiAlignmentDriver.dylib\n\n[ -f libnova.dylib ] && echo \"Found\" || ln -s libnova-0.15.0.dylib libnova.dylib\n\n[ -f libusb.1.0.dylib ] && echo \"Found\" || ln -s libusb-1.0.0.dylib libusb-1.0.dylib\n\n[ -f libcfitsio.2.dylib ] && echo \"Found\" || ln -s libcfitsio.2.3.37.dylib libcfitsio.2.dylib\n[ -f libcfitsio.dylib ] && echo \"Found\" || ln -s libcfitsio.2.dylib libcfitsio.dylib\n\n[ -f libatikccd.0.dylib ] && echo \"Found\" || ln -s libatikccd.0.20.dylib libatikccd.0.dylib\n[ -f libatikccd.dylib ] && echo \"Found\" || ln -s libatikccd.0.20.dylib libatikccd.dylib\n\nfor F in *.dylib\ndo\nF=`basename $F`\nfor L in `otool -L $F | grep \"/usr/local\" | awk '{ print $1 }'`\ndo\nBL=`basename $L`\nif [[ \"$F\" == \"$BL\" ]]\nthen\necho \"renaming $F\"\ninstall_name_tool -id @executable_path/../lib/$BL $F\nelse\necho \"fixing $BL in $F\"\ninstall_name_tool -change $L @executable_path/../lib/$BL $F\nfi\ndone\ndone\n\n\ncd \"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/bin\"\n\nchmod u+w *\nfor F in *\ndo\nF=`basename $F`\nfor L in `otool -L $F | grep \"/usr/local\" | awk '{ print $1 }'`\ndo\nBL=`basename $L`\necho \"fixing $BL in $F\"\ninstall_name_tool -change $L @executable_path/../lib/$BL $F\ndone\ndone\n\n[ -f indi_lx200_16 ] && echo \"Found\" || ln -s indi_lx200generic indi_lx200_16\n[ -f indi_lx200ap ] && echo \"Found\" || ln -s indi_lx200genericlegacy indi_lx200ap\n[ -f indi_lx200autostar ] && echo \"Found\" || ln -s indi_lx200generic indi_lx200autostar\n[ -f indi_lx200classic ] && echo \"Found\" || ln -s indi_lx200generic indi_lx200classic\n[ -f indi_lx200fs2 ] && echo \"Found\" || ln -s indi_lx200genericlegacy indi_lx200fs2\n[ -f indi_lx200gps ] && echo \"Found\" || ln -s indi_lx200generic indi_lx200gps\n[ -f indi_tcfs3_focus ] && echo \"Found\" || ln -s indi_tcfs_focus indi_tcfs3_focus\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
