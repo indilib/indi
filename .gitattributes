@@ -1093,6 +1093,14 @@ debian/fliusb/dkms -text
 debian/fliusb/rules -text
 debian/fliusb/rules.modules -text
 debian/fliusb/source/format -text
+debian/gsc/changelog -text
+debian/gsc/compat -text
+debian/gsc/control -text
+debian/gsc/copyright -text
+debian/gsc/gsc-data.install -text
+debian/gsc/gsc.install -text
+debian/gsc/rules -text
+debian/gsc/source/format -text
 debian/indi-aagcloudwatcher/changelog -text
 debian/indi-aagcloudwatcher/compat -text
 debian/indi-aagcloudwatcher/control -text
