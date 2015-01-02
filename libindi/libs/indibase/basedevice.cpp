@@ -103,6 +103,129 @@ IBLOBVectorProperty * INDI::BaseDevice::getBLOB(const char *name)
   return bvp;
 }
 
+IPState INDI::BaseDevice::getPropertyState(const char *name)
+{
+    IPState state = IPS_IDLE;
+    INDI_TYPE pType;
+    void *pPtr;
+
+    INumberVectorProperty *nvp;
+    ITextVectorProperty *tvp;
+    ISwitchVectorProperty *svp;
+    ILightVectorProperty *lvp;
+    IBLOBVectorProperty *bvp;
+
+    std::vector<INDI::Property *>::iterator orderi = pAll.begin();
+
+    for (; orderi != pAll.end(); ++orderi)
+    {
+        pType       = (*orderi)->getType();
+        pPtr        = (*orderi)->getProperty();
+
+        switch (pType)
+        {
+        case INDI_NUMBER:
+            nvp = static_cast<INumberVectorProperty *>(pPtr);
+            if (nvp == NULL)
+                continue;
+            if (!strcmp(name, nvp->name))
+                return nvp->s;
+            break;
+        case INDI_SWITCH:
+            svp = static_cast<ISwitchVectorProperty *>(pPtr);
+            if (svp == NULL)
+                continue;
+            if (!strcmp(name, svp->name))
+                return svp->s;
+            break;
+        case INDI_TEXT:
+            tvp = static_cast<ITextVectorProperty *>(pPtr);
+            if (tvp == NULL)
+                continue;
+            if (!strcmp(name, tvp->name))
+                return tvp->s;
+            break;
+        case INDI_LIGHT:
+            lvp = static_cast<ILightVectorProperty *>(pPtr);
+            if (lvp == NULL)
+                continue;
+            if (!strcmp(name, lvp->name))
+                return lvp->s;
+            break;
+        case INDI_BLOB:
+            bvp = static_cast<IBLOBVectorProperty *>(pPtr);
+            if (bvp == NULL)
+                continue;
+            if (!strcmp(name, bvp->name))
+                return bvp->s;
+            break;
+         default:
+            break;
+        }
+    }
+
+    return state;
+
+}
+
+IPerm INDI::BaseDevice::getPropertyPermission(const char *name)
+{
+    IPerm perm = IP_RO;
+
+    INDI_TYPE pType;
+    void *pPtr;
+
+    INumberVectorProperty *nvp;
+    ITextVectorProperty *tvp;
+    ISwitchVectorProperty *svp;
+    ILightVectorProperty *lvp;
+    IBLOBVectorProperty *bvp;
+
+    std::vector<INDI::Property *>::iterator orderi = pAll.begin();
+
+    for (; orderi != pAll.end(); ++orderi)
+    {
+        pType       = (*orderi)->getType();
+        pPtr        = (*orderi)->getProperty();
+
+        switch (pType)
+        {
+        case INDI_NUMBER:
+            nvp = static_cast<INumberVectorProperty *>(pPtr);
+            if (nvp == NULL)
+                continue;
+            if (!strcmp(name, nvp->name))
+                return nvp->p;
+            break;
+        case INDI_SWITCH:
+            svp = static_cast<ISwitchVectorProperty *>(pPtr);
+            if (svp == NULL)
+                continue;
+            if (!strcmp(name, svp->name))
+                return svp->p;
+            break;
+        case INDI_TEXT:
+            tvp = static_cast<ITextVectorProperty *>(pPtr);
+            if (tvp == NULL)
+                continue;
+            if (!strcmp(name, tvp->name))
+                return tvp->p;
+            break;
+        case INDI_BLOB:
+            bvp = static_cast<IBLOBVectorProperty *>(pPtr);
+            if (bvp == NULL)
+                continue;
+            if (!strcmp(name, bvp->name))
+                return bvp->p;
+            break;
+         default:
+            break;
+        }
+    }
+
+    return perm;
+
+}
 
 void * INDI::BaseDevice::getRawProperty(const char *name, INDI_TYPE type)
 {

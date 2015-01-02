@@ -67,6 +67,10 @@ public:
     ILightVectorProperty * getLight(const char *name);
     /** \return Return vector BLOB property given its name */
     IBLOBVectorProperty * getBLOB(const char *name);
+    /** \return Return property state */
+    IPState getPropertyState(const char *name);
+    /** \return Return property permission */
+    IPerm getPropertyPermission(const char *name);
 
     void registerProperty(void *p, INDI_TYPE type);
 

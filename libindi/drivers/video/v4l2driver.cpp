@@ -126,6 +126,8 @@ bool V4L2_Driver::initProperties()
 
   PrimaryCCD.setCCDInfoWritable();
 
+  PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", 0.001, 3600, 1, false);
+
   if (!lx->initProperties(this))
     DEBUG(INDI::Logger::DBG_WARNING, "Can not init Long Exposure");
   return true;

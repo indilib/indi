@@ -211,12 +211,15 @@ public:
     void setBin(int hor, int ver);
 
     /**
-     * @brief setMaxBin Set Maximum CCD Chip binning
-     * @param max_hor Maximum horizontal binning
-     * @param max_ver Maximum vertical binning
+     * @brief setMinMaxStep for a number property element
+     * @param property Property name
+     * @param element Element name
+     * @param min Minimum element value
+     * @param max Maximum element value
+     * @param step Element step value
+     * @param setnToClient If true (default), the element limits are updated and is sent to the client. If false, the element limits are updated without getting sent to the client.
      */
-    void setMaxBin(int max_hor, int max_ver);
-
+    void setMinMaxStep(const char *property, const char *element, double min, double max, double step, bool sendToClient=true);
 
     /**
      * @brief setPixelSize Set CCD Chip pixel size
@@ -301,7 +304,7 @@ public:
     /**
      * @return True if CCD is currently exposing, false otherwise.
      */
-    bool isExposing() { return (ImageExposureNP->s == IPS_BUSY); }
+    bool isExposing() { return (ImageExposureNP.s == IPS_BUSY); }
 
 private:
 
@@ -328,41 +331,41 @@ private:
     int lastRapidY;
     char imageExtention[MAXINDIBLOBFMT];
 
-    INumberVectorProperty *ImageExposureNP;
+    INumberVectorProperty ImageExposureNP;
     INumber ImageExposureN[1];
 
-    ISwitchVectorProperty *AbortExposureSP;
+    ISwitchVectorProperty AbortExposureSP;
     ISwitch AbortExposureS[1];
 
-    INumberVectorProperty *ImageFrameNP;
+    INumberVectorProperty ImageFrameNP;
     INumber ImageFrameN[4];
 
-    INumberVectorProperty *ImageBinNP;
+    INumberVectorProperty ImageBinNP;
     INumber ImageBinN[2];
 
-    INumberVectorProperty *ImagePixelSizeNP;
+    INumberVectorProperty ImagePixelSizeNP;
     INumber ImagePixelSizeN[6];
 
     ISwitch FrameTypeS[5];
-    ISwitchVectorProperty *FrameTypeSP;
+    ISwitchVectorProperty FrameTypeSP;
 
     ISwitch CompressS[2];
-    ISwitchVectorProperty *CompressSP;
+    ISwitchVectorProperty CompressSP;
 
     IBLOB FitsB;
-    IBLOBVectorProperty *FitsBP;
+    IBLOBVectorProperty FitsBP;
 
     ISwitch RapidGuideS[2];
-    ISwitchVectorProperty *RapidGuideSP;
+    ISwitchVectorProperty RapidGuideSP;
 
     ISwitch RapidGuideSetupS[3];
-    ISwitchVectorProperty *RapidGuideSetupSP;
+    ISwitchVectorProperty RapidGuideSetupSP;
 
     INumber RapidGuideDataN[3];
-    INumberVectorProperty *RapidGuideDataNP;
+    INumberVectorProperty RapidGuideDataNP;
 
     ISwitch                 ResetS[1];
-    ISwitchVectorProperty   *ResetSP;
+    ISwitchVectorProperty   ResetSP;
 
     friend class INDI::CCD;
 };
@@ -664,7 +667,7 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         INumberVectorProperty EqNP;
         INumber EqN[2];
 
-        ITextVectorProperty *ActiveDeviceTP;
+        ITextVectorProperty ActiveDeviceTP;
         IText ActiveDeviceT[3];
 
         INumber                 TemperatureN[1];

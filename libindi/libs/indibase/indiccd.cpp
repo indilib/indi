@@ -54,19 +54,6 @@ CCDChip::CCDChip()
     strncpy(imageExtention, "fits", MAXINDIBLOBFMT);
 
     FrameType=LIGHT_FRAME;
-
-    ImageFrameNP = new INumberVectorProperty;
-    AbortExposureSP = new ISwitchVectorProperty;
-    FrameTypeSP = new ISwitchVectorProperty;
-    ImageExposureNP = new INumberVectorProperty;
-    ImageBinNP = new INumberVectorProperty;
-    ImagePixelSizeNP = new INumberVectorProperty;
-    CompressSP = new ISwitchVectorProperty;
-    FitsBP = new IBLOBVectorProperty;
-    RapidGuideSP = new ISwitchVectorProperty;
-    RapidGuideSetupSP = new ISwitchVectorProperty;
-    RapidGuideDataNP = new INumberVectorProperty;
-    ResetSP = new ISwitchVectorProperty;
     lastRapidX = lastRapidY = -1;
 }
 
@@ -76,23 +63,11 @@ CCDChip::~CCDChip()
     RawFrameSize=0;
     RawFrame=NULL;
 
-    delete ImageFrameNP;
-    delete AbortExposureSP;
-    delete FrameTypeSP;
-    delete ImageExposureNP;
-    delete ImageBinNP;
-    delete ImagePixelSizeNP;
-    delete CompressSP;
-    delete FitsBP;
-    delete RapidGuideSP;
-    delete RapidGuideSetupSP;
-    delete RapidGuideDataNP;
-    delete ResetSP;
 }
 
 void CCDChip::setCCDInfoWritable()
 {
- ImagePixelSizeNP->p = IP_RW;
+ ImagePixelSizeNP.p = IP_RW;
 }
 
 void CCDChip::setFrameType(CCD_FRAME type)
@@ -108,7 +83,7 @@ void CCDChip::setResolution(int x, int y)
     ImagePixelSizeN[0].value=x;
     ImagePixelSizeN[1].value=y;
 
-    IDSetNumber(ImagePixelSizeNP, NULL);
+    IDSetNumber(&ImagePixelSizeNP, NULL);
 
     ImageFrameN[FRAME_X].min = 0;
     ImageFrameN[FRAME_X].max = x-1;
@@ -119,7 +94,7 @@ void CCDChip::setResolution(int x, int y)
     ImageFrameN[FRAME_W].max = x;
     ImageFrameN[FRAME_H].max = 1;
     ImageFrameN[FRAME_H].max = y;
-    IUUpdateMinMax(ImageFrameNP);
+    IUUpdateMinMax(&ImageFrameNP);
 }
 
 void CCDChip::setFrame(int subx, int suby, int subw, int subh)
@@ -134,7 +109,7 @@ void CCDChip::setFrame(int subx, int suby, int subw, int subh)
     ImageFrameN[FRAME_W].value = SubW;
     ImageFrameN[FRAME_H].value = SubH;
 
-    IDSetNumber(ImageFrameNP, NULL);
+    IDSetNumber(&ImageFrameNP, NULL);
 }
 
 void CCDChip::setBin(int hor, int ver)
@@ -145,16 +120,36 @@ void CCDChip::setBin(int hor, int ver)
     ImageBinN[BIN_W].value = BinX;
     ImageBinN[BIN_H].value = BinY;
 
-    IDSetNumber(ImageBinNP, NULL);
+    IDSetNumber(&ImageBinNP, NULL);
 }
 
 
-void CCDChip::setMaxBin(int max_hor, int max_ver)
+void CCDChip::setMinMaxStep(const char *property, const char *element, double min, double max, double step, bool sendToClient)
 {
-    ImageBinN[BIN_W].max = max_hor;
-    ImageBinN[BIN_H].max = max_ver;
+    INumberVectorProperty *nvp = NULL;
 
-    IUUpdateMinMax(ImageBinNP);
+    if (!strcmp(property, ImageExposureNP.name))
+        nvp = &ImageExposureNP;
+    else if (!strcmp(property, ImageFrameNP.name))
+        nvp = &ImageFrameNP;
+    else if (!strcmp(property, ImageBinNP.name))
+        nvp = &ImageBinNP;
+    else if (!strcmp(property, ImagePixelSizeNP.name))
+        nvp = &ImagePixelSizeNP;
+    else if (!strcmp(property, RapidGuideDataNP.name))
+        nvp = &RapidGuideDataNP;
+
+    INumber *np = IUFindNumber(nvp, element);
+    if (np)
+    {
+        np->min  = min;
+        np->max  = max;
+        np->step = step;
+
+        if (sendToClient)
+            IUUpdateMinMax(nvp);
+    }
+
 }
 
 void CCDChip::setPixelSize(float x, float y)
@@ -166,7 +161,7 @@ void CCDChip::setPixelSize(float x, float y)
     ImagePixelSizeN[3].value=x;
     ImagePixelSizeN[4].value=y;
 
-    IDSetNumber(ImagePixelSizeNP, NULL);
+    IDSetNumber(&ImagePixelSizeNP, NULL);
 
 }
 
@@ -176,7 +171,7 @@ void CCDChip::setBPP(int bbp)
 
     ImagePixelSizeN[5].value = BPP;
 
-    IDSetNumber(ImagePixelSizeNP, NULL);
+    IDSetNumber(&ImagePixelSizeNP, NULL);
 }
 
 void CCDChip::setFrameBufferSize(int nbuf, bool allocMem)
@@ -196,7 +191,7 @@ void CCDChip::setExposureLeft(double duration)
 {
     ImageExposureN[0].value = duration;
 
-    IDSetNumber(ImageExposureNP, NULL);
+    IDSetNumber(&ImageExposureNP, NULL);
 }
 
 void CCDChip::setExposureDuration(double duration)
@@ -229,8 +224,8 @@ void CCDChip::setInterlaced(bool intr)
 
 void CCDChip::setExposureFailed()
 {
-    ImageExposureNP->s = IPS_ALERT;
-    IDSetNumber(ImageExposureNP, NULL);
+    ImageExposureNP.s = IPS_ALERT;
+    IDSetNumber(&ImageExposureNP, NULL);
 }
 
 int CCDChip::getNAxis() const
@@ -277,12 +272,11 @@ INDI::CCD::CCD()
 
     RA=-1000;
     Dec=-1000;
-    ActiveDeviceTP = new ITextVectorProperty;
 }
 
 INDI::CCD::~CCD()
 {
-    delete ActiveDeviceTP;
+
 }
 
 void INDI::CCD::SetCCDCapability(CCDCapability *cap)
@@ -310,23 +304,23 @@ bool INDI::CCD::initProperties()
     IUFillNumber(&PrimaryCCD.ImageFrameN[1],"Y","Top","%4.0f",0,1040,0,0);
     IUFillNumber(&PrimaryCCD.ImageFrameN[2],"WIDTH","Width","%4.0f",0,1392.0,0,1392.0);
     IUFillNumber(&PrimaryCCD.ImageFrameN[3],"HEIGHT","Height","%4.0f",0,1392,0,1392.0);
-    IUFillNumberVector(PrimaryCCD.ImageFrameNP,PrimaryCCD.ImageFrameN,4,getDeviceName(),"CCD_FRAME","Frame",IMAGE_SETTINGS_TAB,IP_RW,60,IPS_IDLE);
+    IUFillNumberVector(&PrimaryCCD.ImageFrameNP,PrimaryCCD.ImageFrameN,4,getDeviceName(),"CCD_FRAME","Frame",IMAGE_SETTINGS_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillSwitch(&PrimaryCCD.FrameTypeS[0],"FRAME_LIGHT","Light",ISS_ON);
     IUFillSwitch(&PrimaryCCD.FrameTypeS[1],"FRAME_BIAS","Bias",ISS_OFF);
     IUFillSwitch(&PrimaryCCD.FrameTypeS[2],"FRAME_DARK","Dark",ISS_OFF);
     IUFillSwitch(&PrimaryCCD.FrameTypeS[3],"FRAME_FLAT","Flat",ISS_OFF);
-    IUFillSwitchVector(PrimaryCCD.FrameTypeSP,PrimaryCCD.FrameTypeS,4,getDeviceName(),"CCD_FRAME_TYPE","Frame Type",IMAGE_SETTINGS_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    IUFillSwitchVector(&PrimaryCCD.FrameTypeSP,PrimaryCCD.FrameTypeS,4,getDeviceName(),"CCD_FRAME_TYPE","Frame Type",IMAGE_SETTINGS_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
-    IUFillNumber(&PrimaryCCD.ImageExposureN[0],"CCD_EXPOSURE_VALUE","Duration (s)","%5.2f",0,36000,0,1.0);
-    IUFillNumberVector(PrimaryCCD.ImageExposureNP,PrimaryCCD.ImageExposureN,1,getDeviceName(),"CCD_EXPOSURE","Expose",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
+    IUFillNumber(&PrimaryCCD.ImageExposureN[0],"CCD_EXPOSURE_VALUE","Duration (s)","%5.2f",0.01,3600,1.0,1.0);
+    IUFillNumberVector(&PrimaryCCD.ImageExposureNP,PrimaryCCD.ImageExposureN,1,getDeviceName(),"CCD_EXPOSURE","Expose",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillSwitch(&PrimaryCCD.AbortExposureS[0],"ABORT","Abort",ISS_OFF);
-    IUFillSwitchVector(PrimaryCCD.AbortExposureSP,PrimaryCCD.AbortExposureS,1,getDeviceName(),"CCD_ABORT_EXPOSURE","Expose Abort",MAIN_CONTROL_TAB,IP_RW,ISR_ATMOST1,60,IPS_IDLE);
+    IUFillSwitchVector(&PrimaryCCD.AbortExposureSP,PrimaryCCD.AbortExposureS,1,getDeviceName(),"CCD_ABORT_EXPOSURE","Expose Abort",MAIN_CONTROL_TAB,IP_RW,ISR_ATMOST1,60,IPS_IDLE);
 
     IUFillNumber(&PrimaryCCD.ImageBinN[0],"HOR_BIN","X","%2.0f",1,4,1,1);
     IUFillNumber(&PrimaryCCD.ImageBinN[1],"VER_BIN","Y","%2.0f",1,4,1,1);
-    IUFillNumberVector(PrimaryCCD.ImageBinNP,PrimaryCCD.ImageBinN,2,getDeviceName(),"CCD_BINNING","Binning",IMAGE_SETTINGS_TAB,IP_RW,60,IPS_IDLE);
+    IUFillNumberVector(&PrimaryCCD.ImageBinNP,PrimaryCCD.ImageBinN,2,getDeviceName(),"CCD_BINNING","Binning",IMAGE_SETTINGS_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillNumber(&PrimaryCCD.ImagePixelSizeN[0],"CCD_MAX_X","Resolution x","%4.0f",1,16000,0,1392.0);
     IUFillNumber(&PrimaryCCD.ImagePixelSizeN[1],"CCD_MAX_Y","Resolution y","%4.0f",1,16000,0,1392.0);
@@ -334,33 +328,33 @@ bool INDI::CCD::initProperties()
     IUFillNumber(&PrimaryCCD.ImagePixelSizeN[3],"CCD_PIXEL_SIZE_X","Pixel size X","%5.2f",1,40,0,6.45);
     IUFillNumber(&PrimaryCCD.ImagePixelSizeN[4],"CCD_PIXEL_SIZE_Y","Pixel size Y","%5.2f",1,40,0,6.45);
     IUFillNumber(&PrimaryCCD.ImagePixelSizeN[5],"CCD_BITSPERPIXEL","Bits per pixel","%3.0f",8,64,0,8);
-    IUFillNumberVector(PrimaryCCD.ImagePixelSizeNP,PrimaryCCD.ImagePixelSizeN,6,getDeviceName(),"CCD_INFO","CCD Information",IMAGE_INFO_TAB,IP_RO,60,IPS_IDLE);
+    IUFillNumberVector(&PrimaryCCD.ImagePixelSizeNP,PrimaryCCD.ImagePixelSizeN,6,getDeviceName(),"CCD_INFO","CCD Information",IMAGE_INFO_TAB,IP_RO,60,IPS_IDLE);
 
     IUFillSwitch(&PrimaryCCD.CompressS[0],"CCD_COMPRESS","Compress",ISS_OFF);
     IUFillSwitch(&PrimaryCCD.CompressS[1],"CCD_RAW","Raw",ISS_ON);
-    IUFillSwitchVector(PrimaryCCD.CompressSP,PrimaryCCD.CompressS,2,getDeviceName(),"CCD_COMPRESSION","Image",IMAGE_SETTINGS_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    IUFillSwitchVector(&PrimaryCCD.CompressSP,PrimaryCCD.CompressS,2,getDeviceName(),"CCD_COMPRESSION","Image",IMAGE_SETTINGS_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
     PrimaryCCD.SendCompressed = false;
 
     IUFillBLOB(&PrimaryCCD.FitsB,"CCD1","Image","");
-    IUFillBLOBVector(PrimaryCCD.FitsBP,&PrimaryCCD.FitsB,1,getDeviceName(),"CCD1","Image Data",IMAGE_INFO_TAB,IP_RO,60,IPS_IDLE);
+    IUFillBLOBVector(&PrimaryCCD.FitsBP,&PrimaryCCD.FitsB,1,getDeviceName(),"CCD1","Image Data",IMAGE_INFO_TAB,IP_RO,60,IPS_IDLE);
 
     IUFillSwitch(&PrimaryCCD.RapidGuideS[0], "ENABLE", "Enable", ISS_OFF);
     IUFillSwitch(&PrimaryCCD.RapidGuideS[1], "DISABLE", "Disable", ISS_ON);
-    IUFillSwitchVector(PrimaryCCD.RapidGuideSP, PrimaryCCD.RapidGuideS, 2, getDeviceName(), "CCD_RAPID_GUIDE", "Rapid Guide", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&PrimaryCCD.RapidGuideSP, PrimaryCCD.RapidGuideS, 2, getDeviceName(), "CCD_RAPID_GUIDE", "Rapid Guide", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillSwitch(&PrimaryCCD.RapidGuideSetupS[0], "AUTO_LOOP", "Auto loop", ISS_ON);
     IUFillSwitch(&PrimaryCCD.RapidGuideSetupS[1], "SEND_IMAGE", "Send image", ISS_OFF);
     IUFillSwitch(&PrimaryCCD.RapidGuideSetupS[2], "SHOW_MARKER", "Show marker", ISS_OFF);
-    IUFillSwitchVector(PrimaryCCD.RapidGuideSetupSP, PrimaryCCD.RapidGuideSetupS, 3, getDeviceName(), "CCD_RAPID_GUIDE_SETUP", "Rapid Guide Setup", RAPIDGUIDE_TAB, IP_RW, ISR_NOFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&PrimaryCCD.RapidGuideSetupSP, PrimaryCCD.RapidGuideSetupS, 3, getDeviceName(), "CCD_RAPID_GUIDE_SETUP", "Rapid Guide Setup", RAPIDGUIDE_TAB, IP_RW, ISR_NOFMANY, 0, IPS_IDLE);
 
     IUFillNumber(&PrimaryCCD.RapidGuideDataN[0],"GUIDESTAR_X","Guide star position X","%5.2f",0,1024,0,0);
     IUFillNumber(&PrimaryCCD.RapidGuideDataN[1],"GUIDESTAR_Y","Guide star position Y","%5.2f",0,1024,0,0);
     IUFillNumber(&PrimaryCCD.RapidGuideDataN[2],"GUIDESTAR_FIT","Guide star fit","%5.2f",0,1024,0,0);
-    IUFillNumberVector(PrimaryCCD.RapidGuideDataNP,PrimaryCCD.RapidGuideDataN,3,getDeviceName(),"CCD_RAPID_GUIDE_DATA","Rapid Guide Data",RAPIDGUIDE_TAB,IP_RO,60,IPS_IDLE);
+    IUFillNumberVector(&PrimaryCCD.RapidGuideDataNP,PrimaryCCD.RapidGuideDataN,3,getDeviceName(),"CCD_RAPID_GUIDE_DATA","Rapid Guide Data",RAPIDGUIDE_TAB,IP_RO,60,IPS_IDLE);
 
     // Reset Frame Settings
     IUFillSwitch(&PrimaryCCD.ResetS[0], "RESET", "Reset", ISS_OFF);
-    IUFillSwitchVector(PrimaryCCD.ResetSP, PrimaryCCD.ResetS, 1, getDeviceName(), "CCD_FRAME_RESET", "Frame Values", IMAGE_SETTINGS_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&PrimaryCCD.ResetSP, PrimaryCCD.ResetS, 1, getDeviceName(), "CCD_FRAME_RESET", "Frame Values", IMAGE_SETTINGS_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
 
     // GUIDER CCD Init
 
@@ -368,11 +362,11 @@ bool INDI::CCD::initProperties()
     IUFillNumber(&GuideCCD.ImageFrameN[1],"Y","Top","%4.0f",0,1040,0,0);
     IUFillNumber(&GuideCCD.ImageFrameN[2],"WIDTH","Width","%4.0f",0,1392.0,0,1392.0);
     IUFillNumber(&GuideCCD.ImageFrameN[3],"HEIGHT","Height","%4.0f",0,1040,0,1040);
-    IUFillNumberVector(GuideCCD.ImageFrameNP,GuideCCD.ImageFrameN,4,getDeviceName(),"GUIDER_FRAME","Frame",GUIDE_HEAD_TAB,IP_RW,60,IPS_IDLE);
+    IUFillNumberVector(&GuideCCD.ImageFrameNP,GuideCCD.ImageFrameN,4,getDeviceName(),"GUIDER_FRAME","Frame",GUIDE_HEAD_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillNumber(&GuideCCD.ImageBinN[0],"HOR_BIN","X","%2.0f",1,4,1,1);
     IUFillNumber(&GuideCCD.ImageBinN[1],"VER_BIN","Y","%2.0f",1,4,1,1);
-    IUFillNumberVector(GuideCCD.ImageBinNP,GuideCCD.ImageBinN,2,getDeviceName(),"GUIDER_BINNING","Binning",GUIDE_HEAD_TAB,IP_RW,60,IPS_IDLE);
+    IUFillNumberVector(&GuideCCD.ImageBinNP,GuideCCD.ImageBinN,2,getDeviceName(),"GUIDER_BINNING","Binning",GUIDE_HEAD_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillNumber(&GuideCCD.ImagePixelSizeN[0],"CCD_MAX_X","Resolution x","%4.0f",1,16000,0,1392.0);
     IUFillNumber(&GuideCCD.ImagePixelSizeN[1],"CCD_MAX_Y","Resolution y","%4.0f",1,16000,0,1392.0);
@@ -380,41 +374,41 @@ bool INDI::CCD::initProperties()
     IUFillNumber(&GuideCCD.ImagePixelSizeN[3],"CCD_PIXEL_SIZE_X","Pixel size X","%5.2f",1,40,0,6.45);
     IUFillNumber(&GuideCCD.ImagePixelSizeN[4],"CCD_PIXEL_SIZE_Y","Pixel size Y","%5.2f",1,40,0,6.45);
     IUFillNumber(&GuideCCD.ImagePixelSizeN[5],"CCD_BITSPERPIXEL","Bits per pixel","%3.0f",8,64,0,8);
-    IUFillNumberVector(GuideCCD.ImagePixelSizeNP,GuideCCD.ImagePixelSizeN,6,getDeviceName(),"GUIDER_INFO", "Guide Info",IMAGE_INFO_TAB,IP_RO,60,IPS_IDLE);
+    IUFillNumberVector(&GuideCCD.ImagePixelSizeNP,GuideCCD.ImagePixelSizeN,6,getDeviceName(),"GUIDER_INFO", "Guide Info",IMAGE_INFO_TAB,IP_RO,60,IPS_IDLE);
 
     IUFillSwitch(&GuideCCD.FrameTypeS[0],"FRAME_LIGHT","Light",ISS_ON);
     IUFillSwitch(&GuideCCD.FrameTypeS[1],"FRAME_BIAS","Bias",ISS_OFF);
     IUFillSwitch(&GuideCCD.FrameTypeS[2],"FRAME_DARK","Dark",ISS_OFF);
     IUFillSwitch(&GuideCCD.FrameTypeS[3],"FRAME_FLAT","Flat",ISS_OFF);
-    IUFillSwitchVector(GuideCCD.FrameTypeSP,GuideCCD.FrameTypeS,4,getDeviceName(),"GUIDER_FRAME_TYPE","Frame Type",GUIDE_HEAD_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    IUFillSwitchVector(&GuideCCD.FrameTypeSP,GuideCCD.FrameTypeS,4,getDeviceName(),"GUIDER_FRAME_TYPE","Frame Type",GUIDE_HEAD_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
-    IUFillNumber(&GuideCCD.ImageExposureN[0],"GUIDER_EXPOSURE_VALUE","Duration (s)","%5.2f",0,36000,0,1.0);
-    IUFillNumberVector(GuideCCD.ImageExposureNP,GuideCCD.ImageExposureN,1,getDeviceName(),"GUIDER_EXPOSURE","Guide Head",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
+    IUFillNumber(&GuideCCD.ImageExposureN[0],"GUIDER_EXPOSURE_VALUE","Duration (s)","%5.2f",0.01,3600,1.0,1.0);
+    IUFillNumberVector(&GuideCCD.ImageExposureNP,GuideCCD.ImageExposureN,1,getDeviceName(),"GUIDER_EXPOSURE","Guide Head",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillSwitch(&GuideCCD.AbortExposureS[0],"ABORT","Abort",ISS_OFF);
-    IUFillSwitchVector(GuideCCD.AbortExposureSP,GuideCCD.AbortExposureS,1,getDeviceName(),"GUIDER_ABORT_EXPOSURE","Guide Abort",MAIN_CONTROL_TAB,IP_RW,ISR_ATMOST1,60,IPS_IDLE);
+    IUFillSwitchVector(&GuideCCD.AbortExposureSP,GuideCCD.AbortExposureS,1,getDeviceName(),"GUIDER_ABORT_EXPOSURE","Guide Abort",MAIN_CONTROL_TAB,IP_RW,ISR_ATMOST1,60,IPS_IDLE);
 
     IUFillSwitch(&GuideCCD.CompressS[0],"GUIDER_COMPRESS","Compress",ISS_OFF);
     IUFillSwitch(&GuideCCD.CompressS[1],"GUIDER_RAW","Raw",ISS_ON);
-    IUFillSwitchVector(GuideCCD.CompressSP,GuideCCD.CompressS,2,getDeviceName(),"GUIDER_COMPRESSION","Image",GUIDE_HEAD_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    IUFillSwitchVector(&GuideCCD.CompressSP,GuideCCD.CompressS,2,getDeviceName(),"GUIDER_COMPRESSION","Image",GUIDE_HEAD_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
     GuideCCD.SendCompressed = false;
 
     IUFillBLOB(&GuideCCD.FitsB,"CCD2","Guider Image","");
-    IUFillBLOBVector(GuideCCD.FitsBP,&GuideCCD.FitsB,1,getDeviceName(),"CCD2","Image Data",IMAGE_INFO_TAB,IP_RO,60,IPS_IDLE);
+    IUFillBLOBVector(&GuideCCD.FitsBP,&GuideCCD.FitsB,1,getDeviceName(),"CCD2","Image Data",IMAGE_INFO_TAB,IP_RO,60,IPS_IDLE);
 
     IUFillSwitch(&GuideCCD.RapidGuideS[0], "ENABLE", "Enable", ISS_OFF);
     IUFillSwitch(&GuideCCD.RapidGuideS[1], "DISABLE", "Disable", ISS_ON);
-    IUFillSwitchVector(GuideCCD.RapidGuideSP, GuideCCD.RapidGuideS, 2, getDeviceName(), "GUIDER_RAPID_GUIDE", "Guider Head Rapid Guide", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&GuideCCD.RapidGuideSP, GuideCCD.RapidGuideS, 2, getDeviceName(), "GUIDER_RAPID_GUIDE", "Guider Head Rapid Guide", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillSwitch(&GuideCCD.RapidGuideSetupS[0], "AUTO_LOOP", "Auto loop", ISS_ON);
     IUFillSwitch(&GuideCCD.RapidGuideSetupS[1], "SEND_IMAGE", "Send image", ISS_OFF);
     IUFillSwitch(&GuideCCD.RapidGuideSetupS[2], "SHOW_MARKER", "Show marker", ISS_OFF);
-    IUFillSwitchVector(GuideCCD.RapidGuideSetupSP, GuideCCD.RapidGuideSetupS, 3, getDeviceName(), "GUIDER_RAPID_GUIDE_SETUP", "Rapid Guide Setup", RAPIDGUIDE_TAB, IP_RW, ISR_NOFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&GuideCCD.RapidGuideSetupSP, GuideCCD.RapidGuideSetupS, 3, getDeviceName(), "GUIDER_RAPID_GUIDE_SETUP", "Rapid Guide Setup", RAPIDGUIDE_TAB, IP_RW, ISR_NOFMANY, 0, IPS_IDLE);
 
     IUFillNumber(&GuideCCD.RapidGuideDataN[0],"GUIDESTAR_X","Guide star position X","%5.2f",0,1024,0,0);
     IUFillNumber(&GuideCCD.RapidGuideDataN[1],"GUIDESTAR_Y","Guide star position Y","%5.2f",0,1024,0,0);
     IUFillNumber(&GuideCCD.RapidGuideDataN[2],"GUIDESTAR_FIT","Guide star fit","%5.2f",0,1024,0,0);
-    IUFillNumberVector(GuideCCD.RapidGuideDataNP,GuideCCD.RapidGuideDataN,3,getDeviceName(),"GUIDER_RAPID_GUIDE_DATA","Rapid Guide Data",RAPIDGUIDE_TAB,IP_RO,60,IPS_IDLE);
+    IUFillNumberVector(&GuideCCD.RapidGuideDataNP,GuideCCD.RapidGuideDataN,3,getDeviceName(),"GUIDER_RAPID_GUIDE_DATA","Rapid Guide Data",RAPIDGUIDE_TAB,IP_RO,60,IPS_IDLE);
 
     // CCD Class Init
 
@@ -430,7 +424,7 @@ bool INDI::CCD::initProperties()
     IUFillText(&ActiveDeviceT[0],"ACTIVE_TELESCOPE","Telescope","Telescope Simulator");
     IUFillText(&ActiveDeviceT[1],"ACTIVE_FOCUSER","Focuser","Focuser Simulator");
     IUFillText(&ActiveDeviceT[2],"ACTIVE_FILTER","Filter","CCD Simulator");
-    IUFillTextVector(ActiveDeviceTP,ActiveDeviceT,3,getDeviceName(),"ACTIVE_DEVICES","Snoop devices",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
+    IUFillTextVector(&ActiveDeviceTP,ActiveDeviceT,3,getDeviceName(),"ACTIVE_DEVICES","Snoop devices",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillNumber(&EqN[0],"RA","Ra (hh:mm:ss)","%010.6m",0,24,0,0);
     IUFillNumber(&EqN[1],"DEC","Dec (dd:mm:ss)","%010.6m",-90,90,0,0);
@@ -464,73 +458,73 @@ bool INDI::CCD::updateProperties()
     //IDLog("INDI::CCD UpdateProperties isConnected returns %d %d\n",isConnected(),Connected);
     if(isConnected())
     {
-       defineNumber(PrimaryCCD.ImageExposureNP);
+       defineNumber(&PrimaryCCD.ImageExposureNP);
 
        if (capability.canAbort)
-            defineSwitch(PrimaryCCD.AbortExposureSP);
+            defineSwitch(&PrimaryCCD.AbortExposureSP);
        if (capability.canSubFrame == false)
-           PrimaryCCD.ImageFrameNP->p = IP_RO;
+           PrimaryCCD.ImageFrameNP.p = IP_RO;
 
-        defineNumber(PrimaryCCD.ImageFrameNP);
+        defineNumber(&PrimaryCCD.ImageFrameNP);
        if (capability.canBin)
-            defineNumber(PrimaryCCD.ImageBinNP);
+            defineNumber(&PrimaryCCD.ImageBinNP);
 
         if(capability.hasGuideHead)
         {
-            defineNumber(GuideCCD.ImageExposureNP);
+            defineNumber(&GuideCCD.ImageExposureNP);
             if (capability.canAbort)
-                defineSwitch(GuideCCD.AbortExposureSP);
+                defineSwitch(&GuideCCD.AbortExposureSP);
             if (capability.canSubFrame == false)
-                GuideCCD.ImageFrameNP->p = IP_RO;
-            defineNumber(GuideCCD.ImageFrameNP);
+                GuideCCD.ImageFrameNP.p = IP_RO;
+            defineNumber(&GuideCCD.ImageFrameNP);
         }
 
         if (capability.hasCooler)
             defineNumber(&TemperatureNP);
 
-        defineNumber(PrimaryCCD.ImagePixelSizeNP);
+        defineNumber(&PrimaryCCD.ImagePixelSizeNP);
         if(capability.hasGuideHead)
         {
-            defineNumber(GuideCCD.ImagePixelSizeNP);
+            defineNumber(&GuideCCD.ImagePixelSizeNP);
             if (capability.canBin)
-                defineNumber(GuideCCD.ImageBinNP);
+                defineNumber(&GuideCCD.ImageBinNP);
         }
-        defineSwitch(PrimaryCCD.CompressSP);
-        defineBLOB(PrimaryCCD.FitsBP);
+        defineSwitch(&PrimaryCCD.CompressSP);
+        defineBLOB(&PrimaryCCD.FitsBP);
         if(capability.hasGuideHead)
         {
-            defineSwitch(GuideCCD.CompressSP);
-            defineBLOB(GuideCCD.FitsBP);
+            defineSwitch(&GuideCCD.CompressSP);
+            defineBLOB(&GuideCCD.FitsBP);
         }
         if(capability.hasST4Port)
         {
             defineNumber(&GuideNSNP);
             defineNumber(&GuideWENP);
         }
-        defineSwitch(PrimaryCCD.FrameTypeSP);
+        defineSwitch(&PrimaryCCD.FrameTypeSP);
 
         if (capability.canBin || capability.canSubFrame)
-            defineSwitch(PrimaryCCD.ResetSP);
+            defineSwitch(&PrimaryCCD.ResetSP);
 
         if (capability.hasGuideHead)
-            defineSwitch(GuideCCD.FrameTypeSP);
+            defineSwitch(&GuideCCD.FrameTypeSP);
 
-        defineSwitch(PrimaryCCD.RapidGuideSP);
+        defineSwitch(&PrimaryCCD.RapidGuideSP);
 
         if (capability.hasGuideHead)
-          defineSwitch(GuideCCD.RapidGuideSP);
+          defineSwitch(&GuideCCD.RapidGuideSP);
 
         if (RapidGuideEnabled)
         {
-          defineSwitch(PrimaryCCD.RapidGuideSetupSP);
-          defineNumber(PrimaryCCD.RapidGuideDataNP);
+          defineSwitch(&PrimaryCCD.RapidGuideSetupSP);
+          defineNumber(&PrimaryCCD.RapidGuideDataNP);
         }
         if (GuiderRapidGuideEnabled)
         {
-          defineSwitch(GuideCCD.RapidGuideSetupSP);
-          defineNumber(GuideCCD.RapidGuideDataNP);
+          defineSwitch(&GuideCCD.RapidGuideSetupSP);
+          defineNumber(&GuideCCD.RapidGuideDataNP);
         }
-        defineText(ActiveDeviceTP);
+        defineText(&ActiveDeviceTP);
         defineSwitch(&UploadSP);
 
         if (UploadSettingsT[0].text == NULL)
@@ -539,41 +533,41 @@ bool INDI::CCD::updateProperties()
     }
     else
     {
-        deleteProperty(PrimaryCCD.ImageFrameNP->name);
-        deleteProperty(PrimaryCCD.ImagePixelSizeNP->name);
+        deleteProperty(PrimaryCCD.ImageFrameNP.name);
+        deleteProperty(PrimaryCCD.ImagePixelSizeNP.name);
 
         if (capability.canBin)
-            deleteProperty(PrimaryCCD.ImageBinNP->name);
+            deleteProperty(PrimaryCCD.ImageBinNP.name);
 
-        deleteProperty(PrimaryCCD.ImageExposureNP->name);
+        deleteProperty(PrimaryCCD.ImageExposureNP.name);
         if (capability.canAbort)
-            deleteProperty(PrimaryCCD.AbortExposureSP->name);
-        deleteProperty(PrimaryCCD.FitsBP->name);
-        deleteProperty(PrimaryCCD.CompressSP->name);
-        deleteProperty(PrimaryCCD.RapidGuideSP->name);
+            deleteProperty(PrimaryCCD.AbortExposureSP.name);
+        deleteProperty(PrimaryCCD.FitsBP.name);
+        deleteProperty(PrimaryCCD.CompressSP.name);
+        deleteProperty(PrimaryCCD.RapidGuideSP.name);
         if (RapidGuideEnabled)
         {
-          deleteProperty(PrimaryCCD.RapidGuideSetupSP->name);
-          deleteProperty(PrimaryCCD.RapidGuideDataNP->name);
+          deleteProperty(PrimaryCCD.RapidGuideSetupSP.name);
+          deleteProperty(PrimaryCCD.RapidGuideDataNP.name);
         }
         if(capability.hasGuideHead)
         {
-            deleteProperty(GuideCCD.ImageExposureNP->name);
+            deleteProperty(GuideCCD.ImageExposureNP.name);
             if (capability.canAbort)
-                deleteProperty(GuideCCD.AbortExposureSP->name);
-                deleteProperty(GuideCCD.ImageFrameNP->name);
-                deleteProperty(GuideCCD.ImagePixelSizeNP->name);
+                deleteProperty(GuideCCD.AbortExposureSP.name);
+                deleteProperty(GuideCCD.ImageFrameNP.name);
+                deleteProperty(GuideCCD.ImagePixelSizeNP.name);
 
-            deleteProperty(GuideCCD.FitsBP->name);
+            deleteProperty(GuideCCD.FitsBP.name);
             if (capability.canBin)
-                deleteProperty(GuideCCD.ImageBinNP->name);
-            deleteProperty(GuideCCD.CompressSP->name);
-            deleteProperty(GuideCCD.FrameTypeSP->name);
-            deleteProperty(GuideCCD.RapidGuideSP->name);
+                deleteProperty(GuideCCD.ImageBinNP.name);
+            deleteProperty(GuideCCD.CompressSP.name);
+            deleteProperty(GuideCCD.FrameTypeSP.name);
+            deleteProperty(GuideCCD.RapidGuideSP.name);
             if (GuiderRapidGuideEnabled)
             {
-              deleteProperty(GuideCCD.RapidGuideSetupSP->name);
-              deleteProperty(GuideCCD.RapidGuideDataNP->name);
+              deleteProperty(GuideCCD.RapidGuideSetupSP.name);
+              deleteProperty(GuideCCD.RapidGuideDataNP.name);
             }
         }
         if (capability.hasCooler)
@@ -583,10 +577,10 @@ bool INDI::CCD::updateProperties()
             deleteProperty(GuideNSNP.name);
             deleteProperty(GuideWENP.name);
         }
-        deleteProperty(PrimaryCCD.FrameTypeSP->name);
+        deleteProperty(PrimaryCCD.FrameTypeSP.name);
         if (capability.canBin || capability.canSubFrame)
-            deleteProperty(PrimaryCCD.ResetSP->name);
-        deleteProperty(ActiveDeviceTP->name);
+            deleteProperty(PrimaryCCD.ResetSP.name);
+        deleteProperty(ActiveDeviceTP.name);
         deleteProperty(UploadSP.name);
         deleteProperty(UploadSettingsTP.name);
     }
@@ -634,13 +628,13 @@ bool INDI::CCD::ISNewText (const char *dev, const char *name, char *texts[], cha
     {
         //  This is for our device
         //  Now lets see if it's something we process here
-        if(strcmp(name,ActiveDeviceTP->name)==0)
+        if(strcmp(name,ActiveDeviceTP.name)==0)
         {
             int rc;
-            ActiveDeviceTP->s=IPS_OK;
-            rc=IUUpdateText(ActiveDeviceTP,texts,names,n);
+            ActiveDeviceTP.s=IPS_OK;
+            rc=IUUpdateText(&ActiveDeviceTP,texts,names,n);
             //  Update client display
-            IDSetText(ActiveDeviceTP,NULL);
+            IDSetText(&ActiveDeviceTP,NULL);
             //saveConfig();
 
             // Update the property name!
@@ -680,37 +674,37 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
         {
             PrimaryCCD.ImageExposureN[0].value = ExposureTime = values[0];
 
-            if (PrimaryCCD.ImageExposureNP->s==IPS_BUSY)
+            if (PrimaryCCD.ImageExposureNP.s==IPS_BUSY)
                 AbortExposure();
 
             if (StartExposure(ExposureTime))
-               PrimaryCCD.ImageExposureNP->s=IPS_BUSY;
+               PrimaryCCD.ImageExposureNP.s=IPS_BUSY;
             else
-               PrimaryCCD.ImageExposureNP->s=IPS_ALERT;
-            IDSetNumber(PrimaryCCD.ImageExposureNP,NULL);
+               PrimaryCCD.ImageExposureNP.s=IPS_ALERT;
+            IDSetNumber(&PrimaryCCD.ImageExposureNP,NULL);
             return true;
         }
 
         if(strcmp(name,"GUIDER_EXPOSURE")==0)
         {
             GuideCCD.ImageExposureN[0].value = GuiderExposureTime = values[0];
-            GuideCCD.ImageExposureNP->s=IPS_BUSY;
+            GuideCCD.ImageExposureNP.s=IPS_BUSY;
             if (StartGuideExposure(GuiderExposureTime))
-               GuideCCD.ImageExposureNP->s=IPS_BUSY;
+               GuideCCD.ImageExposureNP.s=IPS_BUSY;
             else
-               GuideCCD.ImageExposureNP->s=IPS_ALERT;
-            IDSetNumber(GuideCCD.ImageExposureNP,NULL);
+               GuideCCD.ImageExposureNP.s=IPS_ALERT;
+            IDSetNumber(&GuideCCD.ImageExposureNP,NULL);
             return true;
         }
 
         if(strcmp(name,"CCD_BINNING")==0)
         {
             //  We are being asked to set camera binning
-            INumber *np = IUFindNumber(PrimaryCCD.ImageBinNP, names[0]);
+            INumber *np = IUFindNumber(&PrimaryCCD.ImageBinNP, names[0]);
             if (np == NULL)
             {
-                PrimaryCCD.ImageBinNP->s = IPS_ALERT;
-                IDSetNumber (PrimaryCCD.ImageBinNP, NULL);
+                PrimaryCCD.ImageBinNP.s = IPS_ALERT;
+                IDSetNumber (&PrimaryCCD.ImageBinNP, NULL);
                 return false;
             }
 
@@ -728,14 +722,14 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
 
             if (UpdateCCDBin(binx, biny))
             {
-                IUUpdateNumber(PrimaryCCD.ImageBinNP,values,names,n);
-                PrimaryCCD.ImageBinNP->s=IPS_OK;
+                IUUpdateNumber(&PrimaryCCD.ImageBinNP,values,names,n);
+                PrimaryCCD.ImageBinNP.s=IPS_OK;
 
             }
             else
-                PrimaryCCD.ImageBinNP->s = IPS_ALERT;
+                PrimaryCCD.ImageBinNP.s = IPS_ALERT;
 
-            IDSetNumber (PrimaryCCD.ImageBinNP, NULL);
+            IDSetNumber (&PrimaryCCD.ImageBinNP, NULL);
 
             return true;
 
@@ -744,11 +738,11 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
         if(strcmp(name,"GUIDER_BINNING")==0)
         {
             //  We are being asked to set camera binning
-            INumber *np = IUFindNumber(GuideCCD.ImageBinNP, names[0]);
+            INumber *np = IUFindNumber(&GuideCCD.ImageBinNP, names[0]);
             if (np == NULL)
             {
-                GuideCCD.ImageBinNP->s = IPS_ALERT;
-                IDSetNumber (GuideCCD.ImageBinNP, NULL);
+                GuideCCD.ImageBinNP.s = IPS_ALERT;
+                IDSetNumber (&GuideCCD.ImageBinNP, NULL);
                 return false;
             }
 
@@ -766,14 +760,14 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
 
             if (UpdateGuiderBin(binx, biny))
             {
-                IUUpdateNumber(GuideCCD.ImageBinNP,values,names,n);
-                GuideCCD.ImageBinNP->s=IPS_OK;
+                IUUpdateNumber(&GuideCCD.ImageBinNP,values,names,n);
+                GuideCCD.ImageBinNP.s=IPS_OK;
 
             }
             else
-                GuideCCD.ImageBinNP->s = IPS_ALERT;
+                GuideCCD.ImageBinNP.s = IPS_ALERT;
 
-            IDSetNumber (GuideCCD.ImageBinNP, NULL);
+            IDSetNumber (&GuideCCD.ImageBinNP, NULL);
 
             return true;
 
@@ -783,54 +777,54 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
         if(strcmp(name,"CCD_FRAME")==0)
         {
             //  We are being asked to set CCD Frame
-            if (IUUpdateNumber(PrimaryCCD.ImageFrameNP,values,names,n) < 0)
+            if (IUUpdateNumber(&PrimaryCCD.ImageFrameNP,values,names,n) < 0)
                 return false;
 
-            PrimaryCCD.ImageFrameNP->s=IPS_OK;
+            PrimaryCCD.ImageFrameNP.s=IPS_OK;
 
             DEBUGF(Logger::DBG_DEBUG, "Requested CCD Frame is (%3.0f,%3.0f) (%3.0f x %3.0f)", values[0],values[1],values[2],values[3]);
 
             if (UpdateCCDFrame(PrimaryCCD.ImageFrameN[0].value, PrimaryCCD.ImageFrameN[1].value, PrimaryCCD.ImageFrameN[2].value,
                                PrimaryCCD.ImageFrameN[3].value) == false)
-                PrimaryCCD.ImageFrameNP->s = IPS_ALERT;
+                PrimaryCCD.ImageFrameNP.s = IPS_ALERT;
 
-            IDSetNumber(PrimaryCCD.ImageFrameNP, NULL);
+            IDSetNumber(&PrimaryCCD.ImageFrameNP, NULL);
             return true;
         }
 
         if(strcmp(name,"GUIDER_FRAME")==0)
         {
             //  We are being asked to set guide frame
-            if (IUUpdateNumber(GuideCCD.ImageFrameNP,values,names,n) < 0)
+            if (IUUpdateNumber(&GuideCCD.ImageFrameNP,values,names,n) < 0)
                 return false;
 
-            GuideCCD.ImageFrameNP->s=IPS_OK;
+            GuideCCD.ImageFrameNP.s=IPS_OK;
 
             DEBUGF(Logger::DBG_DEBUG, "Requested Guide Frame is %4.0f,%4.0f %4.0f x %4.0f",
                   values[0],values[1],values[2],values[4]);
 
             if (UpdateGuiderFrame(GuideCCD.ImageFrameN[0].value, GuideCCD.ImageFrameN[1].value, GuideCCD.ImageFrameN[2].value,
                                GuideCCD.ImageFrameN[3].value) == false)
-                GuideCCD.ImageFrameNP->s = IPS_ALERT;
+                GuideCCD.ImageFrameNP.s = IPS_ALERT;
 
-            IDSetNumber(GuideCCD.ImageFrameNP, NULL);
+            IDSetNumber(&GuideCCD.ImageFrameNP, NULL);
 
             return true;
         }
 
         if(strcmp(name,"CCD_GUIDESTAR")==0)
         {
-            PrimaryCCD.RapidGuideDataNP->s=IPS_OK;
-            IUUpdateNumber(PrimaryCCD.RapidGuideDataNP,values,names,n);
-            IDSetNumber(PrimaryCCD.RapidGuideDataNP, NULL);
+            PrimaryCCD.RapidGuideDataNP.s=IPS_OK;
+            IUUpdateNumber(&PrimaryCCD.RapidGuideDataNP,values,names,n);
+            IDSetNumber(&PrimaryCCD.RapidGuideDataNP, NULL);
             return true;
         }
 
         if(strcmp(name,"GUIDER_GUIDESTAR")==0)
         {
-            GuideCCD.RapidGuideDataNP->s=IPS_OK;
-            IUUpdateNumber(GuideCCD.RapidGuideDataNP,values,names,n);
-            IDSetNumber(GuideCCD.RapidGuideDataNP, NULL);
+            GuideCCD.RapidGuideDataNP.s=IPS_OK;
+            IUUpdateNumber(&GuideCCD.RapidGuideDataNP,values,names,n);
+            IDSetNumber(&GuideCCD.RapidGuideDataNP, NULL);
             return true;
         }
 
@@ -868,22 +862,22 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
         }
 
         // Primary CCD Info
-        if (!strcmp(name, PrimaryCCD.ImagePixelSizeNP->name))
+        if (!strcmp(name, PrimaryCCD.ImagePixelSizeNP.name))
         {
-            IUUpdateNumber(PrimaryCCD.ImagePixelSizeNP, values, names, n);
-            PrimaryCCD.ImagePixelSizeNP->s = IPS_OK;
-            SetCCDParams(PrimaryCCD.ImagePixelSizeNP->np[0].value, PrimaryCCD.ImagePixelSizeNP->np[1].value, PrimaryCCD.getBPP(), PrimaryCCD.ImagePixelSizeNP->np[2].value, PrimaryCCD.ImagePixelSizeNP->np[3].value);
-            IDSetNumber(PrimaryCCD.ImagePixelSizeNP, NULL);
+            IUUpdateNumber(&PrimaryCCD.ImagePixelSizeNP, values, names, n);
+            PrimaryCCD.ImagePixelSizeNP.s = IPS_OK;
+            SetCCDParams(PrimaryCCD.ImagePixelSizeNP.np[0].value, PrimaryCCD.ImagePixelSizeNP.np[1].value, PrimaryCCD.getBPP(), PrimaryCCD.ImagePixelSizeNP.np[2].value, PrimaryCCD.ImagePixelSizeNP.np[3].value);
+            IDSetNumber(&PrimaryCCD.ImagePixelSizeNP, NULL);
             return true;
         }
 
         // Guide CCD Info
-        if (!strcmp(name, GuideCCD.ImagePixelSizeNP->name))
+        if (!strcmp(name, GuideCCD.ImagePixelSizeNP.name))
         {
-            IUUpdateNumber(GuideCCD.ImagePixelSizeNP, values, names, n);
-            GuideCCD.ImagePixelSizeNP->s = IPS_OK;
-            SetGuiderParams(GuideCCD.ImagePixelSizeNP->np[0].value, GuideCCD.ImagePixelSizeNP->np[1].value, GuideCCD.getBPP(), GuideCCD.ImagePixelSizeNP->np[2].value, GuideCCD.ImagePixelSizeNP->np[3].value);
-            IDSetNumber(GuideCCD.ImagePixelSizeNP, NULL);
+            IUUpdateNumber(&GuideCCD.ImagePixelSizeNP, values, names, n);
+            GuideCCD.ImagePixelSizeNP.s = IPS_OK;
+            SetGuiderParams(GuideCCD.ImagePixelSizeNP.np[0].value, GuideCCD.ImagePixelSizeNP.np[1].value, GuideCCD.getBPP(), GuideCCD.ImagePixelSizeNP.np[2].value, GuideCCD.ImagePixelSizeNP.np[3].value);
+            IDSetNumber(&GuideCCD.ImagePixelSizeNP, NULL);
             return true;
         }
 
@@ -915,69 +909,69 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
         }
 
         // Reset
-        if(strcmp(name,PrimaryCCD.ResetSP->name)==0)
+        if(strcmp(name,PrimaryCCD.ResetSP.name)==0)
         {
-          IUResetSwitch(PrimaryCCD.ResetSP);
-          PrimaryCCD.ResetSP->s = IPS_OK;
+          IUResetSwitch(&PrimaryCCD.ResetSP);
+          PrimaryCCD.ResetSP.s = IPS_OK;
           if (capability.canBin)
               UpdateCCDBin(1,1);
           if (capability.canSubFrame)
               UpdateCCDFrame(0,0, PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
 
-          IDSetSwitch(PrimaryCCD.ResetSP, NULL);
+          IDSetSwitch(&PrimaryCCD.ResetSP, NULL);
           return true;
         }
 
-        if(strcmp(name,PrimaryCCD.AbortExposureSP->name)==0)
+        if(strcmp(name,PrimaryCCD.AbortExposureSP.name)==0)
         {
-            IUResetSwitch(PrimaryCCD.AbortExposureSP);
+            IUResetSwitch(&PrimaryCCD.AbortExposureSP);
 
             if (AbortExposure())
             {
-                PrimaryCCD.AbortExposureSP->s = IPS_OK;
-                PrimaryCCD.ImageExposureNP->s = IPS_IDLE;
+                PrimaryCCD.AbortExposureSP.s = IPS_OK;
+                PrimaryCCD.ImageExposureNP.s = IPS_IDLE;
                 PrimaryCCD.ImageExposureN[0].value = 0;
             }
             else
             {
-                PrimaryCCD.AbortExposureSP->s = IPS_ALERT;
-                PrimaryCCD.ImageExposureNP->s = IPS_ALERT;
+                PrimaryCCD.AbortExposureSP.s = IPS_ALERT;
+                PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
             }
 
-            IDSetSwitch(PrimaryCCD.AbortExposureSP, NULL);
-            IDSetNumber(PrimaryCCD.ImageExposureNP, NULL);
+            IDSetSwitch(&PrimaryCCD.AbortExposureSP, NULL);
+            IDSetNumber(&PrimaryCCD.ImageExposureNP, NULL);
 
             return true;
         }
 
-        if(strcmp(name,GuideCCD.AbortExposureSP->name)==0)
+        if(strcmp(name,GuideCCD.AbortExposureSP.name)==0)
         {
-            IUResetSwitch(GuideCCD.AbortExposureSP);
+            IUResetSwitch(&GuideCCD.AbortExposureSP);
 
             if (AbortGuideExposure())
             {
-                GuideCCD.AbortExposureSP->s = IPS_OK;
-                GuideCCD.ImageExposureNP->s = IPS_IDLE;
+                GuideCCD.AbortExposureSP.s = IPS_OK;
+                GuideCCD.ImageExposureNP.s = IPS_IDLE;
                 GuideCCD.ImageExposureN[0].value = 0;
             }
             else
             {
-                GuideCCD.AbortExposureSP->s = IPS_ALERT;
-                GuideCCD.ImageExposureNP->s = IPS_ALERT;
+                GuideCCD.AbortExposureSP.s = IPS_ALERT;
+                GuideCCD.ImageExposureNP.s = IPS_ALERT;
             }
 
-            IDSetSwitch(GuideCCD.AbortExposureSP, NULL);
-            IDSetNumber(GuideCCD.ImageExposureNP, NULL);
+            IDSetSwitch(&GuideCCD.AbortExposureSP, NULL);
+            IDSetNumber(&GuideCCD.ImageExposureNP, NULL);
 
             return true;
         }
 
-        if(strcmp(name,PrimaryCCD.CompressSP->name)==0)
+        if(strcmp(name,PrimaryCCD.CompressSP.name)==0)
         {
 
-            IUUpdateSwitch(PrimaryCCD.CompressSP,states,names,n);
-            PrimaryCCD.CompressSP->s = IPS_OK;
-            IDSetSwitch(PrimaryCCD.CompressSP,NULL);
+            IUUpdateSwitch(&PrimaryCCD.CompressSP,states,names,n);
+            PrimaryCCD.CompressSP.s = IPS_OK;
+            IDSetSwitch(&PrimaryCCD.CompressSP,NULL);
 
             if(PrimaryCCD.CompressS[0].s==ISS_ON    )
             {
@@ -989,12 +983,12 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
             return true;
         }
 
-        if(strcmp(name,GuideCCD.CompressSP->name)==0)
+        if(strcmp(name,GuideCCD.CompressSP.name)==0)
         {
 
-            IUUpdateSwitch(GuideCCD.CompressSP,states,names,n);
-            GuideCCD.CompressSP->s = IPS_OK;
-            IDSetSwitch(GuideCCD.CompressSP,NULL);
+            IUUpdateSwitch(&GuideCCD.CompressSP,states,names,n);
+            GuideCCD.CompressSP.s = IPS_OK;
+            IDSetSwitch(&GuideCCD.CompressSP,NULL);
 
             if(GuideCCD.CompressS[0].s==ISS_ON    )
             {
@@ -1006,10 +1000,10 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
             return true;
         }
 
-        if(strcmp(name,PrimaryCCD.FrameTypeSP->name)==0)
+        if(strcmp(name,PrimaryCCD.FrameTypeSP.name)==0)
         {
-            IUUpdateSwitch(PrimaryCCD.FrameTypeSP,states,names,n);
-            PrimaryCCD.FrameTypeSP->s=IPS_OK;
+            IUUpdateSwitch(&PrimaryCCD.FrameTypeSP,states,names,n);
+            PrimaryCCD.FrameTypeSP.s=IPS_OK;
             if(PrimaryCCD.FrameTypeS[0].s==ISS_ON)
                 PrimaryCCD.setFrameType(CCDChip::LIGHT_FRAME);
             else if(PrimaryCCD.FrameTypeS[1].s==ISS_ON)
@@ -1028,18 +1022,18 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
                 PrimaryCCD.setFrameType(CCDChip::FLAT_FRAME);
 
             if (UpdateCCDFrameType(PrimaryCCD.getFrameType()) == false)
-                PrimaryCCD.FrameTypeSP->s = IPS_ALERT;
+                PrimaryCCD.FrameTypeSP.s = IPS_ALERT;
 
-            IDSetSwitch(PrimaryCCD.FrameTypeSP,NULL);
+            IDSetSwitch(&PrimaryCCD.FrameTypeSP,NULL);
 
             return true;
         }
 
-        if(strcmp(name,GuideCCD.FrameTypeSP->name)==0)
+        if(strcmp(name,GuideCCD.FrameTypeSP.name)==0)
         {
             //  Compression Update
-            IUUpdateSwitch(GuideCCD.FrameTypeSP,states,names,n);
-            GuideCCD.FrameTypeSP->s=IPS_OK;
+            IUUpdateSwitch(&GuideCCD.FrameTypeSP,states,names,n);
+            GuideCCD.FrameTypeSP.s=IPS_OK;
             if(GuideCCD.FrameTypeS[0].s==ISS_ON)
                 GuideCCD.setFrameType(CCDChip::LIGHT_FRAME);
             else if(GuideCCD.FrameTypeS[1].s==ISS_ON)
@@ -1058,75 +1052,75 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
                 GuideCCD.setFrameType(CCDChip::FLAT_FRAME);
 
             if (UpdateGuiderFrameType(GuideCCD.getFrameType()) == false)
-                GuideCCD.FrameTypeSP->s = IPS_ALERT;
+                GuideCCD.FrameTypeSP.s = IPS_ALERT;
 
-            IDSetSwitch(GuideCCD.FrameTypeSP,NULL);
+            IDSetSwitch(&GuideCCD.FrameTypeSP,NULL);
 
             return true;
         }
 
 
-        if (strcmp(name, PrimaryCCD.RapidGuideSP->name)==0)
+        if (strcmp(name, PrimaryCCD.RapidGuideSP.name)==0)
         {
-            IUUpdateSwitch(PrimaryCCD.RapidGuideSP, states, names, n);
-            PrimaryCCD.RapidGuideSP->s=IPS_OK;
+            IUUpdateSwitch(&PrimaryCCD.RapidGuideSP, states, names, n);
+            PrimaryCCD.RapidGuideSP.s=IPS_OK;
             RapidGuideEnabled=(PrimaryCCD.RapidGuideS[0].s==ISS_ON);
 
             if (RapidGuideEnabled) {
-              defineSwitch(PrimaryCCD.RapidGuideSetupSP);
-              defineNumber(PrimaryCCD.RapidGuideDataNP);
+              defineSwitch(&PrimaryCCD.RapidGuideSetupSP);
+              defineNumber(&PrimaryCCD.RapidGuideDataNP);
             }
             else {
-              deleteProperty(PrimaryCCD.RapidGuideSetupSP->name);
-              deleteProperty(PrimaryCCD.RapidGuideDataNP->name);
+              deleteProperty(PrimaryCCD.RapidGuideSetupSP.name);
+              deleteProperty(PrimaryCCD.RapidGuideDataNP.name);
             }
 
-            IDSetSwitch(PrimaryCCD.RapidGuideSP,NULL);
+            IDSetSwitch(&PrimaryCCD.RapidGuideSP,NULL);
             return true;
         }
 
-        if (strcmp(name, GuideCCD.RapidGuideSP->name)==0)
+        if (strcmp(name, GuideCCD.RapidGuideSP.name)==0)
         {
-            IUUpdateSwitch(GuideCCD.RapidGuideSP, states, names, n);
-            GuideCCD.RapidGuideSP->s=IPS_OK;
+            IUUpdateSwitch(&GuideCCD.RapidGuideSP, states, names, n);
+            GuideCCD.RapidGuideSP.s=IPS_OK;
             GuiderRapidGuideEnabled=(GuideCCD.RapidGuideS[0].s==ISS_ON);
 
             if (GuiderRapidGuideEnabled) {
-              defineSwitch(GuideCCD.RapidGuideSetupSP);
-              defineNumber(GuideCCD.RapidGuideDataNP);
+              defineSwitch(&GuideCCD.RapidGuideSetupSP);
+              defineNumber(&GuideCCD.RapidGuideDataNP);
             }
             else {
-              deleteProperty(GuideCCD.RapidGuideSetupSP->name);
-              deleteProperty(GuideCCD.RapidGuideDataNP->name);
+              deleteProperty(GuideCCD.RapidGuideSetupSP.name);
+              deleteProperty(GuideCCD.RapidGuideDataNP.name);
             }
 
-            IDSetSwitch(GuideCCD.RapidGuideSP,NULL);
+            IDSetSwitch(&GuideCCD.RapidGuideSP,NULL);
             return true;
         }
 
-        if (strcmp(name, PrimaryCCD.RapidGuideSetupSP->name)==0)
+        if (strcmp(name, PrimaryCCD.RapidGuideSetupSP.name)==0)
         {
-            IUUpdateSwitch(PrimaryCCD.RapidGuideSetupSP, states, names, n);
-            PrimaryCCD.RapidGuideSetupSP->s=IPS_OK;
+            IUUpdateSwitch(&PrimaryCCD.RapidGuideSetupSP, states, names, n);
+            PrimaryCCD.RapidGuideSetupSP.s=IPS_OK;
 
             AutoLoop=(PrimaryCCD.RapidGuideSetupS[0].s==ISS_ON);
             SendImage=(PrimaryCCD.RapidGuideSetupS[1].s==ISS_ON);
             ShowMarker=(PrimaryCCD.RapidGuideSetupS[2].s==ISS_ON);
 
-            IDSetSwitch(PrimaryCCD.RapidGuideSetupSP,NULL);
+            IDSetSwitch(&PrimaryCCD.RapidGuideSetupSP,NULL);
             return true;
         }
 
-        if (strcmp(name, GuideCCD.RapidGuideSetupSP->name)==0)
+        if (strcmp(name, GuideCCD.RapidGuideSetupSP.name)==0)
         {
-            IUUpdateSwitch(GuideCCD.RapidGuideSetupSP, states, names, n);
-            GuideCCD.RapidGuideSetupSP->s=IPS_OK;
+            IUUpdateSwitch(&GuideCCD.RapidGuideSetupSP, states, names, n);
+            GuideCCD.RapidGuideSetupSP.s=IPS_OK;
 
             GuiderAutoLoop=(GuideCCD.RapidGuideSetupS[0].s==ISS_ON);
             GuiderSendImage=(GuideCCD.RapidGuideSetupS[1].s==ISS_ON);
             GuiderShowMarker=(GuideCCD.RapidGuideSetupS[2].s==ISS_ON);
 
-            IDSetSwitch(GuideCCD.RapidGuideSetupSP,NULL);
+            IDSetSwitch(&GuideCCD.RapidGuideSetupSP,NULL);
             return true;
         }
     }
@@ -1317,7 +1311,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
     if (sendData)
     {
       static double P0 = 0.906, P1 = 0.584, P2 = 0.365, P3 = 0.117, P4 = 0.049, P5 = -0.05, P6 = -0.064, P7 = -0.074, P8 = -0.094;
-      targetChip->RapidGuideDataNP->s=IPS_BUSY;
+      targetChip->RapidGuideDataNP.s=IPS_BUSY;
       int width = targetChip->getSubW() / targetChip->getBinX();
       int height = targetChip->getSubH() / targetChip->getBinY();
       unsigned short *src = (unsigned short *) targetChip->getFrameBuffer();
@@ -1397,23 +1391,23 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
         {
           targetChip->RapidGuideDataN[0].value = ((double)sumX)/total;
           targetChip->RapidGuideDataN[1].value = ((double)sumY)/total;
-          targetChip->RapidGuideDataNP->s=IPS_OK;
+          targetChip->RapidGuideDataNP.s=IPS_OK;
 
           DEBUGF(INDI::Logger::DBG_DEBUG, "Guide Star X: %g Y: %g FIT: %g", targetChip->RapidGuideDataN[0].value, targetChip->RapidGuideDataN[1].value,
                   targetChip->RapidGuideDataN[2].value);
         }
         else
         {
-          targetChip->RapidGuideDataNP->s=IPS_ALERT;
+          targetChip->RapidGuideDataNP.s=IPS_ALERT;
           targetChip->lastRapidX = targetChip->lastRapidY = -1;
         }
       }
       else
       {
-        targetChip->RapidGuideDataNP->s=IPS_ALERT;
+        targetChip->RapidGuideDataNP.s=IPS_ALERT;
         targetChip->lastRapidX = targetChip->lastRapidY = -1;
       }
-      IDSetNumber(targetChip->RapidGuideDataNP,NULL);
+      IDSetNumber(&targetChip->RapidGuideDataNP,NULL);
 
       if (showMarker)
       {
@@ -1562,38 +1556,38 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
 
     }
 
-    targetChip->ImageExposureNP->s=IPS_OK;
-    IDSetNumber(targetChip->ImageExposureNP,NULL);
+    targetChip->ImageExposureNP.s=IPS_OK;
+    IDSetNumber(&targetChip->ImageExposureNP,NULL);
 
     if (autoLoop)
     {
       if (targetChip == &PrimaryCCD)
       {
         PrimaryCCD.ImageExposureN[0].value = ExposureTime;
-        PrimaryCCD.ImageExposureNP->s=IPS_BUSY;
+        PrimaryCCD.ImageExposureNP.s=IPS_BUSY;
         if (StartExposure(ExposureTime))
-           PrimaryCCD.ImageExposureNP->s=IPS_BUSY;
+           PrimaryCCD.ImageExposureNP.s=IPS_BUSY;
         else
         {
            DEBUG(INDI::Logger::DBG_DEBUG, "Autoloop: Primary CCD Exposure Error!");
-           PrimaryCCD.ImageExposureNP->s=IPS_ALERT;
+           PrimaryCCD.ImageExposureNP.s=IPS_ALERT;
         }
 
-        IDSetNumber(PrimaryCCD.ImageExposureNP,NULL);
+        IDSetNumber(&PrimaryCCD.ImageExposureNP,NULL);
       }
       else
       {
         GuideCCD.ImageExposureN[0].value = GuiderExposureTime;
-        GuideCCD.ImageExposureNP->s=IPS_BUSY;
+        GuideCCD.ImageExposureNP.s=IPS_BUSY;
         if (StartGuideExposure(GuiderExposureTime))
-           GuideCCD.ImageExposureNP->s=IPS_BUSY;
+           GuideCCD.ImageExposureNP.s=IPS_BUSY;
         else
         {
            DEBUG(INDI::Logger::DBG_DEBUG, "Autoloop: Guide CCD Exposure Error!");
-           GuideCCD.ImageExposureNP->s=IPS_ALERT;
+           GuideCCD.ImageExposureNP.s=IPS_ALERT;
         }
 
-        IDSetNumber(GuideCCD.ImageExposureNP,NULL);
+        IDSetNumber(&GuideCCD.ImageExposureNP,NULL);
       }
     }
 
@@ -1678,10 +1672,10 @@ bool INDI::CCD::uploadFile(CCDChip * targetChip, const void *fitsData, size_t to
     }
 
     targetChip->FitsB.size = totalBytes;
-    targetChip->FitsBP->s=IPS_OK;
+    targetChip->FitsBP.s=IPS_OK;
 
     if (sendImage)
-        IDSetBLOB(targetChip->FitsBP,NULL);
+        IDSetBLOB(&targetChip->FitsBP,NULL);
 
     if (compressedData)
         free (compressedData);
@@ -1713,20 +1707,20 @@ void INDI::CCD::SetGuiderParams(int x,int y,int bpp,float xf,float yf)
 
 bool INDI::CCD::saveConfigItems(FILE *fp)
 {
-    IUSaveConfigText(fp, ActiveDeviceTP);
+    IUSaveConfigText(fp, &ActiveDeviceTP);
     IUSaveConfigSwitch(fp, &UploadSP);
     IUSaveConfigText(fp, &UploadSettingsTP);
 
-    IUSaveConfigSwitch(fp, PrimaryCCD.CompressSP);
+    IUSaveConfigSwitch(fp, &PrimaryCCD.CompressSP);
 
     if (capability.hasGuideHead)
-        IUSaveConfigSwitch(fp, GuideCCD.CompressSP);
+        IUSaveConfigSwitch(fp, &GuideCCD.CompressSP);
 
     if (capability.canSubFrame)
-        IUSaveConfigNumber(fp, PrimaryCCD.ImageFrameNP);
+        IUSaveConfigNumber(fp, &PrimaryCCD.ImageFrameNP);
 
     if (capability.canBin)
-        IUSaveConfigNumber(fp, PrimaryCCD.ImageBinNP);
+        IUSaveConfigNumber(fp, &PrimaryCCD.ImageBinNP);
 
     return true;
 }
