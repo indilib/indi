@@ -253,7 +253,8 @@ bool ApogeeCCD::getCameraParams()
 
     try
     {
-        PrimaryCCD.setMaxBin(ApgCam->GetMaxBinRows(), ApgCam->GetMaxBinCols());
+        PrimaryCCD.setMinMaxStep("CCD_BINNING", "HOR_BIN", 1, ApgCam->GetMaxBinRows(), 1);
+        PrimaryCCD.setMinMaxStep("CCD_BINNING", "VER_BIN", 1, ApgCam->GetMaxBinCols(), 1);
         pixel_size_x = ApgCam->GetPixelWidth();
         pixel_size_y = ApgCam->GetPixelHeight();
 
