@@ -696,7 +696,8 @@ bool SBIGCCD::Connect()
           else
           {
                   // Establish link error.
-                  str = "Error: Cannot establish link to SBIG CCD camera. ";
+                  str = "Error: Cannot establish link to SBIG CCD camera at port ";
+                  str += string(PortTP.tp->text) + " ";
                   str += GetErrorString(res);
                   DEBUGF(INDI::Logger::DBG_ERROR, "%s", str.c_str());
                   return false;
@@ -706,7 +707,8 @@ bool SBIGCCD::Connect()
   else
   {
           // Open device error.
-          str = "Error: Cannot open SBIG CCD camera device. ";
+          str = "Error: Cannot open SBIG CCD camera device at port ";
+          str += string(PortTP.tp->text) + " ";
           str += GetErrorString(res);
 
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", str.c_str());
