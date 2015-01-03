@@ -462,6 +462,19 @@ bool SBIGCCD::ISNewText (const char *dev, const char *name, char *texts[], char 
     {
         if(strcmp(name,PortTP.name)==0)
         {
+            int count = sizeof(SBIG_DEVICE_PORTS)/sizeof(SBIG_USB0);
+            int i=0;
+            for (i=0; i < count; i++)
+                if (!strcmp(texts[0], SBIG_DEVICE_PORTS[0]))
+                    break;
+
+            if (i == count)
+            {
+                DEBUGF(INDI::Logger::DBG_ERROR, "Invalid port %s. Valid ports are sbigusb0, sbigusb1..etc, sbiglpt0, sbiglpt1..etc", texts[0]);
+                PortTP.s=IPS_ALERT;
+                return false;
+            }
+
             PortTP.s=IPS_OK;
             IUUpdateText(&PortTP,texts,names,n);
             IDSetText(&PortTP, NULL);

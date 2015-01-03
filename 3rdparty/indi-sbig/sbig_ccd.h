@@ -79,6 +79,7 @@ const double    	DT_AMBIENT 				= 45.000;
 #define			SBIG_LPT1 					"sbiglpt1"
 #define			SBIG_LPT2 					"sbiglpt2"
 
+const char *SBIG_DEVICE_PORTS[] = { SBIG_USB0, SBIG_USB1, SBIG_USB2, SBIG_USB3, SBIG_LPT0, SBIG_LPT1, SBIG_LPT2 };
 const double		MIN_CCD_TEMP            =  -70.0;
 const double		MAX_CCD_TEMP            = 	40.0;
 const double		CCD_TEMP_STEP           = 	0.1;
