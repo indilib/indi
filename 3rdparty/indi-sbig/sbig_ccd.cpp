@@ -472,6 +472,7 @@ bool SBIGCCD::ISNewText (const char *dev, const char *name, char *texts[], char 
             {
                 DEBUGF(INDI::Logger::DBG_ERROR, "Invalid port %s. Valid ports are sbigusb0, sbigusb1..etc, sbiglpt0, sbiglpt1..etc", texts[0]);
                 PortTP.s=IPS_ALERT;
+                IDSetText(&PortTP, NULL);
                 return false;
             }
 
