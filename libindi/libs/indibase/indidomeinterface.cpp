@@ -176,7 +176,7 @@ bool INDI::DomeInterface::processDomeNumber (const char *dev, const char *name, 
         double newPos = values[0];
         int ret =0;
 
-        if (capability.canAbsMove)
+        /*if (capability.canAbsMove)
         {
             if (DomeMotionS[0].s == ISS_ON)
             {
@@ -198,7 +198,7 @@ bool INDI::DomeInterface::processDomeNumber (const char *dev, const char *name, 
                     return false;
                 }
             }
-        }
+        }*/
 
         if ( (ret=MoveRelDome( (DomeMotionS[0].s == ISS_ON ? DOME_CW : DOME_CCW), newPos)) == 0)
         {
@@ -216,7 +216,7 @@ bool INDI::DomeInterface::processDomeNumber (const char *dev, const char *name, 
         {
              IUUpdateNumber(&DomeRelPosNP,values,names,n);
              DomeRelPosNP.s=IPS_BUSY;
-             IDSetNumber(&DomeAbsPosNP, "Dome is moving %g degrees %s...", newPos, (DomeMotionS[0].s == ISS_ON ? "clockwise" : "counter clockwise"));
+             IDSetNumber(&DomeRelPosNP, "Dome is moving %g degrees %s...", newPos, (DomeMotionS[0].s == ISS_ON ? "clockwise" : "counter clockwise"));
              if (capability.canAbsMove)
              {
                 DomeAbsPosNP.s=IPS_BUSY;

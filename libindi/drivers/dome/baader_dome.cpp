@@ -626,14 +626,27 @@ void BaaderDome::TimerHit()
             else
                 speed = SIM_DOME_LO_SPEED;
 
-            if (targetAz > DomeAbsPosN[0].value)
+            if (DomeRelPosNP.s == IPS_BUSY)
             {
-                DomeAbsPosN[0].value += speed;
+                // CW
+                if (DomeMotionS[0].s == ISS_ON)
+                    DomeAbsPosN[0].value += speed;
+                // CCW
+                else
+                    DomeAbsPosN[0].value -= speed;
             }
-            else if (targetAz < DomeAbsPosN[0].value)
+            else
             {
-                DomeAbsPosN[0].value -= speed;
+                if (targetAz > DomeAbsPosN[0].value)
+                {
+                    DomeAbsPosN[0].value += speed;
+                }
+                else if (targetAz < DomeAbsPosN[0].value)
+                {
+                    DomeAbsPosN[0].value -= speed;
+                }
             }
+
 
             if (DomeAbsPosN[0].value < DomeAbsPosN[0].min)
                 DomeAbsPosN[0].value += DomeAbsPosN[0].max;
