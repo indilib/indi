@@ -136,7 +136,7 @@ bool INDI::Focuser::ISNewNumber (const char *dev, const char *name, double value
             PresetNP.s = IPS_OK;
             IDSetNumber(&PresetNP, NULL);
 
-            saveConfig();
+            //saveConfig();
 
             return true;
         }

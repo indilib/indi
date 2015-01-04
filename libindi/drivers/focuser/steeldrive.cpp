@@ -218,7 +218,7 @@ bool SteelDrive::updateProperties()
 
         GetFocusParams();
 
-        loadConfig(true);
+        //loadConfig(true);
 
         DEBUG(INDI::Logger::DBG_SESSION, "SteelDrive paramaters updated, focuser ready for use.");
     }
