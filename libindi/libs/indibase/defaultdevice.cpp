@@ -77,7 +77,10 @@ bool INDI::DefaultDevice::loadConfig(bool silent, const char *property)
    if (silent == false)
    {
     if (pResult)
-            DEBUG(INDI::Logger::DBG_DEBUG, "Configuration successfully loaded.");
+    {
+            if (isDebug())
+                DEBUG(INDI::Logger::DBG_SESSION, "Configuration successfully loaded.");
+    }
         else
             DEBUGF(INDI::Logger::DBG_ERROR, "Error loading user configuration. %s. To save user configuration, click Save under the Configuration property in the Options tab. ", errmsg);
    }
@@ -157,7 +160,8 @@ bool INDI::DefaultDevice::saveConfig()
 
     IUSaveDefaultConfig(NULL, NULL, deviceID);
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Configuration successfully saved.");
+    if (isDebug())
+        DEBUG(INDI::Logger::DBG_SESSION, "Configuration successfully saved.");
 
     return true;
 }
