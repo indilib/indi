@@ -993,7 +993,6 @@ bool CCDSim::ISNewNumber (const char *dev, const char *name, double values[], ch
             //  Reset our parameters now
             SetupParms();
             IDSetNumber(SimulatorSettingsNV,NULL);
-            saveConfig();
 
             //IDLog("Frame set to %4.0f,%4.0f %4.0f x %4.0f\n",CcdFrameN[0].value,CcdFrameN[1].value,CcdFrameN[2].value,CcdFrameN[3].value);
             //seeing=SimulatorSettingsN[0].value;
@@ -1033,7 +1032,6 @@ bool CCDSim::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
             //  Update client display
             IDSetSwitch(TimeFactorSV,NULL);
 
-            saveConfig();
             if(TimeFactorS[0].s==ISS_ON    ) {
                 //IDLog("CCDSim:: Time Factor 1\n");
                 TimeFactor=1;

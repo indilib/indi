@@ -396,8 +396,6 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
             IUUpdateNumber(&ScopeParametersNP,values,names,n);
             IDSetNumber(&ScopeParametersNP,NULL);
 
-            saveConfig();
-
             return true;
         }
 

@@ -268,9 +268,10 @@ protected:
     virtual bool loadConfig(bool silent=false, const char *property=NULL);
 
     /** \brief Save the current properties in a configuration file
+     *  \param silent if true, don't report any error or notification messages.
         \return True if successful, false otherwise.
     */
-    virtual bool saveConfig();
+    virtual bool saveConfig(bool silent=false);
     virtual bool saveConfigItems(FILE *fp);
 
     /** \brief Load the default configuration file

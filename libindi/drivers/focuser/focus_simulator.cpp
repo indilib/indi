@@ -188,8 +188,6 @@ bool FocusSim::ISNewNumber (const char *dev, const char *name, double values[], 
             IUUpdateNumber(&SeeingNP, values, names, n);
 
             IDSetNumber(&SeeingNP,NULL);
-            saveConfig();
-
             return true;
 
         }

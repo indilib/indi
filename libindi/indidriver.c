@@ -1120,7 +1120,7 @@ dispatch (XMLEle *root, char msg[])
         return(1);
 }
 
-int IUReadConfig(const char *filename, const char *dev, const char *property, char errmsg[])
+int IUReadConfig(const char *filename, const char *dev, const char *property, int silent, char errmsg[])
 {
     char configFileName[MAXRBUF];
     char *rname, *rdev;
@@ -1156,7 +1156,7 @@ int IUReadConfig(const char *filename, const char *dev, const char *property, ch
         return -1;
     }
 
-    if (nXMLEle(fproot) > 0)
+    if (nXMLEle(fproot) > 0 && silent != 1)
         IDMessage(dev, "Loading device configuration...");
 
     for (root = nextXMLEle (fproot, 1); root != NULL; root = nextXMLEle (fproot, 0))
@@ -1178,7 +1178,7 @@ int IUReadConfig(const char *filename, const char *dev, const char *property, ch
 
     }
 
-    if (nXMLEle(fproot) > 0)
+    if (nXMLEle(fproot) > 0 && silent != 1)
         IDMessage(dev, "Device configuration applied.");
 
     fclose(fp);
@@ -1303,17 +1303,25 @@ FILE * IUGetConfigFP(const char *filename, const char *dev, char errmsg[])
      return fp;
 }
 
-void IUSaveConfigTag(FILE *fp, int ctag)
+void IUSaveConfigTag(FILE *fp, int ctag, const char * dev, int silent)
 {
     if (!fp)
         return;
 
     /* Opening tag */
     if (ctag == 0)
+    {
         fprintf(fp, "<INDIDriver>\n");
+        if (silent != 1)
+            IDMessage(dev, "Saving device configuration...");
+    }
     /* Closing tag */
     else
+    {
        fprintf(fp, "</INDIDriver>\n");
+       if (silent != 1)
+           IDMessage(dev, "Device configuration saved.");
+    }
 }
 
 void IUSaveConfigNumber (FILE *fp, const INumberVectorProperty *nvp)

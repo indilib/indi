@@ -93,10 +93,11 @@ extern FILE * IUGetConfigFP(const char *filename, const char *dev, char errmsg[]
            If set to NULL, it will attempt to generate the filename as described in the <b>Detailed Description</b> introduction and then load it.
     \param dev device name. This is used if the filename parameter is NULL, and INDICONFIG environment variable is not set as described in the <b>Detailed Description</b> introduction.
     \param property Property name to load configuration for. If NULL, all properties within the configuration file will be processed.
+    \param silent If silent is 1, it will suppress any output messages to the driver.
     \param errmsg In case of errors, store the error message in this buffer. The size of the buffer must be at least MAXRBUF.
     \return 0 on successful, -1 if there is an error and errmsg is set.
 */
-extern int IUReadConfig(const char *filename, const char *dev, const char *property, char errmsg[]);
+extern int IUReadConfig(const char *filename, const char *dev, const char *property, int silent, char errmsg[]);
 
 /** \brief Copies an existing configuration file into a default configuration file.
 
@@ -117,8 +118,10 @@ extern void IUSaveDefaultConfig(const char *source_config, const char *dest_conf
   A configuration file root XML element is \<INDIDriver\>. This functions add \<INDIDriver\> or \</INDIDriver\> as required.
     \param fp file pointer to a configuration file.
     \param ctag If 0, \<INDIDriver\> is appened to the configuration file, otherwise \</INDIDriver\> is appeneded and the <i>fp</i> is closed.
+    \param dev device name. Used only for sending notification to the driver if silent is set to 1.
+    \param silent If silent is 1, it will suppress any output messages to the driver.
 */
-extern void IUSaveConfigTag(FILE *fp, int ctag);
+extern void IUSaveConfigTag(FILE *fp, int ctag, const char *dev, int silent);
 
 /** \brief Add a number vector property value to the configuration file
     \param fp file pointer to a configuration file.

@@ -72,14 +72,13 @@ bool INDI::DefaultDevice::loadConfig(bool silent, const char *property)
     char errmsg[MAXRBUF];
     bool pResult = false;
 
-    pResult = IUReadConfig(NULL, deviceID, property, errmsg) == 0 ? true : false;
+    pResult = IUReadConfig(NULL, deviceID, property, silent ? 1 : 0, errmsg) == 0 ? true : false;
 
    if (silent == false)
    {
     if (pResult)
     {
-            if (isDebug())
-                DEBUG(INDI::Logger::DBG_SESSION, "Configuration successfully loaded.");
+            DEBUG(INDI::Logger::DBG_DEBUG, "Configuration successfully loaded.");
     }
         else
             DEBUGF(INDI::Logger::DBG_ERROR, "Error loading user configuration. %s. To save user configuration, click Save under the Configuration property in the Options tab. ", errmsg);
@@ -135,7 +134,7 @@ bool INDI::DefaultDevice::saveConfigItems(FILE *fp)
 	return true;
 }
 
-bool INDI::DefaultDevice::saveConfig()
+bool INDI::DefaultDevice::saveConfig(bool silent)
 {
     //std::vector<orderPtr>::iterator orderi;
     char errmsg[MAXRBUF];
@@ -146,22 +145,22 @@ bool INDI::DefaultDevice::saveConfig()
 
     if (fp == NULL)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error saving configuration. %s", errmsg);
+        if (silent == false)
+            DEBUGF(INDI::Logger::DBG_ERROR, "Error saving configuration. %s", errmsg);
         return false;
     }
 
-    IUSaveConfigTag(fp, 0);
+    IUSaveConfigTag(fp, 0, getDeviceName(), silent ? 1 : 0);
 
 	saveConfigItems(fp);
 
-    IUSaveConfigTag(fp, 1);
+    IUSaveConfigTag(fp, 1, getDeviceName(), silent ? 1 : 0);
 
     fclose(fp);
 
     IUSaveDefaultConfig(NULL, NULL, deviceID);
 
-    if (isDebug())
-        DEBUG(INDI::Logger::DBG_SESSION, "Configuration successfully saved.");
+    DEBUG(INDI::Logger::DBG_DEBUG, "Configuration successfully saved.");
 
     return true;
 }
@@ -180,7 +179,7 @@ bool INDI::DefaultDevice::loadDefaultConfig()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "Requesting to load default config with: %s", configDefaultFileName);
 
-    pResult = IUReadConfig(configDefaultFileName, deviceID, NULL, errmsg) == 0 ? true : false;
+    pResult = IUReadConfig(configDefaultFileName, deviceID, NULL, 0, errmsg) == 0 ? true : false;
 
     if (pResult)
         DEBUG(INDI::Logger::DBG_SESSION, "Default configuration loaded.");
