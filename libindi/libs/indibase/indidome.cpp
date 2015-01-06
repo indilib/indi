@@ -2,6 +2,9 @@
  INDI Dome Base Class
  Copyright(c) 2014 Jasem Mutlaq. All rights reserved.
 
+ The code used calculate dome target AZ and ZD is written by Ferran Casarramona, and adapted from code from Markus Wildi.
+ The transformations are based on the paper Matrix Method for Coodinates Transformation written by Toshimi Taki (http://www.asahi-net.or.jp/~zs3t-tk).
+
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
  License version 2 as published by the Free Software Foundation.
@@ -590,9 +593,9 @@ bool INDI::Dome::OpticalCenter(point3D MountCenter, double dOpticalAxis, double 
     cosq = cos(q);
     sinq = sin(q);
 
-    OP.x = (dOpticalAxis * fabs(cosf) + MountCenter.x);  // The sign of dOpticalAxis determines de side of the tube
+    OP.x = (dOpticalAxis * cosq * (-cosf) + MountCenter.x);  // The sign of dOpticalAxis determines de side of the tube
     OP.y = (dOpticalAxis * sinf * cosq + MountCenter.y);
-    OP.z = (dOpticalAxis * (-sinf) * sinq + MountCenter.z);
+    OP.z = (dOpticalAxis * cosf * sinq + MountCenter.z);
 
     return true;
 }
