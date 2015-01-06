@@ -1,3 +1,9 @@
+libqsi (7.2.0) trusty; urgency=low
+
+  * 7.2.0 release
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Mon, 6 Jan 2015 21:00:00 +0300
+
 libqsi (6.4.1.ubuntu1) trusty; urgency=low
 
   * Upped libtiff version to 5

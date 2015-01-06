@@ -1278,7 +1278,7 @@ debian/libqsi/compat -text
 debian/libqsi/control -text
 debian/libqsi/copyright -text
 debian/libqsi/libqsi-dev.install -text
-debian/libqsi/libqsi6.install -text
+debian/libqsi/libqsi7.install -text
 debian/libqsi/rules -text
 debian/libqsi/watch -text
 debian/sbig/changelog -text
