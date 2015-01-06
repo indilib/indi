@@ -543,7 +543,7 @@ bool BaaderDome::UpdatePosition()
         else if (status == DOME_CALIBRATING)
         {
             status = DOME_READY;
-            calibrationStage = CALIBRATION_STAGE1;
+            calibrationStage = CALIBRATION_COMPLETE;
             DEBUG(INDI::Logger::DBG_SESSION, "Calibration complete.");
             CalibrateSP.s = IPS_OK;
             IDSetSwitch(&CalibrateSP, NULL);
