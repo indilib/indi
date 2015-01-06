@@ -64,7 +64,13 @@ class QSICCD : public INDI::CCD, public INDI::FilterInterface
     ISwitch ReadOutS[2];
     ISwitchVectorProperty ReadOutSP;
 
-    bool canAbort;
+    ISwitch GainS[3];
+    ISwitchVectorProperty GainSP;
+
+    ISwitch FanS[3];
+    ISwitchVectorProperty FanSP;
+
+    bool canAbort, canSetGain, canControlFan, canChangeReadoutSpeed;
     short targetFilter;
     double ccdTemp;
     double minDuration;

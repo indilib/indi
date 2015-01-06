@@ -139,6 +139,9 @@ std::auto_ptr<QSICCD> qsiCCD(0);
  QSICCD::QSICCD()
  {
      targetFilter = 0;
+     canSetGain = false;
+     canControlFan = false;
+     canChangeReadoutSpeed = false;
 
      QSICam.put_UseStructuredExceptions(true);
 
@@ -171,13 +174,23 @@ bool QSICCD::initProperties()
     IUFillNumber(&CoolerN[0], "CCD_COOLER_VALUE", "Cooling Power (%)", "%+06.2f", 0., 1., .2, 0.0);
     IUFillNumberVector(&CoolerNP, CoolerN, 1, getDeviceName(), "CCD_COOLER", "Cooling Power", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
-    IUFillSwitch(&ReadOutS[0], "QUALITY_HIGH", "High Quality", ISS_OFF);
+    IUFillSwitch(&ReadOutS[0], "QUALITY_HIGH", "High Quality", ISS_ON);
     IUFillSwitch(&ReadOutS[1], "QUALITY_LOW", "Fast", ISS_OFF);
     IUFillSwitchVector(&ReadOutSP, ReadOutS, 2, getDeviceName(), "READOUT_QUALITY", "Readout Speed", OPTIONS_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillSwitch(&FilterS[0], "FILTER_CW", "+", ISS_OFF);
     IUFillSwitch(&FilterS[1], "FILTER_CCW", "-", ISS_OFF);
     IUFillSwitchVector(&FilterSP, FilterS, 2, getDeviceName(), "FILTER_WHEEL_MOTION", "Turn Wheel", FILTER_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+    IUFillSwitch(&GainS[0], "High", "", ISS_OFF);
+    IUFillSwitch(&GainS[1], "Low", "", ISS_OFF);
+    IUFillSwitch(&GainS[2], "Auto", "", ISS_ON);
+    IUFillSwitchVector(&GainSP, GainS, 3, getDeviceName(), "Gain", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+    IUFillSwitch(&FanS[0], "Off", "", ISS_OFF);
+    IUFillSwitch(&FanS[1], "Quiet", "", ISS_OFF);
+    IUFillSwitch(&FanS[2], "Full", "", ISS_ON);
+    IUFillSwitchVector(&FanSP, FanS, 3, getDeviceName(), "Fan", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     initFilterProperties(getDeviceName(), FILTER_TAB);
 
@@ -198,7 +211,6 @@ bool QSICCD::updateProperties()
         defineNumber(&CoolerNP);
         defineNumber(&FilterSlotNP);
         defineSwitch(&FilterSP);
-        defineSwitch(&ReadOutSP);
 
         setupParams();
 
@@ -217,6 +229,16 @@ bool QSICCD::updateProperties()
         deleteProperty(FilterSlotNP.name);
         deleteProperty(FilterSP.name);
         deleteProperty(ReadOutSP.name);
+
+        if (canSetGain)
+            deleteProperty(GainSP.name);
+
+        if (canControlFan)
+            deleteProperty(FanSP.name);
+
+        if (canChangeReadoutSpeed)
+            deleteProperty(ReadOutSP.name);
+
         if (FilterNameT != NULL)
             deleteProperty(FilterNameTP->name);
 
@@ -324,6 +346,72 @@ bool QSICCD::setupParams()
     CoolerS[1].s = coolerOn ? ISS_OFF : ISS_ON;
     CoolerSP.s = IPS_OK;
     IDSetSwitch(&CoolerSP, NULL);
+
+    QSICamera::CameraGain cGain = QSICamera::CameraGainAuto;
+    canSetGain = false;
+
+    QSICam.get_CanSetGain(&canSetGain);
+
+    if (canSetGain)
+    {
+        try
+        {
+            QSICam.get_CameraGain(&cGain);
+        }
+        catch (std::runtime_error err)
+        {
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Camera does not support gain. %s.", err.what());
+            canSetGain = false;
+        }
+
+        if (canSetGain)
+        {
+            IUResetSwitch(&GainSP);
+            GainS[cGain].s = ISS_ON;
+            defineSwitch(&GainSP);
+        }
+    }
+
+
+    QSICamera::FanMode fMode = QSICamera::fanOff;
+    canControlFan = true;
+
+    try
+    {
+        QSICam.get_FanMode(fMode);
+    }
+    catch (std::runtime_error err)
+    {
+        DEBUGF(INDI::Logger::DBG_DEBUG, "Camera does not support fan control. %s.", err.what());
+        canControlFan = false;
+    }
+
+    if (canControlFan)
+    {
+        IUResetSwitch(&FanSP);
+        FanS[fMode].s = ISS_ON;
+        defineSwitch(&FanSP);
+    }
+
+    canChangeReadoutSpeed = true;
+    QSICamera::ReadoutSpeed cReadoutSpeed;
+
+    try
+    {
+        QSICam.get_ReadoutSpeed(cReadoutSpeed);
+    }
+    catch (std::runtime_error err)
+    {
+        DEBUGF(INDI::Logger::DBG_DEBUG, "Camera does not support changing readout speed. %s.", err.what());
+        canChangeReadoutSpeed = false;
+    }
+
+    if (canChangeReadoutSpeed)
+    {
+        IUResetSwitch(&ReadOutSP);
+        ReadOutS[cReadoutSpeed].s = ISS_ON;
+        defineSwitch(&ReadOutSP);
+    }
 
     return true;
 }
@@ -433,6 +521,70 @@ bool QSICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
         {
             if (IUUpdateSwitch(&ShutterSP, states, names, n) < 0) return false;
             shutterControl();
+            return true;
+        }
+
+        if (!strcmp(name, GainSP.name))
+        {
+            int prevGain = IUFindOnSwitchIndex(&GainSP);
+            IUUpdateSwitch(&GainSP, states, names, n);
+            int targetGain = IUFindOnSwitchIndex(&GainSP);
+
+            if (prevGain == targetGain)
+            {
+                GainSP.s = IPS_OK;
+                IDSetSwitch(&GainSP, NULL);
+                return true;
+            }
+
+            try
+            {
+                QSICam.put_CameraGain( ((QSICamera::CameraGain) targetGain));
+
+            }  catch (std::runtime_error err)
+            {
+                                    IUResetSwitch(&GainSP);
+                                    GainS[prevGain].s = ISS_ON;
+                                    GainSP.s = IPS_ALERT;
+                                    DEBUGF(INDI::Logger::DBG_ERROR, "put_CameraGain failed. %s.", err.what());
+                                    IDSetSwitch(&GainSP, NULL);
+                                    return false;
+            }
+
+            GainSP.s = IPS_OK;
+            IDSetSwitch(&GainSP, NULL);
+            return true;
+        }
+
+        if (!strcmp(name, FanSP.name))
+        {
+            int prevFan = IUFindOnSwitchIndex(&FanSP);
+            IUUpdateSwitch(&FanSP, states, names, n);
+            int targetFan = IUFindOnSwitchIndex(&FanSP);
+
+            if (prevFan == targetFan)
+            {
+                FanSP.s = IPS_OK;
+                IDSetSwitch(&FanSP, NULL);
+                return true;
+            }
+
+            try
+            {
+                QSICam.put_FanMode( ((QSICamera::FanMode) targetFan));
+
+            }  catch (std::runtime_error err)
+            {
+                                    IUResetSwitch(&FanSP);
+                                    FanS[prevFan].s = ISS_ON;
+                                    FanSP.s = IPS_ALERT;
+                                    DEBUGF(INDI::Logger::DBG_ERROR, "put_FanMode failed. %s.", err.what());
+                                    IDSetSwitch(&FanSP, NULL);
+                                    return false;
+            }
+
+            FanSP.s = IPS_OK;
+            IDSetSwitch(&FanSP, NULL);
             return true;
         }
 
