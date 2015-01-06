@@ -228,7 +228,6 @@ bool QSICCD::updateProperties()
         deleteProperty(CoolerNP.name);
         deleteProperty(FilterSlotNP.name);
         deleteProperty(FilterSP.name);
-        deleteProperty(ReadOutSP.name);
 
         if (canSetGain)
             deleteProperty(GainSP.name);
@@ -408,9 +407,23 @@ bool QSICCD::setupParams()
 
     if (canChangeReadoutSpeed)
     {
-        IUResetSwitch(&ReadOutSP);
-        ReadOutS[cReadoutSpeed].s = ISS_ON;
-        defineSwitch(&ReadOutSP);
+        // get_ReadoutSpeed succeeds even if the camera does not support that, so the only way to make sure is to set it
+        try
+        {
+            QSICam.put_ReadoutSpeed(cReadoutSpeed);
+        }
+        catch (std::runtime_error err)
+        {
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Camera does not support changing readout speed. %s.", err.what());
+            canChangeReadoutSpeed = false;
+        }
+
+        if (canChangeReadoutSpeed)
+        {
+            IUResetSwitch(&ReadOutSP);
+            ReadOutS[cReadoutSpeed].s = ISS_ON;
+            defineSwitch(&ReadOutSP);
+        }
     }
 
     return true;
