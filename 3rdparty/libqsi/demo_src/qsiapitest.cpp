@@ -13,6 +13,7 @@ REVISION HISTORY
  DRC 01.01.08 Add 520 features
  DRC 07.17.08 Add QSIxxx features
  DRC 05.07.11 Changes for 600 series
+ AM  12.22.13 Contributions from Prof. Dr. Andreas Muller: argv/getopt options
  *****************************************************************************************/
 
 #include "qsiapi.h"
@@ -22,26 +23,25 @@ REVISION HISTORY
 #include <cmath>
 #include <stdlib.h>
 //#include "dumapp.h"
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif /* HAVE_CONFIG_H */
 
-// if libtiff is installed, then this will write out tiff files of the images
-// change the line below from #undef INCLUDETIFF to #define INCLUDETIFF
-#undef INCLUDETIFF
-// for temperature regulation testing
-#undef WAITFORTEMP
-// for binning testing
-#undef BINTEST
-// for manual mechanical shutter testing
-#undef MANUALSHUTTER
-// for host timed exposure testing
-#undef TIMEDEXPOSURE
-// for showing auto-zero info
-#undef SHOWAUTOZERO
-// for enabling Shutter status output
-#undef SHUTTERSTATUS
-// for testing QSIxxx methods
-#undef QSIMETHODS
 
-#ifdef INCLUDETIFF
+void	usage(const char *progname) {
+	std::cout << "usage:" << std::endl;
+	std::cout << progname << " [ -tbmhzs? ]" << std::endl;
+	std::cout << "options:"<< std::endl;
+	std::cout << "  -t   enable temperatur regulation test" << std::endl;
+	std::cout << "  -b   binning test" << std::endl;
+	std::cout << "  -m   manual mechanical shutter test" << std::endl;
+	std::cout << "  -h   host time exposure test" << std::endl;
+	std::cout << "  -z   show auto-zero info" << std::endl;
+	std::cout << "  -s   enable shutter status output" << std::endl;
+	std::cout << "  -?   display this help message" << std::endl;
+}
+
+#ifdef HAVE_TIFFIO_H
 #include <tiffio.h>
 int WriteTIFF(unsigned short * buffer, int cols, int rows, char * filename);
 void AdjustImage(unsigned short * buffer, int cols, int rows, unsigned char * out);
@@ -53,6 +53,45 @@ void AdjustImage(unsigned short * buffer, int cols, int rows, unsigned char * ou
 
 int main(int argc, char** argv)
 {
+	int	c;
+	// for temperature regulation testing
+	bool	WAITFORTEMP = false;
+	// for binning testing
+	bool	BINTEST = false;
+	// for manual mechanical shutter testing
+	bool	MANUALSHUTTER = false;
+	// for host timed exposure testing
+	bool	TIMEDEXPOSURE = false;
+	// for showing auto-zero info
+	bool	SHOWAUTOZERO = false;
+	// for enabling Shutter status output
+	bool	SHUTTERSTATUS = false;
+	while (EOF != (c = getopt(argc, argv, "tbmhzs?")))
+		switch (c) {
+		case 't':
+			WAITFORTEMP = true;
+			break;
+		case 'b':
+			BINTEST = true;
+			break;
+		case 'm':
+			MANUALSHUTTER = true;
+			break;
+		case 'h':
+			TIMEDEXPOSURE = true;
+			break;
+		case 'z':
+			SHOWAUTOZERO = true;
+			break;
+		case 's':
+			SHUTTERSTATUS = true;
+			break;
+		case '?':
+			usage(argv[0]);
+			break;
+		}
+
+
 	std::string msg("");
 	int x,y,z;
 	int filters = 0;
@@ -134,18 +173,19 @@ int main(int argc, char** argv)
 	//}
 
 	std::cout << "QSI API test start...\n";
-//
-// IMPORTANT:
-// This is just a collection of examples of the various methods for the ocamera bject.
-// This does not represent an actual application
-//
-// The following sequence shows the use of the QSICamera class
-// using try/catch blocks to handle errors.
-// This is enabled by setting UseStructuredExceptions to true
-//
-// All QSICamera methods can be used in either fashion
-// It is up to the developer to choose which method is preferred
-//
+	
+	//
+	// IMPORTANT:
+	// This is just a collection of examples of the various methods for the camera object.
+	// This does not represent an actual application
+	//
+	// The following sequence shows the use of the QSICamera class
+	// using try/catch blocks to handle errors.
+	// This is enabled by setting UseStructuredExceptions to true
+	//
+	// All QSICamera methods can be used in either fashion
+	// It is up to the developer to choose which method is preferred
+	//
 
 	cam.put_UseStructuredExceptions(true);
 	try
@@ -378,7 +418,7 @@ int main(int argc, char** argv)
 			cam.get_FilterCount(filters);
 			// Query the current filter wheel position
 			cam.get_Position(&pos);
-			std::cout << " Initial position: " << pos << "\n";
+			std::cout << "Initial position:  " << pos << "\n";
 			for (int i = 0; i < 5; i++)
 			{
 				// Set the filter wheel to position 1 (0 based position)
@@ -394,9 +434,13 @@ int main(int argc, char** argv)
 			// the user's home directory
 			cam.get_Names(names);
 			cam.get_FocusOffset(offsets);
-			// change the name and offset of filter 1
-			names[1] = "UV";
-			offsets[1] = 100L;
+			// change the name and offset of filter
+			names[0] = "Red";
+			names[1] = "Green";
+			names[2] = "Blue";
+			names[3] = "OII";
+			names[4] = "UV";
+			offsets[4] = 100L;
 			// Save the new names and offsets
 			cam.put_Names(names);
 			cam.put_FocusOffset(offsets);
@@ -443,9 +487,9 @@ int main(int argc, char** argv)
 			// the user's home directory
 			cam.get_Names(names);
 			cam.get_FocusOffset(offsets);
-			// change the name and offset of filter 1
-			names[1] = "UV";
-			offsets[1] = 100L;
+			// change the name and offset of filter 4
+			names[4] = "New Number 4";
+			offsets[4] = 100L;
 			// Save the new names and offsets
 			cam.put_Names(names);
 			cam.put_FocusOffset(offsets);
@@ -505,77 +549,44 @@ int main(int argc, char** argv)
 	delete[] names;
 	delete[] offsets;
 
-#ifdef BINTEST
-	// Test Asymmetric 1x2 binning
-	try
-	{
-		bool imageReady = false;
-		cam.put_BinX(4);
-		cam.put_BinY(4);
-		// Image size is specified in binned pixels,
-		// First get the imager size (X axis)
-		cam.get_CameraXSize(&xsize);
-		// Reduce it by the binning factor
-		cam.put_NumX(xsize/4);
-		// First get the imager size (Y axis)
-		cam.get_CameraYSize(&ysize);
-		// Reduce it by the binning factor
-		cam.put_NumY(ysize/4);
-		std::cout << "Start 4x4 binning test\n";
-		result = cam.StartExposure(0.500, true);
-		// Poll for image completed
-		result = cam.get_ImageReady(&imageReady);
-		while(!imageReady)
+	if (BINTEST) {
+		// Test Asymmetric 1x2 binning
+		try
 		{
-			usleep(5000);
+			bool imageReady = false;
+			cam.put_BinX(4);
+			cam.put_BinY(4);
+			// Image size is specified in binned pixels,
+			// First get the imager size (X axis)
+			cam.get_CameraXSize(&xsize);
+			// Reduce it by the binning factor
+			cam.put_NumX(xsize/4);
+			// First get the imager size (Y axis)
+			cam.get_CameraYSize(&ysize);
+			// Reduce it by the binning factor
+			cam.put_NumY(ysize/4);
+			std::cout << "Start 4x4 binning test\n";
+			result = cam.StartExposure(0.500, true);
+			// Poll for image completed
 			result = cam.get_ImageReady(&imageReady);
+			while(!imageReady)
+			{
+				usleep(5000);
+				result = cam.get_ImageReady(&imageReady);
+			}
+			// Get the image dimensions to allocate an image array
+			result = cam.get_ImageArraySize(x, y, z);
+			unsigned short* image = new unsigned short[x * y];
+			// Retrieve the pending image from the camera
+			result = cam.get_ImageArray(image);
+			delete [] image;
+			std::cout << "4x4 binning test complete\n";
 		}
-		// Get the image dimensions to allocate an image array
-		result = cam.get_ImageArraySize(x, y, z);
-		unsigned short* image = new unsigned short[x * y];
-		// Retrieve the pending image from the camera
-		result = cam.get_ImageArray(image);
-		delete [] image;
-		std::cout << "4x4 binning test complete\n";
+		catch (std::runtime_error& err)
+		{
+			std::cout << "test asym bin block failed. \n";
+		}
 	}
-	catch (std::runtime_error& err)
-	{
-		std::cout << "test asym bin block failed. \n";
-	}
-#endif
-#ifdef QSIMETHODS
-	// Test QSIxx methods.  There methods are not designed for general use
-	// They are implemented to allow low level communication with the camera
-	// And are not supported for use by QSI customers.  These methods and properties
-	// may change without notice.
-	int iDevices;
-	short cnt;
-	int bytesRead;
-	int bytesWritten;
-	std::string deviceSerial;
-	std::string deviceList[QSICamera::MAXCAMERAS];
-	unsigned char buf[256];
-	buf[0] = 0x58;
-	buf[1] = 0;
-
-	cam.put_Connected(false);
-	cam.get_QSIDeviceCount(&cnt);
-
-	cam.get_QSISerialNumbers(deviceList, &iDevices);	
-
-	if (iDevices > 0)
-	{
-		cam.put_QSISelectedDevice(deviceList[0]);
-		cam.get_QSISelectedDevice(deviceSerial);	// Just to check setting
-		cam.put_Connected(true);
-		cam.put_QSIReadTimeout( 5000 );
-		cam.put_QSIWriteTimeout( 5000 );
-		cam.QSIWrite( buf, 2, &bytesWritten);
-		cam.get_QSIWriteDataPending( &bytesWritten );
-		cam.get_QSIReadDataAvailable( &bytesRead);
-		cam.QSIRead( buf, 0x0d, &bytesRead);
-	}
-#endif
 //
 // The following code shows use of the QSICamera class
 // not using try/catch blocks, but testing result codes instead
@@ -585,11 +596,11 @@ int main(int argc, char** argv)
 // It is up to the developer to choose which method is preferred
 //
 	cam.put_UseStructuredExceptions(false);
-#ifdef SHUTTERSTATUS
-	result = cam.put_EnableShutterStatusOutput(true);
-#else
-	result = cam.put_EnableShutterStatusOutput(false);
-#endif
+	if (SHUTTERSTATUS) {
+		result = cam.put_EnableShutterStatusOutput(true);
+	} else {
+		result = cam.put_EnableShutterStatusOutput(false);
+	}
 	// retrieve the test of the last error
 	std::string last("");
 	result = cam.get_LastError(last);
@@ -612,15 +623,15 @@ int main(int argc, char** argv)
 		cam.put_PreExposureFlush(QSICamera::FlushNone);
 		cam.put_ShutterPriority(QSICamera::ShutterPriorityElectronic);
 		expTime = 0.0001;
-#ifdef TIMEDEXPOSURE
-		result = cam.put_HostTimedExposure(true);
-		binX = 3;
-		binY = 3;
-    	xsize = 20;
-    	ysize = 20;
-#else
-		result = cam.put_HostTimedExposure(false);
-#endif
+		if (TIMEDEXPOSURE) {
+			result = cam.put_HostTimedExposure(true);
+			binX = 3;
+			binY = 3;
+			xsize = 20;
+			ysize = 20;
+		} else {
+			result = cam.put_HostTimedExposure(false);
+		}
 		if (result != 0)
 			std::cout << result << "\n";		
 	}
@@ -638,71 +649,75 @@ int main(int argc, char** argv)
 	cam.put_CoolerOn(false);
 	cam.get_CCDTemperature(&ccdTemp);
 
-#ifdef WAITFORTEMP
-	while (ccdTemp < 20.0)
-	{
-		sleep(1000);
-		cam.get_CCDTemperature(&ccdTemp);
-		cam.get_CoolerPower(&coolerPower);
-		std::cout << "temp: " << ccdTemp << " power: " << coolerPower << "\n";
+	if (WAITFORTEMP) {
+		while (ccdTemp < 20.0)
+		{
+			sleep(1000);
+			cam.get_CCDTemperature(&ccdTemp);
+			cam.get_CoolerPower(&coolerPower);
+			std::cout << "temp: " << ccdTemp << " power: " << coolerPower << "\n";
+		}
 	}
-#endif
 
-#ifdef MANUALSHUTTER
-	cam.put_ManualShutterMode(true);
-	cam.put_EnableShutterStatusOutput(true);
-#endif
+	if (MANUALSHUTTER) {
+		cam.put_ManualShutterMode(true);
+		cam.put_EnableShutterStatusOutput(true);
+	}
 
 	cam.put_SetCCDTemperature(0.0);
 	cam.put_CoolerOn(true);
 	std::cout << "Camera Cooler On...\n";
-	// take 10 test images
-	for (int i = 0; i < NUMTESTIMAGES; i++) //<===============================================================
+	//****************************************************************************************************
+	//
+	// take NUMTESTIMAGES test images
+	//
+	//****************************************************************************************************
+	for (int i = 0; i < NUMTESTIMAGES; i++) 
 	{
 
-#ifdef WAITFORTEMP
-		if (i%100 == 0)
-		{
-			cam.get_CCDTemperature(&ccdTemp);
-			cam.get_CoolerPower(&coolerPower);
-			std::cout << "\ntemp: " << ccdTemp << " power: " << coolerPower << "\n";
+		if (WAITFORTEMP) {
+			if (i%100 == 0)
+			{
+				cam.get_CCDTemperature(&ccdTemp);
+				cam.get_CoolerPower(&coolerPower);
+				std::cout << "\ntemp: " << ccdTemp << " power: " << coolerPower << "\n";
+			}
 		}
-#endif
 		cam.get_CCDTemperature(&ccdTemp);
 
 
-#ifdef BINTEST
-		if (i%3 == 0)
-		{
-			if (++binX > maxBinX) binX = 1;
+		if (BINTEST) {
+			if (i%3 == 0)
+			{
+				if (++binX > maxBinX) binX = 1;
+			}
+			if (++binY > maxBinY) binY = 1;
+			
+			cam.put_BinX(binX);
+			cam.put_BinY(binY);
+			
+			startX = (rand() % 4);
+			startY = (rand() % 4);
+			cam.put_StartX(startX);
+			cam.put_StartY(startY);
+
+			xsize = (rand() % (maxX / binX)) + 1;
+			if ((startX + xsize) * binX > maxX) xsize = maxX / binX - startX;
+			ysize = (rand() % (maxY / binY)) + 1;
+			if ((startY + ysize) * binY > maxY) ysize = maxY / binY - startY;
+
+			cam.put_NumX(xsize);
+			cam.put_NumY(ysize);
+
+			std::cout << "Start: " << startX << "," << startY << " ";
+			std::cout << "Size: " << xsize << "," << ysize << " ";
+			std::cout << "Bin : " << binX << "," << binY << "\n";
+			// end of random binning test
 		}
-		if (++binY > maxBinY) binY = 1;
-		
-		cam.put_BinX(binX);
-		cam.put_BinY(binY);
-		
-		startX = (rand() % 4);
-		startY = (rand() % 4);
-		cam.put_StartX(startX);
-		cam.put_StartY(startY);
 
-		xsize = (rand() % (maxX / binX)) + 1;
-		if ((startX + xsize) * binX > maxX) xsize = maxX / binX - startX;
-		ysize = (rand() % (maxY / binY)) + 1;
-		if ((startY + ysize) * binY > maxY) ysize = maxY / binY - startY;
-
-		cam.put_NumX(xsize);
-		cam.put_NumY(ysize);
-
-		std::cout << "Start: " << startX << "," << startY << " ";
-		std::cout << "Size: " << xsize << "," << ysize << " ";
-		std::cout << "Bin : " << binX << "," << binY << "\n";
-		// end of random binning test
-#endif
-
-#ifdef MANUALSHUTTER
-		cam.put_ManualShutterOpen(true);
-#endif
+		if (MANUALSHUTTER) {
+			cam.put_ManualShutterOpen(true);
+		}
 		bool imageReady = false;
 		// Start an exposure, 30 milliseconds long, with shutter open
 		std::cout << "<===================================================================================>\n";
@@ -734,9 +749,10 @@ int main(int argc, char** argv)
 				break;
 			}
 		}
-#ifdef MANUALSHUTTER
-		cam.put_ManualShutterOpen(false);
-#endif
+		if (MANUALSHUTTER) {
+			cam.put_ManualShutterOpen(false);
+		}
+
 		std::cout << "Image Ready...\n";
 		// Get the image dimensions to allocate an image array
 		result = cam.get_ImageArraySize(x, y, z);
@@ -761,27 +777,22 @@ int main(int argc, char** argv)
 			break;
 		}
 
-		// double * dImage = new double[x*y];
-		// result = cam.get_ImageArray(dImage);
-		// double dpixel = dImage[0];
-		// delete [] dImage;
-
 		std::cout << "Image transfer complete...\n";
-#ifdef SHOWAUTOZERO
-		result = cam.get_LastOverscanMean(&mean);
-		if (mean < 400)
-		{
-			std::cout << "Overscan mean below 400.  Mean:" << mean << "\n";
-		}
+		if (SHOWAUTOZERO) {
+			result = cam.get_LastOverscanMean(&mean);
+			if (mean < 400)
+			{
+				std::cout << "Overscan mean below 400.  Mean:" << mean << "\n";
+			}
 
-		std::cout << "OS Mean " << mean << "\n";
-		std::cout << "Image data ";
-		for (int k = 0; k < 16; k++)
-		{
-			std::cout << image[k, 0] << " ";
+			std::cout << "OS Mean " << mean << "\n";
+			std::cout << "Image data ";
+			for (int k = 0; k < 16; k++)
+			{
+				std::cout << image[k, 0] << " ";
+			}
+			std::cout << "\n";
 		}
-		std::cout << "\n";
-#endif
 
 		result = cam.get_HeatSinkTemperature(&sinkTemp);
 		std::cout << "Heatsink temp: " << sinkTemp << "\n";
@@ -793,7 +804,7 @@ int main(int argc, char** argv)
 		result = cam.get_LastError(msg);
 		if (result != 0) {/*handle error*/}
 
-#ifdef INCLUDETIFF
+#ifdef HAVE_TIFFIO_H
 		sprintf(filename, "/tmp/qsiimage%d.tif", i);
 		WriteTIFF(image, x, y, filename);
 #endif
@@ -801,17 +812,21 @@ int main(int argc, char** argv)
 		delete [] image;
 		std::cout << "exposure #" << i << ",";
 		std::cout << "\n";
-		if (i%4 == 0)
-			std::cout.flush();
+		std::cout.flush();
 	}
+	
+	std::cout << "Image loop complete.\n";
+	std::cout.flush();
 	cam.put_CoolerOn(false);
+	std::cout << "Cooler Off complete.\n";
+	std::cout.flush();
 	result = cam.put_Connected(false);
 	std::cout << "Camera disconnected.\nTest complete.\n";
 	std::cout.flush();
 	return 0;
 }
 
-#ifdef INCLUDETIFF
+#ifdef HAVE_TIFFIO_H
 int WriteTIFF(unsigned short * buffer, int cols, int rows, char * filename)
 {
 	TIFF *image;

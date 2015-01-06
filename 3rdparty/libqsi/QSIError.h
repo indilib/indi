@@ -16,6 +16,11 @@ REVISION HISTORY
 // QSI Camera API error codes
 //
 //
+#pragma once
+
+#include <stdexcept>
+#include <iostream>
+
 #define QSI_OK				0
 #define QSI_NOTSUPPORTED	0x80040400
 #define QSI_UNRECOVERABLE	0x80040401
@@ -39,3 +44,16 @@ REVISION HISTORY
 #define QSI_CONNECTED		0x80040413
 #define QSI_INVALIDTEMP		0x80040414
 #define QSI_TRIGGERTIMEOUT	0x80040415
+#define QSI_EEPROMREADERROR	0x80040416
+
+class QSIException : public std::runtime_error 
+{
+	unsigned long	_error_code;
+public:
+	QSIException(const std::string& cause, unsigned long code) : std::runtime_error(cause), _error_code(code) { }
+	unsigned long	error_code() const { return _error_code; }
+};
+
+
+std::ostream&	operator<<(std::ostream& out, const QSIException& qsiexception);
+

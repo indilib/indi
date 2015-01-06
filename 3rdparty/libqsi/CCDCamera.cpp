@@ -54,16 +54,13 @@ CCCDCamera::CCCDCamera()
 	m_DeviceDetails.TwoTimesBinning	= false;
 	m_DeviceDetails.NumRowsPerBlock	= 0;
 	m_DeviceDetails.ControlEachBlock= false;
-	m_DeviceDetails.minExp          = 0.03;
-	m_DeviceDetails.maxExp          = 14400.0;
-	m_DeviceDetails.MaxADU          = 0xffff;
-	m_DeviceDetails.EADUHigh        = 2.4;
-	m_DeviceDetails.EADULow			= 2.4;
-	m_DeviceDetails.EFull           = 100000;
 	m_DeviceDetails.NumFilters		= 0;
-	m_DeviceDetails.ModelNumber[0]	= 0;
-	m_DeviceDetails.ModelName[0]	= 0;
-	m_DeviceDetails.SerialNumber[0]	= 0;
+	m_DeviceDetails.ModelBaseNumber		= _T("");
+	m_DeviceDetails.ModelBaseType		= _T("");
+	m_DeviceDetails.ModelName			= _T("");
+	m_DeviceDetails.ModelNumber			= _T("");
+	m_DeviceDetails.ModelType			= _T("");
+	m_DeviceDetails.SerialNumber		= _T("");
 	m_ExposureSettings.Duration         = ((UINT)(0.5*100.0));
 	m_ExposureSettings.ColumnOffset     = 0;
 	m_ExposureSettings.RowOffset        = 0;
@@ -819,19 +816,18 @@ int  CCCDCamera::get_Description(std::string& pVal)
 	// 
 
 	if (!m_bIsConnected)
-		return Error ( "Not Connected", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTCONNECTED) );
-
-	char tcsBuf[68];
-
-	strncpy(tcsBuf, m_DeviceDetails.ModelNumber, 68);
-	strcat( tcsBuf, " HW ");
-	strncat( tcsBuf, m_HWVersion, 9);
-	strcat( tcsBuf, " FW ");
-	strncat( tcsBuf, m_FWVersion, 9);
-
-	tcsBuf[67] = 0;
+	{
+		pVal = std::string("Camera not connected");
+		return S_OK;
+	}
 	
-	pVal = std::string("QSI ") + std::string(tcsBuf);
+	std::string info = m_DeviceDetails.ModelNumber;
+	info.append(_T(" HW "));
+	info.append(m_HWVersion);
+	info.append(_T(" FW "));
+	info.append(m_FWVersion);
+	
+	pVal = std::string("QSI ") + info;
 	return S_OK;
 }
 
@@ -867,13 +863,13 @@ int  CCCDCamera::get_ElectronsPerADU(double* pVal)
 	if (m_AdvEnabledOptions.CameraGain)
 	{
 		if (m_AdvSettings.CameraGainIndex==1)
-			gain = m_DeviceDetails.EADULow;
+			gain = m_QSIInterface.m_CCDSpecs.EADULow;
 		else
-			gain = m_DeviceDetails.EADUHigh;
+			gain = m_QSIInterface.m_CCDSpecs.EADUHigh;
 	}
 	else
 	{
-		gain = m_DeviceDetails.EADUHigh;
+		gain = m_QSIInterface.m_CCDSpecs.EADUHigh;
 	}
 
 	*pVal = gain;
@@ -907,7 +903,7 @@ int  CCCDCamera::get_FullWellCapacity(double* pVal)
 	if ( m_iError )
 		return Error ( "Camera Error", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
-	*pVal = m_DeviceDetails.EFull;
+	*pVal = m_QSIInterface.m_CCDSpecs.EFull;
 
 	return S_OK;
 }
@@ -1049,7 +1045,7 @@ int  CCCDCamera::get_ImageArray(unsigned short* pVal)
 	if ( !m_bImageValid )
 		return Error ( _T("No Image Available"), IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOIMAGEAVAILABLE) );
 
-	m_iError = m_QSIInterface.AdjustZero(m_pusBuffer, pVal, m_ExposureSettings.ColumnsToRead, m_ExposureSettings.RowsToRead, m_usOverscanAdjustment, m_AutoZeroData.zeroEnable);
+	m_iError = m_QSIInterface.AdjustZero(m_pusBuffer, pVal, m_ExposureSettings.ColumnsToRead, m_ExposureSettings.RowsToRead, m_iOverscanAdjustment, m_AutoZeroData.zeroEnable);
 	return S_OK;
 }
 
@@ -1203,17 +1199,14 @@ int  CCCDCamera::get_LastError(std::string& pVal)
 	// value is cleared the next time any method is called.
 	// 
 
-	if (!m_bIsConnected)
-		return Error ( "Not Connected", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTCONNECTED) );
-
 	char tcsBuf[20];
 	sprintf(tcsBuf, "0x%08x", m_iLastErrorValue);
 	
 	std::string bsVal(tcsBuf);
 	pVal = bsVal + std::string(": ") + std::string(m_szLastErrorText);
 
-	m_szLastErrorText[0]			= 0;
-	m_iLastErrorValue			= 0;
+	m_szLastErrorText[0] = 0;
+	m_iLastErrorValue = 0;
 
 	return S_OK;
 }
@@ -1325,7 +1318,7 @@ int  CCCDCamera::get_MaxADU(long* pVal)
 	if ( m_iError )
 		return Error ( "Camera Error", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
-	*pVal = (long)m_DeviceDetails.MaxADU;
+	*pVal = (long)m_QSIInterface.m_CCDSpecs.MaxADU;
 
 	return S_OK;
 }
@@ -1945,7 +1938,7 @@ int  CCCDCamera::StartExposure(double Duration, bool Light)
 		}
 	}
 
-	if (((Duration < m_DeviceDetails.minExp) || (Duration > m_DeviceDetails.maxExp)) && (Duration != 0.0))	// minExp and maxExp are doubles in units of seconds
+	if (((Duration < m_QSIInterface.m_CCDSpecs.minExp) || (Duration > m_QSIInterface.m_CCDSpecs.maxExp)) && (Duration != 0.0))	// minExp and maxExp are doubles in units of seconds
 		return Error ( "Invalid Exposure Duration", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_BADEXPOSURE) );
 
 	// m_ExposureSettings.Duration = (UINT)(Duration * 100);	// exposure time is in units of 10 milliseconds.
@@ -2169,9 +2162,7 @@ int CCCDCamera::put_ReadoutSpeed(ReadoutSpeed newVal)
 	m_iError = m_QSIInterface.CMD_SendAdvSettings( m_AdvSettings );
 	csQSI.Unlock();
 	if( m_iError ) 
-		return Error ( "Cannot set advanced settings", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
-
-	return S_OK;
+		return Error ( "Cannot set advanced settings", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );	
 }
 
 int CCCDCamera::get_FanMode(FanMode& pVal)
@@ -2670,13 +2661,6 @@ int CCCDCamera::put_Connected(bool bCon)
 		if( m_iError ) 
 			return Error ( "Cannot open camera connection", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
-		// Send initialize command packet to camera
-		csQSI.Lock();
-		m_iError = m_QSIInterface.CMD_InitCamera();
-		csQSI.Unlock();
-		if( m_iError ) 
-			return Error ( "Cannot initialize camera", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
-
 		// Get device details from camera
 		csQSI.Lock();
 		m_iError = m_QSIInterface.CMD_GetDeviceDetails( m_DeviceDetails );
@@ -2705,7 +2689,7 @@ int CCCDCamera::put_Connected(bool bCon)
 		csQSI.Unlock();
 		if( m_iError ) 
 			return Error ( "Cannot set advanced settings", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
-
+		
 		// we need to call this to get the AdvEnabledOptions;
 		// Bug here: Camera always reports fan speed index as 2.
 		// So throw away what the camera says.
@@ -2794,6 +2778,7 @@ int CCCDCamera::FillImageBuffer(bool bMakeRequest)
 	// Declare variables
 	int iTotalPixelsToRead, iPixelsPerRead;
 	bool TransferDone = false;
+	int iPixelsThisRead = 0;
 
 	if (!m_bIsConnected  || m_pusBuffer == NULL)
 		return Error ( "Not connected", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTCONNECTED) );
@@ -2841,7 +2826,7 @@ int CCCDCamera::FillImageBuffer(bool bMakeRequest)
 
 			// Read last block
 			csQSI.Lock();
-			m_iError = m_QSIInterface.ReadImage ( m_pusBuffer + m_iNumPixelsRead, iPixelsPerRead * 2 ); // *2 because 1 pixel = 2 bytes
+			m_iError = m_QSIInterface.ReadImage ( m_pusBuffer + m_iNumPixelsRead, iPixelsPerRead * 2, &iPixelsThisRead ); // *2 because 1 pixel = 2 bytes
 			csQSI.Unlock();			
 			if( m_iError ) 
 				return Error ( "Image transfer error", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
@@ -2854,7 +2839,7 @@ int CCCDCamera::FillImageBuffer(bool bMakeRequest)
 		{
 			// Read block
 			csQSI.Lock();
-			m_iError = m_QSIInterface.ReadImage ( m_pusBuffer+this->m_iNumPixelsRead, iPixelsPerRead*2 ); // *2 because 1 pixel = 2 bytes
+			m_iError = m_QSIInterface.ReadImage ( m_pusBuffer+this->m_iNumPixelsRead, iPixelsPerRead*2, &iPixelsThisRead ); // *2 because 1 pixel = 2 bytes
 			csQSI.Unlock();			
 			if( m_iError != ALL_OK && m_iError ) 
 				return Error ( "Image transfer error", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
@@ -2885,6 +2870,7 @@ int CCCDCamera::FillImageBuffer(bool bMakeRequest)
 
 int CCCDCamera::GetAutoZeroData(bool bMakeRequest)
 {
+	int iPixelsThisRead = 0;
 	if (bMakeRequest) // Send AZ request to camera.  Other callers just expect the data to be ready to read (ie FocusImage).
 	{
 		csQSI.Lock();
@@ -2898,7 +2884,7 @@ int CCCDCamera::GetAutoZeroData(bool bMakeRequest)
 	if (m_AutoZeroData.zeroEnable && m_AutoZeroData.pixelCount > 0 && m_AutoZeroData.pixelCount <= 8192)
 	{
 		csQSI.Lock();
-		m_iError = m_QSIInterface.ReadImage ( m_usOverScanPixels, m_AutoZeroData.pixelCount * 2 );
+		m_iError = m_QSIInterface.ReadImage ( m_usOverScanPixels, m_AutoZeroData.pixelCount * 2, &iPixelsThisRead );
 		csQSI.Unlock();
 		m_QSIInterface.LogWrite(2, _T("AutoZero adjust pixels started."));
 
@@ -2952,11 +2938,7 @@ int  CCCDCamera::get_DriverInfo(std::string& pVal)
 
 int  CCCDCamera::get_Name(std::string& pVal)
 {
-	char tcsBuf[33];
-	strncpy(tcsBuf, m_DeviceDetails.ModelName, 32);
-	tcsBuf[32] = 0;
-	std::string bsName(tcsBuf);
-
+	std::string bsName = m_DeviceDetails.ModelName;
 	pVal = bsName;
 
 	return S_OK;
@@ -2979,11 +2961,7 @@ int  CCCDCamera::get_SerialNumber(std::string& pVal)
 	if (!m_bIsConnected)
 		return Error ( "Not Connected", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTCONNECTED) );
 
-
-	strncpy(tcsBuf, m_DeviceDetails.SerialNumber, 32);
-	tcsBuf[32] = 0;
-	std::string bsSN(tcsBuf);
-
+	std::string bsSN = m_DeviceDetails.SerialNumber;
 	pVal = bsSN;
 
 	return S_OK;
@@ -2996,10 +2974,7 @@ int  CCCDCamera::get_ModelNumber(std::string& pVal)
 	if (!m_bIsConnected)
 		return Error ( "Not Connected", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTCONNECTED) );
 
-	strncpy(tcsBuf, m_DeviceDetails.ModelNumber, 32);
-	tcsBuf[32] = 0;
-	std::string bsMN(tcsBuf);
-
+	std::string bsMN = m_DeviceDetails.ModelNumber;
 	pVal = bsMN;
 
 	return S_OK;
@@ -3254,15 +3229,6 @@ int CCCDCamera::put_CameraGain(CameraGain newVal)
 	if( m_iError ) 
 		return Error ( "Cannot set advanced settings", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
-	// Get CCD and other camera parameters
-	// as EADU will changes and these are cached in the DeviceDetails structure
-	csQSI.Lock();
-	m_iError = m_QSIInterface.CMD_GetCCDSpecs ( m_DeviceDetails.MaxADU, m_DeviceDetails.EADUHigh, m_DeviceDetails.EADULow, m_DeviceDetails.EFull, m_DeviceDetails.minExp, m_DeviceDetails.maxExp );
-	csQSI.Unlock();
-
-	if( m_iError ) 
-		return Error ( "Cannot query camera specifications", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
-
 	return S_OK;
 }
 
@@ -3320,11 +3286,12 @@ int CCCDCamera::get_ShutterPriority(ShutterPriority * pVal)
 	m_AdvSettings = Registry.GetAdvancedSetupSettings( m_USBSerialNumber, m_bIsMainCamera, m_AdvDefaultSettings );
 
 	// KAF firmware reports the wrong value so, override the camera:
-	if (strncmp(m_DeviceDetails.ModelNumber, "503", 3) == 0 ||
-		strncmp(m_DeviceDetails.ModelNumber, "504", 3) == 0 ||
-		strncmp(m_DeviceDetails.ModelNumber, "516", 3) == 0 ||
-		strncmp(m_DeviceDetails.ModelNumber, "532", 3) == 0 ||
-		strncmp(m_DeviceDetails.ModelNumber, "583", 3) == 0	)
+
+	if (m_DeviceDetails.ModelBaseType == _T("503") ||
+	m_DeviceDetails.ModelBaseType == _T("504") ||
+	m_DeviceDetails.ModelBaseType == _T("516") ||
+	m_DeviceDetails.ModelBaseType == _T("532") ||
+	m_DeviceDetails.ModelBaseType == _T("583")	)	
 	{
 		*pVal = ShutterPriorityMechanical;
 	}
@@ -3413,7 +3380,7 @@ int CCCDCamera::put_HostTimedExposure(bool newVal)
 	if (!m_bIsConnected)
 		return Error ( "Not Connected", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTCONNECTED) );
 
-	if (strncmp (m_DeviceDetails.ModelNumber, "520", 3) != 0)
+	if (m_DeviceDetails.ModelBaseType == "520")
 		return Error ( "Feature not available on the currect camera model", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTSUPPORTED) );
 
 	csQSI.Lock();
@@ -3452,7 +3419,7 @@ int CCCDCamera::get_MinExposureTime( double * pVal )
 	if (!m_bIsConnected)
 		return Error ( "Not Connected", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTCONNECTED) );
 
-	*pVal = m_DeviceDetails.minExp;
+	*pVal = m_QSIInterface.m_CCDSpecs.minExp;
 	return S_OK;
 }
 
@@ -3461,7 +3428,7 @@ int CCCDCamera::get_MaxExposureTime( double * pVal )
 	if (!m_bIsConnected)
 		return Error ( "Not Connected", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTCONNECTED) );
 
-	*pVal = m_DeviceDetails.maxExp;
+	*pVal = m_QSIInterface.m_CCDSpecs.maxExp;
 	return S_OK;
 }
 
@@ -3755,10 +3722,10 @@ int  CCCDCamera::get_CanSetGain(bool* pVal)
 		return Error ( "Camera Error", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
 	// KAF firmware reports the wrong value so, override the camera:
-	if (strncmp(m_DeviceDetails.ModelNumber, "503", 3) == 0 ||
-		strncmp(m_DeviceDetails.ModelNumber, "504", 3) == 0 ||
-		strncmp(m_DeviceDetails.ModelNumber, "516", 3) == 0 ||
-		strncmp(m_DeviceDetails.ModelNumber, "532", 3) == 0 
+	if (m_DeviceDetails.ModelBaseType == "503" ||
+		m_DeviceDetails.ModelBaseType == "504" ||
+		m_DeviceDetails.ModelBaseType == "516" ||
+		m_DeviceDetails.ModelBaseType == "532" 
 		)
 		*pVal = false;
 	else
@@ -4076,7 +4043,7 @@ int CCCDCamera::HSRImage(double Duration, USHORT * pImage)
 		return Error ( _T("Invalid Binning Mode"), IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_INVALIDBIN) );
 	if (!m_DeviceDetails.AsymBin && (m_ExposureSettings.BinFactorX != m_ExposureSettings.BinFactorY))
 		return Error ( _T("Asymetric Binning Not Allowed"), IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOASYMBIN) );
-	if ((Duration < m_DeviceDetails.minExp || Duration > m_DeviceDetails.maxExp) && Duration != 0.0)
+	if ((Duration < m_QSIInterface.m_CCDSpecs.minExp || Duration > m_QSIInterface.m_CCDSpecs.maxExp) && Duration != 0.0)
 		return Error ( _T("Invalid Exposure Duration"), IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_BADEXPOSURE) );
 
 	// Save image dimensions as per spec
@@ -4312,6 +4279,24 @@ int CCCDCamera::CancelTriggerMode(void)
 
 	if (iResult != 0)
 		return Error( _T("Cancel External Trigger Mode failed."), IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_UNRECOVERABLE) );
+
+	return S_OK;
+}
+
+int CCCDCamera::get_ShutterState(ShutterStateEnum * pVal)
+{
+	int iState = 0;
+
+	if (!m_bIsConnected)
+		return Error ( _T("Not Connected"), IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTCONNECTED) );
+	csQSI.Lock();
+	int iResult = m_QSIInterface.CMD_GetShutterState( iState );
+	csQSI.Unlock();
+
+	if (iResult != 0)
+		return Error ( _T("Get Shutter State failed."), IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_UNRECOVERABLE) );
+
+	*pVal = (ShutterStateEnum)(iState & 0x07);
 
 	return S_OK;
 }

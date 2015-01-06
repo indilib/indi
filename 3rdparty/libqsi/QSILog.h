@@ -29,7 +29,7 @@ REVISION HISTORY
 class QSILog
 {
 public:
-	QSILog(const char* filename, const char * regkey);
+	QSILog(const char* filename, const char * regkey, const char * prefixName);
 	~QSILog(void);
 
 	bool Open(void);
@@ -48,6 +48,7 @@ public:
 private:
 	char m_tszFilename[MAX_PATH+1];
 	char m_tszValueName[MSGSIZE];
+	char m_tszPreFixName[MSGSIZE];
 	FILE* m_pfLogFile;
 	bool m_bLogging;
 	int m_logLevel;

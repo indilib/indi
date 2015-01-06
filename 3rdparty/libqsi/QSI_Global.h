@@ -16,6 +16,7 @@ REVISION HISTORY
 #include "WinTypes.h"
 #include "wincompat.h"
 #include "FilterWheel.h"
+#include <string>
 
 //Optionally include Logging code
 #define LOG
@@ -26,10 +27,14 @@ REVISION HISTORY
 
 const int MAX_DEVICES = 31;       // Maximum devices supported
 const int MAX_PKT_LENGTH = 128;   // Maximum packet length (in bytes)
-const int READ_TIMEOUT = 5000;    // Amount of time in milliseconds
+const int READ_TIMEOUT = 15000;    // Amount of time in milliseconds
 const int WRITE_TIMEOUT = 5000;   // Amount of time in milliseconds 
-const int SHORT_READ_TIMEOUT = 100;
-const int SHORT_WRITE_TIMEOUT = 100;
+const int SHORT_READ_TIMEOUT = 1000;
+const int SHORT_WRITE_TIMEOUT = 1000;
+const int LONG_READ_TIMEOUT = 20000;
+const int LONG_WRITE_TIMEOUT = 20000;
+const int MINIMUM_READ_TIMEOUT = 1000;
+const int MINIMUM_WRITE_TIMEOUT = 1000;
 
 const int MAX_PIXELS_READ_PER_BLOCK = 510 * 128 / 2;
 // Maximum number of pixels (not bytes) to read per block
@@ -58,6 +63,17 @@ const int AUTOZEROSKIPENDPIXELS = 32;
 //****************************************************************************************
 // TYPE DEFINITIONS
 //****************************************************************************************
+//////////////////////////////////////////////////////////////////////////////////////////
+// ...
+typedef struct QSI_CCDSpecs_t
+{
+	double  minExp;
+	double  maxExp;
+	int	  MaxADU;
+	double  EADUHigh;
+	double  EADULow;
+	double  EFull;
+} QSI_CCDSpecs;
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // ...
@@ -78,16 +94,10 @@ typedef struct QSI_DeviceDetails_t
 	bool    TwoTimesBinning;
 	USHORT  NumRowsPerBlock;    // Not currently used; calculated in "QSI_PlugIn::TransferImage" function, see "iPixelsPerRead"
 	bool    ControlEachBlock;   // Not currently used; handled by "Show D/L Progress" in Advanced Dialog
-	double  minExp;
-	double  maxExp;
-	int     MaxADU;
-	double  EADUHigh;
-	double  EADULow;
-	double  EFull;
 	int     NumFilters;
-	char    ModelNumber[33];
-	char    ModelName[33];
-	char    SerialNumber[33];
+	char    cModelNumber[33];
+	char    cModelName[33];
+	char    cSerialNumber[33];
 	bool    HasFilterTrim;
 	bool	HasCMD_GetTemperatureEx;
 	bool	HasCMD_StartExposureEx;
@@ -96,6 +106,15 @@ typedef struct QSI_DeviceDetails_t
 	bool	HasCMD_PVIMode;
 	bool	HasCMD_LockCamera;
 	bool	HasCMD_BasicHWTrigger;
+	// From Feature bytes
+	std::string ModelBaseNumber;	// "683" or "RS8.3"
+	std::string ModelNumber;		// "683ws" or "RS8.3ws" for user display
+	// from low eeprom config memory:
+	std::string ModelBaseType;		// "504" Model number, leading numeric digits for matching hex files
+	std::string	ModelType;			// "504ws" Full model type number field
+	std::string ModelName;			// "QSI 500 Series Camera"
+	std::string SerialNumber;		// "05001234"
+	//
 } QSI_DeviceDetails;
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -164,7 +183,7 @@ typedef struct QSI_AutoZeroData_t
 	USHORT pixelCount;
 } QSI_AutoZeroData;
 
-typedef struct QSI_USBTimeouts_t
+typedef struct QSI_IOTimeouts_t
 {
 	int ShortRead;
 	int ShortWrite;
@@ -172,7 +191,7 @@ typedef struct QSI_USBTimeouts_t
 	int StandardWrite;
 	int ExtendedRead;
 	int ExtendedWrite;
-} QSI_USBTimeouts;
+} QSI_IOTimeouts;
 
 typedef enum QSICameraState_t
 {							// Highest priority at top of list
@@ -300,7 +319,8 @@ enum QSI_ReturnStates
 	ERR_IFC_NegAutoZero	  	  = 310000,	//
 	ERR_IFC_SendAdvSettings   = 320000, //
 	ERR_IFC_TriggerCCDError   = 330000, //
-	ERR_IFC_NotSupported	  = 340000
+	ERR_IFC_NotSupported	  = 340000, //
+	ERR_IFC_GetShutterStateError	  = 350000
 };
 
 

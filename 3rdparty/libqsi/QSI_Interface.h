@@ -26,6 +26,8 @@ REVISION HISTORY
 #include "HotPixelMap.h"
 #include "FilterWheel.h"
 #include "QSIFeatures.h"
+#include "QSIModelInfo.h"
+#include "HostConnection.h"
 
 /*****************************************************************************************
 NAME
@@ -55,7 +57,7 @@ REVISION HISTORY
 // MF CAMERA INTERFACE CLASS
 //****************************************************************************************
 
-class QSI_Interface
+class QSI_Interface : ICameraEeprom
 {
 
 public:
@@ -71,9 +73,11 @@ public:
 	int CountDevices( void );
 	int GetDeviceInfo( int iIndex, CameraID & cID );
 	int ListDevices( std::vector <CameraID> & vQSIID, int & iNumFound );
+	int ListDevices( std::vector <CameraID> & vQSIID, CameraID::ConnProto_t proto, int & iNumFound );
 	int OpenCamera( std::string acSerialNumber );
+	int OpenCamera( CameraID cID );
 	int CloseCamera( void );
-	int ReadImage( PVOID pvRxBuffer, int iBytesToRead );
+	int ReadImage( PVOID pvRxBuffer, int iBytesToRead , int * iBytesReturned);
 	int CMD_InitCamera( void );
 	int CMD_GetDeviceDetails( QSI_DeviceDetails & DeviceDetails );
 	int CMD_StartExposure( QSI_ExposureSettings ExposureSettings );
@@ -97,7 +101,6 @@ public:
 	int CMD_CanAbortExposure( bool & bCanAbort );
 	int CMD_CanStopExposure( bool & bCanStop );
 	int CMD_GetFilterPosition( int & iPosition );
-	int CMD_GetCCDSpecs( int & iMaxADU, double & dEPerADUHigh, double & dEPerADULow, double & dEFullWell, double & dMinExp, double & dMaxExp);
 	int CMD_GetAltMode1(unsigned char & mode);
 	int CMD_SetAltMode1(unsigned char mode);
 	int CMD_GetEEPROM(USHORT usAddress, BYTE & data);
@@ -107,12 +110,10 @@ public:
 	int CMD_HSRExposure( QSI_ExposureSettings ExposureSettings, QSI_AutoZeroData& AutoZeroData);
 	int CMD_SetHSRMode( bool enable);
 	int CMD_StartExposureEx( QSI_ExposureSettings ExposureSettings );
+	int CMD_GetShutterState( int & State );
 	bool HasFilterWheelTrim(void);
 	int GetVersionInfo(char tszHWVersion[], char tszFWVersion[]);
 	void LogWrite(int iLevel, const char * msg, ...);
-	// Old Autozero
-	// ...Deleted...
-	// End old autozero
 	// New autozero
 	void GetAutoZeroAdjustment(QSI_AutoZeroData autoZeroData, USHORT * zeroPixels, USHORT * usLastMean, int * usAdjust, double *  dAdjust);
 	int AdjustZero(USHORT* pSrc, USHORT * pDst, int iRowLen, int iRowsLeft, int    usAdjust, bool bAdjust);
@@ -131,8 +132,11 @@ public:
 							QSI_DeviceDetails Details, USHORT ZeroPixel);
 
 	int CMD_ExtTrigMode( BYTE action, BYTE polarity);
+
+	virtual BYTE EepromRead( USHORT address );
+	
 	//////////////////////////////////////////////////////////////////////////////////////////
-	// Member Variables
+	// Public Member Variables
 	//
 	bool m_bColorProfiling;
 	bool m_bTestBayerImage;
@@ -148,24 +152,32 @@ public:
 	//
 	HotPixelMap m_hpmMap;
 	QSILog *m_log;				// Log interface transactions
-	
+	// The following is updated every time Advanced settings is call, and is therefore always current
+	// Let callers access this data to avoid having to call camera for it each time it is required.
+	QSI_CCDSpecs m_CCDSpecs;
+	QSI_AdvSettings m_CameraAdvSettingsCache;	// Remember what is set on the camera.	
 private:
 	////////////////////////////////////////////////////////////////////////////////////////
-	// Private variables
+	// Private methods and variables
+	int CMD_GetCCDSpecs( QSI_CCDSpecs & CCDSpecs);
+	int UpdateAdvSettings( QSI_AdvSettings AdvSettings );
+	int AutoGainAdjust(QSI_ExposureSettings ExpSettings, QSI_AdvSettings AdvSettings);
 	bool GetBoolean(UCHAR);
 	USHORT Get2Bytes(PVOID);
 	UINT Get3Bytes(PVOID);
 	void GetString(PVOID, PVOID,int);
+	std::string GetStdString( BYTE * pSrc, int iLen);
 	void PutBool(PVOID, bool);
 	void Put2Bytes(PVOID, USHORT);
 	void Put3Bytes(PVOID, uint32_t);
 	
 	int m_iError; // Holds errors; declared here so it won't have to be declared every function
-	QSI_PacketWrapper PacketWrapper;
-	QSI_USBTimeouts 	USBTimeouts;
-	UCHAR   Cmd_Pkt[MAX_PKT_LENGTH];
-	UCHAR   Rsp_Pkt[MAX_PKT_LENGTH];
-	QSI_DeviceDetails m_DeviceDetails;
+	HostConnection 		m_HostCon;
+	QSI_PacketWrapper 	m_PacketWrapper;
+	unsigned char		Cmd_Pkt[MAX_PKT_LENGTH];
+	unsigned char		Rsp_Pkt[MAX_PKT_LENGTH];
+	QSI_DeviceDetails 	m_DeviceDetails;
+	QSI_AdvSettings 	m_UserRequestedAdvSettings;	// User requested Advanced Settings, may differ from camera by autogain or others
 	
 	FilterWheel	m_fwWheel;
 
@@ -219,6 +231,7 @@ private:
 	static const BYTE CMD_SETEEPROM				= 0x61;
 	static const BYTE CMD_CAMERARESET			= 0x64;
 	static const BYTE CMD_BURSTBLOCK			= 0x65;
+	static const BYTE CMD_GETSHUTTERSTATE		= 0x6A;
 	static const BYTE CMD_SHUTTERUNLOCK			= 0x70;
 	static const BYTE CMD_BASICHWTRIGGER		= 0x71;
 
@@ -237,6 +250,10 @@ private:
 	static const BYTE TRIG_HIGHTOLOW			= 0x00;
 	static const BYTE TRIG_LOWTOHIGH			= 0x01;
 
+	// The following based on index values in the advanced dialog box and camera firmware.
+	static const int GAIN_HIGH					= 0x00;
+	static const int GAIN_LOW					= 0x01;
+	static const int GAIN_AUTO					= 0x02;
 	BYTE m_TriggerMode;
 };
 

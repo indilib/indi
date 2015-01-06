@@ -1,5 +1,5 @@
 /* Package version */
-#cmakedefine PACKAGE_VERSION 6.4.1
+#cmakedefine PACKAGE_VERSION 7.2.0
 
 /* Using FTDI */
 #cmakedefine USELIBFTDIZERO 1

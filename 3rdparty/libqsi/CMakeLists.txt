@@ -5,25 +5,24 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 
 FIND_PACKAGE(FTDI REQUIRED)
 
-SET(PACKAGE_VERSION "6.4.1")
-SET(USELIBFTDIZERO "1")
+SET(PACKAGE_VERSION "7.2.0")
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 
-ADD_DEFINITIONS(-Wall -O2 -fPIC -g -fpermissive)
+ADD_DEFINITIONS(-DUSELIBFTDIZERO -Wall -O2 -fPIC -g -fpermissive)
 
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
 
 set(qsi_LIB_SRCS
-   CameraID.cpp CCDCamera.cpp Filter.cpp FilterWheel.cpp HotPixelMap.cpp qsiapi.cpp QSIFeatures.cpp QSI_Interface.cpp QSILog.cpp QSI_PacketWrapper.cpp QSI_USBWrapper.cpp
-   ConvertUTF.c
-)
+    CCDCamera.cpp CameraID.cpp ConvertUTF.c Filter.cpp FilterWheel.cpp HotPixelMap.cpp QSI_PacketWrapper.cpp QSI_USBWrapper.cpp qsiapi.cpp qsicopyright.txt QSIFeatures.cpp
+    VidPid.cpp QSIModelInfo.cpp ICameraEeprom.cpp QSI_Interface.cpp QSILog.cpp HostIO_TCP.cpp  HostIO_USB.cpp IHostIO.cpp HostConnection.cpp
+    QSIError.cpp)
 
 #build a shared library
 ADD_LIBRARY(qsiapi SHARED ${qsi_LIB_SRCS})
 
-set_target_properties(qsiapi PROPERTIES VERSION 6.4.1 SOVERSION 6)
+set_target_properties(qsiapi PROPERTIES VERSION 7.2.0 SOVERSION 7)
 
 #need to link to some other libraries ? just add them here
 TARGET_LINK_LIBRARIES(qsiapi ${FTDI_LIBRARIES})

@@ -30,7 +30,14 @@ typedef char TCHAR;
 #define MAKE_HRESULT(x, y, z) z
 #define IID_ICamera 1
 #define IID_IFilterWheel 2
-#define Error(x,y,z) strncpy(m_szLastErrorText, x, LASTERRORTEXTSIZE), m_iLastErrorValue = z, sprintf(m_ErrorText, "0x%x:", z), (m_bStructuredExceptions)? throw std::runtime_error(std::string(m_ErrorText) + std::string(m_szLastErrorText)): z
+#define Error(x,y,z) 							\
+	strncpy(m_szLastErrorText, x, LASTERRORTEXTSIZE),		\
+	m_iLastErrorValue = z,						\
+	sprintf(m_ErrorText, "0x%x:", z),				\
+	(m_bStructuredExceptions)					\
+		? throw std::runtime_error(std::string(m_ErrorText)	\
+			+ std::string(m_szLastErrorText))		\
+		: z
 // 
 #define S_OK 0
 #define EnterCriticalSection( x ) pthread_mutex_lock( x )

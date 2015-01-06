@@ -89,7 +89,8 @@ public:
 	enum CameraGain 
 	{
 		CameraGainHigh = 0,
-		CameraGainLow = 1
+		CameraGainLow = 1,
+		CameraGainAuto = 2
 	};
 
 	enum AntiBloom 
@@ -115,6 +116,18 @@ public:
 	{
 		HighToLow = 0,
 		LowToHigh = 1
+	};
+
+	enum ShutterStateEnum
+	{
+		RightSlitCW		= 0,
+		LeftSlitCW		= 1,
+		RightGateCW		= 2,
+		LeftGateCW		= 3,
+		RightSlitCCW	= 4,
+		LeftSlitCCW		= 5,
+		RightGateCCW	= 6,
+		LeftGateCCW		= 7
 	};
 
 	static const int MAXCAMERAS = 128;
@@ -272,6 +285,7 @@ public:
 	int EnableTriggerMode(TriggerModeEnum newVal1, TriggerPolarityEnum newVal2);
 	int TerminatePendingTrigger(void);
 	int CancelTriggerMode(void);
+	int get_ShutterState( ShutterStateEnum * pVal);
 	
 private:
 	//////////////////////////////////////////////////////////////////////////////////////
@@ -288,12 +302,13 @@ private:
 	// Private members
 	//
 	QSI_Interface			m_QSIInterface; 	// Interface to camera
-	QSI_DeviceDetails 	m_DeviceDetails;
+	QSI_DeviceDetails 		m_DeviceDetails;
 	QSI_ExposureSettings 	m_ExposureSettings;
 	QSI_AdvSettings 		m_AdvSettings;
 	QSI_AdvSettings 		m_AdvDefaultSettings;
 	QSI_AutoZeroData 		m_AutoZeroData;
-	QSI_AdvEnabledOptions m_AdvEnabledOptions;
+	QSI_AdvEnabledOptions	m_AdvEnabledOptions;
+
 	unsigned short * 			m_pusBuffer;			// Buffer for readout
 	int 						m_iNumPixelsRead;		// Number of pixels read since last read
 	int 						m_iError;				// Stores any errors and used to detect previous errors
@@ -323,7 +338,6 @@ private:
 	USHORT						m_usOverScanPixels[8192];
 	USHORT						m_usLastOverscanMean;
 	double						m_dLastOverscanMean;
-	int							m_usOverscanAdjustment;
 	double						m_dOverscanAdjustment;
 	int							m_iOverscanAdjustment;
 	bool						m_bImageValid;

@@ -34,10 +34,17 @@
 #define KEY_MainCamera std::string("SOFTWARE/QSI/API/Main/")
 #define KEY_Filter std::string("Filter/")
 
+#define SUBKEY_IPAddress std::string("IPAddress")
+
 #define SUBKEY_SelectedMain std::string("SelectedMainCamera")
 #define SUBKEY_SelectedGuider std::string("SelectedGuiderCamera")
 #define SUBKEY_SelectedMainFW std::string("SelectedMainFilterWheel")
 #define SUBKEY_SelectedGuiderFW std::string("SelectedGuiderFilterWheel")
+
+#define SUBKEY_SelectedMainInterface std::string("SelectedMainInterface")
+#define SUBKEY_SelectedGuiderInterface std::string("SelectedGuiderInterface")
+#define SUBKEY_MainIPv4Address std::string("MainIPv4Address")
+#define SUBKEY_GuiderIPv4Address std::string("GuiderIPv4Address")
 
 #define SUBKEY_FanModeIndex std::string("FanModeIndex")
 #define SUBKEY_CameraGainIndex std::string("CameraGainIndex")
@@ -56,11 +63,6 @@
 class QSI_Registry
 {
 public:
-
-	//**************************************************************************************
-	// CONSTRUCTION / DESTRUCTION
-	//**************************************************************************************
-
 	////////////////////////////////////////////////////////////////////////////////////////
 	QSI_Registry( void )
 	{
@@ -90,11 +92,49 @@ public:
 	{
 		return;
 	}
+	
+	void AddIPAddress(std::string IPAddr)
+	{
+		m_ini.SetValue( (std::string(KEY_QSI) + SUBKEY_IPAddress).c_str(), IPAddr.c_str(), NULL, NULL );
+	}
 
+	void GetIPAdressList(std::vector<std::string> * vIPAddresses)
+	{
+		GetAllKeys(std::string(KEY_QSI) + SUBKEY_IPAddress, vIPAddresses);
+		return;
+	}
 
-	//**************************************************************************************
-	// PUBLIC METHODS
-	//**************************************************************************************
+	void SetSelectedInterface( int iInterface, bool bIsMainCamera)
+	{
+		if( bIsMainCamera )
+		  SetNumber( KEY_Base, SUBKEY_SelectedMainInterface, iInterface );
+		else
+		  SetNumber( KEY_Base, SUBKEY_SelectedGuiderInterface, iInterface );
+	}
+
+	int GetSelectedInterface(bool bIsMainCamera, int iDefaultInterface)
+	{
+		if( bIsMainCamera )
+			return GetNumber( KEY_Base, SUBKEY_SelectedMainInterface, iDefaultInterface);
+		else
+			return GetNumber( KEY_Base, SUBKEY_SelectedGuiderInterface, iDefaultInterface);
+	}
+
+	void SetIPv4Address(int iIPv4Addr, bool bIsMainCamera)
+	{
+		if( bIsMainCamera )
+		  SetNumber( KEY_Base, SUBKEY_MainIPv4Address, iIPv4Addr );
+		else
+		  SetNumber( KEY_Base, SUBKEY_GuiderIPv4Address, iIPv4Addr );
+	}
+
+	int GetIPv4Addresss(bool bIsMainCamera, int iDefaultAddress)
+	{
+		if( bIsMainCamera )
+			return GetNumber( KEY_Base, SUBKEY_MainIPv4Address, iDefaultAddress);
+		else
+			return GetNumber( KEY_Base, SUBKEY_GuiderIPv4Address, iDefaultAddress);
+	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
 	bool RecordExists( std::string strSerialNumber, bool bIsMainCamera )
@@ -120,9 +160,9 @@ public:
 	std::string GetSelectedFilterWheel( std::string strSerialNumber, bool bIsMainCamera )
 	{
 		if( bIsMainCamera )
-		  return GetString( KEY_QSI + strSerialNumber, SUBKEY_SelectedMainFW, std::string("") );
+		  return GetString( KEY_QSI + strSerialNumber, SUBKEY_SelectedMainFW, std::string("Default") );
 		else
-		  return GetString( KEY_QSI + strSerialNumber, SUBKEY_SelectedGuiderFW, std::string("") );
+		  return GetString( KEY_QSI + strSerialNumber, SUBKEY_SelectedGuiderFW, std::string("Default") );
 	}
 
 
@@ -256,21 +296,6 @@ public:
 		return GetNumber(KEY_Base, "USBExtendedWriteTimeout", iDefaultValue);
 	}
 
-
-	private:
-
-	//**************************************************************************************
-	// PRIVATE MEMBERS
-	//**************************************************************************************
-
-	int m_iError;   		// Holds last error... declared here so it doesn't have to be declared each function
-	CSimpleIniCaseA m_ini;	// config file class
-	SI_Error m_rc;
-	char m_szPath[MAX_PATH+1];
-
-
-	//**************************************************************************************
-public:
 	////////////////////////////////////////////////////////////////////////////////////////
 	bool KeyExists( std::string strKeyPath )
 	{
@@ -298,8 +323,6 @@ public:
 
 		return;
 	}
-
-
 
 	////////////////////////////////////////////////////////////////////////////////////////
 	void SetNumber( std::string strKeyPath, std::string strSubKeyName, int iValue )
@@ -400,21 +423,6 @@ public:
 		return 0;
 	}
 
-
-
-private:
-	////////////////////////////////////////////////////////////////////////////////////////
-	bool GetBoolean( std::string strKeyPath, std::string strSubKeyName, bool bDefaultValue )
-	{
-		int iValue = GetNumber( strKeyPath, strSubKeyName, bDefaultValue );
-
-		if( iValue == 0 )
-		  return false;
-		else
-		  return true;
-	}
-
-public:
 	////////////////////////////////////////////////////////////////////////////////////////
 	std::string GetString( std::string strKeyPath, std::string strSubKeyName, std::string strDefaultValue )
 	{
@@ -427,5 +435,22 @@ public:
 		std::string strValue(pszValue);
 		return strValue;
 	}
+
+	////////////////////////////////////////////////////////////////////////////////////////
+	bool GetBoolean( std::string strKeyPath, std::string strSubKeyName, bool bDefaultValue )
+	{
+		int iValue = GetNumber( strKeyPath, strSubKeyName, bDefaultValue );
+
+		if( iValue == 0 )
+		  return false;
+		else
+		  return true;
+	}
+	
+private:
+	int m_iError;   		// Holds last error... declared here so it doesn't have to be declared each function
+	CSimpleIniCaseA m_ini;	// config file class
+	SI_Error m_rc;
+	char m_szPath[MAX_PATH+1];
 
 };

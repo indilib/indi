@@ -13,6 +13,8 @@ REVISION HISTORY
  *****************************************************************************************/
 
 #include "QSI_Interface.h"
+#include "IHostIO.h"
+#include "QSIError.h"
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // Constructor
@@ -20,19 +22,11 @@ QSI_Interface::QSI_Interface ( void )
 {
 	m_iError = 0;
 #ifdef LOG
-	this->m_log = new QSILog("QSIINTERFACELOG.TXT", "LOGINTERFACETOFILE");
+	this->m_log = new QSILog("QSIINTERFACELOG.TXT", "LOGINTERFACETOFILE", "INT");
 	this->m_log->TestForLogging();
 #endif
-
-	USBTimeouts.ShortRead = SHORT_READ_TIMEOUT;
-	USBTimeouts.ShortWrite = SHORT_WRITE_TIMEOUT;
-	USBTimeouts.StandardRead = READ_TIMEOUT;
-	USBTimeouts.StandardWrite = WRITE_TIMEOUT;
-	USBTimeouts.ExtendedRead = READ_TIMEOUT;
-	USBTimeouts.ExtendedWrite = WRITE_TIMEOUT;
-
-	QSI_Registry reg;
-
+	QSI_Registry reg;	
+	
 	// Check to see if we are re-mapping Bayer color for factor calibration
 	m_bColorProfiling = false;
 	m_bTestBayerImage = false;
@@ -98,13 +92,23 @@ QSI_Interface::QSI_Interface ( void )
 	m_bLowGainOverride = false;
 	m_dHighGainOverride = 0.0;
 	m_dLowGainOverride = 0.0;
-	
+
+	// Command sensed by sending commands to camera and looking for a timeout
+	// Do this one at initial connection time.	
 	m_bHasCMD_GetTemperatureEx = false;
 	m_bHasCMD_StartExposureEx = false;
 	m_bHasCMD_SetFilterTrim = false;
 	m_bHasCMD_GetFeatures = false;
 	
 	m_TriggerMode = TRIG_DISABLE;
+
+	// Set some defaults
+	m_CCDSpecs.EADUHigh = 1.0;
+	m_CCDSpecs.EADULow  = 1.0;
+	m_CCDSpecs.EFull	= 25500.0;
+	m_CCDSpecs.MaxADU	= 0xffff;
+	m_CCDSpecs.maxExp	= 14400;
+	m_CCDSpecs.minExp   = 0.03;
 	
 	return;
 }
@@ -179,51 +183,29 @@ int QSI_Interface::GetDeviceInfo( int iIndex, CameraID & cID )
 	return m_iError;
 }
 
-int QSI_Interface::ListDevices(std::vector <CameraID> & vQSIID, int & iNumFound)
+//////////////////////////////////////////////////////////////////////////////////////////
+// 
+int QSI_Interface::ListDevices(std::vector <CameraID> & vID, int & iNumFound)
 {
-	std::vector<CameraID> vID;
+	return ListDevices( vID, CameraID::CP_All, iNumFound );
+}
 
-	m_log->Write(2, _T("ListAllDevices started"));
+//////////////////////////////////////////////////////////////////////////////////////////
+//
+int QSI_Interface::ListDevices( std::vector <CameraID> & vID, CameraID::ConnProto_t proto, int & iNumFound )
+{
+	m_log->Write(2, _T("ListDevices started"));
 	// Get serial numbers
-	m_iError = PacketWrapper.USB_ListAllDevices( vID );
+	m_iError = m_HostCon.ListDevices( vID , proto);  
 	if( m_iError )
 	{
-		m_log->Write(2, _T("ListAllDevices failed. Error Code: %I32x"), m_iError);
+		m_log->Write(2, _T("ListDevices failed. Error Code: %I32x"), m_iError);
 		return m_iError + ERR_IFC_ListSerial;
 	}
 
-	// Set number of devices found
-	iNumFound = 0;
+	iNumFound = vID.size();
 
-	// Now remove non-QSI devices		
-	for (int i = 0; i < vID.size(); i++)
-	{
-		std::string csDesc = vID[i].Description;
-		std::string csSerial = vID[i].SerialNumber;
-		std::transform(csDesc.begin(), csDesc.end(), csDesc.begin(), (int(*)(int)) std::toupper);
-
-		if (csSerial.size() == 0 || csDesc.size() == 0) 
-			continue;
-
-		if ( ( csDesc.find(_T("QSI")) != std::string::npos ) && ( csDesc.find(_T("CAMERA")) != std::string::npos ) && (csSerial.find_last_of("B") == std::string::npos))
-		{
-			// Must have "QSI" and "CAMERA".
-			// Now trim off anything add by ftdi dual channel device.
-			if ((csSerial.length() > 0) && (csSerial[csSerial.length()-1] == 'A'))
-			{
-				csDesc = csDesc.length() > 0?csDesc.substr(0, csDesc.length()-1):csDesc;
-				csDesc = csDesc.erase(csDesc.find_last_not_of(" ")+1);		// Trim right spaces
-				csSerial = csSerial.erase(csSerial.find_last_not_of("A")+1);
-				vID[i].Description = csDesc;
-				vID[i].SerialNumber = csSerial;
-			}
-			vQSIID.push_back(vID[i]);
-			iNumFound++;
-		}
-	}
-
-	m_log->Write(2, _T("ListAllDevices completed OK.  Number found: %I32x"), iNumFound);
-
+	m_log->Write(2, _T("ListDevices completed ok.  Num found: %I32x"), iNumFound);
 	return ALL_OK;
 }
 
@@ -231,23 +213,21 @@ int QSI_Interface::ListDevices(std::vector <CameraID> & vQSIID, int & iNumFound)
 // Opens the connection to the camera
 int QSI_Interface::OpenCamera ( std::string strSerialNumber )
 {
-	QSI_Registry reg;
-	int iRetVal;
 	int iError = 0;
 	int iNumFound;
 	std::vector<CameraID> vID;
 	CameraID cID;
-	
-	m_log->Write(2, "OpenCamera started.");
 
-	iError = ListDevices(vID, iNumFound);
-	if (iError == 0)
+	m_log->TestForLogging();
+	m_log->Write(2, "OpenCamera by serial number started.");
+
+	if (iError = ListDevices(vID, iNumFound) == 0)
 	{
-	// Find the CameraID for this serial number
+		// Find the CameraID for this serial number
 		iError = ERR_PKT_OpenFailed;
-		for (int i = 0; i < vID.size(); i++)
+		for (int i = 0; i < (int)vID.size(); i++)
 		{
-			if (vID[i].SerialNumber == strSerialNumber)
+			if (vID[i].SerialNumber == std::string(strSerialNumber))
 			{
 				cID = vID[i];
 				iError = 0;
@@ -255,13 +235,42 @@ int QSI_Interface::OpenCamera ( std::string strSerialNumber )
 			}
 		}
 	}
+	else
+	{
+		// Handle case where list devices failed.
+		cID = CameraID(std::string(strSerialNumber), std::string(strSerialNumber), "Unknown", 0x403, 0xeb48);
+		iError = 0;
+	}
 
+	// If match found, open the device
 	if (iError == 0)
-		iError = PacketWrapper.PKT_OpenDevice( cID );
+	{
+		iError = OpenCamera( cID );
+	}
+	m_log->Write(2, "OpenCamera by serial completed. Error Code: %d", m_iError);
+	return iError;
+}
+
+int QSI_Interface::OpenCamera( CameraID cID )
+{
+	QSI_Registry reg;
+	int iError = 0;
+	int iRetVal;
+
+	m_log->TestForLogging();
+	m_log->Write(2, "OpenCamera by CameraID number started.");
+	
+	iError = m_HostCon.Open( cID );
+	if (iError != 0)
+		return iError;	
 
 	m_hpmMap = HotPixelMap(cID.SerialNumber);
 	m_log->Write(2, "OpenCamera completed. Error Code: %x", m_iError);
-
+	
+	m_iError = CMD_InitCamera();
+	if (m_iError != 0)
+		return m_iError;
+	
 	std::string strKeyPath = "Software\\QSI\\"+ cID.SerialNumber;
 	m_bHighGainOverride = reg.GetInt (strKeyPath, _T("HIGHGAIN"), 1000, iRetVal);
 	m_dHighGainOverride = iRetVal/1000.0;
@@ -275,8 +284,6 @@ int QSI_Interface::OpenCamera ( std::string strSerialNumber )
 	int iTemp1;
 	double dTemp2, dTemp3, dTemp5;
 	unsigned short usTemp4;
-
-	PacketWrapper.USB_SetTimeouts(USBTimeouts.ShortRead, USBTimeouts.ShortWrite);
 
 	// Get special camera configuration bytes to controlled various features in plugins
 	BYTE pFeatures[QSIFeatures::IMAXFEATURES];
@@ -307,7 +314,6 @@ int QSI_Interface::OpenCamera ( std::string strSerialNumber )
 	m_bHasCMD_GetTemperatureEx = CMD_GetTemperatureEx(iTemp1, dTemp2, dTemp3, usTemp4, dTemp5, true)==0?true:false;
 	HasFastExposure(m_bHasCMD_StartExposureEx);
 	m_bHasCMD_SetFilterTrim = HasFilterWheelTrim();
-	PacketWrapper.USB_SetTimeouts(USBTimeouts.StandardRead, USBTimeouts.StandardWrite);
 
 	return iError;
 }
@@ -320,7 +326,7 @@ int QSI_Interface::CloseCamera ( void )
 
 	m_log->Write(2, "CloseCamera started");
 
-	iError = PacketWrapper.PKT_CloseDevice();
+	iError = m_HostCon.Close();
 	m_log->Write(2, "CloseCamera completed. Error Code: %x", m_iError);
 
 	return iError;
@@ -328,13 +334,13 @@ int QSI_Interface::CloseCamera ( void )
 
 //////////////////////////////////////////////////////////////////////////////////////////
 //
-int QSI_Interface::ReadImage ( PVOID pvRxBuffer, int iBytesToRead )
+int QSI_Interface::ReadImage ( PVOID pvRxBuffer, int iBytesToRead, int * iBytesReturned )
 {
 	int iError;
 
 	m_log->Write(2, "ReadImage started. Bytes to read: %x", iBytesToRead);
 
-	iError = PacketWrapper.PKT_ReadBlock( pvRxBuffer, iBytesToRead );
+	iError = m_PacketWrapper.PKT_ReadBlock(m_HostCon.m_HostIO, pvRxBuffer, iBytesToRead, iBytesReturned );
 
 	m_log->Write(2, "ReadImage (block) completed. Error Code: %x", iError);
 
@@ -347,22 +353,12 @@ int QSI_Interface::CMD_InitCamera ( void )
 {
 	m_log->Write(2, "InitCamera started.");
 	
-	// Synchronize with the camera.  
-	// Use GetDeviceState as it returns without further camera operation.
-	// This is unique code to Linux
-	int iCameraState;
-	bool bShutterOpen;
-	bool bFilterState;
-	
-	PacketWrapper.USB_SetTimeouts(USBTimeouts.StandardRead, USBTimeouts.StandardWrite);
-	CMD_GetDeviceState ( iCameraState, bShutterOpen, bFilterState );
-	CMD_GetDeviceState ( iCameraState, bShutterOpen, bFilterState );
-	
 	//
-	//	Now Send the Init Request.  This may take up to 600ms to run.
+	//	Send the Init Request.  This may take up to 600ms to run.
 	//
 	// Define command packet structure
-
+	m_log->Write(2, "Send InitCamera packet.");
+	
 	const int CMD_Command      = 0;
 	const int CMD_Length       = 1;
 
@@ -372,15 +368,19 @@ int QSI_Interface::CMD_InitCamera ( void )
 	// Construct command packet header
 	Cmd_Pkt[CMD_Command] = CMD_INIT;
 	Cmd_Pkt[CMD_Length] = 0;
-
-	m_iError = PacketWrapper.PKT_SendPacket(&Cmd_Pkt,&Rsp_Pkt, true);
-
+	int retry = 2;
+	do
+	{
+		m_iError = m_PacketWrapper.PKT_SendPacket(m_HostCon.m_HostIO,Cmd_Pkt,Rsp_Pkt, true);
+	}
+	while (m_iError != 0 && retry-- > 0);
+			
 	if( m_iError )
 	{
 		m_log->Write(2, "InitCamera failed. Error Code: %x", m_iError);
 		return m_iError;
 	}
-
+		
 	// Check for device error
 	m_iError = Rsp_Pkt[RSP_DeviceError];
 	if( m_iError )
@@ -428,7 +428,7 @@ int QSI_Interface::CMD_GetDeviceDetails ( QSI_DeviceDetails & DeviceDetails )
 	Cmd_Pkt[CMD_Length] = 0;
 
 	// Send/receive packets
-	m_iError = PacketWrapper.PKT_SendPacket(&Cmd_Pkt,&Rsp_Pkt,true);
+	m_iError = m_PacketWrapper.PKT_SendPacket(m_HostCon.m_HostIO, Cmd_Pkt, Rsp_Pkt,true);
 	if( m_iError )
 	{
 		m_log->Write(2, "GetDeviceDetails failed. Error Code: %x", m_iError);
@@ -460,46 +460,34 @@ int QSI_Interface::CMD_GetDeviceDetails ( QSI_DeviceDetails & DeviceDetails )
 	DeviceDetails.NumRowsPerBlock   = Get2Bytes(&Rsp_Pkt[RSP_NumRowsPerBlock]);
 	DeviceDetails.ControlEachBlock  = GetBoolean(Rsp_Pkt[RSP_ControlEachBlock]);
 	DeviceDetails.NumFilters        = Rsp_Pkt[RSP_NumFilters];
-	GetString( &Rsp_Pkt[RSP_ModelNumber],  &DeviceDetails.ModelNumber,  32 ); // Firmware is only 8, padded to 32 with 24 nulls
-	GetString( &Rsp_Pkt[RSP_ModelName],    &DeviceDetails.ModelName,    32 ); // Firmware is 32
-	GetString( &Rsp_Pkt[RSP_SerialNumber], &DeviceDetails.SerialNumber, 16 ); // Firmware is only 8, padded to 16 with 8 nulls
+
+	// Extract model name/type/number/serialnumber info
+	const int iModelNumberLen = RSP_ModelName - RSP_ModelNumber;
+	const int iModelNameLen	= RSP_SerialNumber - RSP_ModelName;
+	const int iSerialNumberLen = RSP_DeviceError - RSP_SerialNumber;
+	// from low eeprom config memory:
+	DeviceDetails.ModelType		= GetStdString( &Rsp_Pkt[RSP_ModelNumber],  iModelNumberLen);		// "504ws" Full model type number field
+	DeviceDetails.ModelName		= GetStdString( &Rsp_Pkt[RSP_ModelName],    iModelNameLen);			// "QSI 500 Series Camera"
+	DeviceDetails.SerialNumber	= GetStdString( &Rsp_Pkt[RSP_SerialNumber], iSerialNumberLen);		// "05001234"
+	// Model Base Type
+	// "504" Model number, leading numeric digits for matching hex files
+	size_t nonNum = DeviceDetails.ModelType.find_first_not_of("0123456789");
+	if (nonNum != std::string::npos)
+	{
+		DeviceDetails.ModelBaseType = DeviceDetails.ModelType.substr(0, nonNum);
+	}
+	else
+	{
+		DeviceDetails.ModelBaseType	= DeviceDetails.ModelType;	
+	}
+	
+	// From Feature bytes
+	QSIModelInfo modelInfo(this);
+	DeviceDetails.ModelBaseNumber = modelInfo.GetBaseModelNumber(DeviceDetails.ModelBaseType);	// "683" or "RS8.3"
+	DeviceDetails.ModelNumber = modelInfo.GetModelNumber(DeviceDetails.ModelType);				// "683ws" or "RS8.3ws" for user display+
+	DeviceDetails.ModelName = modelInfo.GetModelName(DeviceDetails.ModelName);					// "QSI 683 Series Camera"
+	//
 	DeviceDetails.HasFilterTrim = m_bHasCMD_SetFilterTrim;
-
-	//
-	// Get USB timeouts in milliseconds.
-	//
-	QSI_Registry rReg;
-	//
-	// Standard timeouts for no model dependent calls
-	//
-	USBTimeouts.StandardRead = rReg.GetUSBReadTimeout( READ_TIMEOUT );
-	USBTimeouts.StandardWrite = rReg.GetUSBWriteTimeout( WRITE_TIMEOUT );
-
-	USBTimeouts.ExtendedRead = 20000;
-	USBTimeouts.ExtendedWrite = 20000;
-
-	//
-	// Registry overrides
-	//
-	USBTimeouts.ExtendedRead = rReg.GetUSBExReadTimeout(USBTimeouts.ExtendedRead);
-	USBTimeouts.ExtendedWrite = rReg.GetUSBExWriteTimeout(USBTimeouts.ExtendedWrite);
-	//
-	// now set the default timeouts
-	//
-	m_iError = PacketWrapper.USB_SetTimeouts(USBTimeouts.StandardRead, USBTimeouts.StandardWrite);
-	if (m_iError != ALL_OK) 
-	{
-		m_log->Write(2, "GetDeviceDetails set USB timeouts failed. Error Code: %x", m_iError);
-		return m_iError + ERR_PKT_SetTimeOutFailed;
-	}
-
-	// Get CCD and other camera parameters
-	m_iError = CMD_GetCCDSpecs ( DeviceDetails.MaxADU, DeviceDetails.EADUHigh, DeviceDetails.EADULow, DeviceDetails.EFull, DeviceDetails.minExp, DeviceDetails.maxExp );
-	if ( m_iError ) 
-	{
-		m_log->Write(2, _T("GetDeviceDetails GetCCDSpecs failed. Error Code: %I32x"), m_iError);
-		return m_iError + ERR_IFC_GetDeviceDetails;
-	}
 
 	// Parse feature array to produce device details
 	DeviceDetails.HasCMD_GetTemperatureEx =		m_bHasCMD_GetTemperatureEx;
@@ -527,9 +515,9 @@ int QSI_Interface::CMD_GetDeviceDetails ( QSI_DeviceDetails & DeviceDetails )
 	m_log->Write(2, _T("GetDeviceDetails: Num Rows per Block: %d"), DeviceDetails.NumRowsPerBlock);
 	m_log->Write(2, _T("GetDeviceDetails: ControlEachBlock: %d"), DeviceDetails.ControlEachBlock?1:0);
 	m_log->Write(2, _T("GetDeviceDetails: Num Filters: %d"), DeviceDetails.NumFilters);
-	m_log->Write(2, _T("GetDeviceDetails: Model Number: %s"), DeviceDetails.ModelNumber);
-	m_log->Write(2, _T("GetDeviceDetails: Model Name: %s"), DeviceDetails.ModelName);
-	m_log->Write(2, _T("GetDeviceDetails: Model Serial Number: %s"), DeviceDetails.SerialNumber);
+	m_log->Write(2, _T("GetDeviceDetails: Model Number: %s"), DeviceDetails.ModelNumber.c_str());
+	m_log->Write(2, _T("GetDeviceDetails: Model Name: %s"), DeviceDetails.ModelName.c_str());
+	m_log->Write(2, _T("GetDeviceDetails: Model Serial Number: %s"), DeviceDetails.SerialNumber.c_str());
 	m_log->Write(2, _T("GetDeviceDetails: Filter Wheel Trim: %d"), DeviceDetails.HasFilterTrim?1:0);
 	m_log->Write(2, _T("GetDeviceDetails: Has HSRExposure: %d"), DeviceDetails.HasCMD_HSRExposure?1:0);
 	m_log->Write(2, _T("GetDeviceDetails: Has GetTemperatureEx: %d"), DeviceDetails.HasCMD_GetTemperatureEx?1:0);
@@ -546,9 +534,58 @@ int QSI_Interface::CMD_GetDeviceDetails ( QSI_DeviceDetails & DeviceDetails )
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
+// AutoGainAdjust - Adjust gain based on binning settings for a given exposure
+int QSI_Interface::AutoGainAdjust(QSI_ExposureSettings ExpSettings, QSI_AdvSettings AdvSettings)
+{
+	m_log->Write(3, _T("Checking for Automatic Gain Selection"));
+
+	QSI_AdvSettings newAdvSettings = AdvSettings;
+
+	// Adjust for Auto gain if set by request AdvSettings from user
+	int gainRequired = AdvSettings.CameraGainIndex;
+	if (gainRequired == GAIN_AUTO)
+	{
+		if (ExpSettings.BinFactorY == 1 && ExpSettings.BinFactorX == 1)
+		{
+			gainRequired = GAIN_HIGH; // High Gain
+			m_log->Write(3, _T("AutoGain has selected is High Gain"));
+		}
+		else
+		{
+			gainRequired = GAIN_LOW; // Low Gain
+			m_log->Write(3, _T("AutoGain has selected is Low Gain"));
+		}
+	}
+	else
+	{
+		m_log->Write(3, _T("Not Autogain. No gain adjusted."));
+	}
+
+	// Now check the cached value on the camera.
+	// We don't change gain on every exposure, as that would slow the frame rate considerably.
+	if (gainRequired != m_CameraAdvSettingsCache.CameraGainIndex)
+	{
+		// Update Camera and cace settings
+		m_log->Write(3, _T("AutoGain cache invalid.  Update Gain setting camera to gain index: %d"), gainRequired);
+		newAdvSettings.CameraGainIndex = gainRequired;
+		UpdateAdvSettings(newAdvSettings);
+	}
+	else
+	{
+		m_log->Write(3, _T("Using AutoGain cache setting on camera. Gain index: %d"), m_CameraAdvSettingsCache.CameraGainIndex);
+	}
+
+	return S_OK;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////
 // 
 int QSI_Interface::CMD_StartExposure ( QSI_ExposureSettings ExposureSettings )
 {
+	m_log->Write(2,  "StartExposure Started %d milliseconds, %d x, %d y",ExposureSettings.Duration * 10, ExposureSettings.ColumnsToRead, ExposureSettings.RowsToRead);
+
+	AutoGainAdjust( ExposureSettings, m_UserRequestedAdvSettings);
+	
 	// Define command packet structure
 	const int CMD_Command          = 0;
 	const int CMD_Length           = 1;
@@ -565,8 +602,7 @@ int QSI_Interface::CMD_StartExposure ( QSI_ExposureSettings ExposureSettings )
 
 	// Define response packet structure
 	const int RSP_DeviceError  = 2;
-	m_log->Write(2,  "StartExposure Started %d milliseconds, %d x, %d y",ExposureSettings.Duration * 10, ExposureSettings.ColumnsToRead, ExposureSettings.RowsToRead);
-
+	
 	// Construct command packet header
 	Cmd_Pkt[CMD_Command] = CMD_STARTEXPOSURE;
 	Cmd_Pkt[CMD_Length] = 16;
@@ -596,11 +632,10 @@ int QSI_Interface::CMD_StartExposure ( QSI_ExposureSettings ExposureSettings )
 
 	
 	// Send/receive packets
-	m_iError = PacketWrapper.PKT_SendPacket(&Cmd_Pkt,&Rsp_Pkt, true);
+	m_iError = m_PacketWrapper.PKT_SendPacket(m_HostCon.m_HostIO, Cmd_Pkt, Rsp_Pkt, true, IOTimeout_Long);
 	if( m_iError ) 
 	{
 		m_log->Write(2, "StartExposure failed. Error Code: %x", m_iError);
-		PacketWrapper.USB_SetTimeouts(USBTimeouts.StandardRead, USBTimeouts.StandardWrite);
 		return m_iError;
 	}
 
@@ -609,7 +644,6 @@ int QSI_Interface::CMD_StartExposure ( QSI_ExposureSettings ExposureSettings )
 	if( m_iError )
 	{
 		m_log->Write(2, "StartExposure failed. Error Code: %x", m_iError);
-		PacketWrapper.USB_SetTimeouts(USBTimeouts.StandardRead, USBTimeouts.StandardWrite);
 		return m_iError + ERR_IFC_StartExposure;
 	}
 
@@ -621,6 +655,14 @@ int QSI_Interface::CMD_StartExposure ( QSI_ExposureSettings ExposureSettings )
 // 
 int QSI_Interface::CMD_StartExposureEx( QSI_ExposureSettings ExposureSettings )
 {
+	m_log->Write(2, "StartExposureEx started. Duration: %d, DurationUSec: %d.", ExposureSettings.Duration, ExposureSettings.DurationUSec);
+	if (ExposureSettings.OpenShutter)
+		m_log->Write(2, "StartExposureEx Light = true.");
+	else
+		m_log->Write(2, "StartExposureEx Light = false.");
+
+	AutoGainAdjust (ExposureSettings, m_UserRequestedAdvSettings);
+	
 	// Define command packet structure
 	const int CMD_Command          = 0;
 	const int CMD_Length           = 1;
@@ -644,13 +686,6 @@ int QSI_Interface::CMD_StartExposureEx( QSI_ExposureSettings ExposureSettings )
 	// Define response packet structure
 	const int RSP_DeviceError  = 2;
 	m_bCameraStateCacheInvalid = true;
-
-	m_log->Write(2, "StartExposureEx started. Duration: %d, DurationUSec: %d.", ExposureSettings.Duration, ExposureSettings.DurationUSec);
-	if (ExposureSettings.OpenShutter)
-		m_log->Write(2, "StartExposureEx Light = true.");
-	else
-		m_log->Write(2, "StartExposureEx Light = false.");
-
 
 	// Construct command packet header
 	Cmd_Pkt[CMD_Command] = CMD_STARTEXPOSUREEX;
@@ -691,11 +726,10 @@ int QSI_Interface::CMD_StartExposureEx( QSI_ExposureSettings ExposureSettings )
 	m_log->Write(2, _T("Implemented: %d"),ExposureSettings.ProbeForImplemented?1:0);
 
 	// Send/receive packets
-	m_iError = PacketWrapper.PKT_SendPacket(&Cmd_Pkt,&Rsp_Pkt, true);
+	m_iError = m_PacketWrapper.PKT_SendPacket(m_HostCon.m_HostIO, Cmd_Pkt, Rsp_Pkt, true, ExposureSettings.ProbeForImplemented?IOTimeout_Short:IOTimeout_Long);
 	if( m_iError ) 
 	{
 		m_log->Write(2, "StartExposureEx failed. Error Code: %I32x", m_iError);
-		PacketWrapper.USB_SetTimeouts(USBTimeouts.StandardRead, USBTimeouts.StandardWrite);
 		return m_iError  + ERR_PKT_SetTimeOutFailed;
 	}
 
@@ -704,7 +738,6 @@ int QSI_Interface::CMD_StartExposureEx( QSI_ExposureSettings ExposureSettings )
 	if( m_iError )
 	{
 		m_log->Write(2, "StartExposureEx failed. Error Code: %I32x", m_iError);
-		PacketWrapper.USB_SetTimeouts(USBTimeouts.StandardRead, USBTimeouts.StandardWrite);
 		return m_iError + ERR_IFC_StartExposure;
 	}
 
@@ -724,9 +757,7 @@ int QSI_Interface::HasFastExposure( bool & bFast )
 
 	// Send command
 	int iError;
-	PacketWrapper.USB_SetTimeouts(SHORT_READ_TIMEOUT, SHORT_WRITE_TIMEOUT);
 	iError = CMD_StartExposureEx( ExposureSettings );
-	PacketWrapper.USB_SetTimeouts(USBTimeouts.StandardRead, USBTimeouts.StandardWrite);
 	if (iError)
 		bFast = false;
 	else
@@ -755,7 +786,7 @@ int QSI_Interface::CMD_AbortExposure ( void )
 	Cmd_Pkt[CMD_Length] = 2;
 
 	// Send/receive packets
-	m_iError = PacketWrapper.PKT_SendPacket(&Cmd_Pkt,&Rsp_Pkt, true);
+	m_iError = m_PacketWrapper.PKT_SendPacket(m_HostCon.m_HostIO, Cmd_Pkt, Rsp_Pkt, true);
 	if( m_iError )
 	{
 		m_log->Write(2, "AbortExposure failed. Error Code: %x", m_iError);
@@ -789,7 +820,7 @@ int QSI_Interface::CMD_TransferImage ( void )
 	Cmd_Pkt[CMD_Length] = 0;
 
 	// Send/receive packets
-	m_iError = PacketWrapper.PKT_SendPacket(&Cmd_Pkt,&Rsp_Pkt, false);
+	m_iError = m_PacketWrapper.PKT_SendPacket(m_HostCon.m_HostIO, Cmd_Pkt, Rsp_Pkt, false);
 
 	// Check for errors (receive queue should be dirty so we ignore that)
 	if( m_iError != ALL_OK)
@@ -828,7 +859,7 @@ int QSI_Interface::CMD_GetAutoZero( QSI_AutoZeroData & AutoZeroData )
 	Cmd_Pkt[CMD_Length] = 0;
 
 	// Send/receive packets
-	m_iError = PacketWrapper.PKT_SendPacket(&Cmd_Pkt,&Rsp_Pkt,false);
+	m_iError = m_PacketWrapper.PKT_SendPacket(m_HostCon.m_HostIO, Cmd_Pkt, Rsp_Pkt,false);
 
 	// On a slow system, the data could start coming back before we get here
 	// so check for rxDirtyQueue, which is ok 
@@ -885,7 +916,7 @@ int QSI_Interface::CMD_GetDeviceState ( int & iCameraState, bool & bShutterOpen,
 	do
 	{
 		// Send/receive packets
-		m_iError = PacketWrapper.PKT_SendPacket(&Cmd_Pkt,&Rsp_Pkt, true);
+		m_iError = m_PacketWrapper.PKT_SendPacket(m_HostCon.m_HostIO, Cmd_Pkt, Rsp_Pkt, true);
 		if (m_iError)
 		{
 			m_log->Write(2, "GetDeviceState Send/Rec Packet Error %x, retries left: %x", m_iError, iRetries);
@@ -951,7 +982,7 @@ int QSI_Interface::CMD_SetTemperature ( bool bCoolerOn, bool bGoToAmbient, doubl
 	Put2Bytes(&Cmd_Pkt[CMD_SetPoint],  (short) (dSetPoint * 100) );
 
 	// Send/receive packets
-	m_iError = PacketWrapper.PKT_SendPacket(&Cmd_Pkt,&Rsp_Pkt, true);
+	m_iError = m_PacketWrapper.PKT_SendPacket(m_HostCon.m_HostIO, Cmd_Pkt, Rsp_Pkt, true);
 	if( m_iError )
 	{
 		m_log->Write(2,  "SetTemperature failed. Error Code %x", m_iError);
@@ -994,7 +1025,7 @@ int QSI_Interface::CMD_GetTemperature ( int & iCoolerState, double & dCoolerTemp
 	do
 	{
 		// Send/receive packets
-		m_iError = PacketWrapper.PKT_SendPacket(&Cmd_Pkt,&Rsp_Pkt, true);
+		m_iError = m_PacketWrapper.PKT_SendPacket(m_HostCon.m_HostIO, Cmd_Pkt, Rsp_Pkt, true);
 		if (m_iError)
 		{
 			m_log->Write(2, "GetTemperature Send/Rec Packet Error %x, retries left: %x", m_iError, iRetries);
@@ -1063,12 +1094,10 @@ int QSI_Interface::CMD_GetTemperatureEx( int & iCoolerState, double & dCoolerTem
 	do
 	{
 		// Send/receive packets
-		if (bProbe)
-			PacketWrapper.USB_SetTimeouts(USBTimeouts.ShortRead, USBTimeouts.ShortWrite);
-		m_iError = PacketWrapper.PKT_SendPacket(&Cmd_Pkt,&Rsp_Pkt, true);
+		m_iError = m_PacketWrapper.PKT_SendPacket(m_HostCon.m_HostIO, Cmd_Pkt, Rsp_Pkt, true, bProbe?IOTimeout_Short:IOTimeout_Normal);
 		if (bProbe)
 		{
-			PacketWrapper.USB_SetTimeouts(USBTimeouts.StandardRead, USBTimeouts.StandardWrite);
+			m_log->Write(2, _T("GetTemperatureEx Probe returning with status %d"), m_iError);
 			return m_iError;
 		}
 
@@ -1135,7 +1164,7 @@ int QSI_Interface::CMD_ActivateRelay ( int iXRelay, int iYRelay )
 	Put2Bytes( &Cmd_Pkt[CMD_YRelay], (short) iYRelay );
 
 	// Send/receive packets 
-	m_iError = PacketWrapper.PKT_SendPacket(&Cmd_Pkt,&Rsp_Pkt, true);
+	m_iError = m_PacketWrapper.PKT_SendPacket(m_HostCon.m_HostIO, Cmd_Pkt, Rsp_Pkt, true);
 	if( m_iError )
 	{
 		m_log->Write(2, "ActivateRelay failed. Error Code %x", m_iError);
@@ -1169,7 +1198,7 @@ int QSI_Interface::CMD_IsRelayDone ( bool & bGuiderRelayState )
 	Cmd_Pkt[CMD_Length]  = 0;
 
 	// Send/receive packets
-	m_iError = PacketWrapper.PKT_SendPacket(&Cmd_Pkt,&Rsp_Pkt, true);
+	m_iError = m_PacketWrapper.PKT_SendPacket(m_HostCon.m_HostIO, Cmd_Pkt, Rsp_Pkt, true);
 	if( m_iError )
 	{
 		m_log->Write(2, "IsRelayDone failed. Error Code %x", m_iError);
@@ -1209,7 +1238,7 @@ int QSI_Interface::CMD_SetFilterWheel ( int iFilterPosition )
 	Cmd_Pkt[CMD_FilterPosition] = iFilterPosition;
 
 	// Send/receive packets
-	m_iError = PacketWrapper.PKT_SendPacket(&Cmd_Pkt,&Rsp_Pkt, true);
+	m_iError = m_PacketWrapper.PKT_SendPacket(m_HostCon.m_HostIO, Cmd_Pkt, Rsp_Pkt, true, IOTimeout_Long);
 	if( m_iError )
 	{
 		m_log->Write(2, "SetFilterWheel failed. Error Code %x", m_iError);
@@ -1261,7 +1290,7 @@ int QSI_Interface::CMD_GetCamDefaultAdvDetails( QSI_AdvSettings & AdvDefaultSett
 	Cmd_Pkt[CMD_Length]  = 0;
 
 	// Send/receive packets
-	m_iError = PacketWrapper.PKT_SendPacket(&Cmd_Pkt,&Rsp_Pkt, true);
+	m_iError = m_PacketWrapper.PKT_SendPacket(m_HostCon.m_HostIO, Cmd_Pkt, Rsp_Pkt, true);
 	if( m_iError )
 	{
 		m_log->Write(2, "GetAdvDetails failed. Error Code %x", m_iError);
@@ -1313,8 +1342,35 @@ int QSI_Interface::CMD_GetAdvDefaultSettings( QSI_AdvSettings & AdvDefaultSettin
 }
 //////////////////////////////////////////////////////////////////////////////////////////
 // Set advanced settings
-int QSI_Interface::CMD_SendAdvSettings ( QSI_AdvSettings mfAdvSettings )
+int QSI_Interface::CMD_SendAdvSettings ( QSI_AdvSettings AdvSettings )
 {
+	// Auto Gain Mapping
+	// If GainIndex == 2, the gain is in Auto Mode based on binning (not available here).
+	// When called from Open(), the gain index can could be a 2 (auto),
+	// (from the Adv Settings Dialog / Registry), if so map it to default 0 (high),
+	// as the camera does not accept a value of 2,
+	// and then cache the current setting SENT TO THE CAMERA that is set here.  
+	// StartExposure(Ex) will test the current cached value,
+	// and based on the binning mode, change the gain to 0 or 1, and call here to set it.
+	// On that call the gain index will be only 0 (high) or 1 (low), never 2 (auto).
+
+	// Save settings now to check for autogain later
+	m_UserRequestedAdvSettings = AdvSettings;
+	if (AdvSettings.CameraGainIndex == GAIN_AUTO)
+	{
+		AdvSettings.CameraGainIndex = GAIN_LOW;
+		m_log->Write(2, _T("Autogain setting detected, camera set to default high gain."));
+	}
+	
+	return UpdateAdvSettings(AdvSettings);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// Set advanced settings
+int QSI_Interface::UpdateAdvSettings ( QSI_AdvSettings AdvSettings )
+{
+	// This just sends the requested settings to the camera, ignoring any auto gain issues.
+	m_CameraAdvSettingsCache = AdvSettings;
 	// Define command packet structure
 	const int CMD_Command         = 0;
 	const int CMD_Length          = 1;
@@ -1331,24 +1387,36 @@ int QSI_Interface::CMD_SendAdvSettings ( QSI_AdvSettings mfAdvSettings )
 	// Define response packet structure
 	const int RSP_DeviceError = 2;
 
-	m_log->Write(2, "SendAdvSettings started.");
+	m_fwWheel = AdvSettings.fwWheel;  // assign current filter wheel.
+	
+	m_log->Write(2, _T("SendAdvSettings started."));
+	m_log->Write(2, _T("SendAdvSettings: LED Enabled %d"), AdvSettings.LEDIndicatorOn?1:0);
+	m_log->Write(2, _T("SendAdvSettings: Sound Enabled %d"), AdvSettings.SoundOn?1:0);
+	m_log->Write(2, _T("SendAdvSettings: Fan index %d"), AdvSettings.FanModeIndex);
+	m_log->Write(2, _T("SendAdvSettings: Gain index %d"), AdvSettings.CameraGainIndex);
+	m_log->Write(2, _T("SendAdvSettings: Shutter Priority index %d"), AdvSettings.ShutterPriorityIndex);
+	m_log->Write(2, _T("SendAdvSettings: AntiBloom index %d"), AdvSettings.AntiBloomingIndex);
+	m_log->Write(2, _T("SendAdvSettings: Flush index %d"), AdvSettings.PreExposureFlushIndex);
+	m_log->Write(2, _T("SendAdvSettings: Show progress %d"), AdvSettings.ShowDLProgress?1:0);
+	m_log->Write(2, _T("SendAdvSettings: Optimize readout speed %d"), AdvSettings.OptimizeReadoutSpeed?1:0);
+	
 	// Construct transmit packet header
 	Cmd_Pkt[CMD_Command]  = CMD_SETADVSETTINGS;
 	Cmd_Pkt[CMD_Length]   = 9;
 
 	// Construct transmit packet body
-	Cmd_Pkt[CMD_LEDIndicatorOn]   = mfAdvSettings.LEDIndicatorOn;
-	Cmd_Pkt[CMD_SoundOn]          = mfAdvSettings.SoundOn;
-	Cmd_Pkt[CMD_FanMode]          = mfAdvSettings.FanModeIndex;
-	Cmd_Pkt[CMD_CameraGain  ]     = mfAdvSettings.CameraGainIndex;
-	Cmd_Pkt[CMD_ShutterPriority]  = mfAdvSettings.ShutterPriorityIndex;
-	Cmd_Pkt[CMD_AntiBlooming]     = mfAdvSettings.AntiBloomingIndex;
-	Cmd_Pkt[CMD_PreExposureFlush] = mfAdvSettings.PreExposureFlushIndex;
-	Cmd_Pkt[CMD_ShowDLProgress]   = mfAdvSettings.ShowDLProgress;
-	Cmd_Pkt[CMD_OptimizeReadout]  = mfAdvSettings.OptimizeReadoutSpeed;
+	Cmd_Pkt[CMD_LEDIndicatorOn]   = AdvSettings.LEDIndicatorOn;
+	Cmd_Pkt[CMD_SoundOn]          = AdvSettings.SoundOn;
+	Cmd_Pkt[CMD_FanMode]          = AdvSettings.FanModeIndex;
+	Cmd_Pkt[CMD_CameraGain  ]     = AdvSettings.CameraGainIndex;
+	Cmd_Pkt[CMD_ShutterPriority]  = AdvSettings.ShutterPriorityIndex;
+	Cmd_Pkt[CMD_AntiBlooming]     = AdvSettings.AntiBloomingIndex;
+	Cmd_Pkt[CMD_PreExposureFlush] = AdvSettings.PreExposureFlushIndex;
+	Cmd_Pkt[CMD_ShowDLProgress]   = AdvSettings.ShowDLProgress;
+	Cmd_Pkt[CMD_OptimizeReadout]  = AdvSettings.OptimizeReadoutSpeed;
 
 	// Send/receive packets
-	m_iError = PacketWrapper.PKT_SendPacket(&Cmd_Pkt,&Rsp_Pkt, true);
+	m_iError = m_PacketWrapper.PKT_SendPacket(m_HostCon.m_HostIO, Cmd_Pkt, Rsp_Pkt, true);
 	if( m_iError )
 	{
 		m_log->Write(2, "SendAdvSettings failed. Error Code %x", m_iError);
@@ -1365,13 +1433,12 @@ int QSI_Interface::CMD_SendAdvSettings ( QSI_AdvSettings mfAdvSettings )
 
 	// 600 Series Update.  Refresh the CCD Settings in Device Details.  These change based on the camera settings for Gain and Readout Mode
 	// Get CCD and other camera parameters
-	m_iError = CMD_GetCCDSpecs ( m_DeviceDetails.MaxADU, m_DeviceDetails.EADUHigh, m_DeviceDetails.EADULow, m_DeviceDetails.EFull, m_DeviceDetails.minExp, m_DeviceDetails.maxExp );
+	m_iError = CMD_GetCCDSpecs ( m_CCDSpecs );
 	if( m_iError )
 	{
 		m_log->Write(2, "SendAdvSettings, GetCCDSPecs failed. Error Code %I32x", m_iError);
 		return m_iError + ERR_IFC_SendAdvSettings;
 	}
-
 
 	m_log->Write(2, "SendAdvSettings completed OK.");
 	return ALL_OK;
@@ -1394,7 +1461,7 @@ int QSI_Interface::CMD_GetSetPoint( double & dSetPoint)
 	Cmd_Pkt[CMD_Length]  = 0;
 
 	// Send/receive packets
-	m_iError = PacketWrapper.PKT_SendPacket(&Cmd_Pkt,&Rsp_Pkt, true);
+	m_iError = m_PacketWrapper.PKT_SendPacket(m_HostCon.m_HostIO, Cmd_Pkt, Rsp_Pkt, true);
 	if( m_iError )
 	{
 		m_log->Write(2, "GetSetPoint failed. Error Code %x", m_iError);
@@ -1433,7 +1500,7 @@ int QSI_Interface::CMD_SetShutter( bool bOpen )
 	PutBool(&Cmd_Pkt[CMD_Open],bOpen);
 
 	// Send/receive packets
-	m_iError = PacketWrapper.PKT_SendPacket(&Cmd_Pkt,&Rsp_Pkt, true);
+	m_iError = m_PacketWrapper.PKT_SendPacket(m_HostCon.m_HostIO, Cmd_Pkt, Rsp_Pkt, true);
 	if( m_iError )
 	{
 		m_log->Write(2, "SetShutter failed. Error Code %x", m_iError);
@@ -1467,7 +1534,7 @@ int QSI_Interface::CMD_AbortRelays( void )
 	Cmd_Pkt[CMD_Length] = 0;
 
 	// Send/receive packets
-	m_iError = PacketWrapper.PKT_SendPacket(&Cmd_Pkt,&Rsp_Pkt, true);
+	m_iError = m_PacketWrapper.PKT_SendPacket(m_HostCon.m_HostIO, Cmd_Pkt, Rsp_Pkt, true);
 	if( m_iError )
 	{
 		m_log->Write(2, "AbortRelays failed. Error Code %x", m_iError);
@@ -1501,7 +1568,7 @@ int QSI_Interface::CMD_GetLastExposure( double & dExposure )
 	Cmd_Pkt[CMD_Length] = 0;
 
 	// Send/receive packets
-	m_iError = PacketWrapper.PKT_SendPacket(&Cmd_Pkt,&Rsp_Pkt, true);
+	m_iError = m_PacketWrapper.PKT_SendPacket(m_HostCon.m_HostIO, Cmd_Pkt, Rsp_Pkt, true);
 	if( m_iError )
 	{
 		m_log->Write(2, "GetLastExposureTime failed. Error Code %x", m_iError);
@@ -1540,7 +1607,7 @@ int QSI_Interface::CMD_CanAbortExposure( bool & bCanAbort )
 	Cmd_Pkt[CMD_Length] = 0;
 
 	// Send/receive packets
-	m_iError = PacketWrapper.PKT_SendPacket(&Cmd_Pkt,&Rsp_Pkt, true);
+	m_iError = m_PacketWrapper.PKT_SendPacket(m_HostCon.m_HostIO, Cmd_Pkt, Rsp_Pkt, true);
 	if( m_iError )
 	{
 		m_log->Write(2, "CanAbortExposure failed. Error Code %x", m_iError);
@@ -1576,7 +1643,7 @@ int QSI_Interface::CMD_CanStopExposure( bool & bCanStop )
 	Cmd_Pkt[CMD_Length] = 0;
 
 	// Send/receive packets
-	m_iError = PacketWrapper.PKT_SendPacket(&Cmd_Pkt,&Rsp_Pkt, true);
+	m_iError = m_PacketWrapper.PKT_SendPacket(m_HostCon.m_HostIO, Cmd_Pkt, Rsp_Pkt, true);
 	if( m_iError )
 	{
 		m_log->Write(2, "CanStopExposure failed. Error Code %x", m_iError);
@@ -1612,7 +1679,7 @@ int QSI_Interface::CMD_GetFilterPosition( int & iPosition )
 	Cmd_Pkt[CMD_Length] = 0;
 
 	// Send/receive packets
-	m_iError = PacketWrapper.PKT_SendPacket(&Cmd_Pkt,&Rsp_Pkt, true);
+	m_iError = m_PacketWrapper.PKT_SendPacket(m_HostCon.m_HostIO, Cmd_Pkt, Rsp_Pkt, true);
 	if( m_iError )
 	{
 		m_log->Write(2, "GetFilterPosition failed. Error Code %x", m_iError);
@@ -1634,7 +1701,7 @@ int QSI_Interface::CMD_GetFilterPosition( int & iPosition )
 }
 //////////////////////////////////////////////////////////////////////////////////////////
 // 
-int QSI_Interface::CMD_GetCCDSpecs( int & iMaxADU, double & dEPerADUHigh, double & dEPerADULow, double & dEFullWell, double & dMinExp, double & dMaxExp)
+int QSI_Interface::CMD_GetCCDSpecs( QSI_CCDSpecs & CCDSpecs)
 {
 	// Define command packet structure
 	const int CMD_Command        = 0;
@@ -1653,7 +1720,7 @@ int QSI_Interface::CMD_GetCCDSpecs( int & iMaxADU, double & dEPerADUHigh, double
 	Cmd_Pkt[CMD_Length] = 0;
 
 	// Send/receive packets
-	m_iError = PacketWrapper.PKT_SendPacket(&Cmd_Pkt,&Rsp_Pkt, true);
+	m_iError = m_PacketWrapper.PKT_SendPacket(m_HostCon.m_HostIO, Cmd_Pkt, Rsp_Pkt, true);
 	if( m_iError )
 	{
 		m_log->Write(2, "GetCCDSpecs failed. Error Code %x", m_iError);
@@ -1677,54 +1744,50 @@ int QSI_Interface::CMD_GetCCDSpecs( int & iMaxADU, double & dEPerADUHigh, double
 	else
 		dMinScale = 1000.0;  // Old start exposure unit are in 1 millisecond ticks.
 
-	iMaxADU		= Get2Bytes(&Rsp_Pkt[RSP_MaxADU]);
-	dEFullWell	= Get2Bytes(&Rsp_Pkt[RSP_EFull]) * 100.0;
-	dMinExp		= Get2Bytes(&Rsp_Pkt[RSP_MinExp]) / dMinScale;
-	dMaxExp		= Get2Bytes(&Rsp_Pkt[RSP_MaxExp]);
-
+	int		iMaxADU		= Get2Bytes(&Rsp_Pkt[RSP_MaxADU]);
+	double	dEFullWell	= Get2Bytes(&Rsp_Pkt[RSP_EFull]) * 100.0;
+	double	dMinExp		= Get2Bytes(&Rsp_Pkt[RSP_MinExp]) / dMinScale;
+	double 	dMaxExp		= Get2Bytes(&Rsp_Pkt[RSP_MaxExp]);
+	double	dEPerADUHigh	= Get2Bytes(&Rsp_Pkt[RSP_EADU]) / 1000.0;
+	double	dEPerADULow 	= dEPerADUHigh;
+	
 	// Now adjust gain based on current gain control setting.
-	if (strncmp(m_DeviceDetails.ModelNumber, _T("503"), 3) == 0)
+	if (m_DeviceDetails.ModelBaseType==_T("503"))
 	{
 		dEPerADUHigh = 2.6;
 		dEPerADULow = 2.6;
 	}
-	else if (strncmp(m_DeviceDetails.ModelNumber, _T("504"), 3) == 0)
+	else if (m_DeviceDetails.ModelBaseType==_T("504"))
 	{
 		dEPerADUHigh = 2.6;
 		dEPerADULow = 2.6;
 	}
-	else if (strncmp(m_DeviceDetails.ModelNumber, _T("516"), 3) == 0)
+	else if (m_DeviceDetails.ModelBaseType== _T("516"))
 	{
 		dEPerADUHigh = 2.6;
 		dEPerADULow = 2.6;
 	}
-	else if (strncmp(m_DeviceDetails.ModelNumber, _T("520"), 3) == 0)
+	else if (m_DeviceDetails.ModelBaseType==_T("520"))
 	{
 		dEPerADUHigh = 0.8;
 		dEPerADULow = 1.9;
 	}
-	else if (strncmp(m_DeviceDetails.ModelNumber, _T("532"), 3) == 0)
+	else if (m_DeviceDetails.ModelBaseType==_T("532"))
 	{
 		dEPerADUHigh = 1.3;
 		dEPerADULow = 1.3;
 	}
-	else if (strncmp(m_DeviceDetails.ModelNumber, _T("540"), 3) == 0)
+	else if (m_DeviceDetails.ModelBaseType==_T("540"))
 	{
 		dEPerADUHigh = 0.8;
 		dEPerADULow = 1.9;
 	}
-	else if (strncmp(m_DeviceDetails.ModelNumber, _T("583"), 3) == 0)
+	else if (m_DeviceDetails.ModelBaseType==_T("583"))
 	{
 		dEPerADUHigh = 0.5;
 		dEPerADULow = 1.1;
 	}
-	else
-	{
-		// Defaults below to be adjusted by the per model table:
-		dEPerADUHigh = Get2Bytes(&Rsp_Pkt[RSP_EADU]) / 1000.0;
-		dEPerADULow = dEPerADUHigh;
-	}
-
+	
 	if (m_bHighGainOverride)
 	{
 		dEPerADUHigh = m_dHighGainOverride;
@@ -1734,6 +1797,13 @@ int QSI_Interface::CMD_GetCCDSpecs( int & iMaxADU, double & dEPerADUHigh, double
 	{
 		dEPerADULow = m_dLowGainOverride;
 	}
+
+	CCDSpecs.EADUHigh = dEPerADUHigh;
+	CCDSpecs.EADULow = dEPerADULow;
+	CCDSpecs.EFull = dEFullWell;
+	CCDSpecs.MaxADU = iMaxADU;
+	CCDSpecs.maxExp = dMaxExp;
+	CCDSpecs.minExp = dMinExp;	
 
 	m_log->Write(2, "GetCCDSpecs completed ok. MaxADU: %x E/ADU High: %f E/ADU Low: %f Full: %f Min: %f Max %f",iMaxADU, dEPerADUHigh, dEPerADULow, dEFullWell, dMinExp, dMaxExp);
 	return ALL_OK;
@@ -1757,7 +1827,7 @@ int QSI_Interface::CMD_GetAltMode1( unsigned char & ucMode)
 	Cmd_Pkt[CMD_Length] = 0;
 
 	// Send/receive packets
-	m_iError = PacketWrapper.PKT_SendPacket(&Cmd_Pkt,&Rsp_Pkt, true);
+	m_iError = m_PacketWrapper.PKT_SendPacket(m_HostCon.m_HostIO, Cmd_Pkt, Rsp_Pkt, true);
 	if( m_iError )
 	{
 		m_log->Write(2, "GetAltMode1 failed. Error Code %x", m_iError);
@@ -1796,7 +1866,7 @@ int QSI_Interface::CMD_SetAltMode1( unsigned char ucMode)
 	Cmd_Pkt[CMD_AltMode1] = ucMode;
 
 	// Send/receive packets
-	m_iError = PacketWrapper.PKT_SendPacket(&Cmd_Pkt,&Rsp_Pkt, true);
+	m_iError = m_PacketWrapper.PKT_SendPacket(m_HostCon.m_HostIO, Cmd_Pkt, Rsp_Pkt, true);
 	if( m_iError )
 	{
 		m_log->Write(2, "SetAltMode1 failed. Error Code %x", m_iError);
@@ -1834,14 +1904,14 @@ int QSI_Interface::CMD_GetFeatures(BYTE* pMem, int iFeatureArraySize, int & iCou
 	Cmd_Pkt[CMD_Length] = 0;
 
 	// Send/receive packets
-	m_iError = PacketWrapper.PKT_SendPacket(&Cmd_Pkt,&Rsp_Pkt, true);
+	m_iError = m_PacketWrapper.PKT_SendPacket(m_HostCon.m_HostIO, Cmd_Pkt, Rsp_Pkt, true, IOTimeout_Short);
 	
 	// 600 firmware prior to 6.1.8 returns the incorrect amount of data (one extra byte).
 	// The resulting error is a dirty queue.
 	// Purge the extra byte and return without error.
 	if (m_iError == ERR_PKT_RxQueueDirty)
 	{
-		m_iError = PacketWrapper.USB_Purge(FT_PURGE_RX + FT_PURGE_TX);
+		m_iError = m_HostCon.m_HostIO->Purge();
 		m_log->Write(2, "GetFeatures - Too much Rx data.  Please upgrade camera firmware to version 6.1.8 or later");
 		return ALL_OK;
 	}
@@ -1864,10 +1934,10 @@ int QSI_Interface::CMD_GetFeatures(BYTE* pMem, int iFeatureArraySize, int & iCou
 	int iPacketLen = (int)Rsp_Pkt[ RSP_Length ];
 
 	// Check valid packet length
-	if (iPacketLen < 2 )	// Must be at least one feature, if the command is supported
+	if ( (iPacketLen < 2) || (iPacketLen == 2 && (Rsp_Pkt[RSP_FeatureStart] == 0xFF ))	)// Must be at least one feature, not FF, if the command is supported
 	{
 		m_log->Write(2, _T("GetFeature failed. Invalid Feature Count %d. Error Code %x"), iPacketLen, m_iError);
-		return 1 + ERR_IFC_GetCCDSpecs;
+		return ERR_IFC_GetCCDSpecs;
 	}	
 
 	// Check for device error
@@ -1910,7 +1980,7 @@ int QSI_Interface::CMD_GetEEPROM(USHORT usAddress, BYTE & bData)
 	Cmd_Pkt[CMD_LSB_Addr] = usAddress & 0x00ff;
 
 	// Send/receive packets
-	m_iError = PacketWrapper.PKT_SendPacket(&Cmd_Pkt,&Rsp_Pkt, true);
+	m_iError = m_PacketWrapper.PKT_SendPacket(m_HostCon.m_HostIO, Cmd_Pkt, Rsp_Pkt, true, IOTimeout_Short);
 	if( m_iError )
 	{
 		m_log->Write(2, "GetEEPROM failed. Error Code %x", m_iError);
@@ -1934,29 +2004,47 @@ int QSI_Interface::CMD_GetEEPROM(USHORT usAddress, BYTE & bData)
 // Get the hardware (main board) version and firmware version from EEPROM space.
 int QSI_Interface::GetVersionInfo(char tszHWVersion[], char tszFWVersion[])
 {
+	// Camera EEPROM addresses for public data
+	const USHORT EE_MODEL	= 0x0000;
+	const USHORT EE_MFGDATE	= 0x0008;
+	const USHORT EE_HWSN	= 0x0010;
+	const USHORT EE_HWREV	= 0x0018;
+	const USHORT EE_FWREV	= 0x0020;
+	const USHORT EE_EE_NAME	= 0x0028;
+	const USHORT EE_SHUT	= 0x004C;
+	const USHORT EE_FIL		= 0x004D;
+	const USHORT EE_TCOLS	= 0x0057;
+	const USHORT EE_CLOFF	= 0x0059;
+	const USHORT EE_COLS	= 0x005B;
+
 	BYTE data;
 	m_log->Write(2, "GetVersionInfo started.");
-	m_iError = PacketWrapper.USB_SetTimeouts(1000, 1000);
-	m_iError = CMD_GetEEPROM( 0x0020, data);
 
-	if (m_iError == ALL_OK)
+	try 
 	{
-		tszHWVersion[0] = (char) data;
-		for (int i = 1; i < 8; i++)
+		for (int i = 0; i < 8; i++)
 		{
-			m_iError = CMD_GetEEPROM( 0x0018 + i, data);
+			m_iError = CMD_GetEEPROM( EE_HWREV + i, data);
+			if (m_iError != 0) {
+				throw QSIException("EEPROM Read Failed",
+					QSI_EEPROMREADERROR);
+			}
 			tszHWVersion[i] = (char) data;
 		}
 
 		for (int i = 0; i < 8; i++)
 		{
-			m_iError = CMD_GetEEPROM( 0x0020 + i, data);
+			m_iError = CMD_GetEEPROM( EE_FWREV + i, data);
+			if (m_iError != 0) {
+				throw QSIException("EEPROM Read Failed",
+					QSI_EEPROMREADERROR);
+			}
 			tszFWVersion[i] = (char) data;
 		}
 	}
-	else
+	catch (char* ErrStr)
 	{
-		m_log->Write(2, "GetVersionInfo EEPROM read timed out.");
+		m_log->Write(2, ErrStr);
 		strncpy(tszHWVersion, "00.00.00", 8);
 		strncpy(tszFWVersion, "00.00.00", 8);
 	}
@@ -1964,8 +2052,7 @@ int QSI_Interface::GetVersionInfo(char tszHWVersion[], char tszFWVersion[])
 	tszHWVersion[8] = 0;
 	tszFWVersion[8] = 0;
 
-	m_iError = PacketWrapper.USB_SetTimeouts(USBTimeouts.StandardRead, USBTimeouts.StandardWrite);
-	m_log->Write(2, "GetVersionInfo completed.");
+	m_log->Write(2, _T("GetVersionInfo completed. HW %s FW %s"), tszHWVersion, tszFWVersion);
 	return ALL_OK;
 }
 
@@ -2008,6 +2095,13 @@ void QSI_Interface::GetString ( PVOID pvSource, PVOID pvDestination, int iSource
 	*((UCHAR*)pvDestination+iSourceLength) = '\0';
 
 	return;
+}
+
+std::string QSI_Interface::GetStdString( BYTE * pSrc, int iLen)
+{
+	std::string out("");
+	out.append((char *)pSrc, iLen);
+	return out;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -2514,7 +2608,7 @@ int compareUSHORT( const void *val1, const void *val2)
 int QSI_Interface::QSIRead(unsigned char * Buffer, int BytesToRead, int * BytesReturned)
 {
 	m_log->Write(2, _T("QSIRead started."));
-	m_iError = PacketWrapper.USB_Read(Buffer, BytesToRead, (LPDWORD)BytesReturned);
+	m_iError = m_HostCon.m_HostIO->Read(Buffer, BytesToRead, BytesReturned);
 	m_log->Write(2, _T("QSIRead finished. Error Code: %I32X"), m_iError);
 	
 	return m_iError;
@@ -2523,7 +2617,7 @@ int QSI_Interface::QSIRead(unsigned char * Buffer, int BytesToRead, int * BytesR
 int QSI_Interface::QSIWrite(unsigned char * Buffer, int BytesToWrite, int * BytesWritten)
 {
 	m_log->Write(2, _T("QSIWrite started."));
-	m_iError = PacketWrapper.USB_Write(Buffer, BytesToWrite, (LPDWORD)BytesWritten);
+	m_iError = m_HostCon.m_HostIO->Write(Buffer, BytesToWrite, BytesWritten);
 	m_log->Write(2, _T("QSIWrite finished. Error Code: %I32X"), m_iError);
 	
 	return m_iError;
@@ -2531,9 +2625,9 @@ int QSI_Interface::QSIWrite(unsigned char * Buffer, int BytesToWrite, int * Byte
 
 int QSI_Interface::QSIReadDataAvailable(int * count)
 {	
-	DWORD temp;
+	int temp;
 	m_log->Write(2, _T("QSIReadDataAvailable started."));
-	m_iError = PacketWrapper.USB_GetStatus((LPDWORD)count, &temp);
+	m_iError = m_HostCon.m_HostIO->GetReadWriteQueueStatus(count, &temp);
 	m_log->Write(2, _T("QSIReadDataAvailable finished. Error Code: %I32X"), m_iError);
 
 	return m_iError;
@@ -2541,9 +2635,9 @@ int QSI_Interface::QSIReadDataAvailable(int * count)
 
 int QSI_Interface::QSIWriteDataPending(int * count)
 {
-	DWORD temp;
+	int temp;
 	m_log->Write(2, _T("QSIWriteDataPending started."));
-	m_iError = PacketWrapper.USB_GetStatus(&temp, (LPDWORD)count);
+	m_iError = m_HostCon.m_HostIO->GetReadWriteQueueStatus(&temp, count);
 	m_log->Write(2, _T("QSIWriteDataAvailable finished. Error Code: %I32X"), m_iError);
 
 	return m_iError;
@@ -2552,8 +2646,7 @@ int QSI_Interface::QSIWriteDataPending(int * count)
 int QSI_Interface::QSIReadTimeout(int timeout)
 {
 	m_log->Write(2, _T("QSIReadTimeout started."));
-	USBTimeouts.StandardRead = timeout;
-	m_iError = PacketWrapper.USB_SetTimeouts(USBTimeouts.StandardRead, USBTimeouts.StandardWrite);
+	m_iError = m_HostCon.m_HostIO->SetStandardReadTimeout((ULONG)timeout);
 	m_log->Write(2, _T("QSIReadTimeout finished. Error Code: %I32X"), m_iError);
 
 	return m_iError;
@@ -2562,8 +2655,7 @@ int QSI_Interface::QSIReadTimeout(int timeout)
 int QSI_Interface::QSIWriteTimeout(int timeout)
 {
 	m_log->Write(2, _T("QSIWriteTimeout started."));
-	USBTimeouts.StandardWrite = timeout;
-	m_iError = PacketWrapper.USB_SetTimeouts(USBTimeouts.StandardRead, USBTimeouts.StandardWrite);
+	m_iError = m_HostCon.m_HostIO->SetStandardWriteTimeout((ULONG)timeout);
 	m_log->Write(2, _T("QSIWriteTimeout finished. Error Code: %I32X"), m_iError);
 
 	return m_iError;
@@ -2600,7 +2692,8 @@ int QSI_Interface::CMD_SetFilterTrim(int pos, bool probe)
 
 	if (!probe)
 	{
-		if ( pos >= (int)m_fwWheel.Filters.size() )
+		// pos ranges from 0 to n-1, size() ranges from 0 to n.
+		if ( pos+1 > (int)m_fwWheel.Filters.size() )
 		{
 			m_log->Write(2, _T("SetFilterTrim Invalid position : %d"), pos);
 			return ERR_IFC_SetFilterWheel;
@@ -2615,7 +2708,7 @@ int QSI_Interface::CMD_SetFilterTrim(int pos, bool probe)
 	}
 
 	// Send/receive packets
-	m_iError = PacketWrapper.PKT_SendPacket(&Cmd_Pkt,&Rsp_Pkt, true);
+	m_iError = m_PacketWrapper.PKT_SendPacket(m_HostCon.m_HostIO, Cmd_Pkt, Rsp_Pkt, true, IOTimeout_Short);
 	if( m_iError )
 	{
 		m_log->Write(2, _T("SetFilterTrim failed. Error Code %I32x"), m_iError);
@@ -2642,9 +2735,7 @@ bool QSI_Interface::HasFilterWheelTrim(void)
 	m_log->Write(2, _T("HasFilterTrim started."));
 
 	// Set short command timeout to catch the unimplemented case
-	m_iError = PacketWrapper.USB_SetTimeouts(USBTimeouts.ShortRead, USBTimeouts.StandardWrite);
 	int result = CMD_SetFilterTrim(0, true);
-	m_iError = PacketWrapper.USB_SetTimeouts(USBTimeouts.StandardRead, USBTimeouts.StandardWrite);
 	
 	if (result != 0)
 	{
@@ -2682,7 +2773,7 @@ int QSI_Interface::CMD_BurstBlock(int Count, BYTE * Buffer, int * Status)
 	Cmd_Pkt[CMD_ReturnCount] = (BYTE) Count;
 
 	// Send/receive packets
-	m_iError = PacketWrapper.PKT_SendPacket(&Cmd_Pkt,&Rsp_Pkt, true);
+	m_iError = m_PacketWrapper.PKT_SendPacket(m_HostCon.m_HostIO, Cmd_Pkt, Rsp_Pkt, true);
 	if( m_iError )
 	{
 		m_log->Write(2, _T("BurstBlock failed. Error Code %I32x"), m_iError);
@@ -2786,11 +2877,10 @@ int QSI_Interface::CMD_HSRExposure( QSI_ExposureSettings ExposureSettings, QSI_A
 	// Send/receive packets
 	// Don't check queues, as image data, and autozero data is closely following,
 	// And will be transfered by the caller of this routine.
-	m_iError = PacketWrapper.PKT_SendPacket(&Cmd_Pkt,&Rsp_Pkt, false);
+	m_iError = m_PacketWrapper.PKT_SendPacket(m_HostCon.m_HostIO, Cmd_Pkt, Rsp_Pkt, false);
 	if( m_iError ) 
 	{
 		m_log->Write(2, _T("HSRExposure failed. Error Code: %I32x"), m_iError);
-		PacketWrapper.USB_SetTimeouts(USBTimeouts.StandardRead, USBTimeouts.StandardWrite);
 		return m_iError + ERR_PKT_SetTimeOutFailed;
 	}
 
@@ -2799,7 +2889,6 @@ int QSI_Interface::CMD_HSRExposure( QSI_ExposureSettings ExposureSettings, QSI_A
 	if( m_iError )
 	{
 		m_log->Write(2, _T("HSRExposure failed. Error Code: %I32x"), m_iError);
-		PacketWrapper.USB_SetTimeouts(USBTimeouts.StandardRead, USBTimeouts.StandardWrite);
 		return m_iError + ERR_IFC_StartExposure;
 	}
 
@@ -2831,7 +2920,7 @@ int QSI_Interface::CMD_SetHSRMode( bool enable)
 	PutBool( &Cmd_Pkt[CMD_State], enable );
 	
 	// Send/receive packets 
-	m_iError = PacketWrapper.PKT_SendPacket(&Cmd_Pkt,&Rsp_Pkt, true);
+	m_iError = m_PacketWrapper.PKT_SendPacket(m_HostCon.m_HostIO, Cmd_Pkt, Rsp_Pkt, true);
 	if( m_iError )
 	{
 		m_log->Write(2, _T("SetHSRMode failed. Error Code %I32x"), m_iError);
@@ -2881,7 +2970,7 @@ int QSI_Interface::CMD_ExtTrigMode( BYTE action, BYTE polarity)
 		m_TriggerMode = action;
 	
 	// Send/receive packets 
-	m_iError = PacketWrapper.PKT_SendPacket(&Cmd_Pkt,&Rsp_Pkt, true);
+	m_iError = m_PacketWrapper.PKT_SendPacket(m_HostCon.m_HostIO, Cmd_Pkt, Rsp_Pkt, true);
 	if( m_iError )
 	{
 		m_log->Write(2, _T("ExtTrigMode failed. Error Code %I32x"), m_iError);
@@ -2903,5 +2992,50 @@ int QSI_Interface::CMD_ExtTrigMode( BYTE action, BYTE polarity)
 	}
 
 	m_log->Write(2, _T("ExtTrigMode completed OK"));
+	return ALL_OK;
+}
+
+
+BYTE QSI_Interface::EepromRead( USHORT address )
+{
+	BYTE data;
+	return CMD_GetEEPROM(address, data)==0?data:0xFF;
+}
+
+int QSI_Interface::CMD_GetShutterState( int & iState )
+{
+	// Define command packet structure
+	const int CMD_Command	= 0;
+	const int CMD_Length	= 1; 
+
+	// Define response packet structure
+	const int RSP_ShutterState = 2;
+	const int RSP_DeviceError	= 3;
+
+	m_log->Write(2, _T("Get Shutter State started."));
+
+	// Construct transmit packet header
+	Cmd_Pkt[CMD_Command] = CMD_GETSHUTTERSTATE; 
+	Cmd_Pkt[CMD_Length]  = 0;
+
+	// Send/receive packets 
+	m_iError = m_PacketWrapper.PKT_SendPacket(m_HostCon.m_HostIO, Cmd_Pkt, Rsp_Pkt, true);
+	if( m_iError )
+	{
+		m_log->Write(2, _T("Get Shutter State failed. Error Code %I32x"), m_iError);
+		return m_iError;
+	}
+	  
+	// Check for device error
+	m_iError = Rsp_Pkt[RSP_DeviceError];
+
+	if( m_iError )
+	{
+		m_log->Write(2, _T("Get Shutter State failed. Error Code %I32x"), m_iError);
+		return m_iError + ERR_IFC_GetShutterStateError; 
+	}
+
+	iState = Rsp_Pkt[RSP_ShutterState];
+	m_log->Write(2, _T("Get Shutter State completed OK, State: %d"), iState);
 	return ALL_OK;
 }

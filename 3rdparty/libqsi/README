@@ -41,8 +41,7 @@ Insure that libubs-0.1 is installed, as required by libftdi.
 If you have selected libftd2xx:
 
 Download, compile, and install libftd2xx. (Available at: http://www.ftdichip.com/Drivers/D2XX.htm )
-
-Modify the ftdi_table file provided in the libftd2xx release, to include the VIDs and PIDs for QSI cameras.  
+  
 Compile and install it as directed by the README from the libftd2xx release.  For more information see the
 installation section of the QSI Linux API reference manual located in the doc directory of the release.
 

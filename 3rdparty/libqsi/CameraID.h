@@ -16,20 +16,35 @@ DRC 03.23.09 Original Version
 #pragma once
 
 #include <string>
+#include <netinet/in.h>
 
 class CameraID
 {
 public:
-	CameraID();
-	CameraID(std::string Serial, std::string Desc, int vid, int pid);
-	~CameraID();
+	enum ConnProto_t
+	{
+		CP_None,
+		CP_All,
+		CP_USB,
+		CP_TCP
+	}ConnProto;
+public:
+	CameraID(void);
+	CameraID(std::string Serial, std::string SerialToOpen, std::string Desc, int vid, int pid);
+	CameraID(std::string Serial, in_addr IPv4Addr);
+	~CameraID(void);
 	CameraID(const CameraID & cid);
+	CameraID & operator=( const CameraID & cid); 
 
 	std::string SerialNumber;
 	std::string Description;
-	std::string InterfaceName;
+	std::string SerialToOpen;
+	
+	// USB
 	int VendorID;
 	int ProductID;
-	std::string SerialToOpen;
-};
 
+	// TCP
+	in_addr IPv4Addr;
+
+};

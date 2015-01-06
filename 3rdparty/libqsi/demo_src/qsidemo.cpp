@@ -18,12 +18,11 @@ REVISION HISTORY
 #include <iostream>
 #include <cmath>
 #include <stdlib.h>
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif /* HAVE_CONFIG_H */
 
-// if libtiff is installed, then this will write out tiff files of the images
-// to enable tiff images, change the line below from #undef INCLUDETIFF to #define INCLUDETIFF
-#undef INCLUDETIFF
-
-#ifdef INCLUDETIFF
+#ifdef HAVE_TIFFIO_H
 #include <tiffio.h>
 int WriteTIFF(unsigned short * buffer, int cols, int rows, char * filename);
 void AdjustImage(unsigned short * buffer, int cols, int rows, unsigned char * out);
@@ -155,7 +154,7 @@ int main(int argc, char** argv)
 			cam.get_ImageArray(image);
 			std::cout << "exposure #" << i;
 
-	#ifdef INCLUDETIFF
+	#ifdef HAVE_TIFFIO_H
 			sprintf(filename, "/tmp/qsiimage%d.tif ", i);
 			WriteTIFF(image, x, y, filename);
 	#endif
@@ -181,7 +180,7 @@ int main(int argc, char** argv)
 	}
 }
 
-#ifdef INCLUDETIFF
+#ifdef HAVE_TIFFIO_H
 int WriteTIFF(unsigned short * buffer, int cols, int rows, char * filename)
 {
 	TIFF *image;

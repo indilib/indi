@@ -693,3 +693,9 @@ int QSICamera::CancelTriggerMode(void)
 {
 	return ((CCCDCamera *)pCam)->CancelTriggerMode();
 }
+
+int QSICamera::get_ShutterState( ShutterStateEnum * pVal)
+{
+	return ((CCCDCamera *)pCam)->get_ShutterState((CCCDCamera::ShutterStateEnum *)pVal);
+}
+

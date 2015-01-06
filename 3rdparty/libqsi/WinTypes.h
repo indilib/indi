@@ -1,5 +1,9 @@
+#pragma once
+
 #ifndef __WINDOWS_TYPES__
 #define __WINDOWS_TYPES__
+
+#define WINAPI
 
 #define MAX_NUM_DEVICES 50
 #include <sys/time.h>
@@ -26,9 +30,11 @@ typedef int 		INT;
 typedef unsigned int 	UINT;
 typedef char 		*LPSTR;
 typedef char 		*LPTSTR;
+typedef const char  *LPCTSTR;
 typedef DWORD 		*LPDWORD;
 typedef WORD 		*LPWORD;
 typedef ULONG		*PULONG;
+typedef LONG        *LPLONG;
 typedef PVOID		LPVOID;
 typedef void		VOID;
 typedef unsigned long long int ULONGLONG;

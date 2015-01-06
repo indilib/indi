@@ -40,5 +40,20 @@
 6.3.0.0		Add HSRImage and Flush methods, optimize Autozero transfer code, add USHORT image format.
 6.4.0.0		Add -fpermissive to compile with GCC 4.7.0
 6.4.1.0		Correct mutex code.  Add external trigger input handling.
+6.4.2.0		Add auto gain setting.
+6.5.0.0		Correct USB listdevs and open for ftd2xx stack and multiple vid/pids
+6.5.1.0		Re-architect CCDSpecs to properly report eGAIN with new camera firmware.
+6.5.2.0		Correct packet timeouts for long flush times on large imagers.
+7.0.0.0		Changes for RS product line. Fix get_ImageArray(unsigned short *) for proper overscan adjustment value.
+7.0.1.0		Minor changes to QSI_Interface header to follow windows version
+7.0.2.0		Fixed Default filter name in persistent options storage.
+7.1.0.0		Add ShutterState.  Add footings for TCP/IP connected cameras (incomplete).
+7.1.1.0		Minor change to API manual.
+7.2.0.0		Add support for cameras using Sony CCD imagers: ICX674 (628/RS2.8), ICX694 (660/RS6.0), ICX814 (690/RS9.0)
+			Changes to configure.ac, added QSIError.cpp, and changes to add options to qsiapitest, Contributed by Prof. Dr. Andreas Muller.
+
+
+
+
 
 

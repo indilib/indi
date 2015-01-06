@@ -10,7 +10,7 @@ COPYRIGHT (C) : QSI (Quantum Scientific Imaging) 2006-2007
 //****************************************************************************************
 
 
-QSILog::QSILog(const char * filename, const char * szValueName)
+QSILog::QSILog(const char * filename, const char * szValueName, const char * szPreFixName)
 {
 	//
 	// szValueName is the name of the ini value to check if logging is enabled
@@ -29,6 +29,7 @@ QSILog::QSILog(const char * filename, const char * szValueName)
 		strncpy(m_tszFilename, szPath, MAX_PATH);
 	}
 	strncpy(m_tszValueName, szValueName, MSGSIZE);
+	strncpy(m_tszPreFixName, szPreFixName, MSGSIZE);
 	m_pfLogFile = NULL;
 	m_bLogging = false;
 	m_logLevel = 0;
@@ -181,6 +182,8 @@ void QSILog::Write(int iReqLevel, const char * msg, ...)
 	PID = getpid();
 	snprintf(tcsBuf, MSGSIZE, "Thread: %08u :", PID);
 	fputs(tcsBuf, m_pfLogFile);
+	fputs(m_tszPreFixName, m_pfLogFile);
+	fputs(":", m_pfLogFile);
 	fputs(pMessage, m_pfLogFile);
 	fputs("\n", m_pfLogFile);
 	fflush(m_pfLogFile);

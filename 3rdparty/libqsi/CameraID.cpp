@@ -21,18 +21,32 @@ CameraID::CameraID()
 	Description = "";
 	VendorID = 0;
 	ProductID = 0;
-	InterfaceName = "";
+	ConnProto = CP_None;
 	SerialToOpen = "";
+	IPv4Addr.s_addr = 0;
 }
 
-CameraID::CameraID(std::string Serial, std::string Desc, int vid, int pid)
+CameraID::CameraID(std::string Serial, std::string SerialNumToOpen, std::string Desc, int vid, int pid)
 {
-	SerialNumber = Serial;
-	Description = Desc;
-	VendorID = vid;
-	ProductID = pid;
-	InterfaceName = "USB";
-	SerialToOpen = Serial;
+
+	this->ConnProto = CP_USB;
+	this->SerialNumber = Serial;
+	this->Description = Desc;
+	this->VendorID = vid;
+	this->ProductID = pid;
+	this->SerialToOpen = SerialNumToOpen;
+	this->IPv4Addr.s_addr = 0;
+}
+
+CameraID::CameraID(std::string Serial, in_addr Addr)
+{
+	this->ConnProto = CP_TCP;
+	this->SerialNumber = Serial;
+	this->SerialToOpen = Serial;
+	this->Description = "";
+	this->IPv4Addr = Addr;
+	this->VendorID = 0;
+	this->ProductID = 0;
 }
 
 CameraID::~CameraID()
@@ -40,13 +54,28 @@ CameraID::~CameraID()
 
 }
 
+
+// Copy constructor
 CameraID::CameraID(const CameraID & cid)
 {
 	this->SerialNumber = cid.SerialNumber;
 	this->Description  = cid.Description;
 	this->VendorID     = cid.VendorID;
 	this->ProductID    = cid.ProductID;
-	this->InterfaceName = cid.InterfaceName;
+	this->ConnProto = cid.ConnProto;
 	this->SerialToOpen = cid.SerialToOpen;
+	this->IPv4Addr	   = cid.IPv4Addr;
 }
 
+//Operator = constructor
+CameraID & CameraID::operator=( const CameraID & cid)
+{
+	this->SerialNumber = cid.SerialNumber;
+	this->Description  = cid.Description;
+	this->VendorID     = cid.VendorID;
+	this->ProductID    = cid.ProductID;
+	this->ConnProto = cid.ConnProto;
+	this->SerialToOpen = cid.SerialToOpen;
+	this->IPv4Addr	   = cid.IPv4Addr;
+	return *this;
+}

@@ -93,7 +93,8 @@ public:
 	enum CameraGain 
 	{
 		CameraGainHigh = 0,
-		CameraGainLow = 1
+		CameraGainLow = 1,
+		CameraGainAuto = 2
 	};
 
 	enum AntiBloom 
@@ -120,19 +121,28 @@ public:
 		LowToHigh = 1
 	};
 
+	enum ShutterStateEnum
+	{
+		RightSlitCW		= 0,
+		LeftSlitCW		= 1,
+		RightGateCW		= 2,
+		LeftGateCW		= 3,
+		RightSlitCCW	= 4,
+		LeftSlitCCW		= 5,
+		RightGateCCW	= 6,
+		LeftGateCCW		= 7
+	};
+
 	static const int MAXCAMERAS = 128;
 
 	QSICamera();
 	~QSICamera();
-	QSICamera(const QSICamera& cam)
-	{
-		throw std::runtime_error("Illegal assignment");
-	}
-
-	QSICamera& operator=(QSICamera that)
-	{
-		throw std::runtime_error("Illegal assignment");
-	}
+	// to disallow copying, declare copy constructor and assignment
+	// operators priavte
+private:
+	QSICamera(const QSICamera& cam);
+	QSICamera& operator=(QSICamera that);
+public:
 
 	// Camera
 	int get_BinX(short* pVal);
@@ -284,6 +294,7 @@ public:
 	int EnableTriggerMode(TriggerModeEnum newVal1, TriggerPolarityEnum newVal2);
 	int TerminatePendingTrigger(void);
 	int CancelTriggerMode(void);
+	int get_ShutterState( ShutterStateEnum * pVal);
 	
 private:
 	//////////////////////////////////////////////////////////////////////////////////////
