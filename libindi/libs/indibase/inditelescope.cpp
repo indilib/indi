@@ -561,6 +561,7 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
                     IDSetNumber(&EqNP, NULL);
                 }
 
+                last_ns_motion=last_we_motion=-1;
                 TrackState = SCOPE_IDLE;
             }
             else
