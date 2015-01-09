@@ -8,6 +8,8 @@ Standards-Version: 3.9.2
 Package: libqsi7
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, libftdi1
+conflicts: libqsi6
+replaces: libqsi6
 Description: Quantum Scientific Imaging (QSI) CCD Libraries.
  .
  This package contains the library.
