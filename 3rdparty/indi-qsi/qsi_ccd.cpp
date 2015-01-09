@@ -13,6 +13,10 @@
         + Added Guider support.
         + Added Readout speed option.
 
+    2015:
+        + Added Fan speed option
+        + Added Gain option
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation; either
@@ -446,6 +450,8 @@ int QSICCD::SetTemperature(double temperature)
         DEBUG(INDI::Logger::DBG_SESSION, "Cannot set CCD temperature, CanSetCCDTemperature == false\n");
         return -1;
     }
+
+    targetTemperature = temperature;
 
     // If less than 0.1 of a degree, let's just return OK
     if (fabs(temperature - TemperatureN[0].value) < 0.1)
@@ -1135,7 +1141,7 @@ void QSICCD::activateCooler(bool enable)
             /* Success! */
             CoolerS[0].s = ISS_ON;
             CoolerS[1].s = ISS_OFF;
-            CoolerSP.s = IPS_OK;
+            CoolerSP.s = IPS_BUSY;
             DEBUG(INDI::Logger::DBG_SESSION, "Cooler ON");
             IDSetSwitch(&CoolerSP, NULL);
         }
@@ -1297,7 +1303,7 @@ void QSICCD::TimerHit()
       case IPS_BUSY:
         try
         {
-            QSICam.get_CCDTemperature(&ccdTemp);
+            QSICam.get_CCDTemperature(&TemperatureN[0].value);
         } catch (std::runtime_error err)
         {
             TemperatureNP.s = IPS_ALERT;
@@ -1306,13 +1312,9 @@ void QSICCD::TimerHit()
             return;
         }
 
-        if (fabs(TemperatureN[0].value - ccdTemp) <= TEMP_THRESHOLD)
-        {
+        if (fabs(TemperatureN[0].value - targetTemperature) <= TEMP_THRESHOLD)
             TemperatureNP.s = IPS_OK;
-            IDSetNumber(&TemperatureNP, NULL);
-        }
 
-        TemperatureN[0].value = ccdTemp;
         IDSetNumber(&TemperatureNP, NULL);
         break;
 
@@ -1354,7 +1356,9 @@ void QSICCD::TimerHit()
             IDSetNumber(&CoolerNP, NULL);
             return;
         }
-        CoolerNP.s = IPS_OK;
+
+        if (coolerPower == 0)
+            CoolerNP.s = IPS_OK;
 
         CoolerN[0].value = coolerPower;
         IDSetNumber(&CoolerNP, NULL);

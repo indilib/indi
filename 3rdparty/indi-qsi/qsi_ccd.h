@@ -72,7 +72,7 @@ class QSICCD : public INDI::CCD, public INDI::FilterInterface
 
     bool canAbort, canSetGain, canControlFan, canChangeReadoutSpeed;
     short targetFilter;
-    double ccdTemp;
+    double ccdTemp, targetTemperature;
     double minDuration;
     unsigned short *imageBuffer;
     double ExposureRequest;
