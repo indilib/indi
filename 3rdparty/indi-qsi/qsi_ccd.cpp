@@ -1141,9 +1141,10 @@ void QSICCD::activateCooler(bool enable)
             /* Success! */
             CoolerS[0].s = ISS_ON;
             CoolerS[1].s = ISS_OFF;
-            CoolerSP.s = IPS_BUSY;
+            CoolerSP.s = IPS_OK;
             DEBUG(INDI::Logger::DBG_SESSION, "Cooler ON");
             IDSetSwitch(&CoolerSP, NULL);
+            CoolerNP.s = IPS_BUSY;
         }
         else
         {
@@ -1343,6 +1344,9 @@ void QSICCD::TimerHit()
             IDSetNumber(&CoolerNP, NULL);
         }
 
+        if (coolerPower > 0)
+            CoolerNP.s = IPS_BUSY;
+
         break;
 
       case IPS_BUSY:
@@ -1358,7 +1362,7 @@ void QSICCD::TimerHit()
         }
 
         if (coolerPower == 0)
-            CoolerNP.s = IPS_OK;
+            CoolerNP.s = IPS_IDLE;
 
         CoolerN[0].value = coolerPower;
         IDSetNumber(&CoolerNP, NULL);
