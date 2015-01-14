@@ -2,6 +2,7 @@
 %:
 	dh $@
 
+export OPTIMIZE = no
 d:=$$(pwd)/debian/astrometry.net
 
 override_dh_auto_install:
