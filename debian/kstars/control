@@ -42,7 +42,7 @@ Architecture: any
 Section: science
 conflicts: kstars
 replaces: kstars
-Depends: ${shlibs:Depends}, ${misc:Depends}, kstars-bleeding-data (>= ${source:Version}), indi-full, python-kde4, astrometry.net
+Depends: ${shlibs:Depends}, ${misc:Depends}, kstars-bleeding-data (>= ${source:Version}), kded5, kinit, indi-full, python-kde4, astrometry.net
 Description: desktop planetarium for KDE
  KStars is a desktop planetarium for KDE, depicting an accurate graphical
  simulation of the night sky, from any location on Earth, at any date and time.
