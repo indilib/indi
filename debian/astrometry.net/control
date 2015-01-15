@@ -2,14 +2,27 @@ Source: astrometry.net
 Section: science
 Priority: extra
 Maintainer: Jasem Mutlaq <mutlaqja@ikarustech.com>
-Build-Depends: debhelper (>= 8.0.0), autotools-dev, libcfitsio3-dev,  zlib1g-dev, libcairo2-dev, python-dev, libpng12-dev, libjpeg-dev, python-numpy, libnetpbm10-dev, libgsl0-dev, swig, libbz2-dev 
+Build-Depends: debhelper (>= 8.0.0), autotools-dev, libcfitsio3-dev,  zlib1g-dev, libcairo2-dev, python-dev, libpng12-dev, libjpeg-dev, python-numpy, libnetpbm10-dev, libgsl0-dev, swig, libbz2-dev , wcslib-dev
 Standards-Version: 3.9.4
 Homepage: www.astrometry.net
 
 Package: astrometry.net
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libcfitsio3, python, libcairo2, python-pyfits, netpbm, libgsl0ldbl
+Depends: ${shlibs:Depends}, ${misc:Depends}, libcfitsio3, python, libcairo2, python-pyfits, netpbm, libgsl0ldbl, libwcs4
 Description: Astrometry plate solver
  The astrometry engine will take any image and return the astrometry
  world coordinate system (WCS), a standards-based description of the
  transformation between image coordinates and sky coordinates.
+
+Package: astrometry.net-dbg
+Priority: extra
+Section: debug
+Architecture: any
+Depends: astrometry.net (= ${binary:Version}), ${misc:Depends}
+Description: Astrometry plate solver
+ The astrometry engine will take any image and return the astrometry
+ world coordinate system (WCS), a standards-based description of the
+ transformation between image coordinates and sky coordinates.
+ .
+ This package contains the debug symbols for the astrometry.net and all the
+ utilities, useful to investigate problems in astrometry.net.
