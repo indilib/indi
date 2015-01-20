@@ -2297,8 +2297,34 @@ void EQMod::processNSWE(double mag, double angle)
     if (mag < 0.5)
     {
         // Moving in the same direction will make it stop
-        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
-            Abort();
+        if (MovementNSSP.s == IPS_BUSY)
+        {
+            if (MoveNS( MovementNSSP.sp[0].s == ISS_ON ? MOTION_NORTH : MOTION_SOUTH, MOTION_STOP))
+            {
+                IUResetSwitch(&MovementNSSP);
+                MovementNSSP.s = IPS_IDLE;
+                IDSetSwitch(&MovementNSSP, NULL);
+            }
+            else
+            {
+                MovementNSSP.s = IPS_ALERT;
+                IDSetSwitch(&MovementNSSP, NULL);
+            }
+        }
+        else if (MovementWESP.s == IPS_BUSY)
+        {
+            if (MoveWE( MovementWESP.sp[0].s == ISS_ON ? MOTION_WEST : MOTION_EAST, MOTION_STOP))
+            {
+                IUResetSwitch(&MovementWESP);
+                MovementWESP.s = IPS_IDLE;
+                IDSetSwitch(&MovementWESP, NULL);
+            }
+            else
+            {
+                MovementWESP.s = IPS_ALERT;
+                IDSetSwitch(&MovementWESP, NULL);
+            }
+        }
     }
     // Put high threshold
     else if (mag > 0.9)
