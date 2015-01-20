@@ -457,24 +457,29 @@ startLocalDvr (DvrInfo *dp)
 
 	    if (*dp->envDev)
 	      setenv("INDIDEV", dp->envDev, 1);
-	    else
+        /* Only reset environment variable in case of FIFO */
+        else if (fifo.fd > 0)
 	      unsetenv("INDIDEV");
 	    if (*dp->envConfig)
 	      setenv("INDICONFIG", dp->envConfig, 1);
-	    else
+        else if (fifo.fd > 0)
 	      unsetenv("INDICONFIG");
 	    if (*dp->envSkel)
 	      setenv("INDISKEL", dp->envSkel, 1);
-	    else
+        else if (fifo.fd > 0)
 	      unsetenv("INDISKEL");
 	    char executable[MAXSBUF];
-	    if (*dp->envPrefix) {
+        if (*dp->envPrefix)
+        {
 	      setenv("INDIPREFIX", dp->envPrefix, 1);
 	      snprintf(executable, MAXSBUF, "%s/bin/%s", dp->envPrefix, dp->name);
-		    execlp (executable, dp->name, NULL);
-      } else {
-	      unsetenv("INDIPREFIX");
-  	    execlp (dp->name, dp->name, NULL);
+          execlp (executable, dp->name, NULL);
+        }
+        else
+        {
+          if (fifo.fd > 0)
+            unsetenv("INDIPREFIX");
+          execlp (dp->name, dp->name, NULL);
 	    }
 
 #ifdef OSX_HELPER_MODE
