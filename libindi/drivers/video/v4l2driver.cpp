@@ -124,7 +124,7 @@ bool V4L2_Driver::initProperties()
   IUFillSwitchVector(&RecordSP, RecordS, NARRAY(RecordS), getDeviceName(), "VIDEO_RECORD", "Video Record", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
 
-  PrimaryCCD.setCCDInfoWritable();
+  PrimaryCCD.getCCDInfo()->p = IP_RW;
 
   PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", 0.001, 3600, 1, false);
 

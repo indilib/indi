@@ -65,11 +65,6 @@ CCDChip::~CCDChip()
 
 }
 
-void CCDChip::setCCDInfoWritable()
-{
- ImagePixelSizeNP.p = IP_RW;
-}
-
 void CCDChip::setFrameType(CCD_FRAME type)
 {
     FrameType=type;

@@ -183,9 +183,9 @@ public:
     const char *getFrameTypeName(CCD_FRAME fType);
 
     /**
-      * @brief Make CCD Info writable
+      * @brief Return CCD Info Property
     */
-    void setCCDInfoWritable();
+    INumberVectorProperty * getCCDInfo() { return &ImagePixelSizeNP; }
 
     /**
      * @brief setResolution set CCD Chip resolution
