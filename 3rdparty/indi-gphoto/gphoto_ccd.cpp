@@ -235,7 +235,7 @@ bool GPhotoCCD::initProperties()
   FocusSpeedN[0].value=0;
 
   /* JM 2014-05-20 Make PrimaryCCD.ImagePixelSizeNP writable since we can't know for now the pixel size and bit depth from gphoto */
-  PrimaryCCD.setCCDInfoWritable();
+  PrimaryCCD.getCCDInfo()->p = IP_RW;
 
   setInterfaceDescriptor(getInterfaceDescriptor() | FOCUSER_INTERFACE);
 
@@ -1263,10 +1263,13 @@ bool GPhotoCCD::capturePreview()
 
 bool GPhotoCCD::saveConfigItems(FILE *fp)
 {
+    // First save the CCD Info property
+    IUSaveConfigNumber(fp, PrimaryCCD.getCCDInfo());
+
     INDI::CCD::saveConfigItems(fp);
 
     if (mIsoSP.nsp > 0)
-          IUSaveConfigSwitch(fp, &mIsoSP);
+          IUSaveConfigSwitch(fp, &mIsoSP);    
 
     return true;
 }
