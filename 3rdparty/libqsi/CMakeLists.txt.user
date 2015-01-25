@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 2.8.82, 2013-12-20T21:46:14. -->
+<!-- Written by QtCreator 3.2.0, 2015-01-07T16:51:42. -->
 <qtcreator>
+ <data>
+  <variable>EnvironmentId</variable>
+  <value type="QByteArray">{55e8a168-520c-4b05-8bb4-dd0093548031}</value>
+ </data>
  <data>
   <variable>ProjectExplorer.Project.ActiveTarget</variable>
   <value type="int">0</value>
@@ -29,9 +33,12 @@
    <value type="bool" key="EditorConfiguration.ConstrainTooltips">false</value>
    <value type="int" key="EditorConfiguration.IndentSize">4</value>
    <value type="bool" key="EditorConfiguration.KeyboardTooltips">false</value>
+   <value type="int" key="EditorConfiguration.MarginColumn">80</value>
+   <value type="bool" key="EditorConfiguration.MouseHiding">true</value>
    <value type="bool" key="EditorConfiguration.MouseNavigation">true</value>
    <value type="int" key="EditorConfiguration.PaddingMode">1</value>
    <value type="bool" key="EditorConfiguration.ScrollWheelZooming">true</value>
+   <value type="bool" key="EditorConfiguration.ShowMargin">false</value>
    <value type="int" key="EditorConfiguration.SmartBackspaceBehavior">0</value>
    <value type="bool" key="EditorConfiguration.SpacesForTabs">true</value>
    <value type="int" key="EditorConfiguration.TabKeyBehavior">0</value>
@@ -51,9 +58,9 @@
  <data>
   <variable>ProjectExplorer.Project.Target.0</variable>
   <valuemap type="QVariantMap">
-   <value type="QString" key="ProjectExplorer.ProjectConfiguration.DefaultDisplayName">Run locally</value>
-   <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">Run locally</value>
-   <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">{8664e0b3-9ddc-43bc-a12a-621870a675a5}</value>
+   <value type="QString" key="ProjectExplorer.ProjectConfiguration.DefaultDisplayName">Desktop</value>
+   <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">Desktop</value>
+   <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">{3437fdb1-20a0-4a89-acf0-07ff90f7f65b}</value>
    <value type="int" key="ProjectExplorer.Target.ActiveBuildConfiguration">0</value>
    <value type="int" key="ProjectExplorer.Target.ActiveDeployConfiguration">0</value>
    <value type="int" key="ProjectExplorer.Target.ActiveRunConfiguration">0</value>
@@ -65,7 +72,6 @@
       <value type="QString" key="CMakeProjectManager.MakeStep.AdditionalArguments"></value>
       <valuelist type="QVariantList" key="CMakeProjectManager.MakeStep.BuildTargets"/>
       <value type="bool" key="CMakeProjectManager.MakeStep.Clean">false</value>
-      <value type="bool" key="CMakeProjectManager.MakeStep.UseNinja">false</value>
       <value type="bool" key="ProjectExplorer.BuildStep.Enabled">true</value>
       <value type="QString" key="ProjectExplorer.ProjectConfiguration.DefaultDisplayName">Make</value>
       <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName"></value>
@@ -81,7 +87,6 @@
       <value type="QString" key="CMakeProjectManager.MakeStep.AdditionalArguments">clean</value>
       <valuelist type="QVariantList" key="CMakeProjectManager.MakeStep.BuildTargets"/>
       <value type="bool" key="CMakeProjectManager.MakeStep.Clean">true</value>
-      <value type="bool" key="CMakeProjectManager.MakeStep.UseNinja">false</value>
       <value type="bool" key="ProjectExplorer.BuildStep.Enabled">true</value>
       <value type="QString" key="ProjectExplorer.ProjectConfiguration.DefaultDisplayName">Make</value>
       <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName"></value>
@@ -159,8 +164,8 @@
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName"></value>
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">CMakeProjectManager.CMakeRunConfiguration.qsiapitest</value>
     <value type="uint" key="RunConfiguration.QmlDebugServerPort">3768</value>
-    <value type="bool" key="RunConfiguration.UseCppDebugger">true</value>
-    <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">false</value>
+    <value type="bool" key="RunConfiguration.UseCppDebugger">false</value>
+    <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>
     <value type="bool" key="RunConfiguration.UseMultiProcess">false</value>
     <value type="bool" key="RunConfiguration.UseQmlDebugger">false</value>
     <value type="bool" key="RunConfiguration.UseQmlDebuggerAuto">true</value>
@@ -204,7 +209,7 @@
     <value type="QString" key="CMakeProjectManager.CMakeRunConfiguration.Arguments"></value>
     <value type="bool" key="CMakeProjectManager.CMakeRunConfiguration.UseTerminal">false</value>
     <value type="QString" key="CMakeProjectManager.CMakeRunConfiguration.UserWorkingDirectory"></value>
-    <value type="int" key="PE.EnvironmentAspect.Base">-1</value>
+    <value type="int" key="PE.EnvironmentAspect.Base">2</value>
     <valuelist type="QVariantList" key="PE.EnvironmentAspect.Changes"/>
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DefaultDisplayName">qsidemo</value>
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName"></value>
@@ -224,11 +229,11 @@
   <value type="int">1</value>
  </data>
  <data>
-  <variable>ProjectExplorer.Project.Updater.EnvironmentId</variable>
-  <value type="QByteArray">{f9164617-14e6-404a-901a-f23787c275f9}</value>
+  <variable>ProjectExplorer.Project.Updater.FileVersion</variable>
+  <value type="int">16</value>
  </data>
  <data>
-  <variable>ProjectExplorer.Project.Updater.FileVersion</variable>
-  <value type="int">15</value>
+  <variable>Version</variable>
+  <value type="int">16</value>
  </data>
 </qtcreator>

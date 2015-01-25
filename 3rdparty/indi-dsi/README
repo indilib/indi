@@ -1,0 +1,28 @@
+Meade DSI Pro I/II
+=================================
+This package provides the INDI driver for the Meade DSI Pro I/II.
+
+Requirements
+============
+* INDI
+* CFITSIO
+* libusb
+
+
+Installation
+============
+See INSTALL
+
+
+How to Use
+==========
+Once installed, the Meade DSI Pro I/II INDI driver can be used by an INDI client such as
+KStars (Ekos) or OpenPHD. It can also be used manually by invoking it via the 
+indi_server:
+$ indi_server indi_dsi_ccd
+
+
+Important!!!
+============
+The Meade DSI uses a Cypress EZUSB FX2 controller which requires firmware to be
+loaded before the device is usable (as a DSI).

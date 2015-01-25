@@ -1,0 +1,8 @@
+<devGroup group="CCDs">
+        <device label="Meade Deep Sky Imager (I/II)">
+                <driver name="DSI">indi_dsi_ccd</driver>
+                <version>0.1</version>
+        </device>
+</devGroup>
+
+
