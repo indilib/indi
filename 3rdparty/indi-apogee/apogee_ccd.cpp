@@ -144,12 +144,12 @@ bool ApogeeCCD::initProperties()
     // Init parent properties first
     INDI::CCD::initProperties();
 
-    IUFillSwitch(&CoolerS[0], "CONNECT_COOLER", "ON", ISS_OFF);
-    IUFillSwitch(&CoolerS[1], "DISCONNECT_COOLER", "OFF", ISS_OFF);
-    IUFillSwitchVector(&CoolerSP, CoolerS, 2, getDeviceName(), "COOLER_CONNECTION", "Cooler", MAIN_CONTROL_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitch(&CoolerS[0], "COOLER_ON", "ON", ISS_OFF);
+    IUFillSwitch(&CoolerS[1], "COOLER_OFF", "OFF", ISS_ON);
+    IUFillSwitchVector(&CoolerSP, CoolerS, 2, getDeviceName(), "CCD_COOLER", "Cooler", MAIN_CONTROL_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillNumber(&CoolerN[0], "CCD_COOLER_VALUE", "Cooling Power (%)", "%+06.2f", 0., 1., .2, 0.0);
-    IUFillNumberVector(&CoolerNP, CoolerN, 1, getDeviceName(), "CCD_COOLER", "Cooling Power", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
+    IUFillNumberVector(&CoolerNP, CoolerN, 1, getDeviceName(), "CCD_COOLER_POWER", "Cooling Power", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     IUFillSwitch(&ReadOutS[0], "QUALITY_HIGH", "High Quality", ISS_OFF);
     IUFillSwitch(&ReadOutS[1], "QUALITY_LOW", "Fast", ISS_OFF);
@@ -236,7 +236,8 @@ bool ApogeeCCD::getCameraParams()
         IUSaveText(&CamInfoT[1], firmwareRev.c_str());
         IDSetText(&CamInfoTP, NULL);
 
-        CoolerS[0].s = ISS_ON;
+        IUResetSwitch(&CoolerSP);
+        CoolerS[1].s = ISS_ON;
         IDSetSwitch(&CoolerSP, NULL);
 
         imageWidth  = PrimaryCCD.getSubW();
@@ -267,11 +268,12 @@ bool ApogeeCCD::getCameraParams()
 
         temperature = ApgCam->GetTempCcd();
 
+        IUResetSwitch(&CoolerSP);
         Apg::CoolerStatus cStatus = ApgCam->GetCoolerStatus();
         if (cStatus == Apg::CoolerStatus_AtSetPoint || cStatus == Apg::CoolerStatus_RampingToSetPoint)
-            CoolerS[1].s = ISS_ON;
-        else
             CoolerS[0].s = ISS_ON;
+        else
+            CoolerS[1].s = ISS_ON;
 
         IDSetSwitch(&CoolerSP, NULL);
 
