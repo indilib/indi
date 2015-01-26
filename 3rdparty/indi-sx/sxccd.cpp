@@ -223,12 +223,12 @@ const char *SXCCD::getDefaultName() {
 bool SXCCD::initProperties() {
   INDI::CCD::initProperties();
   addDebugControl();
-  IUFillSwitch(&CoolerS[0], "DISCONNECT_COOLER", "Off", ISS_ON);
-  IUFillSwitch(&CoolerS[1], "CONNECT_COOLER", "On", ISS_OFF);
-  IUFillSwitchVector(&CoolerSP, CoolerS, 2, getDeviceName(), "COOLER_CONNECTION", "Cooler", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+  IUFillSwitch(&CoolerS[0], "COOLER_ON", "On", ISS_OFF);
+  IUFillSwitch(&CoolerS[1], "COOLER_OFF", "Off", ISS_ON);
+  IUFillSwitchVector(&CoolerSP, CoolerS, 2, getDeviceName(), "CCD_COOLER", "Cooler", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
   IUFillSwitch(&ShutterS[0], "SHUTTER_ON", "Manual open", ISS_OFF);
   IUFillSwitch(&ShutterS[1], "SHUTTER_OFF", "Manual close", ISS_ON);
-  IUFillSwitchVector(&ShutterSP, ShutterS, 2, getDeviceName(), "SHUTTER_CONNECTION", "Shutter", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+  IUFillSwitchVector(&ShutterSP, ShutterS, 2, getDeviceName(), "CCD_SHUTTER", "Shutter", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
   return true;
 }
 
@@ -363,7 +363,7 @@ void SXCCD::TimerHit() {
     if (!DidLatch && !DidGuideLatch) {
       unsigned char status;
       unsigned short temperature;
-      sxSetCooler(handle, (unsigned char) (CoolerS[1].s == ISS_ON), (unsigned short) (TemperatureRequest * 10 + 2730), &status, &temperature);
+      sxSetCooler(handle, (unsigned char) (CoolerS[0].s == ISS_ON), (unsigned short) (TemperatureRequest * 10 + 2730), &status, &temperature);
       TemperatureN[0].value = (temperature - 2730) / 10.0;
       if (TemperatureReported != TemperatureN[0].value) {
         TemperatureReported = TemperatureN[0].value;
@@ -388,7 +388,7 @@ int SXCCD::SetTemperature(double temperature) {
     TemperatureRequest = temperature;
     unsigned char status;
     unsigned short sx_temperature;
-    sxSetCooler(handle, (unsigned char) (CoolerS[1].s == ISS_ON), (unsigned short) (TemperatureRequest * 10 + 2730), &status, &sx_temperature);
+    sxSetCooler(handle, (unsigned char) (CoolerS[0].s == ISS_ON), (unsigned short) (TemperatureRequest * 10 + 2730), &status, &sx_temperature);
     TemperatureReported = TemperatureN[0].value = (sx_temperature - 2730) / 10.0;
     if (abs(TemperatureRequest - TemperatureReported) < 1)
       result = 1;
@@ -396,8 +396,8 @@ int SXCCD::SetTemperature(double temperature) {
       result = 0;
 
     CoolerSP.s = IPS_OK;
-    CoolerS[0].s = ISS_OFF;
-    CoolerS[1].s = ISS_ON;
+    CoolerS[0].s = ISS_ON;
+    CoolerS[1].s = ISS_OFF;
     IDSetSwitch(&CoolerSP, NULL);
 
     return result;
@@ -663,7 +663,7 @@ bool SXCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char
     IDSetSwitch(&CoolerSP, NULL);
     unsigned char status;
     unsigned short temperature;
-    sxSetCooler(handle, (unsigned char) (CoolerS[1].s == ISS_ON), (unsigned short) (TemperatureRequest * 10 + 2730), &status, &temperature);
+    sxSetCooler(handle, (unsigned char) (CoolerS[0].s == ISS_ON), (unsigned short) (TemperatureRequest * 10 + 2730), &status, &temperature);
     TemperatureReported = TemperatureN[0].value = (temperature - 2730) / 10.0;
     TemperatureNP.s = IPS_OK;
     IDSetNumber(&TemperatureNP, NULL);
