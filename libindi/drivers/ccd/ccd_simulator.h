@@ -29,12 +29,54 @@
 
 class CCDSim : public INDI::CCD, public INDI::FilterInterface
 {
+public:
+    CCDSim();
+    virtual ~CCDSim();
+
+    const char *getDefaultName();
+
+    bool initProperties();
+    bool updateProperties();
+
+    void ISGetProperties (const char *dev);
+
+
+    bool Connect();
+    bool Disconnect();
+
+    bool StartExposure(float duration);
+    bool StartGuideExposure(float);
+
+    bool AbortExposure();
+    bool AbortGuideExposure();
+
+
+    void TimerHit();
+
+    int DrawCcdFrame(CCDChip *targetChip);
+
+    int DrawImageStar(CCDChip *targetChip, float,float,float);
+    int AddToPixel(CCDChip *targetChip, int,int,int);
+
+    bool GuideNorth(float);
+    bool GuideSouth(float);
+    bool GuideEast(float);
+    bool GuideWest(float);
+
+    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num);
+    virtual bool ISSnoopDevice (XMLEle *root);
+
     protected:
 
     virtual bool saveConfigItems(FILE *fp);
     virtual void activeDevicesUpdated();
+    virtual int SetTemperature(double temperature);
 
     private:
+
+        float TemperatureRequest;
 
         float ExposureRequest;
         struct timeval ExpStart;
@@ -102,50 +144,15 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         INumberVectorProperty EqPENP;
         INumber EqPEN[2];
 
+        ISwitch CoolerS[2];
+        ISwitchVectorProperty CoolerSP;
+
         // Filter
         bool SelectFilter(int);
         bool SetFilterNames() { return true; }
         bool GetFilterNames(const char* groupName);
         int QueryFilter();
 
-    public:
-        CCDSim();
-        virtual ~CCDSim();
-
-        const char *getDefaultName();
-
-        bool initProperties();
-        bool updateProperties();
-
-        void ISGetProperties (const char *dev);
-
-
-        bool Connect();
-        bool Disconnect();
-
-        bool StartExposure(float duration);
-        bool StartGuideExposure(float);
-
-        bool AbortExposure();
-        bool AbortGuideExposure();
-
-
-        void TimerHit();
-
-        int DrawCcdFrame(CCDChip *targetChip);
-
-        int DrawImageStar(CCDChip *targetChip, float,float,float);
-        int AddToPixel(CCDChip *targetChip, int,int,int);
-
-        bool GuideNorth(float);
-        bool GuideSouth(float);
-        bool GuideEast(float);
-        bool GuideWest(float);
-
-        virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-        virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-        virtual bool ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num);
-        virtual bool ISSnoopDevice (XMLEle *root);
 
 };
 

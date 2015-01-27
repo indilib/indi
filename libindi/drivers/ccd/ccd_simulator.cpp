@@ -101,7 +101,7 @@ CCDSim::CCDSim()
     cap.canAbort = true;
     cap.canBin = true;
     cap.canSubFrame = true;
-    cap.hasCooler = false;
+    cap.hasCooler = true;
     cap.hasGuideHead = true;
     cap.hasShutter = true;
     cap.hasST4Port = true;
@@ -153,6 +153,12 @@ bool CCDSim::SetupParms()
 {
     int nbuf;
     SetCCDParams(SimulatorSettingsN[0].value,SimulatorSettingsN[1].value,16,SimulatorSettingsN[2].value,SimulatorSettingsN[3].value);
+
+    if (HasCooler())
+    {
+        TemperatureN[0].value = 20;
+        IDSetNumber(&TemperatureNP, NULL);
+    }
 
     //  Kwiq
     maxnoise=SimulatorSettingsN[8].value;
@@ -228,13 +234,17 @@ bool CCDSim::initProperties()
     IUFillNumber(&ScopeParametersN[3],"GUIDER_FOCAL_LENGTH","Guider Focal Length (mm)","%g",100,10000,0,0.0 );
     IUFillNumberVector(&ScopeParametersNP,ScopeParametersN,4,ActiveDeviceT[0].text,"TELESCOPE_INFO","Scope Properties",OPTIONS_TAB,IP_RW,60,IPS_OK);
 
+    IUFillSwitch(&CoolerS[0], "COOLER_ON", "ON", ISS_OFF);
+    IUFillSwitch(&CoolerS[1], "COOLER_OFF", "OFF", ISS_ON);
+    IUFillSwitchVector(&CoolerSP, CoolerS, 2, getDeviceName(), "CCD_COOLER", "Cooler", MAIN_CONTROL_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
+
     IUFillNumber(&EqPEN[0],"RA_PE","RA (hh:mm:ss)","%010.6m",0,24,0,0);
     IUFillNumber(&EqPEN[1],"DEC_PE","DEC (dd:mm:ss)","%010.6m",-90,90,0,0);
     IUFillNumberVector(&EqPENP,EqPEN,2,ActiveDeviceT[0].text,"EQUATORIAL_PE","EQ PE","Main Control",IP_RW,60,IPS_IDLE);
 
     IDSnoopDevice(ActiveDeviceT[0].text,"EQUATORIAL_PE");
     IDSnoopDevice(ActiveDeviceT[0].text,"TELESCOPE_INFO");
-    IDSnoopDevice(ActiveDeviceT[1].text,"FWHM");
+    IDSnoopDevice(ActiveDeviceT[1].text,"FWHM");       
 
     initFilterProperties(getDeviceName(), FILTER_TAB);
 
@@ -267,6 +277,9 @@ bool CCDSim::updateProperties()
 
     if (isConnected())
     {
+        if (HasCooler())
+            defineSwitch(&CoolerSP);
+
         SetupParms();
 
         if(HasGuideHead())
@@ -281,6 +294,9 @@ bool CCDSim::updateProperties()
             defineText(FilterNameTP);
     } else
     {
+        if (HasCooler())
+            deleteProperty(CoolerSP.name);
+
         deleteProperty(FilterSlotNP.name);
         deleteProperty(FilterNameTP->name);
     }
@@ -292,6 +308,22 @@ bool CCDSim::updateProperties()
 bool CCDSim::Disconnect()
 {
     return true;
+}
+
+int CCDSim::SetTemperature(double temperature)
+{
+    TemperatureRequest = temperature;
+    if (fabs(temperature - TemperatureN[0].value) < 0.1)
+    {
+            TemperatureN[0].value = temperature;
+            return 1;
+    }
+
+    CoolerS[0].s = ISS_ON;
+    CoolerS[1].s = ISS_OFF;
+    CoolerSP.s = IPS_BUSY;
+    IDSetSwitch(&CoolerSP, NULL);
+    return 0;
 }
 
 bool CCDSim::StartExposure(float duration)
@@ -435,6 +467,35 @@ void CCDSim::TimerHit()
             }
         }
     }
+
+    if (TemperatureNP.s == IPS_BUSY)
+    {
+        if (fabs(TemperatureRequest - TemperatureN[0].value) <= 0.5)
+        {
+            DEBUGF(INDI::Logger::DBG_SESSION, "Temperature reached requested value %.2f degrees C", TemperatureRequest);
+            TemperatureN[0].value = TemperatureRequest;
+            TemperatureNP.s = IPS_OK;
+        }
+        else
+        {
+            if (TemperatureRequest < TemperatureN[0].value)
+                TemperatureN[0].value -= 0.5;
+            else
+                TemperatureN[0].value += 0.5;
+        }
+
+        IDSetNumber(&TemperatureNP, NULL);
+
+        // Above 20, cooler is off
+        if (TemperatureN[0].value >= 20)
+        {
+            CoolerS[0].s = ISS_OFF;
+            CoolerS[0].s = ISS_ON;
+            CoolerSP.s = IPS_IDLE;
+            IDSetSwitch(&CoolerSP, NULL);
+        }
+    }
+
     SetTimer(nexttimer);
     return;
 }
@@ -1015,16 +1076,11 @@ bool CCDSim::ISNewNumber (const char *dev, const char *name, double values[], ch
 
 bool CCDSim::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    //IDLog("Enter IsNewSwitch for %s\n",name);
-    //for(int x=0; x<n; x++) {
-    //    IDLog("Switch %s %d\n",names[x],states[x]);
-    //}
 
-    if(strcmp(dev,getDeviceName())==0) {
-        //  This one is for us
-
-
-        if(strcmp(name,"ON_TIME_FACTOR")==0) {
+    if(strcmp(dev,getDeviceName())==0)
+    {
+        if(strcmp(name,"ON_TIME_FACTOR")==0)
+        {
 
             //  client is telling us what to do with co-ordinate requests
             TimeFactorSV->s=IPS_OK;
@@ -1048,6 +1104,24 @@ bool CCDSim::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
             return true;
         }
 
+    }
+
+    if (!strcmp(name, CoolerSP.name))
+    {
+        IUUpdateSwitch(&CoolerSP, states, names, n);
+
+        if (CoolerS[0].s == ISS_ON)
+            CoolerSP.s = IPS_BUSY;
+        else
+        {
+            CoolerSP.s = IPS_IDLE;
+            TemperatureRequest = 20;
+            TemperatureNP.s = IPS_BUSY;
+        }
+
+        IDSetSwitch(&CoolerSP, NULL);
+
+        return true;
     }
 
     //  Nobody has claimed this, so, ignore it
