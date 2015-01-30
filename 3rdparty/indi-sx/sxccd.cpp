@@ -318,6 +318,7 @@ void SXCCD::getCameraParams() {
   if (isInterlaced) {
     params.pix_height /= 2;
     params.height *= 2;
+    wipeDelay = 130000;
   }
   SetCCDParams(params.width, params.height, params.bits_per_pixel, params.pix_width, params.pix_height);
   int nbuf = params.width * params.height;
@@ -407,9 +408,9 @@ bool SXCCD::StartExposure(float n) {
   InExposure = true;
   PrimaryCCD.setExposureDuration(n);
   if (PrimaryCCD.isInterlaced() && PrimaryCCD.getBinY() == 1) {
-    sxClearPixels(handle, CCD_EXP_FLAGS_FIELD_EVEN, 0);
-    usleep(100);
-    sxClearPixels(handle, CCD_EXP_FLAGS_FIELD_ODD, 0);
+    sxClearPixels(handle, CCD_EXP_FLAGS_FIELD_EVEN | CCD_EXP_FLAGS_NOWIPE_FRAME, 0);
+    usleep(wipeDelay);
+    sxClearPixels(handle, CCD_EXP_FLAGS_FIELD_ODD | CCD_EXP_FLAGS_NOWIPE_FRAME, 0);
   } else
     sxClearPixels(handle, CCD_EXP_FLAGS_FIELD_BOTH, 0);
   if (HasShutter && PrimaryCCD.getFrameType() != CCDChip::DARK_FRAME)
@@ -476,8 +477,13 @@ void SXCCD::ExposureTimerHit() {
             rc = sxReadPixels(handle, buf, size * 2);
         } else {
           rc = sxLatchPixels(handle, CCD_EXP_FLAGS_FIELD_EVEN | CCD_EXP_FLAGS_SPARE2, 0, subX, subY / 2, subW, subH / 2, binX, 1);
+					struct timeval tv;
+			    gettimeofday(&tv, NULL);
+        	long startTime = tv.tv_sec*1000000+tv.tv_usec;
           if (rc)
             rc = sxReadPixels(handle, evenBuf, size);
+			    gettimeofday(&tv, NULL);
+          wipeDelay = tv.tv_sec*1000000+tv.tv_usec-startTime;
           if (rc)
             rc = sxLatchPixels(handle, CCD_EXP_FLAGS_FIELD_ODD | CCD_EXP_FLAGS_SPARE2, 0, subX, subY / 2, subW, subH / 2, binX, 1);
           if (rc)

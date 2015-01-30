@@ -46,6 +46,7 @@ class SXCCD : public INDI::CCD
     unsigned short model;
     char name[32];
     char *evenBuf, *oddBuf;
+    long wipeDelay;
     ISwitch CoolerS[2];
     ISwitchVectorProperty CoolerSP;
     ISwitch ShutterS[2];
