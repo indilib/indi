@@ -7,12 +7,32 @@ You must install INDI Library before installing any 3rd party driver. By default
 
 $ cmake -L
 
-# To build and install all the drivers:
+# To turn off a specific driver (for example INDI QHY)
+
+$ cmake -DCMAKE_INSTALL_PREFIX=/usr -DWITH_QHY:OPTION=OFF .
+
+###########################################
+### STEP 1: Build and Install Libraries ###
+###########################################
+
+# To build and install all the drivers, the required libraries for each driver must be first installed:
+
+$ cmake -DCMAKE_INSTALL_PREFIX=/usr .
+
+If you see a message saying "Not all libraries found, you must build and install all libraries first", then you must now build and install the libraries first before proceeding to STEP 2 to build the drivers.
+
+On the otherhand, if you see a message saying "All libraraies are found. Building all INDI 3rd party drivers now.", then you DO NOT NEED to proceed to STEP 2, as all drivers will be built and installed in this step since all dependencies were found.
+
+$ make
+$ sudo make install
+
+###########################################
+#### STEP 2: Build and Install Drivers ####
+###########################################
+
+ONLY run this step if you see "Not all libraries found, you must build and install all libraries first" in STEP 1.
 
 $ cmake -DCMAKE_INSTALL_PREFIX=/usr .
 $ make
 $ sudo make install
 
-# To turn off a specific driver (for example INDI QHY)
-
-$ cmake -DCMAKE_INSTALL_PREFIX=/usr -DWITH_QHY:OPTION=OFF .
