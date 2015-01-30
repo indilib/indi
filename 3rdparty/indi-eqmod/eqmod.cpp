@@ -495,9 +495,9 @@ bool EQMod::updateProperties()
 
 	  IUResetSwitch(&ParkSP);
 	  if (Parked) {
-	    ParkSP.s=IPS_OK;
+        ParkSP.s=IPS_OK;
 	    IDSetSwitch(&ParkSP, "Mount is parked.");
-	    TrackState = SCOPE_PARKED;
+        TrackState = SCOPE_PARKED;
 	  } else 
 	    TrackState=SCOPE_IDLE;
 

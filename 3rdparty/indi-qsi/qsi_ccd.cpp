@@ -173,7 +173,7 @@ bool QSICCD::initProperties()
 
     IUFillSwitch(&ShutterS[0], "SHUTTER_ON", "Manual open", ISS_OFF);
     IUFillSwitch(&ShutterS[1], "SHUTTER_OFF", "Manual close", ISS_OFF);
-    IUFillSwitchVector(&ShutterSP, ShutterS, 2, getDeviceName(), "SHUTTER_CONNECTION", "Shutter", MAIN_CONTROL_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&ShutterSP, ShutterS, 2, getDeviceName(), "CCD_SHUTTER", "Shutter", MAIN_CONTROL_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillNumber(&CoolerN[0], "CCD_COOLER_VALUE", "Cooling Power (%)", "%+06.2f", 0., 1., .2, 0.0);
     IUFillNumberVector(&CoolerNP, CoolerN, 1, getDeviceName(), "CCD_COOLER_POWER", "Cooling Power", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
