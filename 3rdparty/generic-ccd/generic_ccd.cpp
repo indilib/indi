@@ -195,6 +195,7 @@ bool GenericCCD::initProperties() {
   cap.hasGuideHead = false;
   cap.hasShutter = true;
   cap.hasST4Port = true;
+  cap.hasBayer = false;
 
   SetCCDCapability(&cap);
 

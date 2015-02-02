@@ -141,6 +141,7 @@ bool FLICCD::initProperties()
     cap.hasGuideHead = false;
     cap.hasShutter = true;
     cap.hasST4Port = false;
+    cap.hasBayer = false;
 
     SetCCDCapability(&cap);
 

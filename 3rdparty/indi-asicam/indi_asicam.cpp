@@ -216,6 +216,7 @@ bool AsicamCCD::initProperties()
   cap.hasGuideHead = false;
   cap.hasShutter = false;
   cap.hasST4Port = true;
+  cap.hasBayer = false;
   SetCCDCapability(&cap);
 
   // Add Debug, Simulator, and Configuration controls

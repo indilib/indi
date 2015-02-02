@@ -306,6 +306,16 @@ public:
      */
     bool isExposing() { return (ImageExposureNP.s == IPS_BUSY); }
 
+    /**
+     * @brief setColor set to true if image data is bayered.
+     */
+    void setBayered(bool enable) { isBayer = enable;}
+
+    /**
+     * @return True if image data is bayered, false otherwise.
+     */
+    bool isBayered() { return isBayer;}
+
 private:
 
     int XRes;   //  native resolution of the ccd
@@ -321,6 +331,7 @@ private:
     float PixelSizey;   //  pixel size in microns, y direction
     int BPP;            //  Bytes per Pixel
     bool Interlaced;
+    bool isBayer;
     char *RawFrame;
     int RawFrameSize;
     bool SendCompressed;
@@ -404,6 +415,8 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
             bool canSubFrame;
             /** Can the CCD abort exposure? */
             bool canAbort;
+            /** Does the CCD send image in bayer format? */
+            bool hasBayer;
         } CCDCapability;
 
         virtual bool initProperties();
@@ -461,6 +474,11 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
          * @return True if CCD has cooler and temperature can be controlled. False otherwise.
          */
         bool HasCooler() { return capability.hasCooler;}
+
+        /**
+         * @return True if CCD sends image data in bayer format. False otherwise.
+         */
+        bool HasBayer() { return capability.hasBayer;}
 
         /**
          * @brief Set CCD temperature
@@ -672,6 +690,9 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
 
         INumber                 TemperatureN[1];
         INumberVectorProperty   TemperatureNP;
+
+        IText BayerT[3];
+        ITextVectorProperty BayerTP;
 
         ISwitch UploadS[3];
         ISwitchVectorProperty UploadSP;

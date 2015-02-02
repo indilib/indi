@@ -105,6 +105,7 @@ CCDSim::CCDSim()
     cap.hasGuideHead = true;
     cap.hasShutter = true;
     cap.hasST4Port = true;
+    cap.hasBayer = false;
 
     SetCCDCapability(&cap);
 

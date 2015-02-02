@@ -354,6 +354,7 @@ void SXCCD::getCameraParams() {
   cap.hasGuideHead = HasGuideHead;
   cap.hasShutter = HasShutter;
   cap.hasST4Port = HasST4Port;
+  cap.hasBayer = false;
   SetCCDCapability(&cap);
 
   SetTimer(TIMER);

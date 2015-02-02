@@ -38,6 +38,7 @@ V4L2_Driver::V4L2_Driver()
   cap.hasCooler = false;
   cap.hasST4Port = false;
   cap.hasShutter = false;
+  cap.hasBayer = false;
 
   SetCCDCapability(&cap);
 

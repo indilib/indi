@@ -1064,6 +1064,7 @@ bool QSICCD::Connect()
             cap.hasGuideHead = false;
             cap.hasShutter = true;
             cap.hasST4Port = hasST4Port;
+	    cap.hasBayer = false;
 
             SetCCDCapability(&cap);
 

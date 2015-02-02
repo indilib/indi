@@ -139,6 +139,7 @@ FFMVCCD::FFMVCCD()
     cap.hasGuideHead= false;
     cap.hasShutter  = false;
     cap.hasST4Port  = false;
+    cap.hasBayer = false;
 
     SetCCDCapability(&cap);
 }

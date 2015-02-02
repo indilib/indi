@@ -43,6 +43,7 @@ CCDChip::CCDChip()
 {
     SendCompressed=false;
     Interlaced=false;
+    isBayer=false;
 
     RawFrame= (char *) malloc(sizeof(char)); // Seed for realloc
     RawFrameSize=0;
@@ -248,6 +249,7 @@ INDI::CCD::CCD()
     capability.canBin=false;
     capability.canSubFrame=false;
     capability.canAbort=false;
+    capability.hasBayer;
 
     InExposure=false;
     InGuideExposure=false;
@@ -283,6 +285,7 @@ void INDI::CCD::SetCCDCapability(CCDCapability *cap)
     capability.hasGuideHead = cap->hasGuideHead;
     capability.hasShutter   = cap->hasShutter;
     capability.hasST4Port   = cap->hasST4Port;
+    capability.hasBayer     = cap->hasBayer;
 }
 
 bool INDI::CCD::initProperties()
@@ -407,6 +410,11 @@ bool INDI::CCD::initProperties()
 
     // CCD Class Init
 
+    IUFillText(&BayerT[0],"CFA_OFFSET_X","X Offset","0");
+    IUFillText(&BayerT[1],"CFA_OFFSET_Y","Y Offset","0");
+    IUFillText(&BayerT[2],"CFA_TYPE","X Offset",NULL);
+    IUFillTextVector(&BayerTP,BayerT,3,getDeviceName(),"CCD_CFA","Bayer Info",IMAGE_SETTINGS_TAB,IP_RW,60,IPS_IDLE);
+
     IUFillSwitch(&UploadS[0], "UPLOAD_CLIENT", "Client", ISS_ON);
     IUFillSwitch(&UploadS[1], "UPLOAD_LOCAL", "Local", ISS_OFF);
     IUFillSwitch(&UploadS[2], "UPLOAD_BOTH", "Both", ISS_OFF);
@@ -504,6 +512,9 @@ bool INDI::CCD::updateProperties()
         if (capability.hasGuideHead)
             defineSwitch(&GuideCCD.FrameTypeSP);
 
+        if (capability.hasBayer)
+            defineText(&BayerTP);
+
         defineSwitch(&PrimaryCCD.RapidGuideSP);
 
         if (capability.hasGuideHead)
@@ -575,6 +586,8 @@ bool INDI::CCD::updateProperties()
         deleteProperty(PrimaryCCD.FrameTypeSP.name);
         if (capability.canBin || capability.canSubFrame)
             deleteProperty(PrimaryCCD.ResetSP.name);
+        if (capability.hasBayer)
+            deleteProperty(BayerTP.name);
         deleteProperty(ActiveDeviceTP.name);
         deleteProperty(UploadSP.name);
         deleteProperty(UploadSettingsTP.name);
@@ -623,7 +636,7 @@ bool INDI::CCD::ISNewText (const char *dev, const char *name, char *texts[], cha
     {
         //  This is for our device
         //  Now lets see if it's something we process here
-        if(strcmp(name,ActiveDeviceTP.name)==0)
+        if(!strcmp(name,ActiveDeviceTP.name))
         {
             int rc;
             ActiveDeviceTP.s=IPS_OK;
@@ -645,7 +658,15 @@ bool INDI::CCD::ISNewText (const char *dev, const char *name, char *texts[], cha
             return true;
         }
 
-        if (strcmp(name, UploadSettingsTP.name)==0)
+        if (!strcmp(name, BayerTP.name))
+        {
+            IUUpdateText(&BayerTP, texts, names, n);
+            BayerTP.s = IPS_OK;
+            IDSetText(&BayerTP, NULL);
+            return true;
+        }
+
+        if (!strcmp(name, UploadSettingsTP.name))
         {
             IUUpdateText(&UploadSettingsTP, texts, names, n);
             IDSetText(&UploadSettingsTP, NULL);
@@ -1258,6 +1279,16 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
     {
         fits_update_key_s(fptr, TDOUBLE, "DATAMIN", &min_val, "Minimum value", &status);
         fits_update_key_s(fptr, TDOUBLE, "DATAMAX", &max_val, "Maximum value", &status);
+    }
+
+    if (targetChip->isBayered())
+    {
+        unsigned int bayer_offset_x = atoi(BayerT[0].text);
+        unsigned int bayer_offset_y = atoi(BayerT[1].text);
+
+        fits_update_key_s(fptr, TUINT, "XBAYROFF", &bayer_offset_x, "X offset of Bayer array", &status);
+        fits_update_key_s(fptr, TUINT, "YBAYROFF", &bayer_offset_y, "Y offset of Bayer array", &status);
+        fits_update_key_s(fptr, TSTRING, "BAYERPAT", &BayerT[2].text, "Bayer color pattern", &status);
     }
 
     if (RA != -1000 && Dec != -1000)

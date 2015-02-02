@@ -236,6 +236,7 @@ bool FishCampCCD::initProperties()
   cap.hasGuideHead = false;
   cap.hasShutter = false;
   cap.hasST4Port = true;
+  cap.hasBayer = false;
 
   SetCCDCapability(&cap);
 
