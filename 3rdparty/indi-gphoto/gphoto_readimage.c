@@ -254,7 +254,7 @@ int dcraw_parse_header_info(const char *filename, struct dcraw_header *header)
 	float r, g, b, gp;
 
 	memset(header, 0, sizeof(struct dcraw_header));
-	asprintf(&cmd, "%s -i -v %s 2> /dev/null", dcraw_cmd, filename);
+    asprintf(&cmd, "%s -i -t 0 -v %s 2> /dev/null", dcraw_cmd, filename);
     if (debug)
         fprintf(stderr, "%s", cmd);
 	handle = popen(cmd, "r");
@@ -309,7 +309,7 @@ int read_dcraw(const char *filename, char **memptr, size_t *memsize, int *n_axis
 	}
 
 	fprintf(stderr, "Reading exposure %d x %d\n", header.width, header.height);
-	asprintf(&cmd, "%s -c -4 -D %s", dcraw_cmd, filename);
+    asprintf(&cmd, "%s -c -t 0 -4 -D %s", dcraw_cmd, filename);
     if (debug)
         fprintf(stderr, "%s", cmd);
 	handle = popen(cmd, "r");

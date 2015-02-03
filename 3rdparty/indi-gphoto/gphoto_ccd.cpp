@@ -208,6 +208,9 @@ bool GPhotoCCD::initProperties()
   IUFillSwitch(&livePreviewS[1], "Disable", "", ISS_ON);
   IUFillSwitchVector(&livePreviewSP, livePreviewS, 2, getDeviceName(), "VIDEO_STREAM", "Preview", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+  // Most cameras have this by default, so let's set it as default.
+  IUSaveText(&BayerT[2], "RGGB");
+
   CCDCapability cap;
 
   cap.canAbort = false;
@@ -218,9 +221,10 @@ bool GPhotoCCD::initProperties()
   cap.hasGuideHead = false;
   cap.hasShutter = false;
   cap.hasST4Port = false;
-  cap.hasBayer = false;
+  cap.hasBayer = true;
 
   SetCCDCapability(&cap);
+
 
   FocuserCapability focusCap;
   focusCap.canAbort=false;
