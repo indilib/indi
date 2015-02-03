@@ -1064,7 +1064,9 @@
 3rdparty/sbig/LICENSE.firmware -text
 3rdparty/sbig/libsbigudrv32.bin -text
 3rdparty/sbig/libsbigudrv64.bin -text
-3rdparty/sbig/libsbigudrv_armhf.bin -text
+3rdparty/sbig/libsbigudrv_arm_v6.bin -text
+3rdparty/sbig/libsbigudrv_arm_v7.bin -text
+3rdparty/sbig/libsbigudrv_arm_v8.bin -text
 3rdparty/sbig/sbigfcam.hex -text
 3rdparty/sbig/sbiglcam.hex -text
 3rdparty/sbig/sbigpcam.hex -text

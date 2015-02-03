@@ -1,7 +1,7 @@
-cmake_minimum_required(VERSION 2.4.7)
+cmake_minimum_required(VERSION 2.8)
 PROJECT(sbig C CXX)
 
-set(SBIG_VERSION "2.0.2")
+set(SBIG_VERSION "2.1.0")
 set(SBIG_SOVERSION "2")
 
 set(FIRMWARE_INSTALL_DIR "/lib/firmware")
@@ -9,29 +9,18 @@ set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for u
 set(LIB_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/lib")
 
 IF(UNIX AND NOT WIN32 AND NOT APPLE)
- IF (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm.*")
-    SET(LIB_ARMHF TRUE)
-    MARK_AS_ADVANCED(LIB_ARMHF)
+ IF (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "armv6l")
+    exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/libsbigudrv_arm_v6.bin ${CMAKE_BINARY_DIR}/libsbigudrv.so.${SBIG_VERSION})
+ ELSEIF (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "armv7l")
+    exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/libsbigudrv_arm_v7.bin ${CMAKE_BINARY_DIR}/libsbigudrv.so.${SBIG_VERSION})
+ ELSEIF (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "armv8l")
+    exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/libsbigudrv_arm_v8.bin ${CMAKE_BINARY_DIR}/libsbigudrv.so.${SBIG_VERSION})
  ELSEIF(CMAKE_SIZEOF_VOID_P MATCHES "8")
-    SET(LIB_64 TRUE)
-    MARK_AS_ADVANCED(LIB_64)
- ENDIF (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm.*")
+  exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/libsbigudrv64.bin ${CMAKE_BINARY_DIR}/libsbigudrv.so.${SBIG_VERSION})
+ ELSE()
+  exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/libsbigudrv32.bin ${CMAKE_BINARY_DIR}/libsbigudrv.so.${SBIG_VERSION})
+ ENDIF (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "armv6l")
 ENDIF(UNIX AND NOT WIN32 AND NOT APPLE)
-
-IF(NOT DEFINED LIB_64)
-   SET(LIB_64 "")
-ENDIF(NOT DEFINED LIB_64)
-IF (NOT DEFINED LIB_ARMHF)
-    SET(LIB_ARMHF "")
-ENDIF (NOT DEFINED LIB_ARMHF)
-
-if (LIB_ARMHF)
-exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/libsbigudrv_armhf.bin ${CMAKE_BINARY_DIR}/libsbigudrv.so.${SBIG_VERSION})
-elseif (LIB_64)
-exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/libsbigudrv64.bin ${CMAKE_BINARY_DIR}/libsbigudrv.so.${SBIG_VERSION})
-else ()
-exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/libsbigudrv32.bin ${CMAKE_BINARY_DIR}/libsbigudrv.so.${SBIG_VERSION})
-endif(LIB_ARMHF)
 
 # Make sure symbolic links are installed
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/make_sbig_symlink.cmake "
