@@ -412,7 +412,7 @@ bool INDI::CCD::initProperties()
     IUFillText(&BayerT[0],"CFA_OFFSET_X","X Offset","0");
     IUFillText(&BayerT[1],"CFA_OFFSET_Y","Y Offset","0");
     IUFillText(&BayerT[2],"CFA_TYPE","Filter",NULL);
-    IUFillTextVector(&BayerTP,BayerT,3,getDeviceName(),"CCD_CFA","Bayer Info",IMAGE_SETTINGS_TAB,IP_RW,60,IPS_IDLE);
+    IUFillTextVector(&BayerTP,BayerT,3,getDeviceName(),"CCD_CFA","Bayer Info",IMAGE_INFO_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillSwitch(&UploadS[0], "UPLOAD_CLIENT", "Client", ISS_ON);
     IUFillSwitch(&UploadS[1], "UPLOAD_LOCAL", "Local", ISS_OFF);
@@ -1280,7 +1280,7 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
         fits_update_key_s(fptr, TDOUBLE, "DATAMAX", &max_val, "Maximum value", &status);
     }
 
-    if (capability.hasBayer)
+    if (capability.hasBayer && targetChip->getNAxis() == 2)
     {
         unsigned int bayer_offset_x = atoi(BayerT[0].text);
         unsigned int bayer_offset_y = atoi(BayerT[1].text);
@@ -1746,6 +1746,9 @@ bool INDI::CCD::saveConfigItems(FILE *fp)
 
     if (capability.canBin)
         IUSaveConfigNumber(fp, &PrimaryCCD.ImageBinNP);
+
+    if (capability.hasBayer)
+        IUSaveConfigText(fp, &BayerTP);
 
     return true;
 }
