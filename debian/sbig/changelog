@@ -1,3 +1,9 @@
+sbig (2.1.0) vivid; urgency=low
+
+  * New upstream release
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Tue, 03 Feb 2015 17:00:00 +0300
+
 sbig (2.0.2) natty; urgency=low
 
   * New upstream release
