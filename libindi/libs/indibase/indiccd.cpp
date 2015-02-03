@@ -43,7 +43,6 @@ CCDChip::CCDChip()
 {
     SendCompressed=false;
     Interlaced=false;
-    isBayer=false;
 
     RawFrame= (char *) malloc(sizeof(char)); // Seed for realloc
     RawFrameSize=0;
@@ -412,7 +411,7 @@ bool INDI::CCD::initProperties()
 
     IUFillText(&BayerT[0],"CFA_OFFSET_X","X Offset","0");
     IUFillText(&BayerT[1],"CFA_OFFSET_Y","Y Offset","0");
-    IUFillText(&BayerT[2],"CFA_TYPE","X Offset",NULL);
+    IUFillText(&BayerT[2],"CFA_TYPE","Filter",NULL);
     IUFillTextVector(&BayerTP,BayerT,3,getDeviceName(),"CCD_CFA","Bayer Info",IMAGE_SETTINGS_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillSwitch(&UploadS[0], "UPLOAD_CLIENT", "Client", ISS_ON);
@@ -1281,14 +1280,14 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
         fits_update_key_s(fptr, TDOUBLE, "DATAMAX", &max_val, "Maximum value", &status);
     }
 
-    if (targetChip->isBayered())
+    if (capability.hasBayer)
     {
         unsigned int bayer_offset_x = atoi(BayerT[0].text);
         unsigned int bayer_offset_y = atoi(BayerT[1].text);
 
         fits_update_key_s(fptr, TUINT, "XBAYROFF", &bayer_offset_x, "X offset of Bayer array", &status);
         fits_update_key_s(fptr, TUINT, "YBAYROFF", &bayer_offset_y, "Y offset of Bayer array", &status);
-        fits_update_key_s(fptr, TSTRING, "BAYERPAT", &BayerT[2].text, "Bayer color pattern", &status);
+        fits_update_key_s(fptr, TSTRING, "BAYERPAT", BayerT[2].text, "Bayer color pattern", &status);
     }
 
     if (RA != -1000 && Dec != -1000)

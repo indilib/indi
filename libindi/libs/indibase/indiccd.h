@@ -306,16 +306,6 @@ public:
      */
     bool isExposing() { return (ImageExposureNP.s == IPS_BUSY); }
 
-    /**
-     * @brief setColor set to true if image data is bayered.
-     */
-    void setBayered(bool enable) { isBayer = enable;}
-
-    /**
-     * @return True if image data is bayered, false otherwise.
-     */
-    bool isBayered() { return isBayer;}
-
 private:
 
     int XRes;   //  native resolution of the ccd
@@ -331,7 +321,6 @@ private:
     float PixelSizey;   //  pixel size in microns, y direction
     int BPP;            //  Bytes per Pixel
     bool Interlaced;
-    bool isBayer;
     char *RawFrame;
     int RawFrameSize;
     bool SendCompressed;
