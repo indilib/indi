@@ -35,7 +35,6 @@
 #include <ccvt.h>
 
 #include "sbig_ccd.h"
-#include "bayer.h"
 
 #define TEMPERATURE_POLL_MS 5000    /* Temperature Polling time (ms) */
 #define POLLMS          	1000	/* Polling time (ms) */
@@ -358,15 +357,7 @@ bool SBIGCCD::initProperties()
   IUFillSwitch(&FilterConnectionS[1], "DISCONNECT", "Disconnect", ISS_ON);
   IUFillSwitchVector(&FilterConnectionSP, FilterConnectionS, 2, getDeviceName(), "CFW_CONNECTION", "Connect", FILTER_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-  IUFillSwitch(&DebayerMethodS[0], "Nearest", "", ISS_ON);
-  IUFillSwitch(&DebayerMethodS[1],"Simple" , "", ISS_OFF);
-  IUFillSwitch(&DebayerMethodS[2], "BiLinear","" , ISS_OFF);
-  IUFillSwitch(&DebayerMethodS[3], "HQLinear", "", ISS_OFF);
-  IUFillSwitch(&DebayerMethodS[4], "Downsample", "", ISS_OFF);
-  IUFillSwitch(&DebayerMethodS[5], "Edgesense", "", ISS_OFF);
-  IUFillSwitch(&DebayerMethodS[6], "VNG", "", ISS_OFF);
-  IUFillSwitch(&DebayerMethodS[7], "AHD", "", ISS_OFF);
-  IUFillSwitchVector(&DebayerMethodSP, DebayerMethodS, 8, getDeviceName(), "Debayer", "", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+  IUSaveText(&BayerT[2], "BGGR");
 
   initFilterProperties(getDeviceName(), FILTER_TAB);
 
@@ -415,9 +406,6 @@ bool SBIGCCD::updateProperties()
     // Let's get parameters now from CCD
     setupParams();
 
-    if (isColor)
-        defineSwitch(&DebayerMethodSP);
-
     // If filter type already selected (from config file), then try to connect to CFW
     if (hasFilterWheel)
     {
@@ -445,7 +433,6 @@ bool SBIGCCD::updateProperties()
         deleteProperty(FilterConnectionSP.name);
         deleteProperty(FilterTypeSP.name);
         deleteProperty(FilterProdcutTP.name);
-        deleteProperty(DebayerMethodSP.name);
         if (FilterNameT != NULL)
             deleteProperty(FilterNameTP->name);
     }
@@ -500,17 +487,6 @@ bool SBIGCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
 
   if (strcmp(dev, getDeviceName()) == 0)
   {
-
-    if(!strcmp(name, DebayerMethodSP.name))
-    {
-        if (IUUpdateSwitch(&DebayerMethodSP, states, names, n) < 0)
-            return false;
-
-        DebayerMethodSP.s = IPS_OK;
-        IDSetSwitch(&DebayerMethodSP, NULL);
-        return true;
-    }
-
     if(!strcmp(name, FanStateSP.name))
     {
        IUResetSwitch(&FanStateSP);
@@ -665,6 +641,7 @@ bool SBIGCCD::Connect()
     cap.hasGuideHead = true;
     cap.hasShutter = true;
     cap.hasST4Port = true;
+    cap.hasBayer = false;
 
     SetCCDCapability(&cap);
 
@@ -701,6 +678,7 @@ bool SBIGCCD::Connect()
               cap.hasGuideHead = hasGuideHead;
               cap.hasShutter = true;
               cap.hasST4Port = true;
+              cap.hasBayer = isColor;
 
               SetCCDCapability(&cap);
 
@@ -1382,54 +1360,6 @@ bool SBIGCCD::grabImage(CCDChip *targetChip)
               DEBUGF(INDI::Logger::DBG_ERROR, "%s CCD readout error %s!", (targetChip == &PrimaryCCD ? "Primary":"Guide"), GetErrorString(res).c_str());
               return false;
       }
-
-      // Bayer to RGB if it is a color camera
-      if (isColor)
-      {
-          if (isDebug())
-          {
-              char fileLoc[512];
-              snprintf(fileLoc, 512, "%s/.indi/bayer.dat", getenv("HOME"));
-              FILE *bayerfile = fopen(fileLoc, "wb");
-              if (bayerfile)
-              {
-                  int n = width * height * 2;
-                  int nw = 0;
-                  while (nw < n)
-                    nw+= fwrite(buffer, 1,  n - nw, bayerfile);
-                  fclose(bayerfile);
-              }
-          }
-          int debayer = IUFindOnSwitchIndex(&DebayerMethodSP);
-          int rgb_size = width*height*3*PrimaryCCD.getBPP()/8;
-          unsigned short * dst = (unsigned short *) malloc(rgb_size);
-
-          DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Debayering (%dx%d) debayer: %d", __FUNCTION__, width, height, debayer);
-          dc1394_bayer_decoding_16bit(buffer, dst, width, height, DC1394_COLOR_FILTER_BGGR, (dc1394bayer_method_t) debayer, PrimaryCCD.getBPP());
-          DEBUGF(INDI::Logger::DBG_DEBUG, "%s Debayer complete.", __FUNCTION__);
-
-          // Data in R1G1B1, we need to copy them into 3 layers for FITS
-          unsigned short * rgb = (unsigned short *) malloc(rgb_size);
-          unsigned short * rBuff = rgb;
-          unsigned short * gBuff = rgb + width * height;
-          unsigned short * bBuff = rgb + width * height * 2;
-
-          int imax = (rgb_size/(PrimaryCCD.getBPP()/8)) - 3;
-          for (int i=0; i <= imax; i += 3)
-          {
-              *rBuff++ = dst[i];
-              *gBuff++ = dst[i+1];
-              *bBuff++ = dst[i+2];
-          }
-          free(dst);
-
-          char *memBuffer = (char *) rgb;
-          targetChip->setFrameBufferSize(rgb_size, false);
-          targetChip->setFrameBuffer(memBuffer);
-          targetChip->setNAxis(3);
-          free(buffer);
-      }
-
   }
 
   DEBUGF(INDI::Logger::DBG_DEBUG, "%s CCD Download complete.", (targetChip == &PrimaryCCD) ? "Primary" : "Guide");

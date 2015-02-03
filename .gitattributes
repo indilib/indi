@@ -314,8 +314,6 @@
 3rdparty/indi-sbig/ChangeLog -text
 3rdparty/indi-sbig/INSTALL -text
 3rdparty/indi-sbig/README -text
-3rdparty/indi-sbig/bayer.c -text
-3rdparty/indi-sbig/bayer.h -text
 3rdparty/indi-sbig/config.h.cmake -text
 3rdparty/indi-sbig/indi_sbig.xml -text
 3rdparty/indi-sbig/sbig_ccd.cpp -text
