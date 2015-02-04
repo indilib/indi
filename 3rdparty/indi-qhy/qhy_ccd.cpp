@@ -56,7 +56,7 @@ void ISInit()
 
   if (!isInit)
   {
-      char camid[64];
+      char camid[MAXINDIDEVICE];
       bool allCameraInit = true;
       int ret = QHYCCD_ERROR;
 
@@ -69,7 +69,7 @@ void ISInit()
       }
       cameraCount = ScanQHYCCD();
      #else
-     cameraCount = 1;
+     cameraCount = 2;
      #endif
 
       for(int i = 0;i < cameraCount;i++)
@@ -80,7 +80,7 @@ void ISInit()
           ret = GetQHYCCDId(i,camid);
           #else
           ret = QHYCCD_SUCCESS;
-          strncpy(camid, "Simulation", MAXINDIDEVICE);
+          snprintf(camid, MAXINDIDEVICE, "Simulation %d", i+1);
           #endif
           if(ret == QHYCCD_SUCCESS)
           {
