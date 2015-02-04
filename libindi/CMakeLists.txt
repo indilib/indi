@@ -404,7 +404,7 @@ set(ccdsimulator_SRCS
    )
 
 add_executable(indi_simulator_ccd ${ccdsimulator_SRCS})
-target_link_libraries(indi_simulator_ccd indidriver -ltiff)
+target_link_libraries(indi_simulator_ccd indidriver)
 install(TARGETS indi_simulator_ccd RUNTIME DESTINATION bin )
 
 endif (CFITSIO_FOUND)
