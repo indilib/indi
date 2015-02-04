@@ -1,10 +1,9 @@
-cmake_minimum_required(VERSION 2.4.7)
+cmake_minimum_required(VERSION 2.8)
 PROJECT(indi_qhy CXX C)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
 set(INDI_DATA_DIR "${CMAKE_INSTALL_PREFIX}/share/indi")
-set(RULES_INSTALL_DIR "/lib/udev/rules.d/")
 
 find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
@@ -34,5 +33,4 @@ target_link_libraries(indi_qhy_ccd ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES}
 install(TARGETS indi_qhy_ccd RUNTIME DESTINATION bin )
 
 install(FILES indi_qhy.xml DESTINATION ${INDI_DATA_DIR})
-install(FILES 99-qhy.rules DESTINATION ${RULES_INSTALL_DIR})
 

@@ -26,7 +26,7 @@
 #include <indifilterinterface.h>
 #include <iostream>
 
-#include <libqhyccd/qhyccd.h>
+#include <qhyccd.h>
 
 using namespace std;
 
