@@ -993,7 +993,7 @@
 3rdparty/libqhy-old/src/qhyxxx.h -text
 3rdparty/libqhy-old/src/simu.cpp -text
 3rdparty/libqhy-old/src/simu.h -text
-3rdparty/libqhy/85-qhyccd.rules -text
+3rdparty/libqhy/85-qhy.rules -text
 3rdparty/libqhy/CMakeLists.txt -text
 3rdparty/libqhy/firmware/IC8300.HEX -text
 3rdparty/libqhy/firmware/IMG0H.HEX -text
@@ -1022,9 +1022,9 @@
 3rdparty/libqhy/firmware/QHY8PRO.HEX -text
 3rdparty/libqhy/firmware/QHY9S.HEX -text
 3rdparty/libqhy/firmware/miniCam5.HEX -text
-3rdparty/libqhy/libqhyccd_32.bin -text
-3rdparty/libqhy/libqhyccd_64.bin -text
-3rdparty/libqhy/libqhyccd_arm_v6.bin -text
+3rdparty/libqhy/libqhy_32.bin -text
+3rdparty/libqhy/libqhy_64.bin -text
+3rdparty/libqhy/libqhy_arm_v6.bin -text
 3rdparty/libqhy/qhyccd.h -text
 3rdparty/libqhy/qhyccdcamdef.h -text
 3rdparty/libqhy/qhyccderr.h -text
