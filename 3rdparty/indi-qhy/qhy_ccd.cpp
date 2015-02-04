@@ -641,7 +641,9 @@ bool QHYCCD::StartExposure(float duration)
       DEBUGF(INDI::Logger::DBG_SESSION, "%s","Set QHYCCD ROI resolution failed");
       return false;
   }
- 
+  
+  usleep(300000); 
+
   ret = ExpQHYCCDSingleFrame(camhandle);
   if(ret != QHYCCD_SUCCESS)
   {
