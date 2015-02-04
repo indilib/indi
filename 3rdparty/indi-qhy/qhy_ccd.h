@@ -58,9 +58,10 @@ public:
 
 protected:
 
-  void TimerHit();
+  void TimerHit();  
   virtual bool UpdateCCDFrame(int x, int y, int w, int h);
   virtual bool UpdateCCDBin(int binx, int biny);
+
 
   // Guide Port
   virtual bool GuideNorth(float);
@@ -123,12 +124,12 @@ private:
   float ExposureRequest;
   struct timeval ExpStart;
 
-  float CalcTimeLeft();
+  float calcTimeLeft();
   int grabImage();
   bool setupParams();
-
-  void UpdateTemperature();
-  static void UpdateTemperatureHelper(void *);
+  void setCooler(bool enable);
+  void updateTemperature();
+  static void updateTemperatureHelper(void *);
 
   friend void ::ISGetProperties(const char *dev);
   friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);

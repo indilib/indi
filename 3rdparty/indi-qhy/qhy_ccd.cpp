@@ -35,7 +35,7 @@
 #define MAX_DEVICES             4           /* Max device cameraCount */
 
 //NB Disable for real driver
-//#define USE_SIMULATION
+#define USE_SIMULATION
 
 static int cameraCount;
 static QHYCCD *cameras[MAX_DEVICES];
@@ -224,13 +224,13 @@ bool QHYCCD::initProperties()
     FilterSlotN[0].max = 5;
 
     // CCD Cooler Switch
-    IUFillSwitch(&CoolerS[0], "ON", "On", ISS_OFF);
-    IUFillSwitch(&CoolerS[1], "OFF", "Off", ISS_ON);
-    IUFillSwitchVector(&CoolerSP, CoolerS, 2, getDeviceName(), "CCD_REGULATION", "Cooler", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitch(&CoolerS[0], "COOLER_ON", "On", ISS_OFF);
+    IUFillSwitch(&CoolerS[1], "COOLER_OFF", "Off", ISS_ON);
+    IUFillSwitchVector(&CoolerSP, CoolerS, 2, getDeviceName(), "CCD_COOLER", "Cooler", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // CCD Regulation power
-    IUFillNumber(&CoolerN[0], "COOLER","Regulation (%)", "%.1f", 0, 0, 0, 0);
-    IUFillNumberVector(&CoolerNP, CoolerN, 1, getDeviceName(), "CCD_COOLER","Cooler", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillNumber(&CoolerN[0], "CCD_COOLER_VALUE", "Cooling Power (%)", "%+06.2f", 0., 1., .2, 0.0);
+    IUFillNumberVector(&CoolerNP, CoolerN, 1, getDeviceName(), "CCD_COOLER_POWER", "Cooling Power", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     // CCD Gain
     IUFillNumber(&GainN[0], "GAIN", "Gain", "%3.0f", 0, 100, 1, 11);
@@ -432,6 +432,7 @@ bool QHYCCD::Connect()
         cap.hasGuideHead = false;
         cap.hasShutter = false;
         cap.canAbort = true;
+        cap.canBin = true;
         cap.hasCooler = true;
         cap.hasST4Port = true;
 
@@ -589,6 +590,10 @@ int QHYCCD::SetTemperature(double temperature)
         return 1;
 
     TemperatureRequest = temperature;
+
+    // Enable cooler
+    setCooler(true);
+
     return 0;
 }
 
@@ -600,7 +605,7 @@ bool QHYCCD::StartExposure(float duration)
 
   if (duration < MINIMUM_CCD_EXPOSURE)
   {
-    DEBUGF(INDI::Logger::DBG_WARNING, "Exposure shorter than minimum duration %g s requested. \n Setting exposure time to %g s.", duration, MINIMUM_CCD_EXPOSURE);
+    DEBUGF(INDI::Logger::DBG_WARNING, "Exposure shorter than minimum duration %g s requested. Setting exposure time to %g s.", duration, MINIMUM_CCD_EXPOSURE);
     duration = MINIMUM_CCD_EXPOSURE;
   }
 
@@ -628,34 +633,42 @@ bool QHYCCD::StartExposure(float duration)
   }
 
   // lzr: we need to call the following apis every single exposure,the usleep(200000) is important
-  ret = SetQHYCCDBinMode(camhandle,camxbin,camybin);
+  if (sim)
+      ret = QHYCCD_SUCCESS;
+  else
+      ret = SetQHYCCDBinMode(camhandle,camxbin,camybin);
   if(ret != QHYCCD_SUCCESS)
   {
-      DEBUGF(INDI::Logger::DBG_SESSION, "%s","Set QHYCCD Bin mode failed");
+      DEBUGF(INDI::Logger::DBG_SESSION, "Set QHYCCD Bin mode failed (%d)", ret);
       return false;
   }
 
-  ret = SetQHYCCDResolution(camhandle,camroix,camroiy,camroiwidth,camroiheight);
+  if (sim)
+      ret = QHYCCD_SUCCESS;
+  else
+     ret = SetQHYCCDResolution(camhandle,camroix,camroiy,camroiwidth,camroiheight);
   if(ret != QHYCCD_SUCCESS)
   {
-      DEBUGF(INDI::Logger::DBG_SESSION, "%s","Set QHYCCD ROI resolution failed");
+      DEBUGF(INDI::Logger::DBG_SESSION, "Set QHYCCD ROI resolution failed (%d)", ret);
       return false;
   }
   
   usleep(300000); 
 
-  ret = ExpQHYCCDSingleFrame(camhandle);
+  if (sim)
+      ret = QHYCCD_SUCCESS;
+  else
+      ret = ExpQHYCCDSingleFrame(camhandle);
   if(ret != QHYCCD_SUCCESS)
   {
-      DEBUGF(INDI::Logger::DBG_SESSION, "%s","begin QHYCCD expose failed");
+      DEBUGF(INDI::Logger::DBG_SESSION, "Begin QHYCCD expose failed (%d)", ret);
       return false;
   }
 
   gettimeofday(&ExpStart, NULL);
-  DEBUGF(INDI::Logger::DBG_SESSION, "Taking a %g seconds frame...", ExposureRequest);
+  DEBUGF(INDI::Logger::DBG_DEBUG, "Taking a %g seconds frame...", ExposureRequest);
 
   InExposure = true;
-
 
   return true;
 }
@@ -665,7 +678,10 @@ bool QHYCCD::AbortExposure()
     int ret;
 
     if (!InExposure || sim)
+    {
+        InExposure = false;
         return true;
+    }
 
     ret = CancelQHYCCDExposingAndReadout(camhandle);
     if(ret == QHYCCD_SUCCESS)
@@ -760,7 +776,7 @@ bool QHYCCD::UpdateCCDBin(int hor, int ver)
     return false;
 }
 
-float QHYCCD::CalcTimeLeft()
+float QHYCCD::calcTimeLeft()
 {
   double timesince;
   double timeleft;
@@ -813,7 +829,7 @@ void QHYCCD::TimerHit()
 
   if (InExposure)
   {
-    timeleft = CalcTimeLeft();
+    timeleft = calcTimeLeft();
 
     if (timeleft < 1.0)
     {
@@ -942,27 +958,7 @@ bool QHYCCD::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
         {
           IUUpdateSwitch(&CoolerSP, states, names, n);
 
-          if (CoolerS[0].s == ISS_ON)
-          {
-              temperatureFlag = true;
-              CoolerSP.s = IPS_OK;
-              temperatureID = IEAddTimer(TEMPERATURE_POLL_MS, QHYCCD::UpdateTemperatureHelper, this);
-              TemperatureNP.s = IPS_OK;
-              CoolerNP.s = IPS_OK;
-          }
-          else
-          {
-              DEBUG(INDI::Logger::DBG_SESSION, "Cooler off.");
-              temperatureFlag = false;
-              IERmTimer(temperatureID);
-              CoolerSP.s = IPS_IDLE;
-              if (sim == false)
-                  SetQHYCCDParam(camhandle,CONTROL_MANULPWM,0);
-              TemperatureNP.s = IPS_IDLE;
-              CoolerNP.s = IPS_IDLE;
-          }
-
-          IDSetSwitch(&CoolerSP, NULL);
+          setCooler(CoolerS[0].s == ISS_ON);
 
           return true;
         }
@@ -1041,13 +1037,50 @@ bool QHYCCD::ISNewNumber (const char *dev, const char *name, double values[], ch
     return INDI::CCD::ISNewNumber(dev,name,values,names,n);
 }
 
-void QHYCCD::UpdateTemperatureHelper(void *p)
+void QHYCCD::setCooler(bool enable)
 {
-    if (static_cast<QHYCCD*>(p)->isConnected())
-        static_cast<QHYCCD*>(p)->UpdateTemperature();
+    if (enable && temperatureFlag == false)
+    {
+        CoolerS[0].s = ISS_ON;
+        CoolerS[1].s = ISS_OFF;
+        CoolerSP.s   = IPS_OK;
+        IDSetSwitch(&CoolerSP, NULL);
+
+        CoolerNP.s = IPS_BUSY;
+        IDSetNumber(&CoolerNP, NULL);
+        DEBUG(INDI::Logger::DBG_SESSION, "Cooler on.");
+
+        temperatureFlag = true;
+        temperatureID = IEAddTimer(TEMPERATURE_POLL_MS, QHYCCD::updateTemperatureHelper, this);
+    }
+    else if (!enable && temperatureFlag == true)
+    {
+        temperatureFlag = false;
+        IERmTimer(temperatureID);
+        if (sim == false)
+            SetQHYCCDParam(camhandle,CONTROL_MANULPWM,0);
+
+        CoolerSP.s = IPS_IDLE;
+        CoolerS[0].s = ISS_OFF;
+        CoolerS[1].s = ISS_ON;
+        IDSetSwitch(&CoolerSP, NULL);
+
+        CoolerNP.s = IPS_IDLE;
+        IDSetNumber(&CoolerNP, NULL);
+
+        TemperatureNP.s = IPS_IDLE;
+        IDSetNumber(&TemperatureNP, NULL);
+        DEBUG(INDI::Logger::DBG_SESSION, "Cooler off.");
+    }
 }
 
-void QHYCCD::UpdateTemperature()
+void QHYCCD::updateTemperatureHelper(void *p)
+{
+    if (static_cast<QHYCCD*>(p)->isConnected())
+        static_cast<QHYCCD*>(p)->updateTemperature();
+}
+
+void QHYCCD::updateTemperature()
 {
     double ccdtemp,coolpower;
 
@@ -1059,7 +1092,7 @@ void QHYCCD::UpdateTemperature()
             ccdtemp = TemperatureN[0].value;
             if (TemperatureN[0].value < TemperatureRequest)
                 ccdtemp += TEMP_THRESHOLD;
-            else
+            else if (TemperatureN[0].value > TemperatureRequest)
                 ccdtemp -= TEMP_THRESHOLD;
 
             coolpower = 128;
@@ -1075,12 +1108,15 @@ void QHYCCD::UpdateTemperature()
         CoolerN[0].value = coolpower / 255.0 * 100;
 
         if (fabs(TemperatureN[0].value - TemperatureRequest) <= TEMP_THRESHOLD)
+        {
+            TemperatureN[0].value = TemperatureRequest;
             TemperatureNP.s = IPS_OK;
+        }
 
         IDSetNumber(&TemperatureNP, NULL);
         IDSetNumber(&CoolerNP, NULL);
 
-        temperatureID = IEAddTimer(TEMPERATURE_POLL_MS,QHYCCD::UpdateTemperatureHelper, this);
+        temperatureID = IEAddTimer(TEMPERATURE_POLL_MS,QHYCCD::updateTemperatureHelper, this);
     }
 }
 
