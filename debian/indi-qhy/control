@@ -8,7 +8,6 @@ Standards-Version: 3.9.2
 Package: indi-qhy
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Recommends: qhy-firmware
 Description: INDI QHY Driver. This driver is compatible with any INDI client such as KStars or Xephem.
 
 Package: indi-qhy-dbg
@@ -16,7 +15,7 @@ Priority: extra
 Section: debug
 Architecture: any
 Depends: indi-qhy (= ${binary:Version}), ${misc:Depends}
-Description: INDI QHY CCD Driver.
+Description: INDI QHY CCD Driver - Debug Symbols
  .
  This driver is compatible with any INDI client such as KStars or Xephem.
  This package contains the debug symbols for the this driver, useful to investigate problems in INDI.
