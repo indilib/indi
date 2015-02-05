@@ -76,10 +76,14 @@ void INDI::FilterInterface::processFilterSlot(const char *deviceName, double val
 
         FilterSlotNP.s = IPS_BUSY;
         DEBUGFDEVICE(deviceName, Logger::DBG_SESSION, "Setting current filter to slot %d", TargetFilter);
+
+
+        if (SelectFilter(TargetFilter) == false)
+        {
+            FilterSlotNP.s = IPS_ALERT;
+        }
+
         IDSetNumber(&FilterSlotNP, NULL);
-
-        SelectFilter(TargetFilter);
-
         return;
 
 }
