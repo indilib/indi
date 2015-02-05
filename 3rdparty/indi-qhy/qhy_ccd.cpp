@@ -80,7 +80,7 @@ void ISInit()
           ret = GetQHYCCDId(i,camid);
           #else
           ret = QHYCCD_SUCCESS;
-          snprintf(camid, MAXINDIDEVICE, "Simulation %d", i+1);
+          snprintf(camid, MAXINDIDEVICE, "Model %d", i+1);
           #endif
           if(ret == QHYCCD_SUCCESS)
           {
