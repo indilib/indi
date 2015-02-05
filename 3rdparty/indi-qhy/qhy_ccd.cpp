@@ -902,7 +902,11 @@ bool QHYCCD::GuideWest(float duration)
 
 bool QHYCCD::SelectFilter(int position)
 {
-    int ret = ControlQHYCCDCFW(camhandle,position);
+    int ret;
+    if (sim)
+        ret = QHYCCD_SUCCESS;
+    else
+        ret = ControlQHYCCDCFW(camhandle,position);
     if(ret == QHYCCD_SUCCESS)
     {
         CurrentFilter = position;
