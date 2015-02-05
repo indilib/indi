@@ -20,7 +20,7 @@ std::auto_ptr<ScopeSim> telescope_sim(0);
 #define SID_RATE	0.004178			/* sidereal rate, degrees/s */
 
 #define GOTO_LIMIT      5                               /* Move at GOTO_RATE until distance from target is GOTO_LIMIT degrees */
-#define SLEW_LIMIT      2                               /* Move at SLEW_LIMIT until distance from target is SLEW_LIMIT degrees */
+#define SLEW_LIMIT      1                               /* Move at SLEW_LIMIT until distance from target is SLEW_LIMIT degrees */
 #define FINE_SLEW_LIMIT 0.5                             /* Move at FINE_SLEW_RATE until distance from target is FINE_SLEW_LIMIT degrees */
 
 #define	POLLMS		250				/* poll period, ms */
@@ -31,6 +31,9 @@ std::auto_ptr<ScopeSim> telescope_sim(0);
 #define GUIDE_SOUTH     1
 #define GUIDE_WEST      0
 #define GUIDE_EAST      1
+
+#define MIN_AZ_FLIP     180
+#define MAX_AZ_FLIP     200
 
 void ISPoll(void *p);
 
@@ -95,14 +98,16 @@ ScopeSim::ScopeSim()
     currentDEC=90;
     Parked=false;
 
+    forceMeridianFlip = false;
+
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
     TelescopeCapability cap;
 
     cap.canPark = true;
     cap.canSync = true;
-    cap.canAbort = true;
-    SetTelescopeCapability(&cap);
+    cap.canAbort = true;    
+    SetTelescopeCapability(&cap);       
 
     /* initialize random seed: */
       srand ( time(NULL) );
@@ -241,7 +246,6 @@ bool ScopeSim::ReadScopeStatus()
     int nlocked, ns_guide_dir=-1, we_guide_dir=-1;
     char RA_DISP[64], DEC_DISP[64], RA_GUIDE[64], DEC_GUIDE[64], RA_PE[64], DEC_PE[64], RA_TARGET[64], DEC_TARGET[64];
 
-
     /* update elapsed time since last poll, don't presume exactly POLLMS */
     gettimeofday (&tv, NULL);
 
@@ -306,6 +310,17 @@ bool ScopeSim::ReadScopeStatus()
 
         dx = targetRA - currentRA;
 
+        // Always take the shortcut, don't go all around the globe
+        // If the difference between target and current is more than 12 hours, then we need to take the shortest path
+        if (dx > 12)
+            dx -= 24;
+        else if (dx < -12)
+            dx += 24;
+
+        // In meridian flip, alway force eastward motion (increasing RA) until target is reached.
+        if (forceMeridianFlip)
+            dx = fabs(dx);
+
         if (fabs(dx)*15. <= da_ra)
         {
             currentRA = targetRA;
@@ -316,6 +331,7 @@ bool ScopeSim::ReadScopeStatus()
         else
             currentRA -= da_ra/15.;
 
+        currentRA = range24(currentRA);
 
         dy = targetDEC - currentDEC;
         if (fabs(dy) <= da_dec)
@@ -332,6 +348,8 @@ bool ScopeSim::ReadScopeStatus()
 
         if (nlocked == 2)
         {
+            forceMeridianFlip = false;
+
             if (TrackState == SCOPE_SLEWING)
             {
 
@@ -479,13 +497,38 @@ bool ScopeSim::Goto(double r,double d)
     fs_sexa(RAStr, targetRA, 2, 3600);
     fs_sexa(DecStr, targetDEC, 2, 3600);
 
-    Parked=false;
-    TrackState = SCOPE_SLEWING;
+   ln_equ_posn lnradec;
+   lnradec.ra = (currentRA * 360) / 24.0;
+   lnradec.dec =currentDEC;
 
-    EqNP.s    = IPS_BUSY;
+   ln_get_hrz_from_equ(&lnradec, &lnobserver, ln_get_julian_from_sys(), &lnaltaz);
+   /* libnova measures azimuth from south towards west */
+   double current_az  =range360(lnaltaz.az + 180);
+   //double current_alt =lnaltaz.alt;
 
-    DEBUGF(INDI::Logger::DBG_SESSION,"Slewing to RA: %s - DEC: %s", RAStr, DecStr);
-    return true;
+   if (current_az > MIN_AZ_FLIP && current_az < MAX_AZ_FLIP)
+   {
+       lnradec.ra = (r*360) / 24.0;
+       lnradec.dec = d;
+
+       ln_get_hrz_from_equ(&lnradec, &lnobserver, ln_get_julian_from_sys(), &lnaltaz);
+
+       double target_az = range360(lnaltaz.az + 180);
+
+       //if (targetAz > currentAz && target_az > MIN_AZ_FLIP && target_az < MAX_AZ_FLIP)
+       if (target_az > current_az && target_az > MIN_AZ_FLIP)
+       {
+           forceMeridianFlip = true;
+       }
+   }
+
+   Parked=false;
+   TrackState = SCOPE_SLEWING;
+
+   EqNP.s    = IPS_BUSY;
+
+   DEBUGF(INDI::Logger::DBG_SESSION,"Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+   return true;
 }
 
 bool ScopeSim::Sync(double ra, double dec)
@@ -685,4 +728,34 @@ bool ScopeSim::GuideWest(float ms)
     guiderEWTarget[GUIDE_EAST] = 0;
     return true;
 
+}
+
+double ScopeSim::range24(double r)
+{
+  double res = r;
+  while (res<0.0) res+=24.0;
+  while (res>24.0) res-=24.0;
+  return res;
+}
+
+double ScopeSim::range360(double r)
+{
+  double res = r;
+  while (res<0.0) res+=360.0;
+  while (res>360.0) res-=360.0;
+  return res;
+}
+
+bool ScopeSim::updateLocation(double latitude, double longitude, double elevation)
+{
+  INDI_UNUSED(elevation);
+  // JM: INDI Longitude is 0 to 360 increasing EAST. libnova East is Positive, West is negative
+  lnobserver.lng =  longitude;
+
+  if (lnobserver.lng > 180)
+      lnobserver.lng -= 360;
+  lnobserver.lat =  latitude;
+
+  DEBUGF(INDI::Logger::DBG_SESSION,"Located updated: long = %g lat = %g", lnobserver.lng, lnobserver.lat);
+  return true;
 }

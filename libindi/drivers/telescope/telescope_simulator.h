@@ -33,35 +33,42 @@ public:
     virtual bool GuideSouth(float ms);
     virtual bool GuideEast(float ms);
     virtual bool GuideWest(float ms);
+    virtual bool updateLocation(double latitude, double longitude, double elevation);
 
     bool Goto(double,double);
     bool Park();
     bool Sync(double ra, double dec);
 
     private:
-        double currentRA;
-        double currentDEC;
-        double targetRA;
-        double targetDEC;
 
-        unsigned int DBG_SCOPE;
+    double range24(double r);
+    double range360(double r);
 
-        bool Parked;
+    double currentRA;
+    double currentDEC;
+    double targetRA;
+    double targetDEC;
 
-        double guiderEWTarget[2];
-        double guiderNSTarget[2];
+    ln_lnlat_posn lnobserver;
+    ln_hrz_posn lnaltaz;
+    bool forceMeridianFlip;
+    unsigned int DBG_SCOPE;
+    bool Parked;
 
-        INumber GuideRateN[2];
-        INumberVectorProperty GuideRateNP;
+    double guiderEWTarget[2];
+    double guiderNSTarget[2];
 
-        INumberVectorProperty EqPENV;
-        INumber EqPEN[2];
+    INumber GuideRateN[2];
+    INumberVectorProperty GuideRateNP;
 
-        ISwitch PEErrNSS[2];
-        ISwitchVectorProperty PEErrNSSP;
+    INumberVectorProperty EqPENV;
+    INumber EqPEN[2];
 
-        ISwitch PEErrWES[2];
-        ISwitchVectorProperty PEErrWESP;
+    ISwitch PEErrNSS[2];
+    ISwitchVectorProperty PEErrNSSP;
+
+    ISwitch PEErrWES[2];
+    ISwitchVectorProperty PEErrWESP;
 
 };
 
