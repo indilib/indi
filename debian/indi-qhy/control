@@ -2,19 +2,14 @@ Source: indi-qhy
 Section: science
 Priority: extra
 Maintainer: Jasem Mutlaq <mutlaqja@ikarustech.com>
-Build-Depends: debhelper (>= 5), cdbs, cmake, libusb-1.0-0-dev, libcfitsio3-dev, libindi-dev, zlib1g-dev, libnova-dev
+Build-Depends: debhelper (>= 5), cdbs, cmake, libusb-1.0-0-dev, libcfitsio3-dev, libindi-dev, zlib1g-dev, libnova-dev, libqhy
 Standards-Version: 3.9.2
 
 Package: indi-qhy
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Recommends: qhy-firmware
-Description: INDI QHY CCD Driver. This driver is compatible with any INDI client such as KStars or Xephem.  Currently only the QHY5 CCD is supported.
-
-Package: qhy-firmware
-Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, udev, fxload
-Description: Binary firmware for the QHY CCD camera
+Description: INDI QHY Driver. This driver is compatible with any INDI client such as KStars or Xephem.
 
 Package: indi-qhy-dbg
 Priority: extra

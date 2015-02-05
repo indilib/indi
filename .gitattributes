@@ -1239,8 +1239,6 @@ debian/indi-qhy/compat -text
 debian/indi-qhy/control -text
 debian/indi-qhy/indi-qhy.copyright -text
 debian/indi-qhy/indi-qhy.install -text
-debian/indi-qhy/qhy-firmware.copyright -text
-debian/indi-qhy/qhy-firmware.install -text
 debian/indi-qhy/rules -text
 debian/indi-qhy/source/format -text
 debian/indi-qsi/changelog -text

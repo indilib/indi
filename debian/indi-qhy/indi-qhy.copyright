@@ -1,14 +1,14 @@
-This package was debianized by Geoffrey Hausheer <astro@phrcaturedblue.com> on
-Tue, 25 Aug 2009 06:13:28 -0700.
+This package was debianized by Jasem Mutlaq <mutlaqja@ikarustech.com> on
+Thu, 05 Feb 2015 09:00:00 +0300.
 
 Copyright: 
 
-    Elwood Downey <ecdowney@clearskyinstitute.com>
-    Geoffrey Hausheer <astro@phracturedblue.com>
+    Jasem Mutlaq <mutlaqja@ikarustech.com>
+    QHY CCD <lzr@qhyccd.com>
 
 License:
 
     <LGPL>
 
-The Debian packaging is (C) 2009, Geoffrey Hausheer <astro@phrcaturedblue.com> and
+The Debian packaging is (C) 2015, Jasem Mutlaq <mutlaqja@ikarustech.com> and
 is licensed under the LGPL License.
