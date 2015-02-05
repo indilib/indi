@@ -1,0 +1,13 @@
+Source: libqhy
+Section: libs
+Priority: extra
+Maintainer: Jasem Mutlaq <mutlaqja@ikarustech.com>
+Build-Depends: debhelper (>= 6), cdbs, cmake, libusb-1.0-0
+Standards-Version: 3.9.1
+
+Package: libqhy
+Architecture: i386 amd64 armhf
+Depends: ${shlibs:Depends}, ${misc:Depends}, fxload
+Description: libqhy provide libraries to access and control QHY CCDs and Filter Wheels.
+
+

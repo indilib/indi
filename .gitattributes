@@ -1327,6 +1327,12 @@ debian/libindi/libindi0.symbols -text
 debian/libindi/rules -text
 debian/libindi/source/format -text
 debian/libindi/watch -text
+debian/libqhy/changelog -text
+debian/libqhy/compat -text
+debian/libqhy/control -text
+debian/libqhy/copyright -text
+debian/libqhy/libqhy.links -text
+debian/libqhy/rules -text
 debian/libqsi/changelog -text
 debian/libqsi/compat -text
 debian/libqsi/control -text
