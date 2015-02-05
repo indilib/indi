@@ -35,7 +35,7 @@
 #define MAX_DEVICES             4           /* Max device cameraCount */
 
 //NB Disable for real driver
-#define USE_SIMULATION
+//#define USE_SIMULATION
 
 static int cameraCount;
 static QHYCCD *cameras[MAX_DEVICES];
