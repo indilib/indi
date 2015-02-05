@@ -10,8 +10,8 @@ find_package(INDI REQUIRED)
 find_package(QHY REQUIRED)
 find_package(ZLIB REQUIRED)
 
-set(INDI_QHY_VERSION_MAJOR 0)
-set(INDI_QHY_VERSION_MINOR 1)
+set(INDI_QHY_VERSION_MAJOR 1)
+set(INDI_QHY_VERSION_MINOR 3)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
