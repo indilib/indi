@@ -54,16 +54,10 @@ public:
 
     virtual bool UpdateCCDFrame(int x, int y, int w, int h);
     virtual bool UpdateCCDBin(int binx, int biny);
-    virtual void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip);
 
     virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
     virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
     virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-
-    /*virtual bool GuideNorth(float);
-    virtual bool GuideSouth(float);
-    virtual bool GuideEast(float);
-    virtual bool GuideWest(float);*/
 
    protected:
    private:
