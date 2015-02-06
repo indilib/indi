@@ -56,7 +56,6 @@ public:
     virtual int  SetTemperature(double temperature);
     virtual bool UpdateCCDFrame(int x, int y, int w, int h);
     virtual bool UpdateCCDBin(int binx, int biny);
-    virtual void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip);
     virtual bool UpdateCCDFrameType(CCDChip::CCD_FRAME fType);
 
     private:
@@ -81,9 +80,6 @@ public:
     ISwitch PortS[4];
     ISwitchVectorProperty PortSP;
 
-    ISwitch ResetS[1];
-    ISwitchVectorProperty ResetSP;
-
     IText CamInfoT[3];
     ITextVectorProperty CamInfoTP;
 
@@ -103,7 +99,6 @@ public:
     float CalcTimeLeft();
     int grabImage();
     bool setupParams();
-    void resetFrame();
 
     bool sim;
 

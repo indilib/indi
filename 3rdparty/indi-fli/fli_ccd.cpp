@@ -124,9 +124,6 @@ bool FLICCD::initProperties()
     IUFillSwitch(&PortS[3], "INET", "INet", ISS_OFF);
     IUFillSwitchVector(&PortSP, PortS, 4, getDeviceName(), "PORTS", "Port", MAIN_CONTROL_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillSwitch(&ResetS[0], "RESET", "Reset", ISS_OFF);
-    IUFillSwitchVector(&ResetSP, ResetS, 1, getDeviceName(), "FRAME_RESET", "Frame Values", IMAGE_SETTINGS_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
-
     IUFillText(&CamInfoT[0],"Model","","");
     IUFillText(&CamInfoT[1],"HW Rev","","");
     IUFillText(&CamInfoT[2],"FW Rev","","");
@@ -163,7 +160,6 @@ bool FLICCD::updateProperties()
 
     if (isConnected())
     {
-        defineSwitch(&ResetSP);
         defineText(&CamInfoTP);
 
         setupParams();
@@ -172,7 +168,6 @@ bool FLICCD::updateProperties()
     }
     else
     {
-        deleteProperty(ResetSP.name);
         deleteProperty(CamInfoTP.name);
 
         rmTimer(timerID);
@@ -187,15 +182,6 @@ bool FLICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
 
     if(strcmp(dev,getDeviceName())==0)
     {
-
-        /* Reset */
-        if (!strcmp (name, ResetSP.name))
-        {
-          if (IUUpdateSwitch(&ResetSP, states, names, n) < 0) return false;
-          resetFrame();
-          return true;
-        }
-
         /* Ports */
         if (!strcmp (name, PortSP.name))
         {
@@ -720,27 +706,6 @@ int FLICCD::grabImage()
         ExposureComplete(&PrimaryCCD);
 
     return 0;
-}
-
-void FLICCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
-{
-    INDI::CCD::addFITSKeywords(fptr, targetChip);
-
-    int status=0;
-    fits_update_key_s(fptr, TDOUBLE, "CCD-TEMP", &(TemperatureN[0].value), "CCD Temperature (Celcius)", &status);
-    fits_write_date(fptr, &status);
-}
-
-
-void FLICCD::resetFrame()
-{    
-        UpdateCCDBin(1, 1);
-        UpdateCCDFrame(0,0, PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
-        IUResetSwitch(&ResetSP);
-        ResetSP.s = IPS_IDLE;
-        IDSetSwitch(&ResetSP, "Resetting frame and binning.");
-
-        return;
 }
 
 void FLICCD::TimerHit()
