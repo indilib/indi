@@ -1023,6 +1023,7 @@
 3rdparty/libqhy/libqhy_32.bin -text
 3rdparty/libqhy/libqhy_64.bin -text
 3rdparty/libqhy/libqhy_arm_v6.bin -text
+3rdparty/libqhy/libqhy_arm_v7.bin -text
 3rdparty/libqhy/qhyccd.h -text
 3rdparty/libqhy/qhyccdcamdef.h -text
 3rdparty/libqhy/qhyccderr.h -text
