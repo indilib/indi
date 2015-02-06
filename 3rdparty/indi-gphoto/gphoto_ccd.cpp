@@ -1278,3 +1278,25 @@ bool GPhotoCCD::saveConfigItems(FILE *fp)
 
     return true;
 }
+
+void GPhotoCCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
+{
+
+    INDI::CCD::addFITSKeywords(fptr, targetChip);
+
+    int status=0;
+
+    if (mIsoSP.nsp > 0)
+    {
+
+        ISwitch *onISO = IUFindOnSwitch(&mIsoSP);
+        if (onISO)
+        {
+            int isoSpeed=-1;
+            isoSpeed = atoi(onISO->label);
+            if (isoSpeed > 0)
+                fits_update_key_s(fptr, TUINT, "ISOSPEED", &isoSpeed, "ISO Speed", &status);
+        }
+
+    }
+}

@@ -76,9 +76,7 @@ public:
 
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-
-    bool saveConfigItems(FILE *fp);
+    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);    
 
     static void ExposureUpdate(void *vp);
     void ExposureUpdate();
@@ -88,10 +86,17 @@ public:
 
 protected:
 
+    // Misc.
+    bool saveConfigItems(FILE *fp);
+    void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip);
     void TimerHit();
-    bool SetSpeed(int speed);
-    int MoveFocuser(FocusDirection dir, int speed, int duration);
     virtual void debugTriggered(bool enable);
+
+    // Focusing
+    bool SetSpeed(int speed);
+    int MoveFocuser(FocusDirection dir, int speed, int duration);    
+
+    // Preview
     bool capturePreview();
 
 private:
