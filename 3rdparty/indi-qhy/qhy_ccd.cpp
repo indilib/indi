@@ -245,6 +245,9 @@ bool QHYCCD::initProperties()
     IUFillNumberVector(&SpeedNP, SpeedN, 1, getDeviceName(), "USB_SPEED", "USB Speed", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     addAuxControls();
+
+    setInterfaceDescriptor(getInterfaceDescriptor() | FILTER_INTERFACE);
+
     return true;
 }
 
