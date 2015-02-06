@@ -1233,6 +1233,10 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
     xbin = targetChip->getBinX();
     ybin = targetChip->getBinY();
 
+    char myDevice[MAXINDIDEVICE];
+    strncpy(myDevice, getDeviceName(), MAXINDIDEVICE);
+    fits_update_key_s(fptr, TSTRING, "INSTRUME", myDevice, "CCD Name" , &status);
+
     switch (targetChip->getFrameType())
     {
       case CCDChip::LIGHT_FRAME:
@@ -1261,6 +1265,9 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
 
     if(targetChip->getFrameType() == CCDChip::DARK_FRAME)
         fits_update_key_s(fptr, TDOUBLE, "DARKTIME", &(exposureDuration), "Total Exposure Time (s)", &status);
+
+    if (capability.hasCooler)
+      fits_update_key_s(fptr, TDOUBLE, "CCD-TEMP" , &(TemperatureN[0].value), "CCD Temperature (Celcius)", &status);
 
     fits_update_key_s(fptr, TDOUBLE, "PIXSIZE1", &(pixSize1), "Pixel Size 1 (microns)", &status);
     fits_update_key_s(fptr, TDOUBLE, "PIXSIZE2", &(pixSize2), "Pixel Size 2 (microns)", &status);
