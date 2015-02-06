@@ -1381,9 +1381,6 @@ void SBIGCCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
 
   fits_update_key_s(fptr, TSTRING, "INSTRUME", ProductInfoT[0].text, "CCD Name" , &status);
 
-  if (HasCooler())
-    fits_update_key_s(fptr, TDOUBLE, "CCD-TEMP" , &(TemperatureN[0].value), "CCD Temperature (Celcius)", &status);
-
 }
 
 bool SBIGCCD::saveConfigItems(FILE *fp)
