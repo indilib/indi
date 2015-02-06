@@ -458,8 +458,6 @@ bool QHYCCD::Connect()
         cap.canAbort = true;
         cap.hasCooler = false;
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "%s","initqhyccd.");
-
         ret = InitQHYCCD(camhandle);
         if(ret != QHYCCD_SUCCESS)
         {
@@ -523,7 +521,7 @@ bool QHYCCD::Connect()
         return true;
     }
 
-    DEBUGF(INDI::Logger::DBG_ERROR, "Conect Camera failed (%s)",camid);
+    DEBUGF(INDI::Logger::DBG_ERROR, "Connecting to CCD failed (%s)",camid);
 
     return false;
 
@@ -574,11 +572,6 @@ bool QHYCCD::setupParams()
     nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
     nbuf += 512;
     PrimaryCCD.setFrameBufferSize(nbuf);
-
-    // JM Add must check for initial temperature as well if we have cooler
-
-    if (HasFilters)
-        GetFilterNames(FILTER_TAB);
 
     return true;
 }
@@ -911,8 +904,11 @@ bool QHYCCD::SelectFilter(int position)
     {
         CurrentFilter = position;
         SelectFilterDone(position);
+        DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Filter changed to %1", camid, position);
         return true;
     }
+    else
+        DEBUGF(INDI::Logger::DBG_ERROR, "Changing filter failed (%d)", ret);
 
     return false;
 }
@@ -1122,5 +1118,18 @@ void QHYCCD::updateTemperature()
 
         temperatureID = IEAddTimer(TEMPERATURE_POLL_MS,QHYCCD::updateTemperatureHelper, this);
     }
+}
+
+bool QHYCCD::saveConfigItems(FILE *fp)
+{
+    INDI::CCD::saveConfigItems(fp);
+
+    if (HasFilters)
+    {
+        IUSaveConfigNumber(fp, &FilterSlotNP);
+        IUSaveConfigText(fp, FilterNameTP);
+    }
+
+    return true;
 }
 

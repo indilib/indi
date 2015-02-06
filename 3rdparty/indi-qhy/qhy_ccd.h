@@ -58,7 +58,11 @@ public:
 
 protected:
 
-  void TimerHit();  
+  // Misc.
+  void TimerHit();
+  bool saveConfigItems(FILE *fp);
+
+  // CCD
   virtual bool UpdateCCDFrame(int x, int y, int w, int h);
   virtual bool UpdateCCDBin(int binx, int biny);
 
