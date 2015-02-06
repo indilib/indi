@@ -59,7 +59,6 @@ protected:
   void TimerHit();
   virtual bool UpdateCCDFrame(int x, int y, int w, int h);
   virtual bool UpdateCCDBin(int binx, int biny);
-  virtual void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip);
   virtual bool UpdateCCDFrameType(CCDChip::CCD_FRAME fType);
 
   // Guide Port

@@ -819,15 +819,6 @@ int AsicamCCD::grabImage()
   return 0;
 }
 
-void AsicamCCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip) {
-  INDI::CCD::addFITSKeywords(fptr, targetChip);
-
-  int status = 0;
-  fits_update_key_s(fptr, TDOUBLE, "CCD-TEMP", &(TemperatureN[0].value), "CCD Temperature (Celcius)", &status);
-  fits_write_date(fptr, &status);
-
-}
-
 void AsicamCCD::TimerHit() {
   int err = 0;
 
