@@ -947,34 +947,17 @@ void QSICCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
 
     int status=0;
     double electronsPerADU;
-    short filter = 0;
-	char filter_s[32] = "None";
 
     try
     {
         QSICam.get_ElectronsPerADU(&electronsPerADU);
-	    bool hasWheel = false;
-	    QSICam.get_HasFilterWheel(&hasWheel);
-        if(hasWheel)
-        {
-	      filter = QueryFilter();
-	      string *filterNames = new std::string[LAST_FILTER+1];
-	      QSICam.get_Names(filterNames);
-          for(unsigned i = 0; i < 18; ++i)
-              filter_s[i] = filterNames[filter-1][i];
-	    }
     } catch (std::runtime_error& err)
     {
             DEBUGF(INDI::Logger::DBG_ERROR, "get_ElectronsPerADU failed. %s.", err.what());
             return;
     }
 
-        fits_update_key_s(fptr, TDOUBLE, "CCD-TEMP", &(TemperatureN[0].value), "CCD Temperature (Celcius)", &status);
-        fits_update_key_s(fptr, TDOUBLE, "EPERADU", &electronsPerADU, "Electrons per ADU", &status);
-        fits_update_key_s(fptr, TSHORT,  "FILPOS", &filter, "Filter system position", &status);
-        fits_update_key_s(fptr, TSTRING, "FILTER", filter_s, "Filter name", &status);
-
-        fits_write_date(fptr, &status);
+    fits_update_key_s(fptr, TDOUBLE, "EPERADU", &electronsPerADU, "Electrons per ADU", &status);
 }
 
 bool QSICCD::manageDefaults()
