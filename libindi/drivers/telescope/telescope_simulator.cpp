@@ -14,12 +14,12 @@
 // We declare an auto pointer to ScopeSim.
 std::auto_ptr<ScopeSim> telescope_sim(0);
 
-#define	GOTO_RATE	2				/* slew rate, degrees/s */
+#define	GOTO_RATE	5				/* slew rate, degrees/s */
 #define	SLEW_RATE	0.5				/* slew rate, degrees/s */
 #define FINE_SLEW_RATE  0.1                             /* slew rate, degrees/s */
 #define SID_RATE	0.004178			/* sidereal rate, degrees/s */
 
-#define GOTO_LIMIT      5                               /* Move at GOTO_RATE until distance from target is GOTO_LIMIT degrees */
+#define GOTO_LIMIT      5.5                             /* Move at GOTO_RATE until distance from target is GOTO_LIMIT degrees */
 #define SLEW_LIMIT      1                               /* Move at SLEW_LIMIT until distance from target is SLEW_LIMIT degrees */
 #define FINE_SLEW_LIMIT 0.5                             /* Move at FINE_SLEW_RATE until distance from target is FINE_SLEW_LIMIT degrees */
 
@@ -319,7 +319,14 @@ bool ScopeSim::ReadScopeStatus()
 
         // In meridian flip, alway force eastward motion (increasing RA) until target is reached.
         if (forceMeridianFlip)
+        {
             dx = fabs(dx);
+            if (dx == 0)
+            {
+                dx = 1;
+                da_ra = GOTO_LIMIT;
+            }
+        }
 
         if (fabs(dx)*15. <= da_ra)
         {
@@ -516,7 +523,7 @@ bool ScopeSim::Goto(double r,double d)
        double target_az = range360(lnaltaz.az + 180);
 
        //if (targetAz > currentAz && target_az > MIN_AZ_FLIP && target_az < MAX_AZ_FLIP)
-       if (target_az > current_az && target_az > MIN_AZ_FLIP)
+       if (target_az >= current_az && target_az > MIN_AZ_FLIP)
        {
            forceMeridianFlip = true;
        }
