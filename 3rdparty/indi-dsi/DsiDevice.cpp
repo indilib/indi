@@ -133,10 +133,11 @@ DSI::Device::~Device()
     cerr << "in DSI::Device::~Device" << endl;
     int result;
     if (handle != 0) {
-        result = usb_release_interface(handle, 0);
+        result = libusb_release_interface(handle, 0);
         cerr << "usb_release_interface(handle, 0) -> " << result << endl;
-        result = usb_close(handle);
-        cerr << "usb_close(handle) -> " << result << endl;
+        libusb_close(handle);
+        //result = usb_close(handle);
+        //cerr << "usb_close(handle) -> " << result << endl;
     }
     handle = 0;
     dev = 0;
@@ -175,6 +176,8 @@ DSI::Device::initImager(const char *devname) {
 
     int retcode;
 
+// FIXME Update to libusb 1.0
+#if 0
     usb_init();
     usb_find_busses();
     usb_find_devices();
@@ -281,6 +284,7 @@ DSI::Device::initImager(const char *devname) {
     if ((retcode = usb_clear_halt(handle, 0x86)) < 0)
         throw dsi_exception(std::string("failed to clear EP 0x86, ") + strerror(-retcode));
 
+#endif
 
     command(DeviceCommand::PING);
     command(DeviceCommand::RESET);

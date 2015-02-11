@@ -6,7 +6,6 @@
 #define __Util_hh
 
 #include <memory>
-#include <usb.h>
 
 #include <vector>
 #include <string>

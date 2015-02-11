@@ -8,7 +8,7 @@
 #define __DsiDevice_hh
 
 
-#include <usb.h>
+#include <libusb-1.0/libusb.h>
 #include <string>
 
 #include "DsiTypes.h"
@@ -61,8 +61,8 @@ namespace DSI {
         /* Pixel aspect ratio */
         double aspect_ratio;
 
-        struct usb_device *dev;
-        struct usb_dev_handle *handle;
+        libusb_device *dev;
+        libusb_device_handle *handle;
         unsigned char command_sequence_number;
 
         ReadoutMode readout_mode;

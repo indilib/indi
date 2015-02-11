@@ -9,7 +9,7 @@ set(FIRMWARE_INSTALL_DIR "/lib/firmware")
 find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
 find_package(ZLIB REQUIRED)
-find_package(USB REQUIRED)
+find_package(USB-1 REQUIRED)
 
 #configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 
@@ -31,7 +31,7 @@ set(indidsi_SRCS
 
 add_executable(indi_dsi_ccd ${indidsi_SRCS})
 
-target_link_libraries(indi_dsi_ccd ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${LIBUSB_LIBRARIES} )
+target_link_libraries(indi_dsi_ccd ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${LIBUSB_1_LIBRARIES} )
 
 install(TARGETS indi_dsi_ccd RUNTIME DESTINATION bin )
 
