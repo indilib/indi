@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 2.4.7)
-PROJECT(dsiccd CXX C)
+PROJECT(indi-dsi CXX C)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
 set(RULES_INSTALL_DIR "/etc/udev/rules.d")
+set(FIRMWARE_INSTALL_DIR "/lib/firmware")
 
 find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
@@ -36,4 +37,4 @@ install(TARGETS indi_dsi_ccd RUNTIME DESTINATION bin )
 
 install(FILES indi_dsi.xml DESTINATION ${INDI_DATA_DIR})
 install(FILES 99-meadedsi.rules DESTINATION ${RULES_INSTALL_DIR})
-
+install(FILES meade-deepskyimager.hex  DESTINATION ${FIRMWARE_INSTALL_DIR})

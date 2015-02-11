@@ -110,6 +110,7 @@ bool DSICCD::Connect()
             * is loaded, the PID becomes 0x0101.
             */
             DEBUG(INDI::Logger::DBG_SESSION,  "Unable to find DSI. Has the firmware been loaded?");
+            return false;
     }
     ccd = dsi->getCcdChipName();
     if (ccd == "ICX254AL") {
@@ -148,6 +149,8 @@ const char * DSICCD::getDefaultName()
 ***************************************************************************************/
 bool DSICCD::initProperties()
 {
+    CCDCapability cap;
+
     // Must init parent properties first!
     INDI::CCD::initProperties();
 
@@ -158,16 +161,18 @@ bool DSICCD::initProperties()
     IUFillNumber(GainN, "GAIN", "Gain", "%d", 0, 63, 1, 0);
     IUFillNumberVector(&GainNP, GainN, 1, getDeviceName(), "GAIN", "Gain", IMAGE_SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
 
+    cap.canAbort    = true;
+    cap.canBin      = false;
+    cap.canSubFrame = false;
+    cap.hasCooler   = false;
+    cap.hasGuideHead= false;
+    cap.hasShutter  = false;
+    cap.hasST4Port  = false;
+    cap.hasBayer = false;
+
+    SetCCDCapability(&cap);
+
     return true;
-
-}
-
-/**************************************************************************************
-** INDI is asking us to submit list of properties for the device
-***************************************************************************************/
-void DSICCD::ISGetProperties(const char *dev)
-{
-    INDI::CCD::ISGetProperties(dev);
 
 }
 

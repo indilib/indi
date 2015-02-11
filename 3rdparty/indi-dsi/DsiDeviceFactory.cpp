@@ -1,6 +1,6 @@
 /*
  * Copyright © 2008, Roland Roberts
- *
+ * Copyright © 2015, Ben Gilsrud
  */
 
 
@@ -16,16 +16,22 @@
 #include "DsiDeviceFactory.h"
 #include "DsiPro.h"
 #include "DsiProII.h"
+#include "DsiException.h"
 
 using namespace std;
 
 DSI::Device *
 DSI::DeviceFactory::getInstance(const char *devname)
 {
-
+    DSI::Device *tmp;
     // Yes, we open the device in order to find out what CCD it is, then we do
     // it all over again creating a specific subtype.
-    DSI::Device *tmp = new DSI::Device(devname);
+    try {
+        tmp = new DSI::Device(devname);
+    } catch (dsi_exception e) {
+        cerr << e.what();
+        return NULL;
+    }
 
     cerr << "Found Camera " << tmp->getCameraName() << endl
          << "Found CCD " << tmp->getCcdChipName() << endl;

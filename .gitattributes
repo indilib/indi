@@ -78,6 +78,7 @@
 3rdparty/indi-dsi/dsi_ccd.cpp -text
 3rdparty/indi-dsi/dsi_ccd.h -text
 3rdparty/indi-dsi/indi_dsi.xml -text
+3rdparty/indi-dsi/meade-deepskyimager.hex -text
 3rdparty/indi-duino/CMakeLists.txt -text
 3rdparty/indi-duino/README -text
 3rdparty/indi-duino/add-on/meteostationWEB/README -text

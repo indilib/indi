@@ -34,7 +34,6 @@ public:
     DSICCD();
 
     bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    void ISGetProperties(const char *dev);
 
 protected:
     // General device functions
