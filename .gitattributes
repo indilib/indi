@@ -1194,6 +1194,13 @@ debian/indi-asicam/copyright -text
 debian/indi-asicam/indi-asicam.install -text
 debian/indi-asicam/rules -text
 debian/indi-asicam/source/format -text
+debian/indi-dsi/changelog -text
+debian/indi-dsi/compat -text
+debian/indi-dsi/control -text
+debian/indi-dsi/copyright -text
+debian/indi-dsi/indi-dsi.install -text
+debian/indi-dsi/rules -text
+debian/indi-dsi/source/format -text
 debian/indi-eqmod/changelog -text
 debian/indi-eqmod/compat -text
 debian/indi-eqmod/control -text
