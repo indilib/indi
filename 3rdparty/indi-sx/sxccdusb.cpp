@@ -623,7 +623,7 @@ int sxReadPixels(HANDLE sxHandle, void *pixels, unsigned long count) {
     DEBUG(log(true, "sxReadPixels: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
     if (transferred >= 0) {
       read+=transferred;
-      usleep(50);
+      //usleep(50);
     }
   }
   return rc >= 0;

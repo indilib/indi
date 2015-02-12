@@ -71,7 +71,7 @@
 #define	MAXWSIZ		4096		/* max bytes/write */
 #define	DEFMAXQSIZ	64		/* default max q behind, MB */
 
-#ifdef OSX_HELPER_MODE
+#ifdef OSX_EMBEDED_MODE
 #define LOGNAME "/Users/%s/Library/Logs/indiserver.log"
 #define FIFONAME "/tmp/indiserverFIFO"
 #endif
@@ -211,7 +211,7 @@ main (int ac, char *av[])
 	/* save our name */
 	me = av[0];
 
-#ifdef OSX_HELPER_MODE
+#ifdef OSX_EMBEDED_MODE
 
   char logname[128];
   snprintf(logname, 128, LOGNAME, getlogin());
@@ -417,7 +417,7 @@ startLocalDvr (DvrInfo *dp)
 	int rp[2], wp[2], ep[2];
 	int pid;
 
-#ifdef OSX_HELPER_MODE
+#ifdef OSX_EMBEDED_MODE
   fprintf(stderr, "STARTING \"%s\"\n", dp->name); fflush(stderr);
 #endif
 
@@ -472,7 +472,14 @@ startLocalDvr (DvrInfo *dp)
         if (*dp->envPrefix)
         {
 	      setenv("INDIPREFIX", dp->envPrefix, 1);
-	      snprintf(executable, MAXSBUF, "%s/bin/%s", dp->envPrefix, dp->name);
+#ifdef OSX_EMBEDED_MODE
+	      snprintf(executable, MAXSBUF, "%s/Contents/MacOS/%s", dp->envPrefix, dp->name);
+#else
+        snprintf(executable, MAXSBUF, "%s/bin/%s", dp->envPrefix, dp->name);
+#endif
+        
+        fprintf(stderr, "%s\n", executable);
+        
           execlp (executable, dp->name, NULL);
         }
         else
@@ -482,7 +489,7 @@ startLocalDvr (DvrInfo *dp)
           execlp (dp->name, dp->name, NULL);
 	    }
 
-#ifdef OSX_HELPER_MODE
+#ifdef OSX_EMBEDED_MODE
   fprintf(stderr, "FAILED \"%s\"\n", dp->name); fflush(stderr);
 #endif
 	    fprintf (stderr, "%s: Driver %s: execlp: %s\n", indi_tstamp(NULL),
@@ -1005,7 +1012,7 @@ newClient()
 			    indi_tstamp(NULL), cp->s, inet_ntoa(addr.sin_addr),
 							ntohs(addr.sin_port));
 	}
-#ifdef OSX_HELPER_MODE
+#ifdef OSX_EMBEDED_MODE
   int active = 0;
   for (int i = 0; i < nclinfo; i++)
     if (clinfo[i].active)
@@ -1181,7 +1188,7 @@ readFromDriver (DvrInfo *dp)
             strncpy (dp->dev[dp->ndev], dev, MAXINDIDEVICE-1);
             dp->dev[dp->ndev][MAXINDIDEVICE-1] = '\0';
 
-#ifdef OSX_HELPER_MODE
+#ifdef OSX_EMBEDED_MODE
             if (!dp->ndev)
               fprintf(stderr, "STARTED \"%s\"\n", dp->name); fflush(stderr);
 #endif
@@ -1289,7 +1296,7 @@ shutdownClient (ClInfo *cp)
 	if (verbose > 0)
 	    fprintf (stderr, "%s: Client %d: shut down complete - bye!\n",
 							indi_tstamp(NULL), cp->s);
-#ifdef OSX_HELPER_MODE
+#ifdef OSX_EMBEDED_MODE
   int active = 0;
   for (int i = 0; i < nclinfo; i++)
     if (clinfo[i].active)
@@ -1317,7 +1324,7 @@ shutdownDvr (DvrInfo *dp, int restart)
 	    close (dp->efd);
 	}
 
-#ifdef OSX_HELPER_MODE
+#ifdef OSX_EMBEDED_MODE
   fprintf(stderr, "STOPPED \"%s\"\n", dp->name); fflush(stderr);
 #endif
 

@@ -28,7 +28,7 @@
 #ifndef SXWHEEL_H
 #define SXWHEEL_H
 
-#include <libindi/indifilterwheel.h>
+#include <indifilterwheel.h>
 
 #include "hidapi.h"
 

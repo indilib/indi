@@ -33,6 +33,11 @@
 #include <stdarg.h>
 #include <sys/param.h>
 
+#if defined(BSD) && !defined(__GNU__)
+#include <IOKit/serial/ioss.h>
+#include <sys/ioctl.h>
+#endif
+
 #include <config.h>
 
 #ifdef HAVE_NOVA_H
@@ -609,10 +614,10 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
        // and output speed.
 
        speed_t speed = 14400; // Set 14400 baud
-    if (ioctl(fileDescriptor, IOSSIOSPEED, &speed) == -1)
+    if (ioctl(t_fd, IOSSIOSPEED, &speed) == -1)
     {
-        printf("Error calling ioctl(..., IOSSIOSPEED, ...) %s - %s(%d).\n",
-            bsdPath, strerror(errno), errno);
+        printf("Error calling ioctl(..., IOSSIOSPEED, ...) - %s(%d).\n",
+            strerror(errno), errno);
     }
 #endif
 

@@ -476,7 +476,11 @@ bool INDI::BaseDevice::buildSkeleton(const char *filename)
           filename = slash + 1;
         const char *indiprefix = getenv("INDIPREFIX");
         if (indiprefix) {
+#ifdef OSX_EMBEDED_MODE
+          snprintf(pathname, MAXRBUF-1, "%s/Contents/Resources/%s", indiprefix, filename);
+#else
           snprintf(pathname, MAXRBUF-1, "%s/share/indi/%s", indiprefix, filename);
+#endif
         } else {
           snprintf(pathname, MAXRBUF-1, "%s/%s", DATA_INSTALL_DIR, filename);
         }

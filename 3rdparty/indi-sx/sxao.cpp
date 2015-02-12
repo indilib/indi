@@ -26,7 +26,7 @@
 #include <memory>
 #include <unistd.h>
 
-#include <libindi/indicom.h>
+#include <indicom.h>
 
 #include "sxconfig.h"
 #include "sxao.h"

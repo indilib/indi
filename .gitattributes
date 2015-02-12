@@ -1646,3 +1646,4 @@ macosx/INDI[!!-~]Server/en.lproj/InfoPlist.strings -text
 macosx/INDI[!!-~]Server/en.lproj/MainMenu.xib -text
 macosx/INDI[!!-~]Server/indiserver-Info.plist -text
 macosx/INDI[!!-~]Server/main.m -text
+macosx/README.txt -text
