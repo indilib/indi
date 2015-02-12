@@ -64,8 +64,7 @@
   if (self) {
     serverId = @"eu.cloudmakers.indi.indiserver";
     mainBundle = [NSBundle mainBundle];
-    bin = [mainBundle pathForResource:@"bin" ofType:nil];
-    prefix = [bin stringByDeletingLastPathComponent];
+    prefix = mainBundle.bundlePath;
     groups = nil;
     currentGroup = nil;
     currentDevice = nil;
@@ -198,7 +197,7 @@
 
 - (void)parser:(NSXMLParser *)parser didEndElement:(NSString *)elementName namespaceURI:(NSString *)namespaceURI qualifiedName:(NSString *)qName {
   if ([elementName isEqualToString:@"driver"]) {
-    NSString *path = [mainBundle pathForResource:characters ofType:nil inDirectory:@"bin"];
+    NSString *path = [mainBundle pathForAuxiliaryExecutable:characters];
     if (path) {
       currentDevice.driver = [characters copy];
       if (![groups containsObject:currentGroup]) {
@@ -230,14 +229,15 @@
   NSError *error = nil;
   NSMutableString *root = [NSMutableString stringWithString:@"<?xml version='1.0' encoding='UTF-8'?>"];
   [root appendString:@"<root>"];
-  [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"drivers" ofType: @"xml" inDirectory:@"share/indi"] encoding:NSUTF8StringEncoding error:&error]];
-  [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_atik" ofType: @"xml" inDirectory:@"share/indi"] encoding:NSUTF8StringEncoding error:&error]];
-  [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_eqmod" ofType: @"xml" inDirectory:@"share/indi"] encoding:NSUTF8StringEncoding error:&error]];
-  [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_sx" ofType: @"xml" inDirectory:@"share/indi"] encoding:NSUTF8StringEncoding error:&error]];
-  [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_shoestring" ofType: @"xml" inDirectory:@"share/indi"] encoding:NSUTF8StringEncoding error:&error]];
-  [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_maxdomeii" ofType: @"xml" inDirectory:@"share/indi"] encoding:NSUTF8StringEncoding error:&error]];
-  [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_spectracyber" ofType: @"xml" inDirectory:@"share/indi"] encoding:NSUTF8StringEncoding error:&error]];
-  [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_aagcloudwatcher" ofType: @"xml" inDirectory:@"share/indi"] encoding:NSUTF8StringEncoding error:&error]];
+  [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"drivers" ofType: @"xml"] encoding:NSUTF8StringEncoding error:&error]];
+  [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_atik" ofType: @"xml"] encoding:NSUTF8StringEncoding error:&error]];
+  [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_eqmod" ofType: @"xml"] encoding:NSUTF8StringEncoding error:&error]];
+  [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_sx" ofType: @"xml"] encoding:NSUTF8StringEncoding error:&error]];
+  [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_shoestring" ofType: @"xml"] encoding:NSUTF8StringEncoding error:&error]];
+  [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_maxdomeii" ofType: @"xml"] encoding:NSUTF8StringEncoding error:&error]];
+  [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_spectracyber" ofType: @"xml"] encoding:NSUTF8StringEncoding error:&error]];
+  [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_aagcloudwatcher" ofType: @"xml"] encoding:NSUTF8StringEncoding error:&error]];
+  [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_usbfocus" ofType: @"xml"] encoding:NSUTF8StringEncoding error:&error]];
   [root appendString:@"</root>"];
   groups = [NSMutableArray array];
   NSXMLParser *parser = [[NSXMLParser alloc] initWithData:[root dataUsingEncoding:NSUTF8StringEncoding]];
@@ -351,15 +351,15 @@
   NSMutableDictionary *plist = [NSMutableDictionary dictionary];
   [plist setObject:serverId forKey:@"Label"];
   [plist setObject:[NSNumber numberWithBool:YES] forKey:@"KeepAlive"];
-  [plist setObject:[mainBundle pathForResource:@"indiserver" ofType:nil inDirectory:@"bin"] forKey:@"Program"];
-  CFErrorRef error;
+  [plist setObject:[mainBundle pathForAuxiliaryExecutable:@"indiserver"] forKey:@"Program"];
+  CFErrorRef error=NULL;
   if (SMJobSubmit(kSMDomainUserLaunchd, (__bridge CFDictionaryRef)plist, nil, &error)) {
   } else {
     _statusImage.image = [NSImage imageNamed:@"NSStatusUnavailable"];
     _statusLabel.stringValue = @"Server job failed!";
     NSLog(@"Server job failed %@", error);
   }
-  if ( error ) {
+  if (error) {
     CFRelease(error);
   }
   [[[NSThread alloc] initWithTarget:self selector:@selector(logReader:) object:[NSString stringWithCString:logname encoding:NSASCIIStringEncoding]] start];
