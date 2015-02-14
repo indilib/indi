@@ -1,7 +1,7 @@
 From 0.9.9 to 1.0.0
 
       + 3rdparty: Support for QHY CCDs and CFWs (BETA).
-      + 3rdparty: Support for Meade DSI (ALPHA).
+      + 3rdparty: Support for Meade DSI (BETA).
       + 3rdparty: Support for FFMV cameras.
       + Support for STAR2000.
       + Support for Baader dome.
@@ -17,7 +17,7 @@ From 0.9.9 to 1.0.0
       + Added fan and readout speed controls to QSI CCD.
       + Fixed locale issue in INDI driver.
       + Fixed regression in LX200Basic driver.
-      + Fixed issue with INDI Server resetting environment variable for skeleton files.
+      + Fixed issue with INDI Server resetting environment variable for skeleton and config files.
       + Various fixes for loading/saving of user configuration.
       
 From 0.9.8 to 0.9.9
