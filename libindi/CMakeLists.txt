@@ -6,7 +6,7 @@ cmake_policy(SET CMP0003 NEW)
 #cmake_policy(SET CMP0042 OLD)
 set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
 ##################  INDI version  ################################
-set(INDI_SOVERSION "0")
+set(INDI_SOVERSION "1")
 set(CMAKE_INDI_VERSION_MAJOR 1)
 set(CMAKE_INDI_VERSION_MINOR 0)
 set(CMAKE_INDI_VERSION_RELEASE 0)
