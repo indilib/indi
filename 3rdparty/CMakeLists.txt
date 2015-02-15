@@ -45,8 +45,8 @@ option(WITH_GPHOTO "Install GPhoto Driver" On)
 option(WITH_APOGEE "Install Apogee Driver" On)
 option(WITH_FISHCAMP "Install Fishcamp Driver" On)
 option(WITH_ASICAM "Install ZWO Optics ASI Driver" On)
-option(WITH_QHY "Install QHY Driver" Off)
-
+option(WITH_DSI "Install Meade DSI Driver" On)
+option(WITH_QHY "Install QHY Driver" On)
 
 if (WITH_QSI)
 find_package(QSI)
@@ -109,6 +109,10 @@ endif(WITH_FISHCAMP)
 if (WITH_ASICAM)
 add_subdirectory(indi-asicam)
 endif(WITH_ASICAM)
+
+if (WITH_DSI)
+add_subdirectory(indi-dsi)
+endif(WITH_DSI)
 
 # Check if libraries are found. If not, we must build them, install them, THEN run CMake again to build and instal the drivers. If all the libraraies are installed, then we build and install the drivers only now.
 if (LIBRARIES_FOUND)
