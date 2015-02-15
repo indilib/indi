@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <assert.h>
+#include <unistd.h>
 
 #include "DsiTypes.h"
 #include "DsiException.h"
@@ -136,8 +137,6 @@ DSI::Device::~Device()
         result = libusb_release_interface(handle, 0);
         cerr << "usb_release_interface(handle, 0) -> " << result << endl;
         libusb_close(handle);
-        //result = usb_close(handle);
-        //cerr << "usb_close(handle) -> " << result << endl;
     }
     handle = 0;
     dev = 0;
@@ -163,6 +162,11 @@ DSI::Device::setCameraName(std::string &newname)
 
 void
 DSI::Device::initImager(const char *devname) {
+    int rc;
+    int cnt;
+    int i;
+    libusb_device **list = NULL;
+    struct libusb_device_descriptor desc;
 
     string bus_name, device_name;
     if (devname != 0) {
@@ -176,42 +180,28 @@ DSI::Device::initImager(const char *devname) {
 
     int retcode;
 
-// FIXME Update to libusb 1.0
-#if 0
-    usb_init();
-    usb_find_busses();
-    usb_find_devices();
-
-    /* All DSI devices appear to present as the same USB vendor:device values.
-     * There does not seem to be any better way to find the device other than
-     * to iterate over and find the match.  Fortunately, this is fast.
-     */
-
-    for (struct usb_bus *bus = usb_get_busses(); bus != 0; bus = bus->next) {
-        if (!bus_name.empty() && (bus_name != bus->dirname))
-            continue;
-        for (dev = bus->devices; dev != 0; dev = dev->next) {
-            if (!device_name.empty() && (device_name != dev->filename))
-                continue;
-            if ((  (dev->descriptor.idVendor = 0x156c))
-                && (dev->descriptor.idProduct == 0x0101)) {
-                cerr << "Found device "
-                     << setw(4) << setfill('0') << hex
-                     << dev->descriptor.idVendor << ":" << dev->descriptor.idProduct
-                     << " on usb:"
-                     << bus->dirname << "," << dev->filename << endl;
-                if ((handle = usb_open(dev)) == 0) {
-                    throw dsi_exception("Failed to open device, aborting");
-                }
-            }
-            break;
-        }
-        if (handle != 0)
-            break;
+    if (rc = libusb_init(NULL)) {
+        throw dsi_exception(libusb_error_name(rc));
     }
+    cnt = libusb_get_device_list(NULL, &list);
 
-    if (handle == 0)
+    handle = NULL;
+    for (i = 0; i < cnt; ++i) {
+        if (!libusb_get_device_descriptor(list[i], &desc)) {
+            if ((desc.idVendor == 0x156c) && (desc.idProduct = 0x0101)) {
+                dev = list[i];
+                if (libusb_open(dev, &handle)) {
+                    dev = NULL;
+                }
+                break;
+            }
+        }
+    }
+    libusb_free_device_list(list, 0);
+
+    if (handle == 0) {
         throw dsi_exception("no DSI device found");
+    }
 
     const size_t size = 0x400;
     unsigned char data[size];
@@ -253,19 +243,19 @@ DSI::Device::initImager(const char *devname) {
      * wire).
      *
      */
-    if ((retcode = usb_get_descriptor(handle, 0x01, 0x00, data, size)) < 0)
+    if ((retcode = libusb_get_descriptor(handle, 0x01, 0x00, data, size)) < 0)
         throw dsi_exception(std::string("failed to get descriptor, ") + strerror(-retcode));
 
-    if ((retcode = usb_get_descriptor(handle, 0x01, 0x00, data, size)) < 0)
+    if ((retcode = libusb_get_descriptor(handle, 0x01, 0x00, data, size)) < 0)
         throw dsi_exception(std::string("failed to get descriptor, ") + strerror(-retcode));
 
-    if ((retcode = usb_get_descriptor(handle, 0x02, 0x00, data, size)) < 0)
+    if ((retcode = libusb_get_descriptor(handle, 0x02, 0x00, data, size)) < 0)
         throw dsi_exception(std::string("failed to get descriptor, ") + strerror(-retcode));
 
-    if ((retcode = usb_set_configuration(handle, 1)) < 0)
+    if ((retcode = libusb_set_configuration(handle, 1)) < 0)
         throw dsi_exception(std::string("failed to set configuration, ") + strerror(-retcode));
 
-    if ((retcode = usb_claim_interface(handle, 0)) < 0)
+    if ((retcode = libusb_claim_interface(handle, 0)) < 0)
         throw dsi_exception(std::string("failed to claim interface, ") + strerror(-retcode));
 
     /* This is included out of desperation, but it works :-|
@@ -275,16 +265,15 @@ DSI::Device::initImager(const char *devname) {
      * least, we need to clear this EP.  However, believing in the power of
      * magic, we clear them all.
      */
-    if ((retcode = usb_clear_halt(handle, 0x01)) < 0)
+    if ((retcode = libusb_clear_halt(handle, 0x01)) < 0)
         throw dsi_exception(std::string("failed to clear EP 0x01, ") + strerror(-retcode));
 
-    if ((retcode = usb_clear_halt(handle, 0x81)) < 0)
+    if ((retcode = libusb_clear_halt(handle, 0x81)) < 0)
         throw dsi_exception(std::string("failed to clear EP 0x81, ") + strerror(-retcode));
 
-    if ((retcode = usb_clear_halt(handle, 0x86)) < 0)
+    if ((retcode = libusb_clear_halt(handle, 0x86)) < 0)
         throw dsi_exception(std::string("failed to clear EP 0x86, ") + strerror(-retcode));
 
-#endif
 
     command(DeviceCommand::PING);
     command(DeviceCommand::RESET);
@@ -687,6 +676,7 @@ unsigned char *
 DSI::Device::downloadImage()
 {
         int status;
+        int transfered;
         unsigned int t_read_width;
         unsigned int t_read_height_even;
         unsigned int t_read_height_odd;
@@ -718,7 +708,7 @@ DSI::Device::downloadImage()
 
         /* XXX: There has to be  a way to calculate a more optimal readout
            time here. */
-        status = usb_bulk_read(handle, 0x86, (char *) even_data, even_size, 60000*MILLISEC);
+        status = libusb_bulk_transfer(handle, 0x86, even_data, even_size, &transfered, 60000*MILLISEC);
         if (log_commands) {
             log_command_info(false, "r 86", (status > 0 ? status : 0), (char *) even_data, 0);
 
@@ -730,7 +720,7 @@ DSI::Device::downloadImage()
 
         }
 
-        if (status < 0) {
+        if (status != 0) {
             stringstream ss;
             ss << dec
                << "read even data, status = (" << status << ") "
@@ -738,7 +728,7 @@ DSI::Device::downloadImage()
             throw device_read_error(ss.str());
         }
 
-        status = usb_bulk_read(handle, 0x86, (char *) odd_data,  odd_size,  60000*MILLISEC);
+        status = libusb_bulk_transfer(handle, 0x86, odd_data,  odd_size, &transfered, 60000*MILLISEC);
         if (log_commands) {
             log_command_info(false, "r 86", (status > 0 ? status : 0), (char *) even_data, 0);
 
@@ -749,7 +739,7 @@ DSI::Device::downloadImage()
                  << t_read_width << " x " << t_read_height_odd << " (odd pixels)" << endl;
         }
 
-        if (status < 0) {
+        if (status != 0) {
             stringstream ss;
             ss << dec
                << "read odd data, status = (" << status <<  ") "
@@ -823,6 +813,7 @@ DSI::Device::downloadImage()
 unsigned char *
 DSI::Device::getImage(DeviceCommand __command, int howlong)
 {
+    int transfered;
 
     if ((  (__command == DeviceCommand::TRIGGER))
         || (__command == DeviceCommand::TEST_PATTERN)) {
@@ -935,7 +926,7 @@ DSI::Device::getImage(DeviceCommand __command, int howlong)
 
         /* XXX: There has to be  a way to calculate a more optimal readout
            time here. */
-        status = usb_bulk_read(handle, 0x86, (char *) even_data, even_size, 60000*MILLISEC);
+        status = libusb_bulk_transfer(handle, 0x86, even_data, even_size, &transfered, 60000*MILLISEC);
         if (log_commands) {
             log_command_info(false, "r 86", (status > 0 ? status : 0), (char *) even_data, 0);
 
@@ -955,7 +946,7 @@ DSI::Device::getImage(DeviceCommand __command, int howlong)
             throw device_read_error(ss.str());
         }
 
-        status = usb_bulk_read(handle, 0x86, (char *) odd_data,  odd_size,  60000*MILLISEC);
+        status = libusb_bulk_transfer(handle, 0x86, odd_data,  odd_size, &transfered, 60000*MILLISEC);
         if (log_commands) {
             log_command_info(false, "r 86", (status > 0 ? status : 0), (char *) even_data, 0);
 
@@ -1270,6 +1261,7 @@ DSI::Device::command(DeviceCommand __command, int __option, int __length, int __
 unsigned int
 DSI::Device::command(unsigned char *__buffer, int __length, int __expected)
 {
+    int transfered;
 
     const DeviceCommand *command = DeviceCommand::find((int) __buffer[2]);
     //    if (command == 0)
@@ -1298,9 +1290,9 @@ DSI::Device::command(unsigned char *__buffer, int __length, int __expected)
         last_time = get_sysclock_ms();
     }
 
-    int retcode = usb_bulk_write(handle, 0x01, (char *) __buffer, __buffer[0], 100*MILLISEC);
-    if (retcode < 0) {
-        throw device_write_error(std::string("usb_bulk_read error ") + strerror(-retcode));
+    int retcode = libusb_bulk_transfer(handle, 0x01, __buffer, __buffer[0], &transfered, 100*MILLISEC);
+    if (retcode != 0) {
+        throw device_write_error(std::string("libusb_bulk_transfer error ") + strerror(-retcode));
     }
 
     if (log_commands)
@@ -1308,16 +1300,16 @@ DSI::Device::command(unsigned char *__buffer, int __length, int __expected)
 
     const size_t size = 0x40;
     char buffer[size];
-    retcode = usb_bulk_read(handle, 0x81, buffer, size, 100*MILLISEC);
+    retcode = libusb_bulk_transfer(handle, 0x81, (unsigned char *) buffer, size, &transfered, 100*MILLISEC);
 
-    if (retcode < 0) {
-        throw device_read_error(std::string("usb_bulk_read error ") + strerror(-retcode));
+    if (retcode != 0) {
+        throw device_read_error(std::string("libusb_bulk_transfer error ") + strerror(-retcode));
     }
 
-    if (buffer[0] != retcode) {
+    if (buffer[0] != transfered) {
         ostringstream msg;
         msg << "response length " << dec << (int) buffer[0]
-            << " does not match bytes read " << retcode << endl;
+            << " does not match bytes read " << transfered << endl;
         throw bad_length(msg.str());
     }
 
