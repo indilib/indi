@@ -5126,6 +5126,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 10.8;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				WRAPPER_EXTENSION = app;
 			};
@@ -5146,6 +5147,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 10.8;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				WRAPPER_EXTENSION = app;
 			};
