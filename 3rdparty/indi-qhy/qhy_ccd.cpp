@@ -902,7 +902,7 @@ bool QHYCCD::SelectFilter(int position)
     if (sim)
         ret = QHYCCD_SUCCESS;
     else
-        ret = ControlQHYCCDCFW(camhandle,position);
+        ret = ControlQHYCCDCFW(camhandle,position-1);
     if(ret == QHYCCD_SUCCESS)
     {
         CurrentFilter = position;
