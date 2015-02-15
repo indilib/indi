@@ -116,7 +116,7 @@ protected:
 
     /**
      * @brief SetSpeed Set Dome speed. This does not initiate motion, it sets the speed for the next motion command. If motion is in progress, then change speed accordingly.
-     * @param speed Dome speed (RPM)
+     * @param rpm Dome speed (RPM)
      * @return true if successful, false otherwise
      */
     virtual bool SetDomeSpeed(double rpm);
@@ -131,7 +131,7 @@ protected:
     virtual int MoveDome(DomeDirection dir, double speed, int duration);
 
     /** \brief Move the Dome to an absolute azimuth.
-        \param ticks The new position of the Dome.
+        \param az The new position of the Dome.
         \return Return 0 if motion is completed and Dome reached requested position. Return 1 if Dome started motion to requested position and is in progress.
                 Return -1 if there is an error.
     */

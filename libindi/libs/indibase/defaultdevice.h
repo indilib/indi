@@ -95,19 +95,18 @@ class INDI::DefaultDevice : public INDI::BaseDevice
 
 public:       
 
-    /** \enum DeviceInterface
-        \brief Interfaces define the class of devices the driver implements. A driver may implement one or more interfaces.
+    /** Interfaces define the class of devices the driver implements. A driver may implement one or more interfaces.
     */
     enum
     {
-        GENERAL_INTERFACE       = 0,                /*!< Default interface for all INDI devices */
-        TELESCOPE_INTERFACE     = (1 << 0),         /*!< Telescope interface, must subclass INDI::Telescope */
-        CCD_INTERFACE           = (1 << 1),         /*!< CCD interface, must subclass INDI::CCD */
-        GUIDER_INTERFACE        = (1 << 2),         /*!< Guider interface, must subclass INDI::GuiderInterface */
-        FOCUSER_INTERFACE       = (1 << 3),         /*!< Focuser interface, must subclass INDI::FocuserInterface */
-        FILTER_INTERFACE        = (1 << 4),         /*!< Filter interface, must subclass INDI::FilterInterface */
-        DOME_INTERFACE          = (1 << 5),         /*!< Dome interface, must subclass INDI::DomeInterface */
-        AUX_INTERFACE           = (1 << 6),         /*!< Auxiliary interface */
+        GENERAL_INTERFACE       = 0,                /**< Default interface for all INDI devices */
+        TELESCOPE_INTERFACE     = (1 << 0),         /**< Telescope interface, must subclass INDI::Telescope */
+        CCD_INTERFACE           = (1 << 1),         /**< CCD interface, must subclass INDI::CCD */
+        GUIDER_INTERFACE        = (1 << 2),         /**< Guider interface, must subclass INDI::GuiderInterface */
+        FOCUSER_INTERFACE       = (1 << 3),         /**< Focuser interface, must subclass INDI::FocuserInterface */
+        FILTER_INTERFACE        = (1 << 4),         /**< Filter interface, must subclass INDI::FilterInterface */
+        DOME_INTERFACE          = (1 << 5),         /**< Dome interface, must subclass INDI::DomeInterface */
+        AUX_INTERFACE           = (1 << 6),         /**< Auxiliary interface */
     } DeviceInterface;
 
     DefaultDevice();

@@ -54,7 +54,7 @@ class INDI::Dome : public INDI::DefaultDevice, public INDI::DomeInterface
 
     /** \typedef DomeMeasurements
         \brief Measurements necessary for dome-slit synchronization. All values are in meters. The displacements are measured from the true dome centre, and the dome is assumed spherical.
-        \Note: The mount centre is the point where RA and Dec. axis crosses, no matter the kind of mount. For example, for a fork mount this displacement is typically 0 if it's perfectly centred with RA axis.
+        \note: The mount centre is the point where RA and Dec. axis crosses, no matter the kind of mount. For example, for a fork mount this displacement is typically 0 if it's perfectly centred with RA axis.
     */
     typedef enum
     {
@@ -83,7 +83,6 @@ class INDI::Dome : public INDI::DefaultDevice, public INDI::DomeInterface
 
         /**
          * @brief GetTargetAz
-         * @param RA Right ascension in hours (0.0 - 24.0)
          * @param Az Returns Azimuth required to the dome in order to center the shutter aperture with telescope
          * @param Alt
          * @param minAz Returns Minimum azimuth in order to avoid any dome interference to the full aperture of the telescope
@@ -131,7 +130,7 @@ class INDI::Dome : public INDI::DefaultDevice, public INDI::DomeInterface
 
         /**
          * @brief CheckHorizon Returns true if telescope points above horizon.
-         * @param ha Hour angle
+         * @param HA Hour angle
          * @param dec Declination
          * @param lat observer's latitude
          * @return True if telescope points above horizon, false otherwise.

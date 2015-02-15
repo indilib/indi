@@ -1,7 +1,7 @@
-INDI Library Setup 0.9.9
+INDI Library Setup 1.0.0
 ========================
 
-You must have CMake >= 2.4.7 in order to build this package.
+You must have CMake >= 2.8 in order to build this package.
 
 1) $ tar -xzf libindi.tar.gz
 2) $ mkdir libindi_build
@@ -20,4 +20,3 @@ Dependencies
 + libnova-dev
 + cfitsio-dev
 + libgsl0-dev 
-

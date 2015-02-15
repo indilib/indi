@@ -217,7 +217,7 @@ public:
      * @param min Minimum element value
      * @param max Maximum element value
      * @param step Element step value
-     * @param setnToClient If true (default), the element limits are updated and is sent to the client. If false, the element limits are updated without getting sent to the client.
+     * @param sendToClient If true (default), the element limits are updated and is sent to the client. If false, the element limits are updated without getting sent to the client.
      */
     void setMinMaxStep(const char *property, const char *element, double min, double max, double step, bool sendToClient=true);
 
