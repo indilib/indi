@@ -7,7 +7,7 @@ Standards-Version: 3.8.0
 
 Package: indi-ffmv
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libindi0
+Depends: ${shlibs:Depends}, ${misc:Depends}, libindi1
 Description: INDI Driver for Point Grey Firefly MV cameras.
  Driver for Point Grey Firefly MV cameras.
  .

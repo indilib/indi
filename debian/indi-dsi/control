@@ -7,7 +7,7 @@ Standards-Version: 3.8.0
 
 Package: indi-dsi
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libindi0, fxload
+Depends: ${shlibs:Depends}, ${misc:Depends}, libindi1, fxload
 Description: INDI Meade DSI Pro I/II Driver
  Driver for Meade DSI Pro I/II camera.
  .

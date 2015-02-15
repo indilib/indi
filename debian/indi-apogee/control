@@ -7,7 +7,7 @@ Standards-Version: 3.9.1
 
 Package: indi-apogee
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libindi0, libapogee3
+Depends: ${shlibs:Depends}, ${misc:Depends}, libindi1, libapogee3
 Description: INDI driver for Apogee CCDs and Filter Wheels
  INDI Driver for Apogee CCDs and Filter Wheels
  .

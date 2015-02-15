@@ -7,7 +7,7 @@ Standards-Version: 3.9.1
 
 Package: indi-aagcloudwatcher
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libindi0
+Depends: ${shlibs:Depends}, ${misc:Depends}, libindi1
 Description: INDI driver for the AAG Cloud Watcher
  INDI driver for the AAG Cloud Watcher
  .
