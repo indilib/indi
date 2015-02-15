@@ -1329,8 +1329,7 @@ debian/libindi/indi-bin.install -text
 debian/libindi/libindi-data.install -text
 debian/libindi/libindi-dev.install -text
 debian/libindi/libindi-dev.links -text
-debian/libindi/libindi0.install -text
-debian/libindi/libindi0.symbols -text
+debian/libindi/libindi1.install -text
 debian/libindi/rules -text
 debian/libindi/source/format -text
 debian/libindi/watch -text
