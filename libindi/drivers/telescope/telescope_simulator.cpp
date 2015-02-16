@@ -467,11 +467,11 @@ bool ScopeSim::ReadScopeStatus()
         {
             last_dx=dx;
             last_dy=dy;
-            DEBUGF(INDI::Logger::DBG_DEBUG, "dt is %g\n", dt);
-            DEBUGF(INDI::Logger::DBG_DEBUG, "RA Displacement (%c%s) %s -- %s of target RA %s\n", dx >= 0 ? '+' : '-', RA_DISP, RA_PE,  (EqPEN[RA_AXIS].value - targetRA) > 0 ? "East" : "West", RA_TARGET);
-            DEBUGF(INDI::Logger::DBG_DEBUG, "DEC Displacement (%c%s) %s -- %s of target RA %s\n", dy >= 0 ? '+' : '-', DEC_DISP, DEC_PE, (EqPEN[DEC_AXIS].value - targetDEC) > 0 ? "North" : "South", DEC_TARGET);
-            DEBUGF(INDI::Logger::DBG_DEBUG, "RA Guide Correction (%g) %s -- Direction %s\n", ra_guide_dt, RA_GUIDE, ra_guide_dt > 0 ? "East" : "West");
-            DEBUGF(INDI::Logger::DBG_DEBUG, "DEC Guide Correction (%g) %s -- Direction %s\n", dec_guide_dt, DEC_GUIDE, dec_guide_dt > 0 ? "North" : "South");
+            //DEBUGF(INDI::Logger::DBG_DEBUG, "dt is %g\n", dt);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "RA Displacement (%c%s) %s -- %s of target RA %s", dx >= 0 ? '+' : '-', RA_DISP, RA_PE,  (EqPEN[RA_AXIS].value - targetRA) > 0 ? "East" : "West", RA_TARGET);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "DEC Displacement (%c%s) %s -- %s of target RA %s", dy >= 0 ? '+' : '-', DEC_DISP, DEC_PE, (EqPEN[DEC_AXIS].value - targetDEC) > 0 ? "North" : "South", DEC_TARGET);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "RA Guide Correction (%g) %s -- Direction %s", ra_guide_dt, RA_GUIDE, ra_guide_dt > 0 ? "East" : "West");
+            DEBUGF(INDI::Logger::DBG_DEBUG, "DEC Guide Correction (%g) %s -- Direction %s", dec_guide_dt, DEC_GUIDE, dec_guide_dt > 0 ? "North" : "South");
         }
 
         if (ns_guide_dir != -1 || we_guide_dir != -1)
