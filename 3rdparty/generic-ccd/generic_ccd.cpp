@@ -199,13 +199,14 @@ bool GenericCCD::initProperties() {
 
   SetCCDCapability(&cap);
 
+  addConfigurationControl();
+  addDebugControl();
   return true;
 }
 
 void GenericCCD::ISGetProperties(const char *dev) {
   INDI::CCD::ISGetProperties(dev);
 
-  addConfigurationControl();
 }
 
 bool GenericCCD::updateProperties() {
