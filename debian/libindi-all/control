@@ -3,7 +3,7 @@ Section: misc
 Priority: optional
 Maintainer: Jasem Mutlaq <mutlaqja@ikarustech.com>
 Build-Depends: dpkg (>= 1.13.19), debhelper (>= 5)
-Standards-Version: 3.9.2
+Standards-Version: 3.9.5
 Homepage: http://www.indilib.org/
 
 Package: indi-full
