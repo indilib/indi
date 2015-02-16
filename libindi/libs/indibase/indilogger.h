@@ -185,6 +185,7 @@ class Logger
     static const loggerConf screen_on= 	L_noscreen_;
     static const loggerConf screen_off= L_screen_;
     static unsigned int customLevel;
+    static unsigned int nDevices;
 
     static std::string getLogFile() { return logFile_;}
     static loggerConf_ getConfiguration() {return configuration_;}

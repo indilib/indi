@@ -71,7 +71,7 @@ unsigned int Logger::screenVerbosityLevel_=Logger::defaultlevel;
 unsigned int Logger::rememberscreenlevel_=Logger::defaultlevel;
 Logger::loggerConf Logger::configuration_= Logger::screen_on | Logger::file_off;
 std::string Logger::logFile_;
-
+unsigned int Logger::nDevices=0;
 unsigned int Logger::customLevel=4;
 
 int Logger::addDebugLevel(const char *debugLevelName, const char * loggingLevelName)
@@ -89,6 +89,8 @@ int Logger::addDebugLevel(const char *debugLevelName, const char * loggingLevelN
 
 bool Logger::initProperties(DefaultDevice *device)
 {
+    nDevices++;
+
     for (unsigned int i=0; i<customLevel; i++)
     {
         IUFillSwitch(&DebugLevelS[i], DebugLevelSInit[i].name,DebugLevelSInit[i].label,DebugLevelSInit[i].state);
@@ -399,18 +401,17 @@ void Logger::print(const char *devicename,
 	snprintf(usec, 7, "%06ld", resTime.tv_usec);
 	Logger::lock();
 
-	if ((configuration_&file_on) && filelog)
-	  //out_ << Tags[rank(verbosityLevel)] << "\t["<< file << ":" << line << "]\t" <<
-	  out_ << Tags[rank(verbosityLevel)] << "\t" <<
-	    (resTime.tv_sec) <<"."<<(usec) << " sec"<<
-				"\t: " << msg << std::endl;
+    if ((configuration_&file_on) && filelog)
+    {
+       if (nDevices == 1)
+            out_ << Tags[rank(verbosityLevel)] << "\t" << (resTime.tv_sec) <<"."<<(usec) << " sec"<< "\t: " << msg << std::endl;
+       else
+            out_ << Tags[rank(verbosityLevel)] << "\t" << (resTime.tv_sec) <<"."<<(usec) << " sec"<< "\t: [" << devicename << "] " << msg << std::endl;
+    }
 
 	if ((configuration_&screen_on) && screenlog)
 	  IDMessage(devicename, "%s", msg);
-	    /*		std::cerr << "DEBUG [" << file << ":" << line << "] @ " <<
-				(currentTime.tv_sec - initialTime_.tv_sec) <<
-	    			":" << message << std::endl;
-	    */
+
 	Logger::unlock();
 }
 
