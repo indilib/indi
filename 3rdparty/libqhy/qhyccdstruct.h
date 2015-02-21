@@ -32,8 +32,13 @@
 #endif
 
 #ifdef LINUX
+#ifdef OSX_EMBEDED_MODE
+#include <libusb.h>
+#else
 #include <libusb-1.0/libusb.h>
 #endif
+#endif
+
 
 #ifdef WIN32
 #include <windows.h>

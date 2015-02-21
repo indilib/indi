@@ -296,6 +296,8 @@
 3rdparty/indi-qhy/indi_qhy.xml -text
 3rdparty/indi-qhy/qhy_ccd.cpp -text
 3rdparty/indi-qhy/qhy_ccd.h -text
+3rdparty/indi-qhy/qhy_fw.cpp -text
+3rdparty/indi-qhy/qhy_fw.h -text
 3rdparty/indi-qsi/99-qsi.rules -text
 3rdparty/indi-qsi/AUTHORS -text
 3rdparty/indi-qsi/INSTALL -text
@@ -1021,6 +1023,7 @@
 3rdparty/libqhy/firmware/QHY8PRO.HEX -text
 3rdparty/libqhy/firmware/QHY9S.HEX -text
 3rdparty/libqhy/firmware/miniCam5.HEX -text
+3rdparty/libqhy/libqhy.dylib -text
 3rdparty/libqhy/libqhy_32.bin -text
 3rdparty/libqhy/libqhy_64.bin -text
 3rdparty/libqhy/libqhy_arm_v6.bin -text

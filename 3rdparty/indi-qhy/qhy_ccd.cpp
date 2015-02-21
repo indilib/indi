@@ -3,6 +3,7 @@
 
  Copyright (C) 2014 Jasem Mutlaq (mutlaqja@ikarustech.com)
  Copyright (C) 2014 Zhirong Li (lzr@qhyccd.com)
+ Copyright (C) 2015 Peter Polakovic (peter.polakovic@cloudmakers.eu)
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -26,6 +27,9 @@
 #include <sys/time.h>
 
 #include "qhy_ccd.h"
+
+#include "qhy_fw.h"
+
 #include "config.h"
 
 #define POLLMS                  1000        /* Polling time (ms) */
@@ -56,6 +60,10 @@ void ISInit()
 
   if (!isInit)
   {
+    
+#ifdef __APPLE__
+      UploadFW();
+#endif
       char camid[MAXINDIDEVICE];
       bool allCameraInit = true;
       int ret = QHYCCD_ERROR;
