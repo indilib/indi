@@ -678,6 +678,7 @@ bool SteelDrive::updateAcceleration()
         DEBUGF(INDI::Logger::DBG_ERROR, "Unknown error: updateAcceleration value (%s)", resp);
         return false;
     }
+    return true;
 }
 
 /************************************************************************************

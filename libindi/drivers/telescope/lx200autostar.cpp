@@ -96,12 +96,14 @@ bool LX200Autostar::updateProperties()
         // For Autostar, we have a different focus speed method
         // Therefore, we don't need the classical one
         deleteProperty(FocusModeSP.name);
+        return true;
 
     }
     else
     {
         deleteProperty(VersionTP.name);
         deleteProperty(FocusSpeedNP.name);
+        return true;
     }
 }
 

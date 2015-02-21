@@ -218,6 +218,7 @@ bool STAR2000::ISSnoopDevice (XMLEle *root)
 bool STAR2000::saveConfigItems(FILE *fp)
 {
     IUSaveConfigText(fp, &PortTP);
+    return(true);
 }
 
 float STAR2000::CalcWEPulseTimeLeft()

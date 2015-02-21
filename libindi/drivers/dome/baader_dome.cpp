@@ -909,6 +909,7 @@ const char * BaaderDome::GetFlapStatusString(FlapStatus status)
             return "Flap is in motion.";
             break;
         case FLAP_UNKNOWN:
+        default:
             return "Flap status is unknown.";
             break;
     }

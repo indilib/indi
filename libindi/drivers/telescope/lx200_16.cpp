@@ -61,6 +61,7 @@ bool LX200_16::initProperties()
     IUFillNumber(&HorizontalCoordsN[1], "AZ", "Az D:M:S", "%10.6m", 0.0, 360.0, 0.0, 0);
     IUFillNumberVector(&HorizontalCoordsNP, HorizontalCoordsN, 2, getDeviceName(), "HORIZONTAL_COORD", "Horizontal Coord", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
+    return true;
 }
 
 void LX200_16::ISGetProperties (const char *dev)
@@ -100,6 +101,7 @@ bool LX200_16::updateProperties()
         deleteProperty(FieldDeRotatorSP.name);
     }
 
+    return true;
 }
 
 
@@ -150,6 +152,7 @@ bool LX200_16::ISNewNumber (const char *dev, const char *name, double values[], 
   }
 
     LX200GPS::ISNewNumber (dev, name, values, names, n);
+    return true;
 }
     
 bool LX200_16::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)

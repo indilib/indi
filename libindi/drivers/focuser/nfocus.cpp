@@ -1328,5 +1328,6 @@ bool NFocus::saveConfigItems(FILE *fp)
     IUSaveConfigNumber(fp, &SettingsNP);
     IUSaveConfigNumber(fp, &SetBacklashNP);
     IUSaveConfigNumber(fp, &InOutScalarNP);
+    return true;
 }
 

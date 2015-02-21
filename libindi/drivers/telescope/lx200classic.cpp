@@ -83,6 +83,7 @@ bool LX200Classic::initProperties()
     IUFillNumber(&ElevationLimitN[0], "minAlt", "Speed", "%%+03f", -90.0, 90.0, 0.0, 0.0);
     IUFillNumber(&ElevationLimitN[1], "maxAlt", "Speed", "%+03f", -90.0, 90.0, 0.0, 0.0);
     IUFillNumberVector(&ElevationLimitNP, ElevationLimitN, 1, getDeviceName(), "Slew elevation Limit", "", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+    return true;
 }
 
 void LX200Classic::ISGetProperties (const char *dev)
@@ -118,6 +119,7 @@ bool LX200Classic::updateProperties()
         defineSwitch(&DeepSkyCatalogSP);
         defineNumber(&ObjectNoNP);
         defineNumber(&MaxSlewRateNP);
+        return true;
     }
     else
     {
@@ -128,6 +130,7 @@ bool LX200Classic::updateProperties()
         deleteProperty(DeepSkyCatalogSP.name);
         deleteProperty(ObjectNoNP.name);
         deleteProperty(MaxSlewRateNP.name);
+        return true;
     }
 }
 

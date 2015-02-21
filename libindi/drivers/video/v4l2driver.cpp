@@ -219,6 +219,7 @@ bool V4L2_Driver::updateProperties ()
 
 
    if (v4l_base->isLXmodCapable()) lx->updateProperties();
+   return true;
 
   } else
   {
@@ -254,6 +255,7 @@ bool V4L2_Driver::updateProperties ()
 
     deleteProperty(RecordFileTP.name);
     deleteProperty(RecordSP.name);
+    return true;
   }
 }
 
@@ -466,7 +468,7 @@ bool V4L2_Driver::ISNewSwitch (const char *dev, const char *name, ISState *state
       if ((!is_streaming) && (!is_recording)) { 
 	StreamSP.s  = IPS_BUSY; 
 	frameCount = 0;
-	DEBUG(INDI::Logger::DBG_DEBUG, "Starting the video stream.\n");
+    DEBUG(INDI::Logger::DBG_DEBUG, "Starting the video stream.");
 	v4l_base->start_capturing(errmsg);
       } else {
 	if (!is_streaming) StreamSP.s=IPS_IDLE;
@@ -474,7 +476,7 @@ bool V4L2_Driver::ISNewSwitch (const char *dev, const char *name, ISState *state
     } else {
       StreamSP.s = IPS_IDLE;       
       if (is_streaming) {
-	DEBUGF(INDI::Logger::DBG_DEBUG, "The video stream has been disabled. Frame count %d\n", frameCount);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "The video stream has been disabled. Frame count %d", frameCount);
 	v4l_base->stop_capturing(errmsg);
       }
     }
@@ -493,7 +495,7 @@ bool V4L2_Driver::ISNewSwitch (const char *dev, const char *name, ISState *state
     if (RecordS[0].s == ISS_ON) {
       if ((!is_streaming) && (!is_recording)) { 
 	frameCount = 0;
-	DEBUG(INDI::Logger::DBG_SESSION, "Recording the video stream (no binning).\n");
+    DEBUG(INDI::Logger::DBG_SESSION, "Recording the video stream (no binning).");
 	RecordSP.s  = IPS_BUSY; 
 	if (!recorder->open(RecordFileT[0].text, errmsg)) {
 	  RecordSP.s = IPS_ALERT;
@@ -502,7 +504,7 @@ bool V4L2_Driver::ISNewSwitch (const char *dev, const char *name, ISState *state
 	  return false;
 	}
 	if (direct_record) {
-	  DEBUG(INDI::Logger::DBG_SESSION, "Using direct recording (no soft crop, no frame count).\n");
+      DEBUG(INDI::Logger::DBG_SESSION, "Using direct recording (no soft crop, no frame count).");
 	  v4l_base->doDecode(false);
 	  v4l_base->doRecord(true);
 	} else {
@@ -524,7 +526,7 @@ bool V4L2_Driver::ISNewSwitch (const char *dev, const char *name, ISState *state
 	  v4l_base->doRecord(false);
 	}
 	recorder->close();
-	DEBUGF(INDI::Logger::DBG_SESSION, "Recording stream has been disabled. Frame count %d\n", frameCount);
+    DEBUGF(INDI::Logger::DBG_SESSION, "Recording stream has been disabled. Frame count %d", frameCount);
       }
     }
     
@@ -552,7 +554,7 @@ bool V4L2_Driver::ISNewSwitch (const char *dev, const char *name, ISState *state
     else 
       ctrlindex=optindex;
     ctrl_id = (*((unsigned int*) Options[iopt].aux));
-    DEBUGF(INDI::Logger::DBG_DEBUG, "  On switch is (%d) %s=\"%s\", ctrl_id = 0x%X ctrl_index=%d\n", optindex, 
+    DEBUGF(INDI::Logger::DBG_DEBUG, "  On switch is (%d) %s=\"%s\", ctrl_id = 0x%X ctrl_index=%d", optindex,
 	   Options[iopt].sp[optindex].name, Options[iopt].sp[optindex].label, ctrl_id, ctrlindex);
     if (v4l_base->setOPTControl( ctrl_id , ctrlindex,  errmsg) < 0) {
       Options[iopt].s = IPS_ALERT;

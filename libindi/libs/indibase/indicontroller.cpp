@@ -78,6 +78,7 @@ bool Controller::initProperties()
 
     IUFillTextVector(&JoystickSettingTP, JoystickSettingT, JoystickSettingTP.ntp, device->getDeviceName(), "JOYSTICKSETTINGS", "Settings", "Joystick", IP_RW, 0, IPS_IDLE);
 
+    return true;
 }
 
 void Controller::ISGetProperties(const char *dev)
@@ -245,6 +246,7 @@ bool Controller::ISSnoopDevice(XMLEle *root)
         joystickCallbackFunc(setting, mag, angle, device);
     }
 
+    return true;
 }
 
 

@@ -937,6 +937,7 @@ bool SkywatcherAPIMount::updateProperties()
 
         // Start the timer if we need one
         // SetTimer(POLLMS);
+        return true;
     }
     else
     {
@@ -950,6 +951,7 @@ bool SkywatcherAPIMount::updateProperties()
         deleteProperty(AxisTwoStateV.name);
         deleteProperty(AxisOneEncoderValuesV.name);
         deleteProperty(AxisTwoEncoderValuesV.name);
+        return true;
     }
 }
 

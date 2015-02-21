@@ -108,6 +108,7 @@ bool JoyStickDriver::Disconnect()
 void* JoyStickDriver::loop(void *obj)
 {
     while (reinterpret_cast<JoyStickDriver *>(obj)->active) reinterpret_cast<JoyStickDriver *>(obj)->readEv();
+    return obj;
 }
 
 void JoyStickDriver::readEv()

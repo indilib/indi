@@ -437,6 +437,7 @@ const char * Lx::getSerialEOL()
    case 2: return "\n";
    case 3: return "\r\n";
    }
+   return NULL;
 }
 
 bool Lx::startLxSerial() {  

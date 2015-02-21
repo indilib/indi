@@ -440,6 +440,7 @@ const char * INDI::DomeInterface::GetShutterStatusString(ShutterStatus status)
             return "Shutter is in motion.";
             break;
         case SHUTTER_UNKNOWN:
+        default:
             return "Shutter status is unknown.";
             break;
     }

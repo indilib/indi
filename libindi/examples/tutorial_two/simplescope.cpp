@@ -126,6 +126,7 @@ bool SimpleScope::initProperties()
 
     addDebugControl();
 
+    return true;
 }
 
 /**************************************************************************************

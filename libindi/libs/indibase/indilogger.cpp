@@ -356,16 +356,27 @@ Logger& Logger::getInstance()
    @ param i which debugging to query its rank. The lower the rank, the more priority it is.
    @ return rank of debugging level requested.
  */
-unsigned int Logger::rank(unsigned int l) {
-  switch(l) {
-  case DBG_ERROR: return 0;
-  case DBG_WARNING: return 1;
-  case DBG_SESSION: return 2;
-  case DBG_DEBUG: return 3;
-  case DBG_EXTRA_1: return 4;
-  case DBG_EXTRA_2: return 5;
-  case DBG_EXTRA_3: return 6;
-  case DBG_EXTRA_4: return 7;
+unsigned int Logger::rank(unsigned int l)
+{
+  switch(l)
+  {
+  case DBG_ERROR:
+      return 0;
+  case DBG_WARNING:
+      return 1;
+  case DBG_SESSION:
+      return 2;
+  case DBG_EXTRA_1:
+      return 4;
+  case DBG_EXTRA_2:
+      return 5;
+  case DBG_EXTRA_3:
+      return 6;
+  case DBG_EXTRA_4:
+      return 7;
+  case DBG_DEBUG:
+  default:
+      return 3;
   }
 }
 

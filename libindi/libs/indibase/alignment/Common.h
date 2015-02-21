@@ -165,6 +165,8 @@ struct AlignmentDatabaseEntry
             PrivateData.reset(new unsigned char[PrivateDataSize]);
             memcpy(PrivateData.get(), RHS.PrivateData.get(), PrivateDataSize);
         }
+
+        return *this;
     }
 
     double ObservationJulianDate;

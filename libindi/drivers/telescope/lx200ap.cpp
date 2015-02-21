@@ -162,6 +162,7 @@ bool LX200AstroPhysics::updateProperties()
     }
 
     controller->updateProperties();
+    return true;
 }
 
 bool LX200AstroPhysics::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)

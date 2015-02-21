@@ -160,6 +160,7 @@ bool TCFS::initProperties()
         FocusRelPosN[0].value = 0;
         DEBUG(INDI::Logger::DBG_DEBUG, "TCF-S detected. Updating maximum position value to 7000.");
     }
+    return true;
 }
 
 /****************************************************************
@@ -202,6 +203,7 @@ bool TCFS::updateProperties()
          loadConfig(true);
 
          SetTimer(POLLMS);
+         return true;
     }
     else
     {
@@ -209,7 +211,9 @@ bool TCFS::updateProperties()
         deleteProperty(FocusTemperatureNP->name);
         deleteProperty(FocusPowerSP->name);
         deleteProperty(FocusModeSP->name);
+        return false;
     }
+    return true;
 }
 
 /****************************************************************
@@ -504,6 +508,7 @@ int TCFS::MoveAbsFocuser(int ticks)
     else
         MoveRelFocuser(FOCUS_OUTWARD, (unsigned int) fabs(delta));
 
+   return true;
 }
 
 int TCFS::MoveRelFocuser(FocusDirection dir, unsigned int ticks)
