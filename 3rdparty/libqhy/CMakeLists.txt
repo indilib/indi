@@ -9,6 +9,9 @@ IF (APPLE)
 install(FILES qhyccd.h qhyccdcamdef.h qhyccderr.h qhyccdstruct.h DESTINATION include/libqhy)
 install(FILES libqhy.dylib DESTINATION lib)
 
+file(GLOB FIRMWARE "firmware/*.HEX")
+install(FILES ${FIRMWARE} DESTINATION "/usr/local/firmware")
+
 ELSE()
 
 set(FIRMWARE_INSTALL_DIR "/lib/firmware/qhy")
