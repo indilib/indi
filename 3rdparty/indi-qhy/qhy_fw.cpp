@@ -23,7 +23,11 @@
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
+#ifdef OSX_EMBEDED_MODE
 #include <libusb.h>
+#else
+#include <libusb-1.0/libusb.h>
+#endif
 
 #include "qhy_fw.h"
 
@@ -206,13 +210,11 @@ void UploadFW() {
   int rc = libusb_init(&ctx);
   if (rc < 0) {
     fprintf(stderr, "Can't initialize libusb\n");
-    return 0;
   }
   libusb_device **usb_devices;
   ssize_t total = libusb_get_device_list(ctx, &usb_devices);
   if (total < 0) {
     fprintf(stderr, "Can't get device list\n");
-    return 0;
   }
   int count = 0;
   struct libusb_device_descriptor descriptor;

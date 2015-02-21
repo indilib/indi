@@ -9,6 +9,7 @@ find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
 find_package(QHY REQUIRED)
 find_package(ZLIB REQUIRED)
+find_package(USB-1 REQUIRED)
 
 set(INDI_QHY_VERSION_MAJOR 1)
 set(INDI_QHY_VERSION_MINOR 3)
@@ -22,13 +23,20 @@ include_directories( ${QHY_INCLUDE_DIR})
 
 ########### QHY CCD ###########
 
+if(APPLE)
+set(indiqhy_SRCS
+   ${CMAKE_CURRENT_SOURCE_DIR}/qhy_ccd.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/qhy_fw.cpp
+   )
+else()
 set(indiqhy_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/qhy_ccd.cpp
    )
+endif(APPLE)
 
 add_executable(indi_qhy_ccd ${indiqhy_SRCS})
 
-target_link_libraries(indi_qhy_ccd ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${QHY_LIBRARIES} )
+target_link_libraries(indi_qhy_ccd ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${QHY_LIBRARIES} ${LIBUSB_1_LIBRARIES})
 
 install(TARGETS indi_qhy_ccd RUNTIME DESTINATION bin )
 
