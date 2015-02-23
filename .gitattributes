@@ -1605,16 +1605,12 @@ libindi/libs/lilxml.c -text
 libindi/libs/lilxml.h -text
 libindi/libs/lx/Lx.cpp -text
 libindi/libs/lx/Lx.h -text
-libindi/libs/webcam/PPort.cpp -text
-libindi/libs/webcam/PPort.h -text
 libindi/libs/webcam/ccvt.h -text
 libindi/libs/webcam/ccvt_c2.c -text
 libindi/libs/webcam/ccvt_misc.c -text
 libindi/libs/webcam/ccvt_types.h -text
 libindi/libs/webcam/jpegutils.c -text
 libindi/libs/webcam/jpegutils.h -text
-libindi/libs/webcam/port.cpp -text
-libindi/libs/webcam/port.h -text
 libindi/libs/webcam/pwc-ioctl.h -text
 libindi/libs/webcam/v4l2_base.cpp -text
 libindi/libs/webcam/v4l2_base.h -text
