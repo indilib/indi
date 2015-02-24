@@ -114,7 +114,7 @@ class V4L2_Driver: public INDI::CCD
    /* Switches */
     ISwitch StreamS[2];
     ISwitch *CompressS;
-    ISwitch ImageTypeS[2];
+    ISwitch ImageColorS[2];
     ISwitch StackModeS[2];
     ISwitch RecordS[2];
     ISwitch DropFrameS[2];
@@ -136,7 +136,7 @@ class V4L2_Driver: public INDI::CCD
     /* Switch vectors */
     ISwitchVectorProperty StreamSP;				/* Stream switch */
     ISwitchVectorProperty *CompressSP;				/* Compress stream switch */
-    ISwitchVectorProperty ImageTypeSP;				/* Color or grey switch */
+    ISwitchVectorProperty ImageColorSP;				/* Color or grey switch */
     ISwitchVectorProperty StackModeSP;				/* StackMode switch */
     ISwitchVectorProperty InputsSP;				/* Select input switch */
     ISwitchVectorProperty CaptureFormatsSP;    			/* Select Capture format switch */

@@ -75,14 +75,14 @@ bool V4L2_Driver::initProperties()
   IUFillTextVector(&PortTP, PortT, NARRAY(PortT), getDeviceName(), "DEVICE_PORT", "Ports", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
  /* Video Stream */
-  IUFillSwitch(&StreamS[0], "ON", "Stream On", ISS_OFF);
-  IUFillSwitch(&StreamS[1], "OFF", "Stream Off", ISS_ON);
-  IUFillSwitchVector(&StreamSP, StreamS, NARRAY(StreamS), getDeviceName(), "VIDEO_STREAM", "Video Stream", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+  IUFillSwitch(&StreamS[0], "STREAM_ON", "Stream On", ISS_OFF);
+  IUFillSwitch(&StreamS[1], "STREAM_OFF", "Stream Off", ISS_ON);
+  IUFillSwitchVector(&StreamSP, StreamS, NARRAY(StreamS), getDeviceName(), "CCD_VIDEO_STREAM", "Video Stream", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-  /* Image type */
-  IUFillSwitch(&ImageTypeS[0], "Grey", "", ISS_ON);
-  IUFillSwitch(&ImageTypeS[1], "Color", "", ISS_OFF);
-  IUFillSwitchVector(&ImageTypeSP, ImageTypeS, NARRAY(ImageTypeS), getDeviceName(), "Image Type", "", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+  /* Color space */
+  IUFillSwitch(&ImageColorS[0], "CCD_COLOR_GRAY", "Gray", ISS_ON);
+  IUFillSwitch(&ImageColorS[1], "CCD_COLOR_RGB", "Color", ISS_OFF);
+  IUFillSwitchVector(&ImageColorSP, ImageColorS, NARRAY(ImageColorS), getDeviceName(), "CCD_COLOR_SPACE", "Image Type", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
   /* Camera Name */
   IUFillText(&camNameT[0], "Model", "", NULL);
@@ -155,7 +155,7 @@ void V4L2_Driver::ISGetProperties (const char *dev)
     defineText(&camNameTP);
     defineSwitch(&StreamSP);
     defineSwitch(&StackModeSP);
-    defineSwitch(&ImageTypeSP);
+    defineSwitch(&ImageColorSP);
     defineSwitch(&InputsSP);
     defineSwitch(&CaptureFormatsSP);
     defineSwitch(&DropFrameSP);
@@ -195,7 +195,7 @@ bool V4L2_Driver::updateProperties ()
 
     defineSwitch(&StreamSP);
     defineSwitch(&StackModeSP);
-    defineSwitch(&ImageTypeSP);
+    defineSwitch(&ImageColorSP);
     defineSwitch(&InputsSP);
     defineSwitch(&CaptureFormatsSP);
     defineSwitch(&DropFrameSP);
@@ -231,7 +231,7 @@ bool V4L2_Driver::updateProperties ()
     deleteProperty(camNameTP.name);
     deleteProperty(StreamSP.name);
     deleteProperty(StackModeSP.name);
-    deleteProperty(ImageTypeSP.name);
+    deleteProperty(ImageColorSP.name);
     deleteProperty(InputsSP.name);
     deleteProperty(CaptureFormatsSP.name);
     deleteProperty(DropFrameSP.name);
@@ -425,11 +425,11 @@ bool V4L2_Driver::ISNewSwitch (const char *dev, const char *name, ISState *state
   }
   
   /* Image Type */
-  if (!strcmp(name, ImageTypeSP.name)) {
-    IUResetSwitch(&ImageTypeSP);
-    IUUpdateSwitch(&ImageTypeSP, states, names, n);
-    ImageTypeSP.s = IPS_OK;
-    if (ImageTypeS[0].s == ISS_ON) {
+  if (!strcmp(name, ImageColorSP.name)) {
+    IUResetSwitch(&ImageColorSP);
+    IUUpdateSwitch(&ImageColorSP, states, names, n);
+    ImageColorSP.s = IPS_OK;
+    if (ImageColorS[0].s == ISS_ON) {
       PrimaryCCD.setBPP(8);
       PrimaryCCD.setNAxis(2);
     } else {
@@ -438,11 +438,11 @@ bool V4L2_Driver::ISNewSwitch (const char *dev, const char *name, ISState *state
       PrimaryCCD.setNAxis(3);
     }
     
-    frameBytes  = (ImageTypeS[0].s == ISS_ON) ? (PrimaryCCD.getSubW() * PrimaryCCD.getSubH()):
+    frameBytes  = (ImageColorS[0].s == ISS_ON) ? (PrimaryCCD.getSubW() * PrimaryCCD.getSubH()):
       (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * 4);
     PrimaryCCD.setFrameBufferSize(frameBytes);
     
-    IDSetSwitch(&ImageTypeSP, NULL);
+    IDSetSwitch(&ImageColorSP, NULL);
     return true;
   }
   
@@ -508,7 +508,7 @@ bool V4L2_Driver::ISNewSwitch (const char *dev, const char *name, ISState *state
 	  v4l_base->doDecode(false);
 	  v4l_base->doRecord(true);
 	} else {
-	  if (ImageTypeS[0].s == ISS_ON) 
+      if (ImageColorS[0].s == ISS_ON)
 	    recorder->setDefaultMono();
 	  else
 	    recorder->setDefaultColor();
@@ -657,7 +657,7 @@ bool V4L2_Driver::ISNewNumber (const char *dev, const char *name, double values[
      V4LFrame->height= h;
      PrimaryCCD.setResolution(w, h);
      CaptureSizesNP.s = IPS_OK;
-     frameBytes  = (ImageTypeS[0].s == ISS_ON) ? (PrimaryCCD.getSubW() * PrimaryCCD.getSubH()):
+     frameBytes  = (ImageColorS[0].s == ISS_ON) ? (PrimaryCCD.getSubW() * PrimaryCCD.getSubH()):
                                                  (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * 4);
      PrimaryCCD.setFrameBufferSize(frameBytes);
      
@@ -912,7 +912,7 @@ bool V4L2_Driver::UpdateCCDFrame(int x, int y, int w, int h)
     V4LFrame->width = crect.width;
     V4LFrame->height= crect.height;
     PrimaryCCD.setFrame(x, y, w, h);
-    frameBytes  = (ImageTypeS[0].s == ISS_ON) ? (PrimaryCCD.getSubW() * PrimaryCCD.getSubH()):
+    frameBytes  = (ImageColorS[0].s == ISS_ON) ? (PrimaryCCD.getSubW() * PrimaryCCD.getSubH()):
       (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * 4);
     PrimaryCCD.setFrameBufferSize(frameBytes);
     recorder->setsize(w, h);
@@ -955,7 +955,7 @@ void V4L2_Driver::updateFrame()
     gettimeofday(&capture_end,NULL);
     timersub(&capture_end, &capture_start, &current_exposure);
 
-    if (ImageTypeS[0].s == ISS_ON) {
+    if (ImageColorS[0].s == ISS_ON) {
       src = v4l_base->getY();
       dest = (unsigned char *)PrimaryCCD.getFrameBuffer();
       if (frameCount==0)
@@ -1008,7 +1008,7 @@ void V4L2_Driver::updateFrame()
 void V4L2_Driver::recordStream()
 {
   if (RecordS[0].s == ISS_OFF) return;
-  if (ImageTypeS[0].s == ISS_ON)
+  if (ImageColorS[0].s == ISS_ON)
     recorder->writeFrameMono(v4l_base->getY());
   else
     recorder->writeFrameColor(v4l_base->getRGBBuffer());
@@ -1025,13 +1025,13 @@ void V4L2_Driver::updateStream()
    
    if (StreamS[0].s == ISS_OFF) return;
    
-   if (ImageTypeS[0].s == ISS_ON)
+   if (ImageColorS[0].s == ISS_ON)
       V4LFrame->Y      		= v4l_base->getY();
    else
       V4LFrame->colorBuffer 	= v4l_base->getColorBuffer();
   
-   totalBytes  = ImageTypeS[0].s == ISS_ON ? width * height : width * height * 4;
-   targetFrame = ImageTypeS[0].s == ISS_ON ? V4LFrame->Y : V4LFrame->colorBuffer;
+   totalBytes  = ImageColorS[0].s == ISS_ON ? width * height : width * height * 4;
+   targetFrame = ImageColorS[0].s == ISS_ON ? V4LFrame->Y : V4LFrame->colorBuffer;
 
    /* Do we want to compress ? */
     if (CompressS[0].s == ISS_ON)
@@ -1164,7 +1164,7 @@ void V4L2_Driver::getBasicData()
 
   PrimaryCCD.setResolution(w, h);
   PrimaryCCD.setFrame(0,0, w,h);
-  frameBytes  = (ImageTypeS[0].s == ISS_ON) ? (PrimaryCCD.getSubW() * PrimaryCCD.getSubH()):
+  frameBytes  = (ImageColorS[0].s == ISS_ON) ? (PrimaryCCD.getSubW() * PrimaryCCD.getSubH()):
                                               (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * 4);
   PrimaryCCD.setFrameBufferSize(frameBytes);
 
