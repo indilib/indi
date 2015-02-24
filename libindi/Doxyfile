@@ -820,7 +820,6 @@ RECURSIVE              = YES
 
 EXCLUDE                = /home/jasem/Projects/indi/trunk/libindi/drivers \
                          /home/jasem/Projects/indi/trunk/libindi/tools \
-                         /home/jasem/Projects/indi/trunk/libindi/libs/webcam \
                          /home/jasem/Projects/indi/trunk/libindi/libs/base64.c \
                          /home/jasem/Projects/indi/trunk/libindi/libs/fq.c \
                          /home/jasem/Projects/indi/trunk/libindi/indidrivermain.c \

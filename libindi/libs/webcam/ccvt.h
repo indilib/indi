@@ -55,69 +55,92 @@
 extern "C" {
 #endif
 
-/* Colour ConVerT: going from one colour space to another.
-   ** NOTE: the set of available functions is far from complete! **
+/**
+ * \defgroup colorSpace Color space conversion functions
+    Colour ConVerT: going from one colour space to another.
 
-   Format descriptions:
-   420i = "4:2:0 interlaced"
-           YYYY UU YYYY UU   even lines
-           YYYY VV YYYY VV   odd lines
-           U/V data is subsampled by 2 both in horizontal 
-           and vertical directions, and intermixed with the Y values.
+   Format descriptions:\n
+   420i = "4:2:0 interlaced"\n
+           YYYY UU YYYY UU   even lines\n
+           YYYY VV YYYY VV   odd lines\n
+           U/V data is subsampled by 2 both in horizontal and vertical directions, and intermixed with the Y values.\n\n
    
-   420p = "4:2:0 planar"
-           YYYYYYYY      N lines
-           UUUU          N/2 lines
-           VVVV          N/2 lines
-           U/V is again subsampled, but all the Ys, Us and Vs are placed
-           together in separate buffers. The buffers may be placed in
-           one piece of contiguous memory though, with Y buffer first,
+   420p = "4:2:0 planar"\n
+           YYYYYYYY      N lines\n
+           UUUU          N/2 lines\n
+           VVVV          N/2 lines\n
+           U/V is again subsampled, but all the Ys, Us and Vs are placed together in separate buffers. The buffers may be placed in one piece of contiguous memory though, with Y buffer first,
            followed by U, followed by V.
 
-   yuyv = "4:2:2 interlaced"
-           YUYV YUYV YUYV ...   N lines
-           The U/V data is subsampled by 2 in horizontal direction only.
+   yuyv = "4:2:2 interlaced"\n
+           YUYV YUYV YUYV ...   N lines\n
+           The U/V data is subsampled by 2 in horizontal direction only.\n\n
 
-   bgr24 = 3 bytes per pixel, in the order Blue Green Red (whoever came up
-           with that idea...)
-   rgb24 = 3 bytes per pixel, in the order Red Green Blue (which is sensible)
-   rgb32 = 4 bytes per pixel, in the order Red Green Blue Alpha, with 
-           Alpha really being a filler byte (0)
-   bgr32 = last but not least, 4 bytes per pixel, in the order Blue Green Red
-           Alpha, Alpha again a filler byte (0)
+   bgr24 = 3 bytes per pixel, in the order Blue Green Red (whoever came up with that idea...)\n
+   rgb24 = 3 bytes per pixel, in the order Red Green Blue (which is sensible)\n
+   rgb32 = 4 bytes per pixel, in the order Red Green Blue Alpha, with Alpha really being a filler byte (0)\n
+   bgr32 = last but not least, 4 bytes per pixel, in the order Blue Green Red Alpha, Alpha again a filler byte (0)\n
  */
 
-/* 4:2:0 YUV planar to RGB/BGR     */
+/*@{*/
+
+/** 4:2:0 YUV planar to RGB/BGR     */
 void ccvt_420p_bgr24(int width, int height, const void *src, void *dst);
+/** 4:2:0 YUV planar to RGB/BGR     */
 void ccvt_420p_rgb24(int width, int height, const void *src, void *dst);
+/** 4:2:0 YUV planar to RGB/BGR     */
 void ccvt_420p_bgr32(int width, int height, const void *src, void *dst);
+/** 4:2:0 YUV planar to RGB/BGR     */
 void ccvt_420p_rgb32(int width, int height, const void *src, void *dst);
 
-/* 4:2:2 YUYV interlaced to RGB/BGR */
+/** 4:2:2 YUYV interlaced to RGB/BGR */
 void ccvt_yuyv_rgb32(int width, int height, const void *src, void *dst);
+/** 4:2:2 YUYV interlaced to RGB/BGR */
 void ccvt_yuyv_bgr32(int width, int height, const void *src, void *dst);
 
-/* 4:2:2 YUYV interlaced to 4:2:0 YUV planar */
+/** 4:2:2 YUYV interlaced to 4:2:0 YUV planar */
 void ccvt_yuyv_420p(int width, int height, const void *src, void *dsty, void *dstu, void *dstv);
 
 /* RGB/BGR to 4:2:0 YUV interlaced */
 
-/* RGB/BGR to 4:2:0 YUV planar     */
+/** RGB/BGR to 4:2:0 YUV planar     */
 void ccvt_rgb24_420p(int width, int height, const void *src, void *dsty, void *dstu, void *dstv);
+/** RGB/BGR to 4:2:0 YUV planar     */
 void ccvt_bgr24_420p(int width, int height, const void *src, void *dsty, void *dstu, void *dstv);
 
-/* RGB/BGR to RGB/BGR */
+/** RGB/BGR to RGB/BGR */
 void ccvt_bgr24_bgr32(int width, int height, const void *const src, void *const dst);
+/** RGB/BGR to RGB/BGR */
 void ccvt_bgr24_rgb32(int width, int height, const void *const src, void *const dst);
+/** RGB/BGR to RGB/BGR */
 void ccvt_bgr32_bgr24(int width, int height, const void *const src, void *const dst);
+/** RGB/BGR to RGB/BGR */
 void ccvt_bgr32_rgb24(int width, int height, const void *const src, void *const dst);
+/** RGB/BGR to RGB/BGR */
 void ccvt_rgb24_bgr32(int width, int height, const void *const src, void *const dst);
+/** RGB/BGR to RGB/BGR */
 void ccvt_rgb24_rgb32(int width, int height, const void *const src, void *const dst);
+/** RGB/BGR to RGB/BGR */
 void ccvt_rgb32_bgr24(int width, int height, const void *const src, void *const dst);
+/** RGB/BGR to RGB/BGR */
 void ccvt_rgb32_rgb24(int width, int height, const void *const src, void *const dst);
 
+/** RGB to YUV */
 int RGB2YUV (int x_dim, int y_dim, void *bmp, void *y_out, void *u_out, void *v_out, int flip);
 
+/**
+ * @short mjpegtoyuv420p MPEG to YUV 420 P
+ *
+ * Return values
+ *  -1 on fatal error
+ *  0  on success
+ *  2  if jpeg lib threw a "corrupt jpeg data" warning.
+ *     in this case, "a damaged output image is likely."
+ *
+ * Copyright 2000 by Jeroen Vreeken (pe1rxq@amsat.org)
+ * 2006 by Krzysztof Blaszkowski (kb@sysmikro.com.pl)
+ * 2007 by Angel Carpinteo (ack@telefonica.net)
+ */
 int mjpegtoyuv420p(unsigned char *map, unsigned char *cap_map, int width, int height, unsigned int size);
 
 /*
@@ -148,9 +171,14 @@ int mjpegtoyuv420p(unsigned char *map, unsigned char *cap_map, int width, int he
  * SUCH DAMAGE.
  */
 
+/** Bayer 8bit to RGB 24 */
 void bayer2rgb24(unsigned char *dst, unsigned char *src, long int WIDTH, long int HEIGHT);
+/** Bayer 16 bit to RGB 24 */
 void bayer16_2_rgb24(unsigned short *dst, unsigned short *src, long int WIDTH, long int HEIGHT);
+/** Bayer RGGB to RGB 24 */
 void bayer_rggb_2rgb24(unsigned char *dst, unsigned char *srcc, long int WIDTH, long int HEIGHT);
+
+/*@}*/
 
 #ifdef __cplusplus
 }

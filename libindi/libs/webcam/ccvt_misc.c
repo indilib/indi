@@ -382,20 +382,6 @@ void bayer_rggb_2rgb24(unsigned char *dst, unsigned char *src, long int WIDTH, l
 }
 
 
-/*
- * mjpegtoyuv420p
- *
- * Return values
- *  -1 on fatal error
- *  0  on success
- *  2  if jpeg lib threw a "corrupt jpeg data" warning.
- *     in this case, "a damaged output image is likely."
- *
- * Copyright 2000 by Jeroen Vreeken (pe1rxq@amsat.org)
- * 2006 by Krzysztof Blaszkowski (kb@sysmikro.com.pl)
- * 2007 by Angel Carpinteo (ack@telefonica.net)
- */
-
 int mjpegtoyuv420p(unsigned char *map, unsigned char *cap_map, int width, int height, unsigned int size)
 {
     unsigned char *yuv[3];
