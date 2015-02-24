@@ -755,8 +755,8 @@ bool SBIGCCD::setupParams()
   int bit_depth = 16;
   int x_1, y_1, x_2, y_2;
 
-  int 		res = CE_NO_ERROR, wCcd, hCcd, binning;
-  double	wPixel, hPixel;
+  int 		res = CE_NO_ERROR, wCcd=0, hCcd=0, binning=0;
+  double	wPixel=0, hPixel=0;
 
 
   if ( (res = getBinningMode(&PrimaryCCD, binning)) != CE_NO_ERROR)
