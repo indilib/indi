@@ -88,8 +88,6 @@ set(libindicom_SRCS
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 set(libwebcam_SRCS
-	${CMAKE_SOURCE_DIR}/libs/webcam/PPort.cpp
-	${CMAKE_SOURCE_DIR}/libs/webcam/port.cpp
 	${CMAKE_SOURCE_DIR}/libs/webcam/v4l2_base.cpp
 	${CMAKE_SOURCE_DIR}/libs/webcam/ccvt_c2.c
 	${CMAKE_SOURCE_DIR}/libs/webcam/ccvt_misc.c
