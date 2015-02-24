@@ -798,6 +798,19 @@ bool SBIGCCD::setupParams()
 
         if(res == CE_NO_ERROR)
         {
+            if (useExternalTrackingCCD && (wCcd == 0 || hCcd==0))
+            {
+                DEBUG(INDI::Logger::DBG_DEBUG, "Invalid external tracking CCD dimensions, trying regular CCD_TRACKING");
+
+                if (res = getCCDSizeInfo(CCD_TRACKING, binning, wCcd, hCcd, wPixel, hPixel) != CE_NO_ERROR)
+                {
+                    DEBUGF(INDI::Logger::DBG_ERROR, "Error getting Tracking CCD Size info. %s", GetErrorString(res).c_str());
+                    return false;
+                }
+
+                useExternalTrackingCCD = false;
+            }
+
             // CCD INFO:
             x_pixel_size  = wPixel;
             y_pixel_size  = hPixel;
@@ -1579,7 +1592,8 @@ int SBIGCCD::QueryTemperatureStatus(bool &enabled, double &ccdTemp, double &setp
                 setpointTemp = CalcTemperature(CCD_THERMISTOR, qtsr.ccdSetpoint);
                 power        = qtsr.power/255.0;
 
-                DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Regulation Enabled (%s) ccdTemp (%g) setpointTemp (%g) power (%g)", __FUNCTION__, enabled ? "True": "False", qtsr.enabled, ccdTemp, setpointTemp, power);
+
+                DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Regulation Enabled (%s) ccdTemp (%g) setpointTemp (%g) power (%g)", __FUNCTION__, enabled ? "True": "False", ccdTemp, setpointTemp, power);
         }
     }else{
         res = CE_DEVICE_NOT_OPEN;
@@ -1709,7 +1723,7 @@ int	SBIGCCD::getCCDSizeInfo(	int ccd, int binning, int &frmW, int &frmH,
             pixW = BcdPixel2double(gcr.readoutInfo[binning].pixelWidth);
             pixH = BcdPixel2double(gcr.readoutInfo[binning].pixelHeight);
 
-            DEBUGF(INDI::Logger::DBG_DEBUG, "%s: ccd (%d) binning (%d) width (%d) height (%d) pixW (%d) pixH (%d)", __FUNCTION__, ccd, binning, frmW, frmH, pixW, pixH);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "%s: ccd (%d) binning (%d) width (%d) height (%d) pixW (%g) pixH (%g)", __FUNCTION__, ccd, binning, frmW, frmH, pixW, pixH);
     }
     return(res);
 }
