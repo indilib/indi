@@ -36,7 +36,7 @@
 		<version>2.0</version>
 	</device>
 	<device label="LX200 Astro-Physics">
-		<driver name="LX200 Astro-Physics">indi_lx200ap</driver>
+		<driver name="Astro-Physics">indi_lx200ap</driver>
 		<version>1.0</version>
 	</device>
 	<device label="Celestron GPS" focal_length="" aperture="">
