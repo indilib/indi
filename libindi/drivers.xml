@@ -36,7 +36,7 @@
 		<version>2.0</version>
 	</device>
 	<device label="LX200 Astro-Physics">
-		<driver name="Astro-Physics">indi_lx200ap</driver>
+		<driver name="AstroPhysics">indi_lx200ap</driver>
 		<version>1.0</version>
 	</device>
 	<device label="Celestron GPS" focal_length="" aperture="">
@@ -134,7 +134,7 @@
 		<version>1.0</version>
 	</device>
 	<device label="Rigelsys NFocus">
-                <driver name="Rigelsys NFocus">indi_nfocus</driver>
+                <driver name="NFocus">indi_nfocus</driver>
 		<version>1.0</version>
 	</device>
         <device label="MoonLite">
