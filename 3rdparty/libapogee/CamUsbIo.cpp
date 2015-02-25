@@ -376,6 +376,6 @@ void CamUsbIo::Progress2StdOut(const int32_t percentComplete)
 {
     if( m_Print2StdOut )
     {
-        std::cout << "Precent:" << percentComplete << std::endl;
+        std::cerr << "Precent:" << percentComplete << std::endl;
     }
 }
