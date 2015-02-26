@@ -480,7 +480,11 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
                     last_ns_motion = current_motion;
                 }
                 else
+                {
+                    IUResetSwitch(&MovementNSSP);
                     MovementNSSP.s = IPS_ALERT;
+                    last_ns_motion = -1;
+                }
             }
 
             IDSetSwitch(&MovementNSSP, NULL);
@@ -518,7 +522,11 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
                     last_we_motion = current_motion;
                 }
                 else
+                {
+                    IUResetSwitch(&MovementWESP);
                     MovementWESP.s = IPS_ALERT;
+                    last_we_motion = -1;
+                }
             }
 
             IDSetSwitch(&MovementWESP, NULL);
