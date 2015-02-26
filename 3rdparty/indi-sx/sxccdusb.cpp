@@ -112,6 +112,8 @@
 #define BULK_COMMAND_TIMEOUT        2000
 #define BULK_DATA_TIMEOUT           10000
 
+#define CHUNK_SIZE                  (10*1024*1024)
+
 #if 1
 #define TRACE(c) (c)
 #define DEBUG(c) (c)
@@ -619,11 +621,13 @@ int sxReadPixels(HANDLE sxHandle, void *pixels, unsigned long count) {
   unsigned long read=0;
   int rc=0;
   while (read < count && rc >= 0) {
-    rc = libusb_bulk_transfer(sxHandle, BULK_IN, (unsigned char *)pixels + read, count - read, &transferred, BULK_DATA_TIMEOUT);
+    int size = count - read;
+    if (size > CHUNK_SIZE)
+      size = CHUNK_SIZE;
+    rc = libusb_bulk_transfer(sxHandle, BULK_IN, (unsigned char *)pixels + read, size, &transferred, BULK_DATA_TIMEOUT);
     DEBUG(log(true, "sxReadPixels: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
     if (transferred >= 0) {
       read+=transferred;
-      //usleep(50);
     }
   }
   return rc >= 0;
