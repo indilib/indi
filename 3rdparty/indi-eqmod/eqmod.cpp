@@ -1914,6 +1914,7 @@ bool EQMod::MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command)
     case MOTION_START:
       if (gotoInProgress()  || (TrackState == SCOPE_PARKING) || (TrackState == SCOPE_PARKED))
       {
+        RememberTrackState = TrackState;
         DEBUG(INDI::Logger::DBG_WARNING, "Can not slew while goto/park in progress, or scope parked.");
         return false;
       }
@@ -1933,6 +1934,10 @@ bool EQMod::MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command)
             DEBUG(INDI::Logger::DBG_SESSION, "Restarting DE Tracking...");
             TrackState = SCOPE_TRACKING;
             mount->StartDETracking(GetDETrackRate());
+        }
+        else if (RememberTrackState == SCOPE_PARKED || RememberTrackState == SCOPE_PARKING)
+        {
+            TrackState = RememberTrackState;
         }
         else
         {
@@ -1960,6 +1965,7 @@ bool EQMod::MoveWE(TelescopeMotionWE dir, TelescopeMotionCommand command)
     case MOTION_START:
       if (gotoInProgress()  || (TrackState == SCOPE_PARKING) || (TrackState == SCOPE_PARKED))
       {
+        RememberTrackState = TrackState;
         DEBUG(INDI::Logger::DBG_WARNING, "Can not slew while goto/park in progress, or scope parked.");
         return false;
       }
@@ -1979,6 +1985,10 @@ bool EQMod::MoveWE(TelescopeMotionWE dir, TelescopeMotionCommand command)
             DEBUG(INDI::Logger::DBG_SESSION, "Restarting DE Tracking...");
             TrackState = SCOPE_TRACKING;
             mount->StartRATracking(GetRATrackRate());
+        }
+        else if (RememberTrackState == SCOPE_PARKED || RememberTrackState == SCOPE_PARKING)
+        {
+            TrackState = RememberTrackState;
         }
         else
         {
