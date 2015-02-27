@@ -1,3 +1,4 @@
 usr/lib
 etc/Apogee/camera
+lib/udev/rules.d/
 
