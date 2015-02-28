@@ -652,7 +652,7 @@ bool EQMod::ReadScopeStatus() {
   double lst; 
   //double datevalues[2];
   char hrlst[12];
-  char hrutc[32];
+
   const char *datenames[]={"LST", "JULIANDATE", "UTC"};
   const char *piersidenames[]={"EAST", "WEST"};
   ISState piersidevalues[2];
@@ -669,16 +669,18 @@ bool EQMod::ReadScopeStatus() {
   fs_sexa(hrlst, lst, 2, 360000);
   hrlst[11]='\0';
   DEBUGF(DBG_SCOPE_STATUS, "Compute local time: lst=%2.8f (%s) - julian date=%8.8f", lst, hrlst, juliandate);
-  //DateNP->s=IPS_BUSY;
-  //datevalues[0]=lst; datevalues[1]=juliandate;
+
   IUUpdateNumber(TimeLSTNP, &lst, (char **)(datenames), 1);
   TimeLSTNP->s=IPS_OK;
   IDSetNumber(TimeLSTNP, NULL); 
+
   IUUpdateNumber(JulianNP, &juliandate, (char **)(datenames  +1), 1);
-  JulianNP->s=IPS_OK;
+  JulianNP->s=IPS_OK;  
   IDSetNumber(JulianNP, NULL); 
-  strftime(IUFindText(&TimeTP, "UTC")->text, 32, "%Y-%m-%dT%H:%M:%S", &utc);
-  //IUUpdateText(TimeTP, (char **)(&hrutc), (char **)(datenames  +2), 1);
+
+  char utcFormat[MAXINDINAME];
+  strftime(utcFormat, MAXINDINAME, "%Y-%m-%dT%H:%M:%S", &utc);
+  IUSaveText(IUFindText(&TimeTP, "UTC"), utcFormat);
   TimeTP.s=IPS_OK;
   IDSetText(&TimeTP, NULL);
  
