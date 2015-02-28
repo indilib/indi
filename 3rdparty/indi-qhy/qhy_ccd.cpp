@@ -816,7 +816,9 @@ int QHYCCD::grabImage()
     ret = GetQHYCCDSingleFrame(camhandle,&w,&h,&bpp,&channels,image);
   }
 
-  DEBUG(INDI::Logger::DBG_SESSION, "Download complete.");
+  DEBUG(INDI::Logger::DBG_DEBUG, "Download complete.");
+  if (ExposureRequest > POLLMS * 5)
+      DEBUG(INDI::Logger::DBG_SESSION, "Download complete.");
 
   ExposureComplete(&PrimaryCCD);
 
@@ -852,10 +854,11 @@ void QHYCCD::TimerHit()
         } 
         else
         {
-          /* JM: Is there a QHY API call to find if the frame is ready for download?? */
-
           /* We're done exposing */
-          DEBUG(INDI::Logger::DBG_SESSION, "Exposure done, downloading image...");
+          DEBUG(INDI::Logger::DBG_DEBUG, "Exposure done, downloading image...");
+          // Don't spam the session log unless it is a long exposure > 5 seconds
+          if (ExposureRequest > POLLMS * 5)
+              DEBUG(INDI::Logger::DBG_SESSION, "Exposure done, downloading image...");
 
           PrimaryCCD.setExposureLeft(0);
           InExposure = false;
