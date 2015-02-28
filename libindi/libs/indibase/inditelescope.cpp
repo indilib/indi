@@ -42,8 +42,8 @@ bool INDI::Telescope::initProperties()
     IUFillNumber(&EqN[1],"DEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,0);
     IUFillNumberVector(&EqNP,EqN,2,getDeviceName(),"EQUATORIAL_EOD_COORD","Eq. Coordinates",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
 
-    IUFillText(&TimeT[0],"UTC","UTC Time","");
-    IUFillText(&TimeT[1],"OFFSET","UTC Offset","");
+    IUFillText(&TimeT[0],"UTC","UTC Time",NULL);
+    IUFillText(&TimeT[1],"OFFSET","UTC Offset",NULL);
     IUFillTextVector(&TimeTP,TimeT,2,getDeviceName(),"TIME_UTC","UTC",SITE_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillNumber(&LocationN[0],"LAT","Lat (dd:mm:ss)","%010.6m",-90,90,0,0.0);
