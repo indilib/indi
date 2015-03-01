@@ -1663,44 +1663,61 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 	  return true;
 	}
 
-      if(strcmp(name,"TRACKMODE")==0)
+      if(strcmp(name,"TELESCOPE_TRACK_RATE")==0)
  	{ 
 	  ISwitch *swbefore, *swafter;
 	  swbefore=IUFindOnSwitch(TrackModeSP);
 	  IUUpdateSwitch(TrackModeSP,states,names,n);
 	  swafter=IUFindOnSwitch(TrackModeSP);
 	  //DEBUGF(INDI::Logger::DBG_SESSION, "Track mode :  from %s to %s.", (swbefore?swbefore->name:"None"), swafter->name);
-	  try {
-	    if (swbefore == NULL) {
-	      if (TrackState == SCOPE_IDLE) {
-		DEBUGF(INDI::Logger::DBG_SESSION, "Start Tracking (%s).", swafter->name);
-		TrackState = SCOPE_TRACKING;
-		TrackModeSP->s=IPS_BUSY;
-		IDSetSwitch(TrackModeSP,NULL);
-		mount->StartRATracking(GetRATrackRate());
-		mount->StartDETracking(GetDETrackRate());
-	      } else {
-		TrackModeSP->s=IPS_IDLE;
-		IDSetSwitch(TrackModeSP,NULL);
-		DEBUGF(INDI::Logger::DBG_WARNING, "Can not start Tracking (%s). Scope not idle", swafter->name);
-	      } 
-	    } else {
-	      if (swbefore == swafter) {
-		if ( TrackState == SCOPE_TRACKING) {
-		  DEBUGF(INDI::Logger::DBG_SESSION, "Stop Tracking (%s).", swafter->name);
-		  TrackState = SCOPE_IDLE;
-		  TrackModeSP->s=IPS_IDLE;
-		  IUResetSwitch(TrackModeSP);
-		  IDSetSwitch(TrackModeSP,NULL);
-		  mount->StopRA();
-		  mount->StopDE();
-		}
-	      } else {
-		if (TrackState == SCOPE_TRACKING) {
-		  DEBUGF(INDI::Logger::DBG_SESSION, "Changed Tracking rate (%s).", swafter->name);
-		  mount->StartRATracking(GetRATrackRate());
-		  mount->StartDETracking(GetDETrackRate());
-		} 
+      try
+      {
+        // If no switch is set before, let's try to start tracking
+        if (swbefore == NULL)
+        {
+          if (TrackState == SCOPE_IDLE)
+          {
+              DEBUGF(INDI::Logger::DBG_SESSION, "Start Tracking (%s).", swafter->name);
+              TrackState = SCOPE_TRACKING;
+              TrackModeSP->s=IPS_BUSY;
+              IDSetSwitch(TrackModeSP,NULL);
+              mount->StartRATracking(GetRATrackRate());
+              mount->StartDETracking(GetDETrackRate());
+          }
+          else
+          {
+              TrackModeSP->s=IPS_IDLE;
+              IDSetSwitch(TrackModeSP,NULL);
+              DEBUGF(INDI::Logger::DBG_WARNING, "Can not start Tracking (%s). Scope not idle", swafter->name);
+          }
+        }
+        else
+        {
+          // If the same switch is sent, we stop tracking
+          if (swbefore == swafter)
+          {
+              if ( TrackState == SCOPE_TRACKING)
+              {
+                DEBUGF(INDI::Logger::DBG_SESSION, "Stop Tracking (%s).", swafter->name);
+                TrackState = SCOPE_IDLE;
+                TrackModeSP->s=IPS_IDLE;
+                IUResetSwitch(TrackModeSP);
+                IDSetSwitch(TrackModeSP,NULL);
+                mount->StopRA();
+                mount->StopDE();
+              }
+          }
+          // If new switch is sent, we change tracking rate
+          else
+          {
+              if (TrackState == SCOPE_TRACKING)
+              {
+                DEBUGF(INDI::Logger::DBG_SESSION, "Changed Tracking rate (%s).", swafter->name);
+                mount->StartRATracking(GetRATrackRate());
+                mount->StartDETracking(GetDETrackRate());
+                TrackModeSP->s=IPS_BUSY;
+                IDSetSwitch(TrackModeSP,NULL);
+              }
 	      }
 	    }
 	  } catch(EQModError e) {

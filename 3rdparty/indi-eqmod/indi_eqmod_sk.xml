@@ -115,7 +115,7 @@ On
 Off
 </defSwitch>
 </defSwitchVector>
-<defSwitchVector device="EQMod Mount" name="TELESCOPE_TRACK_RATE" label="Track Mode" group="Main Control" state="Idle" perm="rw" rule="OneOfMany">
+<defSwitchVector device="EQMod Mount" name="TELESCOPE_TRACK_RATE" label="Track Mode" group="Main Control" state="Idle" perm="rw" rule="AtMostOne">
 <defSwitch name="TRACK_SIDEREAL" label="Sidereal">
 Off
 </defSwitch>
@@ -130,16 +130,16 @@ Off
 </defSwitch>
 </defSwitchVector>
 <defSwitchVector device="EQMod Mount" name="TRACKDEFAULT" label="Track Default" group="Motion Control" state="Idle" perm="rw" rule="OneOfMany">
-<defSwitch name="SIDEREAL" label="Sidereal">
+<defSwitch name="TRACK_SIDEREAL" label="Sidereal">
 On
 </defSwitch>
-<defSwitch name="LUNAR" label="Lunar">
+<defSwitch name="TRACK_LUNAR" label="Lunar">
 Off
 </defSwitch>
-<defSwitch name="SOLAR" label="Solar">
+<defSwitch name="TRACK_SOLAR" label="Solar">
 Off
 </defSwitch>
-<defSwitch name="CUSTOM" label="Custom">
+<defSwitch name="TRACK_CUSTOM" label="Custom">
 Off
 </defSwitch>
 </defSwitchVector>
