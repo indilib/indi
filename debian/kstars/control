@@ -28,6 +28,7 @@ Build-Depends: cmake,
                qtmultimedia5-dev,
                libqt5svg5-dev,
                libqt5opengl5-dev,
+               libqt5sql5-sqlite,
                libeigen3-dev, zlib1g-dev, libcfitsio3-dev (>= 3.040), libglu1-mesa-dev [!armhf], libnova-dev, pkg-config, libindi-dev (>= 1.0.0), wcslib-dev, xplanet 
 Standards-Version: 3.9.3
 Homepage: http://edu.kde.org/
