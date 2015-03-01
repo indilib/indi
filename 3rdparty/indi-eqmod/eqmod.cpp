@@ -372,7 +372,7 @@ bool EQMod::loadProperties()
     SlewModeSP=getSwitch("SLEWMODE");
     HemisphereSP=getSwitch("HEMISPHERE");
     PierSideSP=getSwitch("PIERSIDE");
-    TrackModeSP=getSwitch("TRACKMODE");
+    TrackModeSP=getSwitch("TELESCOPE_TRACK_RATE");
     TrackDefaultSP=getSwitch("TRACKDEFAULT");
     TrackRatesNP=getNumber("TRACKRATES");
     ReverseDECSP=getSwitch("REVERSEDEC");
@@ -1060,13 +1060,13 @@ double EQMod::GetRATrackRate()
   ISwitch *sw;
   sw=IUFindOnSwitch(TrackModeSP);
   if (!sw) return 0.0;
-  if (!strcmp(sw->name,"SIDEREAL")) {
+  if (!strcmp(sw->name,"TRACK_SIDEREAL")) {
     rate = TRACKRATE_SIDEREAL;
-  } else if (!strcmp(sw->name,"LUNAR")) {
+  } else if (!strcmp(sw->name,"TRACK_LUNAR")) {
     rate = TRACKRATE_LUNAR;
-  } else if (!strcmp(sw->name,"SOLAR")) {
+  } else if (!strcmp(sw->name,"TRACK_SOLAR")) {
     rate = TRACKRATE_SOLAR;
-  } else if (!strcmp(sw->name,"CUSTOM")) {
+  } else if (!strcmp(sw->name,"TRACK_CUSTOM")) {
     rate = IUFindNumber(TrackRatesNP, "RATRACKRATE")->value;
   } else return 0.0;
   if (RAInverted) rate=-rate;
@@ -1079,13 +1079,13 @@ double EQMod::GetDETrackRate()
   ISwitch *sw;
   sw=IUFindOnSwitch(TrackModeSP);
   if (!sw) return 0.0;
-  if (!strcmp(sw->name,"SIDEREAL")) {
+  if (!strcmp(sw->name,"TRACK_SIDEREAL")) {
     rate = 0.0;
-  } else if (!strcmp(sw->name,"LUNAR")) {
+  } else if (!strcmp(sw->name,"TRACK_LUNAR")) {
     rate = 0.0;
-  } else if (!strcmp(sw->name,"SOLAR")) {
+  } else if (!strcmp(sw->name,"TRACK_SOLAR")) {
     rate = 0.0;
-  } else if (!strcmp(sw->name,"CUSTOM")) {
+  } else if (!strcmp(sw->name,"TRACK_CUSTOM")) {
     rate = IUFindNumber(TrackRatesNP, "DETRACKRATE")->value;
   } else return 0.0;
   if (DEInverted) rate=-rate;
@@ -1098,13 +1098,13 @@ double EQMod::GetDefaultRATrackRate()
   ISwitch *sw;
   sw=IUFindOnSwitch(TrackDefaultSP);
   if (!sw) return 0.0;
-  if (!strcmp(sw->name,"SIDEREAL")) {
+  if (!strcmp(sw->name,"TRACK_SIDEREAL")) {
     rate = TRACKRATE_SIDEREAL;
-  } else if (!strcmp(sw->name,"LUNAR")) {
+  } else if (!strcmp(sw->name,"TRACK_LUNAR")) {
     rate = TRACKRATE_LUNAR;
-  } else if (!strcmp(sw->name,"SOLAR")) {
+  } else if (!strcmp(sw->name,"TRACK_SOLAR")) {
     rate = TRACKRATE_SOLAR;
-  } else if (!strcmp(sw->name,"CUSTOM")) {
+  } else if (!strcmp(sw->name,"TRACK_CUSTOM")) {
     rate = IUFindNumber(TrackRatesNP, "RATRACKRATE")->value;
   } else return 0.0;
   if (RAInverted) rate=-rate;
@@ -1117,13 +1117,13 @@ double EQMod::GetDefaultDETrackRate()
   ISwitch *sw;
   sw=IUFindOnSwitch(TrackDefaultSP);
   if (!sw) return 0.0;
-  if (!strcmp(sw->name,"SIDEREAL")) {
+  if (!strcmp(sw->name,"TRACK_SIDEREAL")) {
     rate = 0.0;
-  } else if (!strcmp(sw->name,"LUNAR")) {
+  } else if (!strcmp(sw->name,"TRACK_LUNAR")) {
     rate = 0.0;
-  } else if (!strcmp(sw->name,"SOLAR")) {
+  } else if (!strcmp(sw->name,"TRACK_SOLAR")) {
     rate = 0.0;
-  } else if (!strcmp(sw->name,"CUSTOM")) {
+  } else if (!strcmp(sw->name,"TRACK_CUSTOM")) {
     rate = IUFindNumber(TrackRatesNP, "DETRACKRATE")->value;
   } else return 0.0;
   if (DEInverted) rate=-rate;
