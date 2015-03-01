@@ -813,6 +813,7 @@ bool EQMod::ReadScopeStatus() {
     if (TrackState == SCOPE_PARKING) {
       if (!(mount->IsRARunning()) && !(mount->IsDERunning())) {
 	    ParkSP.s=IPS_OK;
+        IUResetSwitch(&ParkSP);
 	    IDSetSwitch(&ParkSP, NULL);
 	    Parked=true;
 	    TrackState = SCOPE_PARKED;
@@ -1231,15 +1232,18 @@ bool EQMod::Goto(double r,double d)
 
 bool EQMod::Park()
 { 
-  if (!Parked) {
-    if (TrackState == SCOPE_SLEWING) {
+  if (!Parked)
+  {
+    if (TrackState == SCOPE_SLEWING)
+    {
       DEBUG(INDI::Logger::DBG_SESSION, "Can not park while slewing...");
       ParkSP.s=IPS_ALERT;
       IDSetSwitch(&ParkSP, NULL);
       return false;
     }
 
-    try {    
+    try
+    {
       // stop motor
       mount->StopRA();
       mount->StopDE();
@@ -1249,7 +1253,8 @@ bool EQMod::Park()
       DEBUGF(INDI::Logger::DBG_SESSION, "Parking mount: RA increment = %ld, DE increment = %ld",
 		parkRAEncoder - currentRAEncoder, parkDEEncoder - currentDEEncoder);
       mount->SlewTo(parkRAEncoder - currentRAEncoder, parkDEEncoder - currentDEEncoder);
-    } catch(EQModError e) {
+    } catch(EQModError e)
+    {
       return(e.DefaultHandleException(this));
     }    
     TrackModeSP->s=IPS_IDLE;
@@ -1257,18 +1262,24 @@ bool EQMod::Park()
     TrackState = SCOPE_PARKING;
     ParkSP.s=IPS_BUSY;
     IDSetSwitch(&ParkSP, NULL);
-    //TrackState = SCOPE_PARKED;
     DEBUG(INDI::Logger::DBG_SESSION, "Telescope park in progress...");
-    //DEBUG(INDI::Logger::DBG_SESSION, "Telescope Parked...");
-  } else {
+
+    return true;
+  }
+
+  DEBUG(INDI::Logger::DBG_ERROR, "Telescope already parked.");
+  return false;
+}
+
+bool EQMod::UnPark()
+{
     Parked=false;
     mount->SetParked(false);
     TrackState = SCOPE_IDLE;
     ParkSP.s=IPS_IDLE;
     IDSetSwitch(&ParkSP, NULL);
     DEBUG(INDI::Logger::DBG_SESSION, "Telescope unparked.");
-  }
-  return true;
+    return true;
 }
 
 bool EQMod::Sync(double ra,double dec)
