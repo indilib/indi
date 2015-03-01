@@ -163,6 +163,12 @@ class INDI::Telescope : public INDI::DefaultDevice
         */
         virtual bool Park();
 
+        /** \brief Unpark the telescope if already parked.
+            \return True if successful, false otherewise
+            *\note This function defaults to return false unless subclassed by the child class.
+        */
+        virtual bool UnPark();
+
         /** \brief Abort telescope motion
             \return True if successful, false otherewise
             \note This function is not implemented in INDI::Telescope, it must be implemented in the child class
@@ -211,7 +217,7 @@ class INDI::Telescope : public INDI::DefaultDevice
         INumber LocationN[3];
 
         ISwitchVectorProperty ParkSP; //  A Switch in the client interface to park the scope
-        ISwitch ParkS[1];
+        ISwitch ParkS[2];
 
         ITextVectorProperty PortTP; //  A text vector that stores out physical port name
         IText PortT[1];

@@ -3,6 +3,10 @@
 		<driver name="LX200 Basic">indi_lx200basic</driver>
 		<version>1.0</version>
 	</device>
+        <device label="LX200 GPS" focal_length="" aperture="">
+                <driver name="LX200 GPS">indi_lx200gps</driver>
+                <version>2.0</version>
+        </device>
 	<device label="LX200 Autostar" focal_length="" aperture="">
 		<driver name="LX200 Autostar">indi_lx200autostar</driver>
 		<version>2.0</version>
@@ -10,29 +14,25 @@
 	<device label="LX200 Classic" focal_length="" aperture="">
 		<driver name="LX200 Classic">indi_lx200classic</driver>
                 <version>2.0</version>
-	</device>
-	<device label="LX200 GPS" focal_length="" aperture="">
-		<driver name="LX200 GPS">indi_lx200gps</driver>
-		<version>2.0</version>
-	</device>
+	</device>	
 	<device label="LX200 16" focal_length="4064" aperture="406.4">
 		<driver name="LX200 16">indi_lx200_16</driver>
 		<version>2.0</version>
 	</device>
 	<device label="LX90" focal_length="2000" aperture="203.2">
-		<driver name="LX200 Autostar">indi_lx200autostar</driver>
+                <driver name="LX200 GPS">indi_lx200gps</driver>
 		<version>2.0</version>
 	</device>
 	<device label="ETX125" focal_length="1900" aperture="127">
-		<driver name="LX200 Autostar">indi_lx200autostar</driver>
+                <driver name="LX200 GPS">indi_lx200gps</driver>
 		<version>2.0</version>
 	</device>
 	<device label="ETX105" focal_length="1470" aperture="105">
-		<driver name="LX200 Autostar">indi_lx200autostar</driver>
+                <driver name="LX200 GPS">indi_lx200gps</driver>
 		<version>2.0</version>
 	</device>
 	<device label="ETX90"  focal_length="1250" aperture="88.9">
-		<driver name="LX200 Autostar">indi_lx200autostar</driver>
+                <driver name="LX200 GPS">indi_lx200gps</driver>
 		<version>2.0</version>
 	</device>
 	<device label="LX200 Astro-Physics">

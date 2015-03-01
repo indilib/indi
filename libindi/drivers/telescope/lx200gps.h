@@ -37,6 +37,9 @@ class LX200GPS : public LX200Autostar
   virtual bool updateTime(ln_date *utc, double utc_offset);
 
  protected:
+
+  virtual bool UnPark();
+
   ISwitchVectorProperty GPSPowerSP;
   ISwitch GPSPowerS[2];
 

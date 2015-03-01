@@ -450,6 +450,12 @@ bool LX200Generic::ReadScopeStatus()
 
 bool LX200Generic::Goto(double r,double d)
 {
+    if (TrackState == SCOPE_PARKED)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Please unpark the mount before issuing any motion commands.");
+        return false;
+    }
+
     targetRA=r;
     targetDEC=d;
     char RAStr[64], DecStr[64];
@@ -518,6 +524,11 @@ bool LX200Generic::Sync(double ra, double dec)
 {
     char syncString[256];
 
+    if (TrackState == SCOPE_PARKED)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Please unpark the mount before issuing any motion commands.");
+        return false;
+    }
 
     if (isSimulation() == false &&
             (setObjectRA(PortFD, ra) < 0 || (setObjectDEC(PortFD, dec)) < 0))
@@ -602,6 +613,12 @@ bool LX200Generic::Park()
 
 bool LX200Generic::MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command)
 {
+    if (TrackState == SCOPE_PARKED)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Please unpark the mount before issuing any motion commands.");
+        return false;
+    }
+
     int current_move = (dir == MOTION_NORTH) ? LX200_NORTH : LX200_SOUTH;
 
     switch (command)
@@ -632,6 +649,12 @@ bool LX200Generic::MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command)
 
 bool LX200Generic::MoveWE(TelescopeMotionWE dir, TelescopeMotionCommand command)
 {
+
+    if (TrackState == SCOPE_PARKED)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Please unpark the mount before issuing any motion commands.");
+        return false;
+    }
 
     int current_move = (dir == MOTION_WEST) ? LX200_WEST : LX200_EAST;
 

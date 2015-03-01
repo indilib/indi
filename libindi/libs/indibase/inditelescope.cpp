@@ -60,9 +60,9 @@ bool INDI::Telescope::initProperties()
     else
         IUFillSwitchVector(&CoordSP,CoordS,2,getDeviceName(),"ON_COORD_SET","On Set",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
-
     IUFillSwitch(&ParkS[0],"PARK","Park",ISS_OFF);
-    IUFillSwitchVector(&ParkSP,ParkS,1,getDeviceName(),"TELESCOPE_PARK","Park",MAIN_CONTROL_TAB,IP_RW,ISR_ATMOST1,60,IPS_IDLE);
+    IUFillSwitch(&ParkS[1],"UNPARK","UnPark",ISS_OFF);
+    IUFillSwitchVector(&ParkSP,ParkS,2,getDeviceName(),"TELESCOPE_PARK","Parking",MAIN_CONTROL_TAB,IP_RW,ISR_ATMOST1,60,IPS_IDLE);
 
     IUFillSwitch(&AbortS[0],"ABORT","Abort",ISS_OFF);
     IUFillSwitchVector(&AbortSP,AbortS,1,getDeviceName(),"TELESCOPE_ABORT_MOTION","Abort Motion",MAIN_CONTROL_TAB,IP_RW,ISR_ATMOST1,60,IPS_IDLE);
@@ -84,7 +84,7 @@ bool INDI::Telescope::initProperties()
     IUFillNumber(&ScopeParametersN[3],"GUIDER_FOCAL_LENGTH","Guider Focal Length (mm)","%g",100,10000,0,0.0 );
     IUFillNumberVector(&ScopeParametersNP,ScopeParametersN,4,getDeviceName(),"TELESCOPE_INFO","Scope Properties",OPTIONS_TAB,IP_RW,60,IPS_OK);
 
-    TrackState=SCOPE_PARKED;
+    TrackState=SCOPE_IDLE;
 
     setInterfaceDescriptor(TELESCOPE_INTERFACE);
 
@@ -424,15 +424,39 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
 
         if(strcmp(name,"TELESCOPE_PARK")==0)
         {
-            ParkS[0].s = ISS_OFF;
-
-            if (ParkSP.s == IPS_BUSY)
+            if (TrackState == SCOPE_PARKING)
             {
+                IUResetSwitch(&ParkSP);
+                ParkSP.s == IPS_IDLE;
+                Abort();
+                DEBUG(INDI::Logger::DBG_SESSION, "Parking/Unparking aborted.");
                 IDSetSwitch(&ParkSP, NULL);
                 return true;
             }
 
-            bool rc = Park();
+            IUUpdateSwitch(&ParkSP, states, names, n);
+
+            bool toPark = (ParkS[0].s == ISS_ON);
+
+            if (toPark == false && TrackState != SCOPE_PARKED)
+            {
+                IUResetSwitch(&ParkSP);
+                ParkSP.s == IPS_IDLE;
+                DEBUG(INDI::Logger::DBG_SESSION, "Mount already unparked.");
+                IDSetSwitch(&ParkSP, NULL);
+                return true;
+            }
+
+            if (toPark && TrackState == SCOPE_PARKED)
+            {
+                IUResetSwitch(&ParkSP);
+                ParkSP.s == IPS_IDLE;
+                DEBUG(INDI::Logger::DBG_SESSION, "Mount already parked.");
+                IDSetSwitch(&ParkSP, NULL);
+                return true;
+            }
+
+            bool rc =  toPark ? Park() : UnPark();
             if (rc)
             {
                 if (TrackState == SCOPE_PARKING)
@@ -441,10 +465,16 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
                      ParkSP.s = IPS_BUSY;
                 }
                 else
+                {
+                    IUResetSwitch(&ParkSP);
                     ParkSP.s = IPS_OK;
+                }
             }
             else
+            {
+                IUResetSwitch(&ParkSP);
                 ParkSP.s = IPS_ALERT;
+            }
 
             IDSetSwitch(&ParkSP, NULL);
             return true;
@@ -682,9 +712,13 @@ void INDI::Telescope::TimerHit()
 
 bool INDI::Telescope::Park()
 {
-    //  We want to park our telescope
-    //  but the scope doesn't seem to support park
-    //  or it wouldn't have gotten here
+    DEBUG(INDI::Logger::DBG_WARNING, "Parking is not supported.");
+    return false;
+}
+
+bool  INDI::Telescope::UnPark()
+{
+    DEBUG(INDI::Logger::DBG_WARNING, "UnParking is not supported.");
     return false;
 }
 

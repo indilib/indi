@@ -496,7 +496,12 @@ bool ScopeSim::ReadScopeStatus()
 
 bool ScopeSim::Goto(double r,double d)
 {
-    //IDLog("ScopeSim Goto\n");
+    if (TrackState == SCOPE_PARKED)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Please unpark the mount before issuing any motion commands.");
+        return false;
+    }
+
     targetRA=r;
     targetDEC=d;
     char RAStr[64], DecStr[64];
@@ -540,6 +545,12 @@ bool ScopeSim::Goto(double r,double d)
 
 bool ScopeSim::Sync(double ra, double dec)
 {
+    if (TrackState == SCOPE_PARKED)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Please unpark the mount before issuing any motion commands.");
+        return false;
+    }
+
     currentRA  = ra;
     currentDEC = dec;
 
@@ -565,6 +576,13 @@ bool ScopeSim::Park()
     Parked=true;
     TrackState = SCOPE_PARKING;
     DEBUG(INDI::Logger::DBG_SESSION,"Parking telescope in progress...");
+    return true;
+}
+
+bool ScopeSim::UnPark()
+{
+    TrackState = SCOPE_TRACKING;
+    DEBUG(INDI::Logger::DBG_SESSION,"Telescope unparked.");
     return true;
 }
 
@@ -697,11 +715,23 @@ bool ScopeSim::Abort()
 
 bool ScopeSim::MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command)
 {
+    if (TrackState == SCOPE_PARKED)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Please unpark the mount before issuing any motion commands.");
+        return false;
+    }
+
     return true;
 }
 
 bool ScopeSim::MoveWE(TelescopeMotionWE dir, TelescopeMotionCommand command)
 {
+    if (TrackState == SCOPE_PARKED)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Please unpark the mount before issuing any motion commands.");
+        return false;
+    }
+
     return true;
 }
 

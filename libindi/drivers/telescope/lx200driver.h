@@ -108,6 +108,7 @@ enum TFreq { LX200_TRACK_DEFAULT, LX200_TRACK_LUNAR, LX200_TRACK_MANUAL};
 #define turnFieldDeRotatorOn(fd)			write(fd, "#:r+#", 5)
 #define turnFieldDeRotatorOff(fd)			write(fd, "#:r-#", 5)
 #define slewToPark(fd)					write(fd, "#:hP#", 5)
+#define initTelescope(fd)					write(fd, "#:I#", 4)
 
 #ifdef __cplusplus
 extern "C" {

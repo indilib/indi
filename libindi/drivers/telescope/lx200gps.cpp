@@ -376,3 +376,12 @@ bool LX200GPS::updateProperties()
     DEBUG(INDI::Logger::DBG_SESSION , "Time updated, updating planetary data...");
     return true;
  }
+
+ bool LX200GPS::UnPark()
+ {
+     initTelescope(PortFD);
+
+     TrackState = SCOPE_IDLE;
+
+     return true;
+ }
