@@ -72,11 +72,11 @@ bool INDI::Telescope::initProperties()
 
     IUFillSwitch(&MovementNSS[MOTION_NORTH], "MOTION_NORTH", "North", ISS_OFF);
     IUFillSwitch(&MovementNSS[MOTION_SOUTH], "MOTION_SOUTH", "South", ISS_OFF);
-    IUFillSwitchVector(&MovementNSSP, MovementNSS, 2, getDeviceName(),"TELESCOPE_MOTION_NS", "North/South", MOTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+    IUFillSwitchVector(&MovementNSSP, MovementNSS, 2, getDeviceName(),"TELESCOPE_MOTION_NS", "Motion N/S", MOTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     IUFillSwitch(&MovementWES[MOTION_WEST], "MOTION_WEST", "West", ISS_OFF);
     IUFillSwitch(&MovementWES[MOTION_EAST], "MOTION_EAST", "East", ISS_OFF);
-    IUFillSwitchVector(&MovementWESP, MovementWES, 2, getDeviceName(),"TELESCOPE_MOTION_WE", "West/East", MOTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+    IUFillSwitchVector(&MovementWESP, MovementWES, 2, getDeviceName(),"TELESCOPE_MOTION_WE", "Motion W/E", MOTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     IUFillNumber(&ScopeParametersN[0],"TELESCOPE_APERTURE","Aperture (mm)","%g",50,4000,0,0.0);
     IUFillNumber(&ScopeParametersN[1],"TELESCOPE_FOCAL_LENGTH","Focal Length (mm)","%g",100,10000,0,0.0 );
@@ -207,7 +207,7 @@ void INDI::Telescope::NewRaDec(double ra,double dec)
 bool INDI::Telescope::Sync(double ra,double dec)
 {
     //  if we get here, our mount doesn't support sync
-    DEBUG(Logger::DBG_ERROR, "Mount does not support Sync.");
+    DEBUG(Logger::DBG_ERROR, "Telescope does not support Sync.");
     return false;
 }
 
@@ -215,7 +215,7 @@ bool INDI::Telescope::MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand comma
 {
     INDI_UNUSED(dir);
     INDI_UNUSED(command);
-    DEBUG(Logger::DBG_ERROR, "Mount does not support North/South motion.");
+    DEBUG(Logger::DBG_ERROR, "Telescope does not support North/South motion.");
     IUResetSwitch(&MovementNSSP);
     MovementNSSP.s = IPS_IDLE;
     IDSetSwitch(&MovementNSSP, NULL);
@@ -226,7 +226,7 @@ bool INDI::Telescope::MoveWE(TelescopeMotionWE dir, TelescopeMotionCommand comma
 {
     INDI_UNUSED(dir);
     INDI_UNUSED(command);
-    DEBUG(Logger::DBG_ERROR,"Mount does not support West/East motion.");
+    DEBUG(Logger::DBG_ERROR,"Telescope does not support West/East motion.");
     IUResetSwitch(&MovementWESP);
     MovementWESP.s = IPS_IDLE;
     IDSetSwitch(&MovementWESP, NULL);
@@ -442,7 +442,7 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
             {
                 IUResetSwitch(&ParkSP);
                 ParkSP.s == IPS_IDLE;
-                DEBUG(INDI::Logger::DBG_SESSION, "Mount already unparked.");
+                DEBUG(INDI::Logger::DBG_SESSION, "Telescope already unparked.");
                 IDSetSwitch(&ParkSP, NULL);
                 return true;
             }
@@ -451,7 +451,7 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
             {
                 IUResetSwitch(&ParkSP);
                 ParkSP.s == IPS_IDLE;
-                DEBUG(INDI::Logger::DBG_SESSION, "Mount already parked.");
+                DEBUG(INDI::Logger::DBG_SESSION, "Telescope already parked.");
                 IDSetSwitch(&ParkSP, NULL);
                 return true;
             }

@@ -38,11 +38,11 @@ void INDI::GuiderInterface::initGuiderProperties(const char *deviceName, const c
 
     IUFillNumber(&GuideNSN[0],"TIMED_GUIDE_N","North (msec)","%g",0,60000,10,0);
     IUFillNumber(&GuideNSN[1],"TIMED_GUIDE_S","South (msec)","%g",0,60000,10,0);
-    IUFillNumberVector(&GuideNSNP,GuideNSN,2,deviceName,"TELESCOPE_TIMED_GUIDE_NS","Guide North/South",groupName,IP_RW,60,IPS_IDLE);
+    IUFillNumberVector(&GuideNSNP,GuideNSN,2,deviceName,"TELESCOPE_TIMED_GUIDE_NS","Guide N/S",groupName,IP_RW,60,IPS_IDLE);
 
     IUFillNumber(&GuideWEN[0],"TIMED_GUIDE_E","East (msec)","%g",0,60000,10,0);
     IUFillNumber(&GuideWEN[1],"TIMED_GUIDE_W","West (msec)","%g",0,60000,10,0);
-    IUFillNumberVector(&GuideWENP,GuideWEN,2,deviceName,"TELESCOPE_TIMED_GUIDE_WE","Guide East/West",groupName,IP_RW,60,IPS_IDLE);
+    IUFillNumberVector(&GuideWENP,GuideWEN,2,deviceName,"TELESCOPE_TIMED_GUIDE_WE","Guide E/W",groupName,IP_RW,60,IPS_IDLE);
 }
 
 void INDI::GuiderInterface::processGuiderProperties(const char *name, double values[], char *names[], int n)
