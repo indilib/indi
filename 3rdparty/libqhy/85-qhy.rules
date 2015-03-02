@@ -39,6 +39,8 @@ SYSFS{idVendor}=="1618", SYSFS{idProduct}=="1002", RUN+="/bin/sleep 5"
 ATTRS{idVendor}=="1618", ATTRS{idProduct}=="1002", RUN+="/sbin/fxload -t fx2 -I /lib/firmware/qhy/QHY5.HEX -D $env{DEVNAME}"
 ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="8613", RUN+="/sbin/fxload -t fx2 -I /lib/firmware/qhy/QHY5.HEX -D $env{DEVNAME} -s /lib/firmware/qhy/QHY5LOADER.HEX"
 ATTRS{idVendor}=="16c0", ATTRS{idProduct}=="081a", RUN+="/sbin/fxload -t fx2 -I /lib/firmware/qhy/QHY5.HEX -D $env{DEVNAME} -s /lib/firmware/qhy/QHY5LOADER.HEX"
+# Orion SSAG
+ATTRS{idVendor}=="1856", ATTRS{idProduct}=="0011", RUN+="/sbin/fxload -t fx2 -I /lib/firmware/qhy/QHY5.HEX -D $env{DEVNAME} -s /lib/firmware/qhy/QHY5LOADER.HEX"
 ATTRS{idVendor}=="0547", ATTRS{idProduct}=="1002", RUN+="/sbin/fxload -t fx2 -I /lib/firmware/qhy/QHY5LOADER.HEX -D $env{DEVNAME}"
 SYSFS{idVendor}=="0547", SYSFS{idProduct}=="1002", RUN+="/bin/sleep 5"
 ATTRS{idVendor}=="0547", ATTRS{idProduct}=="1002", RUN+="/sbin/fxload -t fx2 -I /lib/firmware/qhy/QHY5.HEX -D $env{DEVNAME}"
@@ -89,5 +91,6 @@ SUBSYSTEMS=="usb", ATTRS{idVendor}=="1618", ATTRS{idProduct}=="1111", MODE="0666
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="1618", ATTRS{idProduct}=="1611", MODE="0666"
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="1618", ATTRS{idProduct}=="6003", MODE="0666"
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="1618", ATTRS{idProduct}=="0931", MODE="0666"
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="16c0", ATTRS{idProduct}=="296d", MODE="0666"
 
 LABEL="qhy-rules-end"
