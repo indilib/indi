@@ -21,7 +21,7 @@ find_package(Threads REQUIRED)
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
 include_directories( ${INDI_INCLUDE_DIR})
-include_directories( ${LIBASI_INCLUDE_DIR})
+include_directories( ${ASI_INCLUDE_DIR})
 include_directories( ${CFITSIO_INCLUDE_DIR})
 
 ########### indi_asi_ccd ###########
@@ -32,7 +32,7 @@ set(indi_asicam_SRCS
 
 add_executable(indi_asi_ccd ${indi_asicam_SRCS})
 
-target_link_libraries(indi_asi_ccd ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${LIBUSB_1_LIBRARIES} ${ZLIB_LIBRARY} ${ASI_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(indi_asi_ccd ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${LIBUSB_1_LIBRARIES} ${ZLIB_LIBRARY} ${ASI_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
 install(TARGETS indi_asi_ccd RUNTIME DESTINATION bin)
 install(FILES indi_asiccd.xml DESTINATION ${INDI_DATA_DIR})
