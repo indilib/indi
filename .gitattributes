@@ -1296,6 +1296,12 @@ debian/libapogee/libapogee3.dirs -text
 debian/libapogee/libapogee3.install -text
 debian/libapogee/libapogee3.links -text
 debian/libapogee/rules -text
+debian/libasi/changelog -text
+debian/libasi/compat -text
+debian/libasi/control -text
+debian/libasi/copyright -text
+debian/libasi/libasi.links -text
+debian/libasi/rules -text
 debian/libfishcamp/changelog -text
 debian/libfishcamp/compat -text
 debian/libfishcamp/control -text
