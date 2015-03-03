@@ -833,11 +833,6 @@
 3rdparty/libapogee/parseCfgTabDelim.cpp -text
 3rdparty/libapogee/parseCfgTabDelim.h -text
 3rdparty/libapogee/versionNo.h -text
-3rdparty/libasi/99-asi.rules -text
-3rdparty/libasi/ASICamera2.h -text
-3rdparty/libasi/CMakeLists.txt -text
-3rdparty/libasi/mac32/libASICamera2.dylib.0.1.0214 -text
-3rdparty/libasi/mac64/libASICamera2.dylib.0.1.0214 -text
 3rdparty/libfishcamp/99-fishcamp.rules -text
 3rdparty/libfishcamp/CMakeLists.txt -text
 3rdparty/libfishcamp/COPYING.LIB -text
