@@ -1,4 +1,3 @@
-
 This is the INDI driver for the ZWO Optics ASI cameras. It was tested
 with the ASI120MC and the ASI120MM but, hopefully, should work with
 other cameras from ZWO Optical too.
@@ -9,32 +8,16 @@ Go to the directory where  you unpacked indi_asicam sources and do:
 
 mkdir build
 cd build
-cmake -DCMAKE_INSTALL_PREFIX=/opt/indi/ ..
+cmake -DCMAKE_INSTALL_PREFIX=/usr ..
 make
 
 should build the indi_asicam executable.
 
 RUNNING
 
-For a single camera just do, from the directory where you build:
+The Driver can run multiple devices if required, to run the driver:
 
-indiserver ./indi_asicam
-
-If you have multiple cameras you must use FIFO mode to differientate
-between them:
-
-mkfifo /tmp/myFIFO
-indiserver -f /tmp/myFIFO
-echo start /mnt/fat/svn/indi-asicam-no/build/indi_asicam -n \"ASICAM0\" > /tmp/myFIFO 
-echo start /mnt/fat/svn/indi-asicam-no/build/indi_asicam -n \"ASICAM1\" > /tmp/myFIFO 
-
-When you connect with you client you can select ASICAM0 or ASICAM1
-camera. In each of them you have a switch ("Available Cams") to select
-which one you want to use for each connection.
-
-If you want to have the ability to auto-start the driver there is an
-XML fragment provided, but keep in mind the problem with multiple
-cameras.
+indiserver -v indi_asi_ccd
 
 AVAILABLE CONTROLS
 
@@ -44,10 +27,11 @@ which mean auto. If you have problems with overload USB bus try a
 value between 40 and 80. For example on ARM systems it's advised to
 set a value of 40 if you find problems with many broken frames.
 
+You can also start video stream.
 
 TESTING
 
-The driver was tested with OpenPHD and KStars/EKOS as a remote INDI
+The driver was tested with KStars/EKOS as a remote INDI
 server (just select remote driver, the IP of machine where indi_asicam
 is running and the default port 7624). Connect to the camera you want
 to use and have fun!
@@ -64,12 +48,8 @@ changed, a flushing mechanism is employed. It looks OK, but if you
 find any problem with parameters changes not being immediately applied
 please report.
 
-I'm new to INDI so I'm not sure I got everything 100% right. Any
-feedback or constructive criticizing is *very* appreciated. For this
-reason heavy debugging can be output by defining the environment
-variable INDI_ASICAM_VERBOSE before running the driver. If you find
-any problems please send me the output by running indiserver and the
-error message from the client with the DEBUG switch enabled.
+CREDITS
 
-Cieli sereni!
-Chrstian Pellegrin <chripell@gmail.com>
+The origianl INDI driver was written by Chrstian Pellegrin <chripell@gmail.com> based on ASI SDK v1.0+
+
+The driver was completely rewritten by Jasem Mutlaq <mutlaqja@ikarustech.com> based on ASI SDK v2.0+
