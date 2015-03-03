@@ -49,9 +49,14 @@
 3rdparty/indi-asicam/CMakeLists.txt -text
 3rdparty/indi-asicam/COPYING.LGPL -text
 3rdparty/indi-asicam/README.md -text
+3rdparty/indi-asicam/armhf/libASICamera2.bin -text
+3rdparty/indi-asicam/armv5/libASICamera2.bin -text
+3rdparty/indi-asicam/armv6/libASICamera2.bin -text
 3rdparty/indi-asicam/asi_ccd.cpp -text
 3rdparty/indi-asicam/asi_ccd.h -text
 3rdparty/indi-asicam/indi_asiccd.xml -text
+3rdparty/indi-asicam/x64/libASICamera2.bin -text
+3rdparty/indi-asicam/x86/libASICamera2.bin -text
 3rdparty/indi-dsi/99-meadedsi.rules -text
 3rdparty/indi-dsi/CMakeLists.txt -text
 3rdparty/indi-dsi/DsiDevice.cpp -text

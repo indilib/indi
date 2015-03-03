@@ -23,19 +23,16 @@ include_directories( ${INDI_INCLUDE_DIR})
 include_directories( ${CFITSIO_INCLUDE_DIR})
 
 if (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "armv5l")
-    exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/armv5/libASICamera2.a ${CMAKE_BINARY_DIR}/asi.bin)
+    set(ASILIB ${CMAKE_CURRENT_SOURCE_DIR}/armv5/libASICamera2.bin)
 elseif (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "armv6l")
-    exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/armv6/libASICamera2.a ${CMAKE_BINARY_DIR}/asi.bin)
+    set(ASILIB ${CMAKE_CURRENT_SOURCE_DIR}/armv6/libASICamera2.bin)    
 elseif (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "armv7l")
-    exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/armhf/libASICamera2.a ${CMAKE_BINARY_DIR}/asi.bin)
+    set(ASILIB ${CMAKE_CURRENT_SOURCE_DIR}/armhf/libASICamera2.bin)
 elseif (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "x86_64")
-    exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/x64/libASICamera2.a ${CMAKE_BINARY_DIR}/asi.bin)
+    set(ASILIB ${CMAKE_CURRENT_SOURCE_DIR}/x64/libASICamera2.bin)
 elseif (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "i[3-6]86")
-    exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/x86/libASICamera2.a ${CMAKE_BINARY_DIR}/asi.bin)
+    set(ASILIB ${CMAKE_CURRENT_SOURCE_DIR}/x86/libASICamera2.bin)
 endif ()
-
-add_library(asilib STATIC IMPORTED)
-set_target_properties(asilib PROPERTIES IMPORTED_LOCATION "${CMAKE_BINARY_DIR}/asi.bin")
 
 ########### indi_asi_ccd ###########
 set(indi_asicam_SRCS
@@ -44,7 +41,7 @@ set(indi_asicam_SRCS
 
 add_executable(indi_asi_ccd ${indi_asicam_SRCS})
 
-target_link_libraries(indi_asi_ccd ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} asilib ${LIBUSB_1_LIBRARIES} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(indi_asi_ccd ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${ASILIB} ${LIBUSB_1_LIBRARIES} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
 
 install(TARGETS indi_asi_ccd RUNTIME DESTINATION bin)
 install(FILES indi_asiccd.xml DESTINATION ${INDI_DATA_DIR})
