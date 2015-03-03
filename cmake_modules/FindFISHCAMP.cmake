@@ -19,14 +19,14 @@ if (FISHCAMP_LIBRARIES AND FISHCAMP_INCLUDE_DIR)
 
 else (FISHCAMP_LIBRARIES AND FISHCAMP_INCLUDE_DIR)
 
-  find_library(FISHCAMP_LIBRARIES NAMES fishcamp
+  find_library(FISHCAMP_LIBRARIES NAMES fishcamp    
     PATHS
     ${_obLinkDir}
     ${GNUWIN32_DIR}/lib
   )
   
   find_path(FISHCAMP_INCLUDE_DIR fishcamp.h
-    PATH_SUFFIXES fishcamp
+    PATH_SUFFIXES libfishcamp
     ${_obIncDir}
     ${GNUWIN32_DIR}/include
   )
