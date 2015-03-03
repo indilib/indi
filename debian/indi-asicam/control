@@ -3,7 +3,7 @@ Section: science
 Priority: extra
 Maintainer: Ubuntu MOTU Developers <ubuntu-motu@lists.ubuntu.com>
 XSBC-Original-Maintainer: Jasem Mutlaq <mutlaqja@ikarustech.com>
-Build-Depends: debhelper (>= 5), cdbs, cmake, libusb-1.0-0-dev, libcfitsio3-dev, libindi-dev, zlib1g-dev, libnova-dev, libasi
+Build-Depends: debhelper (>= 5), cdbs, cmake, libusb-1.0-0-dev, libcfitsio3-dev, libindi-dev, zlib1g-dev, libnova-dev
 Standards-Version: 3.8.0
 
 Package: indi-asicam
