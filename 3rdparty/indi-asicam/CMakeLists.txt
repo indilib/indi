@@ -13,7 +13,6 @@ set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
 
 find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
-find_package(ASI REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(USB-1 REQUIRED)
 find_package(Threads REQUIRED)
@@ -21,18 +20,29 @@ find_package(Threads REQUIRED)
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
 include_directories( ${INDI_INCLUDE_DIR})
-include_directories( ${ASI_INCLUDE_DIR})
 include_directories( ${CFITSIO_INCLUDE_DIR})
 
-########### indi_asi_ccd ###########
+if (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "armv5l")
+    set(ASILIB ${CMAKE_CURRENT_SOURCE_DIR}/armv5/libASICamera2.a)
+elseif (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "armv6l")
+    set(ASILIB ${CMAKE_CURRENT_SOURCE_DIR}/armv6/libASICamera2.a)    
+elseif (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "armv7l")
+    set(ASILIB ${CMAKE_CURRENT_SOURCE_DIR}/armhf/libASICamera2.a)
+elseif (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "x86_64")
+    set(ASILIB ${CMAKE_CURRENT_SOURCE_DIR}/x64/libASICamera2.a)
+elseif (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "i[3-6]86")
+    set(ASILIB ${CMAKE_CURRENT_SOURCE_DIR}/x86/libASICamera2.a)
+endif ()
 
+########### indi_asi_ccd ###########
 set(indi_asicam_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/asi_ccd.cpp
    )
 
 add_executable(indi_asi_ccd ${indi_asicam_SRCS})
 
-target_link_libraries(indi_asi_ccd ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${LIBUSB_1_LIBRARIES} ${ZLIB_LIBRARY} ${ASI_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(indi_asi_ccd ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${ASILIB} ${LIBUSB_1_LIBRARIES} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
 
 install(TARGETS indi_asi_ccd RUNTIME DESTINATION bin)
 install(FILES indi_asiccd.xml DESTINATION ${INDI_DATA_DIR})
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/99-asi.rules DESTINATION ${UDEVRULES_INSTALL_DIR})

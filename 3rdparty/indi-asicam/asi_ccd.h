@@ -25,7 +25,7 @@
 #include <indiccd.h>
 #include <iostream>
 
-#include <ASICamera2.h>
+#include "ASICamera2.h"
 
 using namespace std;
 
