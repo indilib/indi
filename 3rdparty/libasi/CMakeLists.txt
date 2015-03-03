@@ -8,8 +8,6 @@ set(LIB_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/lib")
 set(LIBASI_VERSION "0.1.0214")
 set(LIBASI_SOVERSION "0")
 
-find_package(USB-1 REQUIRED)
-
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
 
