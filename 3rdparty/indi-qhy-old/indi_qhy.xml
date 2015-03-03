@@ -1,7 +1,0 @@
-<devGroup group="CCDs">
-	<device label="QHY CCD">
-		<driver name="QHY CCD">indi_qhy_ccd</driver>
-		<version>1.2</version>
-	</device>
-</devGroup>
-

@@ -32,8 +32,6 @@
 3rdparty/indi-gphoto/*.user*
 3rdparty/indi-maxdomeii/*.user*
 3rdparty/indi-meadedsi/*.user*
-3rdparty/indi-qhy-old/*.user*
-3rdparty/indi-qhy-old/firmware/*.user*
 3rdparty/indi-qsi/*.user*
 3rdparty/indi-sbig/*.user*
 3rdparty/indi-spectracyber/*.user*
