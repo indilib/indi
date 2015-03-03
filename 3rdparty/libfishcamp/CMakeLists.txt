@@ -24,7 +24,7 @@ set_target_properties(fishcamp PROPERTIES VERSION ${LIBFISHCAMP_VERSION} SOVERSI
 
 target_link_libraries(fishcamp ${LIBUSB_1_LIBRARIES})
 
-INSTALL(FILES fishcamp.h fishcamp_common.h DESTINATION include/fishcamp)
+INSTALL(FILES fishcamp.h fishcamp_common.h DESTINATION include/libfishcamp)
 
 INSTALL(TARGETS fishcamp LIBRARY DESTINATION lib)
 
