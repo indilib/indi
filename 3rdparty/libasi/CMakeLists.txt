@@ -12,8 +12,6 @@ find_package(USB-1 REQUIRED)
 
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
-include_directories( ${INDI_INCLUDE_DIR})
-include_directories( ${CFITSIO_INCLUDE_DIR})
 
 ########### indi_asicam ###########
 
@@ -35,9 +33,7 @@ exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${LIB_INSTALL_DIR}/libASICa
 exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${LIB_INSTALL_DIR}/libASICamera2.so.${LIBASI_SOVERSION} ${LIB_INSTALL_DIR}/libASICamera2.so)\n
 ")
 
-INSTALL(FILES ASICamera2.h DESTINATION include/libasi)
+install(FILES ASICamera2.h DESTINATION include/libasi)
 install(FILES ${ASILIB} DESTINATION ${LIB_INSTALL_DIR})
-
 install(SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_libasi_symlink.cmake)
-
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/99-asi.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
