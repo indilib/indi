@@ -87,7 +87,7 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
 }
 void ISSnoopDevice (XMLEle *root)
 {
-    INDI_UNUSED(root);
+   telescope_sim->ISSnoopDevice(root);
 }
 
 
@@ -97,6 +97,10 @@ ScopeSim::ScopeSim()
     currentRA=0;
     currentDEC=90;
     Parked=false;
+
+    controller = new INDI::Controller(this);
+    controller->setJoystickCallback(joystickHelper);
+    controller->setButtonCallback(buttonHelper);
 
     forceMeridianFlip = false;
 
@@ -115,7 +119,7 @@ ScopeSim::ScopeSim()
 
 ScopeSim::~ScopeSim()
 {
-    //dtor
+    delete(controller);
 }
 
 const char * ScopeSim::getDefaultName()
@@ -148,6 +152,12 @@ bool ScopeSim::initProperties()
     IUFillNumber(&GuideRateN[DEC_AXIS], "GUIDE_RATE_NS", "N/S Rate", "%g", 0, 1, 0.1, 0.3);
     IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
+    IUFillSwitch(&SlewModeS[SLEW_GUIDE], "SLEW_GUIDE", "Guide", ISS_OFF);
+    IUFillSwitch(&SlewModeS[SLEW_CENTERING], "SLEW_CENTERING", "Centering", ISS_OFF);
+    IUFillSwitch(&SlewModeS[SLEW_FIND], "SLEW_FIND", "Find", ISS_OFF);
+    IUFillSwitch(&SlewModeS[SLEW_MAX], "SLEW_MAX", "Max", ISS_ON);
+    IUFillSwitchVector(&SlewModeSP, SlewModeS, 4, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
     // Let's simulate it to be an F/7.5 120mm telescope
     ScopeParametersN[0].value = 120;
     ScopeParametersN[1].value = 900;
@@ -155,6 +165,15 @@ bool ScopeSim::initProperties()
     ScopeParametersN[3].value = 900;
 
     TrackState=SCOPE_IDLE;
+
+    controller->mapController("NSWE Control","NSWE Control", INDI::Controller::CONTROLLER_JOYSTICK, "JOYSTICK_1");
+    controller->mapController("SLEW_MAX", "Slew Max", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_1");
+    controller->mapController("SLEW_FIND","Slew Find", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_2");
+    controller->mapController("SLEW_CENTERING", "Slew Centering", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_3");
+    controller->mapController("SLEW_GUIDE", "Slew Guide", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_4");
+    controller->mapController("Abort Motion", "Abort Motion", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_5");
+
+    controller->initProperties();
 
     initGuiderProperties(getDeviceName(), MOTION_TAB);
 
@@ -173,6 +192,7 @@ void ScopeSim::ISGetProperties (const char *dev)
 
     if(isConnected())
     {
+        defineSwitch(&SlewModeSP);
         defineNumber(&GuideNSNP);
         defineNumber(&GuideWENP);
         defineNumber(&GuideRateNP);
@@ -180,6 +200,8 @@ void ScopeSim::ISGetProperties (const char *dev)
         defineSwitch(&PEErrNSSP);
         defineSwitch(&PEErrWESP);
     }
+
+     controller->ISGetProperties(dev);
 
     return;
 }
@@ -190,6 +212,7 @@ bool ScopeSim::updateProperties()
 
     if (isConnected())
     {
+        defineSwitch(&SlewModeSP);
         defineNumber(&GuideNSNP);
         defineNumber(&GuideWENP);
         defineNumber(&GuideRateNP);
@@ -200,6 +223,7 @@ bool ScopeSim::updateProperties()
     }
     else
     {
+        deleteProperty(SlewModeSP.name);
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
         deleteProperty(EqPENV.name);
@@ -207,6 +231,8 @@ bool ScopeSim::updateProperties()
         deleteProperty(PEErrWESP.name);
         deleteProperty(GuideRateNP.name);
     }
+
+    controller->updateProperties();
 
     return true;
 }
@@ -269,32 +295,58 @@ bool ScopeSim::ReadScopeStatus()
     else
         da_dec = FINE_SLEW_RATE *dt;
 
-    switch (MovementNSSP.s)
+    if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
     {
-       case IPS_BUSY:
-        if (MovementNSS[MOTION_NORTH].s == ISS_ON)
-            currentDEC += da_dec;
-        else if (MovementNSS[MOTION_SOUTH].s == ISS_ON)
-            currentDEC -= da_dec;
+        int rate = IUFindOnSwitchIndex(&SlewModeSP);
+
+        switch (rate)
+        {
+            case SLEW_GUIDE:
+                da_ra  = FINE_SLEW_RATE *dt*0.05;
+                da_dec = FINE_SLEW_RATE *dt*0.05;
+                break;
+
+            case SLEW_CENTERING:
+                da_ra  = FINE_SLEW_RATE *dt*.1;
+                da_dec = FINE_SLEW_RATE *dt*.1;
+                break;
+
+            case SLEW_FIND:
+                da_ra  = SLEW_RATE *dt;
+                da_dec = SLEW_RATE *dt;
+                break;
+
+            default:
+                da_ra  = GOTO_RATE *dt;
+                da_dec = GOTO_RATE *dt;
+                break;
+        }
+
+        switch (MovementNSSP.s)
+        {
+           case IPS_BUSY:
+            if (MovementNSS[MOTION_NORTH].s == ISS_ON)
+                currentDEC += da_dec;
+            else if (MovementNSS[MOTION_SOUTH].s == ISS_ON)
+                currentDEC -= da_dec;
+
+            break;
+        }
+
+        switch (MovementWESP.s)
+        {
+            case IPS_BUSY:
+
+            if (MovementWES[MOTION_WEST].s == ISS_ON)
+                currentRA += da_ra/15.;
+            else if (MovementWES[MOTION_EAST].s == ISS_ON)
+                currentRA -= da_ra/15.;
+
+            break;
+        }
 
         NewRaDec(currentRA, currentDEC);
         return true;
-        break;
-    }
-
-    switch (MovementWESP.s)
-    {
-        case IPS_BUSY:
-
-        if (MovementWES[MOTION_WEST].s == ISS_ON)
-            currentRA += da_ra/15.;
-        else if (MovementWES[MOTION_EAST].s == ISS_ON)
-            currentRA -= da_ra/15.;
-
-        NewRaDec(currentRA, currentDEC);
-        return true;
-        break;
-
     }
 
     /* Process per current state. We check the state of EQUATORIAL_EOD_COORDS_REQUEST and act acoordingly */
@@ -586,6 +638,22 @@ bool ScopeSim::UnPark()
     return true;
 }
 
+bool ScopeSim::ISSnoopDevice(XMLEle *root)
+{
+
+    controller->ISSnoopDevice(root);
+
+    return INDI::Telescope::ISSnoopDevice(root);
+
+}
+
+bool ScopeSim::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+{
+    controller->ISNewText(dev, name, texts, names, n);
+
+    return INDI::Telescope::ISNewText(dev, name, texts, names, n);
+}
+
 bool ScopeSim::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
     //  first check if it's for our device
@@ -617,6 +685,18 @@ bool ScopeSim::ISNewSwitch (const char *dev, const char *name, ISState *states, 
 {
     if(strcmp(dev,getDeviceName())==0)
     {
+        // Slew mode
+        if (!strcmp (name, SlewModeSP.name))
+        {
+
+          if (IUUpdateSwitch(&SlewModeSP, states, names, n) < 0)
+              return false;
+
+          SlewModeSP.s = IPS_OK;
+          IDSetSwitch(&SlewModeSP, NULL);
+          return true;
+        }
+
         if(strcmp(name,"PE_NS")==0)
         {
             IUUpdateSwitch(&PEErrNSSP,states,names,n);
@@ -667,6 +747,8 @@ bool ScopeSim::ISNewSwitch (const char *dev, const char *name, ISState *states, 
         }
 
     }
+
+     controller->ISNewSwitch(dev, name, states, names, n);
 
     //  Nobody has claimed this, so, ignore it
     return INDI::Telescope::ISNewSwitch(dev,name,states,names,n);
@@ -796,3 +878,135 @@ bool ScopeSim::updateLocation(double latitude, double longitude, double elevatio
   DEBUGF(INDI::Logger::DBG_SESSION,"Located updated: long = %g lat = %g", lnobserver.lng, lnobserver.lat);
   return true;
 }
+
+void ScopeSim::processButton(const char * button_n, ISState state)
+{
+    //ignore OFF
+    if (state == ISS_OFF)
+        return;
+
+    // Max Slew speed
+    if (!strcmp(button_n, "SLEW_MAX"))
+    {
+        IUResetSwitch(&SlewModeSP);
+        SlewModeS[SLEW_MAX].s = ISS_ON;
+        IDSetSwitch(&SlewModeSP, NULL);
+    }
+    // Find Slew speed
+    else if (!strcmp(button_n, "SLEW_FIND"))
+    {
+            IUResetSwitch(&SlewModeSP);
+            SlewModeS[SLEW_FIND].s = ISS_ON;
+            IDSetSwitch(&SlewModeSP, NULL);
+    }
+    // Centering Slew
+    else if (!strcmp(button_n, "SLEW_CENTERING"))
+    {
+            IUResetSwitch(&SlewModeSP);
+            SlewModeS[SLEW_CENTERING].s = ISS_ON;
+            IDSetSwitch(&SlewModeSP, NULL);
+    }
+    // Guide Slew
+    else if (!strcmp(button_n, "SLEW_GUIDE"))
+    {
+            IUResetSwitch(&SlewModeSP);
+            SlewModeS[SLEW_GUIDE].s = ISS_ON;
+            IDSetSwitch(&SlewModeSP, NULL);
+    }
+    // Abort
+    else if (!strcmp(button_n, "Abort Motion"))
+    {
+        // Only abort if we have some sort of motion going on
+        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY || EqNP.s == IPS_BUSY
+                || GuideNSNP.s == IPS_BUSY || GuideWENP.s == IPS_BUSY)
+        {
+
+            Abort();
+        }
+    }
+
+}
+
+void ScopeSim::processNSWE(double mag, double angle)
+{
+    if (mag < 0.5)
+    {
+        // Moving in the same direction will make it stop
+        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+            Abort();
+    }
+    // Put high threshold
+    else if (mag > 0.9)
+    {
+        // North
+        if (angle > 0 && angle < 180)
+        {
+            // Don't try to move if you're busy and moving in the same direction
+            if (MovementNSSP.s != IPS_BUSY || MovementNSS[0].s != ISS_ON)
+                MoveNS(MOTION_NORTH, MOTION_START);
+
+            MovementNSSP.s = IPS_BUSY;
+            MovementNSSP.sp[MOTION_NORTH].s = ISS_ON;
+            MovementNSSP.sp[MOTION_SOUTH].s = ISS_OFF;
+            IDSetSwitch(&MovementNSSP, NULL);
+        }
+        // South
+        if (angle > 180 && angle < 360)
+        {
+            // Don't try to move if you're busy and moving in the same direction
+           if (MovementNSSP.s != IPS_BUSY  || MovementNSS[1].s != ISS_ON)
+            MoveNS(MOTION_SOUTH, MOTION_START);
+
+            MovementNSSP.s = IPS_BUSY;
+            MovementNSSP.sp[MOTION_NORTH].s = ISS_OFF;
+            MovementNSSP.sp[MOTION_SOUTH].s = ISS_ON;
+            IDSetSwitch(&MovementNSSP, NULL);
+        }
+        // East
+        if (angle < 90 || angle > 270)
+        {
+            // Don't try to move if you're busy and moving in the same direction
+           if (MovementWESP.s != IPS_BUSY  || MovementWES[1].s != ISS_ON)
+                MoveWE(MOTION_EAST, MOTION_START);
+
+           MovementWESP.s = IPS_BUSY;
+           MovementWESP.sp[MOTION_WEST].s = ISS_OFF;
+           MovementWESP.sp[MOTION_EAST].s = ISS_ON;
+           IDSetSwitch(&MovementWESP, NULL);
+        }
+
+        // West
+        if (angle > 90 && angle < 270)
+        {
+
+            // Don't try to move if you're busy and moving in the same direction
+           if (MovementWESP.s != IPS_BUSY  || MovementWES[0].s != ISS_ON)
+                MoveWE(MOTION_WEST, MOTION_START);
+
+           MovementWESP.s = IPS_BUSY;
+           MovementWESP.sp[MOTION_WEST].s = ISS_ON;
+           MovementWESP.sp[MOTION_EAST].s = ISS_OFF;
+           IDSetSwitch(&MovementWESP, NULL);
+        }
+    }
+
+}
+
+void ScopeSim::processJoystick(const char * joystick_n, double mag, double angle)
+{
+    if (!strcmp(joystick_n, "NSWE Control"))
+        processNSWE(mag, angle);
+}
+
+
+void ScopeSim::joystickHelper(const char * joystick_n, double mag, double angle, void *context)
+{
+    static_cast<ScopeSim *>(context)->processJoystick(joystick_n, mag, angle);
+
+}
+
+void ScopeSim::buttonHelper(const char * button_n, ISState state, void *context)
+{
+    static_cast<ScopeSim *>(context)->processButton(button_n, state);
+}
+

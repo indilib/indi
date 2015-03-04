@@ -79,6 +79,7 @@ class INDI::Telescope : public INDI::DefaultDevice
         enum TelescopeMotionNS { MOTION_NORTH, MOTION_SOUTH };
         enum TelescopeMotionWE { MOTION_WEST, MOTION_EAST };
         enum TelescopeMotionCommand { MOTION_START, MOTION_STOP };
+        enum TelescopeSlewRate  { SLEW_GUIDE, SLEW_CENTERING, SLEW_FIND, SLEW_MAX };
 
         virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
         virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);

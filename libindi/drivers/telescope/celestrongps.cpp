@@ -114,17 +114,17 @@ bool CelestronGPS::initProperties()
 {
     INDI::Telescope::initProperties();
 
-    IUFillSwitch(&SlewModeS[0], "Max", "", ISS_ON);
-    IUFillSwitch(&SlewModeS[1], "Find", "", ISS_OFF);
-    IUFillSwitch(&SlewModeS[2], "Centering", "", ISS_OFF);
-    IUFillSwitch(&SlewModeS[3], "Guide", "", ISS_OFF);
-    IUFillSwitchVector(&SlewModeSP, SlewModeS, 4, getDeviceName(), "Slew Rate", "", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitch(&SlewModeS[SLEW_GUIDE], "SLEW_GUIDE", "Guide", ISS_OFF);
+    IUFillSwitch(&SlewModeS[SLEW_CENTERING], "SLEW_CENTERING", "Centering", ISS_OFF);
+    IUFillSwitch(&SlewModeS[SLEW_FIND], "SLEW_FIND", "Find", ISS_OFF);
+    IUFillSwitch(&SlewModeS[SLEW_MAX], "SLEW_MAX", "Max", ISS_ON);
+    IUFillSwitchVector(&SlewModeSP, SlewModeS, 4, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     controller->mapController("NSWE Control","NSWE Control", INDI::Controller::CONTROLLER_JOYSTICK, "JOYSTICK_1");
-    controller->mapController("Slew Max", "Slew Max", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_1");
-    controller->mapController("Slew Find","Slew Find", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_2");
-    controller->mapController("Slew Centering", "Slew Centering", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_3");
-    controller->mapController("Slew Guide", "Slew Guide", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_4");
+    controller->mapController("SLEW_MAX", "Slew Max", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_1");
+    controller->mapController("SLEW_FIND","Slew Find", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_2");
+    controller->mapController("SLEW_CENTERING", "Slew Centering", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_3");
+    controller->mapController("SLEW_GUIDE", "Slew Guide", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_4");
     controller->mapController("Abort Motion", "Abort Motion", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_5");
 
     controller->initProperties();
@@ -176,6 +176,11 @@ bool CelestronGPS::ISNewSwitch (const char *dev, const char *name, ISState *stat
           IUResetSwitch(&SlewModeSP);
           IUUpdateSwitch(&SlewModeSP, states, names, n);
           index = IUFindOnSwitchIndex(&SlewModeSP);
+
+          index -= 3;
+          if (index < 0)
+              index += 3;
+
           if (isSimulation() == false)
             SetRate(index);
 
@@ -531,35 +536,35 @@ void CelestronGPS::processButton(const char *button_n, ISState state)
         return;
 
     // Max Slew speed
-    if (!strcmp(button_n, "Slew Max"))
+    if (!strcmp(button_n, "SLEW_MAX"))
     {
         SetRate(0);
         IUResetSwitch(&SlewModeSP);
-        SlewModeS[0].s = ISS_ON;
+        SlewModeS[SLEW_MAX].s = ISS_ON;
         IDSetSwitch(&SlewModeSP, NULL);
     }
     // Find Slew speed
-    else if (!strcmp(button_n, "Slew Find"))
+    else if (!strcmp(button_n, "SLEW_FIND"))
     {
             SetRate(1);
             IUResetSwitch(&SlewModeSP);
-            SlewModeS[1].s = ISS_ON;
+            SlewModeS[SLEW_FIND].s = ISS_ON;
             IDSetSwitch(&SlewModeSP, NULL);
     }
     // Centering Slew
-    else if (!strcmp(button_n, "Slew Centering"))
+    else if (!strcmp(button_n, "SLEW_CENTERING"))
     {
             SetRate(2);
             IUResetSwitch(&SlewModeSP);
-            SlewModeS[2].s = ISS_ON;
+            SlewModeS[SLEW_CENTERING].s = ISS_ON;
             IDSetSwitch(&SlewModeSP, NULL);
     }
     // Guide Slew
-    else if (!strcmp(button_n, "Slew Guide"))
+    else if (!strcmp(button_n, "SLEW_GUIDE"))
     {
             SetRate(3);
             IUResetSwitch(&SlewModeSP);
-            SlewModeS[3].s = ISS_ON;
+            SlewModeS[SLEW_GUIDE].s = ISS_ON;
             IDSetSwitch(&SlewModeSP, NULL);
     }
     // Abort

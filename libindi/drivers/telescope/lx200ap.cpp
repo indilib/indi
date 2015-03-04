@@ -1366,7 +1366,7 @@ void LX200AstroPhysics::processButton(const char * button_n, ISState state)
         return;
 
     // Max Slew speed
-    if (!strcmp(button_n, "Slew Max"))
+    if (!strcmp(button_n, "SLEW_MAX"))
     {
         selectAPMoveToRate(PortFD, 0);
         IUResetSwitch(&MoveToRateSP);
@@ -1374,7 +1374,7 @@ void LX200AstroPhysics::processButton(const char * button_n, ISState state)
         IDSetSwitch(&MoveToRateSP, NULL);
     }
     // Find Slew speed
-    else if (!strcmp(button_n, "Slew Find"))
+    else if (!strcmp(button_n, "SLEW_FIND"))
     {
         selectAPMoveToRate(PortFD, 1);
         IUResetSwitch(&MoveToRateSP);
@@ -1382,7 +1382,7 @@ void LX200AstroPhysics::processButton(const char * button_n, ISState state)
         IDSetSwitch(&MoveToRateSP, NULL);
     }
     // Centering Slew
-    else if (!strcmp(button_n, "Slew Centering"))
+    else if (!strcmp(button_n, "SLEW_CENTERING"))
     {
         selectAPMoveToRate(PortFD, 2);
         IUResetSwitch(&MoveToRateSP);
@@ -1391,7 +1391,7 @@ void LX200AstroPhysics::processButton(const char * button_n, ISState state)
 
     }
     // Guide Slew
-    else if (!strcmp(button_n, "Slew Guide"))
+    else if (!strcmp(button_n, "SLEW_GUIDE"))
     {
         selectAPMoveToRate(PortFD, 3);
         IUResetSwitch(&MoveToRateSP);
