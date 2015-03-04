@@ -167,14 +167,14 @@ Off
 On
 </defSwitch>
 </defSwitchVector>
-<defSwitchVector device="EQMod Mount" name="SLEWMODE" label="Slew Presets" group="Motion Control" state="Idle" perm="rw" rule="OneOfMany">
+<defSwitchVector device="EQMod Mount" name="TELESCOPE_SLEW_RATE" label="Slew Presets" group="Motion Control" state="Idle" perm="rw" rule="OneOfMany">
 <defSwitch name="SLEWCUSTOM" label="Custom">
 Off
 </defSwitch>
-<defSwitch name="SLEWPRESET1" label="Preset 1">
+<defSwitch name="SLEW_GUIDE" label="Preset 1">
 Off
 </defSwitch>
-<defSwitch name="SLEWPRESET2" label="Preset 2">
+<defSwitch name="SLEW_CENTERING" label="Preset 2">
 Off
 </defSwitch>
 <defSwitch name="SLEWPRESET3" label="Preset 3">
@@ -183,7 +183,7 @@ Off
 <defSwitch name="SLEWPRESET4" label="Preset 4">
 Off
 </defSwitch>
-<defSwitch name="SLEWPRESET5" label="Preset 5">
+<defSwitch name="SLEW_FIND" label="Preset 5">
 Off
 </defSwitch>
 <defSwitch name="SLEWPRESET6" label="Preset 6">
@@ -198,7 +198,7 @@ Off
 <defSwitch name="SLEWPRESET9" label="Preset 9">
 Off
 </defSwitch>
-<defSwitch name="SLEWPRESET10" label="Preset 10">
+<defSwitch name="SLEW_MAX" label="Preset 10">
 Off
 </defSwitch>
 </defSwitchVector>

@@ -369,7 +369,7 @@ bool EQMod::loadProperties()
     RAStatusLP=getLight("RASTATUS");
     DEStatusLP=getLight("DESTATUS");
     SlewSpeedsNP=getNumber("SLEWSPEEDS");
-    SlewModeSP=getSwitch("SLEWMODE");
+    SlewModeSP=getSwitch("TELESCOPE_SLEW_RATE");
     HemisphereSP=getSwitch("HEMISPHERE");
     PierSideSP=getSwitch("PIERSIDE");
     TrackModeSP=getSwitch("TELESCOPE_TRACK_RATE");
@@ -2376,6 +2376,10 @@ void EQMod::processNSWE(double mag, double angle)
             if (MovementNSSP.s != IPS_BUSY || MovementNSS[0].s != ISS_ON)
                 MoveNS(MOTION_NORTH, MOTION_START);
 
+            // If angle is close to 90, make it exactly 90 to reduce noise that could trigger east/west motion as well
+            if (angle > 80 && angle < 110)
+                angle = 90;
+
             MovementNSSP.s = IPS_BUSY;
             MovementNSSP.sp[0].s = ISS_ON;
             MovementNSSP.sp[1].s = ISS_OFF;
@@ -2387,6 +2391,10 @@ void EQMod::processNSWE(double mag, double angle)
             // Don't try to move if you're busy and moving in the same direction
            if (MovementNSSP.s != IPS_BUSY  || MovementNSS[1].s != ISS_ON)
             MoveNS(MOTION_SOUTH, MOTION_START);
+
+           // If angle is close to 270, make it exactly 270 to reduce noise that could trigger east/west motion as well
+           if (angle > 260 && angle < 280)
+               angle = 270;
 
             MovementNSSP.s = IPS_BUSY;
             MovementNSSP.sp[0].s = ISS_OFF;
