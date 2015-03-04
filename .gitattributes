@@ -952,6 +952,7 @@
 3rdparty/sbig/sbiglcam.hex -text
 3rdparty/sbig/sbigpcam.hex -text
 3rdparty/sbig/sbigucam.hex -text
+3rdparty/sbig/sbigudrv.h -text
 3rdparty/sbig/stfga.bin -text
 cmake_modules/FindAIOUSB.cmake -text
 cmake_modules/FindALUT.cmake -text
