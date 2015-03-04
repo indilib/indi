@@ -16,7 +16,7 @@ if (SBIG_INCLUDE_DIR AND SBIG_LIBRARIES)
 
 else (SBIG_INCLUDE_DIR AND SBIG_LIBRARIES)
 
-  find_path(SBIG_INCLUDE_DIR sbigudev.h
+  find_path(SBIG_INCLUDE_DIR sbigudrv.h
     PATH_SUFFIXES libsbig
     ${_obIncDir}
     ${GNUWIN32_DIR}/include
