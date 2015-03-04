@@ -157,6 +157,10 @@ typedef enum ASI_EXPOSURE_STATUS {
 
 }ASI_EXPOSURE_STATUS;
 
+typedef struct _ASI_ID{
+	unsigned char id[8];
+}ASI_ID;
+
 #ifndef __cplusplus
 #define ASI_CONTROL_TYPE int
 #define ASI_BOOL int
@@ -640,7 +644,37 @@ ASI_ERROR_TIMEOUT: no image get and timeout
 ***************************************************************************/
 ASICAMERA_API  ASI_ERROR_CODE ASIGetDataAfterExp(int iCameraID, unsigned char* pBuffer, long lBuffSize);
 
+/***************************************************************************
+Descriptions£º
+get camera id stored in flash, 8 bytes length, only available for USB3.0 camera
 
+Paras£º		
+int CameraID: this is get from the camera property use the API ASIGetCameraProperty
+ASI_ID* pID: pointer to ID
+
+return:
+ASI_SUCCESS : it will return success if already started
+ASI_ERROR_CAMERA_CLOSED : camera didn't open
+ASI_ERROR_INVALID_ID  :no camera connected or index value out of boundary
+ASI_ERROR_TIMEOUT: no image get and timeout
+***************************************************************************/
+ASICAMERA_API  ASI_ERROR_CODE ASIGetID(int iCameraID, ASI_ID* pID);
+
+/***************************************************************************
+Descriptions£º
+write camera id to flash, 8 bytes length
+
+Paras£º		
+int CameraID: this is get from the camera property use the API ASIGetCameraProperty
+ASI_ID ID: ID
+
+return:
+ASI_SUCCESS : it will return success if already started
+ASI_ERROR_CAMERA_CLOSED : camera didn't open
+ASI_ERROR_INVALID_ID  :no camera connected or index value out of boundary
+ASI_ERROR_TIMEOUT: no image get and timeout
+***************************************************************************/
+ASICAMERA_API  ASI_ERROR_CODE ASISetID(int iCameraID, ASI_ID ID);
 
 #ifdef __cplusplus
 }
