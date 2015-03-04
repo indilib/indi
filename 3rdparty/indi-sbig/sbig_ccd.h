@@ -29,7 +29,7 @@
 #include <indiccd.h>
 #include <indifilterinterface.h>
 #include <iostream>
-#include "sbigudrv.h"
+#include <sbigudrv.h>
 
 using namespace std;
 
