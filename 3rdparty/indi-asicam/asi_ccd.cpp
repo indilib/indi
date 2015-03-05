@@ -474,6 +474,8 @@ bool ASICCD::setupParams()
       IDSetNumber(&TemperatureNP, NULL);
   }
 
+  ASISetROIFormat(m_camInfo->CameraID, m_camInfo->MaxWidth, m_camInfo->MaxHeight, 1, getImageType());
+
   return true;
 
 }
