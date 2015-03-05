@@ -28,18 +28,19 @@
 #import "CMDevice.h"
 
 #define LOGNAME "/Users/%s/Library/Logs/indiserver.log"
+#define CUSTOM_XML @"/Users/%s/Library/Application Support/INDI Server/custom.xml"
 #define FIFONAME "/tmp/indiserverFIFO"
 
 @interface CMAppDelegate() {
   NSString *serverId;
   NSBundle *mainBundle;
   NSString *bin;
-  NSString *prefix;
   CMGroup *currentGroup;
   CMDevice *currentDevice;
   NSMutableArray *groups;
   NSMutableArray *devices;
   NSMutableString *characters;
+  NSString *defaultPrefix;
   int pipe;
 }
 
@@ -64,7 +65,7 @@
   if (self) {
     serverId = @"eu.cloudmakers.indi.indiserver";
     mainBundle = [NSBundle mainBundle];
-    prefix = mainBundle.bundlePath;
+    defaultPrefix = mainBundle.bundlePath;
     groups = nil;
     currentGroup = nil;
     currentDevice = nil;
@@ -197,7 +198,12 @@
 
 - (void)parser:(NSXMLParser *)parser didEndElement:(NSString *)elementName namespaceURI:(NSString *)namespaceURI qualifiedName:(NSString *)qName {
   if ([elementName isEqualToString:@"driver"]) {
-    NSString *path = [mainBundle pathForAuxiliaryExecutable:characters];
+    NSString *path;
+    if (currentDevice.prefix) {
+      path = [NSString stringWithFormat:@"%@/Contents/MacOS/%@", currentDevice.prefix, characters];
+    } else {
+      path = [mainBundle pathForAuxiliaryExecutable:characters];
+    }
     if (path) {
       currentDevice.driver = [characters copy];
       if (![groups containsObject:currentGroup]) {
@@ -211,6 +217,10 @@
   }
   if ([elementName isEqualToString:@"version"]) {
     currentDevice.version = [characters copy];
+    return;
+  }
+  if ([elementName isEqualToString:@"prefix"]) {
+    currentDevice.prefix = [characters copy];
     return;
   }
 }
@@ -239,7 +249,12 @@
   [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_spectracyber" ofType: @"xml"] encoding:NSUTF8StringEncoding error:&error]];
   [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_aagcloudwatcher" ofType: @"xml"] encoding:NSUTF8StringEncoding error:&error]];
   [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_usbfocus" ofType: @"xml"] encoding:NSUTF8StringEncoding error:&error]];
+  NSString *customXML = [NSString stringWithFormat:CUSTOM_XML, getlogin()];
+  if ([[NSFileManager defaultManager] fileExistsAtPath:customXML]) {
+    [root appendString:[NSString stringWithContentsOfFile:customXML encoding:NSUTF8StringEncoding error:&error]];
+  }
   [root appendString:@"</root>"];
+  NSLog(@"drivers %@", root);
   groups = [NSMutableArray array];
   NSXMLParser *parser = [[NSXMLParser alloc] initWithData:[root dataUsingEncoding:NSUTF8StringEncoding]];
   [parser setDelegate:self];
@@ -253,14 +268,16 @@
   NSData *data = [defaults objectForKey:@"devices"];
   if (data) {
     NSArray *savedDevices = [NSKeyedUnarchiver unarchiveObjectWithData:data];
-    for (CMDevice *savedDevice in savedDevices) {
-      for (CMGroup *group in groups) {
-        for (CMDevice *device in group.devices) {
-          if ([device.name isEqualToString:savedDevice.name]) {
-            @synchronized(devices) {
-              [devices addObject:device];
+    if (savedDevices) {
+      for (CMDevice *savedDevice in savedDevices) {
+        for (CMGroup *group in groups) {
+          for (CMDevice *device in group.devices) {
+            if ([device.name isEqualToString:savedDevice.name]) {
+              @synchronized(devices) {
+                [devices addObject:device];
+              }
+              [self startDriver:device];
             }
-            [self startDriver:device];
           }
         }
       }
@@ -319,7 +336,6 @@
       NSLog(@"failed %s", driver);
       [self setStatus:FAILED to:[NSString stringWithCString:driver encoding:NSASCIIStringEncoding]];
     } else if (sscanf(buffer, "CLIENTS %d", &count) == 1) {
-      NSLog(@"count %d", count);
       switch (count) {
         case 0:
           _statusLabel.stringValue = @"Server is running (idle)";
@@ -427,7 +443,7 @@
 }
 
 -(void)startDriver:(CMDevice *)device {
-  NSString *command = [NSString stringWithFormat:@"start %@ -p \"%@\"\n", device.driver, prefix];
+  NSString *command = [NSString stringWithFormat:@"start %@ -p \"%@\"\n", device.driver, device.prefix?device.prefix:defaultPrefix];
   write(pipe, [command cStringUsingEncoding:NSASCIIStringEncoding], command.length);
 }
   

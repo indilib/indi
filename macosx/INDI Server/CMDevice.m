@@ -29,6 +29,7 @@
     _name = [coder decodeObjectForKey:@"name"];
     _driver = [coder decodeObjectForKey:@"driver"];
     _version = [coder decodeObjectForKey:@"version"];
+    _prefix = [coder decodeObjectForKey:@"prefix"];
     _status = IDLE;
   }
   return self;
@@ -38,6 +39,7 @@
   [coder encodeObject:_name forKey:@"name"];
   [coder encodeObject:_driver forKey:@"driver"];
   [coder encodeObject:_version forKey:@"version"];
+  [coder encodeObject:_prefix forKey:@"prefix"];
 }
   
 - (NSString *)description {

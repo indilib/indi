@@ -1857,6 +1857,9 @@
 		9D0B2ABC1A8D227F00ED17BF /* indi_moonlite_focus */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_moonlite_focus; sourceTree = BUILT_PRODUCTS_DIR; };
 		9D0B2ACC1A8D22A800ED17BF /* indi_steeldrive_focus */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_steeldrive_focus; sourceTree = BUILT_PRODUCTS_DIR; };
 		9D0B2ADC1A8D22C200ED17BF /* indi_tcfs_focus */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_tcfs_focus; sourceTree = BUILT_PRODUCTS_DIR; };
+		9D49B4291AA84CCE0006E6A7 /* config.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
+		9D49B42A1AA84D4E0006E6A7 /* config.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
+		9D49B42B1AA84D8A0006E6A7 /* config.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
 		9D75D5391A8D1391008AA08A /* telescope_simulator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = telescope_simulator.cpp; sourceTree = "<group>"; };
 		9D75D54C1A8D1396008AA08A /* indi_simulator_telescope */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_simulator_telescope; sourceTree = BUILT_PRODUCTS_DIR; };
 		9D75D5551A8D1507008AA08A /* indi_lxbasic */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_lxbasic; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -2627,6 +2630,7 @@
 		59567C731A8D3AF90057A35A /* indi-eqmod */ = {
 			isa = PBXGroup;
 			children = (
+				9D49B42B1AA84D8A0006E6A7 /* config.h */,
 				59567C741A8D3B680057A35A /* eqmod.cpp */,
 				59567C751A8D3B680057A35A /* eqmoderror.cpp */,
 				59567C761A8D3B680057A35A /* indi_eqmod_sk.xml */,
@@ -2697,6 +2701,7 @@
 		59567CEE1A8D40540057A35A /* indi-shoestring */ = {
 			isa = PBXGroup;
 			children = (
+				9D49B42A1AA84D4E0006E6A7 /* config.h */,
 				59567CF31A8D40B90057A35A /* fcusb.cpp */,
 				59567CF41A8D40B90057A35A /* hid_mac.c */,
 				59567CF51A8D40B90057A35A /* indi_shoestring.xml */,
@@ -2707,6 +2712,7 @@
 		59567CEF1A8D40780057A35A /* indi-usbfocus */ = {
 			isa = PBXGroup;
 			children = (
+				9D49B4291AA84CCE0006E6A7 /* config.h */,
 				59567CF01A8D409C0057A35A /* indi_usbfocus.xml */,
 				59567CF11A8D409C0057A35A /* usbfocus.cpp */,
 			);

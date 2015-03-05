@@ -28,5 +28,6 @@ typedef enum { IDLE, STARTING, STARTED, FAILED } CMStatus;
 @property NSString *name;
 @property NSString *driver;
 @property NSString *version;
+@property NSString *prefix;
 @property CMStatus status;
 @end
