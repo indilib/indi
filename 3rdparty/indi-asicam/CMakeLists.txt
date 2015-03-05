@@ -40,6 +40,10 @@ add_executable(indi_asi_ccd ${indi_asicam_SRCS})
 
 target_link_libraries(indi_asi_ccd ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${ASILIB} ${LIBUSB_1_LIBRARIES} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
 
+if (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")
+target_link_libraries(indi_asi_ccd rt)
+endif (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")
+
 install(TARGETS indi_asi_ccd RUNTIME DESTINATION bin)
 install(FILES indi_asiccd.xml DESTINATION ${INDI_DATA_DIR})
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/99-asi.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
