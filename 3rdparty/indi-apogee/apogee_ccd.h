@@ -60,6 +60,9 @@ public:
     virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
 
    protected:
+
+    void debugTriggered(bool enabled);
+
    private:
 
     ApogeeCam *ApgCam;

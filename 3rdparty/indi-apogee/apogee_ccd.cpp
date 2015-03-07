@@ -45,6 +45,7 @@
 #include <libapogee/Ascent.h>
 #include <libapogee/Aspen.h>
 #include <libapogee/Quad.h>
+#include <libapogee/ApgLogger.h>
 
 #include <fitsio.h>
 
@@ -1162,4 +1163,8 @@ void ApogeeCCD::TimerHit()
     return;
 }
 
+void ApogeeCCD::debugTriggered(bool enabled)
+{
+    ApgLogger::Instance().SetLogLevel( enabled ? ApgLogger::LEVEL_DEBUG : ApgLogger::LEVEL_RELEASE);
+}
 
