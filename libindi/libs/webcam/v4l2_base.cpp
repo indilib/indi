@@ -631,10 +631,10 @@ int V4L2_Base::check_device(char *errmsg) {
     IDLog("  V4L2_CAP_ASYNCIO\n");
   if (cap.capabilities & V4L2_CAP_STREAMING) 
     IDLog("  V4L2_CAP_STREAMING\n");
-  if (cap.capabilities & V4L2_CAP_EXT_PIX_FORMAT) {
+  /*if (cap.capabilities & V4L2_CAP_EXT_PIX_FORMAT) {
     has_ext_pix_format=true;
     IDLog("  V4L2_CAP_EXT_PIX_FORMAT\n");
-  }
+  }*/
   if (!(cap.capabilities & V4L2_CAP_VIDEO_CAPTURE)) {
     fprintf (stderr, "%s is no video capture device\n",
 	     dev_name);
