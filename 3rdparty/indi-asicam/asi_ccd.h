@@ -120,6 +120,7 @@ private:
   int streamPredicate;
   pthread_t primary_thread;
   bool terminateThread;
+  bool exposureRetries;
 
   // ST4
   bool InWEPulse;

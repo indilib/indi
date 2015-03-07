@@ -36,6 +36,7 @@
 #define TEMPERATURE_UPDATE_FREQ 4       /* Update every 4 POLLMS ~ 1 second */
 #define TEMP_THRESHOLD          .25		/* Differential temperature threshold (C)*/
 #define MAX_DEVICES             4       /* Max device cameraCount */
+#define MAX_EXP_RETRIES         3
 
 #define CONTROL_TAB     "Controls"
 
@@ -187,6 +188,7 @@ ASICCD::ASICCD(ASI_CAMERA_INFO *camInfo)
   pControlCaps = NULL;
   m_camInfo = camInfo;
 
+  exposureRetries = 0;
   streamPredicate = 0;
   terminateThread = false;
 
@@ -919,7 +921,21 @@ void ASICCD::TimerHit()
               if ( (errCode = ASIGetExpStatus(m_camInfo->CameraID, &status)) != ASI_SUCCESS)
               {
                   DEBUGF(INDI::Logger::DBG_DEBUG, "ASIGetExpStatus error (%d)", errCode);
-                  usleep(50000);
+                  if (++exposureRetries >= MAX_EXP_RETRIES)
+                  {
+                      DEBUGF(INDI::Logger::DBG_SESSION, "Exposure failed (%d)", errCode);
+                      PrimaryCCD.setExposureFailed();
+                      InExposure = false;
+                      SetTimer(POLLMS);
+                      return;
+                  }
+                  else
+                  {
+                      InExposure = false;
+                      StartExposure(ExposureRequest);
+                      SetTimer(POLLMS);
+                      return;
+                  }
               }
               else
               {
@@ -937,6 +953,8 @@ void ASICCD::TimerHit()
                     usleep(50000);
               }
           }
+
+          exposureRetries=0;
 
           /* We're done exposing */
           DEBUG(INDI::Logger::DBG_SESSION,  "Exposure done, downloading image...");
