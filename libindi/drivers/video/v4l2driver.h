@@ -51,6 +51,7 @@
 #include <config.h>
 
 #include "webcam/v4l2_base.h"
+#include "webcam/v4l2_colorspace.h"
 #include "webcam/v4l2_record/v4l2_record.h"
 #include "indiccd.h"
 
@@ -84,6 +85,7 @@ class V4L2_Driver: public INDI::CCD
     virtual void initCamBase();
 
     static void newFrame(void *p);
+    void stackFrame();
     void updateFrame();
     
    protected:
@@ -100,34 +102,41 @@ class V4L2_Driver: public INDI::CCD
    typedef struct {
 	int  width;
 	int  height;
-     //int  expose;
+        int bpp;
+        //int  expose;
         double  expose;
 	unsigned char  *Y;
 	unsigned char  *U;
 	unsigned char  *V;
 	unsigned char  *colorBuffer;
 	unsigned char  *compressedFrame;
-	unsigned char  *stackedFrame;
+	float  *stackedFrame;
+	float  *darkFrame;
 	} img_t;
 
+   enum stackmodes { STACK_NONE=0, STACK_MEAN=1, STACK_ADDITIVE=2, STACK_TAKE_DARK=3, STACK_RESET_DARK=4};
 
    /* Switches */
     ISwitch StreamS[2];
     ISwitch *CompressS;
     ISwitch ImageColorS[2];
-    ISwitch StackModeS[2];
+    ISwitch ImageDepthS[2];
+    ISwitch StackModeS[5];
     ISwitch RecordS[2];
     ISwitch DropFrameS[2];
+    ISwitch ColorProcessingS[3];
 	
     /* Texts */
     IText PortT[1];
     IText camNameT[1];
     IText RecordFileT[1];
+    IText CaptureColorSpaceT[3];
 
     /* Numbers */
     INumber *ExposeTimeN;
     INumber FrameRateN[1];
     INumber *FrameN;
+    INumber FramestoDropN[1];			
      
     /* BLOBs */
     IBLOBVectorProperty *imageBP;
@@ -137,6 +146,7 @@ class V4L2_Driver: public INDI::CCD
     ISwitchVectorProperty StreamSP;				/* Stream switch */
     ISwitchVectorProperty *CompressSP;				/* Compress stream switch */
     ISwitchVectorProperty ImageColorSP;				/* Color or grey switch */
+    ISwitchVectorProperty ImageDepthSP;				/* 8 bits or 16 bits switch */
     ISwitchVectorProperty StackModeSP;				/* StackMode switch */
     ISwitchVectorProperty InputsSP;				/* Select input switch */
     ISwitchVectorProperty CaptureFormatsSP;    			/* Select Capture format switch */
@@ -144,6 +154,7 @@ class V4L2_Driver: public INDI::CCD
     ISwitchVectorProperty FrameRatesSP;				/* Select Frame rate (Discrete) */ 
     ISwitchVectorProperty *Options;
     ISwitchVectorProperty DropFrameSP;
+    ISwitchVectorProperty ColorProcessingSP;
 
     unsigned int v4loptions;
     unsigned int v4ladjustments;
@@ -156,11 +167,13 @@ class V4L2_Driver: public INDI::CCD
     INumberVectorProperty FrameRateNP;				/* Frame rate (Step/Continuous) */
     INumberVectorProperty *FrameNP;				/* Frame dimenstion */
     INumberVectorProperty ImageAdjustNP;			/* Image controls */
+    INumberVectorProperty FramestoDropNP;			
 
     /* Text vectors */
     ITextVectorProperty PortTP;
     ITextVectorProperty camNameTP;
     ITextVectorProperty RecordFileTP;    
+    ITextVectorProperty CaptureColorSpaceTP;    
 
     /* Pointers to optional properties */
     INumber               *AbsExposureN;
@@ -171,12 +184,14 @@ class V4L2_Driver: public INDI::CCD
    virtual void getBasicData(void);
 
    /* Stream/FITS functions */
+   void updateExposure();
    void updateStream();
    void recordStream();
  
    void allocateBuffers();
    void releaseBuffers();
 
+   bool setShutter(double duration);
    bool setManualExposure(double duration);
    void binFrame();
 
@@ -186,6 +201,7 @@ class V4L2_Driver: public INDI::CCD
    char device_name[MAXINDIDEVICE];
    unsigned char *fitsData;		/* Buffer to hold the FITS file */
    int frameCount;			/* For debugging */
+   int subframeCount;			/* For stacking */
    double divider;			/* For limits */
    img_t * V4LFrame;			/* Video frame */
 

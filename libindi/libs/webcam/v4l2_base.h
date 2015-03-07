@@ -74,6 +74,7 @@ class V4L2_Base
   int getFormat();
   int getWidth();
   int getHeight();
+  int getBpp();
   virtual int setSize(int x, int y);
   virtual void getMaxMinSize(int & x_max, int & y_max, int & x_min, int & y_min);
 
@@ -86,6 +87,7 @@ class V4L2_Base
   unsigned char * getV();
   unsigned char * getColorBuffer();
   unsigned char * getRGBBuffer();
+  float * getLinearY();
 
   void registerCallback(WPF *fp, void *ud);
 
@@ -94,6 +96,7 @@ class V4L2_Base
   static void newFrame(int fd, void *p);
   
   void setDropFrame(bool enable) { dropFrameEnabled = enable;}
+  void setDropFrameCount(unsigned int count) { dropFrameCount = count;}
   void enumerate_ctrl (void);
   void enumerate_menu (void);
   bool enumerate_ext_ctrl (void);
@@ -116,9 +119,9 @@ class V4L2_Base
   int setcroprect(int x, int y, int w, int h, char *errmsg);
   struct v4l2_rect getcroprect();
 
+  void setColorProcessing(bool quantization, bool colorconvert, bool linearization);
 
-
-  void setlxstate( short s ) { lxstate = s; }
+  void setlxstate( short s ) { IDLog("setlexstate to %d\n", s);lxstate = s; }
   short getlxstate() { return lxstate; }
   bool isstreamactive() { return streamactive; }
 
@@ -166,6 +169,7 @@ class V4L2_Base
 
   struct v4l2_queryctrl queryctrl;
   struct v4l2_querymenu querymenu;
+  bool has_ext_pix_format;
 
   WPF *callback;
   void *uptr;
@@ -176,8 +180,9 @@ class V4L2_Base
   struct buffer *buffers;
   unsigned int  n_buffers;
   bool reallocate_buffers;
-  bool		dropFrame;
+  int		dropFrame;
   bool      dropFrameEnabled;
+  unsigned int      dropFrameCount;
 
   
   struct v4l2_fract frameRate;
@@ -191,6 +196,8 @@ class V4L2_Base
 
   V4L2_Recorder *recorder;
   bool dorecord;
+
+  int bpp;
 
   friend class V4L2_Driver;
 };

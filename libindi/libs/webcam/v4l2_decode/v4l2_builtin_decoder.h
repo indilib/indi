@@ -43,7 +43,7 @@ class V4L2_Builtin_Decoder: public V4L2_Decoder
   virtual bool setcrop(struct v4l2_crop c);
   virtual void resetcrop();
   virtual void usesoftcrop(bool c);
-  virtual void setformat(struct v4l2_format f);
+  virtual void setformat(struct v4l2_format f, bool use_ext_pix_format);
   virtual bool issupportedformat(unsigned int format);
   virtual const std::vector<unsigned int> &getsupportedformats();
   virtual void decode(unsigned char *frame, struct v4l2_buffer *buf);
@@ -52,16 +52,25 @@ class V4L2_Builtin_Decoder: public V4L2_Decoder
   virtual unsigned char * getV();
   virtual unsigned char * getColorBuffer();
   virtual unsigned char * getRGBBuffer();
+  virtual float *getLinearY();
+  virtual int getBpp();
+  virtual void setQuantization(bool);
+  virtual void setLinearization(bool);
 
  protected:
   void init_supported_formats();
   std::map <unsigned int, struct format *> supported_formats;
   std::vector<unsigned int> vsuppformats;
   void allocBuffers();
+  void makeY();
+  void makeLinearY();
+
   struct v4l2_crop crop;
   struct v4l2_format fmt;
   bool useSoftCrop; // uses software cropping
   bool doCrop; // do software cropping when decoding frames
+  bool doQuantization;
+  bool doLinearization;
   
   unsigned char *YBuf;
   unsigned char *UBuf;
@@ -70,11 +79,12 @@ class V4L2_Builtin_Decoder: public V4L2_Decoder
   unsigned char *yuyvBuffer;
   unsigned char *colorBuffer;
   unsigned char *rgb24_buffer;
+  float *linearBuffer;
   //unsigned char *cropbuf;
   unsigned int bufwidth;
   unsigned int bufheight;
   char lut5[32];
   char lut6[64];
-
+  unsigned char bpp;
 };
 #endif

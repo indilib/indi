@@ -87,11 +87,15 @@ bool Lx::initProperties(INDI::DefaultDevice *device) {
   IUFillSwitch(&LxSerialAddeolS[2], "LF (0xA, \\n)", "", ISS_OFF);
   IUFillSwitch(&LxSerialAddeolS[3], "CR+LF", "", ISS_OFF);
   IUFillSwitchVector(&LxSerialAddeolSP, LxSerialAddeolS, NARRAY(LxSerialAddeolS), device_name, "Add EOL", "", LX_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+  FlashStrobeSP=NULL;
+  FlashStrobeStopSP=NULL;
+  ledmethod=PWCIOCTL;
   return true;
 }
 
 bool Lx::updateProperties() {
   if (dev->isConnected()) {
+    INDI::Property *pfound;
     dev->defineSwitch(&LxEnableSP);
     dev->defineSwitch(&LxModeSP);
     dev->defineText(&LxPortTP);
@@ -104,6 +108,12 @@ bool Lx::updateProperties() {
     dev->defineSwitch(&LxSerialParitySP);
     dev->defineSwitch(&LxSerialStopSP);
     dev->defineSwitch(&LxSerialAddeolSP);
+    pfound=findbyLabel(dev, (char *)"Strobe");
+    if (pfound) {
+      FlashStrobeSP=dev->getSwitch(pfound->getName());
+      pfound=findbyLabel(dev, (char *)"Stop Strobe");
+      FlashStrobeStopSP=dev->getSwitch(pfound->getName());
+    }
   } else {
     dev->deleteProperty(LxEnableSP.name);
     dev->deleteProperty(LxModeSP.name);
@@ -117,6 +127,8 @@ bool Lx::updateProperties() {
     dev->deleteProperty(LxSerialParitySP.name);
     dev->deleteProperty(LxSerialStopSP.name);
     dev->deleteProperty(LxSerialAddeolSP.name);
+    FlashStrobeSP=NULL;
+    FlashStrobeStopSP=NULL;
   }
   return true;
 }
@@ -502,10 +514,24 @@ int Lx::stopLxSerial() {
   return 0;
 }
 
+INDI::Property *Lx::findbyLabel(INDI::DefaultDevice *dev, char *label) {
+  std::vector< INDI::Property * > *allprops=dev->getProperties();
+ 
+  for (std::vector< INDI::Property *>::iterator it = allprops->begin() ; it != allprops->end(); ++it) {
+    if (!(strcmp((*it)->getLabel(), label)))
+      return *it;
+  }
+  return NULL;
+}
 
 // PWC Stuff
-bool Lx::checkPWC() {
+bool Lx::checkPWC() {    
 
+  if (FlashStrobeSP && FlashStrobeStopSP) {
+    IDMessage(device_name, "Using Flash control for led Lx Mode");
+    ledmethod=FLASHLED;
+    return true;
+  }
   if (ioctl(camerafd, VIDIOCPWCPROBE, &probe) != 0) {
     IDMessage(device_name, "ERROR: device does not support PWC ioctl");
     return false;
@@ -514,7 +540,7 @@ bool Lx::checkPWC() {
     IDMessage(device_name, "ERROR: camera type %d does not support led control", probe.type);
     return false;
   }
-
+  IDMessage(device_name, "Using PWC ioctl for led Lx Mode");
   return true;
 }
 
@@ -528,18 +554,58 @@ void Lx::pwcsetLed(int on, int off)
       }
 }
 
+void Lx::pwcsetflashon() {
+  ISState states[2]={ISS_ON, ISS_OFF};
+  const char *names[2]={FlashStrobeSP->sp[0].name, FlashStrobeStopSP->sp[0].name};
+  dev->ISNewSwitch(device_name, FlashStrobeSP->name, &(states[0]), (char **)names, 1);
+  //dev->ISNewSwitch(device_name, FlashStrobeStopSP->name, &(states[1]), (char **)(names + 1), 1);
+  FlashStrobeSP->s = IPS_OK;
+  IDSetSwitch(FlashStrobeSP, NULL);
+  FlashStrobeStopSP->s = IPS_IDLE;
+  IDSetSwitch(FlashStrobeStopSP, NULL);
+}
+
+void Lx::pwcsetflashoff() {
+  ISState states[2]={ISS_OFF, ISS_ON};
+  const char *names[2]={FlashStrobeSP->sp[0].name, FlashStrobeStopSP->sp[0].name};
+  //dev->ISNewSwitch(device_name, FlashStrobeSP->name, &(states[0]), (char **)names, 1);
+  dev->ISNewSwitch(device_name, FlashStrobeStopSP->name, &(states[1]), (char **)(names + 1), 1);
+  FlashStrobeStopSP->s = IPS_OK;
+  IDSetSwitch(FlashStrobeStopSP, NULL);
+  FlashStrobeSP->s = IPS_IDLE;
+  IDSetSwitch(FlashStrobeSP, NULL);
+}
+
 bool Lx::startLxPWC() {
-  if (LxLogicalLevelS[0].s == ISS_ON)
-    pwcsetLed(25500, 0);
-  else
-    pwcsetLed(0,25500);
-  return true;
+  switch (ledmethod) {
+  case PWCIOCTL:
+    if (LxLogicalLevelS[0].s == ISS_ON)
+      pwcsetLed(25500, 0);
+    else
+      pwcsetLed(0,25500);
+    return true;
+  case FLASHLED:
+    if (LxLogicalLevelS[0].s == ISS_ON)
+      pwcsetflashon();
+    else
+      pwcsetflashoff();
+    return true;
+  }
 }
 
 int Lx::stopLxPWC() {
-  if (LxLogicalLevelS[0].s == ISS_ON)
-    pwcsetLed(0,25500);
-  else
-    pwcsetLed(25500, 0);
-  return 0;
+  switch (ledmethod) {
+  case PWCIOCTL:
+    if (LxLogicalLevelS[0].s == ISS_ON)
+      pwcsetLed(0,25500);
+    else
+      pwcsetLed(25500, 0);
+    return 0;
+  case FLASHLED:
+    if (LxLogicalLevelS[0].s == ISS_ON)
+      pwcsetflashoff();
+    else
+      pwcsetflashon();
+    return 0;
+  }
 }

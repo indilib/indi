@@ -67,7 +67,8 @@ V4L2_Base::V4L2_Base()
 
    selectCallBackID = -1;
    dropFrameEnabled=false;
-   dropFrame = false;
+   dropFrameCount = 1;
+   dropFrame = 1;
   
    xmax = xmin = 160;
    ymax = ymin = 120;
@@ -87,6 +88,8 @@ V4L2_Base::V4L2_Base()
    decoder=v4l2_decode->getDefaultDecoder();
    decoder->init();
    dodecode=true;
+   bpp=8; 
+   has_ext_pix_format=false;
    const std::vector<unsigned int> &vsuppformats=decoder->getsupportedformats();
    IDLog("Using default decoder '%s'\n  Supported V4L2 formats are:\n  ", decoder->getName());
    for (std::vector<unsigned int>::const_iterator it=vsuppformats.begin(); it!=vsuppformats.end(); ++it)
@@ -116,7 +119,10 @@ int V4L2_Base::errno_exit(const char *s, char *errmsg)
                  s, errno, strerror (errno));
      
         snprintf(errmsg, ERRMSGSIZ, "%s error %d, %s\n", s, errno, strerror (errno));
-
+	
+	if (streamactive) 
+	  stop_capturing(errmsg);
+	
         return -1;
 } 
 
@@ -136,7 +142,6 @@ void V4L2_Base::setRecorder(V4L2_Recorder *r) {
 int V4L2_Base::connectCam(const char * devpath, char *errmsg , int pixelFormat , int width , int height)
 {
    selectCallBackID = -1;
-   dropFrame = false;
    cancrop=true;
    cansetrate=true;
    streamedonce=false;
@@ -225,6 +230,28 @@ int V4L2_Base::read_frame(char *errmsg) {
     }
 
     assert (buf.index < n_buffers);
+    //IDLog("drop %c %d on %d\n", (dropFrameEnabled?'Y':'N'),dropFrame, dropFrameCount);
+    if (dropFrameEnabled && (dropFrame > 0))
+      {
+        dropFrame -= 1;
+	if (-1 == xioctl (fd, VIDIOC_QBUF, &buf))
+	  return errno_exit ("ReadFrame IO_METHOD_MMAP: VIDIOC_QBUF", errmsg);
+        return 0;
+      } 
+
+    /*
+      switch (buf.flags &  V4L2_BUF_FLAG_TIMESTAMP_MASK) {
+    case V4L2_BUF_FLAG_TIMESTAMP_UNKNOWN: IDLog("Timestamp Unknown\n"); break;
+    case V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC : IDLog("Timestamp Monotonic\n"); break;
+    case V4L2_BUF_FLAG_TIMESTAMP_COPY : IDLog("Timestamp Copy\n"); break;
+    default: break;
+    }
+    switch (buf.flags &  V4L2_BUF_FLAG_TSTAMP_SRC_MASK) {
+    case V4L2_BUF_FLAG_TSTAMP_SRC_EOF: IDLog("Timestamp at End of Frame\n"); break;
+    case V4L2_BUF_FLAG_TSTAMP_SRC_SOE : IDLog("Timestamp at Start of Exposure\n"); break;
+    default: break;
+    }
+    */
     //IDLog("v4l2_base: dequeuing buffer %d, bytesused = %d, flags = 0x%X, field = %d, sequence = %d\n", buf.index, buf.bytesused, buf.flags, buf.field, buf.sequence);
     //IDLog("v4l2_base: dequeuing buffer %d for fd=%d, cropset %c\n", buf.index, fd, (cropset?'Y':'N'));
     //IDLog("V4L2_base read_frame: calling decoder (@ %x) %c\n", decoder, (dodecode?'Y':'N'));
@@ -232,17 +259,17 @@ int V4L2_Base::read_frame(char *errmsg) {
     //IDLog("V4L2_base read_frame: calling recorder(@ %x) %c\n", recorder, (dorecord?'Y':'N'));
     if (dorecord) recorder->writeFrame((unsigned char *)(buffers[buf.index].start));
     
+    //IDLog("lxstate is %d, dropFrame %c\n", lxstate, (dropFrame?'Y':'N'));
 
-      if (dropFrame)
-      {
-        dropFrame = false;
-        return 0;
-      } 
+
 
     if (-1 == xioctl (fd, VIDIOC_QBUF, &buf))
       return errno_exit ("ReadFrame IO_METHOD_MMAP: VIDIOC_QBUF", errmsg);
 
+
+
     if( lxstate == LX_ACTIVE ) {
+
       /* Call provided callback function if any */
       if (callback && !dorecord)
 	(*callback)(uptr);
@@ -305,20 +332,19 @@ int V4L2_Base::stop_capturing(char *errmsg) {
   case IO_METHOD_USERPTR:
     // N.B. I used this as a hack to solve a problem with capturing a frame
     // long time ago. I recently tried taking this hack off, and it worked fine!
-    if (dropFrameEnabled)
-        dropFrame = true;
     
     type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     
     IERmCallback(selectCallBackID);
     selectCallBackID = -1;
+    streamactive = false;
     if (-1 == xioctl (fd, VIDIOC_STREAMOFF, &type))
       return errno_exit ("VIDIOC_STREAMOFF", errmsg);
     break;
   }
   //uninit_device(errmsg);
   
-  streamactive = false;
+
   return 0;
 }
 
@@ -372,8 +398,7 @@ int V4L2_Base::start_capturing(char * errmsg) {
       if (-1 == xioctl (fd, VIDIOC_QBUF, &buf))
 	return errno_exit ("StartCapturing IO_METHOD_USERPTR: VIDIOC_QBUF", errmsg);
     }
-    
-    
+     
     type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     
     if (-1 == xioctl (fd, VIDIOC_STREAMON, &type))
@@ -381,7 +406,8 @@ int V4L2_Base::start_capturing(char * errmsg) {
     
     break;
   }
-  
+  //if (dropFrameEnabled)
+  dropFrame = dropFrameCount;
   streamedonce=true;
   return 0;
 }
@@ -605,7 +631,10 @@ int V4L2_Base::check_device(char *errmsg) {
     IDLog("  V4L2_CAP_ASYNCIO\n");
   if (cap.capabilities & V4L2_CAP_STREAMING) 
     IDLog("  V4L2_CAP_STREAMING\n");
-  
+  if (cap.capabilities & V4L2_CAP_EXT_PIX_FORMAT) {
+    has_ext_pix_format=true;
+    IDLog("  V4L2_CAP_EXT_PIX_FORMAT\n");
+  }
   if (!(cap.capabilities & V4L2_CAP_VIDEO_CAPTURE)) {
     fprintf (stderr, "%s is no video capture device\n",
 	     dev_name);
@@ -816,7 +845,9 @@ int V4L2_Base::check_device(char *errmsg) {
   
   if (-1 == xioctl (fd, VIDIOC_G_FMT, &fmt))
     return errno_exit ("VIDIOC_G_FMT", errmsg);
-  decoder->setformat(fmt);
+  decoder->setformat(fmt, has_ext_pix_format);
+  bpp=decoder->getBpp();
+  
   
   /*	DEBUGF(INDI::Logger::DBG_SESSION,"Current capture settings: %dx%d image size, %c%c%c%c (%s) image format",  
 	fmt.fmt.pix.width,  fmt.fmt.pix.height, (fmt.fmt.pixelformat)&0xFF, (fmt.fmt.pixelformat >> 8)&0xFF,
@@ -971,7 +1002,7 @@ void V4L2_Base::getcaptureformats(ISwitchVectorProperty *captureformatssp) {
     if (fmt.fmt.pix.pixelformat == *((int *) (formats[i].aux))) {
       formats[i].s=ISS_ON;
       //initial=i;
-      IDLog("Current Capture format is (%d.) %c%c%c%c\n", i, (fmt.fmt.pix.pixelformat)&0xFF, (fmt.fmt.pix.pixelformat >> 8)&0xFF,
+      IDLog("Current Capture format is (%d.) %c%c%c%c.\n", i, (fmt.fmt.pix.pixelformat)&0xFF, (fmt.fmt.pix.pixelformat >> 8)&0xFF,
 	    (fmt.fmt.pix.pixelformat >> 16)&0xFF, (fmt.fmt.pix.pixelformat >> 24)&0xFF);
       //break;
     }
@@ -996,7 +1027,8 @@ int V4L2_Base::setcaptureformat(unsigned int captureformat, char *errmsg) {
     return errno_exit ("VIDIOC_S_FMT", errmsg);
   }
   //decode reallocate_buffers=true;
-  decoder->setformat(fmt);
+  decoder->setformat(fmt, has_ext_pix_format);
+  bpp=decoder->getBpp();
   return 0;
 }
 
@@ -1078,7 +1110,8 @@ int V4L2_Base::setcapturesize(unsigned int w, unsigned int h, char *errmsg) {
       fmt.fmt.pix.height = oldh;
     return errno_exit ("VIDIOC_G_FMT", errmsg);
   }
-  decoder->setformat(fmt);
+  decoder->setformat(fmt, has_ext_pix_format);
+  bpp=decoder->getBpp();
   //decode reallocate_buffers=true;
   //decode cropset=false;
   //decode allocBuffers();
@@ -1198,6 +1231,11 @@ int V4L2_Base::getHeight()
  return fmt.fmt.pix.height;
 }
 
+int V4L2_Base::getBpp()
+{
+  return bpp;
+}
+
 int V4L2_Base::getFormat()
 {
   return fmt.fmt.pix.pixelformat;
@@ -1290,6 +1328,13 @@ int V4L2_Base::setSize(int x, int y)
   return 0;
 }
 
+void V4L2_Base::setColorProcessing(bool quantization, bool colorconvert, bool linearization) 
+{
+  decoder->setQuantization(quantization);
+  decoder->setLinearization(linearization);
+  bpp=decoder->getBpp();
+}
+
 unsigned char * V4L2_Base::getY()
 {
   return decoder->getY();
@@ -1314,6 +1359,12 @@ unsigned char * V4L2_Base::getRGBBuffer()
 {
   return decoder->getRGBBuffer();
 }
+
+float * V4L2_Base::getLinearY()
+{
+  return decoder->getLinearY();
+}
+
 
 void V4L2_Base::registerCallback(WPF *fp, void *ud)
 {
@@ -2057,6 +2108,25 @@ bool  V4L2_Base::queryExtControls(INumberVectorProperty *nvp, unsigned int *nnum
 	  *(unsigned int *)(opt[nopt].aux)=(queryctrl.id);
 	  
 	  IDLog("Adding switch  %s (%s)\n", queryctrl.name, (control.value?"On":"Off"));
+	  nopt += 1;
+	}
+      if (queryctrl.type == V4L2_CTRL_TYPE_BUTTON)
+	{
+	  ISwitch *sw = (ISwitch *)malloc(sizeof(ISwitch));
+	  snprintf(optname+3, 4, "%03d", nopt);
+	  snprintf(swonname+7, 4, "%03d", nopt);
+	  //snprintf(swoffname+9, 4, "%03d", nopt);
+	  
+	  opt = (opt == NULL) ? (ISwitchVectorProperty *) malloc (sizeof(ISwitchVectorProperty)) :
+	    (ISwitchVectorProperty *) realloc (opt, (nopt+1) * sizeof (ISwitchVectorProperty));
+
+	  queryctrl.name[31]='\0';
+	  IUFillSwitch(sw, swonname, (const char *)entityXML((char *)queryctrl.name), ISS_OFF);
+	  sw->aux=NULL;
+	  IUFillSwitchVector (&opt[nopt], sw, 1, dev, optname, (const char *)entityXML((char *)queryctrl.name), group, IP_RW, ISR_NOFMANY, 0.0, IPS_IDLE);
+	  opt[nopt].aux=malloc(sizeof(unsigned int));
+	  *(unsigned int *)(opt[nopt].aux)=(queryctrl.id);	  
+	  IDLog("Adding Button  \"%s\" \n", queryctrl.name);
 	  nopt += 1;
 	}
       if (queryctrl.type == V4L2_CTRL_TYPE_MENU)

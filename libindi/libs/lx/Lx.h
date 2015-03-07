@@ -76,11 +76,17 @@ bool startLxSerial();
 int stopLxSerial();
 void getSerialOptions(unsigned int *speed, unsigned int *wordsize, unsigned int *parity, unsigned int *stops);
 const char * getSerialEOL();
-
+INDI::Property *findbyLabel(INDI::DefaultDevice *dev, char *label);
 // PWC Cameras
+ISwitchVectorProperty *FlashStrobeSP;
+ISwitchVectorProperty *FlashStrobeStopSP;
+enum pwcledmethod { PWCIOCTL, FLASHLED };
+char ledmethod;
 struct pwc_probe probe;  
 bool checkPWC();
 void pwcsetLed(int on, int off);
+void pwcsetflashon();
+void pwcsetflashoff();
 bool startLxPWC();
 int stopLxPWC();
 };

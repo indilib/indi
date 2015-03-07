@@ -1462,6 +1462,8 @@ libindi/libs/webcam/jpegutils.h -text
 libindi/libs/webcam/pwc-ioctl.h -text
 libindi/libs/webcam/v4l2_base.cpp -text
 libindi/libs/webcam/v4l2_base.h -text
+libindi/libs/webcam/v4l2_colorspace.c -text
+libindi/libs/webcam/v4l2_colorspace.h -text
 libindi/libs/webcam/v4l2_decode/v4l2_builtin_decoder.cpp -text
 libindi/libs/webcam/v4l2_decode/v4l2_builtin_decoder.h -text
 libindi/libs/webcam/v4l2_decode/v4l2_decode.cpp -text

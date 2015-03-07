@@ -16,6 +16,20 @@
     modprobe v4l2loopback video_nr=8 card_label="Indi Loopback" exclusive_caps=0,0
     gst-launch-0.10 -v videotestsrc ! 'video/x-raw-bayer, format=(string)bggr, width=640, height=480, framerate=(fraction)2/1' ! v4l2sink device=/dev/video8
 
+    For Gray16 format I use gst-launch with a videotstsrc in GRAY16 format writing in a FIFO and a C program reding the FIFO into the v4l2loopback device
+    mkfifo /tmp/videopipe
+    gst-launch-1.0  -v videotestsrc  ! video/x-raw,format=\(string\)GRAY16_LE,width=1024,height=576,framerate=\(fraction\)25/1 ! filesink location =/tmp/videopipe
+    ./gray16_to_v4l2 /dev/video8 < /tmp/videopipe &
+    The C program ./gray16_to_v4l2 is adpated from https://github.com/umlaeute/v4l2loopback/blob/master/examples/yuv4mpeg_to_v4l2.c : 
+    process_header/read_header calls are suppressed (copy_frames uses a while (1) loop), frame_width and frame_height are constant 
+    and V4L2 pixel format is set to V4L2_PIX_FMT_Y16.
+
+    To repeat an avi stream
+    ./v4l2loopback-ctl set-caps 'video/x-raw-yuv,width=720,height=576' /dev/video8
+    ./v4l2loopback-ctl set-fps 25/1 /dev/video8
+    as normal user
+    while true; do gst-launch-0.10 -vvv filesrc location=chi-aquarius.avi ! avidemux name=demux  demux.video_00 ! queue ! decodebin ! videoscale add-borders=true ! v4l2sink device=/dev/video8 ; done
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation; either
@@ -37,6 +51,7 @@
 #include <string.h> // memcpy
 //#include <stdio.h> // FILE *
 #include "../ccvt.h"
+#include "../v4l2_colorspace.h"
 
 //#include <indilogger.h>
 
@@ -45,6 +60,7 @@ V4L2_Builtin_Decoder::V4L2_Builtin_Decoder() {
   name="Builtin decoder";
   useSoftCrop=false;
   doCrop=false;
+  doQuantization=false;
   YBuf         = NULL;
   UBuf         = NULL;
   VBuf         = NULL;
@@ -52,6 +68,7 @@ V4L2_Builtin_Decoder::V4L2_Builtin_Decoder() {
   yuyvBuffer    = NULL;
   colorBuffer  = NULL;
   rgb24_buffer = NULL;
+  linearBuffer    = NULL;
   //cropbuf = NULL;
   for (i=0; i< 32; i++) {
     lut5[i] = (char)(((float)i * 255.0) / 31.0);
@@ -59,6 +76,8 @@ V4L2_Builtin_Decoder::V4L2_Builtin_Decoder() {
   for (i=0; i< 64; i++) {
     lut6[i] = (char)(((float)i * 255.0) / 63.0);
   }
+  initColorSpace();
+  bpp=8;
 }
 
 V4L2_Builtin_Decoder::~V4L2_Builtin_Decoder() {
@@ -69,6 +88,7 @@ V4L2_Builtin_Decoder::~V4L2_Builtin_Decoder() {
    if (yuyvBuffer) delete [] (yuyvBuffer); yuyvBuffer = NULL;
    if (colorBuffer) delete [] (colorBuffer); colorBuffer = NULL;
    if (rgb24_buffer) delete [] (rgb24_buffer); rgb24_buffer = NULL;
+   if (linearBuffer) delete [] (linearBuffer); linearBuffer = NULL;
 };
 
 void V4L2_Builtin_Decoder::init() {
@@ -98,6 +118,22 @@ void V4L2_Builtin_Decoder::decode(unsigned char *frame, struct v4l2_buffer *buf)
 	{
 	  memcpy(YBuf, frame, bufwidth * bufheight);
 	}
+      break;
+
+    case V4L2_PIX_FMT_Y16:
+      if (useSoftCrop && doCrop) {
+	unsigned char *src=frame + 2*(crop.c.left) + (crop.c.top * fmt.fmt.pix.bytesperline);
+	unsigned char *dest=yuyvBuffer;
+	unsigned int i;
+	for (i= 0; i < crop.c.height; i++)
+	  {
+	    memcpy(dest, src, 2*crop.c.width);
+	    src += fmt.fmt.pix.bytesperline;
+	    dest += 2*crop.c.width;
+	  }
+      } else {
+	memcpy(yuyvBuffer, frame, 2*bufwidth*bufheight);
+      }
       break;
       
     case V4L2_PIX_FMT_YUV420:
@@ -182,11 +218,7 @@ void V4L2_Builtin_Decoder::decode(unsigned char *frame, struct v4l2_buffer *buf)
 	  unsigned char *destv=VBuf;
 	  unsigned int i, j;
 	  unsigned char *s;
-	  //FILE *f=fopen("/home/levaire/Images/indicvt.data","w");
-	  //FILE *fi=fopen("/home/levaire/Images/indifframe.data","w");
-	  //fwrite(frame, 1, (bufwidth*bufheight)+ ((bufwidth*bufheight) / 2), fi);
-	  //fwrite(frame, 1, buf->bytesused, fi);
-	  //fclose(fi);
+
 	  for (i=0; i< bufheight; i++) {
 	    memcpy(dest,src, bufwidth); src+=fmt.fmt.pix.bytesperline; dest+=bufwidth;
 	  }
@@ -202,8 +234,6 @@ void V4L2_Builtin_Decoder::decode(unsigned char *frame, struct v4l2_buffer *buf)
 	      }
 	      src += fmt.fmt.pix.bytesperline; 
 	    }	  
-	  //fwrite(yuvBuffer, 1, (bufwidth*bufheight)+ ((bufwidth*bufheight) / 2), f);
-	  //fclose(f);
 	}
       break;
      
@@ -330,13 +360,16 @@ void V4L2_Builtin_Decoder::decode(unsigned char *frame, struct v4l2_buffer *buf)
     case V4L2_PIX_FMT_SRGGB8:
       bayer_rggb_2rgb24(rgb24_buffer, frame, fmt.fmt.pix.width, fmt.fmt.pix.height);
       break;
+
+    case V4L2_PIX_FMT_SBGGR16:
+      bayer16_2_rgb24((unsigned short *)rgb24_buffer, (unsigned short *)frame, fmt.fmt.pix.width, fmt.fmt.pix.height);
+      break;
       
     case V4L2_PIX_FMT_JPEG:
     case V4L2_PIX_FMT_MJPEG:
       //mjpegtoyuv420p(yuvBuffer, ((unsigned char *) buffers[buf.index].start), fmt.fmt.pix.width, fmt.fmt.pix.height, buffers[buf.index].length);
       mjpegtoyuv420p(yuvBuffer, frame, fmt.fmt.pix.width, fmt.fmt.pix.height, buf->bytesused);
       break;
-    
     default:
       { 
 	unsigned int i;
@@ -372,14 +405,38 @@ void V4L2_Builtin_Decoder::usesoftcrop(bool c) {
   useSoftCrop=c;
 }
 
-void V4L2_Builtin_Decoder::setformat(struct v4l2_format f) {
+void V4L2_Builtin_Decoder::setformat(struct v4l2_format f, bool use_ext_pix_format) {
   fmt=f;
-  IDLog("Decoder  set format: %c%c%c%c size %dx%d\n", (fmt.fmt.pix.pixelformat)&0xFF, (fmt.fmt.pix.pixelformat >> 8)&0xFF,
-	(fmt.fmt.pix.pixelformat >> 16)&0xFF, (fmt.fmt.pix.pixelformat >> 24)&0xFF, f.fmt.pix.width, f.fmt.pix.height);
+  if (supported_formats.count(fmt.fmt.pix.pixelformat) == 1)
+    bpp = supported_formats.at(fmt.fmt.pix.pixelformat)->bpp;
+  else
+    bpp = 8;
+  IDLog("Decoder  set format: %c%c%c%c size %dx%d bpp %d\n", (fmt.fmt.pix.pixelformat)&0xFF, (fmt.fmt.pix.pixelformat >> 8)&0xFF,
+	(fmt.fmt.pix.pixelformat >> 16)&0xFF, (fmt.fmt.pix.pixelformat >> 24)&0xFF, f.fmt.pix.width, f.fmt.pix.height, bpp);
+  /* kernel 3.19
+  if (use_ext_pix_format && fmt.fmt.pix.priv == V4L2_PIX_FMT_PRIV_MAGIC)
+    IDLog("Decoder: Colorspace is %d, YCbCr encoding is %d, Quantization is %d\n", fmt.fmt.pix.colorspace, fmt.fmt.pix.ycbcr_enc, fmt.fmt.pix.quantization);
+  else 
+  */
+    IDLog("Decoder: Colorspace is %d, using default ycbcr encoding and quantization\n", fmt.fmt.pix.colorspace);
   doCrop=false;
   allocBuffers();
 }
 
+void V4L2_Builtin_Decoder::setQuantization(bool doquantization)
+{
+  doQuantization=doquantization;
+}
+void V4L2_Builtin_Decoder::setLinearization(bool dolinearization)
+{
+  doLinearization=dolinearization;
+  if (doLinearization) bpp = 16;
+  else 
+    if (supported_formats.count(fmt.fmt.pix.pixelformat) == 1)
+      bpp = supported_formats.at(fmt.fmt.pix.pixelformat)->bpp;
+    else
+      bpp = 8; 
+}
 void V4L2_Builtin_Decoder::allocBuffers()
 {
   YBuf = NULL; UBuf = NULL; VBuf = NULL;
@@ -387,6 +444,7 @@ void V4L2_Builtin_Decoder::allocBuffers()
   if (yuyvBuffer) delete [] (yuyvBuffer); yuyvBuffer = NULL;
   if (colorBuffer) delete [] (colorBuffer); colorBuffer = NULL;
   if (rgb24_buffer) delete [] (rgb24_buffer); rgb24_buffer = NULL;
+  if (linearBuffer) delete [](linearBuffer); linearBuffer = NULL;
   //if (cropbuf) free(cropbuf); cropbuf=NULL;
    
   if (doCrop) {
@@ -409,6 +467,7 @@ void V4L2_Builtin_Decoder::allocBuffers()
    YBuf=yuvBuffer; UBuf=yuvBuffer + (bufwidth * bufheight); VBuf=UBuf + ((bufwidth * bufheight) / 4);
    // bzero(Ubuf, ((bufwidth * bufheight) / 2));
    break;
+  case V4L2_PIX_FMT_Y16:
   case V4L2_PIX_FMT_YUYV:
   case V4L2_PIX_FMT_UYVY:
   case V4L2_PIX_FMT_VYUY: 
@@ -420,7 +479,9 @@ void V4L2_Builtin_Decoder::allocBuffers()
   case V4L2_PIX_FMT_RGB565:
   case V4L2_PIX_FMT_SBGGR8:
   case V4L2_PIX_FMT_SRGGB8:
-    rgb24_buffer = new unsigned char[(bufwidth * bufheight) * 3];
+  case V4L2_PIX_FMT_SBGGR16:
+    rgb24_buffer = new unsigned char[(bufwidth * bufheight) * (bpp / 8) * 3];
+    break;
   default:
     yuvBuffer=new unsigned char[(bufwidth * bufheight) + ((bufwidth * bufheight) / 2)];
     YBuf=yuvBuffer; UBuf=yuvBuffer + (bufwidth * bufheight); VBuf=UBuf + ((bufwidth * bufheight) / 4);
@@ -429,7 +490,21 @@ void V4L2_Builtin_Decoder::allocBuffers()
   IDLog("Decoder allocBuffers cropping %s\n",(doCrop?"true":"false")); 
 }
 
-unsigned char * V4L2_Builtin_Decoder::getY()
+void V4L2_Builtin_Decoder::makeLinearY()
+{
+  unsigned char *src=YBuf;
+  float *dest;
+  unsigned int i;
+  if (!linearBuffer) {
+    linearBuffer = new float[(bufwidth * bufheight)];
+  }
+  dest=linearBuffer;
+  for (i=0; i < bufwidth * bufheight; i++)
+    *dest++ = (*src++) / 255.0;
+  linearize(linearBuffer, bufwidth * bufheight, &fmt);
+
+}
+void V4L2_Builtin_Decoder::makeY()
 {
   if (!yuvBuffer) {
     yuvBuffer = new unsigned char[(bufwidth * bufheight) + ((bufwidth * bufheight) / 2)];
@@ -450,7 +525,38 @@ unsigned char * V4L2_Builtin_Decoder::getY()
     ccvt_yuyv_420p(bufwidth, bufheight, yuyvBuffer, YBuf, UBuf, VBuf);
     break;
   }
+}
+
+unsigned char * V4L2_Builtin_Decoder::getY()
+{
+  if (fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_Y16)
+    return yuyvBuffer;
+  makeY();
+  if (doQuantization && getQuantization(&fmt) == QUANTIZATION_LIM_RANGE)
+    rangeY8(YBuf, (bufwidth * bufheight));
+  if (doLinearization) {
+    unsigned int i;
+    float *src;
+    unsigned short *dest;
+    if (!yuyvBuffer)
+      yuyvBuffer=new unsigned char[(bufwidth * bufheight) * 2];
+    makeLinearY();
+    src=linearBuffer;
+    dest=(unsigned short *)yuyvBuffer;
+    for (i=0; i < bufwidth * bufheight; i++)
+      *dest++ = (unsigned short)(*src++ * 65535.0);
+    return yuyvBuffer;
+  }
   return YBuf;
+}
+
+float * V4L2_Builtin_Decoder::getLinearY()
+{
+  makeY();  
+  if (doQuantization && getQuantization(&fmt) == QUANTIZATION_LIM_RANGE)
+    rangeY8(YBuf, (bufwidth * bufheight));
+  makeLinearY();
+  return linearBuffer;
 }
 
 unsigned char * V4L2_Builtin_Decoder::getU()
@@ -463,11 +569,12 @@ unsigned char * V4L2_Builtin_Decoder::getV()
   return VBuf;
 }
 
+/* used for streaming/exposure */
 unsigned char * V4L2_Builtin_Decoder::getColorBuffer()
 {
   //cerr << "in get color buffer " << endl;
   //IDLog("Decoder getColorBuffer %s\n", (doCrop?"true":"false"));
-  if (!colorBuffer) colorBuffer = new unsigned char[(bufwidth * bufheight) * 4];
+  if (!colorBuffer) colorBuffer = new unsigned char[(bufwidth * bufheight) * (bpp / 8) * 4];
   switch (fmt.fmt.pix.pixelformat) {
   case V4L2_PIX_FMT_GREY:
   case V4L2_PIX_FMT_JPEG:
@@ -478,6 +585,7 @@ unsigned char * V4L2_Builtin_Decoder::getColorBuffer()
   case V4L2_PIX_FMT_NV21:
     ccvt_420p_bgr32(bufwidth, bufheight, (void *)yuvBuffer, (void*)colorBuffer);
     break;
+
   case V4L2_PIX_FMT_YUYV:
   case V4L2_PIX_FMT_UYVY:
   case V4L2_PIX_FMT_VYUY: 
@@ -491,13 +599,47 @@ unsigned char * V4L2_Builtin_Decoder::getColorBuffer()
   case V4L2_PIX_FMT_SRGGB8:
     ccvt_rgb24_bgr32(bufwidth, bufheight,rgb24_buffer, (void*)colorBuffer);
     break;
+  case V4L2_PIX_FMT_Y16:
+    /* OOOps this is planar ARGB */
+    /*
+    bzero(colorBuffer, bufwidth * bufheight * 2);
+    memcpy(colorBuffer + (bufwidth * bufheight * 2), yuyvBuffer, bufwidth * bufheight * 2);
+    memcpy(colorBuffer + 2 * (bufwidth * bufheight * 2), yuyvBuffer, bufwidth * bufheight * 2);
+    memcpy(colorBuffer + 3 * (bufwidth * bufheight * 2), yuyvBuffer, bufwidth * bufheight * 2);
+    */
+    { /* this is bgra , use unsigned short here... */
+      unsigned int i;
+      unsigned char *src = yuyvBuffer;
+      unsigned char *dest = colorBuffer;
+      for (i = 0; i < bufwidth * bufheight; i += 1) {
+	*dest++=*src; *dest++=*(src+1);
+	*dest++=*src; *dest++=*(src+1);
+	*dest++=*src; *dest++=*(src+1);
+	*dest++=0; *dest++=0;
+	src += 2;
+      }
+    }
+    break;
+  case V4L2_PIX_FMT_SBGGR16:
+    { /* this is bgra , now I use unsigned short! */
+      unsigned int i;
+      unsigned short *src = (unsigned short *)rgb24_buffer;
+      unsigned short *dest = (unsigned short *)colorBuffer;
+      for (i = 0; i < bufwidth * bufheight; i += 1) {
+	*dest++=*(src + 2); 
+	*dest++=*(src + 1);
+	*dest++=*(src);
+	*dest++=0;
+	src += 3;
+      }
+    }
   default:
     ccvt_420p_bgr32(bufwidth, bufheight, (void *)yuvBuffer, (void*)colorBuffer);
     break;
   }
   return colorBuffer;
 }
-
+/* used for SER recorder */
 unsigned char * V4L2_Builtin_Decoder::getRGBBuffer()
 {
   //cerr << "in get color buffer " << endl;
@@ -521,6 +663,13 @@ unsigned char * V4L2_Builtin_Decoder::getRGBBuffer()
     ccvt_yuyv_bgr32(bufwidth, bufheight, yuyvBuffer, (void*)colorBuffer);
     ccvt_bgr32_rgb24(bufwidth, bufheight, colorBuffer, (void*)rgb24_buffer);
     break;
+  case V4L2_PIX_FMT_RGB24:
+  case V4L2_PIX_FMT_RGB555:
+  case V4L2_PIX_FMT_RGB565:
+  case V4L2_PIX_FMT_SBGGR8:
+  case V4L2_PIX_FMT_SRGGB8:
+  case V4L2_PIX_FMT_SBGGR16:
+    break;
   default:
     ccvt_420p_rgb24(bufwidth, bufheight, (void *)yuvBuffer, (void*)rgb24_buffer);
     break;
@@ -528,6 +677,9 @@ unsigned char * V4L2_Builtin_Decoder::getRGBBuffer()
   return rgb24_buffer;
 }
 
+int  V4L2_Builtin_Decoder::getBpp() {
+  return (int)(bpp);
+}
 
 bool V4L2_Builtin_Decoder::issupportedformat(unsigned int format) {
 
@@ -565,6 +717,7 @@ void V4L2_Builtin_Decoder::init_supported_formats() {
 // V4L2_PIX_FMT_Y10     , // v4l2_fourcc('Y', '1', '0', ' ') /* 10  Greyscale     */
 // V4L2_PIX_FMT_Y12     , // v4l2_fourcc('Y', '1', '2', ' ') /* 12  Greyscale     */
 // V4L2_PIX_FMT_Y16     , // v4l2_fourcc('Y', '1', '6', ' ') /* 16  Greyscale     */
+  supported_formats.insert(std::make_pair(V4L2_PIX_FMT_Y16,  new V4L2_Builtin_Decoder::format(V4L2_PIX_FMT_Y16, 16, true)));
 
 /* Grey bit-packed formats */
 // V4L2_PIX_FMT_Y10BPACK    , // v4l2_fourcc('Y', '1', '0', 'B') /* 10  Greyscale bit-packed */
@@ -654,6 +807,7 @@ void V4L2_Builtin_Decoder::init_supported_formats() {
 	 * xxxxrrrrrrrrrrxxxxgggggggggg xxxxggggggggggxxxxbbbbbbbbbb...
 	 */
 // V4L2_PIX_FMT_SBGGR16 , // v4l2_fourcc('B', 'Y', 'R', '2') /* 16  BGBG.. GRGR.. */
+  supported_formats.insert(std::make_pair(V4L2_PIX_FMT_SBGGR16,  new V4L2_Builtin_Decoder::format(V4L2_PIX_FMT_SBGGR16, 16, false)));
 
 /* compressed formats */
 // V4L2_PIX_FMT_MJPEG    , // v4l2_fourcc('M', 'J', 'P', 'G') /* Motion-JPEG   */

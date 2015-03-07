@@ -104,44 +104,96 @@ bool SER_Recorder::setpixelformat(unsigned int format) { // V4L2_PIX_FMT used wh
   number_of_planes=1;
   switch (format) {
   case V4L2_PIX_FMT_GREY:
+#ifdef V4L2_PIX_FMT_Y10
   case V4L2_PIX_FMT_Y10:
+#endif
+#ifdef V4L2_PIX_FMT_Y12
   case V4L2_PIX_FMT_Y12:
+#endif
+#ifdef V4L2_PIX_FMT_Y16
   case V4L2_PIX_FMT_Y16:
+#endif
     serh.ColorID=SER_MONO;
+#ifdef V4L2_PIX_FMT_Y10
     if (format == V4L2_PIX_FMT_Y10) serh.PixelDepth=10;
+#endif
+#ifdef V4L2_PIX_FMT_Y12
     if (format == V4L2_PIX_FMT_Y12) serh.PixelDepth=12;
+#endif
+#ifdef V4L2_PIX_FMT_Y16
     if (format == V4L2_PIX_FMT_Y16) serh.PixelDepth=16;
+#endif
     return true;     
   case V4L2_PIX_FMT_SBGGR8:
-  case V4L2_PIX_FMT_SBGGR10:  
+#ifdef V4L2_PIX_FMT_SBGGR10
+  case V4L2_PIX_FMT_SBGGR10:
+#endif
+#ifdef V4L2_PIX_FMT_SBGGR12
   case V4L2_PIX_FMT_SBGGR12:
+#endif
   case V4L2_PIX_FMT_SBGGR16:
     serh.ColorID=SER_BAYER_BGGR;
+#ifdef V4L2_PIX_FMT_SBGGR10
     if (format == V4L2_PIX_FMT_SBGGR10) serh.PixelDepth=10;  
+#endif
+#ifdef V4L2_PIX_FMT_SBGGR12
     if (format == V4L2_PIX_FMT_SBGGR12) serh.PixelDepth=12;  
+#endif
     if (format == V4L2_PIX_FMT_SBGGR16) serh.PixelDepth=16;  
     return true;
   case V4L2_PIX_FMT_SGBRG8:
+#ifdef V4L2_PIX_FMT_SGBRG10
   case V4L2_PIX_FMT_SGBRG10:
+#endif
+#ifdef V4L2_PIX_FMT_SGBRG12
   case V4L2_PIX_FMT_SGBRG12:
+#endif
     serh.ColorID=SER_BAYER_GBRG;
+#ifdef V4L2_PIX_FMT_SGBRG10
     if (format == V4L2_PIX_FMT_SGBRG10) serh.PixelDepth=10;  
+#endif
+#ifdef V4L2_PIX_FMT_SGBRG12
     if (format == V4L2_PIX_FMT_SGBRG12) serh.PixelDepth=12;  
+#endif
     return true;
+#if defined(V4L2_PIX_FMT_SGRBG8) || defined(V4L2_PIX_FMT_SGRBG10) || defined(V4L2_PIX_FMT_SGRBG12)
+#ifdef V4L2_PIX_FMT_SGRBG8
   case V4L2_PIX_FMT_SGRBG8:
+#endif
+#ifdef V4L2_PIX_FMT_SGRBG10
   case V4L2_PIX_FMT_SGRBG10:
+#endif
+#ifdef V4L2_PIX_FMT_SGRBG12
   case V4L2_PIX_FMT_SGRBG12:
+#endif
     serh.ColorID=SER_BAYER_GRBG;
-    if (format == V4L2_PIX_FMT_SGRBG10) serh.PixelDepth=10;  
+#ifdef V4L2_PIX_FMT_SGRBG10
+    if (format == V4L2_PIX_FMT_SGRBG10) serh.PixelDepth=10; 
+#endif
+#ifdef V4L2_PIX_FMT_SGRBG12 
     if (format == V4L2_PIX_FMT_SGRBG12) serh.PixelDepth=12;  
+#endif
     return true;
+#endif
+#if defined(V4L2_PIX_FMT_SRGGB8) || defined(V4L2_PIX_FMT_SRGGB10) || defined(V4L2_PIX_FMT_SRGGB12)
+#ifdef V4L2_PIX_FMT_SRGGB8
   case V4L2_PIX_FMT_SRGGB8:
+#endif
+#ifdef V4L2_PIX_FMT_SRGGB10
   case V4L2_PIX_FMT_SRGGB10:
+#endif
+#ifdef V4L2_PIX_FMT_SRGGB12
   case V4L2_PIX_FMT_SRGGB12:
+#endif
     serh.ColorID=SER_BAYER_RGGB;
-    if (format == V4L2_PIX_FMT_SRGGB10) serh.PixelDepth=10;  
-    if (format == V4L2_PIX_FMT_SRGGB12) serh.PixelDepth=12;  
+#ifdef V4L2_PIX_FMT_SRGGB10
+    if (format == V4L2_PIX_FMT_SRGGB10) serh.PixelDepth=10; 
+#endif
+#ifdef V4L2_PIX_FMT_SRGGB12 
+    if (format == V4L2_PIX_FMT_SRGGB12) serh.PixelDepth=12; 
+#endif 
     return true;
+#endif
   case V4L2_PIX_FMT_RGB24:
     if (!useSER_V3) return false;
     number_of_planes=3;

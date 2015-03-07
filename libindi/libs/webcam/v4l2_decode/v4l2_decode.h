@@ -41,7 +41,7 @@ virtual const char *getName();
 virtual bool setcrop(struct v4l2_crop c)=0;
 virtual void resetcrop()=0;
 virtual void usesoftcrop(bool c)=0;
-virtual void setformat(struct v4l2_format f)=0;
+ virtual void setformat(struct v4l2_format f, bool use_ext_pix_format)=0;
 virtual bool issupportedformat(unsigned int format)=0;
 virtual const std::vector<unsigned int> &getsupportedformats()=0;
 virtual void decode(unsigned char *frame, struct v4l2_buffer *buf)=0;
@@ -49,7 +49,11 @@ virtual unsigned char * getY()=0;
 virtual unsigned char * getU()=0;
 virtual unsigned char * getV()=0;
 virtual unsigned char * getColorBuffer()=0;
-virtual unsigned char * getRGBBuffer()=0;
+ virtual unsigned char * getRGBBuffer()=0;
+virtual float * getLinearY()=0;
+virtual int getBpp()=0;
+virtual void setQuantization(bool)=0;
+virtual void setLinearization(bool)=0;
 
 protected:
 const char *name;
