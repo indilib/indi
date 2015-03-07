@@ -60,14 +60,16 @@ void ISPoll(void *);
 double min(void);
 double max(void);
 
-#define MAX_CCD_TEMP	45		/* Max CCD temperature */
-#define MIN_CCD_TEMP	-55		/* Min CCD temperature */
-#define MAX_X_BIN	16		/* Max Horizontal binning */
-#define MAX_Y_BIN	16		/* Max Vertical binning */
-#define MAX_PIXELS	4096		/* Max number of pixels in one dimension */
-#define POLLMS		1000		/* Polling time (ms) */
-#define TEMP_THRESHOLD  .25		/* Differential temperature threshold (C)*/
-#define NFLUSHES	1		/* Number of times a CCD array is flushed before an exposure */
+#define MAX_CCD_TEMP            45		/* Max CCD temperature */
+#define MIN_CCD_TEMP            -55		/* Min CCD temperature */
+#define MAX_X_BIN               16		/* Max Horizontal binning */
+#define MAX_Y_BIN               16		/* Max Vertical binning */
+#define MAX_PIXELS              4096		/* Max number of pixels in one dimension */
+#define POLLMS                  1000		/* Polling time (ms) */
+#define TEMP_THRESHOLD          .25		/* Differential temperature threshold (C)*/
+#define NFLUSHES                1		/* Number of times a CCD array is flushed before an exposure */
+#define TEMP_UPDATE_THRESHOLD   0.05
+#define COOLER_UPDATE_THRESHOLD 0.05
 
 std::auto_ptr<ApogeeCCD> apogeeCCD(0);
 
@@ -1071,7 +1073,7 @@ void ApogeeCCD::TimerHit()
             return;
         }
 
-        if (fabs(TemperatureN[0].value - ccdTemp) >= TEMP_THRESHOLD)
+        if (fabs(TemperatureN[0].value - ccdTemp) >= TEMP_UPDATE_THRESHOLD)
         {
            TemperatureN[0].value = ccdTemp;
            IDSetNumber(&TemperatureNP, NULL);
@@ -1124,9 +1126,11 @@ void ApogeeCCD::TimerHit()
             return;
         }
 
-
-        if (CoolerN[0].value != coolerPower)
+        if (fabs(CoolerN[0].value - coolerPower) >= COOLER_UPDATE_THRESHOLD)
         {
+            if (coolerPower > 0)
+                CoolerNP.s = IPS_BUSY;
+
             CoolerN[0].value = coolerPower;
             IDSetNumber(&CoolerNP, NULL);
         }
@@ -1149,10 +1153,15 @@ void ApogeeCCD::TimerHit()
             return;
         }
 
-        CoolerNP.s = IPS_OK;
+        if (fabs(CoolerN[0].value - coolerPower) >= COOLER_UPDATE_THRESHOLD)
+        {
+            if (coolerPower <= 0)
+                CoolerNP.s = IPS_IDLE;
 
-        CoolerN[0].value = coolerPower;
-        IDSetNumber(&CoolerNP, NULL);
+            CoolerN[0].value = coolerPower;
+            IDSetNumber(&CoolerNP, NULL);
+        }
+
         break;
 
       case IPS_ALERT:
