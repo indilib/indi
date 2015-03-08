@@ -39,6 +39,8 @@ class DLL_EXPORT Quad: public CamGen2Base
         void SetPixelReorder( const bool TurnOn ) { m_DoPixelReorder = TurnOn; }
 
         int32_t GetNumAdChannels();
+		
+		void SetIsQuadBit();
 
         void Init();
 

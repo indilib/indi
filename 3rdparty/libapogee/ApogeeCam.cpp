@@ -21,6 +21,7 @@
 #include "CcdAcqParams.h" 
 #include "helpers.h"
 #include "versionNo.h"
+#include "ApgTimer.h"
 #include <sstream>
 
 namespace
@@ -46,7 +47,9 @@ ApogeeCam::ApogeeCam(const CamModel::PlatformType platform) :
                                 m_ImageInProgress( false ),
                                 m_IsPreFlashOn( false ),
                                 m_IsInitialized( false ),
-                                m_IsConnected(false)
+                                m_IsConnected(false),
+								m_ExposureTimer( new ApgTimer ),
+								m_LastExposureTime(0)
 { 
 #ifdef DEBUGGING_CAMERA 
     ApgLogger::Instance().SetLogLevel( ApgLogger::LEVEL_DEBUG );
@@ -55,6 +58,10 @@ ApogeeCam::ApogeeCam(const CamModel::PlatformType platform) :
 #ifdef DEBUGGING_CAMERA_STATUS
     ApgLogger::Instance().SetLogLevel( ApgLogger::LEVEL_DEBUG );
 #endif
+
+	// make sure start and stop have valid values
+	m_ExposureTimer->Start();
+	m_ExposureTimer->Stop();
 
 } 
 
@@ -1207,21 +1214,24 @@ void ApogeeCam::IsThereAStatusError( const uint16_t statusReg )
 //  IS     IMG     DONE
 bool ApogeeCam::IsImgDone( const CameraStatusRegs & statusObj)
 {
-    if( m_CamIo->GetInterfaceType() == CamModel::ETHERNET || false == IsPipelineDownloadOn())
-    {
+	bool doneBitSet = statusObj.GetStatus() & CameraRegs::STATUS_IMAGE_DONE_BIT ? true : false;
+	bool dataFlag = false;
 
-        return( statusObj.GetStatus() & CameraRegs::STATUS_IMAGE_DONE_BIT ? 
-            true : false);
+	if( CamModel::ASPEN == m_PlatformType && m_CamIo->GetInterfaceType() == CamModel::ETHERNET && true == IsPipelineDownloadOn())
+    {
+		m_ExposureTimer->Stop();
+        dataFlag = m_ExposureTimer->GetTimeInSec() >= m_LastExposureTime ? true : false;
     }
-    else
+    else if( m_CamIo->GetInterfaceType() == CamModel::ETHERNET || false == IsPipelineDownloadOn())
+    {
+		dataFlag = false;
+    }
+    else 
     {
         //pipeline download by reporting image done as soon as data is available
-        const bool doneBitSet = statusObj.GetStatus() & CameraRegs::STATUS_IMAGE_DONE_BIT ? 
-            true : false;
-        const bool dataFlag = statusObj.GetDataAvailFlag();
-
-        return( doneBitSet || dataFlag ? true : false );
+        dataFlag = statusObj.GetDataAvailFlag();
     }
+    return( doneBitSet || dataFlag ? true : false );
 }
 //////////////////////////// 
 //LOG        AND      RETURN        STATUS
@@ -2568,6 +2578,7 @@ void ApogeeCam::GrabImageAndThrowItAway()
     int32_t WaitCounter = 0;
     const int32_t NUM_WAITS = 1000;
     const uint32_t SLEEP_IN_MSEC = 100;
+	m_LastExposureTime = 0; // for aspen ethernet issue
     while( GetImagingStatus() != Apg::Status_ImageReady )
     {
         apgHelper::ApogeeSleep( SLEEP_IN_MSEC );

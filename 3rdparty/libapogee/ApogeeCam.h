@@ -36,6 +36,7 @@ class CApnCamData;
 class CameraIo;
 class ModeFsm;
 class CcdAcqParams;
+class ApgTimer;
 
 class DLL_EXPORT ApogeeCam 
 { 
@@ -1289,6 +1290,7 @@ class DLL_EXPORT ApogeeCam
         template class DLL_EXPORT std::tr1::shared_ptr<CApnCamData>;
         template class DLL_EXPORT std::tr1::shared_ptr<ModeFsm>;
         template class DLL_EXPORT std::tr1::shared_ptr<CcdAcqParams>;
+        template class DLL_EXPORT std::tr1::shared_ptr<ApgTimer>;
 #endif
 
         std::tr1::shared_ptr<CameraIo> m_CamIo;
@@ -1296,8 +1298,7 @@ class DLL_EXPORT ApogeeCam
         std::tr1::shared_ptr<CApnCamData> m_CamCfgData;
         std::tr1::shared_ptr<ModeFsm> m_CamMode;
         std::tr1::shared_ptr<CcdAcqParams> m_CcdAcqSettings;
-
-        
+        std::tr1::shared_ptr<ApgTimer> m_ExposureTimer;
 
         CamModel::PlatformType m_PlatformType;
         const std::string m_fileName;
@@ -1308,6 +1309,7 @@ class DLL_EXPORT ApogeeCam
         bool m_IsPreFlashOn;
         bool m_IsInitialized;
         bool m_IsConnected;
+		double m_LastExposureTime;
      
     private:
 

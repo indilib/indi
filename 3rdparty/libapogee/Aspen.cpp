@@ -19,6 +19,7 @@
 #include "CamGen2CcdAcqParams.h" 
 #include "ImgFix.h" 
 #include "ApgLogger.h" 
+#include "ApgTimer.h"
 #include <sstream>
 
 //////////////////////////// 
@@ -290,6 +291,8 @@ void Aspen::StartExposure( const double Duration, const bool IsLight )
         }
     }
 
+	m_ExposureTimer->Start();
+	m_LastExposureTime = Duration;
     DefaultStartExposure( Duration, IsLight, false );
 }
 

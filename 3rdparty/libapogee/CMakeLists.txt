@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.4.7)
+cmake_minimum_required(VERSION 2.8)
 PROJECT(libapogee C CXX)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
@@ -7,7 +7,7 @@ set(INCLUDE_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/include")
 set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for udev rules")
 set(CONF_DIR "/etc/Apogee/camera" CACHE STRING "Configuration directory")
 
-set(APOGEE_VERSION "3.0.3")
+set(APOGEE_VERSION "3.0.3179")
 set(APOGEE_SOVERSION "3")
 
 find_package(USB-1 REQUIRED)

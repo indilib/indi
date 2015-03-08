@@ -341,6 +341,18 @@ int32_t Quad::GetNumAdChannels()
 }  
 
 //////////////////////////// 
+//      SET     IS    QUAD     BIT
+void Quad::SetIsQuadBit()
+{
+ #ifdef DEBUGGING_CAMERA
+    apgHelper::DebugMsg( "Quad::SetIsQuadBit" );
+#endif
+    //set high this is a quad camera
+    m_CamIo->ReadOrWriteReg( CameraRegs::OP_C,
+        CameraRegs::OP_C_IS_QUAD_BIT );
+}
+
+//////////////////////////// 
 //      INIT
 void Quad::Init()
 {
@@ -349,6 +361,7 @@ void Quad::Init()
 #endif
 
     DefaultInit();
+	SetIsQuadBit();
 }
 
 //////////////////////////// 

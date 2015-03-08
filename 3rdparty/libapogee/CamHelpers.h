@@ -179,6 +179,7 @@ namespace CameraRegs
     const uint16_t OP_C_IMAGE_TRIGGER_GROUP_BIT	= 0x0008;
     const uint16_t OP_C_IS_ASCENT_BIT 	                        = 0x0010;  // for v111 ascent firmware and greater
     const uint16_t OP_C_IS_INTERLINE_BIT			                = 0x0020;  // for v111 ascent firmware and greater
+    const uint16_t OP_C_IS_QUAD_BIT					                = 0x0040;  // for v125 F/ascent firmware and greater
     const uint16_t OP_C_FILTER_1_BIT				                    = 0x0100;
     const uint16_t OP_C_FILTER_2_BIT				                    = 0x0200;
     const uint16_t OP_C_FILTER_3_BIT				                    = 0x0400;
