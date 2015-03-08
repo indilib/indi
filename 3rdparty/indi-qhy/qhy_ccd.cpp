@@ -33,7 +33,8 @@
 #include "config.h"
 
 #define POLLMS                  1000        /* Polling time (ms) */
-#define TEMPERATURE_POLL_MS     1000        /* Temperature Polling time (ms) */
+#define TEMPERATURE_POLL_MS     20000        /* Temperature Polling time (ms) if temperature is IDLE/OK */
+#define TEMPERATURE_BUSY_MS     1000        /* Temperature Polling time (ms) if temperature is BUSY */
 #define TEMP_THRESHOLD          0.2         /* Differential temperature threshold (C)*/
 #define MINIMUM_CCD_EXPOSURE    0.1         /* 0.1 seconds minimum exposure */
 #define MAX_DEVICES             4           /* Max device cameraCount */
@@ -269,6 +270,9 @@ void QHYCCD::ISGetProperties(const char *dev)
       {
           defineSwitch(&CoolerSP);
           defineNumber(&CoolerNP);
+
+          temperatureFlag = true;
+          temperatureID = IEAddTimer(TEMPERATURE_BUSY_MS, QHYCCD::updateTemperatureHelper, this);
       }
 
       if(HasUSBSpeed)
@@ -1065,7 +1069,7 @@ void QHYCCD::setCooler(bool enable)
         DEBUG(INDI::Logger::DBG_SESSION, "Cooler on.");
 
         temperatureFlag = true;
-        temperatureID = IEAddTimer(TEMPERATURE_POLL_MS, QHYCCD::updateTemperatureHelper, this);
+        temperatureID = IEAddTimer(TEMPERATURE_BUSY_MS, QHYCCD::updateTemperatureHelper, this);
     }
     else if (!enable && temperatureFlag == true)
     {
@@ -1096,7 +1100,8 @@ void QHYCCD::updateTemperatureHelper(void *p)
 
 void QHYCCD::updateTemperature()
 {
-    double ccdtemp,coolpower;
+    double ccdtemp=0,coolpower=0;
+    double nextPoll=TEMPERATURE_POLL_MS;
 
     if(temperatureFlag)
     {
@@ -1127,10 +1132,13 @@ void QHYCCD::updateTemperature()
             TemperatureNP.s = IPS_OK;
         }
 
+        if (TemperatureNP.s == IPS_BUSY)
+            nextPoll = TEMPERATURE_BUSY_MS;
+
         IDSetNumber(&TemperatureNP, NULL);
         IDSetNumber(&CoolerNP, NULL);
 
-        temperatureID = IEAddTimer(TEMPERATURE_POLL_MS,QHYCCD::updateTemperatureHelper, this);
+        temperatureID = IEAddTimer(nextPoll,QHYCCD::updateTemperatureHelper, this);
     }
 }
 
@@ -1143,6 +1151,15 @@ bool QHYCCD::saveConfigItems(FILE *fp)
         IUSaveConfigNumber(fp, &FilterSlotNP);
         IUSaveConfigText(fp, FilterNameTP);
     }
+
+    if (HasGain)
+        IUSaveConfigNumber(fp, &GainNP);
+
+    if (HasOffset)
+        IUSaveConfigNumber(fp, &OffsetNP);
+
+    if (HasUSBSpeed)
+        IUSaveConfigNumber(fp, &USBTRAFFICNP);
 
     return true;
 }
