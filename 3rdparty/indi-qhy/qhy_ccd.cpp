@@ -270,9 +270,7 @@ void QHYCCD::ISGetProperties(const char *dev)
       if (HasCooler())
       {
           defineSwitch(&CoolerSP);
-          defineNumber(&CoolerNP);
-
-          temperatureID = IEAddTimer(TEMPERATURE_BUSY_MS, QHYCCD::updateTemperatureHelper, this);
+          defineNumber(&CoolerNP);          
       }
 
       if(HasUSBSpeed)
@@ -307,6 +305,8 @@ bool QHYCCD::updateProperties()
       {
           defineSwitch(&CoolerSP);
           defineNumber(&CoolerNP);
+
+          temperatureID = IEAddTimer(TEMPERATURE_BUSY_MS, QHYCCD::updateTemperatureHelper, this);
       }
 
       if(HasUSBSpeed)
