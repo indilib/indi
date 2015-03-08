@@ -61,6 +61,10 @@
 3rdparty/indi-asicam/x86/libASICamera2.bin -text
 3rdparty/indi-dsi/99-meadedsi.rules -text
 3rdparty/indi-dsi/CMakeLists.txt -text
+3rdparty/indi-dsi/DsiColor.cpp -text
+3rdparty/indi-dsi/DsiColor.h -text
+3rdparty/indi-dsi/DsiColorII.cpp -text
+3rdparty/indi-dsi/DsiColorII.h -text
 3rdparty/indi-dsi/DsiDevice.cpp -text
 3rdparty/indi-dsi/DsiDevice.h -text
 3rdparty/indi-dsi/DsiDeviceFactory.cpp -text

@@ -102,6 +102,7 @@ DSICCD::DSICCD()
 ***************************************************************************************/
 bool DSICCD::Connect()
 {
+    CCDCapability cap;
     string ccd;
     dsi = DSI::DeviceFactory::getInstance(NULL);
     if (!dsi) {
@@ -117,7 +118,24 @@ bool DSICCD::Connect()
         DEBUG(INDI::Logger::DBG_SESSION,  "Found a DSI Pro!");
     } else if (ccd == "ICX429ALL") {
         DEBUG(INDI::Logger::DBG_SESSION,  "Found a DSI Pro II!");
+    } else if (ccd == "ICX429AKL") {
+        DEBUG(INDI::Logger::DBG_SESSION,  "Found a DSI Color II!");
+    } else if (ccd == "ICX404AK") {
+        DEBUG(INDI::Logger::DBG_SESSION,  "Found a DSI Color!");
+    } else {
+        DEBUGF(INDI::Logger::DBG_SESSION,  "Found a DSI with an unknown CCD: %s", ccd.c_str());
     }
+
+    cap.canAbort    = true;
+    cap.canBin      = false;
+    cap.canSubFrame = false;
+    cap.hasCooler   = false;
+    cap.hasGuideHead= false;
+    cap.hasShutter  = false;
+    cap.hasST4Port  = false;
+    cap.hasBayer = dsi->isColor();
+
+    SetCCDCapability(&cap);
 
     return true;
 }
@@ -149,8 +167,6 @@ const char * DSICCD::getDefaultName()
 ***************************************************************************************/
 bool DSICCD::initProperties()
 {
-    CCDCapability cap;
-
     // Must init parent properties first!
     INDI::CCD::initProperties();
 
@@ -161,16 +177,6 @@ bool DSICCD::initProperties()
     IUFillNumber(GainN, "GAIN", "Gain", "%d", 0, 63, 1, 0);
     IUFillNumberVector(&GainNP, GainN, 1, getDeviceName(), "GAIN", "Gain", IMAGE_SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
 
-    cap.canAbort    = true;
-    cap.canBin      = false;
-    cap.canSubFrame = false;
-    cap.hasCooler   = false;
-    cap.hasGuideHead= false;
-    cap.hasShutter  = false;
-    cap.hasST4Port  = false;
-    cap.hasBayer = false;
-
-    SetCCDCapability(&cap);
 
     return true;
 

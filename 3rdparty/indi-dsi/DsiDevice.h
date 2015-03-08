@@ -174,6 +174,7 @@ namespace DSI {
         virtual unsigned int getImageOffsetY() { return image_offset_y; };
         virtual float getPixelSizeX() { return pixel_size_x; };
         virtual float getPixelSizeY() { return pixel_size_y; };
+        virtual bool isColor() { return is_color; };
 
         virtual void abortExposure();
         virtual unsigned int getAdRegister(DSI::AdRegister reg);

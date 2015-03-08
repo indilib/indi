@@ -15,7 +15,9 @@
 
 #include "DsiDeviceFactory.h"
 #include "DsiPro.h"
+#include "DsiColor.h"
 #include "DsiProII.h"
+#include "DsiColorII.h"
 #include "DsiException.h"
 
 using namespace std;
@@ -42,8 +44,14 @@ DSI::DeviceFactory::getInstance(const char *devname)
     if (ccdChipName == "ICX254AL")
         return new DSI::DsiPro(devname);
 
+    if (ccdChipName == "ICX404AK") 
+        return new DSI::DsiColor(devname);
+
     if (ccdChipName == "ICX429ALL")
         return new DSI::DsiProII(devname);
+
+    if (ccdChipName == "ICX429AKL")
+        return new DSI::DsiColorII(devname);
 
     return 0;
 }
