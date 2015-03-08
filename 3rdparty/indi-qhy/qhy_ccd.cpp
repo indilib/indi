@@ -205,6 +205,7 @@ QHYCCD::QHYCCD(const char *name)
     HasOffset = false;
     HasFilters = false;
     IsFocusMode = false;
+    coolerEnabled = false;
 
     snprintf(this->name, MAXINDINAME, "QHY CCD %s", name);
     snprintf(this->camid,MAXINDINAME,"%s",name);
@@ -271,7 +272,6 @@ void QHYCCD::ISGetProperties(const char *dev)
           defineSwitch(&CoolerSP);
           defineNumber(&CoolerNP);
 
-          temperatureFlag = true;
           temperatureID = IEAddTimer(TEMPERATURE_BUSY_MS, QHYCCD::updateTemperatureHelper, this);
       }
 
@@ -597,10 +597,12 @@ int QHYCCD::SetTemperature(double temperature)
     if (fabs(temperature- TemperatureN[0].value) < TEMP_THRESHOLD)
         return 1;
 
-    TemperatureRequest = temperature;
+    TemperatureRequest = temperature;        
 
     // Enable cooler
     setCooler(true);
+
+    ControlQHYCCDTemp(camhandle,TemperatureRequest);
 
     return 0;
 }
@@ -1057,7 +1059,7 @@ bool QHYCCD::ISNewNumber (const char *dev, const char *name, double values[], ch
 
 void QHYCCD::setCooler(bool enable)
 {
-    if (enable && temperatureFlag == false)
+    if (enable && coolerEnabled == false)
     {
         CoolerS[0].s = ISS_ON;
         CoolerS[1].s = ISS_OFF;
@@ -1068,13 +1070,12 @@ void QHYCCD::setCooler(bool enable)
         IDSetNumber(&CoolerNP, NULL);
         DEBUG(INDI::Logger::DBG_SESSION, "Cooler on.");
 
-        temperatureFlag = true;
-        temperatureID = IEAddTimer(TEMPERATURE_BUSY_MS, QHYCCD::updateTemperatureHelper, this);
+        coolerEnabled = true;
     }
-    else if (!enable && temperatureFlag == true)
+    else if (!enable && coolerEnabled == true)
     {
-        temperatureFlag = false;
-        IERmTimer(temperatureID);
+        coolerEnabled = false;
+
         if (sim == false)
             SetQHYCCDParam(camhandle,CONTROL_MANULPWM,0);
 
@@ -1103,43 +1104,59 @@ void QHYCCD::updateTemperature()
     double ccdtemp=0,coolpower=0;
     double nextPoll=TEMPERATURE_POLL_MS;
 
-    if(temperatureFlag)
+    if (sim)
     {
+        ccdtemp = TemperatureN[0].value;
+        if (TemperatureN[0].value < TemperatureRequest)
+            ccdtemp += TEMP_THRESHOLD;
+        else if (TemperatureN[0].value > TemperatureRequest)
+            ccdtemp -= TEMP_THRESHOLD;
 
-        if (sim)
-        {
-            ccdtemp = TemperatureN[0].value;
-            if (TemperatureN[0].value < TemperatureRequest)
-                ccdtemp += TEMP_THRESHOLD;
-            else if (TemperatureN[0].value > TemperatureRequest)
-                ccdtemp -= TEMP_THRESHOLD;
-
-            coolpower = 128;
-        }
-        else
-        {
-            ccdtemp = GetQHYCCDParam(camhandle,CONTROL_CURTEMP);
-            coolpower = GetQHYCCDParam(camhandle,CONTROL_CURPWM);
-            ControlQHYCCDTemp(camhandle,TemperatureRequest);
-        }
-
-        TemperatureN[0].value = ccdtemp;
-        CoolerN[0].value = coolpower / 255.0 * 100;
-
-        if (fabs(TemperatureN[0].value - TemperatureRequest) <= TEMP_THRESHOLD)
-        {
-            TemperatureN[0].value = TemperatureRequest;
-            TemperatureNP.s = IPS_OK;
-        }
-
-        if (TemperatureNP.s == IPS_BUSY)
-            nextPoll = TEMPERATURE_BUSY_MS;
-
-        IDSetNumber(&TemperatureNP, NULL);
-        IDSetNumber(&CoolerNP, NULL);
-
-        temperatureID = IEAddTimer(nextPoll,QHYCCD::updateTemperatureHelper, this);
+        coolpower = 128;
     }
+    else
+    {
+        ccdtemp = GetQHYCCDParam(camhandle,CONTROL_CURTEMP);
+        coolpower = GetQHYCCDParam(camhandle,CONTROL_CURPWM);
+        //ControlQHYCCDTemp(camhandle,TemperatureRequest);
+    }
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CCD Temp: %g CCD RAW Cooling Power: %g, CCD Cooling percentage: %g", ccdtemp, coolpower, coolpower / 255.0 * 100);
+
+    TemperatureN[0].value = ccdtemp;
+    CoolerN[0].value = coolpower / 255.0 * 100;
+
+    if (coolpower > 0 && CoolerS[0].s == ISS_OFF)
+    {
+        CoolerNP.s = IPS_BUSY;
+        CoolerSP.s = IPS_OK;
+        CoolerS[0].s = ISS_ON;
+        CoolerS[1].s = ISS_OFF;
+        IDSetSwitch(&CoolerSP, NULL);
+    }
+    else if (coolpower <= 0 && CoolerS[0].s == ISS_ON)
+    {
+        CoolerNP.s = IPS_IDLE;
+        CoolerSP.s = IPS_IDLE;
+        CoolerS[0].s = ISS_OFF;
+        CoolerS[1].s = ISS_ON;
+        IDSetSwitch(&CoolerSP, NULL);
+    }
+
+    if (TemperatureNP.s == IPS_BUSY && fabs(TemperatureN[0].value - TemperatureRequest) <= TEMP_THRESHOLD)
+    {
+        TemperatureN[0].value = TemperatureRequest;
+        TemperatureNP.s = IPS_OK;
+    }
+
+    if (TemperatureNP.s == IPS_BUSY)
+        nextPoll = TEMPERATURE_BUSY_MS;
+
+    IDSetNumber(&TemperatureNP, NULL);
+    IDSetNumber(&CoolerNP, NULL);
+
+    temperatureID = IEAddTimer(nextPoll,QHYCCD::updateTemperatureHelper, this);
+
 }
 
 bool QHYCCD::saveConfigItems(FILE *fp)

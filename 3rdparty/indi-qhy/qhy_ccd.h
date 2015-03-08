@@ -118,7 +118,7 @@ private:
   qhyccd_handle *camhandle;
 
   int temperatureID;
-  bool temperatureFlag;
+  bool coolerEnabled;
   int timerID;
   bool sim;
 
