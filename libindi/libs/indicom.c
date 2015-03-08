@@ -95,9 +95,7 @@ int extractISOTime(char *timestr, struct ln_date *iso_date)
  *	3600:	<w>:mm:ss
  *	600:	<w>:mm.m
  *	60:	<w>:mm
- * return number of characters written to out, not counting finaif (NOVA_FOUND)
-    include_directories(${NOVA_INCLUDE_DIR})
-endif (NOVA_FOUND)l '\0'.
+ * return number of characters written to out, not counting final '\0'.
  */
 int
 fs_sexa (char *out, double a, int w, int fracbase)
@@ -122,33 +120,33 @@ fs_sexa (char *out, double a, int w, int fracbase)
 
 	/* form the whole part; "negative 0" is a special case */
 	if (isneg && d == 0)
-	    out += sprintf (out, "%*s-0", w-2, "");
+        out += snprintf (out, MAXINDIFORMAT, "%*s-0", w-2, "");
 	else
-	    out += sprintf (out, "%*d", w, isneg ? -d : d);
+        out += snprintf (out, MAXINDIFORMAT, "%*d", w, isneg ? -d : d);
 
 	/* do the rest */
 	switch (fracbase) {
 	case 60:	/* dd:mm */
 	    m = f/(fracbase/60);
-	    out += sprintf (out, ":%02d", m);
+        out += snprintf (out, MAXINDIFORMAT, ":%02d", m);
 	    break;
 	case 600:	/* dd:mm.m */
-	    out += sprintf (out, ":%02d.%1d", f/10, f%10);
+        out += snprintf (out, MAXINDIFORMAT, ":%02d.%1d", f/10, f%10);
 	    break;
 	case 3600:	/* dd:mm:ss */
 	    m = f/(fracbase/60);
 	    s = f%(fracbase/60);
-	    out += sprintf (out, ":%02d:%02d", m, s);
+        out += snprintf (out, MAXINDIFORMAT, ":%02d:%02d", m, s);
 	    break;
 	case 36000:	/* dd:mm:ss.s*/
 	    m = f/(fracbase/60);
 	    s = f%(fracbase/60);
-	    out += sprintf (out, ":%02d:%02d.%1d", m, s/10, s%10);
+        out += snprintf (out, MAXINDIFORMAT, ":%02d:%02d.%1d", m, s/10, s%10);
 	    break;
 	case 360000:	/* dd:mm:ss.ss */
 	    m = f/(fracbase/60);
 	    s = f%(fracbase/60);
-	    out += sprintf (out, ":%02d:%02d.%02d", m, s/100, s%100);
+        out += snprintf (out, MAXINDIFORMAT, ":%02d:%02d.%02d", m, s/100, s%100);
 	    break;
 	default:
 	    printf ("fs_sexa: unknown fracbase: %d\n", fracbase);
@@ -219,7 +217,7 @@ numberFormat (char *buf, const char *format, double value)
             return (fs_sexa (buf, value, w-f, s));
         } else {
             /* normal printf format */
-            return (sprintf (buf, format, value));
+            return (snprintf (buf, MAXINDIFORMAT,  format, value));
         }
 }
 

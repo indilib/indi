@@ -188,6 +188,8 @@ void getSexComponents(double value, int *d, int *m, int *s);
     \param format format in sprintf style.
     \param value the number to format.
     \return length of string.
+
+    \note buf must be of length MAXINDIFORMAT at minimum
 */
 int numberFormat (char *buf, const char *format, double value);
 
