@@ -678,6 +678,12 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         ITextVectorProperty ActiveDeviceTP;
         IText ActiveDeviceT[3];
 
+        ISwitch WorldCoordS[2];
+        ISwitchVectorProperty WorldCoordSP;
+
+        INumber CCDRotationN[1];
+        INumberVectorProperty CCDRotationNP;
+
         ISwitch TelescopeTypeS[2];
         ISwitchVectorProperty TelescopeTypeSP;
 
@@ -695,6 +701,8 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
 
      private:
         CCDCapability capability;
+
+        bool ValidCCDRotation;
 
         bool uploadFile(CCDChip * targetChip, const void *fitsData, size_t totalBytes, bool sendImage, bool saveImage);
         void getMinMax(double *min, double *max, CCDChip *targetChip);

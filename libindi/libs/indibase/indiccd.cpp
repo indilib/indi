@@ -39,6 +39,7 @@ const char *IMAGE_INFO_TAB      = "Image Info";
 const char *GUIDE_HEAD_TAB      = "Guider Head";
 const char *GUIDE_CONTROL_TAB   = "Guider Control";
 const char *RAPIDGUIDE_TAB      = "Rapid Guide";
+const char *WCS_TAB             = "WCS";
 
 CCDChip::CCDChip()
 {
@@ -255,6 +256,7 @@ INDI::CCD::CCD()
     InGuideExposure=false;
     RapidGuideEnabled=false;
     GuiderRapidGuideEnabled=false;
+    ValidCCDRotation=false;
 
     AutoLoop=false;
     SendImage=false;
@@ -430,9 +432,16 @@ bool INDI::CCD::initProperties()
     IUFillText(&ActiveDeviceT[2],"ACTIVE_FILTER","Filter","CCD Simulator");
     IUFillTextVector(&ActiveDeviceTP,ActiveDeviceT,3,getDeviceName(),"ACTIVE_DEVICES","Snoop devices",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
 
+    IUFillSwitch(&WorldCoordS[0], "WCS_ENABLE", "Enable", ISS_OFF);
+    IUFillSwitch(&WorldCoordS[1], "WCS_DISABLE", "Disable", ISS_ON);
+    IUFillSwitchVector(&WorldCoordSP, WorldCoordS, 2, getDeviceName(), "WCS_CONTROL", "WCS", WCS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
     IUFillSwitch(&TelescopeTypeS[0], "TELESCOPE_PRIMARY", "Primary", ISS_ON);
     IUFillSwitch(&TelescopeTypeS[1], "TELESCOPE_GUIDE", "Guide", ISS_OFF);
-    IUFillSwitchVector(&TelescopeTypeSP, TelescopeTypeS, 2, getDeviceName(), "TELESCOPE_TYPE", "Telescope", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&TelescopeTypeSP, TelescopeTypeS, 2, getDeviceName(), "TELESCOPE_TYPE", "Telescope", WCS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    IUFillNumber(&CCDRotationN[0],"CCD_ROTATION_VALUE","Rotation","%g",-360,360,1,0);
+    IUFillNumberVector(&CCDRotationNP,CCDRotationN,1,getDeviceName(),"CCD_ROTATION","CCD FOV", WCS_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillNumber(&EqN[0],"RA","Ra (hh:mm:ss)","%010.6m",0,24,0,0);
     IUFillNumber(&EqN[1],"DEC","Dec (dd:mm:ss)","%010.6m",-90,90,0,0);
@@ -537,7 +546,7 @@ bool INDI::CCD::updateProperties()
           defineNumber(&GuideCCD.RapidGuideDataNP);
         }
         defineText(&ActiveDeviceTP);
-        defineSwitch(&TelescopeTypeSP);
+        defineSwitch(&WorldCoordSP);
         defineSwitch(&UploadSP);
 
         if (UploadSettingsT[0].text == NULL)
@@ -596,7 +605,12 @@ bool INDI::CCD::updateProperties()
         if (capability.hasBayer)
             deleteProperty(BayerTP.name);
         deleteProperty(ActiveDeviceTP.name);
-        deleteProperty(TelescopeTypeSP.name);
+        if (WorldCoordS[0].s == ISS_ON)
+        {
+            deleteProperty(TelescopeTypeSP.name);
+            deleteProperty(CCDRotationNP.name);
+        }
+        deleteProperty(WorldCoordSP.name);
         deleteProperty(UploadSP.name);
         deleteProperty(UploadSettingsTP.name);
     }
@@ -934,7 +948,18 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
             return true;
         }
 
+        // CCD Rotation
+        if (!strcmp(name, CCDRotationNP.name))
+        {
+            IUUpdateNumber(&CCDRotationNP, values, names, n);
+            CCDRotationNP.s = IPS_OK;
+            IDSetNumber(&CCDRotationNP, NULL);
+            ValidCCDRotation=true;
 
+            DEBUGF(INDI::Logger::DBG_SESSION, "CCD FOV rotation updated to %g degrees.", CCDRotationN[0].value);
+
+            return true;
+        }
     }
     //  if we didn't process it, continue up the chain, let somebody else
     //  give it a shot
@@ -967,6 +992,27 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
             TelescopeTypeSP.s = IPS_OK;
             IDSetSwitch(&TelescopeTypeSP, NULL);
             return true;
+        }
+
+        if (!strcmp(name, WorldCoordSP.name))
+        {
+            IUUpdateSwitch(&WorldCoordSP, states, names, n);
+            WorldCoordSP.s = IPS_OK;
+
+            if (WorldCoordS[0].s == ISS_ON)
+            {
+                DEBUG(INDI::Logger::DBG_WARNING, "World Coordinate System is enabled. CCD rotation must be set either manually or by solving the image before proceeding to capture any frames, otherwise the WCS information may be invalid.");
+                defineSwitch(&TelescopeTypeSP);
+                defineNumber(&CCDRotationNP);
+            }
+            else
+            {
+                deleteProperty(TelescopeTypeSP.name);
+                deleteProperty(CCDRotationNP.name);
+            }
+
+            ValidCCDRotation=false;
+            IDSetSwitch(&WorldCoordSP, NULL);
         }
 
         // Reset
@@ -1370,7 +1416,7 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
 
 
         // Add WCS Info
-        if (FocalLength != -1)
+        if (WorldCoordS[0].s == ISS_ON && ValidCCDRotation && FocalLength != -1)
         {
             char radecsys[8] = "FK5";
             char ctype1[16]  = "RA---TAN";
@@ -1398,7 +1444,12 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
             fits_update_key_s(fptr, TDOUBLE, "CDELT1", &degpix1, "CDELT1", &status);
             fits_update_key_s(fptr, TDOUBLE, "CDELT2", &degpix2, "CDELT2", &status);
 
-            double cd[4];
+            double rotation = CCDRotationN[0].value;
+
+            fits_update_key_s(fptr, TDOUBLE, "CROTA1", &rotation, "CROTA1", &status);
+            fits_update_key_s(fptr, TDOUBLE, "CROTA2", &rotation, "CROTA2", &status);
+
+            /*double cd[4];
             cd[0] = degpix1;
             cd[1] = 0;
             cd[2] = 0;
@@ -1407,7 +1458,7 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
             fits_update_key_s(fptr, TDOUBLE, "CD1_1", &cd[0], "CD1_1", &status);
             fits_update_key_s(fptr, TDOUBLE, "CD1_2", &cd[1], "CD1_2", &status);
             fits_update_key_s(fptr, TDOUBLE, "CD2_1", &cd[2], "CD2_1", &status);
-            fits_update_key_s(fptr, TDOUBLE, "CD2_2", &cd[3], "CD2_2", &status);
+            fits_update_key_s(fptr, TDOUBLE, "CD2_2", &cd[3], "CD2_2", &status);*/
 
         }
 
@@ -1852,7 +1903,11 @@ bool INDI::CCD::saveConfigItems(FILE *fp)
     IUSaveConfigText(fp, &ActiveDeviceTP);
     IUSaveConfigSwitch(fp, &UploadSP);
     IUSaveConfigText(fp, &UploadSettingsTP);
+    IUSaveConfigSwitch(fp, &WorldCoordSP);
     IUSaveConfigSwitch(fp, &TelescopeTypeSP);
+
+    if (ValidCCDRotation)
+        IUSaveConfigNumber(fp, &CCDRotationNP);
 
     IUSaveConfigSwitch(fp, &PrimaryCCD.CompressSP);
 
