@@ -31,6 +31,7 @@
 #include <errno.h>
 #include <dirent.h>
 
+#include <libnova.h>
 #include <fitsio.h>
 
 const char *IMAGE_SETTINGS_TAB  = "Image Settings";
@@ -268,6 +269,7 @@ INDI::CCD::CCD()
 
     RA=-1000;
     Dec=-1000;
+    Aperture=FocalLength=-1;
 }
 
 INDI::CCD::~CCD()
@@ -407,7 +409,7 @@ bool INDI::CCD::initProperties()
     IUFillNumber(&GuideCCD.RapidGuideDataN[2],"GUIDESTAR_FIT","Guide star fit","%5.2f",0,1024,0,0);
     IUFillNumberVector(&GuideCCD.RapidGuideDataNP,GuideCCD.RapidGuideDataN,3,getDeviceName(),"GUIDER_RAPID_GUIDE_DATA","Rapid Guide Data",RAPIDGUIDE_TAB,IP_RO,60,IPS_IDLE);
 
-    // CCD Class Init
+    // CCD Class Init    
 
     IUFillText(&BayerT[0],"CFA_OFFSET_X","X Offset","0");
     IUFillText(&BayerT[1],"CFA_OFFSET_Y","Y Offset","0");
@@ -428,11 +430,16 @@ bool INDI::CCD::initProperties()
     IUFillText(&ActiveDeviceT[2],"ACTIVE_FILTER","Filter","CCD Simulator");
     IUFillTextVector(&ActiveDeviceTP,ActiveDeviceT,3,getDeviceName(),"ACTIVE_DEVICES","Snoop devices",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
 
+    IUFillSwitch(&TelescopeTypeS[0], "TELESCOPE_PRIMARY", "Primary", ISS_ON);
+    IUFillSwitch(&TelescopeTypeS[1], "TELESCOPE_GUIDE", "Guide", ISS_OFF);
+    IUFillSwitchVector(&TelescopeTypeSP, TelescopeTypeS, 2, getDeviceName(), "TELESCOPE_TYPE", "Telescope", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
     IUFillNumber(&EqN[0],"RA","Ra (hh:mm:ss)","%010.6m",0,24,0,0);
     IUFillNumber(&EqN[1],"DEC","Dec (dd:mm:ss)","%010.6m",-90,90,0,0);
     IUFillNumberVector(&EqNP,EqN,2,ActiveDeviceT[0].text,"EQUATORIAL_EOD_COORD","EQ Coord","Main Control",IP_RW,60,IPS_IDLE);
 
     IDSnoopDevice(ActiveDeviceT[0].text,"EQUATORIAL_EOD_COORD");
+    IDSnoopDevice(ActiveDeviceT[0].text,"TELESCOPE_INFO");
     IDSnoopDevice(ActiveDeviceT[2].text,"FILTER_SLOT");
     IDSnoopDevice(ActiveDeviceT[2].text,"FILTER_NAME");
 
@@ -530,6 +537,7 @@ bool INDI::CCD::updateProperties()
           defineNumber(&GuideCCD.RapidGuideDataNP);
         }
         defineText(&ActiveDeviceTP);
+        defineSwitch(&TelescopeTypeSP);
         defineSwitch(&UploadSP);
 
         if (UploadSettingsT[0].text == NULL)
@@ -588,6 +596,7 @@ bool INDI::CCD::updateProperties()
         if (capability.hasBayer)
             deleteProperty(BayerTP.name);
         deleteProperty(ActiveDeviceTP.name);
+        deleteProperty(TelescopeTypeSP.name);
         deleteProperty(UploadSP.name);
         deleteProperty(UploadSettingsTP.name);
     }
@@ -610,6 +619,34 @@ bool INDI::CCD::ISSnoopDevice (XMLEle *root)
             RA=newra;
             Dec=newdec;
         }
+     }
+     else if (!strcmp(propName, "TELESCOPE_INFO"))
+     {
+          for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
+          {
+              const char *name = findXMLAttValu(ep, "name");
+
+              if (!strcmp(name, "TELESCOPE_APERTURE"))
+              {
+                  if (TelescopeTypeS[0].s == ISS_ON)
+                      Aperture = atof(pcdataXMLEle(ep));
+              }
+              else if (!strcmp(name, "TELESCOPE_FOCAL_LENGTH"))
+              {
+                  if (TelescopeTypeS[0].s == ISS_ON)
+                      FocalLength = atof(pcdataXMLEle(ep));
+              }
+              else if (!strcmp(name, "GUIDER_APERTURE"))
+              {
+                  if (TelescopeTypeS[1].s == ISS_ON)
+                      Aperture = atof(pcdataXMLEle(ep));
+              }
+              else if (!strcmp(name, "GUIDER_FOCAL_LENGTH"))
+              {
+                  if (TelescopeTypeS[1].s == ISS_ON)
+                      FocalLength = atof(pcdataXMLEle(ep));
+              }
+          }
      }
      else if (!strcmp(propName, "FILTER_NAME"))
      {
@@ -647,6 +684,7 @@ bool INDI::CCD::ISNewText (const char *dev, const char *name, char *texts[], cha
             // Update the property name!
             strncpy(EqNP.device, ActiveDeviceT[0].text, MAXINDIDEVICE);
             IDSnoopDevice(ActiveDeviceT[0].text,"EQUATORIAL_EOD_COORD");
+            IDSnoopDevice(ActiveDeviceT[0].text,"TELESCOPE_INFO");
             IDSnoopDevice(ActiveDeviceT[2].text,"FILTER_SLOT");
             IDSnoopDevice(ActiveDeviceT[2].text,"FILTER_NAME");
 
@@ -1299,11 +1337,58 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
 
     if (RA != -1000 && Dec != -1000)
     {
-        fits_update_key_s(fptr, TDOUBLE, "OBJCTRA", &RA, "Object RA", &status);
-        fits_update_key_s(fptr, TDOUBLE, "OBJCTDEC", &Dec, "Object DEC", &status);
+        ln_equ_posn epochPos, J2000Pos;
+        epochPos.ra   = RA*15.0;
+        epochPos.dec  = Dec;
+
+        // Convert from JNow to J2000
+        //TODO use exp_start instead of julian from system
+        ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
+
+        double raJ2000  = J2000Pos.ra/15.0;
+        double decJ2000 = J2000Pos.dec;
+
+        fits_update_key_s(fptr, TDOUBLE, "OBJCTRA", &raJ2000, "Object RA", &status);
+        fits_update_key_s(fptr, TDOUBLE, "OBJCTDEC", &decJ2000, "Object DEC", &status);
+
+        raJ2000 *= 15;
+        fits_update_key_s(fptr, TDOUBLE, "CRVAL1", &raJ2000, "CRVAL1", &status);
+        fits_update_key_s(fptr, TDOUBLE, "CRVAL2", &decJ2000, "CRVAL1", &status);
+
+        int epoch = 2000;
+
+        fits_update_key_s(fptr, TINT, "EPOCH", &epoch, "Epoch", &status);
+        fits_update_key_s(fptr, TINT, "EQUINOX", &epoch, "Equinox", &status);
+
+
+        // Add WCS Info
+        if (FocalLength != -1)
+        {
+            char radecsys[8] = "FK5";
+            fits_update_key_s(fptr, TSTRING, "RADECSYS", radecsys, "RADECSYS", &status);
+
+            double crpix1 = targetChip->getSubW()/2.0;
+            double crpix2 = targetChip->getSubH()/2.0;
+
+            fits_update_key_s(fptr, TDOUBLE, "CRPIX1", &crpix1, "CRPIX1", &status);
+            fits_update_key_s(fptr, TDOUBLE, "CRPIX2", &crpix2, "CRPIX1", &status);
+
+            double secpix1 = pixSize1 / FocalLength * 206.3 * targetChip->getBinX();
+            double secpix2 = pixSize2 / FocalLength * 206.3 * targetChip->getBinY();
+
+            fits_update_key_s(fptr, TDOUBLE, "SECPIX1", &secpix1, "SECPIX1", &status);
+            fits_update_key_s(fptr, TDOUBLE, "SECPIX2", &secpix2, "SECPIX2", &status);
+
+            double degpix1 = -secpix1 / 3600.0;
+            double degpix2 = secpix2 / 3600.0;
+                    //hputnr8 (header, "CDELT1", 8, degpix);
+
+                    //hputnr8 (header, "CDELT2", 8, degpix);
+
+        }
+
     }
 
-    fits_update_key_s(fptr, TSTRING, "INSTRUME", dev_name, "CCD Name", &status);
     fits_update_key_s(fptr, TSTRING, "DATE-OBS", exp_start, "UTC start date of observation", &status);
 
 }

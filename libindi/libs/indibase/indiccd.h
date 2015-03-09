@@ -359,7 +359,7 @@ private:
     ISwitchVectorProperty RapidGuideSP;
 
     ISwitch RapidGuideSetupS[3];
-    ISwitchVectorProperty RapidGuideSetupSP;
+    ISwitchVectorProperty RapidGuideSetupSP;    
 
     INumber RapidGuideDataN[3];
     INumberVectorProperty RapidGuideDataNP;
@@ -649,6 +649,7 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
 
 
         double RA, Dec;
+        double FocalLength, Aperture;
         bool InExposure;
         bool InGuideExposure;
         bool RapidGuideEnabled;
@@ -676,6 +677,9 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
 
         ITextVectorProperty ActiveDeviceTP;
         IText ActiveDeviceT[3];
+
+        ISwitch TelescopeTypeS[2];
+        ISwitchVectorProperty TelescopeTypeSP;
 
         INumber                 TemperatureN[1];
         INumberVectorProperty   TemperatureNP;
