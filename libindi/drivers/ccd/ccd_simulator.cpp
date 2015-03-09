@@ -124,8 +124,7 @@ CCDSim::CCDSim()
     minpix =65000;
     limitingmag=11.5;
     saturationmag=2;
-    focallength=1280;   //  focal length of the telescope in millimeters
-    guider_focallength=1280;
+    FocalLength=1280;   //  focal length of the telescope in millimeters
     OAGoffset=0;    //  An oag is offset this much from center of scope position (arcminutes);
     skyglow=40;
 
@@ -229,12 +228,6 @@ bool CCDSim::initProperties()
     IUFillNumber(&FWHMN[0],"SIM_FWHM","FWHM (arcseconds)","%4.2f",0,60,0,7.5);
     IUFillNumberVector(&FWHMNP,FWHMN,1,ActiveDeviceT[1].text, "FWHM","FWHM",OPTIONS_TAB,IP_RO,60,IPS_IDLE);
 
-    IUFillNumber(&ScopeParametersN[0],"TELESCOPE_APERTURE","Aperture (mm)","%g",50,4000,0,0.0);
-    IUFillNumber(&ScopeParametersN[1],"TELESCOPE_FOCAL_LENGTH","Focal Length (mm)","%g",100,10000,0,0.0 );
-    IUFillNumber(&ScopeParametersN[2],"GUIDER_APERTURE","Guider Aperture (mm)","%g",50,4000,0,0.0);
-    IUFillNumber(&ScopeParametersN[3],"GUIDER_FOCAL_LENGTH","Guider Focal Length (mm)","%g",100,10000,0,0.0 );
-    IUFillNumberVector(&ScopeParametersNP,ScopeParametersN,4,ActiveDeviceT[0].text,"TELESCOPE_INFO","Scope Properties",OPTIONS_TAB,IP_RW,60,IPS_OK);
-
     IUFillSwitch(&CoolerS[0], "COOLER_ON", "ON", ISS_OFF);
     IUFillSwitch(&CoolerS[1], "COOLER_OFF", "OFF", ISS_ON);
     IUFillSwitchVector(&CoolerSP, CoolerS, 2, getDeviceName(), "CCD_COOLER", "Cooler", MAIN_CONTROL_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
@@ -244,7 +237,6 @@ bool CCDSim::initProperties()
     IUFillNumberVector(&EqPENP,EqPEN,2,ActiveDeviceT[0].text,"EQUATORIAL_PE","EQ PE","Main Control",IP_RW,60,IPS_IDLE);
 
     IDSnoopDevice(ActiveDeviceT[0].text,"EQUATORIAL_PE");
-    IDSnoopDevice(ActiveDeviceT[0].text,"TELESCOPE_INFO");
     IDSnoopDevice(ActiveDeviceT[1].text,"FWHM");       
 
     initFilterProperties(getDeviceName(), FILTER_TAB);
@@ -513,15 +505,11 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
     ptr=(unsigned short int *) targetChip->getFrameBuffer();
 
     if (targetChip->getXRes() == 500)
-    {
-        targetFocalLength = guider_focallength;
         ExposureTime = GuideExposureRequest;
-    }
     else
-    {
-        targetFocalLength = focallength;
         ExposureTime = ExposureRequest;
-    }
+
+    targetFocalLength = FocalLength;
 
     if(ShowStarField)
     {
@@ -1132,11 +1120,9 @@ bool CCDSim::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
 void CCDSim::activeDevicesUpdated()
 {
     IDSnoopDevice(ActiveDeviceT[0].text,"EQUATORIAL_PE");
-    IDSnoopDevice(ActiveDeviceT[0].text,"TELESCOPE_INFO");
     IDSnoopDevice(ActiveDeviceT[1].text,"FWHM");
 
     strncpy(EqPENP.device, ActiveDeviceT[0].text, MAXINDIDEVICE);
-    strncpy(ScopeParametersNP.device, ActiveDeviceT[0].text, MAXINDIDEVICE);
     strncpy(FWHMNP.device, ActiveDeviceT[1].text, MAXINDIDEVICE);
 }
 
@@ -1149,19 +1135,7 @@ bool CCDSim::ISSnoopDevice (XMLEle *root)
            if (isDebug())
                 IDLog("CCD Simulator: New FWHM value of %g\n", seeing);
            return true;
-     }
-
-     if (IUSnoopNumber(root,&ScopeParametersNP)==0)
-     {
-           focallength = ScopeParametersNP.np[1].value;
-           guider_focallength = ScopeParametersNP.np[3].value;
-           if (isDebug())
-           {
-                IDLog("CCD Simulator: New focalLength value of %g\n", focallength);
-                IDLog("CCD Simulator: New guider_focalLength value of %g\n", guider_focallength);
-           }
-           return true;
-     }
+     }     
 
      // We try to snoop EQPEC first, if not found, we snoop regular EQNP
      if(IUSnoopNumber(root,&EqPENP)==0)

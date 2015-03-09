@@ -99,8 +99,6 @@ public:
         float seeing;
         float ImageScalex;
         float ImageScaley;
-        float focallength;
-        float guider_focallength;
         float OAGoffset;
         float TimeFactor;
         //  our zero point calcs used for drawing stars
@@ -138,8 +136,8 @@ public:
         INumber FWHMN[1];
 
         // We are going to snoop these from telescope
-        INumber ScopeParametersN[4];
-        INumberVectorProperty ScopeParametersNP;
+        //INumber ScopeParametersN[4];
+        //INumberVectorProperty ScopeParametersNP;
 
         INumberVectorProperty EqPENP;
         INumber EqPEN[2];
