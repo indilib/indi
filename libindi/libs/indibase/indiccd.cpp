@@ -1903,11 +1903,11 @@ bool INDI::CCD::saveConfigItems(FILE *fp)
     IUSaveConfigText(fp, &ActiveDeviceTP);
     IUSaveConfigSwitch(fp, &UploadSP);
     IUSaveConfigText(fp, &UploadSettingsTP);
-    IUSaveConfigSwitch(fp, &WorldCoordSP);
+    //IUSaveConfigSwitch(fp, &WorldCoordSP);
     IUSaveConfigSwitch(fp, &TelescopeTypeSP);
 
-    if (ValidCCDRotation)
-        IUSaveConfigNumber(fp, &CCDRotationNP);
+    //if (ValidCCDRotation)
+    //    IUSaveConfigNumber(fp, &CCDRotationNP);
 
     IUSaveConfigSwitch(fp, &PrimaryCCD.CompressSP);
 
