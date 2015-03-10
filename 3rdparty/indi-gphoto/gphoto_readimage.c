@@ -273,9 +273,14 @@ int dcraw_parse_header_info(const char *filename, struct dcraw_header *header)
 		else if (sscanf(line, "Shutter: 1/%f sec", &header->exposure) )
 			header->exposure = 1.0 / header->exposure;
 		else if (sscanf(line, "Shutter: %f sec", &header->exposure) )
-			;
+            ;
+        #ifdef USE_THUMB_SIZE
+        else if (sscanf(line, "Thumb size: %d x %d", &header->width, &header->height) )
+            ;
+        #else
 		else if (sscanf(line, "Output size: %d x %d", &header->width, &header->height) )
 			;
+        #endif
         else if (sscanf(line, "Filter pattern: %s", cfa) )
         {
             if(strncmp(cfa, "RGGBRGGBRGGBRGGB", sizeof(cfa)) == 0)

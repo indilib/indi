@@ -36,6 +36,10 @@ include_directories( ${INDI_INCLUDE_DIR})
 include_directories( ${CFITSIO_INCLUDE_DIR})
 include_directories( ${GPHOTO2_INCLUDE_DIR})
 
+if (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")
+add_definitions(-DUSE_THUMB_SIZE)
+endif (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")
+
 ########### Gphoto ###########
 set(indigphoto_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/gphoto_ccd.cpp
