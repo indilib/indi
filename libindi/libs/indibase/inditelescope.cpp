@@ -583,12 +583,14 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
                 }
                 if (MovementWESP.s == IPS_BUSY)
                 {
+                    IUResetSwitch(&MovementWESP);
                     MovementWESP.s = IPS_IDLE;
                     IDSetSwitch(&MovementWESP, NULL);
                 }
 
                 if (MovementNSSP.s == IPS_BUSY)
                 {
+                    IUResetSwitch(&MovementNSSP);
                     MovementNSSP.s = IPS_IDLE;
                     IDSetSwitch(&MovementNSSP, NULL);
                 }
@@ -600,7 +602,8 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
                 }
 
                 last_ns_motion=last_we_motion=-1;
-                TrackState = SCOPE_IDLE;
+                if (TrackState != SCOPE_PARKED)
+                    TrackState = SCOPE_IDLE;
             }
             else
                 AbortSP.s = IPS_ALERT;
