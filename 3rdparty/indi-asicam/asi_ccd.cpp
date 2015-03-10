@@ -406,12 +406,6 @@ bool ASICCD::setupParams()
         if (m_camInfo->SupportedVideoFormat[i] == ASI_IMG_END)
             break;
 
-        // 16 bit is not working on arm, skipping it completely for now
-        #ifdef LOW_USB_BANDWIDTH
-        if (m_camInfo->SupportedVideoFormat[i] == ASI_IMG_RAW16)
-            continue;
-        #endif
-
         nVideoFormats++;
         VideoFormatS = VideoFormatS == NULL ? (ISwitch *) malloc(sizeof(ISwitch)) : (ISwitch *) realloc(VideoFormatS, nVideoFormats * sizeof(ISwitch));
 
@@ -1221,7 +1215,12 @@ void ASICCD::createControls(int piNumberOfControls)
             continue;
 
         long pValue=0;
-        ASI_BOOL isAuto= ASI_FALSE;        
+        ASI_BOOL isAuto= ASI_FALSE;
+
+        #ifdef LOW_USB_BANDWIDTH
+        if (!strcmp(oneControlCap->Name, "BandWidth"))
+            ASISetControlValue(m_camInfo->CameraID, oneControlCap->ControlType, oneControlCap->MinValue, ASI_FALSE);
+        #endif
 
         ASIGetControlValue(m_camInfo->CameraID, oneControlCap->ControlType, &pValue, &isAuto);
 
