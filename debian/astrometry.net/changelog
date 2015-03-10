@@ -1,3 +1,9 @@
+astrometry.net (0.52) unstable; urgency=low
+
+  * Sync with upstream release
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Tue, 10 Mar 2015 12:00:00 +0300
+
 astrometry.net (0.50) unstable; urgency=low
 
   * Fix version number
