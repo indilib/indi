@@ -2049,13 +2049,8 @@ bool EQMod::Abort()
     if (!(e.DefaultHandleException(this))) {
       DEBUG(INDI::Logger::DBG_WARNING,  "Abort: error while stopping DE motor");
     }   
-  }   
-
-  if (TrackState==SCOPE_TRACKING) {
-    // How to know we are also guiding: GuideTimer != 0 ??
   }
-  //INDI::Telescope::Abort();
-  // Reset switches
+
   GuideNSNP.s = IPS_IDLE;
   IDSetNumber(&GuideNSNP, NULL);
   GuideWENP.s = IPS_IDLE;
@@ -2064,47 +2059,9 @@ bool EQMod::Abort()
   IUResetSwitch(TrackModeSP);
   IDSetSwitch(TrackModeSP,NULL);    
   
-  if (MovementNSSP.s == IPS_BUSY)
-    {
-      IUResetSwitch(&MovementNSSP);
-      MovementNSSP.s = IPS_IDLE;
-      IDSetSwitch(&MovementNSSP, NULL);
-    }
-  
-  if (MovementWESP.s == IPS_BUSY)
-    {
-      MovementWESP.s = IPS_IDLE;
-      IUResetSwitch(&MovementWESP);
-      IDSetSwitch(&MovementWESP, NULL);
-      }
-  
-  if (ParkSP.s == IPS_BUSY)
-    {
-      ParkSP.s       = IPS_IDLE;
-      IUResetSwitch(&ParkSP);
-      IDSetSwitch(&ParkSP, NULL);
-    }
-  
-  /*if (EqREqNP.s == IPS_BUSY)
-    {
-    EqREqNP.s      = IPS_IDLE;
-    IDSetNumber(&EqREqNP, NULL);
-    }
-  */
-  if (EqNP.s == IPS_BUSY)
-    {
-      EqNP.s = IPS_IDLE;
-      IDSetNumber(&EqNP, NULL);
-    }   
-
   if (gotoparams.completed == false) gotoparams.completed=true;
 
-  TrackState=SCOPE_IDLE;
-  
-  AbortSP.s=IPS_OK;
-  IUResetSwitch(&AbortSP);
-  IDSetSwitch(&AbortSP, NULL);
-  DEBUG(INDI::Logger::DBG_SESSION, "Telescope Aborted");
+  DEBUG(INDI::Logger::DBG_SESSION, "Telescope Aborted.");
   
   return true;
 }
