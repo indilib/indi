@@ -1217,17 +1217,12 @@ void ASICCD::createControls(int piNumberOfControls)
         long pValue=0;
         ASI_BOOL isAuto= ASI_FALSE;
 
-        ASIGetControlValue(m_camInfo->CameraID, oneControlCap->ControlType, &pValue, &isAuto);
-
         #ifdef LOW_USB_BANDWIDTH
         if (!strcmp(oneControlCap->Name, "BandWidth"))
-        {
             ASISetControlValue(m_camInfo->CameraID, oneControlCap->ControlType, oneControlCap->MinValue, ASI_FALSE);
-            pValue = oneControlCap->MinValue;
-            isAuto = ASI_FALSE;
-        }
         #endif
 
+        ASIGetControlValue(m_camInfo->CameraID, oneControlCap->ControlType, &pValue, &isAuto);
 
         if (oneControlCap->IsWritable)
         {
