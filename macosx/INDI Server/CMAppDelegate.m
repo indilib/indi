@@ -335,7 +335,7 @@
     log = fopen([logname cStringUsingEncoding:NSASCIIStringEncoding], "r");
   }
   _statusImage.image = [NSImage imageNamed:@"NSStatusAvailable"];
-  service = [[NSNetService alloc] initWithDomain:@"" type:@"_indi._tcp" name:@"INDI Server" port:7624];
+  service = [[NSNetService alloc] initWithDomain:@"" type:@"_indi._tcp" name:@"" port:7624];
   if(service) {
     [service setDelegate:self];
     [service publish];
