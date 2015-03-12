@@ -21,6 +21,6 @@
 
 #import <Cocoa/Cocoa.h>
 
-@interface CMAppDelegate : NSObject <NSApplicationDelegate, NSXMLParserDelegate, NSOutlineViewDataSource, NSTableViewDataSource, NSTableViewDelegate>
+@interface CMAppDelegate : NSObject <NSApplicationDelegate, NSNetServiceDelegate, NSXMLParserDelegate, NSOutlineViewDataSource, NSTableViewDataSource, NSTableViewDelegate>
 
 @end

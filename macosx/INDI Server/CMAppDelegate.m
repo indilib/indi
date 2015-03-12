@@ -41,6 +41,7 @@
   NSMutableArray *devices;
   NSMutableString *characters;
   NSString *defaultPrefix;
+  NSNetService *service;
   int pipe;
 }
 
@@ -232,6 +233,21 @@
   NSLog(@"parseErrorOccurred %@", parseError);
 }
 
+// NSNetServiceDelegate
+
+- (void)netServiceWillPublish:(NSNetService *)sender {
+  NSLog(@"INDI Service is ready to publish.");
+}
+
+- (void)netServiceDidPublish:(NSNetService *)sender {
+  NSLog(@"INDI Service was successfully published.");
+}
+
+- (void)netService:(NSNetService *)sender didNotPublish:(NSDictionary *)errorDict {
+  NSLog(@"INDI Service  could not be published.");
+  NSLog(@"%@", errorDict);
+}
+
 // NSApplicationDelegate
 
 - (void)applicationDidFinishLaunching:(NSNotification *)notification {
@@ -254,7 +270,7 @@
     [root appendString:[NSString stringWithContentsOfFile:customXML encoding:NSUTF8StringEncoding error:&error]];
   }
   [root appendString:@"</root>"];
-  NSLog(@"drivers %@", root);
+  // NSLog(@"drivers %@", root);
   groups = [NSMutableArray array];
   NSXMLParser *parser = [[NSXMLParser alloc] initWithData:[root dataUsingEncoding:NSUTF8StringEncoding]];
   [parser setDelegate:self];
@@ -319,6 +335,14 @@
     log = fopen([logname cStringUsingEncoding:NSASCIIStringEncoding], "r");
   }
   _statusImage.image = [NSImage imageNamed:@"NSStatusAvailable"];
+  service = [[NSNetService alloc] initWithDomain:@"" type:@"_indi._tcp" name:@"INDI Server" port:7624];
+  if(service) {
+    [service setDelegate:self];
+    [service publish];
+  }
+  else {
+    NSLog(@"An error occurred initializing the NSNetService object.");
+  }
   _statusLabel.stringValue = @"Server is running (idle)";
   while (true) {
     pos = ftell(log);
