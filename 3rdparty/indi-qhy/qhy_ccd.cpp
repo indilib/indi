@@ -602,7 +602,8 @@ int QHYCCD::SetTemperature(double temperature)
     // Enable cooler
     setCooler(true);
 
-    ControlQHYCCDTemp(camhandle,TemperatureRequest);
+    // this muse be call every second to control 
+    //ControlQHYCCDTemp(camhandle,TemperatureRequest);
 
     return 0;
 }
@@ -919,7 +920,12 @@ bool QHYCCD::SelectFilter(int position)
     if (sim)
         ret = QHYCCD_SUCCESS;
     else
-        ret = ControlQHYCCDCFW(camhandle,position-1);
+    {
+        char pos;
+        sprintf(&pos,"%d",position - 1);
+        ret = SendOrder2QHYCCDCFW(camhandle,&pos,1);
+    }
+
     if(ret == QHYCCD_SUCCESS)
     {
         CurrentFilter = position;
@@ -1102,7 +1108,7 @@ void QHYCCD::updateTemperatureHelper(void *p)
 void QHYCCD::updateTemperature()
 {
     double ccdtemp=0,coolpower=0;
-    double nextPoll=TEMPERATURE_POLL_MS;
+    double nextPoll=POLLMS;
 
     if (sim)
     {
@@ -1118,7 +1124,7 @@ void QHYCCD::updateTemperature()
     {
         ccdtemp = GetQHYCCDParam(camhandle,CONTROL_CURTEMP);
         coolpower = GetQHYCCDParam(camhandle,CONTROL_CURPWM);
-        //ControlQHYCCDTemp(camhandle,TemperatureRequest);
+        ControlQHYCCDTemp(camhandle,TemperatureRequest);
     }
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CCD Temp: %g CCD RAW Cooling Power: %g, CCD Cooling percentage: %g", ccdtemp, coolpower, coolpower / 255.0 * 100);
@@ -1149,8 +1155,11 @@ void QHYCCD::updateTemperature()
         TemperatureNP.s = IPS_OK;
     }
 
+/*
+    //we need call ControlQHYCCDTemp every second to control temperature
     if (TemperatureNP.s == IPS_BUSY)
         nextPoll = TEMPERATURE_BUSY_MS;
+*/
 
     IDSetNumber(&TemperatureNP, NULL);
     IDSetNumber(&CoolerNP, NULL);
