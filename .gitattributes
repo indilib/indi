@@ -900,6 +900,7 @@
 3rdparty/libqhy/firmware/QHY22.HEX -text
 3rdparty/libqhy/firmware/QHY23.HEX -text
 3rdparty/libqhy/firmware/QHY2E.HEX -text
+3rdparty/libqhy/firmware/QHY2PRO.HEX -text
 3rdparty/libqhy/firmware/QHY5.HEX -text
 3rdparty/libqhy/firmware/QHY5II.HEX -text
 3rdparty/libqhy/firmware/QHY5LOADER.HEX -text

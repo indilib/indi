@@ -61,6 +61,8 @@ ATTRS{idVendor}=="1618", ATTRS{idProduct}=="1110", RUN+="/sbin/fxload -t fx2 -I 
 ATTRS{idVendor}=="1618", ATTRS{idProduct}=="1610", RUN+="/sbin/fxload -t fx2 -I /lib/firmware/qhy/QHY16000.HEX -D $env{DEVNAME}"
 ATTRS{idVendor}=="1618", ATTRS{idProduct}=="6002", RUN+="/sbin/fxload -t fx2 -I /lib/firmware/qhy/QHY8PRO.HEX -D $env{DEVNAME}"
 ATTRS{idVendor}=="1618", ATTRS{idProduct}=="0930", RUN+="/sbin/fxload -t fx2 -I /lib/firmware/qhy/miniCam5.HEX -D $env{DEVNAME}"
+ATTRS{idVendor}=="1618", ATTRS{idProduct}=="4022", RUN+="/sbin/fxload -t fx2 -I /lib/firmware/qhy/QHY7.HEX -D $env{DEVNAME}"
+ATTRS{idVendor}=="16c0", ATTRS{idProduct}=="2970", RUN+="/sbin/fxload -t fx2 -I /lib/firmware/qhy/QHY2PRO.HEX -D $env{DEVNAME}"
 LABEL="qhy_vidpid_end"
 
 # This is the ID presented once the firmware has been loaded.
@@ -92,5 +94,7 @@ SUBSYSTEMS=="usb", ATTRS{idVendor}=="1618", ATTRS{idProduct}=="1611", MODE="0666
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="1618", ATTRS{idProduct}=="6003", MODE="0666"
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="1618", ATTRS{idProduct}=="0931", MODE="0666"
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="16c0", ATTRS{idProduct}=="296d", MODE="0666"
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="1618", ATTRS{idProduct}=="4023", MODE="0666"
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="16c0", ATTRS{idProduct}=="2971", MODE="0666"
 
 LABEL="qhy-rules-end"
