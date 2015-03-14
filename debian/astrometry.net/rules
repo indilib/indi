@@ -7,7 +7,7 @@ export OPTIMIZE=no
 d:=$$(pwd)/debian/astrometry.net
 
 override_dh_auto_install:
-        $(MAKE) RELEASE_VER="0.52" AN_GIT_REVISION="0.52" AN_GIT_DATE="2015" INSTALL_DIR=$(d)/usr FINAL_DIR=/usr ETC_INSTALL_DIR=$(d)/etc DATA_FINAL_DIR=/usr/share/astrometry DATA_INSTALL_DIR=$(d)/usr/share/astrometry SYSTEM_GSL=yes py extra install
+	$(MAKE) RELEASE_VER="0.52" AN_GIT_REVISION="0.52" AN_GIT_DATE="2015" INSTALL_DIR=$(d)/usr FINAL_DIR=/usr ETC_INSTALL_DIR=$(d)/etc DATA_FINAL_DIR=/usr/share/astrometry DATA_INSTALL_DIR=$(d)/usr/share/astrometry SYSTEM_GSL=yes py extra install
 
 override_dh_strip:
 	dh_strip --dbg-package=astrometry.net-dbg
