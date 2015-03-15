@@ -59,6 +59,10 @@ ELSE ()
 target_link_libraries(indi_sx_wheel ${INDI_DRIVER_LIBRARIES} ${LIBUSB_1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 ENDIF()
 
+if (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")
+target_link_libraries(indi_sx_wheel rt)
+endif (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")
+
 set(indisxao_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/sxao.cpp
    )
