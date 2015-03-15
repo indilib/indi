@@ -62,6 +62,10 @@ add_executable(indi_eqmod_telescope ${eqmod_SRCS})
 
 target_link_libraries(indi_eqmod_telescope ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${NOVA_LIBRARIES})
 
+if (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")
+target_link_libraries(indi_eqmod_telescope rt)
+endif (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")
+
 install(TARGETS indi_eqmod_telescope RUNTIME DESTINATION bin )
 
 install( FILES  indi_eqmod.xml indi_eqmod_sk.xml DESTINATION ${INDI_DATA_DIR})
