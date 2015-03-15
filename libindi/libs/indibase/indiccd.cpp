@@ -1432,8 +1432,11 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
             fits_update_key_s(fptr, TDOUBLE, "CRPIX1", &crpix1, "CRPIX1", &status);
             fits_update_key_s(fptr, TDOUBLE, "CRPIX2", &crpix2, "CRPIX2", &status);
 
-            double secpix1 = pixSize1 / FocalLength * 206.3 * targetChip->getBinX();
-            double secpix2 = pixSize2 / FocalLength * 206.3 * targetChip->getBinY();
+            //double secpix1 = pixSize1 / FocalLength * 206.3 * targetChip->getBinX();
+            //double secpix2 = pixSize2 / FocalLength * 206.3 * targetChip->getBinY();
+
+            double secpix1 = pixSize1 / FocalLength * 206.3;
+            double secpix2 = pixSize2 / FocalLength * 206.3;
 
             fits_update_key_s(fptr, TDOUBLE, "SECPIX1", &secpix1, "SECPIX1", &status);
             fits_update_key_s(fptr, TDOUBLE, "SECPIX2", &secpix2, "SECPIX2", &status);
