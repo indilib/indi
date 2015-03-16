@@ -1403,11 +1403,7 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
         double decJ2000 = J2000Pos.dec;
 
         fits_update_key_s(fptr, TDOUBLE, "OBJCTRA", &raJ2000, "Object RA", &status);
-        fits_update_key_s(fptr, TDOUBLE, "OBJCTDEC", &decJ2000, "Object DEC", &status);
-
-        raJ2000 *= 15;
-        fits_update_key_s(fptr, TDOUBLE, "CRVAL1", &raJ2000, "CRVAL1", &status);
-        fits_update_key_s(fptr, TDOUBLE, "CRVAL2", &decJ2000, "CRVAL1", &status);
+        fits_update_key_s(fptr, TDOUBLE, "OBJCTDEC", &decJ2000, "Object DEC", &status);       
 
         int epoch = 2000;
 
@@ -1418,6 +1414,10 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
         // Add WCS Info
         if (WorldCoordS[0].s == ISS_ON && ValidCCDRotation && FocalLength != -1)
         {
+            raJ2000 *= 15;
+            fits_update_key_s(fptr, TDOUBLE, "CRVAL1", &raJ2000, "CRVAL1", &status);
+            fits_update_key_s(fptr, TDOUBLE, "CRVAL2", &decJ2000, "CRVAL1", &status);
+
             char radecsys[8] = "FK5";
             char ctype1[16]  = "RA---TAN";
             char ctype2[16]  = "DEC--TAN";
@@ -1426,17 +1426,17 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
             fits_update_key_s(fptr, TSTRING, "CTYPE1", ctype1, "CTYPE1", &status);
             fits_update_key_s(fptr, TSTRING, "CTYPE2", ctype2, "CTYPE2", &status);
 
-            double crpix1 = targetChip->getSubW()/2.0;
-            double crpix2 = targetChip->getSubH()/2.0;
+            double crpix1 = targetChip->getSubW()/targetChip->getBinX()/2.0;
+            double crpix2 = targetChip->getSubH()/targetChip->getBinY()/2.0;
 
             fits_update_key_s(fptr, TDOUBLE, "CRPIX1", &crpix1, "CRPIX1", &status);
             fits_update_key_s(fptr, TDOUBLE, "CRPIX2", &crpix2, "CRPIX2", &status);
 
-            //double secpix1 = pixSize1 / FocalLength * 206.3 * targetChip->getBinX();
-            //double secpix2 = pixSize2 / FocalLength * 206.3 * targetChip->getBinY();
+            double secpix1 = pixSize1 / FocalLength * 206.3 * targetChip->getBinX();
+            double secpix2 = pixSize2 / FocalLength * 206.3 * targetChip->getBinY();
 
-            double secpix1 = pixSize1 / FocalLength * 206.3;
-            double secpix2 = pixSize2 / FocalLength * 206.3;
+            //double secpix1 = pixSize1 / FocalLength * 206.3;
+            //double secpix2 = pixSize2 / FocalLength * 206.3;
 
             fits_update_key_s(fptr, TDOUBLE, "SECPIX1", &secpix1, "SECPIX1", &status);
             fits_update_key_s(fptr, TDOUBLE, "SECPIX2", &secpix2, "SECPIX2", &status);
@@ -1447,7 +1447,9 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
             fits_update_key_s(fptr, TDOUBLE, "CDELT1", &degpix1, "CDELT1", &status);
             fits_update_key_s(fptr, TDOUBLE, "CDELT2", &degpix2, "CDELT2", &status);
 
-            double rotation = CCDRotationN[0].value;
+            double rotation = CCDRotationN[0].value + 270;
+	    if (rotation > 360)
+	      rotation -= 360;
 
             fits_update_key_s(fptr, TDOUBLE, "CROTA1", &rotation, "CROTA1", &status);
             fits_update_key_s(fptr, TDOUBLE, "CROTA2", &rotation, "CROTA2", &status);
