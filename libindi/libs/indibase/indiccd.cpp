@@ -1447,9 +1447,10 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
             fits_update_key_s(fptr, TDOUBLE, "CDELT1", &degpix1, "CDELT1", &status);
             fits_update_key_s(fptr, TDOUBLE, "CDELT2", &degpix2, "CDELT2", &status);
 
-            double rotation = CCDRotationN[0].value + 270;
-	    if (rotation > 360)
-	      rotation -= 360;
+            // Rotation is CW, we need to convert it to CCW per CROTA1 definition
+            double rotation = 360 - CCDRotationN[0].value;
+            if (rotation > 360)
+              rotation -= 360;
 
             fits_update_key_s(fptr, TDOUBLE, "CROTA1", &rotation, "CROTA1", &status);
             fits_update_key_s(fptr, TDOUBLE, "CROTA2", &rotation, "CROTA2", &status);
