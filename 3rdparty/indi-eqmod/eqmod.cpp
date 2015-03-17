@@ -1638,12 +1638,12 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 	  return true;
 	}
 
-      if(strcmp(name,"SLEWMODE")==0)
+    if(strcmp(name,"TELESCOPE_SLEW_RATE")==0)
  	{  
 	  ISwitch *sw;
 	  IUUpdateSwitch(SlewModeSP,states,names,n);
 	  sw=IUFindOnSwitch(SlewModeSP);
-      DEBUGF(INDI::Logger::DBG_SESSION, "Slew mode :  %s", sw->label);
+      DEBUGF(INDI::Logger::DBG_SESSION, "Slew rate :  %s", sw->label);
 	  SlewModeSP->s=IPS_IDLE;
 	  IDSetSwitch(SlewModeSP,NULL);
 	  return true;
