@@ -116,7 +116,6 @@ CCDSim::CCDSim()
     raPE=RA;
     decPE=Dec;
 
-    //  sxvh9
     bias=1500;
     maxnoise=20;
     maxval=65000;
@@ -131,6 +130,7 @@ CCDSim::CCDSim()
     seeing=3.5;         //  fwhm of our stars
     ImageScalex=1.0;    //  preset with a valid non-zero
     ImageScaley=1.0;
+    rotationCW = 0;
     time(&RunStart);
 
     //  Our PEPeriod is 8 minutes
@@ -170,6 +170,7 @@ bool CCDSim::SetupParms()
     OAGoffset=SimulatorSettingsN[10].value;    //  An oag is offset this much from center of scope position (arcminutes);
     polarError=SimulatorSettingsN[11].value;
     polarDrift=SimulatorSettingsN[12].value;
+    rotationCW=SimulatorSettingsN[13].value;
 
     nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP()/8;
     nbuf += 512;
@@ -218,7 +219,8 @@ bool CCDSim::initProperties()
     IUFillNumber(&SimulatorSettingsN[10],"SIM_OAGOFFSET","Oag Offset (arcminutes)","%4.1f",0,6000,0,0);
     IUFillNumber(&SimulatorSettingsN[11],"SIM_POLAR","PAE (arcminutes)","%4.1f",-600,600,0,0); /* PAE = Polar Alignment Error */
     IUFillNumber(&SimulatorSettingsN[12],"SIM_POLARDRIFT","PAE Drift (minutes)","%4.1f",0,6000,0,0);
-    IUFillNumberVector(SimulatorSettingsNV,SimulatorSettingsN,13,getDeviceName(),"SIMULATOR_SETTINGS","Simulator Settings","Simulator Config",IP_RW,60,IPS_IDLE);
+    IUFillNumber(&SimulatorSettingsN[13],"SIM_ROTATION","Rotation CW (degrees)","%4.1f",-360,360,0,0);
+    IUFillNumberVector(SimulatorSettingsNV,SimulatorSettingsN,14,getDeviceName(),"SIMULATOR_SETTINGS","Simulator Settings","Simulator Config",IP_RW,60,IPS_IDLE);
 
     IUFillSwitch(&TimeFactorS[0],"1X","Actual Time",ISS_ON);
     IUFillSwitch(&TimeFactorS[1],"10X","10x",ISS_OFF);
@@ -556,38 +558,42 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
         //  the standard co-ordinates on each star for drawing
         //  a ccd frame;
         double pa,pb,pc,pd,pe,pf;
-        //  Since this is a simple ccd, correctly aligned
-        //  for now we cheat
-        //  no offset or rotation for and y axis means
-        pb=0.0;
+        // Pixels per radian
+        double pprx, ppry;
+        // Scale in arcsecs per pixel
+        double Scalex;
+        double Scaley;
+
+        // Pixels per radian
+        pprx = targetFocalLength/targetChip->getPixelSizeX()*1000/targetChip->getBinX();
+        ppry = targetFocalLength/targetChip->getPixelSizeY()*1000/targetChip->getBinY();
+
+        //  we do a simple scale for x and y locations
+        //  based on the focal length and pixel size
+        //  focal length in mm, pixels in microns
+        // JM: 2015-03-17: Using a simpler formula, Scalex and Scaley are in arcsecs/pixel
+        Scalex=(targetChip->getPixelSizeX() / targetFocalLength) * 206.3 * targetChip->getBinX();
+        Scaley=(targetChip->getPixelSizeY() / targetFocalLength) * 206.3 * targetChip->getBinY();
+
+        double theta = rotationCW + 180;
+        if (theta > 360)
+            theta -=360;
+        else if (theta < -360)
+            theta += 360;
+
+        // JM: 2015-03-17: Next we do a rotation assuming CW for angle theta
+        pa=pprx*cos(theta*M_PI/180.0);
+        pb=ppry*sin(theta*M_PI/180.0);
+
+        pd=pprx*-sin(theta*M_PI/180.0);
+        pe=ppry*cos(theta*M_PI/180.0);
+
         nwidth = targetChip->getXRes() / targetChip->getBinX();
-        pc=nwidth/2;
-        pd=0.0;
+        pc=nwidth/2;        
 
         nheight = targetChip->getYRes() / targetChip->getBinY();
         pf=nheight/2;
-        //  and we do a simple scale for x and y locations
-        //  based on the focal length and pixel size
-        //  focal length in mm, pixels in microns
-        pa=targetFocalLength/targetChip->getPixelSizeX()*1000/targetChip->getBinX();
-        pe=targetFocalLength/targetChip->getPixelSizeY()*1000/targetChip->getBinY();
 
-        //IDLog("Focal length is %6.4f Pixels are %4.2f %4.2f  pa %6.4f  pe %6.4f\n",targetFocalLength,
-	//      targetChip->getPixelSizeX(), targetChip->getPixelSizeY(),pa,pe);
-
-        //  these numbers are now pixels per radian
-        float Scalex;
-        float Scaley;
-        Scalex=pa*0.0174532925;    //  pixels per degree
-        Scalex=Scalex/3600.0;           // pixels per arcsecond
-        Scalex=1.0/Scalex;  //  arcseconds per pixel
-
-        Scaley=pe*0.0174532925;    //  pixels per degree
-        Scaley=Scaley/3600.0;           // pixels per arcsecond
-        Scaley=1.0/Scaley;  //  arcseconds per pixel
-        //qq=qq/3600; //  arcseconds per pixel
-
-        //IDLog("Pixel scale is %4.2f x %4.2f\n",Scalex,Scaley);
         ImageScalex=Scalex;
         ImageScaley=Scaley;
 

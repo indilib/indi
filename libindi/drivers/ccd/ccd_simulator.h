@@ -100,6 +100,7 @@ public:
         float ImageScalex;
         float ImageScaley;
         float OAGoffset;
+        float rotationCW;
         float TimeFactor;
         //  our zero point calcs used for drawing stars
         float k;
@@ -124,7 +125,7 @@ public:
         //  And this lives in our simulator settings page
 
         INumberVectorProperty *SimulatorSettingsNV;
-        INumber SimulatorSettingsN[13];
+        INumber SimulatorSettingsN[14];
 
         ISwitch TimeFactorS[3];
         ISwitchVectorProperty *TimeFactorSV;
