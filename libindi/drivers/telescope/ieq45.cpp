@@ -189,7 +189,7 @@ void IEQ45Basic::init_properties()
     IUFillSwitchVector(&OnCoordSetSP, OnCoordSetS, NARRAY(OnCoordSetS), mydev, "ON_COORD_SET", "On Set", BASIC_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     //Track MODE
-    IUFillSwitch(&TrackModeS[0],"SIDERAL", "Sidereal", ISS_ON);
+    IUFillSwitch(&TrackModeS[0],"SIDEREAL", "Sidereal", ISS_ON);
     IUFillSwitch(&TrackModeS[1],"LUNAR","Lunar", ISS_OFF);
     IUFillSwitch(&TrackModeS[2],"SOLAR", "Solar", ISS_OFF);
     IUFillSwitch(&TrackModeS[3],"ZERO", "Stop", ISS_OFF);
