@@ -300,16 +300,6 @@ EXPORTC int STDCALL ControlQHYCCDTemp(qhyccd_handle *handle,double targettemp);
   */
 EXPORTC int STDCALL ControlQHYCCDGuide(qhyccd_handle *handle,int direction,int duration);
 
-/** \fn int ControlQHYCCDCFW(qhyccd_handle *handle,int pos)
-      \brief control color filter wheel port 
-      \param handle camera control handle
-      \param pos the position of filter disk 
-	  \return
-	  on success,return QHYCCD_SUCCESS \n
-	  another QHYCCD_ERROR code on other failures
-  */
-EXPORTC int STDCALL ControlQHYCCDCFW(qhyccd_handle *handle,int pos);
-
 	 /** 
 	  @fn int SendOrder2QHYCCDCFW(qhyccd_handle *handle,char *order,int length)
       @brief control color filter wheel port 
@@ -649,5 +639,10 @@ EXPORTFUNC int STDCALL QHYCCDI2CTwoRead(qhyccd_handle *handle,unsigned short add
   @return current progress
 */
 EXPORTFUNC double STDCALL GetQHYCCDReadingProgress(qhyccd_handle *handle);
+
+/**
+  test pid parameters
+*/
+EXPORTFUNC int STDCALL TestQHYCCDPIDParas(qhyccd_handle *h, double p, double i, double d);
 
 #endif
