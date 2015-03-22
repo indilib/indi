@@ -924,9 +924,9 @@ bool QHYCCD::SelectFilter(int position)
         ret = QHYCCD_SUCCESS;
     else
     {
-        char pos;
-        sprintf(&pos,"%d",position - 1);
-        ret = SendOrder2QHYCCDCFW(camhandle,&pos,1);
+        char pos[2];
+        snprintf(pos, 1, "%d",position - 1);
+        ret = SendOrder2QHYCCDCFW(camhandle,&pos[0],1);
     }
 
     if(ret == QHYCCD_SUCCESS)
