@@ -559,68 +559,9 @@ endif(CFITSIO_FOUND)
 
 #################################################################################
 
-### Meade Lunar Planetary Imager ########
+########### INDI::CCD V4L Driver ###############
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 if (CFITSIO_FOUND)
-
-ADD_DEFINITIONS(-DHAVE_LINUX_VIDEODEV2_H)
-
-set(meade_lpi_SRCS
-	${indimain_SRCS}
-	${CMAKE_SOURCE_DIR}/drivers/video/v4ldriver.cpp
-	${CMAKE_SOURCE_DIR}/drivers/video/indi_lpi.cpp
-   )
-
-add_executable(indi_meade_lpi ${meade_lpi_SRCS} ${libwebcam_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
-
-target_link_libraries(indi_meade_lpi z ${JPEG_LIBRARY} ${NOVA_LIBRARIES} ${CFITSIO_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
-
-install(TARGETS indi_meade_lpi RUNTIME DESTINATION bin )
-
-endif (CFITSIO_FOUND)
-endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-
-#################################################################################
-
-########### V4L Philips ##############
-if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-if (CFITSIO_FOUND)
-
-set(v4lphilips_SRCS
-	${indimain_SRCS}
-	${CMAKE_SOURCE_DIR}/drivers/video/v4ldriver.cpp
-	${CMAKE_SOURCE_DIR}/drivers/video/v4lphilips.cpp
-	${CMAKE_SOURCE_DIR}/drivers/video/indi_philips.cpp
-)
-
-add_executable(indi_v4l_philips ${v4lphilips_SRCS} ${libwebcam_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
-
-target_link_libraries(indi_v4l_philips ${JPEG_LIBRARY} ${M_LIB} ${ZLIB_LIBRARY} ${NOVA_LIBRARIES} ${CFITSIO_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
-
-install(TARGETS indi_v4l_philips RUNTIME DESTINATION bin )
-
-endif (CFITSIO_FOUND)
-endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-
-#################################################################################
-
-########### Old Generic V4L Driver ###############
-if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-if (CFITSIO_FOUND)
-
-set(v4ldriver_SRCS
-	${indimain_SRCS}
-	${CMAKE_SOURCE_DIR}/drivers/video/v4ldriver.cpp
-	${CMAKE_SOURCE_DIR}/drivers/video/indi_v4l.cpp
-   )
-
-add_executable(indi_v4l_legacy ${v4ldriver_SRCS} ${libwebcam_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
-
-target_link_libraries(indi_v4l_legacy ${JPEG_LIBRARY} ${M_LIB} ${ZLIB_LIBRARY} ${NOVA_LIBRARIES} ${CFITSIO_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
-
-install(TARGETS indi_v4l_legacy RUNTIME DESTINATION bin )
-
-########### New INDI::CCD V4L Driver ###############
 
 set(v4l2driverccd_SRCS
         ${lx_SRCS}
@@ -747,6 +688,10 @@ ${CMAKE_SOURCE_DIR}/libs/indibase/indidomeinterface.h ${CMAKE_SOURCE_DIR}/libs/i
 ${CMAKE_SOURCE_DIR}/libs/indicom.h ${CMAKE_SOURCE_DIR}/libs/indibase/indiusbdevice.h
 ${CMAKE_SOURCE_DIR}/libs/indibase/indilogger.h ${CMAKE_SOURCE_DIR}/libs/indibase/indicontroller.h
 ${CMAKE_SOURCE_DIR}/libs/webcam/ccvt.h ${CMAKE_SOURCE_DIR}/libs/webcam/ccvt_types.h
+${CMAKE_SOURCE_DIR}/libs/webcam/v4l2_record/v4l2_record.h ${CMAKE_SOURCE_DIR}/libs/webcam/v4l2_record/ser_recorder.h
+${CMAKE_SOURCE_DIR}/libs/webcam/v4l2_decode/v4l2_decode.h ${CMAKE_SOURCE_DIR}/libs/webcam/v4l2_decode/v4l2_builtin_decoder.h
+${CMAKE_SOURCE_DIR}/libs/webcam/ccvt_types.h ${CMAKE_SOURCE_DIR}/libs/webcam/v4l2_colorspace.h
+${CMAKE_SOURCE_DIR}/libs/webcam/jpegutils.h
  DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libindi.pc.cmake ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc @ONLY)
