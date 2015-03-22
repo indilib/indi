@@ -24,6 +24,8 @@
 #include <math.h>
 #include <unistd.h>
 #include <sys/time.h>
+// We need for V4L2 video formats
+#include <linux/videodev2.h>
 
 #include <zlib.h>
 
@@ -37,6 +39,7 @@
 #define TEMP_THRESHOLD          .25		/* Differential temperature threshold (C)*/
 #define MAX_DEVICES             4       /* Max device cameraCount */
 #define MAX_EXP_RETRIES         3
+#define MIN_DURATION            0.001
 
 #define CONTROL_TAB     "Controls"
 
@@ -199,13 +202,18 @@ ASICCD::ASICCD(ASI_CAMERA_INFO *camInfo)
 
   TemperatureUpdateCounter = 0;
 
+  v4l2_record=new V4L2_Record();
+  recorder=v4l2_record->getDefaultRecorder();
+  recorder->init();
+
   snprintf(this->name, MAXINDIDEVICE, "%s", m_camInfo->Name);
   setDeviceName(this->name);
+
 }
 
 ASICCD::~ASICCD()
 {
-
+    delete(v4l2_record);
 }
 
 const char * ASICCD::getDefaultName()
@@ -230,6 +238,15 @@ bool ASICCD::initProperties()
   IUFillSwitch(&StreamS[1], "STREAM_OFF", "Stream Off", ISS_ON);
   IUFillSwitchVector(&StreamSP, StreamS, NARRAY(StreamS), getDeviceName(), "CCD_VIDEO_STREAM", "Video Stream", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+  // File
+  IUFillText(&RecordFileT[0], "RECORD_FILE_NAME", "File name", "/tmp/indimovie.ser");
+  IUFillTextVector(&RecordFileTP, RecordFileT, NARRAY(RecordFileT), getDeviceName(), "RECORD_FILE", "Record File", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+
+  // Video Record Switch
+  IUFillSwitch(&RecordS[0], "ON", "Record On", ISS_OFF);
+  IUFillSwitch(&RecordS[1], "OFF", "Record Off", ISS_ON);
+  IUFillSwitchVector(&RecordSP, RecordS, NARRAY(RecordS), getDeviceName(), "VIDEO_RECORD", "Video Record", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
   IUSaveText(&BayerT[2], getBayerString());
 
   int maxBin=1;
@@ -241,8 +258,9 @@ bool ASICCD::initProperties()
           break;
   }
 
+  PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", MIN_DURATION, 3600, 1, false);
   PrimaryCCD.setMinMaxStep("CCD_BINNING", "HOR_BIN", 1, maxBin, 1, false);
-  PrimaryCCD.setMinMaxStep("CCD_BINNING", "VER_BIN", 1, maxBin, 1, false);
+  PrimaryCCD.setMinMaxStep("CCD_BINNING", "VER_BIN", 1, maxBin, 1, false);    
 
   asiCap.canAbort = true;
   asiCap.canBin = (maxBin > 1);
@@ -278,6 +296,8 @@ bool ASICCD::updateProperties()
         defineNumber(&CoolerNP);
 
     defineSwitch(&StreamSP);
+    defineSwitch(&RecordSP);
+    defineText(&RecordFileTP);
 
     // Let's get parameters now from CCD
     setupParams();
@@ -299,6 +319,8 @@ bool ASICCD::updateProperties()
         deleteProperty(CoolerNP.name);
 
     deleteProperty(StreamSP.name);
+    deleteProperty(RecordSP.name);
+    deleteProperty(RecordFileTP.name);
 
     if (ControlNP.nnp > 0)
         deleteProperty(ControlNP.name);
@@ -478,10 +500,33 @@ bool ASICCD::setupParams()
 
   ASISetROIFormat(m_camInfo->CameraID, m_camInfo->MaxWidth, m_camInfo->MaxHeight, 1, getImageType());
 
+  updateRecorderFormat();
+  recorder->setsize(w, h);
+
   return true;
 
 }
 
+bool ASICCD::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+{
+
+    if (!strcmp(dev, getDeviceName()))
+    {
+        if (!strcmp(name, RecordFileTP.name) )
+        {
+          RecordFileTP.s = IPS_OK;
+          IText *tp = IUFindText( &RecordFileTP, names[0] );
+          if (!tp)
+           return false;
+          IUSaveText(tp, texts[0]);
+          IDSetText (&RecordFileTP, NULL);
+          return true;
+        }
+
+    }
+
+    return INDI::CCD::ISNewText (dev, name, texts, names, n);
+}
 
 bool ASICCD::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
@@ -668,9 +713,78 @@ bool ASICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
 
             UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
 
+            updateRecorderFormat();
+
             VideoFormatSP.s = IPS_OK;
             IDSetSwitch(&VideoFormatSP, NULL);
             return true;
+        }
+
+        // Record Stream
+        if (!strcmp(name, RecordSP.name))
+        {
+          bool is_streaming = (StreamSP.s == IPS_BUSY);
+          bool is_recording = (RecordSP.s == IPS_BUSY);
+
+          IUUpdateSwitch(&RecordSP, states, names, n);
+
+          if (RecordS[0].s == ISS_ON)
+          {
+            if ((!is_streaming) && (!is_recording))
+            {
+                char errmsg[MAXRBUF];
+                frameCount = 0;
+                DEBUG(INDI::Logger::DBG_SESSION, "Recording the video stream (no binning).");
+                RecordSP.s  = IPS_BUSY;
+                if (!recorder->open(RecordFileT[0].text, errmsg))
+                {
+                    RecordSP.s = IPS_ALERT;
+                    IDSetSwitch(&RecordSP, NULL);
+                    DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+                    return false;
+                }
+
+                if (direct_record)
+                {
+                    DEBUG(INDI::Logger::DBG_SESSION, "Using direct recording (no soft crop, no frame count).");
+
+                }
+                else
+                {
+                    if (getImageType() == ASI_IMG_Y8)
+                        recorder->setDefaultMono();
+                    else
+                        recorder->setDefaultColor();
+                }
+
+                ASIStartVideoCapture(m_camInfo->CameraID);
+                pthread_mutex_lock(&condMutex);
+                streamPredicate = 1;
+                pthread_mutex_unlock(&condMutex);
+                pthread_cond_signal(&cv);
+            }
+            else
+            {
+                if (!is_recording) RecordSP.s=IPS_IDLE;
+            }
+          }
+          else
+          {
+            RecordSP.s = IPS_IDLE;
+            if (is_recording)
+            {
+                pthread_mutex_lock(&condMutex);
+                streamPredicate = 0;
+                pthread_mutex_unlock(&condMutex);
+                pthread_cond_signal(&cv);
+                ASIStopVideoCapture(m_camInfo->CameraID);
+                recorder->close();
+                DEBUGF(INDI::Logger::DBG_SESSION, "Recording stream has been disabled. Frame count %d", frameCount);
+            }
+          }
+
+          IDSetSwitch(&RecordSP, NULL);
+          return true;
         }
 
     }
@@ -696,16 +810,16 @@ bool ASICCD::StartExposure(float duration)
 {
   ASI_ERROR_CODE errCode= ASI_SUCCESS;
 
-  if (duration < minDuration)
+  if (duration < MIN_DURATION)
   {
-    DEBUGF(INDI::Logger::DBG_WARNING, "Exposure shorter than minimum duration %g s requested. Setting exposure time to %g s.", duration, minDuration);
-    duration = minDuration;
+    DEBUGF(INDI::Logger::DBG_WARNING, "Exposure shorter than minimum duration %g s requested. Setting exposure time to %g s.", duration, MIN_DURATION);
+    duration = MIN_DURATION;
   }
 
   if (PrimaryCCD.getFrameType() == CCDChip::BIAS_FRAME)
   {
-    duration = minDuration;
-    DEBUGF(INDI::Logger::DBG_SESSION, "Bias Frame (s) : %g", minDuration);
+    duration = MIN_DURATION;
+    DEBUGF(INDI::Logger::DBG_SESSION, "Bias Frame (s) : %g", MIN_DURATION);
   }
 
   PrimaryCCD.setExposureDuration(duration);
@@ -766,6 +880,8 @@ bool ASICCD::UpdateCCDFrame(int x, int y, int w, int h)
       DEBUGF(INDI::Logger::DBG_ERROR, "ASISetROIFormat (%dx%d @ %d) error (%d)", bin_width, bin_height, PrimaryCCD.getBinX(), errCode);
       return false;
   }
+
+  recorder->setsize(bin_width, bin_height);
 
   // Set UNBINNED coords
   PrimaryCCD.setFrame(x, y, w, h);
@@ -1329,6 +1445,47 @@ void ASICCD::updateControls()
     IDSetSwitch(&ControlSP, NULL);
 }
 
+void ASICCD::updateRecorderFormat()
+{
+    if (RecordSP.s == IPS_ALERT)
+        RecordSP.s = IPS_IDLE;
+
+    switch (getImageType())
+    {
+      case ASI_IMG_Y8:
+        direct_record=recorder->setpixelformat(V4L2_PIX_FMT_GREY);
+        break;
+
+      case ASI_IMG_RAW8:
+        if (m_camInfo->BayerPattern == ASI_BAYER_RG)
+            direct_record=recorder->setpixelformat(V4L2_PIX_FMT_SRGGB8);
+        else if (m_camInfo->BayerPattern == ASI_BAYER_BG)
+         direct_record=recorder->setpixelformat(V4L2_PIX_FMT_SBGGR8);
+        else if (m_camInfo->BayerPattern == ASI_BAYER_GR)
+            direct_record=recorder->setpixelformat(V4L2_PIX_FMT_SGRBG8);
+        else if (m_camInfo->BayerPattern == ASI_BAYER_GB)
+            direct_record=recorder->setpixelformat(V4L2_PIX_FMT_SGBRG8);
+         break;
+
+      case ASI_IMG_RAW16:
+        if (m_camInfo->BayerPattern == ASI_BAYER_BG)
+         direct_record=recorder->setpixelformat(V4L2_PIX_FMT_SBGGR16);
+        else
+        {
+            RecordSP.s = IPS_ALERT;
+            DEBUGF(INDI::Logger::DBG_WARNING, "16 bit bayer format %s it not supported by the SER recorder.", getBayerString());
+        }
+        break;
+
+      case ASI_IMG_RGB24:
+        direct_record=recorder->setpixelformat(V4L2_PIX_FMT_RGB24);
+        break;
+
+    }
+
+   IDSetSwitch(&RecordSP, NULL);
+}
+
 void * ASICCD::streamVideoHelper(void* context)
 {
     return ((ASICCD*)context)->streamVideo();
@@ -1356,6 +1513,14 @@ void* ASICCD::streamVideo()
       int waitMS           = ExposureRequest*2000 + 500;
 
       ASIGetVideoData(m_camInfo->CameraID, targetFrame, totalBytes, waitMS);
+      frameCount++;
+
+      if (RecordS[0].s == ISS_ON)
+      {
+          recorder->writeFrame(targetFrame);
+          pthread_mutex_lock(&condMutex);
+          continue;
+      }
 
       uLongf compressedBytes = 0;
 

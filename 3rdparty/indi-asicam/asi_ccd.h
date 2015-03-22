@@ -23,6 +23,7 @@
 #define ASI_CCD_H
 
 #include <indiccd.h>
+#include <v4l2_record.h>
 #include <iostream>
 
 #include "ASICamera2.h"
@@ -56,6 +57,7 @@ protected:
 
   bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
   bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+  bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
 
   void TimerHit();
   virtual bool UpdateCCDFrame(int x, int y, int w, int h);
@@ -83,6 +85,8 @@ private:
   void updateControls();
   /** Return user selected image type */
   ASI_IMG_TYPE getImageType();
+  /** Update SER recorder video format */
+  void updateRecorderFormat();
 
   char name[MAXINDIDEVICE];
 
@@ -105,11 +109,16 @@ private:
   IBLOBVectorProperty *imageBP;
   IBLOB *imageB;
 
+  ISwitch RecordS[2];
+  ISwitchVectorProperty RecordSP;				/* Record switch */
+
+  IText RecordFileT[1];
+  ITextVectorProperty RecordFileTP;
+
   struct timeval ExpStart;
   float ExposureRequest;
   float TemperatureRequest;
   int TemperatureUpdateCounter;
-  const float minDuration = 0.001;
 
   CCDCapability asiCap;
 
@@ -136,6 +145,11 @@ private:
   ASI_GUIDE_DIRECTION WEDir;
   ASI_GUIDE_DIRECTION NSDir;
 
+  // Record frames
+  V4L2_Record *v4l2_record;
+  V4L2_Recorder *recorder;
+  bool direct_record;
+  int frameCount;
 
   friend void ::ISGetProperties(const char *dev);
   friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);
