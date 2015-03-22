@@ -744,18 +744,10 @@ bool ASICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
                     return false;
                 }
 
-                if (direct_record)
-                {
-                    DEBUG(INDI::Logger::DBG_SESSION, "Using direct recording (no soft crop, no frame count).");
-
-                }
-                else
-                {
-                    if (getImageType() == ASI_IMG_Y8)
-                        recorder->setDefaultMono();
-                    else
+                if (getImageType() == ASI_IMG_RGB24)
                         recorder->setDefaultColor();
-                }
+                    else
+                        recorder->setDefaultMono();
 
                 ASIStartVideoCapture(m_camInfo->CameraID);
                 pthread_mutex_lock(&condMutex);
@@ -1453,23 +1445,23 @@ void ASICCD::updateRecorderFormat()
     switch (getImageType())
     {
       case ASI_IMG_Y8:
-        direct_record=recorder->setpixelformat(V4L2_PIX_FMT_GREY);
+        recorder->setpixelformat(V4L2_PIX_FMT_GREY);
         break;
 
       case ASI_IMG_RAW8:
         if (m_camInfo->BayerPattern == ASI_BAYER_RG)
-            direct_record=recorder->setpixelformat(V4L2_PIX_FMT_SRGGB8);
+            recorder->setpixelformat(V4L2_PIX_FMT_SRGGB8);
         else if (m_camInfo->BayerPattern == ASI_BAYER_BG)
-         direct_record=recorder->setpixelformat(V4L2_PIX_FMT_SBGGR8);
+         recorder->setpixelformat(V4L2_PIX_FMT_SBGGR8);
         else if (m_camInfo->BayerPattern == ASI_BAYER_GR)
-            direct_record=recorder->setpixelformat(V4L2_PIX_FMT_SGRBG8);
+            recorder->setpixelformat(V4L2_PIX_FMT_SGRBG8);
         else if (m_camInfo->BayerPattern == ASI_BAYER_GB)
-            direct_record=recorder->setpixelformat(V4L2_PIX_FMT_SGBRG8);
+            recorder->setpixelformat(V4L2_PIX_FMT_SGBRG8);
          break;
 
       case ASI_IMG_RAW16:
         if (m_camInfo->BayerPattern == ASI_BAYER_BG)
-         direct_record=recorder->setpixelformat(V4L2_PIX_FMT_SBGGR16);
+         recorder->setpixelformat(V4L2_PIX_FMT_SBGGR16);
         else
         {
             RecordSP.s = IPS_ALERT;
@@ -1478,7 +1470,7 @@ void ASICCD::updateRecorderFormat()
         break;
 
       case ASI_IMG_RGB24:
-        direct_record=recorder->setpixelformat(V4L2_PIX_FMT_RGB24);
+       recorder->setpixelformat(V4L2_PIX_FMT_RGB24);
         break;
 
     }

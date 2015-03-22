@@ -148,7 +148,6 @@ private:
   // Record frames
   V4L2_Record *v4l2_record;
   V4L2_Recorder *recorder;
-  bool direct_record;
   int frameCount;
 
   friend void ::ISGetProperties(const char *dev);
