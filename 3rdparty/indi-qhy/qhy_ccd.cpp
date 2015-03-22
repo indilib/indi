@@ -36,7 +36,7 @@
 #define TEMPERATURE_POLL_MS     20000        /* Temperature Polling time (ms) if temperature is IDLE/OK */
 #define TEMPERATURE_BUSY_MS     1000        /* Temperature Polling time (ms) if temperature is BUSY */
 #define TEMP_THRESHOLD          0.2         /* Differential temperature threshold (C)*/
-#define MINIMUM_CCD_EXPOSURE    0.1         /* 0.1 seconds minimum exposure */
+#define MINIMUM_CCD_EXPOSURE    0.001       /* 0.001 seconds minimum exposure */
 #define MAX_DEVICES             4           /* Max device cameraCount */
 
 //NB Disable for real driver
@@ -253,6 +253,9 @@ bool QHYCCD::initProperties()
     // USB Speed
     IUFillNumber(&SpeedN[0], "Speed", "Speed", "%3.0f", 0, 0, 1, 0);
     IUFillNumberVector(&SpeedNP, SpeedN, 1, getDeviceName(), "USB_SPEED", "USB Speed", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+
+    // Set minimum exposure speed to 0.001 seconds
+    PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", MINIMUM_CCD_EXPOSURE, 3600, 1, false);
 
     addAuxControls();
 
