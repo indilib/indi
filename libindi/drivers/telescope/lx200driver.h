@@ -41,7 +41,7 @@ enum StarCatalog { LX200_STAR, LX200_SAO, LX200_GCVS };
   /* Deep Sky Catalogs */
 enum DeepSkyCatalog { LX200_NGC, LX200_IC, LX200_UGC, LX200_CALDWELL, LX200_ARP, LX200_ABELL, LX200_MESSIER_C};
   /* Mount tracking frequency, in Hz */
-enum TFreq { LX200_TRACK_DEFAULT, LX200_TRACK_LUNAR, LX200_TRACK_MANUAL};
+enum TFreq { LX200_TRACK_SIDEREAL, LX200_TRACK_SOLAR, LX200_TRACK_LUNAR, LX200_TRACK_MANUAL};
 
 #define MaxReticleDutyCycle		15
 #define MaxFocuserSpeed			4
