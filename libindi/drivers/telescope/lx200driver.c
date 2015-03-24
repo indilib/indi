@@ -1579,18 +1579,24 @@ int selectTrackingMode(int fd, int trackMode)
   
    switch (trackMode)
    {
-    case LX200_TRACK_DEFAULT:
+    case LX200_TRACK_SIDEREAL:
        if (lx200_debug)
           IDLog("%s Sidereal Track Command [#:TQ#]\n", __FUNCTION__);
      if ( (error_type = tty_write_string(fd, "#:TQ#", &nbytes_write)) != TTY_OK)
     	   return error_type;
      break;
+   case LX200_TRACK_SOLAR:
+      if (lx200_debug)
+         IDLog("%s Solar Track Command [#:TS#]\n", __FUNCTION__);
+     if ( (error_type = tty_write_string(fd, "#:TS#", &nbytes_write)) != TTY_OK)
+          return error_type;
+        break;
     case LX200_TRACK_LUNAR:
        if (lx200_debug)
           IDLog("%s Lunar Track Command [#:TL#]\n", __FUNCTION__);
       if ( (error_type = tty_write_string(fd, "#:TL#", &nbytes_write)) != TTY_OK)
     	   return error_type;
-     break;
+      break;
    case LX200_TRACK_MANUAL:
        if (lx200_debug)
           IDLog("%s Manual Track Command [#:TM#]\n", __FUNCTION__);
