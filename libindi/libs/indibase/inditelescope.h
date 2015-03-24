@@ -80,6 +80,7 @@ class INDI::Telescope : public INDI::DefaultDevice
         enum TelescopeMotionWE { MOTION_WEST, MOTION_EAST };
         enum TelescopeMotionCommand { MOTION_START, MOTION_STOP };
         enum TelescopeSlewRate  { SLEW_GUIDE, SLEW_CENTERING, SLEW_FIND, SLEW_MAX };
+        enum TelescopeTrackMode  { TRACK_SIDEREAL, TRACK_SOLAR, TRACK_LUNAR, TRACK_CUSTOM };
 
         virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
         virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);

@@ -622,21 +622,12 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
 
 bool INDI::Telescope::Connect()
 {
-    //  Parent class is wanting a connection
-    if (isDebug())
-        IDLog("INDI::Telescope arrived in connect with %s\n",PortT[0].text);
     bool rc=false;
 
-    if(isConnected()) return true;
-
-
-    if (isDebug())
-        IDLog("Telescope Calling Connect\n");
+    if(isConnected())
+        return true;
 
     rc=Connect(PortT[0].text);
-
-    if (isDebug())
-        IDLog("Telescope Connect returns %d\n",rc);
 
     if(rc)
         SetTimer(POLLMS);
@@ -652,7 +643,7 @@ bool INDI::Telescope::Connect(const char *port)
     char errorMsg[MAXRBUF];
     bool rc;
 
-    DEBUGF(Logger::DBG_DEBUG, "INDI::Telescope connecting to %s\n",port);
+    DEBUGF(Logger::DBG_DEBUG, "INDI::Telescope connecting to %s",port);
 
     if ( (connectrc = tty_connect(port, 9600, 8, 0, 1, &PortFD)) != TTY_OK)
     {
@@ -664,7 +655,7 @@ bool INDI::Telescope::Connect(const char *port)
 
     }
 
-    DEBUGF(Logger::DBG_DEBUG, "Port Fd %d\n",PortFD);
+    DEBUGF(Logger::DBG_DEBUG, "Port FD %d",PortFD);
 
     /* Test connection */
     rc=ReadScopeStatus();
