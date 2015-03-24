@@ -116,7 +116,7 @@ class LX200Generic: public INDI::Telescope, public INDI::GuiderInterface
 
   /* Tracking Mode */
   ISwitchVectorProperty TrackModeSP;
-  ISwitch TrackModeS[3];
+  ISwitch TrackModeS[4];
 
   /* Tracking Frequency */
   INumberVectorProperty TrackingFreqNP;

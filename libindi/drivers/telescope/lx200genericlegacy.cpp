@@ -412,7 +412,7 @@ void ISSnoopDevice (XMLEle *root)
 LX200GenericLegacy::LX200GenericLegacy()
 {
    currentSiteNum = 1;
-   trackingMode   = LX200_TRACK_DEFAULT;
+   trackingMode   = LX200_TRACK_SIDEREAL;
    lastSet        = -1;
    fault          = false;
    simulation     = false;

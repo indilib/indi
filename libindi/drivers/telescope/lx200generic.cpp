@@ -163,7 +163,7 @@ LX200Generic::LX200Generic()
    setVersion(2, 0);
 
    currentSiteNum = 1;
-   trackingMode   = LX200_TRACK_DEFAULT;
+   trackingMode   = LX200_TRACK_SIDEREAL;
    GuideNSTID     = 0;
    GuideWETID     = 0;
 
@@ -212,10 +212,11 @@ bool LX200Generic::initProperties()
     IUFillSwitch(&SlewModeS[SLEW_MAX], "SLEW_MAX", "Max", ISS_ON);
     IUFillSwitchVector(&SlewModeSP, SlewModeS, 4, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillSwitch(&TrackModeS[0], "Default", "", ISS_ON);
-    IUFillSwitch(&TrackModeS[1], "Lunar", "", ISS_OFF);
-    IUFillSwitch(&TrackModeS[2], "Manual", "", ISS_OFF);
-    IUFillSwitchVector(&TrackModeSP, TrackModeS, 3, getDeviceName(), "Tracking Mode", "", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitch(&TrackModeS[0], "TRACK_SIDEREAL", "Sidereal", ISS_ON);
+    IUFillSwitch(&TrackModeS[1], "TRACK_SOLAR", "Solar", ISS_OFF);
+    IUFillSwitch(&TrackModeS[2], "TRACK_LUNAR", "Lunar", ISS_OFF);
+    IUFillSwitch(&TrackModeS[3], "TRACK_CUSTOM", "Custom", ISS_OFF);
+    IUFillSwitchVector(&TrackModeSP, TrackModeS, 4, getDeviceName(), "TELESCOPE_TRACK_RATE", "Tracking Mode", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillNumber(&TrackFreqN[0], "trackFreq", "Freq", "%g", 56.4,60.1, 0.1, 60.1);
     IUFillNumberVector(&TrackingFreqNP, TrackFreqN, 1, getDeviceName(), "Tracking Frequency", "", MOTION_TAB, IP_RW, 0, IPS_IDLE);
