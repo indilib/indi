@@ -425,34 +425,34 @@ int selectAPTrackingMode(int fd, int trackMode)
 
     switch (trackMode)
     {
+    /* Sidereal */
+    case 0:
+      if (lx200ap_debug)
+        IDLog("selectAPTrackingMode: Setting tracking mode to sidereal (#:RT2#).\n");
+    if ( (error_type = tty_write_string(fd, "#:RT2#", &nbytes_write)) != TTY_OK)
+    return error_type;
+    break;
+
+    /* Solar */
+    case 1:
+     if (lx200ap_debug)
+        IDLog("selectAPTrackingMode: Setting tracking mode to solar(#:RT1#).\n");
+    if ( (error_type = tty_write_string(fd, "#:RT1#", &nbytes_write)) != TTY_OK)
+    return error_type;
+    break;
+
 	/* Lunar */
-	case 0:
+    case 2:
         if (lx200ap_debug)
-            IDLog("selectAPTrackingMode: Setting tracking mode to lunar.\n");
+            IDLog("selectAPTrackingMode: Setting tracking mode to lunar (#:RT0#).\n");
 	    if ( (error_type = tty_write_string(fd, "#:RT0#", &nbytes_write)) != TTY_OK)
 		return error_type;
-	    break;
-    
-	    /* Solar */
-	case 1:
-         if (lx200ap_debug)
-            IDLog("selectAPTrackingMode: Setting tracking mode to solar.\n");
-	    if ( (error_type = tty_write_string(fd, "#:RT1#", &nbytes_write)) != TTY_OK)
-		return error_type;
-	    break;
-
-	    /* Sidereal */
-	case 2:
-          if (lx200ap_debug)
-            IDLog("selectAPTrackingMode: Setting tracking mode to sidereal.\n");
-	    if ( (error_type = tty_write_string(fd, "#:RT2#", &nbytes_write)) != TTY_OK)
-		return error_type;
-	    break;
+	    break;    
 
 	    /* Zero */
 	case 3:
            if (lx200ap_debug)
-            IDLog("selectAPTrackingMode: Setting tracking mode to zero.\n");
+            IDLog("selectAPTrackingMode: Setting tracking mode to zero #:RT9#)(.\n");
 
 	    if ( (error_type = tty_write_string(fd, "#:RT9#", &nbytes_write)) != TTY_OK)
 		return error_type;
