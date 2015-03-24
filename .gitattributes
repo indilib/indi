@@ -1314,6 +1314,10 @@ libindi/drivers/telescope/ieq45.h -text
 libindi/drivers/telescope/ieq45driver.h -text
 libindi/drivers/telescope/ieq45driver8406.c -text
 libindi/drivers/telescope/ieq45driver8407.c -text
+libindi/drivers/telescope/ieqpro.cpp -text
+libindi/drivers/telescope/ieqpro.h -text
+libindi/drivers/telescope/ieqprodriver.cpp -text
+libindi/drivers/telescope/ieqprodriver.h -text
 libindi/drivers/telescope/intelliscope.c -text
 libindi/drivers/telescope/lx200_16.cpp -text
 libindi/drivers/telescope/lx200_16.h -text
