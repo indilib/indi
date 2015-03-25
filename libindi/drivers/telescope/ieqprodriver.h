@@ -106,4 +106,10 @@ bool find_ieqpro_home(int fd);
 bool goto_ieqpro_home(int fd);
 bool set_ieqpro_current_home(int fd);
 
+/**************************************************************************
+ Guide
+**************************************************************************/
+bool set_ieqpro_guide_rate(int fd, double rate);
+bool get_ieqpro_guide_rate(int fd, double *rate);
+
 #endif

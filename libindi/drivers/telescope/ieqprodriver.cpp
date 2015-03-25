@@ -409,6 +409,9 @@ bool start_ieqpro_motion(int fd, IEQ_DIRECTION dir)
 
     DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
+   if (ieqpro_simulation)
+       return true;
+
    if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
    {
        tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -773,6 +776,111 @@ bool set_ieqpro_custom_track_rate(int fd, double rate)
       DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
      return true;
+    }
+
+    DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
+    return false;
+}
+
+bool set_ieqpro_guide_rate(int fd, double rate)
+{
+    char cmd[8];
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[8];
+    int nbytes_read=0;
+    int nbytes_written=0;
+
+    int num = rate * 100;
+    snprintf(cmd, 8, ":RG%03d#", num );
+
+    DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
+    if (ieqpro_simulation)
+    {
+        strcpy(response, "1");
+        nbytes_read = strlen(response);
+    }
+    else
+    {
+        if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+
+        if ( (errcode = tty_read(fd, response, 1, IEQPRO_TIMEOUT, &nbytes_read)))
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+    }
+
+    if (nbytes_read > 0)
+    {
+      response[nbytes_read] = '\0';
+      DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+
+     return true;
+    }
+
+    DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
+    return false;
+}
+
+bool get_ieqpro_guide_rate(int fd, double *rate)
+{
+    char cmd[] = ":AG#";
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[8];
+    int nbytes_read=0;
+    int nbytes_written=0;
+
+    DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
+    if (ieqpro_simulation)
+    {
+        strcpy(response, "045#");
+        nbytes_read = strlen(response);
+    }
+    else
+    {
+        if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+
+        if ( (errcode = tty_read(fd, response, 4, IEQPRO_TIMEOUT, &nbytes_read)))
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+    }
+
+    if (nbytes_read > 0)
+    {
+      response[nbytes_read] = '\0';
+      DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+
+      int rate_num;
+
+      if (sscanf(response, "%d#", &rate_num) > 0)
+      {
+          *rate = rate_num / 100.0;
+          return true;
+      }
+      else
+      {
+          DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "Error: Malformed result (%s).", response);
+          return false;
+      }
+
     }
 
     DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);

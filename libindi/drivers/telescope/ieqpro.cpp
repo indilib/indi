@@ -263,6 +263,7 @@ bool IEQPro::updateProperties()
 
 void IEQPro::getStartupData()
 {
+    DEBUG(INDI::Logger::DBG_DEBUG, "Getting firmware data...");
     if (get_ieqpro_firmware(PortFD, &firmwareInfo))
     {
         IUSaveText(&FirmwareT[0], firmwareInfo.Model.c_str());
@@ -273,6 +274,14 @@ void IEQPro::getStartupData()
 
         FirmwareTP.s = IPS_OK;
         IDSetText(&FirmwareTP, NULL);
+    }
+
+    DEBUG(INDI::Logger::DBG_DEBUG, "Getting guiding rate...");
+    double guideRate=0;
+    if (get_ieqpro_guide_rate(PortFD, &guideRate))
+    {
+        GuideRateN[0].value = guideRate;
+        IDSetNumber(&GuideRateNP, NULL);
     }
 
 }
@@ -320,6 +329,20 @@ bool IEQPro::ISNewNumber (const char *dev, const char *name, double values[], ch
 
             return true;
 
+        }
+
+        if (!strcmp(name, GuideRateNP.name))
+        {
+            IUUpdateNumber(&GuideRateNP, values, names, n);
+
+            if (set_ieqpro_guide_rate(PortFD, GuideRateN[0].value))
+                GuideRateNP.s = IPS_OK;
+            else
+                GuideRateNP.s = IPS_ALERT;
+
+            IDSetNumber(&GuideRateNP, NULL);
+
+            return true;
         }
     }
 
