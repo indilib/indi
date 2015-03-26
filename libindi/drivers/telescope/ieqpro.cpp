@@ -144,8 +144,8 @@ bool IEQPro::initProperties()
     IUFillTextVector(&FirmwareTP, FirmwareT, 5, getDeviceName(), "Firmware Info", "", MOUNTINFO_TAB, IP_RO, 0, IPS_IDLE);
 
     /* Park Coords */
-    IUFillNumber(&ParkN[RA_AXIS],"RA_PARK","RA (hh:mm:ss)","%010.6m",0,24,0,0.);
-    IUFillNumber(&ParkN[DEC_AXIS],"DEC_PARK","DEC (dd:mm:ss)","%010.6m",-90,90,0,0.);
+    IUFillNumber(&ParkN[RA_AXIS],"RA_PARK","RA (hh:mm:ss)","%010.6m",0,24,0,currentRA);
+    IUFillNumber(&ParkN[DEC_AXIS],"DEC_PARK","DEC (dd:mm:ss)","%010.6m",-90,90,0,currentDEC);
     IUFillNumberVector(&ParkNP, ParkN,2,getDeviceName(),"PARK_COORDS","Park Coords",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
 
     /* Slew Rate */
@@ -363,6 +363,12 @@ bool IEQPro::ISNewNumber (const char *dev, const char *name, double values[], ch
 
            IDSetNumber(&ParkNP, NULL);
        }
+
+        if (!strcmp(name,GuideNSNP.name) || !strcmp(name,GuideWENP.name))
+        {
+            processGuiderProperties(name, values, names, n);
+            return true;
+        }
     }
 
     return INDI::Telescope::ISNewNumber (dev, name, values, names, n);
@@ -636,6 +642,9 @@ bool IEQPro::Sync(double ra, double dec)
 
     TrackState = SCOPE_IDLE;
     EqNP.s    = IPS_OK;
+
+    currentRA  = ra;
+    currentDEC = dec;
 
     NewRaDec(currentRA, currentDEC);
 
@@ -1107,6 +1116,10 @@ void IEQPro::mountSim ()
         nlocked = 0;
 
         dx = targetRA - currentRA;
+
+        // Take shortest path
+        if (fabs(dx) > 12)
+            dx *= -1;
 
         if (fabs(dx) <= da)
         {

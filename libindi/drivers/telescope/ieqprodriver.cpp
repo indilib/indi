@@ -56,6 +56,8 @@ void set_ieqpro_debug(bool enable)
 void set_ieqpro_simulation(bool enable)
 {
     ieqpro_simulation = enable;
+    if (enable)
+        simData.guide_rate = 0.5;
 }
 
 void set_ieqpro_device(const char *name)
