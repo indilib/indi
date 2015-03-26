@@ -177,9 +177,8 @@ bool CelestronGPS::ISNewSwitch (const char *dev, const char *name, ISState *stat
           IUUpdateSwitch(&SlewModeSP, states, names, n);
           index = IUFindOnSwitchIndex(&SlewModeSP);
 
-          index -= 3;
-          if (index < 0)
-              index += 3;
+          // Reverse order to match celestron
+          index = 3 - index;
 
           if (isSimulation() == false)
             SetRate(index);
@@ -538,7 +537,7 @@ void CelestronGPS::processButton(const char *button_n, ISState state)
     // Max Slew speed
     if (!strcmp(button_n, "SLEW_MAX"))
     {
-        SetRate(0);
+        SetRate(SLEW);
         IUResetSwitch(&SlewModeSP);
         SlewModeS[SLEW_MAX].s = ISS_ON;
         IDSetSwitch(&SlewModeSP, NULL);
@@ -546,7 +545,7 @@ void CelestronGPS::processButton(const char *button_n, ISState state)
     // Find Slew speed
     else if (!strcmp(button_n, "SLEW_FIND"))
     {
-            SetRate(1);
+            SetRate(FIND);
             IUResetSwitch(&SlewModeSP);
             SlewModeS[SLEW_FIND].s = ISS_ON;
             IDSetSwitch(&SlewModeSP, NULL);
@@ -554,7 +553,7 @@ void CelestronGPS::processButton(const char *button_n, ISState state)
     // Centering Slew
     else if (!strcmp(button_n, "SLEW_CENTERING"))
     {
-            SetRate(2);
+            SetRate(CENTER);
             IUResetSwitch(&SlewModeSP);
             SlewModeS[SLEW_CENTERING].s = ISS_ON;
             IDSetSwitch(&SlewModeSP, NULL);
@@ -562,7 +561,7 @@ void CelestronGPS::processButton(const char *button_n, ISState state)
     // Guide Slew
     else if (!strcmp(button_n, "SLEW_GUIDE"))
     {
-            SetRate(3);
+            SetRate(GUIDE);
             IUResetSwitch(&SlewModeSP);
             SlewModeS[SLEW_GUIDE].s = ISS_ON;
             IDSetSwitch(&SlewModeSP, NULL);
