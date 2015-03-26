@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		591247651AC483F400AFC0BF /* ieqpro.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 591247631AC4836700AFC0BF /* ieqpro.cpp */; };
+		591247661AC483F400AFC0BF /* ieqprodriver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 591247641AC4836700AFC0BF /* ieqprodriver.cpp */; };
 		591991A8188FC9AD007DD2DE /* indiserver.c in Sources */ = {isa = PBXBuildFile; fileRef = 591991A7188FC9AD007DD2DE /* indiserver.c */; };
 		591991AB188FC9BA007DD2DE /* fq.c in Sources */ = {isa = PBXBuildFile; fileRef = 591991A9188FC9BA007DD2DE /* fq.c */; };
 		591991AE188FC9CB007DD2DE /* lilxml.c in Sources */ = {isa = PBXBuildFile; fileRef = 591991AC188FC9CA007DD2DE /* lilxml.c */; };
@@ -193,20 +195,13 @@
 		9D0B2A321A8D1FFB00ED17BF /* magellan1.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D0B2A301A8D1FFB00ED17BF /* magellan1.cpp */; };
 		9D0B2A3C1A8D200600ED17BF /* libindi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A91A8CD3190004AA95 /* libindi.dylib */; };
 		9D0B2A3D1A8D200600ED17BF /* libnova.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA422C1A8CB6920004AA95 /* libnova.dylib */; };
-		9D0B2A451A8D204000ED17BF /* ieq45driver8406.c in Sources */ = {isa = PBXBuildFile; fileRef = 9D0B2A431A8D204000ED17BF /* ieq45driver8406.c */; };
-		9D0B2A461A8D204000ED17BF /* ieq45.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D0B2A441A8D204000ED17BF /* ieq45.cpp */; };
-		9D0B2A4F1A8D204200ED17BF /* ieq45.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D0B2A441A8D204000ED17BF /* ieq45.cpp */; };
-		9D0B2A521A8D204200ED17BF /* libindi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A91A8CD3190004AA95 /* libindi.dylib */; };
-		9D0B2A531A8D204200ED17BF /* libnova.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA422C1A8CB6920004AA95 /* libnova.dylib */; };
-		9D0B2A5A1A8D206400ED17BF /* ieq45driver8407.c in Sources */ = {isa = PBXBuildFile; fileRef = 9D0B2A591A8D206400ED17BF /* ieq45driver8407.c */; };
 		9D0B2A6B1A8D208400ED17BF /* indi_celestron_gps in Copy Files (33 items) */ = {isa = PBXBuildFile; fileRef = 9D0B29C61A8D1E9400ED17BF /* indi_celestron_gps */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		9D0B2A6C1A8D208400ED17BF /* indi_temma in Copy Files (33 items) */ = {isa = PBXBuildFile; fileRef = 9D0B29DC1A8D1ED100ED17BF /* indi_temma */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		9D0B2A6D1A8D208400ED17BF /* indi_skycommander in Copy Files (33 items) */ = {isa = PBXBuildFile; fileRef = 9D0B29F11A8D1EF600ED17BF /* indi_skycommander */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		9D0B2A6E1A8D208400ED17BF /* indi_intelliscope in Copy Files (33 items) */ = {isa = PBXBuildFile; fileRef = 9D0B2A091A8D1F3E00ED17BF /* indi_intelliscope */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		9D0B2A6F1A8D208400ED17BF /* indi_synscan in Copy Files (33 items) */ = {isa = PBXBuildFile; fileRef = 9D0B2A1D1A8D1F9C00ED17BF /* indi_synscan */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		9D0B2A701A8D208400ED17BF /* indi_magellan1 in Copy Files (33 items) */ = {isa = PBXBuildFile; fileRef = 9D0B2A2E1A8D1FDC00ED17BF /* indi_magellan1 */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		9D0B2A711A8D208400ED17BF /* indi_ieq45_8406 in Copy Files (33 items) */ = {isa = PBXBuildFile; fileRef = 9D0B2A421A8D200600ED17BF /* indi_ieq45_8406 */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		9D0B2A721A8D208400ED17BF /* indi_ieq45_8407 in Copy Files (33 items) */ = {isa = PBXBuildFile; fileRef = 9D0B2A581A8D204200ED17BF /* indi_ieq45_8407 */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		9D0B2A711A8D208400ED17BF /* indi_ieq_telescope in Copy Files (33 items) */ = {isa = PBXBuildFile; fileRef = 9D0B2A421A8D200600ED17BF /* indi_ieq_telescope */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		9D0B2A731A8D20E900ED17BF /* skycommander.c in Sources */ = {isa = PBXBuildFile; fileRef = 9D0B29F31A8D1F1800ED17BF /* skycommander.c */; };
 		9D0B2A7E1A8D214A00ED17BF /* libindi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A91A8CD3190004AA95 /* libindi.dylib */; };
 		9D0B2A7F1A8D214A00ED17BF /* libnova.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA422C1A8CB6920004AA95 /* libnova.dylib */; };
@@ -942,20 +937,6 @@
 			remoteGlobalIDString = 9DDA43A81A8CD3190004AA95;
 			remoteInfo = indi;
 		};
-		9D0B2A491A8D204200ED17BF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 9DDA422B1A8CB6920004AA95;
-			remoteInfo = nova;
-		};
-		9D0B2A4B1A8D204200ED17BF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 9DDA43A81A8CD3190004AA95;
-			remoteInfo = indi;
-		};
 		9D0B2A5B1A8D207A00ED17BF /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
@@ -1004,13 +985,6 @@
 			proxyType = 1;
 			remoteGlobalIDString = 9D0B2A331A8D200600ED17BF;
 			remoteInfo = indi_ieq45_8406;
-		};
-		9D0B2A691A8D207A00ED17BF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 9D0B2A471A8D204200ED17BF;
-			remoteInfo = indi_ieq45_8407;
 		};
 		9D0B2A771A8D214A00ED17BF /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -1464,8 +1438,7 @@
 				9D0B2A6E1A8D208400ED17BF /* indi_intelliscope in Copy Files (33 items) */,
 				9D0B2A6F1A8D208400ED17BF /* indi_synscan in Copy Files (33 items) */,
 				9D0B2A701A8D208400ED17BF /* indi_magellan1 in Copy Files (33 items) */,
-				9D0B2A711A8D208400ED17BF /* indi_ieq45_8406 in Copy Files (33 items) */,
-				9D0B2A721A8D208400ED17BF /* indi_ieq45_8407 in Copy Files (33 items) */,
+				9D0B2A711A8D208400ED17BF /* indi_ieq_telescope in Copy Files (33 items) */,
 				9D75D5A01A8D17B1008AA08A /* indi_lxbasic in Copy Files (33 items) */,
 				9D75D5A11A8D17B1008AA08A /* indi_lx200generic in Copy Files (33 items) */,
 				9D75D5A21A8D17B1008AA08A /* indi_lx200genericlegacy in Copy Files (33 items) */,
@@ -1553,15 +1526,6 @@
 			runOnlyForDeploymentPostprocessing = 1;
 		};
 		9D0B2A3E1A8D200600ED17BF /* CopyFiles */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = /usr/share/man/man1/;
-			dstSubfolderSpec = 0;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 1;
-		};
-		9D0B2A541A8D204200ED17BF /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = /usr/share/man/man1/;
@@ -1682,6 +1646,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		591247631AC4836700AFC0BF /* ieqpro.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ieqpro.cpp; sourceTree = "<group>"; };
+		591247641AC4836700AFC0BF /* ieqprodriver.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ieqprodriver.cpp; sourceTree = "<group>"; };
 		591991A6188FC99E007DD2DE /* indiserver-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "indiserver-Info.plist"; sourceTree = "<group>"; };
 		591991A7188FC9AD007DD2DE /* indiserver.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = indiserver.c; path = ../../libindi/indiserver.c; sourceTree = "<group>"; };
 		591991A9188FC9BA007DD2DE /* fq.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fq.c; path = ../../libindi/fq.c; sourceTree = "<group>"; };
@@ -1839,11 +1805,7 @@
 		9D0B2A2E1A8D1FDC00ED17BF /* indi_magellan1 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_magellan1; sourceTree = BUILT_PRODUCTS_DIR; };
 		9D0B2A2F1A8D1FFB00ED17BF /* magellandriver.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = magellandriver.c; sourceTree = "<group>"; };
 		9D0B2A301A8D1FFB00ED17BF /* magellan1.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = magellan1.cpp; sourceTree = "<group>"; };
-		9D0B2A421A8D200600ED17BF /* indi_ieq45_8406 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_ieq45_8406; sourceTree = BUILT_PRODUCTS_DIR; };
-		9D0B2A431A8D204000ED17BF /* ieq45driver8406.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ieq45driver8406.c; sourceTree = "<group>"; };
-		9D0B2A441A8D204000ED17BF /* ieq45.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ieq45.cpp; sourceTree = "<group>"; };
-		9D0B2A581A8D204200ED17BF /* indi_ieq45_8407 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_ieq45_8407; sourceTree = BUILT_PRODUCTS_DIR; };
-		9D0B2A591A8D206400ED17BF /* ieq45driver8407.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ieq45driver8407.c; sourceTree = "<group>"; };
+		9D0B2A421A8D200600ED17BF /* indi_ieq_telescope */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_ieq_telescope; sourceTree = BUILT_PRODUCTS_DIR; };
 		9D0B2A841A8D214A00ED17BF /* indi_simulator_focus */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_simulator_focus; sourceTree = BUILT_PRODUCTS_DIR; };
 		9D0B2A851A8D218000ED17BF /* focus_simulator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = focus_simulator.cpp; sourceTree = "<group>"; };
 		9D0B2A861A8D218000ED17BF /* indi_tcfs_sk.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = indi_tcfs_sk.xml; sourceTree = "<group>"; };
@@ -2278,15 +2240,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		9D0B2A511A8D204200ED17BF /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				9D0B2A521A8D204200ED17BF /* libindi.dylib in Frameworks */,
-				9D0B2A531A8D204200ED17BF /* libnova.dylib in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		9D0B2A7D1A8D214A00ED17BF /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -2476,8 +2429,7 @@
 				9D0B2A091A8D1F3E00ED17BF /* indi_intelliscope */,
 				9D0B2A1D1A8D1F9C00ED17BF /* indi_synscan */,
 				9D0B2A2E1A8D1FDC00ED17BF /* indi_magellan1 */,
-				9D0B2A421A8D200600ED17BF /* indi_ieq45_8406 */,
-				9D0B2A581A8D204200ED17BF /* indi_ieq45_8407 */,
+				9D0B2A421A8D200600ED17BF /* indi_ieq_telescope */,
 				9D0B2A841A8D214A00ED17BF /* indi_simulator_focus */,
 				9D0B2A9C1A8D223800ED17BF /* indi_robo_focus */,
 				9D0B2AAC1A8D226800ED17BF /* indi_nfocus */,
@@ -2819,9 +2771,8 @@
 				9D0B2A1E1A8D1FCC00ED17BF /* synscanmount.cpp */,
 				9D0B2A2F1A8D1FFB00ED17BF /* magellandriver.c */,
 				9D0B2A301A8D1FFB00ED17BF /* magellan1.cpp */,
-				9D0B2A431A8D204000ED17BF /* ieq45driver8406.c */,
-				9D0B2A591A8D206400ED17BF /* ieq45driver8407.c */,
-				9D0B2A441A8D204000ED17BF /* ieq45.cpp */,
+				591247631AC4836700AFC0BF /* ieqpro.cpp */,
+				591247641AC4836700AFC0BF /* ieqprodriver.cpp */,
 			);
 			path = telescope;
 			sourceTree = "<group>";
@@ -3137,7 +3088,6 @@
 				9D0B2A641A8D207A00ED17BF /* PBXTargetDependency */,
 				9D0B2A661A8D207A00ED17BF /* PBXTargetDependency */,
 				9D0B2A681A8D207A00ED17BF /* PBXTargetDependency */,
-				9D0B2A6A1A8D207A00ED17BF /* PBXTargetDependency */,
 				9D75D59D1A8D17A1008AA08A /* PBXTargetDependency */,
 				9D75D59F1A8D17A1008AA08A /* PBXTargetDependency */,
 				9D75D5671A8D15B3008AA08A /* PBXTargetDependency */,
@@ -3629,9 +3579,9 @@
 			productReference = 9D0B2A2E1A8D1FDC00ED17BF /* indi_magellan1 */;
 			productType = "com.apple.product-type.tool";
 		};
-		9D0B2A331A8D200600ED17BF /* indi_ieq45_8406 */ = {
+		9D0B2A331A8D200600ED17BF /* indi_ieq_telescope */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 9D0B2A3F1A8D200600ED17BF /* Build configuration list for PBXNativeTarget "indi_ieq45_8406" */;
+			buildConfigurationList = 9D0B2A3F1A8D200600ED17BF /* Build configuration list for PBXNativeTarget "indi_ieq_telescope" */;
 			buildPhases = (
 				9D0B2A381A8D200600ED17BF /* Sources */,
 				9D0B2A3B1A8D200600ED17BF /* Frameworks */,
@@ -3643,28 +3593,9 @@
 				9D0B2A341A8D200600ED17BF /* PBXTargetDependency */,
 				9D0B2A361A8D200600ED17BF /* PBXTargetDependency */,
 			);
-			name = indi_ieq45_8406;
+			name = indi_ieq_telescope;
 			productName = indi_lxbasic;
-			productReference = 9D0B2A421A8D200600ED17BF /* indi_ieq45_8406 */;
-			productType = "com.apple.product-type.tool";
-		};
-		9D0B2A471A8D204200ED17BF /* indi_ieq45_8407 */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 9D0B2A551A8D204200ED17BF /* Build configuration list for PBXNativeTarget "indi_ieq45_8407" */;
-			buildPhases = (
-				9D0B2A4C1A8D204200ED17BF /* Sources */,
-				9D0B2A511A8D204200ED17BF /* Frameworks */,
-				9D0B2A541A8D204200ED17BF /* CopyFiles */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				9D0B2A481A8D204200ED17BF /* PBXTargetDependency */,
-				9D0B2A4A1A8D204200ED17BF /* PBXTargetDependency */,
-			);
-			name = indi_ieq45_8407;
-			productName = indi_lxbasic;
-			productReference = 9D0B2A581A8D204200ED17BF /* indi_ieq45_8407 */;
+			productReference = 9D0B2A421A8D200600ED17BF /* indi_ieq_telescope */;
 			productType = "com.apple.product-type.tool";
 		};
 		9D0B2A751A8D214A00ED17BF /* indi_simulator_focus */ = {
@@ -4016,8 +3947,7 @@
 				9D0B29F61A8D1F3E00ED17BF /* indi_intelliscope */,
 				9D0B2A0C1A8D1F9C00ED17BF /* indi_synscan */,
 				9D0B2A201A8D1FDC00ED17BF /* indi_magellan1 */,
-				9D0B2A331A8D200600ED17BF /* indi_ieq45_8406 */,
-				9D0B2A471A8D204200ED17BF /* indi_ieq45_8407 */,
+				9D0B2A331A8D200600ED17BF /* indi_ieq_telescope */,
 				9D0B2A751A8D214A00ED17BF /* indi_simulator_focus */,
 				9D0B2A8E1A8D223800ED17BF /* indi_robo_focus */,
 				9D0B2A9E1A8D226800ED17BF /* indi_nfocus */,
@@ -4369,17 +4299,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9D0B2A461A8D204000ED17BF /* ieq45.cpp in Sources */,
-				9D0B2A451A8D204000ED17BF /* ieq45driver8406.c in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		9D0B2A4C1A8D204200ED17BF /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				9D0B2A4F1A8D204200ED17BF /* ieq45.cpp in Sources */,
-				9D0B2A5A1A8D206400ED17BF /* ieq45driver8407.c in Sources */,
+				591247651AC483F400AFC0BF /* ieqpro.cpp in Sources */,
+				591247661AC483F400AFC0BF /* ieqprodriver.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -5026,16 +4947,6 @@
 			target = 9DDA43A81A8CD3190004AA95 /* indi */;
 			targetProxy = 9D0B2A371A8D200600ED17BF /* PBXContainerItemProxy */;
 		};
-		9D0B2A481A8D204200ED17BF /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 9DDA422B1A8CB6920004AA95 /* nova */;
-			targetProxy = 9D0B2A491A8D204200ED17BF /* PBXContainerItemProxy */;
-		};
-		9D0B2A4A1A8D204200ED17BF /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 9DDA43A81A8CD3190004AA95 /* indi */;
-			targetProxy = 9D0B2A4B1A8D204200ED17BF /* PBXContainerItemProxy */;
-		};
 		9D0B2A5C1A8D207A00ED17BF /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 9D0B29B71A8D1E9400ED17BF /* indi_celestron_gps */;
@@ -5068,13 +4979,8 @@
 		};
 		9D0B2A681A8D207A00ED17BF /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 9D0B2A331A8D200600ED17BF /* indi_ieq45_8406 */;
+			target = 9D0B2A331A8D200600ED17BF /* indi_ieq_telescope */;
 			targetProxy = 9D0B2A671A8D207A00ED17BF /* PBXContainerItemProxy */;
-		};
-		9D0B2A6A1A8D207A00ED17BF /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 9D0B2A471A8D204200ED17BF /* indi_ieq45_8407 */;
-			targetProxy = 9D0B2A691A8D207A00ED17BF /* PBXContainerItemProxy */;
 		};
 		9D0B2A761A8D214A00ED17BF /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -6856,61 +6762,6 @@
 			};
 			name = Release;
 		};
-		9D0B2A561A8D204200ED17BF /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_WARN_UNREACHABLE_CODE = YES;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					"DEBUG=1",
-					"$(inherited)",
-				);
-				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				HEADER_SEARCH_PATHS = (
-					"$(inherited)",
-					"/Applications/Xcode-Beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include",
-					"../../../libnova-0.15.0/src",
-					"../../../libnova-0.15.0/src/libnova",
-					"../../../libusb-1.0.19/libusb",
-					../../../cfitsio,
-					../../libindi/libs/indibase,
-					../../libindi/libs,
-					../../libindi,
-				);
-				MTL_ENABLE_DEBUG_INFO = YES;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-			};
-			name = Debug;
-		};
-		9D0B2A571A8D204200ED17BF /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_WARN_UNREACHABLE_CODE = YES;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				HEADER_SEARCH_PATHS = (
-					"$(inherited)",
-					"/Applications/Xcode-Beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include",
-					"../../../libnova-0.15.0/src",
-					"../../../libnova-0.15.0/src/libnova",
-					"../../../libusb-1.0.19/libusb",
-					../../../cfitsio,
-					../../libindi/libs/indibase,
-					../../libindi/libs,
-					../../libindi,
-				);
-				MTL_ENABLE_DEBUG_INFO = NO;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-			};
-			name = Release;
-		};
 		9D0B2A821A8D214A00ED17BF /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -8002,20 +7853,11 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		9D0B2A3F1A8D200600ED17BF /* Build configuration list for PBXNativeTarget "indi_ieq45_8406" */ = {
+		9D0B2A3F1A8D200600ED17BF /* Build configuration list for PBXNativeTarget "indi_ieq_telescope" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				9D0B2A401A8D200600ED17BF /* Debug */,
 				9D0B2A411A8D200600ED17BF /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		9D0B2A551A8D204200ED17BF /* Build configuration list for PBXNativeTarget "indi_ieq45_8407" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				9D0B2A561A8D204200ED17BF /* Debug */,
-				9D0B2A571A8D204200ED17BF /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
