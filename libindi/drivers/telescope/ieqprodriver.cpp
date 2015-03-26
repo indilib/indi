@@ -386,7 +386,7 @@ bool get_ieqpro_radec_firmware(int fd, FirmwareInfo *info)
 
 bool start_ieqpro_motion(int fd, IEQ_DIRECTION dir)
 {
-    char cmd[4];
+    char cmd[16];
     int errcode = 0;
     char errmsg[MAXRBUF];
     int nbytes_written=0;
@@ -424,7 +424,7 @@ bool start_ieqpro_motion(int fd, IEQ_DIRECTION dir)
 
 bool stop_ieqpro_motion(int fd, IEQ_DIRECTION dir)
 {
-    char cmd[4];
+    char cmd[16];
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[8];
@@ -619,7 +619,7 @@ bool set_ieqpro_current_home(int fd)
 
 bool set_ieqpro_slew_rate(int fd, IEQ_SLEW_RATE rate)
 {
-    char cmd[5];
+    char cmd[16];
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[8];
@@ -667,7 +667,7 @@ bool set_ieqpro_slew_rate(int fd, IEQ_SLEW_RATE rate)
 
 bool set_ieqpro_track_mode(int fd, IEQ_TRACK_RATE rate)
 {
-    char cmd[5];
+    char cmd[16];
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[8];
@@ -731,7 +731,7 @@ bool set_ieqpro_track_mode(int fd, IEQ_TRACK_RATE rate)
 
 bool set_ieqpro_custom_track_rate(int fd, double rate)
 {
-    char cmd[13];
+    char cmd[16];
     char sign;
     int errcode = 0;
     char errmsg[MAXRBUF];
@@ -744,7 +744,7 @@ bool set_ieqpro_custom_track_rate(int fd, double rate)
     else
         sign = '+';
 
-    snprintf(cmd, 13, ":RR%c0%6.4f#", sign, rate );
+    snprintf(cmd, 13, ":RR%c0%6.4f#", sign, fabs(rate ));
 
     DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
@@ -784,7 +784,7 @@ bool set_ieqpro_custom_track_rate(int fd, double rate)
 
 bool set_ieqpro_guide_rate(int fd, double rate)
 {
-    char cmd[8];
+    char cmd[16];
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[8];
@@ -886,3 +886,452 @@ bool get_ieqpro_guide_rate(int fd, double *rate)
     DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
     return false;
 }
+
+bool park_ieqpro(int fd)
+{
+    char cmd[] = ":MP1#";
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[8];
+    int nbytes_read=0;
+    int nbytes_written=0;
+
+    DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
+    if (ieqpro_simulation)
+    {
+        strcpy(response, "1");
+        nbytes_read = strlen(response);
+    }
+    else
+    {
+        if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+
+        if ( (errcode = tty_read(fd, response, 1, IEQPRO_TIMEOUT, &nbytes_read)))
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+    }
+
+    if (nbytes_read > 0)
+    {
+      response[nbytes_read] = '\0';
+      DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+
+      if (!strcmp(response, "1"))
+          return true;
+      else
+      {
+          DEBUGDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "Error: Requested parking position is below horizon.");
+          return false;
+      }
+
+    }
+
+    DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
+    return false;
+}
+
+bool unpark_ieqpro(int fd)
+{
+    char cmd[] = ":MP0#";
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[8];
+    int nbytes_read=0;
+    int nbytes_written=0;
+
+    DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
+    if (ieqpro_simulation)
+    {
+        strcpy(response, "1");
+        nbytes_read = strlen(response);
+    }
+    else
+    {
+        if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+
+        if ( (errcode = tty_read(fd, response, 1, IEQPRO_TIMEOUT, &nbytes_read)))
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+    }
+
+    if (nbytes_read > 0)
+    {
+      response[nbytes_read] = '\0';
+      DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+
+      return true;
+    }
+
+    DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
+    return false;
+}
+
+bool abort_ieqpro(int fd)
+{
+    char cmd[] = ":Q#";
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[8];
+    int nbytes_read=0;
+    int nbytes_written=0;
+
+    DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
+    if (ieqpro_simulation)
+    {
+        strcpy(response, "1");
+        nbytes_read = strlen(response);
+    }
+    else
+    {
+        if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+
+        if ( (errcode = tty_read(fd, response, 1, IEQPRO_TIMEOUT, &nbytes_read)))
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+    }
+
+    if (nbytes_read > 0)
+    {
+      response[nbytes_read] = '\0';
+      DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+
+      return true;
+    }
+
+    DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
+    return false;
+}
+
+bool set_ieqpro_longitude(int fd, double longitude)
+{
+    char cmd[16];
+    char sign;
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[8];
+    int nbytes_read=0;
+    int nbytes_written=0;
+
+    if (longitude > 0)
+        sign = '+';
+    else
+        sign = '-';
+
+    snprintf(cmd, 12, ":Sg%c%.2f#", sign, fabs(longitude));
+
+    DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
+    if (ieqpro_simulation)
+    {
+        strcpy(response, "1");
+        nbytes_read = strlen(response);
+    }
+    else
+    {
+        if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+
+        if ( (errcode = tty_read(fd, response, 1, IEQPRO_TIMEOUT, &nbytes_read)))
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+    }
+
+    if (nbytes_read > 0)
+    {
+      response[nbytes_read] = '\0';
+      DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+
+      return true;
+    }
+
+    DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
+    return false;
+
+}
+
+bool set_ieqpro_latitude(int fd, double latitude)
+{
+    char cmd[16];
+    char sign;
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[8];
+    int nbytes_read=0;
+    int nbytes_written=0;
+
+    if (latitude > 0)
+        sign = '+';
+    else
+        sign = '-';
+
+    snprintf(cmd, 12, ":St%c%.2f#", sign, fabs(latitude));
+
+    DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
+    if (ieqpro_simulation)
+    {
+        strcpy(response, "1");
+        nbytes_read = strlen(response);
+    }
+    else
+    {
+        if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+
+        if ( (errcode = tty_read(fd, response, 1, IEQPRO_TIMEOUT, &nbytes_read)))
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+    }
+
+    if (nbytes_read > 0)
+    {
+      response[nbytes_read] = '\0';
+      DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+
+      return true;
+    }
+
+    DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
+    return false;
+}
+
+bool set_ieqpro_local_date(int fd, int yy, int mm, int dd)
+{
+    char cmd[16];
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[8];
+    int nbytes_read=0;
+    int nbytes_written=0;
+
+    snprintf(cmd, 12, ":SC%02d%02d%02d#", yy, mm, dd);
+
+    DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
+    if (ieqpro_simulation)
+    {
+        strcpy(response, "1");
+        nbytes_read = strlen(response);
+    }
+    else
+    {
+        if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+
+        if ( (errcode = tty_read(fd, response, 1, IEQPRO_TIMEOUT, &nbytes_read)))
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+    }
+
+    if (nbytes_read > 0)
+    {
+      response[nbytes_read] = '\0';
+      DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+
+      return true;
+    }
+
+    DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
+    return false;
+}
+
+bool set_ieqpro_local_time(int fd, int hh, int mm, int ss)
+{
+    char cmd[16];
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[8];
+    int nbytes_read=0;
+    int nbytes_written=0;
+
+    snprintf(cmd, 12, ":SL%02d%02d%02d#", hh, mm, ss);
+
+    DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
+    if (ieqpro_simulation)
+    {
+        strcpy(response, "1");
+        nbytes_read = strlen(response);
+    }
+    else
+    {
+        if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+
+        if ( (errcode = tty_read(fd, response, 1, IEQPRO_TIMEOUT, &nbytes_read)))
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+    }
+
+    if (nbytes_read > 0)
+    {
+      response[nbytes_read] = '\0';
+      DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+
+      return true;
+    }
+
+    DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
+    return false;
+}
+
+bool set_ieqpro_daylight_saving(int fd, bool enabled)
+{
+    char cmd[16];
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[8];
+    int nbytes_read=0;
+    int nbytes_written=0;
+
+    if (enabled)
+        strcpy(cmd, ":SDS1#");
+    else
+        strcpy(cmd, ":SDS0#");
+
+    DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
+    if (ieqpro_simulation)
+    {
+        strcpy(response, "1");
+        nbytes_read = strlen(response);
+    }
+    else
+    {
+        if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+
+        if ( (errcode = tty_read(fd, response, 1, IEQPRO_TIMEOUT, &nbytes_read)))
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+    }
+
+    if (nbytes_read > 0)
+    {
+      response[nbytes_read] = '\0';
+      DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+
+      return true;
+    }
+
+    DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
+    return false;
+}
+
+bool set_ieqpro_utc_offset(int fd, double offset)
+{
+    char cmd[16];
+    char sign;
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[8];
+    int nbytes_read=0;
+    int nbytes_written=0;
+
+    if (offset > 0)
+        sign = '+';
+    else
+        sign = '-';
+
+    int offset_minutes = fabs(offset) * 60.0;
+
+    snprintf(cmd, 16, ":SG%c%03d#", sign, offset_minutes);
+
+    DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
+    if (ieqpro_simulation)
+    {
+        strcpy(response, "1");
+        nbytes_read = strlen(response);
+    }
+    else
+    {
+        if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+
+        if ( (errcode = tty_read(fd, response, 1, IEQPRO_TIMEOUT, &nbytes_read)))
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+    }
+
+    if (nbytes_read > 0)
+    {
+      response[nbytes_read] = '\0';
+      DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+
+      return true;
+    }
+
+    DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
+    return false;
+}
+

@@ -344,6 +344,33 @@ bool IEQPro::ISNewNumber (const char *dev, const char *name, double values[], ch
 
             return true;
         }
+
+        if (!strcmp(name, ParkNP.name))
+        {
+           double ra=-1;
+           double dec=-100;
+
+           for (int x=0; x<n; x++)
+           {
+               INumber *eqp = IUFindNumber (&ParkNP, names[x]);
+               if (eqp == &ParkN[RA_AXIS])
+                   ra = values[x];
+               else if (eqp == &ParkN[DEC_AXIS])
+                   dec = values[x];
+           }
+
+           if ((ra>=0)&&(ra<=24)&&(dec>=-90)&&(dec<=90))
+           {
+               parkRA  = ra;
+               parkDEC = dec;
+               IUUpdateNumber(&ParkNP, values, names, n);
+               ParkNP.s = IPS_OK;
+           }
+           else
+               ParkNP.s = IPS_ALERT;
+
+           IDSetNumber(&ParkNP, NULL);
+       }
     }
 
     return INDI::Telescope::ISNewNumber (dev, name, values, names, n);
@@ -571,21 +598,35 @@ bool IEQPro::Goto(double r,double d)
 
 bool IEQPro::Abort()
 {
-    return true;
+    return abort_ieqpro(PortFD);
 }
 
 bool IEQPro::Park()
 {    
-    TrackState = SCOPE_PARKING;
-    DEBUG(INDI::Logger::DBG_SESSION, "Telescope parking in progress...");
-    return true;
+    if (park_ieqpro(PortPD))
+    {
+        har RAStr[64], DecStr[64];
+        fs_sexa(RAStr, parkRA, 2, 3600);
+        fs_sexa(DecStr, parkDEC, 2, 3600);
+
+        TrackState = SCOPE_PARKING;
+        DEBUGF(INDI::Logger::DBG_SESSION, "Telescope parking in progress to RA: %s DEC: %s", RAStr, DecStr);
+        return true;
+    }
+    else
+        return false;
 }
 
 bool IEQPro::UnPark()
 {
-    TrackState = SCOPE_IDLE;
-    DEBUG(INDI::Logger::DBG_SESSION, "Telescope Unparked");
-    return true;
+    if (unpark_ieqpro(PortFD))
+    {
+        TrackState = SCOPE_IDLE;
+        DEBUG(INDI::Logger::DBG_SESSION, "Telescope Unparked");
+        return true;
+    }
+    else
+        return false;
 }
 
 bool IEQPro::Connect(const char *port)
@@ -639,8 +680,36 @@ bool IEQPro::Sync(double ra, double dec)
 
 bool IEQPro::updateTime(ln_date * utc, double utc_offset)
 {    
+    struct ln_zonedate ltm;
 
-   DEBUG(INDI::Logger::DBG_SESSION, "Time updated.");
+    ln_date_to_zonedate(utc, &ltm, utc_offset*3600.0);
+
+     // Set Local Time
+     if (set_ieqpro_local_time(PortFD, ltm.hours, ltm.minutes, ltm.seconds) == false)
+     {
+            DEBUG(INDI::Logger::DBG_ERROR, "Error setting local time.");
+            return false;
+     }
+
+     // Send it as YY (i.e. 2015 --> 15)
+     ltm.years -= 2000;
+
+     // Set Local date
+     if (set_ieqpro_local_date(PortFD, ltm.years, ltm.months, ltm.days) < 0)
+     {
+          DEBUG(INDI::Logger::DBG_ERROR, "Error setting local date.");
+          return false;
+     }
+
+    // Meade defines UTC Offset as the offset ADDED to local time to yield UTC, which
+    // is the opposite of the standard definition of UTC offset!
+    if (setUTCOffset(PortFD, (utc_offset * -1.0)) < 0)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Error setting UTC Offset.");
+        return false;
+    }
+
+   DEBUG(INDI::Logger::DBG_SESSION, "Time updated, updating planetary data...");
 
    timeUpdated = true;
 

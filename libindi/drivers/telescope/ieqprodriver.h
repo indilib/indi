@@ -98,6 +98,7 @@ bool stop_ieqpro_motion(int fd, IEQ_DIRECTION dir);
 bool set_ieqpro_slew_rate(int fd, IEQ_SLEW_RATE rate);
 bool set_ieqpro_custom_track_rate(int fd, double rate);
 bool set_ieqpro_track_mode(int fd, IEQ_TRACK_RATE rate);
+bool abort_ieqpro(int fd);
 
 /**************************************************************************
  Home
@@ -107,9 +108,25 @@ bool goto_ieqpro_home(int fd);
 bool set_ieqpro_current_home(int fd);
 
 /**************************************************************************
+ Park
+**************************************************************************/
+bool park_ieqpro(int fd);
+bool unpark_ieqpro(int fd);
+
+/**************************************************************************
  Guide
 **************************************************************************/
 bool set_ieqpro_guide_rate(int fd, double rate);
 bool get_ieqpro_guide_rate(int fd, double *rate);
+
+/**************************************************************************
+ Time & Location
+**************************************************************************/
+bool set_ieqpro_longitude(int fd, double longitude);
+bool set_ieqpro_latitude(int fd, double latitude);
+bool set_ieqpro_local_date(int fd, int yy, int mm, int dd);
+bool set_ieqpro_local_time(int fd, int hh, int mm, int ss);
+bool set_ieqpro_utc_offset(int fd, double offset_hours);
+bool set_ieqpro_daylight_saving(int fd, bool enabled);
 
 #endif

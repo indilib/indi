@@ -142,6 +142,7 @@ private:
  bool timeUpdated, locationUpdated;
  double currentRA, currentDEC;
  double targetRA,targetDEC;
+ double parkRA, parkDEC;
 
  IEQInfo scopeInfo;
  FirmwareInfo firmwareInfo;
