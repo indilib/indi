@@ -70,6 +70,9 @@ void set_sim_track_rate(IEQ_TRACK_RATE value);
 void set_sim_slew_rate(IEQ_SLEW_RATE value);
 void set_sim_time_source(IEQ_TIME_SOURCE value);
 void set_sim_hemisphere(IEQ_HEMISPHERE value);
+void set_sim_ra(double ra);
+void set_sim_dec(double dec);
+void set_sim_guide_rate(double rate);
 
 /**************************************************************************
  Diagnostics
@@ -89,6 +92,8 @@ bool get_ieqpro_main_firmware(int fd, FirmwareInfo *info);
 bool get_ieqpro_radec_firmware(int fd, FirmwareInfo *info);
 /** Get Mount model */
 bool get_ieqpro_model(int fd, FirmwareInfo *info);
+/** Get RA/DEC */
+bool get_ieqpro_coords(int fd, double *ra, double *dec);
 
 /**************************************************************************
  Motion
@@ -99,6 +104,10 @@ bool set_ieqpro_slew_rate(int fd, IEQ_SLEW_RATE rate);
 bool set_ieqpro_custom_track_rate(int fd, double rate);
 bool set_ieqpro_track_mode(int fd, IEQ_TRACK_RATE rate);
 bool abort_ieqpro(int fd);
+bool slew_ieqpro(int fd);
+bool sync_ieqpro(int fd);
+bool set_ieqpro_ra(int fd, double ra);
+bool set_ieqpro_dec(int fd, double dec);
 
 /**************************************************************************
  Home
@@ -118,6 +127,7 @@ bool unpark_ieqpro(int fd);
 **************************************************************************/
 bool set_ieqpro_guide_rate(int fd, double rate);
 bool get_ieqpro_guide_rate(int fd, double *rate);
+bool start_ieqpro_guide(int fd,  IEQ_DIRECTION dir, int ms);
 
 /**************************************************************************
  Time & Location

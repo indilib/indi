@@ -55,7 +55,6 @@ protected:
  virtual bool MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command);
  virtual bool MoveWE(TelescopeMotionWE dir, TelescopeMotionCommand command);
 
-
  virtual bool saveConfigItems(FILE *fp);
 
  virtual bool Park();
@@ -71,6 +70,9 @@ protected:
  virtual void debugTriggered(bool enable);
  virtual void simulationTriggered(bool enable);
 
+ // Sim
+ void mountSim();
+
  // Guide
  virtual bool GuideNorth(float ms);
  virtual bool GuideSouth(float ms);
@@ -78,9 +80,10 @@ protected:
  virtual bool GuideWest(float ms);
 
  // Joystick
- virtual void processNSWE(double mag, double angle);
- virtual void processJoystick(const char * joystick_n, double mag, double angle);
- virtual void processButton(const char * button_n, ISState state);
+ void processNSWE(double mag, double angle);
+ void processJoystick(const char * joystick_n, double mag, double angle);
+ void processSlewPresets(double mag, double angle);
+ void processButton(const char * button_n, ISState state);
 
 private:
 

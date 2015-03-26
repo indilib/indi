@@ -22,10 +22,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <math.h>
 #include <memory>
 
 #include "indicom.h"
 #include "ieqpro.h"
+
+/* Simulation Parameters */
+#define	SLEWRATE	1		/* slew rate, degrees/s */
+#define SIDRATE		0.004178	/* sidereal rate, degrees/s */
 
 #define MOUNTINFO_TAB   "Mount Info"
 
@@ -83,7 +88,6 @@ void ISSnoopDevice (XMLEle *root)
    scope->ISSnoopDevice(root);
 }
 
-
 /* Constructor */
 IEQPro::IEQPro()
 {
@@ -92,8 +96,8 @@ IEQPro::IEQPro()
     set_ieqpro_device(getDeviceName());
 
     //ctor
-    currentRA=0;
-    currentDEC=0;
+    currentRA=ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
+    currentDEC=90;
 
     scopeInfo.gpsStatus     = GPS_OFF;
     scopeInfo.systemStatus  = ST_STOPPED;
@@ -115,7 +119,6 @@ IEQPro::IEQPro()
     cap.canAbort = true;
 
     SetTelescopeCapability(&cap);
-
 }
 
 IEQPro::~IEQPro()
@@ -197,14 +200,10 @@ bool IEQPro::initProperties()
 
     TrackState=SCOPE_IDLE;
 
-    /*controller->mapController("NSWE Control","NSWE Control", INDI::Controller::CONTROLLER_JOYSTICK, "JOYSTICK_1");
-    controller->mapController("SLEW_MAX", "Slew Max", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_1");
-    controller->mapController("SLEW_FIND","Slew Find", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_2");
-    controller->mapController("SLEW_CENTERING", "Slew Centering", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_3");
-    controller->mapController("SLEW_GUIDE", "Slew Guide", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_4");
-    controller->mapController("Abort Motion", "Abort Motion", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_5");
-
-    controller->initProperties();*/
+    controller->mapController("MOTIONDIR", "N/S/W/E Control", INDI::Controller::CONTROLLER_JOYSTICK, "JOYSTICK_1");
+    controller->mapController("SLEWPRESET", "Slew Rate", INDI::Controller::CONTROLLER_JOYSTICK, "JOYSTICK_2");
+    controller->mapController("ABORTBUTTON", "Abort", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_1");
+    controller->initProperties();
 
     initGuiderProperties(getDeviceName(), MOTION_TAB);
 
@@ -283,24 +282,14 @@ void IEQPro::getStartupData()
         GuideRateN[0].value = guideRate;
         IDSetNumber(&GuideRateNP, NULL);
     }
-
 }
-
-
 
 bool IEQPro::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if (!strcmp (dev, getDeviceName()))
-    {
-
-
-    }
-
     controller->ISNewText(dev, name, texts, names, n);
 
     return INDI::Telescope::ISNewText (dev, name, texts, names, n);
 }
-
 
 bool IEQPro::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
@@ -308,6 +297,7 @@ bool IEQPro::ISNewNumber (const char *dev, const char *name, double values[], ch
     if (!strcmp (dev, getDeviceName()))
     {
 
+        // Custom Tracking Rate
         if (!strcmp(name, CustomTrackRateNP.name))
         {
             if (TrackModeS[TRACK_CUSTOM].s != ISS_ON)
@@ -331,6 +321,7 @@ bool IEQPro::ISNewNumber (const char *dev, const char *name, double values[], ch
 
         }
 
+        // Guiding Rate
         if (!strcmp(name, GuideRateNP.name))
         {
             IUUpdateNumber(&GuideRateNP, values, names, n);
@@ -345,6 +336,7 @@ bool IEQPro::ISNewNumber (const char *dev, const char *name, double values[], ch
             return true;
         }
 
+        // Custom Parking
         if (!strcmp(name, ParkNP.name))
         {
            double ra=-1;
@@ -515,6 +507,9 @@ bool IEQPro::ReadScopeStatus()
 
     IEQInfo newInfo;
 
+    if (isSimulation())
+        mountSim();
+
     rc = get_ieqpro_status(PortFD, &newInfo);
 
     if (rc)
@@ -559,14 +554,27 @@ bool IEQPro::ReadScopeStatus()
         switch (newInfo.systemStatus)
         {
             case ST_STOPPED:
+                TrackModeSP.s = IPS_IDLE;
+                TrackState = SCOPE_IDLE;
+                break;
             case ST_PARKED:
+                TrackModeSP.s = IPS_IDLE;
+                TrackState = SCOPE_PARKED;
+                break;
             case ST_HOME:
                 TrackModeSP.s = IPS_IDLE;
+                TrackState = SCOPE_IDLE;
                 break;
-
-            default:
+             case ST_SLEWING:
+             case ST_MERIDIAN_FLIPPING:
+                TrackState = SCOPE_SLEWING;
+                break;
+             case ST_TRACKING_PEC_OFF:
+             case ST_TRACKING_PEC_ON:
+             case ST_GUIDING:
                 TrackModeSP.s = IPS_BUSY;
-
+                TrackState = SCOPE_TRACKING;
+                break;
         }
 
         IUResetSwitch(&TrackModeSP);
@@ -577,6 +585,10 @@ bool IEQPro::ReadScopeStatus()
 
     }
 
+    rc = get_ieqpro_coords(PortFD, &currentRA, &currentDEC);
+
+    if (rc)
+        NewRaDec(currentRA, currentDEC);
 
     return rc;
 }
@@ -590,9 +602,43 @@ bool IEQPro::Goto(double r,double d)
     fs_sexa(RAStr, targetRA, 2, 3600);
     fs_sexa(DecStr, targetDEC, 2, 3600);
 
+    if (set_ieqpro_ra(PortFD, r) == false || set_ieqpro_dec(PortFD, d) == false)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Error setting RA/DEC.");
+        return false;
+    }
+
+    if (slew_ieqpro(PortFD) == false)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Failed to slew.");
+        return false;
+    }
+
     TrackState = SCOPE_SLEWING;
 
     IDMessage(getDeviceName(), "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+    return true;
+}
+
+bool IEQPro::Sync(double ra, double dec)
+{
+
+    if (set_ieqpro_ra(PortFD, ra) == false || set_ieqpro_dec(PortFD, dec) == false)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Error setting RA/DEC.");
+        return false;
+    }
+
+    if (sync_ieqpro(PortFD) == false)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Failed to sync.");
+    }
+
+    TrackState = SCOPE_IDLE;
+    EqNP.s    = IPS_OK;
+
+    NewRaDec(currentRA, currentDEC);
+
     return true;
 }
 
@@ -602,12 +648,18 @@ bool IEQPro::Abort()
 }
 
 bool IEQPro::Park()
-{    
-    if (park_ieqpro(PortPD))
+{
+    if (set_ieqpro_ra(PortFD, ParkN[RA_AXIS].value) == false || set_ieqpro_dec(PortFD, ParkN[DEC_AXIS].value) == false)
     {
-        har RAStr[64], DecStr[64];
-        fs_sexa(RAStr, parkRA, 2, 3600);
-        fs_sexa(DecStr, parkDEC, 2, 3600);
+        DEBUG(INDI::Logger::DBG_ERROR, "Error setting RA/DEC.");
+        return false;
+    }
+
+    if (park_ieqpro(PortFD))
+    {
+        char RAStr[64], DecStr[64];
+        fs_sexa(RAStr, ParkN[RA_AXIS].value, 2, 3600);
+        fs_sexa(DecStr, ParkN[DEC_AXIS].value, 2, 3600);
 
         TrackState = SCOPE_PARKING;
         DEBUGF(INDI::Logger::DBG_SESSION, "Telescope parking in progress to RA: %s DEC: %s", RAStr, DecStr);
@@ -622,7 +674,7 @@ bool IEQPro::UnPark()
     if (unpark_ieqpro(PortFD))
     {
         TrackState = SCOPE_IDLE;
-        DEBUG(INDI::Logger::DBG_SESSION, "Telescope Unparked");
+        DEBUG(INDI::Logger::DBG_SESSION, "Telescope Unparked.");
         return true;
     }
     else
@@ -667,17 +719,6 @@ bool IEQPro::Disconnect()
     return true;
 }
 
-bool IEQPro::Sync(double ra, double dec)
-{
-
-    TrackState = SCOPE_IDLE;
-    EqNP.s    = IPS_OK;
-
-    NewRaDec(currentRA, currentDEC);
-
-    return true;
-}
-
 bool IEQPro::updateTime(ln_date * utc, double utc_offset)
 {    
     struct ln_zonedate ltm;
@@ -695,21 +736,20 @@ bool IEQPro::updateTime(ln_date * utc, double utc_offset)
      ltm.years -= 2000;
 
      // Set Local date
-     if (set_ieqpro_local_date(PortFD, ltm.years, ltm.months, ltm.days) < 0)
+     if (set_ieqpro_local_date(PortFD, ltm.years, ltm.months, ltm.days) == false)
      {
           DEBUG(INDI::Logger::DBG_ERROR, "Error setting local date.");
           return false;
      }
 
-    // Meade defines UTC Offset as the offset ADDED to local time to yield UTC, which
-    // is the opposite of the standard definition of UTC offset!
-    if (setUTCOffset(PortFD, (utc_offset * -1.0)) < 0)
+    // UTC Offset
+    if (set_ieqpro_utc_offset(PortFD, utc_offset) == false)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting UTC Offset.");
         return false;
     }
 
-   DEBUG(INDI::Logger::DBG_SESSION, "Time updated, updating planetary data...");
+   DEBUG(INDI::Logger::DBG_SESSION, "Time and date updated.");
 
    timeUpdated = true;
 
@@ -720,8 +760,20 @@ bool IEQPro::updateLocation(double latitude, double longitude, double elevation)
 {
     INDI_UNUSED(elevation);
 
-    if (isSimulation())
-        return true;    
+    if (longitude > 180)
+        longitude -= 360;
+
+    if (set_ieqpro_longitude(PortFD, longitude) == false)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Failed to set longitude.");
+        return false;
+    }
+
+    if (set_ieqpro_longitude(PortFD, latitude) == false)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Failed to set longitude.");
+        return false;
+    }
 
     char l[32], L[32];
     fs_sexa (l, latitude, 3, 3600);
@@ -813,29 +865,23 @@ bool IEQPro::MoveWE(TelescopeMotionWE dir, TelescopeMotionCommand command)
 }
 
 bool IEQPro::GuideNorth(float ms)
-{
-
-    return true;
+{    
+    return start_ieqpro_guide(PortFD, IEQ_N, (int) ms);
 }
 
 bool IEQPro::GuideSouth(float ms)
 {
-
-    return true;
-
+    return start_ieqpro_guide(PortFD, IEQ_S, (int) ms);
 }
 
 bool IEQPro::GuideEast(float ms)
 {
-
-
-    return true;
-
+    return start_ieqpro_guide(PortFD, IEQ_E, (int) ms);
 }
 
 bool IEQPro::GuideWest(float ms)
 {
-    return true;
+    return start_ieqpro_guide(PortFD, IEQ_W, (int) ms);
 }
 
 bool IEQPro::setSlewRate(IEQ_SLEW_RATE rate)
@@ -843,48 +889,14 @@ bool IEQPro::setSlewRate(IEQ_SLEW_RATE rate)
     return set_ieqpro_slew_rate(PortFD, rate);
 }
 
-void IEQPro::processButton(const char * button_n, ISState state)
+void IEQPro::processButton(const char *button_n, ISState state)
 {
+
     //ignore OFF
     if (state == ISS_OFF)
         return;
 
-#if 0
-    // Max Slew speed
-    if (!strcmp(button_n, "SLEW_MAX"))
-    {
-        selectAPMoveToRate(PortFD, 0);
-        IUResetSwitch(&MoveToRateSP);
-        MoveToRateS[0].s = ISS_ON;
-        IDSetSwitch(&MoveToRateSP, NULL);
-    }
-    // Find Slew speed
-    else if (!strcmp(button_n, "SLEW_FIND"))
-    {
-        selectAPMoveToRate(PortFD, 1);
-        IUResetSwitch(&MoveToRateSP);
-        MoveToRateS[1].s = ISS_ON;
-        IDSetSwitch(&MoveToRateSP, NULL);
-    }
-    // Centering Slew
-    else if (!strcmp(button_n, "SLEW_CENTERING"))
-    {
-        selectAPMoveToRate(PortFD, 2);
-        IUResetSwitch(&MoveToRateSP);
-        MoveToRateS[2].s = ISS_ON;
-        IDSetSwitch(&MoveToRateSP, NULL);
-
-    }
-    // Guide Slew
-    else if (!strcmp(button_n, "SLEW_GUIDE"))
-    {
-        selectAPMoveToRate(PortFD, 3);
-        IUResetSwitch(&MoveToRateSP);
-        MoveToRateS[3].s = ISS_ON;
-        IDSetSwitch(&MoveToRateSP, NULL);
-    }
-    // Abort
-    else if (!strcmp(button_n, "Abort Motion"))
+    if (!strcmp(button_n, "ABORTBUTTON"))
     {
         // Only abort if we have some sort of motion going on
         if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY || EqNP.s == IPS_BUSY
@@ -894,8 +906,14 @@ void IEQPro::processButton(const char * button_n, ISState state)
             Abort();
         }
     }
+}
 
-#endif
+void IEQPro::processJoystick(const char * joystick_n, double mag, double angle)
+{
+    if (!strcmp(joystick_n, "MOTIONDIR"))
+        processNSWE(mag, angle);
+    else if (!strcmp(joystick_n, "SLEWPRESET"))
+        processSlewPresets(mag, angle);
 }
 
 void IEQPro::processNSWE(double mag, double angle)
@@ -903,8 +921,34 @@ void IEQPro::processNSWE(double mag, double angle)
     if (mag < 0.5)
     {
         // Moving in the same direction will make it stop
-        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
-            Abort();
+        if (MovementNSSP.s == IPS_BUSY)
+        {
+            if (MoveNS( MovementNSSP.sp[0].s == ISS_ON ? MOTION_NORTH : MOTION_SOUTH, MOTION_STOP))
+            {
+                IUResetSwitch(&MovementNSSP);
+                MovementNSSP.s = IPS_IDLE;
+                IDSetSwitch(&MovementNSSP, NULL);
+            }
+            else
+            {
+                MovementNSSP.s = IPS_ALERT;
+                IDSetSwitch(&MovementNSSP, NULL);
+            }
+        }
+        else if (MovementWESP.s == IPS_BUSY)
+        {
+            if (MoveWE( MovementWESP.sp[0].s == ISS_ON ? MOTION_WEST : MOTION_EAST, MOTION_STOP))
+            {
+                IUResetSwitch(&MovementWESP);
+                MovementWESP.s = IPS_IDLE;
+                IDSetSwitch(&MovementWESP, NULL);
+            }
+            else
+            {
+                MovementWESP.s = IPS_ALERT;
+                IDSetSwitch(&MovementWESP, NULL);
+            }
+        }
     }
     // Put high threshold
     else if (mag > 0.9)
@@ -916,9 +960,13 @@ void IEQPro::processNSWE(double mag, double angle)
             if (MovementNSSP.s != IPS_BUSY || MovementNSS[0].s != ISS_ON)
                 MoveNS(MOTION_NORTH, MOTION_START);
 
+            // If angle is close to 90, make it exactly 90 to reduce noise that could trigger east/west motion as well
+            if (angle > 80 && angle < 110)
+                angle = 90;
+
             MovementNSSP.s = IPS_BUSY;
-            MovementNSSP.sp[MOTION_NORTH].s = ISS_ON;
-            MovementNSSP.sp[MOTION_SOUTH].s = ISS_OFF;
+            MovementNSSP.sp[0].s = ISS_ON;
+            MovementNSSP.sp[1].s = ISS_OFF;
             IDSetSwitch(&MovementNSSP, NULL);
         }
         // South
@@ -928,9 +976,13 @@ void IEQPro::processNSWE(double mag, double angle)
            if (MovementNSSP.s != IPS_BUSY  || MovementNSS[1].s != ISS_ON)
             MoveNS(MOTION_SOUTH, MOTION_START);
 
+           // If angle is close to 270, make it exactly 270 to reduce noise that could trigger east/west motion as well
+           if (angle > 260 && angle < 280)
+               angle = 270;
+
             MovementNSSP.s = IPS_BUSY;
-            MovementNSSP.sp[MOTION_NORTH].s = ISS_OFF;
-            MovementNSSP.sp[MOTION_SOUTH].s = ISS_ON;
+            MovementNSSP.sp[0].s = ISS_OFF;
+            MovementNSSP.sp[1].s = ISS_ON;
             IDSetSwitch(&MovementNSSP, NULL);
         }
         // East
@@ -941,8 +993,8 @@ void IEQPro::processNSWE(double mag, double angle)
                 MoveWE(MOTION_EAST, MOTION_START);
 
            MovementWESP.s = IPS_BUSY;
-           MovementWESP.sp[MOTION_WEST].s = ISS_OFF;
-           MovementWESP.sp[MOTION_EAST].s = ISS_ON;
+           MovementWESP.sp[0].s = ISS_OFF;
+           MovementWESP.sp[1].s = ISS_ON;
            IDSetSwitch(&MovementWESP, NULL);
         }
 
@@ -955,20 +1007,44 @@ void IEQPro::processNSWE(double mag, double angle)
                 MoveWE(MOTION_WEST, MOTION_START);
 
            MovementWESP.s = IPS_BUSY;
-           MovementWESP.sp[MOTION_WEST].s = ISS_ON;
-           MovementWESP.sp[MOTION_EAST].s = ISS_OFF;
+           MovementWESP.sp[0].s = ISS_ON;
+           MovementWESP.sp[1].s = ISS_OFF;
            IDSetSwitch(&MovementWESP, NULL);
         }
     }
 
 }
 
-void IEQPro::processJoystick(const char * joystick_n, double mag, double angle)
+void IEQPro::processSlewPresets(double mag, double angle)
 {
-    if (!strcmp(joystick_n, "NSWE Control"))
-        processNSWE(mag, angle);
-}
+    // high threshold, only 1 is accepted
+    if (mag != 1)
+        return;
 
+    int currentIndex = IUFindOnSwitchIndex(&SlewRateSP);
+
+    // Up
+    if (angle > 0 && angle < 180)
+    {
+        if (currentIndex <= 0)
+            return;
+
+        IUResetSwitch(&SlewRateSP);
+        SlewRateS[currentIndex-1].s = ISS_ON;
+    }
+    // Down
+    else
+    {
+        if (currentIndex >= SlewRateSP.nsp-1)
+            return;
+
+         IUResetSwitch(&SlewRateSP);
+         SlewRateS[currentIndex+1].s = ISS_ON;
+
+    }
+    IDSetSwitch(&SlewRateSP, NULL);
+
+}
 
 void IEQPro::joystickHelper(const char * joystick_n, double mag, double angle, void *context)
 {
@@ -988,6 +1064,7 @@ bool IEQPro::saveConfigItems(FILE *fp)
     INDI::Telescope::saveConfigItems(fp);
 
     IUSaveConfigNumber(fp, &ParkNP);
+    IUSaveConfigNumber(fp, &CustomTrackRateNP);
 
     return true;
 }
@@ -998,4 +1075,76 @@ bool IEQPro::ISSnoopDevice(XMLEle *root)
 
     return INDI::Telescope::ISSnoopDevice(root);
 }
+
+void IEQPro::mountSim ()
+{
+    static struct timeval ltv;
+    struct timeval tv;
+    double dt, da, dx;
+    int nlocked;
+
+    /* update elapsed time since last poll, don't presume exactly POLLMS */
+    gettimeofday (&tv, NULL);
+
+    if (ltv.tv_sec == 0 && ltv.tv_usec == 0)
+        ltv = tv;
+
+    dt = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec)/1e6;
+    ltv = tv;
+    da = SLEWRATE*dt;
+
+    /* Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly */
+    switch (TrackState)
+    {
+
+    case SCOPE_TRACKING:
+        /* RA moves at sidereal, Dec stands still */
+        currentRA += (SIDRATE*dt/15.);
+        break;
+
+    case SCOPE_SLEWING:
+        /* slewing - nail it when both within one pulse @ SLEWRATE */
+        nlocked = 0;
+
+        dx = targetRA - currentRA;
+
+        if (fabs(dx) <= da)
+        {
+        currentRA = targetRA;
+        nlocked++;
+        }
+        else if (dx > 0)
+            currentRA += da/15.;
+        else
+            currentRA -= da/15.;
+
+        dx = targetDEC - currentDEC;
+        if (fabs(dx) <= da)
+        {
+        currentDEC = targetDEC;
+        nlocked++;
+        }
+        else if (dx > 0)
+          currentDEC += da;
+        else
+          currentDEC -= da;
+
+        if (nlocked == 2)
+        {
+             set_sim_system_status(ST_TRACKING_PEC_OFF);
+             TrackState = SCOPE_TRACKING;
+        }
+
+
+        break;
+
+    default:
+        break;
+    }
+
+    set_sim_ra(currentRA);
+    set_sim_dec(currentDEC);
+
+}
+
 
