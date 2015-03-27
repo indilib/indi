@@ -794,9 +794,7 @@ bool EQMod::ReadScopeStatus() {
     {
       if (!(mount->IsRARunning()) && !(mount->IsDERunning()))
       {
-	    TrackState = SCOPE_PARKED;
         SetParked(true);
-	    DEBUG(INDI::Logger::DBG_SESSION, "Telescope Parked...");
       }
     }
   } catch(EQModError e) {
@@ -1253,7 +1251,6 @@ bool EQMod::Park()
 bool EQMod::UnPark()
 {    
     SetParked(false);
-    TrackState = SCOPE_IDLE;    
     return true;
 }
 
