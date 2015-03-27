@@ -25,6 +25,7 @@
 #include <math.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <termios.h>
 #include <fcntl.h>
 #include <time.h>
 
@@ -209,6 +210,8 @@ bool get_ieqpro_status(int fd, IEQInfo *info)
           info->timeSource      = (IEQ_TIME_SOURCE)     (response[4] - '0' - 1);
           info->hemisphere      = (IEQ_HEMISPHERE)      (response[5] - '0');
 
+         tcflush(fd, TCIFLUSH);
+
           return true;
       }
     }
@@ -261,7 +264,7 @@ bool get_ieqpro_model (int fd, FirmwareInfo *info)
             return false;
         }
 
-        if ( (errcode = tty_read_section(fd, response, '#', IEQPRO_TIMEOUT, &nbytes_read)))
+        if ( (errcode = tty_read(fd, response, 4, IEQPRO_TIMEOUT, &nbytes_read)))
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -286,6 +289,8 @@ bool get_ieqpro_model (int fd, FirmwareInfo *info)
               info->Model = "iEQ45 Pro AA";
           else
               info->Model = "Unknown";
+
+          tcflush(fd, TCIFLUSH);
 
           return true;
       }
@@ -344,6 +349,8 @@ bool get_ieqpro_main_firmware(int fd, FirmwareInfo *info)
           info->MainBoardFirmware.assign(board, 6);
           info->ControllerFirmware.assign(controller, 6);
 
+          tcflush(fd, TCIFLUSH);
+
           return true;
       }
     }
@@ -400,6 +407,8 @@ bool get_ieqpro_radec_firmware(int fd, FirmwareInfo *info)
           info->RAFirmware.assign(ra, 6);
           info->DEFirmware.assign(dec, 6);
 
+          tcflush(fd, TCIFLUSH);
+
           return true;
       }
     }
@@ -443,6 +452,7 @@ bool start_ieqpro_motion(int fd, IEQ_DIRECTION dir)
        return false;
    }
 
+   tcflush(fd, TCIFLUSH);
    return true;
 }
 
@@ -497,7 +507,8 @@ bool stop_ieqpro_motion(int fd, IEQ_DIRECTION dir)
       response[nbytes_read] = '\0';
       DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
-     return true;
+      tcflush(fd, TCIFLUSH);
+      return true;
     }
 
     DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
@@ -542,7 +553,8 @@ bool find_ieqpro_home(int fd)
       response[nbytes_read] = '\0';
       DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
-     return true;
+      tcflush(fd, TCIFLUSH);
+      return true;
     }
 
     DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
@@ -588,7 +600,8 @@ bool goto_ieqpro_home(int fd)
       response[nbytes_read] = '\0';
       DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
-     return true;
+      tcflush(fd, TCIFLUSH);
+      return true;
     }
 
     DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
@@ -633,7 +646,8 @@ bool set_ieqpro_current_home(int fd)
       response[nbytes_read] = '\0';
       DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
-     return true;
+      tcflush(fd, TCIFLUSH);
+      return true;
     }
 
     DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
@@ -682,7 +696,8 @@ bool set_ieqpro_slew_rate(int fd, IEQ_SLEW_RATE rate)
       response[nbytes_read] = '\0';
       DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
-     return true;
+      tcflush(fd, TCIFLUSH);
+      return true;
     }
 
     DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
@@ -746,7 +761,8 @@ bool set_ieqpro_track_mode(int fd, IEQ_TRACK_RATE rate)
       response[nbytes_read] = '\0';
       DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
-     return true;
+      tcflush(fd, TCIFLUSH);
+      return true;
     }
 
     DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
@@ -799,7 +815,8 @@ bool set_ieqpro_custom_track_rate(int fd, double rate)
       response[nbytes_read] = '\0';
       DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
-     return true;
+      tcflush(fd, TCIFLUSH);
+      return true;
     }
 
     DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
@@ -848,7 +865,8 @@ bool set_ieqpro_guide_rate(int fd, double rate)
       response[nbytes_read] = '\0';
       DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
-     return true;
+      tcflush(fd, TCIFLUSH);
+      return true;
     }
 
     DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
@@ -898,6 +916,7 @@ bool get_ieqpro_guide_rate(int fd, double *rate)
       if (sscanf(response, "%d#", &rate_num) > 0)
       {
           *rate = rate_num / 100.0;
+          tcflush(fd, TCIFLUSH);
           return true;
       }
       else
@@ -957,6 +976,7 @@ bool start_ieqpro_guide(int fd,  IEQ_DIRECTION dir, int ms)
         }
     }
 
+    tcflush(fd, TCIFLUSH);
     return true;
 
 }
@@ -974,6 +994,7 @@ bool park_ieqpro(int fd)
 
     if (ieqpro_simulation)
     {
+        set_sim_system_status(ST_SLEWING);
         strcpy(response, "1");
         nbytes_read = strlen(response);
     }
@@ -1000,7 +1021,10 @@ bool park_ieqpro(int fd)
       DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       if (!strcmp(response, "1"))
+      {
+          tcflush(fd, TCIFLUSH);
           return true;
+      }
       else
       {
           DEBUGDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "Error: Requested parking position is below horizon.");
@@ -1026,6 +1050,7 @@ bool unpark_ieqpro(int fd)
 
     if (ieqpro_simulation)
     {
+        set_sim_system_status(ST_STOPPED);
         strcpy(response, "1");
         nbytes_read = strlen(response);
     }
@@ -1051,6 +1076,7 @@ bool unpark_ieqpro(int fd)
       response[nbytes_read] = '\0';
       DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
+      tcflush(fd, TCIFLUSH);
       return true;
     }
 
@@ -1097,6 +1123,7 @@ bool abort_ieqpro(int fd)
       response[nbytes_read] = '\0';
       DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
+      tcflush(fd, TCIFLUSH);
       return true;
     }
 
@@ -1144,10 +1171,14 @@ bool slew_ieqpro(int fd)
       DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       if (!strcmp(response, "1"))
+      {
+          tcflush(fd, TCIFLUSH);
           return true;
+      }
       else
       {
           DEBUGDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "Requested object is below horizon.");
+          tcflush(fd, TCIFLUSH);
           return false;
       }
 
@@ -1195,6 +1226,7 @@ bool sync_ieqpro(int fd)
       response[nbytes_read] = '\0';
       DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
+      tcflush(fd, TCIFLUSH);
       return true;
     }
 
@@ -1246,6 +1278,7 @@ bool set_ieqpro_ra(int fd, double ra)
       response[nbytes_read] = '\0';
       DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
+      tcflush(fd, TCIFLUSH);
       return true;
     }
 
@@ -1300,6 +1333,7 @@ bool set_ieqpro_dec(int fd, double dec)
       response[nbytes_read] = '\0';
       DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
+      tcflush(fd, TCIFLUSH);
       return true;
     }
 
@@ -1358,6 +1392,7 @@ bool set_ieqpro_longitude(int fd, double longitude)
       response[nbytes_read] = '\0';
       DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
+      tcflush(fd, TCIFLUSH);
       return true;
     }
 
@@ -1412,6 +1447,7 @@ bool set_ieqpro_latitude(int fd, double latitude)
       response[nbytes_read] = '\0';
       DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
+      tcflush(fd, TCIFLUSH);
       return true;
     }
 
@@ -1459,6 +1495,7 @@ bool set_ieqpro_local_date(int fd, int yy, int mm, int dd)
       response[nbytes_read] = '\0';
       DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
+      tcflush(fd, TCIFLUSH);
       return true;
     }
 
@@ -1506,6 +1543,7 @@ bool set_ieqpro_local_time(int fd, int hh, int mm, int ss)
       response[nbytes_read] = '\0';
       DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
+      tcflush(fd, TCIFLUSH);
       return true;
     }
 
@@ -1556,6 +1594,7 @@ bool set_ieqpro_daylight_saving(int fd, bool enabled)
       response[nbytes_read] = '\0';
       DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
+      tcflush(fd, TCIFLUSH);
       return true;
     }
 
@@ -1611,6 +1650,7 @@ bool set_ieqpro_utc_offset(int fd, double offset)
       response[nbytes_read] = '\0';
       DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
+      tcflush(fd, TCIFLUSH);
       return true;
     }
 
@@ -1656,7 +1696,7 @@ bool get_ieqpro_coords(int fd, double *ra, double *dec)
             return false;
         }
 
-        if ( (errcode = tty_read(fd, response, 1, IEQPRO_TIMEOUT, &nbytes_read)))
+        if ( (errcode = tty_read_section(fd, response, '#', IEQPRO_TIMEOUT, &nbytes_read)))
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -1666,6 +1706,7 @@ bool get_ieqpro_coords(int fd, double *ra, double *dec)
 
     if (nbytes_read > 0)
     {
+      tcflush(fd, TCIFLUSH);
       response[nbytes_read] = '\0';
       DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_EXTRA_1, "RES (%s)", response);
 

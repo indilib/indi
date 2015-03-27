@@ -70,6 +70,10 @@ protected:
  virtual void debugTriggered(bool enable);
  virtual void simulationTriggered(bool enable);
 
+  // Parking
+  virtual void SetCurrentPark();
+  virtual void SetDefaultPark();
+
  // Sim
  void mountSim();
 
@@ -101,10 +105,6 @@ private:
  /* Firmware */
  IText   FirmwareT[5];
  ITextVectorProperty FirmwareTP;
-
- /* Park Coords */
- INumber ParkN[2];
- INumberVectorProperty ParkNP;
 
  /* Slew Rate */
  ISwitchVectorProperty SlewRateSP;

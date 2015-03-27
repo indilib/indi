@@ -63,7 +63,6 @@ public:
     ln_hrz_posn lnaltaz;
     bool forceMeridianFlip;
     unsigned int DBG_SCOPE;
-    bool Parked;
 
     double guiderEWTarget[2];
     double guiderNSTarget[2];

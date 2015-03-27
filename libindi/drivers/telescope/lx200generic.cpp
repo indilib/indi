@@ -430,10 +430,7 @@ bool LX200Generic::ReadScopeStatus()
     {
         if(isSlewComplete(PortFD) == 0)
         {
-            TrackState=SCOPE_PARKED;
-            ParkSP.s=IPS_OK;
-            IDSetSwitch(&ParkSP,NULL);
-            IDMessage(getDeviceName(),"Telescope is Parked.");
+            SetParked(true);
         }
     }
 
@@ -451,11 +448,6 @@ bool LX200Generic::ReadScopeStatus()
 
 bool LX200Generic::Goto(double r,double d)
 {
-    if (TrackState == SCOPE_PARKED)
-    {
-        DEBUG(INDI::Logger::DBG_ERROR, "Please unpark the mount before issuing any motion commands.");
-        return false;
-    }
 
     targetRA=r;
     targetDEC=d;
@@ -513,7 +505,6 @@ bool LX200Generic::Goto(double r,double d)
         }
     }
 
-    //Parked=false;
     TrackState = SCOPE_SLEWING;
     EqNP.s    = IPS_BUSY;
 
@@ -524,12 +515,6 @@ bool LX200Generic::Goto(double r,double d)
 bool LX200Generic::Sync(double ra, double dec)
 {
     char syncString[256];
-
-    if (TrackState == SCOPE_PARKED)
-    {
-        DEBUG(INDI::Logger::DBG_ERROR, "Please unpark the mount before issuing any motion commands.");
-        return false;
-    }
 
     if (isSimulation() == false &&
             (setObjectRA(PortFD, ra) < 0 || (setObjectDEC(PortFD, dec)) < 0))
@@ -549,10 +534,7 @@ bool LX200Generic::Sync(double ra, double dec)
     currentRA  = ra;
     currentDEC = dec;
 
-    if (isDebug())
-        IDLog("Synchronization successful %s\n", syncString);
-
-    IDMessage(getDeviceName(), "Synchronization successful.");
+    DEBUG(INDI::Logger::DBG_SESSION, "Synchronization successful.");
 
     TrackState = SCOPE_IDLE;
     EqNP.s    = IPS_OK;
@@ -605,8 +587,7 @@ bool LX200Generic::Park()
 
     }
 
-    ParkSP.s = IPS_OK;
-    //Parked=true;
+    ParkSP.s = IPS_BUSY;
     TrackState = SCOPE_PARKING;
     IDMessage(getDeviceName(), "Parking telescope in progress...");
     return true;
@@ -614,12 +595,6 @@ bool LX200Generic::Park()
 
 bool LX200Generic::MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command)
 {
-    if (TrackState == SCOPE_PARKED)
-    {
-        DEBUG(INDI::Logger::DBG_ERROR, "Please unpark the mount before issuing any motion commands.");
-        return false;
-    }
-
     int current_move = (dir == MOTION_NORTH) ? LX200_NORTH : LX200_SOUTH;
 
     switch (command)
@@ -650,13 +625,6 @@ bool LX200Generic::MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command)
 
 bool LX200Generic::MoveWE(TelescopeMotionWE dir, TelescopeMotionCommand command)
 {
-
-    if (TrackState == SCOPE_PARKED)
-    {
-        DEBUG(INDI::Logger::DBG_ERROR, "Please unpark the mount before issuing any motion commands.");
-        return false;
-    }
-
     int current_move = (dir == MOTION_WEST) ? LX200_WEST : LX200_EAST;
 
     switch (command)

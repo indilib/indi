@@ -96,7 +96,6 @@ ScopeSim::ScopeSim()
     //ctor
     currentRA=0;
     currentDEC=90;
-    Parked=false;
 
     controller = new INDI::Controller(this);
     controller->setJoystickCallback(joystickHelper);
@@ -425,12 +424,8 @@ bool ScopeSim::ReadScopeStatus()
             }
             else
             {
-                TrackState = SCOPE_PARKED;
-                IUResetSwitch(&ParkSP);
-                ParkSP.s=IPS_OK;
-                IDSetSwitch(&ParkSP,NULL);
-                EqNP.s = IPS_IDLE;
-                DEBUG(INDI::Logger::DBG_SESSION,"Telescope parked successfully.");
+                SetParked(true);
+                EqNP.s = IPS_IDLE;                
             }
         }
 
@@ -548,12 +543,6 @@ bool ScopeSim::ReadScopeStatus()
 
 bool ScopeSim::Goto(double r,double d)
 {
-    if (TrackState == SCOPE_PARKED)
-    {
-        DEBUG(INDI::Logger::DBG_ERROR, "Please unpark the mount before issuing any motion commands.");
-        return false;
-    }
-
     targetRA=r;
     targetDEC=d;
     char RAStr[64], DecStr[64];
@@ -586,7 +575,6 @@ bool ScopeSim::Goto(double r,double d)
        }
    }
 
-   Parked=false;
    TrackState = SCOPE_SLEWING;
 
    EqNP.s    = IPS_BUSY;
@@ -597,11 +585,6 @@ bool ScopeSim::Goto(double r,double d)
 
 bool ScopeSim::Sync(double ra, double dec)
 {
-    if (TrackState == SCOPE_PARKED)
-    {
-        DEBUG(INDI::Logger::DBG_ERROR, "Please unpark the mount before issuing any motion commands.");
-        return false;
-    }
 
     currentRA  = ra;
     currentDEC = dec;
@@ -624,8 +607,7 @@ bool ScopeSim::Sync(double ra, double dec)
 bool ScopeSim::Park()
 {
     targetRA=0;
-    targetDEC=90;
-    Parked=true;
+    targetDEC=90;    
     TrackState = SCOPE_PARKING;
     DEBUG(INDI::Logger::DBG_SESSION,"Parking telescope in progress...");
     return true;
@@ -633,8 +615,7 @@ bool ScopeSim::Park()
 
 bool ScopeSim::UnPark()
 {
-    TrackState = SCOPE_TRACKING;
-    DEBUG(INDI::Logger::DBG_SESSION,"Telescope unparked.");
+    SetParked(false);
     return true;
 }
 

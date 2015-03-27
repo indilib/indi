@@ -366,11 +366,19 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
             }
             if ((ra>=0)&&(ra<=24)&&(dec>=-90)&&(dec<=90))
             {
-                //  we got an ra and a dec, both in range
-                //  And now we let the underlying hardware specific class
-                //  perform the goto
-                //  Ok, lets see if we should be doing a goto
-                //  or a sync
+                // Check if it is already parked.
+                if (capability.canPark)
+                {
+                    if (isParked())
+                    {
+                        DEBUG(INDI::Logger::DBG_WARNING, "Please unpark the mount before issuing any motion/sync commands.");
+                        EqNP.s = IPS_IDLE;
+                        IDSetNumber(&EqNP, NULL);
+                        return false;
+                    }
+                }
+
+                // Check if it can sync
                 if (capability.canSync)
                 {
                     ISwitch *sw;
@@ -387,9 +395,7 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
                     }
                 }
 
-                //  Ensure we are not showing Parked status
-                ParkSP.s=IPS_IDLE;
-                IUResetSwitch(&ParkSP);
+                // Issue GOTO
                 rc=Goto(ra,dec);
                 if (rc)
                     CoordSP .s = IPS_OK;
@@ -397,7 +403,6 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
                     CoordSP.s = IPS_ALERT;
                 IDSetSwitch(&CoordSP, NULL);
 
-                //  Ok, now we have to put our switches back
             }
             return rc;
         }
@@ -543,7 +548,19 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
         }
 
         if(strcmp(name,"TELESCOPE_MOTION_NS")==0)
-        {
+        {            
+            // Check if it is already parked.
+            if (capability.canPark)
+            {
+                if (isParked())
+                {
+                    DEBUG(INDI::Logger::DBG_WARNING, "Please unpark the mount before issuing any motion/sync commands.");
+                    MovementNSSP.s = IPS_IDLE;
+                    IDSetSwitch(&MovementNSSP, NULL);
+                    return false;
+                }
+            }
+
             IUUpdateSwitch(&MovementNSSP,states,names,n);
 
             int current_motion = IUFindOnSwitchIndex(&MovementNSSP);
@@ -586,6 +603,18 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
 
         if(strcmp(name,"TELESCOPE_MOTION_WE")==0)
         {
+            // Check if it is already parked.
+            if (capability.canPark)
+            {
+                if (isParked())
+                {
+                    DEBUG(INDI::Logger::DBG_WARNING, "Please unpark the mount before issuing any motion/sync commands.");
+                    MovementWESP.s = IPS_IDLE;
+                    IDSetSwitch(&MovementWESP, NULL);
+                    return false;
+                }
+            }
+
             IUUpdateSwitch(&MovementWESP,states,names,n);
 
             int current_motion = IUFindOnSwitchIndex(&MovementWESP);
@@ -880,15 +909,21 @@ void INDI::Telescope::SetParked(bool isparked)
   {
       ParkSP.s = IPS_OK;
       ParkS[0].s = ISS_ON;
+      TrackState = SCOPE_PARKED;
+      DEBUG(INDI::Logger::DBG_SESSION, "Mount is parked.");
   }
   else
   {
       ParkSP.s=IPS_IDLE;
       ParkS[1].s = ISS_ON;
+      TrackState = SCOPE_IDLE;
+      DEBUG(INDI::Logger::DBG_SESSION, "Mount is unparked.");
   }
 
   IDSetSwitch(&ParkSP, NULL);
-  WriteParkData();
+
+  if (parkDataType != PARK_NONE)
+    WriteParkData();
 }
 
 bool INDI::Telescope::isParked()
@@ -1049,9 +1084,9 @@ bool INDI::Telescope::WriteParkData()
 
   editXMLEle(ParkstatusXml, (IsParked?"true":"false"));
 
-  snprintf(pcdata, sizeof(pcdata), "%.0f", RAParkPosition);
+  snprintf(pcdata, sizeof(pcdata), "%g", RAParkPosition);
   editXMLEle(ParkpositionRAXml, pcdata);
-  snprintf(pcdata, sizeof(pcdata), "%.0f", DEParkPosition);
+  snprintf(pcdata, sizeof(pcdata), "%g", DEParkPosition);
   editXMLEle(ParkpositionDEXml, pcdata);
 
   prXMLEle(fp, ParkdataXmlRoot, 0);

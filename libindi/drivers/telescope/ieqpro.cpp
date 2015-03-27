@@ -143,11 +143,6 @@ bool IEQPro::initProperties()
     IUFillText(&FirmwareT[FW_DEC], "DEC", "", 0);
     IUFillTextVector(&FirmwareTP, FirmwareT, 5, getDeviceName(), "Firmware Info", "", MOUNTINFO_TAB, IP_RO, 0, IPS_IDLE);
 
-    /* Park Coords */
-    IUFillNumber(&ParkN[RA_AXIS],"RA_PARK","RA (hh:mm:ss)","%010.6m",0,24,0,currentRA);
-    IUFillNumber(&ParkN[DEC_AXIS],"DEC_PARK","DEC (dd:mm:ss)","%010.6m",-90,90,0,currentDEC);
-    IUFillNumberVector(&ParkNP, ParkN,2,getDeviceName(),"PARK_COORDS","Park Coords",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
-
     /* Slew Rate */
     IUFillSwitch(&SlewRateS[SR_1], "SLEW_GUIDE", "1x", ISS_OFF);
     IUFillSwitch(&SlewRateS[SR_2], "2x", "2x", ISS_OFF);
@@ -209,6 +204,8 @@ bool IEQPro::initProperties()
 
     setInterfaceDescriptor(getInterfaceDescriptor() | GUIDER_INTERFACE);
 
+    SetParkDataType(PARK_RA_DEC);
+
     addAuxControls();
 
     return true;
@@ -220,7 +217,6 @@ bool IEQPro::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&ParkNP);
         defineSwitch(&HomeSP);
 
         defineSwitch(&TrackModeSP);
@@ -240,7 +236,6 @@ bool IEQPro::updateProperties()
     }
     else
     {
-        deleteProperty(ParkNP.name);
         deleteProperty(HomeSP.name);
 
         deleteProperty(TrackModeSP.name);
@@ -281,6 +276,32 @@ void IEQPro::getStartupData()
     {
         GuideRateN[0].value = guideRate;
         IDSetNumber(&GuideRateNP, NULL);
+    }
+
+    double HA = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
+    double DEC = (HemisphereS[HEMI_NORTH].s == ISS_ON) ? 90 : -90;
+
+    if (InitPark())
+    {
+        // If loading parking data is successful, we just set the default parking values.
+        SetRAParkDefault(HA);
+        SetDEParkDefault(DEC);
+    }
+    else
+    {
+        // Otherwise, we set all parking data to default in case no parking data is found.
+        SetRAPark(HA);
+        SetDEPark(DEC);
+        SetRAParkDefault(HA);
+        SetDEParkDefault(DEC);
+    }
+
+    if (isSimulation())
+    {
+        if (isParked())
+            set_sim_system_status(ST_PARKED);
+        else
+            set_sim_system_status(ST_STOPPED);
     }
 }
 
@@ -335,34 +356,6 @@ bool IEQPro::ISNewNumber (const char *dev, const char *name, double values[], ch
 
             return true;
         }
-
-        // Custom Parking
-        if (!strcmp(name, ParkNP.name))
-        {
-           double ra=-1;
-           double dec=-100;
-
-           for (int x=0; x<n; x++)
-           {
-               INumber *eqp = IUFindNumber (&ParkNP, names[x]);
-               if (eqp == &ParkN[RA_AXIS])
-                   ra = values[x];
-               else if (eqp == &ParkN[DEC_AXIS])
-                   dec = values[x];
-           }
-
-           if ((ra>=0)&&(ra<=24)&&(dec>=-90)&&(dec<=90))
-           {
-               parkRA  = ra;
-               parkDEC = dec;
-               IUUpdateNumber(&ParkNP, values, names, n);
-               ParkNP.s = IPS_OK;
-           }
-           else
-               ParkNP.s = IPS_ALERT;
-
-           IDSetNumber(&ParkNP, NULL);
-       }
 
         if (!strcmp(name,GuideNSNP.name) || !strcmp(name,GuideWENP.name))
         {
@@ -566,6 +559,8 @@ bool IEQPro::ReadScopeStatus()
             case ST_PARKED:
                 TrackModeSP.s = IPS_IDLE;
                 TrackState = SCOPE_PARKED;
+                if (isParked() == false)
+                    SetParked(true);
                 break;
             case ST_HOME:
                 TrackModeSP.s = IPS_IDLE;
@@ -573,13 +568,18 @@ bool IEQPro::ReadScopeStatus()
                 break;
              case ST_SLEWING:
              case ST_MERIDIAN_FLIPPING:
-                TrackState = SCOPE_SLEWING;
+                if (TrackState != SCOPE_SLEWING && TrackState != SCOPE_PARKING)
+                    TrackState =  SCOPE_SLEWING;
                 break;
              case ST_TRACKING_PEC_OFF:
              case ST_TRACKING_PEC_ON:
              case ST_GUIDING:
                 TrackModeSP.s = IPS_BUSY;
                 TrackState = SCOPE_TRACKING;
+                if (scopeInfo.systemStatus == ST_SLEWING)
+                    DEBUG(INDI::Logger::DBG_SESSION, "Slew complete, tracking...");
+                else if (scopeInfo.systemStatus == ST_MERIDIAN_FLIPPING)
+                    DEBUG(INDI::Logger::DBG_SESSION, "Meridian flip complete, tracking...");
                 break;
         }
 
@@ -658,7 +658,9 @@ bool IEQPro::Abort()
 
 bool IEQPro::Park()
 {
-    if (set_ieqpro_ra(PortFD, ParkN[RA_AXIS].value) == false || set_ieqpro_dec(PortFD, ParkN[DEC_AXIS].value) == false)
+    targetRA  = GetRAPark();
+    targetDEC = GetDEPark();
+    if (set_ieqpro_ra(PortFD, targetRA) == false || set_ieqpro_dec(PortFD, targetDEC) == false)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting RA/DEC.");
         return false;
@@ -667,8 +669,8 @@ bool IEQPro::Park()
     if (park_ieqpro(PortFD))
     {
         char RAStr[64], DecStr[64];
-        fs_sexa(RAStr, ParkN[RA_AXIS].value, 2, 3600);
-        fs_sexa(DecStr, ParkN[DEC_AXIS].value, 2, 3600);
+        fs_sexa(RAStr, targetRA, 2, 3600);
+        fs_sexa(DecStr, targetDEC, 2, 3600);
 
         TrackState = SCOPE_PARKING;
         DEBUGF(INDI::Logger::DBG_SESSION, "Telescope parking in progress to RA: %s DEC: %s", RAStr, DecStr);
@@ -682,8 +684,8 @@ bool IEQPro::UnPark()
 {
     if (unpark_ieqpro(PortFD))
     {
+        SetParked(false);
         TrackState = SCOPE_IDLE;
-        DEBUG(INDI::Logger::DBG_SESSION, "Telescope Unparked.");
         return true;
     }
     else
@@ -1072,7 +1074,6 @@ bool IEQPro::saveConfigItems(FILE *fp)
 
     INDI::Telescope::saveConfigItems(fp);
 
-    IUSaveConfigNumber(fp, &ParkNP);
     IUSaveConfigNumber(fp, &CustomTrackRateNP);
 
     return true;
@@ -1112,6 +1113,7 @@ void IEQPro::mountSim ()
         break;
 
     case SCOPE_SLEWING:
+    case SCOPE_PARKING:
         /* slewing - nail it when both within one pulse @ SLEWRATE */
         nlocked = 0;
 
@@ -1131,6 +1133,11 @@ void IEQPro::mountSim ()
         else
             currentRA -= da/15.;
 
+        if (currentRA < 0)
+            currentRA += 24;
+        else if (currentRA > 24)
+            currentRA -= 24;
+
         dx = targetDEC - currentDEC;
         if (fabs(dx) <= da)
         {
@@ -1144,10 +1151,11 @@ void IEQPro::mountSim ()
 
         if (nlocked == 2)
         {
-             set_sim_system_status(ST_TRACKING_PEC_OFF);
-             TrackState = SCOPE_TRACKING;
+            if (TrackState == SCOPE_SLEWING)
+                set_sim_system_status(ST_TRACKING_PEC_OFF);
+            else
+                set_sim_system_status(ST_PARKED);
         }
-
 
         break;
 
@@ -1160,4 +1168,18 @@ void IEQPro::mountSim ()
 
 }
 
+void IEQPro::SetCurrentPark()
+{
+    SetRAPark(currentRA);
+    SetDEPark(currentDEC);
+}
 
+void IEQPro::SetDefaultPark()
+{
+    // By default set RA to HA
+    SetRAPark(ln_get_apparent_sidereal_time(ln_get_julian_from_sys()));
+
+    // Set DEC to 90 or -90 depending on the hemisphere
+    SetDEPark( (HemisphereS[HEMI_NORTH].s == ISS_ON) ? 90 : -90);
+
+}
