@@ -16,6 +16,7 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 #include <stdlib.h>
+#include <wordexp.h>
 
 #include "inditelescope.h"
 #include "indicom.h"
@@ -27,6 +28,9 @@ INDI::Telescope::Telescope()
     //ctor
     capability.canPark = capability.canSync = capability.canAbort = false;
     last_we_motion = last_ns_motion = -1;
+    parkDataType = PARK_NONE;
+    Parkdatafile= "~/.indi/ParkData.xml";
+    IsParked=false;
 }
 
 INDI::Telescope::~Telescope()
@@ -41,6 +45,24 @@ bool INDI::Telescope::initProperties()
     IUFillNumber(&EqN[0],"RA","RA (hh:mm:ss)","%010.6m",0,24,0,0);
     IUFillNumber(&EqN[1],"DEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,0);
     IUFillNumberVector(&EqNP,EqN,2,getDeviceName(),"EQUATORIAL_EOD_COORD","Eq. Coordinates",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
+
+    if (parkDataType == PARK_ENCODER)
+    {
+        IUFillNumber(&ParkPositionN[0],"PARK_RA" ,"RA Encoder","%.0f" ,0,16777215,1,0);
+        IUFillNumber(&ParkPositionN[1],"PARK_DEC","DEC Encoder","%.0f",0,16777215,1,0);
+    }
+    else
+    {
+        IUFillNumber(&ParkPositionN[0],"PARK_RA","RA (hh:mm:ss)","%010.6m",0,24,0,0);
+        IUFillNumber(&ParkPositionN[1],"PARK_DEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,0);
+    }
+
+    IUFillNumberVector(&ParkPositionNP,ParkPositionN,2,getDeviceName(),"TELESCOPE_PARK_POSITION","Park Position", SITE_TAB,IP_RW,60,IPS_IDLE);
+
+    IUFillSwitch(&ParkOptionS[0],"PARK_CURRENT","Current",ISS_OFF);
+    IUFillSwitch(&ParkOptionS[1],"PARK_DEFAULT","Default",ISS_OFF);
+    IUFillSwitch(&ParkOptionS[2],"PARK_WRITE_DATA","Write Data",ISS_OFF);
+    IUFillSwitchVector(&ParkOptionSP,ParkOptionS,3,getDeviceName(),"TELESCOPE_PARK_OPTION","Park Options", SITE_TAB,IP_RW,ISR_ATMOST1,60,IPS_IDLE);
 
     IUFillText(&TimeT[0],"UTC","UTC Time",NULL);
     IUFillText(&TimeT[1],"OFFSET","UTC Offset",NULL);
@@ -62,7 +84,7 @@ bool INDI::Telescope::initProperties()
 
     IUFillSwitch(&ParkS[0],"PARK","Park",ISS_OFF);
     IUFillSwitch(&ParkS[1],"UNPARK","UnPark",ISS_OFF);
-    IUFillSwitchVector(&ParkSP,ParkS,2,getDeviceName(),"TELESCOPE_PARK","Parking",MAIN_CONTROL_TAB,IP_RW,ISR_ATMOST1,60,IPS_IDLE);
+    IUFillSwitchVector(&ParkSP,ParkS,2,getDeviceName(),"TELESCOPE_PARK","Parking",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
     IUFillSwitch(&AbortS[0],"ABORT","Abort",ISS_OFF);
     IUFillSwitchVector(&AbortSP,AbortS,1,getDeviceName(),"TELESCOPE_ABORT_MOTION","Abort Motion",MAIN_CONTROL_TAB,IP_RW,ISR_ATMOST1,60,IPS_IDLE);
@@ -106,8 +128,16 @@ void INDI::Telescope::ISGetProperties (const char *dev)
         if (capability.canAbort)
             defineSwitch(&AbortSP);
         defineText(&TimeTP);
-        defineNumber(&LocationNP);
-        defineSwitch(&ParkSP);
+        defineNumber(&LocationNP);        
+        if (capability.canPark)
+        {
+            defineSwitch(&ParkSP);
+            if (parkDataType != PARK_NONE)
+            {
+                defineNumber(&ParkPositionNP);
+                defineSwitch(&ParkOptionSP);
+            }
+        }
         defineSwitch(&MovementNSSP);
         defineSwitch(&MovementWESP);
         defineNumber(&ScopeParametersNP);
@@ -131,7 +161,14 @@ bool INDI::Telescope::updateProperties()
         defineText(&TimeTP);
         defineNumber(&LocationNP);
         if (capability.canPark)
+        {
             defineSwitch(&ParkSP);
+            if (parkDataType != PARK_NONE)
+            {
+                defineNumber(&ParkPositionNP);
+                defineSwitch(&ParkOptionSP);
+            }
+        }
         defineNumber(&ScopeParametersNP);
 
     }
@@ -146,7 +183,14 @@ bool INDI::Telescope::updateProperties()
         deleteProperty(TimeTP.name);
         deleteProperty(LocationNP.name);
         if (capability.canPark)
+        {
             deleteProperty(ParkSP.name);
+            if (parkDataType != PARK_NONE)
+            {
+                deleteProperty(ParkPositionNP.name);
+                deleteProperty(ParkOptionSP.name);
+            }
+        }
         deleteProperty(ScopeParametersNP.name);
     }
 
@@ -399,6 +443,18 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
             return true;
         }
 
+      if(strcmp(name, ParkPositionNP.name) == 0)
+      {
+        IUUpdateNumber(&ParkPositionNP, values, names, n);
+        ParkPositionNP.s = IPS_OK;
+
+        RAParkPosition = ParkPositionN[0].value;
+        DEParkPosition = ParkPositionN[1].value;
+
+        IDSetNumber(&ParkPositionNP, NULL);
+        return true;
+      }
+
     }
 
     return DefaultDevice::ISNewNumber(dev,name,values,names,n);
@@ -434,6 +490,7 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
                 return true;
             }
 
+            int preIndex = IUFindOnSwitchIndex(&ParkSP);
             IUUpdateSwitch(&ParkSP, states, names, n);
 
             bool toPark = (ParkS[0].s == ISS_ON);
@@ -441,7 +498,8 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
             if (toPark == false && TrackState != SCOPE_PARKED)
             {
                 IUResetSwitch(&ParkSP);
-                ParkSP.s == IPS_IDLE;
+                ParkS[1].s = ISS_ON;
+                ParkSP.s = IPS_IDLE;
                 DEBUG(INDI::Logger::DBG_SESSION, "Telescope already unparked.");
                 IDSetSwitch(&ParkSP, NULL);
                 return true;
@@ -450,29 +508,33 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
             if (toPark && TrackState == SCOPE_PARKED)
             {
                 IUResetSwitch(&ParkSP);
-                ParkSP.s == IPS_IDLE;
+                ParkS[0].s = ISS_ON;
+                ParkSP.s = IPS_IDLE;
                 DEBUG(INDI::Logger::DBG_SESSION, "Telescope already parked.");
                 IDSetSwitch(&ParkSP, NULL);
                 return true;
             }
 
+            IUResetSwitch(&ParkSP);
             bool rc =  toPark ? Park() : UnPark();
             if (rc)
             {
                 if (TrackState == SCOPE_PARKING)
                 {
-                     ParkS[0].s = ISS_ON;
+                     ParkS[0].s = toPark ? ISS_ON : ISS_OFF;
+                     ParkS[1].s = toPark ? ISS_OFF : ISS_ON;
                      ParkSP.s = IPS_BUSY;
                 }
                 else
                 {
-                    IUResetSwitch(&ParkSP);
+                    ParkS[0].s = toPark ? ISS_ON : ISS_OFF;
+                    ParkS[1].s = toPark ? ISS_OFF : ISS_ON;
                     ParkSP.s = IPS_OK;
                 }
             }
             else
             {
-                IUResetSwitch(&ParkSP);
+                ParkS[preIndex].s = ISS_ON;
                 ParkSP.s = IPS_ALERT;
             }
 
@@ -613,6 +675,45 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
             return true;
         }
 
+      if (!strcmp(name, ParkOptionSP.name))
+      {
+        IUUpdateSwitch(&ParkOptionSP, states, names, n);
+        ISwitch *sp = IUFindOnSwitch(&ParkOptionSP);
+        if (!sp)
+          return false;
+
+        IUResetSwitch(&ParkOptionSP);
+
+        if (TrackState != SCOPE_IDLE)
+        {
+          DEBUG(INDI::Logger::DBG_SESSION, "Can not change park position while slewing/tracking or already parked...");
+          ParkOptionSP.s=IPS_ALERT;
+          IDSetSwitch(&ParkOptionSP, NULL);
+          return false;
+        }
+
+        if (!strcmp(sp->name, "PARK_CURRENT"))
+        {
+            SetCurrentPark();
+        }
+        else if (!strcmp(sp->name, "PARK_DEFAULT"))
+        {
+            SetDefaultPark();
+        }
+        else if (!strcmp(sp->name, "PARK_WRITE_DATA"))
+        {
+          if (WriteParkData())
+            DEBUG(INDI::Logger::DBG_SESSION, "Saved Park Status/Position.");
+          else
+            DEBUG(INDI::Logger::DBG_WARNING, "Can not save Park Status/Position");
+        }
+
+        ParkOptionSP.s = IPS_OK;
+        IDSetSwitch(&ParkOptionSP, NULL);
+
+        return true;
+      }
+
     }
 
     //  Nobody has claimed this, so, ignore it
@@ -716,6 +817,17 @@ bool  INDI::Telescope::UnPark()
     return false;
 }
 
+void INDI::Telescope::SetCurrentPark()
+{
+    DEBUG(INDI::Logger::DBG_WARNING, "Parking is not supported.");
+}
+
+void INDI::Telescope::SetDefaultPark()
+{
+    DEBUG(INDI::Logger::DBG_WARNING, "Parking is not supported.");
+}
+
+
 bool INDI::Telescope::updateTime(ln_date *utc, double utc_offset)
 {
     INDI_UNUSED(utc);
@@ -738,4 +850,253 @@ void INDI::Telescope::SetTelescopeCapability(TelescopeCapability *cap)
     capability.canPark      = cap->canPark;
     capability.canSync      = cap->canSync;
     capability.canAbort     = cap->canAbort;
+}
+
+void INDI::Telescope::SetParkDataType(TelescopeParkData type)
+{
+    parkDataType = type;
+
+    switch (type)
+    {
+        case PARK_NONE:
+            break;
+        case PARK_RA_DEC:
+        case PARK_HA_DEC:
+            IUFillNumber(&ParkPositionN[0],"PARK_RA","RA (hh:mm:ss)","%010.6m",0,24,0,0);
+            IUFillNumber(&ParkPositionN[1],"PARK_DEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,0);
+            break;
+        case PARK_ENCODER:
+            IUFillNumber(&ParkPositionN[0],"PARK_RA","RA Encoder","%.0f",0,16777215.0,1,0);
+            IUFillNumber(&ParkPositionN[1],"PARK_DEC","DEC Encoder","%.0f",0,16777215,1,0);
+            break;
+    }
+}
+
+void INDI::Telescope::SetParked(bool isparked)
+{
+  IsParked=isparked;
+  IUResetSwitch(&ParkSP);
+  if (IsParked)
+  {
+      ParkSP.s = IPS_OK;
+      ParkS[0].s = ISS_ON;
+  }
+  else
+  {
+      ParkSP.s=IPS_IDLE;
+      ParkS[1].s = ISS_ON;
+  }
+
+  IDSetSwitch(&ParkSP, NULL);
+  WriteParkData();
+}
+
+bool INDI::Telescope::isParked()
+{
+  return IsParked;
+}
+
+bool INDI::Telescope::InitPark()
+{
+  char *loadres;
+  loadres=LoadParkData();
+  if (loadres)
+  {
+    DEBUGF(INDI::Logger::DBG_SESSION, "InitPark: No Park data in file %s: %s", Parkdatafile, loadres);
+    SetParked(false);
+    return false;
+  }
+
+  if (isParked())
+  {
+    SetParked(true);
+    DEBUG(INDI::Logger::DBG_SESSION, "Mount is parked.");
+    TrackState = SCOPE_PARKED;
+  }
+  else
+  {
+    SetParked(false);
+    DEBUG(INDI::Logger::DBG_SESSION, "Mount is unparked.");
+    TrackState=SCOPE_IDLE;
+  }
+
+  ParkPositionN[0].value = RAParkPosition;
+  ParkPositionN[1].value = DEParkPosition;
+  IDSetNumber(&ParkPositionNP, NULL);
+
+  return true;
+}
+
+char *INDI::Telescope::LoadParkData()
+{
+  wordexp_t wexp;
+  FILE *fp;
+  LilXML *lp;
+  static char errmsg[512];
+
+  XMLEle *parkxml;
+  XMLAtt *ap;
+  bool devicefound=false;
+
+  ParkDeviceName = getDeviceName();
+  ParkstatusXml=NULL;
+  ParkdeviceXml=NULL;
+  ParkpositionXml = NULL;
+  ParkpositionRAXml = NULL;
+  ParkpositionDEXml = NULL;
+
+  if (wordexp(Parkdatafile, &wexp, 0))
+  {
+    wordfree(&wexp);
+    return (char *)("Badly formed filename");
+  }
+
+  if (!(fp=fopen(wexp.we_wordv[0], "r")))
+  {
+    wordfree(&wexp);
+    return strerror(errno);
+  }
+  wordfree(&wexp);
+
+ lp = newLilXML();
+
+ if (ParkdataXmlRoot)
+    delXMLEle(ParkdataXmlRoot);
+
+  ParkdataXmlRoot = readXMLFile(fp, lp, errmsg);
+
+  delLilXML(lp);
+  if (!ParkdataXmlRoot)
+      return errmsg;
+
+  if (!strcmp(tagXMLEle(nextXMLEle(ParkdataXmlRoot, 1)), "parkdata"))
+      return (char *)("Not a park data file");
+
+  parkxml=nextXMLEle(ParkdataXmlRoot, 1);
+
+  while (parkxml)
+  {
+    if (strcmp(tagXMLEle(parkxml), "device"))
+    {
+        parkxml=nextXMLEle(ParkdataXmlRoot, 0);
+        continue;
+    }
+    ap = findXMLAtt(parkxml, "name");
+    if (ap && (!strcmp(valuXMLAtt(ap), ParkDeviceName)))
+    {
+        devicefound = true;
+        break;
+    }
+    parkxml=nextXMLEle(ParkdataXmlRoot, 0);
+  }
+
+  if (!devicefound)
+      return (char *)"No park data found for this device";
+
+  ParkdeviceXml=parkxml;
+  ParkstatusXml = findXMLEle(parkxml, "parkstatus");
+  ParkpositionXml = findXMLEle(parkxml, "parkposition");
+  ParkpositionRAXml = findXMLEle(ParkpositionXml, "raposition");
+  ParkpositionDEXml = findXMLEle(ParkpositionXml, "deposition");
+  IsParked=false;
+
+  if (!strcmp(pcdataXMLEle(ParkstatusXml), "true"))
+      IsParked=true;
+
+  sscanf(pcdataXMLEle(ParkpositionRAXml), "%lf", &RAParkPosition);
+  sscanf(pcdataXMLEle(ParkpositionDEXml), "%lf", &DEParkPosition);
+
+  return NULL;
+}
+
+bool INDI::Telescope::WriteParkData()
+{
+  wordexp_t wexp;
+  FILE *fp;
+  char pcdata[30];
+
+  if (wordexp(Parkdatafile, &wexp, 0))
+  {
+    wordfree(&wexp);
+    DEBUGF(INDI::Logger::DBG_SESSION, "WriteParkData: can not write file %s: Badly formed filename.", Parkdatafile);
+    return false;
+  }
+
+  if (!(fp=fopen(wexp.we_wordv[0], "w")))
+  {
+    wordfree(&wexp);
+    DEBUGF(INDI::Logger::DBG_SESSION, "WriteParkData: can not write file %s: %s", Parkdatafile, strerror(errno));
+    return false;
+  }
+
+  if (!ParkdataXmlRoot)
+      ParkdataXmlRoot=addXMLEle(NULL, "parkdata");
+
+  if (!ParkdeviceXml)
+  {
+    ParkdeviceXml=addXMLEle(ParkdataXmlRoot, "device");
+    addXMLAtt(ParkdeviceXml, "name", ParkDeviceName);
+  }
+
+  if (!ParkstatusXml)
+      ParkstatusXml=addXMLEle(ParkdeviceXml, "parkstatus");
+  if (!ParkpositionXml)
+      ParkpositionXml=addXMLEle(ParkdeviceXml, "parkposition");
+  if (!ParkpositionRAXml)
+      ParkpositionRAXml=addXMLEle(ParkpositionXml, "raposition");
+  if (!ParkpositionDEXml)
+      ParkpositionDEXml=addXMLEle(ParkpositionXml, "deposition");
+
+  editXMLEle(ParkstatusXml, (IsParked?"true":"false"));
+
+  snprintf(pcdata, sizeof(pcdata), "%.0f", RAParkPosition);
+  editXMLEle(ParkpositionRAXml, pcdata);
+  snprintf(pcdata, sizeof(pcdata), "%.0f", DEParkPosition);
+  editXMLEle(ParkpositionDEXml, pcdata);
+
+  prXMLEle(fp, ParkdataXmlRoot, 0);
+  fclose(fp);
+
+  return true;
+}
+
+double INDI::Telescope::GetRAPark()
+{
+  return RAParkPosition;
+}
+double INDI::Telescope::GetRAParkDefault()
+{
+  return RADefaultParkPosition;
+}
+double INDI::Telescope::GetDEPark()
+{
+  return DEParkPosition;
+}
+double INDI::Telescope::GetDEParkDefault()
+{
+  return DEDefaultParkPosition;
+}
+
+void INDI::Telescope::SetRAPark(double value)
+{
+  RAParkPosition=value;
+  ParkPositionN[0].value = value;
+  IDSetNumber(&ParkPositionNP, NULL);
+}
+
+void INDI::Telescope::SetRAParkDefault(double value)
+{
+  RADefaultParkPosition=value;
+}
+
+void INDI::Telescope::SetDEPark(double value)
+{
+  DEParkPosition=value;
+  ParkPositionN[1].value = value;
+  IDSetNumber(&ParkPositionNP, NULL);
+}
+
+void INDI::Telescope::SetDEParkDefault(double value)
+{
+  DEDefaultParkPosition=value;
 }
