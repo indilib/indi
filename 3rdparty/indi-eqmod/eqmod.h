@@ -62,7 +62,6 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
     double targetRA;
     double targetDEC;
     TelescopeStatus RememberTrackState;
-    bool Parked;
     int last_motion_ns;
     int last_motion_ew;
 	
@@ -124,7 +123,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 	} GotoParams;
 
 	Hemisphere Hemisphere;
-	PierSide pierside;
+    PierSide pierside, lastPierSide;
 	bool RAInverted, DEInverted;
         GotoParams gotoparams;
 	SyncData syncdata, syncdata2;
@@ -202,6 +201,8 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
         bool Goto(double ra,double dec);
         bool Park();
         bool UnPark();
+        void SetCurrentPark();
+        void SetDefaultPark();
         bool Sync(double ra,double dec);
 
         bool updateTime(ln_date *lndate_utc, double utc_offset);

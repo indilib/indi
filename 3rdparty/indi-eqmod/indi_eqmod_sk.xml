@@ -245,25 +245,6 @@ Off
 Off
 </defSwitch>
 </defSwitchVector>
-<defNumberVector device="EQMod Mount" name="PARKPOSITION" label="Park Position" group="Site Management" state="Idle" perm="rw">
-<defNumber name="PARKRA" label="RA Encoder" format="%.0f" min="0.0" max="16777215.0" step="1.0">
-1.0
-</defNumber>
-<defNumber name="PARKDE" label="DE Encoder" format="%.0f" min="0.0" max="16777215.0" step="1.0">
-1.0
-</defNumber>
-</defNumberVector>
-<defSwitchVector device="EQMod Mount" name="PARKOPTION" label="Park Options" group="Site Management" state="Idle" perm="rw" rule="OneOfMany">
-<defSwitch name="PARKSETCURRENT" label="Current">
-Off
-</defSwitch>
-<defSwitch name="PARKSETDEFAULT" label="Default">
-Off
-</defSwitch>
-<defSwitch name="PARKWRITEDATA" label="Write data">
-Off
-</defSwitch>
-</defSwitchVector>
 <defNumberVector device="EQMod Mount" name="BACKLASH" label="Backlash" group="Options" state="Idle" perm="rw">
 <defNumber name="BACKLASHRA" label="RA Backlash (microsteps)" format="%.0f" min="10.0" max="16777215.0" step="1.0">
 1.0

@@ -76,7 +76,7 @@ public:
     void InquireBoardVersion(ITextVectorProperty *boardTP) throw (EQModError); 
     void InquireRAEncoderInfo(INumberVectorProperty *encoderNP) throw (EQModError); 
     void InquireDEEncoderInfo(INumberVectorProperty *encoderNP) throw (EQModError); 
-    void Init(ISwitchVectorProperty *parkSP) throw (EQModError);
+    void Init() throw (EQModError);
     void SlewRA(double rate) throw (EQModError);
     void SlewDE(double rate) throw (EQModError);
     void StopRA() throw (EQModError);
@@ -93,18 +93,8 @@ public:
     bool isSimulation();
     bool simulation;
 #endif
-    // Park 
-    unsigned long GetRAEncoderPark();
-    unsigned long GetRAEncoderParkDefault();
-    unsigned long GetDEEncoderPark();
-    unsigned long GetDEEncoderParkDefault();
-    unsigned long SetRAEncoderPark(unsigned long steps);
-    unsigned long SetRAEncoderParkDefault(unsigned long steps);
-    unsigned long SetDEEncoderPark(unsigned long steps);
-    unsigned long SetDEEncoderParkDefault(unsigned long steps);
-    void SetParked(bool parked);
-    bool isParked();
-    bool WriteParkData();
+
+
     // Backlash
     void SetBacklashRA(unsigned long backlash);
     void SetBacklashUseRA(bool usebacklash);
@@ -222,19 +212,6 @@ public:
     const char *deviceName;
     bool debugnextread;
     EQMod *telescope;
-
-    //Park
-    void initPark();
-    char *LoadParkData(const char *filename);
-    char *WriteParkData(const char *filename);
-    unsigned long RAParkPosition;
-    unsigned long RADefaultParkPosition;
-    unsigned long DEParkPosition;
-    unsigned long DEDefaultParkPosition;
-    bool parked;
-    const char *ParkDeviceName;
-    const char * Parkdatafile;
-    XMLEle *ParkdataXmlRoot, *ParkdeviceXml, *ParkstatusXml, *ParkpositionXml, *ParkpositionRAXml, *ParkpositionDEXml;
 
     // Backlash
     unsigned long Backlash[NUMBER_OF_SKYWATCHERAXIS];
