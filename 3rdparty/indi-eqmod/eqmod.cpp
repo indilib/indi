@@ -1247,7 +1247,6 @@ bool EQMod::Park()
     return true;
   }
 
-  DEBUG(INDI::Logger::DBG_ERROR, "Telescope already parked.");
   return false;
 }
 
@@ -1255,7 +1254,6 @@ bool EQMod::UnPark()
 {    
     SetParked(false);
     TrackState = SCOPE_IDLE;    
-    DEBUG(INDI::Logger::DBG_SESSION, "Telescope unparked.");
     return true;
 }
 
