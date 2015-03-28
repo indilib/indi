@@ -54,6 +54,7 @@ class INDI::Telescope : public INDI::DefaultDevice
         enum TelescopeSlewRate  { SLEW_GUIDE, SLEW_CENTERING, SLEW_FIND, SLEW_MAX };
         enum TelescopeTrackMode  { TRACK_SIDEREAL, TRACK_SOLAR, TRACK_LUNAR, TRACK_CUSTOM };
         enum TelescopeParkData  { PARK_NONE, PARK_RA_DEC, PARK_HA_DEC, PARK_ENCODER };
+        enum TelescopeLocation { LOCATION_LATITUDE, LOCATION_LONGITUDE, LOCATION_ELEVATION };
 
         /** \struct TelescopeCapability
             \brief Holds the capabilities of a telescope.
