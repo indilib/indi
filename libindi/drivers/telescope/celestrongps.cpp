@@ -98,7 +98,7 @@ CelestronGPS::CelestronGPS()
 
    TelescopeCapability cap;
 
-   cap.canPark  = false;
+   cap.canPark  = true;
    cap.canSync  = true;
    cap.canAbort = true;
    SetTelescopeCapability(&cap);
@@ -129,6 +129,8 @@ bool CelestronGPS::initProperties()
 
     controller->initProperties();
 
+    SetParkDataType(PARK_RA_DEC);
+
     addAuxControls();
 
     return true;
@@ -154,7 +156,24 @@ bool CelestronGPS::updateProperties()
     if (isConnected())
     {
         defineSwitch(&SlewModeSP);
-        loadConfig(true);
+
+        double HA = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
+        double DEC = (LocationN[LOCATION_LATITUDE].value > 0) ? 90 : -90;
+
+        if (InitPark())
+        {
+            // If loading parking data is successful, we just set the default parking values.
+            SetRAParkDefault(HA);
+            SetDEParkDefault(DEC);
+        }
+        else
+        {
+            // Otherwise, we set all parking data to default in case no parking data is found.
+            SetRAPark(HA);
+            SetDEPark(DEC);
+            SetRAParkDefault(HA);
+            SetDEParkDefault(DEC);
+        }
     }
     else
         deleteProperty(SlewModeSP.name);
@@ -337,15 +356,20 @@ bool CelestronGPS::ReadScopeStatus()
         // are we done?
         if (isScopeSlewing() == 0)
         {
-            IDMessage(getDeviceName(), "Slew complete, tracking...");
+            DEBUG(INDI::Logger::DBG_SESSION, "Slew complete, tracking...");
             TrackState = SCOPE_TRACKING;
         }
+        break;
+
+       case SCOPE_PARKING:
+        // are we done?
+        if (isScopeSlewing() == 0)
+            SetParked(true);
         break;
 
     default:
         break;
     }
-
 
     currentRA = GetRA();
     currentDEC = GetDec();
@@ -453,10 +477,15 @@ void CelestronGPS::mountSim ()
         break;
 
     case SCOPE_SLEWING:
+    case SCOPE_PARKING:
         /* slewing - nail it when both within one pulse @ SLEWRATE */
         nlocked = 0;
 
         dx = targetRA - currentRA;
+
+        // Take shortest path
+        if (fabs(dx) > 12)
+            dx *= -1;
 
         if (fabs(dx) <= da)
         {
@@ -467,6 +496,11 @@ void CelestronGPS::mountSim ()
             currentRA += da/15.;
         else
             currentRA -= da/15.;
+
+        if (currentRA < 0)
+            currentRA += 24;
+        else if (currentRA > 24)
+            currentRA -= 24;
 
         dx = targetDEC - currentDEC;
         if (fabs(dx) <= da)
@@ -481,10 +515,16 @@ void CelestronGPS::mountSim ()
 
         if (nlocked == 2)
         {
-            IDMessage(getDeviceName(), "Simulated telescope slew is complete, tracking...");
-             TrackState = SCOPE_TRACKING;
+            if (TrackState == SCOPE_SLEWING)
+            {
+                DEBUG(INDI::Logger::DBG_SESSION, "Slew complete, tracking...");
+                TrackState = SCOPE_TRACKING;
+            }
+            else
+            {
+                 SetParked(true);
+            }
         }
-
 
         break;
 
@@ -493,8 +533,6 @@ void CelestronGPS::mountSim ()
     }
 
     NewRaDec(currentRA, currentDEC);
-
-
 }
 
 void CelestronGPS::slewError(int slewCode)
@@ -668,6 +706,45 @@ bool CelestronGPS::updateTime(ln_date *utc, double utc_offset)
         return true;
 
     return (::updateTime(utc, utc_offset) == 0);
+}
+
+bool CelestronGPS::Park()
+{
+    if (Goto(GetRAPark(), GetDEPark()))
+    {
+        TrackState = SCOPE_PARKING;
+        DEBUG(INDI::Logger::DBG_SESSION, "Parking is in progress...");
+        return true;
+    }
+    else
+        return false;
+}
+
+bool CelestronGPS::UnPark()
+{
+    if (Sync(GetRAPark(), GetDEPark()))
+    {
+        SetParked(false);
+        return true;
+    }
+    else
+        return false;
+
+}
+
+void CelestronGPS::SetCurrentPark()
+{
+    SetRAPark(currentRA);
+    SetDEPark(currentDEC);
+}
+
+void CelestronGPS::SetDefaultPark()
+{
+    // By default set RA to HA
+    SetRAPark(ln_get_apparent_sidereal_time(ln_get_julian_from_sys()));
+
+    // Set DEC to 90 or -90 depending on the hemisphere
+    SetDEPark( (LocationN[LOCATION_LATITUDE].value > 0) ? 90 : -90);
 }
 
 void CelestronGPS::processJoystick(const char * joystick_n, double mag, double angle)

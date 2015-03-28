@@ -51,21 +51,29 @@ class CelestronGPS : public INDI::Telescope
 
 protected:
 
+ // Goto, Sync, and Motion
+ bool Goto(double ra,double dec);
+ bool Sync(double ra, double dec);
  virtual bool MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command);
  virtual bool MoveWE(TelescopeMotionWE dir, TelescopeMotionCommand command);
  virtual bool Abort();
 
+ // Time and Location
  virtual bool updateLocation(double latitude, double longitude, double elevation);
  virtual bool updateTime(ln_date *utc, double utc_offset);
 
- virtual bool saveConfigItems(FILE *fp);
+ // Parking
+ virtual bool Park();
+ virtual bool UnPark();
+ virtual void SetCurrentPark();
+ virtual void SetDefaultPark();
 
- bool Goto(double ra,double dec);
- bool Sync(double ra, double dec);
+ virtual bool saveConfigItems(FILE *fp);
 
  void slewError(int slewCode);
  void mountSim();
 
+ // Joystick
  void processNSWE(double mag, double angle);
  void processJoystick(const char * joystick_n, double mag, double angle);
  void processButton(const char * button_n, ISState state);
