@@ -1084,9 +1084,9 @@ bool INDI::Telescope::WriteParkData()
 
   editXMLEle(ParkstatusXml, (IsParked?"true":"false"));
 
-  snprintf(pcdata, sizeof(pcdata), "%g", RAParkPosition);
+  snprintf(pcdata, sizeof(pcdata), "%f", RAParkPosition);
   editXMLEle(ParkpositionRAXml, pcdata);
-  snprintf(pcdata, sizeof(pcdata), "%g", DEParkPosition);
+  snprintf(pcdata, sizeof(pcdata), "%f", DEParkPosition);
   editXMLEle(ParkpositionDEXml, pcdata);
 
   prXMLEle(fp, ParkdataXmlRoot, 0);
