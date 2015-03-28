@@ -780,7 +780,7 @@ bool IEQPro::updateLocation(double latitude, double longitude, double elevation)
         return false;
     }
 
-    if (set_ieqpro_longitude(PortFD, latitude) == false)
+    if (set_ieqpro_latitude(PortFD, latitude) == false)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Failed to set longitude.");
         return false;

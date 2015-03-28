@@ -1660,7 +1660,7 @@ bool set_ieqpro_utc_offset(int fd, double offset)
 
 bool get_ieqpro_coords(int fd, double *ra, double *dec)
 {
-    char cmd[] = ":GLT#";
+    char cmd[] = ":GEC#";
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[32];
