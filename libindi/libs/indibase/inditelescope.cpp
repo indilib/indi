@@ -713,9 +713,9 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
 
         IUResetSwitch(&ParkOptionSP);
 
-        if (TrackState != SCOPE_IDLE)
+        if ( (TrackState != SCOPE_IDLE && TrackState != SCOPE_TRACKING) || MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
         {
-          DEBUG(INDI::Logger::DBG_SESSION, "Can not change park position while slewing/tracking or already parked...");
+          DEBUG(INDI::Logger::DBG_SESSION, "Can not change park position while slewing or already parked...");
           ParkOptionSP.s=IPS_ALERT;
           IDSetSwitch(&ParkOptionSP, NULL);
           return false;
@@ -734,7 +734,7 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
           if (WriteParkData())
             DEBUG(INDI::Logger::DBG_SESSION, "Saved Park Status/Position.");
           else
-            DEBUG(INDI::Logger::DBG_WARNING, "Can not save Park Status/Position");
+            DEBUG(INDI::Logger::DBG_WARNING, "Can not save Park Status/Position.");
         }
 
         ParkOptionSP.s = IPS_OK;
