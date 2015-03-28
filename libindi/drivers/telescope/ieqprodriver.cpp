@@ -1243,10 +1243,10 @@ bool set_ieqpro_ra(int fd, double ra)
     int nbytes_read=0;
     int nbytes_written=0;
 
-    int h, m,s;
-    getSexComponents(ra, &h, &m,&s);
+    // Send as 0.01 arcseconds resolution
+    int ieqValue = ra * 60 * 60 * 100;
 
-    snprintf(cmd, 32, ":Sr%02d:%02d:%02d#", h, m, s);
+    snprintf(cmd, 32, ":Sr%08d#", ieqValue);
 
     DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
@@ -1295,13 +1295,10 @@ bool set_ieqpro_dec(int fd, double dec)
     int nbytes_read=0;
     int nbytes_written=0;
 
-    int d, m, s;
-    getSexComponents(dec, &d, &m, &s);
+    // Send as 0.01 arcseconds resolution
+    int ieqValue = dec * 60 * 60 * 3600;
 
-    if (!d && dec < 0)
-        snprintf(cmd, 32, "#:Sd-%02d:%02d:%02d#", d, m, s);
-    else
-        snprintf(cmd, 32, "#:Sd%+03d:%02d:%02d#", d, m, s);
+    snprintf(cmd, 32, "#:Sd%09d#", ieqValue);
 
     DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
@@ -1671,18 +1668,20 @@ bool get_ieqpro_coords(int fd, double *ra, double *dec)
 
     if (ieqpro_simulation)
     {
-        int h, d, m, s;
         char ra_str[16], dec_str[16];
 
-        getSexComponents(simData.dec, &d, &m, &s);
-        if (!d && dec < 0)
-            snprintf(dec_str, 16, "-%02d:%02d:%02d", d, m, s);
+        char sign;
+        if (simData.dec >= 0)
+            sign = '+';
         else
-            snprintf(dec_str, 16, "%+03d:%02d:%02d", d, m, s);
+            sign = '-';
 
-        getSexComponents(simData.ra, &h, &m,&s);
+        int ieqDEC = fabs(simData.dec) * 60 * 60 * 100;
 
-        snprintf(ra_str, 16, "%02d:%02d:%02d", h, m, s);
+        snprintf(dec_str, 16, "%c%08d", sign, ieqDEC);
+
+        int ieqRA = simData.ra * 60 * 60 * 100;
+        snprintf(ra_str, 16, "%08d", ieqRA);
 
         snprintf(response, 32, "%s%s#", dec_str, ra_str);
         nbytes_read = strlen(response);
@@ -1715,19 +1714,13 @@ bool get_ieqpro_coords(int fd, double *ra, double *dec)
       strncpy(dec_str, response, 9);
       strncpy(ra_str, response+9, 8);
 
-      if (f_scansexa(dec_str, dec ) < 0)
-      {
-          DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "Error processing declination input (%s)", dec_str);
-          return false;
-      }
+      int ieqDEC = atoi(dec_str);
+      int ieqRA  = atoi(ra_str);
 
-      if (f_scansexa(ra_str, ra ) < 0)
-      {
-          DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "Error processing right ascension input (%s)", ra_str);
-          return false;
-      }
+      *ra  = ieqRA  / (60.0 * 60.0 * 100.0);
+      *dec = ieqDEC / (60.0 * 60.0 * 100.0);
 
-      return true;
+       return true;
     }
 
     DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
