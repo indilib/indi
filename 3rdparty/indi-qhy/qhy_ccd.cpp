@@ -27,14 +27,11 @@
 #include <sys/time.h>
 
 #include "qhy_ccd.h"
-
 #include "qhy_fw.h"
 
 #include "config.h"
 
 #define POLLMS                  1000        /* Polling time (ms) */
-#define TEMPERATURE_POLL_MS     20000        /* Temperature Polling time (ms) if temperature is IDLE/OK */
-#define TEMPERATURE_BUSY_MS     1000        /* Temperature Polling time (ms) if temperature is BUSY */
 #define TEMP_THRESHOLD          0.2         /* Differential temperature threshold (C)*/
 #define MINIMUM_CCD_EXPOSURE    0.001       /* 0.001 seconds minimum exposure */
 #define MAX_DEVICES             4           /* Max device cameraCount */
@@ -309,7 +306,7 @@ bool QHYCCD::updateProperties()
           defineSwitch(&CoolerSP);
           defineNumber(&CoolerNP);
 
-          temperatureID = IEAddTimer(TEMPERATURE_BUSY_MS, QHYCCD::updateTemperatureHelper, this);
+          temperatureID = IEAddTimer(POLLMS, QHYCCD::updateTemperatureHelper, this);
       }
 
       if(HasUSBSpeed)
