@@ -1243,8 +1243,8 @@ bool set_ieqpro_ra(int fd, double ra)
     int nbytes_read=0;
     int nbytes_written=0;
 
-    // Send as 0.01 arcseconds resolution
-    int ieqValue = ra * 60 * 60 * 100;
+    // Send as milliseconds resolution
+    int ieqValue = ra * 60 * 60 * 1000;
 
     snprintf(cmd, 32, ":Sr%08d#", ieqValue);
 
@@ -1289,16 +1289,22 @@ bool set_ieqpro_ra(int fd, double ra)
 bool set_ieqpro_dec(int fd, double dec)
 {
     char cmd[32];
+    char sign;
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[8];
     int nbytes_read=0;
     int nbytes_written=0;
 
-    // Send as 0.01 arcseconds resolution
-    int ieqValue = dec * 60 * 60 * 3600;
+    if (dec >= 0)
+        sign = '+';
+    else
+        sign = '-';
 
-    snprintf(cmd, 32, "#:Sd%09d#", ieqValue);
+    // Send as 0.01 arcseconds resolution
+    int ieqValue = fabs(dec) * 60 * 60 * 100;
+
+    snprintf(cmd, 32, ":Sd%c%08d#", sign, ieqValue);
 
     DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
@@ -1348,17 +1354,13 @@ bool set_ieqpro_longitude(int fd, double longitude)
     int nbytes_read=0;
     int nbytes_written=0;
 
-    if (longitude > 0)
+    if (longitude >= 0)
         sign = '+';
     else
         sign = '-';
 
-    if (fabs(longitude) < 100)
-        snprintf(cmd, 16, ":Sg%c0%.2f#", sign, fabs(longitude));
-    else if (fabs(longitude) < 10)
-        snprintf(cmd, 16, ":Sg%c00%.2f#", sign, fabs(longitude));
-    else
-        snprintf(cmd, 16, ":Sg%c%.2f#", sign, fabs(longitude));
+    int longitude_arcsecs = fabs(longitude) * 60 * 60;
+    snprintf(cmd, 16, ":Sg%c%06d#", sign, longitude_arcsecs);
 
     DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
@@ -1408,12 +1410,13 @@ bool set_ieqpro_latitude(int fd, double latitude)
     int nbytes_read=0;
     int nbytes_written=0;
 
-    if (latitude > 0)
+    if (latitude >= 0)
         sign = '+';
     else
         sign = '-';
 
-    snprintf(cmd, 16, ":St%c%.2f#", sign, fabs(latitude));
+    int latitude_arcsecs = fabs(latitude) * 60 * 60;
+    snprintf(cmd, 16, ":St%c%06d#", sign, latitude_arcsecs);
 
     DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
@@ -1609,7 +1612,7 @@ bool set_ieqpro_utc_offset(int fd, double offset)
     int nbytes_read=0;
     int nbytes_written=0;
 
-    if (offset > 0)
+    if (offset >= 0)
         sign = '+';
     else
         sign = '-';
@@ -1680,7 +1683,7 @@ bool get_ieqpro_coords(int fd, double *ra, double *dec)
 
         snprintf(dec_str, 16, "%c%08d", sign, ieqDEC);
 
-        int ieqRA = simData.ra * 60 * 60 * 100;
+        int ieqRA = simData.ra * 60 * 60 * 1000;
         snprintf(ra_str, 16, "%08d", ieqRA);
 
         snprintf(response, 32, "%s%s#", dec_str, ra_str);
@@ -1717,7 +1720,7 @@ bool get_ieqpro_coords(int fd, double *ra, double *dec)
       int ieqDEC = atoi(dec_str);
       int ieqRA  = atoi(ra_str);
 
-      *ra  = ieqRA  / (60.0 * 60.0 * 100.0);
+      *ra  = ieqRA  / (60.0 * 60.0 * 1000.0);
       *dec = ieqDEC / (60.0 * 60.0 * 100.0);
 
        return true;
