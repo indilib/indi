@@ -784,7 +784,7 @@ bool set_ieqpro_custom_track_rate(int fd, double rate)
     else
         sign = '+';
 
-    snprintf(cmd, 16, ":RR%c0%6.4f#", sign, fabs(rate ));
+    snprintf(cmd, 16, ":RR%c%07.4f#", sign, fabs(rate ));
 
     DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
