@@ -1731,3 +1731,68 @@ bool get_ieqpro_coords(int fd, double *ra, double *dec)
 
 }
 
+bool get_ieqpro_utc_date_time(int fd, double *utc_hours, int *yy, int *mm, int *dd, int *hh, int *minute, int *ss)
+{
+    char cmd[] = ":GLT#";
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[32];
+    int nbytes_read=0;
+    int nbytes_written=0;
+
+    DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
+    if (ieqpro_simulation)
+    {
+        strncpy(response, "+180150331173000#" , 32);
+        nbytes_read = strlen(response);
+    }
+    else
+    {
+        if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+
+        if ( (errcode = tty_read_section(fd, response, '#', IEQPRO_TIMEOUT, &nbytes_read)))
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+    }
+
+    if (nbytes_read > 0)
+    {
+      tcflush(fd, TCIFLUSH);
+      response[nbytes_read] = '\0';
+      DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+
+      char utc_str[4], yy_str[2], mm_str[2], dd_str[2], hh_str[2], minute_str[2], ss_str[2];
+
+      strncpy(utc_str, response, 4);
+      strncpy(yy_str, response+4, 2);
+      strncpy(mm_str, response+6, 2);
+      strncpy(dd_str, response+8, 2);
+      strncpy(hh_str, response+10, 2);
+      strncpy(minute_str, response+12, 2);
+      strncpy(ss_str, response+14, 2);
+
+      *utc_hours = atoi(utc_str) / 60.0;
+      *yy        = atoi(yy_str);
+      *mm        = atoi(mm_str);
+      *dd        = atoi(dd_str);
+      *hh        = atoi(hh_str);
+      *minute    = atoi(minute_str);
+      *ss        = atoi(ss_str);
+
+      return true;
+
+    }
+
+    DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
+    return false;
+}
+
