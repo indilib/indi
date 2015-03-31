@@ -821,6 +821,9 @@ int QHYCCD::grabImage()
     int w,h,bpp,channels;
 
     ret = GetQHYCCDSingleFrame(camhandle,&w,&h,&bpp,&channels,image);
+
+    if (ret != QHYCCD_SUCCESS)
+        DEBUGF(INDI::Logger::DBG_ERROR, "GetQHYCCDSingleFrame error (%d)", ret);
   }
 
   DEBUG(INDI::Logger::DBG_DEBUG, "Download complete.");
