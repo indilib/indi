@@ -449,7 +449,10 @@ bool CelestronGPS::Connect(char *port)
     }
 
     if (check_celestron_connection(PortFD) == false)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Failed to connect to telescope port %d. Ensure telescope is powered and connected.");
         return false;
+    }
 
     DEBUG(INDI::Logger::DBG_SESSION, "Telescope is online.");
 

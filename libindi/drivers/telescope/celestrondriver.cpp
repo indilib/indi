@@ -129,7 +129,7 @@ bool check_celestron_connection(int fd)
       }
       else
       {
-          if ( (errcode = tty_write(fd, initCMD, 3, &nbytes_written)) != TTY_OK)
+          if ( (errcode = tty_write(fd, initCMD, 2, &nbytes_written)) != TTY_OK)
           {
               tty_error_msg(errcode, errmsg, MAXRBUF);
               DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
