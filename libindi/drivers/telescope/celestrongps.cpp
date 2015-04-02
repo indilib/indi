@@ -450,7 +450,7 @@ bool CelestronGPS::Connect(char *port)
 
     if (check_celestron_connection(PortFD) == false)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Failed to connect to telescope port %d. Ensure telescope is powered and connected.");
+        DEBUGF(INDI::Logger::DBG_ERROR, "Failed to connect to telescope port %s. Ensure telescope is powered and connected.", port);
         return false;
     }
 
