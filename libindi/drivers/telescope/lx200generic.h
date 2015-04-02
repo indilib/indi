@@ -111,8 +111,8 @@ class LX200Generic: public INDI::Telescope, public INDI::GuiderInterface
   ISwitch AlignmentS[3];
 
   /* Slew Speed */
-  ISwitchVectorProperty SlewModeSP;
-  ISwitch SlewModeS[4];
+  ISwitchVectorProperty SlewRateSP;
+  ISwitch SlewRateS[4];
 
   /* Tracking Mode */
   ISwitchVectorProperty TrackModeSP;

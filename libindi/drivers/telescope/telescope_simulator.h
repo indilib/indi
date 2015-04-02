@@ -67,8 +67,8 @@ public:
     double guiderEWTarget[2];
     double guiderNSTarget[2];
 
-    ISwitchVectorProperty SlewModeSP;
-    ISwitch SlewModeS[4];
+    ISwitchVectorProperty SlewRateSP;
+    ISwitch SlewRateS[4];
 
     INumber GuideRateN[2];
     INumberVectorProperty GuideRateNP;

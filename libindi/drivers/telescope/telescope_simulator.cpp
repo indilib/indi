@@ -151,11 +151,11 @@ bool ScopeSim::initProperties()
     IUFillNumber(&GuideRateN[DEC_AXIS], "GUIDE_RATE_NS", "N/S Rate", "%g", 0, 1, 0.1, 0.3);
     IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
-    IUFillSwitch(&SlewModeS[SLEW_GUIDE], "SLEW_GUIDE", "Guide", ISS_OFF);
-    IUFillSwitch(&SlewModeS[SLEW_CENTERING], "SLEW_CENTERING", "Centering", ISS_OFF);
-    IUFillSwitch(&SlewModeS[SLEW_FIND], "SLEW_FIND", "Find", ISS_OFF);
-    IUFillSwitch(&SlewModeS[SLEW_MAX], "SLEW_MAX", "Max", ISS_ON);
-    IUFillSwitchVector(&SlewModeSP, SlewModeS, 4, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitch(&SlewRateS[SLEW_GUIDE], "SLEW_GUIDE", "Guide", ISS_OFF);
+    IUFillSwitch(&SlewRateS[SLEW_CENTERING], "SLEW_CENTERING", "Centering", ISS_OFF);
+    IUFillSwitch(&SlewRateS[SLEW_FIND], "SLEW_FIND", "Find", ISS_OFF);
+    IUFillSwitch(&SlewRateS[SLEW_MAX], "SLEW_MAX", "Max", ISS_ON);
+    IUFillSwitchVector(&SlewRateSP, SlewRateS, 4, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Let's simulate it to be an F/7.5 120mm telescope
     ScopeParametersN[0].value = 120;
@@ -191,7 +191,7 @@ void ScopeSim::ISGetProperties (const char *dev)
 
     if(isConnected())
     {
-        defineSwitch(&SlewModeSP);
+        defineSwitch(&SlewRateSP);
         defineNumber(&GuideNSNP);
         defineNumber(&GuideWENP);
         defineNumber(&GuideRateNP);
@@ -211,7 +211,7 @@ bool ScopeSim::updateProperties()
 
     if (isConnected())
     {
-        defineSwitch(&SlewModeSP);
+        defineSwitch(&SlewRateSP);
         defineNumber(&GuideNSNP);
         defineNumber(&GuideWENP);
         defineNumber(&GuideRateNP);
@@ -222,7 +222,7 @@ bool ScopeSim::updateProperties()
     }
     else
     {
-        deleteProperty(SlewModeSP.name);
+        deleteProperty(SlewRateSP.name);
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
         deleteProperty(EqPENV.name);
@@ -296,7 +296,7 @@ bool ScopeSim::ReadScopeStatus()
 
     if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
     {
-        int rate = IUFindOnSwitchIndex(&SlewModeSP);
+        int rate = IUFindOnSwitchIndex(&SlewRateSP);
 
         switch (rate)
         {
@@ -667,14 +667,14 @@ bool ScopeSim::ISNewSwitch (const char *dev, const char *name, ISState *states, 
     if(strcmp(dev,getDeviceName())==0)
     {
         // Slew mode
-        if (!strcmp (name, SlewModeSP.name))
+        if (!strcmp (name, SlewRateSP.name))
         {
 
-          if (IUUpdateSwitch(&SlewModeSP, states, names, n) < 0)
+          if (IUUpdateSwitch(&SlewRateSP, states, names, n) < 0)
               return false;
 
-          SlewModeSP.s = IPS_OK;
-          IDSetSwitch(&SlewModeSP, NULL);
+          SlewRateSP.s = IPS_OK;
+          IDSetSwitch(&SlewRateSP, NULL);
           return true;
         }
 
@@ -869,30 +869,30 @@ void ScopeSim::processButton(const char * button_n, ISState state)
     // Max Slew speed
     if (!strcmp(button_n, "SLEW_MAX"))
     {
-        IUResetSwitch(&SlewModeSP);
-        SlewModeS[SLEW_MAX].s = ISS_ON;
-        IDSetSwitch(&SlewModeSP, NULL);
+        IUResetSwitch(&SlewRateSP);
+        SlewRateS[SLEW_MAX].s = ISS_ON;
+        IDSetSwitch(&SlewRateSP, NULL);
     }
     // Find Slew speed
     else if (!strcmp(button_n, "SLEW_FIND"))
     {
-            IUResetSwitch(&SlewModeSP);
-            SlewModeS[SLEW_FIND].s = ISS_ON;
-            IDSetSwitch(&SlewModeSP, NULL);
+            IUResetSwitch(&SlewRateSP);
+            SlewRateS[SLEW_FIND].s = ISS_ON;
+            IDSetSwitch(&SlewRateSP, NULL);
     }
     // Centering Slew
     else if (!strcmp(button_n, "SLEW_CENTERING"))
     {
-            IUResetSwitch(&SlewModeSP);
-            SlewModeS[SLEW_CENTERING].s = ISS_ON;
-            IDSetSwitch(&SlewModeSP, NULL);
+            IUResetSwitch(&SlewRateSP);
+            SlewRateS[SLEW_CENTERING].s = ISS_ON;
+            IDSetSwitch(&SlewRateSP, NULL);
     }
     // Guide Slew
     else if (!strcmp(button_n, "SLEW_GUIDE"))
     {
-            IUResetSwitch(&SlewModeSP);
-            SlewModeS[SLEW_GUIDE].s = ISS_ON;
-            IDSetSwitch(&SlewModeSP, NULL);
+            IUResetSwitch(&SlewRateSP);
+            SlewRateS[SLEW_GUIDE].s = ISS_ON;
+            IDSetSwitch(&SlewRateSP, NULL);
     }
     // Abort
     else if (!strcmp(button_n, "Abort Motion"))

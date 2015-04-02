@@ -129,8 +129,8 @@ ISwitchVectorProperty AbortSlewSP= { mydev, "TELESCOPE_ABORT_MOTION", "Abort Sle
 /********************************************
  Property: Slew Speed
 *********************************************/
-static ISwitch SlewModeS[]		= {{"Max", "", ISS_ON, 0, 0}, {"Find", "", ISS_OFF, 0, 0}, {"Centering", "", ISS_OFF, 0, 0}, {"Guide", "", ISS_OFF, 0 , 0}};
-ISwitchVectorProperty SlewModeSP	= { mydev, "Slew rate", "", MOTION_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, SlewModeS, NARRAY(SlewModeS), "", 0};
+static ISwitch SlewRateS[]		= {{"Max", "", ISS_ON, 0, 0}, {"Find", "", ISS_OFF, 0, 0}, {"Centering", "", ISS_OFF, 0, 0}, {"Guide", "", ISS_OFF, 0 , 0}};
+ISwitchVectorProperty SlewRateSP	= { mydev, "Slew rate", "", MOTION_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, SlewRateS, NARRAY(SlewRateS), "", 0};
 
 /********************************************
  Property: Tracking Mode
@@ -283,7 +283,7 @@ void changeLX200GenericLegacyDeviceName(const char * newName)
   strcpy(AbortSlewSP.device , newName );
 
   // MOTION_GROUP
-  strcpy(SlewModeSP.device , newName );
+  strcpy(SlewRateSP.device , newName );
   strcpy(TrackModeSP.device , newName );
   strcpy(TrackingFreqNP.device , newName );
   strcpy(MovementNSSP.device , newName );
@@ -456,7 +456,7 @@ void LX200GenericLegacy::ISGetProperties(const char *dev)
 
   // MOTION_GROUP
   IDDefNumber (&TrackingFreqNP, NULL);
-  IDDefSwitch (&SlewModeSP, NULL);
+  IDDefSwitch (&SlewRateSP, NULL);
   IDDefSwitch (&TrackModeSP, NULL);
   IDDefSwitch (&MovementNSSP, NULL);
   IDDefSwitch (&MovementWESP, NULL);
@@ -914,7 +914,7 @@ void LX200GenericLegacy::ISNewNumber (const char *dev, const char *name, double 
 	  } else {
 		if ( ( err = setSlewMode(fd, LX200_SLEW_GUIDE) < 0) )
 		{
-			handleError(&SlewModeSP, err, "Setting slew mode");
+			handleError(&SlewRateSP, err, "Setting slew mode");
 			return;
 		}
 		MoveTo(fd, direction);
@@ -970,7 +970,7 @@ void LX200GenericLegacy::ISNewNumber (const char *dev, const char *name, double 
 	  } else {
 		if ( ( err = setSlewMode(fd, LX200_SLEW_GUIDE) < 0) )
 		{
-			handleError(&SlewModeSP, err, "Setting slew mode");
+			handleError(&SlewRateSP, err, "Setting slew mode");
 			return;
 		}
 		MoveTo(fd, direction);
@@ -1194,22 +1194,22 @@ void LX200GenericLegacy::ISNewSwitch (const char *dev, const char *name, ISState
 	}
 
 	// Slew mode
-	if (!strcmp (name, SlewModeSP.name))
+	if (!strcmp (name, SlewRateSP.name))
 	{
-	  if (checkPower(&SlewModeSP))
+	  if (checkPower(&SlewRateSP))
 	   return;
 
-	  if (IUUpdateSwitch(&SlewModeSP, states, names, n) < 0) return;
-	  index = getOnSwitch(&SlewModeSP);
+	  if (IUUpdateSwitch(&SlewRateSP, states, names, n) < 0) return;
+	  index = getOnSwitch(&SlewRateSP);
 	   
 	  if ( ( err = setSlewMode(fd, index) < 0) )
 	  {
-              handleError(&SlewModeSP, err, "Setting slew mode");
+              handleError(&SlewRateSP, err, "Setting slew mode");
               return;
 	  }
 	  
-          SlewModeSP.s = IPS_OK;
-	  IDSetSwitch(&SlewModeSP, NULL);
+          SlewRateSP.s = IPS_OK;
+	  IDSetSwitch(&SlewRateSP, NULL);
 	  return;
 	}
 

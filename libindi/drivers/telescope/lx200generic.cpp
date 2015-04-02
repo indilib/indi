@@ -206,11 +206,11 @@ bool LX200Generic::initProperties()
     IUFillSwitch(&AlignmentS[2], "Land", "", ISS_OFF);
     IUFillSwitchVector(&AlignmentSP, AlignmentS, 3, getDeviceName(), "Alignment", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillSwitch(&SlewModeS[SLEW_GUIDE], "SLEW_GUIDE", "Guide", ISS_OFF);
-    IUFillSwitch(&SlewModeS[SLEW_CENTERING], "SLEW_CENTERING", "Centering", ISS_OFF);
-    IUFillSwitch(&SlewModeS[SLEW_FIND], "SLEW_FIND", "Find", ISS_OFF);
-    IUFillSwitch(&SlewModeS[SLEW_MAX], "SLEW_MAX", "Max", ISS_ON);
-    IUFillSwitchVector(&SlewModeSP, SlewModeS, 4, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitch(&SlewRateS[SLEW_GUIDE], "SLEW_GUIDE", "Guide", ISS_OFF);
+    IUFillSwitch(&SlewRateS[SLEW_CENTERING], "SLEW_CENTERING", "Centering", ISS_OFF);
+    IUFillSwitch(&SlewRateS[SLEW_FIND], "SLEW_FIND", "Find", ISS_OFF);
+    IUFillSwitch(&SlewRateS[SLEW_MAX], "SLEW_MAX", "Max", ISS_ON);
+    IUFillSwitchVector(&SlewRateSP, SlewRateS, 4, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillSwitch(&TrackModeS[0], "TRACK_SIDEREAL", "Sidereal", ISS_ON);
     IUFillSwitch(&TrackModeS[1], "TRACK_SOLAR", "Solar", ISS_OFF);
@@ -278,7 +278,7 @@ void LX200Generic::ISGetProperties(const char *dev)
     if (isConnected())
     {
         defineSwitch(&AlignmentSP);
-        defineSwitch(&SlewModeSP);
+        defineSwitch(&SlewRateSP);
         defineSwitch(&TrackModeSP);
         defineNumber(&TrackingFreqNP);
         defineSwitch(&UsePulseCmdSP);
@@ -305,7 +305,7 @@ bool LX200Generic::updateProperties()
     if (isConnected())
     {
         defineSwitch(&AlignmentSP);
-        defineSwitch(&SlewModeSP);
+        defineSwitch(&SlewRateSP);
         defineSwitch(&TrackModeSP);
         defineNumber(&TrackingFreqNP);
         defineSwitch(&UsePulseCmdSP);
@@ -327,7 +327,7 @@ bool LX200Generic::updateProperties()
     else
     {
         deleteProperty(AlignmentSP.name);
-        deleteProperty(SlewModeSP.name);
+        deleteProperty(SlewRateSP.name);
         deleteProperty(TrackModeSP.name);
         deleteProperty(TrackingFreqNP.name);
         deleteProperty(UsePulseCmdSP.name);
@@ -417,9 +417,9 @@ bool LX200Generic::ReadScopeStatus()
         if(isSlewComplete(PortFD) == 0)
         {
             // Set slew mode to "Centering"
-            IUResetSwitch(&SlewModeSP);
-            SlewModeS[SLEW_CENTERING].s = ISS_ON;
-            IDSetSwitch(&SlewModeSP, NULL);
+            IUResetSwitch(&SlewRateSP);
+            SlewRateS[SLEW_CENTERING].s = ISS_ON;
+            IDSetSwitch(&SlewRateSP, NULL);
 
             TrackState=SCOPE_TRACKING;
             IDMessage(getDeviceName(),"Slew is complete. Tracking...");
@@ -970,13 +970,13 @@ bool LX200Generic::ISNewSwitch (const char *dev, const char *name, ISState *stat
         }
 
         // Slew mode
-        if (!strcmp (name, SlewModeSP.name))
+        if (!strcmp (name, SlewRateSP.name))
         {
 
-          if (IUUpdateSwitch(&SlewModeSP, states, names, n) < 0)
+          if (IUUpdateSwitch(&SlewRateSP, states, names, n) < 0)
               return false;
 
-          index = IUFindOnSwitchIndex(&SlewModeSP);
+          index = IUFindOnSwitchIndex(&SlewRateSP);
 
           // Reverse them to Meade format
           index -= 3;
@@ -985,13 +985,13 @@ bool LX200Generic::ISNewSwitch (const char *dev, const char *name, ISState *stat
 
           if (isSimulation() == false && setSlewMode(PortFD, index) < 0)
           {
-              SlewModeSP.s = IPS_ALERT;
-              IDSetSwitch(&SlewModeSP, "Error setting slew mode.");
+              SlewRateSP.s = IPS_ALERT;
+              IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
               return false;
           }
 
-          SlewModeSP.s = IPS_OK;
-          IDSetSwitch(&SlewModeSP, NULL);
+          SlewRateSP.s = IPS_OK;
+          IDSetSwitch(&SlewRateSP, NULL);
           return true;
         }
 
@@ -1420,8 +1420,8 @@ bool LX200Generic::GuideNorth(float ms)
       {
         if (setSlewMode(PortFD, LX200_SLEW_GUIDE) < 0)
         {
-            SlewModeSP.s = IPS_ALERT;
-            IDSetSwitch(&SlewModeSP, "Error setting slew mode.");
+            SlewRateSP.s = IPS_ALERT;
+            IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
             return false;
         }
 
@@ -1430,9 +1430,9 @@ bool LX200Generic::GuideNorth(float ms)
       }
 
       // Set slew to guiding
-      IUResetSwitch(&SlewModeSP);
-      SlewModeS[SLEW_GUIDE].s = ISS_ON;
-      IDSetSwitch(&SlewModeSP, NULL);
+      IUResetSwitch(&SlewRateSP);
+      SlewRateS[SLEW_GUIDE].s = ISS_ON;
+      IDSetSwitch(&SlewRateSP, NULL);
       guide_direction = LX200_NORTH;
       GuideNSTID = IEAddTimer (ms, guideTimeoutHelper, this);
       return true;
@@ -1472,8 +1472,8 @@ bool LX200Generic::GuideSouth(float ms)
     {
       if (setSlewMode(PortFD, LX200_SLEW_GUIDE) < 0)
       {
-          SlewModeSP.s = IPS_ALERT;
-          IDSetSwitch(&SlewModeSP, "Error setting slew mode.");
+          SlewRateSP.s = IPS_ALERT;
+          IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
           return false;
       }
 
@@ -1482,9 +1482,9 @@ bool LX200Generic::GuideSouth(float ms)
     }
 
     // Set slew to guiding
-    IUResetSwitch(&SlewModeSP);
-    SlewModeS[SLEW_GUIDE].s = ISS_ON;
-    IDSetSwitch(&SlewModeSP, NULL);
+    IUResetSwitch(&SlewRateSP);
+    SlewRateS[SLEW_GUIDE].s = ISS_ON;
+    IDSetSwitch(&SlewRateSP, NULL);
     guide_direction = LX200_SOUTH;
     GuideNSTID = IEAddTimer (ms, guideTimeoutHelper, this);
     return true;
@@ -1526,8 +1526,8 @@ bool LX200Generic::GuideEast(float ms)
     {
       if (setSlewMode(PortFD, LX200_SLEW_GUIDE) < 0)
       {
-          SlewModeSP.s = IPS_ALERT;
-          IDSetSwitch(&SlewModeSP, "Error setting slew mode.");
+          SlewRateSP.s = IPS_ALERT;
+          IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
           return false;
       }
 
@@ -1536,9 +1536,9 @@ bool LX200Generic::GuideEast(float ms)
     }
 
     // Set slew to guiding
-    IUResetSwitch(&SlewModeSP);
-    SlewModeS[SLEW_GUIDE].s = ISS_ON;
-    IDSetSwitch(&SlewModeSP, NULL);
+    IUResetSwitch(&SlewRateSP);
+    SlewRateS[SLEW_GUIDE].s = ISS_ON;
+    IDSetSwitch(&SlewRateSP, NULL);
     guide_direction = LX200_EAST;
     GuideWETID = IEAddTimer (ms, guideTimeoutHelper, this);
     return true;
@@ -1580,8 +1580,8 @@ bool LX200Generic::GuideWest(float ms)
     {
       if (setSlewMode(PortFD, LX200_SLEW_GUIDE) < 0)
       {
-          SlewModeSP.s = IPS_ALERT;
-          IDSetSwitch(&SlewModeSP, "Error setting slew mode.");
+          SlewRateSP.s = IPS_ALERT;
+          IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
           return false;
       }
 
@@ -1590,9 +1590,9 @@ bool LX200Generic::GuideWest(float ms)
     }
 
     // Set slew to guiding
-    IUResetSwitch(&SlewModeSP);
-    SlewModeS[SLEW_GUIDE].s = ISS_ON;
-    IDSetSwitch(&SlewModeSP, NULL);
+    IUResetSwitch(&SlewRateSP);
+    SlewRateS[SLEW_GUIDE].s = ISS_ON;
+    IDSetSwitch(&SlewRateSP, NULL);
     guide_direction = LX200_WEST;
     GuideWETID = IEAddTimer (ms, guideTimeoutHelper, this);
     return true;
@@ -1696,33 +1696,33 @@ void LX200Generic::processButton(const char * button_n, ISState state)
     if (!strcmp(button_n, "SLEW_MAX"))
     {
         setSlewMode(PortFD, 0);
-        IUResetSwitch(&SlewModeSP);
-        SlewModeS[SLEW_MAX].s = ISS_ON;
-        IDSetSwitch(&SlewModeSP, NULL);
+        IUResetSwitch(&SlewRateSP);
+        SlewRateS[SLEW_MAX].s = ISS_ON;
+        IDSetSwitch(&SlewRateSP, NULL);
     }
     // Find Slew speed
     else if (!strcmp(button_n, "SLEW_FIND"))
     {
             setSlewMode(PortFD, 1);
-            IUResetSwitch(&SlewModeSP);
-            SlewModeS[SLEW_FIND].s = ISS_ON;
-            IDSetSwitch(&SlewModeSP, NULL);
+            IUResetSwitch(&SlewRateSP);
+            SlewRateS[SLEW_FIND].s = ISS_ON;
+            IDSetSwitch(&SlewRateSP, NULL);
     }
     // Centering Slew
     else if (!strcmp(button_n, "SLEW_CENTERING"))
     {
             setSlewMode(PortFD, 2);
-            IUResetSwitch(&SlewModeSP);
-            SlewModeS[SLEW_CENTERING].s = ISS_ON;
-            IDSetSwitch(&SlewModeSP, NULL);
+            IUResetSwitch(&SlewRateSP);
+            SlewRateS[SLEW_CENTERING].s = ISS_ON;
+            IDSetSwitch(&SlewRateSP, NULL);
     }
     // Guide Slew
     else if (!strcmp(button_n, "SLEW_GUIDE"))
     {
             setSlewMode(PortFD, 3);
-            IUResetSwitch(&SlewModeSP);
-            SlewModeS[SLEW_GUIDE].s = ISS_ON;
-            IDSetSwitch(&SlewModeSP, NULL);
+            IUResetSwitch(&SlewRateSP);
+            SlewRateS[SLEW_GUIDE].s = ISS_ON;
+            IDSetSwitch(&SlewRateSP, NULL);
     }
     // Abort
     else if (!strcmp(button_n, "Abort Motion"))
