@@ -109,11 +109,11 @@
         </device>
         <device label="iEQ45 Pro" focal_length="" aperture="">
                 <driver name="iEQ">indi_ieq_telescope</driver>
-                <version>0.1</version>
+                <version>1.5</version>
         </device>
         <device label="CEM60" focal_length="" aperture="">
                 <driver name="iEQ">indi_ieq_telescope</driver>
-                <version>0.1</version>
+                <version>1.5</version>
         </device>
         <device label="Telescope Simulator" focal_length="" aperture="">
                 <driver name="Telescope Simulator">indi_simulator_telescope</driver>
