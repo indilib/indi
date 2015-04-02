@@ -298,24 +298,12 @@ void IEQPro::getStartupData()
 
     double utc_offset;
     int yy, dd, mm, hh, minute, ss;
-
     if (get_ieqpro_utc_date_time(PortFD, &utc_offset, &yy, &mm, &dd, &hh, &minute, &ss))
     {
-        ln_zonedate localDateTime;
-        ln_date utcDateTime;
-        char isoDateTime[32], utcOffset[8];
+        char isoDateTime[32];
+        char utcOffset[8];
 
-        localDateTime.years   = yy + 2000;
-        localDateTime.months  = mm;
-        localDateTime.days    = dd;
-        localDateTime.hours   = hh;
-        localDateTime.minutes = minute;
-        localDateTime.seconds = ss;
-        localDateTime.gmtoff  = utc_offset * 3600;
-
-        ln_zonedate_to_date(&localDateTime, &utcDateTime);
-
-        snprintf(isoDateTime, 32, "%04d-%02d-%02dT%02d:%02d:%02d", utcDateTime.years, utcDateTime.months, utcDateTime.days, utcDateTime.hours, utcDateTime.minutes, (int) round(utcDateTime.seconds));
+        snprintf(isoDateTime, 32, "%04d-%02d-%02dT%02d:%02d:%02d", yy, mm, dd, hh, minute, ss);
         snprintf(utcOffset, 8, "%4.2f", utc_offset);
 
         IUSaveText(IUFindText(&TimeTP, "UTC"), isoDateTime);

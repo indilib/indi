@@ -33,6 +33,8 @@
 #include "indidevapi.h"
 #include "indilogger.h"
 
+#include <libnova.h>
+
 #include "ieqprodriver.h"
 
 #define IEQPRO_TIMEOUT	5		/* FD timeout in seconds */
@@ -1781,12 +1783,32 @@ bool get_ieqpro_utc_date_time(int fd, double *utc_hours, int *yy, int *mm, int *
       strncpy(ss_str, response+14, 2);
 
       *utc_hours = atoi(utc_str) / 60.0;
-      *yy        = atoi(yy_str);
+      *yy        = atoi(yy_str) + 2000;
       *mm        = atoi(mm_str);
       *dd        = atoi(dd_str);
       *hh        = atoi(hh_str);
       *minute    = atoi(minute_str);
       *ss        = atoi(ss_str);
+
+      ln_zonedate localTime;
+      ln_date     utcTime;
+
+      localTime.years   = *yy;
+      localTime.months  = *mm;
+      localTime.days    = *dd;
+      localTime.hours   = *hh;
+      localTime.minutes = *minute;
+      localTime.seconds = *ss;
+      localTime.gmtoff  = *utc_hours * 3600;
+
+      ln_zonedate_to_date(&localTime, &utcTime);
+
+      *yy = utcTime.years;
+      *mm = utcTime.months;
+      *dd = utcTime.days;
+      *hh = utcTime.hours;
+      *minute = utcTime.minutes;
+      *ss = utcTime.seconds;
 
       return true;
 
