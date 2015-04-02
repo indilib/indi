@@ -41,11 +41,11 @@
 	</device>
 	<device label="Celestron GPS" focal_length="" aperture="">
 		<driver name="Celestron GPS">indi_celestron_gps</driver>
-                <version>2.0</version>
+                <version>3.0</version>
 	</device>
 	<device label="Celestron NexStar" focal_length="" aperture="">
 		<driver name="Celestron GPS">indi_celestron_gps</driver>
-                <version>2.0</version>
+                <version>3.0</version>
 	</device>
 	<device label="Astro-Electronic FS-2" focal_length="" aperture="">
 		<driver name="LX200 Basic">indi_lx200basic</driver>

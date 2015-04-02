@@ -291,7 +291,7 @@ set_target_properties(indi_lx200genericlegacy PROPERTIES POST_INSTALL_SCRIPT ${C
 
 ########### Celestron GPS ############
 set(celestrongps_SRCS
-   ${CMAKE_SOURCE_DIR}/drivers/telescope/celestronprotocol.c
+   ${CMAKE_SOURCE_DIR}/drivers/telescope/celestrondriver.cpp
    ${CMAKE_SOURCE_DIR}/drivers/telescope/celestrongps.cpp )
 
 add_executable(indi_celestron_gps ${celestrongps_SRCS})

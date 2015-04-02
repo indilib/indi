@@ -26,6 +26,8 @@
 #include "indicom.h"
 #include "indicontroller.h"
 
+#include "celestrondriver.h"
+
 #define	POLLMS		1000		/* poll period, ms */
 
 class CelestronGPS : public INDI::Telescope
@@ -68,36 +70,35 @@ protected:
  virtual void SetCurrentPark();
  virtual void SetDefaultPark();
 
+ virtual void simulationTriggered(bool enable);
  virtual bool saveConfigItems(FILE *fp);
 
- void slewError(int slewCode);
  void mountSim();
 
  // Joystick
  void processNSWE(double mag, double angle);
  void processJoystick(const char * joystick_n, double mag, double angle);
+ void processSlewPresets(double mag, double angle);
  void processButton(const char * button_n, ISState state);
 
 
  /* Slew Speed */
- ISwitchVectorProperty SlewModeSP;
- ISwitch SlewModeS[4];
+ ISwitchVectorProperty SlewRateSP;
+ ISwitch SlewRateS[9];
+
+ /* Firmware */
+ IText   FirmwareT[5];
+ ITextVectorProperty FirmwareTP;
 
 
 private:
-  int timeFormat;
-
-  double lastRA;
-  double lastDEC;
-
   INDI::Controller *controller;
 
-  int lastSet;
-  int currentSet;
+  int PortFD;
   double currentRA, currentDEC;
   double targetRA, targetDEC;
 
-
+  FirmwareInfo fwInfo;
 
 };
 

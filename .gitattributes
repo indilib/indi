@@ -1305,6 +1305,8 @@ libindi/drivers/focuser/steeldrive.cpp -text
 libindi/drivers/focuser/steeldrive.h -text
 libindi/drivers/focuser/tcfs.cpp -text
 libindi/drivers/focuser/tcfs.h -text
+libindi/drivers/telescope/celestrondriver.cpp -text
+libindi/drivers/telescope/celestrondriver.h -text
 libindi/drivers/telescope/celestrongps.cpp -text
 libindi/drivers/telescope/celestrongps.h -text
 libindi/drivers/telescope/celestronprotocol.c -text
