@@ -153,6 +153,10 @@
                 <driver name="Optec TCF-S">indi_tcfs3_focus</driver>
                 <version>0.1</version>
         </device>
+        <device label="FocusLynx">
+                <driver name="FocusLynx">indi_lynx_focus</driver>
+                <version>0.1</version>
+        </device>
 </devGroup>
 <devGroup group="CCDs">
         <device label="CCD Simulator">

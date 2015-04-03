@@ -454,6 +454,15 @@ add_executable(indi_steeldrive_focus ${steeldrive_SRCS})
 target_link_libraries(indi_steeldrive_focus indidriver)
 install(TARGETS indi_steeldrive_focus RUNTIME DESTINATION bin )
 
+################ FocusLynx Focuser ################
+
+set(focuslynx_SRCS
+        ${CMAKE_SOURCE_DIR}/drivers/focuser/focuslynx.cpp
+   )
+
+add_executable(indi_lynx_focus ${focuslynx_SRCS})
+target_link_libraries(indi_lynx_focus indidriver)
+install(TARGETS indi_lynx_focus RUNTIME DESTINATION bin )
 
 ################ Optec TCF-S ################
 
