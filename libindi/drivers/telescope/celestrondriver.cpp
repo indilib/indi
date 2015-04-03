@@ -212,7 +212,9 @@ bool get_celestron_version (int fd, FirmwareInfo *info)
 
     if (celestron_simulation)
     {
-        strcpy(response, "16#");
+        char major = 1;
+        char minor = 6;
+        snprintf(response, 16, "%c%c#", major, minor);
         nbytes_read = strlen(response);
     }
     else
@@ -239,11 +241,14 @@ bool get_celestron_version (int fd, FirmwareInfo *info)
 
       if (nbytes_read == 3)
       {
-         info->Version  = response[0];
-         info->Version += ".";
-         info->Version += response[1];
+         int major = response[0];
+         int minor = response[1];
 
-         info->controllerVersion = atof(info->Version.c_str());
+         char versionStr[8];
+         snprintf(versionStr, 8, "%01d.%01d", major, minor);
+
+         info->controllerVersion = atof(versionStr);
+         info->Version  = versionStr;
 
          tcflush(fd, TCIFLUSH);
 
@@ -269,7 +274,8 @@ bool get_celestron_model (int fd, FirmwareInfo *info)
 
     if (celestron_simulation)
     {
-        strcpy(response, "6#");
+        char device = 6;
+        snprintf(response, 16, "%c#", device);
         nbytes_read = strlen(response);
     }
     else
@@ -297,7 +303,7 @@ bool get_celestron_model (int fd, FirmwareInfo *info)
       if (nbytes_read == 2)
       {
           response[1] = '\0';
-          int model = atoi(response);
+          int model = response[0];
 
           if (model >= 1 && model <= 12)
             info->Model = celestronModels[model];
@@ -331,7 +337,9 @@ bool get_celestron_ra_firmware(int fd, FirmwareInfo *info)
 
     if (celestron_simulation)
     {
-        strcpy(response, "19#");
+        char major = 1;
+        char minor = 9;
+        snprintf(response, 16, "%c%c#", major, minor);
         nbytes_read = strlen(response);
     }
     else
@@ -358,9 +366,13 @@ bool get_celestron_ra_firmware(int fd, FirmwareInfo *info)
 
       if (nbytes_read == 3)
       {
-         info->RAFirmware  = response[0];
-         info->RAFirmware += ".";
-         info->RAFirmware += response[1];
+          int major = response[0];
+          int minor = response[1];
+
+          char versionStr[8];
+          snprintf(versionStr, 8, "%01d.%01d", major, minor);
+
+         info->RAFirmware  = versionStr;
 
          tcflush(fd, TCIFLUSH);
 
@@ -386,7 +398,9 @@ bool get_celestron_dec_firmware(int fd, FirmwareInfo *info)
 
     if (celestron_simulation)
     {
-        strcpy(response, "20#");
+        char major = 1;
+        char minor = 6;
+        snprintf(response, 16, "%c%c#", major, minor);
         nbytes_read = strlen(response);
     }
     else
@@ -412,10 +426,14 @@ bool get_celestron_dec_firmware(int fd, FirmwareInfo *info)
       DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       if (nbytes_read == 3)
-      {
-         info->DEFirmware  = response[0];
-         info->DEFirmware += ".";
-         info->DEFirmware += response[1];
+      {          
+          int major = response[0];
+          int minor = response[1];
+
+          char versionStr[8];
+          snprintf(versionStr, 8, "%01d.%01d", major, minor);
+
+         info->DEFirmware = versionStr;
 
          tcflush(fd, TCIFLUSH);
 
@@ -441,7 +459,9 @@ bool get_celestron_gps_firmware(int fd, FirmwareInfo *info)
 
     if (celestron_simulation)
     {
-        strcpy(response, "39#");
+        char major = 1;
+        char minor = 6;
+        snprintf(response, 16, "%c%c#", major, minor);
         nbytes_read = strlen(response);
     }
     else
@@ -468,9 +488,13 @@ bool get_celestron_gps_firmware(int fd, FirmwareInfo *info)
 
       if (nbytes_read == 3)
       {
-         info->GPSFirmware  = response[0];
-         info->GPSFirmware += ".";
-         info->GPSFirmware += response[1];
+          int major = response[0];
+          int minor = response[1];
+
+          char versionStr[8];
+          snprintf(versionStr, 8, "%01d.%01d", major, minor);
+
+         info->GPSFirmware = versionStr;
 
          tcflush(fd, TCIFLUSH);
 
