@@ -36,6 +36,8 @@ typedef struct
     std::string GPSFirmware;
     std::string RAFirmware;
     std::string DEFirmware;
+
+    float controllerVersion;
 } FirmwareInfo;
 
 /**************************************************************************

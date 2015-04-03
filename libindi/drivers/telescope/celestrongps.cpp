@@ -215,22 +215,25 @@ bool CelestronGPS::updateProperties()
             deleteProperty(FirmwareTP.name);
     }
 
-    double utc_offset;
-    int yy, dd, mm, hh, minute, ss;
-    if (get_celestron_utc_date_time(PortFD, &utc_offset, &yy, &mm, &dd, &hh, &minute, &ss))
+    if (fwInfo.controllerVersion >= 2.3)
     {
-        char isoDateTime[32];
-        char utcOffset[8];
+        double utc_offset;
+        int yy, dd, mm, hh, minute, ss;
+        if (get_celestron_utc_date_time(PortFD, &utc_offset, &yy, &mm, &dd, &hh, &minute, &ss))
+        {
+            char isoDateTime[32];
+            char utcOffset[8];
 
-        snprintf(isoDateTime, 32, "%04d-%02d-%02dT%02d:%02d:%02d", yy, mm, dd, hh, minute, ss);
-        snprintf(utcOffset, 8, "%4.2f", utc_offset);
+            snprintf(isoDateTime, 32, "%04d-%02d-%02dT%02d:%02d:%02d", yy, mm, dd, hh, minute, ss);
+            snprintf(utcOffset, 8, "%4.2f", utc_offset);
 
-        IUSaveText(IUFindText(&TimeTP, "UTC"), isoDateTime);
-        IUSaveText(IUFindText(&TimeTP, "OFFSET"), utcOffset);
+            IUSaveText(IUFindText(&TimeTP, "UTC"), isoDateTime);
+            IUSaveText(IUFindText(&TimeTP, "OFFSET"), utcOffset);
 
-        DEBUGF(INDI::Logger::DBG_SESSION, "Mount UTC offset is %s. UTC time is %s", utcOffset, isoDateTime);
+            DEBUGF(INDI::Logger::DBG_SESSION, "Mount UTC offset is %s. UTC time is %s", utcOffset, isoDateTime);
 
-        IDSetText(&TimeTP, NULL);
+            IDSetText(&TimeTP, NULL);
+        }
     }
 
     controller->updateProperties();
@@ -299,6 +302,12 @@ bool CelestronGPS::Goto(double ra, double dec)
 
 bool CelestronGPS::Sync(double ra, double dec)
 {    
+    if (fwInfo.controllerVersion <= 4.1)
+    {
+        DEBUGF(INDI::Logger::DBG_WARNING, "Firmwre version 4.1 or higher is required to sync. Current version is %3.1f", fwInfo.controllerVersion);
+        return false;
+    }
+
     if (sync_celestron(PortFD, ra, dec) == false)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Sync failed.");
@@ -565,11 +574,23 @@ bool CelestronGPS::updateLocation(double latitude, double longitude, double elev
 {
     INDI_UNUSED(elevation);
 
+    if (fwInfo.controllerVersion <= 2.3)
+    {
+        DEBUGF(INDI::Logger::DBG_WARNING, "Firmwre version 2.3 or higher is required to update location. Current version is %3.1f", fwInfo.controllerVersion);
+        return false;
+    }
+
     return (set_celestron_location(PortFD, longitude, latitude));
 }
 
 bool CelestronGPS::updateTime(ln_date *utc, double utc_offset)
 {
+    if (fwInfo.controllerVersion <= 2.3)
+    {
+        DEBUGF(INDI::Logger::DBG_WARNING, "Firmwre version 2.3 or higher is required to update time. Current version is %3.1f", fwInfo.controllerVersion);
+        return false;
+    }
+
     return (set_celestron_datetime(PortFD, utc, utc_offset));
 }
 

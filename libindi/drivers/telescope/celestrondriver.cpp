@@ -165,26 +165,35 @@ bool get_celestron_firmware(int fd, FirmwareInfo *info)
 {
     bool rc = false;
 
+    DEBUGDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "Getting controller version...");
     rc = get_celestron_version(fd, info);
 
     if (rc == false)
         return false;
 
-    rc = get_celestron_model(fd, info);
+    if (info->controllerVersion >= 2.2)
+    {
+        DEBUGDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "Getting controller model...");
+        rc = get_celestron_model(fd, info);
+        if (rc == false)
+            return rc;
+    }
+    else
+        info->Model = "Unknown";
 
-    if (rc == false)
-        return rc;
-
+    DEBUGDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "Getting GPS firmware version...");
     rc = get_celestron_gps_firmware(fd, info);
 
     if (rc == false)
         return rc;
 
+    DEBUGDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "Getting RA firmware version...");
     rc = get_celestron_ra_firmware(fd, info);
 
     if (rc == false)
         return rc;
 
+    DEBUGDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "Getting DE firmware version...");
     rc = get_celestron_dec_firmware(fd, info);
 
     return rc;
@@ -203,7 +212,7 @@ bool get_celestron_version (int fd, FirmwareInfo *info)
 
     if (celestron_simulation)
     {
-        strcpy(response, "24#");
+        strcpy(response, "16#");
         nbytes_read = strlen(response);
     }
     else
@@ -234,7 +243,9 @@ bool get_celestron_version (int fd, FirmwareInfo *info)
          info->Version += ".";
          info->Version += response[1];
 
-          tcflush(fd, TCIFLUSH);
+         info->controllerVersion = atof(info->Version.c_str());
+
+         tcflush(fd, TCIFLUSH);
 
           return true;
       }
