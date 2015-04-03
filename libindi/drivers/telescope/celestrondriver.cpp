@@ -336,7 +336,7 @@ bool get_celestron_ra_firmware(int fd, FirmwareInfo *info)
     }
     else
     {
-        if ( (errcode = tty_write(fd, (char *) cmd, strlen( (char *) cmd), &nbytes_written)) != TTY_OK)
+        if ( (errcode = tty_write(fd, (char *) cmd, 8, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -391,7 +391,7 @@ bool get_celestron_dec_firmware(int fd, FirmwareInfo *info)
     }
     else
     {
-        if ( (errcode = tty_write(fd, (char *) cmd, strlen( (char *) cmd), &nbytes_written)) != TTY_OK)
+        if ( (errcode = tty_write(fd, (char *) cmd, 8, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -446,7 +446,7 @@ bool get_celestron_gps_firmware(int fd, FirmwareInfo *info)
     }
     else
     {
-        if ( (errcode = tty_write(fd, (char *) cmd, strlen((char *)cmd), &nbytes_written)) != TTY_OK)
+        if ( (errcode = tty_write(fd, (char *) cmd, 8, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -527,7 +527,7 @@ bool start_celestron_motion(int fd, CELESTRON_DIRECTION dir, CELESTRON_SLEW_RATE
    }
    else
    {
-       if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+       if ( (errcode = tty_write(fd, cmd, 8, &nbytes_written)) != TTY_OK)
        {
            tty_error_msg(errcode, errmsg, MAXRBUF);
            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -596,7 +596,7 @@ bool stop_celestron_motion(int fd, CELESTRON_DIRECTION dir)
     }
     else
     {
-        if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        if ( (errcode = tty_write(fd, cmd, 8, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -978,7 +978,7 @@ bool set_celestron_datetime(int fd, struct ln_date *utc, double utc_offset)
     }
     else
     {
-        if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        if ( (errcode = tty_write(fd, cmd, 8, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
