@@ -424,6 +424,10 @@ bool CelestronGPS::ReadScopeStatus()
 
 bool CelestronGPS::Abort()
 {
+    stop_celestron_motion(PortFD, CELESTRON_N);
+    stop_celestron_motion(PortFD, CELESTRON_S);
+    stop_celestron_motion(PortFD, CELESTRON_W);
+    stop_celestron_motion(PortFD, CELESTRON_E);
     return abort_celestron(PortFD);
 }
 
