@@ -942,18 +942,7 @@ bool INDI::Telescope::InitPark()
     return false;
   }
 
-  if (isParked())
-  {
-    SetParked(true);
-    DEBUG(INDI::Logger::DBG_SESSION, "Mount is parked.");
-    TrackState = SCOPE_PARKED;
-  }
-  else
-  {
-    SetParked(false);
-    DEBUG(INDI::Logger::DBG_SESSION, "Mount is unparked.");
-    TrackState=SCOPE_IDLE;
-  }
+  SetParked(isParked());
 
   ParkPositionN[0].value = RAParkPosition;
   ParkPositionN[1].value = DEParkPosition;
