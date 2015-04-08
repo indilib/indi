@@ -559,9 +559,9 @@ void SXCCD::GuideExposureTimerHit() {
   }
 }
 
-bool SXCCD::GuideWest(float time) {
+IPState SXCCD::GuideWest(float time) {
   if (!HasST4Port || time < 1) {
-    return false;
+    return IPS_ALERT;
   }
   if (WEGuiderTimerID) {
     IERmTimer(WEGuiderTimerID);
@@ -576,12 +576,12 @@ bool SXCCD::GuideWest(float time) {
     sxSetSTAR2000(handle, GuideStatus);
   } else
     WEGuiderTimerID = IEAddTimer(time, WEGuiderTimerCallback, this);
-  return true;
+  return IPS_OK;
 }
 
-bool SXCCD::GuideEast(float time) {
+IPState SXCCD::GuideEast(float time) {
   if (!HasST4Port || time < 1) {
-    return false;
+    return IPS_ALERT;
   }
   if (WEGuiderTimerID) {
     IERmTimer(WEGuiderTimerID);
@@ -596,18 +596,19 @@ bool SXCCD::GuideEast(float time) {
     sxSetSTAR2000(handle, GuideStatus);
   } else
     WEGuiderTimerID = IEAddTimer(time, WEGuiderTimerCallback, this);
-  return true;
+  return IPS_OK;
 }
 
 void SXCCD::WEGuiderTimerHit() {
   GuideStatus &= SX_CLEAR_WE;
   sxSetSTAR2000(handle, GuideStatus);
   WEGuiderTimerID = 0;
+  GuideComplete(AXIS_RA);
 }
 
-bool SXCCD::GuideNorth(float time) {
+IPState SXCCD::GuideNorth(float time) {
   if (!HasST4Port || time < 1) {
-    return false;
+    return IPS_ALERT;
   }
   if (NSGuiderTimerID) {
     IERmTimer(NSGuiderTimerID);
@@ -622,12 +623,12 @@ bool SXCCD::GuideNorth(float time) {
     sxSetSTAR2000(handle, GuideStatus);
   } else
     NSGuiderTimerID = IEAddTimer(time, NSGuiderTimerCallback, this);
-  return true;
+  return IPS_OK;
 }
 
-bool SXCCD::GuideSouth(float time) {
+IPState SXCCD::GuideSouth(float time) {
   if (!HasST4Port || time < 1) {
-    return false;
+    return IPS_ALERT;
   }
   if (NSGuiderTimerID) {
     IERmTimer(NSGuiderTimerID);
@@ -642,13 +643,14 @@ bool SXCCD::GuideSouth(float time) {
     sxSetSTAR2000(handle, GuideStatus);
   } else
     NSGuiderTimerID = IEAddTimer(time, NSGuiderTimerCallback, this);
-  return true;
+  return IPS_OK;
 }
 
 void SXCCD::NSGuiderTimerHit() {
   GuideStatus &= SX_CLEAR_NS;
   sxSetSTAR2000(handle, GuideStatus);
   NSGuiderTimerID = 0;
+  GuideComplete(AXIS_DE);
 }
 
 void SXCCD::ISGetProperties(const char *dev) {

@@ -72,7 +72,7 @@ public:
     /** \return Return property permission */
     IPerm getPropertyPermission(const char *name);
 
-    void registerProperty(void *p, INDI_TYPE type);
+    void registerProperty(void *p, INDI_PROPERTY_TYPE type);
 
     /** \brief Remove a property
         \param name name of property to be removed
@@ -91,7 +91,7 @@ public:
         is the property type (Number, Text, Switch..etc).
 
     */
-    void * getRawProperty(const char *name, INDI_TYPE type = INDI_UNKNOWN);
+    void * getRawProperty(const char *name, INDI_PROPERTY_TYPE type = INDI_UNKNOWN);
 
     /** \brief Return a property and its type given its name.
         \param name of property to be found.
@@ -99,7 +99,7 @@ public:
         \return If property is found, it is returned. To be used you must use static_cast with given the type of property
         returned.
     */
-    INDI::Property * getProperty(const char *name, INDI_TYPE type = INDI_UNKNOWN);
+    INDI::Property * getProperty(const char *name, INDI_PROPERTY_TYPE type = INDI_UNKNOWN);
 
     /** \brief Return a list of all properties in the device.
     */

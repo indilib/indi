@@ -188,15 +188,14 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
         virtual bool ISSnoopDevice(XMLEle *root);
         virtual bool saveConfigItems(FILE *fp);
 
-        virtual bool MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command);
-        virtual bool MoveWE(TelescopeMotionWE dir, TelescopeMotionCommand command);
+        virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
+        virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
         virtual bool Abort();
 
-        virtual bool GuideNorth(float ms);
-        virtual bool GuideSouth(float ms);
-        virtual bool GuideEast(float ms);
-        virtual bool GuideWest(float ms);
-
+        virtual IPState GuideNorth(float ms);
+        virtual IPState GuideSouth(float ms);
+        virtual IPState GuideEast(float ms);
+        virtual IPState GuideWest(float ms);
 
         bool Goto(double ra,double dec);
         bool Park();

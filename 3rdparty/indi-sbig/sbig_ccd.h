@@ -163,10 +163,10 @@ protected:
     virtual bool UpdateCCDFrameType(CCDChip::CCD_FRAME fType);
     virtual bool saveConfigItems(FILE *fp);
 
-    bool GuideNorth(float);
-    bool GuideSouth(float);
-    bool GuideEast(float);
-    bool GuideWest(float);
+    IPState GuideNorth(float);
+    IPState GuideSouth(float);
+    IPState GuideEast(float);
+    IPState GuideWest(float);
 
     // Filter Wheel CFW
     virtual int  QueryFilter();

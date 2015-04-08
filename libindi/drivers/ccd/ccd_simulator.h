@@ -58,10 +58,10 @@ public:
     int DrawImageStar(CCDChip *targetChip, float,float,float);
     int AddToPixel(CCDChip *targetChip, int,int,int);
 
-    bool GuideNorth(float);
-    bool GuideSouth(float);
-    bool GuideEast(float);
-    bool GuideWest(float);
+    IPState GuideNorth(float);
+    IPState GuideSouth(float);
+    IPState GuideEast(float);
+    IPState GuideWest(float);
 
     virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
     virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);

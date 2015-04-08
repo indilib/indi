@@ -1343,7 +1343,7 @@ bool EQMod::Sync(double ra,double dec)
   return true;
 }
 
-bool EQMod::GuideNorth(float ms) {
+IPState EQMod::GuideNorth(float ms) {
   double rateshift=0.0;
   rateshift = TRACKRATE_SIDEREAL * IUFindNumber(GuideRateNP, "GUIDE_RATE_NS")->value;
   DEBUGF(INDI::Logger::DBG_SESSION, "Timed guide North %d ms at rate %g",(int)(ms), rateshift);
@@ -1354,13 +1354,14 @@ bool EQMod::GuideNorth(float ms) {
       GuideTimerNS = IEAddTimer((int)(ms), (IE_TCF *)timedguideNSCallback, this);
     }
   } catch(EQModError e) {
-    return(e.DefaultHandleException(this));
+    e.DefaultHandleException(this);
+    return IPS_ALERT;
   }
 
-  return true;
+  return IPS_BUSY;
 }
 
-bool EQMod::GuideSouth(float ms) {
+IPState EQMod::GuideSouth(float ms) {
   double rateshift=0.0;
   rateshift = TRACKRATE_SIDEREAL * IUFindNumber(GuideRateNP, "GUIDE_RATE_NS")->value;
   DEBUGF(INDI::Logger::DBG_SESSION, "Timed guide South %d ms at rate %g",(int)(ms), rateshift);
@@ -1371,13 +1372,14 @@ bool EQMod::GuideSouth(float ms) {
       GuideTimerNS = IEAddTimer((int)(ms), (IE_TCF *)timedguideNSCallback, this);
     }
   } catch(EQModError e) {
-    return(e.DefaultHandleException(this));
+    e.DefaultHandleException(this);
+    return IPS_ALERT;
   }   
 
-  return true;
+  return IPS_BUSY;
 }
 
-bool EQMod::GuideEast(float ms) {
+IPState EQMod::GuideEast(float ms) {
   double rateshift=0.0;
   rateshift = TRACKRATE_SIDEREAL * IUFindNumber(GuideRateNP, "GUIDE_RATE_WE")->value;
   DEBUGF(INDI::Logger::DBG_SESSION, "Timed guide East %d ms at rate %g",(int)(ms), rateshift);
@@ -1388,13 +1390,14 @@ bool EQMod::GuideEast(float ms) {
       GuideTimerWE = IEAddTimer((int)(ms), (IE_TCF *)timedguideWECallback, this);
     }
   } catch(EQModError e) {
-    return(e.DefaultHandleException(this));
+    e.DefaultHandleException(this);
+    return IPS_ALERT;
   }   
 
-  return true;
+  return IPS_BUSY;
 }
 
-bool EQMod::GuideWest(float ms) {
+IPState EQMod::GuideWest(float ms) {
   double rateshift=0.0;
   rateshift = TRACKRATE_SIDEREAL * IUFindNumber(GuideRateNP, "GUIDE_RATE_WE")->value;
   DEBUGF(INDI::Logger::DBG_SESSION, "Timed guide West %d ms at rate %g",(int)(ms), rateshift);
@@ -1405,10 +1408,11 @@ bool EQMod::GuideWest(float ms) {
       GuideTimerWE = IEAddTimer((int)(ms), (IE_TCF *)timedguideWECallback, this);
     }
   } catch(EQModError e) {
-    return(e.DefaultHandleException(this));
+    e.DefaultHandleException(this);
+    return IPS_ALERT;
   }   
 
-  return true;
+  return IPS_BUSY;
 }
 
 bool EQMod::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
@@ -1827,11 +1831,11 @@ double EQMod::GetDESlew() {
   return rate;
 }
 
-bool EQMod::MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command)
+bool EQMod::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
 
-    const char *dirStr = (dir == MOTION_NORTH) ? "North" : "South";
-    double rate= (dir == MOTION_NORTH) ? GetDESlew() : GetDESlew()*-1;
+    const char *dirStr = (dir == DIRECTION_NORTH) ? "North" : "South";
+    double rate= (dir == DIRECTION_NORTH) ? GetDESlew() : GetDESlew()*-1;
 
   try {
   switch (command)
@@ -1878,11 +1882,10 @@ bool EQMod::MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command)
   return true;
 }
 
-bool EQMod::MoveWE(TelescopeMotionWE dir, TelescopeMotionCommand command)
+bool EQMod::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 {
-
-    const char *dirStr = (dir == MOTION_WEST) ? "West" : "East";
-    double rate= (dir == MOTION_WEST) ? GetRASlew() : GetRASlew()*-1;
+    const char *dirStr = (dir == DIRECTION_WEST) ? "West" : "East";
+    double rate= (dir == DIRECTION_WEST) ? GetRASlew() : GetRASlew()*-1;
 
   try {
   switch (command)
@@ -1961,34 +1964,38 @@ bool EQMod::Abort()
   return true;
 }
 
-void EQMod::timedguideNSCallback(void *userpointer) {
+void EQMod::timedguideNSCallback(void *userpointer)
+{
   EQMod *p = ((EQMod *)userpointer);
-  try {
+  try
+  {
     p->mount->StartDETracking(p->GetDETrackRate());
-  } catch(EQModError e) {
-    if (!(e.DefaultHandleException(p))) {
+  } catch(EQModError e)
+  {
+    if (!(e.DefaultHandleException(p)))
+    {
       DEBUGDEVICE(p->getDeviceName(), INDI::Logger::DBG_WARNING, "Timed guide North/South Error: can not restart tracking");
     }   
   }
-  p->GuideNSNP.s = IPS_IDLE;
-  //p->GuideNSN[GUIDE_NORTH].value = p->GuideNSN[GUIDE_SOUTH].value = 0;
-  IDSetNumber(&(p->GuideNSNP), NULL);
+  p->GuideComplete(AXIS_DE);
   DEBUGDEVICE(p->getDeviceName(), INDI::Logger::DBG_SESSION, "End Timed guide North/South");
   IERmTimer(p->GuideTimerNS);
 }
 
-void EQMod::timedguideWECallback(void *userpointer) {
+void EQMod::timedguideWECallback(void *userpointer)
+{
   EQMod *p = ((EQMod *)userpointer);
-  try {
+  try
+  {
   p->mount->StartRATracking(p->GetRATrackRate());
-  } catch(EQModError e) {
-    if (!(e.DefaultHandleException(p))) {
+  } catch(EQModError e)
+  {
+    if (!(e.DefaultHandleException(p)))
+    {
       DEBUGDEVICE(p->getDeviceName(), INDI::Logger::DBG_WARNING, "Timed guide West/East Error: can not restart tracking");
     }   
   }
-  p->GuideWENP.s = IPS_IDLE;
-  //p->GuideWEN[GUIDE_WEST].value = p->GuideWEN[GUIDE_EAST].value = 0;
-  IDSetNumber(&(p->GuideWENP), NULL);
+  p->GuideComplete(AXIS_RA);
   DEBUGDEVICE(p->getDeviceName(), INDI::Logger::DBG_SESSION, "End Timed guide West/East");
   IERmTimer(p->GuideTimerWE);
 }
@@ -2191,7 +2198,7 @@ void EQMod::processNSWE(double mag, double angle)
         // Moving in the same direction will make it stop
         if (MovementNSSP.s == IPS_BUSY)
         {
-            if (MoveNS( MovementNSSP.sp[0].s == ISS_ON ? MOTION_NORTH : MOTION_SOUTH, MOTION_STOP))
+            if (MoveNS( MovementNSSP.sp[0].s == ISS_ON ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP))
             {
                 IUResetSwitch(&MovementNSSP);
                 MovementNSSP.s = IPS_IDLE;
@@ -2205,7 +2212,7 @@ void EQMod::processNSWE(double mag, double angle)
         }
         else if (MovementWESP.s == IPS_BUSY)
         {
-            if (MoveWE( MovementWESP.sp[0].s == ISS_ON ? MOTION_WEST : MOTION_EAST, MOTION_STOP))
+            if (MoveWE( MovementWESP.sp[0].s == ISS_ON ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP))
             {
                 IUResetSwitch(&MovementWESP);
                 MovementWESP.s = IPS_IDLE;
@@ -2226,7 +2233,7 @@ void EQMod::processNSWE(double mag, double angle)
         {
             // Don't try to move if you're busy and moving in the same direction
             if (MovementNSSP.s != IPS_BUSY || MovementNSS[0].s != ISS_ON)
-                MoveNS(MOTION_NORTH, MOTION_START);
+                MoveNS(DIRECTION_NORTH, MOTION_START);
 
             // If angle is close to 90, make it exactly 90 to reduce noise that could trigger east/west motion as well
             if (angle > 80 && angle < 110)
@@ -2242,7 +2249,7 @@ void EQMod::processNSWE(double mag, double angle)
         {
             // Don't try to move if you're busy and moving in the same direction
            if (MovementNSSP.s != IPS_BUSY  || MovementNSS[1].s != ISS_ON)
-            MoveNS(MOTION_SOUTH, MOTION_START);
+            MoveNS(DIRECTION_SOUTH, MOTION_START);
 
            // If angle is close to 270, make it exactly 270 to reduce noise that could trigger east/west motion as well
            if (angle > 260 && angle < 280)
@@ -2258,7 +2265,7 @@ void EQMod::processNSWE(double mag, double angle)
         {
             // Don't try to move if you're busy and moving in the same direction
            if (MovementWESP.s != IPS_BUSY  || MovementWES[1].s != ISS_ON)
-                MoveWE(MOTION_EAST, MOTION_START);
+                MoveWE(DIRECTION_EAST, MOTION_START);
 
            MovementWESP.s = IPS_BUSY;
            MovementWESP.sp[0].s = ISS_OFF;
@@ -2272,7 +2279,7 @@ void EQMod::processNSWE(double mag, double angle)
 
             // Don't try to move if you're busy and moving in the same direction
            if (MovementWESP.s != IPS_BUSY  || MovementWES[0].s != ISS_ON)
-                MoveWE(MOTION_WEST, MOTION_START);
+                MoveWE(DIRECTION_WEST, MOTION_START);
 
            MovementWESP.s = IPS_BUSY;
            MovementWESP.sp[0].s = ISS_ON;

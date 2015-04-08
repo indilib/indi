@@ -27,6 +27,11 @@
  * \class INDI::GuiderInterface
    \brief Provides interface to implement guider (ST4) port functionality.
 
+   The child class implements GuideXXXX() functions and returns:
+   * IPS_OK if the guide operation is completed in the function, which is usually appropiate for very short guiding pulses.
+   * IPS_BUSY if the guide operation is in progress and will take time to complete. In this case, the child class must call GuideComplete() once the guiding pulse is complete.
+   * IPS_ALERT if the guide operation failed.
+
    \e IMPORTANT: initGuiderProperties() must be called before any other function to initilize the guider properties.
 
    \e IMPORATNT: processGuiderProperties() must be called in your driver's ISNewNumber(..) function. processGuiderProperties() will call the guide functions
@@ -40,24 +45,30 @@ class INDI::GuiderInterface
 public:
 
     /** \brief Guide north for ms milliseconds
-        \return True if OK, false otherwise
+        \return IPS_OK if operation is completed successfully, IPS_BUSY if operation will take take to complete, or IPS_ALERT if operation failed.
     */
-    virtual bool GuideNorth(float ms) = 0;
+    virtual IPState GuideNorth(float ms) = 0;
 
     /** \brief Guide south for ms milliseconds
-        \return True if OK, false otherwise
+        \return IPS_OK if operation is completed successfully, IPS_BUSY if operation will take take to complete, or IPS_ALERT if operation failed.
     */
-    virtual bool GuideSouth(float ms) = 0;
+    virtual IPState GuideSouth(float ms) = 0;
 
     /** \brief Guide east for ms milliseconds
-        \return True if OK, false otherwise
+        \return IPS_OK if operation is completed successfully, IPS_BUSY if operation will take take to complete, or IPS_ALERT if operation failed.
     */
-    virtual bool GuideEast(float ms) = 0;
+    virtual IPState GuideEast(float ms) = 0;
 
     /** \brief Guide west for ms milliseconds
-        \return True if OK, false otherwise
+        \return IPS_OK if operation is completed successfully, IPS_BUSY if operation will take take to complete, or IPS_ALERT if operation failed.
     */
-    virtual bool GuideWest(float ms) = 0;
+    virtual IPState GuideWest(float ms) = 0;
+
+    /**
+     * \brief Call GuideComplete once the guiding pulse is complete.
+     * @param axis Axis of completed guiding operation.
+     */
+    virtual void GuideComplete(INDI_AXIS_TYPE axis);
 
 protected:
 

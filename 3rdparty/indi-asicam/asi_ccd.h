@@ -64,10 +64,10 @@ protected:
   virtual bool UpdateCCDBin(int binx, int biny);
 
   // Guide Port
-  virtual bool GuideNorth(float ms);
-  virtual bool GuideSouth(float ms);
-  virtual bool GuideEast(float ms);
-  virtual bool GuideWest(float ms);
+  virtual IPState GuideNorth(float ms);
+  virtual IPState GuideSouth(float ms);
+  virtual IPState GuideEast(float ms);
+  virtual IPState GuideWest(float ms);
 
 private:
 

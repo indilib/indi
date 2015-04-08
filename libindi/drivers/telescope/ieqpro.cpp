@@ -825,7 +825,7 @@ void IEQPro::simulationTriggered(bool enable)
     set_ieqpro_simulation(enable);
 }
 
-bool IEQPro::MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command)
+bool IEQPro::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
     if (TrackState == SCOPE_PARKED)
     {
@@ -836,30 +836,30 @@ bool IEQPro::MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command)
     switch (command)
     {
         case MOTION_START:
-        if (start_ieqpro_motion(PortFD, (dir == MOTION_NORTH ? IEQ_N : IEQ_S)) == false)
+        if (start_ieqpro_motion(PortFD, (dir == DIRECTION_NORTH ? IEQ_N : IEQ_S)) == false)
         {
             DEBUG(INDI::Logger::DBG_ERROR, "Error setting N/S motion direction.");
             return false;
         }
         else
-           DEBUGF(INDI::Logger::DBG_SESSION,"Moving toward %s.", (dir == MOTION_NORTH) ? "North" : "South");
+           DEBUGF(INDI::Logger::DBG_SESSION,"Moving toward %s.", (dir == DIRECTION_NORTH) ? "North" : "South");
         break;
 
         case MOTION_STOP:
-        if (stop_ieqpro_motion(PortFD, (dir == MOTION_NORTH ? IEQ_N : IEQ_S)) < 0)
+        if (stop_ieqpro_motion(PortFD, (dir == DIRECTION_NORTH ? IEQ_N : IEQ_S)) < 0)
         {
             DEBUG(INDI::Logger::DBG_ERROR, "Error stopping N/S motion.");
             return false;
         }
         else
-            DEBUGF(INDI::Logger::DBG_SESSION, "%s motion stopped.", (dir == MOTION_NORTH) ? "North" : "South");
+            DEBUGF(INDI::Logger::DBG_SESSION, "%s motion stopped.", (dir == DIRECTION_NORTH) ? "North" : "South");
         break;
     }
 
     return true;
 }
 
-bool IEQPro::MoveWE(TelescopeMotionWE dir, TelescopeMotionCommand command)
+bool IEQPro::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 {
     if (TrackState == SCOPE_PARKED)
     {
@@ -870,47 +870,51 @@ bool IEQPro::MoveWE(TelescopeMotionWE dir, TelescopeMotionCommand command)
     switch (command)
     {
         case MOTION_START:
-        if (start_ieqpro_motion(PortFD, (dir == MOTION_WEST ? IEQ_W : IEQ_E)) == false)
+        if (start_ieqpro_motion(PortFD, (dir == DIRECTION_WEST ? IEQ_W : IEQ_E)) == false)
         {
             DEBUG(INDI::Logger::DBG_ERROR, "Error setting N/S motion direction.");
             return false;
         }
         else
-           DEBUGF(INDI::Logger::DBG_SESSION,"Moving toward %s.", (dir == MOTION_WEST) ? "West" : "East");
+           DEBUGF(INDI::Logger::DBG_SESSION,"Moving toward %s.", (dir == DIRECTION_WEST) ? "West" : "East");
         break;
 
         case MOTION_STOP:
-        if (stop_ieqpro_motion(PortFD, (dir == MOTION_WEST ? IEQ_W : IEQ_E)) < 0)
+        if (stop_ieqpro_motion(PortFD, (dir == DIRECTION_WEST ? IEQ_W : IEQ_E)) < 0)
         {
             DEBUG(INDI::Logger::DBG_ERROR, "Error stopping W/E motion.");
             return false;
         }
         else
-            DEBUGF(INDI::Logger::DBG_SESSION, "%s motion stopped.", (dir == MOTION_WEST) ? "West" : "East");
+            DEBUGF(INDI::Logger::DBG_SESSION, "%s motion stopped.", (dir == DIRECTION_WEST) ? "West" : "East");
         break;
     }
 
     return true;
 }
 
-bool IEQPro::GuideNorth(float ms)
+IPState IEQPro::GuideNorth(float ms)
 {    
-    return start_ieqpro_guide(PortFD, IEQ_N, (int) ms);
+    bool rc = start_ieqpro_guide(PortFD, IEQ_N, (int) ms);
+    return (rc ? IPS_OK : IPS_ALERT);
 }
 
-bool IEQPro::GuideSouth(float ms)
+IPState IEQPro::GuideSouth(float ms)
 {
-    return start_ieqpro_guide(PortFD, IEQ_S, (int) ms);
+    bool rc = start_ieqpro_guide(PortFD, IEQ_S, (int) ms);
+    return (rc ? IPS_OK : IPS_ALERT);
 }
 
-bool IEQPro::GuideEast(float ms)
+IPState IEQPro::GuideEast(float ms)
 {
-    return start_ieqpro_guide(PortFD, IEQ_E, (int) ms);
+    bool rc = start_ieqpro_guide(PortFD, IEQ_E, (int) ms);
+    return (rc ? IPS_OK : IPS_ALERT);
 }
 
-bool IEQPro::GuideWest(float ms)
+IPState IEQPro::GuideWest(float ms)
 {
-    return start_ieqpro_guide(PortFD, IEQ_W, (int) ms);
+    bool rc = start_ieqpro_guide(PortFD, IEQ_W, (int) ms);
+    return (rc ? IPS_OK : IPS_ALERT);
 }
 
 bool IEQPro::setSlewRate(IEQ_SLEW_RATE rate)
@@ -952,7 +956,7 @@ void IEQPro::processNSWE(double mag, double angle)
         // Moving in the same direction will make it stop
         if (MovementNSSP.s == IPS_BUSY)
         {
-            if (MoveNS( MovementNSSP.sp[0].s == ISS_ON ? MOTION_NORTH : MOTION_SOUTH, MOTION_STOP))
+            if (MoveNS( MovementNSSP.sp[0].s == ISS_ON ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP))
             {
                 IUResetSwitch(&MovementNSSP);
                 MovementNSSP.s = IPS_IDLE;
@@ -966,7 +970,7 @@ void IEQPro::processNSWE(double mag, double angle)
         }
         else if (MovementWESP.s == IPS_BUSY)
         {
-            if (MoveWE( MovementWESP.sp[0].s == ISS_ON ? MOTION_WEST : MOTION_EAST, MOTION_STOP))
+            if (MoveWE( MovementWESP.sp[0].s == ISS_ON ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP))
             {
                 IUResetSwitch(&MovementWESP);
                 MovementWESP.s = IPS_IDLE;
@@ -987,7 +991,7 @@ void IEQPro::processNSWE(double mag, double angle)
         {
             // Don't try to move if you're busy and moving in the same direction
             if (MovementNSSP.s != IPS_BUSY || MovementNSS[0].s != ISS_ON)
-                MoveNS(MOTION_NORTH, MOTION_START);
+                MoveNS(DIRECTION_NORTH, MOTION_START);
 
             // If angle is close to 90, make it exactly 90 to reduce noise that could trigger east/west motion as well
             if (angle > 80 && angle < 110)
@@ -1003,7 +1007,7 @@ void IEQPro::processNSWE(double mag, double angle)
         {
             // Don't try to move if you're busy and moving in the same direction
            if (MovementNSSP.s != IPS_BUSY  || MovementNSS[1].s != ISS_ON)
-            MoveNS(MOTION_SOUTH, MOTION_START);
+            MoveNS(DIRECTION_SOUTH, MOTION_START);
 
            // If angle is close to 270, make it exactly 270 to reduce noise that could trigger east/west motion as well
            if (angle > 260 && angle < 280)
@@ -1019,7 +1023,7 @@ void IEQPro::processNSWE(double mag, double angle)
         {
             // Don't try to move if you're busy and moving in the same direction
            if (MovementWESP.s != IPS_BUSY  || MovementWES[1].s != ISS_ON)
-                MoveWE(MOTION_EAST, MOTION_START);
+                MoveWE(DIRECTION_EAST, MOTION_START);
 
            MovementWESP.s = IPS_BUSY;
            MovementWESP.sp[0].s = ISS_OFF;
@@ -1033,7 +1037,7 @@ void IEQPro::processNSWE(double mag, double angle)
 
             // Don't try to move if you're busy and moving in the same direction
            if (MovementWESP.s != IPS_BUSY  || MovementWES[0].s != ISS_ON)
-                MoveWE(MOTION_WEST, MOTION_START);
+                MoveWE(DIRECTION_WEST, MOTION_START);
 
            MovementWESP.s = IPS_BUSY;
            MovementWESP.sp[0].s = ISS_ON;

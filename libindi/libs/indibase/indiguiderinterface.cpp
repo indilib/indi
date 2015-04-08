@@ -36,12 +36,12 @@ INDI::GuiderInterface::~GuiderInterface()
 void INDI::GuiderInterface::initGuiderProperties(const char *deviceName, const char* groupName)
 {
 
-    IUFillNumber(&GuideNSN[0],"TIMED_GUIDE_N","North (msec)","%g",0,60000,10,0);
-    IUFillNumber(&GuideNSN[1],"TIMED_GUIDE_S","South (msec)","%g",0,60000,10,0);
+    IUFillNumber(&GuideNSN[DIRECTION_NORTH],"TIMED_GUIDE_N","North (ms)","%.f",0,60000,100,0);
+    IUFillNumber(&GuideNSN[DIRECTION_SOUTH],"TIMED_GUIDE_S","South (ms)","%.f",0,60000,100,0);
     IUFillNumberVector(&GuideNSNP,GuideNSN,2,deviceName,"TELESCOPE_TIMED_GUIDE_NS","Guide N/S",groupName,IP_RW,60,IPS_IDLE);
 
-    IUFillNumber(&GuideWEN[0],"TIMED_GUIDE_E","East (msec)","%g",0,60000,10,0);
-    IUFillNumber(&GuideWEN[1],"TIMED_GUIDE_W","West (msec)","%g",0,60000,10,0);
+    IUFillNumber(&GuideWEN[DIRECTION_WEST],"TIMED_GUIDE_W","West (ms)","%.f",0,60000,100,0);
+    IUFillNumber(&GuideWEN[DIRECTION_EAST],"TIMED_GUIDE_E","East (ms)","%.f",0,60000,100,0);
     IUFillNumberVector(&GuideWENP,GuideWEN,2,deviceName,"TELESCOPE_TIMED_GUIDE_WE","Guide E/W",groupName,IP_RW,60,IPS_IDLE);
 }
 
@@ -51,19 +51,15 @@ void INDI::GuiderInterface::processGuiderProperties(const char *name, double val
     {
         //  We are being asked to send a guide pulse north/south on the st4 port
         IUUpdateNumber(&GuideNSNP,values,names,n);
-        bool rc= false;
 
-        if(GuideNSN[0].value != 0)
+        if(GuideNSN[DIRECTION_NORTH].value != 0)
         {
-            GuideNSN[1].value = 0;
-            rc = GuideNorth(GuideNSN[0].value);
+            GuideNSN[DIRECTION_SOUTH].value = 0;
+            GuideNSNP.s = GuideNorth(GuideNSN[DIRECTION_NORTH].value);
         }
-        else if(GuideNSN[1].value != 0)
-        {
-            rc = GuideSouth(GuideNSN[1].value);
-        }
+        else if(GuideNSN[DIRECTION_SOUTH].value != 0)
+            GuideNSNP.s = GuideSouth(GuideNSN[DIRECTION_SOUTH].value);
 
-        GuideNSNP.s= rc ? IPS_OK : IPS_ALERT;
         IDSetNumber(&GuideNSNP,NULL);
         return;
     }
@@ -72,19 +68,33 @@ void INDI::GuiderInterface::processGuiderProperties(const char *name, double val
     {
         //  We are being asked to send a guide pulse north/south on the st4 port
         IUUpdateNumber(&GuideWENP,values,names,n);
-        bool rc=false;
 
-        if(GuideWEN[0].value != 0)
+        if(GuideWEN[DIRECTION_WEST].value != 0)
         {
-            GuideWEN[1].value = 0;
-            rc = GuideEast(GuideWEN[0].value);
+            GuideWEN[DIRECTION_EAST].value = 0;
+            GuideWENP.s = GuideWest(GuideWEN[DIRECTION_WEST].value);
         }
-        else if(GuideWEN[1].value != 0)
-            rc = GuideWest(GuideWEN[1].value);
+        else if(GuideWEN[DIRECTION_EAST].value != 0)
+            GuideWENP.s = GuideEast(GuideWEN[DIRECTION_EAST].value);
 
-        GuideWENP.s= rc ? IPS_OK : IPS_ALERT;
         IDSetNumber(&GuideWENP,NULL);
         return;
+    }
+}
+
+void INDI::GuiderInterface::GuideComplete(INDI_AXIS_TYPE axis)
+{
+    switch (axis)
+    {
+        case AXIS_DE:
+            GuideNSNP.s = IPS_IDLE;
+            IDSetNumber(&GuideNSNP, NULL);
+            break;
+
+        case AXIS_RA:
+            GuideWENP.s = IPS_IDLE;
+            IDSetNumber(&GuideWENP, NULL);
+            break;
     }
 }
 

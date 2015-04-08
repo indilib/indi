@@ -93,7 +93,7 @@ bool INDI::DefaultDevice::saveConfigItems(FILE *fp)
 {
     std::vector<INDI::Property *>::iterator orderi;
 
-    INDI_TYPE pType;
+    INDI_PROPERTY_TYPE pType;
     void *pPtr;
 
     ISwitchVectorProperty *svp=NULL;
@@ -453,7 +453,7 @@ void INDI::DefaultDevice::simulationTriggered(bool enable)
 void INDI::DefaultDevice::ISGetProperties (const char *dev)
 {
     std::vector<INDI::Property *>::iterator orderi;
-    INDI_TYPE pType;
+    INDI_PROPERTY_TYPE pType;
     void *pPtr;
 
     if(isInit == 0)
@@ -506,7 +506,7 @@ void INDI::DefaultDevice::ISGetProperties (const char *dev)
 void INDI::DefaultDevice::resetProperties()
 {
     std::vector<INDI::Property *>::iterator orderi;
-    INDI_TYPE pType;
+    INDI_PROPERTY_TYPE pType;
     void *pPtr;
 
     for (orderi = pAll.begin(); orderi != pAll.end(); orderi++)

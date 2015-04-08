@@ -343,7 +343,7 @@ void STAR2000::TimerHit()
 
 }
 
-bool STAR2000::GuideNorth(float ms)
+IPState STAR2000::GuideNorth(float ms)
 {
 
     RemoveTimer(NStimerID);
@@ -361,7 +361,7 @@ bool STAR2000::GuideNorth(float ms)
 
         StopPulse(NORTH);
 
-        return true;
+        return IPS_OK;
     }
 
     NSPulseRequest=ms/1000.0;
@@ -370,10 +370,10 @@ bool STAR2000::GuideNorth(float ms)
 
     NStimerID = SetTimer(ms-50);
 
-    return true;
+    return IPS_BUSY;
 }
 
-bool STAR2000::GuideSouth(float ms)
+IPState STAR2000::GuideSouth(float ms)
 {
     RemoveTimer(NStimerID);
 
@@ -389,7 +389,7 @@ bool STAR2000::GuideSouth(float ms)
 
         StopPulse(SOUTH);
 
-        return true;
+        return IPS_OK;
     }
 
     NSPulseRequest=ms/1000.0;
@@ -398,11 +398,11 @@ bool STAR2000::GuideSouth(float ms)
 
     NStimerID = SetTimer(ms-50);
 
-    return true;
+    return IPS_BUSY;
 
 }
 
-bool STAR2000::GuideEast(float ms)
+IPState STAR2000::GuideEast(float ms)
 {
     RemoveTimer(WEtimerID);
 
@@ -418,7 +418,7 @@ bool STAR2000::GuideEast(float ms)
 
         StopPulse(EAST);
 
-        return true;
+        return IPS_OK;
     }
 
     WEPulseRequest=ms/1000.0;
@@ -427,10 +427,10 @@ bool STAR2000::GuideEast(float ms)
 
     WEtimerID = SetTimer(ms-50);
 
-    return true;
+    return IPS_BUSY;
 }
 
-bool STAR2000::GuideWest(float ms)
+IPState STAR2000::GuideWest(float ms)
 {
     RemoveTimer(WEtimerID);
 
@@ -446,7 +446,7 @@ bool STAR2000::GuideWest(float ms)
 
         StopPulse(WEST);
 
-        return true;
+        return IPS_OK;
     }
 
     WEPulseRequest=ms/1000.0;
@@ -455,5 +455,5 @@ bool STAR2000::GuideWest(float ms)
 
     WEtimerID = SetTimer(ms-50);
 
-    return true;
+    return IPS_BUSY;
 }

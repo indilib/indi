@@ -3,6 +3,7 @@
 
 #include "indiapi.h"
 #include "indidevapi.h"
+#include "indibasetypes.h"
 
 #define MAXRBUF 2048
 
@@ -52,18 +53,6 @@ namespace INDI
     class Controller;
     class Logger;
 }
-
-/*! INDI property type */
-typedef enum
-{
-    INDI_NUMBER, /*!< INumberVectorProperty. */
-    INDI_SWITCH, /*!< ISwitchVectorProperty. */
-    INDI_TEXT,   /*!< ITextVectorProperty. */
-    INDI_LIGHT,  /*!< ILightVectorProperty. */
-    INDI_BLOB,    /*!< IBLOBVectorProperty. */
-    INDI_UNKNOWN
-} INDI_TYPE;
-
 
 /**
  * \class INDI::BaseMediator

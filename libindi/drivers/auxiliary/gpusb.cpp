@@ -315,7 +315,7 @@ void GPUSB::TimerHit()
 
 }
 
-bool GPUSB::GuideNorth(float ms)
+IPState GPUSB::GuideNorth(float ms)
 {
 
     RemoveTimer(NStimerID);
@@ -333,7 +333,7 @@ bool GPUSB::GuideNorth(float ms)
         usleep(ms*1000);
 
         driver->stopPulse(GPUSB_NORTH);
-        return true;
+        return IPS_OK;
     }
 
     NSPulseRequest=ms/1000.0;
@@ -343,13 +343,11 @@ bool GPUSB::GuideNorth(float ms)
 
     NStimerID = SetTimer(ms-50);
 
-    return true;
+    return IPS_BUSY;
 }
 
-bool GPUSB::GuideSouth(float ms)
+IPState GPUSB::GuideSouth(float ms)
 {
-
-
     RemoveTimer(NStimerID);
 
     driver->startPulse(GPUSB_SOUTH);
@@ -364,7 +362,7 @@ bool GPUSB::GuideSouth(float ms)
         usleep(ms*1000);
 
         driver->stopPulse(GPUSB_SOUTH);
-        return true;
+        return IPS_OK;
     }
 
     NSPulseRequest=ms/1000.0;
@@ -374,14 +372,11 @@ bool GPUSB::GuideSouth(float ms)
 
     NStimerID = SetTimer(ms-50);
 
-    return true;
-
+    return IPS_BUSY;
 }
 
-bool GPUSB::GuideEast(float ms)
+IPState GPUSB::GuideEast(float ms)
 {
-
-
     RemoveTimer(WEtimerID);
 
     driver->startPulse(GPUSB_EAST);
@@ -396,7 +391,7 @@ bool GPUSB::GuideEast(float ms)
         usleep(ms*1000);
 
         driver->stopPulse(GPUSB_EAST);
-        return true;
+        return IPS_OK;
     }
 
     WEPulseRequest=ms/1000.0;
@@ -405,10 +400,10 @@ bool GPUSB::GuideEast(float ms)
 
     WEtimerID = SetTimer(ms-50);
 
-    return true;
+    return IPS_BUSY;
 }
 
-bool GPUSB::GuideWest(float ms)
+IPState GPUSB::GuideWest(float ms)
 {
 
     RemoveTimer(WEtimerID);
@@ -425,7 +420,7 @@ bool GPUSB::GuideWest(float ms)
         usleep(ms*1000);
 
         driver->stopPulse(GPUSB_WEST);
-        return true;
+        return IPS_OK;
     }
 
     WEPulseRequest=ms/1000.0;
@@ -435,6 +430,6 @@ bool GPUSB::GuideWest(float ms)
 
     WEtimerID = SetTimer(ms-50);
 
-    return true;
+    return IPS_BUSY;
 
 }

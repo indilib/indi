@@ -52,8 +52,8 @@ protected:
 
  virtual bool ReadScopeStatus();
 
- virtual bool MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command);
- virtual bool MoveWE(TelescopeMotionWE dir, TelescopeMotionCommand command);
+ virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
+ virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
 
  virtual bool saveConfigItems(FILE *fp);
 
@@ -78,10 +78,10 @@ protected:
  void mountSim();
 
  // Guide
- virtual bool GuideNorth(float ms);
- virtual bool GuideSouth(float ms);
- virtual bool GuideEast(float ms);
- virtual bool GuideWest(float ms);
+ virtual IPState GuideNorth(float ms);
+ virtual IPState GuideSouth(float ms);
+ virtual IPState GuideEast(float ms);
+ virtual IPState GuideWest(float ms);
 
  // Joystick
  void processNSWE(double mag, double angle);

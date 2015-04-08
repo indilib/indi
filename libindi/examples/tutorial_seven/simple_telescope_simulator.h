@@ -37,8 +37,8 @@ private:
     virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
     friend void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
     virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command);
-    virtual bool MoveWE(TelescopeMotionWE dir, TelescopeMotionCommand command);
+    virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
+    virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
     virtual bool ReadScopeStatus();
     bool Sync(double ra, double dec);
     virtual void TimerHit();
@@ -66,12 +66,12 @@ private:
     long GotoTargetMicrostepsRA;
 
     // Previous motion direction
-    typedef enum { PREVIOUS_NS_MOTION_NORTH = MOTION_NORTH,
-                    PREVIOUS_NS_MOTION_SOUTH = MOTION_SOUTH,
+    typedef enum { PREVIOUS_NS_MOTION_NORTH = DIRECTION_NORTH,
+                    PREVIOUS_NS_MOTION_SOUTH = DIRECTION_SOUTH,
                     PREVIOUS_NS_MOTION_UNKNOWN = -1} PreviousNSMotion_t;
     PreviousNSMotion_t PreviousNSMotion;
-    typedef enum { PREVIOUS_WE_MOTION_WEST = MOTION_WEST,
-                    PREVIOUS_WE_MOTION_EAST = MOTION_EAST,
+    typedef enum { PREVIOUS_WE_MOTION_WEST = DIRECTION_WEST,
+                    PREVIOUS_WE_MOTION_EAST = DIRECTION_EAST,
                     PREVIOUS_WE_MOTION_UNKNOWN = -1} PreviousWEMotion_t;
     PreviousWEMotion_t PreviousWEMotion;
 

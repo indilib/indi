@@ -1231,7 +1231,7 @@ bool SBIGCCD::UpdateGuiderBin(int binx, int biny)
   return updateFrameProperties(&GuideCCD);
 }
 
-bool SBIGCCD::GuideNorth(float duration)
+IPState SBIGCCD::GuideNorth(float duration)
 {
    ActivateRelayParams rp;
    rp.tXMinus = rp.tXPlus = rp.tYMinus = rp.tYPlus = 0;
@@ -1241,11 +1241,11 @@ bool SBIGCCD::GuideNorth(float duration)
 
    ActivateRelay(&rp);
 
-   return true;
+   return IPS_OK;
 
 }
 
-bool SBIGCCD::GuideSouth(float duration)
+IPState SBIGCCD::GuideSouth(float duration)
 {
     ActivateRelayParams rp;
     rp.tXMinus = rp.tXPlus = rp.tYMinus = rp.tYPlus = 0;
@@ -1255,11 +1255,11 @@ bool SBIGCCD::GuideSouth(float duration)
 
     ActivateRelay(&rp);
 
-    return true;
+    return IPS_OK;
 
 }
 
-bool SBIGCCD::GuideEast(float duration)
+IPState SBIGCCD::GuideEast(float duration)
 {
     ActivateRelayParams rp;
     rp.tXMinus = rp.tXPlus = rp.tYMinus = rp.tYPlus = 0;
@@ -1269,11 +1269,11 @@ bool SBIGCCD::GuideEast(float duration)
 
     ActivateRelay(&rp);
 
-    return true;
+    return IPS_OK;
 
 }
 
-bool SBIGCCD::GuideWest(float duration)
+IPState SBIGCCD::GuideWest(float duration)
 {
     ActivateRelayParams rp;
     rp.tXMinus = rp.tXPlus = rp.tYMinus = rp.tYPlus = 0;
@@ -1283,7 +1283,7 @@ bool SBIGCCD::GuideWest(float duration)
 
     ActivateRelay(&rp);
 
-    return true;
+    return IPS_OK;
 }
 
 float SBIGCCD::CalcTimeLeft(timeval start,float req)

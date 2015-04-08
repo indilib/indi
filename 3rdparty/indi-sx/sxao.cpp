@@ -279,32 +279,32 @@ bool SXAO::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
   return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool SXAO::GuideNorth(float ms) {
+IPState SXAO::GuideNorth(float ms) {
   char buf[8];
   sprintf(buf, "MN%05d", (int) (ms / 10));
   int rc = aoCommand(buf, buf, 1);
-  return rc == TTY_OK;
+  return (rc == TTY_OK ? IPS_OK : IPS_ALERT);
 }
 
-bool SXAO::GuideSouth(float ms) {
+IPState SXAO::GuideSouth(float ms) {
   char buf[8];
   sprintf(buf, "MS%05d", (int) (ms / 10));
   int rc = aoCommand(buf, buf, 1);
-  return rc == TTY_OK;
+  return (rc == TTY_OK ? IPS_OK : IPS_ALERT);
 }
 
-bool SXAO::GuideEast(float ms) {
+IPState SXAO::GuideEast(float ms) {
   char buf[8];
   sprintf(buf, "ME%05d", (int) (ms / 10));
   int rc = aoCommand(buf, buf, 1);
-  return rc == TTY_OK;
+  return (rc == TTY_OK ? IPS_OK : IPS_ALERT);
 }
 
-bool SXAO::GuideWest(float ms) {
+IPState SXAO::GuideWest(float ms) {
   char buf[8];
   sprintf(buf, "MW%05d", (int) (ms / 10));
   int rc = aoCommand(buf, buf, 1);
-  return rc == TTY_OK;
+  return (rc == TTY_OK ? IPS_OK : IPS_ALERT);
 }
 
 bool SXAO::AONorth(int steps) {

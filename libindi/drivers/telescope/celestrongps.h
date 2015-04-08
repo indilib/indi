@@ -56,8 +56,8 @@ protected:
  // Goto, Sync, and Motion
  bool Goto(double ra,double dec);
  bool Sync(double ra, double dec);
- virtual bool MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command);
- virtual bool MoveWE(TelescopeMotionWE dir, TelescopeMotionCommand command);
+ virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
+ virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
  virtual bool Abort();
 
  // Time and Location

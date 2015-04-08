@@ -65,10 +65,10 @@ class STAR2000 : public INDI::GuiderInterface, public INDI::DefaultDevice
 
     void TimerHit();
 
-    virtual bool GuideNorth(float ms);
-    virtual bool GuideSouth(float ms);
-    virtual bool GuideEast(float ms);
-    virtual bool GuideWest(float ms);
+    virtual IPState GuideNorth(float ms);
+    virtual IPState GuideSouth(float ms);
+    virtual IPState GuideEast(float ms);
+    virtual IPState GuideWest(float ms);
 
     /* STAR2000 box RS232 port */
 

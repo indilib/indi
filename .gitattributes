@@ -246,12 +246,6 @@
 3rdparty/indi-maxdomeii/maxdomeii.h -text
 3rdparty/indi-maxdomeii/maxdomeiidriver.c -text
 3rdparty/indi-maxdomeii/maxdomeiidriver.h -text
-3rdparty/indi-meadedsi/AUTHORS -text
-3rdparty/indi-meadedsi/COPYING.LIB -text
-3rdparty/indi-meadedsi/ChangeLog -text
-3rdparty/indi-meadedsi/INSTALL -text
-3rdparty/indi-meadedsi/README -text
-3rdparty/indi-meadedsi/indi_meadedsi_ccd.xml -text
 3rdparty/indi-qhy/AUTHORS -text
 3rdparty/indi-qhy/CMakeLists.txt -text
 3rdparty/indi-qhy/INSTALL -text
@@ -1463,6 +1457,7 @@ libindi/libs/indibase/basedevice.h -text
 libindi/libs/indibase/defaultdevice.cpp -text
 libindi/libs/indibase/defaultdevice.h -text
 libindi/libs/indibase/indibase.h -text
+libindi/libs/indibase/indibasetypes.h -text
 libindi/libs/indibase/indiccd.cpp -text
 libindi/libs/indibase/indiccd.h -text
 libindi/libs/indibase/indicontroller.cpp -text

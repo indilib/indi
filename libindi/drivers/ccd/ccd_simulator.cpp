@@ -970,7 +970,7 @@ int CCDSim::AddToPixel(CCDChip *targetChip, int x,int y,int val)
     return drew;
 }
 
-bool CCDSim::GuideNorth(float v)
+IPState CCDSim::GuideNorth(float v)
 {
     float c;
 
@@ -978,9 +978,10 @@ bool CCDSim::GuideNorth(float v)
     c=c/3600;
     decPE=decPE+c;
 
-    return true;
+    return IPS_OK;
 }
-bool CCDSim::GuideSouth(float v)
+
+IPState CCDSim::GuideSouth(float v)
 {
     float c;
 
@@ -988,10 +989,10 @@ bool CCDSim::GuideSouth(float v)
     c=c/3600;
     decPE=decPE-c;
 
-    return true;
+    return IPS_OK;
 }
 
-bool CCDSim::GuideEast(float v)
+IPState CCDSim::GuideEast(float v)
 {
     float c;
 
@@ -1000,9 +1001,10 @@ bool CCDSim::GuideEast(float v)
     c=c/(cos(decPE*0.0174532925));
     raPE=raPE+c;
 
-    return true;
+    return IPS_OK;
 }
-bool CCDSim::GuideWest(float v)
+
+IPState CCDSim::GuideWest(float v)
 {
     float c;
 
@@ -1011,7 +1013,7 @@ bool CCDSim::GuideWest(float v)
     c=c/(cos(decPE*0.0174532925));
     raPE=raPE-c;
 
-    return true;
+    return IPS_OK;
 }
 
 bool CCDSim::ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int n)

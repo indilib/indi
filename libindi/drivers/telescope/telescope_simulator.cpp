@@ -137,13 +137,13 @@ bool ScopeSim::initProperties()
     IUFillNumberVector(&EqPENV,EqPEN,2,getDeviceName(),"EQUATORIAL_PE","Periodic Error",MOTION_TAB,IP_RO,60,IPS_IDLE);
 
     /* Enable client to manually add periodic error northward or southward for simulation purposes */
-    IUFillSwitch(&PEErrNSS[MOTION_NORTH], "PE_N", "North", ISS_OFF);
-    IUFillSwitch(&PEErrNSS[MOTION_SOUTH], "PE_S", "South", ISS_OFF);
+    IUFillSwitch(&PEErrNSS[DIRECTION_NORTH], "PE_N", "North", ISS_OFF);
+    IUFillSwitch(&PEErrNSS[DIRECTION_SOUTH], "PE_S", "South", ISS_OFF);
     IUFillSwitchVector(&PEErrNSSP, PEErrNSS, 2, getDeviceName(),"PE_NS", "PE N/S", MOTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     /* Enable client to manually add periodic error westward or easthward for simulation purposes */
-    IUFillSwitch(&PEErrWES[MOTION_WEST], "PE_W", "West", ISS_OFF);
-    IUFillSwitch(&PEErrWES[MOTION_EAST], "PE_E", "East", ISS_OFF);
+    IUFillSwitch(&PEErrWES[DIRECTION_WEST], "PE_W", "West", ISS_OFF);
+    IUFillSwitch(&PEErrWES[DIRECTION_EAST], "PE_E", "East", ISS_OFF);
     IUFillSwitchVector(&PEErrWESP, PEErrWES, 2, getDeviceName(),"PE_WE", "PE W/E", MOTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     /* How fast do we guide compared to sidereal rate */
@@ -324,9 +324,9 @@ bool ScopeSim::ReadScopeStatus()
         switch (MovementNSSP.s)
         {
            case IPS_BUSY:
-            if (MovementNSS[MOTION_NORTH].s == ISS_ON)
+            if (MovementNSS[DIRECTION_NORTH].s == ISS_ON)
                 currentDEC += da_dec;
-            else if (MovementNSS[MOTION_SOUTH].s == ISS_ON)
+            else if (MovementNSS[DIRECTION_SOUTH].s == ISS_ON)
                 currentDEC -= da_dec;
 
             break;
@@ -336,9 +336,9 @@ bool ScopeSim::ReadScopeStatus()
         {
             case IPS_BUSY:
 
-            if (MovementWES[MOTION_WEST].s == ISS_ON)
+            if (MovementWES[DIRECTION_WEST].s == ISS_ON)
                 currentRA += da_ra/15.;
-            else if (MovementWES[MOTION_EAST].s == ISS_ON)
+            else if (MovementWES[DIRECTION_EAST].s == ISS_ON)
                 currentRA -= da_ra/15.;
 
             break;
@@ -470,6 +470,12 @@ bool ScopeSim::ReadScopeStatus()
           else              
               guiderNSTarget[ns_guide_dir] = 0;
 
+          if (guiderNSTarget[ns_guide_dir] == 0)
+          {
+              GuideNSNP.s = IPS_IDLE;
+              IDSetNumber(&GuideNSNP, NULL);
+          }
+
           EqPEN[DEC_AXIS].value += dec_guide_dt;
 
           }
@@ -483,6 +489,12 @@ bool ScopeSim::ReadScopeStatus()
                 guiderEWTarget[we_guide_dir] -= dt;
           else
                 guiderEWTarget[we_guide_dir] = 0;
+
+          if (guiderEWTarget[we_guide_dir] == 0)
+          {
+              GuideWENP.s = IPS_IDLE;
+              IDSetNumber(&GuideWENP, NULL);
+          }
 
           EqPEN[RA_AXIS].value += ra_guide_dt;
 
@@ -684,7 +696,7 @@ bool ScopeSim::ISNewSwitch (const char *dev, const char *name, ISState *states, 
 
             PEErrNSSP.s = IPS_OK;
 
-            if (PEErrNSS[MOTION_NORTH].s == ISS_ON)
+            if (PEErrNSS[DIRECTION_NORTH].s == ISS_ON)
             {
                 EqPEN[DEC_AXIS].value += SID_RATE * GuideRateN[DEC_AXIS].value;
                 DEBUGF(INDI::Logger::DBG_DEBUG, "Simulating PE in NORTH direction for value of %g", SID_RATE);
@@ -708,7 +720,7 @@ bool ScopeSim::ISNewSwitch (const char *dev, const char *name, ISState *states, 
 
             PEErrWESP.s = IPS_OK;
 
-            if (PEErrWES[MOTION_WEST].s == ISS_ON)
+            if (PEErrWES[DIRECTION_WEST].s == ISS_ON)
             {
                 EqPEN[RA_AXIS].value -= SID_RATE/15. * GuideRateN[RA_AXIS].value;
                 DEBUGF(INDI::Logger::DBG_DEBUG, "Simulator PE in WEST direction for value of %g", SID_RATE);
@@ -776,7 +788,7 @@ bool ScopeSim::Abort()
 }
 
 
-bool ScopeSim::MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command)
+bool ScopeSim::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
     if (TrackState == SCOPE_PARKED)
     {
@@ -787,7 +799,7 @@ bool ScopeSim::MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command)
     return true;
 }
 
-bool ScopeSim::MoveWE(TelescopeMotionWE dir, TelescopeMotionCommand command)
+bool ScopeSim::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 {
     if (TrackState == SCOPE_PARKED)
     {
@@ -798,35 +810,35 @@ bool ScopeSim::MoveWE(TelescopeMotionWE dir, TelescopeMotionCommand command)
     return true;
 }
 
-bool ScopeSim::GuideNorth(float ms)
+IPState ScopeSim::GuideNorth(float ms)
 {
     guiderNSTarget[GUIDE_NORTH] = ms;
     guiderNSTarget[GUIDE_SOUTH] = 0;
-    return true;
+    return IPS_BUSY;
 }
 
-bool ScopeSim::GuideSouth(float ms)
+IPState ScopeSim::GuideSouth(float ms)
 {
     guiderNSTarget[GUIDE_SOUTH] = ms;
     guiderNSTarget[GUIDE_NORTH] = 0;
-    return true;
+    return IPS_BUSY;
 
 }
 
-bool ScopeSim::GuideEast(float ms)
+IPState ScopeSim::GuideEast(float ms)
 {
 
     guiderEWTarget[GUIDE_EAST] = ms;
     guiderEWTarget[GUIDE_WEST] = 0;
-    return true;
+    return IPS_BUSY;
 
 }
 
-bool ScopeSim::GuideWest(float ms)
+IPState ScopeSim::GuideWest(float ms)
 {
     guiderEWTarget[GUIDE_WEST] = ms;
     guiderEWTarget[GUIDE_EAST] = 0;
-    return true;
+    return IPS_BUSY;
 
 }
 
@@ -924,11 +936,11 @@ void ScopeSim::processNSWE(double mag, double angle)
         {
             // Don't try to move if you're busy and moving in the same direction
             if (MovementNSSP.s != IPS_BUSY || MovementNSS[0].s != ISS_ON)
-                MoveNS(MOTION_NORTH, MOTION_START);
+                MoveNS(DIRECTION_NORTH, MOTION_START);
 
             MovementNSSP.s = IPS_BUSY;
-            MovementNSSP.sp[MOTION_NORTH].s = ISS_ON;
-            MovementNSSP.sp[MOTION_SOUTH].s = ISS_OFF;
+            MovementNSSP.sp[DIRECTION_NORTH].s = ISS_ON;
+            MovementNSSP.sp[DIRECTION_SOUTH].s = ISS_OFF;
             IDSetSwitch(&MovementNSSP, NULL);
         }
         // South
@@ -936,11 +948,11 @@ void ScopeSim::processNSWE(double mag, double angle)
         {
             // Don't try to move if you're busy and moving in the same direction
            if (MovementNSSP.s != IPS_BUSY  || MovementNSS[1].s != ISS_ON)
-            MoveNS(MOTION_SOUTH, MOTION_START);
+            MoveNS(DIRECTION_SOUTH, MOTION_START);
 
             MovementNSSP.s = IPS_BUSY;
-            MovementNSSP.sp[MOTION_NORTH].s = ISS_OFF;
-            MovementNSSP.sp[MOTION_SOUTH].s = ISS_ON;
+            MovementNSSP.sp[DIRECTION_NORTH].s = ISS_OFF;
+            MovementNSSP.sp[DIRECTION_SOUTH].s = ISS_ON;
             IDSetSwitch(&MovementNSSP, NULL);
         }
         // East
@@ -948,11 +960,11 @@ void ScopeSim::processNSWE(double mag, double angle)
         {
             // Don't try to move if you're busy and moving in the same direction
            if (MovementWESP.s != IPS_BUSY  || MovementWES[1].s != ISS_ON)
-                MoveWE(MOTION_EAST, MOTION_START);
+                MoveWE(DIRECTION_EAST, MOTION_START);
 
            MovementWESP.s = IPS_BUSY;
-           MovementWESP.sp[MOTION_WEST].s = ISS_OFF;
-           MovementWESP.sp[MOTION_EAST].s = ISS_ON;
+           MovementWESP.sp[DIRECTION_WEST].s = ISS_OFF;
+           MovementWESP.sp[DIRECTION_EAST].s = ISS_ON;
            IDSetSwitch(&MovementWESP, NULL);
         }
 
@@ -962,11 +974,11 @@ void ScopeSim::processNSWE(double mag, double angle)
 
             // Don't try to move if you're busy and moving in the same direction
            if (MovementWESP.s != IPS_BUSY  || MovementWES[0].s != ISS_ON)
-                MoveWE(MOTION_WEST, MOTION_START);
+                MoveWE(DIRECTION_WEST, MOTION_START);
 
            MovementWESP.s = IPS_BUSY;
-           MovementWESP.sp[MOTION_WEST].s = ISS_ON;
-           MovementWESP.sp[MOTION_EAST].s = ISS_OFF;
+           MovementWESP.sp[DIRECTION_WEST].s = ISS_ON;
+           MovementWESP.sp[DIRECTION_EAST].s = ISS_OFF;
            IDSetSwitch(&MovementWESP, NULL);
         }
     }

@@ -593,28 +593,28 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
             \note This function is not implemented in INDI::CCD, it must be implemented in the child class
             \return True if successful, false otherwise.
         */
-        virtual bool GuideNorth(float ms);
+        virtual IPState GuideNorth(float ms);
 
         /** \brief Guide southward for ms milliseconds
             \param ms Duration in milliseconds.
             \note This function is not implemented in INDI::CCD, it must be implemented in the child class
             \return 0 if successful, -1 otherwise.
         */
-        virtual bool GuideSouth(float ms);
+        virtual IPState GuideSouth(float ms);
 
         /** \brief Guide easward for ms milliseconds
             \param ms Duration in milliseconds.
             \note This function is not implemented in INDI::CCD, it must be implemented in the child class
             \return 0 if successful, -1 otherwise.
         */
-        virtual bool GuideEast(float ms);
+        virtual IPState GuideEast(float ms);
 
         /** \brief Guide westward for ms milliseconds
             \param ms Duration in milliseconds.
             \note This function is not implemented in INDI::CCD, it must be implemented in the child class
             \return 0 if successful, -1 otherwise.
         */
-        virtual bool GuideWest(float ms);
+        virtual IPState GuideWest(float ms);
 
         /** \brief Add FITS keywords to a fits file
             \param fptr pointer to a valid FITS file.
@@ -637,16 +637,17 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         */
         virtual void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip);
 
-        /* A function to just remove GCC warnings about deprecated conversion */
+        /** A function to just remove GCC warnings about deprecated conversion */
         void fits_update_key_s(fitsfile* fptr, int type, std::string name, void* p, std::string explanation, int* status);
 
         /**
          * @brief activeDevicesUpdated Inform children that ActiveDevices property was updated so they can snoop on the updated devices if desired.
          */
-        virtual void activeDevicesUpdated() {}
+        virtual void activeDevicesUpdated() {}        
 
         virtual bool saveConfigItems(FILE *fp);
 
+        void GuideComplete(INDI_AXIS_TYPE axis);
 
         double RA, Dec;
         double FocalLength, Aperture;

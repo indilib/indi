@@ -84,10 +84,10 @@ class SXCCD : public INDI::CCD
     void GuideExposureTimerHit();
     void WEGuiderTimerHit();
     void NSGuiderTimerHit();
-    bool GuideWest(float time);
-    bool GuideEast(float time);
-    bool GuideNorth(float time);
-    bool GuideSouth(float time);
+    IPState GuideWest(float time);
+    IPState GuideEast(float time);
+    IPState GuideNorth(float time);
+    IPState GuideSouth(float time);
 
   public:
     bool HasCooler;

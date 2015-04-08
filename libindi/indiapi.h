@@ -94,7 +94,9 @@ You can find information on INDI development in the <a href="http://www.indilib.
 
 
 /* INDI Library version */
-#define INDI_LIBV	0.9
+#define INDI_VERSION_MAJOR      1
+#define INDI_VERSION_MINOR      1
+#define INDI_VERSION_RELEASE	0
 
 /*******************************************************************************
  * Manifest constants

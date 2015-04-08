@@ -106,7 +106,7 @@ IBLOBVectorProperty * INDI::BaseDevice::getBLOB(const char *name)
 IPState INDI::BaseDevice::getPropertyState(const char *name)
 {
     IPState state = IPS_IDLE;
-    INDI_TYPE pType;
+    INDI_PROPERTY_TYPE pType;
     void *pPtr;
 
     INumberVectorProperty *nvp;
@@ -172,7 +172,7 @@ IPerm INDI::BaseDevice::getPropertyPermission(const char *name)
 {
     IPerm perm = IP_RO;
 
-    INDI_TYPE pType;
+    INDI_PROPERTY_TYPE pType;
     void *pPtr;
 
     INumberVectorProperty *nvp;
@@ -227,9 +227,9 @@ IPerm INDI::BaseDevice::getPropertyPermission(const char *name)
 
 }
 
-void * INDI::BaseDevice::getRawProperty(const char *name, INDI_TYPE type)
+void * INDI::BaseDevice::getRawProperty(const char *name, INDI_PROPERTY_TYPE type)
 {
-    INDI_TYPE pType;
+    INDI_PROPERTY_TYPE pType;
     void *pPtr;
     bool pRegistered = false;
 
@@ -300,9 +300,9 @@ void * INDI::BaseDevice::getRawProperty(const char *name, INDI_TYPE type)
     return NULL;
 }
 
-INDI::Property * INDI::BaseDevice::getProperty(const char *name, INDI_TYPE type)
+INDI::Property * INDI::BaseDevice::getProperty(const char *name, INDI_PROPERTY_TYPE type)
 {
-    INDI_TYPE pType;
+    INDI_PROPERTY_TYPE pType;
     void *pPtr;
     bool pRegistered = false;
 
@@ -377,7 +377,7 @@ int INDI::BaseDevice::removeProperty(const char *name, char *errmsg)
 {    
     std::vector<INDI::Property *>::iterator orderi;
 
-    INDI_TYPE pType;
+    INDI_PROPERTY_TYPE pType;
     void *pPtr;
 
     INumberVectorProperty *nvp;
@@ -1245,7 +1245,7 @@ string INDI::BaseDevice::lastMessage()
     return messageLog.back();
 }
 
-void INDI::BaseDevice::registerProperty(void *p, INDI_TYPE type)
+void INDI::BaseDevice::registerProperty(void *p, INDI_PROPERTY_TYPE type)
 {
     INDI::Property *pContainer;
 

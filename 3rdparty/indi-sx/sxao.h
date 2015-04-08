@@ -62,10 +62,10 @@ class SXAO: public INDI::DefaultDevice, INDI::GuiderInterface {
     bool initProperties();
     bool updateProperties();
 
-    bool GuideNorth(float ms);
-    bool GuideSouth(float ms);
-    bool GuideEast(float ms);
-    bool GuideWest(float ms);
+    IPState GuideNorth(float ms);
+    IPState GuideSouth(float ms);
+    IPState GuideEast(float ms);
+    IPState GuideWest(float ms);
 
     bool AONorth(int steps);
     bool AOSouth(int steps);

@@ -512,12 +512,12 @@ bool SkywatcherAPIMount::ISNewText (const char *dev, const char *name, char *tex
     return INDI::Telescope::ISNewText(dev, name, texts, names, n);
 }
 
-bool SkywatcherAPIMount::MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command)
+bool SkywatcherAPIMount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
     DEBUG(DBG_SCOPE, "SkywatcherAPIMount::MoveNS");
 
-    double speed = (dir == MOTION_NORTH) ? (LOW_SPEED_MARGIN / 2) : -(LOW_SPEED_MARGIN / 2);
-    const char *dirStr = (dir == MOTION_NORTH) ? "North" : "South";
+    double speed = (dir == DIRECTION_NORTH) ? (LOW_SPEED_MARGIN / 2) : -(LOW_SPEED_MARGIN / 2);
+    const char *dirStr = (dir == DIRECTION_NORTH) ? "North" : "South";
 
     switch (command)
     {
@@ -535,12 +535,12 @@ bool SkywatcherAPIMount::MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand co
     return true;
 }
 
-bool SkywatcherAPIMount::MoveWE(TelescopeMotionWE dir, TelescopeMotionCommand command)
+bool SkywatcherAPIMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 {
     DEBUG(DBG_SCOPE, "SkywatcherAPIMount::MoveWE");
 
-    double speed = (dir == MOTION_WEST) ? (LOW_SPEED_MARGIN / 2) : -(LOW_SPEED_MARGIN / 2);
-    const char *dirStr = (dir == MOTION_WEST) ? "West" : "East";
+    double speed = (dir == DIRECTION_WEST) ? (LOW_SPEED_MARGIN / 2) : -(LOW_SPEED_MARGIN / 2);
+    const char *dirStr = (dir == DIRECTION_WEST) ? "West" : "East";
 
     switch (command)
     {

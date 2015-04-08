@@ -61,10 +61,10 @@ protected:
   virtual void simulationTriggered(bool enable);
 
   // Guide Port
-  virtual bool GuideNorth(float);
-  virtual bool GuideSouth(float);
-  virtual bool GuideEast(float);
-  virtual bool GuideWest(float);
+  virtual IPState GuideNorth(float);
+  virtual IPState GuideSouth(float);
+  virtual IPState GuideEast(float);
+  virtual IPState GuideWest(float);
 
 private:
   char name[MAXINDINAME];

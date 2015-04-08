@@ -593,9 +593,9 @@ bool LX200Generic::Park()
     return true;
 }
 
-bool LX200Generic::MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command)
+bool LX200Generic::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
-    int current_move = (dir == MOTION_NORTH) ? LX200_NORTH : LX200_SOUTH;
+    int current_move = (dir == DIRECTION_NORTH) ? LX200_NORTH : LX200_SOUTH;
 
     switch (command)
     {
@@ -623,9 +623,9 @@ bool LX200Generic::MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command)
     return true;
 }
 
-bool LX200Generic::MoveWE(TelescopeMotionWE dir, TelescopeMotionCommand command)
+bool LX200Generic::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 {
-    int current_move = (dir == MOTION_WEST) ? LX200_WEST : LX200_EAST;
+    int current_move = (dir == DIRECTION_WEST) ? LX200_WEST : LX200_EAST;
 
     switch (command)
     {
@@ -1386,7 +1386,7 @@ void LX200Generic::sendScopeLocation()
   IDSetNumber (&LocationNP, NULL);
 }
 
-bool LX200Generic::GuideNorth(float ms)
+IPState LX200Generic::GuideNorth(float ms)
 {
       int use_pulse_cmd;
 
@@ -1394,8 +1394,8 @@ bool LX200Generic::GuideNorth(float ms)
 
       if (!use_pulse_cmd && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
       {
-        IDMessage(getDeviceName(), "Cannot guide while moving.");
-        return false;
+        DEBUG(INDI::Logger::DBG_ERROR, "Cannot guide while moving.");
+        return IPS_ALERT;
       }
 
       // If already moving (no pulse command), then stop movement
@@ -1403,7 +1403,7 @@ bool LX200Generic::GuideNorth(float ms)
       {
           int dir = IUFindOnSwitchIndex(&MovementNSSP);
 
-          MoveNS(dir == 0 ? MOTION_NORTH : MOTION_SOUTH, MOTION_STOP);
+          MoveNS(dir == 0 ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
 
       }
 
@@ -1422,11 +1422,11 @@ bool LX200Generic::GuideNorth(float ms)
         {
             SlewRateSP.s = IPS_ALERT;
             IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
-            return false;
+            return IPS_ALERT;
         }
 
         MovementNSS[0].s = ISS_ON;
-        MoveNS(MOTION_NORTH, MOTION_START);
+        MoveNS(DIRECTION_NORTH, MOTION_START);
       }
 
       // Set slew to guiding
@@ -1435,10 +1435,10 @@ bool LX200Generic::GuideNorth(float ms)
       IDSetSwitch(&SlewRateSP, NULL);
       guide_direction = LX200_NORTH;
       GuideNSTID = IEAddTimer (ms, guideTimeoutHelper, this);
-      return true;
+      return IPS_BUSY;
 }
 
-bool LX200Generic::GuideSouth(float ms)
+IPState LX200Generic::GuideSouth(float ms)
 {
     int use_pulse_cmd;
 
@@ -1446,8 +1446,8 @@ bool LX200Generic::GuideSouth(float ms)
 
     if (!use_pulse_cmd && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
-      IDMessage(getDeviceName(), "Cannot guide while moving.");
-      return false;
+        DEBUG(INDI::Logger::DBG_ERROR, "Cannot guide while moving.");
+        return IPS_ALERT;
     }
 
     // If already moving (no pulse command), then stop movement
@@ -1455,7 +1455,7 @@ bool LX200Generic::GuideSouth(float ms)
     {
         int dir = IUFindOnSwitchIndex(&MovementNSSP);
 
-        MoveNS(dir == 0 ? MOTION_NORTH : MOTION_SOUTH, MOTION_STOP);
+        MoveNS(dir == 0 ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
 
     }
 
@@ -1474,11 +1474,11 @@ bool LX200Generic::GuideSouth(float ms)
       {
           SlewRateSP.s = IPS_ALERT;
           IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
-          return false;
+          return IPS_ALERT;
       }
 
       MovementNSS[1].s = ISS_ON;
-      MoveNS(MOTION_SOUTH, MOTION_START);
+      MoveNS(DIRECTION_SOUTH, MOTION_START);
     }
 
     // Set slew to guiding
@@ -1487,11 +1487,11 @@ bool LX200Generic::GuideSouth(float ms)
     IDSetSwitch(&SlewRateSP, NULL);
     guide_direction = LX200_SOUTH;
     GuideNSTID = IEAddTimer (ms, guideTimeoutHelper, this);
-    return true;
+    return IPS_BUSY;
 
 }
 
-bool LX200Generic::GuideEast(float ms)
+IPState LX200Generic::GuideEast(float ms)
 {
 
     int use_pulse_cmd;
@@ -1500,8 +1500,8 @@ bool LX200Generic::GuideEast(float ms)
 
     if (!use_pulse_cmd && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
-      IDMessage(getDeviceName(), "Cannot guide while moving.");
-      return false;
+        DEBUG(INDI::Logger::DBG_ERROR, "Cannot guide while moving.");
+        return IPS_ALERT;
     }
 
     // If already moving (no pulse command), then stop movement
@@ -1509,7 +1509,7 @@ bool LX200Generic::GuideEast(float ms)
     {
         int dir = IUFindOnSwitchIndex(&MovementWESP);
 
-        MoveWE(dir == 0 ? MOTION_WEST : MOTION_EAST, MOTION_STOP);
+        MoveWE(dir == 0 ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP);
 
     }
 
@@ -1528,11 +1528,11 @@ bool LX200Generic::GuideEast(float ms)
       {
           SlewRateSP.s = IPS_ALERT;
           IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
-          return false;
+          return IPS_ALERT;
       }
 
       MovementWES[1].s = ISS_ON;
-      MoveWE(MOTION_EAST, MOTION_START);
+      MoveWE(DIRECTION_EAST, MOTION_START);
     }
 
     // Set slew to guiding
@@ -1541,11 +1541,11 @@ bool LX200Generic::GuideEast(float ms)
     IDSetSwitch(&SlewRateSP, NULL);
     guide_direction = LX200_EAST;
     GuideWETID = IEAddTimer (ms, guideTimeoutHelper, this);
-    return true;
+    return IPS_BUSY;
 
 }
 
-bool LX200Generic::GuideWest(float ms)
+IPState LX200Generic::GuideWest(float ms)
 {
 
     int use_pulse_cmd;
@@ -1554,8 +1554,8 @@ bool LX200Generic::GuideWest(float ms)
 
     if (!use_pulse_cmd && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
-      IDMessage(getDeviceName(), "Cannot guide while moving.");
-      return false;
+        DEBUG(INDI::Logger::DBG_ERROR, "Cannot guide while moving.");
+        return IPS_ALERT;
     }
 
     // If already moving (no pulse command), then stop movement
@@ -1563,8 +1563,7 @@ bool LX200Generic::GuideWest(float ms)
     {
         int dir = IUFindOnSwitchIndex(&MovementWESP);
 
-        MoveWE(dir == 0 ? MOTION_WEST : MOTION_EAST, MOTION_STOP);
-
+        MoveWE(dir == 0 ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP);
     }
 
     if (GuideWETID)
@@ -1582,11 +1581,11 @@ bool LX200Generic::GuideWest(float ms)
       {
           SlewRateSP.s = IPS_ALERT;
           IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
-          return false;
+          return IPS_ALERT;
       }
 
       MovementWES[0].s = ISS_ON;
-      MoveWE(MOTION_WEST, MOTION_START);
+      MoveWE(DIRECTION_WEST, MOTION_START);
     }
 
     // Set slew to guiding
@@ -1595,7 +1594,7 @@ bool LX200Generic::GuideWest(float ms)
     IDSetSwitch(&SlewRateSP, NULL);
     guide_direction = LX200_WEST;
     GuideWETID = IEAddTimer (ms, guideTimeoutHelper, this);
-    return true;
+    return IPS_BUSY;
 
 }
 
@@ -1631,7 +1630,7 @@ void LX200Generic::guideTimeout()
 
         if (guide_direction == LX200_NORTH || guide_direction == LX200_SOUTH)
         {
-            MoveNS(guide_direction == LX200_NORTH ? MOTION_NORTH : MOTION_SOUTH, MOTION_STOP);
+            MoveNS(guide_direction == LX200_NORTH ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
 
             if (guide_direction == LX200_NORTH)
                 GuideNSNP.np[0].value = 0;
@@ -1646,7 +1645,7 @@ void LX200Generic::guideTimeout()
         }
         if (guide_direction == LX200_WEST || guide_direction == LX200_EAST)
         {
-            MoveWE(guide_direction == LX200_WEST ? MOTION_WEST : MOTION_EAST, MOTION_STOP);
+            MoveWE(guide_direction == LX200_WEST ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP);
             if (guide_direction == LX200_WEST)
                 GuideWENP.np[0].value = 0;
             else
@@ -1754,7 +1753,7 @@ void LX200Generic::processNSWE(double mag, double angle)
         {
             // Don't try to move if you're busy and moving in the same direction
             if (MovementNSSP.s != IPS_BUSY || MovementNSS[0].s != ISS_ON)
-                MoveNS(MOTION_NORTH, MOTION_START);
+                MoveNS(DIRECTION_NORTH, MOTION_START);
 
             MovementNSSP.s = IPS_BUSY;
             MovementNSSP.sp[0].s = ISS_ON;
@@ -1766,7 +1765,7 @@ void LX200Generic::processNSWE(double mag, double angle)
         {
             // Don't try to move if you're busy and moving in the same direction
            if (MovementNSSP.s != IPS_BUSY  || MovementNSS[1].s != ISS_ON)
-            MoveNS(MOTION_SOUTH, MOTION_START);
+            MoveNS(DIRECTION_SOUTH, MOTION_START);
 
             MovementNSSP.s = IPS_BUSY;
             MovementNSSP.sp[0].s = ISS_OFF;
@@ -1778,7 +1777,7 @@ void LX200Generic::processNSWE(double mag, double angle)
         {
             // Don't try to move if you're busy and moving in the same direction
            if (MovementWESP.s != IPS_BUSY  || MovementWES[1].s != ISS_ON)
-                MoveWE(MOTION_EAST, MOTION_START);
+                MoveWE(DIRECTION_EAST, MOTION_START);
 
            MovementWESP.s = IPS_BUSY;
            MovementWESP.sp[0].s = ISS_OFF;
@@ -1792,7 +1791,7 @@ void LX200Generic::processNSWE(double mag, double angle)
 
             // Don't try to move if you're busy and moving in the same direction
            if (MovementWESP.s != IPS_BUSY  || MovementWES[0].s != ISS_ON)
-                MoveWE(MOTION_WEST, MOTION_START);
+                MoveWE(DIRECTION_WEST, MOTION_START);
 
            MovementWESP.s = IPS_BUSY;
            MovementWESP.sp[0].s = ISS_ON;

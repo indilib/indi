@@ -705,7 +705,9 @@ void GenericCCD::TimerHit()
   return;
 }
 
-bool GenericCCD::GuideNorth(float duration) {
+IPState GenericCCD::GuideNorth(float ms)
+{
+    INDI_UNUSED(ms);
   /**********************************************************
    *
    *
@@ -713,85 +715,89 @@ bool GenericCCD::GuideNorth(float duration) {
    *  IMPORRANT: Put here your CCD Guide call
    *  Some CCD API support pulse guiding directly (i.e. without timers)
    *  Others implement GUIDE_ON and GUIDE_OFF for each direction, and you
-   *  will have to start a timer and then stop it after the 'duration' seconds
+   *  will have to start a timer and then stop it after the 'ms' milliseconds
    *  For an example on timer usage, please refer to indi-sx and indi-gpusb drivers
    *  available in INDI 3rd party repository
    *  If there is an error, report it back to client
    *  e.g.
    *  DEBUG(INDI::Logger::DBG_SESSION,  "Error, unable to guide due ...");
-   *  return false;
+   *  return IPS_ALERT;
    *
    *
    **********************************************************/
 
-  return true;
+  return IPS_OK;
 }
 
-bool GenericCCD::GuideSouth(float duration) {
-  /**********************************************************
-   *
-   *
-   *
-   *  IMPORRANT: Put here your CCD Guide call
-   *  Some CCD API support pulse guiding directly (i.e. without timers)
-   *  Others implement GUIDE_ON and GUIDE_OFF for each direction, and you
-   *  will have to start a timer and then stop it after the 'duration' seconds
-   *  For an example on timer usage, please refer to indi-sx and indi-gpusb drivers
-   *  available in INDI 3rd party repository
-   *  If there is an error, report it back to client
-   *  e.g.
-   *  DEBUG(INDI::Logger::DBG_SESSION,  "Error, unable to guide due ...");
-   *  return false;
-   *
-   *
-   **********************************************************/
+IPState GenericCCD::GuideSouth(float ms)
+{
+    INDI_UNUSED(ms);
+    /**********************************************************
+     *
+     *
+     *
+     *  IMPORRANT: Put here your CCD Guide call
+     *  Some CCD API support pulse guiding directly (i.e. without timers)
+     *  Others implement GUIDE_ON and GUIDE_OFF for each direction, and you
+     *  will have to start a timer and then stop it after the 'ms' milliseconds
+     *  For an example on timer usage, please refer to indi-sx and indi-gpusb drivers
+     *  available in INDI 3rd party repository
+     *  If there is an error, report it back to client
+     *  e.g.
+     *  DEBUG(INDI::Logger::DBG_SESSION,  "Error, unable to guide due ...");
+     *  return IPS_ALERT;
+     *
+     *
+     **********************************************************/
 
-  return true;
-
+    return IPS_OK;
 }
 
-bool GenericCCD::GuideEast(float duration) {
-  /**********************************************************
-   *
-   *
-   *
-   *  IMPORRANT: Put here your CCD Guide call
-   *  Some CCD API support pulse guiding directly (i.e. without timers)
-   *  Others implement GUIDE_ON and GUIDE_OFF for each direction, and you
-   *  will have to start a timer and then stop it after the 'duration' seconds
-   *  For an example on timer usage, please refer to indi-sx and indi-gpusb drivers
-   *  available in INDI 3rd party repository
-   *  If there is an error, report it back to client
-   *  e.g.
-   *  DEBUG(INDI::Logger::DBG_SESSION,  "Error, unable to guide due ...");
-   *  return false;
-   *
-   *
-   **********************************************************/
+IPState GenericCCD::GuideEast(float ms)
+{
+    INDI_UNUSED(ms);
+    /**********************************************************
+     *
+     *
+     *
+     *  IMPORRANT: Put here your CCD Guide call
+     *  Some CCD API support pulse guiding directly (i.e. without timers)
+     *  Others implement GUIDE_ON and GUIDE_OFF for each direction, and you
+     *  will have to start a timer and then stop it after the 'ms' milliseconds
+     *  For an example on timer usage, please refer to indi-sx and indi-gpusb drivers
+     *  available in INDI 3rd party repository
+     *  If there is an error, report it back to client
+     *  e.g.
+     *  DEBUG(INDI::Logger::DBG_SESSION,  "Error, unable to guide due ...");
+     *  return IPS_ALERT;
+     *
+     *
+     **********************************************************/
 
-  return true;
-
+    return IPS_OK;
 }
 
-bool GenericCCD::GuideWest(float duration) {
-  /**********************************************************
-   *
-   *
-   *
-   *  IMPORRANT: Put here your CCD Guide call
-   *  Some CCD API support pulse guiding directly (i.e. without timers)
-   *  Others implement GUIDE_ON and GUIDE_OFF for each direction, and you
-   *  will have to start a timer and then stop it after the 'duration' seconds
-   *  For an example on timer usage, please refer to indi-sx and indi-gpusb drivers
-   *  available in INDI 3rd party repository
-   *  If there is an error, report it back to client
-   *  e.g.
-   *  DEBUG(INDI::Logger::DBG_SESSION,  "Error, unable to guide due ...");
-   *  return false;
-   *
-   *
-   **********************************************************/
+IPState GenericCCD::GuideWest(float ms)
+{
+    INDI_UNUSED(ms);
+    /**********************************************************
+     *
+     *
+     *
+     *  IMPORRANT: Put here your CCD Guide call
+     *  Some CCD API support pulse guiding directly (i.e. without timers)
+     *  Others implement GUIDE_ON and GUIDE_OFF for each direction, and you
+     *  will have to start a timer and then stop it after the 'ms' milliseconds
+     *  For an example on timer usage, please refer to indi-sx and indi-gpusb drivers
+     *  available in INDI 3rd party repository
+     *  If there is an error, report it back to client
+     *  e.g.
+     *  DEBUG(INDI::Logger::DBG_SESSION,  "Error, unable to guide due ...");
+     *  return IPS_ALERT;
+     *
+     *
+     **********************************************************/
 
-  return true;
+    return IPS_OK;
 }
 

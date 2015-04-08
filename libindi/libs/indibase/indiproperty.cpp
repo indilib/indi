@@ -71,7 +71,7 @@ void INDI::Property::setProperty(void *p)
 
 }
 
-void INDI::Property::setType(INDI_TYPE t)
+void INDI::Property::setType(INDI_PROPERTY_TYPE t)
 {
     pType = t;
 }

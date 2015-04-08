@@ -48,8 +48,6 @@ class INDI::Telescope : public INDI::DefaultDevice
     public:
 
         enum TelescopeStatus { SCOPE_IDLE, SCOPE_SLEWING, SCOPE_TRACKING, SCOPE_PARKING, SCOPE_PARKED };
-        enum TelescopeMotionNS { MOTION_NORTH, MOTION_SOUTH };
-        enum TelescopeMotionWE { MOTION_WEST, MOTION_EAST };
         enum TelescopeMotionCommand { MOTION_START, MOTION_STOP };
         enum TelescopeSlewRate  { SLEW_GUIDE, SLEW_CENTERING, SLEW_FIND, SLEW_MAX };
         enum TelescopeTrackMode  { TRACK_SIDEREAL, TRACK_SOLAR, TRACK_LUNAR, TRACK_CUSTOM };
@@ -224,7 +222,7 @@ class INDI::Telescope : public INDI::DefaultDevice
             \return True if successful, false otherewise
             \note This function is not implemented in INDI::Telescope, it must be implemented in the child class
         */
-        virtual bool MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command);
+        virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
 
         /** \brief Move the telescope in the direction dir.
             \param dir direction of motion
@@ -232,7 +230,7 @@ class INDI::Telescope : public INDI::DefaultDevice
             \return True if successful, false otherewise
             \note This function is not implemented in INDI::Telescope, it must be implemented in the child class
         */
-        virtual bool MoveWE(TelescopeMotionWE dir, TelescopeMotionCommand command);
+        virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
 
         /** \brief Park the telescope to its home position.
             \return True if successful, false otherewise

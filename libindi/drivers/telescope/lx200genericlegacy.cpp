@@ -422,7 +422,6 @@ LX200GenericLegacy::LX200GenericLegacy()
    GuideWETID     = 0;
 
    // Children call parent routines, this is the default
-   IDLog("INDI Library v%g\n", INDI_LIBV);
    IDLog("initializing from generic LX200 device...\n");
    IDLog("Driver Version: 2012-07-27\n");
  

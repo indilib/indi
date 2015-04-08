@@ -58,10 +58,10 @@ protected:
   virtual bool UpdateCCDFrameType(CCDChip::CCD_FRAME fType);
 
   // Guide Port
-  virtual bool GuideNorth(float);
-  virtual bool GuideSouth(float);
-  virtual bool GuideEast(float);
-  virtual bool GuideWest(float);
+  virtual IPState GuideNorth(float ms);
+  virtual IPState GuideSouth(float ms);
+  virtual IPState GuideEast(float ms);
+  virtual IPState GuideWest(float ms);
 
 private:
   DEVICE device;

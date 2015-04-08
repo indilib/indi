@@ -1424,7 +1424,7 @@ void QSICCD::turnWheel()
         }
 }
 
-bool QSICCD::GuideNorth(float duration)
+IPState QSICCD::GuideNorth(float duration)
 {
     try
     {
@@ -1433,13 +1433,13 @@ bool QSICCD::GuideNorth(float duration)
     catch (std::runtime_error err)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "PulseGuide() failed. %s.", err.what());
-       return false;
+       return IPS_ALERT;
     }
 
-    return true;
+    return IPS_OK;
 }
 
-bool QSICCD::GuideSouth(float duration)
+IPState QSICCD::GuideSouth(float duration)
 {
     try
     {
@@ -1448,14 +1448,14 @@ bool QSICCD::GuideSouth(float duration)
     catch (std::runtime_error err)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "PulseGuide() failed. %s.", err.what());
-       return false;
+       return IPS_ALERT;
     }
 
-    return true;
+    return IPS_OK;
 
 }
 
-bool QSICCD::GuideEast(float duration)
+IPState QSICCD::GuideEast(float duration)
 {
     try
     {
@@ -1464,14 +1464,14 @@ bool QSICCD::GuideEast(float duration)
     catch (std::runtime_error err)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "PulseGuide() failed. %s.", err.what());
-       return false;
+       return IPS_ALERT;
     }
 
-    return true;
+    return IPS_OK;
 
 }
 
-bool QSICCD::GuideWest(float duration)
+IPState QSICCD::GuideWest(float duration)
 {
     try
     {
@@ -1480,10 +1480,10 @@ bool QSICCD::GuideWest(float duration)
     catch (std::runtime_error err)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "PulseGuide() failed. %s.", err.what());
-       return false;
+       return IPS_ALERT;
     }
 
-    return true;
+    return IPS_OK;
 }
 
 

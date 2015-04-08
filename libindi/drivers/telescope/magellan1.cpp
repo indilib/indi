@@ -149,7 +149,6 @@ Magellan1::Magellan1()
    fd             = -1;
 
    // Children call parent routines, this is the default
-   IDLog("INDI Library v%g\n", INDI_LIBV);
    IDLog("Initializing from MAGELLAN device...\n");
    IDLog("Driver Version: 2011-07-28\n");
 }

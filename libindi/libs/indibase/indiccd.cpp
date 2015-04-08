@@ -1932,24 +1932,32 @@ bool INDI::CCD::saveConfigItems(FILE *fp)
     return true;
 }
 
-bool INDI::CCD::GuideNorth(float ms)
+IPState INDI::CCD::GuideNorth(float ms)
 {
-    return false;
+    INDI_UNUSED(ms);
+    DEBUG(INDI::Logger::DBG_ERROR, "The CCD does not support guiding.");
+    return IPS_ALERT;
 }
 
-bool INDI::CCD::GuideSouth(float ms)
+IPState INDI::CCD::GuideSouth(float ms)
 {
-    return false;
+    INDI_UNUSED(ms);
+    DEBUG(INDI::Logger::DBG_ERROR, "The CCD does not support guiding.");
+    return IPS_ALERT;
 }
 
-bool INDI::CCD::GuideEast(float ms)
+IPState INDI::CCD::GuideEast(float ms)
 {
-    return false;
+    INDI_UNUSED(ms);
+    DEBUG(INDI::Logger::DBG_ERROR, "The CCD does not support guiding.");
+    return IPS_ALERT;
 }
 
-bool INDI::CCD::GuideWest(float ms)
+IPState INDI::CCD::GuideWest(float ms)
 {
-    return false;
+    INDI_UNUSED(ms);
+    DEBUG(INDI::Logger::DBG_ERROR, "The CCD does not support guiding.");
+    return IPS_ALERT;
 }
 
 void INDI::CCD::getMinMax(double *min, double *max, CCDChip *targetChip)
@@ -2059,4 +2067,7 @@ int INDI::CCD::getFileIndex(const char *dir, const char *prefix, const char *ext
 
 }
 
-
+void INDI::CCD::GuideComplete(INDI_AXIS_TYPE axis)
+{
+    INDI::GuiderInterface::GuideComplete(axis);
+}

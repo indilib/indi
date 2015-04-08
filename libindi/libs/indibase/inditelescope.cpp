@@ -42,19 +42,19 @@ bool INDI::Telescope::initProperties()
 {
     DefaultDevice::initProperties();
 
-    IUFillNumber(&EqN[0],"RA","RA (hh:mm:ss)","%010.6m",0,24,0,0);
-    IUFillNumber(&EqN[1],"DEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,0);
+    IUFillNumber(&EqN[AXIS_RA],"RA","RA (hh:mm:ss)","%010.6m",0,24,0,0);
+    IUFillNumber(&EqN[AXIS_DE],"DEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,0);
     IUFillNumberVector(&EqNP,EqN,2,getDeviceName(),"EQUATORIAL_EOD_COORD","Eq. Coordinates",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
 
     if (parkDataType == PARK_ENCODER)
     {
-        IUFillNumber(&ParkPositionN[0],"PARK_RA" ,"RA Encoder","%.0f" ,0,16777215,1,0);
-        IUFillNumber(&ParkPositionN[1],"PARK_DEC","DEC Encoder","%.0f",0,16777215,1,0);
+        IUFillNumber(&ParkPositionN[AXIS_RA],"PARK_RA" ,"RA Encoder","%.0f" ,0,16777215,1,0);
+        IUFillNumber(&ParkPositionN[AXIS_DE],"PARK_DEC","DEC Encoder","%.0f",0,16777215,1,0);
     }
     else
     {
-        IUFillNumber(&ParkPositionN[0],"PARK_RA","RA (hh:mm:ss)","%010.6m",0,24,0,0);
-        IUFillNumber(&ParkPositionN[1],"PARK_DEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,0);
+        IUFillNumber(&ParkPositionN[AXIS_RA],"PARK_RA","RA (hh:mm:ss)","%010.6m",0,24,0,0);
+        IUFillNumber(&ParkPositionN[AXIS_DE],"PARK_DEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,0);
     }
 
     IUFillNumberVector(&ParkPositionNP,ParkPositionN,2,getDeviceName(),"TELESCOPE_PARK_POSITION","Park Position", SITE_TAB,IP_RW,60,IPS_IDLE);
@@ -92,12 +92,12 @@ bool INDI::Telescope::initProperties()
     IUFillText(&PortT[0],"PORT","Port","/dev/ttyUSB0");
     IUFillTextVector(&PortTP,PortT,1,getDeviceName(),"DEVICE_PORT","Ports",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
 
-    IUFillSwitch(&MovementNSS[MOTION_NORTH], "MOTION_NORTH", "North", ISS_OFF);
-    IUFillSwitch(&MovementNSS[MOTION_SOUTH], "MOTION_SOUTH", "South", ISS_OFF);
+    IUFillSwitch(&MovementNSS[DIRECTION_NORTH], "MOTION_NORTH", "North", ISS_OFF);
+    IUFillSwitch(&MovementNSS[DIRECTION_SOUTH], "MOTION_SOUTH", "South", ISS_OFF);
     IUFillSwitchVector(&MovementNSSP, MovementNSS, 2, getDeviceName(),"TELESCOPE_MOTION_NS", "Motion N/S", MOTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
-    IUFillSwitch(&MovementWES[MOTION_WEST], "MOTION_WEST", "West", ISS_OFF);
-    IUFillSwitch(&MovementWES[MOTION_EAST], "MOTION_EAST", "East", ISS_OFF);
+    IUFillSwitch(&MovementWES[DIRECTION_WEST], "MOTION_WEST", "West", ISS_OFF);
+    IUFillSwitch(&MovementWES[DIRECTION_EAST], "MOTION_EAST", "East", ISS_OFF);
     IUFillSwitchVector(&MovementWESP, MovementWES, 2, getDeviceName(),"TELESCOPE_MOTION_WE", "Motion W/E", MOTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     IUFillNumber(&ScopeParametersN[0],"TELESCOPE_APERTURE","Aperture (mm)","%g",50,4000,0,0.0);
@@ -237,11 +237,10 @@ void INDI::Telescope::NewRaDec(double ra,double dec)
         break;
     }
 
-    //IDLog("newRA DEC RA %g - DEC %g --- EqN[0] %g --- EqN[1] %g --- EqN.state %d\n", ra, dec, EqN[0].value, EqN[1].value, EqNP.s);
-    if (EqN[0].value != ra || EqN[1].value != dec || EqNP.s != last_state)
+    if (EqN[AXIS_RA].value != ra || EqN[AXIS_DE].value != dec || EqNP.s != last_state)
     {
-        EqN[0].value=ra;
-        EqN[1].value=dec;
+        EqN[AXIS_RA].value=ra;
+        EqN[AXIS_DE].value=dec;
         last_state = EqNP.s;
         IDSetNumber(&EqNP, NULL);
     }
@@ -255,7 +254,7 @@ bool INDI::Telescope::Sync(double ra,double dec)
     return false;
 }
 
-bool INDI::Telescope::MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command)
+bool INDI::Telescope::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
     INDI_UNUSED(dir);
     INDI_UNUSED(command);
@@ -266,7 +265,7 @@ bool INDI::Telescope::MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand comma
     return false;
 }
 
-bool INDI::Telescope::MoveWE(TelescopeMotionWE dir, TelescopeMotionCommand command)
+bool INDI::Telescope::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 {
     INDI_UNUSED(dir);
     INDI_UNUSED(command);
@@ -356,10 +355,10 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
                 //IDLog("request stuff %s %4.2f\n",names[x],values[x]);
 
                 INumber *eqp = IUFindNumber (&EqNP, names[x]);
-                if (eqp == &EqN[0])
+                if (eqp == &EqN[AXIS_RA])
                 {
                     ra = values[x];
-                } else if (eqp == &EqN[1])
+                } else if (eqp == &EqN[AXIS_DE])
                 {
                     dec = values[x];
                 }
@@ -453,8 +452,8 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
         IUUpdateNumber(&ParkPositionNP, values, names, n);
         ParkPositionNP.s = IPS_OK;
 
-        RAParkPosition = ParkPositionN[0].value;
-        DEParkPosition = ParkPositionN[1].value;
+        RAParkPosition = ParkPositionN[AXIS_RA].value;
+        DEParkPosition = ParkPositionN[AXIS_DE].value;
 
         IDSetNumber(&ParkPositionNP, NULL);
         return true;
@@ -572,7 +571,7 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
             // Time to stop motion
             if (current_motion == -1 || (last_ns_motion != -1 && current_motion != last_ns_motion))
             {
-                if (MoveNS(last_ns_motion == 0 ? MOTION_NORTH : MOTION_SOUTH, MOTION_STOP))
+                if (MoveNS(last_ns_motion == 0 ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP))
                 {
                     IUResetSwitch(&MovementNSSP);
                     MovementNSSP.s = IPS_IDLE;
@@ -583,7 +582,7 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
             }
             else
             {
-                if (MoveNS(current_motion == 0 ? MOTION_NORTH : MOTION_SOUTH, MOTION_START))
+                if (MoveNS(current_motion == 0 ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_START))
                 {
                     MovementNSSP.s = IPS_BUSY;
                     last_ns_motion = current_motion;
@@ -626,7 +625,7 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
             // Time to stop motion
             if (current_motion == -1 || (last_we_motion != -1 && current_motion != last_we_motion))
             {
-                if (MoveWE(last_we_motion == 0 ? MOTION_WEST : MOTION_EAST, MOTION_STOP))
+                if (MoveWE(last_we_motion == 0 ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP))
                 {
                     IUResetSwitch(&MovementWESP);
                     MovementWESP.s = IPS_IDLE;
@@ -637,7 +636,7 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
             }
             else
             {
-                if (MoveWE(current_motion == 0 ? MOTION_WEST : MOTION_EAST, MOTION_START))
+                if (MoveWE(current_motion == 0 ? DIRECTION_WEST : DIRECTION_EAST, MOTION_START))
                 {
                     MovementWESP.s = IPS_BUSY;
                     last_we_motion = current_motion;
@@ -944,8 +943,8 @@ bool INDI::Telescope::InitPark()
 
   SetParked(isParked());
 
-  ParkPositionN[0].value = RAParkPosition;
-  ParkPositionN[1].value = DEParkPosition;
+  ParkPositionN[AXIS_RA].value = RAParkPosition;
+  ParkPositionN[AXIS_DE].value = DEParkPosition;
   IDSetNumber(&ParkPositionNP, NULL);
 
   return true;
@@ -1104,7 +1103,7 @@ double INDI::Telescope::GetDEParkDefault()
 void INDI::Telescope::SetRAPark(double value)
 {
   RAParkPosition=value;
-  ParkPositionN[0].value = value;
+  ParkPositionN[AXIS_RA].value = value;
   IDSetNumber(&ParkPositionNP, NULL);
 }
 
@@ -1116,7 +1115,7 @@ void INDI::Telescope::SetRAParkDefault(double value)
 void INDI::Telescope::SetDEPark(double value)
 {
   DEParkPosition=value;
-  ParkPositionN[1].value = value;
+  ParkPositionN[AXIS_DE].value = value;
   IDSetNumber(&ParkPositionNP, NULL);
 }
 

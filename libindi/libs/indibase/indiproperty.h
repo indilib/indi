@@ -35,13 +35,13 @@ public:
     ~Property();
 
     void setProperty(void *);
-    void setType(INDI_TYPE t);
+    void setType(INDI_PROPERTY_TYPE t);
     void setRegistered(bool r);
     void setDynamic(bool d);
     void setBaseDevice(BaseDevice *idp);
 
     void *getProperty() { return pPtr; }
-    INDI_TYPE getType() { return pType; }
+    INDI_PROPERTY_TYPE getType() { return pType; }
     bool getRegistered() { return pRegistered; }
     bool isDynamic() { return pDynamic; }
     BaseDevice *getBaseDevice() { return dp; }
@@ -63,7 +63,7 @@ public:
 private:
     void *pPtr;
     BaseDevice *dp;
-    INDI_TYPE pType;
+    INDI_PROPERTY_TYPE pType;
     bool pRegistered;
     bool pDynamic;
 };

@@ -893,28 +893,28 @@ void QHYCCD::TimerHit()
 
 }
 
-bool QHYCCD::GuideNorth(float duration)
+IPState QHYCCD::GuideNorth(float duration)
 {
    ControlQHYCCDGuide(camhandle,0,duration);
-   return true;
+   return IPS_OK;
 }
 
-bool QHYCCD::GuideSouth(float duration)
+IPState QHYCCD::GuideSouth(float duration)
 {
     ControlQHYCCDGuide(camhandle,2,duration);
-    return true;
+    return IPS_OK;
 }
 
-bool QHYCCD::GuideEast(float duration)
+IPState QHYCCD::GuideEast(float duration)
 {
     ControlQHYCCDGuide(camhandle,1,duration);
-    return true;
+    return IPS_OK;
 }
 
-bool QHYCCD::GuideWest(float duration)
+IPState QHYCCD::GuideWest(float duration)
 {
     ControlQHYCCDGuide(camhandle,3,duration);
-    return true;
+    return IPS_OK;
 }
 
 bool QHYCCD::SelectFilter(int position)

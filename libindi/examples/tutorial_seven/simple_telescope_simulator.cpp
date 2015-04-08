@@ -327,9 +327,9 @@ bool ScopeSim::ISNewText (const char *dev, const char *name, char *texts[], char
     return INDI::Telescope::ISNewText(dev, name, texts, names, n);
 }
 
-bool ScopeSim::MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command)
+bool ScopeSim::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
-    AxisDirection axisDir  = (dir == MOTION_NORTH) ? FORWARD : REVERSE;
+    AxisDirection axisDir  = (dir == DIRECTION_NORTH) ? FORWARD : REVERSE;
     AxisStatus    axisStat = (command == MOTION_START) ? SLEWING : STOPPED;
 
     AxisSlewRateDEC = DEFAULT_SLEW_RATE;
@@ -339,10 +339,10 @@ bool ScopeSim::MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command)
     return true;
 }
 
-bool ScopeSim::MoveWE(TelescopeMotionWE dir, TelescopeMotionCommand command)
+bool ScopeSim::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 {
 
-    AxisDirection axisDir  = (dir == MOTION_WEST) ? FORWARD : REVERSE;
+    AxisDirection axisDir  = (dir == DIRECTION_WEST) ? FORWARD : REVERSE;
     AxisStatus    axisStat = (command == MOTION_START) ? SLEWING : STOPPED;
 
     AxisSlewRateRA = DEFAULT_SLEW_RATE;

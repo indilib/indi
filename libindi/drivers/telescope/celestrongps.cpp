@@ -322,9 +322,9 @@ bool CelestronGPS::Sync(double ra, double dec)
     return true;
 }
 
-bool CelestronGPS::MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command)
+bool CelestronGPS::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
-    CELESTRON_DIRECTION current_move = (dir == MOTION_NORTH) ? CELESTRON_N : CELESTRON_S;
+    CELESTRON_DIRECTION current_move = (dir == DIRECTION_NORTH) ? CELESTRON_N : CELESTRON_S;
     CELESTRON_SLEW_RATE rate         = (CELESTRON_SLEW_RATE) IUFindOnSwitchIndex(&SlewRateSP);
 
     switch (command)
@@ -354,9 +354,9 @@ bool CelestronGPS::MoveNS(TelescopeMotionNS dir, TelescopeMotionCommand command)
 
 }
 
-bool CelestronGPS::MoveWE(TelescopeMotionWE dir, TelescopeMotionCommand command)
+bool CelestronGPS::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 {
-    CELESTRON_DIRECTION current_move = (dir == MOTION_WEST) ? CELESTRON_W : CELESTRON_E;
+    CELESTRON_DIRECTION current_move = (dir == DIRECTION_WEST) ? CELESTRON_W : CELESTRON_E;
     CELESTRON_SLEW_RATE rate         = (CELESTRON_SLEW_RATE) IUFindOnSwitchIndex(&SlewRateSP);
 
     switch (command)
@@ -677,7 +677,7 @@ void CelestronGPS::processNSWE(double mag, double angle)
         {
             // Don't try to move if you're busy and moving in the same direction
             if (MovementNSSP.s != IPS_BUSY || MovementNSS[0].s != ISS_ON)
-                MoveNS(MOTION_NORTH, MOTION_START);
+                MoveNS(DIRECTION_NORTH, MOTION_START);
 
             MovementNSSP.s = IPS_BUSY;
             MovementNSSP.sp[0].s = ISS_ON;
@@ -689,7 +689,7 @@ void CelestronGPS::processNSWE(double mag, double angle)
         {
             // Don't try to move if you're busy and moving in the same direction
            if (MovementNSSP.s != IPS_BUSY  || MovementNSS[1].s != ISS_ON)
-            MoveNS(MOTION_SOUTH, MOTION_START);
+            MoveNS(DIRECTION_SOUTH, MOTION_START);
 
             MovementNSSP.s = IPS_BUSY;
             MovementNSSP.sp[0].s = ISS_OFF;
@@ -701,7 +701,7 @@ void CelestronGPS::processNSWE(double mag, double angle)
         {
             // Don't try to move if you're busy and moving in the same direction
            if (MovementWESP.s != IPS_BUSY  || MovementWES[1].s != ISS_ON)
-                MoveWE(MOTION_EAST, MOTION_START);
+                MoveWE(DIRECTION_EAST, MOTION_START);
 
            MovementWESP.s = IPS_BUSY;
            MovementWESP.sp[0].s = ISS_OFF;
@@ -715,7 +715,7 @@ void CelestronGPS::processNSWE(double mag, double angle)
 
             // Don't try to move if you're busy and moving in the same direction
            if (MovementWESP.s != IPS_BUSY  || MovementWES[0].s != ISS_ON)
-                MoveWE(MOTION_WEST, MOTION_START);
+                MoveWE(DIRECTION_WEST, MOTION_START);
 
            MovementWESP.s = IPS_BUSY;
            MovementWESP.sp[0].s = ISS_ON;

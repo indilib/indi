@@ -630,10 +630,10 @@ void FishCampCCD::TimerHit()
   return;
 }
 
-bool FishCampCCD::GuideNorth(float duration)
+IPState FishCampCCD::GuideNorth(float duration)
 {
     if (sim)
-        return true;
+        return IPS_OK;
 
     int rc=0;
 
@@ -641,13 +641,13 @@ bool FishCampCCD::GuideNorth(float duration)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "fcUsb_cmd_pulseRelay fcRELAYNORTH returns %d", rc);
 
-    return true;
+    return IPS_OK;
 }
 
-bool FishCampCCD::GuideSouth(float duration)
+IPState FishCampCCD::GuideSouth(float duration)
 {
     if (sim)
-        return true;
+        return IPS_OK;
 
     int rc=0;
 
@@ -655,13 +655,13 @@ bool FishCampCCD::GuideSouth(float duration)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "fcUsb_cmd_pulseRelay fcRELAYSOUTH returns %d", rc);
 
-    return true;
+    return IPS_OK;
 }
 
-bool FishCampCCD::GuideEast(float duration)
+IPState FishCampCCD::GuideEast(float duration)
 {
     if (sim)
-        return true;
+        return IPS_OK;
 
     int rc=0;
 
@@ -669,14 +669,14 @@ bool FishCampCCD::GuideEast(float duration)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "fcUsb_cmd_pulseRelay fcRELAYEAST returns %d", rc);
 
-    return true;
+    return IPS_OK;
 
 }
 
-bool FishCampCCD::GuideWest(float duration)
+IPState FishCampCCD::GuideWest(float duration)
 {
     if (sim)
-        return true;
+        return IPS_OK;
 
     int rc=0;
 
@@ -684,6 +684,6 @@ bool FishCampCCD::GuideWest(float duration)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "fcUsb_cmd_pulseRelay fcRELAYWEST returns %d", rc);
 
-    return true;
+    return IPS_OK;
 }
 

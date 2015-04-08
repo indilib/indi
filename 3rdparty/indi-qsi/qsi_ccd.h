@@ -122,10 +122,10 @@ public:
     virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
     virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
 
-    virtual bool GuideNorth(float);
-    virtual bool GuideSouth(float);
-    virtual bool GuideEast(float);
-    virtual bool GuideWest(float);
+    virtual IPState GuideNorth(float);
+    virtual IPState GuideSouth(float);
+    virtual IPState GuideEast(float);
+    virtual IPState GuideWest(float);
 
 };
 

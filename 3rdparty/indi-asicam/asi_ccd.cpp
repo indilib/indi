@@ -1149,6 +1149,7 @@ void ASICCD::TimerHit()
 
          ASIPulseGuideOff(m_camInfo->CameraID, WEDir);
          InWEPulse = false;
+         GuideComplete(AXIS_RA);
      }
   }
 
@@ -1169,13 +1170,14 @@ void ASICCD::TimerHit()
 
          ASIPulseGuideOff(m_camInfo->CameraID, NSDir);
          InNSPulse = false;
+         GuideComplete(AXIS_DE);
      }
   }
 
   SetTimer(POLLMS);
 }
 
-bool ASICCD::GuideNorth(float ms)
+IPState ASICCD::GuideNorth(float ms)
 {
     RemoveTimer(NStimerID);
 
@@ -1191,7 +1193,7 @@ bool ASICCD::GuideNorth(float ms)
 
         ASIPulseGuideOff(m_camInfo->CameraID, NSDir);
 
-        return true;
+        return IPS_OK;
     }
 
     NSPulseRequest=ms/1000.0;
@@ -1200,10 +1202,10 @@ bool ASICCD::GuideNorth(float ms)
 
     NStimerID = SetTimer(ms-50);
 
-    return true;
+    return IPS_BUSY;
 }
 
-bool ASICCD::GuideSouth(float ms)
+IPState ASICCD::GuideSouth(float ms)
 {
     RemoveTimer(NStimerID);
 
@@ -1219,7 +1221,7 @@ bool ASICCD::GuideSouth(float ms)
 
         ASIPulseGuideOff(m_camInfo->CameraID, NSDir);
 
-        return true;
+        return IPS_OK;
     }
 
     NSPulseRequest=ms/1000.0;
@@ -1228,10 +1230,10 @@ bool ASICCD::GuideSouth(float ms)
 
     NStimerID = SetTimer(ms-50);
 
-    return true;
+    return IPS_BUSY;
 }
 
-bool ASICCD::GuideEast(float ms)
+IPState ASICCD::GuideEast(float ms)
 {
     RemoveTimer(WEtimerID);
 
@@ -1247,7 +1249,7 @@ bool ASICCD::GuideEast(float ms)
 
         ASIPulseGuideOff(m_camInfo->CameraID, NSDir);
 
-        return true;
+        return IPS_OK;
     }
 
     WEPulseRequest=ms/1000.0;
@@ -1256,10 +1258,10 @@ bool ASICCD::GuideEast(float ms)
 
     WEtimerID = SetTimer(ms-50);
 
-    return true;
+    return IPS_BUSY;
 }
 
-bool ASICCD::GuideWest(float ms)
+IPState ASICCD::GuideWest(float ms)
 {
     RemoveTimer(WEtimerID);
 
@@ -1275,7 +1277,7 @@ bool ASICCD::GuideWest(float ms)
 
         ASIPulseGuideOff(m_camInfo->CameraID, NSDir);
 
-        return true;
+        return IPS_OK;
     }
 
     WEPulseRequest=ms/1000.0;
@@ -1284,7 +1286,7 @@ bool ASICCD::GuideWest(float ms)
 
     WEtimerID = SetTimer(ms-50);
 
-    return true;
+    return IPS_BUSY;
 }
 
 
