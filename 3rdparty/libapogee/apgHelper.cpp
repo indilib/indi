@@ -386,7 +386,7 @@ std::string apgHelper::GetCfgDir()
 
 // for linx and mac
 #ifndef SYSCONFDIR
-# define SYSCONFDIR "/usr/local/etc/"
+# define SYSCONFDIR "/etc/"
 #endif
 
 // SYSCONFDIR set by autotools on configuraiton
