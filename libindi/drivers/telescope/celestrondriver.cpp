@@ -708,6 +708,12 @@ bool slew_celestron(int fd, double ra, double dec)
     ra_int = get_ra_fraction(ra);
     de_int = get_de_fraction(dec);
 
+    char RAStr[16], DecStr[16];
+    fs_sexa(RAStr, ra, 2, 3600);
+    fs_sexa(DecStr, dec, 2, 3600);
+
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "Goto (%s,%s)", RAStr, DecStr);
+
     snprintf(cmd, 16, "R%04X,%04X", ra_int, de_int);
 
     DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
@@ -768,12 +774,17 @@ bool sync_celestron(int fd, double ra, double dec)
 
     int ra_int, de_int;
 
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    char RAStr[16], DecStr[16];
+    fs_sexa(RAStr, ra, 2, 3600);
+    fs_sexa(DecStr, dec, 2, 3600);
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "Sync (%s,%s)", RAStr, DecStr);
 
     ra_int = get_ra_fraction(ra);
     de_int = get_de_fraction(dec);
 
     snprintf(cmd, 16, "S%04X,%04X", ra_int, de_int);
+
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
     if (celestron_simulation)
     {
@@ -860,8 +871,7 @@ bool get_celestron_coords(int fd, double *ra, double *dec)
     if (nbytes_read > 0)
     {
       tcflush(fd, TCIFLUSH);
-      response[nbytes_read] = '\0';
-      DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_EXTRA_1, "RES (%s)", response);
+      response[nbytes_read] = '\0';      
 
       char ra_str[16], de_str[16];
 
@@ -886,7 +896,12 @@ bool get_celestron_coords(int fd, double *ra, double *dec)
         if ( (*dec > 270.) && (*dec <= 360.) )
           *dec = *dec - 360.;
 
-       return true;
+        char RAStr[16], DecStr[16];
+        fs_sexa(RAStr, *ra, 2, 3600);
+        fs_sexa(DecStr, *dec, 2, 3600);
+        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_EXTRA_1, "RES (%s) ==> (%s,%s)", response, RAStr, DecStr);
+
+        return true;
     }
 
     DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "Received #%d bytes, expected 10.", nbytes_read);
@@ -1073,16 +1088,20 @@ bool get_celestron_utc_date_time(int fd, double *utc_hours, int *yy, int *mm, in
     {
       tcflush(fd, TCIFLUSH);
       response[nbytes_read] = '\0';
-      DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%02X %02X %02X %02X %02X %02X %02X %02X %02X)", response[0],response[1],response[2],response[3],response[4],response[5],response[6],response[7], response[8]);
+      unsigned char *res = (unsigned char *) response;
+      DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%02X %02X %02X %02X %02X %02X %02X %02X)", res[0],res[1],res[2],res[3],res[4],res[5],res[6],res[7]);
 
       // HH MM SS MONTH DAY YEAR OFFSET DAYLIGHT
-      *hh        = response[0];
-      *minute    = response[1];
-      *ss        = response[2];
-      *mm        = response[3];
-      *dd        = response[4];
-      *yy        = response[5] + 2000;
-      *utc_hours = response[6];
+      *hh        = res[0];
+      *minute    = res[1];
+      *ss        = res[2];
+      *mm        = res[3];
+      *dd        = res[4];
+      *yy        = res[5] + 2000;
+      *utc_hours = res[6];
+
+      if (*utc_hours > 12)
+          *utc_hours -= 256;
 
       ln_zonedate localTime;
       ln_date     utcTime;
@@ -1181,6 +1200,8 @@ unsigned int get_de_fraction(double de)
         de_int = (unsigned int) (de * 65536 / 360.0);
     else
         de_int = (unsigned int) ((de+360.0) * 65536 / 360.0);
+
+    return de_int;
 }
 
 
