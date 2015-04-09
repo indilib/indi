@@ -167,15 +167,12 @@ LX200Generic::LX200Generic()
    GuideNSTID     = 0;
    GuideWETID     = 0;
 
-   controller = new INDI::Controller(this);   
-   controller->setJoystickCallback(joystickHelper);
-   controller->setButtonCallback(buttonHelper);
-
    TelescopeCapability cap;
 
    cap.canPark = true;
    cap.canSync = true;
    cap.canAbort = true;
+   cap.nSlewRate=4;
    SetTelescopeCapability(&cap);
 
    IDLog("Initializing from generic LX200 device...\n");   
@@ -183,7 +180,7 @@ LX200Generic::LX200Generic()
 
 LX200Generic::~LX200Generic()
 { 
-    delete(controller);
+
 }
 
 void LX200Generic::debugTriggered(bool enable)
@@ -234,7 +231,6 @@ bool LX200Generic::initProperties()
     IUFillText(&SiteNameT[0], "Name", "", "");
     IUFillTextVector(&SiteNameTP, SiteNameT, 1, getDeviceName(), "Site Name", "", SITE_TAB, IP_RW, 0, IPS_IDLE);
 
-
     IUFillSwitch(&FocusMotionS[0], "IN", "Focus in", ISS_OFF);
     IUFillSwitch(&FocusMotionS[1], "OUT", "Focus out", ISS_OFF);
     IUFillSwitchVector(&FocusMotionSP, FocusMotionS, 2, getDeviceName(), "FOCUS_MOTION", "Motion", FOCUS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
@@ -246,15 +242,6 @@ bool LX200Generic::initProperties()
     IUFillSwitch(&FocusModeS[1], "FOCUS_SLOW", "Slow", ISS_OFF);
     IUFillSwitch(&FocusModeS[2], "FOCUS_FAST", "Fast", ISS_OFF);
     IUFillSwitchVector(&FocusModeSP, FocusModeS, 3, getDeviceName(), "FOCUS_MODE", "Mode", FOCUS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
-    controller->mapController("NSWE Control", "NSWE Control", INDI::Controller::CONTROLLER_JOYSTICK, "JOYSTICK_1");
-    controller->mapController("SLEW_MAX", "Slew Max", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_1");
-    controller->mapController("SLEW_FIND", "Slew Find", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_2");
-    controller->mapController("SLEW_CENTERING", "Slew Centering", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_3");
-    controller->mapController("SLEW_GUIDE", "Slew Guide", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_4");
-    controller->mapController("Abort Motion", "Abort Motion", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_5");
-
-    controller->initProperties();
 
     TrackState=SCOPE_IDLE;
 
@@ -278,7 +265,6 @@ void LX200Generic::ISGetProperties(const char *dev)
     if (isConnected())
     {
         defineSwitch(&AlignmentSP);
-        defineSwitch(&SlewRateSP);
         defineSwitch(&TrackModeSP);
         defineNumber(&TrackingFreqNP);
         defineSwitch(&UsePulseCmdSP);
@@ -294,8 +280,6 @@ void LX200Generic::ISGetProperties(const char *dev)
         defineSwitch(&FocusModeSP);
     }
 
-    controller->ISGetProperties(dev);
-
 }
 
 bool LX200Generic::updateProperties()
@@ -305,7 +289,6 @@ bool LX200Generic::updateProperties()
     if (isConnected())
     {
         defineSwitch(&AlignmentSP);
-        defineSwitch(&SlewRateSP);
         defineSwitch(&TrackModeSP);
         defineNumber(&TrackingFreqNP);
         defineSwitch(&UsePulseCmdSP);
@@ -327,7 +310,6 @@ bool LX200Generic::updateProperties()
     else
     {
         deleteProperty(AlignmentSP.name);
-        deleteProperty(SlewRateSP.name);
         deleteProperty(TrackModeSP.name);
         deleteProperty(TrackingFreqNP.name);
         deleteProperty(UsePulseCmdSP.name);
@@ -342,8 +324,6 @@ bool LX200Generic::updateProperties()
         deleteProperty(FocusTimerNP.name);
         deleteProperty(FocusModeSP.name);
     }
-
-    controller->updateProperties();
 
     return true;
 }
@@ -793,8 +773,6 @@ bool LX200Generic::ISNewText (const char *dev, const char *name, char *texts[], 
 
     }
 
-    controller->ISNewText(dev, name, texts, names, n);
-
     return INDI::Telescope::ISNewText(dev, name, texts, names, n);
 }
 
@@ -967,33 +945,7 @@ bool LX200Generic::ISNewSwitch (const char *dev, const char *name, ISState *stat
           FocusMotionSP.s = IPS_OK;
           IDSetSwitch(&FocusMotionSP, NULL);
           return true;
-        }
-
-        // Slew mode
-        if (!strcmp (name, SlewRateSP.name))
-        {
-
-          if (IUUpdateSwitch(&SlewRateSP, states, names, n) < 0)
-              return false;
-
-          index = IUFindOnSwitchIndex(&SlewRateSP);
-
-          // Reverse them to Meade format
-          index -= 3;
-          if (index < 0)
-              index += 3;
-
-          if (isSimulation() == false && setSlewMode(PortFD, index) < 0)
-          {
-              SlewRateSP.s = IPS_ALERT;
-              IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
-              return false;
-          }
-
-          SlewRateSP.s = IPS_OK;
-          IDSetSwitch(&SlewRateSP, NULL);
-          return true;
-        }
+        }        
 
         // Tracking mode
         if (!strcmp (name, TrackModeSP.name))
@@ -1056,11 +1008,26 @@ bool LX200Generic::ISNewSwitch (const char *dev, const char *name, ISState *stat
 
     }
 
-    controller->ISNewSwitch(dev, name, states, names, n);
-
     //  Nobody has claimed this, so pass it to the parent
     return INDI::Telescope::ISNewSwitch(dev,name,states,names,n);
 
+}
+
+bool LX200Generic::SetSlewRate(int index)
+{
+   // Convert index to Meade format
+   index = 3 - index;
+
+   if (isSimulation() == false && setSlewMode(PortFD, index) < 0)
+   {
+       SlewRateSP.s = IPS_ALERT;
+       IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
+      return false;
+   }
+
+   SlewRateSP.s = IPS_OK;
+   IDSetSwitch(&SlewRateSP, NULL);
+   return true;
 }
 
 void LX200Generic::updateFocusHelper(void *p)
@@ -1072,7 +1039,6 @@ void LX200Generic::updateFocusTimer()
 {
     switch (FocusTimerNP.s)
     {
-
       case IPS_IDLE:
 	   break;
 	     
@@ -1674,158 +1640,5 @@ void LX200Generic::guideTimeout()
         GuideWETID = 0;
         IDSetNumber(&GuideWENP, NULL);
     }
-}
-
-bool LX200Generic::ISSnoopDevice(XMLEle *root)
-{
-
-    controller->ISSnoopDevice(root);
-
-    return INDI::Telescope::ISSnoopDevice(root);
-
-}
-
-void LX200Generic::processButton(const char * button_n, ISState state)
-{
-    //ignore OFF
-    if (state == ISS_OFF)
-        return;
-
-    // Max Slew speed
-    if (!strcmp(button_n, "SLEW_MAX"))
-    {
-        setSlewMode(PortFD, 0);
-        IUResetSwitch(&SlewRateSP);
-        SlewRateS[SLEW_MAX].s = ISS_ON;
-        IDSetSwitch(&SlewRateSP, NULL);
-    }
-    // Find Slew speed
-    else if (!strcmp(button_n, "SLEW_FIND"))
-    {
-            setSlewMode(PortFD, 1);
-            IUResetSwitch(&SlewRateSP);
-            SlewRateS[SLEW_FIND].s = ISS_ON;
-            IDSetSwitch(&SlewRateSP, NULL);
-    }
-    // Centering Slew
-    else if (!strcmp(button_n, "SLEW_CENTERING"))
-    {
-            setSlewMode(PortFD, 2);
-            IUResetSwitch(&SlewRateSP);
-            SlewRateS[SLEW_CENTERING].s = ISS_ON;
-            IDSetSwitch(&SlewRateSP, NULL);
-    }
-    // Guide Slew
-    else if (!strcmp(button_n, "SLEW_GUIDE"))
-    {
-            setSlewMode(PortFD, 3);
-            IUResetSwitch(&SlewRateSP);
-            SlewRateS[SLEW_GUIDE].s = ISS_ON;
-            IDSetSwitch(&SlewRateSP, NULL);
-    }
-    // Abort
-    else if (!strcmp(button_n, "Abort Motion"))
-    {
-        // Only abort if we have some sort of motion going on
-        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY || EqNP.s == IPS_BUSY
-                || GuideNSNP.s == IPS_BUSY || GuideWENP.s == IPS_BUSY)
-        {
-
-            Abort();
-        }
-    }
-
-}
-
-void LX200Generic::processNSWE(double mag, double angle)
-{
-    if (mag < 0.5)
-    {
-        // Moving in the same direction will make it stop
-        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
-            Abort();
-    }
-    // Put high threshold
-    else if (mag > 0.9)
-    {
-        // North
-        if (angle > 0 && angle < 180)
-        {
-            // Don't try to move if you're busy and moving in the same direction
-            if (MovementNSSP.s != IPS_BUSY || MovementNSS[0].s != ISS_ON)
-                MoveNS(DIRECTION_NORTH, MOTION_START);
-
-            MovementNSSP.s = IPS_BUSY;
-            MovementNSSP.sp[0].s = ISS_ON;
-            MovementNSSP.sp[1].s = ISS_OFF;
-            IDSetSwitch(&MovementNSSP, NULL);
-        }
-        // South
-        if (angle > 180 && angle < 360)
-        {
-            // Don't try to move if you're busy and moving in the same direction
-           if (MovementNSSP.s != IPS_BUSY  || MovementNSS[1].s != ISS_ON)
-            MoveNS(DIRECTION_SOUTH, MOTION_START);
-
-            MovementNSSP.s = IPS_BUSY;
-            MovementNSSP.sp[0].s = ISS_OFF;
-            MovementNSSP.sp[1].s = ISS_ON;
-            IDSetSwitch(&MovementNSSP, NULL);
-        }
-        // East
-        if (angle < 90 || angle > 270)
-        {
-            // Don't try to move if you're busy and moving in the same direction
-           if (MovementWESP.s != IPS_BUSY  || MovementWES[1].s != ISS_ON)
-                MoveWE(DIRECTION_EAST, MOTION_START);
-
-           MovementWESP.s = IPS_BUSY;
-           MovementWESP.sp[0].s = ISS_OFF;
-           MovementWESP.sp[1].s = ISS_ON;
-           IDSetSwitch(&MovementWESP, NULL);
-        }
-
-        // West
-        if (angle > 90 && angle < 270)
-        {
-
-            // Don't try to move if you're busy and moving in the same direction
-           if (MovementWESP.s != IPS_BUSY  || MovementWES[0].s != ISS_ON)
-                MoveWE(DIRECTION_WEST, MOTION_START);
-
-           MovementWESP.s = IPS_BUSY;
-           MovementWESP.sp[0].s = ISS_ON;
-           MovementWESP.sp[1].s = ISS_OFF;
-           IDSetSwitch(&MovementWESP, NULL);
-        }
-    }
-
-}
-
-bool LX200Generic::saveConfigItems(FILE *fp)
-{    
-    controller->saveConfigItems(fp);
-
-    INDI::Telescope::saveConfigItems(fp);
-
-    return true;
-}
-
-void LX200Generic::processJoystick(const char * joystick_n, double mag, double angle)
-{
-    if (!strcmp(joystick_n, "NSWE Control"))
-        processNSWE(mag, angle);
-}
-
-
-void LX200Generic::joystickHelper(const char * joystick_n, double mag, double angle, void *context)
-{
-    static_cast<LX200Generic *>(context)->processJoystick(joystick_n, mag, angle);
-
-}
-
-void LX200Generic::buttonHelper(const char * button_n, ISState state, void *context)
-{
-    static_cast<LX200Generic *>(context)->processButton(button_n, state);
 }
 

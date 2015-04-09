@@ -106,10 +106,6 @@ IEQPro::IEQPro()
     scopeInfo.timeSource    = TS_RS232;
     scopeInfo.hemisphere    = HEMI_NORTH;
 
-    controller = new INDI::Controller(this);
-    controller->setJoystickCallback(joystickHelper);
-    controller->setButtonCallback(buttonHelper);
-
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
     TelescopeCapability cap;
@@ -117,13 +113,13 @@ IEQPro::IEQPro()
     cap.canPark = true;
     cap.canSync = true;
     cap.canAbort = true;
+    cap.nSlewRate= 9;
 
     SetTelescopeCapability(&cap);
 }
 
 IEQPro::~IEQPro()
 {
-    delete(controller);
 }
 
 const char *IEQPro::getDefaultName()
@@ -142,18 +138,6 @@ bool IEQPro::initProperties()
     IUFillText(&FirmwareT[FW_RA], "RA", "", 0);
     IUFillText(&FirmwareT[FW_DEC], "DEC", "", 0);
     IUFillTextVector(&FirmwareTP, FirmwareT, 5, getDeviceName(), "Firmware Info", "", MOUNTINFO_TAB, IP_RO, 0, IPS_IDLE);
-
-    /* Slew Rate */
-    IUFillSwitch(&SlewRateS[SR_1], "SLEW_GUIDE", "1x", ISS_OFF);
-    IUFillSwitch(&SlewRateS[SR_2], "2x", "2x", ISS_OFF);
-    IUFillSwitch(&SlewRateS[SR_3], "SLEW_CENTERING", "3x", ISS_OFF);
-    IUFillSwitch(&SlewRateS[SR_4], "4x", "4x", ISS_OFF);
-    IUFillSwitch(&SlewRateS[SR_5], "SLEW_FIND", "5x", ISS_OFF);
-    IUFillSwitch(&SlewRateS[SR_6], "6x", "6x", ISS_OFF);
-    IUFillSwitch(&SlewRateS[SR_7], "7x", "7x", ISS_OFF);
-    IUFillSwitch(&SlewRateS[SR_8], "8x", "8x", ISS_OFF);
-    IUFillSwitch(&SlewRateS[SR_MAX], "SLEW_MAX", "Max", ISS_ON);
-    IUFillSwitchVector(&SlewRateSP, SlewRateS, 9, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     /* Tracking Mode */
     IUFillSwitch(&TrackModeS[TRACK_SIDEREAL], "TRACK_SIDEREAL", "Sidereal", ISS_ON);
@@ -195,11 +179,6 @@ bool IEQPro::initProperties()
 
     TrackState=SCOPE_IDLE;
 
-    controller->mapController("MOTIONDIR", "N/S/W/E Control", INDI::Controller::CONTROLLER_JOYSTICK, "JOYSTICK_1");
-    controller->mapController("SLEWPRESET", "Slew Rate", INDI::Controller::CONTROLLER_JOYSTICK, "JOYSTICK_2");
-    controller->mapController("ABORTBUTTON", "Abort", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_1");
-    controller->initProperties();
-
     initGuiderProperties(getDeviceName(), MOTION_TAB);
 
     setInterfaceDescriptor(getInterfaceDescriptor() | GUIDER_INTERFACE);
@@ -220,7 +199,6 @@ bool IEQPro::updateProperties()
         defineSwitch(&HomeSP);
 
         defineSwitch(&TrackModeSP);
-        defineSwitch(&SlewRateSP);
         defineNumber(&CustomTrackRateNP);
 
         defineNumber(&GuideNSNP);
@@ -239,7 +217,6 @@ bool IEQPro::updateProperties()
         deleteProperty(HomeSP.name);
 
         deleteProperty(TrackModeSP.name);
-        deleteProperty(SlewRateSP.name);
         deleteProperty(CustomTrackRateNP.name);
 
         deleteProperty(GuideNSNP.name);
@@ -323,16 +300,8 @@ void IEQPro::getStartupData()
     }
 }
 
-bool IEQPro::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    controller->ISNewText(dev, name, texts, names, n);
-
-    return INDI::Telescope::ISNewText (dev, name, texts, names, n);
-}
-
 bool IEQPro::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
-
     if (!strcmp (dev, getDeviceName()))
     {
 
@@ -387,7 +356,6 @@ bool IEQPro::ISNewNumber (const char *dev, const char *name, double values[], ch
 
 bool IEQPro::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-
     if (!strcmp (getDeviceName(), dev))
     {
         if (!strcmp(name, HomeSP.name))
@@ -496,24 +464,7 @@ bool IEQPro::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
 
         }
 
-        if (!strcmp(name, SlewRateSP.name))
-        {
-            IUUpdateSwitch(&SlewRateSP, states, names, n);
-
-            IEQ_SLEW_RATE rate = (IEQ_SLEW_RATE) IUFindOnSwitchIndex(&SlewRateSP);
-
-            if (setSlewRate(rate))
-                SlewRateSP.s = IPS_OK;
-            else
-                SlewRateSP.s = IPS_ALERT;
-
-            IDSetSwitch(&SlewRateSP, NULL);
-            return true;
-
-        }
     }
-
-    controller->ISNewSwitch(dev, name, states, names, n);
 
     return INDI::Telescope::ISNewSwitch (dev, name, states, names,  n);
 }
@@ -535,10 +486,6 @@ bool IEQPro::ReadScopeStatus()
         GPSStatusS[newInfo.gpsStatus].s = ISS_ON;
         IDSetSwitch(&GPSStatusSP, NULL);
 
-        IUResetSwitch(&SlewRateSP);
-        SlewRateS[newInfo.slewRate].s = ISS_ON;
-        IDSetSwitch(&SlewRateSP, NULL);
-
         IUResetSwitch(&TimeSourceSP);
         TimeSourceS[newInfo.timeSource].s = ISS_ON;
         IDSetSwitch(&TimeSourceSP, NULL);
@@ -546,7 +493,6 @@ bool IEQPro::ReadScopeStatus()
         IUResetSwitch(&HemisphereSP);
         HemisphereS[newInfo.hemisphere].s = ISS_ON;
         IDSetSwitch(&HemisphereSP, NULL);
-
 
         TelescopeTrackMode trackMode;
 
@@ -744,7 +690,6 @@ bool IEQPro::Disconnect()
     locationUpdated = false;
 
     // Disconnect
-
     return true;
 }
 
@@ -917,195 +862,19 @@ IPState IEQPro::GuideWest(float ms)
     return (rc ? IPS_OK : IPS_ALERT);
 }
 
-bool IEQPro::setSlewRate(IEQ_SLEW_RATE rate)
+bool IEQPro::SetSlewRate(int index)
 {
+    IEQ_SLEW_RATE rate = (IEQ_SLEW_RATE) index;
     return set_ieqpro_slew_rate(PortFD, rate);
-}
-
-void IEQPro::processButton(const char *button_n, ISState state)
-{
-
-    //ignore OFF
-    if (state == ISS_OFF)
-        return;
-
-    if (!strcmp(button_n, "ABORTBUTTON"))
-    {
-        // Only abort if we have some sort of motion going on
-        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY || EqNP.s == IPS_BUSY
-                || GuideNSNP.s == IPS_BUSY || GuideWENP.s == IPS_BUSY)
-        {
-
-            Abort();
-        }
-    }
-}
-
-void IEQPro::processJoystick(const char * joystick_n, double mag, double angle)
-{
-    if (!strcmp(joystick_n, "MOTIONDIR"))
-        processNSWE(mag, angle);
-    else if (!strcmp(joystick_n, "SLEWPRESET"))
-        processSlewPresets(mag, angle);
-}
-
-void IEQPro::processNSWE(double mag, double angle)
-{
-    if (mag < 0.5)
-    {
-        // Moving in the same direction will make it stop
-        if (MovementNSSP.s == IPS_BUSY)
-        {
-            if (MoveNS( MovementNSSP.sp[0].s == ISS_ON ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP))
-            {
-                IUResetSwitch(&MovementNSSP);
-                MovementNSSP.s = IPS_IDLE;
-                IDSetSwitch(&MovementNSSP, NULL);
-            }
-            else
-            {
-                MovementNSSP.s = IPS_ALERT;
-                IDSetSwitch(&MovementNSSP, NULL);
-            }
-        }
-        else if (MovementWESP.s == IPS_BUSY)
-        {
-            if (MoveWE( MovementWESP.sp[0].s == ISS_ON ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP))
-            {
-                IUResetSwitch(&MovementWESP);
-                MovementWESP.s = IPS_IDLE;
-                IDSetSwitch(&MovementWESP, NULL);
-            }
-            else
-            {
-                MovementWESP.s = IPS_ALERT;
-                IDSetSwitch(&MovementWESP, NULL);
-            }
-        }
-    }
-    // Put high threshold
-    else if (mag > 0.9)
-    {
-        // North
-        if (angle > 0 && angle < 180)
-        {
-            // Don't try to move if you're busy and moving in the same direction
-            if (MovementNSSP.s != IPS_BUSY || MovementNSS[0].s != ISS_ON)
-                MoveNS(DIRECTION_NORTH, MOTION_START);
-
-            // If angle is close to 90, make it exactly 90 to reduce noise that could trigger east/west motion as well
-            if (angle > 80 && angle < 110)
-                angle = 90;
-
-            MovementNSSP.s = IPS_BUSY;
-            MovementNSSP.sp[0].s = ISS_ON;
-            MovementNSSP.sp[1].s = ISS_OFF;
-            IDSetSwitch(&MovementNSSP, NULL);
-        }
-        // South
-        if (angle > 180 && angle < 360)
-        {
-            // Don't try to move if you're busy and moving in the same direction
-           if (MovementNSSP.s != IPS_BUSY  || MovementNSS[1].s != ISS_ON)
-            MoveNS(DIRECTION_SOUTH, MOTION_START);
-
-           // If angle is close to 270, make it exactly 270 to reduce noise that could trigger east/west motion as well
-           if (angle > 260 && angle < 280)
-               angle = 270;
-
-            MovementNSSP.s = IPS_BUSY;
-            MovementNSSP.sp[0].s = ISS_OFF;
-            MovementNSSP.sp[1].s = ISS_ON;
-            IDSetSwitch(&MovementNSSP, NULL);
-        }
-        // East
-        if (angle < 90 || angle > 270)
-        {
-            // Don't try to move if you're busy and moving in the same direction
-           if (MovementWESP.s != IPS_BUSY  || MovementWES[1].s != ISS_ON)
-                MoveWE(DIRECTION_EAST, MOTION_START);
-
-           MovementWESP.s = IPS_BUSY;
-           MovementWESP.sp[0].s = ISS_OFF;
-           MovementWESP.sp[1].s = ISS_ON;
-           IDSetSwitch(&MovementWESP, NULL);
-        }
-
-        // West
-        if (angle > 90 && angle < 270)
-        {
-
-            // Don't try to move if you're busy and moving in the same direction
-           if (MovementWESP.s != IPS_BUSY  || MovementWES[0].s != ISS_ON)
-                MoveWE(DIRECTION_WEST, MOTION_START);
-
-           MovementWESP.s = IPS_BUSY;
-           MovementWESP.sp[0].s = ISS_ON;
-           MovementWESP.sp[1].s = ISS_OFF;
-           IDSetSwitch(&MovementWESP, NULL);
-        }
-    }
-
-}
-
-void IEQPro::processSlewPresets(double mag, double angle)
-{
-    // high threshold, only 1 is accepted
-    if (mag != 1)
-        return;
-
-    int currentIndex = IUFindOnSwitchIndex(&SlewRateSP);
-
-    // Up
-    if (angle > 0 && angle < 180)
-    {
-        if (currentIndex <= 0)
-            return;
-
-        IUResetSwitch(&SlewRateSP);
-        SlewRateS[currentIndex-1].s = ISS_ON;
-    }
-    // Down
-    else
-    {
-        if (currentIndex >= SlewRateSP.nsp-1)
-            return;
-
-         IUResetSwitch(&SlewRateSP);
-         SlewRateS[currentIndex+1].s = ISS_ON;
-
-    }
-    IDSetSwitch(&SlewRateSP, NULL);
-
-}
-
-void IEQPro::joystickHelper(const char * joystick_n, double mag, double angle, void *context)
-{
-    static_cast<IEQPro *>(context)->processJoystick(joystick_n, mag, angle);
-
-}
-
-void IEQPro::buttonHelper(const char * button_n, ISState state, void *context)
-{
-    static_cast<IEQPro *>(context)->processButton(button_n, state);
 }
 
 bool IEQPro::saveConfigItems(FILE *fp)
 {
-    controller->saveConfigItems(fp);
-
     INDI::Telescope::saveConfigItems(fp);
 
     IUSaveConfigNumber(fp, &CustomTrackRateNP);
 
     return true;
-}
-
-bool IEQPro::ISSnoopDevice(XMLEle *root)
-{
-    controller->ISSnoopDevice(root);
-
-    return INDI::Telescope::ISSnoopDevice(root);
 }
 
 void IEQPro::mountSim ()

@@ -55,6 +55,7 @@ protected:
  virtual bool ReadScopeStatus();
 
  virtual bool Park();
+ virtual bool UnPark();
  virtual bool Sync(double ra, double dec);
  virtual bool Goto(double, double);
  virtual bool Connect(char *);
@@ -63,7 +64,6 @@ protected:
  virtual bool updateLocation(double latitude, double longitude, double elevation);
 
  virtual void debugTriggered(bool enable);
- virtual void processButton(const char * button_n, ISState state);
  bool  setBasicDataPart0();
  bool  setBasicDataPart1();
 

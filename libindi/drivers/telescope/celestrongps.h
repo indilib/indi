@@ -44,12 +44,6 @@ class CelestronGPS : public INDI::Telescope
  virtual void ISGetProperties(const char *dev);
  virtual bool initProperties();
  virtual bool updateProperties();
- virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
- virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
- virtual bool ISSnoopDevice(XMLEle *root);
-
- static void joystickHelper(const char * joystick_n, double mag, double angle, void *context);
- static void buttonHelper(const char * button_n, ISState state, void *context);
 
 protected:
 
@@ -71,29 +65,14 @@ protected:
  virtual void SetDefaultPark();
 
  virtual void simulationTriggered(bool enable);
- virtual bool saveConfigItems(FILE *fp);
 
  void mountSim();
-
- // Joystick
- void processNSWE(double mag, double angle);
- void processJoystick(const char * joystick_n, double mag, double angle);
- void processSlewPresets(double mag, double angle);
- void processButton(const char * button_n, ISState state);
-
-
- /* Slew Speed */
- ISwitchVectorProperty SlewRateSP;
- ISwitch SlewRateS[9];
 
  /* Firmware */
  IText   FirmwareT[5];
  ITextVectorProperty FirmwareTP;
 
-
-private:
-  INDI::Controller *controller;
-
+private:  
   int PortFD;
   double currentRA, currentDEC;
   double targetRA, targetDEC;

@@ -92,10 +92,6 @@ CelestronGPS::CelestronGPS()
 
    INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
-   controller = new INDI::Controller(this);
-   controller->setJoystickCallback(joystickHelper);
-   controller->setButtonCallback(buttonHelper);   
-
    TelescopeCapability cap;
 
    currentRA    = 0;
@@ -104,6 +100,7 @@ CelestronGPS::CelestronGPS()
    cap.canPark  = true;
    cap.canSync  = true;
    cap.canAbort = true;
+   cap.nSlewRate= 9;
    SetTelescopeCapability(&cap);
 
 }
@@ -117,17 +114,6 @@ bool CelestronGPS::initProperties()
 {
     INDI::Telescope::initProperties();
 
-    IUFillSwitch(&SlewRateS[SR_1], "SLEW_GUIDE", "1x", ISS_OFF);
-    IUFillSwitch(&SlewRateS[SR_2], "2x", "2x", ISS_OFF);
-    IUFillSwitch(&SlewRateS[SR_3], "SLEW_CENTERING", "3x", ISS_OFF);
-    IUFillSwitch(&SlewRateS[SR_4], "4x", "4x", ISS_OFF);
-    IUFillSwitch(&SlewRateS[SR_5], "SLEW_FIND", "5x", ISS_ON);
-    IUFillSwitch(&SlewRateS[SR_6], "6x", "6x", ISS_OFF);
-    IUFillSwitch(&SlewRateS[SR_7], "7x", "7x", ISS_OFF);
-    IUFillSwitch(&SlewRateS[SR_8], "8x", "8x", ISS_OFF);
-    IUFillSwitch(&SlewRateS[SR_9], "SLEW_MAX", "9x", ISS_OFF);
-    IUFillSwitchVector(&SlewRateSP, SlewRateS, 9, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
     /* Firmware */
     IUFillText(&FirmwareT[FW_MODEL], "Model", "", 0);
     IUFillText(&FirmwareT[FW_VERSION], "Version", "", 0);
@@ -135,13 +121,6 @@ bool CelestronGPS::initProperties()
     IUFillText(&FirmwareT[FW_RA], "RA", "", 0);
     IUFillText(&FirmwareT[FW_DEC], "DEC", "", 0);
     IUFillTextVector(&FirmwareTP, FirmwareT, 5, getDeviceName(), "Firmware Info", "", MOUNTINFO_TAB, IP_RO, 0, IPS_IDLE);
-
-    controller->mapController("MOTIONDIR", "N/S/W/E Control", INDI::Controller::CONTROLLER_JOYSTICK, "JOYSTICK_1");
-    controller->mapController("SLEWPRESET", "Slew Rate", INDI::Controller::CONTROLLER_JOYSTICK, "JOYSTICK_2");
-    controller->mapController("ABORTBUTTON", "Abort", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_1");
-    controller->initProperties();
-
-    controller->initProperties();
 
     SetParkDataType(PARK_RA_DEC);
 
@@ -162,9 +141,7 @@ void CelestronGPS::ISGetProperties(const char *dev)
         defineSwitch(&SlewRateSP);
         if (fwInfo.Version != "Invalid")
             defineText(&FirmwareTP);
-    }
-
-    controller->ISGetProperties(dev);
+    }    
 }
 
 bool CelestronGPS::updateProperties()
@@ -173,8 +150,6 @@ bool CelestronGPS::updateProperties()
 
     if (isConnected())
     {
-        defineSwitch(&SlewRateSP);
-
         if (get_celestron_firmware(PortFD, &fwInfo))
         {
             IUSaveText(&FirmwareT[FW_MODEL], fwInfo.Model.c_str());
@@ -210,7 +185,6 @@ bool CelestronGPS::updateProperties()
     }
     else
     {
-        deleteProperty(SlewRateSP.name);
         if (fwInfo.Version != "Invalid")
             deleteProperty(FirmwareTP.name);
     }
@@ -234,39 +208,9 @@ bool CelestronGPS::updateProperties()
 
             IDSetText(&TimeTP, NULL);
         }
-    }
-
-    controller->updateProperties();
+    }    
 
     return true;
-}
-
-bool CelestronGPS::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    if(!strcmp(dev,getDeviceName()))
-    {
-        // Slew mode
-        if (!strcmp (name, SlewRateSP.name))
-        {         
-          IUUpdateSwitch(&SlewRateSP, states, names, n);
-          SlewRateSP.s = IPS_OK;
-          IDSetSwitch(&SlewRateSP, NULL);
-          return true;
-        }
-
-    }
-
-    controller->ISNewSwitch(dev, name, states, names, n);
-
-    return INDI::Telescope::ISNewSwitch(dev, name, states, names, n);
-}
-
-
-bool CelestronGPS::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    controller->ISNewText(dev, name, texts, names, n);
-
-    return INDI::Telescope::ISNewText(dev, name, texts, names, n);
 }
 
 bool CelestronGPS::Goto(double ra, double dec)
@@ -564,16 +508,6 @@ void CelestronGPS::simulationTriggered(bool enable)
     set_celestron_simulation(enable);
 }
 
-
-bool CelestronGPS::saveConfigItems(FILE *fp)
-{
-    INDI::Telescope::saveConfigItems(fp);
-
-    controller->saveConfigItems(fp);
-
-    return true;
-}
-
 bool CelestronGPS::updateLocation(double latitude, double longitude, double elevation)
 {
     INDI_UNUSED(elevation);
@@ -635,144 +569,5 @@ void CelestronGPS::SetDefaultPark()
 
     // Set DEC to 90 or -90 depending on the hemisphere
     SetDEPark( (LocationN[LOCATION_LATITUDE].value > 0) ? 90 : -90);
-}
-
-bool CelestronGPS::ISSnoopDevice(XMLEle *root)
-{
-    controller->ISSnoopDevice(root);
-
-    return INDI::Telescope::ISSnoopDevice(root);
-}
-
-void CelestronGPS::processButton(const char *button_n, ISState state)
-{
-    //ignore OFF
-    if (state == ISS_OFF)
-        return;
-
-    if (!strcmp(button_n, "Abort Motion"))
-    {
-        // Only abort if we have some sort of motion going on
-        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY || EqNP.s == IPS_BUSY)
-        {
-
-            Abort();
-        }
-    }
-}
-
-void CelestronGPS::processNSWE(double mag, double angle)
-{
-    if (mag < 0.5)
-    {
-        // Moving in the same direction will make it stop
-        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
-            Abort();
-    }
-    // Put high threshold
-    else if (mag > 0.9)
-    {
-        // North
-        if (angle > 0 && angle < 180)
-        {
-            // Don't try to move if you're busy and moving in the same direction
-            if (MovementNSSP.s != IPS_BUSY || MovementNSS[0].s != ISS_ON)
-                MoveNS(DIRECTION_NORTH, MOTION_START);
-
-            MovementNSSP.s = IPS_BUSY;
-            MovementNSSP.sp[0].s = ISS_ON;
-            MovementNSSP.sp[1].s = ISS_OFF;
-            IDSetSwitch(&MovementNSSP, NULL);
-        }
-        // South
-        if (angle > 180 && angle < 360)
-        {
-            // Don't try to move if you're busy and moving in the same direction
-           if (MovementNSSP.s != IPS_BUSY  || MovementNSS[1].s != ISS_ON)
-            MoveNS(DIRECTION_SOUTH, MOTION_START);
-
-            MovementNSSP.s = IPS_BUSY;
-            MovementNSSP.sp[0].s = ISS_OFF;
-            MovementNSSP.sp[1].s = ISS_ON;
-            IDSetSwitch(&MovementNSSP, NULL);
-        }
-        // East
-        if (angle < 90 || angle > 270)
-        {
-            // Don't try to move if you're busy and moving in the same direction
-           if (MovementWESP.s != IPS_BUSY  || MovementWES[1].s != ISS_ON)
-                MoveWE(DIRECTION_EAST, MOTION_START);
-
-           MovementWESP.s = IPS_BUSY;
-           MovementWESP.sp[0].s = ISS_OFF;
-           MovementWESP.sp[1].s = ISS_ON;
-           IDSetSwitch(&MovementWESP, NULL);
-        }
-
-        // West
-        if (angle > 90 && angle < 270)
-        {
-
-            // Don't try to move if you're busy and moving in the same direction
-           if (MovementWESP.s != IPS_BUSY  || MovementWES[0].s != ISS_ON)
-                MoveWE(DIRECTION_WEST, MOTION_START);
-
-           MovementWESP.s = IPS_BUSY;
-           MovementWESP.sp[0].s = ISS_ON;
-           MovementWESP.sp[1].s = ISS_OFF;
-           IDSetSwitch(&MovementWESP, NULL);
-        }
-    }
-
-}
-
-void CelestronGPS::processSlewPresets(double mag, double angle)
-{
-    // high threshold, only 1 is accepted
-    if (mag != 1)
-        return;
-
-    int currentIndex = IUFindOnSwitchIndex(&SlewRateSP);
-
-    // Up
-    if (angle > 0 && angle < 180)
-    {
-        if (currentIndex <= 0)
-            return;
-
-        IUResetSwitch(&SlewRateSP);
-        SlewRateS[currentIndex-1].s = ISS_ON;
-    }
-    // Down
-    else
-    {
-        if (currentIndex >= SlewRateSP.nsp-1)
-            return;
-
-         IUResetSwitch(&SlewRateSP);
-         SlewRateS[currentIndex+1].s = ISS_ON;
-
-    }
-    IDSetSwitch(&SlewRateSP, NULL);
-
-}
-
-void CelestronGPS::processJoystick(const char * joystick_n, double mag, double angle)
-{
-    if (!strcmp(joystick_n, "MOTIONDIR"))
-        processNSWE(mag, angle);
-    else if (!strcmp(joystick_n, "SLEWPRESET"))
-        processSlewPresets(mag, angle);
-}
-
-
-void CelestronGPS::joystickHelper(const char * joystick_n, double mag, double angle, void *context)
-{
-    static_cast<CelestronGPS *>(context)->processJoystick(joystick_n, mag, angle);
-}
-
-void CelestronGPS::buttonHelper(const char * button_n, ISState state, void *context)
-{
-    static_cast<CelestronGPS *>(context)->processButton(button_n, state);
 }
 

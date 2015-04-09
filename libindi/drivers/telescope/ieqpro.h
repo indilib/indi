@@ -33,12 +33,7 @@ class IEQPro : public INDI::Telescope, public INDI::GuiderInterface
   ~IEQPro();
 
  virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
- virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
  virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
- virtual bool ISSnoopDevice(XMLEle *root);
-
-  static void joystickHelper(const char * joystick_n, double mag, double angle, void *context);
-  static void buttonHelper(const char * button_n, ISState state, void *context);
 
 protected:
 
@@ -74,6 +69,9 @@ protected:
   virtual void SetCurrentPark();
   virtual void SetDefaultPark();
 
+  // Slew Rate
+  bool SetSlewRate(int index);
+
  // Sim
  void mountSim();
 
@@ -83,12 +81,6 @@ protected:
  virtual IPState GuideEast(float ms);
  virtual IPState GuideWest(float ms);
 
- // Joystick
- void processNSWE(double mag, double angle);
- void processJoystick(const char * joystick_n, double mag, double angle);
- void processSlewPresets(double mag, double angle);
- void processButton(const char * button_n, ISState state);
-
 private:
 
   /**
@@ -96,19 +88,9 @@ private:
   */
  void getStartupData();
 
- /**
-  * @brief setSlewRate Set N/W/E/S hand controller slew rates
-  * @param rate 1 to 9
-  */
- bool setSlewRate(IEQ_SLEW_RATE rate);
-
  /* Firmware */
  IText   FirmwareT[5];
  ITextVectorProperty FirmwareTP;
-
- /* Slew Rate */
- ISwitchVectorProperty SlewRateSP;
- ISwitch SlewRateS[9];
 
  /* Tracking Mode */
  ISwitchVectorProperty TrackModeSP;
@@ -137,8 +119,6 @@ private:
  /* Guide Rate */
  INumber GuideRateN[1];
  INumberVectorProperty GuideRateNP;
-
- INDI::Controller *controller;
 
  unsigned int DBG_SCOPE;
  bool sim;

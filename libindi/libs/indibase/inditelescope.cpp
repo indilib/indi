@@ -25,17 +25,23 @@
 
 INDI::Telescope::Telescope()
 {
-    //ctor
     capability.canPark = capability.canSync = capability.canAbort = false;
+    capability.nSlewRate = 0;
     last_we_motion = last_ns_motion = -1;
     parkDataType = PARK_NONE;
     Parkdatafile= "~/.indi/ParkData.xml";
     IsParked=false;
+    SlewRateS = NULL;
+
+    controller = new INDI::Controller(this);
+    controller->setJoystickCallback(joystickHelper);
+    controller->setButtonCallback(buttonHelper);
+
 }
 
 INDI::Telescope::~Telescope()
 {
-
+    delete (controller);
 }
 
 bool INDI::Telescope::initProperties()
@@ -106,6 +112,35 @@ bool INDI::Telescope::initProperties()
     IUFillNumber(&ScopeParametersN[3],"GUIDER_FOCAL_LENGTH","Guider Focal Length (mm)","%g",100,10000,0,0.0 );
     IUFillNumberVector(&ScopeParametersNP,ScopeParametersN,4,getDeviceName(),"TELESCOPE_INFO","Scope Properties",OPTIONS_TAB,IP_RW,60,IPS_OK);
 
+    if (capability.nSlewRate >= 4)
+    {
+        SlewRateS = (ISwitch *) malloc(sizeof(ISwitch) * capability.nSlewRate);
+        int step = capability.nSlewRate / 4;
+        for (int i=0; i < capability.nSlewRate; i++)
+        {
+            char name[4];
+            snprintf(name, 4, "%dx", i+1);
+            IUFillSwitch(SlewRateS+i, name, name, ISS_OFF);
+        }
+
+        strncpy( (SlewRateS+(step*0))->name, "SLEW_GUIDE", MAXINDINAME);
+        strncpy( (SlewRateS+(step*1))->name, "SLEW_CENTERING", MAXINDINAME);
+        strncpy( (SlewRateS+(step*2))->name, "SLEW_FIND", MAXINDINAME);
+        strncpy( (SlewRateS+(capability.nSlewRate-1))->name, "SLEW_MAX", MAXINDINAME);
+
+        // By Default we set current Slew Rate to 0.5 of max
+        (SlewRateS+(capability.nSlewRate/2))->s = ISS_ON;
+
+        IUFillSwitchVector(&SlewRateSP, SlewRateS, capability.nSlewRate, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    }
+
+    controller->mapController("MOTIONDIR", "N/S/W/E Control", INDI::Controller::CONTROLLER_JOYSTICK, "JOYSTICK_1");
+    if (capability.nSlewRate >= 4)
+        controller->mapController("SLEWPRESET", "Slew Rate", INDI::Controller::CONTROLLER_JOYSTICK, "JOYSTICK_2");
+    if (capability.canAbort)
+        controller->mapController("ABORTBUTTON", "Abort", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_1");
+    controller->initProperties();
+
     TrackState=SCOPE_IDLE;
 
     setInterfaceDescriptor(TELESCOPE_INTERFACE);
@@ -140,10 +175,16 @@ void INDI::Telescope::ISGetProperties (const char *dev)
         }
         defineSwitch(&MovementNSSP);
         defineSwitch(&MovementWESP);
+
+        if (capability.nSlewRate >= 4)
+            defineSwitch(&SlewRateSP);
+
         defineNumber(&ScopeParametersNP);
 
     }
-    return;
+
+    controller->ISGetProperties(dev);
+
 }
 
 bool INDI::Telescope::updateProperties()
@@ -158,6 +199,8 @@ bool INDI::Telescope::updateProperties()
             defineSwitch(&AbortSP);
         defineSwitch(&MovementNSSP);
         defineSwitch(&MovementWESP);
+        if (capability.nSlewRate >= 4)
+            defineSwitch(&SlewRateSP);
         defineText(&TimeTP);
         defineNumber(&LocationNP);
         if (capability.canPark)
@@ -180,6 +223,8 @@ bool INDI::Telescope::updateProperties()
             deleteProperty(AbortSP.name);
         deleteProperty(MovementNSSP.name);
         deleteProperty(MovementWESP.name);
+        if (capability.nSlewRate >= 4)
+            deleteProperty(SlewRateSP.name);
         deleteProperty(TimeTP.name);
         deleteProperty(LocationNP.name);
         if (capability.canPark)
@@ -194,20 +239,25 @@ bool INDI::Telescope::updateProperties()
         deleteProperty(ScopeParametersNP.name);
     }
 
+    controller->updateProperties();
+
     return true;
 }
 
 bool INDI::Telescope::ISSnoopDevice(XMLEle *root)
 {
+    controller->ISSnoopDevice(root);
+
     return INDI::DefaultDevice::ISSnoopDevice(root);
 }
 
 bool INDI::Telescope::saveConfigItems(FILE *fp)
 {
-
     IUSaveConfigText(fp, &PortTP);
     IUSaveConfigNumber(fp,&LocationNP);
     IUSaveConfigNumber(fp, &ScopeParametersNP);
+
+    controller->saveConfigItems(fp);
 
     return true;
 }
@@ -282,11 +332,10 @@ bool INDI::Telescope::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 bool INDI::Telescope::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     //  first check if it's for our device
-    if(strcmp(dev,getDeviceName())==0)
+    if(!strcmp(dev,getDeviceName()))
     {
-        //  This is for our device
-        //  Now lets see if it's something we process here
-        if(strcmp(name,PortTP.name)==0)
+
+        if(!strcmp(name,PortTP.name))
         {
             //  This is our port, so, lets process it
             int rc;
@@ -298,7 +347,7 @@ bool INDI::Telescope::ISNewText (const char *dev, const char *name, char *texts[
             return true;
         }
 
-      if(strcmp(name,"TIME_UTC")==0)
+      if(!strcmp(name,TimeTP.name))
       {
         int utcindex   = IUFindIndex("UTC", names, n);
         int offsetindex= IUFindIndex("OFFSET", names, n);
@@ -330,6 +379,8 @@ bool INDI::Telescope::ISNewText (const char *dev, const char *name, char *texts[
     }
 
    }
+
+    controller->ISNewText(dev, name, texts, names, n);
 
     return DefaultDevice::ISNewText(dev,name,texts,names,n);
 }
@@ -472,7 +523,7 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
     if(strcmp(dev,getDeviceName())==0)
     {
         //  This one is for us
-        if(strcmp(name,"ON_COORD_SET")==0)
+        if(!strcmp(name,CoordSP.name))
         {
             //  client is telling us what to do with co-ordinate requests
             CoordSP.s=IPS_OK;
@@ -482,7 +533,25 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
             return true;
         }
 
-        if(strcmp(name,"TELESCOPE_PARK")==0)
+        // Slew Rate
+        if (!strcmp (name, SlewRateSP.name))
+        {
+          int preIndex = IUFindOnSwitchIndex(&SlewRateSP);
+          IUUpdateSwitch(&SlewRateSP, states, names, n);
+          int nowIndex = IUFindOnSwitchIndex(&SlewRateSP);
+          if (SetSlewRate(nowIndex) == false)
+          {
+              IUResetSwitch(&SlewRateSP);
+              SlewRateS[preIndex].s = ISS_ON;
+              SlewRateSP.s = IPS_ALERT;
+          }
+          else
+            SlewRateSP.s = IPS_OK;
+          IDSetSwitch(&SlewRateSP, NULL);
+          return true;
+        }
+
+        if(!strcmp(name,ParkSP.name))
         {
             if (TrackState == SCOPE_PARKING)
             {
@@ -546,7 +615,7 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
             return true;
         }
 
-        if(strcmp(name,"TELESCOPE_MOTION_NS")==0)
+        if(!strcmp(name,MovementNSSP.name))
         {            
             // Check if it is already parked.
             if (capability.canPark)
@@ -600,7 +669,7 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
             return true;
         }
 
-        if(strcmp(name,"TELESCOPE_MOTION_WE")==0)
+        if(!strcmp(name,MovementWESP.name))
         {
             // Check if it is already parked.
             if (capability.canPark)
@@ -654,7 +723,7 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
             return true;
         }
 
-        if(strcmp(name,"TELESCOPE_ABORT_MOTION")==0)
+        if(!strcmp(name,AbortSP.name))
         {
             IUResetSwitch(&AbortSP);
 
@@ -743,6 +812,8 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
       }
 
     }
+
+    controller->ISNewSwitch(dev, name, states, names, n);
 
     //  Nobody has claimed this, so, ignore it
     return DefaultDevice::ISNewSwitch(dev,name,states,names,n);
@@ -878,6 +949,7 @@ void INDI::Telescope::SetTelescopeCapability(TelescopeCapability *cap)
     capability.canPark      = cap->canPark;
     capability.canSync      = cap->canSync;
     capability.canAbort     = cap->canAbort;
+    capability.nSlewRate    = cap->nSlewRate;
 }
 
 void INDI::Telescope::SetParkDataType(TelescopeParkData type)
@@ -1122,4 +1194,176 @@ void INDI::Telescope::SetDEPark(double value)
 void INDI::Telescope::SetDEParkDefault(double value)
 {
   DEDefaultParkPosition=value;
+}
+
+bool INDI::Telescope::SetSlewRate(int index)
+{
+    INDI_UNUSED(index);
+    return true;
+}
+
+void INDI::Telescope::processButton(const char *button_n, ISState state)
+{
+    //ignore OFF
+    if (state == ISS_OFF)
+        return;
+
+    if (!strcmp(button_n, "ABORTBUTTON"))
+    {
+        // Only abort if we have some sort of motion going on
+        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY || EqNP.s == IPS_BUSY)
+        {
+
+            Abort();
+        }
+    }
+}
+
+void INDI::Telescope::processJoystick(const char * joystick_n, double mag, double angle)
+{
+    if (!strcmp(joystick_n, "MOTIONDIR"))
+        processNSWE(mag, angle);
+    else if (!strcmp(joystick_n, "SLEWPRESET"))
+        processSlewPresets(mag, angle);
+}
+
+void INDI::Telescope::processNSWE(double mag, double angle)
+{
+    if (mag < 0.5)
+    {
+        // Moving in the same direction will make it stop
+        if (MovementNSSP.s == IPS_BUSY)
+        {
+            if (MoveNS( MovementNSSP.sp[0].s == ISS_ON ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP))
+            {
+                IUResetSwitch(&MovementNSSP);
+                MovementNSSP.s = IPS_IDLE;
+                IDSetSwitch(&MovementNSSP, NULL);
+            }
+            else
+            {
+                MovementNSSP.s = IPS_ALERT;
+                IDSetSwitch(&MovementNSSP, NULL);
+            }
+        }
+
+        if (MovementWESP.s == IPS_BUSY)
+        {
+            if (MoveWE( MovementWESP.sp[0].s == ISS_ON ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP))
+            {
+                IUResetSwitch(&MovementWESP);
+                MovementWESP.s = IPS_IDLE;
+                IDSetSwitch(&MovementWESP, NULL);
+            }
+            else
+            {
+                MovementWESP.s = IPS_ALERT;
+                IDSetSwitch(&MovementWESP, NULL);
+            }
+        }
+    }
+    // Put high threshold
+    else if (mag > 0.9)
+    {
+        // North
+        if (angle > 0 && angle < 180)
+        {
+            // Don't try to move if you're busy and moving in the same direction
+            if (MovementNSSP.s != IPS_BUSY || MovementNSS[0].s != ISS_ON)
+                MoveNS(DIRECTION_NORTH, MOTION_START);
+
+            // If angle is close to 90, make it exactly 90 to reduce noise that could trigger east/west motion as well
+            if (angle > 80 && angle < 110)
+                angle = 90;
+
+            MovementNSSP.s = IPS_BUSY;
+            MovementNSSP.sp[DIRECTION_NORTH].s = ISS_ON;
+            MovementNSSP.sp[DIRECTION_SOUTH].s = ISS_OFF;
+            IDSetSwitch(&MovementNSSP, NULL);
+        }
+        // South
+        if (angle > 180 && angle < 360)
+        {
+            // Don't try to move if you're busy and moving in the same direction
+           if (MovementNSSP.s != IPS_BUSY  || MovementNSS[1].s != ISS_ON)
+            MoveNS(DIRECTION_SOUTH, MOTION_START);
+
+           // If angle is close to 270, make it exactly 270 to reduce noise that could trigger east/west motion as well
+           if (angle > 260 && angle < 280)
+               angle = 270;
+
+            MovementNSSP.s = IPS_BUSY;
+            MovementNSSP.sp[DIRECTION_NORTH].s = ISS_OFF;
+            MovementNSSP.sp[DIRECTION_SOUTH].s = ISS_ON;
+            IDSetSwitch(&MovementNSSP, NULL);
+        }
+        // East
+        if (angle < 90 || angle > 270)
+        {
+            // Don't try to move if you're busy and moving in the same direction
+           if (MovementWESP.s != IPS_BUSY  || MovementWES[1].s != ISS_ON)
+                MoveWE(DIRECTION_EAST, MOTION_START);
+
+           MovementWESP.s = IPS_BUSY;
+           MovementWESP.sp[DIRECTION_WEST].s = ISS_OFF;
+           MovementWESP.sp[DIRECTION_EAST].s = ISS_ON;
+           IDSetSwitch(&MovementWESP, NULL);
+        }
+
+        // West
+        if (angle > 90 && angle < 270)
+        {
+
+            // Don't try to move if you're busy and moving in the same direction
+           if (MovementWESP.s != IPS_BUSY  || MovementWES[0].s != ISS_ON)
+                MoveWE(DIRECTION_WEST, MOTION_START);
+
+           MovementWESP.s = IPS_BUSY;
+           MovementWESP.sp[DIRECTION_WEST].s = ISS_ON;
+           MovementWESP.sp[DIRECTION_EAST].s = ISS_OFF;
+           IDSetSwitch(&MovementWESP, NULL);
+        }
+    }
+}
+
+void INDI::Telescope::processSlewPresets(double mag, double angle)
+{
+    // high threshold, only 1 is accepted
+    if (mag != 1)
+        return;
+
+    int currentIndex = IUFindOnSwitchIndex(&SlewRateSP);
+
+    // Up
+    if (angle > 0 && angle < 180)
+    {
+        if (currentIndex <= 0)
+            return;
+
+        IUResetSwitch(&SlewRateSP);
+        SlewRateS[currentIndex-1].s = ISS_ON;
+        SetSlewRate(currentIndex-1);
+    }
+    // Down
+    else
+    {
+        if (currentIndex >= SlewRateSP.nsp-1)
+            return;
+
+         IUResetSwitch(&SlewRateSP);
+         SlewRateS[currentIndex+1].s = ISS_ON;
+         SetSlewRate(currentIndex-1);
+    }
+
+    IDSetSwitch(&SlewRateSP, NULL);
+}
+
+void INDI::Telescope::joystickHelper(const char * joystick_n, double mag, double angle, void *context)
+{
+    static_cast<INDI::Telescope*>(context)->processJoystick(joystick_n, mag, angle);
+}
+
+void INDI::Telescope::buttonHelper(const char * button_n, ISState state, void *context)
+{
+    static_cast<INDI::Telescope*>(context)->processButton(button_n, state);
 }

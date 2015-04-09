@@ -47,16 +47,13 @@ class LX200Generic: public INDI::Telescope, public INDI::GuiderInterface
     virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
     virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
     virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool ISSnoopDevice(XMLEle *root);
 
     void updateFocusTimer();
     void guideTimeout();
 
-    static void joystickHelper(const char * joystick_n, double mag, double angle, void *context);
-    static void buttonHelper(const char * button_n, ISState state, void *context);
-
   protected:
 
+    virtual bool SetSlewRate(int index);
     virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
     virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
     virtual bool Abort();
@@ -68,8 +65,6 @@ class LX200Generic: public INDI::Telescope, public INDI::GuiderInterface
     virtual IPState GuideSouth(float ms);
     virtual IPState GuideEast(float ms);
     virtual IPState GuideWest(float ms);
-
-    virtual bool saveConfigItems(FILE *fp);
 
     virtual bool Goto(double,double);
     virtual bool Park();
@@ -87,10 +82,6 @@ class LX200Generic: public INDI::Telescope, public INDI::GuiderInterface
     static void updateFocusHelper(void *p);
     static void guideTimeoutHelper(void *p);
 
-    virtual void processNSWE(double mag, double angle);
-    virtual void processJoystick(const char * joystick_n, double mag, double angle);
-    virtual void processButton(const char * button_n, ISState state);
-
     int    GuideNSTID;
     int    GuideWETID;
 
@@ -103,16 +94,10 @@ class LX200Generic: public INDI::Telescope, public INDI::GuiderInterface
     double targetRA, targetDEC;
     double currentRA, currentDEC;
     int MaxReticleFlashRate;
-    INDI::Controller *controller;
-
 
   /* Telescope Alignment Mode */
   ISwitchVectorProperty AlignmentSP;
   ISwitch AlignmentS[3];
-
-  /* Slew Speed */
-  ISwitchVectorProperty SlewRateSP;
-  ISwitch SlewRateS[4];
 
   /* Tracking Mode */
   ISwitchVectorProperty TrackModeSP;

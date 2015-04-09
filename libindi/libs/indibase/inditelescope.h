@@ -22,6 +22,7 @@
 #include <libnova.h>
 
 #include "defaultdevice.h"
+#include "indicontroller.h"
 
 /**
  * \class INDI::Telescope
@@ -31,16 +32,17 @@
 
    Implementing a basic telescope driver involves the child class performing the following steps:
    <ul>
+   <li>The child class should define the telescope capabilities via the TelescopeCapability structure and sets in the default constructor.</li>
    <li>If the telescope has additional properties, the child class should override initProperties and initilize the respective additional properties.</li>
    <li>Once the parent class calls Connect(), the child class attempts to connect to the telescope and return either success of failure</li>
    <li>INDI::Telescope calls updateProperties() to enable the child class to define which properties to send to the client upon connection</li>
    <li>INDI::Telescope calls ReadScopeStatus() to check the link to the telescope and update its state and position. The child class should call newRaDec() whenever
    a new value is read from the telescope.</li>
-   <li>The child class should implmenet Goto() and Sync(), and Park() if applicable.</li>
+   <li>The child class should implmenet Goto() and Sync(), and Park()/UnPark() if applicable.</li>
    <li>INDI::Telescope calls disconnect() when the client request a disconnection. The child class should remove any additional properties it defined in updateProperties() if applicable</li>
    </ul>
 
-\author Gerry Rozema, Jasem Mutlaq
+\author Jasem Mutlaq, Gerry Rozema
 \see TelescopeSimulator and SynScan drivers for examples of implementations of INDI::Telescope.
 */
 class INDI::Telescope : public INDI::DefaultDevice
@@ -65,6 +67,8 @@ class INDI::Telescope : public INDI::DefaultDevice
             bool canPark;
             /** Can the telescope abort motion? */
             bool canAbort;
+            /** Number of Slew Rate options. Set to 0 if telescope does not support slew rates. The minimum required # of slew rates is 4 */
+            int nSlewRate;
         } TelescopeCapability;
 
         Telescope();
@@ -186,6 +190,10 @@ class INDI::Telescope : public INDI::DefaultDevice
          */
         void SetDEParkDefault(double steps);
 
+        // Joystick helpers
+        static void joystickHelper(const char * joystick_n, double mag, double angle, void *context);
+        static void buttonHelper(const char * button_n, ISState state, void *context);
+
         protected:
 
         virtual bool saveConfigItems(FILE *fp);
@@ -279,6 +287,22 @@ class INDI::Telescope : public INDI::DefaultDevice
          */
         virtual void SetDefaultPark();
 
+        /**
+         * @brief SetSlewRate Set desired slew rate index.
+         * @param index Index of slew rate where 0 is slowest rate and capability.nSlewRate-1 is maximum rate.
+         * @return True is operation successful, false otherwise.
+         *
+         * \note This function as implemented in INDI::Telescope performs no function and always return true. Only reimplement it if you need to issue a command to change the slew rate at the hardware level. Most
+         * telescope drivers only utilize slew rate when issuing a motion command.
+         */
+        virtual bool SetSlewRate(int index);
+
+        // Joystick
+        void processNSWE(double mag, double angle);
+        void processJoystick(const char * joystick_n, double mag, double angle);
+        void processSlewPresets(double mag, double angle);
+        void processButton(const char * button_n, ISState state);
+
         //  Since every mount I know of actually uses a serial port for control
         //  We put the serial helper into the base telescope class
         //  One less piece to worry about in the hardware specific
@@ -330,6 +354,10 @@ class INDI::Telescope : public INDI::DefaultDevice
         ISwitch MovementWES[2];
         ISwitchVectorProperty MovementWESP;
 
+        // Slew Rate
+        ISwitchVectorProperty SlewRateSP;
+        ISwitch *SlewRateS;
+
         // Telescope & guider aperture and focal length
         INumber ScopeParametersN[4];
         INumberVectorProperty ScopeParametersNP;
@@ -357,6 +385,8 @@ private:
         double RADefaultParkPosition;
         double DEParkPosition;
         double DEDefaultParkPosition;
+
+        INDI::Controller *controller;
 
 };
 

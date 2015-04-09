@@ -51,6 +51,14 @@ const char *LX200AstroPhysics::getDefaultName()
 bool LX200AstroPhysics::initProperties()
 {
 
+    // Need to change nSlewRate since we define our own
+    TelescopeCapability cap;
+    cap.canAbort=true;
+    cap.canPark=true;
+    cap.canSync=true;
+    cap.nSlewRate=0;
+    SetTelescopeCapability(&cap);
+
     LX200Generic::initProperties();
 
     IUFillSwitch(&StartUpS[0], "COLD", "Cold", ISS_OFF);
@@ -74,7 +82,7 @@ bool LX200AstroPhysics::initProperties()
     IUFillSwitch(&SlewRateS[0], "1200" , "1200x" , ISS_OFF);
     IUFillSwitch(&SlewRateS[1], "900" , "900x" , ISS_OFF);
     IUFillSwitch(&SlewRateS[2], "600" , "600x" , ISS_ON);
-    IUFillSwitchVector(&SlewRateSP, SlewRateS, 3, getDeviceName(), "SLEWRATE", "Slew rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&SlewRateSP, SlewRateS, 3, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillSwitch(&SwapS[0], "NS" , "North/South" , ISS_OFF);
     IUFillSwitch(&SwapS[1], "EW" , "East/West" , ISS_OFF);
@@ -161,7 +169,6 @@ bool LX200AstroPhysics::updateProperties()
         deleteProperty(SyncCMRSP.name);
     }
 
-    controller->updateProperties();
     return true;
 }
 
@@ -1059,6 +1066,21 @@ bool LX200AstroPhysics::Park()
     return true;
 }
 
+bool LX200AstroPhysics::UnPark()
+{
+    if (isSimulation() == false)
+    {
+        if (setAPUnPark(PortFD) < 0)
+        {
+          DEBUG(INDI::Logger::DBG_ERROR, "UnParking Failed.");
+          return false;
+        }
+    }
+
+    SetParked(false);
+    return true;
+}
+
 bool LX200AstroPhysics::Connect(char *port)
 {
     if (isSimulation())
@@ -1207,60 +1229,4 @@ void LX200AstroPhysics::debugTriggered(bool enable)
    setLX200Debug(enable ? 1 : 0);
    set_lx200ap_debug(enable ? 1 : 0);
 }
-
-void LX200AstroPhysics::processButton(const char * button_n, ISState state)
-{
-    //ignore OFF
-    if (state == ISS_OFF)
-        return;
-
-    // Max Slew speed
-    if (!strcmp(button_n, "SLEW_MAX"))
-    {
-        selectAPMoveToRate(PortFD, 0);
-        IUResetSwitch(&MoveToRateSP);
-        MoveToRateS[0].s = ISS_ON;
-        IDSetSwitch(&MoveToRateSP, NULL);
-    }
-    // Find Slew speed
-    else if (!strcmp(button_n, "SLEW_FIND"))
-    {
-        selectAPMoveToRate(PortFD, 1);
-        IUResetSwitch(&MoveToRateSP);
-        MoveToRateS[1].s = ISS_ON;
-        IDSetSwitch(&MoveToRateSP, NULL);
-    }
-    // Centering Slew
-    else if (!strcmp(button_n, "SLEW_CENTERING"))
-    {
-        selectAPMoveToRate(PortFD, 2);
-        IUResetSwitch(&MoveToRateSP);
-        MoveToRateS[2].s = ISS_ON;
-        IDSetSwitch(&MoveToRateSP, NULL);
-
-    }
-    // Guide Slew
-    else if (!strcmp(button_n, "SLEW_GUIDE"))
-    {
-        selectAPMoveToRate(PortFD, 3);
-        IUResetSwitch(&MoveToRateSP);
-        MoveToRateS[3].s = ISS_ON;
-        IDSetSwitch(&MoveToRateSP, NULL);
-    }
-    // Abort
-    else if (!strcmp(button_n, "Abort Motion"))
-    {
-        // Only abort if we have some sort of motion going on
-        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY || EqNP.s == IPS_BUSY
-                || GuideNSNP.s == IPS_BUSY || GuideWENP.s == IPS_BUSY)
-        {
-
-            Abort();
-        }
-    }
-
-}
-
-
-
 
