@@ -188,11 +188,6 @@ EQMod::EQMod()
   last_motion_ns=-1;
   last_motion_ew=-1;
 
-  controller = new INDI::Controller(this);
-
-  controller->setJoystickCallback(joystickHelper);
-  controller->setButtonCallback(buttonHelper);
-
   DBG_SCOPE_STATUS = INDI::Logger::getInstance().addDebugLevel("Scope Status", "SCOPE");
   DBG_COMM         = INDI::Logger::getInstance().addDebugLevel("Serial Port", "COMM");
   DBG_MOUNT        = INDI::Logger::getInstance().addDebugLevel("Verbose Mount", "MOUNT");
@@ -204,6 +199,7 @@ EQMod::EQMod()
   cap.canPark = true;
   cap.canSync = true;
   cap.canAbort = true;
+  cap.nSlewRate=SLEWMODES-1;
 
   SetTelescopeCapability(&cap);
 
@@ -337,6 +333,20 @@ bool EQMod::initProperties()
     /* Make sure to init parent properties first */
     INDI::Telescope::initProperties();
 
+    for (unsigned int i=1; i<SlewRateSP.nsp; i++)
+    {
+      if (i < SLEWMODES)
+      {
+        sprintf(SlewRateSP.sp[i].label, "%.2fx", slewspeeds[i-1]);
+        SlewRateSP.sp[i].aux=(void *)&slewspeeds[i-1];
+      }
+      else
+      {
+        sprintf(SlewRateSP.sp[i].label, "%.2fx (default)", defaultspeed);
+        SlewRateSP.sp[i].aux=(void *)&defaultspeed;
+      }
+    }
+
     SetParkDataType(PARK_ENCODER);
 
     setInterfaceDescriptor(getInterfaceDescriptor() | GUIDER_INTERFACE);
@@ -371,7 +381,6 @@ bool EQMod::loadProperties()
     RAStatusLP=getLight("RASTATUS");
     DEStatusLP=getLight("DESTATUS");
     SlewSpeedsNP=getNumber("SLEWSPEEDS");
-    SlewModeSP=getSwitch("TELESCOPE_SLEW_RATE");
     HemisphereSP=getSwitch("HEMISPHERE");
     PierSideSP=getSwitch("PIERSIDE");
     TrackModeSP=getSwitch("TELESCOPE_TRACK_RATE");
@@ -379,16 +388,7 @@ bool EQMod::loadProperties()
     TrackRatesNP=getNumber("TRACKRATES");
     ReverseDECSP=getSwitch("REVERSEDEC");
 
-    HorizontalCoordNP=getNumber("HORIZONTAL_COORD");
-    for (unsigned int i=1; i<SlewModeSP->nsp; i++) {
-      if (i < SLEWMODES) {
-        sprintf(SlewModeSP->sp[i].label, "%.2fx", slewspeeds[i-1]);
-        SlewModeSP->sp[i].aux=(void *)&slewspeeds[i-1];
-      } else {
-        sprintf(SlewModeSP->sp[i].label, "%.2fx (default)", defaultspeed);
-        SlewModeSP->sp[i].aux=(void *)&defaultspeed;
-      }
-    }
+    HorizontalCoordNP=getNumber("HORIZONTAL_COORD");   
     StandardSyncNP=getNumber("STANDARDSYNC");
     StandardSyncPointNP=getNumber("STANDARDSYNCPOINT");
     SyncPolarAlignNP=getNumber("SYNCPOLARALIGN");
@@ -396,11 +396,6 @@ bool EQMod::loadProperties()
     BacklashNP=getNumber("BACKLASH");
     UseBacklashSP=getSwitch("USEBACKLASH");
     //IDLog("initProperties: connected=%d %s", (isConnected()?1:0), this->getDeviceName());
-
-    controller->mapController("MOTIONDIR", "N/S/W/E Control", INDI::Controller::CONTROLLER_JOYSTICK, "JOYSTICK_1");
-    controller->mapController("SLEWPRESET", "Slew Presets", INDI::Controller::CONTROLLER_JOYSTICK, "JOYSTICK_2");
-    controller->mapController("ABORTBUTTON", "Abort", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_1");
-    controller->initProperties();
 
     INDI::GuiderInterface::initGuiderProperties(this->getDeviceName(), MOTION_TAB);    
 
@@ -425,7 +420,6 @@ bool EQMod::updateProperties()
 
     defineNumber(&GuideNSNP);
     defineNumber(&GuideWENP);
-	defineSwitch(SlewModeSP);
 	defineNumber(SlewSpeedsNP);
 	defineNumber(GuideRateNP);
 	defineText(MountInformationTP);
@@ -482,8 +476,6 @@ bool EQMod::updateProperties()
 	  if ((latitude) && (latitude->value < 0.0)) SetSouthernHemisphere(true);
 	  else  SetSouthernHemisphere(false);
 
-      controller->updateProperties();
-
       loadConfig(true);
 
 	} 
@@ -492,8 +484,7 @@ bool EQMod::updateProperties()
 	}
       }
     else
-      {
-        controller->updateProperties();
+      {        
 	if (MountInformationTP) {
       deleteProperty(GuideNSNP.name);
       deleteProperty(GuideWENP.name);
@@ -507,7 +498,6 @@ bool EQMod::updateProperties()
 	  deleteProperty(RAStatusLP->name);
 	  deleteProperty(DEStatusLP->name);
 	  deleteProperty(SlewSpeedsNP->name);
-	  deleteProperty(SlewModeSP->name);
 	  deleteProperty(HemisphereSP->name);
 	  deleteProperty(TrackModeSP->name);
 	  deleteProperty(TrackRatesNP->name);
@@ -1587,18 +1577,7 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 	}
 #endif
 
-    if(strcmp(name,"TELESCOPE_SLEW_RATE")==0)
- 	{  
-	  ISwitch *sw;
-	  IUUpdateSwitch(SlewModeSP,states,names,n);
-	  sw=IUFindOnSwitch(SlewModeSP);
-      DEBUGF(INDI::Logger::DBG_SESSION, "Slew rate :  %s", sw->label);
-	  SlewModeSP->s=IPS_IDLE;
-	  IDSetSwitch(SlewModeSP,NULL);
-	  return true;
-	}
-
-      if(strcmp(name,"USEBACKLASH")==0)
+    if(strcmp(name,"USEBACKLASH")==0)
  	{  
 	  IUUpdateSwitch(UseBacklashSP,states,names,n);
 	  mount->SetBacklashUseRA((IUFindSwitch(UseBacklashSP, "USEBACKLASHRA")->s==ISS_ON?true:false));
@@ -1737,8 +1716,6 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 
     }
 
-    controller->ISNewSwitch(dev, name, states, names, n);
-
     if (align) { compose=align->ISNewSwitch(dev,name,states,names,n); if (compose) return true;}
 
 #ifdef WITH_SIMULATOR
@@ -1761,8 +1738,6 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 bool EQMod::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n) 
 {
   bool compose;
-
-  controller->ISNewText(dev, name, texts, names, n);
 
   if (align) { compose=align->ISNewText(dev,name,texts,names,n); if (compose) return true;}
 
@@ -1812,7 +1787,7 @@ bool EQMod::updateTime(ln_date *lndate_utc, double utc_offset)
 double EQMod::GetRASlew() {	  
   ISwitch *sw;
   double rate=1.0;
-  sw=IUFindOnSwitch(SlewModeSP);
+  sw=IUFindOnSwitch(&SlewRateSP);
   if (!strcmp(sw->name, "SLEWCUSTOM")) 
     rate=IUFindNumber(SlewSpeedsNP, "RASLEW")->value;
   else
@@ -1823,7 +1798,7 @@ double EQMod::GetRASlew() {
 double EQMod::GetDESlew() {
   ISwitch *sw;
   double rate=1.0;
-  sw=IUFindOnSwitch(SlewModeSP);
+  sw=IUFindOnSwitch(&SlewRateSP);
   if (!strcmp(sw->name, "SLEWCUSTOM")) 
     rate=IUFindNumber(SlewSpeedsNP, "DESLEW")->value;
   else
@@ -2155,189 +2130,6 @@ void EQMod::starPolarAlign(double lst, double ra, double dec, double theta, doub
   mdec=asin(N) * 180.0 / M_PI;
   *tra = mra;
   *tdec=mdec;
-}
-
-bool EQMod::ISSnoopDevice(XMLEle *root)
-{
-    controller->ISSnoopDevice(root);
-
-    return INDI::Telescope::ISSnoopDevice(root);
-}
-
-void EQMod::processButton(const char *button_n, ISState state)
-{
-
-    //ignore OFF
-    if (state == ISS_OFF)
-        return;
-
-    if (!strcmp(button_n, "ABORTBUTTON"))
-    {
-        // Only abort if we have some sort of motion going on
-        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY || EqNP.s == IPS_BUSY
-                || GuideNSNP.s == IPS_BUSY || GuideWENP.s == IPS_BUSY)
-        {
-
-            Abort();
-        }
-    }
-}
-
-void EQMod::processJoystick(const char * joystick_n, double mag, double angle)
-{
-    if (!strcmp(joystick_n, "MOTIONDIR"))
-        processNSWE(mag, angle);
-    else if (!strcmp(joystick_n, "SLEWPRESET"))
-        processSlewPresets(mag, angle);
-}
-
-void EQMod::processNSWE(double mag, double angle)
-{
-    if (mag < 0.5)
-    {
-        // Moving in the same direction will make it stop
-        if (MovementNSSP.s == IPS_BUSY)
-        {
-            if (MoveNS( MovementNSSP.sp[0].s == ISS_ON ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP))
-            {
-                IUResetSwitch(&MovementNSSP);
-                MovementNSSP.s = IPS_IDLE;
-                IDSetSwitch(&MovementNSSP, NULL);
-            }
-            else
-            {
-                MovementNSSP.s = IPS_ALERT;
-                IDSetSwitch(&MovementNSSP, NULL);
-            }
-        }
-        else if (MovementWESP.s == IPS_BUSY)
-        {
-            if (MoveWE( MovementWESP.sp[0].s == ISS_ON ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP))
-            {
-                IUResetSwitch(&MovementWESP);
-                MovementWESP.s = IPS_IDLE;
-                IDSetSwitch(&MovementWESP, NULL);
-            }
-            else
-            {
-                MovementWESP.s = IPS_ALERT;
-                IDSetSwitch(&MovementWESP, NULL);
-            }
-        }
-    }
-    // Put high threshold
-    else if (mag > 0.9)
-    {
-        // North
-        if (angle > 0 && angle < 180)
-        {
-            // Don't try to move if you're busy and moving in the same direction
-            if (MovementNSSP.s != IPS_BUSY || MovementNSS[0].s != ISS_ON)
-                MoveNS(DIRECTION_NORTH, MOTION_START);
-
-            // If angle is close to 90, make it exactly 90 to reduce noise that could trigger east/west motion as well
-            if (angle > 80 && angle < 110)
-                angle = 90;
-
-            MovementNSSP.s = IPS_BUSY;
-            MovementNSSP.sp[0].s = ISS_ON;
-            MovementNSSP.sp[1].s = ISS_OFF;
-            IDSetSwitch(&MovementNSSP, NULL);
-        }
-        // South
-        if (angle > 180 && angle < 360)
-        {
-            // Don't try to move if you're busy and moving in the same direction
-           if (MovementNSSP.s != IPS_BUSY  || MovementNSS[1].s != ISS_ON)
-            MoveNS(DIRECTION_SOUTH, MOTION_START);
-
-           // If angle is close to 270, make it exactly 270 to reduce noise that could trigger east/west motion as well
-           if (angle > 260 && angle < 280)
-               angle = 270;
-
-            MovementNSSP.s = IPS_BUSY;
-            MovementNSSP.sp[0].s = ISS_OFF;
-            MovementNSSP.sp[1].s = ISS_ON;
-            IDSetSwitch(&MovementNSSP, NULL);
-        }
-        // East
-        if (angle < 90 || angle > 270)
-        {
-            // Don't try to move if you're busy and moving in the same direction
-           if (MovementWESP.s != IPS_BUSY  || MovementWES[1].s != ISS_ON)
-                MoveWE(DIRECTION_EAST, MOTION_START);
-
-           MovementWESP.s = IPS_BUSY;
-           MovementWESP.sp[0].s = ISS_OFF;
-           MovementWESP.sp[1].s = ISS_ON;
-           IDSetSwitch(&MovementWESP, NULL);
-        }
-
-        // West
-        if (angle > 90 && angle < 270)
-        {
-
-            // Don't try to move if you're busy and moving in the same direction
-           if (MovementWESP.s != IPS_BUSY  || MovementWES[0].s != ISS_ON)
-                MoveWE(DIRECTION_WEST, MOTION_START);
-
-           MovementWESP.s = IPS_BUSY;
-           MovementWESP.sp[0].s = ISS_ON;
-           MovementWESP.sp[1].s = ISS_OFF;
-           IDSetSwitch(&MovementWESP, NULL);
-        }
-    }
-
-}
-
-void EQMod::processSlewPresets(double mag, double angle)
-{
-    // high threshold, only 1 is accepted
-    if (mag != 1)
-        return;
-
-    int currentIndex = IUFindOnSwitchIndex(SlewModeSP);
-
-    // Up
-    if (angle > 0 && angle < 180)
-    {
-        if (currentIndex <= 0)
-            return;
-
-        IUResetSwitch(SlewModeSP);
-        SlewModeSP->sp[currentIndex-1].s = ISS_ON;
-    }
-    // Down
-    else
-    {
-        if (currentIndex >= SlewModeSP->nsp-1)
-            return;
-
-         IUResetSwitch(SlewModeSP);
-         SlewModeSP->sp[currentIndex+1].s = ISS_ON;
-
-    }
-    IDSetSwitch(SlewModeSP, NULL);
-
-}
-
-bool EQMod::saveConfigItems(FILE *fp)
-{
-    controller->saveConfigItems(fp);
-
-    return INDI::Telescope::saveConfigItems(fp);
-
-}
-
-void EQMod::joystickHelper(const char * joystick_n, double mag, double angle, void *context)
-{
-    static_cast<EQMod*>(context)->processJoystick(joystick_n, mag, angle);
-
-}
-
-void EQMod::buttonHelper(const char * button_n, ISState state, void *context)
-{
-    static_cast<EQMod*>(context)->processButton(button_n, state);
 }
 
 bool EQMod::updateLocation(double latitude, double longitude, double elevation)

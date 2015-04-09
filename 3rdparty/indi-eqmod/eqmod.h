@@ -21,7 +21,6 @@
 #include <inditelescope.h>
 #include <indiguiderinterface.h>
 #include <libnova.h>
-#include <indicontroller.h>
 
 #include "config.h"
 #include "skywatcher.h"
@@ -130,8 +129,6 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 
 	double tpa_alt, tpa_az;
 
-    INDI::Controller *controller;
-
 	void EncodersToRADec(unsigned long rastep, unsigned long destep, double lst, double *ra, double *de, double *ha);
 	double EncoderToHours(unsigned long destep, unsigned long initdestep, unsigned long totalrastep, enum Hemisphere h);
 	double EncoderToDegrees(unsigned long destep, unsigned long initdestep, unsigned long totalrastep, enum Hemisphere h);
@@ -161,11 +158,6 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
     bool loadProperties();
 	void setStepperSimulation (bool enable);
 
-    void processNSWE(double mag, double angle);
-    void processSlewPresets(double mag, double angle);
-    void processJoystick(const char * joystick_n, double mag, double angle);
-    void processButton(const char * button_n, ISState state);
-
 	void computePolarAlign(SyncData s1, SyncData s2, double lat, double *tpaalt, double *tpaaz);
 	void starPolarAlign(double lst, double ra, double dec, double theta, double gamma, double *tra, double *tdec);     
 
@@ -185,8 +177,6 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
         virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
         virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
         virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-        virtual bool ISSnoopDevice(XMLEle *root);
-        virtual bool saveConfigItems(FILE *fp);
 
         virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
         virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
@@ -211,9 +201,6 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
         double getLatitude();
         double getJulianDate();
         double getLst(double jd, double lng);
-
-        static void joystickHelper(const char * joystick_n, double mag, double angle, void *context);
-        static void buttonHelper(const char * button_n, ISState state, void *context);
 
 #ifdef WITH_SIMULATOR
 	EQModSimulator *simulator;

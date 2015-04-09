@@ -167,42 +167,6 @@ Off
 On
 </defSwitch>
 </defSwitchVector>
-<defSwitchVector device="EQMod Mount" name="TELESCOPE_SLEW_RATE" label="Slew Presets" group="Motion Control" state="Idle" perm="rw" rule="OneOfMany">
-<defSwitch name="SLEWCUSTOM" label="Custom">
-Off
-</defSwitch>
-<defSwitch name="SLEW_GUIDE" label="Preset 1">
-Off
-</defSwitch>
-<defSwitch name="SLEW_CENTERING" label="Preset 2">
-Off
-</defSwitch>
-<defSwitch name="SLEWPRESET3" label="Preset 3">
-Off
-</defSwitch>
-<defSwitch name="SLEWPRESET4" label="Preset 4">
-Off
-</defSwitch>
-<defSwitch name="SLEW_FIND" label="Preset 5">
-Off
-</defSwitch>
-<defSwitch name="SLEWPRESET6" label="Preset 6">
-On
-</defSwitch>
-<defSwitch name="SLEWPRESET7" label="Preset 7">
-Off
-</defSwitch>
-<defSwitch name="SLEWPRESET8" label="Preset 8">
-Off
-</defSwitch>
-<defSwitch name="SLEWPRESET9" label="Preset 9">
-Off
-</defSwitch>
-<defSwitch name="SLEW_MAX" label="Preset 10">
-Off
-</defSwitch>
-</defSwitchVector>
-
 <defNumberVector device="EQMod Mount" name="STANDARDSYNC" label="Delta" group="Sync" state="Idle" perm="ro">
 <defNumber name="STANDARDSYNC_RA" label="Delta RA (hh:mm:ss)" format="%010.6m" min="0.0" max="24.0" step="0.0">
 0.0
