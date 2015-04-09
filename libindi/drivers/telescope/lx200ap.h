@@ -62,6 +62,7 @@ protected:
  virtual bool Disconnect();
  virtual bool updateTime(ln_date * utc, double utc_offset);
  virtual bool updateLocation(double latitude, double longitude, double elevation);
+ virtual bool SetSlewRate(int index);
 
  virtual void debugTriggered(bool enable);
  bool  setBasicDataPart0();
@@ -76,11 +77,8 @@ protected:
  INumber HorizontalCoordsN[2];
  INumberVectorProperty HorizontalCoordsNP;
 
- ISwitch MoveToRateS[4];
- ISwitchVectorProperty MoveToRateSP;
-
- ISwitch SlewRateS[3];
- ISwitchVectorProperty SlewRateSP;
+ ISwitch SlewSpeedS[3];
+ ISwitchVectorProperty SlewSpeedSP;
 
  ISwitch SwapS[2];
  ISwitchVectorProperty SwapSP;
