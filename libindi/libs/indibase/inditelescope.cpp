@@ -139,6 +139,11 @@ bool INDI::Telescope::initProperties()
         controller->mapController("SLEWPRESET", "Slew Rate", INDI::Controller::CONTROLLER_JOYSTICK, "JOYSTICK_2");
     if (capability.canAbort)
         controller->mapController("ABORTBUTTON", "Abort", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_1");
+    if (capability.canPark)
+    {
+        controller->mapController("PARKBUTTON", "Park", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_2");
+        controller->mapController("UNPARKBUTTON", "UnPark", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_3");
+    }
     controller->initProperties();
 
     TrackState=SCOPE_IDLE;
@@ -1216,6 +1221,18 @@ void INDI::Telescope::processButton(const char *button_n, ISState state)
 
             Abort();
         }
+    }
+    else if (!strcmp(button_n, "PARKBUTTON"))
+    {
+        ISState states[2] = { ISS_ON, ISS_OFF };
+        char *names[2] = { ParkS[0].name, ParkS[1].name };
+        ISNewSwitch(getDeviceName(), ParkSP.name, states, names, 2);
+    }
+    else if (!strcmp(button_n, "UNPARKBUTTON"))
+    {
+        ISState states[2] = { ISS_OFF, ISS_ON };
+        char *names[2] = { ParkS[0].name, ParkS[1].name };
+        ISNewSwitch(getDeviceName(), ParkSP.name, states, names, 2);
     }
 }
 
