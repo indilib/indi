@@ -168,9 +168,9 @@ bool IEQPro::initProperties()
     IUFillSwitchVector(&HemisphereSP, HemisphereS, 2, getDeviceName(), "HEMISPHERE", "Hemisphere", MOUNTINFO_TAB, IP_RO, ISR_1OFMANY, 0, IPS_IDLE);
 
     /* Home */
-    IUFillSwitch(&HomeS[0], "Find Home", "", ISS_OFF);
-    IUFillSwitch(&HomeS[1], "Set current as Home", "", ISS_OFF);
-    IUFillSwitch(&HomeS[2], "Go to Home", "", ISS_OFF);
+    IUFillSwitch(&HomeS[IEQ_FIND_HOME], "FindHome", "Find Home", ISS_OFF);
+    IUFillSwitch(&HomeS[IEQ_SET_HOME], "SetCurrentAsHome", "Set current as Home", ISS_OFF);
+    IUFillSwitch(&HomeS[IEQ_GOTO_HOME], "GoToHome", "Go to Home", ISS_OFF);
     IUFillSwitchVector(&HomeSP, HomeS, 3, getDeviceName(), "HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     /* How fast do we guide compared to sidereal rate */
