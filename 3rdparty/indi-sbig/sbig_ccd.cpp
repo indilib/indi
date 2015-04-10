@@ -764,7 +764,7 @@ bool SBIGCCD::setupParams()
       return false;
   }
 
-  if (res = getCCDSizeInfo(CCD_IMAGING, binning, wCcd, hCcd, wPixel, hPixel) != CE_NO_ERROR)
+  if ( (res = getCCDSizeInfo(CCD_IMAGING, binning, wCcd, hCcd, wPixel, hPixel)) != CE_NO_ERROR)
   {
       DEBUGF(INDI::Logger::DBG_ERROR, "Error getting CCD Size info. %s", GetErrorString(res).c_str());
       return false;
@@ -790,7 +790,7 @@ bool SBIGCCD::setupParams()
             return false;
         }
 
-        if (res = getCCDSizeInfo(useExternalTrackingCCD ? CCD_EXT_TRACKING : CCD_TRACKING, binning, wCcd, hCcd, wPixel, hPixel) != CE_NO_ERROR)
+        if ( (res = getCCDSizeInfo(useExternalTrackingCCD ? CCD_EXT_TRACKING : CCD_TRACKING, binning, wCcd, hCcd, wPixel, hPixel)) != CE_NO_ERROR)
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "Error getting CCD Size info. %s", GetErrorString(res).c_str());
             return false;
@@ -802,7 +802,7 @@ bool SBIGCCD::setupParams()
             {
                 DEBUG(INDI::Logger::DBG_DEBUG, "Invalid external tracking CCD dimensions, trying regular CCD_TRACKING");
 
-                if (res = getCCDSizeInfo(CCD_TRACKING, binning, wCcd, hCcd, wPixel, hPixel) != CE_NO_ERROR)
+                if ( (res = getCCDSizeInfo(CCD_TRACKING, binning, wCcd, hCcd, wPixel, hPixel)) != CE_NO_ERROR)
                 {
                     DEBUGF(INDI::Logger::DBG_ERROR, "Error getting Tracking CCD Size info. %s", GetErrorString(res).c_str());
                     return false;
@@ -2114,7 +2114,7 @@ int SBIGCCD::getShutterMode(CCDChip *targetChip, int &shutter)
     string 	frame_type;
     int res = getFrameType(targetChip, frame_type);
     if(res != CE_NO_ERROR) return(res);
-    int ccd;
+    int ccd = CCD_IMAGING;
 
     if (targetChip == &PrimaryCCD)
         ccd = CCD_IMAGING;
