@@ -17,7 +17,7 @@ Package: indi-ffmv-dbg
 Priority: extra
 Section: debug
 Architecture: any
-Depends: indi-asicam (= ${binary:Version}), ${misc:Depends}
+Depends: indi-ffmv (= ${binary:Version}), ${misc:Depends}
 Description: INDI Driver for Point Grey Firefly MV cameras.
  Driver for Point Grey Firefly MV cameras.
  .
