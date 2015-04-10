@@ -38,6 +38,10 @@ add_executable(indi_qhy_ccd ${indiqhy_SRCS})
 
 target_link_libraries(indi_qhy_ccd ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${QHY_LIBRARIES} ${LIBUSB_1_LIBRARIES})
 
+if (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")
+target_link_libraries(indi_qhy_ccd rt)
+endif (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")
+
 install(TARGETS indi_qhy_ccd RUNTIME DESTINATION bin )
 
 install(FILES indi_qhy.xml DESTINATION ${INDI_DATA_DIR})
