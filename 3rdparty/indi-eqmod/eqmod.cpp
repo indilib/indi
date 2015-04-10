@@ -450,14 +450,14 @@ bool EQMod::updateProperties()
 
 	  if (isDebug()) {
         for (unsigned int i=0;i<MountInformationTP->ntp;i++)
-          DEBUGF(INDI::Logger::DBG_DEBUG, "Got Board Property %s: %s\n", MountInformationTP->tp[i].name, MountInformationTP->tp[i].text);
+          DEBUGF(INDI::Logger::DBG_DEBUG, "Got Board Property %s: %s", MountInformationTP->tp[i].name, MountInformationTP->tp[i].text);
 	  }
 	
 	  mount->InquireRAEncoderInfo(SteppersNP);
 	  mount->InquireDEEncoderInfo(SteppersNP);
 	  if (isDebug()) {
         for (unsigned int i=0;i<SteppersNP->nnp;i++)
-          DEBUGF(INDI::Logger::DBG_DEBUG,"Got Encoder Property %s: %.0f\n", SteppersNP->np[i].label, SteppersNP->np[i].value);
+          DEBUGF(INDI::Logger::DBG_DEBUG,"Got Encoder Property %s: %.0f", SteppersNP->np[i].label, SteppersNP->np[i].value);
 	  }
 	
       mount->Init();
@@ -938,7 +938,7 @@ double EQMod::rangeDec(double decdegrees) {
 void EQMod::SetSouthernHemisphere(bool southern) {
   const char *hemispherenames[]={"NORTH", "SOUTH"};
   ISState hemispherevalues[2];
-  DEBUGF(INDI::Logger::DBG_DEBUG, "Set southern %s\n", (southern?"true":"false"));
+  DEBUGF(INDI::Logger::DBG_DEBUG, "Set southern %s", (southern?"true":"false"));
   if (southern) Hemisphere=SOUTH;
   else Hemisphere=NORTH;
   RAInverted = (Hemisphere==SOUTH);
