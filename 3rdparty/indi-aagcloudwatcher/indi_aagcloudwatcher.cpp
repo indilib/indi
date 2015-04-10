@@ -25,6 +25,7 @@
 /* Our driver header */
 #include "indi_aagcloudwatcher.h"
 
+#define ABS_ZERO 273.15
 
 /* auto pointer */
 std::auto_ptr<AAGCloudWatcher> cloudWatcher(0);

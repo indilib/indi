@@ -55,8 +55,7 @@ class AAGCloudWatcher : public INDI::DefaultDevice {
     float getLastReadPeriod();
     bool heatingAlgorithm();
     
-  private:
-    constexpr const static float ABS_ZERO = 273.15;
+  private:    
     float lastReadPeriod;
     CloudWatcherConstants constants;
     CloudWatcherController *cwc;
