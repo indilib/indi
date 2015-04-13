@@ -1441,7 +1441,7 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
             fits_update_key_s(fptr, TDOUBLE, "SECPIX1", &secpix1, "SECPIX1", &status);
             fits_update_key_s(fptr, TDOUBLE, "SECPIX2", &secpix2, "SECPIX2", &status);
 
-            double degpix1 = -secpix1 / 3600.0;
+            double degpix1 =  secpix1 / 3600.0;
             double degpix2 =  secpix2 / 3600.0;
 
             fits_update_key_s(fptr, TDOUBLE, "CDELT1", &degpix1, "CDELT1", &status);
