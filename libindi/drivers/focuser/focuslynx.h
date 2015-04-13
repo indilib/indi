@@ -58,11 +58,10 @@ private:
     int PortFD;
     //double targetPos, lastPos, lastTemperature, simPosition;
     //unsigned int currentSpeed, temperaturegetCounter;
-    bool sim;
 
     std::map<std::string, std::string> lynxModels;
 
-    //struct timeval focusMoveStart;
+    struct timeval focusMoveStart;
     //float focusMoveRequest;
 
     // Get functions
@@ -89,11 +88,13 @@ private:
     bool setBacklashCompensationSteps(u_int16_t steps);
 
     // Sync
-    bool Sync(u_int16_t position);
+    bool sync(u_int16_t position);
 
     // Motion functions
     bool stop();
     bool startMotion(FocusDirection dir);
+    bool home();
+    bool center();
 
     // Misc functions
     bool ack();
@@ -133,7 +134,7 @@ private:
 
     // Go to home/center
     ISwitch GotoS[2];
-    ISwitchVectorProperty HomeSP;
+    ISwitchVectorProperty GotoSP;
 
     // List all supported models
     ISwitch *ModelS;
