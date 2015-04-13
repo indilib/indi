@@ -41,6 +41,7 @@ HorizonLimits::HorizonLimits(INDI::Telescope *t)
   horizon=new std::vector<horizonpoint>;
   horizonindex=-1;
   strcpy(errorline, "Bad number format line     ");
+  sline=errorline+23;
 }
 
 HorizonLimits::~HorizonLimits() 
