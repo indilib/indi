@@ -94,8 +94,8 @@ protected:
   INumber                SpeedN[1];
   INumberVectorProperty  SpeedNP;
 
-  INumber                USBTRAFFICN[1];
-  INumberVectorProperty  USBTRAFFICNP;
+  INumber                USBTrafficN[1];
+  INumberVectorProperty  USBTrafficNP;
 
 private:
   char name[MAXINDIDEVICE];
@@ -113,7 +113,7 @@ private:
   bool HasUSBSpeed;
   bool HasGain;
   bool HasOffset;
-  bool HasFilters;
+  bool HasFilters;  
 
   qhyccd_handle *camhandle;
 

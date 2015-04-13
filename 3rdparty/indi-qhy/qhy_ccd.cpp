@@ -197,6 +197,7 @@ QHYCCD::QHYCCD(const char *name)
     FilterSlotN[0].min = 1;
     FilterSlotN[0].max = 5;
 
+    HasUSBTraffic = false;
     HasUSBSpeed = false;
     HasGain = false;
     HasOffset = false;
@@ -251,6 +252,10 @@ bool QHYCCD::initProperties()
     IUFillNumber(&SpeedN[0], "Speed", "Speed", "%3.0f", 0, 0, 1, 0);
     IUFillNumberVector(&SpeedNP, SpeedN, 1, getDeviceName(), "USB_SPEED", "USB Speed", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
+    // USB Traffic
+    IUFillNumber(&USBTrafficN[0], "Speed", "Speed", "%3.0f", 0, 0, 1, 0);
+    IUFillNumberVector(&USBTrafficNP, USBTrafficN, 1, getDeviceName(), "USB_TRAFFIC", "USB TRAFFIC", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+
     // Set minimum exposure speed to 0.001 seconds
     PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", MINIMUM_CCD_EXPOSURE, 3600, 1, false);
 
@@ -289,6 +294,9 @@ void QHYCCD::ISGetProperties(const char *dev)
           if (FilterNameT != NULL)
               defineText(FilterNameTP);
       }
+
+      if (HasUSBTraffic)
+        defineNumber(&USBTrafficNP);
   }
 
 }
@@ -392,6 +400,29 @@ bool QHYCCD::updateProperties()
           defineText(FilterNameTP);
       }
 
+      if (HasUSBTraffic)
+      {
+          if (sim)
+          {
+              USBTrafficN[0].min = 1;
+              USBTrafficN[0].max = 100;
+              USBTrafficN[0].step = 5;
+              USBTrafficN[0].value = 20;
+          }
+          else
+          {
+              int ret = GetQHYCCDParamMinMaxStep(camhandle,CONTROL_USBTRAFFIC,&min,&max,&step);
+              if(ret == QHYCCD_SUCCESS)
+              {
+                  USBTrafficN[0].min = min;
+                  USBTrafficN[0].max = max;
+                  USBTrafficN[0].step = step;
+              }
+              USBTrafficN[0].value = GetQHYCCDParam(camhandle,CONTROL_USBTRAFFIC);
+          }
+        defineNumber(&USBTrafficNP);
+      }
+
     // Let's get parameters now from CCD
     setupParams();
 
@@ -426,6 +457,9 @@ bool QHYCCD::updateProperties()
           deleteProperty(FilterNameTP->name);
       }
 
+      if (HasUSBTraffic)
+        deleteProperty(USBTrafficNP.name);
+
     RemoveTimer(timerID);
   }
 
@@ -453,6 +487,7 @@ bool QHYCCD::Connect()
 
         SetCCDCapability(&cap);
 
+        HasUSBTraffic = true;
         HasUSBSpeed = true;
         HasGain = true;
         HasOffset = true;
@@ -521,6 +556,12 @@ bool QHYCCD::Connect()
         {
             camxbin = 1;
             camybin = 1;
+        }
+
+        ret= IsQHYCCDControlAvailable(camhandle, CONTROL_USBTRAFFIC);
+        if (ret == QHYCCD_SUCCESS)
+        {
+            HasUSBTraffic = true;
         }
 
         ret &= IsQHYCCDControlAvailable(camhandle,CAM_BIN2X2MODE);
@@ -1060,6 +1101,18 @@ bool QHYCCD::ISNewNumber (const char *dev, const char *name, double values[], ch
             saveConfig();
             return true;
         }
+
+
+        if(strcmp(name,USBTrafficNP.name) == 0)
+        {
+            IUUpdateNumber(&USBTrafficNP, values, names, n);
+            SetQHYCCDParam(camhandle,CONTROL_USBTRAFFIC,USBTrafficN[0].value);
+            DEBUGF(INDI::Logger::DBG_SESSION, "Current %s value %f",USBTrafficNP.name,USBTrafficN[0].value);
+            USBTrafficNP.s = IPS_OK;
+            IDSetNumber(&USBTrafficNP, NULL);
+            saveConfig();
+            return true;
+        }
     }
     //  if we didn't process it, continue up the chain, let somebody else
     //  give it a shot
@@ -1188,7 +1241,10 @@ bool QHYCCD::saveConfigItems(FILE *fp)
         IUSaveConfigNumber(fp, &OffsetNP);
 
     if (HasUSBSpeed)
-        IUSaveConfigNumber(fp, &USBTRAFFICNP);
+        IUSaveConfigNumber(fp, &SpeedNP);
+
+    if (HasUSBTraffic)
+        IUSaveConfigNumber(fp, &USBTrafficNP);
 
     return true;
 }
