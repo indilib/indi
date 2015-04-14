@@ -466,6 +466,7 @@ void IUFillSwitchVector(ISwitchVectorProperty *svp, ISwitch *sp, int nsp, const 
   strncpy(svp->name, escapedName, MAXINDINAME);
   strncpy(svp->label, escapedLabel, MAXINDILABEL);
   strncpy(svp->group, group, MAXINDIGROUP);
+  strcpy(svp->timestamp, "");
   
   svp->p	= p;
   svp->r	= r;
