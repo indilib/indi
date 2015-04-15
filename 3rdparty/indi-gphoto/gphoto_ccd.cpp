@@ -1167,13 +1167,13 @@ GPhotoCCD::HideExtendedOptions(void)
 	}
 }
 
-int GPhotoCCD::MoveFocuser(FocusDirection dir, int speed, int duration)
+IPState GPhotoCCD::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
  
    /* gphoto works with steps */ 
    
     if (sim)
-        return 0;
+        return IPS_OK;
 
    char errMsg[MAXRBUF];
    if (dir == FOCUS_INWARD)
@@ -1188,11 +1188,11 @@ int GPhotoCCD::MoveFocuser(FocusDirection dir, int speed, int duration)
        if ( gphoto_manual_focus(gphotodrv, focusSpeed, errMsg) != GP_OK)
        {
            DEBUGF(INDI::Logger::DBG_ERROR, "Focusing failed: %s", errMsg);
-           return -1;
+           return IPS_ALERT;
        }
    }
 
-   return 0;
+   return IPS_OK;
 }
 
 bool GPhotoCCD::SetSpeed(int speed)

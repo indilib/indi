@@ -1,6 +1,8 @@
 #ifndef INDIBASE_H
 #define INDIBASE_H
 
+#include <stdint.h>
+
 #include "indiapi.h"
 #include "indidevapi.h"
 #include "indibasetypes.h"

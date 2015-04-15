@@ -95,25 +95,25 @@ protected:
         \param dir Direction of focuser, either FOCUS_INWARD or FOCUS_OUTWARD.
         \param speed Speed of focuser if supported by the focuser.
         \param duration The timeout in milliseconds before the focus motion halts.
-        \return Return 0 if motion is completed and focuser reached requested position. Return 1 if focuser started motion to requested position and is in progress.
-                Return -1 if there is an error.
+        \return Return IPS_OK if motion is completed and focuser reached requested position. Return IPS_BUSY if focuser started motion to requested position and is in progress.
+                Return IPS_ALERT if there is an error.
     */
-    virtual int MoveFocuser(FocusDirection dir, int speed, int duration);
+    virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
 
     /** \brief MoveFocuser the focuser to an absolute position.
         \param ticks The new position of the focuser.
-        \return Return 0 if motion is completed and focuser reached requested position. Return 1 if focuser started motion to requested position and is in progress.
-                Return -1 if there is an error.
+        \return Return IPS_OK if motion is completed and focuser reached requested position. Return IPS_BUSY if focuser started motion to requested position and is in progress.
+                Return IPS_ALERT if there is an error.
     */
-    virtual int MoveAbsFocuser(int ticks);
+    virtual IPState MoveAbsFocuser(uint32_t ticks);
 
     /** \brief MoveFocuser the focuser to an relative position.
         \param dir Direction of focuser, either FOCUS_INWARD or FOCUS_OUTWARD.
         \param ticks The relative ticks to move.
-        \return Return 0 if motion is completed and focuser reached requested position. Return 1 if focuser started motion to requested position and is in progress.
-                Return -1 if there is an error.
+        \return Return IPS_OK if motion is completed and focuser reached requested position. Return IPS_BUSY if focuser started motion to requested position and is in progress.
+                Return IPS_ALERT if there is an error.
     */
-    virtual int MoveRelFocuser(FocusDirection dir, unsigned int ticks);
+    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
 
     /**
      * @brief AbortFocuser all focus motion

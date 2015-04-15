@@ -1462,7 +1462,7 @@ void RoboFocus::GetFocusParams ()
 
 }
 
-int RoboFocus::MoveFocuser(FocusDirection dir, int speed, int duration)
+IPState RoboFocus::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
     INDI_UNUSED(speed);
     double pos=0;
@@ -1490,11 +1490,11 @@ int RoboFocus::MoveFocuser(FocusDirection dir, int speed, int duration)
       // IDLog("dt is: %g --- duration is: %d -- pos: %g\n", dt, duration, pos);
     }
 
-   return 0;
+   return IPS_BUSY;
 }
 
 
-int RoboFocus::MoveAbsFocuser(int targetTicks)
+IPState RoboFocus::MoveAbsFocuser(uint32_t targetTicks)
 {
     int ret= -1 ;
     targetPos = targetTicks;
@@ -1502,7 +1502,7 @@ int RoboFocus::MoveAbsFocuser(int targetTicks)
     if (targetTicks < FocusAbsPosN[0].min || targetTicks > FocusAbsPosN[0].max)
     {
         IDMessage(getDeviceName(), "Error, requested absolute position is out of range.");
-        return -1;
+        return IPS_ALERT;
     }
 
     //IDMessage(getDeviceName() , "Focuser is moving to requested position %d...", targetTicks);
@@ -1518,7 +1518,7 @@ int RoboFocus::MoveAbsFocuser(int targetTicks)
             {
                 IDMessage(getDeviceName(),"Unknown error while reading  Robofocus position: %d.", ret);
                 if (i == RF_MAX_TRIES)
-                    return false;
+                    return IPS_ALERT;
                 else
                     usleep(RF_MAX_DELAY);
             }
@@ -1527,13 +1527,13 @@ int RoboFocus::MoveAbsFocuser(int targetTicks)
 
       IDMessage( getDeviceName(), "Robofocus position recovered resuming normal operation");
       /* We have to leave here, because new_apos is not set */
-      return -1;
+      return IPS_ALERT;
     }
 
-    return 1;
+    return IPS_BUSY;
 }
 
-int RoboFocus::MoveRelFocuser(FocusDirection dir, unsigned int ticks)
+IPState RoboFocus::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
       double cur_rpos=0 ;
       double new_rpos = 0 ;
@@ -1551,7 +1551,7 @@ int RoboFocus::MoveRelFocuser(FocusDirection dir, unsigned int ticks)
           {
 
             IDMessage(getDeviceName(), "Value out of limits %5.0f", currentPosition +  new_rpos);
-            return -1 ;
+            return IPS_ALERT;
           }
 
           if( dir == FOCUS_OUTWARD)
@@ -1567,23 +1567,22 @@ int RoboFocus::MoveRelFocuser(FocusDirection dir, unsigned int ticks)
             {
 
               IDMessage(getDeviceName(), "Unknown error while reading  Robofocus position: %d", ret);
-              return false;
+              return IPS_ALERT;
             }
 
             IDMessage(getDeviceName(), "Robofocus position recovered %5.0f", currentPosition);
             // We have to leave here, because new_rpos is not set
-            return -1 ;
+            return IPS_ALERT;
           }
 
           currentRelativeMovement= cur_rpos ;
           currentAbsoluteMovement=  new_rpos;
-          return 0;
+          return IPS_OK;
         }
         {
             IDMessage(getDeviceName(), "Value out of limits.");
-            return -1;
+            return IPS_ALERT;
         }
-
 
 }
 

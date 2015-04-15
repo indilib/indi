@@ -1349,7 +1349,7 @@ bool SteelDrive::SetFocuserSpeed(int speed)
     return true;
 }
 
-int SteelDrive::MoveFocuser(FocusDirection dir, int speed, int duration)
+IPState SteelDrive::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
     if (speed != currentSpeed)
     {
@@ -1357,7 +1357,7 @@ int SteelDrive::MoveFocuser(FocusDirection dir, int speed, int duration)
 
         rc = setSpeed(speed);
         if (rc == false)
-            return -1;
+            return IPS_ALERT;
     }
 
     gettimeofday(&focusMoveStart,NULL);
@@ -1369,13 +1369,14 @@ int SteelDrive::MoveFocuser(FocusDirection dir, int speed, int duration)
     {
         usleep(POLLMS * 1000);
         AbortFocuser();
+        return IPS_OK;
     }
 
-    return 1;
+    return IPS_BUSY;
 }
 
 
-int SteelDrive::MoveAbsFocuser(int targetTicks)
+IPState SteelDrive::MoveAbsFocuser(uint32_t targetTicks)
 {
     targetPos = targetTicks;
 
@@ -1384,14 +1385,14 @@ int SteelDrive::MoveAbsFocuser(int targetTicks)
     rc = moveFocuser(targetPos);
 
     if (rc == false)
-        return -1;
+        return IPS_ALERT;
 
     FocusAbsPosNP.s = IPS_BUSY;
 
-    return 1;
+    return IPS_BUSY;
 }
 
-int SteelDrive::MoveRelFocuser(FocusDirection dir, unsigned int ticks)
+IPState SteelDrive::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     double newPosition=0;
     bool rc=false;
@@ -1404,13 +1405,13 @@ int SteelDrive::MoveRelFocuser(FocusDirection dir, unsigned int ticks)
     rc = moveFocuser(newPosition);
 
     if (rc == false)
-        return -1;
+        return IPS_ALERT;
 
     FocusRelPosN[0].value = ticks;
     FocusRelPosNP.s = IPS_BUSY;
     FocusAbsPosNP.s = IPS_BUSY;
 
-    return 1;
+    return IPS_BUSY;
 }
 
 void SteelDrive::TimerHit()

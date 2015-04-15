@@ -881,7 +881,7 @@ bool FocusLynx::SetFocuserSpeed(int speed)
 /************************************************************************************
 *
 * ***********************************************************************************/
-int FocusLynx::MoveFocuser(FocusDirection dir, int speed, int duration)
+IPState FocusLynx::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
     //targetPos = targetTicks;
 
@@ -907,11 +907,11 @@ int FocusLynx::MoveFocuser(FocusDirection dir, int speed, int duration)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return -1;
+            return IPS_ALERT;
         }
 
         if (isResponseOK() == false)
-            return -1;
+            return IPS_ALERT;
 
         gettimeofday(&focusMoveStart,NULL);
         //focusMoveRequest = duration/1000.0;
@@ -920,7 +920,7 @@ int FocusLynx::MoveFocuser(FocusDirection dir, int speed, int duration)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return -1;
+            return IPS_ALERT;
         }
     }
 
@@ -933,22 +933,22 @@ int FocusLynx::MoveFocuser(FocusDirection dir, int speed, int duration)
       {
           usleep(POLLMS * 1000);
           AbortFocuser();
-          return 0;
+          return IPS_OK;
       }
 
       tcflush(PortFD, TCIFLUSH);
 
-      return 1;
+      return IPS_BUSY;
      }
 
-    return -1;
+    return IPS_ALERT;
 
 }
 
 /************************************************************************************
 *
 * ***********************************************************************************/
-int FocusLynx::MoveAbsFocuser(int targetTicks)
+IPState FocusLynx::MoveAbsFocuser(uint32_t targetTicks)
 {
     //targetPos = targetTicks;
 
@@ -974,17 +974,17 @@ int FocusLynx::MoveAbsFocuser(int targetTicks)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return -1;
+            return IPS_ALERT;
         }
 
         if (isResponseOK() == false)
-            return -1;
+            return IPS_ALERT;
 
         if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return -1;
+            return IPS_ALERT;
         }
     }
 
@@ -995,16 +995,16 @@ int FocusLynx::MoveAbsFocuser(int targetTicks)
 
       tcflush(PortFD, TCIFLUSH);
 
-      return 1;
+      return IPS_BUSY;
      }
 
-    return -1;
+    return IPS_ALERT;
 }
 
 /************************************************************************************
 *
 * ***********************************************************************************/
-int FocusLynx::MoveRelFocuser(FocusDirection dir, unsigned int ticks)
+IPState FocusLynx::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
 #if 0
     double newPosition=0;
@@ -1024,7 +1024,7 @@ int FocusLynx::MoveRelFocuser(FocusDirection dir, unsigned int ticks)
     FocusRelPosNP.s = IPS_BUSY;
     FocusAbsPosNP.s = IPS_BUSY;
 #endif
-    return 1;
+    return IPS_BUSY;
 }
 
 void FocusLynx::TimerHit()

@@ -785,7 +785,7 @@ bool MoonLite::SetFocuserSpeed(int speed)
     return true;
 }
 
-int MoonLite::MoveFocuser(FocusDirection dir, int speed, int duration)
+IPState MoonLite::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
     if (speed != currentSpeed)
     {
@@ -793,7 +793,7 @@ int MoonLite::MoveFocuser(FocusDirection dir, int speed, int duration)
 
         rc = setSpeed(speed);
         if (rc == false)
-            return -1;
+            return IPS_ALERT;
     }
 
     gettimeofday(&focusMoveStart,NULL);
@@ -806,15 +806,16 @@ int MoonLite::MoveFocuser(FocusDirection dir, int speed, int duration)
 
     if (duration <= POLLMS)
     {
-        usleep(POLLMS * 1000);
+        usleep(duration * 1000);
         AbortFocuser();
+        return IPS_OK;
     }
 
-    return 1;
+    return IPS_BUSY;
 }
 
 
-int MoonLite::MoveAbsFocuser(int targetTicks)
+IPState MoonLite::MoveAbsFocuser(uint32_t targetTicks)
 {
     targetPos = targetTicks;
 
@@ -823,14 +824,14 @@ int MoonLite::MoveAbsFocuser(int targetTicks)
     rc = MoveFocuser(targetPos);
 
     if (rc == false)
-        return -1;
+        return IPS_ALERT;
 
     FocusAbsPosNP.s = IPS_BUSY;
 
-    return 1;
+    return IPS_BUSY;
 }
 
-int MoonLite::MoveRelFocuser(FocusDirection dir, unsigned int ticks)
+IPState MoonLite::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     double newPosition=0;
     bool rc=false;
@@ -843,12 +844,12 @@ int MoonLite::MoveRelFocuser(FocusDirection dir, unsigned int ticks)
     rc = MoveFocuser(newPosition);
 
     if (rc == false)
-        return -1;
+        return IPS_ALERT;
 
     FocusRelPosN[0].value = ticks;
     FocusRelPosNP.s = IPS_BUSY;
 
-    return 1;
+    return IPS_BUSY;
 }
 
 void MoonLite::TimerHit()

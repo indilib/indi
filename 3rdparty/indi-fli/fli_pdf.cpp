@@ -485,14 +485,14 @@ void FLIPDF::TimerHit()
     return;
 }
 
-int FLIPDF::MoveAbsFocuser(int targetTicks)
+IPState FLIPDF::MoveAbsFocuser(uint32_t targetTicks)
 {
     int err=0;
 
     if (targetTicks < FocusAbsPosN[0].min || targetTicks > FocusAbsPosN[0].max)
     {
         IDMessage(getDeviceName(), "Error, requested absolute position is out of range.");
-        return -1;
+        return IPS_ALERT;
     }
     long current;
     if (( err = FLIGetStepperPosition(fli_dev, &current)))
@@ -501,7 +501,7 @@ int FLIPDF::MoveAbsFocuser(int targetTicks)
 
         if (isDebug())
             IDLog("FLIPDF::MoveAbsFocuser: FLIGetStepperPosition() failed. %s.\n", strerror((int)-err));
-        return false;
+        return IPS_ALERT;
     }
     err = FLIStepMotorAsync(fli_dev, (targetTicks - current));
     if (!sim && (err))
@@ -510,17 +510,17 @@ int FLIPDF::MoveAbsFocuser(int targetTicks)
 
         if (isDebug())
             IDLog("FLIStepMotor() failed. %s.", strerror((int)-err));
-        return false;
+        return IPS_ALERT;
     }
 
     StepRequest = targetTicks;
     InStep      = true;
 
     // We are still moving, didn't reach target yet
-    return 1;
+    return IPS_BUSY;
 }
 
-int FLIPDF::MoveRelFocuser(FocusDirection dir, unsigned int ticks)
+IPState FLIPDF::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
 
       long cur_rpos=0 ;

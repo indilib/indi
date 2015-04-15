@@ -497,27 +497,26 @@ bool TCFS::ISNewSwitch (const char *dev, const char *name, ISState *states, char
     return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
 }
 
-int TCFS::MoveAbsFocuser(int ticks)
+IPState TCFS::MoveAbsFocuser(uint32_t ticks)
 {
     int delta=0;
 
     delta = ticks - currentPosition;
 
     if (delta < 0)
-        MoveRelFocuser(FOCUS_INWARD, (unsigned int) fabs(delta));
+        return MoveRelFocuser(FOCUS_INWARD, (uint32_t) fabs(delta));
     else
-        MoveRelFocuser(FOCUS_OUTWARD, (unsigned int) fabs(delta));
+        return MoveRelFocuser(FOCUS_OUTWARD, (uint32_t) fabs(delta));
 
-   return true;
 }
 
-int TCFS::MoveRelFocuser(FocusDirection dir, unsigned int ticks)
+IPState TCFS::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
 
     if (inAutoMode)
     {
         DEBUG(INDI::Logger::DBG_WARNING, "The focuser can only be moved in Manual mode.");
-        return -1;
+        return IPS_ALERT;
     }
 
     targetTicks = ticks;
@@ -543,7 +542,7 @@ int TCFS::MoveRelFocuser(FocusDirection dir, unsigned int ticks)
 
     simulated_position = targetPosition;
 
-    return 1;
+    return IPS_BUSY;
 
 }
 

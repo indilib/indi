@@ -51,9 +51,9 @@ public:
     virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
 
 
-    virtual int MoveFocuser(FocusDirection dir, int speed, int duration);
-    virtual int MoveAbsFocuser(int ticks);
-    virtual int MoveRelFocuser(FocusDirection dir, unsigned int ticks);
+    virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
+    virtual IPState MoveAbsFocuser(uint32_t ticks);
+    virtual IPState MoveRelFocuser(FocusDirection dir, unsigned int ticks);
     virtual bool SetFocuserSpeed(int speed);
     virtual bool AbortFocuser();
     virtual void TimerHit();

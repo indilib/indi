@@ -207,7 +207,7 @@ bool FocusSim::ISNewSwitch (const char *dev, const char *name, ISState *states, 
     return INDI::Focuser::ISNewSwitch(dev,name,states,names,n);
 }
 
-int FocusSim::MoveFocuser(FocusDirection dir, int speed, int duration)
+IPState FocusSim::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
     double targetTicks = (speed * duration) / (FocusSpeedN[0].max * FocusTimerN[0].max);
     double plannedTicks=ticks;
@@ -226,7 +226,7 @@ int FocusSim::MoveFocuser(FocusDirection dir, int speed, int duration)
     if (plannedAbsPos < FocusAbsPosN[0].min || plannedAbsPos > FocusAbsPosN[0].max)
     {
         IDMessage(getDeviceName(), "Error, requested position is out of range.");
-        return -1;
+        return IPS_ALERT;
     }
 
     ticks = plannedTicks;
@@ -244,16 +244,16 @@ int FocusSim::MoveFocuser(FocusDirection dir, int speed, int duration)
     IDSetNumber(&FWHMNP, NULL);
     IDSetNumber(&FocusAbsPosNP, NULL);
 
-    return 0;
+    return IPS_OK;
 
 }
 
-int FocusSim::MoveAbsFocuser(int targetTicks)
+IPState FocusSim::MoveAbsFocuser(uint32_t targetTicks)
 {
     if (targetTicks < FocusAbsPosN[0].min || targetTicks > FocusAbsPosN[0].max)
     {
         IDMessage(getDeviceName(), "Error, requested absolute position is out of range.");
-        return -1;
+        return IPS_ALERT;
     }
 
     double mid = (FocusAbsPosN[0].max - FocusAbsPosN[0].min)/2;
@@ -277,7 +277,7 @@ int FocusSim::MoveAbsFocuser(int targetTicks)
 
     IDSetNumber(&FWHMNP, NULL);
 
-    return 0;
+    return IPS_OK;
 
 }
 

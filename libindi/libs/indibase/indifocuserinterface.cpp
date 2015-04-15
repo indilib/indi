@@ -71,27 +71,23 @@ bool INDI::FocuserInterface::processFocuserNumber (const char *dev, const char *
     {
         FocusDirection dir;
         int speed;
-        int t, rc;
+        int t;
 
         //  first we get all the numbers just sent to us
         IUUpdateNumber(&FocusTimerNP,values,names,n);
 
         //  Now lets find what we need for this move
         speed=FocusSpeedN[0].value;
-        if(FocusMotionS[0].s==ISS_ON) dir=FOCUS_INWARD;
-        else dir=FOCUS_OUTWARD;
+
+        if(FocusMotionS[0].s==ISS_ON)
+            dir=FOCUS_INWARD;
+        else
+            dir=FOCUS_OUTWARD;
+
         t=FocusTimerN[0].value;
         lastTimerValue = t;
 
-        rc = MoveFocuser(dir,speed,t);
-
-        if (rc == 0)
-            FocusTimerNP.s = IPS_OK;
-        else if (rc == 1)
-            FocusTimerNP.s = IPS_BUSY;
-        else
-            FocusTimerNP.s = IPS_ALERT;
-
+        FocusTimerNP.s = MoveFocuser(dir,speed,t);
         IDSetNumber(&FocusTimerNP,NULL);
         return true;
     }
@@ -118,16 +114,16 @@ bool INDI::FocuserInterface::processFocuserNumber (const char *dev, const char *
     {
 
         int newPos = (int) values[0];
-        int ret =0;
+        IPState ret;
 
-        if ( (ret = MoveAbsFocuser(newPos)) == 0)
+        if ( (ret = MoveAbsFocuser(newPos)) == IPS_OK)
         {
            FocusAbsPosNP.s=IPS_OK;
            IUUpdateNumber(&FocusAbsPosNP,values,names,n);
            IDSetNumber(&FocusAbsPosNP, "Focuser moved to position %d", newPos);
            return true;
         }
-        else if (ret == 1)
+        else if (ret == IPS_BUSY)
         {
            FocusAbsPosNP.s=IPS_BUSY;
            IDSetNumber(&FocusAbsPosNP, "Focuser is moving to position %d", newPos);
@@ -144,7 +140,7 @@ bool INDI::FocuserInterface::processFocuserNumber (const char *dev, const char *
     if(strcmp(name,"REL_FOCUS_POSITION")==0)
     {
         int newPos = (int) values[0];
-        int ret =0;
+        IPState ret;
 
         if (capability.canAbsMove)
         {
@@ -170,7 +166,7 @@ bool INDI::FocuserInterface::processFocuserNumber (const char *dev, const char *
             }
         }
 
-        if ( (ret=MoveRelFocuser( (FocusMotionS[0].s == ISS_ON ? FOCUS_INWARD : FOCUS_OUTWARD), newPos)) == 0)
+        if ( (ret=MoveRelFocuser( (FocusMotionS[0].s == ISS_ON ? FOCUS_INWARD : FOCUS_OUTWARD), newPos)) == IPS_OK)
         {
            FocusRelPosNP.s=IPS_OK;
            IUUpdateNumber(&FocusRelPosNP,values,names,n);
@@ -178,7 +174,7 @@ bool INDI::FocuserInterface::processFocuserNumber (const char *dev, const char *
            IDSetNumber(&FocusAbsPosNP, NULL);
            return true;
         }
-        else if (ret == 1)
+        else if (ret == IPS_BUSY)
         {
              IUUpdateNumber(&FocusRelPosNP,values,names,n);
              FocusRelPosNP.s=IPS_BUSY;
@@ -226,31 +222,22 @@ bool INDI::FocuserInterface::processFocuserSwitch (const char *dev, const char *
 
 }
 
-int INDI::FocuserInterface::MoveFocuser(FocusDirection dir, int speed, int duration)
+IPState INDI::FocuserInterface::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
-    //  This should be a virtual function, because the low level hardware class
-    //  must override this
-    //  but it's much easier early development if the method actually
-    //  exists for now
-    return -1;
+    // Must be implemented by child class
+    return IPS_ALERT;
 }
 
-int INDI::FocuserInterface::MoveRelFocuser(FocusDirection dir, unsigned int ticks)
+IPState INDI::FocuserInterface::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    //  This should be a virtual function, because the low level hardware class
-    //  must override this
-    //  but it's much easier early development if the method actually
-    //  exists for now
-    return -1;
+    // Must be implemented by child class
+    return IPS_ALERT;
 }
 
-int INDI::FocuserInterface::MoveAbsFocuser(int ticks)
+IPState INDI::FocuserInterface::MoveAbsFocuser(uint32_t ticks)
 {
-    //  This should be a virtual function, because the low level hardware class
-    //  must override this
-    //  but it's much easier early development if the method actually
-    //  exists for now
-    return -1;
+    // Must be implemented by child class
+    return IPS_ALERT;
 }
 
 

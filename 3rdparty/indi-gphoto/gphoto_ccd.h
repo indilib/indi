@@ -94,7 +94,7 @@ protected:
 
     // Focusing
     bool SetSpeed(int speed);
-    int MoveFocuser(FocusDirection dir, int speed, int duration);    
+    IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
 
     // Preview
     bool capturePreview();

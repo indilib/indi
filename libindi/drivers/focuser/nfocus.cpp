@@ -1181,7 +1181,7 @@ void NFocus::GetFocusParams ()
 
 }
 
-int NFocus::MoveFocuser(FocusDirection dir, int speed, int duration)
+IPState NFocus::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
     INDI_UNUSED(speed);
     double pos=0;
@@ -1197,12 +1197,10 @@ int NFocus::MoveFocuser(FocusDirection dir, int speed, int duration)
 
     if (dir == FOCUS_INWARD)
 	{
-   		fprintf(stderr, "FOCUS_IN: ") ;
         	updateNFPositionRelativeInward(&pos);
 	}
     else
 	{
-   		fprintf(stderr, "FOCUS_OUT: ") ;
         	updateNFPositionRelativeOutward(&pos);
 	}
 
@@ -1210,18 +1208,16 @@ int NFocus::MoveFocuser(FocusDirection dir, int speed, int duration)
 
         dt = tv_finish.tv_sec - tv_start.tv_sec + (tv_finish.tv_usec - tv_start.tv_usec)/1e6;
 
-
-
         duration -= dt * 1000;
 
       // IDLog("dt is: %g --- duration is: %d -- pos: %g\n", dt, duration, pos);
     }
 
-   return true;
+   return IPS_BUSY;
 }
 
 
-int NFocus::MoveAbsFocuser(int targetTicks)
+IPState NFocus::MoveAbsFocuser(uint32_t targetTicks)
 {
     int ret= -1 ;
     double new_apos = targetTicks;
@@ -1229,7 +1225,7 @@ int NFocus::MoveAbsFocuser(int targetTicks)
     if (targetTicks < FocusAbsPosN[0].min || targetTicks > FocusAbsPosN[0].max)
     {
         IDMessage(getDeviceName(), "Error, requested absolute position is out of range.");
-        return -1;
+        return IPS_ALERT;
     }
 
     IDMessage(getDeviceName() , "Focuser is moving to requested position...");
@@ -1245,7 +1241,7 @@ int NFocus::MoveAbsFocuser(int targetTicks)
             {
                 IDMessage(getDeviceName(),"Unknown error while reading  Nfocus position: %d.", ret);
                 if (i == NF_MAX_TRIES)
-                    return false;
+                    return IPS_ALERT;
                 else
                     usleep(NF_MAX_DELAY);
             }
@@ -1254,14 +1250,14 @@ int NFocus::MoveAbsFocuser(int targetTicks)
 
       IDMessage( getDeviceName(), "Nfocus position recovered resuming normal operation");
       /* We have to leave here, because new_apos is not set */
-      return -1;
+      return IPS_ALERT;
     }
 
 
-    return 0;
+    return IPS_OK;
 }
 
-int NFocus::MoveRelFocuser(FocusDirection dir, unsigned int ticks)
+IPState NFocus::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
       double cur_rpos=0 ;
       double new_rpos = 0 ;
@@ -1280,7 +1276,7 @@ int NFocus::MoveRelFocuser(FocusDirection dir, unsigned int ticks)
 	    if((currentPosition + new_rpos < currentMinPosition) || (currentPosition + new_rpos > currentMaxPosition))
 	    {
 	      IDMessage(getDeviceName(), "Value out of limits %5.0f", currentPosition +  new_rpos);
-	      return -1 ;
+          return IPS_ALERT;
   	    }
             ret= updateNFPositionRelativeOutward(&new_rpos) ;
 	  }
@@ -1289,7 +1285,7 @@ int NFocus::MoveRelFocuser(FocusDirection dir, unsigned int ticks)
 	    if((currentPosition - new_rpos < currentMinPosition) || (currentPosition - new_rpos > currentMaxPosition))
 	    {
 	      IDMessage(getDeviceName(), "Value out of limits %5.0f", currentPosition -  new_rpos);
-	      return -1 ;
+          return IPS_ALERT;
   	    }
             ret= updateNFPositionRelativeInward(&new_rpos) ;
 	  }
@@ -1302,21 +1298,21 @@ int NFocus::MoveRelFocuser(FocusDirection dir, unsigned int ticks)
             {
 
               IDMessage(getDeviceName(), "Unknown error while reading  Nfocus position: %d", ret);
-              return false;
+              return IPS_ALERT;
             }
 
             IDMessage(getDeviceName(), "Nfocus position recovered %5.0f", currentPosition);
             // We have to leave here, because new_rpos is not set
-            return -1 ;
+            return IPS_ALERT;
           }
 
           currentRelativeMovement= cur_rpos ;
 //          currentAbsoluteMovement= currentPosition;
-          return 0;
+          return IPS_OK;
         }
         {
             IDMessage(getDeviceName(), "Value out of limits.");
-            return -1;
+            return IPS_ALERT;
         }
 
 
