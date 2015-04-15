@@ -31,7 +31,8 @@ public:
     ~FocusLynx();
 
     enum { FOCUS_A_COEFF, FOCUS_B_COEFF, FOCUS_C_COEFF, FOCUS_D_COEFF, FOCUS_E_COEFF, FOCUS_F_COEFF };
-    enum { STATUS_MOVING, STATUS_HOMING, STATUS_HOMED, STATUS_FFDETECT, STATUS_TMPPROBE, STATUS_REMOTEIO, STATUS_HNDCTRL };
+    typedef enum { STATUS_MOVING, STATUS_HOMING, STATUS_HOMED, STATUS_FFDETECT, STATUS_TMPPROBE, STATUS_REMOTEIO, STATUS_HNDCTRL, STATUS_UNKNOWN} LYNX_STATUS;
+    enum { GOTO_CENTER, GOTO_HOME };
 
     virtual bool Connect();
     virtual bool Disconnect();
@@ -44,10 +45,8 @@ public:
     virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
     virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
 
-    virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
     virtual IPState MoveAbsFocuser(uint32_t ticks);
     virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
-    virtual bool SetFocuserSpeed(int speed);
     virtual bool AbortFocuser();
     virtual void TimerHit();
 
@@ -56,6 +55,10 @@ public:
 private:
 
     int PortFD;
+    uint32_t simPosition;
+   ISState simStatus[7];
+   bool simCompensationOn;
+
     //double targetPos, lastPos, lastTemperature, simPosition;
     //unsigned int currentSpeed, temperaturegetCounter;
 

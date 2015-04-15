@@ -93,7 +93,7 @@ protected:
     virtual void debugTriggered(bool enable);
 
     // Focusing
-    bool SetSpeed(int speed);
+    bool SetFocuserSpeed(int speed);
     IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
 
     // Preview

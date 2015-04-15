@@ -1195,7 +1195,7 @@ IPState GPhotoCCD::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
    return IPS_OK;
 }
 
-bool GPhotoCCD::SetSpeed(int speed)
+bool GPhotoCCD::SetFocuserSpeed(int speed)
 {
     if (speed >= FocusSpeedN[0].min && speed <= FocusSpeedN[0].max)
         return true;
