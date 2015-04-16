@@ -50,6 +50,8 @@ struct
 {
     double ra;
     double dec;
+    double az;
+    double alt;
     CELESTRON_GPS_STATUS gpsStatus;
     CELESTRON_SLEW_RATE slewRate;
     bool isSlewing;
@@ -93,6 +95,16 @@ void set_sim_ra(double ra)
 void set_sim_dec(double dec)
 {
     simData.dec = dec;
+}
+
+void set_sim_az(double az)
+{
+    simData.az = az;
+}
+
+void set_sim_alt(double alt)
+{
+    simData.alt = alt;
 }
 
 bool check_celestron_connection(int fd)
@@ -723,6 +735,77 @@ bool slew_celestron(int fd, double ra, double dec)
     {
         strcpy(response, "#");
         nbytes_read = strlen(response);
+        set_sim_slewing(true);
+    }
+    else
+    {
+        if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+
+        if ( (errcode = tty_read(fd, response, 1, CELESTRON_TIMEOUT, &nbytes_read)))
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+    }
+
+    if (nbytes_read > 0)
+    {
+      response[nbytes_read] = '\0';
+      DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+
+      if (!strcmp(response, "#"))
+      {
+          tcflush(fd, TCIFLUSH);
+          return true;
+      }
+      else
+      {
+          DEBUGDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "Requested object is below horizon.");
+          tcflush(fd, TCIFLUSH);
+          return false;
+      }
+
+    }
+
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "Received #%d bytes, expected 1.", nbytes_read);
+    return false;
+}
+
+bool slew_celestron_azalt(int fd, double az, double alt)
+{
+    char cmd[16];
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[8];
+    int nbytes_read=0;
+    int nbytes_written=0;
+
+    int az_int, alt_int;
+
+    az_int  = get_angle_fraction(az);
+    alt_int = get_angle_fraction(alt);
+
+    char AzStr[16], AltStr[16];
+    fs_sexa(AzStr, az, 2, 3600);
+    fs_sexa(AltStr, alt, 2, 3600);
+
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "Goto AZM-ALT (%s,%s)", AzStr, AltStr);
+
+    snprintf(cmd, 16, "B%04X,%04X", az_int, alt_int);
+
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
+    if (celestron_simulation)
+    {
+        strcpy(response, "#");
+        nbytes_read = strlen(response);
+        set_sim_slewing(true);
     }
     else
     {
@@ -903,6 +986,69 @@ bool get_celestron_coords(int fd, double *ra, double *dec)
         DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_EXTRA_1, "RES (%s) ==> (%s,%s)", response, RAStr, DecStr);
 
         return true;
+    }
+
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "Received #%d bytes, expected 10.", nbytes_read);
+    return false;
+}
+
+bool get_celestron_coords_azalt(int fd, double *az, double *alt)
+{
+    char cmd[] = "Z";
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[16];
+    int nbytes_read=0;
+    int nbytes_written=0;
+
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_EXTRA_1, "CMD (%s)", cmd);
+
+    if (celestron_simulation)
+    {
+        int az_int = get_angle_fraction(simData.az);
+        int alt_int = get_angle_fraction(simData.alt);
+        snprintf(response, 16, "%04X,%04X#", az_int, alt_int);
+        nbytes_read = strlen(response);
+    }
+    else
+    {
+        if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+
+        if ( (errcode = tty_read_section(fd, response, '#', CELESTRON_TIMEOUT, &nbytes_read)))
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+    }
+
+    if (nbytes_read > 0)
+    {
+      tcflush(fd, TCIFLUSH);
+      response[nbytes_read] = '\0';
+
+      char az_str[16], alt_str[16];
+
+      strncpy(az_str, response, 4);
+      strncpy(alt_str, response+5, 4);
+
+      int CELESTRONAZ  = strtol(az_str, NULL, 16);
+      int CELESTRONALT = strtol(alt_str, NULL, 16);
+
+      *az  = (CELESTRONAZ / 65536.0) * 360.0;;
+      *alt = (CELESTRONALT / 65536.0) * 360.0;
+
+      char AzStr[16], AltStr[16];
+      fs_sexa(AzStr, *az, 2, 3600);
+      fs_sexa(AltStr, *alt, 2, 3600);
+      DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_EXTRA_1, "RES (%s) ==> AZM-ALT (%s,%s)", response, AzStr, AltStr);
+
+      return true;
     }
 
     DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "Received #%d bytes, expected 10.", nbytes_read);
@@ -1187,6 +1333,10 @@ bool is_scope_slewing(int fd)
     return false;
 }
 
+unsigned int get_angle_fraction(double angle)
+{
+    return ((unsigned int) (angle * 65536 / 360.0));
+}
 
 unsigned int get_ra_fraction(double ra)
 {

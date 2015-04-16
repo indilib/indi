@@ -55,6 +55,8 @@ void set_sim_slew_rate(CELESTRON_SLEW_RATE value);
 void set_sim_slewing(bool isSlewing);
 void set_sim_ra(double ra);
 void set_sim_dec(double dec);
+void set_sim_az(double az);
+void set_sim_alt(double alt);
 
 /**************************************************************************
  Diagnostics
@@ -78,6 +80,8 @@ bool get_celestron_ra_firmware(int fd, FirmwareInfo *info);
 bool get_celestron_dec_firmware(int fd, FirmwareInfo *info);
 /** Get RA/DEC */
 bool get_celestron_coords(int fd, double *ra, double *dec);
+/** Get Az/Alt */
+bool get_celestron_coords_azalt(int fd, double *az, double *alt);
 /** Get UTC/Date/Time */
 bool get_celestron_utc_date_time(int fd, double *utc_hours, int *yy, int *mm, int *dd, int *hh, int *minute, int *ss);
 
@@ -88,6 +92,7 @@ bool start_celestron_motion(int fd, CELESTRON_DIRECTION dir, CELESTRON_SLEW_RATE
 bool stop_celestron_motion(int fd, CELESTRON_DIRECTION dir);
 bool abort_celestron(int fd);
 bool slew_celestron(int fd, double ra, double dec);
+bool slew_celestron_azalt(int fd, double az, double alt);
 bool sync_celestron(int fd, double ra, double dec);
 
 /**************************************************************************
@@ -101,6 +106,8 @@ bool set_celestron_datetime(int fd, struct ln_date *utc, double utc_offset);
 **************************************************************************/
 unsigned int get_ra_fraction(double ra);
 unsigned int get_de_fraction(double de);
+unsigned int get_angle_fraction(double angle);
+
 bool is_scope_slewing(int fd);
 
 #endif

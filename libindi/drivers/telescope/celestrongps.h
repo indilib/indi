@@ -74,7 +74,7 @@ protected:
 
 private:  
   int PortFD;
-  double currentRA, currentDEC;
+  double currentRA, currentDEC, currentAZ, currentALT;
   double targetRA, targetDEC;
 
   FirmwareInfo fwInfo;

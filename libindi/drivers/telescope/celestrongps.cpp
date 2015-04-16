@@ -96,6 +96,8 @@ CelestronGPS::CelestronGPS()
 
    currentRA    = 0;
    currentDEC   = 90;
+   currentAZ    = 0;
+   currentALT   = 0;
 
    cap.canPark  = true;
    cap.canSync  = true;
@@ -122,7 +124,7 @@ bool CelestronGPS::initProperties()
     IUFillText(&FirmwareT[FW_DEC], "DEC", "", 0);
     IUFillTextVector(&FirmwareTP, FirmwareT, 5, getDeviceName(), "Firmware Info", "", MOUNTINFO_TAB, IP_RO, 0, IPS_IDLE);
 
-    SetParkDataType(PARK_RA_DEC);
+    SetParkDataType(PARK_AZ_ALT);
 
     addAuxControls();
 
@@ -165,22 +167,19 @@ bool CelestronGPS::updateProperties()
             DEBUG(INDI::Logger::DBG_WARNING, "Failed to retrive firmware information.");
         }
 
-        double HA = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
-        double DEC = (LocationN[LOCATION_LATITUDE].value > 0) ? 90 : -90;
-
         if (InitPark())
         {
             // If loading parking data is successful, we just set the default parking values.
-            SetRAParkDefault(HA);
-            SetDEParkDefault(DEC);
+            SetAxis1ParkDefault(0);
+            SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
         }
         else
         {
             // Otherwise, we set all parking data to default in case no parking data is found.
-            SetRAPark(HA);
-            SetDEPark(DEC);
-            SetRAParkDefault(HA);
-            SetDEParkDefault(DEC);
+            SetAxis1Park(0);
+            SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
+            SetAxis1ParkDefault(0);
+            SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
         }
     }
     else
@@ -232,8 +231,6 @@ bool CelestronGPS::Goto(double ra, double dec)
         DEBUG(INDI::Logger::DBG_ERROR, "Failed to slew telescope.");
         return false;
     }
-
-    set_sim_slewing(true);
 
     TrackState = SCOPE_SLEWING;
     fs_sexa(RAStr, targetRA, 2, 3600);
@@ -339,6 +336,9 @@ bool CelestronGPS::ReadScopeStatus()
         DEBUG(INDI::Logger::DBG_ERROR, "Failed to read RA/DEC values.");
         return false;
     }
+
+    if (get_celestron_coords_azalt(PortFD, &currentAZ, &currentALT) == false)
+        DEBUG(INDI::Logger::DBG_WARNING, "Failed to read AZ/ALT values.");
 
     switch (TrackState)
     {
@@ -501,6 +501,31 @@ void CelestronGPS::mountSim ()
 
     set_sim_ra(currentRA);
     set_sim_dec(currentDEC);
+
+    ln_equ_posn equatorialPos;
+    equatorialPos.ra  = currentRA * 15;
+    equatorialPos.dec = currentDEC;
+
+
+    ln_lnlat_posn observer;
+
+    observer.lat = LocationN[LOCATION_LATITUDE].value;
+    observer.lng = LocationN[LOCATION_LONGITUDE].value;
+
+    if (observer.lng > 180)
+        observer.lng -= 360;
+
+    ln_hrz_posn horizontalPos;
+
+    ln_get_hrz_from_equ(&equatorialPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
+
+    // Libnova south = 0, west = 90, north = 180, east = 270
+    horizontalPos.az -= 180;
+    if (horizontalPos.az < 0)
+        horizontalPos.az += 360;
+
+    set_sim_az(horizontalPos.az);
+    set_sim_alt(horizontalPos.alt);
 }
 
 void CelestronGPS::simulationTriggered(bool enable)
@@ -534,10 +559,35 @@ bool CelestronGPS::updateTime(ln_date *utc, double utc_offset)
 
 bool CelestronGPS::Park()
 {
-    if (Goto(GetRAPark(), GetDEPark()))
+    if (isSimulation())
+    {
+        ln_hrz_posn horizontalPos;
+        // Libnova south = 0, west = 90, north = 180, east = 270
+        horizontalPos.az = GetAxis1Park() + 180;
+        if (horizontalPos.az >= 360)
+             horizontalPos.az -= 360;
+        horizontalPos.alt = GetAxis2Park();
+
+        ln_lnlat_posn observer;
+
+        observer.lat = LocationN[LOCATION_LATITUDE].value;
+        observer.lng = LocationN[LOCATION_LONGITUDE].value;
+
+        if (observer.lng > 180)
+            observer.lng -= 360;
+
+        ln_equ_posn equatorialPos;
+        ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
+
+        targetRA  = equatorialPos.ra/15.0;
+        targetDEC = equatorialPos.dec;
+    }
+
+    if (slew_celestron_azalt(PortFD, GetAxis1Park(), GetAxis2Park()))
     {
         TrackState = SCOPE_PARKING;
         DEBUG(INDI::Logger::DBG_SESSION, "Parking is in progress...");
+
         return true;
     }
     else
@@ -546,7 +596,39 @@ bool CelestronGPS::Park()
 
 bool CelestronGPS::UnPark()
 {
-    if (Sync(GetRAPark(), GetDEPark()))
+    double parkAZ  = GetAxis1Park();
+    double parkAlt = GetAxis2Park();
+
+    char AzStr[16], AltStr[16];
+    fs_sexa(AzStr, parkAZ, 2, 3600);
+    fs_sexa(AltStr, parkAlt, 2, 3600);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Unparking from Az (%s) Alt (%s)...", AzStr, AltStr);
+
+    ln_hrz_posn horizontalPos;
+    // Libnova south = 0, west = 90, north = 180, east = 270
+    horizontalPos.az = parkAZ + 180;
+    if (horizontalPos.az >= 360)
+        horizontalPos.az -= 360;
+    horizontalPos.alt = parkAlt;
+
+    ln_lnlat_posn observer;
+
+    observer.lat = LocationN[LOCATION_LATITUDE].value;
+    observer.lng = LocationN[LOCATION_LONGITUDE].value;
+
+    if (observer.lng > 180)
+        observer.lng -= 360;
+
+    ln_equ_posn equatorialPos;
+
+    ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
+
+    char RAStr[16], DEStr[16];
+    fs_sexa(RAStr, equatorialPos.ra/15.0, 2, 3600);
+    fs_sexa(DEStr, equatorialPos.dec, 2, 3600);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Syncing to parked coordinates RA (%s) DEC (%s)...", RAStr, DEStr);
+
+    if (Sync(equatorialPos.ra/15.0, equatorialPos.dec))
     {
         SetParked(false);
         return true;
@@ -558,16 +640,16 @@ bool CelestronGPS::UnPark()
 
 void CelestronGPS::SetCurrentPark()
 {
-    SetRAPark(currentRA);
-    SetDEPark(currentDEC);
+    SetAxis1Park(currentAZ);
+    SetAxis2Park(currentALT);
 }
 
 void CelestronGPS::SetDefaultPark()
 {
-    // By default set RA to HA
-    SetRAPark(ln_get_apparent_sidereal_time(ln_get_julian_from_sys()));
+    // By defualt azimuth 0
+    SetAxis1Park(0);
 
-    // Set DEC to 90 or -90 depending on the hemisphere
-    SetDEPark( (LocationN[LOCATION_LATITUDE].value > 0) ? 90 : -90);
+    // Altitude = latitude of observer
+    SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
 }
 
