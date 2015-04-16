@@ -82,7 +82,7 @@ void INDI::GuiderInterface::processGuiderProperties(const char *name, double val
     }
 }
 
-void INDI::GuiderInterface::GuideComplete(INDI_AXIS_TYPE axis)
+void INDI::GuiderInterface::GuideComplete(INDI_EQ_AXIS axis)
 {
     switch (axis)
     {

@@ -52,19 +52,6 @@ bool INDI::Telescope::initProperties()
     IUFillNumber(&EqN[AXIS_DE],"DEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,0);
     IUFillNumberVector(&EqNP,EqN,2,getDeviceName(),"EQUATORIAL_EOD_COORD","Eq. Coordinates",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
 
-    if (parkDataType == PARK_ENCODER)
-    {
-        IUFillNumber(&ParkPositionN[AXIS_RA],"PARK_RA" ,"RA Encoder","%.0f" ,0,16777215,1,0);
-        IUFillNumber(&ParkPositionN[AXIS_DE],"PARK_DEC","DEC Encoder","%.0f",0,16777215,1,0);
-    }
-    else
-    {
-        IUFillNumber(&ParkPositionN[AXIS_RA],"PARK_RA","RA (hh:mm:ss)","%010.6m",0,24,0,0);
-        IUFillNumber(&ParkPositionN[AXIS_DE],"PARK_DEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,0);
-    }
-
-    IUFillNumberVector(&ParkPositionNP,ParkPositionN,2,getDeviceName(),"TELESCOPE_PARK_POSITION","Park Position", SITE_TAB,IP_RW,60,IPS_IDLE);
-
     IUFillSwitch(&ParkOptionS[0],"PARK_CURRENT","Current",ISS_OFF);
     IUFillSwitch(&ParkOptionS[1],"PARK_DEFAULT","Default",ISS_OFF);
     IUFillSwitch(&ParkOptionS[2],"PARK_WRITE_DATA","Write Data",ISS_OFF);
@@ -508,8 +495,8 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
         IUUpdateNumber(&ParkPositionNP, values, names, n);
         ParkPositionNP.s = IPS_OK;
 
-        RAParkPosition = ParkPositionN[AXIS_RA].value;
-        DEParkPosition = ParkPositionN[AXIS_DE].value;
+        Axis1ParkPosition = ParkPositionN[AXIS_RA].value;
+        Axis2ParkPosition = ParkPositionN[AXIS_DE].value;
 
         IDSetNumber(&ParkPositionNP, NULL);
         return true;
@@ -961,19 +948,35 @@ void INDI::Telescope::SetParkDataType(TelescopeParkData type)
 {
     parkDataType = type;
 
-    switch (type)
+    if (parkDataType != PARK_NONE)
     {
-        case PARK_NONE:
+        switch (parkDataType)
+        {
+            case PARK_RA_DEC:
+            IUFillNumber(&ParkPositionN[AXIS_RA],"PARK_RA","RA (hh:mm:ss)","%010.6m",0,24,0,0);
+            IUFillNumber(&ParkPositionN[AXIS_DE],"PARK_DEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,0);
             break;
-        case PARK_RA_DEC:
-        case PARK_HA_DEC:
-            IUFillNumber(&ParkPositionN[0],"PARK_RA","RA (hh:mm:ss)","%010.6m",0,24,0,0);
-            IUFillNumber(&ParkPositionN[1],"PARK_DEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,0);
+
+            case PARK_AZ_ALT:
+            IUFillNumber(&ParkPositionN[AXIS_AZ],"PARK_AZ","AZ D:M:S", "%10.6m", 0.0, 360.0, 0.0, 0);
+            IUFillNumber(&ParkPositionN[AXIS_ALT],"PARK_ALT", "Alt  D:M:S", "%10.6m", -90., 90.0, 0.0, 0);
             break;
-        case PARK_ENCODER:
-            IUFillNumber(&ParkPositionN[0],"PARK_RA","RA Encoder","%.0f",0,16777215.0,1,0);
-            IUFillNumber(&ParkPositionN[1],"PARK_DEC","DEC Encoder","%.0f",0,16777215,1,0);
+
+            case PARK_RA_DEC_ENCODER:
+            IUFillNumber(&ParkPositionN[AXIS_RA],"PARK_RA" ,"RA Encoder","%.0f" ,0,16777215,1,0);
+            IUFillNumber(&ParkPositionN[AXIS_DE],"PARK_DEC","DEC Encoder","%.0f",0,16777215,1,0);
             break;
+
+            case PARK_AZ_ALT_ENCODER:
+            IUFillNumber(&ParkPositionN[AXIS_RA],"PARK_AZ" ,"AZ Encoder","%.0f" ,0,16777215,1,0);
+            IUFillNumber(&ParkPositionN[AXIS_DE],"PARK_ALT","ALT Encoder","%.0f",0,16777215,1,0);
+            break;
+
+        default:
+            break;
+        }
+
+        IUFillNumberVector(&ParkPositionNP,ParkPositionN,2,getDeviceName(),"TELESCOPE_PARK_POSITION","Park Position", SITE_TAB,IP_RW,60,IPS_IDLE);
     }
 }
 
@@ -1020,8 +1023,8 @@ bool INDI::Telescope::InitPark()
 
   SetParked(isParked());
 
-  ParkPositionN[AXIS_RA].value = RAParkPosition;
-  ParkPositionN[AXIS_DE].value = DEParkPosition;
+  ParkPositionN[AXIS_RA].value = Axis1ParkPosition;
+  ParkPositionN[AXIS_DE].value = Axis2ParkPosition;
   IDSetNumber(&ParkPositionNP, NULL);
 
   return true;
@@ -1042,8 +1045,8 @@ char *INDI::Telescope::LoadParkData()
   ParkstatusXml=NULL;
   ParkdeviceXml=NULL;
   ParkpositionXml = NULL;
-  ParkpositionRAXml = NULL;
-  ParkpositionDEXml = NULL;
+  ParkpositionAxis1Xml = NULL;
+  ParkpositionAxis2Xml = NULL;
 
   if (wordexp(Parkdatafile, &wexp, 0))
   {
@@ -1096,15 +1099,15 @@ char *INDI::Telescope::LoadParkData()
   ParkdeviceXml=parkxml;
   ParkstatusXml = findXMLEle(parkxml, "parkstatus");
   ParkpositionXml = findXMLEle(parkxml, "parkposition");
-  ParkpositionRAXml = findXMLEle(ParkpositionXml, "raposition");
-  ParkpositionDEXml = findXMLEle(ParkpositionXml, "deposition");
+  ParkpositionAxis1Xml = findXMLEle(ParkpositionXml, "axis1position");
+  ParkpositionAxis2Xml = findXMLEle(ParkpositionXml, "axis2position");
   IsParked=false;
 
   if (!strcmp(pcdataXMLEle(ParkstatusXml), "true"))
       IsParked=true;
 
-  sscanf(pcdataXMLEle(ParkpositionRAXml), "%lf", &RAParkPosition);
-  sscanf(pcdataXMLEle(ParkpositionDEXml), "%lf", &DEParkPosition);
+  sscanf(pcdataXMLEle(ParkpositionAxis1Xml), "%lf", &Axis1ParkPosition);
+  sscanf(pcdataXMLEle(ParkpositionAxis2Xml), "%lf", &Axis2ParkPosition);
 
   return NULL;
 }
@@ -1142,17 +1145,17 @@ bool INDI::Telescope::WriteParkData()
       ParkstatusXml=addXMLEle(ParkdeviceXml, "parkstatus");
   if (!ParkpositionXml)
       ParkpositionXml=addXMLEle(ParkdeviceXml, "parkposition");
-  if (!ParkpositionRAXml)
-      ParkpositionRAXml=addXMLEle(ParkpositionXml, "raposition");
-  if (!ParkpositionDEXml)
-      ParkpositionDEXml=addXMLEle(ParkpositionXml, "deposition");
+  if (!ParkpositionAxis1Xml)
+      ParkpositionAxis1Xml=addXMLEle(ParkpositionXml, "axis1position");
+  if (!ParkpositionAxis2Xml)
+      ParkpositionAxis2Xml=addXMLEle(ParkpositionXml, "axis2position");
 
   editXMLEle(ParkstatusXml, (IsParked?"true":"false"));
 
-  snprintf(pcdata, sizeof(pcdata), "%f", RAParkPosition);
-  editXMLEle(ParkpositionRAXml, pcdata);
-  snprintf(pcdata, sizeof(pcdata), "%f", DEParkPosition);
-  editXMLEle(ParkpositionDEXml, pcdata);
+  snprintf(pcdata, sizeof(pcdata), "%f", Axis1ParkPosition);
+  editXMLEle(ParkpositionAxis1Xml, pcdata);
+  snprintf(pcdata, sizeof(pcdata), "%f", Axis2ParkPosition);
+  editXMLEle(ParkpositionAxis2Xml, pcdata);
 
   prXMLEle(fp, ParkdataXmlRoot, 0);
   fclose(fp);
@@ -1160,45 +1163,45 @@ bool INDI::Telescope::WriteParkData()
   return true;
 }
 
-double INDI::Telescope::GetRAPark()
+double INDI::Telescope::GetAxis1Park()
 {
-  return RAParkPosition;
+  return Axis1ParkPosition;
 }
-double INDI::Telescope::GetRAParkDefault()
+double INDI::Telescope::GetAxis1ParkDefault()
 {
-  return RADefaultParkPosition;
+  return Axis1DefaultParkPosition;
 }
-double INDI::Telescope::GetDEPark()
+double INDI::Telescope::GetAxis2Park()
 {
-  return DEParkPosition;
+  return Axis2ParkPosition;
 }
-double INDI::Telescope::GetDEParkDefault()
+double INDI::Telescope::GetAxis2ParkDefault()
 {
-  return DEDefaultParkPosition;
+  return Axis2DefaultParkPosition;
 }
 
-void INDI::Telescope::SetRAPark(double value)
+void INDI::Telescope::SetAxis1Park(double value)
 {
-  RAParkPosition=value;
+  Axis1ParkPosition=value;
   ParkPositionN[AXIS_RA].value = value;
   IDSetNumber(&ParkPositionNP, NULL);
 }
 
-void INDI::Telescope::SetRAParkDefault(double value)
+void INDI::Telescope::SetAxis1ParkDefault(double value)
 {
-  RADefaultParkPosition=value;
+  Axis1DefaultParkPosition=value;
 }
 
-void INDI::Telescope::SetDEPark(double value)
+void INDI::Telescope::SetAxis2Park(double value)
 {
-  DEParkPosition=value;
+  Axis2ParkPosition=value;
   ParkPositionN[AXIS_DE].value = value;
   IDSetNumber(&ParkPositionNP, NULL);
 }
 
-void INDI::Telescope::SetDEParkDefault(double value)
+void INDI::Telescope::SetAxis2ParkDefault(double value)
 {
-  DEDefaultParkPosition=value;
+  Axis2DefaultParkPosition=value;
 }
 
 bool INDI::Telescope::SetSlewRate(int index)

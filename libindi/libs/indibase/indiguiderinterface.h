@@ -68,7 +68,7 @@ public:
      * \brief Call GuideComplete once the guiding pulse is complete.
      * @param axis Axis of completed guiding operation.
      */
-    virtual void GuideComplete(INDI_AXIS_TYPE axis);
+    virtual void GuideComplete(INDI_EQ_AXIS axis);
 
 protected:
 

@@ -647,7 +647,7 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
 
         virtual bool saveConfigItems(FILE *fp);
 
-        void GuideComplete(INDI_AXIS_TYPE axis);
+        void GuideComplete(INDI_EQ_AXIS axis);
 
         double RA, Dec;
         double FocalLength, Aperture;

@@ -304,16 +304,16 @@ void Skywatcher::Init() throw (EQModError)
   //Park status
   if (telescope->InitPark() == false)
   {
-      telescope->SetRAPark(RAStepHome);
-      telescope->SetRAParkDefault(RAStepHome);
+      telescope->SetAxis1Park(RAStepHome);
+      telescope->SetAxis1ParkDefault(RAStepHome);
 
-      telescope->SetDEPark(DEStepHome);
-      telescope->SetDEParkDefault(DEStepHome);
+      telescope->SetAxis2Park(DEStepHome);
+      telescope->SetAxis2ParkDefault(DEStepHome);
   }
   else
   {
-      telescope->SetRAParkDefault(RAStepHome);
-      telescope->SetDEParkDefault(DEStepHome);
+      telescope->SetAxis1ParkDefault(RAStepHome);
+      telescope->SetAxis2ParkDefault(DEStepHome);
   }
 
   if (telescope->isParked())
@@ -327,13 +327,13 @@ void Skywatcher::Init() throw (EQModError)
     } else {
       char cmdarg[7];
       DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : Mount in Park position -- setting encoders RA=%ld DE = %ld",
-         __FUNCTION__,  telescope->GetRAPark(), telescope->GetDEPark());
+         __FUNCTION__,  telescope->GetAxis1Park(), telescope->GetAxis2Park());
       cmdarg[6]='\0';
-      long2Revu24str(telescope->GetRAPark(), cmdarg);
+      long2Revu24str(telescope->GetAxis1Park(), cmdarg);
       dispatch_command(SetAxisPosition, Axis1, cmdarg);
       read_eqmod();
       cmdarg[6]='\0';
-      long2Revu24str(telescope->GetDEPark(), cmdarg);
+      long2Revu24str(telescope->GetAxis2Park(), cmdarg);
       dispatch_command(SetAxisPosition, Axis2, cmdarg);
       read_eqmod();
     }

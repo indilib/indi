@@ -53,7 +53,7 @@ class INDI::Telescope : public INDI::DefaultDevice
         enum TelescopeMotionCommand { MOTION_START, MOTION_STOP };
         enum TelescopeSlewRate  { SLEW_GUIDE, SLEW_CENTERING, SLEW_FIND, SLEW_MAX };
         enum TelescopeTrackMode  { TRACK_SIDEREAL, TRACK_SOLAR, TRACK_LUNAR, TRACK_CUSTOM };
-        enum TelescopeParkData  { PARK_NONE, PARK_RA_DEC, PARK_HA_DEC, PARK_ENCODER };
+        enum TelescopeParkData  { PARK_NONE, PARK_RA_DEC, PARK_AZ_ALT, PARK_RA_DEC_ENCODER, PARK_AZ_ALT_ENCODER };
         enum TelescopeLocation { LOCATION_LATITUDE, LOCATION_LONGITUDE, LOCATION_ELEVATION };
 
         /** \struct TelescopeCapability
@@ -147,48 +147,48 @@ class INDI::Telescope : public INDI::DefaultDevice
         void SetParked(bool isparked);
 
         /**
-         * @return Get current RA parking position.
+         * @return Get current RA/AZ parking position.
          */
-        double GetRAPark();
+        double GetAxis1Park();
 
         /**
-         * @return Get default RA parking position.
+         * @return Get default RA/AZ parking position.
          */
-        double GetRAParkDefault();
+        double GetAxis1ParkDefault();
 
         /**
-         * @return Get current DEC parking position.
+         * @return Get current DEC/ALT parking position.
          */
-        double GetDEPark();
+        double GetAxis2Park();
 
         /**
-         * @return Get defailt DEC parking position.
+         * @return Get defailt DEC/ALT parking position.
          */
-        double GetDEParkDefault();
+        double GetAxis2ParkDefault();
 
         /**
-         * @brief SetRAPark Set current RA parking position. The data park file (stored in ~/.indi/ParkData.xml) is updated in the process.
-         * @param value current RA value either in encoders steps or equatorial coordinates of current Epoch in hours.
+         * @brief SetRAPark Set current RA/AZ parking position. The data park file (stored in ~/.indi/ParkData.xml) is updated in the process.
+         * @param value current Axis 1 value (RA or AZ either in angles or encoder values as specificed by the TelescopeParkData type).
          */
-        void SetRAPark(double value);
+        void SetAxis1Park(double value);
 
         /**
-         * @brief SetRAPark Set default RA parking position.
-         * @param value current RA value either in encoders steps or equatorial coordinates of current Epoch in hours.
+         * @brief SetRAPark Set default RA/AZ parking position.
+         * @param value Default Axis 1 value (RA or AZ either in angles or encoder values as specificed by the TelescopeParkData type).
          */
-        void SetRAParkDefault(double steps);
+        void SetAxis1ParkDefault(double steps);
 
         /**
-         * @brief SetDEPark Set current DEC parking position. The data park file (stored in ~/.indi/ParkData.xml) is updated in the process.
-         * @param value current DEC value either in encoders steps or equatorial coordinates of current Epoch in degrees.
+         * @brief SetDEPark Set current DEC/ALT parking position. The data park file (stored in ~/.indi/ParkData.xml) is updated in the process.
+         * @param value current Axis 1 value (DEC or ALT either in angles or encoder values as specificed by the TelescopeParkData type).
          */
-        void SetDEPark(double steps);
+        void SetAxis2Park(double steps);
 
         /**
-         * @brief SetDEParkDefault Set default DEC parking position.
-         * @param value current DEC value either in encoders steps or equatorial coordinates of current Epoch in hours.
+         * @brief SetDEParkDefault Set default DEC/ALT parking position.
+         * @param value Default Axis 2 value (DEC or ALT either in angles or encoder values as specificed by the TelescopeParkData type).
          */
-        void SetDEParkDefault(double steps);
+        void SetAxis2ParkDefault(double steps);
 
         // Joystick helpers
         static void joystickHelper(const char * joystick_n, double mag, double angle, void *context);
@@ -379,12 +379,12 @@ private:
         bool IsParked;
         const char *ParkDeviceName;
         const char * Parkdatafile;
-        XMLEle *ParkdataXmlRoot, *ParkdeviceXml, *ParkstatusXml, *ParkpositionXml, *ParkpositionRAXml, *ParkpositionDEXml;
+        XMLEle *ParkdataXmlRoot, *ParkdeviceXml, *ParkstatusXml, *ParkpositionXml, *ParkpositionAxis1Xml, *ParkpositionAxis2Xml;
 
-        double RAParkPosition;
-        double RADefaultParkPosition;
-        double DEParkPosition;
-        double DEDefaultParkPosition;
+        double Axis1ParkPosition;
+        double Axis1DefaultParkPosition;
+        double Axis2ParkPosition;
+        double Axis2DefaultParkPosition;
 
         INDI::Controller *controller;
 

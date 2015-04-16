@@ -2067,7 +2067,7 @@ int INDI::CCD::getFileIndex(const char *dir, const char *prefix, const char *ext
 
 }
 
-void INDI::CCD::GuideComplete(INDI_AXIS_TYPE axis)
+void INDI::CCD::GuideComplete(INDI_EQ_AXIS axis)
 {
     INDI::GuiderInterface::GuideComplete(axis);
 }

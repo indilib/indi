@@ -30,12 +30,19 @@ typedef enum
     INDI_UNKNOWN
 } INDI_PROPERTY_TYPE;
 
-/*! INDI Axis type */
+/*! INDI Equatorial Axis type */
 typedef enum
 {
     AXIS_RA,     /*!< Right Ascension Axis. */
     AXIS_DE      /*!< Declination Axis. */
-} INDI_AXIS_TYPE;
+} INDI_EQ_AXIS;
+
+/*! INDI Horizontal Axis type */
+typedef enum
+{
+    AXIS_AZ,     /*!< Azimuth Axis. */
+    AXIS_ALT     /*!< Altitude Axis. */
+} INDI_HO_AXIS;
 
 /*! North/South Direction */
 typedef enum

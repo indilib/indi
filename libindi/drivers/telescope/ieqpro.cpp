@@ -261,16 +261,16 @@ void IEQPro::getStartupData()
     if (InitPark())
     {
         // If loading parking data is successful, we just set the default parking values.
-        SetRAParkDefault(HA);
-        SetDEParkDefault(DEC);
+        SetAxis1ParkDefault(HA);
+        SetAxis2ParkDefault(DEC);
     }
     else
     {
         // Otherwise, we set all parking data to default in case no parking data is found.
-        SetRAPark(HA);
-        SetDEPark(DEC);
-        SetRAParkDefault(HA);
-        SetDEParkDefault(DEC);
+        SetAxis1Park(HA);
+        SetAxis2Park(DEC);
+        SetAxis1ParkDefault(HA);
+        SetAxis2ParkDefault(DEC);
     }
 
     double utc_offset;
@@ -622,8 +622,8 @@ bool IEQPro::Abort()
 
 bool IEQPro::Park()
 {
-    targetRA  = GetRAPark();
-    targetDEC = GetDEPark();
+    targetRA  = GetAxis1Park();
+    targetDEC = GetAxis2Park();
     if (set_ieqpro_ra(PortFD, targetRA) == false || set_ieqpro_dec(PortFD, targetDEC) == false)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting RA/DEC.");
@@ -961,16 +961,16 @@ void IEQPro::mountSim ()
 
 void IEQPro::SetCurrentPark()
 {
-    SetRAPark(currentRA);
-    SetDEPark(currentDEC);
+    SetAxis1Park(currentRA);
+    SetAxis2Park(currentDEC);
 }
 
 void IEQPro::SetDefaultPark()
 {
     // By default set RA to HA
-    SetRAPark(ln_get_apparent_sidereal_time(ln_get_julian_from_sys()));
+    SetAxis1Park(ln_get_apparent_sidereal_time(ln_get_julian_from_sys()));
 
     // Set DEC to 90 or -90 depending on the hemisphere
-    SetDEPark( (HemisphereS[HEMI_NORTH].s == ISS_ON) ? 90 : -90);
+    SetAxis2Park( (HemisphereS[HEMI_NORTH].s == ISS_ON) ? 90 : -90);
 
 }

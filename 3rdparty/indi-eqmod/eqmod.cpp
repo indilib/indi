@@ -347,7 +347,7 @@ bool EQMod::initProperties()
       }
     }
 
-    SetParkDataType(PARK_ENCODER);
+    SetParkDataType(PARK_RA_DEC_ENCODER);
 
     setInterfaceDescriptor(getInterfaceDescriptor() | GUIDER_INTERFACE);
 
@@ -469,8 +469,8 @@ bool EQMod::updateProperties()
 	  totalDEEncoder=mount->GetDEEncoderTotal();
 	  homeDEEncoder=mount->GetDEEncoderHome();
 
-      parkRAEncoder=GetRAPark();
-      parkDEEncoder=GetDEPark();
+      parkRAEncoder=GetAxis1Park();
+      parkDEEncoder=GetAxis2Park();
 
 	  latitude=IUFindNumber(&LocationNP, "LAT");
 	  if ((latitude) && (latitude->value < 0.0)) SetSouthernHemisphere(true);
@@ -1215,8 +1215,8 @@ bool EQMod::Park()
       mount->StopDE();
       currentRAEncoder=mount->GetRAEncoder();
       currentDEEncoder=mount->GetDEEncoder();
-      parkRAEncoder=GetRAPark();
-      parkDEEncoder=GetDEPark();
+      parkRAEncoder=GetAxis1Park();
+      parkDEEncoder=GetAxis2Park();
       // Start slewing
       DEBUGF(INDI::Logger::DBG_SESSION, "Parking mount: RA increment = %ld, DE increment = %ld",
 		parkRAEncoder - currentRAEncoder, parkDEEncoder - currentDEEncoder);
@@ -2151,18 +2151,18 @@ void EQMod::SetCurrentPark()
 {
     parkRAEncoder=currentRAEncoder;
     parkDEEncoder=currentDEEncoder;
-    SetRAPark(parkRAEncoder);
-    SetDEPark(parkDEEncoder);
+    SetAxis1Park(parkRAEncoder);
+    SetAxis2Park(parkDEEncoder);
     DEBUGF(INDI::Logger::DBG_SESSION, "Setting Park Position to current- RA Encoder=%ld DE Encoder=%ld",
           parkRAEncoder, parkDEEncoder);
 }
 
 void EQMod::SetDefaultPark()
 {
-    parkRAEncoder=GetRAParkDefault();
-    parkDEEncoder=GetDEParkDefault();
-    SetRAPark(parkRAEncoder);
-    SetDEPark(parkDEEncoder);
+    parkRAEncoder=GetAxis1ParkDefault();
+    parkDEEncoder=GetAxis2ParkDefault();
+    SetAxis1Park(parkRAEncoder);
+    SetAxis2Park(parkDEEncoder);
     DEBUGF(INDI::Logger::DBG_SESSION, "Setting Park Position to default- RA Encoder=%ld DE Encoder=%ld",
           parkRAEncoder, parkDEEncoder);
 }
