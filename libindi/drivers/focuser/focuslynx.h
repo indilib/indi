@@ -123,6 +123,10 @@ private:
     INumber TemperatureCoeffN[5];
     INumberVectorProperty TemperatureCoeffNP;
 
+    // Temperature Coefficient Mode
+    ISwitch TemperatureCompensateModeS[5];
+    ISwitchVectorProperty TemperatureCompensateModeSP;
+
     // Enable/Disable backlash
     ISwitch BacklashCompensationS[2];
     ISwitchVectorProperty BacklashCompensationSP;
