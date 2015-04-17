@@ -37,6 +37,8 @@ public:
     ApogeeCCD();
     virtual ~ApogeeCCD();
 
+    enum { NETWORK_SUBNET, NETWORK_ADDRESS };
+
     const char *getDefaultName();
 
     void ISGetProperties(const char *dev);
@@ -62,6 +64,7 @@ public:
    protected:
 
     void debugTriggered(bool enabled);
+    bool saveConfigItems(FILE *fp);
 
    private:
 
@@ -79,8 +82,8 @@ public:
     ISwitch PortTypeS[2];
     ISwitchVectorProperty PortTypeSP;
 
-    IText SubNetT[1];
-    ITextVectorProperty SubNetTP;
+    IText NetworkInfoT[2];
+    ITextVectorProperty NetworkInfoTP;
 
     IText CamInfoT[2];
     ITextVectorProperty CamInfoTP;
@@ -108,9 +111,10 @@ public:
     void checkStatus( const Apg::Status status );
     std::vector<std::string> MakeTokens(const std::string &str, const std::string &separator);
     std::string GetItemFromFindStr( const std::string & msg, const std::string & item );
-    std::string GetAddress( const std::string & msg );
+    //std::string GetAddress( const std::string & msg );
     std::string GetUsbAddress( const std::string & msg );
     std::string GetEthernetAddress( const std::string & msg );
+    std::string GetIPAddress( const std::string & msg );
     CamModel::PlatformType GetModel(const std::string & msg );
     uint16_t GetID( const std::string & msg );
     uint16_t GetFrmwrRev( const std::string & msg );

@@ -159,11 +159,12 @@ bool ApogeeCCD::initProperties()
     IUFillSwitchVector(&ReadOutSP, ReadOutS, 2, getDeviceName(), "READOUT_QUALITY", "Readout Speed", OPTIONS_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillSwitch(&PortTypeS[0], "USB_PORT", "USB", ISS_ON);
-    IUFillSwitch(&PortTypeS[1], "EHTERNET_PORT", "Ethernet", ISS_OFF);
-    IUFillSwitchVector(&PortTypeSP, PortTypeS, 2, getDeviceName(), "Port", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitch(&PortTypeS[1], "NETWORK_PORT", "Network", ISS_OFF);
+    IUFillSwitchVector(&PortTypeSP, PortTypeS, 2, getDeviceName(), "PORT_TYPE", "Port", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillText(&SubNetT[0], "SUBNET_ADDRESS", "Address", "192.168.0.255");
-    IUFillTextVector(&SubNetTP, SubNetT, 1, getDeviceName(), "SUBNET", "Subnet", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillText(&NetworkInfoT[NETWORK_SUBNET], "SUBNET_ADDRESS", "Subnet", "192.168.0.255");
+    IUFillText(&NetworkInfoT[NETWORK_ADDRESS], "IP_PORT_ADDRESS", "IP:Port", "");
+    IUFillTextVector(&NetworkInfoTP, NetworkInfoT, 2, getDeviceName(), "NETWORK_INFO", "Network", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     IUFillText(&CamInfoT[0], "CAM_NAME", "Name", "");
     IUFillText(&CamInfoT[1], "CAM_FIRMWARE", "Firmware", "");
@@ -184,7 +185,10 @@ void ApogeeCCD::ISGetProperties(const char *dev)
     INDI::CCD::ISGetProperties(dev);
 
     defineSwitch(&PortTypeSP);
-    defineText(&SubNetTP);
+    defineText(&NetworkInfoTP);
+
+    loadConfig(true, "PORT_TYPE");
+    loadConfig(true, "NETWORK_INFO");
 }
 
 bool ApogeeCCD::updateProperties()
@@ -454,15 +458,30 @@ bool ApogeeCCD::ISNewText (const char *dev, const char *name, char *texts[], cha
 
     if(strcmp(dev,getDeviceName())==0)
     {
-        if (!strcmp(SubNetTP.name, name))
+        if (!strcmp(NetworkInfoTP.name, name))
         {
-            IUUpdateText(&SubNetTP, texts, names, n);
+            IUUpdateText(&NetworkInfoTP, texts, names, n);
 
-            SubNetTP.s = IPS_OK;
+            subnet = std::string(NetworkInfoT[NETWORK_SUBNET].text);
 
-            subnet = std::string(SubNetT[0].text);
+            if (strlen(NetworkInfoT[NETWORK_ADDRESS].text) > 0)
+            {
+                char ip[16];
+                int port;
+                int rc = sscanf(NetworkInfoT[NETWORK_ADDRESS].text, "%[^:]:%d", ip, &port);
 
-            IDSetText(&SubNetTP, NULL);
+                if (rc == 2)
+                    NetworkInfoTP.s = IPS_OK;
+                else
+                {
+                    DEBUG(INDI::Logger::DBG_ERROR, "Invalid format. Format must be IP:Port (e.g. 192.168.1.1:80)");
+                    NetworkInfoTP.s = IPS_ALERT;
+                }
+            }
+            else
+                NetworkInfoTP.s = IPS_OK;
+
+            IDSetText(&NetworkInfoTP, NULL);
 
             return true;
         }
@@ -737,6 +756,14 @@ std::string ApogeeCCD::GetUsbAddress( const std::string & msg )
 
 
 ////////////////////////////
+//	GET		IP Address
+std::string ApogeeCCD::GetIPAddress( const std::string & msg )
+{
+    std::string addr = GetItemFromFindStr( msg, "address=" );
+    return addr;
+}
+
+////////////////////////////
 //	GET		ETHERNET  ADDRESS
 std::string ApogeeCCD::GetEthernetAddress( const std::string & msg )
 {
@@ -861,27 +888,97 @@ bool ApogeeCCD::Connect()
 
     DEBUG(INDI::Logger::DBG_SESSION, "Attempting to find Apogee CCD...");
 
-    // Simulation
-    if (isSimulation())
-    {
-        msg = std::string("<d>address=0,interface=usb,deviceType=camera,id=0x49,firmwareRev=0x21,model=AltaU-4020ML,interfaceStatus=NA</d><d>address=1,interface=usb,model=Filter Wheel,deviceType=filterWheel,id=0xFFFF,firmwareRev=0xFFEE</d>");
-        addr = GetUsbAddress( msg );
-    }
+
     // USB
-    else if (PortTypeS[0].s == ISS_ON)
+    if (PortTypeS[0].s == ISS_ON)
     {
-        ioInterface = std::string("usb");
-        FindDeviceUsb lookUsb;
-        msg = lookUsb.Find();
-        addr = GetUsbAddress( msg );
+        // Simulation
+        if (isSimulation())
+        {
+            msg = std::string("<d>address=0,interface=usb,deviceType=camera,id=0x49,firmwareRev=0x21,model=AltaU-4020ML,interfaceStatus=NA</d><d>address=1,interface=usb,model=Filter Wheel,deviceType=filterWheel,id=0xFFFF,firmwareRev=0xFFEE</d>");
+            addr = GetUsbAddress( msg );
+        }
+        else
+        {
+            ioInterface = std::string("usb");
+            FindDeviceUsb lookUsb;
+            try
+            {
+                msg = lookUsb.Find();
+                addr = GetUsbAddress( msg );
+            }
+            catch( std::runtime_error & err)
+            {
+                 DEBUGF(INDI::Logger::DBG_ERROR, "Error getting USB address: %s", err.what());
+                 return false;
+            }
+        }
+
     }
     // Ethernet
     else
     {
         ioInterface = std::string("ethernet");
         FindDeviceEthernet look4cam;
-        msg = look4cam.Find( subnet );
-        addr = GetEthernetAddress( msg );
+        char ip[32];
+        int port;
+
+        // Simulation
+        if (isSimulation())
+        {
+            msg = std::string("<d>address=192.168.1.20,interface=ethernet,port=80,mac=0009510000FF,deviceType=camera,id=0xfeff,firmwareRev=0x0,model=AltaU-4020ML</d>"
+                              "<d>address=192.168.1.21,interface=ethernet,port=80,mac=0009510000FF,deviceType=camera,id=0xfeff,firmwareRev=0x0,model=AltaU-4020ML</d>"
+                              "<d>address=192.168.2.22,interface=ethernet,port=80,mac=0009510000FF,deviceType=camera,id=0xfeff,firmwareRev=0x0,model=AltaU-4020ML</d>");
+        }
+        else
+        {
+            try
+            {
+                msg = look4cam.Find( subnet );
+                DEBUGF(INDI::Logger::DBG_DEBUG, "Network search result: %s", msg.c_str());
+            }
+            catch( std::runtime_error & err)
+            {
+                 DEBUGF(INDI::Logger::DBG_ERROR, "Error getting network address: %s", err.what());
+                 return false;
+            }
+        }
+
+        int rc=0;
+
+        // Check if we have IP:Port format
+        if (NetworkInfoT[NETWORK_ADDRESS].text != NULL && strlen(NetworkInfoT[NETWORK_ADDRESS].text) > 0)
+            rc = sscanf(NetworkInfoT[NETWORK_ADDRESS].text, "%[^:]:%d", ip, &port);
+
+        // If we have IP:Port, then let's skip all entries that does not have our desired IP address.
+        if (rc == 2)
+        {
+            addr = NetworkInfoT[NETWORK_ADDRESS].text;
+            std::string delimiter = "</d>";
+
+            size_t pos = 0;
+            std::string token, token_ip;
+            while ((pos = msg.find(delimiter)) != std::string::npos)
+            {
+                token = msg.substr(0, pos);
+                token_ip = GetIPAddress(token);
+                DEBUGF(INDI::Logger::DBG_DEBUG, "Checking %s (%s) for IP %s", token.c_str(), token_ip.c_str(), ip);
+                if (token_ip == ip)
+                {
+                    msg = token;
+                    DEBUGF(INDI::Logger::DBG_DEBUG, "IP matched (%s).", msg.c_str());
+                    break;
+                }
+                msg.erase(0, pos + delimiter.length());
+            }
+        }
+        else
+        {
+            addr = GetEthernetAddress( msg );
+            IUSaveText(&NetworkInfoT[NETWORK_ADDRESS], addr.c_str());
+            DEBUGF(INDI::Logger::DBG_SESSION, "Detected camera at %s", addr.c_str());
+            IDSetText(&NetworkInfoTP, NULL);
+        }
     }
 
     if (msg.compare("<d></d>") == 0)
@@ -1175,5 +1272,13 @@ void ApogeeCCD::TimerHit()
 void ApogeeCCD::debugTriggered(bool enabled)
 {
     ApgLogger::Instance().SetLogLevel( enabled ? ApgLogger::LEVEL_DEBUG : ApgLogger::LEVEL_RELEASE);
+}
+
+bool ApogeeCCD::saveConfigItems(FILE *fp)
+{
+    INDI::CCD::saveConfigItems(fp);
+
+    IUSaveConfigSwitch(fp, &PortTypeSP);
+    IUSaveConfigText(fp, &NetworkInfoTP);
 }
 
