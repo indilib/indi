@@ -11,7 +11,6 @@
 #include <queue>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <ev++.h>
 
 #include "indicom.h"
 #include "NexStarAUXScope.h"
@@ -20,10 +19,6 @@
 #define DEFAULT_ADDRESS "1.2.3.4"
 #define DEFAULT_PORT 2000
 int MAX_CMD_LEN=32;
-/*
-ev::io iow;
-ev::timer tickw;
-*/
 
 
 //////////////////////////////////////////////////
@@ -151,58 +146,54 @@ void AUXCommand::setPosition(long p){
 /////////////////////////////////////////////////////
 
 NexStarAUXScope::NexStarAUXScope(char const *ip, int port){
-    struct sockaddr_in addr;
-
-    bzero(&addr, sizeof(addr));
-    inet_pton(AF_INET, ip, &addr.sin_addr);
-    addr.sin_port = htons(port);
-
-    initConnection(addr);
+    initScope(ip, port);
 };
 
 NexStarAUXScope::NexStarAUXScope(char const *ip){
-    initConnection(ip, DEFAULT_PORT);
+    initScope(ip, DEFAULT_PORT);
 };
 
 NexStarAUXScope::NexStarAUXScope(int port){
-    initConnection(DEFAULT_ADDRESS, port);
+    initScope(DEFAULT_ADDRESS, port);
 };
 
 NexStarAUXScope::NexStarAUXScope() {
-    initConnection(DEFAULT_ADDRESS, DEFAULT_PORT);
+    initScope(DEFAULT_ADDRESS, DEFAULT_PORT);
 };
 
-NexStarAUXScope::NexStarAUXScope(struct sockaddr_in addr) {
-    initConnection(addr);
-};
+NexStarAUXScope::~NexStarAUXScope(){
+    fprintf(stderr,"Bye!");
+    closeConnection();
+}
 
-bool NexStarAUXScope::initConnection(char const *ip, int port){
-    struct sockaddr_in addr;
-
+void NexStarAUXScope::initScope(char const *ip, int port){
     bzero(&addr, sizeof(addr));
     addr.sin_family = AF_INET ;
     addr.sin_addr.s_addr=inet_addr(ip);
     addr.sin_port = htons(port);
-    return initConnection(addr);
+    initScope();
 };
 
-bool NexStarAUXScope::initConnection(struct sockaddr_in addr) {
-    int addr_len = sizeof(addr);
-    char pbuf[BUFFER_SIZE]="*CLOSE*";
-    
-    //inet_ntop(AF_INET,&addr.sin_addr,pbuf,BUFFER_SIZE);
-    //perror(pbuf);
-
+void NexStarAUXScope::initScope() {
     // Max slew rate (steps per second)
     slewRate=2*pow(2,24)/360;
     tracking=false;
     slewingAlt=false;
     slewingAz=false;
+
     // Park position at the south horizon.
     Alt=targetAlt=Az=targetAz=0;
     
     sock=0;
+};
 
+
+bool NexStarAUXScope::Connect(){
+    fprintf(stderr,"Connecting...\n");
+    if (sock > 0) {
+        // We are connected. Nothing to do!
+        return true;
+    }
     // Create client socket
     if( (sock = socket(PF_INET, SOCK_STREAM, 0)) < 0 )
     {
@@ -210,7 +201,7 @@ bool NexStarAUXScope::initConnection(struct sockaddr_in addr) {
       return false;
     }
 
-    // Connect to server socket
+    // Connect to the scope
     if(connect(sock, (struct sockaddr *)&addr, sizeof addr) < 0)
     {
       perror("Connect error");
@@ -223,34 +214,21 @@ bool NexStarAUXScope::initConnection(struct sockaddr_in addr) {
     fcntl(sock, F_SETFL, flags | O_NONBLOCK);
     fprintf(stderr, "Socket:%d\n", sock);
     */
-    /*
-    iow.set <NexStarAUXScope, &NexStarAUXScope::io_cb> (this);
-    iow.start(sock, ev::READ);
-    tickw.set <NexStarAUXScope, &NexStarAUXScope::tick_cb> (this);
-    tickw.start(5,0);
-    */
-//    ev::default_loop loop;
-//    loop.run(0);
     return true;
-};
+}
 
-void NexStarAUXScope::io_cb (ev::io &w, int revents) { 
-    int n;
-    char buf[BUFFER_SIZE];
+bool NexStarAUXScope::Disconnect(){
+    fprintf(stderr,"Disconnecting...\n");
+    closeConnection();
+}
 
-    perror("RCV");
-    while((n = recv(w.fd, buf, sizeof(buf),0)) > 0) {
-          buf[n] = 0;
-          for (int i=0 ; i<n ; i++) {
-            printf("%02x ", buf[i]);
-          }
-          printf("\n");
+
+void NexStarAUXScope::closeConnection(){
+    if (sock > 0) {
+        close(sock);
+        sock=0;
     }
-};
-
-void NexStarAUXScope::tick_cb (ev::timer &w, int revents) { 
-    perror("TICK");
-};
+}
 
 
 bool NexStarAUXScope::Abort(){
@@ -382,8 +360,9 @@ void NexStarAUXScope::processMsgs(){
 void NexStarAUXScope::readMsgs(){
     int n, i;
     unsigned char buf[BUFFER_SIZE];
-
-    if (sock<3) return;
+    
+    // We are not connected. Nothing to do.
+    if (sock<=0) return;
     
     timeval tv;
     tv.tv_sec=0;
@@ -423,6 +402,7 @@ void NexStarAUXScope::readMsgs(){
 }
 
 int sendBuffer(int sock, buffer buf, long tout_msec){
+    if (sock>0) {
     timeval tv;
     int n;
     tv.tv_usec=(tout_msec%1000)*1000;
@@ -431,6 +411,8 @@ int sendBuffer(int sock, buffer buf, long tout_msec){
     n=send(sock, buf.data(), buf.size(), 0);
     msleep(50);
     return n;
+    } else 
+        return 0;
 }
 
 bool NexStarAUXScope::sendCmd(AUXCommand *c){

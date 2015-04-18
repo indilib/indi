@@ -139,11 +139,18 @@ bool NexStarEvo::Abort()
 bool NexStarEvo::Connect()
 {
     SetTimer(POLLMS);
+    if (scope == NULL) scope = new NexStarAUXScope();
+    if (scope != NULL) {
+        scope->Connect();
+    }
     return true;
 }
 
 bool NexStarEvo::Disconnect()
 {
+    if (scope != NULL) {
+        scope->Disconnect();
+    }
     return true;
 }
 

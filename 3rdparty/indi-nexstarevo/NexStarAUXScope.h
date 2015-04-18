@@ -2,7 +2,6 @@
 #define NEXSTARAUX_H
 
 #include <netinet/in.h>
-#include <ev++.h>
 #include <queue>
 
 typedef std::vector<unsigned char> buffer;
@@ -66,8 +65,8 @@ public:
     NexStarAUXScope(char const *ip, int port);
     NexStarAUXScope(int port);
     NexStarAUXScope(char const *ip);
-    NexStarAUXScope(struct sockaddr_in addr);
     NexStarAUXScope();
+    ~NexStarAUXScope();
     bool Abort();
     long GetALT();
     long GetAZ();
@@ -75,12 +74,13 @@ public:
     bool GoTo(long alt, long az, bool track);
     bool Track(long altRate, long azRate);
     bool TimerTick(double dt);
+    bool Connect();
+    bool Disconnect();
     
 private:
-    bool initConnection(char const *ip, int port);
-    bool initConnection(struct sockaddr_in addr);
-    void io_cb (ev::io &w, int revents);
-    void tick_cb (ev::timer &w, int revents);
+    void initScope(char const *ip, int port);
+    void initScope();
+    void closeConnection();
     void readMsgs();
     void processMsgs();
     void writeMsgs();
@@ -96,6 +96,7 @@ private:
     bool tracking;
     bool slewingAlt, slewingAz;
     int sock;
+    struct sockaddr_in addr;
     bool simulator=false;
     std::queue<AUXCommand *> iq, oq;
 };
