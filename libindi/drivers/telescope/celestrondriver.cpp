@@ -792,7 +792,7 @@ bool slew_celestron_azalt(int fd, double az, double alt)
     alt_int = get_angle_fraction(alt);
 
     char AzStr[16], AltStr[16];
-    fs_sexa(AzStr, az, 2, 3600);
+    fs_sexa(AzStr, az, 3, 3600);
     fs_sexa(AltStr, alt, 2, 3600);
 
     DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "Goto AZM-ALT (%s,%s)", AzStr, AltStr);
@@ -1040,11 +1040,14 @@ bool get_celestron_coords_azalt(int fd, double *az, double *alt)
       int CELESTRONAZ  = strtol(az_str, NULL, 16);
       int CELESTRONALT = strtol(alt_str, NULL, 16);
 
-      *az  = (CELESTRONAZ / 65536.0) * 360.0;;
+      *az  = (CELESTRONAZ / 65536.0) * 360.0;
       *alt = (CELESTRONALT / 65536.0) * 360.0;
 
+      if (*alt > 90)
+          *alt -= 360;
+
       char AzStr[16], AltStr[16];
-      fs_sexa(AzStr, *az, 2, 3600);
+      fs_sexa(AzStr, *az, 3, 3600);
       fs_sexa(AltStr, *alt, 2, 3600);
       DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_EXTRA_1, "RES (%s) ==> AZM-ALT (%s,%s)", response, AzStr, AltStr);
 
@@ -1335,7 +1338,10 @@ bool is_scope_slewing(int fd)
 
 unsigned int get_angle_fraction(double angle)
 {
-    return ((unsigned int) (angle * 65536 / 360.0));
+    if (angle >= 0)
+        return ((unsigned int) (angle * 65536 / 360.0));
+    else
+        return ((unsigned int) ((angle+360) * 65536 / 360.0));
 }
 
 unsigned int get_ra_fraction(double ra)
