@@ -9,7 +9,7 @@
 #ifndef INDI_ALIGNMENTSUBSYSTEM_MAPPROPERTIESTOINMEMORYDATABASE_H
 #define INDI_ALIGNMENTSUBSYSTEM_MAPPROPERTIESTOINMEMORYDATABASE_H
 
-#include "indibase/inditelescope.h"
+#include "../inditelescope.h"
 #include "InMemoryDatabase.h"
 
 namespace INDI {

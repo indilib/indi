@@ -272,7 +272,7 @@ bool ScopeSim::initProperties()
     addDebugControl();
 
     // Add alignment properties
-    InitProperties(this);
+    InitAlignmentProperties(this);
 
     return true;
 }
@@ -282,7 +282,7 @@ bool ScopeSim::ISNewBLOB (const char *dev, const char *name, int sizes[], int bl
     if(strcmp(dev,getDeviceName())==0)
     {
         // Process alignment properties
-        ProcessBlobProperties(this, name, sizes, blobsizes, blobs, formats, names, n);
+        ProcessAlignmentBLOBProperties(this, name, sizes, blobsizes, blobs, formats, names, n);
     }
     // Pass it up the chain
     return INDI::Telescope::ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
@@ -295,7 +295,7 @@ bool ScopeSim::ISNewNumber (const char *dev, const char *name, double values[], 
     if(strcmp(dev,getDeviceName())==0)
     {
         // Process alignment properties
-        ProcessNumberProperties(this, name, values, names, n);
+        ProcessAlignmentNumberProperties(this, name, values, names, n);
 
     }
 
@@ -309,7 +309,7 @@ bool ScopeSim::ISNewSwitch (const char *dev, const char *name, ISState *states, 
     if(strcmp(dev,getDeviceName())==0)
     {
         // Process alignment properties
-        ProcessSwitchProperties(this, name, states, names, n);
+        ProcessAlignmentSwitchProperties(this, name, states, names, n);
     }
 
     //  Nobody has claimed this, so, ignore it
@@ -321,7 +321,7 @@ bool ScopeSim::ISNewText (const char *dev, const char *name, char *texts[], char
     if(strcmp(dev,getDeviceName())==0)
     {
         // Process alignment properties
-        ProcessTextProperties(this, name, texts, names, n);
+        ProcessAlignmentTextProperties(this, name, texts, names, n);
     }
     // Pass it up the chain
     return INDI::Telescope::ISNewText(dev, name, texts, names, n);

@@ -266,7 +266,7 @@ bool SkywatcherAPIMount::initProperties()
     addConfigurationControl();
 
     // Add alignment properties
-    InitProperties(this);
+    InitAlignmentProperties(this);
 
     // Force the alignment system to always be on
     getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")->sp[0].s = ISS_ON;
@@ -474,7 +474,7 @@ bool SkywatcherAPIMount::ISNewBLOB (const char *dev, const char *name, int sizes
     if(strcmp(dev,getDeviceName())==0)
     {
         // It is for us
-        ProcessBlobProperties(this, name, sizes, blobsizes, blobs, formats, names, n);
+        ProcessAlignmentBLOBProperties(this, name, sizes, blobsizes, blobs, formats, names, n);
     }
     // Pass it up the chain
     return INDI::Telescope::ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
@@ -485,7 +485,7 @@ bool SkywatcherAPIMount::ISNewNumber (const char *dev, const char *name, double 
     if(strcmp(dev,getDeviceName())==0)
     {
         // It is for us
-        ProcessNumberProperties(this, name, values, names, n);
+        ProcessAlignmentNumberProperties(this, name, values, names, n);
     }
     // Pass it up the chain
     return INDI::Telescope::ISNewNumber(dev, name, values, names, n);
@@ -496,7 +496,7 @@ bool SkywatcherAPIMount::ISNewSwitch (const char *dev, const char *name, ISState
     if(strcmp(dev,getDeviceName())==0)
     {
         // It is for us
-        ProcessSwitchProperties(this, name, states, names, n);
+        ProcessAlignmentSwitchProperties(this, name, states, names, n);
     }
     // Pass it up the chain
     return INDI::Telescope::ISNewSwitch(dev, name, states, names, n);
@@ -506,7 +506,7 @@ bool SkywatcherAPIMount::ISNewText (const char *dev, const char *name, char *tex
 {
     if(strcmp(dev,getDeviceName())==0)
     {
-        ProcessTextProperties(this, name, texts, names, n);
+        ProcessAlignmentTextProperties(this, name, texts, names, n);
     }
     // Pass it up the chain
     return INDI::Telescope::ISNewText(dev, name, texts, names, n);
@@ -664,7 +664,7 @@ bool SkywatcherAPIMount::ReadScopeStatus()
 
 bool SkywatcherAPIMount::saveConfigItems(FILE *fp)
 {
-    SaveConfigProperties(fp);
+    SaveAlignmentConfigProperties(fp);
 
     return INDI::Telescope::saveConfigItems(fp);
 }

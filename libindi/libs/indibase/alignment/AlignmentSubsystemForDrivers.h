@@ -36,7 +36,7 @@ public:
     /** \brief Initilize alignment subsystem properties. It is recommended to call this function within initProperties() of your primary device
      * \param[in] pTelescope Pointer to the child INDI::Telecope class
     */
-    void InitProperties(Telescope* pTelescope);
+    void InitAlignmentProperties(Telescope* pTelescope);
 
     /** \brief Call this function from within the ISNewBlob processing path. The function will
      * handle any alignment subsystem related properties.
@@ -49,7 +49,7 @@ public:
      * \param[in] names
      * \param[in] n
     */
-    void ProcessBlobProperties(Telescope* pTelescope, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
+    void ProcessAlignmentBLOBProperties(Telescope* pTelescope, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
 
     /** \brief Call this function from within the ISNewNumber processing path. The function will
      * handle any alignment subsystem related properties.
@@ -59,7 +59,7 @@ public:
      * \param[in] names names as passed by the client
      * \param[in] n number of values and names pair to process.
     */
-    void ProcessNumberProperties(Telescope* pTelescope, const char *name, double values[], char *names[], int n);
+    void ProcessAlignmentNumberProperties(Telescope* pTelescope, const char *name, double values[], char *names[], int n);
 
     /** \brief Call this function from within the ISNewSwitch processing path. The function will
      * handle any alignment subsystem related properties.
@@ -69,7 +69,7 @@ public:
      * \param[in] names names as passed by the client
      * \param[in] n number of values and names pair to process.
     */
-    void ProcessSwitchProperties(Telescope* pTelescope, const char *name, ISState *states, char *names[], int n);
+    void ProcessAlignmentSwitchProperties(Telescope* pTelescope, const char *name, ISState *states, char *names[], int n);
 
     /** \brief Call this function from within the ISNewText processing path. The function will
      * handle any alignment subsystem related properties. This only text property at the moment is contained in the
@@ -80,13 +80,13 @@ public:
      * \param[in] names names as passed by the client
      * \param[in] n number of values and names pair to process.
     */
-    void ProcessTextProperties(Telescope* pTelescope, const char *name, char *texts[], char *names[], int n);
+    void ProcessAlignmentTextProperties(Telescope* pTelescope, const char *name, char *texts[], char *names[], int n);
 
     /** \brief Call this function to save persistent alignment related properties.
      * This function should be called from within the saveConfigItems function of your driver.
      * \param[in] fp File pointer passed into saveConfigItems
     */
-    void SaveConfigProperties(FILE *fp);
+    void SaveAlignmentConfigProperties(FILE *fp);
 
 private:
     /** \brief This static function is registered as a load database callback with

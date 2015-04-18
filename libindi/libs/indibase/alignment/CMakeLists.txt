@@ -49,6 +49,10 @@ if (GSL_FOUND)
 endif (GSL_FOUND)
 set_target_properties(AlignmentDriver PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indiAlignmentDriver)
 install(TARGETS AlignmentDriver LIBRARY DESTINATION ${LIB_DESTINATION})
+install(FILES AlignmentSubsystemForMathPlugins.h AlignmentSubsystemForDrivers.h BasicMathPlugin.h BuiltInMathPlugin.h
+              ClientAPIForAlignmentDatabase.h ClientAPIForMathPluginManagement.h Common.h ConvexHull.h DriverCommon.h InMemoryDatabase.h MathPlugin.h
+              MathPluginManagement.h SVDMathPlugin.h TelescopeDirectionVectorSupportFunctions.h MapPropertiesToInMemoryDatabase.h
+        DESTINATION ${INCLUDE_INSTALL_DIR}/libindi/alignment COMPONENT Devel)
 
 ##################################################
 ####### INDI AlignmentClient static library ######

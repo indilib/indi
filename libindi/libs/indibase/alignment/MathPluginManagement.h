@@ -9,7 +9,7 @@
 #ifndef INDI_ALIGNMENTSUBSYSTEM_MATHPLUGINMANAGEMENT_H
 #define INDI_ALIGNMENTSUBSYSTEM_MATHPLUGINMANAGEMENT_H
 
-#include "indibase/inditelescope.h"
+#include "../inditelescope.h"
 
 #include "BuiltInMathPlugin.h"
 
