@@ -246,6 +246,12 @@
 3rdparty/indi-maxdomeii/maxdomeii.h -text
 3rdparty/indi-maxdomeii/maxdomeiidriver.c -text
 3rdparty/indi-maxdomeii/maxdomeiidriver.h -text
+3rdparty/indi-nexstarevo/CMakeLists.txt -text
+3rdparty/indi-nexstarevo/NexStarAUXScope.cpp -text
+3rdparty/indi-nexstarevo/NexStarAUXScope.h -text
+3rdparty/indi-nexstarevo/indi_nexstarevo.xml -text
+3rdparty/indi-nexstarevo/nexstarevo.cpp -text
+3rdparty/indi-nexstarevo/nexstarevo.h -text
 3rdparty/indi-qhy/AUTHORS -text
 3rdparty/indi-qhy/CMakeLists.txt -text
 3rdparty/indi-qhy/INSTALL -text
