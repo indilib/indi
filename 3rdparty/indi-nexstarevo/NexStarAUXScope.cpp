@@ -279,7 +279,7 @@ bool NexStarAUXScope::Track(long altRate, long azRate){
         AzRate=0;
     }
     tracking=true;
-    fprintf(stderr,"Set tracking rates: ALT: %d   AZM: %d\n", AltRate, AzRate);
+    fprintf(stderr,"Set tracking rates: ALT: %ld   AZM: %ld\n", AltRate, AzRate);
     AUXCommand *altcmd= new AUXCommand((altRate<0)? MC_SET_NEG_GUIDERATE : MC_SET_POS_GUIDERATE,APP,ALT);
     AUXCommand *azmcmd= new AUXCommand((azRate<0)? MC_SET_NEG_GUIDERATE : MC_SET_POS_GUIDERATE,APP,AZM);
     altcmd->setPosition(abs(AltRate));
