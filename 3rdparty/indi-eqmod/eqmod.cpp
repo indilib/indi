@@ -2012,9 +2012,9 @@ From // // http://www.whim.org/nebula/math/pdf/twostar.pdf
   cosDelta2=sin(delta1) * sin(delta2) + (cos(delta1) * cos(delta2) * cos(alpha2 - alpha1));
 
   if (cosDelta1 != cosDelta2) 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "PolarAlign -- Telescope axes are not perpendicular. Angular distances are:celestial=%g telescope=%g\n", acos(cosDelta1), acos(cosDelta2));
+    DEBUGF(INDI::Logger::DBG_DEBUG, "PolarAlign -- Telescope axes are not perpendicular. Angular distances are:celestial=%g telescope=%g", acos(cosDelta1), acos(cosDelta2));
   Delta = acos(cosDelta1);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Angular distance of the two stars is %g\n", Delta);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Angular distance of the two stars is %g", Delta);
 
   //cosd2md1 = sin(delta1) * sin(delta2) + cos(delta1) * cos(delta2);
   cosd2pd1 = ((cos(delta2 - delta1) * (1 + cos(alpha2 - alpha1))) - (2.0 * cosDelta2)) / (1 - cos(alpha2 - alpha1));
@@ -2031,7 +2031,7 @@ From // // http://www.whim.org/nebula/math/pdf/twostar.pdf
       
   d2 = (d2pd1 + delta2 - delta1) / 2.0;
   d1 = d2pd1 - d2;
-  DEBUGF(INDI::Logger::DBG_DEBUG,"Computed delta1 = %g (%g) delta2 = %g (%g)\n", d1, delta1, d2, delta2);
+  DEBUGF(INDI::Logger::DBG_DEBUG,"Computed delta1 = %g (%g) delta2 = %g (%g)", d1, delta1, d2, delta2);
 
   delta1 = d1;
   delta2 = d2;
@@ -2051,7 +2051,7 @@ From // // http://www.whim.org/nebula/math/pdf/twostar.pdf
   // tpadelta and tpaaplha are very near M_PI / 2 d: DON'T USE  atan2
   //tpaalpha=atan2(sintpaalpha, costpaalpha);
   tpaalpha=2 * atan2(sintpaalpha, (1.0 + costpaalpha));
-  DEBUGF(INDI::Logger::DBG_DEBUG,"Computed Telescope polar alignment (rad): delta(dec) = %g alpha(ha) = %g\n", tpadelta, tpaalpha);
+  DEBUGF(INDI::Logger::DBG_DEBUG,"Computed Telescope polar alignment (rad): delta(dec) = %g alpha(ha) = %g", tpadelta, tpaalpha);
 
   beta = ln_deg_to_rad(lat);
   *tpaalt = asin(sin(tpadelta) * sin(beta) + (cos(tpadelta) * cos(beta) * cos(tpaalpha)));
@@ -2062,7 +2062,7 @@ From // // http://www.whim.org/nebula/math/pdf/twostar.pdf
   *tpaaz=atan2(sinaz, cosaz);
   *tpaalt=ln_rad_to_deg(*tpaalt);
   *tpaaz = ln_rad_to_deg(*tpaaz);
-  DEBUGF(INDI::Logger::DBG_DEBUG,"Computed Telescope polar alignment (deg): alt = %g az = %g\n", *tpaalt, *tpaaz);
+  DEBUGF(INDI::Logger::DBG_DEBUG,"Computed Telescope polar alignment (deg): alt = %g az = %g", *tpaalt, *tpaaz);
   
   starPolarAlign(s2.lst, s2.targetRA, s2.targetDEC, (M_PI / 2)-tpaalpha, (M_PI / 2) - tpadelta, &s2tra, &s2tdec);
   fs_sexa(s2trasexa, s2tra, 2, 3600);
