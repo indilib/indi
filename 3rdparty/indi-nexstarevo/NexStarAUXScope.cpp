@@ -12,7 +12,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include "indicom.h"
+#include <indicom.h>
 #include "NexStarAUXScope.h"
 
 #define BUFFER_SIZE 10240
@@ -118,25 +118,25 @@ unsigned char AUXCommand::checksum(buffer buf){
 
 long AUXCommand::getPosition(){
     if (data.size()==3) {
-        char buf[4];
-        bzero(buf,4);
-        for (int i=0;i<data.size();i++){
-            buf[i+1]=data[i];
+        int a= (int)data[0] << 16 | (int)data[1]<<8 | (int)data[2];
+        if (data[0] & 0x80) { 
+            a |= 0xff000000; 
         }
-        fprintf(stderr,"Angle: %f\n",ntohl(*(uint32_t *)buf)/pow(2,24));
-        return (long)ntohl(*(uint32_t *)buf);
+        //fprintf(stderr,"Angle: %d %08x = %d => %f\n", sizeof(a), a, a, a/pow(2,24));
+        return a;
     } else {
         return 0;
     }
 }
 
 void AUXCommand::setPosition(long p){
-    uint32_t n=htonl(p);
-    unsigned char *b=(unsigned char *)&n;
-    //fprintf(stderr,"%x -> %x %x %x %x\n", p, b[0], b[1], b[2], b[3]);
+    int a=(int)p;
+    //fprintf(stderr,"Angle: %08x = %d => %f\n", a, a, a/pow(2,24));
     data.resize(3);
-    for (int i=0; i<3; i++) data[i]=b[i+1];
-    //data.assign(b+1,b+3);
+    for (int i=2; i>-1; i--) {
+        data[i]=(unsigned char)(p & 0xff);
+        p >>= 8;
+    }
     len=6;
 }
 
@@ -232,6 +232,13 @@ void NexStarAUXScope::closeConnection(){
 
 
 bool NexStarAUXScope::Abort(){
+    Track(0,0);
+    buffer b(1);
+    b[0]=0;
+    AUXCommand stopAlt(MC_MOVE_POS,APP,ALT,b);
+    AUXCommand stopAz(MC_MOVE_POS,APP,AZM,b);
+    sendCmd(&stopAlt);
+    sendCmd(&stopAz);
     return true;
 };
 
@@ -240,6 +247,7 @@ long NexStarAUXScope::GetALT(){
 };
 
 long NexStarAUXScope::GetAZ(){
+    if (Az<0) Az+=STEPS_PER_REVOLUTION;
     return Az;
 };
 
@@ -253,12 +261,12 @@ bool NexStarAUXScope::GoToFast(long alt, long az, bool track){
     tracking=track;
     slewingAlt=slewingAz=true;
     Track(0,0);
-    AUXCommand *altcmd= new AUXCommand(MC_GOTO_FAST,APP,ALT);
-    AUXCommand *azmcmd= new AUXCommand(MC_GOTO_FAST,APP,AZM);
-    altcmd->setPosition(alt);
-    azmcmd->setPosition(az);
-    sendCmd(altcmd);
-    sendCmd(azmcmd);
+    AUXCommand altcmd(MC_GOTO_FAST,APP,ALT);
+    AUXCommand azmcmd(MC_GOTO_FAST,APP,AZM);
+    altcmd.setPosition(alt);
+    azmcmd.setPosition(az);
+    sendCmd(&altcmd);
+    sendCmd(&azmcmd);
     readMsgs();
     return true;
 };
@@ -269,12 +277,12 @@ bool NexStarAUXScope::GoToSlow(long alt, long az, bool track){
     tracking=track;
     slewingAlt=slewingAz=true;
     Track(0,0);
-    AUXCommand *altcmd= new AUXCommand(MC_GOTO_SLOW,APP,ALT);
-    AUXCommand *azmcmd= new AUXCommand(MC_GOTO_SLOW,APP,AZM);
-    altcmd->setPosition(alt);
-    azmcmd->setPosition(az);
-    sendCmd(altcmd);
-    sendCmd(azmcmd);
+    AUXCommand altcmd(MC_GOTO_SLOW,APP,ALT);
+    AUXCommand azmcmd(MC_GOTO_SLOW,APP,AZM);
+    altcmd.setPosition(alt);
+    azmcmd.setPosition(az);
+    sendCmd(&altcmd);
+    sendCmd(&azmcmd);
     readMsgs();
     return true;
 };
@@ -288,14 +296,14 @@ bool NexStarAUXScope::Track(long altRate, long azRate){
         AzRate=0;
     }
     tracking=true;
-    fprintf(stderr,"Set tracking rates: ALT: %ld   AZM: %ld\n", AltRate, AzRate);
-    AUXCommand *altcmd= new AUXCommand((altRate<0)? MC_SET_NEG_GUIDERATE : MC_SET_POS_GUIDERATE,APP,ALT);
-    AUXCommand *azmcmd= new AUXCommand((azRate<0)? MC_SET_NEG_GUIDERATE : MC_SET_POS_GUIDERATE,APP,AZM);
-    altcmd->setPosition(abs(AltRate));
-    azmcmd->setPosition(abs(AzRate));
+    //fprintf(stderr,"Set tracking rates: ALT: %ld   AZM: %ld\n", AltRate, AzRate);
+    AUXCommand altcmd((altRate<0)? MC_SET_NEG_GUIDERATE : MC_SET_POS_GUIDERATE,APP,ALT);
+    AUXCommand azmcmd((azRate<0)? MC_SET_NEG_GUIDERATE : MC_SET_POS_GUIDERATE,APP,AZM);
+    altcmd.setPosition(abs(AltRate));
+    azmcmd.setPosition(abs(AzRate));
     
-    sendCmd(altcmd);
-    sendCmd(azmcmd);
+    sendCmd(&altcmd);
+    sendCmd(&azmcmd);
     readMsgs();
     return true;
 };
@@ -315,7 +323,6 @@ void NexStarAUXScope::querryStatus(){
         if (not sendCmd(cmd)) {
             fprintf(stderr,"Send failed!\n");
         }
-        // Wait with the next command;
         delete cmd;
     }
     if (slewingAz) {
@@ -323,7 +330,6 @@ void NexStarAUXScope::querryStatus(){
         if (not sendCmd(cmd)) {
             fprintf(stderr,"Send failed!\n");
         }
-        // Wait with the next command;
         delete cmd;
     }
     
@@ -333,7 +339,7 @@ void NexStarAUXScope::querryStatus(){
 void NexStarAUXScope::processMsgs(){
     while (not iq.empty()) {
         AUXCommand *m=iq.front();
-        m->dumpCmd();
+        //fprintf(stderr,"Recv: "); m->dumpCmd();
         switch (m->cmd) {
             case MC_GET_POSITION:
                 switch (m->src) {
@@ -389,7 +395,7 @@ void NexStarAUXScope::readMsgs(){
                 int shft;
                 shft=i+buf[i+1]+3;
                 if (shft<=n) {
-                    prnBytes(buf+i,shft-i);
+                    //prnBytes(buf+i,shft-i);
                     buffer b(buf+i, buf+shft);
                     //dumpMsg(b);
                     iq.push(new AUXCommand(b));
@@ -403,9 +409,10 @@ void NexStarAUXScope::readMsgs(){
             }
         }
         // Actually consume data we parsed. Leave the rest for later.
-        
-        n=recv(sock, buf, i,MSG_DONTWAIT);
-        fprintf(stderr,"Consumed %d/%d bytes\n", n, i);
+        if (i>0) {
+            n=recv(sock, buf, i,MSG_DONTWAIT);
+            //fprintf(stderr,"Consumed %d/%d bytes\n", n, i);
+        }
     }
     //fprintf(stderr,"Nothing more to read\n");
 }
@@ -426,8 +433,7 @@ int sendBuffer(int sock, buffer buf, long tout_msec){
 
 bool NexStarAUXScope::sendCmd(AUXCommand *c){
     buffer buf;
-    fprintf(stderr,"Send: ");
-    c->dumpCmd();
+    //fprintf(stderr,"Send: ");   c->dumpCmd();
     c->fillBuf(buf);
     return sendBuffer(sock, buf, 500)==buf.size();
 }

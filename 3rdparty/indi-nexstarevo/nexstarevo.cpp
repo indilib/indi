@@ -130,8 +130,9 @@ bool NexStarEvo::Abort()
 
     TrackState = SCOPE_IDLE;
 
-    AxisStatusAZ = AxisStatusALT = STOPPED; // This marvelous inertia free scope can be stopped instantly!
-
+    AxisStatusAZ = AxisStatusALT = STOPPED; 
+    ScopeStatus = IDLE ;
+    scope->Abort();
     AbortSP.s      = IPS_OK;
     IUResetSwitch(&AbortSP);
     IDSetSwitch(&AbortSP, NULL);
@@ -239,6 +240,11 @@ bool NexStarEvo::Goto(double ra,double dec)
         }
     }
 
+    if (ScopeStatus != SLEWING_FAST){
+        AltAz.alt+=ApproachALT/STEPS_PER_DEGREE;
+        AltAz.az+=ApproachAZ/STEPS_PER_DEGREE;
+    }
+
     // My altitude encoder runs -90 to +90
     if ((AltAz.alt > 90.0) || (AltAz.alt < -90.0))
     {
@@ -266,8 +272,8 @@ bool NexStarEvo::Goto(double ra,double dec)
     TrackState = SCOPE_SLEWING;
     if (ScopeStatus != SLEWING_FAST) {
         ScopeStatus = SLEWING_FAST;
-        scope->GoToFast(long(AltAz.alt * STEPS_PER_DEGREE)+ApproachALT,
-                        long(AltAz.az * STEPS_PER_DEGREE)+ApproachAZ,
+        scope->GoToFast(long(AltAz.alt * STEPS_PER_DEGREE),
+                        long(AltAz.az * STEPS_PER_DEGREE),
                         ISS_ON == IUFindSwitch(&CoordSP,"TRACK")->s);
     } else {
         ScopeStatus = SLEWING_SLOW;
@@ -466,7 +472,7 @@ bool NexStarEvo::Sync(double ra, double dec)
             // Tell the math plugin to reinitialise
             Initialise(this);
             DEBUGF(DBG_NSEVO, "Sync - new entry added RA: %lf(%lf) DEC: %lf", ra * 360.0 / 24.0, ra, dec);
-
+            ReadScopeStatus();
             return true;
         }
         DEBUGF(DBG_NSEVO, "Sync - adding entry failed RA: %lf(%lf) DEC: %lf", ra * 360.0 / 24.0, ra, dec);
@@ -475,6 +481,7 @@ bool NexStarEvo::Sync(double ra, double dec)
 
 void NexStarEvo::TimerHit()
 {
+
     TraceThisTickCount++;
     if (60 == TraceThisTickCount)
     {
@@ -516,7 +523,7 @@ void NexStarEvo::TimerHit()
                 } else if (ISS_ON == IUFindSwitch(&CoordSP,"TRACK")->s)
                 {
                     // Precise Goto has finished. Start tracking.
-                    DEBUG(DBG_NSEVO, "TimerHit - Goto finished start tracking");
+                    DEBUGF(DBG_NSEVO, "TimerHit - Goto finished start tracking TargetRA: %f TargetDEC: %f", CurrentTrackingTarget.ra, CurrentTrackingTarget.dec);
                     TrackState = SCOPE_TRACKING;
                     // Fall through to tracking case
                 }
@@ -605,9 +612,15 @@ void NexStarEvo::TimerHit()
 
             {
                 long altRate, azRate;
-                
                 altRate=long(TRACK_SCALE*(AltAz.alt * STEPS_PER_DEGREE - scope->GetALT()));
                 azRate=long(TRACK_SCALE*(AltAz.az * STEPS_PER_DEGREE - scope->GetAZ()));
+
+                if (TraceThisTick) 
+                    DEBUGF(DBG_NSEVO, "Target (AltAz): %f  %f  Scope  (AltAz)  %f  %f", 
+                        AltAz.alt, 
+                        AltAz.az,
+                        scope->GetALT()/ STEPS_PER_DEGREE,
+                        scope->GetAZ()/ STEPS_PER_DEGREE);
                 
                 if (abs(azRate)>TRACK_SCALE*STEPS_PER_DEGREE*180) {
                     // Crossing the meridian. AZ skips from 350+ to 0+
@@ -616,7 +629,7 @@ void NexStarEvo::TimerHit()
                 }
                 scope->Track(altRate,azRate);
 
-                DEBUGF(DBG_NSEVO, "TimerHit - Tracking AltRate %d AzRate %d ; Should be (deg/s): Alt: %f Az: %f",
+                if (TraceThisTick) DEBUGF(DBG_NSEVO, "TimerHit - Tracking AltRate %d AzRate %d ; Pos diff (deg): Alt: %f Az: %f",
                         altRate, azRate, AltAz.alt-AAzero.alt, AltAz.az- AAzero.az);
             }
             break;

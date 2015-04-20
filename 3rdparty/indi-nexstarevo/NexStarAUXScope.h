@@ -37,7 +37,6 @@ enum AUXtargets {
 };
 
 
-
 class AUXCommand{
 public:
     AUXCommand(buffer buf);
@@ -79,6 +78,7 @@ public:
     bool Disconnect();
     
 private:
+    static const long STEPS_PER_REVOLUTION = 16777216; 
     void initScope(char const *ip, int port);
     void initScope();
     void closeConnection();
