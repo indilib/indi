@@ -405,6 +405,8 @@ bool ASICCD::setupParams()
   ASI_IMG_TYPE imgType;
   ASIGetROIFormat(m_camInfo->CameraID, &w, &h, &bin, &imgType);
 
+  DEBUGF(INDI::Logger::DBG_DEBUG, "CCD ID: %d Width: %d Height: %d Binning: %dx%d Image Type: %d", m_camInfo->CameraID, w, h, bin, bin, imgType);
+
   // Get video format and bit depth
   int bit_depth = 8;
 
@@ -498,7 +500,7 @@ bool ASICCD::setupParams()
       IDSetNumber(&TemperatureNP, NULL);
   }
 
-  ASISetROIFormat(m_camInfo->CameraID, m_camInfo->MaxWidth, m_camInfo->MaxHeight, 1, getImageType());
+  ASISetROIFormat(m_camInfo->CameraID, m_camInfo->MaxWidth, m_camInfo->MaxHeight, 1, imgType);
 
   updateRecorderFormat();
   recorder->setsize(w, h);

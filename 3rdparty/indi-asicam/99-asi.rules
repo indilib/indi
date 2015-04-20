@@ -1,7 +1,7 @@
 SUBSYSTEMS=="usb", ATTRS{product}=="ASI030MC", ATTRS{idVendor}=="03c3", ATTRS{idProduct}=="030a", GROUP="users", MODE="0666"
 SUBSYSTEMS=="usb", ATTRS{product}=="ASI034MC", ATTRS{idVendor}=="03c3", ATTRS{idProduct}=="034b", GROUP="users", MODE="0666"
 SUBSYSTEMS=="usb", ATTRS{product}=="ASI035MC", ATTRS{idVendor}=="03c3", ATTRS{idProduct}=="035b", GROUP="users", MODE="0666"
-SUBSYSTEMS=="usb", ATTRS{product}=="ASI120MM", ATTRS{idVendor}=="03c3", ATTRS{idProduct}=="120b", GROUP="users", MODE="0666"
+SUBSYSTEMS=="usb", ATTRS{product}=="ASI120MM", ATTRS{idVendor}=="03c3", ATTRS{idProduct}=="120a", GROUP="users", MODE="0666"
 SUBSYSTEMS=="usb", ATTRS{product}=="ASI120MC", ATTRS{idVendor}=="03c3", ATTRS{idProduct}=="120b", GROUP="users", MODE="0666"
 SUBSYSTEMS=="usb", ATTRS{product}=="ASI120MC-S", ATTRS{idVendor}=="03c3", ATTRS{idProduct}=="120e", GROUP="users", MODE="0666"
 SUBSYSTEMS=="usb", ATTRS{product}=="ASI120MM-S", ATTRS{idVendor}=="03c3", ATTRS{idProduct}=="120f", GROUP="users", MODE="0666"
