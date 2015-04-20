@@ -983,7 +983,7 @@ bool get_celestron_coords(int fd, double *ra, double *dec)
         char RAStr[16], DecStr[16];
         fs_sexa(RAStr, *ra, 2, 3600);
         fs_sexa(DecStr, *dec, 2, 3600);
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_EXTRA_1, "RES (%s) ==> (%s,%s)", response, RAStr, DecStr);
+        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_EXTRA_1, "RES (%s) ==> RA-DEC (%s,%s)", response, RAStr, DecStr);
 
         return true;
     }
