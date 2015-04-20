@@ -942,6 +942,12 @@ void INDI::Telescope::SetTelescopeCapability(TelescopeCapability *cap)
     capability.canSync      = cap->canSync;
     capability.canAbort     = cap->canAbort;
     capability.nSlewRate    = cap->nSlewRate;
+
+    if (capability.canSync)
+        IUFillSwitchVector(&CoordSP,CoordS,3,getDeviceName(),"ON_COORD_SET","On Set",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    else
+        IUFillSwitchVector(&CoordSP,CoordS,2,getDeviceName(),"ON_COORD_SET","On Set",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+
 }
 
 void INDI::Telescope::SetParkDataType(TelescopeParkData type)
@@ -1051,7 +1057,7 @@ char *INDI::Telescope::LoadParkData()
   if (wordexp(Parkdatafile, &wexp, 0))
   {
     wordfree(&wexp);
-    return (char *)("Badly formed filename");
+    return (char *)("Badly formed filename.");
   }
 
   if (!(fp=fopen(wexp.we_wordv[0], "r")))
@@ -1103,8 +1109,13 @@ char *INDI::Telescope::LoadParkData()
   ParkpositionAxis2Xml = findXMLEle(ParkpositionXml, "axis2position");
   IsParked=false;
 
+  if (ParkstatusXml == NULL || ParkpositionAxis1Xml == NULL || ParkpositionAxis2Xml == NULL)
+  {
+      return (char *)("Park data invalid or missing.");
+  }
+
   if (!strcmp(pcdataXMLEle(ParkstatusXml), "true"))
-      IsParked=true;
+      IsParked=true; 
 
   sscanf(pcdataXMLEle(ParkpositionAxis1Xml), "%lf", &Axis1ParkPosition);
   sscanf(pcdataXMLEle(ParkpositionAxis2Xml), "%lf", &Axis2ParkPosition);
