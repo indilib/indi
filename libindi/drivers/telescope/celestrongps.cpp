@@ -94,10 +94,9 @@ CelestronGPS::CelestronGPS()
 
    PortFD = -1;
    fwInfo.Version = "Invalid";
+   fwInfo.controllerVersion = 0;
 
    INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
-
-   TelescopeCapability cap;
 
    currentRA    = 0;
    currentDEC   = 90;
@@ -105,12 +104,6 @@ CelestronGPS::CelestronGPS()
    currentALT   = 0;
    targetAZ     = 0;
    targetALT    = 0;
-
-   cap.canPark  = true;
-   cap.canSync  = true;
-   cap.canAbort = true;
-   cap.nSlewRate= 9;
-   SetTelescopeCapability(&cap);
 
 }
 
@@ -160,25 +153,43 @@ void CelestronGPS::ISGetProperties(const char *dev)
 
 bool CelestronGPS::updateProperties()
 {
+    TelescopeCapability cap;
+    cap.canPark  = true;
+    cap.canSync  = true;
+    cap.canAbort = true;
+    cap.nSlewRate= 9;
+
+
+    if (get_celestron_firmware(PortFD, &fwInfo))
+    {
+        IUSaveText(&FirmwareT[FW_MODEL], fwInfo.Model.c_str());
+        IUSaveText(&FirmwareT[FW_VERSION], fwInfo.Version.c_str());
+        IUSaveText(&FirmwareT[FW_GPS], fwInfo.GPSFirmware.c_str());
+        IUSaveText(&FirmwareT[FW_RA], fwInfo.RAFirmware.c_str());
+        IUSaveText(&FirmwareT[FW_DEC], fwInfo.DEFirmware.c_str());
+    }
+    else
+    {
+        fwInfo.Version = "Invalid";
+        DEBUG(INDI::Logger::DBG_WARNING, "Failed to retrive firmware information.");
+    }
+
+    if (fwInfo.controllerVersion <= 4.1)
+    {
+        DEBUG(INDI::Logger::DBG_WARNING, "Mount does not support sync.");
+        cap.canSync  = false;
+    }
+
+    SetTelescopeCapability(&cap);
+
     INDI::Telescope::updateProperties();
 
     if (isConnected())
     {
         defineNumber(&HorizontalCoordsNP);
-        if (get_celestron_firmware(PortFD, &fwInfo))
-        {
-            IUSaveText(&FirmwareT[FW_MODEL], fwInfo.Model.c_str());
-            IUSaveText(&FirmwareT[FW_VERSION], fwInfo.Version.c_str());
-            IUSaveText(&FirmwareT[FW_GPS], fwInfo.GPSFirmware.c_str());
-            IUSaveText(&FirmwareT[FW_RA], fwInfo.RAFirmware.c_str());
-            IUSaveText(&FirmwareT[FW_DEC], fwInfo.DEFirmware.c_str());
+        if (fwInfo.Version != "Invalid")
             defineText(&FirmwareTP);
-        }
-        else
-        {
-            fwInfo.Version = "Invalid";
-            DEBUG(INDI::Logger::DBG_WARNING, "Failed to retrive firmware information.");
-        }
+
 
         if (InitPark())
         {
