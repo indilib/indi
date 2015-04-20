@@ -958,6 +958,8 @@ bool get_celestron_coords(int fd, double *ra, double *dec)
       response[nbytes_read] = '\0';      
 
       char ra_str[16], de_str[16];
+      memset(ra_str, 0, 16);
+      memset(de_str, 0, 16);
 
       strncpy(ra_str, response, 4);
       strncpy(de_str, response+5, 4);
@@ -1033,12 +1035,14 @@ bool get_celestron_coords_azalt(int fd, double *az, double *alt)
       response[nbytes_read] = '\0';
 
       char az_str[16], alt_str[16];
+      memset(az_str, 0, 16);
+      memset(alt_str, 0, 16);
 
       strncpy(az_str, response, 4);
       strncpy(alt_str, response+5, 4);
 
       int CELESTRONAZ  = strtol(az_str, NULL, 16);
-      int CELESTRONALT = strtol(alt_str, NULL, 16);
+      int CELESTRONALT = strtol(alt_str, NULL, 16);     
 
       *az  = (CELESTRONAZ / 65536.0) * 360.0;
       *alt = (CELESTRONALT / 65536.0) * 360.0;

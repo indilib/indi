@@ -321,7 +321,7 @@ bool CelestronGPS::GotoAzAlt(double az, double alt)
     char AZStr[16], ALTStr[16];
     fs_sexa(AZStr, targetAZ, 3, 3600);
     fs_sexa(ALTStr, targetALT, 2, 3600);
-    DEBUGF(INDI::Logger::DBG_SESSION, "Slewing to Az - %s Alt %s", AZStr, ALTStr);
+    DEBUGF(INDI::Logger::DBG_SESSION, "Slewing to Az %s - Alt %s", AZStr, ALTStr);
 
     return true;
 }
