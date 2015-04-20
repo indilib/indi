@@ -32,8 +32,13 @@
 #include "celestrongps.h"
 
 /* Simulation Parameters */
-#define	SLEWRATE	1		/* slew rate, degrees/s */
-#define SIDRATE		0.004178	/* sidereal rate, degrees/s */
+#define	GOTO_RATE       5				/* slew rate, degrees/s */
+#define	SLEW_RATE       0.5				/* slew rate, degrees/s */
+#define FINE_SLEW_RATE  0.1             /* slew rate, degrees/s */
+#define SID_RATE        0.004178		/* sidereal rate, degrees/s */
+#define GOTO_LIMIT      5.5             /* Move at GOTO_RATE until distance from target is GOTO_LIMIT degrees */
+#define SLEW_LIMIT      1               /* Move at SLEW_LIMIT until distance from target is SLEW_LIMIT degrees */
+#define FINE_SLEW_LIMIT 0.5             /* Move at FINE_SLEW_RATE until distance from target is FINE_SLEW_LIMIT degrees */
 
 #define MOUNTINFO_TAB   "Mount Info"
 
@@ -98,6 +103,8 @@ CelestronGPS::CelestronGPS()
    currentDEC   = 90;
    currentAZ    = 0;
    currentALT   = 0;
+   targetAZ     = 0;
+   targetALT    = 0;
 
    cap.canPark  = true;
    cap.canSync  = true;
@@ -124,6 +131,10 @@ bool CelestronGPS::initProperties()
     IUFillText(&FirmwareT[FW_DEC], "DEC", "", 0);
     IUFillTextVector(&FirmwareTP, FirmwareT, 5, getDeviceName(), "Firmware Info", "", MOUNTINFO_TAB, IP_RO, 0, IPS_IDLE);
 
+    IUFillNumber(&HorizontalCoordsN[AXIS_AZ], "AZ", "Az D:M:S", "%10.6m", 0.0, 360.0, 0.0, 0);
+    IUFillNumber(&HorizontalCoordsN[AXIS_ALT], "ALT", "Alt  D:M:S", "%10.6m", -90., 90.0, 0.0, 0);
+    IUFillNumberVector(&HorizontalCoordsNP, HorizontalCoordsN, 2, getDeviceName(), "HORIZONTAL_COORD", "Horizontal Coord", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+
     SetParkDataType(PARK_AZ_ALT);
 
     addAuxControls();
@@ -140,6 +151,7 @@ void CelestronGPS::ISGetProperties(const char *dev)
 
     if (isConnected())
     {
+        defineNumber(&HorizontalCoordsNP);
         defineSwitch(&SlewRateSP);
         if (fwInfo.Version != "Invalid")
             defineText(&FirmwareTP);
@@ -152,6 +164,7 @@ bool CelestronGPS::updateProperties()
 
     if (isConnected())
     {
+        defineNumber(&HorizontalCoordsNP);
         if (get_celestron_firmware(PortFD, &fwInfo))
         {
             IUSaveText(&FirmwareT[FW_MODEL], fwInfo.Model.c_str());
@@ -184,6 +197,7 @@ bool CelestronGPS::updateProperties()
     }
     else
     {
+        deleteProperty(HorizontalCoordsNP.name);
         if (fwInfo.Version != "Invalid")
             deleteProperty(FirmwareTP.name);
     }
@@ -228,9 +242,11 @@ bool CelestronGPS::Goto(double ra, double dec)
 
     if (slew_celestron(PortFD, targetRA, targetDEC) == false)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Failed to slew telescope.");
+        DEBUG(INDI::Logger::DBG_ERROR, "Failed to slew telescope in RA/DEC.");
         return false;
     }
+
+    HorizontalCoordsNP.s = IPS_BUSY;
 
     TrackState = SCOPE_SLEWING;
     fs_sexa(RAStr, targetRA, 2, 3600);
@@ -259,6 +275,53 @@ bool CelestronGPS::Sync(double ra, double dec)
     currentDEC = dec;
 
     DEBUG(INDI::Logger::DBG_SESSION, "Sync successful.");
+
+    return true;
+}
+
+bool CelestronGPS::GotoAzAlt(double az, double alt)
+{
+    if (isSimulation())
+    {
+        ln_hrz_posn horizontalPos;
+        // Libnova south = 0, west = 90, north = 180, east = 270
+        horizontalPos.az = az + 180;
+        if (horizontalPos.az >= 360)
+             horizontalPos.az -= 360;
+        horizontalPos.alt = alt;
+
+        ln_lnlat_posn observer;
+
+        observer.lat = LocationN[LOCATION_LATITUDE].value;
+        observer.lng = LocationN[LOCATION_LONGITUDE].value;
+
+        if (observer.lng > 180)
+            observer.lng -= 360;
+
+        ln_equ_posn equatorialPos;
+        ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
+
+        targetRA  = equatorialPos.ra/15.0;
+        targetDEC = equatorialPos.dec;
+    }
+
+    if (slew_celestron_azalt(PortFD, az, alt) == false)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Failed to slew telescope in Az/Alt.");
+        return false;
+    }
+
+    targetAZ = az;
+    targetALT= alt;
+
+    TrackState = SCOPE_SLEWING;
+
+    HorizontalCoordsNP.s = IPS_BUSY;
+
+    char AZStr[16], ALTStr[16];
+    fs_sexa(AZStr, targetAZ, 3, 3600);
+    fs_sexa(ALTStr, targetALT, 2, 3600);
+    DEBUGF(INDI::Logger::DBG_SESSION, "Slewing to Az - %s Alt %s", AZStr, ALTStr);
 
     return true;
 }
@@ -339,6 +402,11 @@ bool CelestronGPS::ReadScopeStatus()
 
     if (get_celestron_coords_azalt(PortFD, &currentAZ, &currentALT) == false)
         DEBUG(INDI::Logger::DBG_WARNING, "Failed to read AZ/ALT values.");
+    else
+    {
+        HorizontalCoordsN[AXIS_AZ].value  = currentAZ;
+        HorizontalCoordsN[AXIS_ALT].value = currentALT;
+    }
 
     switch (TrackState)
     {
@@ -348,19 +416,24 @@ bool CelestronGPS::ReadScopeStatus()
         {
             DEBUG(INDI::Logger::DBG_SESSION, "Slew complete, tracking...");
             TrackState = SCOPE_TRACKING;
+            HorizontalCoordsNP.s = IPS_OK;
         }
         break;
 
        case SCOPE_PARKING:
         // are we done?
         if (is_scope_slewing(PortFD) == false)
+        {
             SetParked(true);
+            HorizontalCoordsNP.s = IPS_OK;
+        }
         break;
 
     default:
         break;
     }
 
+    IDSetNumber(&HorizontalCoordsNP, NULL);
     NewRaDec(currentRA, currentDEC);
 
     return true;
@@ -425,11 +498,68 @@ bool CelestronGPS::Disconnect()
     return true;
 }
 
+
+bool CelestronGPS::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+{
+  double newAlt=0, newAz=0;
+
+  if(!strcmp(dev,getDeviceName()))
+  {
+      if ( !strcmp (name, HorizontalCoordsNP.name) )
+      {
+          int i=0, nset=0;
+
+            for (nset = i = 0; i < n; i++)
+            {
+                INumber *horp = IUFindNumber (&HorizontalCoordsNP, names[i]);
+                if (horp == &HorizontalCoordsN[AXIS_AZ])
+                {
+                    newAz = values[i];
+                    nset += newAz >= 0. && newAz <= 360.0;
+
+                } else if (horp == &HorizontalCoordsN[AXIS_ALT])
+                {
+                    newAlt = values[i];
+                    nset += newAlt >= -90. && newAlt <= 90.0;
+                }
+            }
+
+          if (nset == 2)
+          {
+              char AzStr[16], AltStr[16];
+              fs_sexa(AzStr, newAz, 3, 3600);
+              fs_sexa(AltStr, newAlt, 2, 3600);
+
+           if (GotoAzAlt(newAz, newAlt) == false)
+           {
+               HorizontalCoordsNP.s = IPS_ALERT;
+               DEBUGF(INDI::Logger::DBG_ERROR, "Error slewing to Az: %s Alt: %s", AzStr, AltStr);
+               IDSetNumber(&HorizontalCoordsNP, NULL);
+               return false;
+           }
+
+           return true;
+
+          }
+          else
+          {
+            HorizontalCoordsNP.s = IPS_ALERT;
+            DEBUG(INDI::Logger::DBG_ERROR, "Altitude or Azimuth missing or invalid");
+            IDSetNumber(&HorizontalCoordsNP, NULL);
+            return false;
+          }
+      }
+  }
+
+    INDI::Telescope::ISNewNumber (dev, name, values, names, n);
+    return true;
+}
+
 void CelestronGPS::mountSim ()
 {
     static struct timeval ltv;
     struct timeval tv;
-    double dt, da, dx;
+    double dt,dx,da_ra=0, da_dec=0;
     int nlocked;
 
     /* update elapsed time since last poll, don't presume exactly POLLMS */
@@ -440,7 +570,101 @@ void CelestronGPS::mountSim ()
 
     dt = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec)/1e6;
     ltv = tv;
-    da = SLEWRATE*dt;
+
+    if ( fabs(targetRA - currentRA)*15. >= GOTO_LIMIT )
+        da_ra = GOTO_RATE *dt;
+    else if ( fabs(targetRA - currentRA)*15. >= SLEW_LIMIT )
+        da_ra = SLEW_RATE *dt;
+    else
+        da_ra = FINE_SLEW_RATE *dt;
+
+    if ( fabs(targetDEC - currentDEC) >= GOTO_LIMIT )
+        da_dec = GOTO_RATE *dt;
+    else if ( fabs(targetDEC - currentDEC) >= SLEW_LIMIT )
+        da_dec = SLEW_RATE *dt;
+    else
+        da_dec = FINE_SLEW_RATE *dt;
+
+    if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+    {
+        int rate = IUFindOnSwitchIndex(&SlewRateSP);
+
+        switch (rate)
+        {
+            case SLEW_GUIDE:
+                da_ra  = FINE_SLEW_RATE *dt*0.05;
+                da_dec = FINE_SLEW_RATE *dt*0.05;
+                break;
+
+            case SLEW_CENTERING:
+                da_ra  = FINE_SLEW_RATE *dt*.1;
+                da_dec = FINE_SLEW_RATE *dt*.1;
+                break;
+
+            case SLEW_FIND:
+                da_ra  = SLEW_RATE *dt;
+                da_dec = SLEW_RATE *dt;
+                break;
+
+            default:
+                da_ra  = GOTO_RATE *dt;
+                da_dec = GOTO_RATE *dt;
+                break;
+        }
+
+        switch (MovementNSSP.s)
+        {
+           case IPS_BUSY:
+            if (MovementNSS[DIRECTION_NORTH].s == ISS_ON)
+                currentDEC += da_dec;
+            else if (MovementNSS[DIRECTION_SOUTH].s == ISS_ON)
+                currentDEC -= da_dec;
+
+            break;
+        }
+
+        switch (MovementWESP.s)
+        {
+            case IPS_BUSY:
+
+            if (MovementWES[DIRECTION_WEST].s == ISS_ON)
+                currentRA += da_ra/15.;
+            else if (MovementWES[DIRECTION_EAST].s == ISS_ON)
+                currentRA -= da_ra/15.;
+
+            break;
+        }
+
+        set_sim_ra(currentRA);
+        set_sim_dec(currentDEC);
+
+        ln_equ_posn equatorialPos;
+        equatorialPos.ra  = currentRA * 15;
+        equatorialPos.dec = currentDEC;
+
+        ln_lnlat_posn observer;
+
+        observer.lat = LocationN[LOCATION_LATITUDE].value;
+        observer.lng = LocationN[LOCATION_LONGITUDE].value;
+
+        if (observer.lng > 180)
+            observer.lng -= 360;
+
+        ln_hrz_posn horizontalPos;
+
+        ln_get_hrz_from_equ(&equatorialPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
+
+        // Libnova south = 0, west = 90, north = 180, east = 270
+        horizontalPos.az -= 180;
+        if (horizontalPos.az < 0)
+            horizontalPos.az += 360;
+
+        set_sim_az(horizontalPos.az);
+        set_sim_alt(horizontalPos.alt);
+
+        NewRaDec(currentRA, currentDEC);
+        return;
+    }
 
     /* Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly */
     switch (TrackState)
@@ -448,7 +672,7 @@ void CelestronGPS::mountSim ()
 
     case SCOPE_TRACKING:
         /* RA moves at sidereal, Dec stands still */
-        currentRA += (SIDRATE*dt/15.);
+        currentRA += (SID_RATE*dt/15.);
         break;
 
     case SCOPE_SLEWING:
@@ -462,15 +686,15 @@ void CelestronGPS::mountSim ()
         if (fabs(dx) > 12)
             dx *= -1;
 
-        if (fabs(dx) <= da)
+        if (fabs(dx) <= da_ra)
         {
         currentRA = targetRA;
         nlocked++;
         }
         else if (dx > 0)
-            currentRA += da/15.;
+            currentRA += da_ra/15.;
         else
-            currentRA -= da/15.;
+            currentRA -= da_ra/15.;
 
         if (currentRA < 0)
             currentRA += 24;
@@ -478,15 +702,15 @@ void CelestronGPS::mountSim ()
             currentRA -= 24;
 
         dx = targetDEC - currentDEC;
-        if (fabs(dx) <= da)
+        if (fabs(dx) <= da_dec)
         {
         currentDEC = targetDEC;
         nlocked++;
         }
         else if (dx > 0)
-          currentDEC += da;
+          currentDEC += da_dec;
         else
-          currentDEC -= da;
+          currentDEC -= da_dec;
 
         if (nlocked == 2)
         {
@@ -505,7 +729,6 @@ void CelestronGPS::mountSim ()
     ln_equ_posn equatorialPos;
     equatorialPos.ra  = currentRA * 15;
     equatorialPos.dec = currentDEC;
-
 
     ln_lnlat_posn observer;
 
@@ -558,32 +781,8 @@ bool CelestronGPS::updateTime(ln_date *utc, double utc_offset)
 }
 
 bool CelestronGPS::Park()
-{
-    if (isSimulation())
-    {
-        ln_hrz_posn horizontalPos;
-        // Libnova south = 0, west = 90, north = 180, east = 270
-        horizontalPos.az = GetAxis1Park() + 180;
-        if (horizontalPos.az >= 360)
-             horizontalPos.az -= 360;
-        horizontalPos.alt = GetAxis2Park();
-
-        ln_lnlat_posn observer;
-
-        observer.lat = LocationN[LOCATION_LATITUDE].value;
-        observer.lng = LocationN[LOCATION_LONGITUDE].value;
-
-        if (observer.lng > 180)
-            observer.lng -= 360;
-
-        ln_equ_posn equatorialPos;
-        ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
-
-        targetRA  = equatorialPos.ra/15.0;
-        targetDEC = equatorialPos.dec;
-    }
-
-    if (slew_celestron_azalt(PortFD, GetAxis1Park(), GetAxis2Park()))
+{    
+    if (GotoAzAlt(GetAxis1Park(), GetAxis2Park()))
     {
         TrackState = SCOPE_PARKING;
         DEBUG(INDI::Logger::DBG_SESSION, "Parking is in progress...");
