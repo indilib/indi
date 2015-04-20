@@ -71,7 +71,8 @@ public:
     long GetALT();
     long GetAZ();
     bool slewing();
-    bool GoTo(long alt, long az, bool track);
+    bool GoToFast(long alt, long az, bool track);
+    bool GoToSlow(long alt, long az, bool track);
     bool Track(long altRate, long azRate);
     bool TimerTick(double dt);
     bool Connect();

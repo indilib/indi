@@ -82,6 +82,7 @@ NexStarEvo::NexStarEvo() :
     AxisSlewRateAZ(DEFAULT_SLEW_RATE), CurrentAZ(0),
     AxisStatusALT(STOPPED), AxisDirectionALT(FORWARD),
     AxisSlewRateALT(DEFAULT_SLEW_RATE), CurrentALT(0),
+    ScopeStatus(IDLE),
     PreviousNSMotion(PREVIOUS_NS_MOTION_UNKNOWN),
     PreviousWEMotion(PREVIOUS_WE_MOTION_UNKNOWN),
     TraceThisTickCount(0),
@@ -97,6 +98,9 @@ NexStarEvo::NexStarEvo() :
     cap.canAbort = true;
     cap.nSlewRate=6;
     SetTelescopeCapability(&cap);
+    // Approach from the top left 2deg away
+    ApproachALT=1.0*STEPS_PER_DEGREE;
+    ApproachAZ=-1.0*STEPS_PER_DEGREE;
 }
 
 
@@ -159,11 +163,11 @@ const char * NexStarEvo::getDefaultName()
     return (char *)"NexStar Evolution";
 }
 
+// TODO: Make adjustment for the approx time it takes to slew to the given pos.
 bool NexStarEvo::Goto(double ra,double dec)
 {
 
     DEBUGF(DBG_NSEVO, "Goto - Celestial reference frame target right ascension %lf(%lf) declination %lf", ra * 360.0 / 24.0, ra, dec);
-
     if (ISS_ON == IUFindSwitch(&CoordSP,"TRACK")->s)
     {
         char RAStr[32], DecStr[32];
@@ -173,6 +177,9 @@ bool NexStarEvo::Goto(double ra,double dec)
         CurrentTrackingTarget.dec = dec;
         DEBUG(DBG_NSEVO, "Goto - tracking requested");
     }
+    
+    GoToTarget.ra=ra;
+    GoToTarget.dec=dec;
 
     // Call the alignment subsystem to translate the celestial reference frame coordinate
     // into a telescope reference frame coordinate
@@ -257,7 +264,17 @@ bool NexStarEvo::Goto(double ra,double dec)
     DEBUGF(DBG_NSEVO, "Goto - Scope reference frame target altitude %lf azimuth %lf", AltAz.alt, AltAz.az);
 
     TrackState = SCOPE_SLEWING;
-    scope->GoTo(int(AltAz.alt * STEPS_PER_DEGREE),int(AltAz.az * STEPS_PER_DEGREE),ISS_ON == IUFindSwitch(&CoordSP,"TRACK")->s);
+    if (ScopeStatus != SLEWING_FAST) {
+        ScopeStatus = SLEWING_FAST;
+        scope->GoToFast(long(AltAz.alt * STEPS_PER_DEGREE)+ApproachALT,
+                        long(AltAz.az * STEPS_PER_DEGREE)+ApproachAZ,
+                        ISS_ON == IUFindSwitch(&CoordSP,"TRACK")->s);
+    } else {
+        ScopeStatus = SLEWING_SLOW;
+        scope->GoToSlow(long(AltAz.alt * STEPS_PER_DEGREE),
+                        long(AltAz.az * STEPS_PER_DEGREE),
+                        ISS_ON == IUFindSwitch(&CoordSP,"TRACK")->s);
+    }
 
     EqNP.s    = IPS_BUSY;
 
@@ -489,31 +506,47 @@ void NexStarEvo::TimerHit()
     {
         case SCOPE_SLEWING:
             if (not scope->slewing())
-            {
-                if (ISS_ON == IUFindSwitch(&CoordSP,"TRACK")->s)
+            {   
+                // The slew has finished check if that was a coarse slew
+                // or precission approach
+                if (ScopeStatus == SLEWING_FAST) {
+                    // This was coarse slew.Execute precise approach.
+                    Goto(GoToTarget.ra, GoToTarget.dec);
+                    break;
+                } else if (ISS_ON == IUFindSwitch(&CoordSP,"TRACK")->s)
                 {
-                    // Goto has finished start tracking
+                    // Precise Goto has finished. Start tracking.
                     DEBUG(DBG_NSEVO, "TimerHit - Goto finished start tracking");
                     TrackState = SCOPE_TRACKING;
                     // Fall through to tracking case
                 }
                 else
                 {
+                    // Precise goto finished but no tracking requested
                     TrackState = SCOPE_IDLE;
                     break;
                 }
             }
             else
-                break;
+                break; // The scope is still slewing
 
         case SCOPE_TRACKING:
         {
             // Continue or start tracking
-            // Calculate where the mount needs to be in POLLMS time
-            // POLLMS is hardcoded to be one second
-            double JulianOffset = 60.0 / (24.0 * 60 * 60); // TODO may need to make this longer to get a meaningful result
+            // Calculate where the mount needs to be in a minute
+            // TODO may need to make this better defined
+            double JulianOffset = 60.0 / (24.0 * 60 * 60); 
             TelescopeDirectionVector TDV;
             ln_hrz_posn AltAz, AAzero;
+            
+            /* 
+            TODO 
+            The tracking should take into account movement of the scope
+            by the hand controller (we can hear the commands)
+            and the movements made by the joystick.
+            Right now when we move the scope by HC it returns to the
+            designated target by corrective tracking.
+            */
             if (TransformCelestialToTelescope(CurrentTrackingTarget.ra, CurrentTrackingTarget.dec,
                                                 JulianOffset, TDV))
                 AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAz);

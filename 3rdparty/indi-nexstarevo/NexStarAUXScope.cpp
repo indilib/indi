@@ -247,7 +247,7 @@ bool NexStarAUXScope::slewing(){
     return slewingAlt || slewingAz;
 }
 
-bool NexStarAUXScope::GoTo(long alt, long az, bool track){
+bool NexStarAUXScope::GoToFast(long alt, long az, bool track){
     targetAlt=alt;
     targetAz=az;
     tracking=track;
@@ -257,13 +257,22 @@ bool NexStarAUXScope::GoTo(long alt, long az, bool track){
     AUXCommand *azmcmd= new AUXCommand(MC_GOTO_FAST,APP,AZM);
     altcmd->setPosition(alt);
     azmcmd->setPosition(az);
-    /*
-    fprintf(stderr,"ALT: ");
-    for (int i=0; i<3; i++) fprintf(stderr,"%02x ", altcmd->data[i]);
-    fprintf(stderr," AZM: ");
-    for (int i=0; i<3; i++) fprintf(stderr,"%02x ", azmcmd->data[i]);
-    fprintf(stderr,"\n");
-    */
+    sendCmd(altcmd);
+    sendCmd(azmcmd);
+    readMsgs();
+    return true;
+};
+
+bool NexStarAUXScope::GoToSlow(long alt, long az, bool track){
+    targetAlt=alt;
+    targetAz=az;
+    tracking=track;
+    slewingAlt=slewingAz=true;
+    Track(0,0);
+    AUXCommand *altcmd= new AUXCommand(MC_GOTO_SLOW,APP,ALT);
+    AUXCommand *azmcmd= new AUXCommand(MC_GOTO_SLOW,APP,AZM);
+    altcmd->setPosition(alt);
+    azmcmd->setPosition(az);
     sendCmd(altcmd);
     sendCmd(azmcmd);
     readMsgs();

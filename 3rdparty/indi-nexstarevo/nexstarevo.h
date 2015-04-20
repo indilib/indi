@@ -49,20 +49,25 @@ private:
 
     NexStarAUXScope *scope;
 
+    enum ScopeStatus_t {IDLE, SLEWING_FAST, SLEWING_SLOW, TRACKING};
+    ScopeStatus_t ScopeStatus;
+
     enum AxisStatus { STOPPED, SLEWING, SLEWING_TO };
     enum AxisDirection { FORWARD, REVERSE };
-
+    
     AxisStatus AxisStatusALT;
     AxisDirection AxisDirectionALT;
     double AxisSlewRateALT;
     long CurrentALT;
     long GotoTargetALT;
+    long ApproachALT;
 
     AxisStatus AxisStatusAZ;
     AxisDirection AxisDirectionAZ;
     double AxisSlewRateAZ;
     long CurrentAZ;
     long GotoTargetAZ;
+    long ApproachAZ;
 
     // Previous motion direction
     // TODO: Switch to AltAz from N-S/W-E
@@ -74,6 +79,9 @@ private:
                     PREVIOUS_WE_MOTION_EAST = DIRECTION_EAST,
                     PREVIOUS_WE_MOTION_UNKNOWN = -1} PreviousWEMotion_t;
     PreviousWEMotion_t PreviousWEMotion;
+
+    // GoTo
+    ln_equ_posn GoToTarget;
 
     // Tracking
     ln_equ_posn CurrentTrackingTarget;
