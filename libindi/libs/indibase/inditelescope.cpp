@@ -99,28 +99,6 @@ bool INDI::Telescope::initProperties()
     IUFillNumber(&ScopeParametersN[3],"GUIDER_FOCAL_LENGTH","Guider Focal Length (mm)","%g",100,10000,0,0.0 );
     IUFillNumberVector(&ScopeParametersNP,ScopeParametersN,4,getDeviceName(),"TELESCOPE_INFO","Scope Properties",OPTIONS_TAB,IP_RW,60,IPS_OK);
 
-    if (capability.nSlewRate >= 4)
-    {
-        SlewRateS = (ISwitch *) malloc(sizeof(ISwitch) * capability.nSlewRate);
-        int step = capability.nSlewRate / 4;
-        for (int i=0; i < capability.nSlewRate; i++)
-        {
-            char name[4];
-            snprintf(name, 4, "%dx", i+1);
-            IUFillSwitch(SlewRateS+i, name, name, ISS_OFF);
-        }
-
-        strncpy( (SlewRateS+(step*0))->name, "SLEW_GUIDE", MAXINDINAME);
-        strncpy( (SlewRateS+(step*1))->name, "SLEW_CENTERING", MAXINDINAME);
-        strncpy( (SlewRateS+(step*2))->name, "SLEW_FIND", MAXINDINAME);
-        strncpy( (SlewRateS+(capability.nSlewRate-1))->name, "SLEW_MAX", MAXINDINAME);
-
-        // By Default we set current Slew Rate to 0.5 of max
-        (SlewRateS+(capability.nSlewRate/2))->s = ISS_ON;
-
-        IUFillSwitchVector(&SlewRateSP, SlewRateS, capability.nSlewRate, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-    }
-
     controller->mapController("MOTIONDIR", "N/S/W/E Control", INDI::Controller::CONTROLLER_JOYSTICK, "JOYSTICK_1");
     if (capability.nSlewRate >= 4)
         controller->mapController("SLEWPRESET", "Slew Rate", INDI::Controller::CONTROLLER_JOYSTICK, "JOYSTICK_2");
@@ -948,6 +926,28 @@ void INDI::Telescope::SetTelescopeCapability(TelescopeCapability *cap)
     else
         IUFillSwitchVector(&CoordSP,CoordS,2,getDeviceName(),"ON_COORD_SET","On Set",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
+    if (capability.nSlewRate >= 4)
+    {
+        free(SlewRateS);
+        SlewRateS = (ISwitch *) malloc(sizeof(ISwitch) * capability.nSlewRate);
+        int step = capability.nSlewRate / 4;
+        for (int i=0; i < capability.nSlewRate; i++)
+        {
+            char name[4];
+            snprintf(name, 4, "%dx", i+1);
+            IUFillSwitch(SlewRateS+i, name, name, ISS_OFF);
+        }
+
+        strncpy( (SlewRateS+(step*0))->name, "SLEW_GUIDE", MAXINDINAME);
+        strncpy( (SlewRateS+(step*1))->name, "SLEW_CENTERING", MAXINDINAME);
+        strncpy( (SlewRateS+(step*2))->name, "SLEW_FIND", MAXINDINAME);
+        strncpy( (SlewRateS+(capability.nSlewRate-1))->name, "SLEW_MAX", MAXINDINAME);
+
+        // By Default we set current Slew Rate to 0.5 of max
+        (SlewRateS+(capability.nSlewRate/2))->s = ISS_ON;
+
+        IUFillSwitchVector(&SlewRateSP, SlewRateS, capability.nSlewRate, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    }
 }
 
 void INDI::Telescope::SetParkDataType(TelescopeParkData type)
