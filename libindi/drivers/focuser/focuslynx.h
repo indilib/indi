@@ -47,6 +47,7 @@ public:
 
     virtual IPState MoveAbsFocuser(uint32_t ticks);
     virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
+    virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
     virtual bool AbortFocuser();
     virtual void TimerHit();
 
@@ -54,8 +55,9 @@ public:
 
 private:
 
-    int PortFD;
-    uint32_t simPosition;
+   int PortFD;
+   uint32_t simPosition;
+   uint32_t targetPosition;
    ISState simStatus[7];
    bool simCompensationOn;
 
@@ -65,10 +67,9 @@ private:
     std::map<std::string, std::string> lynxModels;
 
     struct timeval focusMoveStart;
-    //float focusMoveRequest;
+    float focusMoveRequest;
 
     // Get functions
-    void getInitialData();
     bool getFocusConfig();
     bool getFocusStatus();
 
@@ -116,7 +117,7 @@ private:
     ISwitchVectorProperty TemperatureCompensateSP;
 
     // Enable/Disable temperature compnesation on start
-    ISwitch TemperatureCompensateOnStartS[1];
+    ISwitch TemperatureCompensateOnStartS[2];
     ISwitchVectorProperty TemperatureCompensateOnStartSP;
 
     // Temperature Coefficient

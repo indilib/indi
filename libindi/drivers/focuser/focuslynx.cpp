@@ -116,6 +116,8 @@ FocusLynx::FocusLynx()
 
     ModelS = NULL;
 
+    focusMoveRequest = 0;
+
     // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
     FocuserCapability cap;
     cap.canAbort=true;
@@ -175,9 +177,9 @@ bool FocusLynx::initProperties()
     // Enable/Disable temperature Mode
     IUFillSwitch(&TemperatureCompensateModeS[0], "A", "", ISS_OFF);
     IUFillSwitch(&TemperatureCompensateModeS[1], "B", "", ISS_OFF);
-    IUFillSwitch(&TemperatureCompensateModeS[2], "B", "", ISS_OFF);
-    IUFillSwitch(&TemperatureCompensateModeS[3], "B", "", ISS_OFF);
-    IUFillSwitch(&TemperatureCompensateModeS[4], "B", "", ISS_OFF);
+    IUFillSwitch(&TemperatureCompensateModeS[2], "C", "", ISS_OFF);
+    IUFillSwitch(&TemperatureCompensateModeS[3], "D", "", ISS_OFF);
+    IUFillSwitch(&TemperatureCompensateModeS[4], "E", "", ISS_OFF);
     IUFillSwitchVector(&TemperatureCompensateModeSP, TemperatureCompensateModeS, 5, getDeviceName(), "Compensate Mode", "", FOCUS_SETTINGS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     // Enable/Disable backlash
@@ -254,8 +256,8 @@ bool FocusLynx::updateProperties()
 
         defineNumber(&TemperatureNP);
         defineNumber(&TemperatureCoeffNP);
-        defineSwitch(&TemperatureCompensateSP);
         defineSwitch(&TemperatureCompensateModeSP);
+        defineSwitch(&TemperatureCompensateSP);        
         defineSwitch(&TemperatureCompensateOnStartSP);
 
         defineSwitch(&BacklashCompensationSP);
@@ -266,7 +268,7 @@ bool FocusLynx::updateProperties()
 
         defineLight(&StatusLP);
 
-        getInitialData();
+        getFocusConfig();
 
         DEBUG(INDI::Logger::DBG_SESSION, "FocusLynx paramaters updated, focuser ready for use.");
     }
@@ -276,8 +278,8 @@ bool FocusLynx::updateProperties()
 
         deleteProperty(TemperatureNP.name);
         deleteProperty(TemperatureCoeffNP.name);
-        deleteProperty(TemperatureCompensateSP.name);
         deleteProperty(TemperatureCompensateModeSP.name);
+        deleteProperty(TemperatureCompensateSP.name);        
         deleteProperty(TemperatureCompensateOnStartSP.name);
 
         deleteProperty(BacklashCompensationSP.name);
@@ -298,7 +300,7 @@ bool FocusLynx::Connect()
     int connectrc=0;
     char errorMsg[MAXRBUF];
 
-    if (!isSimulation() && (connectrc = tty_connect(PortT[0].text, 9600, 8, 0, 1, &PortFD)) != TTY_OK)
+    if (!isSimulation() && (connectrc = tty_connect(PortT[0].text, 115200, 8, 0, 1, &PortFD)) != TTY_OK)
     {
         tty_error_msg(connectrc, errorMsg, MAXRBUF);
 
@@ -339,54 +341,17 @@ const char * FocusLynx::getDefaultName()
 * ***********************************************************************************/
 bool FocusLynx::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-#if 0
     if(strcmp(dev,getDeviceName())==0)
-    {
-        if (!strcmp(TemperatureCompensateSP.name, name))
-        {
-            int last_index = IUFindOnSwitchIndex(&TemperatureCompensateSP);
-            IUUpdateSwitch(&TemperatureCompensateSP, states, names, n);
-
-            bool rc = setTemperatureCompensation();
-
-            if (rc == false)
-            {
-                TemperatureCompensateSP.s = IPS_ALERT;
-                IUResetSwitch(&TemperatureCompensateSP);
-                TemperatureCompensateS[last_index].s = ISS_ON;
-                IDSetSwitch(&TemperatureCompensateSP, NULL);
-                return false;
-            }
-
-            TemperatureCompensateSP.s = IPS_OK;
-            IDSetSwitch(&TemperatureCompensateSP, NULL);
-            return true;
-        }
-
+    {        
         if (!strcmp(ModelSP.name, name))
         {
-            IUUpdateSwitch(&ModelSP, states, names, n);
-
-            int i = IUFindOnSwitchIndex(&ModelSP);
-
-            double focusMaxPos = floor(fSettings[i].maxTrip / fSettings[i].gearRatio) * 100;
-            FocusAbsPosN[0].max = focusMaxPos;
-            IUUpdateMinMax(&FocusAbsPosNP);
-
-            CustomSettingN[FOCUS_MAX_TRIP].value = fSettings[i].maxTrip;
-            CustomSettingN[FOCUS_GEAR_RATIO].value = fSettings[i].gearRatio;
-
-            IDSetNumber(&CustomSettingNP, NULL);
-
+            IUUpdateSwitch(&ModelSP, states, names, n);            
             ModelSP.s = IPS_OK;
             IDSetSwitch(&ModelSP, NULL);
-
             return true;
         }
-
     }
 
-#endif
     return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
 }
 
@@ -575,14 +540,6 @@ bool FocusLynx::ack()
 /************************************************************************************
  *
 * ***********************************************************************************/
-void FocusLynx::getInitialData()
-{
-
-}
-
-/************************************************************************************
- *
-* ***********************************************************************************/
 bool FocusLynx::getFocusConfig()
 {
     char cmd[] = "<F1GETCONFIG>";
@@ -658,7 +615,7 @@ bool FocusLynx::getFocusConfig()
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       uint32_t maxPos=0;
-      int rc = sscanf(response, "%*s = %d", &maxPos);
+      int rc = sscanf(response, "Max Pos = %d", &maxPos);
       if (rc == 1)
       {
           FocusAbsPosN[0].max = maxPos;
@@ -708,7 +665,7 @@ bool FocusLynx::getFocusConfig()
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       int TCompOn;
-      rc = sscanf(response, "%*s = %d", &TCompOn);
+      rc = sscanf(response, "TComp ON = %d", &TCompOn);
       if (rc != 1)
           return false;
 
@@ -734,7 +691,7 @@ bool FocusLynx::getFocusConfig()
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       int TCoeffA;
-      rc = sscanf(response, "%*s = %d", &TCoeffA);
+      rc = sscanf(response, "TempCo A = %d", &TCoeffA);
       if (rc != 1)
           return false;
 
@@ -756,7 +713,7 @@ bool FocusLynx::getFocusConfig()
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       int TCoeffB;
-      rc = sscanf(response, "%*s = %d", &TCoeffB);
+      rc = sscanf(response, "TempCo B = %d", &TCoeffB);
       if (rc != 1)
           return false;
 
@@ -778,7 +735,7 @@ bool FocusLynx::getFocusConfig()
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       int TCoeffC;
-      rc = sscanf(response, "%*s = %d", &TCoeffC);
+      rc = sscanf(response, "TempCo C = %d", &TCoeffC);
       if (rc != 1)
           return false;
 
@@ -800,7 +757,7 @@ bool FocusLynx::getFocusConfig()
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       int TCoeffD;
-      rc = sscanf(response, "%*s = %d", &TCoeffD);
+      rc = sscanf(response, "TempCo D = %d", &TCoeffD);
       if (rc != 1)
           return false;
 
@@ -822,7 +779,7 @@ bool FocusLynx::getFocusConfig()
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       int TCoeffE;
-      rc = sscanf(response, "%*s = %d", &TCoeffE);
+      rc = sscanf(response, "TempCo E = %d", &TCoeffE);
       if (rc != 1)
           return false;
 
@@ -849,7 +806,7 @@ bool FocusLynx::getFocusConfig()
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       char compensateMode;
-      rc = sscanf(response, "%*s = %c", &compensateMode);
+      rc = sscanf(response, "TC Mode = %c", &compensateMode);
       if (rc != 1)
           return false;
 
@@ -885,7 +842,7 @@ bool FocusLynx::getFocusConfig()
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       int BLCCompensate;
-      rc = sscanf(response, "%*s = %d", &BLCCompensate);
+      rc = sscanf(response, "BLC En = %d", &BLCCompensate);
       if (rc != 1)
           return false;
 
@@ -913,7 +870,7 @@ bool FocusLynx::getFocusConfig()
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       int BLCValue;
-      rc = sscanf(response, "%*s = %d", &BLCValue);
+      rc = sscanf(response, "BLC Stps = %d", &BLCValue);
       if (rc != 1)
           return false;
 
@@ -938,7 +895,7 @@ bool FocusLynx::getFocusConfig()
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       int LEDBrightness;
-      rc = sscanf(response, "%*s = %d", &LEDBrightness);
+      rc = sscanf(response, "LED Brt = %d", &LEDBrightness);
       if (rc != 1)
           return false;
 
@@ -959,7 +916,7 @@ bool FocusLynx::getFocusConfig()
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       int TCOnStart;
-      rc = sscanf(response, "%*s = %d", &TCOnStart);
+      rc = sscanf(response, "TC@Start = %d", &TCOnStart);
       if (rc != 1)
           return false;
 
@@ -968,6 +925,8 @@ bool FocusLynx::getFocusConfig()
       TemperatureCompensateOnStartS[1].s = TCOnStart ? ISS_OFF : ISS_ON;
       TemperatureCompensateOnStartSP.s = IPS_OK;
       IDSetSwitch(&TemperatureCompensateOnStartSP, NULL);
+
+      tcflush(PortFD, TCIFLUSH);
 
       return true;
      }
@@ -1064,7 +1023,7 @@ bool FocusLynx::getFocusStatus()
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       uint32_t currPos=0;
-      rc = sscanf(response, "%*s = %d", &currPos);
+      rc = sscanf(response, "Curr Pos = %d", &currPos);
       if (rc == 1)
       {
           FocusAbsPosN[0].value = currPos;
@@ -1076,7 +1035,7 @@ bool FocusLynx::getFocusStatus()
       // Get Target Position
       if (isSimulation())
       {
-          snprintf(response, 32, "Targ Pos = %06d", simPosition);
+          snprintf(response, 32, "Targ Pos = %06d", targetPosition);
           nbytes_read = strlen(response);
       }
       else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
@@ -1106,7 +1065,7 @@ bool FocusLynx::getFocusStatus()
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       int isMoving;
-      rc = sscanf(response, "%*s = %d", &isMoving);
+      rc = sscanf(response, "Is Moving = %d", &isMoving);
       if (rc != 1)
           return false;
 
@@ -1128,7 +1087,7 @@ bool FocusLynx::getFocusStatus()
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       int isHoming;
-      rc = sscanf(response, "%*s = %d", &isHoming);
+      rc = sscanf(response, "Is Homing = %d", &isHoming);
       if (rc != 1)
           return false;
 
@@ -1150,7 +1109,7 @@ bool FocusLynx::getFocusStatus()
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       int isHomed;
-      rc = sscanf(response, "%*s = %d", &isHomed);
+      rc = sscanf(response, "Is Homed = %d", &isHomed);
       if (rc != 1)
           return false;
 
@@ -1172,7 +1131,7 @@ bool FocusLynx::getFocusStatus()
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       int FFDetect;
-      rc = sscanf(response, "%*s = %d", &FFDetect);
+      rc = sscanf(response, "FFDetect = %d", &FFDetect);
       if (rc != 1)
           return false;
 
@@ -1194,7 +1153,7 @@ bool FocusLynx::getFocusStatus()
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       int TmpProbe;
-      rc = sscanf(response, "%*s = %d", &TmpProbe);
+      rc = sscanf(response, "TmpProbe = %d", &TmpProbe);
       if (rc != 1)
           return false;
 
@@ -1216,7 +1175,7 @@ bool FocusLynx::getFocusStatus()
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       int RemoteIO;
-      rc = sscanf(response, "%*s = %d", &RemoteIO);
+      rc = sscanf(response, "RemoteIO = %d", &RemoteIO);
       if (rc != 1)
           return false;
 
@@ -1238,7 +1197,7 @@ bool FocusLynx::getFocusStatus()
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       int HndCtlr;
-      rc = sscanf(response, "%*s = %d", &HndCtlr);
+      rc = sscanf(response, "Hnd Ctlr = %d", &HndCtlr);
       if (rc != 1)
           return false;
 
@@ -1541,7 +1500,6 @@ bool FocusLynx::startMotion(FocusDirection dir)
 /************************************************************************************
 *
 * ***********************************************************************************/
-#if 0
 IPState FocusLynx::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
     //targetPos = targetTicks;
@@ -1575,7 +1533,7 @@ IPState FocusLynx::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
             return IPS_ALERT;
 
         gettimeofday(&focusMoveStart,NULL);
-        //focusMoveRequest = duration/1000.0;
+        focusMoveRequest = duration/1000.0;
 
         if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
         {
@@ -1605,8 +1563,6 @@ IPState FocusLynx::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
     return IPS_ALERT;
 
 }
-#endif
-
 
 /************************************************************************************
 *
@@ -1622,6 +1578,8 @@ IPState FocusLynx::MoveAbsFocuser(uint32_t targetTicks)
     int nbytes_read=0;
     int nbytes_written=0;
 
+    targetPosition = targetTicks;
+
     snprintf(cmd, 16, "F1MA%06d", targetTicks);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
@@ -1630,6 +1588,7 @@ IPState FocusLynx::MoveAbsFocuser(uint32_t targetTicks)
     {
         strncpy(response, "M", 16);
         nbytes_read = strlen(response);
+        simStatus[STATUS_MOVING] = ISS_ON;
     }
     else
     {
@@ -1682,112 +1641,55 @@ IPState FocusLynx::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 
 void FocusLynx::TimerHit()
 {
-#if 0
+
     if (isConnected() == false)
         return;
 
-    bool rc = updatePosition();
-    if (rc)
-    {
-        if (fabs(lastPos - FocusAbsPosN[0].value) > STEELDIVE_POSITION_THRESHOLD)
-        {
-            IDSetNumber(&FocusAbsPosNP, NULL);
-            lastPos = FocusAbsPosN[0].value;
-        }
-    }
-
-    if (temperatureUpdateCounter++ > LYNXFOCUS_TEMPERATURE_FREQ)
-    {
-        temperatureUpdateCounter = 0;
-        rc = updateTemperature();
-        if (rc)
-        {
-            if (fabs(lastTemperature - TemperatureN[0].value) >= 0.5)
-                lastTemperature = TemperatureN[0].value;
-        }
-
-        IDSetNumber(&TemperatureNP, NULL);
-    }
-
-
-    if (FocusTimerNP.s == IPS_BUSY)
-    {
-        float remaining = CalcTimeLeft(focusMoveStart, focusMoveRequest);
-
-        if (isSimulation())
-        {
-            if (FocusMotionS[FOCUS_INWARD].s == ISS_ON)
-            {
-                FocusAbsPosN[0].value -= FocusSpeedN[0].value;
-                if (FocusAbsPosN[0].value <= 0)
-                    FocusAbsPosN[0].value =0;
-                simPosition = FocusAbsPosN[0].value;
-            }
-            else
-            {
-                FocusAbsPosN[0].value += FocusSpeedN[0].value;
-                if (FocusAbsPosN[0].value >= FocusAbsPosN[0].max)
-                    FocusAbsPosN[0].value=FocusAbsPosN[0].max;
-                simPosition = FocusAbsPosN[0].value;
-            }
-        }
-
-        // If we exceed focus abs values, stop timer and motion
-        if (FocusAbsPosN[0].value <= 0 || FocusAbsPosN[0].value >= FocusAbsPosN[0].max)
-        {
-            AbortFocuser();
-
-            if (FocusAbsPosN[0].value <= 0)
-                FocusAbsPosN[0].value =0;
-            else
-                FocusAbsPosN[0].value=FocusAbsPosN[0].max;
-
-            FocusTimerN[0].value=0;
-            FocusTimerNP.s = IPS_IDLE;
-        }
-        else if (remaining <= 0)
-        {
-            FocusTimerNP.s = IPS_OK;
-            FocusTimerN[0].value = 0;
-            AbortFocuser();
-        }
-        else
-            FocusTimerN[0].value = remaining*1000.0;
-
-        IDSetNumber(&FocusTimerNP, NULL);
-    }
+    getFocusStatus();
 
     if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
     {
         if (isSimulation())
         {
-            if (FocusAbsPosN[0].value < targetPos)
+            if (FocusAbsPosN[0].value < targetPosition)
                 simPosition += 100;
             else
                 simPosition -= 100;
 
-            if (fabs(simPosition - targetPos) < 100)
+            simStatus[STATUS_MOVING] = ISS_ON;
+
+            if (fabs(simPosition - targetPosition) < 100)
             {
-                FocusAbsPosN[0].value = targetPos;
+                FocusAbsPosN[0].value = targetPosition;
                 simPosition = FocusAbsPosN[0].value;
+                simStatus[STATUS_MOVING] = ISS_OFF;
             }
         }
 
-        // Set it OK to within 5 steps
-        if (fabs(targetPos - FocusAbsPosN[0].value) < 5)
+        if (StatusL[STATUS_MOVING].s == IPS_IDLE)
         {
             FocusAbsPosNP.s = IPS_OK;
             FocusRelPosNP.s = IPS_OK;
             IDSetNumber(&FocusAbsPosNP, NULL);
             IDSetNumber(&FocusRelPosNP, NULL);
-            lastPos = FocusAbsPosN[0].value;
             DEBUG(INDI::Logger::DBG_SESSION, "Focuser reached requested position.");
+        }
+        else if (StatusL[STATUS_MOVING].s == IPS_BUSY && focusMoveRequest > 0)
+        {
+            float remaining = calcTimeLeft(focusMoveStart, focusMoveRequest);
+
+            if (remaining < POLLMS)
+            {
+                sleep(remaining);
+                AbortFocuser();
+                focusMoveRequest=0;
+            }
         }
     }
 
+
     SetTimer(POLLMS);
 
-#endif
 }
 
 /************************************************************************************
