@@ -75,6 +75,9 @@ bool INDI::Telescope::initProperties()
     else
         IUFillSwitchVector(&CoordSP,CoordS,2,getDeviceName(),"ON_COORD_SET","On Set",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
+    if (capability.nSlewRate >= 4)
+        IUFillSwitchVector(&SlewRateSP, SlewRateS, capability.nSlewRate, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
     IUFillSwitch(&ParkS[0],"PARK","Park",ISS_OFF);
     IUFillSwitch(&ParkS[1],"UNPARK","UnPark",ISS_OFF);
     IUFillSwitchVector(&ParkSP,ParkS,2,getDeviceName(),"TELESCOPE_PARK","Parking",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
