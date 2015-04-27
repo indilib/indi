@@ -112,8 +112,23 @@ bool INDI::FocuserInterface::processFocuserNumber (const char *dev, const char *
 
     if(strcmp(name,"ABS_FOCUS_POSITION")==0)
     {
-
         int newPos = (int) values[0];
+
+        if (newPos < FocusAbsPosN[0].min)
+        {
+            FocusAbsPosNP.s = IPS_ALERT;
+            IDSetNumber(&FocusAbsPosNP, NULL);
+            DEBUGFDEVICE(dev, INDI::Logger::DBG_ERROR, "Requested position out of bound. Focus minimum position is %g", FocusAbsPosN[0].min);
+            return false;
+        }
+        else if (newPos > FocusAbsPosN[0].max)
+        {
+            FocusAbsPosNP.s = IPS_ALERT;
+            IDSetNumber(&FocusAbsPosNP, NULL);
+            DEBUGFDEVICE(dev, INDI::Logger::DBG_ERROR, "Requested position out of bound. Focus maximum position is %g", FocusAbsPosN[0].max);
+            return false;
+        }
+
         IPState ret;
 
         if ( (ret = MoveAbsFocuser(newPos)) == IPS_OK)
@@ -170,7 +185,7 @@ bool INDI::FocuserInterface::processFocuserNumber (const char *dev, const char *
         {
            FocusRelPosNP.s=IPS_OK;
            IUUpdateNumber(&FocusRelPosNP,values,names,n);
-           IDSetNumber(&FocusRelPosNP, "Focuser moved %d steps", newPos);
+           IDSetNumber(&FocusRelPosNP, "Focuser moved %d steps %s", newPos, FocusMotionS[0].s == ISS_ON ? "inward" : "outward");
            IDSetNumber(&FocusAbsPosNP, NULL);
            return true;
         }
@@ -178,7 +193,7 @@ bool INDI::FocuserInterface::processFocuserNumber (const char *dev, const char *
         {
              IUUpdateNumber(&FocusRelPosNP,values,names,n);
              FocusRelPosNP.s=IPS_BUSY;
-             IDSetNumber(&FocusAbsPosNP, "Focuser is moving %d steps...", newPos);
+             IDSetNumber(&FocusAbsPosNP, "Focuser is moving %d steps %s...", newPos, FocusMotionS[0].s == ISS_ON ? "inward" : "outward");
              return true;
         }
 
