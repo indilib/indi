@@ -84,19 +84,18 @@ private:
     // Temperature
     bool setTemperatureCompensation(bool enable);
     bool setTemperatureCompensationMode(char mode);
-    bool setTemperatureCompensationCoeff(u_int16_t coeff);
+    bool setTemperatureCompensationCoeff(char mode, int16_t coeff);
     bool setTemperatureCompensationOnStart(bool enable);
 
     // Backlash
     bool setBacklashCompensation(bool enable);
-    bool setBacklashCompensationSteps(u_int16_t steps);
+    bool setBacklashCompensationSteps(uint16_t steps);
 
     // Sync
-    bool sync(u_int16_t position);
+    bool sync(u_int32_t position);
 
     // Motion functions
     bool stop();
-    bool startMotion(FocusDirection dir);
     bool home();
     bool center();
 
