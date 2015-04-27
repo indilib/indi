@@ -69,6 +69,12 @@ public:
     */
     virtual void newDevice(INDI::BaseDevice *dp)  =0;
 
+    /** \brief Emmited when a device is deleted from INDI server.
+        \param dp Pointer to the base device instance.
+
+    */
+    virtual void removeDevice(INDI::BaseDevice *dp)  =0;
+
     /** \brief Emmited when a new property is created for an INDI driver.
         \param property Pointer to the Property Container
 

@@ -160,7 +160,7 @@ protected:
     int dispatchCommand(XMLEle *root, char* errmsg);
 
     /** \brief Remove device */
-    int removeDevice( const char * devName, char * errmsg );
+    int deleteDevice( const char * devName, char * errmsg );
 
     /** \brief Delete property command */
     int delPropertyCmd (XMLEle *root, char * errmsg);

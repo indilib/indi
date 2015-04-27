@@ -52,6 +52,7 @@ class MyClient : public INDI::BaseClient
 protected:
 
     virtual void newDevice(INDI::BaseDevice *dp);
+    virtual void removeDevice(INDI::BaseDevice *dp) {}
     virtual void newProperty(INDI::Property *property);
     virtual void removeProperty(INDI::Property *property) {}
     virtual void newBLOB(IBLOB *bp);

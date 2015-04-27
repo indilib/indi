@@ -425,6 +425,11 @@ void Imager::newProperty(INDI::Property *property) {
 void Imager::removeProperty(INDI::Property *property) {
 }
 
+void Imager::removeDevice(INDI::BaseDevice *dp)
+{
+
+}
+
 void Imager::newBLOB(IBLOB *bp) {
   if (ProgressNP.s == IPS_BUSY) {
     char name[128];
