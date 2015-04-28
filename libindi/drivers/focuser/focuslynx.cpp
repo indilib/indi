@@ -317,12 +317,10 @@ bool FocusLynx::Connect()
     if (ack())
     {
         DEBUG(INDI::Logger::DBG_SESSION, "FocusLynx is online. Getting focus parameters...");
-        //temperatureUpdateCounter=0;
+        setDeviceType(modelIndex);
         SetTimer(POLLMS);
         return true;
-    }
-
-    setDeviceType(modelIndex);
+    }    
 
     DEBUG(INDI::Logger::DBG_SESSION, "Error retreiving data from FocusLynx, please ensure FocusLynx controller is powered and the port is correct.");
     return false;
