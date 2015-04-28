@@ -30,7 +30,7 @@
 #include <memory>
 
 #define LYNXFOCUS_MAX_RETRIES          1
-#define LYNXFOCUS_TIMEOUT              1
+#define LYNXFOCUS_TIMEOUT              2
 #define LYNXFOCUS_MAXBUF               16
 #define LYNXFOCUS_TEMPERATURE_FREQ     20      /* Update every 20 POLLMS cycles. For POLLMS 500ms = 10 seconds freq */
 #define LYNXFOCUS_POSITION_THRESHOLD    5       /* Only send position updates to client if the diff exceeds 5 steps */
@@ -574,7 +574,7 @@ bool FocusLynx::ack()
         if (isResponseOK() == false)
             return false;
 
-        if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+        if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -627,7 +627,7 @@ bool FocusLynx::getFocusConfig()
         if (isResponseOK() == false)
             return false;
 
-        if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+        if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -649,7 +649,7 @@ bool FocusLynx::getFocusConfig()
           strncpy(response, "Optec 2\" TCF-S", 16);
           nbytes_read = strlen(response);
       }
-      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
       {
           tty_error_msg(errcode, errmsg, MAXRBUF);
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -664,7 +664,7 @@ bool FocusLynx::getFocusConfig()
           snprintf(response, 32, "Max Pos = %06d", 100000);
           nbytes_read = strlen(response);
       }
-      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
       {
           tty_error_msg(errcode, errmsg, MAXRBUF);
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -698,7 +698,7 @@ bool FocusLynx::getFocusConfig()
           snprintf(response, 32, "Dev Typ = %s", "OA");
           nbytes_read = strlen(response);
       }
-      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
       {
           tty_error_msg(errcode, errmsg, MAXRBUF);
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -715,7 +715,7 @@ bool FocusLynx::getFocusConfig()
           snprintf(response, 32, "TComp ON = %d", TemperatureCompensateS[0].s == ISS_ON ? 1 : 0);
           nbytes_read = strlen(response);
       }
-      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
       {
           tty_error_msg(errcode, errmsg, MAXRBUF);
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -741,7 +741,7 @@ bool FocusLynx::getFocusConfig()
           snprintf(response, 32, "TempCo A = %d", (int) TemperatureCoeffN[FOCUS_A_COEFF].value);
           nbytes_read = strlen(response);
       }
-      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
       {
           tty_error_msg(errcode, errmsg, MAXRBUF);
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -763,7 +763,7 @@ bool FocusLynx::getFocusConfig()
           snprintf(response, 32, "TempCo B = %d", (int) TemperatureCoeffN[FOCUS_B_COEFF].value);
           nbytes_read = strlen(response);
       }
-      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
       {
           tty_error_msg(errcode, errmsg, MAXRBUF);
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -785,7 +785,7 @@ bool FocusLynx::getFocusConfig()
           snprintf(response, 32, "TempCo C = %d", (int) TemperatureCoeffN[FOCUS_C_COEFF].value);
           nbytes_read = strlen(response);
       }
-      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
       {
           tty_error_msg(errcode, errmsg, MAXRBUF);
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -807,7 +807,7 @@ bool FocusLynx::getFocusConfig()
           snprintf(response, 32, "TempCo D = %d", (int) TemperatureCoeffN[FOCUS_D_COEFF].value);
           nbytes_read = strlen(response);
       }
-      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
       {
           tty_error_msg(errcode, errmsg, MAXRBUF);
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -829,7 +829,7 @@ bool FocusLynx::getFocusConfig()
           snprintf(response, 32, "TempCo E = %d", (int) TemperatureCoeffN[FOCUS_E_COEFF].value);
           nbytes_read = strlen(response);
       }
-      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
       {
           tty_error_msg(errcode, errmsg, MAXRBUF);
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -856,7 +856,7 @@ bool FocusLynx::getFocusConfig()
           snprintf(response, 32, "TC Mode = %c", 'C');
           nbytes_read = strlen(response);
       }
-      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
       {
           tty_error_msg(errcode, errmsg, MAXRBUF);
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -892,7 +892,7 @@ bool FocusLynx::getFocusConfig()
           snprintf(response, 32, "BLC En = %d", BacklashCompensationS[0].s == ISS_ON ? 1 : 0);
           nbytes_read = strlen(response);
       }
-      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
       {
           tty_error_msg(errcode, errmsg, MAXRBUF);
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -920,7 +920,7 @@ bool FocusLynx::getFocusConfig()
           snprintf(response, 32, "BLC Stps = %d", 50);
           nbytes_read = strlen(response);
       }
-      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
       {
           tty_error_msg(errcode, errmsg, MAXRBUF);
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -945,7 +945,7 @@ bool FocusLynx::getFocusConfig()
           snprintf(response, 32, "LED Brt = %d", 75);
           nbytes_read = strlen(response);
       }
-      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
       {
           tty_error_msg(errcode, errmsg, MAXRBUF);
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -966,7 +966,7 @@ bool FocusLynx::getFocusConfig()
           snprintf(response, 32, "TC@Start = %d", TemperatureCompensateOnStartS[0].s == ISS_ON ? 1 : 0);
           nbytes_read = strlen(response);
       }
-      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
       {
           tty_error_msg(errcode, errmsg, MAXRBUF);
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -1025,7 +1025,7 @@ bool FocusLynx::getFocusStatus()
         if (isResponseOK() == false)
             return false;
 
-        if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+        if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -1047,7 +1047,7 @@ bool FocusLynx::getFocusStatus()
           strncpy(response, "Temp(C) = +21.7", 16);
           nbytes_read = strlen(response);
       }
-      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
       {
           tty_error_msg(errcode, errmsg, MAXRBUF);
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -1073,7 +1073,7 @@ bool FocusLynx::getFocusStatus()
           snprintf(response, 32, "Curr Pos = %06d", simPosition);
           nbytes_read = strlen(response);
       }
-      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
       {
           tty_error_msg(errcode, errmsg, MAXRBUF);
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -1098,7 +1098,7 @@ bool FocusLynx::getFocusStatus()
           snprintf(response, 32, "Targ Pos = %06d", targetPosition);
           nbytes_read = strlen(response);
       }
-      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
       {
           tty_error_msg(errcode, errmsg, MAXRBUF);
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -1115,7 +1115,7 @@ bool FocusLynx::getFocusStatus()
           snprintf(response, 32, "Is Moving = %d", (simStatus[STATUS_MOVING] == ISS_ON) ? 1 : 0);
           nbytes_read = strlen(response);
       }
-      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
       {
           tty_error_msg(errcode, errmsg, MAXRBUF);
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -1137,7 +1137,7 @@ bool FocusLynx::getFocusStatus()
           snprintf(response, 32, "Is Homing = %d", (simStatus[STATUS_HOMING] == ISS_ON) ? 1 : 0);
           nbytes_read = strlen(response);
       }
-      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
       {
           tty_error_msg(errcode, errmsg, MAXRBUF);
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -1159,7 +1159,7 @@ bool FocusLynx::getFocusStatus()
           snprintf(response, 32, "Is Homed = %d", (simStatus[STATUS_HOMED] == ISS_ON) ? 1 : 0);
           nbytes_read = strlen(response);
       }
-      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
       {
           tty_error_msg(errcode, errmsg, MAXRBUF);
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -1181,7 +1181,7 @@ bool FocusLynx::getFocusStatus()
           snprintf(response, 32, "FFDetect = %d", (simStatus[STATUS_FFDETECT] == ISS_ON) ? 1 : 0);
           nbytes_read = strlen(response);
       }
-      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
       {
           tty_error_msg(errcode, errmsg, MAXRBUF);
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -1203,7 +1203,7 @@ bool FocusLynx::getFocusStatus()
           snprintf(response, 32, "TmpProbe = %d", (simStatus[STATUS_TMPPROBE] == ISS_ON) ? 1 : 0);
           nbytes_read = strlen(response);
       }
-      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
       {
           tty_error_msg(errcode, errmsg, MAXRBUF);
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -1225,7 +1225,7 @@ bool FocusLynx::getFocusStatus()
           snprintf(response, 32, "RemoteIO = %d", (simStatus[STATUS_REMOTEIO] == ISS_ON) ? 1 : 0);
           nbytes_read = strlen(response);
       }
-      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
       {
           tty_error_msg(errcode, errmsg, MAXRBUF);
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -1247,7 +1247,7 @@ bool FocusLynx::getFocusStatus()
           snprintf(response, 32, "Hnd Ctlr = %d", (simStatus[STATUS_HNDCTRL] == ISS_ON) ? 1 : 0);
           nbytes_read = strlen(response);
       }
-      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+      else if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
       {
           tty_error_msg(errcode, errmsg, MAXRBUF);
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -1307,7 +1307,7 @@ bool FocusLynx::setDeviceType(int index)
         if (isResponseOK() == false)
             return false;
 
-        if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+        if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -1363,7 +1363,7 @@ bool FocusLynx::home()
         if (isResponseOK() == false)
             return false;
 
-        if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+        if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -1421,7 +1421,7 @@ bool FocusLynx::center()
         if (isResponseOK() == false)
             return false;
 
-        if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+        if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -1480,7 +1480,7 @@ bool FocusLynx::setTemperatureCompensation(bool enable)
         if (isResponseOK() == false)
             return false;
 
-        if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+        if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -1536,7 +1536,7 @@ bool FocusLynx::setTemperatureCompensationMode(char mode)
         if (isResponseOK() == false)
             return false;
 
-        if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+        if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -1592,7 +1592,7 @@ bool FocusLynx::setTemperatureCompensationCoeff(char mode, int16_t coeff)
         if (isResponseOK() == false)
             return false;
 
-        if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+        if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -1648,7 +1648,7 @@ bool FocusLynx::setTemperatureCompensationOnStart(bool enable)
         if (isResponseOK() == false)
             return false;
 
-        if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+        if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -1704,7 +1704,7 @@ bool FocusLynx::setBacklashCompensation(bool enable)
         if (isResponseOK() == false)
             return false;
 
-        if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+        if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -1760,7 +1760,7 @@ bool FocusLynx::setBacklashCompensationSteps(uint16_t steps)
         if (isResponseOK() == false)
             return false;
 
-        if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+        if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -1817,7 +1817,7 @@ bool FocusLynx::sync(u_int32_t position)
         if (isResponseOK() == false)
             return false;
 
-        if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+        if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -1874,7 +1874,7 @@ bool FocusLynx::resetFactory()
         if (isResponseOK() == false)
             return false;
 
-        if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+        if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -1917,7 +1917,7 @@ bool FocusLynx::isResponseOK()
     }
     else
     {
-        if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT , &nbytes_read)))
+        if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT , &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGF(INDI::Logger::DBG_ERROR, "TTY error: %s", errmsg);
@@ -1978,7 +1978,7 @@ IPState FocusLynx::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
         gettimeofday(&focusMoveStart,NULL);
         focusMoveRequest = duration/1000.0;
 
-        if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+        if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -2043,7 +2043,7 @@ IPState FocusLynx::MoveAbsFocuser(uint32_t targetTicks)
         if (isResponseOK() == false)
             return IPS_ALERT;
 
-        if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+        if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -2194,7 +2194,7 @@ bool FocusLynx::AbortFocuser()
         if (isResponseOK() == false)
             return false;
 
-        if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)))
+        if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
