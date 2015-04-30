@@ -555,6 +555,8 @@ bool FocusLynx::ack()
     int nbytes_read=0;
     int nbytes_written=0;
 
+    memset(response, 0, sizeof(response));
+
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
     if (isSimulation())
@@ -608,6 +610,8 @@ bool FocusLynx::getFocusConfig()
     int nbytes_read=0;
     int nbytes_written=0;
 
+    memset(response, 0, sizeof(response));
+
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
     if (isSimulation())
@@ -642,6 +646,9 @@ bool FocusLynx::getFocusConfig()
 
       if (strcmp(response, "CONFIG"))
         return false;
+    }
+
+     memset(response, 0, sizeof(response));
 
       // Nickname
       if (isSimulation())
@@ -657,6 +664,8 @@ bool FocusLynx::getFocusConfig()
       }
       response[nbytes_read] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+
+      memset(response, 0, sizeof(response));
 
       // Get Max Position
       if (isSimulation())
@@ -692,6 +701,8 @@ bool FocusLynx::getFocusConfig()
       else
           return false;
 
+      memset(response, 0, sizeof(response));
+
       // Get Device Type
       if (isSimulation())
       {
@@ -708,6 +719,8 @@ bool FocusLynx::getFocusConfig()
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       // Get Status Parameters
+
+      memset(response, 0, sizeof(response));
 
       // Temperature Compensation On?
       if (isSimulation())
@@ -735,6 +748,8 @@ bool FocusLynx::getFocusConfig()
       TemperatureCompensateSP.s = IPS_OK;
       IDSetSwitch(&TemperatureCompensateSP, NULL);
 
+      memset(response, 0, sizeof(response));
+
       // Temperature Coeff A
       if (isSimulation())
       {
@@ -756,6 +771,8 @@ bool FocusLynx::getFocusConfig()
           return false;
 
       TemperatureCoeffN[FOCUS_A_COEFF].value = TCoeffA;
+
+      memset(response, 0, sizeof(response));
 
       // Temperature Coeff B
       if (isSimulation())
@@ -779,6 +796,8 @@ bool FocusLynx::getFocusConfig()
 
       TemperatureCoeffN[FOCUS_B_COEFF].value = TCoeffB;
 
+      memset(response, 0, sizeof(response));
+
       // Temperature Coeff C
       if (isSimulation())
       {
@@ -801,6 +820,8 @@ bool FocusLynx::getFocusConfig()
 
       TemperatureCoeffN[FOCUS_C_COEFF].value = TCoeffC;
 
+      memset(response, 0, sizeof(response));
+
       // Temperature Coeff D
       if (isSimulation())
       {
@@ -822,6 +843,8 @@ bool FocusLynx::getFocusConfig()
           return false;
 
       TemperatureCoeffN[FOCUS_D_COEFF].value = TCoeffD;
+
+      memset(response, 0, sizeof(response));
 
       // Temperature Coeff E
       if (isSimulation())
@@ -848,9 +871,9 @@ bool FocusLynx::getFocusConfig()
       TemperatureCoeffNP.s = IPS_OK;
       IDSetNumber(&TemperatureCoeffNP, NULL);
 
+      memset(response, 0, sizeof(response));
 
       // Temperature Compensation Mode
-      tcflush(PortFD, TCIFLUSH);
       if (isSimulation())
       {
           snprintf(response, 32, "TC Mode = %c", 'C');
@@ -886,7 +909,7 @@ bool FocusLynx::getFocusConfig()
       IDSetSwitch(&TemperatureCompensateModeSP, NULL);
 
       // Backlash Compensation
-      tcflush(PortFD, TCIFLUSH);
+      memset(response, 0, sizeof(response));
       if (isSimulation())
       {
           snprintf(response, 32, "BLC En = %d", BacklashCompensationS[0].s == ISS_ON ? 1 : 0);
@@ -914,7 +937,7 @@ bool FocusLynx::getFocusConfig()
 
 
       // Backlash Value
-      tcflush(PortFD, TCIFLUSH);
+      memset(response, 0, sizeof(response));
       if (isSimulation())
       {
           snprintf(response, 32, "BLC Stps = %d", 50);
@@ -939,7 +962,7 @@ bool FocusLynx::getFocusConfig()
       IDSetNumber(&BacklashNP, NULL);
 
       // Led brightnesss
-      tcflush(PortFD, TCIFLUSH);
+      memset(response, 0, sizeof(response));
       if (isSimulation())
       {
           snprintf(response, 32, "LED Brt = %d", 75);
@@ -960,7 +983,7 @@ bool FocusLynx::getFocusConfig()
           return false;
 
       // Temperature Compensation on Start
-      tcflush(PortFD, TCIFLUSH);
+      memset(response, 0, sizeof(response));
       if (isSimulation())
       {
           snprintf(response, 32, "TC@Start = %d", TemperatureCompensateOnStartS[0].s == ISS_ON ? 1 : 0);
@@ -989,9 +1012,6 @@ bool FocusLynx::getFocusConfig()
       tcflush(PortFD, TCIFLUSH);
 
       return true;
-     }
-
-    return false;
 }
 
 /************************************************************************************
@@ -1005,6 +1025,8 @@ bool FocusLynx::getFocusStatus()
     char response[32];
     int nbytes_read=0;
     int nbytes_written=0;
+
+    memset(response, 0, sizeof(response));
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
@@ -1042,6 +1064,7 @@ bool FocusLynx::getFocusStatus()
         return false;
 
       // Get Temperature
+      memset(response, 0, sizeof(response));
       if (isSimulation())
       {
           strncpy(response, "Temp(C) = +21.7", 16);
@@ -1068,6 +1091,7 @@ bool FocusLynx::getFocusStatus()
 
 
       // Get Current Position
+      memset(response, 0, sizeof(response));
       if (isSimulation())
       {
           snprintf(response, 32, "Curr Pos = %06d", simPosition);
@@ -1093,6 +1117,7 @@ bool FocusLynx::getFocusStatus()
           return false;
 
       // Get Target Position
+      memset(response, 0, sizeof(response));
       if (isSimulation())
       {
           snprintf(response, 32, "Targ Pos = %06d", targetPosition);
@@ -1110,6 +1135,7 @@ bool FocusLynx::getFocusStatus()
       // Get Status Parameters
 
       // #1 is Moving?
+      memset(response, 0, sizeof(response));
       if (isSimulation())
       {
           snprintf(response, 32, "Is Moving = %d", (simStatus[STATUS_MOVING] == ISS_ON) ? 1 : 0);
@@ -1132,6 +1158,7 @@ bool FocusLynx::getFocusStatus()
       StatusL[STATUS_MOVING].s = isMoving ? IPS_BUSY : IPS_IDLE;
 
       // #2 is Homing?
+      memset(response, 0, sizeof(response));
       if (isSimulation())
       {
           snprintf(response, 32, "Is Homing = %d", (simStatus[STATUS_HOMING] == ISS_ON) ? 1 : 0);
@@ -1154,6 +1181,7 @@ bool FocusLynx::getFocusStatus()
       StatusL[STATUS_HOMING].s = isHoming ? IPS_BUSY : IPS_IDLE;
 
       // #3 is Homed?
+      memset(response, 0, sizeof(response));
       if (isSimulation())
       {
           snprintf(response, 32, "Is Homed = %d", (simStatus[STATUS_HOMED] == ISS_ON) ? 1 : 0);
@@ -1176,6 +1204,7 @@ bool FocusLynx::getFocusStatus()
       StatusL[STATUS_HOMED].s = isHomed ? IPS_OK : IPS_IDLE;
 
       // #4 FF Detected?
+      memset(response, 0, sizeof(response));
       if (isSimulation())
       {
           snprintf(response, 32, "FFDetect = %d", (simStatus[STATUS_FFDETECT] == ISS_ON) ? 1 : 0);
@@ -1198,6 +1227,7 @@ bool FocusLynx::getFocusStatus()
       StatusL[STATUS_FFDETECT].s = FFDetect ? IPS_OK : IPS_IDLE;
 
       // #5 Temperature probe?
+      memset(response, 0, sizeof(response));
       if (isSimulation())
       {
           snprintf(response, 32, "TmpProbe = %d", (simStatus[STATUS_TMPPROBE] == ISS_ON) ? 1 : 0);
@@ -1220,6 +1250,7 @@ bool FocusLynx::getFocusStatus()
       StatusL[STATUS_TMPPROBE].s = TmpProbe ? IPS_OK : IPS_IDLE;
 
       // #6 Remote IO?
+      memset(response, 0, sizeof(response));
       if (isSimulation())
       {
           snprintf(response, 32, "RemoteIO = %d", (simStatus[STATUS_REMOTEIO] == ISS_ON) ? 1 : 0);
@@ -1242,6 +1273,7 @@ bool FocusLynx::getFocusStatus()
       StatusL[STATUS_REMOTEIO].s = RemoteIO ? IPS_OK : IPS_IDLE;
 
       // #7 Hand controller?
+      memset(response, 0, sizeof(response));
       if (isSimulation())
       {
           snprintf(response, 32, "Hnd Ctlr = %d", (simStatus[STATUS_HNDCTRL] == ISS_ON) ? 1 : 0);
@@ -1285,6 +1317,8 @@ bool FocusLynx::setDeviceType(int index)
     char response[16];
     int nbytes_read=0;
     int nbytes_written=0;
+
+    memset(response, 0, sizeof(response));
 
     snprintf(cmd, 16, "<F1SCDT%s>", ModelS[index].name);
 
@@ -1341,6 +1375,8 @@ bool FocusLynx::home()
     char response[16];
     int nbytes_read=0;
     int nbytes_written=0;
+
+    memset(response, 0, sizeof(response));
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
@@ -1399,6 +1435,8 @@ bool FocusLynx::center()
     char response[16];
     int nbytes_read=0;
     int nbytes_written=0;
+
+    memset(response, 0, sizeof(response));
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
@@ -1459,6 +1497,8 @@ bool FocusLynx::setTemperatureCompensation(bool enable)
     int nbytes_read=0;
     int nbytes_written=0;
 
+    memset(response, 0, sizeof(response));
+
     snprintf(cmd, 16, "<F1SCTE%d>", enable ? 1 : 0);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
@@ -1514,6 +1554,8 @@ bool FocusLynx::setTemperatureCompensationMode(char mode)
     char response[16];
     int nbytes_read=0;
     int nbytes_written=0;
+
+    memset(response, 0, sizeof(response));
 
     snprintf(cmd, 16, "<F1SCTM%c>", mode);
 
@@ -1571,6 +1613,8 @@ bool FocusLynx::setTemperatureCompensationCoeff(char mode, int16_t coeff)
     int nbytes_read=0;
     int nbytes_written=0;
 
+    memset(response, 0, sizeof(response));
+
     snprintf(cmd, 16, "<F1SCTC%c%c%04d>", mode, coeff >= 0 ? '+' : '-', abs(coeff));
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
@@ -1626,6 +1670,8 @@ bool FocusLynx::setTemperatureCompensationOnStart(bool enable)
     char response[16];
     int nbytes_read=0;
     int nbytes_written=0;
+
+    memset(response, 0, sizeof(response));
 
     snprintf(cmd, 16, "<F1SCTS%d>", enable ? 1 : 0);
 
@@ -1683,6 +1729,8 @@ bool FocusLynx::setBacklashCompensation(bool enable)
     int nbytes_read=0;
     int nbytes_written=0;
 
+    memset(response, 0, sizeof(response));
+
     snprintf(cmd, 16, "<F1SCBE%d>", enable ? 1 : 0);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
@@ -1739,6 +1787,8 @@ bool FocusLynx::setBacklashCompensationSteps(uint16_t steps)
     int nbytes_read=0;
     int nbytes_written=0;
 
+    memset(response, 0, sizeof(response));
+
     snprintf(cmd, 16, "<F1SCBS%02d>", steps);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
@@ -1794,6 +1844,8 @@ bool FocusLynx::sync(u_int32_t position)
     char response[16];
     int nbytes_read=0;
     int nbytes_written=0;
+
+    memset(response, 0, sizeof(response));
 
     snprintf(cmd, 16, "F1SCCP%06d", position);
 
@@ -1855,6 +1907,8 @@ bool FocusLynx::resetFactory()
     int nbytes_read=0;
     int nbytes_written=0;
 
+    memset(response, 0, sizeof(response));
+
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
     if (isSimulation())
@@ -1910,6 +1964,8 @@ bool FocusLynx::isResponseOK()
     char response[32];
     int nbytes_read=0;
 
+    memset(response, 0, sizeof(response));
+
     if (isSimulation())
     {
         strcpy(response, "!");
@@ -1945,15 +2001,15 @@ bool FocusLynx::isResponseOK()
 *
 * ***********************************************************************************/
 IPState FocusLynx::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
-{
-    //targetPos = targetTicks;
-
+{    
     char cmd[16];
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
     int nbytes_read=0;
     int nbytes_written=0;
+
+    memset(response, 0, sizeof(response));
 
     snprintf(cmd, 16, "F1M%cR%c", (dir == FOCUS_INWARD) ? 'I' : 'O', (speed == 0) ? '0' : '1');
 
@@ -2021,6 +2077,8 @@ IPState FocusLynx::MoveAbsFocuser(uint32_t targetTicks)
     int nbytes_written=0;
 
     targetPosition = targetTicks;
+
+    memset(response, 0, sizeof(response));
 
     snprintf(cmd, 16, "F1MA%06d", targetTicks);
 
@@ -2173,6 +2231,8 @@ bool FocusLynx::AbortFocuser()
     char response[16];
     int nbytes_read=0;
     int nbytes_written=0;
+
+    memset(response, 0, sizeof(response));
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
