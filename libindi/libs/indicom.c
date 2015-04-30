@@ -369,7 +369,7 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
      {
          int i=0;
          for (i=0; i < (nbytes+*nbytes_read); i++)
-            IDLog("%s: buffer[%d]=%c\n", __FUNCTION__, i, buf[i]);
+            IDLog("%s: buffer[%d]=0x%02X (%c)\n", __FUNCTION__, i, (unsigned char) buf[i], buf[i]);
      }
   }
 
@@ -399,7 +399,7 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
             return TTY_READ_ERROR;
 
          if (tty_debug)
-                IDLog("%s: buffer[%d]=%c\n", __FUNCTION__, (*nbytes_read), buf[(*nbytes_read)]);
+                IDLog("%s: buffer[%d]=0x%02X (%c)\n", __FUNCTION__, (*nbytes_read), (unsigned char ) buf[(*nbytes_read)], buf[(*nbytes_read)]);
 
         if (bytesRead)
           (*nbytes_read)++;
