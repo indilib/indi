@@ -314,6 +314,11 @@ bool FocusLynx::Connect()
 
     }
 
+    // Make raw
+    struct termios tty_settings;
+    tcgetattr(PortFD, &tty_settings);
+    cfmakeraw(&tty_settings);
+
     if (ack())
     {
         DEBUG(INDI::Logger::DBG_SESSION, "FocusLynx is online. Getting focus parameters...");
@@ -1973,8 +1978,7 @@ bool FocusLynx::isResponseOK()
     }
     else
     {
-        //if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT , &nbytes_read)) != TTY_OK)
-        if ( (errcode = tty_read(PortFD, response, 1, LYNXFOCUS_TIMEOUT , &nbytes_read)) != TTY_OK)
+        if ( (errcode = tty_read_section(PortFD, response, 0x10, LYNXFOCUS_TIMEOUT , &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGF(INDI::Logger::DBG_ERROR, "TTY error: %s", errmsg);
