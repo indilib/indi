@@ -2267,5 +2267,5 @@ bool FocusLynx::saveConfigItems(FILE *fp)
 * ***********************************************************************************/
 void FocusLynx::debugTriggered(bool enable)
 {
-    //tty_set_debug(enable ? 1 : 0);
+    tty_set_debug(enable ? 1 : 0);
 }
