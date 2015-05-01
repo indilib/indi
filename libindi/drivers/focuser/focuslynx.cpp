@@ -1984,7 +1984,7 @@ bool FocusLynx::isResponseOK()
       response[nbytes_read] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
-      if (!strcmp(response, "!"))
+      if (response[0] == '!')
           return true;
       else
       {
