@@ -356,21 +356,23 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
      if ( (err = tty_timeout(fd, timeout)) )
       return err;
 
-     bytesRead = read(fd, buf, ((unsigned) nbytes));
+     bytesRead = read(fd, buf, ((unsigned) nbytes));          
 
      if (bytesRead < 0 )
       return TTY_READ_ERROR;
+
+     if (tty_debug)
+     {
+         IDLog("%d bytes read and %d bytes remaining...\n", bytesRead, nbytes-bytesRead);
+         int i=0;
+         for (i=*nbytes_read; i < (*nbytes_read+bytesRead); i++)
+            IDLog("%s: buffer[%d]=%#X (%c)\n", __FUNCTION__, i, (unsigned char) buf[i], buf[i]);
+     }
 
      buf += bytesRead;
      *nbytes_read += bytesRead;
      nbytes -= bytesRead;
 
-     if (tty_debug)
-     {
-         int i=0;
-         for (i=0; i < (nbytes+*nbytes_read); i++)
-            IDLog("%s: buffer[%d]=%#X (%c)\n", __FUNCTION__, i, (unsigned char) buf[i], buf[i]);
-     }
   }
 
   return TTY_OK;
