@@ -265,9 +265,13 @@ bool FocusLynx::updateProperties()
 
         defineLight(&StatusLP);
 
-        getFocusConfig();
-
-        DEBUG(INDI::Logger::DBG_SESSION, "FocusLynx paramaters updated, focuser ready for use.");
+        if (getFocusConfig())
+            DEBUG(INDI::Logger::DBG_SESSION, "FocusLynx paramaters updated, focuser ready for use.");
+        else
+        {
+            DEBUG(INDI::Logger::DBG_ERROR, "Failed to retrieve focuser configuration settings...");
+            return false;
+        }
     }
     else
     {
@@ -617,7 +621,7 @@ bool FocusLynx::getFocusConfig()
 
     if (isSimulation())
     {
-        strncpy(response, "CONFIG\n", 16);
+        strncpy(response, "CONFIG1\n", 16);
         nbytes_read = strlen(response);
     }
     else
@@ -645,7 +649,7 @@ bool FocusLynx::getFocusConfig()
       response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
-      if (strcmp(response, "CONFIG"))
+      if (strcmp(response, "CONFIG1"))
         return false;
     }
 
