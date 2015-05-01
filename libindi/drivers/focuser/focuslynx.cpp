@@ -586,7 +586,7 @@ bool FocusLynx::ack()
 
     if (nbytes_read > 0)
     {
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
       DEBUGF(INDI::Logger::DBG_SESSION, "%s is detected.", response);
 
@@ -639,7 +639,7 @@ bool FocusLynx::getFocusConfig()
 
     if (nbytes_read > 0)
     {
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       if (strcmp(response, "CONFIG"))
@@ -660,7 +660,7 @@ bool FocusLynx::getFocusConfig()
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
           return false;
       }
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       memset(response, 0, sizeof(response));
@@ -677,7 +677,7 @@ bool FocusLynx::getFocusConfig()
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
           return false;
       }
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       uint32_t maxPos=0;
@@ -713,7 +713,7 @@ bool FocusLynx::getFocusConfig()
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
           return false;
       }
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       // Get Status Parameters
@@ -732,7 +732,7 @@ bool FocusLynx::getFocusConfig()
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
           return false;
       }
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       int TCompOn;
@@ -760,7 +760,7 @@ bool FocusLynx::getFocusConfig()
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
           return false;
       }
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       int TCoeffA;
@@ -784,7 +784,7 @@ bool FocusLynx::getFocusConfig()
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
           return false;
       }
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       int TCoeffB;
@@ -808,7 +808,7 @@ bool FocusLynx::getFocusConfig()
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
           return false;
       }
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       int TCoeffC;
@@ -832,7 +832,7 @@ bool FocusLynx::getFocusConfig()
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
           return false;
       }
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       int TCoeffD;
@@ -856,7 +856,7 @@ bool FocusLynx::getFocusConfig()
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
           return false;
       }
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       int TCoeffE;
@@ -883,7 +883,7 @@ bool FocusLynx::getFocusConfig()
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
           return false;
       }
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       char compensateMode;
@@ -919,7 +919,7 @@ bool FocusLynx::getFocusConfig()
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
           return false;
       }
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       int BLCCompensate;
@@ -947,7 +947,7 @@ bool FocusLynx::getFocusConfig()
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
           return false;
       }
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       int BLCValue;
@@ -972,7 +972,7 @@ bool FocusLynx::getFocusConfig()
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
           return false;
       }
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       int LEDBrightness;
@@ -993,7 +993,7 @@ bool FocusLynx::getFocusConfig()
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
           return false;
       }
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       int TCOnStart;
@@ -1055,7 +1055,7 @@ bool FocusLynx::getFocusStatus()
 
     if (nbytes_read > 0)
     {
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       if (strcmp(response, "STATUS1"))
@@ -1074,7 +1074,7 @@ bool FocusLynx::getFocusStatus()
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
           return false;
       }
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       float temperature=0;
@@ -1101,7 +1101,7 @@ bool FocusLynx::getFocusStatus()
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
           return false;
       }
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       uint32_t currPos=0;
@@ -1127,7 +1127,7 @@ bool FocusLynx::getFocusStatus()
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
           return false;
       }
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       // Get Status Parameters
@@ -1145,7 +1145,7 @@ bool FocusLynx::getFocusStatus()
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
           return false;
       }
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       int isMoving;
@@ -1168,7 +1168,7 @@ bool FocusLynx::getFocusStatus()
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
           return false;
       }
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       int isHoming;
@@ -1191,7 +1191,7 @@ bool FocusLynx::getFocusStatus()
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
           return false;
       }
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       int isHomed;
@@ -1214,7 +1214,7 @@ bool FocusLynx::getFocusStatus()
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
           return false;
       }
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       int FFDetect;
@@ -1237,7 +1237,7 @@ bool FocusLynx::getFocusStatus()
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
           return false;
       }
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       int TmpProbe;
@@ -1260,7 +1260,7 @@ bool FocusLynx::getFocusStatus()
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
           return false;
       }
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       int RemoteIO;
@@ -1283,7 +1283,7 @@ bool FocusLynx::getFocusStatus()
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
           return false;
       }
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       int HndCtlr;
@@ -1349,7 +1349,7 @@ bool FocusLynx::setDeviceType(int index)
 
     if (nbytes_read > 0)
     {
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
       tcflush(PortFD, TCIFLUSH);
 
@@ -1407,7 +1407,7 @@ bool FocusLynx::home()
 
     if (nbytes_read > 0)
     {
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
       FocusAbsPosNP.s = IPS_BUSY;
       IDSetNumber(&FocusAbsPosNP, NULL);
@@ -1467,7 +1467,7 @@ bool FocusLynx::center()
 
     if (nbytes_read > 0)
     {
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       DEBUG(INDI::Logger::DBG_SESSION, "Focuser moving to center position...");
@@ -1528,7 +1528,7 @@ bool FocusLynx::setTemperatureCompensation(bool enable)
 
     if (nbytes_read > 0)
     {
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
       tcflush(PortFD, TCIFLUSH);
 
@@ -1586,7 +1586,7 @@ bool FocusLynx::setTemperatureCompensationMode(char mode)
 
     if (nbytes_read > 0)
     {
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
       tcflush(PortFD, TCIFLUSH);
 
@@ -1644,7 +1644,7 @@ bool FocusLynx::setTemperatureCompensationCoeff(char mode, int16_t coeff)
 
     if (nbytes_read > 0)
     {
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
       tcflush(PortFD, TCIFLUSH);
 
@@ -1702,7 +1702,7 @@ bool FocusLynx::setTemperatureCompensationOnStart(bool enable)
 
     if (nbytes_read > 0)
     {
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
       tcflush(PortFD, TCIFLUSH);
 
@@ -1760,7 +1760,7 @@ bool FocusLynx::setBacklashCompensation(bool enable)
 
     if (nbytes_read > 0)
     {
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
       tcflush(PortFD, TCIFLUSH);
 
@@ -1818,7 +1818,7 @@ bool FocusLynx::setBacklashCompensationSteps(uint16_t steps)
 
     if (nbytes_read > 0)
     {
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
       tcflush(PortFD, TCIFLUSH);
 
@@ -1877,7 +1877,7 @@ bool FocusLynx::sync(u_int32_t position)
 
     if (nbytes_read > 0)
     {
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
       tcflush(PortFD, TCIFLUSH);
 
@@ -1936,7 +1936,7 @@ bool FocusLynx::resetFactory()
 
     if (nbytes_read > 0)
     {
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
       tcflush(PortFD, TCIFLUSH);
 
@@ -1981,7 +1981,7 @@ bool FocusLynx::isResponseOK()
 
     if (nbytes_read > 0)
     {
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       if (response[0] == '!')
@@ -2042,7 +2042,7 @@ IPState FocusLynx::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 
     if (nbytes_read > 0)
     {
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       if (duration <= POLLMS)
@@ -2109,7 +2109,7 @@ IPState FocusLynx::MoveAbsFocuser(uint32_t targetTicks)
 
     if (nbytes_read > 0)
     {
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       tcflush(PortFD, TCIFLUSH);
@@ -2262,7 +2262,7 @@ bool FocusLynx::AbortFocuser()
 
     if (nbytes_read > 0)
     {
-      response[nbytes_read] = '\0';
+      response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       if (FocusRelPosNP.s == IPS_BUSY)
