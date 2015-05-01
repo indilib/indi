@@ -1045,6 +1045,8 @@ bool FocusLynx::getFocusStatus()
     }
     else
     {
+        tcflush(PortFD, TCIFLUSH);
+
         if ( (errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -1351,6 +1353,8 @@ bool FocusLynx::setDeviceType(int index)
     }
     else
     {
+        tcflush(PortFD, TCIFLUSH);
+
         if ( (errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -1409,6 +1413,8 @@ bool FocusLynx::home()
     }
     else
     {
+        tcflush(PortFD, TCIFLUSH);
+
         if ( (errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -1469,6 +1475,8 @@ bool FocusLynx::center()
     }
     else
     {
+        tcflush(PortFD, TCIFLUSH);
+
         if ( (errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -1530,6 +1538,8 @@ bool FocusLynx::setTemperatureCompensation(bool enable)
     }
     else
     {
+        tcflush(PortFD, TCIFLUSH);
+
         if ( (errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -1588,6 +1598,8 @@ bool FocusLynx::setTemperatureCompensationMode(char mode)
     }
     else
     {
+        tcflush(PortFD, TCIFLUSH);
+
         if ( (errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -1646,6 +1658,8 @@ bool FocusLynx::setTemperatureCompensationCoeff(char mode, int16_t coeff)
     }
     else
     {
+        tcflush(PortFD, TCIFLUSH);
+
         if ( (errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -1704,6 +1718,8 @@ bool FocusLynx::setTemperatureCompensationOnStart(bool enable)
     }
     else
     {
+        tcflush(PortFD, TCIFLUSH);
+
         if ( (errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -1879,6 +1895,8 @@ bool FocusLynx::sync(u_int32_t position)
     }
     else
     {
+        tcflush(PortFD, TCIFLUSH);
+
         if ( (errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -1938,6 +1956,8 @@ bool FocusLynx::resetFactory()
     }
     else
     {
+        tcflush(PortFD, TCIFLUSH);
+
         if ( (errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -2041,6 +2061,8 @@ IPState FocusLynx::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
     }
     else
     {
+        tcflush(PortFD, TCIFLUSH);
+
         if ( (errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -2111,6 +2133,8 @@ IPState FocusLynx::MoveAbsFocuser(uint32_t targetTicks)
     }
     else
     {
+        tcflush(PortFD, TCIFLUSH);
+
         if ( (errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -2169,7 +2193,15 @@ void FocusLynx::TimerHit()
        return;
     }
 
-    if (getFocusStatus() == false)
+    bool statusrc=false;
+    for (int i=0; i < 2; i++)
+    {
+        statusrc = getFocusStatus();
+        if (statusrc)
+            break;
+    }
+
+    if (statusrc == false)
     {
         DEBUG(INDI::Logger::DBG_WARNING, "Unable to read focuser status....");
         SetTimer(POLLMS);
@@ -2274,6 +2306,8 @@ bool FocusLynx::AbortFocuser()
     }
     else
     {
+        tcflush(PortFD, TCIFLUSH);
+
         if ( (errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
