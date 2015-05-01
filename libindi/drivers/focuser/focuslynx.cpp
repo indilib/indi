@@ -38,7 +38,7 @@
 #define FOCUS_SETTINGS_TAB  "Settings"
 #define FOCUS_STATUS_TAB    "Status"
 
-#define POLLMS  500
+#define POLLMS  1000
 
 std::auto_ptr<FocusLynx> lynxDrive(0);
 
