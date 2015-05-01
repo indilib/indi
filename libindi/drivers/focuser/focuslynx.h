@@ -60,6 +60,7 @@ private:
    uint32_t targetPosition;
    ISState simStatus[7];
    bool simCompensationOn;
+   bool configurationComplete;
 
     //double targetPos, lastPos, lastTemperature, simPosition;
     //unsigned int currentSpeed, temperaturegetCounter;
