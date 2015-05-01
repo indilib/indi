@@ -894,7 +894,7 @@ bool FocusLynx::getFocusConfig()
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
       char compensateMode;
-      rc = sscanf(response, "%16[^=]=%c", key, &compensateMode);
+      rc = sscanf(response, "%16[^=]= %c", key, &compensateMode);
       if (rc != 2)
           return false;
 
@@ -1095,8 +1095,20 @@ bool FocusLynx::getFocusStatus()
           IDSetNumber(&TemperatureNP, NULL);
       }
       else
-          return false;
+      {
+          char np[8];
+          int rc = sscanf(response, "%16[^=]= %s", key, np);
 
+          if (rc != 2 || strcmp(np, "NP"))
+          {
+            if (TemperatureNP.s != IPS_ALERT)
+            {
+                TemperatureNP.s = IPS_ALERT;
+                IDSetNumber(&TemperatureNP, NULL);
+            }
+            return false;
+          }
+      }
 
       // Get Current Position
       memset(response, 0, sizeof(response));
@@ -2157,7 +2169,12 @@ void FocusLynx::TimerHit()
        return;
     }
 
-    getFocusStatus();
+    if (getFocusStatus() == false)
+    {
+        DEBUG(INDI::Logger::DBG_WARNING, "Unable to read focuser status....");
+        SetTimer(POLLMS);
+        return;
+    }
 
     if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
     {
