@@ -84,6 +84,15 @@ Align::Align(INDI::Telescope *t)
   currentdeltaRA=0.0;
   currentdeltaDEC=0.0;
   lastnearestindex=-1;
+
+  AlignDataFileTP=NULL;
+  AlignDataBP=NULL;
+  AlignPointNP=NULL;
+  AlignListSP=NULL;
+  AlignModeSP=NULL;
+  AlignTelescopeCoordsNP=NULL;
+  AlignSyncModeSP=NULL;
+  AlignCountNP=NULL;
 }
 
 Align::~Align() 
