@@ -474,9 +474,7 @@ bool EQMod::updateProperties()
 
 	  latitude=IUFindNumber(&LocationNP, "LAT");
 	  if ((latitude) && (latitude->value < 0.0)) SetSouthernHemisphere(true);
-	  else  SetSouthernHemisphere(false);
-
-      loadConfig(true);
+	  else  SetSouthernHemisphere(false);      
 
 	} 
 	catch(EQModError e) {
@@ -523,6 +521,10 @@ bool EQMod::updateProperties()
       if (!horizon->updateProperties()) return false;
     }
 #endif
+
+    /*if (isConnected())
+        loadConfig(true);*/
+
     return true;
 }
 
