@@ -61,6 +61,10 @@
 #define DEVICETYPE_IMG1E        110
 
 /**
+ * Type define for QHY2PRO */
+#define DEVICETYPE_QHY2PRO      221
+
+/**
  * Type define for IMG2P */
 #define DEVICETYPE_IMG2P        220
 
@@ -170,8 +174,57 @@
 #define DEVICETYPE_QHY23        897
 
 /**
+ * Type define for QHY15 */
+#define DEVICETYPE_QHY15        898
+
+/**
+ * Type define for QHY27 */
+#define DEVICETYPE_QHY27        899
+
+/**
+ * Type define for QHYA9 */
+#define DEVICETYPE_QHYA9        900
+
+
+/**
+ * Type define for QHYAPS */
+#define DEVICETYPE_QHYAPS       901
+
+/**
+ * Type define for QHY28 */
+#define DEVICETYPE_QHY28        902
+
+/**
+ * Type define for QHY5RII-M */
+#define DEVICETYPE_QHY5RII_M    903
+
+/**
+ * Type define for QHY5RII-M */
+#define DEVICETYPE_MINICAM5F_M  904
+
+/**
+ * Type define for QHY9T */
+#define DEVICETYPE_QHY9T        905
+
+/**
+ * Type define for QHY9T */
+#define DEVICETYPE_IC16803      906
+
+/**
+ * Type define for QHY29 */
+#define DEVICETYPE_QHY29        907
+
+/**
+ * Type define for SOLAR1600 */
+#define DEVICETYPE_SOLAR1600    908
+
+/**
  * Type define for QHY6 */
 #define DEVICETYPE_QHY6         60
+
+/**
+ * Type define for QHY7 */
+#define DEVICETYPE_QHY7         70
 
 /**
  * Type define for QHY15GIGAE */

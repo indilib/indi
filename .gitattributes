@@ -884,6 +884,7 @@
 3rdparty/libfli/libfli.h -text
 3rdparty/libqhy/85-qhy.rules -text
 3rdparty/libqhy/CMakeLists.txt -text
+3rdparty/libqhy/firmware/IC16803.HEX -text
 3rdparty/libqhy/firmware/IC8300.HEX -text
 3rdparty/libqhy/firmware/IMG0H.HEX -text
 3rdparty/libqhy/firmware/IMG2P.HEX -text
@@ -892,6 +893,7 @@
 3rdparty/libqhy/firmware/QHY10.HEX -text
 3rdparty/libqhy/firmware/QHY11.HEX -text
 3rdparty/libqhy/firmware/QHY12.HEX -text
+3rdparty/libqhy/firmware/QHY15.HEX -text
 3rdparty/libqhy/firmware/QHY16.HEX -text
 3rdparty/libqhy/firmware/QHY16000.HEX -text
 3rdparty/libqhy/firmware/QHY2.HEX -text
@@ -899,6 +901,9 @@
 3rdparty/libqhy/firmware/QHY21.HEX -text
 3rdparty/libqhy/firmware/QHY22.HEX -text
 3rdparty/libqhy/firmware/QHY23.HEX -text
+3rdparty/libqhy/firmware/QHY27.HEX -text
+3rdparty/libqhy/firmware/QHY28.HEX -text
+3rdparty/libqhy/firmware/QHY29.HEX -text
 3rdparty/libqhy/firmware/QHY2E.HEX -text
 3rdparty/libqhy/firmware/QHY2PRO.HEX -text
 3rdparty/libqhy/firmware/QHY5.HEX -text
@@ -911,6 +916,8 @@
 3rdparty/libqhy/firmware/QHY8M.HEX -text
 3rdparty/libqhy/firmware/QHY8PRO.HEX -text
 3rdparty/libqhy/firmware/QHY9S.HEX -text
+3rdparty/libqhy/firmware/QHYA9.HEX -text
+3rdparty/libqhy/firmware/QHYAPS.HEX -text
 3rdparty/libqhy/firmware/miniCam5.HEX -text
 3rdparty/libqhy/libqhy.dylib -text
 3rdparty/libqhy/libqhy_32.bin -text

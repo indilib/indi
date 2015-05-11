@@ -32,13 +32,8 @@
 #endif
 
 #ifdef LINUX
-#ifdef OSX_EMBEDED_MODE
-#include <libusb.h>
-#else
 #include <libusb-1.0/libusb.h>
 #endif
-#endif
-
 
 #ifdef WIN32
 #include <windows.h>
@@ -130,6 +125,20 @@ typedef struct ccdreg
     unsigned char WindowHeater;        //!< Reserved
     unsigned char ADCSEL;              //!< Reserved
 }CCDREG;
+
+struct BIOREG
+{
+	unsigned short LineSize;
+	unsigned short PatchNumber;
+	unsigned char  AMPVOLTAGE;
+	unsigned char  ShortExposure;
+	unsigned char  SDRAM_MAXSIZE;
+	unsigned char  DownloadSpeed;
+	unsigned char  TransferBIT;
+    unsigned char  BIOCCD_Mode;
+    unsigned char  BIOCCD_Video;
+	unsigned char  SDRAM_Bypass;
+};
 
 /**
  * @brief CONTROL_ID enum define

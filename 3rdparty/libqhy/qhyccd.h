@@ -285,7 +285,7 @@ EXPORTC int STDCALL SetQHYCCDBitsMode(qhyccd_handle *handle,int bits);
   */
 EXPORTC int STDCALL ControlQHYCCDTemp(qhyccd_handle *handle,double targettemp);
 
-/** \fn int ControlQHYCCDGuide(qhyccd_handle *handle,int direction,int duration)
+/** \fn int ControlQHYCCDGuide(qhyccd_handle *handle,int direction,unsigned short duration)
       \brief control the camera' guide port
 	  \param handle camera control handle
 	  \param direction direction \n
@@ -298,7 +298,7 @@ EXPORTC int STDCALL ControlQHYCCDTemp(qhyccd_handle *handle,double targettemp);
 	  on success,return QHYCCD_SUCCESS \n
 	  another QHYCCD_ERROR code on other failures
   */
-EXPORTC int STDCALL ControlQHYCCDGuide(qhyccd_handle *handle,int direction,int duration);
+EXPORTC int STDCALL ControlQHYCCDGuide(qhyccd_handle *handle,int direction,unsigned short duration);
 
 	 /** 
 	  @fn int SendOrder2QHYCCDCFW(qhyccd_handle *handle,char *order,int length)
@@ -523,19 +523,15 @@ EXPORTFUNC int STDCALL SendTwoLine2QHYCCDInterCamOled(qhyccd_handle *handle,char
 EXPORTFUNC int STDCALL SendOneLine2QHYCCDInterCamOled(qhyccd_handle *handle,char *messageTop);
 
 /** 
-  @fn int GetQHYCCDCameraStatus(qhyccd_handle *h)
+  @fn int GetQHYCCDCameraStatus(qhyccd_handle *h,unsigned char *buf)
   @brief Get the camera statu
   @param h camera control handle
+  @param buf camera's status save space
   @return
-  on success,return the statu \n
-  statu: \n
-  0:IDLE \n
-  1:waitting for triger \n
-  2:exposing \n
-  3:expose done,ready for transfer to pc \n
+  on success,return QHYCCD_SUCCESS \n
   another QHYCCD_ERROR code on other failures
  */
-EXPORTFUNC int STDCALL GetQHYCCDCameraStatus(qhyccd_handle *h);
+EXPORTFUNC int STDCALL GetQHYCCDCameraStatus(qhyccd_handle *h,unsigned char *buf);
 
  /** 
   @fn int GetQHYCCDShutterStatus(qhyccd_handle *handle)
@@ -610,6 +606,17 @@ EXPORTFUNC void STDCALL FFmpegFreeAVI(void);
   @param frameIndex reserved
 */
 EXPORTFUNC void STDCALL FFmpegWriteToFrame(unsigned char* data, int frameCount, int frameIndex);
+
+/** 
+  @fn int GetQHYCCDHumidity(qhyccd_handle *handle,double *hd)
+  @brief query cavity's humidity 
+  @param handle control handle
+  @param hd the humidity value
+  @return
+  on success,return QHYCCD_SUCCESS \n
+  another QHYCCD_ERROR code on other failures 
+*/
+EXPORTFUNC int STDCALL GetQHYCCDHumidity(qhyccd_handle *handle,double *hd);
 
 /** 
   @fn int QHYCCDI2CTwoWrite(qhyccd_handle *handle,unsigned short addr,unsigned short value)
