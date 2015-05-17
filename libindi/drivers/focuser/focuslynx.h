@@ -99,6 +99,7 @@ private:
     bool stop();
     bool home();
     bool center();
+    bool reverse(bool enable);
 
     // Misc functions
     bool ack();
@@ -140,6 +141,10 @@ private:
     ISwitch ResetS[1];
     ISwitchVectorProperty ResetSP;
 
+    // Reverse Direction
+    ISwitch ReverseS[2];
+    ISwitchVectorProperty ReverseSP;
+
     // Go to home/center
     ISwitch GotoS[2];
     ISwitchVectorProperty GotoSP;
@@ -155,6 +160,8 @@ private:
     // Sync to a particular position
     INumber SyncN[1];
     INumberVectorProperty SyncNP;
+
+    bool isAbsolute;
 
 };
 

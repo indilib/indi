@@ -126,6 +126,8 @@ FocusLynx::FocusLynx()
     cap.canRelMove=true;
     cap.variableSpeed=false;
 
+    isAbsolute = false;
+
     SetFocuserCapability(&cap);
 
     simStatus[STATUS_MOVING]   = ISS_OFF;
@@ -197,6 +199,11 @@ bool FocusLynx::initProperties()
     IUFillSwitch(&GotoS[GOTO_HOME], "Home", "", ISS_OFF);
     IUFillSwitchVector(&GotoSP, GotoS, 2, getDeviceName(), "GOTO", "", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
+    // Reverse direction
+    IUFillSwitch(&ReverseS[0], "Enable", "", ISS_OFF);
+    IUFillSwitch(&ReverseS[1], "Disable", "", ISS_ON);
+    IUFillSwitchVector(&ReverseSP, ReverseS, 2, getDeviceName(), "Reverse", "", FOCUS_SETTINGS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+
     // List all supported models
     std::map<std::string, std::string>::iterator iter;
     int nModels=1;
@@ -249,7 +256,9 @@ bool FocusLynx::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&SyncNP);
+        // If focuser is relative, we define SYNC command.
+        if (isAbsolute == false)
+            defineNumber(&SyncNP);
 
         defineNumber(&TemperatureNP);
         defineNumber(&TemperatureCoeffNP);
@@ -261,7 +270,13 @@ bool FocusLynx::updateProperties()
         defineNumber(&BacklashNP);
 
         defineSwitch(&ResetSP);
+
+        // If focuser is relative, we only exposure "Center" command as it cannot home
+        if (isAbsolute == false)
+            GotoSP.nsp = 1;
+
         defineSwitch(&GotoSP);
+        defineSwitch(&ReverseSP);
 
         defineLight(&StatusLP);
 
@@ -275,7 +290,8 @@ bool FocusLynx::updateProperties()
     }
     else
     {
-        deleteProperty(SyncNP.name);
+        if (isAbsolute == false)
+            deleteProperty(SyncNP.name);
 
         deleteProperty(TemperatureNP.name);
         deleteProperty(TemperatureCoeffNP.name);
@@ -288,6 +304,7 @@ bool FocusLynx::updateProperties()
 
         deleteProperty(ResetSP.name);
         deleteProperty(GotoSP.name);
+        deleteProperty(ReverseSP.name);
 
         deleteProperty(StatusLP.name);
     }
@@ -359,7 +376,25 @@ bool FocusLynx::ISNewSwitch (const char *dev, const char *name, ISState *states,
             IUUpdateSwitch(&ModelSP, states, names, n);            
             ModelSP.s = IPS_OK;
             IDSetSwitch(&ModelSP, NULL);
-            DEBUG(INDI::Logger::DBG_SESSION, "Focuser model set. Please connect now...");
+            if (isConnected())
+                DEBUG(INDI::Logger::DBG_SESSION, "Focuser model set. Please disconnect and reconnect now...");
+            else
+                DEBUG(INDI::Logger::DBG_SESSION, "Focuser model set. Please connect now...");
+
+            const char *focusName = IUFindOnSwitch(&ModelSP)->label;
+
+            // Check if we have absolute or relative focusers
+             if (strstr(focusName, "TCF") || !strcmp(focusName, "FastFocus"))
+             {
+                 DEBUG(INDI::Logger::DBG_DEBUG, "Absolute focuser detected.");
+                 isAbsolute = true;
+             }
+             else
+             {
+                 DEBUG(INDI::Logger::DBG_DEBUG, "Relative focuser detected.");
+                 isAbsolute = false;
+             }
+
             return true;
         }
 
@@ -478,6 +513,20 @@ bool FocusLynx::ISNewSwitch (const char *dev, const char *name, ISState *states,
             }
 
             IDSetSwitch(&GotoSP, NULL);
+            return true;
+        }
+
+        // Reverse Direction
+        if (!strcmp(ReverseSP.name, name))
+        {
+            IUUpdateSwitch(&ReverseSP, states, names, n);
+
+            if (reverse(ReverseS[0].s == ISS_ON))
+                ReverseSP.s = IPS_OK;
+            else
+                ReverseSP.s = IPS_ALERT;
+
+            IDSetSwitch(&ReverseSP, NULL);
             return true;
         }
 
@@ -1872,7 +1921,7 @@ bool FocusLynx::setBacklashCompensationSteps(uint16_t steps)
 /************************************************************************************
  *
 * ***********************************************************************************/
-bool FocusLynx::sync(u_int32_t position)
+bool FocusLynx::reverse(bool enable)
 {
     char cmd[16];
     int errcode = 0;
@@ -1883,7 +1932,7 @@ bool FocusLynx::sync(u_int32_t position)
 
     memset(response, 0, sizeof(response));
 
-    snprintf(cmd, 16, "F1SCCP%06d", position);
+    snprintf(cmd, 16, "<F1REVERSE%d>", enable ? 1 : 0);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
@@ -1891,17 +1940,14 @@ bool FocusLynx::sync(u_int32_t position)
     {
         strncpy(response, "SET", 16);
         nbytes_read = strlen(response);
-        simPosition = position;
     }
     else
     {
-        tcflush(PortFD, TCIFLUSH);
-
         if ( (errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return IPS_ALERT;
+            return false;
         }
 
         if (isResponseOK() == false)
@@ -1922,15 +1968,54 @@ bool FocusLynx::sync(u_int32_t position)
       tcflush(PortFD, TCIFLUSH);
 
       if (!strcmp(response, "SET"))
-      {
-          DEBUGF(INDI::Logger::DBG_SESSION, "Setting current position to %d", position);
-          return true;
-      }
+        return true;
       else
-          return false;
+        return false;
      }
 
     return false;
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+bool FocusLynx::sync(u_int32_t position)
+{
+    char cmd[16];
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[16];
+    int nbytes_written=0;
+
+    memset(response, 0, sizeof(response));
+
+    snprintf(cmd, 16, "F1SCCP%06d", position);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
+    if (isSimulation())
+    {
+        simPosition = position;
+    }
+    else
+    {
+        tcflush(PortFD, TCIFLUSH);
+
+        if ( (errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return IPS_ALERT;
+        }
+
+        if (isResponseOK() == false)
+            return false;
+
+    }
+
+      tcflush(PortFD, TCIFLUSH);
+      DEBUGF(INDI::Logger::DBG_SESSION, "Setting current position to %d", position);
+      return true;
 }
 
 /************************************************************************************
