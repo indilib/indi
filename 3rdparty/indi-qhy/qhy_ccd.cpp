@@ -229,7 +229,7 @@ bool QHYCCD::initProperties()
     initFilterProperties(getDeviceName(), FILTER_TAB);
 
     FilterSlotN[0].min = 1;
-    FilterSlotN[0].max = 5;
+    FilterSlotN[0].max = 9;
 
     // CCD Cooler Switch
     IUFillSwitch(&CoolerS[0], "COOLER_ON", "On", ISS_OFF);
@@ -965,9 +965,9 @@ bool QHYCCD::SelectFilter(int position)
         ret = QHYCCD_SUCCESS;
     else
     {
-        char pos[2];
-        snprintf(pos, 1, "%d",position - 1);
-        ret = SendOrder2QHYCCDCFW(camhandle,&pos[0],1);
+        char pos;
+        sprintf(&pos,"%d",position - 1);
+        ret = SendOrder2QHYCCDCFW(camhandle,&pos,1);
     }
 
     if(ret == QHYCCD_SUCCESS)
