@@ -162,6 +162,8 @@ private:
     INumberVectorProperty SyncNP;
 
     bool isAbsolute;
+    bool isSynced;
+    bool isHoming;
 
 };
 

@@ -127,6 +127,8 @@ FocusLynx::FocusLynx()
     cap.variableSpeed=false;
 
     isAbsolute = false;
+    isSynced   = false;
+    isHoming   = false;
 
     SetFocuserCapability(&cap);
 
@@ -350,8 +352,7 @@ bool FocusLynx::Connect()
 }
 
 bool FocusLynx::Disconnect()
-{
-    //temperatureUpdateCounter=0;
+{    
     if (!isSimulation())
         tty_disconnect(PortFD);
     DEBUG(INDI::Logger::DBG_SESSION, "FocusLynx is offline.");
@@ -1244,12 +1245,15 @@ bool FocusLynx::getFocusStatus()
       response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
-      int isHoming;
-      rc = sscanf(response, "%16[^=]=%d", key, &isHoming);
+      int _isHoming;
+      rc = sscanf(response, "%16[^=]=%d", key, &_isHoming);
       if (rc != 2)
           return false;
 
-      StatusL[STATUS_HOMING].s = isHoming ? IPS_BUSY : IPS_IDLE;
+      StatusL[STATUS_HOMING].s = _isHoming ? IPS_BUSY : IPS_IDLE;
+      // We set that isHoming in process, but we don't set it to false here it must be reset in TimerHit
+      if (StatusL[STATUS_HOMING].s == IPS_BUSY)
+        isHoming = true;
 
       // #3 is Homed?
       memset(response, 0, sizeof(response));
@@ -1489,6 +1493,7 @@ bool FocusLynx::home()
       FocusAbsPosNP.s = IPS_BUSY;
       IDSetNumber(&FocusAbsPosNP, NULL);
 
+      isHoming = true;
       DEBUG(INDI::Logger::DBG_SESSION, "Focuser moving to home position...");
 
       tcflush(PortFD, TCIFLUSH);
@@ -2015,6 +2020,7 @@ bool FocusLynx::sync(u_int32_t position)
 
       tcflush(PortFD, TCIFLUSH);
       DEBUGF(INDI::Logger::DBG_SESSION, "Setting current position to %d", position);
+      isSynced=true;
       return true;
 }
 
@@ -2133,6 +2139,13 @@ IPState FocusLynx::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
     int nbytes_read=0;
     int nbytes_written=0;
 
+    // Relative focusers must be synced initially.
+    if (isAbsolute == false && isSynced == false)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Relative focusers must be synced. Please sync before issuing any motion commands.");
+        return IPS_ALERT;
+    }
+
     memset(response, 0, sizeof(response));
 
     snprintf(cmd, 16, "F1M%cR%c", (dir == FOCUS_INWARD) ? 'I' : 'O', (speed == 0) ? '0' : '1');
@@ -2202,6 +2215,13 @@ IPState FocusLynx::MoveAbsFocuser(uint32_t targetTicks)
     int nbytes_read=0;
     int nbytes_written=0;
 
+    // Relative focusers must be synced initially.
+    if (isAbsolute == false && isSynced == false)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Relative focusers must be synced. Please sync before issuing any motion commands.");
+        return IPS_ALERT;
+    }
+
     targetPosition = targetTicks;
 
     memset(response, 0, sizeof(response));
@@ -2257,6 +2277,13 @@ IPState FocusLynx::MoveAbsFocuser(uint32_t targetTicks)
 IPState FocusLynx::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     uint32_t newPosition=0;
+
+    // Relative focusers must be synced initially.
+    if (isAbsolute == false && isSynced == false)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Relative focusers must be synced. Please sync before issuing any motion commands.");
+        return IPS_ALERT;
+    }
 
     if (dir == FOCUS_INWARD)
         newPosition = FocusAbsPosN[0].value - ticks;
@@ -2318,8 +2345,9 @@ void FocusLynx::TimerHit()
             }
         }
 
-        if (StatusL[STATUS_HOMED].s == IPS_OK)
+        if (isHoming && StatusL[STATUS_HOMED].s == IPS_OK)
         {
+            isHoming = false;
             GotoSP.s = IPS_OK;
             IUResetSwitch(&GotoSP);
             GotoS[GOTO_HOME].s = ISS_ON;
