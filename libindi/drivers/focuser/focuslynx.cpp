@@ -1986,7 +1986,7 @@ bool FocusLynx::reverse(bool enable)
 * ***********************************************************************************/
 bool FocusLynx::sync(u_int32_t position)
 {
-    char cmd[16];
+    char cmd[32];
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
@@ -1994,7 +1994,7 @@ bool FocusLynx::sync(u_int32_t position)
 
     memset(response, 0, sizeof(response));
 
-    snprintf(cmd, 16, "F1SCCP%06d", position);
+    snprintf(cmd, 32, "<F1SCCP%06d>", position);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
@@ -2148,7 +2148,7 @@ IPState FocusLynx::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 
     memset(response, 0, sizeof(response));
 
-    snprintf(cmd, 16, "F1M%cR%c", (dir == FOCUS_INWARD) ? 'I' : 'O', (speed == 0) ? '0' : '1');
+    snprintf(cmd, 16, "<F1M%cR%c>", (dir == FOCUS_INWARD) ? 'I' : 'O', (speed == 0) ? '0' : '1');
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
