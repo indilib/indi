@@ -31,7 +31,7 @@ public:
     ~FocusLynx();
 
     enum { FOCUS_A_COEFF, FOCUS_B_COEFF, FOCUS_C_COEFF, FOCUS_D_COEFF, FOCUS_E_COEFF, FOCUS_F_COEFF };
-    typedef enum { STATUS_MOVING, STATUS_HOMING, STATUS_HOMED, STATUS_FFDETECT, STATUS_TMPPROBE, STATUS_REMOTEIO, STATUS_HNDCTRL, STATUS_UNKNOWN} LYNX_STATUS;
+    typedef enum { STATUS_MOVING, STATUS_HOMING, STATUS_HOMED, STATUS_FFDETECT, STATUS_TMPPROBE, STATUS_REMOTEIO, STATUS_HNDCTRL, STATUS_REVERSE, STATUS_UNKNOWN} LYNX_STATUS;
     enum { GOTO_CENTER, GOTO_HOME };
 
     virtual bool Connect();
@@ -58,7 +58,8 @@ private:
    int PortFD;
    uint32_t simPosition;
    uint32_t targetPosition;
-   ISState simStatus[7];
+   uint32_t maxControllerTicks;
+   ISState simStatus[8];
    bool simCompensationOn;
    bool configurationComplete;
 
@@ -154,12 +155,16 @@ private:
     ISwitchVectorProperty ModelSP;
 
     // Status indicators
-    ILight StatusL[7];
+    ILight StatusL[8];
     ILightVectorProperty StatusLP;
 
     // Sync to a particular position
     INumber SyncN[1];
     INumberVectorProperty SyncNP;
+
+    // Max Travel for relative focusers
+    INumber MaxTravelN[1];
+    INumberVectorProperty MaxTravelNP;
 
     bool isAbsolute;
     bool isSynced;

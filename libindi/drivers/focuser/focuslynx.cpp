@@ -192,6 +192,10 @@ bool FocusLynx::initProperties()
     IUFillNumber(&BacklashN[0], "Value", "", "%.f", 0, 99, 5., 0.);
     IUFillNumberVector(&BacklashNP, BacklashN, 1, getDeviceName(), "Backlash", "", FOCUS_SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
 
+    // Max Travel
+    IUFillNumber(&MaxTravelN[0], "Ticks", "", "%.f", 0, 100000, 0., 0.);
+    IUFillNumberVector(&MaxTravelNP, MaxTravelN, 1, getDeviceName(), "Max Travel", "", FOCUS_SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
+
     // Reset to Factory setting
     IUFillSwitch(&ResetS[0], "Factory", "", ISS_OFF);
     IUFillSwitchVector(&ResetSP, ResetS, 1, getDeviceName(), "Reset", "", FOCUS_SETTINGS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
@@ -231,7 +235,8 @@ bool FocusLynx::initProperties()
     IUFillLight(&StatusL[STATUS_TMPPROBE], "Tmp Probe", "", IPS_IDLE);
     IUFillLight(&StatusL[STATUS_REMOTEIO], "Remote IO", "", IPS_IDLE);
     IUFillLight(&StatusL[STATUS_HNDCTRL], "Hnd Ctrl", "", IPS_IDLE);
-    IUFillLightVector(&StatusLP, StatusL, 7, getDeviceName(), "Status", "", FOCUS_STATUS_TAB, IPS_IDLE);
+    IUFillLight(&StatusL[STATUS_REVERSE], "Reverse", "", IPS_IDLE);
+    IUFillLightVector(&StatusLP, StatusL, 8, getDeviceName(), "Status", "", FOCUS_STATUS_TAB, IPS_IDLE);
 
     //simPosition = FocusAbsPosN[0].value;
     addAuxControls();
@@ -271,6 +276,9 @@ bool FocusLynx::updateProperties()
         defineSwitch(&BacklashCompensationSP);
         defineNumber(&BacklashNP);
 
+        if (isAbsolute == false)
+            defineNumber(&MaxTravelNP);
+
         defineSwitch(&ResetSP);
 
         // If focuser is relative, we only exposure "Center" command as it cannot home
@@ -303,6 +311,9 @@ bool FocusLynx::updateProperties()
 
         deleteProperty(BacklashCompensationSP.name);
         deleteProperty(BacklashNP.name);
+
+        if (isAbsolute == false)
+            deleteProperty(MaxTravelNP.name);
 
         deleteProperty(ResetSP.name);
         deleteProperty(GotoSP.name);
@@ -568,9 +579,9 @@ bool FocusLynx::ISNewNumber (const char *dev, const char *name, double values[],
         if (!strcmp(BacklashNP.name, name))
         {
             IUUpdateNumber(&BacklashNP, values, names, n);
-            if (setBacklashCompensationSteps(BacklashN[0].value))
+            if (setBacklashCompensationSteps(BacklashN[0].value) == false)
             {
-                    DEBUG(INDI::Logger::DBG_ERROR, "Failed to set temperature coefficeints.");
+                    DEBUG(INDI::Logger::DBG_ERROR, "Failed to set temperature coefficients.");
                     BacklashNP.s = IPS_ALERT;
                     IDSetNumber(&BacklashNP, NULL);
                     return false;
@@ -591,6 +602,44 @@ bool FocusLynx::ISNewNumber (const char *dev, const char *name, double values[],
                 SyncNP.s = IPS_OK;
 
             IDSetNumber(&SyncNP, NULL);
+            return true;
+        }
+
+        // Max Travel
+        if (!strcmp(MaxTravelNP.name, name))
+        {
+            IUUpdateNumber(&MaxTravelNP, values, names, n);
+
+            if (MaxTravelN[0].value > 0)
+            {
+                // If reverse is enabled.
+                if (ReverseS[0].s == ISS_ON)
+                {
+                    FocusAbsPosN[0].min = SyncN[0].min = (maxControllerTicks - MaxTravelN[0].value);
+                    FocusAbsPosN[0].max = SyncN[0].max = maxControllerTicks;
+                    FocusAbsPosN[0].step = SyncN[0].step = maxControllerTicks/50.0;
+                }
+                // If reverse is disabled
+                else
+                {
+                    FocusAbsPosN[0].min = SyncN[0].min = 0;
+                    FocusAbsPosN[0].max = SyncN[0].max = MaxTravelN[0].value;
+                    FocusAbsPosN[0].step = SyncN[0].step = MaxTravelN[0].value/50.0;
+                }
+
+                FocusRelPosN[0].max = (FocusAbsPosN[0].max-FocusAbsPosN[0].min)/2;
+                FocusRelPosN[0].step = FocusRelPosN[0].max/100.0;
+                FocusRelPosN[0].min = 0;
+
+                IUUpdateMinMax(&FocusAbsPosNP);
+                IUUpdateMinMax(&FocusRelPosNP);
+                IUUpdateMinMax(&SyncNP);
+
+                DEBUGF(INDI::Logger::DBG_SESSION, "Focuser absolute limits: min (%g) max (%g)", FocusAbsPosN[0].min, FocusAbsPosN[0].max);
+            }
+
+            MaxTravelNP.s = IPS_OK;
+            IDSetNumber(&MaxTravelNP, NULL);
             return true;
         }
     }
@@ -618,7 +667,7 @@ bool FocusLynx::ack()
     if (isSimulation())
     {
         strncpy(response, "Optec 2\" TCF-S", 16);
-        nbytes_read = strlen(response);
+        nbytes_read = strlen(response)+1;
     }
     else
     {
@@ -671,8 +720,8 @@ bool FocusLynx::getFocusConfig()
 
     if (isSimulation())
     {
-        strncpy(response, "CONFIG1\n", 16);
-        nbytes_read = strlen(response);
+        strncpy(response, "CONFIG1", 16);
+        nbytes_read = strlen(response)+1;
     }
     else
     {
@@ -752,6 +801,8 @@ bool FocusLynx::getFocusConfig()
           IUUpdateMinMax(&FocusAbsPosNP);
           IUUpdateMinMax(&FocusRelPosNP);
           IUUpdateMinMax(&SyncNP);
+
+          maxControllerTicks = maxPos;
       }
       else
           return false;
@@ -1251,6 +1302,10 @@ bool FocusLynx::getFocusStatus()
           return false;
 
       StatusL[STATUS_HOMING].s = _isHoming ? IPS_BUSY : IPS_IDLE;
+      // For relative focusers home is not applicable.
+      if (isAbsolute == false)
+          StatusL[STATUS_HOMING].s = IPS_IDLE;
+
       // We set that isHoming in process, but we don't set it to false here it must be reset in TimerHit
       if (StatusL[STATUS_HOMING].s == IPS_BUSY)
         isHoming = true;
@@ -1277,6 +1332,9 @@ bool FocusLynx::getFocusStatus()
           return false;
 
       StatusL[STATUS_HOMED].s = isHomed ? IPS_OK : IPS_IDLE;
+      // For relative focusers home is not applicable.
+      if (isAbsolute == false)
+          StatusL[STATUS_HOMED].s = IPS_IDLE;
 
       // #4 FF Detected?
       memset(response, 0, sizeof(response));
@@ -1370,6 +1428,39 @@ bool FocusLynx::getFocusStatus()
 
       StatusL[STATUS_HNDCTRL].s = HndCtlr ? IPS_OK : IPS_IDLE;
 
+      // #8 Reverse?
+      memset(response, 0, sizeof(response));
+      if (isSimulation())
+      {
+          snprintf(response, 32, "Reverse = %d\n", (simStatus[STATUS_REVERSE] == ISS_ON) ? 1 : 0);
+          nbytes_read = strlen(response);
+      }
+      else if ( (errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
+      {
+          tty_error_msg(errcode, errmsg, MAXRBUF);
+          DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+          return false;
+      }
+      response[nbytes_read-1] = '\0';
+      DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+
+      int reverse;
+      rc = sscanf(response, "%16[^=]=%d", key, &reverse);
+      if (rc != 2)
+          return false;
+
+      StatusL[STATUS_REVERSE].s = reverse ? IPS_OK : IPS_IDLE;
+
+      // If reverse is enable and switch shows disabled, let's change that
+      // same thing is reverse is disabled but switch is enabled
+      if ( (reverse && ReverseS[1].s == ISS_ON) || (!reverse && ReverseS[0].s == ISS_ON))
+      {
+          IUResetSwitch(&ReverseSP);
+          ReverseS[0].s = (reverse == 1) ? ISS_ON : ISS_OFF;
+          ReverseS[1].s = (reverse == 0) ? ISS_ON : ISS_OFF;
+          IDSetSwitch(&ReverseSP, NULL);
+      }
+
       StatusLP.s = IPS_OK;
       IDSetLight(&StatusLP, NULL);
 
@@ -1402,7 +1493,7 @@ bool FocusLynx::setDeviceType(int index)
     if (isSimulation())
     {
         strncpy(response, "SET", 16);
-        nbytes_read = strlen(response);
+        nbytes_read = strlen(response)+1;
     }
     else
     {
@@ -1460,7 +1551,7 @@ bool FocusLynx::home()
     if (isSimulation())
     {
         strncpy(response, "H", 16);
-        nbytes_read = strlen(response);
+        nbytes_read = strlen(response)+1;
         simStatus[STATUS_HOMING] = ISS_ON;
         targetPosition = 0;
     }
@@ -1523,7 +1614,7 @@ bool FocusLynx::center()
     if (isSimulation())
     {
         strncpy(response, "M", 16);
-        nbytes_read = strlen(response);
+        nbytes_read = strlen(response) + 1;
         simStatus[STATUS_MOVING] = ISS_ON;
         targetPosition = FocusAbsPosN[0].max/2;
     }
@@ -1588,7 +1679,7 @@ bool FocusLynx::setTemperatureCompensation(bool enable)
     if (isSimulation())
     {
         strncpy(response, "SET", 16);
-        nbytes_read = strlen(response);
+        nbytes_read = strlen(response) + 1;
     }
     else
     {
@@ -1648,7 +1739,7 @@ bool FocusLynx::setTemperatureCompensationMode(char mode)
     if (isSimulation())
     {
         strncpy(response, "SET", 16);
-        nbytes_read = strlen(response);
+        nbytes_read = strlen(response)+1;
     }
     else
     {
@@ -1708,7 +1799,7 @@ bool FocusLynx::setTemperatureCompensationCoeff(char mode, int16_t coeff)
     if (isSimulation())
     {
         strncpy(response, "SET", 16);
-        nbytes_read = strlen(response);
+        nbytes_read = strlen(response) + 1;
     }
     else
     {
@@ -1768,7 +1859,7 @@ bool FocusLynx::setTemperatureCompensationOnStart(bool enable)
     if (isSimulation())
     {
         strncpy(response, "SET", 16);
-        nbytes_read = strlen(response);
+        nbytes_read = strlen(response) + 1;
     }
     else
     {
@@ -1828,7 +1919,7 @@ bool FocusLynx::setBacklashCompensation(bool enable)
     if (isSimulation())
     {
         strncpy(response, "SET", 16);
-        nbytes_read = strlen(response);
+        nbytes_read = strlen(response) + 1;
     }
     else
     {
@@ -1886,7 +1977,7 @@ bool FocusLynx::setBacklashCompensationSteps(uint16_t steps)
     if (isSimulation())
     {
         strncpy(response, "SET", 16);
-        nbytes_read = strlen(response);
+        nbytes_read = strlen(response) + 1;
     }
     else
     {
@@ -1937,14 +2028,15 @@ bool FocusLynx::reverse(bool enable)
 
     memset(response, 0, sizeof(response));
 
-    snprintf(cmd, 16, "<F1REVERSE%d>", enable ? 1 : 0);
+    snprintf(cmd, 16, "<F1REVERSE%d>", enable ? 1 : 0);    
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
     if (isSimulation())
     {
         strncpy(response, "SET", 16);
-        nbytes_read = strlen(response);
+        nbytes_read = strlen(response) + 1;
+        simStatus[STATUS_REVERSE] = enable ? ISS_ON : ISS_OFF;
     }
     else
     {
@@ -2043,7 +2135,7 @@ bool FocusLynx::resetFactory()
     if (isSimulation())
     {
         strncpy(response, "SET", 16);
-        nbytes_read = strlen(response);
+        nbytes_read = strlen(response)+1;
     }
     else
     {
@@ -2100,7 +2192,7 @@ bool FocusLynx::isResponseOK()
     if (isSimulation())
     {
         strcpy(response, "!");
-        nbytes_read= strlen(response);
+        nbytes_read= strlen(response)+1;
     }
     else
     {
@@ -2155,7 +2247,7 @@ IPState FocusLynx::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
     if (isSimulation())
     {
         strncpy(response, "M", 16);
-        nbytes_read = strlen(response);
+        nbytes_read = strlen(response)+1;
     }
     else
     {
@@ -2208,7 +2300,7 @@ IPState FocusLynx::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 * ***********************************************************************************/
 IPState FocusLynx::MoveAbsFocuser(uint32_t targetTicks)
 {
-    char cmd[16];
+    char cmd[32];
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
@@ -2226,14 +2318,14 @@ IPState FocusLynx::MoveAbsFocuser(uint32_t targetTicks)
 
     memset(response, 0, sizeof(response));
 
-    snprintf(cmd, 16, "F1MA%06d", targetTicks);
+    snprintf(cmd, 32, "<F1MA%06d>", targetTicks);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
     if (isSimulation())
     {
         strncpy(response, "M", 16);
-        nbytes_read = strlen(response);
+        nbytes_read = strlen(response)+1;
         simStatus[STATUS_MOVING] = ISS_ON;
     }
     else
@@ -2413,7 +2505,7 @@ bool FocusLynx::AbortFocuser()
     if (isSimulation())
     {
         strncpy(response, "HALTED", 16);
-        nbytes_read = strlen(response);
+        nbytes_read = strlen(response)+1;
         simStatus[STATUS_MOVING] = ISS_OFF;
         simStatus[STATUS_HOMING] = ISS_OFF;
     }
@@ -2491,10 +2583,13 @@ bool FocusLynx::saveConfigItems(FILE *fp)
     IUSaveConfigSwitch(fp, &ModelSP);
     IUSaveConfigSwitch(fp, &TemperatureCompensateSP);
     IUSaveConfigSwitch(fp, &TemperatureCompensateOnStartSP);
+    IUSaveConfigSwitch(fp, &ReverseSP);
     IUSaveConfigNumber(fp, &TemperatureCoeffNP);
     IUSaveConfigSwitch(fp, &TemperatureCompensateModeSP);
     IUSaveConfigSwitch(fp, &BacklashCompensationSP);
     IUSaveConfigNumber(fp, &BacklashNP);
+    if (isAbsolute == false)
+        IUSaveConfigNumber(fp, &MaxTravelNP);
 
     return true;
 }
