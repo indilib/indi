@@ -1607,6 +1607,9 @@ bool FocusLynx::center()
     int nbytes_read=0;
     int nbytes_written=0;
 
+    if (isAbsolute == false)
+        return (MoveAbsFocuser(FocusAbsPosN[0].max/2) != IPS_ALERT);
+
     memset(response, 0, sizeof(response));
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
