@@ -507,6 +507,7 @@ bool QHYCCD::Connect()
         cap.hasShutter = false;
         cap.canAbort = true;
         cap.hasCooler = false;
+        cap.hasST4Port = false;
 
         ret = InitQHYCCD(camhandle);
         if(ret != QHYCCD_SUCCESS)
