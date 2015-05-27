@@ -139,6 +139,9 @@ FocusLynx::FocusLynx()
     simStatus[STATUS_TMPPROBE] = ISS_ON;
     simStatus[STATUS_REMOTEIO] = ISS_ON;
     simStatus[STATUS_HNDCTRL]  = ISS_ON;
+    simStatus[STATUS_REVERSE]  = ISS_OFF;
+
+    DBG_FOCUS = INDI::Logger::getInstance().addDebugLevel("Focus Verbose", "FOCUS");
 
     //lastPos = 0;
     //lastTemperature = 0;
@@ -208,7 +211,7 @@ bool FocusLynx::initProperties()
     // Reverse direction
     IUFillSwitch(&ReverseS[0], "Enable", "", ISS_OFF);
     IUFillSwitch(&ReverseS[1], "Disable", "", ISS_ON);
-    IUFillSwitchVector(&ReverseSP, ReverseS, 2, getDeviceName(), "Reverse", "", FOCUS_SETTINGS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillSwitchVector(&ReverseSP, ReverseS, 2, getDeviceName(), "Reverse", "", FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // List all supported models
     std::map<std::string, std::string>::iterator iter;
@@ -1137,7 +1140,7 @@ bool FocusLynx::getFocusStatus()
 
     memset(response, 0, sizeof(response));
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    DEBUGF(DBG_FOCUS, "CMD (%s)", cmd);
 
     if (isSimulation())
     {
@@ -1169,7 +1172,7 @@ bool FocusLynx::getFocusStatus()
     if (nbytes_read > 0)
     {
       response[nbytes_read-1] = '\0';
-      DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+      DEBUGF(DBG_FOCUS, "RES (%s)", response);
 
       if (strcmp(response, "STATUS1"))
         return false;
@@ -1188,7 +1191,7 @@ bool FocusLynx::getFocusStatus()
           return false;
       }
       response[nbytes_read-1] = '\0';
-      DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+      DEBUGF(DBG_FOCUS, "RES (%s)", response);
 
       float temperature=0;
       int rc = sscanf(response, "%16[^=]=%f", key, &temperature);
@@ -1227,7 +1230,7 @@ bool FocusLynx::getFocusStatus()
           return false;
       }
       response[nbytes_read-1] = '\0';
-      DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+      DEBUGF(DBG_FOCUS, "RES (%s)", response);
 
       uint32_t currPos=0;
       rc = sscanf(response, "%16[^=]=%d", key, &currPos);
@@ -1253,7 +1256,7 @@ bool FocusLynx::getFocusStatus()
           return false;
       }
       response[nbytes_read-1] = '\0';
-      DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+      DEBUGF(DBG_FOCUS, "RES (%s)", response);
 
       // Get Status Parameters
 
@@ -1271,7 +1274,7 @@ bool FocusLynx::getFocusStatus()
           return false;
       }
       response[nbytes_read-1] = '\0';
-      DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+      DEBUGF(DBG_FOCUS, "RES (%s)", response);
 
       int isMoving;
       rc = sscanf(response, "%16[^=]=%d", key, &isMoving);
@@ -1294,7 +1297,7 @@ bool FocusLynx::getFocusStatus()
           return false;
       }
       response[nbytes_read-1] = '\0';
-      DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+      DEBUGF(DBG_FOCUS, "RES (%s)", response);
 
       int _isHoming;
       rc = sscanf(response, "%16[^=]=%d", key, &_isHoming);
@@ -1324,7 +1327,7 @@ bool FocusLynx::getFocusStatus()
           return false;
       }
       response[nbytes_read-1] = '\0';
-      DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+      DEBUGF(DBG_FOCUS, "RES (%s)", response);
 
       int isHomed;
       rc = sscanf(response, "%16[^=]=%d", key, &isHomed);
@@ -1350,7 +1353,7 @@ bool FocusLynx::getFocusStatus()
           return false;
       }
       response[nbytes_read-1] = '\0';
-      DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+      DEBUGF(DBG_FOCUS, "RES (%s)", response);
 
       int FFDetect;
       rc = sscanf(response, "%16[^=]=%d", key, &FFDetect);
@@ -1373,7 +1376,7 @@ bool FocusLynx::getFocusStatus()
           return false;
       }
       response[nbytes_read-1] = '\0';
-      DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+      DEBUGF(DBG_FOCUS, "RES (%s)", response);
 
       int TmpProbe;
       rc = sscanf(response, "%16[^=]=%d", key, &TmpProbe);
@@ -1396,7 +1399,7 @@ bool FocusLynx::getFocusStatus()
           return false;
       }
       response[nbytes_read-1] = '\0';
-      DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+      DEBUGF(DBG_FOCUS, "RES (%s)", response);
 
       int RemoteIO;
       rc = sscanf(response, "%16[^=]=%d", key, &RemoteIO);
@@ -1419,7 +1422,7 @@ bool FocusLynx::getFocusStatus()
           return false;
       }
       response[nbytes_read-1] = '\0';
-      DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+      DEBUGF(DBG_FOCUS, "RES (%s)", response);
 
       int HndCtlr;
       rc = sscanf(response, "%16[^=]=%d", key, &HndCtlr);
@@ -1442,7 +1445,7 @@ bool FocusLynx::getFocusStatus()
           return false;
       }
       response[nbytes_read-1] = '\0';
-      DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+      DEBUGF(DBG_FOCUS, "RES (%s)", response);
 
       int reverse;
       rc = sscanf(response, "%16[^=]=%d", key, &reverse);

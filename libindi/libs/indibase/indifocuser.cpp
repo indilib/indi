@@ -157,6 +157,22 @@ bool INDI::Focuser::ISNewSwitch (const char *dev, const char *name, ISState *sta
         {
             IUUpdateSwitch(&PresetGotoSP, states, names, n);
             int index = IUFindOnSwitchIndex(&PresetGotoSP);
+
+            if (PresetN[index].value < FocusAbsPosN[0].min)
+            {
+                PresetGotoSP.s = IPS_ALERT;
+                IDSetSwitch(&PresetGotoSP, NULL);
+                DEBUGFDEVICE(dev, INDI::Logger::DBG_ERROR, "Requested position out of bound. Focus minimum position is %g", FocusAbsPosN[0].min);
+                return false;
+            }
+            else if (PresetN[index].value > FocusAbsPosN[0].max)
+            {
+                PresetGotoSP.s = IPS_ALERT;
+                IDSetSwitch(&PresetGotoSP, NULL);
+                DEBUGFDEVICE(dev, INDI::Logger::DBG_ERROR, "Requested position out of bound. Focus maximum position is %g", FocusAbsPosN[0].max);
+                return false;
+            }
+
             int rc = MoveAbsFocuser(PresetN[index].value);
             if (rc >= 0)
             {

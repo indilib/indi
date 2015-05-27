@@ -59,6 +59,7 @@ private:
    uint32_t simPosition;
    uint32_t targetPosition;
    uint32_t maxControllerTicks;
+   uint32_t DBG_FOCUS;
    ISState simStatus[8];
    bool simCompensationOn;
    bool configurationComplete;
