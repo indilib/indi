@@ -12,6 +12,7 @@ class NexStarEvo : public INDI::Telescope, public INDI::AlignmentSubsystem::Alig
 public:
     NexStarEvo();
 
+    virtual void ISGetProperties (const char *dev);
     virtual bool ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
     virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
     virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
@@ -92,6 +93,15 @@ private:
     bool TraceThisTick;
 
     unsigned int DBG_NSEVO;
+    
+    // Device IP port
+    INumberVectorProperty IPPortNP;
+    INumber IPPortN[1];
+
+    // Device IP address
+    ITextVectorProperty IPAddressTP;
+    IText IPAddressT[1];
+
 
 };
 

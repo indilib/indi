@@ -144,7 +144,7 @@ bool NexStarEvo::Abort()
 bool NexStarEvo::Connect()
 {
     SetTimer(POLLMS);
-    if (scope == NULL) scope = new NexStarAUXScope();
+    if (scope == NULL) scope = new NexStarAUXScope(IPAddressT->text,IPPortN->value);
     if (scope != NULL) {
         scope->Connect();
     }
@@ -294,6 +294,12 @@ bool NexStarEvo::initProperties()
 
     TrackState=SCOPE_IDLE;
 
+    // Build the UI for the scope
+    IUFillText(&IPAddressT[0],"ADDRESS","IP address", NSEVO_DEFAULT_IP);
+    IUFillTextVector(&IPAddressTP,IPAddressT,1,getDeviceName(),"DEVICE_IP_ADDR","IP address",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
+    IUFillNumber(&IPPortN[0],"PORT","IP port","%g",1,65535,1, NSEVO_DEFAULT_PORT);
+    IUFillNumberVector(&IPPortNP,IPPortN,1,getDeviceName(),"DEVICE_IP_PORT","IP port",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
+
     /* Add debug controls so we may debug driver if necessary */
     addDebugControl();
 
@@ -302,6 +308,23 @@ bool NexStarEvo::initProperties()
 
     return true;
 }
+
+void NexStarEvo::ISGetProperties (const char *dev)
+{
+    /* First we let our parent populate */
+    INDI::Telescope::ISGetProperties(dev);
+
+    // We need to define this before connection
+    defineText(&IPAddressTP);
+    defineNumber(&IPPortNP);
+    
+    if(isConnected())
+    {
+    }
+
+    return;
+}
+
 
 bool NexStarEvo::ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
 {

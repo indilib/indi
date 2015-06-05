@@ -16,8 +16,6 @@
 #include "NexStarAUXScope.h"
 
 #define BUFFER_SIZE 10240
-#define DEFAULT_ADDRESS "1.2.3.4"
-#define DEFAULT_PORT 2000
 int MAX_CMD_LEN=32;
 
 
@@ -150,15 +148,15 @@ NexStarAUXScope::NexStarAUXScope(char const *ip, int port){
 };
 
 NexStarAUXScope::NexStarAUXScope(char const *ip){
-    initScope(ip, DEFAULT_PORT);
+    initScope(ip, NSEVO_DEFAULT_PORT);
 };
 
 NexStarAUXScope::NexStarAUXScope(int port){
-    initScope(DEFAULT_ADDRESS, port);
+    initScope(NSEVO_DEFAULT_IP, port);
 };
 
 NexStarAUXScope::NexStarAUXScope() {
-    initScope(DEFAULT_ADDRESS, DEFAULT_PORT);
+    initScope(NSEVO_DEFAULT_IP, NSEVO_DEFAULT_PORT);
 };
 
 NexStarAUXScope::~NexStarAUXScope(){
@@ -189,7 +187,7 @@ void NexStarAUXScope::initScope() {
 
 
 bool NexStarAUXScope::Connect(){
-    fprintf(stderr,"Connecting...\n");
+    fprintf(stderr,"Connecting...");
     if (sock > 0) {
         // We are connected. Nothing to do!
         return true;
@@ -197,7 +195,7 @@ bool NexStarAUXScope::Connect(){
     // Create client socket
     if( (sock = socket(PF_INET, SOCK_STREAM, 0)) < 0 )
     {
-      perror("socket error");
+      perror("Socket error");
       return false;
     }
 
@@ -214,11 +212,12 @@ bool NexStarAUXScope::Connect(){
     fcntl(sock, F_SETFL, flags | O_NONBLOCK);
     fprintf(stderr, "Socket:%d\n", sock);
     */
+    fprintf(stderr, "OK\n");
     return true;
 }
 
 bool NexStarAUXScope::Disconnect(){
-    fprintf(stderr,"Disconnecting...\n");
+    fprintf(stderr,"Disconnecting\n");
     closeConnection();
 }
 

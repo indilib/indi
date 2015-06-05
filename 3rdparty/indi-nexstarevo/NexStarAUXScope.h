@@ -36,6 +36,8 @@ enum AUXtargets {
     LIGHT=0xbf
 };
 
+#define NSEVO_DEFAULT_IP "1.2.3.4"
+#define NSEVO_DEFAULT_PORT 2000
 
 class AUXCommand{
 public:
