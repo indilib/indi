@@ -363,7 +363,7 @@ unsigned short sxGetBuildNumber(HANDLE sxHandle) {
   setup_data[USB_REQ_VALUE_H ] = 0;
   setup_data[USB_REQ_INDEX_L ] = 0;
   setup_data[USB_REQ_INDEX_H ] = 0;
-  setup_data[USB_REQ_LENGTH_L] = 4;
+  setup_data[USB_REQ_LENGTH_L] = 2;
   setup_data[USB_REQ_LENGTH_H] = 0;
   int rc = libusb_bulk_transfer(sxHandle, BULK_OUT, setup_data, 8, &transferred, BULK_COMMAND_TIMEOUT);
   DEBUG(log(true, "sxGetBuildNumber: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
@@ -371,7 +371,7 @@ unsigned short sxGetBuildNumber(HANDLE sxHandle) {
     rc = libusb_bulk_transfer(sxHandle, BULK_IN, setup_data, 2, &transferred, BULK_COMMAND_TIMEOUT);
     DEBUG(log(true, "sxGetBuildNumber: libusb_control_transfer -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK"));
     if (transferred == 2) {
-      unsigned long result=((unsigned long)setup_data[0] | ((unsigned long)setup_data[1] << 8) | ((unsigned long)setup_data[2] << 16) | ((unsigned long)setup_data[3] << 24));
+      unsigned long result = ((unsigned long)setup_data[0] | ((unsigned long)setup_data[1] << 8));
       return result;
     }
   }

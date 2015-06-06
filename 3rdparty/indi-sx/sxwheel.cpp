@@ -200,7 +200,7 @@ int SXWHEEL::QueryFilter() {
 
 bool SXWHEEL::SelectFilter(int f) {
   TargetFilter = f;
-  SendWheelMessage(f, 0);
+  SendWheelMessage(f + 0x80, 0);
   SetTimer(250);
   return true;
 }
