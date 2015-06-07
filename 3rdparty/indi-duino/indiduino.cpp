@@ -162,7 +162,7 @@ void indiduino::ISPoll() {
     for (int i=0; i < pAll->size(); i++) {
 	const char *name;
 	const char *label;
-	INDI_TYPE type;
+    INDI_PROPERTY_TYPE type;
 	name=pAll->at(i)->getName();
 	label=pAll->at(i)->getLabel();
 	type=pAll->at(i)->getType();
@@ -556,7 +556,7 @@ bool indiduino::setPinModesFromSKEL()
 	const char *name;
 	const char *label;
 	const char *aux;
-	INDI_TYPE type;
+    INDI_PROPERTY_TYPE type;
 	name=pAll->at(i)->getName();
 	label=pAll->at(i)->getLabel();
 	type=pAll->at(i)->getType();
