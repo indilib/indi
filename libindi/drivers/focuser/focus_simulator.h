@@ -61,6 +61,7 @@ class FocusSim : public INDI::Focuser
 
         virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
         virtual IPState MoveAbsFocuser(uint32_t ticks);
+        virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
 
 
 };

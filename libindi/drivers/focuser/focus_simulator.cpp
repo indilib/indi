@@ -270,6 +270,8 @@ IPState FocusSim::MoveAbsFocuser(uint32_t targetTicks)
 
     usleep( abs(targetTicks - FocusAbsPosN[0].value) * FOCUS_MOTION_DELAY);
 
+    FocusAbsPosN[0].value = targetTicks;
+
     FWHMN[0].value = 0.5625*ticks*ticks +  SeeingN[0].value;
 
     if (FWHMN[0].value < SeeingN[0].value)
@@ -279,5 +281,15 @@ IPState FocusSim::MoveAbsFocuser(uint32_t targetTicks)
 
     return IPS_OK;
 
+}
+
+IPState FocusSim::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
+{
+    uint32_t targetTicks = FocusAbsPosN[0].value + (ticks * (dir == FOCUS_INWARD ? -1 : 1));
+
+    FocusAbsPosNP.s = IPS_BUSY;
+    IDSetNumber(&FocusAbsPosNP, NULL);
+
+    return MoveAbsFocuser(targetTicks);
 }
 
