@@ -464,6 +464,19 @@ add_executable(indi_lynx_focus ${focuslynx_SRCS})
 target_link_libraries(indi_lynx_focus indidriver)
 install(TARGETS indi_lynx_focus RUNTIME DESTINATION bin )
 
+################ PerfectStar Focuser ################
+
+set(perfectstar_SRCS
+        ${CMAKE_SOURCE_DIR}/drivers/focuser/perfectstar.cpp
+   )
+
+add_executable(indi_perfectstar_focus ${perfectstar_SRCS})
+target_link_libraries(indi_perfectstar_focus indidriver)
+install(TARGETS indi_perfectstar_focus RUNTIME DESTINATION bin )
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+install(FILES ${CMAKE_SOURCE_DIR}/drivers/focuser/99-perfectstar.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
+endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+
 ################ Optec TCF-S ################
 
 set(tcfs_SRCS

@@ -1305,6 +1305,7 @@ libindi/drivers/filter_wheel/filter_simulator.cpp -text
 libindi/drivers/filter_wheel/filter_simulator.h -text
 libindi/drivers/filter_wheel/fli_wheel.c -text
 libindi/drivers/filter_wheel/trutech_wheel.c -text
+libindi/drivers/focuser/99-perfectstar.rules -text
 libindi/drivers/focuser/focus_simulator.cpp -text
 libindi/drivers/focuser/focus_simulator.h -text
 libindi/drivers/focuser/focuslynx.cpp -text
@@ -1314,6 +1315,8 @@ libindi/drivers/focuser/moonlite.cpp -text
 libindi/drivers/focuser/moonlite.h -text
 libindi/drivers/focuser/nfocus.cpp -text
 libindi/drivers/focuser/nfocus.h -text
+libindi/drivers/focuser/perfectstar.cpp -text
+libindi/drivers/focuser/perfectstar.h -text
 libindi/drivers/focuser/robofocus.cpp -text
 libindi/drivers/focuser/robofocus.h -text
 libindi/drivers/focuser/steeldrive.cpp -text
