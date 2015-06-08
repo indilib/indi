@@ -2361,6 +2361,8 @@ IPState FocusLynx::MoveAbsFocuser(uint32_t targetTicks)
       response[nbytes_read-1] = '\0';
       DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
+      FocusAbsPosNP.s = IPS_BUSY;
+
       tcflush(PortFD, TCIFLUSH);
 
       return IPS_BUSY;
@@ -2387,7 +2389,6 @@ IPState FocusLynx::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
         newPosition = FocusAbsPosN[0].value - ticks;
     else
         newPosition = FocusAbsPosN[0].value + ticks;
-
 
     return MoveAbsFocuser(newPosition);
 }
