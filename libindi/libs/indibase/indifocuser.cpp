@@ -57,6 +57,7 @@ bool INDI::Focuser::initProperties()
 
     controller->mapController("Focus In", "Focus In", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_1");
     controller->mapController("Focus Out", "Focus Out", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_2");
+    controller->mapController("Abort Focus", "Abort Focus", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_3");
 
     controller->initProperties();
 
@@ -246,9 +247,26 @@ void INDI::Focuser::processButton(const char * button_n, ISState state)
 
     FocusTimerN[0].value = lastTimerValue;
 
-    int rc=0;
+    IPState rc= IPS_IDLE;
+
+    // Abort
+    if (!strcmp(button_n, "Abort Focus"))
+    {
+        if (AbortFocuser())
+        {
+            AbortSP.s = IPS_OK;
+            DEBUG(INDI::Logger::DBG_SESSION, "Focuser aborted.");
+        }
+        else
+        {
+            AbortSP.s = IPS_ALERT;
+            DEBUG(INDI::Logger::DBG_ERROR, "Aborting focuser failed.");
+        }
+
+        IDSetSwitch(&AbortSP, NULL);
+    }
     // Focus In
-    if (!strcmp(button_n, "Focus In"))
+    else if (!strcmp(button_n, "Focus In"))
     {
         if (FocusMotionS[FOCUS_INWARD].s != ISS_ON)
         {
@@ -260,25 +278,19 @@ void INDI::Focuser::processButton(const char * button_n, ISState state)
         if (capability.variableSpeed)
         {
            rc = MoveFocuser(FOCUS_INWARD, FocusSpeedN[0].value, FocusTimerN[0].value);
-            if (rc == 0)
-                FocusTimerNP.s = IPS_OK;
-            else if (rc == 1)
-                FocusTimerNP.s = IPS_BUSY;
-            else
-                FocusTimerNP.s = IPS_ALERT;
-
-            IDSetNumber(&FocusTimerNP,NULL);
+           FocusTimerNP.s = rc;
+           IDSetNumber(&FocusTimerNP,NULL);
         }
         else if (capability.canRelMove)
         {
             rc=MoveRelFocuser(FOCUS_INWARD, FocusRelPosN[0].value);
-            if (rc == 0)
+            if (rc == IPS_OK)
             {
                FocusRelPosNP.s=IPS_OK;
                IDSetNumber(&FocusRelPosNP, "Focuser moved %d steps inward", (int) FocusRelPosN[0].value);
                IDSetNumber(&FocusAbsPosNP, NULL);
             }
-            else if (rc == 1)
+            else if (rc == IPS_BUSY)
             {
                  FocusRelPosNP.s=IPS_BUSY;
                  IDSetNumber(&FocusAbsPosNP, "Focuser is moving %d steps inward...", (int) FocusRelPosN[0].value);
@@ -297,25 +309,19 @@ void INDI::Focuser::processButton(const char * button_n, ISState state)
         if (capability.variableSpeed)
         {
            rc = MoveFocuser(FOCUS_OUTWARD, FocusSpeedN[0].value, FocusTimerN[0].value);
-            if (rc == 0)
-                FocusTimerNP.s = IPS_OK;
-            else if (rc == 1)
-                FocusTimerNP.s = IPS_BUSY;
-            else
-                FocusTimerNP.s = IPS_ALERT;
-
-            IDSetNumber(&FocusTimerNP,NULL);
+           FocusTimerNP.s = rc;
+           IDSetNumber(&FocusTimerNP,NULL);
         }
         else if (capability.canRelMove)
         {
             rc=MoveRelFocuser(FOCUS_OUTWARD, FocusRelPosN[0].value);
-            if (rc == 0)
+            if (rc == IPS_OK)
             {
                FocusRelPosNP.s=IPS_OK;
                IDSetNumber(&FocusRelPosNP, "Focuser moved %d steps outward", (int) FocusRelPosN[0].value);
                IDSetNumber(&FocusAbsPosNP, NULL);
             }
-            else if (rc == 1)
+            else if (rc == IPS_BUSY)
             {
                  FocusRelPosNP.s=IPS_BUSY;
                  IDSetNumber(&FocusAbsPosNP, "Focuser is moving %d steps outward...", (int) FocusRelPosN[0].value);
