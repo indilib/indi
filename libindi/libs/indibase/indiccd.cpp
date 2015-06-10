@@ -424,7 +424,7 @@ bool INDI::CCD::initProperties()
     IUFillSwitchVector(&UploadSP, UploadS, 3, getDeviceName(), "UPLOAD_MODE", "Upload", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillText(&UploadSettingsT[0],"UPLOAD_DIR","Dir","");
-    IUFillText(&UploadSettingsT[1],"UPLOAD_PREFIX","Prefix","IMAGE_XX");
+    IUFillText(&UploadSettingsT[1],"UPLOAD_PREFIX","Prefix","IMAGE_XXX");
     IUFillTextVector(&UploadSettingsTP,UploadSettingsT,2,getDeviceName(),"UPLOAD_SETTINGS","Upload Settings",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillText(&ActiveDeviceT[0],"ACTIVE_TELESCOPE","Telescope","Telescope Simulator");
@@ -1817,10 +1817,10 @@ bool INDI::CCD::uploadFile(CCDChip * targetChip, const void *fitsData, size_t to
 
         if (maxIndex > 0)
         {
-            char indexString[3];
-            snprintf(indexString, 3, "%02d", maxIndex);
+            char indexString[4];
+            snprintf(indexString, 4, "%03d", maxIndex);
             std::string prefixIndex = indexString;
-            prefix.replace(prefix.find("XX"), 2, prefixIndex);
+            prefix.replace(prefix.find("XXX"), 3, prefixIndex);
         }
 
         snprintf(imageFileName, MAXRBUF, "%s/%s%s", UploadSettingsT[0].text, prefix.c_str(), targetChip->FitsB.format);
@@ -2031,11 +2031,11 @@ int INDI::CCD::getFileIndex(const char *dir, const char *prefix, const char *ext
     std::vector<std::string> files = std::vector<std::string>();
 
     std::string prefixIndex = prefix;
-    if (prefixIndex.find("XX") == std::string::npos)
+    if (prefixIndex.find("XXX") == std::string::npos)
         return 0;
 
     std::string prefixSearch = prefix;
-    prefixSearch.replace(prefixSearch.find("XX"), 2, "");
+    prefixSearch.replace(prefixSearch.find("XXX"), 3, "");
 
     dpdf = opendir(dir);
     if (dpdf != NULL)
@@ -2052,7 +2052,7 @@ int INDI::CCD::getFileIndex(const char *dir, const char *prefix, const char *ext
     int maxIndex=0;
 
     std::string filterIndex = "%d";
-    prefixIndex.replace(prefixIndex.find("XX"), 2, filterIndex);
+    prefixIndex.replace(prefixIndex.find("XXX"), 3, filterIndex);
     char filter[MAXRBUF];
     snprintf(filter, MAXRBUF, "%s%s", prefixIndex.c_str(), ext);
     for (int i=0; i < files.size(); i++)
