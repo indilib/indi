@@ -1,3 +1,9 @@
+libqhy (0.1.5) vivid; urgency=low
+
+  * Upstream release.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Thu, 04 Jun 2015 11:10:00 +0300
+
 libqhy (0.1.4) vivid; urgency=low
 
   * Upstream release.
