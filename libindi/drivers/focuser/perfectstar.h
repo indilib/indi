@@ -33,15 +33,18 @@ class PerfectStar : public INDI::Focuser, public INDI::USBDevice
 public:
 
     // Perfect Star (PS) status
-    typedef enum { PS_NOOP, PS_IN, PS_OUT, PS_GOTO, PS_SETPOS, PS_HALT, PS_LOCKED } PS_STATUS;
+    typedef enum { PS_NOOP, PS_IN, PS_OUT, PS_GOTO, PS_SETPOS, PS_LOCKED, PS_HALT=0xFF } PS_STATUS;
 
     PerfectStar();
     virtual ~PerfectStar();
 
-    const char *getDefaultName();
+    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
 
+    const char *getDefaultName();
+    virtual bool initProperties();
     virtual void ISGetProperties (const char *dev);
     virtual bool updateProperties();
+    virtual bool saveConfigItems(FILE *fp);
 
     bool Connect();
     bool Disconnect();
@@ -50,17 +53,30 @@ public:
 
     virtual IPState MoveAbsFocuser(uint32_t ticks);
     virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
-
+    virtual bool AbortFocuser();
 
 private:
 
     PS_STATUS status;
+    bool sim;
+    uint32_t simPosition;
+    uint32_t targetPosition;
 
     bool setPosition(uint32_t ticks);
     bool getPosition(uint32_t *ticks);
 
     bool setStatus(PS_STATUS targetStatus);
     bool getStatus(PS_STATUS *currentStatus);
+
+    bool sync(uint32_t ticks);
+
+    // Max position in ticks
+    INumber MaxPositionN[1];
+    INumberVectorProperty MaxPositionNP;
+
+    // Sync to a particular position
+    INumber SyncN[1];
+    INumberVectorProperty SyncNP;
 
 };
 

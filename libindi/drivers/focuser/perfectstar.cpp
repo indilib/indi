@@ -31,6 +31,8 @@
 #define POLLMS              1000            /* 1000 ms */
 #define PERFECTSTAR_TIMEOUT 1000            /* 1000 ms */
 
+#define FOCUS_SETTINGS_TAB  "Settings"
+
 // We declare an auto pointer to PerfectStar.
 std::auto_ptr<PerfectStar> perfectStar(0);
 
@@ -103,11 +105,21 @@ PerfectStar::PerfectStar()
 
 PerfectStar::~PerfectStar()
 {
-
+    sim = false;
+    simPosition = 0;
+    status = PS_NOOP;
 }
 
 bool PerfectStar::Connect()
 {
+    sim = isSimulation();
+
+    if (sim)
+    {
+        SetTimer(POLLMS);
+        return true;
+    }
+
     dev=FindDevice(0x14D8, 0xF812,0);
 
     if(dev==NULL)
@@ -126,6 +138,8 @@ bool PerfectStar::Connect()
 
 bool PerfectStar::Disconnect()
 {
+    if (!sim)
+        Close();
     return true;
 }
 
@@ -143,10 +157,45 @@ void PerfectStar::ISGetProperties (const char *dev)
 
 }
 
+bool PerfectStar::initProperties()
+{
+    INDI::Focuser::initProperties();
+
+    // Max Position
+    IUFillNumber(&MaxPositionN[0], "Steps", "", "%.f", 0, 500000, 0., 100000);
+    IUFillNumberVector(&MaxPositionNP, MaxPositionN, 1, getDeviceName(), "Max Position", "", FOCUS_SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
+
+    // Sync to a particular position
+    IUFillNumber(&SyncN[0], "Ticks", "", "%.f", 0, 100000, 100., 0.);
+    IUFillNumberVector(&SyncNP, SyncN, 1, getDeviceName(), "Sync", "", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+
+    FocusAbsPosN[0].min = SyncN[0].min = 0;
+    FocusAbsPosN[0].max = SyncN[0].max = MaxPositionN[0].value;
+    FocusAbsPosN[0].step = SyncN[0].step = MaxPositionN[0].value/50.0;
+
+    FocusRelPosN[0].max = (FocusAbsPosN[0].max-FocusAbsPosN[0].min)/2;
+    FocusRelPosN[0].step = FocusRelPosN[0].max/100.0;
+
+    addSimulationControl();
+
+    return true;
+}
+
 bool PerfectStar::updateProperties()
 {
 
-    return INDI::Focuser::updateProperties();
+    INDI::Focuser::updateProperties();
+
+    if (isConnected())
+    {
+        defineNumber(&SyncNP);
+        defineNumber(&MaxPositionNP);
+    }
+    else
+    {
+        deleteProperty(SyncNP.name);
+        deleteProperty(MaxPositionNP.name);
+    }
 }
 
 void PerfectStar::TimerHit()
@@ -154,29 +203,314 @@ void PerfectStar::TimerHit()
     if (isConnected() == false)
         return;
 
+    uint32_t currentTicks=0;
+
+    bool rc = getPosition(&currentTicks);
+
+    if (rc)
+        FocusAbsPosN[0].value = currentTicks;
+
+    rc = getStatus(&status);
+
+    if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
+    {
+        if (sim)
+        {
+            if ( FocusAbsPosN[0].value < targetPosition)
+                simPosition += 500;
+            else
+                simPosition -= 500;
+
+            if (fabs(simPosition - targetPosition) < 500)
+            {
+                FocusAbsPosN[0].value = targetPosition;
+                simPosition = FocusAbsPosN[0].value;
+                status = PS_NOOP;
+            }
+
+
+            FocusAbsPosN[0].value = simPosition;
+        }
+
+        if (status == PS_NOOP)
+        {
+            if (FocusRelPosNP.s == IPS_BUSY)
+            {
+                FocusRelPosNP.s = IPS_OK;
+                IDSetNumber(&FocusRelPosNP, NULL);
+            }
+
+            FocusAbsPosNP.s = IPS_OK;
+            DEBUG(INDI::Logger::DBG_SESSION, "Focuser reached home position.");
+        }
+    }
+
+    IDSetNumber(&FocusAbsPosNP, NULL);
+
     SetTimer(POLLMS);
 }
 
-IPState PerfectStar::MoveAbsFocuser(uint32_t targetTicks)
+bool PerfectStar::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
 
+    if(strcmp(dev,getDeviceName())==0)
+    {
+        // Max Travel
+        if (!strcmp(MaxPositionNP.name, name))
+        {
+            IUUpdateNumber(&MaxPositionNP, values, names, n);
+
+            if (MaxPositionN[0].value > 0)
+            {
+                FocusAbsPosN[0].min = SyncN[0].min = 0;
+                FocusAbsPosN[0].max = SyncN[0].max = MaxPositionN[0].value;
+                FocusAbsPosN[0].step = SyncN[0].step = MaxPositionN[0].value/50.0;
+
+
+                FocusRelPosN[0].max = (FocusAbsPosN[0].max-FocusAbsPosN[0].min)/2;
+                FocusRelPosN[0].step = FocusRelPosN[0].max/100.0;
+                FocusRelPosN[0].min = 0;
+
+                IUUpdateMinMax(&FocusAbsPosNP);
+                IUUpdateMinMax(&FocusRelPosNP);
+                IUUpdateMinMax(&SyncNP);
+
+                DEBUGF(INDI::Logger::DBG_SESSION, "Focuser absolute limits: min (%g) max (%g)", FocusAbsPosN[0].min, FocusAbsPosN[0].max);
+            }
+
+            MaxPositionNP.s = IPS_OK;
+            IDSetNumber(&MaxPositionNP, NULL);
+            return true;
+       }
+
+        // Sync
+        if (!strcmp(SyncNP.name, name))
+        {
+            IUUpdateNumber(&SyncNP, values, names, n);
+            if (sync(SyncN[0].value) == false)
+                SyncNP.s = IPS_ALERT;
+            else
+                SyncNP.s = IPS_OK;
+
+            IDSetNumber(&SyncNP, NULL);
+            return true;
+        }
+
+   }
+
+    return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
+
+}
+
+IPState PerfectStar::MoveAbsFocuser(uint32_t ticks)
+{
+
+    bool rc = false;
+
+    rc = setPosition(ticks);
+
+    if (rc == false)
+        return IPS_ALERT;
+
+    targetPosition = ticks;
+
+    rc = setStatus(PS_GOTO);
+
+    if (rc == false)
+        return IPS_ALERT;
+
+    FocusAbsPosNP.s = IPS_BUSY;
+
+    return IPS_BUSY;
 
 }
 
 IPState PerfectStar::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    uint32_t targetTicks = FocusAbsPosN[0].value + (ticks * (dir == FOCUS_INWARD ? -1 : 1));
+    uint32_t finalTicks = FocusAbsPosN[0].value + (ticks * (dir == FOCUS_INWARD ? -1 : 1));
 
-    return MoveAbsFocuser(targetTicks);
+    return MoveAbsFocuser(finalTicks);
 }
 
 bool PerfectStar::setPosition(uint32_t ticks)
 {
+    int rc=0;
+    unsigned char command[3];
+    unsigned char response[3];
 
+    // 20 bit resolution position. 4 high bits + 16 lower bits
+
+    // Send 4 high bits first
+    command[0] = 0x28;
+    command[1] = ticks & 0x400;
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Set Position (%ld)", ticks);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%02X %02X)", command[0], command[1]);
+
+    if (sim)
+        rc = 2;
+    else
+        rc = WriteBulk(command, 2, PERFECTSTAR_TIMEOUT);
+
+    if (rc < 0)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "setPosition: Error writing to device.");
+        return false;
+    }
+
+    if (sim)
+    {
+        rc = 2;
+        response[0] = 0x28;
+        response[1] = command[1];
+    }
+    else
+        rc = ReadBulk(response, 2, PERFECTSTAR_TIMEOUT);
+
+    if (rc < 0)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "setPosition: Error reading from device.");
+        return false;
+    }
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%02X %02X)", response[0], response[1]);
+
+    // Send lower 16 bit
+    command[0] = 0x20;
+    // Low Byte
+    command[1] = ticks & 0xF;
+    // High Byte
+    command[2] = ticks & 0xF0;
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%02X %02X %02X)", command[0], command[1], command[2]);
+
+    if (sim)
+        rc = 3;
+    else
+        rc = WriteBulk(command, 3, PERFECTSTAR_TIMEOUT);
+
+    if (rc < 0)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "setPosition: Error writing to device.");
+        return false;
+    }
+
+
+    if (sim)
+    {
+        rc = 3;
+        response[0] = command[0];
+        response[1] = command[1];
+        response[2] = command[2];
+    }
+    else
+        rc = ReadBulk(response, 3, PERFECTSTAR_TIMEOUT);
+
+    if (rc < 0)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "setPosition: Error reading from device.");
+        return false;
+    }
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%02X %02X %02X)", response[0], response[1], response[2]);
+
+
+    targetPosition = ticks;
+
+    // TODO add checking later
+    return true;
 }
 
 bool PerfectStar::getPosition(uint32_t *ticks)
 {
+
+    int rc=0;
+    uint32_t pos=0;
+    unsigned char command[1];
+    unsigned char response[3];
+
+    // 20 bit resolution position. 4 high bits + 16 lower bits
+
+    // Get 4 high bits first
+    command[0] = 0x29;
+
+    DEBUG(INDI::Logger::DBG_DEBUG, "Get Position (High 4 bits)");
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%02X)", command[0]);
+
+    if (sim)
+       rc  = 2;
+    else
+        rc = WriteBulk(command, 1, PERFECTSTAR_TIMEOUT);
+
+    if (rc < 0)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "getPosition: Error writing to device.");
+        return false;
+    }
+
+    if (sim)
+    {
+        rc = 2;
+        response[0] = command[0];
+        response[1] = simPosition >> 16;
+    }
+    else
+        rc = ReadBulk(response, 2, PERFECTSTAR_TIMEOUT);
+
+    if (rc < 0)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "getPosition: Error reading from device.");
+        return false;
+    }
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%02X %02X)", response[0], response[1]);
+
+    // Store 4 high bits part of a 20 bit number
+    pos = response[1] << 16;
+
+    // Get 16 lower bits
+    command[0] = 0x21;
+
+    DEBUG(INDI::Logger::DBG_DEBUG, "Get Position (Lower 16 bits)");
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%02X)", command[0]);
+
+    if (sim)
+        rc = 1;
+    else
+        rc = WriteBulk(command, 1, PERFECTSTAR_TIMEOUT);
+
+    if (rc < 0)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "getPosition: Error writing to device.");
+        return false;
+    }
+
+    if (sim)
+    {
+        rc = 3;
+        response[0] = command[0];
+        response[1] = simPosition & 0xFF;
+        response[2] = (simPosition & 0xFF00) >> 8;
+    }
+    else
+        rc = ReadBulk(response, 3, PERFECTSTAR_TIMEOUT);
+
+    if (rc < 0)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "getPosition: Error reading from device.");
+        return false;
+    }
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%02X %02X %02X)", response[0], response[1], response[2]);
+
+    // Res[1] is lower byte and Res[2] is high byte. Combine them and add them to ticks.
+    pos |= response[1] | response[2] << 8;
+
+    *ticks = pos;
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Position: %ld", pos);
+
+    return true;
 
 }
 
@@ -189,9 +523,12 @@ bool PerfectStar::setStatus(PS_STATUS targetStatus)
     command[0] = 0x10;
     command[1] = (targetStatus == PS_HALT) ? 0xFF : targetStatus;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%#02X %#02X)", command[0], command[1]);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%02X %02X)", command[0], command[1]);
 
-    rc = WriteBulk(command, 2, PERFECTSTAR_TIMEOUT);
+    if (sim)
+        rc = 2;
+    else
+        rc = WriteBulk(command, 2, PERFECTSTAR_TIMEOUT);
 
     if (rc < 0)
     {
@@ -199,7 +536,26 @@ bool PerfectStar::setStatus(PS_STATUS targetStatus)
         return false;
     }
 
-    rc = ReadBulk(response, 3, PERFECTSTAR_TIMEOUT);
+    if (sim)
+    {
+        rc = 3;
+        response[0] = command[0];
+        response[1] = 0;
+        response[2] = command[1];
+        status = targetStatus;
+        // Convert Goto to either "moving in" or "moving out" status
+        if (status == PS_GOTO)
+        {
+            // Moving in state
+            if (targetPosition < FocusAbsPosN[0].value)
+                status = PS_IN;
+            else
+            // Moving out state
+                status = PS_OUT;
+        }
+    }
+    else
+        rc = ReadBulk(response, 3, PERFECTSTAR_TIMEOUT);
 
     if (rc < 0)
     {
@@ -207,7 +563,7 @@ bool PerfectStar::setStatus(PS_STATUS targetStatus)
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%#02X %#02X %#02X)", response[0], response[1], response[2]);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%02X %02X %02X)", response[0], response[1], response[2]);
 
     if (response[1] == 0xFF)
     {
@@ -227,9 +583,12 @@ bool PerfectStar::getStatus(PS_STATUS *currentStatus)
 
     command[0] = 0x11;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%#02X)", command[0]);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%02X)", command[0]);
 
-    rc = WriteBulk(command, 1, PERFECTSTAR_TIMEOUT);
+    if (sim)
+        rc = 1;
+    else
+        rc = WriteBulk(command, 1, PERFECTSTAR_TIMEOUT);
 
     if (rc < 0)
     {
@@ -237,7 +596,17 @@ bool PerfectStar::getStatus(PS_STATUS *currentStatus)
         return false;
     }
 
-    rc = ReadBulk(response, 2, PERFECTSTAR_TIMEOUT);
+    if (sim)
+    {
+        rc = 2;
+        response[0] = command[0];
+        response[1] = status;
+        // Halt/SetPos is state = 0 "not moving".
+        if (response[1] == PS_HALT || response[1] == PS_SETPOS)
+            response[1] = 0;
+    }
+    else
+        rc = ReadBulk(response, 2, PERFECTSTAR_TIMEOUT);
 
     if (rc < 0)
     {
@@ -245,24 +614,28 @@ bool PerfectStar::getStatus(PS_STATUS *currentStatus)
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%#02X %#02X)", response[0], response[1]);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%02X %02X)", response[0], response[1]);
 
     switch (response[1])
     {
         case 0:
             *currentStatus = PS_HALT;
+            DEBUG(INDI::Logger::DBG_DEBUG, "State: Not moving.");
             break;
 
         case 1:
             *currentStatus = PS_IN;
+            DEBUG(INDI::Logger::DBG_DEBUG, "State: Moving in.");
             break;
 
         case 2:
             *currentStatus = PS_OUT;
+            DEBUG(INDI::Logger::DBG_DEBUG, "State: Moving out.");
             break;
 
         case 5:
             *currentStatus = PS_LOCKED;
+            DEBUG(INDI::Logger::DBG_DEBUG, "State: Locked.");
             break;
 
     default:
@@ -273,5 +646,33 @@ bool PerfectStar::getStatus(PS_STATUS *currentStatus)
 
     return true;
 
+}
+
+bool PerfectStar::AbortFocuser()
+{
+    return setStatus(PS_HALT);
+}
+
+bool PerfectStar::sync(uint32_t ticks)
+{
+    bool rc = setPosition(ticks);
+
+    if (rc == false)
+        return false;
+
+    simPosition = ticks;
+
+    rc = setStatus(PS_SETPOS);
+
+    return rc;
+}
+
+bool PerfectStar::saveConfigItems(FILE *fp)
+{
+    INDI::Focuser::saveConfigItems(fp);
+
+    IUSaveConfigNumber(fp, &MaxPositionNP);
+
+    return true;
 }
 
