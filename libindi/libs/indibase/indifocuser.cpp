@@ -256,6 +256,16 @@ void INDI::Focuser::processButton(const char * button_n, ISState state)
         {
             AbortSP.s = IPS_OK;
             DEBUG(INDI::Logger::DBG_SESSION, "Focuser aborted.");
+            if (capability.canAbsMove && FocusAbsPosNP.s != IPS_IDLE)
+            {
+                FocusAbsPosNP.s = IPS_IDLE;
+                IDSetNumber(&FocusAbsPosNP, NULL);
+            }
+            if (capability.canRelMove && FocusRelPosNP.s != IPS_IDLE)
+            {
+                FocusRelPosNP.s = IPS_IDLE;
+                IDSetNumber(&FocusRelPosNP, NULL);
+            }
         }
         else
         {

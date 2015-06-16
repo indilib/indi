@@ -225,7 +225,19 @@ bool INDI::FocuserInterface::processFocuserSwitch (const char *dev, const char *
         IUResetSwitch(&AbortSP);
 
         if (AbortFocuser())
+        {
             AbortSP.s = IPS_OK;
+            if (capability.canAbsMove && FocusAbsPosNP.s != IPS_IDLE)
+            {
+                FocusAbsPosNP.s = IPS_IDLE;
+                IDSetNumber(&FocusAbsPosNP, NULL);
+            }
+            if (capability.canRelMove && FocusRelPosNP.s != IPS_IDLE)
+            {
+                FocusRelPosNP.s = IPS_IDLE;
+                IDSetNumber(&FocusRelPosNP, NULL);
+            }
+        }
         else
             AbortSP.s = IPS_ALERT;
 
