@@ -95,7 +95,7 @@ private:
     bool setBacklashCompensationSteps(uint16_t steps);
 
     // Sync
-    bool sync(u_int32_t position);
+    bool sync(uint32_t position);
 
     // Motion functions
     bool stop();

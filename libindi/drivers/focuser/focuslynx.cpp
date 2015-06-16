@@ -2082,7 +2082,7 @@ bool FocusLynx::reverse(bool enable)
 /************************************************************************************
  *
 * ***********************************************************************************/
-bool FocusLynx::sync(u_int32_t position)
+bool FocusLynx::sync(uint32_t position)
 {
     char cmd[32];
     int errcode = 0;
