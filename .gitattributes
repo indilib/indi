@@ -921,7 +921,9 @@
 3rdparty/libqhy/firmware/miniCam5.HEX -text
 3rdparty/libqhy/libqhy.dylib -text
 3rdparty/libqhy/libqhy_32.bin -text
+3rdparty/libqhy/libqhy_32.dylib -text
 3rdparty/libqhy/libqhy_64.bin -text
+3rdparty/libqhy/libqhy_64.dylib -text
 3rdparty/libqhy/libqhy_arm_v6.bin -text
 3rdparty/libqhy/libqhy_arm_v7.bin -text
 3rdparty/libqhy/qhyccd.h -text
