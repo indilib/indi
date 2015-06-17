@@ -775,8 +775,7 @@ bool QHYCCD::UpdateCCDFrame(int x, int y, int w, int h)
   camroiwidth = x_2 - x_1;
   camroiheight = y_2 - y_1;
 
-  DEBUGF(INDI::Logger::DBG_DEBUG, "The Final image area is (%d, %d), (%d, %d)\n", camroix, camroiy, camroiwidth, camroiheight);
-
+  DEBUGF(INDI::Logger::DBG_DEBUG, "The Final image area is (%d, %d), (%d, %d)", camroix, camroiy, camroiwidth, camroiheight);
 
   // Set UNBINNED coords
   PrimaryCCD.setFrame(x, y, w,  h);
