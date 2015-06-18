@@ -172,9 +172,11 @@ bool PerfectStar::initProperties()
     FocusAbsPosN[0].min = SyncN[0].min = 0;
     FocusAbsPosN[0].max = SyncN[0].max = MaxPositionN[0].value;
     FocusAbsPosN[0].step = SyncN[0].step = MaxPositionN[0].value/50.0;
+    FocusAbsPosN[0].value = 0;
 
     FocusRelPosN[0].max = (FocusAbsPosN[0].max-FocusAbsPosN[0].min)/2;
     FocusRelPosN[0].step = FocusRelPosN[0].max/100.0;
+    FocusRelPosN[0].value = 100;
 
     addSimulationControl();
 
