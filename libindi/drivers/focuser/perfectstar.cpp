@@ -120,7 +120,7 @@ bool PerfectStar::Connect()
         return true;
     }
 
-    dev=FindDevice(0x14D8, 0xF812,0);
+    dev=FindDevice(0x04D8, 0xF812,0);
 
     if(dev==NULL)
      {
