@@ -930,7 +930,6 @@
 3rdparty/libqsi/CCDCamera.cpp -text
 3rdparty/libqsi/CCDCamera.h -text
 3rdparty/libqsi/CMakeLists.txt -text
-3rdparty/libqsi/CMakeLists.txt.user -text
 3rdparty/libqsi/COPYING -text
 3rdparty/libqsi/CameraID.cpp -text
 3rdparty/libqsi/CameraID.h -text
