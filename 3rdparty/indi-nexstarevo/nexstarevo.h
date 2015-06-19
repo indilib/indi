@@ -11,6 +11,7 @@ class NexStarEvo : public INDI::Telescope, public INDI::AlignmentSubsystem::Alig
 {
 public:
     NexStarEvo();
+    ~NexStarEvo();
 
     virtual void ISGetProperties (const char *dev);
     virtual bool ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);

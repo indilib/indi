@@ -300,10 +300,6 @@
 3rdparty/indi-sx/COPYRIGHT.txt -text
 3rdparty/indi-sx/INSTALL -text
 3rdparty/indi-sx/README -text
-3rdparty/indi-sx/hid_libusb.c -text svneol=unset#text/plain
-3rdparty/indi-sx/hid_mac.c -text svneol=unset#text/plain
-3rdparty/indi-sx/hid_win.c -text svneol=unset#text/plain
-3rdparty/indi-sx/hidapi.h -text svneol=unset#text/plain
 3rdparty/indi-sx/indi_sx.xml -text
 3rdparty/indi-sx/sxao.cpp -text svneol=unset#text/plain
 3rdparty/indi-sx/sxao.h -text svneol=unset#text/plain
@@ -1480,6 +1476,10 @@ libindi/libs/indibase/basedevice.cpp -text
 libindi/libs/indibase/basedevice.h -text
 libindi/libs/indibase/defaultdevice.cpp -text
 libindi/libs/indibase/defaultdevice.h -text
+libindi/libs/indibase/hid_libusb.c -text svneol=unset#text/plain
+libindi/libs/indibase/hid_mac.c -text svneol=unset#text/plain
+libindi/libs/indibase/hid_win.c -text svneol=unset#text/plain
+libindi/libs/indibase/hidapi.h -text svneol=unset#text/plain
 libindi/libs/indibase/indibase.h -text
 libindi/libs/indibase/indibasetypes.h -text
 libindi/libs/indibase/indiccd.cpp -text

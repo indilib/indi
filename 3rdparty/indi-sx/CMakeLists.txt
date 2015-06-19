@@ -32,25 +32,26 @@ set(indisxccd_SRCS
 add_executable(indi_sx_ccd ${indisxccd_SRCS})
 target_link_libraries(indi_sx_ccd ${INDI_DRIVER_LIBRARIES} ${LIBUSB_1_LIBRARIES})
 
-IF (APPLE)
-set(indisxwheel_SRCS
-  ${CMAKE_CURRENT_SOURCE_DIR}/sxwheel.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/hid_mac.c
-  )
-ELSEIF (WIN32)
-set(indisxwheel_SRCS
-  ${CMAKE_CURRENT_SOURCE_DIR}/sxwheel.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/hid_win.c
-  )
-ELSE ()
-include_directories(${LIBUSB_1_INCLUDE_DIRS})
-set(indisxwheel_SRCS
-  ${CMAKE_CURRENT_SOURCE_DIR}/sxwheel.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/hid_libusb.c
-  )
-ENDIF()
+#IF (APPLE)
+#set(indisxwheel_SRCS
+#  ${CMAKE_CURRENT_SOURCE_DIR}/sxwheel.cpp
+#  ${CMAKE_CURRENT_SOURCE_DIR}/hid_mac.c
+#  )
+#ELSEIF (WIN32)
+#set(indisxwheel_SRCS
+#  ${CMAKE_CURRENT_SOURCE_DIR}/sxwheel.cpp
+#  ${CMAKE_CURRENT_SOURCE_DIR}/hid_win.c
+#  )
+#ELSE ()
+#include_directories(${LIBUSB_1_INCLUDE_DIRS})
+#set(indisxwheel_SRCS
+#  ${CMAKE_CURRENT_SOURCE_DIR}/sxwheel.cpp
+#  ${CMAKE_CURRENT_SOURCE_DIR}/hid_libusb.c
+#  )
+#ENDIF()
 
-add_executable(indi_sx_wheel ${indisxwheel_SRCS})
+#add_executable(indi_sx_wheel ${indisxwheel_SRCS})
+add_executable(indi_sx_wheel ${CMAKE_CURRENT_SOURCE_DIR}/sxwheel.cpp)
 IF (APPLE)
 set(CMAKE_EXE_LINKER_FLAGS "-framework IOKit -framework CoreFoundation")
 target_link_libraries(indi_sx_wheel ${INDI_DRIVER_LIBRARIES} ${LIBUSB_LIBRARIES})

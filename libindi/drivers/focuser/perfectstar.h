@@ -23,12 +23,13 @@
 
 #include "indibase/indifocuser.h"
 #include "indibase/indiusbdevice.h"
+#include "indibase/hidapi.h"
 
 /*  Some headers we need */
 #include <math.h>
 #include <sys/time.h>
 
-class PerfectStar : public INDI::Focuser, public INDI::USBDevice
+class PerfectStar : public INDI::Focuser
 {
 public:
 
@@ -57,6 +58,7 @@ public:
 
 private:
 
+    hid_device *handle;
     PS_STATUS status;
     bool sim;
     uint32_t simPosition;

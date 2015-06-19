@@ -100,6 +100,8 @@ PerfectStar::PerfectStar()
     cap.canRelMove=true;
     cap.variableSpeed=false;
 
+    handle = 0;
+
     SetFocuserCapability(&cap);
 }
 
@@ -120,26 +122,27 @@ bool PerfectStar::Connect()
         return true;
     }
 
-    dev=FindDevice(0x04D8, 0xF812,0);
+   handle = hid_open(0x04D8, 0xF812,0);
 
-    if(dev==NULL)
-     {
+    if(handle==NULL)
+    {
          DEBUG(INDI::Logger::DBG_ERROR, "No PerfectStar focuser found.");
          return false;
-     }
-
-    int rc = Open();
-
-    if (rc != -1)
+    }
+    else
         SetTimer(POLLMS);
 
-    return (rc != -1);
+    return (handle != NULL);
 }
 
 bool PerfectStar::Disconnect()
 {
     if (!sim)
-        Close();
+    {
+        hid_close(handle);
+        hid_exit();
+    }
+
     return true;
 }
 
@@ -352,7 +355,7 @@ bool PerfectStar::setPosition(uint32_t ticks)
     if (sim)
         rc = 2;
     else
-        rc = WriteBulk(command, 2, PERFECTSTAR_TIMEOUT);
+        rc = hid_write(handle, command, 2);
 
     if (rc < 0)
     {
@@ -367,7 +370,7 @@ bool PerfectStar::setPosition(uint32_t ticks)
         response[1] = command[1];
     }
     else
-        rc = ReadBulk(response, 2, PERFECTSTAR_TIMEOUT);
+        rc = hid_read_timeout(handle, response, 2, PERFECTSTAR_TIMEOUT);
 
     if (rc < 0)
     {
@@ -389,14 +392,13 @@ bool PerfectStar::setPosition(uint32_t ticks)
     if (sim)
         rc = 3;
     else
-        rc = WriteBulk(command, 3, PERFECTSTAR_TIMEOUT);
+        rc = hid_write(handle, command, 3);
 
     if (rc < 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "setPosition: Error writing to device.");
         return false;
     }
-
 
     if (sim)
     {
@@ -406,7 +408,7 @@ bool PerfectStar::setPosition(uint32_t ticks)
         response[2] = command[2];
     }
     else
-        rc = ReadBulk(response, 3, PERFECTSTAR_TIMEOUT);
+        rc = hid_read_timeout(handle, response, 3, PERFECTSTAR_TIMEOUT);
 
     if (rc < 0)
     {
@@ -442,7 +444,7 @@ bool PerfectStar::getPosition(uint32_t *ticks)
     if (sim)
        rc  = 2;
     else
-        rc = WriteBulk(command, 1, PERFECTSTAR_TIMEOUT);
+        rc = hid_write(handle, command, 1);
 
     if (rc < 0)
     {
@@ -457,7 +459,7 @@ bool PerfectStar::getPosition(uint32_t *ticks)
         response[1] = simPosition >> 16;
     }
     else
-        rc = ReadBulk(response, 2, PERFECTSTAR_TIMEOUT);
+        rc = hid_read_timeout(handle, response, 2, PERFECTSTAR_TIMEOUT);
 
     if (rc < 0)
     {
@@ -479,7 +481,7 @@ bool PerfectStar::getPosition(uint32_t *ticks)
     if (sim)
         rc = 1;
     else
-        rc = WriteBulk(command, 1, PERFECTSTAR_TIMEOUT);
+        rc = hid_write(handle, command, 1);
 
     if (rc < 0)
     {
@@ -495,7 +497,7 @@ bool PerfectStar::getPosition(uint32_t *ticks)
         response[2] = (simPosition & 0xFF00) >> 8;
     }
     else
-        rc = ReadBulk(response, 3, PERFECTSTAR_TIMEOUT);
+        rc = hid_read_timeout(handle, response, 3, PERFECTSTAR_TIMEOUT);
 
     if (rc < 0)
     {
@@ -530,7 +532,7 @@ bool PerfectStar::setStatus(PS_STATUS targetStatus)
     if (sim)
         rc = 2;
     else
-        rc = WriteBulk(command, 2, PERFECTSTAR_TIMEOUT);
+        rc = hid_write(handle, command, 2);
 
     if (rc < 0)
     {
@@ -557,7 +559,7 @@ bool PerfectStar::setStatus(PS_STATUS targetStatus)
         }
     }
     else
-        rc = ReadBulk(response, 3, PERFECTSTAR_TIMEOUT);
+        rc = hid_read_timeout(handle, response, 3, PERFECTSTAR_TIMEOUT);
 
     if (rc < 0)
     {
@@ -590,7 +592,7 @@ bool PerfectStar::getStatus(PS_STATUS *currentStatus)
     if (sim)
         rc = 1;
     else
-        rc = WriteBulk(command, 1, PERFECTSTAR_TIMEOUT);
+        rc = hid_write(handle, command, 1);
 
     if (rc < 0)
     {
@@ -608,7 +610,7 @@ bool PerfectStar::getStatus(PS_STATUS *currentStatus)
             response[1] = 0;
     }
     else
-        rc = ReadBulk(response, 2, PERFECTSTAR_TIMEOUT);
+        rc = hid_read_timeout(handle, response, 2, PERFECTSTAR_TIMEOUT);
 
     if (rc < 0)
     {

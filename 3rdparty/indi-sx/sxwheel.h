@@ -30,7 +30,7 @@
 
 #include <indifilterwheel.h>
 
-#include "hidapi.h"
+#include <hidapi.h>
 
 class SXWHEEL: public INDI::FilterWheel {
   private:
