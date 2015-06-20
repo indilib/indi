@@ -188,7 +188,6 @@ bool PerfectStar::initProperties()
 
 bool PerfectStar::updateProperties()
 {
-
     INDI::Focuser::updateProperties();
 
     if (isConnected())
@@ -359,7 +358,7 @@ bool PerfectStar::setPosition(uint32_t ticks)
 
     if (rc < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "setPosition: Error writing to device.");
+        DEBUGF(INDI::Logger::DBG_ERROR, "setPosition: Error writing to device (%s)", hid_error(handle));
         return false;
     }
 
@@ -374,7 +373,7 @@ bool PerfectStar::setPosition(uint32_t ticks)
 
     if (rc < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "setPosition: Error reading from device.");
+        DEBUGF(INDI::Logger::DBG_ERROR, "setPosition: Error reading from device (%s)", hid_error(handle));
         return false;
     }
 
@@ -396,7 +395,7 @@ bool PerfectStar::setPosition(uint32_t ticks)
 
     if (rc < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "setPosition: Error writing to device.");
+        DEBUGF(INDI::Logger::DBG_ERROR, "setPosition: Error writing to device (%s)", hid_error(handle));
         return false;
     }
 
@@ -412,7 +411,7 @@ bool PerfectStar::setPosition(uint32_t ticks)
 
     if (rc < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "setPosition: Error reading from device.");
+        DEBUGF(INDI::Logger::DBG_ERROR, "setPosition: Error reading from device (%s)", hid_error(handle));
         return false;
     }
 
@@ -448,7 +447,7 @@ bool PerfectStar::getPosition(uint32_t *ticks)
 
     if (rc < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "getPosition: Error writing to device.");
+        DEBUGF(INDI::Logger::DBG_ERROR, "getPosition: Error writing to device (%s)", hid_error(handle));
         return false;
     }
 
@@ -463,7 +462,7 @@ bool PerfectStar::getPosition(uint32_t *ticks)
 
     if (rc < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "getPosition: Error reading from device.");
+        DEBUGF(INDI::Logger::DBG_ERROR, "getPosition: Error reading from device (%s)", hid_error(handle));
         return false;
     }
 
@@ -485,7 +484,7 @@ bool PerfectStar::getPosition(uint32_t *ticks)
 
     if (rc < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "getPosition: Error writing to device.");
+        DEBUGF(INDI::Logger::DBG_ERROR, "getPosition: Error writing to device (%s)", hid_error(handle));
         return false;
     }
 
@@ -501,7 +500,7 @@ bool PerfectStar::getPosition(uint32_t *ticks)
 
     if (rc < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "getPosition: Error reading from device.");
+        DEBUGF(INDI::Logger::DBG_ERROR, "getPosition: Error reading from device (%s)", hid_error(handle));
         return false;
     }
 
@@ -536,7 +535,7 @@ bool PerfectStar::setStatus(PS_STATUS targetStatus)
 
     if (rc < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "setStatus: Error writing to device.");
+        DEBUGF(INDI::Logger::DBG_ERROR, "setStatus: Error writing to device (%s)", hid_error(handle));
         return false;
     }
 
@@ -563,7 +562,7 @@ bool PerfectStar::setStatus(PS_STATUS targetStatus)
 
     if (rc < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "setStatus: Error reading from device.");
+        DEBUGF(INDI::Logger::DBG_ERROR, "setStatus: Error reading from device (%s)", hid_error(handle));
         return false;
     }
 
@@ -596,7 +595,7 @@ bool PerfectStar::getStatus(PS_STATUS *currentStatus)
 
     if (rc < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "getStatus: Error writing to device.");
+        DEBUGF(INDI::Logger::DBG_ERROR, "getStatus: Error writing to device (%s)", hid_error(handle));
         return false;
     }
 
@@ -614,7 +613,7 @@ bool PerfectStar::getStatus(PS_STATUS *currentStatus)
 
     if (rc < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "getStatus: Error reading from device.");
+        DEBUGF(INDI::Logger::DBG_ERROR, "getStatus: Error reading from device (%s)", hid_error(handle));
         return false;
     }
 
