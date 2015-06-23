@@ -129,8 +129,8 @@
 		596EBB58188AC60700190323 /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 596EBB4C188AC60700190323 /* Credits.rtf */; };
 		596EBB59188AC60700190323 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 596EBB4E188AC60700190323 /* InfoPlist.strings */; };
 		596EBB5C188AC60700190323 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 596EBB53188AC60700190323 /* main.m */; };
-		5976EA881A99F48600749981 /* libqhy.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 5976EA871A99F48600749981 /* libqhy.dylib */; };
-		5976EA8A1A9A029200749981 /* libqhy.dylib in Copy Files (33 items) */ = {isa = PBXBuildFile; fileRef = 5976EA871A99F48600749981 /* libqhy.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		5976EA881A99F48600749981 /* libqhy_64.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 5976EA871A99F48600749981 /* libqhy_64.dylib */; };
+		5976EA8A1A9A029200749981 /* libqhy_64.dylib in Copy Files (33 items) */ = {isa = PBXBuildFile; fileRef = 5976EA871A99F48600749981 /* libqhy_64.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		5979B2F9188ACE7200360C07 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 5979B2F7188ACE7200360C07 /* MainMenu.xib */; };
 		5979EA221ADEDBEF00A24B57 /* lilxml.c in Sources */ = {isa = PBXBuildFile; fileRef = 591991AC188FC9CA007DD2DE /* lilxml.c */; };
 		5979EA301ADEDC7500A24B57 /* getINDIproperty.c in Sources */ = {isa = PBXBuildFile; fileRef = 5979EA2E1ADEDC5600A24B57 /* getINDIproperty.c */; };
@@ -1456,7 +1456,7 @@
 				5979EA511ADEDEF500A24B57 /* indi_getprop in Copy Files (33 items) */,
 				5979EA521ADEDEF500A24B57 /* indi_setprop in Copy Files (33 items) */,
 				5979EA531ADEDEF500A24B57 /* indi_eval in Copy Files (33 items) */,
-				5976EA8A1A9A029200749981 /* libqhy.dylib in Copy Files (33 items) */,
+				5976EA8A1A9A029200749981 /* libqhy_64.dylib in Copy Files (33 items) */,
 				59E66D271A98B495005E9D5D /* indi_qhy_ccd in Copy Files (33 items) */,
 				59567D541A8D41CC0057A35A /* indi_atik_wheel in Copy Files (33 items) */,
 				59567D551A8D41CC0057A35A /* indi_atik_ccd in Copy Files (33 items) */,
@@ -1724,7 +1724,7 @@
 		59567BE01A8D31330057A35A /* indi_gpusb */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_gpusb; sourceTree = BUILT_PRODUCTS_DIR; };
 		59567BF21A8D31620057A35A /* indi_imager_agent */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_imager_agent; sourceTree = BUILT_PRODUCTS_DIR; };
 		59567C061A8D320D0057A35A /* baseclient.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = baseclient.cpp; sourceTree = "<group>"; };
-		59567C0A1A8D32C80057A35A /* hid_mac.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = hid_mac.c; sourceTree = "<group>"; };
+		59567C0A1A8D32C80057A35A /* hid_mac.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = hid_mac.c; path = ../../libindi/libs/indibase/hid_mac.c; sourceTree = "<group>"; };
 		59567C0B1A8D32C80057A35A /* sxao.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = sxao.cpp; sourceTree = "<group>"; };
 		59567C0C1A8D32C80057A35A /* sxccd.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = sxccd.cpp; sourceTree = "<group>"; };
 		59567C0D1A8D32C80057A35A /* sxccdusb.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = sxccdusb.cpp; sourceTree = "<group>"; };
@@ -1794,7 +1794,7 @@
 		596EBB51188AC60700190323 /* INDI Server-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "INDI Server-Info.plist"; sourceTree = SOURCE_ROOT; };
 		596EBB52188AC60700190323 /* INDI Server-Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "INDI Server-Prefix.pch"; sourceTree = SOURCE_ROOT; };
 		596EBB53188AC60700190323 /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = SOURCE_ROOT; };
-		5976EA871A99F48600749981 /* libqhy.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libqhy.dylib; sourceTree = "<group>"; };
+		5976EA871A99F48600749981 /* libqhy_64.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libqhy_64.dylib; path = ../libqhy/libqhy_64.dylib; sourceTree = "<group>"; };
 		5979B2F8188ACE7200360C07 /* en */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = en; path = MainMenu.xib; sourceTree = "<group>"; };
 		5979EA291ADEDBEF00A24B57 /* indi_getprop */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_getprop; sourceTree = BUILT_PRODUCTS_DIR; };
 		5979EA2C1ADEDC5600A24B57 /* compiler.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = compiler.c; sourceTree = "<group>"; };
@@ -1845,9 +1845,9 @@
 		59E66D041A989F66005E9D5D /* indi_qhy.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = indi_qhy.xml; sourceTree = "<group>"; };
 		59E66D051A989F66005E9D5D /* qhy_ccd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy_ccd.cpp; sourceTree = "<group>"; };
 		59E66D061A989F66005E9D5D /* qhy_ccd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy_ccd.h; sourceTree = "<group>"; };
-		59E66D0D1A98A2D6005E9D5D /* config.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
 		59E66D241A98A7A9005E9D5D /* qhy_fw.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy_fw.cpp; sourceTree = "<group>"; };
 		59E66D251A98A7A9005E9D5D /* qhy_fw.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy_fw.h; sourceTree = "<group>"; };
+		59F9B7FD1B39C57100FE3BF3 /* config.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
 		9D0B29C61A8D1E9400ED17BF /* indi_celestron_gps */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_celestron_gps; sourceTree = BUILT_PRODUCTS_DIR; };
 		9D0B29C81A8D1EC400ED17BF /* celestrongps.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = celestrongps.cpp; sourceTree = "<group>"; };
 		9D0B29DC1A8D1ED100ED17BF /* indi_temma */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_temma; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -2253,7 +2253,7 @@
 				59E66CC01A989D99005E9D5D /* libusb.dylib in Frameworks */,
 				59E66CC11A989D99005E9D5D /* libindi.dylib in Frameworks */,
 				59E66CC21A989D99005E9D5D /* libnova.dylib in Frameworks */,
-				5976EA881A99F48600749981 /* libqhy.dylib in Frameworks */,
+				5976EA881A99F48600749981 /* libqhy_64.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2577,7 +2577,6 @@
 				596EBB48188AC60700190323 /* CMDevice.m */,
 				596EBB49188AC60700190323 /* CMGroup.h */,
 				596EBB4A188AC60700190323 /* CMGroup.m */,
-				5976EA871A99F48600749981 /* libqhy.dylib */,
 				596EBB4B188AC60700190323 /* en.lproj */,
 				596EBB51188AC60700190323 /* INDI Server-Info.plist */,
 				596EBB52188AC60700190323 /* INDI Server-Prefix.pch */,
@@ -2782,7 +2781,7 @@
 			children = (
 				59E66CCD1A989EF9005E9D5D /* firmware */,
 				59E66D041A989F66005E9D5D /* indi_qhy.xml */,
-				59E66D0D1A98A2D6005E9D5D /* config.h */,
+				59F9B7FD1B39C57100FE3BF3 /* config.h */,
 				59E66CC91A989EE0005E9D5D /* qhyccd.h */,
 				59E66CCA1A989EE0005E9D5D /* qhyccdcamdef.h */,
 				59E66CCB1A989EE0005E9D5D /* qhyccderr.h */,
@@ -2791,6 +2790,7 @@
 				59E66D051A989F66005E9D5D /* qhy_ccd.cpp */,
 				59E66D241A98A7A9005E9D5D /* qhy_fw.cpp */,
 				59E66D251A98A7A9005E9D5D /* qhy_fw.h */,
+				5976EA871A99F48600749981 /* libqhy_64.dylib */,
 			);
 			path = "indi-qhy";
 			sourceTree = "<group>";

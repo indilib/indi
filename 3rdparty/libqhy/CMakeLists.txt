@@ -7,7 +7,7 @@ set(LIBQHY_SOVERSION "0")
 IF (APPLE)
 
 install(FILES qhyccd.h qhyccdcamdef.h qhyccderr.h qhyccdstruct.h DESTINATION include/libqhy)
-install(FILES libqhy.dylib DESTINATION lib)
+install(FILES libqhy_64.dylib DESTINATION lib RENAME libqhy.dylib)
 
 file(GLOB FIRMWARE "firmware/*.HEX")
 install(FILES ${FIRMWARE} DESTINATION "/usr/local/firmware")

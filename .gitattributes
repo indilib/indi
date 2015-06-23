@@ -256,6 +256,7 @@
 3rdparty/indi-qhy/CMakeLists.txt -text
 3rdparty/indi-qhy/INSTALL -text
 3rdparty/indi-qhy/README -text
+3rdparty/indi-qhy/config.h -text
 3rdparty/indi-qhy/config.h.cmake -text
 3rdparty/indi-qhy/indi_qhy.xml -text
 3rdparty/indi-qhy/qhy_ccd.cpp -text
@@ -1553,6 +1554,5 @@ macosx/INDI[!!-~]Server/en.lproj/Credits.rtf -text
 macosx/INDI[!!-~]Server/en.lproj/InfoPlist.strings -text
 macosx/INDI[!!-~]Server/en.lproj/MainMenu.xib -text
 macosx/INDI[!!-~]Server/indiserver-Info.plist -text
-macosx/INDI[!!-~]Server/libqhy.dylib -text
 macosx/INDI[!!-~]Server/main.m -text
 macosx/README.txt -text
