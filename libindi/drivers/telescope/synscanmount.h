@@ -30,8 +30,8 @@ class SynscanMount : public INDI::Telescope
         virtual ~SynscanMount();
 
         //  overrides of base class virtual functions
-        bool initProperties();
-        void ISGetProperties (const char *dev);
+        //bool initProperties();
+        //void ISGetProperties (const char *dev);
         const char *getDefaultName();
 
         bool ReadScopeStatus();
