@@ -237,7 +237,7 @@ void CCDChip::setNAxis(int value)
 
 void CCDChip::setImageExtension(const char *ext)
 {
-    strncpy(imageExtention, ext, MAXINDINAME);
+    strncpy(imageExtention, ext, MAXINDIBLOBFMT);
 }
 
 INDI::CCD::CCD()
