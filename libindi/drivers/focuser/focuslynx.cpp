@@ -1118,6 +1118,34 @@ bool FocusLynx::getFocusConfig()
       TemperatureCompensateOnStartSP.s = IPS_OK;
       IDSetSwitch(&TemperatureCompensateOnStartSP, NULL);
 
+      // Added By Philippe Besson the 28th of June for 'END' evalution
+      // END is reached
+      memset(response, 0, sizeof(response));
+      if (isSimulation())
+      {
+          strncpy(response, "END\n", 16);
+          nbytes_read = strlen(response);
+      }
+      else if ( (errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
+      {
+                    tty_error_msg(errcode, errmsg, MAXRBUF);
+                    DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+                    return false;
+      }
+
+      if (nbytes_read > 0)
+      {
+              response[nbytes_read-1] = '\0';
+
+            //      DIsplay the response to be sure to have read the complet TTY Buffer.
+            //        DEBUGF(DBG_FOCUS, "RES (%s)", response);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+
+              if (strcmp(response, "END"))
+                return false;
+      }
+      // End of added code by Philippe Besson
+
       tcflush(PortFD, TCIFLUSH);
 
       configurationComplete = true;
@@ -1466,6 +1494,34 @@ bool FocusLynx::getFocusStatus()
 
       StatusLP.s = IPS_OK;
       IDSetLight(&StatusLP, NULL);
+
+      // Added By Philippe Besson the 28th of June for 'END' evalution
+      // END is reached
+      memset(response, 0, sizeof(response));
+      if (isSimulation())
+      {
+          strncpy(response, "END\n", 16);
+          nbytes_read = strlen(response);
+      }
+      else if ( (errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
+      {
+                    tty_error_msg(errcode, errmsg, MAXRBUF);
+                    DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+                    return false;
+      }
+
+      if (nbytes_read > 0)
+      {
+              response[nbytes_read-1] = '\0';
+
+            //      DIsplay the response to be sure to have read the complet TTY Buffer.
+            //        DEBUGF(DBG_FOCUS, "RES (%s)", response);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+
+              if (strcmp(response, "END"))
+                return false;
+      }
+      // End of added code by Philippe Besson
 
       tcflush(PortFD, TCIFLUSH);
 
