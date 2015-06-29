@@ -33,6 +33,7 @@
 #include "eventloop.h"
 
 #include "asi_ccd.h"
+#include "config.h"
 
 #define POLLMS                  250		/* Polling time (ms) */
 #define TEMPERATURE_UPDATE_FREQ 4       /* Update every 4 POLLMS ~ 1 second */
@@ -40,6 +41,7 @@
 #define MAX_DEVICES             4       /* Max device cameraCount */
 #define MAX_EXP_RETRIES         3
 #define MIN_DURATION            0.001
+#define VERBOSE_EXPOSURE        3
 
 #define CONTROL_TAB     "Controls"
 
@@ -186,6 +188,7 @@ void ISSnoopDevice(XMLEle *root)
 
 ASICCD::ASICCD(ASI_CAMERA_INFO *camInfo)
 {
+  setVersion(ASI_VERSION_MAJOR, ASI_VERSION_MINOR);
   ControlN = NULL;
   ControlS  = NULL;
   pControlCaps = NULL;
@@ -673,6 +676,7 @@ bool ASICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
                        }
 
                        *((ASI_BOOL *) ControlN[j].aux1) = swAuto;
+                       break;
 
                    }
                }
@@ -818,15 +822,17 @@ bool ASICCD::StartExposure(float duration)
 
   PrimaryCCD.setExposureDuration(duration);
   ExposureRequest = duration;
+  ASISetControlValue(m_camInfo->CameraID, ASI_EXPOSURE, duration*1000*1000, ASI_FALSE);
 
-  if ( (errCode = ASIStartExposure(m_camInfo->CameraID, duration * 1000, (PrimaryCCD.getFrameType() == CCDChip::DARK_FRAME) ? ASI_TRUE : ASI_FALSE )) != ASI_SUCCESS)
+  if ( (errCode = ASIStartExposure(m_camInfo->CameraID, (PrimaryCCD.getFrameType() == CCDChip::DARK_FRAME) ? ASI_TRUE : ASI_FALSE )) != ASI_SUCCESS)
   {
       DEBUGF(INDI::Logger::DBG_ERROR, "ASIStartExposure error (%d)", errCode);
       return false;
   }
 
   gettimeofday(&ExpStart, NULL);
-  DEBUGF(INDI::Logger::DBG_SESSION, "Taking a %g seconds frame...", ExposureRequest);
+  if (ExposureRequest > VERBOSE_EXPOSURE)
+    DEBUGF(INDI::Logger::DBG_SESSION, "Taking a %g seconds frame...", ExposureRequest);
 
   InExposure = true;
 
@@ -984,7 +990,8 @@ int ASICCD::grabImage()
       PrimaryCCD.setNAxis(3);
   }
 
-  DEBUG(INDI::Logger::DBG_SESSION, "Download complete.");
+  if (ExposureRequest > VERBOSE_EXPOSURE)
+    DEBUG(INDI::Logger::DBG_SESSION, "Download complete.");
 
   ExposureComplete(&PrimaryCCD);
 
@@ -1011,7 +1018,7 @@ void ASICCD::TimerHit()
       //  it's real close now, so spin on it
       int timeoutCounter=0;
 
-      while (timeleft > 0)
+      while (true)
       {
               ASI_EXPOSURE_STATUS status = ASI_EXP_IDLE;
               ASI_ERROR_CODE errCode = ASI_SUCCESS;
@@ -1067,7 +1074,8 @@ void ASICCD::TimerHit()
           exposureRetries=0;
 
           /* We're done exposing */
-          DEBUG(INDI::Logger::DBG_SESSION,  "Exposure done, downloading image...");
+          if (ExposureRequest > VERBOSE_EXPOSURE)
+            DEBUG(INDI::Logger::DBG_SESSION,  "Exposure done, downloading image...");
 
           PrimaryCCD.setExposureLeft(0);
           InExposure = false;
