@@ -1,3 +1,9 @@
+indi-asicam (0.3) vivid; urgency=low
+
+  * Updated SDK and fixed issue with memory consumption.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Fri, 26 Jun 2015 13:00:00 +0300
+
 indi-asicam (0.2) vivid; urgency=low
 
   * New upstream release.
