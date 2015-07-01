@@ -37,6 +37,7 @@
 #include "sbig_ccd.h"
 
 #define TEMPERATURE_POLL_MS 5000    /* Temperature Polling time (ms) */
+#define MAX_RESOLUTION      4096    /* Maximum resolutoin for secondary chip */
 #define POLLMS          	1000	/* Polling time (ms) */
 #define MAX_DEVICES         20      /* Max device cameraCount */
 #define MAX_THREAD_RETRIES  3
@@ -798,7 +799,7 @@ bool SBIGCCD::setupParams()
 
         if(res == CE_NO_ERROR)
         {
-            if (useExternalTrackingCCD && (wCcd == 0 || hCcd==0))
+            if (useExternalTrackingCCD && (wCcd <= 0 || hCcd <=0 || wCcd > MAX_RESOLUTION || hCcd > MAX_RESOLUTION))
             {
                 DEBUG(INDI::Logger::DBG_DEBUG, "Invalid external tracking CCD dimensions, trying regular CCD_TRACKING");
 
