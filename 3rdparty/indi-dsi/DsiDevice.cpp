@@ -1,6 +1,8 @@
 /*
  * Copyright © 2008, Roland Roberts
  *
+ * Modifications and extensions for DSI III support 2015, G. Schmidt (gs)
+ *
  * References
  *
  *    [TRM] EZ-USB Technical Reference Manual, Document #001-13670 Rev. *A
@@ -14,6 +16,7 @@
 #include <errno.h>
 #include <assert.h>
 #include <unistd.h>
+#include <math.h>
 
 #include "DsiTypes.h"
 #include "DsiException.h"
@@ -55,7 +58,8 @@ format_buffer(unsigned char data[], size_t length)
             break;
             buffer << endl << "    " << setfill('0') << setw(8) << hex << i;
         }
-        buffer << " " << setfill('0') << setw(2) << hex << (unsigned int) data[i];
+        buffer << " " << setfill('0') << setw(2)
+               << hex << (unsigned int) data[i];
     }
     for (int i = 8-length; i > 0; i--) {
         buffer << "   ";
@@ -66,7 +70,8 @@ format_buffer(unsigned char data[], size_t length)
 }
 
 static void
-log_command_info(bool iswrite, const char *prefix, unsigned int length, char *buffer, unsigned int *result)
+log_command_info(bool iswrite, const char *prefix,
+                 unsigned int length, char *buffer, unsigned int *result)
 {
     unsigned int now = get_sysclock_ms();
     stringstream tmp;
@@ -77,15 +82,20 @@ log_command_info(bool iswrite, const char *prefix, unsigned int length, char *bu
 
     tmp.str("");
     if (iswrite) {
-        tmp << "    00000000:" << *format_buffer((unsigned char *) buffer, length);
-        const DSI::DeviceCommand *command = DSI::DeviceCommand::find((int) buffer[2]);
-        cerr << setfill(' ') << setw(60) << left << tmp.str() << command->name();
+        tmp << "    00000000:"
+            << *format_buffer((unsigned char *) buffer, length);
+        const DSI::DeviceCommand *command =
+            DSI::DeviceCommand::find((int) buffer[2]);
+
+        cerr << setfill(' ') << setw(60) << left
+             << tmp.str() << command->name();
         if (result)
             cerr << " " << *result;
         cerr << endl;
     } else {
         if (strcmp(prefix, "r 86") != 0) {
-            tmp << "    00000000:" << *format_buffer((unsigned char *) buffer, buffer[0]);
+            tmp << "    00000000:"
+                << *format_buffer((unsigned char *) buffer, buffer[0]);
             cerr << setfill(' ') << setw(60) << left << tmp.str() << "ACK";
             if (result)
                 cerr << " " << *result;
@@ -115,6 +125,7 @@ DSI::Device::Device(const char *devname) :
     eeprom_length    = -1;
     log_commands     = true;
     test_pattern     = true;
+    vdd_on           = false; /* DSI III default due to amp glow issue (gs)   */
     exposure_time    = 10;
     read_width       = 540;
     read_height_even = 253;
@@ -125,6 +136,11 @@ DSI::Device::Device(const char *devname) :
     image_height     = read_height;
     image_offset_x   = 0;
     image_offset_y   = 0;
+
+    framebuffer = (unsigned char *) 0;
+
+    binning2x2 = false;
+    ccd_temp = -128.5;
 
     initImager(devname);
 }
@@ -244,19 +260,24 @@ DSI::Device::initImager(const char *devname) {
      *
      */
     if ((retcode = libusb_get_descriptor(handle, 0x01, 0x00, data, size)) < 0)
-        throw dsi_exception(std::string("failed to get descriptor, ") + strerror(-retcode));
+        throw dsi_exception(std::string("failed to get descriptor, ")
+                            + strerror(-retcode));
 
     if ((retcode = libusb_get_descriptor(handle, 0x01, 0x00, data, size)) < 0)
-        throw dsi_exception(std::string("failed to get descriptor, ") + strerror(-retcode));
+        throw dsi_exception(std::string("failed to get descriptor, ")
+                            + strerror(-retcode));
 
     if ((retcode = libusb_get_descriptor(handle, 0x02, 0x00, data, size)) < 0)
-        throw dsi_exception(std::string("failed to get descriptor, ") + strerror(-retcode));
+        throw dsi_exception(std::string("failed to get descriptor, ")
+                            + strerror(-retcode));
 
     if ((retcode = libusb_set_configuration(handle, 1)) < 0)
-        throw dsi_exception(std::string("failed to set configuration, ") + strerror(-retcode));
+        throw dsi_exception(std::string("failed to set configuration, ")
+                            + strerror(-retcode));
 
     if ((retcode = libusb_claim_interface(handle, 0)) < 0)
-        throw dsi_exception(std::string("failed to claim interface, ") + strerror(-retcode));
+        throw dsi_exception(std::string("failed to claim interface, ")
+                            + strerror(-retcode));
 
     /* This is included out of desperation, but it works :-|
      *
@@ -265,14 +286,18 @@ DSI::Device::initImager(const char *devname) {
      * least, we need to clear this EP.  However, believing in the power of
      * magic, we clear them all.
      */
+
     if ((retcode = libusb_clear_halt(handle, 0x01)) < 0)
-        throw dsi_exception(std::string("failed to clear EP 0x01, ") + strerror(-retcode));
+        throw dsi_exception(std::string("failed to clear EP 0x01, ")
+                            + strerror(-retcode));
 
     if ((retcode = libusb_clear_halt(handle, 0x81)) < 0)
-        throw dsi_exception(std::string("failed to clear EP 0x81, ") + strerror(-retcode));
+        throw dsi_exception(std::string("failed to clear EP 0x81, ")
+                            + strerror(-retcode));
 
     if ((retcode = libusb_clear_halt(handle, 0x86)) < 0)
-        throw dsi_exception(std::string("failed to clear EP 0x86, ") + strerror(-retcode));
+        throw dsi_exception(std::string("failed to clear EP 0x86, ")
+                            + strerror(-retcode));
 
 
     command(DeviceCommand::PING);
@@ -332,7 +357,7 @@ DSI::Device::loadVersion()
         msg << "unsupported imager ("
             << dsi_family << "," << dsi_model << ","
             << dsi_firmware_version << "," << dsi_firmware_revision
-            << ") should be (1,1,1,any)";
+            << ") should be (10,1,1,any)";
         throw out_of_range(msg.str());
     }
 }
@@ -412,6 +437,7 @@ DSI::Device::loadStatus()
         throw out_of_range(msg.str());
     }
     usb_speed = *UsbSpeed::find(result);
+
     firmware_debug  = (_fwDebug == 1);
 }
 
@@ -531,7 +557,7 @@ DSI::Device::getCcdChipName()
 void
 DSI::Device::setExposureTime(double exptime)
 {
-    exposure_time = 10000 * exptime;
+    exposure_time = (exptime > 0 ? 10000 * exptime : 1);
 };
 
 double
@@ -540,7 +566,6 @@ DSI::Device::getExposureTime()
     return 0.0001 * exposure_time;
 };
 
-
 /**
  * Retrieve a string value from the specified EEPROM region.  The string will
  * be allocated on the heap and must be deleted by the caller.
@@ -554,6 +579,7 @@ DSI::Device::getExposureTime()
  *
  * @return allocated string formed from EEPROM data.
  */
+
 std::string *
 DSI::Device::getString(int __offset, int __length) {
     unsigned char *eepromData = getEepromData(__offset, __length);
@@ -625,49 +651,153 @@ DSI::Device::setGain(int gain)
     if ((gain < 0) || (gain > 63)) {
         return -1;
     }
-    return command(DeviceCommand::GET_GAIN, gain);
+    return command(DeviceCommand::SET_GAIN, gain);
+}
+
+void
+DSI::Device::setVddOn(bool s)
+{
+    vdd_on = s;
 }
 
 int
-DSI::Device::startExposure(int howlong)
+DSI::Device::startExposure(int howlong, int gain, int offs)
 {
         // Monkey code.  Monkey see (SniffUSB), monkey do).  Some part of this
         // is required because w/o it, I get segfaults on the second attempt
         // to run the code.
+
         int status;
+	int interlaced;
 
-        // status = command(DeviceCommand::GET_TEMP);
-        // status = command(DeviceCommand::GET_EXP_MODE);
-        // status = command(DeviceCommand::SET_GAIN,     0x3f);
-        // status = command(DeviceCommand::SET_OFFSET,   0x00);
-        status = command(DeviceCommand::SET_EXP_TIME, howlong);
-        if (howlong < 10000) {
-            status = command(DeviceCommand::SET_READOUT_SPD, ReadoutSpeed::HIGH.value());
-            status = command(DeviceCommand::SET_NORM_READOUT_DELAY, 3);
-            status = command(DeviceCommand::SET_READOUT_MODE, ReadoutMode::DUAL.value());
-        } else {
-            status = command(DeviceCommand::SET_READOUT_SPD, ReadoutSpeed::NORMAL.value());
-            status = command(DeviceCommand::SET_NORM_READOUT_DELAY, 7);
-            status = command(DeviceCommand::SET_READOUT_MODE, ReadoutMode::SINGLE.value());
-        }
+	/* for safety reasons, just in case howlong is zero (gs) */
+	exposure_time = (howlong > 0 ? howlong : 1);
 
-        status = command(DeviceCommand::GET_READOUT_MODE);
-        if (howlong < 10000) {
-            status = command(DeviceCommand::SET_VDD_MODE, VddMode::ON.value());
-        } else {
-            status = command(DeviceCommand::SET_VDD_MODE, VddMode::AUTO.value());
-        }
-        status = command(DeviceCommand::SET_GAIN, 0);
-        // status = command(DeviceCommand::GET_READOUT_MODE);
-        status = command(DeviceCommand::SET_OFFSET, 0x0ff);
-        status = command(DeviceCommand::SET_FLUSH_MODE, FlushMode::CONTINUOUS.value());
-        status = command(DeviceCommand::GET_READOUT_MODE);
-        status = command(DeviceCommand::GET_EXP_TIME);
 
-        status = command(DeviceCommand::TRIGGER);
+	// Check for DSI III: if not interlaced, it has to be DSI III.
+	// Not very nice, but simplifies retrofitting the DSI I/II code (gs)
 
-        // XXX: wait for exposure to complete. signal handler to set abort
-        // flag then clean up connection.
+	if (read_height_even > 0)
+	    interlaced = 1;
+	else
+	    interlaced = 0;
+
+	if (binning2x2)
+		enable2x2Binning();
+
+	if (interlaced) // original DSI I/II code
+	{		// better not touch otherwise it could break (gs)
+
+            // status = command(DeviceCommand::GET_TEMP);
+            // status = command(DeviceCommand::GET_EXP_MODE);
+            // status = command(DeviceCommand::SET_GAIN,     0x3f);
+            // status = command(DeviceCommand::SET_OFFSET,   0x00);
+            status = command(DeviceCommand::SET_EXP_TIME, exposure_time);
+            if (exposure_time < 10000) {
+                status = command(DeviceCommand::SET_READOUT_SPD,
+                                 ReadoutSpeed::HIGH.value());
+                status = command(DeviceCommand::SET_NORM_READOUT_DELAY, 3);
+                status = command(DeviceCommand::SET_READOUT_MODE,
+                                 ReadoutMode::DUAL.value());
+            } else {
+                status = command(DeviceCommand::SET_READOUT_SPD,
+                                 ReadoutSpeed::NORMAL.value());
+                status = command(DeviceCommand::SET_NORM_READOUT_DELAY, 7);
+                status = command(DeviceCommand::SET_READOUT_MODE,
+                                 ReadoutMode::SINGLE.value());
+            }
+
+            status = command(DeviceCommand::GET_READOUT_MODE);
+            if (exposure_time < VDD_TRH) {
+                status = command(DeviceCommand::SET_VDD_MODE,
+                                 VddMode::ON.value());
+            } else {
+                status = command(DeviceCommand::SET_VDD_MODE,
+                                 VddMode::AUTO.value());
+            }
+            status = command(DeviceCommand::SET_GAIN, 0);
+            // status = command(DeviceCommand::GET_READOUT_MODE);
+            status = command(DeviceCommand::SET_OFFSET, 0x0ff);
+            status = command(DeviceCommand::SET_FLUSH_MODE,
+                             FlushMode::CONTINUOUS.value());
+            status = command(DeviceCommand::GET_READOUT_MODE);
+            status = command(DeviceCommand::GET_EXP_TIME);
+
+            status = command(DeviceCommand::TRIGGER);
+
+	}
+	else // This is what the DSI III monkey found while sniffing USB (gs)
+	{
+	    cerr << "Epsosure time: " << exposure_time << ", Gain: "
+                 << gain << ", Offset: " << offs << endl;
+
+	    // first, set gain and offset
+            status = command(DeviceCommand::SET_GAIN, gain);
+            status = command(DeviceCommand::SET_OFFSET, offs);
+
+	    // then, set exposure time
+            status = command(DeviceCommand::SET_EXP_TIME, exposure_time);
+
+	    // next, set readout speed and delay
+
+	    // Readout speed appears to be always high for DSI III
+            status = command(DeviceCommand::SET_READOUT_SPD,
+                             ReadoutSpeed::HIGH.value());
+
+	    // Norm readout delay appears to be always 4 for DSI III
+            status = command(DeviceCommand::SET_NORM_READOUT_DELAY, 4);
+
+	    // now, set readout mode, which appears to behave like DSI I/II
+
+            if (exposure_time < 10000)
+	    {
+                status = command(DeviceCommand::SET_READOUT_MODE,
+                                ReadoutMode::DUAL.value());
+            }
+            else
+            {
+                 status = command(DeviceCommand::SET_READOUT_MODE,
+                                  ReadoutMode::SINGLE.value());
+            }
+
+	    // now, get readout mode
+            status = command(DeviceCommand::GET_READOUT_MODE);
+
+	    // next, set Vdd mode ...
+            // Vdd appears to be always on in envisage for DSI III
+
+	    if ((vdd_on) || (exposure_time < VDD_TRH))
+            	status = command(DeviceCommand::SET_VDD_MODE,
+                                 VddMode::ON.value());
+            else
+            	status = command(DeviceCommand::SET_VDD_MODE,
+                                 VddMode::OFF.value());
+
+	    // next step is to set flush mode
+            status = command(DeviceCommand::SET_FLUSH_MODE,
+                             FlushMode::CONTINUOUS.value());
+
+	    // for some reason, we have to get readout mode 
+	    // and exposure time again
+            // probably this is not necessary, but better mimic
+            // the Meade driver here ...
+
+            status = command(DeviceCommand::GET_READOUT_MODE);
+            status = command(DeviceCommand::GET_EXP_TIME);
+
+	    // and finally, we are ready to pull the trigger ...
+
+            status = command(DeviceCommand::TRIGGER);
+
+	}
+
+	/* image download for short exposures (gs)
+	   If exposure time is smaller than 2s, download image immediately
+	   into framebuffer, otherwise there might be problems with
+           short exposure frames at least with DSI III                        */
+
+	if (exposure_time < LONGEXP)
+	    downloadImage();
 
         return 0;
 }
@@ -677,6 +807,8 @@ DSI::Device::downloadImage()
 {
         int status;
         int transfered;
+	int interlaced;
+	int rawtemp;
         unsigned int t_read_width;
         unsigned int t_read_height_even;
         unsigned int t_read_height_odd;
@@ -687,69 +819,143 @@ DSI::Device::downloadImage()
         unsigned int t_image_offset_x;
         unsigned int t_image_offset_y;
 
+	if (read_height_even > 0)
+	    interlaced = 1;
+	else
+	    interlaced = 0;
 
-        t_read_width       = ((read_bpp * read_width / 512) + 1) * 256;
-        t_read_height_even = read_height_even;
-        t_read_height_odd  = read_height_odd;
+        /* binning currently only supported for DSI III (gs) */
+
+	if (binning2x2)
+	{
+            t_read_width       = ((read_bpp * read_width / 512) + 1) * 128;
+            t_read_height_even = read_height_even / 2;
+            t_read_height_odd  = read_height_odd / 2;
+            t_image_width      = image_width / 2;
+            t_image_height     = image_height / 2;
+            t_image_offset_x   = image_offset_x / 2;
+            t_image_offset_y   = image_offset_y / 2;
+        }
+        else
+	{
+            t_read_width       = ((read_bpp * read_width / 512) + 1) * 256;
+            t_read_height_even = read_height_even;
+            t_read_height_odd  = read_height_odd;
+            t_image_width      = image_width;
+            t_image_height     = image_height;
+            t_image_offset_x   = image_offset_x;
+            t_image_offset_y   = image_offset_y;
+        }
+
         t_read_height      = t_read_height_even + t_read_height_odd;
         t_read_bpp         = read_bpp;
-        t_image_width      = image_width;
-        t_image_height     = image_height;
-        t_image_offset_x   = image_offset_x;
-        t_image_offset_y   = image_offset_y;
 
         unsigned int odd_size  = t_read_bpp * t_read_width * t_read_height_odd;
         unsigned int even_size = t_read_bpp * t_read_width * t_read_height_even;
         unsigned int all_size  = t_read_bpp * t_read_width * t_read_height;
 
-        unsigned char *odd_data  = new unsigned char[odd_size];
-        unsigned char *even_data = new unsigned char[even_size];
-        unsigned char *all_data  = new unsigned char[all_size];
+        unsigned char *odd_data = new unsigned char[odd_size];
 
-        /* XXX: There has to be  a way to calculate a more optimal readout
-           time here. */
-        status = libusb_bulk_transfer(handle, 0x86, even_data, even_size, &transfered, 60000*MILLISEC);
-        if (log_commands) {
-            log_command_info(false, "r 86", (status > 0 ? status : 0), (char *) even_data, 0);
+	unsigned char *even_data;
 
-            cerr << dec
-                 << "read even data, status = (" << status << ") "
-                 << (status > 0 ? "" : strerror(-status)) << endl
-                 << "    requested " << even_size << " bytes "
-                 << t_read_width << " x " << t_read_height_even << " (even pixels)" << endl;
+	if (interlaced)
+            even_data  = new unsigned char[even_size];
 
-        }
+        framebuffer  = new unsigned char[all_size];
 
-        if (status != 0) {
-            stringstream ss;
-            ss << dec
-               << "read even data, status = (" << status << ") "
-               << strerror(-status);
-            throw device_read_error(ss.str());
-        }
+	if (interlaced)
+	{
 
-        status = libusb_bulk_transfer(handle, 0x86, odd_data,  odd_size, &transfered, 60000*MILLISEC);
-        if (log_commands) {
-            log_command_info(false, "r 86", (status > 0 ? status : 0), (char *) even_data, 0);
+            /* XXX: There has to be  a way to calculate a more optimal readout
+               time here. */
+            status = libusb_bulk_transfer(handle, 0x86, even_data, even_size,
+                                          &transfered, 60000*MILLISEC);
+            if (log_commands) {
+                log_command_info(false, "r 86", (status > 0 ? status : 0),
+                                 (char *) even_data, 0);
 
-            cerr << dec
-                 << "read odd data, status = (" << status <<  ") "
-                 << (status > 0 ? "" : strerror(-status)) << endl
-                 << "    requested " << odd_size << " bytes "
-                 << t_read_width << " x " << t_read_height_odd << " (odd pixels)" << endl;
-        }
+                cerr << dec
+                     << "read even data, status = (" << status << ") "
+                     << (status > 0 ? "" : strerror(-status)) << endl
+                     << "    requested " << even_size << " bytes "
+                     << t_read_width << " x " << t_read_height_even
+                     << " (even pixels)" << endl
+                     << "Transfered: " << transfered << " bytes" << endl;
 
-        if (status != 0) {
-            stringstream ss;
-            ss << dec
-               << "read odd data, status = (" << status <<  ") "
-               << strerror(-status);
-            throw device_read_error(ss.str());
-        }
-	// roryt  - decode the data to an image
-        // memcpy(all_data, even_data, even_size);
-        // memcpy(all_data+even_size, odd_data, odd_size);
-	// just the monochrome interlaced cameras for the moment
+            }
+
+            if (status != 0) {
+                stringstream ss;
+                ss << dec
+                   << "read even data, status = (" << status << ") "
+                   << strerror(-status);
+                throw device_read_error(ss.str());
+            }
+
+            status = libusb_bulk_transfer(handle, 0x86, odd_data,  odd_size,
+                                          &transfered, 60000*MILLISEC);
+            if (log_commands) {
+                log_command_info(false, "r 86", (status > 0 ? status : 0),
+                                 (char *) odd_data, 0);
+
+                cerr << dec
+                     << "read odd data, status = (" << status <<  ") "
+                     << (status > 0 ? "" : strerror(-status)) << endl
+                     << "    requested " << odd_size << " bytes "
+                     << t_read_width << " x " << t_read_height_odd
+                     << " (odd pixels)" << endl
+                     << "Transfered: " << transfered << " bytes" << endl;
+            }
+
+            if (status != 0) {
+                stringstream ss;
+                ss << dec
+                   << "read odd data, status = (" << status <<  ") "
+                   << strerror(-status);
+                throw device_read_error(ss.str());
+            }
+	}
+	else // progressive mode for DSI III (gs)
+	{
+	    if ((!vdd_on) && (exposure_time >= VDD_TRH))
+                status = command(DeviceCommand::SET_VDD_MODE,
+                                 VddMode::ON.value());
+
+            status = libusb_bulk_transfer(handle, 0x86, odd_data, odd_size,
+                                          &transfered, 60000*MILLISEC);
+            if (log_commands) {
+                log_command_info(false, "r 86", (status > 0 ? status : 0),
+                                 (char *) odd_data, 0);
+
+                cerr << dec
+                     << "read progressive data, status = (" << status <<  ") "
+                     << endl
+                     << "    requested " << odd_size << " bytes "
+                     << t_read_width << " x " << t_read_height_odd
+                     << " (pixels)" << endl
+                     << "Transfered: " << transfered << " bytes" << endl;
+            }
+
+            if (status != 0) {
+                stringstream ss;
+                ss << dec
+                   << "read progressive data, status = (" << status <<  ") ";
+                throw device_read_error(ss.str());
+            }
+	}
+
+        /* Update temperature for devices with sensor (gs) */
+
+	if (has_tempsensor)
+	{
+            rawtemp = command(DeviceCommand::GET_TEMP);
+	    ccd_temp = floor((float) rawtemp / 25.6) / 10.0;
+	}
+
+        status = command(DeviceCommand::GET_EXP_MODE);
+
+	/* disable 2x2 binning after downloading image (gs) */
+	disable2x2Binning();
 
 	unsigned char msb, lsb, is_odd;
 	unsigned int x_ptr, line_start, y_ptr, read_ptr,write_ptr;
@@ -772,42 +978,142 @@ DSI::Device::downloadImage()
 			<< "t_read_bpp      ="  << t_read_bpp
 			<< endl;
 
-	for (write_ptr = y_ptr = 0; y_ptr < t_image_height; y_ptr++)
+	if (interlaced)
 	{
-            line_start = t_read_width * ((y_ptr + t_image_offset_y) /2);
-            is_odd = (y_ptr + t_image_offset_y) % 2;
+	    for (write_ptr = y_ptr = 0; y_ptr < t_image_height; y_ptr++)
+	    {
+                line_start = t_read_width * ((y_ptr + t_image_offset_y) /2);
+                is_odd = (y_ptr + t_image_offset_y) % 2;
 
-            cerr << "starting image row " << y_ptr
-                 << ", write_ptr=" << write_ptr
-                 << ", line_start=" << line_start
-                 << ", is_odd=" << (is_odd == 0 ? 0 : 1)
-                 << ", read_ptr=" << (line_start+t_image_offset_x)*2 << endl;
-            for (x_ptr = 0; x_ptr < t_image_width ; x_ptr++)
-            {
-                read_ptr =  (line_start + x_ptr + t_image_offset_x) * 2;
-                if (is_odd == 1) // odd line
+                cerr << "starting image row " << y_ptr
+                     << ", write_ptr=" << write_ptr
+                     << ", line_start=" << line_start
+                     << ", is_odd=" << (is_odd == 0 ? 0 : 1)
+                     << ", read_ptr=" << (line_start+t_image_offset_x)*2
+                     << endl;
+
+                for (x_ptr = 0; x_ptr < t_image_width ; x_ptr++)
                 {
-                    msb=odd[read_ptr];
-                    lsb=odd[read_ptr + 1];
-                } else {		// even line
+                    read_ptr =  (line_start + x_ptr + t_image_offset_x) * 2;
+                    if (is_odd == 1) // odd line
+                    {
+                        msb=odd[read_ptr];
+                        lsb=odd[read_ptr + 1];
+                    } else {		// even line
                         msb=even[read_ptr];
                         lsb=even[read_ptr + 1];
+                    }
+                    framebuffer[write_ptr++] = msb;
+                    framebuffer[write_ptr++] = lsb;
                 }
-                all_data[write_ptr++] = msb;
-                all_data[write_ptr++] = lsb;
             }
-    }
+	}
+	else
+	{
+	    for (write_ptr = y_ptr = 0; y_ptr < t_image_height; y_ptr++)
+	    {
+                line_start = t_read_width * (y_ptr + t_image_offset_y);
+
+                // cerr << "starting image row " << y_ptr
+                //      << ", write_ptr=" << write_ptr
+                //      << ", line_start=" << line_start
+                //      << ", read_ptr=" << (line_start+t_image_offset_x)*2
+                //      << endl;
+                for (x_ptr = 0; x_ptr < t_image_width ; x_ptr++)
+                {
+                    read_ptr =  (line_start + x_ptr + t_image_offset_x) * 2;
+
+                    msb=odd[read_ptr];
+                    lsb=odd[read_ptr + 1];
+
+                    framebuffer[write_ptr++] = msb;
+                    framebuffer[write_ptr++] = lsb;
+                }
+            }
+	}
+
     if (log_commands)
             cerr << "write_ptr=" << write_ptr << endl;
 
     delete [] odd_data;
-    delete [] even_data;
 
-    return all_data;
+    if (interlaced)
+    	delete [] even_data;
 
+    return framebuffer;
 
     throw dsi_exception("unsupported image command");
+}
 
+/* ask camera for remaining exposure time for long exposures (gs) */
+
+int
+DSI::Device::ExposureInProgress()
+{
+    int time_left;
+
+    if (exposure_time >= LONGEXP)
+    {
+	time_left = command(DeviceCommand::GET_EXP_TIMER_COUNT);
+
+	if (time_left > 14000)
+	{
+	    usleep(5e5); /* wait half a second before checking again */
+	    return(1);
+	}
+	else
+	{
+	    downloadImage();
+	    return(0);
+	}
+    }
+
+    return(0);
+}
+
+unsigned char *
+DSI::Device::ccdFramebuffer()
+{
+    return(framebuffer);
+}
+
+void
+DSI::Device::set1x1Binning()
+{
+    binning2x2 = false;
+}
+
+void
+DSI::Device::set2x2Binning()
+{
+    if (is_binnable)
+    {
+        binning2x2 = true;
+    }
+
+}
+
+void
+DSI::Device::enable2x2Binning()
+{
+    unsigned int t_read_height_odd = read_height_odd/2;
+
+    if (is_binnable)
+    {
+        command(DeviceCommand::GET_EXP_MODE);
+        command(DeviceCommand::SET_EXP_MODE, ExposureMode::BIN2X2.value());
+        command(DeviceCommand::SET_ROW_COUNT_ODD, t_read_height_odd);
+    }
+}
+
+void
+DSI::Device::disable2x2Binning()
+{
+    unsigned int t_read_height_odd = read_height_odd;
+
+    command(DeviceCommand::GET_EXP_MODE);
+    command(DeviceCommand::SET_EXP_MODE, ExposureMode::NORMAL.value());
+    command(DeviceCommand::SET_ROW_COUNT_ODD, t_read_height_odd);
 }
 
 unsigned char *
@@ -822,39 +1128,146 @@ DSI::Device::getImage(DeviceCommand __command, int howlong)
         // is required because w/o it, I get segfaults on the second attempt
         // to run the code.
         int status;
+        int interlaced;
+	int rawtemp;
 
-        // status = command(DeviceCommand::GET_TEMP);
-        // status = command(DeviceCommand::GET_EXP_MODE);
-        // status = command(DeviceCommand::SET_GAIN,     0x3f);
-        // status = command(DeviceCommand::SET_OFFSET,   0x00);
-        status = command(DeviceCommand::SET_EXP_TIME, howlong);
-        if (howlong < 10000) {
-            status = command(DeviceCommand::SET_READOUT_SPD, ReadoutSpeed::HIGH.value());
+	if (read_height_even > 0)
+	    interlaced = 1;
+	else
+	    interlaced = 0;
+
+	if (binning2x2)
+		enable2x2Binning();
+
+	if (interlaced) // original DSI I/II code
+	{		// better not touch otherwise it could break
+
+            // status = command(DeviceCommand::GET_TEMP);
+            // status = command(DeviceCommand::GET_EXP_MODE);
+            // status = command(DeviceCommand::SET_GAIN,     0x3f);
+            // status = command(DeviceCommand::SET_OFFSET,   0x00);
+            status = command(DeviceCommand::SET_EXP_TIME, howlong);
+            if (howlong < 10000) {
+                status = command(DeviceCommand::SET_READOUT_SPD,
+                                 ReadoutSpeed::HIGH.value());
+                status = command(DeviceCommand::SET_NORM_READOUT_DELAY, 3);
+                status = command(DeviceCommand::SET_READOUT_MODE,
+                                 ReadoutMode::DUAL.value());
+            } else {
+                status = command(DeviceCommand::SET_READOUT_SPD,
+                                 ReadoutSpeed::NORMAL.value());
+                status = command(DeviceCommand::SET_NORM_READOUT_DELAY, 7);
+                status = command(DeviceCommand::SET_READOUT_MODE,
+                                 ReadoutMode::SINGLE.value());
+            }
+
+            status = command(DeviceCommand::GET_READOUT_MODE);
+            if (howlong < VDD_TRH) {
+                status = command(DeviceCommand::SET_VDD_MODE,
+                                 VddMode::ON.value());
+            } else {
+                status = command(DeviceCommand::SET_VDD_MODE,
+                                 VddMode::AUTO.value());
+            }
+            status = command(DeviceCommand::SET_GAIN, 0);
+            // status = command(DeviceCommand::GET_READOUT_MODE);
+            status = command(DeviceCommand::SET_OFFSET, 0x0ff);
+            status = command(DeviceCommand::SET_FLUSH_MODE,
+                             FlushMode::CONTINUOUS.value());
+            status = command(DeviceCommand::GET_READOUT_MODE);
+            status = command(DeviceCommand::GET_EXP_TIME);
+
+            status = command(__command);
+
+            // XXX: wait for exposure to complete. signal handler to set abort
+            // flag then clean up connection.
+	}
+	else // This is what the DSI III monkey found while sniffing USB
+	{
+	    // first, set exposure time to zero
+            status = command(DeviceCommand::SET_EXP_TIME, 0);
+
+	    // next, set readout speed and delay
+
+	    // Readout speed appears to be always high for DSI III
+            status = command(DeviceCommand::SET_READOUT_SPD,
+                             ReadoutSpeed::HIGH.value());
+
             status = command(DeviceCommand::SET_NORM_READOUT_DELAY, 3);
-            status = command(DeviceCommand::SET_READOUT_MODE, ReadoutMode::DUAL.value());
-        } else {
-            status = command(DeviceCommand::SET_READOUT_SPD, ReadoutSpeed::NORMAL.value());
-            status = command(DeviceCommand::SET_NORM_READOUT_DELAY, 7);
-            status = command(DeviceCommand::SET_READOUT_MODE, ReadoutMode::SINGLE.value());
-        }
 
-        status = command(DeviceCommand::GET_READOUT_MODE);
-        if (howlong < 10000) {
-            status = command(DeviceCommand::SET_VDD_MODE, VddMode::ON.value());
-        } else {
-            status = command(DeviceCommand::SET_VDD_MODE, VddMode::AUTO.value());
-        }
-        status = command(DeviceCommand::SET_GAIN, 0);
-        // status = command(DeviceCommand::GET_READOUT_MODE);
-        status = command(DeviceCommand::SET_OFFSET, 0x0ff);
-        status = command(DeviceCommand::SET_FLUSH_MODE, FlushMode::CONTINUOUS.value());
-        status = command(DeviceCommand::GET_READOUT_MODE);
-        status = command(DeviceCommand::GET_EXP_TIME);
+	    // now, set readout mode, which appears to behaves like DSI I/II
 
-        status = command(__command);
+            if (howlong < 10000)
+	    {
+                status = command(DeviceCommand::SET_READOUT_MODE,
+                                ReadoutMode::DUAL.value());
+            }
+            else
+            {
+                 status = command(DeviceCommand::SET_READOUT_MODE,
+                                  ReadoutMode::SINGLE.value());
+            }
 
-        // XXX: wait for exposure to complete. signal handler to set abort
-        // flag then clean up connection.
+	    // now, get readout mode
+            status = command(DeviceCommand::GET_READOUT_MODE);
+
+	    // next, set Vdd mode ...
+            // Vdd appears to be always on in envisage for DSI III
+            status = command(DeviceCommand::SET_VDD_MODE,VddMode::ON.value());
+
+	    // next step is to set flush mode
+            status = command(DeviceCommand::SET_FLUSH_MODE,
+                             FlushMode::CONTINUOUS.value());
+
+	    // then, set gain and offset
+            // here, we use default values for gain and offset 
+            status = command(DeviceCommand::SET_GAIN, 0x00);
+            status = command(DeviceCommand::SET_OFFSET, 0x7f);
+
+	    // next, set real exposure time
+            status = command(DeviceCommand::SET_EXP_TIME, howlong);
+
+	    // again, set readout speed and delay
+
+	    // Readout speed appears to be always high for DSI III
+            status = command(DeviceCommand::SET_READOUT_SPD,
+                             ReadoutSpeed::HIGH.value());
+
+            status = command(DeviceCommand::SET_NORM_READOUT_DELAY, 4);
+
+	    // now, set readout mode again
+
+            if (howlong < 10000)
+	    {
+                status = command(DeviceCommand::SET_READOUT_MODE,
+                                ReadoutMode::DUAL.value());
+            }
+            else
+            {
+                 status = command(DeviceCommand::SET_READOUT_MODE,
+                                  ReadoutMode::SINGLE.value());
+            }
+
+	    // next, get readout mode one more
+            status = command(DeviceCommand::GET_READOUT_MODE);
+
+	    // again, set Vdd mode ...
+
+           status = command(DeviceCommand::SET_VDD_MODE,VddMode::ON.value());
+
+	    // next, again set flush mode
+            status = command(DeviceCommand::SET_FLUSH_MODE,
+                             FlushMode::CONTINUOUS.value());
+
+	    // for some reason, we have to get readout mode 
+	    // and exposure time again
+            status = command(DeviceCommand::GET_READOUT_MODE);
+            status = command(DeviceCommand::GET_EXP_TIME);
+
+	    // and finally, we are ready to pull the trigger ...
+
+            status = command(__command);
+	}
 
         unsigned int t_read_width;
         unsigned int t_read_height_even;
@@ -873,15 +1286,31 @@ DSI::Device::getImage(DeviceCommand __command, int howlong)
 
         if (__command == DeviceCommand::TRIGGER) {
 
-            t_read_width       = ((read_bpp * read_width / 512) + 1) * 256;
-            t_read_height_even = read_height_even;
-            t_read_height_odd  = read_height_odd;
-            t_read_height      = t_read_height_even + t_read_height_odd;
-            t_read_bpp         = read_bpp;
-            t_image_width      = image_width;
-            t_image_height     = image_height;
+	    if (binning2x2)
+	    {
+                t_read_width       = ((read_bpp * read_width / 512) + 1) * 128;
+                t_read_height_even = read_height_even / 2;
+                t_read_height_odd  = read_height_odd / 2;
+                t_image_width      = image_width / 2;
+                t_image_height     = image_height / 2;
+                t_image_offset_x   = image_offset_x / 2;
+                t_image_offset_y   = image_offset_y /2;
+            }
+            else
+	    {
+                t_read_width       = ((read_bpp * read_width / 512) + 1) * 256;
+                t_read_height_even = read_height_even;
+                t_read_height_odd  = read_height_odd;
+                t_image_width      = image_width;
+                t_image_height     = image_height;
+                t_image_offset_x   = image_offset_x;
+                t_image_offset_y   = image_offset_y;
+            }
+
             t_image_offset_x   = image_offset_x;
             t_image_offset_y   = image_offset_y;
+            t_read_height      = t_read_height_even + t_read_height_odd;
+            t_read_bpp         = read_bpp;
 
         } else {
 
@@ -890,8 +1319,18 @@ DSI::Device::getImage(DeviceCommand __command, int howlong)
              */
 
             t_read_width       = 540;
-            t_read_height_even = 0xfd;
-            t_read_height_odd  = 0xfc;
+
+	    if (interlaced)
+	    {
+                t_read_height_even = 0xfd;
+                t_read_height_odd  = 0xfc;
+            }
+	    else // progressive mode
+	    {
+                t_read_height_even = 0x000;
+                t_read_height_odd  = 0x1f9;
+            }
+
             t_read_height      = t_read_height_even + t_read_height_odd;
             t_read_bpp         = 2;
             t_image_width      = t_read_width;
@@ -904,9 +1343,14 @@ DSI::Device::getImage(DeviceCommand __command, int howlong)
         unsigned int even_size = t_read_bpp * t_read_width * t_read_height_even;
         unsigned int all_size  = t_read_bpp * t_read_width * t_read_height;
 
-        unsigned char *odd_data  = new unsigned char[odd_size];
-        unsigned char *even_data = new unsigned char[even_size];
-        unsigned char *all_data  = new unsigned char[all_size];
+        unsigned char *odd_data = new unsigned char[odd_size];
+
+	unsigned char *even_data;
+
+	if (interlaced)
+            even_data  = new unsigned char[even_size];
+
+        framebuffer  = new unsigned char[all_size];
 
         /* The Meade driver seems to only issue a GET_EXP_TIME_COUNT command
          * when the exposure is over about 2 seconds (count = 20,000).  From
@@ -914,6 +1358,7 @@ DSI::Device::getImage(DeviceCommand __command, int howlong)
          * shorter, the camera locks up and has to be physically disconnected
          * and reconnected.
          */
+
         int time_left = howlong;
         while (time_left > 5000) {
             int sleep_time = 100 * (time_left - 5000);
@@ -924,37 +1369,48 @@ DSI::Device::getImage(DeviceCommand __command, int howlong)
         if (last_time == 0)
             last_time = get_sysclock_ms();
 
-        /* XXX: There has to be  a way to calculate a more optimal readout
-           time here. */
-        status = libusb_bulk_transfer(handle, 0x86, even_data, even_size, &transfered, 60000*MILLISEC);
+	if (interlaced)
+	{
+
+            /* XXX: There has to be  a way to calculate a more optimal readout
+               time here. */
+            status = libusb_bulk_transfer(handle, 0x86, even_data, even_size,
+                                          &transfered, 60000*MILLISEC);
+            if (log_commands) {
+                log_command_info(false, "r 86", (status > 0 ? status : 0),
+                                 (char *) even_data, 0);
+
+                cerr << dec
+                     << "read even data, status = (" << status << ") "
+                     << (status > 0 ? "" : strerror(-status)) << endl
+                     << "    requested " << even_size << " bytes "
+                     << t_read_width << " x "
+                     << t_read_height_even << " (even pixels)" << endl;
+
+            }
+
+            if (status < 0) {
+                stringstream ss;
+                ss << dec
+                   << "read even data, status = (" << status << ") "
+                   << strerror(-status);
+                throw device_read_error(ss.str());
+            }
+
+	}
+
+        status = libusb_bulk_transfer(handle, 0x86, odd_data,
+                                      odd_size, &transfered, 60000*MILLISEC);
         if (log_commands) {
-            log_command_info(false, "r 86", (status > 0 ? status : 0), (char *) even_data, 0);
-
-            cerr << dec
-                 << "read even data, status = (" << status << ") "
-                 << (status > 0 ? "" : strerror(-status)) << endl
-                 << "    requested " << even_size << " bytes "
-                 << t_read_width << " x " << t_read_height_even << " (even pixels)" << endl;
-
-        }
-
-        if (status < 0) {
-            stringstream ss;
-            ss << dec
-               << "read even data, status = (" << status << ") "
-               << strerror(-status);
-            throw device_read_error(ss.str());
-        }
-
-        status = libusb_bulk_transfer(handle, 0x86, odd_data,  odd_size, &transfered, 60000*MILLISEC);
-        if (log_commands) {
-            log_command_info(false, "r 86", (status > 0 ? status : 0), (char *) even_data, 0);
+            log_command_info(false, "r 86",
+                             (status > 0 ? status : 0), (char *) even_data, 0);
 
             cerr << dec
                  << "read odd data, status = (" << status <<  ") "
                  << (status > 0 ? "" : strerror(-status)) << endl
                  << "    requested " << odd_size << " bytes "
-                 << t_read_width << " x " << t_read_height_odd << " (odd pixels)" << endl;
+                 << t_read_width << " x "
+                 << t_read_height_odd << " (odd pixels)" << endl;
         }
 
         if (status < 0) {
@@ -964,10 +1420,17 @@ DSI::Device::getImage(DeviceCommand __command, int howlong)
                << strerror(-status);
             throw device_read_error(ss.str());
         }
-	// roryt  - decode the data to an image
-        // memcpy(all_data, even_data, even_size);
-        // memcpy(all_data+even_size, odd_data, odd_size);
-	// just the monochrome interlaced cameras for the moment
+
+
+	if (has_tempsensor)
+	{
+            rawtemp = command(DeviceCommand::GET_TEMP);
+	    ccd_temp = floor((float) rawtemp / 25.6) / 10.0;
+	}
+
+        status = command(DeviceCommand::GET_EXP_MODE);
+
+	disable2x2Binning();
 
 	unsigned char msb, lsb, is_odd;
 	unsigned int x_ptr, line_start, y_ptr, read_ptr,write_ptr;
@@ -990,38 +1453,67 @@ DSI::Device::getImage(DeviceCommand __command, int howlong)
 			<< "t_read_bpp      ="  << t_read_bpp
 			<< endl;
 
-	for (write_ptr = y_ptr = 0; y_ptr < t_image_height; y_ptr++)
+	if (interlaced)
 	{
-            line_start = t_read_width * ((y_ptr + t_image_offset_y) /2);
-            is_odd = (y_ptr + t_image_offset_y) % 2;
+	    for (write_ptr = y_ptr = 0; y_ptr < t_image_height; y_ptr++)
+	    {
+                line_start = t_read_width * ((y_ptr + t_image_offset_y) /2);
+                is_odd = (y_ptr + t_image_offset_y) % 2;
 
-            cerr << "starting image row " << y_ptr
-                 << ", write_ptr=" << write_ptr
-                 << ", line_start=" << line_start
-                 << ", is_odd=" << (is_odd == 0 ? 0 : 1)
-                 << ", read_ptr=" << (line_start+t_image_offset_x)*2 << endl;
-            for (x_ptr = 0; x_ptr < t_image_width ; x_ptr++)
-            {
-                read_ptr =  (line_start + x_ptr + t_image_offset_x) * 2;
-                if (is_odd == 1) // odd line
+                cerr << "starting image row " << y_ptr
+                     << ", write_ptr=" << write_ptr
+                     << ", line_start=" << line_start
+                     << ", is_odd=" << (is_odd == 0 ? 0 : 1)
+                     << ", read_ptr=" << (line_start+t_image_offset_x)*2 << endl;
+                for (x_ptr = 0; x_ptr < t_image_width ; x_ptr++)
                 {
+                    read_ptr =  (line_start + x_ptr + t_image_offset_x) * 2;
+                    if (is_odd == 1) // odd line
+                    {
+                        msb=odd[read_ptr];
+                        lsb=odd[read_ptr + 1];
+                    } else {		// even line
+                        msb=even[read_ptr];
+                        lsb=even[read_ptr + 1];
+                    }
+                    framebuffer[write_ptr++] = msb;
+                    framebuffer[write_ptr++] = lsb;
+                }
+	    }
+	}
+	else
+	{
+	    for (write_ptr = y_ptr = 0; y_ptr < t_image_height; y_ptr++)
+	    {
+                line_start = t_read_width * (y_ptr + t_image_offset_y);
+
+                //cerr << "starting image row " << y_ptr
+                //     << ", write_ptr=" << write_ptr
+                //     << ", line_start=" << line_start
+                //     << ", read_ptr=" << (line_start+t_image_offset_x)*2 << endl;
+                for (x_ptr = 0; x_ptr < t_image_width ; x_ptr++)
+                {
+                    read_ptr =  (line_start + x_ptr + t_image_offset_x) * 2;
+
                     msb=odd[read_ptr];
                     lsb=odd[read_ptr + 1];
-                } else {		// even line
-                    msb=even[read_ptr];
-                    lsb=even[read_ptr + 1];
+
+                    framebuffer[write_ptr++] = msb;
+                    framebuffer[write_ptr++] = lsb;
                 }
-                all_data[write_ptr++] = msb;
-                all_data[write_ptr++] = lsb;
             }
 	}
+
+
         if (log_commands)
             cerr << "write_ptr=" << write_ptr << endl;
 
         delete [] odd_data;
-        delete [] even_data;
 
-        return all_data;
+	if (interlaced)
+        	delete [] even_data;
+
+        return framebuffer;
 
     }
 
@@ -1029,7 +1521,6 @@ DSI::Device::getImage(DeviceCommand __command, int howlong)
 
 }
 
-
 /**
  * Internal helper for sending a command to the DSI device.  If the command is
  * one which requires no parameters, then the actual execution will be
@@ -1410,3 +1901,5 @@ DSI::Device::abortExposure()
 {
     abort_requested = true;
 }
+
+/******************************************************************************/

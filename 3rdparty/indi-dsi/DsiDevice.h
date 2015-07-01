@@ -7,6 +7,14 @@
 #ifndef __DsiDevice_hh
 #define __DsiDevice_hh
 
+#ifndef LONGEXP
+#define LONGEXP 20000
+#endif
+
+#ifndef VDD_TRH
+#define VDD_TRH 10000
+#endif
+
 
 #include <libusb-1.0/libusb.h>
 #include <string>
@@ -25,6 +33,9 @@ namespace DSI {
         std::string camera_name;
 
       protected:
+	
+	/* image frame buffer (gs) */
+	unsigned char *framebuffer;
 
         /* These are chip-specific sizes required to parameterize the image
          * retrieval.
@@ -44,8 +55,11 @@ namespace DSI {
         /* Exposure time, multiple of 100 microseconds. */
         unsigned int exposure_time;
 
+        /* CCD temperatue in °C (gs) */
+	float ccd_temp;
+
         /* If true, return a test pattern regardless of whether or not a real
-         * image was requested. */
+         * image was requested. o*/
         bool test_pattern;
 
         /* True if camera is one-shot color, false otherwise. */
@@ -58,6 +72,12 @@ namespace DSI {
          * more than 2x2 binning. */
         bool is_binnable;
 
+	/* True if ccd is equipped with temperature sensor (gs) */
+	bool has_tempsensor;
+
+	/* True if Vdd is switched on for DSI III during exposure (gs)*/
+	bool vdd_on;
+
         /* Pixel aspect ratio */
         double aspect_ratio;
 
@@ -68,6 +88,9 @@ namespace DSI {
         ReadoutMode readout_mode;
         UsbSpeed usb_speed;
         bool firmware_debug;
+
+	/* true if 2x2 binnig ist set for DSIIII (gs) */
+	bool binning2x2;
 
         /* Helper function for low-level diagnostics.  I use this to compare
          * what I think I'm sending with what a USB sniffer tells me my
@@ -175,6 +198,9 @@ namespace DSI {
         virtual float getPixelSizeX() { return pixel_size_x; };
         virtual float getPixelSizeY() { return pixel_size_y; };
         virtual bool isColor() { return is_color; };
+        virtual bool isBinnable() { return is_binnable; };
+        virtual bool hasTempSensor() { return has_tempsensor; };
+	virtual float ccdTemp() { return ccd_temp; };
 
         virtual void abortExposure();
         virtual unsigned int getAdRegister(DSI::AdRegister reg);
@@ -189,10 +215,20 @@ namespace DSI {
         virtual void setExposureTime(double exptime);
         virtual double getExposureTime();
         virtual unsigned char *downloadImage();
-        virtual int startExposure(int howlong);
+        virtual int startExposure(int howlong, int gain = 0, int offs = 0x0ff);
+        virtual int ExposureInProgress();
+	virtual unsigned char *ccdFramebuffer();
+
+	virtual void set1x1Binning();
+	virtual void set2x2Binning();
+	virtual void enable2x2Binning();
+	virtual void disable2x2Binning();
 
         virtual int getGain();
         virtual int setGain(int gain);
+
+        virtual void setVddOn(bool s);
+
         void setDebug(bool turnOn) { log_commands = turnOn; };
         bool isDebug() { return log_commands; }
 

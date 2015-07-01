@@ -35,6 +35,8 @@ public:
 
     bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
 
+    bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+
 protected:
     // General device functions
     bool Connect();
@@ -44,9 +46,13 @@ protected:
     bool updateProperties();
 
     // CCD specific functions
+    bool UpdateCCDBin(int hor, int ver);
     bool StartExposure(float duration);
     bool AbortExposure();
     void TimerHit();
+
+    // misc functions
+    virtual bool saveConfigItems(FILE *fp);
 
 private:
     // Utility functions
@@ -69,6 +75,15 @@ private:
 
     INumber GainN[1];
     INumberVectorProperty GainNP;
+
+    INumber CCDTempN[1];
+    INumberVectorProperty CCDTempNP;
+
+    ISwitch VddExpS[2];
+    ISwitchVectorProperty VddExpSP;
+
+    INumber OffsetN[1];
+    INumberVectorProperty OffsetNP;
 
     DSI::Device *dsi;
 };

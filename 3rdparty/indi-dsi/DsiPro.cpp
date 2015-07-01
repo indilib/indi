@@ -34,7 +34,7 @@ DsiPro::initImager(const char *devname)
      */
     for (int i = 0; i < 1; i++) {
         unsigned char *foo = getImage(1);
-        delete [] foo;
+	delete [] foo;
     }
 }
 
@@ -50,6 +50,9 @@ DsiPro::DsiPro(const char *devname) : Device(devname)
 
     /* The DSI Pro I cannot be put into 2x2 binning mode. */
     is_binnable = false;
+
+    /* The DSI Pro I is not supposed to equipped with a temperature sensor */
+    has_tempsensor = false;
 
 
     /* Sony lists the pixel size a 9.6x7.5 microns.  Craig Stark, in a note at

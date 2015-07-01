@@ -1,18 +1,20 @@
 /*
  * Copyright (c) 2009, Roland Roberts <roland@astrofoto.org>
  *
+ * Modifications and extensions for DSI III support 2015, G. Schmidt (gs)
+ *
  */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
 
-#include "DsiProII.h"
+#include "DsiProIII.h"
 
 using namespace DSI;
 
 void
-DsiProII::initImager(const char *devname)
+DsiProIII::initImager(const char *devname)
 {
 
     command(DeviceCommand::SET_ROW_COUNT_EVEN, read_height_even);
@@ -37,53 +39,48 @@ DsiProII::initImager(const char *devname)
     }
 }
 
-DsiProII::DsiProII(const char *devname) : Device(devname)
+DsiProIII::DsiProIII(const char *devname) : Device(devname)
 {
     // color_type = ColorType.NONE;
-    is_high_gain = true;
+    is_high_gain = false;
 
     is_color = false;
 
     /* Turn off test mode so we can actually return an image */
     test_pattern = false;
 
-    /* The DSI Pro II, uhm, can it be put in 2x2 binning mode?  We can't
-       handle that yet, so say "no" */
-    is_binnable = false;
+    /* The DSI Pro III supports binning */
+    is_binnable = true;
 
-    /* The DSI Pro II should be equipped with a temperature sensor */
+    /* The DSI Pro III is equipped with a temperature sensor */
     has_tempsensor = true;
 
-    /* Sony lists the pixel size a 9.6x7.5 microns.  Craig Stark, in a note at
-     * http://www.skyinsight.com/wiki/ regarding the Orion Star Shoot, points
-     * out that that size does not fill the size of the chip. I'm not sure we
-     * care; I think all we care about is the pixel-to-pixel center distance
-     * as this determines how the final image has to be scaled to have a 1:1
-     * aspect ratio for display.
-     */
-    aspect_ratio = 0.78125;
+    /* Sony lists the pixel size a 6.45x6.45 microns. */
 
-    read_width       = 795;
-    read_height_even = 299;
-    read_height_odd  = 298;
+    aspect_ratio = 1.0;
+
+    read_width       = 1434;
+    read_height_even = 0;
+    read_height_odd  = 1050;
     read_height      = read_height_even + read_height_odd;
 
     read_bpp         = 2;
 
-    image_width    = 748;
-    image_height   = 577;
+    image_width    = 1360;
+    image_height   = 1024;
     image_offset_x =  30;
-    image_offset_y =  13;
+    image_offset_y =  13; 
+
 
     timeout_response = 1000;
     timeout_request  = 1000;
     timeout_image    = 5000;
-    pixel_size_x   = 8.6;
-    pixel_size_y   = 8.3;
+    pixel_size_x   = 6.45;
+    pixel_size_y   = 6.45;
 
     exposure_time  =  10;
 
     initImager();
 }
 
-DsiProII::~DsiProII() {}
+DsiProIII::~DsiProIII() {}

@@ -33,7 +33,7 @@ DsiColorII::initImager(const char *devname)
      */
     for (int i = 0; i < 1; i++) {
         unsigned char *foo = getImage(1);
-        delete [] foo;
+	delete [] foo;
     }
 }
 
@@ -50,6 +50,9 @@ DsiColorII::DsiColorII(const char *devname) : Device(devname)
     test_pattern = false;
 
     is_binnable = false;
+
+    /* The DSI Color II should have a temperature sensor  */
+    has_tempsensor = true;
 
     aspect_ratio = 0.78125;
 

@@ -34,7 +34,7 @@ DsiColor::initImager(const char *devname)
      */
     for (int i = 0; i < 1; i++) {
         unsigned char *foo = getImage(1);
-        delete [] foo;
+	delete [] foo;
     }
 }
 
@@ -53,6 +53,8 @@ DsiColor::DsiColor(const char *devname) : Device(devname)
     /* The DSI Color I cannot be put into 2x2 binning mode. */
     is_binnable = false;
 
+    /* The DSI Color I is not supposed to equipped with a temperature sensor */
+    has_tempsensor = false;
 
     aspect_ratio = 0.78125;
 

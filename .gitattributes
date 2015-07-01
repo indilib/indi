@@ -74,6 +74,8 @@
 3rdparty/indi-dsi/DsiPro.h -text
 3rdparty/indi-dsi/DsiProII.cpp -text
 3rdparty/indi-dsi/DsiProII.h -text
+3rdparty/indi-dsi/DsiProIII.cpp -text
+3rdparty/indi-dsi/DsiProIII.h -text
 3rdparty/indi-dsi/DsiTypes.cpp -text
 3rdparty/indi-dsi/DsiTypes.h -text
 3rdparty/indi-dsi/INSTALL -text
