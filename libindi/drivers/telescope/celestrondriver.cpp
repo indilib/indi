@@ -605,23 +605,16 @@ bool stop_celestron_motion(int fd, CELESTRON_DIRECTION dir)
     switch (dir)
     {
         case CELESTRON_N:
+        case CELESTRON_S:
             cmd[2] = 0x11;
             cmd[3] = 0x24;
-            break;
-
-        case CELESTRON_S:
-            cmd[2] = 0x10;
-            cmd[3] = 0x25;
-            break;
+       break;
 
        case CELESTRON_W:
-            cmd[2] = 0x11;
-            cmd[3] = 0x25;
-
        case CELESTRON_E:
             cmd[2] = 0x10;
             cmd[3] = 0x24;
-            break;
+       break;
     }
 
     DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%02X %02X %02X %02X %02X %02X %02X %02X)", cmd[0],cmd[1],cmd[2],cmd[3],cmd[4],cmd[5],cmd[6],cmd[7]);
