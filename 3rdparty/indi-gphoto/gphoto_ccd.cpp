@@ -394,9 +394,23 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
       if (!strcmp(name, mFormatSP.name))
       {
+          int prevSwitch = IUFindOnSwitchIndex(&mFormatSP);
           if (IUUpdateSwitch(&mFormatSP, states, names, n) < 0)
               return false;
 
+          ISwitch *sp = IUFindOnSwitch(&mFormatSP);
+          if (sp)
+          {
+              if (strstr(sp->label, "+"))
+              {
+                  DEBUGF(INDI::Logger::DBG_ERROR, "%s format is not supported.", sp->label);
+                  IUResetSwitch(&mFormatSP);
+                  mFormatSP.s = IPS_ALERT;
+                  mFormatSP.sp[prevSwitch].s = ISS_ON;
+                  IDSetSwitch(&mFormatSP, NULL);
+                  return false;
+              }
+          }
           for (int i = 0; i < mFormatSP.nsp; i++)
           {
               if (mFormatS[i].s == ISS_ON)
@@ -580,6 +594,15 @@ bool GPhotoCCD::Connect()
   mFormatSP.sp = mFormatS;
   mFormatSP.nsp = max_opts;
 
+  ISwitch *sp = IUFindOnSwitch(&mFormatSP);
+  if (sp && strstr(sp->label, "+"))
+  {
+      DEBUGF(INDI::Logger::DBG_ERROR, "%s format is not supported. Please select another format.", sp->label);
+      IUResetSwitch(&mFormatSP);
+      mFormatSP.s = IPS_ALERT;
+      IDSetSwitch(&mFormatSP, NULL);
+  }
+
   if (mIsoS)
       free(mIsoS);
 
@@ -625,6 +648,13 @@ bool GPhotoCCD::StartExposure(float duration)
     if (PrimaryCCD.isExposing())
     {
         DEBUG(INDI::Logger::DBG_ERROR, "GPhoto driver is already exposing. Can not abort.");
+        return false;
+    }
+
+    ISwitch *sp = IUFindOnSwitch(&mFormatSP);
+    if (sp == NULL)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Please select a format before capturing an image.");
         return false;
     }
 
@@ -983,10 +1013,12 @@ bool GPhotoCCD::grabImage()
          memcpy(memptr, newMemptr, memsize); //
 
         PrimaryCCD.setImageExtension(gphoto_get_file_extension(gphotodrv));
-        PrimaryCCD.setFrame(0, 0, w, h);
+        if (w > 0 && h > 0)
+            PrimaryCCD.setFrame(0, 0, w, h);
         PrimaryCCD.setFrameBuffer(memptr);
         PrimaryCCD.setFrameBufferSize(memsize, false);
-        PrimaryCCD.setResolution(w, h);
+        if (w > 0 && h > 0)
+            PrimaryCCD.setResolution(w, h);
         PrimaryCCD.setNAxis(naxis);
         PrimaryCCD.setBPP(bpp);
 
