@@ -597,9 +597,25 @@ bool GPhotoCCD::Connect()
   ISwitch *sp = IUFindOnSwitch(&mFormatSP);
   if (sp && strstr(sp->label, "+"))
   {
-      DEBUGF(INDI::Logger::DBG_ERROR, "%s format is not supported. Please select another format.", sp->label);
       IUResetSwitch(&mFormatSP);
-      mFormatSP.s = IPS_ALERT;
+      int i=0;
+
+      // Prefer RAW format in case selected format is not supported.
+      for (i=0; i < mFormatSP.nsp; i++)
+      {
+          if (!strcmp("RAW", mFormatSP.sp[i].label))
+          {
+              mFormatS[i].s = ISS_ON;
+              break;
+          }
+      }
+
+      if (i == mFormatSP.nsp)
+      {
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s format is not supported. Please select another format.", sp->label);
+        mFormatSP.s = IPS_ALERT;
+      }
+
       IDSetSwitch(&mFormatSP, NULL);
   }
 

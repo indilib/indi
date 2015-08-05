@@ -316,7 +316,7 @@ int read_dcraw(const char *filename, char **memptr, size_t *memsize, int *n_axis
 	fprintf(stderr, "Reading exposure %d x %d\n", header.width, header.height);
     asprintf(&cmd, "%s -c -t 0 -4 -D %s", dcraw_cmd, filename);
     if (debug)
-        fprintf(stderr, "%s", cmd);
+        fprintf(stderr, "%s\n", cmd);
 	handle = popen(cmd, "r");
 	free(cmd);
     if (handle == NULL)
