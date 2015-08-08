@@ -321,13 +321,13 @@ void Skywatcher::Init() throw (EQModError)
     //TODO get Park position, set corresponding encoder values, mark mount as parked 
     //parkSP->sp[0].s==ISS_ON
     DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : Mount was parked", __FUNCTION__);
-    if (wasinitialized) {
-      DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : leaving encoders unchanged",
-	     __FUNCTION__);
-    } else {
+    //if (wasinitialized) {
+    //  DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : leaving encoders unchanged",
+    //	     __FUNCTION__);
+    //} else {
       char cmdarg[7];
       DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : Mount in Park position -- setting encoders RA=%ld DE = %ld",
-         __FUNCTION__,  telescope->GetAxis1Park(), telescope->GetAxis2Park());
+	     __FUNCTION__,  (long)telescope->GetAxis1Park(), (long)telescope->GetAxis2Park());
       cmdarg[6]='\0';
       long2Revu24str(telescope->GetAxis1Park(), cmdarg);
       dispatch_command(SetAxisPosition, Axis1, cmdarg);
@@ -336,7 +336,7 @@ void Skywatcher::Init() throw (EQModError)
       long2Revu24str(telescope->GetAxis2Park(), cmdarg);
       dispatch_command(SetAxisPosition, Axis2, cmdarg);
       read_eqmod();
-    }
+      //}
   } else {
     DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : Mount was not parked", __FUNCTION__);
     if (wasinitialized) {

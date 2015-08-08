@@ -110,6 +110,7 @@ bool HorizonLimits::updateProperties ()
       telescope->deleteProperty(HorizonLimitsTraverseSP->name);
       telescope->deleteProperty(HorizonLimitsManageSP->name);
       telescope->deleteProperty(HorizonLimitsFileOperationSP->name);
+      telescope->deleteProperty(HorizonLimitsOnLimitSP->name);
       telescope->deleteProperty(HorizonLimitsLimitGotoSP->name);
 
       HorizonLimitsDataFileTP=NULL;
