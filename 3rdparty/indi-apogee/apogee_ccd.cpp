@@ -594,8 +594,8 @@ float ApogeeCCD::CalcTimeLeft(timeval start,float req)
 bool ApogeeCCD::UpdateCCDFrame(int x, int y, int w, int h)
 {
     /* Add the X and Y offsets */
-    long x_1 = x / PrimaryCCD.getBinX();
-    long y_1 = y / PrimaryCCD.getBinY();
+    long x_1 = x;
+    long y_1 = y;
 
     long x_2 = x_1 + (w / PrimaryCCD.getBinX());
     long y_2 = y_1 + (h / PrimaryCCD.getBinY());
