@@ -198,6 +198,49 @@ int numberFormat (char *buf, const char *format, double value);
 */
 const char *timestamp (void);
 
+/**
+ * @brief rangeHA Limits the hour angle value to be between -12 ---> 12
+ * @param r current hour angle value
+ * @return Limited value (-12,12)
+ */
+double rangeHA(double r);
+
+/**
+ * @brief range24 Limits a number to be between 0-24 range.
+ * @param r number to be limited
+ * @return Limited number
+ */
+double range24(double r);
+
+/**
+ * @brief range360 Limits an angle to be between 0-360 degrees.
+ * @param r angle
+ * @return Limited angle
+ */
+double range360(double r);
+
+/**
+ * @brief rangeDec Limits declination value to be in -90 to 90 range.
+ * @param r declination angle
+ * @return limited declination
+ */
+double rangeDec(double r);
+
+/**
+ * @brief get_local_sideral_time Returns local sideral time given longitude and system clock.
+ * @param longitude Longitude in INDI format (0 to 360) increasing eastward.
+ * @return Local Sideral Time.
+ */
+double get_local_sideral_time(double longitude);
+
+/**
+ * @brief get_local_hour_angle Returns local hour angle of an object
+ * @param local_sideral_time Local Sideral Time
+ * @param ra RA of object
+ * @return Hour angle in hours (-12 to 12)
+ */
+double get_local_hour_angle(double local_sideral_time, double ra);
+
 /*@}*/
 
 #ifdef __cplusplus

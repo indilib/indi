@@ -1215,3 +1215,59 @@ IUSaveText (IText *tp, const char *newtext)
         /* copy in fresh string */
         tp->text = strcpy (realloc (tp->text, strlen(newtext)+1), newtext);
 }
+
+double rangeHA(double r)
+{
+  double res = r;
+  while (res< -12.0) res+=24.0;
+  while (res>= 12.0) res-=24.0;
+  return res;
+}
+
+
+double range24(double r)
+{
+  double res = r;
+  while (res<0.0) res+=24.0;
+  while (res>24.0) res-=24.0;
+  return res;
+}
+
+double range360(double r)
+{
+  double res = r;
+  while (res<0.0) res+=360.0;
+  while (res>360.0) res-=360.0;
+  return res;
+}
+
+double rangeDec(double decdegrees)
+{
+  if ((decdegrees >= 270.0) && (decdegrees <= 360.0))
+    return (decdegrees - 360.0);
+  if ((decdegrees >= 180.0) && (decdegrees < 270.0))
+    return (180.0 - decdegrees);
+  if ((decdegrees >= 90.0) && (decdegrees < 180.0))
+    return (180.0 - decdegrees);
+  return decdegrees;
+}
+
+double get_local_sideral_time(double longitude)
+{
+    double SD = ln_get_apparent_sidereal_time(ln_get_julian_from_sys()) - (360.0 - longitude)/15.0;
+
+    return range24(SD);
+}
+
+double get_local_hour_angle(double sideral_time, double ra)
+{
+
+    double HA = sideral_time - ra;
+
+         if (HA > 12)
+             HA -= 12;
+         else if (HA < -12)
+             HA += 12;
+
+    return HA;
+}
