@@ -1118,6 +1118,7 @@ void LX200Generic::mountSim ()
 	    break;
 
     case SCOPE_SLEWING:
+    case SCOPE_PARKING:
 	    /* slewing - nail it when both within one pulse @ SLEWRATE */
 	    nlocked = 0;
 
@@ -1145,7 +1146,13 @@ void LX200Generic::mountSim ()
 	      currentDEC -= da;
 
 	    if (nlocked == 2)
-             TrackState = SCOPE_TRACKING;
+        {
+            if (TrackState == SCOPE_SLEWING)
+                TrackState = SCOPE_TRACKING;
+            else
+                SetParked(true);
+
+        }
 
 
 	    break;
