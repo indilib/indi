@@ -1343,7 +1343,7 @@ libindi/drivers/telescope/lx200_16.cpp -text
 libindi/drivers/telescope/lx200_16.h -text
 libindi/drivers/telescope/lx200ap.cpp -text
 libindi/drivers/telescope/lx200ap.h -text
-libindi/drivers/telescope/lx200apdriver.c -text
+libindi/drivers/telescope/lx200apdriver.cpp -text
 libindi/drivers/telescope/lx200apdriver.h -text
 libindi/drivers/telescope/lx200aplib.h -text
 libindi/drivers/telescope/lx200autostar.cpp -text

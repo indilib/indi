@@ -257,7 +257,7 @@ set(lx200generic_SRCS
    ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200gps.cpp
    ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200generic.cpp
    ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200classic.cpp
-   ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200apdriver.c
+   ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200apdriver.cpp
    ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200ap.cpp
 )
 

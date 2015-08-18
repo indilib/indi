@@ -32,6 +32,7 @@
 #include <time.h>
 
 #include "indicom.h"
+#include "indilogger.h"
 #include "indidevapi.h"
 #include "lx200driver.h"
 #include "lx200apdriver.h"
@@ -42,30 +43,28 @@
 
 #define LX200_TIMEOUT	5		/* FD timeout in seconds */
 
-int lx200ap_debug = 0;
+char lx200ap_name[MAXINDIDEVICE];
+unsigned int DBG_SCOPE;
 
-void set_lx200ap_debug(int value)
+void set_lx200ap_name(const char *deviceName, unsigned int debug_level)
 {
-    lx200ap_debug = value;
+    strncpy(lx200ap_name, deviceName, MAXINDIDEVICE);
+    DBG_SCOPE = debug_level;
 }
 
 int check_lx200ap_connection(int fd)
 {
-
   int i=0;
-/*  char ack[1] = { (char) 0x06 }; does not work for AP moung */
   char temp_string[64];
   int error_type;
   int nbytes_write=0;
   int nbytes_read=0;
 
-  if (lx200ap_debug)
-    IDLog("Testing telescope's connection using #:GG#...\n");
+  DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "Testing telescope's connection using #:GG#...");
 
   if (fd <= 0)
   {
-      if (lx200ap_debug)
-        IDLog("check_lx200ap_connection: not a valid file descriptor received\n");
+      DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "check_lx200ap_connection: not a valid file descriptor received");
 
       return -1;
   }
@@ -73,9 +72,8 @@ int check_lx200ap_connection(int fd)
   {
       if ( (error_type = tty_write_string(fd, "#:GG#", &nbytes_write)) != TTY_OK)
       {
-      if (lx200ap_debug)
-        IDLog("check_lx200ap_connection: unsuccessful write to telescope, %d\n", nbytes_write);
 
+      DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "check_lx200ap_connection: unsuccessful write to telescope, %d", nbytes_write);
 
 	  return error_type;
       }
@@ -84,16 +82,15 @@ int check_lx200ap_connection(int fd)
       if (nbytes_read > 1)
       {
 	  temp_string[ nbytes_read -1] = '\0';
-      if (lx200ap_debug)
-        IDLog("check_lx200ap_connection: received bytes %d, [%s]\n", nbytes_write, temp_string);
+
+      DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "check_lx200ap_connection: received bytes %d, [%s]", nbytes_write, temp_string);
 
 	  return 0;
       }
     usleep(50000);
   }
   
-  if (lx200ap_debug)
-    IDLog("check_lx200ap_connection: wrote, but nothing received\n");
+  DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "check_lx200ap_connection: wrote, but nothing received.");
 
   return -1;
 }
@@ -105,18 +102,20 @@ int getAPUTCOffset(int fd, double *value)
 
     char temp_string[16];
 
+    DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", "#:GG#");
+
     if ( (error_type = tty_write_string(fd, "#:GG#", &nbytes_write)) != TTY_OK)
 	return error_type;
 
     if(( error_type = tty_read_section(fd, temp_string, '#', LX200_TIMEOUT, &nbytes_read)) != TTY_OK)
-    {
-    if (lx200ap_debug)
-        IDLog("getAPUTCOffset: saying good bye %d, %d\n", error_type, nbytes_read);
-
-
-	return error_type ;
+    {    
+        DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "getAPUTCOffset: saying good bye %d, %d", error_type, nbytes_read);
+        return error_type ;
     }
+
     tcflush(fd, TCIFLUSH);
+
+    DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "RES (%s)", temp_string);
 
 /* Negative offsets, see AP keypad manual p. 77 */
     if((temp_string[0]== 'A') || ((temp_string[0]== '0')&&(temp_string[1]== '0')) ||(temp_string[0]== '@'))
@@ -155,8 +154,7 @@ int getAPUTCOffset(int fd, double *value)
 		    temp_string[2]= '5' ;
 		    break ;
 		default:
-            if (lx200ap_debug)
-                IDLog("getAPUTCOffset: string not handled %s\n", temp_string);
+            DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "getAPUTCOffset: string not handled %s", temp_string);
 		    return -1 ;
 		    break ;
 	    }
@@ -165,9 +163,6 @@ int getAPUTCOffset(int fd, double *value)
 	{
 	    temp_string[1]= '0' ;
 	    temp_string[2]= '6' ;
-        if (lx200ap_debug)
-            IDLog("getAPUTCOffset: done here %s\n", temp_string);
-
 	}
 	else if( temp_string[1]== '@')
 	{
@@ -200,33 +195,29 @@ int getAPUTCOffset(int fd, double *value)
 		    temp_string[2]= '2' ;
 		    break ;
 		default:
-            if (lx200ap_debug)
-                IDLog("getAPUTCOffset: string not handled %s\n", temp_string);
+            DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "getAPUTCOffset: string not handled %s", temp_string);
 		    return -1 ;
 		    break;
 	    }    
 	}
 	else
 	{
-        if (lx200ap_debug)
-            IDLog("getAPUTCOffset: string not handled %s\n", temp_string);
+        DEBUGFDEVICE(lx200ap_name , INDI::Logger::DBG_ERROR, "getAPUTCOffset: string not handled %s", temp_string);
 	}
     }
     else
     {
 	temp_string[nbytes_read - 1] = '\0' ;
     }
-/*    #ifdef INDI_DEBUG
-      IDLog("getAPUTCOffset: received string %s\n", temp_string);
-      #endif
-*/
+
     if (f_scansexa(temp_string, value))
     {
-	fprintf(stderr, "getAPUTCOffset: unable to process [%s]\n", temp_string);
-	return -1;
+        DEBUGFDEVICE(lx200ap_name , INDI::Logger::DBG_ERROR, "getAPUTCOffset: unable to process %s", temp_string);
+        return -1;
     }
     return 0;
 }
+
 int setAPObjectAZ(int fd, double az)
 {
     int h, m, s;
@@ -235,8 +226,8 @@ int setAPObjectAZ(int fd, double az)
     getSexComponents(az, &h, &m, &s);
 
     snprintf(temp_string, sizeof( temp_string ), "#:Sz %03d*%02d:%02d#", h, m, s);
-    if (lx200ap_debug)
-        IDLog("setAPObjectAZ: Set Object AZ String %s\n", temp_string);
+
+    DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", temp_string);
 
     return (setStandardProcedure(fd, temp_string));
 }
@@ -260,8 +251,7 @@ int setAPObjectAlt(int fd, double alt)
 	snprintf(temp_string, sizeof( temp_string ), "#:Sa %+02d*%02d:%02d#", d, m, s) ;
     }	
 
-    if (lx200ap_debug)
-        IDLog("setAPObjectAlt: Set Object Alt String %s\n", temp_string);
+    DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", temp_string);
 
     return (setStandardProcedure(fd, temp_string));
 }
@@ -270,18 +260,12 @@ int setAPUTCOffset(int fd, double hours)
     int h, m, s ;
 
     char temp_string[16];
-/* To avoid the peculiar output format of AP controller, see p. 77 key pad manual */
-    if( hours < 0.)
-    {
-	hours += 24. ;
-    }
 
     getSexComponents(hours, &h, &m, &s);
     
     snprintf(temp_string, sizeof( temp_string ), "#:SG %+03d:%02d:%02d#", h, m, s);
-    if (lx200ap_debug)
-        IDLog("setAPUTCOffset: %s\n", temp_string);
 
+    DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", temp_string);
 
     return (setStandardProcedure(fd, temp_string));
 }
@@ -291,16 +275,17 @@ int APSyncCM(int fd, char *matchedObject)
     int nbytes_write=0;
     int nbytes_read=0;
 
-    if (lx200ap_debug)
-        IDLog("APSyncCM\n");
+    DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", "#:CM#");
 
     if ( (error_type = tty_write_string(fd, "#:CM#", &nbytes_write)) != TTY_OK)
-	return error_type ;
+        return error_type ;
   
     if(( error_type = tty_read_section(fd, matchedObject, '#', LX200_TIMEOUT, &nbytes_read)) != TTY_OK)
 	return error_type ;
    
     matchedObject[nbytes_read-1] = '\0';
+
+    DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "RES (%s)", matchedObject);
   
     /* Sleep 10ms before flushing. This solves some issues with LX200 compatible devices. */
     usleep(10000);
@@ -309,23 +294,25 @@ int APSyncCM(int fd, char *matchedObject)
 
     return 0;
 }
+
 int APSyncCMR(int fd, char *matchedObject)
 {
     int error_type;
     int nbytes_write=0;
     int nbytes_read=0;
     
-    if (lx200ap_debug)
-        IDLog("APSyncCMR\n");
+    DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", "#:CMR#");
 
     if ( (error_type = tty_write_string(fd, "#:CMR#", &nbytes_write)) != TTY_OK)
-	return error_type;
+        return error_type;
  
     /* read_ret = portRead(matchedObject, -1, LX200_TIMEOUT); */
     if(( error_type = tty_read_section(fd, matchedObject, '#', LX200_TIMEOUT, &nbytes_read))  != TTY_OK)
-	return error_type ;
+        return error_type ;
 
     matchedObject[nbytes_read-1] = '\0';
+
+    DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "RES (%s)", matchedObject);
   
     /* Sleep 10ms before flushing. This solves some issues with LX200 compatible devices. */
     usleep(10000);
@@ -334,6 +321,7 @@ int APSyncCMR(int fd, char *matchedObject)
 
     return 0;
 }
+
 int selectAPMoveToRate(int fd, int moveToRate)
 {
     int error_type;
@@ -343,35 +331,36 @@ int selectAPMoveToRate(int fd, int moveToRate)
     {
 	/* 1200x */
 	case 0:
-        if (lx200ap_debug)
-            IDLog("selectAPMoveToRate: Setting move to rate to 1200x.\n");
+        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPMoveToRate: Setting move to rate to 1200x");
+        DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", "#:RC3#");
 
 	    if ( (error_type = tty_write_string(fd, "#:RC3#", &nbytes_write)) != TTY_OK)
-		return error_type;
+            return error_type;
 	    break;
     
 	    /* 600x */
 	case 1:
-        if (lx200ap_debug)
-            IDLog("selectAPMoveToRate: Setting move to rate to 600x.\n");
+        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPMoveToRate: Setting move to rate to 600x");
+        DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", "#:RC2#");
 	    if ( (error_type = tty_write_string(fd, "#:RC2#", &nbytes_write)) != TTY_OK)
 		return error_type;
 	    break;
 
 	    /* 64x */
 	case 2:
-            if (lx200ap_debug)
-                IDLog("selectAPMoveToRate: Setting move to rate to 64x.\n");
+        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPMoveToRate: Setting move to rate to 64x");
+        DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", "#:RC1#");
 
 	    if ( (error_type = tty_write_string(fd, "#:RC1#", &nbytes_write)) != TTY_OK)
-		return error_type;
+            return error_type;
 	    break;
 	    /* 12x*/
 	case 3:
-        if (lx200ap_debug)
-            IDLog("selectAPMoveToRate: Setting move to rate to 12x.\n");
+        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPMoveToRate: Setting move to rate to 12x");
+        DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", "#:RC0#");
+
 	    if ( (error_type = tty_write_string(fd, "#:RC0#", &nbytes_write)) != TTY_OK)
-		return error_type;
+            return error_type;
 	    break;
 
 	default:
@@ -388,28 +377,32 @@ int selectAPSlewRate(int fd, int slewRate)
     {
 	/* 1200x */
 	case 0:
-        if (lx200ap_debug)
-            IDLog("selectAPSlewRate: Setting slew rate to 1200x.\n");
+
+        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPSlewRate: Setting slew to rate to 1200x");
+        DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", "#:RS2#");
 
 	    if ( (error_type = tty_write_string(fd, "#:RS2#", &nbytes_write)) != TTY_OK)
-		return error_type;
+            return error_type;
 	    break;
     
 	    /* 900x */
 	case 1:
-        if (lx200ap_debug)
-            IDLog("selectAPSlewRate: Setting slew rate to 900x.\n");
+
+        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPSlewRate: Setting slew to rate to 900x");
+        DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", "#:RS1#");
 
 	    if ( (error_type = tty_write_string(fd, "#:RS1#", &nbytes_write)) != TTY_OK)
-		return error_type;
+            return error_type;
 	    break;
 
 	    /* 600x */
 	case 2:
-        if (lx200ap_debug)
-            IDLog("selectAPSlewRate: Setting slew rate to 600x.\n");
+
+        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPSlewRate: Setting slew to rate to 600x");
+        DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", "#:RS0#");
+
 	    if ( (error_type = tty_write_string(fd, "#:RS0#", &nbytes_write)) != TTY_OK)
-		return error_type;
+            return error_type;
 	    break;
 
 	default:
@@ -427,35 +420,42 @@ int selectAPTrackingMode(int fd, int trackMode)
     {
     /* Sidereal */
     case 0:
-      if (lx200ap_debug)
-        IDLog("selectAPTrackingMode: Setting tracking mode to sidereal (#:RT2#).\n");
+
+        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPTrackingMode: Setting tracking mode to sidereal.");
+        DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", "#:RT2#");
+
     if ( (error_type = tty_write_string(fd, "#:RT2#", &nbytes_write)) != TTY_OK)
-    return error_type;
+        return error_type;
     break;
 
     /* Solar */
     case 1:
-     if (lx200ap_debug)
-        IDLog("selectAPTrackingMode: Setting tracking mode to solar(#:RT1#).\n");
+
+        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPTrackingMode: Setting tracking mode to solar.");
+        DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", "#:RT1#");
+
     if ( (error_type = tty_write_string(fd, "#:RT1#", &nbytes_write)) != TTY_OK)
-    return error_type;
+        return error_type;
     break;
 
 	/* Lunar */
     case 2:
-        if (lx200ap_debug)
-            IDLog("selectAPTrackingMode: Setting tracking mode to lunar (#:RT0#).\n");
+
+        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPTrackingMode: Setting tracking mode to lunar.");
+        DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", "#:RT0#");
+
 	    if ( (error_type = tty_write_string(fd, "#:RT0#", &nbytes_write)) != TTY_OK)
 		return error_type;
 	    break;    
 
 	    /* Zero */
 	case 3:
-           if (lx200ap_debug)
-            IDLog("selectAPTrackingMode: Setting tracking mode to zero #:RT9#)(.\n");
+
+        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPTrackingMode: Setting tracking mode to Zero.");
+        DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", "#:RT9#");
 
 	    if ( (error_type = tty_write_string(fd, "#:RT9#", &nbytes_write)) != TTY_OK)
-		return error_type;
+            return error_type;
 	    break;
  
 	default:
@@ -464,6 +464,7 @@ int selectAPTrackingMode(int fd, int trackMode)
     }
     return 0;
 }
+
 int swapAPButtons(int fd, int currentSwap)
 {
     int error_type;
@@ -472,17 +473,16 @@ int swapAPButtons(int fd, int currentSwap)
     switch (currentSwap)
     {
 	case 0:
-            if (lx200ap_debug)
-                IDLog("#:NS#\n");
+
+        DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", "#:NS#");
 	    if ( (error_type = tty_write_string(fd, "#:NS#", &nbytes_write)) != TTY_OK)
-		return error_type;
+            return error_type;
 	    break;
 	    
 	case 1:
-            if (lx200ap_debug)
-                IDLog("#:EW#\n");
+         DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", "#:EW#");
 	    if ( (error_type = tty_write_string(fd, "#:EW#", &nbytes_write)) != TTY_OK)
-		return error_type;
+            return error_type;
 	    break;
 
 	default:
@@ -491,6 +491,7 @@ int swapAPButtons(int fd, int currentSwap)
     }
     return 0;
 }
+
 int setAPObjectRA(int fd, double ra)
 {
 /*ToDo AP accepts "#:Sr %02d:%02d:%02d.%1d#"*/
@@ -501,8 +502,7 @@ int setAPObjectRA(int fd, double ra)
 
  snprintf(temp_string, sizeof( temp_string ), "#:Sr %02d:%02d:%02d#", h, m, s);
 
- if (lx200ap_debug)
-    IDLog("setAPObjectRA: Set Object RA String %s, %f\n", temp_string, ra);
+ DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", temp_string);
 
  return (setStandardProcedure(fd, temp_string));
 }
@@ -522,11 +522,13 @@ int setAPObjectDEC(int fd, double dec)
   {
       snprintf(temp_string, sizeof( temp_string ),   "#:Sd %+03d*%02d:%02d#", d, m, s);
   }
-  if (lx200ap_debug)
-    IDLog("setAPObjectDEC: Set Object DEC String %s\n", temp_string) ;
+
+ DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", temp_string);
+
 
   return (setStandardProcedure(fd, temp_string));
 }
+
 int setAPSiteLongitude(int fd, double Long)
 {
    int d, m, s;
@@ -534,6 +536,9 @@ int setAPSiteLongitude(int fd, double Long)
 
    getSexComponents(Long, &d, &m, &s);
    snprintf(temp_string, sizeof( temp_string ), "#:Sg %03d*%02d:%02d#", d, m, s);
+
+    DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", temp_string);
+
    return (setStandardProcedure(fd, temp_string));
 }
 
@@ -544,5 +549,8 @@ int setAPSiteLatitude(int fd, double Lat)
 
    getSexComponents(Lat, &d, &m, &s);
    snprintf(temp_string, sizeof( temp_string ), "#:St %+03d*%02d:%02d#", d, m, s);
+
+   DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", temp_string);
+
    return (setStandardProcedure(fd, temp_string));
 }

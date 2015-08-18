@@ -35,9 +35,8 @@
 extern "C" {
 #endif
 
-void set_lx200ap_debug(int value);
+void set_lx200ap_name(const char *deviceName, unsigned int debug_level);
 int check_lx200ap_connection(int fd) ;
-int initializeAPmount(int fd) ;
 int getAPUTCOffset (int fd, double *value) ;
 int setAPObjectAZ(int fd, double az);
 int setAPObjectAlt(int fd, double alt);

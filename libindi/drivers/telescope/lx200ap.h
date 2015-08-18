@@ -40,6 +40,7 @@ class LX200AstroPhysics : public LX200Generic
   ~LX200AstroPhysics() {}
 
  virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+ virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
  virtual void ISGetProperties(const char *dev);
 
  void setupTelescope();
@@ -54,8 +55,12 @@ protected:
 
  virtual bool ReadScopeStatus();
 
+ // Parking
+ virtual void SetCurrentPark();
+ virtual void SetDefaultPark();
  virtual bool Park();
  virtual bool UnPark();
+
  virtual bool Sync(double ra, double dec);
  virtual bool Goto(double, double);
  virtual bool Connect(char *);
@@ -67,6 +72,8 @@ protected:
  virtual void debugTriggered(bool enable);
  bool  setBasicDataPart0();
  bool  setBasicDataPart1();
+
+ unsigned int DBG_SCOPE;
 
  ISwitch StartUpS[2];
  ISwitchVectorProperty StartUpSP;
@@ -92,8 +99,11 @@ protected:
  IText   DeclinationAxisT[1];
  ITextVectorProperty DeclinationAxisTP;
 
- INumber APSiderealTimeN[1];
- INumberVectorProperty APSiderealTimeNP;
+ //INumber APSiderealTimeN[1];
+ //INumberVectorProperty APSiderealTimeNP;
+
+ INumber SlewAccuracyN[2];
+ INumberVectorProperty SlewAccuracyNP;
 
  bool timeUpdated, locationUpdated;
 
