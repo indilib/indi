@@ -137,6 +137,8 @@ bool FocusSim::initProperties()
     IUFillNumberVector(&FWHMNP,FWHMN,1,getDeviceName(), "FWHM","FWHM",MAIN_CONTROL_TAB,IP_RO,60,IPS_IDLE);
 
     ticks = initTicks = sqrt(FWHMN[0].value - SeeingN[0].value) / 0.75;
+    
+    FocusAbsPosN[0].value = FocusAbsPosN[0].max / 2;    
 
     return true;
 }
