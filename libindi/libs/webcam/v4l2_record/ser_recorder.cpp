@@ -234,9 +234,13 @@ bool SER_Recorder::open(const char *filename, char *errmsg) {
 }
 
 bool SER_Recorder::close() {
-  fseek(f, 0L, SEEK_SET);
-  write_header(&serh);
-  fclose(f);
+  if (f)
+  {
+      fseek(f, 0L, SEEK_SET);
+      write_header(&serh);
+      fclose(f);
+  }
+
   streaming_active = false;
   return true;
 }
