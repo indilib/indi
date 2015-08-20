@@ -662,7 +662,7 @@ bool V4L2_Driver::ISNewSwitch (const char *dev, const char *name, ISState *state
   if (iopt < v4loptions) {
     unsigned int ctrl_id, optindex, ctrlindex;
     
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Toggle switch %s=%s\n", Options[iopt].name, Options[iopt].label);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Toggle switch %s=%s", Options[iopt].name, Options[iopt].label);
     
     Options[iopt].s = IPS_IDLE;
     IUResetSwitch(&Options[iopt]);
@@ -852,7 +852,7 @@ bool V4L2_Driver::ISNewNumber (const char *dev, const char *name, double values[
 	{
 	  ctrl_id = *((unsigned int *) ImageAdjustNP.np[i].aux0);
 	  
-	  DEBUGF(INDI::Logger::DBG_DEBUG, "  Setting %s (%s) to %d, ctrl_id = 0x%X \n", ImageAdjustNP.np[i].name, ImageAdjustNP.np[i].label, (int)ImageAdjustNP.np[i].value, ctrl_id);
+      DEBUGF(INDI::Logger::DBG_DEBUG, "  Setting %s (%s) to %d, ctrl_id = 0x%X", ImageAdjustNP.np[i].name, ImageAdjustNP.np[i].label, (int)ImageAdjustNP.np[i].value, ctrl_id);
 	  
 	  if (v4l_base->setINTControl( ctrl_id , ImageAdjustNP.np[i].value, errmsg) < 0)
 	    {
@@ -1371,13 +1371,13 @@ void V4L2_Driver::updateFrame()
       //if (!stackMode)
       //{
       if (!is_streaming && !is_recording) stop_capturing();
-	DEBUGF(INDI::Logger::DBG_SESSION, "Capture of LX frame took %ld.%06ld seconds.\n", current_exposure.tv_sec, current_exposure.tv_usec);
+    DEBUGF(INDI::Logger::DBG_SESSION, "Capture of LX frame took %ld.%06ld seconds.", current_exposure.tv_sec, current_exposure.tv_usec);
 	ExposureComplete(&PrimaryCCD);
 	PrimaryCCD.setFrameBufferSize(frameBytes);
 	//}
     } else {
       if (!is_streaming && !is_recording) stop_capturing();
-      DEBUGF(INDI::Logger::DBG_SESSION, "Capture of one frame (%d stacked frames) took %ld.%06ld seconds.\n", subframeCount, current_exposure.tv_sec, current_exposure.tv_usec);
+      DEBUGF(INDI::Logger::DBG_SESSION, "Capture of one frame (%d stacked frames) took %ld.%06ld seconds.", subframeCount, current_exposure.tv_sec, current_exposure.tv_usec);
       ExposureComplete(&PrimaryCCD);
       PrimaryCCD.setFrameBufferSize(frameBytes);
     }
@@ -1403,13 +1403,13 @@ void V4L2_Driver::recordStream(double deltams)
   recordDuration+=deltams;
   recordframeCount+=1;
   if ((RecordStreamSP.sp[1].s == ISS_ON) && (recordDuration >= (RecordOptionsNP.np[0].value * 1000.0))) {
-    DEBUGF(INDI::Logger::DBG_SESSION,"Ending record after %g millisecs\n", recordDuration);
+    DEBUGF(INDI::Logger::DBG_SESSION,"Ending record after %g millisecs", recordDuration);
     stop_recording();
     RecordStreamSP.sp[1].s = ISS_OFF; RecordStreamSP.sp[3].s = ISS_ON; RecordStreamSP.s = IPS_IDLE;
     IDSetSwitch(&RecordStreamSP, NULL);
   }
   if ((RecordStreamSP.sp[2].s == ISS_ON) && (recordframeCount >= (RecordOptionsNP.np[1].value))) {
-    DEBUGF(INDI::Logger::DBG_SESSION,"Ending record after %d frames\n", recordframeCount);
+    DEBUGF(INDI::Logger::DBG_SESSION,"Ending record after %d frames", recordframeCount);
     stop_recording();
     RecordStreamSP.sp[2].s = ISS_OFF; RecordStreamSP.sp[3].s = ISS_ON; RecordStreamSP.s = IPS_IDLE;
     IDSetSwitch(&RecordStreamSP, NULL);	
@@ -1695,12 +1695,12 @@ int V4L2_Driver::mkpath(std::string s, mode_t mode) {
     if(dir.size()==0) continue;
     if (stat(dir.c_str(), &st)) {  
       if (errno != ENOENT || ((mdret=mkdir(dir.c_str(),mode)) && errno!=EEXIST)) {
-	DEBUGF(INDI::Logger::DBG_WARNING,"mkpath: can not create %s\n", dir);
+    DEBUGF(INDI::Logger::DBG_WARNING,"mkpath: can not create %s", dir.c_str());
 	return mdret;
       }
     } else {
       if (!S_ISDIR(st.st_mode)) {
-	DEBUGF(INDI::Logger::DBG_WARNING,"mkpath: %s is not a directory\n", dir.c_str());
+    DEBUGF(INDI::Logger::DBG_WARNING,"mkpath: %s is not a directory", dir.c_str());
 	return -1;
       }
     }
