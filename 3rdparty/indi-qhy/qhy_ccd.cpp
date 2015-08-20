@@ -936,7 +936,7 @@ void QHYCCD::TimerHit()
 
 IPState QHYCCD::GuideNorth(float duration)
 {
-   ControlQHYCCDGuide(camhandle,0,duration);
+   ControlQHYCCDGuide(camhandle,1,duration);
    return IPS_OK;
 }
 
@@ -948,7 +948,7 @@ IPState QHYCCD::GuideSouth(float duration)
 
 IPState QHYCCD::GuideEast(float duration)
 {
-    ControlQHYCCDGuide(camhandle,1,duration);
+    ControlQHYCCDGuide(camhandle,0,duration);
     return IPS_OK;
 }
 
@@ -974,7 +974,7 @@ bool QHYCCD::SelectFilter(int position)
     {
         CurrentFilter = position;
         SelectFilterDone(position);
-        DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Filter changed to %1", camid, position);
+        DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Filter changed to %d", camid, position);
         return true;
     }
     else
