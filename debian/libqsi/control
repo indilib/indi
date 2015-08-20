@@ -10,14 +10,22 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, libftdi1
 conflicts: libqsi6
 replaces: libqsi6
-Description: Quantum Scientific Imaging (QSI) CCD Libraries.
+Description: Quantum Scientific Imaging (QSI) library.
  .
  This package contains the library.
 
 Package: libqsi-dev
 Architecture: any
 Depends: libqsi7 (= ${binary:Version}), ${misc:Depends}
-Description: Quantum Scientific Imaging (QSI) CCD Libraries.
+Description: Quantum Scientific Imaging (QSI) development headers.
  .
  This package contains the development files.
 
+Package: libqsi-dbg
+Priority: extra
+Section: debug
+Architecture: any
+Depends: libqsi7 (= ${binary:Version}), ${misc:Depends}
+Description: Quantum Scientific Imaging (QSI) debug symbols.
+ .
+ This package contains debug symbols.
