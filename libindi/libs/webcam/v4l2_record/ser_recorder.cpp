@@ -221,8 +221,8 @@ bool SER_Recorder::setsize(unsigned int width, unsigned int height) {
 bool SER_Recorder::open(const char *filename, char *errmsg) {
   if (streaming_active) return false;
   serh.FrameCount = 0;
-  serh.DateTime=-1; // no timestamp
-  serh.DateTime_UTC=-1; // no timestamp
+  serh.DateTime=0; // no timestamp
+  serh.DateTime_UTC=0; // no timestamp
   if ((f=fopen(filename, "w")) == NULL) {
     snprintf(errmsg, ERRMSGSIZ, "recorder open error %d, %s\n", errno, strerror (errno));
     return false;

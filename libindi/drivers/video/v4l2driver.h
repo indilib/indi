@@ -33,6 +33,7 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <errno.h>
+#include <time.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -41,13 +42,15 @@
 #include <netdb.h>
 #include <zlib.h>
 #include <asm/types.h>
-
+#include <map>
+			      
 #include "indidevapi.h"
 #include "indicom.h"
 #include <fitsio.h>
 #include "eventloop.h"
 
 
+			      
 #include <config.h>
 
 #include "webcam/v4l2_base.h"
@@ -122,21 +125,24 @@ class V4L2_Driver: public INDI::CCD
     ISwitch ImageColorS[2];
     ISwitch ImageDepthS[2];
     ISwitch StackModeS[5];
-    ISwitch RecordS[2];
+    ISwitch RecordS[4];
     ISwitch DropFrameS[2];
     ISwitch ColorProcessingS[3];
 	
     /* Texts */
     IText PortT[1];
     IText camNameT[1];
-    IText RecordFileT[1];
+    IText RecordFileT[2];
     IText CaptureColorSpaceT[3];
 
     /* Numbers */
     INumber *ExposeTimeN;
     INumber FrameRateN[1];
     INumber *FrameN;
-    INumber FramestoDropN[1];			
+    INumber FramestoDropN[1];
+    INumber StreamOptionsN[1];
+    INumber FpsN[2];
+    INumber RecordOptionsN[2];
      
     /* BLOBs */
     IBLOBVectorProperty *imageBP;
@@ -159,16 +165,18 @@ class V4L2_Driver: public INDI::CCD
     unsigned int v4loptions;
     unsigned int v4ladjustments;
     bool useExtCtrl;
-    ISwitchVectorProperty RecordSP;				/* Record switch */
+    ISwitchVectorProperty RecordStreamSP;			/* Record switch */
 
     /* Number vectors */
-    INumberVectorProperty *ExposeTimeNP;				/* Exposure */
+    INumberVectorProperty *ExposeTimeNP;			/* Exposure */
+    INumberVectorProperty StreamOptionsNP;			/* Streaming Options */
+    INumberVectorProperty FpsNP;			        /* Measured FPS */
     INumberVectorProperty CaptureSizesNP;    			/* Select Capture size switch (Step/Continuous)*/
     INumberVectorProperty FrameRateNP;				/* Frame rate (Step/Continuous) */
     INumberVectorProperty *FrameNP;				/* Frame dimenstion */
     INumberVectorProperty ImageAdjustNP;			/* Image controls */
     INumberVectorProperty FramestoDropNP;			
-
+    INumberVectorProperty RecordOptionsNP;			/* Record Options */
     /* Text vectors */
     ITextVectorProperty PortTP;
     ITextVectorProperty camNameTP;
@@ -182,26 +190,45 @@ class V4L2_Driver: public INDI::CCD
    /* Initilization functions */
    //virtual void connectCamera(void);
    virtual void getBasicData(void);
-
+   void allocateBuffers();
+   void releaseBuffers();
+   
    /* Stream/FITS functions */
    void updateExposure();
    void updateStream();
-   void recordStream();
+   void recordStream(double deltams);
  
-   void allocateBuffers();
-   void releaseBuffers();
 
+   /* Shutter control */
    bool setShutter(double duration);
    bool setManualExposure(double duration);
+   bool startlongexposure(double timeinsec);
+   static void lxtimerCallback(void *userpointer);
+
+   /* Post processing */
    void binFrame();
 
+   /* start/stop functions */
+   void start_capturing();
+   void stop_capturing();
+   bool start_recording();
+   bool stop_recording();
+
    virtual void updateV4L2Controls();
+   /* Utility for record file */
+   int mkpath(std::string s, mode_t mode);
+   std::string expand(std::string fname, const std::map<std::string, std::string>& patterns);
+   
+   /* Variables */
    V4L2_Base *v4l_base;
 
    char device_name[MAXINDIDEVICE];
    unsigned char *fitsData;		/* Buffer to hold the FITS file */
-   int frameCount;			/* For debugging */
+   int streamframeCount;		   
+   int recordframeCount;
+   double recordDuration;
    int subframeCount;			/* For stacking */
+   int frameCount;
    double divider;			/* For limits */
    img_t * V4LFrame;			/* Video frame */
 
@@ -210,18 +237,30 @@ class V4L2_Driver: public INDI::CCD
    struct timeval exposure_duration;
    unsigned int stackMode;
    ulong frameBytes;
+
+   bool is_capturing;
+   bool is_exposing;
+   bool is_streaming;
+   bool is_recording;
    
    //Long Exposure
    Lx *lx;
    int lxtimer;
-   bool startlongexposure(double timeinsec);
-   static void lxtimerCallback(void *userpointer);
+
    short lxstate;
 
    // Record frames
    V4L2_Record *v4l2_record;
    V4L2_Recorder *recorder;
    bool direct_record;
+   std::string recordfiledir, recordfilename; /* in case we should move it */
+
+   // Measure FPS
+   // timer_t fpstimer;
+   // struct itimerspec tframe1, tframe2;
+   // use bsd timers
+   struct itimerval tframe1, tframe2;
+   double mssum, framecountsec;
 };
    
 #endif

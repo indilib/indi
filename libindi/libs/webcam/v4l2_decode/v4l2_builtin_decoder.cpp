@@ -4,6 +4,17 @@
 
     V4L2 Builtin Decoder  
 
+    As of August 2015 gst-lauch-1.0 and v4l2loopback do not work together well (https://github.com/umlaeute/v4l2loopback/issues/83)
+    Still use v4l2loopback (see below) but  with ffmpeg:
+    ffmpeg -f lavfi -re -i "smptebars=size=640x480:rate=30" -pix_fmt yuv420p -f v4l2  /dev/video8
+    Use the -re flag to really get frame rate otherwise ffmpeg outputs frames as fast as possible (400 to 700fps).
+    With indi-opencv-ccd use /dev/video1 as v4l2loopback device
+    for 16 bits gray
+    ffmpeg -f lavfi -re -i "testsrc=size=640x480:rate=30" -pix_fmt gray16le -f v4l2  /dev/video1
+    Profiling 
+     cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_CXX_FLAGS=-pg /nfs/devel/sourceforge/indi-code/libindi/
+     kill indiserver with the kill command, not ctrl-c
+
     To test decoders, use gstreamer and the v4l2loopback kernel module
     Use the experimental git branch of v4l2loopback to get more pixel formats
     git clone https://github.com/umlaeute/v4l2loopback/ -b experimental
@@ -521,7 +532,8 @@ void V4L2_Builtin_Decoder::makeY()
   case V4L2_PIX_FMT_YUYV:
   case V4L2_PIX_FMT_UYVY:
   case V4L2_PIX_FMT_VYUY: 
-  case V4L2_PIX_FMT_YVYU: 
+  case V4L2_PIX_FMT_YVYU:
+    // todo handcopy only Ybuf using an int, byfwidth should be even
     ccvt_yuyv_420p(bufwidth, bufheight, yuyvBuffer, YBuf, UBuf, VBuf);
     break;
   }

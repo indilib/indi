@@ -271,7 +271,8 @@ int V4L2_Base::read_frame(char *errmsg) {
     if( lxstate == LX_ACTIVE ) {
 
       /* Call provided callback function if any */
-      if (callback && !dorecord)
+      //if (callback && !dorecord)
+      if (callback)
 	(*callback)(uptr);
     }
 		
