@@ -903,40 +903,6 @@ double EQMod::EncoderFromDec( double detarget, PierSide p,
   return EncoderFromDegree(target, p, initstep, totalstep, h);
 }
 
-double EQMod::rangeHA(double r) {
-  double res = r;
-  while (res< -12.0) res+=24.0;
-  while (res>= 12.0) res-=24.0;
-  return res;
-}
-
-
-double EQMod::range24(double r) {
-  double res = r;
-  while (res<0.0) res+=24.0;
-  while (res>24.0) res-=24.0;
-  return res;
-}
-
-double EQMod::range360(double r) {
-  double res = r;
-  while (res<0.0) res+=360.0;
-  while (res>360.0) res-=360.0;
-  return res;
-}
-
-double EQMod::rangeDec(double decdegrees) {
-  if ((decdegrees >= 270.0) && (decdegrees <= 360.0))
-    return (decdegrees - 360.0);
-  if ((decdegrees >= 180.0) && (decdegrees < 270.0))
-    return (180.0 - decdegrees);
-  if ((decdegrees >= 90.0) && (decdegrees < 180.0))
-    return (180.0 - decdegrees);
-  return decdegrees;
-}
-
-
-
 void EQMod::SetSouthernHemisphere(bool southern) {
   const char *hemispherenames[]={"NORTH", "SOUTH"};
   ISState hemispherevalues[2];

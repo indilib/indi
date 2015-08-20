@@ -139,11 +139,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 	double EncoderFromDec( double detarget, PierSide p, 
 				      unsigned long initstep, unsigned long totalstep, enum Hemisphere h);
 	void EncoderTarget(GotoParams *g);
-	double rangeHA(double r);
-	double range24(double r);
-	double range360(double r);
-	double rangeDec(double r);
-	void SetSouthernHemisphere(bool southern);
+    void SetSouthernHemisphere(bool southern);
 	PierSide SideOfPier(double ha);
 	double GetRATrackRate();
 	double GetDETrackRate();
