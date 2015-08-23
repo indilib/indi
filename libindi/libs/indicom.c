@@ -65,9 +65,8 @@ int tty_debug = 0;
 
 void getSexComponents(double value, int *d, int *m, int *s);
 
-int extractISOTime(char *timestr, struct ln_date *iso_date)
+int extractISOTime(const char *timestr, struct ln_date *iso_date)
 {
-  #ifdef HAVE_NOVA_H	
   struct tm utm;
 
   if (strptime(timestr, "%Y/%m/%dT%H:%M:%S", &utm))
@@ -81,7 +80,6 @@ int extractISOTime(char *timestr, struct ln_date *iso_date)
 	ln_get_date_from_tm(&utm, iso_date);
    	return (0);
   }
-  #endif
   
   return (-1);
 }

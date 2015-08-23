@@ -205,6 +205,10 @@
                 <driver name="Joystick">indi_joystick</driver>
                 <version>0.2</version>
         </device>
+        <device label="GPS Simulator">
+                <driver name="GPS Simulator">indi_simulator_gps</driver>
+                <version>0.1</version>
+        </device>
 </devGroup>
 <devGroup group="Domes">
         <device label="Dome Simulator">

@@ -179,7 +179,7 @@ int f_scansexa (const char *str0, double *dp);
     \param iso_date a pointer to a \e ln_date structure to store the extracted time and date (libnova).
     \return 0 on success, -1 on failure.
 */
-int extractISOTime(char *timestr, struct ln_date *iso_date);
+int extractISOTime(const char *timestr, struct ln_date *iso_date);
 
 void getSexComponents(double value, int *d, int *m, int *s);
 

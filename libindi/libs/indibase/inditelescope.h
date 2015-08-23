@@ -366,6 +366,10 @@ class INDI::Telescope : public INDI::DefaultDevice
         IText TimeT[2];
         ITextVectorProperty TimeTP;
 
+        // Active devices to snoop
+        ITextVectorProperty ActiveDeviceTP;
+        IText ActiveDeviceT[1];
+
         TelescopeCapability capability;        
         int last_we_motion, last_ns_motion;
 
@@ -376,6 +380,10 @@ class INDI::Telescope : public INDI::DefaultDevice
         TelescopeParkData parkDataType;
 
 private:
+
+        bool processTimeInfo(const char *utc, const char *offset);
+        bool processLocationInfo(double latitude, double longitude, double elevation);
+
         bool IsParked;
         const char *ParkDeviceName;
         const char * Parkdatafile;

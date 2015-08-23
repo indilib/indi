@@ -126,6 +126,7 @@ set (indidriver_SRCS
         ${CMAKE_SOURCE_DIR}/libs/indibase/indifilterinterface.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/indidomeinterface.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/indidome.cpp
+        ${CMAKE_SOURCE_DIR}/libs/indibase/indigps.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/indilogger.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/indicontroller.cpp
     )
@@ -643,6 +644,17 @@ install(TARGETS indi_joystick RUNTIME DESTINATION bin )
 
 endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
+########### GPS Simulator Driver ###############
+
+set(gpssimulator_SRCS
+        ${CMAKE_SOURCE_DIR}/drivers/auxiliary/gps_simulator.cpp
+   )
+
+add_executable(indi_simulator_gps ${gpssimulator_SRCS})
+
+target_link_libraries(indi_simulator_gps indidriver)
+install(TARGETS indi_simulator_gps RUNTIME DESTINATION bin )
+
 ########### getINDI ##############
 set(getindi_SRCS
 	${CMAKE_SOURCE_DIR}/eventloop.c
@@ -699,7 +711,7 @@ ${CMAKE_SOURCE_DIR}/libs/indibase/indiccd.h  ${CMAKE_SOURCE_DIR}/libs/indibase/i
 ${CMAKE_SOURCE_DIR}/libs/indibase/indifocuserinterface.h  ${CMAKE_SOURCE_DIR}/libs/indibase/indifocuser.h
 ${CMAKE_SOURCE_DIR}/libs/indibase/inditelescope.h ${CMAKE_SOURCE_DIR}/libs/indibase/baseclient.h ${CMAKE_SOURCE_DIR}/libs/indibase/indiguiderinterface.h
 ${CMAKE_SOURCE_DIR}/libs/indibase/indifilterinterface.h ${CMAKE_SOURCE_DIR}/libs/indibase/indiproperty.h
-${CMAKE_SOURCE_DIR}/libs/indibase/indidomeinterface.h ${CMAKE_SOURCE_DIR}/libs/indibase/indidome.h
+${CMAKE_SOURCE_DIR}/libs/indibase/indidomeinterface.h ${CMAKE_SOURCE_DIR}/libs/indibase/indidome.h ${CMAKE_SOURCE_DIR}/libs/indibase/indigps.h
 ${CMAKE_SOURCE_DIR}/libs/indicom.h ${CMAKE_SOURCE_DIR}/libs/indibase/indiusbdevice.h
 ${CMAKE_SOURCE_DIR}/libs/indibase/indilogger.h ${CMAKE_SOURCE_DIR}/libs/indibase/indicontroller.h ${CMAKE_SOURCE_DIR}/libs/indibase/hidapi.h
 ${CMAKE_SOURCE_DIR}/libs/webcam/ccvt.h ${CMAKE_SOURCE_DIR}/libs/webcam/ccvt_types.h

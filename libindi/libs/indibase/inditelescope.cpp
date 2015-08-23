@@ -48,6 +48,10 @@ bool INDI::Telescope::initProperties()
 {
     DefaultDevice::initProperties();
 
+    // Active Devices
+    IUFillText(&ActiveDeviceT[0],"ACTIVE_GPS","GPS","GPS Simulator");
+    IUFillTextVector(&ActiveDeviceTP,ActiveDeviceT,1,getDeviceName(),"ACTIVE_DEVICES","Snoop devices",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
+
     IUFillNumber(&EqN[AXIS_RA],"RA","RA (hh:mm:ss)","%010.6m",0,24,0,0);
     IUFillNumber(&EqN[AXIS_DE],"DEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,0);
     IUFillNumberVector(&EqNP,EqN,2,getDeviceName(),"EQUATORIAL_EOD_COORD","Eq. Coordinates",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
@@ -118,6 +122,9 @@ bool INDI::Telescope::initProperties()
 
     setInterfaceDescriptor(TELESCOPE_INTERFACE);
 
+    IDSnoopDevice(ActiveDeviceT[0].text,"GEOGRAPHIC_COORD");
+    IDSnoopDevice(ActiveDeviceT[0].text,"TIME_UTC");
+
     return true;
 }
 
@@ -153,6 +160,7 @@ void INDI::Telescope::ISGetProperties (const char *dev)
             defineSwitch(&SlewRateSP);
 
         defineNumber(&ScopeParametersNP);
+        defineText(&ActiveDeviceTP);
 
     }
 
@@ -186,6 +194,7 @@ bool INDI::Telescope::updateProperties()
             }
         }
         defineNumber(&ScopeParametersNP);
+        defineText(&ActiveDeviceTP);
 
     }
     else
@@ -210,6 +219,7 @@ bool INDI::Telescope::updateProperties()
             }
         }
         deleteProperty(ScopeParametersNP.name);
+        deleteProperty(ActiveDeviceTP.name);
     }
 
     controller->updateProperties();
@@ -221,11 +231,54 @@ bool INDI::Telescope::ISSnoopDevice(XMLEle *root)
 {
     controller->ISSnoopDevice(root);
 
+    XMLEle *ep=NULL;
+    const char *propName = findXMLAttValu(root, "name");
+
+    if (isConnected())
+    {
+        if (!strcmp(propName, "GEOGRAPHIC_COORD"))
+        {
+            double longitude=-1, latitude=-1, elevation=-1;
+
+            for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
+            {
+                const char *elemName = findXMLAttValu(ep, "name");
+
+                if (!strcmp(elemName, "LAT"))
+                    latitude = atof(pcdataXMLEle(ep));
+                else if (!strcmp(elemName, "LONG"))
+                    longitude = atof(pcdataXMLEle(ep));
+                else if (!strcmp(elemName, "ELEV"))
+                    elevation = atof(pcdataXMLEle(ep));
+
+            }
+
+            return processLocationInfo(latitude, longitude, elevation);
+        }
+        else if (!strcmp(propName, "TIME_UTC"))
+        {
+            char utc[MAXINDITSTAMP], offset[MAXINDITSTAMP];
+
+            for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
+            {
+                const char *elemName = findXMLAttValu(ep, "name");
+
+                if (!strcmp(elemName, "UTC"))
+                    strncpy(utc, pcdataXMLEle(ep), MAXINDITSTAMP);
+                else if (!strcmp(elemName, "OFFSET"))
+                    strncpy(offset, pcdataXMLEle(ep), MAXINDITSTAMP);
+            }
+
+            return processTimeInfo(utc, offset);
+        }
+    }
+
     return INDI::DefaultDevice::ISSnoopDevice(root);
 }
 
 bool INDI::Telescope::saveConfigItems(FILE *fp)
 {
+    IUSaveConfigText(fp, &ActiveDeviceTP);
     IUSaveConfigText(fp, &PortTP);
     IUSaveConfigNumber(fp,&LocationNP);
     IUSaveConfigNumber(fp, &ScopeParametersNP);
@@ -324,34 +377,22 @@ bool INDI::Telescope::ISNewText (const char *dev, const char *name, char *texts[
       {
         int utcindex   = IUFindIndex("UTC", names, n);
         int offsetindex= IUFindIndex("OFFSET", names, n);
-        struct ln_date utc;
-        double utc_offset=0;
 
-        if (extractISOTime(texts[utcindex], &utc) == -1)
-        {
-          TimeTP.s = IPS_ALERT;
-          IDSetText(&TimeTP, "Date/Time is invalid: %s.", texts[utcindex]);
-          return false;
-        }
+        return processTimeInfo(texts[utcindex], texts[offsetindex]);
+      }
 
-        utc_offset = atof(texts[offsetindex]);
+      if(!strcmp(name,ActiveDeviceTP.name))
+      {
+          ActiveDeviceTP.s=IPS_OK;
+          IUUpdateText(&ActiveDeviceTP,texts,names,n);
+          //  Update client display
+          IDSetText(&ActiveDeviceTP,NULL);
 
-        if (updateTime(&utc, utc_offset))
-        {
-            IUUpdateText(&TimeTP, texts, names, n);
-            TimeTP.s = IPS_OK;
-            IDSetText(&TimeTP, NULL);
-            return true;
-        }
-        else
-        {
-            TimeTP.s = IPS_ALERT;
-            IDSetText(&TimeTP, NULL);
-            return false;
-        }
+          IDSnoopDevice(ActiveDeviceT[0].text,"GEOGRAPHIC_COORD");
+          IDSnoopDevice(ActiveDeviceT[0].text,"TIME_UTC");
+          return true;
+      }
     }
-
-   }
 
     controller->ISNewText(dev, name, texts, names, n);
 
@@ -446,19 +487,8 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
             double targetLong = values[longindex];
             double targetElev = values[elevationindex];
 
-            if (updateLocation(targetLat, targetLong, targetElev))
-            {
-                LocationNP.s=IPS_OK;
-                IUUpdateNumber(&LocationNP,values,names,n);
-                //  Update client display
-                IDSetNumber(&LocationNP,NULL);
-            }
-            else
-            {
-                LocationNP.s=IPS_ALERT;
-                //  Update client display
-                IDSetNumber(&LocationNP,NULL);
-            }
+            return processLocationInfo(targetLat, targetLong, targetElev);
+
         }
 
         if(strcmp(name,"TELESCOPE_INFO")==0)
@@ -899,6 +929,58 @@ void INDI::Telescope::SetDefaultPark()
     DEBUG(INDI::Logger::DBG_WARNING, "Parking is not supported.");
 }
 
+bool INDI::Telescope::processTimeInfo(const char *utc, const char *offset)
+{
+    struct ln_date utc_date;
+    double utc_offset=0;
+
+    if (extractISOTime(utc, &utc_date) == -1)
+    {
+      TimeTP.s = IPS_ALERT;
+      IDSetText(&TimeTP, "Date/Time is invalid: %s.", utc);
+      return false;
+    }
+
+    utc_offset = atof(offset);
+
+    if (updateTime(&utc_date, utc_offset))
+    {
+        IUSaveText(&TimeT[0], utc);
+        IUSaveText(&TimeT[1], offset);
+        TimeTP.s = IPS_OK;
+        IDSetText(&TimeTP, NULL);
+        return true;
+    }
+    else
+    {
+        TimeTP.s = IPS_ALERT;
+        IDSetText(&TimeTP, NULL);
+        return false;
+    }
+}
+
+bool INDI::Telescope::processLocationInfo(double latitude, double longitude, double elevation)
+{
+    if (updateLocation(latitude, longitude, elevation))
+    {
+        LocationNP.s=IPS_OK;
+        LocationN[LOCATION_LATITUDE].value  = latitude;
+        LocationN[LOCATION_LONGITUDE].value = longitude;
+        LocationN[LOCATION_ELEVATION].value = elevation;
+        //  Update client display
+        IDSetNumber(&LocationNP,NULL);
+
+        return true;
+    }
+    else
+    {
+        LocationNP.s=IPS_ALERT;
+        //  Update client display
+        IDSetNumber(&LocationNP,NULL);
+
+        return false;
+    }
+}
 
 bool INDI::Telescope::updateTime(ln_date *utc, double utc_offset)
 {

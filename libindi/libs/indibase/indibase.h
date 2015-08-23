@@ -28,6 +28,8 @@
    <li>Telescope: Base class for telescope drivers.</li>
    <li>FilterWheel: Base class for Filter Wheels. It implements the FilterInterface.</li>
    <li>Focuser: Base class for focusers.</li>
+   <li>Dome: Base class for domes.</li>
+   <li>GPS: Base class for GPS devices.</li>
    <li>USBDevice: Base class for USB devices for direct read/write/control over USB.</li>
    <li>Controller: Class to handle controller inputs like joysticks and gamepads.</li>
    <li>Logger: Class to handle debugging and logging of drivers.</li>
@@ -50,6 +52,7 @@ namespace INDI
     class FilterWheel;
     class Focuser;
     class Dome;
+    class GPS;
     class USBDevice;
     class Property;
     class Controller;

@@ -1289,6 +1289,8 @@ libindi/drivers/auxiliary/STAR2kdriver.c -text
 libindi/drivers/auxiliary/STAR2kdriver.h -text
 libindi/drivers/auxiliary/gpdriver.cpp -text
 libindi/drivers/auxiliary/gpdriver.h -text
+libindi/drivers/auxiliary/gps_simulator.cpp -text
+libindi/drivers/auxiliary/gps_simulator.h -text
 libindi/drivers/auxiliary/gpusb.cpp -text
 libindi/drivers/auxiliary/gpusb.h -text
 libindi/drivers/auxiliary/joystick.cpp -text
@@ -1502,6 +1504,8 @@ libindi/libs/indibase/indifocuser.cpp -text
 libindi/libs/indibase/indifocuser.h -text
 libindi/libs/indibase/indifocuserinterface.cpp -text
 libindi/libs/indibase/indifocuserinterface.h -text
+libindi/libs/indibase/indigps.cpp -text
+libindi/libs/indibase/indigps.h -text
 libindi/libs/indibase/indiguiderinterface.cpp -text
 libindi/libs/indibase/indiguiderinterface.h -text
 libindi/libs/indibase/indilogger.cpp -text
