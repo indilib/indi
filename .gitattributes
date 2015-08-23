@@ -1358,6 +1358,8 @@ libindi/drivers/telescope/lx200driver.c -text
 libindi/drivers/telescope/lx200driver.h -text
 libindi/drivers/telescope/lx200fs2.cpp -text
 libindi/drivers/telescope/lx200fs2.h -text
+libindi/drivers/telescope/lx200gemini.cpp -text
+libindi/drivers/telescope/lx200gemini.h -text
 libindi/drivers/telescope/lx200generic.cpp -text
 libindi/drivers/telescope/lx200generic.h -text
 libindi/drivers/telescope/lx200genericlegacy.cpp -text

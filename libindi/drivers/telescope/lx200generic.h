@@ -70,7 +70,9 @@ class LX200Generic: public INDI::Telescope, public INDI::GuiderInterface
     virtual bool Park();
     virtual bool Sync(double ra, double dec);
 
-    virtual void debugTriggered(bool enable);
+    virtual bool isSlewComplete();
+
+    virtual void debugTriggered(bool enable);    
 
     virtual void getBasicData();
     void slewError(int slewCode);

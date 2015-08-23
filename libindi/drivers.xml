@@ -59,10 +59,10 @@
                 <driver name="SynScan">indi_synscan</driver>
 		<version>0.1</version>
 	</device>
-	<device label="Losmandy Gemini" focal_length="" aperture="">
-		<driver name="LX200 Basic">indi_lx200basic</driver>
-		<version>1.0</version>
-	</device>
+        <device label="Losmandy Gemini" focal_length="" aperture="">
+                <driver name="Losmandy Gemini">indi_lx200gemini</driver>
+                <version>1.0</version>
+        </device>
 	<device label="Mel Bartels" focal_length="" aperture="">
 		<driver name="LX200 Basic">indi_lx200basic</driver>
 		<version>1.0</version>

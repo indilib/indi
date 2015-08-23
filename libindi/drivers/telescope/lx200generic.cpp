@@ -39,6 +39,7 @@
 #include "lx200_16.h"
 #include "lx200classic.h"
 #include "lx200ap.h"
+#include "lx200gemini.h"
 
 // We declare an auto pointer to LX200Generic.
 std::auto_ptr<LX200Generic> telescope(0);
@@ -105,6 +106,13 @@ void ISInit()
     IDLog("initializing from Astrophysics device...\n");
 
     if(telescope.get() == 0) telescope.reset(new LX200AstroPhysics());
+
+ }
+ else if (strstr(me, "indi_lx200gemini"))
+ {
+      IDLog("initializing from Losmandy Gemini device...\n");
+
+      if(telescope.get() == 0) telescope.reset(new LX200Gemini());
 
  }
  // be nice and give them a generic device
@@ -305,7 +313,7 @@ bool LX200Generic::updateProperties()
 
         getBasicData();
 
-        loadConfig(true);
+        //loadConfig(true);
     }
     else
     {
@@ -377,6 +385,11 @@ bool LX200Generic::Disconnect()
     return true;
 }
 
+bool LX200Generic::isSlewComplete()
+{
+    return ::isSlewComplete(PortFD);
+}
+
 bool LX200Generic::ReadScopeStatus()
 {
     if (isConnected() == false)
@@ -394,7 +407,7 @@ bool LX200Generic::ReadScopeStatus()
     if (TrackState == SCOPE_SLEWING)
     {
         // Check if LX200 is done slewing
-        if(isSlewComplete(PortFD) == 0)
+        if (isSlewComplete())
         {
             // Set slew mode to "Centering"
             IUResetSwitch(&SlewRateSP);
@@ -408,7 +421,7 @@ bool LX200Generic::ReadScopeStatus()
     }
     else if(TrackState == SCOPE_PARKING)
     {
-        if(isSlewComplete(PortFD) == 0)
+        if(isSlewComplete())
         {
             SetParked(true);
         }
