@@ -479,6 +479,8 @@ static void download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
 	gphoto->width = info.file.width;
 	gphoto->height = info.file.height;
 
+    gp_dprintf(" Downloaded %dx%d\n", info.file.width, info.file.height);
+
 	if (fd < 0) {
 		result = gp_file_new(&gphoto->camerafile);
 	} else {
