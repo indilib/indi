@@ -125,7 +125,7 @@ int read_ppm(FILE *handle, struct dcraw_header *header, char **memptr, size_t *m
     if (width != header->width || height != header->height)
     {
 		fprintf(stderr, "read_ppm: Expected (%d x %d) but image is actually (%d x %d)\n", header->width, header->height, width, height);
-        return -1;
+        //return -1;
 	}
     *w = width;
     *h = height;
@@ -274,13 +274,13 @@ int dcraw_parse_header_info(const char *filename, struct dcraw_header *header)
 			header->exposure = 1.0 / header->exposure;
 		else if (sscanf(line, "Shutter: %f sec", &header->exposure) )
             ;
-        #ifdef USE_THUMB_SIZE
+        /*#ifdef USE_THUMB_SIZE
         else if (sscanf(line, "Thumb size: %d x %d", &header->width, &header->height) )
             ;
-        #else
+        #else*/
 		else if (sscanf(line, "Output size: %d x %d", &header->width, &header->height) )
 			;
-        #endif
+        //#endif
         else if (sscanf(line, "Filter pattern: %s", cfa) )
         {
             if(strncmp(cfa, "RGGBRGGBRGGBRGGB", sizeof(cfa)) == 0)
