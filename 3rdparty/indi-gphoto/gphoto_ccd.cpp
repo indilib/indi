@@ -1011,8 +1011,7 @@ bool GPhotoCCD::grabImage()
 
     }
     else
-    {
-        gphoto_get_dimensions(gphotodrv, &w, &h);
+    {        
         int rc = gphoto_read_exposure(gphotodrv);
 
         if (rc != 0)
@@ -1027,6 +1026,8 @@ bool GPhotoCCD::grabImage()
          gphoto_get_buffer(gphotodrv, (const char **)&newMemptr, &memsize);
          memptr = (char *)realloc(memptr, memsize); // We copy the obtained memory pointer to avoid freeing some gphoto memory
          memcpy(memptr, newMemptr, memsize); //
+
+         gphoto_get_dimensions(gphotodrv, &w, &h);
 
         PrimaryCCD.setImageExtension(gphoto_get_file_extension(gphotodrv));
         if (w > 0 && h > 0)
