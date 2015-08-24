@@ -484,18 +484,19 @@ static void download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
 	result = gp_camera_file_get(gphoto->camera, fn->folder, fn->name,
 		     GP_FILE_TYPE_NORMAL, gphoto->camerafile, gphoto->context);
 	gp_dprintf("  Retval: %d\n", result);
-    if (gphoto->upload_settings == GP_UPLOAD_CLIENT)
-    {
-        gp_dprintf("Deleting.\n");
-        result = gp_camera_file_delete(gphoto->camera, fn->folder, fn->name, gphoto->context);
-        gp_dprintf("  Retval: %d\n", result);
-    }
 
     gp_camera_file_get_info (gphoto->camera, fn->folder, fn->name, &info, gphoto->context);
     gphoto->width = info.file.width;
     gphoto->height = info.file.height;
 
     gp_dprintf(" Downloaded %dx%d (preview %dx%d)\n", info.file.width, info.file.height, info.preview.width, info.preview.height);
+
+    if (gphoto->upload_settings == GP_UPLOAD_CLIENT)
+    {
+        gp_dprintf("Deleting.\n");
+        result = gp_camera_file_delete(gphoto->camera, fn->folder, fn->name, gphoto->context);
+        gp_dprintf("  Retval: %d\n", result);
+    }
 
     if(fd >= 0)
     {
