@@ -71,6 +71,7 @@ class LX200Generic: public INDI::Telescope, public INDI::GuiderInterface
     virtual bool Sync(double ra, double dec);
 
     virtual bool isSlewComplete();
+    virtual bool checkConnection();
 
     virtual void debugTriggered(bool enable);    
 

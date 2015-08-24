@@ -48,8 +48,8 @@
                 <version>3.0</version>
 	</device>
 	<device label="Astro-Electronic FS-2" focal_length="" aperture="">
-		<driver name="LX200 Basic">indi_lx200basic</driver>
-		<version>1.0</version>
+                <driver name="Astro-Electronic FS-2">indi_lx200fs2</driver>
+                <version>2.0</version>
 	</device>
 	<device label="Orion Atlas" focal_length="" aperture="">
                 <driver name="SynScan">indi_synscan</driver>

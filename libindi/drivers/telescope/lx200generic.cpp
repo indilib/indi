@@ -40,6 +40,7 @@
 #include "lx200classic.h"
 #include "lx200ap.h"
 #include "lx200gemini.h"
+#include "lx200fs2.h"
 
 // We declare an auto pointer to LX200Generic.
 std::auto_ptr<LX200Generic> telescope(0);
@@ -115,6 +116,13 @@ void ISInit()
       if(telescope.get() == 0) telescope.reset(new LX200Gemini());
 
  }
+ else if (strstr(me, "indi_lx200fs2"))
+ {
+       IDLog("initializing from Astro-Electronic FS-2...\n");
+
+       if(telescope.get() == 0) telescope.reset(new LX200FS2());
+
+ }
  // be nice and give them a generic device
  else
    if(telescope.get() == 0) telescope.reset(new LX200Generic());
@@ -175,6 +183,9 @@ LX200Generic::LX200Generic()
    GuideNSTID     = 0;
    GuideWETID     = 0;
 
+   currentRA=ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
+   currentDEC=90;
+
    TelescopeCapability cap;
 
    cap.canPark = true;
@@ -183,7 +194,7 @@ LX200Generic::LX200Generic()
    cap.nSlewRate=4;
    SetTelescopeCapability(&cap);
 
-   IDLog("Initializing from generic LX200 device...\n");   
+   DEBUG(INDI::Logger::DBG_DEBUG, "Initializing from Generic LX200 device...");
 }
 
 LX200Generic::~LX200Generic()
@@ -350,11 +361,16 @@ bool LX200Generic::Connect()
     return rc;
 }
 
+bool LX200Generic::checkConnection()
+{
+    return (check_lx200_connection(PortFD) == 0);
+}
+
 bool LX200Generic::Connect(char *port)
 {
     if (isSimulation())
     {
-        IDMessage (getDeviceName(), "Simulated LX200 is online. Retrieving basic data...");
+        DEBUGF (INDI::Logger::DBG_SESSION, "Simulated %s is online.", getDeviceName());
         return true;
     }
 
@@ -365,7 +381,7 @@ bool LX200Generic::Connect(char *port)
     }
 
 
-    if (check_lx200_connection(PortFD))
+    if (checkConnection() == false)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error connecting to Telescope. Telescope is offline.");
         return false;
@@ -373,7 +389,7 @@ bool LX200Generic::Connect(char *port)
 
    //*((int *) UTCOffsetN[0].aux0) = 0;
 
-   IDMessage (getDeviceName(), "Telescope is online. Retrieving basic data...");
+   DEBUGF (INDI::Logger::DBG_SESSION, "%s is online. Retrieving basic data...", getDeviceName());
 
    return true;
 }
@@ -690,9 +706,13 @@ bool LX200Generic::Abort()
      IDSetSwitch(&MovementNSSP, NULL);
      IDSetSwitch(&MovementWESP, NULL);
      IDSetNumber(&EqNP, NULL);
-     IUResetSwitch(&ParkSP);
-     ParkSP.s = IPS_IDLE;
-     IDSetSwitch(&ParkSP, NULL);
+
+     if (capability.canPark)
+     {
+        IUResetSwitch(&ParkSP);
+        ParkSP.s = IPS_IDLE;
+        IDSetSwitch(&ParkSP, NULL);
+     }
 
      IDMessage(getDeviceName(), "Slew aborted.");
      return true;

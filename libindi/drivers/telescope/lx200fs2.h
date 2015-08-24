@@ -1,8 +1,6 @@
-/*
-    LX200 FS2 Driver
-	Copyright (C) 2009 Ferran Casarramona (ferran.casarramona@gmail.com)
-	Based on LX200 Basic driver from:
-    Copyright (C) 2005 Jasem Mutlaq (mutlaqja@ikarustech.com)
+/*    
+    Astro-Electronic FS-2
+    Copyright (C) 2015 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -17,57 +15,38 @@
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-
 */
 
 #ifndef LX200FS2_H
 #define LX200FS2_H
 
-//#include "indidevapi.h"
-//#include "indicom.h"
+#include "lx200generic.h"
 
-#include "lx200genericlegacy.h"
-// To prevent of using mydev from generic by error
-#ifdef mydev
-#undef mydevice
-#endif
-
-class LX200Fs2 : public LX200GenericLegacy
+class LX200FS2 : public LX200Generic
 {
- public:
- LX200Fs2();
- ~LX200Fs2();
+public:
 
- virtual void ISGetProperties (const char *dev);
- virtual void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
- // Not implemented. LX200 generic used. 
- //virtual void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
- //virtual void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
- //virtual void ISPoll ();
- virtual void handleError(ISwitchVectorProperty *svp, int err, const char *msg);
- virtual void handleError(INumberVectorProperty *nvp, int err, const char *msg);
- virtual void handleError(ITextVectorProperty *tvp, int err, const char *msg);
- int check_fs2_connection(int fd); // Added to support firmware versions below 1.19
- 
- protected:
- 
-  const char *DeviceName;
-   /* Numbers */
-  INumber FirmwareVerN[1]; // Firmware version
-    
-   /* Number Vectors */
-  INumberVectorProperty FirmwareVerNP;  
-  
- //*******************************************************/
- /* Connection Routines
- ********************************************************/
- void init_properties();
- void getBasicData();
- virtual void connectTelescope();
- bool is_connected(void);
+    LX200FS2();
+    ~LX200FS2() {}
+
+    virtual bool initProperties();
+    virtual bool updateProperties();
+    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+
+protected:
+
+    virtual const char *getDefaultName();
+    virtual bool isSlewComplete();
+    virtual bool checkConnection();
+
+    virtual bool updateTime(ln_date *utc, double utc_offset);
+    virtual bool updateLocation(double latitude, double longitude, double elevation);
+    virtual bool saveConfigItems(FILE *fp);
+
+    INumber SlewAccuracyN[2];
+    INumberVectorProperty SlewAccuracyNP;
 
 };
 
-void changeLX200FS2DeviceName(const char *newName);
 
 #endif
