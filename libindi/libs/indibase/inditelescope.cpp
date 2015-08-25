@@ -236,8 +236,12 @@ bool INDI::Telescope::ISSnoopDevice(XMLEle *root)
 
     if (isConnected())
     {
-        if (!strcmp(propName, "GEOGRAPHIC_COORD"))
+        if (!strcmp(propName, "GEOGRAPHIC_COORD"))                        
         {
+            // Only accept IPS_OK state
+            if (strcmp(findXMLAttValu(root, "state"), "IPS_OK"))
+                return false;
+
             double longitude=-1, latitude=-1, elevation=-1;
 
             for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
@@ -257,6 +261,10 @@ bool INDI::Telescope::ISSnoopDevice(XMLEle *root)
         }
         else if (!strcmp(propName, "TIME_UTC"))
         {
+            // Only accept IPS_OK state
+            if (strcmp(findXMLAttValu(root, "state"), "IPS_OK"))
+                return false;
+
             char utc[MAXINDITSTAMP], offset[MAXINDITSTAMP];
 
             for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
