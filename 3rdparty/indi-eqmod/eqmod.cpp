@@ -395,7 +395,6 @@ bool EQMod::loadProperties()
     SyncManageSP=getSwitch("SYNCMANAGE");
     BacklashNP=getNumber("BACKLASH");
     UseBacklashSP=getSwitch("USEBACKLASH");
-    //IDLog("initProperties: connected=%d %s", (isConnected()?1:0), this->getDeviceName());
 
     INDI::GuiderInterface::initGuiderProperties(this->getDeviceName(), MOTION_TAB);    
 
@@ -413,7 +412,7 @@ bool EQMod::updateProperties()
     INumber *latitude;  
 
     INDI::Telescope::updateProperties();
-    //IDMessage(this->getDeviceName(),"updateProperties: connected=%d %s", (isConnected()?1:0), this->getDeviceName());
+
     if (isConnected())
     {
     loadProperties();
@@ -546,7 +545,6 @@ bool EQMod::Connect()
 
 bool EQMod::Connect(char *port)
 {
-  //int i;
   ISwitchVectorProperty *connect=getSwitch("CONNECTION");
   //INumber *latitude=IUFindNumber(&LocationNP, "LAT");
   if (connect) {
@@ -581,7 +579,6 @@ bool EQMod::Disconnect()
 
 void EQMod::TimerHit()
 {
-  //IDLog("Telescope Timer Hit\n");
   if(isConnected())
     {
       bool rc;
@@ -1228,9 +1225,7 @@ bool EQMod::Sync(double ra,double dec)
   lst=getLst(juliandate, getLongitude()); 
 
   if (TrackState != SCOPE_TRACKING) {
-    //EqREqNP.s=IPS_IDLE;
     EqNP.s=IPS_ALERT;
-    //IDSetNumber(&EqREqNP, NULL);
     IDSetNumber(&EqNP, NULL);
     DEBUG(INDI::Logger::DBG_WARNING,"Syncs are allowed only when Tracking");
     return false;
@@ -1284,9 +1279,6 @@ bool EQMod::Sync(double ra,double dec)
   IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_TELESCOPE_RA")->value=syncdata.telescopeRA;;
   IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_TELESCOPE_DE")->value=syncdata.telescopeDEC;;
   IDSetNumber(StandardSyncPointNP, NULL);
-  //EqREqNP.s=IPS_IDLE;
-  //EqNP.s=IPS_OK;
-  //IDSetNumber(&EqREqNP, NULL);
 
   DEBUGF(INDI::Logger::DBG_SESSION, "Mount Synced (deltaRA = %.6f deltaDEC = %.6f)", syncdata.deltaRA, syncdata.deltaDEC);
   //IDLog("Mount Synced (deltaRA = %.6f deltaDEC = %.6f)\n", syncdata.deltaRA, syncdata.deltaDEC);
@@ -1381,7 +1373,6 @@ bool EQMod::ISNewNumber (const char *dev, const char *name, double values[], cha
     {
       //  This is for our device
       //  Now lets see if it's something we process here
-
 
       if(strcmp(name,"SLEWSPEEDS")==0)
 	{ 
