@@ -1,8 +1,8 @@
 #if 0
-    INDI
-    Copyright (C) 2003-2006 Elwood C. Downey
+    INDI Driver Functions
 
-                        Updated by Jasem Mutlaq (2003-2010)
+    Copyright (C) 2003-2015 Jasem Mutlaq
+    Copyright (C) 2003-2006 Elwood C. Downey
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -66,7 +66,7 @@ be used as the configuration filename</li>
 </ol>
 \author Jasem Mutlaq
 \note Drivers subclassing INDI::DefaultDevice do not need to call the configuration functions directly as it is handled internally by the class.
-\version libindi 0.7+
+\version libindi 1.1+
 */
 
 

@@ -1,8 +1,8 @@
 #if 0
-    INDI
-    Copyright (C) 2003-2006 Elwood C. Downey
+    INDI Driver Functions
 
-                        Updated by Jasem Mutlaq (2003-2010)
+    Copyright (C) 2003-2015 Jasem Mutlaq
+    Copyright (C) 2003-2006 Elwood C. Downey
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
