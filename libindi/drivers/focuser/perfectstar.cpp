@@ -359,7 +359,7 @@ bool PerfectStar::setPosition(uint32_t ticks)
 
     // Send 4 high bits first
     command[0] = 0x28;
-    command[1] = ticks & 0x400;
+    command[1] = (ticks & 0x40000) >> 16;
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "Set Position (%ld)", ticks);
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%02X %02X)", command[0], command[1]);
@@ -397,7 +397,7 @@ bool PerfectStar::setPosition(uint32_t ticks)
     // Low Byte
     command[1] = ticks & 0xFF;
     // High Byte
-    command[2] = ticks & 0xFF00;
+    command[2] = (ticks & 0xFF00) >> 8;
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%02X %02X %02X)", command[0], command[1], command[2]);
 
