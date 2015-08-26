@@ -236,18 +236,16 @@ void PerfectStar::TimerHit()
             FocusAbsPosN[0].value = simPosition;
         }
 
-        if (status == PS_GOTO)
+        if (status == PS_HALT && targetPosition == FocusAbsPosN[0].value)
         {
-            if (targetPosition == FocusAbsPosN[0].value)
-            {
                 if (FocusRelPosNP.s == IPS_BUSY)
                 {
                     FocusRelPosNP.s = IPS_OK;
                     IDSetNumber(&FocusRelPosNP, NULL);
                 }
+
                 FocusAbsPosNP.s = IPS_OK;
                 DEBUG(INDI::Logger::DBG_DEBUG, "Focuser reached target position.");
-            }
         }
         else if (status == PS_NOOP)
         {
