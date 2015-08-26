@@ -24,6 +24,8 @@
 
 #include "indigps.h"
 
+#define POLLMS  1000
+
 INDI::GPS::GPS()
 {
     //ctor
@@ -59,11 +61,19 @@ bool INDI::GPS::updateProperties()
     if (isConnected())
     {
         // Update GPS and send values to client
-        updateGPS();
+        IPState state = updateGPS();
 
         defineNumber(&LocationNP);
         defineText(&TimeTP);
         defineSwitch(&RefreshSP);
+
+        if (state != IPS_OK)
+        {
+            if (state == IPS_BUSY)
+                DEBUG(INDI::Logger::DBG_SESSION, "GPS fix is in progress...");
+
+            SetTimer(POLLMS);
+        }
     }
     else
     {
@@ -76,10 +86,22 @@ bool INDI::GPS::updateProperties()
 }
 
 
-bool INDI::GPS::updateGPS()
+void INDI::GPS::TimerHit()
+{
+    if (updateGPS() == IPS_OK)
+    {
+        IDSetNumber(&LocationNP, NULL);
+        IDSetText(&TimeTP, NULL);
+        return;
+    }
+
+    SetTimer(POLLMS);
+}
+
+IPState INDI::GPS::updateGPS()
 {
     DEBUG(INDI::Logger::DBG_ERROR, "updateGPS() must be implemented in GPS device child class to update TIME_UTC and GEOGRAPHIC_COORD properties.");
-    return false;
+    return IPS_ALERT;
 }
 
 bool INDI::GPS::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
@@ -89,10 +111,7 @@ bool INDI::GPS::ISNewSwitch (const char *dev, const char *name, ISState *states,
         if (!strcmp(name, RefreshSP.name))
         {
             RefreshS[0].s = ISS_OFF;
-            if (updateGPS())
-                RefreshSP.s = IPS_OK;
-            else
-                RefreshSP.s = IPS_ALERT;
+            RefreshSP.s = updateGPS();
 
             IDSetNumber(&LocationNP, NULL);
             IDSetText(&TimeTP, NULL);
@@ -102,6 +121,3 @@ bool INDI::GPS::ISNewSwitch (const char *dev, const char *name, ISState *states,
 
     return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
-
-
-

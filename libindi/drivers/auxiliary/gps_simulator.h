@@ -40,7 +40,7 @@ class GPSSimulator : public INDI::GPS
     bool Disconnect();
     const char *getDefaultName();
 
-    bool updateGPS();
+    IPState updateGPS();
 
 };
 

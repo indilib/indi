@@ -32,8 +32,10 @@
    \brief Class to provide general functionality of a GPS device.
 
    The INDI::GPS provides a simple interface for GPS devices. It reports time in INDI standard property TIME_UTC. Location is reported in INDI standard property GEOGRAPHIC_COORD
-   Only one function is called by the INDI framework to update GPS data (updateGPS()). If the data is valid, it is sent to the client. updateGPS() is called upon successful connection and whenever
-   the client requests a data refresh.
+   Only one function is called by the INDI framework to update GPS data (updateGPS()). If the data is valid, it is sent to the client. If GPS data is not ready yet, updateGPS will
+   be called every second until the data becomes available and then INDI sends the data to the client.
+
+   updateGPS() is called upon successful connection and whenever the client requests a data refresh.
 
    \example GPS Simulator is available under Auxiliary drivers as a sample implementation of INDI::GPS
    \e IMPORTANT: GEOGRAPHIC_COORD stores latitude and longitude in INDI specific format, refer to <a href="http://indilib.org/develop/developer-manual/101-standard-properties.html">INDI Standard Properties</a> for details.
@@ -56,10 +58,15 @@ class INDI::GPS : public INDI::DefaultDevice
     protected:
 
     /**
-     * @brief updateGPS Retrieve Location & Time from GPS. Update LocationNP & TimeTP properties withouit sending them to the client (i.e. IDSetXXX).
-     * @return true if successful and both time and locatoin data are valid, false otherwise.
+     * @brief updateGPS Retrieve Location & Time from GPS. Update LocationNP & TimeTP properties (value and state) without sending them to the client (i.e. IDSetXXX).
+     * @return Return overall state. The state should be IPS_OK if data is valid. IPS_BUSY if GPS fix is in progress. IPS_ALERT is there is an error. The clients will only accept values with IPS_OK state.
      */
-    virtual bool updateGPS();
+    virtual IPState updateGPS();
+
+    /**
+     * @brief TimerHit Keep calling updateGPS() until it is successfull, if it fails upon first connection.
+     */
+    virtual void TimerHit();
 
     //  A number vector that stores lattitude and longitude
     INumberVectorProperty LocationNP;

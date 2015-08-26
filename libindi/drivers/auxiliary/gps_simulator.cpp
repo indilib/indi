@@ -109,7 +109,7 @@ bool GPSSimulator::Disconnect()
     return true;
 }
 
-bool GPSSimulator::updateGPS()
+IPState GPSSimulator::updateGPS()
 {
     static char ts[32];
     struct tm *utc, *local;
@@ -133,6 +133,6 @@ bool GPSSimulator::updateGPS()
 
     LocationNP.s = IPS_OK;
 
-    return true;
+    return IPS_OK;
 }
 
