@@ -165,7 +165,7 @@ bool PerfectStar::initProperties()
     INDI::Focuser::initProperties();
 
     // Max Position
-    IUFillNumber(&MaxPositionN[0], "Steps", "", "%.f", 0, 500000, 0., 100000);
+    IUFillNumber(&MaxPositionN[0], "Steps", "", "%.f", 0, 500000, 0., 10000);
     IUFillNumberVector(&MaxPositionNP, MaxPositionN, 1, getDeviceName(), "Max Position", "", FOCUS_SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Sync to a particular position
@@ -236,7 +236,20 @@ void PerfectStar::TimerHit()
             FocusAbsPosN[0].value = simPosition;
         }
 
-        if (status == PS_NOOP)
+        if (status == PS_GOTO)
+        {
+            if (targetPosition == FocusAbsPosN[0].value)
+            {
+                if (FocusRelPosNP.s == IPS_BUSY)
+                {
+                    FocusRelPosNP.s = IPS_OK;
+                    IDSetNumber(&FocusRelPosNP, NULL);
+                }
+                FocusAbsPosNP.s = IPS_OK;
+                DEBUG(INDI::Logger::DBG_DEBUG, "Focuser reached target position.");
+            }
+        }
+        else if (status == PS_NOOP)
         {
             if (FocusRelPosNP.s == IPS_BUSY)
             {
@@ -382,9 +395,9 @@ bool PerfectStar::setPosition(uint32_t ticks)
     // Send lower 16 bit
     command[0] = 0x20;
     // Low Byte
-    command[1] = ticks & 0xF;
+    command[1] = ticks & 0xFF;
     // High Byte
-    command[2] = ticks & 0xF0;
+    command[2] = ticks & 0xFF00;
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%02X %02X %02X)", command[0], command[1], command[2]);
 
@@ -631,6 +644,11 @@ bool PerfectStar::getStatus(PS_STATUS *currentStatus)
             DEBUG(INDI::Logger::DBG_DEBUG, "State: Moving in.");
             break;
 
+        case 3:
+            *currentStatus = PS_GOTO;
+            DEBUG(INDI::Logger::DBG_DEBUG, "State: Goto.");
+            break;
+
         case 2:
             *currentStatus = PS_OUT;
             DEBUG(INDI::Logger::DBG_DEBUG, "State: Moving out.");
@@ -642,7 +660,7 @@ bool PerfectStar::getStatus(PS_STATUS *currentStatus)
             break;
 
     default:
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error: Unknown status (%d)", response[1]);
+            DEBUGF(INDI::Logger::DBG_WARNING, "Warning: Unknown status (%d)", response[1]);
             return false;
             break;
     }
