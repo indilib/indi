@@ -55,7 +55,7 @@ public:
     Skywatcher(EQMod *t);
     ~Skywatcher();
    
-    bool Connect(char *port) throw (EQModError);
+    bool Connect(const char *port, uint16_t baud) throw (EQModError);
     bool Disconnect() throw (EQModError);
     void setDebug (bool enable);
     const char *getDeviceName ();

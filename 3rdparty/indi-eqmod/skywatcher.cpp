@@ -89,14 +89,14 @@ const char *Skywatcher::getDeviceName ()
 
 /* API */
 
-bool Skywatcher::Connect(char *port)  throw (EQModError)
+bool Skywatcher::Connect(const char *port, uint16_t baud)  throw (EQModError)
 {   
   int err_code = 0;
   unsigned long tmpMCVersion=0;
 #ifdef WITH_SIMULATOR
   if (!(isSimulation())) {
 #endif
-  if ((err_code=tty_connect(port, 9600, 8, 0, 1, &fd)) != TTY_OK)
+  if ((err_code=tty_connect(port, baud, 8, 0, 1, &fd)) != TTY_OK)
     {
       char ttyerrormsg[ERROR_MSG_LENGTH];
       tty_error_msg(err_code, ttyerrormsg, ERROR_MSG_LENGTH);

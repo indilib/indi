@@ -536,7 +536,7 @@ bool EQMod::Connect()
 
     if(isConnected()) return true;
 
-    rc=Connect(PortT[0].text);
+    rc=Connect(PortT[0].text, atoi(IUFindOnSwitch(&BaudRateSP)->name));
 
     if(rc) {
  
@@ -545,7 +545,7 @@ bool EQMod::Connect()
     return rc;
 }
 
-bool EQMod::Connect(char *port)
+bool EQMod::Connect(const char *port, uint16_t baud)
 {
   ISwitchVectorProperty *connect=getSwitch("CONNECTION");
   //INumber *latitude=IUFindNumber(&LocationNP, "LAT");
@@ -554,7 +554,7 @@ bool EQMod::Connect(char *port)
     IDSetSwitch(connect,"connecting to port %s",port);
   }
   try {
-    mount->Connect(port);
+    mount->Connect(port, baud);
     // Mount initialisation is in updateProperties as it sets directly Indi properties which should be defined 
   } catch(EQModError e) {
     return(e.DefaultHandleException(this));
