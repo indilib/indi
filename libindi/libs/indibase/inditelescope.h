@@ -115,10 +115,11 @@ class INDI::Telescope : public INDI::DefaultDevice
         /** \brief INDI::Telescope implementation of Connect() assumes 9600 baud, 8 bit word, even parity, and no stop bit. Override function if communication paramaters
           are different
           \param port Port to connect to
+          \param baud Baud rate
           \return True if connection is successful, false otherwise
           \warning Do not call this function directly, it is called by INDI::Telescope Connect() function.
         */
-        virtual bool Connect(const char *port);
+        virtual bool Connect(const char *port, uint16_t baud);
 
 
         //Park
@@ -373,6 +374,9 @@ class INDI::Telescope : public INDI::DefaultDevice
         // Active devices to snoop
         ITextVectorProperty ActiveDeviceTP;
         IText ActiveDeviceT[1];
+
+        ISwitch BaudRateS[6];
+        ISwitchVectorProperty BaudRateSP;
 
         TelescopeCapability capability;        
         int last_we_motion, last_ns_motion;

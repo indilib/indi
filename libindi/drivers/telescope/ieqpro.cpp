@@ -658,7 +658,7 @@ bool IEQPro::UnPark()
         return false;
 }
 
-bool IEQPro::Connect(const char *port)
+bool IEQPro::Connect(const char *port, uint16_t baud)
 {
     set_ieqpro_device(getDeviceName());
     sim = isSimulation();
@@ -672,7 +672,7 @@ bool IEQPro::Connect(const char *port)
        set_sim_time_source(TS_GPS);
        set_sim_hemisphere(HEMI_NORTH);
     }
-    else if (tty_connect(port, 9600, 8, 0, 1, &PortFD) != TTY_OK)
+    else if (tty_connect(port, baud, 8, 0, 1, &PortFD) != TTY_OK)
     {
       DEBUGF(INDI::Logger::DBG_ERROR, "Error connecting to port %s. Make sure you have BOTH write and read permission to the port.", port);
       return false;

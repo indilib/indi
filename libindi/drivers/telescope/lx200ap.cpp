@@ -715,7 +715,7 @@ bool LX200AstroPhysics::UnPark()
     return true;
 }
 
-bool LX200AstroPhysics::Connect(char *port)
+bool LX200AstroPhysics::Connect(const char *port, uint16_t baud)
 {
     if (isSimulation())
     {
@@ -723,7 +723,7 @@ bool LX200AstroPhysics::Connect(char *port)
         return true;
     }
 
-    if (tty_connect(port, 9600, 8, 0, 1, &PortFD) != TTY_OK)
+    if (tty_connect(port, baud, 8, 0, 1, &PortFD) != TTY_OK)
     {
       DEBUGF(INDI::Logger::DBG_ERROR, "Error connecting to port %s. Make sure you have BOTH write and read permission to your port.", port);
       return false;

@@ -42,7 +42,7 @@ protected:
  virtual bool initProperties();
  virtual bool updateProperties();
 
- virtual bool Connect(const char *port);
+ virtual bool Connect(const char *port, uint16_t baud);
  virtual bool Disconnect();
 
  virtual bool ReadScopeStatus();

@@ -13,7 +13,7 @@ public:
 
     virtual const char *getDefaultName();
     virtual bool Connect();
-    virtual bool Connect(char *);
+    virtual bool Connect(const char *port, uint16_t baud);
     virtual bool Disconnect();
     virtual bool ReadScopeStatus();
     virtual bool initProperties();
@@ -41,9 +41,6 @@ public:
     bool Sync(double ra, double dec);
 
     private:
-
-    double range24(double r);
-    double range360(double r);
 
     double currentRA;
     double currentDEC;

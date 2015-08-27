@@ -92,6 +92,14 @@ bool INDI::Telescope::initProperties()
     IUFillText(&PortT[0],"PORT","Port","/dev/ttyUSB0");
     IUFillTextVector(&PortTP,PortT,1,getDeviceName(),"DEVICE_PORT","Ports",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
 
+    IUFillSwitch(&BaudRateS[0], "9600", "", ISS_ON);
+    IUFillSwitch(&BaudRateS[1], "19200", "", ISS_OFF);
+    IUFillSwitch(&BaudRateS[2], "38400", "", ISS_OFF);
+    IUFillSwitch(&BaudRateS[3], "57600", "", ISS_OFF);
+    IUFillSwitch(&BaudRateS[4], "115200", "", ISS_OFF);
+    IUFillSwitch(&BaudRateS[5], "230400", "", ISS_OFF);
+    IUFillSwitchVector(&BaudRateSP, BaudRateS, 6, getDeviceName(),"TELESCOPE_BAUD_RATE", "Baud Rate", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
     IUFillSwitch(&MovementNSS[DIRECTION_NORTH], "MOTION_NORTH", "North", ISS_OFF);
     IUFillSwitch(&MovementNSS[DIRECTION_SOUTH], "MOTION_SOUTH", "South", ISS_OFF);
     IUFillSwitchVector(&MovementNSSP, MovementNSS, 2, getDeviceName(),"TELESCOPE_MOTION_NS", "Motion N/S", MOTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
@@ -134,6 +142,7 @@ void INDI::Telescope::ISGetProperties (const char *dev)
     DefaultDevice::ISGetProperties(dev);
 
     defineText(&PortTP);
+    defineSwitch(&BaudRateSP);
 
     if(isConnected())
     {
@@ -305,6 +314,7 @@ bool INDI::Telescope::saveConfigItems(FILE *fp)
 {
     IUSaveConfigText(fp, &ActiveDeviceTP);
     IUSaveConfigText(fp, &PortTP);
+    IUSaveConfigSwitch(fp, &BaudRateSP);
     if (capability.hasLocation)
         IUSaveConfigNumber(fp,&LocationNP);
     IUSaveConfigNumber(fp, &ScopeParametersNP);
@@ -840,6 +850,14 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
         return true;
       }
 
+      if (!strcmp(name, BaudRateSP.name))
+      {
+          IUUpdateSwitch(&BaudRateSP, states, names, n);
+          BaudRateSP.s = IPS_OK;
+          IDSetSwitch(&BaudRateSP, NULL);
+          return true;
+      }
+
     }
 
     controller->ISNewSwitch(dev, name, states, names, n);
@@ -856,7 +874,7 @@ bool INDI::Telescope::Connect()
     if(isConnected())
         return true;
 
-    rc=Connect(PortT[0].text);
+    rc=Connect(PortT[0].text, atoi(IUFindOnSwitch(&BaudRateSP)->name));
 
     if(rc)
         SetTimer(POLLMS);
@@ -864,7 +882,7 @@ bool INDI::Telescope::Connect()
 }
 
 
-bool INDI::Telescope::Connect(const char *port)
+bool INDI::Telescope::Connect(const char *port, uint16_t baud)
 {
     //  We want to connect to a port
     //  For now, we will assume it's a serial port
@@ -874,7 +892,7 @@ bool INDI::Telescope::Connect(const char *port)
 
     DEBUGF(Logger::DBG_DEBUG, "INDI::Telescope connecting to %s",port);
 
-    if ( (connectrc = tty_connect(port, 9600, 8, 0, 1, &PortFD)) != TTY_OK)
+    if ( (connectrc = tty_connect(port, baud, 8, 0, 1, &PortFD)) != TTY_OK)
     {
         tty_error_msg(connectrc, errorMsg, MAXRBUF);
 

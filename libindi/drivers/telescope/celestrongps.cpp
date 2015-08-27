@@ -473,7 +473,7 @@ bool CelestronGPS::Connect()
 
     if(isConnected()) return true;
 
-    rc=Connect(PortT[0].text);
+    rc=Connect(PortT[0].text, atoi(IUFindOnSwitch(&BaudRateSP)->name));
 
     if(rc)
         SetTimer(POLLMS);
@@ -481,7 +481,7 @@ bool CelestronGPS::Connect()
     return rc;
 }
 
-bool CelestronGPS::Connect(char *port)
+bool CelestronGPS::Connect(const char *port, uint16_t baud)
 {
     if (isSimulation())
     {
@@ -491,7 +491,7 @@ bool CelestronGPS::Connect(char *port)
         set_sim_ra(0);
         set_sim_dec(90);
     }
-    else if (tty_connect(port, 9600, 8, 0, 1, &PortFD) != TTY_OK)
+    else if (tty_connect(port, baud, 8, 0, 1, &PortFD) != TTY_OK)
     {
       DEBUGF(INDI::Logger::DBG_ERROR, "Error connecting to port %s. Make sure you have BOTH write and read permission to the port.", port);
       return false;

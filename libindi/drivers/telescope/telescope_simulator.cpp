@@ -226,7 +226,7 @@ bool ScopeSim::Connect()
 
     if(isConnected()) return true;
 
-    rc=Connect(PortT[0].text);
+    rc=Connect(PortT[0].text, atoi(IUFindOnSwitch(&BaudRateSP)->name));
 
     if(rc)
         SetTimer(POLLMS);
@@ -234,8 +234,9 @@ bool ScopeSim::Connect()
     return rc;
 }
 
-bool ScopeSim::Connect(char *port)
+bool ScopeSim::Connect(const char *port, uint16_t baud)
 {
+   DEBUGF(INDI::Logger::DBG_SESSION, "Simulating connecting to port %s with speed %d", port, baud);
    DEBUG(INDI::Logger::DBG_SESSION, "Telescope simulator is online.");
    return true;
 }
@@ -808,22 +809,6 @@ IPState ScopeSim::GuideWest(float ms)
 
 }
 
-double ScopeSim::range24(double r)
-{
-  double res = r;
-  while (res<0.0) res+=24.0;
-  while (res>24.0) res-=24.0;
-  return res;
-}
-
-double ScopeSim::range360(double r)
-{
-  double res = r;
-  while (res<0.0) res+=360.0;
-  while (res>360.0) res-=360.0;
-  return res;
-}
-
 bool ScopeSim::updateLocation(double latitude, double longitude, double elevation)
 {
   INDI_UNUSED(elevation);
@@ -834,7 +819,7 @@ bool ScopeSim::updateLocation(double latitude, double longitude, double elevatio
       lnobserver.lng -= 360;
   lnobserver.lat =  latitude;
 
-  DEBUGF(INDI::Logger::DBG_SESSION,"Located updated: long = %g lat = %g", lnobserver.lng, lnobserver.lat);
+  DEBUGF(INDI::Logger::DBG_SESSION,"Location updated: Longitude (%g) Latitude (%g)", lnobserver.lng, lnobserver.lat);
   return true;
 }
 

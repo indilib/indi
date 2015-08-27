@@ -237,7 +237,7 @@ bool LX200Basic::Connect()
 
     if(isConnected()) return true;
 
-    rc=Connect(PortT[0].text);
+    rc=Connect(PortT[0].text, atoi(IUFindOnSwitch(&BaudRateSP)->name));
 
     if(rc)
         SetTimer(POLLMS);
@@ -248,7 +248,7 @@ bool LX200Basic::Connect()
 /**************************************************************************************
 **
 ***************************************************************************************/
-bool LX200Basic::Connect(char *port)
+bool LX200Basic::Connect(const char *port, uint16_t baud)
 {
     if (isSimulation())
     {
@@ -256,7 +256,7 @@ bool LX200Basic::Connect(char *port)
         return true;
     }
 
-    if (tty_connect(port, 9600, 8, 0, 1, &PortFD) != TTY_OK)
+    if (tty_connect(port, baud, 8, 0, 1, &PortFD) != TTY_OK)
     {
       DEBUGF(INDI::Logger::DBG_ERROR, "Error connecting to port %s. Make sure you have BOTH write and read permission to your port.", port);
       return false;
