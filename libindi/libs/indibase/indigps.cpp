@@ -88,6 +88,9 @@ bool INDI::GPS::updateProperties()
 
 void INDI::GPS::TimerHit()
 {
+    if (isConnected() == false)
+        return;
+
     if (updateGPS() == IPS_OK)
     {
         IDSetNumber(&LocationNP, NULL);
@@ -111,11 +114,10 @@ bool INDI::GPS::ISNewSwitch (const char *dev, const char *name, ISState *states,
         if (!strcmp(name, RefreshSP.name))
         {
             RefreshS[0].s = ISS_OFF;
-            RefreshSP.s = updateGPS();
-
-            IDSetNumber(&LocationNP, NULL);
-            IDSetText(&TimeTP, NULL);
+            RefreshSP.s = IPS_OK;
             IDSetSwitch(&RefreshSP, NULL);
+
+            TimerHit();
         }
     }
 
