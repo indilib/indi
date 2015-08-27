@@ -199,6 +199,8 @@ EQMod::EQMod()
   cap.canPark = true;
   cap.canSync = true;
   cap.canAbort = true;
+  cap.hasLocation=true;
+  cap.hasTime=true;
   cap.nSlewRate=SLEWMODES-1;
 
   SetTelescopeCapability(&cap);
