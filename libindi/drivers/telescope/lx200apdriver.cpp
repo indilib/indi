@@ -44,12 +44,12 @@
 #define LX200_TIMEOUT	5		/* FD timeout in seconds */
 
 char lx200ap_name[MAXINDIDEVICE];
-unsigned int DBG_SCOPE;
+unsigned int AP_DBG_SCOPE;
 
 void set_lx200ap_name(const char *deviceName, unsigned int debug_level)
 {
     strncpy(lx200ap_name, deviceName, MAXINDIDEVICE);
-    DBG_SCOPE = debug_level;
+    AP_DBG_SCOPE = debug_level;
 }
 
 int check_lx200ap_connection(int fd)
@@ -102,7 +102,7 @@ int getAPUTCOffset(int fd, double *value)
 
     char temp_string[16];
 
-    DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", "#:GG#");
+    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD (%s)", "#:GG#");
 
     if ( (error_type = tty_write_string(fd, "#:GG#", &nbytes_write)) != TTY_OK)
 	return error_type;
@@ -115,7 +115,7 @@ int getAPUTCOffset(int fd, double *value)
 
     tcflush(fd, TCIFLUSH);
 
-    DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "RES (%s)", temp_string);
+    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "RES (%s)", temp_string);
 
 /* Negative offsets, see AP keypad manual p. 77 */
     if((temp_string[0]== 'A') || ((temp_string[0]== '0')&&(temp_string[1]== '0')) ||(temp_string[0]== '@'))
@@ -227,7 +227,7 @@ int setAPObjectAZ(int fd, double az)
 
     snprintf(temp_string, sizeof( temp_string ), "#:Sz %03d*%02d:%02d#", h, m, s);
 
-    DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", temp_string);
+    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD (%s)", temp_string);
 
     return (setStandardProcedure(fd, temp_string));
 }
@@ -251,7 +251,7 @@ int setAPObjectAlt(int fd, double alt)
 	snprintf(temp_string, sizeof( temp_string ), "#:Sa %+02d*%02d:%02d#", d, m, s) ;
     }	
 
-    DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", temp_string);
+    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD (%s)", temp_string);
 
     return (setStandardProcedure(fd, temp_string));
 }
@@ -265,7 +265,7 @@ int setAPUTCOffset(int fd, double hours)
     
     snprintf(temp_string, sizeof( temp_string ), "#:SG %+03d:%02d:%02d#", h, m, s);
 
-    DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", temp_string);
+    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD (%s)", temp_string);
 
     return (setStandardProcedure(fd, temp_string));
 }
@@ -275,7 +275,7 @@ int APSyncCM(int fd, char *matchedObject)
     int nbytes_write=0;
     int nbytes_read=0;
 
-    DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", "#:CM#");
+    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD (%s)", "#:CM#");
 
     if ( (error_type = tty_write_string(fd, "#:CM#", &nbytes_write)) != TTY_OK)
         return error_type ;
@@ -285,7 +285,7 @@ int APSyncCM(int fd, char *matchedObject)
    
     matchedObject[nbytes_read-1] = '\0';
 
-    DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "RES (%s)", matchedObject);
+    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "RES (%s)", matchedObject);
   
     /* Sleep 10ms before flushing. This solves some issues with LX200 compatible devices. */
     usleep(10000);
@@ -301,7 +301,7 @@ int APSyncCMR(int fd, char *matchedObject)
     int nbytes_write=0;
     int nbytes_read=0;
     
-    DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", "#:CMR#");
+    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD (%s)", "#:CMR#");
 
     if ( (error_type = tty_write_string(fd, "#:CMR#", &nbytes_write)) != TTY_OK)
         return error_type;
@@ -312,7 +312,7 @@ int APSyncCMR(int fd, char *matchedObject)
 
     matchedObject[nbytes_read-1] = '\0';
 
-    DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "RES (%s)", matchedObject);
+    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "RES (%s)", matchedObject);
   
     /* Sleep 10ms before flushing. This solves some issues with LX200 compatible devices. */
     usleep(10000);
@@ -332,7 +332,7 @@ int selectAPMoveToRate(int fd, int moveToRate)
 	/* 1200x */
 	case 0:
         DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPMoveToRate: Setting move to rate to 1200x");
-        DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", "#:RC3#");
+        DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD (%s)", "#:RC3#");
 
 	    if ( (error_type = tty_write_string(fd, "#:RC3#", &nbytes_write)) != TTY_OK)
             return error_type;
@@ -341,7 +341,7 @@ int selectAPMoveToRate(int fd, int moveToRate)
 	    /* 600x */
 	case 1:
         DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPMoveToRate: Setting move to rate to 600x");
-        DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", "#:RC2#");
+        DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD (%s)", "#:RC2#");
 	    if ( (error_type = tty_write_string(fd, "#:RC2#", &nbytes_write)) != TTY_OK)
 		return error_type;
 	    break;
@@ -349,7 +349,7 @@ int selectAPMoveToRate(int fd, int moveToRate)
 	    /* 64x */
 	case 2:
         DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPMoveToRate: Setting move to rate to 64x");
-        DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", "#:RC1#");
+        DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD (%s)", "#:RC1#");
 
 	    if ( (error_type = tty_write_string(fd, "#:RC1#", &nbytes_write)) != TTY_OK)
             return error_type;
@@ -357,7 +357,7 @@ int selectAPMoveToRate(int fd, int moveToRate)
 	    /* 12x*/
 	case 3:
         DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPMoveToRate: Setting move to rate to 12x");
-        DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", "#:RC0#");
+        DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD (%s)", "#:RC0#");
 
 	    if ( (error_type = tty_write_string(fd, "#:RC0#", &nbytes_write)) != TTY_OK)
             return error_type;
@@ -379,7 +379,7 @@ int selectAPSlewRate(int fd, int slewRate)
 	case 0:
 
         DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPSlewRate: Setting slew to rate to 1200x");
-        DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", "#:RS2#");
+        DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD (%s)", "#:RS2#");
 
 	    if ( (error_type = tty_write_string(fd, "#:RS2#", &nbytes_write)) != TTY_OK)
             return error_type;
@@ -389,7 +389,7 @@ int selectAPSlewRate(int fd, int slewRate)
 	case 1:
 
         DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPSlewRate: Setting slew to rate to 900x");
-        DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", "#:RS1#");
+        DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD (%s)", "#:RS1#");
 
 	    if ( (error_type = tty_write_string(fd, "#:RS1#", &nbytes_write)) != TTY_OK)
             return error_type;
@@ -399,7 +399,7 @@ int selectAPSlewRate(int fd, int slewRate)
 	case 2:
 
         DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPSlewRate: Setting slew to rate to 600x");
-        DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", "#:RS0#");
+        DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD (%s)", "#:RS0#");
 
 	    if ( (error_type = tty_write_string(fd, "#:RS0#", &nbytes_write)) != TTY_OK)
             return error_type;
@@ -422,7 +422,7 @@ int selectAPTrackingMode(int fd, int trackMode)
     case 0:
 
         DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPTrackingMode: Setting tracking mode to sidereal.");
-        DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", "#:RT2#");
+        DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD (%s)", "#:RT2#");
 
     if ( (error_type = tty_write_string(fd, "#:RT2#", &nbytes_write)) != TTY_OK)
         return error_type;
@@ -432,7 +432,7 @@ int selectAPTrackingMode(int fd, int trackMode)
     case 1:
 
         DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPTrackingMode: Setting tracking mode to solar.");
-        DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", "#:RT1#");
+        DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD (%s)", "#:RT1#");
 
     if ( (error_type = tty_write_string(fd, "#:RT1#", &nbytes_write)) != TTY_OK)
         return error_type;
@@ -442,7 +442,7 @@ int selectAPTrackingMode(int fd, int trackMode)
     case 2:
 
         DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPTrackingMode: Setting tracking mode to lunar.");
-        DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", "#:RT0#");
+        DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD (%s)", "#:RT0#");
 
 	    if ( (error_type = tty_write_string(fd, "#:RT0#", &nbytes_write)) != TTY_OK)
 		return error_type;
@@ -452,7 +452,7 @@ int selectAPTrackingMode(int fd, int trackMode)
 	case 3:
 
         DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPTrackingMode: Setting tracking mode to Zero.");
-        DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", "#:RT9#");
+        DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD (%s)", "#:RT9#");
 
 	    if ( (error_type = tty_write_string(fd, "#:RT9#", &nbytes_write)) != TTY_OK)
             return error_type;
@@ -474,13 +474,13 @@ int swapAPButtons(int fd, int currentSwap)
     {
 	case 0:
 
-        DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", "#:NS#");
+        DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD (%s)", "#:NS#");
 	    if ( (error_type = tty_write_string(fd, "#:NS#", &nbytes_write)) != TTY_OK)
             return error_type;
 	    break;
 	    
 	case 1:
-         DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", "#:EW#");
+         DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD (%s)", "#:EW#");
 	    if ( (error_type = tty_write_string(fd, "#:EW#", &nbytes_write)) != TTY_OK)
             return error_type;
 	    break;
@@ -502,7 +502,7 @@ int setAPObjectRA(int fd, double ra)
 
  snprintf(temp_string, sizeof( temp_string ), "#:Sr %02d:%02d:%02d#", h, m, s);
 
- DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", temp_string);
+ DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD (%s)", temp_string);
 
  return (setStandardProcedure(fd, temp_string));
 }
@@ -523,7 +523,7 @@ int setAPObjectDEC(int fd, double dec)
       snprintf(temp_string, sizeof( temp_string ),   "#:Sd %+03d*%02d:%02d#", d, m, s);
   }
 
- DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", temp_string);
+ DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD (%s)", temp_string);
 
 
   return (setStandardProcedure(fd, temp_string));
@@ -537,7 +537,7 @@ int setAPSiteLongitude(int fd, double Long)
    getSexComponents(Long, &d, &m, &s);
    snprintf(temp_string, sizeof( temp_string ), "#:Sg %03d*%02d:%02d#", d, m, s);
 
-    DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", temp_string);
+    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD (%s)", temp_string);
 
    return (setStandardProcedure(fd, temp_string));
 }
@@ -550,7 +550,7 @@ int setAPSiteLatitude(int fd, double Lat)
    getSexComponents(Lat, &d, &m, &s);
    snprintf(temp_string, sizeof( temp_string ), "#:St %+03d*%02d:%02d#", d, m, s);
 
-   DEBUGFDEVICE(lx200ap_name, DBG_SCOPE, "CMD (%s)", temp_string);
+   DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD (%s)", temp_string);
 
    return (setStandardProcedure(fd, temp_string));
 }

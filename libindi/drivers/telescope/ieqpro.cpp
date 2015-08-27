@@ -113,6 +113,8 @@ IEQPro::IEQPro()
     cap.canPark = true;
     cap.canSync = true;
     cap.canAbort = true;
+    cap.hasLocation = true;
+    cap.hasTime  = true;
     cap.nSlewRate= 9;
 
     SetTelescopeCapability(&cap);

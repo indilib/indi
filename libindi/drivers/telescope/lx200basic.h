@@ -21,95 +21,48 @@
 #ifndef LX200BASIC_H
 #define LX200BASIC_H
 
-#include "indidevapi.h"
-#include "indicom.h"
+#include "inditelescope.h"
 
-class LX200Basic
+class LX200Basic : public INDI::Telescope
 {
  public:
  LX200Basic();
  ~LX200Basic();
 
- void ISGetProperties (const char *dev);
- void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
- void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
- void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
- void ISPoll ();
+ virtual const char *getDefaultName();
+ virtual bool Connect();
+ virtual bool Connect(char *);
+ virtual bool Disconnect();
+ virtual bool ReadScopeStatus();
+ virtual void ISGetProperties(const char *dev);
+ virtual bool initProperties();
+ virtual bool updateProperties();
+ virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
 
- void connection_lost();
- void connection_resumed();
+protected:
+
+ virtual bool Abort();
+ virtual bool Goto(double,double);
+ virtual bool Sync(double ra, double dec);
+
+ virtual void debugTriggered(bool enable);
+
+ virtual void getBasicData();
+
 
 private:
 
-  enum LX200_STATUS { LX200_SLEW, LX200_TRACK, LX200_SYNC, LX200_PARK };
+ bool isSlewComplete();
+ void slewError(int slewCode);
+ void mountSim();
 
-  /* Switches */
-  ISwitch ConnectS[2];
-  ISwitch OnCoordSetS[3];
-  ISwitch AbortSlewS[1];
-  
-  /* Texts */
-  IText PortT[1];
-  IText ObjectT[1];
-
-  /* Numbers */
-  INumber EquatorialCoordsN[2];
   INumber SlewAccuracyN[2];
-  INumber TrackAccuracyN[2];
-  
-  /* Switch Vectors */
-  ISwitchVectorProperty ConnectSP;
-  ISwitchVectorProperty OnCoordSetSP;
-  ISwitchVectorProperty AbortSlewSP;
-  
-   /* Number Vectors */
-  INumberVectorProperty EquatorialCoordsNP;
   INumberVectorProperty SlewAccuracyNP;
-  INumberVectorProperty TrackAccuracyNP;
-  
-  /* Text Vectors */
-  ITextVectorProperty PortTP;
-  ITextVectorProperty ObjectTP;
 
- /*******************************************************/
- /* Connection Routines
- ********************************************************/
- void init_properties();
- void get_initial_data();
- void connect_telescope();
- bool is_connected(void);
- 
- /*******************************************************/
- /* Misc routines
- ********************************************************/
- bool process_coords();
- int get_switch_index(ISwitchVectorProperty *sp);
-
- /*******************************************************/
- /* Simulation Routines
- ********************************************************/
- void enable_simulation(bool enable);
- 
- /*******************************************************/
- /* Error handling routines
- ********************************************************/
- void slew_error(int slewCode);
- void reset_all_properties();
- void handle_error(INumberVectorProperty *nvp, int err, const char *msg);
- void correct_fault();
-
- protected:
-
-  double JD;				/* Julian Date */
-  double lastRA;
-  double lastDEC;
   bool   simulation;
-  bool   fault;
-  int    fd;				/* Telescope tty file descriptor */
-
-  int currentSet;
-  int lastSet;
   double targetRA, targetDEC;
+  double currentRA, currentDEC;
+  unsigned int DBG_SCOPE;
 
 };
 

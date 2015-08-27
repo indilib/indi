@@ -1354,7 +1354,7 @@ libindi/drivers/telescope/lx200basic.cpp -text
 libindi/drivers/telescope/lx200basic.h -text
 libindi/drivers/telescope/lx200classic.cpp -text
 libindi/drivers/telescope/lx200classic.h -text
-libindi/drivers/telescope/lx200driver.c -text
+libindi/drivers/telescope/lx200driver.cpp -text
 libindi/drivers/telescope/lx200driver.h -text
 libindi/drivers/telescope/lx200fs2.cpp -text
 libindi/drivers/telescope/lx200fs2.h -text

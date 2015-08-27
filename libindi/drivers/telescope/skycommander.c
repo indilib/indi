@@ -32,11 +32,16 @@
 #include "indicom.h"
 #include "lx200driver.h"
 
+#ifndef _WIN32
+#include <termios.h>
+#endif
+
 #define mydev		"Sky Commander"
 #define BASIC_GROUP	"Main Control"
 #define POLLMS		1000
 #define currentRA	eq[0].value
 #define currentDEC	eq[1].value
+#define SKYCOMMANDER_TIMEOUT    5
 
 static void ISPoll(void *);
 static void ISInit(void);
@@ -135,6 +140,35 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
 void ISSnoopDevice (XMLEle *root) 
 {
   INDI_UNUSED(root);
+}
+
+int updateSkyCommanderCoord(int fd, double *ra, double *dec)
+{
+  char coords[16];
+  char CR[1] = { (char) 0x0D };
+  float RA=0.0, DEC=0.0;
+  int error_type;
+  int nbytes_read=0;
+
+  error_type = write(fd, CR, 1);
+
+  error_type = tty_read(fd, coords, 16, SKYCOMMANDER_TIMEOUT, &nbytes_read);
+  /*read_ret = portRead(coords, 16, LX200_TIMEOUT);*/
+  tcflush(fd, TCIFLUSH);
+
+  nbytes_read = sscanf(coords, " %g %g", &RA, &DEC);
+
+  if (nbytes_read < 2)
+  {
+   IDLog("Error in Sky commander number format [%s], exiting.\n", coords);
+   return error_type;
+  }
+
+  *ra  = RA;
+  *dec = DEC;
+
+  return 0;
+
 }
 
 void ISPoll (void *p)

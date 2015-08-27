@@ -110,10 +110,6 @@ enum TFreq { LX200_TRACK_SIDEREAL, LX200_TRACK_SOLAR, LX200_TRACK_LUNAR, LX200_T
 #define slewToPark(fd)					write(fd, "#:hP#", 5)
 #define initTelescope(fd)					write(fd, "#:I#", 4)
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**************************************************************************
  Basic I/O - OBSELETE
 **************************************************************************/
@@ -152,8 +148,6 @@ int getSiteLongitude(int fd, int *ddd, int *mm);
 int getCalenderDate(int fd, char *date);
 /* Get site Name */
 int getSiteName(int fd, char *siteName, int siteNum);
-/* Get Number of Bars */
-int getNumberOfBars(int fd, int *value);
 /* Get Home Search Status */
 int getHomeSearchStatus(int fd, int *status);
 /* Get OTA Temperature */
@@ -229,8 +223,6 @@ int HaltMovement(int fd, int direction);
 int selectTrackingMode(int fd, int trackMode);
 /* Is Slew complete? 0 if complete, 1 if in progress, otherwise return an error */
 int isSlewComplete(int fd);
-/* Select Astro-Physics tracking mode */
-int selectAPTrackingMode(int fd, int trackMode);
 /* Send Pulse-Guide command (timed guide move), two valid directions can be stacked */
 int SendPulseCmd(int fd, int direction, int duration_msec);
 
@@ -247,10 +239,6 @@ int selectCatalogObject(int fd, int catalog, int NNNN);
 /* Select a sub catalog */
 int selectSubCatalog(int fd, int catalog, int subCatalog);
 /* Set Debug */
-void setLX200Debug(int value);
-
-#ifdef __cplusplus
-}
-#endif
+void setLX200Debug(const char *deviceName, unsigned int debug_level);
 
 #endif

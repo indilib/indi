@@ -93,6 +93,8 @@ class LX200Generic: public INDI::Telescope, public INDI::GuiderInterface
     int trackingMode;
     long guide_direction;
 
+    unsigned int DBG_SCOPE;
+
     double JD;
     double targetRA, targetDEC;
     double currentRA, currentDEC;

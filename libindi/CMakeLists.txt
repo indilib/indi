@@ -228,12 +228,12 @@ install(TARGETS indi_imager_agent RUNTIME DESTINATION bin )
 ########### LX200 Basic #############
 set(lx200basic_SRCS
    ${indimain_SRCS}
-   ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200driver.c
+   ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200driver.cpp
    ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200basic.cpp )
 
 add_executable(indi_lx200basic ${lx200basic_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
 
-target_link_libraries(indi_lx200basic ${NOVA_LIBRARIES} ${NOVA_LIBRARIES})
+target_link_libraries(indi_lx200basic indidriver)
 
 install(TARGETS indi_lx200basic RUNTIME DESTINATION bin )
 
@@ -241,7 +241,7 @@ install(TARGETS indi_lx200basic RUNTIME DESTINATION bin )
 
 ########### LX200 Generic ###########
 set(lx200generic_SRCS
-   ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200driver.c
+   ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200driver.cpp
    ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200autostar.cpp
    ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200_16.cpp
    ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200gps.cpp
@@ -300,7 +300,6 @@ install(TARGETS indi_temma RUNTIME DESTINATION bin )
 ########### Sky Commander #############
 set(skycommander_SRCS
    ${indimain_SRCS}
-   ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200driver.c
    ${CMAKE_SOURCE_DIR}/drivers/telescope/skycommander.c )
 
 add_executable(indi_skycommander ${skycommander_SRCS}  ${liblilxml_SRCS} ${libindicom_SRCS})
@@ -314,7 +313,6 @@ install(TARGETS indi_skycommander  RUNTIME DESTINATION bin )
 ########### Intelliscope ###############
 set(intelliscope_SRCS
    ${indimain_SRCS}
-   ${CMAKE_SOURCE_DIR}/drivers/telescope/lx200driver.c
    ${CMAKE_SOURCE_DIR}/drivers/telescope/intelliscope.c )
 
 add_executable(indi_intelliscope ${intelliscope_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})

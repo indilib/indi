@@ -30,15 +30,19 @@
 #include <unistd.h>
 #include <time.h>
 
+#ifndef _WIN32
+#include <termios.h>
+#endif
+
 #include "indidevapi.h"
 #include "indicom.h"
-#include "lx200driver.h"
 
 #define mydev		"Intelliscope"
 #define BASIC_GROUP	"Main Control"
 #define POLLMS		1000
 #define currentRA	eq[0].value
 #define currentDEC	eq[1].value
+#define INTELLISCOPE_TIMEOUT 5
 
 static void ISPoll(void *);
 static void ISInit(void);
@@ -137,6 +141,50 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
 void ISSnoopDevice (XMLEle *root) 
 {
   INDI_UNUSED(root);
+}
+
+int updateIntelliscopeCoord (int fd, double *ra, double *dec)
+{
+  char coords[16];
+  char CR[1] = { (char) 0x51 };	/* "Q" */
+  float RA = 0.0, DEC = 0.0;
+  int error_type;
+  int nbytes_read=0;
+
+  /*IDLog ("Sending a Q\n");*/
+  error_type = write (fd, CR, 1);
+  /* We start at 14 bytes in case its a Sky Wizard,
+     but read one more later it if it's a intelliscope */
+  /*read_ret = portRead (coords, 14, LX200_TIMEOUT);*/
+  error_type = tty_read(fd, coords, 14, INTELLISCOPE_TIMEOUT, &nbytes_read);
+  tcflush(fd, TCIFLUSH);
+  /*IDLog ("portRead() = [%s]\n", coords);*/
+
+  /* Remove the Q in the response from the Intelliscope  but not the Sky Wizard */
+  if (coords[0] == 'Q') {
+    coords[0] = ' ';
+    /* Read one more byte if Intelliscope to get the "CR" */
+    error_type = tty_read(fd, coords, 1, INTELLISCOPE_TIMEOUT, &nbytes_read);
+    /*read_ret = portRead (coords, 1, LX200_TIMEOUT);*/
+  }
+  nbytes_read = sscanf (coords, " %g %g", &RA, &DEC);
+  /*IDLog ("sscanf() RA = [%f]\n", RA * 0.0390625);*/
+  /*IDLog ("sscanf() DEC = [%f]\n", DEC * 0.0390625);*/
+
+  /*IDLog ("Intelliscope output [%s]", coords);*/
+  if (nbytes_read < 2)
+  {
+    #ifdef INDI_DEBUG
+    IDLog ("Error in Intelliscope number format [%s], exiting.\n", coords);
+    #endif
+    return -1;
+  }
+
+  *ra = RA * 0.0390625;
+  *dec = DEC * 0.0390625;
+
+  return 0;
+
 }
 
 void ISPoll (void *p)

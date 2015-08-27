@@ -39,8 +39,6 @@ protected:
     virtual bool isSlewComplete();
     virtual bool checkConnection();
 
-    virtual bool updateTime(ln_date *utc, double utc_offset);
-    virtual bool updateLocation(double latitude, double longitude, double elevation);
     virtual bool saveConfigItems(FILE *fp);
 
     INumber SlewAccuracyN[2];

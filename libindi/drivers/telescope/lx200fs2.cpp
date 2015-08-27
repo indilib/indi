@@ -30,6 +30,8 @@ LX200FS2::LX200FS2() : LX200Generic()
     cap.canPark = false;
     cap.canSync = true;
     cap.canAbort = true;
+    cap.hasLocation = false;
+    cap.hasTime = false;
     cap.nSlewRate=4;
     SetTelescopeCapability(&cap);
 }
@@ -99,23 +101,6 @@ bool LX200FS2::isSlewComplete()
 
 bool LX200FS2::checkConnection()
 {
-    return true;
-}
-
-bool LX200FS2::updateTime(ln_date *utc, double utc_offset)
-{
-    INDI_UNUSED(utc);
-    INDI_UNUSED(utc_offset);
-
-    return true;
-}
-
-bool LX200FS2::updateLocation(double latitude, double longitude, double elevation)
-{
-    INDI_UNUSED(latitude);
-    INDI_UNUSED(longitude);
-    INDI_UNUSED(elevation);
-
     return true;
 }
 

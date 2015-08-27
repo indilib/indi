@@ -1,7 +1,7 @@
 <devGroup group="Telescopes">
 	<device label="LX200 Basic" focal_length="" aperture="">
 		<driver name="LX200 Basic">indi_lx200basic</driver>
-		<version>1.0</version>
+                <version>2.0</version>
 	</device>
         <device label="LX200 GPS" focal_length="" aperture="">
                 <driver name="LX200 GPS">indi_lx200gps</driver>

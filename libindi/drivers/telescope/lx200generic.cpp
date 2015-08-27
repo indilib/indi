@@ -183,6 +183,8 @@ LX200Generic::LX200Generic()
    GuideNSTID     = 0;
    GuideWETID     = 0;
 
+   DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
+
    currentRA=ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
    currentDEC=90;
 
@@ -191,6 +193,8 @@ LX200Generic::LX200Generic()
    cap.canPark = true;
    cap.canSync = true;
    cap.canAbort = true;
+   cap.hasTime = true;
+   cap.hasLocation = true;
    cap.nSlewRate=4;
    SetTelescopeCapability(&cap);
 
@@ -204,7 +208,8 @@ LX200Generic::~LX200Generic()
 
 void LX200Generic::debugTriggered(bool enable)
 {
-   setLX200Debug(enable ? 1 : 0);
+   INDI_UNUSED(enable);
+   setLX200Debug(getDeviceName(), DBG_SCOPE);
 }
 
 const char * LX200Generic::getDefaultName()

@@ -97,6 +97,8 @@ SkywatcherAPIMount::SkywatcherAPIMount()
     cap.canPark = true;
     cap.canSync = true;
     cap.canAbort = true;
+    cap.hasLocation = true;
+    cap.hasTime = true;
     SetTelescopeCapability(&cap);
 }
 

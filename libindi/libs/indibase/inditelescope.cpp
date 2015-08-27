@@ -142,8 +142,12 @@ void INDI::Telescope::ISGetProperties (const char *dev)
         defineNumber(&EqNP);
         if (capability.canAbort)
             defineSwitch(&AbortSP);
-        defineText(&TimeTP);
-        defineNumber(&LocationNP);        
+
+        if (capability.hasTime)
+            defineText(&TimeTP);
+        if (capability.hasLocation)
+            defineNumber(&LocationNP);
+
         if (capability.canPark)
         {
             defineSwitch(&ParkSP);
@@ -160,7 +164,9 @@ void INDI::Telescope::ISGetProperties (const char *dev)
             defineSwitch(&SlewRateSP);
 
         defineNumber(&ScopeParametersNP);
-        defineText(&ActiveDeviceTP);
+
+        if (capability.hasTime && capability.hasLocation)
+            defineText(&ActiveDeviceTP);
 
     }
 
@@ -182,8 +188,11 @@ bool INDI::Telescope::updateProperties()
         defineSwitch(&MovementWESP);
         if (capability.nSlewRate >= 4)
             defineSwitch(&SlewRateSP);
-        defineText(&TimeTP);
-        defineNumber(&LocationNP);
+
+        if (capability.hasTime)
+            defineText(&TimeTP);
+        if (capability.hasLocation)
+            defineNumber(&LocationNP);
         if (capability.canPark)
         {
             defineSwitch(&ParkSP);
@@ -194,7 +203,9 @@ bool INDI::Telescope::updateProperties()
             }
         }
         defineNumber(&ScopeParametersNP);
-        defineText(&ActiveDeviceTP);
+
+        if (capability.hasTime && capability.hasLocation)
+            defineText(&ActiveDeviceTP);
 
     }
     else
@@ -207,8 +218,12 @@ bool INDI::Telescope::updateProperties()
         deleteProperty(MovementWESP.name);
         if (capability.nSlewRate >= 4)
             deleteProperty(SlewRateSP.name);
-        deleteProperty(TimeTP.name);
-        deleteProperty(LocationNP.name);
+
+        if (capability.hasTime)
+            deleteProperty(TimeTP.name);
+        if (capability.hasLocation)
+            deleteProperty(LocationNP.name);
+
         if (capability.canPark)
         {
             deleteProperty(ParkSP.name);
@@ -219,7 +234,9 @@ bool INDI::Telescope::updateProperties()
             }
         }
         deleteProperty(ScopeParametersNP.name);
-        deleteProperty(ActiveDeviceTP.name);
+
+        if (capability.hasTime && capability.hasLocation)
+            deleteProperty(ActiveDeviceTP.name);
     }
 
     controller->updateProperties();
@@ -236,7 +253,7 @@ bool INDI::Telescope::ISSnoopDevice(XMLEle *root)
 
     if (isConnected())
     {
-        if (!strcmp(propName, "GEOGRAPHIC_COORD"))                        
+        if (capability.hasLocation && !strcmp(propName, "GEOGRAPHIC_COORD"))
         {
             // Only accept IPS_OK state
             if (strcmp(findXMLAttValu(root, "state"), "Ok"))
@@ -259,7 +276,7 @@ bool INDI::Telescope::ISSnoopDevice(XMLEle *root)
 
             return processLocationInfo(latitude, longitude, elevation);
         }
-        else if (!strcmp(propName, "TIME_UTC"))
+        else if (capability.hasTime && !strcmp(propName, "TIME_UTC"))
         {
             // Only accept IPS_OK state
             if (strcmp(findXMLAttValu(root, "state"), "Ok"))
@@ -288,7 +305,8 @@ bool INDI::Telescope::saveConfigItems(FILE *fp)
 {
     IUSaveConfigText(fp, &ActiveDeviceTP);
     IUSaveConfigText(fp, &PortTP);
-    IUSaveConfigNumber(fp,&LocationNP);
+    if (capability.hasLocation)
+        IUSaveConfigNumber(fp,&LocationNP);
     IUSaveConfigNumber(fp, &ScopeParametersNP);
 
     controller->saveConfigItems(fp);
@@ -1012,6 +1030,8 @@ void INDI::Telescope::SetTelescopeCapability(TelescopeCapability *cap)
     capability.canPark      = cap->canPark;
     capability.canSync      = cap->canSync;
     capability.canAbort     = cap->canAbort;
+    capability.hasTime      = cap->hasTime;
+    capability.hasLocation  = cap->hasLocation;
     capability.nSlewRate    = cap->nSlewRate;
 
     if (capability.canSync)

@@ -896,7 +896,8 @@ bool LX200AstroPhysics::updateLocation(double latitude, double longitude, double
 
 void LX200AstroPhysics::debugTriggered(bool enable)
 {
-   setLX200Debug(enable ? 1 : 0);
+   INDI_UNUSED(enable);
+   setLX200Debug(getDeviceName(), DBG_SCOPE);
    set_lx200ap_name(getDeviceName(), DBG_SCOPE);
 }
 

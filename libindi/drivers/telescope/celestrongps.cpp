@@ -157,6 +157,8 @@ bool CelestronGPS::updateProperties()
     cap.canPark  = true;
     cap.canSync  = true;
     cap.canAbort = true;
+    cap.hasTime  = true;
+    cap.hasLocation = true;
     cap.nSlewRate= 9;
 
 
@@ -176,8 +178,14 @@ bool CelestronGPS::updateProperties()
 
     if (fwInfo.controllerVersion <= 4.1)
     {
-        DEBUG(INDI::Logger::DBG_WARNING, "Mount does not support sync.");
+        DEBUG(INDI::Logger::DBG_WARNING, "Mount firmware does not support sync.");
         cap.canSync  = false;
+    }
+
+    if (fwInfo.controllerVersion < 2.3)
+    {
+        DEBUG(INDI::Logger::DBG_WARNING, "Mount firmware does not support update of time and location settings.");
+        cap.hasTime = cap.hasLocation = false;
     }
 
     SetTelescopeCapability(&cap);
@@ -771,7 +779,7 @@ bool CelestronGPS::updateLocation(double latitude, double longitude, double elev
 {
     INDI_UNUSED(elevation);
 
-    if (fwInfo.controllerVersion <= 2.3)
+    if (fwInfo.controllerVersion < 2.3)
     {
         DEBUGF(INDI::Logger::DBG_WARNING, "Firmwre version 2.3 or higher is required to update location. Current version is %3.1f", fwInfo.controllerVersion);
         return false;
@@ -782,7 +790,7 @@ bool CelestronGPS::updateLocation(double latitude, double longitude, double elev
 
 bool CelestronGPS::updateTime(ln_date *utc, double utc_offset)
 {
-    if (fwInfo.controllerVersion <= 2.3)
+    if (fwInfo.controllerVersion < 2.3)
     {
         DEBUGF(INDI::Logger::DBG_WARNING, "Firmwre version 2.3 or higher is required to update time. Current version is %3.1f", fwInfo.controllerVersion);
         return false;

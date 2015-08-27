@@ -1,6 +1,6 @@
 #if 0
     LX200 Basic Driver
-    Copyright (C) 2005 Jasem Mutlaq (mutlaqja@ikarustech.com)
+    Copyright (C) 2015 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -29,32 +29,21 @@
 
 #include <config.h>
 
-/* INDI Common Library Routines */
+#include "lx200driver.h"
+#include "lx200basic.h"
 #include "indicom.h"
 
-/* LX200 Command Set */
-#include "lx200driver.h"
+#define POLLMS 1000
 
-/* Our driver header */
-#include "lx200basic.h"
+/* Simulation Parameters */
+#define	SLEWRATE	1		/* slew rate, degrees/s */
+#define SIDRATE		0.004178	/* sidereal rate, degrees/s */
+
 
 using namespace std;
 
 /* Our telescope auto pointer */
 auto_ptr<LX200Basic> telescope(0);
-
-const int POLLMS = 1000;				// Period of update, 1 second.
-char *mydev;                            // Name of our device.
-
-const char *BASIC_GROUP    = "Main Control";		// Main Group
-const char *OPTIONS_GROUP  = "Options";			// Options Group
-
-/* Handy Macros */
-#define currentRA	EquatorialCoordsN[0].value
-#define currentDEC	EquatorialCoordsN[1].value
-
-static void ISPoll(void *);
-static void retry_connection(void *);
 
 /**************************************************************************************
 ** Send client definitions of all properties.
@@ -69,8 +58,7 @@ void ISInit()
  if (telescope.get() == 0) telescope.reset(new LX200Basic());
 
  isInit = 1;
- 
- IEAddTimer (POLLMS, ISPoll, NULL);
+  
 }
 
 /**************************************************************************************
@@ -112,17 +100,6 @@ void ISNewNumber (const char *dev, const char *name, double values[], char *name
 /**************************************************************************************
 **
 ***************************************************************************************/
-void ISPoll (void *p)
-{
- INDI_UNUSED(p);
-
- telescope->ISPoll(); 
- IEAddTimer (POLLMS, ISPoll, NULL);
-}
-
-/**************************************************************************************
-**
-***************************************************************************************/
 void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
 {
   INDI_UNUSED(dev);
@@ -147,29 +124,25 @@ void ISSnoopDevice (XMLEle *root)
 ** LX200 Basic constructor
 ***************************************************************************************/
 LX200Basic::LX200Basic()
-{
-    mydev = new char[MAXINDIDEVICE];
+{    
+    setVersion(2, 0);
 
-    char *envDev = getenv("INDIDEV");
+    DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
-    if (envDev != NULL)
-        strncpy(mydev, envDev, MAXINDIDEVICE);
-    else
-        strncpy(mydev, "LX200 Basic", MAXINDIDEVICE);
+    currentRA=ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
+    currentDEC=90;
 
-   init_properties();
+    TelescopeCapability cap;
 
-   lastSet        = -1;
-   fd             = -1;
-   simulation     = false;
-   lastRA 	  = 0;
-   lastDEC	  = 0;
-   currentSet     = 0;
+    cap.canPark = false;
+    cap.canSync = true;
+    cap.canAbort = true;
+    cap.hasTime = false;
+    cap.hasLocation = false;
+    cap.nSlewRate=0;
+    SetTelescopeCapability(&cap);
 
-   IDLog("Initializing from LX200 Basic device...\n");
-   IDLog("Driver Version: 2014-12-31\n");
- 
-   enable_simulation(false);
+    DEBUG(INDI::Logger::DBG_DEBUG, "Initializing from LX200 Basic device...");
 
  }
 
@@ -182,47 +155,38 @@ LX200Basic::~LX200Basic()
 }
 
 /**************************************************************************************
-** Initialize all properties & set default values.
+**
 ***************************************************************************************/
-void LX200Basic::init_properties()
+void LX200Basic::debugTriggered(bool enable)
 {
-    // Connection
-    IUFillSwitch(&ConnectS[0], "CONNECT", "Connect", ISS_OFF);
-    IUFillSwitch(&ConnectS[1], "DISCONNECT", "Disconnect", ISS_ON);
-    IUFillSwitchVector(&ConnectSP, ConnectS, NARRAY(ConnectS), mydev, "CONNECTION", "Connection", BASIC_GROUP, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+   INDI_UNUSED(enable);
+   setLX200Debug(getDeviceName(), DBG_SCOPE);
+}
 
-    // Coord Set
-    IUFillSwitch(&OnCoordSetS[0], "SLEW", "Slew", ISS_ON);
-    IUFillSwitch(&OnCoordSetS[1], "TRACK", "Track", ISS_OFF);
-    IUFillSwitch(&OnCoordSetS[2], "SYNC", "Sync", ISS_OFF);
-    IUFillSwitchVector(&OnCoordSetSP, OnCoordSetS, NARRAY(OnCoordSetS), mydev, "ON_COORD_SET", "On Set", BASIC_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+/**************************************************************************************
+**
+***************************************************************************************/
+const char * LX200Basic::getDefaultName()
+{
+    return (char *)"LX200 Basic";
+}
 
-    // Abort
-    IUFillSwitch(&AbortSlewS[0], "ABORT", "Abort", ISS_OFF);
-    IUFillSwitchVector(&AbortSlewSP, AbortSlewS, NARRAY(AbortSlewS), mydev, "ABORT_MOTION", "Abort Slew/Track", BASIC_GROUP, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
-
-    // Port
-    IUFillText(&PortT[0], "PORT", "Port", "/dev/ttyS0");
-    IUFillTextVector(&PortTP, PortT, NARRAY(PortT), mydev, "DEVICE_PORT", "Ports", BASIC_GROUP, IP_RW, 0, IPS_IDLE);
-
-    // Object Name
-    IUFillText(&ObjectT[0], "OBJECT_NAME", "Name", "--");
-    IUFillTextVector(&ObjectTP, ObjectT, NARRAY(ObjectT), mydev, "OBJECT_INFO", "Object", BASIC_GROUP, IP_RW, 0, IPS_IDLE);
-
-    // Equatorial Coords
-    IUFillNumber(&EquatorialCoordsN[0], "RA", "RA  H:M:S", "%10.6m",  0., 24., 0., 0.);
-    IUFillNumber(&EquatorialCoordsN[1], "DEC", "Dec D:M:S", "%10.6m", -90., 90., 0., 0.);
-    IUFillNumberVector(&EquatorialCoordsNP, EquatorialCoordsN, NARRAY(EquatorialCoordsN), mydev, "EQUATORIAL_EOD_COORD" , "Equatorial JNow", BASIC_GROUP, IP_RW, 0, IPS_IDLE);
+/**************************************************************************************
+**
+***************************************************************************************/
+bool LX200Basic::initProperties()
+{
+    /* Make sure to init parent properties first */
+    INDI::Telescope::initProperties();
 
     // Slew threshold
     IUFillNumber(&SlewAccuracyN[0], "SlewRA",  "RA (arcmin)", "%10.6m",  0., 60., 1., 3.0);
     IUFillNumber(&SlewAccuracyN[1], "SlewDEC", "Dec (arcmin)", "%10.6m", 0., 60., 1., 3.0);
-    IUFillNumberVector(&SlewAccuracyNP, SlewAccuracyN, NARRAY(SlewAccuracyN), mydev, "Slew Accuracy", "", OPTIONS_GROUP, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&SlewAccuracyNP, SlewAccuracyN, NARRAY(SlewAccuracyN), getDeviceName(), "Slew Accuracy", "", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
-    // Track threshold
-    IUFillNumber(&TrackAccuracyN[0], "TrackRA", "RA (arcmin)", "%10.6m",  0., 60., 1., 3.0);
-    IUFillNumber(&TrackAccuracyN[1], "TrackDEC", "Dec (arcmin)", "%10.6m", 0., 60., 1., 3.0);
-    IUFillNumberVector(&TrackAccuracyNP, TrackAccuracyN, NARRAY(TrackAccuracyN), mydev, "Tracking Accuracy", "", OPTIONS_GROUP, IP_RW, 0, IPS_IDLE);
+    addAuxControls();
+
+    return true;
 }
 
 /**************************************************************************************
@@ -230,668 +194,385 @@ void LX200Basic::init_properties()
 ***************************************************************************************/
 void LX200Basic::ISGetProperties(const char *dev)
 {
+    if(dev && strcmp(dev,getDeviceName()))
+        return;
 
- if (dev && strcmp (mydev, dev))
-    return;
+    INDI::Telescope::ISGetProperties(dev);
 
-  // Main Control
-  IDDefSwitch(&ConnectSP, NULL);
-  IDDefText(&PortTP, NULL);
-  IDDefText(&ObjectTP, NULL);
-  IDDefNumber(&EquatorialCoordsNP, NULL);
-  IDDefSwitch(&OnCoordSetSP, NULL);
-  IDDefSwitch(&AbortSlewSP, NULL);
-
-  // Options
-  IDDefNumber(&SlewAccuracyNP, NULL);
-  IDDefNumber(&TrackAccuracyNP, NULL);
-  
-}
-
-/**************************************************************************************
-** Process Text properties
-***************************************************************************************/
-void LX200Basic::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-	// Ignore if not ours 
-	if (strcmp (dev, mydev))
-	    return;
-
-	// ===================================
-	// Port Name
-	// ===================================
-	if (!strcmp(name, PortTP.name) )
-	{
-	  if (IUUpdateText(&PortTP, texts, names, n) < 0)
-		return;
-
-	  PortTP.s = IPS_OK;
-	  IDSetText (&PortTP, NULL);
-	  return;
-	}
-
-	if (is_connected() == false)
-        {
-		IDMessage(mydev, "LX200 Basic is offline. Please connect before issuing any commands.");
-		reset_all_properties();
-		return;
-	}
-
-       // ===================================
-       // Object Name
-       // ===================================
-       if (!strcmp (name, ObjectTP.name))
-       {
-
-	  if (IUUpdateText(&ObjectTP, texts, names, n) < 0)
-		return;
-
-          ObjectTP.s = IPS_OK;
-          IDSetText(&ObjectTP, NULL);
-          return;
-       }
+    if (isConnected())
+        defineNumber(&SlewAccuracyNP);
 }
 
 /**************************************************************************************
 **
 ***************************************************************************************/
-void LX200Basic::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+bool LX200Basic::updateProperties()
 {
-	
-	// Ignore if not ours
-	if (strcmp (dev, mydev))
-	    return;
+    INDI::Telescope::updateProperties();
 
-	if (is_connected() == false)
-        {
-		IDMessage(mydev, "LX200 Basic is offline. Please connect before issuing any commands.");
-		reset_all_properties();
-		return;
-	}
-
-	// ===================================
-        // Equatorial Coords
-	// ===================================
-    if (!strcmp (name, EquatorialCoordsNP.name))
-	{
-	  int i=0, nset=0, error_code=0;
-	  double newRA =0, newDEC =0;
-
-	    for (nset = i = 0; i < n; i++)
-	    {
-        INumber *eqp = IUFindNumber (&EquatorialCoordsNP, names[i]);
-        if (eqp == &EquatorialCoordsN[0])
-		{
-                    newRA = values[i];
-		    nset += newRA >= 0 && newRA <= 24.0;
-        } else if (eqp == &EquatorialCoordsN[1])
-		{
-		    newDEC = values[i];
-		    nset += newDEC >= -90.0 && newDEC <= 90.0;
-		}
-	    }
-
-	  if (nset == 2)
-	  {
-	   char RAStr[32], DecStr[32];
-
-	   fs_sexa(RAStr, newRA, 2, 3600);
-	   fs_sexa(DecStr, newDEC, 2, 3600);
-	  
-           #ifdef INDI_DEBUG
-	   IDLog("We received JNow RA %g - DEC %g\n", newRA, newDEC);
-	   IDLog("We received JNow RA %s - DEC %s\n", RAStr, DecStr);
-           #endif
-	   
-	   if (!simulation && ( (error_code = setObjectRA(fd, newRA)) < 0 || ( error_code = setObjectDEC(fd, newDEC)) < 0))
-	   {
-         handle_error(&EquatorialCoordsNP, error_code, "Setting RA/DEC");
-	     return;
-	   } 
-	   
-	   targetRA  = newRA;
-	   targetDEC = newDEC;
-	   
-	   if (process_coords() == false)
-	   {
-         EquatorialCoordsNP.s = IPS_ALERT;
-         IDSetNumber(&EquatorialCoordsNP, NULL);
-	     
-	   }
-	} // end nset
-	else
-	{
-        EquatorialCoordsNP.s = IPS_ALERT;
-        IDSetNumber(&EquatorialCoordsNP, "RA or Dec missing or invalid");
-	}
-
-	    return;
-     } /* end EquatorialCoordsWNP */
-
-	// ===================================
-        // Update tracking precision limits
-	// ===================================
-	if (!strcmp (name, TrackAccuracyNP.name))
-	{
-		if (IUUpdateNumber(&TrackAccuracyNP, values, names, n) < 0)
-			return;
-
-		TrackAccuracyNP.s = IPS_OK;
-
-		if (TrackAccuracyN[0].value < 3 || TrackAccuracyN[1].value < 3)
-			IDSetNumber(&TrackAccuracyNP, "Warning: Setting the tracking accuracy too low may result in a dead lock");
-		else
-			IDSetNumber(&TrackAccuracyNP, NULL);
-		return;
-	}
-
-	// ===================================
-        // Update slew precision limit
-	// ===================================
-	if (!strcmp(name, SlewAccuracyNP.name))
-	{
-		if (IUUpdateNumber(&SlewAccuracyNP, values, names, n) < 0)
-			return;
-		
-		SlewAccuracyNP.s = IPS_OK;
-
-		if (SlewAccuracyN[0].value < 3 || SlewAccuracyN[1].value < 3)
-			IDSetNumber(&TrackAccuracyNP, "Warning: Setting the slew accuracy too low may result in a dead lock");
-
-		IDSetNumber(&SlewAccuracyNP, NULL);
-		return;
-		
-
-	}
-}
-
-/**************************************************************************************
-**
-***************************************************************************************/
-void LX200Basic::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-	// ignore if not ours //
-	if (strcmp (mydev, dev))
-	    return;
-
-	// ===================================
-        // Connect Switch
-	// ===================================
-	if (!strcmp (name, ConnectSP.name))
-	{
-	    if (IUUpdateSwitch(&ConnectSP, states, names, n) < 0)
-		return;
-
-   	    connect_telescope();
-	    return;
-	}
-
-	if (is_connected() == false)
-        {
-		IDMessage(mydev, "LX200 Basic is offline. Please connect before issuing any commands.");
-		reset_all_properties();
-		return;
-	}
-
-	// ===================================
-        // Coordinate Set
-	// ===================================
-	if (!strcmp(name, OnCoordSetSP.name))
-	{
-	   if (IUUpdateSwitch(&OnCoordSetSP, states, names, n) < 0)
-		return;
-
-	  currentSet = get_switch_index(&OnCoordSetSP);
-	  OnCoordSetSP.s = IPS_OK;
-	  IDSetSwitch(&OnCoordSetSP, NULL);
-	}
-	  
-	// ===================================
-        // Abort slew
-	// ===================================
-	if (!strcmp (name, AbortSlewSP.name))
-	{
-
-	  IUResetSwitch(&AbortSlewSP);
-	  abortSlew(fd);
-
-        if (EquatorialCoordsNP.s == IPS_BUSY)
-	    {
-            AbortSlewSP.s = IPS_OK;
-            EquatorialCoordsNP.s       = IPS_IDLE;
-            IDSetSwitch(&AbortSlewSP, "Slew aborted.");
-            IDSetNumber(&EquatorialCoordsNP, NULL);
-        }
-
-	    return;
-	}
-
-}
-
-/**************************************************************************************
-** Retry connecting to the telescope on error. Give up if there is no hope.
-***************************************************************************************/
-void LX200Basic::handle_error(INumberVectorProperty *nvp, int err, const char *msg)
-{
-  
-  nvp->s = IPS_ALERT;
-  
-  /* First check to see if the telescope is connected */
-    if (check_lx200_connection(fd))
+    if (isConnected())
     {
-      /* The telescope is off locally */
-      ConnectS[0].s = ISS_OFF;
-      ConnectS[1].s = ISS_ON;
-      ConnectSP.s = IPS_BUSY;
-      IDSetSwitch(&ConnectSP, "Telescope is not responding to commands, will retry in 10 seconds.");
-      
-      IDSetNumber(nvp, NULL);
-      IEAddTimer(10000, retry_connection, &fd);
-      return;
+        defineNumber(&SlewAccuracyNP);
+
+        // We don't support NSWE controls
+        deleteProperty(MovementNSSP.name);
+        deleteProperty(MovementWESP.name);
+
+        getBasicData();
     }
-    
-   /* If the error is a time out, then the device doesn't support this property */
-      if (err == -2)
-      {
-       nvp->s = IPS_ALERT;
-       IDSetNumber(nvp, "Device timed out. Current device may be busy or does not support %s. Will retry again.", msg);
-      }
-      else
-    /* Changing property failed, user should retry. */
-       IDSetNumber( nvp , "%s failed.", msg);
-       
-       fault = true;
-}
-
-/**************************************************************************************
-** Set all properties to idle and reset most switches to clean state.
-***************************************************************************************/
-void LX200Basic::reset_all_properties()
-{
-    ConnectSP.s			= IPS_IDLE;
-    OnCoordSetSP.s		= IPS_IDLE; 
-    AbortSlewSP.s		= IPS_IDLE;
-    PortTP.s			= IPS_IDLE;
-    ObjectTP.s			= IPS_IDLE;
-    EquatorialCoordsNP.s	= IPS_IDLE;
-    SlewAccuracyNP.s		= IPS_IDLE;
-    TrackAccuracyNP.s		= IPS_IDLE;
-
-    IUResetSwitch(&OnCoordSetSP);
-    IUResetSwitch(&AbortSlewSP);
-
-    OnCoordSetS[0].s = ISS_ON;
-    ConnectS[0].s = ISS_OFF;
-    ConnectS[1].s = ISS_ON;
-
-    IDSetSwitch(&ConnectSP, NULL);
-    IDSetSwitch(&OnCoordSetSP, NULL);
-    IDSetSwitch(&AbortSlewSP, NULL);
-    IDSetText(&PortTP, NULL);
-    IDSetText(&ObjectTP, NULL);
-    IDSetNumber(&EquatorialCoordsNP, NULL);
-    IDSetNumber(&SlewAccuracyNP, NULL);
-    IDSetNumber(&TrackAccuracyNP, NULL);
-}
-
-/**************************************************************************************
-**
-***************************************************************************************/
-void LX200Basic::correct_fault()
-{
-  fault = false;
-  IDMessage(mydev, "Telescope is online.");
-}
-
-/**************************************************************************************
-**
-***************************************************************************************/
-bool LX200Basic::is_connected()
-{
-  if (simulation) return true;
-  
-  return (ConnectSP.sp[0].s == ISS_ON);
-}
-
-/**************************************************************************************
-**
-***************************************************************************************/
-static void retry_connection(void * p)
-{
-  int fd = *((int *) p);
-
-  if (check_lx200_connection(fd))
-	telescope->connection_lost();
-  else
-	telescope->connection_resumed();
-}
-
-/**************************************************************************************
-**
-***************************************************************************************/
-void LX200Basic::ISPoll()
-{	
-	if (is_connected() == false || simulation)
-	 return;
-
-        double dx, dy;
-	int error_code=0;
-
-    switch (EquatorialCoordsNP.s)
-	{
-		case IPS_IDLE:
-		getLX200RA(fd, &currentRA);
-		getLX200DEC(fd, &currentDEC);
-	
-		// Only update values if there are some interesting changes
-	        if ( fabs (currentRA - lastRA) > 0.01 || fabs (currentDEC - lastDEC) > 0.01)
-		{
-            lastRA = currentRA;
-			lastDEC = currentDEC;
-            IDSetNumber (&EquatorialCoordsNP, NULL);
-		}
-        	break;
-
-        	case IPS_BUSY:
-	    	getLX200RA(fd, &currentRA);
-            getLX200DEC(fd, &currentDEC);
-	    	dx = targetRA - currentRA;
-	    	dy = targetDEC - currentDEC;
-
-	    	// Wait until acknowledged or within threshold
-	    	if ( fabs(dx) <= (SlewAccuracyN[0].value/(900.0)) && fabs(dy) <= (SlewAccuracyN[1].value/60.0))
-	    	{
-		        lastRA  = currentRA;
-		        lastDEC = currentDEC;
-	       		IUResetSwitch(&OnCoordSetSP);
-	       		OnCoordSetSP.s = IPS_OK;
-                EquatorialCoordsNP.s = IPS_OK;
-                IDSetNumber (&EquatorialCoordsNP, NULL);
-
-			switch (currentSet)
-			{
-		  		case LX200_SLEW:
-		  		OnCoordSetSP.sp[LX200_SLEW].s = ISS_ON;
-		  		IDSetSwitch (&OnCoordSetSP, "Slew is complete.");
-		  		break;
-		  
-		  		case LX200_TRACK:
-		  		OnCoordSetSP.sp[LX200_TRACK].s = ISS_ON;
-		  		IDSetSwitch (&OnCoordSetSP, "Slew is complete. Tracking...");
-				break;
-		  
-		  		case LX200_SYNC:
-		  		break;
-			}
-		  
-	    	}
-		else
-            IDSetNumber (&EquatorialCoordsNP, NULL);
-	    	break;
-
-		case IPS_OK:
-	  
-		if ( (error_code = getLX200RA(fd, &currentRA)) < 0 || (error_code = getLX200DEC(fd, &currentDEC)) < 0)
-		{
-            handle_error(&EquatorialCoordsNP, error_code, "Getting RA/DEC");
-	  		return;
-		}
-	
-		if (fault == true)
-	  		correct_fault();
-	
-		if ( (currentRA != lastRA) || (currentDEC != lastDEC))
-		{
-		  	lastRA  = currentRA;
-			lastDEC = currentDEC;
-            IDSetNumber (&EquatorialCoordsNP, NULL);
-		}
-        	break;
-
-		case IPS_ALERT:
-	    	break;
-	}
-}
-
-/**************************************************************************************
-**
-***************************************************************************************/
-bool LX200Basic::process_coords()
-{
-
-  int  error_code;
-  char syncString[256];
-  char RAStr[32], DecStr[32];
-  double dx, dy;
-  
-  switch (currentSet)
-  {
-
-    // Slew
-    case LX200_SLEW:
-          lastSet = LX200_SLEW;
-      if (EquatorialCoordsNP.s == IPS_BUSY)
-	  {
-	     IDLog("Aborting Slew\n");
-	     abortSlew(fd);
-
-	     // sleep for 100 mseconds
-	     usleep(100000);
-	  }
-
-	  if ( !simulation && (error_code = Slew(fd)))
-	  {
-	    slew_error(error_code);
-	    return false;
-	  }
-
-      EquatorialCoordsNP.s = IPS_BUSY;
-	  fs_sexa(RAStr, targetRA, 2, 3600);
-	  fs_sexa(DecStr, targetDEC, 2, 3600);
-      IDSetNumber(&EquatorialCoordsNP, "Slewing to JNow RA %s - DEC %s", RAStr, DecStr);
-	  IDLog("Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
-	  break;
-
-     // Track
-     case LX200_TRACK:
-          //IDLog("We're in LX200_TRACK\n");
-          if (EquatorialCoordsNP.s == IPS_BUSY)
-	  {
-	     IDLog("Aborting Slew\n");
-	     abortSlew(fd);
-
-	     // sleep for 200 mseconds
-	     usleep(200000);
-	  }
-
-	  dx = fabs ( targetRA - currentRA );
-	  dy = fabs (targetDEC - currentDEC);
-
-	  if (dx >= (TrackAccuracyN[0].value/(60.0*15.0)) || (dy >= TrackAccuracyN[1].value/60.0)) 
-	  {
-          	if ( !simulation && (error_code = Slew(fd)))
-	  	{
-	    		slew_error(error_code);
-	    		return false;
-	  	}
-
-		fs_sexa(RAStr, targetRA, 2, 3600);
-	        fs_sexa(DecStr, targetDEC, 2, 3600);
-        EquatorialCoordsNP.s = IPS_BUSY;
-        IDSetNumber(&EquatorialCoordsNP, "Slewing to JNow RA %s - DEC %s", RAStr, DecStr);
-		IDLog("Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
-	  }
-	  else
-	  {
-	    //IDLog("Tracking called, but tracking threshold not reached yet.\n");
-        EquatorialCoordsNP.s = IPS_OK;
-
-	    if (lastSet != LX200_TRACK)
-          IDSetNumber(&EquatorialCoordsNP, "Tracking...");
-	    else
-          IDSetNumber(&EquatorialCoordsNP, NULL);
-
-	  }
-	  lastSet = LX200_TRACK;
-      break;
-
-    // Sync
-    case LX200_SYNC:
-
-      lastSet = LX200_SYNC;
-      EquatorialCoordsNP.s = IPS_IDLE;
-	   
-	  if ( !simulation && ( error_code = Sync(fd, syncString) < 0) )
-	  {
-            IDSetNumber( &EquatorialCoordsNP , "Synchronization failed.");
-		return false;
-	  }
-
-	  if (simulation)
-	  {
-             EquatorialCoordsN[0].value = targetRA;
-             EquatorialCoordsN[1].value = targetDEC;
-	  }
-
-      EquatorialCoordsNP.s = IPS_OK;
-      IDLog("Synchronization successful %s\n", syncString);
-      IDSetNumber(&EquatorialCoordsNP, "Synchronization successful.");
-	  break;
+    else
+    {
+        deleteProperty(SlewAccuracyNP.name);
     }
+
+    return true;
+}
+
+/**************************************************************************************
+**
+***************************************************************************************/
+bool LX200Basic::Connect()
+{
+    bool rc=false;
+
+    if(isConnected()) return true;
+
+    rc=Connect(PortT[0].text);
+
+    if(rc)
+        SetTimer(POLLMS);
+
+    return rc;
+}
+
+/**************************************************************************************
+**
+***************************************************************************************/
+bool LX200Basic::Connect(char *port)
+{
+    if (isSimulation())
+    {
+        DEBUGF (INDI::Logger::DBG_SESSION, "Simulated %s is online.", getDeviceName());
+        return true;
+    }
+
+    if (tty_connect(port, 9600, 8, 0, 1, &PortFD) != TTY_OK)
+    {
+      DEBUGF(INDI::Logger::DBG_ERROR, "Error connecting to port %s. Make sure you have BOTH write and read permission to your port.", port);
+      return false;
+    }
+
+
+    if (check_lx200_connection(PortFD))
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Error connecting to Telescope. Telescope is offline.");
+        return false;
+    }
+
+   DEBUGF (INDI::Logger::DBG_SESSION, "%s is online. Retrieving basic data...", getDeviceName());
 
    return true;
+}
 
+
+/**************************************************************************************
+**
+***************************************************************************************/
+bool LX200Basic::Disconnect()
+{
+    if (isSimulation() == false)
+        tty_disconnect(PortFD);
+    return true;
 }
 
 /**************************************************************************************
 **
 ***************************************************************************************/
-int LX200Basic::get_switch_index(ISwitchVectorProperty *sp)
+bool LX200Basic::isSlewComplete()
 {
- for (int i=0; i < sp->nsp ; i++)
-     if (sp->sp[i].s == ISS_ON)
-      return i;
-
- return -1;
+    const double dx = targetRA - currentRA;
+    const double dy = targetDEC - currentDEC;
+    return fabs(dx) <= (SlewAccuracyN[0].value/(900.0)) && fabs(dy) <= (SlewAccuracyN[1].value/60.0);
 }
 
 /**************************************************************************************
 **
 ***************************************************************************************/
-void LX200Basic::connect_telescope()
+bool LX200Basic::ReadScopeStatus()
 {
-     switch (ConnectSP.sp[0].s)
-     {
-      case ISS_ON:  
-	
-        if (simulation)
-	{
-	  ConnectSP.s = IPS_OK;
-	  IDSetSwitch (&ConnectSP, "Simulated telescope is online.");
-	  return;
-	}
-	
-         if (tty_connect(PortT[0].text, 9600, 8, 0, 1, &fd) != TTY_OK)
-	 {
-	   ConnectS[0].s = ISS_OFF;
-	   ConnectS[1].s = ISS_ON;
-	   IDSetSwitch (&ConnectSP, "Error connecting to port %s. Make sure you have BOTH read and write permission to the port.", PortT[0].text);
-	   return;
-	 }
+    if (isConnected() == false)
+     return false;
 
-	 if (check_lx200_connection(fd))
-	 {   
-	   ConnectS[0].s = ISS_OFF;
-	   ConnectS[1].s = ISS_ON;
-	   IDSetSwitch (&ConnectSP, "Error connecting to Telescope. Telescope is offline.");
-	   return;
-	 }
-
-	ConnectSP.s = IPS_OK;
-	IDSetSwitch (&ConnectSP, "Telescope is online. Retrieving basic data...");
-	get_initial_data();
-	break;
-
-     case ISS_OFF:
-         ConnectS[0].s = ISS_OFF;
-	 ConnectS[1].s = ISS_ON;
-         ConnectSP.s = IPS_IDLE;
-	 if (simulation)
-         {
-	    IDSetSwitch (&ConnectSP, "Simulated Telescope is offline.");
-	    return;
-         }
-         IDSetSwitch (&ConnectSP, "Telescope is offline.");
-	 IDLog("Telescope is offline.");
-         
-	 tty_disconnect(fd);
-	 break;
+    if (isSimulation())
+    {
+        mountSim();
+        return true;
     }
+
+    if ( getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0)
+    {
+      EqNP.s = IPS_ALERT;
+      IDSetNumber(&EqNP, "Error reading RA/DEC.");
+      return false;
+    }
+
+    if (TrackState == SCOPE_SLEWING)
+    {
+        // Check if LX200 is done slewing
+        if (isSlewComplete())
+        {
+            TrackState=SCOPE_TRACKING;
+            IDMessage(getDeviceName(),"Slew is complete. Tracking...");
+
+        }
+    }
+
+    NewRaDec(currentRA, currentDEC);
+
+    return true;
 }
 
 /**************************************************************************************
 **
 ***************************************************************************************/
-void LX200Basic::get_initial_data()
+bool LX200Basic::Goto(double r,double d)
+{
+    targetRA=r;
+    targetDEC=d;
+    char RAStr[64], DecStr[64];
+
+    fs_sexa(RAStr, targetRA, 2, 3600);
+    fs_sexa(DecStr, targetDEC, 2, 3600);
+
+    // If moving, let's stop it first.
+    if (EqNP.s == IPS_BUSY)
+    {
+         if (!isSimulation() && abortSlew(PortFD) < 0)
+         {
+            AbortSP.s = IPS_ALERT;
+            IDSetSwitch(&AbortSP, "Abort slew failed.");
+            return false;
+         }
+
+         AbortSP.s = IPS_OK;
+         EqNP.s       = IPS_IDLE;
+         IDSetSwitch(&AbortSP, "Slew aborted.");
+         IDSetNumber(&EqNP, NULL);
+
+       // sleep for 100 mseconds
+       usleep(100000);
+    }
+
+    if (isSimulation() == false)
+    {
+        if (setObjectRA(PortFD, targetRA) < 0 || (setObjectDEC(PortFD, targetDEC)) < 0)
+        {
+            EqNP.s = IPS_ALERT;
+            IDSetNumber(&EqNP, "Error setting RA/DEC.");
+            return false;
+        }
+
+        int err=0;
+        /* Slew reads the '0', that is not the end of the slew */
+        if (err = Slew(PortFD))
+        {
+            EqNP.s = IPS_ALERT;
+            IDSetNumber(&EqNP, "Error Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
+            slewError(err);
+            return  false;
+        }
+    }
+
+    TrackState = SCOPE_SLEWING;
+    EqNP.s    = IPS_BUSY;
+
+    IDMessage(getDeviceName(), "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+    return true;
+}
+
+/**************************************************************************************
+**
+***************************************************************************************/
+bool LX200Basic::Sync(double ra, double dec)
+{
+    char syncString[256];
+
+    if (isSimulation() == false &&
+            (setObjectRA(PortFD, ra) < 0 || (setObjectDEC(PortFD, dec)) < 0))
+    {
+        EqNP.s = IPS_ALERT;
+        IDSetNumber(&EqNP, "Error setting RA/DEC. Unable to Sync.");
+        return false;
+    }
+
+    if (isSimulation() == false &&  ::Sync(PortFD, syncString) < 0)
+    {
+        EqNP.s = IPS_ALERT;
+        IDSetNumber(&EqNP , "Synchronization failed.");
+        return false;
+    }
+
+    currentRA  = ra;
+    currentDEC = dec;
+
+    DEBUG(INDI::Logger::DBG_SESSION, "Synchronization successful.");
+
+    TrackState = SCOPE_IDLE;
+    EqNP.s    = IPS_OK;
+
+    NewRaDec(currentRA, currentDEC);
+
+    return true;
+}
+
+
+/**************************************************************************************
+**
+***************************************************************************************/
+bool LX200Basic::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+{	
+    if(strcmp(dev,getDeviceName())==0)
+    {
+        if (!strcmp(name, SlewAccuracyNP.name))
+        {
+            if (IUUpdateNumber(&SlewAccuracyNP, values, names, n) < 0)
+                return false;
+
+            SlewAccuracyNP.s = IPS_OK;
+
+            if (SlewAccuracyN[0].value < 3 || SlewAccuracyN[1].value < 3)
+                IDSetNumber(&SlewAccuracyNP, "Warning: Setting the slew accuracy too low may result in a dead lock");
+
+            IDSetNumber(&SlewAccuracyNP, NULL);
+            return true;
+        }
+    }
+
+    return INDI::Telescope::ISNewNumber(dev, name, values, names, n);
+}
+
+/**************************************************************************************
+**
+***************************************************************************************/
+bool LX200Basic::Abort()
+{
+     if (isSimulation() == false && abortSlew(PortFD) < 0)
+     {
+         DEBUG(INDI::Logger::DBG_ERROR, "Failed to abort slew.");
+         return false;
+     }
+
+     EqNP.s = IPS_IDLE;
+     TrackState = SCOPE_IDLE;
+     IDSetNumber(&EqNP, NULL);
+
+     DEBUG(INDI::Logger::DBG_SESSION, "Slew aborted.");
+     return true;
+}
+
+
+
+/**************************************************************************************
+**
+***************************************************************************************/
+void LX200Basic::getBasicData()
 {
 
   // Make sure short
-  checkLX200Format(fd);
+  checkLX200Format(PortFD);
 
   // Get current RA/DEC
-  getLX200RA(fd, &currentRA);
-  getLX200DEC(fd, &currentDEC);
+  getLX200RA(PortFD, &currentRA);
+  getLX200DEC(PortFD, &currentDEC);
 
-  IDSetNumber (&EquatorialCoordsNP, NULL);
+  IDSetNumber (&EqNP, NULL);
 }
 
 /**************************************************************************************
 **
 ***************************************************************************************/
-void LX200Basic::slew_error(int slewCode)
+void LX200Basic::mountSim ()
 {
-    OnCoordSetSP.s = IPS_IDLE;
+    static struct timeval ltv;
+    struct timeval tv;
+    double dt, da, dx;
+    int nlocked;
+
+    /* update elapsed time since last poll, don't presume exactly POLLMS */
+    gettimeofday (&tv, NULL);
+
+    if (ltv.tv_sec == 0 && ltv.tv_usec == 0)
+        ltv = tv;
+
+    dt = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec)/1e6;
+    ltv = tv;
+    da = SLEWRATE*dt;
+
+    /* Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly */
+    switch (TrackState)
+    {
+
+    case SCOPE_TRACKING:
+        /* RA moves at sidereal, Dec stands still */
+        currentRA += (SIDRATE*dt/15.);
+        break;
+
+    case SCOPE_SLEWING:
+        /* slewing - nail it when both within one pulse @ SLEWRATE */
+        nlocked = 0;
+
+        dx = targetRA - currentRA;
+
+        if (fabs(dx) <= da)
+        {
+        currentRA = targetRA;
+        nlocked++;
+        }
+        else if (dx > 0)
+            currentRA += da/15.;
+        else
+            currentRA -= da/15.;
+
+        dx = targetDEC - currentDEC;
+        if (fabs(dx) <= da)
+        {
+        currentDEC = targetDEC;
+        nlocked++;
+        }
+        else if (dx > 0)
+          currentDEC += da;
+        else
+          currentDEC -= da;
+
+        if (nlocked == 2)
+        {
+                TrackState = SCOPE_TRACKING;
+
+        }
+
+        break;
+
+    default:
+        break;
+    }
+
+    NewRaDec(currentRA, currentDEC);
+
+
+}
+
+/**************************************************************************************
+**
+***************************************************************************************/
+void LX200Basic::slewError(int slewCode)
+{
+    EqNP.s = IPS_ALERT;
 
     if (slewCode == 1)
-	IDSetSwitch (&OnCoordSetSP, "Object below horizon.");
+    IDSetNumber(&EqNP, "Object below horizon.");
     else if (slewCode == 2)
-	IDSetSwitch (&OnCoordSetSP, "Object below the minimum elevation limit.");
+    IDSetNumber(&EqNP, "Object below the minimum elevation limit.");
     else
-        IDSetSwitch (&OnCoordSetSP, "Slew failed.");
-}
+    IDSetNumber(&EqNP, "Slew failed.");
 
-/**************************************************************************************
-**
-***************************************************************************************/
-void LX200Basic::enable_simulation(bool enable)
-{
-   simulation = enable;
-   
-   if (simulation)
-     IDLog("Warning: Simulation is activated.\n");
-   else
-     IDLog("Simulation is disabled.\n");
-}
-
-/**************************************************************************************
-**
-***************************************************************************************/
-void LX200Basic::connection_lost()
-{
-    ConnectSP.s = IPS_IDLE;
-    IDSetSwitch(&ConnectSP, "The connection to the telescope is lost.");
-    return;
- 
-}
-
-/**************************************************************************************
-**
-***************************************************************************************/
-void LX200Basic::connection_resumed()
-{
-  ConnectS[0].s = ISS_ON;
-  ConnectS[1].s = ISS_OFF;
-  ConnectSP.s = IPS_OK;
-   
-  IDSetSwitch(&ConnectSP, "The connection to the telescope has been resumed.");
 }

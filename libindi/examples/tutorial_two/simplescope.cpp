@@ -113,6 +113,8 @@ SimpleScope::SimpleScope()
     cap.canPark = false;
     cap.canSync = false;
     cap.canAbort = true;
+    cap.hasLocation = false;
+    cap.hasTime = true;
     SetTelescopeCapability(&cap);
 }
 

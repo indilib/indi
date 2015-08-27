@@ -97,6 +97,8 @@ SynscanMount::SynscanMount()
     cap.canPark = true;
     cap.canSync = false;
     cap.canAbort = true;
+    cap.hasLocation = false;
+    cap.hasTime = false;
     cap.nSlewRate=0;
     SetTelescopeCapability(&cap);
 }
@@ -110,26 +112,6 @@ const char * SynscanMount::getDefaultName()
 {
     return "SynScan";
 }
-
-/*bool SynscanMount::initProperties()
-{
-    //if (isDebug())
-    //    IDLog("Synscan::init_properties\n");
-
-    //setDeviceName("Synscan");
-    INDI::Telescope::initProperties();
-
-    return true;
-}
-void SynscanMount::ISGetProperties (const char *dev)
-{
-    //  First we let our parent class do it's thing
-    INDI::Telescope::ISGetProperties(dev);
-
-    //  Now we add anything that's specific to this telescope
-    //  or we could just load from a skeleton file too
-    return;
-}*/
 
 bool SynscanMount::ReadScopeStatus()
 {

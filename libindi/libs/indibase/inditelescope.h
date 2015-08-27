@@ -67,6 +67,10 @@ class INDI::Telescope : public INDI::DefaultDevice
             bool canPark;
             /** Can the telescope abort motion? */
             bool canAbort;
+            /** Does the telescope have configurable date and time settings? */
+            bool hasTime;
+            /** Does the telescope have configuration location settings? */
+            bool hasLocation;
             /** Number of Slew Rate options. Set to 0 if telescope does not support slew rates. The minimum required # of slew rates is 4 */
             int nSlewRate;
         } TelescopeCapability;

@@ -31,6 +31,7 @@
 #include "indicom.h"
 #include "indidevapi.h"
 #include "lx200driver.h"
+#include "indilogger.h"
 
 #ifndef _WIN32
 #include <termios.h>
@@ -39,14 +40,19 @@
 #define LX200_TIMEOUT	5		/* FD timeout in seconds */
 
 int controller_format;
-int lx200_debug = 0;
+char lx200Name[MAXINDIDEVICE];
+unsigned int DBG_SCOPE;
+
+void setLX200Debug(const char *deviceName, unsigned int debug_level)
+{
+    strncpy(lx200Name, deviceName, MAXINDIDEVICE);
+    DBG_SCOPE = debug_level;
+}
 
 /**************************************************************************
  Diagnostics
  **************************************************************************/
 char ACK(int fd);
-/*int testTelescope(void);
-int testAP(void);*/
 int check_lx200_connection(int fd);
 
 /**************************************************************************
@@ -69,8 +75,6 @@ int getSiteLongitude(int fd, int *ddd, int *mm);
 int getCalenderDate(int fd, char *date);
 /* Get site Name */
 int getSiteName(int fd, char *siteName, int siteNum);
-/* Get Number of Bars */
-int getNumberOfBars(int fd, int *value);
 /* Get Home Search Status */
 int getHomeSearchStatus(int fd, int *status);
 /* Get OTA Temperature */
@@ -156,11 +160,6 @@ int selectCatalogObject(int fd, int catalog, int NNNN);
 /* Select a sub catalog */
 int selectSubCatalog(int fd, int catalog, int subCatalog);
 
-void setLX200Debug(int value)
-{
-    lx200_debug = value;
-}
-
 int check_lx200_connection(int in_fd)
 {
 
@@ -169,8 +168,7 @@ int check_lx200_connection(int in_fd)
   char MountAlign[64];
   int nbytes_read=0;
 
-  if (lx200_debug)
-    IDLog("%s Testing telescope's connection using ACK...\n", __FUNCTION__);
+  DEBUGDEVICE(lx200Name, INDI::Logger::DBG_DEBUG, "Testing telescope's connection using ACK...");
 
   if (in_fd <= 0) return -1;
 
@@ -179,10 +177,14 @@ int check_lx200_connection(int in_fd)
     if (write(in_fd, ack, 1) < 0) return -1;
     tty_read(in_fd, MountAlign, 1, LX200_TIMEOUT, &nbytes_read);
     if (nbytes_read == 1)
-     return 0;
+    {
+        DEBUGDEVICE(lx200Name, INDI::Logger::DBG_DEBUG, "Testing successful!");
+        return 0;
+    }
     usleep(50000);
   }
   
+  DEBUGDEVICE(lx200Name, INDI::Logger::DBG_DEBUG, "Failure. Telescope is not responding to ACK!");
   return -1;
 }
 
@@ -193,12 +195,13 @@ int check_lx200_connection(int in_fd)
 
 char ACK(int fd)
 {
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
+
   char ack[1] = { (char) 0x06 };
   char MountAlign[2];
   int nbytes_write=0, nbytes_read=0, error_type;
 
-  if (lx200_debug)
-   IDLog("%s Command [%s]\n", __FUNCTION__, ack);
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%02X>", ack);
 
   nbytes_write = write(fd, ack, 1);
 
@@ -207,8 +210,7 @@ char ACK(int fd)
  
   error_type = tty_read(fd, MountAlign, 1, LX200_TIMEOUT, &nbytes_read);
   
-  if (lx200_debug)
-    IDLog("%s Response <%s>\n", __FUNCTION__, MountAlign);
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%c>", MountAlign[0]);
 
   if (nbytes_read == 1)
     return MountAlign[0];
@@ -224,8 +226,7 @@ int getCommandSexa(int fd, double *value, const char * cmd)
   
   tcflush(fd, TCIFLUSH);
 
-  if (lx200_debug)
-   IDLog("%s Command [%s]\n", __FUNCTION__, cmd);
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", cmd);
 
   if ( (error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
    return error_type;
@@ -237,18 +238,15 @@ int getCommandSexa(int fd, double *value, const char * cmd)
 
   temp_string[nbytes_read - 1] = '\0';
   
-  if (lx200_debug)
-    IDLog("%s Response <%s>\n", __FUNCTION__, temp_string);
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%c>", temp_string);
 
   if (f_scansexa(temp_string, value))
   {
-   if (lx200_debug)
-    IDLog("%s unable to process response\n", __FUNCTION__);
-   return -1;
+    DEBUGDEVICE(lx200Name, DBG_SCOPE, "Unable to parse response");
+    return -1;
   }
  
-  if (lx200_debug)
-      IDLog("%s Sexa Response <%g>\n", __FUNCTION__, *value);
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "VAL [%g]", *value);
 
    tcflush(fd, TCIFLUSH);
    return 0;
@@ -263,8 +261,7 @@ int getCommandInt(int fd, int *value, const char* cmd)
   
   tcflush(fd, TCIFLUSH);
 
-  if (lx200_debug)
-   IDLog("%s Command [%s]\n", __FUNCTION__, cmd);
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", cmd);
 
   if ( (error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
    return error_type;
@@ -275,6 +272,8 @@ int getCommandInt(int fd, int *value, const char* cmd)
     return error_type;
  
   temp_string[nbytes_read - 1] = '\0';
+
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%c>", temp_string);
 
   /* Float */
   if (strchr(temp_string, '.'))
@@ -288,12 +287,11 @@ int getCommandInt(int fd, int *value, const char* cmd)
   else if (sscanf(temp_string, "%d", value) != 1)
 	return -1;
 
-  if (lx200_debug)
-   IDLog("%s Response <%d>\n", __FUNCTION__, *value);
+
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "VAL [%d]", *value);
 
    return 0;
 }
-
 
 int getCommandString(int fd, char *data, const char* cmd)
 {
@@ -301,8 +299,7 @@ int getCommandString(int fd, char *data, const char* cmd)
     int error_type;
     int nbytes_write=0, nbytes_read=0;
     
-    if (lx200_debug)
-     IDLog("%s Command [%s]\n", __FUNCTION__, cmd);
+    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", cmd);
 
    if ( (error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
     return error_type;
@@ -317,21 +314,20 @@ int getCommandString(int fd, char *data, const char* cmd)
     if (term)
       *term = '\0';
 
-   if (lx200_debug)
-    IDLog("%s Response <%s>\n", __FUNCTION__, data);
+   DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%s>", data);
 
     return 0;
 }
 
 int isSlewComplete(int fd)
 {
+    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     char data[8];
     int error_type;
     int nbytes_write=0, nbytes_read=0;
-    char *cmd = "#:D#";
+    const char *cmd = "#:D#";
 
-    if (lx200_debug)
-     IDLog("%s Command [%s]\n", __FUNCTION__, cmd);
+    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", cmd);
 
    if ( (error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
     return error_type;
@@ -342,8 +338,7 @@ int isSlewComplete(int fd)
     if (error_type != TTY_OK)
     return error_type;
 
-    if (lx200_debug)
-     IDLog("%s Response <%s>\n", __FUNCTION__, data);
+    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%s>", data);
 
     if (data[0] == '#')
         return 0;
@@ -354,14 +349,11 @@ int isSlewComplete(int fd)
 
 int getCalenderDate(int fd, char *date)
 {
-
+ DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
  int dd, mm, yy;
  int error_type;
  int nbytes_read=0;
  char mell_prefix[3];
- 
- if (lx200_debug)
-  IDLog("%s Command [#:GC#]\n", __FUNCTION__);
 
  if ( (error_type = getCommandString(fd, date, "#:GC#")) )
    return error_type;
@@ -380,27 +372,23 @@ int getCalenderDate(int fd, char *date)
  /* We need to have in in YYYY/MM/DD format */
  snprintf(date, 16, "%s%02d/%02d/%02d", mell_prefix, yy, mm, dd);
 
- if (lx200_debug)
-     IDLog("%s Response <%s>\n", __FUNCTION__, date);
-
  return (0);
 
 }
 
 int getTimeFormat(int fd, int *format)
 {
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
   char temp_string[16];
   int error_type;
   int nbytes_write=0, nbytes_read=0;
   int tMode;
 
-  if (lx200_debug)
-   IDLog("%s Command [#:Gc#]\n", __FUNCTION__);
-  
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:Gc#");
+
  if ( (error_type = tty_write_string(fd, "#:Gc#", &nbytes_write)) != TTY_OK)
     return error_type;
 
-  /*read_ret = portRead(temp_string, -1, LX200_TIMEOUT);*/
   if ( (error_type = tty_read_section(fd, temp_string, '#', LX200_TIMEOUT, &nbytes_read)) != TTY_OK)
 	return error_type;
 
@@ -411,8 +399,7 @@ int getTimeFormat(int fd, int *format)
    
   temp_string[nbytes_read-1] = '\0';
 
-  if (lx200_debug)
-      IDLog("%s Response <%s>\n", __FUNCTION__, temp_string);
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%s>", temp_string);
 
   nbytes_read = sscanf(temp_string, "(%d)", &tMode);
 
@@ -427,6 +414,7 @@ int getTimeFormat(int fd, int *format)
 
 int getSiteName(int fd, char *siteName, int siteNum)
 {
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
   char * term;
   int error_type;
   int nbytes_write=0, nbytes_read=0;
@@ -434,26 +422,22 @@ int getSiteName(int fd, char *siteName, int siteNum)
   switch (siteNum)
   {
     case 1:
-      if (lx200_debug)
-       IDLog("%s Command [#:GM#]\n", __FUNCTION__);
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:GM#");
        if ( (error_type = tty_write_string(fd, "#:GM#", &nbytes_write)) != TTY_OK)
     	return error_type;
      break;
     case 2:
-      if (lx200_debug)
-       IDLog("%s Command [#:GN#]\n", __FUNCTION__);
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:GN#");
 	if ( (error_type = tty_write_string(fd, "#:GN#", &nbytes_write)) != TTY_OK)
     	return error_type;
      break;
     case 3:
-      if (lx200_debug)
-       IDLog("%s Command [#:GO#]\n", __FUNCTION__);
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:GO#");
 	if ( (error_type = tty_write_string(fd, "#:GO#", &nbytes_write)) != TTY_OK)
     	return error_type;
      break;
     case 4:
-      if (lx200_debug)
-       IDLog("%s Command [#:GP#]\n", __FUNCTION__);
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:GP#");
 	if ( (error_type = tty_write_string(fd, "#:GP#", &nbytes_write)) != TTY_OK)
     	return error_type;
      break;
@@ -469,8 +453,7 @@ int getSiteName(int fd, char *siteName, int siteNum)
 
    siteName[nbytes_read - 1] = '\0';
 
-   if (lx200_debug)
-       IDLog("%s Response <%s>\n", __FUNCTION__, siteName);
+   DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%s>", siteName);
 
    term = strchr (siteName, ' ');
     if (term)
@@ -480,20 +463,19 @@ int getSiteName(int fd, char *siteName, int siteNum)
     if (term)
       strcpy(siteName, "unused site");
 
-    if (lx200_debug)
-        IDLog("%s Final Site Name <%s>\n", __FUNCTION__, siteName);
+    DEBUGFDEVICE(lx200Name, INDI::Logger::DBG_DEBUG, "Site Name <%s>", siteName);
 
     return 0;
 }
 
 int getSiteLatitude(int fd, int *dd, int *mm)
 {
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
   char temp_string[16];
   int error_type;
   int nbytes_write=0, nbytes_read=0;
 
-  if (lx200_debug)
-   IDLog("%s Command [#:Gt#]\n", __FUNCTION__);
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:Gt#");
 
   if ( (error_type = tty_write_string(fd, "#:Gt#", &nbytes_write)) != TTY_OK)
     	return error_type;
@@ -506,30 +488,27 @@ int getSiteLatitude(int fd, int *dd, int *mm)
    
   temp_string[nbytes_read -1] = '\0';
 
-  if (lx200_debug)
-      IDLog("%s Response <%s>\n", __FUNCTION__, temp_string);
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%s>", temp_string);
 
   if (sscanf (temp_string, "%d%*c%d", dd, mm) < 2)
   {
-      if (lx200_debug)
-          IDLog("%s Processing response failed\n", __FUNCTION__);
+      DEBUGDEVICE(lx200Name, DBG_SCOPE, "Unable to parse response");
       return -1;
   }
 
-  if (lx200_debug)
-      IDLog("%s Processed response <%d:%d>\n", __FUNCTION__, *dd, *mm);
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "VAL [%d,%d]", *dd, *mm);
 
   return 0;
 }
 
 int getSiteLongitude(int fd, int *ddd, int *mm)
 {
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
   char temp_string[16];
   int error_type;
   int nbytes_write=0, nbytes_read=0;
 
-  if (lx200_debug)
-   IDLog("%s Command [#:Gg#]\n", __FUNCTION__);
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:Gg#");
 
   if ( (error_type = tty_write_string(fd, "#:Gg#", &nbytes_write)) != TTY_OK)
     	return error_type;
@@ -543,32 +522,28 @@ int getSiteLongitude(int fd, int *ddd, int *mm)
     
   temp_string[nbytes_read -1] = '\0';
 
-  if (lx200_debug)
-      IDLog("%s Response <%s>\n", __FUNCTION__, temp_string);
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%s>", temp_string);
 
   if (sscanf (temp_string, "%d%*c%d", ddd, mm) < 2)
   {
-      if (lx200_debug)
-          IDLog("%s Processing response failed\n", __FUNCTION__);
-
+      DEBUGDEVICE(lx200Name, DBG_SCOPE, "Unable to parse response");
       return -1;
   }
 
-  if (lx200_debug)
-      IDLog("%s Processed response <%d:%d>\n", __FUNCTION__, *ddd, *mm);
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "VAL [%d,%d]", *ddd, *mm);
 
   return 0;
 }
 
 int getTrackFreq(int fd, double *value)
 {
+    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     float Freq;
     char temp_string[16];
     int error_type;
     int nbytes_write=0, nbytes_read=0;
     
-    if (lx200_debug)
-     IDLog("%s Command [#:GT#]\n", __FUNCTION__);
+    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:GT#");
 
     if ( (error_type = tty_write_string(fd, "#:GT#", &nbytes_write)) != TTY_OK)
     	return error_type;
@@ -581,56 +556,29 @@ int getTrackFreq(int fd, double *value)
 
     temp_string[nbytes_read] = '\0';
 
-    if (lx200_debug)
-        IDLog("%s Response <%s>\n", __FUNCTION__, temp_string);
+    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%s>", temp_string);
        
     if (sscanf(temp_string, "%f#", &Freq) < 1)
     {
-        if (lx200_debug)
-            IDLog("%s Processing response failed\n", __FUNCTION__);
-
+        DEBUGDEVICE(lx200Name, DBG_SCOPE, "Unable to parse response");
         return -1;
     }
    
     *value = (double) Freq;
     
-
-    if (lx200_debug)
-        IDLog("%s Processed response <%g>\n", __FUNCTION__, *value);
+    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "VAL [%g]", *value);
 
     return 0;
 }
 
-int getNumberOfBars(int fd, int *value)
-{
-   char temp_string[128];
-   int error_type;
-   int nbytes_write=0, nbytes_read=0;
-
-   if ( (error_type = tty_write_string(fd, "#:D#", &nbytes_write)) != TTY_OK)
-    	return error_type;
-   /*if (portWrite("#:D#") < 0)
-     return -1;*/
-
-   error_type = tty_read_section(fd, temp_string, '#', LX200_TIMEOUT, &nbytes_read);
-   tcflush(fd, TCIFLUSH);
-   
-   if (nbytes_read < 0)
-    return error_type;
-
-   *value = nbytes_read -1;
-   
-   return 0;
-}
-
 int getHomeSearchStatus(int fd, int *status)
 {
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
   char temp_string[16];
   int error_type;
   int nbytes_write=0, nbytes_read=0;
 
-  if (lx200_debug)
-   IDLog("%s Command [#:h?#]\n", __FUNCTION__);
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:h?#");
 
   if ( (error_type = tty_write_string(fd, "#:h?#", &nbytes_write)) != TTY_OK)
     	return error_type;
@@ -643,8 +591,7 @@ int getHomeSearchStatus(int fd, int *status)
    
   temp_string[1] = '\0';
 
-  if (lx200_debug)
-      IDLog("%s Response <%s>\n", __FUNCTION__, temp_string);
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%s>", temp_string);
 
   if (temp_string[0] == '0')
     *status = 0;
@@ -653,19 +600,21 @@ int getHomeSearchStatus(int fd, int *status)
   else if (temp_string[0] == '2')
     *status = 1;
   
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "VAL [%d]", *status);
+
   return 0;
 }
 
 int getOTATemp(int fd, double *value)
 {
 
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
   char temp_string[16];
   int error_type;
   int nbytes_write=0, nbytes_read=0;
   float temp;
   
-  if (lx200_debug)
-   IDLog("%s Command [#:fT#]\n", __FUNCTION__);
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:fT#");
 
   if ( (error_type = tty_write_string(fd, "#:fT#", &nbytes_write)) != TTY_OK)
     	return error_type;
@@ -677,96 +626,17 @@ int getOTATemp(int fd, double *value)
    
   temp_string[nbytes_read - 1] = '\0';
 
-  if (lx200_debug)
-      IDLog("%s Response <%s>\n", __FUNCTION__, temp_string);
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%s>", temp_string);
 
   if (sscanf(temp_string, "%f", &temp) < 1)
   {
-      if (lx200_debug)
-          IDLog("%s Processing response failed\n", __FUNCTION__);
-
-   return -1;
+      DEBUGDEVICE(lx200Name, DBG_SCOPE, "Unable to parse response");
+      return -1;
   }
    
    *value = (double) temp;
 
-  if (lx200_debug)
-      IDLog("%s Processed response <%g>\n", __FUNCTION__, *value);
-
-  return 0;
-
-}
-
-int updateSkyCommanderCoord(int fd, double *ra, double *dec)
-{
-  char coords[16];
-  char CR[1] = { (char) 0x0D };
-  float RA=0.0, DEC=0.0;
-  int error_type;
-  int nbytes_read=0;
-
-  error_type = write(fd, CR, 1);
-
-  error_type = tty_read(fd, coords, 16, LX200_TIMEOUT, &nbytes_read);
-  /*read_ret = portRead(coords, 16, LX200_TIMEOUT);*/
-  tcflush(fd, TCIFLUSH);
-
-  nbytes_read = sscanf(coords, " %g %g", &RA, &DEC);
-
-  if (nbytes_read < 2)
-  {
-   #ifdef INDI_DEBUG
-   IDLog("Error in Sky commander number format [%s], exiting.\n", coords);
-   #endif
-   return error_type;
-  }
-
-  *ra  = RA;
-  *dec = DEC;
-
-  return 0;
-
-}
-
-int updateIntelliscopeCoord (int fd, double *ra, double *dec)
-{
-  char coords[16];
-  char CR[1] = { (char) 0x51 };	/* "Q" */
-  float RA = 0.0, DEC = 0.0;
-  int error_type;
-  int nbytes_read=0;
-
-  /*IDLog ("Sending a Q\n");*/
-  error_type = write (fd, CR, 1);
-  /* We start at 14 bytes in case its a Sky Wizard, 
-     but read one more later it if it's a intelliscope */
-  /*read_ret = portRead (coords, 14, LX200_TIMEOUT);*/
-  error_type = tty_read(fd, coords, 14, LX200_TIMEOUT, &nbytes_read);
-  tcflush(fd, TCIFLUSH);
-  /*IDLog ("portRead() = [%s]\n", coords);*/
-
-  /* Remove the Q in the response from the Intelliscope  but not the Sky Wizard */
-  if (coords[0] == 'Q') {
-    coords[0] = ' ';
-    /* Read one more byte if Intelliscope to get the "CR" */
-    error_type = tty_read(fd, coords, 1, LX200_TIMEOUT, &nbytes_read);
-    /*read_ret = portRead (coords, 1, LX200_TIMEOUT);*/
-  }
-  nbytes_read = sscanf (coords, " %g %g", &RA, &DEC);
-  /*IDLog ("sscanf() RA = [%f]\n", RA * 0.0390625);*/
-  /*IDLog ("sscanf() DEC = [%f]\n", DEC * 0.0390625);*/
-
-  /*IDLog ("Intelliscope output [%s]", coords);*/
-  if (nbytes_read < 2)
-  {
-    #ifdef INDI_DEBUG
-    IDLog ("Error in Intelliscope number format [%s], exiting.\n", coords);
-    #endif
-    return -1;
-  }
-
-  *ra = RA * 0.0390625;
-  *dec = DEC * 0.0390625;
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "VAL [%g]", *value);
 
   return 0;
 
@@ -783,8 +653,7 @@ int setStandardProcedure(int fd, const char * data)
  int error_type;
  int nbytes_write=0, nbytes_read=0;
  
- if (lx200_debug)
-  IDLog("%s Command [%s]\n", __FUNCTION__, data);
+ DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", data);
 
  if ( (error_type = tty_write_string(fd, data, &nbytes_write)) != TTY_OK)
     	return error_type;
@@ -797,13 +666,11 @@ int setStandardProcedure(int fd, const char * data)
 
  if (bool_return[0] == '0')
  {
-     if (lx200_debug)
-         IDLog("%s %s Failed.\n", __FUNCTION__, data);
+     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s> failed.", data);
      return -1;
  }
 
- if (lx200_debug)
-    IDLog("%s %s Successful\n", __FUNCTION__, data);
+ DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s> successful.", data);
 
  return 0;
 
@@ -817,28 +684,22 @@ int setCommandInt(int fd, int data, const char *cmd)
 
   snprintf(temp_string, sizeof( temp_string ), "%s%d#", cmd, data);
 
-  if (lx200_debug)
-   IDLog("%s Command [%s]\n", __FUNCTION__, temp_string);
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", temp_string);
 
   if ( (error_type = tty_write_string(fd, temp_string, &nbytes_write)) != TTY_OK)
   {
-      if (lx200_debug)
-          IDLog("%s %s Failed.\n", __FUNCTION__, temp_string);
-
-    	return error_type;
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s> failed.", temp_string);
+      return error_type;
   }
 
-  if (lx200_debug)
-     IDLog("%s %s Successful\n", __FUNCTION__, temp_string);
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s> successful.", temp_string);
 
   return 0;
 }
 
 int setMinElevationLimit(int fd, int min)
 {
-    if (lx200_debug)
-       IDLog("%s\n", __FUNCTION__);
-
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
  char temp_string[16];
 
  snprintf(temp_string, sizeof( temp_string ), "#:Sh%02d#", min);
@@ -848,8 +709,7 @@ int setMinElevationLimit(int fd, int min)
 
 int setMaxElevationLimit(int fd, int max)
 {
-    if (lx200_debug)
-       IDLog("%s\n", __FUNCTION__);
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
 
  char temp_string[16];
 
@@ -860,9 +720,8 @@ int setMaxElevationLimit(int fd, int max)
 }
 
 int setMaxSlewRate(int fd, int slewRate)
-{
-    if (lx200_debug)
-       IDLog("%s\n", __FUNCTION__);
+{    
+   DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
 
    char temp_string[16];
 
@@ -878,6 +737,8 @@ int setMaxSlewRate(int fd, int slewRate)
 int setObjectRA(int fd, double ra)
 {
 
+ DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
+
  int h, m, s, frac_m;
  char temp_string[16];
 
@@ -888,10 +749,7 @@ int setObjectRA(int fd, double ra)
  if (controller_format == LX200_LONG_FORMAT)
  	snprintf(temp_string, sizeof( temp_string ), "#:Sr %02d:%02d:%02d#", h, m, s);
  else
-	snprintf(temp_string, sizeof( temp_string ), "#:Sr %02d:%02d.%01d#", h, m, frac_m);
-	
- if (lx200_debug)
-    IDLog("%s Set Object RA String %s\n", __FUNCTION__, temp_string);
+	snprintf(temp_string, sizeof( temp_string ), "#:Sr %02d:%02d.%01d#", h, m, frac_m); 
 
  return (setStandardProcedure(fd, temp_string));
 }
@@ -899,6 +757,8 @@ int setObjectRA(int fd, double ra)
 
 int setObjectDEC(int fd, double dec)
 {
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
+
   int d, m, s;
   char temp_string[16];
 
@@ -923,19 +783,13 @@ int setObjectDEC(int fd, double dec)
     	snprintf(temp_string, sizeof( temp_string ), "#:Sd %+03d:%02d:%02d#", d, m, s);
     break;
   }
-
-  if (lx200_debug)
-    IDLog("%s Set Object DEC String %s\n", __FUNCTION__, temp_string);
   
   return (setStandardProcedure(fd, temp_string));
 
 }
 
 int setCommandXYZ(int fd, int x, int y, int z, const char *cmd)
-{
-    if (lx200_debug)
-       IDLog("%s\n", __FUNCTION__);
-
+{     
   char temp_string[16];
 
   snprintf(temp_string, sizeof( temp_string ), "%s %02d:%02d:%02d#", cmd, x, y, z);
@@ -944,28 +798,24 @@ int setCommandXYZ(int fd, int x, int y, int z, const char *cmd)
 }
 
 int setAlignmentMode(int fd, unsigned int alignMode)
-{
-  /*fprintf(stderr , "Set alignment mode %d\n", alignMode);*/
+{  
   int error_type;
   int nbytes_write=0;
 
   switch (alignMode)
    {
      case LX200_ALIGN_POLAR:
-      if (lx200_debug)
-         IDLog("%s Command [#:AP#]\n", __FUNCTION__);
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:AP#");
 	if ( (error_type = tty_write_string(fd, "#:AP#", &nbytes_write)) != TTY_OK)
     	return error_type;
       break;
      case LX200_ALIGN_ALTAZ:
-      if (lx200_debug)
-         IDLog("%s Command [#:AA#]\n", __FUNCTION__);
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:AA#");
 	if ( (error_type = tty_write_string(fd, "#:AA#", &nbytes_write)) != TTY_OK)
     	return error_type;
       break;
      case LX200_ALIGN_LAND:
-      if (lx200_debug)
-         IDLog("%s Command [#:AL#]\n", __FUNCTION__);
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:AL#");
 	if ( (error_type = tty_write_string(fd, "#:AL#", &nbytes_write)) != TTY_OK)
     	return error_type;
        break;
@@ -977,8 +827,9 @@ int setAlignmentMode(int fd, unsigned int alignMode)
 
 int setCalenderDate(int fd, int dd, int mm, int yy)
 {
+   DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
    char temp_string[32];
-   char dumpPlanetaryUpdateString[64];
+   //char dumpPlanetaryUpdateString[64];
    char bool_return[2];
    int error_type;
    int nbytes_write=0, nbytes_read=0;
@@ -986,8 +837,7 @@ int setCalenderDate(int fd, int dd, int mm, int yy)
 
    snprintf(temp_string, sizeof( temp_string ), "#:SC %02d/%02d/%02d#", mm, dd, yy);
 
-   if (lx200_debug)
-       IDLog("%s Command [%s]\n", __FUNCTION__, temp_string);
+   DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", temp_string);
 
    if ( (error_type = tty_write_string(fd, temp_string, &nbytes_write)) != TTY_OK)
     	return error_type;
@@ -997,34 +847,33 @@ int setCalenderDate(int fd, int dd, int mm, int yy)
    
    if (nbytes_read < 1)
    {
-       if (lx200_debug)
-           IDLog("%s Error reading response (%d)\n", __FUNCTION__, error_type);
+        DEBUGDEVICE(lx200Name, DBG_SCOPE, "Unable to parse response");
         return error_type;
    }
 
    bool_return[1] = '\0';
 
-   if (lx200_debug)
-       IDLog("%s Response <%s>\n", __FUNCTION__, bool_return);
+   DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%s>", bool_return);
 
    if (bool_return[0] == '0')
      return -1;
      
+   /* Sleep 10ms before flushing. This solves some issues with LX200 compatible devices. */
+   usleep(10000);
+   tcflush(fd, TCIFLUSH);
     /* Read dumped data */
-    error_type = tty_read_section(fd, dumpPlanetaryUpdateString, '#', LX200_TIMEOUT, &nbytes_read);
-    error_type = tty_read_section(fd, dumpPlanetaryUpdateString, '#', 5, &nbytes_read);
+    //error_type = tty_read_section(fd, dumpPlanetaryUpdateString, '#', 1, &nbytes_read);
+    //error_type = tty_read_section(fd, dumpPlanetaryUpdateString, '#', 1, &nbytes_read);
 
    return 0;
 }
 
 int setUTCOffset(int fd, double hours)
 {
+   DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
    char temp_string[16];
 
    snprintf(temp_string, sizeof( temp_string ), "#:SG %+03d#", (int) hours);
-
-   if (lx200_debug)
-    IDLog("%s UTC string is %s\n", __FUNCTION__, temp_string);
 
    return (setStandardProcedure(fd, temp_string));
 
@@ -1032,11 +881,9 @@ int setUTCOffset(int fd, double hours)
 
 int setSiteLongitude(int fd, double Long)
 {
+   DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
    int d, m, s;
    char temp_string[32];
-
-   if (lx200_debug)
-      IDLog("%s\n", __FUNCTION__);
 
    getSexComponents(Long, &d, &m, &s);
 
@@ -1047,11 +894,9 @@ int setSiteLongitude(int fd, double Long)
 
 int setSiteLatitude(int fd, double Lat)
 {
+   DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
    int d, m, s;
    char temp_string[32];
-
-   if (lx200_debug)
-      IDLog("%s\n", __FUNCTION__);
 
    getSexComponents(Lat, &d, &m, &s);
 
@@ -1062,11 +907,9 @@ int setSiteLatitude(int fd, double Lat)
 
 int setObjAz(int fd, double az)
 {
+   DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
    int d,m,s;
    char temp_string[16];
-
-   if (lx200_debug)
-      IDLog("%s\n", __FUNCTION__);
 
    getSexComponents(az, &d, &m, &s);
 
@@ -1078,11 +921,9 @@ int setObjAz(int fd, double az)
 
 int setObjAlt(int fd, double alt)
 {
+    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     int d, m, s;
     char temp_string[16];
-
-    if (lx200_debug)
-       IDLog("%s\n", __FUNCTION__);
 
    getSexComponents(alt, &d, &m, &s);
 
@@ -1094,10 +935,8 @@ int setObjAlt(int fd, double alt)
 
 int setSiteName(int fd, char * siteName, int siteNum)
 {
-   char temp_string[16];
-
-   if (lx200_debug)
-      IDLog("%s\n", __FUNCTION__);
+   DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
+   char temp_string[16];   
 
    switch (siteNum)
    {
@@ -1122,32 +961,29 @@ int setSiteName(int fd, char * siteName, int siteNum)
 
 int setSlewMode(int fd, int slewMode)
 {
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
   int error_type;
   int nbytes_write=0;
 
   switch (slewMode)
   {
     case LX200_SLEW_MAX:
-      if (lx200_debug)
-         IDLog("%s Command [#:RS#]\n", __FUNCTION__);
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:RS#");
    if ( (error_type = tty_write_string(fd, "#:RS#", &nbytes_write)) != TTY_OK)
     	return error_type;
      break;
     case LX200_SLEW_FIND:
-      if (lx200_debug)
-         IDLog("%s Command [#:RM#]\n", __FUNCTION__);
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:RM#");
      if ( (error_type = tty_write_string(fd, "#:RM#", &nbytes_write)) != TTY_OK)
     	return error_type;
      break;
     case LX200_SLEW_CENTER:
-      if (lx200_debug)
-         IDLog("%s Command [#:RC#]\n", __FUNCTION__);
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:RC#");
 	if ( (error_type = tty_write_string(fd, "#:RC#", &nbytes_write)) != TTY_OK)
     	return error_type;
      break;
     case LX200_SLEW_GUIDE:
-      if (lx200_debug)
-         IDLog("%s Command [#:RG#]\n", __FUNCTION__);
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:RG#");
     if ( (error_type = tty_write_string(fd, "#:RG#", &nbytes_write)) != TTY_OK)
     	return error_type;
      break;
@@ -1162,20 +998,19 @@ int setSlewMode(int fd, int slewMode)
 
 int setFocuserMotion(int fd, int motionType)
 {
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
   int error_type;
   int nbytes_write=0;
 
   switch (motionType)
   {
     case LX200_FOCUSIN:
-      if (lx200_debug)
-         IDLog("%s Focus In Command [#:F+#]\n", __FUNCTION__);
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:F+#");
     if ( (error_type = tty_write_string(fd, "#:F+#", &nbytes_write)) != TTY_OK)
     	return error_type;
       break;
     case LX200_FOCUSOUT:
-      if (lx200_debug)
-         IDLog("%s Focus Out Command [#:F-#]\n", __FUNCTION__);
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:F-#");
     if ( (error_type = tty_write_string(fd, "#:F-#", &nbytes_write)) != TTY_OK)
     	return error_type;
      break;
@@ -1187,26 +1022,24 @@ int setFocuserMotion(int fd, int motionType)
 
 int setFocuserSpeedMode (int fd, int speedMode)
 {
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
   int error_type;
   int nbytes_write=0;
 
  switch (speedMode)
  {
     case LX200_HALTFOCUS:
-     if (lx200_debug)
-        IDLog("%s Halt Focus Command [#:FQ#]\n", __FUNCTION__);
+     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:FQ#");
     if ( (error_type = tty_write_string(fd, "#:FQ#", &nbytes_write)) != TTY_OK)
     	return error_type;
      break;
    case LX200_FOCUSSLOW:
-     if (lx200_debug)
-        IDLog("%s Focus Slow Command [#:FS#]\n", __FUNCTION__);
+     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:FS#");
     if ( (error_type = tty_write_string(fd, "#:FS#", &nbytes_write)) != TTY_OK)
     	return error_type;
       break;
     case LX200_FOCUSFAST:
-     if (lx200_debug)
-        IDLog("%s Focus Fast Command [#:FF#]\n", __FUNCTION__);
+     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:FF#");
      if ( (error_type = tty_write_string(fd, "#:FF#", &nbytes_write)) != TTY_OK)
     	return error_type;
      break;
@@ -1218,14 +1051,14 @@ int setFocuserSpeedMode (int fd, int speedMode)
 
 int setGPSFocuserSpeed (int fd, int speed)
 {
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
   char speed_str[8];
   int error_type;
   int nbytes_write=0;
 
   if (speed == 0)
   {
-      if (lx200_debug)
-         IDLog("%s Command [#:FQ#]\n", __FUNCTION__);
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:FQ#");
      if ( (error_type = tty_write_string(fd, "#:FQ#", &nbytes_write)) != TTY_OK)
     	return error_type;
 
@@ -1234,8 +1067,7 @@ int setGPSFocuserSpeed (int fd, int speed)
 
   snprintf(speed_str, 8, "#:F%d#", speed);
 
-  if (lx200_debug)
-     IDLog("%s Command [%s]\n", __FUNCTION__, speed_str);
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", speed_str);
 
   if ( (error_type = tty_write_string(fd, speed_str, &nbytes_write)) != TTY_OK)
     	return error_type;
@@ -1246,10 +1078,8 @@ int setGPSFocuserSpeed (int fd, int speed)
 
 int setTrackFreq(int fd, double trackF)
 {
-  char temp_string[16];
-
-  if (lx200_debug)
-     IDLog("%s\n", __FUNCTION__);
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
+  char temp_string[16];  
 
   snprintf(temp_string, sizeof( temp_string ), "#:ST %04.1f#", trackF);
 
@@ -1263,12 +1093,12 @@ int setTrackFreq(int fd, double trackF)
 
 int Slew(int fd)
 {
+    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     char slewNum[2];
     int error_type;
     int nbytes_write=0, nbytes_read=0;
 
-    if (lx200_debug)
-       IDLog("%s Slew Command [#:MS#]\n", __FUNCTION__);
+    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:MS#");
 
     if ( (error_type = tty_write_string(fd, "#:MS#", &nbytes_write)) != TTY_OK)
     	return error_type;
@@ -1277,16 +1107,14 @@ int Slew(int fd)
     
     if (nbytes_read < 1)
     {
-        if (lx200_debug)
-           IDLog("%s Response error (%d)\n", __FUNCTION__, error_type);
+        DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES ERROR <%d>", error_type);
       return error_type;
     }
 
     /* We don't need to read the string message, just return corresponding error code */
     tcflush(fd, TCIFLUSH);
 
-    if (lx200_debug)
-       IDLog("%s Response <%c>\n", __FUNCTION__, slewNum[0]);
+    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%c>", slewNum[0]);
 
     if (slewNum[0] == '0')
      return 0;
@@ -1298,28 +1126,25 @@ int Slew(int fd)
 
 int MoveTo(int fd, int direction)
 {
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
   int nbytes_write=0;
 
   switch (direction)
   {
     case LX200_NORTH:
-      if (lx200_debug)
-         IDLog("%s Motion Command [#:Mn#]\n", __FUNCTION__);
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:Mn#");
     tty_write_string(fd, "#:Mn#", &nbytes_write);
     break;
     case LX200_WEST:
-      if (lx200_debug)
-         IDLog("%s Motion Command [#:Mw#]\n", __FUNCTION__);
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:Mw#");
     tty_write_string(fd, "#:Mw#", &nbytes_write);
     break;
     case LX200_EAST:
-      if (lx200_debug)
-         IDLog("%s Motion Command [#:Me#]\n", __FUNCTION__);
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:Me#");
     tty_write_string(fd, "#:Me#", &nbytes_write);
     break;
     case LX200_SOUTH:
-      if (lx200_debug)
-         IDLog("%s Motion Command [#:Ms#]\n", __FUNCTION__);
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:Ms#");
     tty_write_string(fd, "#:Ms#", &nbytes_write);
     break;
     default:
@@ -1332,6 +1157,7 @@ int MoveTo(int fd, int direction)
 
 int SendPulseCmd(int fd, int direction, int duration_msec)
 {
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
   int nbytes_write=0;
   char cmd[20];
   switch (direction)
@@ -1343,8 +1169,7 @@ int SendPulseCmd(int fd, int direction, int duration_msec)
     default: return 1;
   }
   
-  if (lx200_debug)
-     IDLog("%s Command [%s]\n", __FUNCTION__, cmd);
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", cmd);
 
   tty_write_string(fd, cmd, &nbytes_write);
   
@@ -1354,38 +1179,34 @@ int SendPulseCmd(int fd, int direction, int duration_msec)
 
 int HaltMovement(int fd, int direction)
 {
+    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     int error_type;
     int nbytes_write=0;
 
   switch (direction)
   {
     case LX200_NORTH:
-      if (lx200_debug)
-         IDLog("%s Stop Motion Command [#:Qn#]\n", __FUNCTION__);
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:Qn#");
        if ( (error_type = tty_write_string(fd, "#:Qn#", &nbytes_write)) != TTY_OK)
     	return error_type;
      break;
     case LX200_WEST:
-      if (lx200_debug)
-         IDLog("%s Stop Motion Command [#:Qw#]\n", __FUNCTION__);
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:Qw#");
      if ( (error_type = tty_write_string(fd, "#:Qw#", &nbytes_write)) != TTY_OK)
     	return error_type;
      break;
     case LX200_EAST:
-      if (lx200_debug)
-         IDLog("%s Stop Motion Command [#:Qe#]\n", __FUNCTION__);
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:Qe#");
       if ( (error_type = tty_write_string(fd, "#:Qe#", &nbytes_write)) != TTY_OK)
     	return error_type;
      break;
     case LX200_SOUTH:
-      if (lx200_debug)
-         IDLog("%s Stop Motion Command [#:Qs#]\n", __FUNCTION__);
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:Qs#");
     if ( (error_type = tty_write_string(fd, "#:Qs#", &nbytes_write)) != TTY_OK)
     	return error_type;
     break;
     case LX200_ALL:
-      if (lx200_debug)
-         IDLog("%s Stop Motion Command [#:Q#]\n", __FUNCTION__);
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:Q#");
 	if ( (error_type = tty_write_string(fd, "#:Q#", &nbytes_write)) != TTY_OK)
     	   return error_type;
      break;
@@ -1401,11 +1222,9 @@ int HaltMovement(int fd, int direction)
 
 int abortSlew(int fd)
 {
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
   int error_type;
   int nbytes_write=0;
-
-  if (lx200_debug)
-     IDLog("%s Command [#:Q#]\n", __FUNCTION__);
 
  if ( (error_type = tty_write_string(fd, "#:Q#", &nbytes_write)) != TTY_OK)
     	   return error_type;
@@ -1416,11 +1235,11 @@ int abortSlew(int fd)
 
 int Sync(int fd, char *matchedObject)
 {
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
   int error_type;
   int nbytes_write=0, nbytes_read=0;
 
-  if (lx200_debug)
-     IDLog("%s Command [#:CM#]\n", __FUNCTION__);
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:CM#");
 
   if ( (error_type = tty_write_string(fd, "#:CM#", &nbytes_write)) != TTY_OK)
     	   return error_type;
@@ -1432,8 +1251,7 @@ int Sync(int fd, char *matchedObject)
    
   matchedObject[nbytes_read-1] = '\0';
 
-  if (lx200_debug)
-    IDLog("%s Matched Object: %s\n", __FUNCTION__, matchedObject);
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%s>", matchedObject);
   
   /* Sleep 10ms before flushing. This solves some issues with LX200 compatible devices. */
   usleep(10000);
@@ -1444,34 +1262,29 @@ int Sync(int fd, char *matchedObject)
 
 int selectSite(int fd, int siteNum)
 {
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
   int error_type;
   int nbytes_write=0;
 
   switch (siteNum)
   {
     case 1:
-      if (lx200_debug)
-         IDLog("%s Command [#:W1#]\n", __FUNCTION__);
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:W1#");
   	if ( (error_type = tty_write_string(fd, "#:W1#", &nbytes_write)) != TTY_OK)
     	   return error_type;
       break;
     case 2:
-      if (lx200_debug)
-         IDLog("%s Motion Command [#:W2#]\n", __FUNCTION__);
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:W2#");
 	if ( (error_type = tty_write_string(fd, "#:W2#", &nbytes_write)) != TTY_OK)
     	   return error_type;
-      /*if (portWrite("#:W2#") < 0)
-       return -1;*/
       break;
     case 3:
-      if (lx200_debug)
-         IDLog("%s Motion Command [#:W3#]\n", __FUNCTION__);
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:W3#");
 	if ( (error_type = tty_write_string(fd, "#:W3#", &nbytes_write)) != TTY_OK)
     	   return error_type;
       break;
     case 4:
-      if (lx200_debug)
-         IDLog("%s Motion Command [#:W4#]\n", __FUNCTION__);
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:W4#");
 	if ( (error_type = tty_write_string(fd, "#:W4#", &nbytes_write)) != TTY_OK)
     	   return error_type;
       break;
@@ -1487,6 +1300,7 @@ int selectSite(int fd, int siteNum)
 
 int selectCatalogObject(int fd, int catalog, int NNNN)
 {
+ DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
  char temp_string[16];
  int error_type;
  int nbytes_write=0;
@@ -1506,10 +1320,10 @@ int selectCatalogObject(int fd, int catalog, int NNNN)
     return -1;
   }
 
+ DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", temp_string);
+
   if ( (error_type = tty_write_string(fd, temp_string, &nbytes_write)) != TTY_OK)
     	   return error_type;
-  /*if (portWrite(temp_string) < 0)
-   return -1;*/
 
   tcflush(fd, TCIFLUSH);
   return 0;
@@ -1517,6 +1331,7 @@ int selectCatalogObject(int fd, int catalog, int NNNN)
 
 int selectSubCatalog(int fd, int catalog, int subCatalog)
 {
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
   char temp_string[16];
   switch (catalog)
   {
@@ -1542,8 +1357,7 @@ int checkLX200Format(int fd)
   int error_type;
   int nbytes_write=0, nbytes_read=0;
 
-  if (lx200_debug)
-     IDLog("%s Command [#:GR#]\n", __FUNCTION__);
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:GR#");
 
   if ( (error_type = tty_write_string(fd, "#:GR#", &nbytes_write)) != TTY_OK)
     	   return error_type;
@@ -1552,15 +1366,13 @@ int checkLX200Format(int fd)
   
   if (nbytes_read < 1)
   {
-      if (lx200_debug)
-         IDLog("%s Response error (%d)\n", __FUNCTION__, error_type);
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES ERROR <%d>", error_type);
    return error_type;
   }
    
   temp_string[nbytes_read - 1] = '\0';
 
-  if (lx200_debug)
-     IDLog("%s Response <%s>\n", __FUNCTION__, temp_string);
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%s>", temp_string);
 
   /* Check whether it's short or long */
   if (temp_string[5] == '.')
@@ -1574,32 +1386,29 @@ int checkLX200Format(int fd)
 
 int selectTrackingMode(int fd, int trackMode)
 {
+ DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
  int error_type;
  int nbytes_write=0;
   
    switch (trackMode)
    {
     case LX200_TRACK_SIDEREAL:
-       if (lx200_debug)
-          IDLog("%s Sidereal Track Command [#:TQ#]\n", __FUNCTION__);
+       DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:TQ#");
      if ( (error_type = tty_write_string(fd, "#:TQ#", &nbytes_write)) != TTY_OK)
     	   return error_type;
      break;
    case LX200_TRACK_SOLAR:
-      if (lx200_debug)
-         IDLog("%s Solar Track Command [#:TS#]\n", __FUNCTION__);
+       DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:TS#");
      if ( (error_type = tty_write_string(fd, "#:TS#", &nbytes_write)) != TTY_OK)
           return error_type;
         break;
     case LX200_TRACK_LUNAR:
-       if (lx200_debug)
-          IDLog("%s Lunar Track Command [#:TL#]\n", __FUNCTION__);
+       DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:TL#");
       if ( (error_type = tty_write_string(fd, "#:TL#", &nbytes_write)) != TTY_OK)
     	   return error_type;
       break;
    case LX200_TRACK_MANUAL:
-       if (lx200_debug)
-          IDLog("%s Manual Track Command [#:TM#]\n", __FUNCTION__);
+       DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:TM#");
      if ( (error_type = tty_write_string(fd, "#:TM#", &nbytes_write)) != TTY_OK)
     	   return error_type;
      break;
@@ -1612,4 +1421,3 @@ int selectTrackingMode(int fd, int trackMode)
    return 0;
 
 }
-
