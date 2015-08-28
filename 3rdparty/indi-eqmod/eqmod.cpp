@@ -548,11 +548,14 @@ bool EQMod::Connect()
 bool EQMod::Connect(const char *port, uint16_t baud)
 {
   ISwitchVectorProperty *connect=getSwitch("CONNECTION");
-  //INumber *latitude=IUFindNumber(&LocationNP, "LAT");
-  if (connect) {
+
+  if (connect)
+  {
     connect->s=IPS_BUSY;
-    IDSetSwitch(connect,"connecting to port %s",port);
+    DEBUGF(INDI::Logger::DBG_SESSION, "Connecting to port %s at speed %d" , port, baud);
+    IDSetSwitch(connect, NULL);
   }
+
   try {
     mount->Connect(port, baud);
     // Mount initialisation is in updateProperties as it sets directly Indi properties which should be defined 
