@@ -576,7 +576,10 @@ bool GPhotoCCD::Connect()
   }
 
   if (mFormatS)
+  {
       free(mFormatS);
+      mFormatS=NULL;
+  }
 
   if (sim)
   {
@@ -590,33 +593,37 @@ bool GPhotoCCD::Connect()
       setidx = gphoto_get_format_current(gphotodrv);
       options = gphoto_get_formats(gphotodrv, &max_opts);
   }
-  mFormatS = create_switch("FORMAT", options, max_opts, setidx);
-  mFormatSP.sp = mFormatS;
-  mFormatSP.nsp = max_opts;
 
-  ISwitch *sp = IUFindOnSwitch(&mFormatSP);
-  if (sp && strstr(sp->label, "+"))
+  if (max_opts > 0)
   {
-      IUResetSwitch(&mFormatSP);
-      int i=0;
+      mFormatS = create_switch("FORMAT", options, max_opts, setidx);
+      mFormatSP.sp = mFormatS;
+      mFormatSP.nsp = max_opts;
 
-      // Prefer RAW format in case selected format is not supported.
-      for (i=0; i < mFormatSP.nsp; i++)
+      ISwitch *sp = IUFindOnSwitch(&mFormatSP);
+      if (sp && strstr(sp->label, "+"))
       {
-          if (!strcmp("RAW", mFormatSP.sp[i].label))
+          IUResetSwitch(&mFormatSP);
+          int i=0;
+
+          // Prefer RAW format in case selected format is not supported.
+          for (i=0; i < mFormatSP.nsp; i++)
           {
-              mFormatS[i].s = ISS_ON;
-              break;
+              if (!strcmp("RAW", mFormatSP.sp[i].label))
+              {
+                  mFormatS[i].s = ISS_ON;
+                  break;
+              }
           }
-      }
 
-      if (i == mFormatSP.nsp)
-      {
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s format is not supported. Please select another format.", sp->label);
-        mFormatSP.s = IPS_ALERT;
-      }
+          if (i == mFormatSP.nsp)
+          {
+            DEBUGF(INDI::Logger::DBG_ERROR, "%s format is not supported. Please select another format.", sp->label);
+            mFormatSP.s = IPS_ALERT;
+          }
 
-      IDSetSwitch(&mFormatSP, NULL);
+          IDSetSwitch(&mFormatSP, NULL);
+      }
   }
 
   if (mIsoS)
@@ -667,11 +674,14 @@ bool GPhotoCCD::StartExposure(float duration)
         return false;
     }
 
-    ISwitch *sp = IUFindOnSwitch(&mFormatSP);
-    if (sp == NULL)
+    if (mFormatS != NULL)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Please select a format before capturing an image.");
-        return false;
+        ISwitch *sp = IUFindOnSwitch(&mFormatSP);
+        if (sp == NULL)
+        {
+            DEBUG(INDI::Logger::DBG_ERROR, "Please select a format before capturing an image.");
+            return false;
+        }
     }
 
     /* start new exposure with last ExpValues settings.
