@@ -1060,7 +1060,7 @@ void ASICCD::TimerHit()
                       break;
                   else if (status == ASI_EXP_FAILED)
                   {
-                      DEBUGF(INDI::Logger::DBG_ERROR, "ASIGetExpStatus timeout out (%d)", errCode);
+                      DEBUGF(INDI::Logger::DBG_ERROR, "ASIGetExpStatus failed (%d)", errCode);
                       PrimaryCCD.setExposureFailed();
                       InExposure = false;
                       SetTimer(POLLMS);
