@@ -55,6 +55,7 @@ bool INDI::Telescope::initProperties()
     IUFillNumber(&EqN[AXIS_RA],"RA","RA (hh:mm:ss)","%010.6m",0,24,0,0);
     IUFillNumber(&EqN[AXIS_DE],"DEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,0);
     IUFillNumberVector(&EqNP,EqN,2,getDeviceName(),"EQUATORIAL_EOD_COORD","Eq. Coordinates",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
+    lastEqState = IPS_IDLE;
 
     IUFillSwitch(&ParkOptionS[0],"PARK_CURRENT","Current",ISS_OFF);
     IUFillSwitch(&ParkOptionS[1],"PARK_DEFAULT","Default",ISS_OFF);
@@ -326,10 +327,6 @@ bool INDI::Telescope::saveConfigItems(FILE *fp)
 
 void INDI::Telescope::NewRaDec(double ra,double dec)
 {
-    //  Lets set our eq values to these numbers
-    //  which came from the hardware
-    static int last_state=-1;
-
     switch(TrackState)
     {
        case SCOPE_PARKED:
@@ -349,11 +346,11 @@ void INDI::Telescope::NewRaDec(double ra,double dec)
         break;
     }
 
-    if (EqN[AXIS_RA].value != ra || EqN[AXIS_DE].value != dec || EqNP.s != last_state)
+    if (EqN[AXIS_RA].value != ra || EqN[AXIS_DE].value != dec || EqNP.s != lastEqState)
     {
         EqN[AXIS_RA].value=ra;
         EqN[AXIS_DE].value=dec;
-        last_state = EqNP.s;
+        lastEqState = EqNP.s;
         IDSetNumber(&EqNP, NULL);
     }
 
@@ -472,7 +469,7 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
                     if (isParked())
                     {
                         DEBUG(INDI::Logger::DBG_WARNING, "Please unpark the mount before issuing any motion/sync commands.");
-                        EqNP.s = IPS_IDLE;
+                        EqNP.s = lastEqState = IPS_IDLE;
                         IDSetNumber(&EqNP, NULL);
                         return false;
                     }
@@ -487,10 +484,10 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
                     {
                        rc=Sync(ra,dec);
                        if (rc)
-                           CoordSP .s = IPS_OK;
+                           EqNP .s = lastEqState = IPS_OK;
                        else
-                           CoordSP.s = IPS_ALERT;
-                       IDSetSwitch(&CoordSP, NULL);
+                           EqNP.s = lastEqState = IPS_ALERT;
+                       IDSetNumber(&EqNP, NULL);
                        return rc;
                     }
                 }
@@ -498,10 +495,10 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
                 // Issue GOTO
                 rc=Goto(ra,dec);
                 if (rc)
-                    CoordSP .s = IPS_OK;
+                    EqNP .s = lastEqState = IPS_BUSY;
                 else
-                    CoordSP.s = IPS_ALERT;
-                IDSetSwitch(&CoordSP, NULL);
+                    EqNP.s = lastEqState = IPS_ALERT;
+                IDSetNumber(&EqNP, NULL);
 
             }
             return rc;
@@ -776,7 +773,7 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
                 }
                 if (EqNP.s == IPS_BUSY)
                 {
-                    EqNP.s = IPS_IDLE;
+                    EqNP.s = lastEqState = IPS_IDLE;
                     IDSetNumber(&EqNP, NULL);
                 }
                 if (MovementWESP.s == IPS_BUSY)
@@ -795,7 +792,7 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
 
                 if (EqNP.s == IPS_BUSY)
                 {
-                    EqNP.s = IPS_IDLE;
+                    EqNP.s = lastEqState = IPS_IDLE;
                     IDSetNumber(&EqNP, NULL);
                 }
 
@@ -942,7 +939,7 @@ void INDI::Telescope::TimerHit()
         if(rc == false)
         {
             //  read was not good
-            EqNP.s=IPS_ALERT;
+            EqNP.s= lastEqState = IPS_ALERT;
             IDSetNumber(&EqNP, NULL);
         }
 

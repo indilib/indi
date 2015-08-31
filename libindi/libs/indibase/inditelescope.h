@@ -402,6 +402,8 @@ private:
         double Axis2ParkPosition;
         double Axis2DefaultParkPosition;
 
+        IPState lastEqState;
+
         INDI::Controller *controller;
 
 };
