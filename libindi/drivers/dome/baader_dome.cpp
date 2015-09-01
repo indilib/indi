@@ -106,7 +106,7 @@ BaaderDome::BaaderDome()
 {
 
    targetAz = 0;
-   shutterStatus= SHUTTER_UNKNOWN;
+   shutterState= SHUTTER_UNKNOWN;
    flapStatus   = FLAP_UNKNOWN;
    simShutterStatus = SHUTTER_CLOSED;
    simFlapStatus    = FLAP_CLOSED;
@@ -124,7 +124,8 @@ BaaderDome::BaaderDome()
    cap.canAbsMove = true;
    cap.canRelMove = true;
    cap.hasShutter = true;
-   cap.variableSpeed = false;
+   cap.canPark    = true;
+   cap.hasVariableSpeed = false;
 
    SetDomeCapability(&cap);
 
@@ -148,6 +149,8 @@ bool BaaderDome::initProperties()
     IUFillSwitch(&DomeFlapS[0],"FLAP_OPEN","Open",ISS_OFF);
     IUFillSwitch(&DomeFlapS[1],"FLAP_CLOSE","Close",ISS_ON);
     IUFillSwitchVector(&DomeFlapSP,DomeFlapS,2,getDeviceName(),"DOME_FLAP","Flap",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_OK);
+
+    SetParkDataType(PARK_AZ);
 
     addAuxControls();
 
@@ -268,7 +271,7 @@ bool BaaderDome::ISNewSwitch (const char *dev, const char *name, ISState *states
 
             if (CalibrateSP.s == IPS_BUSY)
             {
-                AbortDome();
+                Abort();
                 DEBUG(INDI::Logger::DBG_SESSION, "Calibration aborted.");
                 status = DOME_UNKNOWN;
                 CalibrateSP.s = IPS_IDLE;
@@ -289,7 +292,7 @@ bool BaaderDome::ISNewSwitch (const char *dev, const char *name, ISState *states
             if (calibrationTarget1 > 360)
                 calibrationTarget1 -= 360;
 
-            if (MoveAbsDome(calibrationTarget1) == false)
+            if (MoveAbs(calibrationTarget1) == false)
             {
                 CalibrateSP.s = IPS_ALERT;
                 DEBUG(INDI::Logger::DBG_ERROR, "Calibration failue due to dome motion failure.");
@@ -454,28 +457,28 @@ bool BaaderDome::UpdateShutterStatus()
 
         if (!strcmp(status, "ope"))
         {
-            if (shutterStatus == SHUTTER_MOVING && targetShutter == SHUTTER_OPEN)
+            if (shutterState == SHUTTER_MOVING && targetShutter == SHUTTER_OPEN)
                 DEBUGF(INDI::Logger::DBG_SESSION, "%s", GetShutterStatusString(SHUTTER_OPENED));
 
-            shutterStatus = SHUTTER_OPENED;
+            shutterState = SHUTTER_OPENED;
             DomeShutterS[SHUTTER_OPEN].s = ISS_ON;
         }
         else if (!strcmp(status, "clo"))
         {
-            if (shutterStatus == SHUTTER_MOVING && targetShutter == SHUTTER_CLOSE)
+            if (shutterState == SHUTTER_MOVING && targetShutter == SHUTTER_CLOSE)
                 DEBUGF(INDI::Logger::DBG_SESSION, "%s", GetShutterStatusString(SHUTTER_CLOSED));
 
-            shutterStatus = SHUTTER_CLOSED;
+            shutterState = SHUTTER_CLOSED;
             DomeShutterS[SHUTTER_CLOSE].s = ISS_ON;
         }
         else if (!strcmp(status, "run"))
         {
-            shutterStatus = SHUTTER_MOVING;
+            shutterState = SHUTTER_MOVING;
             DomeShutterSP.s = IPS_BUSY;
         }
         else
         {
-            shutterStatus = SHUTTER_UNKNOWN;
+            shutterState = SHUTTER_UNKNOWN;
             DomeShutterSP.s = IPS_ALERT;
             DEBUGF(INDI::Logger::DBG_ERROR, "Unknown Shutter status: %s.", resp);
         }
@@ -659,6 +662,10 @@ void BaaderDome::TimerHit()
             DomeAbsPosN[0].value = targetAz;
             DomeAbsPosNP.s = IPS_OK;
             DEBUG(INDI::Logger::DBG_SESSION, "Dome reached requested azimuth angle.");
+
+            if (domeState == DOME_PARKING && status != DOME_CALIBRATING)
+                SetParked(true);
+
             if (DomeGotoSP.s == IPS_BUSY)
             {
                 DomeGotoSP.s = IPS_OK;
@@ -677,14 +684,14 @@ void BaaderDome::TimerHit()
                     DEBUG(INDI::Logger::DBG_SESSION, "Calibration stage 1 complete. Starting stage 2...");
                     calibrationTarget2 = DomeAbsPosN[0].value + 2;
                     calibrationStage = CALIBRATION_STAGE2;
-                    MoveAbsDome(calibrationTarget2);
+                    MoveAbs(calibrationTarget2);
                     DomeAbsPosNP.s = IPS_BUSY;
                 }
                 else if (calibrationStage == CALIBRATION_STAGE2)
                 {
                     DEBUGF(INDI::Logger::DBG_SESSION, "Calibration stage 2 complete. Returning to initial position %g...", calibrationStart);
                     calibrationStage = CALIBRATION_STAGE3;
-                    MoveAbsDome(calibrationStart);
+                    MoveAbs(calibrationStart);
                     DomeAbsPosNP.s = IPS_BUSY;
                 }
                 else if (calibrationStage == CALIBRATION_STAGE3)
@@ -734,7 +741,7 @@ void BaaderDome::TimerHit()
 /************************************************************************************
  *
 * ***********************************************************************************/
-int BaaderDome::MoveAbsDome(double az)
+IPState BaaderDome::MoveAbs(double az)
 {    
     int nbytes_written=0, nbytes_read=0, rc=-1;
     char errstr[MAXRBUF];
@@ -744,7 +751,7 @@ int BaaderDome::MoveAbsDome(double az)
     if (status == DOME_UNKNOWN)
     {
         DEBUG(INDI::Logger::DBG_WARNING, "Dome is not calibrated. Please calibrate dome before issuing any commands.");
-        return -1;
+        return IPS_ALERT;
     }
 
     targetAz = az;
@@ -757,7 +764,7 @@ int BaaderDome::MoveAbsDome(double az)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s MoveAbsDome error: %s.", cmd, errstr);
-        return false;
+        return IPS_ALERT;
     }
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
@@ -771,7 +778,7 @@ int BaaderDome::MoveAbsDome(double az)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "MoveAbsDome error: %s.", errstr);
-        return false;
+        return IPS_ALERT;
     }
 
     resp[nbytes_read] = '\0';
@@ -779,16 +786,16 @@ int BaaderDome::MoveAbsDome(double az)
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", resp);
 
     if (!strcmp(resp, "d#gotmess"))
-        return 1;
+        return IPS_BUSY;
     else
-        return -1;
+        return IPS_ALERT;
 
 }
 
 /************************************************************************************
  *
 * ***********************************************************************************/
-int BaaderDome::MoveRelDome(DomeDirection dir, double azDiff)
+IPState BaaderDome::MoveRel(DomeDirection dir, double azDiff)
 {
     targetAz = DomeAbsPosN[0].value + (azDiff * (dir==DOME_CW ? 1 : -1));
 
@@ -798,34 +805,46 @@ int BaaderDome::MoveRelDome(DomeDirection dir, double azDiff)
         targetAz -= DomeAbsPosN[0].max;
 
     // It will take a few cycles to reach final position
-    return MoveAbsDome(targetAz);
+    return MoveAbs(targetAz);
 
 }
 
 /************************************************************************************
  *
 * ***********************************************************************************/
-int BaaderDome::ParkDome()
+IPState BaaderDome::Park()
 {
-    targetAz = DomeParamN[DOME_PARK].value;
+    targetAz = GetAxis1Park();
 
-    return MoveAbsDome(targetAz);
+    domeState = DOME_PARKING;
+
+    return MoveAbs(targetAz);
 }
 
 /************************************************************************************
  *
 * ***********************************************************************************/
-int BaaderDome::HomeDome()
+IPState BaaderDome::UnPark()
+{
+    domeState = DOME_IDLE;
+    return IPS_OK;
+}
+
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+IPState BaaderDome::Home()
 {
     targetAz = DomeParamN[DOME_HOME].value;
 
-    return MoveAbsDome(targetAz);
+    return MoveAbs(targetAz);
 }
 
 /************************************************************************************
  *
 * ***********************************************************************************/
-int BaaderDome::ControlDomeShutter(ShutterOperation operation)
+IPState BaaderDome::ControlShutter(ShutterOperation operation)
 {
     int nbytes_written=0, nbytes_read=0, rc=-1;
     char errstr[MAXRBUF];
@@ -851,7 +870,7 @@ int BaaderDome::ControlDomeShutter(ShutterOperation operation)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s ControlDomeShutter error: %s.", cmd, errstr);
-        return false;
+        return IPS_ALERT;
     }
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
@@ -866,7 +885,7 @@ int BaaderDome::ControlDomeShutter(ShutterOperation operation)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "ControlDomeShutter error: %s.", errstr);
-        return false;
+        return IPS_ALERT;
     }
 
     resp[nbytes_read] = '\0';
@@ -875,20 +894,20 @@ int BaaderDome::ControlDomeShutter(ShutterOperation operation)
 
     if (!strcmp(resp, "d#gotmess"))
     {
-         shutterStatus = simShutterStatus = SHUTTER_MOVING;
-        return 1;
+         shutterState = simShutterStatus = SHUTTER_MOVING;
+        return IPS_BUSY;
     }
     else
-        return -1;
+        return IPS_ALERT;
 }
 
 /************************************************************************************
  *
 * ***********************************************************************************/
-bool BaaderDome::AbortDome()
+bool BaaderDome::Abort()
 {
     DEBUGF(INDI::Logger::DBG_SESSION, "Attempting to abort dome motion by stopping at %g", DomeAbsPosN[0].value);
-    MoveAbsDome(DomeAbsPosN[0].value);
+    MoveAbs(DomeAbsPosN[0].value);
     return true;
 }
 
@@ -1118,4 +1137,21 @@ bool BaaderDome::saveConfigItems(FILE *fp)
         SaveEncoderPosition();
 
     return INDI::Dome::saveConfigItems(fp);
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+void BaaderDome::SetCurrentPark()
+{
+    SetAxis1Park(DomeAbsPosN[0].value);
+}
+/************************************************************************************
+ *
+* ***********************************************************************************/
+
+void BaaderDome::SetDefaultPark()
+{
+    // By default set position to 90
+    SetAxis1Park(90);
 }

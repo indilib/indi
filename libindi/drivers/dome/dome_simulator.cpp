@@ -103,10 +103,25 @@ DomeSim::DomeSim()
    cap.canAbsMove = true;
    cap.canRelMove = true;
    cap.hasShutter = true;
-   cap.variableSpeed = false;
+   cap.canPark    = true;
+   cap.hasVariableSpeed = false;
 
-   SetDomeCapability(&cap);
+   SetDomeCapability(&cap);   
 
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+bool DomeSim::initProperties()
+{
+    INDI::Dome::initProperties();
+
+    SetParkDataType(PARK_AZ);
+
+    addAuxControls();
+
+    return true;
 }
 
 bool DomeSim::SetupParms()
@@ -115,11 +130,25 @@ bool DomeSim::SetupParms()
     shutterTimer = SHUTTER_TIMER;
 
     DomeAbsPosN[0].value = 0;
-    DomeParamN[0].value  = 90;
-    DomeParamN[1].value  = 90;
+
+    DomeParamN[DOME_HOME].value  = 90;
+    DomeParamN[DOME_AUTOSYNC].value  = 5;
 
     IDSetNumber(&DomeAbsPosNP, NULL);
     IDSetNumber(&DomeParamNP, NULL);
+
+    if (InitPark())
+    {
+        // If loading parking data is successful, we just set the default parking values.
+        SetAxis1ParkDefault(90);
+    }
+    else
+    {
+        // Otherwise, we set all parking data to default in case no parking data is found.
+        SetAxis1Park(90);
+        SetAxis1ParkDefault(90);
+    }
+
     return true;
 }
 
@@ -184,6 +213,12 @@ void DomeSim::TimerHit()
             DomeAbsPosN[0].value = targetAz;
             DomeAbsPosNP.s = IPS_OK;
             DEBUG(INDI::Logger::DBG_SESSION, "Dome reached requested azimuth angle.");
+
+            if (domeState == DOME_PARKING)
+            {
+                SetParked(true);
+            }
+
             if (DomeGotoSP.s == IPS_BUSY)
             {
                 DomeGotoSP.s = IPS_OK;
@@ -213,20 +248,20 @@ void DomeSim::TimerHit()
     return;
 }
 
-int DomeSim::MoveAbsDome(double az)
+IPState DomeSim::MoveAbs(double az)
 {
     // Requested position is within one cycle, let's declare it done
     if (fabs(az - DomeAbsPosN[0].value) < DOME_SPEED)
-        return 0;
+        return IPS_OK;
 
     targetAz = az;
 
     // It will take a few cycles to reach final position
-    return 1;
+    return IPS_BUSY;
 
 }
 
-int DomeSim::MoveRelDome(DomeDirection dir, double azDiff)
+IPState DomeSim::MoveRel(DomeDirection dir, double azDiff)
 {
     targetAz = DomeAbsPosN[0].value + (azDiff * (dir==DOME_CW ? 1 : -1));
 
@@ -237,35 +272,41 @@ int DomeSim::MoveRelDome(DomeDirection dir, double azDiff)
 
     // Requested position is within one cycle, let's declare it done
     if (fabs(targetAz - DomeAbsPosN[0].value) < DOME_SPEED)
-        return 0;
+        return IPS_OK;
 
     // It will take a few cycles to reach final position
-    return 1;
+    return IPS_BUSY;
 
 }
 
-int DomeSim::ParkDome()
+IPState DomeSim::Park()
 {
     targetAz = DomeParamN[1].value;
-    DomeAbsPosNP.s = IPS_BUSY;
-    return 1;
+    domeState = DOME_PARKING;
+    return IPS_BUSY;
 }
 
-int DomeSim::HomeDome()
+IPState DomeSim::UnPark()
+{
+    domeState = DOME_IDLE;
+    return IPS_OK;
+}
+
+IPState DomeSim::Home()
 {
     targetAz = DomeParamN[0].value;
     DomeAbsPosNP.s = IPS_BUSY;
-    return 1;
+    return IPS_BUSY;
 }
 
-int DomeSim::ControlDomeShutter(ShutterStatus operation)
+IPState DomeSim::ControlShutter(ShutterStatus operation)
 {
     INDI_UNUSED(operation);
     shutterTimer = SHUTTER_TIMER;
-    return 1;
+    return IPS_BUSY;
 }
 
-bool DomeSim::AbortDome()
+bool DomeSim::Abort()
 {
     DomeAbsPosNP.s = IPS_IDLE;
     IDSetNumber(&DomeAbsPosNP, NULL);
@@ -287,3 +328,15 @@ bool DomeSim::AbortDome()
 
     return true;
 }
+
+void DomeSim::SetCurrentPark()
+{
+    SetAxis1Park(DomeAbsPosN[0].value);
+}
+
+void DomeSim::SetDefaultPark()
+{
+    // By default set position to 90
+    SetAxis1Park(90);
+}
+

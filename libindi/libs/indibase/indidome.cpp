@@ -120,7 +120,7 @@ bool INDI::Dome::updateProperties()
         //  Now we add our Dome specific stuff
         defineSwitch(&DomeMotionSP);
 
-        if (capability.variableSpeed)
+        if (capability.hasVariableSpeed)
         {
             defineNumber(&DomeSpeedNP);
             defineNumber(&DomeTimerNP);
@@ -140,6 +140,16 @@ bool INDI::Dome::updateProperties()
             defineSwitch(&DomeAutoSyncSP);
         }
 
+        if (capability.canPark)
+        {
+            defineSwitch(&ParkSP);
+            if (parkDataType != PARK_NONE)
+            {
+                defineNumber(&ParkPositionNP);
+                defineSwitch(&ParkOptionSP);
+            }
+        }
+
         defineNumber(&DomeMeasurementsNP);
     } else
     {
@@ -149,7 +159,7 @@ bool INDI::Dome::updateProperties()
             deleteProperty(DomeShutterSP.name);
 
         deleteProperty(DomeMotionSP.name);
-        if (capability.variableSpeed)
+        if (capability.hasVariableSpeed)
         {
             deleteProperty(DomeSpeedNP.name);
             deleteProperty(DomeTimerNP.name);
@@ -167,6 +177,16 @@ bool INDI::Dome::updateProperties()
             deleteProperty(DomeParamNP.name);
             deleteProperty(DomeGotoSP.name);
             deleteProperty(DomeAutoSyncSP.name);
+        }
+
+        if (capability.canPark)
+        {
+            deleteProperty(ParkSP.name);
+            if (parkDataType != PARK_NONE)
+            {
+                deleteProperty(ParkPositionNP.name);
+                deleteProperty(ParkOptionSP.name);
+            }
         }
 
         deleteProperty(DomeMeasurementsNP.name);
@@ -216,7 +236,7 @@ bool INDI::Dome::ISNewSwitch (const char *dev, const char *name, ISState *states
         {
             IUUpdateSwitch(&PresetGotoSP, states, names, n);
             int index = IUFindOnSwitchIndex(&PresetGotoSP);
-            int rc = MoveAbsDome(PresetN[index].value);
+            int rc = MoveAbs(PresetN[index].value);
             if (rc >= 0)
             {
                 PresetGotoSP.s = IPS_OK;
@@ -250,7 +270,7 @@ bool INDI::Dome::ISNewSwitch (const char *dev, const char *name, ISState *states
             {
                 IDSetSwitch(&DomeAutoSyncSP,  "Dome is no longer synced to mount azimuth position.");
                 if (DomeAbsPosNP.s == IPS_BUSY || DomeRelPosNP.s == IPS_BUSY || DomeTimerNP.s == IPS_BUSY)
-                    AbortDome();
+                    Abort();
             }
 
             return true;
@@ -394,9 +414,9 @@ void INDI::Dome::processButton(const char * button_n, ISState state)
     // Dome In
     if (!strcmp(button_n, "Dome CW"))
     {
-        if (capability.variableSpeed)
+        if (capability.hasVariableSpeed)
         {
-           rc = MoveDome(DOME_CW, DomeSpeedN[0].value, DomeTimerN[0].value);
+           rc = Move(DOME_CW, DomeSpeedN[0].value, DomeTimerN[0].value);
             if (rc == 0)
                 DomeTimerNP.s = IPS_OK;
             else if (rc == 1)
@@ -408,7 +428,7 @@ void INDI::Dome::processButton(const char * button_n, ISState state)
         }
         else if (capability.canRelMove)
         {
-            rc=MoveRelDome(DOME_CW, DomeRelPosN[0].value);
+            rc=MoveRel(DOME_CW, DomeRelPosN[0].value);
             if (rc == 0)
             {
                DomeRelPosNP.s=IPS_OK;
@@ -424,9 +444,9 @@ void INDI::Dome::processButton(const char * button_n, ISState state)
     }
     else if (!strcmp(button_n, "Dome CCW"))
     {
-        if (capability.variableSpeed)
+        if (capability.hasVariableSpeed)
         {
-           rc = MoveDome(DOME_CCW, DomeSpeedN[0].value, DomeTimerN[0].value);
+           rc = Move(DOME_CCW, DomeSpeedN[0].value, DomeTimerN[0].value);
             if (rc == 0)
                 DomeTimerNP.s = IPS_OK;
             else if (rc == 1)
@@ -438,7 +458,7 @@ void INDI::Dome::processButton(const char * button_n, ISState state)
         }
         else if (capability.canRelMove)
         {
-            rc=MoveRelDome(DOME_CCW, DomeRelPosN[0].value);
+            rc=MoveRel(DOME_CCW, DomeRelPosN[0].value);
             if (rc == 0)
             {
                DomeRelPosNP.s=IPS_OK;
@@ -674,7 +694,7 @@ void INDI::Dome::UpdateAutoSync()
         if (fabs(targetAz - DomeAbsPosN[0].value) > DomeParamN[DOME_AUTOSYNC].value)
         {
             int ret = 0;
-            if ( (ret = MoveAbsDome(targetAz)) == 0)
+            if ( (ret = MoveAbs(targetAz)) == 0)
             {
                DomeAbsPosNP.s=IPS_OK;
                IDSetNumber(&DomeAbsPosNP, "Dome synced to position %g degrees.", targetAz);
@@ -692,5 +712,3 @@ void INDI::Dome::UpdateAutoSync()
        }
     }
 }
-
-

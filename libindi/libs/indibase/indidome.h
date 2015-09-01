@@ -155,7 +155,6 @@ class INDI::Dome : public INDI::DefaultDevice, public INDI::DomeInterface
          */
         virtual void UpdateAutoSync();
 
-
         double Csc(double x);
         double Sec(double x);
 

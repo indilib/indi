@@ -33,6 +33,7 @@ class DomeSim : public INDI::Dome
         DomeSim();
         virtual ~DomeSim();
 
+        virtual bool initProperties();
         const char *getDefaultName();
         bool updateProperties();
 
@@ -41,12 +42,17 @@ class DomeSim : public INDI::Dome
 
         void TimerHit();
 
-        virtual int MoveRelDome(DomeDirection dir, double azDiff);
-        virtual int MoveAbsDome(double az);
-        virtual int ParkDome();
-        virtual int HomeDome();
-        virtual int ControlDomeShutter(ShutterStatus operation);
-        virtual bool AbortDome();
+        virtual IPState MoveRel(DomeDirection dir, double azDiff);
+        virtual IPState MoveAbs(double az);
+        virtual IPState Park();
+        virtual IPState UnPark();
+        virtual IPState Home();
+        virtual IPState ControlShutter(ShutterStatus operation);
+        virtual bool Abort();
+
+        // Parking
+        virtual void SetCurrentPark();
+        virtual void SetDefaultPark();
 
     protected:
     private:

@@ -28,7 +28,7 @@
  * \class INDI::DomeInterface
    \brief Provides interface to implement Dome functionality.
 
-   A Dome can be an independent device, or an embedded Dome within another device (e.g. Telescope). Before using any of the dome functions, you must define the capabilities of the dome and calling
+   A Dome can be an independent device, or an embedded Dome within another device. Before using any of the dome functions, you must define the capabilities of the dome by calling
    SetDomeCapability() function. All positions are represented as degrees of azimuth.
 
    Slaving is used to synchronizes the dome's azimuth position with that of the mount. The mount's azimuth position is snooped from the ACTIVE_TELESCOPE property in ACTIVE_DEVICES vector.
@@ -46,7 +46,13 @@ class INDI::DomeInterface
 
 public:
     enum DomeDirection { DOME_CW, DOME_CCW };
-    enum DomeParam { DOME_HOME, DOME_PARK, DOME_AUTOSYNC };
+    enum DomeParam { DOME_HOME, DOME_AUTOSYNC };
+
+    /*! Dome Parking data type enum */
+    enum DomeParkData  { PARK_NONE,         /*!< Open loop Parking  */
+                         PARK_AZ,           /*!< Parking via azimuth angle control */
+                         PARK_AZ_ENCODER,   /*!< Parking via azimuth encoder control */
+                       };
 
     /** \typedef ShutterOperation
         \brief Shutter operation command.
@@ -56,6 +62,17 @@ public:
         SHUTTER_OPEN,            /*!< Open Shutter */
         SHUTTER_CLOSE            /*!< Close Shutter */
     } ShutterOperation;
+
+    /** \typedef DomeState
+        \brief Dome status
+    */
+    typedef enum
+    {
+        DOME_IDLE,               /*!< Dome is idle */
+        DOME_MOVING,             /*!< Dome is in motion */
+        DOME_PARKING,            /*!< Dome is parking */
+        DOME_PARKED,             /*!< Dome is parked */
+    } DomeState;
 
     /** \typedef ShutterStatus
         \brief Shutter Status
@@ -80,10 +97,12 @@ public:
         bool canAbsMove;
         /** Can the dome move to a relative position a number of degrees away from current position? */
         bool canRelMove;
+        /** Can the dome park and unpark itself? */
+        bool canPark;
         /** Does the dome has a shutter than can be opened and closed electronically? */
         bool hasShutter;
         /** Can the dome move in different configurable speeds? */
-        bool variableSpeed;
+        bool hasVariableSpeed;
     } DomeCapability;
 
     /**
@@ -119,59 +138,67 @@ protected:
      * @param rpm Dome speed (RPM)
      * @return true if successful, false otherwise
      */
-    virtual bool SetDomeSpeed(double rpm);
+    virtual bool SetSpeed(double rpm);
 
     /** \brief Move the Dome in a particular direction with a specific speed for a finite duration.
         \param dir Direction of Dome, either DOME_CW or DOME_CCW.
         \param speed Speed (RPM) of dome if supported by the dome.
         \param duration The timeout in milliseconds before the dome motion halts.
-        \return Return 0 if motion is completed and Dome reached requested position. Return 1 if Dome started motion to requested position and is in progress.
-                Return -1 if there is an error.
+        \return Return IPS_OK if motion is completed and Dome reached requested position. Return IPS_BUSY if Dome started motion to requested position and is in progress.
+                Return IPS_ALERT if there is an error.
     */
-    virtual int MoveDome(DomeDirection dir, double speed, int duration);
+    virtual IPState Move(DomeDirection dir, double speed, int duration);
 
     /** \brief Move the Dome to an absolute azimuth.
         \param az The new position of the Dome.
-        \return Return 0 if motion is completed and Dome reached requested position. Return 1 if Dome started motion to requested position and is in progress.
-                Return -1 if there is an error.
+        \return Return IPS_OK if motion is completed and Dome reached requested position. Return IPS_BUSY if Dome started motion to requested position and is in progress.
+                Return IPS_ALERT if there is an error.
     */
-    virtual int MoveAbsDome(double az);
+    virtual IPState MoveAbs(double az);
 
     /** \brief Move the Dome to an relative position.
         \param dir Direction of Dome, either DOME_CW or DOME_CCW.
         \param azDiff The relative azimuth angle to move.
-        \return Return 0 if motion is completed and Dome reached requested position. Return 1 if Dome started motion to requested position and is in progress.
-                Return -1 if there is an error.
+        \return Return IPS_OK if motion is completed and Dome reached requested position. Return IPS_BUSY if Dome started motion to requested position and is in progress.
+                Return IPS_ALERT if there is an error.
     */
-    virtual int MoveRelDome(DomeDirection dir, double azDiff);
+    virtual IPState MoveRel(DomeDirection dir, double azDiff);
 
     /**
      * \brief Abort all dome motion
      * \return True if abort is successful, false otherwise.
      */
-    virtual bool AbortDome();
+    virtual bool Abort();
 
     /**
      * \brief Goto Home Position. The home position is an absolute azimuth value.
-     * \return Return 0 if motion is completed and Dome reached home position. Return 1 if Dome started motion to home position and is in progress.
-                Return -1 if there is an error.
+     * \return Return IPS_OK if motion is completed and Dome reached home position. Return IPS_BUSY if Dome started motion to home position and is in progress.
+                Return IPS_ALERT if there is an error.
      */
-    virtual int HomeDome();
+    virtual IPState Home();
 
     /**
      * \brief Goto Park Position. The park position is an absolute azimuth value.
-     * \return Return 0 if motion is completed and Dome reached park position. Return 1 if Dome started motion to park requested position and is in progress.
-                Return -1 if there is an error.
+     * \return Return IPS_OK if motion is completed and Dome reached park position. Return IPS_BUSY if Dome started motion to park requested position and is in progress.
+                Return -IPS_ALERT if there is an error.
      */
-    virtual int ParkDome();
+    virtual IPState Park();
+
+    /**
+     * \brief UnPark dome. The action of the Unpark command is dome specific, but it may include opening the shutter and moving to home position. When UnPark() is successful
+     * The observatory should be in a ready state to utilize the mount to perform observations.
+     * \return Return IPS_OK if motion is completed and Dome is unparked. Return IPS_BUSY if Dome unparking is in progress.
+                Return -IPS_ALERT if there is an error.
+     */
+    virtual IPState UnPark();
 
     /**
      * \brief Open or Close shutter
      * \param operation Either open or close the shutter.
-     * \return Return 0 if shutter operation is complete. Return 1 if shutter operation is in progress.
-                Return -1 if there is an error.
+     * \return Return IPS_OK if shutter operation is complete. Return IPS_BUSY if shutter operation is in progress.
+                Return IPS_ALERT if there is an error.
      */
-    virtual int ControlDomeShutter(ShutterOperation operation);
+    virtual IPState ControlShutter(ShutterOperation operation);
 
     /**
      * @brief getShutterStatusString
@@ -180,29 +207,124 @@ protected:
      */
     const char * GetShutterStatusString(ShutterStatus status);
 
+    /**
+     * \brief setParkDataType Sets the type of parking data stored in the park data file and presented to the user.
+     * \param type parking data type. If PARK_NONE then no properties will be presented to the user for custom parking position.
+     */
+    void SetParkDataType(DomeParkData type);
+
+    /**
+     * @brief InitPark Loads parking data (stored in ~/.indi/ParkData.xml) that contains parking status
+     * and parking position. InitPark() should be called after successful connection to the dome on startup.
+     * @return True if loading is successful and data is read, false otherwise. On success, you must call
+     * SetAzParkDefault() to set the default parking values. On failure, you must call
+     * SetAzParkDefault() to set the default parking values in addition to SetAzPark()
+     * to set the current parking position.
+     */
+    bool InitPark();
+
+    /**
+     * @brief isParked is dome currently parked?
+     * @return True if parked, false otherwise.
+     */
+    bool isParked();
+
+    /**
+     * @brief SetParked Change the mount parking status. The data park file (stored in ~/.indi/ParkData.xml) is updated in the process.
+     * @param isparked set to true if parked, false otherwise.
+     */
+    void SetParked(bool isparked);
+
+    /**
+     * @return Get current AZ parking position.
+     */
+    double GetAxis1Park();
+
+    /**
+     * @return Get default AZ parking position.
+     */
+    double GetAxis1ParkDefault();
+
+    /**
+     * @brief SetRAPark Set current AZ parking position. The data park file (stored in ~/.indi/ParkData.xml) is updated in the process.
+     * @param value current Axis 1 value (AZ either in angles or encoder values as specificed by the DomeParkData type).
+     */
+    void SetAxis1Park(double value);
+
+    /**
+     * @brief SetAxis1Park Set default AZ parking position.
+     * @param value Default Axis 1 value (AZ either in angles or encoder values as specificed by the DomeParkData type).
+     */
+    void SetAxis1ParkDefault(double steps);
+
+    /**
+     * @brief SetCurrentPark Set current coordinates/encoders value as the desired parking position
+     * \note This function performs no action unless subclassed by the child class if required.
+     */
+    virtual void SetCurrentPark();
+
+    /**
+     * @brief SetDefaultPark Set default coordinates/encoders value as the desired parking position
+     * \note This function performs no action unless subclassed by the child class if required.
+     */
+    virtual void SetDefaultPark();
+
+    //Park
+    char *LoadParkData();
+    bool WriteParkData();
+
     INumberVectorProperty DomeSpeedNP;
     INumber DomeSpeedN[1];
+
     ISwitchVectorProperty DomeMotionSP;
     ISwitch DomeMotionS[2];
-    INumberVectorProperty DomeTimerNP;
+
+    INumberVectorProperty DomeTimerNP;    
     INumber DomeTimerN[1];
+
     INumberVectorProperty DomeAbsPosNP;
     INumber DomeAbsPosN[1];
+
     INumberVectorProperty DomeRelPosNP;
     INumber DomeRelPosN[1];
+
     ISwitchVectorProperty AbortSP;
     ISwitch AbortS[1];
+
     ISwitchVectorProperty DomeGotoSP;
-    ISwitch DomeGotoS[2];
+    ISwitch DomeGotoS[1];
+
     INumberVectorProperty DomeParamNP;
-    INumber DomeParamN[3];
+    INumber DomeParamN[2];
+
     ISwitchVectorProperty DomeShutterSP;
     ISwitch DomeShutterS[2];
 
+    ISwitchVectorProperty ParkSP;
+    ISwitch ParkS[2];
+
+    INumber ParkPositionN[1];
+    INumberVectorProperty ParkPositionNP;
+
+    ISwitch ParkOptionS[3];
+    ISwitchVectorProperty ParkOptionSP;
+
     DomeCapability capability;
-    ShutterStatus shutterStatus;
+    DomeState domeState;
+    ShutterStatus shutterState;
+    DomeParkData parkDataType;
+
+private:
+
     char DomeName[MAXINDIDEVICE];
 
+    bool IsParked;
+    const char *ParkDeviceName;
+    const char * Parkdatafile;
+    XMLEle *ParkdataXmlRoot, *ParkdeviceXml, *ParkstatusXml, *ParkpositionXml, *ParkpositionAxis1Xml;
+
+    double Axis1ParkPosition;
+    double Axis1DefaultParkPosition;
 };
 
 #endif // INDIDomeINTERFACE_H
