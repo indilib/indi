@@ -283,7 +283,7 @@ IPState DomeSim::Park()
 {
     targetAz = DomeParamN[1].value;
     domeState = DOME_PARKING;
-    return IPS_BUSY;
+    return MoveAbs(GetAxis1Park());
 }
 
 IPState DomeSim::UnPark()
@@ -315,7 +315,7 @@ bool DomeSim::Abort()
     {
         IUResetSwitch(&DomeGotoSP);
         DomeGotoSP.s = IPS_IDLE;
-        IDSetSwitch(&DomeGotoSP, "Dome goto aborted.");
+        IDSetSwitch(&DomeGotoSP, "Dome Goto aborted.");
     }
 
     // If we abort while in the middle of opening/closing shutter, alert.

@@ -51,7 +51,7 @@ bool INDI::Dome::initProperties()
 
     /* Port */
     IUFillText(&PortT[0], "PORT", "Port", "/dev/ttyUSB0");
-    IUFillTextVector(&PortTP, PortT, 1, getDeviceName(), "DEVICE_PORT", "Ports", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillTextVector(&PortTP, PortT, 1, getDeviceName(), "DEVICE_PORT", "Ports", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Presets
     IUFillNumber(&PresetN[0], "Preset 1", "", "%6.2f", 0, 360.0, 1.0, 0);
@@ -234,16 +234,24 @@ bool INDI::Dome::ISNewSwitch (const char *dev, const char *name, ISState *states
     {
         if (!strcmp(PresetGotoSP.name, name))
         {
+            if (domeState == DOME_PARKED)
+            {
+                DEBUGDEVICE(getDeviceName(), INDI::Logger::DBG_ERROR, "Dome is parked. Please unpark before issuing any motion commands.");
+                PresetGotoSP.s = IPS_ALERT;
+                IDSetSwitch(&PresetGotoSP, NULL);
+                return false;
+            }
+
             IUUpdateSwitch(&PresetGotoSP, states, names, n);
             int index = IUFindOnSwitchIndex(&PresetGotoSP);
-            int rc = MoveAbs(PresetN[index].value);
-            if (rc >= 0)
+            IPState rc = MoveAbs(PresetN[index].value);
+            if (rc == IPS_OK || rc == IPS_BUSY)
             {
                 PresetGotoSP.s = IPS_OK;
                 DEBUGF(INDI::Logger::DBG_SESSION, "Moving to Preset %d (%g degrees).", index+1, PresetN[index].value);
                 IDSetSwitch(&PresetGotoSP, NULL);
 
-                if (rc == 1)
+                if (rc == IPS_BUSY)
                 {
                     DomeAbsPosNP.s = IPS_BUSY;
                     IDSetNumber(&DomeAbsPosNP, NULL);

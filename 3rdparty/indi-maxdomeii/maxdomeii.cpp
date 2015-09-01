@@ -116,23 +116,35 @@ MaxDomeII::MaxDomeII()
    cap.canAbort = true;
    cap.canAbsMove = true;
    cap.canRelMove = false;
+   cap.canPark = true;
 
    // We do have shutter, but we want to override INDI::Dome default shutter operation property
    cap.hasShutter = false;
-   cap.variableSpeed = false;
+   cap.hasVariableSpeed = false;
 
    SetDomeCapability(&cap);
-
 }
 
 bool MaxDomeII::SetupParms()
 {
     DomeAbsPosN[0].value = 0;
     DomeParamN[DOME_HOME].value  = nHomeAzimuth;
-    DomeParamN[DOME_PARK].value  = nParkPosition;
 
     IDSetNumber(&DomeAbsPosNP, NULL);
     IDSetNumber(&DomeParamNP, NULL);
+
+    if (InitPark())
+    {
+        // If loading parking data is successful, we just set the default parking values.
+        SetAxis1ParkDefault(0);
+    }
+    else
+    {
+        // Otherwise, we set all parking data to default in case no parking data is found.
+        SetAxis1Park(0);
+        SetAxis1ParkDefault(0);
+    }
+
     return true;
 }
 
@@ -474,12 +486,10 @@ void MaxDomeII::TimerHit()
                         nTimeSinceAzimuthStart = -1;
                         IDSetNumber(&DomeAbsPosNP, "Dome is on target position");
                     }
-                    if (DomeGotoS[DOME_PARK].s == ISS_ON)
+                    if (domeState == DOME_PARKING)
                     {
-                        IUResetSwitch(&DomeGotoSP);
-                        DomeGotoSP.s = IPS_OK;
                         nTimeSinceAzimuthStart = -1;
-                        IDSetSwitch(&DomeGotoSP, "Dome is parked");
+                        SetParked(true);
                     }
                     if (DomeGotoS[DOME_HOME].s == ISS_ON)
                     {
@@ -525,7 +535,7 @@ void MaxDomeII::TimerHit()
     return;
 }
 
-int MaxDomeII::MoveAbsDome(double newAZ)
+IPState MaxDomeII::MoveAbs(double newAZ)
 {
     double currAZ = 0;
     int newPos = 0, nDir = 0;
@@ -559,26 +569,17 @@ int MaxDomeII::MoveAbsDome(double newAZ)
     }
 
     if (error != 0)
-        return -1;
+        return IPS_ALERT;
 
     nTargetAzimuth = newPos;
     nTimeSinceAzimuthStart = 0;	// Init movement timer
 
     // It will take a few cycles to reach final position
-    return 1;
+    return IPS_BUSY;
 
 }
 
-int MaxDomeII::ParkDome()
-{
-    int ret;
-
-    ret = MoveAbsDome(nParkPosition);
-
-    return ret;
-}
-
-int MaxDomeII::HomeDome()
+IPState MaxDomeII::Home()
 {
     int error;
     int nRetry = 3;
@@ -595,16 +596,16 @@ int MaxDomeII::HomeDome()
     if (error)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Error: %s", ErrorMessages[-error]);
-        return -1;
+        return IPS_ALERT;
     }
 
-    return 1;
+    return IPS_BUSY;
 
 }
 
-bool MaxDomeII::AbortDome()
+bool MaxDomeII::Abort()
 {
-    int error;
+    int error=0;
     int nRetry = 3;
 
     while (nRetry)
@@ -623,12 +624,11 @@ bool MaxDomeII::AbortDome()
     {
         IUResetSwitch(&DomeGotoSP);
         DomeGotoSP.s = IPS_IDLE;
-        IDSetSwitch(&DomeGotoSP, "Dome goto aborted.");
+        IDSetSwitch(&DomeGotoSP, "Dome Goto aborted.");
     }
 
     DomeAbsPosNP.s = IPS_IDLE;
     IDSetNumber(&DomeAbsPosNP, NULL);
-
 
     // If we abort while in the middle of opening/closing shutter, alert.
     if (DomeShutterSP.s == IPS_BUSY)
@@ -703,35 +703,9 @@ bool MaxDomeII::ISNewNumber (const char *dev, const char *name, double values[],
 	
     if (!strcmp(name, DomeParamNP.name))
     {
-        int error;
-        int nRetry = 3;
-
         IUUpdateNumber(&DomeParamNP, values, names, n);
 
-        double nVal = AzimuthToTicks(DomeParamN[DOME_PARK].value);
-
-        // Only update park position if there is change
-        if (nVal != nParkPosition)
-        {
-            while (nRetry)
-            {
-                error =SetPark_MaxDomeII(fd, nCloseShutterBeforePark, nVal);
-                handle_driver_error(&error,&nRetry);
-            }
-            if (error >= 0)
-            {
-                nParkPosition = nVal;
-                DEBUG(INDI::Logger::DBG_SESSION, "New park position set.");
-            }
-            else
-            {
-                DEBUGF(INDI::Logger::DBG_ERROR, "MAX DOME II: %s",ErrorMessages[-error]);
-                DomeParamNP.s = IPS_ALERT;
-                IDSetNumber(&DomeParamNP, NULL);
-            }
-        }
-
-        nVal = DomeParamN[DOME_HOME].value;
+        double nVal = DomeParamN[DOME_HOME].value;
 
         // Only update home azimuth if there is change
         if (nVal != nHomeAzimuth)
@@ -931,4 +905,60 @@ int MaxDomeII::handle_driver_error(int *error, int *nRetry)
 	return *nRetry;
 }
 
+/************************************************************************************
+ *
+* ***********************************************************************************/
+IPState MaxDomeII::Park()
+{
+    int error=0;
+    int nRetry = 3;
 
+    double nVal = AzimuthToTicks(GetAxis1Park());
+
+    // Only update park position if there is change
+    if (nVal != nParkPosition)
+    {
+        while (nRetry)
+        {
+            error =SetPark_MaxDomeII(fd, nCloseShutterBeforePark, nVal);
+            handle_driver_error(&error,&nRetry);
+        }
+        if (error >= 0)
+        {
+            nParkPosition = nVal;
+            DEBUG(INDI::Logger::DBG_SESSION, "New park position set.");
+        }
+        else
+        {
+            DEBUGF(INDI::Logger::DBG_ERROR, "MAX DOME II: %s",ErrorMessages[-error]);
+            return IPS_ALERT;
+        }
+    }
+
+    return MoveAbs(nParkPosition);
+}
+
+/************************************************************************************
+ * Anything to do to unpark? Need to check!
+* ***********************************************************************************/
+IPState MaxDomeII::UnPark()
+{
+    return IPS_OK;
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+void MaxDomeII::SetCurrentPark()
+{
+    SetAxis1Park(DomeAbsPosN[0].value);
+}
+/************************************************************************************
+ *
+* ***********************************************************************************/
+
+void MaxDomeII::SetDefaultPark()
+{
+    // By default set position to 0
+    SetAxis1Park(0);
+}

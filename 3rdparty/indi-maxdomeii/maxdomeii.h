@@ -49,12 +49,17 @@ class MaxDomeII : public INDI::Dome
  virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
  virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
 
- virtual int MoveAbsDome(double az);
- virtual int ParkDome();
- virtual int HomeDome();
- virtual bool AbortDome();
+ virtual IPState MoveAbs(double az);
+ virtual IPState Home();
+ virtual bool Abort();
 
 protected:
+
+ // Parking
+ virtual IPState Park();
+ virtual IPState UnPark();
+ virtual void SetCurrentPark();
+ virtual void SetDefaultPark();
 
  /*******************************************************/
  /* Misc routines

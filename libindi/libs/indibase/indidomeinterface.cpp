@@ -73,14 +73,14 @@ void INDI::DomeInterface::initDomeProperties(const char *deviceName, const char*
 
     IUFillNumber(&DomeParamN[DOME_HOME],"HOME_POSITION","Home (deg)","%6.2f",0.0,360.0,1.0,0.0);
     IUFillNumber(&DomeParamN[DOME_AUTOSYNC],"AUTOSYNC_THRESHOLD","Autosync threshold (deg)","%6.2f",0.0,360.0,1.0,0.5);
-    IUFillNumberVector(&DomeParamNP,DomeParamN,2,deviceName,"DOME_PARAMS","Params",SITE_TAB,IP_RW,60,IPS_OK);
+    IUFillNumberVector(&DomeParamNP,DomeParamN,2,deviceName,"DOME_PARAMS","Params",groupName,IP_RW,60,IPS_OK);
 
     IUFillSwitch(&DomeGotoS[0],"DOME_HOME","Home",ISS_OFF);    
-    IUFillSwitchVector(&DomeGotoSP,DomeGotoS,1,deviceName,"DOME_GOTO","Goto",SITE_TAB,IP_RW,ISR_ATMOST1,60,IPS_OK);
+    IUFillSwitchVector(&DomeGotoSP,DomeGotoS,1,deviceName,"DOME_GOTO","Goto",groupName,IP_RW,ISR_ATMOST1,60,IPS_OK);
 
     IUFillSwitch(&ParkS[0],"PARK","Park",ISS_OFF);
     IUFillSwitch(&ParkS[1],"UNPARK","UnPark",ISS_OFF);
-    IUFillSwitchVector(&ParkSP,ParkS,2,deviceName,"DOME_PARK","Parking",groupName,IP_RW,ISR_ATMOST1,60,IPS_OK);
+    IUFillSwitchVector(&ParkSP,ParkS,2,deviceName,"DOME_PARK","Parking",groupName,IP_RW,ISR_1OFMANY,60,IPS_OK);
 
     IUFillSwitch(&DomeShutterS[0],"SHUTTER_OPEN","Open",ISS_OFF);
     IUFillSwitch(&DomeShutterS[1],"SHUTTER_CLOSE","Close",ISS_ON);
@@ -95,7 +95,6 @@ void INDI::DomeInterface::initDomeProperties(const char *deviceName, const char*
 
 bool INDI::DomeInterface::processDomeNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
-
     if (!strcmp(name, DomeParamNP.name))
     {
         IUUpdateNumber(&DomeParamNP, values, names, n);
@@ -106,6 +105,14 @@ bool INDI::DomeInterface::processDomeNumber (const char *dev, const char *name, 
 
     if(!strcmp(name, DomeTimerNP.name))
     {
+        if (domeState == DOME_PARKED)
+        {
+            DEBUGDEVICE(DomeName, INDI::Logger::DBG_ERROR, "Dome is parked. Please unpark before issuing any motion commands.");
+            DomeTimerNP.s = IPS_ALERT;
+            IDSetNumber(&DomeTimerNP, NULL);
+            return false;
+        }
+
         DomeDirection dir;
         int speed;
         int t;
@@ -151,6 +158,13 @@ bool INDI::DomeInterface::processDomeNumber (const char *dev, const char *name, 
 
     if(!strcmp(name, DomeAbsPosNP.name))
     {
+        if (domeState == DOME_PARKED)
+        {
+            DEBUGDEVICE(DomeName, INDI::Logger::DBG_ERROR, "Dome is parked. Please unpark before issuing any motion commands.");
+            DomeAbsPosNP.s = IPS_ALERT;
+            IDSetNumber(&DomeAbsPosNP, NULL);
+            return false;
+        }
 
         double newPos = values[0];
         IPState rc;
@@ -188,6 +202,14 @@ bool INDI::DomeInterface::processDomeNumber (const char *dev, const char *name, 
 
     if(!strcmp(name, DomeRelPosNP.name))
     {
+        if (domeState == DOME_PARKED)
+        {
+            DEBUGDEVICE(DomeName, INDI::Logger::DBG_ERROR, "Dome is parked. Please unpark before issuing any motion commands.");
+            DomeRelPosNP.s = IPS_ALERT;
+            IDSetNumber(&DomeRelPosNP, NULL);
+            return false;
+        }
+
         double newPos = values[0];
         IPState rc;
 
@@ -257,9 +279,17 @@ bool INDI::DomeInterface::processDomeSwitch (const char *dev, const char *name, 
         IUResetSwitch(&AbortSP);
 
         if (Abort())
-        {
-            domeState = DOME_IDLE;
+        {            
             AbortSP.s = IPS_OK;
+
+            if (domeState == DOME_PARKING)
+            {
+                DEBUGDEVICE(DomeName, INDI::Logger::DBG_SESSION, "Parking aborted.");
+                domeState = DOME_IDLE;
+                IUResetSwitch(&ParkSP);
+                ParkSP.s = IPS_ALERT;
+                IDSetSwitch(&ParkSP, NULL);
+            }
         }
         else
             AbortSP.s = IPS_ALERT;
@@ -270,7 +300,7 @@ bool INDI::DomeInterface::processDomeSwitch (const char *dev, const char *name, 
 
     if (!strcmp(name, DomeShutterSP.name))
     {
-        int ret=0;
+        IPState rc;
         int prevStatus = IUFindOnSwitchIndex(&DomeShutterSP);
         IUUpdateSwitch(&DomeShutterSP, states, names, n);
         int shutterDome = IUFindOnSwitchIndex(&DomeShutterSP);
@@ -287,11 +317,11 @@ bool INDI::DomeInterface::processDomeSwitch (const char *dev, const char *name, 
         DomeShutterS[prevStatus].s = ISS_ON;
 
         if (shutterDome == 0)
-            ret= ControlShutter(SHUTTER_OPEN);
+            rc= ControlShutter(SHUTTER_OPEN);
         else
-            ret= ControlShutter(SHUTTER_CLOSE);
+            rc= ControlShutter(SHUTTER_CLOSE);
 
-        if ( ret == 0)
+        if ( rc == IPS_OK)
         {
            DomeShutterSP.s=IPS_OK;
            IUResetSwitch(&DomeShutterSP);
@@ -299,7 +329,7 @@ bool INDI::DomeInterface::processDomeSwitch (const char *dev, const char *name, 
            IDSetSwitch(&DomeShutterSP, "Shutter is %s.", (shutterDome == 0 ? "open" : "closed"));
            return true;
         }
-        else if (ret == 1)
+        else if (rc == IPS_BUSY)
         {
              DomeShutterSP.s=IPS_BUSY;
              IUResetSwitch(&DomeShutterSP);
@@ -317,6 +347,15 @@ bool INDI::DomeInterface::processDomeSwitch (const char *dev, const char *name, 
     if (!strcmp(name, DomeGotoSP.name))
     {
         IUResetSwitch(&DomeGotoSP);
+
+        if (domeState == DOME_PARKED)
+        {
+            DEBUGDEVICE(DomeName, INDI::Logger::DBG_ERROR, "Dome is parked. Please unpark before issuing any motion commands.");
+            DomeGotoSP.s = IPS_ALERT;
+            IDSetSwitch(&DomeGotoSP, NULL);
+            return false;
+        }
+
         DomeAbsPosNP.s = DomeGotoSP.s = Home();
 
         if (DomeGotoSP.s == IPS_OK)
@@ -348,6 +387,7 @@ bool INDI::DomeInterface::processDomeSwitch (const char *dev, const char *name, 
             return true;
         }*/
 
+        IPState rc;
         int preIndex = IUFindOnSwitchIndex(&ParkSP);
         IUUpdateSwitch(&ParkSP, states, names, n);
 
@@ -374,27 +414,38 @@ bool INDI::DomeInterface::processDomeSwitch (const char *dev, const char *name, 
         }
 
         IUResetSwitch(&ParkSP);
-        bool rc =  toPark ? Park() : UnPark();
-        if (rc)
+
+        rc = toPark ? Park() : UnPark();
+
+        if (toPark)
         {
-            if (domeState == DOME_PARKING)
+            if (rc == IPS_OK)
+                SetParked(true);
+            else if (rc == IPS_BUSY)
             {
-                 ParkS[0].s = toPark ? ISS_ON : ISS_OFF;
-                 ParkS[1].s = toPark ? ISS_OFF : ISS_ON;
-                 ParkSP.s = IPS_BUSY;
-            }
-            else
-            {
-                ParkS[0].s = toPark ? ISS_ON : ISS_OFF;
-                ParkS[1].s = toPark ? ISS_OFF : ISS_ON;
-                ParkSP.s = IPS_OK;
+                domeState = DOME_PARKING;
+
+                 if (capability.canAbsMove)
+                     DomeAbsPosNP.s=IPS_BUSY;
+                 else if (capability.hasVariableSpeed)
+                     DomeTimerNP.s = IPS_BUSY;
+
+                 ParkS[0].s = ISS_ON;
             }
         }
         else
         {
-            ParkS[preIndex].s = ISS_ON;
-            ParkSP.s = IPS_ALERT;
+            if (rc == IPS_OK)
+                SetParked(false);
+            else if (rc == IPS_BUSY)
+            {
+                ParkS[1].s = ISS_ON;
+            }
         }
+
+        ParkSP.s = rc;
+        if (rc == IPS_ALERT)
+            ParkS[preIndex].s = ISS_ON;
 
         IDSetSwitch(&ParkSP, NULL);
         return true;
@@ -602,8 +653,7 @@ void INDI::DomeInterface::SetParked(bool isparked)
 
   IDSetSwitch(&ParkSP, NULL);
 
-  if (parkDataType != PARK_NONE)
-    WriteParkData();
+  WriteParkData();
 }
 
 bool INDI::DomeInterface::isParked()
@@ -626,6 +676,13 @@ bool INDI::DomeInterface::InitPark()
 
   ParkPositionN[AXIS_AZ].value = Axis1ParkPosition;
   IDSetNumber(&ParkPositionNP, NULL);
+
+  // If parked, store the position as current azimuth angle or encoder ticks
+  if (isParked() && capability.canAbsMove)
+  {
+      DomeAbsPosN[0].value = ParkPositionN[AXIS_AZ].value;
+      IDSetNumber(&DomeAbsPosNP, NULL);
+  }
 
   return true;
 }
@@ -695,21 +752,32 @@ char *INDI::DomeInterface::LoadParkData()
   if (!devicefound)
       return (char *)"No park data found for this device";
 
+  IsParked=false;
   ParkdeviceXml=parkxml;
   ParkstatusXml = findXMLEle(parkxml, "parkstatus");
-  ParkpositionXml = findXMLEle(parkxml, "parkposition");
-  ParkpositionAxis1Xml = findXMLEle(ParkpositionXml, "axis1position");
-  IsParked=false;
 
-  if (ParkstatusXml == NULL || ParkpositionAxis1Xml == NULL)
+  if (ParkstatusXml == NULL)
   {
       return (char *)("Park data invalid or missing.");
   }
 
+  if (parkDataType != PARK_NONE)
+  {
+      ParkpositionXml = findXMLEle(parkxml, "parkposition");
+      ParkpositionAxis1Xml = findXMLEle(ParkpositionXml, "axis1position");
+
+      if (ParkpositionAxis1Xml == NULL)
+      {
+          return (char *)("Park data invalid or missing.");
+      }
+  }
+
+
   if (!strcmp(pcdataXMLEle(ParkstatusXml), "true"))
       IsParked=true;
 
-  sscanf(pcdataXMLEle(ParkpositionAxis1Xml), "%lf", &Axis1ParkPosition);
+  if (parkDataType != PARK_NONE)
+    sscanf(pcdataXMLEle(ParkpositionAxis1Xml), "%lf", &Axis1ParkPosition);
 
   return NULL;
 }
@@ -745,15 +813,22 @@ bool INDI::DomeInterface::WriteParkData()
 
   if (!ParkstatusXml)
       ParkstatusXml=addXMLEle(ParkdeviceXml, "parkstatus");
-  if (!ParkpositionXml)
-      ParkpositionXml=addXMLEle(ParkdeviceXml, "parkposition");
-  if (!ParkpositionAxis1Xml)
-      ParkpositionAxis1Xml=addXMLEle(ParkpositionXml, "axis1position");
+
+  if (parkDataType != PARK_NONE)
+  {
+      if (!ParkpositionXml)
+          ParkpositionXml=addXMLEle(ParkdeviceXml, "parkposition");
+      if (!ParkpositionAxis1Xml)
+          ParkpositionAxis1Xml=addXMLEle(ParkpositionXml, "axis1position");
+  }
 
   editXMLEle(ParkstatusXml, (IsParked?"true":"false"));
 
-  snprintf(pcdata, sizeof(pcdata), "%f", Axis1ParkPosition);
-  editXMLEle(ParkpositionAxis1Xml, pcdata);
+  if (parkDataType != PARK_NONE)
+  {
+      snprintf(pcdata, sizeof(pcdata), "%f", Axis1ParkPosition);
+      editXMLEle(ParkpositionAxis1Xml, pcdata);
+  }
 
   prXMLEle(fp, ParkdataXmlRoot, 0);
   fclose(fp);

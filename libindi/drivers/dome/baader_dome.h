@@ -53,14 +53,14 @@ class BaaderDome : public INDI::Dome
         virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
 
         virtual IPState MoveRel(DomeDirection dir, double azDiff);
-        virtual IPState MoveAbs(double az);
-        virtual IPState Park();
-        virtual IPState UnPark();
+        virtual IPState MoveAbs(double az);        
         virtual IPState Home();
         virtual IPState ControlShutter(ShutterOperation operation);
         virtual bool Abort();
 
         // Parking
+        virtual IPState Park();
+        virtual IPState UnPark();
         virtual void SetCurrentPark();
         virtual void SetDefaultPark();
 

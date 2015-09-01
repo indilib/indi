@@ -173,6 +173,18 @@ bool BaaderDome::SetupParms()
     if (UpdateFlapStatus())
         IDSetSwitch(&DomeFlapSP, NULL);
 
+    if (InitPark())
+    {
+        // If loading parking data is successful, we just set the default parking values.
+        SetAxis1ParkDefault(0);
+    }
+    else
+    {
+        // Otherwise, we set all parking data to default in case no parking data is found.
+        SetAxis1Park(0);
+        SetAxis1ParkDefault(0);
+    }
+
     return true;
 }
 
@@ -816,8 +828,6 @@ IPState BaaderDome::Park()
 {
     targetAz = GetAxis1Park();
 
-    domeState = DOME_PARKING;
-
     return MoveAbs(targetAz);
 }
 
@@ -826,7 +836,6 @@ IPState BaaderDome::Park()
 * ***********************************************************************************/
 IPState BaaderDome::UnPark()
 {
-    domeState = DOME_IDLE;
     return IPS_OK;
 }
 
