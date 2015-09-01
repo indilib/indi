@@ -133,9 +133,9 @@ class INDI::Telescope : public INDI::DefaultDevice
          * @brief InitPark Loads parking data (stored in ~/.indi/ParkData.xml) that contains parking status
          * and parking position.
          * @return True if loading is successful and data is read, false otherwise. On success, you must call
-         * SetRAParkDefault() and SetDEParkDefault() to set the default parking values. On failure, you must call
-         * SetRAParkDefault() and SetDEParkDefault() to set the default parking values in addition to SetRAPark()
-         * and SetDEPark() to set the current parking position.
+         * SetAxis1ParkDefault() and SetAxis2ParkDefault() to set the default parking values. On failure, you must call
+         * SetAxis1ParkDefault() and SetAxis2ParkDefault() to set the default parking values in addition to SetAxis1Park()
+         * and SetAxis2Park() to set the current parking position.
          */
         bool InitPark();
 
@@ -383,16 +383,15 @@ class INDI::Telescope : public INDI::DefaultDevice
 
         //Park
         char *LoadParkData();
-        bool WriteParkData();
-
-        TelescopeParkData parkDataType;
+        bool WriteParkData();        
 
 private:
 
         bool processTimeInfo(const char *utc, const char *offset);
         bool processLocationInfo(double latitude, double longitude, double elevation);
 
-        bool IsParked;
+        TelescopeParkData parkDataType;
+        bool IsParked;        
         const char *ParkDeviceName;
         const char * Parkdatafile;
         XMLEle *ParkdataXmlRoot, *ParkdeviceXml, *ParkstatusXml, *ParkpositionXml, *ParkpositionAxis1Xml, *ParkpositionAxis2Xml;
