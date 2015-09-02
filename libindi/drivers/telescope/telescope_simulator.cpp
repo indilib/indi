@@ -164,6 +164,8 @@ bool ScopeSim::initProperties()
 
     TrackState=SCOPE_IDLE;
 
+    SetParkDataType(PARK_RA_DEC);
+
     initGuiderProperties(getDeviceName(), MOTION_TAB);
 
     /* Add debug controls so we may debug driver if necessary */
@@ -205,6 +207,24 @@ bool ScopeSim::updateProperties()
         defineNumber(&EqPENV);
         defineSwitch(&PEErrNSSP);
         defineSwitch(&PEErrWESP);
+
+        double HA = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
+        double DEC = 90;
+
+        if (InitPark())
+        {
+            // If loading parking data is successful, we just set the default parking values.
+            SetAxis1ParkDefault(HA);
+            SetAxis2ParkDefault(DEC);
+        }
+        else
+        {
+            // Otherwise, we set all parking data to default in case no parking data is found.
+            SetAxis1Park(HA);
+            SetAxis2Park(DEC);
+            SetAxis1ParkDefault(HA);
+            SetAxis2ParkDefault(DEC);
+        }
 
     }
     else
@@ -603,8 +623,8 @@ bool ScopeSim::Sync(double ra, double dec)
 
 bool ScopeSim::Park()
 {
-    targetRA=0;
-    targetDEC=90;    
+    targetRA= GetAxis1Park();
+    targetDEC= GetAxis2Park();
     TrackState = SCOPE_PARKING;
     DEBUG(INDI::Logger::DBG_SESSION,"Parking telescope in progress...");
     return true;
@@ -822,4 +842,21 @@ bool ScopeSim::updateLocation(double latitude, double longitude, double elevatio
   DEBUGF(INDI::Logger::DBG_SESSION,"Location updated: Longitude (%g) Latitude (%g)", lnobserver.lng, lnobserver.lat);
   return true;
 }
+
+void ScopeSim::SetCurrentPark()
+{
+    SetAxis1Park(currentRA);
+    SetAxis2Park(currentDEC);
+}
+
+void ScopeSim::SetDefaultPark()
+{
+    // By default set RA to HA
+    SetAxis1Park(ln_get_apparent_sidereal_time(ln_get_julian_from_sys()));
+
+    // Set DEC to 90 or -90 depending on the hemisphere
+    SetAxis2Park( (LocationN[LOCATION_LATITUDE].value > 0) ? 90 : -90);
+
+}
+
 
