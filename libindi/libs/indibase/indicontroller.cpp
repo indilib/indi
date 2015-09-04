@@ -39,6 +39,8 @@ Controller::~Controller()
 {
     for (int i=0; i < JoystickSettingTP.ntp; i++)
         free(JoystickSettingT[i].aux0);
+
+    free(JoystickSettingT);
 }
 
 void Controller::mapController(const char *propertyName, const char *propertyLabel, ControllerType type, const char *initialValue)
