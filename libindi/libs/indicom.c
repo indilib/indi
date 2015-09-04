@@ -172,7 +172,14 @@ double *dp)		/* cracked value, if return 0 */
 	neg = strchr(str, '-');
 	if (neg)
 	    *neg = ' ';
-	r = sscanf (str, "%lf%*[^0-9]%lf%*[^0-9]%lf", &a, &b, &c);
+    // JM 2015-09-04 Search for decimal point, and if found, process it
+    if (strchr(str, '.'))
+    {
+        r = sscanf (str, "%lf%*[^0-9]%lf", &a, &b);
+        c=0;
+    }
+    else
+        r = sscanf (str, "%lf%*[^0-9]%lf%*[^0-9]%lf", &a, &b, &c);
 	if (r < 1)
 	    return (-1);
 	*dp = a + b/60 + c/3600;
