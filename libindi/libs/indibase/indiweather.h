@@ -1,0 +1,148 @@
+/*******************************************************************************
+  Copyright(c) 2015 Jasem Mutlaq. All rights reserved.
+
+  INDI Weather Device Class
+
+  This program is free software; you can redistribute it and/or modify it
+  under the terms of the GNU General Public License as published by the Free
+  Software Foundation; either version 2 of the License, or (at your option)
+  any later version.
+
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+  more details.
+
+  You should have received a copy of the GNU Library General Public License
+  along with this library; see the file COPYING.LIB.  If not, write to
+  the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+  Boston, MA 02110-1301, USA.
+
+  The full GNU General Public License is included in this distribution in the
+  file called LICENSE.
+*******************************************************************************/
+
+#ifndef INDIWEATHER_H
+#define INDIWEATHER_H
+
+#include <list>
+#include <defaultdevice.h>
+
+/**
+ * \class INDI::Weather
+   \brief Class to provide general functionality of a weather device.
+
+   The INDI::Weather provides a simple interface for weather devices. Parameters such as temperature, wind, humidity..etc can be added by the child class
+   as supported by the physical device. With each parameter, the caller specifies the minimum and maximum ranges of OK and WARNING zones. Any value outside of
+   the warning zone is automatically treated as ALERT.
+
+   The class also specifies the list of critical parameters for observatory operations. When any of the parameters changes state to WARNING or ALERT, then
+   the overall state of the WEATHER_STATUS propery reflects the worst state of any individual parameter.
+
+   \e IMPORTANT: GEOGRAPHIC_COORD stores latitude and longitude in INDI specific format, refer to <a href="http://indilib.org/develop/developer-manual/101-standard-properties.html">INDI Standard Properties</a> for details.
+
+\author Jasem Mutlaq
+*/
+class INDI::Weather : public INDI::DefaultDevice
+{
+    public:
+
+    enum WeatherLocation { LOCATION_LATITUDE, LOCATION_LONGITUDE, LOCATION_ELEVATION };
+
+    Weather();
+    virtual ~Weather();
+
+    virtual bool initProperties();    
+    virtual bool updateProperties();
+    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+
+    virtual bool ISSnoopDevice(XMLEle *root);
+
+    protected:
+
+    /**
+     * @brief updateWeather Update weather conditions from device or service. The function should not change the state of any property in the device as this is handled by INDI::Weather. It should only update
+     * the raw values.
+     * @return Return overall state. The state should be IPS_OK if data is valid. IPS_BUSY if weather update is in progress. IPS_ALERT is there is an error. The clients will only accept values with IPS_OK state.
+     */
+    virtual IPState updateWeather();
+
+    /**
+     * @brief TimerHit Keep calling updateWeather() until it is successfull, if it fails upon first connection.
+     */
+    virtual void TimerHit();
+
+    /** \brief Update telescope location settings
+     *  \param latitude Site latitude in degrees.
+     *  \param longitude Site latitude in degrees increasing eastward from Greenwich (0 to 360).
+     *  \param elevation Site elevation in meters.
+        \return True if successful, false otherewise
+        \note This function performs no action unless subclassed by the child class if required.
+    */
+    virtual bool updateLocation(double latitude, double longitude, double elevation);
+
+    /**
+     * @brief addParameter Add a physical weather measurable parameter to the weather driver. The weather value has three zones:
+     * <ol>
+     * <li>OK: Set minimum and maximum values for acceptable values.</li>
+     * <li>Warning: Set minimum and maximum values for values outside of Ok range and in the dangerous warning zone.</li>
+     * <li>Alert: Any value outsize of Ok and Warning zone is marked as Alert.</li>
+     * </ol>
+     * @param name Name of parameter
+     * @param minimumOK Minimum OK value.
+     * @param maximumOK Maximum OK value.
+     * @param minimumWarning Minimum Warning value.
+     * @param maximumWarning Maximum Warning value.
+     * @return Pointer to created parameter.
+     */
+    INumber * addParameter(std::string name, double minimumOK, double maximumOK, double minimumWarning, double maximumWarning);
+
+    /**
+     * @brief setCriticalParameter Set parameter that is considered critical to the operation of the observatory. The parameter state can
+     * affect the overall weather driver state which signals the client to take appropiate action depending on the severity of the state.
+     * @param param Name of critial parameter.
+     * @return Pointer to created critical parameter light property.
+     */
+    ILight  * setCriticalParameter(std::string param);
+
+    virtual bool saveConfigItems(FILE *fp);
+
+    void syncParameters();
+
+    //  A number vector that stores lattitude and longitude
+    INumberVectorProperty LocationNP;
+    INumber LocationN[3];
+
+    // Refresh data
+    ISwitch RefreshS[1];
+    ISwitchVectorProperty RefreshSP;
+
+    // Parameters
+    INumber *ParametersN;
+    INumberVectorProperty ParametersNP;
+
+    // Parameter Ranges
+    INumberVectorProperty *ParametersRangeNP;
+    uint8_t nRanges;
+
+    // Weather status
+    ILight *critialParametersL;
+    ILightVectorProperty critialParametersLP;
+
+    // Active devices to snoop
+    ITextVectorProperty ActiveDeviceTP;
+    IText ActiveDeviceT[1];
+
+    // Update Period
+    INumber UpdatePeriodN[1];
+    INumberVectorProperty UpdatePeriodNP;
+
+private:
+    bool processLocationInfo(double latitude, double longitude, double elevation);
+    void createParameterRange(std::string param);
+    void updateParameters();
+    int updateTimerID;
+};
+
+#endif // INDIWeather_H

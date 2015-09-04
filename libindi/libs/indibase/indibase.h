@@ -30,6 +30,7 @@
    <li>Focuser: Base class for focusers.</li>
    <li>Dome: Base class for domes.</li>
    <li>GPS: Base class for GPS devices.</li>
+   <li>Weather: Base class for Weather devices.</li>
    <li>USBDevice: Base class for USB devices for direct read/write/control over USB.</li>
    <li>Controller: Class to handle controller inputs like joysticks and gamepads.</li>
    <li>Logger: Class to handle debugging and logging of drivers.</li>
@@ -53,6 +54,7 @@ namespace INDI
     class Focuser;
     class Dome;
     class GPS;
+    class Weather;
     class USBDevice;
     class Property;
     class Controller;

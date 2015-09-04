@@ -40,6 +40,7 @@ include (CheckIncludeFiles)
 FIND_LIBRARY(M_LIB m)
 FIND_PACKAGE(ZLIB REQUIRED)
 FIND_PACKAGE(USB-1 REQUIRED)
+find_package(CURL REQUIRED)
 FIND_PACKAGE(CFITSIO REQUIRED)
 FIND_PACKAGE(Nova REQUIRED)
 FIND_PACKAGE(Threads REQUIRED)
@@ -127,6 +128,7 @@ set (indidriver_SRCS
         ${CMAKE_SOURCE_DIR}/libs/indibase/indidomeinterface.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/indidome.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/indigps.cpp
+        ${CMAKE_SOURCE_DIR}/libs/indibase/indiweather.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/indilogger.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/indicontroller.cpp
     )
@@ -629,6 +631,27 @@ add_executable(indi_simulator_gps ${gpssimulator_SRCS})
 target_link_libraries(indi_simulator_gps indidriver)
 install(TARGETS indi_simulator_gps RUNTIME DESTINATION bin )
 
+#####################################
+############ AUX GROUP ##############
+#####################################
+
+########### WunderGround Driver ###############
+
+set(WunderGround_SRCS
+        ${CMAKE_SOURCE_DIR}/drivers/weather/gason.cpp
+        ${CMAKE_SOURCE_DIR}/drivers/weather/wunderground.cpp
+   )
+
+add_executable(indi_wunderground_weather ${WunderGround_SRCS})
+
+target_link_libraries(indi_wunderground_weather indidriver ${CURL_LIBRARIES})
+install(TARGETS indi_wunderground_weather RUNTIME DESTINATION bin )
+
+#####################################
+############ INDI TOOLS #############
+#####################################
+
+
 ########### getINDI ##############
 set(getindi_SRCS
 	${CMAKE_SOURCE_DIR}/eventloop.c
@@ -686,7 +709,7 @@ ${CMAKE_SOURCE_DIR}/libs/indibase/indifocuserinterface.h  ${CMAKE_SOURCE_DIR}/li
 ${CMAKE_SOURCE_DIR}/libs/indibase/inditelescope.h ${CMAKE_SOURCE_DIR}/libs/indibase/baseclient.h ${CMAKE_SOURCE_DIR}/libs/indibase/indiguiderinterface.h
 ${CMAKE_SOURCE_DIR}/libs/indibase/indifilterinterface.h ${CMAKE_SOURCE_DIR}/libs/indibase/indiproperty.h
 ${CMAKE_SOURCE_DIR}/libs/indibase/indidomeinterface.h ${CMAKE_SOURCE_DIR}/libs/indibase/indidome.h ${CMAKE_SOURCE_DIR}/libs/indibase/indigps.h
-${CMAKE_SOURCE_DIR}/libs/indicom.h ${CMAKE_SOURCE_DIR}/libs/indibase/indiusbdevice.h
+${CMAKE_SOURCE_DIR}/libs/indibase/indiweather.h ${CMAKE_SOURCE_DIR}/libs/indicom.h ${CMAKE_SOURCE_DIR}/libs/indibase/indiusbdevice.h
 ${CMAKE_SOURCE_DIR}/libs/indibase/indilogger.h ${CMAKE_SOURCE_DIR}/libs/indibase/indicontroller.h ${CMAKE_SOURCE_DIR}/libs/indibase/hidapi.h
 ${CMAKE_SOURCE_DIR}/libs/webcam/ccvt.h ${CMAKE_SOURCE_DIR}/libs/webcam/ccvt_types.h
 ${CMAKE_SOURCE_DIR}/libs/webcam/v4l2_record/v4l2_record.h ${CMAKE_SOURCE_DIR}/libs/webcam/v4l2_record/ser_recorder.h

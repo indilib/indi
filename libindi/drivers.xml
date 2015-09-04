@@ -220,6 +220,12 @@
                 <version>1.0</version>
         </device>
 </devGroup>
+<devGroup group="Weather">
+        <device label="WunderGround">
+                <driver name="WunderGround">indi_wunderground_weather</driver>
+                <version>1.0</version>
+        </device>
+</devGroup>
 <devGroup group="Agent">
     <device label="Imager Agent">
         <driver name="Imager Agent">indi_imager_agent</driver>

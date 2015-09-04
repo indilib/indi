@@ -1385,6 +1385,10 @@ libindi/drivers/video/stvdriver.c -text
 libindi/drivers/video/stvdriver.h -text
 libindi/drivers/video/v4l2driver.cpp -text
 libindi/drivers/video/v4l2driver.h -text
+libindi/drivers/weather/gason.cpp -text
+libindi/drivers/weather/gason.h -text
+libindi/drivers/weather/wunderground.cpp -text
+libindi/drivers/weather/wunderground.h -text
 libindi/eventloop.c -text
 libindi/eventloop.h -text
 libindi/examples/CMakeLists.txt -text
@@ -1516,6 +1520,8 @@ libindi/libs/indibase/inditelescope.cpp -text
 libindi/libs/indibase/inditelescope.h -text
 libindi/libs/indibase/indiusbdevice.cpp -text
 libindi/libs/indibase/indiusbdevice.h -text
+libindi/libs/indibase/indiweather.cpp -text
+libindi/libs/indibase/indiweather.h -text
 libindi/libs/indicom.c -text
 libindi/libs/indicom.h -text
 libindi/libs/lilxml.c -text
