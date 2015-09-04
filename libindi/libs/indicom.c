@@ -394,7 +394,7 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
  int err = TTY_OK;
  *nbytes_read = 0;
 
- uint8_t read_char;
+ uint8_t *read_char = 0;
 
  if (tty_debug)
      IDLog("%s: Request to read until stop char '%c' with %d timeout for fd %d\n", __FUNCTION__, stop_char, timeout, fd);
@@ -404,18 +404,18 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
          if ( (err = tty_timeout(fd, timeout)) )
 	   return err;
 
-         read_char = buf[*nbytes_read];
-         bytesRead = read(fd, &read_char, 1);
+         read_char = buf+*nbytes_read;
+         bytesRead = read(fd, read_char, 1);
 
          if (bytesRead < 0 )
             return TTY_READ_ERROR;
 
          if (tty_debug)
-                IDLog("%s: buffer[%d]=%#X (%c)\n", __FUNCTION__, (*nbytes_read), read_char, read_char);
+                IDLog("%s: buffer[%d]=%#X (%c)\n", __FUNCTION__, (*nbytes_read), *read_char, *read_char);
 
           (*nbytes_read)++;
 
-        if (read_char == stop_char)
+        if (*read_char == stop_char)
          return TTY_OK;
   }
 
