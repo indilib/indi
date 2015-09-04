@@ -32,6 +32,7 @@
 #include <errno.h>
 #include <stdarg.h>
 #include <sys/param.h>
+#include <stdint.h>
 
 #if defined(BSD) && !defined(__GNU__)
 #include <IOKit/serial/ioss.h>
@@ -39,12 +40,11 @@
 #endif
 
 #include <config.h>
-
-#ifdef HAVE_NOVA_H
 #include <libnova.h>
-#endif
 
 #include "indicom.h"
+#include "indidevapi.h"
+
 #ifdef _WIN32
 #undef CX
 #undef CY
@@ -59,11 +59,7 @@
 
 #define MAXRBUF         2048
 
-#include "indidevapi.h"
-
 int tty_debug = 0;
-
-void getSexComponents(double value, int *d, int *m, int *s);
 
 int extractISOTime(const char *timestr, struct ln_date *iso_date)
 {
@@ -188,9 +184,9 @@ double *dp)		/* cracked value, if return 0 */
 void getSexComponents(double value, int *d, int *m, int *s)
 {
 
-  *d = (int) fabs(value);
-  *m = (int) ((fabs(value) - *d) * 60.0);
-  *s = (int) rint(((fabs(value) - *d) * 60.0 - *m) *60.0);
+  *d = (int32_t) fabs(value);
+  *m = (int32_t) ((fabs(value) - *d) * 60.0);
+  *s = (int32_t) rint(((fabs(value) - *d) * 60.0 - *m) *60.0);
 
   if (value < 0)
    *d *= -1;
@@ -290,17 +286,24 @@ int tty_write(int fd, const char * buf, int nbytes, int *nbytes_written)
 
   int bytes_w = 0;   
   *nbytes_written = 0;
-   
+
+  if (tty_debug)
+  {
+    int i=0;
+    for (i=0; i < nbytes; i++)
+         IDLog("%s: buffer[%d]=%#X (%c)\n", __FUNCTION__, i, (unsigned char) buf[i], buf[i]);
+  }
+
   while (nbytes > 0)
   {
     
-    bytes_w = write(fd, buf, nbytes);
+    bytes_w = write(fd, buf+(*nbytes_written), nbytes);
 
     if (bytes_w < 0)
      return TTY_WRITE_ERROR;
 
     *nbytes_written += bytes_w;
-    buf += bytes_w;
+    //buf += bytes_w;
     nbytes -= bytes_w;
   }
 
@@ -321,13 +324,13 @@ int tty_write_string(int fd, const char * buf, int *nbytes_written)
   while (nbytes > 0)
   {
     
-    bytes_w = write(fd, buf, nbytes);
+    bytes_w = write(fd, buf+(*nbytes_written), nbytes);
 
     if (bytes_w < 0)
      return TTY_WRITE_ERROR;
 
    *nbytes_written += bytes_w;
-    buf += bytes_w;
+    //buf += bytes_w;
     nbytes -= bytes_w;
   }
 
@@ -354,7 +357,7 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
      if ( (err = tty_timeout(fd, timeout)) )
       return err;
 
-     bytesRead = read(fd, buf, ((unsigned) nbytes));          
+     bytesRead = read(fd, buf+(*nbytes_read), ((uint32_t) nbytes));
 
      if (bytesRead < 0 )
       return TTY_READ_ERROR;
@@ -367,7 +370,6 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
             IDLog("%s: buffer[%d]=%#X (%c)\n", __FUNCTION__, i, (unsigned char) buf[i], buf[i]);
      }
 
-     buf += bytesRead;
      *nbytes_read += bytesRead;
      nbytes -= bytesRead;
 
@@ -383,7 +385,8 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
 
  int bytesRead = 0;
  int err = TTY_OK;
- *nbytes_read = 0;
+ *nbytes_read = 0; 
+ char *read_buffer = buf;
 
  if (tty_debug)
      IDLog("%s: Request to read until stop char '%c' with %d timeout for fd %d\n", __FUNCTION__, stop_char, timeout, fd);
@@ -393,22 +396,19 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
          if ( (err = tty_timeout(fd, timeout)) )
 	   return err;
 
-         bytesRead = read(fd, buf, 1);
+         bytesRead = read(fd, buf+(*nbytes_read), 1);
 
          if (bytesRead < 0 )
             return TTY_READ_ERROR;
 
          if (tty_debug)
-                IDLog("%s: buffer[%d]=%#X (%c)\n", __FUNCTION__, (*nbytes_read), (unsigned char ) buf[(*nbytes_read)], buf[(*nbytes_read)]);
+                IDLog("%s: buffer[%d]=%#X (%c)\n", __FUNCTION__, (*nbytes_read), (uint8_t ) buf[(*nbytes_read)], buf[(*nbytes_read)]);
 
         if (bytesRead)
           (*nbytes_read)++;
 
-        if (*buf == stop_char)
+        if (*read_buffer == stop_char)
          return TTY_OK;
-
-        buf += bytesRead;
-
   }
 
   return TTY_TIME_OUT;
