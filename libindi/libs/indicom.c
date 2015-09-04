@@ -41,7 +41,7 @@
 
 #include <config.h>
 #include <libnova.h>
-
+#include <locale.h>
 #include "indicom.h"
 #include "indidevapi.h"
 
