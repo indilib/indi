@@ -112,6 +112,8 @@ bool INDI::Dome::updateProperties()
 {
     if(isConnected())
     {
+        last_dome_motion = -1;
+
         defineText(&ActiveDeviceTP);
 
         if (capability.hasShutter)
@@ -123,7 +125,7 @@ bool INDI::Dome::updateProperties()
         if (capability.hasVariableSpeed)
         {
             defineNumber(&DomeSpeedNP);
-            defineNumber(&DomeTimerNP);
+            //defineNumber(&DomeTimerNP);
         }
         if (capability.canRelMove)
             defineNumber(&DomeRelPosNP);
@@ -162,7 +164,7 @@ bool INDI::Dome::updateProperties()
         if (capability.hasVariableSpeed)
         {
             deleteProperty(DomeSpeedNP.name);
-            deleteProperty(DomeTimerNP.name);
+            //deleteProperty(DomeTimerNP.name);
         }
         if (capability.canRelMove)
             deleteProperty(DomeRelPosNP.name);
@@ -277,7 +279,7 @@ bool INDI::Dome::ISNewSwitch (const char *dev, const char *name, ISState *states
             else
             {
                 IDSetSwitch(&DomeAutoSyncSP,  "Dome is no longer synced to mount azimuth position.");
-                if (DomeAbsPosNP.s == IPS_BUSY || DomeRelPosNP.s == IPS_BUSY || DomeTimerNP.s == IPS_BUSY)
+                if (DomeAbsPosNP.s == IPS_BUSY || DomeRelPosNP.s == IPS_BUSY/* || DomeTimerNP.s == IPS_BUSY*/)
                     Abort();
             }
 
@@ -418,65 +420,104 @@ void INDI::Dome::processButton(const char * button_n, ISState state)
     if (state == ISS_OFF)
         return;
 
-    int rc=0;
     // Dome In
     if (!strcmp(button_n, "Dome CW"))
     {
-        if (capability.hasVariableSpeed)
+        if (capability.canRelMove)
         {
-           rc = Move(DOME_CW, DomeSpeedN[0].value, DomeTimerN[0].value);
-            if (rc == 0)
-                DomeTimerNP.s = IPS_OK;
-            else if (rc == 1)
-                DomeTimerNP.s = IPS_BUSY;
-            else
-                DomeTimerNP.s = IPS_ALERT;
-
-            IDSetNumber(&DomeTimerNP,NULL);
-        }
-        else if (capability.canRelMove)
-        {
-            rc=MoveRel(DOME_CW, DomeRelPosN[0].value);
-            if (rc == 0)
+            IPState rc= MoveRel(DomeRelPosN[0].value);
+            if (rc == IPS_OK)
             {
                DomeRelPosNP.s=IPS_OK;
                IDSetNumber(&DomeRelPosNP, "Dome moved %g degrees CW", DomeRelPosN[0].value);
                IDSetNumber(&DomeAbsPosNP, NULL);
             }
-            else if (rc == 1)
+            else if (rc == IPS_BUSY)
             {
                  DomeRelPosNP.s=IPS_BUSY;
                  IDSetNumber(&DomeAbsPosNP, "Dome is moving %g degrees CW...", DomeRelPosN[0].value);
             }
         }
+        else
+        {
+            if (DomeMotionSP.s == IPS_BUSY)
+            {
+                if (Move( DOME_CW, MOTION_STOP))
+                {
+                    IUResetSwitch(&DomeMotionSP);
+                    DomeMotionSP.s = IPS_IDLE;
+                    IDSetSwitch(&DomeMotionSP, NULL);
+                }
+                else
+                {
+                    DomeMotionSP.s = IPS_ALERT;
+                    IDSetSwitch(&DomeMotionSP, NULL);
+                }
+            }
+            else
+            {
+                if (Move( DOME_CW, MOTION_START))
+                {
+                    IUResetSwitch(&DomeMotionSP);
+                    DomeMotionS[DOME_CW].s = ISS_ON;
+                    DomeMotionSP.s = IPS_BUSY;
+                    IDSetSwitch(&DomeMotionSP, NULL);
+                }
+                else
+                {
+                    DomeMotionSP.s = IPS_ALERT;
+                    IDSetSwitch(&DomeMotionSP, NULL);
+                }
+            }
+        }
     }
     else if (!strcmp(button_n, "Dome CCW"))
     {
-        if (capability.hasVariableSpeed)
+        if (capability.canRelMove)
         {
-           rc = Move(DOME_CCW, DomeSpeedN[0].value, DomeTimerN[0].value);
-            if (rc == 0)
-                DomeTimerNP.s = IPS_OK;
-            else if (rc == 1)
-                DomeTimerNP.s = IPS_BUSY;
-            else
-                DomeTimerNP.s = IPS_ALERT;
-
-            IDSetNumber(&DomeTimerNP,NULL);
-        }
-        else if (capability.canRelMove)
-        {
-            rc=MoveRel(DOME_CCW, DomeRelPosN[0].value);
-            if (rc == 0)
+            IPState rc= MoveRel(DomeRelPosN[0].value*-1);
+            if (rc == IPS_OK)
             {
                DomeRelPosNP.s=IPS_OK;
-               IDSetNumber(&DomeRelPosNP, "Dome moved %g degrees CCW", DomeRelPosN[0].value);
+               IDSetNumber(&DomeRelPosNP, "Dome moved %g degrees CW", DomeRelPosN[0].value);
                IDSetNumber(&DomeAbsPosNP, NULL);
             }
-            else if (rc == 1)
+            else if (rc == IPS_BUSY)
             {
                  DomeRelPosNP.s=IPS_BUSY;
-                 IDSetNumber(&DomeAbsPosNP, "Dome is moving %g degrees CCW...", DomeRelPosN[0].value);
+                 IDSetNumber(&DomeAbsPosNP, "Dome is moving %g degrees CW...", DomeRelPosN[0].value);
+            }
+        }
+        else
+        {
+            if (DomeMotionSP.s == IPS_BUSY)
+            {
+                if (Move( DOME_CCW, MOTION_STOP))
+                {
+                    IUResetSwitch(&DomeMotionSP);
+                    DomeMotionSP.s = IPS_IDLE;
+                    IDSetSwitch(&DomeMotionSP, NULL);
+                }
+                else
+                {
+                    DomeMotionSP.s = IPS_ALERT;
+                    IDSetSwitch(&DomeMotionSP, NULL);
+                }
+            }
+            else
+            {
+                if (Move( DOME_CCW, MOTION_START))
+                {
+                    IUResetSwitch(&DomeMotionSP);
+                    DomeMotionS[DOME_CCW].s = ISS_ON;
+                    DomeMotionSP.s = IPS_BUSY;
+                    IDSetSwitch(&DomeMotionSP, NULL);
+                }
+                else
+                {
+                    DomeMotionSP.s = IPS_ALERT;
+                    IDSetSwitch(&DomeMotionSP, NULL);
+                }
             }
         }
     }

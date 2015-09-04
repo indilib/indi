@@ -31,6 +31,8 @@
    A Dome can be an independent device, or an embedded Dome within another device. Before using any of the dome functions, you must define the capabilities of the dome by calling
    SetDomeCapability() function. All positions are represented as degrees of azimuth.
 
+   Relative motion is specified in degrees as either positive (clock wise direction), or negative (counter clock-wise direction).
+
    Slaving is used to synchronizes the dome's azimuth position with that of the mount. The mount's azimuth position is snooped from the ACTIVE_TELESCOPE property in ACTIVE_DEVICES vector.
    The AutoSync threshold is the difference in degrees between the dome's azimuth angle and the mount's azimuth angle that should trigger a dome motion. By default, it is set to 0.5 degrees which would
    trigger dome motion due to any difference between the dome and mount azimuth angles that exceeds 0.5 degrees. For example, if the threshold is set to 5 degrees, the dome will only start moving to sync with the mount's azimuth angle once
@@ -47,6 +49,7 @@ class INDI::DomeInterface
 public:
     enum DomeDirection { DOME_CW, DOME_CCW };
     enum DomeParam { DOME_HOME, DOME_AUTOSYNC };
+    enum DomeMotionCommand { MOTION_START, MOTION_STOP };
 
     /*! Dome Parking data type enum */
     enum DomeParkData  { PARK_NONE,         /*!< Open loop Parking  */
@@ -95,7 +98,7 @@ public:
         bool canAbort;
         /** Can the dome move to an absolute azimuth position? */
         bool canAbsMove;
-        /** Can the dome move to a relative position a number of degrees away from current position? */
+        /** Can the dome move to a relative position a number of degrees away from current position? Positive degress is Clockwise direction. Negative Degrees is counter clock wise direction */
         bool canRelMove;
         /** Can the dome park and unpark itself? */
         bool canPark;
@@ -140,14 +143,11 @@ protected:
      */
     virtual bool SetSpeed(double rpm);
 
-    /** \brief Move the Dome in a particular direction with a specific speed for a finite duration.
+    /** \brief Move the Dome in a particular direction.
         \param dir Direction of Dome, either DOME_CW or DOME_CCW.
-        \param speed Speed (RPM) of dome if supported by the dome.
-        \param duration The timeout in milliseconds before the dome motion halts.
-        \return Return IPS_OK if motion is completed and Dome reached requested position. Return IPS_BUSY if Dome started motion to requested position and is in progress.
-                Return IPS_ALERT if there is an error.
+        \return Return true if dome started motion in the desired direction. False if there is an error.
     */
-    virtual IPState Move(DomeDirection dir, double speed, int duration);
+    virtual bool Move(DomeDirection dir, DomeMotionCommand operation);
 
     /** \brief Move the Dome to an absolute azimuth.
         \param az The new position of the Dome.
@@ -157,12 +157,11 @@ protected:
     virtual IPState MoveAbs(double az);
 
     /** \brief Move the Dome to an relative position.
-        \param dir Direction of Dome, either DOME_CW or DOME_CCW.
-        \param azDiff The relative azimuth angle to move.
+        \param azDiff The relative azimuth angle to move. Positive degree is clock-wise direction. Negative degrees is counter clock-wise direction.
         \return Return IPS_OK if motion is completed and Dome reached requested position. Return IPS_BUSY if Dome started motion to requested position and is in progress.
                 Return IPS_ALERT if there is an error.
     */
-    virtual IPState MoveRel(DomeDirection dir, double azDiff);
+    virtual IPState MoveRel(double azDiff);
 
     /**
      * \brief Abort all dome motion
@@ -279,9 +278,6 @@ protected:
     ISwitchVectorProperty DomeMotionSP;
     ISwitch DomeMotionS[2];
 
-    INumberVectorProperty DomeTimerNP;    
-    INumber DomeTimerN[1];
-
     INumberVectorProperty DomeAbsPosNP;
     INumber DomeAbsPosN[1];
 
@@ -313,6 +309,7 @@ protected:
     DomeState domeState;
     ShutterStatus shutterState;
     DomeParkData parkDataType;
+    int last_dome_motion;
 
 private:
 
@@ -324,7 +321,7 @@ private:
     XMLEle *ParkdataXmlRoot, *ParkdeviceXml, *ParkstatusXml, *ParkpositionXml, *ParkpositionAxis1Xml;
 
     double Axis1ParkPosition;
-    double Axis1DefaultParkPosition;
+    double Axis1DefaultParkPosition;    
 };
 
 #endif // INDIDomeINTERFACE_H

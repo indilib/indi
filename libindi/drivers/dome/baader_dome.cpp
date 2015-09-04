@@ -807,9 +807,9 @@ IPState BaaderDome::MoveAbs(double az)
 /************************************************************************************
  *
 * ***********************************************************************************/
-IPState BaaderDome::MoveRel(DomeDirection dir, double azDiff)
+IPState BaaderDome::MoveRel(double azDiff)
 {
-    targetAz = DomeAbsPosN[0].value + (azDiff * (dir==DOME_CW ? 1 : -1));
+    targetAz = DomeAbsPosN[0].value + azDiff;
 
     if (targetAz < DomeAbsPosN[0].min)
         targetAz += DomeAbsPosN[0].max;

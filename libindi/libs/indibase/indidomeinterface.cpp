@@ -36,6 +36,7 @@ INDI::DomeInterface::DomeInterface()
     shutterState = SHUTTER_UNKNOWN;
     domeState    = DOME_IDLE;
 
+    last_dome_motion = -1;
 
     parkDataType = PARK_NONE;
     Parkdatafile= "~/.indi/ParkData.xml";
@@ -54,10 +55,7 @@ void INDI::DomeInterface::initDomeProperties(const char *deviceName, const char*
     IUFillNumber(&DomeSpeedN[0],"DOME_SPEED_VALUE","RPM","%6.2f",0.0,10,0.1,1.0);
     IUFillNumberVector(&DomeSpeedNP,DomeSpeedN,1,deviceName,"DOME_SPEED","Speed",groupName,IP_RW,60,IPS_OK);
 
-    IUFillNumber(&DomeTimerN[0],"DOME_TIMER_VALUE","Dome Timer (ms)","%4.0f",0.0,10000.0,50.0,1000.0);
-    IUFillNumberVector(&DomeTimerNP,DomeTimerN,1,deviceName,"DOME_TIMER","Timer",groupName,IP_RW,60,IPS_OK);
-
-    IUFillSwitch(&DomeMotionS[0],"DOME_CW","Dome CW",ISS_ON);
+    IUFillSwitch(&DomeMotionS[0],"DOME_CW","Dome CW",ISS_OFF);
     IUFillSwitch(&DomeMotionS[1],"DOME_CCW","Dome CCW",ISS_OFF);
     IUFillSwitchVector(&DomeMotionSP,DomeMotionS,2,deviceName,"DOME_MOTION","Direction",groupName,IP_RW,ISR_ATMOST1,60,IPS_OK);
 
@@ -65,7 +63,7 @@ void INDI::DomeInterface::initDomeProperties(const char *deviceName, const char*
     IUFillNumber(&DomeAbsPosN[0],"DOME_ABSOLUTE_POSITION","Degrees","%6.2f",0.0,360.0,1.0,0.0);
     IUFillNumberVector(&DomeAbsPosNP,DomeAbsPosN,1,deviceName,"ABS_DOME_POSITION","Absolute Position",groupName,IP_RW,60,IPS_OK);
 
-    IUFillNumber(&DomeRelPosN[0],"DOME_RELATIVE_POSITION","Degrees","%6.2f",0.0,180.0,1.0,0.0);
+    IUFillNumber(&DomeRelPosN[0],"DOME_RELATIVE_POSITION","Degrees","%6.2f",-180,180.0,10.0,0.0);
     IUFillNumberVector(&DomeRelPosNP,DomeRelPosN,1,deviceName,"REL_DOME_POSITION","Relative Position",groupName,IP_RW,60,IPS_OK);
 
     IUFillSwitch(&AbortS[0],"ABORT","Abort",ISS_OFF);
@@ -103,7 +101,7 @@ bool INDI::DomeInterface::processDomeNumber (const char *dev, const char *name, 
         return true;
     }
 
-    if(!strcmp(name, DomeTimerNP.name))
+    /*if(!strcmp(name, DomeTimerNP.name))
     {
         if (domeState == DOME_PARKED)
         {
@@ -136,7 +134,7 @@ bool INDI::DomeInterface::processDomeNumber (const char *dev, const char *name, 
 
         IDSetNumber(&DomeTimerNP,NULL);
         return true;
-    }
+    }*/
 
 
     if(!strcmp(name, DomeSpeedNP.name))
@@ -163,6 +161,12 @@ bool INDI::DomeInterface::processDomeNumber (const char *dev, const char *name, 
             DEBUGDEVICE(DomeName, INDI::Logger::DBG_ERROR, "Dome is parked. Please unpark before issuing any motion commands.");
             DomeAbsPosNP.s = IPS_ALERT;
             IDSetNumber(&DomeAbsPosNP, NULL);
+            return false;
+        }
+
+        if (DomeRelPosNP.s != IPS_BUSY && DomeMotionSP.s == IPS_BUSY || (domeState == DOME_PARKING))
+        {
+            DEBUGDEVICE(DomeName, INDI::Logger::DBG_WARNING, "Please stop dome before issuing any further motion commands.");
             return false;
         }
 
@@ -210,15 +214,23 @@ bool INDI::DomeInterface::processDomeNumber (const char *dev, const char *name, 
             return false;
         }
 
+        if (DomeRelPosNP.s != IPS_BUSY && DomeMotionSP.s == IPS_BUSY || (domeState == DOME_PARKING))
+        {
+            DEBUGDEVICE(DomeName, INDI::Logger::DBG_WARNING, "Please stop dome before issuing any further motion commands.");
+            DomeRelPosNP.s = IPS_IDLE;
+            IDSetNumber(&DomeRelPosNP, NULL);
+            return false;
+        }
+
         double newPos = values[0];
         IPState rc;
 
-        if ( (rc=MoveRel( (DomeMotionS[0].s == ISS_ON ? DOME_CW : DOME_CCW), newPos)) == IPS_OK)
+        if ( (rc=MoveRel(newPos)) == IPS_OK)
         {
            domeState = DOME_IDLE;
            DomeRelPosNP.s=IPS_OK;
            IUUpdateNumber(&DomeRelPosNP,values,names,n);
-           IDSetNumber(&DomeRelPosNP, "Dome moved %g degrees %s.", newPos, (DomeMotionS[0].s == ISS_ON ? "clockwise" : "counter clockwise"));
+           IDSetNumber(&DomeRelPosNP, "Dome moved %g degrees %s.", newPos, (newPos > 0) ? "clockwise" : "counter clockwise");
            if (capability.canAbsMove)
            {
               DomeAbsPosNP.s=IPS_OK;
@@ -231,7 +243,7 @@ bool INDI::DomeInterface::processDomeNumber (const char *dev, const char *name, 
              domeState = DOME_MOVING;
              IUUpdateNumber(&DomeRelPosNP,values,names,n);
              DomeRelPosNP.s=IPS_BUSY;
-             IDSetNumber(&DomeRelPosNP, "Dome is moving %g degrees %s...", newPos, (DomeMotionS[0].s == ISS_ON ? "clockwise" : "counter clockwise"));
+             IDSetNumber(&DomeRelPosNP, "Dome is moving %g degrees %s...", newPos, (newPos > 0) ? "clockwise" : "counter clockwise");
              if (capability.canAbsMove)
              {
                 DomeAbsPosNP.s=IPS_BUSY;
@@ -261,17 +273,71 @@ bool INDI::DomeInterface::processDomeNumber (const char *dev, const char *name, 
 }
 
 bool INDI::DomeInterface::processDomeSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    //  This one is for us
+{    
     if(!strcmp(name, DomeMotionSP.name))
     {
-        //  client is telling us what to do with Dome direction
-        DomeMotionSP.s=IPS_OK;
+        // Check if it is already parked.
+        if (capability.canPark)
+        {
+            if (isParked())
+            {
+                DEBUGDEVICE(DomeName, INDI::Logger::DBG_WARNING, "Please unpark the dome before issuing any motion commands.");
+                DomeMotionSP.s = IPS_IDLE;
+                IDSetSwitch(&DomeMotionSP, NULL);
+                return false;
+            }
+        }
+
+        if ( (DomeMotionSP.s != IPS_BUSY && (DomeAbsPosNP.s == IPS_BUSY || DomeRelPosNP.s == IPS_BUSY))
+              || (domeState == DOME_PARKING))
+        {
+            DEBUGDEVICE(DomeName, INDI::Logger::DBG_WARNING, "Please stop dome before issuing any further motion commands.");
+            DomeMotionSP.s = IPS_IDLE;
+            IDSetSwitch(&DomeMotionSP, NULL);
+            return false;
+        }
+
         IUUpdateSwitch(&DomeMotionSP,states,names,n);
-        //  Update client display
-        IDSetSwitch(&DomeMotionSP,NULL);
+
+        int current_motion = IUFindOnSwitchIndex(&DomeMotionSP);
+
+        // if same move requested, return
+        if ( DomeMotionSP.s == IPS_BUSY && current_motion == last_dome_motion)
+            return true;
+
+        // Time to stop motion
+        if (current_motion == -1 || (last_dome_motion != -1 && current_motion != last_dome_motion))
+        {
+            if (Move(last_dome_motion == 0 ? DOME_CW : DOME_CCW, MOTION_STOP))
+            {
+                IUResetSwitch(&DomeMotionSP);
+                DomeMotionSP.s = IPS_IDLE;
+                domeState = DOME_IDLE;
+                last_dome_motion = -1;
+            }
+            else
+                DomeMotionSP.s = IPS_ALERT;
+        }
+        else
+        {
+            if (Move(current_motion == 0 ? DOME_CW : DOME_CCW, MOTION_START))
+            {
+                domeState = DOME_MOVING;
+                DomeMotionSP.s = IPS_BUSY;
+                last_dome_motion = current_motion;
+            }
+            else
+            {
+                IUResetSwitch(&DomeMotionSP);
+                DomeMotionSP.s = IPS_ALERT;
+                last_dome_motion = -1;
+            }
+        }
+
+        IDSetSwitch(&DomeMotionSP, NULL);
 
         return true;
+
     }
 
     if(!strcmp(name, AbortSP.name))
@@ -290,6 +356,24 @@ bool INDI::DomeInterface::processDomeSwitch (const char *dev, const char *name, 
                 ParkSP.s = IPS_ALERT;
                 IDSetSwitch(&ParkSP, NULL);
             }
+
+            if (DomeMotionSP.s == IPS_BUSY)
+            {
+                IUResetSwitch(&DomeMotionSP);
+                DomeMotionSP.s = IPS_OK;
+                IDSetSwitch(&DomeMotionSP, NULL);
+            }
+            if (capability.canAbsMove && DomeAbsPosNP.s != IPS_IDLE)
+            {
+                DomeAbsPosNP.s = IPS_IDLE;
+                IDSetNumber(&DomeAbsPosNP, NULL);
+            }
+            if (capability.canRelMove && DomeRelPosNP.s != IPS_IDLE)
+            {
+                DomeRelPosNP.s = IPS_IDLE;
+                IDSetNumber(&DomeRelPosNP, NULL);
+            }
+
         }
         else
             AbortSP.s = IPS_ALERT;
@@ -302,19 +386,23 @@ bool INDI::DomeInterface::processDomeSwitch (const char *dev, const char *name, 
     {
         IPState rc;
         int prevStatus = IUFindOnSwitchIndex(&DomeShutterSP);
+        IPState prevState = DomeShutterSP.s;
+
         IUUpdateSwitch(&DomeShutterSP, states, names, n);
         int shutterDome = IUFindOnSwitchIndex(&DomeShutterSP);
 
         // No change of status, let's return
         if (prevStatus == shutterDome)
         {
-            DomeShutterSP.s=IPS_OK;
+            DomeShutterSP.s = prevState;
             IDSetSwitch(&DomeShutterSP,NULL);
+            return true;
         }
 
         // go back to prev status in case of failure
         IUResetSwitch(&DomeShutterSP);
-        DomeShutterS[prevStatus].s = ISS_ON;
+        if (prevState != -1)
+            DomeShutterS[prevStatus].s = ISS_ON;
 
         if (shutterDome == 0)
             rc= ControlShutter(SHUTTER_OPEN);
@@ -427,8 +515,6 @@ bool INDI::DomeInterface::processDomeSwitch (const char *dev, const char *name, 
 
                  if (capability.canAbsMove)
                      DomeAbsPosNP.s=IPS_BUSY;
-                 else if (capability.hasVariableSpeed)
-                     DomeTimerNP.s = IPS_BUSY;
 
                  ParkS[0].s = ISS_ON;
             }
@@ -441,6 +527,13 @@ bool INDI::DomeInterface::processDomeSwitch (const char *dev, const char *name, 
             {
                 ParkS[1].s = ISS_ON;
             }
+        }
+
+        if (DomeMotionSP.s == IPS_BUSY)
+        {
+            IUResetSwitch(&DomeMotionSP);
+            DomeMotionSP.s = IPS_IDLE;
+            IDSetSwitch(&DomeMotionSP, NULL);
         }
 
         ParkSP.s = rc;
@@ -486,30 +579,26 @@ bool INDI::DomeInterface::processDomeSwitch (const char *dev, const char *name, 
 
 }
 
-IPState INDI::DomeInterface::Move(DomeDirection dir, double speed, int duration)
+bool INDI::DomeInterface::Move(DomeDirection dir, DomeMotionCommand operation)
 {
-    //  This should be a virtual function, because the low level hardware class
-    //  must override this
-    //  but it's much easier early development if the method actually
-    //  exists for now
-    return IPS_ALERT;
+
+    INDI_UNUSED(dir);
+    INDI_UNUSED(operation);
+    DEBUGDEVICE(DomeName, INDI::Logger::DBG_ERROR, "Dome does not support Move(). Move() must be implemented in the child class.");
+    return false;
 }
 
-IPState INDI::DomeInterface::MoveRel(DomeDirection dir, double azDiff)
+IPState INDI::DomeInterface::MoveRel(double azDiff)
 {
-    //  This should be a virtual function, because the low level hardware class
-    //  must override this
-    //  but it's much easier early development if the method actually
-    //  exists for now
+    INDI_UNUSED(azDiff);
+    DEBUGDEVICE(DomeName, INDI::Logger::DBG_ERROR, "Dome does not support MoveRel(). MoveRel() must be implemented in the child class.");
     return IPS_ALERT;
 }
 
 IPState INDI::DomeInterface::MoveAbs(double az)
 {
-    //  This should be a virtual function, because the low level hardware class
-    //  must override this
-    //  but it's much easier early development if the method actually
-    //  exists for now
+    INDI_UNUSED(az);
+    DEBUGDEVICE(DomeName, INDI::Logger::DBG_ERROR, "Dome does not support MoveAbs(). MoveAbs() must be implemented in the child class.");
     return IPS_ALERT;
 }
 
@@ -518,43 +607,33 @@ bool INDI::DomeInterface::Abort()
 {
     //  This should be a virtual function, because the low level hardware class
     //  must override this
-    DEBUGDEVICE(DomeName, INDI::Logger::DBG_ERROR, "Dome does not support abort motion.");
+    DEBUGDEVICE(DomeName, INDI::Logger::DBG_ERROR, "Dome does not support Abort(). Abort() must be implemented in the child class.");
     return false;
 }
 
 bool INDI::DomeInterface::SetSpeed(double speed)
 {
-    INDI_UNUSED(speed);
-
-    //  This should be a virtual function, because the low level hardware class
-    //  must override this
-    DEBUGDEVICE(DomeName, INDI::Logger::DBG_ERROR, "Dome does not support variable speed.");
+    INDI_UNUSED(speed);    
+    DEBUGDEVICE(DomeName, INDI::Logger::DBG_ERROR, "Dome does not support SetSpeed(). SetSpeed() must be implemented in the child class.");
     return false;
 }
 
 IPState INDI::DomeInterface::ControlShutter(ShutterOperation operation)
 {
-    INDI_UNUSED(operation);
-
-    //  This should be a virtual function, because the low level hardware class
-    //  must override this
-    DEBUGDEVICE(DomeName, INDI::Logger::DBG_ERROR, "Dome does not have shutter control.");
+    INDI_UNUSED(operation);    
+    DEBUGDEVICE(DomeName, INDI::Logger::DBG_ERROR, "Dome does not support ControlShutter(). ControlShutter() must be implemented in the child class.");
     return IPS_ALERT;
 }
 
 IPState INDI::DomeInterface::Park()
-{
-    //  This should be a virtual function, because the low level hardware class
-    //  must override this
-    DEBUGDEVICE(DomeName, INDI::Logger::DBG_ERROR, "Dome does not support park.");
+{    
+    DEBUGDEVICE(DomeName, INDI::Logger::DBG_ERROR, "Dome does not support Park(). Park() must be implemented in the child class.");
     return IPS_ALERT;
 }
 
 IPState INDI::DomeInterface::UnPark()
 {
-    //  This should be a virtual function, because the low level hardware class
-    //  must override this
-    DEBUGDEVICE(DomeName, INDI::Logger::DBG_ERROR, "Dome does not support park.");
+    DEBUGDEVICE(DomeName, INDI::Logger::DBG_ERROR, "Dome does not support UnPark(). UnPark() must be implemented in the child class.");
     return IPS_ALERT;
 }
 
@@ -568,13 +647,9 @@ void INDI::DomeInterface::SetDefaultPark()
     DEBUGDEVICE(DomeName, INDI::Logger::DBG_WARNING, "Parking is not supported.");
 }
 
-
-
 IPState INDI::DomeInterface::Home()
-{
-    //  This should be a virtual function, because the low level hardware class
-    //  must override this
-    DEBUGDEVICE(DomeName, INDI::Logger::DBG_ERROR, "Dome does not support homing.");
+{    
+    DEBUGDEVICE(DomeName, INDI::Logger::DBG_ERROR, "Dome does not support Home(). Home() must be implemented in the child class.");
     return IPS_ALERT;
 }
 
@@ -586,6 +661,7 @@ void INDI::DomeInterface::SetDomeCapability(DomeCapability *cap)
     capability.canPark      = cap->canPark;
     capability.hasShutter   = cap->hasShutter;
     capability.hasVariableSpeed= cap->hasVariableSpeed;
+
 }
 
 const char * INDI::DomeInterface::GetShutterStatusString(ShutterStatus status)

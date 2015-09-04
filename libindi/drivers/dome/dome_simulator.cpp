@@ -26,6 +26,7 @@
 
 #include <memory>
 
+#include <indicom.h>
 
 // We declare an auto pointer to domeSim.
 std::auto_ptr<DomeSim> domeSim(0);
@@ -203,10 +204,7 @@ void DomeSim::TimerHit()
             DomeAbsPosN[0].value -= DOME_SPEED;
         }
 
-        if (DomeAbsPosN[0].value < DomeAbsPosN[0].min)
-            DomeAbsPosN[0].value += DomeAbsPosN[0].max;
-        if (DomeAbsPosN[0].value > DomeAbsPosN[0].max)
-            DomeAbsPosN[0].value -= DomeAbsPosN[0].max;
+        DomeAbsPosN[0].value = range360(DomeAbsPosN[0].value);
 
         if (fabs(targetAz - DomeAbsPosN[0].value) <= DOME_SPEED)
         {
@@ -248,6 +246,24 @@ void DomeSim::TimerHit()
     return;
 }
 
+bool DomeSim::Move(DomeDirection dir, DomeMotionCommand operation)
+{
+    if (operation == MOTION_START)
+    {
+        targetAz = (dir == DOME_CW) ? 1e6 : -1e6;
+        DomeAbsPosNP.s = IPS_BUSY;
+    }
+    else
+    {
+        targetAz = 0;
+        DomeAbsPosNP.s = IPS_IDLE;
+    }
+
+    IDSetNumber(&DomeAbsPosNP, NULL);
+    return true;
+
+}
+
 IPState DomeSim::MoveAbs(double az)
 {
     // Requested position is within one cycle, let's declare it done
@@ -261,9 +277,9 @@ IPState DomeSim::MoveAbs(double az)
 
 }
 
-IPState DomeSim::MoveRel(DomeDirection dir, double azDiff)
+IPState DomeSim::MoveRel(double azDiff)
 {
-    targetAz = DomeAbsPosN[0].value + (azDiff * (dir==DOME_CW ? 1 : -1));
+    targetAz = DomeAbsPosN[0].value + azDiff;;
 
     if (targetAz < DomeAbsPosN[0].min)
         targetAz += DomeAbsPosN[0].max;

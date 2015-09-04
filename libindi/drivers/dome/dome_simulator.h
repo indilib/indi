@@ -42,8 +42,9 @@ class DomeSim : public INDI::Dome
 
         void TimerHit();
 
-        virtual IPState MoveRel(DomeDirection dir, double azDiff);
-        virtual IPState MoveAbs(double az);
+        virtual bool Move(DomeDirection dir, DomeMotionCommand operation);
+        virtual IPState MoveRel(double azDiff);
+        virtual IPState MoveAbs(double az);        
         virtual IPState Park();
         virtual IPState UnPark();
         virtual IPState Home();
