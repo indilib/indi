@@ -840,7 +840,8 @@ bool LX200Generic::ISNewNumber (const char *dev, const char *name, double values
               trackingMode = LX200_TRACK_MANUAL;
               TrackModeS[0].s = ISS_OFF;
               TrackModeS[1].s = ISS_OFF;
-              TrackModeS[2].s = ISS_ON;
+              TrackModeS[2].s = ISS_OFF;
+              TrackModeS[3].s = ISS_ON;
               TrackModeSP.s   = IPS_OK;
               selectTrackingMode(PortFD, trackingMode);
               IDSetSwitch(&TrackModeSP, NULL);
