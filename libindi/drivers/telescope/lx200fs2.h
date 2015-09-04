@@ -37,9 +37,19 @@ protected:
 
     virtual const char *getDefaultName();
     virtual bool isSlewComplete();
-    virtual bool checkConnection();
+    virtual bool checkConnection();        
 
     virtual bool saveConfigItems(FILE *fp);
+
+    // Time and Location
+    virtual bool updateLocation(double latitude, double longitude, double elevation);
+    virtual bool updateTime(ln_date *utc, double utc_offset);
+
+    // Parking
+    virtual bool Park();
+    virtual bool UnPark();
+    virtual void SetCurrentPark();
+    virtual void SetDefaultPark();
 
     INumber SlewAccuracyN[2];
     INumberVectorProperty SlewAccuracyNP;

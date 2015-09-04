@@ -27,11 +27,11 @@ LX200FS2::LX200FS2() : LX200Generic()
 
     TelescopeCapability cap;
 
-    cap.canPark = false;
+    cap.canPark = true;
     cap.canSync = true;
     cap.canAbort = true;
-    cap.hasLocation = false;
-    cap.hasTime = false;
+    cap.hasLocation = true;
+    cap.hasTime = true;
     cap.nSlewRate=4;
     SetTelescopeCapability(&cap);
 }
@@ -44,6 +44,8 @@ bool LX200FS2::initProperties()
     IUFillNumber(&SlewAccuracyN[1], "SlewDEC", "Dec (arcmin)", "%10.6m", 0., 60., 1., 3.0);
     IUFillNumberVector(&SlewAccuracyNP, SlewAccuracyN, NARRAY(SlewAccuracyN), getDeviceName(), "Slew Accuracy", "", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
+    SetParkDataType(PARK_AZ_ALT);
+
     return true;
 }
 
@@ -55,6 +57,22 @@ bool LX200FS2::updateProperties()
     {
         defineSwitch(&SlewRateSP);
         defineNumber(&SlewAccuracyNP);
+
+        if (InitPark())
+        {
+            // If loading parking data is successful, we just set the default parking values.
+            SetAxis1ParkDefault(0);
+            SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+        }
+        else
+        {
+            // Otherwise, we set all parking data to default in case no parking data is found.
+            SetAxis1Park(0);
+            SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
+            SetAxis1ParkDefault(0);
+            SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+        }
+
     }
     else
     {
@@ -111,4 +129,148 @@ bool LX200FS2::saveConfigItems(FILE *fp)
     IUSaveConfigNumber(fp, &SlewAccuracyNP);
 
     return true;
+}
+
+bool LX200FS2::updateLocation(double latitude, double longitude, double elevation)
+{
+    INDI_UNUSED(elevation);
+    INDI_UNUSED(longitude);
+    INDI_UNUSED(latitude);
+    return true;
+}
+
+bool LX200FS2::updateTime(ln_date *utc, double utc_offset)
+{
+    INDI_UNUSED(utc);
+    INDI_UNUSED(utc_offset);
+    return true;
+}
+
+bool LX200FS2::Park()
+{
+    double parkAZ  = GetAxis1Park();
+    double parkAlt = GetAxis2Park();
+
+    char AzStr[16], AltStr[16];
+    fs_sexa(AzStr, parkAZ, 2, 3600);
+    fs_sexa(AltStr, parkAlt, 2, 3600);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Parking to Az (%s) Alt (%s)...", AzStr, AltStr);
+
+    ln_hrz_posn horizontalPos;
+    // Libnova south = 0, west = 90, north = 180, east = 270
+    horizontalPos.az = parkAZ + 180;
+    if (horizontalPos.az >= 360)
+        horizontalPos.az -= 360;
+    horizontalPos.alt = parkAlt;
+
+    ln_lnlat_posn observer;
+
+    observer.lat = LocationN[LOCATION_LATITUDE].value;
+    observer.lng = LocationN[LOCATION_LONGITUDE].value;
+
+    if (observer.lng > 180)
+        observer.lng -= 360;
+
+    ln_equ_posn equatorialPos;
+
+    ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
+
+    char RAStr[16], DEStr[16];
+    fs_sexa(RAStr, equatorialPos.ra/15.0, 2, 3600);
+    fs_sexa(DEStr, equatorialPos.dec, 2, 3600);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Parking to RA (%s) DEC (%s)...", RAStr, DEStr);
+
+    if (Goto(equatorialPos.ra/15.0, equatorialPos.dec))
+    {
+        TrackState = SCOPE_PARKING;
+        DEBUG(INDI::Logger::DBG_SESSION, "Parking is in progress...");
+
+        return true;
+    }
+    else
+        return false;
+}
+
+bool LX200FS2::UnPark()
+{
+    double parkAZ  = GetAxis1Park();
+    double parkAlt = GetAxis2Park();
+
+    char AzStr[16], AltStr[16];
+    fs_sexa(AzStr, parkAZ, 2, 3600);
+    fs_sexa(AltStr, parkAlt, 2, 3600);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Unparking from Az (%s) Alt (%s)...", AzStr, AltStr);
+
+    ln_hrz_posn horizontalPos;
+    // Libnova south = 0, west = 90, north = 180, east = 270
+    horizontalPos.az = parkAZ + 180;
+    if (horizontalPos.az >= 360)
+        horizontalPos.az -= 360;
+    horizontalPos.alt = parkAlt;
+
+    ln_lnlat_posn observer;
+
+    observer.lat = LocationN[LOCATION_LATITUDE].value;
+    observer.lng = LocationN[LOCATION_LONGITUDE].value;
+
+    if (observer.lng > 180)
+        observer.lng -= 360;
+
+    ln_equ_posn equatorialPos;
+
+    ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
+
+    char RAStr[16], DEStr[16];
+    fs_sexa(RAStr, equatorialPos.ra/15.0, 2, 3600);
+    fs_sexa(DEStr, equatorialPos.dec, 2, 3600);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Syncing to parked coordinates RA (%s) DEC (%s)...", RAStr, DEStr);
+
+    if (Sync(equatorialPos.ra/15.0, equatorialPos.dec))
+    {
+        SetParked(false);
+        return true;
+    }
+    else
+        return false;
+
+}
+
+void LX200FS2::SetCurrentPark()
+{
+    ln_hrz_posn horizontalPos;
+    // Libnova south = 0, west = 90, north = 180, east = 270
+
+    ln_lnlat_posn observer;
+    observer.lat = LocationN[LOCATION_LATITUDE].value;
+    observer.lng = LocationN[LOCATION_LONGITUDE].value;
+    if (observer.lng > 180)
+        observer.lng -= 360;
+
+    ln_equ_posn equatorialPos;
+    equatorialPos.ra   = currentRA * 15;
+    equatorialPos.dec  = currentDEC;
+    ln_get_hrz_from_equ(&equatorialPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
+
+    double parkAZ  = horizontalPos.az - 180;
+    if (parkAZ < 0)
+        parkAZ += 360;
+    double parkAlt = horizontalPos.alt;
+
+    char AzStr[16], AltStr[16];
+    fs_sexa(AzStr, parkAZ, 2, 3600);
+    fs_sexa(AltStr, parkAlt, 2, 3600);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Setting current parking position to coordinates Az (%s) Alt (%s)...", AzStr, AltStr);
+
+    SetAxis1Park(parkAZ);
+    SetAxis2Park(parkAlt);
+}
+
+void LX200FS2::SetDefaultPark()
+{
+    // By defualt azimuth 0
+    SetAxis1Park(0);
+
+    // Altitude = latitude of observer
+    SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
 }

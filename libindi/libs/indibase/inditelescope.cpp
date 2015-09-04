@@ -1256,6 +1256,7 @@ bool INDI::Telescope::WriteParkData()
   wordexp_t wexp;
   FILE *fp;
   char pcdata[30];
+  ParkDeviceName = getDeviceName();
 
   if (wordexp(Parkdatafile, &wexp, 0))
   {
