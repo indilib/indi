@@ -24,7 +24,7 @@
 
 #include "indiweather.h"
 
-#define POLLMS  1000
+#define POLLMS  5000
 #define PARAMETERS_TAB  "Parameters"
 
 INDI::Weather::Weather()
@@ -90,10 +90,7 @@ bool INDI::Weather::updateProperties()
 
     if (isConnected())
     {
-        updateTimerID = -1;
-
-        // Update Weather and send values to client
-        IPState state = updateWeather();
+        updateTimerID = -1;        
 
         if (critialParametersL)
             defineLight(&critialParametersLP);
@@ -113,16 +110,11 @@ bool INDI::Weather::updateProperties()
 
 
         defineNumber(&LocationNP);
-
         defineText(&ActiveDeviceTP);
 
-        if (state != IPS_OK)
-        {
-            if (state == IPS_BUSY)
-                DEBUG(INDI::Logger::DBG_SESSION, "Weather update is in progress...");
+        DEBUG(INDI::Logger::DBG_SESSION, "Weather update is in progress...");
+        TimerHit();
 
-            SetTimer(POLLMS);
-        }
     }
     else
     {
@@ -204,9 +196,10 @@ bool INDI::Weather::ISNewNumber (const char *dev, const char *name, double value
                 DEBUG(INDI::Logger::DBG_SESSION, "Periodic updates are disabled.");
             else
             {
-                if (updateTimerID > 0)
+                if (updateTimerID > 0)                
                     RemoveTimer(updateTimerID);
-                TimerHit();
+
+                updateTimerID = SetTimer(UpdatePeriodN[0].value*60000);
             }
 
             return true;
@@ -223,10 +216,10 @@ bool INDI::Weather::ISNewNumber (const char *dev, const char *name, double value
                 *( (double *) ParametersN[i].aux0) = ParametersRangeNP[i].np[2].value;
                 *( (double *) ParametersN[i].aux1) = ParametersRangeNP[i].np[3].value;
 
-                updateParameters();
+                updateWeatherState();
 
                 ParametersRangeNP[i].s = IPS_OK;
-                IDSetNumber(&ParametersRangeNP[i], NULL);
+                IDSetNumber(&ParametersRangeNP[i], NULL);                
 
                 return true;
             }
@@ -278,6 +271,9 @@ void INDI::Weather::TimerHit()
     if (isConnected() == false)
         return;
 
+    if (updateTimerID > 0)
+        RemoveTimer(updateTimerID);
+
     IPState state = updateWeather();
 
     switch (state)
@@ -285,20 +281,14 @@ void INDI::Weather::TimerHit()
         // Ok
         case IPS_OK:
 
-        updateParameters();
-
-        if (ParametersN)
-        {
-            ParametersNP.s = IPS_OK;
-            IDSetNumber(&ParametersNP, NULL);
-        }
-
-        if (critialParametersL)
-            IDSetLight(&critialParametersLP, NULL);
+        updateWeatherState();
+        ParametersNP.s = state;
+        IDSetNumber(&ParametersNP, NULL);
 
         // If update period is set, then set up the timer
         if (UpdatePeriodN[0].value > 0)
             updateTimerID = SetTimer( (int) (UpdatePeriodN[0].value * 60000));
+
         return;
 
         // Alert
@@ -308,16 +298,11 @@ void INDI::Weather::TimerHit()
         return;
 
         // Weather update is in progress
-        case IPS_BUSY:
-        ParametersNP.s = state;
-        IDSetNumber(&ParametersNP, NULL);
-        break;
-
-    default:
+        default:
             break;
     }
 
-    SetTimer(POLLMS);
+    updateTimerID = SetTimer(POLLMS);
 }
 
 IPState INDI::Weather::updateWeather()
@@ -402,8 +387,11 @@ ILight  * INDI::Weather::setCriticalParameter(std::string param)
 
 }
 
-void INDI::Weather::updateParameters()
+void INDI::Weather::updateWeatherState()
 {
+    if (critialParametersL == NULL)
+        return;
+
     critialParametersLP.s = IPS_IDLE;
 
     for (int i=0; i < critialParametersLP.nlp; i++)
@@ -433,9 +421,10 @@ void INDI::Weather::updateParameters()
 
         // The overall state is the worst individual state.
         if (critialParametersL[i].s > critialParametersLP.s)
-            critialParametersLP.s = critialParametersL[i].s;
-
+            critialParametersLP.s = critialParametersL[i].s;                
     }
+
+    IDSetLight(&critialParametersLP, NULL);
 }
 
 void INDI::Weather::syncParameters()

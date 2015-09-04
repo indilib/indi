@@ -201,8 +201,6 @@ IPState WunderGround::updateWeather()
 
       snprintf(requestURL, MAXRBUF, "http://api.wunderground.com/api/%s/conditions/q/%g,%g.json", wunderAPIKeyT[0].text, wunderLat, wunderLong);
 
-      DEBUGF(INDI::Logger::DBG_SESSION, "%s", requestURL);
-
       curl = curl_easy_init();
       if(curl)
       {
@@ -224,6 +222,8 @@ IPState WunderGround::updateWeather()
       if (status != JSON_OK)
       {
           DEBUGF(INDI::Logger::DBG_ERROR, "%s at %zd", jsonStrError(status), endptr - source);
+          DEBUGF(INDI::Logger::DBG_DEBUG, "%s", requestURL);
+          DEBUGF(INDI::Logger::DBG_DEBUG, "%s", readBuffer.c_str());
           return IPS_ALERT;
       }
 
@@ -243,7 +243,7 @@ IPState WunderGround::updateWeather()
                       if (!strcmp(value, "Clear"))
                           weatherN->value = 0;
                       else if (!strcmp(value, "Unknown") || !strcmp(value, "Scattered Clouds") || !strcmp(value, "Partly Cloudy") || !strcmp(value, "Overcast")
-                               || !strcmp(value, "Patches of Fog") || !strcmp(value, "Partial Fog"))
+                               || !strcmp(value, "Patches of Fog") || !strcmp(value, "Partial Fog") || !strcmp(value, "Light Haze"))
                           weatherN->value = 1;
                       else
                           weatherN->value = 2;
