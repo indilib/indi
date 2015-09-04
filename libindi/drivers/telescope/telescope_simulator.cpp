@@ -437,6 +437,10 @@ bool ScopeSim::ReadScopeStatus()
         break;
 
     case SCOPE_IDLE:
+        currentRA += (SID_RATE*dt)/15.0;
+        currentRA = range24(currentRA);
+        break;
+
     case SCOPE_TRACKING:
         /* tracking */
 
