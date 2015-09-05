@@ -765,7 +765,7 @@ bool EQMod::ReadScopeStatus() {
 	      IDSetSwitch(TrackModeSP,NULL);
 	    }
 	    TrackModeSP->s=IPS_BUSY;
-	    IDSetSwitch(TrackModeSP,NULL);
+        IDSetSwitch(TrackModeSP,NULL);
 	    DEBUGF(INDI::Logger::DBG_SESSION, "Telescope slew is complete. Tracking %s...", name);
 	  } else {
 	    TrackState = SCOPE_IDLE;
@@ -1527,14 +1527,24 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 #ifdef WITH_SIMULATOR
       if (!strcmp(name, "SIMULATION"))
 	{
+
 	  ISwitchVectorProperty *svp = getSwitch(name);
+
 	  IUUpdateSwitch(svp, states, names, n);
 	  ISwitch *sp = IUFindOnSwitch(svp);
 	  if (!sp)
 	    return false;
 	  
+      if (isConnected())
+      {
+          DEBUG(INDI::Logger::DBG_WARNING, "Mount must be disconnected before you can change simulation settings.");
+          svp->s = IPS_ALERT;
+          IDSetSwitch(svp, NULL);
+          return false;
+      }
+
 	  if (!strcmp(sp->name, "ENABLE"))
-	    setStepperSimulation(true);
+        setStepperSimulation(true);
 	  else
 	    setStepperSimulation(false);
 	  return true;
@@ -1586,11 +1596,15 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
         else
         {
           // If the same switch is sent, we stop tracking
-          if (swbefore == swafter)
+          // 2015-09-05 Jasem: OR if no switch is set, we stop tracking
+          if (swbefore == swafter || swafter == NULL)
           {
               if ( TrackState == SCOPE_TRACKING)
               {
-                DEBUGF(INDI::Logger::DBG_SESSION, "Stop Tracking (%s).", swafter->name);
+                  if (swafter)
+                    DEBUGF(INDI::Logger::DBG_SESSION, "Stop Tracking (%s).", swafter->name);
+                  else
+                    DEBUGF(INDI::Logger::DBG_SESSION, "Stop Tracking (%s).", swbefore->name);
                 TrackState = SCOPE_IDLE;
                 TrackModeSP->s=IPS_IDLE;
                 IUResetSwitch(TrackModeSP);
@@ -1782,7 +1796,6 @@ bool EQMod::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
     case MOTION_START:
       if (gotoInProgress()  || (TrackState == SCOPE_PARKING) || (TrackState == SCOPE_PARKED))
       {
-        RememberTrackState = TrackState;
         DEBUG(INDI::Logger::DBG_WARNING, "Can not slew while goto/park in progress, or scope parked.");
         return false;
       }
@@ -1790,28 +1803,21 @@ bool EQMod::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
       DEBUGF(INDI::Logger::DBG_SESSION, "Starting %s slew.", dirStr);
       if (DEInverted) rate=-rate;
       mount->SlewDE(rate);
-      RememberTrackState = TrackState;
       TrackState = SCOPE_SLEWING;
       break;
 
     case MOTION_STOP:
         DEBUGF(INDI::Logger::DBG_SESSION, "%s Slew stopped", dirStr);
         mount->StopDE();
-        if (RememberTrackState == SCOPE_TRACKING)
+        if (TrackModeSP->s == IPS_BUSY)
         {
             DEBUG(INDI::Logger::DBG_SESSION, "Restarting DE Tracking...");
             TrackState = SCOPE_TRACKING;
             mount->StartDETracking(GetDETrackRate());
-        }
-        else if (RememberTrackState == SCOPE_PARKED || RememberTrackState == SCOPE_PARKING)
-        {
-            TrackState = RememberTrackState;
-        }
+        }        
         else
-        {
-            if (MovementWESP.s == IPS_IDLE)
-                TrackState = SCOPE_IDLE;
-        }
+         TrackState = SCOPE_IDLE;
+
         break;
 	}
 
@@ -1832,7 +1838,6 @@ bool EQMod::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     case MOTION_START:
       if (gotoInProgress()  || (TrackState == SCOPE_PARKING) || (TrackState == SCOPE_PARKED))
       {
-        RememberTrackState = TrackState;
         DEBUG(INDI::Logger::DBG_WARNING, "Can not slew while goto/park in progress, or scope parked.");
         return false;
       }
@@ -1840,28 +1845,21 @@ bool EQMod::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
       DEBUGF(INDI::Logger::DBG_SESSION, "Starting %s slew.", dirStr);
       if (RAInverted) rate=-rate;
       mount->SlewRA(rate);
-      RememberTrackState = TrackState;
       TrackState = SCOPE_SLEWING;
       break;
 
     case MOTION_STOP:
         DEBUGF(INDI::Logger::DBG_SESSION, "%s Slew stopped", dirStr);
         mount->StopRA();
-        if (RememberTrackState == SCOPE_TRACKING)
+        if (TrackModeSP->s == IPS_BUSY)
         {
-            DEBUG(INDI::Logger::DBG_SESSION, "Restarting DE Tracking...");
+            DEBUG(INDI::Logger::DBG_SESSION, "Restarting RA Tracking...");
             TrackState = SCOPE_TRACKING;
             mount->StartRATracking(GetRATrackRate());
         }
-        else if (RememberTrackState == SCOPE_PARKED || RememberTrackState == SCOPE_PARKING)
-        {
-            TrackState = RememberTrackState;
-        }
         else
-        {
-            if (MovementNSSP.s == IPS_IDLE)
-                TrackState = SCOPE_IDLE;
-        }
+
+            TrackState = SCOPE_IDLE;
         break;
     }
 
