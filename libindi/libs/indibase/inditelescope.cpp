@@ -1382,7 +1382,15 @@ void INDI::Telescope::processButton(const char *button_n, ISState state)
 void INDI::Telescope::processJoystick(const char * joystick_n, double mag, double angle)
 {
     if (!strcmp(joystick_n, "MOTIONDIR"))
+    {
+        if ((TrackState == SCOPE_PARKING) || (TrackState == SCOPE_PARKED))
+        {
+          DEBUG(INDI::Logger::DBG_WARNING, "Can not slew while mount is parking/parked.");
+          return;
+        }
+
         processNSWE(mag, angle);
+    }
     else if (!strcmp(joystick_n, "SLEWPRESET"))
         processSlewPresets(mag, angle);
 }
