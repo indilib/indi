@@ -47,7 +47,18 @@ INDI is intended for developers who seek a scalable API for device control and a
 <ul>
 <li><a href="indidevapi_8h.html">INDI Device API</a></li>
 <li><a href="classINDI_1_1BaseClient.html">INDI Client API</a></li>
-<li><a href="namespaceINDI.html">INDI Base Drivers</a></li>
+<li><a href="namespaceINDI.html">INDI Base Drivers</a>: Base classes for all INDI drivers. Current base drivers include:
+ <ul>
+<li><a href="classINDI_1_1FilterWheel.html">Telescope</a></li>
+<li><a href="classINDI_1_1CCD.html">CCD</a></li>
+<li><a href="classINDI_1_1FilterWheel.html">Guider</a></li>
+<li><a href="classINDI_1_1FilterWheel.html">Filter Wheel</a></li>
+<li><a href="classINDI_1_1Dome.html">Focuser</a></li>
+<li><a href="classINDI_1_1Dome.html">Dome</a></li>
+<li><a href="classINDI_1_1FilterWheel.html">Weather</a></li>
+<li><a href="classINDI_1_1FilterWheel.html">GPS</a></li>
+<li><a href="classINDI_1_1FilterWheel.html">USB</a></li>
+</ul>
 <li><a href="md_libs_indibase_alignment_alignment_white_paper.html">INDI Alignment Subsystem</a></li>
 <li><a href="structINDI_1_1Logger.html">INDI Debugging & Logging API</a></li>
 <li><a href="indicom_8h.html">INDI Common Routine Library</a></li>
@@ -70,6 +81,7 @@ Simulators provide a great framework to test drivers and equipment alike. INDI L
 <li><b>Filter Wheel Simulator</b>: Offers a simple simulator to change filter wheels and their corresponding designations.</li>
 <li><b>Focuser Simulator</b>: Offers a simple simualtor for an absolute position focuser. It generates a simulated FWHM value that may be used by other simulator such as the CCD simulator.</li>
 <li><b>Dome Simulator</b>: Offers a simple simulator for an absolute position dome with shutter.
+<li><b>GPS Simulator</b>: Offers a simple simulator for GPS devices that send time and location data to the client and other drivers.
 </ul>
 
 \section Help 

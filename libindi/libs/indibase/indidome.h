@@ -39,8 +39,13 @@ typedef struct
  * \class INDI::Dome
    \brief Class to provide general functionality of a Dome device.
 
-   Both relative and absolute position domes supported. Furthermore, if no position feedback is available from the dome,
-   an open-loop control is possible using timers, speed presets (RPM), and direction of motion (Clockwise and Counter Clockwise).
+   Both relative and absolute position domes are supported. Furthermore, if no position feedback is available from the dome,
+   an open-loop control is possible with simple direction commands (Clockwise and counter clockwise).
+
+   Dome slaving is supported given all required parameters are filled by the user, and the dome is set to slaving mode. Custom parking position is available for absolute/relative position domes.
+
+   For roll-off observatories, parking state reflects whether the roof is closed or open.
+
    Developers need to subclass INDI::Dome to implement any driver for Domes within INDI.
 
   \note The code used calculate dome target AZ and ZD is written by Ferran Casarramona, and adapted from code from Markus Wildi. The transformations are based on the paper Matrix Method for Coodinates
