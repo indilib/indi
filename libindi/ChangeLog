@@ -1,3 +1,29 @@
+From 1.0.0 to 1.1.0
+
+      + INDI::Weather for support of weather devices.
+      + INDI::GPS for support of GPS devices.
+      + WunderGround weather driver.
+      + Meade DSI I & II support.
+      + FocusLynx focuser support.
+      + PerfectStar focuser support.
+      + World Coordinate System (WCS) support in generated FITS.
+      + Updated Losmany driver.
+      + New Celestron driver.
+      + New IEQPro driver.
+      + Support for custom parking in dome drivers.
+      + Support Open Loop dome controllers.
+      + Various QHY CCD & Filter Wheel fixes and QHY OSX support.
+      + SBIG External Guide CCD fixes.
+      + Custom parking support for Celestron/Astrophysics/AstroElectronics/IEQPro
+      + Updated ASI ZWO drivers.
+      + Updated Apogee library. Improved NET support in INDI Apogee driver.
+      + Standarizing mount slew and track rates.
+      + Video4Linux 2 fixes and improvements: (16bpp pixel formats(Y16 and BYR2), pwc flashled, colorSpace/linearization, stacking), Simutaneous record/stream/exp. Stream rate divisor. Rec. file patterns.
+      + EQMod fixes: Keep tracking after joystick motion is stopped. Park initialization always set encoders.
+      + Improved support for drivers on ARM architecture.
+      + Improved logging capability.
+      + Deprecated: LX200Legacy and indimain library.
+
 From 0.9.9 to 1.0.0
 
       + 3rdparty: Support for QHY CCDs and CFWs (BETA).
@@ -217,4 +243,4 @@ From v0.2 to v0.3:
 		+ INDI scripting tools
 		+ Various bug fixing
 
-INDI Library v1.0 conforms to INDI wire protocol v1.6
+INDI Library v1.1 conforms to INDI wire protocol v1.7
