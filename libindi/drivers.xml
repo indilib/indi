@@ -210,13 +210,17 @@
                 <version>0.1</version>
         </device>
 </devGroup>
-<devGroup group="Domes">
+<devGroup group="Domes">        
+        <device label="Baader Dome">
+                <driver name="Baader Dome">indi_baader_dome</driver>
+                <version>1.0</version>
+        </device>
         <device label="Dome Simulator">
                 <driver name="Dome Simulator">indi_simulator_dome</driver>
                 <version>1.0</version>
         </device>
-        <device label="Baader Dome">
-                <driver name="Baader Dome">indi_baader_dome</driver>
+        <device label="RollOff Simulator">
+                <driver name="RollOff Simulator">indi_rolloff_dome</driver>
                 <version>1.0</version>
         </device>
 </devGroup>

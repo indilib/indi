@@ -494,6 +494,12 @@ INDI::BaseDevice * INDI::BaseClient::findDev (XMLEle *root, int create, char * e
 
     dn = valuXMLAtt(ap);
 
+    if (*dn == '\0')
+    {
+        snprintf(errmsg, MAXRBUF, "Device name is empty! %s", tagXMLEle(root));
+        return (NULL);
+    }
+
     dp = findDev(dn, errmsg);
 
     if (dp)

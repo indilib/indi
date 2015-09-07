@@ -105,7 +105,7 @@ public:
         GUIDER_INTERFACE        = (1 << 2),         /**< Guider interface, must subclass INDI::GuiderInterface */
         FOCUSER_INTERFACE       = (1 << 3),         /**< Focuser interface, must subclass INDI::FocuserInterface */
         FILTER_INTERFACE        = (1 << 4),         /**< Filter interface, must subclass INDI::FilterInterface */
-        DOME_INTERFACE          = (1 << 5),         /**< Dome interface, must subclass INDI::DomeInterface */
+        DOME_INTERFACE          = (1 << 5),         /**< Dome interface, must subclass INDI::Dome */
         AUX_INTERFACE           = (1 << 6),         /**< Auxiliary interface */
     } DeviceInterface;
 

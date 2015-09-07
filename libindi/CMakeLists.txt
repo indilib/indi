@@ -125,7 +125,6 @@ set (indidriver_SRCS
         ${CMAKE_SOURCE_DIR}/libs/indibase/indiusbdevice.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/indiguiderinterface.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/indifilterinterface.cpp
-        ${CMAKE_SOURCE_DIR}/libs/indibase/indidomeinterface.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/indidome.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/indigps.cpp
         ${CMAKE_SOURCE_DIR}/libs/indibase/indiweather.cpp
@@ -518,7 +517,18 @@ add_executable(indi_simulator_dome ${domesimulator_SRCS})
 target_link_libraries(indi_simulator_dome indidriver)
 install(TARGETS indi_simulator_dome RUNTIME DESTINATION bin )
 
-################ Dome Simulator ################
+################ Roll Off ################
+
+set(rolloff_SRCS
+        ${CMAKE_SOURCE_DIR}/drivers/dome/roll_off.cpp
+   )
+
+add_executable(indi_rolloff_dome ${rolloff_SRCS})
+target_link_libraries(indi_rolloff_dome indidriver)
+install(TARGETS indi_rolloff_dome RUNTIME DESTINATION bin )
+
+
+################ Baader Dome ################
 
 set(baaderdome_SRCS
         ${CMAKE_SOURCE_DIR}/drivers/dome/baader_dome.cpp
@@ -708,7 +718,7 @@ ${CMAKE_SOURCE_DIR}/libs/indibase/indiccd.h  ${CMAKE_SOURCE_DIR}/libs/indibase/i
 ${CMAKE_SOURCE_DIR}/libs/indibase/indifocuserinterface.h  ${CMAKE_SOURCE_DIR}/libs/indibase/indifocuser.h
 ${CMAKE_SOURCE_DIR}/libs/indibase/inditelescope.h ${CMAKE_SOURCE_DIR}/libs/indibase/baseclient.h ${CMAKE_SOURCE_DIR}/libs/indibase/indiguiderinterface.h
 ${CMAKE_SOURCE_DIR}/libs/indibase/indifilterinterface.h ${CMAKE_SOURCE_DIR}/libs/indibase/indiproperty.h
-${CMAKE_SOURCE_DIR}/libs/indibase/indidomeinterface.h ${CMAKE_SOURCE_DIR}/libs/indibase/indidome.h ${CMAKE_SOURCE_DIR}/libs/indibase/indigps.h
+${CMAKE_SOURCE_DIR}/libs/indibase/indidome.h ${CMAKE_SOURCE_DIR}/libs/indibase/indigps.h
 ${CMAKE_SOURCE_DIR}/libs/indibase/indiweather.h ${CMAKE_SOURCE_DIR}/libs/indicom.h ${CMAKE_SOURCE_DIR}/libs/indibase/indiusbdevice.h
 ${CMAKE_SOURCE_DIR}/libs/indibase/indilogger.h ${CMAKE_SOURCE_DIR}/libs/indibase/indicontroller.h ${CMAKE_SOURCE_DIR}/libs/indibase/hidapi.h
 ${CMAKE_SOURCE_DIR}/libs/webcam/ccvt.h ${CMAKE_SOURCE_DIR}/libs/webcam/ccvt_types.h

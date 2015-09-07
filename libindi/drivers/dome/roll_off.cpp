@@ -1,0 +1,307 @@
+/*******************************************************************************
+ Dome Simulator
+ Copyright(c) 2014 Jasem Mutlaq. All rights reserved.
+
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Library General Public
+ License version 2 as published by the Free Software Foundation.
+ .
+ This library is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Library General Public License for more details.
+ .
+ You should have received a copy of the GNU Library General Public License
+ along with this library; see the file COPYING.LIB.  If not, write to
+ the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+ Boston, MA 02110-1301, USA.
+*******************************************************************************/
+#include "roll_off.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <math.h>
+#include <string.h>
+
+#include <memory>
+
+#include <indicom.h>
+
+// We declare an auto pointer to RollOff.
+std::auto_ptr<RollOff> rollOff(0);
+
+#define ROLLOFF_DURATION    10      // 10 seconds until roof is fully opened or closed
+
+void ISPoll(void *p);
+
+void ISInit()
+{
+   static int isInit =0;
+
+   if (isInit == 1)
+       return;
+
+    isInit = 1;
+    if(rollOff.get() == 0) rollOff.reset(new RollOff());
+
+}
+
+void ISGetProperties(const char *dev)
+{
+        ISInit();
+        rollOff->ISGetProperties(dev);
+}
+
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+{
+        ISInit();
+        rollOff->ISNewSwitch(dev, name, states, names, num);
+}
+
+void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
+{
+        ISInit();
+        rollOff->ISNewText(dev, name, texts, names, num);
+}
+
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+{
+        ISInit();
+        rollOff->ISNewNumber(dev, name, values, names, num);
+}
+
+void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+{
+  INDI_UNUSED(dev);
+  INDI_UNUSED(name);
+  INDI_UNUSED(sizes);
+  INDI_UNUSED(blobsizes);
+  INDI_UNUSED(blobs);
+  INDI_UNUSED(formats);
+  INDI_UNUSED(names);
+  INDI_UNUSED(n);
+}
+
+void ISSnoopDevice (XMLEle *root)
+{
+    ISInit();
+    rollOff->ISSnoopDevice(root);
+}
+
+RollOff::RollOff()
+{
+
+   DomeCapability cap;
+
+   cap.canAbort = true;
+   cap.canAbsMove = false;
+   cap.canRelMove = false;
+   cap.hasShutter = false;
+   cap.canPark    = true;
+   cap.hasVariableSpeed = false;
+
+   MotionRequest=0;
+
+   SetDomeCapability(&cap);   
+
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+bool RollOff::initProperties()
+{
+    INDI::Dome::initProperties();
+
+    SetParkDataType(PARK_NONE);
+
+    addAuxControls();
+
+    return true;
+}
+
+bool RollOff::SetupParms()
+{
+    InitPark();
+    return true;
+}
+
+bool RollOff::Connect()
+{
+    SetTimer(1000);     //  start the timer
+    return true;
+}
+
+RollOff::~RollOff()
+{
+
+}
+
+const char * RollOff::getDefaultName()
+{
+        return (char *)"RollOff Simulator";
+}
+
+bool RollOff::updateProperties()
+{
+    INDI::Dome::updateProperties();
+
+    if (isConnected())
+    {
+        SetupParms();
+    }
+
+    return true;
+}
+
+bool RollOff::Disconnect()
+{
+    return true;
+}
+
+
+void RollOff::TimerHit()
+{
+
+    if(isConnected() == false) return;  //  No need to reset timer if we are not connected anymore    
+
+   if (DomeMotionSP.s == IPS_BUSY)
+   {
+       // Abort called
+       if (MotionRequest < 0)
+       {
+           DEBUG(INDI::Logger::DBG_SESSION, "Roof motion is stopped.");
+           IUResetSwitch(&DomeMotionSP);
+           DomeMotionSP.s = IPS_IDLE;
+           SetTimer(1000);
+           return;
+       }
+
+       // Roll off is opening
+       if (DomeMotionS[DOME_CW].s == ISS_ON)
+       {
+           if (getFullOpenedLimitSwitch())
+           {
+               DEBUG(INDI::Logger::DBG_SESSION, "Roof is open.");
+
+               if (domeState != DOME_PARKED)
+                    SetParked(false);
+
+               IUResetSwitch(&DomeMotionSP);
+               DomeMotionSP.s = IPS_IDLE;
+               IDSetSwitch(&DomeMotionSP, NULL);
+           }
+       }
+       // Roll Off is closing
+       else if (DomeMotionS[DOME_CCW].s == ISS_ON)
+       {
+           if (getFullClosedLimitSwitch())
+           {
+               DEBUG(INDI::Logger::DBG_SESSION, "Roof is closed.");
+
+               if (domeState == DOME_PARKING)
+               {
+                   domeState == DOME_PARKED;
+                   SetParked(true);
+
+                   IUResetSwitch(&DomeMotionSP);
+                   DomeMotionSP.s = IPS_IDLE;
+                   IDSetSwitch(&DomeMotionSP, NULL);
+               }
+           }
+       }
+   }
+
+
+    SetTimer(1000);
+}
+
+bool RollOff::Move(DomeDirection dir, DomeMotionCommand operation)
+{
+    INDI_UNUSED(dir);
+
+    if (operation == MOTION_START)
+    {        
+        MotionRequest = ROLLOFF_DURATION;
+        gettimeofday(&MotionStart,NULL);
+        return true;
+    }
+    else
+    {
+        return Dome::Abort();
+
+    }
+
+    return false;
+
+}
+
+IPState RollOff::Park()
+{    
+    bool rc = INDI::Dome::Move(DOME_CCW, MOTION_START);
+    if (rc)
+    {
+        DEBUG(INDI::Logger::DBG_SESSION, "Roll off is parking...");
+        return IPS_BUSY;
+    }
+    else
+        return IPS_ALERT;
+}
+
+IPState RollOff::UnPark()
+{
+    bool rc = INDI::Dome::Move(DOME_CW, MOTION_START);
+    if (rc)
+    {
+        IUResetSwitch(&DomeMotionSP);
+        DomeMotionS[DOME_CCW].s = ISS_ON;
+        IDSetSwitch(&DomeMotionSP, NULL);
+
+           DEBUG(INDI::Logger::DBG_SESSION, "Roll off is unparking...");
+           return IPS_BUSY;
+    }
+    else
+        return IPS_ALERT;
+}
+
+bool RollOff::Abort()
+{
+    MotionRequest=-1;
+
+    return true;
+}
+
+float RollOff::CalcTimeLeft(timeval start)
+{
+    double timesince;
+    double timeleft;
+    struct timeval now;
+    gettimeofday(&now,NULL);
+
+    timesince=(double)(now.tv_sec * 1000.0 + now.tv_usec/1000) - (double)(start.tv_sec * 1000.0 + start.tv_usec/1000);
+    timesince=timesince/1000;
+    timeleft=MotionRequest-timesince;
+    return timeleft;
+}
+
+bool RollOff::getFullOpenedLimitSwitch()
+{
+    double timeleft = CalcTimeLeft(MotionStart);
+
+    if (timeleft <= 0)
+        return true;
+    else
+        return false;
+}
+
+bool RollOff::getFullClosedLimitSwitch()
+{
+    double timeleft = CalcTimeLeft(MotionStart);
+
+    if (timeleft <= 0)
+        return true;
+    else
+        return false;
+}
+
