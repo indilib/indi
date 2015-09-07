@@ -92,6 +92,9 @@ void ISSnoopDevice (XMLEle *root)
 RollOff::RollOff()
 {
 
+  fullOpenLimitSwitch   = ISS_ON;
+  fullClosedLimitSwitch = ISS_OFF;
+
    DomeCapability cap;
 
    cap.canAbort = true;
@@ -123,7 +126,29 @@ bool RollOff::initProperties()
 
 bool RollOff::SetupParms()
 {
-    InitPark();
+    // If we have parking data
+    if (InitPark())
+    {
+        if (isParked())
+        {
+            fullOpenLimitSwitch   = ISS_OFF;
+            fullClosedLimitSwitch = ISS_ON;
+        }
+        else
+        {
+            fullOpenLimitSwitch   = ISS_ON;
+            fullClosedLimitSwitch = ISS_OFF;
+        }
+    }
+    // If we don't have parking data
+    else
+    {
+        fullOpenLimitSwitch   = ISS_OFF;
+        fullClosedLimitSwitch = ISS_OFF;
+    }
+
+
+
     return true;
 }
 
@@ -172,8 +197,7 @@ void RollOff::TimerHit()
        if (MotionRequest < 0)
        {
            DEBUG(INDI::Logger::DBG_SESSION, "Roof motion is stopped.");
-           IUResetSwitch(&DomeMotionSP);
-           DomeMotionSP.s = IPS_IDLE;
+           setDomeState(DOME_IDLE);
            SetTimer(1000);
            return;
        }
@@ -184,13 +208,8 @@ void RollOff::TimerHit()
            if (getFullOpenedLimitSwitch())
            {
                DEBUG(INDI::Logger::DBG_SESSION, "Roof is open.");
-
-               if (domeState != DOME_PARKED)
-                    SetParked(false);
-
-               IUResetSwitch(&DomeMotionSP);
-               DomeMotionSP.s = IPS_IDLE;
-               IDSetSwitch(&DomeMotionSP, NULL);
+               SetParked(false);
+               return;
            }
        }
        // Roll Off is closing
@@ -199,22 +218,16 @@ void RollOff::TimerHit()
            if (getFullClosedLimitSwitch())
            {
                DEBUG(INDI::Logger::DBG_SESSION, "Roof is closed.");
-
-               if (domeState == DOME_PARKING)
-               {
-                   domeState == DOME_PARKED;
-                   SetParked(true);
-
-                   IUResetSwitch(&DomeMotionSP);
-                   DomeMotionSP.s = IPS_IDLE;
-                   IDSetSwitch(&DomeMotionSP, NULL);
-               }
+               SetParked(true);
+               return;
            }
        }
+
+       SetTimer(1000);
    }
 
 
-    SetTimer(1000);
+    //SetTimer(1000);
 }
 
 bool RollOff::Move(DomeDirection dir, DomeMotionCommand operation)
@@ -222,9 +235,24 @@ bool RollOff::Move(DomeDirection dir, DomeMotionCommand operation)
     INDI_UNUSED(dir);
 
     if (operation == MOTION_START)
-    {        
+    {
+        // DOME_CW --> OPEN. If can we are ask to "open" while we are fully opened as the limit switch indicates, then we simply return false.
+        if (dir == DOME_CW && fullOpenLimitSwitch == ISS_ON)
+        {
+            DEBUG(INDI::Logger::DBG_WARNING, "Roof is already fully opened.");
+            return false;
+        }
+        else if (dir == DOME_CCW && fullClosedLimitSwitch == ISS_ON)
+        {
+            DEBUG(INDI::Logger::DBG_WARNING, "Roof is already fully closed.");
+            return false;
+        }
+
+        fullOpenLimitSwitch   = ISS_OFF;
+        fullClosedLimitSwitch = ISS_OFF;
         MotionRequest = ROLLOFF_DURATION;
         gettimeofday(&MotionStart,NULL);
+        SetTimer(1000);
         return true;
     }
     else
@@ -269,6 +297,14 @@ bool RollOff::Abort()
 {
     MotionRequest=-1;
 
+    // If both limit switches are off, then we're neither parked nor unparked.
+    if (fullOpenLimitSwitch == false && fullClosedLimitSwitch == false)
+    {
+        IUResetSwitch(&ParkSP);
+        ParkSP.s = IPS_IDLE;
+        IDSetSwitch(&ParkSP, NULL);
+    }
+
     return true;
 }
 
@@ -287,20 +323,28 @@ float RollOff::CalcTimeLeft(timeval start)
 
 bool RollOff::getFullOpenedLimitSwitch()
 {
+
     double timeleft = CalcTimeLeft(MotionStart);
 
     if (timeleft <= 0)
+    {
+        fullOpenLimitSwitch = ISS_ON;
         return true;
+    }
     else
         return false;
 }
 
 bool RollOff::getFullClosedLimitSwitch()
 {
+
     double timeleft = CalcTimeLeft(MotionStart);
 
     if (timeleft <= 0)
+    {
+        fullClosedLimitSwitch = ISS_ON;
         return true;
+    }
     else
         return false;
 }

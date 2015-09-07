@@ -37,6 +37,7 @@ class DomeSim : public INDI::Dome
         const char *getDefaultName();
         bool updateProperties();
 
+protected:
         bool Connect();
         bool Disconnect();
 
@@ -47,15 +48,14 @@ class DomeSim : public INDI::Dome
         virtual IPState MoveAbs(double az);        
         virtual IPState Park();
         virtual IPState UnPark();
-        virtual IPState Home();
-        virtual IPState ControlShutter(ShutterStatus operation);
+        virtual IPState ControlShutter(ShutterOperation operation);
         virtual bool Abort();
 
         // Parking
         virtual void SetCurrentPark();
         virtual void SetDefaultPark();
 
-    protected:
+
     private:
 
         double targetAz;

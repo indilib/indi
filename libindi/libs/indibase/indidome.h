@@ -80,7 +80,6 @@ class INDI::Dome : public INDI::DefaultDevice
     } DomeMeasurements;
 
     enum DomeDirection { DOME_CW, DOME_CCW };
-    enum DomeParam { DOME_HOME, DOME_AUTOSYNC };
     enum DomeMotionCommand { MOTION_START, MOTION_STOP };
 
     /*! Dome Parking data type enum */
@@ -167,6 +166,9 @@ class INDI::Dome : public INDI::DefaultDevice
      */
     void SetDomeCapability(DomeCapability * cap);
 
+    DomeState getDomeState() const;
+    void setDomeState(const DomeState &value);
+
 protected:
 
     /**
@@ -201,13 +203,6 @@ protected:
      * \return True if abort is successful, false otherwise.
      */
     virtual bool Abort();
-
-    /**
-     * \brief Goto Home Position. The home position is an absolute azimuth value.
-     * \return Return IPS_OK if motion is completed and Dome reached home position. Return IPS_BUSY if Dome started motion to home position and is in progress.
-                Return IPS_ALERT if there is an error.
-     */
-    virtual IPState Home();
 
     /**
      * \brief Goto Park Position. The park position is an absolute azimuth value.
@@ -305,6 +300,83 @@ protected:
     char *LoadParkData();
     bool WriteParkData();
 
+    /**
+     * @brief GetTargetAz
+     * @param Az Returns Azimuth required to the dome in order to center the shutter aperture with telescope
+     * @param Alt
+     * @param minAz Returns Minimum azimuth in order to avoid any dome interference to the full aperture of the telescope
+     * @param maxAz Returns Maximum azimuth in order to avoid any dome interference to the full aperture of the telescope
+     * @return Returns false if it can't solve it due bad geometry of the observatory
+     */
+    bool GetTargetAz(double & Az, double & Alt, double & minAz, double & maxAz);
+
+    /**
+     * @brief Intersection Calculate the intersection of a ray and a sphere. The line segment is defined from p1 to p2.  The sphere is of radius r and centered at sc.
+     * From http://local.wasp.uwa.edu.au/~pbourke/geometry/sphereline/
+     * There are potentially two points of intersection given by
+     * p := p1 + mu1 (p2 - p1)
+     * p := p1 + mu2 (p2 - p1)
+     * @param p1 First ray
+     * @param p2 Second ray
+     * @param sc Center of sphere
+     * @param r RADIUS of sphere
+     * @param mu1 First point of potentional intersection.
+     * @param mu2 Second point of potentional intersection.
+     * @return Returns FALSE if the ray doesn't intersect the sphere.
+     */
+    bool Intersection(point3D p1, point3D p2, point3D sc, double r, double & mu1, double & mu2);
+
+    /**
+     * @brief OpticalCenter This function calculates the distance from the optical axis to the Dome center
+     * @param MountCenter Distance from the Dome center to the point where mount axis crosses
+     * @param dOpticalAxis Distance from the mount center to the optical axis.
+     * @param Lat Latitude
+     * @param Ah Hour Angle (in hours)
+     * @param OP a 3D point from the optical center to the Dome center.
+     * @return false in case of error.
+     */
+    bool OpticalCenter(point3D MountCenter, double dOpticalAxis, double Lat, double Ah, point3D &OP);
+
+    /**
+     * @brief OpticalVector This function calculates a second point for determining the optical axis
+     * @param OP Optical center
+     * @param Az Azimuth
+     * @param Alt Altitude
+     * @param OV a 3D point that determines the optical line.
+     * @return false in case of error.
+     */
+    bool OpticalVector(point3D OP, double Az, double Alt, point3D & OV);
+
+    /**
+     * @brief CheckHorizon Returns true if telescope points above horizon.
+     * @param HA Hour angle
+     * @param dec Declination
+     * @param lat observer's latitude
+     * @return True if telescope points above horizon, false otherwise.
+     */
+    bool CheckHorizon(double HA, double dec, double lat);
+
+    /**
+     * @brief saveConfigItems Saves the Device Port and Dome Presets in the configuration file
+     * @param fp pointer to configuration file
+     * @return true if successful, false otherwise.
+     */
+    virtual bool saveConfigItems(FILE *fp);
+
+    /**
+     * @brief updateCoords updates the horizontal coordinates (Az & Alt) of the mount from the snooped RA, DEC and observer's location.
+     */
+    void UpdateMountCoords();
+
+    /**
+     * @brief UpdateAutoSync This function calculates the target dome azimuth from the mount's target coordinates given the dome parameters.
+     *  If the difference between the dome's and mount's azimuth angles exceeds the AutoSync threshold, the dome will be commanded to sync to the mount azimuth position.
+     */
+    virtual void UpdateAutoSync();
+
+    double Csc(double x);
+    double Sec(double x);
+
     INumberVectorProperty DomeSpeedNP;
     INumber DomeSpeedN[1];
 
@@ -320,11 +392,8 @@ protected:
     ISwitchVectorProperty AbortSP;
     ISwitch AbortS[1];
 
-    ISwitchVectorProperty DomeGotoSP;
-    ISwitch DomeGotoS[1];
-
     INumberVectorProperty DomeParamNP;
-    INumber DomeParamN[2];
+    INumber DomeParamN[1];
 
     ISwitchVectorProperty DomeShutterSP;
     ISwitch DomeShutterS[2];
@@ -338,113 +407,34 @@ protected:
     ISwitch ParkOptionS[3];
     ISwitchVectorProperty ParkOptionSP;
 
-    DomeCapability capability;
-    DomeState domeState;
+    DomeCapability capability;    
     ShutterStatus shutterState;
     DomeParkData parkDataType;
-    int last_dome_motion;
 
-    protected:
+    ITextVectorProperty PortTP;
+    IText PortT[1];
 
-        /**
-         * @brief GetTargetAz
-         * @param Az Returns Azimuth required to the dome in order to center the shutter aperture with telescope
-         * @param Alt
-         * @param minAz Returns Minimum azimuth in order to avoid any dome interference to the full aperture of the telescope
-         * @param maxAz Returns Maximum azimuth in order to avoid any dome interference to the full aperture of the telescope
-         * @return Returns false if it can't solve it due bad geometry of the observatory
-         */
-        bool GetTargetAz(double & Az, double & Alt, double & minAz, double & maxAz);
+    ITextVectorProperty ActiveDeviceTP;
+    IText ActiveDeviceT[1];
 
-        /**
-         * @brief Intersection Calculate the intersection of a ray and a sphere. The line segment is defined from p1 to p2.  The sphere is of radius r and centered at sc.
-         * From http://local.wasp.uwa.edu.au/~pbourke/geometry/sphereline/
-         * There are potentially two points of intersection given by
-         * p := p1 + mu1 (p2 - p1)
-         * p := p1 + mu2 (p2 - p1)
-         * @param p1 First ray
-         * @param p2 Second ray
-         * @param sc Center of sphere
-         * @param r RADIUS of sphere
-         * @param mu1 First point of potentional intersection.
-         * @param mu2 Second point of potentional intersection.
-         * @return Returns FALSE if the ray doesn't intersect the sphere.
-         */
-        bool Intersection(point3D p1, point3D p2, point3D sc, double r, double & mu1, double & mu2);
+    INumber PresetN[3];
+    INumberVectorProperty PresetNP;
+    ISwitch PresetGotoS[3];
+    ISwitchVectorProperty PresetGotoSP;
+    INumber DomeMeasurementsN[6];
+    INumberVectorProperty DomeMeasurementsNP;
+    ISwitchVectorProperty DomeAutoSyncSP;
+    ISwitch DomeAutoSyncS[2];
 
-        /**
-         * @brief OpticalCenter This function calculates the distance from the optical axis to the Dome center
-         * @param MountCenter Distance from the Dome center to the point where mount axis crosses
-         * @param dOpticalAxis Distance from the mount center to the optical axis.
-         * @param Lat Latitude
-         * @param Ah Hour Angle (in hours)
-         * @param OP a 3D point from the optical center to the Dome center.
-         * @return false in case of error.
-         */
-        bool OpticalCenter(point3D MountCenter, double dOpticalAxis, double Lat, double Ah, point3D &OP);
-
-        /**
-         * @brief OpticalVector This function calculates a second point for determining the optical axis
-         * @param OP Optical center
-         * @param Az Azimuth
-         * @param Alt Altitude
-         * @param OV a 3D point that determines the optical line.
-         * @return false in case of error.
-         */
-        bool OpticalVector(point3D OP, double Az, double Alt, point3D & OV);
-
-        /**
-         * @brief CheckHorizon Returns true if telescope points above horizon.
-         * @param HA Hour angle
-         * @param dec Declination
-         * @param lat observer's latitude
-         * @return True if telescope points above horizon, false otherwise.
-         */
-        bool CheckHorizon(double HA, double dec, double lat);
-
-        /**
-         * @brief saveConfigItems Saves the Device Port and Dome Presets in the configuration file
-         * @param fp pointer to configuration file
-         * @return true if successful, false otherwise.
-         */
-        virtual bool saveConfigItems(FILE *fp);
-
-        /**
-         * @brief updateCoords updates the horizontal coordinates (Az & Alt) of the mount from the snooped RA, DEC and observer's location.
-         */
-        void UpdateMountCoords();
-
-        /**
-         * @brief UpdateAutoSync This function calculates the target dome azimuth from the mount's target coordinates given the dome parameters.
-         *  If the difference between the dome's and mount's azimuth angles exceeds the AutoSync threshold, the dome will be commanded to sync to the mount azimuth position.
-         */
-        virtual void UpdateAutoSync();
-
-        double Csc(double x);
-        double Sec(double x);
-
-        ITextVectorProperty PortTP;
-        IText PortT[1];
-
-        ITextVectorProperty ActiveDeviceTP;
-        IText ActiveDeviceT[1];
-
-        INumber PresetN[3];
-        INumberVectorProperty PresetNP;
-        ISwitch PresetGotoS[3];
-        ISwitchVectorProperty PresetGotoSP; 
-        INumber DomeMeasurementsN[6];
-        INumberVectorProperty DomeMeasurementsNP;
-        ISwitchVectorProperty DomeAutoSyncSP;
-        ISwitch DomeAutoSyncS[2];
-
-        void processButton(const char * button_n, ISState state);
-
-        double prev_az, prev_alt, prev_ra, prev_dec;
+    double prev_az, prev_alt, prev_ra, prev_dec;
 
 private:
 
+        void processButton(const char * button_n, ISState state);
+
         INDI::Controller *controller;
+
+        DomeState domeState;
 
         struct ln_lnlat_posn observer;
         struct ln_hrz_posn mountHoriztonalCoords;

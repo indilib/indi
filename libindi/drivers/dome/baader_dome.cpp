@@ -669,20 +669,15 @@ void BaaderDome::TimerHit()
                 DomeAbsPosN[0].value -= DomeAbsPosN[0].max;
         }
 
-        if (fabs(targetAz - DomeAbsPosN[0].value) < DomeParamN[DOME_AUTOSYNC].value)
+        if (fabs(targetAz - DomeAbsPosN[0].value) < DomeParamN[0].value)
         {
             DomeAbsPosN[0].value = targetAz;
             DomeAbsPosNP.s = IPS_OK;
             DEBUG(INDI::Logger::DBG_SESSION, "Dome reached requested azimuth angle.");
 
-            if (domeState == DOME_PARKING && status != DOME_CALIBRATING)
+            if (getDomeState() == DOME_PARKING && status != DOME_CALIBRATING)
                 SetParked(true);
 
-            if (DomeGotoSP.s == IPS_BUSY)
-            {
-                DomeGotoSP.s = IPS_OK;
-                IDSetSwitch(&DomeGotoSP, NULL);
-            }
             if (DomeRelPosNP.s == IPS_BUSY)
             {
                 DomeRelPosNP.s = IPS_OK;
@@ -839,16 +834,6 @@ IPState BaaderDome::UnPark()
     return IPS_OK;
 }
 
-
-/************************************************************************************
- *
-* ***********************************************************************************/
-IPState BaaderDome::Home()
-{
-    targetAz = DomeParamN[DOME_HOME].value;
-
-    return MoveAbs(targetAz);
-}
 
 /************************************************************************************
  *

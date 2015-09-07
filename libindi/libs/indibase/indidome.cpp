@@ -26,7 +26,7 @@
 #include <math.h>
 #include <string.h>
 
-#define DOME_MEASUREMENTS_TAB   "Measurements"
+#define DOME_SLAVING_TAB   "Slaving"
 #define DOME_COORD_THRESHOLD    0.1             /* Only send debug messages if the differences between old and new values of Az/Alt excceds this value */
 
 INDI::Dome::Dome()
@@ -47,8 +47,6 @@ INDI::Dome::Dome()
 
     shutterState = SHUTTER_UNKNOWN;
     domeState    = DOME_IDLE;
-
-    last_dome_motion = -1;
 
     parkDataType = PARK_NONE;
     Parkdatafile= "~/.indi/ParkData.xml";
@@ -90,11 +88,11 @@ bool INDI::Dome::initProperties()
     IUFillNumber(&DomeMeasurementsN[DM_EAST_DISPLACEMENT],"DM_EAST_DISPLACEMENT","E displacement (m)","%6.2f",-10.0,10.0,1.0,0.0);
     IUFillNumber(&DomeMeasurementsN[DM_UP_DISPLACEMENT],"DM_UP_DISPLACEMENT","Up displacement (m)","%6.2f",-10,10.0,1.0,0.0);
     IUFillNumber(&DomeMeasurementsN[DM_OTA_OFFSET],"DM_OTA_OFFSET","OTA offset (m)","%6.2f",-10.0,10.0,1.0,0.0);
-    IUFillNumberVector(&DomeMeasurementsNP,DomeMeasurementsN,6,getDeviceName(),"DOME_MEASUREMENTS","Measurements",DOME_MEASUREMENTS_TAB,IP_RW,60,IPS_OK);
+    IUFillNumberVector(&DomeMeasurementsNP,DomeMeasurementsN,6,getDeviceName(),"DOME_MEASUREMENTS","Measurements",DOME_SLAVING_TAB,IP_RW,60,IPS_OK);
 
     IUFillSwitch(&DomeAutoSyncS[0],"DOME_AUTOSYNC_ENABLE","Enable",ISS_OFF);
     IUFillSwitch(&DomeAutoSyncS[1],"DOME_AUTOSYNC_DISABLE","Disable",ISS_ON);
-    IUFillSwitchVector(&DomeAutoSyncSP,DomeAutoSyncS,2,getDeviceName(),"DOME_AUTOSYNC","Slaving",MAIN_CONTROL_TAB,IP_RW,ISR_ATMOST1,60,IPS_OK);
+    IUFillSwitchVector(&DomeAutoSyncSP,DomeAutoSyncS,2,getDeviceName(),"DOME_AUTOSYNC","Slaving",DOME_SLAVING_TAB,IP_RW,ISR_ATMOST1,60,IPS_OK);
 
     IUFillNumber(&DomeSpeedN[0],"DOME_SPEED_VALUE","RPM","%6.2f",0.0,10,0.1,1.0);
     IUFillNumberVector(&DomeSpeedNP,DomeSpeedN,1,getDeviceName(),"DOME_SPEED","Speed",MAIN_CONTROL_TAB,IP_RW,60,IPS_OK);
@@ -113,12 +111,8 @@ bool INDI::Dome::initProperties()
     IUFillSwitch(&AbortS[0],"ABORT","Abort",ISS_OFF);
     IUFillSwitchVector(&AbortSP,AbortS,1,getDeviceName(),"DOME_ABORT_MOTION","Abort Motion",MAIN_CONTROL_TAB,IP_RW,ISR_ATMOST1,60,IPS_IDLE);
 
-    IUFillNumber(&DomeParamN[DOME_HOME],"HOME_POSITION","Home (deg)","%6.2f",0.0,360.0,1.0,0.0);
-    IUFillNumber(&DomeParamN[DOME_AUTOSYNC],"AUTOSYNC_THRESHOLD","Autosync threshold (deg)","%6.2f",0.0,360.0,1.0,0.5);
-    IUFillNumberVector(&DomeParamNP,DomeParamN,2,getDeviceName(),"DOME_PARAMS","Params",MAIN_CONTROL_TAB,IP_RW,60,IPS_OK);
-
-    IUFillSwitch(&DomeGotoS[0],"DOME_HOME","Home",ISS_OFF);
-    IUFillSwitchVector(&DomeGotoSP,DomeGotoS,1,getDeviceName(),"DOME_GOTO","Goto",MAIN_CONTROL_TAB,IP_RW,ISR_ATMOST1,60,IPS_OK);
+    IUFillNumber(&DomeParamN[0],"AUTOSYNC_THRESHOLD","Autosync threshold (deg)","%6.2f",0.0,360.0,1.0,0.5);
+    IUFillNumberVector(&DomeParamNP,DomeParamN,1,getDeviceName(),"DOME_PARAMS","Params",DOME_SLAVING_TAB,IP_RW,60,IPS_OK);
 
     IUFillSwitch(&ParkS[0],"PARK","Park",ISS_OFF);
     IUFillSwitch(&ParkS[1],"UNPARK","UnPark",ISS_OFF);
@@ -164,7 +158,6 @@ bool INDI::Dome::updateProperties()
 {
     if(isConnected())
     {
-        last_dome_motion = -1;
 
         defineText(&ActiveDeviceTP);
 
@@ -189,10 +182,10 @@ bool INDI::Dome::updateProperties()
         {
             defineNumber(&PresetNP);
             defineSwitch(&PresetGotoSP);
-            defineNumber(&DomeParamNP);
-            defineSwitch(&DomeGotoSP);
+
             defineSwitch(&DomeAutoSyncSP);
-            defineNumber(&DomeMeasurementsNP);
+            defineNumber(&DomeParamNP);
+            defineNumber(&DomeMeasurementsNP);            
         }
 
         if (capability.canPark)
@@ -229,9 +222,9 @@ bool INDI::Dome::updateProperties()
         {
             deleteProperty(PresetNP.name);
             deleteProperty(PresetGotoSP.name);
-            deleteProperty(DomeParamNP.name);
-            deleteProperty(DomeGotoSP.name);
+
             deleteProperty(DomeAutoSyncSP.name);
+            deleteProperty(DomeParamNP.name);
             deleteProperty(DomeMeasurementsNP.name);
         }
 
@@ -325,7 +318,7 @@ bool INDI::Dome::ISNewSwitch (const char *dev, const char *name, ISState *states
         {
             if (domeState == DOME_PARKED)
             {
-                DEBUGDEVICE(getDeviceName(), INDI::Logger::DBG_ERROR, "Dome is parked. Please unpark before issuing any motion commands.");
+                DEBUGDEVICE(getDeviceName(), INDI::Logger::DBG_ERROR, "Please unpark before issuing any motion commands.");
                 PresetGotoSP.s = IPS_ALERT;
                 IDSetSwitch(&PresetGotoSP, NULL);
                 return false;
@@ -410,159 +403,52 @@ bool INDI::Dome::ISNewSwitch (const char *dev, const char *name, ISState *states
         // Dome Shutter
         if (!strcmp(name, DomeShutterSP.name))
         {
-            IPState rc;
-            int prevStatus = IUFindOnSwitchIndex(&DomeShutterSP);
-            IPState prevState = DomeShutterSP.s;
 
-            IUUpdateSwitch(&DomeShutterSP, states, names, n);
-            int shutterDome = IUFindOnSwitchIndex(&DomeShutterSP);
-
-            // No change of status, let's return
-            if (prevStatus == shutterDome)
+            // Check if any switch is ON
+            for (int i=0; i < n; i++)
             {
-                DomeShutterSP.s = prevState;
-                IDSetSwitch(&DomeShutterSP,NULL);
-                return true;
+                if (states[i] == ISS_ON)
+                {
+                    // Open
+                    if (!strcmp(DomeShutterS[0].name, names[i]))
+                    {
+
+                        return (Dome::ControlShutter(SHUTTER_OPEN) != IPS_ALERT);
+                    }
+                    else
+                    {
+
+                        return (Dome::ControlShutter(SHUTTER_CLOSE) != IPS_ALERT);
+                    }
+                }
             }
 
-            // go back to prev status in case of failure
-            IUResetSwitch(&DomeShutterSP);
-            if (prevState != -1)
-                DomeShutterS[prevStatus].s = ISS_ON;
-
-            if (shutterDome == 0)
-                rc= ControlShutter(SHUTTER_OPEN);
-            else
-                rc= ControlShutter(SHUTTER_CLOSE);
-
-            if ( rc == IPS_OK)
-            {
-               DomeShutterSP.s=IPS_OK;
-               IUResetSwitch(&DomeShutterSP);
-               DomeShutterS[shutterDome].s = ISS_ON;
-               IDSetSwitch(&DomeShutterSP, "Shutter is %s.", (shutterDome == 0 ? "open" : "closed"));
-               return true;
-            }
-            else if (rc == IPS_BUSY)
-            {
-                 DomeShutterSP.s=IPS_BUSY;
-                 IUResetSwitch(&DomeShutterSP);
-                 DomeShutterS[shutterDome].s = ISS_ON;
-                 IDSetSwitch(&DomeShutterSP, "Shutter is %s...", (shutterDome == 0 ? "opening" : "closing"));
-                 return true;
-            }
-
-            DomeShutterSP.s= IPS_ALERT;
-            IDSetSwitch(&DomeShutterSP, "Shutter failed to %s.", (shutterDome == 0 ? "open" : "close"));
-            return false;
-
-        }
-
-        // Dome GOTO
-        if (!strcmp(name, DomeGotoSP.name))
-        {
-            IUResetSwitch(&DomeGotoSP);
-
-            if (domeState == DOME_PARKED)
-            {
-                DEBUG( INDI::Logger::DBG_ERROR, "Dome is parked. Please unpark before issuing any motion commands.");
-                DomeGotoSP.s = IPS_ALERT;
-                IDSetSwitch(&DomeGotoSP, NULL);
-                return false;
-            }
-
-            DomeAbsPosNP.s = DomeGotoSP.s = Home();
-
-            if (DomeGotoSP.s == IPS_OK)
-            {
-                domeState = DOME_IDLE;
-                DEBUG( INDI::Logger::DBG_SESSION, "Dome is at home position.");
-            }
-            else if (DomeGotoSP.s == IPS_BUSY)
-            {
-                domeState = DOME_MOVING;
-                DEBUG( INDI::Logger::DBG_SESSION, "Dome is moving to home position.");
-            }
-            else if (DomeGotoSP.s == IPS_ALERT)
-                DEBUG( INDI::Logger::DBG_SESSION, "Dome failed to move to home position.");
-
-            IDSetSwitch(&DomeGotoSP, NULL);
-            return true;
         }
 
         if(!strcmp(name,ParkSP.name))
         {
-            /*if (domeState == SCOPE_PARKING)
+            // Check if any switch is ON
+            for (int i=0; i < n; i++)
             {
-                IUResetSwitch(&ParkSP);
-                ParkSP.s == IPS_IDLE;
-                Abort();
-                DEBUG(INDI::Logger::DBG_SESSION, "Parking/Unparking aborted.");
-                IDSetSwitch(&ParkSP, NULL);
-                return true;
-            }*/
-
-            IPState rc;
-            int preIndex = IUFindOnSwitchIndex(&ParkSP);
-            IUUpdateSwitch(&ParkSP, states, names, n);
-
-            bool toPark = (ParkS[0].s == ISS_ON);
-
-            if (toPark == false && domeState != DOME_PARKED)
-            {
-                IUResetSwitch(&ParkSP);
-                ParkS[1].s = ISS_ON;
-                ParkSP.s = IPS_IDLE;
-                DEBUG( INDI::Logger::DBG_SESSION, "Dome already unparked.");
-                IDSetSwitch(&ParkSP, NULL);
-                return true;
-            }
-
-            if (toPark && domeState == DOME_PARKED)
-            {
-                IUResetSwitch(&ParkSP);
-                ParkS[0].s = ISS_ON;
-                ParkSP.s = IPS_IDLE;
-                DEBUG( INDI::Logger::DBG_SESSION, "Dome already parked.");
-                IDSetSwitch(&ParkSP, NULL);
-                return true;
-            }
-
-            IUResetSwitch(&ParkSP);
-
-            rc = toPark ? Park() : UnPark();
-
-            if (toPark)
-            {
-                if (rc == IPS_OK)
-                    SetParked(true);
-                else if (rc == IPS_BUSY)
+                if (states[i] == ISS_ON)
                 {
-                    domeState = DOME_PARKING;
+                    if (!strcmp(ParkS[0].name, names[i]))
+                    {
+                        if (domeState == DOME_PARKING)
+                            return false;
 
-                     if (capability.canAbsMove)
-                         DomeAbsPosNP.s=IPS_BUSY;
+                        return (Dome::Park() != IPS_ALERT);
+                    }
+                    else
+                    {
+                        if (domeState == DOME_UNPARKING)
+                            return false;
 
-                     ParkS[0].s = ISS_ON;
-                }
-            }
-            else
-            {
-                if (rc == IPS_OK)
-                    SetParked(false);
-                else if (rc == IPS_BUSY)
-                {
-                    domeState = DOME_UNPARKING;
-                    ParkS[1].s = ISS_ON;
+                        return (Dome::UnPark() != IPS_ALERT);
+                    }
                 }
             }
 
-            ParkSP.s = rc;
-            if (rc == IPS_ALERT)
-                ParkS[preIndex].s = ISS_ON;
-
-            IDSetSwitch(&ParkSP, NULL);
-            return true;
         }
 
         if (!strcmp(name, ParkOptionSP.name))
@@ -832,6 +718,63 @@ void INDI::Dome::processButton(const char * button_n, ISState state)
     }
 }
 
+INDI::Dome::DomeState INDI::Dome::Dome::getDomeState() const
+{
+    return domeState;
+}
+
+void INDI::Dome::setDomeState(const INDI::Dome::DomeState &value)
+{
+    switch (value)
+    {
+         case DOME_IDLE:
+            if (DomeMotionSP.s == IPS_BUSY)
+            {
+                IUResetSwitch(&DomeMotionSP);
+                DomeMotionSP.s = IPS_IDLE;
+                IDSetSwitch(&DomeMotionSP, NULL);
+            }
+            if (DomeAbsPosNP.s == IPS_BUSY)
+            {
+                DomeAbsPosNP.s = IPS_IDLE;
+                IDSetNumber(&DomeAbsPosNP, NULL);
+            }
+            if (DomeRelPosNP.s == IPS_BUSY)
+            {
+                DomeRelPosNP.s = IPS_IDLE;
+                IDSetNumber(&DomeRelPosNP, NULL);
+            }
+            break;
+
+        case DOME_PARKED:
+            IUResetSwitch(&ParkSP);
+            ParkSP.s = IPS_OK;
+            ParkS[0].s = ISS_ON;
+            IDSetSwitch(&ParkSP, NULL);
+            IsParked = true;
+            break;
+
+         case DOME_PARKING:
+            IUResetSwitch(&ParkSP);
+            ParkSP.s = IPS_BUSY;
+            ParkS[0].s = ISS_ON;
+            IDSetSwitch(&ParkSP, NULL);
+            break;
+
+        case DOME_UNPARKING:
+            IUResetSwitch(&ParkSP);
+            ParkSP.s = IPS_BUSY;
+            ParkS[1].s = ISS_ON;
+            IDSetSwitch(&ParkSP, NULL);
+            IsParked = false;
+            break;
+    }
+
+    domeState = value;
+
+}
+
+
 /*
 The problem to get a dome azimuth given a telescope azimuth, altitude and geometry (telescope placement, mount geometry) can be seen as solve the intersection between the optical axis with the dome, that is, the intersection between a line and a sphere.
 To do that we need to calculate the optical axis line taking the centre of the dome as origin of coordinates.
@@ -1049,7 +992,7 @@ void INDI::Dome::UpdateAutoSync()
 
         DEBUGF(INDI::Logger::DBG_DEBUG, "Calculated target azimuth is %g. MinAz: %g, MaxAz: %g", targetAz, minAz, maxAz);
 
-        if (fabs(targetAz - DomeAbsPosN[0].value) > DomeParamN[DOME_AUTOSYNC].value)
+        if (fabs(targetAz - DomeAbsPosN[0].value) > DomeParamN[0].value)
         {
             int ret = 0;
             if ( (ret = MoveAbs(targetAz)) == 0)
@@ -1133,25 +1076,24 @@ void INDI::Dome::SetParkDataType(INDI::Dome::DomeParkData type)
 }
 
 void INDI::Dome::SetParked(bool isparked)
-{
-  IsParked=isparked;
-  IUResetSwitch(&ParkSP);
+{  
+  IsParked=isparked;  
+
+  setDomeState(DOME_IDLE);
+
   if (IsParked)
-  {
-      domeState = DOME_PARKED;
-      ParkSP.s = IPS_OK;
-      ParkS[0].s = ISS_ON;
+  {      
+      setDomeState(DOME_PARKED);
       DEBUG( INDI::Logger::DBG_SESSION, "Dome is parked.");
   }
   else
-  {
-      domeState = DOME_IDLE;
-      ParkSP.s=IPS_IDLE;
+  {      
+      IUResetSwitch(&ParkSP);
       ParkS[1].s = ISS_ON;
+      ParkSP.s = IPS_OK;
+      IDSetSwitch(&ParkSP, NULL);
       DEBUG( INDI::Logger::DBG_SESSION, "Dome is unparked.");
-  }
-
-  IDSetSwitch(&ParkSP, NULL);
+  }  
 
   WriteParkData();
 }
@@ -1170,9 +1112,7 @@ bool INDI::Dome::InitPark()
     DEBUGF( INDI::Logger::DBG_SESSION, "InitPark: No Park data in file %s: %s", Parkdatafile, loadres);
     SetParked(false);
     return false;
-  }
-
-  SetParked(isParked());
+  }  
 
   if (parkDataType != PARK_NONE)
   {
@@ -1255,7 +1195,6 @@ char *INDI::Dome::LoadParkData()
   if (!devicefound)
       return (char *)"No park data found for this device";
 
-  IsParked=false;
   ParkdeviceXml=parkxml;
   ParkstatusXml = findXMLEle(parkxml, "parkstatus");
 
@@ -1275,12 +1214,15 @@ char *INDI::Dome::LoadParkData()
       }
   }
 
-
-  if (!strcmp(pcdataXMLEle(ParkstatusXml), "true"))
-      IsParked=true;
-
   if (parkDataType != PARK_NONE)
     sscanf(pcdataXMLEle(ParkpositionAxis1Xml), "%lf", &Axis1ParkPosition);
+
+
+  if (!strcmp(pcdataXMLEle(ParkstatusXml), "true"))
+      SetParked(true);
+  else
+      SetParked(false);
+
 
   return NULL;
 }
@@ -1364,32 +1306,12 @@ void INDI::Dome::SetAxis1ParkDefault(double value)
 bool INDI::Dome::Move(DomeDirection dir, DomeMotionCommand operation)
 {
     // Check if it is already parked.
-    // If PARK_NONE is used, then this is for open-loop domes in which case open-loop motion is expected for parking/unparking operations
     if (capability.canPark)
     {
-        if (parkDataType == PARK_NONE)
-        {
-            // CW -> Open, CCW -> Close
-            if (isParked() && dir == DOME_CCW)
-            {
-                DEBUG( INDI::Logger::DBG_WARNING, "Dome is parked and already closed.");
-                DomeMotionSP.s = IPS_IDLE;
-                IDSetSwitch(&DomeMotionSP, NULL);
-                return false;
-            }
-            // Not parked (open) and we want to open
-            else if (isParked() == false && dir == DOME_CW)
-            {
-                DEBUG( INDI::Logger::DBG_WARNING, "Dome is unparked and already open.");
-                DomeMotionSP.s = IPS_IDLE;
-                IDSetSwitch(&DomeMotionSP, NULL);
-                return false;
-            }
-        }
-        else if (isParked())
+        if (parkDataType != PARK_NONE && isParked())
         {
             DEBUG( INDI::Logger::DBG_WARNING, "Please unpark the dome before issuing any motion commands.");
-            DomeMotionSP.s = IPS_IDLE;
+            DomeMotionSP.s = IPS_ALERT;
             IDSetSwitch(&DomeMotionSP, NULL);
             return false;
         }
@@ -1399,7 +1321,7 @@ bool INDI::Dome::Move(DomeDirection dir, DomeMotionCommand operation)
           || (domeState == DOME_PARKING))
     {
         DEBUG( INDI::Logger::DBG_WARNING, "Please stop dome before issuing any further motion commands.");
-        DomeMotionSP.s = IPS_IDLE;
+        DomeMotionSP.s = IPS_ALERT;
         IDSetSwitch(&DomeMotionSP, NULL);
         return false;
     }
@@ -1437,7 +1359,7 @@ IPState INDI::Dome::MoveRel(double azDiff)
 
     if (domeState == DOME_PARKED)
     {
-        DEBUG( INDI::Logger::DBG_ERROR, "Dome is parked. Please unpark before issuing any motion commands.");
+        DEBUG( INDI::Logger::DBG_ERROR, "Please unpark before issuing any motion commands.");
         DomeRelPosNP.s = IPS_ALERT;
         IDSetNumber(&DomeRelPosNP, NULL);
         return IPS_ALERT;
@@ -1496,7 +1418,7 @@ IPState INDI::Dome::MoveAbs(double az)
 
     if (domeState == DOME_PARKED)
     {
-        DEBUG( INDI::Logger::DBG_ERROR, "Dome is parked. Please unpark before issuing any motion commands.");
+        DEBUG( INDI::Logger::DBG_ERROR, "Please unpark before issuing any motion commands.");
         DomeAbsPosNP.s = IPS_ALERT;
         IDSetNumber(&DomeAbsPosNP, NULL);
         return IPS_ALERT;
@@ -1559,36 +1481,39 @@ bool INDI::Dome::Abort()
 
         if (domeState == DOME_PARKING || domeState == DOME_UNPARKING)
         {
-            if (domeState == DOME_PARKING)
-                DEBUG( INDI::Logger::DBG_SESSION, "Parking aborted.");
-            else
-                DEBUG( INDI::Logger::DBG_SESSION, "UnParking aborted.");
-            domeState = DOME_IDLE;
             IUResetSwitch(&ParkSP);
+            if (domeState == DOME_PARKING)
+            {
+                DEBUG( INDI::Logger::DBG_SESSION, "Parking aborted.");
+                // If parking was aborted then it was UNPARKED before
+                ParkS[1].s = ISS_ON;
+            }
+            else
+            {
+                DEBUG( INDI::Logger::DBG_SESSION, "UnParking aborted.");
+                // If unparking aborted then it was PARKED before
+                ParkS[0].s = ISS_ON;
+            }
+
             ParkSP.s = IPS_ALERT;
             IDSetSwitch(&ParkSP, NULL);
         }
 
-        if (DomeMotionSP.s == IPS_BUSY)
+        setDomeState(DOME_IDLE);
+    }
+    else
+    {
+        AbortSP.s = IPS_ALERT;
+
+        // If alert was aborted during parking or unparking, the parking state is unknown
+        if (domeState == DOME_PARKING || domeState == DOME_UNPARKING)
         {
-            IUResetSwitch(&DomeMotionSP);
-            DomeMotionSP.s = IPS_OK;
-            IDSetSwitch(&DomeMotionSP, NULL);
-        }
-        if (capability.canAbsMove && DomeAbsPosNP.s != IPS_IDLE)
-        {
-            DomeAbsPosNP.s = IPS_IDLE;
-            IDSetNumber(&DomeAbsPosNP, NULL);
-        }
-        if (capability.canRelMove && DomeRelPosNP.s != IPS_IDLE)
-        {
-            DomeRelPosNP.s = IPS_IDLE;
-            IDSetNumber(&DomeRelPosNP, NULL);
+            IUResetSwitch(&ParkSP);
+            ParkSP.s = IPS_IDLE;
+            IDSetSwitch(&ParkSP, NULL);
         }
 
     }
-    else
-        AbortSP.s = IPS_ALERT;
 
     IDSetSwitch(&AbortSP, NULL);
 
@@ -1618,21 +1543,106 @@ bool INDI::Dome::SetSpeed(double speed)
 
 IPState INDI::Dome::ControlShutter(ShutterOperation operation)
 {
-    INDI_UNUSED(operation);
-    DEBUG( INDI::Logger::DBG_ERROR, "Dome does not support ControlShutter(). ControlShutter() must be implemented in the child class.");
+    if (capability.hasShutter == false)
+    {
+        DEBUG( INDI::Logger::DBG_ERROR, "Dome does not have shutter control.");
+        return IPS_ALERT;
+    }
+
+    int currentStatus = IUFindOnSwitchIndex(&DomeShutterSP);
+
+    // No change of status, let's return
+    if (DomeShutterSP.s == IPS_BUSY && currentStatus == operation)
+    {
+        IDSetSwitch(&DomeShutterSP,NULL);
+        return DomeShutterSP.s;
+    }
+
+    DomeShutterSP.s = ControlShutter(operation);
+
+    if (DomeShutterSP.s == IPS_OK)
+    {
+       IUResetSwitch(&DomeShutterSP);
+       DomeShutterS[operation].s = ISS_ON;
+       IDSetSwitch(&DomeShutterSP, "Shutter is %s.", (operation == SHUTTER_OPEN ? "open" : "closed"));
+       DomeShutterSP.s;
+    }
+    else if (DomeShutterSP.s == IPS_BUSY)
+    {
+         IUResetSwitch(&DomeShutterSP);
+         DomeShutterS[operation].s = ISS_ON;
+         IDSetSwitch(&DomeShutterSP, "Shutter is %s...", (operation == 0 ? "opening" : "closing"));
+         return DomeShutterSP.s;
+    }
+
+    IDSetSwitch(&DomeShutterSP, "Shutter failed to %s.", (operation == 0 ? "open" : "close"));
     return IPS_ALERT;
 }
 
 IPState INDI::Dome::Park()
 {
-    DEBUG( INDI::Logger::DBG_ERROR, "Dome does not support Park(). Park() must be implemented in the child class.");
-    return IPS_ALERT;
+    if (capability.canPark == false)
+    {
+        DEBUG( INDI::Logger::DBG_ERROR, "Dome does not support parking.");
+        return IPS_ALERT;
+    }
+
+    if (domeState == DOME_PARKED)
+    {
+        IUResetSwitch(&ParkSP);
+        ParkS[0].s = ISS_ON;
+        DEBUG( INDI::Logger::DBG_SESSION, "Dome already parked.");
+        IDSetSwitch(&ParkSP, NULL);
+        return IPS_OK;
+    }
+
+    ParkSP.s = Park();
+
+    if (ParkSP.s == IPS_OK)
+        SetParked(true);
+    else if (ParkSP.s == IPS_BUSY)
+    {
+      domeState = DOME_PARKING;
+
+      if (capability.canAbsMove)
+                 DomeAbsPosNP.s=IPS_BUSY;
+
+      IUResetSwitch(&ParkSP);
+      ParkS[0].s = ISS_ON;
+    }
+    else
+        IDSetSwitch(&ParkSP, NULL);
+
+    return ParkSP.s;
 }
 
 IPState INDI::Dome::UnPark()
 {
-    DEBUG( INDI::Logger::DBG_ERROR, "Dome does not support UnPark(). UnPark() must be implemented in the child class.");
-    return IPS_ALERT;
+    if (capability.canPark == false)
+    {
+        DEBUG( INDI::Logger::DBG_ERROR, "Dome does not support parking.");
+        return IPS_ALERT;
+    }
+
+    if (domeState != DOME_PARKED)
+    {
+        IUResetSwitch(&ParkSP);
+        ParkS[1].s = ISS_ON;
+        DEBUG( INDI::Logger::DBG_SESSION, "Dome already unparked.");
+        IDSetSwitch(&ParkSP, NULL);
+        return IPS_OK;
+    }
+
+    ParkSP.s = UnPark();
+
+   if (ParkSP.s == IPS_OK)
+      SetParked(false);
+   else if (ParkSP.s == IPS_BUSY)
+         setDomeState(DOME_UNPARKING);
+   else
+       IDSetSwitch(&ParkSP, NULL);
+
+    return ParkSP.s;
 }
 
 void INDI::Dome::SetCurrentPark()
@@ -1645,10 +1655,5 @@ void INDI::Dome::SetDefaultPark()
     DEBUG( INDI::Logger::DBG_WARNING, "Parking is not supported.");
 }
 
-IPState INDI::Dome::Home()
-{
-    DEBUG( INDI::Logger::DBG_ERROR, "Dome does not support Home(). Home() must be implemented in the child class.");
-    return IPS_ALERT;
-}
 
 

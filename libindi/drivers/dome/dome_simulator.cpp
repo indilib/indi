@@ -132,8 +132,7 @@ bool DomeSim::SetupParms()
 
     DomeAbsPosN[0].value = 0;
 
-    DomeParamN[DOME_HOME].value  = 90;
-    DomeParamN[DOME_AUTOSYNC].value  = 5;
+    DomeParamN[0].value  = 5;
 
     IDSetNumber(&DomeAbsPosNP, NULL);
     IDSetNumber(&DomeParamNP, NULL);
@@ -212,16 +211,9 @@ void DomeSim::TimerHit()
             DomeAbsPosNP.s = IPS_OK;
             DEBUG(INDI::Logger::DBG_SESSION, "Dome reached requested azimuth angle.");
 
-            if (domeState == DOME_PARKING)
-            {
+            if (getDomeState() == DOME_PARKING)
                 SetParked(true);
-            }
 
-            if (DomeGotoSP.s == IPS_BUSY)
-            {
-                DomeGotoSP.s = IPS_OK;
-                IDSetSwitch(&DomeGotoSP, NULL);
-            }
             if (GetDomeCapability().canRelMove && DomeRelPosNP.s == IPS_BUSY)
             {
                 DomeRelPosNP.s = IPS_OK;
@@ -240,6 +232,9 @@ void DomeSim::TimerHit()
             DomeShutterSP.s = IPS_OK;
             DEBUGF(INDI::Logger::DBG_SESSION, "Shutter is %s.", (DomeShutterS[0].s == ISS_ON ? "open" : "closed"));
             IDSetSwitch(&DomeShutterSP, NULL);
+
+            if (getDomeState() == DOME_UNPARKING)
+                SetParked(false);
         }
     }
     SetTimer(nexttimer);
@@ -266,11 +261,13 @@ bool DomeSim::Move(DomeDirection dir, DomeMotionCommand operation)
 
 IPState DomeSim::MoveAbs(double az)
 {
+    targetAz = az;
+
     // Requested position is within one cycle, let's declare it done
     if (fabs(az - DomeAbsPosN[0].value) < DOME_SPEED)
         return IPS_OK;
 
-    targetAz = az;
+
 
     // It will take a few cycles to reach final position
     return IPS_BUSY;
@@ -298,24 +295,18 @@ IPState DomeSim::MoveRel(double azDiff)
 IPState DomeSim::Park()
 {
     targetAz = DomeParamN[1].value;
-    domeState = DOME_PARKING;
-    return MoveAbs(GetAxis1Park());
+    Dome::ControlShutter(SHUTTER_CLOSE);
+    Dome::MoveAbs(GetAxis1Park());
+
+    return IPS_BUSY;
 }
 
 IPState DomeSim::UnPark()
 {
-    domeState = DOME_IDLE;
-    return IPS_OK;
+    return Dome::ControlShutter(SHUTTER_OPEN);
 }
 
-IPState DomeSim::Home()
-{
-    targetAz = DomeParamN[0].value;
-    DomeAbsPosNP.s = IPS_BUSY;
-    return IPS_BUSY;
-}
-
-IPState DomeSim::ControlShutter(ShutterStatus operation)
+IPState DomeSim::ControlShutter(ShutterOperation operation)
 {
     INDI_UNUSED(operation);
     shutterTimer = SHUTTER_TIMER;
@@ -323,17 +314,7 @@ IPState DomeSim::ControlShutter(ShutterStatus operation)
 }
 
 bool DomeSim::Abort()
-{
-    DomeAbsPosNP.s = IPS_IDLE;
-    IDSetNumber(&DomeAbsPosNP, NULL);
-
-    if (DomeGotoSP.s == IPS_BUSY)
-    {
-        IUResetSwitch(&DomeGotoSP);
-        DomeGotoSP.s = IPS_IDLE;
-        IDSetSwitch(&DomeGotoSP, "Dome Goto aborted.");
-    }
-
+{    
     // If we abort while in the middle of opening/closing shutter, alert.
     if (DomeShutterSP.s == IPS_BUSY)
     {

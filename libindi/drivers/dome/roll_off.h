@@ -54,6 +54,9 @@ class RollOff : public INDI::Dome
 
     private:
 
+        ISState fullOpenLimitSwitch;
+        ISState fullClosedLimitSwitch;
+
         double MotionRequest;
         struct timeval MotionStart;
         bool SetupParms();
