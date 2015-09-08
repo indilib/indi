@@ -40,8 +40,6 @@ LX200AstroPhysics::LX200AstroPhysics() : LX200Generic()
 {
     timeUpdated = locationUpdated = false;
 
-    DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
-
     //ctor
     currentRA=get_local_sideral_time(0);
     currentDEC=90;
@@ -400,7 +398,6 @@ bool LX200AstroPhysics::ISNewNumber (const char *dev, const char *name, double v
     return LX200Generic::ISNewNumber(dev, name, values, names, n);
 }
 
-
 bool LX200AstroPhysics::isMountInit(void)
 {
     return (StartUpSP.s != IPS_IDLE);
@@ -753,7 +750,7 @@ bool LX200AstroPhysics::updateLocation(double latitude, double longitude, double
 void LX200AstroPhysics::debugTriggered(bool enable)
 {
    INDI_UNUSED(enable);
-   setLX200Debug(getDeviceName(), DBG_SCOPE);
+   LX200Generic::debugTriggered(enable);
    set_lx200ap_name(getDeviceName(), DBG_SCOPE);
 }
 

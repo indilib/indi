@@ -73,8 +73,6 @@ protected:
  bool  setBasicDataPart0();
  bool  setBasicDataPart1();
 
- unsigned int DBG_SCOPE;
-
  ISwitch StartUpS[2];
  ISwitchVectorProperty StartUpSP;
 
