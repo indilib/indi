@@ -238,7 +238,7 @@ int getCommandSexa(int fd, double *value, const char * cmd)
 
   temp_string[nbytes_read - 1] = '\0';
   
-  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%c>", temp_string);
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%s>", temp_string);
 
   if (f_scansexa(temp_string, value))
   {
@@ -273,7 +273,7 @@ int getCommandInt(int fd, int *value, const char* cmd)
  
   temp_string[nbytes_read - 1] = '\0';
 
-  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%c>", temp_string);
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%s>", temp_string);
 
   /* Float */
   if (strchr(temp_string, '.'))
