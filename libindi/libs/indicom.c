@@ -174,14 +174,8 @@ double *dp)		/* cracked value, if return 0 */
 	neg = strchr(str, '-');
 	if (neg)
 	    *neg = ' ';
-    // JM 2015-09-04 Search for decimal point, and if found, process it
-    if (strchr(str, '.'))
-    {
-        r = sscanf (str, "%lf%*[^0-9]%lf", &a, &b);
-        c=0;
-    }
-    else
-        r = sscanf (str, "%lf%*[^0-9]%lf%*[^0-9]%lf", &a, &b, &c);
+
+    r = sscanf (str, "%lf%*[^0-9]%lf%*[^0-9]%lf", &a, &b, &c);
 
     setlocale(LC_NUMERIC,"");
 
