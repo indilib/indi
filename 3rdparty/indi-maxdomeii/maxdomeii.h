@@ -50,7 +50,7 @@ class MaxDomeII : public INDI::Dome
  virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
 
  virtual IPState MoveAbs(double az);
- virtual IPState Home();
+ //virtual IPState Home();
  virtual bool Abort();
 
 protected:

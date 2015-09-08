@@ -128,7 +128,7 @@ MaxDomeII::MaxDomeII()
 bool MaxDomeII::SetupParms()
 {
     DomeAbsPosN[0].value = 0;
-    DomeParamN[DOME_HOME].value  = nHomeAzimuth;
+    //DomeParamN[DOME_HOME].value  = nHomeAzimuth;
 
     IDSetNumber(&DomeAbsPosNP, NULL);
     IDSetNumber(&DomeParamNP, NULL);
@@ -450,12 +450,12 @@ void MaxDomeII::TimerHit()
             break;
         }
 
-        if (DomeParamN[DOME_HOME].value != nHomePosition)
+        /*if (DomeParamN[DOME_HOME].value != nHomePosition)
         {	// Only refresh position if it changed
             DomeParamN[DOME_HOME].value = nHomePosition;
             //sprintf(buf,"%d", nHomePosition);
             IDSetNumber(&HomePosRNP, NULL);
-        }
+        }*/
 
         // Azimuth
         nAz = TicksToAzimuth(nCurrentTicks);
@@ -486,18 +486,19 @@ void MaxDomeII::TimerHit()
                         nTimeSinceAzimuthStart = -1;
                         IDSetNumber(&DomeAbsPosNP, "Dome is on target position");
                     }
-                    if (domeState == DOME_PARKING)
+                    if (getDomeState() == DOME_PARKING)
                     {
                         nTimeSinceAzimuthStart = -1;
                         SetParked(true);
                     }
-                    if (DomeGotoS[DOME_HOME].s == ISS_ON)
+
+                    /*if (DomeGotoS[DOME_HOME].s == ISS_ON)
                     {
                         IUResetSwitch(&DomeGotoSP);
                         DomeGotoSP.s = IPS_OK;
                         nTimeSinceAzimuthStart = -1;
                         IDSetSwitch(&DomeGotoSP, "Dome is homed");
-                    }
+                    }*/
                 }
             }
             break;
@@ -579,7 +580,7 @@ IPState MaxDomeII::MoveAbs(double newAZ)
 
 }
 
-IPState MaxDomeII::Home()
+/*IPState MaxDomeII::Home()
 {
     int error;
     int nRetry = 3;
@@ -601,7 +602,7 @@ IPState MaxDomeII::Home()
 
     return IPS_BUSY;
 
-}
+}*/
 
 bool MaxDomeII::Abort()
 {
@@ -620,12 +621,12 @@ bool MaxDomeII::Abort()
             handle_driver_error(&error, &nRetry);
     }
 
-    if (DomeGotoSP.s == IPS_BUSY)
+    /*if (DomeGotoSP.s == IPS_BUSY)
     {
         IUResetSwitch(&DomeGotoSP);
         DomeGotoSP.s = IPS_IDLE;
         IDSetSwitch(&DomeGotoSP, "Dome Goto aborted.");
-    }
+    }*/
 
     DomeAbsPosNP.s = IPS_IDLE;
     IDSetNumber(&DomeAbsPosNP, NULL);
@@ -701,7 +702,7 @@ bool MaxDomeII::ISNewNumber (const char *dev, const char *name, double values[],
         return false;
 	}
 	
-    if (!strcmp(name, DomeParamNP.name))
+   /* if (!strcmp(name, DomeParamNP.name))
     {
         IUUpdateNumber(&DomeParamNP, values, names, n);
 
@@ -718,7 +719,7 @@ bool MaxDomeII::ISNewNumber (const char *dev, const char *name, double values[],
         DomeParamNP.s = IPS_OK;
         IDSetNumber(&DomeParamNP, NULL);
         return true;
-    }
+    }*/
 		
 	// ===================================
     // Watch dog
