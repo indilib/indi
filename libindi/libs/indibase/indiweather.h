@@ -37,7 +37,8 @@
    the warning zone is automatically treated as ALERT.
 
    The class also specifies the list of critical parameters for observatory operations. When any of the parameters changes state to WARNING or ALERT, then
-   the overall state of the WEATHER_STATUS propery reflects the worst state of any individual parameter.
+   the overall state of the WEATHER_STATUS propery reflects the worst state of any individual parameter. The WEATHER_STATUS property may be used by clients to determine whether to proceed with observation tasks or not, and
+   whether to take any safety measures to protect the observatory from severe weather conditions.
 
    The child class should start by first adding all the weather parameters via the addParameter() function, then set all the critial parameters via the setCriticalParameter() function, and finally call
    generateParameterRanges() function to generate all the parameter ranges properties.

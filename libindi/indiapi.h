@@ -49,15 +49,15 @@ INDI is intended for developers who seek a scalable API for device control and a
 <li><a href="classINDI_1_1BaseClient.html">INDI Client API</a></li>
 <li><a href="namespaceINDI.html">INDI Base Drivers</a>: Base classes for all INDI drivers. Current base drivers include:
  <ul>
-<li><a href="classINDI_1_1FilterWheel.html">Telescope</a></li>
+<li><a href="classINDI_1_1Telescope.html">Telescope</a></li>
 <li><a href="classINDI_1_1CCD.html">CCD</a></li>
-<li><a href="classINDI_1_1FilterWheel.html">Guider</a></li>
+<li><a href="classINDI_1_1GuiderInterface.html">Guider</a></li>
 <li><a href="classINDI_1_1FilterWheel.html">Filter Wheel</a></li>
-<li><a href="classINDI_1_1Dome.html">Focuser</a></li>
+<li><a href="classINDI_1_1Focuser.html">Focuser</a></li>
 <li><a href="classINDI_1_1Dome.html">Dome</a></li>
-<li><a href="classINDI_1_1FilterWheel.html">Weather</a></li>
-<li><a href="classINDI_1_1FilterWheel.html">GPS</a></li>
-<li><a href="classINDI_1_1FilterWheel.html">USB</a></li>
+<li><a href="classINDI_1_1Weather.html">Weather</a></li>
+<li><a href="classINDI_1_1GPS.html">GPS</a></li>
+<li><a href="classINDI_1_1USBDevice.html">USB</a></li>
 </ul>
 <li><a href="md_libs_indibase_alignment_alignment_white_paper.html">INDI Alignment Subsystem</a></li>
 <li><a href="structINDI_1_1Logger.html">INDI Debugging & Logging API</a></li>
