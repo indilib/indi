@@ -144,7 +144,7 @@ bool WunderGround::initProperties()
     setCriticalParameter("Wind (kph)");
     setCriticalParameter("Percip (mm)");
 
-    syncParameters();
+    generateParameterRanges();
 
     addDebugControl();
 

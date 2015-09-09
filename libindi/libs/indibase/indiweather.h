@@ -39,6 +39,9 @@
    The class also specifies the list of critical parameters for observatory operations. When any of the parameters changes state to WARNING or ALERT, then
    the overall state of the WEATHER_STATUS propery reflects the worst state of any individual parameter.
 
+   The child class should start by first adding all the weather parameters via the addParameter() function, then set all the critial parameters via the setCriticalParameter() function, and finally call
+   generateParameterRanges() function to generate all the parameter ranges properties.
+
    \e IMPORTANT: GEOGRAPHIC_COORD stores latitude and longitude in INDI specific format, refer to <a href="http://indilib.org/develop/developer-manual/101-standard-properties.html">INDI Standard Properties</a> for details.
 
 \author Jasem Mutlaq
@@ -108,7 +111,10 @@ class INDI::Weather : public INDI::DefaultDevice
 
     virtual bool saveConfigItems(FILE *fp);
 
-    void syncParameters();
+    /**
+     * @brief generateParameterRanges Call this function <u><b>after</b></u> adding <b>all</b> parameters via addParameter() and setting <b>all</b> critical parameters via setCriticalParameter().
+     */
+    void generateParameterRanges();
 
     //  A number vector that stores lattitude and longitude
     INumberVectorProperty LocationNP;

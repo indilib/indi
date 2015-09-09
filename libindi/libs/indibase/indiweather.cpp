@@ -427,7 +427,7 @@ void INDI::Weather::updateWeatherState()
     IDSetLight(&critialParametersLP, NULL);
 }
 
-void INDI::Weather::syncParameters()
+void INDI::Weather::generateParameterRanges()
 {
     for (int i=0; i < ParametersNP.nnp; i++)
         createParameterRange(ParametersN[i].name);
