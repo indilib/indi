@@ -281,11 +281,7 @@ IPState RollOff::UnPark()
 {
     bool rc = INDI::Dome::Move(DOME_CW, MOTION_START);
     if (rc)
-    {
-        IUResetSwitch(&DomeMotionSP);
-        DomeMotionS[DOME_CCW].s = ISS_ON;
-        IDSetSwitch(&DomeMotionSP, NULL);
-
+    {       
            DEBUG(INDI::Logger::DBG_SESSION, "Roll off is unparking...");
            return IPS_BUSY;
     }
