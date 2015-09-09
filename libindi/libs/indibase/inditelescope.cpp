@@ -592,7 +592,7 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
             if (TrackState == SCOPE_PARKING)
             {
                 IUResetSwitch(&ParkSP);
-                ParkSP.s == IPS_IDLE;
+                ParkSP.s == IPS_ALERT;
                 Abort();
                 DEBUG(INDI::Logger::DBG_SESSION, "Parking/Unparking aborted.");
                 IDSetSwitch(&ParkSP, NULL);
@@ -766,9 +766,11 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
             if (Abort())
             {
                 AbortSP.s = IPS_OK;
+
                 if (ParkSP.s == IPS_BUSY)
                 {
-                    ParkSP.s = IPS_IDLE;
+                    IUResetSwitch(&ParkSP);
+                    ParkSP.s = IPS_ALERT;
                     IDSetSwitch(&ParkSP, NULL);
                 }
                 if (EqNP.s == IPS_BUSY)
@@ -782,18 +784,11 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
                     MovementWESP.s = IPS_IDLE;
                     IDSetSwitch(&MovementWESP, NULL);
                 }
-
                 if (MovementNSSP.s == IPS_BUSY)
                 {
                     IUResetSwitch(&MovementNSSP);
                     MovementNSSP.s = IPS_IDLE;
                     IDSetSwitch(&MovementNSSP, NULL);
-                }
-
-                if (EqNP.s == IPS_BUSY)
-                {
-                    EqNP.s = lastEqState = IPS_IDLE;
-                    IDSetNumber(&EqNP, NULL);
                 }
 
                 last_ns_motion=last_we_motion=-1;
@@ -1118,16 +1113,16 @@ void INDI::Telescope::SetParked(bool isparked)
 {
   IsParked=isparked;
   IUResetSwitch(&ParkSP);
+
+  ParkSP.s = IPS_OK;
   if (IsParked)
-  {
-      ParkSP.s = IPS_OK;
+  {      
       ParkS[0].s = ISS_ON;
       TrackState = SCOPE_PARKED;
       DEBUG(INDI::Logger::DBG_SESSION, "Mount is parked.");
   }
   else
   {
-      ParkSP.s=IPS_IDLE;
       ParkS[1].s = ISS_ON;
       TrackState = SCOPE_IDLE;
       DEBUG(INDI::Logger::DBG_SESSION, "Mount is unparked.");
