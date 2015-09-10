@@ -2,7 +2,7 @@
   This file is part of the AAG Cloud Watcher INDI Driver.
   A driver for the AAG Cloud Watcher (AAGware - http://www.aagware.eu/)
 
-  Copyright (C) 2012 Sergio Alonso (zerjioi@ugr.es)
+  Copyright (C) 2012-2015 Sergio Alonso (zerjioi@ugr.es)
 
 
 
@@ -19,6 +19,8 @@
   You should have received a copy of the GNU General Public License
   along with AAG Cloud Watcher INDI Driver.  If not, see
   <http://www.gnu.org/licenses/>.
+  
+  Anemometer code contributed by Joao Bento.
 #endif
 
 
@@ -33,6 +35,9 @@ std::auto_ptr<AAGCloudWatcher> cloudWatcher(0);
 
 
 AAGCloudWatcher::AAGCloudWatcher() {
+
+  setVersion(1, 3);
+
   IDLog("Initializing from AAG Cloud Watcher device...\n");
 
   cwc = NULL;
@@ -252,6 +257,23 @@ bool AAGCloudWatcher::ISNewNumber (const char *dev, const char *name, double val
       }
       if (values[i] > 1000000) {
         values[i] = 1000000;
+      }
+    }
+
+    IUUpdateNumber(nvp, values, names, n);
+    nvp->s = IPS_OK;
+    IDSetNumber(nvp, NULL);
+
+    return true;
+  }
+  
+  if (!strcmp(nvp->name, "limitsWind")) {
+    for (int i = 0 ; i < n ; i++) {
+      if (values[i] < 0) {
+        values[i] = 0;
+      }
+      if (values[i] > 100) {
+        values[i] = 100;
       }
     }
 
@@ -564,7 +586,7 @@ bool AAGCloudWatcher::sendData() {
     return false;
   }
 
-  int N_DATA = 10;
+  int N_DATA = 11;
   double values[N_DATA];
   char *names[N_DATA];
 
@@ -596,9 +618,12 @@ bool AAGCloudWatcher::sendData() {
   values[8] = data.readCycle;
   lastReadPeriod = data.readCycle;
 
-  names[9] = const_cast<char *>("totalReadings");
-  values[9] = data.totalReadings;
+  names[9] = const_cast<char *>("windSpeed");
+  values[9] = data.windSpeed;
 
+  names[10] = const_cast<char *>("totalReadings");
+  values[10] = data.totalReadings;
+  
   INumberVectorProperty *nvp = getNumber("readings");
   IUUpdateNumber(nvp, values, names, N_DATA);
   nvp->s = IPS_OK;
@@ -821,6 +846,44 @@ bool AAGCloudWatcher::sendData() {
   IUUpdateSwitch(svpBC, statesBrightness, namesBrightness, 3);
   svpBC->s = IPS_OK;
   IDSetSwitch(svpBC, NULL);
+  
+  
+  int windSpeed = data.windSpeed;
+  nvpLimits = getNumber("limitsWind");
+  int calmLimit = getNumberValueFromVector(nvpLimits, "calm");
+  int moderateWindLimit = getNumberValueFromVector(nvpLimits, "moderateWind");
+  
+  INumberVectorProperty *consts = getNumber("constants");
+  int anemometerStatus = getNumberValueFromVector(consts, "anemometerStatus");
+
+  ISState statesWind[4];
+  char * namesWind[4];
+  namesWind[0] = const_cast<char *>("calm");
+  namesWind[1] = const_cast<char *>("moderateWind");
+  namesWind[2] = const_cast<char *>("strongWind");
+  namesWind[3] = const_cast<char *>("unknown");
+  statesWind[0] = ISS_OFF;
+  statesWind[1] = ISS_OFF;
+  statesWind[2] = ISS_OFF;
+  statesWind[3] = ISS_OFF;
+  //IDLog("%d\n", data.switchStatus);
+  
+  if (anemometerStatus) {
+    if (windSpeed < calmLimit) {
+      statesWind[0] = ISS_ON;
+    } else if (windSpeed < moderateWindLimit) {
+      statesWind[1] = ISS_ON;
+    } else {
+      statesWind[2] = ISS_ON;
+    } 
+  } else {
+    statesWind[3] = ISS_ON;
+  } 
+
+  ISwitchVectorProperty *svpWC = getSwitch("windConditions");
+  IUUpdateSwitch(svpWC, statesWind, namesWind, 4);
+  svpWC->s = IPS_OK;
+  IDSetSwitch(svpWC, NULL);
 }
 
 double AAGCloudWatcher::getNumberValueFromVector(INumberVectorProperty *nvp, const char *name) {
@@ -840,7 +903,7 @@ bool AAGCloudWatcher::resetData() {
     return false;
   }
 
-  int N_DATA = 10;
+  int N_DATA = 11;
   double values[N_DATA];
   char *names[N_DATA];
 
@@ -870,10 +933,13 @@ bool AAGCloudWatcher::resetData() {
 
   names[8] = const_cast<char *>("readCycle");
   values[8] = 0;
-
-  names[9] = const_cast<char *>("totalReadings");
+  
+  names[9] = const_cast<char *>("windSpeed");
   values[9] = 0;
 
+  names[10] = const_cast<char *>("totalReadings");
+  values[10] = 0;
+  
   INumberVectorProperty *nvp = getNumber("readings");
   IUUpdateNumber(nvp, values, names, N_DATA);
   nvp->s = IPS_IDLE;
@@ -971,7 +1037,7 @@ bool AAGCloudWatcher::sendConstants() {
     return false;
   }
 
-  int N_CONSTANTS = 10;
+  int N_CONSTANTS = 11;
   double values[N_CONSTANTS];
   char *names[N_CONSTANTS];
 
@@ -1004,6 +1070,9 @@ bool AAGCloudWatcher::sendConstants() {
 
   names[9] = const_cast<char *>("ambientPullUpResistance");
   values[9] = constants.ambientPullUpResistance;
+  
+  names[10] = const_cast<char *>("anemometerStatus");
+  values[10] = constants.anemometerStatus;
 
   IUUpdateNumber(nvp, values, names, N_CONSTANTS);
   nvp->s = IPS_OK;
@@ -1033,7 +1102,7 @@ bool AAGCloudWatcher::resetConstants() {
     return false;
   }
 
-  int N_CONSTANTS = 10;
+  int N_CONSTANTS = 11;
   double values[N_CONSTANTS];
   char *names[N_CONSTANTS];
 
@@ -1066,6 +1135,9 @@ bool AAGCloudWatcher::resetConstants() {
 
   names[9] = const_cast<char *>("ambientPullUpResistance");
   values[9] = 0;
+  
+  names[10] = const_cast<char *>("anemometerStatus");
+  values[10] = 0;
 
   IUUpdateNumber(nvp, values, names, N_CONSTANTS);
   nvp->s = IPS_IDLE;

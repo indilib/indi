@@ -2,7 +2,7 @@
   This file is part of the AAG Cloud Watcher INDI Driver.
   A driver for the AAG Cloud Watcher (AAGware - http://www.aagware.eu/)
 
-  Copyright (C) 2012 Sergio Alonso (zerjioi@ugr.es)
+  Copyright (C) 2012-2015 Sergio Alonso (zerjioi@ugr.es)
 
   
 
@@ -18,7 +18,9 @@
 
   You should have received a copy of the GNU General Public License
   along with AAG Cloud Watcher INDI Driver.  If not, see 
-  <http://www.gnu.org/licenses/>.          
+  <http://www.gnu.org/licenses/>.
+  
+  Anemometer code contributed by Joao Bento.
 #endif
   
 
@@ -52,6 +54,7 @@ struct CloudWatcherConstants {
   float ambientBetaFactor;
   float ambientResistanceAt25;
   float ambientPullUpResistance;
+  int anemometerStatus;  ///< The status of the anemometer
 };
 
 /**
@@ -76,6 +79,7 @@ struct CloudWatcherData {
   int pecByteErrors;     ///< PEC byte errors count
   int commandByteErrors; ///< Command byte errors count
   int switchStatus;      ///< The status of the internal switch
+  int windSpeed;         ///< The wind speed measured by the anemometer
 };
 
 
@@ -449,6 +453,20 @@ private:
    * @see rainBeta
    */ 
   bool getElectricalConstants();
+  
+  /**
+   * Reads the anemometer status of the AAG Cloud Watcher
+   * @param anemometerStatus where the anemometer status will be stored
+   * @return true if succesfully read. false otherwise.
+   */
+  bool getAnemometerStatus(int *anemomterStatus);
+
+  /**
+   * Reads the wind speed from the anemomter
+   * @param windSpeed where the wind speed will be stored
+   * @return true if succesfully read. false otherwise.
+   */
+  bool getWindSpeed(int *windSpeed);
 };
 
 #endif	/* CLOUDWATCHERCONTROLLER_H */

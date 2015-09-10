@@ -46,6 +46,13 @@
     <defSwitch name="light" label="Light">Off</defSwitch>
     <defSwitch name="veryLight" label="Very Light">Off</defSwitch>  
   </defSwitchVector>    
+  
+  <defSwitchVector device="AAG Cloud Watcher" name="windConditions" label="Wind Conditions" group="Weather Conditions" state="Idle" perm="ro" rule="OneOfMany" timeout="0">
+    <defSwitch name="calm" label="Calm">Off</defSwitch>
+    <defSwitch name="moderateWind" label="Moderate Wind">Off</defSwitch>
+    <defSwitch name="strongWind" label="Strong Wind">Off</defSwitch> 
+    <defSwitch name="unknown" label="Unknown">Off</defSwitch>
+  </defSwitchVector>    
 
   <defNumberVector device="AAG Cloud Watcher" name="sensors" label="Sensors" group="Sensors" state="Idle" perm="ro" timeout="0">
     <defNumber name="infraredSky" label="Infrared Sky (ºC)" format="%.1f" min="-100" max="100" step="0">0</defNumber>
@@ -76,6 +83,11 @@
     <defNumber name="dark" label="Dark (more than)" format="%.0f" min="0" max="1000000" step="0">2100</defNumber>
     <defNumber name="light" label="Light (more than)" format="%.0f" min="0" max="1000000" step="0">100</defNumber>
     <defNumber name="veryLight" label="Very Light (more than)" format="%.0f" min="0" max="1000000" step="0">0</defNumber>
+  </defNumberVector>
+  
+  <defNumberVector device="AAG Cloud Watcher" name="limitsWind" label="For Wind Conditions (km/h)" group="Limits" state="Idle" perm="rw" timeout="0">
+    <defNumber name="calm" label="Calm (less than)" format="%.0f" min="0" max="100" step="0">5</defNumber>
+    <defNumber name="moderateWind" label="Moderate Wind (less than)" format="%.0f" min="0" max="100" step="0">25</defNumber>
   </defNumberVector>
 
   
@@ -120,6 +132,7 @@
     <defNumber name="rainTemp" label="Rain Temp." format="%.1f" min="-200000" max="200000" step="0">0</defNumber>
     <defNumber name="LDR" label="LDR" format="%.1f" min="0" max="1000000" step="0">0</defNumber>
     <defNumber name="readCycle" label="Read Cycle (s)" format="%.3f" min="-200000" max="200000" step="0">0</defNumber>
+    <defNumber name="windSpeed" label="Wind Speed" format="%.0f" min="0" max="20000000" step="0">0</defNumber>
     <defNumber name="totalReadings" label="Total Readings" format="%7.0f" min="0" max="20000000" step="0">0</defNumber>
   </defNumberVector>
   
@@ -138,6 +151,7 @@
     <defNumber name="ambientBetaFactor" label="Ambient Beta Factor" format="%.0f" min="0" max="200000" step="0">0</defNumber>
     <defNumber name="ambientResistanceAt25" label="Ambient Resistance at 25º (K)" format="%.0f" min="0" max="200000" step="0">0</defNumber>
     <defNumber name="ambientPullUpResistance" label="Ambient PullUp Resistance (K)" format="%.1f" min="0" max="200000" step="0">0</defNumber>
+    <defNumber name="anemometerStatus" label="Anemometer Status" format="%.0f" min="0" max="1" step="0">0</defNumber>
   </defNumberVector> 
   
 

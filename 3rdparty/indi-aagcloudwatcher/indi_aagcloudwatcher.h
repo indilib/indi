@@ -2,7 +2,7 @@
   This file is part of the AAG Cloud Watcher INDI Driver.
   A driver for the AAG Cloud Watcher (AAGware - http://www.aagware.eu/)
 
-  Copyright (C) 2012 Sergio Alonso (zerjioi@ugr.es)
+  Copyright (C) 2012-2015 Sergio Alonso (zerjioi@ugr.es)
 
   
 
@@ -18,7 +18,9 @@
 
   You should have received a copy of the GNU General Public License
   along with AAG Cloud Watcher INDI Driver.  If not, see 
-  <http://www.gnu.org/licenses/>.          
+  <http://www.gnu.org/licenses/>.
+  
+  Anemometer code contributed by Joao Bento.
 #endif
   
   

@@ -2,7 +2,7 @@
   This file is part of the AAG Cloud Watcher INDI Driver.
   A driver for the AAG Cloud Watcher (AAGware - http://www.aagware.eu/)
 
-  Copyright (C) 2012 Sergio Alonso (zerjioi@ugr.es)
+  Copyright (C) 2012-2015 Sergio Alonso (zerjioi@ugr.es)
 
 
 
@@ -19,6 +19,8 @@
   You should have received a copy of the GNU General Public License
   along with AAG Cloud Watcher INDI Driver.  If not, see
   <http://www.gnu.org/licenses/>.
+  
+  Anemometer code contributed by Joao Bento.
 #endif
 
 #include <unistd.h>
@@ -132,6 +134,7 @@ bool CloudWatcherController::getAllData(CloudWatcherData *cwd) {
   int ambientTemperature[NUMBER_OF_READS];
   int ldrValue[NUMBER_OF_READS];
   int rainSensorTemperature[NUMBER_OF_READS];
+  int windSpeed[NUMBER_OF_READS];
 
   int check = 0;
 
@@ -165,6 +168,12 @@ bool CloudWatcherController::getAllData(CloudWatcherData *cwd) {
     if (!check) {
       return false;
     }
+    
+    check = getWindSpeed(&windSpeed[i]);
+
+    if (!check) {
+      return false;
+    }
   }
 
   timeval end;
@@ -181,6 +190,7 @@ bool CloudWatcherController::getAllData(CloudWatcherData *cwd) {
   cwd->ambient = aggregateInts(ambientTemperature, NUMBER_OF_READS);
   cwd->ldr = aggregateInts(ldrValue, NUMBER_OF_READS);
   cwd->rainTemperature = aggregateInts(rainSensorTemperature, NUMBER_OF_READS);
+  cwd->windSpeed = aggregateInts(windSpeed, NUMBER_OF_READS);
   cwd->totalReadings = totalReadings;
 
   check = getIRErrors(&cwd->firstByteErrors, &cwd->commandByteErrors, &cwd->secondByteErrors, &cwd->pecByteErrors);
@@ -237,7 +247,9 @@ bool CloudWatcherController::getConstants(CloudWatcherConstants *cwc) {
   cwc->ambientBetaFactor = ambBeta;
   cwc->ambientResistanceAt25 = ambResAt25;
   cwc->ambientPullUpResistance = ambPullUpResistance;
-
+  
+  getAnemometerStatus(&cwc->anemometerStatus);
+  
   return true;
 }
 
@@ -499,6 +511,60 @@ bool CloudWatcherController::getElectricalConstants() {
   rainResAt25 = float(256 * inputBuffer[10] + inputBuffer[11]) / 10.0;
   rainPullUpResistance = float(256 * inputBuffer[12] + inputBuffer[13]) / 10.0;
 
+  return true;
+}
+
+
+bool CloudWatcherController::getAnemometerStatus(int *anemometerStatus) {
+  getFirmwareVersion();
+   
+  if (firmwareVersion[0] >= '5') { 
+    sendCloudwatcherCommand("v!");
+  
+    char inputBuffer[BLOCK_SIZE * 2];
+  
+    int r = getCloudWatcherAnswer(inputBuffer, 2); 
+  
+    if (!r) {
+      return false; 
+    }
+  
+    int res = sscanf(inputBuffer, "!v         %d", anemometerStatus);
+  
+    if (res != 1) {
+      return false; 
+    }
+  } else {
+    *anemometerStatus = 0;   
+  }
+  
+  return true;
+}
+
+
+bool CloudWatcherController::getWindSpeed(int *windSpeed) {
+  getFirmwareVersion();
+  
+  if (firmwareVersion[0] >= '5') { 
+    sendCloudwatcherCommand("V!");
+  
+    char inputBuffer[BLOCK_SIZE * 2];
+  
+    int r = getCloudWatcherAnswer(inputBuffer, 2); 
+  
+    if (!r) {
+      return false; 
+    }
+  
+    int res = sscanf(inputBuffer, "!w       %d", windSpeed);
+  
+    if (res != 1) {
+      return false; 
+    }
+  } else {
+    *windSpeed = 0;   
+  }
+  
   return true;
 }
 

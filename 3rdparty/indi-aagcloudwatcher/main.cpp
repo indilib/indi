@@ -2,7 +2,7 @@
   This file is part of the AAG Cloud Watcher INDI Driver.
   A driver for the AAG Cloud Watcher (AAGware - http://www.aagware.eu/)
 
-  Copyright (C) 2012 Sergio Alonso (zerjioi@ugr.es)
+  Copyright (C) 2012-2015 Sergio Alonso (zerjioi@ugr.es)
 
 
 
@@ -19,9 +19,9 @@
   You should have received a copy of the GNU General Public License
   along with AAG Cloud Watcher INDI Driver.  If not, see
   <http://www.gnu.org/licenses/>.
+  
+  Anemometer code contributed by Joao Bento.
 #endif
-
-
 
 
 #include "CloudWatcherController.h"
@@ -33,7 +33,7 @@
  */
 int main(int argc, char** argv) {
 
-  CloudWatcherController *cwc = new CloudWatcherController(const_cast<char *>("/dev/ttyUSB0"), true);
+  CloudWatcherController *cwc = new CloudWatcherController(const_cast<char *>("/dev/ttyUSB0"), false);
 
   int check = cwc->checkCloudWatcher();
 
@@ -59,6 +59,7 @@ int main(int argc, char** argv) {
     std::cout << "Ambient Beta Factor: " << constants.ambientBetaFactor << "\n";
     std::cout << "Ambient Resistance At 25º: " << constants.ambientResistanceAt25 << "\n";
     std::cout << "Ambient PullUp Resistance: " << constants.ambientPullUpResistance << "\n";
+    std::cout << "Anemometer Status: " << constants.anemometerStatus << "\n";
   } else {
     std::cout << "Problem getting constants\n";
   }
@@ -78,6 +79,7 @@ int main(int argc, char** argv) {
     std::cout << "LDR: " << cwd.ldr << "\n";
     std::cout << "Rain Temperature: " << cwd.rainTemperature << "\n";
     std::cout << "Read Cycle: " << cwd.readCycle << "\n";
+    std::cout << "Wind Speed: " << cwd.windSpeed << "\n";
     std::cout << "Total Readings: " << cwd.totalReadings << "\n";
     std::cout << "Internal Errors: " << cwd.internalErrors << "\n";
     std::cout << "First Byte Errors: " << cwd.firstByteErrors << "\n";
