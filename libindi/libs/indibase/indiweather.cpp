@@ -457,6 +457,8 @@ bool INDI::Weather::saveConfigItems(FILE *fp)
 {
     INDI::DefaultDevice::saveConfigItems(fp);
 
+    IUSaveConfigNumber(fp, &LocationNP);
+
     for (int i=0; i < nRanges; i++)
         IUSaveConfigNumber(fp, &ParametersRangeNP[i]);
 
