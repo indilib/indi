@@ -43,6 +43,8 @@
    The child class should start by first adding all the weather parameters via the addParameter() function, then set all the critial parameters via the setCriticalParameter() function, and finally call
    generateParameterRanges() function to generate all the parameter ranges properties.
 
+   Weather update period is controlled by the WEATHER_UPDATE property which stores the update period in seconds and calls updateWeather() every X seconds as given in the property.
+
    \e IMPORTANT: GEOGRAPHIC_COORD stores latitude and longitude in INDI specific format, refer to <a href="http://indilib.org/develop/developer-manual/101-standard-properties.html">INDI Standard Properties</a> for details.
 
 \author Jasem Mutlaq

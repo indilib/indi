@@ -72,7 +72,7 @@ bool INDI::Weather::initProperties()
     IUFillNumberVector(&LocationNP,LocationN,3,getDeviceName(),"GEOGRAPHIC_COORD","Location", SITE_TAB,IP_RW,60,IPS_OK);
 
     // Update Period
-    IUFillNumber(&UpdatePeriodN[0],"PERIOD","Period (mins)","%4.2f",0,180,10,0);
+    IUFillNumber(&UpdatePeriodN[0],"PERIOD","Period (secs)","%4.2f",0,3600,60,60);
     IUFillNumberVector(&UpdatePeriodNP,UpdatePeriodN,1,getDeviceName(),"WEATHER_UPDATE","Update",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
 
     // Active Devices
@@ -199,7 +199,7 @@ bool INDI::Weather::ISNewNumber (const char *dev, const char *name, double value
                 if (updateTimerID > 0)                
                     RemoveTimer(updateTimerID);
 
-                updateTimerID = SetTimer(UpdatePeriodN[0].value*60000);
+                updateTimerID = SetTimer(UpdatePeriodN[0].value*1000);
             }
 
             return true;
@@ -287,7 +287,7 @@ void INDI::Weather::TimerHit()
 
         // If update period is set, then set up the timer
         if (UpdatePeriodN[0].value > 0)
-            updateTimerID = SetTimer( (int) (UpdatePeriodN[0].value * 60000));
+            updateTimerID = SetTimer( (int) (UpdatePeriodN[0].value * 1000));
 
         return;
 
