@@ -169,6 +169,9 @@ class INDI::Dome : public INDI::DefaultDevice
     DomeState getDomeState() const;
     void setDomeState(const DomeState &value);
 
+    IPState getWeatherState() const;
+    IPState getMountState() const;
+
 protected:
 
     /**
@@ -415,7 +418,7 @@ protected:
     IText PortT[1];
 
     ITextVectorProperty ActiveDeviceTP;
-    IText ActiveDeviceT[1];
+    IText ActiveDeviceT[2];
 
     INumber PresetN[3];
     INumberVectorProperty PresetNP;
@@ -439,7 +442,9 @@ private:
         struct ln_lnlat_posn observer;
         struct ln_hrz_posn mountHoriztonalCoords;
         struct ln_equ_posn mountEquatorialCoords;
+
         IPState mountState;
+        IPState weatherState;
 
         bool IsParked;
         const char *ParkDeviceName;

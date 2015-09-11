@@ -232,14 +232,17 @@ void RollOff::TimerHit()
 
 bool RollOff::Move(DomeDirection dir, DomeMotionCommand operation)
 {
-    INDI_UNUSED(dir);
-
     if (operation == MOTION_START)
     {
         // DOME_CW --> OPEN. If can we are ask to "open" while we are fully opened as the limit switch indicates, then we simply return false.
         if (dir == DOME_CW && fullOpenLimitSwitch == ISS_ON)
         {
             DEBUG(INDI::Logger::DBG_WARNING, "Roof is already fully opened.");
+            return false;
+        }
+        else if (dir == DOME_CW && getWeatherState() == IPS_ALERT)
+        {
+            DEBUG(INDI::Logger::DBG_WARNING, "Weather conditions are in the danger zone. Cannot open roof.");
             return false;
         }
         else if (dir == DOME_CCW && fullClosedLimitSwitch == ISS_ON)

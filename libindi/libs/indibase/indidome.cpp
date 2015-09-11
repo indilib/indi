@@ -37,7 +37,8 @@ INDI::Dome::Dome()
 
     prev_az = prev_alt = prev_ra = prev_dec = 0;
     mountEquatorialCoords.dec=mountEquatorialCoords.ra=-1;
-    mountState = IPS_ALERT;
+    mountState   = IPS_ALERT;
+    weatherState = IPS_IDLE;
 
     capability.canAbort=false;
     capability.canAbsMove=false;
@@ -79,7 +80,8 @@ bool INDI::Dome::initProperties()
 
     // Active Devices
     IUFillText(&ActiveDeviceT[0],"ACTIVE_TELESCOPE","Telescope","Telescope Simulator");
-    IUFillTextVector(&ActiveDeviceTP,ActiveDeviceT,1,getDeviceName(),"ACTIVE_DEVICES","Snoop devices",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
+    IUFillText(&ActiveDeviceT[1],"ACTIVE_WEATHER","Weather","WunderGround");
+    IUFillTextVector(&ActiveDeviceTP,ActiveDeviceT,2,getDeviceName(),"ACTIVE_DEVICES","Snoop devices",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
 
     // Measurements
     IUFillNumber(&DomeMeasurementsN[DM_DOME_RADIUS],"DM_DOME_RADIUS","Radius (m)","%6.2f",0.0,50.0,1.0,0.0);
@@ -127,16 +129,17 @@ bool INDI::Dome::initProperties()
     IUFillSwitch(&ParkOptionS[2],"PARK_WRITE_DATA","Write Data",ISS_OFF);
     IUFillSwitchVector(&ParkOptionSP,ParkOptionS,3,getDeviceName(),"DOME_PARK_OPTION","Park Options", SITE_TAB,IP_RW,ISR_ATMOST1,60,IPS_IDLE);
 
-
     addDebugControl();
 
-    controller->mapController("Dome CW", "Dome CW", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_1");
-    controller->mapController("Dome CCW", "Dome CCW", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_2");
+    controller->mapController("Dome CW", "CW/Open", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_1");
+    controller->mapController("Dome CCW", "CCW/Close", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_2");
 
     controller->initProperties();
 
     IDSnoopDevice(ActiveDeviceT[0].text,"EQUATORIAL_EOD_COORD");
     IDSnoopDevice(ActiveDeviceT[0].text,"GEOGRAPHIC_COORD");
+
+    IDSnoopDevice(ActiveDeviceT[1].text,"WEATHER_STATUS");
 
     setInterfaceDescriptor(DOME_INTERFACE);
 
@@ -506,18 +509,14 @@ bool INDI::Dome::ISNewText (const char *dev, const char *name, char *texts[], ch
 
         if(strcmp(name,ActiveDeviceTP.name)==0)
         {
-            int rc;
             ActiveDeviceTP.s=IPS_OK;
-            rc=IUUpdateText(&ActiveDeviceTP,texts,names,n);
-            //  Update client display
+            IUUpdateText(&ActiveDeviceTP,texts,names,n);
             IDSetText(&ActiveDeviceTP,NULL);
-            //saveConfig();
 
-            // Update the property name!
-            //strncpy(EqNP.device, ActiveDeviceT[0].text, MAXINDIDEVICE);
             IDSnoopDevice(ActiveDeviceT[0].text,"EQUATORIAL_EOD_COORD");
-            IDSnoopDevice(ActiveDeviceT[0].text,"GEOGRAPHIC_COORD");
-            //  We processed this one, so, tell the world we did it
+            IDSnoopDevice(ActiveDeviceT[0].text,"GEOGRAPHIC_COORD");            
+            IDSnoopDevice(ActiveDeviceT[1].text,"WEATHER_STATUS");
+
             return true;
         }
     }
@@ -586,6 +585,29 @@ bool INDI::Dome::ISSnoopDevice (XMLEle *root)
         return true;
      }
 
+    // Weather Status
+    if (!strcmp("WEATHER_STATUS", propName))
+    {
+        weatherState = IPS_ALERT;
+        crackIPState(findXMLAttValu(root, "state"), &weatherState);
+
+        if (weatherState == IPS_ALERT)
+        {
+            if (capability.canPark)
+            {
+                if (isParked() == false)
+                {
+                    DEBUG(INDI::Logger::DBG_WARNING, "Weather conditions in the danger zone! Parking dome...");
+                    Dome::Park();
+                }
+            }
+            else
+                DEBUG(INDI::Logger::DBG_WARNING, "Weather conditions in the danger zone! Close the dome immediately!");
+
+            return true;
+        }
+    }
+
     controller->ISSnoopDevice(root);
 
     return INDI::DefaultDevice::ISSnoopDevice(root);
@@ -618,104 +640,32 @@ void INDI::Dome::processButton(const char * button_n, ISState state)
     // Dome In
     if (!strcmp(button_n, "Dome CW"))
     {
-        if (capability.canRelMove)
-        {
-            IPState rc= MoveRel(DomeRelPosN[0].value);
-            if (rc == IPS_OK)
-            {
-               DomeRelPosNP.s=IPS_OK;
-               IDSetNumber(&DomeRelPosNP, "Dome moved %g degrees CW", DomeRelPosN[0].value);
-               IDSetNumber(&DomeAbsPosNP, NULL);
-            }
-            else if (rc == IPS_BUSY)
-            {
-                 DomeRelPosNP.s=IPS_BUSY;
-                 IDSetNumber(&DomeAbsPosNP, "Dome is moving %g degrees CW...", DomeRelPosN[0].value);
-            }
-        }
-        else
-        {
-            if (DomeMotionSP.s == IPS_BUSY)
-            {
-                if (Move( DOME_CW, MOTION_STOP))
-                {
-                    IUResetSwitch(&DomeMotionSP);
-                    DomeMotionSP.s = IPS_IDLE;
-                    IDSetSwitch(&DomeMotionSP, NULL);
-                }
-                else
-                {
-                    DomeMotionSP.s = IPS_ALERT;
-                    IDSetSwitch(&DomeMotionSP, NULL);
-                }
-            }
-            else
-            {
-                if (Move( DOME_CW, MOTION_START))
-                {
-                    IUResetSwitch(&DomeMotionSP);
-                    DomeMotionS[DOME_CW].s = ISS_ON;
-                    DomeMotionSP.s = IPS_BUSY;
-                    IDSetSwitch(&DomeMotionSP, NULL);
-                }
-                else
-                {
-                    DomeMotionSP.s = IPS_ALERT;
-                    IDSetSwitch(&DomeMotionSP, NULL);
-                }
-            }
-        }
+      if (DomeMotionSP.s != IPS_BUSY)
+          Dome::Move( DOME_CW, MOTION_START);
+      else
+          Dome::Move( DOME_CW, MOTION_STOP);
     }
     else if (!strcmp(button_n, "Dome CCW"))
     {
-        if (capability.canRelMove)
-        {
-            IPState rc= MoveRel(DomeRelPosN[0].value*-1);
-            if (rc == IPS_OK)
-            {
-               DomeRelPosNP.s=IPS_OK;
-               IDSetNumber(&DomeRelPosNP, "Dome moved %g degrees CW", DomeRelPosN[0].value);
-               IDSetNumber(&DomeAbsPosNP, NULL);
-            }
-            else if (rc == IPS_BUSY)
-            {
-                 DomeRelPosNP.s=IPS_BUSY;
-                 IDSetNumber(&DomeAbsPosNP, "Dome is moving %g degrees CW...", DomeRelPosN[0].value);
-            }
-        }
+        if (DomeMotionSP.s != IPS_BUSY)
+            Dome::Move( DOME_CCW, MOTION_START);
         else
-        {
-            if (DomeMotionSP.s == IPS_BUSY)
-            {
-                if (Move( DOME_CCW, MOTION_STOP))
-                {
-                    IUResetSwitch(&DomeMotionSP);
-                    DomeMotionSP.s = IPS_IDLE;
-                    IDSetSwitch(&DomeMotionSP, NULL);
-                }
-                else
-                {
-                    DomeMotionSP.s = IPS_ALERT;
-                    IDSetSwitch(&DomeMotionSP, NULL);
-                }
-            }
-            else
-            {
-                if (Move( DOME_CCW, MOTION_START))
-                {
-                    IUResetSwitch(&DomeMotionSP);
-                    DomeMotionS[DOME_CCW].s = ISS_ON;
-                    DomeMotionSP.s = IPS_BUSY;
-                    IDSetSwitch(&DomeMotionSP, NULL);
-                }
-                else
-                {
-                    DomeMotionSP.s = IPS_ALERT;
-                    IDSetSwitch(&DomeMotionSP, NULL);
-                }
-            }
-        }
+            Dome::Move( DOME_CCW, MOTION_STOP);
     }
+    else if (!strcmp(button_n, "Dome Abort"))
+    {
+        Dome::Abort();
+    }
+}
+
+IPState INDI::Dome::getMountState() const
+{
+    return mountState;
+}
+
+IPState INDI::Dome::getWeatherState() const
+{
+    return weatherState;
 }
 
 INDI::Dome::DomeState INDI::Dome::Dome::getDomeState() const
@@ -1022,6 +972,9 @@ void INDI::Dome::SetDomeCapability(DomeCapability *cap)
     capability.canPark      = cap->canPark;
     capability.hasShutter   = cap->hasShutter;
     capability.hasVariableSpeed= cap->hasVariableSpeed;
+
+    if (capability.canAbort)
+        controller->mapController("Dome Abort", "Dome Abort", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_3");
 
 }
 
@@ -1549,6 +1502,12 @@ IPState INDI::Dome::ControlShutter(ShutterOperation operation)
         return IPS_ALERT;
     }
 
+    if (weatherState == IPS_ALERT && operation == SHUTTER_OPEN)
+    {
+        DEBUG(INDI::Logger::DBG_WARNING, "Weather is in the danger zone! Cannot open shutter.");
+        return IPS_ALERT;
+    }
+
     int currentStatus = IUFindOnSwitchIndex(&DomeShutterSP);
 
     // No change of status, let's return
@@ -1622,7 +1581,7 @@ IPState INDI::Dome::UnPark()
     {
         DEBUG( INDI::Logger::DBG_ERROR, "Dome does not support parking.");
         return IPS_ALERT;
-    }
+    }   
 
     if (domeState != DOME_PARKED)
     {
@@ -1631,6 +1590,14 @@ IPState INDI::Dome::UnPark()
         DEBUG( INDI::Logger::DBG_SESSION, "Dome already unparked.");
         IDSetSwitch(&ParkSP, NULL);
         return IPS_OK;
+    }
+
+    if (weatherState == IPS_ALERT)
+    {
+        DEBUG(INDI::Logger::DBG_WARNING, "Weather is in the danger zone! Cannot unpark dome.");
+        ParkSP.s == IPS_OK;
+        IDSetSwitch(&ParkSP, NULL);
+        return IPS_ALERT;
     }
 
     ParkSP.s = UnPark();
