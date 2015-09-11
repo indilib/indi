@@ -75,7 +75,7 @@ public:
     void registerProperty(void *p, INDI_PROPERTY_TYPE type);
 
     /** \brief Remove a property
-        \param name name of property to be removed
+        \param name name of property to be removed. Pass NULL to remove the whole device.
         \param errmsg buffer to store error message.
         \return 0 if successul, -1 otherwise.
     */

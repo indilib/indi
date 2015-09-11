@@ -663,6 +663,13 @@ bool INDI::DefaultDevice::deleteProperty(const char *propertyName)
 {
     char errmsg[MAXRBUF];
 
+    if (propertyName == NULL)
+    {
+        //while(!pAll.empty()) delete bar.back(), bar.pop_back();
+        IDDelete(getDeviceName(), NULL, NULL);
+        return true;
+    }
+
     if (removeProperty(propertyName, errmsg) == 0)
     {
         IDDelete(getDeviceName(), propertyName ,NULL);
