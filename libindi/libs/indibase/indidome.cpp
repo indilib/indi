@@ -78,6 +78,10 @@ bool INDI::Dome::initProperties()
     IUFillSwitch(&PresetGotoS[2], "Preset 3", "", ISS_OFF);
     IUFillSwitchVector(&PresetGotoSP, PresetGotoS, 3, getDeviceName(), "Goto", "", "Presets", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+    IUFillSwitch(&AutoParkS[0], "Enable", "", ISS_OFF);
+    IUFillSwitch(&AutoParkS[1], "Disable", "", ISS_ON);
+    IUFillSwitchVector(&AutoParkSP, AutoParkS, 2, getDeviceName(), "DOME_AUTOPARK", "Auto Park", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
     // Active Devices
     IUFillText(&ActiveDeviceT[0],"ACTIVE_TELESCOPE","Telescope","Telescope Simulator");
     IUFillText(&ActiveDeviceT[1],"ACTIVE_WEATHER","Weather","WunderGround");
@@ -201,6 +205,8 @@ bool INDI::Dome::updateProperties()
             }
         }
 
+        defineSwitch(&AutoParkSP);
+
     } else
     {
         deleteProperty(ActiveDeviceTP.name);
@@ -239,7 +245,9 @@ bool INDI::Dome::updateProperties()
                 deleteProperty(ParkPositionNP.name);
                 deleteProperty(ParkOptionSP.name);
             }
-        }       
+        }
+
+        deleteProperty(AutoParkSP.name);
     }
 
     controller->updateProperties();
@@ -485,8 +493,21 @@ bool INDI::Dome::ISNewSwitch (const char *dev, const char *name, ISState *states
           return true;
         }
 
+        if (!strcmp(name, AutoParkSP.name))
+        {
+            IUUpdateSwitch(&AutoParkSP, states, names, n);
 
+            AutoParkSP.s = IPS_OK;
 
+            if (AutoParkS[0].s == ISS_ON)
+                DEBUG(INDI::Logger::DBG_WARNING, "Warning: Auto park is enabled. If weather conditions are in the danger zone, the dome will be automatically parked. Only enable this option is parking the dome at any time will not cause damange to any equipment.");
+            else
+                DEBUG(INDI::Logger::DBG_SESSION, "Auto park is disabled.");
+
+            IDSetSwitch(&AutoParkSP, NULL);
+
+            return true;
+        }
     }
 
     controller->ISNewSwitch(dev, name, states, names, n);
@@ -593,7 +614,7 @@ bool INDI::Dome::ISSnoopDevice (XMLEle *root)
 
         if (weatherState == IPS_ALERT)
         {
-            if (capability.canPark)
+            if (capability.canPark && AutoParkS[0].s == ISS_ON)
             {
                 if (isParked() == false)
                 {
@@ -620,6 +641,7 @@ bool INDI::Dome::saveConfigItems(FILE *fp)
     IUSaveConfigNumber(fp, &PresetNP);
     IUSaveConfigNumber(fp, &DomeParamNP);
     IUSaveConfigNumber(fp, &DomeMeasurementsNP);
+    IUSaveConfigSwitch(fp, &AutoParkSP);
 
     controller->saveConfigItems(fp);
 

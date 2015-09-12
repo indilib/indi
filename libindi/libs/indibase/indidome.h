@@ -410,6 +410,9 @@ protected:
     ISwitch ParkOptionS[3];
     ISwitchVectorProperty ParkOptionSP;
 
+    ISwitch AutoParkS[2];
+    ISwitchVectorProperty AutoParkSP;
+
     DomeCapability capability;    
     ShutterStatus shutterState;
     DomeParkData parkDataType;
