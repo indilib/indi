@@ -252,15 +252,24 @@ IPState WunderGround::updateWeather()
                   }
                   else if (!strcmp(observationIterator->key, "temp_c"))
                   {
-                      temperatureN->value = observationIterator->value.toNumber();
+                      if (observationIterator->value.isDouble())
+                          temperatureN->value = observationIterator->value.toNumber();
+                      else
+                          temperatureN->value = atof(observationIterator->value.toString());
                   }
                   else if (!strcmp(observationIterator->key, "wind_kph"))
                   {
-                      windN->value = observationIterator->value.toNumber();
+                      if (observationIterator->value.isDouble())
+                        windN->value = observationIterator->value.toNumber();
+                      else
+                          windN->value = atof(observationIterator->value.toString());
                   }
                   else if (!strcmp(observationIterator->key, "wind_gust_kph"))
                   {
-                      windGustN->value = observationIterator->value.toNumber();
+                      if (observationIterator->value.isDouble())
+                        windGustN->value = observationIterator->value.toNumber();
+                      else
+                        windGustN->value = atof(observationIterator->value.toString());
                   }
                   else if (!strcmp(observationIterator->key, "precip_1hr_metric"))
                   {

@@ -403,7 +403,7 @@ void INDI::Weather::updateWeatherState()
                 double minWarn = *(static_cast<double *>(ParametersN[j].aux0));
                 double maxWarn = *(static_cast<double *>(ParametersN[j].aux1));
 
-                if ( (ParametersN[j].value >= ParametersN[j].min) && (ParametersN[i].value <= ParametersN[j].max) )
+                if ( (ParametersN[j].value >= ParametersN[j].min) && (ParametersN[j].value <= ParametersN[j].max) )
                     critialParametersL[i].s = IPS_OK;
                 else if ( (ParametersN[j].value >= minWarn) && (ParametersN[j].value <= maxWarn) )
                 {
