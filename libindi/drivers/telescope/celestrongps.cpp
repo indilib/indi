@@ -144,7 +144,7 @@ void CelestronGPS::ISGetProperties(const char *dev)
 
     if (isConnected())
     {
-        defineNumber(&HorizontalCoordsNP);
+        //defineNumber(&HorizontalCoordsNP);
         defineSwitch(&SlewRateSP);
         if (fwInfo.Version != "Invalid")
             defineText(&FirmwareTP);
@@ -194,7 +194,7 @@ bool CelestronGPS::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&HorizontalCoordsNP);
+        //defineNumber(&HorizontalCoordsNP);
         if (fwInfo.Version != "Invalid")
             defineText(&FirmwareTP);
 
@@ -216,7 +216,7 @@ bool CelestronGPS::updateProperties()
     }
     else
     {
-        deleteProperty(HorizontalCoordsNP.name);
+        //deleteProperty(HorizontalCoordsNP.name);
         if (fwInfo.Version != "Invalid")
             deleteProperty(FirmwareTP.name);
     }
@@ -419,13 +419,13 @@ bool CelestronGPS::ReadScopeStatus()
         return false;
     }
 
-    if (get_celestron_coords_azalt(PortFD, LocationN[LOCATION_LATITUDE].value, &currentAZ, &currentALT) == false)
+    /*if (get_celestron_coords_azalt(PortFD, LocationN[LOCATION_LATITUDE].value, &currentAZ, &currentALT) == false)
         DEBUG(INDI::Logger::DBG_WARNING, "Failed to read AZ/ALT values.");
     else
     {
         HorizontalCoordsN[AXIS_AZ].value  = currentAZ;
         HorizontalCoordsN[AXIS_ALT].value = currentALT;
-    }
+    }*/
 
     switch (TrackState)
     {
@@ -657,7 +657,7 @@ void CelestronGPS::mountSim ()
         set_sim_ra(currentRA);
         set_sim_dec(currentDEC);
 
-        ln_equ_posn equatorialPos;
+        /*ln_equ_posn equatorialPos;
         equatorialPos.ra  = currentRA * 15;
         equatorialPos.dec = currentDEC;
 
@@ -679,7 +679,7 @@ void CelestronGPS::mountSim ()
             horizontalPos.az += 360;
 
         set_sim_az(horizontalPos.az);
-        set_sim_alt(horizontalPos.alt);
+        set_sim_alt(horizontalPos.alt);*/
 
         NewRaDec(currentRA, currentDEC);
         return;
@@ -745,7 +745,7 @@ void CelestronGPS::mountSim ()
     set_sim_ra(currentRA);
     set_sim_dec(currentDEC);
 
-    ln_equ_posn equatorialPos;
+   /* ln_equ_posn equatorialPos;
     equatorialPos.ra  = currentRA * 15;
     equatorialPos.dec = currentDEC;
 
@@ -767,7 +767,7 @@ void CelestronGPS::mountSim ()
         horizontalPos.az += 360;
 
     set_sim_az(horizontalPos.az);
-    set_sim_alt(horizontalPos.alt);
+    set_sim_alt(horizontalPos.alt);*/
 }
 
 void CelestronGPS::simulationTriggered(bool enable)
@@ -801,7 +801,39 @@ bool CelestronGPS::updateTime(ln_date *utc, double utc_offset)
 
 bool CelestronGPS::Park()
 {    
-    if (GotoAzAlt(GetAxis1Park(), GetAxis2Park()))
+    double parkAZ  = GetAxis1Park();
+    double parkAlt = GetAxis2Park();
+
+    char AzStr[16], AltStr[16];
+    fs_sexa(AzStr, parkAZ, 2, 3600);
+    fs_sexa(AltStr, parkAlt, 2, 3600);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Parking to Az (%s) Alt (%s)...", AzStr, AltStr);
+
+    ln_hrz_posn horizontalPos;
+    // Libnova south = 0, west = 90, north = 180, east = 270
+    horizontalPos.az = parkAZ + 180;
+    if (horizontalPos.az >= 360)
+        horizontalPos.az -= 360;
+    horizontalPos.alt = parkAlt;
+
+    ln_lnlat_posn observer;
+
+    observer.lat = LocationN[LOCATION_LATITUDE].value;
+    observer.lng = LocationN[LOCATION_LONGITUDE].value;
+
+    if (observer.lng > 180)
+        observer.lng -= 360;
+
+    ln_equ_posn equatorialPos;
+
+    ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
+
+    char RAStr[16], DEStr[16];
+    fs_sexa(RAStr, equatorialPos.ra/15.0, 2, 3600);
+    fs_sexa(DEStr, equatorialPos.dec, 2, 3600);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Parking to RA (%s) DEC (%s)...", RAStr, DEStr);
+
+    if (Goto(equatorialPos.ra/15.0, equatorialPos.dec))
     {
         TrackState = SCOPE_PARKING;
         DEBUG(INDI::Logger::DBG_SESSION, "Parking is in progress...");
@@ -858,8 +890,33 @@ bool CelestronGPS::UnPark()
 
 void CelestronGPS::SetCurrentPark()
 {
-    SetAxis1Park(currentAZ);
-    SetAxis2Park(currentALT);
+    ln_hrz_posn horizontalPos;
+    // Libnova south = 0, west = 90, north = 180, east = 270
+
+    ln_lnlat_posn observer;
+    observer.lat = LocationN[LOCATION_LATITUDE].value;
+    observer.lng = LocationN[LOCATION_LONGITUDE].value;
+    if (observer.lng > 180)
+        observer.lng -= 360;
+
+    ln_equ_posn equatorialPos;
+    equatorialPos.ra   = currentRA * 15;
+    equatorialPos.dec  = currentDEC;
+    ln_get_hrz_from_equ(&equatorialPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
+
+    double parkAZ  = horizontalPos.az - 180;
+    if (parkAZ < 0)
+        parkAZ += 360;
+    double parkAlt = horizontalPos.alt;
+
+    char AzStr[16], AltStr[16];
+    fs_sexa(AzStr, parkAZ, 2, 3600);
+    fs_sexa(AltStr, parkAlt, 2, 3600);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Setting current parking position to coordinates Az (%s) Alt (%s)...", AzStr, AltStr);
+
+    SetAxis1Park(parkAZ);
+    SetAxis2Park(parkAlt);
 }
 
 void CelestronGPS::SetDefaultPark()
