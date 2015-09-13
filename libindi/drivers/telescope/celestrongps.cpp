@@ -419,7 +419,7 @@ bool CelestronGPS::ReadScopeStatus()
         return false;
     }
 
-    if (get_celestron_coords_azalt(PortFD, &currentAZ, &currentALT) == false)
+    if (get_celestron_coords_azalt(PortFD, LocationN[LOCATION_LATITUDE].value, &currentAZ, &currentALT) == false)
         DEBUG(INDI::Logger::DBG_WARNING, "Failed to read AZ/ALT values.");
     else
     {

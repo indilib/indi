@@ -81,7 +81,7 @@ bool get_celestron_dec_firmware(int fd, FirmwareInfo *info);
 /** Get RA/DEC */
 bool get_celestron_coords(int fd, double *ra, double *dec);
 /** Get Az/Alt */
-bool get_celestron_coords_azalt(int fd, double *az, double *alt);
+bool get_celestron_coords_azalt(int fd, double latitude, double *az, double *alt);
 /** Get UTC/Date/Time */
 bool get_celestron_utc_date_time(int fd, double *utc_hours, int *yy, int *mm, int *dd, int *hh, int *minute, int *ss);
 
@@ -104,9 +104,11 @@ bool set_celestron_datetime(int fd, struct ln_date *utc, double utc_offset);
 /**************************************************************************
  Utility functions
 **************************************************************************/
-unsigned int get_ra_fraction(double ra);
-unsigned int get_de_fraction(double de);
-unsigned int get_angle_fraction(double angle);
+uint16_t get_ra_fraction(double ra);
+uint16_t get_de_fraction(double de);
+uint16_t get_az_fraction(double az);
+uint16_t get_alt_fraction(double lat, double alt, double az);
+uint16_t get_angle_fraction(double angle);
 
 bool is_scope_slewing(int fd);
 

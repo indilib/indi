@@ -987,7 +987,7 @@ bool get_celestron_coords(int fd, double *ra, double *dec)
     return false;
 }
 
-bool get_celestron_coords_azalt(int fd, double *az, double *alt)
+bool get_celestron_coords_azalt(int fd, double latitude, double *az, double *alt)
 {
     char cmd[] = "Z";
     int errcode = 0;
@@ -1000,8 +1000,8 @@ bool get_celestron_coords_azalt(int fd, double *az, double *alt)
 
     if (celestron_simulation)
     {
-        int az_int = get_angle_fraction(simData.az);
-        int alt_int = get_angle_fraction(simData.alt);
+        int az_int = get_az_fraction(simData.az);
+        int alt_int = get_alt_fraction(latitude, simData.alt, simData.az);
         snprintf(response, 16, "%04X,%04X#", az_int, alt_int);
         nbytes_read = strlen(response);
     }
@@ -1025,22 +1025,22 @@ bool get_celestron_coords_azalt(int fd, double *az, double *alt)
     if (nbytes_read > 0)
     {
       tcflush(fd, TCIFLUSH);
-      response[nbytes_read] = '\0';
+      response[nbytes_read] = '\0';      
 
-      char az_str[16], alt_str[16];
-      memset(az_str, 0, 16);
-      memset(alt_str, 0, 16);
+      uint16_t CELESTRONAZ=0, CELESTRONALT=0;
 
-      strncpy(az_str, response, 4);
-      strncpy(alt_str, response+5, 4);
+      sscanf(response, "%hx,%hx#", &CELESTRONAZ, &CELESTRONALT);
 
-      int CELESTRONAZ  = strtol(az_str, NULL, 16);
-      int CELESTRONALT = strtol(alt_str, NULL, 16);     
+      *az  = ( (CELESTRONAZ -  0x4000) / 65536.0) * 360.0;
+      *alt = ( (CELESTRONALT - 0x4000) / 65536.0) * 360.0 + latitude;
 
-      *az  = (CELESTRONAZ / 65536.0) * 360.0;
-      *alt = (CELESTRONALT / 65536.0) * 360.0;
+      *az = range360(*az);
 
-      if (*alt > 90)
+      if (*alt > 90 && *alt <= 270)
+          *alt = 180 - *alt;
+      //else if (*alt > 180 && *alt < 270)
+        //  *alt = 180 - *alt;
+      else if (*alt > 270)
           *alt -= 360;
 
       char AzStr[16], AltStr[16];
@@ -1145,9 +1145,9 @@ bool set_celestron_datetime(int fd, struct ln_date *utc, double utc_offset)
     cmd[6] = local_date.years - 2000;
 
     if (utc_offset < 0)
-        cmd[7] = 256 - ((unsigned int) fabs(utc_offset));
+        cmd[7] = 256 - ((uint16_t) fabs(utc_offset));
     else
-        cmd[7] = ((unsigned int) fabs(utc_offset));
+        cmd[7] = ((uint16_t) fabs(utc_offset));
 
     // Always assume standard time
     cmd[8] = 0;
@@ -1333,29 +1333,57 @@ bool is_scope_slewing(int fd)
     return false;
 }
 
-unsigned int get_angle_fraction(double angle)
+uint16_t get_angle_fraction(double angle)
 {
     if (angle >= 0)
-        return ((unsigned int) (angle * 65536 / 360.0));
+        return ((uint16_t) (angle * 65536 / 360.0));
     else
-        return ((unsigned int) ((angle+360) * 65536 / 360.0));
+        return ((uint16_t) ((angle+360) * 65536 / 360.0));
 }
 
-unsigned int get_ra_fraction(double ra)
+uint16_t get_ra_fraction(double ra)
 {
-    return ((unsigned int) (ra * 15.0 * 65536 / 360.0));
+    return ((uint16_t) (ra * 15.0 * 65536 / 360.0));
 }
 
-unsigned int get_de_fraction(double de)
+uint16_t get_de_fraction(double de)
 {
-    unsigned int de_int=0;
+    uint16_t de_int=0;
 
     if (de >= 0)
-        de_int = (unsigned int) (de * 65536 / 360.0);
+        de_int = (uint16_t) (de * 65536 / 360.0);
     else
-        de_int = (unsigned int) ((de+360.0) * 65536 / 360.0);
+        de_int = (uint16_t) ((de+360.0) * 65536 / 360.0);
 
     return de_int;
+}
+
+uint16_t get_az_fraction(double az)
+{
+    return (uint16_t) (az * 65536 / 360.0) + 0x4000;
+}
+
+uint16_t get_alt_fraction(double lat, double alt, double az)
+{
+    uint16_t alt_int=0;
+
+    if (alt >= 0)
+    {
+        // North
+        if (az >= 270 || az <=90)
+            alt_int = (uint16_t) ((alt-lat) * 65536 / 360.0) + 0x4000;
+        else
+            alt_int = (uint16_t) ( (180 - (lat + alt)) * 65536 / 360.0) + 0x4000;
+    }
+    else
+    {
+        if (az >= 270 || az <=90)
+            alt_int = (uint16_t) ((360 - lat + alt) * 65536 / 360.0) + 0x4000;
+        else
+            alt_int = (uint16_t) ( (180 - (lat + alt)) * 65536 / 360.0) + 0x4000;
+    }
+
+    return alt_int;
 }
 
 
