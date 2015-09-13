@@ -770,7 +770,7 @@ bool slew_celestron(int fd, double ra, double dec)
     return false;
 }
 
-bool slew_celestron_azalt(int fd, double az, double alt)
+bool slew_celestron_azalt(int fd, double latitude, double az, double alt)
 {
     char cmd[16];
     int errcode = 0;
@@ -779,10 +779,10 @@ bool slew_celestron_azalt(int fd, double az, double alt)
     int nbytes_read=0;
     int nbytes_written=0;
 
-    int az_int, alt_int;
+    uint16_t az_int, alt_int;
 
-    az_int  = get_angle_fraction(az);
-    alt_int = get_angle_fraction(alt);
+    az_int  = get_az_fraction(az);
+    alt_int = get_alt_fraction(latitude, alt, az);
 
     char AzStr[16], AltStr[16];
     fs_sexa(AzStr, az, 3, 3600);

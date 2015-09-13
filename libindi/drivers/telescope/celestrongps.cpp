@@ -324,7 +324,7 @@ bool CelestronGPS::GotoAzAlt(double az, double alt)
         targetDEC = equatorialPos.dec;
     }
 
-    if (slew_celestron_azalt(PortFD, az, alt) == false)
+    if (slew_celestron_azalt(PortFD, LocationN[LOCATION_LATITUDE].value, az, alt) == false)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Failed to slew telescope in Az/Alt.");
         return false;

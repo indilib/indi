@@ -92,7 +92,7 @@ bool start_celestron_motion(int fd, CELESTRON_DIRECTION dir, CELESTRON_SLEW_RATE
 bool stop_celestron_motion(int fd, CELESTRON_DIRECTION dir);
 bool abort_celestron(int fd);
 bool slew_celestron(int fd, double ra, double dec);
-bool slew_celestron_azalt(int fd, double az, double alt);
+bool slew_celestron_azalt(int fd, double latitude, double az, double alt);
 bool sync_celestron(int fd, double ra, double dec);
 
 /**************************************************************************
