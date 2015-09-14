@@ -552,11 +552,11 @@ bool CelestronGPS::ISNewSwitch (const char *dev, const char *name, ISState *stat
                if (!strcmp(names[i], "TRACK_OFF") && states[i] == ISS_ON)
                    return setTrackMode(TRACK_OFF);
                else if (!strcmp(names[i], "TRACK_ALTAZ") && states[i] == ISS_ON)
-                   return setTrackMode(TRACK_OFF);
+                   return setTrackMode(TRACK_ALTAZ);
                else if (!strcmp(names[i], "TRACK_EQN") && states[i] == ISS_ON)
-                   return setTrackMode(TRACK_OFF);
+                   return setTrackMode(TRACK_EQN);
                else if (!strcmp(names[i], "TRACK_EQS") && states[i] == ISS_ON)
-                   return setTrackMode(TRACK_OFF);
+                   return setTrackMode(TRACK_EQS);
 
            }
 

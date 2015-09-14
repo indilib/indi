@@ -1346,8 +1346,9 @@ bool get_celestron_track_mode(int fd, CELESTRON_TRACK_MODE *mode)
 
     if (celestron_simulation)
     {
-        strcpy(response, "2#");
-        nbytes_read = strlen(response);
+        response[0] = 2;
+        response[1] = '#';
+        nbytes_read = 2;
     }
     else
     {
