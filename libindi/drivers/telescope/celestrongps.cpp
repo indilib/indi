@@ -128,6 +128,12 @@ bool CelestronGPS::initProperties()
     IUFillNumber(&HorizontalCoordsN[AXIS_ALT], "ALT", "Alt  D:M:S", "%10.6m", -90., 90.0, 0.0, 0);
     IUFillNumberVector(&HorizontalCoordsNP, HorizontalCoordsN, 2, getDeviceName(), "HORIZONTAL_COORD", "Horizontal Coord", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
+    IUFillSwitch(&TrackS[0], "TRACK_OFF", "Off", ISS_OFF);
+    IUFillSwitch(&TrackS[1], "TRACK_ATLAZ", "Alt/Az", ISS_OFF);
+    IUFillSwitch(&TrackS[2], "TRACK_EQN", "Eq North", ISS_OFF);
+    IUFillSwitch(&TrackS[3], "TRACK_EQS", "Eq South", ISS_OFF);
+    IUFillSwitchVector(&TrackSP, TrackS, 4, getDeviceName(), "TELESCOPE_TRACK_RATE", "Track Mode", MOUNTINFO_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
     SetParkDataType(PARK_AZ_ALT);
 
     addAuxControls();
@@ -146,6 +152,7 @@ void CelestronGPS::ISGetProperties(const char *dev)
     {
         //defineNumber(&HorizontalCoordsNP);
         defineSwitch(&SlewRateSP);
+        defineSwitch(&TrackSP);
         if (fwInfo.Version != "Invalid")
             defineText(&FirmwareTP);
     }    
@@ -194,10 +201,22 @@ bool CelestronGPS::updateProperties()
 
     if (isConnected())
     {
-        //defineNumber(&HorizontalCoordsNP);
+        CELESTRON_TRACK_MODE mode;
+        if (get_celestron_track_mode(PortFD, &mode))
+        {
+            IUResetSwitch(&TrackSP);
+            TrackS[mode].s = ISS_ON;
+            TrackSP.s = IPS_OK;
+
+            if (mode == TRACK_OFF)
+                DEBUG(INDI::Logger::DBG_SESSION, "Mount tracking is off.");
+        }
+        else
+            TrackSP.s = IPS_ALERT;
+
+        defineSwitch(&TrackSP);
         if (fwInfo.Version != "Invalid")
             defineText(&FirmwareTP);
-
 
         if (InitPark())
         {
@@ -216,7 +235,7 @@ bool CelestronGPS::updateProperties()
     }
     else
     {
-        //deleteProperty(HorizontalCoordsNP.name);
+        deleteProperty(TrackSP.name);
         if (fwInfo.Version != "Invalid")
             deleteProperty(FirmwareTP.name);
     }
@@ -443,6 +462,9 @@ bool CelestronGPS::ReadScopeStatus()
         // are we done?
         if (is_scope_slewing(PortFD) == false)
         {
+            if (set_celestron_track_mode(PortFD, TRACK_OFF))
+                DEBUG(INDI::Logger::DBG_DEBUG, "Mount tracking is off.");
+
             SetParked(true);
             HorizontalCoordsNP.s = IPS_OK;
         }
@@ -517,6 +539,31 @@ bool CelestronGPS::Disconnect()
     return true;
 }
 
+bool CelestronGPS::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+{
+    if (!strcmp (getDeviceName(), dev))
+    {
+        if (!strcmp(name, TrackSP.name))
+        {
+           for (int i=0; i < n; i++)
+           {
+               if (!strcmp(names[i], "TRACK_OFF") && states[i] == ISS_ON)
+                   return setTrackMode(TRACK_OFF);
+               else if (!strcmp(names[i], "TRACK_ALTAZ") && states[i] == ISS_ON)
+                   return setTrackMode(TRACK_OFF);
+               else if (!strcmp(names[i], "TRACK_EQN") && states[i] == ISS_ON)
+                   return setTrackMode(TRACK_OFF);
+               else if (!strcmp(names[i], "TRACK_EQS") && states[i] == ISS_ON)
+                   return setTrackMode(TRACK_OFF);
+
+           }
+
+           return false;
+        }
+    }
+
+    return INDI::Telescope::ISNewSwitch (dev, name, states, names,  n);
+}
 
 bool CelestronGPS::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
@@ -846,6 +893,8 @@ bool CelestronGPS::Park()
 
 bool CelestronGPS::UnPark()
 {
+    loadConfig(true, "TELESCOPE_TRACK_RATE");
+
     double parkAZ  = GetAxis1Park();
     double parkAlt = GetAxis2Park();
 
@@ -928,3 +977,27 @@ void CelestronGPS::SetDefaultPark()
     SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
 }
 
+bool CelestronGPS::saveConfigItems(FILE *fp)
+{
+    INDI::Telescope::saveConfigItems(fp);
+
+    IUSaveConfigSwitch(fp, &TrackSP);
+
+    return true;
+}
+
+bool CelestronGPS::setTrackMode(CELESTRON_TRACK_MODE mode)
+{
+    if (set_celestron_track_mode(PortFD, mode))
+    {
+        IUResetSwitch(&TrackSP);
+        TrackS[mode].s = ISS_ON;
+        TrackSP.s = IPS_OK;
+        IDSetSwitch(&TrackSP, NULL);
+
+        return true;
+    }
+
+    TrackSP.s = IPS_ALERT;
+    return false;
+}

@@ -43,6 +43,7 @@ class CelestronGPS : public INDI::Telescope
  virtual bool ReadScopeStatus();
  virtual void ISGetProperties(const char *dev);
  virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+ virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
  virtual bool initProperties();
  virtual bool updateProperties();
 
@@ -66,6 +67,8 @@ protected:
  virtual void SetCurrentPark();
  virtual void SetDefaultPark();
 
+ virtual bool saveConfigItems(FILE *fp);
+
  virtual void simulationTriggered(bool enable);
 
  void mountSim();
@@ -77,7 +80,13 @@ protected:
  INumberVectorProperty HorizontalCoordsNP;
  INumber HorizontalCoordsN[2];
 
+ ISwitch TrackS[4];
+ ISwitchVectorProperty TrackSP;
+
 private:  
+
+ bool setTrackMode(CELESTRON_TRACK_MODE mode);
+
   int PortFD;
   double currentRA, currentDEC, currentAZ, currentALT;
   double targetRA, targetDEC, targetAZ, targetALT;

@@ -1333,6 +1333,114 @@ bool is_scope_slewing(int fd)
     return false;
 }
 
+bool get_celestron_track_mode(int fd, CELESTRON_TRACK_MODE *mode)
+{
+    char cmd[] = "t";
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[8];
+    int nbytes_read=0;
+    int nbytes_written=0;
+
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
+    if (celestron_simulation)
+    {
+        strcpy(response, "2#");
+        nbytes_read = strlen(response);
+    }
+    else
+    {
+        if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+
+        if ( (errcode = tty_read(fd, response, 2, CELESTRON_TIMEOUT, &nbytes_read)))
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+    }
+
+    if (nbytes_read > 0)
+    {
+      response[nbytes_read] = '\0';
+      DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+
+      tcflush(fd, TCIFLUSH);
+
+      *mode = ((CELESTRON_TRACK_MODE) response[0]);
+
+      return true;
+    }
+
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "Received #%d bytes, expected 1.", nbytes_read);
+    return false;
+
+}
+
+bool set_celestron_track_mode(int fd, CELESTRON_TRACK_MODE mode)
+{
+    char cmd[2];
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[8];
+    int nbytes_read=0;
+    int nbytes_written=0;
+
+    cmd[0] = 'T';
+    cmd[1] = mode;
+
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
+    if (celestron_simulation)
+    {
+        strcpy(response, "#");
+        nbytes_read = strlen(response);
+    }
+    else
+    {
+        if ( (errcode = tty_write(fd, cmd, 2, &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+
+        if ( (errcode = tty_read(fd, response, 1, CELESTRON_TIMEOUT, &nbytes_read)))
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+    }
+
+    if (nbytes_read > 0)
+    {
+      response[nbytes_read] = '\0';
+      DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+
+      if (!strcmp(response, "#"))
+      {
+          tcflush(fd, TCIFLUSH);
+          return true;
+      }
+      else
+      {
+          DEBUGDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "Error setting tracking mode.");
+          tcflush(fd, TCIFLUSH);
+          return false;
+      }
+    }
+
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "Received #%d bytes, expected 1.", nbytes_read);
+    return false;
+}
+
 uint16_t get_angle_fraction(double angle)
 {
     if (angle >= 0)

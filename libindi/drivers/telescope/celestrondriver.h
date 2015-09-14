@@ -25,6 +25,7 @@
 
 typedef enum     { GPS_OFF, GPS_ON } CELESTRON_GPS_STATUS;
 typedef enum     { SR_1, SR_2, SR_3, SR_4, SR_5, SR_6, SR_7, SR_8, SR_9} CELESTRON_SLEW_RATE;
+typedef enum     { TRACK_OFF, TRACK_ALTAZ, TRACK_EQN, TRACK_EQS} CELESTRON_TRACK_MODE;
 typedef enum     { RA_AXIS, DEC_AXIS } CELESTRON_AXIS;
 typedef enum     { CELESTRON_N, CELESTRON_S, CELESTRON_W, CELESTRON_E} CELESTRON_DIRECTION;
 typedef enum     { FW_MODEL, FW_VERSION, FW_GPS, FW_RA, FW_DEC } CELESTRON_FIRMWARE;
@@ -100,6 +101,12 @@ bool sync_celestron(int fd, double ra, double dec);
 **************************************************************************/
 bool set_celestron_location(int fd, double longitude, double latitude);
 bool set_celestron_datetime(int fd, struct ln_date *utc, double utc_offset);
+
+/**************************************************************************
+ Track Mode
+**************************************************************************/
+bool get_celestron_track_mode(int fd, CELESTRON_TRACK_MODE *mode);
+bool set_celestron_track_mode(int fd, CELESTRON_TRACK_MODE mode);
 
 /**************************************************************************
  Utility functions
