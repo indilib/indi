@@ -467,6 +467,8 @@ bool CelestronGPS::ReadScopeStatus()
 
             SetParked(true);
             HorizontalCoordsNP.s = IPS_OK;
+
+            saveConfig(true);
         }
         break;
 
