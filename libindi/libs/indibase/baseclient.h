@@ -154,6 +154,19 @@ public:
     /** \brief Send closing tag for BLOB command to server */
     void finishBlob();
 
+    /**
+     * @brief setVerbose Set verbose mode
+     * @param enable If true, enable <b>FULL</b> verbose output. Any XML message received, including BLOBs, are printed on
+     * standard output. Only use this for debugging purposes.
+     */
+    void setVerbose(bool enable) { verbose = enable; }
+
+    /**
+     * @brief isVerbose Is client in verbose mode?
+     * @return Is client in verbose mode?
+     */
+    bool isVerbose() const { return verbose; }
+
 protected:
 
     /** \brief Dispatch command received from INDI server to respective devices handled by the client */
@@ -197,6 +210,7 @@ private:
     string cServer;
     unsigned int cPort;
     bool sConnected;
+    bool verbose;
 
     // Parse & FILE buffers for IO
     int sockfd;

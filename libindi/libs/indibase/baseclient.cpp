@@ -241,12 +241,20 @@ void INDI::BaseClient::listenINDI()
 
     setlocale(LC_NUMERIC,"C");
     if (cDeviceNames.empty())
+    {
        fprintf(svrwfp, "<getProperties version='%g'/>\n", INDIV);
+       if (verbose)
+           fprintf(stderr, "<getProperties version='%g'/>\n", INDIV);
+    }
     else
     {
         vector<string>::const_iterator stri;
         for ( stri = cDeviceNames.begin(); stri != cDeviceNames.end(); stri++)
+        {
             fprintf(svrwfp, "<getProperties version='%g' device='%s'/>\n", INDIV, (*stri).c_str());
+            if (verbose)
+                fprintf(stderr, "<getProperties version='%g' device='%s'/>\n", INDIV, (*stri).c_str());
+        }
     }
     setlocale(LC_NUMERIC,"");
 
@@ -304,12 +312,13 @@ void INDI::BaseClient::listenINDI()
 
             for (int i=0; i < n; i++)
             {
-              // IDLog("Getting #%d bytes in for loop, calling readXMLEle for byte %d\n", n, i);
-                XMLEle *root = readXMLEle (lillp, buffer[i], msg);
-                //IDLog("############# BLOCK # POST READ XML ELE #####################\n");
+               XMLEle *root = readXMLEle (lillp, buffer[i], msg);
 
                 if (root)
                 {
+                    if (verbose)
+                        prXMLEle(stderr, root, 0);
+
                     if ( (err_code = dispatchCommand(root, msg)) < 0)
                     {
                          // Silenty ignore property duplication errors
@@ -320,6 +329,7 @@ void INDI::BaseClient::listenINDI()
                          }
                     }
 
+
                    delXMLEle (root);	// not yet, delete and continue
                 }
                 else if (msg[0])
@@ -328,6 +338,8 @@ void INDI::BaseClient::listenINDI()
                    return;
                 }
             }
+
+
         }
 
     }
