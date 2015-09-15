@@ -547,6 +547,14 @@ bool CelestronGPS::ISNewSwitch (const char *dev, const char *name, ISState *stat
     {
         if (!strcmp(name, TrackSP.name))
         {
+            // Don't update tracking if mount is already parked.
+            if (isParked())
+            {
+                TrackSP.s = IPS_IDLE;
+                IDSetSwitch(&TrackSP, NULL);
+                return true;
+            }
+
            for (int i=0; i < n; i++)
            {
                if (!strcmp(names[i], "TRACK_OFF") && states[i] == ISS_ON)
@@ -894,9 +902,7 @@ bool CelestronGPS::Park()
 }
 
 bool CelestronGPS::UnPark()
-{
-    loadConfig(true, "TELESCOPE_TRACK_RATE");
-
+{    
     double parkAZ  = GetAxis1Park();
     double parkAlt = GetAxis2Park();
 
@@ -932,6 +938,7 @@ bool CelestronGPS::UnPark()
     if (Sync(equatorialPos.ra/15.0, equatorialPos.dec))
     {
         SetParked(false);
+        loadConfig(true, "TELESCOPE_TRACK_RATE");
         return true;
     }
     else
