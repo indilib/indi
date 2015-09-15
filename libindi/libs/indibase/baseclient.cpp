@@ -42,6 +42,7 @@ INDI::BaseClient::BaseClient()
     cPort   = 7624;
     svrwfp = NULL;    
     sConnected = false;
+    verbose = false;
 
 }
 
