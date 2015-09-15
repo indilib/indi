@@ -129,7 +129,7 @@ bool CelestronGPS::initProperties()
     IUFillNumberVector(&HorizontalCoordsNP, HorizontalCoordsN, 2, getDeviceName(), "HORIZONTAL_COORD", "Horizontal Coord", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     IUFillSwitch(&TrackS[0], "TRACK_OFF", "Off", ISS_OFF);
-    IUFillSwitch(&TrackS[1], "TRACK_ATLAZ", "Alt/Az", ISS_OFF);
+    IUFillSwitch(&TrackS[1], "TRACK_ALTAZ", "Alt/Az", ISS_OFF);
     IUFillSwitch(&TrackS[2], "TRACK_EQN", "Eq North", ISS_OFF);
     IUFillSwitch(&TrackS[3], "TRACK_EQS", "Eq South", ISS_OFF);
     IUFillSwitchVector(&TrackSP, TrackS, 4, getDeviceName(), "TELESCOPE_TRACK_RATE", "Track Mode", MOUNTINFO_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
