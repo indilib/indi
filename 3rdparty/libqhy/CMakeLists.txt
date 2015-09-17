@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 PROJECT(libqhy C CXX)
 
-set(LIBQHY_VERSION "0.1.5")
+set(LIBQHY_VERSION "0.1.7")
 set(LIBQHY_SOVERSION "0")
 
 IF (APPLE)

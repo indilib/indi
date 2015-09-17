@@ -32,16 +32,11 @@
 #endif
 
 #ifdef LINUX
-#ifdef OSX_EMBEDED_MODE
-#include <libusb.h>
-#else
 #include <libusb-1.0/libusb.h>
-#endif
 #endif
 
 #ifdef WIN32
 #include <windows.h>
-#include "CyAPI.h"
 #endif
 
 #ifndef __QHYCCDSTRUCTDEF_H__
@@ -62,25 +57,6 @@
  #define STDCALL
  #define EXPORTC
 #endif
-/**
- * typedef the libusb_deivce qhyccd_device
- */
-#ifdef LINUX
-typedef struct libusb_device qhyccd_device;
-#endif
-#ifdef WIN32
-typedef void* qhyccd_device;
-#endif
-
-/**
- * typedef the libusb_deivce_handle qhyccd_handle
- */
-#ifdef LINUX
-typedef struct libusb_device_handle qhyccd_handle;
-#endif
-#ifdef WIN32
-typedef CCyUSBDevice qhyccd_handle;
-#endif
 
 /**
  * usb vendor request command
@@ -91,6 +67,10 @@ typedef CCyUSBDevice qhyccd_handle;
  * usb vendor request command
  */
 #define QHYCCD_REQUEST_WRITE 0x40
+
+#define MACHANICALSHUTTER_OPEN  0
+#define MACHANICALSHUTTER_CLOSE 1
+#define MACHANICALSHUTTER_FREE  2
 
 /**
  * @brief CCDREG struct define
@@ -175,7 +155,19 @@ enum CONTROL_ID
     CAM_BIN1X1MODE,         /* check if camera has bin1x1 mode */
     CAM_BIN2X2MODE,         /* check if camera has bin2x2 mode */
     CAM_BIN3X3MODE,         /* check if camera has bin3x3 mode */
-    CAM_BIN4X4MODE          /* check if camera has bin4x4 mode */
+    CAM_BIN4X4MODE,         /* check if camera has bin4x4 mode */
+
+    CAM_MECHANICALSHUTTER,
+    CAM_TRIGER_INTERFACE,
+    CAM_TECOVERPROTECT_INTERFACE,
+    CAM_SINGNALCLAMP_INTERFACE,
+    CAM_FINETONE_INTERFACE,
+    CAM_SHUTTERMOTORHEATING_INTERFACE,
+    CAM_CALIBRATEFPN_INTERFACE,
+    CAM_CHIPTEMPERATURESENSOR_INTERFACE,
+    CAM_USBREADOUTSLOWEST_INTERFACE,
+	CAM_8BITS,
+	CAM_16BITS
 };
 
 /**
@@ -190,8 +182,8 @@ enum BAYER_ID
 
 enum CodecID
 {
-	NONE_CODEC,
-	H261_CODEC
+    NONE_CODEC,
+    H261_CODEC
 };
 
 #endif

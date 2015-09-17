@@ -883,8 +883,10 @@
 3rdparty/libfli/libfli.h -text
 3rdparty/libqhy/85-qhy.rules -text
 3rdparty/libqhy/CMakeLists.txt -text
+3rdparty/libqhy/firmware/IC16200A.HEX -text
 3rdparty/libqhy/firmware/IC16803.HEX -text
 3rdparty/libqhy/firmware/IC8300.HEX -text
+3rdparty/libqhy/firmware/IC90A.HEX -text
 3rdparty/libqhy/firmware/IMG0H.HEX -text
 3rdparty/libqhy/firmware/IMG2P.HEX -text
 3rdparty/libqhy/firmware/IMG2S.HEX -text

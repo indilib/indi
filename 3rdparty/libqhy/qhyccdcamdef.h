@@ -30,7 +30,7 @@
 #ifndef __QHYCCDCAMDEF_H__
 #define __QHYCCDCAMDEF_H__
 
-
+//#define GIGAESUPPORT
 
 /**
  * Type define for IMG0S */
@@ -53,8 +53,25 @@
 #define DEVICETYPE_IMG1S        10
 
 /**
+ * Type define for QHY16 */
+#define DEVICETYPE_QHY16        16
+
+/**
  * Type define for IMG2S */
 #define DEVICETYPE_IMG2S        20
+
+
+/**
+ * Type define for QHY5LII_COOL */
+#define DEVICETYPE_QHY5LII_COOL 58
+
+/**
+ * Type define for QHY6 */
+#define DEVICETYPE_QHY6         60
+
+/**
+ * Type define for QHY7 */
+#define DEVICETYPE_QHY7         70
 
 /**
  * Type define for IMG1E */
@@ -73,36 +90,8 @@
 #define DEVICETYPE_QHY8         400
 
 /**
- * Type define for QHY8L */
-#define DEVICETYPE_QHY8L        891
-
-/**
  * Type define for QHY8PRO */
 #define DEVICETYPE_QHY8PRO      453
-
-/**
- * Type define for QHY10 */
-#define DEVICETYPE_QHY10        893
-
-/**
- * Type define for QHY12 */
-#define DEVICETYPE_QHY12        613
-
-/**
- * Type define for QHY9S */
-#define DEVICETYPE_QHY9S        892
-
-/**
- * Type define for QHY11 */
-#define DEVICETYPE_QHY11        894
-
-/**
- * Type define for IC8300 */
-#define DEVICETYPE_IC8300       890
-
-/**
- * Type define for QHY16 */
-#define DEVICETYPE_QHY16        16
 
 /**
  * Type define for QHY5II */
@@ -133,10 +122,6 @@
 #define DEVICETYPE_QHY5HII      358
 
 /**
- * Type define for QHY5LII_COOL */
-#define DEVICETYPE_QHY5LII_COOL 58
-
-/**
  * Type define for QHYXXX */
 #define DEVICETYPE_MINICAM5S_M  359
 
@@ -160,6 +145,29 @@
  * Type define for QHY5PII_C */
 #define DEVICETYPE_QHY5PII_C    366
 
+/**
+ * Type define for QHY12 */
+#define DEVICETYPE_QHY12        613
+
+/**
+ * Type define for IC8300 */
+#define DEVICETYPE_IC8300       890
+
+/**
+ * Type define for QHY9S */
+#define DEVICETYPE_QHY9S        892
+
+/**
+ * Type define for QHY10 */
+#define DEVICETYPE_QHY10        893
+
+/**
+ * Type define for QHY8L */
+#define DEVICETYPE_QHY8L        891
+
+/**
+ * Type define for QHY11 */
+#define DEVICETYPE_QHY11        894
 
 /**
  * Type define for QHY21 */
@@ -182,13 +190,13 @@
 #define DEVICETYPE_QHY27        899
 
 /**
- * Type define for QHYA9 */
-#define DEVICETYPE_QHYA9        900
+ * Type define for IC90A */
+#define DEVICETYPE_IC90A        900
 
 
 /**
- * Type define for QHYAPS */
-#define DEVICETYPE_QHYAPS       901
+ * Type define for IC16200A */
+#define DEVICETYPE_IC16200A     901
 
 /**
  * Type define for QHY28 */
@@ -219,24 +227,39 @@
 #define DEVICETYPE_SOLAR1600    908
 
 /**
- * Type define for QHY6 */
-#define DEVICETYPE_QHY6         60
+ * Type define for QHY5PII_M */
+#define DEVICETYPE_QHY5PII_M    909
 
 /**
- * Type define for QHY7 */
-#define DEVICETYPE_QHY7         70
+ * Type define for Titan034 */
+#define DEVICETYPE_TITAN034     910
+
+/**
+ * Type define for QHY5TII */
+#define DEVICETYPE_QHY5TII_C    911
+
+/**
+ * Type define for POLEMASTER */
+#define DEVICETYPE_POLEMASTER   912
 
 /**
  * Type define for QHY15GIGAE */
-#define DEVICETYPE_QHY15GIGAE   9000
+#define DEVICETYPE_QHY15G       9000
 
 /**
  * Type define for SOLAR800G */
 #define DEVICETYPE_SOLAR800G    9001
 
-/**
- * Type define for SIMULOTOR */
-#define DEVICETYPE_SIMULATOR    0xffff
+#define DEVICETYPE_A0340G       9003
+
+#define DEVICETYPE_QHY08050G    9004
+
+#define DEVICETYPE_QHY694G      9005
+
+#define DEVICETYPE_QHY27G       9006
+
+#define DEVICETYPE_QHY23G       9007
+
 
 /**
  * Type define for UNKNOW */
