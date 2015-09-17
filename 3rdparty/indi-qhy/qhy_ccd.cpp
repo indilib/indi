@@ -516,6 +516,12 @@ bool QHYCCD::Connect()
             return false;
         }
 
+        ret = IsQHYCCDControlAvailable(camhandle,CAM_MECHANICALSHUTTER);
+        if(ret == QHYCCD_SUCCESS)
+        {
+            cap.hasShutter = true;
+        }
+
         ret = IsQHYCCDControlAvailable(camhandle,CONTROL_COOLER);
         if(ret == QHYCCD_SUCCESS)
         {
@@ -668,6 +674,14 @@ bool QHYCCD::StartExposure(float duration)
   {
     duration = MINIMUM_CCD_EXPOSURE;
     DEBUGF(INDI::Logger::DBG_SESSION, "Bias Frame (s) : %g", duration);
+  }
+  else if(imageFrameType == CCDChip::DARK_FRAME)
+  {
+      ControlQHYCCDShutter(camhandle,MACHANICALSHUTTER_CLOSE);
+  }
+  else
+  {
+      ControlQHYCCDShutter(camhandle,MACHANICALSHUTTER_FREE);
   }
 
   DEBUGF(INDI::Logger::DBG_DEBUG, "Current exposure time is %f us",duration * 1000 * 1000);
@@ -960,18 +974,36 @@ IPState QHYCCD::GuideWest(float duration)
 
 bool QHYCCD::SelectFilter(int position)
 {
+    char targetpos;
+    char currentpos[64];
+    int checktimes = 0;
+
+
     int ret;
     if (sim)
         ret = QHYCCD_SUCCESS;
     else
     {
-        char pos;
-        sprintf(&pos,"%d",position - 1);
-        ret = SendOrder2QHYCCDCFW(camhandle,&pos,1);
+        sprintf(&targetpos,"%d",position - 1);
+        ret = SendOrder2QHYCCDCFW(camhandle,&targetpos,1);
     }
 
     if(ret == QHYCCD_SUCCESS)
     {
+        while(checktimes < 90)
+        {
+            ret = GetQHYCCDCFWStatus(camhandle,currentpos);
+            if(ret == QHYCCD_SUCCESS)
+            {
+                
+                if((targetpos + 1) == currentpos[0])
+                {
+                    break;
+                }
+            }
+            checktimes++;
+        }
+
         CurrentFilter = position;
         SelectFilterDone(position);
         DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Filter changed to %d", camid, position);

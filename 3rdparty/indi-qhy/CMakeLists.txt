@@ -12,7 +12,7 @@ find_package(ZLIB REQUIRED)
 find_package(USB-1 REQUIRED)
 
 set(INDI_QHY_VERSION_MAJOR 1)
-set(INDI_QHY_VERSION_MINOR 4)
+set(INDI_QHY_VERSION_MINOR 5)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
