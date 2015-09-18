@@ -427,7 +427,7 @@ bool MICCD::Connect()
         return false;
     }
 
-   DEBUGF(INDI::Logger::DBG_SESSION, "Connected to %s. Chip: %s. HWRevision: %ld. Description: %s", name, cameraInfo.chip, cameraInfo.hwrevision, cameraInfo.description);
+   DEBUGF(INDI::Logger::DBG_SESSION, "Connected to %s. Chip: %s. HWRevision: %ld. Model: %d. Description: %s", name, cameraInfo.chip, cameraInfo.hwrevision, cameraHandle.model, cameraInfo.description);
 
    cap.canSubFrame = true;
    cap.hasGuideHead = false;
