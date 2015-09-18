@@ -166,8 +166,11 @@ void ISInit()
               fprintf(stderr, "Error connecting to MI camera (%#06x:%#06x): %s.", MI_VID, cam_pid[i], strerror(ret));
               return;
           }
-
-          cameras[i] = new MICCD(&cameraHandle[i]);
+          else
+          {
+              fprintf(stderr, "Connected to MI camera (%#06x:%#06x)", MI_VID, cam_pid[i]);
+              cameras[i] = new MICCD(&cameraHandle[i]);
+          }
       }
 
       atexit(cleanup);
@@ -267,9 +270,14 @@ MICCD::MICCD(camera_t *miHandle)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Error getting MI camera info: %s.", strerror(ret));
         strncpy(this->name, "MI CCD", MAXINDIDEVICE);
+        miccd_close(miHandle);
+        cameraHandle->fd = -1;
     }
     else
+    {
         snprintf(this->name, MAXINDINAME, "MI CCD %s", cameraInfo.description);
+        DEBUGF(INDI::Logger::DBG_SESSION, "Detected %s", this->name);
+    }
 
     HasFilters = false;
     isDark = false;
@@ -416,6 +424,13 @@ bool MICCD::updateProperties()
 
 bool MICCD::Connect()
 {
+
+    if (cameraHandle->fd == -1)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Error retrieving camera info. Unplug and cycle power and restart INDI driver before you try again.");
+        return false;
+    }
+
     sim = isSimulation();
 
     CCDCapability cap;
