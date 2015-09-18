@@ -105,6 +105,7 @@ int miList(const char **names, int *pids, int maxCount)
             fprintf(stderr, "miList: '%s' [0x%x, 0x%x] found\n", MI_PIDS[i].name, MI_VID, pid);
             pids[count]  = MI_PIDS[i].pid;
             names[count] = MI_PIDS[i].name;
+            count++;
             libusb_ref_device(device);
             break;
           }
@@ -152,11 +153,8 @@ void ISInit()
       for(int i = 0;i < cameraCount;i++)
           cameras[i] = new MICCD(cam_pid[i], cam_name[i]);
 
-      if(cameraCount > 0)
-      {
-          atexit(cleanup);
-          isInit = true;
-      }
+      atexit(cleanup);
+      isInit = true;
   }
 }
 
@@ -520,9 +518,7 @@ bool MICCD::StartExposure(float duration)
     duration = MINIMUM_CCD_EXPOSURE;
   }
 
-  imageFrameType = PrimaryCCD.getFrameType();
-
-  uint8_t lowNoiseMode = (IUFindOnSwitchIndex(&NoiseSP) > 0) ? 1 : 0;
+  imageFrameType = PrimaryCCD.getFrameType();  
 
   if (imageFrameType == CCDChip::BIAS_FRAME)
   {
@@ -545,6 +541,8 @@ bool MICCD::StartExposure(float duration)
       // Older G1 models
       if (cameraHandle.model <= G12000)
       {
+          uint8_t lowNoiseMode = (IUFindOnSwitchIndex(&NoiseSP) > 0) ? 1 : 0;
+
           if ( (ret = miccd_g1_mode (&cameraHandle, 1, lowNoiseMode)) < 0)
           {
               DEBUGF(INDI::Logger::DBG_ERROR, "miccd_g1_mode error: %s.", strerror(ret));
@@ -558,6 +556,7 @@ bool MICCD::StartExposure(float duration)
               return false;
           }*/
       }
+      //G2/G3/G4 models
       else
       {
           if ( (ret = miccd_hclear (&cameraHandle)) < 0)
@@ -590,7 +589,7 @@ bool MICCD::StartExposure(float duration)
 
 bool MICCD::AbortExposure()
 {
-    int ret;
+    int ret=0;
 
     if (!InExposure || sim)
     {
@@ -608,6 +607,7 @@ bool MICCD::AbortExposure()
             return false;
         }
     }
+    // G2/G3/G4 models
     else
     {
         if (isDark)
@@ -723,6 +723,7 @@ int MICCD::grabImage()
             return false;
         }
     }
+    // G2/G2/G4 models
     else
     {
         if (isDark)
