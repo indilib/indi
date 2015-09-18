@@ -415,7 +415,14 @@ bool MICCD::Connect()
         return true;
     }
 
-    if ( (ret = miccd_open(pid, &cameraHandle)) < 0)
+    // The product ID is unique to each camera it seems
+    // But we can't get product ID (from cameraInfo) unless we an open first
+    // and we can't do open, unless we have product ID or pass 0 to connect to first
+    // camera. But then how can we know the product ID of the 2nd camera? MI has to answer that!
+    // For now we are just connecting to first camera.
+    //if ( (ret = miccd_open(pid, &cameraHandle)) < 0)
+
+    if ( (ret = miccd_open(0, &cameraHandle)) < 0)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Error connecting to MI camera (%#06x:%#06x): %s.", MI_VID, pid, strerror(ret));
         return false;
@@ -477,7 +484,7 @@ bool MICCD::setupParams()
     if (sim)
         SetCCDParams(4032,2688,16,9,9);
     else
-        SetCCDParams(cameraInfo.w, cameraInfo.h, 16, cameraInfo.pw, cameraInfo.ph);
+        SetCCDParams(cameraInfo.w, cameraInfo.h, 16, cameraInfo.pw/1000.0, cameraInfo.ph/1000.0);
 
 
     int nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
