@@ -163,7 +163,7 @@ void ISInit()
 
           if ( (ret = miccd_open(0, &cameraHandle[i])) < 0)
           {
-              fprintf(stderr, "Error connecting to MI camera (%#06x:%#06x): %s.", MI_VID, cam_pid[i], strerror(ret));
+              fprintf(stderr, "Error connecting to MI camera (%#06x:%#06x): %s. Please unplug the CCD and cycle the power and restart INDI driver before trying again.", MI_VID, cam_pid[i], strerror(ret));
               return;
           }
           else
@@ -500,6 +500,8 @@ bool MICCD::Disconnect()
 
 bool MICCD::setupParams()
 {
+    int ret = 0;
+
     if (sim)
         SetCCDParams(4032,2688,16,9,9);
     else
@@ -509,6 +511,22 @@ bool MICCD::setupParams()
     int nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
     nbuf += 512;
     PrimaryCCD.setFrameBufferSize(nbuf);
+
+    // Get Gain, does it change?
+    uint16_t gain=0;
+    if ( (ret = miccd_gain(cameraHandle, &gain)) < 0)
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "miccd_gain error: %s", strerror(ret));
+        GainNP.s = IPS_ALERT;
+        IDSetNumber(&GainNP, NULL);
+        return false;
+    }
+    else
+    {
+        GainN[0].value = gain;
+        GainNP.s = IPS_OK;
+        IDSetNumber(&GainNP, NULL);
+    }
 
     return true;
 }
@@ -1024,8 +1042,8 @@ void MICCD::updateTemperature()
         }
     }    
 
-    TemperatureN[0].value = ccdtemp/1000.0;
-    CoolerN[0].value = ccdpower;
+    TemperatureN[0].value = ccdtemp;
+    CoolerN[0].value = ccdpower/1000.0;
 
     if (TemperatureNP.s == IPS_BUSY && fabs(TemperatureN[0].value - TemperatureRequest) <= TEMP_THRESHOLD)
     {
