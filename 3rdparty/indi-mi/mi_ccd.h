@@ -33,7 +33,7 @@ class MICCD: public INDI::CCD, public INDI::FilterInterface
 {
 public:
 
-  MICCD(int cam_pid, const char *cam_name);
+  MICCD(camera_t *miHandle);
   virtual ~MICCD();
 
   const char *getDefaultName();
@@ -85,10 +85,8 @@ protected:
 
 private:
   char name[MAXINDIDEVICE];
-  int pid;
 
-
-  camera_t cameraHandle;
+  camera_t *cameraHandle;
   camera_info_t cameraInfo;
 
   bool HasFilters;

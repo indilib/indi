@@ -44,6 +44,7 @@
 
 static int cameraCount;
 static MICCD *cameras[MAX_DEVICES];
+static camera_t cameraHandle[MAX_DEVICES];
 
 static struct {
   int pid;
@@ -131,8 +132,9 @@ void ISInit()
   static bool isInit = false;
 
   if (!isInit)
-  {
+  {      
 
+      int ret=0;
       cameraCount = 0;
       const char *cam_name[MAX_DEVICES];
       int cam_pid[MAX_DEVICES];
@@ -151,7 +153,22 @@ void ISInit()
      #endif
 
       for(int i = 0;i < cameraCount;i++)
-          cameras[i] = new MICCD(cam_pid[i], cam_name[i]);
+      {
+          // The product ID is unique to each camera it seems
+          // But we can't get product ID (from cameraInfo) unless we an open first
+          // and we can't do open, unless we have product ID or pass 0 to connect to first
+          // camera. But then how can we know the product ID of the 2nd camera? MI has to answer that!
+          // For now we are just connecting to first camera.
+          //if ( (ret = miccd_open(pid, cameraHandle)) < 0)
+
+          if ( (ret = miccd_open(0, &cameraHandle[i])) < 0)
+          {
+              fprintf(stderr, "Error connecting to MI camera (%#06x:%#06x): %s.", MI_VID, cam_pid[i], strerror(ret));
+              return;
+          }
+
+          cameras[i] = new MICCD(&cameraHandle[i]);
+      }
 
       atexit(cleanup);
       isInit = true;
@@ -241,13 +258,22 @@ void ISSnoopDevice(XMLEle *root)
     }
 }
 
-MICCD::MICCD(int cam_pid, const char *cam_name)
+MICCD::MICCD(camera_t *miHandle)
 {
+    int ret=0;
+    cameraHandle = miHandle;
+
+    if ( (ret = miccd_info(cameraHandle, &cameraInfo) < 0) )
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error getting MI camera info: %s.", strerror(ret));
+        strncpy(this->name, "MI CCD", MAXINDIDEVICE);
+    }
+    else
+        snprintf(this->name, MAXINDINAME, "MI CCD %s", cameraInfo.description);
+
     HasFilters = false;
     isDark = false;
 
-    this->pid = cam_pid;
-    snprintf(this->name, MAXINDINAME, "MI CCD %s", cam_name);
     setDeviceName(this->name);
 
     setVersion(INDI_MI_VERSION_MAJOR, INDI_MI_VERSION_MINOR);
@@ -392,8 +418,6 @@ bool MICCD::Connect()
 {
     sim = isSimulation();
 
-    int ret = 0;
-
     CCDCapability cap;
 
     if (sim)
@@ -408,47 +432,28 @@ bool MICCD::Connect()
 
         SetCCDCapability(&cap);
 
-        DEBUGF(INDI::Logger::DBG_SESSION, "Connected to %s (%#06x:%#06x).", name, MI_VID, pid);
+        DEBUGF(INDI::Logger::DBG_SESSION, "Connected to %s", name);
 
         HasFilters = true;
 
         return true;
     }
 
-    // The product ID is unique to each camera it seems
-    // But we can't get product ID (from cameraInfo) unless we an open first
-    // and we can't do open, unless we have product ID or pass 0 to connect to first
-    // camera. But then how can we know the product ID of the 2nd camera? MI has to answer that!
-    // For now we are just connecting to first camera.
-    //if ( (ret = miccd_open(pid, &cameraHandle)) < 0)
-
-    if ( (ret = miccd_open(0, &cameraHandle)) < 0)
-    {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error connecting to MI camera (%#06x:%#06x): %s.", MI_VID, pid, strerror(ret));
-        return false;
-    }
-
-    if ( (ret = miccd_info(&cameraHandle, &cameraInfo) < 0) )
-    {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error getting MI camera info: %s.", strerror(ret));
-        return false;
-    }
-
-   DEBUGF(INDI::Logger::DBG_SESSION, "Connected to %s. Chip: %s. HWRevision: %ld. Model: %d. Description: %s", name, cameraInfo.chip, cameraInfo.hwrevision, cameraHandle.model, cameraInfo.description);
+   DEBUGF(INDI::Logger::DBG_SESSION, "Connected to %s. Chip: %s. HWRevision: %ld. Model: %d. Description: %s", name, cameraInfo.chip, cameraInfo.hwrevision, cameraHandle->model, cameraInfo.description);
 
    cap.canSubFrame = true;
    cap.hasGuideHead = false;
    cap.hasShutter = true;
    cap.canAbort = true;
 
-   if (cameraHandle.model > G12000)
+   if (cameraHandle->model > G12000)
    {
         cap.canBin = true;
         cap.hasShutter = true;
         cap.hasCooler = true;
 
         // Hackish way to find if there is filter wheel support
-        if (miccd_filter (&cameraHandle, 0) == 0)
+        if (miccd_filter (cameraHandle, 0) == 0)
             HasFilters = true;
         else
             HasFilters = false;
@@ -474,7 +479,7 @@ bool MICCD::Disconnect()
 
   if (sim == false)
   {
-      miccd_close(&cameraHandle);
+      miccd_close(cameraHandle);
   }
   return true;
 }
@@ -505,7 +510,7 @@ int MICCD::SetTemperature(double temperature)
     TemperatureRequest = temperature;        
 
 
-    if (sim == false && (ret = miccd_set_cooltemp(&cameraHandle, temperature)) < 0)
+    if (sim == false && (ret = miccd_set_cooltemp(cameraHandle, temperature)) < 0)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Setting temperature failed: %s.", strerror(ret));
         return -1;
@@ -539,18 +544,18 @@ bool MICCD::StartExposure(float duration)
 
   if (sim == false)
   {
-      if ( (ret = miccd_clear (&cameraHandle)) < 0)
+      if ( (ret = miccd_clear (cameraHandle)) < 0)
       {
           DEBUGF(INDI::Logger::DBG_ERROR, "miccd_clear error: %s.", strerror(ret));
           return false;
       }
 
       // Older G1 models
-      if (cameraHandle.model <= G12000)
+      if (cameraHandle->model <= G12000)
       {
           uint8_t lowNoiseMode = (IUFindOnSwitchIndex(&NoiseSP) > 0) ? 1 : 0;
 
-          if ( (ret = miccd_g1_mode (&cameraHandle, 1, lowNoiseMode)) < 0)
+          if ( (ret = miccd_g1_mode (cameraHandle, 1, lowNoiseMode)) < 0)
           {
               DEBUGF(INDI::Logger::DBG_ERROR, "miccd_g1_mode error: %s.", strerror(ret));
               return false;
@@ -566,7 +571,7 @@ bool MICCD::StartExposure(float duration)
       //G2/G3/G4 models
       else
       {
-          if ( (ret = miccd_hclear (&cameraHandle)) < 0)
+          if ( (ret = miccd_hclear (cameraHandle)) < 0)
           {
               DEBUGF(INDI::Logger::DBG_ERROR, "miccd_hclear error: %s.", strerror(ret));
               return false;
@@ -574,7 +579,7 @@ bool MICCD::StartExposure(float duration)
 
           if (isDark == false)
           {
-              if ( (ret = miccd_open_shutter (&cameraHandle)) < 0 )
+              if ( (ret = miccd_open_shutter (cameraHandle)) < 0 )
               {
                   DEBUGF(INDI::Logger::DBG_ERROR, "miccd_open_shutter: %s.", strerror(ret));
                   return false;
@@ -606,9 +611,9 @@ bool MICCD::AbortExposure()
     }
 
     // Older G1 models
-    if (cameraHandle.model <= G12000)
+    if (cameraHandle->model <= G12000)
     {
-        if ( (ret = miccd_abort_exposure (&cameraHandle)) < 0 )
+        if ( (ret = miccd_abort_exposure (cameraHandle)) < 0 )
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "miccd_abort_exposure: %s.", strerror(ret));
             return false;
@@ -619,7 +624,7 @@ bool MICCD::AbortExposure()
     {
         if (isDark)
         {
-            if ( (ret = miccd_close_shutter (&cameraHandle)) < 0 )
+            if ( (ret = miccd_close_shutter (cameraHandle)) < 0 )
             {
                 DEBUGF(INDI::Logger::DBG_ERROR, "miccd_close_shutter: %s.", strerror(ret));
                 return false;
@@ -716,15 +721,15 @@ int MICCD::grabImage()
     int ret=0;
 
     // Older G1 models
-    if (cameraHandle.model <= G12000)
+    if (cameraHandle->model <= G12000)
     {
-        if ( (ret = miccd_start_exposure (&cameraHandle, PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH(), -1) ) < 0)
+        if ( (ret = miccd_start_exposure (cameraHandle, PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH(), -1) ) < 0)
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "miccd_start_exposure error: %s", strerror(ret));
             return false;
         }
 
-        if ( (ret = miccd_read_data (&cameraHandle, PrimaryCCD.getFrameBufferSize(), PrimaryCCD.getFrameBuffer(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH()) < 0) )
+        if ( (ret = miccd_read_data (cameraHandle, PrimaryCCD.getFrameBufferSize(), PrimaryCCD.getFrameBuffer(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH()) < 0) )
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "miccd_read_data error: %s", strerror(ret));
             return false;
@@ -735,14 +740,14 @@ int MICCD::grabImage()
     {
         if (isDark)
         {
-            if ( (ret = miccd_close_shutter (&cameraHandle)) < 0 )
+            if ( (ret = miccd_close_shutter (cameraHandle)) < 0 )
             {
                 DEBUGF(INDI::Logger::DBG_ERROR, "miccd_close_shutter: %s.", strerror(ret));
                 return false;
             }
         }
 
-        if ( (ret = miccd_shift_to0 (&cameraHandle)) < 0)
+        if ( (ret = miccd_shift_to0 (cameraHandle)) < 0)
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "miccd_shift_to0: %s.", strerror(ret));
             return false;
@@ -750,13 +755,13 @@ int MICCD::grabImage()
 
         uint8_t mode = IUFindOnSwitchIndex(&NoiseSP);
 
-        if ( (ret = miccd_mode (&cameraHandle, mode)) < 0)
+        if ( (ret = miccd_mode (cameraHandle, mode)) < 0)
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "miccd_mode: %s.", strerror(ret));
             return false;
         }
 
-        if ( (ret = miccd_read_frame (&cameraHandle, PrimaryCCD.getBinX(), PrimaryCCD.getBinY(), PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH(), PrimaryCCD.getFrameBuffer())) < 0)
+        if ( (ret = miccd_read_frame (cameraHandle, PrimaryCCD.getBinX(), PrimaryCCD.getBinY(), PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH(), PrimaryCCD.getFrameBuffer())) < 0)
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "miccd_read_frame: %s.", strerror(ret));
             return false;
@@ -835,7 +840,7 @@ bool MICCD::SelectFilter(int position)
 {
     int ret = 0;
 
-    if (sim == false && (ret = miccd_filter(&cameraHandle, position)) < 0)
+    if (sim == false && (ret = miccd_filter(cameraHandle, position)) < 0)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "miccd_filter error: %s.", strerror(ret));
         return false;
@@ -892,7 +897,7 @@ bool MICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
         {
           IUUpdateSwitch(&NoiseSP, states, names, n);
 
-          if (cameraHandle.model <= G12000 && NoiseS[2].s == ISS_ON)
+          if (cameraHandle->model <= G12000 && NoiseS[2].s == ISS_ON)
           {
               IUResetSwitch(&NoiseSP);
               NoiseS[0].s = ISS_ON;
@@ -914,7 +919,7 @@ bool MICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 
             IUUpdateSwitch(&FanSP, states, names, n);
 
-            if (sim == false && (ret = miccd_fan(&cameraHandle, (FanS[0].s == ISS_ON) ? 1 : 0)) < 0)
+            if (sim == false && (ret = miccd_fan(cameraHandle, (FanS[0].s == ISS_ON) ? 1 : 0)) < 0)
             {
                 DEBUGF(INDI::Logger::DBG_ERROR, "miccd_fan error: %s.", strerror(ret));
                 IUResetSwitch(&FanSP);
@@ -991,13 +996,13 @@ void MICCD::updateTemperature()
     }
     else
     {
-        if ( (ret = miccd_chip_temperature(&cameraHandle, &ccdtemp) ) < 0)
+        if ( (ret = miccd_chip_temperature(cameraHandle, &ccdtemp) ) < 0)
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "miccd_chip_temperature error: %s.", strerror(ret));
             return;
         }
 
-        if ( (ret = miccd_power_voltage(&cameraHandle, &ccdpower)) < 0)
+        if ( (ret = miccd_power_voltage(cameraHandle, &ccdpower)) < 0)
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "miccd_chip_temperature error: %s.", strerror(ret));
             return;
