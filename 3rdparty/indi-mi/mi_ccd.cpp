@@ -443,7 +443,6 @@ bool MICCD::Connect()
 
    cap.canSubFrame = true;
    cap.hasGuideHead = false;
-   cap.hasShutter = true;
    cap.canAbort = true;
 
    if (cameraHandle->model > G12000)
@@ -622,7 +621,7 @@ bool MICCD::AbortExposure()
     // G2/G3/G4 models
     else
     {
-        if (isDark)
+        if (isDark == false)
         {
             if ( (ret = miccd_close_shutter (cameraHandle)) < 0 )
             {
@@ -1010,7 +1009,7 @@ void MICCD::updateTemperature()
         }
     }    
 
-    TemperatureN[0].value = ccdtemp;
+    TemperatureN[0].value = ccdtemp/1000.0;
     CoolerN[0].value = ccdpower;
 
     if (TemperatureNP.s == IPS_BUSY && fabs(TemperatureN[0].value - TemperatureRequest) <= TEMP_THRESHOLD)
