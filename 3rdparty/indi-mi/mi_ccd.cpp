@@ -737,7 +737,7 @@ int MICCD::grabImage()
     // G2/G2/G4 models
     else
     {
-        if (isDark)
+        if (isDark == false)
         {
             if ( (ret = miccd_close_shutter (cameraHandle)) < 0 )
             {
