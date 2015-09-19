@@ -1509,7 +1509,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
     bool autoLoop = false;
     bool sendData = false;
 
-    if (RapidGuideEnabled && targetChip == &PrimaryCCD)
+    if (RapidGuideEnabled && targetChip == &PrimaryCCD && (PrimaryCCD.getBPP() == 16 || PrimaryCCD.getBPP() == 8))
     {
       autoLoop = AutoLoop;
       sendImage = SendImage;
@@ -1518,7 +1518,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
       saveImage = false;
     }
 
-    if (GuiderRapidGuideEnabled && targetChip == &GuideCCD)
+    if (GuiderRapidGuideEnabled && targetChip == &GuideCCD && (GuideCCD.getBPP() == 16 || PrimaryCCD.getBPP() == 8))
     {
       autoLoop = GuiderAutoLoop;
       sendImage = GuiderSendImage;
@@ -1533,11 +1533,10 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
       targetChip->RapidGuideDataNP.s=IPS_BUSY;
       int width = targetChip->getSubW() / targetChip->getBinX();
       int height = targetChip->getSubH() / targetChip->getBinY();
-      unsigned short *src = (unsigned short *) targetChip->getFrameBuffer();
+      void *src = (unsigned short *) targetChip->getFrameBuffer();
       int i0, i1, i2, i3, i4, i5, i6, i7, i8;
       int ix = 0, iy = 0;
       int xM4;
-      unsigned short *p;
       double average, fit, bestFit = 0;
       int minx = 4;
       int maxx = width -4;
@@ -1549,63 +1548,114 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
         miny = std::max(targetChip->lastRapidY - 20, 4);
         maxy = std::min(targetChip->lastRapidY + 20, height -4);
       }
-      for (int x = minx; x < maxx; x++)
-        for (int y = miny; y < maxy; y++)
-        {
-          i0 = i1 = i2 = i3 = i4 = i5 = i6 = i7 = i8 = 0;
-          xM4 = x - 4;
-          p = src + (y - 4) * width + xM4; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++;
-          p = src + (y - 3) * width + xM4; i8 += *p++; i8 += *p++; i8 += *p++; i7 += *p++; i6 += *p++; i7 += *p++; i8 += *p++; i8 += *p++; i8 += *p++;
-          p = src + (y - 2) * width + xM4; i8 += *p++; i8 += *p++; i5 += *p++; i4 += *p++; i3 += *p++; i4 += *p++; i5 += *p++; i8 += *p++; i8 += *p++;
-          p = src + (y - 1) * width + xM4; i8 += *p++; i7 += *p++; i4 += *p++; i2 += *p++; i1 += *p++; i2 += *p++; i4 += *p++; i8 += *p++; i8 += *p++;
-          p = src + (y + 0) * width + xM4; i8 += *p++; i6 += *p++; i3 += *p++; i1 += *p++; i0 += *p++; i1 += *p++; i3 += *p++; i6 += *p++; i8 += *p++;
-          p = src + (y + 1) * width + xM4; i8 += *p++; i7 += *p++; i4 += *p++; i2 += *p++; i1 += *p++; i2 += *p++; i4 += *p++; i8 += *p++; i8 += *p++;
-          p = src + (y + 2) * width + xM4; i8 += *p++; i8 += *p++; i5 += *p++; i4 += *p++; i3 += *p++; i4 += *p++; i5 += *p++; i8 += *p++; i8 += *p++;
-          p = src + (y + 3) * width + xM4; i8 += *p++; i8 += *p++; i8 += *p++; i7 += *p++; i6 += *p++; i7 += *p++; i8 += *p++; i8 += *p++; i8 += *p++;
-          p = src + (y + 4) * width + xM4; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++;
-          average = (i0 + i1 + i2 + i3 + i4 + i5 + i6 + i7 + i8) / 85.0;
-          fit = P0 * (i0 - average) + P1 * (i1 - 4 * average) + P2 * (i2 - 4 * average) + P3 * (i3 - 4 * average) + P4 * (i4 - 8 * average) + P5 * (i5 - 4 * average) + P6 * (i6 - 4 * average) + P7 * (i7 - 8 * average) + P8 * (i8 - 48 * average);
-          if (bestFit < fit)
-          {
-            bestFit = fit;
-            ix = x;
-            iy = y;
+      if (targetChip->getBPP() == 16) {
+        unsigned short *p;
+        for (int x = minx; x < maxx; x++)
+          for (int y = miny; y < maxy; y++) {
+            i0 = i1 = i2 = i3 = i4 = i5 = i6 = i7 = i8 = 0;
+            xM4 = x - 4;
+            p = (unsigned short *)src + (y - 4) * width + xM4; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++;
+            p = (unsigned short *)src + (y - 3) * width + xM4; i8 += *p++; i8 += *p++; i8 += *p++; i7 += *p++; i6 += *p++; i7 += *p++; i8 += *p++; i8 += *p++; i8 += *p++;
+            p = (unsigned short *)src + (y - 2) * width + xM4; i8 += *p++; i8 += *p++; i5 += *p++; i4 += *p++; i3 += *p++; i4 += *p++; i5 += *p++; i8 += *p++; i8 += *p++;
+            p = (unsigned short *)src + (y - 1) * width + xM4; i8 += *p++; i7 += *p++; i4 += *p++; i2 += *p++; i1 += *p++; i2 += *p++; i4 += *p++; i8 += *p++; i8 += *p++;
+            p = (unsigned short *)src + (y + 0) * width + xM4; i8 += *p++; i6 += *p++; i3 += *p++; i1 += *p++; i0 += *p++; i1 += *p++; i3 += *p++; i6 += *p++; i8 += *p++;
+            p = (unsigned short *)src + (y + 1) * width + xM4; i8 += *p++; i7 += *p++; i4 += *p++; i2 += *p++; i1 += *p++; i2 += *p++; i4 += *p++; i8 += *p++; i8 += *p++;
+            p = (unsigned short *)src + (y + 2) * width + xM4; i8 += *p++; i8 += *p++; i5 += *p++; i4 += *p++; i3 += *p++; i4 += *p++; i5 += *p++; i8 += *p++; i8 += *p++;
+            p = (unsigned short *)src + (y + 3) * width + xM4; i8 += *p++; i8 += *p++; i8 += *p++; i7 += *p++; i6 += *p++; i7 += *p++; i8 += *p++; i8 += *p++; i8 += *p++;
+            p = (unsigned short *)src + (y + 4) * width + xM4; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++;
+            average = (i0 + i1 + i2 + i3 + i4 + i5 + i6 + i7 + i8) / 85.0;
+            fit = P0 * (i0 - average) + P1 * (i1 - 4 * average) + P2 * (i2 - 4 * average) + P3 * (i3 - 4 * average) + P4 * (i4 - 8 * average) + P5 * (i5 - 4 * average) + P6 * (i6 - 4 * average) + P7 * (i7 - 8 * average) + P8 * (i8 - 48 * average);
+            if (bestFit < fit) {
+              bestFit = fit;
+              ix = x;
+              iy = y;
+            }
           }
-        }
+      } else {
+        unsigned char *p;
+        for (int x = minx; x < maxx; x++)
+          for (int y = miny; y < maxy; y++) {
+            i0 = i1 = i2 = i3 = i4 = i5 = i6 = i7 = i8 = 0;
+            xM4 = x - 4;
+            p = (unsigned char *)src + (y - 4) * width + xM4; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++;
+            p = (unsigned char *)src + (y - 3) * width + xM4; i8 += *p++; i8 += *p++; i8 += *p++; i7 += *p++; i6 += *p++; i7 += *p++; i8 += *p++; i8 += *p++; i8 += *p++;
+            p = (unsigned char *)src + (y - 2) * width + xM4; i8 += *p++; i8 += *p++; i5 += *p++; i4 += *p++; i3 += *p++; i4 += *p++; i5 += *p++; i8 += *p++; i8 += *p++;
+            p = (unsigned char *)src + (y - 1) * width + xM4; i8 += *p++; i7 += *p++; i4 += *p++; i2 += *p++; i1 += *p++; i2 += *p++; i4 += *p++; i8 += *p++; i8 += *p++;
+            p = (unsigned char *)src + (y + 0) * width + xM4; i8 += *p++; i6 += *p++; i3 += *p++; i1 += *p++; i0 += *p++; i1 += *p++; i3 += *p++; i6 += *p++; i8 += *p++;
+            p = (unsigned char *)src + (y + 1) * width + xM4; i8 += *p++; i7 += *p++; i4 += *p++; i2 += *p++; i1 += *p++; i2 += *p++; i4 += *p++; i8 += *p++; i8 += *p++;
+            p = (unsigned char *)src + (y + 2) * width + xM4; i8 += *p++; i8 += *p++; i5 += *p++; i4 += *p++; i3 += *p++; i4 += *p++; i5 += *p++; i8 += *p++; i8 += *p++;
+            p = (unsigned char *)src + (y + 3) * width + xM4; i8 += *p++; i8 += *p++; i8 += *p++; i7 += *p++; i6 += *p++; i7 += *p++; i8 += *p++; i8 += *p++; i8 += *p++;
+            p = (unsigned char *)src + (y + 4) * width + xM4; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++; i8 += *p++;
+            average = (i0 + i1 + i2 + i3 + i4 + i5 + i6 + i7 + i8) / 85.0;
+            fit = P0 * (i0 - average) + P1 * (i1 - 4 * average) + P2 * (i2 - 4 * average) + P3 * (i3 - 4 * average) + P4 * (i4 - 8 * average) + P5 * (i5 - 4 * average) + P6 * (i6 - 4 * average) + P7 * (i7 - 8 * average) + P8 * (i8 - 48 * average);
+            if (bestFit < fit) {
+              bestFit = fit;
+              ix = x;
+              iy = y;
+            }
+          }
+      }
 
       targetChip->RapidGuideDataN[0].value = ix;
       targetChip->RapidGuideDataN[1].value = iy;
       targetChip->RapidGuideDataN[2].value = bestFit;
       targetChip->lastRapidX = ix;
       targetChip->lastRapidY = iy;
-      if (bestFit > 50)
-      {
+      if (bestFit > 50) {
         int sumX = 0;
         int sumY = 0;
         int total = 0;
         int max = 0;
         int noiseThreshold = 0;
-        for (int y = iy - 4; y <= iy + 4; y++) {
-          p = src + y * width + ix - 4;
-          for (int x = ix - 4; x <= ix + 4; x++) {
-            int w = *p++;
-            noiseThreshold += w;
-            if (w > max)
-              max = w;
+        
+        if (targetChip->getBPP() == 16) {
+          unsigned short *p;
+          for (int y = iy - 4; y <= iy + 4; y++) {
+            p = (unsigned short *)src + y * width + ix - 4;
+            for (int x = ix - 4; x <= ix + 4; x++) {
+              int w = *p++;
+              noiseThreshold += w;
+              if (w > max)
+                max = w;
+            }
+          }
+          noiseThreshold = (noiseThreshold/81+max)/2; // set threshold between peak and average
+          for (int y = iy - 4; y <= iy + 4; y++) {
+            p = (unsigned short *)src + y * width + ix - 4;
+            for (int x = ix - 4; x <= ix + 4; x++) {
+              int w = *p++;
+              if (w < noiseThreshold)
+                w = 0;
+              sumX += x * w;
+              sumY += y * w;
+              total += w;
+            }
+          }
+        } else {
+          unsigned char *p;
+          for (int y = iy - 4; y <= iy + 4; y++) {
+            p = (unsigned char *)src + y * width + ix - 4;
+            for (int x = ix - 4; x <= ix + 4; x++) {
+              int w = *p++;
+              noiseThreshold += w;
+              if (w > max)
+                max = w;
+            }
+          }
+          noiseThreshold = (noiseThreshold/81+max)/2; // set threshold between peak and average
+          for (int y = iy - 4; y <= iy + 4; y++) {
+            p = (unsigned char *)src + y * width + ix - 4;
+            for (int x = ix - 4; x <= ix + 4; x++) {
+              int w = *p++;
+              if (w < noiseThreshold)
+                w = 0;
+              sumX += x * w;
+              sumY += y * w;
+              total += w;
+            }
           }
         }
-        noiseThreshold = (noiseThreshold/81+max)/2; // set threshold between peak and average
-        for (int y = iy - 4; y <= iy + 4; y++) {
-          p = src + y * width + ix - 4;
-          for (int x = ix - 4; x <= ix + 4; x++) {
-            int w = *p++;
-            if (w < noiseThreshold)
-              w = 0;
-            sumX += x * w;
-            sumY += y * w;
-            total += w;
-          }
-        }
+        
         if (total > 0)
         {
           targetChip->RapidGuideDataN[0].value = ((double)sumX)/total;
@@ -1637,34 +1687,69 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
 
         //fprintf(stderr, "%d %d %d %d\n", xmin, xmax, ymin, ymax);
 
-        if (ymin > 0)
-        {
-          p = src + ymin * width + xmin;
-          for (int x = xmin; x <= xmax; x++)
-            *p++ = 50000;
-        }
-
-        if (xmin > 0)
-        {
-          for (int y = ymin; y<= ymax; y++)
+        if (targetChip->getBPP() == 16) {
+          unsigned short *p;
+          if (ymin > 0)
           {
-            *(src + y * width + xmin) = 50000;
+            p = (unsigned short *)src + ymin * width + xmin;
+            for (int x = xmin; x <= xmax; x++)
+              *p++ = 50000;
           }
-        }
 
-        if (xmax < width - 1)
-        {
-          for (int y = ymin; y<= ymax; y++)
+          if (xmin > 0)
           {
-            *(src + y * width + xmax) = 50000;
+            for (int y = ymin; y<= ymax; y++)
+            {
+              *((unsigned short *)src + y * width + xmin) = 50000;
+            }
           }
-        }
 
-        if (ymax < height -1)
-        {
-          p = src + ymax * width + xmin;
-          for (int x = xmin; x <= xmax; x++)
-            *p++ = 50000;
+          if (xmax < width - 1)
+          {
+            for (int y = ymin; y<= ymax; y++)
+            {
+              *((unsigned short *)src + y * width + xmax) = 50000;
+            }
+          }
+
+          if (ymax < height -1)
+          {
+            p = (unsigned short *)src + ymax * width + xmin;
+            for (int x = xmin; x <= xmax; x++)
+              *p++ = 50000;
+          }
+        } else {
+          unsigned char *p;
+          if (ymin > 0)
+          {
+            p = (unsigned char *)src + ymin * width + xmin;
+            for (int x = xmin; x <= xmax; x++)
+              *p++ = 255;
+          }
+          
+          if (xmin > 0)
+          {
+            for (int y = ymin; y<= ymax; y++)
+            {
+              *((unsigned char *)src + y * width + xmin) = 255;
+            }
+          }
+          
+          if (xmax < width - 1)
+          {
+            for (int y = ymin; y<= ymax; y++)
+            {
+              *((unsigned char *)src + y * width + xmax) = 255;
+            }
+          }
+          
+          if (ymax < height -1)
+          {
+            p = (unsigned char *)src + ymax * width + xmin;
+            for (int x = xmin; x <= xmax; x++)
+              *p++ = 255;
+          }
+          
         }
       }
     }
