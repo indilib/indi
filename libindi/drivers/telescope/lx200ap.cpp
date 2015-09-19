@@ -39,6 +39,7 @@
 LX200AstroPhysics::LX200AstroPhysics() : LX200Generic()
 {
     timeUpdated = locationUpdated = false;
+    initStatus= MOUNTNOTINITIALIZED;
 
     //ctor
     currentRA=get_local_sideral_time(0);
@@ -174,11 +175,10 @@ bool LX200AstroPhysics::ISNewSwitch (const char *dev, const char *name, ISState 
     if (!strcmp (name, StartUpSP.name))
     {
 	int switch_nr ;
-	static int mount_status= MOUNTNOTINITIALIZED ;
 
 	IUUpdateSwitch(&StartUpSP, states, names, n) ;
 
-    if ( mount_status == MOUNTNOTINITIALIZED)
+    if ( initStatus == MOUNTNOTINITIALIZED)
 	{
         if (timeUpdated == false || locationUpdated == false)
         {
@@ -199,7 +199,7 @@ bool LX200AstroPhysics::ISNewSwitch (const char *dev, const char *name, ISState 
             }
         }
 
-        mount_status=MOUNTINITIALIZED;
+        initStatus=MOUNTINITIALIZED;
 
 	    // Make sure that the mount is setup according to the properties	    
         switch_nr =  IUFindOnSwitchIndex(&TrackModeSP);
@@ -779,6 +779,12 @@ bool LX200AstroPhysics::SetSlewRate(int index)
 
 bool LX200AstroPhysics::Park()
 {
+    if (initStatus = MOUNTNOTINITIALIZED)
+    {
+        DEBUG(INDI::Logger::DBG_WARNING, "You must initialize the mount before parking.");
+        return false;
+    }
+
     double parkRA  = GetAxis1Park();
     double parkDE = GetAxis2Park();
 

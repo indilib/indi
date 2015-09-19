@@ -103,7 +103,10 @@ protected:
  INumber SlewAccuracyN[2];
  INumberVectorProperty SlewAccuracyNP;
 
+private:
+
  bool timeUpdated, locationUpdated;
+ int initStatus;
 
 };
 
