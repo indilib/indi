@@ -40,7 +40,7 @@
 /**
  * typedef the libusb_deivce_handle qhyccd_handle
  */
-#ifdef LINUX
+#if defined(LINUX) || defined(OSX)
 typedef struct libusb_device_handle qhyccd_handle;
 #endif
 #ifdef WIN32

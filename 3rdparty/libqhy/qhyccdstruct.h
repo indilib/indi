@@ -28,11 +28,19 @@
  */
 
 #ifndef WIN32
+#ifdef __APPLE__
+#define OSX
+#else
 #define LINUX
+#endif
 #endif
 
 #ifdef LINUX
 #include <libusb-1.0/libusb.h>
+#endif
+
+#ifdef OSX
+#include <libusb.h>
 #endif
 
 #ifdef WIN32

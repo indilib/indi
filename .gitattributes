@@ -272,7 +272,6 @@
 3rdparty/indi-qhy/CMakeLists.txt -text
 3rdparty/indi-qhy/INSTALL -text
 3rdparty/indi-qhy/README -text
-3rdparty/indi-qhy/config.h -text
 3rdparty/indi-qhy/config.h.cmake -text
 3rdparty/indi-qhy/indi_qhy.xml -text
 3rdparty/indi-qhy/qhy_ccd.cpp -text
