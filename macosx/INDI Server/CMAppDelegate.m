@@ -447,9 +447,11 @@
 
 -(IBAction)reloadDriver:(id)sender {
   long row = _deviceList.selectedRow;
-  CMDevice *device = devices[row];
-  [self stopDriver:device];
-  [self startDriver:device];
+  if (row < devices.count) {
+    CMDevice *device = devices[row];
+    [self stopDriver:device];
+    [self startDriver:device];
+  }
 }
 
 -(IBAction)cancel:(id)sender {

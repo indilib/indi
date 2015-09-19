@@ -1694,6 +1694,7 @@
 		592F6CE61BADDC0E00D93DE9 /* QHY29.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = QHY29.HEX; sourceTree = "<group>"; };
 		592F6CEA1BADDC1800D93DE9 /* QHYA9.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = QHYA9.HEX; sourceTree = "<group>"; };
 		592F6CEB1BADDC1800D93DE9 /* QHYAPS.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = QHYAPS.HEX; sourceTree = "<group>"; };
+		592FECEF1BADFB6000F645F3 /* atiktest.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = atiktest.cpp; sourceTree = "<group>"; };
 		594D0B33188300ED00B50F4E /* INDI Server.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "INDI Server.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		594D0B36188300ED00B50F4E /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		594D0B39188300ED00B50F4E /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
@@ -2705,6 +2706,7 @@
 				59567CFA1A8D40E50057A35A /* atikccdusb.cpp */,
 				59567CFB1A8D40E50057A35A /* atikwheel.cpp */,
 				59567CFC1A8D41000057A35A /* indi_atik.xml */,
+				592FECEF1BADFB6000F645F3 /* atiktest.cpp */,
 			);
 			path = "indi-atik";
 			sourceTree = "<group>";
@@ -5383,6 +5385,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.8;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
+				STRIP_INSTALLED_PRODUCT = NO;
 			};
 			name = Debug;
 		};
@@ -5431,6 +5434,7 @@
 				IBC_WARNINGS = NO;
 				MACOSX_DEPLOYMENT_TARGET = 10.8;
 				SDKROOT = macosx;
+				STRIP_INSTALLED_PRODUCT = NO;
 			};
 			name = Release;
 		};

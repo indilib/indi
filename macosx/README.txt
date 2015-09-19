@@ -1,4 +1,4 @@
-In version 2.0 is INDI Server project independent on cmake or homebrew build system, you need XCode 6.1 to build it.
+In version 2.1 is INDI Server project independent on cmake or homebrew build system, you need XCode 6.1 to build it.
 
 To use it, you need the following folders on the same level as indi-code:
 
