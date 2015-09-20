@@ -634,9 +634,7 @@ bool ScopeSim::Sync(double ra, double dec)
 
     DEBUG(INDI::Logger::DBG_SESSION,"Sync is successful.");
 
-    TrackState = SCOPE_IDLE;
     EqNP.s    = IPS_OK;
-
 
     NewRaDec(currentRA, currentDEC);
 
