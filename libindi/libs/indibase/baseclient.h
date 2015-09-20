@@ -167,6 +167,13 @@ public:
      */
     bool isVerbose() const { return verbose; }
 
+    /**
+     * @brief setConnectionTimeout Set connection timeout. By default it is 3 seconds.
+     * @param seconds seconds
+     * @param microseconds microseconds
+     */
+    void setConnectionTimeout(uint32_t seconds, uint32_t microseconds) { timeout_sec = seconds; timeout_us = microseconds;}
+
 protected:
 
     /** \brief Dispatch command received from INDI server to respective devices handled by the client */
@@ -219,6 +226,8 @@ private:
 
     int m_receiveFd;
     int m_sendFd;
+
+    uint32_t timeout_sec, timeout_us;
 
 };
 

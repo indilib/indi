@@ -44,6 +44,9 @@ INDI::BaseClient::BaseClient()
     sConnected = false;
     verbose = false;
 
+    timeout_sec=3;
+    timeout_us=0;
+
 }
 
 
@@ -68,10 +71,14 @@ void INDI::BaseClient::watchDevice(const char * deviceName)
 
 bool INDI::BaseClient::connectServer()
 {
+    struct timeval ts;
+    ts.tv_sec = timeout_sec;
+    ts.tv_usec =timeout_us;
+
     struct sockaddr_in serv_addr;
     struct hostent *hp;
     int pipefd[2];
-    int ret = 0;
+    int ret = 0;    
 
     /* lookup host address */
     hp = gethostbyname(cServer.c_str());
@@ -92,10 +99,67 @@ bool INDI::BaseClient::connectServer()
         return false;
     }
 
+    /* set the socket in non-blocking */
+    //set socket nonblocking flag
+    int flags = 0;
+    if ( (flags = fcntl(sockfd, F_GETFL, 0)) < 0)
+       return false;
+
+     if(fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) < 0)
+            return false;
+
+     //clear out descriptor sets for select
+     //add socket to the descriptor sets
+     fd_set  rset, wset;
+     FD_ZERO(&rset);
+     FD_SET(sockfd, &rset);
+     wset = rset;    //structure assignment okok
+
     /* connect */
-    if (::connect (sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr))<0)
+    if ( (ret = ::connect (sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr))) <0)
     {
-        perror ("connect");
+        if (errno != EINPROGRESS)
+        {
+            perror("connect");
+            close(sockfd);
+            return false;
+        }
+    }
+
+    /* If it is connected, continue, otherwise wait */
+    if (ret != 0)
+    {
+        //we are waiting for connect to complete now
+         if( (ret = select(sockfd + 1, &rset, &wset, NULL, &ts)) < 0)
+                return false;
+            //we had a timeout
+            if(ret == 0)
+            {
+                errno = ETIMEDOUT;
+                perror("select timeout");
+                return false;
+            }
+    }
+
+    /* we had a positivite return so a descriptor is ready */
+    int error=0;
+    socklen_t len = sizeof(error);
+    if (FD_ISSET(sockfd, &rset) || FD_ISSET(sockfd, &wset))
+    {
+        if(getsockopt(sockfd, SOL_SOCKET, SO_ERROR, &error, &len) < 0)
+        {
+               perror("getsockopt");
+               return false;
+        }
+    }
+    else
+        return false;
+
+    /* check if we had a socket error */
+    if(error)
+    {
+        errno = error;
+        perror("socket");        
         return false;
     }
 
