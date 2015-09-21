@@ -129,7 +129,7 @@ bool INDI::Telescope::initProperties()
 
     TrackState=SCOPE_IDLE;
 
-    setInterfaceDescriptor(TELESCOPE_INTERFACE);
+    setDriverInterface(TELESCOPE_INTERFACE);
 
     IDSnoopDevice(ActiveDeviceT[0].text,"GEOGRAPHIC_COORD");
     IDSnoopDevice(ActiveDeviceT[0].text,"TIME_UTC");

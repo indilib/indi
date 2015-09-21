@@ -248,7 +248,7 @@ bool CCDSim::initProperties()
 
     addDebugControl();
 
-    setInterfaceDescriptor(getInterfaceDescriptor() | FILTER_INTERFACE);
+    setDriverInterface(getDriverInterface() | FILTER_INTERFACE);
 
     return true;
 }

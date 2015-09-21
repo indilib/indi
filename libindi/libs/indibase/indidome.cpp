@@ -145,7 +145,7 @@ bool INDI::Dome::initProperties()
 
     IDSnoopDevice(ActiveDeviceT[1].text,"WEATHER_STATUS");
 
-    setInterfaceDescriptor(DOME_INTERFACE);
+    setDriverInterface(DOME_INTERFACE);
 
     return true;
 }

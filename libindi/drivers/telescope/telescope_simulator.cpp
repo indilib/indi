@@ -189,7 +189,7 @@ bool ScopeSim::initProperties()
     /* Add debug controls so we may debug driver if necessary */
     addDebugControl();
 
-    setInterfaceDescriptor(getInterfaceDescriptor() | GUIDER_INTERFACE);
+    setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
 
     return true;
 }

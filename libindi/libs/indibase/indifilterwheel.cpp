@@ -45,7 +45,7 @@ bool INDI::FilterWheel::initProperties()
 
     controller->initProperties();
 
-    setInterfaceDescriptor(FILTER_INTERFACE);
+    setDriverInterface(FILTER_INTERFACE);
 
     return true;
 }

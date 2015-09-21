@@ -183,7 +183,7 @@ bool IEQPro::initProperties()
 
     initGuiderProperties(getDeviceName(), MOTION_TAB);
 
-    setInterfaceDescriptor(getInterfaceDescriptor() | GUIDER_INTERFACE);
+    setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
 
     SetParkDataType(PARK_RA_DEC);
 

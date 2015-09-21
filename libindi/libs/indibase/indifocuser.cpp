@@ -61,7 +61,7 @@ bool INDI::Focuser::initProperties()
 
     controller->initProperties();
 
-    setInterfaceDescriptor(FOCUSER_INTERFACE);
+    setDriverInterface(FOCUSER_INTERFACE);
 
     return true;
 }
