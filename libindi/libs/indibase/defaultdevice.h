@@ -106,7 +106,10 @@ public:
         FOCUSER_INTERFACE       = (1 << 3),         /**< Focuser interface, must subclass INDI::FocuserInterface */
         FILTER_INTERFACE        = (1 << 4),         /**< Filter interface, must subclass INDI::FilterInterface */
         DOME_INTERFACE          = (1 << 5),         /**< Dome interface, must subclass INDI::Dome */
-        AUX_INTERFACE           = (1 << 6),         /**< Auxiliary interface */
+        GPS_INTERFACE           = (1 << 6),         /**< GPS interface, must subclass INDI::GPS */
+        WEATHER_INTERFACE       = (1 << 7),         /**< Weather interface, must subclass INDI::Weather */
+        AO_INTERFACE            = (1 << 8),         /**< Adaptive Optics Interface */
+        AUX_INTERFACE           = (1 << 9),         /**< Auxiliary interface */
     } DeviceInterface;
 
     DefaultDevice();
@@ -194,7 +197,7 @@ to disconnect the device.
      * \param vMajor major revision number
      * \param vMinor minor revision number
     */
-    void setVersion(unsigned int vMajor, unsigned int vMinor) { majorVersion = vMajor; minorVersion = vMinor;}
+    void setVersion(uint8_t vMajor, uint8_t vMinor) { majorVersion = vMajor; minorVersion = vMinor;}
 
     /** \return Major driver version number. */
     unsigned int getMajorVersion() { return majorVersion;}
@@ -247,13 +250,13 @@ to disconnect the device.
     /**
      * @return getInterface Return the interface declared by the driver.
      */
-    unsigned int getInterfaceDescriptor() const;
+    uint16_t getInterfaceDescriptor() const;
 
     /**
      * @brief setInterface Set driver interface. By default the driver interface is set to GENERAL_DEVICE. You may send an ORed list of DeviceInterface values.
      * @param value ORed list of DeviceInterface values.
      */
-    void setInterfaceDescriptor(unsigned int value);
+    void setInterfaceDescriptor(uint16_t value);
 
 protected:
 
@@ -357,9 +360,9 @@ private:
     bool pDebug;
     bool pSimulation;    
 
-    unsigned int majorVersion;
-    unsigned int minorVersion;
-    unsigned int interfaceDescriptor;
+    uint8_t majorVersion;
+    uint8_t minorVersion;
+    uint16_t interfaceDescriptor;
 
     ISwitch DebugS[2];
     ISwitch SimulationS[2];

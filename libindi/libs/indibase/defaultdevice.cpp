@@ -600,12 +600,12 @@ bool INDI::DefaultDevice::updateProperties()
     return true;
 }
 
-unsigned int INDI::DefaultDevice::getInterfaceDescriptor() const
+uint16_t INDI::DefaultDevice::getInterfaceDescriptor() const
 {
     return interfaceDescriptor;
 }
 
-void INDI::DefaultDevice::setInterfaceDescriptor(unsigned int value)
+void INDI::DefaultDevice::setInterfaceDescriptor(uint16_t value)
 {
     char interfaceStr[16];
     interfaceDescriptor = value;
