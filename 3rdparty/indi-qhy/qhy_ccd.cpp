@@ -261,7 +261,7 @@ bool QHYCCD::initProperties()
 
     addAuxControls();
 
-    setInterfaceDescriptor(getInterfaceDescriptor() | FILTER_INTERFACE);
+    setDriverInterface(getDriverInterface() | FILTER_INTERFACE);
 
     return true;
 }

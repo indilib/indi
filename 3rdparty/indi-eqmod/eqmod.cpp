@@ -351,7 +351,7 @@ bool EQMod::initProperties()
 
     SetParkDataType(PARK_RA_DEC_ENCODER);
 
-    setInterfaceDescriptor(getInterfaceDescriptor() | GUIDER_INTERFACE);
+    setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
 
     return true;
 }

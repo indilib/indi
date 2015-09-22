@@ -244,7 +244,7 @@ bool GPhotoCCD::initProperties()
   /* JM 2014-05-20 Make PrimaryCCD.ImagePixelSizeNP writable since we can't know for now the pixel size and bit depth from gphoto */
   PrimaryCCD.getCCDInfo()->p = IP_RW;
 
-  setInterfaceDescriptor(getInterfaceDescriptor() | FOCUSER_INTERFACE);
+  setDriverInterface(getDriverInterface() | FOCUSER_INTERFACE);
 
   return true;
 }
