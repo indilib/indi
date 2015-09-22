@@ -180,13 +180,13 @@ to disconnect the device.
      * \param vMajor major revision number
      * \param vMinor minor revision number
     */
-    void setVersion(uint8_t vMajor, uint8_t vMinor) { majorVersion = vMajor; minorVersion = vMinor;}
+    void setVersion(uint16_t vMajor, uint16_t vMinor) { majorVersion = vMajor; minorVersion = vMinor;}
 
     /** \return Major driver version number. */
-    unsigned int getMajorVersion() { return majorVersion;}
+    uint16_t getMajorVersion() { return majorVersion;}
 
     /** \return Minor driver version number. */
-    unsigned int getMinorVersion() { return minorVersion;}
+    uint16_t getMinorVersion() { return minorVersion;}
 
     /** \brief define the driver's properties to the client.
      *  Usually, only a minumum set of properties are defined to the client in this function if the device is in disconnected state.
@@ -343,8 +343,8 @@ private:
     bool pDebug;
     bool pSimulation;    
 
-    uint8_t majorVersion;
-    uint8_t minorVersion;
+    uint16_t majorVersion;
+    uint16_t minorVersion;
     uint16_t interfaceDescriptor;
 
     ISwitch DebugS[2];
