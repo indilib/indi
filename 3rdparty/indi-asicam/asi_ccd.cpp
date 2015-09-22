@@ -209,7 +209,7 @@ ASICCD::ASICCD(ASI_CAMERA_INFO *camInfo)
   recorder=v4l2_record->getDefaultRecorder();
   recorder->init();
 
-  snprintf(this->name, MAXINDIDEVICE, "%s", m_camInfo->Name);
+  snprintf(this->name, MAXINDIDEVICE, "ZWO CCD %s", m_camInfo->Name+4);
   setDeviceName(this->name);
 
 }
@@ -1158,6 +1158,7 @@ void ASICCD::TimerHit()
          }
 
          ASIPulseGuideOff(m_camInfo->CameraID, WEDir);
+         DEBUGF(INDI::Logger::DBG_DEBUG, "Stopping %s guide.", WEDir == ASI_GUIDE_EAST ? "East" : "West");
          InWEPulse = false;
          GuideComplete(AXIS_RA);
      }
@@ -1179,6 +1180,7 @@ void ASICCD::TimerHit()
          }
 
          ASIPulseGuideOff(m_camInfo->CameraID, NSDir);
+         DEBUGF(INDI::Logger::DBG_DEBUG, "Stopping %s guide.", NSDir == ASI_GUIDE_NORTH ? "North" : "South");
          InNSPulse = false;
          GuideComplete(AXIS_DE);
      }
@@ -1195,7 +1197,7 @@ IPState ASICCD::GuideNorth(float ms)
 
     ASIPulseGuideOn(m_camInfo->CameraID, NSDir);
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Starting NORTH guide");
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Starting North guide for %f ms", ms);
 
     if (ms <= POLLMS)
     {
@@ -1223,7 +1225,7 @@ IPState ASICCD::GuideSouth(float ms)
 
     ASIPulseGuideOn(m_camInfo->CameraID, NSDir);
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Starting SOUTH guide");
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Starting South guide for %f ms", ms);
 
     if (ms <= POLLMS)
     {
@@ -1249,15 +1251,15 @@ IPState ASICCD::GuideEast(float ms)
 
     WEDir = ASI_GUIDE_EAST;
 
-    ASIPulseGuideOn(m_camInfo->CameraID, NSDir);
+    ASIPulseGuideOn(m_camInfo->CameraID, WEDir);
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Starting EAST guide");
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Starting East guide for %f ms", ms);
 
     if (ms <= POLLMS)
     {
         usleep(ms*1000);
 
-        ASIPulseGuideOff(m_camInfo->CameraID, NSDir);
+        ASIPulseGuideOff(m_camInfo->CameraID, WEDir);
 
         return IPS_OK;
     }
@@ -1277,15 +1279,15 @@ IPState ASICCD::GuideWest(float ms)
 
     WEDir = ASI_GUIDE_WEST;
 
-    ASIPulseGuideOn(m_camInfo->CameraID, NSDir);
+    ASIPulseGuideOn(m_camInfo->CameraID, WEDir);
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Starting WEST guide");
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Starting West guide for %f ms", ms);
 
     if (ms <= POLLMS)
     {
         usleep(ms*1000);
 
-        ASIPulseGuideOff(m_camInfo->CameraID, NSDir);
+        ASIPulseGuideOff(m_camInfo->CameraID ,WEDir);
 
         return IPS_OK;
     }
