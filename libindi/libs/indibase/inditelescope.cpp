@@ -1240,8 +1240,17 @@ char *INDI::Telescope::LoadParkData()
   if (!strcmp(pcdataXMLEle(ParkstatusXml), "true"))
       IsParked=true; 
 
-  sscanf(pcdataXMLEle(ParkpositionAxis1Xml), "%lf", &Axis1ParkPosition);
-  sscanf(pcdataXMLEle(ParkpositionAxis2Xml), "%lf", &Axis2ParkPosition);
+  int rc=0;
+  rc = sscanf(pcdataXMLEle(ParkpositionAxis1Xml), "%lf", &Axis1ParkPosition);
+  if (rc != 1)
+  {
+      return (char *)("Unable to parse Park Position Axis 1.");
+  }
+  rc = sscanf(pcdataXMLEle(ParkpositionAxis2Xml), "%lf", &Axis2ParkPosition);
+  if (rc != 1)
+  {
+      return (char *)("Unable to parse Park Position Axis 2.");
+  }
 
   return NULL;
 }
