@@ -289,6 +289,11 @@ void INDI::CCD::SetCCDCapability(CCDCapability *cap)
     capability.hasShutter   = cap->hasShutter;
     capability.hasST4Port   = cap->hasST4Port;
     capability.hasBayer     = cap->hasBayer;
+
+    if (capability.hasST4Port)
+        setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
+    else
+        setDriverInterface(getDriverInterface() & ~GUIDER_INTERFACE);
 }
 
 bool INDI::CCD::initProperties()
