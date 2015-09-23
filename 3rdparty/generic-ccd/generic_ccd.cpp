@@ -186,18 +186,8 @@ bool GenericCCD::initProperties() {
   // Init parent properties first
   INDI::CCD::initProperties();
 
-  CCDCapability cap;
-
-  cap.canAbort = true;
-  cap.canBin = true;
-  cap.canSubFrame = true;
-  cap.hasCooler = true;
-  cap.hasGuideHead = false;
-  cap.hasShutter = true;
-  cap.hasST4Port = true;
-  cap.hasBayer = false;
-
-  SetCCDCapability(&cap);
+  uint32_t cap = CCD_CAN_ABORT | CCD_CAN_BIN | CCD_CAN_SUBFRAME | CCD_HAS_COOLER | CCD_HAS_SHUTTER | CCD_HAS_ST4_PORT;
+  SetCCDCapability(cap);
 
   addConfigurationControl();
   addDebugControl();

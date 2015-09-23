@@ -433,19 +433,12 @@ bool MICCD::Connect()
 
     sim = isSimulation();
 
-    CCDCapability cap;
+    uint32_t cap=0;
 
     if (sim)
     {
-        cap.canSubFrame = true;
-        cap.hasGuideHead = false;
-        cap.hasShutter = true;
-        cap.canAbort = true;
-        cap.canBin = true;
-        cap.hasCooler = true;
-        cap.hasST4Port = false;
-
-        SetCCDCapability(&cap);
+        cap = CCD_CAN_SUBFRAME | CCD_CAN_ABORT | CCD_CAN_BIN | CCD_HAS_SHUTTER | CCD_HAS_COOLER;
+        SetCCDCapability(cap);
 
         DEBUGF(INDI::Logger::DBG_SESSION, "Connected to %s", name);
 
@@ -456,15 +449,11 @@ bool MICCD::Connect()
 
    DEBUGF(INDI::Logger::DBG_SESSION, "Connected to %s. Chip: %s. HWRevision: %ld. Model: %d. Description: %s", name, cameraInfo.chip, cameraInfo.hwrevision, cameraHandle->model, cameraInfo.description);
 
-   cap.canSubFrame = true;
-   cap.hasGuideHead = false;
-   cap.canAbort = true;
+   cap = CCD_CAN_SUBFRAME | CCD_CAN_ABORT | CCD_HAS_GUIDE_HEAD;
 
    if (cameraHandle->model > G12000)
    {
-        cap.canBin = true;
-        cap.hasShutter = true;
-        cap.hasCooler = true;
+       cap |= CCD_CAN_BIN | CCD_HAS_SHUTTER | CCD_HAS_COOLER;
 
         // Hackish way to find if there is filter wheel support
         if (miccd_filter (cameraHandle, 0) == 0)
@@ -474,15 +463,10 @@ bool MICCD::Connect()
    }
    else
    {
-       cap.canBin = false;
-       cap.hasShutter = false;
-       cap.hasCooler = false;
        HasFilters = false;
    }
 
-   cap.hasST4Port = false;
-
-   SetCCDCapability(&cap);
+   SetCCDCapability(cap);
 
     return true;
 }

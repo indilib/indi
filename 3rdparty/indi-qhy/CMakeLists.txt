@@ -10,6 +10,7 @@ find_package(INDI REQUIRED)
 find_package(QHY REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(USB-1 REQUIRED)
+find_package(Threads REQUIRED)
 
 set(INDI_QHY_VERSION_MAJOR 1)
 set(INDI_QHY_VERSION_MINOR 5)
@@ -36,7 +37,7 @@ endif(APPLE)
 
 add_executable(indi_qhy_ccd ${indiqhy_SRCS})
 
-target_link_libraries(indi_qhy_ccd ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${QHY_LIBRARIES} ${LIBUSB_1_LIBRARIES})
+target_link_libraries(indi_qhy_ccd ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${QHY_LIBRARIES} ${LIBUSB_1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
 if (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")
 target_link_libraries(indi_qhy_ccd rt)

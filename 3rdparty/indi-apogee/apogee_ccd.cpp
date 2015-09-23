@@ -1038,18 +1038,8 @@ bool ApogeeCCD::Connect()
          return false;
      }
 
-      CCDCapability cap;
-
-      cap.canAbort = true;
-      cap.canBin = true;
-      cap.canSubFrame = true;
-      cap.hasCooler = true;
-      cap.hasGuideHead = false;
-      cap.hasShutter = true;
-      cap.hasST4Port = false;
-      cap.hasBayer = false;
-
-      SetCCDCapability(&cap);
+      uint32_t cap = CCD_CAN_ABORT | CCD_CAN_BIN | CCD_CAN_SUBFRAME | CCD_HAS_COOLER | CCD_HAS_SHUTTER;
+      SetCCDCapability(cap);
 
       /* Success! */
       DEBUG(INDI::Logger::DBG_SESSION, "CCD is online. Retrieving basic data.");

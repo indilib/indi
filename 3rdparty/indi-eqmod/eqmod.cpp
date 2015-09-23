@@ -192,18 +192,9 @@ EQMod::EQMod()
   DBG_COMM         = INDI::Logger::getInstance().addDebugLevel("Serial Port", "COMM");
   DBG_MOUNT        = INDI::Logger::getInstance().addDebugLevel("Verbose Mount", "MOUNT");
 
-  mount=new Skywatcher(this);
+  mount=new Skywatcher(this); 
 
-  TelescopeCapability cap;
-
-  cap.canPark = true;
-  cap.canSync = true;
-  cap.canAbort = true;
-  cap.hasLocation=true;
-  cap.hasTime=true;
-  cap.nSlewRate=SLEWMODES-1;
-
-  SetTelescopeCapability(&cap);
+  SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,SLEWMODES-1);
 
   pierside = EAST;
   lastPierSide = WEST;

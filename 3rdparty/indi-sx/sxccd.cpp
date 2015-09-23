@@ -346,16 +346,21 @@ void SXCCD::getCameraParams() {
     SetGuiderParams(params.width, params.height, params.bits_per_pixel, params.pix_width, params.pix_height);
   }
 
-  CCDCapability cap;
-  cap.canAbort = true;
-  cap.canBin = true;
-  cap.canSubFrame = true;
-  cap.hasCooler = HasCooler;
-  cap.hasGuideHead = HasGuideHead;
-  cap.hasShutter = HasShutter;
-  cap.hasST4Port = HasST4Port;
-  cap.hasBayer = false;
-  SetCCDCapability(&cap);
+  uint32_t cap = CCD_CAN_ABORT | CCD_CAN_SUBFRAME | CCD_CAN_BIN;
+
+  if (HasCooler)
+      cap |= CCD_HAS_COOLER;
+
+  if (HasGuideHead)
+      cap |= CCD_HAS_GUIDE_HEAD;
+
+  if (HasShutter)
+      cap |= CCD_HAS_SHUTTER;
+
+  if (HasST4Port)
+      cap |= CCD_HAS_ST4_PORT;
+
+  SetCCDCapability(cap);
 
   SetTimer(TIMER);
 }

@@ -104,7 +104,7 @@ DSICCD::DSICCD()
 *******************************************************************************/
 bool DSICCD::Connect()
 {
-    CCDCapability cap;
+    uint32_t cap=0;
     string ccd;
     dsi = DSI::DeviceFactory::getInstance(NULL);
     if (!dsi) {
@@ -131,21 +131,15 @@ bool DSICCD::Connect()
         DEBUGF(INDI::Logger::DBG_SESSION,  "Found a DSI with an unknown CCD: %s", ccd.c_str());
     }
 
-    cap.canAbort    = true;
+    cap |= CCD_CAN_ABORT;
 
     if (dsi->isBinnable())
-    	cap.canBin      = true;
-    else
-    	cap.canBin      = false;
+        cap |= CCD_CAN_BIN;
 
-    cap.canSubFrame = false;
-    cap.hasCooler   = false;
-    cap.hasGuideHead= false;
-    cap.hasShutter  = false;
-    cap.hasST4Port  = false;
-    cap.hasBayer = dsi->isColor();
+    if (dsi->isColor())
+        cap |= CCD_HAS_BAYER;
 
-    SetCCDCapability(&cap);
+    SetCCDCapability(cap);
 
     if (dsi->hasTempSensor())
     {

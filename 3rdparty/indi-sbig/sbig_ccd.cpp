@@ -630,21 +630,10 @@ bool SBIGCCD::Connect()
   hasFilterWheel=false;
 
   if (sim)
-  {           
-    CCDCapability cap;
-
+  {              
     GetExtendedCCDInfo();
 
-    cap.canAbort = true;
-    cap.canBin = true;
-    cap.canSubFrame = true;
-    cap.hasCooler = true;
-    cap.hasGuideHead = true;
-    cap.hasShutter = true;
-    cap.hasST4Port = true;
-    cap.hasBayer = false;
-
-    SetCCDCapability(&cap);
+    SetCCDCapability(CCD_CAN_ABORT | CCD_CAN_BIN | CCD_CAN_SUBFRAME | CCD_HAS_COOLER | CCD_HAS_GUIDE_HEAD | CCD_HAS_SHUTTER | CCD_HAS_ST4_PORT);
 
     pthread_create( &primary_thread, NULL, &grabCCDHelper, this);
 
@@ -670,18 +659,19 @@ bool SBIGCCD::Connect()
 
               GetExtendedCCDInfo();
 
-              CCDCapability cap;
+              uint32_t cap= CCD_CAN_ABORT | CCD_CAN_BIN | CCD_CAN_SUBFRAME | CCD_HAS_SHUTTER | CCD_HAS_ST4_PORT;
 
-              cap.canAbort = true;
-              cap.canBin = true;
-              cap.canSubFrame = true;
-              cap.hasCooler = hasCooler;
-              cap.hasGuideHead = hasGuideHead;
-              cap.hasShutter = true;
-              cap.hasST4Port = true;
-              cap.hasBayer = isColor;
+              if (hasCooler)
+                  cap |= CCD_HAS_COOLER;
 
-              SetCCDCapability(&cap);
+              if (hasGuideHead)
+                  cap |= CCD_HAS_GUIDE_HEAD;
+
+              if (isColor)
+                  cap |= CCD_HAS_BAYER;
+
+
+              SetCCDCapability(cap);
 
               pthread_create( &primary_thread, NULL, &grabCCDHelper, this);
               return true;

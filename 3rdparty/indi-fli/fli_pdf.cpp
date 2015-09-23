@@ -94,13 +94,7 @@ FLIPDF::FLIPDF()
 {
    sim = false;
 
-   FocuserCapability cap;
-   cap.canAbort=false;
-   cap.canAbsMove=true;
-   cap.canRelMove=true;
-   cap.variableSpeed=false;
-
-   SetFocuserCapability(&cap);
+   SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE);
 }
 
 

@@ -213,28 +213,9 @@ bool GPhotoCCD::initProperties()
   // Most cameras have this by default, so let's set it as default.
   IUSaveText(&BayerT[2], "RGGB");
 
-  CCDCapability cap;
+  SetCCDCapability(CCD_CAN_SUBFRAME | CCD_HAS_BAYER);
 
-  cap.canAbort = false;
-  cap.canBin = false;
-  //cap.canSubFrame = false;
-  cap.canSubFrame = true;
-  cap.hasCooler = false;
-  cap.hasGuideHead = false;
-  cap.hasShutter = false;
-  cap.hasST4Port = false;
-  cap.hasBayer = true;
-
-  SetCCDCapability(&cap);
-
-
-  FocuserCapability focusCap;
-  focusCap.canAbort=false;
-  focusCap.canAbsMove=false;
-  focusCap.canRelMove=false;
-  focusCap.variableSpeed=true;
-
-  SetFocuserCapability(&focusCap);
+  SetFocuserCapability(FOCUSER_HAS_VARIABLE_SPEED);
 
   FocusSpeedN[0].min=0;
   FocusSpeedN[0].max=3;

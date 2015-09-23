@@ -130,18 +130,7 @@ FFMVCCD::FFMVCCD()
     InExposure = false;
     capturing = false;
 
-    CCDCapability cap;
-
-    cap.canAbort    = true;
-    cap.canBin      = false;
-    cap.canSubFrame = false;
-    cap.hasCooler   = false;
-    cap.hasGuideHead= false;
-    cap.hasShutter  = false;
-    cap.hasST4Port  = false;
-    cap.hasBayer = false;
-
-    SetCCDCapability(&cap);
+    SetCCDCapability(CCD_CAN_ABORT);
 }
 
 /**************************************************************************************

@@ -56,6 +56,9 @@ public:
   bool ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num);
   bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
 
+  static void * streamVideoHelper(void* context);
+  void * streamVideo();
+
 protected:
 
   // Misc.
@@ -79,6 +82,10 @@ protected:
   virtual bool SetFilterNames();
   virtual bool GetFilterNames(const char *groupName);
 
+  // Streaming
+  virtual bool StartStreaming();
+  virtual bool StopStreaming();
+
   ISwitch                CoolerS[2];
   ISwitchVectorProperty CoolerSP;
 
@@ -98,9 +105,24 @@ protected:
   INumberVectorProperty  USBTrafficNP;
 
 private:
+
+  // Get time until next image is due
+  float calcTimeLeft();
+  // Get image buffer from camera
+  int grabImage();
+  // Setup basic CCD parameters on connection
+  bool setupParams();
+  // Enable/disable cooler
+  void setCooler(bool enable);
+
+  // Temperature update
+  void updateTemperature();
+  static void updateTemperatureHelper(void *);
+
   char name[MAXINDIDEVICE];
   char camid[MAXINDIDEVICE];
 
+  // CCD dimensions
   int camxbin;
   int camybin;
   int camroix;
@@ -108,32 +130,31 @@ private:
   int camroiwidth;
   int camroiheight;
 
-  bool IsFocusMode;
+  // CCD extra capabilities
   bool HasUSBTraffic;
   bool HasUSBSpeed;
   bool HasGain;
   bool HasOffset;
   bool HasFilters;  
 
-  qhyccd_handle *camhandle;
-
-  int temperatureID;
-  bool coolerEnabled;
-  int timerID;
+  qhyccd_handle *camhandle;     
+  CCDChip::CCD_FRAME imageFrameType;
   bool sim;
 
-  CCDChip::CCD_FRAME imageFrameType;
-
+  // Temperature tracking
   float TemperatureRequest;
+  int temperatureID;
+  bool coolerEnabled;
+
+  // Exposure progress
   float ExposureRequest;
   struct timeval ExpStart;
+  int timerID;
 
-  float calcTimeLeft();
-  int grabImage();
-  bool setupParams();
-  void setCooler(bool enable);
-  void updateTemperature();
-  static void updateTemperatureHelper(void *);
+  // Thread conditions
+  int streamPredicate;
+  pthread_t primary_thread;
+  bool terminateThread;
 
   friend void ::ISGetProperties(const char *dev);
   friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);

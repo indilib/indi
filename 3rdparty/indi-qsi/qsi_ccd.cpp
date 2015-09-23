@@ -1038,18 +1038,15 @@ bool QSICCD::Connect()
                 return false;
             }
 
-            CCDCapability cap;
+            uint32_t cap= CCD_CAN_BIN | CCD_CAN_SUBFRAME | CCD_HAS_COOLER | CCD_HAS_SHUTTER;
 
-            cap.canAbort = canAbort;
-            cap.canBin = true;
-            cap.canSubFrame = true;
-            cap.hasCooler = true;
-            cap.hasGuideHead = false;
-            cap.hasShutter = true;
-            cap.hasST4Port = hasST4Port;
-	    cap.hasBayer = false;
+            if (canAbort)
+                cap |= CCD_CAN_ABORT;
 
-            SetCCDCapability(&cap);
+            if (hasST4Port)
+                cap |= CCD_HAS_ST4_PORT;
+
+            SetCCDCapability(cap);
 
             /* Success! */
             DEBUG(INDI::Logger::DBG_SESSION, "CCD is online. Retrieving basic data.");
@@ -1060,7 +1057,6 @@ bool QSICCD::Connect()
 bool QSICCD::Disconnect()
 {
     bool connected;
-
 
     try
     {

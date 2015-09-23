@@ -129,18 +129,7 @@ bool FLICCD::initProperties()
     IUFillText(&CamInfoT[2],"FW Rev","","");
     IUFillTextVector(&CamInfoTP,CamInfoT,3,getDeviceName(),"Model","",IMAGE_INFO_TAB,IP_RO,60,IPS_IDLE);
 
-    CCDCapability cap;
-
-    cap.canAbort = true;
-    cap.canBin = true;
-    cap.canSubFrame = true;
-    cap.hasCooler = true;
-    cap.hasGuideHead = false;
-    cap.hasShutter = true;
-    cap.hasST4Port = false;
-    cap.hasBayer = false;
-
-    SetCCDCapability(&cap);
+    SetCCDCapability(CCD_CAN_ABORT | CCD_CAN_BIN | CCD_CAN_SUBFRAME | CCD_HAS_COOLER | CCD_HAS_SHUTTER);
 
 }
 

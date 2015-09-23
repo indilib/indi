@@ -111,18 +111,7 @@ MaxDomeII::MaxDomeII()
    nTargetAzimuth = -1; //Target azimuth not established
    nTimeSinceLastCommunication = 0;
 
-   DomeCapability cap;
-
-   cap.canAbort = true;
-   cap.canAbsMove = true;
-   cap.canRelMove = false;
-   cap.canPark = true;
-
-   // We do have shutter, but we want to override INDI::Dome default shutter operation property
-   cap.hasShutter = false;
-   cap.hasVariableSpeed = false;
-
-   SetDomeCapability(&cap);
+   SetDomeCapability(DOME_CAN_ABORT | DOME_CAN_ABS_MOVE | DOME_CAN_PARK);
 }
 
 bool MaxDomeII::SetupParms()

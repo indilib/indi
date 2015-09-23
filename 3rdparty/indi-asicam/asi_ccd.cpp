@@ -24,13 +24,10 @@
 #include <math.h>
 #include <unistd.h>
 #include <sys/time.h>
-// We need for V4L2 video formats
-#include <linux/videodev2.h>
 
-#include <zlib.h>
+#include <stream_recorder.h>
+#include <indidevapi.h>
 
-#include "indidevapi.h"
-#include "eventloop.h"
 
 #include "asi_ccd.h"
 #include "config.h"
@@ -205,10 +202,6 @@ ASICCD::ASICCD(ASI_CAMERA_INFO *camInfo)
 
   TemperatureUpdateCounter = 0;
 
-  v4l2_record=new V4L2_Record();
-  recorder=v4l2_record->getDefaultRecorder();
-  recorder->init();
-
   snprintf(this->name, MAXINDIDEVICE, "ZWO CCD %s", m_camInfo->Name+4);
   setDeviceName(this->name);
 
@@ -216,7 +209,6 @@ ASICCD::ASICCD(ASI_CAMERA_INFO *camInfo)
 
 ASICCD::~ASICCD()
 {
-    delete(v4l2_record);
 }
 
 const char * ASICCD::getDefaultName()
@@ -237,19 +229,6 @@ bool ASICCD::initProperties()
 
   IUFillSwitchVector(&VideoFormatSP, NULL, 0, getDeviceName(), "CCD_VIDEO_FORMAT", "Format", CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
-  IUFillSwitch(&StreamS[0], "STREAM_ON", "Stream On", ISS_OFF);
-  IUFillSwitch(&StreamS[1], "STREAM_OFF", "Stream Off", ISS_ON);
-  IUFillSwitchVector(&StreamSP, StreamS, NARRAY(StreamS), getDeviceName(), "CCD_VIDEO_STREAM", "Video Stream", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
-  // File
-  IUFillText(&RecordFileT[0], "RECORD_FILE_NAME", "File name", "/tmp/indimovie.ser");
-  IUFillTextVector(&RecordFileTP, RecordFileT, NARRAY(RecordFileT), getDeviceName(), "RECORD_FILE", "Record File", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
-
-  // Video Record Switch
-  IUFillSwitch(&RecordS[0], "ON", "Record On", ISS_OFF);
-  IUFillSwitch(&RecordS[1], "OFF", "Record Off", ISS_ON);
-  IUFillSwitchVector(&RecordSP, RecordS, NARRAY(RecordS), getDeviceName(), "VIDEO_RECORD", "Video Record", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
   IUSaveText(&BayerT[2], getBayerString());
 
   int maxBin=1;
@@ -265,16 +244,29 @@ bool ASICCD::initProperties()
   PrimaryCCD.setMinMaxStep("CCD_BINNING", "HOR_BIN", 1, maxBin, 1, false);
   PrimaryCCD.setMinMaxStep("CCD_BINNING", "VER_BIN", 1, maxBin, 1, false);    
 
-  asiCap.canAbort = true;
-  asiCap.canBin = (maxBin > 1);
-  asiCap.canSubFrame = true;
-  asiCap.hasCooler = (m_camInfo->IsCoolerCam);
-  asiCap.hasGuideHead = false;
-  asiCap.hasShutter = (m_camInfo->MechanicalShutter);
-  asiCap.hasST4Port = (m_camInfo->ST4Port);
-  asiCap.hasBayer = (m_camInfo->IsColorCam);
+  uint32_t cap =0;
 
-  SetCCDCapability(&asiCap);
+  cap |= CCD_CAN_ABORT;
+  if (maxBin > 1)
+      cap |= CCD_CAN_BIN;
+
+  cap |= CCD_CAN_SUBFRAME;
+
+  if (m_camInfo->IsCoolerCam)
+      cap |= CCD_HAS_COOLER;
+
+  if (m_camInfo->MechanicalShutter)
+      cap |= CCD_HAS_SHUTTER;
+
+  if (m_camInfo->ST4Port)
+      cap |= CCD_HAS_ST4_PORT;
+
+  if (m_camInfo->IsColorCam)
+      cap |= CCD_HAS_BAYER;
+
+  cap |= CCD_HAS_STREAMING;
+
+  SetCCDCapability(cap);
 
   addAuxControls();
 
@@ -291,16 +283,9 @@ bool ASICCD::updateProperties()
   INDI::CCD::updateProperties();
 
   if (isConnected())
-  {
-    imageBP=getBLOB("CCD1");
-    imageB=imageBP->bp;
-
+  {    
     if (HasCooler())
         defineNumber(&CoolerNP);
-
-    defineSwitch(&StreamSP);
-    defineSwitch(&RecordSP);
-    defineText(&RecordFileTP);
 
     // Let's get parameters now from CCD
     setupParams();
@@ -320,10 +305,6 @@ bool ASICCD::updateProperties()
 
     if (HasCooler())
         deleteProperty(CoolerNP.name);
-
-    deleteProperty(StreamSP.name);
-    deleteProperty(RecordSP.name);
-    deleteProperty(RecordFileTP.name);
 
     if (ControlNP.nnp > 0)
         deleteProperty(ControlNP.name);
@@ -486,7 +467,7 @@ bool ASICCD::setupParams()
   // Let's calculate required buffer
   int nbuf;
   nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;    //  this is pixel cameraCount
-  nbuf += 512;    //  leave a little extra at the end
+  //nbuf += 512;    //  leave a little extra at the end
   PrimaryCCD.setFrameBufferSize(nbuf);
 
   if (HasCooler())
@@ -506,31 +487,10 @@ bool ASICCD::setupParams()
   ASISetROIFormat(m_camInfo->CameraID, m_camInfo->MaxWidth, m_camInfo->MaxHeight, 1, imgType);
 
   updateRecorderFormat();
-  recorder->setsize(w, h);
+  streamer->setRecorderSize(w,h);
 
   return true;
 
-}
-
-bool ASICCD::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-
-    if (!strcmp(dev, getDeviceName()))
-    {
-        if (!strcmp(name, RecordFileTP.name) )
-        {
-          RecordFileTP.s = IPS_OK;
-          IText *tp = IUFindText( &RecordFileTP, names[0] );
-          if (!tp)
-           return false;
-          IUSaveText(tp, texts[0]);
-          IDSetText (&RecordFileTP, NULL);
-          return true;
-        }
-
-    }
-
-    return INDI::CCD::ISNewText (dev, name, texts, names, n);
 }
 
 bool ASICCD::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
@@ -600,56 +560,6 @@ bool ASICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
 
     if(!strcmp(dev,getDeviceName()))
     {
-        if (!strcmp(name, StreamSP.name))
-        {
-            IUUpdateSwitch(&StreamSP, states, names, n);
-
-            if (StreamS[0].s == ISS_ON)
-            {
-                ASI_IMG_TYPE type = getImageType();
-
-                if (type != ASI_IMG_Y8)
-                {
-                    IUResetSwitch(&VideoFormatSP);
-                    ISwitch *vf = IUFindSwitch(&VideoFormatSP,"ASI_IMG_Y8");
-                    if (vf)
-                    {
-                        vf->s = ISS_ON;
-                        DEBUG(INDI::Logger::DBG_DEBUG, "Switching to Luma video format.");
-                        PrimaryCCD.setBPP(8);
-                        UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
-                        IDSetSwitch(&VideoFormatSP, NULL);
-                    }
-                    else
-                    {
-                        DEBUG(INDI::Logger::DBG_ERROR, "No Luma video format found, cannot start stream.");
-                        IUResetSwitch(&StreamSP);
-                        StreamSP.s = IPS_ALERT;
-                        IDSetSwitch(&StreamSP, NULL);
-                        return true;
-                    }
-                }
-                StreamSP.s = IPS_BUSY;
-                ASIStartVideoCapture(m_camInfo->CameraID);
-                pthread_mutex_lock(&condMutex);
-                streamPredicate = 1;
-                pthread_mutex_unlock(&condMutex);
-                pthread_cond_signal(&cv);
-            }
-            else
-            {
-                StreamSP.s = IPS_IDLE;
-                pthread_mutex_lock(&condMutex);
-                streamPredicate = 0;
-                pthread_mutex_unlock(&condMutex);
-                pthread_cond_signal(&cv);
-                ASIStopVideoCapture(m_camInfo->CameraID);
-            }
-
-            IDSetSwitch(&StreamSP, NULL);
-            return true;
-        }
-
         if (!strcmp(name, ControlSP.name))
         {
            IUUpdateSwitch(&ControlSP, states, names, n);
@@ -690,21 +600,17 @@ bool ASICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
 
         if (!strcmp(name, VideoFormatSP.name))
         {
-            int prevFormat = IUFindOnSwitchIndex(&VideoFormatSP);
-
-            IUUpdateSwitch(&VideoFormatSP, states, names, n);
-
-            ASI_IMG_TYPE type = getImageType();
-
-            if (StreamSP.s == IPS_BUSY && type != ASI_IMG_Y8)
+            if (streamer->isBusy())
             {
-                IUResetSwitch(&VideoFormatSP);
-                VideoFormatS[prevFormat].s = ISS_ON;
-                VideoFormatSP.s = IPS_IDLE;
-                DEBUG(INDI::Logger::DBG_WARNING, "Only Luma format is supported for video streaming.");
+                VideoFormatSP.s = IPS_ALERT;
+                DEBUG(INDI::Logger::DBG_ERROR, "Cannot change format while streaming/recording.");
                 IDSetSwitch(&VideoFormatSP, NULL);
                 return true;
             }
+
+            IUUpdateSwitch(&VideoFormatSP, states, names, n);
+
+            ASI_IMG_TYPE type = getImageType();            
 
             switch (type)
             {
@@ -726,68 +632,53 @@ bool ASICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
             return true;
         }
 
-        // Record Stream
-        if (!strcmp(name, RecordSP.name))
-        {
-          bool is_streaming = (StreamSP.s == IPS_BUSY);
-          bool is_recording = (RecordSP.s == IPS_BUSY);
-
-          IUUpdateSwitch(&RecordSP, states, names, n);
-
-          if (RecordS[0].s == ISS_ON)
-          {
-            if ((!is_streaming) && (!is_recording))
-            {
-                char errmsg[MAXRBUF];
-                frameCount = 0;
-                DEBUG(INDI::Logger::DBG_SESSION, "Recording the video stream (no binning).");
-                RecordSP.s  = IPS_BUSY;
-                if (!recorder->open(RecordFileT[0].text, errmsg))
-                {
-                    RecordSP.s = IPS_ALERT;
-                    IDSetSwitch(&RecordSP, NULL);
-                    DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-                    return false;
-                }
-
-                if (getImageType() == ASI_IMG_RGB24)
-                        recorder->setDefaultColor();
-                    else
-                        recorder->setDefaultMono();
-
-                ASIStartVideoCapture(m_camInfo->CameraID);
-                pthread_mutex_lock(&condMutex);
-                streamPredicate = 1;
-                pthread_mutex_unlock(&condMutex);
-                pthread_cond_signal(&cv);
-            }
-            else
-            {
-                if (!is_recording) RecordSP.s=IPS_IDLE;
-            }
-          }
-          else
-          {
-            RecordSP.s = IPS_IDLE;
-            if (is_recording)
-            {
-                pthread_mutex_lock(&condMutex);
-                streamPredicate = 0;
-                pthread_mutex_unlock(&condMutex);
-                pthread_cond_signal(&cv);
-                ASIStopVideoCapture(m_camInfo->CameraID);
-                recorder->close();
-                DEBUGF(INDI::Logger::DBG_SESSION, "Recording stream has been disabled. Frame count %d", frameCount);
-            }
-          }
-
-          IDSetSwitch(&RecordSP, NULL);
-          return true;
-        }
-
     }
 
    return INDI::CCD::ISNewSwitch(dev,name,states,names,n);
+}
+
+bool ASICCD::StartStreaming()
+{
+    ASI_IMG_TYPE type = getImageType();
+
+    if (type != ASI_IMG_Y8)
+    {
+        IUResetSwitch(&VideoFormatSP);
+        ISwitch *vf = IUFindSwitch(&VideoFormatSP,"ASI_IMG_Y8");
+        if (vf)
+        {
+            vf->s = ISS_ON;
+            DEBUG(INDI::Logger::DBG_DEBUG, "Switching to Luma video format.");
+            PrimaryCCD.setBPP(8);
+            UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
+            IDSetSwitch(&VideoFormatSP, NULL);
+        }
+        else
+        {
+            DEBUG(INDI::Logger::DBG_ERROR, "No Luma video format found, cannot start stream.");
+            return false;
+        }
+    }
+
+    ASIStartVideoCapture(m_camInfo->CameraID);
+    pthread_mutex_lock(&condMutex);
+    streamPredicate = 1;
+    pthread_mutex_unlock(&condMutex);
+    pthread_cond_signal(&cv);
+
+
+    return true;
+}
+
+bool ASICCD::StopStreaming()
+{
+    pthread_mutex_lock(&condMutex);
+    streamPredicate = 0;
+    pthread_mutex_unlock(&condMutex);
+    pthread_cond_signal(&cv);
+    ASIStopVideoCapture(m_camInfo->CameraID);
+
+    return true;
 }
 
 int ASICCD::SetTemperature(double temperature)
@@ -881,7 +772,7 @@ bool ASICCD::UpdateCCDFrame(int x, int y, int w, int h)
       return false;
   }
 
-  recorder->setsize(bin_width, bin_height);
+  streamer->setRecorderSize(bin_width, bin_height);
 
   // Set UNBINNED coords
   PrimaryCCD.setFrame(x, y, w, h);
@@ -893,7 +784,7 @@ bool ASICCD::UpdateCCDFrame(int x, int y, int w, int h)
 
   int nbuf;
   nbuf = (bin_width * bin_height * PrimaryCCD.getBPP() / 8) * nChannels;    //  this is pixel count
-  nbuf += 512;    //  leave a little extra at the end
+  //nbuf += 512;    //  leave a little extra at the end
   PrimaryCCD.setFrameBufferSize(nbuf);
 
   DEBUGF(INDI::Logger::DBG_DEBUG, "Setting frame buffer size to %d bytes.", nbuf);
@@ -977,13 +868,13 @@ int ASICCD::grabImage()
 
   PrimaryCCD.setNAxis(2);
 
-  bool rememberBayer= HasBayer();
+  bool restoreBayer= false;
 
   // If we're sending Luma, turn off bayering
   if (type == ASI_IMG_Y8 && HasBayer())
   {
-      asiCap.hasBayer = false;
-      SetCCDCapability(&asiCap);
+      restoreBayer = true;
+      SetCCDCapability(GetCCDCapability() & ~CCD_HAS_BAYER);
   }
   else if (type == ASI_IMG_RGB24)
   {
@@ -996,8 +887,8 @@ int ASICCD::grabImage()
   ExposureComplete(&PrimaryCCD);
 
   // Restore bayer cap
-  asiCap.hasBayer = rememberBayer;
-  SetCCDCapability(&asiCap);
+  if (restoreBayer)
+      SetCCDCapability(GetCCDCapability() | CCD_HAS_BAYER);
 
   return 0;
 }
@@ -1453,43 +1344,39 @@ void ASICCD::updateControls()
 
 void ASICCD::updateRecorderFormat()
 {
-    if (RecordSP.s == IPS_ALERT)
-        RecordSP.s = IPS_IDLE;
 
     switch (getImageType())
     {
       case ASI_IMG_Y8:
-        recorder->setpixelformat(V4L2_PIX_FMT_GREY);
+        streamer->setPixelFormat(V4L2_PIX_FMT_GREY);
         break;
 
       case ASI_IMG_RAW8:
         if (m_camInfo->BayerPattern == ASI_BAYER_RG)
-            recorder->setpixelformat(V4L2_PIX_FMT_SRGGB8);
+            streamer->setPixelFormat(V4L2_PIX_FMT_SRGGB8);
         else if (m_camInfo->BayerPattern == ASI_BAYER_BG)
-         recorder->setpixelformat(V4L2_PIX_FMT_SBGGR8);
+            streamer->setPixelFormat(V4L2_PIX_FMT_SBGGR8);
         else if (m_camInfo->BayerPattern == ASI_BAYER_GR)
-            recorder->setpixelformat(V4L2_PIX_FMT_SGRBG8);
+            streamer->setPixelFormat(V4L2_PIX_FMT_SGRBG8);
         else if (m_camInfo->BayerPattern == ASI_BAYER_GB)
-            recorder->setpixelformat(V4L2_PIX_FMT_SGBRG8);
+            streamer->setPixelFormat(V4L2_PIX_FMT_SGBRG8);
          break;
 
       case ASI_IMG_RAW16:
         if (m_camInfo->BayerPattern == ASI_BAYER_BG)
-         recorder->setpixelformat(V4L2_PIX_FMT_SBGGR16);
+         streamer->setPixelFormat(V4L2_PIX_FMT_SBGGR16);
         else
         {
-            RecordSP.s = IPS_ALERT;
             DEBUGF(INDI::Logger::DBG_WARNING, "16 bit bayer format %s it not supported by the SER recorder.", getBayerString());
         }
         break;
 
       case ASI_IMG_RGB24:
-       recorder->setpixelformat(V4L2_PIX_FMT_RGB24);
+       streamer->setPixelFormat(V4L2_PIX_FMT_RGB24);
         break;
 
     }
 
-   IDSetSwitch(&RecordSP, NULL);
 }
 
 void * ASICCD::streamVideoHelper(void* context)
@@ -1499,8 +1386,9 @@ void * ASICCD::streamVideoHelper(void* context)
 
 void* ASICCD::streamVideo()
 {
+  int ret=0;
   pthread_mutex_lock(&condMutex);
-  unsigned char *compressedFrame = (unsigned char *) malloc(1);
+  //unsigned char *compressedFrame = (unsigned char *) malloc(1);
 
   while (true)
   {
@@ -1514,62 +1402,21 @@ void* ASICCD::streamVideo()
       pthread_mutex_unlock(&condMutex);
 
       unsigned char *targetFrame = (unsigned char *) PrimaryCCD.getFrameBuffer();
-      // Remove the 512 offset
-      uLong totalBytes     = PrimaryCCD.getFrameBufferSize() - 512;
-      int waitMS           = ExposureRequest*2000 + 500;
+      uint32_t totalBytes     = PrimaryCCD.getFrameBufferSize();
+      int waitMS              = ExposureRequest*2000 + 500;
 
-      ASIGetVideoData(m_camInfo->CameraID, targetFrame, totalBytes, waitMS);
-      frameCount++;
-
-      if (RecordS[0].s == ISS_ON)
+      if ( (ret = ASIGetVideoData(m_camInfo->CameraID, targetFrame, totalBytes, waitMS)) != ASI_SUCCESS)
       {
-          recorder->writeFrame(targetFrame);
-          pthread_mutex_lock(&condMutex);
+          DEBUGF(INDI::Logger::DBG_ERROR, "Error reading video data (%d)", ret);
+          streamPredicate=0;
+          streamer->setStream(false);
           continue;
       }
+      //frameCount++;
 
-      uLongf compressedBytes = 0;
-
-      /* Do we want to compress ? */
-       if (PrimaryCCD.isCompressed())
-       {
-           /* Compress frame */
-           compressedFrame = (unsigned char *) realloc (compressedFrame, sizeof(unsigned char) * totalBytes + totalBytes / 64 + 16 + 3);
-
-           compressedBytes = sizeof(unsigned char) * totalBytes + totalBytes / 64 + 16 + 3;
-
-           int r = compress2(compressedFrame, &compressedBytes, targetFrame, totalBytes, 4);
-           if (r != Z_OK)
-           {
-               /* this should NEVER happen */
-               IDLog("internal error - compression failed: %d\n", r);
-               return 0;
-           }
-
-           /* #3.A Send it compressed */
-           imageB->blob = compressedFrame;
-           imageB->bloblen = compressedBytes;
-           imageB->size = totalBytes;
-           strcpy(imageB->format, ".stream.z");
-       }
-       else
-       {
-          /* #3.B Send it uncompressed */
-           imageB->blob = targetFrame;
-           imageB->bloblen = totalBytes;
-           imageB->size = totalBytes;
-           strcpy(imageB->format, ".stream");
-       }
-
-      imageBP->s = IPS_OK;
-      IDSetBLOB (imageBP, NULL);
-
-     // lock cond before wait again
-     pthread_mutex_lock(&condMutex);
-
+      streamer->newFrame(targetFrame);
   }
 
-  free(compressedFrame);
   pthread_mutex_unlock(&condMutex);
   return 0;
 }
