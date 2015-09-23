@@ -506,24 +506,21 @@ bool ApogeeCCD::ISNewNumber(const char *dev, const char *name, double values[], 
 
 bool ApogeeCCD::StartExposure(float duration)
 {
-        if(ExposureRequest < minDuration)
+        if(duration < minDuration)
         {
             ExposureRequest = minDuration;
             DEBUGF(INDI::Logger::DBG_WARNING, "Exposure shorter than minimum ExposureRequest %g s requested. \n Setting exposure time to %g s.", minDuration,minDuration);
         }
+        else
+            ExposureRequest = duration;
 
         imageFrameType = PrimaryCCD.getFrameType();
 
         if(imageFrameType == CCDChip::BIAS_FRAME)
         {
-            ExposureRequest = minDuration;
-            PrimaryCCD.setExposureDuration(ExposureRequest);
-            DEBUGF(INDI::Logger::DBG_SESSION, "Bias Frame (s) : %g\n", ExposureRequest);
-        } else
-        {
-            ExposureRequest = duration;
-            PrimaryCCD.setExposureDuration(ExposureRequest);
-        }
+            ExposureRequest = minDuration;            
+            DEBUGF(INDI::Logger::DBG_SESSION, "Bias Frame (s) : %g", ExposureRequest);
+        }        
 
         if (isSimulation() == false)
             ApgCam->SetImageCount(1);
@@ -534,7 +531,10 @@ bool ApogeeCCD::StartExposure(float duration)
                 try
                 {
                     if (isSimulation() == false)
+                    {
                         ApgCam->StartExposure(ExposureRequest, false);
+                        PrimaryCCD.setExposureDuration(ExposureRequest);
+                    }
                 } catch (std::runtime_error& err)
                 {
                     DEBUGF(INDI::Logger::DBG_ERROR, "StartExposure() failed. %s.", err.what());
@@ -547,7 +547,10 @@ bool ApogeeCCD::StartExposure(float duration)
                try
                 {
                     if (isSimulation() == false)
+                    {
                         ApgCam->StartExposure(ExposureRequest, true);
+                        PrimaryCCD.setExposureDuration(ExposureRequest);
+                    }
                 } catch (std::runtime_error& err)
                 {
                     DEBUGF(INDI::Logger::DBG_ERROR, "StartExposure() failed. %s.", err.what());
