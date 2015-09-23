@@ -596,6 +596,12 @@ float ApogeeCCD::CalcTimeLeft(timeval start,float req)
 
 bool ApogeeCCD::UpdateCCDFrame(int x, int y, int w, int h)
 {
+    if (InExposure == true)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Cannot change CCD frame while exposure is in progress.");
+        return false;
+    }
+
     /* Add the X and Y offsets */
     long x_1 = x;
     long y_1 = y;
@@ -647,6 +653,12 @@ bool ApogeeCCD::UpdateCCDFrame(int x, int y, int w, int h)
 
 bool ApogeeCCD::UpdateCCDBin(int binx, int biny)
 {
+    if (InExposure == true)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Cannot change CCD binning while exposure is in progress.");
+        return false;
+    }
+
     try
     {
         if (isSimulation() == false)
