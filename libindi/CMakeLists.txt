@@ -98,6 +98,7 @@ set(libwebcam_SRCS
 	${CMAKE_SOURCE_DIR}/libs/webcam/v4l2_decode/v4l2_builtin_decoder.cpp
 	${CMAKE_SOURCE_DIR}/libs/webcam/v4l2_record/v4l2_record.cpp
 	${CMAKE_SOURCE_DIR}/libs/webcam/v4l2_record/ser_recorder.cpp
+        ${CMAKE_SOURCE_DIR}/libs/webcam/v4l2_record/stream_recorder.cpp
 	)
 endif()
 
@@ -724,7 +725,7 @@ ${CMAKE_SOURCE_DIR}/libs/indibase/indilogger.h ${CMAKE_SOURCE_DIR}/libs/indibase
 ${CMAKE_SOURCE_DIR}/libs/webcam/ccvt.h ${CMAKE_SOURCE_DIR}/libs/webcam/ccvt_types.h
 ${CMAKE_SOURCE_DIR}/libs/webcam/v4l2_record/v4l2_record.h ${CMAKE_SOURCE_DIR}/libs/webcam/v4l2_record/ser_recorder.h
 ${CMAKE_SOURCE_DIR}/libs/webcam/v4l2_decode/v4l2_decode.h ${CMAKE_SOURCE_DIR}/libs/webcam/v4l2_decode/v4l2_builtin_decoder.h
-${CMAKE_SOURCE_DIR}/libs/webcam/ccvt_types.h ${CMAKE_SOURCE_DIR}/libs/webcam/v4l2_colorspace.h
+${CMAKE_SOURCE_DIR}/libs/webcam/v4l2_record/stream_recorder.h ${CMAKE_SOURCE_DIR}/libs/webcam/ccvt_types.h ${CMAKE_SOURCE_DIR}/libs/webcam/v4l2_colorspace.h
 ${CMAKE_SOURCE_DIR}/libs/webcam/jpegutils.h
  DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
 

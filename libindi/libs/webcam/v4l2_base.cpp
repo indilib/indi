@@ -66,9 +66,8 @@ V4L2_Base::V4L2_Base()
    frameRate.denominator=25;
 
    selectCallBackID = -1;
-   dropFrameEnabled=false;
-   dropFrameCount = 1;
-   dropFrame = 1;
+   //dropFrameCount = 1;
+   //dropFrame = 0;
   
    xmax = xmin = 160;
    ymax = ymin = 120;
@@ -231,13 +230,16 @@ int V4L2_Base::read_frame(char *errmsg) {
 
     assert (buf.index < n_buffers);
     //IDLog("drop %c %d on %d\n", (dropFrameEnabled?'Y':'N'),dropFrame, dropFrameCount);
-    if (dropFrameEnabled && (dropFrame > 0))
+    /*if (dropFrame > 0)
       {
         dropFrame -= 1;
 	if (-1 == xioctl (fd, VIDIOC_QBUF, &buf))
 	  return errno_exit ("ReadFrame IO_METHOD_MMAP: VIDIOC_QBUF", errmsg);
         return 0;
-      } 
+      }
+    else
+        dropFrame = dropFrameCount;*/
+
 
     /*
       switch (buf.flags &  V4L2_BUF_FLAG_TIMESTAMP_MASK) {
@@ -408,7 +410,7 @@ int V4L2_Base::start_capturing(char * errmsg) {
     break;
   }
   //if (dropFrameEnabled)
-  dropFrame = dropFrameCount;
+  //dropFrame = dropFrameCount;
   streamedonce=true;
   return 0;
 }

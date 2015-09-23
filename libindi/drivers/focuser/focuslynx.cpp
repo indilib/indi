@@ -119,18 +119,12 @@ FocusLynx::FocusLynx()
     focusMoveRequest = 0;
     simPosition=0;
 
-    // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
-    FocuserCapability cap;
-    cap.canAbort=true;
-    cap.canAbsMove=true;
-    cap.canRelMove=true;
-    cap.variableSpeed=false;
-
     isAbsolute = false;
     isSynced   = false;
     isHoming   = false;
 
-    SetFocuserCapability(&cap);
+    // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
+    SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_HAS_VARIABLE_SPEED);
 
     simStatus[STATUS_MOVING]   = ISS_OFF;
     simStatus[STATUS_HOMING]   = ISS_OFF;

@@ -25,12 +25,13 @@
 
 INDI::Telescope::Telescope()
 {
-    capability.canPark = capability.canSync = capability.canAbort = false;
-    capability.nSlewRate = 0;
+    capability=0;
     last_we_motion = last_ns_motion = -1;
     parkDataType = PARK_NONE;
     Parkdatafile= "~/.indi/ParkData.xml";
     IsParked=false;
+
+    nSlewRate=0;
     SlewRateS = NULL;
 
     controller = new INDI::Controller(this);
@@ -75,13 +76,13 @@ bool INDI::Telescope::initProperties()
     IUFillSwitch(&CoordS[1],"SLEW","Slew",ISS_OFF);
     IUFillSwitch(&CoordS[2],"SYNC","Sync",ISS_OFF);
 
-    if (capability.canSync)
+    if (CanSync())
         IUFillSwitchVector(&CoordSP,CoordS,3,getDeviceName(),"ON_COORD_SET","On Set",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
     else
         IUFillSwitchVector(&CoordSP,CoordS,2,getDeviceName(),"ON_COORD_SET","On Set",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
-    if (capability.nSlewRate >= 4)
-        IUFillSwitchVector(&SlewRateSP, SlewRateS, capability.nSlewRate, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    if (nSlewRate >= 4)
+        IUFillSwitchVector(&SlewRateSP, SlewRateS, nSlewRate, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillSwitch(&ParkS[0],"PARK","Park",ISS_OFF);
     IUFillSwitch(&ParkS[1],"UNPARK","UnPark",ISS_OFF);
@@ -116,11 +117,11 @@ bool INDI::Telescope::initProperties()
     IUFillNumberVector(&ScopeParametersNP,ScopeParametersN,4,getDeviceName(),"TELESCOPE_INFO","Scope Properties",OPTIONS_TAB,IP_RW,60,IPS_OK);
 
     controller->mapController("MOTIONDIR", "N/S/W/E Control", INDI::Controller::CONTROLLER_JOYSTICK, "JOYSTICK_1");
-    if (capability.nSlewRate >= 4)
+    if (nSlewRate >= 4)
         controller->mapController("SLEWPRESET", "Slew Rate", INDI::Controller::CONTROLLER_JOYSTICK, "JOYSTICK_2");
-    if (capability.canAbort)
+    if (CanAbort())
         controller->mapController("ABORTBUTTON", "Abort", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_1");
-    if (capability.canPark)
+    if (CanPark())
     {
         controller->mapController("PARKBUTTON", "Park", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_2");
         controller->mapController("UNPARKBUTTON", "UnPark", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_3");
@@ -150,15 +151,15 @@ void INDI::Telescope::ISGetProperties (const char *dev)
         //  Now we add our telescope specific stuff
         defineSwitch(&CoordSP);
         defineNumber(&EqNP);
-        if (capability.canAbort)
+        if (CanAbort())
             defineSwitch(&AbortSP);
 
-        if (capability.hasTime)
+        if (HasTime())
             defineText(&TimeTP);
-        if (capability.hasLocation)
+        if (HasLocation())
             defineNumber(&LocationNP);
 
-        if (capability.canPark)
+        if (CanPark())
         {
             defineSwitch(&ParkSP);
             if (parkDataType != PARK_NONE)
@@ -170,12 +171,12 @@ void INDI::Telescope::ISGetProperties (const char *dev)
         defineSwitch(&MovementNSSP);
         defineSwitch(&MovementWESP);
 
-        if (capability.nSlewRate >= 4)
+        if (nSlewRate >= 4)
             defineSwitch(&SlewRateSP);
 
         defineNumber(&ScopeParametersNP);
 
-        if (capability.hasTime && capability.hasLocation)
+        if (HasTime() && HasLocation())
             defineText(&ActiveDeviceTP);
 
     }
@@ -192,18 +193,18 @@ bool INDI::Telescope::updateProperties()
         //  Now we add our telescope specific stuff
         defineSwitch(&CoordSP);
         defineNumber(&EqNP);
-        if (capability.canAbort)
+        if (CanAbort())
             defineSwitch(&AbortSP);
         defineSwitch(&MovementNSSP);
         defineSwitch(&MovementWESP);
-        if (capability.nSlewRate >= 4)
+        if (nSlewRate >= 4)
             defineSwitch(&SlewRateSP);
 
-        if (capability.hasTime)
+        if (HasTime())
             defineText(&TimeTP);
-        if (capability.hasLocation)
+        if (HasLocation())
             defineNumber(&LocationNP);
-        if (capability.canPark)
+        if (CanPark())
         {
             defineSwitch(&ParkSP);
             if (parkDataType != PARK_NONE)
@@ -214,7 +215,7 @@ bool INDI::Telescope::updateProperties()
         }
         defineNumber(&ScopeParametersNP);
 
-        if (capability.hasTime && capability.hasLocation)
+        if (HasTime() && HasLocation())
             defineText(&ActiveDeviceTP);
 
     }
@@ -222,19 +223,19 @@ bool INDI::Telescope::updateProperties()
     {
         deleteProperty(CoordSP.name);
         deleteProperty(EqNP.name);
-        if (capability.canAbort)
+        if (CanAbort())
             deleteProperty(AbortSP.name);
         deleteProperty(MovementNSSP.name);
         deleteProperty(MovementWESP.name);
-        if (capability.nSlewRate >= 4)
+        if (nSlewRate >= 4)
             deleteProperty(SlewRateSP.name);
 
-        if (capability.hasTime)
+        if (HasTime())
             deleteProperty(TimeTP.name);
-        if (capability.hasLocation)
+        if (HasLocation())
             deleteProperty(LocationNP.name);
 
-        if (capability.canPark)
+        if (CanPark())
         {
             deleteProperty(ParkSP.name);
             if (parkDataType != PARK_NONE)
@@ -245,7 +246,7 @@ bool INDI::Telescope::updateProperties()
         }
         deleteProperty(ScopeParametersNP.name);
 
-        if (capability.hasTime && capability.hasLocation)
+        if (HasTime() && HasLocation())
             deleteProperty(ActiveDeviceTP.name);
     }
 
@@ -263,7 +264,7 @@ bool INDI::Telescope::ISSnoopDevice(XMLEle *root)
 
     if (isConnected())
     {
-        if (capability.hasLocation && !strcmp(propName, "GEOGRAPHIC_COORD"))
+        if (HasLocation() && !strcmp(propName, "GEOGRAPHIC_COORD"))
         {
             // Only accept IPS_OK state
             if (strcmp(findXMLAttValu(root, "state"), "Ok"))
@@ -286,7 +287,7 @@ bool INDI::Telescope::ISSnoopDevice(XMLEle *root)
 
             return processLocationInfo(latitude, longitude, elevation);
         }
-        else if (capability.hasTime && !strcmp(propName, "TIME_UTC"))
+        else if (HasTime() && !strcmp(propName, "TIME_UTC"))
         {
             // Only accept IPS_OK state
             if (strcmp(findXMLAttValu(root, "state"), "Ok"))
@@ -316,7 +317,7 @@ bool INDI::Telescope::saveConfigItems(FILE *fp)
     IUSaveConfigText(fp, &ActiveDeviceTP);
     IUSaveConfigText(fp, &PortTP);
     IUSaveConfigSwitch(fp, &BaudRateSP);
-    if (capability.hasLocation)
+    if (HasLocation())
         IUSaveConfigNumber(fp,&LocationNP);
     IUSaveConfigNumber(fp, &ScopeParametersNP);
 
@@ -464,7 +465,7 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
             if ((ra>=0)&&(ra<=24)&&(dec>=-90)&&(dec<=90))
             {
                 // Check if it is already parked.
-                if (capability.canPark)
+                if (CanPark())
                 {
                     if (isParked())
                     {
@@ -476,7 +477,7 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
                 }
 
                 // Check if it can sync
-                if (capability.canSync)
+                if (CanSync())
                 {
                     ISwitch *sw;
                     sw=IUFindSwitch(&CoordSP,"SYNC");
@@ -654,7 +655,7 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
         if(!strcmp(name,MovementNSSP.name))
         {            
             // Check if it is already parked.
-            if (capability.canPark)
+            if (CanPark())
             {
                 if (isParked())
                 {
@@ -708,7 +709,7 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
         if(!strcmp(name,MovementWESP.name))
         {
             // Check if it is already parked.
-            if (capability.canPark)
+            if (CanPark())
             {
                 if (isParked())
                 {
@@ -1035,26 +1036,22 @@ bool INDI::Telescope::updateLocation(double latitude, double longitude, double e
     return true;
 }
 
-void INDI::Telescope::SetTelescopeCapability(TelescopeCapability *cap)
+void INDI::Telescope::SetTelescopeCapability(uint32_t cap, uint8_t slewRateCount)
 {
-    capability.canPark      = cap->canPark;
-    capability.canSync      = cap->canSync;
-    capability.canAbort     = cap->canAbort;
-    capability.hasTime      = cap->hasTime;
-    capability.hasLocation  = cap->hasLocation;
-    capability.nSlewRate    = cap->nSlewRate;
+    capability = cap;
+    nSlewRate = slewRateCount;
 
-    if (capability.canSync)
+    if (CanSync())
         IUFillSwitchVector(&CoordSP,CoordS,3,getDeviceName(),"ON_COORD_SET","On Set",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
     else
         IUFillSwitchVector(&CoordSP,CoordS,2,getDeviceName(),"ON_COORD_SET","On Set",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
-    if (capability.nSlewRate >= 4)
+    if (nSlewRate >= 4)
     {
         free(SlewRateS);
-        SlewRateS = (ISwitch *) malloc(sizeof(ISwitch) * capability.nSlewRate);
-        int step = capability.nSlewRate / 4;
-        for (int i=0; i < capability.nSlewRate; i++)
+        SlewRateS = (ISwitch *) malloc(sizeof(ISwitch) * nSlewRate);
+        int step = nSlewRate / 4;
+        for (int i=0; i < nSlewRate; i++)
         {
             char name[4];
             snprintf(name, 4, "%dx", i+1);
@@ -1064,12 +1061,12 @@ void INDI::Telescope::SetTelescopeCapability(TelescopeCapability *cap)
         strncpy( (SlewRateS+(step*0))->name, "SLEW_GUIDE", MAXINDINAME);
         strncpy( (SlewRateS+(step*1))->name, "SLEW_CENTERING", MAXINDINAME);
         strncpy( (SlewRateS+(step*2))->name, "SLEW_FIND", MAXINDINAME);
-        strncpy( (SlewRateS+(capability.nSlewRate-1))->name, "SLEW_MAX", MAXINDINAME);
+        strncpy( (SlewRateS+(nSlewRate-1))->name, "SLEW_MAX", MAXINDINAME);
 
         // By Default we set current Slew Rate to 0.5 of max
-        (SlewRateS+(capability.nSlewRate/2))->s = ISS_ON;
+        (SlewRateS+(nSlewRate/2))->s = ISS_ON;
 
-        IUFillSwitchVector(&SlewRateSP, SlewRateS, capability.nSlewRate, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+        IUFillSwitchVector(&SlewRateSP, SlewRateS, nSlewRate, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
     }
 }
 

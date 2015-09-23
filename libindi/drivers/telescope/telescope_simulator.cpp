@@ -117,17 +117,9 @@ ScopeSim::ScopeSim()
 
     forceMeridianFlip = false;
 
-    DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
+    DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");   
 
-    TelescopeCapability cap;
-
-    cap.canPark = true;
-    cap.canSync = true;
-    cap.canAbort = true;
-    cap.hasLocation = true;
-    cap.hasTime = true;
-    cap.nSlewRate=4;
-    SetTelescopeCapability(&cap);       
+    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,4);
 
     /* initialize random seed: */
       srand ( time(NULL) );

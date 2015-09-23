@@ -186,17 +186,9 @@ LX200Generic::LX200Generic()
    DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
    currentRA=ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
-   currentDEC=90;
+   currentDEC=90;  
 
-   TelescopeCapability cap;
-
-   cap.canPark = true;
-   cap.canSync = true;
-   cap.canAbort = true;
-   cap.hasTime = true;
-   cap.hasLocation = true;
-   cap.nSlewRate=4;
-   SetTelescopeCapability(&cap);
+   SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,4);
 
    DEBUG(INDI::Logger::DBG_DEBUG, "Initializing from Generic LX200 device...");
 }
@@ -712,7 +704,7 @@ bool LX200Generic::Abort()
      IDSetSwitch(&MovementWESP, NULL);
      IDSetNumber(&EqNP, NULL);
 
-     if (capability.canPark)
+     if (CanPark())
      {
         IUResetSwitch(&ParkSP);
         ParkSP.s = IPS_IDLE;

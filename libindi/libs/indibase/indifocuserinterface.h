@@ -41,31 +41,44 @@ class INDI::FocuserInterface
 public:
     enum FocusDirection { FOCUS_INWARD, FOCUS_OUTWARD };
 
-    /** \struct FocuserCapability
-        \brief Holds the capabilities of a focuser.
-    */
-    typedef struct
+    enum
     {
-        /** Can the focuser move by absolute position? */
-        bool canAbsMove;
-        /** Can the focuser move by relative position? */
-        bool canRelMove;
-        /** Is it possible to abort focuser motion? */
-        bool canAbort;
-        /** Can the focuser move in different configurable speeds? */
-        bool variableSpeed;
+        FOCUSER_CAN_ABS_MOVE            = 1 << 0,       /*!< Can the focuser move by absolute position? */
+        FOCUSER_CAN_REL_MOVE            = 1 << 1,       /*!< Can the focuser move by relative position? */
+        FOCUSER_CAN_ABORT               = 1 << 2,       /*!< Is it possible to abort focuser motion? */
+        FOCUSER_HAS_VARIABLE_SPEED      = 1 << 3        /*!< Can the focuser move in different configurable speeds? */
     } FocuserCapability;
 
     /**
      * @brief GetFocuserCapability returns the capability of the focuser
      */
-    FocuserCapability GetFocuserCapability() const { return capability;}
+    uint32_t GetFocuserCapability() const { return capability;}
 
     /**
      * @brief SetFocuserCapability sets the focuser capabilities. All capabilities must be initialized.
      * @param cap pointer to focuser capability struct.
      */
-    void SetFocuserCapability(FocuserCapability * cap);
+    void SetFocuserCapability(uint32_t cap);
+
+    /**
+     * @return True if the focuser has absolute position encoders.
+     */
+    bool CanAbsMove() { return capability & FOCUSER_CAN_ABS_MOVE; }
+
+    /**
+     * @return True if the focuser has relative position encoders.
+     */
+    bool CanRelMove() { return capability & FOCUSER_CAN_REL_MOVE; }
+
+    /**
+     * @return True if the focuser motion can be aborted.
+     */
+    bool CanAbort()   { return capability & FOCUSER_CAN_ABORT; }
+
+    /**
+     * @return True if the focuser has multiple speeds.
+     */
+    bool HasVariableSpeed() { return capability & FOCUSER_HAS_VARIABLE_SPEED; }
 
 protected:
 
@@ -134,7 +147,7 @@ protected:
     ISwitchVectorProperty AbortSP;
     ISwitch AbortS[1];
 
-    FocuserCapability capability;
+    uint32_t capability;
 
     char focuserName[MAXINDIDEVICE];
     double lastTimerValue;

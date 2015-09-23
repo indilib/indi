@@ -91,23 +91,12 @@ void ISSnoopDevice (XMLEle *root)
 
 RollOff::RollOff()
 {
-
   fullOpenLimitSwitch   = ISS_ON;
   fullClosedLimitSwitch = ISS_OFF;
 
-   DomeCapability cap;
-
-   cap.canAbort = true;
-   cap.canAbsMove = false;
-   cap.canRelMove = false;
-   cap.hasShutter = false;
-   cap.canPark    = true;
-   cap.hasVariableSpeed = false;
-
    MotionRequest=0;
 
-   SetDomeCapability(&cap);   
-
+   SetDomeCapability(DOME_CAN_ABORT | DOME_CAN_PARK);
 }
 
 /************************************************************************************

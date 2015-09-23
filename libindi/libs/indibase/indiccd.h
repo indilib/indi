@@ -37,6 +37,8 @@ extern const char *IMAGE_INFO_TAB;
 extern const char *GUIDE_HEAD_TAB;
 extern const char *RAPIDGUIDE_TAB;
 
+class StreamRecorder;
+
 /**
  * @brief The CCDChip class provides functionality of a CCD Chip within a CCD.
  *
@@ -368,6 +370,8 @@ private:
     ISwitchVectorProperty   ResetSP;
 
     friend class INDI::CCD;
+    friend class StreamRecoder;
+
 };
 
 /**
@@ -385,27 +389,17 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         CCD();
         virtual ~CCD();
 
-        /** \struct CCDCapability
-            \brief Holds the capabilities of the CCD. All fields must be initialized.
-        */
-        typedef struct
+        enum
         {
-            /** Does the CCD have a guide head? */
-            bool hasGuideHead;
-            /** Does the CCD have an ST4-compatible port to send guide pulses? */
-            bool hasST4Port;
-            /** Does the CCD have a mechanical or electronic shutter? */
-            bool hasShutter;
-            /** Does the CCD have a cooler and temperature can be controlled? */
-            bool hasCooler;
-            /** Does the CCD supprt binning opertation either in software or hardware? */
-            bool canBin;
-            /** Can the CCD send a subframe of the full image? */
-            bool canSubFrame;
-            /** Can the CCD abort exposure? */
-            bool canAbort;
-            /** Does the CCD send image in bayer format? */
-            bool hasBayer;
+            CCD_CAN_BIN             = 1 << 0,       /*!< Does the CCD support binning?  */
+            CCD_CAN_SUBFRAME        = 1 << 1,       /*!< Does the CCD support setting ROI?  */
+            CCD_CAN_ABORT           = 1 << 2,       /*!< Can the CCD exposure be aborted?  */
+            CCD_HAS_GUIDE_HEAD      = 1 << 3,       /*!< Does the CCD have a guide head?  */
+            CCD_HAS_ST4_PORT        = 1 << 4,       /*!< Does the CCD have an ST4 port?  */
+            CCD_HAS_SHUTTER         = 1 << 5,       /*!< Does the CCD have a mechanical shutter?  */
+            CCD_HAS_COOLER          = 1 << 6,       /*!< Does the CCD have a cooler and temperature control?  */
+            CCD_HAS_BAYER           = 1 << 7,       /*!< Does the CCD send color data in bayer format?  */
+            CCD_HAS_STREAMING       = 1 << 8        /*!< Does the CCD support live video streaming?  */
         } CCDCapability;
 
         virtual bool initProperties();
@@ -421,53 +415,58 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         /**
          * @brief GetCCDCapability returns the CCD capabilities.
          */
-        CCDCapability GetCCDCapability() const { return capability;}
+        uint32_t GetCCDCapability() const { return capability;}
 
         /**
          * @brief SetCCDCapability Set the CCD capabilities. Al fields must be initilized.
          * @param cap pointer to CCDCapability struct.
          */
-        void SetCCDCapability(CCDCapability * cap);
+        void SetCCDCapability(uint32_t cap);
 
         /**
          * @return True if CCD can abort exposure. False otherwise.
         */
-        bool CanAbort() { return capability.canAbort;}
+        bool CanAbort() { return capability & CCD_CAN_ABORT;}
 
         /**
          * @return True if CCD supports binning. False otherwise.
         */
-        bool CanBin() { return capability.canBin;}
+        bool CanBin() { return capability & CCD_CAN_BIN;}
 
         /**
          * @return True if CCD supports subframing. False otherwise.
         */
-        bool CanSubFrame() { return capability.canSubFrame;}
+        bool CanSubFrame() { return capability & CCD_CAN_SUBFRAME;}
 
         /**
          * @return True if CCD has guide head. False otherwise.
          */
-        bool HasGuideHead() { return capability.hasGuideHead; }
+        bool HasGuideHead() { return capability & CCD_HAS_GUIDE_HEAD; }
 
         /**
          * @return True if CCD has mechanical or electronic shutter. False otherwise.
          */
-        bool HasShutter() { return capability.hasShutter;}
+        bool HasShutter() { return capability & CCD_HAS_SHUTTER;}
 
         /**
          * @return True if CCD has ST4 port for guiding. False otherwise.
          */
-        bool HasST4Port() { return capability.hasST4Port;}
+        bool HasST4Port() { return capability & CCD_HAS_ST4_PORT;}
 
         /**
          * @return True if CCD has cooler and temperature can be controlled. False otherwise.
          */
-        bool HasCooler() { return capability.hasCooler;}
+        bool HasCooler() { return capability & CCD_HAS_COOLER;}
 
         /**
          * @return True if CCD sends image data in bayer format. False otherwise.
          */
-        bool HasBayer() { return capability.hasBayer;}
+        bool HasBayer() { return capability & CCD_HAS_BAYER;}
+
+        /**
+         * @return  True if the CCD supports live video streaming. False otherwise.
+         */
+        bool HasStreaming() { return capability & CCD_HAS_STREAMING; }
 
         /**
          * @brief Set CCD temperature
@@ -616,6 +615,18 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         */
         virtual IPState GuideWest(float ms);
 
+        /**
+         * @brief StartStreaming Start live video streaming
+         * @return True if successful, false otherwise.
+         */
+        virtual bool StartStreaming();
+
+        /**
+         * @brief StopStreaming Stop live video streaming
+         * @return True if successful, false otherwise.
+         */
+        virtual bool StopStreaming();
+
         /** \brief Add FITS keywords to a fits file
             \param fptr pointer to a valid FITS file.
             \param targetChip The target chip to extract the keywords from.
@@ -669,6 +680,8 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         std::vector<std::string> FilterNames;
         int CurrentFilterSlot;
 
+        StreamRecorder *streamer;
+
         CCDChip PrimaryCCD;
         CCDChip GuideCCD;
 
@@ -701,13 +714,15 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         ITextVectorProperty UploadSettingsTP;
 
      private:
-        CCDCapability capability;
+        uint32_t capability;
 
         bool ValidCCDRotation;
 
         bool uploadFile(CCDChip * targetChip, const void *fitsData, size_t totalBytes, bool sendImage, bool saveImage);
         void getMinMax(double *min, double *max, CCDChip *targetChip);
         int getFileIndex(const char *dir, const char *prefix, const char *ext);
+
+        friend class ::StreamRecorder;
 
 
 };

@@ -99,14 +99,8 @@ void ISSnoopDevice (XMLEle *root)
 SteelDrive::SteelDrive()
 {
 
-    // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
-    FocuserCapability cap;
-    cap.canAbort=true;
-    cap.canAbsMove=true;
-    cap.canRelMove=true;
-    cap.variableSpeed=true;
-
-    SetFocuserCapability(&cap);
+    // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.   
+    SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_HAS_VARIABLE_SPEED);
 
     sim=false;
     lastPos = 0;

@@ -40,11 +40,7 @@ INDI::Dome::Dome()
     mountState   = IPS_ALERT;
     weatherState = IPS_IDLE;
 
-    capability.canAbort=false;
-    capability.canAbsMove=false;
-    capability.canRelMove=true;
-    capability.hasShutter=false;
-    capability.hasVariableSpeed=false;
+    capability = 0;
 
     shutterState = SHUTTER_UNKNOWN;
     domeState    = DOME_IDLE;
@@ -168,24 +164,24 @@ bool INDI::Dome::updateProperties()
 
         defineText(&ActiveDeviceTP);
 
-        if (capability.hasShutter)
+        if (HasShutter())
             defineSwitch(&DomeShutterSP);
 
         //  Now we add our Dome specific stuff
         defineSwitch(&DomeMotionSP);
 
-        if (capability.hasVariableSpeed)
+        if (HasVariableSpeed())
         {
             defineNumber(&DomeSpeedNP);
             //defineNumber(&DomeTimerNP);
         }
-        if (capability.canRelMove)
+        if (CanRelMove())
             defineNumber(&DomeRelPosNP);
-        if (capability.canAbsMove)
+        if (CanAbsMove())
             defineNumber(&DomeAbsPosNP);
-        if (capability.canAbort)
+        if (CanAbort())
             defineSwitch(&AbortSP);
-        if (capability.canAbsMove)
+        if (CanAbsMove())
         {
             defineNumber(&PresetNP);
             defineSwitch(&PresetGotoSP);
@@ -195,7 +191,7 @@ bool INDI::Dome::updateProperties()
             defineNumber(&DomeMeasurementsNP);            
         }
 
-        if (capability.canPark)
+        if (CanPark())
         {
             defineSwitch(&ParkSP);
             if (parkDataType != PARK_NONE)
@@ -211,23 +207,23 @@ bool INDI::Dome::updateProperties()
     {
         deleteProperty(ActiveDeviceTP.name);
 
-        if (capability.hasShutter)
+        if (HasShutter())
             deleteProperty(DomeShutterSP.name);
 
         deleteProperty(DomeMotionSP.name);
 
-        if (capability.hasVariableSpeed)
+        if (HasVariableSpeed())
         {
             deleteProperty(DomeSpeedNP.name);
             //deleteProperty(DomeTimerNP.name);
         }
-        if (capability.canRelMove)
+        if (CanRelMove())
             deleteProperty(DomeRelPosNP.name);
-        if (capability.canAbsMove)
+        if (CanAbsMove())
             deleteProperty(DomeAbsPosNP.name);
-        if (capability.canAbort)
+        if (CanAbort())
             deleteProperty(AbortSP.name);
-        if (capability.canAbsMove)
+        if (CanAbsMove())
         {
             deleteProperty(PresetNP.name);
             deleteProperty(PresetGotoSP.name);
@@ -237,7 +233,7 @@ bool INDI::Dome::updateProperties()
             deleteProperty(DomeMeasurementsNP.name);
         }
 
-        if (capability.canPark)
+        if (CanPark())
         {
             deleteProperty(ParkSP.name);
             if (parkDataType != PARK_NONE)
@@ -614,7 +610,7 @@ bool INDI::Dome::ISSnoopDevice (XMLEle *root)
 
         if (weatherState == IPS_ALERT)
         {
-            if (capability.canPark && AutoParkS[0].s == ISS_ON)
+            if (CanPark() && AutoParkS[0].s == ISS_ON)
             {
                 if (isParked() == false)
                 {
@@ -641,6 +637,7 @@ bool INDI::Dome::saveConfigItems(FILE *fp)
     IUSaveConfigNumber(fp, &PresetNP);
     IUSaveConfigNumber(fp, &DomeParamNP);
     IUSaveConfigNumber(fp, &DomeMeasurementsNP);
+    IUSaveConfigSwitch(fp, &DomeAutoSyncSP);
     IUSaveConfigSwitch(fp, &AutoParkSP);
 
     controller->saveConfigItems(fp);
@@ -966,36 +963,26 @@ void INDI::Dome::UpdateAutoSync()
 
         if (fabs(targetAz - DomeAbsPosN[0].value) > DomeParamN[0].value)
         {
-            int ret = 0;
-            if ( (ret = MoveAbs(targetAz)) == 0)
-            {
-               DomeAbsPosNP.s=IPS_OK;
-               IDSetNumber(&DomeAbsPosNP, "Dome synced to position %g degrees.", targetAz);
-            }
-            else if (ret == 1)
-            {
-               DomeAbsPosNP.s=IPS_BUSY;
-               IDSetNumber(&DomeAbsPosNP, "Dome is syncing to position %g degrees...", targetAz);
-            }
+            IPState ret = Dome::MoveAbs(targetAz);
+            if (ret == IPS_OK)
+               DEBUGF(INDI::Logger::DBG_SESSION, "Dome synced to position %g degrees.", targetAz);
+            else if (ret == IPS_BUSY)
+                DEBUGF(INDI::Logger::DBG_SESSION, "Dome is syncing to position %g degrees...", targetAz);
             else
-            {
-                DomeAbsPosNP.s = IPS_ALERT;
-                IDSetNumber(&DomeAbsPosNP, "Dome failed to sync to new requested position.");
-            }
+                DEBUG(INDI::Logger::DBG_SESSION, "Dome failed to sync to new requested position.");
+
+            DomeAbsPosNP.s=ret;
+            IDSetNumber(&DomeAbsPosNP, NULL);
        }
     }
 }
 
-void INDI::Dome::SetDomeCapability(DomeCapability *cap)
+void INDI::Dome::SetDomeCapability(uint32_t cap)
 {
-    capability.canAbort     = cap->canAbort;
-    capability.canAbsMove   = cap->canAbsMove;
-    capability.canRelMove   = cap->canRelMove;
-    capability.canPark      = cap->canPark;
-    capability.hasShutter   = cap->hasShutter;
-    capability.hasVariableSpeed= cap->hasVariableSpeed;
 
-    if (capability.canAbort)
+    capability = cap;
+
+    if (CanAbort())
         controller->mapController("Dome Abort", "Dome Abort", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_3");
 
 }
@@ -1095,7 +1082,7 @@ bool INDI::Dome::InitPark()
       IDSetNumber(&ParkPositionNP, NULL);
 
       // If parked, store the position as current azimuth angle or encoder ticks
-      if (isParked() && capability.canAbsMove)
+      if (isParked() && CanAbsMove())
       {
           DomeAbsPosN[0].value = ParkPositionN[AXIS_AZ].value;
           IDSetNumber(&DomeAbsPosNP, NULL);
@@ -1281,7 +1268,7 @@ void INDI::Dome::SetAxis1ParkDefault(double value)
 bool INDI::Dome::Move(DomeDirection dir, DomeMotionCommand operation)
 {
     // Check if it is already parked.
-    if (capability.canPark)
+    if (CanPark())
     {
         if (parkDataType != PARK_NONE && isParked())
         {
@@ -1326,7 +1313,7 @@ bool INDI::Dome::Move(DomeDirection dir, DomeMotionCommand operation)
 
 IPState INDI::Dome::MoveRel(double azDiff)
 {
-    if (capability.canRelMove == false)
+    if (CanRelMove() == false)
     {
         DEBUG( INDI::Logger::DBG_ERROR, "Dome does not support relative motion.");
         return IPS_ALERT;
@@ -1356,7 +1343,7 @@ IPState INDI::Dome::MoveRel(double azDiff)
        DomeRelPosNP.s=IPS_OK;
        DomeRelPosN[0].value = azDiff;
        IDSetNumber(&DomeRelPosNP, "Dome moved %g degrees %s.", azDiff, (azDiff > 0) ? "clockwise" : "counter clockwise");
-       if (capability.canAbsMove)
+       if (CanAbsMove())
        {
           DomeAbsPosNP.s=IPS_OK;
           IDSetNumber(&DomeAbsPosNP, NULL);
@@ -1369,7 +1356,7 @@ IPState INDI::Dome::MoveRel(double azDiff)
          DomeRelPosN[0].value = azDiff;
          DomeRelPosNP.s=IPS_BUSY;
          IDSetNumber(&DomeRelPosNP, "Dome is moving %g degrees %s...", azDiff, (azDiff > 0) ? "clockwise" : "counter clockwise");
-         if (capability.canAbsMove)
+         if (CanAbsMove())
          {
             DomeAbsPosNP.s=IPS_BUSY;
             IDSetNumber(&DomeAbsPosNP, NULL);
@@ -1385,7 +1372,7 @@ IPState INDI::Dome::MoveRel(double azDiff)
 
 IPState INDI::Dome::MoveAbs(double az)
 {
-    if (capability.canAbsMove == false)
+    if (CanAbsMove() == false)
     {
         DEBUG( INDI::Logger::DBG_ERROR, "Dome does not support MoveAbs(). MoveAbs() must be implemented in the child class.");
         return IPS_ALERT;
@@ -1442,7 +1429,7 @@ IPState INDI::Dome::MoveAbs(double az)
 
 bool INDI::Dome::Abort()
 {
-    if (capability.canAbort == false)
+    if (CanAbort() == false)
     {
         DEBUG( INDI::Logger::DBG_ERROR, "Dome does not support abort.");
         return false;
@@ -1497,7 +1484,7 @@ bool INDI::Dome::Abort()
 
 bool INDI::Dome::SetSpeed(double speed)
 {
-    if (capability.hasVariableSpeed == false)
+    if (HasVariableSpeed() == false)
     {
         DEBUG( INDI::Logger::DBG_ERROR, "Dome does not support variable speed.");
         return false;
@@ -1518,7 +1505,7 @@ bool INDI::Dome::SetSpeed(double speed)
 
 IPState INDI::Dome::ControlShutter(ShutterOperation operation)
 {
-    if (capability.hasShutter == false)
+    if (HasShutter() == false)
     {
         DEBUG( INDI::Logger::DBG_ERROR, "Dome does not have shutter control.");
         return IPS_ALERT;
@@ -1562,7 +1549,7 @@ IPState INDI::Dome::ControlShutter(ShutterOperation operation)
 
 IPState INDI::Dome::Park()
 {
-    if (capability.canPark == false)
+    if (CanPark() == false)
     {
         DEBUG( INDI::Logger::DBG_ERROR, "Dome does not support parking.");
         return IPS_ALERT;
@@ -1585,7 +1572,7 @@ IPState INDI::Dome::Park()
     {
       domeState = DOME_PARKING;
 
-      if (capability.canAbsMove)
+      if (CanAbsMove())
                  DomeAbsPosNP.s=IPS_BUSY;
 
       IUResetSwitch(&ParkSP);
@@ -1599,7 +1586,7 @@ IPState INDI::Dome::Park()
 
 IPState INDI::Dome::UnPark()
 {
-    if (capability.canPark == false)
+    if (CanPark() == false)
     {
         DEBUG( INDI::Logger::DBG_ERROR, "Dome does not support parking.");
         return IPS_ALERT;

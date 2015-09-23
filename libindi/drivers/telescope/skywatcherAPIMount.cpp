@@ -92,14 +92,7 @@ SkywatcherAPIMount::SkywatcherAPIMount()
     OldTrackingTarget[0] = 0;
     OldTrackingTarget[1] = 0;
 
-    TelescopeCapability cap;
-
-    cap.canPark = true;
-    cap.canSync = true;
-    cap.canAbort = true;
-    cap.hasLocation = true;
-    cap.hasTime = true;
-    SetTelescopeCapability(&cap);
+    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION);
 }
 
 // destructor

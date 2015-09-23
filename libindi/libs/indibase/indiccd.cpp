@@ -34,6 +34,12 @@
 #include <libnova.h>
 #include <fitsio.h>
 
+#ifdef __linux__
+#include "webcam/v4l2_record/stream_recorder.h"
+#else
+class StreamRecorder {};
+#endif
+
 const char *IMAGE_SETTINGS_TAB  = "Image Settings";
 const char *IMAGE_INFO_TAB      = "Image Info";
 const char *GUIDE_HEAD_TAB      = "Guider Head";
@@ -51,7 +57,7 @@ CCDChip::CCDChip()
 
     BPP = 8;
     BinX = BinY = 1;
-    NAxis = 2;
+    NAxis = 2;    
 
     strncpy(imageExtention, "fits", MAXINDIBLOBFMT);
 
@@ -63,8 +69,7 @@ CCDChip::~CCDChip()
 {
     delete RawFrame;
     RawFrameSize=0;
-    RawFrame=NULL;
-
+    RawFrame=NULL;    
 }
 
 void CCDChip::setFrameType(CCD_FRAME type)
@@ -243,14 +248,7 @@ void CCDChip::setImageExtension(const char *ext)
 INDI::CCD::CCD()
 {
     //ctor
-    capability.hasGuideHead=false;
-    capability.hasST4Port=false;
-    capability.hasShutter=false;
-    capability.hasCooler=false;
-    capability.canBin=false;
-    capability.canSubFrame=false;
-    capability.canAbort=false;
-    capability.hasBayer;
+    capability = 0;
 
     InExposure=false;
     InGuideExposure=false;
@@ -272,28 +270,33 @@ INDI::CCD::CCD()
     RA=-1000;
     Dec=-1000;
     Aperture=FocalLength=-1;
+
+    streamer = NULL;
 }
 
 INDI::CCD::~CCD()
 {
-
+    delete (streamer);
 }
 
-void INDI::CCD::SetCCDCapability(CCDCapability *cap)
+void INDI::CCD::SetCCDCapability(uint32_t cap)
 {
-    capability.canAbort     = cap->canAbort;
-    capability.canBin       = cap->canBin;
-    capability.canSubFrame  = cap->canSubFrame;
-    capability.hasCooler    = cap->hasCooler;
-    capability.hasGuideHead = cap->hasGuideHead;
-    capability.hasShutter   = cap->hasShutter;
-    capability.hasST4Port   = cap->hasST4Port;
-    capability.hasBayer     = cap->hasBayer;
+    capability = cap;
 
-    if (capability.hasST4Port)
+    if (HasGuideHead())
         setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
     else
         setDriverInterface(getDriverInterface() & ~GUIDER_INTERFACE);
+
+#ifdef __linux__
+    if (HasStreaming() && streamer == NULL)
+    {
+        delete (streamer);
+        streamer = new StreamRecorder(this);
+        streamer->initProperties();
+    }
+#endif
+
 }
 
 bool INDI::CCD::initProperties()
@@ -458,7 +461,7 @@ bool INDI::CCD::initProperties()
     IDSnoopDevice(ActiveDeviceT[2].text,"FILTER_NAME");
 
     // Guider Interface
-    initGuiderProperties(getDeviceName(), GUIDE_CONTROL_TAB);
+    initGuiderProperties(getDeviceName(), GUIDE_CONTROL_TAB);        
 
     setDriverInterface(CCD_INTERFACE|GUIDER_INTERFACE);
 
@@ -466,12 +469,14 @@ bool INDI::CCD::initProperties()
 }
 
 void INDI::CCD::ISGetProperties (const char *dev)
-{
-    //  First we let our parent populate
-
-    //IDLog("INDI::CCD IsGetProperties with %s\n",dev);
-
+{    
     DefaultDevice::ISGetProperties(dev);
+
+    // Streamer
+    #ifdef __linux__
+    if (HasStreaming())
+        streamer->ISGetProperties(dev);
+    #endif
 
     return;
 }
@@ -483,61 +488,61 @@ bool INDI::CCD::updateProperties()
     {
        defineNumber(&PrimaryCCD.ImageExposureNP);
 
-       if (capability.canAbort)
+       if (CanAbort())
             defineSwitch(&PrimaryCCD.AbortExposureSP);
-       if (capability.canSubFrame == false)
+       if (CanSubFrame() == false)
            PrimaryCCD.ImageFrameNP.p = IP_RO;
 
         defineNumber(&PrimaryCCD.ImageFrameNP);
-       if (capability.canBin)
+       if (CanBin())
             defineNumber(&PrimaryCCD.ImageBinNP);
 
-        if(capability.hasGuideHead)
+        if(HasGuideHead())
         {
             defineNumber(&GuideCCD.ImageExposureNP);
-            if (capability.canAbort)
+            if (CanAbort())
                 defineSwitch(&GuideCCD.AbortExposureSP);
-            if (capability.canSubFrame == false)
+            if (CanSubFrame() == false)
                 GuideCCD.ImageFrameNP.p = IP_RO;
             defineNumber(&GuideCCD.ImageFrameNP);
         }
 
-        if (capability.hasCooler)
+        if (HasCooler())
             defineNumber(&TemperatureNP);
 
         defineNumber(&PrimaryCCD.ImagePixelSizeNP);
-        if(capability.hasGuideHead)
+        if(HasGuideHead())
         {
             defineNumber(&GuideCCD.ImagePixelSizeNP);
-            if (capability.canBin)
+            if (CanBin())
                 defineNumber(&GuideCCD.ImageBinNP);
         }
         defineSwitch(&PrimaryCCD.CompressSP);
         defineBLOB(&PrimaryCCD.FitsBP);
-        if(capability.hasGuideHead)
+        if(HasGuideHead())
         {
             defineSwitch(&GuideCCD.CompressSP);
             defineBLOB(&GuideCCD.FitsBP);
         }
-        if(capability.hasST4Port)
+        if(HasST4Port())
         {
             defineNumber(&GuideNSNP);
             defineNumber(&GuideWENP);
         }
         defineSwitch(&PrimaryCCD.FrameTypeSP);
 
-        if (capability.canBin || capability.canSubFrame)
+        if (CanBin() || CanSubFrame())
             defineSwitch(&PrimaryCCD.ResetSP);
 
-        if (capability.hasGuideHead)
+        if (HasGuideHead())
             defineSwitch(&GuideCCD.FrameTypeSP);
 
-        if (capability.hasBayer)
+        if (HasBayer())
             defineText(&BayerTP);
 
         defineSwitch(&PrimaryCCD.RapidGuideSP);
 
-        if (capability.hasGuideHead)
+        if (HasGuideHead())
           defineSwitch(&GuideCCD.RapidGuideSP);
 
         if (RapidGuideEnabled)
@@ -556,18 +561,18 @@ bool INDI::CCD::updateProperties()
 
         if (UploadSettingsT[0].text == NULL)
             IUSaveText(&UploadSettingsT[0], getenv("HOME"));
-        defineText(&UploadSettingsTP);
+        defineText(&UploadSettingsTP);                
     }
     else
     {
         deleteProperty(PrimaryCCD.ImageFrameNP.name);
         deleteProperty(PrimaryCCD.ImagePixelSizeNP.name);
 
-        if (capability.canBin)
+        if (CanBin())
             deleteProperty(PrimaryCCD.ImageBinNP.name);
 
         deleteProperty(PrimaryCCD.ImageExposureNP.name);
-        if (capability.canAbort)
+        if (CanAbort())
             deleteProperty(PrimaryCCD.AbortExposureSP.name);
         deleteProperty(PrimaryCCD.FitsBP.name);
         deleteProperty(PrimaryCCD.CompressSP.name);
@@ -577,16 +582,16 @@ bool INDI::CCD::updateProperties()
           deleteProperty(PrimaryCCD.RapidGuideSetupSP.name);
           deleteProperty(PrimaryCCD.RapidGuideDataNP.name);
         }
-        if(capability.hasGuideHead)
+        if(HasGuideHead())
         {
             deleteProperty(GuideCCD.ImageExposureNP.name);
-            if (capability.canAbort)
+            if (CanAbort())
                 deleteProperty(GuideCCD.AbortExposureSP.name);
                 deleteProperty(GuideCCD.ImageFrameNP.name);
                 deleteProperty(GuideCCD.ImagePixelSizeNP.name);
 
             deleteProperty(GuideCCD.FitsBP.name);
-            if (capability.canBin)
+            if (CanBin())
                 deleteProperty(GuideCCD.ImageBinNP.name);
             deleteProperty(GuideCCD.CompressSP.name);
             deleteProperty(GuideCCD.FrameTypeSP.name);
@@ -597,17 +602,17 @@ bool INDI::CCD::updateProperties()
               deleteProperty(GuideCCD.RapidGuideDataNP.name);
             }
         }
-        if (capability.hasCooler)
+        if (HasCooler())
             deleteProperty(TemperatureNP.name);
-        if(capability.hasST4Port)
+        if(HasST4Port())
         {
             deleteProperty(GuideNSNP.name);
             deleteProperty(GuideWENP.name);
         }
         deleteProperty(PrimaryCCD.FrameTypeSP.name);
-        if (capability.canBin || capability.canSubFrame)
+        if (CanBin() || CanSubFrame())
             deleteProperty(PrimaryCCD.ResetSP.name);
-        if (capability.hasBayer)
+        if (HasBayer())
             deleteProperty(BayerTP.name);
         deleteProperty(ActiveDeviceTP.name);
         if (WorldCoordS[0].s == ISS_ON)
@@ -619,6 +624,13 @@ bool INDI::CCD::updateProperties()
         deleteProperty(UploadSP.name);
         deleteProperty(UploadSettingsTP.name);
     }
+
+    // Streamer
+    #ifdef __linux__
+    if (HasStreaming())
+        streamer->updateProperties();
+    #endif
+
     return true;
 }
 
@@ -730,6 +742,12 @@ bool INDI::CCD::ISNewText (const char *dev, const char *name, char *texts[], cha
         }
 
     }
+
+    // Streamer
+    #ifdef __linux__
+    if (HasStreaming())
+        streamer->ISNewText(dev,name,texts,names,n);
+    #endif
 
     return INDI::DefaultDevice::ISNewText(dev,name,texts,names,n);
 }
@@ -982,14 +1000,18 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
             return true;
         }
     }
-    //  if we didn't process it, continue up the chain, let somebody else
-    //  give it a shot
+
+    // Streamer
+    #ifdef __linux__
+    if (HasStreaming())
+        streamer->ISNewNumber(dev,name,values,names,n);
+    #endif
+
     return DefaultDevice::ISNewNumber(dev,name,values,names,n);
 }
 
 bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-
     if(strcmp(dev,getDeviceName())==0)
     {
         if (!strcmp(name, UploadSP.name))
@@ -1041,9 +1063,9 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
         {
           IUResetSwitch(&PrimaryCCD.ResetSP);
           PrimaryCCD.ResetSP.s = IPS_OK;
-          if (capability.canBin)
+          if (CanBin())
               UpdateCCDBin(1,1);
-          if (capability.canSubFrame)
+          if (CanSubFrame())
               UpdateCCDFrame(0,0, PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
 
           IDSetSwitch(&PrimaryCCD.ResetSP, NULL);
@@ -1137,13 +1159,13 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
             else if(PrimaryCCD.FrameTypeS[1].s==ISS_ON)
             {
                 PrimaryCCD.setFrameType(CCDChip::BIAS_FRAME);
-                if (capability.hasShutter == false)
+                if (HasShutter() == false)
                     DEBUG(INDI::Logger::DBG_WARNING, "The CCD does not have a shutter. Cover the camera in order to take a bias frame.");
             }
             else if(PrimaryCCD.FrameTypeS[2].s==ISS_ON)
             {
                 PrimaryCCD.setFrameType(CCDChip::DARK_FRAME);
-                if (capability.hasShutter == false)
+                if (HasShutter() == false)
                     DEBUG(INDI::Logger::DBG_WARNING, "The CCD does not have a shutter. Cover the camera in order to take a dark frame.");
             }
             else if(PrimaryCCD.FrameTypeS[3].s==ISS_ON)
@@ -1167,13 +1189,13 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
             else if(GuideCCD.FrameTypeS[1].s==ISS_ON)
             {
                 GuideCCD.setFrameType(CCDChip::BIAS_FRAME);
-                if (capability.hasShutter == false)
+                if (HasShutter() == false)
                     DEBUG(INDI::Logger::DBG_WARNING, "The CCD does not have a shutter. Cover the camera in order to take a bias frame.");
             }
             else if(GuideCCD.FrameTypeS[2].s==ISS_ON)
             {
                 GuideCCD.setFrameType(CCDChip::DARK_FRAME);
-                if (capability.hasShutter == false)
+                if (HasShutter() == false)
                     DEBUG(INDI::Logger::DBG_WARNING, "The CCD does not have a shutter. Cover the camera in order to take a dark frame.");
             }
             else if(GuideCCD.FrameTypeS[3].s==ISS_ON)
@@ -1253,7 +1275,12 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
         }
     }
 
-    // let the default driver have a crack at it
+    // Streamer
+    #ifdef __linux__
+    if (HasStreaming())
+        streamer->ISNewSwitch(dev, name, states, names, n);
+    #endif
+
     return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
@@ -1381,7 +1408,7 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
     if(targetChip->getFrameType() == CCDChip::DARK_FRAME)
         fits_update_key_s(fptr, TDOUBLE, "DARKTIME", &(exposureDuration), "Total Exposure Time (s)", &status);
 
-    if (capability.hasCooler)
+    if (HasCooler())
       fits_update_key_s(fptr, TDOUBLE, "CCD-TEMP" , &(TemperatureN[0].value), "CCD Temperature (Celcius)", &status);
 
     fits_update_key_s(fptr, TDOUBLE, "PIXSIZE1", &(pixSize1), "Pixel Size 1 (microns)", &status);
@@ -1402,7 +1429,7 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
         fits_update_key_s(fptr, TDOUBLE, "DATAMAX", &max_val, "Maximum value", &status);
     }
 
-    if (capability.hasBayer && targetChip->getNAxis() == 2)
+    if (HasBayer() && targetChip->getNAxis() == 2)
     {
         unsigned int bayer_offset_x = atoi(BayerT[0].text);
         unsigned int bayer_offset_y = atoi(BayerT[1].text);
@@ -1996,7 +2023,7 @@ void INDI::CCD::SetCCDParams(int x,int y,int bpp,float xf,float yf)
 {
     PrimaryCCD.setResolution(x, y);
     PrimaryCCD.setFrame(0, 0, x, y);
-    if (capability.canBin)
+    if (CanBin())
         PrimaryCCD.setBin(1,1);
     PrimaryCCD.setPixelSize(xf, yf);
     PrimaryCCD.setBPP(bpp);
@@ -2005,7 +2032,7 @@ void INDI::CCD::SetCCDParams(int x,int y,int bpp,float xf,float yf)
 
 void INDI::CCD::SetGuiderParams(int x,int y,int bpp,float xf,float yf)
 {
-    capability.hasGuideHead=true;
+    capability |= CCD_HAS_GUIDE_HEAD;
 
     GuideCCD.setResolution(x, y);
     GuideCCD.setFrame(0, 0, x, y);
@@ -2027,16 +2054,16 @@ bool INDI::CCD::saveConfigItems(FILE *fp)
 
     IUSaveConfigSwitch(fp, &PrimaryCCD.CompressSP);
 
-    if (capability.hasGuideHead)
+    if (HasGuideHead())
         IUSaveConfigSwitch(fp, &GuideCCD.CompressSP);
 
-    if (capability.canSubFrame)
+    if (CanSubFrame())
         IUSaveConfigNumber(fp, &PrimaryCCD.ImageFrameNP);
 
-    if (capability.canBin)
+    if (CanBin())
         IUSaveConfigNumber(fp, &PrimaryCCD.ImageBinNP);
 
-    if (capability.hasBayer)
+    if (HasBayer())
         IUSaveConfigText(fp, &BayerTP);
 
     return true;
@@ -2180,4 +2207,16 @@ int INDI::CCD::getFileIndex(const char *dir, const char *prefix, const char *ext
 void INDI::CCD::GuideComplete(INDI_EQ_AXIS axis)
 {
     INDI::GuiderInterface::GuideComplete(axis);
+}
+
+bool INDI::CCD::StartStreaming()
+{
+    DEBUG(INDI::Logger::DBG_ERROR, "Streaming is not supported.");
+    return false;
+}
+
+bool INDI::CCD::StopStreaming()
+{
+    DEBUG(INDI::Logger::DBG_ERROR, "Streaming is not supported.");
+    return false;
 }

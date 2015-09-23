@@ -118,16 +118,7 @@ BaaderDome::BaaderDome()
    targetFlap       = FLAP_CLOSE;
    calibrationStage = CALIBRATION_UNKNOWN;
 
-   DomeCapability cap;
-
-   cap.canAbort = true;         // no real abort, we set target position to current position to "abort"
-   cap.canAbsMove = true;
-   cap.canRelMove = true;
-   cap.hasShutter = true;
-   cap.canPark    = true;
-   cap.hasVariableSpeed = false;
-
-   SetDomeCapability(&cap);
+   SetDomeCapability(DOME_CAN_ABORT | DOME_CAN_ABS_MOVE | DOME_CAN_REL_MOVE | DOME_CAN_PARK | DOME_HAS_SHUTTER | DOME_HAS_VARIABLE_SPEED);
 
 }
 

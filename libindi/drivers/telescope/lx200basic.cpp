@@ -130,17 +130,9 @@ LX200Basic::LX200Basic()
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
     currentRA=ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
-    currentDEC=90;
+    currentDEC=90;   
 
-    TelescopeCapability cap;
-
-    cap.canPark = false;
-    cap.canSync = true;
-    cap.canAbort = true;
-    cap.hasTime = false;
-    cap.hasLocation = false;
-    cap.nSlewRate=0;
-    SetTelescopeCapability(&cap);
+    SetTelescopeCapability(TELESCOPE_CAN_SYNC | TELESCOPE_CAN_ABORT);
 
     DEBUG(INDI::Logger::DBG_DEBUG, "Initializing from LX200 Basic device...");
 

@@ -106,16 +106,9 @@ SimpleScope::SimpleScope()
     currentDEC = 90;
 
     // We add an additional debug level so we can log verbose scope status
-    DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
+    DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");   
 
-    TelescopeCapability cap;
-
-    cap.canPark = false;
-    cap.canSync = false;
-    cap.canAbort = true;
-    cap.hasLocation = false;
-    cap.hasTime = true;
-    SetTelescopeCapability(&cap);
+    SetTelescopeCapability(TELESCOPE_CAN_ABORT);
 }
 
 /**************************************************************************************

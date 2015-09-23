@@ -31,31 +31,26 @@
 #include <unistd.h>
 #include <time.h>
 #include <fcntl.h>
-#include <signal.h>
 #include <errno.h>
 #include <time.h>
-#include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
-#include <zlib.h>
 #include <asm/types.h>
-#include <map>
 			      
 #include "indidevapi.h"
 #include "indicom.h"
 #include <fitsio.h>
 #include "eventloop.h"
-
-
 			      
 #include <config.h>
 
 #include "webcam/v4l2_base.h"
 #include "webcam/v4l2_colorspace.h"
 #include "webcam/v4l2_record/v4l2_record.h"
+#include "webcam/v4l2_record/stream_recorder.h"
 #include "indiccd.h"
 
 // Long Exposure
@@ -74,6 +69,7 @@
 class V4L2_Driver: public INDI::CCD
 {
   public:
+
     V4L2_Driver();
     virtual ~V4L2_Driver();
 
@@ -89,7 +85,7 @@ class V4L2_Driver: public INDI::CCD
 
     static void newFrame(void *p);
     void stackFrame();
-    void updateFrame();
+    void newFrame();
     
    protected:
 
@@ -97,9 +93,13 @@ class V4L2_Driver: public INDI::CCD
     virtual bool Disconnect();
 
     virtual const char *getDefaultName();
-    bool AbortExposure();
-    bool UpdateCCDFrame(int x, int y, int w, int h);
-    bool UpdateCCDBin(int hor, int ver);
+    virtual bool StartExposure(float duration);
+    virtual bool AbortExposure();
+    virtual bool UpdateCCDFrame(int x, int y, int w, int h);
+    virtual bool UpdateCCDBin(int hor, int ver);
+
+    virtual bool StartStreaming();
+    virtual bool StopStreaming();
 
    /* Structs */
    typedef struct {
@@ -120,67 +120,49 @@ class V4L2_Driver: public INDI::CCD
    enum stackmodes { STACK_NONE=0, STACK_MEAN=1, STACK_ADDITIVE=2, STACK_TAKE_DARK=3, STACK_RESET_DARK=4};
 
    /* Switches */
-    ISwitch StreamS[2];
+
     ISwitch *CompressS;
     ISwitch ImageColorS[2];
     ISwitch ImageDepthS[2];
-    ISwitch StackModeS[5];
-    ISwitch RecordS[4];
-    ISwitch DropFrameS[2];
+    ISwitch StackModeS[5];    
     ISwitch ColorProcessingS[3];
 	
     /* Texts */
     IText PortT[1];
-    IText camNameT[1];
-    IText RecordFileT[2];
+    IText camNameT[1];    
     IText CaptureColorSpaceT[3];
 
     /* Numbers */
-    INumber *ExposeTimeN;
+    //INumber *ExposeTimeN;
+    INumber *FrameN;    
     INumber FrameRateN[1];
-    INumber *FrameN;
-    INumber FramestoDropN[1];
-    INumber StreamOptionsN[1];
-    INumber FpsN[2];
-    INumber RecordOptionsN[2];
-     
-    /* BLOBs */
-    IBLOBVectorProperty *imageBP;
-    IBLOB *imageB;
     
-    /* Switch vectors */
-    ISwitchVectorProperty StreamSP;				/* Stream switch */
+    /* Switch vectors */    
     ISwitchVectorProperty *CompressSP;				/* Compress stream switch */
     ISwitchVectorProperty ImageColorSP;				/* Color or grey switch */
     ISwitchVectorProperty ImageDepthSP;				/* 8 bits or 16 bits switch */
     ISwitchVectorProperty StackModeSP;				/* StackMode switch */
-    ISwitchVectorProperty InputsSP;				/* Select input switch */
-    ISwitchVectorProperty CaptureFormatsSP;    			/* Select Capture format switch */
-    ISwitchVectorProperty CaptureSizesSP;    			/* Select Capture size switch (Discrete)*/
+    ISwitchVectorProperty InputsSP;                 /* Select input switch */
+    ISwitchVectorProperty CaptureFormatsSP;    		/* Select Capture format switch */
+    ISwitchVectorProperty CaptureSizesSP;    		/* Select Capture size switch (Discrete)*/
     ISwitchVectorProperty FrameRatesSP;				/* Select Frame rate (Discrete) */ 
-    ISwitchVectorProperty *Options;
-    ISwitchVectorProperty DropFrameSP;
+    ISwitchVectorProperty *Options;    
     ISwitchVectorProperty ColorProcessingSP;
 
     unsigned int v4loptions;
     unsigned int v4ladjustments;
     bool useExtCtrl;
-    ISwitchVectorProperty RecordStreamSP;			/* Record switch */
 
     /* Number vectors */
-    INumberVectorProperty *ExposeTimeNP;			/* Exposure */
-    INumberVectorProperty StreamOptionsNP;			/* Streaming Options */
-    INumberVectorProperty FpsNP;			        /* Measured FPS */
-    INumberVectorProperty CaptureSizesNP;    			/* Select Capture size switch (Step/Continuous)*/
+    //INumberVectorProperty *ExposeTimeNP;			/* Exposure */
+    INumberVectorProperty CaptureSizesNP;    		/* Select Capture size switch (Step/Continuous)*/
     INumberVectorProperty FrameRateNP;				/* Frame rate (Step/Continuous) */
-    INumberVectorProperty *FrameNP;				/* Frame dimenstion */
-    INumberVectorProperty ImageAdjustNP;			/* Image controls */
-    INumberVectorProperty FramestoDropNP;			
-    INumberVectorProperty RecordOptionsNP;			/* Record Options */
+    INumberVectorProperty *FrameNP;                 /* Frame dimenstion */
+    INumberVectorProperty ImageAdjustNP;			/* Image controls */        
+
     /* Text vectors */
     ITextVectorProperty PortTP;
-    ITextVectorProperty camNameTP;
-    ITextVectorProperty RecordFileTP;    
+    ITextVectorProperty camNameTP;    
     ITextVectorProperty CaptureColorSpaceTP;    
 
     /* Pointers to optional properties */
@@ -193,12 +175,6 @@ class V4L2_Driver: public INDI::CCD
    void allocateBuffers();
    void releaseBuffers();
    
-   /* Stream/FITS functions */
-   void updateExposure();
-   void updateStream();
-   void recordStream(double deltams);
- 
-
    /* Shutter control */
    bool setShutter(double duration);
    bool setManualExposure(double duration);
@@ -211,22 +187,15 @@ class V4L2_Driver: public INDI::CCD
    /* start/stop functions */
    void start_capturing();
    void stop_capturing();
-   bool start_recording();
-   bool stop_recording();
 
-   virtual void updateV4L2Controls();
-   /* Utility for record file */
-   int mkpath(std::string s, mode_t mode);
-   std::string expand(std::string fname, const std::map<std::string, std::string>& patterns);
+   virtual void updateV4L2Controls();   
    
    /* Variables */
    V4L2_Base *v4l_base;
 
    char device_name[MAXINDIDEVICE];
    unsigned char *fitsData;		/* Buffer to hold the FITS file */
-   int streamframeCount;		   
-   int recordframeCount;
-   double recordDuration;
+
    int subframeCount;			/* For stacking */
    int frameCount;
    double divider;			/* For limits */
@@ -240,8 +209,6 @@ class V4L2_Driver: public INDI::CCD
 
    bool is_capturing;
    bool is_exposing;
-   bool is_streaming;
-   bool is_recording;
    
    //Long Exposure
    Lx *lx;
@@ -249,18 +216,7 @@ class V4L2_Driver: public INDI::CCD
 
    short lxstate;
 
-   // Record frames
-   V4L2_Record *v4l2_record;
-   V4L2_Recorder *recorder;
-   bool direct_record;
-   std::string recordfiledir, recordfilename; /* in case we should move it */
 
-   // Measure FPS
-   // timer_t fpstimer;
-   // struct itimerspec tframe1, tframe2;
-   // use bsd timers
-   struct itimerval tframe1, tframe2;
-   double mssum, framecountsec;
 };
    
 #endif

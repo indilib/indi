@@ -93,16 +93,10 @@ void ISSnoopDevice (XMLEle *root)
 }
 
 PerfectStar::PerfectStar()
-{
-    FocuserCapability cap;
-    cap.canAbort=true;
-    cap.canAbsMove=true;
-    cap.canRelMove=true;
-    cap.variableSpeed=false;
+{        
+    SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
 
     handle = 0;
-
-    SetFocuserCapability(&cap);
 }
 
 PerfectStar::~PerfectStar()

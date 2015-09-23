@@ -59,20 +59,13 @@ class INDI::Telescope : public INDI::DefaultDevice
         /** \struct TelescopeCapability
             \brief Holds the capabilities of a telescope.
         */
-        typedef struct
+        enum
         {
-            /** Can the telescope sync to specific coordinates? */
-            bool canSync;
-            /** Can the telescope park? */
-            bool canPark;
-            /** Can the telescope abort motion? */
-            bool canAbort;
-            /** Does the telescope have configurable date and time settings? */
-            bool hasTime;
-            /** Does the telescope have configuration location settings? */
-            bool hasLocation;
-            /** Number of Slew Rate options. Set to 0 if telescope does not support slew rates. The minimum required # of slew rates is 4 */
-            int nSlewRate;
+            TELESCOPE_CAN_SYNC          = 1 << 0,       /** Can the telescope sync to specific coordinates? */
+            TELESCOPE_CAN_PARK          = 1 << 1,       /** Can the telescope park? */
+            TELESCOPE_CAN_ABORT         = 1 << 2,       /** Can the telescope abort motion? */
+            TELESCOPE_HAS_TIME          = 1 << 3,       /** Does the telescope have configurable date and time settings? */
+            TELESCOPE_HAS_LOCATION      = 1 << 4        /** Does the telescope have configuration location settings? */
         } TelescopeCapability;
 
         Telescope();
@@ -87,13 +80,40 @@ class INDI::Telescope : public INDI::DefaultDevice
         /**
          * @brief GetTelescopeCapability returns the capability of the Telescope
          */
-        TelescopeCapability GetTelescopeCapability() const { return capability;}
+        uint32_t GetTelescopeCapability() const { return capability;}
 
         /**
          * @brief SetTelescopeCapability sets the Telescope capabilities. All capabilities must be initialized.
-         * @param cap pointer to Telescope capability struct.
+         * @param cap ORed list of telescope capabilities.
+         * @param slewRateCount Number of slew rates supported by the telescope. If < 4 (default is 0), no slew rate properties will be defined to the client. If >=4, the driver will construct the default
+         * slew rate property TELESCOPE_SLEW_RATE with SLEW_GUIDE, SLEW_CENTERING, SLEW_FIND, and SLEW_MAX members where SLEW_GUIDE is the at the lowest setting and SLEW_MAX is at the highest.
          */
-        void SetTelescopeCapability(TelescopeCapability * cap);       
+        void SetTelescopeCapability(uint32_t cap, uint8_t slewRateCount=0);
+
+        /**
+         * @return True if telescope support sync operations
+         */
+        bool CanSync() { return capability & TELESCOPE_CAN_SYNC; }
+
+        /**
+         * @return True if telescope can abort motion.
+         */
+        bool CanAbort() { return capability & TELESCOPE_CAN_ABORT; }
+
+        /**
+         * @return True if telescope can park.
+         */
+        bool CanPark() { return capability & TELESCOPE_CAN_PARK; }
+
+        /**
+         * @return True if telescope time can be updated.
+         */
+        bool HasTime() { return capability & TELESCOPE_HAS_TIME;}
+
+        /**
+         * @return True if telescope location can be updated.
+         */
+        bool HasLocation() { return capability & TELESCOPE_HAS_LOCATION; }
 
         /** \brief Called to initialize basic properties required all the time */
         virtual bool initProperties();
@@ -378,7 +398,7 @@ class INDI::Telescope : public INDI::DefaultDevice
         ISwitch BaudRateS[6];
         ISwitchVectorProperty BaudRateSP;
 
-        TelescopeCapability capability;        
+        uint32_t capability;
         int last_we_motion, last_ns_motion;
 
         //Park
@@ -400,6 +420,8 @@ private:
         double Axis1DefaultParkPosition;
         double Axis2ParkPosition;
         double Axis2DefaultParkPosition;
+
+        uint8_t nSlewRate;
 
         IPState lastEqState;
 

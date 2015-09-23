@@ -92,22 +92,12 @@ void ISSnoopDevice (XMLEle *root)
 
 DomeSim::DomeSim()
 {
-
    targetAz = 0;
    shutterTimer=0;
    prev_az=0;
    prev_alt=0;
 
-   DomeCapability cap;
-
-   cap.canAbort = true;
-   cap.canAbsMove = true;
-   cap.canRelMove = true;
-   cap.hasShutter = true;
-   cap.canPark    = true;
-   cap.hasVariableSpeed = false;
-
-   SetDomeCapability(&cap);   
+   SetDomeCapability(DOME_CAN_ABORT | DOME_CAN_ABS_MOVE | DOME_CAN_REL_MOVE | DOME_CAN_PARK | DOME_HAS_SHUTTER);
 
 }
 
@@ -214,7 +204,7 @@ void DomeSim::TimerHit()
             if (getDomeState() == DOME_PARKING)
                 SetParked(true);
 
-            if (GetDomeCapability().canRelMove && DomeRelPosNP.s == IPS_BUSY)
+            if (CanRelMove() && DomeRelPosNP.s == IPS_BUSY)
             {
                 DomeRelPosNP.s = IPS_OK;
                 IDSetNumber(&DomeRelPosNP, NULL);

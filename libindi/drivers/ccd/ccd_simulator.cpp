@@ -96,18 +96,17 @@ CCDSim::CCDSim()
     AbortPrimaryFrame = false;
     ShowStarField=true;
 
-    CCDCapability cap;
+    uint32_t cap = 0;
 
-    cap.canAbort = true;
-    cap.canBin = true;
-    cap.canSubFrame = true;
-    cap.hasCooler = true;
-    cap.hasGuideHead = true;
-    cap.hasShutter = true;
-    cap.hasST4Port = true;
-    cap.hasBayer = false;
+    cap |= CCD_CAN_ABORT;
+    cap |= CCD_CAN_BIN;
+    cap |= CCD_CAN_SUBFRAME;
+    cap |= CCD_HAS_COOLER;
+    cap |= CCD_HAS_GUIDE_HEAD;
+    cap |= CCD_HAS_SHUTTER;
+    cap |= CCD_HAS_ST4_PORT;
 
-    SetCCDCapability(&cap);
+    SetCCDCapability(cap);
 
     polarError=0;
     polarDrift=0;

@@ -95,8 +95,7 @@ class V4L2_Base
   int stop_capturing(char *errmsg);
   static void newFrame(int fd, void *p);
   
-  void setDropFrame(bool enable) { dropFrameEnabled = enable;}
-  void setDropFrameCount(unsigned int count) { dropFrameCount = count;}
+  //void setDropFrameCount(unsigned int count) { dropFrameCount = count;}
   void enumerate_ctrl (void);
   void enumerate_menu (void);
   bool enumerate_ext_ctrl (void);
@@ -180,9 +179,9 @@ class V4L2_Base
   struct buffer *buffers;
   unsigned int  n_buffers;
   bool reallocate_buffers;
-  int		dropFrame;
-  bool      dropFrameEnabled;
-  unsigned int      dropFrameCount;
+  //int		dropFrame;
+  //bool      dropFrameEnabled;
+  //unsigned int      dropFrameCount;
 
   
   struct v4l2_fract frameRate;

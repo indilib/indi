@@ -121,26 +121,16 @@ class INDI::Dome : public INDI::DefaultDevice
     } ShutterStatus;
 
 
-    /** \struct DomeCapability
-        \brief Holds the capabilities of the dome.
-    */
-    typedef struct
+
+    enum
     {
-        /** Can the dome motion be aborted? */
-        bool canAbort;
-        /** Can the dome move to an absolute azimuth position? */
-        bool canAbsMove;
-        /** Can the dome move to a relative position a number of degrees away from current position? Positive degress is Clockwise direction. Negative Degrees is counter clock wise direction */
-        bool canRelMove;
-        /** Can the dome park and unpark itself? */
-        bool canPark;
-        /** Does the dome has a shutter than can be opened and closed electronically? */
-        bool hasShutter;
-        /** Can the dome move in different configurable speeds? */
-        bool hasVariableSpeed;
-    } DomeCapability;
-
-
+        DOME_CAN_ABORT              = 1 << 0,           /*!< Can the dome motion be aborted? */
+        DOME_CAN_ABS_MOVE           = 1 << 1,           /*!< Can the dome move to an absolute azimuth position? */
+        DOME_CAN_REL_MOVE           = 1 << 2,           /*!< Can the dome move to a relative position a number of degrees away from current position? Positive degress is Clockwise direction. Negative Degrees is counter clock wise direction */
+        DOME_CAN_PARK               = 1 << 3,           /*!< Can the dome park and unpark itself? */
+        DOME_HAS_SHUTTER            = 1 << 4,           /*!< Does the dome has a shutter than can be opened and closed electronically? */
+        DOME_HAS_VARIABLE_SPEED     = 1 << 5            /*!< Can the dome move in different configurable speeds? */
+    };
 
     Dome();
     virtual ~Dome();
@@ -158,13 +148,43 @@ class INDI::Dome : public INDI::DefaultDevice
     /**
      * @brief GetDomeCapability returns the capability of the dome
      */
-    DomeCapability GetDomeCapability() const { return capability;}
+    uint32_t GetDomeCapability() const { return capability;}
 
     /**
      * @brief SetDomeCapability set the dome capabilities. All capabilities must be initialized.
      * @param cap pointer to dome capability
      */
-    void SetDomeCapability(DomeCapability * cap);
+    void SetDomeCapability(uint32_t cap);
+
+    /**
+     * @return True if dome support aborting motion
+     */
+    bool CanAbort() { return capability & DOME_CAN_ABORT; }
+
+    /**
+     * @return True if dome has absolute postion encoders.
+     */
+    bool CanAbsMove() { return capability & DOME_CAN_ABS_MOVE;}
+
+    /**
+     * @return True if dome has relative position encoders.
+     */
+    bool CanRelMove() { return capability & DOME_CAN_REL_MOVE;}
+
+    /**
+     * @return True if dome can park.
+     */
+    bool CanPark() { return capability & DOME_CAN_PARK;}
+
+    /**
+     * @return True if dome has controllable shutter door
+     */
+    bool HasShutter() { return capability & DOME_HAS_SHUTTER;}
+
+    /**
+     * @return True if dome support multiple speeds
+     */
+    bool HasVariableSpeed() { return capability & DOME_HAS_VARIABLE_SPEED;}
 
     DomeState getDomeState() const;
     void setDomeState(const DomeState &value);
@@ -413,7 +433,7 @@ protected:
     ISwitch AutoParkS[2];
     ISwitchVectorProperty AutoParkSP;
 
-    DomeCapability capability;    
+    uint32_t capability;
     ShutterStatus shutterState;
     DomeParkData parkDataType;
 

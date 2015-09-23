@@ -132,18 +132,8 @@ bool SimpleCCD::initProperties()
     INDI::CCD::initProperties();
 
     // We set the CCD capabilities
-    CCDCapability cap;
-
-    cap.canAbort = true;
-    cap.canBin   = true;
-    cap.canSubFrame = true;
-    cap.hasCooler = true;
-    cap.hasGuideHead = false;
-    cap.hasShutter = true;
-    cap.hasST4Port = false;
-    cap.hasBayer = false;
-
-    SetCCDCapability(&cap);
+    uint32_t cap = CCD_CAN_ABORT | CCD_CAN_BIN | CCD_CAN_SUBFRAME | CCD_HAS_COOLER | CCD_HAS_SHUTTER;
+    SetCCDCapability(cap);
 
     // Add Debug, Simulator, and Configuration controls
     addAuxControls();

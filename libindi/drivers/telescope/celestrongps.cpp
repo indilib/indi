@@ -160,14 +160,7 @@ void CelestronGPS::ISGetProperties(const char *dev)
 
 bool CelestronGPS::updateProperties()
 {
-    TelescopeCapability cap;
-    cap.canPark  = true;
-    cap.canSync  = true;
-    cap.canAbort = true;
-    cap.hasTime  = true;
-    cap.hasLocation = true;
-    cap.nSlewRate= 9;
-
+    uint32_t cap = TELESCOPE_CAN_ABORT | TELESCOPE_CAN_PARK;
 
     if (get_celestron_firmware(PortFD, &fwInfo))
     {
@@ -186,16 +179,18 @@ bool CelestronGPS::updateProperties()
     if (fwInfo.controllerVersion <= 4.1)
     {
         DEBUG(INDI::Logger::DBG_WARNING, "Mount firmware does not support sync.");
-        cap.canSync  = false;
     }
+    else
+        cap |= TELESCOPE_CAN_SYNC;
 
     if (fwInfo.controllerVersion < 2.3)
     {
-        DEBUG(INDI::Logger::DBG_WARNING, "Mount firmware does not support update of time and location settings.");
-        cap.hasTime = cap.hasLocation = false;
+        DEBUG(INDI::Logger::DBG_WARNING, "Mount firmware does not support update of time and location settings.");        
     }
+    else
+        cap |= TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION;
 
-    SetTelescopeCapability(&cap);
+    SetTelescopeCapability(cap,9);
 
     INDI::Telescope::updateProperties();
 

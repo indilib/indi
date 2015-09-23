@@ -25,11 +25,6 @@
 
 INDI::FocuserInterface::FocuserInterface()
 {
-    capability.canAbsMove = false;
-    capability.canRelMove = false;
-    capability.canAbort   = false;
-    capability.variableSpeed = false;
-
 }
 
 INDI::FocuserInterface::~FocuserInterface()
@@ -166,7 +161,7 @@ bool INDI::FocuserInterface::processFocuserNumber (const char *dev, const char *
 
         IPState ret;
 
-        if (capability.canAbsMove)
+        if (CanAbsMove())
         {
             if (FocusMotionS[0].s == ISS_ON)
             {
@@ -237,12 +232,12 @@ bool INDI::FocuserInterface::processFocuserSwitch (const char *dev, const char *
         if (AbortFocuser())
         {
             AbortSP.s = IPS_OK;
-            if (capability.canAbsMove && FocusAbsPosNP.s != IPS_IDLE)
+            if (CanAbsMove() && FocusAbsPosNP.s != IPS_IDLE)
             {
                 FocusAbsPosNP.s = IPS_IDLE;
                 IDSetNumber(&FocusAbsPosNP, NULL);
             }
-            if (capability.canRelMove && FocusRelPosNP.s != IPS_IDLE)
+            if (CanRelMove() && FocusRelPosNP.s != IPS_IDLE)
             {
                 FocusRelPosNP.s = IPS_IDLE;
                 IDSetNumber(&FocusRelPosNP, NULL);
@@ -296,10 +291,7 @@ bool INDI::FocuserInterface::SetFocuserSpeed(int speed)
     return false;
 }
 
-void INDI::FocuserInterface::SetFocuserCapability(FocuserCapability *cap)
+void INDI::FocuserInterface::SetFocuserCapability(uint32_t cap)
 {
-    capability.canAbort     = cap->canAbort;
-    capability.canAbsMove   = cap->canAbsMove;
-    capability.canRelMove   = cap->canRelMove;
-    capability.variableSpeed= cap->variableSpeed;
+    capability = cap;
 }

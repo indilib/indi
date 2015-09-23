@@ -84,18 +84,18 @@ bool INDI::Focuser::updateProperties()
         //  Now we add our focusser specific stuff
         defineSwitch(&FocusMotionSP);
 
-        if (capability.variableSpeed)
+        if (HasVariableSpeed())
         {
             defineNumber(&FocusSpeedNP);
             defineNumber(&FocusTimerNP);
         }
-        if (capability.canRelMove)
+        if (CanRelMove())
             defineNumber(&FocusRelPosNP);
-        if (capability.canAbsMove)
+        if (CanAbsMove())
             defineNumber(&FocusAbsPosNP);
-        if (capability.canAbort)
+        if (CanAbort())
             defineSwitch(&AbortSP);
-        if (capability.canAbsMove)
+        if (CanAbsMove())
         {
             defineNumber(&PresetNP);
             defineSwitch(&PresetGotoSP);
@@ -103,18 +103,18 @@ bool INDI::Focuser::updateProperties()
     } else
     {
         deleteProperty(FocusMotionSP.name);
-        if (capability.variableSpeed)
+        if (HasVariableSpeed())
         {
             deleteProperty(FocusSpeedNP.name);
             deleteProperty(FocusTimerNP.name);
         }
-        if (capability.canRelMove)
+        if (CanRelMove())
             deleteProperty(FocusRelPosNP.name);
-        if (capability.canAbsMove)
+        if (CanAbsMove())
             deleteProperty(FocusAbsPosNP.name);
-        if (capability.canAbort)
+        if (CanAbort())
             deleteProperty(AbortSP.name);
-        if (capability.canAbsMove)
+        if (CanAbsMove())
         {
             deleteProperty(PresetNP.name);
             deleteProperty(PresetGotoSP.name);
@@ -256,12 +256,12 @@ void INDI::Focuser::processButton(const char * button_n, ISState state)
         {
             AbortSP.s = IPS_OK;
             DEBUG(INDI::Logger::DBG_SESSION, "Focuser aborted.");
-            if (capability.canAbsMove && FocusAbsPosNP.s != IPS_IDLE)
+            if (CanAbsMove() && FocusAbsPosNP.s != IPS_IDLE)
             {
                 FocusAbsPosNP.s = IPS_IDLE;
                 IDSetNumber(&FocusAbsPosNP, NULL);
             }
-            if (capability.canRelMove && FocusRelPosNP.s != IPS_IDLE)
+            if (CanRelMove() && FocusRelPosNP.s != IPS_IDLE)
             {
                 FocusRelPosNP.s = IPS_IDLE;
                 IDSetNumber(&FocusRelPosNP, NULL);
@@ -285,13 +285,13 @@ void INDI::Focuser::processButton(const char * button_n, ISState state)
             IDSetSwitch(&FocusMotionSP, NULL);
         }
 
-        if (capability.variableSpeed)
+        if (HasVariableSpeed())
         {
            rc = MoveFocuser(FOCUS_INWARD, FocusSpeedN[0].value, FocusTimerN[0].value);
            FocusTimerNP.s = rc;
            IDSetNumber(&FocusTimerNP,NULL);
         }
-        else if (capability.canRelMove)
+        else if (CanRelMove())
         {
             rc=MoveRelFocuser(FOCUS_INWARD, FocusRelPosN[0].value);
             if (rc == IPS_OK)
@@ -316,13 +316,13 @@ void INDI::Focuser::processButton(const char * button_n, ISState state)
             IDSetSwitch(&FocusMotionSP, NULL);
         }
 
-        if (capability.variableSpeed)
+        if (HasVariableSpeed())
         {
            rc = MoveFocuser(FOCUS_OUTWARD, FocusSpeedN[0].value, FocusTimerN[0].value);
            FocusTimerNP.s = rc;
            IDSetNumber(&FocusTimerNP,NULL);
         }
-        else if (capability.canRelMove)
+        else if (CanRelMove())
         {
             rc=MoveRelFocuser(FOCUS_OUTWARD, FocusRelPosN[0].value);
             if (rc == IPS_OK)

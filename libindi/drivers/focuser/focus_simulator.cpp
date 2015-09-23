@@ -94,14 +94,7 @@ FocusSim::FocusSim()
 {
     ticks=0;
 
-    FocuserCapability cap;
-    cap.canAbort=true;
-    cap.canAbsMove=true;
-    cap.canRelMove=true;
-    cap.variableSpeed=true;
-
-    SetFocuserCapability(&cap);
-
+    SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_HAS_VARIABLE_SPEED);
 }
 
 bool FocusSim::SetupParms()
