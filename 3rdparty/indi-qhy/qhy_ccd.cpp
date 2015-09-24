@@ -599,6 +599,24 @@ bool QHYCCD::Connect()
 
         DEBUGF(INDI::Logger::DBG_DEBUG, "USB Traffic Control: %s", HasUSBTraffic ? "True" : "False");
 
+        ret = IsQHYCCDControlAvailable(camhandle,CAM_COLOR);
+        if(ret != QHYCCD_ERROR && ret != QHYCCD_ERROR_NOTSUPPORT)
+        {
+             if(ret == BAYER_GB)
+                 IUSaveText(&BayerT[2], "GBGR");
+             else if (ret == BAYER_GR)
+                 IUSaveText(&BayerT[2], "GRGB");
+             else if (ret == BAYER_BG)
+                 IUSaveText(&BayerT[2], "BGGR");
+             else
+                 IUSaveText(&BayerT[2], "RGGB");
+
+             DEBUGF(INDI::Logger::DBG_DEBUG, "Color CCD: %s", BayerT[2].text);
+
+             cap |= CCD_HAS_BAYER;
+
+        }
+
         SetCCDCapability(cap);
 
         pthread_create( &primary_thread, NULL, &streamVideoHelper, this);
