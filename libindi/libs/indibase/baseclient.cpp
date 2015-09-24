@@ -183,15 +183,18 @@ bool INDI::BaseClient::connectServer()
     m_receiveFd = pipefd[0];
     m_sendFd = pipefd[1];
 
+    sConnected = true;
+
     int result = pthread_create( &listen_thread, NULL, &INDI::BaseClient::listenHelper, this);
 
     if (result != 0)
     {
+        sConnected = false;
         perror("thread");
         return false;
     }
 
-    sConnected = true;
+
     serverConnected();
 
     return true;
