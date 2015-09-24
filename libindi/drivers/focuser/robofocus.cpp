@@ -190,15 +190,6 @@ bool RoboFocus::initProperties()
 
 }
 
-void RoboFocus::ISGetProperties(const char *dev)
-{
-    INDI::Focuser::ISGetProperties(dev);
-
-    defineText(&PortTP);
-
-
-}
-
 bool RoboFocus::updateProperties()
 {
     INDI::Focuser::updateProperties();

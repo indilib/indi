@@ -194,15 +194,6 @@ bool NFocus::initProperties()
 
 }
 
-void NFocus::ISGetProperties(const char *dev)
-{
-    INDI::Focuser::ISGetProperties(dev);
-
-    defineText(&PortTP);
-
-
-}
-
 bool NFocus::updateProperties()
 {
     INDI::Focuser::updateProperties();

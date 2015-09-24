@@ -72,6 +72,7 @@ void INDI::Focuser::ISGetProperties (const char *dev)
     DefaultDevice::ISGetProperties(dev);
 
     defineText(&PortTP);
+    loadConfig(true, "DEVICE_PORT");
 
     controller->ISGetProperties(dev);
     return;

@@ -155,13 +155,6 @@ bool MoonLite::initProperties()
 
 }
 
-void MoonLite::ISGetProperties(const char *dev)
-{
-    INDI::Focuser::ISGetProperties(dev);
-
-    defineText(&PortTP);
-}
-
 bool MoonLite::updateProperties()
 {
     INDI::Focuser::updateProperties();

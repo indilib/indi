@@ -174,6 +174,7 @@ void STAR2000::ISGetProperties (const char *dev)
 {
     INDI::DefaultDevice::ISGetProperties(dev);
     defineText(&PortTP);
+    loadConfig(true, "DEVICE_PORT");
 }
 
 bool STAR2000::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)

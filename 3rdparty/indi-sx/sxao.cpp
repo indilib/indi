@@ -180,6 +180,7 @@ bool SXAO::initProperties() {
 #endif
   IUFillTextVector(&PortTP, PortT, 1, getDeviceName(), "DEVICE_PORT", "Ports", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
   defineText(&PortTP);
+  loadConfig(true, "DEVICE_PORT");
   IUFillNumber(&AONS[0], "AO_N", "North (steps)", "%d", 0, 80, 1, 0);
   IUFillNumber(&AONS[1], "AO_S", "South (steps)", "%d", 0, 80, 1, 0);
   IUFillNumberVector(&AONSNP, AONS, 2, getDeviceName(), "AO_NS", "AO Tilt North/South", GUIDE_CONTROL_TAB, IP_RW, 60, IPS_IDLE);

@@ -144,7 +144,9 @@ void INDI::Telescope::ISGetProperties (const char *dev)
     DefaultDevice::ISGetProperties(dev);
 
     defineText(&PortTP);
+    loadConfig(true, "DEVICE_PORT");
     defineSwitch(&BaudRateSP);
+    loadConfig(true, "TELESCOPE_BAUD_RATE");
 
     if(isConnected())
     {

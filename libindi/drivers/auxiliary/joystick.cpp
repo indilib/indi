@@ -260,6 +260,7 @@ void JoyStick::ISGetProperties (const char *dev)
     INDI::DefaultDevice::ISGetProperties(dev);
 
     defineText(&PortTP);
+    loadConfig(true, "DEVICE_PORT");
 
     if (isConnected())
     {

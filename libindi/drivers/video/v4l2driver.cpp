@@ -142,6 +142,7 @@ void V4L2_Driver::ISGetProperties (const char *dev)
   INDI::CCD::ISGetProperties(dev);
 
   defineText(&PortTP);
+  loadConfig(true, "DEVICE_PORT");
 
   if (isConnected())
   {

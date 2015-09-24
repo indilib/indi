@@ -374,7 +374,8 @@ void SBIGCCD::ISGetProperties(const char *dev)
 {
   INDI::CCD::ISGetProperties(dev);
 
-  defineText(&PortTP);  
+  defineText(&PortTP);
+  loadConfig(true, "DEVICE_PORT");
 
   // Add Debug, Simulator, and Configuration controls
   addAuxControls();
