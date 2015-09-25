@@ -882,7 +882,7 @@ bool QHYCCD::UpdateCCDBin(int hor, int ver)
         return false;
     }
 
-    if (hor = 3)
+    if (hor == 3)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Invalid binning mode. Only 1x1, 2x2, and 4x4 binning modes supported.");
         return false;
