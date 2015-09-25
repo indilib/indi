@@ -1,3 +1,9 @@
+kstars-bleeding (5:15.12) wily; urgency=medium
+
+  * 15.12 Rolling Release
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Fri, 25 Sep 2015 03:00:00 +0300
+
 kstars-bleeding (5:15.04) vivid; urgency=medium
 
   * 15.04 Rolling Release

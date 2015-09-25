@@ -1,6 +1,7 @@
 usr/share/doc
 usr/share/icons
 usr/share/kstars
+usr/share/sounds
 etc/xdg/*
 usr/share/kxmlgui5
 usr/share/config.kcfg/kstars.kcfg
