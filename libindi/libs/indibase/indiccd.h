@@ -149,7 +149,7 @@ public:
      * @brief getFrameBuffer Get raw frame buffer of the CCD chip.
      * @return raw frame buffer of the CCD chip.
      */
-    inline char *getFrameBuffer() { return RawFrame; }
+    inline uint8_t * getFrameBuffer() { return RawFrame; }
 
     /**
      * @brief setFrameBuffer Set raw frame buffer pointer.
@@ -157,7 +157,7 @@ public:
      * /note CCD Chip allocates the frame buffer internally once SetFrameBufferSize is called with allocMem set to true which is the default behavior.
      *       If you allocated the memory yourself (i.e. allocMem is false), then you must call this function to set the pointer to the raw frame buffer.
      */
-    void setFrameBuffer(char *buffer) { RawFrame = buffer; }
+    void setFrameBuffer(uint8_t *buffer) { RawFrame = buffer; }
 
     /**
      * @brief isCompressed
@@ -308,6 +308,11 @@ public:
      */
     bool isExposing() { return (ImageExposureNP.s == IPS_BUSY); }
 
+    /**
+     * @brief binFrame Perform softwre binning on the CCD frame. Only use this function if hardware binning is not supported.
+     */
+    void binFrame();
+
 private:
 
     int XRes;   //  native resolution of the ccd
@@ -323,7 +328,8 @@ private:
     float PixelSizey;   //  pixel size in microns, y direction
     int BPP;            //  Bytes per Pixel
     bool Interlaced;
-    char *RawFrame;
+    uint8_t *RawFrame;
+    uint8_t *BinFrame;
     int RawFrameSize;
     bool SendCompressed;
     CCD_FRAME FrameType;
@@ -656,9 +662,14 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
          */
         virtual void activeDevicesUpdated() {}        
 
+        /**
+         * @brief saveConfigItems Save configuration items in XML file.
+         * @param fp pointer to file to write to
+         * @return True if successful, false otherwise
+         */
         virtual bool saveConfigItems(FILE *fp);
 
-        void GuideComplete(INDI_EQ_AXIS axis);
+        void GuideComplete(INDI_EQ_AXIS axis);                
 
         double RA, Dec;
         double FocalLength, Aperture;

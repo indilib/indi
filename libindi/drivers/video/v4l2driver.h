@@ -181,9 +181,6 @@ class V4L2_Driver: public INDI::CCD
    bool startlongexposure(double timeinsec);
    static void lxtimerCallback(void *userpointer);
 
-   /* Post processing */
-   void binFrame();
-
    /* start/stop functions */
    void start_capturing();
    void stop_capturing();

@@ -34,12 +34,6 @@
 class StreamRecorder
 {
 public:
-    typedef enum
-    {
-        IMAGE_MONO_8,         // Only 8 bit mono
-        IMAGE_RGB_32         // Only 32 bit RGB color
-    } ImageColorSpace;
-
     enum
     {
         RECORD_ON,
@@ -62,9 +56,9 @@ public:
     /**
      * @brief newFrame CCD drivers calls this function when a new frame is received.
      */
-    void newFrame(unsigned char *buffer, ImageColorSpace imageType = IMAGE_MONO_8);
+    void newFrame(unsigned char *buffer);
 
-    void recordStream(double deltams, unsigned char *buffer, ImageColorSpace imageType);
+    void recordStream(double deltams, unsigned char *buffer);
 
    bool setStream(bool enable);
    // uint8_t getFramesToDrop() { return (uint8_t) FramestoDropN[0].value; }

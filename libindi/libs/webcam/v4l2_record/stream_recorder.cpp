@@ -157,7 +157,7 @@ bool StreamRecorder::updateProperties()
     }
 }
 
-void StreamRecorder::newFrame(unsigned char *buffer, ImageColorSpace imageType)
+void StreamRecorder::newFrame(unsigned char *buffer)
 {
     double ms1, ms2, deltams;
 
@@ -185,7 +185,7 @@ void StreamRecorder::newFrame(unsigned char *buffer, ImageColorSpace imageType)
       mssum=0; framecountsec=0;
     }
 
-    IDSetNumber(&FpsNP, NULL);
+    IDSetNumber(&FpsNP, NULL);    
 
     if (StreamSP.s == IPS_BUSY)
     {
@@ -199,7 +199,7 @@ void StreamRecorder::newFrame(unsigned char *buffer, ImageColorSpace imageType)
 
     if (RecordStreamSP.s == IPS_BUSY)
     {
-      recordStream(deltams, buffer, imageType);
+      recordStream(deltams, buffer);
     }
 }
 
@@ -221,9 +221,30 @@ bool StreamRecorder::setPixelFormat(uint32_t format)
 bool StreamRecorder::uploadStream(uint8_t *buffer)
 {
     int ret=0;
-
     uLongf compressedBytes = 0;
-    uLong totalBytes = ccd->PrimaryCCD.getFrameBufferSize();
+    uLong totalBytes = ccd->PrimaryCCD.getFrameBufferSize() / (ccd->PrimaryCCD.getBinX()*ccd->PrimaryCCD.getBinY());
+
+    //if (ccd->PrimaryCCD.getNAxis() == 2)
+        memcpy(ccd->PrimaryCCD.getFrameBuffer(), buffer, ccd->PrimaryCCD.getFrameBufferSize());
+    /*else
+    {
+      uint8_t *src, *dest;
+     // Binning not supported in color images for now
+     src = buffer;
+     dest = ccd->PrimaryCCD.getFrameBuffer();
+     uint8_t *red = dest;
+     uint8_t *green = dest + ccd->PrimaryCCD.getSubW() * ccd->PrimaryCCD.getSubH() * (ccd->PrimaryCCD.getBPP() / 8);
+     uint8_t *blue = dest +  ccd->PrimaryCCD.getSubW() * ccd->PrimaryCCD.getSubH() * (ccd->PrimaryCCD.getBPP() / 8) * 2;
+
+     for (int i=0; i <  ccd->PrimaryCCD.getFrameBufferSize(); i+=4)
+     {
+         *(blue++) = *(src+i);
+         *(green++) = *(src+i+1);
+         *(red++) = *(src+i+2);
+     }
+   }*/
+
+    ccd->PrimaryCCD.binFrame();
 
     /* Do we want to compress ? */
      if (ccd->PrimaryCCD.isCompressed())
@@ -232,7 +253,7 @@ bool StreamRecorder::uploadStream(uint8_t *buffer)
         compressedFrame = (uint8_t *) realloc (compressedFrame, sizeof(uint8_t) * totalBytes + totalBytes / 64 + 16 + 3);
         compressedBytes = sizeof(uint8_t) * totalBytes + totalBytes / 64 + 16 + 3;
 
-        ret = compress2(compressedFrame, &compressedBytes, buffer, totalBytes, 4);
+        ret = compress2(compressedFrame, &compressedBytes, ccd->PrimaryCCD.getFrameBuffer(), totalBytes, 4);
         if (ret != Z_OK)
         {
              /* this should NEVER happen */
@@ -249,7 +270,7 @@ bool StreamRecorder::uploadStream(uint8_t *buffer)
       else
       {
         /* #3.B Send it uncompressed */
-         imageB->blob = buffer;
+         imageB->blob = ccd->PrimaryCCD.getFrameBuffer();
          imageB->bloblen = totalBytes;
          imageB->size = totalBytes;
          strcpy(imageB->format, ".stream");
@@ -260,12 +281,12 @@ bool StreamRecorder::uploadStream(uint8_t *buffer)
     return true;
 }
 
-void StreamRecorder::recordStream(double deltams, unsigned char *buffer, ImageColorSpace imageType)
+void StreamRecorder::recordStream(double deltams, unsigned char *buffer)
 {
   if (!is_recording)
       return;
 
-  if (imageType == IMAGE_MONO_8)
+  if (ccd->PrimaryCCD.getNAxis() == 2)
     recorder->writeFrameMono(buffer);
   else
     recorder->writeFrameColor(buffer);

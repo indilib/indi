@@ -311,7 +311,7 @@ void SimpleCCD::TimerHit()
 void SimpleCCD::grabImage()
 {
    // Let's get a pointer to the frame buffer
-   char * image = PrimaryCCD.getFrameBuffer();
+   uint8_t * image = PrimaryCCD.getFrameBuffer();
 
    // Get width and height
    int width = PrimaryCCD.getSubW() / PrimaryCCD.getBinX() * PrimaryCCD.getBPP()/8;

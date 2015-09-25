@@ -572,7 +572,12 @@ bool QHYCCD::Connect()
 
         DEBUGF(INDI::Logger::DBG_DEBUG, "Has Filters: %s", HasFilters ? "True" : "False");
 
-        ret = IsQHYCCDControlAvailable(camhandle,CAM_BIN1X1MODE);
+        // Using software binning
+        cap |= CCD_CAN_BIN;
+        camxbin = 1;
+        camybin = 1;
+
+        /*ret = IsQHYCCDControlAvailable(camhandle,CAM_BIN1X1MODE);
         if(ret == QHYCCD_SUCCESS)
         {
             camxbin = 1;
@@ -595,7 +600,7 @@ bool QHYCCD::Connect()
         if (ret == QHYCCD_SUCCESS)
         {
             HasUSBTraffic = true;
-        }
+        }*/
 
         DEBUGF(INDI::Logger::DBG_DEBUG, "USB Traffic Control: %s", HasUSBTraffic ? "True" : "False");
 
@@ -831,7 +836,7 @@ bool QHYCCD::AbortExposure()
 
 bool QHYCCD::UpdateCCDFrame(int x, int y, int w, int h)
 {
-  /* Add the X and Y offsets */
+  /*
   long x_1 = x / PrimaryCCD.getBinX();
   long y_1 = y / PrimaryCCD.getBinY();
 
@@ -847,12 +852,12 @@ bool QHYCCD::UpdateCCDFrame(int x, int y, int w, int h)
   {
       DEBUGF(INDI::Logger::DBG_ERROR, "Error: invalid height request %ld", y_2);
       return false;
-  }
+  }*/
 
-  camroix = x_1;
-  camroiy = y_1;
-  camroiwidth = x_2 - x_1;
-  camroiheight = y_2 - y_1;
+  camroix = x;
+  camroiy = y;
+  camroiwidth = w;
+  camroiheight = h;
 
   DEBUGF(INDI::Logger::DBG_DEBUG, "The Final image area is (%d, %d), (%d, %d)", camroix, camroiy, camroiwidth, camroiheight);
 
@@ -869,17 +874,33 @@ bool QHYCCD::UpdateCCDFrame(int x, int y, int w, int h)
 
 bool QHYCCD::UpdateCCDBin(int hor, int ver)
 {
-    int ret = QHYCCD_ERROR;
+    //int ret = QHYCCD_ERROR;
 
-    if (sim)
+    if (hor != ver)
     {
-        PrimaryCCD.setBin(hor,ver);
-        camxbin = hor;
-        camybin = ver;
-        return UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
+        DEBUG(INDI::Logger::DBG_ERROR, "Invalid binning mode. Asymmetrical binning not supported.");
+        return false;
     }
 
-    if(hor == 1 && ver == 1)
+    if (hor = 3)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Invalid binning mode. Only 1x1, 2x2, and 4x4 binning modes supported.");
+        return false;
+    }
+
+
+    if (hor > 1 && GetCCDCapability() & CCD_HAS_BAYER)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Binning not supported for color CCDs.");
+        return false;
+    }
+
+    PrimaryCCD.setBin(hor,ver);
+    //camxbin = hor;
+    //camybin = ver;
+    return UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
+
+   /* if(hor == 1 && ver == 1)
     {
         ret = IsQHYCCDControlAvailable(camhandle,CAM_BIN1X1MODE);
     }
@@ -905,7 +926,7 @@ bool QHYCCD::UpdateCCDBin(int hor, int ver)
     }
 
     DEBUGF(INDI::Logger::DBG_ERROR, "SetBin mode failed. Invalid bin requested %dx%d",hor,ver);
-    return false;
+    return false;*/
 }
 
 float QHYCCD::calcTimeLeft()
@@ -924,16 +945,16 @@ float QHYCCD::calcTimeLeft()
 
 /* Downloads the image from the CCD. */
 int QHYCCD::grabImage()
-{
-  unsigned char * image = (unsigned char *) PrimaryCCD.getFrameBuffer();
-  int width = PrimaryCCD.getSubW() / PrimaryCCD.getBinX() * PrimaryCCD.getBPP() / 8;
-  int height = PrimaryCCD.getSubH() / PrimaryCCD.getBinY();
-
+{  
   if (sim)
   {
-    for (int i = 0; i < height; i++)
-      for (int j = 0; j < width; j++)
-        image[i * width + j] = rand() % 255;
+      unsigned char * image = (unsigned char *) PrimaryCCD.getFrameBuffer();
+      int width = PrimaryCCD.getSubW() / PrimaryCCD.getBinX() * PrimaryCCD.getBPP() / 8;
+      int height = PrimaryCCD.getSubH() / PrimaryCCD.getBinY();
+
+      for (int i = 0; i < height; i++)
+          for (int j = 0; j < width; j++)
+              image[i * width + j] = rand() % 255;
   } 
   else
   {
@@ -941,11 +962,14 @@ int QHYCCD::grabImage()
     int ret;
     int w,h,bpp,channels;
 
-    ret = GetQHYCCDSingleFrame(camhandle,&w,&h,&bpp,&channels,image);
+    ret = GetQHYCCDSingleFrame(camhandle,&w,&h,&bpp,&channels,PrimaryCCD.getFrameBuffer());
 
     if (ret != QHYCCD_SUCCESS)
         DEBUGF(INDI::Logger::DBG_ERROR, "GetQHYCCDSingleFrame error (%d)", ret);
   }
+
+  // Perform software binning if necessary
+  PrimaryCCD.binFrame();
 
   DEBUG(INDI::Logger::DBG_DEBUG, "Download complete.");
   if (ExposureRequest > POLLMS * 5)

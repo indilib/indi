@@ -52,12 +52,14 @@ CCDChip::CCDChip()
     SendCompressed=false;
     Interlaced=false;
 
-    RawFrame= (char *) malloc(sizeof(char)); // Seed for realloc
+    RawFrame= (uint8_t *) malloc(sizeof(uint8_t)); // Seed for realloc
     RawFrameSize=0;
 
     BPP = 8;
     BinX = BinY = 1;
     NAxis = 2;    
+
+    BinFrame = NULL;
 
     strncpy(imageExtention, "fits", MAXINDIBLOBFMT);
 
@@ -67,9 +69,10 @@ CCDChip::CCDChip()
 
 CCDChip::~CCDChip()
 {
-    delete RawFrame;
+    free(RawFrame);
     RawFrameSize=0;
-    RawFrame=NULL;    
+    RawFrame=NULL;
+    free (BinFrame);
 }
 
 void CCDChip::setFrameType(CCD_FRAME type)
@@ -186,7 +189,10 @@ void CCDChip::setFrameBufferSize(int nbuf, bool allocMem)
     if (allocMem == false)
         return;
 
-    RawFrame = (char *) realloc(RawFrame, nbuf * sizeof(char));
+    RawFrame = (uint8_t *) realloc(RawFrame, nbuf * sizeof(uint8_t));
+
+    if (BinFrame)
+        BinFrame = (uint8_t *) realloc(BinFrame, nbuf * sizeof(uint8_t));
 }
 
 void CCDChip::setExposureLeft(double duration)
@@ -243,6 +249,77 @@ void CCDChip::setNAxis(int value)
 void CCDChip::setImageExtension(const char *ext)
 {
     strncpy(imageExtention, ext, MAXINDIBLOBFMT);
+}
+
+void CCDChip::binFrame()
+{
+    if (BinX == 1)
+        return;
+
+    // Jasem: Keep full frame shadow in memory to enhance performance and just swap frame pointers after operation is complete
+    if (BinFrame == NULL)
+        BinFrame = (uint8_t*) malloc(RawFrameSize);
+
+    memset(BinFrame, 0, RawFrameSize);
+
+    switch (getBPP())
+    {
+    case 8:
+    {
+        uint8_t *bin_buf = BinFrame;
+        uint8_t val;
+        for (int i=0; i < SubH; i+= BinX)
+            for (int j=0; j < SubW; j+= BinX)
+            {
+                for (int k=0; k < BinX; k++)
+                {
+                    for (int l=0; l < BinX; l++)
+                    {
+                        val = *(RawFrame + j + (i+k) * SubW + l);
+                        if (val + *bin_buf > UINT8_MAX)
+                            *bin_buf = UINT8_MAX;
+                        else
+                            *bin_buf  += val;
+                    }
+                }
+                bin_buf++;
+            }
+    }
+    break;
+
+    case 16:
+    {
+        uint16_t *bin_buf = (uint16_t*) BinFrame;
+        uint16_t val;
+        for (int i=0; i < SubH; i+= BinX)
+            for (int j=0; j < SubW; j+= BinX)
+            {
+                for (int k=0; k < BinX; k++)
+                {
+                    for (int l=0; l < BinX; l++)
+                    {
+                        val = *(RawFrame + j + (i+k) * SubW + l);
+                        if (val + *bin_buf > UINT16_MAX)
+                            *bin_buf = UINT16_MAX;
+                        else
+                            *bin_buf  += val;
+                    }
+                }
+                bin_buf++;
+            }
+    }
+    break;
+
+    default:
+        return;
+
+    }
+
+    // Swap frame pointers
+    uint8_t *rawFramePointer = RawFrame;
+    RawFrame = BinFrame;
+    // We just memset it next time we use it
+    BinFrame = rawFramePointer;
 }
 
 INDI::CCD::CCD()

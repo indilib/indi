@@ -28,15 +28,7 @@ V4L2_Driver::V4L2_Driver()
 
   allocateBuffers();
 
-  divider = 128.;
-  
-  // No guide head, no ST4 port, no cooling, no shutter
-
-  uint32_t cap = 0;
-
-  cap = CCD_CAN_BIN | CCD_CAN_SUBFRAME | CCD_HAS_STREAMING;
-
-  SetCCDCapability(cap);
+  divider = 128.;    
   
   is_capturing = false;
   is_exposing = false;
@@ -124,13 +116,15 @@ bool V4L2_Driver::initProperties()
 
   if (!lx->initProperties(this))
     DEBUG(INDI::Logger::DBG_WARNING, "Can not init Long Exposure");
+
+  SetCCDCapability(CCD_CAN_BIN | CCD_CAN_SUBFRAME | CCD_HAS_STREAMING);
+
   return true;
 }
 
 void V4L2_Driver::initCamBase()
 {
-    v4l_base = new V4L2_Base();
-    v4l_base->setRecorder(streamer->getRecorder());
+    v4l_base = new V4L2_Base();    
 }
 
 void V4L2_Driver::ISGetProperties (const char *dev)
@@ -210,6 +204,8 @@ bool V4L2_Driver::updateProperties ()
 
     SetCCDParams(V4LFrame->width, V4LFrame->height, V4LFrame->bpp, 5.6, 5.6);
     PrimaryCCD.setImageExtension("fits");
+
+    v4l_base->setRecorder(streamer->getRecorder());
 
     if (v4l_base->isLXmodCapable()) lx->updateProperties();
     return true;
@@ -861,53 +857,15 @@ bool V4L2_Driver::UpdateCCDBin(int hor, int ver)
         return false;
     }
 
+    if (streamer->isBusy())
+    {
+        DEBUG(INDI::Logger::DBG_WARNING, "Cannot change binning while streaming/recording.");
+        return false;
+    }
+
     PrimaryCCD.setBin(hor, ver);
 
   return true;
-}
-
-void V4L2_Driver::binFrame()
-{
-    int bin;
-    if ( (bin = PrimaryCCD.getBinX()) == 1)
-        return;
-
-    int w = PrimaryCCD.getSubW();
-    int h = PrimaryCCD.getSubH();
-
-    int bin_w = w / bin;
-    int bin_h = h / bin;
-
-    unsigned char *bin_buffer = (unsigned char *) malloc(bin_w * bin_h * sizeof(char));
-    unsigned char *buffer = (unsigned char *) PrimaryCCD.getFrameBuffer();
-    //unsigned char *bin_buffer = buffer;
-
-    memset(bin_buffer, 0, bin_w * bin_h * sizeof(char));
-
-    unsigned char *bin_buf = bin_buffer;
-
-    unsigned char val;
-    for (int i=0; i < h; i+= bin)
-        for (int j=0; j < w; j+= bin)
-        {
-            for (int k=0; k < bin; k++)
-            {
-                for (int l=0; l < bin; l++)
-                {
-                    val = *(buffer + j + (i+k) * w + l);
-                    if (val + *bin_buf > 255)
-                        *bin_buffer = 255;
-                    else
-                        *bin_buf  += val;
-                }
-            }
-
-            bin_buf++;
-        }
-
-    PrimaryCCD.setFrameBuffer((char *) bin_buffer);
-    PrimaryCCD.setFrameBufferSize(bin_w * bin_h * sizeof(char), false);
-    free (buffer);
 }
 
 bool V4L2_Driver::UpdateCCDFrame(int x, int y, int w, int h)
@@ -1017,9 +975,9 @@ void V4L2_Driver::newFrame()
         }
 
         if (ImageColorS[0].s == ISS_ON)
-            streamer->newFrame(buffer, StreamRecorder::IMAGE_MONO_8);
+            streamer->newFrame(buffer);
         else
-            streamer->newFrame(buffer, StreamRecorder::IMAGE_RGB_32);
+            streamer->newFrame(buffer);
     }
 
   if (PrimaryCCD.isExposing())
@@ -1049,7 +1007,7 @@ void V4L2_Driver::newFrame()
             for (i=0; i< frameBytes; i++)
                 *(dest++) = *(src++);
 
-            binFrame();
+            PrimaryCCD.binFrame();
        }
        else
        {
@@ -1141,6 +1099,8 @@ void V4L2_Driver::newFrame()
           *(green++) = *(src+i+1);
           *(red++) = *(src+i+2);
       }
+
+      PrimaryCCD.binFrame();
     }
      //IDLog("Copy frame finished.\n");
     frameCount+=1;
@@ -1356,6 +1316,12 @@ void V4L2_Driver::releaseBuffers()
 
 bool V4L2_Driver::StartStreaming()
 {
+    if (PrimaryCCD.getBinX() > 1 && PrimaryCCD.getNAxis() > 2)
+    {
+        DEBUG(INDI::Logger::DBG_WARNING, "Cannot stream binned color frame.");
+        return false;
+    }
+
     if (!is_capturing)
     {
         start_capturing();
