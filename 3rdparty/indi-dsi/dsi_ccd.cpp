@@ -524,7 +524,7 @@ void DSICCD::grabImage()
    int x, y;
 
    // Let's get a pointer to the frame buffer
-   char * image = PrimaryCCD.getFrameBuffer();
+   uint8_t * image = PrimaryCCD.getFrameBuffer();
 
    // Get width and height
    int width = PrimaryCCD.getSubW() / PrimaryCCD.getBinX();
