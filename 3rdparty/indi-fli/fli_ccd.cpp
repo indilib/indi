@@ -662,7 +662,7 @@ float FLICCD::CalcTimeLeft()
 int FLICCD::grabImage()
 {
         int err=0;
-        char * image = PrimaryCCD.getFrameBuffer();
+        uint8_t * image = PrimaryCCD.getFrameBuffer();
         int width = PrimaryCCD.getSubW() / PrimaryCCD.getBinX() * PrimaryCCD.getBPP()/8;
         int height = PrimaryCCD.getSubH() / PrimaryCCD.getBinY();
 
