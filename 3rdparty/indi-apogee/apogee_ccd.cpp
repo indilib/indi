@@ -178,6 +178,8 @@ bool ApogeeCCD::initProperties()
 
     addDebugControl();
     addSimulationControl();
+
+    return true;
 }
 
 void ApogeeCCD::ISGetProperties(const char *dev)
