@@ -840,7 +840,7 @@ void GPhotoCCD::UpdateExtendedOptions (bool force)
 bool GPhotoCCD::grabImage()
 {
     //char ext[16];
-    char *memptr = PrimaryCCD.getFrameBuffer();
+    uint8_t *memptr = PrimaryCCD.getFrameBuffer();
 	size_t memsize;
     int fd, naxis=2, w, h, bpp=8;
 
@@ -850,7 +850,7 @@ bool GPhotoCCD::grabImage()
       w= PrimaryCCD.getXRes();
       h= PrimaryCCD.getYRes();
       size_t fullbuf_size = w*h + 512;
-      char * fullbuf = (char *) malloc(fullbuf_size);
+      uint8_t * fullbuf = (uint8_t *) malloc(fullbuf_size);
       for (int i = 0; i < h; i++)
         for (int j = 0; j < w; j++)
           fullbuf[i * w + j] = rand() % 255;
@@ -943,7 +943,7 @@ bool GPhotoCCD::grabImage()
         {
             int subFrameSize  = PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * bpp/8 * ((naxis == 3) ? 3 : 1);
             int oneFrameSize  = PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * bpp/8;
-            char *subframeBuf = (char *) malloc(subFrameSize);
+            uint8_t *subframeBuf = (uint8_t *) malloc(subFrameSize);
 
             int startY= PrimaryCCD.getSubY();
             int endY  = startY + PrimaryCCD.getSubH();
@@ -957,13 +957,13 @@ bool GPhotoCCD::grabImage()
             }
             else
             {
-                char *subR = subframeBuf;
-                char *subG = subframeBuf + oneFrameSize;
-                char *subB = subframeBuf + oneFrameSize * 2;
+                uint8_t *subR = subframeBuf;
+                uint8_t *subG = subframeBuf + oneFrameSize;
+                uint8_t *subB = subframeBuf + oneFrameSize * 2;
 
-                char *startR = memptr;
-                char *startG = memptr + (w * h * bpp/8);
-                char *startB = memptr + (w * h * bpp/8 * 2);
+                uint8_t *startR = memptr;
+                uint8_t *startG = memptr + (w * h * bpp/8);
+                uint8_t *startB = memptr + (w * h * bpp/8 * 2);
 
                 for (int i=startY; i < endY; i++)
                 {
@@ -1014,9 +1014,9 @@ bool GPhotoCCD::grabImage()
 	
         /* We're done exposing */
          DEBUG(INDI::Logger::DBG_DEBUG, "Exposure done, downloading image...");
-         char *newMemptr = NULL;
+         uint8_t *newMemptr = NULL;
          gphoto_get_buffer(gphotodrv, (const char **)&newMemptr, &memsize);
-         memptr = (char *)realloc(memptr, memsize); // We copy the obtained memory pointer to avoid freeing some gphoto memory
+         memptr = (uint8_t *)realloc(memptr, memsize); // We copy the obtained memory pointer to avoid freeing some gphoto memory
          memcpy(memptr, newMemptr, memsize); //
 
          gphoto_get_dimensions(gphotodrv, &w, &h);

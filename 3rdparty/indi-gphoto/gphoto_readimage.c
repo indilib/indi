@@ -98,12 +98,12 @@ void addFITSKeywords(fitsfile *fptr)
   fits_write_date(fptr, &status);
 }
 
-int read_ppm(FILE *handle, struct dcraw_header *header, char **memptr, size_t *memsize, int *n_axis, int *w, int *h, int *bitsperpixel)
+int read_ppm(FILE *handle, struct dcraw_header *header, uint8_t **memptr, size_t *memsize, int *n_axis, int *w, int *h, int *bitsperpixel)
 {
 	char prefix[] = {0, 0};
 	int bpp, maxcolor, row, i;
-	unsigned char *ppm = NULL;
-	unsigned char *r_data = NULL, *g_data, *b_data;
+    uint8_t *ppm = NULL;
+    uint8_t *r_data = NULL, *g_data, *b_data;
 	int width, height;
 	int naxis = 2;
 
@@ -149,12 +149,12 @@ int read_ppm(FILE *handle, struct dcraw_header *header, char **memptr, size_t *m
     
     *memptr = realloc(*memptr, *memsize);
     
-    char *oldmem = *memptr; // if you do some ugly pointer math, remember to restore the original pointer or some random crashes will happen. This is why I do not like pointers!!
+    uint8_t *oldmem = *memptr; // if you do some ugly pointer math, remember to restore the original pointer or some random crashes will happen. This is why I do not like pointers!!
     
     ppm = malloc(width * bpp);
     if (naxis == 3)
     {
-        r_data = (unsigned char *) *memptr;
+        r_data = (uint8_t *) *memptr;
         g_data = r_data + width * height * bpp;
         b_data = r_data + 2 * width * height * bpp;
     }
@@ -171,7 +171,7 @@ int read_ppm(FILE *handle, struct dcraw_header *header, char **memptr, size_t *m
 		}
         if (bpp == 2)
         {
-			unsigned short *ppm16 = (unsigned short *)ppm;
+            uint16_t *ppm16 = (uint16_t *)ppm;
             if (htons(0x55aa) != 0x55aa)
             {
 				swab(ppm, ppm,  width * bpp);
@@ -181,9 +181,9 @@ int read_ppm(FILE *handle, struct dcraw_header *header, char **memptr, size_t *m
 
                 for (i = 0; i < width; i++)
                 {
-                    *(unsigned short *)r_data++ = *ppm16++;
-                    *(unsigned short *)g_data++ = *ppm16++;
-                    *(unsigned short *)b_data++ = *ppm16++;
+                    *(uint16_t *)r_data++ = *ppm16++;
+                    *(uint16_t *)g_data++ = *ppm16++;
+                    *(uint16_t *)b_data++ = *ppm16++;
 				}
 
             } else
@@ -194,7 +194,7 @@ int read_ppm(FILE *handle, struct dcraw_header *header, char **memptr, size_t *m
 			
         } else
         {
-			unsigned char *ppm8 = ppm;
+            uint8_t *ppm8 = ppm;
             if (naxis == 3)
             {
                 for (i = 0; i < width; i++)
@@ -301,7 +301,7 @@ int dcraw_parse_header_info(const char *filename, struct dcraw_header *header)
 	return 0;
 }
 
-int read_dcraw(const char *filename, char **memptr, size_t *memsize, int *n_axis, int *w, int *h, int *bitsperpixel)
+int read_dcraw(const char *filename, uint8_t **memptr, size_t *memsize, int *n_axis, int *w, int *h, int *bitsperpixel)
 {
 	struct dcraw_header header;
 	FILE *handle = NULL;
@@ -332,7 +332,7 @@ int read_dcraw(const char *filename, char **memptr, size_t *memsize, int *n_axis
     return rc;
 }
 
-int read_jpeg(const char *filename, char **memptr, size_t *memsize, int *naxis, int *w, int *h )
+int read_jpeg(const char *filename, uint8_t **memptr, size_t *memsize, int *naxis, int *w, int *h )
 {
 	int row;
     unsigned char *r_data = NULL, *g_data, *b_data;
@@ -365,7 +365,7 @@ int read_jpeg(const char *filename, char **memptr, size_t *memsize, int *naxis, 
 
     *memsize = cinfo.output_width * cinfo.output_height * cinfo.num_components;
     *memptr = realloc(*memptr, *memsize);
-    char *oldmem = *memptr; // if you do some ugly pointer math, remember to restore the original pointer or some random crashes will happen. This is why I do not like pointers!!
+    uint8_t *oldmem = *memptr; // if you do some ugly pointer math, remember to restore the original pointer or some random crashes will happen. This is why I do not like pointers!!
     *naxis = cinfo.num_components;
     *w = cinfo.output_width;
     *h = cinfo.output_height;
