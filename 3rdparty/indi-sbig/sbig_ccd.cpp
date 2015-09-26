@@ -1340,7 +1340,7 @@ bool SBIGCCD::grabImage(CCDChip *targetChip)
           DEBUGF(INDI::Logger::DBG_DEBUG, "GrabImage X: %d Y: %d Width: %d - Height: %d", left, top, width, height);
           DEBUGF(INDI::Logger::DBG_DEBUG, "Buf size: %d bytes.", width * height * 2);
 
-          char * image = targetChip->getFrameBuffer();
+          uint8_t * image = targetChip->getFrameBuffer();
 
         for (int i = 0; i < height*2; i++)
         for (int j = 0; j < width; j++)
