@@ -1287,5 +1287,7 @@ bool ApogeeCCD::saveConfigItems(FILE *fp)
 
     IUSaveConfigSwitch(fp, &PortTypeSP);
     IUSaveConfigText(fp, &NetworkInfoTP);
+
+    return true;
 }
 
