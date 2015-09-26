@@ -393,7 +393,7 @@ bool FFMVCCD::StartExposure(float duration)
     IDMessage(getDeviceName(), "Exposure has begun.");
 
     // Let's get a pointer to the frame buffer
-    char * image = PrimaryCCD.getFrameBuffer();
+    uint8_t * image = PrimaryCCD.getFrameBuffer();
 
     // Get width and height
     int width = PrimaryCCD.getSubW() / PrimaryCCD.getBinX();
@@ -605,7 +605,6 @@ void FFMVCCD::TimerHit()
  */
 void FFMVCCD::grabImage()
 {
-   unsigned char *myimage;
    dc1394error_t err;
    dc1394video_frame_t *frame;
    uint32_t uheight, uwidth;
@@ -614,7 +613,7 @@ void FFMVCCD::grabImage()
    struct timeval start, end;
 
    // Let's get a pointer to the frame buffer
-   char * image = PrimaryCCD.getFrameBuffer();
+   uint8_t * image = PrimaryCCD.getFrameBuffer();
 
    // Get width and height
    int width = PrimaryCCD.getSubW() / PrimaryCCD.getBinX();

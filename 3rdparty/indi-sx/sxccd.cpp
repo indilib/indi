@@ -30,6 +30,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <memory.h>
+#include <stdint.h>
 
 #include "sxconfig.h"
 #include "sxccd.h"
@@ -467,7 +468,7 @@ void SXCCD::ExposureTimerHit() {
       int binX = PrimaryCCD.getBinX();
       int binY = PrimaryCCD.getBinY();
       int subWW = subW * 2;
-      char *buf = PrimaryCCD.getFrameBuffer();
+      uint8_t *buf = PrimaryCCD.getFrameBuffer();
       int size;
       if (isInterlaced && binY > 1)
         size = subW * subH / 2 / binX / (binY / 2);
@@ -551,7 +552,7 @@ void SXCCD::GuideExposureTimerHit() {
     int binX = GuideCCD.getBinX();
     int binY = GuideCCD.getBinY();
     int size = subW * subH / binX / binY;
-    char *buf = GuideCCD.getFrameBuffer();
+    uint8_t *buf = GuideCCD.getFrameBuffer();
     DidGuideLatch = true;
     rc = sxLatchPixels(handle, CCD_EXP_FLAGS_FIELD_BOTH, 1, subX, subY, subW, subH, binX, binY);
     if (rc)

@@ -201,6 +201,8 @@ bool QSICCD::initProperties()
     addDebugControl();
 
     setDriverInterface(getDriverInterface() | FILTER_INTERFACE);
+
+    return true;
 }
 
 bool QSICCD::updateProperties()

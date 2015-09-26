@@ -745,7 +745,8 @@ int MICCD::grabImage()
             return false;
         }
 
-        if ( (ret = miccd_read_data (cameraHandle, PrimaryCCD.getFrameBufferSize(), PrimaryCCD.getFrameBuffer(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH()) < 0) )
+        char *data = (char *) PrimaryCCD.getFrameBuffer();
+        if ( (ret = miccd_read_data (cameraHandle, PrimaryCCD.getFrameBufferSize(), data , PrimaryCCD.getSubW(), PrimaryCCD.getSubH()) < 0) )
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "miccd_read_data error: %s", strerror(ret));
             return false;
@@ -777,7 +778,8 @@ int MICCD::grabImage()
             return false;
         }
 
-        if ( (ret = miccd_read_frame (cameraHandle, PrimaryCCD.getBinX(), PrimaryCCD.getBinY(), PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH(), PrimaryCCD.getFrameBuffer())) < 0)
+        char *data = (char *) PrimaryCCD.getFrameBuffer();
+        if ( (ret = miccd_read_frame (cameraHandle, PrimaryCCD.getBinX(), PrimaryCCD.getBinY(), PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH(), data)) < 0)
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "miccd_read_frame: %s.", strerror(ret));
             return false;

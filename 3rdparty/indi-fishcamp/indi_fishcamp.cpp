@@ -482,9 +482,7 @@ float FishCampCCD::CalcTimeLeft()
 /* Downloads the image from the CCD.*/
 int FishCampCCD::grabImage()
 {
-  char * image = PrimaryCCD.getFrameBuffer();
-  int width = PrimaryCCD.getSubW() / PrimaryCCD.getBinX() * PrimaryCCD.getBPP() / 8;
-  int height = PrimaryCCD.getSubH() / PrimaryCCD.getBinY();
+  uint8_t * image = PrimaryCCD.getFrameBuffer();
 
   UInt16 *frameBuffer = (UInt16 *) image;
   fcUsb_cmd_getRawFrame(cameraNum, PrimaryCCD.getSubW(), PrimaryCCD.getSubH(), frameBuffer);

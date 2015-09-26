@@ -557,7 +557,7 @@ float GenericCCD::CalcTimeLeft()
  N.B. No processing is done on the image */
 int GenericCCD::grabImage()
 {
-  char * image = PrimaryCCD.getFrameBuffer();
+  uint8_t * image = PrimaryCCD.getFrameBuffer();
   int width = PrimaryCCD.getSubW() / PrimaryCCD.getBinX() * PrimaryCCD.getBPP() / 8;
   int height = PrimaryCCD.getSubH() / PrimaryCCD.getBinY();
 
