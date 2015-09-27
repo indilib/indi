@@ -438,7 +438,7 @@ bool QHYCCD::updateProperties()
     // Let's get parameters now from CCD
     setupParams();
 
-    timerID = SetTimer(POLLMS);
+    //timerID = SetTimer(POLLMS);
   } else
   {
 
@@ -790,7 +790,9 @@ bool QHYCCD::StartExposure(float duration)
 
   DEBUGF(INDI::Logger::DBG_DEBUG, "SetQHYCCDResolution camroix %d camroiy %d camroiwidth %d camroiheight %d", camroix,camroiy,camroiwidth,camroiheight);
   
-  usleep(300000); 
+  // Jasem: why 300ms delay? For users who want to capture short duration image 0.1 0.2 secs etc.. the 300ms delay is unnecessary.
+  // Only enable this back if absolutely necessary
+  //usleep(300000);
 
   if (sim)
       ret = QHYCCD_SUCCESS;
@@ -806,6 +808,11 @@ bool QHYCCD::StartExposure(float duration)
   DEBUGF(INDI::Logger::DBG_DEBUG, "Taking a %g seconds frame...", ExposureRequest);
 
   InExposure = true;
+
+  if (ExposureRequest*1000 < POLLMS)
+      SetTimer(ExposureRequest*1000);
+  else
+      SetTimer(POLLMS);
 
   return true;
 }
