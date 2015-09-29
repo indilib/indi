@@ -98,7 +98,7 @@ bool LX200AstroPhysics::initProperties()
     IUFillNumber(&SlewAccuracyN[1], "SlewDEC", "Dec (arcmin)", "%10.6m", 0., 60., 1., 3.0);
     IUFillNumberVector(&SlewAccuracyNP, SlewAccuracyN, 2, getDeviceName(), "Slew Accuracy", "", MOUNT_TAB, IP_RW, 0, IPS_IDLE);
 
-    SetParkDataType(PARK_RA_DEC);
+    SetParkDataType(PARK_AZ_ALT);
 
     return true;
 }
@@ -421,7 +421,7 @@ bool LX200AstroPhysics::ReadScopeStatus()
        return false;
      }
 
-     if (TrackState == SCOPE_SLEWING || TrackState == SCOPE_PARKING)
+     if (TrackState == SCOPE_SLEWING)
      {
          double dx = targetRA - currentRA;
          double dy = targetDEC - currentDEC;
@@ -429,25 +429,36 @@ bool LX200AstroPhysics::ReadScopeStatus()
          // Wait until acknowledged or within threshold
          if ( fabs(dx) <= (SlewAccuracyN[0].value/(900.0)) && fabs(dy) <= (SlewAccuracyN[1].value/60.0))
          {
-             if (TrackState == SCOPE_SLEWING)
-             {
-                 TrackState=SCOPE_TRACKING;
-                 DEBUG(INDI::Logger::DBG_SESSION, "Slew is complete. Tracking...");
-             }
-             else
-             {
-                 DEBUG(INDI::Logger::DBG_DEBUG, "Parking slew is complete. Asking astrophysics mount to park...");
-                 if (isSimulation() == false)
-                 {
-                     if (setAPPark(PortFD) < 0)
-                     {
-                       DEBUG(INDI::Logger::DBG_ERROR, "Parking Failed.");
-                       return false;
-                     }
-                 }
+             TrackState=SCOPE_TRACKING;
+             DEBUG(INDI::Logger::DBG_SESSION, "Slew is complete. Tracking...");
+         }
+     }
+     else if (TrackState == SCOPE_PARKING)
+     {
+         double currentAlt, currentAz;
+         if ( getLX200Az(PortFD, &currentAz) < 0 || getLX200Alt(PortFD, &currentAlt) < 0)
+         {
+           EqNP.s = IPS_ALERT;
+           IDSetNumber(&EqNP, "Error reading Az/Alt.");
+           return false;
+         }
 
-                SetParked(true);
+         double dx = GetAxis1Park() - currentAz;
+         double dy = GetAxis2Park() - currentAlt;
+
+         DEBUGF(INDI::Logger::DBG_DEBUG, "Parking... targetAz: %g currentAz: %g dx: %g targetAlt: %g currentAlt: %g dy: %g", GetAxis1Park(),  currentAz, dx, GetAxis2Park(), currentAlt, dy);
+
+         if ( fabs(dx) <= (SlewAccuracyN[0].value/(60.0)) && fabs(dy) <= (SlewAccuracyN[1].value/60.0))
+         {
+             DEBUG(INDI::Logger::DBG_DEBUG, "Parking slew is complete. Asking astrophysics mount to park...");
+
+             if (isSimulation() == false && setAPPark(PortFD) < 0)
+             {
+                 DEBUG(INDI::Logger::DBG_ERROR, "Parking Failed.");
+                 return false;
              }
+
+             SetParked(true);
          }
      }
 
@@ -500,17 +511,17 @@ bool LX200AstroPhysics::setBasicDataPart1()
     if (InitPark())
     {
         // If loading parking data is successful, we just set the default parking values.
-        SetAxis1ParkDefault(get_local_sideral_time(LocationN[LOCATION_LATITUDE].value));
-        SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value > 0 ? 90 : -90);
+        SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
+        SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
     }
     else
     {
         // Otherwise, we set all parking data to default in case no parking data is found.
-        SetAxis1Park(get_local_sideral_time(LocationN[LOCATION_LATITUDE].value));
-        SetAxis1ParkDefault(get_local_sideral_time(LocationN[LOCATION_LATITUDE].value));
+        SetAxis1Park(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
+        SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value);
 
-        SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value > 0 ? 90 : -90);
-        SetAxis2Park(LocationN[LOCATION_LATITUDE].value > 0 ? 90 : -90);
+        SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
+        SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
     }
 
    // Unpark
@@ -785,23 +796,34 @@ bool LX200AstroPhysics::Park()
         return false;
     }
 
-    double parkRA  = GetAxis1Park();
-    double parkDE = GetAxis2Park();
+    double parkAz  = GetAxis1Park();
+    double parkAlt = GetAxis2Park();
 
-    char RAStr[16], DEStr[16];
-    fs_sexa(RAStr, parkRA, 2, 3600);
-    fs_sexa(DEStr, parkDE, 2, 3600);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Parking to RA (%s) DEC (%s)...", RAStr, DEStr);
+    char AzStr[16], AltStr[16];
+    fs_sexa(AzStr, parkAz, 2, 3600);
+    fs_sexa(AltStr, parkAlt, 2, 3600);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Parking to Az (%s) Alt (%s)...", AzStr, AltStr);
 
-    if (Goto(parkRA, parkDE))
+    if (setAPObjectAZ(PortFD, parkAz) < 0 || (setAPObjectAlt(PortFD, parkAlt)) < 0)
     {
-        TrackState = SCOPE_PARKING;
-        DEBUG(INDI::Logger::DBG_SESSION, "Parking is in progress...");
-
-        return true;
-    }
-    else
+        DEBUG(INDI::Logger::DBG_ERROR, "Error setting Az/Alt.");
         return false;
+    }
+
+    int err=0;
+    /* Slew reads the '0', that is not the end of the slew */
+    if (err = Slew(PortFD))
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error Slewing to Az %s - Alt %s", AzStr, AltStr);
+        slewError(err);
+        return  false;
+    }
+
+    EqNP.s    = IPS_BUSY;
+    TrackState = SCOPE_PARKING;
+    DEBUG(INDI::Logger::DBG_SESSION, "Parking is in progress...");
+
+    return true;
 }
 
 bool LX200AstroPhysics::UnPark()
@@ -817,42 +839,69 @@ bool LX200AstroPhysics::UnPark()
     }
 
     // Then we sync with to our last stored position
-    double parkRA  = GetAxis1Park();
-    double parkDE = GetAxis2Park();
+    double parkAz  = GetAxis1Park();
+    double parkAlt = GetAxis2Park();
 
-    char RAStr[16], DEStr[16];
-    fs_sexa(RAStr, parkRA, 2, 3600);
-    fs_sexa(DEStr, parkDE, 2, 3600);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Syncing to parked coordinates RA (%s) DEC (%s)...", RAStr, DEStr);
+    char AzStr[16], AltStr[16];
+    fs_sexa(AzStr, parkAz, 2, 3600);
+    fs_sexa(AltStr, parkAlt, 2, 3600);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Syncing to parked coordinates Az (%s) Alt (%s)...", AzStr, AltStr);
 
-    if (Sync(parkRA, parkDE))
+    if (setAPObjectAZ(PortFD, parkAz) < 0 || (setAPObjectAlt(PortFD, parkAlt)) < 0)
     {
-        SetParked(false);
-        return true;
-    }
-    else
+        DEBUG(INDI::Logger::DBG_ERROR, "Error setting Az/Alt.");
         return false;
+    }
+
+    char syncString[256];
+    if (APSyncCM(PortFD, syncString) < 0)
+    {
+        DEBUG(INDI::Logger::DBG_WARNING , "Sync failed.");
+        return false;
+    }
+
+    SetParked(false);
+    return true;
 }
 
 void LX200AstroPhysics::SetCurrentPark()
 {
-    char RAStr[16], DEStr[16];
-    fs_sexa(RAStr, currentRA, 2, 3600);
-    fs_sexa(DEStr, currentDEC, 2, 3600);
+    ln_hrz_posn horizontalPos;
+    // Libnova south = 0, west = 90, north = 180, east = 270
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Setting current parking position to coordinates RA (%s) DEC (%s)...", RAStr, DEStr);
+    ln_lnlat_posn observer;
+    observer.lat = LocationN[LOCATION_LATITUDE].value;
+    observer.lng = LocationN[LOCATION_LONGITUDE].value;
+    if (observer.lng > 180)
+        observer.lng -= 360;
 
-    SetAxis1Park(currentRA);
-    SetAxis2Park(currentDEC);
+    ln_equ_posn equatorialPos;
+    equatorialPos.ra   = currentRA * 15;
+    equatorialPos.dec  = currentDEC;
+    ln_get_hrz_from_equ(&equatorialPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
+
+    double parkAZ  = horizontalPos.az - 180;
+    if (parkAZ < 0)
+        parkAZ += 360;
+    double parkAlt = horizontalPos.alt;
+
+    char AzStr[16], AltStr[16];
+    fs_sexa(AzStr, parkAZ, 2, 3600);
+    fs_sexa(AltStr, parkAlt, 2, 3600);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Setting current parking position to coordinates Az (%s) Alt (%s)...", AzStr, AltStr);
+
+    SetAxis1Park(parkAZ);
+    SetAxis2Park(parkAlt);
 }
 
 void LX200AstroPhysics::SetDefaultPark()
 {
-    // RA = LST
-    SetAxis1Park(get_local_sideral_time(LocationN[LOCATION_LATITUDE].value));
+    // Az = 0 for North hemisphere
+    SetAxis1Park(LocationN[LOCATION_LATITUDE].value > 0 ? 0 : 180);
 
-    // DEC = 90
-    SetAxis2Park(LocationN[LOCATION_LATITUDE].value > 0 ? 90 : -90);
+    // Alt = Latitude
+    SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
 }
 
 
