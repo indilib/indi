@@ -75,8 +75,8 @@ int main() {
     //ul = sxGetFirmwareVersion(handle);
     //cout << "sxGetFirmwareVersion() -> " << ul << endl << endl;
 
-    us = sxGetBuildNumber(handle);
-    cout << "sxGetBuildNumber() -> " << us << endl << endl;
+    //us = sxGetBuildNumber(handle);
+    //cout << "sxGetBuildNumber() -> " << us << endl << endl;
 
     memset(&params, 0, sizeof(params));
     i = sxGetCameraParams(handle, 0, &params);
