@@ -216,15 +216,15 @@ bool CelestronGPS::updateProperties()
         if (InitPark())
         {
             // If loading parking data is successful, we just set the default parking values.
-            SetAxis1ParkDefault(0);
+            SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >=0 ? 0 : 180);
             SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
         }
         else
         {
             // Otherwise, we set all parking data to default in case no parking data is found.
-            SetAxis1Park(0);
+            SetAxis1Park(LocationN[LOCATION_LATITUDE].value >=0 ? 0 : 180);
             SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
-            SetAxis1ParkDefault(0);
+            SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >=0 ? 0 : 180);
             SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
         }
     }
@@ -974,8 +974,8 @@ void CelestronGPS::SetCurrentPark()
 
 void CelestronGPS::SetDefaultPark()
 {
-    // By defualt azimuth 0
-    SetAxis1Park(0);
+    // By defualt azimuth 0 for north hemisphere
+    SetAxis1Park(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
 
     // Altitude = latitude of observer
     SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
