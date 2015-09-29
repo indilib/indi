@@ -43,7 +43,7 @@ extern "C" {
 #define MAX_DEVICES         5      /* Max device cameraCount */
 #define POLLMS              1000
 #define STREAMPOLLMS        50
-#define FOCUS_TIMER         500
+#define FOCUS_TIMER         50
 #define MAX_RETRIES         3
 
 static int cameraCount;
@@ -290,7 +290,7 @@ bool GPhotoCCD::updateProperties()
         DEBUG(INDI::Logger::DBG_SESSION, "Please update the camera pixel size in the Image Info section. The camera resolution will be updated after the first exposure is complete.");
     }
 
-    timerID = SetTimer(POLLMS);
+    //timerID = SetTimer(POLLMS);
   } else
   {
     if (mIsoSP.nsp > 0)
@@ -306,7 +306,7 @@ bool GPhotoCCD::updateProperties()
     deleteProperty(FocusTimerNP.name);
 
     HideExtendedOptions();
-    rmTimer(timerID);
+    //rmTimer(timerID);
   }
 
   return true;
@@ -686,6 +686,8 @@ bool GPhotoCCD::StartExposure(float duration)
 
     DEBUGF(INDI::Logger::DBG_SESSION, "Starting %g sec exposure", duration);
 
+    SetTimer(ExposureRequest*1000-50);
+
     return true;
 }
 
@@ -717,7 +719,6 @@ float GPhotoCCD::CalcTimeLeft()
 
 void GPhotoCCD::TimerHit()
 {
-  int timerID = -1;
   long timeleft=1e6;
 
   if (isConnected() == false)
@@ -738,7 +739,30 @@ void GPhotoCCD::TimerHit()
           IDSetSwitch(&livePreviewSP, NULL);
       }
 
-      return;
+  }
+
+  if (FocusTimerNP.s == IPS_BUSY)
+  {
+      char errMsg[MAXRBUF];
+      if ( gphoto_manual_focus(gphotodrv, focusSpeed, errMsg) != GP_OK)
+      {
+          DEBUGF(INDI::Logger::DBG_ERROR, "Focusing failed: %s", errMsg);
+          FocusTimerNP.s = IPS_ALERT;
+          FocusTimerN[0].value = 0 ;
+      }
+      else
+      {
+          FocusTimerN[0].value -= FOCUS_TIMER;
+          if (FocusTimerN[0].value <= 0)
+          {
+              FocusTimerN[0].value = 0;
+              FocusTimerNP.s = IPS_OK;
+          }
+          else
+              SetTimer(FOCUS_TIMER);
+      }
+
+      IDSetNumber(&FocusTimerNP, NULL);
   }
 
   if (InExposure)
@@ -750,11 +774,11 @@ void GPhotoCCD::TimerHit()
       if (timeleft > 0.25) {
         //  a quarter of a second or more
         //  just set a tighter timer
-        timerID = SetTimer(250);
+        SetTimer(250);
       } else {
         if (timeleft > 0.07) {
           //  use an even tighter timer
-          timerID = SetTimer(50);
+          SetTimer(50);
         } else {
           //  it's real close now, so spin on it
           while (!sim && timeleft > 0)
@@ -779,37 +803,12 @@ void GPhotoCCD::TimerHit()
     else
         DEBUGF(INDI::Logger::DBG_DEBUG, "Image not ready. Time left %ld", timeleft);
 
-
       PrimaryCCD.setExposureLeft(timeleft);
 
     }
 
-  if (FocusTimerNP.s == IPS_BUSY)
-  {
-      char errMsg[MAXRBUF];
-      if ( gphoto_manual_focus(gphotodrv, focusSpeed, errMsg) != GP_OK)
-      {
-          DEBUGF(INDI::Logger::DBG_ERROR, "Focusing failed: %s", errMsg);
-          FocusTimerNP.s = IPS_ALERT;
-          FocusTimerN[0].value = 0 ;
-      }
-      else
-      {
-          FocusTimerN[0].value -= FOCUS_TIMER;
-          if (FocusTimerN[0].value <= 0)
-          {
-              FocusTimerN[0].value = 0;
-              FocusTimerNP.s = IPS_OK;
-          }
-          else
-              timerID = SetTimer(FOCUS_TIMER);
-      }
-
-      IDSetNumber(&FocusTimerNP, NULL);
-  }
-
-  if (timerID == -1)
-    SetTimer(POLLMS);
+  //if (timerID == -1)
+  //  SetTimer(POLLMS);
 }
 
 void GPhotoCCD::UpdateExtendedOptions (void *p)
@@ -1215,10 +1214,9 @@ IPState GPhotoCCD::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
  
    /* gphoto works with steps */ 
    
-    if (sim)
+    if (sim || speed == 0)
         return IPS_OK;
 
-   char errMsg[MAXRBUF];
    if (dir == FOCUS_INWARD)
        focusSpeed = speed * -1;
    else
@@ -1226,16 +1224,18 @@ IPState GPhotoCCD::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 
    DEBUGF(INDI::Logger::DBG_DEBUG, "Setting focuser speed to %d", focusSpeed);
 
-   while (duration-->0)
+   /*while (duration-->0)
    {
        if ( gphoto_manual_focus(gphotodrv, focusSpeed, errMsg) != GP_OK)
        {
            DEBUGF(INDI::Logger::DBG_ERROR, "Focusing failed: %s", errMsg);
            return IPS_ALERT;
        }
-   }
+   }*/
 
-   return IPS_OK;
+   SetTimer(FOCUS_TIMER);
+
+   return IPS_BUSY;
 }
 
 bool GPhotoCCD::SetFocuserSpeed(int speed)
