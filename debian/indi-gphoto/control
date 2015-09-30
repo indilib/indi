@@ -2,20 +2,22 @@ Source: indi-gphoto
 Section: science
 Priority: extra
 Maintainer: Jasem Mutlaq <mutlaqja@ikarustech.com>
-Build-Depends: debhelper (>= 6), cdbs, cmake, dcraw, libindi-dev, zlib1g-dev, libusb-dev, libjpeg-dev, libcfitsio3-dev, libgphoto2-2-dev | libgphoto2-6-dev
+Build-Depends: debhelper (>= 6), cdbs, cmake, dcraw, libindi-dev, zlib1g-dev, libusb-dev, libjpeg-dev, libcfitsio3-dev, libgphoto2-dev
 Standards-Version: 3.7.2
 
 Package: indi-gphoto
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, dcraw, libindi1
-Description: INDI GPHOTO Camera Driver. This driver is compatible with any INDI client such as KStars or Xephem.  The driver can operate any camera supported by GPhoto2.
+Description: INDI GPhoto (DSLR) Camera Driver.
+ .
+ This driver is compatible with any INDI client such as KStars or Xephem.  The driver can operate any camera supported by GPhoto2.
 
 Package: indi-gphoto-dbg
 Priority: extra
 Section: debug
 Architecture: any
 Depends: indi-gphoto (= ${binary:Version}), ${misc:Depends}
-Description: INDI GPHOTO Camera Driver.
+Description: INDI GPhoto (DSLR) Camera Driver.
  .
  This driver is compatible with any INDI client such as KStars or Xephem.
  This package contains the debug symbols for the this driver, useful to investigate problems in INDI.
