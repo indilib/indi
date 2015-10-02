@@ -562,6 +562,8 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
         // Scale in arcsecs per pixel
         double Scalex;
         double Scaley;
+        // CCD width in pixels
+        double ccdW = targetChip->getXRes();
 
         // Pixels per radian
         pprx = targetFocalLength/targetChip->getPixelSizeX()*1000/targetChip->getBinX();
@@ -574,7 +576,7 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
         Scalex=(targetChip->getPixelSizeX() / targetFocalLength) * 206.3 * targetChip->getBinX();
         Scaley=(targetChip->getPixelSizeY() / targetFocalLength) * 206.3 * targetChip->getBinY();
 
-        double theta = rotationCW + 180;
+        double theta = rotationCW + 270;
         if (theta > 360)
             theta -=360;
         else if (theta < -360)
@@ -716,9 +718,12 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
                         sx=cos(decr)*sin(srar-rar)/( cos(decr)*cos(sdecr)*cos(srar-rar)+sin(decr)*sin(sdecr) );
                         sy=(sin(decr)*cos(sdecr)*cos(srar-rar)-cos(decr)*sin(sdecr))/( cos(decr)*cos(sdecr)*cos(srar-rar)+sin(decr)*sin(sdecr) );
 
-                        //  now convert to microns
+                        //  now convert to pixels
                         ccdx=pa*sx+pb*sy+pc;
                         ccdy=pd*sx+pe*sy+pf;
+
+                        // Invert horizontally
+                        ccdx = ccdW - ccdx;
 
 
                         rc=DrawImageStar(targetChip, mag,ccdx,ccdy);
@@ -874,9 +879,9 @@ int CCDSim::DrawImageStar(CCDChip *targetChip, float mag,float x,float y)
     float ExposureTime;
 
     int subX = targetChip->getSubX() / targetChip->getBinX();
-    int subY = targetChip->getSubY() / targetChip->getBinX();
+    int subY = targetChip->getSubY() / targetChip->getBinY();
     int subW = targetChip->getSubW() / targetChip->getBinX() + subX;
-    int subH = targetChip->getSubH() / targetChip->getBinX() + subY;
+    int subH = targetChip->getSubH() / targetChip->getBinY() + subY;
 
     if((x<subX)||(x>subW||(y<subY)||(y>subH)))
     {
@@ -940,7 +945,7 @@ int CCDSim::AddToPixel(CCDChip *targetChip, int x,int y,int val)
     int nwidth = targetChip->getSubW() / targetChip->getBinX();
     int nheight = targetChip->getSubH() / targetChip->getBinY();
 
-    x -= targetChip->getSubX() / targetChip->getBinX();
+    x -= targetChip->getSubX() / targetChip->getBinX();    
     y -= targetChip->getSubY() / targetChip->getBinY();
 
     int drew=0;
