@@ -823,9 +823,9 @@ int ASICCD::grabImage()
 
   ASI_IMG_TYPE type = getImageType();
 
-  unsigned char * image = (unsigned char *) PrimaryCCD.getFrameBuffer();
+  uint8_t * image = PrimaryCCD.getFrameBuffer();
 
-  unsigned char *buffer = image;
+  uint8_t *buffer = image;
 
   int width = PrimaryCCD.getSubW() / PrimaryCCD.getBinX() * (PrimaryCCD.getBPP() / 8);
   int height = PrimaryCCD.getSubH() / PrimaryCCD.getBinY() * (PrimaryCCD.getBPP() / 8);
@@ -851,22 +851,25 @@ int ASICCD::grabImage()
 
   if (type == ASI_IMG_RGB24)
   {
-      unsigned char *subR = image;
-      unsigned char *subG = image + width * height;
-      unsigned char *subB = image + width * height * 2;
+      uint8_t *subR = image;
+      uint8_t *subG = image + width * height;
+      uint8_t *subB = image + width * height * 2;
       int size = width*height*3-3;
 
       for (int i=0; i <= size; i+= 3)
       {
-          *subR++ = buffer[i];
+          *subB++ = buffer[i];
           *subG++ = buffer[i+1];
-          *subB++ = buffer[i+2];
+          *subR++ = buffer[i+2];
       }
 
       free(buffer);
   }
 
-  PrimaryCCD.setNAxis(2);
+  if (type == ASI_IMG_RGB24)
+      PrimaryCCD.setNAxis(3);
+  else
+      PrimaryCCD.setNAxis(2);
 
   bool restoreBayer= false;
 
@@ -875,10 +878,6 @@ int ASICCD::grabImage()
   {
       restoreBayer = true;
       SetCCDCapability(GetCCDCapability() & ~CCD_HAS_BAYER);
-  }
-  else if (type == ASI_IMG_RGB24)
-  {
-      PrimaryCCD.setNAxis(3);
   }
 
   if (ExposureRequest > VERBOSE_EXPOSURE)
