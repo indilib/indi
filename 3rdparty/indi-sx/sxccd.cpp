@@ -247,6 +247,9 @@ bool SXCCD::updateProperties() {
     if (HasShutter)
       deleteProperty(ShutterSP.name);
   }
+//  we can expose less than 0.01 seconds at a time
+//  and we need to for an allsky in daytime
+  PrimaryCCD.setMinMaxStep("CCD_EXPOSURE","CCD_EXPOSURE_VALUE",0.0001,3600,0.0001,true);
   return true;
 }
 
