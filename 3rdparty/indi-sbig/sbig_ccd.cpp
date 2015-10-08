@@ -1392,6 +1392,7 @@ bool SBIGCCD::saveConfigItems(FILE *fp)
 {
     INDI::CCD::saveConfigItems(fp);
 
+    IUSaveConfigText(fp, &PortTP);
     IUSaveConfigNumber(fp, &FilterSlotNP);
     IUSaveConfigText(fp, FilterNameTP);
     IUSaveConfigSwitch(fp, &FilterTypeSP);
