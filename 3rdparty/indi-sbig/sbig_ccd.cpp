@@ -454,7 +454,7 @@ bool SBIGCCD::ISNewText (const char *dev, const char *name, char *texts[], char 
             int count = sizeof(SBIG_DEVICE_PORTS)/sizeof(SBIG_USB0);
             int i=0;
             for (i=0; i < count; i++)
-                if (!strcmp(texts[0], SBIG_DEVICE_PORTS[0]))
+                if (!strcmp(texts[0], SBIG_DEVICE_PORTS[i]))
                     break;
 
             if (i == count)
