@@ -484,89 +484,88 @@ bool SBIGCCD::ISNewText (const char *dev, const char *name, char *texts[], char 
 
 bool SBIGCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-  int res=CE_NO_ERROR;
-  string str;
+    int res=CE_NO_ERROR;
+    string str;
 
-  if (strcmp(dev, getDeviceName()) == 0)
-  {
-    if(!strcmp(name, FanStateSP.name))
+    if (strcmp(dev, getDeviceName()) == 0)
     {
-       IUResetSwitch(&FanStateSP);
-       IUUpdateSwitch(&FanStateSP, states, names, n);
-       // Switch FAN ON/OFF:
-       MiscellaneousControlParams mcp;
+        if(!strcmp(name, FanStateSP.name))
+        {
+            IUUpdateSwitch(&FanStateSP, states, names, n);
+            // Switch FAN ON/OFF:
+            MiscellaneousControlParams mcp;
 
-      if(FanStateS[0].s == ISS_ON)
-      {
-              mcp.fanEnable = 1;
-      }else{
-              mcp.fanEnable = 0;
-      }
+            if(FanStateS[0].s == ISS_ON)
+            {
+                mcp.fanEnable = 1;
+            }else{
+                mcp.fanEnable = 0;
+            }
 
-      mcp.shutterCommand = SC_LEAVE_SHUTTER;
-      mcp.ledState  = LED_OFF;
+            mcp.shutterCommand = SC_LEAVE_SHUTTER;
+            mcp.ledState  = LED_OFF;
 
-      if((res = MiscellaneousControl(&mcp)) == CE_NO_ERROR)
-      {
-              FanStateSP.s = IPS_OK;
-              if(mcp.fanEnable == 1)
-              {
-                      str = "Fan turned ON.";
-              }else
-              {
-                      str = "Fan turned OFF.";
-              }
-      }
-      else
-      {
-              FanStateSP.s = IPS_ALERT;
-              if(mcp.fanEnable == 1){
-                      str = "Error: Cannot turn Fan ON. ";
-              }else{
-                      str = "Error: Cannot turn Fan OFF.";
-              }
-              str += GetErrorString(res);
+            if(sim || ((res = MiscellaneousControl(&mcp)) == CE_NO_ERROR))
+            {
+                FanStateSP.s = IPS_OK;
+                if(mcp.fanEnable == 1)
+                {
+                    str = "Fan turned ON.";
+                }else
+                {
+                    str = "Fan turned OFF.";
+                }
+            }
+            else
+            {
+                FanStateSP.s = IPS_ALERT;
+                if(mcp.fanEnable == 1){
+                    str = "Error: Cannot turn Fan ON. ";
+                }else{
+                    str = "Error: Cannot turn Fan OFF.";
+                }
+                str += GetErrorString(res);
 
-              DEBUGF(INDI::Logger::DBG_ERROR, "%s", str.c_str());
-              IDSetSwitch(&FanStateSP, NULL);
-              return false;
-      }
+                DEBUGF(INDI::Logger::DBG_ERROR, "%s", str.c_str());
+                IDSetSwitch(&FanStateSP, NULL);
+                return false;
+            }
 
             DEBUGF(INDI::Logger::DBG_SESSION, "%s", str.c_str());
             IDSetSwitch(&FanStateSP, NULL);
             return true;
-      }
+        }
 
         // CFW TYPE:
         if(!strcmp(name, FilterTypeSP.name))
         {
-          IUResetSwitch(&FilterTypeSP);
-          IUUpdateSwitch(&FilterTypeSP, states, names, n);
-          FilterTypeSP.s = IPS_OK;
-          IDSetSwitch(&FilterTypeSP, NULL);
+            IUResetSwitch(&FilterTypeSP);
+            IUUpdateSwitch(&FilterTypeSP, states, names, n);
+            FilterTypeSP.s = IPS_OK;
+            IDSetSwitch(&FilterTypeSP, NULL);
 
-          return true;
+            return true;
         }
 
-      if (!strcmp(name, CoolerSP.name))
-      {
-          IUUpdateSwitch(&CoolerSP, states, names, n);
+        if (!strcmp(name, CoolerSP.name))
+        {
+            IUUpdateSwitch(&CoolerSP, states, names, n);
 
-          if ( (res = SetTemperatureRegulation(TemperatureN[0].value, CoolerS[0].s == ISS_ON)) == CE_NO_ERROR)
-            CoolerSP.s = (CoolerS[0].s == ISS_ON) ? IPS_BUSY : IPS_IDLE;
-          else
-          {
-              DEBUGF(INDI::Logger::DBG_ERROR, "Setting temperature regulation failed (%s).", GetErrorString(res).c_str());
-              CoolerSP.s = IPS_ALERT;
-          }
+            if ( (res = SetTemperatureRegulation(TemperatureN[0].value, CoolerS[0].s == ISS_ON)) == CE_NO_ERROR)
+                CoolerSP.s = (CoolerS[0].s == ISS_ON) ? IPS_BUSY : IPS_IDLE;
+            else
+            {
+                DEBUGF(INDI::Logger::DBG_ERROR, "Setting temperature regulation failed (%s).", GetErrorString(res).c_str());
+                CoolerSP.s = IPS_ALERT;
+            }
 
-          IDSetSwitch(&CoolerSP, NULL);
-          return true;
-      }
+            IDSetSwitch(&CoolerSP, NULL);
+            return true;
+        }
 
         // CFW CONNECTION:
-      if(!strcmp(name, FilterConnectionSP.name))
-      {
+        if(!strcmp(name, FilterConnectionSP.name))
+        {
             IUUpdateSwitch(&FilterConnectionSP, states, names, n);
             FilterConnectionSP.s = IPS_BUSY;
 
@@ -596,10 +595,10 @@ bool SBIGCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
             return true;
         }
 
-  }
+    }
 
-  //  Nobody has claimed this, so, ignore it
-  return INDI::CCD::ISNewSwitch(dev, name, states, names, n);
+    //  Nobody has claimed this, so, ignore it
+    return INDI::CCD::ISNewSwitch(dev, name, states, names, n);
 }
 
 bool SBIGCCD::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
