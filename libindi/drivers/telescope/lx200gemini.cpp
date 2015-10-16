@@ -25,6 +25,8 @@ bool LX200Gemini::updateProperties()
     {
         deleteProperty(SlewAccuracyNP.name);
     }
+
+    return true;
 }
 
 bool LX200Gemini::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)

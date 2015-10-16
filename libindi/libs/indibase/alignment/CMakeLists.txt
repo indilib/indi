@@ -64,7 +64,7 @@ set (AlignmentClient_SRCS
         ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/Common.h
     )
 
-add_library(AlignmentClient ${AlignmentClient_SRCS})
+add_library(AlignmentClient STATIC ${AlignmentClient_SRCS})
 set_target_properties(AlignmentClient PROPERTIES OUTPUT_NAME indiAlignmentClient)
 install(TARGETS AlignmentClient ARCHIVE DESTINATION ${LIB_DESTINATION})
 

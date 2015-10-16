@@ -194,6 +194,8 @@ bool PerfectStar::updateProperties()
         deleteProperty(SyncNP.name);
         deleteProperty(MaxPositionNP.name);
     }
+
+    return true;
 }
 
 void PerfectStar::TimerHit()

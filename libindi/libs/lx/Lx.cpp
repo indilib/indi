@@ -591,6 +591,8 @@ bool Lx::startLxPWC() {
       pwcsetflashoff();
     return true;
   }
+
+  return false;
 }
 
 int Lx::stopLxPWC() {
@@ -608,4 +610,6 @@ int Lx::stopLxPWC() {
       pwcsetflashon();
     return 0;
   }
+
+  return -1;
 }

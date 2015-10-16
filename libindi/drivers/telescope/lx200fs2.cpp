@@ -71,6 +71,8 @@ bool LX200FS2::updateProperties()
         deleteProperty(SlewRateSP.name);
         deleteProperty(SlewAccuracyNP.name);
     }
+
+    return true;
 }
 
 bool LX200FS2::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)

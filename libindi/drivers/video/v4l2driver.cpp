@@ -726,7 +726,7 @@ bool V4L2_Driver::StartExposure(float duration)
 
 bool V4L2_Driver::setShutter(double duration)
 {
-  bool rc;
+  bool rc=true;
   gettimeofday(&capture_start, NULL);
   if (lx->isenabled()) 
     {
@@ -747,6 +747,7 @@ bool V4L2_Driver::setShutter(double duration)
   exposure_duration.tv_usec = (long) ((duration - (double) exposure_duration.tv_sec) * 1000000.0) ;
   frameCount=0;
   subframeCount=0;
+  return rc;
 }
 
 bool V4L2_Driver::setManualExposure(double duration)
