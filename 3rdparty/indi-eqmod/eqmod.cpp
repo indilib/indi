@@ -194,7 +194,7 @@ EQMod::EQMod()
 
   mount=new Skywatcher(this); 
 
-  SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,SLEWMODES-1);
+  SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,SLEWMODES);
 
   pierside = EAST;
   lastPierSide = WEST;
@@ -326,19 +326,17 @@ bool EQMod::initProperties()
     /* Make sure to init parent properties first */
     INDI::Telescope::initProperties();
 
-    for (unsigned int i=1; i<SlewRateSP.nsp; i++)
+    for (unsigned int i=0; i<SlewRateSP.nsp-1; i++)
     {
-      if (i < SLEWMODES)
-      {
-        sprintf(SlewRateSP.sp[i].label, "%.2fx", slewspeeds[i-1]);
-        SlewRateSP.sp[i].aux=(void *)&slewspeeds[i-1];
-      }
-      else
-      {
-        sprintf(SlewRateSP.sp[i].label, "%.2fx (default)", defaultspeed);
-        SlewRateSP.sp[i].aux=(void *)&defaultspeed;
-      }
+        sprintf(SlewRateSP.sp[i].label, "%.fx", slewspeeds[i]);
+        SlewRateSP.sp[i].aux=(void *)&slewspeeds[i];
     }
+
+    // Since last item is NOT maximum (but custom), let's set item before custom to SLEWMAX
+    strncpy(SlewRateSP.sp[SlewRateSP.nsp-2].name, "SLEW_MAX", MAXINDINAME);
+
+    strncpy(SlewRateSP.sp[SlewRateSP.nsp-1].name, "SLEWCUSTOM", MAXINDINAME);
+    strncpy(SlewRateSP.sp[SlewRateSP.nsp-1].label, "Custom", MAXINDILABEL);
 
     SetParkDataType(PARK_RA_DEC_ENCODER);
 
