@@ -21,11 +21,34 @@
 
 #include "indibase/indifilterwheel.h"
 
+typedef struct
+{
+    int speed;
+    int position;
+    int pulseWidth;
+    int jitter;
+    int threshold;
+    int offset[5];
+    char product[16];
+    char version[16];
+    char serial[16];
+} SimData;
+
 class XAGYLWheel : public INDI::FilterWheel
 {    
 public:
-    FilterSim();
-    virtual ~FilterSim();
+    typedef enum { INFO_PRODUCT_NAME, INFO_FIRMWARE_VERSION, INFO_FILTER_POSITION, INFO_SERIAL_NUMBER, INFO_MAX_SPEED, INFO_JITTER, INFO_OFFSET, INFO_THRESHOLD, INFO_MAX_SLOTS, INFO_PULSE_WIDTH } GET_COMMAND;
+    typedef enum { SET_SPEED, SET_JITTER, SET_THRESHOLD, SET_PULSE_WITDH, SET_POSITION} SET_COMMAND;
+
+    XAGYLWheel();
+    virtual ~XAGYLWheel();
+
+    virtual bool initProperties();
+    virtual void ISGetProperties (const char *dev);
+    virtual bool updateProperties();
+
+    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+
 
 protected:
     const char *getDefaultName();
@@ -34,10 +57,6 @@ protected:
     bool Disconnect();
     void TimerHit();
 
-    virtual bool initProperties();
-    virtual void ISGetProperties (const char *dev);
-    virtual bool updateProperties();
-
     bool SelectFilter(int);
     virtual bool SetFilterNames() { return true; }
     virtual bool GetFilterNames(const char* groupName);
@@ -45,8 +64,22 @@ protected:
     virtual bool saveConfigItems(FILE *fp);
 
 private:
+    bool getCommand(GET_COMMAND cmd, char *result);
+    bool setCommand(SET_COMMAND cmd, int value);
+
+    void initOffset();
+
+    bool getStartupData();
+    bool getFirmwareInfo();
+    bool getSettingInfo();
+
+    bool getFilterPosition();
+    bool getMaximumSpeed();
+    bool getJitter();
+    bool getThreshold();
+    bool getOffset(int filter);
     bool getMaxFilterSlots();
-    bool getBasicData();
+    bool getPulseWidth();
 
     // Device physical port
     ITextVectorProperty PortTP;
@@ -60,25 +93,13 @@ private:
     INumberVectorProperty SettingsNP;
     INumber SettingsN[4];
 
-    // Max Speed
-    ISwitchVectorProperty MaxSpeedSP;
-    ISwitch MaxSpeedS[2];
-
-    // Jitter
-    ISwitchVectorProperty JitterSP;
-    ISwitch JitterS[2];
-
-    // Threshold
-    ISwitchVectorProperty ThresholdSP;
-    ISwitch ThresholdS[2];
-
-    // Pulse Width
-    ISwitchVectorProperty PulseWidthSP;
-    ISwitch PulseWidthS[2];
-
+    // Filter Offset
+    INumberVectorProperty OffsetNP;
+    INumber *OffsetN;
 
     int PortFD;
     bool sim;
+    SimData simData;
 };
 
 #endif
