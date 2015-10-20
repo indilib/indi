@@ -181,6 +181,10 @@
 		<driver name="TruTech Wheel">indi_trutech_wheel</driver>
 		<version>0.1</version>
     	</device>
+        <device label="XAGYL Wheel">
+                <driver name="XAGYL Wheel">indi_xagyl_wheel</driver>
+                <version>0.1</version>
+        </device>
         <device label="Filter Simulator">
                 <driver name="Filter Simulator">indi_simulator_wheel</driver>
                 <version>1.0</version>

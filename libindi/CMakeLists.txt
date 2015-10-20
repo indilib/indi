@@ -494,6 +494,15 @@ target_link_libraries(indi_trutech_wheel ${NOVA_LIBRARIES} ${M_LIB} ${ZLIB_LIBRA
 install(TARGETS indi_trutech_wheel RUNTIME DESTINATION bin )
 
 ########### Filter Simulator ##############
+set(xagylwheel_SRCS
+        ${CMAKE_SOURCE_DIR}/drivers/filter_wheel/xagyl_wheel.cpp
+   )
+
+add_executable(indi_xagyl_wheel ${xagylwheel_SRCS})
+target_link_libraries(indi_xagyl_wheel indidriver)
+install(TARGETS indi_xagyl_wheel RUNTIME DESTINATION bin )
+
+########### Filter Simulator ##############
 set(filtersimulator_SRCS
         ${CMAKE_SOURCE_DIR}/drivers/filter_wheel/filter_simulator.cpp
    )

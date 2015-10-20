@@ -229,7 +229,7 @@ void INDI::FilterWheel::processButton(const char * button_n, ISState state)
     if (state == ISS_OFF)
         return;
 
-    // Max Slew speed
+    // Reset
     if (!strcmp(button_n, "Reset"))
     {
         TargetFilter = FilterSlotN[0].min;

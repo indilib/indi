@@ -1324,6 +1324,8 @@ libindi/drivers/filter_wheel/filter_simulator.cpp -text
 libindi/drivers/filter_wheel/filter_simulator.h -text
 libindi/drivers/filter_wheel/fli_wheel.c -text
 libindi/drivers/filter_wheel/trutech_wheel.c -text
+libindi/drivers/filter_wheel/xagyl_wheel.cpp -text
+libindi/drivers/filter_wheel/xagyl_wheel.h -text
 libindi/drivers/focuser/99-perfectstar.rules -text
 libindi/drivers/focuser/focus_simulator.cpp -text
 libindi/drivers/focuser/focus_simulator.h -text
