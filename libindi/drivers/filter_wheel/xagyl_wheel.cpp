@@ -384,7 +384,7 @@ void XAGYLWheel::initOffset()
     {
         snprintf(offsetName, MAXINDINAME, "OFFSET_%d", i+1);
         snprintf(offsetLabel, MAXINDINAME, "#%d Offset", i+1);
-        IUFillNumber(OffsetN+i, offsetName, offsetLabel, "%.f", 0, 99, 1, 0);
+        IUFillNumber(OffsetN+i, offsetName, offsetLabel, "%.f", -99, 99, 10, 0);
     }
 
     IUFillNumberVector(&OffsetNP, OffsetN, FilterSlotN[0].max, getDeviceName(), "Offsets", "", FILTER_TAB, IP_RW, 0, IPS_IDLE);
