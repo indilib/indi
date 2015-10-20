@@ -47,8 +47,8 @@ public:
     virtual void ISGetProperties (const char *dev);
     virtual bool updateProperties();
 
+    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
     virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-
 
 protected:
     const char *getDefaultName();
@@ -76,10 +76,16 @@ private:
     bool getFilterPosition();
     bool getMaximumSpeed();
     bool getJitter();
-    bool getThreshold();
-    bool getOffset(int filter);
+    bool getThreshold();    
     bool getMaxFilterSlots();
     bool getPulseWidth();
+
+    // Calibration offset
+    bool getOffset(int filter);
+    bool setOffset(int filter, int value);
+
+    // Reset
+    bool reset(int value);
 
     // Device physical port
     ITextVectorProperty PortTP;
@@ -91,11 +97,15 @@ private:
 
     // Settings
     INumberVectorProperty SettingsNP;
-    INumber SettingsN[4];
+    INumber SettingsN[4];        
 
     // Filter Offset
     INumberVectorProperty OffsetNP;
     INumber *OffsetN;
+
+    // Reset
+    ISwitchVectorProperty ResetSP;
+    ISwitch ResetS[4];
 
     int PortFD;
     bool sim;
