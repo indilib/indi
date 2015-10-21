@@ -217,6 +217,22 @@ bool XAGYLWheel::Disconnect()
     return true;
 }
 
+bool XAGYLWheel::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+{
+    if(strcmp(dev,getDeviceName())==0)
+    {
+        if (!strcmp(PortTP.name, name))
+        {
+            IUUpdateText(&PortTP, texts, names, n);
+            PortTP.s = IPS_OK;
+            IDSetText(&PortTP, NULL);
+            return true;
+        }
+    }
+
+    return INDI::FilterWheel::ISNewText(dev, name, texts, names, n);
+}
+
 bool XAGYLWheel::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if(strcmp(dev,getDeviceName())==0)
