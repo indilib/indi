@@ -440,6 +440,7 @@ install(TARGETS indi_steeldrive_focus RUNTIME DESTINATION bin )
 ################ FocusLynx Focuser ################
 
 set(focuslynx_SRCS
+        ${CMAKE_SOURCE_DIR}/drivers/focuser/focuslynxbase.cpp
         ${CMAKE_SOURCE_DIR}/drivers/focuser/focuslynx.cpp
    )
 
