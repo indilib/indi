@@ -652,7 +652,7 @@ bool XAGYLWheel::getStartupData()
 
     bool rc2 = getSettingInfo();
 
-    for (int i=1; i <= OffsetNP.nnp; i++)
+    for (int i=0; i < OffsetNP.nnp; i++)
         getOffset(i);
 
     return (rc1 && rc2);
