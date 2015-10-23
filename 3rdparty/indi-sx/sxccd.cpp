@@ -230,6 +230,11 @@ bool SXCCD::initProperties() {
   IUFillSwitch(&ShutterS[0], "SHUTTER_ON", "Manual open", ISS_OFF);
   IUFillSwitch(&ShutterS[1], "SHUTTER_OFF", "Manual close", ISS_ON);
   IUFillSwitchVector(&ShutterSP, ShutterS, 2, getDeviceName(), "CCD_SHUTTER", "Shutter", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+  //  we can expose less than 0.01 seconds at a time
+  //  and we need to for an allsky in daytime
+  PrimaryCCD.setMinMaxStep("CCD_EXPOSURE","CCD_EXPOSURE_VALUE",0.0001,3600,0.0001,true);
+
   return true;
 }
 
