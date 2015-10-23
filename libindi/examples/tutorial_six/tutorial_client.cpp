@@ -62,15 +62,10 @@ using namespace std;
 #define MYCCD "Simple CCD"
 
 /* Our client auto pointer */
-auto_ptr<MyClient> camera_client(0);
+unique_ptr<MyClient> camera_client(new MyClient());
 
 int main(int argc, char *argv[])
 {
-
-    if (camera_client.get() == 0)
-        camera_client.reset(new MyClient());
-
-
   camera_client->setServer("localhost", 7624);
 
   camera_client->watchDevice(MYCCD);

@@ -59,61 +59,45 @@
 #define currentMaxPosition      MinMaxPositionN[1].value
 #define currentMaxTravel        MaxTravelN[0].value
 
-std::auto_ptr<NFocus> nFocus(0);
+std::unique_ptr<NFocus> nFocus(new NFocus());
 
- void ISInit()
- {
-    static int isInit =0;
 
-    if (isInit == 1)
-        return;
+void ISGetProperties(const char *dev)
+{
+    nFocus->ISGetProperties(dev);
+}
 
-     isInit = 1;
-     if(nFocus.get() == 0) nFocus.reset(new NFocus());
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+{
+    nFocus->ISNewSwitch(dev, name, states, names, num);
+}
 
- }
+void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
+{
+    nFocus->ISNewText(dev, name, texts, names, num);
+}
 
- void ISGetProperties(const char *dev)
- {
-         ISInit();
-         nFocus->ISGetProperties(dev);
- }
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+{
+    nFocus->ISNewNumber(dev, name, values, names, num);
+}
 
- void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
- {
-         ISInit();
-         nFocus->ISNewSwitch(dev, name, states, names, num);
- }
+void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+{
+    INDI_UNUSED(dev);
+    INDI_UNUSED(name);
+    INDI_UNUSED(sizes);
+    INDI_UNUSED(blobsizes);
+    INDI_UNUSED(blobs);
+    INDI_UNUSED(formats);
+    INDI_UNUSED(names);
+    INDI_UNUSED(n);
+}
 
- void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
- {
-         ISInit();
-         nFocus->ISNewText(dev, name, texts, names, num);
- }
-
- void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
- {
-         ISInit();
-         nFocus->ISNewNumber(dev, name, values, names, num);
- }
-
- void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
- {
-   INDI_UNUSED(dev);
-   INDI_UNUSED(name);
-   INDI_UNUSED(sizes);
-   INDI_UNUSED(blobsizes);
-   INDI_UNUSED(blobs);
-   INDI_UNUSED(formats);
-   INDI_UNUSED(names);
-   INDI_UNUSED(n);
- }
-
- void ISSnoopDevice (XMLEle *root)
- {
-     ISInit();
-     nFocus->ISSnoopDevice(root);
- }
+void ISSnoopDevice (XMLEle *root)
+{
+    nFocus->ISSnoopDevice(root);
+}
 
 
 NFocus::NFocus()

@@ -183,7 +183,7 @@ struct AlignmentDatabaseEntry
     TelescopeDirectionVector TelescopeDirection;
 
     /// \brief Private data associated with this sync point
-    std::auto_ptr<unsigned char> PrivateData;
+    std::unique_ptr<unsigned char> PrivateData;
 
     /// \brief This size in bytes of any private data
     int PrivateDataSize;

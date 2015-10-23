@@ -42,7 +42,7 @@
 
 #define MOUNTINFO_TAB   "Mount Info"
 
-std::auto_ptr<CelestronGPS> telescope(0);
+std::unique_ptr<CelestronGPS> telescope(new CelestronGPS());
 
 /* send client definitions of all properties */
 void ISInit()
@@ -54,7 +54,7 @@ void ISInit()
 
  isInit = 1;
 
- if(telescope.get() == 0) telescope.reset(new CelestronGPS());
+// if(telescope.get() == 0) telescope.reset();
 
 }
 

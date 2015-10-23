@@ -21,45 +21,27 @@
 #include <memory>
 
 // We declare an auto pointer to FilterSim.
-std::auto_ptr<FilterSim> filter_sim(0);
+std::unique_ptr<FilterSim> filter_sim(new FilterSim());
 
 void ISPoll(void *p);
 
-
-void ISInit()
-{
-   static int isInit =0;
-
-   if (isInit == 1)
-       return;
-
-    isInit = 1;
-    if(filter_sim.get() == 0) filter_sim.reset(new FilterSim());
-    //IEAddTimer(POLLMS, ISPoll, NULL);
-
-}
-
 void ISGetProperties(const char *dev)
 {
-        ISInit();
         filter_sim->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-        ISInit();
         filter_sim->ISNewSwitch(dev, name, states, names, num);
 }
 
 void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-        ISInit();
         filter_sim->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-        ISInit();
         filter_sim->ISNewNumber(dev, name, values, names, num);
 }
 
@@ -78,7 +60,6 @@ void ISSnoopDevice (XMLEle *root)
 {
     filter_sim->ISSnoopDevice(root);
 }
-
 
 FilterSim::FilterSim()
 {

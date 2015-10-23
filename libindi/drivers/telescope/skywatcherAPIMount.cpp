@@ -25,49 +25,32 @@
 using namespace INDI::AlignmentSubsystem;
 
 // We declare an auto pointer to SkywatcherAPIMount.
-std::auto_ptr<SkywatcherAPIMount> SkywatcherAPIMountPtr(0);
+std::unique_ptr<SkywatcherAPIMount> SkywatcherAPIMountPtr(new SkywatcherAPIMount());
 
 void ISPoll(void *p);
 
-void ISInit()
-{
-   static int isInit =0;
-
-   if (isInit == 1)
-       return;
-
-    isInit = 1;
-    if(SkywatcherAPIMountPtr.get() == 0) SkywatcherAPIMountPtr.reset(new SkywatcherAPIMount());
-
-}
-
 void ISGetProperties(const char *dev)
 {
-    ISInit();
     SkywatcherAPIMountPtr->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-    ISInit();
     SkywatcherAPIMountPtr->ISNewSwitch(dev, name, states, names, num);
 }
 
 void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-    ISInit();
     SkywatcherAPIMountPtr->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-    ISInit();
     SkywatcherAPIMountPtr->ISNewNumber(dev, name, values, names, num);
 }
 
 void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
 {
-    ISInit();
     SkywatcherAPIMountPtr->ISNewBLOB (dev, name, sizes, blobsizes, blobs, formats, names, n);
 }
 

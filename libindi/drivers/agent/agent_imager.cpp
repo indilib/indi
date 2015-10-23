@@ -27,46 +27,31 @@
 #define GROUP_PREFIX      "GROUP_"
 #define GROUP_PREFIX_LEN  6
 
-std::auto_ptr<Imager> imager(0);
+std::unique_ptr<Imager> imager(new Imager());
 
 // Driver entry points ----------------------------------------------------------------------------
 
-void ISInit() {
-  static int isInit =0;
-  if (isInit == 1)
-    return;
-  isInit = 1;
-  if (imager.get() == 0)
-    imager.reset(new Imager());
-}
-
 void ISGetProperties(const char *dev) {
-  ISInit();
   imager->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num) {
-  ISInit();
   imager->ISNewSwitch(dev, name, states, names, num);
 }
 
 void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num) {
-  ISInit();
   imager->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num) {
-  ISInit();
   imager->ISNewNumber(dev, name, values, names, num);
 }
 
 void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n) {
-  ISInit();
   imager->ISNewBLOB (dev, name, sizes, blobsizes, blobs, formats, names, n);
 }
 
 void ISSnoopDevice(XMLEle *root) {
-  ISInit();
   imager->ISSnoopDevice(root);
 }
 

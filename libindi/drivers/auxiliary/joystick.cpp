@@ -26,42 +26,25 @@
 #define POLLMS 250
 
 // We declare an auto pointer to joystick.
-std::auto_ptr<JoyStick> joystick(0);
-
-void ISInit()
-{
-   static int isInit =0;
-
-   if (isInit == 1)
-       return;
-
-    isInit = 1;
-    if(joystick.get() == 0) joystick.reset(new JoyStick());
-    //IEAddTimer(POLLMS, ISPoll, NULL);
-
-}
+std::unique_ptr<JoyStick> joystick(new JoyStick());
 
 void ISGetProperties(const char *dev)
 {
-        ISInit();
         joystick->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-        ISInit();
         joystick->ISNewSwitch(dev, name, states, names, num);
 }
 
 void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-        ISInit();
         joystick->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-        ISInit();
         joystick->ISNewNumber(dev, name, values, names, num);
 }
 

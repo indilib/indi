@@ -32,44 +32,27 @@
 #include <sys/stat.h>
 
 // We declare an auto pointer to Synscan.
-std::auto_ptr<SynscanMount> synscan(0);
+std::unique_ptr<SynscanMount> synscan(new SynscanMount());
 
 void ISPoll(void *p);
 
-void ISInit()
-{
-   static int isInit =0;
-
-   if (isInit == 1)
-       return;
-
-    isInit = 1;
-    if(synscan.get() == 0) synscan.reset(new SynscanMount());
-    //IEAddTimer(POLLMS, ISPoll, NULL);
-
-}
-
 void ISGetProperties(const char *dev)
 {
-        ISInit();
         synscan->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-        ISInit();
         synscan->ISNewSwitch(dev, name, states, names, num);
 }
 
 void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-        ISInit();
         synscan->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-        ISInit();
         synscan->ISNewNumber(dev, name, values, names, num);
 }
 

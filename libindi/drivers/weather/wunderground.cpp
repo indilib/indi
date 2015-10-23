@@ -31,7 +31,7 @@
 #include "wunderground.h"
 
 // We declare an auto pointer to WunderGround.
-std::auto_ptr<WunderGround> wunderGround(0);
+std::unique_ptr<WunderGround> wunderGround(new WunderGround());
 
 static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp)
 {
@@ -39,39 +39,23 @@ static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *use
     return size * nmemb;
 }
 
-void ISInit()
-{
-   static int isInit =0;
-
-   if (isInit == 1)
-       return;
-
-    isInit = 1;
-    if(wunderGround.get() == 0) wunderGround.reset(new WunderGround());
-
-}
-
 void ISGetProperties(const char *dev)
 {
-        ISInit();
         wunderGround->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-        ISInit();
         wunderGround->ISNewSwitch(dev, name, states, names, num);
 }
 
 void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-        ISInit();
         wunderGround->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-        ISInit();
         wunderGround->ISNewNumber(dev, name, values, names, num);
 }
 
@@ -90,7 +74,6 @@ void ISSnoopDevice (XMLEle *root)
 {
     wunderGround->ISSnoopDevice(root);
 }
-
 
 WunderGround::WunderGround()
 {

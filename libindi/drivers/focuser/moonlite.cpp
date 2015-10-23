@@ -33,40 +33,25 @@
 
 #define POLLMS  250
 
-std::auto_ptr<MoonLite> moonLite(0);
-
-void ISInit()
-{
-    static int isInit =0;
-
-    if (isInit == 1)
-        return;
-
-     isInit = 1;
-     if(moonLite.get() == 0) moonLite.reset(new MoonLite());
-}
+std::unique_ptr<MoonLite> moonLite(new MoonLite());
 
 void ISGetProperties(const char *dev)
 {
-         ISInit();
          moonLite->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-         ISInit();
          moonLite->ISNewSwitch(dev, name, states, names, num);
 }
 
 void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-         ISInit();
          moonLite->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-         ISInit();
          moonLite->ISNewNumber(dev, name, values, names, num);
 }
 
@@ -84,7 +69,6 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
 
 void ISSnoopDevice (XMLEle *root)
 {
-     ISInit();
      moonLite->ISSnoopDevice(root);
 }
 

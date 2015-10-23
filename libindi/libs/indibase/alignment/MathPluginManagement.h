@@ -116,7 +116,7 @@ private:
     std::vector<std::string> MathPluginFiles;
     std::vector<std::string> MathPluginDisplayNames;
 
-    std::auto_ptr<ISwitch> AlignmentSubsystemMathPlugins;
+    std::unique_ptr<ISwitch> AlignmentSubsystemMathPlugins;
     ISwitchVectorProperty AlignmentSubsystemMathPluginsV;
     ISwitch AlignmentSubsystemMathPluginInitialise;
     ISwitchVectorProperty AlignmentSubsystemMathPluginInitialiseV;

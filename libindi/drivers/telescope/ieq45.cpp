@@ -42,7 +42,7 @@
 using namespace std;
 
 /* Our telescope auto pointer */
-auto_ptr<IEQ45Basic> telescope(0);
+unique_ptr<IEQ45Basic> telescope(0);
 
 const int POLLMS = 100;				// Period of update, 1 second.
 const char *mydev = "IEQ45";				// Name of our device.

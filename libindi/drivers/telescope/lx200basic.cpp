@@ -43,30 +43,16 @@
 using namespace std;
 
 /* Our telescope auto pointer */
-auto_ptr<LX200Basic> telescope(0);
+unique_ptr<LX200Basic> telescope(new LX200Basic());
 
 /**************************************************************************************
 ** Send client definitions of all properties.
 ***************************************************************************************/
-void ISInit()
-{
- static int isInit=0;
-
- if (isInit)
-  return;
-
- if (telescope.get() == 0) telescope.reset(new LX200Basic());
-
- isInit = 1;
-  
-}
-
 /**************************************************************************************
 **
 ***************************************************************************************/
 void ISGetProperties (const char *dev)
 {
- ISInit(); 
  telescope->ISGetProperties(dev);
 }
 
@@ -75,7 +61,6 @@ void ISGetProperties (const char *dev)
 ***************************************************************************************/
 void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
- ISInit();
  telescope->ISNewSwitch(dev, name, states, names, n);
 }
 
@@ -84,7 +69,6 @@ void ISNewSwitch (const char *dev, const char *name, ISState *states, char *name
 ***************************************************************************************/
 void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
- ISInit();
  telescope->ISNewText(dev, name, texts, names, n);
 }
 
@@ -93,7 +77,6 @@ void ISNewText (const char *dev, const char *name, char *texts[], char *names[],
 ***************************************************************************************/
 void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
- ISInit();
  telescope->ISNewNumber(dev, name, values, names, n);
 }
 

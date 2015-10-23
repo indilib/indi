@@ -33,39 +33,25 @@ const float TEMP_THRESHOLD = .25;		/* Differential temperature threshold (C)*/
 /* Macro shortcut to CCD temperature value */
 #define currentCCDTemperature   TemperatureN[0].value
 
-std::auto_ptr<SimpleCCD> simpleCCD(0);
-
-void ISInit()
-{
-    static int isInit =0;
-    if (isInit == 1)
-        return;
-
-     isInit = 1;
-     if(simpleCCD.get() == 0) simpleCCD.reset(new SimpleCCD());
-}
+std::unique_ptr<SimpleCCD> simpleCCD(new SimpleCCD());
 
 void ISGetProperties(const char *dev)
 {
-         ISInit();
          simpleCCD->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-         ISInit();
          simpleCCD->ISNewSwitch(dev, name, states, names, num);
 }
 
 void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-         ISInit();
          simpleCCD->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-         ISInit();
          simpleCCD->ISNewNumber(dev, name, values, names, num);
 }
 
@@ -83,10 +69,8 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
 
 void ISSnoopDevice (XMLEle *root)
 {
-     ISInit();
      simpleCCD->ISSnoopDevice(root);
 }
-
 
 SimpleCCD::SimpleCCD()
 {

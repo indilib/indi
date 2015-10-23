@@ -23,29 +23,13 @@
 
 #include "simpledevice.h"
 
-std::auto_ptr<SimpleDevice> simpleDevice(0);
-
-/**************************************************************************************
-** Initilize SimpleDevice object
-***************************************************************************************/
-void ISInit()
-{
- static int isInit=0;
- if (isInit)
-  return;
- if (simpleDevice.get() == 0)
- {
-     isInit = 1;
-     simpleDevice.reset(new SimpleDevice());
- }
-}
+std::unique_ptr<SimpleDevice> simpleDevice(new SimpleDevice());
 
 /**************************************************************************************
 ** Return properties of device.
 ***************************************************************************************/
 void ISGetProperties (const char *dev)
 {
- ISInit();
  simpleDevice->ISGetProperties(dev);
 }
 
@@ -54,7 +38,6 @@ void ISGetProperties (const char *dev)
 ***************************************************************************************/
 void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
- ISInit();
  simpleDevice->ISNewSwitch(dev, name, states, names, n);
 }
 
@@ -63,7 +46,6 @@ void ISNewSwitch (const char *dev, const char *name, ISState *states, char *name
 ***************************************************************************************/
 void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
- ISInit();
  simpleDevice->ISNewText(dev, name, texts, names, n);
 }
 
@@ -72,7 +54,6 @@ void ISNewText (const char *dev, const char *name, char *texts[], char *names[],
 ***************************************************************************************/
 void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
- ISInit();
  simpleDevice->ISNewNumber(dev, name, values, names, n);
 }
 
@@ -81,7 +62,6 @@ void ISNewNumber (const char *dev, const char *name, double values[], char *name
 ***************************************************************************************/
 void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
 {
-    ISInit();
     simpleDevice->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
 }
 

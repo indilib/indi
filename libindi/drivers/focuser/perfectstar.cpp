@@ -34,43 +34,27 @@
 #define FOCUS_SETTINGS_TAB  "Settings"
 
 // We declare an auto pointer to PerfectStar.
-std::auto_ptr<PerfectStar> perfectStar(0);
+std::unique_ptr<PerfectStar> perfectStar(new PerfectStar());
 
 void ISPoll(void *p);
 
-void ISInit()
-{
-   static int isInit =0;
-
-   if (isInit == 1)
-       return;
-
-    isInit = 1;
-    if(perfectStar.get() == 0) perfectStar.reset(new PerfectStar());
-
-}
-
 void ISGetProperties(const char *dev)
 {
-        ISInit();
         perfectStar->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-        ISInit();
         perfectStar->ISNewSwitch(dev, name, states, names, num);
 }
 
 void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-        ISInit();
         perfectStar->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-        ISInit();
         perfectStar->ISNewNumber(dev, name, values, names, num);
 }
 
@@ -88,7 +72,6 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
 
 void ISSnoopDevice (XMLEle *root)
 {
-    ISInit();
     perfectStar->ISSnoopDevice(root);
 }
 

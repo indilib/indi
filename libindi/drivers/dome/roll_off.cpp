@@ -29,45 +29,29 @@
 #include <indicom.h>
 
 // We declare an auto pointer to RollOff.
-std::auto_ptr<RollOff> rollOff(0);
+std::unique_ptr<RollOff> rollOff(new RollOff());
 
 #define ROLLOFF_DURATION    10      // 10 seconds until roof is fully opened or closed
 
 void ISPoll(void *p);
 
-void ISInit()
-{
-   static int isInit =0;
-
-   if (isInit == 1)
-       return;
-
-    isInit = 1;
-    if(rollOff.get() == 0) rollOff.reset(new RollOff());
-
-}
-
 void ISGetProperties(const char *dev)
 {
-        ISInit();
         rollOff->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-        ISInit();
         rollOff->ISNewSwitch(dev, name, states, names, num);
 }
 
 void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-        ISInit();
         rollOff->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-        ISInit();
         rollOff->ISNewNumber(dev, name, values, names, num);
 }
 
@@ -85,7 +69,6 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
 
 void ISSnoopDevice (XMLEle *root)
 {
-    ISInit();
     rollOff->ISSnoopDevice(root);
 }
 

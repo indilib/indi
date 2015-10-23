@@ -43,48 +43,27 @@
 const int POLLMS = 500;
 
 // We declare an auto pointer to TCFS.
-auto_ptr<TCFS> tcfs(0);
+unique_ptr<TCFS> tcfs(new TCFS());
 
 void ISPoll(void *p);
 
-
-void ISInit()
-{
-   static int isInit =0;
-
-   if (isInit == 1)
-       return;
-
-    isInit = 1;
-    if(tcfs.get() == 0) tcfs.reset(new TCFS());
-
-}
-
 void ISGetProperties(const char *dev)
 { 
-	if(dev && strcmp(mydev, dev)) return;
-	ISInit();
     tcfs->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-	if(dev && strcmp (mydev, dev)) return;
-	ISInit();
     tcfs->ISNewSwitch(dev, name, states, names, num);
 }
 
 void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-	if(dev && strcmp (mydev, dev)) return;
-	ISInit();
     tcfs->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-	if(dev && strcmp (mydev, dev)) return;
-	ISInit();
     tcfs->ISNewNumber(dev, name, values, names, num);
 }
 
@@ -101,7 +80,6 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
 }
 void ISSnoopDevice (XMLEle *root) 
 {
-    ISInit();
     tcfs->ISSnoopDevice(root);
 }
 

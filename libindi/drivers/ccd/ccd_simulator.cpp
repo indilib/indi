@@ -28,45 +28,27 @@
 #include <libnova.h>
 
 // We declare an auto pointer to ccdsim.
-std::auto_ptr<CCDSim> ccdsim(0);
+std::unique_ptr<CCDSim> ccdsim(new CCDSim());
 
 void ISPoll(void *p);
 
-
-void ISInit()
-{
-   static int isInit =0;
-
-   if (isInit == 1)
-       return;
-
-    isInit = 1;
-    if(ccdsim.get() == 0) ccdsim.reset(new CCDSim());
-    //IEAddTimer(POLLMS, ISPoll, NULL);
-
-}
-
 void ISGetProperties(const char *dev)
 {
-        ISInit();
         ccdsim->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-        ISInit();
         ccdsim->ISNewSwitch(dev, name, states, names, num);
 }
 
 void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-        ISInit();
         ccdsim->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-        ISInit();
         ccdsim->ISNewNumber(dev, name, values, names, num);
 }
 
@@ -83,10 +65,8 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
 }
 void ISSnoopDevice (XMLEle *root)
 {
-    ISInit();
     ccdsim->ISSnoopDevice(root);
 }
-
 
 CCDSim::CCDSim()
 {

@@ -44,6 +44,18 @@ pthread_mutex_t stdout_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 #define MAXRBUF 2048
 
+/* Return 1 is property is already cached, 0 otherwise */
+int isPropDefined(const char *property_name)
+{
+    int i=0;
+
+    for (i=0; i < nroCheck; i++)
+        if (!strcmp(property_name, roCheck[i].propName))
+            return 1;
+
+    return 0;
+}
+
 /* output a string expanding special characters into xml/html escape sequences */
 /* N.B. You must free the returned buffer after use! */
 char * escapeXML(const char *s, unsigned int MAX_BUF_SIZE)
@@ -1935,19 +1947,6 @@ void IUUpdateMinMax(const INumberVectorProperty *nvp)
   setlocale(LC_NUMERIC,"");
   fflush (stdout);
   pthread_mutex_unlock(&stdout_mutex);
-}
-
-/* Return 1 is property is already cached, 0 otherwise */
-int isPropDefined(const char *property_name)
-{
-  int i=0;
-
-  for (i=0; i < nroCheck; i++)
-    if (!strcmp(property_name, roCheck[i].propName))
-        return 1;
-
-  return 0;
-
 }
 
 int IUFindIndex (const char *needle, char **hay, unsigned int n)

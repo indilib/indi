@@ -28,44 +28,27 @@
 #define SETTINGS_TAB    "Settings"
 
 // We declare an auto pointer to XAGYLWheel.
-std::auto_ptr<XAGYLWheel> xagylWheel(0);
+std::unique_ptr<XAGYLWheel> xagylWheel(new XAGYLWheel());
 
 void ISPoll(void *p);
 
-
-void ISInit()
-{
-   static int isInit =0;
-
-   if (isInit == 1)
-       return;
-
-    isInit = 1;
-    if(xagylWheel.get() == 0) xagylWheel.reset(new XAGYLWheel());
-
-}
-
 void ISGetProperties(const char *dev)
 {
-        ISInit();
         xagylWheel->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-        ISInit();
         xagylWheel->ISNewSwitch(dev, name, states, names, num);
 }
 
 void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-        ISInit();
         xagylWheel->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-        ISInit();
         xagylWheel->ISNewNumber(dev, name, values, names, num);
 }
 
@@ -84,7 +67,6 @@ void ISSnoopDevice (XMLEle *root)
 {
     xagylWheel->ISSnoopDevice(root);
 }
-
 
 XAGYLWheel::XAGYLWheel()
 {

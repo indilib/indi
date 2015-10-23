@@ -29,42 +29,26 @@
 #include "gps_simulator.h"
 
 // We declare an auto pointer to GPSSimulator.
-std::auto_ptr<GPSSimulator> gpsSimulator(0);
-
-void ISInit()
-{
-   static int isInit =0;
-
-   if (isInit == 1)
-       return;
-
-    isInit = 1;
-    if(gpsSimulator.get() == 0) gpsSimulator.reset(new GPSSimulator());
-
-}
+std::unique_ptr<GPSSimulator> gpsSimulator(new GPSSimulator());
 
 void ISGetProperties(const char *dev)
 {
-        ISInit();
-        gpsSimulator->ISGetProperties(dev);
+    gpsSimulator->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-        ISInit();
-        gpsSimulator->ISNewSwitch(dev, name, states, names, num);
+    gpsSimulator->ISNewSwitch(dev, name, states, names, num);
 }
 
 void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-        ISInit();
-        gpsSimulator->ISNewText(dev, name, texts, names, num);
+    gpsSimulator->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-        ISInit();
-        gpsSimulator->ISNewNumber(dev, name, values, names, num);
+    gpsSimulator->ISNewNumber(dev, name, values, names, num);
 }
 
 void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
@@ -82,7 +66,6 @@ void ISSnoopDevice (XMLEle *root)
 {
     INDI_UNUSED(root);
 }
-
 
 GPSSimulator::GPSSimulator()
 {

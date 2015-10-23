@@ -28,39 +28,25 @@
 
 #include "dome.h"
 
-std::auto_ptr<Dome> dome(0);
-
-void ISInit()
-{
-    static int isInit =0;
-    if (isInit == 1)
-        return;
-
-     isInit = 1;
-     if(dome.get() == 0) dome.reset(new Dome());
-}
+std::unique_ptr<Dome> dome(new Dome());
 
 void ISGetProperties(const char *dev)
 {
-         ISInit();
          dome->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-         ISInit();
          dome->ISNewSwitch(dev, name, states, names, num);
 }
 
 void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-         ISInit();
          dome->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-         ISInit();
          dome->ISNewNumber(dev, name, values, names, num);
 }
 
@@ -78,7 +64,6 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
 
 void ISSnoopDevice (XMLEle *root)
 {
-     ISInit();
      dome->ISSnoopDevice(root);
 }
 

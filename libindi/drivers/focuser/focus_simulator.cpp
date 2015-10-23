@@ -27,7 +27,7 @@
 
 
 // We declare an auto pointer to focusSim.
-std::auto_ptr<FocusSim> focusSim(0);
+std::unique_ptr<FocusSim> focusSim(new FocusSim());
 
 #define SIM_SEEING  0
 #define SIM_FWHM    1
@@ -35,40 +35,23 @@ std::auto_ptr<FocusSim> focusSim(0);
 
 void ISPoll(void *p);
 
-
-void ISInit()
-{
-   static int isInit =0;
-
-   if (isInit == 1)
-       return;
-
-    isInit = 1;
-    if(focusSim.get() == 0) focusSim.reset(new FocusSim());
-
-}
-
 void ISGetProperties(const char *dev)
 {
-        ISInit();
         focusSim->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-        ISInit();
         focusSim->ISNewSwitch(dev, name, states, names, num);
 }
 
 void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-        ISInit();
         focusSim->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-        ISInit();
         focusSim->ISNewNumber(dev, name, values, names, num);
 }
 
@@ -86,7 +69,6 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
 
 void ISSnoopDevice (XMLEle *root)
 {
-    ISInit();
     focusSim->ISSnoopDevice(root);
 }
 

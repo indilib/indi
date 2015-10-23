@@ -29,46 +29,30 @@
 #include <indicom.h>
 
 // We declare an auto pointer to domeSim.
-std::auto_ptr<DomeSim> domeSim(0);
+std::unique_ptr<DomeSim> domeSim(new DomeSim());
 
 #define DOME_SPEED      2.0             /* 2 degrees per second, constant */
 #define SHUTTER_TIMER   5.0             /* Shutter closes/open in 5 seconds */
 
 void ISPoll(void *p);
 
-void ISInit()
-{
-   static int isInit =0;
-
-   if (isInit == 1)
-       return;
-
-    isInit = 1;
-    if(domeSim.get() == 0) domeSim.reset(new DomeSim());
-
-}
-
 void ISGetProperties(const char *dev)
 {
-        ISInit();
         domeSim->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-        ISInit();
         domeSim->ISNewSwitch(dev, name, states, names, num);
 }
 
 void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-        ISInit();
         domeSim->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-        ISInit();
         domeSim->ISNewNumber(dev, name, values, names, num);
 }
 
@@ -86,7 +70,6 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
 
 void ISSnoopDevice (XMLEle *root)
 {
-    ISInit();
     domeSim->ISSnoopDevice(root);
 }
 

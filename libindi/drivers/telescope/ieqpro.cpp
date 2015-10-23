@@ -35,40 +35,25 @@
 #define MOUNTINFO_TAB   "Mount Info"
 
 // We declare an auto pointer to IEQPro.
-std::auto_ptr<IEQPro> scope(0);
-
-void ISInit()
-{
-   static int isInit =0;
-
-   if (isInit == 1)
-       return;
-
-    isInit = 1;
-    if(scope.get() == 0) scope.reset(new IEQPro());
-}
+std::unique_ptr<IEQPro> scope(new IEQPro());
 
 void ISGetProperties(const char *dev)
 {
-        ISInit();
         scope->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-        ISInit();
         scope->ISNewSwitch(dev, name, states, names, num);
 }
 
 void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-        ISInit();
         scope->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-        ISInit();
         scope->ISNewNumber(dev, name, values, names, num);
 }
 

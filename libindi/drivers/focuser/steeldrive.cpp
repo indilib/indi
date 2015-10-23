@@ -41,40 +41,25 @@
 
 #define POLLMS  500
 
-std::auto_ptr<SteelDrive> steelDrive(0);
-
-void ISInit()
-{
-    static int isInit =0;
-
-    if (isInit == 1)
-        return;
-
-     isInit = 1;
-     if(steelDrive.get() == 0) steelDrive.reset(new SteelDrive());
-}
+std::unique_ptr<SteelDrive> steelDrive(new SteelDrive());
 
 void ISGetProperties(const char *dev)
 {
-         ISInit();
          steelDrive->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-         ISInit();
          steelDrive->ISNewSwitch(dev, name, states, names, num);
 }
 
 void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-         ISInit();
          steelDrive->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-         ISInit();
          steelDrive->ISNewNumber(dev, name, values, names, num);
 }
 
@@ -92,7 +77,6 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
 
 void ISSnoopDevice (XMLEle *root)
 {
-     ISInit();
      steelDrive->ISSnoopDevice(root);
 }
 

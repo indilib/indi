@@ -36,30 +36,17 @@
 
 #define HUB_SETTINGS_TAB  "Device"
 
-std::auto_ptr<FocusLynxF1> lynxDriveF1(0);
-std::auto_ptr<FocusLynxF2> lynxDriveF2(0);
-
-void ISInit()
-{
-  static int isInit =0;
-  
-  if (isInit == 1)
-    return;
-  
-  if(lynxDriveF1.get() == 0) lynxDriveF1.reset(new FocusLynxF1("F1"));
-  if(lynxDriveF2.get() == 0) lynxDriveF2.reset(new FocusLynxF2("F2"));
-}
+std::unique_ptr<FocusLynxF1> lynxDriveF1(new FocusLynxF1("F1"));
+std::unique_ptr<FocusLynxF2> lynxDriveF2(new FocusLynxF2("F2"));
 
 void ISGetProperties(const char *dev)
 {
-  ISInit();
   lynxDriveF1->ISGetProperties(dev);
   lynxDriveF2->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-  ISInit();
   // Only call the corrected Focuser to execute evaluate the newSwitch
   if (!strcmp(dev, lynxDriveF1->getDeviceName()))
       lynxDriveF1->ISNewSwitch(dev, name, states, names, num);
@@ -69,7 +56,6 @@ void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names
 
 void ISNewText( const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-  ISInit();
    // Only call the corrected Focuser to execute evaluate the newText
   if (!strcmp(dev, lynxDriveF1->getDeviceName()))
       lynxDriveF1->ISNewText(dev, name, texts, names, num);
@@ -79,7 +65,6 @@ void ISNewText( const char *dev, const char *name, char *texts[], char *names[],
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-  ISInit();
   // Only call the corrected Focuser to execute evaluate the newNumber
   if (!strcmp(dev, lynxDriveF1->getDeviceName()))
       lynxDriveF1->ISNewNumber(dev, name, values, names, num);
@@ -101,7 +86,6 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
 
 void ISSnoopDevice (XMLEle *root)
 {
-  ISInit();
   // Also need to check the caller to avoid unsued function ??
   lynxDriveF1->ISSnoopDevice(root);
   lynxDriveF2->ISSnoopDevice(root);

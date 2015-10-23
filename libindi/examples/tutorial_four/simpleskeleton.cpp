@@ -40,32 +40,15 @@
 #include "simpleskeleton.h"
 
 /* Our simpleSkeleton auto pointer */
-std::auto_ptr<SimpleSkeleton> simpleSkeleton(0);
+std::unique_ptr<SimpleSkeleton> simpleSkeleton(new SimpleSkeleton());
 
 const int POLLMS = 1000;				// Period of update, 1 second.
-
-/**************************************************************************************
-** Send client definitions of all properties.
-***************************************************************************************/
-void ISInit()
-{
- static int isInit=0;
-
- if (isInit)
-  return;
- if (simpleSkeleton.get() == 0)
- {
-     isInit = 1;
-     simpleSkeleton.reset(new SimpleSkeleton());
- }
-}
 
 /**************************************************************************************
 **
 ***************************************************************************************/
 void ISGetProperties (const char *dev)
 {
- ISInit(); 
  simpleSkeleton->ISGetProperties(dev);
 }
 
@@ -74,7 +57,6 @@ void ISGetProperties (const char *dev)
 ***************************************************************************************/
 void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
- ISInit();
  simpleSkeleton->ISNewSwitch(dev, name, states, names, n);
 }
 
@@ -83,7 +65,6 @@ void ISNewSwitch (const char *dev, const char *name, ISState *states, char *name
 ***************************************************************************************/
 void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
- ISInit();
  simpleSkeleton->ISNewText(dev, name, texts, names, n);
 }
 
@@ -92,7 +73,6 @@ void ISNewText (const char *dev, const char *name, char *texts[], char *names[],
 ***************************************************************************************/
 void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
- ISInit();
  simpleSkeleton->ISNewNumber(dev, name, values, names, n);
 }
 
@@ -101,8 +81,6 @@ void ISNewNumber (const char *dev, const char *name, double values[], char *name
 ***************************************************************************************/
 void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
 {
-    ISInit();
-
     simpleSkeleton->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
 }
 /**************************************************************************************

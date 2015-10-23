@@ -30,29 +30,13 @@ const float SIDRATE  = 0.004178;			/* sidereal rate, degrees/s */
 const int   SLEW_RATE = 	1;  				/* slew rate, degrees/s */
 const int   POLLMS	 =	250;    			/* poll period, ms */
 
-std::auto_ptr<SimpleScope> simpleScope(0);
-
-/**************************************************************************************
-** Initilize SimpleScope object
-***************************************************************************************/
-void ISInit()
-{
- static int isInit=0;
- if (isInit)
-  return;
- if (simpleScope.get() == 0)
- {
-     isInit = 1;
-     simpleScope.reset(new SimpleScope());
- }
-}
+std::unique_ptr<SimpleScope> simpleScope(new SimpleScope());
 
 /**************************************************************************************
 ** Return properties of device.
 ***************************************************************************************/
 void ISGetProperties (const char *dev)
 {
- ISInit();
  simpleScope->ISGetProperties(dev);
 }
 
@@ -61,7 +45,6 @@ void ISGetProperties (const char *dev)
 ***************************************************************************************/
 void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
- ISInit();
  simpleScope->ISNewSwitch(dev, name, states, names, n);
 }
 
@@ -70,7 +53,6 @@ void ISNewSwitch (const char *dev, const char *name, ISState *states, char *name
 ***************************************************************************************/
 void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
- ISInit();
  simpleScope->ISNewText(dev, name, texts, names, n);
 }
 
@@ -79,7 +61,6 @@ void ISNewText (const char *dev, const char *name, char *texts[], char *names[],
 ***************************************************************************************/
 void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
- ISInit();
  simpleScope->ISNewNumber(dev, name, values, names, n);
 }
 
@@ -88,7 +69,6 @@ void ISNewNumber (const char *dev, const char *name, double values[], char *name
 ***************************************************************************************/
 void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
 {
-    ISInit();
     simpleScope->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
 }
 

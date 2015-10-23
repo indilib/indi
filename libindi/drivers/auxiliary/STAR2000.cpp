@@ -28,41 +28,25 @@
 #define POLLMS 250
 
 // We declare an auto pointer to gpGuide.
-std::auto_ptr<STAR2000> s2kGuide(0);
-
-void ISInit()
-{
-   static int isInit =0;
-
-   if (isInit == 1)
-       return;
-
-    isInit = 1;
-    if(s2kGuide.get() == 0) s2kGuide.reset(new STAR2000());
-
-}
+std::unique_ptr<STAR2000> s2kGuide(new STAR2000());
 
 void ISGetProperties(const char *dev)
 {
-        ISInit();
         s2kGuide->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-        ISInit();
         s2kGuide->ISNewSwitch(dev, name, states, names, num);
 }
 
 void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-        ISInit();
         s2kGuide->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-        ISInit();
         s2kGuide->ISNewNumber(dev, name, values, names, num);
 }
 

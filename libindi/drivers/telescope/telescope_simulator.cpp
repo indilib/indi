@@ -30,7 +30,7 @@
 #include <memory>
 
 // We declare an auto pointer to ScopeSim.
-std::auto_ptr<ScopeSim> telescope_sim(0);
+std::unique_ptr<ScopeSim> telescope_sim(new ScopeSim());
 
 #define	GOTO_RATE	5				/* slew rate, degrees/s */
 #define	SLEW_RATE	0.5				/* slew rate, degrees/s */
@@ -55,40 +55,23 @@ std::auto_ptr<ScopeSim> telescope_sim(0);
 
 void ISPoll(void *p);
 
-void ISInit()
-{
-   static int isInit =0;
-
-   if (isInit == 1)
-       return;
-
-    isInit = 1;
-    if(telescope_sim.get() == 0) telescope_sim.reset(new ScopeSim());
-    //IEAddTimer(POLLMS, ISPoll, NULL);
-
-}
-
 void ISGetProperties(const char *dev)
 {
-        ISInit();
         telescope_sim->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-        ISInit();
         telescope_sim->ISNewSwitch(dev, name, states, names, num);
 }
 
 void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-        ISInit();
         telescope_sim->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-        ISInit();
         telescope_sim->ISNewNumber(dev, name, values, names, num);
 }
 
@@ -107,7 +90,6 @@ void ISSnoopDevice (XMLEle *root)
 {
    telescope_sim->ISSnoopDevice(root);
 }
-
 
 ScopeSim::ScopeSim()
 {

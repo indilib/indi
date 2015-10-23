@@ -19,39 +19,25 @@
 
 #include "raindetector.h"
 
-std::auto_ptr<RainDetector> rainDetector(0);
-
-void ISInit()
-{
-    static int isInit =0;
-    if (isInit == 1)
-        return;
-
-     isInit = 1;
-     if(rainDetector.get() == 0) rainDetector.reset(new RainDetector());
-}
+std::unique_ptr<RainDetector> rainDetector(new RainDetector());
 
 void ISGetProperties(const char *dev)
 {
-         ISInit();
          rainDetector->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-         ISInit();
          rainDetector->ISNewSwitch(dev, name, states, names, num);
 }
 
 void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-         ISInit();
          rainDetector->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-         ISInit();
          rainDetector->ISNewNumber(dev, name, values, names, num);
 }
 
@@ -69,7 +55,6 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
 
 void ISSnoopDevice (XMLEle *root)
 {
-     ISInit();
      rainDetector->ISSnoopDevice(root);
 }
 
