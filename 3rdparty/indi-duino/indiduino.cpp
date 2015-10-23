@@ -44,44 +44,18 @@
 using namespace std;
 
 /* Our indiduino auto pointer */
-auto_ptr<indiduino> indiduino_prt(0);
+unique_ptr<indiduino> indiduino_prt(new indiduino());
 
 const int POLLMS = 500;				// Period of update, 1 second.
-static void ISPoll(void *);
 
 /**************************************************************************************
 ** Send client definitions of all properties.
 ***************************************************************************************/
-void ISInit()
-{
- static int isInit=0;
-
- if (isInit)
-  return;
-
- if (indiduino_prt.get() == 0)
- {
-     isInit = 1;
-     indiduino_prt.reset(new indiduino());
-     IEAddTimer (POLLMS, ISPoll, NULL);
-     srand (time(NULL));
- }
- 
-}
-
-void ISPoll (void *p)
-{
- INDI_UNUSED(p);
- indiduino_prt->ISPoll(); 
- IEAddTimer (POLLMS, ISPoll, NULL);
-}
-
 /**************************************************************************************
 **
 ***************************************************************************************/
 void ISGetProperties (const char *dev)
 {
- ISInit(); 
  indiduino_prt->ISGetProperties(dev);
 }
 
@@ -90,7 +64,6 @@ void ISGetProperties (const char *dev)
 ***************************************************************************************/
 void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
- ISInit();
  indiduino_prt->ISNewSwitch(dev, name, states, names, n);
 }
 
@@ -99,9 +72,7 @@ void ISNewSwitch (const char *dev, const char *name, ISState *states, char *name
 ***************************************************************************************/
 void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
- ISInit();
  indiduino_prt->ISNewText(dev, name, texts, names, n);
-
 }
 
 /**************************************************************************************
@@ -109,7 +80,6 @@ void ISNewText (const char *dev, const char *name, char *texts[], char *names[],
 ***************************************************************************************/
 void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
- ISInit();
  indiduino_prt->ISNewNumber(dev, name, values, names, n);
 }
 
@@ -118,11 +88,7 @@ void ISNewNumber (const char *dev, const char *name, double values[], char *name
 ***************************************************************************************/
 void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
 {
-    ISInit();
-
     indiduino_prt->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
-
-
 }
 
 /**************************************************************************************
@@ -134,12 +100,11 @@ void ISSnoopDevice (XMLEle *root)
 }
 
 /**************************************************************************************
-** LX200 Basic constructor
+**
 ***************************************************************************************/
 indiduino::indiduino()
 {
     IDLog("Indiduino driver start...\n");
-
 }
 
 /**************************************************************************************
@@ -150,12 +115,11 @@ indiduino::~indiduino()
 
 }
 
-void indiduino::ISPoll() {
+void indiduino::TimerHit()
+{
+    if (isConnected() == false)
+        return;
 
-    if (!is_connected())
-	return;
-
-    //IDLog("Polling...\n");
     sf->OnIdle();
 
     std::vector<INDI::Property *> *pAll = getProperties();
@@ -168,9 +132,11 @@ void indiduino::ISPoll() {
 	type=pAll->at(i)->getType();
 	//IDLog("PROP:%s\n",name);
 	//DIGITAL INPUT
-        if (type == INDI_LIGHT ) { 
+        if (type == INDI_LIGHT )
+        {
 		ILightVectorProperty *lvp = getLight(name);
-	   	for (int i=0;i<lvp->nlp;i++) {
+        for (int i=0;i<lvp->nlp;i++)
+        {
 	        	ILight *lqp = &lvp->lp[i];
         		if (!lqp)
 	        	    return;
@@ -232,7 +198,9 @@ void indiduino::ISPoll() {
 			IDSetText(tvp, NULL);
 	 	}
     	}  
-    }	 
+    }
+
+    SetTimer(POLLMS);
 }
 
 
@@ -481,32 +449,33 @@ bool indiduino::Connect()
 {
     ITextVectorProperty *tProp = getText("DEVICE_PORT");
     sf = new Firmata(tProp->tp[0].text);
-    if (sf->portOpen) {
-    	IDLog("ARDUINO BOARD CONNECTED.\n");
-	IDLog("FIRMATA VERSION:%s\n",sf->firmata_name);
-	IDSetSwitch (getSwitch("CONNECTION"),"CONNECTED.FIRMATA VERSION:%s\n",sf->firmata_name);
-	if (!setPinModesFromSKEL()) {
-		IDLog("FAIL TO MAP ARDUINO PINS. CHECK SKELETON FILE SINTAX\n");
-		IDSetSwitch (getSwitch("CONNECTION"),"FAIL TO MAP ARDUINO PINS. CHECK SKELETON FILE SINTAX\n");
-		delete sf;
-		return false;
-	} else {
-		return true;
-	}
-    } else {
-	IDLog("ARDUINO BOARD FAIL TO CONNECT. CHECK PORT NAME\n");
-	IDSetSwitch (getSwitch("CONNECTION"),"ARDUINO BOARD FAIL TO CONNECT. CHECK PORT NAME\n");
-	delete sf;
-	return false;
+    if (sf->portOpen)
+    {
+        IDLog("ARDUINO BOARD CONNECTED.\n");
+        IDLog("FIRMATA VERSION:%s\n",sf->firmata_name);
+        IDSetSwitch (getSwitch("CONNECTION"),"CONNECTED.FIRMATA VERSION:%s\n",sf->firmata_name);
+        if (!setPinModesFromSKEL())
+        {
+            IDLog("FAIL TO MAP ARDUINO PINS. CHECK SKELETON FILE SINTAX\n");
+            IDSetSwitch (getSwitch("CONNECTION"),"FAIL TO MAP ARDUINO PINS. CHECK SKELETON FILE SINTAX\n");
+            delete sf;
+            return false;
+        }
+        else
+        {
+            SetTimer(POLLMS);
+            return true;
+        }
+    }
+    else
+    {
+        IDLog("ARDUINO BOARD FAIL TO CONNECT. CHECK PORT NAME\n");
+        IDSetSwitch (getSwitch("CONNECTION"),"ARDUINO BOARD FAIL TO CONNECT. CHECK PORT NAME\n");
+        delete sf;
+        return false;
     }
     
 }
-
-bool indiduino::is_connected(void) {
-	ISwitchVectorProperty *svp = getSwitch("CONNECTION");
-        return (svp->s == IPS_OK);
-}
-
 
 bool indiduino::Disconnect()
 {
@@ -516,8 +485,6 @@ bool indiduino::Disconnect()
     IDSetSwitch (getSwitch("CONNECTION"),"DISCONNECTED\n");
     return true;
 }
-
-
 
 const char * indiduino::getDefaultName()
 {

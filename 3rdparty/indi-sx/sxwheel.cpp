@@ -33,35 +33,21 @@
 #include "sxconfig.h"
 #include "sxwheel.h"
 
-std::auto_ptr<SXWHEEL> sxwheel(0);
-
-void ISInit() {
-  static bool isInit = false;
-
-  if (!isInit) {
-    isInit = 1;
-    if (!sxwheel.get())
-      sxwheel.reset(new SXWHEEL());
-  }
-}
+std::unique_ptr<SXWHEEL> sxwheel(new SXWHEEL());
 
 void ISGetProperties(const char *dev) {
-  ISInit();
   sxwheel->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num) {
-  ISInit();
   sxwheel->ISNewSwitch(dev, name, states, names, num);
 }
 
 void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num) {
-  ISInit();
   sxwheel->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num) {
-  ISInit();
   sxwheel->ISNewNumber(dev, name, values, names, num);
 }
 
@@ -76,7 +62,6 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
   INDI_UNUSED(n);
 }
 void ISSnoopDevice(XMLEle *root) {
-  ISInit();
   sxwheel->ISSnoopDevice(root);
 }
 

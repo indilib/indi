@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.4.7)
 PROJECT(indi_tess CXX C)
 Include (CheckCXXSourceCompiles)
+
+set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 set (VERSION_MAJOR 0)
 set (VERSION_MINOR 1)

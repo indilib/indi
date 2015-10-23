@@ -34,61 +34,44 @@
 
 const int POLLMS = 250;
 
-std::auto_ptr<DSICCD> dsiCCD(0);
-
-
-void ISInit()
-{
-    static int isInit =0;
-    if (isInit == 1)
-        return;
-
-     isInit = 1;
-     if(dsiCCD.get() == 0) dsiCCD.reset(new DSICCD());
-}
+std::unique_ptr<DSICCD> dsiCCD(new DSICCD());
 
 void ISGetProperties(const char *dev)
 {
-         ISInit();
-         dsiCCD->ISGetProperties(dev);
+    dsiCCD->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-         ISInit();
-         dsiCCD->ISNewSwitch(dev, name, states, names, num);
+    dsiCCD->ISNewSwitch(dev, name, states, names, num);
 }
 
 void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-         ISInit();
-         dsiCCD->ISNewText(dev, name, texts, names, num);
+    dsiCCD->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-         ISInit();
-         dsiCCD->ISNewNumber(dev, name, values, names, num);
+    dsiCCD->ISNewNumber(dev, name, values, names, num);
 }
 
 void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
 {
-   INDI_UNUSED(dev);
-   INDI_UNUSED(name);
-   INDI_UNUSED(sizes);
-   INDI_UNUSED(blobsizes);
-   INDI_UNUSED(blobs);
-   INDI_UNUSED(formats);
-   INDI_UNUSED(names);
-   INDI_UNUSED(n);
+    INDI_UNUSED(dev);
+    INDI_UNUSED(name);
+    INDI_UNUSED(sizes);
+    INDI_UNUSED(blobsizes);
+    INDI_UNUSED(blobs);
+    INDI_UNUSED(formats);
+    INDI_UNUSED(names);
+    INDI_UNUSED(n);
 }
 
 void ISSnoopDevice (XMLEle *root)
 {
-     ISInit();
-     dsiCCD->ISSnoopDevice(root);
+    dsiCCD->ISSnoopDevice(root);
 }
-
 
 DSICCD::DSICCD()
 {

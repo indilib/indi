@@ -69,17 +69,19 @@ class indiduino : public INDI::DefaultDevice
  virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
  virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
  virtual bool ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
- virtual void ISPoll ();
 
+
+protected:
+ const char *getDefaultName();
+ virtual bool initProperties();
+ virtual bool Connect();
+ virtual bool Disconnect();
+ virtual void TimerHit();
 
 private:
  char skelFileName[MAX_SKELTON_FILE_NAME_LEN];
  IO      iopin[MAX_IO_PIN];
- const char *getDefaultName();
- virtual bool initProperties(); 
- virtual bool Connect();
- virtual bool Disconnect();
- bool is_connected(void);
+
  bool setPinModesFromSKEL();
  bool readInduinoXml(XMLEle *ioep,int npin);
  Firmata* sf;

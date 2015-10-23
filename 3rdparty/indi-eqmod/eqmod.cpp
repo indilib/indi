@@ -56,7 +56,7 @@
 #define DEVICE_NAME "EQMod Mount"
 
 // We declare an auto pointer to EQMod.
-std::auto_ptr<EQMod> eqmod(0);
+std::unique_ptr<EQMod> eqmod(new EQMod());
 
 #define	GOTO_RATE	2				/* slew rate, degrees/s */
 #define	SLEW_RATE	0.5				/* slew rate, degrees/s */
@@ -121,62 +121,41 @@ int timeval_subtract(struct timeval *result, struct timeval *x, struct timeval *
   return x->tv_sec < y->tv_sec;
 }
 
-void ISPoll(void *p);
-
-void ISInit()
-{
-   static int isInit =0;
-
-   if (isInit == 1)
-       return;
-
-    isInit = 1;
-    if(eqmod.get() == 0) eqmod.reset(new EQMod());
-    //IEAddTimer(POLLMS, ISPoll, NULL);
-
-}
-
 void ISGetProperties(const char *dev)
 {
-        ISInit();
-        eqmod->ISGetProperties(dev);
+    eqmod->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-        ISInit();
-        eqmod->ISNewSwitch(dev, name, states, names, num);
+    eqmod->ISNewSwitch(dev, name, states, names, num);
 }
 
 void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-        ISInit();
-        eqmod->ISNewText(dev, name, texts, names, num);
+    eqmod->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-        ISInit();
-        eqmod->ISNewNumber(dev, name, values, names, num);
+    eqmod->ISNewNumber(dev, name, values, names, num);
 }
 
 void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
 {
-  INDI_UNUSED(dev);
-  INDI_UNUSED(name);
-  INDI_UNUSED(sizes);
-  INDI_UNUSED(blobsizes);
-  INDI_UNUSED(blobs);
-  INDI_UNUSED(formats);
-  INDI_UNUSED(names);
-  INDI_UNUSED(n);
+    INDI_UNUSED(dev);
+    INDI_UNUSED(name);
+    INDI_UNUSED(sizes);
+    INDI_UNUSED(blobsizes);
+    INDI_UNUSED(blobs);
+    INDI_UNUSED(formats);
+    INDI_UNUSED(names);
+    INDI_UNUSED(n);
 }
 void ISSnoopDevice (XMLEle *root)
 {
-    ISInit();
     eqmod->ISSnoopDevice(root);
 }
-
 
 EQMod::EQMod()
 {

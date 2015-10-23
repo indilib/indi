@@ -30,9 +30,7 @@
 #define ABS_ZERO 273.15
 
 /* auto pointer */
-std::auto_ptr<AAGCloudWatcher> cloudWatcher(0);
-
-
+std::unique_ptr<AAGCloudWatcher> cloudWatcher(new AAGCloudWatcher());
 
 AAGCloudWatcher::AAGCloudWatcher() {
 
@@ -1211,40 +1209,22 @@ const char * AAGCloudWatcher::getDefaultName() {
 
 
 
-void ISInit() {
-  static int isInit=0;
-
-  if (isInit) {
-    return;
-  }
-
-  if (cloudWatcher.get() == 0) {
-    isInit = 1;
-    cloudWatcher.reset(new AAGCloudWatcher());
-  }
-}
-
-
 void ISGetProperties (const char *dev) {
-  ISInit();
   cloudWatcher->ISGetProperties(dev);
 }
 
 
 void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n) {
-  ISInit();
   cloudWatcher->ISNewSwitch(dev, name, states, names, n);
 }
 
 
 void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n) {
-  ISInit();
   cloudWatcher->ISNewText(dev, name, texts, names, n);
 }
 
 
 void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n) {
-  ISInit();
   cloudWatcher->ISNewNumber(dev, name, values, names, n);
 }
 

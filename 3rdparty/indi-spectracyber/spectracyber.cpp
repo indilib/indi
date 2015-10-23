@@ -77,55 +77,25 @@ const char * specFMT=".ascii_spec";
 
 
 // We declare an auto pointer to spectrometer.
-auto_ptr<SpectraCyber> spectracyber(0);
-
-void ISPoll(void *p);
-
-
-void ISInit()
-{
-   static int isInit =0;
-
-   if (isInit == 1)
-       return;
-
-    isInit = 1;
-    if(spectracyber.get() == 0) spectracyber.reset(new SpectraCyber());
-    IEAddTimer(POLLMS, ISPoll, NULL);
-
-}
-
-void ISPoll(void *p)
-{
-    spectracyber->ISPoll();
-    IEAddTimer(POLLMS, ISPoll, NULL);
-}
+unique_ptr<SpectraCyber> spectracyber(new SpectraCyber());
 
 void ISGetProperties(const char *dev)
 {
-	if(dev && strcmp(mydev, dev)) return;
-	ISInit();
         spectracyber->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-	if(dev && strcmp (mydev, dev)) return;
-	ISInit();
 	spectracyber->ISNewSwitch(name, states, names, num);
 }
 
 void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-	if(dev && strcmp (mydev, dev)) return;
-	ISInit();
 	spectracyber->ISNewText(name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-	if(dev && strcmp (mydev, dev)) return;
-	ISInit();
 	spectracyber->ISNewNumber(name, values, names, num);
 }
 
@@ -142,7 +112,6 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
 }
 void ISSnoopDevice (XMLEle *root)
 {
-    ISInit();
     spectracyber->ISSnoopDevice(root);
 }
 
@@ -286,6 +255,7 @@ bool SpectraCyber::Connect()
     if (isSimulation())
     {
         DEBUGF(INDI::Logger::DBG_SESSION, "%s Spectrometer: Simulating connection to port %s.", type_name.c_str(), tProp->tp[0].text);
+        SetTimer(POLLMS);
         return true;
     }
 
@@ -300,6 +270,7 @@ bool SpectraCyber::Connect()
     if (reset() == true)
     {
         DEBUG(INDI::Logger::DBG_SESSION, "Spectrometer is online. Retrieving preliminary data...");
+        SetTimer(POLLMS);
         return init_spectrometer();
    }
    else
@@ -975,13 +946,12 @@ bool SpectraCyber::reset()
    return false;
 }
 
-void SpectraCyber::ISPoll()
-{
-    char RAStr[16], DecStr[16];
-
+void SpectraCyber::TimerHit()
+{   
    if (!isConnected())
        return;
 
+   char RAStr[16], DecStr[16];
 
    switch(ScanSP->s)
    {
@@ -996,12 +966,14 @@ void SpectraCyber::ISPoll()
 
             IDSetNumber(FreqNP, NULL);
             IDSetSwitch(ScanSP, "Scan complete.");
+            SetTimer(POLLMS);
             return;
          }
 
          if (update_freq(current_freq) == false)
          {
              abort_scan();
+             SetTimer(POLLMS);
              return;
          }
 
@@ -1056,11 +1028,9 @@ void SpectraCyber::ISPoll()
        IDSetBLOB(DataStreamBP, NULL);
 
       break;
-
-
-
   }
 
+  SetTimer(POLLMS);
 
 }
 

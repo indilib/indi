@@ -49,7 +49,7 @@ get_sysclock_ms()
     return (tv.tv_sec * 1000 + tv.tv_usec/1000);
 }
 
-static std::auto_ptr<std::string>
+static std::unique_ptr<std::string>
 format_buffer(unsigned char data[], size_t length)
 {
     ostringstream buffer;
@@ -65,7 +65,7 @@ format_buffer(unsigned char data[], size_t length)
         buffer << "   ";
     }
     std::string *s = new std::string(buffer.str());
-    std::auto_ptr<std::string> result(s);
+    std::unique_ptr<std::string> result(s);
     return result;
 }
 

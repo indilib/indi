@@ -37,44 +37,25 @@ const int POLLMS = 1000;                            // Period of update, 1 secon
 const char *OPERATION_GROUP  = "Operation";			// Operation Group
 
 // We declare an auto pointer to dome.
-std::auto_ptr<MaxDomeII> dome(0);
-
-
-void ISPoll(void *p);
-
-void ISInit()
-{
-   static int isInit =0;
-
-   if (isInit == 1)
-       return;
-
-    isInit = 1;
-    if(dome.get() == 0) dome.reset(new MaxDomeII());
-
-}
+std::unique_ptr<MaxDomeII> dome(new MaxDomeII());
 
 void ISGetProperties(const char *dev)
 {
-        ISInit();
         dome->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-        ISInit();
         dome->ISNewSwitch(dev, name, states, names, num);
 }
 
 void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-        ISInit();
         dome->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-        ISInit();
         dome->ISNewNumber(dev, name, values, names, num);
 }
 
@@ -92,7 +73,6 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
 
 void ISSnoopDevice (XMLEle *root)
 {
-    ISInit();
     dome->ISSnoopDevice(root);
 }
 

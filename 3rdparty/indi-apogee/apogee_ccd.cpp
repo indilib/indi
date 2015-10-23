@@ -71,40 +71,25 @@ double max(void);
 #define TEMP_UPDATE_THRESHOLD   0.05
 #define COOLER_UPDATE_THRESHOLD 0.05
 
-std::auto_ptr<ApogeeCCD> apogeeCCD(0);
-
-void ISInit()
-{
-    static int isInit =0;
-
-    if (isInit == 1)
-        return;
-
-     isInit = 1;
-     if(apogeeCCD.get() == 0) apogeeCCD.reset(new ApogeeCCD());
-}
+std::unique_ptr<ApogeeCCD> apogeeCCD(new ApogeeCCD());
 
 void ISGetProperties(const char *dev)
 {
-         ISInit();
          apogeeCCD->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-         ISInit();
          apogeeCCD->ISNewSwitch(dev, name, states, names, num);
 }
 
 void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-         ISInit();
          apogeeCCD->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-         ISInit();
          apogeeCCD->ISNewNumber(dev, name, values, names, num);
 }
 
@@ -122,7 +107,6 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
 
 void ISSnoopDevice (XMLEle *root)
 {
-     ISInit();
      apogeeCCD->ISSnoopDevice(root);
 }
 

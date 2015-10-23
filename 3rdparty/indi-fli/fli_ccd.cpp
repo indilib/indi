@@ -39,63 +39,46 @@
 #define TEMP_THRESHOLD  .25		/* Differential temperature threshold (C)*/
 #define NFLUSHES	1		/* Number of times a CCD array is flushed before an exposure */
 
-std::auto_ptr<FLICCD> fliCCD(0);
+std::unique_ptr<FLICCD> fliCCD(new FLICCD());
 
 const flidomain_t Domains[] = { FLIDOMAIN_USB, FLIDOMAIN_SERIAL, FLIDOMAIN_PARALLEL_PORT,  FLIDOMAIN_INET };
 
- void ISInit()
- {
-    static int isInit =0;
+void ISGetProperties(const char *dev)
+{
+    fliCCD->ISGetProperties(dev);
+}
 
-    if (isInit == 1)
-        return;
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+{
+    fliCCD->ISNewSwitch(dev, name, states, names, num);
+}
 
-     isInit = 1;
-     if(fliCCD.get() == 0) fliCCD.reset(new FLICCD());
+void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
+{
+    fliCCD->ISNewText(dev, name, texts, names, num);
+}
 
- }
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+{
+    fliCCD->ISNewNumber(dev, name, values, names, num);
+}
 
- void ISGetProperties(const char *dev)
- {
-         ISInit();
-         fliCCD->ISGetProperties(dev);
- }
+void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+{
+    INDI_UNUSED(dev);
+    INDI_UNUSED(name);
+    INDI_UNUSED(sizes);
+    INDI_UNUSED(blobsizes);
+    INDI_UNUSED(blobs);
+    INDI_UNUSED(formats);
+    INDI_UNUSED(names);
+    INDI_UNUSED(n);
+}
+void ISSnoopDevice (XMLEle *root)
+{
 
- void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
- {
-         ISInit();
-         fliCCD->ISNewSwitch(dev, name, states, names, num);
- }
-
- void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
- {
-         ISInit();
-         fliCCD->ISNewText(dev, name, texts, names, num);
- }
-
- void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
- {
-         ISInit();
-         fliCCD->ISNewNumber(dev, name, values, names, num);
- }
-
- void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
- {
-   INDI_UNUSED(dev);
-   INDI_UNUSED(name);
-   INDI_UNUSED(sizes);
-   INDI_UNUSED(blobsizes);
-   INDI_UNUSED(blobs);
-   INDI_UNUSED(formats);
-   INDI_UNUSED(names);
-   INDI_UNUSED(n);
- }
- void ISSnoopDevice (XMLEle *root)
- {
-     ISInit();
-     fliCCD->ISSnoopDevice(root);
- }
-
+    fliCCD->ISSnoopDevice(root);
+}
 
 FLICCD::FLICCD()
 {

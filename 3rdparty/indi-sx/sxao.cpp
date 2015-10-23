@@ -31,25 +31,13 @@
 #include "sxconfig.h"
 #include "sxao.h"
 
-std::auto_ptr<SXAO> sxao(0);
-
-void ISInit() {
-  static bool isInit = false;
-
-  if (!isInit) {
-    isInit = 1;
-    if (!sxao.get())
-      sxao.reset(new SXAO());
-  }
-}
+std::unique_ptr<SXAO> sxao(new SXAO);
 
 void ISGetProperties(const char *dev) {
-  ISInit();
   sxao->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num) {
-  ISInit();
   sxao->ISNewSwitch(dev, name, states, names, num);
 }
 
@@ -62,7 +50,6 @@ void ISNewText(const char *dev, const char *name, char *texts[], char *names[], 
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num) {
-  ISInit();
   sxao->ISNewNumber(dev, name, values, names, num);
 }
 

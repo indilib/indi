@@ -31,63 +31,45 @@
 
 #define POLLMS		1000		/* Polling time (ms) */
 
-std::auto_ptr<FLICFW> fliCFW(0);
+std::unique_ptr<FLICFW> fliCFW(new FLICFW());
 
 const flidomain_t Domains[] = { FLIDOMAIN_USB, FLIDOMAIN_SERIAL, FLIDOMAIN_PARALLEL_PORT,  FLIDOMAIN_INET };
 
- void ISInit()
- {
-    static int isInit =0;
+void ISGetProperties(const char *dev)
+{
+    fliCFW->ISGetProperties(dev);
+}
 
-    if (isInit == 1)
-        return;
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+{
+    fliCFW->ISNewSwitch(dev, name, states, names, num);
+}
 
-     isInit = 1;
-     if(fliCFW.get() == 0) fliCFW.reset(new FLICFW());
+void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
+{
+    fliCFW->ISNewText(dev, name, texts, names, num);
+}
 
- }
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+{
+    fliCFW->ISNewNumber(dev, name, values, names, num);
+}
 
- void ISGetProperties(const char *dev)
- {
-         ISInit();
-         fliCFW->ISGetProperties(dev);
- }
-
- void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
- {
-         ISInit();
-         fliCFW->ISNewSwitch(dev, name, states, names, num);
- }
-
- void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
- {
-         ISInit();
-         fliCFW->ISNewText(dev, name, texts, names, num);
- }
-
- void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
- {
-         ISInit();
-         fliCFW->ISNewNumber(dev, name, values, names, num);
- }
-
- void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
- {
-   INDI_UNUSED(dev);
-   INDI_UNUSED(name);
-   INDI_UNUSED(sizes);
-   INDI_UNUSED(blobsizes);
-   INDI_UNUSED(blobs);
-   INDI_UNUSED(formats);
-   INDI_UNUSED(names);
-   INDI_UNUSED(n);
- }
- void ISSnoopDevice (XMLEle *root)
- {
-     ISInit();
-     fliCFW->ISSnoopDevice(root);
- }
-
+void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+{
+    INDI_UNUSED(dev);
+    INDI_UNUSED(name);
+    INDI_UNUSED(sizes);
+    INDI_UNUSED(blobsizes);
+    INDI_UNUSED(blobs);
+    INDI_UNUSED(formats);
+    INDI_UNUSED(names);
+    INDI_UNUSED(n);
+}
+void ISSnoopDevice (XMLEle *root)
+{
+    fliCFW->ISSnoopDevice(root);
+}
 
 FLICFW::FLICFW()
 {

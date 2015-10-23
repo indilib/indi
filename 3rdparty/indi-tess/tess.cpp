@@ -48,44 +48,18 @@
 using namespace std;
 
 /* Our inditess auto pointer */
-auto_ptr<inditess> inditess_prt(0);
+unique_ptr<inditess> inditess_prt(new inditess());
 
 const int POLLMS = 100;				// Period of update, 0.1 second.
-static void ISPoll(void *);
 
 /**************************************************************************************
 ** Send client definitions of all properties.
 ***************************************************************************************/
-void ISInit()
-{
- static int isInit=0;
-
- if (isInit)
-  return;
-
- if (inditess_prt.get() == 0)
- {
-     isInit = 1;
-     inditess_prt.reset(new inditess());
-     IEAddTimer (POLLMS, ISPoll, NULL);
-     srand (time(NULL));
- }
- 
-}
-
-void ISPoll (void *p)
-{
- INDI_UNUSED(p);
- inditess_prt->ISPoll(); 
- IEAddTimer (POLLMS, ISPoll, NULL);
-}
-
 /**************************************************************************************
 **
 ***************************************************************************************/
 void ISGetProperties (const char *dev)
 {
- ISInit(); 
  inditess_prt->ISGetProperties(dev);
 }
 
@@ -94,7 +68,6 @@ void ISGetProperties (const char *dev)
 ***************************************************************************************/
 void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
- ISInit();
  inditess_prt->ISNewSwitch(dev, name, states, names, n);
 }
 
@@ -103,9 +76,7 @@ void ISNewSwitch (const char *dev, const char *name, ISState *states, char *name
 ***************************************************************************************/
 void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
- ISInit();
  inditess_prt->ISNewText(dev, name, texts, names, n);
-
 }
 
 /**************************************************************************************
@@ -113,7 +84,6 @@ void ISNewText (const char *dev, const char *name, char *texts[], char *names[],
 ***************************************************************************************/
 void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
- ISInit();
  inditess_prt->ISNewNumber(dev, name, values, names, n);
 }
 
@@ -122,11 +92,7 @@ void ISNewNumber (const char *dev, const char *name, double values[], char *name
 ***************************************************************************************/
 void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
 {
-    ISInit();
-
     inditess_prt->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
-
-
 }
 
 /**************************************************************************************
@@ -154,7 +120,7 @@ inditess::~inditess()
 
 }
 
-void inditess::ISPoll() {
+void inditess::TimerHit() {
   char readBuffer[TESS_MSG_SIZE];
   static char buffer[TESS_BUFFER];
   char TESSmsg[TESS_MSG_SIZE];
@@ -165,11 +131,11 @@ void inditess::ISPoll() {
   static int fail_counter=0; 	
   static double az=0,alt=0;
   double ra,dec;
-  if (!is_connected())
+  if (isConnected() == false)
 	return;
-  if (fd <= 0) return ;
+  if (fd <= 0)
+      return ;
  
-
 
   tty_read(fd, readBuffer, TESS_MSG_SIZE, TESS_TIMEOUT, &nbytes_read);
   //IDLog("nbytes_read:%u\n",nbytes_read);
@@ -274,8 +240,8 @@ void inditess::ISPoll() {
   get_heading(&a_avg, &m_avg, &p, &heading);
 //LOWPASS Filter
 //y[i] := y[i-1] + α * (x[i] - y[i-1])
-  if (( abs(az-heading.z) > ALTAZ_FAST_CHANGE) || 
-     ( abs(alt-heading.y) > ALTAZ_FAST_CHANGE) ) {
+  if (( fabs(az-heading.z) > ALTAZ_FAST_CHANGE) ||
+     ( fabs(alt-heading.y) > ALTAZ_FAST_CHANGE) ) {
 	  alt=heading.y;
 	  az=heading.z;	
   }
@@ -369,7 +335,9 @@ void inditess::ISPoll() {
 			IDSetText(tvp, NULL);
 	 	}
     	}  
-    }	 
+    }
+
+    SetTimer(POLLMS);
 }
 
 
@@ -612,18 +580,14 @@ bool inditess::Connect()
         Lon=nvp->np[1].value;
         nvp= getNumber("Filter");
         filter=nvp->np[0].value;
+
+        SetTimer(POLLMS);
     } else {
 	IDLog("TESS BOARD FAIL TO CONNECT. CHECK PORT NAME\n");
 	IDSetSwitch (svp,"TESS BOARD FAIL TO CONNECT. CHECK PORT NAME\n");
 	return false;
     }
 }
-
-bool inditess::is_connected(void) {
-	ISwitchVectorProperty *svp = getSwitch("CONNECTION");
-        return (svp->s == IPS_OK);
-}
-
 
 bool inditess::Disconnect()
 {

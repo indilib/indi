@@ -30,7 +30,7 @@
 
 const int POLLMS = 250;
 
-std::auto_ptr<FFMVCCD> ffmvCCD(0);
+std::unique_ptr<FFMVCCD> ffmvCCD(new FFMVCCD());
 
 /**
  * Write to registers in the MT9V022 chip.
@@ -72,37 +72,23 @@ dc1394error_t FFMVCCD::readMicronReg(unsigned int offset, unsigned int *val)
         return DC1394_SUCCESS;
 }
 
-void ISInit()
-{
-    static int isInit =0;
-    if (isInit == 1)
-        return;
-
-     isInit = 1;
-     if(ffmvCCD.get() == 0) ffmvCCD.reset(new FFMVCCD());
-}
-
 void ISGetProperties(const char *dev)
 {
-         ISInit();
          ffmvCCD->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-         ISInit();
          ffmvCCD->ISNewSwitch(dev, name, states, names, num);
 }
 
 void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-         ISInit();
          ffmvCCD->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-         ISInit();
          ffmvCCD->ISNewNumber(dev, name, values, names, num);
 }
 
@@ -120,7 +106,6 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
 
 void ISSnoopDevice (XMLEle *root)
 {
-     ISInit();
      ffmvCCD->ISSnoopDevice(root);
 }
 

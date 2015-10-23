@@ -75,7 +75,7 @@ void mult_matrix_3x3(double in1[3][3], double in2[3][3], double out[3][3]) {
 }
 
 // We declare an auto pointer to Align.
-//std::auto_ptr<Align> align(0);
+//std::unique_ptr<Align> align(0);
 
 Align::Align(INDI::Telescope *t) 
 {

@@ -70,27 +70,24 @@ public:
 
     SpectraCyber();
     ~SpectraCyber();
-   
-    bool Connect();
-    bool Disconnect();
-    const char *getDefaultName();
 
-    // Simulation
-    //void enable_simulation (bool to_enable);
-    //void enable_debug(bool to_enable);
-    //bool is_connected();
-    
     // Standard INDI interface fucntions
     virtual void ISGetProperties(const char *dev);
     virtual bool ISNewNumber (const char *name, double values[], char *names[], int n);
     virtual bool ISNewText (const char *name, char *texts[], char *names[], int n);
     virtual bool ISNewSwitch (const char *name, ISState *states, char *names[], int n);
- 	
+    bool ISSnoopDevice (XMLEle *root);
+   
+protected:
+
+    const char *getDefaultName();
+
+    virtual bool Connect();
+    virtual bool Disconnect();
+    virtual void TimerHit();
+
     //void reset_all_properties(bool reset_to_idle=false);
     bool update_freq(double nFreq);
-    void ISPoll();
-
-    bool ISSnoopDevice (XMLEle *root);
 
 private: 
 

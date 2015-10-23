@@ -18,7 +18,7 @@ using namespace INDI::AlignmentSubsystem;
 #define POLLMS 1000 // Default timer tick
 
 // We declare an auto pointer to NexStarEvo.
-std::auto_ptr<NexStarEvo> telescope_nse(0);
+std::unique_ptr<NexStarEvo> telescope_nse(0);
 
 void ISInit()
 {

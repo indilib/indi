@@ -990,58 +990,54 @@ int QHYCCD::grabImage()
 void QHYCCD::TimerHit()
 {
   int timerID = -1;
-  long timeleft;
 
-  if (isConnected() == false)
-    return;  //  No need to reset timer if we are not connected anymore
+  if (isConnected() == false || InExposure == false)
+    return;
 
-  if (InExposure)
+  long timeleft = calcTimeLeft();
+
+  if (timeleft < 1.0)
   {
-    timeleft = calcTimeLeft();
-
-    if (timeleft < 1.0)
-    {
       if (timeleft > 0.25)
       {
-        //  a quarter of a second or more
-        //  just set a tighter timer
-        timerID = SetTimer(250);
-      } 
+          //  a quarter of a second or more
+          //  just set a tighter timer
+          timerID = SetTimer(250);
+      }
       else
       {
-        if (timeleft > 0.07)
-        {
-          //  use an even tighter timer
-          timerID = SetTimer(50);
-        } 
-        else
-        {
-          /* We're done exposing */
-          DEBUG(INDI::Logger::DBG_DEBUG, "Exposure done, downloading image...");
-          // Don't spam the session log unless it is a long exposure > 5 seconds
-          if (ExposureRequest > POLLMS * 5)
-              DEBUG(INDI::Logger::DBG_SESSION, "Exposure done, downloading image...");
+          if (timeleft > 0.07)
+          {
+              //  use an even tighter timer
+              timerID = SetTimer(50);
+          }
+          else
+          {
+              /* We're done exposing */
+              DEBUG(INDI::Logger::DBG_DEBUG, "Exposure done, downloading image...");
+              // Don't spam the session log unless it is a long exposure > 5 seconds
+              if (ExposureRequest > POLLMS * 5)
+                  DEBUG(INDI::Logger::DBG_SESSION, "Exposure done, downloading image...");
 
-          PrimaryCCD.setExposureLeft(0);
-          InExposure = false;
-          /* grab and save image */
-          grabImage();
+              PrimaryCCD.setExposureLeft(0);
+              InExposure = false;
+              /* grab and save image */
+              grabImage();
 
-        }
+          }
       }
-    } 
-    else
-    {
+  }
+  else
+  {
 
       DEBUGF(INDI::Logger::DBG_DEBUG, "Exposure in progress: Time left %ld", timeleft);
-    }
+  }
 
-      PrimaryCCD.setExposureLeft(timeleft);
+  PrimaryCCD.setExposureLeft(timeleft);
 
-   }
 
   if (timerID == -1)
-    SetTimer(POLLMS);
+    SetTimer(timeleft*1000);
 
 }
 
