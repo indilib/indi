@@ -150,6 +150,7 @@ static struct {
     { 0x507, "LodeStar" },
     { 0x517, "CoStar" },
     { 0x509, "SuperStar" },
+    { 0x525, "UltraStar" },
     { 0x200, "MX Camera" },
     { 0, NULL }
   };
