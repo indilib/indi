@@ -80,6 +80,7 @@ void WatchDogClient::newProperty(INDI::Property *property)
 void WatchDogClient::setMount(const std::string &value)
 {
     mount = value;
+    watchDevice(mount.c_str());
 }
 
 /**************************************************************************************
@@ -88,6 +89,7 @@ void WatchDogClient::setMount(const std::string &value)
 void WatchDogClient::setDome(const std::string &value)
 {
     dome = value;
+    watchDevice(dome.c_str());
 }
 
 /**************************************************************************************
