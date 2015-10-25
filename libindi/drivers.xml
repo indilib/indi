@@ -197,6 +197,10 @@
 	</device>
 </devGroup>
 <devGroup group="Auxiliary">
+        <device label="Watchdog">
+                <driver name="Watchdog">indi_watchdog</driver>
+                <version>0.1</version>
+        </device>
         <device label="GPUSB">
                 <driver name="GPUSB">indi_gpusb</driver>
                 <version>0.1</version>

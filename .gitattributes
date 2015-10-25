@@ -1312,6 +1312,10 @@ libindi/drivers/auxiliary/joystick.cpp -text
 libindi/drivers/auxiliary/joystick.h -text
 libindi/drivers/auxiliary/joystickdriver.cpp -text
 libindi/drivers/auxiliary/joystickdriver.h -text
+libindi/drivers/auxiliary/watchdog.cpp -text
+libindi/drivers/auxiliary/watchdog.h -text
+libindi/drivers/auxiliary/watchdogclient.cpp -text
+libindi/drivers/auxiliary/watchdogclient.h -text
 libindi/drivers/ccd/ccd_simulator.cpp -text
 libindi/drivers/ccd/ccd_simulator.h -text
 libindi/drivers/dome/baader_dome.cpp -text

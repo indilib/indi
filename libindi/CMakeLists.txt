@@ -597,6 +597,18 @@ endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 ############ AUX GROUP ##############
 #####################################
 
+########### Watch dog ###############
+
+set(watchdog_SRCS
+        ${CMAKE_SOURCE_DIR}/drivers/auxiliary/watchdog.cpp
+        ${CMAKE_SOURCE_DIR}/drivers/auxiliary/watchdogclient.cpp
+   )
+
+add_executable(indi_watchdog ${watchdog_SRCS})
+
+target_link_libraries(indi_watchdog indidriver indiclient)
+install(TARGETS indi_watchdog RUNTIME DESTINATION bin )
+
 ########### STAR2000 Driver ###############
 
 set(STAR2000_SRCS
