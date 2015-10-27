@@ -452,12 +452,17 @@ bool XAGYLWheel::getCommand(GET_COMMAND cmd, char *result)
             break;
         }
     }
-    else if ( (rc = tty_read_section(PortFD, result, 0xA, XAGYL_MAXBUF, &nbytes_read)) != TTY_OK)
+    else
     {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", command, errstr);
-        return false;
-    }
+        if ( (rc = tty_read_section(PortFD, result, 0xA, XAGYL_MAXBUF, &nbytes_read)) != TTY_OK)
+        {
+            tty_error_msg(rc, errstr, MAXRBUF);
+            DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", command, errstr);
+            return false;
+        }
+
+        result[nbytes_read-1] = '\0';
+    }       
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", result);
 
@@ -479,15 +484,15 @@ bool XAGYLWheel::setCommand(SET_COMMAND cmd, int value)
         break;
 
     case SET_JITTER:
-        snprintf(command, XAGYL_MAXBUF, "%s", value > 0 ? "]" : "[");
+        snprintf(command, XAGYL_MAXBUF, "%s0", value > 0 ? "]" : "[");
         break;
 
     case SET_THRESHOLD:
-        snprintf(command, XAGYL_MAXBUF, "%s", value > 0 ? "}" : "{");
+        snprintf(command, XAGYL_MAXBUF, "%s0", value > 0 ? "}" : "{");
         break;
 
     case SET_PULSE_WITDH:
-        snprintf(command, XAGYL_MAXBUF, "%s", value > 0 ? "M" : "N");
+        snprintf(command, XAGYL_MAXBUF, "%s0", value > 0 ? "M" : "N");
         break;
 
     case SET_POSITION:
@@ -878,11 +883,17 @@ bool XAGYLWheel::getOffset(int filter)
 
     if (sim)
            snprintf(resp, XAGYL_MAXBUF, "P%d Offset %02d", filter+1, simData.offset[filter]);
-    else if ( (rc = tty_read_section(PortFD, resp, 0xA, XAGYL_MAXBUF, &nbytes_read)) != TTY_OK)
+    else
     {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", command, errstr);
-        return false;
+        if ( (rc = tty_read_section(PortFD, resp, 0xA, XAGYL_MAXBUF, &nbytes_read)) != TTY_OK)
+        {
+            tty_error_msg(rc, errstr, MAXRBUF);
+            DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", command, errstr);
+            return false;
+        }
+
+        resp[nbytes_read-1] = '\0';
+
     }
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", resp);
