@@ -1266,7 +1266,7 @@ void INDI::Dome::SetAxis1ParkDefault(double value)
   Axis1DefaultParkPosition=value;
 }
 
-bool INDI::Dome::Move(DomeDirection dir, DomeMotionCommand operation)
+IPState INDI::Dome::Move(DomeDirection dir, DomeMotionCommand operation)
 {
     // Check if it is already parked.
     if (CanPark())
@@ -1274,9 +1274,7 @@ bool INDI::Dome::Move(DomeDirection dir, DomeMotionCommand operation)
         if (parkDataType != PARK_NONE && isParked())
         {
             DEBUG( INDI::Logger::DBG_WARNING, "Please unpark the dome before issuing any motion commands.");
-            DomeMotionSP.s = IPS_ALERT;
-            IDSetSwitch(&DomeMotionSP, NULL);
-            return false;
+            return IPS_ALERT;
         }
     }
 
@@ -1284,32 +1282,28 @@ bool INDI::Dome::Move(DomeDirection dir, DomeMotionCommand operation)
           || (domeState == DOME_PARKING))
     {
         DEBUG( INDI::Logger::DBG_WARNING, "Please stop dome before issuing any further motion commands.");
-        DomeMotionSP.s = IPS_ALERT;
-        IDSetSwitch(&DomeMotionSP, NULL);
-        return false;
+        return IPS_ALERT;
     }
 
     int current_direction = IUFindOnSwitchIndex(&DomeMotionSP);
 
     // if same move requested, return
-    if ( DomeMotionSP.s == IPS_BUSY && current_direction == dir)
-        return true;
+    if ( DomeMotionSP.s == IPS_BUSY && current_direction == dir && operation == MOTION_START)
+        return IPS_BUSY;
 
-    if (Move(dir, operation))
+    DomeMotionSP.s = Move(dir, operation);
+
+    if (DomeMotionSP.s == IPS_BUSY || DomeMotionSP.s == IPS_OK)
     {
-            domeState = (operation == MOTION_START) ? DOME_MOVING : DOME_IDLE;
-            IUResetSwitch(&DomeMotionSP);
-            if (operation == MOTION_START)
-                DomeMotionS[dir].s = ISS_ON;
-
-            DomeMotionSP.s = IPS_BUSY;
+        domeState = (operation == MOTION_START) ? DOME_MOVING : DOME_IDLE;
+        IUResetSwitch(&DomeMotionSP);
+        if (operation == MOTION_START)
+            DomeMotionS[dir].s = ISS_ON;
     }
-    else
-        DomeMotionSP.s = IPS_ALERT;
 
     IDSetSwitch(&DomeMotionSP, NULL);
 
-    return (DomeMotionSP.s == IPS_BUSY);
+    return DomeMotionSP.s;
 }
 
 IPState INDI::Dome::MoveRel(double azDiff)

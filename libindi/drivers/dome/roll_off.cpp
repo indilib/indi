@@ -202,7 +202,7 @@ void RollOff::TimerHit()
     //SetTimer(1000);
 }
 
-bool RollOff::Move(DomeDirection dir, DomeMotionCommand operation)
+IPState RollOff::Move(DomeDirection dir, DomeMotionCommand operation)
 {
     if (operation == MOTION_START)
     {
@@ -210,17 +210,17 @@ bool RollOff::Move(DomeDirection dir, DomeMotionCommand operation)
         if (dir == DOME_CW && fullOpenLimitSwitch == ISS_ON)
         {
             DEBUG(INDI::Logger::DBG_WARNING, "Roof is already fully opened.");
-            return false;
+            return IPS_ALERT;
         }
         else if (dir == DOME_CW && getWeatherState() == IPS_ALERT)
         {
             DEBUG(INDI::Logger::DBG_WARNING, "Weather conditions are in the danger zone. Cannot open roof.");
-            return false;
+            return IPS_ALERT;
         }
         else if (dir == DOME_CCW && fullClosedLimitSwitch == ISS_ON)
         {
             DEBUG(INDI::Logger::DBG_WARNING, "Roof is already fully closed.");
-            return false;
+            return IPS_ALERT;
         }
 
         fullOpenLimitSwitch   = ISS_OFF;
@@ -228,15 +228,15 @@ bool RollOff::Move(DomeDirection dir, DomeMotionCommand operation)
         MotionRequest = ROLLOFF_DURATION;
         gettimeofday(&MotionStart,NULL);
         SetTimer(1000);
-        return true;
+        return IPS_BUSY;
     }
     else
     {
-        return Dome::Abort();
+        return (Dome::Abort() ? IPS_OK : IPS_ALERT);
 
     }
 
-    return false;
+    return IPS_ALERT;
 
 }
 

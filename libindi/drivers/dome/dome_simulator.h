@@ -43,7 +43,7 @@ protected:
 
         void TimerHit();
 
-        virtual bool Move(DomeDirection dir, DomeMotionCommand operation);
+        virtual IPState Move(DomeDirection dir, DomeMotionCommand operation);
         virtual IPState MoveRel(double azDiff);
         virtual IPState MoveAbs(double az);        
         virtual IPState Park();

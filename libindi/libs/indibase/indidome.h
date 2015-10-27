@@ -203,9 +203,9 @@ protected:
 
     /** \brief Move the Dome in a particular direction.
         \param dir Direction of Dome, either DOME_CW or DOME_CCW.
-        \return Return true if dome started motion in the desired direction. False if there is an error.
+        \return Return IPS_OK if dome operation is complete. IPS_BUSY if operation is in progress. IPS_ALERT on error.
     */
-    virtual bool Move(DomeDirection dir, DomeMotionCommand operation);
+    virtual IPState Move(DomeDirection dir, DomeMotionCommand operation);
 
     /** \brief Move the Dome to an absolute azimuth.
         \param az The new position of the Dome.

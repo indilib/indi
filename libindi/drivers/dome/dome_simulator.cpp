@@ -214,7 +214,7 @@ void DomeSim::TimerHit()
     return;
 }
 
-bool DomeSim::Move(DomeDirection dir, DomeMotionCommand operation)
+IPState DomeSim::Move(DomeDirection dir, DomeMotionCommand operation)
 {
     if (operation == MOTION_START)
     {
@@ -228,7 +228,7 @@ bool DomeSim::Move(DomeDirection dir, DomeMotionCommand operation)
     }
 
     IDSetNumber(&DomeAbsPosNP, NULL);
-    return true;
+    return ( (operation == MOTION_START) ? IPS_BUSY : IPS_OK);
 
 }
 

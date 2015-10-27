@@ -44,7 +44,7 @@ class RollOff : public INDI::Dome
 
         void TimerHit();
 
-        virtual bool Move(DomeDirection dir, DomeMotionCommand operation);
+        virtual IPState Move(DomeDirection dir, DomeMotionCommand operation);
         virtual IPState Park();
         virtual IPState UnPark();                
         virtual bool Abort();
