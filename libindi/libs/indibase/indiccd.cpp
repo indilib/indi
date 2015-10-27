@@ -1537,7 +1537,7 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
 
         int epoch = 2000;
 
-        fits_update_key_s(fptr, TINT, "EPOCH", &epoch, "Epoch", &status);
+        //fits_update_key_s(fptr, TINT, "EPOCH", &epoch, "Epoch", &status);
         fits_update_key_s(fptr, TINT, "EQUINOX", &epoch, "Equinox", &status);
 
 
