@@ -151,7 +151,7 @@ class INDI::Weather : public INDI::DefaultDevice
 
 private:
     bool processLocationInfo(double latitude, double longitude, double elevation);
-    void createParameterRange(std::string param);
+    void createParameterRange(std::string name, std::string label);
     void updateWeatherState();
     int updateTimerID;
 };

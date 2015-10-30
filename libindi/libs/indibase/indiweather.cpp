@@ -362,7 +362,7 @@ void INDI::Weather::addParameter(std::string name, std::string label, double min
     ParametersNP.np = ParametersN;
     ParametersNP.nnp++;
 
-    createParameterRange(name);
+    createParameterRange(name, label);
 }
 
 void INDI::Weather::setParameterValue(std::string name, double value)
@@ -440,7 +440,7 @@ void INDI::Weather::updateWeatherState()
     IDSetLight(&critialParametersLP, NULL);
 }
 
-void INDI::Weather::createParameterRange(std::string param)
+void INDI::Weather::createParameterRange(std::string name, std::__cxx11::string label)
 {
     ParametersRangeNP = (ParametersRangeNP == NULL) ? (INumberVectorProperty *) malloc(sizeof(INumberVectorProperty)) : (INumberVectorProperty *) realloc(ParametersRangeNP, (nRanges+1) * sizeof(INumberVectorProperty));
 
@@ -452,9 +452,11 @@ void INDI::Weather::createParameterRange(std::string param)
     IUFillNumber(&rangesN[3], "MAX_WARN", "Max Warn", "%4.2f", -1e6, 1e6, 0, *( (double *) ParametersN[nRanges].aux1));
 
     char propName[MAXINDINAME];
-    snprintf(propName, MAXINDINAME, "%s Range", param.c_str());
+    char propLabel[MAXINDILABEL];
+    snprintf(propName, MAXINDINAME, "%s Range", name.c_str());
+    snprintf(propLabel, MAXINDILABEL, "%s Range", label.c_str());
 
-    IUFillNumberVector(&ParametersRangeNP[nRanges], rangesN, 4, getDeviceName(), propName, propName, PARAMETERS_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillNumberVector(&ParametersRangeNP[nRanges], rangesN, 4, getDeviceName(), propName, propLabel, PARAMETERS_TAB, IP_RW, 60, IPS_IDLE);
 
     nRanges++;
 
