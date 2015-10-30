@@ -342,7 +342,7 @@ bool INDI::Weather::processLocationInfo(double latitude, double longitude, doubl
     }
 }
 
-INumber * INDI::Weather::addParameter(std::string name, double minimumOK, double maximumOK, double minimumWarning, double maximumWarning)
+void INDI::Weather::addParameter(std::string name, std::string label, double minimumOK, double maximumOK, double minimumWarning, double maximumWarning)
 {
     DEBUGF(INDI::Logger::DBG_DEBUG, "Parameter %s is added. Ok (%g,%g) Warn (%g,%g)", name.c_str(), minimumOK, maximumOK, minimumWarning, maximumWarning);
 
@@ -354,19 +354,30 @@ INumber * INDI::Weather::addParameter(std::string name, double minimumOK, double
     *minWarn = minimumWarning;
     *maxWarn = maximumWarning;
 
-    IUFillNumber(&ParametersN[ParametersNP.nnp], name.c_str(), name.c_str(), "%4.2f", minimumOK, maximumOK, 0, 0);
+    IUFillNumber(&ParametersN[ParametersNP.nnp], name.c_str(), label.c_str(), "%4.2f", minimumOK, maximumOK, 0, 0);
 
     ParametersN[ParametersNP.nnp].aux0 = minWarn;
     ParametersN[ParametersNP.nnp].aux1 = maxWarn;
 
     ParametersNP.np = ParametersN;
+    ParametersNP.nnp++;
 
-    //createParameterRange(name);
-
-    return &ParametersN[ParametersNP.nnp++];
+    createParameterRange(name);
 }
 
-ILight  * INDI::Weather::setCriticalParameter(std::string param)
+void INDI::Weather::setParameterValue(std::string name, double value)
+{
+    for (int i=0; i < ParametersNP.nnp; i++)
+    {
+        if (!strcmp(ParametersN[i].name, name.c_str()))
+        {
+            ParametersN[i].value = value;
+            return;
+        }
+    }
+}
+
+bool INDI::Weather::setCriticalParameter(std::string param)
 {
     for (int i=0; i < ParametersNP.nnp; i++)
     {
@@ -374,16 +385,18 @@ ILight  * INDI::Weather::setCriticalParameter(std::string param)
         {
             critialParametersL = (critialParametersL == NULL) ? (ILight*) malloc(sizeof(ILight)) : (ILight *) realloc(critialParametersL, (critialParametersLP.nlp+1) * sizeof(ILight));
 
-            IUFillLight(&critialParametersL[critialParametersLP.nlp], param.c_str(), param.c_str(), IPS_IDLE);
+            IUFillLight(&critialParametersL[critialParametersLP.nlp], param.c_str(), ParametersN[i].label, IPS_IDLE);
 
             critialParametersLP.lp = critialParametersL;
 
-            return &critialParametersL[critialParametersLP.nlp++];
+            critialParametersLP.nlp++;
+
+            return true;
         }
     }
 
     DEBUGF(INDI::Logger::DBG_WARNING, "Unable to find parameter %s in list of existing parameters!", param.c_str());
-    return NULL;
+    return false;
 
 }
 
@@ -408,12 +421,12 @@ void INDI::Weather::updateWeatherState()
                 else if ( (ParametersN[j].value >= minWarn) && (ParametersN[j].value <= maxWarn) )
                 {
                     critialParametersL[i].s = IPS_BUSY;
-                    DEBUGF(INDI::Logger::DBG_WARNING, "Warning: Parameter %s value (%g) is in the warning zone!", ParametersN[j].name, ParametersN[j].value);
+                    DEBUGF(INDI::Logger::DBG_WARNING, "Warning: Parameter %s value (%g) is in the warning zone!", ParametersN[j].label, ParametersN[j].value);
                 }
                 else
                 {
                     critialParametersL[i].s = IPS_ALERT;
-                    DEBUGF(INDI::Logger::DBG_WARNING, "Caution: Parameter %s value (%g) is in the danger zone!", ParametersN[j].name, ParametersN[j].value);
+                    DEBUGF(INDI::Logger::DBG_WARNING, "Caution: Parameter %s value (%g) is in the danger zone!", ParametersN[j].label, ParametersN[j].value);
                 }
                 break;
             }
@@ -425,12 +438,6 @@ void INDI::Weather::updateWeatherState()
     }
 
     IDSetLight(&critialParametersLP, NULL);
-}
-
-void INDI::Weather::generateParameterRanges()
-{
-    for (int i=0; i < ParametersNP.nnp; i++)
-        createParameterRange(ParametersN[i].name);
 }
 
 void INDI::Weather::createParameterRange(std::string param)

@@ -96,28 +96,30 @@ class INDI::Weather : public INDI::DefaultDevice
      * <li>Alert: Any value outsize of Ok and Warning zone is marked as Alert.</li>
      * </ol>
      * @param name Name of parameter
+     * @param label Label of paremeter (in GUI)
      * @param minimumOK Minimum OK value.
      * @param maximumOK Maximum OK value.
      * @param minimumWarning Minimum Warning value.
      * @param maximumWarning Maximum Warning value.
-     * @return Pointer to created parameter.
      */
-    INumber * addParameter(std::string name, double minimumOK, double maximumOK, double minimumWarning, double maximumWarning);
+    void addParameter(std::string name, std::__cxx11::string label, double minimumOK, double maximumOK, double minimumWarning, double maximumWarning);
 
     /**
      * @brief setCriticalParameter Set parameter that is considered critical to the operation of the observatory. The parameter state can
      * affect the overall weather driver state which signals the client to take appropiate action depending on the severity of the state.
      * @param param Name of critial parameter.
-     * @return Pointer to created critical parameter light property.
+     * @return True if critical parameter was set, false if parameter is not found.
      */
-    ILight  * setCriticalParameter(std::string param);
-
-    virtual bool saveConfigItems(FILE *fp);
+    bool setCriticalParameter(std::string param);
 
     /**
-     * @brief generateParameterRanges Call this function <u><b>after</b></u> adding <b>all</b> parameters via addParameter() and setting <b>all</b> critical parameters via setCriticalParameter().
+     * @brief setParameterValue Update weather parameter value
+     * @param name name of weather parameter
+     * @param value new value of weather parameter;
      */
-    void generateParameterRanges();
+    void setParameterValue(std::string name, double value);
+
+    virtual bool saveConfigItems(FILE *fp);
 
     //  A number vector that stores lattitude and longitude
     INumberVectorProperty LocationNP;
