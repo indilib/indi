@@ -1410,8 +1410,11 @@ libindi/drivers/video/stvdriver.c -text
 libindi/drivers/video/stvdriver.h -text
 libindi/drivers/video/v4l2driver.cpp -text
 libindi/drivers/video/v4l2driver.h -text
+libindi/drivers/weather/99-vantage.rules -text
 libindi/drivers/weather/gason.cpp -text
 libindi/drivers/weather/gason.h -text
+libindi/drivers/weather/vantage.cpp -text
+libindi/drivers/weather/vantage.h -text
 libindi/drivers/weather/wunderground.cpp -text
 libindi/drivers/weather/wunderground.h -text
 libindi/eventloop.c -text

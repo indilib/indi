@@ -668,6 +668,20 @@ install(TARGETS indi_simulator_gps RUNTIME DESTINATION bin )
 ############ AUX GROUP ##############
 #####################################
 
+########### Vantage Driver ###############
+
+set(vantage_SRCS
+        ${CMAKE_SOURCE_DIR}/drivers/weather/vantage.cpp
+   )
+
+add_executable(indi_vantage_weather ${vantage_SRCS})
+
+target_link_libraries(indi_vantage_weather indidriver)
+install(TARGETS indi_vantage_weather RUNTIME DESTINATION bin )
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+install(FILES ${CMAKE_SOURCE_DIR}/drivers/weather/99-vantage.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
+endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+
 ########### WunderGround Driver ###############
 
 set(WunderGround_SRCS
