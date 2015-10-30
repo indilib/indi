@@ -116,18 +116,16 @@ bool WunderGround::initProperties()
     IUFillText(&wunderAPIKeyT[0], "API_KEY", "API Key", NULL);
     IUFillTextVector(&wunderAPIKeyTP, wunderAPIKeyT, 1, getDeviceName(), "WUNDER_API_KEY", "Wunder", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
-    weatherN        = addParameter("Weather", 0, 0, 0, 1);
-    temperatureN    = addParameter("Temperature (C)", -10, 30, -20, 40);
-    windN           = addParameter("Wind (kph)", 0, 20, 0, 40);
-    windGustN       = addParameter("Wind Gust (kph)", 0, 20, 0, 50);
-    precipN         = addParameter("Percip (mm)", 0, 0, 0, 0);
+    addParameter("WEATHER_FORECAST", "Weather", 0, 0, 0, 1);
+    addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -10, 30, -20, 40);
+    addParameter("WEATHER_WIND_SPEED", "Wind (kph)",  0, 20, 0, 40);
+    addParameter("WEATHER_WIND_GUST", "Gust (kph)", 0, 20, 0, 50);
+    addParameter("WEATHER_RAIN_HOUR", "Percip (mm)", 0, 0, 0, 0);
 
-    setCriticalParameter("Weather");
-    setCriticalParameter("Temperature (C)");
-    setCriticalParameter("Wind (kph)");
-    setCriticalParameter("Percip (mm)");
-
-    generateParameterRanges();
+    setCriticalParameter("WEATHER_FORECAST");
+    setCriticalParameter("WEATHER_TEMPERATURE");
+    setCriticalParameter("WEATHER_WIND_SPEED");
+    setCriticalParameter("WEATHER_RAIN_HOUR");
 
     addDebugControl();
 
@@ -224,47 +222,47 @@ IPState WunderGround::updateWeather()
                       char *value = observationIterator->value.toString();
 
                       if (!strcmp(value, "Clear"))
-                          weatherN->value = 0;
+                          setParameterValue("WEATHER_FORECAST", 0);
                       else if (!strcmp(value, "Unknown") || !strcmp(value, "Scattered Clouds") || !strcmp(value, "Partly Cloudy") || !strcmp(value, "Overcast")
                                || !strcmp(value, "Patches of Fog") || !strcmp(value, "Partial Fog") || !strcmp(value, "Light Haze"))
-                          weatherN->value = 1;
+                          setParameterValue("WEATHER_FORECAST", 1);
                       else
-                          weatherN->value = 2;
+                          setParameterValue("WEATHER_FORECAST", 2);
 
                       DEBUGF(INDI::Logger::DBG_SESSION, "Weather condition: %s", value);
                   }
                   else if (!strcmp(observationIterator->key, "temp_c"))
                   {
                       if (observationIterator->value.isDouble())
-                          temperatureN->value = observationIterator->value.toNumber();
+                          setParameterValue("WEATHER_TEMPERATURE", observationIterator->value.toNumber());
                       else
-                          temperatureN->value = atof(observationIterator->value.toString());
+                          setParameterValue("WEATHER_TEMPERATURE", atof(observationIterator->value.toString()));
                   }
                   else if (!strcmp(observationIterator->key, "wind_kph"))
                   {
                       if (observationIterator->value.isDouble())
-                        windN->value = observationIterator->value.toNumber();
+                          setParameterValue("WEATHER_WIND_SPEED", observationIterator->value.toNumber());
                       else
-                          windN->value = atof(observationIterator->value.toString());
+                          setParameterValue("WEATHER_WIND_SPEED", atof(observationIterator->value.toString()));
                   }
                   else if (!strcmp(observationIterator->key, "wind_gust_kph"))
                   {
                       if (observationIterator->value.isDouble())
-                        windGustN->value = observationIterator->value.toNumber();
+                        setParameterValue("WEATHER_WIND_GUST", observationIterator->value.toNumber());
                       else
-                        windGustN->value = atof(observationIterator->value.toString());
+                        setParameterValue("WEATHER_WIND_GUST", atof(observationIterator->value.toString()));
                   }
                   else if (!strcmp(observationIterator->key, "precip_1hr_metric"))
                   {
                       char *value = observationIterator->value.toString();
                       double mm=-1;
                       if (!strcmp(value, "--"))
-                          precipN->value = 0;
+                          setParameterValue("WEATHER_RAIN_HOUR", 0);
                       else
                       {
                           mm = atof(value);
                           if (mm >= 0)
-                              precipN->value = mm;
+                              setParameterValue("WEATHER_RAIN_HOUR", mm);
                       }
                   }
               }
