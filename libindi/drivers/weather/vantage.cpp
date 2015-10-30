@@ -161,8 +161,8 @@ bool Vantage::initProperties()
     addParameter("WEATHER_WIND_SPEED", "Wind (kph)", 0, 20, 0, 40);
     addParameter("WEAHTER_WIND_DIRECTION", "Wind Direction", 0, 360, 0, 360);
     addParameter("WEATHER_HUMIDITY", "Humidity %", 0, 100, 0, 100);
-    addParameter("WEATHER_RAIN_RATE", "Rain (mm/hour)", 0, 0, 0, 0);
-    addParameter("WEATHER_SOLAR_RADIATION", "Solar Radiation (watt/meter^2)", 0, 10000, 0, 10000);
+    addParameter("WEATHER_RAIN_RATE", "Rain (mm/h)", 0, 0, 0, 0);
+    addParameter("WEATHER_SOLAR_RADIATION", "Solar Radiation (w/m^2)", 0, 10000, 0, 10000);
 
     setCriticalParameter("WEATHER_FORECAST");
     setCriticalParameter("WEATHER_TEMPERATURE");
