@@ -636,6 +636,7 @@ bool INDI::Dome::saveConfigItems(FILE *fp)
     IUSaveConfigText(fp, &ActiveDeviceTP);
     IUSaveConfigText(fp, &PortTP);
     IUSaveConfigNumber(fp, &PresetNP);
+    IUSaveConfigSwitch(fp, &DomeAutoSyncSP);
     IUSaveConfigNumber(fp, &DomeParamNP);
     IUSaveConfigNumber(fp, &DomeMeasurementsNP);
     IUSaveConfigSwitch(fp, &DomeAutoSyncSP);
@@ -957,6 +958,15 @@ void INDI::Dome::UpdateAutoSync()
 {
     if ((mountState == IPS_OK || mountState == IPS_IDLE) && DomeAbsPosNP.s != IPS_BUSY && DomeAutoSyncS[0].s == ISS_ON)
     {
+        if (CanPark())
+        {
+            if (isParked() == true)
+            {
+                DEBUG(INDI::Logger::DBG_WARNING, "Cannot perform autosync with dome parked. Please unpark to enable autosync operation.");
+                return;
+            }
+        }
+
         double targetAz, targetAlt, minAz, maxAz;
         GetTargetAz(targetAz, targetAlt, minAz, maxAz);
 
