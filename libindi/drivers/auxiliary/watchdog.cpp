@@ -300,6 +300,8 @@ void WatchDog::TimerHit()
         ShutdownProcedureSP.s = IPS_BUSY;
         IDSetSwitch(&ShutdownProcedureSP, NULL);
 
+        DEBUG(INDI::Logger::DBG_WARNING, "Warning! Heartbeat threshold timed out, executing shutdown procedure...");
+
         // No need to start client if only we need to execute the script
         if (ShutdownProcedureS[PARK_DOME].s == ISS_OFF && ShutdownProcedureS[PARK_MOUNT].s == ISS_OFF && ShutdownProcedureS[EXECUTE_SCRIPT].s == ISS_ON)
         {
@@ -315,11 +317,11 @@ void WatchDog::TimerHit()
         // Set indiserver host and port
         watchdogClient->setServer(SettingsT[0].text, atoi(SettingsT[1].text));
 
+        DEBUG(INDI::Logger::DBG_DEBUG, "Connecting to INDI server...");
+
         watchdogClient->connectServer();
 
         shutdownStage = WATCHDOG_CLIENT_STARTED;
-
-        DEBUG(INDI::Logger::DBG_WARNING, "Warning! Heartbeat threshold timed out, executing shutdown procedure...");
 
         break;
 
@@ -327,6 +329,8 @@ void WatchDog::TimerHit()
         // Check if client is ready
         if (watchdogClient->isConnected())
         {
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Connected to INDI server %s @ %s", SettingsT[0].text, SettingsT[1].text);
+
             if (ShutdownProcedureS[PARK_DOME].s == ISS_ON)
                 parkDome();
             else if (ShutdownProcedureS[PARK_MOUNT].s == ISS_ON)
@@ -334,6 +338,8 @@ void WatchDog::TimerHit()
             else if (ShutdownProcedureS[EXECUTE_SCRIPT].s == ISS_ON)
                 executeScript();
         }
+        else
+            DEBUG(INDI::Logger::DBG_DEBUG, "Waiting for INDI server connection...");
         break;
 
     case WATCHDOG_DOME_PARKED:
@@ -384,7 +390,7 @@ void WatchDog::TimerHit()
         return;
     }
 
-   SetTimer(POLLMS);
+    SetTimer(POLLMS);
 
 }
 
