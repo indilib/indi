@@ -440,7 +440,7 @@ void INDI::Weather::updateWeatherState()
     IDSetLight(&critialParametersLP, NULL);
 }
 
-void INDI::Weather::createParameterRange(std::string name, std::__cxx11::string label)
+void INDI::Weather::createParameterRange(std::string name, std::string label)
 {
     ParametersRangeNP = (ParametersRangeNP == NULL) ? (INumberVectorProperty *) malloc(sizeof(INumberVectorProperty)) : (INumberVectorProperty *) realloc(ParametersRangeNP, (nRanges+1) * sizeof(INumberVectorProperty));
 
