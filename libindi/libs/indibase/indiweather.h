@@ -102,7 +102,7 @@ class INDI::Weather : public INDI::DefaultDevice
      * @param minimumWarning Minimum Warning value.
      * @param maximumWarning Maximum Warning value.
      */
-    void addParameter(std::string name, std::__cxx11::string label, double minimumOK, double maximumOK, double minimumWarning, double maximumWarning);
+    void addParameter(std::string name, std::string label, double minimumOK, double maximumOK, double minimumWarning, double maximumWarning);
 
     /**
      * @brief setCriticalParameter Set parameter that is considered critical to the operation of the observatory. The parameter state can
