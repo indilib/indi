@@ -391,7 +391,7 @@ IPState Vantage::updateWeather()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "Raw Rain Rate (%d) [%#4X,%#4X]", rainRate, loopData[41], loopData[42]);
 
-    setParameterValue("WEATHER_RAIN_RATE", rainRate / 0.039370);
+    setParameterValue("WEATHER_RAIN_RATE", rainRate / (100 * 0.039370));
 
     // Solar Radiation
     uint16_t solarRadiation = loopData[45] << 8 | loopData[44];
