@@ -402,10 +402,9 @@ int SetPark_MaxDomeII(int fd, int nParkOnShutter, int nTicks)
 }
 
 /*
- Set park coordinates and if need to park before to operating shutter
+ Set ticks per turn of the dome
  
  @param fd File descriptor
- @param nParkOnShutter 0 operate shutter at any azimuth. 1 go to park position before operating shutter
  @param nTicks Ticks from home position in E to W direction.
  @return 0 command received by MAX DOME. -5 Couldn't send command. -6 Response don't match command. See ReadResponse() return
  */

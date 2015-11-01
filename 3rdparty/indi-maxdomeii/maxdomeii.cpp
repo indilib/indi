@@ -34,7 +34,6 @@
 #include <memory>
 
 const int POLLMS = 1000;                            // Period of update, 1 second.
-const char *OPERATION_GROUP  = "Operation";			// Operation Group
 
 // We declare an auto pointer to dome.
 std::unique_ptr<MaxDomeII> dome(new MaxDomeII());
@@ -91,7 +90,7 @@ MaxDomeII::MaxDomeII()
    nTargetAzimuth = -1; //Target azimuth not established
    nTimeSinceLastCommunication = 0;
 
-   SetDomeCapability(DOME_CAN_ABORT | DOME_CAN_ABS_MOVE | DOME_CAN_PARK);
+   SetDomeCapability(DOME_CAN_ABORT | DOME_CAN_ABS_MOVE);
 }
 
 bool MaxDomeII::SetupParms()
@@ -166,30 +165,39 @@ bool MaxDomeII::initProperties()
 {
     INDI::Dome::initProperties();
 
-    // Type of movement
-    IUFillSwitch(&OnMovementTypeS[0], "FREE_MOVE", "Free Move", ISS_ON);
-    IUFillSwitch(&OnMovementTypeS[1], "WIRED_MOVE", "Wired Move", ISS_OFF);
-    IUFillSwitchVector(&OnMovementTypeSP, OnMovementTypeS, NARRAY(OnMovementTypeS), getDeviceName(), "ON_Movement_TYPE", "Movement type", OPERATION_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
+    IUFillNumber(&HomeAzimuthN[0], "HOME_AZIMUTH", "Home azimuth", "%5.2f",  0., 360., 0., nHomeAzimuth);
+    IUFillNumberVector(&HomeAzimuthNP, HomeAzimuthN, NARRAY(HomeAzimuthN), getDeviceName(), "HOME_AZIMUTH" , "Home azimuth", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+    
     // Home position - GET (for debug purpouses)
-    IUFillNumber(&HomePosRN[0], "HOME_POS", "Home Position", "%5.2f",  0., 360., 0., 0.);
-    IUFillNumberVector(&HomePosRNP, HomePosRN, NARRAY(HomePosRN), getDeviceName(), "HOME_POS_GET" , "Home Position", OPERATION_GROUP, IP_RO, 0, IPS_IDLE);
+    //IUFillNumber(&HomePosRN[0], "HOME_POS", "Home Position", "%5.2f",  0., 360., 0., 0.);
+    //IUFillNumberVector(&HomePosRNP, HomePosRN, NARRAY(HomePosRN), getDeviceName(), "HOME_POS_GET" , "Home Position", OPTIONS_TAB, IP_RO, 0, IPS_IDLE);
 
     // Ticks per turn
-    TicksPerTurnN[0].value = nTicksPerTurn;
-    IUFillNumber(&TicksPerTurnN[0], "TICKS_PER_TURN", "Ticks per turn", "%d",  0., 360., 0., 0.);
+    IUFillNumber(&TicksPerTurnN[0], "TICKS_PER_TURN", "Ticks per turn", "%5.2f",  0., 360., 0., nTicksPerTurn);
     IUFillNumberVector(&TicksPerTurnNP, TicksPerTurnN, NARRAY(TicksPerTurnN), getDeviceName(), "TICKS_PER_TURN" , "Ticks per turn", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+
+    // Park position
+    IUFillNumber(&ParkPositionN[0], "PARK_POS", "Park position", "%5.2f",  0., 360., 0., nParkPosition);
+    IUFillNumberVector(&ParkPositionNP, ParkPositionN, NARRAY(ParkPositionN), getDeviceName(), "PARK_POSITION" , "Park position", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Park on shutter
     IUFillSwitch(&ParkOnShutterS[0], "PARK", "Park", ISS_ON);
     IUFillSwitch(&ParkOnShutterS[1], "NO_PARK", "No park", ISS_OFF);
     IUFillSwitchVector(&ParkOnShutterSP, ParkOnShutterS, NARRAY(ParkOnShutterS), getDeviceName(), "PARK_ON_SHUTTER", "Park before operating shutter", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    
+    // Home - Home command 
+    IUFillSwitch(&HomeS[0], "HOME", "Home", ISS_OFF);
+    IUFillSwitchVector(&HomeSP, HomeS, NARRAY(HomeS), getDeviceName(), "HOME_MOTION", "Home dome", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    
+    // Park - Park command 
+    IUFillSwitch(&ParkMDS[0], "PARK", "Park", ISS_OFF);
+    IUFillSwitchVector(&ParkMDSP, ParkMDS, NARRAY(ParkMDS), getDeviceName(), "PARK_MOTION", "Park dome", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     // Shutter - SET
     IUFillSwitch(&ShutterS[0], "OPEN_SHUTTER", "Open shutter", ISS_OFF);
     IUFillSwitch(&ShutterS[1], "OPEN_UPPER_SHUTTER", "Open upper shutter", ISS_OFF);
     IUFillSwitch(&ShutterS[2], "CLOSE_SHUTTER", "Close shutter", ISS_ON);
-    IUFillSwitchVector(&ShutterSP, ShutterS, NARRAY(ShutterS), getDeviceName(), "SHUTTER", "Shutter", OPERATION_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&ShutterSP, ShutterS, NARRAY(ShutterS), getDeviceName(), "SHUTTER", "Shutter", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Watch Dog
     IUFillNumber(&WatchDogN[0], "WATCH_DOG_TIME", "Watch dog time", "%5.2f",  0., 3600., 0., 0.);
@@ -204,26 +212,40 @@ bool MaxDomeII::updateProperties()
 
     if (isConnected())
     {
-        defineSwitch(&OnMovementTypeSP);
-        defineNumber(&HomePosRNP);
+        defineNumber(&HomeAzimuthNP);
         defineNumber(&TicksPerTurnNP);
+        defineNumber(&ParkPositionNP);
         defineSwitch(&ParkOnShutterSP);
         defineSwitch(&ShutterSP);
+        defineSwitch(&HomeSP);
+        defineSwitch(&ParkMDSP);
         defineNumber(&WatchDogNP);
 
         SetupParms();
     }
     else
     {
-        deleteProperty(OnMovementTypeSP.name);
-        deleteProperty(HomePosRNP.name);
+        deleteProperty(HomeAzimuthNP.name);
         deleteProperty(TicksPerTurnNP.name);
+        deleteProperty(ParkPositionNP.name);
         deleteProperty(ParkOnShutterSP.name);
         deleteProperty(ShutterSP.name);
+        deleteProperty(HomeSP.name);
+        deleteProperty(ParkMDSP.name);
         deleteProperty(WatchDogNP.name);
     }
 
     return true;
+}
+
+bool MaxDomeII::saveConfigItems(FILE *fp)
+{
+    IUSaveConfigNumber(fp, &HomeAzimuthNP);
+    IUSaveConfigNumber(fp, &TicksPerTurnNP);
+    IUSaveConfigNumber(fp, &ParkPositionNP);
+    IUSaveConfigSwitch(fp, &ParkOnShutterSP);
+
+    return INDI::Dome::saveConfigItems(fp);
 }
 
 bool MaxDomeII::Disconnect()
@@ -249,7 +271,7 @@ void MaxDomeII::TimerHit()
 
     nError = Status_MaxDomeII(fd, &nShutterStatus, &nAzimuthStatus, &nCurrentTicks, &nHomePosition);
     handle_driver_error(&nError, &nRetry); // This is a timer, we will not repeat in order to not delay the execution.
-
+    
     // Increment movment time counter
     if (nTimeSinceShutterStart >= 0)
         nTimeSinceShutterStart++;
@@ -271,7 +293,7 @@ void MaxDomeII::TimerHit()
             nTimeSinceShutterStart = 0;	// Init movement timer
             if (error)
             {
-                DEBUGF(INDI::Logger::DBG_DEBUG, "MAX DOME II: %s",ErrorMessages[-error]);
+                DEBUGF(INDI::Logger::DBG_DEBUG, "Error closing shutter(Watch dog): %s",ErrorMessages[-error]);
                 ShutterSP.s = IPS_ALERT;
                 IDSetSwitch(&ShutterSP, "Error closing shutter");
             }
@@ -460,14 +482,21 @@ void MaxDomeII::TimerHit()
                         nTimeSinceAzimuthStart = -1;
                         SetParked(true);
                     }
-
-                    /*if (DomeGotoS[DOME_HOME].s == ISS_ON)
+                    if (HomeS[0].s == ISS_ON)
                     {
-                        IUResetSwitch(&DomeGotoSP);
-                        DomeGotoSP.s = IPS_OK;
+                        HomeS[0].s = ISS_OFF;
+                        HomeSP.s = IPS_OK;
                         nTimeSinceAzimuthStart = -1;
-                        IDSetSwitch(&DomeGotoSP, "Dome is homed");
-                    }*/
+                        IDSetSwitch(&HomeSP, "Dome is homed");
+                    }
+                    if (ParkMDS[0].s == ISS_ON)
+                    {
+                        ParkMDS[0].s = ISS_OFF;
+                        ParkMDSP.s = IPS_OK;
+                        nTimeSinceAzimuthStart = -1;
+                        IDSetSwitch(&ParkMDSP, "Dome is parked");
+                    }
+
                 }
             }
             break;
@@ -549,30 +578,6 @@ IPState MaxDomeII::MoveAbs(double newAZ)
 
 }
 
-/*IPState MaxDomeII::Home()
-{
-    int error;
-    int nRetry = 3;
-
-    while (nRetry)
-    {
-        error = Home_Azimuth_MaxDomeII(fd);
-        handle_driver_error(&error, &nRetry);
-    }
-
-    nTimeSinceAzimuthStart = 0;
-    nTargetAzimuth = -1;
-
-    if (error)
-    {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error: %s", ErrorMessages[-error]);
-        return IPS_ALERT;
-    }
-
-    return IPS_BUSY;
-
-}*/
-
 bool MaxDomeII::Abort()
 {
     int error=0;
@@ -617,105 +622,155 @@ bool MaxDomeII::Abort()
 ***************************************************************************************/
 bool MaxDomeII::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
-	
-	// Ignore if not ours
+    // Ignore if not ours
     if (strcmp (dev, getDeviceName()))
         return false;
-	
-	nTimeSinceLastCommunication = 0;
-	
-	// ===================================
+    
+    nTimeSinceLastCommunication = 0;
+    
+    // ===================================
     // TicksPerTurn
-	// ===================================
-	if (!strcmp (name, TicksPerTurnNP.name))
-	{
-		double nVal;
-		char cLog[255];
-		int error;
-		int nRetry = 3;
-		
-		if (IUUpdateNumber(&TicksPerTurnNP, values, names, n) < 0)
+    // ===================================
+    if (!strcmp (name, TicksPerTurnNP.name))
+    {
+        double nVal;
+        char cLog[255];
+        int error;
+        int nRetry = 3;
+        
+        if (IUUpdateNumber(&TicksPerTurnNP, values, names, n) < 0)
             return false;
-			
-		nVal = values[0];
-		if (nVal >= 100 && nVal <=500)
-		{
+        
+        nVal = values[0];
+        if (nVal >= 100 && nVal <=500)
+        {
             while (nRetry)
             {
-				error = SetTicksPerCount_MaxDomeII(fd, nVal);
-				handle_driver_error(&error,&nRetry);
-			}
-			if (error >= 0)
-			{
-				sprintf(cLog, "New Ticks Per Turn set: %lf", nVal);
-				nTicksPerTurn = nVal;
-				nHomeTicks = floor(0.5 + nHomeAzimuth * nTicksPerTurn / 360.0); // Calculate Home ticks again
-				TicksPerTurnNP.s = IPS_OK;
-				TicksPerTurnNP.np[0].value = nVal;
-				IDSetNumber(&TicksPerTurnNP, "%s", cLog);
-			}
+                error = SetTicksPerCount_MaxDomeII(fd, nVal);
+                handle_driver_error(&error,&nRetry);
+            }
+            if (error >= 0)
+            {
+                sprintf(cLog, "New Ticks Per Turn set: %lf", nVal);
+                nTicksPerTurn = nVal; 
+                nHomeTicks = floor(0.5 + nHomeAzimuth * nTicksPerTurn / 360.0); // Calculate Home ticks again
+                TicksPerTurnNP.s = IPS_OK;
+                TicksPerTurnNP.np[0].value = nVal;
+                IDSetNumber(&TicksPerTurnNP, "%s", cLog);
+                return true;
+            }
             else
             {
                 DEBUGF(INDI::Logger::DBG_ERROR, "MAX DOME II: %s",ErrorMessages[-error]);
-				TicksPerTurnNP.s = IPS_ALERT;
+                TicksPerTurnNP.s = IPS_ALERT;
                 IDSetNumber(&TicksPerTurnNP, NULL);
-			}
+            }
 
-            return true;
-		}
-
-		// Incorrect value. 
-		TicksPerTurnNP.s = IPS_ALERT;
-		IDSetNumber(&TicksPerTurnNP, "Invalid Ticks Per Turn");
-		
-        return false;
-	}
-	
-   /* if (!strcmp(name, DomeParamNP.name))
-    {
-        IUUpdateNumber(&DomeParamNP, values, names, n);
-
-        double nVal = DomeParamN[DOME_HOME].value;
-
-        // Only update home azimuth if there is change
-        if (nVal != nHomeAzimuth)
-        {
-            DEBUGF(INDI::Logger::DBG_SESSION, "New home azimuth set: %lf", nVal);
-            nHomeAzimuth = nVal;
-            nHomeTicks = floor(0.5 + nHomeAzimuth * nTicksPerTurn / 360.0);
+            return false;
         }
 
-        DomeParamNP.s = IPS_OK;
-        IDSetNumber(&DomeParamNP, NULL);
-        return true;
-    }*/
+        // Incorrect value. 
+        TicksPerTurnNP.s = IPS_ALERT;
+        IDSetNumber(&TicksPerTurnNP, "Invalid Ticks Per Turn");
+            
+        return false;
+    }
+    
+    // ===================================
+    // HomeAzimuth
+    // ===================================
+    if (!strcmp (name, HomeAzimuthNP.name))
+    {
+        double nVal;
+        char cLog[255];
 		
-	// ===================================
+        if (IUUpdateNumber(&HomeAzimuthNP, values, names, n) < 0)
+            return false;
+        
+        nVal = values[0];
+        if (nVal >= 0 && nVal <=360)
+        {
+            sprintf(cLog, "New home azimuth set: %lf", nVal);
+            nHomeAzimuth = nVal;
+            nHomeTicks = floor(0.5 + nHomeAzimuth * nTicksPerTurn / 360.0);
+            HomeAzimuthNP.s = IPS_OK;
+            HomeAzimuthNP.np[0].value = nVal;
+            IDSetNumber(&HomeAzimuthNP, "%s", cLog);
+            return true;
+        }
+        // Incorrect value. 
+        HomeAzimuthNP.s = IPS_ALERT;
+        IDSetNumber(&HomeAzimuthNP, "Invalid home azimuth");
+        
+        return false;
+    }
+    
+    // ===================================
     // Watch dog
-	// ===================================
+    // ===================================
     if (!strcmp (name, WatchDogNP.name))
-	{
-		double nVal;
-		char cLog[255];
-		
+    {
+        double nVal;
+        char cLog[255];
+        
         if (IUUpdateNumber(&WatchDogNP, values, names, n) < 0)
             return false;
-		
-		nVal = values[0];
-		if (nVal >= 0 && nVal <=3600)
-		{
-			sprintf(cLog, "New watch dog set: %lf", nVal);
+        
+        nVal = values[0];
+        if (nVal >= 0 && nVal <=3600)
+        {
+            sprintf(cLog, "New watch dog set: %lf", nVal);
             WatchDogNP.s = IPS_OK;
             WatchDogNP.np[0].value = nVal;
             IDSetNumber(&WatchDogNP, "%s", cLog);
-            return false;
-		}
-		// Incorrect value. 
+            return true;
+        }
+        // Incorrect value. 
         WatchDogNP.s = IPS_ALERT;
         IDSetNumber(&WatchDogNP, "Invalid watch dog time");
-		
-        return true;
-	}
+            
+        return false;
+    }
+    
+    // ===================================
+    // Park position
+    // ===================================
+    if (!strcmp (name, ParkPositionNP.name))
+    {
+        double nVal;
+        IPState error;
+        int nRetry = 3;
+        
+        if (IUUpdateNumber(&ParkPositionNP, values, names, n) < 0)
+            return false;
+        
+        nVal = values[0];
+        if (nVal >= 0 && nVal < 360)
+        {
+            
+            error = ConfigurePark(nCloseShutterBeforePark, nVal);
+            
+            if (error == IPS_OK)
+            {
+                nParkPosition = nVal;
+                ParkPositionNP.s = IPS_OK;
+                ParkPositionNP.np[0].value = nVal;
+                IDSetNumber(&ParkPositionNP, "New park position set");
+            }
+            else
+            {
+                ParkPositionNP.s = IPS_ALERT;
+                IDSetNumber(&ParkPositionNP, "%s", ErrorMessages[-error]);
+            }
+            
+            return true;
+        }
+        // Incorrect value.
+        ParkPositionNP.s = IPS_ALERT;
+        IDSetNumber(&ParkPositionNP, "Invalid park position");
+        
+        return false;
+    }
 
     return INDI::Dome::ISNewNumber(dev, name, values, names, n);
 
@@ -727,83 +782,171 @@ bool MaxDomeII::ISNewNumber (const char *dev, const char *name, double values[],
 ***************************************************************************************/
 bool MaxDomeII::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-	// ignore if not ours //
+    // ignore if not ours //
     if (strcmp (getDeviceName(), dev))
         return false;
 
-	nTimeSinceLastCommunication = 0;    
+    nTimeSinceLastCommunication = 0;    
 
-	// ===================================
+    // ===================================
     // Shutter
-	// ===================================
-	if (!strcmp(name, ShutterSP.name))
-	{
-		int error;
-		int nRetry = 3;
-		
-	    if (IUUpdateSwitch(&ShutterSP, states, names, n) < 0)
+    // ===================================
+    if (!strcmp(name, ShutterSP.name))
+    {
+        int error;
+        int nRetry = 3;
+            
+        if (IUUpdateSwitch(&ShutterSP, states, names, n) < 0)
             return false;
 
-		if (ShutterS[0].s == ISS_ON)
-		{ // Open Shutter
+        if (ShutterS[0].s == ISS_ON)
+        { // Open Shutter
             while (nRetry)
             {
-				error = Open_Shutter_MaxDomeII(fd);
-				handle_driver_error(&error, &nRetry);
-			}
-			nTimeSinceShutterStart = 0;	// Init movement timer
-			if (error)
-			{
-				IDLog("MAX DOME II: %s",ErrorMessages[-error]);
-				ShutterSP.s = IPS_ALERT;
-				IDSetSwitch(&ShutterSP, "Error opening shutter");
+                error = Open_Shutter_MaxDomeII(fd);
+                handle_driver_error(&error, &nRetry);
+            }
+            nTimeSinceShutterStart = 0;	// Init movement timer
+            if (error)
+            {
+                DEBUGF(INDI::Logger::DBG_ERROR, "Error opening shutter (%s).", ErrorMessages[-error]);
+                ShutterSP.s = IPS_ALERT;
+                IDSetSwitch(&ShutterSP, "Error opening shutter");
                 return false;
-			}
-			ShutterSP.s = IPS_BUSY;
-			IDSetSwitch(&ShutterSP, "Opening shutter");
-		}
-		else if (ShutterS[1].s == ISS_ON)
-		{ // Open upper shutter only
+            }
+            ShutterSP.s = IPS_BUSY;
+            IDSetSwitch(&ShutterSP, "Opening shutter");
+        }
+        else if (ShutterS[1].s == ISS_ON)
+        { // Open upper shutter only
             while (nRetry)
             {
-				error = Open_Upper_Shutter_Only_MaxDomeII(fd);
-				handle_driver_error(&error, &nRetry);
-			}
-			nTimeSinceShutterStart = 0;	// Init movement timer
-			if (error)
-			{
-				IDLog("MAX DOME II: %s",ErrorMessages[-error]);
-				ShutterSP.s = IPS_ALERT;
-				IDSetSwitch(&ShutterSP, "Error opening upper shutter only");
+                error = Open_Upper_Shutter_Only_MaxDomeII(fd);
+                handle_driver_error(&error, &nRetry);
+            }
+            nTimeSinceShutterStart = 0;	// Init movement timer
+            if (error)
+            {
+                DEBUGF(INDI::Logger::DBG_ERROR, "Error opening upper shutter only (%s).", ErrorMessages[-error]);
+                ShutterSP.s = IPS_ALERT;
+                IDSetSwitch(&ShutterSP, "Error opening upper shutter only");
                 return false;
-			}
-			ShutterSP.s = IPS_BUSY;
-			IDSetSwitch(&ShutterSP, "Opening upper shutter");
-		}
-		else if (ShutterS[2].s == ISS_ON)
-		{ // Close Shutter
+            }
+            ShutterSP.s = IPS_BUSY;
+            IDSetSwitch(&ShutterSP, "Opening upper shutter");
+        }
+        else if (ShutterS[2].s == ISS_ON)
+        { // Close Shutter
             while (nRetry)
             {
-				error = Close_Shutter_MaxDomeII(fd);
-				handle_driver_error(&error, &nRetry);
-			}
-			nTimeSinceShutterStart = 0;	// Init movement timer
-			if (error)
-			{
-				IDLog("MAX DOME II: %s",ErrorMessages[-error]);
-				ShutterSP.s = IPS_ALERT;
-				IDSetSwitch(&ShutterSP, "Error closing shutter");
+                error = Close_Shutter_MaxDomeII(fd);
+                handle_driver_error(&error, &nRetry);
+            }
+            nTimeSinceShutterStart = 0;	// Init movement timer
+            if (error)
+            {
+                DEBUGF(INDI::Logger::DBG_ERROR, "Error closing shutter (%s).", ErrorMessages[-error]);
+                ShutterSP.s = IPS_ALERT;
+                IDSetSwitch(&ShutterSP, "Error closing shutter");
                 return false;
-			}
-			ShutterSP.s = IPS_BUSY;
-			IDSetSwitch(&ShutterSP, "Closing shutter");
-		}
-		
+            }
+            ShutterSP.s = IPS_BUSY;
+            IDSetSwitch(&ShutterSP, "Closing shutter");
+        }
+            
         return true;
-	}
+    }
+    
+    // ===================================
+    // Home
+    // ===================================
+    if (!strcmp(name, HomeSP.name))
+    {
+        if (IUUpdateSwitch(&HomeSP, states, names, n) < 0)
+            return false;
+                    
+        int error;
+        int nRetry = 3;
+            
+        while (nRetry){
+            error = Home_Azimuth_MaxDomeII(fd);
+            handle_driver_error(&error, &nRetry);
+        }
+        nTimeSinceAzimuthStart = 0;
+        nTargetAzimuth = -1;
+        if (error)
+        {
+            DEBUGF(INDI::Logger::DBG_ERROR, "Error Homing Azimuth (%s).", ErrorMessages[-error]);
+            HomeSP.s = IPS_ALERT;
+            IDSetSwitch(&HomeSP, "Error Homing Azimuth");
+            return false;
+        }
+        HomeSP.s = IPS_BUSY;
+        IDSetSwitch(&HomeSP, "Homing dome");
+            
+        return true;
+    }
+    
+    // ===================================
+    // Park
+    // ===================================
+    if (!strcmp(name, ParkMDSP.name))
+    {
+        if (IUUpdateSwitch(&ParkMDSP, states, names, n) < 0)
+            return false;
+          
+        ParkMDSP.s = MoveAbs(nParkPosition);
+        
+        if (ParkMDSP.s == IPS_ALERT)
+        {
+            IDSetSwitch(&ParkMDSP, "Error Parking");
+            return false;
+        }
+        ParkMDSP.s = IPS_BUSY;
+        IDSetSwitch(&ParkMDSP, "Parking dome");
+            
+        return true;
+    }
+    
+    // ===================================
+    // Park on Shutter operation
+    // ===================================
+    if (!strcmp(name, ParkOnShutterSP.name))
+    {
+        if (IUUpdateSwitch(&ParkOnShutterSP, states, names, n) < 0)
+            return false;
+                    
+        int error;
+        int nCSBP;
+        
+        if (ParkOnShutterS[0].s == ISS_ON)
+        {
+            nCSBP = 1;
+        }
+        else
+        {
+            nCSBP = 0;
+        }
+        
+        error = ConfigurePark(nCSBP, nParkPosition);
+            
+        if (error == IPS_OK)
+        {
+            ParkOnShutterSP.s = IPS_OK;
+            IDSetSwitch(&ParkOnShutterSP, "New park position set");
+        }
+        else
+        {
+            ParkOnShutterSP.s = IPS_ALERT;
+            IDSetSwitch(&ParkOnShutterSP, "%s", ErrorMessages[-error]);
+        }
+            
+        return true;
+    }
+    
 
     return INDI::Dome::ISNewSwitch(dev, name, states, names, n);
-	  	  
+            
 }
 
 
@@ -869,6 +1012,7 @@ int MaxDomeII::handle_driver_error(int *error, int *nRetry)
 			break;
 			
 		default:  // Do nothing in all other errors.
+                        DEBUGF(INDI::Logger::DBG_ERROR, "Error on command: (%s).", ErrorMessages[-*error]);
 			break;
 	}
 	
@@ -876,27 +1020,34 @@ int MaxDomeII::handle_driver_error(int *error, int *nRetry)
 }
 
 /************************************************************************************
- *
+*
 * ***********************************************************************************/
 IPState MaxDomeII::Park()
+{
+    return MoveAbs(nParkPosition);
+}
+
+/************************************************************************************
+*
+* ***********************************************************************************/
+IPState MaxDomeII::ConfigurePark(int nCSBP, double ParkAzimuth)
 {
     int error=0;
     int nRetry = 3;
 
-    double nVal = AzimuthToTicks(GetAxis1Park());
-
     // Only update park position if there is change
-    if (nVal != nParkPosition)
+    if (ParkAzimuth != nParkPosition || nCSBP != nCloseShutterBeforePark)
     {
         while (nRetry)
         {
-            error =SetPark_MaxDomeII(fd, nCloseShutterBeforePark, nVal);
+            error =SetPark_MaxDomeII(fd, nCSBP, AzimuthToTicks(ParkAzimuth));
             handle_driver_error(&error,&nRetry);
         }
         if (error >= 0)
         {
-            nParkPosition = nVal;
-            DEBUG(INDI::Logger::DBG_SESSION, "New park position set.");
+            nParkPosition = ParkAzimuth;
+            nCloseShutterBeforePark = nCSBP;
+            DEBUGF(INDI::Logger::DBG_SESSION, "New park position set. %d %d", nCSBP, AzimuthToTicks(ParkAzimuth));
         }
         else
         {
@@ -905,7 +1056,7 @@ IPState MaxDomeII::Park()
         }
     }
 
-    return MoveAbs(nParkPosition);
+    return IPS_OK;
 }
 
 /************************************************************************************

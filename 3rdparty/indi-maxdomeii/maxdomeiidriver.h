@@ -47,6 +47,7 @@ int Status_MaxDomeII(int fd, enum SH_Status *nShutterStatus, enum AZ_Status *nAz
 int Ack_MaxDomeII(int fd);
 int SetPark_MaxDomeII(int fd, int nParkOnShutter, int nTicks);
 int SetTicksPerCount_MaxDomeII(int fd, int nTicks);
+int Park_MaxDomeII(int fd);
 //  Shutter commands
 int Open_Shutter_MaxDomeII(int fd);
 int Open_Upper_Shutter_Only_MaxDomeII(int fd);

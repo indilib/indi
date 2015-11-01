@@ -40,6 +40,7 @@ class MaxDomeII : public INDI::Dome
  const char *getDefaultName();
  bool initProperties();
  bool updateProperties();
+ virtual bool saveConfigItems(FILE *fp);
 
  bool Connect();
  bool Disconnect();
@@ -56,6 +57,7 @@ class MaxDomeII : public INDI::Dome
 protected:
 
  // Parking
+ IPState ConfigurePark(int nCSBP, double ParkAzimuth);
  virtual IPState Park();
  virtual IPState UnPark();
  virtual void SetCurrentPark();
@@ -69,14 +71,20 @@ protected:
  int AzimuthToTicks(double nAzimuth);
  int handle_driver_error(int *error, int *nRetry); // Handles errors returned by driver
 
- ISwitch OnMovementTypeS[2];
- ISwitchVectorProperty OnMovementTypeSP;
-
  ISwitch ShutterS[3];
  ISwitchVectorProperty ShutterSP;
 
+ INumber ParkPositionN[1];
+ INumberVectorProperty ParkPositionNP;
+ 
  ISwitch ParkOnShutterS[2];
  ISwitchVectorProperty ParkOnShutterSP;
+ 
+ ISwitch HomeS[1];
+ ISwitchVectorProperty HomeSP;
+ 
+ ISwitch ParkMDS[1];
+ ISwitchVectorProperty ParkMDSP;
 
  INumber TicksPerTurnN[1];
  INumberVectorProperty TicksPerTurnNP;
@@ -84,6 +92,9 @@ protected:
  INumber WatchDogN[1];
  INumberVectorProperty WatchDogNP;
 
+ INumber HomeAzimuthN[1];
+ INumberVectorProperty HomeAzimuthNP;
+ 
  INumber HomePosRN[1];
  INumberVectorProperty HomePosRNP;
 
@@ -92,9 +103,9 @@ private:
  int nTicksPerTurn;             // Number of ticks per turn of azimuth dome
  unsigned nCurrentTicks;        // Position as reported by the MaxDome II
  int nCloseShutterBeforePark;   // 0 no close shutter
- double nParkPosition;			// Park position
- double nHomeAzimuth;			// Azimuth of home position
- int nHomeTicks;				// Ticks from 0 azimuth to home
+ double nParkPosition;		// Park position
+ double nHomeAzimuth;		// Azimuth of home position
+ int nHomeTicks;		// Ticks from 0 azimuth to home
  int fd;                        // Telescope tty file descriptor
  int nTimeSinceShutterStart;	// Timer since shutter movement has started, in order to check timeouts
  int nTimeSinceAzimuthStart;	// Timer since azimuth movement has started, in order to check timeouts
