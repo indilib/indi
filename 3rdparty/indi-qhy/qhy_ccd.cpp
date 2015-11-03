@@ -595,12 +595,13 @@ bool QHYCCD::Connect()
         }
 
         DEBUGF(INDI::Logger::DBG_DEBUG, "Binning Control: %s", cap & CCD_CAN_BIN ? "True" : "False");
+        */
 
         ret= IsQHYCCDControlAvailable(camhandle, CONTROL_USBTRAFFIC);
         if (ret == QHYCCD_SUCCESS)
         {
             HasUSBTraffic = true;
-        }*/
+        }
 
         DEBUGF(INDI::Logger::DBG_DEBUG, "USB Traffic Control: %s", HasUSBTraffic ? "True" : "False");
 
@@ -790,9 +791,9 @@ bool QHYCCD::StartExposure(float duration)
 
   DEBUGF(INDI::Logger::DBG_DEBUG, "SetQHYCCDResolution camroix %d camroiy %d camroiwidth %d camroiheight %d", camroix,camroiy,camroiwidth,camroiheight);
   
-  // Jasem: why 300ms delay? For users who want to capture short duration image 0.1 0.2 secs etc.. the 300ms delay is unnecessary.
-  // Only enable this back if absolutely necessary
-  //usleep(300000);
+  // Jasem: Removed QHY 300ms delay that was added without specifying the reason. It seems any delay less than 50ms results in QHY Frame error. Again no reason. This renders
+  // exposures less than 50ms useless, but there is nothing I can do about that.
+  usleep(50000);
 
   if (sim)
       ret = QHYCCD_SUCCESS;
