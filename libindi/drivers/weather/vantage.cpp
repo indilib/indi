@@ -157,7 +157,7 @@ bool Vantage::initProperties()
 
     addParameter("WEATHER_FORECAST", "Forecast", 0, 0, 0, 1);
     addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -10, 30, -20, 40);
-    addParameter("WEATHER_BAROMETER", "Barometer (Hg)", 20, 32.5, 20, 32.5);
+    addParameter("WEATHER_BAROMETER", "Barometer (mbar)", 20, 32.5, 20, 32.5);
     addParameter("WEATHER_WIND_SPEED", "Wind (kph)", 0, 20, 0, 40);
     addParameter("WEAHTER_WIND_DIRECTION", "Wind Direction", 0, 360, 0, 360);
     addParameter("WEATHER_HUMIDITY", "Humidity %", 0, 100, 0, 100);
@@ -368,7 +368,7 @@ IPState Vantage::updateWeather()
     // Barometer
     uint16_t barometerValue = loopData[8] << 8 | loopData[7];
 
-    setParameterValue("WEATHER_BAROMETER", barometerValue/1000.0);
+    setParameterValue("WEATHER_BAROMETER", (barometerValue/1000.0) * 33.8639);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "Raw Barometer (%d) [%#4X %#4X]", barometerValue, loopData[7], loopData[8]);
 
