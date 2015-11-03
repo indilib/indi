@@ -58,10 +58,9 @@ protected:
 
  // Parking
  IPState ConfigurePark(int nCSBP, double ParkAzimuth);
- virtual IPState Park();
- virtual IPState UnPark();
  virtual void SetCurrentPark();
  virtual void SetDefaultPark();
+ virtual IPState ControlShutter(ShutterOperation operation);
 
  /*******************************************************/
  /* Misc routines
@@ -71,20 +70,17 @@ protected:
  int AzimuthToTicks(double nAzimuth);
  int handle_driver_error(int *error, int *nRetry); // Handles errors returned by driver
 
- ISwitch ShutterS[3];
- ISwitchVectorProperty ShutterSP;
+ ISwitch ShutterModeS[2];
+ ISwitchVectorProperty ShutterModeSP;
 
- INumber ParkPositionN[1];
- INumberVectorProperty ParkPositionNP;
+ INumber ShutterOperationAzimuthN[1];
+ INumberVectorProperty ShutterOperationAzimuthNP;
  
- ISwitch ParkOnShutterS[2];
- ISwitchVectorProperty ParkOnShutterSP;
+ ISwitch ShutterConflictS[2];
+ ISwitchVectorProperty ShutterConflictSP;
  
  ISwitch HomeS[1];
  ISwitchVectorProperty HomeSP;
- 
- ISwitch ParkMDS[1];
- ISwitchVectorProperty ParkMDSP;
 
  INumber TicksPerTurnN[1];
  INumberVectorProperty TicksPerTurnNP;
