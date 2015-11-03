@@ -73,6 +73,7 @@ XAGYLWheel::XAGYLWheel()
     PortFD=-1;
     sim = false;
     OffsetN = NULL;
+    firmwareVersion=0;
 
     simData.position=1;
     simData.speed=0xA;
@@ -178,12 +179,32 @@ bool XAGYLWheel::Connect()
         return false;
     }
 
-    if (getMaxFilterSlots())
-    {
-        initOffset();
+    char resp[XAGYL_MAXBUF];
+    bool rc = getCommand(INFO_FIRMWARE_VERSION, resp);
 
-        DEBUG(INDI::Logger::DBG_SESSION, "XAGYL is online. Getting filter parameters...");
-        return true;
+    if (rc)
+    {
+        int fwver=0;
+        int fw_rc = sscanf(resp, "FW%d", &fwver);
+
+        if (fw_rc > 0)
+        {
+            firmwareVersion = fwver;
+
+            // We don't have pulse width for version < 3
+            if (firmwareVersion < 3)
+                SettingsNP.nnp--;
+
+            if (getMaxFilterSlots())
+            {
+                initOffset();
+
+                DEBUG(INDI::Logger::DBG_SESSION, "XAGYL is online. Getting filter parameters...");
+                return true;
+            }
+        }
+        else
+            DEBUGF(INDI::Logger::DBG_ERROR, "Unable to parse (%s)", resp);
     }
 
     DEBUG(INDI::Logger::DBG_SESSION, "Error retreiving data from XAGYL Filter Wheel, please ensure filter wheel is powered and the port is correct.");
@@ -345,7 +366,7 @@ bool XAGYLWheel::ISNewNumber (const char *dev, const char *name, double values[]
             }
 
             // Pulse width
-            while (newPulseWidth != SettingsN[SET_PULSE_WITDH].value && rc_pulsewidth)
+            while (firmwareVersion >= 3 && newPulseWidth != SettingsN[SET_PULSE_WITDH].value && rc_pulsewidth)
             {
                 if (newPulseWidth> SettingsN[SET_PULSE_WITDH].value)
                 {
@@ -669,7 +690,10 @@ bool XAGYLWheel::getSettingInfo()
     bool rc1 = getMaximumSpeed();
     bool rc2 = getJitter();
     bool rc3 = getThreshold();
-    bool rc4 = getPulseWidth();
+    bool rc4 = true;
+
+    if (firmwareVersion >= 3)
+        rc4 = getPulseWidth();
 
     return (rc1 && rc2 && rc3 && rc4);
 }
