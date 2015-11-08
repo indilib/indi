@@ -645,17 +645,20 @@ bool ASICCD::StartStreaming()
     {
         IUResetSwitch(&VideoFormatSP);
         ISwitch *vf = IUFindSwitch(&VideoFormatSP,"ASI_IMG_Y8");
+        if (vf == NULL)
+            vf = IUFindSwitch(&VideoFormatSP,"ASI_IMG_RAW8");
+
         if (vf)
         {
             vf->s = ISS_ON;
-            DEBUG(INDI::Logger::DBG_DEBUG, "Switching to Luma video format.");
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Switching to %s video format.", vf->label);
             PrimaryCCD.setBPP(8);
             UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
             IDSetSwitch(&VideoFormatSP, NULL);
         }
         else
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "No Luma video format found, cannot start stream.");
+            DEBUG(INDI::Logger::DBG_ERROR, "No 8 bit video format found, cannot start stream.");
             return false;
         }
     }
