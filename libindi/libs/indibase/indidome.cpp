@@ -552,14 +552,23 @@ bool INDI::Dome::ISSnoopDevice (XMLEle *root)
     // Check EOD
     if (!strcmp("EQUATORIAL_EOD_COORD", propName))
     {
+        int rc_ra=-1, rc_de=-1;
+        double ra=0, de=0;
+
         for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
         {
             const char *elemName = findXMLAttValu(ep, "name");
-            if (!strcmp(elemName, "RA"))
-                mountEquatorialCoords.ra = atof(pcdataXMLEle(ep))*15.0;
-            else if (!strcmp(elemName, "DEC"))
-                mountEquatorialCoords.dec = atof(pcdataXMLEle(ep));
 
+            if (!strcmp(elemName, "RA"))                            
+                rc_ra = f_scansexa(pcdataXMLEle(ep), &ra);
+            else if (!strcmp(elemName, "DEC"))
+                rc_de = f_scansexa(pcdataXMLEle(ep), &de);
+        }
+
+        if (rc_ra==0 && rc_de==0)
+        {
+            mountEquatorialCoords.ra = ra*15.0;
+            mountEquatorialCoords.dec = de;
         }
 
         mountState = IPS_ALERT;
