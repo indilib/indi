@@ -238,7 +238,7 @@ bool LX200Basic::Connect(const char *port, uint16_t baud)
     }
 
 
-    if (check_lx200_connection(PortFD))
+    if (getLX200RA(PortFD, &currentRA) != 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error connecting to Telescope. Telescope is offline.");
         return false;
