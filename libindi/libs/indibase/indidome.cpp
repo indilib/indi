@@ -20,11 +20,12 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#include "indidome.h"
-
 #include <wordexp.h>
 #include <math.h>
 #include <string.h>
+
+#include "indidome.h"
+#include "indicom.h"
 
 #define DOME_SLAVING_TAB   "Slaving"
 #define DOME_COORD_THRESHOLD    0.1             /* Only send debug messages if the differences between old and new values of Az/Alt excceds this value */
