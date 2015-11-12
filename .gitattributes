@@ -1297,11 +1297,14 @@ libindi/drivers.xml -text
 libindi/drivers/agent/agent_imager.cpp -text
 libindi/drivers/agent/agent_imager.h -text
 libindi/drivers/agent/agent_imager.txt -text
+libindi/drivers/auxiliary/99-flipflat.rules -text
 libindi/drivers/auxiliary/99-gpusb.rules -text
 libindi/drivers/auxiliary/STAR2000.cpp -text
 libindi/drivers/auxiliary/STAR2000.h -text
 libindi/drivers/auxiliary/STAR2kdriver.c -text
 libindi/drivers/auxiliary/STAR2kdriver.h -text
+libindi/drivers/auxiliary/flip_flat.cpp -text
+libindi/drivers/auxiliary/flip_flat.h -text
 libindi/drivers/auxiliary/gpdriver.cpp -text
 libindi/drivers/auxiliary/gpdriver.h -text
 libindi/drivers/auxiliary/gps_simulator.cpp -text

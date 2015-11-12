@@ -609,6 +609,22 @@ add_executable(indi_watchdog ${watchdog_SRCS})
 target_link_libraries(indi_watchdog indidriver indiclient)
 install(TARGETS indi_watchdog RUNTIME DESTINATION bin )
 
+########### Flip Flat & Flip Man Driver ###############
+
+set(flipflat_SRCS
+        ${CMAKE_SOURCE_DIR}/drivers/auxiliary/flip_flat.cpp
+   )
+
+add_executable(indi_flipflat ${flipflat_SRCS})
+
+target_link_libraries(indi_flipflat indidriver)
+install(TARGETS indi_flipflat RUNTIME DESTINATION bin )
+
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+install(FILES ${CMAKE_SOURCE_DIR}/drivers/auxiliary/99-flipflat.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
+endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+
+
 ########### STAR2000 Driver ###############
 
 set(STAR2000_SRCS
