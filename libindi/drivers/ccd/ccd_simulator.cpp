@@ -546,15 +546,17 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
         double ccdW = targetChip->getXRes();
 
         // Pixels per radian
-        pprx = targetFocalLength/targetChip->getPixelSizeX()*1000/targetChip->getBinX();
-        ppry = targetFocalLength/targetChip->getPixelSizeY()*1000/targetChip->getBinY();
+        pprx = targetFocalLength/targetChip->getPixelSizeX()*1000;
+        ppry = targetFocalLength/targetChip->getPixelSizeY()*1000;
 
         //  we do a simple scale for x and y locations
         //  based on the focal length and pixel size
         //  focal length in mm, pixels in microns
         // JM: 2015-03-17: Using a simpler formula, Scalex and Scaley are in arcsecs/pixel
-        Scalex=(targetChip->getPixelSizeX() / targetFocalLength) * 206.3 * targetChip->getBinX();
-        Scaley=(targetChip->getPixelSizeY() / targetFocalLength) * 206.3 * targetChip->getBinY();
+        Scalex=(targetChip->getPixelSizeX() / targetFocalLength) * 206.3;
+        Scaley=(targetChip->getPixelSizeY() / targetFocalLength) * 206.3;
+
+        DEBUGF(INDI::Logger::DBG_DEBUG, "pprx: %g pixels per radian ppry: %g pixels per radian ScaleX: %g arcsecs/pixel ScaleY: %g arcsecs/pixel", pprx, ppry, Scalex, Scaley);
 
         double theta = rotationCW + 270;
         if (theta > 360)
@@ -569,10 +571,10 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
         pd=pprx*-sin(theta*M_PI/180.0);
         pe=ppry*cos(theta*M_PI/180.0);
 
-        nwidth = targetChip->getXRes() / targetChip->getBinX();
+        nwidth = targetChip->getXRes();
         pc=nwidth/2;        
 
-        nheight = targetChip->getYRes() / targetChip->getBinY();
+        nheight = targetChip->getYRes();
         pf=nheight/2;
 
         ImageScalex=Scalex;
@@ -614,8 +616,8 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
         radius=sqrt((Scalex*Scalex*targetChip->getXRes()/2.0*targetChip->getXRes()/2.0)+(Scaley*Scaley*targetChip->getYRes()/2.0*targetChip->getYRes()/2.0));
         //  we have radius in arcseconds now
         radius=radius/60;   //  convert to arcminutes
-        //fprintf(stderr,"Lookup radius %4.2f\n",radius);
-        //radius=radius*2;
+
+        DEBUGF(INDI::Logger::DBG_DEBUG, "Lookup radius %4.2f",radius);
 
         //  A saturationmag star saturates in one second
         //  and a limitingmag produces a one adu level in one second
@@ -645,7 +647,7 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
             setlocale(LC_NUMERIC,"C");
             //sprintf(gsccmd,"gsc -c %8.6f %+8.6f -r 120 -m 0 9.1",rad+PEOffset,decPE);
             sprintf(gsccmd,"gsc -c %8.6f %+8.6f -r %4.1f -m 0 %4.2f -n 3000",rad+PEOffset,cameradec,radius,lookuplimit);
-            fprintf(stderr,"%s\n",gsccmd);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "%s",gsccmd);
             pp=popen(gsccmd,"r");
             if(pp != NULL) {
                 char line[256];
@@ -705,13 +707,12 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
                         // Invert horizontally
                         ccdx = ccdW - ccdx;
 
-
                         rc=DrawImageStar(targetChip, mag,ccdx,ccdy);
                         drawn+=rc;
                         if(rc==1)
                         {
-                            //fprintf(stderr,"star %s scope %6.4f %6.4f star %6.4f %6.4f  ccd %6.2f %6.2f\n",id,rad,decPE,ra,dec,ccdx,ccdy);
-                            //fprintf(stderr,"star %s ccd %6.2f %6.2f\n",id,ccdx,ccdy);
+                            //DEBUGF(INDI::Logger::DBG_DEBUG, "star %s scope %6.4f %6.4f star %6.4f %6.4f ccd %6.2f %6.2f",id,rad,decPE,ra,dec,ccdx,ccdy);
+                            //DEBUGF(INDI::Logger::DBG_DEBUG, "star %s ccd %6.2f %6.2f",id,ccdx,ccdy);
                         }
                     }
                 }
@@ -755,15 +756,15 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
             skyflux=pow(10,((glow-z)*k/-2.5));
             //  ok, flux represents one second now
             //  scale up linearly for exposure time
-            skyflux=skyflux*ExposureTime*targetChip->getBinX()*targetChip->getBinY();
+            skyflux=skyflux*ExposureTime;
            //IDLog("SkyFlux = %g ExposureRequest %g\n",skyflux,ExposureTime);
 
             unsigned short *pt;
 
             pt=(unsigned short int *)targetChip->getFrameBuffer();
 
-            nheight = targetChip->getSubH() / targetChip->getBinY();
-            nwidth  = targetChip->getSubW() / targetChip->getBinX();
+            nheight = targetChip->getSubH();
+            nwidth  = targetChip->getSubW();
 
             for(int y=0; y< nheight; y++)
             {
@@ -810,10 +811,10 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
 
 
         //  Now we add some bias and read noise
-        int subX = targetChip->getSubX() / targetChip->getBinX();
-        int subY = targetChip->getSubY() / targetChip->getBinX();
-        int subW = targetChip->getSubW() / targetChip->getBinX() + subX;
-        int subH = targetChip->getSubH() / targetChip->getBinX() + subY;
+        int subX = targetChip->getSubX();
+        int subY = targetChip->getSubY();
+        int subW = targetChip->getSubW() + subX;
+        int subH = targetChip->getSubH() + subY;
 
         for(x=subX; x<subW; x++)
         {
@@ -844,6 +845,9 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
         }
 
     }
+
+    targetChip->binFrame();
+
     return 0;
 }
 
@@ -858,10 +862,10 @@ int CCDSim::DrawImageStar(CCDChip *targetChip, float mag,float x,float y)
     float flux;
     float ExposureTime;
 
-    int subX = targetChip->getSubX() / targetChip->getBinX();
-    int subY = targetChip->getSubY() / targetChip->getBinY();
-    int subW = targetChip->getSubW() / targetChip->getBinX() + subX;
-    int subH = targetChip->getSubH() / targetChip->getBinY() + subY;
+    int subX = targetChip->getSubX();
+    int subY = targetChip->getSubY();
+    int subW = targetChip->getSubW() + subX;
+    int subH = targetChip->getSubH() + subY;
 
     if((x<subX)||(x>subW||(y<subY)||(y>subH)))
     {
@@ -908,7 +912,7 @@ int CCDSim::DrawImageStar(CCDChip *targetChip, float mag,float x,float y)
             //  a simple linear function
             float fa;
             fa=exp(-2.0*0.7*(dc*dc)/seeing/seeing);
-            fp=fa*flux*targetChip->getBinX()*targetChip->getBinY();
+            fp=fa*flux;
 
 
             if(fp < 0) fp=0;
@@ -922,11 +926,11 @@ int CCDSim::DrawImageStar(CCDChip *targetChip, float mag,float x,float y)
 
 int CCDSim::AddToPixel(CCDChip *targetChip, int x,int y,int val)
 {
-    int nwidth = targetChip->getSubW() / targetChip->getBinX();
-    int nheight = targetChip->getSubH() / targetChip->getBinY();
+    int nwidth = targetChip->getSubW();
+    int nheight = targetChip->getSubH();
 
-    x -= targetChip->getSubX() / targetChip->getBinX();    
-    y -= targetChip->getSubY() / targetChip->getBinY();
+    x -= targetChip->getSubX();
+    y -= targetChip->getSubY();
 
     int drew=0;
     if(x >= 0) {

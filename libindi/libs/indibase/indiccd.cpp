@@ -290,6 +290,7 @@ void CCDChip::binFrame()
     case 16:
     {
         uint16_t *bin_buf = (uint16_t*) BinFrame;
+        uint16_t *RawFrame16 = (uint16_t*) RawFrame;
         uint16_t val;
         for (int i=0; i < SubH; i+= BinX)
             for (int j=0; j < SubW; j+= BinX)
@@ -298,7 +299,7 @@ void CCDChip::binFrame()
                 {
                     for (int l=0; l < BinX; l++)
                     {
-                        val = *(RawFrame + j + (i+k) * SubW + l);
+                        val = *(RawFrame16 + j + (i+k) * SubW + l);
                         if (val + *bin_buf > UINT16_MAX)
                             *bin_buf = UINT16_MAX;
                         else
