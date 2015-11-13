@@ -100,9 +100,9 @@ bool FlipFlat::initProperties()
     IUFillTextVector(&PortTP,PortT,1,getDeviceName(),"DEVICE_PORT","Ports",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
 
     // Open/Close cover
-    IUFillSwitch(&CoverS[0], "DUST_COVER_OPEN", "Open", ISS_OFF);
-    IUFillSwitch(&CoverS[1], "DUST_COVER_CLOSE", "Close", ISS_OFF);
-    IUFillSwitchVector(&CoverSP, CoverS, 2, getDeviceName(), "DUST_COVER", "Dust Cover", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillSwitch(&CoverS[0], "PARK", "Close", ISS_OFF);
+    IUFillSwitch(&CoverS[1], "UNPARK", "Open", ISS_OFF);
+    IUFillSwitchVector(&CoverSP, CoverS, 2, getDeviceName(), "CAP_PARK", "Dust Cover", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     // Turn on/off light
     IUFillSwitch(&LightS[0], "FLAT_LIGHT_ON", "On", ISS_OFF);
@@ -274,7 +274,7 @@ bool FlipFlat::ISNewSwitch (const char *dev, const char *name, ISState *states, 
         if (!strcmp(CoverSP.name, name))
         {
             IUUpdateSwitch(&CoverSP, states, names, n);
-            bool rc = controlCover(CoverS[0].s == ISS_ON ? OPEN_COVER : CLOSE_COVER);
+            bool rc = controlCover(CoverS[0].s == ISS_ON ? CLOSE_COVER : OPEN_COVER);
             IUResetSwitch(&CoverSP);
 
             CoverSP.s = rc ? IPS_BUSY : IPS_ALERT;
@@ -284,7 +284,7 @@ bool FlipFlat::ISNewSwitch (const char *dev, const char *name, ISState *states, 
             return true;
         }
 
-        // Cover
+        // Light
         if (!strcmp(LightSP.name, name))
         {
             int prevIndex = IUFindOnSwitchIndex(&LightSP);
