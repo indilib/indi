@@ -190,8 +190,6 @@ bool Vantage::Connect()
     int connectrc=0;
     char errorMsg[MAXRBUF];
 
-    tty_set_debug(1);
-
     DEBUGF(INDI::Logger::DBG_DEBUG, "Vantage connecting to %s", PortT[0].text);
 
     if ( (connectrc = tty_connect(PortT[0].text, atoi(IUFindOnSwitch(&BaudRateSP)->name), 8, 0, 1, &PortFD)) != TTY_OK)

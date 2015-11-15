@@ -316,8 +316,6 @@ bool FlipFlat::ping()
     char response[FLAT_RES];
     int i=0;
 
-    tty_set_debug(1);
-
     tcflush(PortFD, TCIOFLUSH);
 
     strncpy(command, ">P000", FLAT_CMD);
