@@ -22,8 +22,23 @@
 #include "indibase/inditelescope.h"
 
 
+#define SYNSCAN_SLEW_RATES 9
+
 class SynscanMount : public INDI::Telescope
 {
+    private:
+ 	float FirmwareVersion;
+	int MountModel;
+	char LastParkRead[20];
+	int NumPark;
+        int SlewRate;
+	int PassthruCommand(int cmd,int target,int msgsize,int data,int numReturn);
+
+	bool CanSetLocation;
+	bool ReadLatLong;
+	bool HasFailed;
+	bool FirstConnect;
+      	bool AnalyzeHandset();
 
     public:
         SynscanMount();
@@ -37,7 +52,17 @@ class SynscanMount : public INDI::Telescope
         bool ReadScopeStatus();
         bool Goto(double,double);
         bool Park();
+	bool UnPark();
         bool Abort();        
+        bool SetSlewRate(int);
+	bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
+	bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
+	bool ReadTime();
+	bool ReadLocation();
+       	bool updateLocation(double latitude, double longitude, double elevation);        
+        bool updateTime(ln_date *utc, double utc_offset);
+	void SetCurrentPark();
+	void SetDefaultPark();
 
 };
 

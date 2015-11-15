@@ -74,7 +74,12 @@ void ISSnoopDevice (XMLEle *root)
 
 SynscanMount::SynscanMount()
 {    
-    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_ABORT);
+    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_ABORT,SYNSCAN_SLEW_RATES);
+    SetParkDataType(PARK_RA_DEC_ENCODER);
+    strcpy(LastParkRead,"");
+    SlewRate=5;
+    HasFailed=true;
+    FirstConnect=true;
 }
 
 SynscanMount::~SynscanMount()
@@ -86,6 +91,84 @@ const char * SynscanMount::getDefaultName()
 {
     return "SynScan";
 }
+
+bool SynscanMount::AnalyzeHandset()
+{
+	bool r;
+	bool rc;
+	int caps;
+	//  call the parent
+	//r=INDI::Telescope::Connect();
+	//if( !r) {
+	//	return r;
+	//}
+	//  get the basics
+	caps=GetTelescopeCapability();
+
+	IDMessage(getDeviceName(),"Detecting Synscan Handset Capabilities");
+	rc=ReadLocation();
+	if(rc) {
+	    CanSetLocation=true;
+	    caps |= TELESCOPE_HAS_LOCATION;
+            rc=ReadTime();
+            if(rc) caps |= TELESCOPE_HAS_TIME;
+	} else {
+	    CanSetLocation=false;
+        }
+
+	int tmp,tmp1,tmp2;
+	int bytesWritten,bytesRead;
+	char str[20];
+
+    	bytesRead=0;
+	memset(str,0,20);
+    	tty_write(PortFD,"J",1,&bytesWritten);
+    	tty_read(PortFD,str,2,2,&bytesRead);
+	tmp=str[0];
+
+    	bytesRead=0;
+	memset(str,0,20);
+    	tty_write(PortFD,"m",1,&bytesWritten);
+    	tty_read(PortFD,str,2,2,&bytesRead);
+	tmp=str[0];
+	//fprintf(stderr,"Model %d\n",tmp);
+	MountModel=tmp;
+	IDMessage(getDeviceName(),"Mount Model %d",tmp);
+
+    	bytesRead=0;
+	memset(str,0,20);
+    	tty_write(PortFD,"V",1,&bytesWritten);
+    	tty_read(PortFD,str,3,2,&bytesRead);
+	tmp=str[0];
+        tmp1=str[1];
+        tmp2=str[2];
+	//fprintf(stderr,"version %d %d %d\n",tmp,tmp1,tmp2);
+	
+	FirmwareVersion=tmp2;
+	FirmwareVersion/=100;
+	FirmwareVersion+=tmp1;
+	FirmwareVersion/=100;
+	FirmwareVersion+=tmp;
+	//fprintf(stderr,"FirmwareVersion %6.4f\n",FirmwareVersion);
+	IDMessage(getDeviceName(),"Handset Firmware Version %6.4f",FirmwareVersion);
+
+	SetTelescopeCapability(caps,SYNSCAN_SLEW_RATES);
+
+        if (InitPark()) {
+            //fprintf(stderr,"InitPark returns true\n");
+            SetAxis1ParkDefault(0);
+            SetAxis2ParkDefault(90);
+        } else {
+            //fprintf(stderr,"InitPark returns false\n");
+            SetAxis1Park(0);
+            SetAxis2Park(90);
+            SetAxis1ParkDefault(0);
+            SetAxis2ParkDefault(90);
+        }
+
+	return r;
+}
+
 
 bool SynscanMount::ReadScopeStatus()
 {
@@ -106,7 +189,52 @@ bool SynscanMount::ReadScopeStatus()
         if (isDebug())
             IDLog("ReadStatus Echo Fail. %s\n", str);
         IDMessage(getDeviceName(),"Mount Not Responding");
+	HasFailed=true;
         return false;
+    }
+
+/*
+//  With 3.37 firmware, on the older line of eq6 mounts
+//  The handset does not always initialize the communication with the motors correctly
+//  We can check for this condition by querying the motors for firmware version
+//  and if it returns zero, it means we need to power cycle the handset
+//  and try again after it restarts again
+
+    if(HasFailed) {
+        int v1,v2;
+	//fprintf(stderr,"Calling passthru command to get motor firmware versions\n");
+        v1=PassthruCommand(0xfe,0x11,1,0,2);
+        v2=PassthruCommand(0xfe,0x10,1,0,2);
+        fprintf(stderr,"Motor firmware versions %d %d\n",v1,v2);
+        if((v1==0)||(v2==0)) {
+            IDMessage(getDeviceName(),"Cannot proceed");
+            IDMessage(getDeviceName(),"Handset is responding, but Motors are Not Responding");
+            return false;
+	}
+        //  if we get here, both motors are responding again
+        //  so the problem is solved
+	HasFailed=false;
+    }
+*/
+
+    if(FirstConnect) {
+	//  the first time we come thru, we need to figure out a few things about our handset
+        //  ie can it do date and time etc
+	AnalyzeHandset();
+	FirstConnect=false;
+    } else {
+	//  on subsequent passes, we just need to read the time
+        if(HasTime()) {
+            ReadTime();
+        }
+        if(HasLocation()) {
+	    //  this flag is set when we get a new lat/long from the host
+            //  so we should go thru the read routine once now, so things update
+            //  correctly in the client displays
+            if(ReadLatLong) {
+                ReadLocation();
+            }
+        }
     }
 
     if(TrackState==SCOPE_SLEWING)
@@ -131,17 +259,30 @@ bool SynscanMount::ReadScopeStatus()
     {
         //  ok, lets try read where we are
         //  and see if we have reached the park position
+	//  newer firmware versions dont read it back the same way
+	//  so we watch now to see if we get the same read twice in a row
+	//  to confirm that it has stopped moving
         memset(str,0,20);
-        tty_write(PortFD,"Z",1, &bytesWritten);
-        numread=tty_read(PortFD,str,10,2, &bytesRead);
+        tty_write(PortFD,"z",1, &bytesWritten);
+        numread=tty_read(PortFD,str,18,2, &bytesRead);
         //IDLog("PARK READ %s\n",str);
-        if(strncmp((char *)str,"0000,4000",9)==0)
+
+        if(strncmp((char *)str,LastParkRead,18)==0)
         {
-            TrackState=SCOPE_PARKED;
-            ParkSP.s=IPS_OK;
-            IDSetSwitch(&ParkSP,NULL);
-            IDMessage(getDeviceName(),"Telescope is Parked.");
+	    //  We find that often after it stops from park 
+            //  it's off the park position by a small amount
+            //  issuing another park command gets a small movement and then
+	    if(NumPark++ < 2) {
+		Park();
+            } else {
+                TrackState=SCOPE_PARKED;
+                //ParkSP.s=IPS_OK;
+                //IDSetSwitch(&ParkSP,NULL);
+                IDMessage(getDeviceName(),"Telescope is Parked.");
+                SetParked(true);
+            }
         }
+	strcpy(LastParkRead,str);
 
     }
 
@@ -209,7 +350,7 @@ bool SynscanMount::Park()
     char str[20];
     int numread, bytesWritten, bytesRead;
 
-
+    strcpy(LastParkRead,"");
     memset(str,0,3);
     tty_write(PortFD,"Ka",2, &bytesWritten);  //  test for an echo
     tty_read(PortFD,str,2,2, &bytesRead);  //  Read 2 bytes of response
@@ -230,7 +371,7 @@ bool SynscanMount::Park()
     }
 
     //sprintf((char *)str,"b%08X,%08X",0x0,0x40000000);
-    tty_write(PortFD,"B0000,4000",10, &bytesWritten);
+    tty_write(PortFD,"b00000000,40000000",18, &bytesWritten);
     numread=tty_read(PortFD,str,1,60, &bytesRead);
     if (bytesRead!=1||str[0]!='#')
     {
@@ -240,8 +381,31 @@ bool SynscanMount::Park()
     }
 
     TrackState=SCOPE_PARKING;
-    IDMessage(getDeviceName(),"Parking Telescope...");
+    if(NumPark==0) IDMessage(getDeviceName(),"Parking Telescope...");
     return true;
+}
+
+bool SynscanMount::UnPark()
+{
+    SetParked(false);
+    NumPark=0;
+    return true;
+}
+
+void SynscanMount::SetCurrentPark()
+{
+    IDMessage(getDeviceName(),"Setting Default Park Position");
+    IDMessage(getDeviceName(),"Arbitrary park positions not yet supported.");
+    SetAxis1Park(0);
+    SetAxis2Park(90);
+}
+
+void SynscanMount::SetDefaultPark()
+{
+    // By default az to north, and alt to pole
+    IDMessage(getDeviceName(),"Setting Park Data to Default.");
+    SetAxis1Park(0);
+    SetAxis2Park(90);
 }
 
 bool  SynscanMount::Abort()
@@ -259,4 +423,335 @@ bool  SynscanMount::Abort()
 
     return true;
 }
+
+
+bool SynscanMount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
+{
+    //fprintf(stderr,"MoveNS %d rate %d dir %d\n",command,SlewRate,dir);
+    if(command) {
+        //fprintf(stderr,"Stop Motion N/S\n");
+        PassthruCommand(37,17,2,0,0);
+    } else {
+        int tt;
+	tt=SlewRate;
+        tt=tt<<16;
+        if(dir) {
+            //fprintf(stderr,"Start Motion South\n");
+            PassthruCommand(37,17,2,tt,0);
+        } else {
+            //fprintf(stderr,"Start Motion North\n");
+            PassthruCommand(36,17,2,tt,0);
+        }
+    }
+
+    return true;
+}
+
+bool SynscanMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
+{
+    //fprintf(stderr,"MoveWE %d rate %d dir %d\n",command,SlewRate,dir);
+
+    if(command) {
+        //fprintf(stderr,"Stop Motion E/W\n");
+        PassthruCommand(37,16,2,0,0);
+    } else {
+        int tt;
+	tt=SlewRate;
+        tt=tt<<16;
+        if(dir) {
+            //fprintf(stderr,"Start Motion East\n");
+            PassthruCommand(37,16,2,tt,0);
+        } else {
+            //fprintf(stderr,"Start Motion West\n");
+            PassthruCommand(36,16,2,tt,0);
+        }
+    }
+
+    return true;
+}
+
+bool SynscanMount::SetSlewRate(int s)
+{
+    SlewRate=s+1;
+    //fprintf(stderr,"Slew rate %d\n",SlewRate);
+    return true;
+}
+
+
+int SynscanMount::PassthruCommand(int cmd,int target,int msgsize,int data,int numReturn)
+{
+    char test[20];
+    int bytesRead,bytesWritten;
+    char a,b,c;
+    int tt;
+
+    tt=data;
+    a=tt%256;
+    tt=tt>>8;
+    b=tt%256;
+    tt=tt>>8;
+    c=tt%256;
+    
+//  format up a passthru command
+    memset(test,0,20);
+    test[0]=80;  // passhtru
+    test[1]=msgsize;   // set message size
+    test[2]=target;    // set the target 
+    test[3]=cmd;       // set the command
+    test[4]=c;         // set data bytes
+    test[5]=b;
+    test[6]=a;
+    test[7]=numReturn;
+
+    tty_write(PortFD,test,8,&bytesWritten);
+    memset(test,0,20);
+    //fprintf(stderr,"Start Passthru %d %d %d %d\n",cmd,target,msgsize,data);
+    tty_read(PortFD,test,numReturn+1,2,&bytesRead);
+    //fprintf(stderr,"Got %d bytes\n",bytesRead);
+    //for(int x=0; x<bytesRead; x++) {
+    //    fprintf(stderr,"%x ",test[x]);
+    //}
+    //fprintf(stderr,"\n");
+    if(numReturn > 0) {
+        int retval=0;
+        retval=test[0];
+	if(numReturn >1) {
+             retval=retval<<8;
+	     retval+=test[1];
+        }
+	if(numReturn >2) {
+             retval=retval<<8;
+	     retval+=test[2];
+        }
+        return retval;
+    }
+
+    return 0;
+}
+
+bool SynscanMount::ReadTime()
+{
+    char str[20];
+    int bytesWritten, bytesRead;
+    int numread;
+
+    //  lets see if this hand controller responds to a time request
+    bytesRead=0;
+    tty_write(PortFD,"h",1,&bytesWritten);
+    tty_read(PortFD,str,9,2,&bytesRead);
+    //fprintf(stderr,"Read Time returns %d\n",bytesRead);
+    if(str[8] == '#') {
+	ln_zonedate localTime;
+	ln_date utcTime;
+
+
+        int offset, daylightflag;
+        //fprintf(stderr,"Got a good terminator\n");
+        localTime.hours=str[0];
+        localTime.minutes=str[1];
+        localTime.seconds=str[2];
+        localTime.months=str[3];
+        localTime.days=str[4];
+        localTime.years=str[5];
+        localTime.gmtoff=str[6];
+        offset=str[6];
+        daylightflag=str[7];  //  this is the daylight savings flag in the hand controller, needed if we did not set the time
+	localTime.years+=2000;
+	localTime.gmtoff*=3600;
+	//  now convert to utc
+	ln_zonedate_to_date(&localTime, &utcTime);
+
+	//  now we have time from the hand controller, we need to set some variables
+	int sec;
+	char utc[100];
+	char ofs[10];
+        sec=(int) utcTime.seconds;
+	sprintf(utc,"%04d-%02d-%dT%d:%02d:%02d",utcTime.years,utcTime.months,utcTime.days,utcTime.hours,utcTime.minutes,sec);
+	if(daylightflag==1) offset=offset+1;
+	sprintf(ofs,"%d",offset);
+
+        IUSaveText(&TimeT[0], utc);
+        IUSaveText(&TimeT[1], ofs);
+        TimeTP.s = IPS_OK;
+        IDSetText(&TimeTP, NULL);
+
+        return true;
+    }
+    return false;
+}
+
+bool SynscanMount::ReadLocation()
+{
+    char str[20];
+    int bytesWritten, bytesRead;
+    int numread;
+
+    //fprintf(stderr,"Read Location\n");
+
+    tty_write(PortFD,"Ka",2, &bytesWritten);  //  test for an echo
+    tty_read(PortFD,str,2,2, &bytesRead);  //  Read 2 bytes of response
+    if(str[1] != '#')
+    {
+        fprintf(stderr,"bad echo in ReadLocation\n");
+    } else {
+
+	//  lets see if this hand controller responds to a location request
+    	bytesRead=0;
+    	tty_write(PortFD,"w",1,&bytesWritten);
+    	tty_read(PortFD,str,9,2,&bytesRead);
+    	if(str[8] == '#') {
+		
+	    double lat,lon;
+	    //  lets parse this data now
+            int a,b,c,d,e,f,g,h;
+            a=str[0];
+            b=str[1];
+            c=str[2];
+            d=str[3];
+            e=str[4];
+            f=str[5];
+            g=str[6];
+            h=str[7];
+            //fprintf(stderr,"Pos %d:%d:%d  %d:%d:%d\n",a,b,c,e,f,g);
+
+            double t1,t2,t3;
+
+            t1=c;
+            t2=b;
+            t3=a;
+            t1=t1/3600.0;
+            t2=t2/60.0;
+            lat=t1+t2+t3;
+
+            t1=g;
+            t2=f;
+            t3=e;
+            t1=t1/3600.0;
+            t2=t2/60.0;
+            lon=t1+t2+t3;
+
+            if(d==1) lat=lat*-1;
+            if(h==1) lon=360-lon;
+            LocationN[LOCATION_LATITUDE].value=lat;
+            LocationN[LOCATION_LONGITUDE].value=lon;
+            IDSetNumber(&LocationNP, NULL);
+            //  We dont need to keep reading this one on every cycle
+            //  only need to read it when it's been changed
+            ReadLatLong=false;
+            return true;
+        } else {
+           fprintf(stderr,"Mount does not support setting location\n");
+        }
+    }
+    return false;
+}
+
+bool SynscanMount::updateTime(ln_date *utc, double utc_offset)
+{
+
+    char str[20];
+    int bytesWritten, bytesRead;
+    int numread;
+
+    //  start by formatting a time for the hand controller
+    //  we are going to set controller to local time
+    //
+
+    //fprintf(stderr,"Update time\n");
+    struct ln_zonedate ltm;
+    ln_date_to_zonedate(utc, &ltm, utc_offset*3600.0);
+
+    int yr;
+    yr=ltm.years;
+    yr=yr%100;
+
+    str[0]='H';
+    str[1]=ltm.hours;
+    str[2]=ltm.minutes;
+    str[3]=ltm.seconds;
+    str[4]=ltm.months;
+    str[5]=ltm.days;
+    str[6]=yr;
+    str[7]=utc_offset;  //  offset from utc so hand controller is running in local time
+    str[8]=0;  //  and no daylight savings adjustments, it's already included in the offset
+    //  lets write a time to the hand controller
+    bytesRead=0;
+    tty_write(PortFD,str,9,&bytesWritten);
+    tty_read(PortFD,str,1,2,&bytesRead);
+    if(str[0] != '#' ) {
+        fprintf(stderr,"Invalid return from set time\n");
+    } else {
+        //fprintf(stderr,"Set time returns correctly\n");
+    }
+
+    return true;
+}
+
+bool SynscanMount::updateLocation(double latitude, double longitude, double elevation)
+{ 
+    char str[20];
+    int bytesWritten, bytesRead;
+    int numread;
+    int s;
+    bool IsWest=false;
+    double tmp;
+
+    ln_lnlat_posn p1;
+    lnh_lnlat_posn p2;
+
+    if(!CanSetLocation) {
+
+            LocationN[LOCATION_LATITUDE].value=latitude;
+            LocationN[LOCATION_LONGITUDE].value=longitude;
+            IDSetNumber(&LocationNP, NULL);
+	    return true;
+
+    } else {
+    
+
+    //fprintf(stderr,"Enter Update Location %4.6lf  %4.6lf\n",latitude,longitude);
+    if(longitude > 180) {
+        p1.lng=360.0-longitude;
+        IsWest=true;
+    } else {
+        p1.lng=longitude;
+    }
+    p1.lat=latitude;
+    ln_lnlat_to_hlnlat(&p1,&p2);
+
+//fprintf(stderr,"Lat seconds %4.3lf\n",p2.lat.seconds);
+
+    str[0]='W';
+    str[1]=p2.lat.degrees;
+    str[2]=p2.lat.minutes;
+    tmp=p2.lat.seconds+0.5;
+    s=(int)tmp; //  put in an int that's rounded
+//fprintf(stderr,"Sending %d\n",s);
+    str[3]=s;
+    if(p2.lat.neg==0) str[4]=0;
+    else str[4]=1;
+
+    str[5]=p2.lng.degrees;
+    str[6]=p2.lng.minutes;
+    s=(p2.lng.seconds+0.5); //  make an int, that's rounded
+    str[7]=s;
+    if(IsWest) str[8]=1;
+    else str[8]=0;
+    //  All formatted, now send to the hand controller;
+    bytesRead=0;
+    tty_write(PortFD,str,9,&bytesWritten);
+    tty_read(PortFD,str,1,2,&bytesRead);
+    if(str[0] != '#' ) {
+        fprintf(stderr,"Invalid return from set location\n");
+    } else {
+        //fprintf(stderr,"Set location returns correctly\n");
+    }
+    //  want to read it on the next cycle, so we update the fields in the client
+    ReadLatLong=true;
+
+
+    return true;
+    }
+}        
+
 
