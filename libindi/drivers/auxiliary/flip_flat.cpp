@@ -100,9 +100,9 @@ bool FlipFlat::initProperties()
     IUFillTextVector(&PortTP,PortT,1,getDeviceName(),"DEVICE_PORT","Ports",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
 
     // Open/Close cover
-    IUFillSwitch(&CoverS[0], "PARK", "Close", ISS_OFF);
-    IUFillSwitch(&CoverS[1], "UNPARK", "Open", ISS_OFF);
-    IUFillSwitchVector(&CoverSP, CoverS, 2, getDeviceName(), "CAP_PARK", "Dust Cover", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillSwitch(&CoverS[0], "PARK", "Park", ISS_OFF);
+    IUFillSwitch(&CoverS[1], "UNPARK", "Unpark", ISS_OFF);
+    IUFillSwitchVector(&CoverSP, CoverS, 2, getDeviceName(), "CAP_PARK", "Dust Cover", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Turn on/off light
     IUFillSwitch(&LightS[0], "FLAT_LIGHT_ON", "On", ISS_OFF);
@@ -528,7 +528,7 @@ bool FlipFlat::getStatus()
             if (CoverSP.s == IPS_BUSY || CoverSP.s == IPS_IDLE)
             {
                 IUResetSwitch(&CoverSP);
-                CoverS[1].s = ISS_ON;
+                CoverS[0].s = ISS_ON;
                 CoverSP.s = IPS_OK;
                 DEBUG(INDI::Logger::DBG_SESSION, "Cover closed.");
                 IDSetSwitch(&CoverSP, NULL);
@@ -540,7 +540,7 @@ bool FlipFlat::getStatus()
             if (CoverSP.s == IPS_BUSY || CoverSP.s == IPS_IDLE)
             {
                 IUResetSwitch(&CoverSP);
-                CoverS[0].s = ISS_ON;
+                CoverS[1].s = ISS_ON;
                 CoverSP.s = IPS_OK;
                 DEBUG(INDI::Logger::DBG_SESSION, "Cover open.");
                 IDSetSwitch(&CoverSP, NULL);
