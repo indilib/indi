@@ -44,7 +44,7 @@
 #include "lx200fs2.h"
 
 // We declare an auto pointer to LX200Generic.
-std::unique_ptr<LX200Generic> telescope(new LX200Generic());
+std::unique_ptr<LX200Generic> telescope;
 
 /* There is _one_ binary for all LX200 drivers, but each binary is renamed
 ** to its device name (i.e. lx200gps, lx200_16..etc). The main function will
