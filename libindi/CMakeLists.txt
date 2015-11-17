@@ -206,7 +206,9 @@ install(TARGETS indiclient ARCHIVE DESTINATION ${LIB_DESTINATION})
 ##################################################
 ########### INDI Alignment Subsystem #############
 ##################################################
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 add_subdirectory(${CMAKE_SOURCE_DIR}/libs/indibase/alignment)
+endif()
 
 #####################################
 ######## AGENT GROUP #########
@@ -761,7 +763,9 @@ install(TARGETS indi_eval RUNTIME DESTINATION bin )
 #################################################################################
 ## Build Examples. Not installation
 
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 add_subdirectory(${CMAKE_SOURCE_DIR}/examples)
+endif()
 
 #################################################################################
 
