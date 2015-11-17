@@ -9,17 +9,17 @@
 	<key>CFBundleIconFile</key>
 	<string>AppIcon.icns</string>
 	<key>CFBundleIdentifier</key>
-	<string>eu.cloudmakers.indi.INDI-Server</string>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>2.1.0</string>
+	<string>2.1.1</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleVersion</key>
-	<string>1.1.0.2439</string>
+	<string>1.1.0.2543</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.education</string>
 	<key>NSHumanReadableCopyright</key>

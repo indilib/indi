@@ -259,7 +259,6 @@
   [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_atik" ofType: @"xml"] encoding:NSUTF8StringEncoding error:&error]];
   [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_eqmod" ofType: @"xml"] encoding:NSUTF8StringEncoding error:&error]];
   [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_sx" ofType: @"xml"] encoding:NSUTF8StringEncoding error:&error]];
-  [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_qhy" ofType: @"xml"] encoding:NSUTF8StringEncoding error:&error]];
   [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_shoestring" ofType: @"xml"] encoding:NSUTF8StringEncoding error:&error]];
   [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_maxdomeii" ofType: @"xml"] encoding:NSUTF8StringEncoding error:&error]];
   [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_spectracyber" ofType: @"xml"] encoding:NSUTF8StringEncoding error:&error]];
