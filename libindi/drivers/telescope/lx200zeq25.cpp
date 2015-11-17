@@ -227,7 +227,7 @@ bool LX200ZEQ25::updateTime(ln_date * utc, double utc_offset)
         return false;
     }
 
-    if (setUTCOffset(PortFD, (utc_offset)) < 0)
+    if (setZEQ25UTCOffset(utc_offset) < 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting UTC Offset.");
         return false;
@@ -284,8 +284,45 @@ int LX200ZEQ25::setZEQ25Longitude(double Long)
 
    getSexComponents(Long, &d, &m, &s);
 
-   snprintf(temp_string, sizeof( temp_string ), ":Sg %c%03d*%02d:%02d#", sign, abs(d), m,s);
+   snprintf(temp_string, sizeof( temp_string ), ":Sg %c%03d:%02d:%02d#", sign, abs(d), m,s);
 
    return (setStandardProcedure(PortFD, temp_string));
+}
+
+int LX200ZEQ25::setZEQ25Latitude(double Lat)
+{
+   int d, m, s;
+   char sign;
+   char temp_string[32];
+
+   if (Lat > 0)
+       sign = '+';
+   else
+       sign = '-';
+
+   getSexComponents(Lat, &d, &m, &s);
+
+   snprintf(temp_string, sizeof( temp_string ), ":St %c%02d:%02d:%02d#", sign, abs(d), m,s);
+
+   return (setStandardProcedure(PortFD, temp_string));
+}
+
+int LX200ZEQ25::setZEQ25UTCOffset(double hours)
+{
+   char temp_string[16];
+   char sign;
+   int h=0,m=0,s=0;
+
+   if (hours > 0)
+       sign = '+';
+   else
+       sign = '-';
+
+   getSexComponents(hours, &h, &m, &s);
+
+   snprintf(temp_string, sizeof( temp_string ), ":SG %c%02d:%02d#", sign, abs(h), m);
+
+   return (setStandardProcedure(PortFD, temp_string));
+
 }
 
