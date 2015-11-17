@@ -168,7 +168,7 @@ int check_lx200_connection(int in_fd)
   char MountAlign[64];
   int nbytes_read=0;
 
-  DEBUGDEVICE(lx200Name, INDI::Logger::DBG_DEBUG, "Testing telescope's connection using ACK...");
+  DEBUGDEVICE(lx200Name, INDI::Logger::DBG_DEBUG, "Testing telescope connection using ACK...");
 
   if (in_fd <= 0) return -1;
 
