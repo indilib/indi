@@ -256,7 +256,7 @@ bool LX200ZEQ25::updateLocation(double latitude, double longitude, double elevat
         return false;
     }
 
-    if (isSimulation() == false && setSiteLatitude(PortFD, latitude) < 0)
+    if (isSimulation() == false && setZEQ25Latitude(latitude) < 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting site latitude coordinates");
         return false;
