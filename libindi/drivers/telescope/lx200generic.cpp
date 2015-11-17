@@ -40,6 +40,7 @@
 #include "lx200classic.h"
 #include "lx200ap.h"
 #include "lx200gemini.h"
+#include "lx200zeq25.h"
 #include "lx200fs2.h"
 
 // We declare an auto pointer to LX200Generic.
@@ -114,6 +115,13 @@ void ISInit()
       IDLog("initializing from Losmandy Gemini device...\n");
 
       if(telescope.get() == 0) telescope.reset(new LX200Gemini());
+
+ }
+ else if (strstr(me, "indi_lx200zeq25"))
+ {
+       IDLog("initializing from ZEQ25 device...\n");
+
+       if(telescope.get() == 0) telescope.reset(new LX200ZEQ25());
 
  }
  else if (strstr(me, "indi_lx200fs2"))
