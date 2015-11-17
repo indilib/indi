@@ -325,7 +325,7 @@ int isSlewComplete(int fd)
     char data[8];
     int error_type;
     int nbytes_write=0, nbytes_read=0;
-    const char *cmd = "#:D#";
+    const char *cmd = ":D#";
 
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", cmd);
 
@@ -355,7 +355,7 @@ int getCalenderDate(int fd, char *date)
  int nbytes_read=0;
  char mell_prefix[3];
 
- if ( (error_type = getCommandString(fd, date, "#:GC#")) )
+ if ( (error_type = getCommandString(fd, date, ":GC#")) )
    return error_type;
 
   /* Meade format is MM/DD/YY */
@@ -384,9 +384,9 @@ int getTimeFormat(int fd, int *format)
   int nbytes_write=0, nbytes_read=0;
   int tMode;
 
-  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:Gc#");
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":Gc#");
 
- if ( (error_type = tty_write_string(fd, "#:Gc#", &nbytes_write)) != TTY_OK)
+ if ( (error_type = tty_write_string(fd, ":Gc#", &nbytes_write)) != TTY_OK)
     return error_type;
 
   if ( (error_type = tty_read_section(fd, temp_string, '#', LX200_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -422,23 +422,23 @@ int getSiteName(int fd, char *siteName, int siteNum)
   switch (siteNum)
   {
     case 1:
-      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:GM#");
-       if ( (error_type = tty_write_string(fd, "#:GM#", &nbytes_write)) != TTY_OK)
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":GM#");
+       if ( (error_type = tty_write_string(fd, ":GM#", &nbytes_write)) != TTY_OK)
     	return error_type;
      break;
     case 2:
-      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:GN#");
-	if ( (error_type = tty_write_string(fd, "#:GN#", &nbytes_write)) != TTY_OK)
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":GN#");
+    if ( (error_type = tty_write_string(fd, ":GN#", &nbytes_write)) != TTY_OK)
     	return error_type;
      break;
     case 3:
-      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:GO#");
-	if ( (error_type = tty_write_string(fd, "#:GO#", &nbytes_write)) != TTY_OK)
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":GO#");
+    if ( (error_type = tty_write_string(fd, ":GO#", &nbytes_write)) != TTY_OK)
     	return error_type;
      break;
     case 4:
-      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:GP#");
-	if ( (error_type = tty_write_string(fd, "#:GP#", &nbytes_write)) != TTY_OK)
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":GP#");
+    if ( (error_type = tty_write_string(fd, ":GP#", &nbytes_write)) != TTY_OK)
     	return error_type;
      break;
     default:
@@ -475,9 +475,9 @@ int getSiteLatitude(int fd, int *dd, int *mm)
   int error_type;
   int nbytes_write=0, nbytes_read=0;
 
-  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:Gt#");
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":Gt#");
 
-  if ( (error_type = tty_write_string(fd, "#:Gt#", &nbytes_write)) != TTY_OK)
+  if ( (error_type = tty_write_string(fd, ":Gt#", &nbytes_write)) != TTY_OK)
     	return error_type;
 
   error_type = tty_read_section(fd, temp_string, '#', LX200_TIMEOUT, &nbytes_read);
@@ -508,9 +508,9 @@ int getSiteLongitude(int fd, int *ddd, int *mm)
   int error_type;
   int nbytes_write=0, nbytes_read=0;
 
-  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:Gg#");
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":Gg#");
 
-  if ( (error_type = tty_write_string(fd, "#:Gg#", &nbytes_write)) != TTY_OK)
+  if ( (error_type = tty_write_string(fd, ":Gg#", &nbytes_write)) != TTY_OK)
     	return error_type;
 
   error_type = tty_read_section(fd, temp_string, '#', LX200_TIMEOUT, &nbytes_read);
@@ -543,9 +543,9 @@ int getTrackFreq(int fd, double *value)
     int error_type;
     int nbytes_write=0, nbytes_read=0;
     
-    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:GT#");
+    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":GT#");
 
-    if ( (error_type = tty_write_string(fd, "#:GT#", &nbytes_write)) != TTY_OK)
+    if ( (error_type = tty_write_string(fd, ":GT#", &nbytes_write)) != TTY_OK)
     	return error_type;
 
     error_type = tty_read_section(fd, temp_string, '#', LX200_TIMEOUT, &nbytes_read);
@@ -578,9 +578,9 @@ int getHomeSearchStatus(int fd, int *status)
   int error_type;
   int nbytes_write=0, nbytes_read=0;
 
-  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:h?#");
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":h?#");
 
-  if ( (error_type = tty_write_string(fd, "#:h?#", &nbytes_write)) != TTY_OK)
+  if ( (error_type = tty_write_string(fd, ":h?#", &nbytes_write)) != TTY_OK)
     	return error_type;
 
   error_type = tty_read_section(fd, temp_string, '#', LX200_TIMEOUT, &nbytes_read);
@@ -614,9 +614,9 @@ int getOTATemp(int fd, double *value)
   int nbytes_write=0, nbytes_read=0;
   float temp;
   
-  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:fT#");
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":fT#");
 
-  if ( (error_type = tty_write_string(fd, "#:fT#", &nbytes_write)) != TTY_OK)
+  if ( (error_type = tty_write_string(fd, ":fT#", &nbytes_write)) != TTY_OK)
     	return error_type;
 
   error_type = tty_read_section(fd, temp_string, '#', LX200_TIMEOUT, &nbytes_read);
@@ -702,7 +702,7 @@ int setMinElevationLimit(int fd, int min)
   DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
  char temp_string[16];
 
- snprintf(temp_string, sizeof( temp_string ), "#:Sh%02d#", min);
+ snprintf(temp_string, sizeof( temp_string ), ":Sh%02d#", min);
 
  return (setStandardProcedure(fd, temp_string));
 }
@@ -713,7 +713,7 @@ int setMaxElevationLimit(int fd, int max)
 
  char temp_string[16];
 
- snprintf(temp_string, sizeof( temp_string ), "#:So%02d*#", max);
+ snprintf(temp_string, sizeof( temp_string ), ":So%02d*#", max);
 
  return (setStandardProcedure(fd, temp_string));
 
@@ -728,7 +728,7 @@ int setMaxSlewRate(int fd, int slewRate)
    if (slewRate < 2 || slewRate > 8)
     return -1;
 
-   snprintf(temp_string, sizeof( temp_string ), "#:Sw%d#", slewRate);
+   snprintf(temp_string, sizeof( temp_string ), ":Sw%d#", slewRate);
 
    return (setStandardProcedure(fd, temp_string));
 
@@ -747,9 +747,9 @@ int setObjectRA(int fd, double ra)
  frac_m = (s / 60.0) * 10.;
 
  if (controller_format == LX200_LONG_FORMAT)
- 	snprintf(temp_string, sizeof( temp_string ), "#:Sr %02d:%02d:%02d#", h, m, s);
+    snprintf(temp_string, sizeof( temp_string ), ":Sr %02d:%02d:%02d#", h, m, s);
  else
-	snprintf(temp_string, sizeof( temp_string ), "#:Sr %02d:%02d.%01d#", h, m, frac_m); 
+    snprintf(temp_string, sizeof( temp_string ), ":Sr %02d:%02d.%01d#", h, m, frac_m);
 
  return (setStandardProcedure(fd, temp_string));
 }
@@ -770,17 +770,17 @@ int setObjectDEC(int fd, double dec)
     case LX200_SHORT_FORMAT:
     /* case with negative zero */
     if (!d && dec < 0)
-    	snprintf(temp_string, sizeof( temp_string ), "#:Sd -%02d*%02d#", d, m);
+        snprintf(temp_string, sizeof( temp_string ), ":Sd -%02d*%02d#", d, m);
     else	
-    	snprintf(temp_string, sizeof( temp_string ), "#:Sd %+03d*%02d#", d, m);
+        snprintf(temp_string, sizeof( temp_string ), ":Sd %+03d*%02d#", d, m);
     break;
 
     case LX200_LONG_FORMAT:
     /* case with negative zero */
     if (!d && dec < 0)
-    	snprintf(temp_string, sizeof( temp_string ), "#:Sd -%02d:%02d:%02d#", d, m, s);
+        snprintf(temp_string, sizeof( temp_string ), ":Sd -%02d:%02d:%02d#", d, m, s);
     else	
-    	snprintf(temp_string, sizeof( temp_string ), "#:Sd %+03d:%02d:%02d#", d, m, s);
+        snprintf(temp_string, sizeof( temp_string ), ":Sd %+03d:%02d:%02d#", d, m, s);
     break;
   }
   
@@ -805,18 +805,18 @@ int setAlignmentMode(int fd, unsigned int alignMode)
   switch (alignMode)
    {
      case LX200_ALIGN_POLAR:
-      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:AP#");
-	if ( (error_type = tty_write_string(fd, "#:AP#", &nbytes_write)) != TTY_OK)
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":AP#");
+    if ( (error_type = tty_write_string(fd, ":AP#", &nbytes_write)) != TTY_OK)
     	return error_type;
       break;
      case LX200_ALIGN_ALTAZ:
-      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:AA#");
-	if ( (error_type = tty_write_string(fd, "#:AA#", &nbytes_write)) != TTY_OK)
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":AA#");
+    if ( (error_type = tty_write_string(fd, ":AA#", &nbytes_write)) != TTY_OK)
     	return error_type;
       break;
      case LX200_ALIGN_LAND:
-      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:AL#");
-	if ( (error_type = tty_write_string(fd, "#:AL#", &nbytes_write)) != TTY_OK)
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":AL#");
+    if ( (error_type = tty_write_string(fd, ":AL#", &nbytes_write)) != TTY_OK)
     	return error_type;
        break;
    }
@@ -835,7 +835,7 @@ int setCalenderDate(int fd, int dd, int mm, int yy)
    int nbytes_write=0, nbytes_read=0;
    yy = yy % 100;
 
-   snprintf(temp_string, sizeof( temp_string ), "#:SC %02d/%02d/%02d#", mm, dd, yy);
+   snprintf(temp_string, sizeof( temp_string ), ":SC %02d/%02d/%02d#", mm, dd, yy);
 
    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", temp_string);
 
@@ -873,7 +873,7 @@ int setUTCOffset(int fd, double hours)
    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
    char temp_string[16];
 
-   snprintf(temp_string, sizeof( temp_string ), "#:SG %+03d#", (int) hours);
+   snprintf(temp_string, sizeof( temp_string ), ":SG %+03d#", (int) hours);
 
    return (setStandardProcedure(fd, temp_string));
 
@@ -887,7 +887,7 @@ int setSiteLongitude(int fd, double Long)
 
    getSexComponents(Long, &d, &m, &s);
 
-   snprintf(temp_string, sizeof( temp_string ), "#:Sg%03d:%02d#", d, m);
+   snprintf(temp_string, sizeof( temp_string ), ":Sg%03d:%02d#", d, m);
 
    return (setStandardProcedure(fd, temp_string));
 }
@@ -900,7 +900,7 @@ int setSiteLatitude(int fd, double Lat)
 
    getSexComponents(Lat, &d, &m, &s);
 
-   snprintf(temp_string, sizeof( temp_string ), "#:St%+03d:%02d:%02d#", d, m, s);
+   snprintf(temp_string, sizeof( temp_string ), ":St%+03d:%02d:%02d#", d, m, s);
 
    return (setStandardProcedure(fd, temp_string));
 }
@@ -913,7 +913,7 @@ int setObjAz(int fd, double az)
 
    getSexComponents(az, &d, &m, &s);
 
-   snprintf(temp_string, sizeof( temp_string ), "#:Sz%03d:%02d#", d, m);
+   snprintf(temp_string, sizeof( temp_string ), ":Sz%03d:%02d#", d, m);
 
    return (setStandardProcedure(fd, temp_string));
 
@@ -927,7 +927,7 @@ int setObjAlt(int fd, double alt)
 
    getSexComponents(alt, &d, &m, &s);
 
-   snprintf(temp_string, sizeof( temp_string ), "#:Sa%+02d*%02d#", d, m);
+   snprintf(temp_string, sizeof( temp_string ), ":Sa%+02d*%02d#", d, m);
 
    return (setStandardProcedure(fd, temp_string));
 }
@@ -941,16 +941,16 @@ int setSiteName(int fd, char * siteName, int siteNum)
    switch (siteNum)
    {
      case 1:
-      snprintf(temp_string, sizeof( temp_string ), "#:SM %s#", siteName);
+      snprintf(temp_string, sizeof( temp_string ), ":SM %s#", siteName);
       break;
      case 2:
-      snprintf(temp_string, sizeof( temp_string ), "#:SN %s#", siteName);
+      snprintf(temp_string, sizeof( temp_string ), ":SN %s#", siteName);
       break;
      case 3:
-      snprintf(temp_string, sizeof( temp_string ), "#:SO %s#", siteName);
+      snprintf(temp_string, sizeof( temp_string ), ":SO %s#", siteName);
       break;
     case 4:
-      snprintf(temp_string, sizeof( temp_string ), "#:SP %s#", siteName);
+      snprintf(temp_string, sizeof( temp_string ), ":SP %s#", siteName);
       break;
     default:
       return -1;
@@ -968,23 +968,23 @@ int setSlewMode(int fd, int slewMode)
   switch (slewMode)
   {
     case LX200_SLEW_MAX:
-      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:RS#");
-   if ( (error_type = tty_write_string(fd, "#:RS#", &nbytes_write)) != TTY_OK)
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":RS#");
+   if ( (error_type = tty_write_string(fd, ":RS#", &nbytes_write)) != TTY_OK)
     	return error_type;
      break;
     case LX200_SLEW_FIND:
-      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:RM#");
-     if ( (error_type = tty_write_string(fd, "#:RM#", &nbytes_write)) != TTY_OK)
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":RM#");
+     if ( (error_type = tty_write_string(fd, ":RM#", &nbytes_write)) != TTY_OK)
     	return error_type;
      break;
     case LX200_SLEW_CENTER:
-      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:RC#");
-	if ( (error_type = tty_write_string(fd, "#:RC#", &nbytes_write)) != TTY_OK)
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":RC#");
+    if ( (error_type = tty_write_string(fd, ":RC#", &nbytes_write)) != TTY_OK)
     	return error_type;
      break;
     case LX200_SLEW_GUIDE:
-      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:RG#");
-    if ( (error_type = tty_write_string(fd, "#:RG#", &nbytes_write)) != TTY_OK)
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":RG#");
+    if ( (error_type = tty_write_string(fd, ":RG#", &nbytes_write)) != TTY_OK)
     	return error_type;
      break;
     default:
@@ -1005,13 +1005,13 @@ int setFocuserMotion(int fd, int motionType)
   switch (motionType)
   {
     case LX200_FOCUSIN:
-      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:F+#");
-    if ( (error_type = tty_write_string(fd, "#:F+#", &nbytes_write)) != TTY_OK)
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":F+#");
+    if ( (error_type = tty_write_string(fd, ":F+#", &nbytes_write)) != TTY_OK)
     	return error_type;
       break;
     case LX200_FOCUSOUT:
-      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:F-#");
-    if ( (error_type = tty_write_string(fd, "#:F-#", &nbytes_write)) != TTY_OK)
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":F-#");
+    if ( (error_type = tty_write_string(fd, ":F-#", &nbytes_write)) != TTY_OK)
     	return error_type;
      break;
   }
@@ -1029,18 +1029,18 @@ int setFocuserSpeedMode (int fd, int speedMode)
  switch (speedMode)
  {
     case LX200_HALTFOCUS:
-     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:FQ#");
-    if ( (error_type = tty_write_string(fd, "#:FQ#", &nbytes_write)) != TTY_OK)
+     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":FQ#");
+    if ( (error_type = tty_write_string(fd, ":FQ#", &nbytes_write)) != TTY_OK)
     	return error_type;
      break;
    case LX200_FOCUSSLOW:
-     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:FS#");
-    if ( (error_type = tty_write_string(fd, "#:FS#", &nbytes_write)) != TTY_OK)
+     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":FS#");
+    if ( (error_type = tty_write_string(fd, ":FS#", &nbytes_write)) != TTY_OK)
     	return error_type;
       break;
     case LX200_FOCUSFAST:
-     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:FF#");
-     if ( (error_type = tty_write_string(fd, "#:FF#", &nbytes_write)) != TTY_OK)
+     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":FF#");
+     if ( (error_type = tty_write_string(fd, ":FF#", &nbytes_write)) != TTY_OK)
     	return error_type;
      break;
  }
@@ -1058,14 +1058,14 @@ int setGPSFocuserSpeed (int fd, int speed)
 
   if (speed == 0)
   {
-      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:FQ#");
-     if ( (error_type = tty_write_string(fd, "#:FQ#", &nbytes_write)) != TTY_OK)
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":FQ#");
+     if ( (error_type = tty_write_string(fd, ":FQ#", &nbytes_write)) != TTY_OK)
     	return error_type;
 
      return 0;
   }
 
-  snprintf(speed_str, 8, "#:F%d#", speed);
+  snprintf(speed_str, 8, ":F%d#", speed);
 
   DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", speed_str);
 
@@ -1081,7 +1081,7 @@ int setTrackFreq(int fd, double trackF)
   DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
   char temp_string[16];  
 
-  snprintf(temp_string, sizeof( temp_string ), "#:ST %04.1f#", trackF);
+  snprintf(temp_string, sizeof( temp_string ), ":ST %04.1f#", trackF);
 
   return (setStandardProcedure(fd, temp_string));
 
@@ -1098,9 +1098,9 @@ int Slew(int fd)
     int error_type;
     int nbytes_write=0, nbytes_read=0;
 
-    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:MS#");
+    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":MS#");
 
-    if ( (error_type = tty_write_string(fd, "#:MS#", &nbytes_write)) != TTY_OK)
+    if ( (error_type = tty_write_string(fd, ":MS#", &nbytes_write)) != TTY_OK)
     	return error_type;
 
     error_type = tty_read(fd, slewNum, 1, LX200_TIMEOUT, &nbytes_read);
@@ -1132,20 +1132,20 @@ int MoveTo(int fd, int direction)
   switch (direction)
   {
     case LX200_NORTH:
-      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:Mn#");
-    tty_write_string(fd, "#:Mn#", &nbytes_write);
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":Mn#");
+    tty_write_string(fd, ":Mn#", &nbytes_write);
     break;
     case LX200_WEST:
-      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:Mw#");
-    tty_write_string(fd, "#:Mw#", &nbytes_write);
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":Mw#");
+    tty_write_string(fd, ":Mw#", &nbytes_write);
     break;
     case LX200_EAST:
-      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:Me#");
-    tty_write_string(fd, "#:Me#", &nbytes_write);
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":Me#");
+    tty_write_string(fd, ":Me#", &nbytes_write);
     break;
     case LX200_SOUTH:
-      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:Ms#");
-    tty_write_string(fd, "#:Ms#", &nbytes_write);
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":Ms#");
+    tty_write_string(fd, ":Ms#", &nbytes_write);
     break;
     default:
     break;
@@ -1162,10 +1162,10 @@ int SendPulseCmd(int fd, int direction, int duration_msec)
   char cmd[20];
   switch (direction)
   {
-    case LX200_NORTH: sprintf(cmd, "#:Mgn%04d#", duration_msec); break;
-    case LX200_SOUTH: sprintf(cmd, "#:Mgs%04d#", duration_msec); break;
-    case LX200_EAST:  sprintf(cmd, "#:Mge%04d#", duration_msec); break;
-    case LX200_WEST:  sprintf(cmd, "#:Mgw%04d#", duration_msec); break;
+    case LX200_NORTH: sprintf(cmd, ":Mgn%04d#", duration_msec); break;
+    case LX200_SOUTH: sprintf(cmd, ":Mgs%04d#", duration_msec); break;
+    case LX200_EAST:  sprintf(cmd, ":Mge%04d#", duration_msec); break;
+    case LX200_WEST:  sprintf(cmd, ":Mgw%04d#", duration_msec); break;
     default: return 1;
   }
   
@@ -1186,28 +1186,28 @@ int HaltMovement(int fd, int direction)
   switch (direction)
   {
     case LX200_NORTH:
-      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:Qn#");
-       if ( (error_type = tty_write_string(fd, "#:Qn#", &nbytes_write)) != TTY_OK)
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":Qn#");
+       if ( (error_type = tty_write_string(fd, ":Qn#", &nbytes_write)) != TTY_OK)
     	return error_type;
      break;
     case LX200_WEST:
-      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:Qw#");
-     if ( (error_type = tty_write_string(fd, "#:Qw#", &nbytes_write)) != TTY_OK)
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":Qw#");
+     if ( (error_type = tty_write_string(fd, ":Qw#", &nbytes_write)) != TTY_OK)
     	return error_type;
      break;
     case LX200_EAST:
-      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:Qe#");
-      if ( (error_type = tty_write_string(fd, "#:Qe#", &nbytes_write)) != TTY_OK)
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":Qe#");
+      if ( (error_type = tty_write_string(fd, ":Qe#", &nbytes_write)) != TTY_OK)
     	return error_type;
      break;
     case LX200_SOUTH:
-      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:Qs#");
-    if ( (error_type = tty_write_string(fd, "#:Qs#", &nbytes_write)) != TTY_OK)
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":Qs#");
+    if ( (error_type = tty_write_string(fd, ":Qs#", &nbytes_write)) != TTY_OK)
     	return error_type;
     break;
     case LX200_ALL:
-      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:Q#");
-	if ( (error_type = tty_write_string(fd, "#:Q#", &nbytes_write)) != TTY_OK)
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":Q#");
+    if ( (error_type = tty_write_string(fd, ":Q#", &nbytes_write)) != TTY_OK)
     	   return error_type;
      break;
     default:
@@ -1226,7 +1226,7 @@ int abortSlew(int fd)
   int error_type;
   int nbytes_write=0;
 
- if ( (error_type = tty_write_string(fd, "#:Q#", &nbytes_write)) != TTY_OK)
+ if ( (error_type = tty_write_string(fd, ":Q#", &nbytes_write)) != TTY_OK)
     	   return error_type;
 
  tcflush(fd, TCIFLUSH);
@@ -1239,9 +1239,9 @@ int Sync(int fd, char *matchedObject)
   int error_type;
   int nbytes_write=0, nbytes_read=0;
 
-  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:CM#");
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":CM#");
 
-  if ( (error_type = tty_write_string(fd, "#:CM#", &nbytes_write)) != TTY_OK)
+  if ( (error_type = tty_write_string(fd, ":CM#", &nbytes_write)) != TTY_OK)
     	   return error_type;
 
     error_type = tty_read_section(fd, matchedObject, '#', LX200_TIMEOUT, &nbytes_read);
@@ -1269,23 +1269,23 @@ int selectSite(int fd, int siteNum)
   switch (siteNum)
   {
     case 1:
-      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:W1#");
-  	if ( (error_type = tty_write_string(fd, "#:W1#", &nbytes_write)) != TTY_OK)
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":W1#");
+    if ( (error_type = tty_write_string(fd, ":W1#", &nbytes_write)) != TTY_OK)
     	   return error_type;
       break;
     case 2:
-      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:W2#");
-	if ( (error_type = tty_write_string(fd, "#:W2#", &nbytes_write)) != TTY_OK)
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":W2#");
+    if ( (error_type = tty_write_string(fd, ":W2#", &nbytes_write)) != TTY_OK)
     	   return error_type;
       break;
     case 3:
-      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:W3#");
-	if ( (error_type = tty_write_string(fd, "#:W3#", &nbytes_write)) != TTY_OK)
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":W3#");
+    if ( (error_type = tty_write_string(fd, ":W3#", &nbytes_write)) != TTY_OK)
     	   return error_type;
       break;
     case 4:
-      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:W4#");
-	if ( (error_type = tty_write_string(fd, "#:W4#", &nbytes_write)) != TTY_OK)
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":W4#");
+    if ( (error_type = tty_write_string(fd, ":W4#", &nbytes_write)) != TTY_OK)
     	   return error_type;
       break;
     default:
@@ -1308,13 +1308,13 @@ int selectCatalogObject(int fd, int catalog, int NNNN)
  switch (catalog)
  {
    case LX200_STAR_C:
-    snprintf(temp_string, sizeof( temp_string ), "#:LS%d#", NNNN);
+    snprintf(temp_string, sizeof( temp_string ), ":LS%d#", NNNN);
     break;
    case LX200_DEEPSKY_C:
-    snprintf(temp_string, sizeof( temp_string ), "#:LC%d#", NNNN);
+    snprintf(temp_string, sizeof( temp_string ), ":LC%d#", NNNN);
     break;
    case LX200_MESSIER_C:
-    snprintf(temp_string, sizeof( temp_string ), "#:LM%d#", NNNN);
+    snprintf(temp_string, sizeof( temp_string ), ":LM%d#", NNNN);
     break;
    default:
     return -1;
@@ -1336,10 +1336,10 @@ int selectSubCatalog(int fd, int catalog, int subCatalog)
   switch (catalog)
   {
     case LX200_STAR_C:
-    snprintf(temp_string, sizeof( temp_string ), "#:LsD%d#", subCatalog);
+    snprintf(temp_string, sizeof( temp_string ), ":LsD%d#", subCatalog);
     break;
     case LX200_DEEPSKY_C:
-    snprintf(temp_string, sizeof( temp_string ), "#:LoD%d#", subCatalog);
+    snprintf(temp_string, sizeof( temp_string ), ":LoD%d#", subCatalog);
     break;
     case LX200_MESSIER_C:
      return 1;
@@ -1357,9 +1357,9 @@ int checkLX200Format(int fd)
   int error_type;
   int nbytes_write=0, nbytes_read=0;
 
-  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:GR#");
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":GR#");
 
-  if ( (error_type = tty_write_string(fd, "#:GR#", &nbytes_write)) != TTY_OK)
+  if ( (error_type = tty_write_string(fd, ":GR#", &nbytes_write)) != TTY_OK)
     	   return error_type;
 
   error_type = tty_read_section(fd, temp_string, '#', LX200_TIMEOUT, &nbytes_read);
@@ -1393,23 +1393,23 @@ int selectTrackingMode(int fd, int trackMode)
    switch (trackMode)
    {
     case LX200_TRACK_SIDEREAL:
-       DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:TQ#");
-     if ( (error_type = tty_write_string(fd, "#:TQ#", &nbytes_write)) != TTY_OK)
+       DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":TQ#");
+     if ( (error_type = tty_write_string(fd, ":TQ#", &nbytes_write)) != TTY_OK)
     	   return error_type;
      break;
    case LX200_TRACK_SOLAR:
-       DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:TS#");
-     if ( (error_type = tty_write_string(fd, "#:TS#", &nbytes_write)) != TTY_OK)
+       DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":TS#");
+     if ( (error_type = tty_write_string(fd, ":TS#", &nbytes_write)) != TTY_OK)
           return error_type;
         break;
     case LX200_TRACK_LUNAR:
-       DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:TL#");
-      if ( (error_type = tty_write_string(fd, "#:TL#", &nbytes_write)) != TTY_OK)
+       DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":TL#");
+      if ( (error_type = tty_write_string(fd, ":TL#", &nbytes_write)) != TTY_OK)
     	   return error_type;
       break;
    case LX200_TRACK_MANUAL:
-       DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", "#:TM#");
-     if ( (error_type = tty_write_string(fd, "#:TM#", &nbytes_write)) != TTY_OK)
+       DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":TM#");
+     if ( (error_type = tty_write_string(fd, ":TM#", &nbytes_write)) != TTY_OK)
     	   return error_type;
      break;
    default:
