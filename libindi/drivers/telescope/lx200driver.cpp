@@ -1126,33 +1126,33 @@ int Slew(int fd)
 
 int MoveTo(int fd, int direction)
 {
-  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
-  int nbytes_write=0;
+    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
+    int nbytes_write=0;
 
-  switch (direction)
-  {
+    switch (direction)
+    {
     case LX200_NORTH:
-      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":Mn#");
-    tty_write_string(fd, ":Mn#", &nbytes_write);
-    break;
+        DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":Mn#");
+        tty_write_string(fd, ":Mn#", &nbytes_write);
+        break;
     case LX200_WEST:
-      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":Mw#");
-    tty_write_string(fd, ":Mw#", &nbytes_write);
-    break;
+        DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":Mw#");
+        tty_write_string(fd, ":Mw#", &nbytes_write);
+        break;
     case LX200_EAST:
-      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":Me#");
-    tty_write_string(fd, ":Me#", &nbytes_write);
-    break;
+        DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":Me#");
+        tty_write_string(fd, ":Me#", &nbytes_write);
+        break;
     case LX200_SOUTH:
-      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":Ms#");
-    tty_write_string(fd, ":Ms#", &nbytes_write);
-    break;
+        DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":Ms#");
+        tty_write_string(fd, ":Ms#", &nbytes_write);
+        break;
     default:
-    break;
-  }
-  
-  tcflush(fd, TCIFLUSH);
-  return 0;
+        break;
+    }
+
+    tcflush(fd, TCIFLUSH);
+    return 0;
 }
 
 int SendPulseCmd(int fd, int direction, int duration_msec)

@@ -24,6 +24,7 @@
 
 #include "indicom.h"
 #include "lx200zeq25.h"
+#include "lx200driver.h"
 
 LX200ZEQ25::LX200ZEQ25()
 {
@@ -36,13 +37,13 @@ bool LX200ZEQ25::updateProperties()
 
     if (isConnected())
     {
-        getMountInfo();
-
         // Delete unsupported properties
         deleteProperty(AlignmentSP.name);
         deleteProperty(FocusMotionSP.name);
         deleteProperty(FocusTimerNP.name);
         deleteProperty(FocusModeSP.name);
+        deleteProperty(SiteSP.name);
+        deleteProperty(SiteNameTP.name);
     }
 
     return true;
@@ -193,5 +194,98 @@ bool LX200ZEQ25::getMountInfo()
     DEBUGF(INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 4.", nbytes_read);
     return false;
 
+}
+
+void LX200ZEQ25::getBasicData()
+{
+    getMountInfo();
+}
+
+bool LX200ZEQ25::updateTime(ln_date * utc, double utc_offset)
+{
+    struct ln_zonedate ltm;
+
+    if (isSimulation())
+        return true;
+
+    ln_date_to_zonedate(utc, &ltm, utc_offset*3600.0);
+
+    JD = ln_get_julian_day(utc);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "New JD is %f", (float) JD);
+
+    // Set Local Time
+    if (setLocalTime(PortFD, ltm.hours, ltm.minutes, ltm.seconds) < 0)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Error setting local time.");
+        return false;
+    }
+
+    if (setCalenderDate(PortFD, ltm.days, ltm.months, ltm.years) < 0)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Error setting local date.");
+        return false;
+    }
+
+    if (setUTCOffset(PortFD, (utc_offset)) < 0)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Error setting UTC Offset.");
+        return false;
+    }
+
+    return true;
+}
+
+bool LX200ZEQ25::updateLocation(double latitude, double longitude, double elevation)
+{
+    INDI_UNUSED(elevation);
+
+    if (isSimulation())
+        return true;
+
+    double final_longitude;
+
+    if (longitude > 180)
+        final_longitude = longitude - 360.0;
+    else
+        final_longitude = longitude;
+
+    if (isSimulation() == false && setZEQ25Longitude(final_longitude) < 0)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Error setting site longitude coordinates");
+        return false;
+    }
+
+    if (isSimulation() == false && setSiteLatitude(PortFD, latitude) < 0)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Error setting site latitude coordinates");
+        return false;
+    }
+
+    char l[32], L[32];
+    fs_sexa (l, latitude, 3, 3600);
+    fs_sexa (L, longitude, 4, 3600);
+
+    IDMessage(getDeviceName(), "Site location updated to Lat %.32s - Long %.32s", l, L);
+
+    return true;
+}
+
+int LX200ZEQ25::setZEQ25Longitude(double Long)
+{
+   int d, m, s;
+   char sign;
+   char temp_string[32];
+
+   if (Long > 0)
+       sign = '+';
+   else
+       sign = '-';
+
+   getSexComponents(Long, &d, &m, &s);
+
+   snprintf(temp_string, sizeof( temp_string ), ":Sg %c%03d*%02d:%02d#", sign, abs(d), m,s);
+
+   return (setStandardProcedure(PortFD, temp_string));
 }
 

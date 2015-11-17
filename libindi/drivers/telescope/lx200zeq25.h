@@ -35,6 +35,8 @@ public:
 protected:
 
     virtual const char *getDefaultName();
+
+    virtual void getBasicData();
     virtual bool checkConnection();
     virtual bool isSlewComplete();
 
