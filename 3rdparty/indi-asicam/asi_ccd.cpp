@@ -739,7 +739,7 @@ bool ASICCD::StartExposure(float duration)
 
   InExposure = true;
 
-  updateControls();
+  //updateControls();
 
   return true;
 }
@@ -918,14 +918,14 @@ void ASICCD::TimerHit()
     if (timeleft < 0.05)
     {
       //  it's real close now, so spin on it
-      int timeoutCounter=0;
+      //int timeoutCounter=0;
 
       while (true)
       {
               ASI_EXPOSURE_STATUS status = ASI_EXP_IDLE;
               ASI_ERROR_CODE errCode = ASI_SUCCESS;
 
-              timeoutCounter++;
+              /*timeoutCounter++;
 
               // Timeout after roughly 2.5 seconds
               if (timeoutCounter > 50)
@@ -935,12 +935,12 @@ void ASICCD::TimerHit()
                   InExposure = false;
                   SetTimer(POLLMS);
                   return;
-              }
+              }*/
 
               if ( (errCode = ASIGetExpStatus(m_camInfo->CameraID, &status)) != ASI_SUCCESS)
               {
                   DEBUGF(INDI::Logger::DBG_DEBUG, "ASIGetExpStatus error (%d)", errCode);
-                  if (++exposureRetries >= MAX_EXP_RETRIES)
+                  /*if (++exposureRetries >= MAX_EXP_RETRIES)
                   {
                       DEBUGF(INDI::Logger::DBG_SESSION, "Exposure failed (%d)", errCode);
                       PrimaryCCD.setExposureFailed();
@@ -954,7 +954,10 @@ void ASICCD::TimerHit()
                       StartExposure(ExposureRequest);
                       SetTimer(POLLMS);
                       return;
-                  }
+                  }*/
+
+                  usleep(50000);
+                  continue;
               }
               else
               {
@@ -962,11 +965,18 @@ void ASICCD::TimerHit()
                       break;
                   else if (status == ASI_EXP_FAILED)
                   {
-                      DEBUGF(INDI::Logger::DBG_ERROR, "ASIGetExpStatus failed (%d)", errCode);
+                      /*DEBUGF(INDI::Logger::DBG_ERROR, "ASIGetExpStatus failed (%d)", errCode);
                       PrimaryCCD.setExposureFailed();
                       InExposure = false;
                       SetTimer(POLLMS);
+                      return;*/
+
+                      DEBUGF(INDI::Logger::DBG_DEBUG, "ASIGetExpStatus failed (%d). Restarting exposure...", errCode);
+                      InExposure = false;
+                      StartExposure(ExposureRequest);
+                      SetTimer(POLLMS);
                       return;
+
                   }
                   else
                     usleep(50000);
