@@ -718,11 +718,20 @@ bool ASICCD::StartExposure(float duration)
   ExposureRequest = duration;
   ASISetControlValue(m_camInfo->CameraID, ASI_EXPOSURE, duration*1000*1000, ASI_FALSE);
 
-  if ( (errCode = ASIStartExposure(m_camInfo->CameraID, (PrimaryCCD.getFrameType() == CCDChip::DARK_FRAME) ? ASI_TRUE : ASI_FALSE )) != ASI_SUCCESS)
+  // Try exposure for 3 times
+  for (int i=0; i < 3; i++)
   {
-      DEBUGF(INDI::Logger::DBG_ERROR, "ASIStartExposure error (%d)", errCode);
-      return false;
+    if ( (errCode = ASIStartExposure(m_camInfo->CameraID, (PrimaryCCD.getFrameType() == CCDChip::DARK_FRAME) ? ASI_TRUE : ASI_FALSE )) != ASI_SUCCESS)
+    {
+          DEBUGF(INDI::Logger::DBG_ERROR, "ASIStartExposure error (%d)", errCode);
+          // Wait 100ms before trying again
+          usleep(100000);
+          continue;
+    }
   }
+
+  if (errCode != ASI_SUCCESS)
+      return false;
 
   gettimeofday(&ExpStart, NULL);
   if (ExposureRequest > VERBOSE_EXPOSURE)
