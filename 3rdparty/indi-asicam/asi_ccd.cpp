@@ -383,6 +383,18 @@ bool ASICCD::setupParams()
 
       createControls(piNumberOfControls);
   }
+  
+  ASI_CONTROL_CAPS pCtrlCaps;
+    for(int j = 0; j < piNumberOfControls; j++)
+    {
+	ASIGetControlCaps((m_camInfo->CameraID, j, &pCtrlCaps);
+	if(pCtrlCaps.ControlType == ASI_BANDWIDTHOVERLOAD)
+	{
+		ASISetControlValue(myCamera->CameraID, ASI_BANDWIDTHOVERLOAD, pCtrlCaps.MinValue, ASI_FALSE);
+		break;
+	}
+    }
+       
 
   // Get Image Format
   int w=0, h=0, bin=0;
@@ -973,6 +985,7 @@ void ASICCD::TimerHit()
 
                       DEBUGF(INDI::Logger::DBG_DEBUG, "ASIGetExpStatus failed (%d). Restarting exposure...", errCode);
                       InExposure = false;
+                      usleep(100000);
                       StartExposure(ExposureRequest);
                       SetTimer(POLLMS);
                       return;
