@@ -515,16 +515,10 @@ bool EQMod::Connect()
 
 bool EQMod::Connect(const char *port, uint16_t baud)
 {
-  ISwitchVectorProperty *connect=getSwitch("CONNECTION");
+ DEBUGF(INDI::Logger::DBG_SESSION, "Connecting to port %s at speed %d" , port, baud);
 
-  if (connect)
-  {
-    connect->s=IPS_BUSY;
-    DEBUGF(INDI::Logger::DBG_SESSION, "Connecting to port %s at speed %d" , port, baud);
-    IDSetSwitch(connect, NULL);
-  }
-
-  try {
+ try
+ {
     mount->Connect(port, baud);
     // Mount initialisation is in updateProperties as it sets directly Indi properties which should be defined 
   } catch(EQModError e) {
