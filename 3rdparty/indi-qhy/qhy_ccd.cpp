@@ -791,9 +791,9 @@ bool QHYCCD::StartExposure(float duration)
 
   DEBUGF(INDI::Logger::DBG_DEBUG, "SetQHYCCDResolution camroix %d camroiy %d camroiwidth %d camroiheight %d", camroix,camroiy,camroiwidth,camroiheight);
   
-  // Jasem: Removed QHY 300ms delay that was added without specifying the reason. It seems any delay less than 50ms results in QHY Frame error. Again no reason. This renders
-  // exposures less than 50ms useless, but there is nothing I can do about that.
-  usleep(50000);
+  // Jasem: Removed QHY 300ms delay that was added without specifying the reason. It seems any delay less than 100ms results in QHY Frame error. Again no reason. This renders
+  // exposures less than 100ms useless, but there is nothing I can do about that.
+  usleep(100000);
 
   if (sim)
       ret = QHYCCD_SUCCESS;
