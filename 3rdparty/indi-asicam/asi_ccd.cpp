@@ -384,17 +384,19 @@ bool ASICCD::setupParams()
       createControls(piNumberOfControls);
   }
   
+  // Set minimum ASI_BANDWIDTHOVERLOAD on ARM
+  #ifdef __arm__
   ASI_CONTROL_CAPS pCtrlCaps;
-    for(int j = 0; j < piNumberOfControls; j++)
-    {
-	ASIGetControlCaps((m_camInfo->CameraID, j, &pCtrlCaps);
-	if(pCtrlCaps.ControlType == ASI_BANDWIDTHOVERLOAD)
-	{
-		ASISetControlValue(myCamera->CameraID, ASI_BANDWIDTHOVERLOAD, pCtrlCaps.MinValue, ASI_FALSE);
-		break;
-	}
-    }
-       
+  for(int j = 0; j < piNumberOfControls; j++)
+  {
+      ASIGetControlCaps(m_camInfo->CameraID, j, &pCtrlCaps);
+      if (pCtrlCaps.ControlType == ASI_BANDWIDTHOVERLOAD)
+      {
+          ASISetControlValue(m_camInfo->CameraID, ASI_BANDWIDTHOVERLOAD, pCtrlCaps.MinValue, ASI_FALSE);
+          break;
+      }
+  }
+  #endif
 
   // Get Image Format
   int w=0, h=0, bin=0;
