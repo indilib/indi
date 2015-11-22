@@ -41,6 +41,7 @@
 #include "lx200ap.h"
 #include "lx200gemini.h"
 #include "lx200zeq25.h"
+#include "lx200pulsar2.h"
 #include "lx200fs2.h"
 
 // We declare an auto pointer to LX200Generic.
@@ -123,6 +124,12 @@ void ISInit()
 
        if(telescope.get() == 0) telescope.reset(new LX200ZEQ25());
 
+ }
+ else if (strstr(me, "indi_lx200pulsar2"))
+ {
+        IDLog("initializing from pulsar2 device...\n");
+
+        if(telescope.get() == 0) telescope.reset(new LX200Pulsar2());
  }
  else if (strstr(me, "indi_lx200fs2"))
  {

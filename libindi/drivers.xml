@@ -91,18 +91,6 @@
                 <driver name="SynScan">indi_synscan</driver>
                 <version>1.0</version>
         </device>
-        <device label="EQ6" focal_length="" aperture="">
-                <driver name="SynScan">indi_synscan</driver>
-                <version>1.0</version>
-        </device>
-        <device label="HEQ5" focal_length="" aperture="">
-                <driver name="SynScan">indi_synscan</driver>
-                <version>1.0</version>
-        </device>
-        <device label="NEQ3" focal_length="" aperture="">
-                <driver name="SynScan">indi_synscan</driver>
-                <version>1.0</version>
-        </device>
         <device label="Magellan I" focal_length="" aperture="">
                 <driver name="Magellan I">indi_magellan1</driver>
                 <version>1.0</version>
@@ -121,6 +109,10 @@
         </device>
         <device label="SmartEQ" focal_length="" aperture="">
                 <driver name="ZEQ25">indi_lx200zeq25</driver>
+                <version>1.0</version>
+        </device>
+        <device label="Pulsar2" focal_length="" aperture="">
+                <driver name="Pulsar2">indi_lx200pulsar2</driver>
                 <version>1.0</version>
         </device>
         <device label="Telescope Simulator" focal_length="" aperture="">
