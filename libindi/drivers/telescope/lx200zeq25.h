@@ -45,6 +45,7 @@ protected:
 
 
 private:
+    int setZEQ25StandardProcedure(int fd, const char * data);
     int setZEQ25Latitude(double Lat);
     int setZEQ25Longitude(double Long);
     int setZEQ25UTCOffset(double hours);

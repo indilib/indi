@@ -286,7 +286,7 @@ int LX200ZEQ25::setZEQ25Longitude(double Long)
 
    snprintf(temp_string, sizeof( temp_string ), ":Sg %c%03d:%02d:%02d#", sign, abs(d), m,s);
 
-   return (setStandardProcedure(PortFD, temp_string));
+   return (setZEQ25StandardProcedure(PortFD, temp_string));
 }
 
 int LX200ZEQ25::setZEQ25Latitude(double Lat)
@@ -304,7 +304,7 @@ int LX200ZEQ25::setZEQ25Latitude(double Lat)
 
    snprintf(temp_string, sizeof( temp_string ), ":St %c%02d:%02d:%02d#", sign, abs(d), m,s);
 
-   return (setStandardProcedure(PortFD, temp_string));
+   return (setZEQ25StandardProcedure(PortFD, temp_string));
 }
 
 int LX200ZEQ25::setZEQ25UTCOffset(double hours)
@@ -322,7 +322,40 @@ int LX200ZEQ25::setZEQ25UTCOffset(double hours)
 
    snprintf(temp_string, sizeof( temp_string ), ":SG %c%02d:%02d#", sign, abs(h), m);
 
-   return (setStandardProcedure(PortFD, temp_string));
+   return (setZEQ25StandardProcedure(PortFD, temp_string));
+
+}
+
+int LX200ZEQ25::setZEQ25StandardProcedure(int fd, const char * data)
+{
+ char bool_return[2];
+ int error_type;
+ int nbytes_write=0, nbytes_read=0;
+
+ DEBUGF(DBG_SCOPE, "CMD <%s>", data);
+
+ if ( (error_type = tty_write_string(fd, data, &nbytes_write)) != TTY_OK)
+        return error_type;
+
+error_type = tty_read(fd, bool_return, 1, 5, &nbytes_read);
+
+// JM: Hack from Jon in the INDI forums to fix longitude/latitude settings failure on ZEQ25
+usleep(10000);
+tcflush(fd, TCIFLUSH);
+usleep(10000);
+
+ if (nbytes_read < 1)
+   return error_type;
+
+ if (bool_return[0] == '0')
+ {
+     DEBUGF(DBG_SCOPE, "CMD <%s> failed.", data);
+     return -1;
+ }
+
+ DEBUGF(DBG_SCOPE, "CMD <%s> successful.", data);
+
+ return 0;
 
 }
 
