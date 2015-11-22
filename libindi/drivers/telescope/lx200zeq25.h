@@ -40,6 +40,7 @@ protected:
     virtual bool checkConnection();
     virtual bool isSlewComplete();
 
+    virtual bool Goto(double,double);
     virtual bool updateTime(ln_date * utc, double utc_offset);
     virtual bool updateLocation(double latitude, double longitude, double elevation);
 
@@ -49,6 +50,7 @@ private:
     int setZEQ25Latitude(double Lat);
     int setZEQ25Longitude(double Long);
     int setZEQ25UTCOffset(double hours);
+    int ZEQ25Slew();
 
     bool getMountInfo();
 

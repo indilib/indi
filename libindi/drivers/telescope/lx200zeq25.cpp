@@ -201,6 +201,97 @@ void LX200ZEQ25::getBasicData()
     getMountInfo();
 }
 
+bool LX200ZEQ25::Goto(double r,double d)
+{
+    targetRA=r;
+    targetDEC=d;
+    char RAStr[64], DecStr[64];
+
+    fs_sexa(RAStr, targetRA, 2, 3600);
+    fs_sexa(DecStr, targetDEC, 2, 3600);
+
+    // If moving, let's stop it first.
+    if (EqNP.s == IPS_BUSY)
+    {
+         if (!isSimulation() && abortSlew(PortFD) < 0)
+         {
+            AbortSP.s = IPS_ALERT;
+            IDSetSwitch(&AbortSP, "Abort slew failed.");
+            return false;
+         }
+
+         AbortSP.s = IPS_OK;
+         EqNP.s       = IPS_IDLE;
+         IDSetSwitch(&AbortSP, "Slew aborted.");
+         IDSetNumber(&EqNP, NULL);
+
+         if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+         {
+                MovementNSSP.s  = MovementWESP.s =  IPS_IDLE;
+                EqNP.s       = IPS_IDLE;
+                IUResetSwitch(&MovementNSSP);
+                IUResetSwitch(&MovementWESP);
+                IDSetSwitch(&MovementNSSP, NULL);
+                IDSetSwitch(&MovementWESP, NULL);
+          }
+
+       // sleep for 100 mseconds
+       usleep(100000);
+    }
+
+    if (isSimulation() == false)
+    {
+        if (setObjectRA(PortFD, targetRA) < 0 || (setObjectDEC(PortFD, targetDEC)) < 0)
+        {
+            EqNP.s = IPS_ALERT;
+            IDSetNumber(&EqNP, "Error setting RA/DEC.");
+            return false;
+        }
+
+        if (ZEQ25Slew() == 0)
+        {
+            EqNP.s = IPS_ALERT;
+            IDSetNumber(&EqNP, "Error Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
+            slewError(1);
+            return  false;
+        }
+    }
+
+    TrackState = SCOPE_SLEWING;
+    EqNP.s    = IPS_BUSY;
+
+    IDMessage(getDeviceName(), "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+    return true;
+}
+
+int LX200ZEQ25::ZEQ25Slew()
+{
+    DEBUGF(DBG_SCOPE, "<%s>", __FUNCTION__);
+    char slewNum[2];
+    int error_type;
+    int nbytes_write=0, nbytes_read=0;
+
+    DEBUGF(DBG_SCOPE, "CMD <%s>", ":MS#");
+
+    if ( (error_type = tty_write_string(PortFD, ":MS#", &nbytes_write)) != TTY_OK)
+        return error_type;
+
+    error_type = tty_read(PortFD, slewNum, 1, 3, &nbytes_read);
+
+    if (nbytes_read < 1)
+    {
+        DEBUGF(DBG_SCOPE, "RES ERROR <%d>", error_type);
+        return error_type;
+    }
+
+    /* We don't need to read the string message, just return corresponding error code */
+    tcflush(PortFD, TCIFLUSH);
+
+    DEBUGF(DBG_SCOPE, "RES <%c>", slewNum[0]);
+
+    return slewNum[0];
+}
+
 bool LX200ZEQ25::updateTime(ln_date * utc, double utc_offset)
 {
     struct ln_zonedate ltm;
