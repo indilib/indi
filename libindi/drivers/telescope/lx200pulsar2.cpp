@@ -92,6 +92,8 @@ bool LX200Pulsar2::checkConnection()
             DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
             DEBUGF(INDI::Logger::DBG_SESSION, "Detected %s", response);
+
+            return true;
         }
 
         usleep(50000);
