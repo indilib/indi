@@ -113,7 +113,8 @@ typedef struct _ASI_CAMERA_INFO
 	ASI_BOOL ST4Port;
 	ASI_BOOL IsCoolerCam;
 	ASI_BOOL IsUSB3Host;
-	char Unused[32];
+	ASI_BOOL IsUSB3Camera;
+	char Unused[28];
 } ASI_CAMERA_INFO;
 
 typedef enum ASI_CONTROL_TYPE{ //Control type//
@@ -330,7 +331,7 @@ set the ROI area before capture.
 you must stop capture before call it.
 the width and height is the value after binning.
 ie. you need to set width to 640 and height to 480 if you want to run at 640X480@BIN2
-
+ASI120's data size must be times of 1024 which means width*height%1024=0
 Paras£º		
 int CameraID: this is get from the camera property use the API ASIGetCameraProperty
 int iWidth,  the width of the ROI area    please make sure that width*height%1024=0
@@ -647,7 +648,7 @@ ASICAMERA_API  ASI_ERROR_CODE ASIGetDataAfterExp(int iCameraID, unsigned char* p
 
 /***************************************************************************
 Descriptions£º
-get camera id stored in flash, 8 bytes length, only available for USB3.0 camera
+get camera id stored in flash, only available for USB3.0 camera
 
 Paras£º		
 int CameraID: this is get from the camera property use the API ASIGetCameraProperty
@@ -662,7 +663,7 @@ ASICAMERA_API  ASI_ERROR_CODE ASIGetID(int iCameraID, ASI_ID* pID);
 
 /***************************************************************************
 Descriptions£º
-write camera id to flash, 8 bytes length, only available for USB3.0 camera
+write camera id to flash, only available for USB3.0 camera
 
 Paras£º		
 int CameraID: this is get from the camera property use the API ASIGetCameraProperty

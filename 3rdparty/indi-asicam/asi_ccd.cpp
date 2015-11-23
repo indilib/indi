@@ -385,7 +385,7 @@ bool ASICCD::setupParams()
   }
   
   // Set minimum ASI_BANDWIDTHOVERLOAD on ARM
-  #ifdef __arm__
+  #ifdef LOW_USB_BANDWIDTH
   ASI_CONTROL_CAPS pCtrlCaps;
   for(int j = 0; j < piNumberOfControls; j++)
   {

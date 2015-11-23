@@ -51,6 +51,7 @@
 3rdparty/indi-asicam/README.md -text
 3rdparty/indi-asicam/armv5/libASICamera2.bin -text
 3rdparty/indi-asicam/armv6/libASICamera2.bin -text
+3rdparty/indi-asicam/armv7/libASICamera2.bin -text
 3rdparty/indi-asicam/asi_ccd.cpp -text
 3rdparty/indi-asicam/asi_ccd.h -text
 3rdparty/indi-asicam/config.h.cmake -text
