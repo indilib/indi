@@ -136,7 +136,7 @@ bool LX200Pulsar2::isSlewComplete()
 
         tcflush(PortFD, TCIFLUSH);
 
-        if (response[0] == '1')
+        if (response[0] == '0')
             return true;
         else
             return false;
