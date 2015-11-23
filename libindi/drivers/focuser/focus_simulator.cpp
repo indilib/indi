@@ -270,3 +270,7 @@ IPState FocusSim::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     return MoveAbsFocuser(targetTicks);
 }
 
+bool FocusSim::SetFocuserSpeed(int speed) {
+  return true;
+}
+
