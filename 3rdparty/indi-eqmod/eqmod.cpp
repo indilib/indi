@@ -2090,3 +2090,14 @@ void EQMod::SetDefaultPark()
     DEBUGF(INDI::Logger::DBG_SESSION, "Setting Park Position to default- RA Encoder=%ld DE Encoder=%ld",
           parkRAEncoder, parkDEEncoder);
 }
+
+bool EQMod::saveConfigItems(FILE *fp)
+{
+    INDI::Telescope::saveConfigItems(fp);
+
+    if (align)
+        align->saveConfigItems(fp);
+
+    return true;
+}
+

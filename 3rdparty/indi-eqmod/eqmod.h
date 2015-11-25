@@ -190,6 +190,8 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
         void SetDefaultPark();
         bool Sync(double ra,double dec);
 
+        virtual bool saveConfigItems(FILE *fp);
+
         bool updateTime(ln_date *lndate_utc, double utc_offset);
         bool updateLocation(double latitude, double longitude, double elevation);
 

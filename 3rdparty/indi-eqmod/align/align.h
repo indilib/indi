@@ -66,6 +66,8 @@ public:
   virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
   virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
 
+  virtual bool saveConfigItems(FILE *fp);
+
   virtual void Init();
   virtual void GetAlignedCoords(SyncData globalsync, double jd, struct ln_lnlat_posn *position, 
 				double currentRA, double currentDEC, 
