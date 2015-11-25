@@ -1,6 +1,6 @@
 /*
     LX200 Generic
-    Copyright (C) 2003 Jasem Mutlaq (mutlaqja@ikarustech.com)
+    Copyright (C) 2003-2015 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -27,8 +27,6 @@
 
 #include "indidevapi.h"
 #include "indicom.h"
-
-#define	POLLMS		1000		/* poll period, ms */
 
 class LX200Generic: public INDI::Telescope, public INDI::GuiderInterface
 {
@@ -87,6 +85,8 @@ class LX200Generic: public INDI::Telescope, public INDI::GuiderInterface
 
     int    GuideNSTID;
     int    GuideWETID;
+
+    uint32_t updatePeriodMS;                        // Period in milliseconds to call ReadScopeStatus()
 
     int timeFormat;
     int currentSiteNum;

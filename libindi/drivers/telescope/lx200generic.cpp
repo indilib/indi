@@ -1,6 +1,6 @@
 #if 0
     LX200 Generic
-    Copyright (C) 2003-2013 Jasem Mutlaq (mutlaqja@ikarustech.com)
+    Copyright (C) 2003-2015 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -17,6 +17,7 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     2013-10-27: Updated driver to use INDI::Telescope (JM)
+    2015-11-25: Use variable updatePeriodMS instead of static POLLMS
 
 #endif
 
@@ -198,6 +199,8 @@ LX200Generic::LX200Generic()
    GuideNSTID     = 0;
    GuideWETID     = 0;
 
+   updatePeriodMS = 1000;
+
    DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
    currentRA=ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
@@ -368,7 +371,7 @@ bool LX200Generic::Connect()
     rc=Connect(PortT[0].text, atoi(IUFindOnSwitch(&BaudRateSP)->name));
 
     if(rc)
-        SetTimer(POLLMS);
+        SetTimer(updatePeriodMS);
 
     return rc;
 }
@@ -469,7 +472,6 @@ bool LX200Generic::ReadScopeStatus()
 
 bool LX200Generic::Goto(double r,double d)
 {
-
     targetRA=r;
     targetDEC=d;
     char RAStr[64], DecStr[64];
@@ -529,7 +531,8 @@ bool LX200Generic::Goto(double r,double d)
     TrackState = SCOPE_SLEWING;
     EqNP.s    = IPS_BUSY;
 
-    IDMessage(getDeviceName(), "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+    DEBUGF(INDI::Logger::DBG_SESSION, "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+
     return true;
 }
 
