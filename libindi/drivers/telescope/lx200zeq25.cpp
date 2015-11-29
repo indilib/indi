@@ -132,7 +132,7 @@ bool LX200ZEQ25::isSlewComplete()
 
         tcflush(PortFD, TCIFLUSH);
 
-        if (response[0] == '1')
+        if (response[0] == '0')
             return true;
         else
             return false;
@@ -437,6 +437,8 @@ usleep(10000);
 
  if (nbytes_read < 1)
    return error_type;
+
+ DEBUGF(DBG_SCOPE, "RES <%c>", bool_return[0]);
 
  if (bool_return[0] == '0')
  {
