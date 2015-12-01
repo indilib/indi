@@ -27,8 +27,8 @@ protected:
 
     virtual const char *getDefaultName();
 
-    bool Sync(double ra, double dec);
-    bool Goto(double ra,double dec);
+    virtual bool Sync(double ra, double dec);
+    virtual bool Goto(double ra,double dec);
     virtual bool Abort();
 
 

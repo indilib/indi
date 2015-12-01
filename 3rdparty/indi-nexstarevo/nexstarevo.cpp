@@ -70,7 +70,7 @@ NexStarEvo::NexStarEvo() :
     PreviousWEMotion(PREVIOUS_WE_MOTION_UNKNOWN),
     TraceThisTickCount(0),
     TraceThisTick(false),
-    DBG_NSEVO(INDI::Logger::getInstance().addDebugLevel("NexStar Evo Verbose", "NSEVO")) 
+    DBG_NSEVO(INDI::Logger::getInstance().addDebugLevel("NexStar Evo Verbose", "NSEVO"))
 {
     scope = NULL;
 
@@ -80,6 +80,10 @@ NexStarEvo::NexStarEvo() :
     ApproachAZ=-1.0*STEPS_PER_DEGREE;
 }
 
+NexStarEvo::~NexStarEvo()
+{
+
+}
 
 // Private methods
 
