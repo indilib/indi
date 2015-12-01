@@ -18,52 +18,35 @@ using namespace INDI::AlignmentSubsystem;
 #define POLLMS 1000 // Default timer tick
 
 // We declare an auto pointer to NexStarEvo.
-std::unique_ptr<NexStarEvo> telescope_nse(0);
-
-void ISInit()
-{
-   static int isInit = 0;
-
-   if (isInit == 1)
-       return;
-
-    isInit = 1;
-    if(telescope_nse.get() == 0) telescope_nse.reset(new NexStarEvo());
-}
+std::unique_ptr<NexStarEvo> telescope_nse(new NexStarEvo());
 
 void ISGetProperties(const char *dev)
 {
-        ISInit();
-        telescope_nse->ISGetProperties(dev);
+    telescope_nse->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-        ISInit();
-        telescope_nse->ISNewSwitch(dev, name, states, names, num);
+    telescope_nse->ISNewSwitch(dev, name, states, names, num);
 }
 
 void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-        ISInit();
-        telescope_nse->ISNewText(dev, name, texts, names, num);
+    telescope_nse->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-        ISInit();
-        telescope_nse->ISNewNumber(dev, name, values, names, num);
+    telescope_nse->ISNewNumber(dev, name, values, names, num);
 }
 
 void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
 {
-    ISInit();
     telescope_nse->ISNewBLOB (dev, name, sizes, blobsizes, blobs, formats, names, n);
 }
 
 void ISSnoopDevice (XMLEle *root)
 {
-    ISInit();
     telescope_nse->ISSnoopDevice(root);
 }
 
@@ -91,13 +74,7 @@ NexStarEvo::NexStarEvo() :
 {
     scope = NULL;
 
-    TelescopeCapability cap;
-
-    cap.canPark = false;
-    cap.canSync = true;
-    cap.canAbort = true;
-    cap.nSlewRate=6;
-    SetTelescopeCapability(&cap);
+    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_ABORT, 6);
     // Approach from the top left 2deg away
     ApproachALT=1.0*STEPS_PER_DEGREE;
     ApproachAZ=-1.0*STEPS_PER_DEGREE;
