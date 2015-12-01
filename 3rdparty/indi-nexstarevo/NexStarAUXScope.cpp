@@ -165,6 +165,7 @@ NexStarAUXScope::~NexStarAUXScope(){
 }
 
 void NexStarAUXScope::initScope(char const *ip, int port){
+    fprintf(stderr,"Scope IP %s:%d", ip, port);
     bzero(&addr, sizeof(addr));
     addr.sin_family = AF_INET ;
     addr.sin_addr.s_addr=inet_addr(ip);

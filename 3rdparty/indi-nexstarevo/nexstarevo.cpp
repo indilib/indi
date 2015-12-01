@@ -125,7 +125,8 @@ bool NexStarEvo::Abort()
 bool NexStarEvo::Connect()
 {
     SetTimer(POLLMS);
-    if (scope == NULL) scope = new NexStarAUXScope(IPAddressT->text,IPPortN->value);
+    if (scope == NULL)
+        scope = new NexStarAUXScope(IPAddressT->text,IPPortN->value);
     if (scope != NULL) {
         scope->Connect();
     }
@@ -278,6 +279,7 @@ bool NexStarEvo::initProperties()
     // Build the UI for the scope
     IUFillText(&IPAddressT[0],"ADDRESS","IP address", NSEVO_DEFAULT_IP);
     IUFillTextVector(&IPAddressTP,IPAddressT,1,getDeviceName(),"DEVICE_IP_ADDR","IP address",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
+    
     IUFillNumber(&IPPortN[0],"PORT","IP port","%g",1,65535,1, NSEVO_DEFAULT_PORT);
     IUFillNumberVector(&IPPortNP,IPPortN,1,getDeviceName(),"DEVICE_IP_PORT","IP port",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
 
@@ -350,6 +352,18 @@ bool NexStarEvo::ISNewText (const char *dev, const char *name, char *texts[], ch
 {
     if(strcmp(dev,getDeviceName())==0)
     {
+        // Process IP address
+        if(!strcmp(name,IPAddressTP.name))
+        {
+            //  This is IP of the scope, so, lets process it
+            int rc;
+            IPAddressTP.s=IPS_OK;
+            rc=IUUpdateText(&IPAddressTP,texts,names,n);
+            //  Update client display
+            IDSetText(&IPAddressTP,NULL);
+            //  We processed this one, so, tell the world we did it
+            return true;
+        }
         // Process alignment properties
         ProcessAlignmentTextProperties(this, name, texts, names, n);
     }
