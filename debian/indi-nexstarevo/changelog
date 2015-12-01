@@ -1,0 +1,14 @@
+indi-nexstarevo (0.2.1) UNRELEASED; urgency=low
+
+  * Update for new API in indilib 1.1.0
+  * Add proper configuration options
+  * Transition closer to alpha/beta state
+
+ -- Pawel T. Jochym <jochym@wolf.ifj.edu.pl>  Tue, 01 Dec 2015 15:03:45 +0100
+
+indi-nexstarevo (0.2) stable; urgency=low
+
+  * Initial release
+
+ -- Pawel T. Jochym <jochym@wolf.ifj.edu.pl>  Mon, 30 Nov 2015 08:00:00 +0100
+ 
