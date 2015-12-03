@@ -21,7 +21,6 @@
   The full GNU General Public License is included in this distribution in the
   file called LICENSE.
 *******************************************************************************/
-#include <iostream>
 #include <memory>
 #include <libnova.h>
 #include <time.h>
@@ -95,7 +94,7 @@ bool GPSD::Connect()
         gps=new gpsmm("localhost", DEFAULT_GPSD_PORT);
     } 
     if (gps->stream(WATCH_ENABLE|WATCH_JSON) == NULL) {
-        cerr << "No GPSD running.\n";
+        // cerr << "No GPSD running.\n";
         return false;
     }
     return true;
@@ -128,16 +127,16 @@ IPState GPSD::updateGPS()
     TimeTP.s = IPS_OK;
 
 	if (!gps->waiting(100000)) {
-        cerr << "No GPSD running.\n";
+        // cerr << "No GPSD running.\n";
         return IPS_ALERT;
     } else if ((data = gps->read()) == NULL) {
-        cerr << "Read error.\n";
+        // cerr << "Read error.\n";
         return IPS_ALERT;
     } else if (data->status != STATUS_FIX) {
-        cerr << "No fix.\n";
+        // cerr << "No fix.\n";
         return IPS_BUSY;
     } else {
-        fprintf(stderr,"Fix: %d time: %lf\n", data->fix.mode, data->fix.time);
+        // fprintf(stderr,"Fix: %d time: %lf\n", data->fix.mode, data->fix.time);
                 
         LocationN[LOCATION_LATITUDE].value = data->fix.latitude;
         LocationN[LOCATION_LONGITUDE].value = data->fix.longitude;
