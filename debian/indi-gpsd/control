@@ -3,7 +3,7 @@ Section: science
 Priority: extra
 Maintainer: Pawel T. Jochym <jochym@wolf.ifj.edu.pl>
 XSBC-Original-Maintainer: Jasem Mutlaq <mutlaqja@ikarustech.com>
-Build-Depends: debhelper (>= 6), cmake, cdbs, libindi-dev, libnova-dev, zlib1g-dev, libgps-dev, libgpsdmm-dev
+Build-Depends: debhelper (>= 6), cmake, cdbs, libindi-dev, libnova-dev, zlib1g-dev, libgps-dev
 Standards-Version: 3.8.0
 
 Package: indi-gpsd
