@@ -243,6 +243,10 @@
 3rdparty/indi-gphoto/gphoto_readimage.c -text
 3rdparty/indi-gphoto/gphoto_readimage.h -text
 3rdparty/indi-gphoto/indi_gphoto.xml -text
+3rdparty/indi-gpsd/CMakeLists.txt -text
+3rdparty/indi-gpsd/gps_driver.cpp -text
+3rdparty/indi-gpsd/gps_driver.h -text
+3rdparty/indi-gpsd/indi_gpsd.xml -text
 3rdparty/indi-maxdomeii/CMakeLists.txt -text
 3rdparty/indi-maxdomeii/indi_maxdomeii.xml -text
 3rdparty/indi-maxdomeii/maxdomeii.cpp -text
@@ -1031,6 +1035,7 @@ cmake_modules/FindFISHCAMP.cmake -text
 cmake_modules/FindFLI.cmake -text
 cmake_modules/FindFTDI.cmake -text
 cmake_modules/FindGPHOTO2.cmake -text
+cmake_modules/FindGPSD.cmake -text
 cmake_modules/FindINDI.cmake -text
 cmake_modules/FindJPEG.cmake -text
 cmake_modules/FindMEADE.cmake -text
@@ -1159,6 +1164,11 @@ debian/indi-gphoto/control -text
 debian/indi-gphoto/copyright -text
 debian/indi-gphoto/indi-gphoto.install -text
 debian/indi-gphoto/rules -text
+debian/indi-gpsd/changelog -text
+debian/indi-gpsd/compat -text
+debian/indi-gpsd/control -text
+debian/indi-gpsd/copyright -text
+debian/indi-gpsd/rules -text
 debian/indi-maxdomeii/changelog -text
 debian/indi-maxdomeii/compat -text
 debian/indi-maxdomeii/control -text

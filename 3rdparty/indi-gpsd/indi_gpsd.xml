@@ -1,0 +1,6 @@
+<devGroup group="Auxiliary">
+   <device label="GPSD">
+      <driver name="GPSD">indi_gpsd</driver>
+      <version>0.1</version>
+   </device>
+</devGroup>
