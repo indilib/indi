@@ -18,6 +18,10 @@
 
 */
 
+/*
+    Version with experimental pulse guide support. GC 04.12.2015
+*/
+
 #ifndef CELESTRONGPS_H
 #define CELESTRONGPS_H
 
@@ -30,7 +34,11 @@
 
 #define	POLLMS		1000		/* poll period, ms */
 
-class CelestronGPS : public INDI::Telescope
+//GUIDE: guider header
+#include "indiguiderinterface.h"
+
+//GUIDE: guider parent
+class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface
 {
  public:
  CelestronGPS();
@@ -47,6 +55,9 @@ class CelestronGPS : public INDI::Telescope
  virtual bool initProperties();
  virtual bool updateProperties();
 
+ //GUIDE guideTimeout() funcion
+ void guideTimeout(CELESTRON_DIRECTION calldir);
+ 
 protected:
 
  // Goto, Sync, and Motion
@@ -61,6 +72,18 @@ protected:
  virtual bool updateLocation(double latitude, double longitude, double elevation);
  virtual bool updateTime(ln_date *utc, double utc_offset);
 
+ //GUIDE: guiding functions
+ virtual IPState GuideNorth(float ms);
+ virtual IPState GuideSouth(float ms);
+ virtual IPState GuideEast(float ms);
+ virtual IPState GuideWest(float ms);
+
+ //GUIDE guideTimeoutHelper() function
+ static void guideTimeoutHelperN(void *p);
+ static void guideTimeoutHelperS(void *p);
+ static void guideTimeoutHelperW(void *p);
+ static void guideTimeoutHelperE(void *p);
+ 
  // Parking
  virtual bool Park();
  virtual bool UnPark();
@@ -73,6 +96,11 @@ protected:
 
  void mountSim();
 
+ //GUIDE variables.
+ int    GuideNSTID;
+ int    GuideWETID;
+ CELESTRON_DIRECTION guide_direction;
+ 
  /* Firmware */
  IText   FirmwareT[5];
  ITextVectorProperty FirmwareTP;
@@ -83,6 +111,10 @@ protected:
  ISwitch TrackS[4];
  ISwitchVectorProperty TrackSP;
 
+ //GUIDE Pulse guide switch
+ ISwitchVectorProperty UsePulseCmdSP;
+ ISwitch UsePulseCmdS[2];
+ 
 private:  
 
  bool setTrackMode(CELESTRON_TRACK_MODE mode);

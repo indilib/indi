@@ -18,6 +18,10 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+/*
+    Version with experimental pulse guide support. GC 04.12.2015
+*/
+
 #ifndef CELESTRONDRIVER_H
 #define CELESTRONDRIVER_H
 
@@ -118,5 +122,12 @@ uint16_t get_alt_fraction(double lat, double alt, double az);
 uint16_t get_angle_fraction(double angle);
 
 bool is_scope_slewing(int fd);
+
+/**************************************************************************
+ Pulse Guide (experimental)
+ *************************************************************************/
+
+int SendPulseCmd(int fd, CELESTRON_DIRECTION direction, signed char rate, unsigned char duration_msec);
+int SendPulseStatusCmd(int fd, CELESTRON_DIRECTION direction, bool & pulse_state);
 
 #endif

@@ -18,6 +18,10 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+/*
+    Version with experimental pulse guide support. GC 04.12.2015
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -520,6 +524,193 @@ bool get_celestron_gps_firmware(int fd, FirmwareInfo *info)
     return false;
 }
 
+
+/*****************************************************************
+ PulseGuide commands, experimental:                              *
+                                                                 *
+     SendPulseCmd( int fd,                                       *
+                   CELESTRON_DIRECTION direction,                *
+                   signed char rate,                             *
+                   unsigned char duration_csec );                *
+                                                                 *
+       Send a guiding pulse to the  mount connected to "fd",     *
+       in direction "direction". "rate" should be a * signed     *
+       8-bit integer in the range (-100,100) that represents     *
+       the pulse  velocity in % of sidereal. "duration_csec"     *
+       is an unsigned  8-bit integer (0,255) with  the pulse     *
+       duration in centiseconds (i.e. 1/100 s  =  10ms). The     *
+       max pulse duration is 2550 ms.                            *
+                                                                 *
+                                                                 *
+     SendPulseStatusCmd( int fd,                                 *
+                         CELESTRON_DIRECTION direction,          *
+                         bool & pulse_state );                   *
+                                                                 *
+       Send the guiding pulse status check command to device     *
+       "fd" for the motor responsible for "direction". If  a     *
+       pulse is being executed, "pulse_state" is  set  to 1,     *
+       whereas if the pulse motion has been  completed it is     *
+       set to 0. Return "false" if the status command fails,     *
+       otherwise return "true".                                  *
+******************************************************************/
+
+int SendPulseCmd(int fd, CELESTRON_DIRECTION direction, signed char rate, unsigned char duration_csec)
+{
+  
+  DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_WARNING, " PULSE REQUEST: (FD:%02X, DIR:%02i, RATE:%02i, CSEC:%02i)", fd, direction, rate, duration_csec);
+  
+  char cmd[] = { 0x50, 0x04, 0x11, 0x26, 0x00, 0x00, 0x00, 0x00};
+  int errcode = 0;
+  char errmsg[MAXRBUF];
+  int nbytes_written=0, nbytes_read=0;
+  char response[8];  
+  
+  switch (direction)
+  {
+        case CELESTRON_N:
+            cmd[2] = 0x11;
+            cmd[4] = rate;
+            cmd[5] = duration_csec;
+            break;
+
+        case CELESTRON_S:
+            cmd[2] = 0x11;
+            cmd[4] = -rate;
+            cmd[5] = duration_csec;
+            break;
+
+        case CELESTRON_W:
+            cmd[2] = 0x10;
+            cmd[4] = rate;
+            cmd[5] = duration_csec;
+            break;
+
+        case CELESTRON_E:
+            cmd[2] = 0x10;
+            cmd[4] = -rate;
+            cmd[5] = duration_csec;
+            break;
+  }
+  
+  DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_WARNING, "   COMMAND (%02X %02X %02X %02X %02X %02X %02X %02X)", cmd[0],cmd[1],cmd[2],cmd[3],(unsigned char)cmd[4],(unsigned char)cmd[5],cmd[6],cmd[7]);
+
+  if (celestron_simulation)
+   {
+       strcpy(response, "#");
+       nbytes_read = strlen(response);
+       DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_WARNING, "    SIMULATION: NBYTES = %02i, RESPONSE = %s", nbytes_read, response);
+   }
+   else
+   {
+       // Send command and check success.
+       DEBUGDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "   ISSUING COMMAND");
+       if ( (errcode = tty_write(fd, cmd, 8, &nbytes_written)) != TTY_OK)
+       {
+           tty_error_msg(errcode, errmsg, MAXRBUF);
+           DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+           return false;
+       }
+
+       DEBUGDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "   WAITING FOR REPLY");
+       // Receive response and check success.
+       if ( (errcode = tty_read(fd, response, 1, CELESTRON_TIMEOUT, &nbytes_read)))
+       {
+           tty_error_msg(errcode, errmsg, MAXRBUF);
+           DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+           return false;
+       }
+
+   }
+
+   if (nbytes_read == 1)
+   {
+     response[nbytes_read] = '\0';
+     DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_WARNING, "    NBYTES = %i, RESPONSE = %02X", nbytes_read, response[0]);
+
+     tcflush(fd, TCIFLUSH);
+     return true;
+   }
+
+   DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "    RECEIVED %d BYTES, expected 1", nbytes_read);
+   return false;
+}
+
+
+int SendPulseStatusCmd(int fd, CELESTRON_DIRECTION direction, bool & pulse_state)
+{
+  
+  DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_WARNING, " PULSE STATUS REQUEST: (FD:%02X, DIR:%02i)", fd, direction);
+  
+  char cmd[] = { 0x50, 0x03, 0x11, 0x27, 0x00, 0x00, 0x00, 0x01};
+  int errcode = 0;
+  char errmsg[MAXRBUF];
+  int nbytes_written=0, nbytes_read=0;
+  char response[8];  
+  
+  switch (direction)
+  {
+        case CELESTRON_N:
+        case CELESTRON_S:
+            cmd[2] = 0x11;
+            break;
+        case CELESTRON_W:
+        case CELESTRON_E:
+            cmd[2] = 0x10;
+            break;
+  }
+  
+  DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_WARNING, "   COMMAND (%02X %02X %02X %02X %02X %02X %02X %02X)", cmd[0],cmd[1],cmd[2],cmd[3],cmd[4],cmd[5],cmd[6],cmd[7]);
+
+  if (celestron_simulation)
+   {
+       strcpy(response, "0#");
+       nbytes_read = strlen(response);
+       DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_WARNING, "    SIMULATION: NBYTES = %02i, RESPONSE = %s", nbytes_read, response);
+   }
+   else
+   {
+       DEBUGDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "   ISSUING COMMAND");
+       if ( (errcode = tty_write(fd, cmd, 8, &nbytes_written)) != TTY_OK)
+       {
+           tty_error_msg(errcode, errmsg, MAXRBUF);
+           DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+           return false;
+       }
+       DEBUGDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "   WAITING FOR REPLY");
+       if ( (errcode = tty_read_section(fd, response, '#', CELESTRON_TIMEOUT, &nbytes_read)))
+       {
+           tty_error_msg(errcode, errmsg, MAXRBUF);
+           DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+           return false;
+       }
+
+   }
+
+   if (nbytes_read == 2)
+   {
+     response[nbytes_read] = '\0';
+     DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_WARNING, "    NBYTES = %i, RESPONSE = %02X %02X", nbytes_read, (unsigned char)response[0], (unsigned char)response[1]);
+
+     tcflush(fd, TCIFLUSH);
+     
+     if(response[0]==0 && response[1]=='#'){
+       pulse_state = 0;
+     }
+     else if(response[0]==1 && response[1]=='#'){
+       pulse_state = 1;
+     }
+     else{
+       DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_WARNING, "    UNEXPECTED RESPONSE: %02X %02X", (unsigned char)response[0], (unsigned char)response[1]);
+       return false;
+     }
+     
+     return true;
+   }
+
+   DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "    RECEIVED %d BYTES, expected 2", nbytes_read);
+   return false;
+}
+
 bool start_celestron_motion(int fd, CELESTRON_DIRECTION dir, CELESTRON_SLEW_RATE rate)
 {
     char cmd[] = { 0x50, 0x02, 0x11, 0x24, 0x09, 0x00, 0x00, 0x00};
@@ -533,25 +724,25 @@ bool start_celestron_motion(int fd, CELESTRON_DIRECTION dir, CELESTRON_SLEW_RATE
         case CELESTRON_N:
             cmd[2] = 0x11;
             cmd[3] = 0x24;
-            cmd[4] = rate;
+            cmd[4] = rate+1;
             break;
 
         case CELESTRON_S:
             cmd[2] = 0x11;
             cmd[3] = 0x25;
-            cmd[4] = rate;
+            cmd[4] = rate+1;
             break;
 
         case CELESTRON_W:
             cmd[2] = 0x10;
             cmd[3] = 0x24;
-            cmd[4] = rate;
+            cmd[4] = rate+1;
             break;
 
         case CELESTRON_E:
             cmd[2] = 0x10;
             cmd[3] = 0x25;
-            cmd[4] = rate;
+            cmd[4] = rate+1;
             break;
     }
 
