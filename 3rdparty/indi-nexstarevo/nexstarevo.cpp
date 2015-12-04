@@ -74,7 +74,11 @@ NexStarEvo::NexStarEvo() :
 {
     scope = NULL;
 
-    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_ABORT, 6);
+    SetTelescopeCapability( TELESCOPE_CAN_PARK | 
+                            TELESCOPE_CAN_SYNC | 
+                            TELESCOPE_CAN_ABORT |
+                            TELESCOPE_HAS_TIME |
+                            TELESCOPE_HAS_LOCATION, 6);
     // Approach from the top left 2deg away
     ApproachALT=1.0*STEPS_PER_DEGREE;
     ApproachAZ=-1.0*STEPS_PER_DEGREE;
