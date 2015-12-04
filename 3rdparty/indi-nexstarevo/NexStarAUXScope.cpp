@@ -419,14 +419,14 @@ void NexStarAUXScope::readMsgs(){
 
 int sendBuffer(int sock, buffer buf, long tout_msec){
     if (sock>0) {
-    timeval tv;
-    int n;
-    tv.tv_usec=(tout_msec%1000)*1000;
-    tv.tv_sec=tout_msec/1000;
-    setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(struct timeval));
-    n=send(sock, buf.data(), buf.size(), 0);
-    msleep(50);
-    return n;
+        timeval tv;
+        int n;
+        tv.tv_usec=(tout_msec%1000)*1000;
+        tv.tv_sec=tout_msec/1000;
+        setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(struct timeval));
+        n=send(sock, buf.data(), buf.size(), 0);
+        msleep(50);
+        return n;
     } else 
         return 0;
 }

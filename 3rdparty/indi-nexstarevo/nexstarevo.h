@@ -21,7 +21,7 @@ public:
 
 protected:
     virtual bool initProperties();
-
+    virtual bool saveConfigItems(FILE *fp);
     virtual bool Connect();
     virtual bool Disconnect();
 

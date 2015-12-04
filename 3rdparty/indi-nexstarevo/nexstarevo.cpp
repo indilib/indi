@@ -296,6 +296,17 @@ bool NexStarEvo::initProperties()
     return true;
 }
 
+bool NexStarEvo::saveConfigItems(FILE *fp)
+{
+    INDI::Telescope::saveConfigItems(fp);
+    SaveAlignmentConfigProperties(fp);
+    IUSaveConfigText(fp, &IPAddressTP);
+    IUSaveConfigNumber(fp, &IPPortNP);
+    
+    return true;
+}
+
+
 void NexStarEvo::ISGetProperties (const char *dev)
 {
     /* First we let our parent populate */
