@@ -1319,7 +1319,9 @@ bool GPhotoCCD::saveConfigItems(FILE *fp)
     INDI::CCD::saveConfigItems(fp);
 
     if (mIsoSP.nsp > 0)
-          IUSaveConfigSwitch(fp, &mIsoSP);    
+          IUSaveConfigSwitch(fp, &mIsoSP);
+    if (mFormatSP.nsp > 0)
+        IUSaveConfigSwitch(fp, &mFormatSP);
 
     return true;
 }
