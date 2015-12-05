@@ -32,8 +32,12 @@
 #include "indidevapi.h"
 #include "eventloop.h"
 #include <indilogger.h>
+#ifdef OSX_EMBEDED_MODE
+#include "ccvt.h"
+#define ulong unsigned long
+#else
 #include <ccvt.h>
-
+#endif
 #include "sbig_ccd.h"
 
 #define TEMPERATURE_POLL_MS 5000    /* Temperature Polling time (ms) */
@@ -1971,13 +1975,15 @@ int SBIGCCD::SBIGUnivDrvCommand(PAR_COMMAND command, void *params, void *results
             // Handle is valid so install it in the driver.
             sdhp.handle = GetDriverHandle();
             res = ::SBIGUnivDrvCommand(CC_SET_DRIVER_HANDLE, &sdhp, 0);
-
+#if !defined(OSX_EMBEDED_MODE)
             if(res == CE_FAKE_DRIVER)
             {
             // The user is using the dummy driver. Tell him to download the real driver
             IDMessage(getDeviceName(), "Error: SBIG Dummy Driver is being used now. You can only control your camera by downloading SBIG driver from INDI website @ indi.sf.net");
             }
-            else if(res == CE_NO_ERROR){
+            else
+#endif
+              if(res == CE_NO_ERROR){
                     res = ::SBIGUnivDrvCommand(command, params, results);
             }
     }

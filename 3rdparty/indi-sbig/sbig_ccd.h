@@ -29,8 +29,11 @@
 #include <indiccd.h>
 #include <indifilterinterface.h>
 #include <iostream>
+#ifdef OSX_EMBEDED_MODE
+#include <SBIGUDrv/SBIGUDrv.h>
+#else
 #include <sbigudrv.h>
-
+#endif
 using namespace std;
 
 #define DEVICE struct usb_device *

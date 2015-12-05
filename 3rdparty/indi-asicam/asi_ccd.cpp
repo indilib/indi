@@ -25,7 +25,11 @@
 #include <unistd.h>
 #include <sys/time.h>
 
+#ifdef OSX_EMBEDED_MODE
+#include "stream_recorder.h"
+#else
 #include <stream_recorder.h>
+#endif
 #include <indidevapi.h>
 
 

@@ -23,7 +23,11 @@
 #define SER_RECORDER_H
 
 #include "v4l2_record.h"
+#ifdef OSX_EMBEDED_MODE
+//#include "videodev2.h"
+#else
 #include <linux/videodev2.h>
+#endif
 #include <stdio.h>
 
 typedef struct ser_header {
