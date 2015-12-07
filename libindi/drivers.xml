@@ -145,6 +145,10 @@
                 <driver name="Baader SteelDrive">indi_steeldrive_focus</driver>
                 <version>1.0</version>
         </device>
+        <device label="SmartFocus">
+                <driver name="SmartFocus">indi_smartfocus_focus</driver>
+                <version>1.0</version>
+        </device>
         <device label="Optec TCF-S">
                 <driver name="Optec TCF-S">indi_tcfs_focus</driver>
                 <version>0.1</version>

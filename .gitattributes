@@ -1365,6 +1365,8 @@ libindi/drivers/focuser/perfectstar.cpp -text
 libindi/drivers/focuser/perfectstar.h -text
 libindi/drivers/focuser/robofocus.cpp -text
 libindi/drivers/focuser/robofocus.h -text
+libindi/drivers/focuser/smartfocus.cpp -text
+libindi/drivers/focuser/smartfocus.h -text
 libindi/drivers/focuser/steeldrive.cpp -text
 libindi/drivers/focuser/steeldrive.h -text
 libindi/drivers/focuser/tcfs.cpp -text

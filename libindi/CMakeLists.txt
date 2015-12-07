@@ -467,6 +467,16 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 install(FILES ${CMAKE_SOURCE_DIR}/drivers/focuser/99-perfectstar.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
 endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
+################ JMI Smart Focus Focuser ################
+
+set(smartfocus_SRCS
+        ${CMAKE_SOURCE_DIR}/drivers/focuser/smartfocus.cpp
+   )
+
+add_executable(indi_smartfocus_focus ${smartfocus_SRCS})
+target_link_libraries(indi_smartfocus_focus indidriver)
+install(TARGETS indi_smartfocus_focus RUNTIME DESTINATION bin )
+
 ################ Optec TCF-S ################
 
 set(tcfs_SRCS
