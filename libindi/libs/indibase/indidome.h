@@ -449,6 +449,8 @@ protected:
     ISwitchVectorProperty PresetGotoSP;
     INumber DomeMeasurementsN[6];
     INumberVectorProperty DomeMeasurementsNP;
+    ISwitchVectorProperty OTASideSP;
+    ISwitch OTASideS[2];
     ISwitchVectorProperty DomeAutoSyncSP;
     ISwitch DomeAutoSyncS[2];
 

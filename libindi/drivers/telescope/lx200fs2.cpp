@@ -23,9 +23,9 @@
 
 LX200FS2::LX200FS2() : LX200Generic()
 {
-    setVersion(2, 0);   
+    setVersion(2, 1);   
 
-    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,4);
+    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_LOCATION,4);
 }
 
 bool LX200FS2::initProperties()
@@ -127,9 +127,9 @@ bool LX200FS2::saveConfigItems(FILE *fp)
 
 bool LX200FS2::updateLocation(double latitude, double longitude, double elevation)
 {
-    INDI_UNUSED(elevation);
-    INDI_UNUSED(longitude);
-    INDI_UNUSED(latitude);
+    LocationN[LOCATION_ELEVATION].value = elevation;
+    LocationN[LOCATION_LONGITUDE].value = longitude;
+    LocationN[LOCATION_LATITUDE].value = latitude;
     return true;
 }
 

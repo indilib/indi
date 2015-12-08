@@ -92,6 +92,10 @@ bool INDI::Dome::initProperties()
     IUFillNumber(&DomeMeasurementsN[DM_UP_DISPLACEMENT],"DM_UP_DISPLACEMENT","Up displacement (m)","%6.2f",-10,10.0,1.0,0.0);
     IUFillNumber(&DomeMeasurementsN[DM_OTA_OFFSET],"DM_OTA_OFFSET","OTA offset (m)","%6.2f",-10.0,10.0,1.0,0.0);
     IUFillNumberVector(&DomeMeasurementsNP,DomeMeasurementsN,6,getDeviceName(),"DOME_MEASUREMENTS","Measurements",DOME_SLAVING_TAB,IP_RW,60,IPS_OK);
+    
+    IUFillSwitch(&OTASideS[0],"DM_OTA_SIDE_EAST","East",ISS_ON);
+    IUFillSwitch(&OTASideS[1],"DM_OTA_SIDE_WEST","West",ISS_OFF);
+    IUFillSwitchVector(&OTASideSP,OTASideS,2,getDeviceName(),"DM_OTA_SIDE","Meridian side",DOME_SLAVING_TAB,IP_RW,ISR_1OFMANY,60,IPS_OK);
 
     IUFillSwitch(&DomeAutoSyncS[0],"DOME_AUTOSYNC_ENABLE","Enable",ISS_OFF);
     IUFillSwitch(&DomeAutoSyncS[1],"DOME_AUTOSYNC_DISABLE","Disable",ISS_ON);
@@ -189,6 +193,7 @@ bool INDI::Dome::updateProperties()
             defineSwitch(&PresetGotoSP);
 
             defineSwitch(&DomeAutoSyncSP);
+            defineSwitch(&OTASideSP);
             defineNumber(&DomeParamNP);
             defineNumber(&DomeMeasurementsNP);            
         }
@@ -231,6 +236,7 @@ bool INDI::Dome::updateProperties()
             deleteProperty(PresetGotoSP.name);
 
             deleteProperty(DomeAutoSyncSP.name);
+            deleteProperty(OTASideSP.name);
             deleteProperty(DomeParamNP.name);
             deleteProperty(DomeMeasurementsNP.name);
         }
@@ -364,6 +370,25 @@ bool INDI::Dome::ISNewSwitch (const char *dev, const char *name, ISState *states
                 IDSetSwitch(&DomeAutoSyncSP,  "Dome is no longer synced to mount azimuth position.");
                 if (DomeAbsPosNP.s == IPS_BUSY || DomeRelPosNP.s == IPS_BUSY/* || DomeTimerNP.s == IPS_BUSY*/)
                     Dome::Abort();
+            }
+
+            return true;
+        }
+        
+        if (!strcmp(name, OTASideSP.name))
+        {
+            IUUpdateSwitch(&OTASideSP, states, names, n);
+            OTASideSP.s = IPS_OK;
+
+            if (OTASideS[0].s == ISS_ON)
+            {
+                 IDSetSwitch(&OTASideSP, "Dome will be synced for telescope been at east of meridian");
+                 UpdateAutoSync();
+            }
+            else
+            {
+                IDSetSwitch(&OTASideSP,  "Dome will be synced for telescope been at west of meridian");
+                UpdateAutoSync();
             }
 
             return true;
@@ -555,11 +580,14 @@ bool INDI::Dome::ISSnoopDevice (XMLEle *root)
     {
         int rc_ra=-1, rc_de=-1;
         double ra=0, de=0;
-
+        
+        
+        DEBUG(INDI::Logger::DBG_DEBUG, "Snooped RA-DEC");
         for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
         {
             const char *elemName = findXMLAttValu(ep, "name");
 
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Snooped RA-DEC: %s", pcdataXMLEle(ep));
             if (!strcmp(elemName, "RA"))                            
                 rc_ra = f_scansexa(pcdataXMLEle(ep), &ra);
             else if (!strcmp(elemName, "DEC"))
@@ -597,13 +625,14 @@ bool INDI::Dome::ISSnoopDevice (XMLEle *root)
             const char *elemName = findXMLAttValu(ep, "name");
             if (!strcmp(elemName, "LONG"))
             {
-                double indiLong = atof(pcdataXMLEle(ep));
+                double indiLong;
+                int rc_Long = f_scansexa(pcdataXMLEle(ep), &indiLong);
                 if (indiLong > 180)
                     indiLong -= 360;
                 observer.lng = indiLong;
             }
             else if (!strcmp(elemName, "LAT"))
-                observer.lat = atof(pcdataXMLEle(ep));
+                f_scansexa(pcdataXMLEle(ep), &(observer.lat));
         }
 
         DEBUGF(INDI::Logger::DBG_DEBUG, "Snooped LONG: %g - LAT: %g", observer.lng, observer.lat);
@@ -774,22 +803,38 @@ bool INDI::Dome::GetTargetAz(double & Az, double & Alt, double & minAz, double &
     double yx;
     double HalfApertureChordAngle;
     double RadiusAtAlt;
+    int OTASide = 1; /* Side of the telescope with respect of the mount, 1: east, -1: west*/
 
     double JD  = ln_get_julian_from_sys();
     double MSD = ln_get_mean_sidereal_time(JD);
+    
+    DEBUGF(INDI::Logger::DBG_DEBUG, "JD: %g - MSD: %g", JD, MSD);
 
     MountCenter.x = DomeMeasurementsN[DM_NORTH_DISPLACEMENT].value;    // Positive to North
     MountCenter.y = DomeMeasurementsN[DM_EAST_DISPLACEMENT].value;     // Positive to East
     MountCenter.z = DomeMeasurementsN[DM_UP_DISPLACEMENT].value;       // Positive Up
+    
+    DEBUGF(INDI::Logger::DBG_DEBUG, "MC.x: %g - MC.y: %g MC.z: %g", MountCenter.x, MountCenter.y, MountCenter.z);
 
     // Get hour angle in hours
     hourAngle = MSD + observer.lng/15.0 - mountEquatorialCoords.ra/15.0;
+    
+    DEBUGF(INDI::Logger::DBG_DEBUG, "HA: %g  Lng: %g RA: %g", hourAngle, observer.lng, mountEquatorialCoords.ra);
 
     // Get optical center point
-    OpticalCenter(MountCenter, DomeMeasurementsN[DM_OTA_OFFSET].value, observer.lat, hourAngle, OptCenter);
+    if (OTASideS[0].s != ISS_ON)
+        OTASide = -1;
+    
+    OpticalCenter(MountCenter, OTASide * DomeMeasurementsN[DM_OTA_OFFSET].value, observer.lat, hourAngle, OptCenter);
+    
+    DEBUGF(INDI::Logger::DBG_DEBUG, "OTA_SIDE: %d", OTASide);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "OTA_OFFSET: %g  Lat: %g", DomeMeasurementsN[DM_OTA_OFFSET].value, observer.lat);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "OC.x: %g - OC.y: %g OC.z: %g", OptCenter.x, OptCenter.y, OptCenter.z);
 
     // Get optical axis point. This and the previous form the optical axis line
     OpticalVector(OptCenter, mountHoriztonalCoords.az, mountHoriztonalCoords.alt, OptAxis);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Mount Az: %g  Alt: %g", mountHoriztonalCoords.az, mountHoriztonalCoords.alt);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "OA.x: %g - OA.y: %g OA.z: %g", OptAxis.x, OptAxis.y, OptAxis.z);
 
     DomeCenter.x = 0; DomeCenter.y = 0; DomeCenter.z = 0;
 

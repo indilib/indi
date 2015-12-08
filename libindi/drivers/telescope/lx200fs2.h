@@ -53,6 +53,8 @@ protected:
 
     INumber SlewAccuracyN[2];
     INumberVectorProperty SlewAccuracyNP;
+    
+    double Elevation, Latitud, Longitude;
 
 };
 
