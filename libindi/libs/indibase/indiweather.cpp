@@ -292,10 +292,11 @@ void INDI::Weather::TimerHit()
         return;
 
         // Alert
+        // We retry every POLLMS until we get OK
         case IPS_ALERT:
         ParametersNP.s = state;
         IDSetNumber(&ParametersNP, NULL);
-        return;
+        break;
 
         // Weather update is in progress
         default:
