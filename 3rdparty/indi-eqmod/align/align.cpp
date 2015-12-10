@@ -447,7 +447,9 @@ void Align::AlignSync(SyncData globalsync, SyncData thissync)
   DEBUGF(INDI::Logger::DBG_SESSION, "Align Sync: point added: lst=%.8f celestial RA %.8f DEC %.8f Telescope RA %.8f DEC %.8f", syncdata.lst, syncdata.targetRA, syncdata.targetDEC, syncdata.telescopeRA, syncdata.telescopeDEC);
   //IDLog(" Add Align point: %.8f %.8f %.8f %.8f %.8f\n", syncdata.lst, syncdata.targetRA, syncdata.targetDEC, syncdata.telescopeRA, syncdata.telescopeDEC);
   pointset->setBlobData(AlignDataBP);
-  IDSetBLOB(AlignDataBP, NULL);
+
+  // JM 2015-12-10: Disable setting AlignData temporary
+  //IDSetBLOB(AlignDataBP, NULL);
   
   IUUpdateNumber(AlignPointNP, values, (char **)names, 6);
   IDSetNumber(AlignPointNP, NULL);
@@ -582,7 +584,8 @@ bool Align::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 	    pointset->AddPoint(syncdata, NULL);
 	    IDMessage(telescope->getDeviceName(), "Align: added point to list");;
 	    pointset->setBlobData(AlignDataBP);
-	    IDSetBLOB(AlignDataBP, NULL);
+        // JM 2015-12-10: Disable setting AlignData temporary
+        //IDSetBLOB(AlignDataBP, NULL);
 	    IUFindNumber(AlignCountNP, "ALIGNCOUNT_POINTS")->value = pointset->getNbPoints();
 	    IUFindNumber(AlignCountNP, "ALIGNCOUNT_TRIANGLES")->value = pointset->getNbTriangles();
 	    IDSetNumber(AlignCountNP, NULL);
@@ -590,7 +593,8 @@ bool Align::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 	    pointset->Reset();
 	    IDMessage(telescope->getDeviceName(), "Align: list cleared");;
 	    pointset->setBlobData(AlignDataBP);
-	    IDSetBLOB(AlignDataBP, NULL);
+        // JM 2015-12-10: Disable setting AlignData temporary
+        //IDSetBLOB(AlignDataBP, NULL);
 	    IUFindNumber(AlignCountNP, "ALIGNCOUNT_POINTS")->value = pointset->getNbPoints();
 	    IUFindNumber(AlignCountNP, "ALIGNCOUNT_TRIANGLES")->value = pointset->getNbTriangles();
 	    IDSetNumber(AlignCountNP, NULL);
@@ -612,7 +616,8 @@ bool Align::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 	    else
 	      IDMessage(telescope->getDeviceName(), "Align: Data loaded from file %s", IUFindText(AlignDataFileTP,"ALIGNDATAFILENAME")->text);
 	    pointset->setBlobData(AlignDataBP);
-	    IDSetBLOB(AlignDataBP, NULL);
+        // JM 2015-12-10: Disable setting AlignData temporary
+        //IDSetBLOB(AlignDataBP, NULL);
 	    IUFindNumber(AlignCountNP, "ALIGNCOUNT_POINTS")->value = pointset->getNbPoints();
 	    IUFindNumber(AlignCountNP, "ALIGNCOUNT_TRIANGLES")->value = pointset->getNbTriangles();
 	    IDSetNumber(AlignCountNP, NULL);
