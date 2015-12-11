@@ -78,7 +78,7 @@ void ISSnoopDevice (XMLEle *root)
     INDI_UNUSED(root);
 }
 
-FlipFlat::FlipFlat()
+FlipFlat::FlipFlat() : LightBoxInterface(this, true)
 {
     setVersion(1,0);
     PortFD=-1;
@@ -143,7 +143,9 @@ bool FlipFlat::updateProperties()
         defineSwitch(&LightSP);
         defineNumber(&LightIntensityNP);
         defineText(&StatusTP);
-        defineText(&FirmwareTP);
+        defineText(&FirmwareTP);        
+
+        updateLightBoxProperties();
 
         getStartupData();
     }
@@ -155,6 +157,8 @@ bool FlipFlat::updateProperties()
         deleteProperty(LightIntensityNP.name);
         deleteProperty(StatusTP.name);
         deleteProperty(FirmwareTP.name);
+
+        updateLightBoxProperties();
     }
 
     return true;
@@ -227,6 +231,9 @@ bool FlipFlat::ISNewText (const char *dev, const char *name, char *texts[], char
 {
     if(strcmp(dev,getDeviceName())==0)
     {
+        if (processLightBoxText(dev, name, texts, names, n))
+            return true;
+
         if (!strcmp(PortTP.name, name))
         {
             IUUpdateText(&PortTP, texts, names, n);
@@ -251,6 +258,20 @@ bool FlipFlat::ISNewSwitch (const char *dev, const char *name, ISState *states, 
     }
 
     return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
+}
+
+bool FlipFlat::ISSnoopDevice (XMLEle *root)
+{
+    snoopLightBox(root);
+
+    return INDI::DefaultDevice::ISSnoopDevice(root);
+}
+
+bool FlipFlat::saveConfigItems(FILE *fp)
+{
+    INDI::DefaultDevice::saveConfigItems(fp);
+
+    return saveLightBoxConfigItems(fp);
 }
 
 bool FlipFlat::ping()
@@ -412,6 +433,12 @@ bool FlipFlat::EnableLightBox(bool enable)
     char errstr[MAXRBUF];
     char command[FLAT_CMD];
     char response[FLAT_RES];
+
+    if (isFlipFlat && ParkCapS[1].s == ISS_ON)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Cannot control light while cap is unparked.");
+        return false;
+    }
 
     tcflush(PortFD, TCIOFLUSH);
 

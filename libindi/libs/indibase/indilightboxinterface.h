@@ -25,20 +25,24 @@
 #include "indiapi.h"
 
 /**
- * \class INDI::LightBoxInterface
+ * \class INDI::LightBox
    \brief Provides interface to implement controllable light box/switch device.
+
+   Filter durations preset can be defined if the active filter name is set. Once the filter names are retrieves, the duration in seconds can be set for each filter.
+   When the filter wheel changes to a new filter, the du
 
    \e IMPORTANT: initLightBoxProperties() must be called before any other function to initilize the Light device properties.
 
    \e IMPORTANT: processLightBoxSwitch() must be called in your driver ISNewSwitch function.
    \e IMPORTANT: processLightBoxNumber() must be called in your driver ISNewNumber function.
+   \e IMPORTANT: processLightBoxText() must be called in your driver ISNewText function.
 \author Jasem Mutlaq
 */
 class INDI::LightBoxInterface
 {
 
 protected:
-    LightBoxInterface();
+    LightBoxInterface(INDI::DefaultDevice *device, bool isDimmable);
     virtual ~LightBoxInterface();
 
     /** \brief Initilize light box properties. It is recommended to call this function within initProperties() of your primary device
@@ -53,6 +57,13 @@ protected:
     /** \brief Process light box number properties */
     bool processLightBoxNumber (const char *dev, const char *name, double values[], char *names[], int n);
 
+    /** \brief Process light box text properties */
+    bool processLightBoxText(const char *dev, const char *name, char *texts[], char *names[], int n);
+
+    bool updateLightBoxProperties();
+    bool saveLightBoxConfigItems(FILE *fp);
+    bool snoopLightBox(XMLEle *root);
+
     /**
      * @brief setBrightness Set light level. Must be impelemented in the child class, if supported.
      * @param value level of light box
@@ -65,7 +76,7 @@ protected:
      * @param enable If true, turn on the light, otherwise turn off the light.
      * @return True if successful, false otherwise.
      */
-    virtual bool EnableLightBox(bool enable);
+    virtual bool EnableLightBox(bool enable);    
 
     // Turn on/off light
     ISwitchVectorProperty LightSP;
@@ -75,8 +86,19 @@ protected:
     INumberVectorProperty LightIntensityNP;
     INumber LightIntensityN[1];
 
+    // Active devices to snoop
+    ITextVectorProperty ActiveDeviceTP;
+    IText ActiveDeviceT[1];
+
+    INumberVectorProperty FilterIntensityNP;
+    INumber *FilterIntensityN;
+
 private:
-    char lightBoxName[MAXINDIDEVICE];
+
+    void addFilterDuration(const char *filterName, uint16_t filterDuration);
+
+    INDI::DefaultDevice *device;
+    bool isDimmable;
 };
 
 #endif // INDILIGHTBOXINTERFACE_H
