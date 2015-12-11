@@ -71,7 +71,9 @@ public:
         GPS_INTERFACE           = (1 << 6),         /**< GPS interface, must subclass INDI::GPS */
         WEATHER_INTERFACE       = (1 << 7),         /**< Weather interface, must subclass INDI::Weather */
         AO_INTERFACE            = (1 << 8),         /**< Adaptive Optics Interface */
-        AUX_INTERFACE           = (1 << 9),         /**< Auxiliary interface */
+        DUSTCAP_INTERFACE       = (1 << 9),         /**< Dust Cap Interface */
+        LIGHTBOX_INTERFACE      = (1 << 10),        /**< Light Box Interface */
+        AUX_INTERFACE           = (1 << 15),        /**< Auxiliary interface */
     };
 
     /** \return Return vector number property given its name */

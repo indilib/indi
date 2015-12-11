@@ -1551,6 +1551,8 @@ libindi/libs/indibase/indidevice.cpp -text
 libindi/libs/indibase/indidevice.h -text
 libindi/libs/indibase/indidome.cpp -text
 libindi/libs/indibase/indidome.h -text
+libindi/libs/indibase/indidustcapinterface.cpp -text
+libindi/libs/indibase/indidustcapinterface.h -text
 libindi/libs/indibase/indifilterinterface.cpp -text
 libindi/libs/indibase/indifilterinterface.h -text
 libindi/libs/indibase/indifilterwheel.cpp -text
@@ -1563,6 +1565,8 @@ libindi/libs/indibase/indigps.cpp -text
 libindi/libs/indibase/indigps.h -text
 libindi/libs/indibase/indiguiderinterface.cpp -text
 libindi/libs/indibase/indiguiderinterface.h -text
+libindi/libs/indibase/indilightboxinterface.cpp -text
+libindi/libs/indibase/indilightboxinterface.h -text
 libindi/libs/indibase/indilogger.cpp -text
 libindi/libs/indibase/indilogger.h -text
 libindi/libs/indibase/indiproperty.cpp -text
