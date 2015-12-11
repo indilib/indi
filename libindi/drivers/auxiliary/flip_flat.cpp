@@ -75,7 +75,7 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
 }
 void ISSnoopDevice (XMLEle *root)
 {
-    INDI_UNUSED(root);
+    flipflat->ISSnoopDevice(root);
 }
 
 FlipFlat::FlipFlat() : LightBoxInterface(this, true)
@@ -275,7 +275,7 @@ bool FlipFlat::saveConfigItems(FILE *fp)
 }
 
 bool FlipFlat::ping()
-{
+{    
     int nbytes_written=0, nbytes_read=0, rc=-1;
     char errstr[MAXRBUF];
     char command[FLAT_CMD];
@@ -344,7 +344,7 @@ bool FlipFlat::getStartupData()
 }
 
 IPState FlipFlat::ParkCap()
-{
+{    
     int nbytes_written=0, nbytes_read=0, rc=-1;
     char errstr[MAXRBUF];
     char command[FLAT_CMD];
@@ -428,7 +428,7 @@ IPState FlipFlat::UnParkCap()
 }
 
 bool FlipFlat::EnableLightBox(bool enable)
-{
+{    
     int nbytes_written=0, nbytes_read=0, rc=-1;
     char errstr[MAXRBUF];
     char command[FLAT_CMD];
@@ -483,7 +483,7 @@ bool FlipFlat::EnableLightBox(bool enable)
 }
 
 bool FlipFlat::getStatus()
-{
+{    
     int nbytes_written=0, nbytes_read=0, rc=-1;
     char errstr[MAXRBUF];
     char command[FLAT_CMD];
@@ -671,7 +671,7 @@ void FlipFlat::TimerHit()
 }
 
 bool FlipFlat::getBrightness()
-{
+{    
     int nbytes_written=0, nbytes_read=0, rc=-1;
     char errstr[MAXRBUF];
     char command[FLAT_CMD];
@@ -726,7 +726,7 @@ bool FlipFlat::getBrightness()
 }
 
 bool FlipFlat::SetLightBoxBrightness(uint16_t value)
-{
+{    
     int nbytes_written=0, nbytes_read=0, rc=-1;
     char errstr[MAXRBUF];
     char command[FLAT_CMD];

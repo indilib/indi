@@ -200,7 +200,7 @@ bool INDI::LightBoxInterface::snoopLightBox(XMLEle *root)
 
         device->defineNumber(&FilterIntensityNP);
     }
-    else if (FilterIntensityN && !strcmp(propName, "FILTER_SLOT"))
+    else if (FilterIntensityN && device->isConnected() && !strcmp(propName, "FILTER_SLOT"))
     {
         // Only accept IPS_OK state
         if (strcmp(findXMLAttValu(root, "state"), "Ok"))
@@ -212,7 +212,7 @@ bool INDI::LightBoxInterface::snoopLightBox(XMLEle *root)
 
             if (!strcmp(elemName, "FILTER_SLOT_VALUE"))
             {
-                int index = atoi(pcdataXMLEle(ep));
+                int index = atoi(pcdataXMLEle(ep))-1;
                 if (index < FilterIntensityNP.nnp)
                 {
                     double duration = FilterIntensityN[index].value;
@@ -246,7 +246,7 @@ void INDI::LightBoxInterface::addFilterDuration(const char *filterName, uint16_t
         FilterIntensityN = (INumber *) realloc(FilterIntensityN, (FilterIntensityNP.nnp+1) * sizeof(INumber));
     }
 
-    IUFillNumber(&FilterIntensityN[FilterIntensityNP.nnp], filterName, filterName, "%0.f", 0, 300, 10, filterDuration);
+    IUFillNumber(&FilterIntensityN[FilterIntensityNP.nnp], filterName, filterName, "%0.f", 0, LightIntensityN[0].max, LightIntensityN[0].step, filterDuration);
 
     FilterIntensityNP.nnp++;
     FilterIntensityNP.np = FilterIntensityN;
