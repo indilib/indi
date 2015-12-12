@@ -380,7 +380,11 @@ IPState FlipFlat::ParkCap()
     snprintf(expectedResponse, FLAT_RES, "*C%02d000", productID);
 
     if (!strcmp(response, expectedResponse))
+    {
+        // Set cover status to random value outside of range to force it to refresh
+        prevCoverStatus = 10;
         return IPS_BUSY;
+    }
     else
         return IPS_ALERT;
 }
@@ -422,7 +426,11 @@ IPState FlipFlat::UnParkCap()
     snprintf(expectedResponse, FLAT_RES, "*O%02d000", productID);
 
     if (!strcmp(response, expectedResponse))
+    {
+        // Set cover status to random value outside of range to force it to refresh
+        prevCoverStatus = 10;
         return IPS_BUSY;
+    }
     else
         return IPS_ALERT;
 }
