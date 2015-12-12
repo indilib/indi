@@ -502,6 +502,8 @@ bool ASICCD::setupParams()
       IDSetNumber(&TemperatureNP, NULL);
   }
 
+  ASIStopVideoCapture(m_camInfo->CameraID);
+
   ASISetROIFormat(m_camInfo->CameraID, m_camInfo->MaxWidth, m_camInfo->MaxHeight, 1, imgType);
 
   updateRecorderFormat();
