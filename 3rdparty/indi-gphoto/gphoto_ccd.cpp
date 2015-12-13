@@ -809,10 +809,11 @@ void GPhotoCCD::TimerHit()
         else
         {
             DEBUGF(INDI::Logger::DBG_DEBUG, "Capture in progress. Time left %ld", timeleft);
-            PrimaryCCD.setExposureLeft(timeleft);
             if (timerID == -1)
                 SetTimer(POLLMS);
         }
+
+        PrimaryCCD.setExposureLeft(timeleft);
     }
 }
 
