@@ -400,7 +400,7 @@ void NexStarAUXScope::readMsgs(){
                     //dumpMsg(b);
                     iq.push(new AUXCommand(b));
                 } else {
-                    fprintf(stderr,"Partial message recv. Keep for later!\n");
+                    fprintf(stderr,"Partial message recv. (i=%d %d/%d)\n", i, shft, n);
                     break;
                 }
                 i=shft;
