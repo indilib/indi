@@ -124,9 +124,14 @@ uint16_t get_angle_fraction(double angle);
 bool is_scope_slewing(int fd);
 
 /**************************************************************************
+ Hibernate/Wakup
+ *************************************************************************/
+bool hibernate(int fd);
+bool wakeup(int fd);
+
+/**************************************************************************
  Pulse Guide (experimental)
  *************************************************************************/
-
 int SendPulseCmd(int fd, CELESTRON_DIRECTION direction, signed char rate, unsigned char duration_msec);
 int SendPulseStatusCmd(int fd, CELESTRON_DIRECTION direction, bool & pulse_state);
 

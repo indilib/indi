@@ -1633,6 +1633,50 @@ bool set_celestron_track_mode(int fd, CELESTRON_TRACK_MODE mode)
     return false;
 }
 
+bool hibernate (int fd)
+{
+    char cmd[] = "x";
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    int nbytes_written=0;
+
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
+    if (celestron_simulation)
+        return true;
+
+    if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    {
+         tty_error_msg(errcode, errmsg, MAXRBUF);
+         DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+        return false;
+    }
+
+    return true;
+}
+
+bool wakeup (int fd)
+{
+    char cmd[] = "y";
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    int nbytes_written=0;
+
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
+    if (celestron_simulation)
+        return true;
+
+    if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    {
+         tty_error_msg(errcode, errmsg, MAXRBUF);
+         DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+        return false;
+    }
+
+    return true;
+}
+
 uint16_t get_angle_fraction(double angle)
 {
     if (angle >= 0)

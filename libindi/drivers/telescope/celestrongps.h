@@ -114,6 +114,9 @@ protected:
  //GUIDE Pulse guide switch
  ISwitchVectorProperty UsePulseCmdSP;
  ISwitch UsePulseCmdS[2];
+
+ ISwitchVectorProperty UseHibernateSP;
+ ISwitch UseHibernateS[2];
  
 private:  
 

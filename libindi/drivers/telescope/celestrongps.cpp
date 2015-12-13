@@ -136,6 +136,10 @@ bool CelestronGPS::initProperties()
     IUFillSwitch(&TrackS[3], "TRACK_EQS", "Eq South", ISS_OFF);
     IUFillSwitchVector(&TrackSP, TrackS, 4, getDeviceName(), "TELESCOPE_TRACK_RATE", "Track Mode", MOUNTINFO_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+    IUFillSwitch(&UseHibernateS[0], "Enable", "", ISS_OFF);
+    IUFillSwitch(&UseHibernateS[1], "Disable", "", ISS_ON);
+    IUFillSwitchVector(&UseHibernateSP, UseHibernateS, 2, getDeviceName(), "Hibernate", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
     //GUIDE Define "Use Pulse Cmd" property (Switch).
     IUFillSwitch(&UsePulseCmdS[0], "Off", "", ISS_ON);
     IUFillSwitch(&UsePulseCmdS[1], "On", "", ISS_OFF);
@@ -156,10 +160,19 @@ bool CelestronGPS::initProperties()
 
 void CelestronGPS::ISGetProperties(const char *dev)
 {
+    static bool configLoaded=false;
+
     if(dev && strcmp(dev,getDeviceName()))
         return;
 
     INDI::Telescope::ISGetProperties(dev);
+
+    defineSwitch(&UseHibernateSP);
+    if (configLoaded == false)
+    {
+        configLoaded=true;
+        loadConfig(true,"Hibernate");
+    }
     
     if (isConnected())
     {
@@ -499,6 +512,17 @@ bool CelestronGPS::ReadScopeStatus()
             HorizontalCoordsNP.s = IPS_OK;
 
             saveConfig(true);
+
+            // Check if we need to hibernate
+            if (UseHibernateS[0].s == ISS_ON)
+            {
+                DEBUG(INDI::Logger::DBG_SESSION, "Hibernating mount...");
+                bool rc = hibernate(PortFD);
+                if (rc)
+                    DEBUG(INDI::Logger::DBG_SESSION, "Mount hibernated. Please disconnect now and turn off your mount.");
+                else
+                    DEBUG(INDI::Logger::DBG_ERROR, "Hibernating mount failed!");
+            }
         }
         break;
 
@@ -578,6 +602,18 @@ bool CelestronGPS::Connect(const char *port, uint16_t baud)
       return false;
     }
 
+    // Check if we need to wake up
+    if (UseHibernateS[0].s == ISS_ON)
+    {
+        DEBUG(INDI::Logger::DBG_SESSION, "Waking up mount...");
+        bool rc = wakeup(PortFD);
+        if (rc == false)
+        {
+            DEBUG(INDI::Logger::DBG_ERROR, "Waking up mount failed!");
+            return false;
+        }
+    }
+
     if (check_celestron_connection(PortFD) == false)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Failed to connect to telescope port %s. Ensure telescope is powered and connected.", port);
@@ -628,6 +664,15 @@ bool CelestronGPS::ISNewSwitch (const char *dev, const char *name, ISState *stat
            return false;
         }
         
+        // Enable/Disable hibernate
+        if (!strcmp(name, UseHibernateSP.name))
+        {
+            IUUpdateSwitch(&UseHibernateSP, states, names, n);
+            UseHibernateSP.s = IPS_OK;
+            IDSetSwitch(&UseHibernateSP, NULL);
+            return true;
+        }
+
         //GUIDE Pulse-Guide command support
         if (!strcmp (name, UsePulseCmdSP.name))
         {
@@ -1063,6 +1108,7 @@ bool CelestronGPS::saveConfigItems(FILE *fp)
 {
     INDI::Telescope::saveConfigItems(fp);
 
+    IUSaveConfigSwitch(fp, &UseHibernateSP);
     IUSaveConfigSwitch(fp, &TrackSP);
 
     return true;
