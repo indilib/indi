@@ -1378,6 +1378,7 @@ bool SBIGCCD::grabImage(CCDChip *targetChip)
            if ( (res=readoutCCD(left, top, width, height, buffer, targetChip)) == CE_NO_ERROR)
                break;
 
+          DEBUGF(INDI::Logger::DBG_DEBUG, "readCCD error (%d), retrying......", res);
           usleep(MAX_THREAD_WAIT);
       }
 
