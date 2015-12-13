@@ -674,6 +674,16 @@ bool SBIGCCD::Connect()
               if (isColor)
                   cap |= CCD_HAS_BAYER;
 
+              if (GetCameraType() == STI_CAMERA)
+              {
+                  PrimaryCCD.setMinMaxStep("CCD_BINNING", "HOR_BIN", 1, 2, 1, false);
+                  PrimaryCCD.setMinMaxStep("CCD_BINNING", "VER_BIN", 1, 2, 1, false);
+              }
+              else
+              {
+                  PrimaryCCD.setMinMaxStep("CCD_BINNING", "HOR_BIN", 1, 3, 1, false);
+                  PrimaryCCD.setMinMaxStep("CCD_BINNING", "VER_BIN", 1, 3, 1, false);
+              }
 
               SetCCDCapability(cap);
 
@@ -1199,15 +1209,23 @@ bool SBIGCCD::UpdateCCDBin(int binx, int biny)
     if (binx != biny)
         biny = binx;
 
-    if (binx <1 || binx > 3)
+    if (GetCameraType() == STI_CAMERA)
+    {
+        if (binx <1 || binx > 2)
+        {
+            DEBUG(INDI::Logger::DBG_ERROR, "Error: Bad CCD binning mode! Use: 1x1 or 2x2");
+            return false;
+        }
+    }
+    else if (binx <1 || binx > 3)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error: Bad CCD binning mode! Use: 1x1, 2x2 or 3x3");
         return false;
     }
 
-  PrimaryCCD.setBin(binx, biny);
+    PrimaryCCD.setBin(binx, biny);
 
-  return updateFrameProperties(&PrimaryCCD);
+    return updateFrameProperties(&PrimaryCCD);
 }
 
 bool SBIGCCD::UpdateGuiderBin(int binx, int biny)
