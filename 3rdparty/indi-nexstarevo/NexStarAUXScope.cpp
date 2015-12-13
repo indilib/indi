@@ -415,7 +415,9 @@ void NexStarAUXScope::readMsgs(){
                         dumpMsg(b);
                     }
                 } else {
-                    fprintf(stderr,"Partial message recv. (i=%d %d/%d)\n", i, shft, n);
+                    fprintf(stderr,"Partial message recv. dropping (i=%d %d/%d)\n", i, shft, n);
+                    prnBytes(buf+i,n-i);
+                    recv(sock, buf, n,MSG_DONTWAIT);
                     break;
                 }
                 i=shft;

@@ -53,7 +53,7 @@ private:
 
     NexStarAUXScope *scope;
 
-    enum ScopeStatus_t {IDLE, SLEWING_FAST, SLEWING_SLOW, TRACKING};
+    enum ScopeStatus_t {IDLE, SLEWING_FAST, APPROACH, SLEWING_SLOW, TRACKING};
     ScopeStatus_t ScopeStatus;
 
     enum AxisStatus { STOPPED, SLEWING, SLEWING_TO };

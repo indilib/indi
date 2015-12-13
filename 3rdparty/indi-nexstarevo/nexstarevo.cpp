@@ -153,7 +153,10 @@ const char * NexStarEvo::getDefaultName()
 
 bool NexStarEvo::Park()
 {
-    scope->GoToFast(0,0,false);
+    // Park at the southern horizon 
+    // This is a designated by celestron parking position
+    Abort();
+    scope->GoToFast(long(0),long(0),false);
     return true;
 }
 
@@ -239,7 +242,10 @@ bool NexStarEvo::Goto(double ra,double dec)
         }
     }
 
-    if (ScopeStatus != SLEWING_FAST){
+    if (ScopeStatus != APPROACH){ 
+        // The scope is not in slow approach mode - target should be modified
+        // for preission approach.
+        // TODO: This is simplistic - it should be modified close to the zenith
         AltAz.alt+=ApproachALT/STEPS_PER_DEGREE;
         AltAz.az+=ApproachAZ/STEPS_PER_DEGREE;
     }
@@ -269,16 +275,18 @@ bool NexStarEvo::Goto(double ra,double dec)
     DEBUGF(DBG_NSEVO, "Goto - Scope reference frame target altitude %lf azimuth %lf", AltAz.alt, AltAz.az);
 
     TrackState = SCOPE_SLEWING;
-    if (ScopeStatus != SLEWING_FAST) {
-        ScopeStatus = SLEWING_FAST;
-        scope->GoToFast(long(AltAz.alt * STEPS_PER_DEGREE),
-                        long(AltAz.az * STEPS_PER_DEGREE),
-                        ISS_ON == IUFindSwitch(&CoordSP,"TRACK")->s);
-    } else {
+    if (ScopeStatus == APPROACH) {
+        // We need to make a slow slew to approach the final position
         ScopeStatus = SLEWING_SLOW;
         scope->GoToSlow(long(AltAz.alt * STEPS_PER_DEGREE),
                         long(AltAz.az * STEPS_PER_DEGREE),
                         ISS_ON == IUFindSwitch(&CoordSP,"TRACK")->s);
+    } else {
+        // Just make a standard fast slew
+        ScopeStatus = SLEWING_FAST;
+        scope->GoToFast(long(AltAz.alt * STEPS_PER_DEGREE),
+                        long(AltAz.az * STEPS_PER_DEGREE),
+                        ISS_ON == IUFindSwitch(&CoordSP,"TRACK")->s);    
     }
 
     EqNP.s    = IPS_BUSY;
@@ -558,17 +566,19 @@ void NexStarEvo::TimerHit()
                 // or precission approach
                 if (ScopeStatus == SLEWING_FAST) {
                     // This was coarse slew.Execute precise approach.
+                    ScopeStatus = APPROACH;
                     Goto(GoToTarget.ra, GoToTarget.dec);
                     break;
                 } else if (ISS_ON == IUFindSwitch(&CoordSP,"TRACK")->s)
                 {
                     // Precise Goto has finished. Start tracking.
-                    DEBUGF(DBG_NSEVO, "TimerHit - Goto finished start tracking TargetRA: %f TargetDEC: %f", CurrentTrackingTarget.ra, CurrentTrackingTarget.dec);
+                    DEBUGF(DBG_NSEVO, "Goto finished start tracking TargetRA: %f TargetDEC: %f", CurrentTrackingTarget.ra, CurrentTrackingTarget.dec);
                     TrackState = SCOPE_TRACKING;
                     // Fall through to tracking case
                 }
                 else
                 {
+                    DEBUG(DBG_NSEVO, "Goto finished. No tracking requested");
                     // Precise goto finished but no tracking requested
                     TrackState = SCOPE_IDLE;
                     break;
