@@ -678,7 +678,6 @@ bool INDI::Dome::saveConfigItems(FILE *fp)
     IUSaveConfigSwitch(fp, &DomeAutoSyncSP);
     IUSaveConfigNumber(fp, &DomeParamNP);
     IUSaveConfigNumber(fp, &DomeMeasurementsNP);
-    IUSaveConfigSwitch(fp, &DomeAutoSyncSP);
     IUSaveConfigSwitch(fp, &AutoParkSP);
 
     controller->saveConfigItems(fp);
