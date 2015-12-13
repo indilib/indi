@@ -150,6 +150,19 @@ const char * NexStarEvo::getDefaultName()
     return (char *)"NexStar Evolution";
 }
 
+
+bool NexStarEvo::Park()
+{
+    scope->GoToFast(0,0,false);
+    return true;
+}
+
+bool NexStarEvo::UnPark()
+{
+    return true;
+}
+
+
 // TODO: Make adjustment for the approx time it takes to slew to the given pos.
 bool NexStarEvo::Goto(double ra,double dec)
 {

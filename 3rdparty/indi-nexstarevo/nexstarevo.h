@@ -30,6 +30,8 @@ protected:
     virtual bool Sync(double ra, double dec);
     virtual bool Goto(double ra,double dec);
     virtual bool Abort();
+    virtual bool Park();
+    virtual bool UnPark();
 
 
     // TODO: Switch to AltAz from N-S/W-E

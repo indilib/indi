@@ -15,9 +15,11 @@
 #include <indicom.h>
 #include "NexStarAUXScope.h"
 
+
+
 #define BUFFER_SIZE 10240
 int MAX_CMD_LEN=32;
-
+bool DEBUG = false;
 
 //////////////////////////////////////////////////
 /////// Utility functions
@@ -69,9 +71,11 @@ AUXCommand::AUXCommand(AUXCommands c, AUXtargets s, AUXtargets d){
 
 
 void AUXCommand::dumpCmd(){
+    if (DEBUG) {
     fprintf(stderr,"(%02x) %02x -> %02x: ", cmd, src, dst);
     for (int i=0; i<data.size(); i++) fprintf(stderr,"%02x ", data[i]);
     fprintf(stderr,"\n");
+    }
 }
 
 
@@ -179,7 +183,6 @@ void NexStarAUXScope::initScope() {
     tracking=false;
     slewingAlt=false;
     slewingAz=false;
-
     // Park position at the south horizon.
     Alt=targetAlt=Az=targetAz=0;
     
@@ -214,6 +217,9 @@ bool NexStarAUXScope::Connect(){
     fprintf(stderr, "Socket:%d\n", sock);
     */
     fprintf(stderr, "OK\n");
+    msleep(500);
+    readMsgs();
+    processMsgs();
     return true;
 }
 
@@ -256,6 +262,7 @@ bool NexStarAUXScope::slewing(){
 }
 
 bool NexStarAUXScope::GoToFast(long alt, long az, bool track){
+    //DEBUG=true;
     targetAlt=alt;
     targetAz=az;
     tracking=track;
@@ -268,10 +275,12 @@ bool NexStarAUXScope::GoToFast(long alt, long az, bool track){
     sendCmd(&altcmd);
     sendCmd(&azmcmd);
     readMsgs();
+    //DEBUG=false;
     return true;
 };
 
 bool NexStarAUXScope::GoToSlow(long alt, long az, bool track){
+    //DEBUG=false;
     targetAlt=alt;
     targetAz=az;
     tracking=track;
@@ -284,6 +293,7 @@ bool NexStarAUXScope::GoToSlow(long alt, long az, bool track){
     sendCmd(&altcmd);
     sendCmd(&azmcmd);
     readMsgs();
+    //DEBUG=false;
     return true;
 };
 
@@ -337,9 +347,10 @@ void NexStarAUXScope::querryStatus(){
 }
 
 void NexStarAUXScope::processMsgs(){
+    if (DEBUG) fprintf(stderr,"Processing msgs: %d\n", iq.size());
     while (not iq.empty()) {
         AUXCommand *m=iq.front();
-        //fprintf(stderr,"Recv: "); m->dumpCmd();
+        if (DEBUG) { fprintf(stderr,"Recv: "); m->dumpCmd(); }
         switch (m->cmd) {
             case MC_GET_POSITION:
                 switch (m->src) {
@@ -384,21 +395,25 @@ void NexStarAUXScope::readMsgs(){
     tv.tv_usec=50000;
     setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(struct timeval));
     while((n = recv(sock, buf, sizeof(buf),MSG_DONTWAIT|MSG_PEEK)) > 0) {
-        /*
-        fprintf(stderr,"Got %d bytes: ", n);
-        for (i=0; i<n; i++) fprintf(stderr,"%02x ", buf[i]);
-        fprintf(stderr,"\n");
-        */
+        if (DEBUG) {
+            fprintf(stderr,"Got %d bytes: ", n);
+            for (i=0; i<n; i++) fprintf(stderr,"%02x ", buf[i]);
+            fprintf(stderr,"\n");
+        }
         for (i=0; i<n; ){
-            //fprintf(stderr,"%d ",i);
+            //if (DEBUG) fprintf(stderr,"%d ",i);
             if (buf[i]==0x3b) {
                 int shft;
                 shft=i+buf[i+1]+3;
                 if (shft<=n) {
-                    //prnBytes(buf+i,shft-i);
+                    //if (DEBUG) prnBytes(buf+i,shft-i);
                     buffer b(buf+i, buf+shft);
-                    //dumpMsg(b);
+                    //if (DEBUG) dumpMsg(b);
                     iq.push(new AUXCommand(b));
+                    if (iq.empty()) {
+                        fprintf(stderr,"Queue still empty after push!! (i=%d %d/%d)\n", i, shft, n);
+                        dumpMsg(b);
+                    }
                 } else {
                     fprintf(stderr,"Partial message recv. (i=%d %d/%d)\n", i, shft, n);
                     break;
@@ -411,7 +426,8 @@ void NexStarAUXScope::readMsgs(){
         // Actually consume data we parsed. Leave the rest for later.
         if (i>0) {
             n=recv(sock, buf, i,MSG_DONTWAIT);
-            //fprintf(stderr,"Consumed %d/%d bytes\n", n, i);
+            if (DEBUG) fprintf(stderr,"Consumed %d/%d bytes (iq.size=%d)\n", n, i, iq.size());
+                
         }
     }
     //fprintf(stderr,"Nothing more to read\n");
@@ -426,6 +442,9 @@ int sendBuffer(int sock, buffer buf, long tout_msec){
         setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(struct timeval));
         n=send(sock, buf.data(), buf.size(), 0);
         msleep(50);
+//        if (n!=buf.size()) {
+//            fprintf(stderr, "sendBuffer: incomplete send n=%d size=%d\n", n, buf.size());
+//        }
         return n;
     } else 
         return 0;
@@ -433,39 +452,42 @@ int sendBuffer(int sock, buffer buf, long tout_msec){
 
 bool NexStarAUXScope::sendCmd(AUXCommand *c){
     buffer buf;
-    //fprintf(stderr,"Send: ");   c->dumpCmd();
+    if (DEBUG) { fprintf(stderr,"Send: ");   c->dumpCmd(); }
     c->fillBuf(buf);
     return sendBuffer(sock, buf, 500)==buf.size();
 }
 
 void NexStarAUXScope::writeMsgs(){
-    buffer buf;
-    while (not oq.empty()) {
-        AUXCommand *m=oq.front();
-        fprintf(stderr,"SEND: ");
-        m->dumpCmd();
-        m->fillBuf(buf);
-        send(sock, buf.data(), buf.size(), 0);
-        msleep(50);
-        oq.pop();
-        delete m;
-    }
-    return;
-    /*
-    if (sock<3) return;
-    fprintf(stderr,"Sending get position\n");
-    buffer buf;
-    AUXCommand getALT(MC_GET_POSITION,APP,ALT);
-    AUXCommand getAZM(MC_GET_POSITION,APP,AZM);
-    getALT.fillBuf(buf);
-    //fprintf(stderr,"buffer size: %d\n",buf.size());
-    //dumpMsg(buf);
-    send(sock, buf.data(), buf.size(), 0);
-    getAZM.fillBuf(buf);
-    //dumpMsg(buf);
-    send(sock, buf.data(), buf.size(), 0);
-    */
+    fprintf(stderr,"=================  writeMsgs  =====================\n");
+//    buffer buf;
+//    while (not oq.empty()) {
+//        AUXCommand *m=oq.front();
+//        fprintf(stderr,"SEND: ");
+//        m->dumpCmd();
+//        m->fillBuf(buf);
+//        send(sock, buf.data(), buf.size(), 0);
+//        msleep(50);
+//        oq.pop();
+//        delete m;
+//    }
+//    return;
+//    /*
+//    if (sock<3) return;
+//    fprintf(stderr,"Sending get position\n");
+//    buffer buf;
+//    AUXCommand getALT(MC_GET_POSITION,APP,ALT);
+//    AUXCommand getAZM(MC_GET_POSITION,APP,AZM);
+//    getALT.fillBuf(buf);
+//    //fprintf(stderr,"buffer size: %d\n",buf.size());
+//    //dumpMsg(buf);
+//    send(sock, buf.data(), buf.size(), 0);
+//    getAZM.fillBuf(buf);
+//    //dumpMsg(buf);
+//    send(sock, buf.data(), buf.size(), 0);
+//    */
 }
+
+int debug_timeout=30;
 
 bool NexStarAUXScope::TimerTick(double dt){
     bool slewing=false;
@@ -476,7 +498,7 @@ bool NexStarAUXScope::TimerTick(double dt){
     //writeMsgs();
     readMsgs();
     processMsgs();
-    
+    if (DEBUG) {if (debug_timeout<0) {DEBUG=false; debug_timeout=30;} else debug_timeout--;}
     
     if (simulator) {
         // update both axis
