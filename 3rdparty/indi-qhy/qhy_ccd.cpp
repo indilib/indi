@@ -810,9 +810,9 @@ bool QHYCCD::StartExposure(float duration)
 
   InExposure = true;
 
-  if (ExposureRequest*1000 < POLLMS)
-      SetTimer(ExposureRequest*1000);
-  else
+ // if (ExposureRequest*1000 < POLLMS)
+ //     SetTimer(ExposureRequest*1000);
+ // else
       SetTimer(POLLMS);
 
   return true;
@@ -990,56 +990,52 @@ int QHYCCD::grabImage()
 
 void QHYCCD::TimerHit()
 {
-  int timerID = -1;
-
-  if (isConnected() == false || InExposure == false)
+  if (isConnected() == false)
     return;
 
-  long timeleft = calcTimeLeft();
+   if (InExposure)
+   {
+       long timeleft = calcTimeLeft();
 
-  if (timeleft < 1.0)
-  {
-      if (timeleft > 0.25)
-      {
-          //  a quarter of a second or more
-          //  just set a tighter timer
-          timerID = SetTimer(250);
-      }
-      else
-      {
-          if (timeleft > 0.07)
-          {
-              //  use an even tighter timer
-              timerID = SetTimer(50);
-          }
-          else
-          {
-              /* We're done exposing */
-              DEBUG(INDI::Logger::DBG_DEBUG, "Exposure done, downloading image...");
-              // Don't spam the session log unless it is a long exposure > 5 seconds
-              if (ExposureRequest > POLLMS * 5)
-                  DEBUG(INDI::Logger::DBG_SESSION, "Exposure done, downloading image...");
+       if (timeleft < 1.0)
+       {
+           if (timeleft > 0.25)
+           {
+               //  a quarter of a second or more
+               //  just set a tighter timer
+               SetTimer(250);
+           }
+           else
+           {
+               if (timeleft > 0.07)
+               {
+                   //  use an even tighter timer
+                   SetTimer(50);
+               }
+               else
+               {
+                   /* We're done exposing */
+                   DEBUG(INDI::Logger::DBG_DEBUG, "Exposure done, downloading image...");
+                   // Don't spam the session log unless it is a long exposure > 5 seconds
+                   if (ExposureRequest > POLLMS * 5)
+                       DEBUG(INDI::Logger::DBG_SESSION, "Exposure done, downloading image...");
 
-              PrimaryCCD.setExposureLeft(0);
-              InExposure = false;
-              /* grab and save image */
-              grabImage();
+                   PrimaryCCD.setExposureLeft(0);
+                   InExposure = false;
+                   /* grab and save image */
+                   grabImage();
 
-          }
-      }
-  }
-  else
-  {
+               }
+           }
+       }
+       else
+       {
+           DEBUGF(INDI::Logger::DBG_DEBUG, "Exposure in progress: Time left %ld", timeleft);
+           SetTimer(POLLMS);
+       }
 
-      DEBUGF(INDI::Logger::DBG_DEBUG, "Exposure in progress: Time left %ld", timeleft);
-  }
-
-  PrimaryCCD.setExposureLeft(timeleft);
-
-
-  if (timerID == -1)
-    SetTimer(timeleft*1000);
-
+       PrimaryCCD.setExposureLeft(timeleft);
+   }
 }
 
 IPState QHYCCD::GuideNorth(float duration)
