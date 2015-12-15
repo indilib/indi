@@ -290,6 +290,8 @@ bool CelestronGPS::updateProperties()
     }
     else
     {
+        INDI::Telescope::updateProperties();
+
         //GUIDE Delete properties.
         deleteProperty(UsePulseCmdSP.name);
         deleteProperty(GuideNSNP.name);
