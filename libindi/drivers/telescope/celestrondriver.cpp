@@ -146,6 +146,8 @@ bool check_celestron_connection(int fd)
       }
       else
       {
+          tcflush(fd, TCIOFLUSH);
+
           if ( (errcode = tty_write(fd, initCMD, 2, &nbytes_written)) != TTY_OK)
           {
               tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -1663,11 +1665,15 @@ bool wakeup (int fd)
     int errcode = 0;
     char errmsg[MAXRBUF];
     int nbytes_written=0;
+    int nbytes_read=0;
+    char response[1];
 
     DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
     if (celestron_simulation)
         return true;
+
+    tcflush(fd, TCIOFLUSH);
 
     if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
@@ -1676,11 +1682,33 @@ bool wakeup (int fd)
         return false;
     }
 
-    usleep(500000);
+    if ( (errcode = tty_read(fd, response, 1, CELESTRON_TIMEOUT, &nbytes_read)))
+    {
+        tty_error_msg(errcode, errmsg, MAXRBUF);
+        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+        return false;
+    }
 
-    tcflush(fd, TCIOFLUSH);    
+    if (nbytes_read > 0)
+    {
+      response[nbytes_read] = '\0';
+      DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
-    return true;
+      if (!strcmp(response, "#"))
+      {
+          tcflush(fd, TCIFLUSH);
+          return true;
+      }
+      else
+      {
+          DEBUGDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "Error waking up the mount.");
+          tcflush(fd, TCIFLUSH);
+          return false;
+      }
+    }
+
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "Received #%d bytes, expected 1.", nbytes_read);
+    return false;
 }
 
 uint16_t get_angle_fraction(double angle)
