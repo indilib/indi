@@ -236,6 +236,8 @@ bool get_celestron_version (int fd, FirmwareInfo *info)
     }
     else
     {
+        tcflush(fd, TCIOFLUSH);
+
         if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
