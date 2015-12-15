@@ -1635,7 +1635,7 @@ bool set_celestron_track_mode(int fd, CELESTRON_TRACK_MODE mode)
 
 bool hibernate (int fd)
 {
-    char cmd[] = "x";
+    char cmd[] = "x#";
     int errcode = 0;
     char errmsg[MAXRBUF];
     int nbytes_written=0;
@@ -1657,7 +1657,7 @@ bool hibernate (int fd)
 
 bool wakeup (int fd)
 {
-    char cmd[] = "y";
+    char cmd[] = "y#";
     int errcode = 0;
     char errmsg[MAXRBUF];
     int nbytes_written=0;
@@ -1673,6 +1673,8 @@ bool wakeup (int fd)
          DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
         return false;
     }
+
+    tcflush(fd, TCIOFLUSH);
 
     return true;
 }

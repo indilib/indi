@@ -191,43 +191,42 @@ void CelestronGPS::ISGetProperties(const char *dev)
 }
 
 bool CelestronGPS::updateProperties()
-{
-    uint32_t cap = TELESCOPE_CAN_ABORT | TELESCOPE_CAN_PARK;
-
-    if (get_celestron_firmware(PortFD, &fwInfo))
-    {
-        IUSaveText(&FirmwareT[FW_MODEL], fwInfo.Model.c_str());
-        IUSaveText(&FirmwareT[FW_VERSION], fwInfo.Version.c_str());
-        IUSaveText(&FirmwareT[FW_GPS], fwInfo.GPSFirmware.c_str());
-        IUSaveText(&FirmwareT[FW_RA], fwInfo.RAFirmware.c_str());
-        IUSaveText(&FirmwareT[FW_DEC], fwInfo.DEFirmware.c_str());
-    }
-    else
-    {
-        fwInfo.Version = "Invalid";
-        DEBUG(INDI::Logger::DBG_WARNING, "Failed to retrive firmware information.");
-    }
-
-    if (fwInfo.controllerVersion <= 4.1)
-    {
-        DEBUG(INDI::Logger::DBG_WARNING, "Mount firmware does not support sync.");
-    }
-    else
-        cap |= TELESCOPE_CAN_SYNC;
-
-    if (fwInfo.controllerVersion < 2.3)
-    {
-        DEBUG(INDI::Logger::DBG_WARNING, "Mount firmware does not support update of time and location settings.");        
-    }
-    else
-        cap |= TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION;
-
-    SetTelescopeCapability(cap,9);
-
-    INDI::Telescope::updateProperties();
-
+{    
     if (isConnected())
-    {
+    {        
+        uint32_t cap = TELESCOPE_CAN_ABORT | TELESCOPE_CAN_PARK;
+
+        if (get_celestron_firmware(PortFD, &fwInfo))
+        {
+            IUSaveText(&FirmwareT[FW_MODEL], fwInfo.Model.c_str());
+            IUSaveText(&FirmwareT[FW_VERSION], fwInfo.Version.c_str());
+            IUSaveText(&FirmwareT[FW_GPS], fwInfo.GPSFirmware.c_str());
+            IUSaveText(&FirmwareT[FW_RA], fwInfo.RAFirmware.c_str());
+            IUSaveText(&FirmwareT[FW_DEC], fwInfo.DEFirmware.c_str());
+        }
+        else
+        {
+            fwInfo.Version = "Invalid";
+            DEBUG(INDI::Logger::DBG_WARNING, "Failed to retrive firmware information.");
+        }
+
+        if (fwInfo.controllerVersion <= 4.1)
+        {
+            DEBUG(INDI::Logger::DBG_WARNING, "Mount firmware does not support sync.");
+        }
+        else
+            cap |= TELESCOPE_CAN_SYNC;
+
+        if (fwInfo.controllerVersion < 2.3)
+        {
+            DEBUG(INDI::Logger::DBG_WARNING, "Mount firmware does not support update of time and location settings.");
+        }
+        else
+            cap |= TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION;
+
+        SetTelescopeCapability(cap,9);
+
+        INDI::Telescope::updateProperties();
         
         CELESTRON_TRACK_MODE mode;
         if (get_celestron_track_mode(PortFD, &mode))
@@ -266,10 +265,28 @@ bool CelestronGPS::updateProperties()
         defineSwitch(&UsePulseCmdSP);
         defineNumber(&GuideNSNP);
         defineNumber(&GuideWENP);
+
+        if (fwInfo.controllerVersion >= 2.3)
+        {
+            double utc_offset;
+            int yy, dd, mm, hh, minute, ss;
+            if (get_celestron_utc_date_time(PortFD, &utc_offset, &yy, &mm, &dd, &hh, &minute, &ss))
+            {
+                char isoDateTime[32];
+                char utcOffset[8];
+
+                snprintf(isoDateTime, 32, "%04d-%02d-%02dT%02d:%02d:%02d", yy, mm, dd, hh, minute, ss);
+                snprintf(utcOffset, 8, "%4.2f", utc_offset);
+
+                IUSaveText(IUFindText(&TimeTP, "UTC"), isoDateTime);
+                IUSaveText(IUFindText(&TimeTP, "OFFSET"), utcOffset);
+
+                DEBUGF(INDI::Logger::DBG_SESSION, "Mount UTC offset is %s. UTC time is %s", utcOffset, isoDateTime);
+
+                IDSetText(&TimeTP, NULL);
+            }
+        }
         
-        
-        //???
-        // getBasicData();
     }
     else
     {
@@ -281,27 +298,6 @@ bool CelestronGPS::updateProperties()
         deleteProperty(TrackSP.name);
         if (fwInfo.Version != "Invalid")
             deleteProperty(FirmwareTP.name);
-    }
-
-    if (fwInfo.controllerVersion >= 2.3)
-    {
-        double utc_offset;
-        int yy, dd, mm, hh, minute, ss;
-        if (get_celestron_utc_date_time(PortFD, &utc_offset, &yy, &mm, &dd, &hh, &minute, &ss))
-        {
-            char isoDateTime[32];
-            char utcOffset[8];
-
-            snprintf(isoDateTime, 32, "%04d-%02d-%02dT%02d:%02d:%02d", yy, mm, dd, hh, minute, ss);
-            snprintf(utcOffset, 8, "%4.2f", utc_offset);
-
-            IUSaveText(IUFindText(&TimeTP, "UTC"), isoDateTime);
-            IUSaveText(IUFindText(&TimeTP, "OFFSET"), utcOffset);
-
-            DEBUGF(INDI::Logger::DBG_SESSION, "Mount UTC offset is %s. UTC time is %s", utcOffset, isoDateTime);
-
-            IDSetText(&TimeTP, NULL);
-        }
     }    
 
     return true;
