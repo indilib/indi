@@ -1676,7 +1676,9 @@ bool wakeup (int fd)
         return false;
     }
 
-    tcflush(fd, TCIOFLUSH);
+    usleep(500000);
+
+    tcflush(fd, TCIOFLUSH);    
 
     return true;
 }
