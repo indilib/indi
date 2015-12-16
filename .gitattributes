@@ -1441,6 +1441,8 @@ libindi/drivers/weather/gason.cpp -text
 libindi/drivers/weather/gason.h -text
 libindi/drivers/weather/vantage.cpp -text
 libindi/drivers/weather/vantage.h -text
+libindi/drivers/weather/weathermeta.cpp -text
+libindi/drivers/weather/weathermeta.h -text
 libindi/drivers/weather/wunderground.cpp -text
 libindi/drivers/weather/wunderground.h -text
 libindi/eventloop.c -text

@@ -703,6 +703,17 @@ install(TARGETS indi_simulator_gps RUNTIME DESTINATION bin )
 ############ AUX GROUP ##############
 #####################################
 
+########### Weather Meta Driver ###############
+
+set(weathermeta_SRCS
+        ${CMAKE_SOURCE_DIR}/drivers/weather/weathermeta.cpp
+   )
+
+add_executable(indi_meta_weather ${weathermeta_SRCS})
+
+target_link_libraries(indi_meta_weather indidriver)
+install(TARGETS indi_meta_weather RUNTIME DESTINATION bin )
+
 ########### Vantage Driver ###############
 
 set(vantage_SRCS

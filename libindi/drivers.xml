@@ -245,6 +245,10 @@
         </device>
 </devGroup>
 <devGroup group="Weather">
+        <device label="Weather Meta">
+                <driver name="Weather Meta">indi_meta_weather</driver>
+                <version>1.0</version>
+        </device>
         <device label="WunderGround">
                 <driver name="WunderGround">indi_wunderground_weather</driver>
                 <version>1.0</version>
