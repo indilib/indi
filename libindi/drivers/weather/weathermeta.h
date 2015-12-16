@@ -52,6 +52,7 @@ class WeatherMeta : public INDI::DefaultDevice
 
 private:
     void updateOverallState();
+    void updateUpdatePeriod();
 
     // Active stations
     IText ActiveDeviceT[4];
@@ -64,6 +65,8 @@ private:
     // Update Period
     INumber UpdatePeriodN[1];
     INumberVectorProperty UpdatePeriodNP;
+
+    double updatePeriods[4];
 };
 
 #endif // WEATHERMETA_H
