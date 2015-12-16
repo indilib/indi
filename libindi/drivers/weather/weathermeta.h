@@ -45,7 +45,6 @@ class WeatherMeta : public INDI::DefaultDevice
     virtual bool updateProperties();
     virtual void ISGetProperties (const char *dev);
     virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
 
     protected:
 

@@ -119,8 +119,8 @@ bool WeatherMeta::initProperties()
     IUFillLightVector(&StationLP, StationL, 4, getDeviceName(), "WEATHER_STATUS", "Status", MAIN_CONTROL_TAB, IPS_IDLE);
 
     // Update Period
-    IUFillNumber(&UpdatePeriodN[0],"PERIOD","Period (secs)","%4.2f",0,3600,60,60);
-    IUFillNumberVector(&UpdatePeriodNP,UpdatePeriodN,1,getDeviceName(),"WEATHER_UPDATE","Update",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
+    IUFillNumber(&UpdatePeriodN[0],"PERIOD","Period (secs)","%4.2f",0,3600,60,3600);
+    IUFillNumberVector(&UpdatePeriodNP,UpdatePeriodN,1,getDeviceName(),"WEATHER_UPDATE","Update",MAIN_CONTROL_TAB,IP_RO,60,IPS_IDLE);
 
     addDebugControl();
 
@@ -174,43 +174,31 @@ bool WeatherMeta::ISNewText (const char *dev, const char *name, char *texts[], c
             IDSetText(&ActiveDeviceTP,NULL);
 
             if (ActiveDeviceT[0].text)
+            {
                 IDSnoopDevice(ActiveDeviceT[0].text,"WEATHER_STATUS");
+                IDSnoopDevice(ActiveDeviceT[0].text,"WEATHER_UPDATE");
+            }
             if (ActiveDeviceT[1].text)
+            {
                 IDSnoopDevice(ActiveDeviceT[1].text,"WEATHER_STATUS");
+                IDSnoopDevice(ActiveDeviceT[0].text,"WEATHER_UPDATE");
+            }
             if (ActiveDeviceT[2].text)
+            {
                 IDSnoopDevice(ActiveDeviceT[2].text,"WEATHER_STATUS");
+                IDSnoopDevice(ActiveDeviceT[2].text,"WEATHER_UPDATE");
+            }
             if (ActiveDeviceT[3].text)
+            {
                 IDSnoopDevice(ActiveDeviceT[3].text,"WEATHER_STATUS");
+                IDSnoopDevice(ActiveDeviceT[2].text,"WEATHER_UPDATE");
+            }
 
             return true;
         }
     }
 
      return INDI::DefaultDevice::ISNewText(dev,name,texts,names,n);
-}
-
-bool WeatherMeta::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
-{
-    //  first check if it's for our device
-    if(strcmp(dev,getDeviceName())==0)
-    {
-        // Update period
-        if(strcmp(name,"WEATHER_UPDATE")==0)
-        {
-            IUUpdateNumber(&UpdatePeriodNP, values, names, n);
-            UpdatePeriodNP.s = IPS_OK;
-            IDSetNumber(&UpdatePeriodNP, NULL);
-
-            if (UpdatePeriodN[0].value == 0)
-                DEBUG(INDI::Logger::DBG_SESSION,  "Clients are recommended to stop monitoring the overall weather status.");
-            else
-                DEBUGF(INDI::Logger::DBG_SESSION, "Clients are recommended to query the overall weather status every %d seconds.", (int) UpdatePeriodN[0].value);
-
-            return true;
-        }
-    }
-
-    return DefaultDevice::ISNewNumber(dev,name,values,names,n);
 }
 
 bool WeatherMeta::saveConfigItems(FILE *fp)
@@ -251,6 +239,20 @@ bool WeatherMeta::ISSnoopDevice(XMLEle *root)
             }
 
             return true;
+        }
+
+        if (!strcmp(propName, "WEATHER_UPDATE"))
+        {
+            XMLEle *ep=NULL;
+            for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
+            {
+                double stationUpdatePeriod = atof(pcdataXMLEle(ep));
+                if (stationUpdatePeriod < UpdatePeriodN[0].value)
+                {
+                    UpdatePeriodN[0].value = stationUpdatePeriod;
+                    IDSetNumber(&UpdatePeriodNP, NULL);
+                }
+            }
         }
     }
 
