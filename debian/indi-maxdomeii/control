@@ -24,3 +24,4 @@ Description: INDI MaxDome II driver debug symbols.
  .
  This driver is compatible with any INDI client such as KStars or Xephem.
  This package contains the debug symbols for the this driver, useful to investigate problems in INDI.
+ 

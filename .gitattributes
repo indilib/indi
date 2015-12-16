@@ -1174,6 +1174,7 @@ debian/indi-maxdomeii/changelog -text
 debian/indi-maxdomeii/compat -text
 debian/indi-maxdomeii/control -text
 debian/indi-maxdomeii/copyright -text
+debian/indi-maxdomeii/indi-maxdomeii.install -text
 debian/indi-maxdomeii/rules -text
 debian/indi-nexstarevo/changelog -text
 debian/indi-nexstarevo/compat -text
