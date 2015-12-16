@@ -248,6 +248,7 @@
 3rdparty/indi-gpsd/gps_driver.h -text
 3rdparty/indi-gpsd/indi_gpsd.xml -text
 3rdparty/indi-maxdomeii/CMakeLists.txt -text
+3rdparty/indi-maxdomeii/config.h.cmake -text
 3rdparty/indi-maxdomeii/indi_maxdomeii.xml -text
 3rdparty/indi-maxdomeii/maxdomeii.cpp -text
 3rdparty/indi-maxdomeii/maxdomeii.h -text

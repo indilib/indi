@@ -4,6 +4,9 @@ PROJECT(indi_maxdomeii C CXX)
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
 
+set(INDI_MAXDOMEII_VERSION_MAJOR 1)
+set(INDI_MAXDOMEII_VERSION_MINOR 1)
+
 Include (CheckCXXSourceCompiles)
 Include (CheckCSourceCompiles)
 include (MacroOptionalFindPackage)
@@ -15,7 +18,7 @@ find_package(INDI REQUIRED)
 find_package(ZLIB REQUIRED)
 FIND_PACKAGE(Nova REQUIRED)
 
-#configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})

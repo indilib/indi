@@ -25,6 +25,8 @@
 /* Our driver header */
 #include "maxdomeii.h"
 
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -91,6 +93,8 @@ MaxDomeII::MaxDomeII()
    nTimeSinceLastCommunication = 0;
 
    SetDomeCapability(DOME_CAN_ABORT | DOME_CAN_ABS_MOVE | DOME_HAS_SHUTTER);
+   
+   setVersion(INDI_MAXDOMEII_VERSION_MAJOR, INDI_MAXDOMEII_VERSION_MINOR);
 }
 
 bool MaxDomeII::SetupParms()
