@@ -199,6 +199,7 @@ bool INDI::LightBoxInterface::snoopLightBox(XMLEle *root)
         }
 
         device->defineNumber(&FilterIntensityNP);
+        device->loadConfig(true, "FLAT_LIGHT_FILTER_INTENSITY");
     }
     else if (FilterIntensityN && device->isConnected() && !strcmp(propName, "FILTER_SLOT"))
     {
