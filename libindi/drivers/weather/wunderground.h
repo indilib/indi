@@ -49,12 +49,6 @@ class WunderGround : public INDI::Weather
     virtual bool saveConfigItems(FILE *fp);
     virtual bool updateLocation(double latitude, double longitude, double elevation);
 
-    INumber *weatherN;
-    INumber *temperatureN;
-    INumber *windN;
-    INumber *windGustN;
-    INumber *precipN;
-
 private:
 
     IText wunderAPIKeyT[1];
