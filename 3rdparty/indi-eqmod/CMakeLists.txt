@@ -19,8 +19,10 @@ find_package(ZLIB REQUIRED)
 #find_package(Threads REQUIRED)
 
 set(EQMOD_VERSION_MAJOR 0)
-set(EQMOD_VERSION_MINOR 2)
-option(WITH_ALIGN_GEEHALEL "Enable Alignment Test" ON)
+set(EQMOD_VERSION_MINOR 3)
+include(CMakeDependentOption)
+option(WITH_ALIGN "Enable Alignment Subsystem" OFF)
+cmake_dependent_option(WITH_ALIGN_GEEHALEL "Enable Alignment Test" ON "NOT WITH_ALIGN" OFF)
 option(WITH_SIMULATOR "Enable Simulator" ON)
 option(WITH_NOFMANY "Use NOFMANY switches" ON)
 option(STOP_WHEN_MOTION_CHANGED "Stop motors when motion mode changes" ON)
@@ -60,7 +62,14 @@ endif(WITH_SCOPE_LIMITS)
 
 add_executable(indi_eqmod_telescope ${eqmod_SRCS})
 
-target_link_libraries(indi_eqmod_telescope ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${NOVA_LIBRARIES})
+if(WITH_ALIGN)
+  find_library(INDI_ALIGN_LIBRARIES NAMES indiAlignmentDriver
+      HINTS ${PC_INDI_LIBRARY_DIRS}
+  )
+  target_link_libraries(indi_eqmod_telescope ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${NOVA_LIBRARIES} ${INDI_ALIGN_LIBRARIES})
+else(WITH_ALIGN)
+  target_link_libraries(indi_eqmod_telescope ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${NOVA_LIBRARIES})
+endif(WITH_ALIGN)
 
 if (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")
 target_link_libraries(indi_eqmod_telescope rt)

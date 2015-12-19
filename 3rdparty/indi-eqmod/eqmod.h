@@ -24,7 +24,9 @@
 
 #include "config.h"
 #include "skywatcher.h"
+#ifdef WITH_ALIGN_GEEHALEL
 #include "align/align.h"
+#endif
 #ifdef WITH_SIMULATOR
 #include "simulator/simulator.h"
 #endif
@@ -41,13 +43,20 @@
 	  unsigned long telescopeRAEncoder, telescopeDECEncoder;
 	  long deltaRAEncoder, deltaDECEncoder;
 	} SyncData;
+#ifdef WITH_ALIGN
 
+#include <alignment/AlignmentSubsystemForDrivers.h>
+
+class EQMod : public INDI::Telescope, public INDI::GuiderInterface, INDI::AlignmentSubsystem::AlignmentSubsystemForDrivers
+#else
 class EQMod : public INDI::Telescope, public INDI::GuiderInterface
+#endif
 {
     protected:
     private:
     Skywatcher *mount;
-	Align *align;
+    
+
 
 	unsigned long currentRAEncoder, zeroRAEncoder, totalRAEncoder;
 	unsigned long currentDEEncoder, zeroDEEncoder, totalDEEncoder;
@@ -60,6 +69,11 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 	double alignedRA, alignedDEC;
     double targetRA;
     double targetDEC;
+    
+#ifdef WITH_ALIGN_GEEHALEL
+	Align *align;
+#endif
+	
     TelescopeStatus RememberTrackState;
     int last_motion_ns;
     int last_motion_ew;
@@ -173,7 +187,9 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
         virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
         virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
         virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-
+#ifdef WITH_ALIGN
+	virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
+#endif
         virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
         virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
         virtual bool Abort();
