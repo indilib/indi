@@ -651,14 +651,19 @@ bool EQMod::ReadScopeStatus() {
     else 
 #endif
 #ifdef WITH_ALIGN
-    const char *maligns[3]={"ZENITH", "NORTH POLE", "SOUTH POLE"};
+    const char *maligns[3]={"ZENITH", "NORTH", "SOUTH"};
     struct ln_equ_posn RaDec;
-    RaDec.ra = (currentRA * 360.0) / 24.0;
+    // Ra/Dec is a moving telescope coordinate system not aimed at Alignment subsystem 
+    //RaDec.ra = (currentRA * 360.0) / 24.0;
+    //RaDec.dec = currentDEC;
+    // Use HA/Dec as  telescope coordinate system
+    RaDec.ra = ((lst - currentRA) * 360.0) / 24.0;
     RaDec.dec = currentDEC;
-    TelescopeDirectionVector TDV = TelescopeDirectionVectorFromEquatorialCoordinates(RaDec);
-    DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "ReadScopeStatus: Mount Alignment %s Date %lf RA %lf DEC %lf TDV(x %lf y %lf z %lf)",
-	   maligns[ GetApproximateMountAlignment()], juliandate, RaDec.ra, RaDec.dec,
-                    TDV.x, TDV.y, TDV.z);
+    TelescopeDirectionVector TDV = TelescopeDirectionVectorFromLocalHourAngleDeclination(RaDec);    
+    DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Status: Mnt. Algnt. %s Date %lf encoders RA=%ld DE=%ld Telescope RA %lf DEC %lf",
+	   maligns[ GetApproximateMountAlignment()], juliandate,  currentRAEncoder, currentDEEncoder, currentRA, currentDEC);
+    DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, " Direction RA(deg.)  %lf DEC %lf TDV(x %lf y %lf z %lf)",
+	   RaDec.ra, RaDec.dec, TDV.x, TDV.y, TDV.z);
     if (!TransformTelescopeToCelestial( TDV, alignedRA, alignedDEC))
 #endif
       {
@@ -674,12 +679,14 @@ bool EQMod::ReadScopeStatus() {
 	}
 	alignedRA=range24(alignedRA);
       }
-
-      DEBUGF(DBG_SCOPE_STATUS, "Scope RA=%g Scope DE=%f, Aligned RA=%f DE=%f", currentRA, currentDEC, alignedRA, alignedDEC);  
-    }
+#ifdef WITH_ALIGN
+      DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Failed TransformTelescopeToCelestial: Scope RA=%g Scope DE=%f, Aligned RA=%f DE=%f", currentRA, currentDEC, alignedRA, alignedDEC);  
+#endif
+      }
+    
 #ifdef WITH_ALIGN
     else {
-      DEBUGF(DBG_SCOPE_STATUS, "TransformTelescopeToCelestial: Scope RA=%f Scope DE=%f, Aligned RA=%f DE=%f", currentRA, currentDEC, alignedRA, alignedDEC);  
+      DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "TransformTelescopeToCelestial: Scope RA=%f Scope DE=%f, Aligned RA=%f DE=%f", currentRA, currentDEC, alignedRA, alignedDEC);  
     }
 #endif
     NewRaDec(alignedRA, alignedDEC);
@@ -1143,13 +1150,33 @@ bool EQMod::Goto(double r,double d)
 	gotoparams.ratarget -= syncdata.deltaRA;
 	gotoparams.detarget -= syncdata.deltaDEC;
       }
+#ifdef WITH_ALIGN
+      DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Failed TransformCelestialToTelescope:  RA=%lf DE=%lf, Goto RA=%lf DE=%lf", r, d, gotoparams.ratarget, gotoparams.detarget);  
+#endif     
       }
 #ifdef WITH_ALIGN
     else {
+      //struct ln_equ_posn RaDec;
+      //EquatorialCoordinatesFromTelescopeDirectionVector(TDV, RaDec);
+      //gotoparams.ratarget= (RaDec.ra * 24.0) / 360.0;
+      //gotoparams.detarget= RaDec.dec;
       struct ln_equ_posn RaDec;
-      EquatorialCoordinatesFromTelescopeDirectionVector(TDV, RaDec);
-      gotoparams.ratarget= (RaDec.ra * 24.0) / 360.0;
+      LocalHourAngleDeclinationFromTelescopeDirectionVector(TDV, RaDec);
+      DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "TransformCelestialToTelescope: RA=%lf DE=%lf, TDV (x :%lf, y: %lf, z: %lf), local hour RA %lf DEC %lf", r, d,
+	     TDV.x, TDV.y, TDV.z, RaDec.ra, RaDec.dec);
+      RaDec.ra=(RaDec.ra * 24.0) / 360.0;
+      RaDec.ra=range24(lst - RaDec.ra);
+      if (Hemisphere==NORTH) {
+	if ((RaDec.dec > 90.0) && (RaDec.dec <= 270.0)) RaDec.ra = RaDec.ra - 12.0;
+      }
+      else
+	if ((RaDec.dec <= 90.0) || (RaDec.dec > 270.0)) RaDec.ra = RaDec.ra + 12.0;
+      RaDec.ra = range24(RaDec.ra);
+      RaDec.dec = rangeDec(RaDec.dec); 
+
+      gotoparams.ratarget= RaDec.ra;
       gotoparams.detarget= RaDec.dec;
+      DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "TransformCelestialToTelescope: RA=%lf DE=%lf, Goto RA=%lf DE=%lf", r, d, gotoparams.ratarget, gotoparams.detarget);    
     }
 #endif  
 
@@ -1244,6 +1271,7 @@ bool EQMod::Sync(double ra,double dec)
   SyncData tmpsyncdata;
   double ha, targetra;
   PierSide targetpier;
+  double telescopeHA;
   
 // get current mount position asap
   tmpsyncdata.telescopeRAEncoder=mount->GetRAEncoder();
@@ -1277,7 +1305,7 @@ bool EQMod::Sync(double ra,double dec)
   tmpsyncdata.targetDECEncoder=EncoderFromDec(dec, targetpier, zeroDEEncoder, totalDEEncoder, Hemisphere);
 
   try {
-    EncodersToRADec( tmpsyncdata.telescopeRAEncoder, tmpsyncdata.telescopeDECEncoder, lst, &tmpsyncdata.telescopeRA, &tmpsyncdata.telescopeDEC, NULL);
+    EncodersToRADec( tmpsyncdata.telescopeRAEncoder, tmpsyncdata.telescopeDECEncoder, lst, &tmpsyncdata.telescopeRA, &tmpsyncdata.telescopeDEC, &telescopeHA);
   } catch(EQModError e) {
     return(e.DefaultHandleException(this));
   }    
@@ -1299,13 +1327,16 @@ bool EQMod::Sync(double ra,double dec)
   {
     AlignmentDatabaseEntry NewEntry;
     struct ln_equ_posn RaDec;
-    RaDec.ra = (tmpsyncdata.telescopeRA * 360.0) / 24.0;
-    RaDec.dec = tmpsyncdata.telescopeDEC;
+    //RaDec.ra = (tmpsyncdata.telescopeRA * 360.0) / 24.0;
+    //RaDec.dec = tmpsyncdata.telescopeDEC;
+    RaDec.ra = ((lst -tmpsyncdata.telescopeRA) * 360.0) / 24.0;
+    RaDec.dec = tmpsyncdata.telescopeDEC;    
     //NewEntry.ObservationJulianDate = ln_get_julian_from_sys();
     NewEntry.ObservationJulianDate = juliandate;
     NewEntry.RightAscension = ra;
     NewEntry.Declination = dec;
-    NewEntry.TelescopeDirection = TelescopeDirectionVectorFromEquatorialCoordinates(RaDec);
+    //NewEntry.TelescopeDirection = TelescopeDirectionVectorFromEquatorialCoordinates(RaDec);
+    NewEntry.TelescopeDirection = TelescopeDirectionVectorFromLocalHourAngleDeclination(RaDec);
     NewEntry.PrivateDataSize = 0;
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "New sync point Date %lf RA %lf DEC %lf TDV(x %lf y %lf z %lf)",
                     NewEntry.ObservationJulianDate, NewEntry.RightAscension, NewEntry.Declination,

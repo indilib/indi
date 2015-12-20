@@ -91,7 +91,8 @@ bool BasicMathPlugin::Initialise(InMemoryDatabase* pInMemoryDatabase)
 #else
                     ln_get_hrz_from_equ(&DummyRaDec, &Position, ln_get_julian_from_sys(), &DummyAltAz);
 #endif
-                    DummyActualDirectionCosine2 = TelescopeDirectionVectorFromAltitudeAzimuth(ActualSyncPoint1);
+                    //DummyActualDirectionCosine2 = TelescopeDirectionVectorFromAltitudeAzimuth(ActualSyncPoint1);
+		    DummyActualDirectionCosine2 = TelescopeDirectionVectorFromAltitudeAzimuth(DummyAltAz);
                     DummyApparentDirectionCosine2.x = 0;
                     DummyApparentDirectionCosine2.y = 0;
                     DummyApparentDirectionCosine2.z = 1;
@@ -108,7 +109,8 @@ bool BasicMathPlugin::Initialise(InMemoryDatabase* pInMemoryDatabase)
 #else
                     ln_get_hrz_from_equ(&DummyRaDec, &Position, ln_get_julian_from_sys(), &DummyAltAz);
 #endif
-                    DummyActualDirectionCosine2 = TelescopeDirectionVectorFromAltitudeAzimuth(ActualSyncPoint1);
+                    //DummyActualDirectionCosine2 = TelescopeDirectionVectorFromAltitudeAzimuth(ActualSyncPoint1);
+		    DummyActualDirectionCosine2 = TelescopeDirectionVectorFromAltitudeAzimuth(DummyAltAz);
                     DummyApparentDirectionCosine2.x = 0;
                     DummyApparentDirectionCosine2.y = 0;
                     DummyApparentDirectionCosine2.z = 1;
@@ -543,9 +545,10 @@ bool BasicMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVect
     AltitudeAzimuthFromTelescopeDirectionVector(ApparentTelescopeDirectionVector, ApparentAltAz);
     ASSDEBUGF("Telescope to celestial - Apparent Alt %lf Az %lf", ApparentAltAz.alt, ApparentAltAz.az);
 
-    if ((NULL == pInMemoryDatabase) || !pInMemoryDatabase->GetDatabaseReferencePosition(Position)) // Should check that this the same as the current observing position
-        return false;
-
+    if ((NULL == pInMemoryDatabase) || !pInMemoryDatabase->GetDatabaseReferencePosition(Position)) { // Should check that this the same as the current observing position
+      ASSDEBUG("No database or no position in database");
+      return false;
+    }
     InMemoryDatabase::AlignmentDatabaseType& SyncPoints = pInMemoryDatabase->GetAlignmentDatabase();
     switch (SyncPoints.size())
     {
@@ -556,23 +559,27 @@ bool BasicMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVect
             switch (ApproximateMountAlignment)
             {
                 case ZENITH:
-                    break;
+                   break;
 
                 case NORTH_CELESTIAL_POLE:
                     // Rotate the TDV coordinate system anticlockwise (positive) around the y axis by 90 minus
                     // the (positive)observatory latitude. The vector itself is rotated clockwise
                     RotatedTDV.RotateAroundY(90.0 - Position.lat);
-                    break;
+		    break;
 
                 case SOUTH_CELESTIAL_POLE:
                     // Rotate the TDV coordinate system clockwise (negative) around the y axis by 90 plus
                     // the (negative)observatory latitude. The vector itself is rotated anticlockwise
                     RotatedTDV.RotateAroundY(-90.0 - Position.lat);
-                    break;
+		    break;
             }
+	    ASSDEBUGF("ApparentVector x %lf y %lf z %lf", ApparentTelescopeDirectionVector.x, ApparentTelescopeDirectionVector.y, ApparentTelescopeDirectionVector.z);
+            ASSDEBUGF("ActualVector x %lf y %lf z %lf", RotatedTDV.x, RotatedTDV.y, RotatedTDV.z);
             AltitudeAzimuthFromTelescopeDirectionVector(RotatedTDV, ActualAltAz);
 #ifdef USE_INITIAL_JULIAN_DATE
-            ln_get_equ_from_hrz(&ApparentAltAz, &Position, SyncPoints[0].ObservationJulianDate, &ActualRaDec);
+	    // should'nt be, there's no syncpoint
+            //ln_get_equ_from_hrz(&ApparentAltAz, &Position, SyncPoints[0].ObservationJulianDate, &ActualRaDec);
+	    ln_get_equ_from_hrz(&ActualAltAz, &Position, ln_get_julian_from_sys() , &ActualRaDec);
 #else
             ln_get_equ_from_hrz(&ActualAltAz, &Position, ln_get_julian_from_sys(), &ActualRaDec);
 #endif
