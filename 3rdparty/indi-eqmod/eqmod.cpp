@@ -653,9 +653,6 @@ bool EQMod::ReadScopeStatus() {
 #ifdef WITH_ALIGN
     const char *maligns[3]={"ZENITH", "NORTH", "SOUTH"};
     struct ln_equ_posn RaDec;
-    // Ra/Dec is a moving telescope coordinate system not aimed at Alignment subsystem 
-    //RaDec.ra = (currentRA * 360.0) / 24.0;
-    //RaDec.dec = currentDEC;
     // Use HA/Dec as  telescope coordinate system
     RaDec.ra = ((lst - currentRA) * 360.0) / 24.0;
     RaDec.dec = currentDEC;
@@ -664,7 +661,7 @@ bool EQMod::ReadScopeStatus() {
 	   maligns[ GetApproximateMountAlignment()], juliandate,  currentRAEncoder, currentDEEncoder, currentRA, currentDEC);
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, " Direction RA(deg.)  %lf DEC %lf TDV(x %lf y %lf z %lf)",
 	   RaDec.ra, RaDec.dec, TDV.x, TDV.y, TDV.z);
-    if (!TransformTelescopeToCelestial( TDV, alignedRA, alignedDEC))
+    if ((GetAlignmentDatabase().size() < 2) || (!TransformTelescopeToCelestial( TDV, alignedRA, alignedDEC)))
 #endif
       {
       if (syncdata.lst != 0.0) {
@@ -1143,7 +1140,7 @@ bool EQMod::Goto(double r,double d)
 #endif
 #ifdef WITH_ALIGN
     TelescopeDirectionVector TDV;
-    if (!TransformCelestialToTelescope(r, d, 0.0, TDV))
+    if ((GetAlignmentDatabase().size() < 2) || (!TransformCelestialToTelescope(r, d, 0.0, TDV)))
 #endif      
       {
       if (syncdata.lst != 0.0) {
@@ -1156,23 +1153,12 @@ bool EQMod::Goto(double r,double d)
       }
 #ifdef WITH_ALIGN
     else {
-      //struct ln_equ_posn RaDec;
-      //EquatorialCoordinatesFromTelescopeDirectionVector(TDV, RaDec);
-      //gotoparams.ratarget= (RaDec.ra * 24.0) / 360.0;
-      //gotoparams.detarget= RaDec.dec;
       struct ln_equ_posn RaDec;
       LocalHourAngleDeclinationFromTelescopeDirectionVector(TDV, RaDec);
       DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "TransformCelestialToTelescope: RA=%lf DE=%lf, TDV (x :%lf, y: %lf, z: %lf), local hour RA %lf DEC %lf", r, d,
 	     TDV.x, TDV.y, TDV.z, RaDec.ra, RaDec.dec);
       RaDec.ra=(RaDec.ra * 24.0) / 360.0;
       RaDec.ra=range24(lst - RaDec.ra);
-      if (Hemisphere==NORTH) {
-	if ((RaDec.dec > 90.0) && (RaDec.dec <= 270.0)) RaDec.ra = RaDec.ra - 12.0;
-      }
-      else
-	if ((RaDec.dec <= 90.0) || (RaDec.dec > 270.0)) RaDec.ra = RaDec.ra + 12.0;
-      RaDec.ra = range24(RaDec.ra);
-      RaDec.dec = rangeDec(RaDec.dec); 
 
       gotoparams.ratarget= RaDec.ra;
       gotoparams.detarget= RaDec.dec;
@@ -1327,15 +1313,12 @@ bool EQMod::Sync(double ra,double dec)
   {
     AlignmentDatabaseEntry NewEntry;
     struct ln_equ_posn RaDec;
-    //RaDec.ra = (tmpsyncdata.telescopeRA * 360.0) / 24.0;
-    //RaDec.dec = tmpsyncdata.telescopeDEC;
     RaDec.ra = ((lst -tmpsyncdata.telescopeRA) * 360.0) / 24.0;
     RaDec.dec = tmpsyncdata.telescopeDEC;    
     //NewEntry.ObservationJulianDate = ln_get_julian_from_sys();
     NewEntry.ObservationJulianDate = juliandate;
     NewEntry.RightAscension = ra;
     NewEntry.Declination = dec;
-    //NewEntry.TelescopeDirection = TelescopeDirectionVectorFromEquatorialCoordinates(RaDec);
     NewEntry.TelescopeDirection = TelescopeDirectionVectorFromLocalHourAngleDeclination(RaDec);
     NewEntry.PrivateDataSize = 0;
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "New sync point Date %lf RA %lf DEC %lf TDV(x %lf y %lf z %lf)",
@@ -1352,9 +1335,9 @@ bool EQMod::Sync(double ra,double dec)
         // Tell the math plugin to reinitialise
         Initialise(this);
 
-        return true;
+	if (GetAlignmentDatabase().size() >= 2)  return true;
     }
-    return false;
+    if (GetAlignmentDatabase().size() >= 2) return false;
   }
 #endif
   syncdata2=syncdata;
