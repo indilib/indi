@@ -1,7 +1,7 @@
 usr/lib/*/libindi.so.1
-usr/lib/*/libindi.so.1.1.0
+usr/lib/*/libindi.so.1.2.0
 usr/lib/*/libindidriver.so.1
-usr/lib/*/libindidriver.so.1.1.0
+usr/lib/*/libindidriver.so.1.2.0
 usr/lib/*/libindiAlignmentDriver.so.1
-usr/lib/*/libindiAlignmentDriver.so.1.1.0
+usr/lib/*/libindiAlignmentDriver.so.1.2.0
 usr/lib/*/indi/MathPlugins/
