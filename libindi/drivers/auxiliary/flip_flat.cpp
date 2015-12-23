@@ -130,6 +130,9 @@ void FlipFlat::ISGetProperties (const char *dev)
 
     defineText(&PortTP);
     loadConfig(true, "DEVICE_PORT");
+
+    // Get Light box properties
+    isGetLightBoxProperties(dev);
 }
 
 bool FlipFlat::updateProperties()

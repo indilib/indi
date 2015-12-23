@@ -158,6 +158,8 @@ void INDI::Dome::ISGetProperties (const char *dev)
 
     defineText(&PortTP);
     loadConfig(true, "DEVICE_PORT");
+    defineText(&ActiveDeviceTP);
+    loadConfig(true, "ACTIVE_DEVICES");
 
     controller->ISGetProperties(dev);
     return;
@@ -166,10 +168,7 @@ void INDI::Dome::ISGetProperties (const char *dev)
 bool INDI::Dome::updateProperties()
 {
     if(isConnected())
-    {
-
-        defineText(&ActiveDeviceTP);
-
+    {       
         if (HasShutter())
             defineSwitch(&DomeShutterSP);
 
@@ -212,8 +211,6 @@ bool INDI::Dome::updateProperties()
 
     } else
     {
-        deleteProperty(ActiveDeviceTP.name);
-
         if (HasShutter())
             deleteProperty(DomeShutterSP.name);
 

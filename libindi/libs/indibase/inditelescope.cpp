@@ -147,6 +147,11 @@ void INDI::Telescope::ISGetProperties (const char *dev)
     loadConfig(true, "DEVICE_PORT");
     defineSwitch(&BaudRateSP);
     loadConfig(true, "TELESCOPE_BAUD_RATE");
+    if (HasTime() && HasLocation())
+    {
+        defineText(&ActiveDeviceTP);
+        loadConfig(true, "ACTIVE_DEVICES");
+    }
 
     if(isConnected())
     {
@@ -176,10 +181,7 @@ void INDI::Telescope::ISGetProperties (const char *dev)
         if (nSlewRate >= 4)
             defineSwitch(&SlewRateSP);
 
-        defineNumber(&ScopeParametersNP);
-
-        if (HasTime() && HasLocation())
-            defineText(&ActiveDeviceTP);
+        defineNumber(&ScopeParametersNP);        
 
     }
 
@@ -217,9 +219,6 @@ bool INDI::Telescope::updateProperties()
         }
         defineNumber(&ScopeParametersNP);
 
-        if (HasTime() && HasLocation())
-            defineText(&ActiveDeviceTP);
-
     }
     else
     {
@@ -247,9 +246,6 @@ bool INDI::Telescope::updateProperties()
             }
         }
         deleteProperty(ScopeParametersNP.name);
-
-        if (HasTime() && HasLocation())
-            deleteProperty(ActiveDeviceTP.name);
     }
 
     controller->updateProperties();

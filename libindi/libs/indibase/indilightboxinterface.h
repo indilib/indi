@@ -28,11 +28,13 @@
  * \class INDI::LightBox
    \brief Provides interface to implement controllable light box/switch device.
 
-   Filter durations preset can be defined if the active filter name is set. Once the filter names are retrieves, the duration in seconds can be set for each filter.
-   When the filter wheel changes to a new filter, the du
+   Filter durations preset can be defined if the active filter name is set. Once the filter names are retrieved, the duration in seconds can be set for each filter.
+   When the filter wheel changes to a new filter, the duration is set accordingly.
+
+   The child class is expected to call the following functions from the INDI frameworks standard functions:
 
    \e IMPORTANT: initLightBoxProperties() must be called before any other function to initilize the Light device properties.
-
+   \e IMPORTANT: isGetLightBoxProperties() must be called in your driver ISGetProperties function
    \e IMPORTANT: processLightBoxSwitch() must be called in your driver ISNewSwitch function.
    \e IMPORTANT: processLightBoxNumber() must be called in your driver ISNewNumber function.
    \e IMPORTANT: processLightBoxText() must be called in your driver ISNewText function.
@@ -50,6 +52,12 @@ protected:
         \param groupName Group or tab name to be used to define light box properties.
     */
     void initLightBoxProperties(const char *deviceName, const char* groupNam);
+
+    /**
+     * @brief isGetLightBoxProperties Get light box properties
+     * @param deviceName parent device name
+     */
+    void isGetLightBoxProperties(const char *deviceName);
 
     /** \brief Process light box switch properties */
     bool processLightBoxSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);

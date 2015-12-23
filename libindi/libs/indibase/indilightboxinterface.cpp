@@ -56,16 +56,19 @@ void INDI::LightBoxInterface::initLightBoxProperties(const char *deviceName, con
     IDSnoopDevice(ActiveDeviceT[0].text,"FILTER_NAME");
 }
 
+void INDI::LightBoxInterface::isGetLightBoxProperties(const char *deviceName)
+{
+    INDI_UNUSED(deviceName);
+
+    device->defineText(&ActiveDeviceTP);
+    char errmsg[MAXRBUF];
+    IUReadConfig(NULL, device->getDeviceName(), "ACTIVE_DEVICES", 1 , errmsg);
+}
+
 bool INDI::LightBoxInterface::updateLightBoxProperties()
 {
-    if (device->isConnected())
+    if (device->isConnected() == false)
     {
-        device->defineText(&ActiveDeviceTP);
-
-    }
-    else
-    {
-        device->deleteProperty(ActiveDeviceTP.name);
         if (FilterIntensityN)
             device->deleteProperty(FilterIntensityNP.name);
     }
