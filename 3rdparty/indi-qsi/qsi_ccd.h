@@ -70,7 +70,10 @@ class QSICCD : public INDI::CCD, public INDI::FilterInterface
     ISwitch FanS[3];
     ISwitchVectorProperty FanSP;
 
-    bool canAbort, canSetGain, canControlFan, canChangeReadoutSpeed;
+    ISwitch ABS[2];
+    ISwitchVectorProperty ABSP;
+
+    bool canAbort, canSetGain, canSetAB, canControlFan, canChangeReadoutSpeed;
     short targetFilter;
     double ccdTemp, targetTemperature;
     double minDuration;

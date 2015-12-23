@@ -16,6 +16,7 @@
     2015:
         + Added Fan speed option
         + Added Gain option
+        + Added AntiBlooming option (Miguel)
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -126,6 +127,7 @@ QSICCD::QSICCD()
     targetFilter = 0;
     canSetGain = false;
     canControlFan = false;
+    canSetAB = false;
     canChangeReadoutSpeed = false;
 
     QSICam.put_UseStructuredExceptions(true);
@@ -176,6 +178,10 @@ bool QSICCD::initProperties()
     IUFillSwitch(&FanS[2], "Full", "", ISS_ON);
     IUFillSwitchVector(&FanSP, FanS, 3, getDeviceName(), "Fan", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
+    IUFillSwitch(&ABS[0], "Normal", "", ISS_ON);
+    IUFillSwitch(&ABS[1], "High", "", ISS_OFF);
+    IUFillSwitchVector(&ABSP, ABS, 2, getDeviceName(), "AntiBlooming", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
     initFilterProperties(getDeviceName(), FILTER_TAB);
 
     addDebugControl();
@@ -217,6 +223,9 @@ bool QSICCD::updateProperties()
 
         if (canSetGain)
             deleteProperty(GainSP.name);
+
+        if (canSetAB)
+            deleteProperty(ABSP.name);
 
         if (canControlFan)
             deleteProperty(FanSP.name);
@@ -355,6 +364,26 @@ bool QSICCD::setupParams()
             GainS[cGain].s = ISS_ON;
             defineSwitch(&GainSP);
         }
+    }
+
+    QSICamera::AntiBloom cAB = QSICamera::AntiBloomNormal;
+    canSetAB = true;
+
+    try
+    {
+        QSICam.get_AntiBlooming(&cAB);
+    }
+    catch (std::runtime_error err)
+    {
+        DEBUGF(INDI::Logger::DBG_DEBUG, "Camera does not support AntiBlooming control. %s.", err.what());
+        canSetAB = false;
+    }
+
+    if (canSetAB)
+    {
+        IUResetSwitch(&ABSP);
+        ABS[cAB].s = ISS_ON;
+        defineSwitch(&ABSP);
     }
 
 
@@ -586,6 +615,38 @@ bool QSICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
 
             FanSP.s = IPS_OK;
             IDSetSwitch(&FanSP, NULL);
+            return true;
+        }
+
+        if (!strcmp(name, ABSP.name))
+        {
+            int prevAB = IUFindOnSwitchIndex(&ABSP);
+            IUUpdateSwitch(&ABSP, states, names, n);
+            int targetAB = IUFindOnSwitchIndex(&ABSP);
+
+            if (prevAB == targetAB)
+            {
+                ABSP.s = IPS_OK;
+                IDSetSwitch(&ABSP, NULL);
+                return true;
+            }
+
+            try
+            {
+                QSICam.put_AntiBlooming( ((QSICamera::AntiBloom) targetAB));
+
+            }  catch (std::runtime_error err)
+            {
+                IUResetSwitch(&ABSP);
+                ABS[prevAB].s = ISS_ON;
+                ABSP.s = IPS_ALERT;
+                DEBUGF(INDI::Logger::DBG_ERROR, "put_AntiBlooming failed. %s.", err.what());
+                IDSetSwitch(&ABSP, NULL);
+                return false;
+            }
+
+            ABSP.s = IPS_OK;
+            IDSetSwitch(&ABSP, NULL);
             return true;
         }
 
