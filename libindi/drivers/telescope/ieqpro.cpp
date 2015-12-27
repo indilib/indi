@@ -634,7 +634,7 @@ bool IEQPro::UnPark()
         return false;
 }
 
-bool IEQPro::Connect(const char *port, uint16_t baud)
+bool IEQPro::Connect(const char *port, uint32_t baud)
 {
     set_ieqpro_device(getDeviceName());
     sim = isSimulation();

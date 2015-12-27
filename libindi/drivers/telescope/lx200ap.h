@@ -63,7 +63,7 @@ protected:
 
  virtual bool Sync(double ra, double dec);
  virtual bool Goto(double, double);
- virtual bool Connect(const char *port, uint16_t baud);
+ virtual bool Connect(const char *port, uint32_t baud);
  virtual bool Disconnect();
  virtual bool updateTime(ln_date * utc, double utc_offset);
  virtual bool updateLocation(double latitude, double longitude, double elevation);

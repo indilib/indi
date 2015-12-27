@@ -223,7 +223,7 @@ bool LX200Basic::Connect()
 /**************************************************************************************
 **
 ***************************************************************************************/
-bool LX200Basic::Connect(const char *port, uint16_t baud)
+bool LX200Basic::Connect(const char *port, uint32_t baud)
 {
     if (isSimulation())
     {

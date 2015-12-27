@@ -602,7 +602,7 @@ bool LX200AstroPhysics::Goto(double r,double d)
     return true;
 }
 
-bool LX200AstroPhysics::Connect(const char *port, uint16_t baud)
+bool LX200AstroPhysics::Connect(const char *port, uint32_t baud)
 {
     if (isSimulation())
     {

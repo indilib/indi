@@ -873,7 +873,7 @@ bool INDI::Telescope::Connect()
 }
 
 
-bool INDI::Telescope::Connect(const char *port, uint16_t baud)
+bool INDI::Telescope::Connect(const char *port, uint32_t baud)
 {
     //  We want to connect to a port
     //  For now, we will assume it's a serial port

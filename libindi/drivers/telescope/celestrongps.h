@@ -46,7 +46,7 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface
 
  virtual const char *getDefaultName();
  virtual bool Connect();
- virtual bool Connect(const char * port, uint16_t baud);
+ virtual bool Connect(const char * port, uint32_t baud);
  virtual bool Disconnect();
  virtual bool ReadScopeStatus();
  virtual void ISGetProperties(const char *dev);

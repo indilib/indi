@@ -381,7 +381,7 @@ bool LX200Generic::checkConnection()
     return (check_lx200_connection(PortFD) == 0);
 }
 
-bool LX200Generic::Connect(const char *port, uint16_t baud)
+bool LX200Generic::Connect(const char *port, uint32_t baud)
 {
     if (isSimulation())
     {

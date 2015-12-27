@@ -584,7 +584,7 @@ bool CelestronGPS::Connect()
     return rc;
 }
 
-bool CelestronGPS::Connect(const char *port, uint16_t baud)
+bool CelestronGPS::Connect(const char *port, uint32_t baud)
 {
     if (isSimulation())
     {

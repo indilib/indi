@@ -246,7 +246,7 @@ bool ScopeSim::Connect()
     return rc;
 }
 
-bool ScopeSim::Connect(const char *port, uint16_t baud)
+bool ScopeSim::Connect(const char *port, uint32_t baud)
 {
    DEBUGF(INDI::Logger::DBG_SESSION, "Simulating connecting to port %s with speed %d", port, baud);
    DEBUG(INDI::Logger::DBG_SESSION, "Telescope simulator is online.");

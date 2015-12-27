@@ -139,7 +139,7 @@ class INDI::Telescope : public INDI::DefaultDevice
           \return True if connection is successful, false otherwise
           \warning Do not call this function directly, it is called by INDI::Telescope Connect() function.
         */
-        virtual bool Connect(const char *port, uint16_t baud);
+        virtual bool Connect(const char *port, uint32_t baud);
 
 
         //Park
