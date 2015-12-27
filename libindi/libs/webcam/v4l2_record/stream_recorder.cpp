@@ -78,7 +78,7 @@ bool StreamRecorder::initProperties()
      IUFillSwitchVector(&StreamSP, StreamS, NARRAY(StreamS), getDeviceName(), "CCD_VIDEO_STREAM", "Video Stream", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
      /* Stream Rate divisor */
-     IUFillNumber(&StreamOptionsN[0], "STREAM_RATE", "Rate Divisor", "%3.0f", 1.0, 999.0, 1, 10);
+     IUFillNumber(&StreamOptionsN[0], "STREAM_RATE", "Rate Divisor", "%3.0f", 0, 60.0, 5, 0);
      IUFillNumberVector(&StreamOptionsNP, StreamOptionsN, NARRAY(StreamOptionsN), getDeviceName(), "STREAM_OPTIONS", "Streaming", STREAM_TAB, IP_RW, 60, IPS_IDLE);
 
      /* Measured FPS */
@@ -611,7 +611,11 @@ bool StreamRecorder::setStream(bool enable)
         {
             StreamSP.s  = IPS_BUSY;
             streamframeCount = 0;
-            DEBUG(INDI::Logger::DBG_DEBUG, "Starting the video stream.");
+            if (StreamOptionsN[0].value > 0 && ccd->ExposureTime > 0)
+                DEBUGF(INDI::Logger::DBG_SESSION, "Starting the video stream with single frame exposure of %f seconds and rate divisor of %g.", ccd->ExposureTime, StreamOptionsN[0].value);
+            else if (ccd->ExposureTime > 0)
+                DEBUGF(INDI::Logger::DBG_SESSION, "Starting the video stream with single frame exposure of %f seconds.", ccd->ExposureTime, StreamOptionsN[0].value);
+
             streamframeCount = 0;
 
             getitimer(ITIMER_REAL, &tframe1);
