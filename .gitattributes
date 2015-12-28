@@ -1415,6 +1415,8 @@ libindi/drivers/telescope/lx200gps.cpp -text
 libindi/drivers/telescope/lx200gps.h -text
 libindi/drivers/telescope/lx200pulsar2.cpp -text
 libindi/drivers/telescope/lx200pulsar2.h -text
+libindi/drivers/telescope/lx200ss2000pc.cpp -text
+libindi/drivers/telescope/lx200ss2000pc.h -text
 libindi/drivers/telescope/lx200zeq25.cpp -text
 libindi/drivers/telescope/lx200zeq25.h -text
 libindi/drivers/telescope/magellan1.cpp -text

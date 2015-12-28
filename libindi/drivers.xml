@@ -86,10 +86,14 @@
 	<device label="SkyWizard" focal_length="" aperture="">
 		<driver name="Intelliscope">indi_intelliscope</driver>
 		<version>0.2</version>
-	</device>
+	</device>        
         <device label="SynScan" focal_length="" aperture="">
                 <driver name="SynScan">indi_synscan</driver>
                 <version>1.0</version>
+        </device>
+        <device label="SkySensor2000PC" focal_length="" aperture="">
+                <driver name="SkySensor2000PC">indi_lx200ss2000pc</driver>
+                <version>0.1</version>
         </device>
         <device label="Magellan I" focal_length="" aperture="">
                 <driver name="Magellan I">indi_magellan1</driver>
