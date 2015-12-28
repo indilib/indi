@@ -70,7 +70,13 @@ bool INDI::LightBoxInterface::updateLightBoxProperties()
     if (device->isConnected() == false)
     {
         if (FilterIntensityN)
+        {
             device->deleteProperty(FilterIntensityNP.name);
+            FilterIntensityNP.nnp=0;
+            delete(FilterIntensityN);
+            FilterIntensityN=NULL;
+        }
+
     }
 
     return true;
