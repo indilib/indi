@@ -272,8 +272,6 @@ bool FlipFlat::ISSnoopDevice (XMLEle *root)
 
 bool FlipFlat::saveConfigItems(FILE *fp)
 {
-    INDI::DefaultDevice::saveConfigItems(fp);
-
     return saveLightBoxConfigItems(fp);
 }
 
