@@ -106,6 +106,7 @@ private:
     void addFilterDuration(const char *filterName, uint16_t filterDuration);
 
     INDI::DefaultDevice *device;
+    uint8_t currentFilterSlot;
     bool isDimmable;
 };
 

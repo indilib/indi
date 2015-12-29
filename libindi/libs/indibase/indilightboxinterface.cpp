@@ -28,6 +28,7 @@ INDI::LightBoxInterface::LightBoxInterface(DefaultDevice *device, bool isDimmabl
     this->device     = device;
     this->isDimmable = isDimmable;
     FilterIntensityN = NULL;
+    currentFilterSlot=0;
 }
 
 INDI::LightBoxInterface::~LightBoxInterface()
@@ -210,11 +211,21 @@ bool INDI::LightBoxInterface::snoopLightBox(XMLEle *root)
         device->defineNumber(&FilterIntensityNP);
         char errmsg[MAXRBUF];
         IUReadConfig(NULL, device->getDeviceName(), "FLAT_LIGHT_FILTER_INTENSITY", 1 , errmsg);
+
+        if (device->isConnected())
+        {
+            if (currentFilterSlot < FilterIntensityNP.nnp)
+            {
+                double duration = FilterIntensityN[index].value;
+                if (duration > 0)
+                    SetLightBoxBrightness(duration);
+            }
+        }
     }
-    else if (FilterIntensityN && device->isConnected() && !strcmp(propName, "FILTER_SLOT"))
+    else if (!strcmp(propName, "FILTER_SLOT"))
     {
-        // Only accept IPS_OK state
-        if (strcmp(findXMLAttValu(root, "state"), "Ok"))
+        // Only accept IPS_OK/IPS_IDLE state
+        if (strcmp(findXMLAttValu(root, "state"), "Ok") && strcmp(findXMLAttValu(root, "state"), "Idle"))
             return false;
 
         for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
@@ -223,17 +234,21 @@ bool INDI::LightBoxInterface::snoopLightBox(XMLEle *root)
 
             if (!strcmp(elemName, "FILTER_SLOT_VALUE"))
             {
-                int index = atoi(pcdataXMLEle(ep))-1;
-                if (index < FilterIntensityNP.nnp)
-                {
-                    double duration = FilterIntensityN[index].value;
-                    if (duration > 0)
-                        SetLightBoxBrightness(duration);
-                }
+                currentFilterSlot = atoi(pcdataXMLEle(ep))-1;
+                break;
+            }
+        }
+
+        if (FilterIntensityN && device->isConnected())
+        {
+            if (currentFilterSlot < FilterIntensityNP.nnp)
+            {
+                double duration = FilterIntensityN[index].value;
+                if (duration > 0)
+                    SetLightBoxBrightness(duration);
             }
         }
     }
-
 
     return false;
 }
