@@ -36,8 +36,8 @@ class WatchDog : public INDI::DefaultDevice
 {
 public:
 
-    typedef enum { WATCHDOG_IDLE, WATCHDOG_CLIENT_STARTED, WATCHDOG_DOME_PARKED, WATCHDOG_MOUNT_PARKED, WATCHDOG_COMPLETE, WATCHDOG_ERROR } ShutdownStages;
-    typedef enum { PARK_DOME, PARK_MOUNT, EXECUTE_SCRIPT } ShutdownProcedure;
+    typedef enum { WATCHDOG_IDLE, WATCHDOG_CLIENT_STARTED, WATCHDOG_MOUNT_PARKED, WATCHDOG_DOME_PARKED, WATCHDOG_COMPLETE, WATCHDOG_ERROR } ShutdownStages;
+    typedef enum { PARK_MOUNT, PARK_DOME, EXECUTE_SCRIPT } ShutdownProcedure;
 
     WatchDog();
     virtual ~WatchDog();

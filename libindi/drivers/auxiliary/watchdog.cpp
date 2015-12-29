@@ -136,8 +136,8 @@ bool WatchDog::initProperties()
     IUFillText(&SettingsT[2],"SHUTDOWN_SCRIPT","shutdown script",NULL);
     IUFillTextVector(&SettingsTP,SettingsT,3,getDeviceName(),"WATCHDOG_SETTINGS","Settings",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
 
-    IUFillSwitch(&ShutdownProcedureS[0],"PARK_DOME","Park Dome",ISS_OFF);
-    IUFillSwitch(&ShutdownProcedureS[1],"PARK_MOUNT","Park Mount",ISS_OFF);
+    IUFillSwitch(&ShutdownProcedureS[0],"PARK_MOUNT","Park Mount",ISS_OFF);
+    IUFillSwitch(&ShutdownProcedureS[1],"PARK_DOME","Park Dome",ISS_OFF);
     IUFillSwitch(&ShutdownProcedureS[2],"EXECUTE_SCRIPT","Execute Script",ISS_OFF);
     IUFillSwitchVector(&ShutdownProcedureSP,ShutdownProcedureS,3,getDeviceName(),"WATCHDOG_SHUTDOWN","Shutdown",MAIN_CONTROL_TAB,IP_RW,ISR_NOFMANY,60,IPS_IDLE);
 
@@ -303,15 +303,15 @@ void WatchDog::TimerHit()
         DEBUG(INDI::Logger::DBG_WARNING, "Warning! Heartbeat threshold timed out, executing shutdown procedure...");
 
         // No need to start client if only we need to execute the script
-        if (ShutdownProcedureS[PARK_DOME].s == ISS_OFF && ShutdownProcedureS[PARK_MOUNT].s == ISS_OFF && ShutdownProcedureS[EXECUTE_SCRIPT].s == ISS_ON)
+        if (ShutdownProcedureS[PARK_MOUNT].s == ISS_OFF && ShutdownProcedureS[PARK_DOME].s == ISS_OFF && ShutdownProcedureS[EXECUTE_SCRIPT].s == ISS_ON)
         {
             executeScript();
             break;
         }
 
-        // Watch dome
-        watchdogClient->setDome(ActiveDeviceT[0].text);
         // Watch mount
+        watchdogClient->setDome(ActiveDeviceT[0].text);
+        // Watch dome
         watchdogClient->setMount(ActiveDeviceT[1].text);
 
         // Set indiserver host and port
@@ -331,34 +331,15 @@ void WatchDog::TimerHit()
         {
             DEBUGF(INDI::Logger::DBG_DEBUG, "Connected to INDI server %s @ %s", SettingsT[0].text, SettingsT[1].text);
 
-            if (ShutdownProcedureS[PARK_DOME].s == ISS_ON)
-                parkDome();
-            else if (ShutdownProcedureS[PARK_MOUNT].s == ISS_ON)
+            if (ShutdownProcedureS[PARK_MOUNT].s == ISS_ON)
                 parkMount();
+            else if (ShutdownProcedureS[PARK_DOME].s == ISS_ON)
+                parkDome();            
             else if (ShutdownProcedureS[EXECUTE_SCRIPT].s == ISS_ON)
                 executeScript();
         }
         else
             DEBUG(INDI::Logger::DBG_DEBUG, "Waiting for INDI server connection...");
-        break;
-
-    case WATCHDOG_DOME_PARKED:
-    {
-        // check if dome is parked
-        IPState domeState = watchdogClient->getDomeParkState();
-
-        if (domeState == IPS_OK || domeState == IPS_IDLE)
-        {
-            DEBUG(INDI::Logger::DBG_SESSION, "Dome parked.");
-
-            if (ShutdownProcedureS[PARK_MOUNT].s == ISS_ON)
-                parkMount();
-            else if (ShutdownProcedureS[EXECUTE_SCRIPT].s == ISS_ON)
-                executeScript();
-            else
-                shutdownStage = WATCHDOG_COMPLETE;
-        }
-    }
         break;
 
     case WATCHDOG_MOUNT_PARKED:
@@ -370,6 +351,25 @@ void WatchDog::TimerHit()
         {
             DEBUG(INDI::Logger::DBG_SESSION, "Mount parked.");
 
+            if (ShutdownProcedureS[PARK_DOME].s == ISS_ON)
+                parkDome();
+            else if (ShutdownProcedureS[EXECUTE_SCRIPT].s == ISS_ON)
+                executeScript();
+            else
+                shutdownStage = WATCHDOG_COMPLETE;
+        }
+    }
+    break;
+
+    case WATCHDOG_DOME_PARKED:
+    {
+        // check if dome is parked
+        IPState domeState = watchdogClient->getDomeParkState();
+
+        if (domeState == IPS_OK || domeState == IPS_IDLE)
+        {
+            DEBUG(INDI::Logger::DBG_SESSION, "Dome parked.");
+
             if (ShutdownProcedureS[EXECUTE_SCRIPT].s == ISS_ON)
                 executeScript();
             else
@@ -377,6 +377,7 @@ void WatchDog::TimerHit()
         }
     }
         break;
+
 
     case WATCHDOG_COMPLETE:
         DEBUG(INDI::Logger::DBG_SESSION, "Shutdown procedure complete.");
