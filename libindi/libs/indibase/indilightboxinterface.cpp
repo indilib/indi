@@ -216,7 +216,7 @@ bool INDI::LightBoxInterface::snoopLightBox(XMLEle *root)
         {
             if (currentFilterSlot < FilterIntensityNP.nnp)
             {
-                double duration = FilterIntensityN[index].value;
+                double duration = FilterIntensityN[currentFilterSlot].value;
                 if (duration > 0)
                     SetLightBoxBrightness(duration);
             }
@@ -243,7 +243,7 @@ bool INDI::LightBoxInterface::snoopLightBox(XMLEle *root)
         {
             if (currentFilterSlot < FilterIntensityNP.nnp)
             {
-                double duration = FilterIntensityN[index].value;
+                double duration = FilterIntensityN[currentFilterSlot].value;
                 if (duration > 0)
                     SetLightBoxBrightness(duration);
             }
