@@ -49,6 +49,8 @@ INDI::Dome::Dome()
     parkDataType = PARK_NONE;
     Parkdatafile= "~/.indi/ParkData.xml";
     IsParked=false;
+    HaveLatLong=false;
+    HaveRaDec=false;
 }
 
 INDI::Dome::~Dome()
@@ -578,8 +580,6 @@ bool INDI::Dome::ISSnoopDevice (XMLEle *root)
         int rc_ra=-1, rc_de=-1;
         double ra=0, de=0;
         
-        
-        DEBUG(INDI::Logger::DBG_DEBUG, "Snooped RA-DEC");
         for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
         {
             const char *elemName = findXMLAttValu(ep, "name");
@@ -606,6 +606,9 @@ bool INDI::Dome::ISSnoopDevice (XMLEle *root)
             prev_ra  = mountEquatorialCoords.ra;
             prev_dec = mountEquatorialCoords.dec;
             DEBUGF(INDI::Logger::DBG_DEBUG, "Snooped RA: %g - DEC: %g", mountEquatorialCoords.ra, mountEquatorialCoords.dec);
+	    //  a mount still intializing will emit 0 and 0 on the first go
+            //  we dont want to process 0/0
+	    if((mountEquatorialCoords.ra != 0)||(mountEquatorialCoords.dec != 0)) HaveRaDec=true;
         }
         // else mount stable, i.e. tracking, so let's update mount coords and check if we need to move
         else if (mountState == IPS_OK || mountState == IPS_IDLE)
@@ -627,6 +630,7 @@ bool INDI::Dome::ISSnoopDevice (XMLEle *root)
                 if (indiLong > 180)
                     indiLong -= 360;
                 observer.lng = indiLong;
+                HaveLatLong=true;
             }
             else if (!strcmp(elemName, "LAT"))
                 f_scansexa(pcdataXMLEle(ep), &(observer.lat));
@@ -672,10 +676,10 @@ bool INDI::Dome::saveConfigItems(FILE *fp)
     IUSaveConfigText(fp, &ActiveDeviceTP);
     IUSaveConfigText(fp, &PortTP);
     IUSaveConfigNumber(fp, &PresetNP);
-    IUSaveConfigSwitch(fp, &DomeAutoSyncSP);
     IUSaveConfigNumber(fp, &DomeParamNP);
     IUSaveConfigNumber(fp, &DomeMeasurementsNP);
     IUSaveConfigSwitch(fp, &AutoParkSP);
+    IUSaveConfigSwitch(fp, &DomeAutoSyncSP);
 
     controller->saveConfigItems(fp);
 
@@ -1005,11 +1009,16 @@ bool INDI::Dome::CheckHorizon(double HA, double dec, double lat)
     return false;
 }
 
+
 void INDI::Dome::UpdateMountCoords()
 {
     // If not initialized yet, return.
     if (mountEquatorialCoords.ra == -1)
         return;
+
+    //  Dont do this if we haven't had co-ordinates from the mount yet
+    if(!HaveLatLong) return;
+    if(!HaveRaDec) return;
 
     ln_get_hrz_from_equ(&mountEquatorialCoords, &observer, ln_get_julian_from_sys(), &mountHoriztonalCoords);
 
@@ -1045,8 +1054,12 @@ void INDI::Dome::UpdateAutoSync()
         }
 
         double targetAz, targetAlt, minAz, maxAz;
-        GetTargetAz(targetAz, targetAlt, minAz, maxAz);
-
+	bool res;
+        res=GetTargetAz(targetAz, targetAlt, minAz, maxAz);
+        if(!res) {
+        	DEBUGF(INDI::Logger::DBG_DEBUG, "GetTargetAz failed %g",targetAz);
+		return;
+	}
         DEBUGF(INDI::Logger::DBG_DEBUG, "Calculated target azimuth is %g. MinAz: %g, MaxAz: %g", targetAz, minAz, maxAz);
 
         if (fabs(targetAz - DomeAbsPosN[0].value) > DomeParamN[0].value)

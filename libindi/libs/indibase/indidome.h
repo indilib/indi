@@ -480,6 +480,8 @@ private:
 
         double Axis1ParkPosition;
         double Axis1DefaultParkPosition;
+	bool HaveLatLong;
+	bool HaveRaDec;
 
 
 };
