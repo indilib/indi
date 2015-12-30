@@ -61,6 +61,7 @@ protected:
         double targetAz;
         double shutterTimer;
         bool SetupParms();
+	int TimeSinceUpdate;
 
 };
 

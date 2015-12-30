@@ -79,6 +79,7 @@ DomeSim::DomeSim()
    shutterTimer=0;
    prev_az=0;
    prev_alt=0;
+   TimeSinceUpdate=0;
 
    SetDomeCapability(DOME_CAN_ABORT | DOME_CAN_ABS_MOVE | DOME_CAN_REL_MOVE | DOME_CAN_PARK | DOME_HAS_SHUTTER);
 
@@ -208,6 +209,15 @@ void DomeSim::TimerHit()
         }
     }
     SetTimer(nexttimer);
+    //  Not all mounts update ra/dec constantly if tracking co-ordinates
+    //  This is to ensure our alt/az gets updated even if ra/dec isn't being updated
+    //  Once every 10 seconds is more than sufficient
+    //  with this added, dome simulator will now correctly track telescope simulator
+    //  which does not emit new ra/dec co-ords if they are not changing
+    if(TimeSinceUpdate++ > 9) {
+	TimeSinceUpdate=0;
+	UpdateMountCoords();
+    }
     return;
 }
 
