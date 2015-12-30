@@ -120,7 +120,7 @@ bool WunderGround::initProperties()
     addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -10, 30, -20, 40);
     addParameter("WEATHER_WIND_SPEED", "Wind (kph)",  0, 20, 0, 40);
     addParameter("WEATHER_WIND_GUST", "Gust (kph)", 0, 20, 0, 50);
-    addParameter("WEATHER_RAIN_HOUR", "Percip (mm)", 0, 0, 0, 0);
+    addParameter("WEATHER_RAIN_HOUR", "Precip (mm)", 0, 0, 0, 0);
 
     setCriticalParameter("WEATHER_FORECAST");
     setCriticalParameter("WEATHER_TEMPERATURE");
