@@ -646,16 +646,16 @@ void BaaderDome::TimerHit()
         if (fabs(targetAz - DomeAbsPosN[0].value) < DomeParamN[0].value)
         {
             DomeAbsPosN[0].value = targetAz;
-            DomeAbsPosNP.s = IPS_OK;
             DEBUG(INDI::Logger::DBG_SESSION, "Dome reached requested azimuth angle.");
 
-            if (getDomeState() == DOME_PARKING && status != DOME_CALIBRATING)
-                SetParked(true);
-
-            if (DomeRelPosNP.s == IPS_BUSY)
+            if (status != DOME_CALIBRATING)
             {
-                DomeRelPosNP.s = IPS_OK;
-                IDSetNumber(&DomeRelPosNP, NULL);
+                if (getDomeState() == DOME_PARKING)
+                    SetParked(true);
+                else if (getDomeState() == DOME_UNPARKING)
+                    SetParked(false);
+                else
+                    setDomeState(DOME_SYNCED);
             }
 
             if (status == DOME_CALIBRATING)

@@ -106,7 +106,7 @@ bool INDI::Dome::initProperties()
 
     IUFillSwitch(&DomeMotionS[0],"DOME_CW","Dome CW",ISS_OFF);
     IUFillSwitch(&DomeMotionS[1],"DOME_CCW","Dome CCW",ISS_OFF);
-    IUFillSwitchVector(&DomeMotionSP,DomeMotionS,2,getDeviceName(),"DOME_MOTION","Direction",MAIN_CONTROL_TAB,IP_RW,ISR_ATMOST1,60,IPS_OK);
+    IUFillSwitchVector(&DomeMotionSP,DomeMotionS,2,getDeviceName(),"DOME_MOTION","Motion",MAIN_CONTROL_TAB,IP_RW,ISR_ATMOST1,60,IPS_OK);
 
     // Driver can define those to clients if there is support
     IUFillNumber(&DomeAbsPosN[0],"DOME_ABSOLUTE_POSITION","Degrees","%6.2f",0.0,360.0,1.0,0.0);
@@ -733,47 +733,73 @@ void INDI::Dome::setDomeState(const INDI::Dome::DomeState &value)
 {
     switch (value)
     {
-         case DOME_IDLE:
-            if (DomeMotionSP.s == IPS_BUSY)
-            {
-                IUResetSwitch(&DomeMotionSP);
-                DomeMotionSP.s = IPS_IDLE;
-                IDSetSwitch(&DomeMotionSP, NULL);
-            }
-            if (DomeAbsPosNP.s == IPS_BUSY)
-            {
-                DomeAbsPosNP.s = IPS_IDLE;
-                IDSetNumber(&DomeAbsPosNP, NULL);
-            }
-            if (DomeRelPosNP.s == IPS_BUSY)
-            {
-                DomeRelPosNP.s = IPS_IDLE;
-                IDSetNumber(&DomeRelPosNP, NULL);
-            }
-            break;
+    case DOME_IDLE:
+        if (DomeMotionSP.s == IPS_BUSY)
+        {
+            IUResetSwitch(&DomeMotionSP);
+            DomeMotionSP.s = IPS_IDLE;
+            IDSetSwitch(&DomeMotionSP, NULL);
+        }
+        if (DomeAbsPosNP.s == IPS_BUSY)
+        {
+            DomeAbsPosNP.s = IPS_IDLE;
+            IDSetNumber(&DomeAbsPosNP, NULL);
+        }
+        if (DomeRelPosNP.s == IPS_BUSY)
+        {
+            DomeRelPosNP.s = IPS_IDLE;
+            IDSetNumber(&DomeRelPosNP, NULL);
+        }
+        break;
 
-        case DOME_PARKED:
-            IUResetSwitch(&ParkSP);
-            ParkSP.s = IPS_OK;
-            ParkS[0].s = ISS_ON;
-            IDSetSwitch(&ParkSP, NULL);
-            IsParked = true;
-            break;
+    case DOME_SYNCED:
+        if (DomeMotionSP.s == IPS_BUSY)
+        {
+            IUResetSwitch(&DomeMotionSP);
+            DomeMotionSP.s = IPS_OK;
+            IDSetSwitch(&DomeMotionSP, NULL);
+        }
+        if (DomeAbsPosNP.s == IPS_BUSY)
+        {
+            DomeAbsPosNP.s = IPS_OK;
+            IDSetNumber(&DomeAbsPosNP, NULL);
+        }
+        if (DomeRelPosNP.s == IPS_BUSY)
+        {
+            DomeRelPosNP.s = IPS_OK;
+            IDSetNumber(&DomeRelPosNP, NULL);
+        }
+        break;
 
-         case DOME_PARKING:
-            IUResetSwitch(&ParkSP);
-            ParkSP.s = IPS_BUSY;
-            ParkS[0].s = ISS_ON;
-            IDSetSwitch(&ParkSP, NULL);
-            break;
+    case DOME_PARKED:
+        IUResetSwitch(&ParkSP);
+        ParkSP.s = IPS_OK;
+        ParkS[0].s = ISS_ON;
+        IDSetSwitch(&ParkSP, NULL);
+        IsParked = true;
+        break;
 
-        case DOME_UNPARKING:
-            IUResetSwitch(&ParkSP);
-            ParkSP.s = IPS_BUSY;
-            ParkS[1].s = ISS_ON;
-            IDSetSwitch(&ParkSP, NULL);
-            IsParked = false;
-            break;
+    case DOME_PARKING:
+        IUResetSwitch(&ParkSP);
+        ParkSP.s = IPS_BUSY;
+        ParkS[0].s = ISS_ON;
+        IDSetSwitch(&ParkSP, NULL);
+        break;
+
+    case DOME_UNPARKING:
+        IUResetSwitch(&ParkSP);
+        ParkSP.s = IPS_BUSY;
+        ParkS[1].s = ISS_ON;
+        IDSetSwitch(&ParkSP, NULL);
+        break;
+
+    case DOME_UNPARKED:
+        IUResetSwitch(&ParkSP);
+        ParkSP.s = IPS_OK;
+        ParkS[1].s = ISS_ON;
+        IDSetSwitch(&ParkSP, NULL);
+        IsParked = false;
+        break;
     }
 
     domeState = value;
@@ -1112,10 +1138,7 @@ void INDI::Dome::SetParked(bool isparked)
   }
   else
   {      
-      IUResetSwitch(&ParkSP);
-      ParkS[1].s = ISS_ON;
-      ParkSP.s = IPS_OK;
-      IDSetSwitch(&ParkSP, NULL);
+      setDomeState(DOME_UNPARKED);
       DEBUG( INDI::Logger::DBG_SESSION, "Dome is unparked.");
   }  
 
@@ -1417,6 +1440,12 @@ IPState INDI::Dome::MoveRel(double azDiff)
             DomeAbsPosNP.s=IPS_BUSY;
             IDSetNumber(&DomeAbsPosNP, NULL);
          }
+
+         DomeMotionSP.s = IPS_BUSY;
+         IUResetSwitch(&DomeMotionSP);
+         DomeMotionS[DOME_CW].s = (azDiff > 0) ? ISS_ON : ISS_OFF;
+         DomeMotionS[DOME_CCW].s = (azDiff < 0) ? ISS_ON : ISS_OFF;
+         IDSetSwitch(&DomeMotionSP, NULL);
          return IPS_BUSY;
     }
 
@@ -1465,6 +1494,7 @@ IPState INDI::Dome::MoveAbs(double az)
        DomeAbsPosN[0].value = az;
        DEBUGF(INDI::Logger::DBG_SESSION, "Dome moved to position %g degrees.", az);
        IDSetNumber(&DomeAbsPosNP, NULL);
+
        return IPS_OK;
     }
     else if (rc == IPS_BUSY)
@@ -1473,6 +1503,13 @@ IPState INDI::Dome::MoveAbs(double az)
        DomeAbsPosNP.s=IPS_BUSY;
        DEBUGF(INDI::Logger::DBG_SESSION, "Dome is moving to position %g degrees...", az);
        IDSetNumber(&DomeAbsPosNP, NULL);
+
+       DomeMotionSP.s = IPS_BUSY;
+       IUResetSwitch(&DomeMotionSP);
+       DomeMotionS[DOME_CW].s = (az > DomeAbsPosN[0].value) ? ISS_ON : ISS_OFF;
+       DomeMotionS[DOME_CCW].s = (az < DomeAbsPosN[0].value) ? ISS_ON : ISS_OFF;
+       IDSetSwitch(&DomeMotionSP, NULL);
+
        return IPS_BUSY;
     }
 

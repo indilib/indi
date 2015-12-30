@@ -424,9 +424,9 @@ void MaxDomeII::TimerHit()
                 {   // Succesfull end of movement
                     if (DomeAbsPosNP.s != IPS_OK)
                     {
-                        DomeAbsPosNP.s = IPS_OK;
+                        setDomeState(DOME_SYNCED);
                         nTimeSinceAzimuthStart = -1;
-                        IDSetNumber(&DomeAbsPosNP, "Dome is on target position");
+                        DEBUG(INDI::Logger::DBG_SESSION, "Dome is on target position");
                     }
                     if (HomeS[0].s == ISS_ON)
                     {

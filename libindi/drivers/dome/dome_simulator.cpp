@@ -181,17 +181,14 @@ void DomeSim::TimerHit()
         if (fabs(targetAz - DomeAbsPosN[0].value) <= DOME_SPEED)
         {
             DomeAbsPosN[0].value = targetAz;
-            DomeAbsPosNP.s = IPS_OK;
             DEBUG(INDI::Logger::DBG_SESSION, "Dome reached requested azimuth angle.");
 
             if (getDomeState() == DOME_PARKING)
                 SetParked(true);
-
-            if (CanRelMove() && DomeRelPosNP.s == IPS_BUSY)
-            {
-                DomeRelPosNP.s = IPS_OK;
-                IDSetNumber(&DomeRelPosNP, NULL);
-            }
+            else if (getDomeState() == DOME_UNPARKING)
+                SetParked(false);
+            else
+                setDomeState(DOME_SYNCED);
         }
 
         IDSetNumber(&DomeAbsPosNP, NULL);
