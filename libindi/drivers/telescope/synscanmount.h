@@ -20,24 +20,29 @@
 #define SYNSCANMOUNT_H
 
 #include "indibase/inditelescope.h"
+#include "indibase/alignment/AlignmentSubsystemForDrivers.h"
 
 
 #define SYNSCAN_SLEW_RATES 9
 
-class SynscanMount : public INDI::Telescope
+class SynscanMount : public INDI::Telescope, public INDI::AlignmentSubsystem::AlignmentSubsystemForDrivers
 {
     private:
- 	float FirmwareVersion;
+ 	double FirmwareVersion;
 	int MountModel;
 	char LastParkRead[20];
 	int NumPark;
+	int StopCount;
         int SlewRate;
 	int PassthruCommand(int cmd,int target,int msgsize,int data,int numReturn);
+	double currentRA;
+	double currentDEC;
 
 	bool CanSetLocation;
 	bool ReadLatLong;
 	bool HasFailed;
 	bool FirstConnect;
+	//int NumSyncPoints;
       	bool AnalyzeHandset();
 
     public:
@@ -46,10 +51,13 @@ class SynscanMount : public INDI::Telescope
 
         //  overrides of base class virtual functions
         //bool initProperties();
-        //void ISGetProperties (const char *dev);
-        const char *getDefaultName();
+        virtual void ISGetProperties (const char *dev);
+    	virtual bool updateProperties();
+        virtual const char *getDefaultName();
 
-        bool ReadScopeStatus();
+	virtual bool initProperties();
+        virtual bool ReadScopeStatus();
+	virtual bool Connect();
         bool Goto(double,double);
         bool Park();
 	bool UnPark();
@@ -64,6 +72,12 @@ class SynscanMount : public INDI::Telescope
 	void SetCurrentPark();
 	void SetDefaultPark();
 
+	//  methods added for alignment subsystem
+	virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+	virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+	virtual bool ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
+	virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+	bool Sync(double ra, double dec);
 };
 
 #endif // SYNSCANMOUNT_H
