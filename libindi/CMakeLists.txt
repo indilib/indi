@@ -338,7 +338,7 @@ set(synscan_SRCS
    ${CMAKE_SOURCE_DIR}/drivers/telescope/synscanmount.cpp )
 
 add_executable(indi_synscan ${synscan_SRCS})
-target_link_libraries(indi_synscan indidriver)
+target_link_libraries(indi_synscan indidriver AlignmentDriver)
 
 install(TARGETS indi_synscan RUNTIME DESTINATION bin )
 
