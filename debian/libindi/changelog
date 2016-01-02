@@ -1,8 +1,8 @@
-libindi (1.2.0) vivid; urgency=low
+libindi (1.2.0) UNRELEASED; urgency=medium
 
-  * Development release. Final release in Feburary 2016.
+  * Development release. Final release due Feb 2016.
 
- -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sun, 20 DEC 2015 11:00:00 +0300
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sat, 02 Jan 2016 11:26:18 +0300
 
 libindi (1.1.0) vivid; urgency=low
 
