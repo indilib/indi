@@ -34,7 +34,7 @@ typedef struct _gphoto_driver gphoto_driver;
 struct _gphoto_widget_list;
 typedef struct _gphoto_widget_list gphoto_widget_list;
 
-extern int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec);
+extern int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec, int mirror_lock);
 extern int gphoto_read_exposure(gphoto_driver *gphoto);
 extern int gphoto_read_exposure_fd(gphoto_driver *gphoto, int fd);
 extern void gphoto_set_upload_settings(gphoto_driver *gphoto, int setting);
@@ -61,5 +61,6 @@ extern int gphoto_auto_focus(gphoto_driver *gphoto);
 extern int gphoto_manual_focus (gphoto_driver *gphoto, int xx, char *errMsg);
 extern int gphoto_capture_preview(gphoto_driver *gphoto,  CameraFile* previewFile, char *errMsg);
 extern void gphoto_set_debug(int value);
+extern int gphoto_mirrorlock(gphoto_driver *gphoto, int msec);
 
 #endif

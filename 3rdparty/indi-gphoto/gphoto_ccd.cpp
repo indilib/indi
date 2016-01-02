@@ -192,6 +192,9 @@ bool GPhotoCCD::initProperties()
 
   IUFillText(&mPortT[0], "PORT" , "Port", "");
   IUFillTextVector(&PortTP, mPortT, NARRAY(mPortT), getDeviceName(),	"SHUTTER_PORT" , "Shutter Release", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+  
+  IUFillNumber(&mMirrorLockN[0], "MIRROR_LOCK_SECONDS" , "Seconds", "%1.0f", 0, 10, 1, 0);
+  IUFillNumberVector(&mMirrorLockNP, mMirrorLockN, 1, getDeviceName(),	"MIRROR_LOCK" , "Mirror Lock", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
   //We don't know how many items will be in the switch yet
   IUFillSwitchVector(&mIsoSP, NULL, 0, getDeviceName(), "CCD_ISO", "ISO", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
@@ -239,6 +242,11 @@ void GPhotoCCD::ISGetProperties(const char *dev)
 
   if (isConnected())
   {
+      if(PortTP.tp[0].text && strlen(PortTP.tp[0].text))
+      {
+          defineNumber(&mMirrorLockNP);
+      }
+
       if (mIsoSP.nsp > 0)
             defineSwitch(&mIsoSP);
       if (mFormatSP.nsp > 0)
@@ -265,6 +273,10 @@ bool GPhotoCCD::updateProperties()
 
   if (isConnected())
   {
+      if(PortTP.tp[0].text && strlen(PortTP.tp[0].text))
+      {
+          defineNumber(&mMirrorLockNP);
+      }
       if (mIsoSP.nsp > 0)
         defineSwitch(&mIsoSP);
       if (mFormatSP.nsp > 0)
@@ -297,7 +309,7 @@ bool GPhotoCCD::updateProperties()
        deleteProperty(mIsoSP.name);
     if (mFormatSP.nsp > 0)
        deleteProperty(mFormatSP.name);
-
+    deleteProperty(mMirrorLockNP.name);
     deleteProperty(livePreviewSP.name);
     deleteProperty(autoFocusSP.name);    
     deleteProperty(transferFormatSP.name);
@@ -373,7 +385,7 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
               }
           }
       }
-
+      
       if (!strcmp(name, mFormatSP.name))
       {
           int prevSwitch = IUFindOnSwitchIndex(&mFormatSP);
@@ -507,11 +519,19 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
 bool GPhotoCCD::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-
   if (strcmp(dev, getDeviceName()) == 0)
   {
       if (strstr(name, "FOCUS_"))
           return processFocuserNumber(dev, name, values, names, n);
+      
+      
+      if (!strcmp(name, mMirrorLockNP.name))
+      {
+          IUUpdateNumber(&mMirrorLockNP, values, names, n);
+          mMirrorLockNP.s = IPS_OK;
+          IDSetNumber(&mMirrorLockNP, NULL);
+          return true;
+      }
 
       if(CamOptions.find(name) != CamOptions.end())
       {
@@ -547,10 +567,12 @@ bool GPhotoCCD::Connect()
   const char **options;
   int max_opts;
   const char *port = NULL;
+  fprintf(stderr, "Mirror lock value: %f\n", mMirrorLockN[0].value);
 
-  if(PortTP.tp[0].text && strlen(PortTP.tp[0].text))
+  if(PortTP.tp[0].text && strlen(PortTP.tp[0].text)) {
       port = PortTP.tp[0].text;
-
+      
+  }
   if (sim == false && ! (gphotodrv = gphoto_open(port)))
   {
       DEBUG(INDI::Logger::DBG_ERROR, "Can not open camera: Power OK?");
@@ -669,12 +691,13 @@ bool GPhotoCCD::StartExposure(float duration)
     /* start new exposure with last ExpValues settings.
      * ExpGo goes busy. set timer to read when done
      */
+
     int expms = (int)ceil(duration*1000);
 
     PrimaryCCD.setExposureDuration(duration);
 
 
-    if (sim == false && gphoto_start_exposure(gphotodrv, expms) < 0)
+    if (sim == false && gphoto_start_exposure(gphotodrv, expms, mMirrorLockN[0].value) < 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error starting exposure");
         return false;
@@ -1324,6 +1347,7 @@ bool GPhotoCCD::saveConfigItems(FILE *fp)
 
     INDI::CCD::saveConfigItems(fp);
 
+    IUSaveConfigNumber(fp, &mMirrorLockNP);
     if (mIsoSP.nsp > 0)
           IUSaveConfigSwitch(fp, &mIsoSP);
     if (mFormatSP.nsp > 0)

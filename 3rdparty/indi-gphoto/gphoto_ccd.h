@@ -123,11 +123,14 @@ private:
     char *on_off[2];
     int timerID;
     bool frameInitialized;
-
+    
     ISwitch mConnectS[2];
     ISwitchVectorProperty mConnectSP;
     IText mPortT[1];
     ITextVectorProperty PortTP;
+    
+    INumber mMirrorLockN[1];
+    INumberVectorProperty mMirrorLockNP;
 
     INumber mExposureN[1];
     INumberVectorProperty mExposureNP;

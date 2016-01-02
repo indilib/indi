@@ -506,14 +506,28 @@ static void download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
 	}
 }
 
-int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec)
+int gphoto_mirrorlock(gphoto_driver *gphoto, int msec)
+{
+    gp_dprintf("Opening serial port for %d msecs", msec);
+    int bulb_fd = open(gphoto->bulb_port, O_RDWR, O_NONBLOCK);
+    if(bulb_fd < 0) {
+        fprintf(stderr, "Failed to open serial port: %s\n", gphoto->bulb_port);
+        return 1;
+    }
+    close(bulb_fd);
+    usleep(msec * 1000);
+    gp_dprintf("Serial port closed");
+    return 0;
+}
+
+int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec, int mirror_lock)
 {
 	int idx;
 	if (! gphoto->exposure_widget) {
 		fprintf(stderr, "No exposure widget.  Can't expose\n");
 		return 1;
 	}
-	gp_dprintf("Starting exposure\n");
+	gp_dprintf("Starting exposure (exptime: %d, mirror lock: %d\n", exptime_msec, mirror_lock);
 	pthread_mutex_lock(&gphoto->mutex);
 	gp_dprintf("  Mutex locked\n");
 
@@ -536,10 +550,11 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec)
             // Setting to 1 doesn't work in BULB exposures!
             //if (gphoto->upload_settings != GP_UPLOAD_CLIENT)
             //idx = 1;
-
 			gp_dprintf("Using bulb mode. idx:%u\n",idx);
 		        
 			gphoto_set_widget_num(gphoto, gphoto->exposure_widget, idx);
+                        if(mirror_lock && gphoto_mirrorlock(gphoto, mirror_lock*1000))
+                            return 1;
 		
 			gettimeofday(&gphoto->bulb_end, NULL);
 			unsigned int usec = gphoto->bulb_end.tv_usec + exptime_msec % 1000 * 1000;
@@ -577,13 +592,22 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec)
         idx = 1;
     else
         idx = find_exposure_setting(gphoto, gphoto->exposure_widget, exptime_msec);
-	gp_dprintf("Using exposure time: %s\n", gphoto->exposure_widget->choices[idx]);
-	gphoto_set_widget_num(gphoto, gphoto->exposure_widget, idx);
-	gphoto->command = DSLR_CMD_CAPTURE;
-	pthread_cond_signal(&gphoto->signal);
-	pthread_mutex_unlock(&gphoto->mutex);
-	gp_dprintf("Exposure started\n");
-	return 0;
+    gp_dprintf("Using exposure time: %s\n", gphoto->exposure_widget->choices[idx]);
+    gphoto_set_widget_num(gphoto, gphoto->exposure_widget, idx);
+    if(mirror_lock) {
+        if( gphoto_mirrorlock(gphoto, mirror_lock*1000) || gphoto_mirrorlock(gphoto, 10) )
+            return 1;
+        gphoto->command = DSLR_CMD_BULB_CAPTURE;
+        pthread_cond_signal(&gphoto->signal);
+        pthread_mutex_unlock(&gphoto->mutex);
+        gp_dprintf("Exposure started\n");
+        return 0;
+    }
+    gphoto->command = DSLR_CMD_CAPTURE;
+    pthread_cond_signal(&gphoto->signal);
+    pthread_mutex_unlock(&gphoto->mutex);
+    gp_dprintf("Exposure started\n");
+    return 0;
 }
 
 int gphoto_read_exposure_fd(gphoto_driver *gphoto, int fd)
