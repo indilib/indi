@@ -89,7 +89,7 @@ const char *Skywatcher::getDeviceName ()
 
 /* API */
 
-bool Skywatcher::Connect(const char *port, uint16_t baud)  throw (EQModError)
+bool Skywatcher::Connect(const char *port, uint32_t baud)  throw (EQModError)
 {   
   int err_code = 0;
   unsigned long tmpMCVersion=0;

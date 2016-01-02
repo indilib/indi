@@ -532,7 +532,7 @@ bool EQMod::Connect()
     return rc;
 }
 
-bool EQMod::Connect(const char *port, uint16_t baud)
+bool EQMod::Connect(const char *port, uint32_t baud)
 {
  DEBUGF(INDI::Logger::DBG_SESSION, "Connecting to port %s at speed %d" , port, baud);
 
