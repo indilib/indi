@@ -44,6 +44,8 @@ class SynscanMount : public INDI::Telescope, public INDI::AlignmentSubsystem::Al
 	bool FirstConnect;
 	//int NumSyncPoints;
       	bool AnalyzeHandset();
+	ln_equ_posn TelescopeToSky(double ra,double dec);
+	ln_equ_posn SkyToTelescope(double ra,double dec);
 
     public:
         SynscanMount();

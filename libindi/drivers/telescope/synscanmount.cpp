@@ -464,12 +464,21 @@ bool SynscanMount::ReadScopeStatus()
 
     ra=(double)n1/0x100000000*24.0;
     dec=(double)n2/0x100000000*360.0;
+    //  we need uncorrected data to be saved
+    //  to use in a sync
     currentRA=ra;
     currentDEC=dec;
 
 
-//  Before we pass this back to a client
-//  run it thru the alignment matrix to correct the data
+    //  Before we pass this back to a client
+    //  run it thru the alignment matrix to correct the data
+    ln_equ_posn eq;
+
+    eq=TelescopeToSky(ra,dec);
+    //  Now feed the rest of the system with corrected data
+    NewRaDec(eq.ra,eq.dec);
+
+/*
 
     if(GetAlignmentDatabase().size() > 1) {
 
@@ -495,6 +504,7 @@ bool SynscanMount::ReadScopeStatus()
     } else {
     	NewRaDec(ra,dec);
     }
+*/
     return true;
 }
 
@@ -503,45 +513,17 @@ bool SynscanMount::Goto(double ra,double dec)
     char str[20];
     int n1,n2;
     int numread, bytesWritten, bytesRead;
+    ln_equ_posn eq;
+    double RightAscension,Declination;
+
 //fprintf(stderr,"Enter Goto  %4.4lf %4.4lf\n",ra,dec);
     DEBUGF(INDI::Logger::DBG_SESSION,"Enter Goto %g %g",ra,dec);
 
-    ln_equ_posn eq;
-    ln_lnlat_posn here;
-    ln_hrz_posn altaz;
-    double RightAscension,Declination;
-    TelescopeDirectionVector TDV;
+    eq=SkyToTelescope(ra,dec);
+    RightAscension=eq.ra;
+    Declination=eq.dec;
+    DEBUGF(INDI::Logger::DBG_SESSION,"Corrected Goto %g %g",RightAscension,Declination);
 
-    eq.ra=ra*360/24;
-    eq.dec=dec;
-    here.lat=LocationN[LOCATION_LATITUDE].value;
-    here.lng=LocationN[LOCATION_LONGITUDE].value;
-
-    ln_get_hrz_from_equ(&eq,&here,ln_get_julian_from_sys(),&altaz);
-
-    if(GetAlignmentDatabase().size() > 1) {
-	//  if the alignment system has been turned off
-	//  this transformation will fail, and we fall thru
-	//  to using raw co-ordinates from the mount
-	if(TransformCelestialToTelescope(ra, dec, 0.0, TDV)) {
-    	    EquatorialCoordinatesFromTelescopeDirectionVector(TDV,eq);
-//fprintf(stderr,"****  Transform was successful\n");
-	    RightAscension=eq.ra*24.0/360;
-	    Declination=eq.dec;
-	    if(RightAscension < 0) RightAscension+=24.0;
-//fprintf(stderr,"New co-ords %4.4lf %4.4lf\n",RightAscension,Declination);
-    	    DEBUGF(INDI::Logger::DBG_SESSION,"Transformed Co-ordinates %g %g\n",RightAscension,Declination);
-        } else {
-//fprintf(stderr,"**** Transform failed\n");
-            DEBUGF(INDI::Logger::DBG_SESSION,"Transform failed, using raw co-ordinates %g %g\n",ra,dec);
-
-	    RightAscension=ra;
-	    Declination=dec;
-        }
-    } else {
-    	RightAscension=ra;
-    	Declination=dec;
-    }
 
     //  not fleshed in yet
     tty_write(PortFD,"Ka",2, &bytesWritten);  //  test for an echo
@@ -571,38 +553,6 @@ bool SynscanMount::Goto(double ra,double dec)
     return true;
 }
 
-bool SynscanMount::Sync(double ra, double dec)
-{
-    ln_equ_posn eq;
-    AlignmentDatabaseEntry NewEntry;
-    ln_lnlat_posn here;
-
-    DEBUGF(INDI::Logger::DBG_SESSION,"Sync %g %g -> %g %g\n",currentRA,currentDEC,ra,dec);
-
-    here.lat=LocationN[LOCATION_LATITUDE].value;
-    here.lng=LocationN[LOCATION_LONGITUDE].value;
-
-    //  this is where we think we are pointed now
-    eq.ra=currentRA*360.0/24.0;	//  this is wanted in degrees, not hours
-    eq.dec=currentDEC;
-
-    //  And this is where the client says we are pointed
-    NewEntry.ObservationJulianDate = ln_get_julian_from_sys();
-    NewEntry.RightAscension=ra;
-    NewEntry.Declination=dec;
-    NewEntry.TelescopeDirection=TelescopeDirectionVectorFromEquatorialCoordinates(eq);
-    NewEntry.PrivateDataSize=0;
-    if (!CheckForDuplicateSyncPoint(NewEntry))
-    {
-        GetAlignmentDatabase().push_back(NewEntry);
-        // Tell the client about size change
-        UpdateSize();
-        // Tell the math plugin to reinitialise
-        Initialise(this);
-        return true;
-    }
-    return false;
-}
 
 bool SynscanMount::Park()
 {
@@ -1012,6 +962,195 @@ bool SynscanMount::updateLocation(double latitude, double longitude, double elev
 
     return true;
     }
-}        
+}
+
+
+bool SynscanMount::Sync(double ra, double dec)
+{
+    ln_equ_posn eq;
+    AlignmentDatabaseEntry NewEntry;
+    ln_lnlat_posn here;
+    ln_hrz_posn altaz;
+    double lst,lha;
+
+    DEBUGF(INDI::Logger::DBG_SESSION,"Sync %g %g -> %g %g\n",currentRA,currentDEC,ra,dec);
+
+
+    //  this is where we think we are pointed now
+    //  and we need to set a sync point in the alignment database
+
+    /*
+    //  working entirely in eq co-ordinates, this is all we need to do here
+    //  we need these numbers in degrees
+    eq.ra=currentRA*360.0/24.0;	//  this is wanted in degrees, not hours
+    eq.dec=currentDEC;
+    NewEntry.TelescopeDirection=TelescopeDirectionVectorFromEquatorialCoordinates(eq);
+
+    //  if working in alt/az co-ordinates, we need to do this as well
+    here.lat=LocationN[LOCATION_LATITUDE].value;
+    here.lng=LocationN[LOCATION_LONGITUDE].value;
+    ln_get_hrz_from_equ(&eq,&here,ln_get_julian_from_sys(),&altaz);
+    NewEntry.TelescopeDirection=TelescopeDirectionVectorFromAltitudeAzimuth(altaz);
+    */
+    
+    //  if we are working in lha/dec co-ordinates, we need to do these steps
+    //  the steps above dont matter
+    lst=get_local_sideral_time(LocationN[LOCATION_LONGITUDE].value);
+    lha=get_local_hour_angle(lst,currentRA);
+    //  convert lha to degrees
+    lha=lha*360.0/24.0;
+    eq.ra=lha;
+    eq.dec=currentDEC;
+    NewEntry.TelescopeDirection=TelescopeDirectionVectorFromLocalHourAngleDeclination(eq);
+
+    //  Flesh out the rest of the information for this sync point
+    NewEntry.ObservationJulianDate = ln_get_julian_from_sys();
+    NewEntry.RightAscension=ra;
+    NewEntry.Declination=dec;
+    NewEntry.PrivateDataSize=0;
+    if (!CheckForDuplicateSyncPoint(NewEntry))
+    {
+        GetAlignmentDatabase().push_back(NewEntry);
+        // Tell the client about size change
+        UpdateSize();
+        // Tell the math plugin to reinitialise
+        Initialise(this);
+        return true;
+    }
+    return false;
+}
+
+        
+ln_equ_posn SynscanMount::TelescopeToSky(double ra,double dec)
+{
+    double RightAscension,Declination;
+    ln_equ_posn eq;
+
+    if(GetAlignmentDatabase().size() > 1) {
+
+    	TelescopeDirectionVector TDV;
+
+        /*  Use this if we ar converting eq co-ords
+	//  but it's broken for now
+    	eq.ra=ra*360/24;
+    	eq.dec=dec;
+    	TDV=TelescopeDirectionVectorFromEquatorialCoordinates(eq);
+	*/
+
+	/* This code does a conversion from ra/dec to alt/az
+	// before calling the alignment stuff
+        ln_lnlat_posn here;
+    	ln_hrz_posn altaz;
+
+    	here.lat=LocationN[LOCATION_LATITUDE].value;
+    	here.lng=LocationN[LOCATION_LONGITUDE].value;
+    	eq.ra=ra*360.0/24.0;	//  this is wanted in degrees, not hours
+    	eq.dec=dec;
+    	ln_get_hrz_from_equ(&eq,&here,ln_get_julian_from_sys(),&altaz);
+    	TDV=TelescopeDirectionVectorFromAltitudeAzimuth(altaz);
+*/	
+
+	/*  and here we convert from ra/dec to hour angle / dec before calling alignment stuff */
+    	double lha,lst;
+	lst=get_local_sideral_time(LocationN[LOCATION_LONGITUDE].value);
+	lha=get_local_hour_angle(lst,ra);
+	//  convert lha to degrees
+	lha=lha*360/24;
+	eq.ra=lha;
+	eq.dec=dec;
+    	TDV=TelescopeDirectionVectorFromLocalHourAngleDeclination(eq);
+      
+	
+    	if (TransformTelescopeToCelestial( TDV, RightAscension, Declination)) {
+	    //  if we get here, the conversion was successful
+	    //fprintf(stderr,"new values %6.4f %6.4f %6.4f  %6.4f Deltas %3.0lf %3.0lf\n",ra,dec,RightAscension,Declination,(ra-RightAscension)*60,(dec-Declination)*60);
+    	} else {
+	    //if the conversion failed, return raw data
+            RightAscension=ra;
+            Declination=dec;       
+    	}
+
+    } else {
+	//  With less than 2 align points
+	// Just return raw data
+    	RightAscension=ra;
+	Declination=dec;
+    }
+
+    eq.ra=RightAscension;
+    eq.dec=Declination;
+    return eq;
+}
+
+ln_equ_posn SynscanMount::SkyToTelescope(double ra,double dec)
+{
+
+    ln_equ_posn eq;
+    ln_lnlat_posn here;
+    ln_hrz_posn altaz;
+    TelescopeDirectionVector TDV;
+    double RightAscension,Declination;
+
+/*
+*/
+
+
+    if(GetAlignmentDatabase().size() > 1) {
+	//  if the alignment system has been turned off
+	//  this transformation will fail, and we fall thru
+	//  to using raw co-ordinates from the mount
+	if(TransformCelestialToTelescope(ra, dec, 0.0, TDV)) {
+
+            /*  Initial attemp, using RA/DEC co-ordinates talking to alignment system
+    	    EquatorialCoordinatesFromTelescopeDirectionVector(TDV,eq);
+	    RightAscension=eq.ra*24.0/360;
+	    Declination=eq.dec;
+	    if(RightAscension < 0) RightAscension+=24.0;
+    	    DEBUGF(INDI::Logger::DBG_SESSION,"Transformed Co-ordinates %g %g\n",RightAscension,Declination);
+            */
+
+
+	    //  nasty altaz kludge, use al/az co-ordinates to talk to alignment system
+	    /*
+            eq.ra=ra*360/24;
+            eq.dec=dec;
+            here.lat=LocationN[LOCATION_LATITUDE].value;
+            here.lng=LocationN[LOCATION_LONGITUDE].value;
+            ln_get_hrz_from_equ(&eq,&here,ln_get_julian_from_sys(),&altaz);
+	    AltitudeAzimuthFromTelescopeDirectionVector(TDV,altaz);
+	    //  now convert the resulting altaz into radec
+    	    ln_get_equ_from_hrz(&altaz,&here,ln_get_julian_from_sys(),&eq);
+	    RightAscension=eq.ra*24.0/360.0;
+	    Declination=eq.dec;
+            */
+            
+
+	    /* now lets convert from telescope to lha/dec */
+	    double lst;
+	    LocalHourAngleDeclinationFromTelescopeDirectionVector(TDV,eq);
+	    //  and now we have to convert from lha back to RA
+	    lst=get_local_sideral_time(LocationN[LOCATION_LONGITUDE].value);
+	    eq.ra=eq.ra*24/360;
+	    RightAscension=lst-eq.ra;
+	    RightAscension=range24(RightAscension);
+	    Declination=eq.dec;
+	    
+
+        } else {
+            DEBUGF(INDI::Logger::DBG_SESSION,"Transform failed, using raw co-ordinates %g %g\n",ra,dec);
+	    RightAscension=ra;
+	    Declination=dec;
+        }
+    } else {
+    	RightAscension=ra;
+    	Declination=dec;
+    }
+
+    eq.ra=RightAscension;
+    eq.dec=Declination;
+    //eq.ra=ra;
+    //eq.dec=dec;
+    return eq;
+}
 
 
