@@ -599,7 +599,7 @@ bool INDI::Dome::ISSnoopDevice (XMLEle *root)
 		//  and see if we can get there at the same time as the mount
                 mountEquatorialCoords.ra = ra*15.0;
                 mountEquatorialCoords.dec = de;
-                DEBUGF(INDI::Logger::DBG_SESSION, "Snooped TargetRA: %g - DEC: %g", mountEquatorialCoords.ra, mountEquatorialCoords.dec);
+                DEBUGF(INDI::Logger::DBG_DEBUG, "Calling Update mount to anticipate goto target: %g - DEC: %g", mountEquatorialCoords.ra, mountEquatorialCoords.dec);
                 UpdateMountCoords();
            }
 	}
