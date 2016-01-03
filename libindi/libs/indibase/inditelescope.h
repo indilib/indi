@@ -343,6 +343,11 @@ class INDI::Telescope : public INDI::DefaultDevice
         INumberVectorProperty EqNP;
         INumber EqN[2];
 
+	//  When a goto is issued, domes will snoop the target property
+	//  to start moving the dome when a telescope moves
+        INumberVectorProperty TargetNP;
+        INumber TargetN[2];
+
         // Abort motion
         ISwitchVectorProperty AbortSP;
         ISwitch AbortS[1];

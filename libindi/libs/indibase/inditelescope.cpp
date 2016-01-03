@@ -58,6 +58,11 @@ bool INDI::Telescope::initProperties()
     IUFillNumberVector(&EqNP,EqN,2,getDeviceName(),"EQUATORIAL_EOD_COORD","Eq. Coordinates",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
     lastEqState = IPS_IDLE;
 
+    IUFillNumber(&TargetN[AXIS_RA],"RA","RA (hh:mm:ss)","%010.6m",0,24,0,0);
+    IUFillNumber(&TargetN[AXIS_DE],"DEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,0);
+    IUFillNumberVector(&TargetNP,TargetN,2,getDeviceName(),"TARGET_EOD_COORD","Slew Target",MOTION_TAB,IP_RO,60,IPS_IDLE);
+
+
     IUFillSwitch(&ParkOptionS[0],"PARK_CURRENT","Current",ISS_OFF);
     IUFillSwitch(&ParkOptionS[1],"PARK_DEFAULT","Default",ISS_OFF);
     IUFillSwitch(&ParkOptionS[2],"PARK_WRITE_DATA","Write Data",ISS_OFF);
@@ -182,6 +187,7 @@ void INDI::Telescope::ISGetProperties (const char *dev)
             defineSwitch(&SlewRateSP);
 
         defineNumber(&ScopeParametersNP);        
+        defineNumber(&TargetNP);        
 
     }
 
@@ -218,6 +224,7 @@ bool INDI::Telescope::updateProperties()
             }
         }
         defineNumber(&ScopeParametersNP);
+        defineNumber(&TargetNP);        
 
     }
     else
@@ -493,10 +500,16 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
 
                 // Issue GOTO
                 rc=Goto(ra,dec);
-                if (rc)
+                if (rc) {
                     EqNP .s = lastEqState = IPS_BUSY;
-                else
+		    //  Now fill in target co-ords, so domes can start turning
+		    TargetN[AXIS_RA].value=ra;
+		    TargetN[AXIS_DE].value=dec;
+                    IDSetNumber(&TargetNP, NULL);
+
+		} else {
                     EqNP.s = lastEqState = IPS_ALERT;
+		}
                 IDSetNumber(&EqNP, NULL);
 
             }

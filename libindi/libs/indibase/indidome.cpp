@@ -557,6 +557,7 @@ bool INDI::Dome::ISNewText (const char *dev, const char *name, char *texts[], ch
             IDSetText(&ActiveDeviceTP,NULL);
 
             IDSnoopDevice(ActiveDeviceT[0].text,"EQUATORIAL_EOD_COORD");
+            IDSnoopDevice(ActiveDeviceT[0].text,"TARGET_EOD_COORD");
             IDSnoopDevice(ActiveDeviceT[0].text,"GEOGRAPHIC_COORD");            
             IDSnoopDevice(ActiveDeviceT[1].text,"WEATHER_STATUS");
 
@@ -574,6 +575,38 @@ bool INDI::Dome::ISSnoopDevice (XMLEle *root)
     XMLEle *ep=NULL;
     const char *propName = findXMLAttValu(root, "name");
 
+    // Check TARGET
+    if (!strcmp("TARGET_EOD_COORD", propName))
+    {
+        int rc_ra=-1, rc_de=-1;
+        double ra=0, de=0;
+        
+        for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
+        {
+            const char *elemName = findXMLAttValu(ep, "name");
+
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Snooped Target RA-DEC: %s", pcdataXMLEle(ep));
+            if (!strcmp(elemName, "RA"))                            
+                rc_ra = f_scansexa(pcdataXMLEle(ep), &ra);
+            else if (!strcmp(elemName, "DEC"))
+                rc_de = f_scansexa(pcdataXMLEle(ep), &de);
+        }
+	//  Dont start moving the dome till the mount has initialized all the variables
+	if(HaveRaDec) {
+       	    if (rc_ra==0 && rc_de==0)
+            {
+		//  everything parsed ok, so lets start the dome to moving
+		//  and see if we can get there at the same time as the mount
+                mountEquatorialCoords.ra = ra*15.0;
+                mountEquatorialCoords.dec = de;
+                DEBUGF(INDI::Logger::DBG_SESSION, "Snooped TargetRA: %g - DEC: %g", mountEquatorialCoords.ra, mountEquatorialCoords.dec);
+                UpdateMountCoords();
+           }
+	}
+
+
+        return true;
+    }
     // Check EOD
     if (!strcmp("EQUATORIAL_EOD_COORD", propName))
     {
