@@ -550,6 +550,9 @@ void INDI::CCD::ISGetProperties (const char *dev)
 {    
     DefaultDevice::ISGetProperties(dev);
 
+    defineText(&ActiveDeviceTP);
+    loadConfig(true, "ACTIVE_DEVICES");
+
     // Streamer
     #ifdef __linux__
     if (HasStreaming())
@@ -632,8 +635,7 @@ bool INDI::CCD::updateProperties()
         {
           defineSwitch(&GuideCCD.RapidGuideSetupSP);
           defineNumber(&GuideCCD.RapidGuideDataNP);
-        }
-        defineText(&ActiveDeviceTP);
+        }        
         defineSwitch(&WorldCoordSP);
         defineSwitch(&UploadSP);
 
@@ -692,7 +694,6 @@ bool INDI::CCD::updateProperties()
             deleteProperty(PrimaryCCD.ResetSP.name);
         if (HasBayer())
             deleteProperty(BayerTP.name);
-        deleteProperty(ActiveDeviceTP.name);
         if (WorldCoordS[0].s == ISS_ON)
         {
             deleteProperty(TelescopeTypeSP.name);
