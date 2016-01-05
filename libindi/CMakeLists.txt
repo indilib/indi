@@ -165,6 +165,7 @@ install(TARGETS indiserver RUNTIME DESTINATION bin)
 # Mostly used by generic clients                #
 #################################################
 add_library(indi SHARED ${libindicom_SRCS} ${liblilxml_SRCS})
+SET_TARGET_PROPERTIES(indi PROPERTIES COMPILE_FLAGS "-fPIC")
 target_link_libraries(indi ${NOVA_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${CFITSIO_LIBRARIES})
 
 install(TARGETS indi LIBRARY DESTINATION ${LIB_DESTINATION})
@@ -176,8 +177,10 @@ set_target_properties(indi PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVER
 ##################################################
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 add_library(indidriver SHARED ${libindicom_SRCS} ${liblilxml_SRCS} ${indimain_SRCS} ${indidriver_SRCS} ${libwebcam_SRCS} ${hidapi_SRCS})
+SET_TARGET_PROPERTIES(indidriver PROPERTIES COMPILE_FLAGS "-fPIC")
 target_link_libraries(indidriver ${LIBUSB_1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY})
 add_library(indidriverstatic STATIC ${libindicom_SRCS} ${liblilxml_SRCS} ${indimain_SRCS} ${indidriver_SRCS} ${libwebcam_SRCS} ${hidapi_SRCS})
+SET_TARGET_PROPERTIES(indidriverstatic PROPERTIES COMPILE_FLAGS "-fPIC")
 target_link_libraries(indidriverstatic ${LIBUSB_1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY})
 else()
 add_library(indidriver SHARED ${libindicom_SRCS} ${liblilxml_SRCS} ${indimain_SRCS} ${indidriver_SRCS} ${hidapi_SRCS})
@@ -193,15 +196,7 @@ install(TARGETS indidriverstatic ARCHIVE DESTINATION ${LIB_DESTINATION})
 ########### INDI Client Static Library ###########
 ##################################################
 add_library(indiclient STATIC ${indiclient_SRCS})
-#-----------------------------------------------------------------------------
-#
-# To fix compilation problem: relocation R_X86_64_32 against `a local symbol' can not be
-# used when making a shared object; recompile with -fPIC
-# See http://www.cmake.org/pipermail/cmake/2007-May/014350.html
-#
-IF( CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" )
-  SET_TARGET_PROPERTIES(indiclient PROPERTIES COMPILE_FLAGS "-fPIC")
-ENDIF( CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" )
+SET_TARGET_PROPERTIES(indiclient PROPERTIES COMPILE_FLAGS "-fPIC")
 
 target_link_libraries(indiclient indi ${CMAKE_THREAD_LIBS_INIT})
 install(TARGETS indiclient ARCHIVE DESTINATION ${LIB_DESTINATION})

@@ -43,6 +43,7 @@ set (AlignmentDriver_SRCS
     )
 
 add_library(AlignmentDriver SHARED ${AlignmentDriver_SRCS})
+SET_TARGET_PROPERTIES(AlignmentDriver PROPERTIES COMPILE_FLAGS "-fPIC")
 target_link_libraries(AlignmentDriver dl)
 if (GSL_FOUND)
 	target_link_libraries(AlignmentDriver ${GSL_LIBRARIES})
@@ -65,6 +66,7 @@ set (AlignmentClient_SRCS
     )
 
 add_library(AlignmentClient STATIC ${AlignmentClient_SRCS})
+SET_TARGET_PROPERTIES(AlignmentClient PROPERTIES COMPILE_FLAGS "-fPIC")
 set_target_properties(AlignmentClient PROPERTIES OUTPUT_NAME indiAlignmentClient)
 install(TARGETS AlignmentClient ARCHIVE DESTINATION ${LIB_DESTINATION})
 
