@@ -74,7 +74,6 @@ std::unique_ptr<EQMod> eqmod(new EQMod());
 #define SLEW_LIMIT      2                               /* Move at SLEW_LIMIT until distance from target is SLEW_LIMIT degrees */
 #define FINE_SLEW_LIMIT 0.5                             /* Move at FINE_SLEW_RATE until distance from target is FINE_SLEW_LIMIT degrees */
 
-//#define	POLLMS		250				/* poll period, ms */
 #define POLLMS 1000
 
 #define GOTO_ITERATIVE_LIMIT 5     /* Max GOTO Iterations */
@@ -213,7 +212,6 @@ EQMod::EQMod()
   lndate.months = utc.tm_mon + 1;
   lndate.years = utc.tm_year + 1900;
   clock_gettime(CLOCK_MONOTONIC, &lastclockupdate);
-  //IDLog("Setting UTC in constructor: %s", asctime(&utc));
   /* initialize random seed: */
   srand ( time(NULL) );
 }
