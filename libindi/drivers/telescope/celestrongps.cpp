@@ -126,9 +126,9 @@ bool CelestronGPS::initProperties()
     IUFillText(&FirmwareT[FW_DEC], "DEC", "", 0);
     IUFillTextVector(&FirmwareTP, FirmwareT, 5, getDeviceName(), "Firmware Info", "", MOUNTINFO_TAB, IP_RO, 0, IPS_IDLE);
 
-    IUFillNumber(&HorizontalCoordsN[AXIS_AZ], "AZ", "Az D:M:S", "%10.6m", 0.0, 360.0, 0.0, 0);
+    /*IUFillNumber(&HorizontalCoordsN[AXIS_AZ], "AZ", "Az D:M:S", "%10.6m", 0.0, 360.0, 0.0, 0);
     IUFillNumber(&HorizontalCoordsN[AXIS_ALT], "ALT", "Alt  D:M:S", "%10.6m", -90., 90.0, 0.0, 0);
-    IUFillNumberVector(&HorizontalCoordsNP, HorizontalCoordsN, 2, getDeviceName(), "HORIZONTAL_COORD", "Horizontal Coord", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&HorizontalCoordsNP, HorizontalCoordsN, 2, getDeviceName(), "HORIZONTAL_COORD", "Horizontal Coord", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);*/
 
     IUFillSwitch(&TrackS[0], "TRACK_OFF", "Off", ISS_OFF);
     IUFillSwitch(&TrackS[1], "TRACK_ALTAZ", "Alt/Az", ISS_OFF);
@@ -325,7 +325,7 @@ bool CelestronGPS::Goto(double ra, double dec)
         return false;
     }
 
-    HorizontalCoordsNP.s = IPS_BUSY;
+    //HorizontalCoordsNP.s = IPS_BUSY;
 
     TrackState = SCOPE_SLEWING;
     fs_sexa(RAStr, targetRA, 2, 3600);
@@ -358,7 +358,7 @@ bool CelestronGPS::Sync(double ra, double dec)
     return true;
 }
 
-bool CelestronGPS::GotoAzAlt(double az, double alt)
+/*bool CelestronGPS::GotoAzAlt(double az, double alt)
 {
     if (isSimulation())
     {
@@ -403,7 +403,7 @@ bool CelestronGPS::GotoAzAlt(double az, double alt)
     DEBUGF(INDI::Logger::DBG_SESSION, "Slewing to Az %s - Alt %s", AZStr, ALTStr);
 
     return true;
-}
+}*/
 
 bool CelestronGPS::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
@@ -495,7 +495,7 @@ bool CelestronGPS::ReadScopeStatus()
         {
             DEBUG(INDI::Logger::DBG_SESSION, "Slew complete, tracking...");
             TrackState = SCOPE_TRACKING;
-            HorizontalCoordsNP.s = IPS_OK;
+            //HorizontalCoordsNP.s = IPS_OK;
         }
         break;
 
@@ -507,7 +507,7 @@ bool CelestronGPS::ReadScopeStatus()
                 DEBUG(INDI::Logger::DBG_DEBUG, "Mount tracking is off.");
 
             SetParked(true);
-            HorizontalCoordsNP.s = IPS_OK;
+            //HorizontalCoordsNP.s = IPS_OK;
 
             saveConfig(true);
 
@@ -528,7 +528,7 @@ bool CelestronGPS::ReadScopeStatus()
         break;
     }
 
-    IDSetNumber(&HorizontalCoordsNP, NULL);
+    //IDSetNumber(&HorizontalCoordsNP, NULL);
     NewRaDec(currentRA, currentDEC);
 
     return true;
@@ -690,11 +690,11 @@ bool CelestronGPS::ISNewSwitch (const char *dev, const char *name, ISState *stat
 
 bool CelestronGPS::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
-  double newAlt=0, newAz=0;
+  //double newAlt=0, newAz=0;
 
   if(!strcmp(dev,getDeviceName()))
   {
-      if ( !strcmp (name, HorizontalCoordsNP.name) )
+      /*if ( !strcmp (name, HorizontalCoordsNP.name) )
       {
           int i=0, nset=0;
 
@@ -737,7 +737,7 @@ bool CelestronGPS::ISNewNumber (const char *dev, const char *name, double values
             IDSetNumber(&HorizontalCoordsNP, NULL);
             return false;
           }
-      }
+      }*/
       
     //GUIDE process Guider properties.
     processGuiderProperties(name, values, names, n);
