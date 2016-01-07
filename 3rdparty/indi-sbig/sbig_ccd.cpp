@@ -1,7 +1,7 @@
 /*
     Driver type: SBIG CCD Camera INDI Driver
 
-    Copyright (C) 2013-2014 Jasem Mutlaq (mutlaqja AT ikarustech DOT com)
+    Copyright (C) 2013-2016 Jasem Mutlaq (mutlaqja AT ikarustech DOT com)
     Copyright (C) 2005-2006 Jan Soldan (jsoldan AT asu DOT cas DOT cz)
 
     Acknowledgement:
@@ -21,6 +21,9 @@
     along with this library; if not, write to the Free Software Foundation,
     Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
 
+    2016-01-07: Added ETH connection (by Simon Holmbo)
+    2016-01-07: Changed Device port from text to switch (JM)
+
  */
 
 #include <memory>
@@ -28,6 +31,10 @@
 #include <math.h>
 #include <unistd.h>
 #include <sys/time.h>
+
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 #include "indidevapi.h"
 #include "eventloop.h"
@@ -170,11 +177,11 @@ SBIGCCD::SBIGCCD()
     hasGuideHead=false;
     hasFilterWheel=false;
 
-    setVersion(1, 6);
+    setVersion(1, 7);
 
 }
 //==========================================================================
-SBIGCCD::SBIGCCD(const char* devName)
+/*SBIGCCD::SBIGCCD(const char* devName)
 {
     int res = CE_NO_ERROR;
     InitVars();
@@ -183,7 +190,8 @@ SBIGCCD::SBIGCCD(const char* devName)
 
     if (res != CE_NO_ERROR)
         DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Error (%s)", __FUNCTION__, GetErrorString(res).c_str());
-}
+}*/
+
 //==========================================================================
 SBIGCCD::~SBIGCCD()
 {
@@ -235,40 +243,34 @@ int SBIGCCD::CloseDriver()
     return(res);
 }
 //==========================================================================
-int SBIGCCD::OpenDevice(const char *devName)
+int SBIGCCD::OpenDevice(uint32_t devType)
 {
     int res;
     OpenDeviceParams odp;
 
     // Check if device already opened:
-    if(IsDeviceOpen()) return(CE_NO_ERROR);
+    if(IsDeviceOpen())
+        return(CE_NO_ERROR);
 
-    // Try to open new device:
-    if(strcmp(devName, SBIG_USB0) == 0){
-            odp.deviceType = DEV_USB1;
-    }else if(strcmp(devName, SBIG_USB1) == 0){
-            odp.deviceType = DEV_USB2;
-    }else if(strcmp(devName, SBIG_USB2) == 0){
-            odp.deviceType = DEV_USB3;
-    }else if(strcmp(devName, SBIG_USB3) == 0){
-            odp.deviceType = DEV_USB4;
-    }else if(strcmp(devName, SBIG_LPT0) == 0){
-            odp.deviceType = DEV_LPT1;
-    }else if(strcmp(devName, SBIG_LPT1) == 0){
-            odp.deviceType = DEV_LPT2;
-    }else if(strcmp(devName, SBIG_LPT2) == 0){
-            odp.deviceType = DEV_LPT3;
-    }else{
+    // Try to open new device
+    odp.deviceType = devType;
+
+    if(devType == DEV_ETH)
+    {
+        unsigned long ip = htonl(inet_addr(IpTP.tp->text));
+        if (ip == INADDR_NONE)
             return(CE_BAD_PARAMETER);
+        odp.ipAddress = ip;
     }
 
-    if((res = SBIGUnivDrvCommand(CC_OPEN_DEVICE, &odp, 0)) == CE_NO_ERROR){
-            SetDeviceName(devName);
+    if((res = SBIGUnivDrvCommand(CC_OPEN_DEVICE, &odp, 0)) == CE_NO_ERROR)
+    {
+            //SetDeviceName(devType);
             SetFileDescriptor(true);
     }
 
     if (res != CE_NO_ERROR)
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Error opening device %s (%s)", __FUNCTION__, devName, GetErrorString(res).c_str());
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Error opening device %s (%s)", __FUNCTION__, devType, GetErrorString(res).c_str());
 
     return(res);
 }
@@ -310,9 +312,44 @@ bool SBIGCCD::initProperties()
   IUFillText(&ProductInfoT[1], "ID", "ID", "");
   IUFillTextVector(	&ProductInfoTP, ProductInfoT, 2, getDeviceName(), "CCD_PRODUCT", "Product", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
-  // CCD DEVICE PORT:
-  IUFillText(&PortT[0], "PORT", "Port", SBIG_USB0);
-  IUFillTextVector(	&PortTP, PortT, 1, getDeviceName(), "DEVICE_PORT", "Port", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+  // IP Address
+  IUFillText(&IpT[0], "IP", "IP Address", "192.168.0.100");
+  IUFillTextVector(	&IpTP, IpT, 1, getDeviceName(), "IP_ADDRESS", "IP Address", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+
+  // CCD DEVICE PORT:  
+  IUFillSwitch(&PortS[0], "Ethernet", "Ethernet", ISS_OFF);
+  SBIGPortMap[0] = DEV_ETH;
+  PortS[0].aux = &SBIGPortMap[0];
+
+  IUFillSwitch(&PortS[1], "USB 1", "USB 1", ISS_ON);
+  SBIGPortMap[1] = DEV_USB1;
+  PortS[1].aux = &SBIGPortMap[1];
+
+  IUFillSwitch(&PortS[2], "USB 2", "USB 2", ISS_OFF);
+  SBIGPortMap[2] = DEV_USB2;
+  PortS[2].aux = &SBIGPortMap[2];
+
+  IUFillSwitch(&PortS[3], "USB 3", "USB 3", ISS_OFF);
+  SBIGPortMap[3] = DEV_USB3;
+  PortS[3].aux = &SBIGPortMap[3];
+
+  IUFillSwitch(&PortS[4], "USB 4", "USB 4", ISS_OFF);
+  SBIGPortMap[4] = DEV_USB4;
+  PortS[4].aux = &SBIGPortMap[4];
+
+  IUFillSwitch(&PortS[5], "LPT 1", "LPT 1", ISS_OFF);
+  SBIGPortMap[5] = DEV_LPT1;
+  PortS[5].aux = &SBIGPortMap[5];
+
+  IUFillSwitch(&PortS[6], "LPT 2", "LPT 2", ISS_OFF);
+  SBIGPortMap[6] = DEV_LPT2;
+  PortS[6].aux = &SBIGPortMap[6];
+
+  IUFillSwitch(&PortS[7], "LPT 3", "LPT 3", ISS_OFF);
+  SBIGPortMap[7] = DEV_LPT3;
+  PortS[7].aux = &SBIGPortMap[7];
+
+  IUFillSwitchVector(&PortSP, PortS, 8, getDeviceName(), "DEVICE_PORT_TYPE", "Port", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
   // CCD FAN STATE:
   IUFillSwitch(&FanStateS[0], "ON", "On", ISS_ON);
@@ -378,8 +415,9 @@ void SBIGCCD::ISGetProperties(const char *dev)
 {
   INDI::CCD::ISGetProperties(dev);
 
-  defineText(&PortTP);
-  loadConfig(true, "DEVICE_PORT");
+  defineSwitch(&PortSP);
+  loadConfig(true, "DEVICE_PORT_TYPE");
+  loadConfig(true, "IP_ADDRESS");
 
   // Add Debug, Simulator, and Configuration controls
   addAuxControls();
@@ -452,26 +490,22 @@ bool SBIGCCD::updateProperties()
 bool SBIGCCD::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     if(strcmp(dev,getDeviceName())==0)
-    {
-        if(strcmp(name,PortTP.name)==0)
-        {
-            int count = sizeof(SBIG_DEVICE_PORTS)/sizeof(SBIG_USB0);
-            int i=0;
-            for (i=0; i < count; i++)
-                if (!strcmp(texts[0], SBIG_DEVICE_PORTS[i]))
-                    break;
+    {        
 
-            if (i == count)
+        if(strcmp(name,IpTP.name)==0)
+        {
+            unsigned long ip = htonl(inet_addr(texts[0]));
+            if (ip == INADDR_NONE)
             {
-                DEBUGF(INDI::Logger::DBG_ERROR, "Invalid port %s. Valid ports are sbigusb0, sbigusb1..etc, sbiglpt0, sbiglpt1..etc", texts[0]);
-                PortTP.s=IPS_ALERT;
-                IDSetText(&PortTP, NULL);
+                DEBUGF(INDI::Logger::DBG_ERROR, "Invalid ip address %s.", texts[0]);
+                IpTP.s=IPS_ALERT;
+                IDSetText(&IpTP, NULL);
                 return false;
             }
 
-            PortTP.s=IPS_OK;
-            IUUpdateText(&PortTP,texts,names,n);
-            IDSetText(&PortTP, NULL);
+            IpTP.s=IPS_OK;
+            IUUpdateText(&IpTP,texts,names,n);
+            IDSetText(&IpTP, NULL);
             return true;
         }
 
@@ -493,6 +527,20 @@ bool SBIGCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
 
     if (strcmp(dev, getDeviceName()) == 0)
     {
+        if(strcmp(name,PortSP.name)==0)
+        {
+            IUUpdateSwitch(&PortSP, states, names, n);
+
+            if ( *( (uint32_t *) IUFindOnSwitch(&PortSP)->aux) == DEV_ETH)
+                defineText(&IpTP);
+            else
+                deleteProperty(IpTP.name);
+
+            PortSP.s=IPS_OK;
+            IDSetSwitch(&PortSP, NULL);
+            return true;
+        }
+
         if(!strcmp(name, FanStateSP.name))
         {
             IUUpdateSwitch(&FanStateSP, states, names, n);
@@ -647,7 +695,8 @@ bool SBIGCCD::Connect()
   }
 
   // Open device:
-  if((res = OpenDevice(PortTP.tp->text)) == CE_NO_ERROR)
+  uint32_t devType = *( (uint32_t *) IUFindOnSwitch(&PortSP)->aux);
+  if ( (res = OpenDevice(devType)) == CE_NO_ERROR)
   {
           // Establish link:
           if((res = EstablishLink()) == CE_NO_ERROR)
@@ -694,7 +743,7 @@ bool SBIGCCD::Connect()
           {
                   // Establish link error.
                   str = "Error: Cannot establish link to SBIG CCD camera at port ";
-                  str += string(PortTP.tp->text) + " ";
+                  str += string(IUFindOnSwitch(&PortSP)->label) + " ";
                   str += GetErrorString(res);
                   DEBUGF(INDI::Logger::DBG_ERROR, "%s", str.c_str());
                   return false;
@@ -705,7 +754,7 @@ bool SBIGCCD::Connect()
   {
           // Open device error.
           str = "Error: Cannot open SBIG CCD camera device at port ";
-          str += string(PortTP.tp->text) + " ";
+          str += string(IUFindOnSwitch(&PortSP)->label) + " ";
           str += GetErrorString(res);
 
           DEBUGF(INDI::Logger::DBG_ERROR, "%s", str.c_str());
@@ -1404,17 +1453,17 @@ bool SBIGCCD::grabImage(CCDChip *targetChip)
 void SBIGCCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
 {
   INDI::CCD::addFITSKeywords(fptr, targetChip);
-  int status=0;
-
+  int status=0;        
   fits_update_key_s(fptr, TSTRING, "INSTRUME", ProductInfoT[0].text, "CCD Name" , &status);
-
 }
 
 bool SBIGCCD::saveConfigItems(FILE *fp)
 {
     INDI::CCD::saveConfigItems(fp);
 
-    IUSaveConfigText(fp, &PortTP);
+    IUSaveConfigSwitch(fp, &PortSP);
+    IUSaveConfigText(fp, &IpTP);
+
     IUSaveConfigNumber(fp, &FilterSlotNP);
     IUSaveConfigText(fp, FilterNameTP);
     IUSaveConfigSwitch(fp, &FilterTypeSP);
@@ -1960,7 +2009,7 @@ string SBIGCCD::GetCameraID()
 //==========================================================================
 
 //==========================================================================
-int SBIGCCD::SetDeviceName(const char *name)
+/*int SBIGCCD::SetDeviceName(const char *name)
 {
     int res = CE_NO_ERROR;
 
@@ -1970,7 +2019,7 @@ int SBIGCCD::SetDeviceName(const char *name)
             res = CE_BAD_PARAMETER;
     }
     return(res);
-}
+}*/
 //==========================================================================
 // SBIGUnivDrvCommand:
 // Bottleneck function for all calls to the driver that logs the command
@@ -2075,7 +2124,7 @@ void SBIGCCD::InitVars()
     SetFileDescriptor();
     SetCameraType();
     SetLinkStatus();
-    SetDeviceName("");
+    //SetDeviceName("");
 
 }
 

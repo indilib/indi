@@ -73,16 +73,7 @@ const double    	R_RATIO_AMBIENT			= 7.791;
 const double    	R_BRIDGE_AMBIENT		= 3.000;
 const double    	DT_AMBIENT 				= 45.000;
 //=============================================================================
-// SBIG CCD camera port definitions:
-#define			SBIG_USB0 					"sbigusb0"
-#define			SBIG_USB1 					"sbigusb1"
-#define			SBIG_USB2 					"sbigusb2"
-#define			SBIG_USB3 					"sbigusb3"
-#define			SBIG_LPT0 					"sbiglpt0"
-#define			SBIG_LPT1 					"sbiglpt1"
-#define			SBIG_LPT2 					"sbiglpt2"
 
-const char *SBIG_DEVICE_PORTS[] = { SBIG_USB0, SBIG_USB1, SBIG_USB2, SBIG_USB3, SBIG_LPT0, SBIG_LPT1, SBIG_LPT2 };
 const double		MIN_CCD_TEMP            =  -70.0;
 const double		MAX_CCD_TEMP            = 	40.0;
 const double		CCD_TEMP_STEP           = 	0.1;
@@ -109,24 +100,23 @@ const double		EXP_TIME_STEP       = 0.01;
 const double		DEF_EXP_TIME		= 1.0;
 
 #ifdef	 USE_CFW_AUTO
-    const int		MAX_CFW_TYPES = 17;
+const int		MAX_CFW_TYPES = 17;
 #else
-    const int		MAX_CFW_TYPES = 16;
+const int		MAX_CFW_TYPES = 16;
 #endif
 
 #define GET_BIG_ENDIAN(p) ( ((p & 0xff) << 8) | (p  >> 8))
 
 typedef enum
 {
-        CCD_THERMISTOR,
-        AMBIENT_THERMISTOR
+    CCD_THERMISTOR,
+    AMBIENT_THERMISTOR
 }THERMISTOR_TYPE;
 
 class SBIGCCD: public INDI::CCD, public INDI::FilterInterface
 {
 public:
     SBIGCCD();
-    SBIGCCD(const char* device_name);
     virtual	~SBIGCCD();
 
     const char *getDefaultName();
@@ -182,7 +172,6 @@ protected:
     CAMERA_TYPE             m_camera_type;
     int						m_drv_handle;
     bool					m_link_status;
-    char					m_dev_name[PATH_MAX];
     string					m_start_exposure_timestamp;
 
     void                    InitVars();
@@ -201,8 +190,13 @@ private:
     IText                   ProductInfoT[2];
     ITextVectorProperty     ProductInfoTP;
 
-    IText                   PortT[1];
-    ITextVectorProperty     PortTP;
+    ISwitch                 PortS[8];
+    ISwitchVectorProperty   PortSP;
+    int                 SBIGPortMap[8];
+
+    // IP Address
+    IText                   IpT[1];
+    ITextVectorProperty     IpTP;
 
     // TEMPERATURE GROUP:
     ISwitch                 FanStateS[2];
@@ -267,7 +261,6 @@ private:
     inline bool		GetLinkStatus(){return(m_link_status);}
     inline void		SetLinkStatus(bool val = false){m_link_status = val;}
 
-    inline char		*GetDeviceName(){return(m_dev_name);}
     int						SetDeviceName(const char*);
 
     inline string	GetStartExposureTimestamp(){return(m_start_exposure_timestamp);}
@@ -278,7 +271,7 @@ private:
 
     // Driver Related Commands:
     int				GetCFWSelType();
-    int 				OpenDevice(const char *name);
+    int 		    OpenDevice(uint32_t devType);
     int				CloseDevice();
     int				GetDriverInfo(GetDriverInfoParams *, void *);
     int				SetDriverHandle(SetDriverHandleParams *);
@@ -289,7 +282,7 @@ private:
     int				EndExposure(EndExposureParams *);
     int				StartReadout(StartReadoutParams *);
     int				ReadoutLine(ReadoutLineParams *, unsigned short *results,
-                        bool subtract);
+                                bool subtract);
     int				DumpLines(DumpLinesParams *);
     int				EndReadout(EndReadoutParams *);
 
@@ -333,7 +326,7 @@ private:
     string			GetCameraName();
     string			GetCameraID();
     int				getCCDSizeInfo(	int ccd, int rm, int &frmW, int &frmH,
-                            double &pixW, double &pixH);
+                                    double &pixW, double &pixH);
     /*int				getNumberOfCCDChips();*/
     bool			IsFanControlAvailable();
 
@@ -359,7 +352,7 @@ private:
 
 
     int 				readoutCCD(	unsigned short left, 	 unsigned short top, unsigned short width, unsigned short height,
-                                              unsigned short *buffer, CCDChip *targetChip);
+                                    unsigned short *buffer, CCDChip *targetChip);
 
     friend void ::ISGetProperties(const char *dev);
     friend void ::ISSnoopDevice(XMLEle *root);
