@@ -312,11 +312,11 @@ bool MathPluginManagement::TransformTelescopeToCelestial(const TelescopeDirectio
 
 void MathPluginManagement::EnumeratePlugins()
 {
-    dirent* de;
-    DIR* dp;
-
     MathPluginFiles.clear();
     MathPluginDisplayNames.clear();
+#ifndef OSX_EMBEDED_MODE
+    dirent* de;
+    DIR* dp;
 
     errno = 0;
     dp = opendir( INDI_MATH_PLUGINS_DIRECTORY );
@@ -365,6 +365,7 @@ void MathPluginManagement::EnumeratePlugins()
     {
         IDLog("EnumeratePlugins - Failed to open %s error %s\n", INDI_MATH_PLUGINS_DIRECTORY, strerror(errno) );
     }
+#endif
 }
 
 } // namespace AlignmentSubsystem

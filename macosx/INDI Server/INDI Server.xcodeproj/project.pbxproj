@@ -205,17 +205,14 @@
 		5979EA221ADEDBEF00A24B57 /* lilxml.c in Sources */ = {isa = PBXBuildFile; fileRef = 591991AC188FC9CA007DD2DE /* lilxml.c */; };
 		5979EA301ADEDC7500A24B57 /* getINDIproperty.c in Sources */ = {isa = PBXBuildFile; fileRef = 5979EA2E1ADEDC5600A24B57 /* getINDIproperty.c */; };
 		5979EA311ADEDC7A00A24B57 /* eventloop.c in Sources */ = {isa = PBXBuildFile; fileRef = 9DDA43C71A8CECC40004AA95 /* eventloop.c */; };
-		5979EA321ADEDD4600A24B57 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA436C1A8CC7420004AA95 /* libz.dylib */; };
 		5979EA331ADEDD7300A24B57 /* base64.c in Sources */ = {isa = PBXBuildFile; fileRef = 9DDA43BE1A8CDADD0004AA95 /* base64.c */; };
 		5979EA361ADEDDB300A24B57 /* lilxml.c in Sources */ = {isa = PBXBuildFile; fileRef = 591991AC188FC9CA007DD2DE /* lilxml.c */; };
 		5979EA381ADEDDB300A24B57 /* base64.c in Sources */ = {isa = PBXBuildFile; fileRef = 9DDA43BE1A8CDADD0004AA95 /* base64.c */; };
 		5979EA391ADEDDB300A24B57 /* eventloop.c in Sources */ = {isa = PBXBuildFile; fileRef = 9DDA43C71A8CECC40004AA95 /* eventloop.c */; };
-		5979EA3B1ADEDDB300A24B57 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA436C1A8CC7420004AA95 /* libz.dylib */; };
 		5979EA411ADEDDE100A24B57 /* setINDIproperty.c in Sources */ = {isa = PBXBuildFile; fileRef = 5979EA2F1ADEDC5600A24B57 /* setINDIproperty.c */; };
 		5979EA441ADEDE0900A24B57 /* lilxml.c in Sources */ = {isa = PBXBuildFile; fileRef = 591991AC188FC9CA007DD2DE /* lilxml.c */; };
 		5979EA451ADEDE0900A24B57 /* base64.c in Sources */ = {isa = PBXBuildFile; fileRef = 9DDA43BE1A8CDADD0004AA95 /* base64.c */; };
 		5979EA461ADEDE0900A24B57 /* eventloop.c in Sources */ = {isa = PBXBuildFile; fileRef = 9DDA43C71A8CECC40004AA95 /* eventloop.c */; };
-		5979EA491ADEDE0900A24B57 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA436C1A8CC7420004AA95 /* libz.dylib */; };
 		5979EA4F1ADEDE1C00A24B57 /* compiler.c in Sources */ = {isa = PBXBuildFile; fileRef = 5979EA2C1ADEDC5600A24B57 /* compiler.c */; };
 		5979EA501ADEDE1C00A24B57 /* evalINDI.c in Sources */ = {isa = PBXBuildFile; fileRef = 5979EA2D1ADEDC5600A24B57 /* evalINDI.c */; };
 		5979EA511ADEDEF500A24B57 /* indi_getprop in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 5979EA291ADEDBEF00A24B57 /* indi_getprop */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
@@ -228,6 +225,23 @@
 		597B89121887E77F0093873A /* ServiceManagement.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 597B89111887E77F0093873A /* ServiceManagement.framework */; };
 		597B893D188837E10093873A /* indiserver in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 597B89241888016F0093873A /* indiserver */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		59C11FC319B50AEE00B21125 /* AppIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = 59C11FC219B50AEE00B21125 /* AppIcon.icns */; };
+		59E5F89F1C39B04A008DAB80 /* indidustcapinterface.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59E5F89D1C39B04A008DAB80 /* indidustcapinterface.cpp */; };
+		59E5F8A01C39B04A008DAB80 /* indilightboxinterface.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59E5F89E1C39B04A008DAB80 /* indilightboxinterface.cpp */; };
+		59E5F8C71C3F087F008DAB80 /* lx200ss2000pc.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59E5F8C61C3F087F008DAB80 /* lx200ss2000pc.cpp */; };
+		59E5F8CD1C3F0A54008DAB80 /* AlignmentSubsystemForDrivers.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59E5F8C91C3F0A54008DAB80 /* AlignmentSubsystemForDrivers.cpp */; };
+		59E5F8CE1C3F0A54008DAB80 /* ClientAPIForAlignmentDatabase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59E5F8CA1C3F0A54008DAB80 /* ClientAPIForAlignmentDatabase.cpp */; };
+		59E5F8CF1C3F0A54008DAB80 /* Common.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59E5F8CB1C3F0A54008DAB80 /* Common.cpp */; };
+		59E5F8D01C3F0A54008DAB80 /* DriverCommon.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59E5F8CC1C3F0A54008DAB80 /* DriverCommon.cpp */; };
+		59E5F8D41C3F0AE5008DAB80 /* TelescopeDirectionVectorSupportFunctions.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59E5F8D31C3F0AE5008DAB80 /* TelescopeDirectionVectorSupportFunctions.cpp */; };
+		59E5F8D61C3F0B0A008DAB80 /* BasicMathPlugin.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59E5F8D51C3F0B0A008DAB80 /* BasicMathPlugin.cpp */; };
+		59E5F8D81C3F0B10008DAB80 /* BuiltInMathPlugin.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59E5F8D71C3F0B10008DAB80 /* BuiltInMathPlugin.cpp */; };
+		59E5F8DA1C3F0B1D008DAB80 /* InMemoryDatabase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59E5F8D91C3F0B1D008DAB80 /* InMemoryDatabase.cpp */; };
+		59E5F8DC1C3F0B27008DAB80 /* MapPropertiesToInMemoryDatabase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59E5F8DB1C3F0B27008DAB80 /* MapPropertiesToInMemoryDatabase.cpp */; };
+		59E5F8DE1C3F0B30008DAB80 /* MathPlugin.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59E5F8DD1C3F0B30008DAB80 /* MathPlugin.cpp */; };
+		59E5F8E01C3F0B37008DAB80 /* MathPluginManagement.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59E5F8DF1C3F0B37008DAB80 /* MathPluginManagement.cpp */; };
+		59E5F91E1C3F17B9008DAB80 /* libobjc.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 59E5F91D1C3F17B9008DAB80 /* libobjc.tbd */; };
+		59E5F9221C3F185D008DAB80 /* libgsl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 59E5F9211C3F185D008DAB80 /* libgsl.a */; };
+		59E5F9241C3F1940008DAB80 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 5944995F1C136C9100E0E281 /* libz.tbd */; };
 		9D0B29C01A8D1E9400ED17BF /* libindi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A91A8CD3190004AA95 /* libindi.dylib */; };
 		9D0B29C11A8D1E9400ED17BF /* libnova.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA422C1A8CB6920004AA95 /* libnova.dylib */; };
 		9D0B29CA1A8D1EC400ED17BF /* celestrongps.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D0B29C81A8D1EC400ED17BF /* celestrongps.cpp */; };
@@ -399,7 +413,6 @@
 		9DDA43661A8CC6040004AA95 /* swapproc.c in Sources */ = {isa = PBXBuildFile; fileRef = 9DDA42BE1A8CC5D90004AA95 /* swapproc.c */; };
 		9DDA43691A8CC6040004AA95 /* wcssub.c in Sources */ = {isa = PBXBuildFile; fileRef = 9DDA42C11A8CC5D90004AA95 /* wcssub.c */; };
 		9DDA436A1A8CC6040004AA95 /* wcsutil.c in Sources */ = {isa = PBXBuildFile; fileRef = 9DDA42C21A8CC5D90004AA95 /* wcsutil.c */; };
-		9DDA436D1A8CC7420004AA95 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA436C1A8CC7420004AA95 /* libz.dylib */; };
 		9DDA437B1A8CC9110004AA95 /* adler32.c in Sources */ = {isa = PBXBuildFile; fileRef = 9DDA436F1A8CC9110004AA95 /* adler32.c */; };
 		9DDA437C1A8CC9110004AA95 /* crc32.c in Sources */ = {isa = PBXBuildFile; fileRef = 9DDA43701A8CC9110004AA95 /* crc32.c */; };
 		9DDA437D1A8CC9110004AA95 /* deflate.c in Sources */ = {isa = PBXBuildFile; fileRef = 9DDA43711A8CC9110004AA95 /* deflate.c */; };
@@ -421,7 +434,6 @@
 		9DDA43A01A8CCD860004AA95 /* darwin_usb.c in Sources */ = {isa = PBXBuildFile; fileRef = 9DDA439D1A8CCD860004AA95 /* darwin_usb.c */; };
 		9DDA43A11A8CCD860004AA95 /* poll_posix.c in Sources */ = {isa = PBXBuildFile; fileRef = 9DDA439E1A8CCD860004AA95 /* poll_posix.c */; };
 		9DDA43A21A8CCD860004AA95 /* threads_posix.c in Sources */ = {isa = PBXBuildFile; fileRef = 9DDA439F1A8CCD860004AA95 /* threads_posix.c */; };
-		9DDA43A41A8CD0560004AA95 /* libobjc.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A31A8CD0560004AA95 /* libobjc.dylib */; };
 		9DDA43B71A8CD8940004AA95 /* config.h in Headers */ = {isa = PBXBuildFile; fileRef = 9DDA43B61A8CD8940004AA95 /* config.h */; };
 		9DDA43BF1A8CDADD0004AA95 /* base64.c in Sources */ = {isa = PBXBuildFile; fileRef = 9DDA43BE1A8CDADD0004AA95 /* base64.c */; };
 		9DDA43C31A8CDB030004AA95 /* indicom.c in Sources */ = {isa = PBXBuildFile; fileRef = 9DDA43C11A8CDB030004AA95 /* indicom.c */; };
@@ -2247,10 +2259,27 @@
 		597B890E1887E6FF0093873A /* SecurityFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SecurityFoundation.framework; path = System/Library/Frameworks/SecurityFoundation.framework; sourceTree = SDKROOT; };
 		597B89111887E77F0093873A /* ServiceManagement.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ServiceManagement.framework; path = System/Library/Frameworks/ServiceManagement.framework; sourceTree = SDKROOT; };
 		597B89241888016F0093873A /* indiserver */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indiserver; sourceTree = BUILT_PRODUCTS_DIR; };
+		598F45241C25D30300F769DD /* CMakeLists.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
 		59A319191BB0811F009CE193 /* atikccdusbimpl.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = atikccdusbimpl.h; sourceTree = "<group>"; };
 		59A3191A1BB08DF5009CE193 /* atikccdusb.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = atikccdusb.h; sourceTree = "<group>"; };
 		59B7AD0718872403005B06B4 /* SecurityInterface.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SecurityInterface.framework; path = System/Library/Frameworks/SecurityInterface.framework; sourceTree = SDKROOT; };
 		59C11FC219B50AEE00B21125 /* AppIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = AppIcon.icns; sourceTree = "<group>"; };
+		59E5F89D1C39B04A008DAB80 /* indidustcapinterface.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = indidustcapinterface.cpp; sourceTree = "<group>"; };
+		59E5F89E1C39B04A008DAB80 /* indilightboxinterface.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = indilightboxinterface.cpp; sourceTree = "<group>"; };
+		59E5F8C61C3F087F008DAB80 /* lx200ss2000pc.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = lx200ss2000pc.cpp; sourceTree = "<group>"; };
+		59E5F8C91C3F0A54008DAB80 /* AlignmentSubsystemForDrivers.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AlignmentSubsystemForDrivers.cpp; sourceTree = "<group>"; };
+		59E5F8CA1C3F0A54008DAB80 /* ClientAPIForAlignmentDatabase.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ClientAPIForAlignmentDatabase.cpp; sourceTree = "<group>"; };
+		59E5F8CB1C3F0A54008DAB80 /* Common.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Common.cpp; sourceTree = "<group>"; };
+		59E5F8CC1C3F0A54008DAB80 /* DriverCommon.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DriverCommon.cpp; sourceTree = "<group>"; };
+		59E5F8D31C3F0AE5008DAB80 /* TelescopeDirectionVectorSupportFunctions.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TelescopeDirectionVectorSupportFunctions.cpp; sourceTree = "<group>"; };
+		59E5F8D51C3F0B0A008DAB80 /* BasicMathPlugin.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = BasicMathPlugin.cpp; sourceTree = "<group>"; };
+		59E5F8D71C3F0B10008DAB80 /* BuiltInMathPlugin.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = BuiltInMathPlugin.cpp; sourceTree = "<group>"; };
+		59E5F8D91C3F0B1D008DAB80 /* InMemoryDatabase.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = InMemoryDatabase.cpp; sourceTree = "<group>"; };
+		59E5F8DB1C3F0B27008DAB80 /* MapPropertiesToInMemoryDatabase.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MapPropertiesToInMemoryDatabase.cpp; sourceTree = "<group>"; };
+		59E5F8DD1C3F0B30008DAB80 /* MathPlugin.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MathPlugin.cpp; sourceTree = "<group>"; };
+		59E5F8DF1C3F0B37008DAB80 /* MathPluginManagement.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MathPluginManagement.cpp; sourceTree = "<group>"; };
+		59E5F91D1C3F17B9008DAB80 /* libobjc.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libobjc.tbd; path = usr/lib/libobjc.tbd; sourceTree = SDKROOT; };
+		59E5F9211C3F185D008DAB80 /* libgsl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libgsl.a; sourceTree = "<group>"; };
 		9D0B29C61A8D1E9400ED17BF /* indi_celestron_gps */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_celestron_gps; sourceTree = BUILT_PRODUCTS_DIR; };
 		9D0B29C81A8D1EC400ED17BF /* celestrongps.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = celestrongps.cpp; sourceTree = "<group>"; };
 		9D0B29DC1A8D1ED100ED17BF /* indi_temma */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_temma; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -2392,7 +2421,6 @@
 		9DDA42C11A8CC5D90004AA95 /* wcssub.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wcssub.c; sourceTree = "<group>"; };
 		9DDA42C21A8CC5D90004AA95 /* wcsutil.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wcsutil.c; sourceTree = "<group>"; };
 		9DDA43181A8CC5F90004AA95 /* libcfitsio.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libcfitsio.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
-		9DDA436C1A8CC7420004AA95 /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = usr/lib/libz.dylib; sourceTree = SDKROOT; };
 		9DDA436F1A8CC9110004AA95 /* adler32.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = adler32.c; sourceTree = "<group>"; };
 		9DDA43701A8CC9110004AA95 /* crc32.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = crc32.c; sourceTree = "<group>"; };
 		9DDA43711A8CC9110004AA95 /* deflate.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = deflate.c; sourceTree = "<group>"; };
@@ -2415,7 +2443,6 @@
 		9DDA439D1A8CCD860004AA95 /* darwin_usb.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = darwin_usb.c; sourceTree = "<group>"; };
 		9DDA439E1A8CCD860004AA95 /* poll_posix.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = poll_posix.c; sourceTree = "<group>"; };
 		9DDA439F1A8CCD860004AA95 /* threads_posix.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = threads_posix.c; sourceTree = "<group>"; };
-		9DDA43A31A8CD0560004AA95 /* libobjc.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libobjc.dylib; path = usr/lib/libobjc.dylib; sourceTree = SDKROOT; };
 		9DDA43A91A8CD3190004AA95 /* libindi.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libindi.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		9DDA43B61A8CD8940004AA95 /* config.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
 		9DDA43BE1A8CDADD0004AA95 /* base64.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = base64.c; sourceTree = "<group>"; };
@@ -2731,7 +2758,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				5979EA321ADEDD4600A24B57 /* libz.dylib in Frameworks */,
+				59E5F9241C3F1940008DAB80 /* libz.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2739,7 +2766,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				5979EA3B1ADEDDB300A24B57 /* libz.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2747,7 +2773,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				5979EA491ADEDE0900A24B57 /* libz.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2913,7 +2938,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9DDA436D1A8CC7420004AA95 /* libz.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2921,7 +2945,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9DDA43A41A8CD0560004AA95 /* libobjc.dylib in Frameworks */,
+				59E5F91E1C3F17B9008DAB80 /* libobjc.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2929,6 +2953,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				59E5F9221C3F185D008DAB80 /* libgsl.a in Frameworks */,
 				9DDA43F01A8CF7210004AA95 /* libcfitsio.dylib in Frameworks */,
 				9DDA43EF1A8CF71D0004AA95 /* libusb.dylib in Frameworks */,
 				9DDA43C51A8CEBBF0004AA95 /* libnova.dylib in Frameworks */,
@@ -3093,10 +3118,10 @@
 		594D0B35188300ED00B50F4E /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				591C90ED1C1375D700FCE596 /* SBIGUDrv.framework */,
 				5944995F1C136C9100E0E281 /* libz.tbd */,
-				9DDA43A31A8CD0560004AA95 /* libobjc.dylib */,
-				9DDA436C1A8CC7420004AA95 /* libz.dylib */,
+				59E5F91D1C3F17B9008DAB80 /* libobjc.tbd */,
+				59E5F9211C3F185D008DAB80 /* libgsl.a */,
+				591C90ED1C1375D700FCE596 /* SBIGUDrv.framework */,
 				597B89111887E77F0093873A /* ServiceManagement.framework */,
 				597B890D1887E6FF0093873A /* Security.framework */,
 				597B890E1887E6FF0093873A /* SecurityFoundation.framework */,
@@ -3298,6 +3323,7 @@
 		59567CEE1A8D40540057A35A /* indi-shoestring */ = {
 			isa = PBXGroup;
 			children = (
+				598F45241C25D30300F769DD /* CMakeLists.txt */,
 				9D49B42A1AA84D4E0006E6A7 /* config.h */,
 				597A04F61BFBD09A005CF806 /* fcusb.h */,
 				59567CF31A8D40B90057A35A /* fcusb.cpp */,
@@ -3339,6 +3365,24 @@
 			path = ../../libindi/tools;
 			sourceTree = "<group>";
 		};
+		59E5F8C81C3F09FA008DAB80 /* alignment */ = {
+			isa = PBXGroup;
+			children = (
+				59E5F8C91C3F0A54008DAB80 /* AlignmentSubsystemForDrivers.cpp */,
+				59E5F8CA1C3F0A54008DAB80 /* ClientAPIForAlignmentDatabase.cpp */,
+				59E5F8CC1C3F0A54008DAB80 /* DriverCommon.cpp */,
+				59E5F8D51C3F0B0A008DAB80 /* BasicMathPlugin.cpp */,
+				59E5F8D71C3F0B10008DAB80 /* BuiltInMathPlugin.cpp */,
+				59E5F8D91C3F0B1D008DAB80 /* InMemoryDatabase.cpp */,
+				59E5F8DB1C3F0B27008DAB80 /* MapPropertiesToInMemoryDatabase.cpp */,
+				59E5F8DD1C3F0B30008DAB80 /* MathPlugin.cpp */,
+				59E5F8DF1C3F0B37008DAB80 /* MathPluginManagement.cpp */,
+				59E5F8D31C3F0AE5008DAB80 /* TelescopeDirectionVectorSupportFunctions.cpp */,
+				59E5F8CB1C3F0A54008DAB80 /* Common.cpp */,
+			);
+			path = alignment;
+			sourceTree = "<group>";
+		};
 		9D0B2A741A8D213700ED17BF /* focuser */ = {
 			isa = PBXGroup;
 			children = (
@@ -3369,6 +3413,7 @@
 				9D75D57D1A8D16F7008AA08A /* lx200generic.cpp */,
 				9D75D57E1A8D16F7008AA08A /* lx200gps.cpp */,
 				9D75D55D1A8D154E008AA08A /* lx200basic.cpp */,
+				59E5F8C61C3F087F008DAB80 /* lx200ss2000pc.cpp */,
 				592F6CB61BADD6D100D93DE9 /* lx200gemini.cpp */,
 				9D75D5971A8D1787008AA08A /* lx200fs2.cpp */,
 				5944982B1C135B3600E0E281 /* lx200pulsar2.cpp */,
@@ -3575,6 +3620,7 @@
 		9DDA43C61A8CEC710004AA95 /* indibase */ = {
 			isa = PBXGroup;
 			children = (
+				59E5F8C81C3F09FA008DAB80 /* alignment */,
 				59567C061A8D320D0057A35A /* baseclient.cpp */,
 				9DDA43CE1A8CED310004AA95 /* basedevice.cpp */,
 				9DDA43CF1A8CED310004AA95 /* defaultdevice.cpp */,
@@ -3586,6 +3632,8 @@
 				9DDA43D71A8CED310004AA95 /* indifocuser.cpp */,
 				9DDA43D81A8CED310004AA95 /* indifocuserinterface.cpp */,
 				9DDA43D91A8CED310004AA95 /* indiguiderinterface.cpp */,
+				59E5F89D1C39B04A008DAB80 /* indidustcapinterface.cpp */,
+				59E5F89E1C39B04A008DAB80 /* indilightboxinterface.cpp */,
 				9DDA43DA1A8CED310004AA95 /* indilogger.cpp */,
 				9DDA43DB1A8CED310004AA95 /* indiproperty.cpp */,
 				592F6CB01BADD53600D93DE9 /* indigps.cpp */,
@@ -5359,6 +5407,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				59E5F8C71C3F087F008DAB80 /* lx200ss2000pc.cpp in Sources */,
 				9D75D5801A8D16F7008AA08A /* lx200_16.cpp in Sources */,
 				597A04F51BFBCE1C005CF806 /* lx200zeq25.cpp in Sources */,
 				9D75D5811A8D16F7008AA08A /* lx200ap.cpp in Sources */,
@@ -5518,27 +5567,40 @@
 			buildActionMask = 2147483647;
 			files = (
 				9DDA43CC1A8CECC40004AA95 /* indidrivermain.c in Sources */,
+				59E5F8D01C3F0A54008DAB80 /* DriverCommon.cpp in Sources */,
 				9DDA43CA1A8CECC40004AA95 /* eventloop.c in Sources */,
+				59E5F89F1C39B04A008DAB80 /* indidustcapinterface.cpp in Sources */,
+				59E5F8A01C39B04A008DAB80 /* indilightboxinterface.cpp in Sources */,
 				9DDA43EB1A8CED310004AA95 /* indilogger.cpp in Sources */,
+				59E5F8CE1C3F0A54008DAB80 /* ClientAPIForAlignmentDatabase.cpp in Sources */,
 				9DDA43EA1A8CED310004AA95 /* indiguiderinterface.cpp in Sources */,
 				592F6CB11BADD53600D93DE9 /* indigps.cpp in Sources */,
 				9DDA43E71A8CED310004AA95 /* indifilterwheel.cpp in Sources */,
 				9DDA43DF1A8CED310004AA95 /* basedevice.cpp in Sources */,
 				9DDA43C41A8CDB030004AA95 /* lilxml.c in Sources */,
 				9DDA43EC1A8CED310004AA95 /* indiproperty.cpp in Sources */,
+				59E5F8CF1C3F0A54008DAB80 /* Common.cpp in Sources */,
 				9DDA43BF1A8CDADD0004AA95 /* base64.c in Sources */,
 				9DDA43E61A8CED310004AA95 /* indifilterinterface.cpp in Sources */,
+				59E5F8DE1C3F0B30008DAB80 /* MathPlugin.cpp in Sources */,
+				59E5F8D61C3F0B0A008DAB80 /* BasicMathPlugin.cpp in Sources */,
+				59E5F8DC1C3F0B27008DAB80 /* MapPropertiesToInMemoryDatabase.cpp in Sources */,
+				59E5F8DA1C3F0B1D008DAB80 /* InMemoryDatabase.cpp in Sources */,
 				9DDA43E01A8CED310004AA95 /* defaultdevice.cpp in Sources */,
 				9DDA43ED1A8CED310004AA95 /* inditelescope.cpp in Sources */,
 				9DDA43EE1A8CED310004AA95 /* indiusbdevice.cpp in Sources */,
+				59E5F8E01C3F0B37008DAB80 /* MathPluginManagement.cpp in Sources */,
 				9DDA43CB1A8CECC40004AA95 /* indidriver.c in Sources */,
 				9DDA43E21A8CED310004AA95 /* indicontroller.cpp in Sources */,
+				59E5F8D81C3F0B10008DAB80 /* BuiltInMathPlugin.cpp in Sources */,
 				9DDA43E41A8CED310004AA95 /* indidome.cpp in Sources */,
 				592F6CAF1BADD52600D93DE9 /* hid_mac.c in Sources */,
 				9DDA43E11A8CED310004AA95 /* indiccd.cpp in Sources */,
 				9DDA43E91A8CED310004AA95 /* indifocuserinterface.cpp in Sources */,
+				59E5F8D41C3F0AE5008DAB80 /* TelescopeDirectionVectorSupportFunctions.cpp in Sources */,
 				9DDA43C31A8CDB030004AA95 /* indicom.c in Sources */,
 				592F6CB31BADD54400D93DE9 /* indiweather.cpp in Sources */,
+				59E5F8CD1C3F0A54008DAB80 /* AlignmentSubsystemForDrivers.cpp in Sources */,
 				9DDA43E81A8CED310004AA95 /* indifocuser.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -7079,6 +7141,7 @@
 					"../../../libnova-0.15.0/src/libnova",
 					"../../../libusb-1.0.19/libusb",
 					../../../cfitsio,
+					"../../../gsl-2.1/**",
 				);
 				IBC_ERRORS = YES;
 				IBC_NOTICES = NO;
@@ -7129,6 +7192,7 @@
 					"../../../libnova-0.15.0/src/libnova",
 					"../../../libusb-1.0.19/libusb",
 					../../../cfitsio,
+					"../../../gsl-2.1/**",
 				);
 				IBC_ERRORS = YES;
 				IBC_NOTICES = NO;
@@ -9336,6 +9400,10 @@
 					"../../libindi/**",
 				);
 				INSTALL_PATH = .;
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)",
+				);
 				MTL_ENABLE_DEBUG_INFO = YES;
 				OTHER_LDFLAGS = (
 					"-undefined",
@@ -9369,6 +9437,10 @@
 					"../../libindi/**",
 				);
 				INSTALL_PATH = .;
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)",
+				);
 				MTL_ENABLE_DEBUG_INFO = NO;
 				OTHER_LDFLAGS = (
 					"-undefined",
