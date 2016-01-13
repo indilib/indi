@@ -292,14 +292,15 @@ install(TARGETS indi_celestron_gps RUNTIME DESTINATION bin )
 
 #################################################################################
 
+
 ########### Takahashi Temma ##########
 set(temma_SRCS
    ${indimain_SRCS}
-   ${CMAKE_SOURCE_DIR}/drivers/telescope/temmadriver.c )
+   ${CMAKE_SOURCE_DIR}/drivers/telescope/temmadriver.cpp )
 
-add_executable(indi_temma ${temma_SRCS}  ${liblilxml_SRCS} ${libindicom_SRCS})
+add_executable(indi_temma ${temma_SRCS})
 
-target_link_libraries(indi_temma  ${NOVA_LIBRARIES} ${M_LIB} )
+target_link_libraries(indi_temma indidriver AlignmentDriver )
 
 install(TARGETS indi_temma RUNTIME DESTINATION bin )
 #################################################################################
