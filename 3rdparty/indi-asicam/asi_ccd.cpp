@@ -289,7 +289,10 @@ bool ASICCD::updateProperties()
   if (isConnected())
   {    
     if (HasCooler())
+    {
         defineNumber(&CoolerNP);
+        defineSwitch(&CoolerSP);
+    }
 
     // Let's get parameters now from CCD
     setupParams();
@@ -308,7 +311,10 @@ bool ASICCD::updateProperties()
   {
 
     if (HasCooler())
+    {
         deleteProperty(CoolerNP.name);
+        deleteProperty(CoolerSP.name);
+    }
 
     if (ControlNP.nnp > 0)
         deleteProperty(ControlNP.name);
@@ -618,6 +624,25 @@ bool ASICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
 
         }
 
+        /* Cooler */
+       if (!strcmp (name, CoolerSP.name))
+       {
+         if (IUUpdateSwitch(&CoolerSP, states, names, n) < 0)
+             return false;
+
+         bool rc=false;
+
+         if (CoolerS[0].s == ISS_ON)
+           rc = activateCooler(true);
+         else
+           rc = activateCooler(false);
+
+         CoolerSP.s = rc ? IPS_BUSY : IPS_ALERT;
+         IDSetSwitch(&CoolerSP, NULL);
+
+         return true;
+       }
+
         if (!strcmp(name, VideoFormatSP.name))
         {
             if (streamer->isBusy())
@@ -710,12 +735,28 @@ int ASICCD::SetTemperature(double temperature)
     if (fabs(temperature - TemperatureN[0].value) < TEMP_THRESHOLD)
         return 1;
 
+    if (activateCooler(true) == false)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Failed to activate cooler!");
+        return -1;
+    }
+
+    if (ASISetControlValue(m_camInfo->CameraID, ASI_TARGET_TEMP, temperature*10, ASI_TRUE) != ASI_SUCCESS)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Failed to set temperature!");
+        return -1;
+    }
+
     // Otherwise, we set the temperature request and we update the status in TimerHit() function.
     TemperatureRequest = temperature;
     DEBUGF(INDI::Logger::DBG_SESSION, "Setting CCD temperature to %+06.2f C", temperature);
     return 0;
 }
 
+bool ASICCD::activateCooler(bool enable)
+{
+    return (ASISetControlValue(m_camInfo->CameraID, ASI_COOLER_ON, 0, enable ? ASI_TRUE : ASI_FALSE) == ASI_SUCCESS);
+}
 
 
 bool ASICCD::StartExposure(float duration)
@@ -1028,6 +1069,7 @@ void ASICCD::TimerHit()
 
       long ASIControlValue=0;
       ASI_BOOL ASIControlAuto;
+      double currentTemperature=TemperatureN[0].value;
 
       ASI_ERROR_CODE errCode = ASIGetControlValue(m_camInfo->CameraID, ASI_TEMPERATURE, &ASIControlValue, &ASIControlAuto);
       if (errCode != ASI_SUCCESS)
@@ -1044,8 +1086,11 @@ void ASICCD::TimerHit()
       {
       case IPS_IDLE:
       case IPS_OK:
-      case IPS_ALERT:
+          if (fabs(currentTemperature - TemperatureN[0].value) > TEMP_THRESHOLD/10.0)
             IDSetNumber(&TemperatureNP, NULL);
+          break;
+
+      case IPS_ALERT:
         break;
 
       case IPS_BUSY:

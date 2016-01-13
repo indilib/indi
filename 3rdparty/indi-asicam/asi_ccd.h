@@ -89,12 +89,17 @@ private:
   ASI_IMG_TYPE getImageType();
   /** Update SER recorder video format */
   void updateRecorderFormat();
+  /** Control cooler */
+  bool activateCooler(bool enable);
 
   char name[MAXINDIDEVICE];
 
   /** Additional Properties to INDI::CCD */
   INumber CoolerN[1];
   INumberVectorProperty CoolerNP;
+
+  ISwitch CoolerS[2];
+  ISwitchVectorProperty CoolerSP;
 
   INumber *ControlN;
   INumberVectorProperty ControlNP;
