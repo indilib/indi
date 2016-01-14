@@ -633,12 +633,9 @@ bool ASICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
          bool rc=false;
 
          if (CoolerS[0].s == ISS_ON)
-           rc = activateCooler(true);
+           activateCooler(true);
          else
-           rc = activateCooler(false);
-
-         CoolerSP.s = rc ? IPS_BUSY : IPS_ALERT;
-         IDSetSwitch(&CoolerSP, NULL);
+           activateCooler(false);
 
          return true;
        }
@@ -755,9 +752,19 @@ int ASICCD::SetTemperature(double temperature)
 
 bool ASICCD::activateCooler(bool enable)
 {
-    return (ASISetControlValue(m_camInfo->CameraID, ASI_COOLER_ON, 0, enable ? ASI_TRUE : ASI_FALSE) == ASI_SUCCESS);
-}
+    bool rc = (ASISetControlValue(m_camInfo->CameraID, ASI_COOLER_ON, enable ? ASI_TRUE : ASI_FALSE, ASI_FALSE) == ASI_SUCCESS);
+    if (rc == false)
+        CoolerSP.s = IPS_ALERT;
+    else
+    {
+        CoolerS[0].s = enable ? ISS_ON : ISS_OFF;
+        CoolerS[1].s = enable ? ISS_OFF: ISS_ON;
+        CoolerSP.s = IPS_BUSY;
+    }
+    IDSetSwitch(&CoolerSP, NULL);
 
+    return rc;
+}
 
 bool ASICCD::StartExposure(float duration)
 {
