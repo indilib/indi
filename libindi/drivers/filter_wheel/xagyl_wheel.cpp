@@ -185,7 +185,7 @@ bool XAGYLWheel::Connect()
     if (rc)
     {
         int fwver=0;
-        int fw_rc = sscanf(resp, "FW%d", &fwver);
+        int fw_rc = sscanf(resp, "%d", &fwver);
 
         if (fw_rc > 0)
         {
@@ -421,7 +421,7 @@ bool XAGYLWheel::getCommand(GET_COMMAND cmd, char *result)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", command);
 
-    if (!sim && (rc = tty_write(PortFD, command, strlen(command)+1, &nbytes_written)) != TTY_OK)
+    if (!sim && (rc = tty_write(PortFD, command, strlen(command), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", command, errstr);
@@ -523,7 +523,7 @@ bool XAGYLWheel::setCommand(SET_COMMAND cmd, int value)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", command);
 
-    if (!sim && (rc = tty_write(PortFD, command, strlen(command)+1, &nbytes_written)) != TTY_OK)
+    if (!sim && (rc = tty_write(PortFD, command, strlen(command), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", command, errstr);
@@ -824,7 +824,7 @@ bool XAGYLWheel::reset(int value)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", command);
 
-    if (!sim && (rc = tty_write(PortFD, command, strlen(command)+1, &nbytes_written)) != TTY_OK)
+    if (!sim && (rc = tty_write(PortFD, command, strlen(command), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", command, errstr);
@@ -852,7 +852,7 @@ bool XAGYLWheel::setOffset(int filter, int value)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", command);
 
-    if (!sim && (rc = tty_write(PortFD, command, strlen(command)+1, &nbytes_written)) != TTY_OK)
+    if (!sim && (rc = tty_write(PortFD, command, strlen(command), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", command, errstr);
@@ -898,7 +898,7 @@ bool XAGYLWheel::getOffset(int filter)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", command);
 
-    if (!sim && (rc = tty_write(PortFD, command, strlen(command)+1, &nbytes_written)) != TTY_OK)
+    if (!sim && (rc = tty_write(PortFD, command, strlen(command), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", command, errstr);
