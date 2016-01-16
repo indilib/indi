@@ -18,7 +18,11 @@
 #elif defined(USELIBFTDIONE)
 
 #elif defined (USELIBFTD2XX)
-	#include <ftd2xx.h>
+  #ifdef OSX_EMBEDED_MODE
+    #include "ftd2xx.h"
+  #else
+    #include <ftd2xx.h>
+  #endif
 #else
 
 #endif

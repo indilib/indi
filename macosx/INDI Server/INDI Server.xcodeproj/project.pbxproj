@@ -195,6 +195,34 @@
 		59567D551A8D41CC0057A35A /* indi_atik_ccd in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 59567D231A8D41130057A35A /* indi_atik_ccd */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		59567D561A8D41CC0057A35A /* indi_fcusb_focuser in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 59567D381A8D41640057A35A /* indi_fcusb_focuser */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		59567D571A8D41CC0057A35A /* indi_usbfocus_focuser in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 59567D4A1A8D418E0057A35A /* indi_usbfocus_focuser */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		596556701C4A3E530044680B /* libcfitsio.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43181A8CC5F90004AA95 /* libcfitsio.dylib */; };
+		596556711C4A3E530044680B /* libusb.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA438B1A8CCD030004AA95 /* libusb.dylib */; };
+		596556721C4A3E530044680B /* libindi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A91A8CD3190004AA95 /* libindi.dylib */; };
+		596556731C4A3E530044680B /* libnova.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA422C1A8CB6920004AA95 /* libnova.dylib */; };
+		5965568E1C4A3EF60044680B /* qsi_ccd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5965568D1C4A3EF60044680B /* qsi_ccd.cpp */; };
+		596556A31C4A3F120044680B /* ConvertUTF.c in Sources */ = {isa = PBXBuildFile; fileRef = 5965568F1C4A3F120044680B /* ConvertUTF.c */; };
+		596556A41C4A3F120044680B /* CameraID.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 596556901C4A3F120044680B /* CameraID.cpp */; };
+		596556A51C4A3F120044680B /* CCDCamera.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 596556911C4A3F120044680B /* CCDCamera.cpp */; };
+		596556A61C4A3F120044680B /* Filter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 596556921C4A3F120044680B /* Filter.cpp */; };
+		596556A71C4A3F120044680B /* FilterWheel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 596556931C4A3F120044680B /* FilterWheel.cpp */; };
+		596556A81C4A3F120044680B /* HostConnection.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 596556941C4A3F120044680B /* HostConnection.cpp */; };
+		596556A91C4A3F120044680B /* HostIO_TCP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 596556951C4A3F120044680B /* HostIO_TCP.cpp */; };
+		596556AA1C4A3F120044680B /* HostIO_USB.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 596556961C4A3F120044680B /* HostIO_USB.cpp */; };
+		596556AB1C4A3F120044680B /* HotPixelMap.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 596556971C4A3F120044680B /* HotPixelMap.cpp */; };
+		596556AC1C4A3F120044680B /* ICameraEeprom.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 596556981C4A3F120044680B /* ICameraEeprom.cpp */; };
+		596556AD1C4A3F120044680B /* IHostIO.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 596556991C4A3F120044680B /* IHostIO.cpp */; };
+		596556AE1C4A3F120044680B /* QSI_Interface.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5965569A1C4A3F120044680B /* QSI_Interface.cpp */; };
+		596556AF1C4A3F120044680B /* QSI_PacketWrapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5965569B1C4A3F120044680B /* QSI_PacketWrapper.cpp */; };
+		596556B01C4A3F120044680B /* QSI_USBWrapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5965569C1C4A3F120044680B /* QSI_USBWrapper.cpp */; };
+		596556B11C4A3F120044680B /* qsiapi.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5965569D1C4A3F120044680B /* qsiapi.cpp */; };
+		596556B21C4A3F120044680B /* QSIError.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5965569E1C4A3F120044680B /* QSIError.cpp */; };
+		596556B31C4A3F120044680B /* QSIFeatures.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5965569F1C4A3F120044680B /* QSIFeatures.cpp */; };
+		596556B41C4A3F120044680B /* QSILog.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 596556A01C4A3F120044680B /* QSILog.cpp */; };
+		596556B51C4A3F120044680B /* QSIModelInfo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 596556A11C4A3F120044680B /* QSIModelInfo.cpp */; };
+		596556B61C4A3F120044680B /* VidPid.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 596556A21C4A3F120044680B /* VidPid.cpp */; };
+		596556E41C4A499E0044680B /* libftd2xx.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 596556E31C4A499E0044680B /* libftd2xx.a */; };
+		596556E51C4A49C50044680B /* indi_qsi_ccd in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 596556781C4A3E530044680B /* indi_qsi_ccd */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		596556E91C4A4A0B0044680B /* indi_qsi.xml in Resources */ = {isa = PBXBuildFile; fileRef = 596556E81C4A4A0B0044680B /* indi_qsi.xml */; };
 		596EBB55188AC60700190323 /* CMAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 596EBB46188AC60700190323 /* CMAppDelegate.m */; };
 		596EBB56188AC60700190323 /* CMDevice.m in Sources */ = {isa = PBXBuildFile; fileRef = 596EBB48188AC60700190323 /* CMDevice.m */; };
 		596EBB57188AC60700190323 /* CMGroup.m in Sources */ = {isa = PBXBuildFile; fileRef = 596EBB4A188AC60700190323 /* CMGroup.m */; };
@@ -1153,6 +1181,41 @@
 			remoteGlobalIDString = 59567D3B1A8D418E0057A35A;
 			remoteInfo = indi_usbfocus_focuser;
 		};
+		596556651C4A3E530044680B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA43171A8CC5F90004AA95;
+			remoteInfo = cfitsio;
+		};
+		596556671C4A3E530044680B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA438A1A8CCD030004AA95;
+			remoteInfo = usb;
+		};
+		596556691C4A3E530044680B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA422B1A8CB6920004AA95;
+			remoteInfo = nova;
+		};
+		5965566B1C4A3E530044680B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA43A81A8CD3190004AA95;
+			remoteInfo = indi;
+		};
+		596556E61C4A49D60044680B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 596556631C4A3E530044680B;
+			remoteInfo = indi_qsi_ccd;
+		};
 		597A04EA1BFBCA6F005CF806 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
@@ -1863,6 +1926,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 6;
 			files = (
+				596556E51C4A49C50044680B /* indi_qsi_ccd in Copy Files (33 items) (53 items) */,
 				591C90E91C13745F00FCE596 /* indi_sbig_ccd in Copy Files (33 items) (53 items) */,
 				594499641C136E9F00E0E281 /* indi_asi_ccd in Copy Files (33 items) (53 items) */,
 				594498FB1C1362BC00E0E281 /* indi_vantage_weather in Copy Files (33 items) (53 items) */,
@@ -2231,6 +2295,58 @@
 		59567D381A8D41640057A35A /* indi_fcusb_focuser */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_fcusb_focuser; sourceTree = BUILT_PRODUCTS_DIR; };
 		59567D4A1A8D418E0057A35A /* indi_usbfocus_focuser */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_usbfocus_focuser; sourceTree = BUILT_PRODUCTS_DIR; };
 		59567D581A8D4EA70057A35A /* README.txt */ = {isa = PBXFileReference; lastKnownFileType = text; name = README.txt; path = ../README.txt; sourceTree = "<group>"; };
+		596556781C4A3E530044680B /* indi_qsi_ccd */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_qsi_ccd; sourceTree = BUILT_PRODUCTS_DIR; };
+		5965568D1C4A3EF60044680B /* qsi_ccd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qsi_ccd.cpp; sourceTree = "<group>"; };
+		5965568F1C4A3F120044680B /* ConvertUTF.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ConvertUTF.c; path = ../libqsi/ConvertUTF.c; sourceTree = "<group>"; };
+		596556901C4A3F120044680B /* CameraID.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CameraID.cpp; path = ../libqsi/CameraID.cpp; sourceTree = "<group>"; };
+		596556911C4A3F120044680B /* CCDCamera.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CCDCamera.cpp; path = ../libqsi/CCDCamera.cpp; sourceTree = "<group>"; };
+		596556921C4A3F120044680B /* Filter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Filter.cpp; path = ../libqsi/Filter.cpp; sourceTree = "<group>"; };
+		596556931C4A3F120044680B /* FilterWheel.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = FilterWheel.cpp; path = ../libqsi/FilterWheel.cpp; sourceTree = "<group>"; };
+		596556941C4A3F120044680B /* HostConnection.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = HostConnection.cpp; path = ../libqsi/HostConnection.cpp; sourceTree = "<group>"; };
+		596556951C4A3F120044680B /* HostIO_TCP.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = HostIO_TCP.cpp; path = ../libqsi/HostIO_TCP.cpp; sourceTree = "<group>"; };
+		596556961C4A3F120044680B /* HostIO_USB.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = HostIO_USB.cpp; path = ../libqsi/HostIO_USB.cpp; sourceTree = "<group>"; };
+		596556971C4A3F120044680B /* HotPixelMap.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = HotPixelMap.cpp; path = ../libqsi/HotPixelMap.cpp; sourceTree = "<group>"; };
+		596556981C4A3F120044680B /* ICameraEeprom.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ICameraEeprom.cpp; path = ../libqsi/ICameraEeprom.cpp; sourceTree = "<group>"; };
+		596556991C4A3F120044680B /* IHostIO.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = IHostIO.cpp; path = ../libqsi/IHostIO.cpp; sourceTree = "<group>"; };
+		5965569A1C4A3F120044680B /* QSI_Interface.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = QSI_Interface.cpp; path = ../libqsi/QSI_Interface.cpp; sourceTree = "<group>"; };
+		5965569B1C4A3F120044680B /* QSI_PacketWrapper.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = QSI_PacketWrapper.cpp; path = ../libqsi/QSI_PacketWrapper.cpp; sourceTree = "<group>"; };
+		5965569C1C4A3F120044680B /* QSI_USBWrapper.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = QSI_USBWrapper.cpp; path = ../libqsi/QSI_USBWrapper.cpp; sourceTree = "<group>"; };
+		5965569D1C4A3F120044680B /* qsiapi.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = qsiapi.cpp; path = ../libqsi/qsiapi.cpp; sourceTree = "<group>"; };
+		5965569E1C4A3F120044680B /* QSIError.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = QSIError.cpp; path = ../libqsi/QSIError.cpp; sourceTree = "<group>"; };
+		5965569F1C4A3F120044680B /* QSIFeatures.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = QSIFeatures.cpp; path = ../libqsi/QSIFeatures.cpp; sourceTree = "<group>"; };
+		596556A01C4A3F120044680B /* QSILog.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = QSILog.cpp; path = ../libqsi/QSILog.cpp; sourceTree = "<group>"; };
+		596556A11C4A3F120044680B /* QSIModelInfo.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = QSIModelInfo.cpp; path = ../libqsi/QSIModelInfo.cpp; sourceTree = "<group>"; };
+		596556A21C4A3F120044680B /* VidPid.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = VidPid.cpp; path = ../libqsi/VidPid.cpp; sourceTree = "<group>"; };
+		596556B71C4A404A0044680B /* CameraID.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CameraID.h; path = ../libqsi/CameraID.h; sourceTree = "<group>"; };
+		596556B81C4A404A0044680B /* CCDCamera.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CCDCamera.h; path = ../libqsi/CCDCamera.h; sourceTree = "<group>"; };
+		596556B91C4A404A0044680B /* ConvertUTF.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ConvertUTF.h; path = ../libqsi/ConvertUTF.h; sourceTree = "<group>"; };
+		596556BA1C4A404A0044680B /* Filter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Filter.h; path = ../libqsi/Filter.h; sourceTree = "<group>"; };
+		596556BB1C4A404A0044680B /* FilterWheel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FilterWheel.h; path = ../libqsi/FilterWheel.h; sourceTree = "<group>"; };
+		596556BD1C4A404A0044680B /* HostConnection.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = HostConnection.h; path = ../libqsi/HostConnection.h; sourceTree = "<group>"; };
+		596556BE1C4A404A0044680B /* HostIO_TCP.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = HostIO_TCP.h; path = ../libqsi/HostIO_TCP.h; sourceTree = "<group>"; };
+		596556BF1C4A404A0044680B /* HostIO_USB.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = HostIO_USB.h; path = ../libqsi/HostIO_USB.h; sourceTree = "<group>"; };
+		596556C01C4A404A0044680B /* HotPixelMap.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = HotPixelMap.h; path = ../libqsi/HotPixelMap.h; sourceTree = "<group>"; };
+		596556C11C4A404A0044680B /* ICameraEeprom.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ICameraEeprom.h; path = ../libqsi/ICameraEeprom.h; sourceTree = "<group>"; };
+		596556C21C4A404A0044680B /* IHostIO.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = IHostIO.h; path = ../libqsi/IHostIO.h; sourceTree = "<group>"; };
+		596556C31C4A404A0044680B /* QSI_Global.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = QSI_Global.h; path = ../libqsi/QSI_Global.h; sourceTree = "<group>"; };
+		596556C41C4A404A0044680B /* QSI_Interface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = QSI_Interface.h; path = ../libqsi/QSI_Interface.h; sourceTree = "<group>"; };
+		596556C51C4A404A0044680B /* QSI_PacketWrapper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = QSI_PacketWrapper.h; path = ../libqsi/QSI_PacketWrapper.h; sourceTree = "<group>"; };
+		596556C61C4A404A0044680B /* QSI_Registry.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = QSI_Registry.h; path = ../libqsi/QSI_Registry.h; sourceTree = "<group>"; };
+		596556C71C4A404A0044680B /* QSI_States.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = QSI_States.h; path = ../libqsi/QSI_States.h; sourceTree = "<group>"; };
+		596556C81C4A404A0044680B /* QSI_USBWrapper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = QSI_USBWrapper.h; path = ../libqsi/QSI_USBWrapper.h; sourceTree = "<group>"; };
+		596556C91C4A404A0044680B /* qsiapi.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = qsiapi.h; path = ../libqsi/qsiapi.h; sourceTree = "<group>"; };
+		596556CA1C4A404A0044680B /* QSICriticalSection.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = QSICriticalSection.h; path = ../libqsi/QSICriticalSection.h; sourceTree = "<group>"; };
+		596556CB1C4A404A0044680B /* QSIError.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = QSIError.h; path = ../libqsi/QSIError.h; sourceTree = "<group>"; };
+		596556CC1C4A404A0044680B /* QSIFeatures.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = QSIFeatures.h; path = ../libqsi/QSIFeatures.h; sourceTree = "<group>"; };
+		596556CD1C4A404A0044680B /* QSILog.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = QSILog.h; path = ../libqsi/QSILog.h; sourceTree = "<group>"; };
+		596556CE1C4A404A0044680B /* QSIModelInfo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = QSIModelInfo.h; path = ../libqsi/QSIModelInfo.h; sourceTree = "<group>"; };
+		596556CF1C4A404A0044680B /* SimpleIni.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SimpleIni.h; path = ../libqsi/SimpleIni.h; sourceTree = "<group>"; };
+		596556D01C4A404A0044680B /* VidPid.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = VidPid.h; path = ../libqsi/VidPid.h; sourceTree = "<group>"; };
+		596556D11C4A404A0044680B /* wincompat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = wincompat.h; path = ../libqsi/wincompat.h; sourceTree = "<group>"; };
+		596556D21C4A404A0044680B /* WinTypes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = WinTypes.h; path = ../libqsi/WinTypes.h; sourceTree = "<group>"; };
+		596556DF1C4A46BF0044680B /* ftd2xx.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ftd2xx.h; path = ../../../d2xx/bin/ftd2xx.h; sourceTree = "<group>"; };
+		596556E31C4A499E0044680B /* libftd2xx.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libftd2xx.a; sourceTree = "<group>"; };
+		596556E81C4A4A0B0044680B /* indi_qsi.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = indi_qsi.xml; sourceTree = "<group>"; };
 		596EBB45188AC60700190323 /* CMAppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CMAppDelegate.h; sourceTree = SOURCE_ROOT; };
 		596EBB46188AC60700190323 /* CMAppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CMAppDelegate.m; sourceTree = SOURCE_ROOT; };
 		596EBB47188AC60700190323 /* CMDevice.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CMDevice.h; sourceTree = SOURCE_ROOT; };
@@ -2754,6 +2870,18 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		5965566F1C4A3E530044680B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				596556701C4A3E530044680B /* libcfitsio.dylib in Frameworks */,
+				596556711C4A3E530044680B /* libusb.dylib in Frameworks */,
+				596556721C4A3E530044680B /* libindi.dylib in Frameworks */,
+				596556731C4A3E530044680B /* libnova.dylib in Frameworks */,
+				596556E41C4A499E0044680B /* libftd2xx.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		5979EA241ADEDBEF00A24B57 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -3111,6 +3239,7 @@
 				594498F01C13627C00E0E281 /* indi_wunderground_weather */,
 				594499451C1363C400E0E281 /* indi_asi_ccd */,
 				591C90E51C13741B00FCE596 /* indi_sbig_ccd */,
+				596556781C4A3E530044680B /* indi_qsi_ccd */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -3121,6 +3250,7 @@
 				5944995F1C136C9100E0E281 /* libz.tbd */,
 				59E5F91D1C3F17B9008DAB80 /* libobjc.tbd */,
 				59E5F9211C3F185D008DAB80 /* libgsl.a */,
+				596556E31C4A499E0044680B /* libftd2xx.a */,
 				591C90ED1C1375D700FCE596 /* SBIGUDrv.framework */,
 				597B89111887E77F0093873A /* ServiceManagement.framework */,
 				597B890D1887E6FF0093873A /* Security.framework */,
@@ -3207,6 +3337,7 @@
 		59567C081A8D325E0057A35A /* 3rd */ = {
 			isa = PBXGroup;
 			children = (
+				596556621C4A3DCD0044680B /* indi-qsi */,
 				591C90C81C1373C700FCE596 /* indi-sbig */,
 				5944992F1C1363AD00E0E281 /* indi-asicam */,
 				59567CAE1A8D3D0C0057A35A /* indi-spectracyber */,
@@ -3341,6 +3472,63 @@
 				59567CF11A8D409C0057A35A /* usbfocus.cpp */,
 			);
 			path = "indi-usbfocus";
+			sourceTree = "<group>";
+		};
+		596556621C4A3DCD0044680B /* indi-qsi */ = {
+			isa = PBXGroup;
+			children = (
+				596556E81C4A4A0B0044680B /* indi_qsi.xml */,
+				596556DF1C4A46BF0044680B /* ftd2xx.h */,
+				596556B71C4A404A0044680B /* CameraID.h */,
+				596556B81C4A404A0044680B /* CCDCamera.h */,
+				596556B91C4A404A0044680B /* ConvertUTF.h */,
+				596556BA1C4A404A0044680B /* Filter.h */,
+				596556BB1C4A404A0044680B /* FilterWheel.h */,
+				596556BD1C4A404A0044680B /* HostConnection.h */,
+				596556BE1C4A404A0044680B /* HostIO_TCP.h */,
+				596556BF1C4A404A0044680B /* HostIO_USB.h */,
+				596556C01C4A404A0044680B /* HotPixelMap.h */,
+				596556C11C4A404A0044680B /* ICameraEeprom.h */,
+				596556C21C4A404A0044680B /* IHostIO.h */,
+				596556C31C4A404A0044680B /* QSI_Global.h */,
+				596556C41C4A404A0044680B /* QSI_Interface.h */,
+				596556C51C4A404A0044680B /* QSI_PacketWrapper.h */,
+				596556C61C4A404A0044680B /* QSI_Registry.h */,
+				596556C71C4A404A0044680B /* QSI_States.h */,
+				596556C81C4A404A0044680B /* QSI_USBWrapper.h */,
+				596556C91C4A404A0044680B /* qsiapi.h */,
+				596556CA1C4A404A0044680B /* QSICriticalSection.h */,
+				596556CB1C4A404A0044680B /* QSIError.h */,
+				596556CC1C4A404A0044680B /* QSIFeatures.h */,
+				596556CD1C4A404A0044680B /* QSILog.h */,
+				596556CE1C4A404A0044680B /* QSIModelInfo.h */,
+				596556CF1C4A404A0044680B /* SimpleIni.h */,
+				596556D01C4A404A0044680B /* VidPid.h */,
+				596556D11C4A404A0044680B /* wincompat.h */,
+				596556D21C4A404A0044680B /* WinTypes.h */,
+				5965568D1C4A3EF60044680B /* qsi_ccd.cpp */,
+				5965568F1C4A3F120044680B /* ConvertUTF.c */,
+				596556901C4A3F120044680B /* CameraID.cpp */,
+				596556911C4A3F120044680B /* CCDCamera.cpp */,
+				596556921C4A3F120044680B /* Filter.cpp */,
+				596556931C4A3F120044680B /* FilterWheel.cpp */,
+				596556941C4A3F120044680B /* HostConnection.cpp */,
+				596556951C4A3F120044680B /* HostIO_TCP.cpp */,
+				596556961C4A3F120044680B /* HostIO_USB.cpp */,
+				596556971C4A3F120044680B /* HotPixelMap.cpp */,
+				596556981C4A3F120044680B /* ICameraEeprom.cpp */,
+				596556991C4A3F120044680B /* IHostIO.cpp */,
+				5965569A1C4A3F120044680B /* QSI_Interface.cpp */,
+				5965569B1C4A3F120044680B /* QSI_PacketWrapper.cpp */,
+				5965569C1C4A3F120044680B /* QSI_USBWrapper.cpp */,
+				5965569D1C4A3F120044680B /* qsiapi.cpp */,
+				5965569E1C4A3F120044680B /* QSIError.cpp */,
+				5965569F1C4A3F120044680B /* QSIFeatures.cpp */,
+				596556A01C4A3F120044680B /* QSILog.cpp */,
+				596556A11C4A3F120044680B /* QSIModelInfo.cpp */,
+				596556A21C4A3F120044680B /* VidPid.cpp */,
+			);
+			path = "indi-qsi";
 			sourceTree = "<group>";
 		};
 		596EBB4B188AC60700190323 /* en.lproj */ = {
@@ -3952,6 +4140,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				596556E71C4A49D60044680B /* PBXTargetDependency */,
 				591C90E81C13745200FCE596 /* PBXTargetDependency */,
 				594499631C136E8300E0E281 /* PBXTargetDependency */,
 				594499281C13638C00E0E281 /* PBXTargetDependency */,
@@ -4336,6 +4525,26 @@
 			name = indi_usbfocus_focuser;
 			productName = indi_lxbasic;
 			productReference = 59567D4A1A8D418E0057A35A /* indi_usbfocus_focuser */;
+			productType = "com.apple.product-type.tool";
+		};
+		596556631C4A3E530044680B /* indi_qsi_ccd */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 596556751C4A3E530044680B /* Build configuration list for PBXNativeTarget "indi_qsi_ccd" */;
+			buildPhases = (
+				5965566C1C4A3E530044680B /* Sources */,
+				5965566F1C4A3E530044680B /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				596556641C4A3E530044680B /* PBXTargetDependency */,
+				596556661C4A3E530044680B /* PBXTargetDependency */,
+				596556681C4A3E530044680B /* PBXTargetDependency */,
+				5965566A1C4A3E530044680B /* PBXTargetDependency */,
+			);
+			name = indi_qsi_ccd;
+			productName = indi_lxbasic;
+			productReference = 596556781C4A3E530044680B /* indi_qsi_ccd */;
 			productType = "com.apple.product-type.tool";
 		};
 		5979EA1F1ADEDBEF00A24B57 /* indi_getprop */ = {
@@ -4907,6 +5116,7 @@
 				594498E31C13627C00E0E281 /* indi_wunderground_weather */,
 				594499301C1363C400E0E281 /* indi_asi_ccd */,
 				591C90CC1C13741B00FCE596 /* indi_sbig_ccd */,
+				596556631C4A3E530044680B /* indi_qsi_ccd */,
 			);
 		};
 /* End PBXProject section */
@@ -4927,6 +5137,7 @@
 				596EBB59188AC60700190323 /* InfoPlist.strings in Resources */,
 				59C11FC319B50AEE00B21125 /* AppIcon.icns in Resources */,
 				59567CAB1A8D3CC20057A35A /* AlignData.xml in Resources */,
+				596556E91C4A4A0B0044680B /* indi_qsi.xml in Resources */,
 				59567CAC1A8D3CC20057A35A /* indi_align_sk.xml in Resources */,
 				596EBB58188AC60700190323 /* Credits.rtf in Resources */,
 				59567C991A8D3B900057A35A /* indi_eqmod_simulator_sk.xml in Resources */,
@@ -5232,6 +5443,34 @@
 			buildActionMask = 2147483647;
 			files = (
 				59567D4B1A8D419A0057A35A /* usbfocus.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5965566C1C4A3E530044680B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				596556A61C4A3F120044680B /* Filter.cpp in Sources */,
+				596556B21C4A3F120044680B /* QSIError.cpp in Sources */,
+				596556B61C4A3F120044680B /* VidPid.cpp in Sources */,
+				596556B41C4A3F120044680B /* QSILog.cpp in Sources */,
+				596556A81C4A3F120044680B /* HostConnection.cpp in Sources */,
+				596556B11C4A3F120044680B /* qsiapi.cpp in Sources */,
+				596556A71C4A3F120044680B /* FilterWheel.cpp in Sources */,
+				596556AF1C4A3F120044680B /* QSI_PacketWrapper.cpp in Sources */,
+				596556AB1C4A3F120044680B /* HotPixelMap.cpp in Sources */,
+				596556A91C4A3F120044680B /* HostIO_TCP.cpp in Sources */,
+				596556A41C4A3F120044680B /* CameraID.cpp in Sources */,
+				596556A51C4A3F120044680B /* CCDCamera.cpp in Sources */,
+				596556AD1C4A3F120044680B /* IHostIO.cpp in Sources */,
+				596556AE1C4A3F120044680B /* QSI_Interface.cpp in Sources */,
+				5965568E1C4A3EF60044680B /* qsi_ccd.cpp in Sources */,
+				596556AC1C4A3F120044680B /* ICameraEeprom.cpp in Sources */,
+				596556B51C4A3F120044680B /* QSIModelInfo.cpp in Sources */,
+				596556A31C4A3F120044680B /* ConvertUTF.c in Sources */,
+				596556AA1C4A3F120044680B /* HostIO_USB.cpp in Sources */,
+				596556B31C4A3F120044680B /* QSIFeatures.cpp in Sources */,
+				596556B01C4A3F120044680B /* QSI_USBWrapper.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -6105,6 +6344,31 @@
 			isa = PBXTargetDependency;
 			target = 59567D3B1A8D418E0057A35A /* indi_usbfocus_focuser */;
 			targetProxy = 59567D521A8D41C30057A35A /* PBXContainerItemProxy */;
+		};
+		596556641C4A3E530044680B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA43171A8CC5F90004AA95 /* cfitsio */;
+			targetProxy = 596556651C4A3E530044680B /* PBXContainerItemProxy */;
+		};
+		596556661C4A3E530044680B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA438A1A8CCD030004AA95 /* usb */;
+			targetProxy = 596556671C4A3E530044680B /* PBXContainerItemProxy */;
+		};
+		596556681C4A3E530044680B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA422B1A8CB6920004AA95 /* nova */;
+			targetProxy = 596556691C4A3E530044680B /* PBXContainerItemProxy */;
+		};
+		5965566A1C4A3E530044680B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA43A81A8CD3190004AA95 /* indi */;
+			targetProxy = 5965566B1C4A3E530044680B /* PBXContainerItemProxy */;
+		};
+		596556E71C4A49D60044680B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 596556631C4A3E530044680B /* indi_qsi_ccd */;
+			targetProxy = 596556E61C4A49D60044680B /* PBXContainerItemProxy */;
 		};
 		597A04EB1BFBCA6F005CF806 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -8182,6 +8446,76 @@
 			};
 			name = Release;
 		};
+		596556761C4A3E530044680B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+					USELIBFTD2XX,
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"/Applications/Xcode-Beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include",
+					"../../../libnova-0.15.0/src",
+					"../../../libnova-0.15.0/src/libnova",
+					"../../../libusb-1.0.19/libusb",
+					../../../cfitsio,
+					../../libindi/libs/indibase,
+					../../libindi/libs,
+					../../libindi,
+					../libqsi,
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)",
+				);
+				MTL_ENABLE_DEBUG_INFO = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		596556771C4A3E530044680B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					USELIBFTD2XX,
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"/Applications/Xcode-Beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include",
+					"../../../libnova-0.15.0/src",
+					"../../../libnova-0.15.0/src/libnova",
+					"../../../libusb-1.0.19/libusb",
+					../../../cfitsio,
+					../../libindi/libs/indibase,
+					../../libindi/libs,
+					../../libindi,
+					../libqsi,
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)",
+				);
+				MTL_ENABLE_DEBUG_INFO = NO;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 		5979EA271ADEDBEF00A24B57 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -9787,6 +10121,15 @@
 			buildConfigurations = (
 				59567D481A8D418E0057A35A /* Debug */,
 				59567D491A8D418E0057A35A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		596556751C4A3E530044680B /* Build configuration list for PBXNativeTarget "indi_qsi_ccd" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				596556761C4A3E530044680B /* Debug */,
+				596556771C4A3E530044680B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

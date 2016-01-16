@@ -5,7 +5,12 @@
  * 
  */
 #pragma once
+
+#ifdef OSX_EMBEDED_MODE
+#include "WinTypes.h"
+#else
 #include <WinTypes.h>
+#endif
 
 class ICameraEeprom
 { 
