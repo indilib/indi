@@ -247,7 +247,7 @@
 		9D0B29CA1A8D1EC400ED17BF /* celestrongps.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D0B29C81A8D1EC400ED17BF /* celestrongps.cpp */; };
 		9D0B29D61A8D1ED100ED17BF /* libindi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A91A8CD3190004AA95 /* libindi.dylib */; };
 		9D0B29D71A8D1ED100ED17BF /* libnova.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA422C1A8CB6920004AA95 /* libnova.dylib */; };
-		9D0B29DE1A8D1EF200ED17BF /* temmadriver.c in Sources */ = {isa = PBXBuildFile; fileRef = 9D0B29DD1A8D1EF200ED17BF /* temmadriver.c */; };
+		9D0B29DE1A8D1EF200ED17BF /* temmadriver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D0B29DD1A8D1EF200ED17BF /* temmadriver.cpp */; };
 		9D0B29EB1A8D1EF600ED17BF /* libindi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A91A8CD3190004AA95 /* libindi.dylib */; };
 		9D0B29EC1A8D1EF600ED17BF /* libnova.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA422C1A8CB6920004AA95 /* libnova.dylib */; };
 		9D0B2A031A8D1F3E00ED17BF /* libindi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A91A8CD3190004AA95 /* libindi.dylib */; };
@@ -2283,7 +2283,7 @@
 		9D0B29C61A8D1E9400ED17BF /* indi_celestron_gps */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_celestron_gps; sourceTree = BUILT_PRODUCTS_DIR; };
 		9D0B29C81A8D1EC400ED17BF /* celestrongps.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = celestrongps.cpp; sourceTree = "<group>"; };
 		9D0B29DC1A8D1ED100ED17BF /* indi_temma */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_temma; sourceTree = BUILT_PRODUCTS_DIR; };
-		9D0B29DD1A8D1EF200ED17BF /* temmadriver.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = temmadriver.c; sourceTree = "<group>"; };
+		9D0B29DD1A8D1EF200ED17BF /* temmadriver.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = temmadriver.cpp; sourceTree = "<group>"; };
 		9D0B29F11A8D1EF600ED17BF /* indi_skycommander */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_skycommander; sourceTree = BUILT_PRODUCTS_DIR; };
 		9D0B29F31A8D1F1800ED17BF /* skycommander.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = skycommander.c; sourceTree = "<group>"; };
 		9D0B2A091A8D1F3E00ED17BF /* indi_intelliscope */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_intelliscope; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -3420,7 +3420,7 @@
 				597A04F41BFBCE1C005CF806 /* lx200zeq25.cpp */,
 				9D0B29C81A8D1EC400ED17BF /* celestrongps.cpp */,
 				5979EA541ADEE24D00A24B57 /* celestrondriver.cpp */,
-				9D0B29DD1A8D1EF200ED17BF /* temmadriver.c */,
+				9D0B29DD1A8D1EF200ED17BF /* temmadriver.cpp */,
 				9D0B29F31A8D1F1800ED17BF /* skycommander.c */,
 				9D0B2A0A1A8D1F5800ED17BF /* intelliscope.c */,
 				9D0B2A1E1A8D1FCC00ED17BF /* synscanmount.cpp */,
@@ -5292,7 +5292,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9D0B29DE1A8D1EF200ED17BF /* temmadriver.c in Sources */,
+				9D0B29DE1A8D1EF200ED17BF /* temmadriver.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
