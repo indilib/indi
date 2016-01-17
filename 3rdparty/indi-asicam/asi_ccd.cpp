@@ -738,7 +738,7 @@ int ASICCD::SetTemperature(double temperature)
         return -1;
     }
 
-    if (ASISetControlValue(m_camInfo->CameraID, ASI_TARGET_TEMP, temperature*10, ASI_TRUE) != ASI_SUCCESS)
+    if (ASISetControlValue(m_camInfo->CameraID, ASI_TARGET_TEMP, temperature, ASI_TRUE) != ASI_SUCCESS)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Failed to set temperature!");
         return -1;
