@@ -293,6 +293,12 @@ bool ASICCD::updateProperties()
         defineNumber(&CoolerNP);
         defineSwitch(&CoolerSP);
     }
+    // Even if there is no cooler, we define temperature property as READ ONLY
+    else
+    {
+        TemperatureNP.p = IP_RO;
+        defineNumber(&TemperatureNP);
+    }
 
     // Let's get parameters now from CCD
     setupParams();
@@ -315,6 +321,8 @@ bool ASICCD::updateProperties()
         deleteProperty(CoolerNP.name);
         deleteProperty(CoolerSP.name);
     }
+    else
+        deleteProperty(TemperatureNP.name);
 
     if (ControlNP.nnp > 0)
         deleteProperty(ControlNP.name);
@@ -494,8 +502,8 @@ bool ASICCD::setupParams()
   //nbuf += 512;    //  leave a little extra at the end
   PrimaryCCD.setFrameBufferSize(nbuf);
 
-  if (HasCooler())
-  {
+  //if (HasCooler())
+  //{
       long pValue = 0;
       ASI_BOOL isAuto= ASI_FALSE;
 
@@ -506,7 +514,7 @@ bool ASICCD::setupParams()
 
       DEBUGF(INDI::Logger::DBG_SESSION,  "The CCD Temperature is %f", TemperatureN[0].value);
       IDSetNumber(&TemperatureNP, NULL);
-  }
+  //}
 
   ASIStopVideoCapture(m_camInfo->CameraID);
 
@@ -840,17 +848,17 @@ bool ASICCD::UpdateCCDFrame(int x, int y, int w, int h)
     return false;
   }
 
-  if ( (errCode = ASISetStartPos(m_camInfo->CameraID, x_1, y_1)) != ASI_SUCCESS)
-  {
-      DEBUGF(INDI::Logger::DBG_ERROR, "ASISetStartPos (%d,%d) error (%d)", x_1, y_1, errCode);
-      return false;
-  }
-
   if ( (errCode = ASISetROIFormat(m_camInfo->CameraID, bin_width, bin_height, PrimaryCCD.getBinX(), getImageType())) != ASI_SUCCESS)
   {
       DEBUGF(INDI::Logger::DBG_ERROR, "ASISetROIFormat (%dx%d @ %d) error (%d)", bin_width, bin_height, PrimaryCCD.getBinX(), errCode);
       return false;
   }
+
+  if ( (errCode = ASISetStartPos(m_camInfo->CameraID, x_1, y_1)) != ASI_SUCCESS)
+  {
+      DEBUGF(INDI::Logger::DBG_ERROR, "ASISetStartPos (%d,%d) error (%d)", x_1, y_1, errCode);
+      return false;
+  } 
 
   streamer->setRecorderSize(bin_width, bin_height);
 
@@ -1070,7 +1078,7 @@ void ASICCD::TimerHit()
     }
   }
 
-  if (HasCooler() && TemperatureUpdateCounter++ > TEMPERATURE_UPDATE_FREQ)
+  if (/*HasCooler() && */TemperatureUpdateCounter++ > TEMPERATURE_UPDATE_FREQ)
   {
       TemperatureUpdateCounter = 0;
 
@@ -1109,22 +1117,25 @@ void ASICCD::TimerHit()
         break;
       }
 
-      errCode = ASIGetControlValue(m_camInfo->CameraID, ASI_COOLER_POWER_PERC, &ASIControlValue, &ASIControlAuto);
-      if (errCode != ASI_SUCCESS)
+      if (HasCooler())
       {
-          DEBUGF(INDI::Logger::DBG_ERROR, "ASIGetControlValue ASI_COOLER_POWER_PERC error (%d)", errCode);
-          CoolerNP.s = IPS_ALERT;
-      }
-      else
-      {
-          CoolerN[0].value = ASIControlValue;
-          if (ASIControlValue > 0)
-              CoolerNP.s = IPS_BUSY;
+          errCode = ASIGetControlValue(m_camInfo->CameraID, ASI_COOLER_POWER_PERC, &ASIControlValue, &ASIControlAuto);
+          if (errCode != ASI_SUCCESS)
+          {
+              DEBUGF(INDI::Logger::DBG_ERROR, "ASIGetControlValue ASI_COOLER_POWER_PERC error (%d)", errCode);
+              CoolerNP.s = IPS_ALERT;
+          }
           else
-              CoolerNP.s = IPS_IDLE;
-      }
+          {
+              CoolerN[0].value = ASIControlValue;
+              if (ASIControlValue > 0)
+                  CoolerNP.s = IPS_BUSY;
+              else
+                  CoolerNP.s = IPS_IDLE;
+          }
 
-      IDSetNumber(&CoolerNP, NULL);
+          IDSetNumber(&CoolerNP, NULL);
+      }
   }
 
   if(InWEPulse)
