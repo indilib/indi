@@ -36,9 +36,11 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <memory.h>
 #include <stdarg.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "sxconfig.h"
 #include "sxccdusb.h"
@@ -125,6 +127,7 @@
 static struct {
   int pid;
   const char *name;
+  int seq;
   } SX_PIDS[] = {
     { 0x105, "SXVF-M5" },
     { 0x305, "SXVF-M5C" },
@@ -214,6 +217,8 @@ int sxList(DEVICE *sxDevices, const char **names, int maxCount) {
     log(false, "Can't get device list\n");
     return 0;
   }
+  for (int i = 0; SX_PIDS[i].pid; i++)
+    SX_PIDS[i].seq = 0;
   for (int i = 0; i < total && count < maxCount; i++) {
     libusb_device *device = usb_devices[i];
     if (!libusb_get_device_descriptor(device, &descriptor)) {
@@ -221,8 +226,13 @@ int sxList(DEVICE *sxDevices, const char **names, int maxCount) {
         int pid = descriptor.idProduct;
         for (int i = 0; SX_PIDS[i].pid; i++) {
           if (pid == SX_PIDS[i].pid) {
-            DEBUG(log(true, "sxList: '%s' [0x%x, 0x%x] found\n", SX_PIDS[i].name, SX_VID, pid));
-            names[count] = SX_PIDS[i].name;
+            int seq = (++SX_PIDS[i].seq);
+            DEBUG(log(true, "sxList: '%s' #%d [0x%x, 0x%x] found\n", SX_PIDS[i].name, seq, SX_VID, pid));
+            names[count] = (char *)malloc(16);
+            if (seq == 1)
+              strcpy((char *)names[count], SX_PIDS[i].name);
+            else
+              sprintf((char *)names[count], "%s #%d", SX_PIDS[i].name, seq);
             sxDevices[count++] = device;
             libusb_ref_device(device);
             break;
