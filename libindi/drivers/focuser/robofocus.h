@@ -50,6 +50,7 @@ protected:
 private:
 
     int PortFD;
+    int timerID;
     double targetPos;
     double simulatedTemperature;
     double simulatedPosition;
@@ -65,12 +66,14 @@ private:
     int updateRFBacklash(double *value);
     int updateRFFirmware(char *rf_cmd) ;
     int updateRFMotorSettings(double *duty, double *delay, double *ticks);
-    int updateRFPositionRelativeInward(double *value);
-    int updateRFPositionRelativeOutward(double *value) ;
-    int updateRFPositionAbsolute(double *value);
+    int updateRFPositionRelativeInward(double value);
+    int updateRFPositionRelativeOutward(double value);
+    int updateRFPositionAbsolute(double value);
     int updateRFPowerSwitches(int s, int  new_sn, int *cur_s1LL, int *cur_s2LR, int *cur_s3RL, int *cur_s4RR) ;
     int updateRFMaxPosition(double *value);
     int updateRFSetPosition(double *value);
+
+    int ReadUntilComplete(char *buf, int timeout);
 
 
     INumber TemperatureN[1];

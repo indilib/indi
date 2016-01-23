@@ -52,7 +52,7 @@
 #define currentMaxPosition      MinMaxPositionN[1].value
 #define currentMaxTravel        MaxTravelN[0].value
 
-#define POLLMS  50
+#define POLLMS  1000
 
 std::unique_ptr<RoboFocus> roboFocus(new RoboFocus());
 
@@ -95,6 +95,7 @@ void ISSnoopDevice (XMLEle *root)
 
 RoboFocus::RoboFocus()
 {       
+    timerID = -1;
     SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
 }
 
@@ -218,7 +219,7 @@ bool RoboFocus::Connect()
 
     if (isSimulation())
     {
-        SetTimer(POLLMS);
+        timerID = SetTimer(POLLMS);
         IDMessage(getDeviceName(), "Simulated Robofocus is online. Getting focus parameters...");
         FocusAbsPosN[0].value = simulatedPosition;
         updateRFFirmware(firmeware);
@@ -245,7 +246,7 @@ bool RoboFocus::Connect()
         return false;
     }
 
-    SetTimer(POLLMS);
+    timerID = SetTimer(POLLMS);
     IDMessage(getDeviceName(), "Robofocus is online. Getting focus parameters...");
 
     return true;
@@ -465,6 +466,44 @@ int RoboFocus::ReadResponse(char *buf, int nbytes, int timeout)
   return 9;
 }
 
+int RoboFocus::ReadUntilComplete(char *buf, int timeout)
+{
+
+  char robofocus_error[MAXRBUF];
+  int bytesRead = 0;
+  int nbytes_read=0;
+  int err_code;
+
+  if (isSimulation())
+      return 9;
+
+  while (1)
+  {
+      err_code = tty_read(PortFD, buf, 1, timeout, &nbytes_read);
+      if (err_code != TTY_OK)
+      {
+          tty_error_msg(err_code, robofocus_error, MAXRBUF);
+          DEBUGF(INDI::Logger::DBG_ERROR, "TTY error detected: %s", robofocus_error);
+          return -1;
+       }
+
+      if (buf[0] != 0x46)
+          continue;
+
+      if ( (err_code = tty_read(PortFD, buf+1, 8, timeout, &bytesRead)) != TTY_OK)
+      {
+          tty_error_msg(err_code, robofocus_error, MAXRBUF);
+          DEBUGF(INDI::Logger::DBG_ERROR, "TTY error detected: %s", robofocus_error);
+          return -1;
+      }
+
+      break;
+  }
+
+  tcflush(PortFD, TCIOFLUSH);
+  return 9;
+}
+
 int RoboFocus::updateRFPosition(double *value)
 {
 
@@ -484,9 +523,6 @@ int RoboFocus::updateRFPosition(double *value)
 
     return ret_read_tmp;
   }
-
-  if (isSimulation())
-      snprintf(rf_cmd, 32, "FD%6g", simulatedPosition);
 
    if (sscanf(rf_cmd, "FD%6f", &temp) < 1){
 
@@ -640,111 +676,108 @@ int RoboFocus::updateRFMotorSettings(double *duty, double *delay, double *ticks)
   return 0;
 }
 
-int RoboFocus::updateRFPositionRelativeInward(double *value)
+int RoboFocus::updateRFPositionRelativeInward(double value)
 {
 
   char rf_cmd[32] ;
   int ret_read_tmp ;
-  float temp ;
+  //float temp ;
   rf_cmd[0]= 0 ;
 
   if (isSimulation())
   {
-      simulatedPosition+= *value;
-      *value = simulatedPosition;
+      simulatedPosition+= value;
+      value = simulatedPosition;
       return 0;
   }
 
-  if(*value > 9999) {
-    sprintf( rf_cmd, "FI0%5d", (int) *value) ;
-  } else if(*value > 999) {
-    sprintf( rf_cmd, "FI00%4d", (int) *value) ;
-  } else if(*value > 99) {
-    sprintf( rf_cmd, "FI000%3d", (int) *value) ;
-  } else if(*value > 9) {
-    sprintf( rf_cmd, "FI0000%2d", (int) *value) ;
+  if(value > 9999) {
+    sprintf( rf_cmd, "FI0%5d", (int) value) ;
+  } else if(value > 999) {
+    sprintf( rf_cmd, "FI00%4d", (int) value) ;
+  } else if(value > 99) {
+    sprintf( rf_cmd, "FI000%3d", (int) value) ;
+  } else if(value > 9) {
+    sprintf( rf_cmd, "FI0000%2d", (int) value) ;
   } else {
-    sprintf( rf_cmd, "FI00000%1d", (int) *value) ;
+    sprintf( rf_cmd, "FI00000%1d", (int) value) ;
   }
 
   if ((ret_read_tmp= SendCommand( rf_cmd)) < 0)
     return ret_read_tmp;
 
 
-  if (sscanf(rf_cmd, "FD0%5f", &temp) < 1)
+  /*if (sscanf(rf_cmd, "FD0%5f", &temp) < 1)
     return -1;
 
-  *value = (double) temp  ;
+  *value = (double) temp  ;*/
 
   return 0;
 }
 
-int RoboFocus::updateRFPositionRelativeOutward(double *value)
+int RoboFocus::updateRFPositionRelativeOutward(double value)
 {
 
   char rf_cmd[32] ;
   int ret_read_tmp ;
-  float temp ;
+  //float temp ;
 
   if (isSimulation())
   {
-      simulatedPosition-= *value;
-      *value = simulatedPosition;
+      simulatedPosition-= value;
+      value = simulatedPosition;
       return 0;
   }
 
   rf_cmd[0]= 0 ;
 
-  if(*value > 9999) {
-    sprintf( rf_cmd, "FO0%5d", (int) *value) ;
-  } else if(*value > 999) {
-    sprintf( rf_cmd, "FO00%4d", (int) *value) ;
-  } else if(*value > 99) {
-    sprintf( rf_cmd, "FO000%3d", (int) *value) ;
-  } else if(*value > 9) {
-    sprintf( rf_cmd, "FO0000%2d", (int) *value) ;
+  if(value > 9999) {
+    sprintf( rf_cmd, "FO0%5d", (int) value) ;
+  } else if(value > 999) {
+    sprintf( rf_cmd, "FO00%4d", (int) value) ;
+  } else if(value > 99) {
+    sprintf( rf_cmd, "FO000%3d", (int) value) ;
+  } else if(value > 9) {
+    sprintf( rf_cmd, "FO0000%2d", (int) value) ;
   } else {
-    sprintf( rf_cmd, "FO00000%1d", (int) *value) ;
+    sprintf( rf_cmd, "FO00000%1d", (int) value) ;
   }
 
   if ((ret_read_tmp= SendCommand( rf_cmd)) < 0)
     return ret_read_tmp;
 
-
-
-  if (sscanf(rf_cmd, "FD0%5f", &temp) < 1)
+  /*if (sscanf(rf_cmd, "FD0%5f", &temp) < 1)
     return -1;
 
-  *value = (double) temp  ;
+  *value = (double) temp  ;*/
 
   return 0;
 }
 
-int RoboFocus::updateRFPositionAbsolute(double *value)
+int RoboFocus::updateRFPositionAbsolute(double value)
 {
 
   char rf_cmd[32] ;
   int ret_read_tmp ;
-  float temp ;
 
   if (isSimulation())
   {
-      simulatedPosition = *value;
+      simulatedPosition = value;
       return 0;
   }
 
   rf_cmd[0]= 0 ;
 
-  if(*value > 9999) {
-    sprintf( rf_cmd, "FG0%5d", (int) *value) ;
-  } else if(*value > 999) {
-    sprintf( rf_cmd, "FG00%4d", (int) *value) ;
-  } else if(*value > 99) {
-    sprintf( rf_cmd, "FG000%3d", (int) *value) ;
-  } else if(*value > 9) {
-    sprintf( rf_cmd, "FG0000%2d", (int) *value) ;
+  if(value > 9999) {
+    sprintf( rf_cmd, "FG0%5d", (int) value) ;
+  } else if(value > 999) {
+    sprintf( rf_cmd, "FG00%4d", (int) value) ;
+  } else if(value > 99) {
+    sprintf( rf_cmd, "FG000%3d", (int) value) ;
+  } else if(value > 9) {
+    sprintf( rf_cmd, "FG0000%2d", (int) value) ;
   } else {
-    sprintf( rf_cmd, "FG00000%1d", (int) *value) ;
+    sprintf( rf_cmd, "FG00000%1d", (int) value) ;
   }
 
   if ((ret_read_tmp= SendCommand( rf_cmd)) < 0)
@@ -1442,9 +1475,9 @@ IPState RoboFocus::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
         pos = RF_STEP_RES;
 
     if (dir == FOCUS_INWARD)
-         updateRFPositionRelativeInward(&pos);
+         updateRFPositionRelativeInward(pos);
     else
-        updateRFPositionRelativeOutward(&pos);
+        updateRFPositionRelativeOutward(pos);
 
         gettimeofday (&tv_finish, NULL);
 
@@ -1466,13 +1499,13 @@ IPState RoboFocus::MoveAbsFocuser(uint32_t targetTicks)
 
     if (targetTicks < FocusAbsPosN[0].min || targetTicks > FocusAbsPosN[0].max)
     {
-        IDMessage(getDeviceName(), "Error, requested absolute position is out of range.");
+        IDMessage(getDeviceName(), "Error, requested position is out of range.");
         return IPS_ALERT;
     }
 
     //IDMessage(getDeviceName() , "Focuser is moving to requested position %d...", targetTicks);
 
-    if(( ret= updateRFPositionAbsolute(&targetPos)) < 0)
+    if(( ret= updateRFPositionAbsolute(targetPos)) < 0)
     {
 
         IDMessage(getDeviceName(), "Read out of the absolute movement failed %3d, trying to recover position.", ret);
@@ -1495,18 +1528,21 @@ IPState RoboFocus::MoveAbsFocuser(uint32_t targetTicks)
       return IPS_ALERT;
     }
 
+    RemoveTimer(timerID);
+    timerID = SetTimer(250);
     return IPS_BUSY;
 }
 
 IPState RoboFocus::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-      double cur_rpos=0 ;
+    return MoveAbsFocuser(FocusAbsPosN[0].value + (ticks * (dir == FOCUS_INWARD ? 1 : -1)));
+
+      /*double cur_rpos=0 ;
       double new_rpos = 0 ;
       int ret=0;
       bool nset = false;
 
         cur_rpos= new_rpos = ticks;
-        /* CHECK 2006-01-26, limits are relative to the actual position */
         nset = new_rpos >= -0xffff && new_rpos <= 0xffff;
 
         if (nset)
@@ -1520,9 +1556,9 @@ IPState RoboFocus::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
           }
 
           if( dir == FOCUS_OUTWARD)
-            ret= updateRFPositionRelativeOutward(&new_rpos) ;
+            ret= updateRFPositionRelativeOutward(new_rpos) ;
           else
-            ret= updateRFPositionRelativeInward(&new_rpos) ;
+            ret= updateRFPositionRelativeInward(new_rpos) ;
 
           if( ret < 0)
           {
@@ -1547,7 +1583,7 @@ IPState RoboFocus::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
         {
             IDMessage(getDeviceName(), "Value out of limits.");
             return IPS_ALERT;
-        }
+        }*/
 
 }
 
@@ -1562,34 +1598,58 @@ bool RoboFocus::saveConfigItems(FILE *fp)
 
 void RoboFocus::TimerHit()
 {
-    if (FocusAbsPosNP.s == IPS_BUSY)
+    double prevPos=currentPosition;
+    double newPos=0;
+
+    if (FocusAbsPosNP.s == IPS_OK || FocusAbsPosNP.s == IPS_IDLE)
     {
+        int rc = updateRFPosition(&newPos);
+        if (rc >= 0)
+        {
+            currentPosition = newPos;
+            if (prevPos != currentPosition)
+                IDSetNumber(&FocusAbsPosNP, NULL);
+        }
+    }
+    else
+    {
+        float newPos=0;
         int nbytes_read=0;
-        float tempPos;
         char rf_cmd[32] ;
 
-        nbytes_read= ReadResponse(rf_cmd, RF_MAX_CMD, RF_TIMEOUT) ;
+        nbytes_read= ReadUntilComplete(rf_cmd, RF_TIMEOUT) ;
 
         rf_cmd[ nbytes_read - 1] = 0 ;
 
-        if (nbytes_read == 9)
+        if (nbytes_read != 9 || (sscanf(rf_cmd, "FD0%5f", &newPos) <= 0))
         {
+            //tcflush(PortFD, TCIFLUSH);
+            timerID = SetTimer(POLLMS);
+            return;
+        }
 
-            if (sscanf(rf_cmd, "FD0%5f", &tempPos) > 0)
+        currentPosition = newPos;
+
+        if (currentPosition == targetPos)
+        {
+            FocusAbsPosNP.s = IPS_OK;
+
+            if (FocusRelPosNP.s == IPS_BUSY)
             {
-                currentPosition = tempPos;
-                if (currentPosition == targetPos)
-                {
-                    FocusAbsPosNP.s = IPS_OK;
-                    IDSetNumber(&FocusAbsPosNP, NULL);
-                }
+                FocusRelPosNP.s = IPS_OK;
+                IDSetNumber(&FocusRelPosNP, NULL);
             }
         }
 
+        IDSetNumber(&FocusAbsPosNP, NULL);
+        if (FocusAbsPosNP.s == IPS_BUSY)
+        {
+            timerID = SetTimer(250);
+            return;
+        }
     }
 
-    SetTimer(POLLMS);
-
+    timerID = SetTimer(POLLMS);
 }
 
 bool RoboFocus::AbortFocuser()
