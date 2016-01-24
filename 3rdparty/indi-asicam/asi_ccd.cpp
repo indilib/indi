@@ -25,11 +25,10 @@
 #include <unistd.h>
 #include <sys/time.h>
 
-#ifdef OSX_EMBEDED_MODE
-#include "stream_recorder.h"
-#else
+#ifndef OSX_EMBEDED_MODE
 #include <stream_recorder.h>
 #endif
+
 #include <indidevapi.h>
 
 
@@ -268,7 +267,9 @@ bool ASICCD::initProperties()
   if (m_camInfo->IsColorCam)
       cap |= CCD_HAS_BAYER;
 
+  #ifndef OSX_EMBEDED_MODE
   cap |= CCD_HAS_STREAMING;
+  #endif
 
   SetCCDCapability(cap);
 
@@ -357,8 +358,10 @@ bool ASICCD::Connect()
 
   TemperatureUpdateCounter = 0;
 
+#ifndef OSX_EMBEDED_MODE
   pthread_create( &primary_thread, NULL, &streamVideoHelper, this);
-
+#endif
+  
   /* Success! */
   DEBUG(INDI::Logger::DBG_SESSION,  "CCD is online. Retrieving basic data.");
 
@@ -520,8 +523,10 @@ bool ASICCD::setupParams()
 
   ASISetROIFormat(m_camInfo->CameraID, m_camInfo->MaxWidth, m_camInfo->MaxHeight, 1, imgType);
 
+  #ifndef OSX_EMBEDED_MODE
   updateRecorderFormat();
   streamer->setRecorderSize(w,h);
+  #endif
 
   return true;
 
@@ -650,6 +655,7 @@ bool ASICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
 
         if (!strcmp(name, VideoFormatSP.name))
         {
+            #ifndef OSX_EMBEDED_MODE
             if (streamer->isBusy())
             {
                 VideoFormatSP.s = IPS_ALERT;
@@ -657,6 +663,7 @@ bool ASICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
                 IDSetSwitch(&VideoFormatSP, NULL);
                 return true;
             }
+            #endif
 
             IUUpdateSwitch(&VideoFormatSP, states, names, n);
 
@@ -687,6 +694,7 @@ bool ASICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
    return INDI::CCD::ISNewSwitch(dev,name,states,names,n);
 }
 
+#ifndef OSX_EMBEDED_MODE
 bool ASICCD::StartStreaming()
 {
     ASI_IMG_TYPE type = getImageType();
@@ -722,7 +730,9 @@ bool ASICCD::StartStreaming()
 
     return true;
 }
+#endif
 
+#ifndef OSX_EMBEDED_MODE
 bool ASICCD::StopStreaming()
 {
     pthread_mutex_lock(&condMutex);
@@ -733,6 +743,7 @@ bool ASICCD::StopStreaming()
 
     return true;
 }
+#endif
 
 int ASICCD::SetTemperature(double temperature)
 {
@@ -860,7 +871,9 @@ bool ASICCD::UpdateCCDFrame(int x, int y, int w, int h)
       return false;
   } 
 
+  #ifndef OSX_EMBEDED_MODE
   streamer->setRecorderSize(bin_width, bin_height);
+  #endif
 
   // Set UNBINNED coords
   PrimaryCCD.setFrame(x, y, w, h);
@@ -1450,6 +1463,7 @@ void ASICCD::updateControls()
 void ASICCD::updateRecorderFormat()
 {
 
+    #ifndef OSX_EMBEDED_MODE
     switch (getImageType())
     {
       case ASI_IMG_Y8:
@@ -1481,9 +1495,11 @@ void ASICCD::updateRecorderFormat()
         break;
 
     }
+    #endif
 
 }
 
+#ifndef OSX_EMBEDED_MODE
 void * ASICCD::streamVideoHelper(void* context)
 {
     return ((ASICCD*)context)->streamVideo();
@@ -1525,3 +1541,5 @@ void* ASICCD::streamVideo()
   pthread_mutex_unlock(&condMutex);
   return 0;
 }
+#endif
+

@@ -49,8 +49,10 @@ public:
   bool StartExposure(float duration);
   bool AbortExposure();
 
+  #ifndef OSX_EMBEDED_MODE
   static void * streamVideoHelper(void* context);
   void * streamVideo();
+  #endif
 
 protected:
 
@@ -58,8 +60,10 @@ protected:
   bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
 
   // Streaming
+  #ifndef OSX_EMBEDED_MODE
   bool StartStreaming();
   bool StopStreaming();
+  #endif
 
   void TimerHit();
   virtual bool UpdateCCDFrame(int x, int y, int w, int h);
