@@ -735,7 +735,7 @@ void Skywatcher::SetSpeed(SkywatcherAxis axis, unsigned long period) throw (EQMo
 {
   char cmd[7];  
   SkywatcherAxisStatus *currentstatus;
-
+  
   DEBUGF(DBG_MOUNT, "%s() : Axis = %c -- period=%ld", __FUNCTION__, axis, period);
 
   ReadMotorStatus(axis);
@@ -745,8 +745,13 @@ void Skywatcher::SetSpeed(SkywatcherAxis axis, unsigned long period) throw (EQMo
     period = minperiods[axis];
   }
   long2Revu24str(period, cmd);
-  if (axis==Axis1) RAPeriod=period; else DEPeriod=period;
+
+  if ((axis==Axis1) && (RARunning && (currentstatus->slewmode == GOTO || currentstatus->speedmode == HIGHSPEED))) 
+    throw  EQModError(EQModError::ErrInvalidParameter, "Can not change speed while motor is running and in goto or highspeed slew.");
+  if ((axis==Axis2) && (DERunning && (currentstatus->slewmode == GOTO || currentstatus->speedmode == HIGHSPEED))) 
+    throw  EQModError(EQModError::ErrInvalidParameter, "Can not change speed while motor is running and in goto or highspeed slew.");
   
+  if (axis==Axis1) RAPeriod=period; else DEPeriod=period;
   dispatch_command(SetStepPeriod, axis, cmd);
   read_eqmod(); 
 }
@@ -881,18 +886,20 @@ void Skywatcher::SetMotion(SkywatcherAxis axis, SkywatcherAxisStatus newstatus) 
   default: motioncmd[0] ='1'; break;
   }
   if (newstatus.direction == FORWARD) motioncmd[1] = '0'; else motioncmd[1] = '1';
+  /*
 #ifdef STOP_WHEN_MOTION_CHANGED
   StopWaitMotor(axis);
   dispatch_command(SetMotionMode, axis, motioncmd);
   read_eqmod();
 #else
+  */
   if ((newstatus.direction != currentstatus->direction) || (newstatus.speedmode != currentstatus->speedmode)
       || (newstatus.slewmode != currentstatus->slewmode)) {
     StopWaitMotor(axis);
     dispatch_command(SetMotionMode, axis, motioncmd);
     read_eqmod();
   }
-#endif
+  //#endif
   NewStatus[axis]=newstatus;
 }
 

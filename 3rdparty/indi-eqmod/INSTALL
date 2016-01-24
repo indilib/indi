@@ -26,7 +26,7 @@ of Kstars do not support the display of NOFMANY switches, normal
 switches are used by default. 
 $ cmake -DCMAKE_INSTALL_PREFIX=/usr -DWITH_NOFMANY:OPTION=TRUE . ../indi-eqmod
 
-  	d) Stop motor when motion mode changes: always stop motor before changing
+  	d) **SUPPRESSED** Stop motor when motion mode changes: always stop motor before changing
 motion mode/speed. By default, the driver only emits commands for changing speed
 when the motion mode is the same.
 $ cmake -DCMAKE_INSTALL_PREFIX=/usr -DSTOP_WHEN_MOTION_CHANGED:OPTION=TRUE . ../indi-eqmod
