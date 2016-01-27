@@ -2295,6 +2295,7 @@
 		59567D381A8D41640057A35A /* indi_fcusb_focuser */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_fcusb_focuser; sourceTree = BUILT_PRODUCTS_DIR; };
 		59567D4A1A8D418E0057A35A /* indi_usbfocus_focuser */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_usbfocus_focuser; sourceTree = BUILT_PRODUCTS_DIR; };
 		59567D581A8D4EA70057A35A /* README.txt */ = {isa = PBXFileReference; lastKnownFileType = text; name = README.txt; path = ../README.txt; sourceTree = "<group>"; };
+		595FA8BC1C54C0FD003869DE /* asi_ccd.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = asi_ccd.h; path = "indi-asicam/asi_ccd.h"; sourceTree = "<group>"; };
 		596556781C4A3E530044680B /* indi_qsi_ccd */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_qsi_ccd; sourceTree = BUILT_PRODUCTS_DIR; };
 		5965568D1C4A3EF60044680B /* qsi_ccd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qsi_ccd.cpp; sourceTree = "<group>"; };
 		5965568F1C4A3F120044680B /* ConvertUTF.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ConvertUTF.c; path = ../libqsi/ConvertUTF.c; sourceTree = "<group>"; };
@@ -3138,6 +3139,7 @@
 			isa = PBXGroup;
 			children = (
 				5944995A1C136C0400E0E281 /* config.h */,
+				595FA8BC1C54C0FD003869DE /* asi_ccd.h */,
 				594499461C13643F00E0E281 /* asi_ccd.cpp */,
 				594499471C13643F00E0E281 /* indi_asiccd.xml */,
 				5944994B1C13651F00E0E281 /* libASICamera2.lib */,
