@@ -27,6 +27,7 @@
 #include <string.h>
 #include <time.h>
 #include <sys/time.h>
+#include <sys/stat.h>
 #include <zlib.h>
 #include <errno.h>
 #include <dirent.h>
@@ -2255,6 +2256,11 @@ int INDI::CCD::getFileIndex(const char *dir, const char *prefix, const char *ext
 
     std::string prefixSearch = prefix;
     prefixSearch.replace(prefixSearch.find("XXX"), 3, "");
+
+    // Create directory if does not exist
+    struct stat st = {0};
+    if (stat(dir, &st) == -1)
+        mkdir(dir, 0755);
 
     dpdf = opendir(dir);
     if (dpdf != NULL)
