@@ -2260,7 +2260,11 @@ int INDI::CCD::getFileIndex(const char *dir, const char *prefix, const char *ext
     // Create directory if does not exist
     struct stat st = {0};
     if (stat(dir, &st) == -1)
-        mkdir(dir, 0755);
+    {
+       DEBUGF(INDI::Logger::DBG_DEBUG, "Creating directory %s...", dir);
+       if (mkdir(dir, 0755) == -1)
+           DEBUGF(INDI::Logger::DBG_ERROR, "Error creating directory %s (%s)", dir, strerror(errno));
+    }
 
     dpdf = opendir(dir);
     if (dpdf != NULL)
