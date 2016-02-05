@@ -1074,7 +1074,9 @@ bool QHYCCD::SelectFilter(int position)
         ret = QHYCCD_SUCCESS;
     else
     {
-        sprintf(&targetpos,"%d",position - 1);
+        // JM: THIS WILL CRASH! I am using another method with same result!
+        //sprintf(&targetpos,"%d",position - 1);
+        targetpos = '0' + position;
         ret = SendOrder2QHYCCDCFW(camhandle,&targetpos,1);
     }
 
