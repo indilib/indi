@@ -671,6 +671,7 @@ bool Align::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsi
 
 bool Align::saveConfigItems(FILE *fp)
 {
-    IUSaveConfigSwitch(fp, AlignModeSP);
+    if (AlignModeSP)
+        IUSaveConfigSwitch(fp, AlignModeSP);
     return true;
 }
