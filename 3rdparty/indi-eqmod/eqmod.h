@@ -66,7 +66,8 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 
     double currentRA, currentHA;
     double currentDEC;
-	double alignedRA, alignedDEC;
+    double alignedRA, alignedDEC;
+    double ghalignedRA, ghalignedDEC;
     double targetRA;
     double targetDEC;
     
@@ -124,7 +125,14 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
     ISwitchVectorProperty *ReverseDECSP;
   	INumberVectorProperty *BacklashNP;
 	ISwitchVectorProperty *UseBacklashSP;
-
+#if defined WITH_ALIGN && defined WITH_ALIGN_GEEHALEL
+	ISwitch AlignMethodS[2];
+	ISwitchVectorProperty AlignMethodSP;
+#endif
+#if defined WITH_ALIGN || defined WITH_ALIGN_GEEHALEL
+	ISwitchVectorProperty *AlignSyncModeSP;
+#endif
+	
 	enum Hemisphere {NORTH=0, SOUTH=1 };
 	enum PierSide {WEST=0, EAST=1};
 	typedef struct GotoParams {
@@ -170,6 +178,9 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 
 	void computePolarAlign(SyncData s1, SyncData s2, double lat, double *tpaalt, double *tpaaz);
 	void starPolarAlign(double lst, double ra, double dec, double theta, double gamma, double *tra, double *tdec);     
+#if defined WITH_ALIGN || defined WITH_ALIGN_GEEHALEL
+	bool isStandardSync();
+#endif
 
     public:
         EQMod();

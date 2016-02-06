@@ -40,7 +40,6 @@ class Align
   INumberVectorProperty *AlignPointNP;
   ISwitchVectorProperty *AlignListSP;
   INumberVectorProperty *AlignTelescopeCoordsNP;
-  ISwitchVectorProperty *AlignSyncModeSP;
   ISwitchVectorProperty *AlignModeSP;
   INumberVectorProperty *AlignCountNP;
 
@@ -81,7 +80,6 @@ public:
   //virtual void AlignSync(double lst, double jd, double targetRA, double targetDEC, double telescopeRA, double telescopeDEC);
   virtual void AlignSync(SyncData globalsync, SyncData thissync);
   virtual void AlignStandardSync(SyncData globalsync, SyncData *thissync, struct ln_lnlat_posn *position);
-  virtual bool isStandardSync();
 };
 
 #endif // ALIGN_H

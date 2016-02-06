@@ -224,6 +224,13 @@ EQMod::~EQMod()
 
 }
 
+#if defined WITH_ALIGN || defined WITH_ALIGN_GEEHALEL
+bool EQMod::isStandardSync()
+{
+  return (strcmp(IUFindOnSwitch(AlignSyncModeSP)->name, "ALIGNSTANDARDSYNC") == 0);
+}
+#endif
+
 #ifdef WITH_SIMULATOR
 void EQMod::setStepperSimulation (bool enable) 
 {
@@ -380,7 +387,15 @@ bool EQMod::loadProperties()
     SyncManageSP=getSwitch("SYNCMANAGE");
     BacklashNP=getNumber("BACKLASH");
     UseBacklashSP=getSwitch("USEBACKLASH");
-
+#if defined WITH_ALIGN && defined WITH_ALIGN_GEEHALEL
+    IUFillSwitch(&AlignMethodS[0], "ALIGN_METHOD_EQMOD", "EQMod Align", ISS_ON);
+    IUFillSwitch(&AlignMethodS[1], "ALIGN_METHOD_SUBSYSTEM", "Alignment Subsystem", ISS_OFF);
+    IUFillSwitchVector(&AlignMethodSP, AlignMethodS, NARRAY(AlignMethodS), getDeviceName(), "ALIGN_METHOD", "Align Method", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+#endif
+#if defined WITH_ALIGN || defined WITH_ALIGN_GEEHALEL
+    AlignSyncModeSP=getSwitch("ALIGNSYNCMODE");
+#endif
+    
     INDI::GuiderInterface::initGuiderProperties(this->getDeviceName(), MOTION_TAB);    
 
 #ifdef WITH_SCOPE_LIMITS
@@ -428,7 +443,12 @@ bool EQMod::updateProperties()
     defineNumber(BacklashNP);
 	defineSwitch(UseBacklashSP);
 	defineSwitch(TrackDefaultSP);
-
+#if defined WITH_ALIGN && defined WITH_ALIGN_GEEHALEL
+	defineSwitch(&AlignMethodSP);
+#endif
+#if defined WITH_ALIGN || defined WITH_ALIGN_GEEHALEL
+	defineSwitch(AlignSyncModeSP);
+#endif
 	try {
 	  mount->InquireBoardVersion(MountInformationTP);
 
@@ -493,6 +513,12 @@ bool EQMod::updateProperties()
 	  deleteProperty(TrackDefaultSP->name);
 	  deleteProperty(BacklashNP->name);
 	  deleteProperty(UseBacklashSP->name);
+#if defined WITH_ALIGN && defined WITH_ALIGN_GEEHALEL
+	  deleteProperty(AlignMethodSP.name);
+#endif
+#if defined WITH_ALIGN || defined WITH_ALIGN_GEEHALEL
+	  deleteProperty(AlignSyncModeSP->name);
+#endif
 	  MountInformationTP=NULL;
 	} 
       }
@@ -643,10 +669,14 @@ bool EQMod::ReadScopeStatus() {
     DEBUGF(DBG_SCOPE_STATUS, "Current encoders RA=%ld DE=%ld", currentRAEncoder, currentDEEncoder);
     EncodersToRADec(currentRAEncoder, currentDEEncoder, lst, &currentRA, &currentDEC, &currentHA);
     alignedRA=currentRA; alignedDEC=currentDEC;
+    ghalignedRA=currentRA; ghalignedDEC=currentDEC;
+    bool aligned = false;
 #ifdef WITH_ALIGN_GEEHALEL
-    if (align) 
-      align->GetAlignedCoords(syncdata, juliandate, &lnobserver, currentRA, currentDEC, &alignedRA, &alignedDEC);
-    else 
+    if (align) {
+      align->GetAlignedCoords(syncdata, juliandate, &lnobserver, currentRA, currentDEC, &ghalignedRA, &ghalignedDEC);
+      aligned = true;
+    }
+    //   else 
 #endif
 #ifdef WITH_ALIGN
     const char *maligns[3]={"ZENITH", "NORTH", "SOUTH"};
@@ -659,10 +689,16 @@ bool EQMod::ReadScopeStatus() {
 	   maligns[ GetApproximateMountAlignment()], juliandate,  currentRAEncoder, currentDEEncoder, currentRA, currentDEC);
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, " Direction RA(deg.)  %lf DEC %lf TDV(x %lf y %lf z %lf)",
 	   RaDec.ra, RaDec.dec, TDV.x, TDV.y, TDV.z);
-    if ((GetAlignmentDatabase().size() < 2) || (!TransformTelescopeToCelestial( TDV, alignedRA, alignedDEC)))
+    aligned=true;
+    if ((GetAlignmentDatabase().size() < 2) || (!TransformTelescopeToCelestial( TDV, alignedRA, alignedDEC))) {
+    //if (!TransformTelescopeToCelestial( TDV, alignedRA, alignedDEC)) {
+      aligned = false;
+      DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Failed TransformTelescopeToCelestial: Scope RA=%g Scope DE=%f, Aligned RA=%f DE=%f", currentRA, currentDEC, alignedRA, alignedDEC);  
+    }  else {
+      DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "TransformTelescopeToCelestial: Scope RA=%f Scope DE=%f, Aligned RA=%f DE=%f", currentRA, currentDEC, alignedRA, alignedDEC);  
+    }
 #endif
-      {
-      if (syncdata.lst != 0.0) {
+    if (!aligned && (syncdata.lst != 0.0)) {
 	DEBUGF(DBG_SCOPE_STATUS, "Aligning with last sync delta RA %g DE %g", syncdata.deltaRA, syncdata.deltaDEC);
 	// should check values are in range!
 	alignedRA += syncdata.deltaRA;
@@ -673,17 +709,19 @@ bool EQMod::ReadScopeStatus() {
 	  else alignedDEC = -180.0 - alignedDEC;
 	}
 	alignedRA=range24(alignedRA);
-      }
-#ifdef WITH_ALIGN
-      DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Failed TransformTelescopeToCelestial: Scope RA=%g Scope DE=%f, Aligned RA=%f DE=%f", currentRA, currentDEC, alignedRA, alignedDEC);  
-#endif
-      }
-    
-#ifdef WITH_ALIGN
-    else {
-      DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "TransformTelescopeToCelestial: Scope RA=%f Scope DE=%f, Aligned RA=%f DE=%f", currentRA, currentDEC, alignedRA, alignedDEC);  
     }
+      
+#if defined WITH_ALIGN_GEEHALEL && ! defined WITH_ALIGN
+      alignedRA=ghalignedRA;
+      alignedDEC=ghalignedDEC;
 #endif
+#if defined WITH_ALIGN_GEEHALEL &&  defined WITH_ALIGN
+      if (AlignMethodSP.sp[0].s==ISS_ON) {
+	alignedRA=ghalignedRA;
+	alignedDEC=ghalignedDEC;
+      }
+#endif
+	  
     NewRaDec(alignedRA, alignedDEC);
     lnradec.ra =(alignedRA * 360.0) / 24.0;
     lnradec.dec =alignedDEC;
@@ -1131,26 +1169,32 @@ bool EQMod::Goto(double r,double d)
     bzero(&gotoparams, sizeof(gotoparams));
     gotoparams.ratarget = r;  gotoparams.detarget = d;
     gotoparams.racurrent = currentRA; gotoparams.decurrent = currentDEC;
+    bool aligned = false;
 #ifdef WITH_ALIGN_GEEHALEL
-    if (align) 
-      align->AlignGoto(syncdata, juliandate, &lnobserver, &gotoparams.ratarget, &gotoparams.detarget);
-    else 
+    double ghratarget=r, ghdetarget=d;
+    aligned = true;
+    if (align) {
+      align->AlignGoto(syncdata, juliandate, &lnobserver, &ghratarget, &ghdetarget);
+      DEBUGF(INDI::Logger::DBG_SESSION,"Aligned Eqmod Goto RA=%g DE=%g (target RA=%g DE=%g)", ghratarget, ghdetarget, r, d);      
+    } else {
+      if (syncdata.lst != 0.0) {
+	ghratarget = gotoparams.ratarget - syncdata.deltaRA;
+	ghdetarget = gotoparams.detarget - syncdata.deltaDEC;
+	DEBUGF(INDI::Logger::DBG_SESSION,"Failed Eqmod Goto RA=%g DE=%g (target RA=%g DE=%g)", ghratarget, ghdetarget, r, d);      
+      }   
+    }
 #endif
 #ifdef WITH_ALIGN
     TelescopeDirectionVector TDV;
-    if ((GetAlignmentDatabase().size() < 2) || (!TransformCelestialToTelescope(r, d, 0.0, TDV)))
-#endif      
-      {
+    aligned=true;
+    if ((GetAlignmentDatabase().size() < 2) || (!TransformCelestialToTelescope(r, d, 0.0, TDV))) {
+    //if (!TransformCelestialToTelescope(r, d, 0.0, TDV)) {
+      DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Failed TransformCelestialToTelescope:  RA=%lf DE=%lf, Goto RA=%lf DE=%lf", r, d, gotoparams.ratarget, gotoparams.detarget);
       if (syncdata.lst != 0.0) {
 	gotoparams.ratarget -= syncdata.deltaRA;
 	gotoparams.detarget -= syncdata.deltaDEC;
-      }
-#ifdef WITH_ALIGN
-      DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Failed TransformCelestialToTelescope:  RA=%lf DE=%lf, Goto RA=%lf DE=%lf", r, d, gotoparams.ratarget, gotoparams.detarget);  
-#endif     
-      }
-#ifdef WITH_ALIGN
-    else {
+      }   
+    } else {
       struct ln_equ_posn RaDec;
       LocalHourAngleDeclinationFromTelescopeDirectionVector(TDV, RaDec);
       DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "TransformCelestialToTelescope: RA=%lf DE=%lf, TDV (x :%lf, y: %lf, z: %lf), local hour RA %lf DEC %lf", r, d,
@@ -1164,6 +1208,25 @@ bool EQMod::Goto(double r,double d)
     }
 #endif  
 
+    if (!aligned && (syncdata.lst != 0.0)) {
+      gotoparams.ratarget -= syncdata.deltaRA;
+      gotoparams.detarget -= syncdata.deltaDEC;
+    }
+
+#if defined WITH_ALIGN_GEEHALEL && ! defined WITH_ALIGN
+    if (aligned) {
+      gotoparams.ratarget =ghratarget;
+      gotoparams.detarget =ghdetarget;
+    }
+#endif
+#if defined WITH_ALIGN_GEEHALEL &&  defined WITH_ALIGN
+    if (aligned && (AlignMethodSP.sp[0].s==ISS_ON)) {
+      DEBUGF(INDI::Logger::DBG_SESSION,"Setting Eqmod Goto RA=%g DE=%g (target RA=%g DE=%g)", ghratarget, ghdetarget, r, d);      
+      gotoparams.ratarget =ghratarget;
+      gotoparams.detarget =ghdetarget;
+    }
+#endif
+    
     gotoparams.racurrentencoder = currentRAEncoder; gotoparams.decurrentencoder = currentDEEncoder;
     gotoparams.completed = false; 
     gotoparams.checklimits = true; 
@@ -1300,14 +1363,13 @@ bool EQMod::Sync(double ra,double dec)
   tmpsyncdata.deltaRAEncoder = tmpsyncdata.targetRAEncoder - tmpsyncdata.telescopeRAEncoder;
   tmpsyncdata.deltaDECEncoder= tmpsyncdata.targetDECEncoder - tmpsyncdata.telescopeDECEncoder;
 #ifdef WITH_ALIGN_GEEHALEL
-  if (align && !align->isStandardSync()) {
+  if (align && !isStandardSync()) {
     align->AlignSync(syncdata, tmpsyncdata);
-    return true;
+    //return true;
   }
-  if (align && align->isStandardSync())
-    align->AlignStandardSync(syncdata, &tmpsyncdata, &lnobserver);
 #endif
 #ifdef WITH_ALIGN
+  if (!isStandardSync()) 
   {
     AlignmentDatabaseEntry NewEntry;
     struct ln_equ_posn RaDec;
@@ -1333,35 +1395,43 @@ bool EQMod::Sync(double ra,double dec)
         // Tell the math plugin to reinitialise
         Initialise(this);
 
-	if (GetAlignmentDatabase().size() >= 2)  return true;
+	//if (GetAlignmentDatabase().size() >= 2)  return true;
     }
-    if (GetAlignmentDatabase().size() >= 2) return false;
+    //if (GetAlignmentDatabase().size() >= 2) return false;
   }
 #endif
-  syncdata2=syncdata;
-  syncdata=tmpsyncdata;
+#if defined  WITH_ALIGN_GEEHALEL || defined  WITH_ALIGN
+  if (isStandardSync())
+#endif
+    {
+#ifdef WITH_ALIGN_GEEHALEL
+    if (align && isStandardSync())
+      align->AlignStandardSync(syncdata, &tmpsyncdata, &lnobserver);
+#endif
+    syncdata2=syncdata;
+    syncdata=tmpsyncdata;
 
-  IUFindNumber(StandardSyncNP, "STANDARDSYNC_RA")->value=syncdata.deltaRA;
-  IUFindNumber(StandardSyncNP, "STANDARDSYNC_DE")->value=syncdata.deltaDEC;
-  IDSetNumber(StandardSyncNP, NULL);
-  IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_JD")->value=juliandate;
-  IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_SYNCTIME")->value=lst;
-  IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_CELESTIAL_RA")->value=syncdata.targetRA;;
-  IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_CELESTIAL_DE")->value=syncdata.targetDEC;;
-  IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_TELESCOPE_RA")->value=syncdata.telescopeRA;;
-  IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_TELESCOPE_DE")->value=syncdata.telescopeDEC;;
-  IDSetNumber(StandardSyncPointNP, NULL);
-
-  DEBUGF(INDI::Logger::DBG_SESSION, "Mount Synced (deltaRA = %.6f deltaDEC = %.6f)", syncdata.deltaRA, syncdata.deltaDEC);
-  //IDLog("Mount Synced (deltaRA = %.6f deltaDEC = %.6f)\n", syncdata.deltaRA, syncdata.deltaDEC);
-  if (syncdata2.lst!=0.0) {
-    computePolarAlign(syncdata2, syncdata, getLatitude(), &tpa_alt, &tpa_az);
-    IUFindNumber(SyncPolarAlignNP, "SYNCPOLARALIGN_ALT")->value=tpa_alt;
-    IUFindNumber(SyncPolarAlignNP, "SYNCPOLARALIGN_AZ")->value=tpa_az;
-    IDSetNumber(SyncPolarAlignNP, NULL); 
-    IDLog("computePolarAlign: Telescope Polar Axis: alt = %g, az = %g\n", tpa_alt, tpa_az);
+    IUFindNumber(StandardSyncNP, "STANDARDSYNC_RA")->value=syncdata.deltaRA;
+    IUFindNumber(StandardSyncNP, "STANDARDSYNC_DE")->value=syncdata.deltaDEC;
+    IDSetNumber(StandardSyncNP, NULL);
+    IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_JD")->value=juliandate;
+    IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_SYNCTIME")->value=lst;
+    IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_CELESTIAL_RA")->value=syncdata.targetRA;;
+    IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_CELESTIAL_DE")->value=syncdata.targetDEC;;
+    IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_TELESCOPE_RA")->value=syncdata.telescopeRA;;
+    IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_TELESCOPE_DE")->value=syncdata.telescopeDEC;;
+    IDSetNumber(StandardSyncPointNP, NULL);
+    
+    DEBUGF(INDI::Logger::DBG_SESSION, "Mount Synced (deltaRA = %.6f deltaDEC = %.6f)", syncdata.deltaRA, syncdata.deltaDEC);
+    //IDLog("Mount Synced (deltaRA = %.6f deltaDEC = %.6f)\n", syncdata.deltaRA, syncdata.deltaDEC);
+    if (syncdata2.lst!=0.0) {
+      computePolarAlign(syncdata2, syncdata, getLatitude(), &tpa_alt, &tpa_az);
+      IUFindNumber(SyncPolarAlignNP, "SYNCPOLARALIGN_ALT")->value=tpa_alt;
+      IUFindNumber(SyncPolarAlignNP, "SYNCPOLARALIGN_AZ")->value=tpa_az;
+      IDSetNumber(SyncPolarAlignNP, NULL); 
+      IDLog("computePolarAlign: Telescope Polar Axis: alt = %g, az = %g\n", tpa_alt, tpa_az);
+    }
   }
-  
   return true;
 }
 
@@ -1761,8 +1831,33 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
           IDSetSwitch(ReverseDECSP, NULL);
 
       }
+ #if defined WITH_ALIGN || defined WITH_ALIGN_GEEHALEL     
+      if(AlignSyncModeSP && strcmp(name, AlignSyncModeSP->name)==0)
+	{
+	  ISwitch *sw;
+	  AlignSyncModeSP->s=IPS_OK;
+	  IUUpdateSwitch(AlignSyncModeSP,states,names,n);
+	  //for (int i=0; i < n; i++)
+	  //  IDLog("AlignSyncMode Switch %s %d\n", names[i], states[i]);
+	  sw=IUFindOnSwitch(AlignSyncModeSP);
+	  IDSetSwitch(AlignSyncModeSP, "Sync mode set to %s", sw->label);
+	  return true;
+	}
+#endif
 
-
+#if defined WITH_ALIGN_GEEHALEL &&  defined WITH_ALIGN
+      if(strcmp(name, AlignMethodSP.name)==0)
+	{
+	  ISwitch *sw;
+	  AlignMethodSP.s=IPS_OK;
+	  IUUpdateSwitch(&AlignMethodSP,states,names,n);
+	  //for (int i=0; i < n; i++)
+	  //  IDLog("AlignSyncMode Switch %s %d\n", names[i], states[i]);
+	  sw=IUFindOnSwitch(&AlignMethodSP);
+	  IDSetSwitch(&AlignMethodSP, "Align method set to %s", sw->label);
+	  return true;
+	}
+#endif
     }
 #ifdef WITH_ALIGN_GEEHALEL
     if (align) { compose=align->ISNewSwitch(dev,name,states,names,n); if (compose) return true;}

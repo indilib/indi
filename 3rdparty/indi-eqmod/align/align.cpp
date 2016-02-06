@@ -91,7 +91,7 @@ Align::Align(INDI::Telescope *t)
   AlignListSP=NULL;
   AlignModeSP=NULL;
   AlignTelescopeCoordsNP=NULL;
-  AlignSyncModeSP=NULL;
+
   AlignCountNP=NULL;
 }
 
@@ -130,7 +130,6 @@ bool Align::initProperties()
     AlignListSP=telescope->getSwitch("ALIGNLIST");
     AlignModeSP=telescope->getSwitch("ALIGNMODE");
     AlignTelescopeCoordsNP=telescope->getNumber("ALIGNTELESCOPECOORDS");
-    AlignSyncModeSP=telescope->getSwitch("ALIGNSYNCMODE");
     AlignCountNP=telescope->getNumber("ALIGNCOUNT");
 
     return true;
@@ -148,7 +147,6 @@ bool Align::updateProperties ()
       telescope->defineSwitch(AlignListSP);
       telescope->defineNumber(AlignTelescopeCoordsNP);
       telescope->defineNumber(AlignCountNP);
-      telescope->defineSwitch(AlignSyncModeSP);
       telescope->defineSwitch(AlignModeSP);
     Init();
     } else if (AlignDataBP)
@@ -158,7 +156,6 @@ bool Align::updateProperties ()
       telescope->deleteProperty(AlignListSP->name);
       telescope->deleteProperty(AlignTelescopeCoordsNP->name);
       telescope->deleteProperty(AlignCountNP->name);
-      telescope->deleteProperty(AlignSyncModeSP->name);
       telescope->deleteProperty(AlignModeSP->name);
       telescope->deleteProperty(AlignDataFileTP->name);
       AlignDataFileTP=NULL;
@@ -167,7 +164,6 @@ bool Align::updateProperties ()
       AlignListSP=NULL;
       AlignModeSP=NULL;
       AlignTelescopeCoordsNP=NULL;
-      AlignSyncModeSP=NULL;
     }
   return true;
 }
@@ -520,11 +516,6 @@ void Align::GetAlignedCoords(SyncData globalsync, double jd, struct ln_lnlat_pos
   }
 }
 
-bool Align::isStandardSync()
-{
-  return (strcmp(IUFindOnSwitch(AlignSyncModeSP)->name, "ALIGNSTANDARDSYNC") == 0);
-}
-
 bool Align::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
   //  first check if it's for our device
@@ -560,18 +551,6 @@ bool Align::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 	  IUUpdateSwitch(AlignModeSP,states,names,n);
 	  sw=IUFindOnSwitch(AlignModeSP);
 	  IDSetSwitch(AlignModeSP,"Alignment mode set to %s", sw->label);
-	  return true;
-	}
-
-      if(AlignSyncModeSP && strcmp(name, AlignSyncModeSP->name)==0)
-	{
-	  ISwitch *sw;
-	  AlignSyncModeSP->s=IPS_OK;
-	  IUUpdateSwitch(AlignSyncModeSP,states,names,n);
-	  //for (int i=0; i < n; i++)
-	  //  IDLog("AlignSyncMode Switch %s %d\n", names[i], states[i]);
-	  sw=IUFindOnSwitch(AlignSyncModeSP);
-	  IDSetSwitch(AlignSyncModeSP, "Sync mode set to %s", sw->label);
 	  return true;
 	}
 

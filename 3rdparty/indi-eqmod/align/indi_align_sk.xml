@@ -68,12 +68,4 @@ Off
 </defNumber>
 </defNumberVector>
 
-<defSwitchVector device="EQMod Mount" name="ALIGNSYNCMODE" label="Sync. Mode" group="Sync" state="Idle" perm="rw" rule="OneOfMany">
-<defSwitch name="ALIGNSTANDARDSYNC" label="Standard Sync">
-Off
-</defSwitch>
-<defSwitch name="ALIGNAPPENDSYNC" label="Add point on Sync">
-On
-</defSwitch>
-</defSwitchVector>
 </INDIDriver>

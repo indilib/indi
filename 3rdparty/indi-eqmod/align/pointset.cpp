@@ -223,6 +223,7 @@ void PointSet::Init()
 
 void PointSet::Reset()
 {
+  current.clear();
   if (PointSetMap) {
     PointSetMap->clear();
     //delete(PointSetMap);
@@ -493,7 +494,7 @@ std::vector<HtmID> PointSet::findFace(double currentRA, double currentDEC, doubl
   point.cx = cos(altangle) * cos(horangle);
   point.cy = cos(altangle) * sin(horangle);
   point.cz = sin(altangle);
-  
+
   if (Triangulation->isValid() && isPointInside(&point, current, ingoto)) return current;
   faces=Triangulation->getFaces();
   it=faces.begin(); 
