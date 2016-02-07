@@ -2,7 +2,7 @@ Source: indi-eqmod
 Section: science
 Priority: extra
 Maintainer: Jasem Mutlaq <mutlaqja@ikarustech.com>
-Build-Depends: debhelper (>= 6), cdbs, cmake, libindi-dev, zlib1g-dev, libnova-dev
+Build-Depends: debhelper (>= 6), cdbs, cmake, libindi-dev, zlib1g-dev, libnova-dev, libgsl0-dev
 Standards-Version: 3.9.2
 
 Package: indi-eqmod
