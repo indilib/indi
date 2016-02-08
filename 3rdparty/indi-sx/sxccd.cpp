@@ -502,10 +502,10 @@ void SXCCD::ExposureTimerHit() {
             rc = sxReadPixels(handle, oddBuf, size);
           if (rc) {
             for (int i = 0, j = 0; i < subH; i += 2, j++) {
-              memcpy(buf + i * subWW, evenBuf + (j * subWW), subWW);
-              memcpy(buf + ((i + 1) * subWW), oddBuf + (j * subWW), subWW);
+              memcpy(buf + i * subWW, oddBuf + (j * subWW), subWW);
+              memcpy(buf + ((i + 1) * subWW), evenBuf + (j * subWW), subWW);
             }
-            deinterlace((unsigned short *)buf, subW, subH);
+//            deinterlace((unsigned short *)buf, subW, subH);
           }
         }
       } else {
