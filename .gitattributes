@@ -271,6 +271,7 @@
 3rdparty/indi-nexstarevo/CMakeLists.txt -text
 3rdparty/indi-nexstarevo/NexStarAUXScope.cpp -text
 3rdparty/indi-nexstarevo/NexStarAUXScope.h -text
+3rdparty/indi-nexstarevo/README -text
 3rdparty/indi-nexstarevo/indi_nexstarevo.xml -text
 3rdparty/indi-nexstarevo/nexstarevo.cpp -text
 3rdparty/indi-nexstarevo/nexstarevo.h -text

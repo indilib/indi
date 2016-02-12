@@ -13,6 +13,7 @@
 #include <arpa/inet.h>
 
 #include <indicom.h>
+#include <inditelescope.h>
 #include "NexStarAUXScope.h"
 
 
@@ -131,6 +132,16 @@ long AUXCommand::getPosition(){
     }
 }
 
+// One definition rule (ODR) constants
+// AUX commands use 24bit integer as a representation of angle in units of 
+// fractional revolutions. Thus 2^24 steps makes full revolution.
+const long STEPS_PER_REVOLUTION = 16777216; 
+const double STEPS_PER_DEGREE = STEPS_PER_REVOLUTION / 360.0;
+
+void AUXCommand::setPosition(double p){
+    setPosition(long(p * STEPS_PER_DEGREE));
+}
+
 void AUXCommand::setPosition(long p){
     int a=(int)p;
     //fprintf(stderr,"Angle: %08x = %d => %f\n", a, a, a/pow(2,24));
@@ -185,7 +196,7 @@ void NexStarAUXScope::initScope() {
     slewingAz=false;
     // Park position at the south horizon.
     Alt=targetAlt=Az=targetAz=0;
-    
+    Lat=Lon=Elv=0;
     sock=0;
 };
 
@@ -228,6 +239,12 @@ bool NexStarAUXScope::Disconnect(){
     closeConnection();
 }
 
+bool NexStarAUXScope::UpdateLocation(double lat, double lon, double elev){
+    Lat=lat;
+    Lon=lon;
+    Elv=elev;
+    return true;
+}
 
 void NexStarAUXScope::closeConnection(){
     if (sock > 0) {
@@ -309,8 +326,8 @@ bool NexStarAUXScope::Track(long altRate, long azRate){
     //fprintf(stderr,"Set tracking rates: ALT: %ld   AZM: %ld\n", AltRate, AzRate);
     AUXCommand altcmd((altRate<0)? MC_SET_NEG_GUIDERATE : MC_SET_POS_GUIDERATE,APP,ALT);
     AUXCommand azmcmd((azRate<0)? MC_SET_NEG_GUIDERATE : MC_SET_POS_GUIDERATE,APP,AZM);
-    altcmd.setPosition(abs(AltRate));
-    azmcmd.setPosition(abs(AzRate));
+    altcmd.setPosition(long(abs(AltRate)));
+    azmcmd.setPosition(long(abs(AzRate)));
     
     sendCmd(&altcmd);
     sendCmd(&azmcmd);
@@ -346,11 +363,117 @@ void NexStarAUXScope::querryStatus(){
     
 }
 
+void NexStarAUXScope::emulateGPS(AUXCommand *m) {
+    if (m->dst != GPS) return;
+    if (DEBUG) fprintf(stderr,"Got 0x%02x for GPS\n", m->cmd);
+
+    switch (m->cmd) {
+        case GET_VER: { 
+            // fprintf(stderr,"GPS: GET_VER from 0x%02x\n", m->src);
+            buffer dat(2);
+            dat[0]=0x01;
+            dat[1]=0x00;
+            AUXCommand *cmd=new AUXCommand(GET_VER,GPS,m->src,dat);
+            if (not sendCmd(cmd)) {
+                fprintf(stderr,"GPS: Send failed!\n");
+            }
+            delete cmd;
+            break;
+            }
+        case GPS_GET_LAT:
+        case GPS_GET_LONG: {
+            // fprintf(stderr,"GPS: Sending LAT/LONG Lat:%f Lon:%f\n", Lat, Lon);
+            AUXCommand *cmd=new AUXCommand(m->cmd,GPS,m->src);
+            if (m->cmd == GPS_GET_LAT )
+                cmd->setPosition(Lat);
+            else 
+                cmd->setPosition(Lon);
+            if (not sendCmd(cmd)) {
+                fprintf(stderr,"GPS: Send failed!\n");
+            }
+            delete cmd;            
+            break;
+            }
+        case GPS_GET_TIME: {
+            // fprintf(stderr,"GPS: GET_TIME from 0x%02x\n", m->src);
+            time_t gmt;
+            struct tm * ptm;
+            buffer dat(3);
+            
+            time(&gmt);
+            ptm=gmtime(&gmt);
+            dat[0]=unsigned(ptm->tm_hour);
+            dat[1]=unsigned(ptm->tm_min);
+            dat[2]=unsigned(ptm->tm_sec);
+            AUXCommand *cmd=new AUXCommand(GPS_GET_TIME,GPS,m->src,dat);
+            if (not sendCmd(cmd)) {
+                fprintf(stderr,"GPS: Send failed!\n");
+            }
+            delete cmd;            
+            break;
+            }
+        case GPS_GET_DATE: {
+            // fprintf(stderr,"GPS: GET_DATE from 0x%02x\n", m->src);
+            time_t gmt;
+            struct tm * ptm;
+            buffer dat(2);
+
+            time(&gmt);
+            ptm=gmtime(&gmt);
+            dat[0]=unsigned(ptm->tm_mon+1);
+            dat[1]=unsigned(ptm->tm_mday);
+            AUXCommand *cmd=new AUXCommand(GPS_GET_DATE,GPS,m->src,dat);
+            if (not sendCmd(cmd)) {
+                fprintf(stderr,"GPS: Send failed!\n");
+            }
+            delete cmd;            
+            break;
+            }
+        case GPS_GET_YEAR: {
+            // fprintf(stderr,"GPS: GET_YEAR from 0x%02x", m->src);
+            time_t gmt;
+            struct tm * ptm;
+            buffer dat(2);
+
+            time(&gmt);
+            ptm=gmtime(&gmt);
+            dat[0]=unsigned(ptm->tm_year+1900)>>8;
+            dat[1]=unsigned(ptm->tm_year+1900) & 0xFF;
+            // fprintf(stderr," Sending: %d [%d,%d]\n",ptm->tm_year,dat[0],dat[1]);
+            AUXCommand *cmd=new AUXCommand(GPS_GET_YEAR,GPS,m->src,dat);
+            if (not sendCmd(cmd)) {
+                fprintf(stderr,"GPS: Send failed!\n");
+            }
+            delete cmd;            
+            break;
+            }
+        case GPS_LINKED: {
+            // fprintf(stderr,"GPS: LINKED from 0x%02x\n", m->src);
+            buffer dat(1);
+
+            dat[0]=unsigned(1);
+            AUXCommand *cmd=new AUXCommand(GPS_LINKED,GPS,m->src,dat);
+            if (not sendCmd(cmd)) {
+                fprintf(stderr,"GPS: Send failed!\n");
+            }
+            delete cmd;            
+            break;                        
+            }
+        default :
+            fprintf(stderr,"Got 0x%02x for GPS\n", m->cmd);
+            break;
+    }
+
+}
+
 void NexStarAUXScope::processMsgs(){
     if (DEBUG) fprintf(stderr,"Processing msgs: %d\n", iq.size());
     while (not iq.empty()) {
         AUXCommand *m=iq.front();
         if (DEBUG) { fprintf(stderr,"Recv: "); m->dumpCmd(); }
+        if (m->dst == GPS) 
+            emulateGPS(m);
+        else 
         switch (m->cmd) {
             case MC_GET_POSITION:
                 switch (m->src) {

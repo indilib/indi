@@ -18,7 +18,14 @@ enum AUXCommands {
     MC_SEEK_INDEX=0x19,
     MC_MOVE_POS=0x24,
     MC_MOVE_NEG=0x25,
-    GET_VER=0xfe
+    GET_VER=0xfe,
+    GPS_GET_LAT=0x01,
+    GPS_GET_LONG=0x02,
+    GPS_GET_DATE=0x03,
+    GPS_GET_YEAR=0x04,
+    GPS_GET_TIME=0x33,
+    GPS_TIME_VALID=0x36,
+    GPS_LINKED=0x37
 };
 
 enum AUXtargets {
@@ -49,6 +56,7 @@ public:
     void parseBuf(buffer buf);
     long getPosition();
     void setPosition(long p);
+    void setPosition(double p);
     unsigned char checksum(buffer buf);
     void dumpCmd();
     
@@ -76,6 +84,7 @@ public:
     bool GoToSlow(long alt, long az, bool track);
     bool Track(long altRate, long azRate);
     bool TimerTick(double dt);
+    bool UpdateLocation(double lat, double lon, double elev);
     bool Connect();
     bool Disconnect();
     
@@ -84,11 +93,13 @@ private:
     void initScope(char const *ip, int port);
     void initScope();
     void closeConnection();
+    void emulateGPS(AUXCommand *m);
     void readMsgs();
     void processMsgs();
     void writeMsgs();
     void querryStatus();
     bool sendCmd(AUXCommand *c);
+    double Lat, Lon, Elv;
     long Alt;
     long Az;
     long AltRate;
