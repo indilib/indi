@@ -78,6 +78,7 @@ if (CFITSIO_FOUND)
   include_directories(${CFITSIO_INCLUDE_DIR})
 endif (CFITSIO_FOUND)
 
+include_directories(${LIBUSB_1_INCLUDE_DIRS})
 include_directories(${NOVA_INCLUDE_DIR})
 
 set(liblilxml_SRCS  ${CMAKE_SOURCE_DIR}/libs/lilxml.c )

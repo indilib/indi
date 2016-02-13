@@ -1,6 +1,6 @@
 /*******************************************************************************
  Copyright(c) 2011 Gerry Rozema. All rights reserved.
- 
+
  Upgrade to libusb 1.0 by CloudMakers, s. r. o.
  Copyright(c) 2013 CloudMakers, s. r. o. All rights reserved.
 
@@ -32,7 +32,7 @@
 #ifdef OSX_EMBEDED_MODE
 #include <libusb.h>
 #else
-#include <libusb-1.0/libusb.h>
+#include <libusb.h>
 #endif
 
 #include "indibase.h"
