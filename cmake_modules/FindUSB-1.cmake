@@ -46,16 +46,16 @@ if (LIBUSB_1_LIBRARIES AND LIBUSB_1_INCLUDE_DIRS)
   # in cache already
   set(LIBUSB_FOUND TRUE)
 else (LIBUSB_1_LIBRARIES AND LIBUSB_1_INCLUDE_DIRS)
+
   find_path(LIBUSB_1_INCLUDE_DIR
     NAMES
-	libusb.h
+        libusb.h
     PATHS
       /usr/include
+      /usr/include/libusb-1.0
       /usr/local/include
       /opt/local/include
       /sw/include
-	PATH_SUFFIXES
-	  libusb-1.0
   )
 
   find_library(LIBUSB_1_LIBRARY
@@ -73,10 +73,14 @@ else (LIBUSB_1_LIBRARIES AND LIBUSB_1_INCLUDE_DIRS)
   )
   set(LIBUSB_1_LIBRARIES
     ${LIBUSB_1_LIBRARY}
-)
+  )
 
   if (LIBUSB_1_INCLUDE_DIRS AND LIBUSB_1_LIBRARIES)
      set(LIBUSB_1_FOUND TRUE)
+  else (LIBUSB_1_INCLUDE_DIRS AND LIBUSB_1_LIBRARIES)
+     find_package(PkgConfig)
+     pkg_check_modules(LIBUSB_1 QUIET libusb-1.0)
+     set(LIBUSB_1_DEFINITIONS ${LIBUSB_1_CFLAGS} ${LIBUSB_1_CFLAGS_OTHER})
   endif (LIBUSB_1_INCLUDE_DIRS AND LIBUSB_1_LIBRARIES)
 
   if (LIBUSB_1_FOUND)
@@ -89,7 +93,7 @@ else (LIBUSB_1_LIBRARIES AND LIBUSB_1_INCLUDE_DIRS)
     set(CMAKE_REQUIRED_LIBRARIES ${LIBUSB_1_LIBRARIES})
     if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
       include (CheckCXXSourceCompiles)
-      check_cxx_source_compiles("#include <libusb-1.0/libusb.h> 
+      check_cxx_source_compiles("#include <libusb.h> 
         int main() { libusb_error_name(0); return 0; }" ERROR_NAME_COMPILE)
       if (NOT ERROR_NAME_COMPILE)
         add_definitions("-DNO_ERROR_NAME")
