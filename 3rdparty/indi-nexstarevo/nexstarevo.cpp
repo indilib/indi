@@ -565,6 +565,10 @@ void NexStarEvo::TimerHit()
     // Now handle the tracking state
     switch(TrackState)
     {
+        case SCOPE_PARKING:
+            if (!scope->slewing()) SetParked(true);
+            break;
+
         case SCOPE_SLEWING:
             if (not scope->slewing())
             {   
@@ -578,7 +582,8 @@ void NexStarEvo::TimerHit()
                 } else if (ISS_ON == IUFindSwitch(&CoordSP,"TRACK")->s)
                 {
                     // Precise Goto has finished. Start tracking.
-                    DEBUGF(DBG_NSEVO, "Goto finished start tracking TargetRA: %f TargetDEC: %f", CurrentTrackingTarget.ra, CurrentTrackingTarget.dec);
+                    DEBUGF(DBG_NSEVO, "Goto finished start tracking TargetRA: %f TargetDEC: %f", 
+                            CurrentTrackingTarget.ra, CurrentTrackingTarget.dec);
                     TrackState = SCOPE_TRACKING;
                     // Fall through to tracking case
                 }
@@ -592,10 +597,6 @@ void NexStarEvo::TimerHit()
             }
             else
                 break; // The scope is still slewing
-
-        case SCOPE_PARKING:
-            if (!scope->slewing()) SetParked(true);
-            break;
 
 
         case SCOPE_TRACKING:
