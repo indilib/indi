@@ -1,3 +1,11 @@
+indi-nexstarevo (0.2.2) UNRELEASED; urgency=low
+
+  * Update for new API in indilib 1.2.0
+  * GPS support and emulator
+  * Better communication
+
+ -- Pawel T. Jochym <jochym@wolf.ifj.edu.pl>  Tue, 14 Feb 2016 17:23:15 +0100
+
 indi-nexstarevo (0.2.1) UNRELEASED; urgency=low
 
   * Update for new API in indilib 1.1.0

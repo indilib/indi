@@ -40,3 +40,78 @@ What does not work/is not implemented:
 - Serial link
 - HC interaction (tracking HC motor commands to function as joystick)
 - Probably many other things
+
+Install
+-------
+
+The driver is not included in the PPA distribution yet - due to its alpha/beta 
+state. So to use it you need to compile it from the source yourself.
+
+You can make a stand-alone compilation or build the debian packages for your 
+system. It should be fairly easy. Let me know if something in the following
+guide is wrong or if you have problem with compiling the driver.
+
+Get the source
+==============
+
+You can get the source from the SVN repository of the system on sourceforge
+maintained by the INDI project (see the website of the project) or get it
+from the github mirror of the sourceforge repository maintained by the author 
+of this driver. Both will do fine. The github repository lets you track the 
+development of the driver more closely in the nse branch of the repository, 
+since only master branch is uploaded back to the upstream SVN repository.
+
+- Make some working directory and change into it.
+- Get the source from the SVN or from github master branch - it takes a while 
+  the repo is 64MB in size. These should at least compile and are kept 
+  consistent - in the nse branch you may encounter WIP state with inconsistent 
+  state of the driver. From github you get it like this:
+
+  ```
+  git clone https://github.com/jochym/indilib.git
+  ```
+- Create `build` directory at the same level as indilib directory created above.
+
+Compiling on any linux system
+=============================
+
+The compilation is simple. You will need indi libraries installed. The best way
+is to install libindi-dev package from the PPA. You may also want to have
+indi-gpsd and gpsd packages installed (not strictly required). If you cannot use
+the PPA you need to install libindi-dev from your distribution or compile the
+indi libraries yourself using instructions from the INDI website. I have not
+tested the backward compatibility but the driver should compile and work at
+least with the 1.1 version of the library. My recommendation: use PPA if you
+can. To compile the driver you will need also: cmake, cdbs, libindi-dev,
+libnova-dev, zlib1g-dev. Run following commands (you can select other install
+prefix):
+
+```sh
+cd build
+cmake -DCMAKE_INSTALL_PREFIX=/usr/local . ../indilib/3rdparty/indi-nexstarevo/
+make
+```
+You can run `make install` optionally at the end if you like to have the driver 
+properly installed.
+
+
+Building debian/ubuntu packages
+===============================
+
+To build the debian package you will need the debian packaging tools: 
+`build-essential, devscripts, debhelper, fakeroot`
+
+Create `package` directory at the same level as indilib directory with the 
+cloned source. Then execute:
+
+```sh
+cd package
+ln -s ../indilib/cmake_modules .
+ln -s ../indilib/debian/indi-nexstarevo debian
+ln -s ../indilib/3rdparty/indi-nexstarevo/* .
+fakeroot debian/rules binary
+fakeroot debian/rules clean
+```
+this should produce two packages in the main build directory (above `package`),
+which you can install with `sudo dpkg -i indi-nexstarevo_*.deb`.
+
