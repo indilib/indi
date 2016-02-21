@@ -1182,6 +1182,14 @@ debian/indi-maxdomeii/copyright -text
 debian/indi-maxdomeii/indi-maxdomeii.install -text
 debian/indi-maxdomeii/rules -text
 debian/indi-maxdomeii/source/format -text
+debian/indi-mi/changelog -text
+debian/indi-mi/compat -text
+debian/indi-mi/control -text
+debian/indi-mi/copyright -text
+debian/indi-mi/indi-mi.install -text
+debian/indi-mi/rules -text
+debian/indi-mi/source/format -text
+debian/indi-mi/watch -text
 debian/indi-nexstarevo/changelog -text
 debian/indi-nexstarevo/compat -text
 debian/indi-nexstarevo/control -text
