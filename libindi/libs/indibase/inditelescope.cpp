@@ -1370,11 +1370,14 @@ void INDI::Telescope::processButton(const char *button_n, ISState state)
 
     if (!strcmp(button_n, "ABORTBUTTON"))
     {
+        ISwitchVectorProperty *trackSW = getSwitch("TELESCOPE_TRACK_RATE");
         // Only abort if we have some sort of motion going on
-        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY || EqNP.s == IPS_BUSY)
+        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY || EqNP.s == IPS_BUSY || (trackSW && trackSW->s == IPS_BUSY))
         {
-
-            Abort();
+            // Invoke parent processing so that INDI::Telescope takes care of abort cross-check
+            ISState states[1] = { ISS_ON };
+            char *names[1] = { AbortS[0].name};
+            ISNewSwitch(getDeviceName(), AbortSP.name, states, names, 1);
         }
     }
     else if (!strcmp(button_n, "PARKBUTTON"))
