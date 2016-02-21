@@ -263,7 +263,6 @@
 3rdparty/indi-mi/indi_miccd.xml -text
 3rdparty/indi-mi/libmiccd32.bin -text
 3rdparty/indi-mi/libmiccd64.bin -text
-3rdparty/indi-mi/libmiccdarmv5.bin -text
 3rdparty/indi-mi/libmiccdarmv6.bin -text
 3rdparty/indi-mi/mi_ccd.cpp -text
 3rdparty/indi-mi/mi_ccd.h -text
