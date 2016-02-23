@@ -342,6 +342,9 @@ void NexStarEvo::ISGetProperties (const char *dev)
     // We need to define this before connection
     defineText(&IPAddressTP);
     defineNumber(&IPPortNP);
+
+    loadConfig(true, "DEVICE_IP_ADDRESS");
+    loadConfig(true, "DEVICE_IP_PORT");
     
     if(isConnected())
     {
