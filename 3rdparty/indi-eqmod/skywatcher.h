@@ -84,6 +84,7 @@ public:
     void SetRARate(double rate)  throw (EQModError);
     void SetDERate(double rate)  throw (EQModError);
     void SlewTo(long deltaraencoder, long deltadeencoder);
+    void AbsSlewTo(unsigned long raencoder, unsigned long deencoder, bool raup, bool deup);
     void StartRATracking(double trackspeed) throw (EQModError);
     void StartDETracking(double trackspeed) throw (EQModError);
     bool IsRARunning() throw (EQModError);
@@ -100,7 +101,16 @@ public:
     void SetBacklashUseRA(bool usebacklash);
     void SetBacklashDE(unsigned long backlash);
     void SetBacklashUseDE(bool usebacklash);
-
+    
+    unsigned long GetlastreadRAIndexer()  throw (EQModError);
+    unsigned long GetlastreadDEIndexer()  throw (EQModError);
+    void SetRAAuxEncoder(unsigned long command) throw (EQModError);
+    void SetDEAuxEncoder(unsigned long command) throw (EQModError);
+    void SetRAIndexer(unsigned long command) throw (EQModError);
+    void SetDEIndexer(unsigned long command) throw (EQModError);
+    void SetRAAxisPosition(unsigned long step) throw (EQModError);
+    void SetDEAxisPosition(unsigned long step) throw (EQModError);
+    
  private: 
 
     // Official Skywatcher Protocol
@@ -122,20 +132,23 @@ public:
       InquirePECPeriod='s',
       InstantAxisStop='L',
       NotInstantAxisStop='K',
-      SetAxisPosition='E',
+      SetAxisPositionCmd='E',
       GetAxisPosition='j',
       GetAxisStatus='f',
       SetSwitch='O',
       SetMotionMode='G',
       SetGotoTargetIncrement='H',
       SetBreakPointIncrement='M',
-      SetBreakSteps='U',
+      SetGotoTarget='S',
+      SetBreakStep='U',
       SetStepPeriod='I',
       StartMotion='J',
       GetStepPeriod='D', // See Merlin protocol http://www.papywizard.org/wiki/DevelopGuide
       ActivateMotor='B', // See eq6direct implementation http://pierre.nerzic.free.fr/INDI/
       SetGuideRate='P',  // See EQASCOM driver
-      Deactivate='d',
+      Deactivate='d',    // Not sure
+      SetEncoderCmd='W', // EQ8/AZEQ6 only
+      SetIndexerCmd='q', // EQ8/AZEQ6 only
       NUMBER_OF_SkywatcherCommand
     };
     
@@ -162,10 +175,15 @@ public:
     void SetSpeed(SkywatcherAxis axis, unsigned long period) throw (EQModError);
     void SetTarget(SkywatcherAxis axis, unsigned long increment) throw (EQModError);
     void SetTargetBreaks(SkywatcherAxis axis, unsigned long increment) throw (EQModError);
+    void SetAbsTarget(SkywatcherAxis axis, unsigned long target) throw (EQModError);
+    void SetAbsTargetBreaks(SkywatcherAxis axis, unsigned long breakstep) throw (EQModError);
     void StartMotor(SkywatcherAxis axis) throw (EQModError);
     void StopMotor(SkywatcherAxis axis)  throw (EQModError);
     void InstantStopMotor(SkywatcherAxis axis)  throw (EQModError);
     void StopWaitMotor(SkywatcherAxis axis) throw (EQModError);
+    void SetAuxEncoder(SkywatcherAxis axis, unsigned long command) throw (EQModError);
+    void SetIndexer(SkywatcherAxis axis, unsigned long command) throw (EQModError);
+    void SetAxisPosition(SkywatcherAxis axis, unsigned long step) throw (EQModError);
 
     bool read_eqmod()  throw (EQModError);
     bool dispatch_command(SkywatcherCommand cmd, SkywatcherAxis axis, char *arg)  throw (EQModError);
@@ -221,6 +239,8 @@ public:
     SkywatcherAxisStatus LastRunningStatus[NUMBER_OF_SKYWATCHERAXIS];
     SkywatcherAxisStatus NewStatus[NUMBER_OF_SKYWATCHERAXIS];
     unsigned long backlashperiod[NUMBER_OF_SKYWATCHERAXIS];
+
+    unsigned long lastreadIndexer[NUMBER_OF_SKYWATCHERAXIS];
 
 };
 

@@ -233,4 +233,9 @@ Off
 On
 </defSwitch>
 </defSwitchVector>
+<defSwitchVector device="EQMod Mount" name="AUTOHOME" label="Autohome" group="Site Management" state="Idle" perm="rw" rule="OneOfMany">
+<defSwitch name="PERFORM" label="Perform">
+Off
+</defSwitch>
+</defSwitchVector>
 </INDIDriver>

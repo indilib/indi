@@ -132,6 +132,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 #if defined WITH_ALIGN || defined WITH_ALIGN_GEEHALEL
 	ISwitchVectorProperty *AlignSyncModeSP;
 #endif
+	ISwitchVectorProperty *AutoHomeSP;
 	
 	enum Hemisphere {NORTH=0, SOUTH=1 };
 	enum PierSide {WEST=0, EAST=1};
@@ -181,7 +182,15 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 #if defined WITH_ALIGN || defined WITH_ALIGN_GEEHALEL
 	bool isStandardSync();
 #endif
-
+	// Autohoming for EQ8/AZEQ6
+	int ah_confirm_timeout;
+	bool ah_bSlewingUp_RA, ah_bSlewingUp_DE;
+	unsigned long ah_iPosition_RA, ah_iPosition_DE;
+	int ah_iChanges;
+	bool ah_bIndexChanged_RA, ah_bIndexChanged_DE;
+	unsigned long ah_sHomeIndexPosition_RA, ah_sHomeIndexPosition_DE;
+	int ah_waitRA, ah_waitDE;
+		 
     public:
         EQMod();
         virtual ~EQMod();
@@ -234,7 +243,11 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 #ifdef WITH_SCOPE_LIMITS
 	HorizonLimits *horizon;
 #endif
-
+	// AutoHoming for EQ8/AZEQ6
+	static const TelescopeStatus SCOPE_AUTOHOMING = static_cast<TelescopeStatus>(SCOPE_PARKED + 1);
+	enum AutoHomeStatus {AUTO_HOME_IDLE, AUTO_HOME_CONFIRM, AUTO_HOME_WAIT_PHASE1, AUTO_HOME_WAIT_PHASE2, AUTO_HOME_WAIT_PHASE3,
+	AUTO_HOME_WAIT_PHASE4, AUTO_HOME_WAIT_PHASE5, AUTO_HOME_WAIT_PHASE6};
+	AutoHomeStatus AutohomeState;
 };
 
 #endif // EQMOD_H

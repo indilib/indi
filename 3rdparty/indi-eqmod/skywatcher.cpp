@@ -220,6 +220,22 @@ unsigned long Skywatcher::GetDEPeriod() throw (EQModError)
   return DEPeriod;
 }
 
+unsigned long Skywatcher::GetlastreadRAIndexer() throw (EQModError)
+{
+  if (MountCode != 0x04 && MountCode != 0x05)
+    throw EQModError(EQModError::ErrInvalidCmd, "Incorrect mount type");
+  DEBUGF(DBG_SCOPE_STATUS, "%s() = %ld", __FUNCTION__, lastreadIndexer[Axis1]);
+  return lastreadIndexer[Axis1];
+}
+
+unsigned long Skywatcher::GetlastreadDEIndexer() throw (EQModError)
+{
+  if (MountCode != 0x04 && MountCode != 0x05)
+    throw EQModError(EQModError::ErrInvalidCmd, "Incorrect mount type");
+  DEBUGF(DBG_SCOPE_STATUS, "%s() = %ld", __FUNCTION__, lastreadIndexer[Axis2]);
+  return lastreadIndexer[Axis2];
+}
+
 void Skywatcher::GetRAMotorStatus(ILightVectorProperty *motorLP) throw (EQModError)
 {
 
@@ -330,11 +346,11 @@ void Skywatcher::Init() throw (EQModError)
 	     __FUNCTION__,  (long)telescope->GetAxis1Park(), (long)telescope->GetAxis2Park());
       cmdarg[6]='\0';
       long2Revu24str(telescope->GetAxis1Park(), cmdarg);
-      dispatch_command(SetAxisPosition, Axis1, cmdarg);
+      dispatch_command(SetAxisPositionCmd, Axis1, cmdarg);
       read_eqmod();
       cmdarg[6]='\0';
       long2Revu24str(telescope->GetAxis2Park(), cmdarg);
-      dispatch_command(SetAxisPosition, Axis2, cmdarg);
+      dispatch_command(SetAxisPositionCmd, Axis2, cmdarg);
       read_eqmod();
       //}
   } else {
@@ -349,7 +365,7 @@ void Skywatcher::Init() throw (EQModError)
 	     __FUNCTION__, RAStepHome, DEStepHome);
       cmdarg[6]='\0';
       long2Revu24str(DEStepHome, cmdarg);
-      dispatch_command(SetAxisPosition, Axis2, cmdarg);
+      dispatch_command(SetAxisPositionCmd, Axis2, cmdarg);
       read_eqmod();
       //DEBUGF(INDI::Logger::DBG_WARNING, "%s() : Mount is supposed to point North/South Celestial Pole", __FUNCTION__);
       //TODO mark mount as unparked?
@@ -381,6 +397,9 @@ void Skywatcher::InquireBoardVersion(ITextVectorProperty *boardTP) throw (EQModE
   case 0x01: strcpy(boardinfo[0],"HEQ5"); break;
   case 0x02: strcpy(boardinfo[0],"EQ5"); break;
   case 0x03: strcpy(boardinfo[0],"EQ3"); break;
+  case 0x04: strcpy(boardinfo[0],"EQ8"); break;
+  case 0x05: strcpy(boardinfo[0],"AZEQ6"); break;
+  case 0x06: strcpy(boardinfo[0],"AZEQ5"); break;
   case 0x80: strcpy(boardinfo[0],"GT"); break;
   case 0x81: strcpy(boardinfo[0],"MF"); break;
   case 0x82: strcpy(boardinfo[0],"114GT"); break;
@@ -637,6 +656,51 @@ void Skywatcher::SlewTo(long deltaraencoder, long deltadeencoder)
 
 }
 
+void Skywatcher::AbsSlewTo(unsigned long raencoder, unsigned long deencoder, bool raup, bool deup)
+{
+  SkywatcherAxisStatus newstatus;
+  bool useHighSpeed=false;
+  long deltaraencoder, deltadeencoder;
+  unsigned long highperiod=10, lowperiod=18, lowspeedmargin = 20000, breaks=400;
+  /* highperiod = RA 450X DE (+5) 200x, low period 32x */ 
+
+  DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : absRA = %ld raup = %c absDE = %ld deup = %c", __FUNCTION__, raencoder, (raup?'1':'0'), deencoder, (deup?'1':'0'));
+  
+  deltaraencoder=raencoder - RAStep;
+  deltadeencoder=deencoder - DEStep;
+  
+  newstatus.slewmode=GOTO;
+  if (raup) newstatus.direction = FORWARD; else newstatus.direction = BACKWARD;
+  if (deltaraencoder < 0) deltaraencoder = -deltaraencoder;
+  if (deltaraencoder > lowspeedmargin) useHighSpeed = true; else useHighSpeed = false;
+  if (useHighSpeed) newstatus.speedmode = HIGHSPEED; else newstatus.speedmode = LOWSPEED;
+  if (deltaraencoder > 0) {
+    SetMotion(Axis1, newstatus);
+    if (useHighSpeed) SetSpeed(Axis1, minperiods[Axis1]); else SetSpeed(Axis1, lowperiod); 
+    SetAbsTarget(Axis1, raencoder);
+    if (useHighSpeed) breaks=((deltaraencoder > 3200) ? 3200 : deltaraencoder/10);
+    else  breaks=((deltaraencoder > 200) ? 200 : deltaraencoder/10);
+    breaks=(raup ? (raencoder-breaks):(raencoder+breaks));
+    SetAbsTargetBreaks(Axis1, breaks);
+    StartMotor(Axis1);
+  }
+
+  if (deup) newstatus.direction = FORWARD; else newstatus.direction = BACKWARD;
+  if (deltadeencoder < 0) deltadeencoder = -deltadeencoder;
+  if (deltadeencoder > lowspeedmargin) useHighSpeed = true; else useHighSpeed = false;
+  if (useHighSpeed) newstatus.speedmode = HIGHSPEED; else newstatus.speedmode = LOWSPEED;
+  if (deltadeencoder > 0) {
+    SetMotion(Axis2, newstatus);
+    if (useHighSpeed) SetSpeed(Axis2, minperiods[Axis2]); else SetSpeed(Axis2, lowperiod); 
+    SetAbsTarget(Axis2, deencoder);
+    if (useHighSpeed) breaks=((deltadeencoder > 3200) ? 3200 : deltadeencoder/10);
+    else  breaks=((deltadeencoder > 200) ? 200 : deltadeencoder/10);
+    breaks=(deup ? (deencoder-breaks):(deencoder+breaks));
+    SetAbsTargetBreaks(Axis2, breaks);
+    StartMotor(Axis2);
+  }
+}
+  
 void  Skywatcher::SetRARate(double rate)  throw (EQModError)
 {
   double absrate=fabs(rate);
@@ -778,6 +842,88 @@ void Skywatcher::SetTargetBreaks(SkywatcherAxis axis, unsigned long increment) t
   TargetBreaks[axis]=increment;
 }
 
+void Skywatcher::SetAbsTarget(SkywatcherAxis axis, unsigned long target) throw (EQModError)
+{
+  char cmd[7];
+  DEBUGF(DBG_MOUNT, "%s() : Axis = %c -- target=%ld", __FUNCTION__, axis, target);
+  long2Revu24str(target, cmd);
+  //IDLog("Setting target for axis %c  to %d\n", axis, increment);
+  dispatch_command(SetGotoTarget, axis, cmd);
+  read_eqmod();  
+  Target[axis]=target;
+}
+
+void Skywatcher::SetAbsTargetBreaks(SkywatcherAxis axis, unsigned long breakstep) throw (EQModError)
+{
+  char cmd[7];
+  DEBUGF(DBG_MOUNT, "%s() : Axis = %c -- breakstep=%ld", __FUNCTION__, axis, breakstep);
+  long2Revu24str(breakstep, cmd);
+  //IDLog("Setting target for axis %c  to %d\n", axis, increment);
+  dispatch_command(SetBreakStep, axis, cmd);
+  read_eqmod();
+  TargetBreaks[axis]=breakstep;
+}
+
+void Skywatcher::SetAuxEncoder(SkywatcherAxis axis, unsigned long command) throw (EQModError)
+{
+  char cmd[7];
+  DEBUGF(DBG_MOUNT, "%s() : Axis = %c -- command=%ld", __FUNCTION__, axis, command);
+  long2Revu24str(command, cmd);
+  //IDLog("Setting target for axis %c  to %d\n", axis, increment);
+  dispatch_command(SetEncoderCmd, axis, cmd);
+  read_eqmod();  
+}
+
+void Skywatcher::SetRAAuxEncoder(unsigned long command) throw (EQModError)
+{
+  SetAuxEncoder(Axis1, command);
+}
+
+void Skywatcher::SetDEAuxEncoder(unsigned long command) throw (EQModError)
+{
+  SetAuxEncoder(Axis2, command);
+}
+
+void Skywatcher::SetIndexer(SkywatcherAxis axis, unsigned long command) throw (EQModError)
+{
+  char cmd[7];
+  DEBUGF(DBG_MOUNT, "%s() : Axis = %c -- command=%ld", __FUNCTION__, axis, command);
+  long2Revu24str(command, cmd);
+  //IDLog("Setting target for axis %c  to %d\n", axis, increment);
+  dispatch_command(SetIndexerCmd, axis, cmd);
+  read_eqmod();
+  lastreadIndexer[axis]=Revu24str2long(response+1);
+}
+
+void Skywatcher::SetRAIndexer(unsigned long command) throw (EQModError)
+{
+  SetIndexer(Axis1, command);
+}
+
+void Skywatcher::SetDEIndexer(unsigned long command) throw (EQModError)
+{
+  SetIndexer(Axis2, command);
+}
+
+void Skywatcher::SetAxisPosition(SkywatcherAxis axis, unsigned long step) throw (EQModError)
+{
+  char cmd[7];
+  DEBUGF(DBG_MOUNT, "%s() : Axis = %c -- step=%ld", __FUNCTION__, axis, step);
+  long2Revu24str(step, cmd);
+  //IDLog("Setting target for axis %c  to %d\n", axis, increment);
+  dispatch_command(SetAxisPositionCmd, axis, cmd);
+  read_eqmod();  
+}
+
+void Skywatcher::SetRAAxisPosition(unsigned long step) throw (EQModError)
+{
+  SetAxisPosition(Axis1, step);
+}
+
+void Skywatcher::SetDEAxisPosition(unsigned long step) throw (EQModError)
+{
+  SetAxisPosition(Axis2, step);
+}
 
 void Skywatcher::StartMotor(SkywatcherAxis axis) throw (EQModError)
 {
@@ -827,7 +973,7 @@ void Skywatcher::StartMotor(SkywatcherAxis axis) throw (EQModError)
       }    
       // Restore microsteps
       long2Revu24str(currentsteps, cmd);
-      dispatch_command(SetAxisPosition, axis, cmd);
+      dispatch_command(SetAxisPositionCmd, axis, cmd);
       read_eqmod();
       // Restore Speed 
       long2Revu24str((axis==Axis1?RAPeriod:DEPeriod), cmd);
