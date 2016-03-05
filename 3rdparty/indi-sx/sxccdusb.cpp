@@ -150,6 +150,8 @@ static struct {
     { 0x394, "SXVR-H694C" },
     { 0x174, "SXVR-H674" },
     { 0x374, "SXVR-H674C" },
+    { 0x374, "SXVR-H674C" },
+    { 0x189, "SX-825" },
     { 0x507, "LodeStar" },
     { 0x517, "CoStar" },
     { 0x509, "SuperStar" },

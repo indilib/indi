@@ -20,6 +20,12 @@
 		591C90E91C13745F00FCE596 /* indi_sbig_ccd in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 591C90E51C13741B00FCE596 /* indi_sbig_ccd */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		591C90EA1C13746D00FCE596 /* indi_sbig.xml in Resources */ = {isa = PBXBuildFile; fileRef = 591C90CA1C13741700FCE596 /* indi_sbig.xml */; };
 		591C90EE1C1375D700FCE596 /* SBIGUDrv.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 591C90ED1C1375D700FCE596 /* SBIGUDrv.framework */; };
+		5924ACF11C8B44FD00750816 /* libindi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A91A8CD3190004AA95 /* libindi.dylib */; };
+		5924ACF21C8B44FD00750816 /* libnova.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA422C1A8CB6920004AA95 /* libnova.dylib */; };
+		5924ACFD1C8B455C00750816 /* NexStarAUXScope.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5924ACF91C8B455C00750816 /* NexStarAUXScope.cpp */; };
+		5924ACFE1C8B455C00750816 /* nexstarevo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5924ACFB1C8B455C00750816 /* nexstarevo.cpp */; };
+		5924ACFF1C8B458500750816 /* indi_nexstarevo.xml in Resources */ = {isa = PBXBuildFile; fileRef = 5924ACF81C8B455C00750816 /* indi_nexstarevo.xml */; };
+		5924AD021C8B45A200750816 /* indi_nextarevo in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 5924ACF71C8B44FD00750816 /* indi_nextarevo */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		592F6CAF1BADD52600D93DE9 /* hid_mac.c in Sources */ = {isa = PBXBuildFile; fileRef = 592F6CAE1BADD52600D93DE9 /* hid_mac.c */; };
 		592F6CB11BADD53600D93DE9 /* indigps.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 592F6CB01BADD53600D93DE9 /* indigps.cpp */; };
 		592F6CB31BADD54400D93DE9 /* indiweather.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 592F6CB21BADD54400D93DE9 /* indiweather.cpp */; };
@@ -529,6 +535,27 @@
 			proxyType = 1;
 			remoteGlobalIDString = 591C90CC1C13741B00FCE596;
 			remoteInfo = indi_sbig_ccd;
+		};
+		5924ACEB1C8B44FD00750816 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA422B1A8CB6920004AA95;
+			remoteInfo = nova;
+		};
+		5924ACED1C8B44FD00750816 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA43A81A8CD3190004AA95;
+			remoteInfo = indi;
+		};
+		5924AD001C8B459A00750816 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5924ACE91C8B44FD00750816;
+			remoteInfo = indi_nextarevo;
 		};
 		5944982F1C135D8000E0E281 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -1641,6 +1668,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 1;
 		};
+		5924ACF31C8B44FD00750816 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
 		594498371C135D8000E0E281 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -1926,6 +1962,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 6;
 			files = (
+				5924AD021C8B45A200750816 /* indi_nextarevo in Copy Files (33 items) (53 items) */,
 				596556E51C4A49C50044680B /* indi_qsi_ccd in Copy Files (33 items) (53 items) */,
 				591C90E91C13745F00FCE596 /* indi_sbig_ccd in Copy Files (33 items) (53 items) */,
 				594499641C136E9F00E0E281 /* indi_asi_ccd in Copy Files (33 items) (53 items) */,
@@ -2173,6 +2210,12 @@
 		591C90E51C13741B00FCE596 /* indi_sbig_ccd */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_sbig_ccd; sourceTree = BUILT_PRODUCTS_DIR; };
 		591C90EC1C13752F00FCE596 /* ccvt.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ccvt.h; path = ../libindi/libs/webcam/ccvt.h; sourceTree = "<group>"; };
 		591C90ED1C1375D700FCE596 /* SBIGUDrv.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SBIGUDrv.framework; path = ../../../../../../Library/Frameworks/SBIGUDrv.framework; sourceTree = "<group>"; };
+		5924ACF71C8B44FD00750816 /* indi_nextarevo */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_nextarevo; sourceTree = BUILT_PRODUCTS_DIR; };
+		5924ACF81C8B455C00750816 /* indi_nexstarevo.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = indi_nexstarevo.xml; sourceTree = "<group>"; };
+		5924ACF91C8B455C00750816 /* NexStarAUXScope.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = NexStarAUXScope.cpp; sourceTree = "<group>"; };
+		5924ACFA1C8B455C00750816 /* NexStarAUXScope.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NexStarAUXScope.h; sourceTree = "<group>"; };
+		5924ACFB1C8B455C00750816 /* nexstarevo.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = nexstarevo.cpp; sourceTree = "<group>"; };
+		5924ACFC1C8B455C00750816 /* nexstarevo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = nexstarevo.h; sourceTree = "<group>"; };
 		592F6CAE1BADD52600D93DE9 /* hid_mac.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hid_mac.c; sourceTree = "<group>"; };
 		592F6CB01BADD53600D93DE9 /* indigps.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = indigps.cpp; sourceTree = "<group>"; };
 		592F6CB21BADD54400D93DE9 /* indiweather.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = indiweather.cpp; sourceTree = "<group>"; };
@@ -2598,6 +2641,15 @@
 				591C90DE1C13741B00FCE596 /* libusb.dylib in Frameworks */,
 				591C90DF1C13741B00FCE596 /* libindi.dylib in Frameworks */,
 				591C90E01C13741B00FCE596 /* libnova.dylib in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5924ACF01C8B44FD00750816 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5924ACF11C8B44FD00750816 /* libindi.dylib in Frameworks */,
+				5924ACF21C8B44FD00750816 /* libnova.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -3125,6 +3177,18 @@
 			name = "indi-sbig";
 			sourceTree = "<group>";
 		};
+		5924ACE81C8B44AB00750816 /* indi-nexstarevo */ = {
+			isa = PBXGroup;
+			children = (
+				5924ACF81C8B455C00750816 /* indi_nexstarevo.xml */,
+				5924ACF91C8B455C00750816 /* NexStarAUXScope.cpp */,
+				5924ACFA1C8B455C00750816 /* NexStarAUXScope.h */,
+				5924ACFB1C8B455C00750816 /* nexstarevo.cpp */,
+				5924ACFC1C8B455C00750816 /* nexstarevo.h */,
+			);
+			path = "indi-nexstarevo";
+			sourceTree = "<group>";
+		};
 		594498D31C13625700E0E281 /* weather */ = {
 			isa = PBXGroup;
 			children = (
@@ -3242,6 +3306,7 @@
 				594499451C1363C400E0E281 /* indi_asi_ccd */,
 				591C90E51C13741B00FCE596 /* indi_sbig_ccd */,
 				596556781C4A3E530044680B /* indi_qsi_ccd */,
+				5924ACF71C8B44FD00750816 /* indi_nextarevo */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -3339,6 +3404,7 @@
 		59567C081A8D325E0057A35A /* 3rd */ = {
 			isa = PBXGroup;
 			children = (
+				5924ACE81C8B44AB00750816 /* indi-nexstarevo */,
 				596556621C4A3DCD0044680B /* indi-qsi */,
 				591C90C81C1373C700FCE596 /* indi-sbig */,
 				5944992F1C1363AD00E0E281 /* indi-asicam */,
@@ -3917,6 +3983,25 @@
 			productReference = 591C90E51C13741B00FCE596 /* indi_sbig_ccd */;
 			productType = "com.apple.product-type.tool";
 		};
+		5924ACE91C8B44FD00750816 /* indi_nextarevo */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5924ACF41C8B44FD00750816 /* Build configuration list for PBXNativeTarget "indi_nextarevo" */;
+			buildPhases = (
+				5924ACEE1C8B44FD00750816 /* Sources */,
+				5924ACF01C8B44FD00750816 /* Frameworks */,
+				5924ACF31C8B44FD00750816 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				5924ACEA1C8B44FD00750816 /* PBXTargetDependency */,
+				5924ACEC1C8B44FD00750816 /* PBXTargetDependency */,
+			);
+			name = indi_nextarevo;
+			productName = indi_lxbasic;
+			productReference = 5924ACF71C8B44FD00750816 /* indi_nextarevo */;
+			productType = "com.apple.product-type.tool";
+		};
 		5944982D1C135D8000E0E281 /* indi_lynx_focus */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 594498381C135D8000E0E281 /* Build configuration list for PBXNativeTarget "indi_lynx_focus" */;
@@ -4142,6 +4227,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				5924AD011C8B459A00750816 /* PBXTargetDependency */,
 				596556E71C4A49D60044680B /* PBXTargetDependency */,
 				591C90E81C13745200FCE596 /* PBXTargetDependency */,
 				594499631C136E8300E0E281 /* PBXTargetDependency */,
@@ -5119,6 +5205,7 @@
 				594499301C1363C400E0E281 /* indi_asi_ccd */,
 				591C90CC1C13741B00FCE596 /* indi_sbig_ccd */,
 				596556631C4A3E530044680B /* indi_qsi_ccd */,
+				5924ACE91C8B44FD00750816 /* indi_nextarevo */,
 			);
 		};
 /* End PBXProject section */
@@ -5131,6 +5218,7 @@
 				591C90EA1C13746D00FCE596 /* indi_sbig.xml in Resources */,
 				594499611C136CE300E0E281 /* indi_asiccd.xml in Resources */,
 				59567C5C1A8D34E90057A35A /* indi_aagcloudwatcher_sk.xml in Resources */,
+				5924ACFF1C8B458500750816 /* indi_nexstarevo.xml in Resources */,
 				59567CB21A8D3D3B0057A35A /* indi_spectracyber.xml in Resources */,
 				59567C981A8D3B900057A35A /* indi_eqmod_scope_limits_sk.xml in Resources */,
 				9D0B2A8D1A8D21B300ED17BF /* indi_tcfs_sk.xml in Resources */,
@@ -5180,6 +5268,15 @@
 			buildActionMask = 2147483647;
 			files = (
 				591C90E61C13742E00FCE596 /* sbig_ccd.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5924ACEE1C8B44FD00750816 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5924ACFE1C8B455C00750816 /* nexstarevo.cpp in Sources */,
+				5924ACFD1C8B455C00750816 /* NexStarAUXScope.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -5881,6 +5978,21 @@
 			isa = PBXTargetDependency;
 			target = 591C90CC1C13741B00FCE596 /* indi_sbig_ccd */;
 			targetProxy = 591C90E71C13745200FCE596 /* PBXContainerItemProxy */;
+		};
+		5924ACEA1C8B44FD00750816 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA422B1A8CB6920004AA95 /* nova */;
+			targetProxy = 5924ACEB1C8B44FD00750816 /* PBXContainerItemProxy */;
+		};
+		5924ACEC1C8B44FD00750816 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA43A81A8CD3190004AA95 /* indi */;
+			targetProxy = 5924ACED1C8B44FD00750816 /* PBXContainerItemProxy */;
+		};
+		5924AD011C8B459A00750816 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5924ACE91C8B44FD00750816 /* indi_nextarevo */;
+			targetProxy = 5924AD001C8B459A00750816 /* PBXContainerItemProxy */;
 		};
 		5944982E1C135D8000E0E281 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -6742,6 +6854,61 @@
 					"$(inherited)",
 					"$(LOCAL_LIBRARY_DIR)/Frameworks",
 				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"/Applications/Xcode-Beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include",
+					"../../../libnova-0.15.0/src",
+					"../../../libnova-0.15.0/src/libnova",
+					"../../../libusb-1.0.19/libusb",
+					../../../cfitsio,
+					../../libindi/libs/indibase,
+					../../libindi/libs,
+					../../libindi,
+				);
+				MTL_ENABLE_DEBUG_INFO = NO;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		5924ACF51C8B44FD00750816 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"/Applications/Xcode-Beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include",
+					"../../../libnova-0.15.0/src",
+					"../../../libnova-0.15.0/src/libnova",
+					"../../../libusb-1.0.19/libusb",
+					../../../cfitsio,
+					../../libindi/libs/indibase,
+					../../libindi/libs,
+					../../libindi,
+				);
+				MTL_ENABLE_DEBUG_INFO = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		5924ACF61C8B44FD00750816 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				HEADER_SEARCH_PATHS = (
@@ -9853,6 +10020,15 @@
 			buildConfigurations = (
 				591C90E31C13741B00FCE596 /* Debug */,
 				591C90E41C13741B00FCE596 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5924ACF41C8B44FD00750816 /* Build configuration list for PBXNativeTarget "indi_nextarevo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5924ACF51C8B44FD00750816 /* Debug */,
+				5924ACF61C8B44FD00750816 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

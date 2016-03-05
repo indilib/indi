@@ -267,6 +267,7 @@
   [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_asiccd" ofType: @"xml"] encoding:NSUTF8StringEncoding error:&error]];
   [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_sbig" ofType: @"xml"] encoding:NSUTF8StringEncoding error:&error]];
   [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_qsi" ofType: @"xml"] encoding:NSUTF8StringEncoding error:&error]];
+  [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_nexstarevo" ofType: @"xml"] encoding:NSUTF8StringEncoding error:&error]];
   NSString *customXML = [NSString stringWithFormat:CUSTOM_XML, getlogin()];
   if ([[NSFileManager defaultManager] fileExistsAtPath:customXML]) {
     [root appendString:[NSString stringWithContentsOfFile:customXML encoding:NSUTF8StringEncoding error:&error]];
