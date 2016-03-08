@@ -101,6 +101,7 @@ private:
     bool Ack();
     void GetFocusParams();
     float CalcTimeLeft(timeval,float);
+    void updateFocusMaxRange(double maxTrip, double gearRatio);
 
     INumber TemperatureN[1];
     INumberVectorProperty TemperatureNP;

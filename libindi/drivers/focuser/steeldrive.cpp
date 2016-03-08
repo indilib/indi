@@ -155,22 +155,14 @@ bool SteelDrive::initProperties()
     // Version
     IUFillText(&VersionT[0], "HW Rev.", "", NULL);
     IUFillText(&VersionT[1], "FW Rev.", "", NULL);
-    IUFillTextVector(&VersionTP, VersionT, 2, getDeviceName(), "FOCUS_VERSION", "Version", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillTextVector(&VersionTP, VersionT, 2, getDeviceName(), "FOCUS_VERSION", "Version", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);    
 
-    double maxSteps = floor(fSettings[4].maxTrip / fSettings[4].gearRatio * 100.0);
-
-    /* Relative and absolute movement */
-    FocusRelPosN[0].min = 0;
-    FocusRelPosN[0].max = floor(maxSteps/2.0);
     FocusRelPosN[0].value = 0;
-    FocusRelPosN[0].step = 100;
-
-    FocusAbsPosN[0].min = 0;
-    FocusAbsPosN[0].max = maxSteps;
     FocusAbsPosN[0].value = 0;
-    FocusAbsPosN[0].step = 1000;
-
     simPosition = FocusAbsPosN[0].value;
+
+    updateFocusMaxRange(fSettings[4].maxTrip, fSettings[4].gearRatio);
+
     addAuxControls();
 
     return true;
@@ -1243,6 +1235,10 @@ bool SteelDrive::ISNewNumber (const char *dev, const char *name, double values[]
                 IUUpdateNumber(&CustomSettingNP, values, names, n);
                 CustomSettingNP.s = IPS_OK;
                 IDSetNumber(&CustomSettingNP, NULL);
+
+                updateFocusMaxRange(maxTrip, gearRatio);
+                IUUpdateMinMax(&FocusAbsPosNP);
+                IUUpdateMinMax(&FocusRelPosNP);
             }
             else
             {
@@ -1594,4 +1590,21 @@ bool SteelDrive::saveFocuserConfig()
 void SteelDrive::debugTriggered(bool enable)
 {
     tty_set_debug(enable ? 1 : 0);
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+void SteelDrive::updateFocusMaxRange(double maxTrip, double gearRatio)
+{
+    double maxSteps = floor(maxTrip / gearRatio * 100.0);
+
+    /* Relative and absolute movement */
+    FocusRelPosN[0].min = 0;
+    FocusRelPosN[0].max = floor(maxSteps/2.0);
+    FocusRelPosN[0].step = 100;
+
+    FocusAbsPosN[0].min = 0;
+    FocusAbsPosN[0].max = maxSteps;
+    FocusAbsPosN[0].step = 1000;
 }
