@@ -15,7 +15,7 @@ find_package(USB-1 REQUIRED)
 find_package(Threads REQUIRED)
 
 set(ASI_VERSION_MAJOR 0)
-set(ASI_VERSION_MINOR 4)
+set(ASI_VERSION_MINOR 5)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})

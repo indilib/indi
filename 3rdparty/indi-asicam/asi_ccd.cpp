@@ -243,6 +243,7 @@ bool ASICCD::initProperties()
           break;
   }
 
+  PrimaryCCD.setResolution(m_camInfo->MaxWidth, m_camInfo->MaxHeight);
   PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", MIN_DURATION, 3600, 1, false);
   PrimaryCCD.setMinMaxStep("CCD_BINNING", "HOR_BIN", 1, maxBin, 1, false);
   PrimaryCCD.setMinMaxStep("CCD_BINNING", "VER_BIN", 1, maxBin, 1, false);    
@@ -840,6 +841,9 @@ bool ASICCD::AbortExposure()
 
 bool ASICCD::UpdateCCDFrame(int x, int y, int w, int h)
 {
+  w = (w >> (PrimaryCCD.getBinX()+1)) << (PrimaryCCD.getBinX()+1);
+  h = (h >> PrimaryCCD.getBinX()) << PrimaryCCD.getBinX();
+  
   ASI_ERROR_CODE errCode = ASI_SUCCESS;
 
   /* Add the X and Y offsets */
