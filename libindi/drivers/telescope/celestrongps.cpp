@@ -607,7 +607,7 @@ bool CelestronGPS::Connect(const char *port, uint32_t baud)
         bool rc = wakeup(PortFD);
         if (rc == false)
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Waking up mount failed!");
+            DEBUG(INDI::Logger::DBG_ERROR, "Waking up mount failed! Make sure mount is powered and connected. Hibernate requires firmware version >= 5.21");
             return false;
         }
     }
