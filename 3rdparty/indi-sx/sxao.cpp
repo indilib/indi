@@ -42,11 +42,7 @@ void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names
 }
 
 void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num) {
-  INDI_UNUSED(dev);
-  INDI_UNUSED(name);
-  INDI_UNUSED(texts);
-  INDI_UNUSED(names);
-  INDI_UNUSED(num);
+  sxao->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num) {
@@ -236,14 +232,12 @@ bool SXAO::ISNewNumber(const char *dev, const char *name, double values[], char 
 }
 
 bool SXAO::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) {
-  if (strcmp(dev, getDeviceName()) == 0) {
-    if (strcmp(name, PortTP.name) == 0) {
-      int rc;
-      PortTP.s = IPS_OK;
-      rc = IUUpdateText(&PortTP, texts, names, n);
-      IDSetText(&PortTP, NULL);
-      return true;
-    }
+  if (strcmp(name, PortTP.name) == 0) {
+    int rc;
+    PortTP.s = IPS_OK;
+    rc = IUUpdateText(&PortTP, texts, names, n);
+    IDSetText(&PortTP, NULL);
+    return true;
   }
   return DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
