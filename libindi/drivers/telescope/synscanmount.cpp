@@ -37,8 +37,6 @@ using namespace INDI::AlignmentSubsystem;
 // We declare an auto pointer to Synscan.
 std::unique_ptr<SynscanMount> synscan(new SynscanMount());
 
-void ISPoll(void *p);
-
 void ISGetProperties(const char *dev)
 {
         synscan->ISGetProperties(dev);
@@ -72,7 +70,7 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
 }
 void ISSnoopDevice (XMLEle *root)
 {
-    INDI_UNUSED(root);
+    synscan->ISSnoopDevice(root);
 }
 
 SynscanMount::SynscanMount()
