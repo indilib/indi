@@ -33,6 +33,7 @@ extern const char *GUIDE_CONTROL_TAB;
 class SXAO: public INDI::DefaultDevice, INDI::GuiderInterface {
   private:
     int PortFD;
+    char lastLimit = -1;
     ITextVectorProperty PortTP;
     IText PortT[1];
     INumber AONS[2];
@@ -41,6 +42,10 @@ class SXAO: public INDI::DefaultDevice, INDI::GuiderInterface {
     INumberVectorProperty AOWENP;
     ISwitch Center[2];
     ISwitchVectorProperty CenterP;
+    IText FWT[1];
+    ITextVectorProperty FWTP;
+    ILight AtLimitL[4];
+    ILightVectorProperty AtLimitLP;
 
     int aoCommand(const char *request, char *response, int nbytes);
 
@@ -74,6 +79,8 @@ class SXAO: public INDI::DefaultDevice, INDI::GuiderInterface {
 
     bool AOCenter();
     bool AOUnjam();
+  
+    void CheckLimit(bool force);
 
     const char *getDefaultName();
 };

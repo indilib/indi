@@ -7,7 +7,7 @@ set(RULES_INSTALL_DIR "/lib/udev/rules.d/")
 set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
 
 set (VERSION_MAJOR 1)
-set (VERSION_MINOR 11)
+set (VERSION_MINOR 12)
 
 configure_file (
   "${CMAKE_CURRENT_SOURCE_DIR}/sxconfig.h.in"

@@ -76,7 +76,7 @@ int SXAO::aoCommand(const char *request, char *response, int nbytes) {
   int rc = tty_write(PortFD, request, strlen(request), &actual);
   DEBUGF(INDI::Logger::DBG_DEBUG, "aoCommand: tty_write('%s') -> %d\n", request, rc);
   if (rc == TTY_OK) {
-    rc = tty_read(PortFD, response, nbytes, 5, &actual);
+    rc = tty_read(PortFD, response, nbytes, 10, &actual);
     response[actual] = 0;
     DEBUGF(INDI::Logger::DBG_DEBUG, "aoCommand: tty_read() -> '%s', %d\n", response, rc);
   }
@@ -125,8 +125,13 @@ bool SXAO::Connect() {
   rc = aoCommand("X", buf, 1);
   if (rc == TTY_OK) {
     if (!strcmp(buf, "Y")) {
-      aoCommand("V", buf, 4);
-      IDMessage(getDeviceName(), "SXAO [%s] is connected on %s.", buf, port);
+      aoCommand("V", FWT[0].text, 4);
+      IDMessage(getDeviceName(), "SXAO [%s] is connected on %s.", FWT[0].text, port);
+      if (!strcmp(FWT[0].text, "V000")) {
+        IDMessage(getDeviceName(), "Firmware needs to be updated!");
+        tty_disconnect(PortFD);
+        return false;
+      }
       AOCenter();
       return true;
     } else {
@@ -164,15 +169,22 @@ bool SXAO::initProperties() {
   IUFillTextVector(&PortTP, PortT, 1, getDeviceName(), "DEVICE_PORT", "Ports", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
   defineText(&PortTP);
   loadConfig(true, "DEVICE_PORT");
-  IUFillNumber(&AONS[0], "AO_N", "North (steps)", "%d", 0, 80, 1, 0);
-  IUFillNumber(&AONS[1], "AO_S", "South (steps)", "%d", 0, 80, 1, 0);
+  IUFillNumber(&AONS[0], "AO_N", "North (steps)", "%g", 0, 80, 1, 0);
+  IUFillNumber(&AONS[1], "AO_S", "South (steps)", "%g", 0, 80, 1, 0);
   IUFillNumberVector(&AONSNP, AONS, 2, getDeviceName(), "AO_NS", "AO Tilt North/South", GUIDE_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
-  IUFillNumber(&AOWE[0], "AO_E", "East (steps)", "%d", 0, 80, 1, 0);
-  IUFillNumber(&AOWE[1], "AO_W", "West (steps)", "%d", 0, 80, 1, 0);
+  IUFillNumber(&AOWE[0], "AO_E", "East (steps)", "%g", 0, 80, 1, 0);
+  IUFillNumber(&AOWE[1], "AO_W", "West (steps)", "%g", 0, 80, 1, 0);
   IUFillNumberVector(&AOWENP, AOWE, 2, getDeviceName(), "AO_WE", "AO Tilt East/West", GUIDE_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
   IUFillSwitch(&Center[0], "CENTER", "Center", ISS_OFF);
   IUFillSwitch(&Center[1], "UNJAM", "Unjam", ISS_OFF);
   IUFillSwitchVector(&CenterP, Center, 2, getDeviceName(), "AO_CENTER", "AO Center", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+  IUFillLight(&AtLimitL[0], "AT_LIMIT_N", "North", IPS_IDLE);
+  IUFillLight(&AtLimitL[1], "AT_LIMIT_S", "South", IPS_IDLE);
+  IUFillLight(&AtLimitL[2], "AT_LIMIT_E", "East", IPS_IDLE);
+  IUFillLight(&AtLimitL[3], "AT_LIMIT_W", "West", IPS_IDLE);
+  IUFillLightVector(&AtLimitLP, AtLimitL, 4, getDeviceName(), "AT_LIMIT", "At limit", MAIN_CONTROL_TAB, IPS_IDLE);
+  IUFillText(&FWT[0], "FIRMWARE", "Firmware version", "V000");
+  IUFillTextVector(&FWTP, FWT, 1, getDeviceName(), "INFO", "Info", OPTIONS_TAB, IP_RO, 60, IPS_IDLE);
   return true;
 }
 
@@ -184,12 +196,16 @@ bool SXAO::updateProperties() {
     defineNumber(&AONSNP);
     defineNumber(&AOWENP);
     defineSwitch(&CenterP);
+    defineText(&FWTP);
+    defineLight(&AtLimitLP);
   } else {
     deleteProperty(GuideNSNP.name);
     deleteProperty(GuideWENP.name);
     deleteProperty(AONSNP.name);
     deleteProperty(AOWENP.name);
     deleteProperty(CenterP.name);
+    deleteProperty(FWTP.name);
+    deleteProperty(AtLimitLP.name);
   }
   return true;
 }
@@ -204,27 +220,29 @@ bool SXAO::ISNewNumber(const char *dev, const char *name, double values[], char 
     AONSNP.s = IPS_BUSY;
     IUUpdateNumber(&AONSNP, values, names, n);
     IDSetNumber(&AONSNP, NULL);
-    if (AONS[0].value != 0)
-      AONorth(AONS[0].value);
-    else if (AONS[1].value != 0)
-      AOSouth(AONS[1].value);
-    AONS[0].value = 0;
-    AONS[1].value = 0;
-    AONSNP.s = IPS_OK;
+    if (AONS[0].value != 0) {
+      AONSNP.s = AONorth(AONS[0].value) ? IPS_OK : IPS_ALERT;
+      AONS[0].value = 0;
+    } else if (AONS[1].value != 0) {
+      AONSNP.s = AOSouth(AONS[1].value) ? IPS_OK : IPS_ALERT;
+      AONS[1].value = 0;
+    }
     IDSetNumber(&AONSNP, NULL);
+    CheckLimit(false);
     return true;
   } else if (strcmp(name, AOWENP.name) == 0) {
     AOWENP.s = IPS_BUSY;
     IUUpdateNumber(&AOWENP, values, names, n);
     IDSetNumber(&AOWENP, NULL);
-    if (AOWE[0].value != 0)
-      AOEast(AOWE[0].value);
-    else
-      AOWest(AOWE[1].value);
-    AOWE[0].value = 0;
-    AOWE[1].value = 0;
-    AOWENP.s = IPS_OK;
+    if (AOWE[0].value != 0) {
+      AOWENP.s = AOEast(AOWE[0].value) ? IPS_OK : IPS_ALERT;
+      AOWE[0].value = 0;
+    } else if (AOWE[1].value != 0) {
+      AOWENP.s = AOWest(AOWE[1].value) ? IPS_OK : IPS_ALERT;
+      AOWE[1].value = 0;
+    }
     IDSetNumber(&AOWENP, NULL);
+    CheckLimit(false);
     return true;
   } else
     processGuiderProperties(name, values, names, n);
@@ -247,15 +265,16 @@ bool SXAO::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
     CenterP.s = IPS_BUSY;
     IDSetSwitch(&CenterP, NULL);
     IUUpdateSwitch(&CenterP, states, names, n);
-    if (Center[0].s == ISS_ON)
+    if (Center[0].s == ISS_ON) {
       AOCenter();
-    else if (Center[1].s == ISS_ON)
+      Center[0].s = ISS_OFF;
+    } else if (Center[1].s == ISS_ON) {
       AOUnjam();
-    Center[0].s = ISS_OFF;
-    Center[1].s = ISS_OFF;
+      Center[1].s = ISS_OFF;
+    }
     CenterP.s = IPS_OK;
     IDSetSwitch(&CenterP, NULL);
-    IUUpdateSwitch(&CenterP, states, names, n);
+    CheckLimit(true);
     return true;
   }
   return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
@@ -277,7 +296,7 @@ IPState SXAO::GuideSouth(float ms) {
 
 IPState SXAO::GuideEast(float ms) {
   char buf[8];
-  sprintf(buf, "ME%05d", (int) (ms / 10));
+  sprintf(buf, "MT%05d", (int) (ms / 10));
   int rc = aoCommand(buf, buf, 1);
   return (rc == TTY_OK ? IPS_OK : IPS_ALERT);
 }
@@ -307,7 +326,7 @@ bool SXAO::AOSouth(int steps) {
 
 bool SXAO::AOEast(int steps) {
   char buf[8];
-  sprintf(buf, "GE%05d", steps);
+  sprintf(buf, "GT%05d", steps);
   int rc = aoCommand(buf, buf, 1);
   rc = rc == TTY_OK && !strcmp(buf, "G");
   return rc;
@@ -331,4 +350,21 @@ bool SXAO::AOUnjam() {
   char buf[8];
   int rc = aoCommand("R", buf, 1);
   return rc == TTY_OK;
+}
+
+void SXAO::CheckLimit(bool force) {
+  char buf[8];
+  int rc = aoCommand("L", buf, 1);
+  if (rc == TTY_OK) {
+    char limit = buf[0];
+    if (force || limit != lastLimit) {
+      AtLimitL[0].s = (limit & 0x01) == 0x01 ? IPS_ALERT : IPS_IDLE;
+      AtLimitL[1].s = (limit & 0x04) == 0x04 ? IPS_ALERT : IPS_IDLE;
+      AtLimitL[2].s = (limit & 0x02) == 0x02 ? IPS_ALERT : IPS_IDLE;
+      AtLimitL[3].s = (limit & 0x08) == 0x08 ? IPS_ALERT : IPS_IDLE;
+      AtLimitLP.s = (limit & 0x0F) ? IPS_ALERT : IPS_IDLE;
+      IDSetLight(&AtLimitLP, NULL);
+      lastLimit = limit;
+    }
+  }
 }
