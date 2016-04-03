@@ -2263,6 +2263,7 @@
 		5924ACFA1C8B455C00750816 /* NexStarAUXScope.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NexStarAUXScope.h; sourceTree = "<group>"; };
 		5924ACFB1C8B455C00750816 /* nexstarevo.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = nexstarevo.cpp; sourceTree = "<group>"; };
 		5924ACFC1C8B455C00750816 /* nexstarevo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = nexstarevo.h; sourceTree = "<group>"; };
+		592933DE1CB134CE009F452E /* sxao.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = sxao.h; sourceTree = "<group>"; };
 		592F6CAE1BADD52600D93DE9 /* hid_mac.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hid_mac.c; sourceTree = "<group>"; };
 		592F6CB01BADD53600D93DE9 /* indigps.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = indigps.cpp; sourceTree = "<group>"; };
 		592F6CB21BADD54400D93DE9 /* indiweather.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = indiweather.cpp; sourceTree = "<group>"; };
@@ -2467,6 +2468,8 @@
 		597B89111887E77F0093873A /* ServiceManagement.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ServiceManagement.framework; path = System/Library/Frameworks/ServiceManagement.framework; sourceTree = SDKROOT; };
 		597B89241888016F0093873A /* indiserver */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indiserver; sourceTree = BUILT_PRODUCTS_DIR; };
 		598F45241C25D30300F769DD /* CMakeLists.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+		5999791A1CA1D7950003514F /* CMakeLists.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+		5999791B1CA1D7AA0003514F /* sxconfig.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = sxconfig.h; sourceTree = "<group>"; };
 		59A319191BB0811F009CE193 /* atikccdusbimpl.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = atikccdusbimpl.h; sourceTree = "<group>"; };
 		59A3191A1BB08DF5009CE193 /* atikccdusb.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = atikccdusb.h; sourceTree = "<group>"; };
 		59B7AD0718872403005B06B4 /* SecurityInterface.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SecurityInterface.framework; path = System/Library/Frameworks/SecurityInterface.framework; sourceTree = SDKROOT; };
@@ -3520,7 +3523,10 @@
 		59567C091A8D32810057A35A /* indi-sx */ = {
 			isa = PBXGroup;
 			children = (
+				5999791A1CA1D7950003514F /* CMakeLists.txt */,
+				5999791B1CA1D7AA0003514F /* sxconfig.h */,
 				59567C0A1A8D32C80057A35A /* hid_mac.c */,
+				592933DE1CB134CE009F452E /* sxao.h */,
 				59567C0B1A8D32C80057A35A /* sxao.cpp */,
 				59567C0C1A8D32C80057A35A /* sxccd.cpp */,
 				59567C0D1A8D32C80057A35A /* sxccdusb.cpp */,
