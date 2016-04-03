@@ -275,8 +275,13 @@ MICCD::MICCD(camera_t *miHandle)
     }
     else
     {
-        snprintf(this->name, MAXINDINAME, "MI CCD %s", cameraInfo.description);
-        DEBUGF(INDI::Logger::DBG_SESSION, "Detected %s", this->name);
+        string desc(cameraInfo.description);
+        string::size_type pos = desc.find(' ');
+        if(desc.npos != pos)
+             desc = desc.substr(0, pos);
+
+        snprintf(this->name, MAXINDINAME, "MI CCD %s", desc.c_str());
+        DEBUGF(INDI::Logger::DBG_SESSION, "Detected %s", cameraInfo.description);
     }
 
     HasFilters = false;
