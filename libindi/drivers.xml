@@ -171,7 +171,7 @@
         </device>
 </devGroup>
 <devGroup group="CCDs">
-        <device label="CCD Simulator">
+        <device label="CCD Simulator" mdpd="true">
                 <driver name="CCD Simulator">indi_simulator_ccd</driver>
                 <version>1.0</version>
         </device>
