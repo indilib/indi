@@ -406,6 +406,9 @@ bool SBIGCCD::initProperties()
   FilterSlotN[0].min = 1;
   FilterSlotN[0].max = MAX_CFW_TYPES;
 
+  // Set minimum exposure speed to 0.001 seconds
+  PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", 0.001, 3600, 1, false);
+
   setDriverInterface(getDriverInterface() | FILTER_INTERFACE);
 
   return true;
@@ -979,15 +982,15 @@ int SBIGCCD::StartExposure(CCDChip *targetChip, double duration)
     if((res = getShutterMode(targetChip, shutter)) != CE_NO_ERROR) return(res);
     if((res = getBinningMode(targetChip, binning)) != CE_NO_ERROR) return(res);
 
-    // Is the expose time zero ?
-    if(duration == 0)
-    {
-            DEBUG(INDI::Logger::DBG_ERROR, "Please set non-zero exposure time and try again.");
-            return(CE_BAD_PARAMETER);
-    }
+    CCDChip::CCD_FRAME frameType;
+    getFrameType(targetChip, &frameType);
 
-      // Calculate an expose time:;
-      ulong expTime = (ulong)floor(duration * 100.0 + 0.5);
+    // Calculate an expose time:;
+    ulong expTime = (ulong)floor(duration * 100.0 + 0.5);
+
+    // Flat frame = zero seconds
+    if(frameType == CCDChip::BIAS_FRAME)
+        expTime = 0;
 
     // Get image size:
     unsigned short left	= (unsigned short)targetChip->getSubX();
@@ -1001,20 +1004,20 @@ int SBIGCCD::StartExposure(CCDChip *targetChip, double duration)
     else
         ccd = useExternalTrackingCCD ? CCD_EXT_TRACKING : CCD_TRACKING;
 
-      // Start exposure:
-      StartExposureParams2	sep;
-      sep.ccd = (unsigned short)ccd;
-      sep.abgState = (unsigned short)ABG_LOW7;
-      sep.openShutter = (unsigned short)shutter;
-      sep.exposureTime = expTime;
-      sep.readoutMode = binning;
-      sep.left        = left;
-      sep.top         = top;
-      sep.width       = width;
-      sep.height      = height;
+    // Start exposure:
+    StartExposureParams2	sep;
+    sep.ccd = (unsigned short)ccd;
+    sep.abgState = (unsigned short)ABG_LOW7;
+    sep.openShutter = (unsigned short)shutter;
+    sep.exposureTime = expTime;
+    sep.readoutMode = binning;
+    sep.left        = left;
+    sep.top         = top;
+    sep.width       = width;
+    sep.height      = height;
 
-      DEBUGF(INDI::Logger::DBG_DEBUG, "Exposure Params. CCD (%d) openShutter(%d), exposureTime(%ld), binnig (%d), left (%d), top (%d), w(%d), h(%d)", sep.ccd, sep.openShutter,
-             sep.exposureTime,  sep.readoutMode, sep.left , sep.top , sep.width , sep.height);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Exposure Params. CCD (%d) openShutter(%d), exposureTime(%ld), binnig (%d), left (%d), top (%d), w(%d), h(%d)", sep.ccd, sep.openShutter,
+           sep.exposureTime,  sep.readoutMode, sep.left , sep.top , sep.width , sep.height);
 
     for (int i=0; i < MAX_THREAD_RETRIES; i++)
     {
@@ -1023,8 +1026,8 @@ int SBIGCCD::StartExposure(CCDChip *targetChip, double duration)
         pthread_mutex_unlock(&sbigMutex);
         if(res == CE_NO_ERROR)
         {
-                targetChip->setExposureDuration(duration);
-                break;
+            targetChip->setExposureDuration(duration);
+            break;
         }
 
         usleep(MAX_THREAD_WAIT);
@@ -1033,17 +1036,17 @@ int SBIGCCD::StartExposure(CCDChip *targetChip, double duration)
     if (res != CE_NO_ERROR)
         return(res);
 
-    string msg, frame_type;
-    if((res = getFrameType(targetChip, frame_type)) != CE_NO_ERROR) return(res);
-    if(!strcmp(frame_type.c_str(), "FRAME_LIGHT")){
-            msg = "Light Frame exposure in progress...";
-    }else if(!strcmp(frame_type.c_str(), "FRAME_DARK")){
-            msg = "Dark Frame exposure in progress...";
-    }else if(!strcmp(frame_type.c_str(), "FRAME_FLAT")){
-            msg = "Flat Frame exposure in progress...";
-    }else if(!strcmp(frame_type.c_str(), "FRAME_BIAS")){
-            msg = "Bias Frame exposure in progress...";
-    }
+    string msg;
+    if(frameType == CCDChip::LIGHT_FRAME)
+        msg = "Light Frame exposure in progress...";
+    else if(frameType == CCDChip::DARK_FRAME)
+        msg = "Dark Frame exposure in progress...";
+    else if(frameType == CCDChip::FLAT_FRAME)
+        msg = "Flat Frame exposure in progress...";
+    else if(frameType == CCDChip::BIAS_FRAME)
+        msg = "Bias Frame exposure in progress...";
+
+
     DEBUGF(INDI::Logger::DBG_DEBUG, "%s", msg.c_str());
 
     return (res);
@@ -2161,14 +2164,11 @@ int SBIGCCD::getBinningMode(CCDChip *targetChip, int &binning)
 
 //==========================================================================
 
-int SBIGCCD::getFrameType(CCDChip *targetChip, string &frame_type)
+int SBIGCCD::getFrameType(CCDChip *targetChip, CCDChip::CCD_FRAME * frameType)
 {
     int res = CE_NO_ERROR;
 
-    CCDChip::CCD_FRAME fType;
-
-   fType = targetChip->getFrameType();
-   frame_type = targetChip->getFrameTypeName(fType);
+   *frameType = targetChip->getFrameType();
 
     return(res);
 }
@@ -2177,9 +2177,10 @@ int SBIGCCD::getFrameType(CCDChip *targetChip, string &frame_type)
 
 int SBIGCCD::getShutterMode(CCDChip *targetChip, int &shutter)
 {
-    string 	frame_type;
-    int res = getFrameType(targetChip, frame_type);
-    if(res != CE_NO_ERROR) return(res);
+    int res = CE_NO_ERROR;
+    CCDChip::CCD_FRAME frameType;
+    getFrameType(targetChip, &frameType);
+
     int ccd = CCD_IMAGING;
 
     if (targetChip == &PrimaryCCD)
@@ -2187,30 +2188,26 @@ int SBIGCCD::getShutterMode(CCDChip *targetChip, int &shutter)
     else if (targetChip == &GuideCCD)
         ccd = useExternalTrackingCCD ? CCD_EXT_TRACKING : CCD_TRACKING;
 
-    if(	!strcmp(frame_type.c_str(), "FRAME_LIGHT")	||  !strcmp(frame_type.c_str(), "FRAME_FLAT")
-            ||  !strcmp(frame_type.c_str(), "FRAME_BIAS")		)
+    if(	frameType == CCDChip::LIGHT_FRAME || frameType == CCDChip::FLAT_FRAME)
     {
             if(ccd == CCD_EXT_TRACKING)
-            {
                     shutter = SC_OPEN_EXT_SHUTTER;
-            }else
-            {
+            else
                     shutter = SC_OPEN_SHUTTER;
-            }
-    }else if(!strcmp(frame_type.c_str(), "FRAME_DARK"))
+    }
+    else if(frameType == CCDChip::DARK_FRAME || frameType == CCDChip::FLAT_FRAME)
     {
             if(ccd == CCD_EXT_TRACKING)
-            {
                     shutter = SC_CLOSE_EXT_SHUTTER;
-            }else
-            {
+            else
                     shutter = SC_CLOSE_SHUTTER;
-            }
-    }else
+    }
+    else
     {
             res = CE_OS_ERROR;
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error: Unknown selected CCD frame type! %s", frame_type.c_str());
+            DEBUGF(INDI::Logger::DBG_ERROR, "Error: Unknown selected CCD frame type! %s", targetChip->getFrameTypeName(frameType));
     }
+
     return(res);
 }
 

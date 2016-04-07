@@ -336,7 +336,7 @@ private:
     int  			StopExposure(CCDChip *targetChip);
     int	 			GetSelectedCcdChip(int &ccd_request);
     int	 			getBinningMode(CCDChip *targetChip, int &binning);
-    int				getFrameType(CCDChip *targetChip, string &frame_type);
+    int				getFrameType(CCDChip *targetChip, CCDChip::CCD_FRAME *frameType);
     int	 			getShutterMode(CCDChip *targetChip, int &shutter);
     int				CFWConnect();
     int				CFWDisconnect();
