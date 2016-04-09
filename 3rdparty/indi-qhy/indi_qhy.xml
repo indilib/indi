@@ -1,7 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<driversList>
 <devGroup group="CCDs">
         <device label="QHY CCD" mdpd="true">
 		<driver name="QHY CCD">indi_qhy_ccd</driver>
                 <version>1.5</version>
 	</device>
 </devGroup>
-
+</driversList>

@@ -1,8 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<driversList>
 <devGroup group="MeteoStations">
         <device label="AAG Cloud Watcher">
                 <driver name="AAG Cloud Watcher">indi_aagcloudwatcher</driver>
                 <version>1.3</version>
 	</device>
 </devGroup>
+</driversList>
 
 

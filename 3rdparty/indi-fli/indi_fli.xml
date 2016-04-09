@@ -1,3 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<driversList>
 <devGroup group="CCDs">
 	<device label="FLI CCD">
 		<driver name="FLI CCD">indi_fli_ccd</driver>
@@ -16,4 +18,4 @@
                 <version>1.0</version>
         </device>
 </devGroup>
-
+</driversList>
