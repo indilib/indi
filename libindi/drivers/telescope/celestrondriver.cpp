@@ -133,6 +133,7 @@ bool check_celestron_connection(int fd)
       celestronModels[11] = "4/5 SE";
       celestronModels[12] = "6/8 SE";
       celestronModels[14] = "CGEM DX";
+      celestronModels[20] = "AVX";
   }
 
   DEBUGDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "Initializing Celestron using Kx CMD...");
@@ -326,7 +327,7 @@ bool get_celestron_model (int fd, FirmwareInfo *info)
           response[1] = '\0';
           int model = response[0];
 
-          if (model >= 1 && model <= 14)
+          if (celestronModels.find(model) != celestronModels.end())
             info->Model = celestronModels[model];
           else
           {
