@@ -2474,6 +2474,11 @@
 		59A3191A1BB08DF5009CE193 /* atikccdusb.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = atikccdusb.h; sourceTree = "<group>"; };
 		59B7AD0718872403005B06B4 /* SecurityInterface.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SecurityInterface.framework; path = System/Library/Frameworks/SecurityInterface.framework; sourceTree = SDKROOT; };
 		59C11FC219B50AEE00B21125 /* AppIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = AppIcon.icns; sourceTree = "<group>"; };
+		59C65D311CBC1B940023A5EC /* CMakeLists.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+		59C65D321CBC1BA00023A5EC /* CMakeLists.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+		59C65D331CBC1BB60023A5EC /* 99-usbfocus.rules */ = {isa = PBXFileReference; lastKnownFileType = text; path = "99-usbfocus.rules"; sourceTree = "<group>"; };
+		59C65D341CBC1BC60023A5EC /* 99-shoestring.rules */ = {isa = PBXFileReference; lastKnownFileType = text; path = "99-shoestring.rules"; sourceTree = "<group>"; };
+		59C65D351CBC1BD80023A5EC /* 99-atik.rules */ = {isa = PBXFileReference; lastKnownFileType = text; path = "99-atik.rules"; sourceTree = "<group>"; };
 		59E530571C949FEF0071DE74 /* libdc1394.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libdc1394.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		59E530591C94A1340071DE74 /* camera.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = camera.h; sourceTree = "<group>"; };
 		59E5305A1C94A1340071DE74 /* capture.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = capture.h; sourceTree = "<group>"; };
@@ -3524,6 +3529,7 @@
 			isa = PBXGroup;
 			children = (
 				5999791A1CA1D7950003514F /* CMakeLists.txt */,
+				59567C5A1A8D34E40057A35A /* indi_sx.xml */,
 				5999791B1CA1D7AA0003514F /* sxconfig.h */,
 				59567C0A1A8D32C80057A35A /* hid_mac.c */,
 				592933DE1CB134CE009F452E /* sxao.h */,
@@ -3531,7 +3537,6 @@
 				59567C0C1A8D32C80057A35A /* sxccd.cpp */,
 				59567C0D1A8D32C80057A35A /* sxccdusb.cpp */,
 				59567C0E1A8D32C80057A35A /* sxwheel.cpp */,
-				59567C5A1A8D34E40057A35A /* indi_sx.xml */,
 			);
 			path = "indi-sx";
 			sourceTree = "<group>";
@@ -3609,6 +3614,9 @@
 		59567CED1A8D40250057A35A /* indi-atik */ = {
 			isa = PBXGroup;
 			children = (
+				59C65D311CBC1B940023A5EC /* CMakeLists.txt */,
+				59C65D351CBC1BD80023A5EC /* 99-atik.rules */,
+				59567CFC1A8D41000057A35A /* indi_atik.xml */,
 				5944982A1C135A2000E0E281 /* atikconfig.h */,
 				597A04F21BFBCC24005CF806 /* atikccd.h */,
 				59A3191A1BB08DF5009CE193 /* atikccdusb.h */,
@@ -3618,7 +3626,6 @@
 				59567CF91A8D40E50057A35A /* atikccdfw.cpp */,
 				59567CFA1A8D40E50057A35A /* atikccdusb.cpp */,
 				59567CFB1A8D40E50057A35A /* atikwheel.cpp */,
-				59567CFC1A8D41000057A35A /* indi_atik.xml */,
 				592FECEF1BADFB6000F645F3 /* atiktest.cpp */,
 			);
 			path = "indi-atik";
@@ -3628,10 +3635,11 @@
 			isa = PBXGroup;
 			children = (
 				598F45241C25D30300F769DD /* CMakeLists.txt */,
+				59C65D341CBC1BC60023A5EC /* 99-shoestring.rules */,
+				59567CF51A8D40B90057A35A /* indi_shoestring.xml */,
 				9D49B42A1AA84D4E0006E6A7 /* config.h */,
 				597A04F61BFBD09A005CF806 /* fcusb.h */,
 				59567CF31A8D40B90057A35A /* fcusb.cpp */,
-				59567CF51A8D40B90057A35A /* indi_shoestring.xml */,
 			);
 			path = "indi-shoestring";
 			sourceTree = "<group>";
@@ -3639,8 +3647,10 @@
 		59567CEF1A8D40780057A35A /* indi-usbfocus */ = {
 			isa = PBXGroup;
 			children = (
-				9D49B4291AA84CCE0006E6A7 /* config.h */,
+				59C65D321CBC1BA00023A5EC /* CMakeLists.txt */,
+				59C65D331CBC1BB60023A5EC /* 99-usbfocus.rules */,
 				59567CF01A8D409C0057A35A /* indi_usbfocus.xml */,
+				9D49B4291AA84CCE0006E6A7 /* config.h */,
 				597A04F31BFBCCA2005CF806 /* usbfocus.h */,
 				59567CF11A8D409C0057A35A /* usbfocus.cpp */,
 			);
@@ -3952,7 +3962,7 @@
 				9DDA42C21A8CC5D90004AA95 /* wcsutil.c */,
 			);
 			name = libcfitsio;
-			path = ../../../cfitsio;
+			path = ../../../cfit3380;
 			sourceTree = "<group>";
 		};
 		9DDA436E1A8CC8E70004AA95 /* zlib */ = {

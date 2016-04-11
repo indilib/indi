@@ -206,6 +206,7 @@
       path = [mainBundle pathForAuxiliaryExecutable:characters];
     }
     if (path) {
+      NSLog(@"Adding %@", currentDevice.name);
       currentDevice.driver = [characters copy];
       if (![groups containsObject:currentGroup]) {
         [groups addObject:currentGroup];
@@ -213,6 +214,8 @@
       if (![currentGroup.devices containsObject:currentDevice]) {
         [currentGroup.devices addObject:currentDevice];
       }
+    } else {
+      NSLog(@"Skipping %@", currentDevice.name);
     }
     return;
   }
@@ -230,7 +233,7 @@
 }
 
 - (void)parser:(NSXMLParser *)parser parseErrorOccurred:(NSError *)parseError {
-  NSLog(@"parseErrorOccurred %@", parseError);
+  NSLog(@"Parse error occurred %@", parseError);
 }
 
 // NSNetServiceDelegate
@@ -250,37 +253,42 @@
 
 // NSApplicationDelegate
 
-- (void)applicationDidFinishLaunching:(NSNotification *)notification {
-  [self startServer];
+- (void)parseConfig:(NSString *)path {
+  NSLog(@"Parsing %@", [[path componentsSeparatedByString:@"/"] lastObject]);
   NSError *error = nil;
-  NSMutableString *root = [NSMutableString stringWithString:@"<?xml version='1.0' encoding='UTF-8'?>"];
-  [root appendString:@"<root>"];
-  [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"drivers" ofType: @"xml"] encoding:NSUTF8StringEncoding error:&error]];
-  [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_atik" ofType: @"xml"] encoding:NSUTF8StringEncoding error:&error]];
-  [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_eqmod" ofType: @"xml"] encoding:NSUTF8StringEncoding error:&error]];
-  [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_sx" ofType: @"xml"] encoding:NSUTF8StringEncoding error:&error]];
-  [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_shoestring" ofType: @"xml"] encoding:NSUTF8StringEncoding error:&error]];
-  [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_maxdomeii" ofType: @"xml"] encoding:NSUTF8StringEncoding error:&error]];
-  [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_spectracyber" ofType: @"xml"] encoding:NSUTF8StringEncoding error:&error]];
-  [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_aagcloudwatcher" ofType: @"xml"] encoding:NSUTF8StringEncoding error:&error]];
-  [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_usbfocus" ofType: @"xml"] encoding:NSUTF8StringEncoding error:&error]];
-  [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_asiccd" ofType: @"xml"] encoding:NSUTF8StringEncoding error:&error]];
-  [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_sbig" ofType: @"xml"] encoding:NSUTF8StringEncoding error:&error]];
-  [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_qsi" ofType: @"xml"] encoding:NSUTF8StringEncoding error:&error]];
-  [root appendString:[NSString stringWithContentsOfFile:[mainBundle pathForResource: @"indi_nexstarevo" ofType: @"xml"] encoding:NSUTF8StringEncoding error:&error]];
-  NSString *customXML = [NSString stringWithFormat:CUSTOM_XML, getlogin()];
-  if ([[NSFileManager defaultManager] fileExistsAtPath:customXML]) {
-    [root appendString:[NSString stringWithContentsOfFile:customXML encoding:NSUTF8StringEncoding error:&error]];
-  }
-  [root appendString:@"</root>"];
-  // NSLog(@"drivers %@", root);
-  groups = [NSMutableArray array];
-  NSXMLParser *parser = [[NSXMLParser alloc] initWithData:[root dataUsingEncoding:NSUTF8StringEncoding]];
+  NSData *data = [NSData dataWithContentsOfFile:path];
+  NSXMLParser *parser = [[NSXMLParser alloc] initWithData:data];
   [parser setDelegate:self];
   [parser setShouldProcessNamespaces:NO];
   [parser setShouldReportNamespacePrefixes:NO];
   [parser setShouldResolveExternalEntities:YES];
   [parser parse];
+}
+
+- (void)applicationDidFinishLaunching:(NSNotification *)notification {
+  [self startServer];
+  groups = [NSMutableArray array];
+  for (NSString *path in [mainBundle pathsForResourcesOfType:@"xml" inDirectory:nil]) {
+    [self parseConfig:path];
+  }
+//  [self parseConfig:[mainBundle pathForResource: @"drivers" ofType: @"xml"]];
+//  [self parseConfig:[mainBundle pathForResource: @"indi_atik" ofType: @"xml"]];
+//  [self parseConfig:[mainBundle pathForResource: @"indi_eqmod" ofType: @"xml"]];
+//  [self parseConfig:[mainBundle pathForResource: @"indi_sx" ofType: @"xml"]];
+//  [self parseConfig:[mainBundle pathForResource: @"indi_shoestring" ofType: @"xml"]];
+//  [self parseConfig:[mainBundle pathForResource: @"indi_maxdomeii" ofType: @"xml"]];
+//  [self parseConfig:[mainBundle pathForResource: @"indi_spectracyber" ofType: @"xml"]];
+//  [self parseConfig:[mainBundle pathForResource: @"indi_aagcloudwatcher" ofType: @"xml"]];
+//  [self parseConfig:[mainBundle pathForResource: @"indi_usbfocus" ofType: @"xml"]];
+//  [self parseConfig:[mainBundle pathForResource: @"indi_asiccd" ofType: @"xml"]];
+//  [self parseConfig:[mainBundle pathForResource: @"indi_sbig" ofType: @"xml"]];
+//  [self parseConfig:[mainBundle pathForResource: @"indi_qsi" ofType: @"xml"]];
+//  [self parseConfig:[mainBundle pathForResource: @"indi_nexstarevo" ofType: @"xml"]];
+  NSString *customXML = [NSString stringWithFormat:CUSTOM_XML, getlogin()];
+  if ([[NSFileManager defaultManager] fileExistsAtPath:customXML]) {
+    [self parseConfig:customXML];
+  }
+  // NSLog(@"drivers %@", root);
   [_deviceTree reloadData];
   devices = [NSMutableArray array];
   NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
@@ -332,7 +340,7 @@
   int count;
   FILE *log = NULL;
   long pos;
-  NSLog(@"logReader started");
+  NSLog(@"Log reader started");
   while (!log) {
     sleep(1);
     log = fopen([logname cStringUsingEncoding:NSASCIIStringEncoding], "r");
@@ -354,13 +362,13 @@
       fseek(log, pos, SEEK_SET);
     }
     if (sscanf(buffer, "STARTING \"%128[^\"]\"", driver) == 1) {
-      NSLog(@"starting %s", driver);
+      NSLog(@"Starting %s", driver);
       [self setStatus:STARTING to:[NSString stringWithCString:driver encoding:NSASCIIStringEncoding]];
     } else if (sscanf(buffer, "STARTED \"%128[^\"]\"", driver) == 1) {
-      NSLog(@"started %s", driver);
+      NSLog(@"Started %s", driver);
       [self setStatus:STARTED to:[NSString stringWithCString:driver encoding:NSASCIIStringEncoding]];
     } else if (sscanf(buffer, "FAILED \"%128[^\"]\"", driver) == 1) {
-      NSLog(@"failed %s", driver);
+      NSLog(@"Failed %s", driver);
       [self setStatus:FAILED to:[NSString stringWithCString:driver encoding:NSASCIIStringEncoding]];
     } else if (sscanf(buffer, "CLIENTS %d", &count) == 1) {
       switch (count) {
