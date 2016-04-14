@@ -266,7 +266,9 @@ bool CelestronGPS::updateProperties()
         defineNumber(&GuideNSNP);
         defineNumber(&GuideWENP);
 
-        if (fwInfo.controllerVersion >= 2.3)
+        // JM 2014-04-14: User (davidw) reported AVX mount serial communication times out issuing "h" command with firmware 5.28
+        // Therefore disabling query until it is fixed.
+        if (fwInfo.controllerVersion >= 2.3 && fwInfo.Model != "AVX")
         {
             double utc_offset;
             int yy, dd, mm, hh, minute, ss;
