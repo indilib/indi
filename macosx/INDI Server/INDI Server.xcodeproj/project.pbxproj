@@ -2479,6 +2479,8 @@
 		59C65D331CBC1BB60023A5EC /* 99-usbfocus.rules */ = {isa = PBXFileReference; lastKnownFileType = text; path = "99-usbfocus.rules"; sourceTree = "<group>"; };
 		59C65D341CBC1BC60023A5EC /* 99-shoestring.rules */ = {isa = PBXFileReference; lastKnownFileType = text; path = "99-shoestring.rules"; sourceTree = "<group>"; };
 		59C65D351CBC1BD80023A5EC /* 99-atik.rules */ = {isa = PBXFileReference; lastKnownFileType = text; path = "99-atik.rules"; sourceTree = "<group>"; };
+		59C65D361CBC23B50023A5EC /* indi_usbfocus.xml.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = indi_usbfocus.xml.in; sourceTree = "<group>"; };
+		59C65D371CBC23F50023A5EC /* indi_atik.xml.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = indi_atik.xml.in; sourceTree = "<group>"; };
 		59E530571C949FEF0071DE74 /* libdc1394.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libdc1394.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		59E530591C94A1340071DE74 /* camera.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = camera.h; sourceTree = "<group>"; };
 		59E5305A1C94A1340071DE74 /* capture.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = capture.h; sourceTree = "<group>"; };
@@ -3617,6 +3619,7 @@
 				59C65D311CBC1B940023A5EC /* CMakeLists.txt */,
 				59C65D351CBC1BD80023A5EC /* 99-atik.rules */,
 				59567CFC1A8D41000057A35A /* indi_atik.xml */,
+				59C65D371CBC23F50023A5EC /* indi_atik.xml.in */,
 				5944982A1C135A2000E0E281 /* atikconfig.h */,
 				597A04F21BFBCC24005CF806 /* atikccd.h */,
 				59A3191A1BB08DF5009CE193 /* atikccdusb.h */,
@@ -3650,6 +3653,7 @@
 				59C65D321CBC1BA00023A5EC /* CMakeLists.txt */,
 				59C65D331CBC1BB60023A5EC /* 99-usbfocus.rules */,
 				59567CF01A8D409C0057A35A /* indi_usbfocus.xml */,
+				59C65D361CBC23B50023A5EC /* indi_usbfocus.xml.in */,
 				9D49B4291AA84CCE0006E6A7 /* config.h */,
 				597A04F31BFBCCA2005CF806 /* usbfocus.h */,
 				59567CF11A8D409C0057A35A /* usbfocus.cpp */,
