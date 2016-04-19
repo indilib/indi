@@ -224,35 +224,35 @@ main (int ac, char *av[])
 
 #else
 
-	/* crack args */
-	while ((--ac > 0) && ((*++av)[0] == '-')) {
-	    char *s;
-	    for (s = av[0]+1; *s != '\0'; s++)
-		switch (*s) {
-		case 'l':
-		    if (ac < 2) {
-			fprintf (stderr, "-l requires log directory\n");
-			usage();
-		    }
-		    ldir = *++av;
-		    ac--;
-		    break;
-		case 'm':
-		    if (ac < 2) {
-			fprintf (stderr, "-m requires max MB behind\n");
-			usage();
-		    }
-		    maxqsiz = 1024*1024*atoi(*++av);
-		    ac--;
-		    break;
-		case 'p':
-		    if (ac < 2) {
-			fprintf (stderr, "-p requires port value\n");
-			usage();
-		    }
-		    port = atoi(*++av);
-		    ac--;
-		    break;
+    /* crack args */
+    while ((--ac > 0) && ((*++av)[0] == '-')) {
+        char *s;
+        for (s = av[0]+1; *s != '\0'; s++)
+        switch (*s) {
+        case 'l':
+            if (ac < 2) {
+            fprintf (stderr, "-l requires log directory\n");
+            usage();
+            }
+            ldir = *++av;
+            ac--;
+            break;
+        case 'm':
+            if (ac < 2) {
+            fprintf (stderr, "-m requires max MB behind\n");
+            usage();
+            }
+            maxqsiz = 1024*1024*atoi(*++av);
+            ac--;
+            break;
+        case 'p':
+            if (ac < 2) {
+            fprintf (stderr, "-p requires port value\n");
+            usage();
+            }
+            port = atoi(*++av);
+            ac--;
+            break;
     case 'f':
         if (ac < 2) {
             fprintf (stderr, "-f requires fifo node\n");
@@ -261,10 +261,10 @@ main (int ac, char *av[])
         fifo.name = *++av;
         ac--;
         break;
-		case 'v':
-		    verbose++;
-		    break;
-		default:
+        case 'v':
+            verbose++;
+            break;
+        default:
 		    usage();
 		}
 	}
@@ -417,6 +417,24 @@ startLocalDvr (DvrInfo *dp)
 	int rp[2], wp[2], ep[2];
 	int pid;
 
+    char executable[MAXSBUF];
+    if (*dp->envPrefix)
+    {
+#ifdef OSX_EMBEDED_MODE
+      snprintf(executable, MAXSBUF, "%s/Contents/MacOS/%s", dp->envPrefix, dp->name);
+#else
+    snprintf(executable, MAXSBUF, "%s/bin/%s", dp->envPrefix, dp->name);
+#endif
+    }
+    else
+        snprintf(executable, MAXSBUF, "%s", dp->name);
+
+    if( access( executable, F_OK ) == -1 )
+    {
+        fprintf (stderr, "%s: Driver %s is not found\n", indi_tstamp(NULL), executable);
+        Bye();
+    }
+
 #ifdef OSX_EMBEDED_MODE
   fprintf(stderr, "STARTING \"%s\"\n", dp->name); fflush(stderr);
 #endif
@@ -473,13 +491,13 @@ startLocalDvr (DvrInfo *dp)
         {
 	      setenv("INDIPREFIX", dp->envPrefix, 1);
 #ifdef OSX_EMBEDED_MODE
-	      snprintf(executable, MAXSBUF, "%s/Contents/MacOS/%s", dp->envPrefix, dp->name);
+          snprintf(executable, MAXSBUF, "%s/Contents/MacOS/%s", dp->envPrefix, dp->name);
 #else
         snprintf(executable, MAXSBUF, "%s/bin/%s", dp->envPrefix, dp->name);
 #endif
-        
+
         fprintf(stderr, "%s\n", executable);
-        
+
           execlp (executable, dp->name, NULL);
         }
         else
