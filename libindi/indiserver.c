@@ -844,7 +844,7 @@ static void newFIFO(void)
     //char line[MAXRBUF], tDriver[MAXRBUF], tConfig[MAXRBUF], tDev[MAXRBUF], tSkel[MAXRBUF], envDev[MAXRBUF], envConfig[MAXRBUF], envSkel[MAXR];
     char line[MAXRBUF];
     DvrInfo *dp = NULL;
-    int startCmd=0, i=0;
+    int startCmd=0, i=0, remoteDriver=0;
 
     while (i < MAXRBUF)
     {
@@ -878,9 +878,32 @@ static void newFIFO(void)
      memset(&envSkel[0], 0, sizeof(MAXSBUF));
      memset(&envPrefix[0], 0, sizeof(MAXSBUF));
 
-     int n = sscanf(line, "%s %s -%1c \"%512[^\"]\" -%1c \"%512[^\"]\" -%1c \"%512[^\"]\" -%1c \"%512[^\"]\"", cmd, tDriver, arg[0], var[0], arg[1], var[1]
-                    , arg[2], var[2], arg[3], var[3]);
+     int n = 0;
 
+     // If remote driver
+     if (strstr(line, "@"))
+     {
+         n = sscanf(line, "%s %512[^\n]", cmd, tDriver);
+
+         // Remove quotes if any
+         char * ptr = tDriver;
+         int len = strlen(tDriver);
+         while ( ptr = strstr(tDriver, "\"") )
+         {
+           memmove(ptr, ptr+1, --len);
+           ptr[len] = '\0';
+         }
+
+         //fprintf(stderr, "Remote Driver: %s\n", tDriver);
+         remoteDriver = 1;
+     }
+     // If local driver
+     else
+     {
+         n = sscanf(line, "%s %s -%1c \"%512[^\"]\" -%1c \"%512[^\"]\" -%1c \"%512[^\"]\" -%1c \"%512[^\"]\"", cmd, tDriver, arg[0], var[0], arg[1], var[1]
+                    , arg[2], var[2], arg[3], var[3]);
+         remoteDriver = 0;
+     }
 
      int n_args = (n - 2)/2;
 
@@ -932,15 +955,21 @@ static void newFIFO(void)
     if (startCmd)
     {
           if (verbose)
-             fprintf(stderr, "FIFO: Starting driver %s with name (%s)\n", tDriver, tName);
+             fprintf(stderr, "FIFO: Starting driver %s\n", tDriver);
           dp = allocDvr();
           strncpy(dp->name, tDriver, MAXINDIDEVICE);
-          //strncpy(dp->dev, tName, MAXINDIDEVICE);
-          strncpy(dp->envDev, tName, MAXSBUF);
-          strncpy(dp->envConfig, envConfig, MAXSBUF);
-          strncpy(dp->envSkel, envSkel, MAXSBUF);
-          strncpy(dp->envPrefix, envPrefix, MAXSBUF);
-          startDvr (dp);
+
+          if (remoteDriver == 0)
+          {
+              //strncpy(dp->dev, tName, MAXINDIDEVICE);
+              strncpy(dp->envDev, tName, MAXSBUF);
+              strncpy(dp->envConfig, envConfig, MAXSBUF);
+              strncpy(dp->envSkel, envSkel, MAXSBUF);
+              strncpy(dp->envPrefix, envPrefix, MAXSBUF);
+              startDvr (dp);
+          }
+          else
+              startRemoteDvr(dp);
     }
     else
     {
