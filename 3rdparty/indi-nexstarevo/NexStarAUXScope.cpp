@@ -157,6 +157,10 @@ void AUXCommand::setPosition(double p){
 void AUXCommand::setPosition(long p){
     //int a=(int)p; fprintf(stderr,"Angle: %08x = %d => %f\n", a, a, a/pow(2,24));
     data.resize(3);
+    // Fold the value to 0-STEPS_PER_REVOLUTION range
+    if (p < 0) {
+        p+=STEPS_PER_REVOLUTION;
+    }
     p = p % STEPS_PER_REVOLUTION;
     for (int i=2; i>-1; i--) {
         data[i]=(unsigned char)(p & 0xff);
@@ -283,7 +287,12 @@ bool NexStarAUXScope::Abort(){
 };
 
 long NexStarAUXScope::GetALT(){
-    return Alt % STEPS_PER_REVOLUTION;
+    // return alt encoder adjusted to -90...90
+    if (Alt > STEPS_PER_REVOLUTION/2) {
+        return Alt - STEPS_PER_REVOLUTION;
+    } else {
+        return Alt;
+    }
 };
 
 long NexStarAUXScope::GetAZ(){

@@ -257,27 +257,17 @@ bool NexStarEvo::Goto(double ra,double dec)
         AltAz.az+=ApproachAZ/STEPS_PER_DEGREE;
     }
 
-    // My altitude encoder runs -90 to +90
-    if ((AltAz.alt > 90.0) || (AltAz.alt < -90.0))
-    {
-        DEBUG(DBG_NSEVO, "Goto - Altitude out of range");
-        // This should not happen
-        return false;
-    }
-
-    // My polar encoder runs 0 to +360
-    if ((AltAz.az > 360.0) || (AltAz.az < -360.0))
-    {
-        DEBUG(DBG_NSEVO, "Goto - Azimuth out of range");
-        // This should not happen
-        return false;
-    }
-
     if (AltAz.az < 0.0)
     {
-        DEBUG(DBG_NSEVO, "Goto - Azimuth negative");
-        AltAz.az = 360.0 + AltAz.az;
+        // Calculated azimuth may be <0 - translate to 0-360 range
+        // of the encoder in the mount
+        AltAz.az += 360.0;
     }
+
+
+    // My altitude encoder runs -90 to +90 there is no point going outside.
+    if (AltAz.alt > 90.0) AltAz.alt=90.0 ;
+    if (AltAz.alt < -90.0) AltAz.alt=-90.0 ;
 
     DEBUGF(DBG_NSEVO, "Goto - Scope reference frame target altitude %lf azimuth %lf", AltAz.alt, AltAz.az);
 
@@ -441,7 +431,7 @@ bool NexStarEvo::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     ScopeStatus=SLEWING_MANUAL;
     TrackState=SCOPE_SLEWING;
     if (command == MOTION_START)
-        return scope->SlewAZ(((AxisDirectionAZ==FORWARD)? 1 : -1)*rate);
+        return scope->SlewAZ(((AxisDirectionAZ==FORWARD)? -1 : 1)*rate);
     else
         return scope->SlewAZ(0);     
 }
@@ -457,6 +447,14 @@ bool NexStarEvo::ReadScopeStatus()
     double RightAscension, Declination;
 
     AltAz.alt = double(scope->GetALT()) / STEPS_PER_DEGREE;
+    // libnova indexes Az from south while Celestron controllers index from north
+    // Never mix two controllers/drivers they will never agree perfectly.
+    // Furthermore the celestron hand controler resets the position encoders
+    // on alignment and this will mess-up all arientation in the driver.
+    // Here we are not attempting to make the driver agree with the hand
+    // controller (That would involve adding 180deg here to the azimuth -
+    // this way the celestron nexstar driver and this would agree in some
+    // situations but not in other - better not to attepmpt impossible!).
     AltAz.az = double(scope->GetAZ()) / STEPS_PER_DEGREE;
     TelescopeDirectionVector TDV = TelescopeDirectionVectorFromAltitudeAzimuth(AltAz);
     
@@ -510,6 +508,9 @@ bool NexStarEvo::ReadScopeStatus()
                     AltitudeAzimuthFromTelescopeDirectionVector(RotatedTDV, AltAz);
                     break;
             }
+            if (TraceThisTick)
+                DEBUGF(DBG_NSEVO, "After rotations: Alt %lf deg ; Az %lf deg", AltAz.alt, AltAz.az);
+
             ln_get_equ_from_hrz(&AltAz, &Position, ln_get_julian_from_sys(), &EquatorialCoordinates);
         }
         else
@@ -667,6 +668,8 @@ void NexStarEvo::TimerHit()
                                                 CurrentTrackingTarget.dec,
                                                 0, TDV);
                 AltitudeAzimuthFromTelescopeDirectionVector(TDV, AAzero);
+                if (TraceThisTick)
+                    DEBUGF(DBG_NSEVO, "Tracking - Calculated Alt %lf deg ; Az %lf deg", AltAz.alt, AltAz.az);
             }
             else {
                 // Try a conversion with the stored observatory position if any
@@ -697,28 +700,17 @@ void NexStarEvo::TimerHit()
                     TrackState = SCOPE_IDLE;
                     break;
                 }
+                if (TraceThisTick)
+                    DEBUGF(DBG_NSEVO, "Tracking, aligmend failed, Clculated Alt %lf deg ; Az %lf deg", AltAz.alt, AltAz.az);
             }
 
-            // Altitude encoder runs -90 to +90
-            if ((AltAz.alt > 90.0) || (AltAz.alt < -90.0))
-            {
-                DEBUG(DBG_NSEVO, "TimerHit tracking - Altitude out of range");
-                // This should not happen
-                return;
-            }
-
-            // Polar encoder runs 0 to +360
-            if ((AltAz.az > 360.0) || (AltAz.az < -360.0))
-            {
-                DEBUG(DBG_NSEVO, "TimerHit tracking - Azimuth out of range");
-                // This should not happen
-                return;
-            }
 
             if (AltAz.az < 0.0)
             {
-                DEBUG(DBG_NSEVO, "TimerHit tracking - Azimuth negative");
-                AltAz.az = 360.0 + AltAz.az;
+                // DEBUG(DBG_NSEVO, "TimerHit tracking - Azimuth negative");
+                // Calculated azimuth may be <0 - translate to 0-360 range
+                // of the encoder in the mount
+                AltAz.az += 360.0;
             }
 
             {
