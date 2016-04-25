@@ -57,6 +57,7 @@ public:
     long getPosition();
     void setPosition(long p);
     void setPosition(double p);
+    void setRate(unsigned char r);
     unsigned char checksum(buffer buf);
     void dumpCmd();
     
@@ -80,6 +81,9 @@ public:
     long GetALT();
     long GetAZ();
     bool slewing();
+    bool Slew(AUXtargets trg, int rate);
+    bool SlewALT(int rate);
+    bool SlewAZ(int rate);
     bool GoToFast(long alt, long az, bool track);
     bool GoToSlow(long alt, long az, bool track);
     bool Track(long altRate, long azRate);

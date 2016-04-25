@@ -42,6 +42,8 @@ protected:
     virtual void TimerHit();
 
     virtual bool updateLocation(double latitude, double longitude, double elevation);
+    
+    virtual bool trackingRequested();
 
 private:
     static const long STEPS_PER_REVOLUTION;
@@ -53,10 +55,10 @@ private:
 
     NexStarAUXScope *scope;
 
-    enum ScopeStatus_t {IDLE, SLEWING_FAST, APPROACH, SLEWING_SLOW, TRACKING};
+    enum ScopeStatus_t {IDLE, SLEWING_FAST, APPROACH, SLEWING_SLOW, SLEWING_MANUAL, TRACKING};
     ScopeStatus_t ScopeStatus;
 
-    enum AxisStatus { STOPPED, SLEWING, SLEWING_TO };
+    enum AxisStatus { STOPPED, SLEWING };
     enum AxisDirection { FORWARD, REVERSE };
     
     AxisStatus AxisStatusALT;
@@ -89,6 +91,7 @@ private:
 
     // Tracking
     ln_equ_posn CurrentTrackingTarget;
+    ln_equ_posn NewTrackingTarget;
     long OldTrackingTarget[2];
 
     // Tracing in timer tick

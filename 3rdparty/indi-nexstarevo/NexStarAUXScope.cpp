@@ -119,18 +119,20 @@ unsigned char AUXCommand::checksum(buffer buf){
     //return ((~sum([ord(c) for c in msg]) + 1) ) & 0xFF
 }
 
-long AUXCommand::getPosition(){
-    if (data.size()==3) {
-        int a= (int)data[0] << 16 | (int)data[1]<<8 | (int)data[2];
-        if (data[0] & 0x80) { 
-            a |= 0xff000000; 
-        }
-        //fprintf(stderr,"Angle: %d %08x = %d => %f\n", sizeof(a), a, a, a/pow(2,24));
-        return a;
-    } else {
-        return 0;
-    }
-}
+// This is probably wrong. The controlers return fraction of the revolution.
+// and it seems to be unsigned
+//long AUXCommand::getPosition(){
+//    if (data.size()==3) {
+//        int a= (int)data[0] << 16 | (int)data[1]<<8 | (int)data[2];
+//        if (data[0] & 0x80) { 
+//            a |= 0xff000000; 
+//        }
+//        //fprintf(stderr,"Angle: %d %08x = %d => %f\n", sizeof(a), a, a, a/pow(2,24));
+//        return a;
+//    } else {
+//        return 0;
+//    }
+//}
 
 // One definition rule (ODR) constants
 // AUX commands use 24bit integer as a representation of angle in units of 
@@ -138,14 +140,24 @@ long AUXCommand::getPosition(){
 const long STEPS_PER_REVOLUTION = 16777216; 
 const double STEPS_PER_DEGREE = STEPS_PER_REVOLUTION / 360.0;
 
+long AUXCommand::getPosition(){
+    if (data.size()==3) {
+        unsigned int a= (unsigned int)data[0] << 16 | (unsigned int)data[1]<<8 | (unsigned int)data[2];
+        //fprintf(stderr,"Angle: %d %08x = %d => %f\n", sizeof(a), a, a, a/pow(2,24));
+        return (long)a % STEPS_PER_REVOLUTION;
+    } else {
+        return 0;
+    }
+}
+
 void AUXCommand::setPosition(double p){
     setPosition(long(p * STEPS_PER_DEGREE));
 }
 
 void AUXCommand::setPosition(long p){
-    int a=(int)p;
-    //fprintf(stderr,"Angle: %08x = %d => %f\n", a, a, a/pow(2,24));
+    //int a=(int)p; fprintf(stderr,"Angle: %08x = %d => %f\n", a, a, a/pow(2,24));
     data.resize(3);
+    p = p % STEPS_PER_REVOLUTION;
     for (int i=2; i>-1; i--) {
         data[i]=(unsigned char)(p & 0xff);
         p >>= 8;
@@ -153,6 +165,11 @@ void AUXCommand::setPosition(long p){
     len=6;
 }
 
+void AUXCommand::setRate(unsigned char r){
+    data.resize(1);
+    len=4;
+    data[0]=r;
+}
 
 /////////////////////////////////////////////////////
 // NexStarAUXScope 
@@ -266,16 +283,33 @@ bool NexStarAUXScope::Abort(){
 };
 
 long NexStarAUXScope::GetALT(){
-    return Alt;
+    return Alt % STEPS_PER_REVOLUTION;
 };
 
 long NexStarAUXScope::GetAZ(){
-    if (Az<0) Az+=STEPS_PER_REVOLUTION;
-    return Az;
+    return Az % STEPS_PER_REVOLUTION;
 };
 
 bool NexStarAUXScope::slewing(){
     return slewingAlt || slewingAz;
+}
+
+bool NexStarAUXScope::Slew(AUXtargets trg, int rate){
+    AUXCommand cmd((rate<0) ? MC_MOVE_NEG : MC_MOVE_POS ,APP,trg);
+    cmd.setRate((unsigned char)(abs(rate) & 0xFF));
+    sendCmd(&cmd);
+    readMsgs();
+    return true;
+}
+
+bool NexStarAUXScope::SlewALT(int rate){
+    slewingAlt=(rate != 0);
+    return Slew(ALT,rate);
+}
+
+bool NexStarAUXScope::SlewAZ(int rate){
+    slewingAz=(rate != 0);
+    return Slew(AZM,rate);
 }
 
 bool NexStarAUXScope::GoToFast(long alt, long az, bool track){

@@ -78,7 +78,7 @@ NexStarEvo::NexStarEvo() :
                             TELESCOPE_CAN_SYNC | 
                             TELESCOPE_CAN_ABORT |
                             TELESCOPE_HAS_TIME |
-                            TELESCOPE_HAS_LOCATION, 6);
+                            TELESCOPE_HAS_LOCATION, 9);
     // Approach from the top left 2deg away
     ApproachALT=1.0*STEPS_PER_DEGREE;
     ApproachAZ=-1.0*STEPS_PER_DEGREE;
@@ -184,6 +184,7 @@ bool NexStarEvo::Goto(double ra,double dec)
         fs_sexa(DecStr, dec, 2, 3600);
         CurrentTrackingTarget.ra = ra;
         CurrentTrackingTarget.dec = dec;
+        NewTrackingTarget = CurrentTrackingTarget;
         DEBUG(DBG_NSEVO, "Goto - tracking requested");
     }
     
@@ -250,7 +251,7 @@ bool NexStarEvo::Goto(double ra,double dec)
 
     if (ScopeStatus != APPROACH){ 
         // The scope is not in slow approach mode - target should be modified
-        // for preission approach.
+        // for precission approach.
         // TODO: This is simplistic - it should be modified close to the zenith
         AltAz.alt+=ApproachALT/STEPS_PER_DEGREE;
         AltAz.az+=ApproachAZ/STEPS_PER_DEGREE;
@@ -309,7 +310,7 @@ bool NexStarEvo::initProperties()
 
     // Build the UI for the scope
     IUFillText(&IPAddressT[0],"ADDRESS","IP address", NSEVO_DEFAULT_IP);
-    IUFillTextVector(&IPAddressTP,IPAddressT,1,getDeviceName(),"DEVICE_IP_ADDR","IP address",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
+    IUFillTextVector(&IPAddressTP,IPAddressT,1,getDeviceName(),"DEVICE_IP_ADDRESS","IP address",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
     
     IUFillNumber(&IPPortN[0],"PORT","IP port","%g",1,65535,1, NSEVO_DEFAULT_PORT);
     IUFillNumberVector(&IPPortNP,IPPortN,1,getDeviceName(),"DEVICE_IP_PORT","IP port",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
@@ -418,22 +419,51 @@ bool NexStarEvo::ISNewText (const char *dev, const char *name, char *texts[], ch
 
 bool NexStarEvo::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
-    return true;
+    int rate=IUFindOnSwitchIndex(&SlewRateSP)+1;
+    DEBUGF(DBG_NSEVO, "MoveNS dir:%d, cmd:%d, rate:%d", dir, command, rate);
+    AxisDirectionALT = (dir == DIRECTION_NORTH) ? FORWARD : REVERSE ;
+    AxisStatusALT = (command == MOTION_START) ? SLEWING : STOPPED ;
+    ScopeStatus=SLEWING_MANUAL;
+    TrackState=SCOPE_SLEWING;
+    if (command == MOTION_START)
+        return scope->SlewALT(((AxisDirectionALT==FORWARD)? 1 : -1)*rate);
+    else
+        return scope->SlewALT(0);     
+    
 }
 
 bool NexStarEvo::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 {
-    return true;
+    int rate=IUFindOnSwitchIndex(&SlewRateSP)+1;
+    DEBUGF(DBG_NSEVO, "MoveWE dir:%d, cmd:%d, rate:%d", dir, command, rate);
+    AxisDirectionAZ = (dir == DIRECTION_WEST) ? FORWARD : REVERSE ;
+    AxisStatusAZ = (command == MOTION_START) ? SLEWING : STOPPED ;
+    ScopeStatus=SLEWING_MANUAL;
+    TrackState=SCOPE_SLEWING;
+    if (command == MOTION_START)
+        return scope->SlewAZ(((AxisDirectionAZ==FORWARD)? 1 : -1)*rate);
+    else
+        return scope->SlewAZ(0);     
+}
+
+bool NexStarEvo::trackingRequested()
+{
+    return (ISS_ON == IUFindSwitch(&CoordSP,"TRACK")->s);
 }
 
 bool NexStarEvo::ReadScopeStatus()
 {
     struct ln_hrz_posn AltAz;
+    double RightAscension, Declination;
+
     AltAz.alt = double(scope->GetALT()) / STEPS_PER_DEGREE;
     AltAz.az = double(scope->GetAZ()) / STEPS_PER_DEGREE;
     TelescopeDirectionVector TDV = TelescopeDirectionVectorFromAltitudeAzimuth(AltAz);
-
-    double RightAscension, Declination;
+    
+    if (TraceThisTick)
+        DEBUGF(DBG_NSEVO, "ReadScopeStatus - Alt %lf deg ; Az %lf deg", AltAz.alt, AltAz.az);
+    
+    
     if (!TransformTelescopeToCelestial( TDV, RightAscension, Declination))
     {
         if (TraceThisTick)
@@ -497,7 +527,10 @@ bool NexStarEvo::ReadScopeStatus()
 
     if (TraceThisTick)
         DEBUGF(DBG_NSEVO, "ReadScopeStatus - RA %lf hours DEC %lf degrees", RightAscension, Declination);
-
+    
+    // In case we are slewing while tracking update the potential target
+    NewTrackingTarget.ra=RightAscension;
+    NewTrackingTarget.dec=Declination;
     NewRaDec(RightAscension, Declination);
 
     return true;
@@ -532,7 +565,7 @@ bool NexStarEvo::Sync(double ra, double dec)
             ReadScopeStatus();
             return true;
         }
-        DEBUGF(DBG_NSEVO, "Sync - adding entry failed RA: %lf(%lf) DEC: %lf", ra * 360.0 / 24.0, ra, dec);
+        DEBUGF(DBG_NSEVO, "Sync - duplicate entry RA: %lf(%lf) DEC: %lf", ra * 360.0 / 24.0, ra, dec);
         return false;
     }
 
@@ -573,33 +606,38 @@ void NexStarEvo::TimerHit()
             break;
 
         case SCOPE_SLEWING:
-            if (not scope->slewing())
-            {   
+            if (scope->slewing())
+                break; // The scope is still slewing
+            else {   
                 // The slew has finished check if that was a coarse slew
                 // or precission approach
                 if (ScopeStatus == SLEWING_FAST) {
-                    // This was coarse slew.Execute precise approach.
+                    // This was coarse slew. Execute precise approach.
                     ScopeStatus = APPROACH;
                     Goto(GoToTarget.ra, GoToTarget.dec);
                     break;
-                } else if (ISS_ON == IUFindSwitch(&CoordSP,"TRACK")->s)
-                {
-                    // Precise Goto has finished. Start tracking.
+                } 
+                else if (trackingRequested()) {
+                    // Precise Goto or manual slew has finished. 
+                    // Start tracking if requested.
+                    if (ScopeStatus == SLEWING_MANUAL) {
+                        // We have been slewing manually. 
+                        // Update the tracking target.
+                        CurrentTrackingTarget=NewTrackingTarget;
+                    }
                     DEBUGF(DBG_NSEVO, "Goto finished start tracking TargetRA: %f TargetDEC: %f", 
                             CurrentTrackingTarget.ra, CurrentTrackingTarget.dec);
                     TrackState = SCOPE_TRACKING;
                     // Fall through to tracking case
                 }
-                else
-                {
+                else {
                     DEBUG(DBG_NSEVO, "Goto finished. No tracking requested");
-                    // Precise goto finished but no tracking requested
+                    // Precise goto or manual slew finished.
+                    // No tracking requested -> go idle.
                     TrackState = SCOPE_IDLE;
                     break;
                 }
             }
-            else
-                break; // The scope is still slewing
 
 
         case SCOPE_TRACKING:
@@ -619,11 +657,18 @@ void NexStarEvo::TimerHit()
             Right now when we move the scope by HC it returns to the
             designated target by corrective tracking.
             */
-            if (TransformCelestialToTelescope(CurrentTrackingTarget.ra, CurrentTrackingTarget.dec,
-                                                JulianOffset, TDV))
+            if (TransformCelestialToTelescope(CurrentTrackingTarget.ra, 
+                                                CurrentTrackingTarget.dec,
+                                                JulianOffset, TDV)) {
                 AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAz);
-            else
-            {
+                
+                // Just for debugging
+                TransformCelestialToTelescope(CurrentTrackingTarget.ra, 
+                                                CurrentTrackingTarget.dec,
+                                                0, TDV);
+                AltitudeAzimuthFromTelescopeDirectionVector(TDV, AAzero);
+            }
+            else {
                 // Try a conversion with the stored observatory position if any
                 bool HavePosition = false;
                 ln_lnlat_posn Position;
@@ -642,6 +687,7 @@ void NexStarEvo::TimerHit()
                 if (HavePosition) {
                     ln_get_hrz_from_equ(&EquatorialCoordinates, &Position,
                                             ln_get_julian_from_sys() + JulianOffset, &AltAz);
+                    // Just for debugging
                     ln_get_hrz_from_equ(&EquatorialCoordinates, &Position,
                                             ln_get_julian_from_sys(), &AAzero);
                 }
@@ -653,7 +699,7 @@ void NexStarEvo::TimerHit()
                 }
             }
 
-            // My altitude encoder runs -90 to +90
+            // Altitude encoder runs -90 to +90
             if ((AltAz.alt > 90.0) || (AltAz.alt < -90.0))
             {
                 DEBUG(DBG_NSEVO, "TimerHit tracking - Altitude out of range");
@@ -661,7 +707,7 @@ void NexStarEvo::TimerHit()
                 return;
             }
 
-            // My polar encoder runs 0 to +360
+            // Polar encoder runs 0 to +360
             if ((AltAz.az > 360.0) || (AltAz.az < -360.0))
             {
                 DEBUG(DBG_NSEVO, "TimerHit tracking - Azimuth out of range");

@@ -107,8 +107,8 @@ cloned source. Then execute:
 ```sh
 cd package
 ln -s ../indilib/cmake_modules .
-ln -s ../indilib/debian/indi-nexstarevo debian
-ln -s ../indilib/3rdparty/indi-nexstarevo/* .
+cp -r ../indilib/debian/indi-nexstarevo debian
+cp -r ../indilib/3rdparty/indi-nexstarevo/* .
 fakeroot debian/rules binary
 fakeroot debian/rules clean
 ```
