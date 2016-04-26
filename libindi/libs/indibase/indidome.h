@@ -44,11 +44,12 @@ typedef struct
 
    Relative motion is specified in degrees as either positive (clock wise direction), or negative (counter clock-wise direction).
 
-   Slaving is used to synchronizes the dome's azimuth position with that of the mount. The user is required to fill in all required parameters before slaving can be used. The mount's azimuth position is snooped
-   from the ACTIVE_TELESCOPE property in ACTIVE_DEVICES vector. The AutoSync threshold is the difference in degrees between the dome's azimuth angle and the mount's azimuth angle that should trigger a dome motion.
+   Slaving is used to synchronizes the dome's azimuth position with that of the mount. The mount's coordinates are snooped from the active mount that has its name specified in ACTIVE_TELESCOPE property in the ACTIVE_DEVICES vector.
+   Dome motion begins when it receives TARGET_EOD_COORD property from the mount driver when the mount starts slewing to the desired target coordinates /em OR
+   when the mount's current tracking position exceeds the AutoSync threshold. Therefore, slaving is performed while slewing and tracking. The user is required to fill in all required parameters before slaving can be used.
+   The AutoSync threshold is the difference in degrees between the dome's azimuth angle and the mount's azimuth angle that should trigger a dome motion.
    By default, it is set to 0.5 degrees which would trigger dome motion due to any difference between the dome and mount azimuth angles that exceeds 0.5 degrees.
-   For example, if the threshold is set to 5 degrees, the dome will only start moving to sync with the mount's azimuth angle once the difference in azimuth angles is equal or exceeds 5 degrees.
-   The dome will only commence movement once the mount completed slewing.
+   For example, if the threshold is set to 5 degrees, the dome will only start moving to sync with the mount's azimuth angle once the difference in azimuth angles is equal or exceeds 5 degrees.   
 
    Custom parking position is available for absolute/relative position domes.
 
