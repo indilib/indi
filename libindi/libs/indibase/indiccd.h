@@ -384,10 +384,16 @@ private:
  * \class INDI::CCD
    \brief Class to provide general functionality of CCD cameras with a single CCD sensor, or a primary CCD sensor in addition to a secondary CCD guide head.
 
+   The CCD capabilities must be set to select which features are exposed to the clients. SetCCDCapability() is typically set in the constructor or initProperties(), but can also be called after
+   connection is established with the CCD, but must be called /em before returning true in Connect()
+
    It also implements the interface to perform guiding. The class enable the ability to \e snoop on telescope equatorial coordinates and record them in the
    FITS file before upload. Developers need to subclass INDI::CCD to implement any driver for CCD cameras within INDI.
 
+   \example CCD Simulator
+
 \author Jasem Mutlaq, Gerry Rozema
+
 */
 class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
 {

@@ -842,7 +842,7 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
         //  Now lets see if it's something we process here
         if(strcmp(name,"CCD_EXPOSURE")==0)
         {
-            if (values[0] <  PrimaryCCD.ImageExposureN[0].min || values[0] > PrimaryCCD.ImageExposureN[0].max)
+            if (PrimaryCCD.getFrameType() != CCDChip::BIAS_FRAME && values[0] <  PrimaryCCD.ImageExposureN[0].min || values[0] > PrimaryCCD.ImageExposureN[0].max)
             {
                 DEBUGF(INDI::Logger::DBG_ERROR, "Requested exposure value (%g) seconds out of bounds [%g,%g].", values[0], PrimaryCCD.ImageExposureN[0].min, PrimaryCCD.ImageExposureN[0].max);
                 PrimaryCCD.ImageExposureNP.s=IPS_ALERT;
@@ -850,7 +850,10 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
                 return false;
             }
 
-            PrimaryCCD.ImageExposureN[0].value = ExposureTime = values[0];
+            if (PrimaryCCD.getFrameType() == CCDChip::BIAS_FRAME)
+                PrimaryCCD.ImageExposureN[0].value = ExposureTime = PrimaryCCD.ImageExposureN[0].min;
+            else
+                PrimaryCCD.ImageExposureN[0].value = ExposureTime = values[0];
 
             if (PrimaryCCD.ImageExposureNP.s==IPS_BUSY)
                 AbortExposure();
@@ -865,7 +868,7 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
 
         if(strcmp(name,"GUIDER_EXPOSURE")==0)
         {
-            if (values[0] <  GuideCCD.ImageExposureN[0].min || values[0] > GuideCCD.ImageExposureN[0].max)
+            if (GuideCCD.getFrameType() != CCDChip::BIAS_FRAME && values[0] <  GuideCCD.ImageExposureN[0].min || values[0] > GuideCCD.ImageExposureN[0].max)
             {
                 DEBUGF(INDI::Logger::DBG_ERROR, "Requested guide exposure value (%g) seconds out of bounds [%g,%g].", values[0], GuideCCD.ImageExposureN[0].min, GuideCCD.ImageExposureN[0].max);
                 GuideCCD.ImageExposureNP.s=IPS_ALERT;
@@ -873,7 +876,11 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
                 return false;
             }
 
-            GuideCCD.ImageExposureN[0].value = GuiderExposureTime = values[0];
+            if (GuideCCD.getFrameType() == CCDChip::BIAS_FRAME)
+                GuideCCD.ImageExposureN[0].value = GuiderExposureTime = GuideCCD.ImageExposureN[0].min;
+            else
+                GuideCCD.ImageExposureN[0].value = GuiderExposureTime = values[0];
+
             GuideCCD.ImageExposureNP.s=IPS_BUSY;
             if (StartGuideExposure(GuiderExposureTime))
                GuideCCD.ImageExposureNP.s=IPS_BUSY;
