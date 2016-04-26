@@ -109,6 +109,10 @@
                 <driver name="iEQ">indi_ieq_telescope</driver>
                 <version>1.5</version>
         </device>
+        <device label="CEM25" focal_length="" aperture="">
+                <driver name="iEQ">indi_ieq_telescope</driver>
+                <version>1.5</version>
+        </device>
         <device label="ZEQ25" focal_length="" aperture="">
                 <driver name="ZEQ25">indi_lx200zeq25</driver>
                 <version>1.0</version>

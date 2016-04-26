@@ -289,6 +289,8 @@ bool get_ieqpro_model (int fd, FirmwareInfo *info)
               info->Model = "iEQ45 Pro";
           else if (!strcmp(response, "0046"))
               info->Model = "iEQ45 Pro AA";
+          else if (!strcmp(response, "0025"))
+              info->Model = "CEM25";
           else
               info->Model = "Unknown";
 
