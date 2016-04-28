@@ -3,7 +3,7 @@
 <devGroup group="Telescopes">
    <device label="NexStar Evolution" focal_length="" aperture="">
       <driver name="NexStar Evolution">indi_nexstarevo_telescope</driver>
-      <version>0.1</version>
+      <version>0.2.3</version>
    </device>
 </devGroup>
 </driversList>

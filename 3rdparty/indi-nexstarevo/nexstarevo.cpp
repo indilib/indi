@@ -16,6 +16,10 @@
 using namespace INDI::AlignmentSubsystem;
 
 #define POLLMS 1000 // Default timer tick
+#define MAX_SLEW_RATE           9
+#define FIND_SLEW_RATE          7
+#define CENTERING_SLEW_RATE     3
+#define GUIDE_SLEW_RATE         2
 
 // We declare an auto pointer to NexStarEvo.
 std::unique_ptr<NexStarEvo> telescope_nse(new NexStarEvo());
@@ -78,7 +82,7 @@ NexStarEvo::NexStarEvo() :
                             TELESCOPE_CAN_SYNC | 
                             TELESCOPE_CAN_ABORT |
                             TELESCOPE_HAS_TIME |
-                            TELESCOPE_HAS_LOCATION, 9);
+                            TELESCOPE_HAS_LOCATION, 4);
     // Approach from the top left 2deg away
     ApproachALT=1.0*STEPS_PER_DEGREE;
     ApproachAZ=-1.0*STEPS_PER_DEGREE;
@@ -296,6 +300,12 @@ bool NexStarEvo::initProperties()
     /* Make sure to init parent properties first */
     INDI::Telescope::initProperties();
 
+    IUFillSwitch(&SlewRateS[SLEW_GUIDE], "SLEW_GUIDE", "Guide", ISS_OFF);
+    IUFillSwitch(&SlewRateS[SLEW_CENTERING], "SLEW_CENTERING", "Centering", ISS_OFF);
+    IUFillSwitch(&SlewRateS[SLEW_FIND], "SLEW_FIND", "Find", ISS_OFF);
+    IUFillSwitch(&SlewRateS[SLEW_MAX], "SLEW_MAX", "Max", ISS_ON);
+    IUFillSwitchVector(&SlewRateSP, SlewRateS, 4, getDeviceName(), "SLEWMODE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
     TrackState=SCOPE_IDLE;
 
     // Build the UI for the scope
@@ -376,6 +386,18 @@ bool NexStarEvo::ISNewSwitch (const char *dev, const char *name, ISState *states
 {
     if(strcmp(dev,getDeviceName())==0)
     {
+        // Slew mode
+        if (!strcmp (name, SlewRateSP.name))
+        {
+
+          if (IUUpdateSwitch(&SlewRateSP, states, names, n) < 0)
+              return false;
+
+          SlewRateSP.s = IPS_OK;
+          IDSetSwitch(&SlewRateSP, NULL);
+          return true;
+        }
+
         // Process alignment properties
         ProcessAlignmentSwitchProperties(this, name, states, names, n);
     }
@@ -409,14 +431,34 @@ bool NexStarEvo::ISNewText (const char *dev, const char *name, char *texts[], ch
 
 bool NexStarEvo::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
-    int rate=IUFindOnSwitchIndex(&SlewRateSP)+1;
+    int rate=IUFindOnSwitchIndex(&SlewRateSP);
     DEBUGF(DBG_NSEVO, "MoveNS dir:%d, cmd:%d, rate:%d", dir, command, rate);
     AxisDirectionALT = (dir == DIRECTION_NORTH) ? FORWARD : REVERSE ;
     AxisStatusALT = (command == MOTION_START) ? SLEWING : STOPPED ;
     ScopeStatus=SLEWING_MANUAL;
     TrackState=SCOPE_SLEWING;
     if (command == MOTION_START)
+    {
+        switch (rate)
+        {
+            case SLEW_GUIDE:
+                rate  = GUIDE_SLEW_RATE;
+                break;
+
+            case SLEW_CENTERING:
+                rate  = CENTERING_SLEW_RATE;
+                break;
+
+            case SLEW_FIND:
+                rate  = FIND_SLEW_RATE;
+                break;
+
+            default:
+                rate = MAX_SLEW_RATE;
+                break;
+        }
         return scope->SlewALT(((AxisDirectionALT==FORWARD)? 1 : -1)*rate);
+    }
     else
         return scope->SlewALT(0);     
     
@@ -424,14 +466,34 @@ bool NexStarEvo::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 
 bool NexStarEvo::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 {
-    int rate=IUFindOnSwitchIndex(&SlewRateSP)+1;
+    int rate=IUFindOnSwitchIndex(&SlewRateSP);
     DEBUGF(DBG_NSEVO, "MoveWE dir:%d, cmd:%d, rate:%d", dir, command, rate);
     AxisDirectionAZ = (dir == DIRECTION_WEST) ? FORWARD : REVERSE ;
     AxisStatusAZ = (command == MOTION_START) ? SLEWING : STOPPED ;
     ScopeStatus=SLEWING_MANUAL;
     TrackState=SCOPE_SLEWING;
     if (command == MOTION_START)
+    {
+        switch (rate)
+        {
+            case SLEW_GUIDE:
+                rate  = GUIDE_SLEW_RATE;
+                break;
+
+            case SLEW_CENTERING:
+                rate  = CENTERING_SLEW_RATE;
+                break;
+
+            case SLEW_FIND:
+                rate  = FIND_SLEW_RATE;
+                break;
+
+            default:
+                rate = MAX_SLEW_RATE;
+                break;
+        }
         return scope->SlewAZ(((AxisDirectionAZ==FORWARD)? -1 : 1)*rate);
+    }
     else
         return scope->SlewAZ(0);     
 }
