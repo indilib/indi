@@ -2,6 +2,7 @@
  Moravian INDI Driver
 
  Copyright (C) 2015 Jasem Mutlaq (mutlaqja@ikarustech.com)
+ Copyright (C) 2016 Jakub Smutny (linux@gxccd.com)
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -25,7 +26,7 @@
 #include <indifilterinterface.h>
 #include <iostream>
 
-#include "miccd.h"
+#include "gxccd.h"
 
 using namespace std;
 
@@ -33,7 +34,7 @@ class MICCD: public INDI::CCD, public INDI::FilterInterface
 {
 public:
 
-  MICCD(camera_t *miHandle);
+  MICCD(int cameraId, bool eth = false);
   virtual ~MICCD();
 
   const char *getDefaultName();
@@ -49,9 +50,14 @@ public:
   bool StartExposure(float duration);
   bool AbortExposure();
 
-  bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+  IPState GuideNorth(float);
+  IPState GuideSouth(float);
+  IPState GuideEast(float);
+  IPState GuideWest(float);
+
+  bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
   bool ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num);
-  bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+  bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
 protected:
 
@@ -63,39 +69,53 @@ protected:
   virtual bool UpdateCCDFrame(int x, int y, int w, int h);
   virtual bool UpdateCCDBin(int binx, int biny);
 
-
   // Filter Wheel CFW
   virtual int  QueryFilter();
   virtual bool SelectFilter(int position);
   virtual bool SetFilterNames();
   virtual bool GetFilterNames(const char *groupName);
 
-  ISwitch                FanS[2];
-  ISwitchVectorProperty  FanSP;
+  INumber               FanN[1];
+  INumberVectorProperty FanNP;
 
-  INumber                CoolerN[1];
-  INumberVectorProperty  CoolerNP;
+  INumber               WindowHeatingN[1];
+  INumberVectorProperty WindowHeatingNP;
 
-  INumber                GainN[1];
-  INumberVectorProperty  GainNP;
+  INumber               CoolerN[1];
+  INumberVectorProperty CoolerNP;
 
-  ISwitch NoiseS[3];
+  INumber               TemperatureRampN[1];
+  INumberVectorProperty TemperatureRampNP;
+
+  INumber               GainN[1];
+  INumberVectorProperty GainNP;
+
+  ISwitch               NoiseS[3];
   ISwitchVectorProperty NoiseSP;
-
 
 private:
   char name[MAXINDIDEVICE];
 
+  int cameraId;
   camera_t *cameraHandle;
-  camera_info_t cameraInfo;
+  bool isEth;
 
-  bool HasFilters;
-  bool isDark;
+  bool hasGain;
+  bool useShutter;
+
+  int numReadModes;
+  int numFilters;
+  float minExpTime;
+  int maxFanValue;
+  int maxHeatingValue;
+  int maxBinX;
+  int maxBinY;
 
   int temperatureID;
-  bool coolerEnabled;
   int timerID;
-  bool sim;
+
+  bool downloading;
+  bool coolerEnabled;
 
   CCDChip::CCD_FRAME imageFrameType;
 
@@ -106,7 +126,7 @@ private:
   bool setupParams();
 
   float calcTimeLeft();
-  int grabImage();  
+  int grabImage();
 
   void updateTemperature();
   static void updateTemperatureHelper(void *);

@@ -1,9 +1,10 @@
 /*
- QHY INDI Driver
+ Moravian Instruments INDI Driver
 
  Copyright (C) 2014 Jasem Mutlaq (mutlaqja@ikarustech.com)
  Copyright (C) 2014 Zhirong Li (lzr@qhyccd.com)
  Copyright (C) 2015 Peter Polakovic (peter.polakovic@cloudmakers.eu)
+ Copyright (C) 2016 Jakub Smutny (linux@gxccd.com)
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -18,9 +19,7 @@
  You should have received a copy of the GNU Lesser General Public
  License along with this library; if not, write to the Free Software
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
- */
-
-#include <libusb-1.0/libusb.h>
+*/
 
 #include <memory>
 #include <time.h>
@@ -32,275 +31,197 @@
 
 #include "config.h"
 
-#define POLLMS                  1000        /* Polling time (ms) */
-#define TEMP_THRESHOLD          0.2         /* Differential temperature threshold (C)*/
-#define MINIMUM_CCD_EXPOSURE    0.001       /* 0.001 seconds minimum exposure */
-#define MAX_DEVICES             4           /* Max device cameraCount */
+#define POLLMS                  1000    /* Polling time (ms) */
+#define TEMP_THRESHOLD          0.2     /* Differential temperature threshold (°C) */
+#define MAX_DEVICES             4       /* Max device cameraCount */
+#define MAX_ERROR_LEN           64      /* Max length of error buffer */
 
-#define MI_VID                      0x1347
-
-//NB Disable for real driver
-//#define USE_SIMULATION
+// There is _one_ binary for USB and ETH driver, but each binary is renamed
+// to its variant (indi_mi_ccd_usb and indi_mi_ccd_eth). The main function will
+// fetch from std args the binary name and ISInit will create the appropriate
+// driver afterwards.
+extern char* me;
 
 static int cameraCount;
+static int cameraIds[MAX_DEVICES];
 static MICCD *cameras[MAX_DEVICES];
-static camera_t cameraHandle[MAX_DEVICES];
 
-static struct {
-  int pid;
-  const char *name;
-  } MI_PIDS[] = {
-    { 0x400, "G2CCD" },
-    { 0x401, "G2CCD-S" },
-    { 0x402, "G2CCD2" },
-    { 0x403, "G2/G3" },
-    { 0x404, "G2/G3/G4" },
-    { 0x405, "Gx CCD-I" },
-    { 0x406, "Gx CCD-F" },
-    { 0x410, "G1-0400" },
-    { 0x411, "G1-0800" },
-    { 0x412, "G1-0300" },
-    { 0x413, "G1-2000" },
-    { 0x414, "G1-1400" },
-    { 0, NULL }
-  };
-
-libusb_context *ctx = NULL;
-
-static void init()
+// Enumeration callback
+static void enumCallback(int cameraId)
 {
-  if (ctx == NULL) {
-    int rc = libusb_init(&ctx);
-    if (rc < 0)
-    {
-      fprintf(stderr, "init: libusb_init -> %s\n", rc < 0 ? libusb_error_name(rc) : "OK");
-    }
-  }
-}
-
-int miList(const char **names, int *pids, int maxCount)
-{
-  init();
-  int count=0;
-  libusb_device **usb_devices;
-  struct libusb_device_descriptor descriptor;
-  ssize_t total = libusb_get_device_list(ctx, &usb_devices);
-  if (total < 0)
-  {
-    fprintf(stderr, "Can't get device list\n");
-    return 0;
-  }
-
-  for (int i = 0; i < total && count < maxCount; i++)
-  {
-    libusb_device *device = usb_devices[i];
-    if (!libusb_get_device_descriptor(device, &descriptor))
-    {
-      if (descriptor.idVendor == MI_VID)
-      {
-        int pid = descriptor.idProduct;
-        for (int i = 0; MI_PIDS[i].pid; i++)
-        {
-          if (pid == MI_PIDS[i].pid)
-          {
-            fprintf(stderr, "miList: '%s' [0x%x, 0x%x] found\n", MI_PIDS[i].name, MI_VID, pid);
-            pids[count]  = MI_PIDS[i].pid;
-            names[count] = MI_PIDS[i].name;
-            count++;
-            libusb_ref_device(device);
-            break;
-          }
-        }
-      }
-    }
-  }
-  libusb_free_device_list(usb_devices, 1);
-  return count;
+    cameraIds[cameraCount++] = cameraId;
 }
 
 static void cleanup()
 {
-  for (int i = 0; i < cameraCount; i++)
-  {
-    delete cameras[i];
-  }
-
+    for (int i = 0; i < cameraCount; i++)
+        delete cameras[i];
 }
 
 void ISInit()
 {
-  static bool isInit = false;
+    static bool isInit = false;
+    if (isInit)
+        return;
 
-  if (!isInit)
-  {      
+    isInit = true;
+    cameraCount = 0;
+    bool eth = false;
 
-      int ret=0;
-      cameraCount = 0;
-      const char *cam_name[MAX_DEVICES];
-      int cam_pid[MAX_DEVICES];
+    if (strstr(me, "indi_mi_ccd_eth"))
+    {
+        eth = true;
+        gxccd_enumerate_eth(enumCallback);
+    }
+    else
+    {
+        // "me" shoud be indi_mi_ccd_usb, however accept all names as USB
+        gxccd_enumerate_usb(enumCallback);
+    }
 
-      #ifndef USE_SIMULATION
-      cameraCount = miList(cam_name, &cam_pid[0], MAX_DEVICES);
-      if(cameraCount == 0)
-      {
-          IDLog("Could not find any MI CCDs. Check power.\n");
-          return;
-      }
-     #else
-     cameraCount = 1;
-     cam_pid[0]   = MI_PIDS[3].pid;
-     cam_name[0]  = MI_PIDS[3].name;
-     #endif
+    for (int i = 0; i < cameraCount; i++)
+    {
+        cameras[i] = new MICCD(cameraIds[i], eth);
+    }
 
-      for(int i = 0;i < cameraCount;i++)
-      {
-          // The product ID is unique to each camera it seems
-          // But we can't get product ID (from cameraInfo) unless we an open first
-          // and we can't do open, unless we have product ID or pass 0 to connect to first
-          // camera. But then how can we know the product ID of the 2nd camera? MI has to answer that!
-          // For now we are just connecting to first camera.
-          //if ( (ret = miccd_open(pid, cameraHandle)) < 0)
-
-          if ( (ret = miccd_open(0, &cameraHandle[i])) < 0)
-          {
-              fprintf(stderr, "Error connecting to MI camera (%#06x:%#06x): %s. Please unplug the CCD and cycle the power and restart INDI driver before trying again.", MI_VID, cam_pid[i], strerror(ret));
-              return;
-          }
-          else
-          {
-              fprintf(stderr, "Connected to MI camera (%#06x:%#06x)", MI_VID, cam_pid[i]);
-              cameras[i] = new MICCD(&cameraHandle[i]);
-          }
-      }
-
-      atexit(cleanup);
-      isInit = true;
-  }
+    atexit(cleanup);
 }
 
 void ISGetProperties(const char *dev)
 {
-  ISInit();
-  for (int i = 0; i < cameraCount; i++)
-  {
-    MICCD *camera = cameras[i];
-    if (dev == NULL || !strcmp(dev, camera->name))
+    ISInit();
+    for (int i = 0; i < cameraCount; i++)
     {
-      camera->ISGetProperties(dev);
-      if (dev != NULL)
-        break;
+        MICCD *camera = cameras[i];
+        if (!dev || !strcmp(dev, camera->name))
+        {
+            camera->ISGetProperties(dev);
+            if (dev)
+                break;
+        }
     }
-  }
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-  ISInit();
-  for (int i = 0; i < cameraCount; i++)
-  {
-    MICCD *camera = cameras[i];
-    if (dev == NULL || !strcmp(dev, camera->name))
+    ISInit();
+    for (int i = 0; i < cameraCount; i++)
     {
-      camera->ISNewSwitch(dev, name, states, names, num);
-      if (dev != NULL)
-        break;
+        MICCD *camera = cameras[i];
+        if (!dev || !strcmp(dev, camera->name))
+        {
+            camera->ISNewSwitch(dev, name, states, names, num);
+            if (dev)
+                break;
+        }
     }
-  }
 }
 
 void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-  ISInit();
-  for (int i = 0; i < cameraCount; i++)
-  {
-    MICCD *camera = cameras[i];
-    if (dev == NULL || !strcmp(dev, camera->name))
+    ISInit();
+    for (int i = 0; i < cameraCount; i++)
     {
-      camera->ISNewText(dev, name, texts, names, num);
-      if (dev != NULL)
-        break;
+        MICCD *camera = cameras[i];
+        if (!dev || !strcmp(dev, camera->name))
+        {
+            camera->ISNewText(dev, name, texts, names, num);
+            if (dev)
+                break;
+        }
     }
-  }
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-  ISInit();
-  for (int i = 0; i < cameraCount; i++)
-  {
-    MICCD *camera = cameras[i];
-    if (dev == NULL || !strcmp(dev, camera->name))
+    ISInit();
+    for (int i = 0; i < cameraCount; i++)
     {
-      camera->ISNewNumber(dev, name, values, names, num);
-      if (dev != NULL)
-        break;
+        MICCD *camera = cameras[i];
+        if (!dev || !strcmp(dev, camera->name))
+        {
+            camera->ISNewNumber(dev, name, values, names, num);
+            if (dev)
+                break;
+        }
     }
-  }
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
 {
-  INDI_UNUSED(dev);
-  INDI_UNUSED(name);
-  INDI_UNUSED(sizes);
-  INDI_UNUSED(blobsizes);
-  INDI_UNUSED(blobs);
-  INDI_UNUSED(formats);
-  INDI_UNUSED(names);
-  INDI_UNUSED(n);
+    INDI_UNUSED(dev);
+    INDI_UNUSED(name);
+    INDI_UNUSED(sizes);
+    INDI_UNUSED(blobsizes);
+    INDI_UNUSED(blobs);
+    INDI_UNUSED(formats);
+    INDI_UNUSED(names);
+    INDI_UNUSED(n);
 }
 
 void ISSnoopDevice(XMLEle *root)
 {
     ISInit();
-
     for (int i = 0; i < cameraCount; i++)
     {
-      MICCD *camera = cameras[i];
-      camera->ISSnoopDevice(root);
+        MICCD *camera = cameras[i];
+        camera->ISSnoopDevice(root);
     }
 }
 
-MICCD::MICCD(camera_t *miHandle)
+MICCD::MICCD(int camId, bool eth)
 {
-    int ret=0;
-    cameraHandle = miHandle;
+    cameraId = camId;
+    isEth = eth;
 
-    if ( (ret = miccd_info(cameraHandle, &cameraInfo) < 0) )
+    if (isEth)
+        cameraHandle = gxccd_initialize_eth(cameraId);
+    else
+        cameraHandle = gxccd_initialize_usb(cameraId);
+    if (!cameraHandle)
+        IDLog("Error connecting MI camera!\n");
+
+    char sp[MAXINDINAME];
+    if (gxccd_get_string_parameter(cameraHandle, GSP_CAMERA_DESCRIPTION, sp, sizeof(sp)) < 0)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error getting MI camera info: %s.", strerror(ret));
-        strncpy(this->name, "MI CCD", MAXINDIDEVICE);
-        miccd_close(miHandle);
-        cameraHandle->fd = -1;
+        gxccd_get_last_error(cameraHandle, sp, sizeof(sp));
+        IDLog("Error getting MI camera info: %s.\n", sp);
+        strncpy(name, "MI CCD", MAXINDIDEVICE);
     }
     else
     {
-        string desc(cameraInfo.description);
-        string::size_type pos = desc.find(' ');
-        if(desc.npos != pos)
-             desc = desc.substr(0, pos);
+        // trim trailing spaces
+        char *end = sp + strlen(sp) - 1;
+        while (end > sp && isspace(*end)) end--;
+        *(end + 1) = '\0';
 
-        snprintf(this->name, MAXINDINAME, "MI CCD %s", desc.c_str());
-        DEBUGF(INDI::Logger::DBG_SESSION, "Detected %s", cameraInfo.description);
+        snprintf(name, MAXINDINAME, "MI CCD %s", sp);
+        IDLog("Detected camera: %s.\n", name);
     }
 
-    HasFilters = false;
-    isDark = false;
+    gxccd_get_integer_parameter(cameraHandle, GIP_READ_MODES, &numReadModes);
+    gxccd_get_integer_parameter(cameraHandle, GIP_FILTERS, &numFilters);
+    gxccd_get_integer_parameter(cameraHandle, GIP_MAX_FAN, &maxFanValue);
+    gxccd_get_integer_parameter(cameraHandle, GIP_MAX_WINDOW_HEATING, &maxHeatingValue);
 
-    setDeviceName(this->name);
+    gxccd_release(cameraHandle);
+    cameraHandle = NULL;
 
+    hasGain = false;
+    useShutter = true;
+
+    setDeviceName(name);
     setVersion(INDI_MI_VERSION_MAJOR, INDI_MI_VERSION_MINOR);
-
-    sim = false;
 }
 
 MICCD::~MICCD()
 {
+    gxccd_release(cameraHandle);
 }
 
 const char * MICCD::getDefaultName()
 {
-  return name;
+    return name;
 }
 
 bool MICCD::initProperties()
@@ -309,29 +230,33 @@ bool MICCD::initProperties()
     initFilterProperties(getDeviceName(), FILTER_TAB);
 
     FilterSlotN[0].min = 1;
-    FilterSlotN[0].max = 5;
+    FilterSlotN[0].max = numFilters;
+
+    // Temp ram
+    IUFillNumber(&TemperatureRampN[0], "TEMP_RAMP", "Max. dT (C/min)", "%2.0f", 0, 30, 1, 2);
+    IUFillNumberVector(&TemperatureRampNP, TemperatureRampN, 1, getDeviceName(), "CCD_TEMP_RAMP", "Temp. ramp", MAIN_CONTROL_TAB, IP_WO, 60, IPS_IDLE);
 
     // CCD Regulation power
-    IUFillNumber(&CoolerN[0], "CCD_COOLER_VALUE", "Cooling Power (%)", "%+06.2f", 0., 1., .2, 0.0);
+    IUFillNumber(&CoolerN[0], "CCD_COOLER_VALUE", "Cooling Power (%)", "%+6.2f", 0.0, 1.0, 0.01, 0.0);
     IUFillNumberVector(&CoolerNP, CoolerN, 1, getDeviceName(), "CCD_COOLER_POWER", "Cooling Power", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     // CCD Fan
-    IUFillSwitch(&FanS[0], "FAN_ON", "On", ISS_OFF);
-    IUFillSwitch(&FanS[1], "FAN_OFF", "Off", ISS_OFF);
-    IUFillSwitchVector(&FanSP, FanS, 2, getDeviceName(), "CCD_FAN", "Fan", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillNumber(&FanN[0], "FAN", "Fan speed", "%2.0f", 0, maxFanValue, 1, 0);
+    IUFillNumberVector(&FanNP, FanN, 1, getDeviceName(), "CCD_FAN", "Fan", MAIN_CONTROL_TAB, IP_WO, 60, IPS_IDLE);
+
+    // CCD Window heating
+    IUFillNumber(&WindowHeatingN[0], "WINDOW_HEATING", "Heating intensity", "%2.0f", 0, maxHeatingValue, 1, 0);
+    IUFillNumberVector(&WindowHeatingNP, WindowHeatingN, 1, getDeviceName(), "CCD_WINDOW_HEATING", "Heating", MAIN_CONTROL_TAB, IP_WO, 60, IPS_IDLE);
 
     // CCD Gain
-    IUFillNumber(&GainN[0], "GAIN", "Gain", "%3.0f", 0, 100, 1, 0);
+    IUFillNumber(&GainN[0], "GAIN", "Gain (e-/ADU)", "%2.2f", 0, 100, 1, 0);
     IUFillNumberVector(&GainNP, GainN, 1, getDeviceName(), "CCD_GAIN", "Gain", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     // Noise mode
     IUFillSwitch(&NoiseS[0], "NORMAL_NOISE", "Normal", ISS_ON);
     IUFillSwitch(&NoiseS[1], "LOW_NOISE", "Low", ISS_OFF);
     IUFillSwitch(&NoiseS[2], "ULTA_LOW_NOISE", "Ultra low", ISS_OFF);
-    IUFillSwitchVector(&NoiseSP, NoiseS, 3, getDeviceName(), "CCD_NOISE", "Noise", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
-    // Set minimum exposure speed to 0.001 seconds
-    PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", MINIMUM_CCD_EXPOSURE, 3600, 1, false);
+    IUFillSwitchVector(&NoiseSP, NoiseS, numReadModes, getDeviceName(), "CCD_NOISE", "Noise", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     addAuxControls();
 
@@ -342,179 +267,216 @@ bool MICCD::initProperties()
 
 void MICCD::ISGetProperties(const char *dev)
 {
-  INDI::CCD::ISGetProperties(dev);
+    INDI::CCD::ISGetProperties(dev);
 
-  if (isConnected())
-  {
-      if (HasCooler())
-      {
-          //defineSwitch(&CoolerSP);
-          defineNumber(&CoolerNP);          
-      }
+    if (isConnected())
+    {
+        if (HasCooler())
+        {
+            defineNumber(&TemperatureRampNP);
+            defineNumber(&CoolerNP);
+        }
 
-      defineSwitch(&FanSP);
-      defineSwitch(&NoiseSP);
-      defineNumber(&GainNP);
+        defineSwitch(&NoiseSP);
 
-      if(HasFilters)
-      {
-          //Define the Filter Slot and name properties
-          defineNumber(&FilterSlotNP);
-          if (FilterNameT != NULL)
-              defineText(FilterNameTP);
-      }
+        if (maxFanValue > 0)
+            defineNumber(&FanNP);
 
-  }
+        if (maxHeatingValue > 0)
+            defineNumber(&WindowHeatingNP);
 
+        if (hasGain)
+            defineNumber(&GainNP);
+
+        if (numFilters > 0)
+        {
+            //Define the Filter Slot and name properties
+            defineNumber(&FilterSlotNP);
+            if (FilterNameT != NULL)
+                defineText(FilterNameTP);
+        }
+    }
 }
 
 bool MICCD::updateProperties()
 {
-  INDI::CCD::updateProperties();
+    INDI::CCD::updateProperties();
 
-  if (isConnected())
-  {
-      if (HasCooler())
-      {
-          //defineSwitch(&CoolerSP);
-          defineNumber(&CoolerNP);
+    if (isConnected())
+    {
+        if (HasCooler())
+        {
+            defineNumber(&TemperatureRampNP);
+            defineNumber(&CoolerNP);
+            temperatureID = IEAddTimer(POLLMS, MICCD::updateTemperatureHelper, this);
+        }
 
-          temperatureID = IEAddTimer(POLLMS, MICCD::updateTemperatureHelper, this);
-      }
+        defineSwitch(&NoiseSP);
 
-      defineSwitch(&FanSP);
-      defineSwitch(&NoiseSP);
-      defineNumber(&GainNP);
+        if (maxFanValue > 0)
+            defineNumber(&FanNP);
 
-      if(HasFilters)
-      {
-          //Define the Filter Slot and name properties
-          defineNumber(&FilterSlotNP);
+        if (maxHeatingValue > 0)
+            defineNumber(&WindowHeatingNP);
 
-          GetFilterNames(FILTER_TAB);
-          defineText(FilterNameTP);
-      }     
+        if (hasGain)
+            defineNumber(&GainNP);
 
-    // Let's get parameters now from CCD
-    setupParams();
+        if (numFilters > 0)
+        {
+            //Define the Filter Slot and name properties
+            defineNumber(&FilterSlotNP);
+            GetFilterNames(FILTER_TAB);
+            defineText(FilterNameTP);
+        }
 
-    timerID = SetTimer(POLLMS);
-  } else
-  {
+        // Let's get parameters now from CCD
+        setupParams();
 
-      if (HasCooler())
-      {
-          //deleteProperty(CoolerSP.name);
-          deleteProperty(CoolerNP.name);
+        timerID = SetTimer(POLLMS);
+    }
+    else
+    {
+        if (HasCooler())
+        {
+            deleteProperty(TemperatureRampNP.name);
+            deleteProperty(CoolerNP.name);
+            RemoveTimer(temperatureID);
+        }
 
-          RemoveTimer(temperatureID);
-      }      
+        deleteProperty(NoiseSP.name);
 
-      deleteProperty(FanSP.name);
-      deleteProperty(NoiseSP.name);
-      deleteProperty(GainNP.name);
+        if (maxFanValue > 0)
+            deleteProperty(FanNP.name);
 
-      if(HasFilters)
-      {
-          deleteProperty(FilterSlotNP.name);
-          deleteProperty(FilterNameTP->name);
-      }
+        if (maxHeatingValue > 0)
+            deleteProperty(WindowHeatingNP.name);
 
+        if (hasGain)
+            deleteProperty(GainNP.name);
 
-    RemoveTimer(timerID);
-  }
+        if (numFilters > 0)
+        {
+            deleteProperty(FilterSlotNP.name);
+            deleteProperty(FilterNameTP->name);
+        }
+        RemoveTimer(timerID);
+    }
 
-  return true;
+    return true;
 }
 
 bool MICCD::Connect()
 {
+    uint32_t cap = 0;
 
-    if (cameraHandle->fd == -1)
+    if (isSimulation())
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error retrieving camera info. Unplug and cycle power and restart INDI driver before you try again.");
-        return false;
-    }
+        DEBUGF(INDI::Logger::DBG_SESSION, "Connected to %s", name);
 
-    sim = isSimulation();
-
-    uint32_t cap=0;
-
-    if (sim)
-    {
         cap = CCD_CAN_SUBFRAME | CCD_CAN_ABORT | CCD_CAN_BIN | CCD_HAS_SHUTTER | CCD_HAS_COOLER;
         SetCCDCapability(cap);
 
-        DEBUGF(INDI::Logger::DBG_SESSION, "Connected to %s", name);
-
-        HasFilters = true;
+        numFilters = 5;
 
         return true;
     }
 
-   DEBUGF(INDI::Logger::DBG_SESSION, "Connected to %s. Chip: %s. HWRevision: %ld. Model: %d. Description: %s", name, cameraInfo.chip, cameraInfo.hwrevision, cameraHandle->model, cameraInfo.description);
-
-   cap = CCD_CAN_SUBFRAME | CCD_CAN_ABORT | CCD_HAS_GUIDE_HEAD;
-
-   if (cameraHandle->model > G12000)
-   {
-       cap |= CCD_CAN_BIN | CCD_HAS_SHUTTER | CCD_HAS_COOLER;
-
-        // Hackish way to find if there is filter wheel support
-        if (miccd_filter (cameraHandle, 0) == 0)
-            HasFilters = true;
+    if (!cameraHandle) {
+        if (isEth)
+            cameraHandle = gxccd_initialize_eth(cameraId);
         else
-            HasFilters = false;
-   }
-   else
-   {
-       HasFilters = false;
-   }
+            cameraHandle = gxccd_initialize_usb(cameraId);
+    }
+    if (!cameraHandle) {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error connecting to %s.", name);
+        return false;
+    }
 
-   SetCCDCapability(cap);
+    DEBUGF(INDI::Logger::DBG_SESSION, "Connected to %s.", name);
 
+    bool value;
+    cap = CCD_CAN_ABORT | CCD_CAN_BIN;
+
+    gxccd_get_boolean_parameter(cameraHandle, GBP_SUB_FRAME, &value);
+    if (value)
+        cap |= CCD_CAN_SUBFRAME;
+
+    gxccd_get_boolean_parameter(cameraHandle, GBP_GUIDE, &value);
+    if (value)
+        cap |= CCD_HAS_ST4_PORT;
+
+    gxccd_get_boolean_parameter(cameraHandle, GBP_SHUTTER, &value);
+    if (value)
+        cap |= CCD_HAS_SHUTTER;
+
+    gxccd_get_boolean_parameter(cameraHandle, GBP_COOLER, &value);
+    if (value)
+        cap |= CCD_HAS_COOLER;
+
+    gxccd_get_boolean_parameter(cameraHandle, GBP_GAIN, &hasGain);
+
+    SetCCDCapability(cap);
     return true;
 }
 
 bool MICCD::Disconnect()
 {
-  DEBUG(INDI::Logger::DBG_SESSION, "CCD is offline.");
-
-  if (sim == false)
-  {
-      miccd_close(cameraHandle);
-  }
-  return true;
+    DEBUG(INDI::Logger::DBG_SESSION, "CCD is offline.");
+    gxccd_release(cameraHandle);
+    cameraHandle = NULL;
+    return true;
 }
 
 bool MICCD::setupParams()
 {
-    int ret = 0;
-
+    bool sim = isSimulation();
     if (sim)
-        SetCCDParams(4032,2688,16,9,9);
+    {
+        SetCCDParams(4032, 2688, 16, 9, 9);
+    }
     else
-        SetCCDParams(cameraInfo.w, cameraInfo.h, 16, cameraInfo.pw/1000.0, cameraInfo.ph/1000.0);
+    {
+        int chipW, chipD, pixelW, pixelD;
+        gxccd_get_integer_parameter(cameraHandle, GIP_CHIP_W, &chipW);
+        gxccd_get_integer_parameter(cameraHandle, GIP_CHIP_D, &chipD);
+        gxccd_get_integer_parameter(cameraHandle, GIP_PIXEL_W, &pixelW);
+        gxccd_get_integer_parameter(cameraHandle, GIP_PIXEL_D, &pixelD);
 
+        SetCCDParams(chipW, chipD, 16, pixelW / 1000.0, pixelD / 1000.0);
+    }
 
     int nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
     nbuf += 512;
     PrimaryCCD.setFrameBufferSize(nbuf);
 
-    // Get Gain, does it change?
-    uint16_t gain=0;
-    if ( (ret = miccd_gain(cameraHandle, &gain)) < 0)
+    int expTime = 0;
+    gxccd_get_integer_parameter(cameraHandle, GIP_MINIMAL_EXPOSURE, &expTime);
+    minExpTime = expTime / 1000000.0; // convert to seconds
+    PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", minExpTime, 3600, 1, false);
+
+    gxccd_get_integer_parameter(cameraHandle, GIP_MAX_BINNING_X, &maxBinX);
+    gxccd_get_integer_parameter(cameraHandle, GIP_MAX_BINNING_Y, &maxBinY);
+
+    if (!sim && hasGain)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "miccd_gain error: %s", strerror(ret));
-        GainNP.s = IPS_ALERT;
-        IDSetNumber(&GainNP, NULL);
-        return false;
-    }
-    else
-    {
-        GainN[0].value = gain;
-        GainNP.s = IPS_OK;
-        IDSetNumber(&GainNP, NULL);
+        float gain = 0;
+        if (gxccd_get_value(cameraHandle, GV_ADC_GAIN, &gain) < 0)
+        {
+            char errorStr[MAX_ERROR_LEN];
+            gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
+            DEBUGF(INDI::Logger::DBG_ERROR, "Getting gain failed: %s.", errorStr);
+            GainN[0].value = 0;
+            GainNP.s = IPS_ALERT;
+            IDSetNumber(&GainNP, NULL);
+            return false;
+        }
+        else
+        {
+            GainN[0].value = gain;
+            GainNP.s = IPS_OK;
+            IDSetNumber(&GainNP, NULL);
+        }
     }
 
     return true;
@@ -522,18 +484,17 @@ bool MICCD::setupParams()
 
 int MICCD::SetTemperature(double temperature)
 {
-    int ret = 0;
-
-    // If there difference, for example, is less than 0.1 degrees, let's immediately return OK.
-    if (fabs(temperature- TemperatureN[0].value) < TEMP_THRESHOLD)
+    // If there difference, for example, is less than TEMP_THRESHOLD degrees, let's immediately return OK.
+    if (fabs(temperature - TemperatureN[0].value) < TEMP_THRESHOLD)
         return 1;
 
-    TemperatureRequest = temperature;        
+    TemperatureRequest = temperature;
 
-
-    if (sim == false && (ret = miccd_set_cooltemp(cameraHandle, temperature)) < 0)
+    if (!isSimulation() && gxccd_set_temperature(cameraHandle, temperature) < 0)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Setting temperature failed: %s.", strerror(ret));
+        char errorStr[MAX_ERROR_LEN];
+        gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
+        DEBUGF(INDI::Logger::DBG_ERROR, "Setting temperature failed: %s.", errorStr);
         return -1;
     }
 
@@ -542,118 +503,65 @@ int MICCD::SetTemperature(double temperature)
 
 bool MICCD::StartExposure(float duration)
 {
-  int ret = 0;
-  isDark  = false;
+    int ret = 0;
+    useShutter = true;
 
-  if (duration < MINIMUM_CCD_EXPOSURE)
-  {
-    DEBUGF(INDI::Logger::DBG_WARNING, "Exposure shorter than minimum duration %g s requested. Setting exposure time to %g s.", duration, MINIMUM_CCD_EXPOSURE);
-    duration = MINIMUM_CCD_EXPOSURE;
-  }
+    if (duration < minExpTime)
+    {
+        DEBUGF(INDI::Logger::DBG_WARNING, "Exposure shorter than minimum duration %g s requested. Setting exposure time to %g s.", duration, minExpTime);
+        duration = minExpTime;
+    }
 
-  imageFrameType = PrimaryCCD.getFrameType();  
+    imageFrameType = PrimaryCCD.getFrameType();
 
-  if (imageFrameType == CCDChip::BIAS_FRAME)
-  {
-    duration = MINIMUM_CCD_EXPOSURE;
-    DEBUGF(INDI::Logger::DBG_SESSION, "Bias Frame (s) : %g", duration);
-  }
-  else if(imageFrameType == CCDChip::DARK_FRAME)
-  {
-      isDark = true;
-  }  
+    if (imageFrameType == CCDChip::BIAS_FRAME)
+    {
+        duration = minExpTime;
+    }
+    else if (imageFrameType == CCDChip::DARK_FRAME)
+    {
+        useShutter = false;
+    }
 
-  if (sim == false)
-  {
-      if ( (ret = miccd_clear (cameraHandle)) < 0)
-      {
-          DEBUGF(INDI::Logger::DBG_ERROR, "miccd_clear error: %s.", strerror(ret));
-          return false;
-      }
+    if (!isSimulation())
+    {
+        // read modes in G2/G3/G4 cameras are in inverse order, we have to calculate correct value
+        int mode, prm;
+        gxccd_get_integer_parameter(cameraHandle, GIP_PREVIEW_READ_MODE, &prm);
+        if (prm == 0) // preview mode == 0 means smaller G0/G1 cameras
+            mode = IUFindOnSwitchIndex(&NoiseSP);
+        else
+            mode = prm - IUFindOnSwitchIndex(&NoiseSP);
+        gxccd_set_read_mode(cameraHandle, mode);
 
-      // Older G1 models
-      if (cameraHandle->model <= G12000)
-      {
-          uint8_t lowNoiseMode = (IUFindOnSwitchIndex(&NoiseSP) > 0) ? 1 : 0;
+        gxccd_start_exposure(cameraHandle, duration, useShutter, PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
+    }
 
-          if ( (ret = miccd_g1_mode (cameraHandle, 1, lowNoiseMode)) < 0)
-          {
-              DEBUGF(INDI::Logger::DBG_ERROR, "miccd_g1_mode error: %s.", strerror(ret));
-              return false;
-          }
+    ExposureRequest = duration;
+    PrimaryCCD.setExposureDuration(duration);
 
-          // No need, we call same function with -1 later once timer is up
-          /*if ( (ret = miccd_start_exposure (&camera, PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH(), duration)) < 0)
-          {
-              DEBUGF(INDI::Logger::DBG_ERROR, "miccd_start_exposure: %s.", strerror(ret));
-              return false;
-          }*/
-      }
-      //G2/G3/G4 models
-      else
-      {
-          if ( (ret = miccd_hclear (cameraHandle)) < 0)
-          {
-              DEBUGF(INDI::Logger::DBG_ERROR, "miccd_hclear error: %s.", strerror(ret));
-              return false;
-          }
-
-          if (isDark == false)
-          {
-              if ( (ret = miccd_open_shutter (cameraHandle)) < 0 )
-              {
-                  DEBUGF(INDI::Logger::DBG_ERROR, "miccd_open_shutter: %s.", strerror(ret));
-                  return false;
-              }
-          }
-      }
-  }
-
-  ExposureRequest = duration;
-  PrimaryCCD.setExposureDuration(duration);
-
-  gettimeofday(&ExpStart, NULL);
-  DEBUGF(INDI::Logger::DBG_DEBUG, "Taking a %g seconds frame...", ExposureRequest);
-
-  InExposure = true;
-
-  return true;
+    gettimeofday(&ExpStart, NULL);
+    InExposure = true;
+    downloading = false;
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Taking a %g seconds frame...", ExposureRequest);
+    return true;
 }
 
 bool MICCD::AbortExposure()
 {
-    int ret=0;
-
-    if (!InExposure || sim)
+    if (InExposure && !isSimulation())
     {
-        InExposure = false;
-        DEBUG(INDI::Logger::DBG_SESSION, "Exposure aborted.");
-        return true;
-    }
-
-    // Older G1 models
-    if (cameraHandle->model <= G12000)
-    {
-        if ( (ret = miccd_abort_exposure (cameraHandle)) < 0 )
+        if (gxccd_abort_exposure(cameraHandle, false) < 0)
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "miccd_abort_exposure: %s.", strerror(ret));
+            char errorStr[MAX_ERROR_LEN];
+            gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
+            DEBUGF(INDI::Logger::DBG_ERROR, "Aborting exposure failed: %s.", errorStr);
             return false;
-        }
-    }
-    // G2/G3/G4 models
-    else
-    {
-        if (isDark == false)
-        {
-            if ( (ret = miccd_close_shutter (cameraHandle)) < 0 )
-            {
-                DEBUGF(INDI::Logger::DBG_ERROR, "miccd_close_shutter: %s.", strerror(ret));
-                return false;
-            }
         }
     }
 
     InExposure = false;
+    downloading = false;
     DEBUG(INDI::Logger::DBG_SESSION, "Exposure aborted.");
     return true;
 }
@@ -684,10 +592,9 @@ bool MICCD::UpdateCCDFrame(int x, int y, int w, int h)
     int imageHeight = y_2 - y_1;
 
     // Set UNBINNED coords
-    PrimaryCCD.setFrame(x, y, w,  h);
-    int nbuf;
-    nbuf=(imageWidth*imageHeight * PrimaryCCD.getBPP()/8);                 //  this is pixel count
-    nbuf+=512;                      //  leave a little extra at the end
+    PrimaryCCD.setFrame(x, y, w, h);
+    int nbuf = imageWidth * imageHeight * PrimaryCCD.getBPP() / 8; //  this is pixel count
+    nbuf += 512;                      //  leave a little extra at the end
     PrimaryCCD.setFrameBufferSize(nbuf);
 
     return true;
@@ -695,177 +602,123 @@ bool MICCD::UpdateCCDFrame(int x, int y, int w, int h)
 
 bool MICCD::UpdateCCDBin(int hor, int ver)
 {
-    if (hor < 1 || hor > 4 || ver < 1 || ver > 4)
+    if (hor < 1 || hor > maxBinX || ver < 1 || ver > maxBinY)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Binning (%dx%d) are out of range. Range from 1x1 to 4x4", hor, ver);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Binning (%dx%d) are out of range. Range from 1x1 to (%dx%d)", maxBinX, maxBinY);
         return false;
     }
-
-   PrimaryCCD.setBin(hor,ver);
-   return UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
-
-    return false;
+    if (gxccd_set_binning(cameraHandle, hor, ver) < 0)
+    {
+        char errorStr[MAX_ERROR_LEN];
+        gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
+        DEBUGF(INDI::Logger::DBG_ERROR, "Setting binning failed: %s.", errorStr);
+        return false;
+    }
+    PrimaryCCD.setBin(hor, ver);
+    return UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
 }
 
 float MICCD::calcTimeLeft()
 {
-  double timesince;
-  double timeleft;
-  struct timeval now;
-  gettimeofday(&now, NULL);
+    double timesince;
+    struct timeval now;
+    gettimeofday(&now, NULL);
 
-  timesince = (double) (now.tv_sec * 1000.0 + now.tv_usec / 1000) - (double) (ExpStart.tv_sec * 1000.0 + ExpStart.tv_usec / 1000);
-  timesince = timesince / 1000;
-
-  timeleft = ExposureRequest - timesince;
-  return timeleft;
+    timesince = (now.tv_sec * 1000.0 + now.tv_usec / 1000.0) - (ExpStart.tv_sec * 1000.0 + ExpStart.tv_usec / 1000.0);
+    return ExposureRequest - timesince / 1000.0;
 }
 
 /* Downloads the image from the CCD. */
 int MICCD::grabImage()
 {
-  unsigned char * image = (unsigned char *) PrimaryCCD.getFrameBuffer();
+    unsigned char *image = (unsigned char *) PrimaryCCD.getFrameBuffer();
 
-  if (sim)
-  {
-      int height = PrimaryCCD.getSubH() / PrimaryCCD.getBinY();
-      int width  = PrimaryCCD.getSubW() / PrimaryCCD.getBinX();
-
-      uint16_t *buffer = (uint16_t *) image;
-
-    for (int i = 0; i < height; i++)
-      for (int j = 0; j < width; j++)
-        buffer[i * width + j] = rand() % UINT16_MAX;
-  } 
-  else
-  {
-    int ret=0;
-
-    // Older G1 models
-    if (cameraHandle->model <= G12000)
+    if (isSimulation())
     {
-        if ( (ret = miccd_start_exposure (cameraHandle, PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH(), -1) ) < 0)
-        {
-            DEBUGF(INDI::Logger::DBG_ERROR, "miccd_start_exposure error: %s", strerror(ret));
-            return false;
-        }
+        int height = PrimaryCCD.getSubH() / PrimaryCCD.getBinY();
+        int width  = PrimaryCCD.getSubW() / PrimaryCCD.getBinX();
 
-        char *data = (char *) PrimaryCCD.getFrameBuffer();
-        if ( (ret = miccd_read_data (cameraHandle, PrimaryCCD.getFrameBufferSize(), data , PrimaryCCD.getSubW(), PrimaryCCD.getSubH()) < 0) )
-        {
-            DEBUGF(INDI::Logger::DBG_ERROR, "miccd_read_data error: %s", strerror(ret));
-            return false;
-        }
+        uint16_t *buffer = (uint16_t *) image;
+
+        for (int i = 0; i < height; i++)
+          for (int j = 0; j < width; j++)
+            buffer[i * width + j] = rand() % UINT16_MAX;
     }
-    // G2/G2/G4 models
     else
     {
-        if (isDark == false)
+        int ret = 0;
+        if (gxccd_read_image(cameraHandle, image, PrimaryCCD.getFrameBufferSize()) < 0)
         {
-            if ( (ret = miccd_close_shutter (cameraHandle)) < 0 )
-            {
-                DEBUGF(INDI::Logger::DBG_ERROR, "miccd_close_shutter: %s.", strerror(ret));
-                return false;
-            }
-        }
-
-        if ( (ret = miccd_shift_to0 (cameraHandle)) < 0)
-        {
-            DEBUGF(INDI::Logger::DBG_ERROR, "miccd_shift_to0: %s.", strerror(ret));
-            return false;
-        }
-
-        uint8_t mode = IUFindOnSwitchIndex(&NoiseSP);
-
-        if ( (ret = miccd_mode (cameraHandle, mode)) < 0)
-        {
-            DEBUGF(INDI::Logger::DBG_ERROR, "miccd_mode: %s.", strerror(ret));
-            return false;
-        }
-
-        char *data = (char *) PrimaryCCD.getFrameBuffer();
-        if ( (ret = miccd_read_frame (cameraHandle, PrimaryCCD.getBinX(), PrimaryCCD.getBinY(), PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH(), data)) < 0)
-        {
-            DEBUGF(INDI::Logger::DBG_ERROR, "miccd_read_frame: %s.", strerror(ret));
-            return false;
+            char errorStr[MAX_ERROR_LEN];
+            gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
+            DEBUGF(INDI::Logger::DBG_ERROR, "Error getting image: %s.", errorStr);
         }
     }
-  }
 
-  DEBUG(INDI::Logger::DBG_DEBUG, "Download complete.");
-  if (ExposureRequest > POLLMS * 5)
+    if (ExposureRequest > POLLMS * 5)
       DEBUG(INDI::Logger::DBG_SESSION, "Download complete.");
 
-  ExposureComplete(&PrimaryCCD);
+    downloading = false;
+    ExposureComplete(&PrimaryCCD);
 
-  return 0;
+    return 0;
 }
 
 void MICCD::TimerHit()
 {
-  int timerID = -1;
-  long timeleft;
+    if (!isConnected())
+        return;  // No need to reset timer if we are not connected anymore
 
-  if (isConnected() == false)
-    return;  //  No need to reset timer if we are not connected anymore
-
-  if (InExposure)
-  {
-    timeleft = calcTimeLeft();
-
-    if (timeleft < 1.0)
+    if (InExposure || downloading)
     {
-      if (timeleft > 0.25)
-      {
-        //  a quarter of a second or more
-        //  just set a tighter timer
-        timerID = SetTimer(250);
-      } 
-      else
-      {
-        if (timeleft > 0.07)
-        {
-          //  use an even tighter timer
-          timerID = SetTimer(50);
-        } 
-        else
-        {
-          /* We're done exposing */
-          DEBUG(INDI::Logger::DBG_DEBUG, "Exposure done, downloading image...");
-          // Don't spam the session log unless it is a long exposure > 5 seconds
-          if (ExposureRequest > POLLMS * 5)
-              DEBUG(INDI::Logger::DBG_SESSION, "Exposure done, downloading image...");
+        long timeleft = calcTimeLeft();
+        bool ready = false;
 
-          PrimaryCCD.setExposureLeft(0);
-          InExposure = false;
-          /* grab and save image */
-          grabImage();
+        if (gxccd_image_ready(cameraHandle, &ready) < 0)
+        {
+            char errorStr[MAX_ERROR_LEN];
+            gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
+            DEBUGF(INDI::Logger::DBG_ERROR, "Getting image ready failed: %s.", errorStr);
 
         }
-      }
-    } 
-    else
-    {
+        if (ready)
+        {
+            // grab and save image
+            grabImage();
+        }
+        // camera may need some time for image download -> update client only for positive values
+        else if (timeleft >= 0)
+        {
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Exposure in progress: Time left %ld", timeleft);
+            PrimaryCCD.setExposureLeft(timeleft);
+        }
+        else if (!downloading)
+        {
+            PrimaryCCD.setExposureLeft(0);
+            InExposure = false;
+            downloading = true;
 
-      DEBUGF(INDI::Logger::DBG_DEBUG, "Exposure in progress: Time left %ld", timeleft);
+            // Don't spam the session log unless it is a long exposure > 5 seconds
+            if (ExposureRequest > POLLMS * 5)
+                DEBUG(INDI::Logger::DBG_SESSION, "Exposure done, downloading image...");
+        }
     }
 
-      PrimaryCCD.setExposureLeft(timeleft);
-
-   }
-
-  if (timerID == -1)
     SetTimer(POLLMS);
+}
 
+int MICCD::QueryFilter()
+{
+    return CurrentFilter;
 }
 
 bool MICCD::SelectFilter(int position)
 {
-    int ret = 0;
-
-    if (sim == false && (ret = miccd_filter(cameraHandle, position)) < 0)
+    if (!isSimulation() && gxccd_set_filter(cameraHandle, position - 1) < 0)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "miccd_filter error: %s.", strerror(ret));
+        char errorStr[MAX_ERROR_LEN];
+        gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
+        DEBUGF(INDI::Logger::DBG_ERROR, "Setting filter failed: %s.", errorStr);
         return false;
     }
 
@@ -894,7 +747,7 @@ bool MICCD::GetFilterNames(const char* groupName)
 
     FilterNameT = new IText[MaxFilter];
 
-    for (int i=0; i < MaxFilter; i++)
+    for (int i = 0; i < MaxFilter; i++)
     {
         snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i+1);
         snprintf(filterLabel, MAXINDILABEL, "Filter#%d", i+1);
@@ -907,92 +760,153 @@ bool MICCD::GetFilterNames(const char* groupName)
     return true;
 }
 
-int MICCD::QueryFilter()
+IPState MICCD::GuideNorth(float duration)
 {
-    return CurrentFilter;
+    if (gxccd_move_telescope(cameraHandle, 0, duration) < 0) {
+        char errorStr[MAX_ERROR_LEN];
+        gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
+        DEBUGF(INDI::Logger::DBG_ERROR, "GuideNorth() failed: %s.", errorStr);
+        return IPS_ALERT;
+    }
+    return IPS_OK;
 }
 
-bool MICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+IPState MICCD::GuideSouth(float duration)
 {
-    if(strcmp(dev,getDeviceName())==0)
+    if (gxccd_move_telescope(cameraHandle, 0, -duration) < 0) {
+        char errorStr[MAX_ERROR_LEN];
+        gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
+        DEBUGF(INDI::Logger::DBG_ERROR, "GuideSouth() failed: %s.", errorStr);
+        return IPS_ALERT;
+    }
+    return IPS_OK;
+}
+
+IPState MICCD::GuideEast(float duration)
+{
+    if (gxccd_move_telescope(cameraHandle, -duration, 0) < 0) {
+        char errorStr[MAX_ERROR_LEN];
+        gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
+        DEBUGF(INDI::Logger::DBG_ERROR, "GuideEast() failed: %s.", errorStr);
+        return IPS_ALERT;
+    }
+    return IPS_OK;
+}
+
+IPState MICCD::GuideWest(float duration)
+{
+    if (gxccd_move_telescope(cameraHandle, duration, 0) < 0) {
+        char errorStr[MAX_ERROR_LEN];
+        gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
+        DEBUGF(INDI::Logger::DBG_ERROR, "GuideWest() failed: %s.", errorStr);
+        return IPS_ALERT;
+    }
+    return IPS_OK;
+}
+
+bool MICCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+{
+    if (strcmp(dev, getDeviceName()) == 0)
     {
-        if(!strcmp(NoiseSP.name, name))
+        if (!strcmp(name, NoiseSP.name))
         {
-          IUUpdateSwitch(&NoiseSP, states, names, n);
-
-          if (cameraHandle->model <= G12000 && NoiseS[2].s == ISS_ON)
-          {
-              IUResetSwitch(&NoiseSP);
-              NoiseS[0].s = ISS_ON;
-              NoiseSP.s = IPS_ALERT;
-              DEBUG(INDI::Logger::DBG_ERROR, "Ultra low noise mode not supported in this camera model.");
-          }
-          else
-              NoiseSP.s = IPS_OK;
-
-          IDSetSwitch(&NoiseSP, NULL);
-
-          return true;
-        }
-
-
-        if(!strcmp(FanSP.name, name))
-        {
-            int ret = 0;
-
-            IUUpdateSwitch(&FanSP, states, names, n);
-
-            if (sim == false && (ret = miccd_fan(cameraHandle, (FanS[0].s == ISS_ON) ? 1 : 0)) < 0)
-            {
-                DEBUGF(INDI::Logger::DBG_ERROR, "miccd_fan error: %s.", strerror(ret));
-                IUResetSwitch(&FanSP);
-                FanSP.s = IPS_ALERT;
-            }
-            else
-            {
-                IUResetSwitch(&FanSP);
-                FanSP.s = IPS_OK;
-            }
-
-            IDSetSwitch(&FanSP, NULL);
+            IUUpdateSwitch(&NoiseSP, states, names, n);
+            NoiseSP.s = IPS_OK;
+            IDSetSwitch(&NoiseSP, NULL);
             return true;
         }
     }
 
-    //  Nobody has claimed this, so, ignore it
-    return INDI::CCD::ISNewSwitch(dev,name,states,names,n);
+    return INDI::CCD::ISNewSwitch(dev, name, states, names, n);
 }
 
 
-bool MICCD::ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int n)
+bool MICCD::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if(strcmp(dev,getDeviceName())==0)
+    if(strcmp(dev, getDeviceName()) == 0)
     {
-        //  This is for our device
-        //  Now lets see if it's something we process here
-        if(!strcmp(name,FilterNameTP->name))
+        if (!strcmp(name, FilterNameTP->name))
         {
             processFilterName(dev, texts, names, n);
             return true;
         }
-
     }
 
-    return INDI::CCD::ISNewText(dev,name,texts,names,n);
+    return INDI::CCD::ISNewText(dev, name, texts, names, n);
 }
 
-bool MICCD::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
-{    
-    if(strcmp(dev,getDeviceName())==0)
+bool MICCD::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+{
+    if(strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(name,FilterSlotNP.name))
+        if (!strcmp(name, FilterSlotNP.name))
         {
             processFilterSlot(getDeviceName(), values, names);
             return true;
-        }       
+        }
+
+        if (!strcmp(name, FanNP.name))
+        {
+            IUUpdateNumber(&FanNP, values, names, n);
+
+            if (!isSimulation() && gxccd_set_fan(cameraHandle, FanN[0].value) < 0)
+            {
+                char errorStr[MAX_ERROR_LEN];
+                gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
+                DEBUGF(INDI::Logger::DBG_ERROR, "Setting fan failed: %s.", errorStr);
+                FanNP.s = IPS_ALERT;
+            }
+            else
+            {
+                FanNP.s = IPS_OK;
+            }
+
+            IDSetNumber(&FanNP, NULL);
+            return true;
+        }
+
+        if (!strcmp(name, WindowHeatingNP.name))
+        {
+            IUUpdateNumber(&WindowHeatingNP, values, names, n);
+
+            if (!isSimulation() && gxccd_set_window_heating(cameraHandle, WindowHeatingN[0].value) < 0)
+            {
+                char errorStr[MAX_ERROR_LEN];
+                gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
+                DEBUGF(INDI::Logger::DBG_ERROR, "Setting heating failed: %s.", errorStr);
+                WindowHeatingNP.s = IPS_ALERT;
+            }
+            else
+            {
+                WindowHeatingNP.s = IPS_OK;
+            }
+
+            IDSetNumber(&WindowHeatingNP, NULL);
+            return true;
+        }
+
+        if (!strcmp(name, TemperatureRampNP.name))
+        {
+            IUUpdateNumber(&TemperatureRampNP, values, names, n);
+
+            if (!isSimulation() && gxccd_set_temperature_ramp(cameraHandle, TemperatureRampN[0].value) < 0)
+            {
+                char errorStr[MAX_ERROR_LEN];
+                gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
+                DEBUGF(INDI::Logger::DBG_ERROR, "Setting temp. ramp failed: %s.", errorStr);
+                TemperatureRampNP.s = IPS_ALERT;
+            }
+            else
+            {
+                TemperatureRampNP.s = IPS_OK;
+            }
+
+            IDSetNumber(&TemperatureRampNP, NULL);
+            return true;
+        }
     }
 
-    return INDI::CCD::ISNewNumber(dev,name,values,names,n);
+    return INDI::CCD::ISNewNumber(dev, name, values, names, n);
 }
 
 void MICCD::updateTemperatureHelper(void *p)
@@ -1003,11 +917,11 @@ void MICCD::updateTemperatureHelper(void *p)
 
 void MICCD::updateTemperature()
 {
-    float ccdtemp=0;
-    uint16_t ccdpower=0;
-    int ret=0;
+    float ccdtemp = 0;
+    float ccdpower = 0;
+    int err = 0;
 
-    if (sim)
+    if (isSimulation())
     {
         ccdtemp = TemperatureN[0].value;
         if (TemperatureN[0].value < TemperatureRequest)
@@ -1019,47 +933,67 @@ void MICCD::updateTemperature()
     }
     else
     {
-        if ( (ret = miccd_chip_temperature(cameraHandle, &ccdtemp) ) < 0)
+        if (gxccd_get_value(cameraHandle, GV_CHIP_TEMPERATURE, &ccdtemp) < 0)
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "miccd_chip_temperature error: %s.", strerror(ret));
-            return;
+            char errorStr[MAX_ERROR_LEN];
+            gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
+            DEBUGF(INDI::Logger::DBG_ERROR, "Getting temperature failed: %s.", errorStr);
+            err |= 1;
         }
-
-        if ( (ret = miccd_power_voltage(cameraHandle, &ccdpower)) < 0)
+        if (gxccd_get_value(cameraHandle, GV_POWER_UTILIZATION, &ccdpower) < 0)
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "miccd_chip_temperature error: %s.", strerror(ret));
-            return;
-
+            char errorStr[MAX_ERROR_LEN];
+            gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
+            DEBUGF(INDI::Logger::DBG_ERROR, "Getting voltage failed: %s.", errorStr);
+            err |= 2;
         }
-    }    
+    }
 
     TemperatureN[0].value = ccdtemp;
-    CoolerN[0].value = ccdpower/1000.0;
+    CoolerN[0].value = ccdpower * 100.0;
 
     if (TemperatureNP.s == IPS_BUSY && fabs(TemperatureN[0].value - TemperatureRequest) <= TEMP_THRESHOLD)
     {
+        // end of temperature ramp
         TemperatureN[0].value = TemperatureRequest;
         TemperatureNP.s = IPS_OK;
     }
 
+    if (err)
+    {
+        if (err & 1)
+            TemperatureNP.s = IPS_ALERT;
+        if (err & 2)
+            CoolerNP.s = IPS_ALERT;
+    }
+    else
+    {
+        CoolerNP.s = IPS_OK;
+    }
+
     IDSetNumber(&TemperatureNP, NULL);
     IDSetNumber(&CoolerNP, NULL);
-    temperatureID = IEAddTimer(POLLMS,MICCD::updateTemperatureHelper, this);
-
+    temperatureID = IEAddTimer(POLLMS, MICCD::updateTemperatureHelper, this);
 }
 
 bool MICCD::saveConfigItems(FILE *fp)
 {
     INDI::CCD::saveConfigItems(fp);
 
-    if (HasFilters)
+    IUSaveConfigNumber(fp, &TemperatureRampNP);
+    IUSaveConfigSwitch(fp, &NoiseSP);
+
+    if (numFilters > 0)
     {
         IUSaveConfigNumber(fp, &FilterSlotNP);
         IUSaveConfigText(fp, FilterNameTP);
     }
 
-    IUSaveConfigSwitch(fp, &NoiseSP);
+    if (maxFanValue > 0)
+        IUSaveConfigNumber(fp, &FanNP);
+
+    if (maxHeatingValue > 0)
+        IUSaveConfigNumber(fp, &WindowHeatingNP);
 
     return true;
 }
-

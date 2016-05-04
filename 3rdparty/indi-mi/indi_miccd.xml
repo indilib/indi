@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <driversList>
 <devGroup group="CCDs">
-        <device label="MI CCD" mdpd="true">
-                <driver name="MI CCD">indi_mi_ccd</driver>
-                <version>0.1</version>
-	</device>
+    <device label="MI CCD (USB)">
+        <driver name="MI CCD">indi_mi_ccd_usb</driver>
+        <version>1.0</version>
+    </device>
+    <device label="MI CCD (ETH)">
+        <driver name="MI CCD">indi_mi_ccd_eth</driver>
+        <version>1.0</version>
+    </device>
 </devGroup>
 </driversList>
-
