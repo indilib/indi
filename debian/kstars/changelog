@@ -1,3 +1,9 @@
+kstars-bleeding (5:16.04) xenial; urgency=medium
+
+  * 16.04 Rolling Release. Version 2.6.0
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Wed, 04 May 2016 23:53:21 +0300
+
 kstars-bleeding (5:15.12) wily; urgency=medium
 
   * 15.12 Rolling Release
