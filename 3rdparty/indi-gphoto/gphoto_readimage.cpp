@@ -1,10 +1,11 @@
-#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
 #include <ctype.h>
 #include <arpa/inet.h>
+
+#include <indilogger.h>
 
 #include <unistd.h>
 
@@ -13,8 +14,7 @@
 #include "gphoto_readimage.h"
 
 char dcraw_cmd[] = "dcraw";
-
-static int debug =0;
+char device[64];
 
 #define err_printf IDLog,
 struct dcraw_header {
@@ -33,14 +33,14 @@ enum {
 	CFA_RGGB,
 };
 
-void gphoto_read_set_debug(int enable)
+void gphoto_read_set_debug(const char *name)
 {
-    debug = enable;
+    strncpy(device, name, 64);
 }
 
 void *tstrealloc(void *ptr, size_t size)
 {
-	fprintf(stderr, "Realloc: %lu\n", (unsigned long)size);
+    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Realloc: %lu", (unsigned long)size);
 	return realloc(ptr, size);
 }
 
@@ -48,8 +48,8 @@ static void skip_line( FILE *fp )
 {
 	int ch;
 
-	while( (ch = fgetc( fp )) != '\n' )
-		;
+    //while( (ch = fgetc( fp )) != '' );
+    while( (ch = fgetc( fp )) != '\n' );
 }
 
 static void skip_white_space( FILE * fp )
@@ -111,9 +111,9 @@ int read_ppm(FILE *handle, struct dcraw_header *header, uint8_t **memptr, size_t
 	prefix[1] = fgetc(handle);
         if (prefix[0] != 'P' || (prefix[1] != '6' && prefix[1] != '5'))
         {
-		fprintf(stderr, "read_ppm: got unexpected prefix %x %x\n", prefix[0], prefix[1]);
-        return -1;
-	}
+            DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "read_ppm: got unexpected prefix %x %x", prefix[0], prefix[1]);
+            return -1;
+        }
 
     if (prefix[1] == '6')
 		naxis = 3;
@@ -124,7 +124,7 @@ int read_ppm(FILE *handle, struct dcraw_header *header, uint8_t **memptr, size_t
 	height = read_uint(handle);
     if (width != header->width || height != header->height)
     {
-		fprintf(stderr, "read_ppm: Expected (%d x %d) but image is actually (%d x %d)\n", header->width, header->height, width, height);
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "read_ppm: Expected (%d x %d) but image is actually (%d x %d)", header->width, header->height, width, height);
         //return -1;
 	}
     *w = width;
@@ -133,7 +133,7 @@ int read_ppm(FILE *handle, struct dcraw_header *header, uint8_t **memptr, size_t
 	fgetc(handle);
     if (maxcolor > 65535)
     {
-		fprintf(stderr, "read_ppm: 32bit PPM isn't supported\n");
+        DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "read_ppm: 32bit PPM isn't supported");
         return -1;
     } else if (maxcolor > 255)
     {
@@ -147,11 +147,11 @@ int read_ppm(FILE *handle, struct dcraw_header *header, uint8_t **memptr, size_t
 
     *memsize = width * height * bpp * (naxis == 2 ? 1 : 3);
     
-    *memptr = realloc(*memptr, *memsize);
+    *memptr = (uint8_t *) realloc(*memptr, *memsize);
     
     uint8_t *oldmem = *memptr; // if you do some ugly pointer math, remember to restore the original pointer or some random crashes will happen. This is why I do not like pointers!!
     
-    ppm = malloc(width * bpp);
+    ppm = (uint8_t*) malloc(width * bpp);
     if (naxis == 3)
     {
         r_data = (uint8_t *) *memptr;
@@ -165,7 +165,7 @@ int read_ppm(FILE *handle, struct dcraw_header *header, uint8_t **memptr, size_t
         len = fread(ppm, 1, width * bpp, handle);
         if (len != width * bpp)
         {
-			fprintf(stderr, "read_ppm: aborted during PPM reading at row: %d, read %d bytes\n", row, len);
+            DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "read_ppm: aborted during PPM reading at row: %d, read %d bytes", row, len);
             free(ppm);
             return -1;
 		}
@@ -222,7 +222,7 @@ int read_ppm(FILE *handle, struct dcraw_header *header, uint8_t **memptr, size_t
 
 int dcraw_parse_time(char *month, int day, int year, char *timestr)
 {
-	char mon_map[12][3] = {
+    char mon_map[12][4] = {
 		"Jan", "Feb", "Mar", "Apr", "May", "Jun",
 		"Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
 		};
@@ -255,8 +255,7 @@ int dcraw_parse_header_info(const char *filename, struct dcraw_header *header)
 
 	memset(header, 0, sizeof(struct dcraw_header));
     asprintf(&cmd, "%s -i -t 0 -v %s 2> /dev/null", dcraw_cmd, filename);
-    if (debug)
-        fprintf(stderr, "%s", cmd);
+    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "%s", cmd);
 	handle = popen(cmd, "r");
 	free(cmd);
 	if (handle == NULL) {
@@ -265,8 +264,7 @@ int dcraw_parse_header_info(const char *filename, struct dcraw_header *header)
 
     while (fgets(line, sizeof(line), handle))
     {
-        if (debug)
-            fprintf(stderr, "%s", line);
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "%s", line);
 
 		if (sscanf(line, "Timestamp: %s %s %d %s %d", daystr, month, &day, timestr, &year) )
 			header->time = dcraw_parse_time(month, day, year, timestr);
@@ -309,19 +307,20 @@ int read_dcraw(const char *filename, uint8_t **memptr, size_t *memsize, int *n_a
 
     if (dcraw_parse_header_info(filename, &header)  || ! header.width  || ! header.height)
 	{
-		fprintf(stderr, "read_file_from_dcraw: failed to parse header\n");
+        DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "read_file_from_dcraw: failed to parse header");
         return -1;
 	}
 
-	fprintf(stderr, "Reading exposure %d x %d\n", header.width, header.height);
+    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Reading exposure %d x %d", header.width, header.height);
     asprintf(&cmd, "%s -c -t 0 -4 -D %s", dcraw_cmd, filename);
-    if (debug)
-        fprintf(stderr, "%s\n", cmd);
+
+    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "%s", cmd);
+
 	handle = popen(cmd, "r");
 	free(cmd);
     if (handle == NULL)
     {
-		fprintf(stderr, "read_file_from_dcraw: failed to run dcraw\n");
+        DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "read_file_from_dcraw: failed to run dcraw");
         return -1;
 	}
 
@@ -348,7 +347,7 @@ int read_jpeg(const char *filename, uint8_t **memptr, size_t *memsize, int *naxi
 	
 	if ( !infile )
 	{
-		fprintf(stderr, "Error opening jpeg file %s\n!", filename );
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Error opening jpeg file %s!", filename );
 		return -1;
 	}
 	/* here we set up the standard libjpeg error handler */
@@ -364,7 +363,7 @@ int read_jpeg(const char *filename, uint8_t **memptr, size_t *memsize, int *naxi
 	jpeg_start_decompress( &cinfo );
 
     *memsize = cinfo.output_width * cinfo.output_height * cinfo.num_components;
-    *memptr = realloc(*memptr, *memsize);
+    *memptr = (uint8_t *) realloc(*memptr, *memsize);
     uint8_t *oldmem = *memptr; // if you do some ugly pointer math, remember to restore the original pointer or some random crashes will happen. This is why I do not like pointers!!
     *naxis = cinfo.num_components;
     *w = cinfo.output_width;

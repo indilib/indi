@@ -32,10 +32,8 @@
 
 #include "config.h"
 
-extern "C" {
-    #include "gphoto_driver.h"
-    #include "gphoto_readimage.h"
-}
+#include "gphoto_driver.h"
+#include "gphoto_readimage.h"
 
 #include "gphoto_ccd.h"
 
@@ -177,12 +175,6 @@ const char * GPhotoCCD::getDefaultName()
     return (const char *)"GPhoto CCD";
 }
 
-void GPhotoCCD::debugTriggered(bool enable)
-{
-    gphoto_set_debug(enable ? 1 : 0);
-    gphoto_read_set_debug(enable ? 1 : 0);
-}
-
 bool GPhotoCCD::initProperties()
 {
   // Init parent properties first
@@ -229,6 +221,9 @@ bool GPhotoCCD::initProperties()
   PrimaryCCD.getCCDInfo()->p = IP_RW;
 
   setDriverInterface(getDriverInterface() | FOCUSER_INTERFACE);
+
+  gphoto_set_debug(getDeviceName());
+  gphoto_read_set_debug(getDeviceName());
 
   return true;
 }
@@ -564,10 +559,10 @@ bool GPhotoCCD::Connect()
   sim = isSimulation();
 
   int setidx;
-  const char **options;
+  char **options;
   int max_opts;
   const char *port = NULL;
-  fprintf(stderr, "Mirror lock value: %f\n", mMirrorLockN[0].value);
+  DEBUGF(INDI::Logger::DBG_DEBUG, "Mirror lock value: %f\n", mMirrorLockN[0].value);
 
   if(PortTP.tp[0].text && strlen(PortTP.tp[0].text)) {
       port = PortTP.tp[0].text;
@@ -589,8 +584,8 @@ bool GPhotoCCD::Connect()
   {
     setidx =0;
     max_opts=1;
-    const char *fmts[] = { "Custom"};
-    options = fmts;
+    const char *fmts[] = {"Custom"};
+    options = (char **) fmts;
   }
   else
   {
@@ -638,7 +633,7 @@ bool GPhotoCCD::Connect()
       setidx=0;
       max_opts=4;
       const char *isos[] = { "100", "200", "400", "800" };
-      options = isos;
+      options = (char **) isos;
   }
   else
   {
@@ -1065,7 +1060,7 @@ bool GPhotoCCD::grabImage()
     return true;
 }
 
-ISwitch *GPhotoCCD::create_switch(const char *basestr, const char **options, int max_opts, int setidx)
+ISwitch *GPhotoCCD::create_switch(const char *basestr, char **options, int max_opts, int setidx)
 {
 	int i;
 	ISwitch *sw = (ISwitch *)calloc(sizeof(ISwitch), max_opts);
@@ -1159,7 +1154,7 @@ void GPhotoCCD::AddWidget(gphoto_widget *widget)
 		IDDefText(&opt->prop.text, NULL);
 		break;
 	case GP_WIDGET_TOGGLE:
-		opt->item.sw = create_switch(widget->name, (const char **)on_off, 2, widget->value.toggle ? 0 : 1);
+        opt->item.sw = create_switch(widget->name, (char **)on_off, 2, widget->value.toggle ? 0 : 1);
         IUFillSwitchVector(&opt->prop.sw, opt->item.sw, 2, getDeviceName(),
 			widget->name, widget->name, widget->parent, perm, ISR_1OFMANY, 60, IPS_IDLE);
 		IDDefSwitch(&opt->prop.sw, NULL);
@@ -1198,8 +1193,7 @@ GPhotoCCD::ShowExtendedOptions(void)
 		AddWidget(widget);
 	}
 
-    if (isDebug())
-        gphoto_show_options(gphotodrv);
+    gphoto_show_options(gphotodrv);
 
     optTID = IEAddTimer (1000, GPhotoCCD::UpdateExtendedOptions, this);
 }

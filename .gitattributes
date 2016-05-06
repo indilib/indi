@@ -238,9 +238,9 @@
 3rdparty/indi-gphoto/config.h.cmake -text
 3rdparty/indi-gphoto/gphoto_ccd.cpp -text
 3rdparty/indi-gphoto/gphoto_ccd.h -text
-3rdparty/indi-gphoto/gphoto_driver.c -text
+3rdparty/indi-gphoto/gphoto_driver.cpp -text
 3rdparty/indi-gphoto/gphoto_driver.h -text
-3rdparty/indi-gphoto/gphoto_readimage.c -text
+3rdparty/indi-gphoto/gphoto_readimage.cpp -text
 3rdparty/indi-gphoto/gphoto_readimage.h -text
 3rdparty/indi-gphoto/indi_gphoto.xml -text
 3rdparty/indi-gpsd/CMakeLists.txt -text

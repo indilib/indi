@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.4.7)
 PROJECT(indi_gphoto C CXX)
 
 set(INDI_GPHOTO_VERSION_MAJOR 1)
-set(INDI_GPHOTO_VERSION_MINOR 4)
+set(INDI_GPHOTO_VERSION_MINOR 5)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 
@@ -43,8 +43,8 @@ include_directories( ${GPHOTO2_INCLUDE_DIR})
 ########### Gphoto ###########
 set(indigphoto_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/gphoto_ccd.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/gphoto_driver.c
-   ${CMAKE_CURRENT_SOURCE_DIR}/gphoto_readimage.c
+   ${CMAKE_CURRENT_SOURCE_DIR}/gphoto_driver.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/gphoto_readimage.cpp
    )
 
 add_executable(indi_gphoto_ccd ${indigphoto_SRCS})

@@ -90,7 +90,6 @@ protected:
     bool saveConfigItems(FILE *fp);
     void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip);
     void TimerHit();
-    virtual void debugTriggered(bool enable);
 
     // Focusing
     bool SetFocuserSpeed(int speed);
@@ -100,7 +99,7 @@ protected:
     bool capturePreview();
 
 private:
-    ISwitch *create_switch(const char *basestr, const char **options, int max_opts, int setidx);
+    ISwitch *create_switch(const char *basestr, char **options, int max_opts, int setidx);
     void AddWidget(gphoto_widget *widget);
     void UpdateWidget(cam_opt *opt);
     void ShowExtendedOptions(void);
