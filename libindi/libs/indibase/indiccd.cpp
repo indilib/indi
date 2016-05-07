@@ -48,6 +48,31 @@ const char *GUIDE_CONTROL_TAB   = "Guider Control";
 const char *RAPIDGUIDE_TAB      = "Rapid Guide";
 const char *WCS_TAB             = "WCS";
 
+// Create dir recursively
+static int _mkdir(const char *dir, mode_t mode)
+{
+    char tmp[PATH_MAX];
+    char *p = NULL;
+    size_t len;
+
+    snprintf(tmp, sizeof(tmp),"%s",dir);
+    len = strlen(tmp);
+    if(tmp[len - 1] == '/')
+        tmp[len - 1] = 0;
+    for(p = tmp + 1; *p; p++)
+        if(*p == '/')
+        {
+            *p = 0;
+            if (mkdir(tmp, mode) == -1 && errno != EEXIST)
+                return -1;
+            *p = '/';
+        }
+    if (mkdir(tmp, mode) == -1 && errno != EEXIST)
+        return -1;
+
+    return 0;
+}
+
 CCDChip::CCDChip()
 {
     SendCompressed=false;
@@ -2269,7 +2294,7 @@ int INDI::CCD::getFileIndex(const char *dir, const char *prefix, const char *ext
     if (stat(dir, &st) == -1)
     {
        DEBUGF(INDI::Logger::DBG_DEBUG, "Creating directory %s...", dir);
-       if (mkdir(dir, 0755) == -1)
+       if (_mkdir(dir, 0755) == -1)
            DEBUGF(INDI::Logger::DBG_ERROR, "Error creating directory %s (%s)", dir, strerror(errno));
     }
 
