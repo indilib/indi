@@ -881,7 +881,10 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
                 PrimaryCCD.ImageExposureN[0].value = ExposureTime = values[0];
 
             if (PrimaryCCD.ImageExposureNP.s==IPS_BUSY)
-                AbortExposure();
+            {
+                if (AbortExposure() == false)
+                    DEBUG(INDI::Logger::DBG_WARNING, "Warning: Aborting exposure failed.");
+            }
 
             if (StartExposure(ExposureTime))
                PrimaryCCD.ImageExposureNP.s=IPS_BUSY;
