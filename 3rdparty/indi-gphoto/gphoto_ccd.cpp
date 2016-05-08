@@ -268,10 +268,10 @@ bool GPhotoCCD::updateProperties()
 
   if (isConnected())
   {
-      if(PortTP.tp[0].text && strlen(PortTP.tp[0].text))
-      {
+      // Canon only feature
+      if(strstr(getDeviceName(), "Canon"))
           defineNumber(&mMirrorLockNP);
-      }
+
       if (mIsoSP.nsp > 0)
         defineSwitch(&mIsoSP);
       if (mFormatSP.nsp > 0)
@@ -304,7 +304,10 @@ bool GPhotoCCD::updateProperties()
        deleteProperty(mIsoSP.name);
     if (mFormatSP.nsp > 0)
        deleteProperty(mFormatSP.name);
-    deleteProperty(mMirrorLockNP.name);
+
+    if(strstr(getDeviceName(), "Canon"))
+        deleteProperty(mMirrorLockNP.name);
+
     deleteProperty(livePreviewSP.name);
     deleteProperty(autoFocusSP.name);    
     deleteProperty(transferFormatSP.name);

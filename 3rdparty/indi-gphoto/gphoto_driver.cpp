@@ -497,29 +497,20 @@ static void download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
 	}
 }
 
-int gphoto_mirrorlock(gphoto_driver *gphoto, const char *bulb_port, int msec)
+int gphoto_mirrorlock(gphoto_driver *gphoto, int msec)
 {
-    if (bulb_port && !strcmp(bulb_port,"/dev/null"))
+    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Main usb mirror_lock for %d secs", msec / 1000);
+    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Mirror Lock");
+
+    // If already set to BULB, just usleep is enough. This is a "guess"
+    if (gphoto->autoexposuremode_widget == NULL || (gphoto->autoexposuremode_widget && gphoto->autoexposuremode_widget->value.index != 4))
     {
-        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Opening serial port for %d secs", msec / 1000);
-        int bulb_fd = open(bulb_port, O_RDWR, O_NONBLOCK);
-        if(bulb_fd < 0)
-        {
-            DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Failed to open serial port: %s", bulb_port);
-            return 1;
-        }
-        close(bulb_fd);
-        usleep(msec * 1000);
-        DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Serial port closed");
-    } else
-    {
-        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Main usb mirror_lock for %d secs", msec / 1000);
-        DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Mirror Lock");
         gphoto_set_widget_num (gphoto, gphoto->bulb_widget, 2);
         gphoto_set_widget_num (gphoto, gphoto->bulb_widget, 4);
-        usleep (msec * 1000);
-        DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"End of mirror lock timer");
     }
+
+    usleep (msec * 1000);
+    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"End of mirror lock timer");
     return 0;
 }
 
@@ -530,7 +521,7 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec, int 
     if (gphoto->exposure_widget == NULL)
     {
         DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "No exposure widget.  Can't expose");
-		return 1;
+        return -1;
 	}
 
     DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Starting exposure (exptime: %d secs, mirror lock: %d)", exptime_msec / 1000, mirror_lock);
@@ -569,19 +560,9 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec, int 
             //if (gphoto->bulb_port[0])
                 //DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Using bulb mode with bult port %s", gphoto->bulb_port);
 
-            // For autoexposuremode_widget, we set bulb_port to /dev/null, otherwise, we keep it as is
-            char bulb_port[256];
-            memset(bulb_port, 0, 256);
-
-            // FIXME This must be changed to a general case. Now it only sets bulb_port to /dev/null in case index == 4 for autoexposuremode widget
-            if (mirror_lock && gphoto->autoexposuremode_widget && gphoto->autoexposuremode_widget->value.index == 4)
-                strncpy(bulb_port, "/dev/null", 256);
-            else if (gphoto->bulb_port[0])
-                strncpy(bulb_port, gphoto->bulb_port, 256);
-
             // If we have mirror lock enabled, let's lock mirror. Return on failure
-            if (mirror_lock && gphoto_mirrorlock(gphoto, bulb_port, mirror_lock*1000))
-                    return 1;
+            if (mirror_lock && gphoto_mirrorlock(gphoto, mirror_lock*1000))
+                    return -1;
 		
             // Preparing exposure
 			gettimeofday(&gphoto->bulb_end, NULL);
@@ -590,14 +571,14 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec, int 
 			gphoto->bulb_end.tv_usec = usec % 1000000;
 
             // If bulb port is specified, let's open it
-            if (bulb_port[0])
+            if (gphoto->bulb_port[0])
             {
-                gphoto->bulb_fd = open(bulb_port, O_RDWR, O_NONBLOCK);
+                gphoto->bulb_fd = open(gphoto->bulb_port, O_RDWR, O_NONBLOCK);
                 if(gphoto->bulb_fd < 0)
                 {
-                    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Failed to open serial port: %s", bulb_port);
+                    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Failed to open serial port: %s", gphoto->bulb_port);
 					pthread_mutex_unlock(&gphoto->mutex);
-					return 1;
+                    return -1;
 				}
             }
             // if no bulb port (external shutter release) is specified, let's use the internal bulb widget
@@ -640,7 +621,7 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec, int 
     if (mirror_lock)
     {
         // Let's perform mirror locking if required
-        if( gphoto_mirrorlock(gphoto, NULL, mirror_lock*1000) || gphoto_mirrorlock(gphoto, NULL, 10) )
+        if( gphoto_mirrorlock(gphoto, mirror_lock*1000) || gphoto_mirrorlock(gphoto, 10) )
             return 1;
 
         // Start actual exposure
