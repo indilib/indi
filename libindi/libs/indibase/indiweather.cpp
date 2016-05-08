@@ -323,6 +323,13 @@ bool INDI::Weather::updateLocation(double latitude, double longitude, double ele
 
 bool INDI::Weather::processLocationInfo(double latitude, double longitude, double elevation)
 {
+    // Do not update if not necessary
+    if (latitude == LocationN[LOCATION_LATITUDE].value && longitude == LocationN[LOCATION_LONGITUDE].value && elevation == LocationN[LOCATION_ELEVATION].value)
+    {
+        LocationNP.s=IPS_OK;
+        IDSetNumber(&LocationNP,NULL);
+    }
+
     if (updateLocation(latitude, longitude, elevation))
     {
         LocationNP.s=IPS_OK;
