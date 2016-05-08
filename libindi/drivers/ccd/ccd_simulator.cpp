@@ -644,7 +644,7 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
 
         if (ftype==CCDChip::LIGHT_FRAME)
         {  
-            setlocale(LC_NUMERIC,"C");
+            char *orig = setlocale(LC_NUMERIC,"C");
             //sprintf(gsccmd,"gsc -c %8.6f %+8.6f -r 120 -m 0 9.1",rad+PEOffset,decPE);
             sprintf(gsccmd,"gsc -c %8.6f %+8.6f -r %4.1f -m 0 %4.2f -n 3000",rad+PEOffset,cameradec,radius,lookuplimit);
             DEBUGF(INDI::Logger::DBG_DEBUG, "%s",gsccmd);
@@ -717,12 +717,12 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
                     }
                 }
                 pclose(pp);
-		setlocale(LC_NUMERIC,"");
+		setlocale(LC_NUMERIC,orig);
             } else
             {
                 IDMessage(getDeviceName(),"Error looking up stars, is gsc installed with appropriate environment variables set ??");
                 //fprintf(stderr,"Error doing gsc lookup\n");
-		setlocale(LC_NUMERIC,"");
+		setlocale(LC_NUMERIC,orig);
             }
             if(drawn==0)
             {

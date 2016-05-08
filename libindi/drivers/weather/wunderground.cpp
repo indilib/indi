@@ -180,7 +180,7 @@ IPState WunderGround::updateWeather()
       if (wunderLat == -1000 || wunderLong == -1000)
           return IPS_BUSY;
 
-      setlocale(LC_NUMERIC,"C");
+      char *orig = setlocale(LC_NUMERIC,"C");
 
       snprintf(requestURL, MAXRBUF, "http://api.wunderground.com/api/%s/conditions/q/%g,%g.json", wunderAPIKeyT[0].text, wunderLat, wunderLong);
 
@@ -207,7 +207,7 @@ IPState WunderGround::updateWeather()
           DEBUGF(INDI::Logger::DBG_ERROR, "%s at %zd", jsonStrError(status), endptr - source);
           DEBUGF(INDI::Logger::DBG_DEBUG, "%s", requestURL);
           DEBUGF(INDI::Logger::DBG_DEBUG, "%s", readBuffer.c_str());
-          setlocale(LC_NUMERIC,"");
+          setlocale(LC_NUMERIC,orig);
           return IPS_ALERT;
       }
 
@@ -272,7 +272,7 @@ IPState WunderGround::updateWeather()
           }
       }
 
-      setlocale(LC_NUMERIC,"C");
+      setlocale(LC_NUMERIC,orig);
       return IPS_OK;
 }
 

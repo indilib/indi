@@ -162,7 +162,7 @@ f_scansexa (
 const char *str0,	/* input string */
 double *dp)		/* cracked value, if return 0 */
 {
-    setlocale(LC_NUMERIC,"C");
+    char *orig = setlocale(LC_NUMERIC,"C");
 
 	double a = 0, b = 0, c = 0;
 	char str[128];
@@ -179,7 +179,7 @@ double *dp)		/* cracked value, if return 0 */
 
     r = sscanf (str, "%lf%*[^0-9]%lf%*[^0-9]%lf", &a, &b, &c);
 
-    setlocale(LC_NUMERIC,"");
+    setlocale(LC_NUMERIC,orig);
 
 	if (r < 1)
 	    return (-1);

@@ -307,7 +307,7 @@ void INDI::BaseClient::listenINDI()
     int maxfd=0;
     fd_set rs;
 
-    setlocale(LC_NUMERIC,"C");
+    char *orig = setlocale(LC_NUMERIC,"C");
     if (cDeviceNames.empty())
     {
        fprintf(svrwfp, "<getProperties version='%g'/>\n", INDIV);
@@ -324,7 +324,7 @@ void INDI::BaseClient::listenINDI()
                 fprintf(stderr, "<getProperties version='%g' device='%s'/>\n", INDIV, (*stri).c_str());
         }
     }
-    setlocale(LC_NUMERIC,"");
+    setlocale(LC_NUMERIC,orig);
 
     fflush (svrwfp);
 
@@ -652,7 +652,7 @@ void INDI::BaseClient::sendNewText (const char * deviceName, const char * proper
 
 void INDI::BaseClient::sendNewNumber (INumberVectorProperty *nvp)
 {
-   setlocale(LC_NUMERIC,"C");
+   char *orig = setlocale(LC_NUMERIC,"C");
 
     nvp->s = IPS_BUSY;
 
@@ -671,7 +671,7 @@ void INDI::BaseClient::sendNewNumber (INumberVectorProperty *nvp)
 
    fflush(svrwfp);
 
-   setlocale(LC_NUMERIC,"");
+   setlocale(LC_NUMERIC,orig);
 }
 
 void INDI::BaseClient::sendNewNumber (const char *deviceName, const char *propertyName, const char* elementName, double value)

@@ -551,7 +551,7 @@ int INDI::BaseDevice::buildProp(XMLEle *root, char *errmsg)
 
     if (!strcmp (rtag, "defNumberVector"))
     {
-        setlocale(LC_NUMERIC,"C");
+        char *orig = setlocale(LC_NUMERIC,"C");
         
         INDI::Property *indiProp = new INDI::Property();
         INumberVectorProperty *nvp = new INumberVectorProperty;
@@ -629,7 +629,7 @@ int INDI::BaseDevice::buildProp(XMLEle *root, char *errmsg)
     else
         IDLog("%s: newNumberVector with no valid members\n",rname);
 
-    setlocale(LC_NUMERIC,"");
+    setlocale(LC_NUMERIC,orig);
   }
   else if (!strcmp (rtag, "defSwitchVector"))
   {
@@ -943,12 +943,12 @@ int INDI::BaseDevice::setValue (XMLEle *root, char * errmsg)
     ap = findXMLAtt (root, "timeout");
     if (ap)
     {
-        setlocale(LC_NUMERIC,"C");
+        char *orig = setlocale(LC_NUMERIC,"C");
         
         timeout = atof(valuXMLAtt(ap));
         timeoutSet = true;
 
-        setlocale(LC_NUMERIC,"");
+        setlocale(LC_NUMERIC,orig);
     }
 
     checkMessage (root);
@@ -968,7 +968,7 @@ int INDI::BaseDevice::setValue (XMLEle *root, char * errmsg)
         if (timeoutSet)
             nvp->timeout = timeout;
 
-        setlocale(LC_NUMERIC,"C");
+        char *orig = setlocale(LC_NUMERIC,"C");
         
        for (ep = nextXMLEle (root, 1); ep != NULL; ep = nextXMLEle (root, 0))
         {
@@ -985,7 +985,7 @@ int INDI::BaseDevice::setValue (XMLEle *root, char * errmsg)
               np->max = atof(findXMLAttValu(ep, "max"));
        }
 
-       setlocale(LC_NUMERIC,"");
+       setlocale(LC_NUMERIC,orig);
 
        if (mediator)
            mediator->newNumber(nvp);
