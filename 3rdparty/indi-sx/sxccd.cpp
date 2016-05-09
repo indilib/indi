@@ -31,6 +31,7 @@
 #include <unistd.h>
 #include <memory.h>
 #include <stdint.h>
+#include <math.h>
 
 #include "sxconfig.h"
 #include "sxccd.h"
