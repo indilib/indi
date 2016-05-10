@@ -183,7 +183,7 @@ bool GPhotoCCD::initProperties()
   initFocuserProperties(getDeviceName(), FOCUS_TAB);
 
   IUFillText(&mPortT[0], "PORT" , "Port", "");
-  IUFillTextVector(&PortTP, mPortT, NARRAY(mPortT), getDeviceName(),	"SHUTTER_PORT" , "Shutter Release", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+  IUFillTextVector(&PortTP, mPortT, NARRAY(mPortT), getDeviceName(),	"DEVICE_PORT" , "Shutter Release", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
   
   IUFillNumber(&mMirrorLockN[0], "MIRROR_LOCK_SECONDS" , "Seconds", "%1.0f", 0, 10, 1, 0);
   IUFillNumberVector(&mMirrorLockNP, mMirrorLockN, 1, getDeviceName(),	"MIRROR_LOCK" , "Mirror Lock", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
@@ -233,7 +233,7 @@ void GPhotoCCD::ISGetProperties(const char *dev)
   INDI::CCD::ISGetProperties(dev);
 
   defineText(&PortTP);
-  loadConfig(true, "SHUTTER_PORT");
+  loadConfig(true, "DEVICE_PORT");
 
   if (isConnected())
   {
