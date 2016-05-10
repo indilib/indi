@@ -233,15 +233,10 @@ void GPhotoCCD::ISGetProperties(const char *dev)
   INDI::CCD::ISGetProperties(dev);
 
   defineText(&PortTP);
-  loadConfig(true, "DEVICE_PORT");
+  loadConfig(true, "SHUTTER_PORT");
 
   if (isConnected())
   {
-      if(PortTP.tp[0].text && strlen(PortTP.tp[0].text))
-      {
-          defineNumber(&mMirrorLockNP);
-      }
-
       if (mIsoSP.nsp > 0)
             defineSwitch(&mIsoSP);
       if (mFormatSP.nsp > 0)
@@ -256,6 +251,11 @@ void GPhotoCCD::ISGetProperties(const char *dev)
       defineNumber(&FocusTimerNP);
 
       ShowExtendedOptions();
+
+      ITextVectorProperty *modelTP = getText("model");
+      if (modelTP && !strcmp(modelTP->label, "model") && strstr(modelTP->tp[0].text, "Canon"))
+          defineNumber(&mMirrorLockNP);
+
   }
 
   // Add Debug, Simulator, and Configuration controls
@@ -267,11 +267,7 @@ bool GPhotoCCD::updateProperties()
   INDI::CCD::updateProperties();
 
   if (isConnected())
-  {
-      // Canon only feature
-      if(strstr(getDeviceName(), "Canon"))
-          defineNumber(&mMirrorLockNP);
-
+  {      
       if (mIsoSP.nsp > 0)
         defineSwitch(&mIsoSP);
       if (mFormatSP.nsp > 0)
@@ -295,6 +291,11 @@ bool GPhotoCCD::updateProperties()
     {
         ShowExtendedOptions();
         DEBUG(INDI::Logger::DBG_SESSION, "Please update the camera pixel size in the Image Info section. The camera resolution will be updated after the first exposure is complete.");
+
+        // Only show mirror lock if the camera is canon
+        ITextVectorProperty *modelTP = getText("model");
+        if (modelTP && !strcmp(modelTP->label, "model") && strstr(modelTP->tp[0].text, "Canon"))
+            defineNumber(&mMirrorLockNP);
     }
 
     //timerID = SetTimer(POLLMS);
@@ -305,8 +306,7 @@ bool GPhotoCCD::updateProperties()
     if (mFormatSP.nsp > 0)
        deleteProperty(mFormatSP.name);
 
-    if(strstr(getDeviceName(), "Canon"))
-        deleteProperty(mMirrorLockNP.name);
+    deleteProperty(mMirrorLockNP.name);
 
     deleteProperty(livePreviewSP.name);
     deleteProperty(autoFocusSP.name);    
