@@ -1339,7 +1339,9 @@ bool GPhotoCCD::capturePreview()
 
 bool GPhotoCCD::saveConfigItems(FILE *fp)
 {
-    // First save the CCD Info property
+    // First save Device Port
+    IUSaveConfigText(fp, &PortTP);
+    // Second save the CCD Info property
     IUSaveConfigNumber(fp, PrimaryCCD.getCCDInfo());
 
     INDI::CCD::saveConfigItems(fp);
