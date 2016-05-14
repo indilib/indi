@@ -58,6 +58,7 @@
 3rdparty/indi-asicam/indi_asiccd.xml -text
 3rdparty/indi-asicam/mac32/libASICamera2.bin -text
 3rdparty/indi-asicam/mac64/libASICamera2.bin -text
+3rdparty/indi-asicam/macuni/libASICamera2.lib -text
 3rdparty/indi-asicam/x64/libASICamera2.bin -text
 3rdparty/indi-asicam/x86/libASICamera2.bin -text
 3rdparty/indi-dsi/99-meadedsi.rules -text

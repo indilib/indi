@@ -270,6 +270,60 @@
 		597B890F1887E6FF0093873A /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 597B890D1887E6FF0093873A /* Security.framework */; };
 		597B89121887E77F0093873A /* ServiceManagement.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 597B89111887E77F0093873A /* ServiceManagement.framework */; };
 		597B893D188837E10093873A /* indiserver in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 597B89241888016F0093873A /* indiserver */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		598785DF1CE71F5300DF2294 /* libcfitsio.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43181A8CC5F90004AA95 /* libcfitsio.dylib */; };
+		598785E01CE71F5300DF2294 /* libusb.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA438B1A8CCD030004AA95 /* libusb.dylib */; };
+		598785E11CE71F5300DF2294 /* libindi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A91A8CD3190004AA95 /* libindi.dylib */; };
+		598785F31CE71FAF00DF2294 /* libcfitsio.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43181A8CC5F90004AA95 /* libcfitsio.dylib */; };
+		598785F41CE71FAF00DF2294 /* libusb.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA438B1A8CCD030004AA95 /* libusb.dylib */; };
+		598785F51CE71FAF00DF2294 /* libindi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A91A8CD3190004AA95 /* libindi.dylib */; };
+		598786051CE71FB900DF2294 /* libcfitsio.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43181A8CC5F90004AA95 /* libcfitsio.dylib */; };
+		598786061CE71FB900DF2294 /* libusb.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA438B1A8CCD030004AA95 /* libusb.dylib */; };
+		598786071CE71FB900DF2294 /* libindi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A91A8CD3190004AA95 /* libindi.dylib */; };
+		598786161CE7204B00DF2294 /* indi_fli.xml in Resources */ = {isa = PBXBuildFile; fileRef = 598786141CE71FF300DF2294 /* indi_fli.xml */; };
+		598786171CE7207600DF2294 /* fli_ccd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5987860E1CE71FF300DF2294 /* fli_ccd.cpp */; };
+		598786181CE7207E00DF2294 /* fli_cfw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 598786101CE71FF300DF2294 /* fli_cfw.cpp */; };
+		598786191CE7208300DF2294 /* fli_pdf.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 598786121CE71FF300DF2294 /* fli_pdf.cpp */; };
+		5987865C1CE72BFC00DF2294 /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5987865B1CE72BFC00DF2294 /* CoreFoundation.framework */; };
+		5987865E1CE72C1F00DF2294 /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5987865D1CE72C1F00DF2294 /* IOKit.framework */; };
+		598786941CE7327F00DF2294 /* libfli-usb-sys.c in Sources */ = {isa = PBXBuildFile; fileRef = 598786921CE7325C00DF2294 /* libfli-usb-sys.c */; };
+		598786951CE7327F00DF2294 /* libfli-usb.c in Sources */ = {isa = PBXBuildFile; fileRef = 598786861CE7324E00DF2294 /* libfli-usb.c */; };
+		598786961CE7327F00DF2294 /* libfli-sys.c in Sources */ = {isa = PBXBuildFile; fileRef = 598786881CE7324E00DF2294 /* libfli-sys.c */; };
+		598786971CE7327F00DF2294 /* libfli-serial.c in Sources */ = {isa = PBXBuildFile; fileRef = 5987868A1CE7324E00DF2294 /* libfli-serial.c */; };
+		598786981CE7327F00DF2294 /* libfli-debug.c in Sources */ = {isa = PBXBuildFile; fileRef = 5987868C1CE7324E00DF2294 /* libfli-debug.c */; };
+		598786991CE7327F00DF2294 /* libfli.c in Sources */ = {isa = PBXBuildFile; fileRef = 5987866F1CE7324000DF2294 /* libfli.c */; };
+		5987869A1CE7327F00DF2294 /* libfli-raw.c in Sources */ = {isa = PBXBuildFile; fileRef = 598786711CE7324000DF2294 /* libfli-raw.c */; };
+		5987869B1CE7327F00DF2294 /* libfli-mem.c in Sources */ = {isa = PBXBuildFile; fileRef = 598786731CE7324000DF2294 /* libfli-mem.c */; };
+		5987869C1CE7327F00DF2294 /* libfli-filter-focuser.c in Sources */ = {isa = PBXBuildFile; fileRef = 598786761CE7324000DF2294 /* libfli-filter-focuser.c */; };
+		5987869D1CE7327F00DF2294 /* libfli-camera.c in Sources */ = {isa = PBXBuildFile; fileRef = 598786791CE7324000DF2294 /* libfli-camera.c */; };
+		5987869E1CE7327F00DF2294 /* libfli-camera-usb.c in Sources */ = {isa = PBXBuildFile; fileRef = 5987867B1CE7324000DF2294 /* libfli-camera-usb.c */; };
+		5987869F1CE7327F00DF2294 /* libfli-camera-parport.c in Sources */ = {isa = PBXBuildFile; fileRef = 5987867D1CE7324000DF2294 /* libfli-camera-parport.c */; };
+		598786A01CE7327F00DF2294 /* libfli-usb-sys.c in Sources */ = {isa = PBXBuildFile; fileRef = 598786921CE7325C00DF2294 /* libfli-usb-sys.c */; };
+		598786A11CE7327F00DF2294 /* libfli-usb.c in Sources */ = {isa = PBXBuildFile; fileRef = 598786861CE7324E00DF2294 /* libfli-usb.c */; };
+		598786A21CE7327F00DF2294 /* libfli-sys.c in Sources */ = {isa = PBXBuildFile; fileRef = 598786881CE7324E00DF2294 /* libfli-sys.c */; };
+		598786A31CE7327F00DF2294 /* libfli-serial.c in Sources */ = {isa = PBXBuildFile; fileRef = 5987868A1CE7324E00DF2294 /* libfli-serial.c */; };
+		598786A41CE7327F00DF2294 /* libfli-debug.c in Sources */ = {isa = PBXBuildFile; fileRef = 5987868C1CE7324E00DF2294 /* libfli-debug.c */; };
+		598786A51CE7327F00DF2294 /* libfli.c in Sources */ = {isa = PBXBuildFile; fileRef = 5987866F1CE7324000DF2294 /* libfli.c */; };
+		598786A61CE7327F00DF2294 /* libfli-raw.c in Sources */ = {isa = PBXBuildFile; fileRef = 598786711CE7324000DF2294 /* libfli-raw.c */; };
+		598786A71CE7327F00DF2294 /* libfli-mem.c in Sources */ = {isa = PBXBuildFile; fileRef = 598786731CE7324000DF2294 /* libfli-mem.c */; };
+		598786A81CE7327F00DF2294 /* libfli-filter-focuser.c in Sources */ = {isa = PBXBuildFile; fileRef = 598786761CE7324000DF2294 /* libfli-filter-focuser.c */; };
+		598786A91CE7327F00DF2294 /* libfli-camera.c in Sources */ = {isa = PBXBuildFile; fileRef = 598786791CE7324000DF2294 /* libfli-camera.c */; };
+		598786AA1CE7327F00DF2294 /* libfli-camera-usb.c in Sources */ = {isa = PBXBuildFile; fileRef = 5987867B1CE7324000DF2294 /* libfli-camera-usb.c */; };
+		598786AB1CE7327F00DF2294 /* libfli-camera-parport.c in Sources */ = {isa = PBXBuildFile; fileRef = 5987867D1CE7324000DF2294 /* libfli-camera-parport.c */; };
+		598786AC1CE7328000DF2294 /* libfli-usb-sys.c in Sources */ = {isa = PBXBuildFile; fileRef = 598786921CE7325C00DF2294 /* libfli-usb-sys.c */; };
+		598786AD1CE7328000DF2294 /* libfli-usb.c in Sources */ = {isa = PBXBuildFile; fileRef = 598786861CE7324E00DF2294 /* libfli-usb.c */; };
+		598786AE1CE7328000DF2294 /* libfli-sys.c in Sources */ = {isa = PBXBuildFile; fileRef = 598786881CE7324E00DF2294 /* libfli-sys.c */; };
+		598786AF1CE7328000DF2294 /* libfli-serial.c in Sources */ = {isa = PBXBuildFile; fileRef = 5987868A1CE7324E00DF2294 /* libfli-serial.c */; };
+		598786B01CE7328000DF2294 /* libfli-debug.c in Sources */ = {isa = PBXBuildFile; fileRef = 5987868C1CE7324E00DF2294 /* libfli-debug.c */; };
+		598786B11CE7328000DF2294 /* libfli.c in Sources */ = {isa = PBXBuildFile; fileRef = 5987866F1CE7324000DF2294 /* libfli.c */; };
+		598786B21CE7328000DF2294 /* libfli-raw.c in Sources */ = {isa = PBXBuildFile; fileRef = 598786711CE7324000DF2294 /* libfli-raw.c */; };
+		598786B31CE7328000DF2294 /* libfli-mem.c in Sources */ = {isa = PBXBuildFile; fileRef = 598786731CE7324000DF2294 /* libfli-mem.c */; };
+		598786B41CE7328000DF2294 /* libfli-filter-focuser.c in Sources */ = {isa = PBXBuildFile; fileRef = 598786761CE7324000DF2294 /* libfli-filter-focuser.c */; };
+		598786B51CE7328000DF2294 /* libfli-camera.c in Sources */ = {isa = PBXBuildFile; fileRef = 598786791CE7324000DF2294 /* libfli-camera.c */; };
+		598786B61CE7328000DF2294 /* libfli-camera-usb.c in Sources */ = {isa = PBXBuildFile; fileRef = 5987867B1CE7324000DF2294 /* libfli-camera-usb.c */; };
+		598786B71CE7328000DF2294 /* libfli-camera-parport.c in Sources */ = {isa = PBXBuildFile; fileRef = 5987867D1CE7324000DF2294 /* libfli-camera-parport.c */; };
+		598786B81CE735FF00DF2294 /* indi_fli_ccd in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 598785E71CE71F5300DF2294 /* indi_fli_ccd */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		598786B91CE735FF00DF2294 /* indi_fli_wheel in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 598785F91CE71FAF00DF2294 /* indi_fli_wheel */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		598786BA1CE735FF00DF2294 /* indi_fli_focus in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 5987860B1CE71FB900DF2294 /* indi_fli_focus */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		59C11FC319B50AEE00B21125 /* AppIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = 59C11FC219B50AEE00B21125 /* AppIcon.icns */; };
 		59E530511C949FEF0071DE74 /* libobjc.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 59E5F91D1C3F17B9008DAB80 /* libobjc.tbd */; };
 		59E530751C94A1340071DE74 /* camera.h in Headers */ = {isa = PBXBuildFile; fileRef = 59E530591C94A1340071DE74 /* camera.h */; };
@@ -1315,6 +1369,111 @@
 			remoteGlobalIDString = 597B89231888016F0093873A;
 			remoteInfo = indiserverHelper;
 		};
+		598785C11CE71F5300DF2294 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA43171A8CC5F90004AA95;
+			remoteInfo = cfitsio;
+		};
+		598785C31CE71F5300DF2294 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA438A1A8CCD030004AA95;
+			remoteInfo = usb;
+		};
+		598785C51CE71F5300DF2294 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA422B1A8CB6920004AA95;
+			remoteInfo = nova;
+		};
+		598785C71CE71F5300DF2294 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA43A81A8CD3190004AA95;
+			remoteInfo = indi;
+		};
+		598785EA1CE71FAF00DF2294 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA43171A8CC5F90004AA95;
+			remoteInfo = cfitsio;
+		};
+		598785EC1CE71FAF00DF2294 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA438A1A8CCD030004AA95;
+			remoteInfo = usb;
+		};
+		598785EE1CE71FAF00DF2294 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA422B1A8CB6920004AA95;
+			remoteInfo = nova;
+		};
+		598785F01CE71FAF00DF2294 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA43A81A8CD3190004AA95;
+			remoteInfo = indi;
+		};
+		598785FC1CE71FB900DF2294 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA43171A8CC5F90004AA95;
+			remoteInfo = cfitsio;
+		};
+		598785FE1CE71FB900DF2294 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA438A1A8CCD030004AA95;
+			remoteInfo = usb;
+		};
+		598786001CE71FB900DF2294 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA422B1A8CB6920004AA95;
+			remoteInfo = nova;
+		};
+		598786021CE71FB900DF2294 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA43A81A8CD3190004AA95;
+			remoteInfo = indi;
+		};
+		598786BB1CE7361000DF2294 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 598785BF1CE71F5300DF2294;
+			remoteInfo = indi_fli_ccd;
+		};
+		598786BD1CE7361000DF2294 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 598785E81CE71FAF00DF2294;
+			remoteInfo = indi_fli_wheel;
+		};
+		598786BF1CE7361000DF2294 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 598785FA1CE71FB900DF2294;
+			remoteInfo = indi_fli_focuser;
+		};
 		9D0B29B91A8D1E9400ED17BF /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
@@ -2006,6 +2165,9 @@
 			dstPath = "";
 			dstSubfolderSpec = 6;
 			files = (
+				598786B81CE735FF00DF2294 /* indi_fli_ccd in Copy Files (33 items) (53 items) */,
+				598786B91CE735FF00DF2294 /* indi_fli_wheel in Copy Files (33 items) (53 items) */,
+				598786BA1CE735FF00DF2294 /* indi_fli_focus in Copy Files (33 items) (53 items) */,
 				5924AD021C8B45A200750816 /* indi_nextarevo in Copy Files (33 items) (53 items) */,
 				596556E51C4A49C50044680B /* indi_qsi_ccd in Copy Files (33 items) (53 items) */,
 				591C90E91C13745F00FCE596 /* indi_sbig_ccd in Copy Files (33 items) (53 items) */,
@@ -2298,7 +2460,7 @@
 		594499451C1363C400E0E281 /* indi_asi_ccd */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_asi_ccd; sourceTree = BUILT_PRODUCTS_DIR; };
 		594499461C13643F00E0E281 /* asi_ccd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = asi_ccd.cpp; path = "indi-asicam/asi_ccd.cpp"; sourceTree = "<group>"; };
 		594499471C13643F00E0E281 /* indi_asiccd.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = indi_asiccd.xml; path = "indi-asicam/indi_asiccd.xml"; sourceTree = "<group>"; };
-		5944994B1C13651F00E0E281 /* libASICamera2.lib */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libASICamera2.lib; path = "indi-asicam/mac64/libASICamera2.lib"; sourceTree = "<group>"; };
+		5944994B1C13651F00E0E281 /* libASICamera2.lib */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libASICamera2.lib; path = "indi-asicam/macuni/libASICamera2.lib"; sourceTree = "<group>"; };
 		5944994E1C1365C400E0E281 /* stream_recorder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = stream_recorder.cpp; sourceTree = "<group>"; };
 		5944994F1C1365C400E0E281 /* stream_recorder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = stream_recorder.h; sourceTree = "<group>"; };
 		594499551C13677F00E0E281 /* v4l2_record.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = v4l2_record.cpp; sourceTree = "<group>"; };
@@ -2467,6 +2629,46 @@
 		597B890E1887E6FF0093873A /* SecurityFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SecurityFoundation.framework; path = System/Library/Frameworks/SecurityFoundation.framework; sourceTree = SDKROOT; };
 		597B89111887E77F0093873A /* ServiceManagement.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ServiceManagement.framework; path = System/Library/Frameworks/ServiceManagement.framework; sourceTree = SDKROOT; };
 		597B89241888016F0093873A /* indiserver */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indiserver; sourceTree = BUILT_PRODUCTS_DIR; };
+		598785E71CE71F5300DF2294 /* indi_fli_ccd */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_fli_ccd; sourceTree = BUILT_PRODUCTS_DIR; };
+		598785F91CE71FAF00DF2294 /* indi_fli_wheel */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_fli_wheel; sourceTree = BUILT_PRODUCTS_DIR; };
+		5987860B1CE71FB900DF2294 /* indi_fli_focus */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_fli_focus; sourceTree = BUILT_PRODUCTS_DIR; };
+		5987860C1CE71FF300DF2294 /* CMakeLists.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+		5987860E1CE71FF300DF2294 /* fli_ccd.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = fli_ccd.cpp; sourceTree = "<group>"; };
+		5987860F1CE71FF300DF2294 /* fli_ccd.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = fli_ccd.h; sourceTree = "<group>"; };
+		598786101CE71FF300DF2294 /* fli_cfw.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = fli_cfw.cpp; sourceTree = "<group>"; };
+		598786111CE71FF300DF2294 /* fli_cfw.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = fli_cfw.h; sourceTree = "<group>"; };
+		598786121CE71FF300DF2294 /* fli_pdf.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = fli_pdf.cpp; sourceTree = "<group>"; };
+		598786131CE71FF300DF2294 /* fli_pdf.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = fli_pdf.h; sourceTree = "<group>"; };
+		598786141CE71FF300DF2294 /* indi_fli.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = indi_fli.xml; sourceTree = "<group>"; };
+		598786151CE7201C00DF2294 /* config.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
+		5987865B1CE72BFC00DF2294 /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = System/Library/Frameworks/CoreFoundation.framework; sourceTree = SDKROOT; };
+		5987865D1CE72C1F00DF2294 /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
+		5987866E1CE7324000DF2294 /* libfli.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = libfli.h; sourceTree = "<group>"; };
+		5987866F1CE7324000DF2294 /* libfli.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = libfli.c; sourceTree = "<group>"; };
+		598786701CE7324000DF2294 /* libfli-raw.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "libfli-raw.h"; sourceTree = "<group>"; };
+		598786711CE7324000DF2294 /* libfli-raw.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "libfli-raw.c"; sourceTree = "<group>"; };
+		598786721CE7324000DF2294 /* libfli-mem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "libfli-mem.h"; sourceTree = "<group>"; };
+		598786731CE7324000DF2294 /* libfli-mem.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "libfli-mem.c"; sourceTree = "<group>"; };
+		598786741CE7324000DF2294 /* libfli-libfli.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "libfli-libfli.h"; sourceTree = "<group>"; };
+		598786751CE7324000DF2294 /* libfli-filter-focuser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "libfli-filter-focuser.h"; sourceTree = "<group>"; };
+		598786761CE7324000DF2294 /* libfli-filter-focuser.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "libfli-filter-focuser.c"; sourceTree = "<group>"; };
+		598786771CE7324000DF2294 /* libfli-debug.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "libfli-debug.h"; sourceTree = "<group>"; };
+		598786781CE7324000DF2294 /* libfli-camera.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "libfli-camera.h"; sourceTree = "<group>"; };
+		598786791CE7324000DF2294 /* libfli-camera.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "libfli-camera.c"; sourceTree = "<group>"; };
+		5987867A1CE7324000DF2294 /* libfli-camera-usb.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "libfli-camera-usb.h"; sourceTree = "<group>"; };
+		5987867B1CE7324000DF2294 /* libfli-camera-usb.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "libfli-camera-usb.c"; sourceTree = "<group>"; };
+		5987867C1CE7324000DF2294 /* libfli-camera-parport.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "libfli-camera-parport.h"; sourceTree = "<group>"; };
+		5987867D1CE7324000DF2294 /* libfli-camera-parport.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "libfli-camera-parport.c"; sourceTree = "<group>"; };
+		598786851CE7324E00DF2294 /* libfli-usb.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "libfli-usb.h"; path = "unix/libfli-usb.h"; sourceTree = "<group>"; };
+		598786861CE7324E00DF2294 /* libfli-usb.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "libfli-usb.c"; path = "unix/libfli-usb.c"; sourceTree = "<group>"; };
+		598786871CE7324E00DF2294 /* libfli-sys.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "libfli-sys.h"; path = "unix/libfli-sys.h"; sourceTree = "<group>"; };
+		598786881CE7324E00DF2294 /* libfli-sys.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "libfli-sys.c"; path = "unix/libfli-sys.c"; sourceTree = "<group>"; };
+		598786891CE7324E00DF2294 /* libfli-serial.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "libfli-serial.h"; path = "unix/libfli-serial.h"; sourceTree = "<group>"; };
+		5987868A1CE7324E00DF2294 /* libfli-serial.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "libfli-serial.c"; path = "unix/libfli-serial.c"; sourceTree = "<group>"; };
+		5987868B1CE7324E00DF2294 /* libfli-parport.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "libfli-parport.h"; path = "unix/libfli-parport.h"; sourceTree = "<group>"; };
+		5987868C1CE7324E00DF2294 /* libfli-debug.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "libfli-debug.c"; path = "unix/libfli-debug.c"; sourceTree = "<group>"; };
+		598786911CE7325C00DF2294 /* libfli-usb-sys.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "libfli-usb-sys.h"; path = "unix/osx/libfli-usb-sys.h"; sourceTree = "<group>"; };
+		598786921CE7325C00DF2294 /* libfli-usb-sys.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "libfli-usb-sys.c"; path = "unix/osx/libfli-usb-sys.c"; sourceTree = "<group>"; };
 		598F45241C25D30300F769DD /* CMakeLists.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
 		5999791A1CA1D7950003514F /* CMakeLists.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
 		5999791B1CA1D7AA0003514F /* sxconfig.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = sxconfig.h; sourceTree = "<group>"; };
@@ -3053,6 +3255,38 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		598785DE1CE71F5300DF2294 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5987865E1CE72C1F00DF2294 /* IOKit.framework in Frameworks */,
+				5987865C1CE72BFC00DF2294 /* CoreFoundation.framework in Frameworks */,
+				598785DF1CE71F5300DF2294 /* libcfitsio.dylib in Frameworks */,
+				598785E01CE71F5300DF2294 /* libusb.dylib in Frameworks */,
+				598785E11CE71F5300DF2294 /* libindi.dylib in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		598785F21CE71FAF00DF2294 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				598785F31CE71FAF00DF2294 /* libcfitsio.dylib in Frameworks */,
+				598785F41CE71FAF00DF2294 /* libusb.dylib in Frameworks */,
+				598785F51CE71FAF00DF2294 /* libindi.dylib in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		598786041CE71FB900DF2294 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				598786051CE71FB900DF2294 /* libcfitsio.dylib in Frameworks */,
+				598786061CE71FB900DF2294 /* libusb.dylib in Frameworks */,
+				598786071CE71FB900DF2294 /* libindi.dylib in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		59E530501C949FEF0071DE74 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -3416,6 +3650,9 @@
 				596556781C4A3E530044680B /* indi_qsi_ccd */,
 				5924ACF71C8B44FD00750816 /* indi_nextarevo */,
 				59E530571C949FEF0071DE74 /* libdc1394.dylib */,
+				598785E71CE71F5300DF2294 /* indi_fli_ccd */,
+				598785F91CE71FAF00DF2294 /* indi_fli_wheel */,
+				5987860B1CE71FB900DF2294 /* indi_fli_focus */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -3423,6 +3660,8 @@
 		594D0B35188300ED00B50F4E /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				5987865D1CE72C1F00DF2294 /* IOKit.framework */,
+				5987865B1CE72BFC00DF2294 /* CoreFoundation.framework */,
 				5944995F1C136C9100E0E281 /* libz.tbd */,
 				59E5F91D1C3F17B9008DAB80 /* libobjc.tbd */,
 				59E5F9211C3F185D008DAB80 /* libgsl.a */,
@@ -3513,6 +3752,7 @@
 		59567C081A8D325E0057A35A /* 3rd */ = {
 			isa = PBXGroup;
 			children = (
+				598785BE1CE71F1A00DF2294 /* indi-fli */,
 				5924ACE81C8B44AB00750816 /* indi-nexstarevo */,
 				596556621C4A3DCD0044680B /* indi-qsi */,
 				591C90C81C1373C700FCE596 /* indi-sbig */,
@@ -3738,6 +3978,57 @@
 			);
 			name = tools;
 			path = ../../libindi/tools;
+			sourceTree = "<group>";
+		};
+		598785BE1CE71F1A00DF2294 /* indi-fli */ = {
+			isa = PBXGroup;
+			children = (
+				5987865F1CE731EB00DF2294 /* libfli */,
+				5987860C1CE71FF300DF2294 /* CMakeLists.txt */,
+				598786151CE7201C00DF2294 /* config.h */,
+				5987860F1CE71FF300DF2294 /* fli_ccd.h */,
+				5987860E1CE71FF300DF2294 /* fli_ccd.cpp */,
+				598786111CE71FF300DF2294 /* fli_cfw.h */,
+				598786101CE71FF300DF2294 /* fli_cfw.cpp */,
+				598786131CE71FF300DF2294 /* fli_pdf.h */,
+				598786121CE71FF300DF2294 /* fli_pdf.cpp */,
+				598786141CE71FF300DF2294 /* indi_fli.xml */,
+			);
+			path = "indi-fli";
+			sourceTree = "<group>";
+		};
+		5987865F1CE731EB00DF2294 /* libfli */ = {
+			isa = PBXGroup;
+			children = (
+				598786911CE7325C00DF2294 /* libfli-usb-sys.h */,
+				598786921CE7325C00DF2294 /* libfli-usb-sys.c */,
+				598786851CE7324E00DF2294 /* libfli-usb.h */,
+				598786861CE7324E00DF2294 /* libfli-usb.c */,
+				598786871CE7324E00DF2294 /* libfli-sys.h */,
+				598786881CE7324E00DF2294 /* libfli-sys.c */,
+				598786891CE7324E00DF2294 /* libfli-serial.h */,
+				5987868A1CE7324E00DF2294 /* libfli-serial.c */,
+				5987868B1CE7324E00DF2294 /* libfli-parport.h */,
+				5987868C1CE7324E00DF2294 /* libfli-debug.c */,
+				5987866E1CE7324000DF2294 /* libfli.h */,
+				5987866F1CE7324000DF2294 /* libfli.c */,
+				598786701CE7324000DF2294 /* libfli-raw.h */,
+				598786711CE7324000DF2294 /* libfli-raw.c */,
+				598786721CE7324000DF2294 /* libfli-mem.h */,
+				598786731CE7324000DF2294 /* libfli-mem.c */,
+				598786741CE7324000DF2294 /* libfli-libfli.h */,
+				598786751CE7324000DF2294 /* libfli-filter-focuser.h */,
+				598786761CE7324000DF2294 /* libfli-filter-focuser.c */,
+				598786771CE7324000DF2294 /* libfli-debug.h */,
+				598786781CE7324000DF2294 /* libfli-camera.h */,
+				598786791CE7324000DF2294 /* libfli-camera.c */,
+				5987867A1CE7324000DF2294 /* libfli-camera-usb.h */,
+				5987867B1CE7324000DF2294 /* libfli-camera-usb.c */,
+				5987867C1CE7324000DF2294 /* libfli-camera-parport.h */,
+				5987867D1CE7324000DF2294 /* libfli-camera-parport.c */,
+			);
+			name = libfli;
+			path = "../../../libfli-1.104";
 			sourceTree = "<group>";
 		};
 		59E530581C94A0F50071DE74 /* libdc1394 */ = {
@@ -4419,6 +4710,9 @@
 			buildRules = (
 			);
 			dependencies = (
+				598786BC1CE7361000DF2294 /* PBXTargetDependency */,
+				598786BE1CE7361000DF2294 /* PBXTargetDependency */,
+				598786C01CE7361000DF2294 /* PBXTargetDependency */,
 				5924AD011C8B459A00750816 /* PBXTargetDependency */,
 				596556E71C4A49D60044680B /* PBXTargetDependency */,
 				591C90E81C13745200FCE596 /* PBXTargetDependency */,
@@ -4893,6 +5187,66 @@
 			name = indiserver;
 			productName = indiserverHelper;
 			productReference = 597B89241888016F0093873A /* indiserver */;
+			productType = "com.apple.product-type.tool";
+		};
+		598785BF1CE71F5300DF2294 /* indi_fli_ccd */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 598785E41CE71F5300DF2294 /* Build configuration list for PBXNativeTarget "indi_fli_ccd" */;
+			buildPhases = (
+				598785C81CE71F5300DF2294 /* Sources */,
+				598785DE1CE71F5300DF2294 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				598785C01CE71F5300DF2294 /* PBXTargetDependency */,
+				598785C21CE71F5300DF2294 /* PBXTargetDependency */,
+				598785C41CE71F5300DF2294 /* PBXTargetDependency */,
+				598785C61CE71F5300DF2294 /* PBXTargetDependency */,
+			);
+			name = indi_fli_ccd;
+			productName = indi_lxbasic;
+			productReference = 598785E71CE71F5300DF2294 /* indi_fli_ccd */;
+			productType = "com.apple.product-type.tool";
+		};
+		598785E81CE71FAF00DF2294 /* indi_fli_wheel */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 598785F61CE71FAF00DF2294 /* Build configuration list for PBXNativeTarget "indi_fli_wheel" */;
+			buildPhases = (
+				598785F11CE71FAF00DF2294 /* Sources */,
+				598785F21CE71FAF00DF2294 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				598785E91CE71FAF00DF2294 /* PBXTargetDependency */,
+				598785EB1CE71FAF00DF2294 /* PBXTargetDependency */,
+				598785ED1CE71FAF00DF2294 /* PBXTargetDependency */,
+				598785EF1CE71FAF00DF2294 /* PBXTargetDependency */,
+			);
+			name = indi_fli_wheel;
+			productName = indi_lxbasic;
+			productReference = 598785F91CE71FAF00DF2294 /* indi_fli_wheel */;
+			productType = "com.apple.product-type.tool";
+		};
+		598785FA1CE71FB900DF2294 /* indi_fli_focus */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 598786081CE71FB900DF2294 /* Build configuration list for PBXNativeTarget "indi_fli_focus" */;
+			buildPhases = (
+				598786031CE71FB900DF2294 /* Sources */,
+				598786041CE71FB900DF2294 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				598785FB1CE71FB900DF2294 /* PBXTargetDependency */,
+				598785FD1CE71FB900DF2294 /* PBXTargetDependency */,
+				598785FF1CE71FB900DF2294 /* PBXTargetDependency */,
+				598786011CE71FB900DF2294 /* PBXTargetDependency */,
+			);
+			name = indi_fli_focus;
+			productName = indi_lxbasic;
+			productReference = 5987860B1CE71FB900DF2294 /* indi_fli_focus */;
 			productType = "com.apple.product-type.tool";
 		};
 		59E530451C949FEF0071DE74 /* dc1394 */ = {
@@ -5416,6 +5770,9 @@
 				591C90CC1C13741B00FCE596 /* indi_sbig_ccd */,
 				596556631C4A3E530044680B /* indi_qsi_ccd */,
 				5924ACE91C8B44FD00750816 /* indi_nextarevo */,
+				598785BF1CE71F5300DF2294 /* indi_fli_ccd */,
+				598785E81CE71FAF00DF2294 /* indi_fli_wheel */,
+				598785FA1CE71FB900DF2294 /* indi_fli_focus */,
 			);
 		};
 /* End PBXProject section */
@@ -5432,6 +5789,7 @@
 				59567CB21A8D3D3B0057A35A /* indi_spectracyber.xml in Resources */,
 				59567C981A8D3B900057A35A /* indi_eqmod_scope_limits_sk.xml in Resources */,
 				9D0B2A8D1A8D21B300ED17BF /* indi_tcfs_sk.xml in Resources */,
+				598786161CE7204B00DF2294 /* indi_fli.xml in Resources */,
 				59567C5D1A8D34E90057A35A /* indi_aagcloudwatcher.xml in Resources */,
 				59567C971A8D3B900057A35A /* indi_eqmod.xml in Resources */,
 				596EBB59188AC60700190323 /* InfoPlist.strings in Resources */,
@@ -5824,6 +6182,66 @@
 				591991A8188FC9AD007DD2DE /* indiserver.c in Sources */,
 				591991AE188FC9CB007DD2DE /* lilxml.c in Sources */,
 				591991AB188FC9BA007DD2DE /* fq.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		598785C81CE71F5300DF2294 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				598786951CE7327F00DF2294 /* libfli-usb.c in Sources */,
+				598786941CE7327F00DF2294 /* libfli-usb-sys.c in Sources */,
+				5987869D1CE7327F00DF2294 /* libfli-camera.c in Sources */,
+				598786971CE7327F00DF2294 /* libfli-serial.c in Sources */,
+				5987869C1CE7327F00DF2294 /* libfli-filter-focuser.c in Sources */,
+				598786981CE7327F00DF2294 /* libfli-debug.c in Sources */,
+				598786171CE7207600DF2294 /* fli_ccd.cpp in Sources */,
+				5987869F1CE7327F00DF2294 /* libfli-camera-parport.c in Sources */,
+				5987869B1CE7327F00DF2294 /* libfli-mem.c in Sources */,
+				598786991CE7327F00DF2294 /* libfli.c in Sources */,
+				5987869A1CE7327F00DF2294 /* libfli-raw.c in Sources */,
+				598786961CE7327F00DF2294 /* libfli-sys.c in Sources */,
+				5987869E1CE7327F00DF2294 /* libfli-camera-usb.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		598785F11CE71FAF00DF2294 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				598786A11CE7327F00DF2294 /* libfli-usb.c in Sources */,
+				598786A01CE7327F00DF2294 /* libfli-usb-sys.c in Sources */,
+				598786A91CE7327F00DF2294 /* libfli-camera.c in Sources */,
+				598786A31CE7327F00DF2294 /* libfli-serial.c in Sources */,
+				598786A81CE7327F00DF2294 /* libfli-filter-focuser.c in Sources */,
+				598786A41CE7327F00DF2294 /* libfli-debug.c in Sources */,
+				598786181CE7207E00DF2294 /* fli_cfw.cpp in Sources */,
+				598786AB1CE7327F00DF2294 /* libfli-camera-parport.c in Sources */,
+				598786A71CE7327F00DF2294 /* libfli-mem.c in Sources */,
+				598786A51CE7327F00DF2294 /* libfli.c in Sources */,
+				598786A61CE7327F00DF2294 /* libfli-raw.c in Sources */,
+				598786A21CE7327F00DF2294 /* libfli-sys.c in Sources */,
+				598786AA1CE7327F00DF2294 /* libfli-camera-usb.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		598786031CE71FB900DF2294 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				598786AD1CE7328000DF2294 /* libfli-usb.c in Sources */,
+				598786AC1CE7328000DF2294 /* libfli-usb-sys.c in Sources */,
+				598786B51CE7328000DF2294 /* libfli-camera.c in Sources */,
+				598786AF1CE7328000DF2294 /* libfli-serial.c in Sources */,
+				598786B41CE7328000DF2294 /* libfli-filter-focuser.c in Sources */,
+				598786B01CE7328000DF2294 /* libfli-debug.c in Sources */,
+				598786191CE7208300DF2294 /* fli_pdf.cpp in Sources */,
+				598786B71CE7328000DF2294 /* libfli-camera-parport.c in Sources */,
+				598786B31CE7328000DF2294 /* libfli-mem.c in Sources */,
+				598786B11CE7328000DF2294 /* libfli.c in Sources */,
+				598786B21CE7328000DF2294 /* libfli-raw.c in Sources */,
+				598786AE1CE7328000DF2294 /* libfli-sys.c in Sources */,
+				598786B61CE7328000DF2294 /* libfli-camera-usb.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -6745,6 +7163,81 @@
 			isa = PBXTargetDependency;
 			target = 597B89231888016F0093873A /* indiserver */;
 			targetProxy = 597B893E188838CC0093873A /* PBXContainerItemProxy */;
+		};
+		598785C01CE71F5300DF2294 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA43171A8CC5F90004AA95 /* cfitsio */;
+			targetProxy = 598785C11CE71F5300DF2294 /* PBXContainerItemProxy */;
+		};
+		598785C21CE71F5300DF2294 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA438A1A8CCD030004AA95 /* usb */;
+			targetProxy = 598785C31CE71F5300DF2294 /* PBXContainerItemProxy */;
+		};
+		598785C41CE71F5300DF2294 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA422B1A8CB6920004AA95 /* nova */;
+			targetProxy = 598785C51CE71F5300DF2294 /* PBXContainerItemProxy */;
+		};
+		598785C61CE71F5300DF2294 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA43A81A8CD3190004AA95 /* indi */;
+			targetProxy = 598785C71CE71F5300DF2294 /* PBXContainerItemProxy */;
+		};
+		598785E91CE71FAF00DF2294 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA43171A8CC5F90004AA95 /* cfitsio */;
+			targetProxy = 598785EA1CE71FAF00DF2294 /* PBXContainerItemProxy */;
+		};
+		598785EB1CE71FAF00DF2294 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA438A1A8CCD030004AA95 /* usb */;
+			targetProxy = 598785EC1CE71FAF00DF2294 /* PBXContainerItemProxy */;
+		};
+		598785ED1CE71FAF00DF2294 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA422B1A8CB6920004AA95 /* nova */;
+			targetProxy = 598785EE1CE71FAF00DF2294 /* PBXContainerItemProxy */;
+		};
+		598785EF1CE71FAF00DF2294 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA43A81A8CD3190004AA95 /* indi */;
+			targetProxy = 598785F01CE71FAF00DF2294 /* PBXContainerItemProxy */;
+		};
+		598785FB1CE71FB900DF2294 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA43171A8CC5F90004AA95 /* cfitsio */;
+			targetProxy = 598785FC1CE71FB900DF2294 /* PBXContainerItemProxy */;
+		};
+		598785FD1CE71FB900DF2294 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA438A1A8CCD030004AA95 /* usb */;
+			targetProxy = 598785FE1CE71FB900DF2294 /* PBXContainerItemProxy */;
+		};
+		598785FF1CE71FB900DF2294 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA422B1A8CB6920004AA95 /* nova */;
+			targetProxy = 598786001CE71FB900DF2294 /* PBXContainerItemProxy */;
+		};
+		598786011CE71FB900DF2294 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA43A81A8CD3190004AA95 /* indi */;
+			targetProxy = 598786021CE71FB900DF2294 /* PBXContainerItemProxy */;
+		};
+		598786BC1CE7361000DF2294 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 598785BF1CE71F5300DF2294 /* indi_fli_ccd */;
+			targetProxy = 598786BB1CE7361000DF2294 /* PBXContainerItemProxy */;
+		};
+		598786BE1CE7361000DF2294 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 598785E81CE71FAF00DF2294 /* indi_fli_wheel */;
+			targetProxy = 598786BD1CE7361000DF2294 /* PBXContainerItemProxy */;
+		};
+		598786C01CE7361000DF2294 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 598785FA1CE71FB900DF2294 /* indi_fli_focus */;
+			targetProxy = 598786BF1CE7361000DF2294 /* PBXContainerItemProxy */;
 		};
 		9D0B29B81A8D1E9400ED17BF /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -7811,7 +8304,6 @@
 				GCC_WARN_UNUSED_VARIABLE = NO;
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
-					"/Applications/Xcode-Beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include",
 					"../../../libnova-0.15.0/src",
 					"../../../libnova-0.15.0/src/libnova",
 					"../../../libusb-1.0.19/libusb",
@@ -7862,7 +8354,6 @@
 				GCC_WARN_UNUSED_VARIABLE = NO;
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
-					"/Applications/Xcode-Beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include",
 					"../../../libnova-0.15.0/src",
 					"../../../libnova-0.15.0/src/libnova",
 					"../../../libusb-1.0.19/libusb",
@@ -9064,6 +9555,222 @@
 				PRODUCT_BUNDLE_IDENTIFIER = eu.cloudmakers.indi.indiserver;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
+		598785E51CE71F5300DF2294 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+					USELIBFTD2XX,
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"../../../libnova-0.15.0/src",
+					"../../../libnova-0.15.0/src/libnova",
+					"../../../libusb-1.0.19/libusb",
+					../../../cfitsio,
+					../../libindi/libs/indibase,
+					../../libindi/libs,
+					../../libindi,
+					"../../../libfli-1.104",
+					"../../../libfli-1.104/unix",
+					"../../../libfli-1.104/unix/osx",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)",
+				);
+				MTL_ENABLE_DEBUG_INFO = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		598785E61CE71F5300DF2294 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					USELIBFTD2XX,
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"../../../libnova-0.15.0/src",
+					"../../../libnova-0.15.0/src/libnova",
+					"../../../libusb-1.0.19/libusb",
+					../../../cfitsio,
+					../../libindi/libs/indibase,
+					../../libindi/libs,
+					../../libindi,
+					"../../../libfli-1.104",
+					"../../../libfli-1.104/unix",
+					"../../../libfli-1.104/unix/osx",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)",
+				);
+				MTL_ENABLE_DEBUG_INFO = NO;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		598785F71CE71FAF00DF2294 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+					USELIBFTD2XX,
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"../../../libnova-0.15.0/src",
+					"../../../libnova-0.15.0/src/libnova",
+					"../../../libusb-1.0.19/libusb",
+					../../../cfitsio,
+					../../libindi/libs/indibase,
+					../../libindi/libs,
+					../../libindi,
+					"../../../libfli-1.104/",
+					"../../../libfli-1.104/unix/",
+					"../../../libfli-1.104/unix/osx",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)",
+				);
+				MTL_ENABLE_DEBUG_INFO = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		598785F81CE71FAF00DF2294 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					USELIBFTD2XX,
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"../../../libnova-0.15.0/src",
+					"../../../libnova-0.15.0/src/libnova",
+					"../../../libusb-1.0.19/libusb",
+					../../../cfitsio,
+					../../libindi/libs/indibase,
+					../../libindi/libs,
+					../../libindi,
+					"../../../libfli-1.104/",
+					"../../../libfli-1.104/unix/",
+					"../../../libfli-1.104/unix/osx",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)",
+				);
+				MTL_ENABLE_DEBUG_INFO = NO;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		598786091CE71FB900DF2294 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+					USELIBFTD2XX,
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"../../../libnova-0.15.0/src",
+					"../../../libnova-0.15.0/src/libnova",
+					"../../../libusb-1.0.19/libusb",
+					../../../cfitsio,
+					../../libindi/libs/indibase,
+					../../libindi/libs,
+					../../libindi,
+					"../../../libfli-1.104/",
+					"../../../libfli-1.104/unix",
+					"../../../libfli-1.104/unix/osx",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)",
+				);
+				MTL_ENABLE_DEBUG_INFO = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		5987860A1CE71FB900DF2294 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					USELIBFTD2XX,
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"../../../libnova-0.15.0/src",
+					"../../../libnova-0.15.0/src/libnova",
+					"../../../libusb-1.0.19/libusb",
+					../../../cfitsio,
+					../../libindi/libs/indibase,
+					../../libindi/libs,
+					../../libindi,
+					"../../../libfli-1.104/",
+					"../../../libfli-1.104/unix",
+					"../../../libfli-1.104/unix/osx",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)",
+				);
+				MTL_ENABLE_DEBUG_INFO = NO;
+				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
 		};
@@ -10654,6 +11361,33 @@
 			buildConfigurations = (
 				597B892B1888016F0093873A /* Debug */,
 				597B892C1888016F0093873A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		598785E41CE71F5300DF2294 /* Build configuration list for PBXNativeTarget "indi_fli_ccd" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				598785E51CE71F5300DF2294 /* Debug */,
+				598785E61CE71F5300DF2294 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		598785F61CE71FAF00DF2294 /* Build configuration list for PBXNativeTarget "indi_fli_wheel" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				598785F71CE71FAF00DF2294 /* Debug */,
+				598785F81CE71FAF00DF2294 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		598786081CE71FB900DF2294 /* Build configuration list for PBXNativeTarget "indi_fli_focus" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				598786091CE71FB900DF2294 /* Debug */,
+				5987860A1CE71FB900DF2294 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
