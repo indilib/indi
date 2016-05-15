@@ -1,7 +1,8 @@
 /*******************************************************************************
   Copyright(c) 2015 Jasem Mutlaq. All rights reserved.
-
-  Simple GPS Simulator
+  Copyright(c) 2015 Paweł T. Jochym  <jochym AT gmail DOT com>
+..Copyright(c) 2014 Radek Kaczorek  <rkaczorek AT gmail DOT com>
+  Based on Simple GPS Simulator by Jasem Mutlaq
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the Free
@@ -31,17 +32,27 @@
 class GPSD : public INDI::GPS
 {
     public:
-    GPSD();
-    virtual ~GPSD();
+        GPSD();
+        virtual ~GPSD();
+
+        IText GPSstatusT[1];
+        ITextVectorProperty GPSstatusTP;
+
+        INumber PolarisN[1];
+        INumberVectorProperty PolarisNP;
+
+        ISwitch RefreshS[1];
+        ISwitchVectorProperty RefreshSP;
 
     protected:
-    gpsmm *gps;
-    //  Generic indi device entries
-    bool Connect();
-    bool Disconnect();
-    const char *getDefaultName();
-
-    IPState updateGPS();
+        gpsmm *gps;
+        //  Generic indi device entries
+        bool Connect();
+        bool Disconnect();
+        const char *getDefaultName();
+        bool initProperties();
+        bool updateProperties();
+        IPState updateGPS();
 
 };
 

@@ -15,7 +15,7 @@ find_package(ZLIB REQUIRED)
 find_package(GPSD REQUIRED)
 
 set(GPSD_VERSION_MAJOR 0)
-set(GPSD_VERSION_MINOR 1)
+set(GPSD_VERSION_MINOR 2)
 
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
@@ -23,7 +23,7 @@ include_directories( ${INDI_INCLUDE_DIR})
 include_directories( ${NOVA_INCLUDE_DIR})
 
 add_executable(indi_gpsd gps_driver.cpp)
-target_link_libraries(indi_gpsd ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${GPSD_LIBRARIES})
+target_link_libraries(indi_gpsd ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${GPSD_LIBRARIES} ${NOVA_LIBRARIES})
 install(TARGETS indi_gpsd RUNTIME DESTINATION bin )
 
 install( FILES  indi_gpsd.xml DESTINATION ${INDI_DATA_DIR})
