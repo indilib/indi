@@ -1,7 +1,7 @@
-#if 0
+/*
     FLI CCD
     INDI Interface for Finger Lakes Instrument CCDs
-    Copyright (C) 2003-2012 Jasem Mutlaq (mutlaqja@ikarustech.com)
+    Copyright (C) 2003-2016 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -17,13 +17,17 @@
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
-#endif
+    2016.05.16: Added CCD Cooler Power (JM)
+
+*/
 
 #include <memory>
 #include <time.h>
 #include <math.h>
 #include <unistd.h>
 #include <sys/time.h>
+
+#include <config.h>
 
 #include "indidevapi.h"
 #include "eventloop.h"
@@ -82,7 +86,9 @@ void ISSnoopDevice (XMLEle *root)
 
 FLICCD::FLICCD()
 {
-   sim = false;
+    sim = false;
+
+    setVersion(FLI_CCD_VERSION_MAJOR, FLI_CCD_VERSION_MINOR);
 }
 
 
@@ -112,10 +118,12 @@ bool FLICCD::initProperties()
     IUFillText(&CamInfoT[2],"FW Rev","","");
     IUFillTextVector(&CamInfoTP,CamInfoT,3,getDeviceName(),"Model","",IMAGE_INFO_TAB,IP_RO,60,IPS_IDLE);
 
+    IUFillNumber(&CoolerN[0], "CCD_COOLER_VALUE", "Cooling Power (%)", "%+06.2f", 0., 100., .2, 0.0);
+    IUFillNumberVector(&CoolerNP, CoolerN, 1, getDeviceName(), "CCD_COOLER_POWER", "Cooling Power", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
+
     SetCCDCapability(CCD_CAN_ABORT | CCD_CAN_BIN | CCD_CAN_SUBFRAME | CCD_HAS_COOLER | CCD_HAS_SHUTTER);
 
 }
-
 
 void FLICCD::ISGetProperties(const char *dev)
 {
@@ -133,6 +141,7 @@ bool FLICCD::updateProperties()
     if (isConnected())
     {
         defineText(&CamInfoTP);
+        defineNumber(&CoolerNP);
 
         setupParams();
 
@@ -141,6 +150,7 @@ bool FLICCD::updateProperties()
     else
     {
         deleteProperty(CamInfoTP.name);
+        deleteProperty(CoolerNP.name);
 
         rmTimer(timerID);
     }
@@ -151,20 +161,18 @@ bool FLICCD::updateProperties()
 
 bool FLICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-
     if(strcmp(dev,getDeviceName())==0)
     {
         /* Ports */
         if (!strcmp (name, PortSP.name))
         {
-          if (IUUpdateSwitch(&PortSP, states, names, n) < 0)
-              return false;
+            if (IUUpdateSwitch(&PortSP, states, names, n) < 0)
+                return false;
 
-          PortSP.s = IPS_OK;
-          IDSetSwitch(&PortSP, NULL);
-          return true;
+            PortSP.s = IPS_OK;
+            IDSetSwitch(&PortSP, NULL);
+            return true;
         }
-
     }
 
     //  Nobody has claimed this, so, ignore it
@@ -175,48 +183,30 @@ bool FLICCD::Connect()
 {
     int err=0;
 
-    IDMessage(getDeviceName(), "Attempting to find the FLI CCD...");
+    DEBUG(INDI::Logger::DBG_DEBUG, "Attempting to find FLI CCD...");
 
     sim = isSimulation();
 
     if (sim)
         return true;
 
-    if (isDebug())
-    {
-        IDLog ("Connecting CCD\n");
-        IDLog("Attempting to find the camera\n");
-    }
-
     int portSwitchIndex = IUFindOnSwitchIndex(&PortSP);
 
     if (findFLICCD(Domains[portSwitchIndex]) == false)
     {
-        IDMessage(getDeviceName(), "Error: no cameras were detected.");
-
-        if (isDebug())
-            IDLog("Error: no cameras were detected.\n");
-
+        DEBUG(INDI::Logger::DBG_ERROR, "Error: no cameras were detected.");
         return false;
     }
 
     if ((err = FLIOpen(&fli_dev, FLICam.name, FLIDEVICE_CAMERA | FLICam.domain)))
     {
-
-        IDMessage(getDeviceName(), "Error: FLIOpen() failed. %s.", strerror( (int) -err));
-
-        if (isDebug())
-            IDLog("Error: FLIOpen() failed. %s.\n", strerror( (int) -err));
-
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error: FLIOpen() failed. %s.", strerror( (int) -err));
         return false;
     }
 
     /* Success! */
-    IDMessage(getDeviceName(), "CCD is online. Retrieving basic data.");
-    if (isDebug())
-       IDLog("CCD is online. Retrieving basic data.\n");
-
-        return true;
+    DEBUG(INDI::Logger::DBG_DEBUG, "CCD is online.");
+    return true;
 }
 
 
@@ -229,26 +219,20 @@ bool FLICCD::Disconnect()
 
     if ((err = FLIClose(fli_dev)))
     {
-        IDMessage(getDeviceName(), "Error: FLIClose() failed. %s.", strerror( (int) -err));
-
-        if (isDebug())
-            IDLog("Error: FLIClose() failed. %s.\n", strerror( (int) -err));
-
+        DEBUGF(INDI::Logger::DBG_DEBUG, "Error: FLIClose() failed. %s.", strerror( (int) -err));
         return false;
     }
 
-    IDMessage(getDeviceName(), "CCD is offline.");
+    DEBUG(INDI::Logger::DBG_SESSION, "CCD is offline.");
     return true;
 }
 
 
 bool FLICCD::setupParams()
 {
-
     int err=0;
 
-    if (isDebug())
-        IDLog("In setupParams\n");
+    DEBUG(INDI::Logger::DBG_DEBUG,"Retieving camera parameters...");
 
     char hw_rev[16], fw_rev[16];
 
@@ -257,11 +241,8 @@ bool FLICCD::setupParams()
     //////////////////////
     if (!sim && (err = FLIGetModel (fli_dev, FLICam.model, 32)))
     {
-      IDMessage(getDeviceName(), "FLIGetModel() failed. %s.", strerror((int)-err));
-
-      if (isDebug())
-        IDLog("FLIGetModel() failed. %s.\n", strerror((int)-err));
-      return false;
+        DEBUGF(INDI::Logger::DBG_ERROR, "FLIGetModel() failed. %s.", strerror((int)-err));
+        return false;
     }
 
     if (sim)
@@ -276,12 +257,8 @@ bool FLICCD::setupParams()
         FLICam.HWRevision = 1;
     else if (( err = FLIGetHWRevision(fli_dev, &FLICam.HWRevision)))
     {
-      IDMessage(getDeviceName(), "FLIGetHWRevision() failed. %s.", strerror((int)-err));
-
-      if (isDebug())
-        IDLog("FLIGetHWRevision() failed. %s.\n", strerror((int)-err));
-
-      return false;
+        DEBUGF(INDI::Logger::DBG_ERROR, "FLIGetHWRevision() failed. %s.", strerror((int)-err));
+        return false;
     }
 
     snprintf(hw_rev, 16, "%ld", FLICam.HWRevision);
@@ -294,12 +271,8 @@ bool FLICCD::setupParams()
         FLICam.FWRevision = 1;
     else if (( err = FLIGetFWRevision(fli_dev, &FLICam.FWRevision)))
     {
-      IDMessage(getDeviceName(), "FLIGetFWRevision() failed. %s.", strerror((int)-err));
-
-      if (isDebug())
-        IDLog("FLIGetFWRevision() failed. %s.\n", strerror((int)-err));
-
-      return false;
+        DEBUGF(INDI::Logger::DBG_ERROR, "FLIGetFWRevision() failed. %s.", strerror((int)-err));
+        return false;
     }
 
     snprintf(fw_rev, 16, "%ld", FLICam.FWRevision);
@@ -317,10 +290,8 @@ bool FLICCD::setupParams()
     }
     else if (( err = FLIGetPixelSize(fli_dev, &FLICam.x_pixel_size, &FLICam.y_pixel_size)))
     {
-      IDMessage(getDeviceName(), "FLIGetPixelSize() failed. %s.", strerror((int)-err));
-      if (isDebug())
-        IDLog("FLIGetPixelSize() failed. %s.\n", strerror((int)-err));
-      return false;
+        DEBUGF(INDI::Logger::DBG_ERROR, "FLIGetPixelSize() failed. %s.", strerror((int)-err));
+        return false;
     }
 
     FLICam.x_pixel_size *= 1e6;
@@ -337,10 +308,8 @@ bool FLICCD::setupParams()
     }
     else if (( err = FLIGetArrayArea(fli_dev, &FLICam.Array_Area[0], &FLICam.Array_Area[1], &FLICam.Array_Area[2], &FLICam.Array_Area[3])))
     {
-      IDMessage(getDeviceName(), "FLIGetArrayArea() failed. %s.", strerror((int)-err));
-      if (isDebug())
-        IDLog("FLIGetArrayArea() failed. %s.\n", strerror((int)-err));
-      return false;
+        DEBUGF(INDI::Logger::DBG_ERROR, "FLIGetArrayArea() failed. %s.", strerror((int)-err));
+        return false;
     }
 
     ///////////////////////////
@@ -348,16 +317,14 @@ bool FLICCD::setupParams()
     ///////////////////////////
     if (sim)
     {
-         FLICam.Visible_Area[0] = FLICam.Visible_Area[1] = 0;
-         FLICam.Visible_Area[2] = 1280;
-         FLICam.Visible_Area[3] = 1024;
+        FLICam.Visible_Area[0] = FLICam.Visible_Area[1] = 0;
+        FLICam.Visible_Area[2] = 1280;
+        FLICam.Visible_Area[3] = 1024;
     }
     else if (( err = FLIGetVisibleArea( fli_dev, &FLICam.Visible_Area[0], &FLICam.Visible_Area[1], &FLICam.Visible_Area[2], &FLICam.Visible_Area[3])))
     {
-      IDMessage(getDeviceName(), "FLIGetVisibleArea() failed. %s.", strerror((int)-err));
-      if (isDebug())
-        IDLog("FLIGetVisibleArea() failed. %s.\n", strerror((int)-err));
-      return false;
+        DEBUGF(INDI::Logger::DBG_ERROR, "FLIGetVisibleArea() failed. %s.", strerror((int)-err));
+        return false;
     }
 
     ///////////////////////////
@@ -367,16 +334,12 @@ bool FLICCD::setupParams()
         FLICam.temperature = 25.0;
     else if (( err = FLIGetTemperature(fli_dev, &FLICam.temperature)))
     {
-      IDMessage(getDeviceName(), "FLIGetTemperature() failed. %s.", strerror((int)-err));
-      if (isDebug())
-        IDLog("FLIGetTemperature() failed. %s.\n", strerror((int)-err));
-      return false;
+        DEBUGF(INDI::Logger::DBG_ERROR, "FLIGetTemperature() failed. %s.", strerror((int)-err));
+        return false;
     }
 
-    IDMessage(getDeviceName(), "The CCD Temperature is %f.\n", FLICam.temperature);
+    DEBUGF(INDI::Logger::DBG_SESSION, "The CCD Temperature is %f.", FLICam.temperature);
 
-    if (isDebug())
-        IDLog("The CCD Temperature is %f.\n", FLICam.temperature);
 
     TemperatureN[0].value = FLICam.temperature;			/* CCD chip temperatre (degrees C) */
     TemperatureN[0].min = MIN_CCD_TEMP;
@@ -393,31 +356,22 @@ bool FLICCD::setupParams()
     /* Default frame type is NORMAL */
     if (!sim && (err = FLISetFrameType(fli_dev, FLI_FRAME_TYPE_NORMAL) ))
     {
-      IDMessage(getDeviceName(),"FLISetFrameType() failed. %s.\n", strerror((int)-err));
-
-      if (isDebug())
-          IDLog("FLISetFrameType() failed. %s.\n", strerror((int)-err));
-
-      return false;
+        DEBUGF(INDI::Logger::DBG_DEBUG,"FLISetFrameType() failed. %s.", strerror((int)-err));
+        return false;
     }
 
     /* X horizontal binning */
     if (!sim && (err = FLISetHBin(fli_dev, PrimaryCCD.getBinX()) ))
     {
-      IDMessage(getDeviceName(),"FLISetBin() failed. %s.\n", strerror((int)-err));
-      if (isDebug())
-        IDLog("FLISetBin() failed. %s.\n", strerror((int)-err));
-      return false;
+        DEBUGF(INDI::Logger::DBG_ERROR,"FLISetBin() failed. %s.", strerror((int)-err));
+        return false;
     }
 
     /* Y vertical binning */
     if (!sim && (err = FLISetVBin(fli_dev, PrimaryCCD.getBinY()) ))
     {
-      IDMessage(getDeviceName(),"FLISetVBin() failed. %s.\n", strerror((int)-err));
-      if (isDebug())
-        IDLog("FLISetVBin() failed. %s.\n", strerror((int)-err));
-
-      return false;
+        DEBUGF(INDI::Logger::DBG_ERROR,"FLISetVBin() failed. %s.", strerror((int)-err));
+        return false;
     }
 
     int nbuf;
@@ -441,59 +395,46 @@ int FLICCD::SetTemperature(double temperature)
 
     FLICam.temperature = temperature;
 
-
-    DEBUGF(INDI::Logger::DBG_ERROR, "Setting CCD temperature to %+06.2f C", temperature);
+    DEBUGF(INDI::Logger::DBG_SESSION, "Setting CCD temperature to %+06.2f C", temperature);
     return 0;
 }
 
 bool FLICCD::StartExposure(float duration)
 {
-        int err=0;
+    int err=0;
 
-        if(duration < minDuration)
-        {
-            IDMessage(getDeviceName(), "Exposure shorter than minimum duration %g s requested. \n Setting exposure time to %g s.", duration,minDuration);
-            duration = minDuration;
-        }
+    if(duration < minDuration)
+    {
+        DEBUGF(INDI::Logger::DBG_WARNING, "Exposure shorter than minimum duration %g s requested.  Setting exposure time to %g s.", duration,minDuration);
+        duration = minDuration;
+    }
 
-        if (imageFrameType == CCDChip::BIAS_FRAME)
-        {
-            duration = minDuration;
-            IDMessage(getDeviceName(), "Bias Frame (s) : %g\n", minDuration);
-        }
+    if (PrimaryCCD.getFrameType() == CCDChip::BIAS_FRAME)
+    {
+        duration = minDuration;
+        DEBUGF(INDI::Logger::DBG_DEBUG, "Bias Frame (s) : %g", minDuration);
+    }
 
-        if (!sim && (err = FLISetExposureTime(fli_dev, (long)(duration * 1000))))
-        {
+    if (!sim && (err = FLISetExposureTime(fli_dev, (long)(duration * 1000))))
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "FLISetExposureTime() failed. %s.", strerror((int)-err));
+        return false;
+    }
+    // yes, we need to push the release
+    if (!sim && (err =FLIExposeFrame(fli_dev)))
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "FLIxposeFrame() failed. %s.", strerror((int)-err));
+        return false;
+    }
 
-            IDMessage(getDeviceName(), "FLISetExposureTime() failed. %s.\n", strerror((int)-err));
+    PrimaryCCD.setExposureDuration(duration);
+    ExposureRequest = duration;
 
-            if (isDebug())
-                IDLog("FLISetExposureTime() failed. %s.\n", strerror((int)-err));
+    gettimeofday(&ExpStart,NULL);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Taking a %g seconds frame...", ExposureRequest);
 
-            return false;
-        }
-        // yes, we need to push the release 
-        if (!sim && (err =FLIExposeFrame(fli_dev)))
-        {
-
-            IDMessage(getDeviceName(), "FLIxposeFrame() failed. %s.\n", strerror((int)-err));
-
-            if (isDebug())
-                IDLog("FLIxposeFrame() failed. %s.\n", strerror((int)-err));
-
-            return false;
-        }
-
-        PrimaryCCD.setExposureDuration(duration);
-        ExposureRequest = duration;
-        if (isDebug())
-             IDLog("Exposure Time (s) is: %g\n", duration);
-
-        gettimeofday(&ExpStart,NULL);
-        IDMessage(getDeviceName(), "Taking a %g seconds frame...", ExposureRequest);
-
-        InExposure = true;
-        return true;
+    InExposure = true;
+    return true;
 }
 
 
@@ -503,13 +444,8 @@ bool FLICCD::AbortExposure()
 
     if (!sim && (err = FLICancelExposure(fli_dev)))
     {
-        IDMessage(getDeviceName(), "FLICancelExposure() failed. %s.", strerror((int)-err));
-
-        if (isDebug())
-            IDLog("FLICancelExposure() failed. %s.\n", strerror((int)-err));
-
-      return false;
-
+        DEBUGF(INDI::Logger::DBG_ERROR, "FLICancelExposure() failed. %s.", strerror((int)-err));
+        return false;
     }
 
     InExposure=false;
@@ -526,22 +462,20 @@ bool FLICCD::UpdateCCDFrameType(CCDChip::CCD_FRAME fType)
 
     switch (imageFrameType)
     {
-        case CCDChip::BIAS_FRAME:
-        case CCDChip::DARK_FRAME:
+    case CCDChip::BIAS_FRAME:
+    case CCDChip::DARK_FRAME:
         if ((err = FLISetFrameType(fli_dev, FLI_FRAME_TYPE_DARK) ))
         {
-            if (isDebug())
-                IDLog("FLISetFrameType() failed. %s.\n", strerror((int)-err));
+            DEBUGF(INDI::Logger::DBG_ERROR,"FLISetFrameType() failed. %s.", strerror((int)-err));
             return -1;
         }
         break;
 
-        case CCDChip::LIGHT_FRAME:
-        case CCDChip::FLAT_FRAME:
+    case CCDChip::LIGHT_FRAME:
+    case CCDChip::FLAT_FRAME:
         if ((err = FLISetFrameType(fli_dev, FLI_FRAME_TYPE_NORMAL) ))
         {
-            if (isDebug())
-                IDLog("FLISetFrameType() failed. %s.\n", strerror((int)-err));
+            DEBUGF(INDI::Logger::DBG_ERROR,"FLISetFrameType() failed. %s.", strerror((int)-err));
             return -1;
         }
         break;
@@ -564,24 +498,20 @@ bool FLICCD::UpdateCCDFrame(int x, int y, int w, int h)
 
     if (bin_width > PrimaryCCD.getXRes() / PrimaryCCD.getBinX())
     {
-        IDMessage(getDeviceName(), "Error: invalid width requested %d", w);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error: invalid width requested %d", w);
         return false;
     }
     else if (bin_height > PrimaryCCD.getYRes() / PrimaryCCD.getBinY())
     {
-        IDMessage(getDeviceName(), "Error: invalid height request %d", h);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error: invalid height request %d", h);
         return false;
     }
 
-    if (isDebug())
-        IDLog("The Final image area is (%ld, %ld), (%ld, %ld)\n", x_1, y_1, bin_width, bin_height);
+    DEBUGF(INDI::Logger::DBG_DEBUG,"The Final image area is (%ld, %ld), (%ld, %ld)", x_1, y_1, bin_width, bin_height);
 
     if (!sim && (err = FLISetImageArea(fli_dev, x_1, y_1, bin_width, bin_height) ))
     {
-        IDMessage(getDeviceName(), "FLISetImageArea() failed. %s.\n", strerror((int)-err));
-        if (isDebug())
-            IDLog("FLISetImageArea() failed. %s.\n", strerror((int)-err));
-
+        DEBUGF(INDI::Logger::DBG_ERROR, "FLISetImageArea() failed. %s.", strerror((int)-err));
         return false;
     }
 
@@ -589,8 +519,8 @@ bool FLICCD::UpdateCCDFrame(int x, int y, int w, int h)
     PrimaryCCD.setFrame(x_1, y_1, w,  h);
 
     int nbuf;
-    nbuf=(bin_width*bin_height * PrimaryCCD.getBPP()/8);                 //  this is pixel count
-    nbuf+=512;                      //  leave a little extra at the end
+    nbuf=(bin_width*bin_height * PrimaryCCD.getBPP()/8);                //  this is pixel count
+    nbuf+=512;                                                          //  leave a little extra at the end
     PrimaryCCD.setFrameBufferSize(nbuf);
 
     return true;
@@ -604,20 +534,15 @@ bool FLICCD::UpdateCCDBin(int binx, int biny)
     /* X horizontal binning */
     if (!sim && (err = FLISetHBin(fli_dev, binx) ))
     {
-      IDMessage(getDeviceName(), "FLISetBin() failed. %s.\n", strerror((int)-err));
-      if (isDebug())
-          IDLog("FLISetHBin() failed. %s.\n", strerror((int)-err));
-      return false;
+        DEBUGF(INDI::Logger::DBG_ERROR, "FLISetBin() failed. %s.", strerror((int)-err));
+        return false;
     }
 
     /* Y vertical binning */
     if (!sim && (err = FLISetVBin(fli_dev, biny) ))
     {
-      IDMessage(getDeviceName(), "FLISetVBin() failed. %s.\n", strerror((int)-err));
-      if (isDebug())
-          IDLog("FLISetVBin() failed. %s.\n", strerror((int)-err));
-
-      return false;
+        DEBUGF(INDI::Logger::DBG_ERROR, "FLISetVBin() failed. %s.", strerror((int)-err));
+        return false;
     }
 
     PrimaryCCD.setBin(binx, biny);
@@ -625,7 +550,7 @@ bool FLICCD::UpdateCCDBin(int binx, int biny)
     return UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
 }
 
-float FLICCD::CalcTimeLeft()
+float FLICCD::calcTimeLeft()
 {
     double timesince;
     double timeleft;
@@ -634,65 +559,57 @@ float FLICCD::CalcTimeLeft()
 
     timesince=(double)(now.tv_sec * 1000.0 + now.tv_usec/1000) - (double)(ExpStart.tv_sec * 1000.0 + ExpStart.tv_usec/1000);
     timesince=timesince/1000;
-
-
     timeleft=ExposureRequest-timesince;
     return timeleft;
 }
 
-/* Downloads the image from the CCD.
- N.B. No processing is done on the image */
-int FLICCD::grabImage()
+// Downloads the image from the CCD.
+bool FLICCD::grabImage()
 {
-        int err=0;
-        uint8_t * image = PrimaryCCD.getFrameBuffer();
-        int width = PrimaryCCD.getSubW() / PrimaryCCD.getBinX() * PrimaryCCD.getBPP()/8;
-        int height = PrimaryCCD.getSubH() / PrimaryCCD.getBinY();
+    int err=0;
+    uint8_t * image = PrimaryCCD.getFrameBuffer();
+    int width = PrimaryCCD.getSubW() / PrimaryCCD.getBinX() * PrimaryCCD.getBPP()/8;
+    int height = PrimaryCCD.getSubH() / PrimaryCCD.getBinY();
 
-        if (sim)
+    if (sim)
+    {
+        for (int i=0; i < height ; i++)
+            for (int j=0; j < width; j++)
+                image[i*width+j] = rand() % 255;
+    }
+    else
+    {
+        for (int i=0; i < height ; i++)
         {
-            for (int i=0; i < height ; i++)
-                for (int j=0; j < width; j++)
-                    image[i*width+j] = rand() % 255;
-        }
-        else
-        {
-            for (int i=0; i < height ; i++)
+            if ( (err = FLIGrabRow(fli_dev, image + (i * width), width)))
             {
-                if ( (err = FLIGrabRow(fli_dev, image + (i * width), width)))
-                {
-                    IDMessage(getDeviceName(), "FLIGrabRow() failed at row %d. %s.", i, strerror((int)-err));
-
-                    if (isDebug())
-                        IDLog("FLIGrabRow() failed at row %d. %s.\n", i, strerror((int)-err));
-                    return -1;
-                }
+                DEBUGF(INDI::Logger::DBG_ERROR, "FLIGrabRow() failed at row %d. %s.", i, strerror((int)-err));
+                return false;
             }
         }
+    }
 
-        IDMessage(getDeviceName(), "Download complete.");
+    DEBUG(INDI::Logger::DBG_SESSION, "Download complete.");
 
-        if (isDebug())
-            IDLog("Download complete.");
+    ExposureComplete(&PrimaryCCD);
 
-        ExposureComplete(&PrimaryCCD);
-
-    return 0;
+    return true;
 }
 
 void FLICCD::TimerHit()
 {
     int timerID=-1;
     int err=0;
-    long timeleft;
-    double ccdTemp;
+    long timeleft=0;
+    double ccdTemp=0;
+    double ccdPower=0;
 
     if(isConnected() == false)
         return;  //  No need to reset timer if we are not connected anymore
 
     if (InExposure)
     {
-        timeleft=CalcTimeLeft();
+        timeleft=calcTimeLeft();
 
         if(timeleft < 1.0)
         {
@@ -715,13 +632,9 @@ void FLICCD::TimerHit()
 
                         if ((err = FLIGetExposureStatus(fli_dev, &timeleft)))
                         {
-                          IDMessage(getDeviceName(), "FLIGetExposureStatus() failed. %s.", strerror((int)-err));
-
-                          if (isDebug())
-                            IDLog("FLIGetExposureStatus() failed. %s.\n", strerror((int)-err));
-
-                          SetTimer(POLLMS);
-                          return;
+                            DEBUGF(INDI::Logger::DBG_ERROR, "FLIGetExposureStatus() failed. %s.", strerror((int)-err));
+                            SetTimer(POLLMS);
+                            return;
                         }
 
                         int slv;
@@ -730,10 +643,7 @@ void FLICCD::TimerHit()
                     }
 
                     /* We're done exposing */
-                    IDMessage(getDeviceName(), "Exposure done, downloading image...");
-
-                    if (isDebug())
-                        IDLog("Exposure done, downloading image...\n");
+                    DEBUG(INDI::Logger::DBG_SESSION, "Exposure done, downloading image...");
 
                     PrimaryCCD.setExposureLeft(0);
                     InExposure = false;
@@ -745,54 +655,70 @@ void FLICCD::TimerHit()
         }
         else
         {
-
-         if (isDebug())
-         {
-            IDLog("With time left %ld\n", timeleft);
-            IDLog("image not yet ready....\n");
-         }
-
-         PrimaryCCD.setExposureLeft(timeleft);
-
+            DEBUGF(INDI::Logger::DBG_DEBUG,"Exposure in progress. Time left: %ld seconds", timeleft);
+            PrimaryCCD.setExposureLeft(timeleft);
         }
 
     }
 
     switch (TemperatureNP.s)
     {
-      case IPS_IDLE:
-      case IPS_OK:
-        if (!sim &&  (err = FLIGetTemperature(fli_dev, &ccdTemp)))
+    case IPS_IDLE:
+    case IPS_OK:
+        if (sim == false)
         {
-          TemperatureNP.s = IPS_IDLE;
-          IDSetNumber(&TemperatureNP, "FLIGetTemperature() failed. %s.", strerror((int)-err));
-
-          if (isDebug())
-            IDLog("FLIGetTemperature() failed. %s.", strerror((int)-err));
-          break;
+            if (err = FLIGetTemperature(fli_dev, &ccdTemp))
+            {
+                TemperatureNP.s = IPS_IDLE;
+                IDSetNumber(&TemperatureNP, NULL);
+                DEBUGF(INDI::Logger::DBG_ERROR, "FLIGetTemperature() failed. %s.", strerror((int)-err));
+                break;
+            }
+            if (err = FLIGetCoolerPower(fli_dev, &ccdPower))
+            {
+                CoolerNP.s = IPS_IDLE;
+                IDSetNumber(&TemperatureNP, NULL);
+                IDSetNumber(&TemperatureNP, "FLIGetCoolerPower() failed. %s.", strerror((int)-err));
+                break;
+            }
         }
 
         if (fabs(TemperatureN[0].value - ccdTemp) >= TEMP_THRESHOLD)
         {
-          TemperatureN[0].value = ccdTemp;
-          IDSetNumber(&TemperatureNP, NULL);
+            TemperatureN[0].value = ccdTemp;
+            IDSetNumber(&TemperatureNP, NULL);
+        }
+
+        if (fabs(CoolerN[0].value - ccdPower) >= TEMP_THRESHOLD)
+        {
+            CoolerN[0].value = ccdPower;
+            CoolerNP.s = TemperatureNP.s;
+            IDSetNumber(&CoolerNP, NULL);
         }
         break;
 
-      case IPS_BUSY:
+    case IPS_BUSY:
         if (sim)
         {
             ccdTemp = FLICam.temperature;
             TemperatureN[0].value = ccdTemp;
         }
-        else if ( (err = FLIGetTemperature(fli_dev, &ccdTemp)))
+        else
         {
-          TemperatureNP.s = IPS_IDLE;
-          IDSetNumber(&TemperatureNP, "FLIGetTemperature() failed. %s.", strerror((int)-err));
+            if ( (err = FLIGetTemperature(fli_dev, &ccdTemp)))
+            {
+                TemperatureNP.s = IPS_IDLE;
+                IDSetNumber(&TemperatureNP, NULL);
+                DEBUGF(INDI::Logger::DBG_ERROR, "FLIGetTemperature() failed. %s.", strerror((int)-err));
+                break;
+            }
 
-          if (isDebug())
-            IDLog("FLIGetTemperature() failed. %s.", strerror((int)-err));
-          break;
+            if (err = FLIGetCoolerPower(fli_dev, &ccdPower))
+            {
+                CoolerNP.s = IPS_IDLE;
+                IDSetNumber(&TemperatureNP, "FLIGetCoolerPower() failed. %s.", strerror((int)-err));
+                break;
+            }
         }
 
         if (fabs(FLICam.temperature - ccdTemp) <= TEMP_THRESHOLD)
@@ -801,11 +727,18 @@ void FLICCD::TimerHit()
             IDSetNumber(&TemperatureNP, NULL);
         }
 
+        if (fabs(CoolerN[0].value - ccdPower) >= TEMP_THRESHOLD)
+        {
+            CoolerN[0].value = ccdPower;
+            CoolerNP.s = TemperatureNP.s;
+            IDSetNumber(&CoolerNP, NULL);
+        }
+
         TemperatureN[0].value = ccdTemp;
         IDSetNumber(&TemperatureNP, NULL);
         break;
 
-      case IPS_ALERT:
+    case IPS_ALERT:
         break;
     }
 
@@ -816,36 +749,34 @@ void FLICCD::TimerHit()
 
 bool FLICCD::findFLICCD(flidomain_t domain)
 {
-  char **tmplist;
-  long err;
+    char **tmplist;
+    long err;
 
-  if (isDebug())
-    IDLog("In find Camera, the domain is %ld\n", domain);
+    DEBUGF(INDI::Logger::DBG_DEBUG,"In find Camera, the domain is %ld", domain);
 
-  if (( err = FLIList(domain | FLIDEVICE_CAMERA, &tmplist)))
-  {
-      if (isDebug())
-        IDLog("FLIList() failed. %s\n", strerror((int)-err));
-    return false;
-  }
-
-  if (tmplist != NULL && tmplist[0] != NULL)
-  {
-
-    for (int i = 0; tmplist[i] != NULL; i++)
+    if (( err = FLIList(domain | FLIDEVICE_CAMERA, &tmplist)))
     {
-      for (int j = 0; tmplist[i][j] != '\0'; j++)
-            if (tmplist[i][j] == ';')
-            {
-                tmplist[i][j] = '\0';
-                break;
-            }
+        DEBUGF(INDI::Logger::DBG_ERROR,"FLIList() failed. %s", strerror((int)-err));
+        return false;
     }
 
-   FLICam.domain = domain;
-
-    switch (domain)
+    if (tmplist != NULL && tmplist[0] != NULL)
     {
+
+        for (int i = 0; tmplist[i] != NULL; i++)
+        {
+            for (int j = 0; tmplist[i][j] != '\0'; j++)
+                if (tmplist[i][j] == ';')
+                {
+                    tmplist[i][j] = '\0';
+                    break;
+                }
+        }
+
+        FLICam.domain = domain;
+
+        switch (domain)
+        {
         case FLIDOMAIN_PARALLEL_PORT:
             FLICam.dname = strdup("parallel port");
             break;
@@ -864,34 +795,32 @@ bool FLICCD::findFLICCD(flidomain_t domain)
 
         default:
             FLICam.dname = strdup("Unknown domain");
+        }
+
+        FLICam.name = strdup(tmplist[0]);
+
+        if ((err = FLIFreeList(tmplist)))
+        {
+            DEBUGF(INDI::Logger::DBG_ERROR,"FLIFreeList() failed. %s.", strerror((int)-err));
+            return false;
+        }
+
+    } /* end if */
+    else
+    {
+        if ((err = FLIFreeList(tmplist)))
+        {
+            if (isDebug())
+                DEBUGF(INDI::Logger::DBG_ERROR,"FLIFreeList() failed. %s.", strerror((int)-err));
+            return false;
+        }
+
+        return false;
     }
 
-      FLICam.name = strdup(tmplist[0]);
+    DEBUG(INDI::Logger::DBG_DEBUG,"FindFLICCD() finished successfully.");
 
-     if ((err = FLIFreeList(tmplist)))
-     {
-         if (isDebug())
-            IDLog("FLIFreeList() failed. %s.\n", strerror((int)-err));
-       return false;
-     }
-
-   } /* end if */
-   else
-   {
-     if ((err = FLIFreeList(tmplist)))
-     {
-         if (isDebug())
-            IDLog("FLIFreeList() failed. %s.\n", strerror((int)-err));
-       return false;
-     }
-
-     return false;
-   }
-
-  if (isDebug())
-    IDLog("FindFLICCD() finished successfully.\n");
-
-  return true;
+    return true;
 }
 
 

@@ -1,10 +1,7 @@
-#ifndef FLI_CCD_H
-#define FLI_CCD_H
-
-#if 0
+/*
     FLI CCD
     INDI Interface for Finger Lakes Instrument CCDs
-    Copyright (C) 2003-2012 Jasem Mutlaq (mutlaqja@ikarustech.com)
+    Copyright (C) 2003-2016 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -20,14 +17,18 @@
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
-#endif
+    2016.05.16: Added CCD Cooler Power (JM)
+
+*/
+
+#ifndef FLI_CCD_H
+#define FLI_CCD_H
 
 #include <libfli.h>
 #include <indiccd.h>
 #include <iostream>
 
 using namespace std;
-
 
 class FLICCD : public INDI::CCD
 {
@@ -60,6 +61,18 @@ public:
 
     private:
 
+    // Find FLI CCD
+    bool findFLICCD(flidomain_t domain);
+
+    // Calculate Time until exposure is complete
+    float calcTimeLeft();
+
+    // Fetch image row by row from the CCD
+    bool grabImage();
+
+    // Get initial CCD values upon connection
+    bool setupParams();
+
     typedef struct
     {
       flidomain_t domain;
@@ -83,23 +96,20 @@ public:
     IText CamInfoT[3];
     ITextVectorProperty CamInfoTP;
 
-    double ccdTemp;
+    INumber CoolerN[1];
+    INumberVectorProperty CoolerNP;
+
     double minDuration;
-    unsigned short *imageBuffer;
-    int imageWidth, imageHeight;
     int timerID;
-    CCDChip::CCD_FRAME imageFrameType;
+
+    // Exposure timing
     struct timeval ExpStart;
     float ExposureRequest;
 
     flidev_t fli_dev;
     cam_t FLICam;
 
-    bool findFLICCD(flidomain_t domain);
-    float CalcTimeLeft();
-    int grabImage();
-    bool setupParams();
-
+    // Simulation mode
     bool sim;
 
 

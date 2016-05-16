@@ -3,7 +3,7 @@
 <devGroup group="CCDs">
 	<device label="FLI CCD">
 		<driver name="FLI CCD">indi_fli_ccd</driver>
-		<version>1.0</version>
+                <version>1.1</version>
 	</device>
 </devGroup>
 <devGroup group="Focusers">

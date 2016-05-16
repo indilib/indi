@@ -11,6 +11,10 @@ find_package(INDI REQUIRED)
 find_package(FLI REQUIRED)
 find_package(ZLIB REQUIRED)
 
+
+set (FLI_CCD_VERSION_MAJOR 1)
+set (FLI_CCD_VERSION_MINOR 1)
+
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
