@@ -183,6 +183,7 @@ static void q2SDrivers (int isblob, const char *dev, const char *name, Msg *mp,
     XMLEle *root);
 static int q2Clients (ClInfo *notme, int isblob, const char *dev, const char *name,
     Msg *mp, XMLEle *root);
+static int q2Servers (ClInfo *notme, Msg *mp, XMLEle *root);
 static void addSDevice (DvrInfo *dp, const char *dev, const char *name);
 static Property *findSDevice (DvrInfo *dp, const char *dev, const char *name);
 static void addClDevice (ClInfo *cp, const char *dev, const char *name, int isblob);
@@ -1129,6 +1130,11 @@ readFromClient (ClInfo *cp)
         /* send message to driver(s) responsible for dev */
         q2RDrivers (dev, mp, root);
 
+        /* JM 2016-05-18: Upstream client can be a chained INDI server. If any driver locally is snooping
+         * on any remote drivers, we should catch it and forward it to the responsible snooping driver. */
+        /* send to snooping drivers. */
+        q2SDrivers (isblob, dev, name, mp, root);
+
         /* echo new* commands back to other clients */
         if (!strncmp (roottag, "new", 3)) {
                     if (q2Clients (cp, isblob, dev, name, mp, root) < 0)
@@ -1204,10 +1210,20 @@ readFromDriver (DvrInfo *dp)
                     findXMLAttValu (root, "name"));
         }
 
+
         /* that's all if driver is just registering a snoop */
+        /* JM 2016-05-18: Send getProperties to upstream chained servers as well.*/
         if (!strcmp (roottag, "getProperties"))
         {
             addSDevice (dp, dev, name);
+            mp = newMsg();
+            /* send to interested chained servers upstream */
+            if (q2Servers(NULL, mp, root) < 0)
+                shutany++;
+            if (mp->count > 0)
+                setMsgXMLEle (mp, root);
+            else
+                freeMsg (mp);
             delXMLEle (root);
             continue;
         }
@@ -1219,6 +1235,7 @@ readFromDriver (DvrInfo *dp)
             if (sp)
             crackBLOB (pcdataXMLEle (root), &sp->blob);
             delXMLEle (root);
+
             continue;
         }
 
@@ -1570,6 +1587,48 @@ q2Clients (ClInfo *notme, int isblob, const char *dev, const char *name, Msg *mp
         /* shut down this client if its q is already too large */
         ql = msgQSize(cp->msgq);
         if (ql > maxqsiz) {
+        if (verbose)
+            fprintf (stderr, "%s: Client %d: %d bytes behind, shutting down\n",
+                            indi_tstamp(NULL), cp->s, ql);
+        shutdownClient (cp);
+        shutany++;
+        continue;
+        }
+
+        /* ok: queue message to this client */
+        mp->count++;
+        pushFQ (cp->msgq, mp);
+        if (verbose > 1)
+        fprintf (stderr, "%s: Client %d: queuing <%s device='%s' name='%s'>\n",
+                    indi_tstamp(NULL), cp->s, tagXMLEle(root),
+                    findXMLAttValu (root, "device"),
+                    findXMLAttValu (root, "name"));
+    }
+
+    return (shutany ? -1 : 0);
+}
+
+/* put Msg mp on queue of each chained server client, except notme.
+  * return -1 if had to shut down any clients, else 0.
+ */
+static int
+q2Servers (ClInfo *notme, Msg *mp, XMLEle *root)
+{
+    int shutany = 0;
+    ClInfo *cp;
+    int ql=0;
+
+    /* queue message to each interested client */
+    for (cp = clinfo; cp < &clinfo[nclinfo]; cp++)
+    {
+        /* cp in use? notme? chained server? */
+        if (!cp->active || cp == notme || cp->nprops != 1)
+            continue;
+
+        /* shut down this client if its q is already too large */
+        ql = msgQSize(cp->msgq);
+        if (ql > maxqsiz)
+        {
         if (verbose)
             fprintf (stderr, "%s: Client %d: %d bytes behind, shutting down\n",
                             indi_tstamp(NULL), cp->s, ql);
