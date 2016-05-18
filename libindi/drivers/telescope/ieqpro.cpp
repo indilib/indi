@@ -29,8 +29,9 @@
 #include "ieqpro.h"
 
 /* Simulation Parameters */
-#define	SLEWRATE	1		/* slew rate, degrees/s */
+#define	SLEWRATE	1           /* slew rate, degrees/s */
 #define SIDRATE		0.004178	/* sidereal rate, degrees/s */
+#define	POLLMS		1000		/* poll period, ms */
 
 #define MOUNTINFO_TAB   "Mount Info"
 
@@ -656,6 +657,8 @@ bool IEQPro::Connect(const char *port, uint32_t baud)
 
     if (check_ieqpro_connection(PortFD) == false)
         return false;
+    else
+        SetTimer(POLLMS);
 
     DEBUG(INDI::Logger::DBG_SESSION, "Telescope is online.");
 
