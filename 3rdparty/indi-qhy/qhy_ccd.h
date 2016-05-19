@@ -27,6 +27,7 @@
 #include <iostream>
 
 #include <qhyccd.h>
+#include <log4z.h>
 
 using namespace std;
 
@@ -51,6 +52,8 @@ public:
   int  SetTemperature(double temperature);
   bool StartExposure(float duration);
   bool AbortExposure();
+
+  void debugTriggered(bool enable);
 
   bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
   bool ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num);

@@ -577,7 +577,7 @@ bool QHYCCD::Connect()
         camxbin = 1;
         camybin = 1;
 
-        /*ret = IsQHYCCDControlAvailable(camhandle,CAM_BIN1X1MODE);
+        ret = IsQHYCCDControlAvailable(camhandle,CAM_BIN1X1MODE);
         if(ret == QHYCCD_SUCCESS)
         {
             camxbin = 1;
@@ -594,8 +594,7 @@ bool QHYCCD::Connect()
             cap |= CCD_CAN_BIN;
         }
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Binning Control: %s", cap & CCD_CAN_BIN ? "True" : "False");
-        */
+        DEBUGF(INDI::Logger::DBG_DEBUG, "Binning Control: %s", cap & CCD_CAN_BIN ? "True" : "False");        
 
         ret= IsQHYCCDControlAvailable(camhandle, CONTROL_USBTRAFFIC);
         if (ret == QHYCCD_SUCCESS)
@@ -606,7 +605,8 @@ bool QHYCCD::Connect()
         DEBUGF(INDI::Logger::DBG_DEBUG, "USB Traffic Control: %s", HasUSBTraffic ? "True" : "False");
 
         ret = IsQHYCCDControlAvailable(camhandle,CAM_COLOR);
-        if(ret != QHYCCD_ERROR && ret != QHYCCD_ERROR_NOTSUPPORT)
+        //if(ret != QHYCCD_ERROR && ret != QHYCCD_ERROR_NOTSUPPORT)
+        if(ret != QHYCCD_ERROR)
         {
              if(ret == BAYER_GB)
                  IUSaveText(&BayerT[2], "GBGR");
@@ -657,7 +657,7 @@ bool QHYCCD::Disconnect()
 bool QHYCCD::setupParams()
 {
 
-    int nbuf,ret,imagew,imageh,bpp;
+    uint32_t nbuf,ret,imagew,imageh,bpp;
     double chipw,chiph,pixelw,pixelh;
 
     if (sim)
@@ -791,15 +791,14 @@ bool QHYCCD::StartExposure(float duration)
 
   DEBUGF(INDI::Logger::DBG_DEBUG, "SetQHYCCDResolution camroix %d camroiy %d camroiwidth %d camroiheight %d", camroix,camroiy,camroiwidth,camroiheight);
   
-  // Jasem: Removed QHY 300ms delay that was added without specifying the reason. It seems any delay less than 100ms results in QHY Frame error. Again no reason. This renders
-  // exposures less than 100ms useless, but there is nothing I can do about that.
-  usleep(100000);
+  // JM 2016-05-08: Some QHY cameras needs 200ms before you can exposure a frame. Asked QHY to try to minimize this!
+  usleep(200000);
 
   if (sim)
       ret = QHYCCD_SUCCESS;
   else
       ret = ExpQHYCCDSingleFrame(camhandle);
-  if(ret != QHYCCD_SUCCESS)
+  if(ret == QHYCCD_ERROR)
   {
       DEBUGF(INDI::Logger::DBG_SESSION, "Begin QHYCCD expose failed (%d)", ret);
       return false;
@@ -864,8 +863,8 @@ bool QHYCCD::UpdateCCDFrame(int x, int y, int w, int h)
 
   camroix = x;
   camroiy = y;
-  camroiwidth = w;
-  camroiheight = h;
+  camroiwidth = w/ PrimaryCCD.getBinX();
+  camroiheight = h/ PrimaryCCD.getBinY();
 
   DEBUGF(INDI::Logger::DBG_DEBUG, "The Final image area is (%d, %d), (%d, %d)", camroix, camroiy, camroiwidth, camroiheight);
 
@@ -882,7 +881,7 @@ bool QHYCCD::UpdateCCDFrame(int x, int y, int w, int h)
 
 bool QHYCCD::UpdateCCDBin(int hor, int ver)
 {
-    //int ret = QHYCCD_ERROR;
+    int ret = QHYCCD_ERROR;
 
     if (hor != ver)
     {
@@ -903,12 +902,12 @@ bool QHYCCD::UpdateCCDBin(int hor, int ver)
         return false;
     }
 
-    PrimaryCCD.setBin(hor,ver);
+    //PrimaryCCD.setBin(hor,ver);
     //camxbin = hor;
     //camybin = ver;
-    return UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
+    //return UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
 
-   /* if(hor == 1 && ver == 1)
+    if(hor == 1 && ver == 1)
     {
         ret = IsQHYCCDControlAvailable(camhandle,CAM_BIN1X1MODE);
     }
@@ -934,7 +933,7 @@ bool QHYCCD::UpdateCCDBin(int hor, int ver)
     }
 
     DEBUGF(INDI::Logger::DBG_ERROR, "SetBin mode failed. Invalid bin requested %dx%d",hor,ver);
-    return false;*/
+    return false;
 }
 
 float QHYCCD::calcTimeLeft()
@@ -967,8 +966,7 @@ int QHYCCD::grabImage()
   else
   {
 
-    int ret;
-    int w,h,bpp,channels;
+    uint32_t ret, w,h,bpp,channels;
 
     ret = GetQHYCCDSingleFrame(camhandle,&w,&h,&bpp,&channels,PrimaryCCD.getFrameBuffer());
 
@@ -977,7 +975,7 @@ int QHYCCD::grabImage()
   }
 
   // Perform software binning if necessary
-  PrimaryCCD.binFrame();
+  //PrimaryCCD.binFrame();
 
   DEBUG(INDI::Logger::DBG_DEBUG, "Download complete.");
   if (ExposureRequest > POLLMS * 5)
@@ -1415,7 +1413,7 @@ void * QHYCCD::streamVideoHelper(void* context)
 
 void* QHYCCD::streamVideo()
 {
-  int ret=0, w,h,bpp,channels;
+  uint32_t ret=0, w,h,bpp,channels;
   pthread_mutex_lock(&condMutex);
   //unsigned char *compressedFrame = (unsigned char *) malloc(1);
 
@@ -1448,5 +1446,13 @@ void* QHYCCD::streamVideo()
 
   pthread_mutex_unlock(&condMutex);
   return 0;
+}
+
+void QHYCCD::debugTriggered(bool enable)
+{
+    if (enable)
+        SetQHYCCDLogLevel(LOG_LEVEL_DEBUG);
+    else
+        SetQHYCCDLogLevel(LOG_LEVEL_ERROR);
 }
 
