@@ -959,6 +959,7 @@
 3rdparty/libqhy/libqhy_armv6.bin -text
 3rdparty/libqhy/libqhy_x86_32.bin -text
 3rdparty/libqhy/libqhy_x86_64.bin -text
+3rdparty/libqhy/log4z.h -text
 3rdparty/libqhy/qhyccd.h -text
 3rdparty/libqhy/qhyccdcamdef.h -text
 3rdparty/libqhy/qhyccderr.h -text

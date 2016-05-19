@@ -37,7 +37,7 @@ exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${LIB_INSTALL_DIR}${LIB_POS
 exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${LIB_INSTALL_DIR}${LIB_POSTFIX}/libqhy.so.${LIBQHY_SOVERSION} ${LIB_INSTALL_DIR}${LIB_POSTFIX}/libqhy.so)\n
 ")
 
-install(FILES qhyccd.h qhyccdcamdef.h qhyccderr.h qhyccdstruct.h DESTINATION include/libqhy)
+install(FILES qhyccd.h qhyccdcamdef.h qhyccderr.h qhyccdstruct.h log4z.h DESTINATION include/libqhy)
 install(FILES ${CMAKE_BINARY_DIR}/libqhy.so.${LIBQHY_VERSION} DESTINATION ${LIB_INSTALL_DIR}${LIB_POSTFIX})
 install(FILES 85-qhy.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
 install(
