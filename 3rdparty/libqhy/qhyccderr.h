@@ -29,13 +29,20 @@
 #ifndef __QHYCCDERR_H__
 #define __QHYCCDERR_H__
 
+#define QHYCCD_READ_DIRECTLY            0x2001
+
+#define QHYCCD_DELAY_200MS              0x2000
 /**
  * It means the camera using GiGaE transfer data */
-#define QHYCCD_QGIGAE                   6
+#define QHYCCD_QGIGAE                   7
 
 /**
- * It means the camera using usb transfer data */
-#define QHYCCD_USB                      5
+ * It means the camera using usb sync transfer data */
+#define QHYCCD_USBSYNC                  6
+
+/**
+ * It means the camera using usb async transfer data */
+#define QHYCCD_USBASYNC                 5
 
 /**
  * It means the camera is color one */
@@ -59,15 +66,16 @@
 
 /**
  * Other error */
-#define QHYCCD_ERROR                   -1
+#define QHYCCD_ERROR                    0xFFFFFFFF
 
+#if 0
 /**
  * There is no camera connected */
 #define QHYCCD_ERROR_NO_DEVICE         -2
 
 /**
  * Do not support the function */
-#define QHYCCD_ERROR_NOTSUPPORT        -3
+#define QHYCCD_ERROR        -3
 
 /**
  * Set camera params error */
@@ -107,7 +115,7 @@
 
 /**
  * There is no match camera */
-#define QHYCCD_ERROR_INDEX             -13
+#define QHYCCD_ERROR             -13
 
 /**
  * Open cam failed */
@@ -119,15 +127,15 @@
 
 /**
  * Set Resolution failed */
-#define QHYCCD_ERROR_RESOLUTION        -16
+#define QHYCCD_ERROR        -16
 
 /**
  * Set usbtraffic failed */
-#define QHYCCD_ERROR_USBTRAFFIC        -17
+#define QHYCCD_ERROR        -17
 
 /**
  * Set usb speed failed */
-#define QHYCCD_ERROR_SETSPEED          -18
+#define QHYCCD_ERROR          -18
 
 /**
  * Set expose time failed */
@@ -155,7 +163,7 @@
 
 /**
  * Set cam white balance blue failed */
-#define QHYCCD_ERROR_BINMODE           -25
-
+#define QHYCCD_ERROR           -25
+#endif
 
 #endif
