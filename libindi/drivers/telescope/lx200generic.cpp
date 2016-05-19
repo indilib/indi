@@ -234,6 +234,11 @@ const char * LX200Generic::getDefaultName()
     return (char *)"LX200 Generic";
 }
 
+const char * LX200Generic::getDriverName()
+{
+    return LX200Generic::getDefaultName();
+}
+
 bool LX200Generic::initProperties()
 {
     /* Make sure to init parent properties first */

@@ -173,8 +173,11 @@ to disconnect the device.
     /** \brief Callback function to be called once SetTimer duration elapses. */
     virtual void TimerHit();
 
-    /** \return driver name (executable filename) */
-    virtual const char *getDriverName() { return me; }
+    /** \return driver executable filename */
+    virtual const char *getDriverExec() { return me; }
+
+    /** \return driver name */
+    virtual const char *getDriverName() { return getDefaultName(); }
 
     /** \brief Set driver version information to be defined in DRIVER_INFO property as vMajor.vMinor
      * \param vMajor major revision number

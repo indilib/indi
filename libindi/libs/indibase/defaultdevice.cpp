@@ -627,8 +627,8 @@ bool INDI::DefaultDevice::initProperties()
     IUFillSwitchVector(&ConnectionSP,ConnectionS,2,getDeviceName(),"CONNECTION","Connection","Main Control",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
     registerProperty(&ConnectionSP, INDI_SWITCH);
 
-    IUFillText(&DriverInfoT[0],"DRIVER_NAME","Name",getDefaultName());
-    IUFillText(&DriverInfoT[1],"DRIVER_EXEC","Exec",getDriverName());
+    IUFillText(&DriverInfoT[0],"DRIVER_NAME","Name",getDriverName());
+    IUFillText(&DriverInfoT[1],"DRIVER_EXEC","Exec",getDriverExec());
     IUFillText(&DriverInfoT[2],"DRIVER_VERSION","Version",versionStr);
     IUFillText(&DriverInfoT[3],"DRIVER_INTERFACE","Interface", interfaceStr);
     IUFillTextVector(&DriverInfoTP,DriverInfoT,4,getDeviceName(),"DRIVER_INFO","Driver Info",OPTIONS_TAB,IP_RO,60,IPS_IDLE);

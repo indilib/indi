@@ -35,6 +35,7 @@ class LX200Generic: public INDI::Telescope, public INDI::GuiderInterface
     virtual ~LX200Generic();
 
     virtual const char *getDefaultName();
+    virtual const char * getDriverName();
     virtual bool Connect();
     virtual bool Connect(const char *port, uint32_t baud);
     virtual bool Disconnect();
