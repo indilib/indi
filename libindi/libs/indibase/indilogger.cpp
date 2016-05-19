@@ -400,9 +400,10 @@ void Logger::print(const char *devicename,
   vsnprintf(msg, 257, message, ap);
   va_end(ap);
 
-	if (!configured_) {
-			std::cerr << "ERROR: Logger not configured!" << 
-				std::endl;
+    if (!configured_)
+    {
+            std::cerr << "Warning! Logger not configured!" << std::endl;
+            std::cerr <<  devicename << " " << message << std::endl;
 			return;
 	}
 	struct timeval currentTime, resTime;
