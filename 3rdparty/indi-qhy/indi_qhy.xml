@@ -3,7 +3,7 @@
 <devGroup group="CCDs">
         <device label="QHY CCD" mdpd="true">
 		<driver name="QHY CCD">indi_qhy_ccd</driver>
-                <version>1.5</version>
+                <version>1.6</version>
 	</device>
 </devGroup>
 </driversList>
