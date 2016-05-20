@@ -1622,7 +1622,7 @@ q2Servers (ClInfo *notme, Msg *mp, XMLEle *root)
     for (cp = clinfo; cp < &clinfo[nclinfo]; cp++)
     {
         /* cp in use? notme? chained server? */
-        if (!cp->active || cp == notme || cp->nprops != 1)
+        if (!cp->active || cp == notme || cp->allprops == 1)
             continue;
 
         /* shut down this client if its q is already too large */
