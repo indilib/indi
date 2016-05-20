@@ -724,6 +724,9 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         IText BayerT[3];
         ITextVectorProperty BayerTP;
 
+        IText FileNameT[1];
+        ITextVectorProperty FileNameTP;
+
         ISwitch UploadS[3];
         ISwitchVectorProperty UploadSP;
 

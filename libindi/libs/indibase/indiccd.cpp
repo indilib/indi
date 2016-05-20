@@ -539,6 +539,9 @@ bool INDI::CCD::initProperties()
     IUFillText(&UploadSettingsT[1],"UPLOAD_PREFIX","Prefix","IMAGE_XXX");
     IUFillTextVector(&UploadSettingsTP,UploadSettingsT,2,getDeviceName(),"UPLOAD_SETTINGS","Upload Settings",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
 
+    IUFillText(&FileNameT[0],"FILE_PATH","Path","");
+    IUFillTextVector(&FileNameTP,FileNameT,1,getDeviceName(),"CCD_FILE_PATH","Filename",IMAGE_INFO_TAB,IP_RO,60,IPS_IDLE);
+
     IUFillText(&ActiveDeviceT[0],"ACTIVE_TELESCOPE","Telescope","Telescope Simulator");
     IUFillText(&ActiveDeviceT[1],"ACTIVE_FOCUSER","Focuser","Focuser Simulator");
     IUFillText(&ActiveDeviceT[2],"ACTIVE_FILTER","Filter","CCD Simulator");
@@ -1131,16 +1134,27 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
     {
         if (!strcmp(name, UploadSP.name))
         {
+            int prevMode = IUFindOnSwitchIndex(&UploadSP);
             IUUpdateSwitch(&UploadSP, states, names, n);
             UploadSP.s = IPS_OK;
             IDSetSwitch(&UploadSP, NULL);
 
             if (UploadS[0].s == ISS_ON)
+            {
                 DEBUG(INDI::Logger::DBG_SESSION, "Upload settings set to client only.");
+                if (prevMode != 0)
+                    deleteProperty(FileNameTP.name);
+            }
             else if (UploadS[1].s == ISS_ON)
+            {
                 DEBUG(INDI::Logger::DBG_SESSION, "Upload settings set to local only.");
+                defineText(&FileNameTP);
+            }
             else
+            {
                 DEBUG(INDI::Logger::DBG_SESSION, "Upload settings set to client and local.");
+                defineText(&FileNameTP);
+            }
             return true;
         }
 
@@ -2091,6 +2105,9 @@ bool INDI::CCD::uploadFile(CCDChip * targetChip, const void *fitsData, size_t to
             n = fwrite( (static_cast<char *>(targetChip->FitsB.blob) + nr), 1, targetChip->FitsB.bloblen - nr, fp);
 
         DEBUGF(INDI::Logger::DBG_SESSION, "Image saved to %s", imageFileName);
+        IUSaveText(&FileNameT[0], imageFileName);
+        FileNameTP.s = IPS_OK;
+        IDSetText(&FileNameTP, NULL);
         fclose(fp);
     }
 
