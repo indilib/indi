@@ -1397,6 +1397,8 @@ libindi/drivers/focuser/moonlite.cpp -text
 libindi/drivers/focuser/moonlite.h -text
 libindi/drivers/focuser/nfocus.cpp -text
 libindi/drivers/focuser/nfocus.h -text
+libindi/drivers/focuser/nstep.cpp -text
+libindi/drivers/focuser/nstep.h -text
 libindi/drivers/focuser/perfectstar.cpp -text
 libindi/drivers/focuser/perfectstar.h -text
 libindi/drivers/focuser/robofocus.cpp -text

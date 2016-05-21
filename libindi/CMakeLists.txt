@@ -424,6 +424,17 @@ target_link_libraries(indi_nfocus indidriver)
 install(TARGETS indi_nfocus RUNTIME DESTINATION bin )
 
 
+################ Rigelsys NStep Focuser ################
+
+set(nstep_SRCS
+        ${CMAKE_SOURCE_DIR}/drivers/focuser/nstep.cpp
+   )
+
+add_executable(indi_nstep_focus ${nstep_SRCS})
+target_link_libraries(indi_nstep_focus indidriver)
+install(TARGETS indi_nstep_focus RUNTIME DESTINATION bin )
+
+
 ################ Moonlite Focuser ################
 
 set(moonlite_SRCS

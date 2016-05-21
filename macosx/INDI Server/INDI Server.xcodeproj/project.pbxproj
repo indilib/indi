@@ -37,7 +37,7 @@
 		5924ACFD1C8B455C00750816 /* NexStarAUXScope.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5924ACF91C8B455C00750816 /* NexStarAUXScope.cpp */; };
 		5924ACFE1C8B455C00750816 /* nexstarevo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5924ACFB1C8B455C00750816 /* nexstarevo.cpp */; };
 		5924ACFF1C8B458500750816 /* indi_nexstarevo.xml in Resources */ = {isa = PBXBuildFile; fileRef = 5924ACF81C8B455C00750816 /* indi_nexstarevo.xml */; };
-		5924AD021C8B45A200750816 /* indi_nextarevo in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 5924ACF71C8B44FD00750816 /* indi_nextarevo */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		5924AD021C8B45A200750816 /* indi_nexstarevo_telescope in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 5924ACF71C8B44FD00750816 /* indi_nexstarevo_telescope */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		592F6CAF1BADD52600D93DE9 /* hid_mac.c in Sources */ = {isa = PBXBuildFile; fileRef = 592F6CAE1BADD52600D93DE9 /* hid_mac.c */; };
 		592F6CB11BADD53600D93DE9 /* indigps.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 592F6CB01BADD53600D93DE9 /* indigps.cpp */; };
 		592F6CB31BADD54400D93DE9 /* indiweather.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 592F6CB21BADD54400D93DE9 /* indiweather.cpp */; };
@@ -325,6 +325,10 @@
 		598786B91CE735FF00DF2294 /* indi_fli_wheel in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 598785F91CE71FAF00DF2294 /* indi_fli_wheel */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		598786BA1CE735FF00DF2294 /* indi_fli_focus in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 5987860B1CE71FB900DF2294 /* indi_fli_focus */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		59C11FC319B50AEE00B21125 /* AppIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = 59C11FC219B50AEE00B21125 /* AppIcon.icns */; };
+		59C3D6791CF07D8C00974D80 /* libindi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A91A8CD3190004AA95 /* libindi.dylib */; };
+		59C3D67A1CF07D8C00974D80 /* libnova.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA422C1A8CB6920004AA95 /* libnova.dylib */; };
+		59C3D6801CF07E5900974D80 /* nstep.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59C3D6701CF07D7900974D80 /* nstep.cpp */; };
+		59C3D6811CF07E7200974D80 /* indi_nstep_focus in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 59C3D67F1CF07D8C00974D80 /* indi_nstep_focus */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		59E530511C949FEF0071DE74 /* libobjc.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 59E5F91D1C3F17B9008DAB80 /* libobjc.tbd */; };
 		59E530751C94A1340071DE74 /* camera.h in Headers */ = {isa = PBXBuildFile; fileRef = 59E530591C94A1340071DE74 /* camera.h */; };
 		59E530761C94A1340071DE74 /* capture.h in Headers */ = {isa = PBXBuildFile; fileRef = 59E5305A1C94A1340071DE74 /* capture.h */; };
@@ -1474,6 +1478,27 @@
 			remoteGlobalIDString = 598785FA1CE71FB900DF2294;
 			remoteInfo = indi_fli_focuser;
 		};
+		59C3D6731CF07D8C00974D80 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA422B1A8CB6920004AA95;
+			remoteInfo = nova;
+		};
+		59C3D6751CF07D8C00974D80 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA43A81A8CD3190004AA95;
+			remoteInfo = indi;
+		};
+		59C3D6821CF07E7B00974D80 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 59C3D6711CF07D8C00974D80;
+			remoteInfo = indi_nstep_focus;
+		};
 		9D0B29B91A8D1E9400ED17BF /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
@@ -2165,10 +2190,11 @@
 			dstPath = "";
 			dstSubfolderSpec = 6;
 			files = (
+				59C3D6811CF07E7200974D80 /* indi_nstep_focus in Copy Files (33 items) (53 items) */,
 				598786B81CE735FF00DF2294 /* indi_fli_ccd in Copy Files (33 items) (53 items) */,
 				598786B91CE735FF00DF2294 /* indi_fli_wheel in Copy Files (33 items) (53 items) */,
 				598786BA1CE735FF00DF2294 /* indi_fli_focus in Copy Files (33 items) (53 items) */,
-				5924AD021C8B45A200750816 /* indi_nextarevo in Copy Files (33 items) (53 items) */,
+				5924AD021C8B45A200750816 /* indi_nexstarevo_telescope in Copy Files (33 items) (53 items) */,
 				596556E51C4A49C50044680B /* indi_qsi_ccd in Copy Files (33 items) (53 items) */,
 				591C90E91C13745F00FCE596 /* indi_sbig_ccd in Copy Files (33 items) (53 items) */,
 				594499641C136E9F00E0E281 /* indi_asi_ccd in Copy Files (33 items) (53 items) */,
@@ -2228,6 +2254,15 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		597B89221888016F0093873A /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		59C3D67B1CF07D8C00974D80 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = /usr/share/man/man1/;
@@ -2419,7 +2454,7 @@
 		591C90E51C13741B00FCE596 /* indi_sbig_ccd */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_sbig_ccd; sourceTree = BUILT_PRODUCTS_DIR; };
 		591C90EC1C13752F00FCE596 /* ccvt.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ccvt.h; path = ../libindi/libs/webcam/ccvt.h; sourceTree = "<group>"; };
 		591C90ED1C1375D700FCE596 /* SBIGUDrv.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SBIGUDrv.framework; path = ../../../../../../Library/Frameworks/SBIGUDrv.framework; sourceTree = "<group>"; };
-		5924ACF71C8B44FD00750816 /* indi_nextarevo */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_nextarevo; sourceTree = BUILT_PRODUCTS_DIR; };
+		5924ACF71C8B44FD00750816 /* indi_nexstarevo_telescope */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_nexstarevo_telescope; sourceTree = BUILT_PRODUCTS_DIR; };
 		5924ACF81C8B455C00750816 /* indi_nexstarevo.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = indi_nexstarevo.xml; sourceTree = "<group>"; };
 		5924ACF91C8B455C00750816 /* NexStarAUXScope.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = NexStarAUXScope.cpp; sourceTree = "<group>"; };
 		5924ACFA1C8B455C00750816 /* NexStarAUXScope.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NexStarAUXScope.h; sourceTree = "<group>"; };
@@ -2678,6 +2713,9 @@
 		59C11FC219B50AEE00B21125 /* AppIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = AppIcon.icns; sourceTree = "<group>"; };
 		59C3D66E1CF045D800974D80 /* agent_imager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = agent_imager.h; sourceTree = "<group>"; };
 		59C3D66F1CF0475900974D80 /* agent_imager.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = agent_imager.txt; sourceTree = "<group>"; };
+		59C3D6701CF07D7900974D80 /* nstep.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = nstep.cpp; sourceTree = "<group>"; };
+		59C3D67F1CF07D8C00974D80 /* indi_nstep_focus */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_nstep_focus; sourceTree = BUILT_PRODUCTS_DIR; };
+		59C3D6841CF07F5F00974D80 /* nstep.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = nstep.h; sourceTree = "<group>"; };
 		59C65D311CBC1B940023A5EC /* CMakeLists.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
 		59C65D321CBC1BA00023A5EC /* CMakeLists.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
 		59C65D331CBC1BB60023A5EC /* 99-usbfocus.rules */ = {isa = PBXFileReference; lastKnownFileType = text; path = "99-usbfocus.rules"; sourceTree = "<group>"; };
@@ -2897,7 +2935,7 @@
 		9DDA439E1A8CCD860004AA95 /* poll_posix.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = poll_posix.c; sourceTree = "<group>"; };
 		9DDA439F1A8CCD860004AA95 /* threads_posix.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = threads_posix.c; sourceTree = "<group>"; };
 		9DDA43A91A8CD3190004AA95 /* libindi.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libindi.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
-		9DDA43B61A8CD8940004AA95 /* config.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
+		9DDA43B61A8CD8940004AA95 /* config.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = config.h; path = ../../libindi/config.h; sourceTree = "<group>"; };
 		9DDA43BE1A8CDADD0004AA95 /* base64.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = base64.c; sourceTree = "<group>"; };
 		9DDA43C11A8CDB030004AA95 /* indicom.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = indicom.c; sourceTree = "<group>"; };
 		9DDA43C21A8CDB030004AA95 /* lilxml.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = lilxml.c; sourceTree = "<group>"; };
@@ -3289,6 +3327,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		59C3D6781CF07D8C00974D80 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				59C3D6791CF07D8C00974D80 /* libindi.dylib in Frameworks */,
+				59C3D67A1CF07D8C00974D80 /* libnova.dylib in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		59E530501C949FEF0071DE74 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -3572,6 +3619,7 @@
 			isa = PBXGroup;
 			children = (
 				59567D581A8D4EA70057A35A /* README.txt */,
+				9DDA43B61A8CD8940004AA95 /* config.h */,
 				9DDA43AD1A8CD3240004AA95 /* libindi */,
 				59567CEC1A8D40150057A35A /* cloudmakers */,
 				59567C081A8D325E0057A35A /* 3rd */,
@@ -3650,11 +3698,12 @@
 				594499451C1363C400E0E281 /* indi_asi_ccd */,
 				591C90E51C13741B00FCE596 /* indi_sbig_ccd */,
 				596556781C4A3E530044680B /* indi_qsi_ccd */,
-				5924ACF71C8B44FD00750816 /* indi_nextarevo */,
+				5924ACF71C8B44FD00750816 /* indi_nexstarevo_telescope */,
 				59E530571C949FEF0071DE74 /* libdc1394.dylib */,
 				598785E71CE71F5300DF2294 /* indi_fli_ccd */,
 				598785F91CE71FAF00DF2294 /* indi_fli_wheel */,
 				5987860B1CE71FB900DF2294 /* indi_fli_focus */,
+				59C3D67F1CF07D8C00974D80 /* indi_nstep_focus */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -4108,6 +4157,8 @@
 				9D0B2A861A8D218000ED17BF /* indi_tcfs_sk.xml */,
 				9D0B2A871A8D218000ED17BF /* moonlite.cpp */,
 				9D0B2A881A8D218000ED17BF /* nfocus.cpp */,
+				59C3D6841CF07F5F00974D80 /* nstep.h */,
+				59C3D6701CF07D7900974D80 /* nstep.cpp */,
 				9D0B2A891A8D218000ED17BF /* robofocus.cpp */,
 				9D0B2A8A1A8D218000ED17BF /* steeldrive.cpp */,
 				9D0B2A8B1A8D218000ED17BF /* tcfs.cpp */,
@@ -4312,7 +4363,6 @@
 		9DDA43AD1A8CD3240004AA95 /* libindi */ = {
 			isa = PBXGroup;
 			children = (
-				9DDA43B61A8CD8940004AA95 /* config.h */,
 				9DDA43BE1A8CDADD0004AA95 /* base64.c */,
 				9DDA43C71A8CECC40004AA95 /* eventloop.c */,
 				9DDA43C81A8CECC40004AA95 /* indidriver.c */,
@@ -4470,9 +4520,9 @@
 			productReference = 591C90E51C13741B00FCE596 /* indi_sbig_ccd */;
 			productType = "com.apple.product-type.tool";
 		};
-		5924ACE91C8B44FD00750816 /* indi_nextarevo */ = {
+		5924ACE91C8B44FD00750816 /* indi_nexstarevo_telescope */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 5924ACF41C8B44FD00750816 /* Build configuration list for PBXNativeTarget "indi_nextarevo" */;
+			buildConfigurationList = 5924ACF41C8B44FD00750816 /* Build configuration list for PBXNativeTarget "indi_nexstarevo_telescope" */;
 			buildPhases = (
 				5924ACEE1C8B44FD00750816 /* Sources */,
 				5924ACF01C8B44FD00750816 /* Frameworks */,
@@ -4484,9 +4534,9 @@
 				5924ACEA1C8B44FD00750816 /* PBXTargetDependency */,
 				5924ACEC1C8B44FD00750816 /* PBXTargetDependency */,
 			);
-			name = indi_nextarevo;
+			name = indi_nexstarevo_telescope;
 			productName = indi_lxbasic;
-			productReference = 5924ACF71C8B44FD00750816 /* indi_nextarevo */;
+			productReference = 5924ACF71C8B44FD00750816 /* indi_nexstarevo_telescope */;
 			productType = "com.apple.product-type.tool";
 		};
 		5944982D1C135D8000E0E281 /* indi_lynx_focus */ = {
@@ -4714,6 +4764,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				59C3D6831CF07E7B00974D80 /* PBXTargetDependency */,
 				598786BC1CE7361000DF2294 /* PBXTargetDependency */,
 				598786BE1CE7361000DF2294 /* PBXTargetDependency */,
 				598786C01CE7361000DF2294 /* PBXTargetDependency */,
@@ -5253,6 +5304,25 @@
 			productReference = 5987860B1CE71FB900DF2294 /* indi_fli_focus */;
 			productType = "com.apple.product-type.tool";
 		};
+		59C3D6711CF07D8C00974D80 /* indi_nstep_focus */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 59C3D67C1CF07D8C00974D80 /* Build configuration list for PBXNativeTarget "indi_nstep_focus" */;
+			buildPhases = (
+				59C3D6761CF07D8C00974D80 /* Sources */,
+				59C3D6781CF07D8C00974D80 /* Frameworks */,
+				59C3D67B1CF07D8C00974D80 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				59C3D6721CF07D8C00974D80 /* PBXTargetDependency */,
+				59C3D6741CF07D8C00974D80 /* PBXTargetDependency */,
+			);
+			name = indi_nstep_focus;
+			productName = indi_lxbasic;
+			productReference = 59C3D67F1CF07D8C00974D80 /* indi_nstep_focus */;
+			productType = "com.apple.product-type.tool";
+		};
 		59E530451C949FEF0071DE74 /* dc1394 */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 59E530541C949FEF0071DE74 /* Build configuration list for PBXNativeTarget "dc1394" */;
@@ -5737,6 +5807,7 @@
 				9D0B2A751A8D214A00ED17BF /* indi_simulator_focus */,
 				9D0B2A8E1A8D223800ED17BF /* indi_robo_focus */,
 				9D0B2A9E1A8D226800ED17BF /* indi_nfocus */,
+				59C3D6711CF07D8C00974D80 /* indi_nstep_focus */,
 				9D0B2AAE1A8D227F00ED17BF /* indi_moonlite_focus */,
 				5944982D1C135D8000E0E281 /* indi_lynx_focus */,
 				594498431C135EB600E0E281 /* indi_perfectstar_focus */,
@@ -5773,7 +5844,7 @@
 				594499301C1363C400E0E281 /* indi_asi_ccd */,
 				591C90CC1C13741B00FCE596 /* indi_sbig_ccd */,
 				596556631C4A3E530044680B /* indi_qsi_ccd */,
-				5924ACE91C8B44FD00750816 /* indi_nextarevo */,
+				5924ACE91C8B44FD00750816 /* indi_nexstarevo_telescope */,
 				598785BF1CE71F5300DF2294 /* indi_fli_ccd */,
 				598785E81CE71FAF00DF2294 /* indi_fli_wheel */,
 				598785FA1CE71FB900DF2294 /* indi_fli_focus */,
@@ -6249,6 +6320,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		59C3D6761CF07D8C00974D80 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				59C3D6801CF07E5900974D80 /* nstep.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		59E530461C949FEF0071DE74 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -6655,7 +6734,7 @@
 		};
 		5924AD011C8B459A00750816 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 5924ACE91C8B44FD00750816 /* indi_nextarevo */;
+			target = 5924ACE91C8B44FD00750816 /* indi_nexstarevo_telescope */;
 			targetProxy = 5924AD001C8B459A00750816 /* PBXContainerItemProxy */;
 		};
 		5944982E1C135D8000E0E281 /* PBXTargetDependency */ = {
@@ -7242,6 +7321,21 @@
 			isa = PBXTargetDependency;
 			target = 598785FA1CE71FB900DF2294 /* indi_fli_focus */;
 			targetProxy = 598786BF1CE7361000DF2294 /* PBXContainerItemProxy */;
+		};
+		59C3D6721CF07D8C00974D80 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA422B1A8CB6920004AA95 /* nova */;
+			targetProxy = 59C3D6731CF07D8C00974D80 /* PBXContainerItemProxy */;
+		};
+		59C3D6741CF07D8C00974D80 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA43A81A8CD3190004AA95 /* indi */;
+			targetProxy = 59C3D6751CF07D8C00974D80 /* PBXContainerItemProxy */;
+		};
+		59C3D6831CF07E7B00974D80 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 59C3D6711CF07D8C00974D80 /* indi_nstep_focus */;
+			targetProxy = 59C3D6821CF07E7B00974D80 /* PBXContainerItemProxy */;
 		};
 		9D0B29B81A8D1E9400ED17BF /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -9778,6 +9872,61 @@
 			};
 			name = Release;
 		};
+		59C3D67D1CF07D8C00974D80 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"/Applications/Xcode-Beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include",
+					"../../../libnova-0.15.0/src",
+					"../../../libnova-0.15.0/src/libnova",
+					"../../../libusb-1.0.19/libusb",
+					../../../cfitsio,
+					../../libindi/libs/indibase,
+					../../libindi/libs,
+					../../libindi,
+				);
+				MTL_ENABLE_DEBUG_INFO = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		59C3D67E1CF07D8C00974D80 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"/Applications/Xcode-Beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include",
+					"../../../libnova-0.15.0/src",
+					"../../../libnova-0.15.0/src/libnova",
+					"../../../libusb-1.0.19/libusb",
+					../../../cfitsio,
+					../../libindi/libs/indibase,
+					../../libindi/libs,
+					../../libindi,
+				);
+				MTL_ENABLE_DEBUG_INFO = NO;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 		59E530551C949FEF0071DE74 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -11045,7 +11194,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		5924ACF41C8B44FD00750816 /* Build configuration list for PBXNativeTarget "indi_nextarevo" */ = {
+		5924ACF41C8B44FD00750816 /* Build configuration list for PBXNativeTarget "indi_nexstarevo_telescope" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				5924ACF51C8B44FD00750816 /* Debug */,
@@ -11392,6 +11541,15 @@
 			buildConfigurations = (
 				598786091CE71FB900DF2294 /* Debug */,
 				5987860A1CE71FB900DF2294 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		59C3D67C1CF07D8C00974D80 /* Build configuration list for PBXNativeTarget "indi_nstep_focus" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				59C3D67D1CF07D8C00974D80 /* Debug */,
+				59C3D67E1CF07D8C00974D80 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
