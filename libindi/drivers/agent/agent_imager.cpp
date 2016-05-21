@@ -321,10 +321,10 @@ bool Imager::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
   if (!strcmp(dev, DEVICE_NAME)) {
     if (!strcmp(name, BatchSP.name)) {
       for (int i = 0; i < n; i++) {
-        if (!strcmp(names[i], BatchS[0].name) && states[0] == ISS_ON) {
+        if (!strcmp(names[i], BatchS[0].name) && states[i] == ISS_ON) {
           if (!isRunning())
             startBatch();
-        } else if (!strcmp(names[i], BatchS[1].name) && states[1] == ISS_ON) {
+        } else if (!strcmp(names[i], BatchS[1].name) && states[i] == ISS_ON) {
           if (isRunning())
             abortBatch();
         }
