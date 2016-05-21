@@ -179,7 +179,7 @@ GenericCCD::~GenericCCD() {
 }
 
 const char * GenericCCD::getDefaultName() {
-  return name;
+  return "Generic CCD";
 }
 
 bool GenericCCD::initProperties() {

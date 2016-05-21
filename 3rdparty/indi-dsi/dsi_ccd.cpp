@@ -155,7 +155,7 @@ bool DSICCD::Disconnect()
 
 const char * DSICCD::getDefaultName()
 {
-    return "Meade DSI family";
+    return "DSI";
 }
 
 /*******************************************************************************

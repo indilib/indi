@@ -224,7 +224,7 @@ QHYCCD::~QHYCCD()
 
 const char * QHYCCD::getDefaultName()
 {
-  return name;
+  return ((char *) "QHY CCD");
 }
 
 bool QHYCCD::initProperties()

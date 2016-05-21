@@ -186,7 +186,7 @@ FishCampCCD::~FishCampCCD()
 
 const char * FishCampCCD::getDefaultName()
 {
-  return name;
+  return "Starfish CCD";
 }
 
 bool FishCampCCD::initProperties()

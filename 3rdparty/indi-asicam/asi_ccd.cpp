@@ -216,7 +216,7 @@ ASICCD::~ASICCD()
 
 const char * ASICCD::getDefaultName()
 {
-  return name;
+  return "ZWO CCD";
 }
 
 bool ASICCD::initProperties()

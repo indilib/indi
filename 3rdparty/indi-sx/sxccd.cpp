@@ -219,7 +219,7 @@ void SXCCD::simulationTriggered(bool enable) {
 }
 
 const char *SXCCD::getDefaultName() {
-  return name;
+  return (char *) "SX CCD";
 }
 
 bool SXCCD::initProperties() {

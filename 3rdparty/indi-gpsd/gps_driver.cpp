@@ -85,7 +85,7 @@ GPSD::~GPSD()
 
 const char * GPSD::getDefaultName()
 {
-    return (char *)"GPSD driver";
+    return (char *)"GPSD";
 }
 
 bool GPSD::Connect()
