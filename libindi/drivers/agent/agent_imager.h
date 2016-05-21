@@ -1,5 +1,5 @@
 /*******************************************************************************
- Copyright(c) 2013 CloudMakers, s. r. o. All rights reserved.
+ Copyright(c) 2013-2016 CloudMakers, s. r. o. All rights reserved.
  
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
@@ -63,8 +63,8 @@ private:
   ISwitch BatchS[2];
   ILightVectorProperty StatusLP;
   ILight StatusL[2];
-  ITextVectorProperty ImageFolderTP;
-  IText ImageFolderT[1];
+  ITextVectorProperty ImageNameTP;
+  IText ImageNameT[2];
   INumberVectorProperty DownloadNP;
   INumber DownloadN[2];
   IBLOBVectorProperty FitsBP;
@@ -75,6 +75,11 @@ private:
   INumber CCDImageExposureN[1];
   INumberVectorProperty CCDImageBinNP;
   INumber CCDImageBinN[2];
+  ISwitch CCDUploadS[3];
+  ISwitchVectorProperty CCDUploadSP;
+  IText   CCDUploadSettingsT[2];
+  ITextVectorProperty CCDUploadSettingsTP;
+
   INumberVectorProperty FilterSlotNP;
   INumber FilterSlotN[1];
 

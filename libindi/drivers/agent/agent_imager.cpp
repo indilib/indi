@@ -1,5 +1,5 @@
 /*******************************************************************************
- Copyright(c) 2013 CloudMakers, s. r. o. All rights reserved.
+ Copyright(c) 2013-2016 CloudMakers, s. r. o. All rights reserved.
  
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
@@ -22,7 +22,8 @@
 
 #define DEVICE_NAME       "Imager Agent"
 #define DOWNLOAD_TAB      "Download images"
-#define IMAGE_NAME        "%s/img_%d_%03d%s"
+#define IMAGE_NAME        "%s/%s_%d_%03d%s"
+#define IMAGE_PREFIX      "_TMP_"
 
 #define GROUP_PREFIX      "GROUP_"
 #define GROUP_PREFIX_LEN  6
@@ -58,6 +59,7 @@ void ISSnoopDevice(XMLEle *root) {
 // Imager ----------------------------------------------------------------------------
 
 Imager::Imager() {
+  setVersion(1, 2);
   for (int i = 0; i < MAX_GROUP_COUNT; i++)
     groups[i] = new Group(i);
 }
@@ -94,7 +96,7 @@ void Imager::initiateNextFilter() {
       if (filterSlot && FilterSlotN[0].value != filterSlot) {
         FilterSlotN[0].value = filterSlot;
         sendNewNumber(&FilterSlotNP);
-//        IDLog("Group %d of %d, image %d of %d, filer %d, filter set initiated on %s\n", group, maxGroup, image, maxImage, (int)FilterSlotN[0].value, FilterSlotNP.device);
+        DEBUGF(INDI::Logger::DBG_DEBUG, "Group %d of %d, image %d of %d, filer %d, filter set initiated on %s", group, maxGroup, image, maxImage, (int)FilterSlotN[0].value, FilterSlotNP.device);
       } else {
         initiateNextCapture();
       }
@@ -112,16 +114,20 @@ void Imager::initiateNextCapture() {
       }
       INumber *groupSettings = groups[group - 1]->GroupSettingsN;
       CCDImageBinN[0].value = CCDImageBinN[1].value = groupSettings[1].value;
-      CCDImageExposureN[0].value = groupSettings[3].value;
       sendNewNumber(&CCDImageBinNP);
+      CCDImageExposureN[0].value = groupSettings[3].value;
       sendNewNumber(&CCDImageExposureNP);
-//      IDLog("Group %d of %d, image %d of %d, duration %.1gs, binning %d, capture initiated on %s\n", group, maxGroup, image, maxImage, CCDImageExposureN[0].value, (int)CCDImageBinN[0].value,CCDImageExposureNP.device);
+      IUSaveText(&CCDUploadSettingsT[0], ImageNameT[0].text);
+      IUSaveText(&CCDUploadSettingsT[1], "_TMP_");
+      sendNewSwitch(&CCDUploadSP);
+      sendNewText(&CCDUploadSettingsTP);
+      DEBUGF(INDI::Logger::DBG_DEBUG, "Group %d of %d, image %d of %d, duration %.1gs, binning %d, capture initiated on %s", group, maxGroup, image, maxImage, CCDImageExposureN[0].value, (int)CCDImageBinN[0].value,CCDImageExposureNP.device);
     }
   }
 }
 
 void Imager::startBatch() {
-//  IDLog("Batch started\n");
+  DEBUG(INDI::Logger::DBG_DEBUG, "Batch started");
   ProgressN[0].value = group = 1;
   ProgressN[1].value = image = 1;
   maxImage = (int)groups[group - 1]->GroupSettingsN[0].value;
@@ -146,7 +152,7 @@ void Imager::initiateDownload() {
   if (group ==0 || image == 0)
     return;
   char name[128];
-  sprintf(name, IMAGE_NAME, ImageFolderT[0].text, group, image, format);
+  sprintf(name, IMAGE_NAME, ImageNameT[0].text, ImageNameT[1].text, group, image, format);
   ifstream file;
   file.open(name, ios::in | ios::binary | ios::ate);
   DownloadN[0].value = 0;
@@ -158,7 +164,7 @@ void Imager::initiateDownload() {
     file.read(data, size);
     file.close();
     remove(name);
-//    IDLog("Group %d, image %d, download initiated\n", group, image);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Group %d, image %d, download initiated", group, image);
     DownloadNP.s = IPS_BUSY;
     IDSetNumber(&DownloadNP, "Download initiated");
     strcpy(FitsB[0].format, format);
@@ -171,7 +177,7 @@ void Imager::initiateDownload() {
   } else {
     DownloadNP.s = IPS_ALERT;
     IDSetNumber(&DownloadNP, "Download failed");
-//    IDLog("Group %d, image %d, upload failed\n", group, image);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Group %d, image %d, upload failed", group, image);
   }
 }
 
@@ -183,6 +189,8 @@ const char *Imager::getDefaultName() {
 
 bool Imager::initProperties() {
   INDI::DefaultDevice::initProperties();
+  
+  addDebugControl();
   
   IUFillNumber(&GroupCountN[0], "GROUP_COUNT", "Image group count", "%3.0f", 1, MAX_GROUP_COUNT, 1, maxGroup = 1);
   IUFillNumberVector(&GroupCountNP, GroupCountN, 1, DEVICE_NAME, "GROUPS", "Image groups", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
@@ -206,8 +214,9 @@ bool Imager::initProperties() {
   IUFillSwitch(&BatchS[1], "ABORT", "Abort batch", ISS_OFF);
   IUFillSwitchVector(&BatchSP, BatchS, 2, DEVICE_NAME, "BATCH", "Batch control", MAIN_CONTROL_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
 
-  IUFillText(&ImageFolderT[0], "IMAGE_FOLDER", "Image folder", "/tmp");
-  IUFillTextVector(&ImageFolderTP, ImageFolderT, 1, DEVICE_NAME, "IMAGE_FOLDER", "Image folder", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+  IUFillText(&ImageNameT[0], "IMAGE_FOLDER", "Image folder", "/tmp");
+  IUFillText(&ImageNameT[1], "IMAGE_PREFIX", "Image prefix", "IMG");
+  IUFillTextVector(&ImageNameTP, ImageNameT, 2, DEVICE_NAME, "IMAGE_NAME", "Image name", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
   
   IUFillNumber(&DownloadN[0], "GROUP", "Group", "%3.0f", 1, MAX_GROUP_COUNT, 1, 1);
@@ -219,7 +228,7 @@ bool Imager::initProperties() {
   
   defineNumber(&GroupCountNP);
   defineText(&ControlledDeviceTP);
-  defineText(&ImageFolderTP);
+  defineText(&ImageNameTP);
 
   for (int i = 0; i < GroupCountN[0].value; i++) {
     groups[i]->defineProperties();
@@ -232,6 +241,16 @@ bool Imager::initProperties() {
   IUFillNumber(&CCDImageBinN[1], "VER_BIN", "Y" ,"%2.0f", 1, 4, 1, 1);
   IUFillNumberVector(&CCDImageBinNP, CCDImageBinN, 2, ControlledDeviceT[0].text, "CCD_BINNING", "Binning", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
+  IUFillSwitch(&CCDUploadS[0], "UPLOAD_CLIENT", "Client", ISS_OFF);
+  IUFillSwitch(&CCDUploadS[1], "UPLOAD_LOCAL", "Local", ISS_ON);
+  IUFillSwitch(&CCDUploadS[2], "UPLOAD_BOTH", "Both", ISS_OFF);
+  IUFillSwitchVector(&CCDUploadSP, CCDUploadS, 3, ControlledDeviceT[0].text, "UPLOAD_MODE", "Upload", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+  
+  IUFillText(&CCDUploadSettingsT[0],"UPLOAD_DIR", "Dir", "");
+  IUFillText(&CCDUploadSettingsT[1],"UPLOAD_PREFIX", "Prefix", IMAGE_PREFIX);
+  IUFillTextVector(&CCDUploadSettingsTP,CCDUploadSettingsT, 2, ControlledDeviceT[0].text, "UPLOAD_SETTINGS", "Upload Settings", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+
+  
   IUFillNumber(&FilterSlotN[0], "FILTER_SLOT_VALUE", "Filter", "%3.0f", 1.0, 12.0, 1.0, 1.0);
   IUFillNumberVector(&FilterSlotNP, FilterSlotN, 1, ControlledDeviceT[1].text, "FILTER_SLOT", "Filter Slot", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
@@ -302,10 +321,10 @@ bool Imager::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
   if (!strcmp(dev, DEVICE_NAME)) {
     if (!strcmp(name, BatchSP.name)) {
       for (int i = 0; i < n; i++) {
-        if (!strcmp(names[i], BatchS[0].name)) {
+        if (!strcmp(names[i], BatchS[0].name) && states[0] == ISS_ON) {
           if (!isRunning())
             startBatch();
-        } else if (!strcmp(names[i], BatchS[1].name)) {
+        } else if (!strcmp(names[i], BatchS[1].name) && states[1] == ISS_ON) {
           if (isRunning())
             abortBatch();
         }
@@ -330,9 +349,9 @@ bool Imager::ISNewText(const char *dev, const char *name, char *texts[], char *n
       strcpy(FilterSlotNP.device, ControlledDeviceT[1].text);
       return true;
     }
-    if (!strcmp(name, ImageFolderTP.name)) {
-      IUUpdateText(&ImageFolderTP, texts, names, n);
-      IDSetText(&ImageFolderTP, NULL);
+    if (!strcmp(name, ImageNameTP.name)) {
+      IUUpdateText(&ImageNameTP, texts, names, n);
+      IDSetText(&ImageNameTP, NULL);
       return true;
     }
   }
@@ -367,7 +386,7 @@ bool Imager::Disconnect() {
 // BaseClient ----------------------------------------------------------------------------
 
 void Imager::serverConnected() {
-//  IDLog("Server connected\n");
+  DEBUG(INDI::Logger::DBG_DEBUG, "Server connected");
   StatusL[0].s = IPS_ALERT;
   StatusL[1].s = IPS_ALERT;
   IDSetLight(&StatusLP, NULL);
@@ -375,7 +394,7 @@ void Imager::serverConnected() {
 
 void Imager::newDevice(INDI::BaseDevice *dp) {
   const char *deviceName = dp->getDeviceName();
-//  IDLog("Device %s detected\n", deviceName);
+  DEBUGF(INDI::Logger::DBG_DEBUG, "Device %s detected", deviceName);
   if (!strcmp(deviceName, controlledCCD))
     StatusL[0].s = IPS_BUSY;
   else if (!strcmp(deviceName, controlledFilterWheel))
@@ -392,14 +411,14 @@ void Imager::newProperty(INDI::Property *property) {
         StatusL[0].s = IPS_OK;
       } else {
         connectDevice(controlledCCD);
-//        IDLog("Connecting %s\n", controlledCCD);
+        DEBUGF(INDI::Logger::DBG_DEBUG, "Connecting %s", controlledCCD);
       }
     } else if (!strcmp(deviceName, controlledFilterWheel)) {
       if (state) {
         StatusL[1].s = IPS_OK;
       } else {
         connectDevice(controlledFilterWheel);
-//        IDLog("Connecting %s\n", controlledFilterWheel);
+        DEBUGF(INDI::Logger::DBG_DEBUG, "Connecting %s", controlledFilterWheel);
       }
     }
     IDSetLight(&StatusLP, NULL);
@@ -419,13 +438,12 @@ void Imager::newBLOB(IBLOB *bp) {
   if (ProgressNP.s == IPS_BUSY) {
     char name[128];
     strncpy(format, bp->format, 16);
-    sprintf(name, IMAGE_NAME, ImageFolderT[0].text, group, image, format);
+    sprintf(name, IMAGE_NAME, ImageNameT[0].text, ImageNameT[1].text, group, image, format);
     ofstream file;
     file.open (name, ios::out | ios::binary | ios::trunc);
     file.write(static_cast<char *> (bp->blob), bp->bloblen);
     file.close();
-//    IDLog("Group %d of %d, image %d of %d, saved to %s\n", group, maxGroup, image, maxImage, name);
-    
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Group %d of %d, image %d of %d, saved to %s", group, maxGroup, image, maxImage, name);
     if (image == maxImage) {
       if (group == maxGroup) {
         batchDone();
@@ -482,6 +500,31 @@ void Imager::newNumber(INumberVectorProperty *nvp) {
 }
 
 void Imager::newText(ITextVectorProperty *tvp) {
+  const char *deviceName = tvp->device;
+  if (!strcmp(deviceName, controlledCCD)) {
+    if (!strcmp(tvp->name, "CCD_FILE_PATH")) {
+      char name[128];
+      strcpy(format, strrchr(tvp->tp[0].text, '.'));
+      sprintf(name, IMAGE_NAME, ImageNameT[0].text, ImageNameT[1].text, group, image, format);
+      rename(tvp->tp[0].text, name);
+      DEBUGF(INDI::Logger::DBG_DEBUG, "Group %d of %d, image %d of %d, saved to %s", group, maxGroup, image, maxImage, name);
+      if (image == maxImage) {
+        if (group == maxGroup) {
+          batchDone();
+        } else {
+          maxImage = (int)groups[group]->GroupSettingsN[0].value;
+          ProgressN[0].value = group = group + 1;
+          ProgressN[1].value = image = 1;
+          IDSetNumber(&ProgressNP, NULL);
+          initiateNextFilter();
+        }
+      } else {
+        ProgressN[1].value = image = image + 1;
+        IDSetNumber(&ProgressNP, NULL);
+        initiateNextFilter();
+      }
+    }
+  }
 }
 
 void Imager::newLight(ILightVectorProperty *lvp) {
@@ -491,7 +534,7 @@ void Imager::newMessage(INDI::BaseDevice *dp, int messageID) {
 }
 
 void Imager::serverDisconnected(int exit_code) {
-//  IDLog("Server disconnected\n");
+  DEBUG(INDI::Logger::DBG_DEBUG, "Server disconnected");
   StatusL[0].s = IPS_ALERT;
   StatusL[1].s = IPS_ALERT;
 }

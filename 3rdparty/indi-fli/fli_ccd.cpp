@@ -27,7 +27,7 @@
 #include <unistd.h>
 #include <sys/time.h>
 
-#include <config.h>
+#include "config.h"
 
 #include "indidevapi.h"
 #include "eventloop.h"

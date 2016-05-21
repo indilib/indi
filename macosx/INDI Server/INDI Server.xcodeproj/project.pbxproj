@@ -2676,6 +2676,8 @@
 		59A3191A1BB08DF5009CE193 /* atikccdusb.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = atikccdusb.h; sourceTree = "<group>"; };
 		59B7AD0718872403005B06B4 /* SecurityInterface.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SecurityInterface.framework; path = System/Library/Frameworks/SecurityInterface.framework; sourceTree = SDKROOT; };
 		59C11FC219B50AEE00B21125 /* AppIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = AppIcon.icns; sourceTree = "<group>"; };
+		59C3D66E1CF045D800974D80 /* agent_imager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = agent_imager.h; sourceTree = "<group>"; };
+		59C3D66F1CF0475900974D80 /* agent_imager.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = agent_imager.txt; sourceTree = "<group>"; };
 		59C65D311CBC1B940023A5EC /* CMakeLists.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
 		59C65D321CBC1BA00023A5EC /* CMakeLists.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
 		59C65D331CBC1BB60023A5EC /* 99-usbfocus.rules */ = {isa = PBXFileReference; lastKnownFileType = text; path = "99-usbfocus.rules"; sourceTree = "<group>"; };
@@ -3729,6 +3731,8 @@
 		59567B831A8D2FD10057A35A /* agent */ = {
 			isa = PBXGroup;
 			children = (
+				59C3D66F1CF0475900974D80 /* agent_imager.txt */,
+				59C3D66E1CF045D800974D80 /* agent_imager.h */,
 				59567B891A8D30140057A35A /* agent_imager.cpp */,
 			);
 			path = agent;
