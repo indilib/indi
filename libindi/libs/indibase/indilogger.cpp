@@ -402,8 +402,8 @@ void Logger::print(const char *devicename,
 
     if (!configured_)
     {
-            std::cerr << "Warning! Logger not configured!" << std::endl;
-            std::cerr <<  devicename << " " << message << std::endl;
+            //std::cerr << "Warning! Logger not configured!" << std::endl;
+            std::cerr << msg << std::endl;
 			return;
 	}
 	struct timeval currentTime, resTime;
