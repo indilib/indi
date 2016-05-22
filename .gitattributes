@@ -319,6 +319,15 @@
 3rdparty/indi-spectracyber/install -text
 3rdparty/indi-spectracyber/spectracyber.cpp -text
 3rdparty/indi-spectracyber/spectracyber.h -text
+3rdparty/indi-ssag/indi_ssag.xml -text
+3rdparty/indi-ssag/openssag-LICENSE.txt -text
+3rdparty/indi-ssag/openssag.cpp -text
+3rdparty/indi-ssag/openssag.h -text
+3rdparty/indi-ssag/openssag_firmware.h -text
+3rdparty/indi-ssag/openssag_loader.cpp -text
+3rdparty/indi-ssag/openssag_priv.h -text
+3rdparty/indi-ssag/ssagccd.cpp -text
+3rdparty/indi-ssag/ssagccd.h -text
 3rdparty/indi-sx/99-sx.rules -text
 3rdparty/indi-sx/AUTHORS -text
 3rdparty/indi-sx/CMakeLists.txt -text
