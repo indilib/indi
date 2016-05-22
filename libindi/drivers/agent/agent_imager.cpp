@@ -324,7 +324,8 @@ bool Imager::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
         if (!strcmp(names[i], BatchS[0].name) && states[i] == ISS_ON) {
           if (!isRunning())
             startBatch();
-        } else if (!strcmp(names[i], BatchS[1].name) && states[i] == ISS_ON) {
+        }
+        if (!strcmp(names[i], BatchS[1].name) && states[i] == ISS_ON) {
           if (isRunning())
             abortBatch();
         }
@@ -397,7 +398,7 @@ void Imager::newDevice(INDI::BaseDevice *dp) {
   DEBUGF(INDI::Logger::DBG_DEBUG, "Device %s detected", deviceName);
   if (!strcmp(deviceName, controlledCCD))
     StatusL[0].s = IPS_BUSY;
-  else if (!strcmp(deviceName, controlledFilterWheel))
+  if (!strcmp(deviceName, controlledFilterWheel))
     StatusL[1].s = IPS_BUSY;
   IDSetLight(&StatusLP, NULL);
 }
@@ -413,7 +414,8 @@ void Imager::newProperty(INDI::Property *property) {
         connectDevice(controlledCCD);
         DEBUGF(INDI::Logger::DBG_DEBUG, "Connecting %s", controlledCCD);
       }
-    } else if (!strcmp(deviceName, controlledFilterWheel)) {
+    }
+    if (!strcmp(deviceName, controlledFilterWheel)) {
       if (state) {
         StatusL[1].s = IPS_OK;
       } else {
@@ -472,7 +474,8 @@ void Imager::newSwitch(ISwitchVectorProperty *svp) {
       } else {
         StatusL[0].s = IPS_BUSY;
       }
-    } else if (!strcmp(deviceName, controlledFilterWheel)) {
+    }
+    if (!strcmp(deviceName, controlledFilterWheel)) {
       if (state) {
         StatusL[1].s = IPS_OK;
       } else {
@@ -490,7 +493,8 @@ void Imager::newNumber(INumberVectorProperty *nvp) {
       ProgressN[2].value = nvp->np[0].value;
       IDSetNumber(&ProgressNP, NULL);
     }
-  } else if (!strcmp(deviceName, controlledFilterWheel)) {
+  }
+  if (!strcmp(deviceName, controlledFilterWheel)) {
     if (!strcmp(nvp->name, "FILTER_SLOT")) {
       FilterSlotN[0].value = nvp->np->value;
       if (nvp->s == IPS_OK)
