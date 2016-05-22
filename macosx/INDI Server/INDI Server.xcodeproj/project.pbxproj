@@ -2668,7 +2668,7 @@
 		598785F91CE71FAF00DF2294 /* indi_fli_wheel */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_fli_wheel; sourceTree = BUILT_PRODUCTS_DIR; };
 		5987860B1CE71FB900DF2294 /* indi_fli_focus */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_fli_focus; sourceTree = BUILT_PRODUCTS_DIR; };
 		5987860C1CE71FF300DF2294 /* CMakeLists.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
-		5987860E1CE71FF300DF2294 /* fli_ccd.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = fli_ccd.cpp; sourceTree = "<group>"; };
+		5987860E1CE71FF300DF2294 /* fli_ccd.cpp */ = {isa = PBXFileReference; indentWidth = 4; lastKnownFileType = sourcecode.cpp.cpp; path = fli_ccd.cpp; sourceTree = "<group>"; tabWidth = 4; };
 		5987860F1CE71FF300DF2294 /* fli_ccd.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = fli_ccd.h; sourceTree = "<group>"; };
 		598786101CE71FF300DF2294 /* fli_cfw.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = fli_cfw.cpp; sourceTree = "<group>"; };
 		598786111CE71FF300DF2294 /* fli_cfw.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = fli_cfw.h; sourceTree = "<group>"; };

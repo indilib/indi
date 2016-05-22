@@ -187,8 +187,10 @@ bool FLICCD::Connect()
 
     sim = isSimulation();
 
-    if (sim)
+    if (sim) {
+        DEBUG(INDI::Logger::DBG_DEBUG, "Simulator used.");
         return true;
+    }
 
     int portSwitchIndex = IUFindOnSwitchIndex(&PortSP);
 
@@ -205,7 +207,7 @@ bool FLICCD::Connect()
     }
 
     /* Success! */
-    DEBUG(INDI::Logger::DBG_DEBUG, "CCD is online.");
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CCD %s is online.", FLICam.name);
     return true;
 }
 
@@ -239,16 +241,19 @@ bool FLICCD::setupParams()
     //////////////////////
     // 1. Get Camera Model
     //////////////////////
-    if (!sim && (err = FLIGetModel (fli_dev, FLICam.model, 32)))
+
+    if (sim)
+        IUSaveText(&CamInfoT[0], getDeviceName());
+    else if (err = FLIGetModel (fli_dev, FLICam.model, 32))
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "FLIGetModel() failed. %s.", strerror((int)-err));
         return false;
     }
-
-    if (sim)
-        IUSaveText(&CamInfoT[0], getDeviceName());
     else
+    {
+        DEBUGF(INDI::Logger::DBG_DEBUG, "FLIGetModel() succeed -> %s", FLICam.model);
         IUSaveText(&CamInfoT[0], FLICam.model);
+    }
 
     ///////////////////////////
     // 2. Get Hardware revision
@@ -260,9 +265,13 @@ bool FLICCD::setupParams()
         DEBUGF(INDI::Logger::DBG_ERROR, "FLIGetHWRevision() failed. %s.", strerror((int)-err));
         return false;
     }
+    else
+    {
+        snprintf(hw_rev, 16, "%ld", FLICam.HWRevision);
+        IUSaveText(&CamInfoT[1], hw_rev);
+        DEBUGF(INDI::Logger::DBG_DEBUG, "FLIGetHWRevision() succeed -> %s", hw_rev);
+    }
 
-    snprintf(hw_rev, 16, "%ld", FLICam.HWRevision);
-    IUSaveText(&CamInfoT[1], hw_rev);
 
     ///////////////////////////
     // 3. Get Firmware revision
@@ -274,10 +283,12 @@ bool FLICCD::setupParams()
         DEBUGF(INDI::Logger::DBG_ERROR, "FLIGetFWRevision() failed. %s.", strerror((int)-err));
         return false;
     }
-
-    snprintf(fw_rev, 16, "%ld", FLICam.FWRevision);
-    IUSaveText(&CamInfoT[2], fw_rev);
-
+    else
+    {
+        snprintf(fw_rev, 16, "%ld", FLICam.FWRevision);
+        IUSaveText(&CamInfoT[2], fw_rev);
+        DEBUGF(INDI::Logger::DBG_DEBUG, "FLIGetFWRevision() succeed -> %s", fw_rev);
+    }
 
     IDSetText(&CamInfoTP, NULL);
     ///////////////////////////
@@ -293,9 +304,12 @@ bool FLICCD::setupParams()
         DEBUGF(INDI::Logger::DBG_ERROR, "FLIGetPixelSize() failed. %s.", strerror((int)-err));
         return false;
     }
-
-    FLICam.x_pixel_size *= 1e6;
-    FLICam.y_pixel_size *= 1e6;
+    else
+    {
+        FLICam.x_pixel_size *= 1e6;
+        FLICam.y_pixel_size *= 1e6;
+        DEBUGF(INDI::Logger::DBG_DEBUG, "FLIGetPixelSize() succeed -> %g x %g", FLICam.x_pixel_size, FLICam.y_pixel_size);
+    }
 
     ///////////////////////////
     // 5. Get array area
@@ -310,6 +324,10 @@ bool FLICCD::setupParams()
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "FLIGetArrayArea() failed. %s.", strerror((int)-err));
         return false;
+    }
+    else
+    {
+        DEBUGF(INDI::Logger::DBG_DEBUG, "FLIGetArrayArea() succeed -> %ld x %ld + %ld x %ld", FLICam.Array_Area[0], FLICam.Array_Area[1], FLICam.Array_Area[2], FLICam.Array_Area[3]);
     }
 
     ///////////////////////////
@@ -326,6 +344,10 @@ bool FLICCD::setupParams()
         DEBUGF(INDI::Logger::DBG_ERROR, "FLIGetVisibleArea() failed. %s.", strerror((int)-err));
         return false;
     }
+    else
+    {
+        DEBUGF(INDI::Logger::DBG_DEBUG, "FLIGetVisibleArea() succeed -> %ld x %ld + %ld x %ld", FLICam.Visible_Area[0], FLICam.Visible_Area[1], FLICam.Visible_Area[2], FLICam.Visible_Area[3]);
+    }
 
     ///////////////////////////
     // 7. Get temperature
@@ -337,50 +359,51 @@ bool FLICCD::setupParams()
         DEBUGF(INDI::Logger::DBG_ERROR, "FLIGetTemperature() failed. %s.", strerror((int)-err));
         return false;
     }
-
-    DEBUGF(INDI::Logger::DBG_SESSION, "The CCD Temperature is %f.", FLICam.temperature);
-
-
-    TemperatureN[0].value = FLICam.temperature;			/* CCD chip temperatre (degrees C) */
-    TemperatureN[0].min = MIN_CCD_TEMP;
-    TemperatureN[0].max = MAX_CCD_TEMP;
-
-    IUUpdateMinMax(&TemperatureNP);
-    IDSetNumber(&TemperatureNP, NULL);
+    else
+    {
+        TemperatureN[0].value = FLICam.temperature;			/* CCD chip temperatre (degrees C) */
+        TemperatureN[0].min = MIN_CCD_TEMP;
+        TemperatureN[0].max = MAX_CCD_TEMP;
+        IUUpdateMinMax(&TemperatureNP);
+        IDSetNumber(&TemperatureNP, NULL);
+        DEBUGF(INDI::Logger::DBG_SESSION, "FLIGetVisibleArea() succeed -> %f", FLICam.temperature);
+    }
 
     SetCCDParams(FLICam.Visible_Area[2] - FLICam.Visible_Area[0], FLICam.Visible_Area[3] - FLICam.Visible_Area[1], 16, FLICam.x_pixel_size, FLICam.y_pixel_size);
 
     /* 50 ms */
     minDuration = 0.05;
-
-    /* Default frame type is NORMAL */
-    if (!sim && (err = FLISetFrameType(fli_dev, FLI_FRAME_TYPE_NORMAL) ))
+    
+    if (!sim)
     {
-        DEBUGF(INDI::Logger::DBG_DEBUG,"FLISetFrameType() failed. %s.", strerror((int)-err));
-        return false;
-    }
+        /* Default frame type is NORMAL */
+        if (err = FLISetFrameType(fli_dev, FLI_FRAME_TYPE_NORMAL))
+        {
+            DEBUGF(INDI::Logger::DBG_DEBUG,"FLISetFrameType() failed. %s.", strerror((int)-err));
+            return false;
+        }
 
-    /* X horizontal binning */
-    if (!sim && (err = FLISetHBin(fli_dev, PrimaryCCD.getBinX()) ))
-    {
-        DEBUGF(INDI::Logger::DBG_ERROR,"FLISetBin() failed. %s.", strerror((int)-err));
-        return false;
-    }
+        /* X horizontal binning */
+        if (err = FLISetHBin(fli_dev, PrimaryCCD.getBinX()))
+        {
+            DEBUGF(INDI::Logger::DBG_ERROR,"FLISetBin() failed. %s.", strerror((int)-err));
+            return false;
+        }
 
-    /* Y vertical binning */
-    if (!sim && (err = FLISetVBin(fli_dev, PrimaryCCD.getBinY()) ))
-    {
-        DEBUGF(INDI::Logger::DBG_ERROR,"FLISetVBin() failed. %s.", strerror((int)-err));
-        return false;
+        /* Y vertical binning */
+        if (err = FLISetVBin(fli_dev, PrimaryCCD.getBinY()))
+        {
+            DEBUGF(INDI::Logger::DBG_ERROR,"FLISetVBin() failed. %s.", strerror((int)-err));
+            return false;
+        }
     }
-
+    
     int nbuf;
     nbuf=PrimaryCCD.getXRes()*PrimaryCCD.getYRes() * PrimaryCCD.getBPP()/8;                 //  this is pixel count
     nbuf+=512;                      //  leave a little extra at the end
     PrimaryCCD.setFrameBufferSize(nbuf);
 
     return true;
-
 }
 
 int FLICCD::SetTemperature(double temperature)
@@ -415,22 +438,24 @@ bool FLICCD::StartExposure(float duration)
         DEBUGF(INDI::Logger::DBG_DEBUG, "Bias Frame (s) : %g", minDuration);
     }
 
-    if (!sim && (err = FLISetExposureTime(fli_dev, (long)(duration * 1000))))
+    if (!sim)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "FLISetExposureTime() failed. %s.", strerror((int)-err));
-        return false;
+        if (err = FLISetExposureTime(fli_dev, (long)(duration * 1000)))
+        {
+            DEBUGF(INDI::Logger::DBG_ERROR, "FLISetExposureTime() failed. %s.", strerror((int)-err));
+            return false;
+        }
+        if (err = FLIExposeFrame(fli_dev))
+        {
+            DEBUGF(INDI::Logger::DBG_ERROR, "FLIExposeFrame() failed. %s.", strerror((int)-err));
+            return false;
+        }
     }
-    // yes, we need to push the release
-    if (!sim && (err =FLIExposeFrame(fli_dev)))
-    {
-        DEBUGF(INDI::Logger::DBG_ERROR, "FLIxposeFrame() failed. %s.", strerror((int)-err));
-        return false;
-    }
-
+    
     PrimaryCCD.setExposureDuration(duration);
     ExposureRequest = duration;
 
-    gettimeofday(&ExpStart,NULL);
+    gettimeofday(&ExpStart, NULL);
     DEBUGF(INDI::Logger::DBG_DEBUG, "Taking a %g seconds frame...", ExposureRequest);
 
     InExposure = true;
@@ -489,37 +514,33 @@ bool FLICCD::UpdateCCDFrame(int x, int y, int w, int h)
 {
     int err=0;
 
-    /* Add the X and Y offsets */
-    long x_1 = x;
-    long y_1 = y;
+    long bin_right  = x + (w / PrimaryCCD.getBinX());
+    long bin_bottom = y + (h / PrimaryCCD.getBinY());
 
-    long bin_width  = x_1 + (w / PrimaryCCD.getBinX());
-    long bin_height = y_1 + (h / PrimaryCCD.getBinY());
-
-    if (bin_width > PrimaryCCD.getXRes() / PrimaryCCD.getBinX())
+    if (bin_right > PrimaryCCD.getXRes() / PrimaryCCD.getBinX())
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Error: invalid width requested %d", w);
         return false;
     }
-    else if (bin_height > PrimaryCCD.getYRes() / PrimaryCCD.getBinY())
+    else if (bin_bottom > PrimaryCCD.getYRes() / PrimaryCCD.getBinY())
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Error: invalid height request %d", h);
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG,"The Final image area is (%ld, %ld), (%ld, %ld)", x_1, y_1, bin_width, bin_height);
+    DEBUGF(INDI::Logger::DBG_DEBUG,"The Final image area is (%ld, %ld), (%ld, %ld)", x, y, bin_right, bin_bottom);
 
-    if (!sim && (err = FLISetImageArea(fli_dev, x_1, y_1, bin_width, bin_height) ))
+    if (!sim && (err = FLISetImageArea(fli_dev, x, y, bin_right, bin_bottom) ))
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "FLISetImageArea() failed. %s.", strerror((int)-err));
         return false;
     }
 
     // Set UNBINNED coords
-    PrimaryCCD.setFrame(x_1, y_1, w,  h);
+    PrimaryCCD.setFrame(x, y, w,  h);
 
     int nbuf;
-    nbuf=(bin_width*bin_height * PrimaryCCD.getBPP()/8);                //  this is pixel count
+    nbuf=(w/PrimaryCCD.getBinX())*(h/PrimaryCCD.getBinY())*(PrimaryCCD.getBPP()/8);                //  this is pixel count
     nbuf+=512;                                                          //  leave a little extra at the end
     PrimaryCCD.setFrameBufferSize(nbuf);
 
@@ -568,20 +589,21 @@ bool FLICCD::grabImage()
 {
     int err=0;
     uint8_t * image = PrimaryCCD.getFrameBuffer();
-    int width = PrimaryCCD.getSubW() / PrimaryCCD.getBinX() * PrimaryCCD.getBPP()/8;
+    int row_size = PrimaryCCD.getSubW() / PrimaryCCD.getBinX() * PrimaryCCD.getBPP()/8;
+    int width = PrimaryCCD.getSubW() / PrimaryCCD.getBinX();
     int height = PrimaryCCD.getSubH() / PrimaryCCD.getBinY();
 
     if (sim)
     {
         for (int i=0; i < height ; i++)
-            for (int j=0; j < width; j++)
-                image[i*width+j] = rand() % 255;
+            for (int j=0; j < row_size; j++)
+                image[i*row_size+j] = rand() % 255;
     }
     else
     {
         for (int i=0; i < height ; i++)
         {
-            if ( (err = FLIGrabRow(fli_dev, image + (i * width), width)))
+            if ( (err = FLIGrabRow(fli_dev, image + (i * row_size), width)))
             {
                 DEBUGF(INDI::Logger::DBG_ERROR, "FLIGrabRow() failed at row %d. %s.", i, strerror((int)-err));
                 return false;
