@@ -28,7 +28,7 @@
 
 #include "nstep.h"
 
-#define POLLMS  200
+#define POLLMS  2000
 
 std::auto_ptr<NSTEP> nstep(0);
 
@@ -84,6 +84,7 @@ NSTEP::NSTEP() {
   setDeviceName(getDefaultName());
   setVersion(1, 0);
   SetFocuserCapability(FOCUSER_CAN_ABORT | FOCUSER_CAN_REL_MOVE);
+  sim_position = 0;
 }
 
 NSTEP::~NSTEP() {
@@ -100,7 +101,12 @@ bool NSTEP::command(const char *request, char *response, int count) {
       return true;
     }
     if (!strcmp(request, ":RP")) {
-      strcpy(response, "+000000");
+      sprintf(response, "%+07d", sim_position);
+      DEBUGF(INDI::Logger::DBG_DEBUG,  "Read [%s]", response);
+      return true;
+    }
+    if (!strcmp(request, ":RS")) {
+      strcpy(response, "100");
       DEBUGF(INDI::Logger::DBG_DEBUG,  "Read [%s]", response);
       return true;
     }
@@ -121,6 +127,11 @@ bool NSTEP::command(const char *request, char *response, int count) {
     }
     if (!strcmp(request, ":RG")) {
       strcpy(response, "2");
+      DEBUGF(INDI::Logger::DBG_DEBUG,  "Read [%s]", response);
+      return true;
+    }
+    if (!strcmp(request, ":RW")) {
+      strcpy(response, "0");
       DEBUGF(INDI::Logger::DBG_DEBUG,  "Read [%s]", response);
       return true;
     }
@@ -234,6 +245,13 @@ bool NSTEP::initProperties() {
   IUFillNumber(&TempN[0], "TEMPERATURE", "Temperature", "%.1f", 0, 999, 0, 0);
   IUFillNumberVector(&TempNP, TempN, 1, getDeviceName(), "TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RO, 0, IPS_OK);
 
+  IUFillSwitch(&SteppingModeS[0], "WAVE", "Wave", ISS_ON);
+  IUFillSwitch(&SteppingModeS[1], "HALF", "Half", ISS_OFF);
+  IUFillSwitch(&SteppingModeS[2], "FULL", "Full", ISS_OFF);
+  IUFillSwitchVector(&SteppingModeSP, SteppingModeS, 3, getDeviceName(), "STEPPING_MODE", "Stepping mode", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_OK);
+
+  FocusAbsPosNP.p = IP_RO;
+  
   return true;
 }
 
@@ -249,52 +267,70 @@ bool NSTEP::updateProperties() {
     }
     if (command(":RT", buf, 4)) {
       sscanf(buf, "%d", &temperature);
-      TempN[0].value = temperature/10.0;
-      defineNumber(&TempNP);
+      if (temperature != -888) {
+        TempN[0].value = temperature/10.0;
+        defineNumber(&TempNP);
+        if (command(":RA", buf, 4)) {
+          int value;
+          sscanf(buf, "%d", &value);
+          TempCompN[0].value = value/10.0;
+          defineNumber(&TempCompNP);
+        } else {
+          IDMessage(getDeviceName(), "Failed to read temperature change for compensation");
+        }
+        if (command(":RB", buf, 3)) {
+          int value;
+          sscanf(buf, "%d", &value);
+          TempCompN[1].value = value;
+          defineNumber(&TempCompNP);
+        } else {
+          IDMessage(getDeviceName(), "Failed to read temperature step for compensation");
+        }
+        if (command(":RG", buf, 1)) {
+          char value = *buf;
+          TempCompS[0].s = value == '2' ? ISS_ON : ISS_OFF;
+          TempCompS[1].s = value == '0'  ? ISS_ON : ISS_OFF;
+          defineSwitch(&TempCompSP);
+        } else {
+          IDMessage(getDeviceName(), "Failed to read compensation mode");
+        }
+      } else {
+        IDMessage(getDeviceName(), "Temperature sensor is not connected");
+      }
     } else {
       IDMessage(getDeviceName(), "Failed to read temperature");
     }
-    if (command(":RO", buf, 3)) {
+    if (command(":RS", buf, 3)) {
       int value;
       sscanf(buf, "%d", &value);
-      FocusSpeedN[0].value = value;
-      defineNumber(&TempCompNP);
+      FocusSpeedN[0].max = value;
+      if (command(":RO", buf, 3)) {
+        int value;
+        sscanf(buf, "%d", &value);
+        FocusSpeedN[0].value = value;
+        defineNumber(&FocusSpeedNP);
+      } else {
+        IDMessage(getDeviceName(), "Failed to read step rate");
+      }
     } else {
-      IDMessage(getDeviceName(), "Failed to read speed");
+      IDMessage(getDeviceName(), "Failed to read max step rate");
     }
-    if (command(":RA", buf, 4)) {
-      int value;
-      sscanf(buf, "%d", &value);
-      TempCompN[0].value = value/10.0;
-      defineNumber(&TempCompNP);
+    if (command(":RW", buf, 1)) {
+      steppingMode = *buf;
+      SteppingModeS[0].s = steppingMode == '0' ? ISS_ON : ISS_OFF;
+      SteppingModeS[1].s = steppingMode == '1' ? ISS_ON : ISS_OFF;
+      SteppingModeS[2].s = steppingMode == '2' ? ISS_ON : ISS_OFF;
+      defineSwitch(&SteppingModeSP);
     } else {
-      IDMessage(getDeviceName(), "Failed to read temperature change for compensation");
+      IDMessage(getDeviceName(), "Failed to read stepping mode");
     }
-    if (command(":RB", buf, 3)) {
-      int value;
-      sscanf(buf, "%d", &value);
-      TempCompN[1].value = value;
-      defineNumber(&TempCompNP);
-    } else {
-      IDMessage(getDeviceName(), "Failed to read temperature step for compensation");
-    }
-    if (command(":RG", buf, 1)) {
-      TempCompS[0].s = buf[0] == '2' ? ISS_ON : ISS_OFF;
-      TempCompS[1].s = buf[0] == '0'  ? ISS_ON : ISS_OFF;
-      defineSwitch(&TempCompSP);
-    } else {
-      IDMessage(getDeviceName(), "Failed to read compensation mode");
-    }
-    defineNumber(&TempCompNP);
-    defineSwitch(&TempCompSP);
-    defineNumber(&FocusAbsPosNP);
-    defineNumber(&FocusSpeedNP);
   } else {
+    deleteProperty(FocusAbsPosNP.name);
     deleteProperty(TempNP.name);
     deleteProperty(TempCompNP.name);
     deleteProperty(TempCompSP.name);
-    deleteProperty(FocusAbsPosNP.name);
     deleteProperty(FocusSpeedNP.name);
+    deleteProperty(SteppingModeSP.name);
   }
   return INDI::Focuser::updateProperties();;
 }
@@ -308,12 +344,37 @@ bool NSTEP::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
         if (!command(":TA2", NULL, 0)) {
           TempCompSP.s = IPS_ALERT;
         }
+        if (!command(":TC30#", NULL, 0)) {
+          TempCompSP.s = IPS_ALERT;
+        }
       } else {
         if (!command(":TA0", NULL, 0)) {
           TempCompSP.s = IPS_ALERT;
         }
       }
       IDSetSwitch(&TempCompSP, NULL);
+      return true;
+    }
+    if (!strcmp (name, SteppingModeSP.name)) {
+      IUUpdateSwitch(&SteppingModeSP, states, names, n);
+      SteppingModeSP.s = IPS_OK;
+      if (SteppingModeS[0].s == ISS_ON) {
+        steppingMode = '0';
+        if (!command(":CW0", NULL, 0)) {
+          SteppingModeSP.s = IPS_ALERT;
+        }
+      } else if (SteppingModeS[1].s == ISS_ON) {
+        steppingMode = '1';
+        if (!command(":CW1", NULL, 0)) {
+          SteppingModeSP.s = IPS_ALERT;
+        }
+      } else if (SteppingModeS[2].s == ISS_ON) {
+        steppingMode = '2';
+        if (!command(":CW2", NULL, 0)) {
+          SteppingModeSP.s = IPS_ALERT;
+        }
+      }
+      IDSetSwitch(&SteppingModeSP, NULL);
       return true;
     }
   }
@@ -342,10 +403,16 @@ bool NSTEP::ISNewNumber (const char *dev, const char *name, double values[], cha
 
 
 IPState NSTEP::MoveRelFocuser(FocusDirection dir, unsigned int ticks) {
-  sprintf(buf, ":F%c0%03d#", dir==FOCUS_INWARD?'1':'0', ticks);
+  sprintf(buf, ":F%c%c%03d#", dir == FOCUS_INWARD?'1':'0', steppingMode, ticks);
   if (command(buf, NULL, 0)) {
     FocusAbsPosNP.s = IPS_BUSY;
     IDSetNumber(&FocusAbsPosNP, NULL);
+    if (isSimulation()) {
+      if (dir == FOCUS_INWARD)
+        sim_position -= ticks;
+      else
+        sim_position += ticks;
+    }
     return IPS_BUSY;
   }
   FocusAbsPosNP.s = IPS_ALERT;
@@ -354,7 +421,8 @@ IPState NSTEP::MoveRelFocuser(FocusDirection dir, unsigned int ticks) {
 }
 
 bool NSTEP::AbortFocuser() {
-  if (command(":F10000#", NULL, 0)) {
+  sprintf(buf, ":F1%c000#", steppingMode);
+  if (command(buf, NULL, 0)) {
     return true;
   }
   return false;

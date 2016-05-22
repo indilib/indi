@@ -30,8 +30,9 @@ class NSTEP: public INDI::Focuser {
 private:
   int PortFD;
   char buf[MAXRBUF];
-  long position;
+  long sim_position, position;
   int temperature;
+  char steppingMode;
   pthread_mutex_t lock;
   
   INumber TempN[1];
@@ -40,6 +41,8 @@ private:
   ISwitchVectorProperty TempCompSP;
   INumber TempCompN[2];
   INumberVectorProperty TempCompNP;
+  ISwitch SteppingModeS[3];
+  ISwitchVectorProperty SteppingModeSP;
   
   bool command(const char *request, char *response, int timeout);
   
