@@ -123,6 +123,8 @@ bool FLICCD::initProperties()
 
     SetCCDCapability(CCD_CAN_ABORT | CCD_CAN_BIN | CCD_CAN_SUBFRAME | CCD_HAS_COOLER | CCD_HAS_SHUTTER);
 
+    addSimulationControl();
+    addDebugControl();
 }
 
 void FLICCD::ISGetProperties(const char *dev)
