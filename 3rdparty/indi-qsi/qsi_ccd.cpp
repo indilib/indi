@@ -791,12 +791,16 @@ bool QSICCD::StartExposure(float duration)
             PrimaryCCD.setExposureDuration(ExposureRequest);
         }
 
+        int rc = QSICam.put_PreExposureFlush(QSICamera::FlushNormal);
+        if (rc != 0)
+            DEBUG(INDI::Logger::DBG_DEBUG, "Flushing is not supported.");
+
             /* BIAS frame is the same as DARK but with minimum period. i.e. readout from camera electronics.*/
             if (imageFrameType == CCDChip::BIAS_FRAME)
-            {
+            {                
                 try
                 {
-                    QSICam.put_PreExposureFlush(QSICamera::FlushNormal);
+
                     QSICam.StartExposure (ExposureRequest,false);
                 } catch (std::runtime_error& err)
                 {
@@ -804,12 +808,11 @@ bool QSICCD::StartExposure(float duration)
                     return false;
                 }
             }
-
             else if (imageFrameType == CCDChip::DARK_FRAME)
-            {
+            {                
                 try
                 {
-                    QSICam.put_PreExposureFlush(QSICamera::FlushNormal);
+
                     QSICam.StartExposure (ExposureRequest,false);
                 } catch (std::runtime_error& err)
                 {
@@ -817,12 +820,10 @@ bool QSICCD::StartExposure(float duration)
                     return false;
                 }
             }
-
             else if (imageFrameType == CCDChip::LIGHT_FRAME || imageFrameType == CCDChip::FLAT_FRAME)
-            {
+            {                
                 try
-                {
-                    QSICam.put_PreExposureFlush(QSICamera::FlushNormal);
+                {                    
                     QSICam.StartExposure (ExposureRequest,true);
                 } catch (std::runtime_error& err)
                 {
