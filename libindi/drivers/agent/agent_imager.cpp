@@ -92,8 +92,7 @@ void Imager::initiateNextFilter() {
         } else {
           initiateNextCapture();
         }
-      }
-      if (filterSlot && FilterSlotN[0].value != filterSlot) {
+      } else if (filterSlot && FilterSlotN[0].value != filterSlot) {
         FilterSlotN[0].value = filterSlot;
         sendNewNumber(&FilterSlotNP);
         DEBUGF(INDI::Logger::DBG_DEBUG, "Group %d of %d, image %d of %d, filer %d, filter set initiated on %s", group, maxGroup, image, maxImage, (int)FilterSlotN[0].value, FilterSlotNP.device);
