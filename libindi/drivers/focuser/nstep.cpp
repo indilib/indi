@@ -30,38 +30,21 @@
 
 #define POLLMS  2000
 
-std::auto_ptr<NSTEP> nstep(0);
+std::unique_ptr<NSTEP> nstep(new NSTEP());
 
-void ISInit() {
-  static bool isInit = false;
-  if (!isInit) {
-    isInit = 1;
-    if (!nstep.get())
-      nstep.reset(new NSTEP());
-  }
-}
-
-void ISGetProperties(const char *dev) {
-  ISInit();
-  if (nstep.get())
+void ISGetProperties(const char *dev) {  
     nstep->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num) {
-  ISInit();
-  if (nstep.get())
     nstep->ISNewSwitch(dev, name, states, names, num);
 }
 
 void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num) {
-  ISInit();
-  if (nstep.get())
     nstep->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num) {
-  ISInit();
-  if (nstep.get())
     nstep->ISNewNumber(dev, name, values, names, num);
 }
 
@@ -77,7 +60,7 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
 }
 
 void ISSnoopDevice(XMLEle *root) {
-  INDI_UNUSED(root);
+  nstep->ISSnoopDevice(root);
 }
 
 NSTEP::NSTEP() {
@@ -101,7 +84,7 @@ bool NSTEP::command(const char *request, char *response, int count) {
       return true;
     }
     if (!strcmp(request, ":RP")) {
-      sprintf(response, "%+07d", sim_position);
+      sprintf(response, "%+07ld", sim_position);
       DEBUGF(INDI::Logger::DBG_DEBUG,  "Read [%s]", response);
       return true;
     }
@@ -159,7 +142,7 @@ bool NSTEP::command(const char *request, char *response, int count) {
   if (rc != TTY_OK) {
     char message[MAXRBUF];
     tty_error_msg(rc, message, MAXRBUF);
-    IDMessage(getDeviceName(), message);
+    IDMessage(getDeviceName(), "%s", message);
     pthread_mutex_unlock(&lock);
     return false;
   }
@@ -259,7 +242,7 @@ bool NSTEP::updateProperties() {
   if (isConnected()) {
     command(":CC1", NULL, 0);
     if (command(":RP", buf, 7)) {
-      sscanf(buf, "%d", &position);
+      sscanf(buf, "%ld", &position);
       FocusAbsPosN[0].value = position;
       defineNumber(&FocusAbsPosNP);
     } else {
