@@ -41,6 +41,7 @@ static unsigned char eeprom[] = { SSAG_EEPROM };
 bool Loader::Connect() {
   if (this->handle = libusb_open_device_with_vid_pid(ctx, SSAG_LOADER_VENDOR_ID, SSAG_LOADER_PRODUCT_ID))
     return true;
+  DBG("Failed to connect device %04x:%04x", SSAG_LOADER_VENDOR_ID, SSAG_LOADER_PRODUCT_ID);
   return false;
 }
 

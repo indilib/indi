@@ -19,13 +19,7 @@ extern void IDMessage (const char *dev, const char *fmt, ...);
 }
 #endif
 
-#define DEBUG 1
-
-#if DEBUG
-#   define DBG(...) IDMessage(NULL, __VA_ARGS__)
-#else
-#   define DBG(...)
-#endif
+#define DBG(...) IDMessage("SSAG CCD", __VA_ARGS__)
 
 extern libusb_context *ctx;
 

@@ -573,19 +573,6 @@ bool FLICCD::UpdateCCDBin(int binx, int biny)
     return UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
 }
 
-float FLICCD::calcTimeLeft()
-{
-    double timesince;
-    double timeleft;
-    struct timeval now;
-    gettimeofday(&now,NULL);
-
-    timesince=(double)(now.tv_sec * 1000.0 + now.tv_usec/1000) - (double)(ExpStart.tv_sec * 1000.0 + ExpStart.tv_usec/1000);
-    timesince=timesince/1000;
-    timeleft=ExposureRequest-timesince;
-    return timeleft;
-}
-
 // Downloads the image from the CCD.
 bool FLICCD::grabImage()
 {
@@ -633,53 +620,38 @@ void FLICCD::TimerHit()
 
     if (InExposure)
     {
-        timeleft=calcTimeLeft();
-
-        if(timeleft < 1.0)
+        //timeleft=calcTimeLeft();
+        if ((err = FLIGetExposureStatus(fli_dev, &timeleft)))
         {
-            if(timeleft > 0.25)
+            DEBUGF(INDI::Logger::DBG_ERROR, "FLIGetExposureStatus() failed. %s.", strerror((int)-err));
+            SetTimer(POLLMS);
+            return;
+        }
+        DEBUGF(INDI::Logger::DBG_DEBUG, "FLIGetExposureStatus() succeed -> %ld", timeleft);
+        if (timeleft < 1000)
+        {
+            while (!sim && timeleft > 0)
             {
-                //  a quarter of a second or more
-                //  just set a tighter timer
-                timerID = SetTimer(250);
-            } else
-            {
-                if(timeleft >0.07)
+                if ((err = FLIGetExposureStatus(fli_dev, &timeleft)))
                 {
-                    //  use an even tighter timer
-                    timerID = SetTimer(50);
-                } else
-                {
-                    //  it's real close now, so spin on it
-                    while(!sim && timeleft > 0)
-                    {
-
-                        if ((err = FLIGetExposureStatus(fli_dev, &timeleft)))
-                        {
-                            DEBUGF(INDI::Logger::DBG_ERROR, "FLIGetExposureStatus() failed. %s.", strerror((int)-err));
-                            SetTimer(POLLMS);
-                            return;
-                        }
-
-                        int slv;
-                        slv=100000*timeleft;
-                        usleep(slv);
-                    }
-
-                    /* We're done exposing */
-                    DEBUG(INDI::Logger::DBG_SESSION, "Exposure done, downloading image...");
-
-                    PrimaryCCD.setExposureLeft(0);
-                    InExposure = false;
-                    /* grab and save image */
-                    grabImage();
-
+                    DEBUGF(INDI::Logger::DBG_ERROR, "FLIGetExposureStatus() failed. %s.", strerror((int)-err));
+                    SetTimer(POLLMS);
+                    return;
                 }
+                usleep(1000*timeleft);
             }
+
+            /* We're done exposing */
+            DEBUG(INDI::Logger::DBG_SESSION, "Exposure done, downloading image...");
+
+            PrimaryCCD.setExposureLeft(0);
+            InExposure = false;
+            /* grab and save image */
+            grabImage();
         }
         else
         {
-            DEBUGF(INDI::Logger::DBG_DEBUG,"Exposure in progress. Time left: %ld seconds", timeleft);
+            DEBUGF(INDI::Logger::DBG_DEBUG,"Exposure in progress. Time left: %ld seconds", timeleft/1000);
             PrimaryCCD.setExposureLeft(timeleft);
         }
 

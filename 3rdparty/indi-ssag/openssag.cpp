@@ -109,19 +109,18 @@ libusb_context *ctx = NULL;
 SSAG::SSAG() {
   if (ctx == NULL) {
     int rc = libusb_init(&ctx);
-    if (rc < 0) {
-      DBG("ibusb_init -> %s", rc < 0 ? libusb_error_name(rc) : "OK");
-    }
+    DBG("ibusb_init -> %s", rc < 0 ? libusb_error_name(rc) : "OK");
   }
 }
 
 bool SSAG::Connect(bool bootload) {
+  DBG("Connect(%d)", bootload);
   if ((this->handle = libusb_open_device_with_vid_pid(ctx, SSAG_VENDOR_ID, SSAG_PRODUCT_ID)) == NULL) {
     if (bootload) {
       Loader *loader = new Loader();
       if (loader->Connect()) {
         if (!loader->LoadFirmware()) {
-          DBG("ERROR:  Failed to upload firmware to the device");
+          DBG("Failed to upload firmware to the device");
           return false;
         }
         loader->Disconnect();
@@ -130,9 +129,10 @@ bool SSAG::Connect(bool bootload) {
             return true;
           sleep(1);
         }
-        DBG("ERROR:  Device did not renumerate. Timed out.");
+        DBG("Device did not renumerate. Timed out.");
         return false;
       } else {
+        DBG("Failed to connect loader");
         return false;
       }
     } else {
@@ -148,7 +148,7 @@ bool SSAG::Connect(bool bootload) {
 }
 
 bool SSAG::Connect() {
-  this->Connect(true);
+  return this->Connect(true);
 }
 
 void SSAG::Disconnect() {
