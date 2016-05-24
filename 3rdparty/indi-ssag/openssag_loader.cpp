@@ -55,15 +55,29 @@ void Loader::Disconnect()
 void Loader::EnterResetMode()
 {
   unsigned char data = 0x01;
-  libusb_control_transfer(this->handle, 0x40, USB_RQ_LOAD_FIRMWARE, 0x7f92, 0, &data, 1, 5000);
-  libusb_control_transfer(this->handle, 0x40, USB_RQ_LOAD_FIRMWARE, CPUCS_ADDRESS, 0, &data, 1, 5000);
+  int rc;
+  rc = libusb_control_transfer(this->handle, 0x40, USB_RQ_LOAD_FIRMWARE, 0x7f92, 0, &data, 1, 5000);
+  if (rc < 0) {
+    DBG("Can't send USB_RQ_LOAD_FIRMWARE request (%d)", rc);
+  }
+  rc = libusb_control_transfer(this->handle, 0x40, USB_RQ_LOAD_FIRMWARE, CPUCS_ADDRESS, 0, &data, 1, 5000);
+  if (rc < 0) {
+    DBG("Can't send USB_RQ_LOAD_FIRMWARE request (%d)", rc);
+  }
 }
 
 void Loader::ExitResetMode()
 {
   unsigned char data = 0x00;
-  libusb_control_transfer(this->handle, 0x40, USB_RQ_LOAD_FIRMWARE, 0x7f92, 0, &data, 1, 5000);
-  libusb_control_transfer(this->handle, 0x40, USB_RQ_LOAD_FIRMWARE, CPUCS_ADDRESS, 0, &data, 1, 5000);
+  int rc;
+  rc = libusb_control_transfer(this->handle, 0x40, USB_RQ_LOAD_FIRMWARE, 0x7f92, 0, &data, 1, 5000);
+  if (rc < 0) {
+    DBG("Can't send USB_RQ_LOAD_FIRMWARE request (%d)", rc);
+  }
+  rc = libusb_control_transfer(this->handle, 0x40, USB_RQ_LOAD_FIRMWARE, CPUCS_ADDRESS, 0, &data, 1, 5000);
+  if (rc < 0) {
+    DBG("Can't send USB_RQ_LOAD_FIRMWARE request (%d)", rc);
+  }
 }
 
 bool Loader::Upload(unsigned char *data)
@@ -114,7 +128,10 @@ bool Loader::LoadEEPROM()
 {
   size_t length = *eeprom;
   unsigned char *data = (unsigned char *)(eeprom+3);
-  libusb_control_transfer(this->handle, 0x40, USB_RQ_WRITE_SMALL_EEPROM, 0x00, 0xBEEF, data, length, 5000);
-  
+  int rc = libusb_control_transfer(this->handle, 0x40, USB_RQ_WRITE_SMALL_EEPROM, 0x00, 0xBEEF, data, length, 5000);
+  if (rc < 0) {
+    DBG("Can't send USB_RQ_WRITE_SMALL_EEPROM request (%d)", rc);
+  }
+
   return true;
 }

@@ -4392,7 +4392,7 @@
 				9DDA42C21A8CC5D90004AA95 /* wcsutil.c */,
 			);
 			name = libcfitsio;
-			path = ../../../cfit3380;
+			path = ../../../cfitsio3390;
 			sourceTree = "<group>";
 		};
 		9DDA436E1A8CC8E70004AA95 /* zlib */ = {

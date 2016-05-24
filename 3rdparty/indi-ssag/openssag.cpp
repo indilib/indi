@@ -109,12 +109,14 @@ libusb_context *ctx = NULL;
 SSAG::SSAG() {
   if (ctx == NULL) {
     int rc = libusb_init(&ctx);
-    DBG("ibusb_init -> %s", rc < 0 ? libusb_error_name(rc) : "OK");
+    if (rc < 0) {
+      DBG("Can't initialize libusb (%d)", rc);
+    }
   }
 }
 
 bool SSAG::Connect(bool bootload) {
-  DBG("Connect(%d)", bootload);
+  DBG("Connect%s", bootload ? " with bootload" : "");
   if ((this->handle = libusb_open_device_with_vid_pid(ctx, SSAG_VENDOR_ID, SSAG_PRODUCT_ID)) == NULL) {
     if (bootload) {
       Loader *loader = new Loader();
@@ -140,6 +142,24 @@ bool SSAG::Connect(bool bootload) {
     }
   }
   
+  int rc;
+  if (libusb_kernel_driver_active(this->handle, 0) == 1) {
+    rc = libusb_detach_kernel_driver(this->handle, 0);
+    if (rc < 0) {
+      DBG("Can't detach kernel driver (%d)", rc);
+    }
+  }
+  
+  rc = libusb_set_configuration(this->handle, 1);
+  if (rc < 0) {
+    DBG("Can't set configuration (%d)", rc);
+  }
+
+  rc = libusb_claim_interface(this->handle, 0);
+  if (rc < 0) {
+    DBG("Can't claim interface (%d)", rc);
+  }
+  
   this->SetBufferMode();
   this->SetGain(1);
   this->InitSequence();
@@ -159,7 +179,10 @@ void SSAG::Disconnect() {
 
 void SSAG::SetBufferMode() {
   unsigned char data[4];
-  libusb_control_transfer(this->handle, 0xc0, USB_RQ_SET_BUFFER_MODE, 0x00, 0x63, data, sizeof(data), USB_TIMEOUT);
+  int rc = libusb_control_transfer(this->handle, 0xc0, USB_RQ_SET_BUFFER_MODE, 0x00, 0x63, data, sizeof(data), USB_TIMEOUT);
+  if (rc < 0) {
+    DBG("Can't read buffer mode data (%d)", rc);
+  }
   DBG("Buffer Mode Data: %02x%02x%02x%02x", data[0], data[1], data[2], data[3]);
 }
 
@@ -170,7 +193,10 @@ bool SSAG::IsConnected() {
 struct raw_image *SSAG::Expose(int duration) {
   this->InitSequence();
   unsigned char data[16];
-  libusb_control_transfer(this->handle, 0xc0, USB_RQ_EXPOSE, duration, 0, data, 2, USB_TIMEOUT);
+  int rc = libusb_control_transfer(this->handle, 0xc0, USB_RQ_EXPOSE, duration, 0, data, 2, USB_TIMEOUT);
+  if (rc < 0) {
+    DBG("Can't send USB_RQ_EXPOSE request (%d)", rc);
+  }
   
   struct raw_image *image = (raw_image *)malloc(sizeof(struct raw_image));
   image->width = IMAGE_WIDTH;
@@ -194,7 +220,10 @@ void SSAG::CancelExposure() {
   /* Not tested */
   unsigned char data = 0;
   int transferred;
-  libusb_bulk_transfer(this->handle, 0, &data, 1, &transferred, USB_TIMEOUT);
+  int rc = libusb_bulk_transfer(this->handle, 0, &data, 1, &transferred, USB_TIMEOUT);
+  if (rc < 0) {
+    DBG("Can't abort exposure (%d)", rc);
+  }
 }
 
 void SSAG::Guide(int direction, int duration) {
@@ -207,7 +236,10 @@ void SSAG::Guide(int direction, int yduration, int xduration) {
   memcpy(data    , &xduration, 4);
   memcpy(data + 4, &yduration, 4);
   
-  libusb_control_transfer(this->handle, 0x40, USB_RQ_GUIDE, 0, (int)direction, data, sizeof(data), USB_TIMEOUT);
+  int rc = libusb_control_transfer(this->handle, 0x40, USB_RQ_GUIDE, 0, (int)direction, data, sizeof(data), USB_TIMEOUT);
+  if (rc < 0) {
+    DBG("Can't send USB_RQ_GUIDE request (%d)", rc);
+  }
 }
 
 void SSAG::InitSequence() {
@@ -236,9 +268,16 @@ void SSAG::InitSequence() {
   
   int wValue = BUFFER_SIZE & 0xffff;
   int wIndex = BUFFER_SIZE  >> 16;
+  int rc;
   
-  libusb_control_transfer(this->handle, 0x40, USB_RQ_SET_INIT_PACKET, wValue, wIndex, init_packet, sizeof(init_packet), USB_TIMEOUT);
-  libusb_control_transfer(this->handle, 0x40, USB_RQ_PRE_EXPOSE, PIXEL_OFFSET, 0, NULL, 0, USB_TIMEOUT);
+  rc = libusb_control_transfer(this->handle, 0x40, USB_RQ_SET_INIT_PACKET, wValue, wIndex, init_packet, sizeof(init_packet), USB_TIMEOUT);
+  if (rc < 0) {
+    DBG("Can't send USB_RQ_SET_INIT_PACKET request (%d)", rc);
+  }
+  rc = libusb_control_transfer(this->handle, 0x40, USB_RQ_PRE_EXPOSE, PIXEL_OFFSET, 0, NULL, 0, USB_TIMEOUT);
+  if (rc < 0) {
+    DBG("Can't send USB_RQ_PRE_EXPOSE request (%d)", rc);
+  }
 }
 
 unsigned char *SSAG::ReadBuffer(int timeout) {
@@ -246,14 +285,14 @@ unsigned char *SSAG::ReadBuffer(int timeout) {
   unsigned char *dptr, *iptr;
   int transferred;
   
-  int ret = libusb_bulk_transfer(this->handle, BUFFER_ENDPOINT, data, BUFFER_SIZE, &transferred, timeout);
+  int rc = libusb_bulk_transfer(this->handle, BUFFER_ENDPOINT, data, BUFFER_SIZE, &transferred, timeout);
   
-  if (ret != BUFFER_SIZE) {
-    DBG("Expected %d bytes of image data but got %d bytes", BUFFER_SIZE, ret);
+  if (rc != BUFFER_SIZE) {
+    DBG("Failed to receive bytes of image data (%d)", rc);
     free(data);
     return NULL;
   } else {
-    DBG("Received %d bytes of image data", ret);
+    DBG("Received %d bytes of image data", rc);
   }
   
   unsigned char *image = (unsigned char *)malloc(IMAGE_WIDTH * IMAGE_HEIGHT);
