@@ -44,6 +44,10 @@ class SSAGCCD : public INDI::CCD {
 
 private:
   OpenSSAG::SSAG *ssag;
+  float remaining;
+
+  INumber GainN[1];
+  INumberVectorProperty GainNP;
 
 public:
   SSAGCCD();
@@ -55,10 +59,15 @@ public:
   bool Disconnect();
   bool StartExposure(float duration);
   bool AbortExposure();
+  void TimerHit();
+  bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
   IPState GuideWest(float time);
   IPState GuideEast(float time);
   IPState GuideNorth(float time);
   IPState GuideSouth(float time);
+
+  void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip);
+  bool saveConfigItems(FILE *fp);
 
 protected:
   

@@ -10,15 +10,19 @@
 #ifndef __OPEN_SSAG_H__ 
 #define __OPEN_SSAG_H__ 
 
-/* Orion Telescopes VID */
+/* Orion Telescopes SSAG VID/PID */
 #define SSAG_VENDOR_ID 0x1856
-/* SSAG IO PID */
 #define SSAG_PRODUCT_ID 0x0012
 
-/* Orion Telescopes VID */
+/* uninitialized SSAG VID/PID */
 #define SSAG_LOADER_VENDOR_ID 0x1856
-/* Loader PID for loading firmware */
 #define SSAG_LOADER_PRODUCT_ID 0x0011
+
+/* uninitialized QHY5 VID/PID */
+#define QHY5_LOADER_VENDOR_ID 0x1618
+#define QHY5_LOADER_PRODUCT_ID 0x0901
+
+
 
 typedef struct libusb_device_handle libusb_device_handle;
 
@@ -60,9 +64,6 @@ namespace OpenSSAG
         /* Sends init packet and pre expose request */
         void InitSequence();
 
-        /* Gets the data from the autoguider's internal buffer */
-        unsigned char *ReadBuffer(int timeout);
-
         /* Holds the converted gain */
         unsigned int gain;
 
@@ -90,9 +91,15 @@ namespace OpenSSAG
         /* Expose and return the image in raw gray format. Function is blocking. */
         struct raw_image *Expose(int duration);
 
+        /* Start exposure in raw gray format. Function is non-blocking. */
+        void StartExposure(int duration);
+
         /* Cancels an exposure */
         void CancelExposure();
 
+        /* Gets the data from the autoguider's internal buffer */
+        unsigned char *ReadBuffer(int timeout);
+        
         /* Issue a guide command through the guider relays. Guide directions
          * can be OR'd together to move in X and Y at the same time.
          *

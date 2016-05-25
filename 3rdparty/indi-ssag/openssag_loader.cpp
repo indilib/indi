@@ -41,7 +41,9 @@ static unsigned char eeprom[] = { SSAG_EEPROM };
 bool Loader::Connect() {
   if (this->handle = libusb_open_device_with_vid_pid(ctx, SSAG_LOADER_VENDOR_ID, SSAG_LOADER_PRODUCT_ID))
     return true;
-  DBG("Failed to connect device %04x:%04x", SSAG_LOADER_VENDOR_ID, SSAG_LOADER_PRODUCT_ID);
+  if (this->handle = libusb_open_device_with_vid_pid(ctx, QHY5_LOADER_VENDOR_ID, QHY5_LOADER_PRODUCT_ID))
+    return true;
+  DBG("Failed to connect device");
   return false;
 }
 
@@ -104,20 +106,14 @@ bool Loader::LoadFirmware()
   /* Load bootloader */
   this->EnterResetMode();
   this->EnterResetMode();
-  DBG("Loading bootloader...");
   if (!this->Upload(bootloader))
     return false;
-  DBG("done");
   this->ExitResetMode(); /* Transfer execution to the reset vector */
-  
   sleep(1); /* Wait for renumeration */
-  
   /* Load firmware */
   this->EnterResetMode();
-  DBG("Loading firmware...");
   if (!this->Upload(firmware))
     return false;
-  DBG("done");
   this->EnterResetMode(); /* Make sure the CPU is in reset */
   this->ExitResetMode(); /* Transfer execution to the reset vector */
   

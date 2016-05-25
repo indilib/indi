@@ -36,6 +36,9 @@
 
 #include "ssagccd.h"
 
+#define WIDTH 1280
+#define HEIGHT 1024
+
 std::unique_ptr<SSAGCCD> camera(new SSAGCCD());
 
 void ISGetProperties(const char *dev) {
@@ -79,11 +82,23 @@ const char *SSAGCCD::getDefaultName() {
 
 bool SSAGCCD::initProperties() {
   INDI::CCD::initProperties();
+  IUFillNumber(&GainN[0], "CCD_GAIN", "Gain", "%.0f", 1, 15, 1, 1);
+  IUFillNumberVector(&GainNP, GainN, 1, getDeviceName(), "CCD_GAIN", "Gain", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
   addDebugControl();
+  SetCCDCapability(CCD_HAS_ST4_PORT | CCD_CAN_ABORT);
+  SetCCDParams(WIDTH, HEIGHT, 8, 5.2, 5.2);
 }
 
 bool SSAGCCD::updateProperties() {
   INDI::CCD::updateProperties();
+  if (isConnected()) {
+    defineNumber(&GainNP);
+    PrimaryCCD.setInterlaced(false);
+    PrimaryCCD.setFrame(0, 0, WIDTH, HEIGHT);
+    PrimaryCCD.setFrameBufferSize(WIDTH*HEIGHT+512);
+  } else {
+    deleteProperty(GainNP.name);
+  }
 }
 
 bool SSAGCCD::Connect() {
@@ -93,34 +108,64 @@ bool SSAGCCD::Connect() {
     IDMessage(getDeviceName(), "Failed to connect to SSAG");
     return false;
   }
-  setConnected(true);
-  SetCCDCapability(CCD_HAS_ST4_PORT);
-  PrimaryCCD.setInterlaced(false);
-  SetCCDParams(1280, 1024, 8, 5.2, 5.2);
-  PrimaryCCD.setFrameBufferSize(1280*1024+512);
   return true;
 }
 
 bool SSAGCCD::StartExposure(float duration) {
   ExposureTime = duration;
   InExposure = true;
+  ssag->StartExposure(duration*1000);
   PrimaryCCD.setExposureDuration(duration);
-  struct OpenSSAG::raw_image *image = ssag->Expose(duration*1000);
-  PrimaryCCD.setExposureLeft(0);
-  if (image) {
-    PrimaryCCD.setFrame(0, 0, image->width, image->height);
-    unsigned char* imgBuf =  (unsigned char *)PrimaryCCD.getFrameBuffer();
-    memcpy(imgBuf, image->data, image->width*image->height);
-    ssag->FreeRawImage(image);
-    InExposure = false;
-    ExposureComplete(&PrimaryCCD);
-    return true;
+  PrimaryCCD.setExposureLeft(duration);
+  if (duration < 1) {
+    remaining = 0;
+    SetTimer(duration*1000);
+  } else {
+    remaining = duration - 1;
+    SetTimer(1000);
   }
-  return false;
+  return true;
 }
 
 bool SSAGCCD::AbortExposure() {
   return true;
+}
+
+void SSAGCCD::TimerHit() {
+  if (InExposure) {
+    PrimaryCCD.setExposureLeft(remaining);
+    if (remaining == 0) {
+      unsigned char *data = ssag->ReadBuffer(0);
+      if (data) {
+        memcpy( (unsigned char *)PrimaryCCD.getFrameBuffer(), data, WIDTH*HEIGHT);
+        InExposure = false;
+        ExposureComplete(&PrimaryCCD);
+      } else {
+        PrimaryCCD.setExposureFailed();
+      }
+    } else {
+      remaining -= 1;
+      SetTimer(1000);
+    }
+  }
+}
+
+bool SSAGCCD::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n) {
+  if (!strcmp(dev, getDeviceName())) {
+    if (!strcmp(name, GainNP.name)) {
+      IUUpdateNumber(&GainNP, values, names, n);
+      ssag->SetGain(GainN[0].value);
+      IDSetNumber(&GainNP, "Gain set to %.0f", GainN[0].value);
+      return true;
+    }
+  }
+  return INDI::CCD::ISNewNumber(dev, name, values, names, n);
+}
+
+void SSAGCCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip) {
+  int status;
+  fits_update_key_s(fptr, TDOUBLE, "GAIN   ", &GainN[0].value, "Gain", &status);
+  return INDI::CCD::addFITSKeywords(fptr, targetChip);
 }
 
 IPState SSAGCCD::GuideWest(float time) {
@@ -148,6 +193,12 @@ bool SSAGCCD::Disconnect() {
     ssag->Disconnect();
   }
   setConnected(false);
+  return true;
+}
+
+bool SSAGCCD::saveConfigItems(FILE *fp) {
+  INDI::CCD::saveConfigItems(fp);
+  IUSaveConfigNumber(fp, &GainNP);  
   return true;
 }
 

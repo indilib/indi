@@ -120,7 +120,7 @@ void Imager::initiateNextCapture() {
       IUSaveText(&CCDUploadSettingsT[1], "_TMP_");
       sendNewSwitch(&CCDUploadSP);
       sendNewText(&CCDUploadSettingsTP);
-      DEBUGF(INDI::Logger::DBG_DEBUG, "Group %d of %d, image %d of %d, duration %.1gs, binning %d, capture initiated on %s", group, maxGroup, image, maxImage, CCDImageExposureN[0].value, (int)CCDImageBinN[0].value,CCDImageExposureNP.device);
+      DEBUGF(INDI::Logger::DBG_DEBUG, "Group %d of %d, image %d of %d, duration %.1fs, binning %d, capture initiated on %s", group, maxGroup, image, maxImage, CCDImageExposureN[0].value, (int)CCDImageBinN[0].value,CCDImageExposureNP.device);
     }
   }
 }

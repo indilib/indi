@@ -116,7 +116,6 @@ SSAG::SSAG() {
 }
 
 bool SSAG::Connect(bool bootload) {
-  DBG("Connect%s", bootload ? " with bootload" : "");
   if ((this->handle = libusb_open_device_with_vid_pid(ctx, SSAG_VENDOR_ID, SSAG_PRODUCT_ID)) == NULL) {
     if (bootload) {
       Loader *loader = new Loader();
@@ -183,7 +182,7 @@ void SSAG::SetBufferMode() {
   if (rc < 0) {
     DBG("Can't read buffer mode data (%d)", rc);
   }
-  DBG("Buffer Mode Data: %02x%02x%02x%02x", data[0], data[1], data[2], data[3]);
+//  DBG("Buffer Mode Data: %02x%02x%02x%02x", data[0], data[1], data[2], data[3]);
 }
 
 bool SSAG::IsConnected() {
@@ -193,20 +192,19 @@ bool SSAG::IsConnected() {
 struct raw_image *SSAG::Expose(int duration) {
   this->InitSequence();
   unsigned char data[16];
-  int rc = libusb_control_transfer(this->handle, 0xc0, USB_RQ_EXPOSE, duration, 0, data, 2, USB_TIMEOUT);
+  int rc = libusb_control_transfer(this->handle, 0xc0, USB_RQ_EXPOSE, duration & 0xFFFF, duration >> 16, data, 2, USB_TIMEOUT);
   if (rc < 0) {
     DBG("Can't send USB_RQ_EXPOSE request (%d)", rc);
   }
-  
   struct raw_image *image = (raw_image *)malloc(sizeof(struct raw_image));
   image->width = IMAGE_WIDTH;
   image->height = IMAGE_HEIGHT;
   image->data = this->ReadBuffer(duration + USB_TIMEOUT);
   
-  DBG("Pixel Offset: %d", PIXEL_OFFSET);
-  DBG("Buffer Size: %d", BUFFER_SIZE);
-  DBG("  Buffer Width: %d", BUFFER_WIDTH);
-  DBG("  Buffer Height: %d", BUFFER_HEIGHT);
+//  DBG("Pixel Offset: %d", PIXEL_OFFSET);
+//  DBG("Buffer Size: %d", BUFFER_SIZE);
+//  DBG("  Buffer Width: %d", BUFFER_WIDTH);
+//  DBG("  Buffer Height: %d", BUFFER_HEIGHT);
   
   if (!image->data) {
     free(image);
@@ -216,11 +214,20 @@ struct raw_image *SSAG::Expose(int duration) {
   return image;
 }
 
+void SSAG::StartExposure(int duration) {
+  this->InitSequence();
+  unsigned char data[16];
+  int rc = libusb_control_transfer(this->handle, 0xc0, USB_RQ_EXPOSE, duration & 0xFFFF, duration >> 16, data, 2, USB_TIMEOUT);
+  if (rc < 0) {
+    DBG("Can't send USB_RQ_EXPOSE request (%d)", rc);
+  }
+}
+
 void SSAG::CancelExposure() {
   /* Not tested */
   unsigned char data = 0;
   int transferred;
-  int rc = libusb_bulk_transfer(this->handle, 0, &data, 1, &transferred, USB_TIMEOUT);
+  int rc = libusb_bulk_transfer(this->handle, LIBUSB_ENDPOINT_IN, &data, 1, &transferred, USB_TIMEOUT);
   if (rc < 0) {
     DBG("Can't abort exposure (%d)", rc);
   }
@@ -245,10 +252,10 @@ void SSAG::Guide(int direction, int yduration, int xduration) {
 void SSAG::InitSequence() {
   unsigned char init_packet[18] = {
     /* Gain settings */
-    0x00, (unsigned char)(this->gain), /* G1 Gain */
-    0x00, (unsigned char)(this->gain), /* B  Gain */
-    0x00, (unsigned char)(this->gain), /* R  Gain */
-    0x00, (unsigned char)(this->gain), /* G2 Gain */
+    0x00, static_cast<unsigned char>(this->gain), /* G1 Gain */
+    0x00, static_cast<unsigned char>(this->gain), /* B  Gain */
+    0x00, static_cast<unsigned char>(this->gain), /* R  Gain */
+    0x00, static_cast<unsigned char>(this->gain), /* G2 Gain */
     
     /* Vertical Offset. Reg0x01 */
     ROW_START >> 8, ROW_START & 0xff,
@@ -285,14 +292,12 @@ unsigned char *SSAG::ReadBuffer(int timeout) {
   unsigned char *dptr, *iptr;
   int transferred;
   
-  int rc = libusb_bulk_transfer(this->handle, BUFFER_ENDPOINT, data, BUFFER_SIZE, &transferred, timeout);
+  int rc = libusb_bulk_transfer(this->handle, BUFFER_ENDPOINT, data, BUFFER_SIZE, &transferred, timeout+USB_TIMEOUT);
   
-  if (rc != BUFFER_SIZE) {
+  if (transferred != BUFFER_SIZE) { // fixed!
     DBG("Failed to receive bytes of image data (%d)", rc);
     free(data);
     return NULL;
-  } else {
-    DBG("Received %d bytes of image data", rc);
   }
   
   unsigned char *image = (unsigned char *)malloc(IMAGE_WIDTH * IMAGE_HEIGHT);
@@ -326,7 +331,7 @@ void SSAG::SetGain(int gain) {
     this->gain = (gain - 8) + 0x60;
   }
   
-  DBG("Setting gain to %d (Register value 0x%02x)", gain, this->gain);
+//  DBG("Setting gain to %d (Register value 0x%02x)", gain, this->gain);
 }
 
 void SSAG::FreeRawImage(raw_image *image) {
