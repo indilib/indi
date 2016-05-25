@@ -18,6 +18,10 @@
         + Added Gain option
         + Added AntiBlooming option (Miguel)
 
+    2016:
+        + Check if flushing is supported.
+        + Always set BIAS exposure to zero.
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation; either
@@ -128,6 +132,7 @@ QSICCD::QSICCD()
     canSetGain = false;
     canControlFan = false;
     canSetAB = false;
+    canFlush = false;
     canChangeReadoutSpeed = false;
 
     QSICam.put_UseStructuredExceptions(true);
@@ -312,6 +317,8 @@ bool QSICCD::setupParams()
 
     GetFilterNames(FILTER_TAB);
 
+    double minDuration=0;
+
     try
     {
         QSICam.get_MinExposureTime(&minDuration);
@@ -320,6 +327,8 @@ bool QSICCD::setupParams()
         DEBUGF(INDI::Logger::DBG_ERROR, "get_MinExposureTime() failed. %s.", err.what());
         return false;
     }
+
+    PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", minDuration, 3600, 1, true);
 
     bool coolerOn=false;
 
@@ -439,6 +448,19 @@ bool QSICCD::setupParams()
             ReadOutS[cReadoutSpeed].s = ISS_ON;
             defineSwitch(&ReadOutSP);
         }
+    }
+
+    // Can flush
+    canFlush = false;
+    try
+    {
+        QSICam.put_PreExposureFlush(QSICamera::FlushNormal);
+        canFlush = true;
+    }
+    catch (std::runtime_error err)
+    {
+        DEBUGF(INDI::Logger::DBG_DEBUG, "Camera does not pre-exposure flushing %s.", err.what());
+        canFlush = false;
     }
 
     return true;
@@ -772,71 +794,60 @@ bool QSICCD::ISNewNumber(const char *dev, const char *name, double values[], cha
 
 bool QSICCD::StartExposure(float duration)
 {
-        if(ExposureRequest < minDuration)
+    imageFrameType = PrimaryCCD.getFrameType();
+
+    if(imageFrameType == CCDChip::BIAS_FRAME)
+    {
+        ExposureRequest = 0;
+        PrimaryCCD.setExposureDuration(0);
+        DEBUG(INDI::Logger::DBG_SESSION, "Bias Frame (s) : 0");
+    } else
+    {
+        ExposureRequest = duration;
+        PrimaryCCD.setExposureDuration(ExposureRequest);
+    }
+
+    if (canFlush)
+    {
+        try
         {
-            ExposureRequest = minDuration;
-            DEBUGF(INDI::Logger::DBG_WARNING, "Exposure shorter than minimum ExposureRequest %g s requested. \n Setting exposure time to %g s.", minDuration,minDuration);
+            QSICam.put_PreExposureFlush(QSICamera::FlushNormal);
         }
-
-        imageFrameType = PrimaryCCD.getFrameType();
-
-        if(imageFrameType == CCDChip::BIAS_FRAME)
+        catch (std::runtime_error& err)
         {
-            ExposureRequest = minDuration;
-            PrimaryCCD.setExposureDuration(ExposureRequest);
-            DEBUGF(INDI::Logger::DBG_SESSION, "Bias Frame (s) : %g\n", ExposureRequest);
-        } else
-        {
-            ExposureRequest = duration;
-            PrimaryCCD.setExposureDuration(ExposureRequest);
+            DEBUGF(INDI::Logger::DBG_WARNING, "Warning! Pre-exposure flushing failed. %s.", err.what());
         }
+    }
 
-        int rc = QSICam.put_PreExposureFlush(QSICamera::FlushNormal);
-        if (rc != 0)
-            DEBUG(INDI::Logger::DBG_DEBUG, "Flushing is not supported.");
+    /* BIAS frame is the same as DARK but with minimum period. i.e. readout from camera electronics.*/
+    if (imageFrameType == CCDChip::BIAS_FRAME || imageFrameType == CCDChip::DARK_FRAME)
+    {
+        try
+        {
+            QSICam.StartExposure (ExposureRequest,false);
+        } catch (std::runtime_error& err)
+        {
+            DEBUGF(INDI::Logger::DBG_ERROR, "StartExposure() failed. %s.", err.what());
+            return false;
+        }
+    }
+    else if (imageFrameType == CCDChip::LIGHT_FRAME || imageFrameType == CCDChip::FLAT_FRAME)
+    {
+        try
+        {
+            QSICam.StartExposure (ExposureRequest,true);
+        } catch (std::runtime_error& err)
+        {
+            DEBUGF(INDI::Logger::DBG_ERROR, "StartExposure() failed. %s.", err.what());
+            return false;
+        }
+    }
 
-            /* BIAS frame is the same as DARK but with minimum period. i.e. readout from camera electronics.*/
-            if (imageFrameType == CCDChip::BIAS_FRAME)
-            {                
-                try
-                {
+    gettimeofday(&ExpStart,NULL);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Taking a %g seconds frame...", ExposureRequest);
 
-                    QSICam.StartExposure (ExposureRequest,false);
-                } catch (std::runtime_error& err)
-                {
-                    DEBUGF(INDI::Logger::DBG_ERROR, "StartExposure() failed. %s.", err.what());
-                    return false;
-                }
-            }
-            else if (imageFrameType == CCDChip::DARK_FRAME)
-            {                
-                try
-                {
-
-                    QSICam.StartExposure (ExposureRequest,false);
-                } catch (std::runtime_error& err)
-                {
-                    DEBUGF(INDI::Logger::DBG_ERROR, "StartExposure() failed. %s.", err.what());
-                    return false;
-                }
-            }
-            else if (imageFrameType == CCDChip::LIGHT_FRAME || imageFrameType == CCDChip::FLAT_FRAME)
-            {                
-                try
-                {                    
-                    QSICam.StartExposure (ExposureRequest,true);
-                } catch (std::runtime_error& err)
-                {
-                    DEBUGF(INDI::Logger::DBG_ERROR, "StartExposure() failed. %s.", err.what());
-                    return false;
-                }
-            }
-
-            gettimeofday(&ExpStart,NULL);
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Taking a %g seconds frame...", ExposureRequest);
-
-            InExposure = true;
-            return true;
+    InExposure = true;
+    return true;
 }
 
 bool QSICCD::AbortExposure()

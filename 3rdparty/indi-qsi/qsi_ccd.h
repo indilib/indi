@@ -73,10 +73,9 @@ class QSICCD : public INDI::CCD, public INDI::FilterInterface
     ISwitch ABS[2];
     ISwitchVectorProperty ABSP;
 
-    bool canAbort, canSetGain, canSetAB, canControlFan, canChangeReadoutSpeed;
+    bool canAbort, canSetGain, canSetAB, canControlFan, canChangeReadoutSpeed, canFlush;
     short targetFilter;
-    double ccdTemp, targetTemperature;
-    double minDuration;
+    double ccdTemp, targetTemperature;    
     unsigned short *imageBuffer;
     double ExposureRequest;
     int imageWidth, imageHeight;
