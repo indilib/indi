@@ -1133,7 +1133,9 @@ readFromClient (ClInfo *cp)
         /* JM 2016-05-18: Upstream client can be a chained INDI server. If any driver locally is snooping
          * on any remote drivers, we should catch it and forward it to the responsible snooping driver. */
         /* send to snooping drivers. */
-        q2SDrivers (isblob, dev, name, mp, root);
+        // JM 2016-05-26: Only forward setXXX messages
+        if (!strncmp (roottag, "set", 3))
+            q2SDrivers (isblob, dev, name, mp, root);
 
         /* echo new* commands back to other clients */
         if (!strncmp (roottag, "new", 3)) {
