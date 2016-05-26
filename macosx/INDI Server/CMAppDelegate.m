@@ -399,17 +399,26 @@
   pipe = open(FIFONAME, O_RDWR);
   
   _statusLabel.stringValue = @"Installing server job...";
-  SMJobRemove(kSMDomainUserLaunchd, (__bridge CFStringRef)serverId, nil, false, NULL);
+  CFErrorRef error=NULL;
+  if (SMJobRemove(kSMDomainUserLaunchd, (__bridge CFStringRef)serverId, nil, false, &error)) {
+  } else {
+    _statusImage.image = [NSImage imageNamed:@"NSStatusUnavailable"];
+    _statusLabel.stringValue = @"Failed to remove server job!";
+    NSLog(@"Failed to remove server job! %@", error);
+  }
+  if (error) {
+    CFRelease(error);
+  }
+  sleep(1);
   NSMutableDictionary *plist = [NSMutableDictionary dictionary];
   [plist setObject:serverId forKey:@"Label"];
   [plist setObject:[NSNumber numberWithBool:YES] forKey:@"KeepAlive"];
   [plist setObject:[mainBundle pathForAuxiliaryExecutable:@"indiserver"] forKey:@"Program"];
-  CFErrorRef error=NULL;
   if (SMJobSubmit(kSMDomainUserLaunchd, (__bridge CFDictionaryRef)plist, nil, &error)) {
   } else {
     _statusImage.image = [NSImage imageNamed:@"NSStatusUnavailable"];
-    _statusLabel.stringValue = @"Server job failed!";
-    NSLog(@"Server job failed %@", error);
+    _statusLabel.stringValue = @"Failed to install server job!";
+    NSLog(@"Failed to install server job! %@", error);
   }
   if (error) {
     CFRelease(error);
@@ -418,7 +427,16 @@
 }
 
 -(void) stopServer {
-  SMJobRemove(kSMDomainUserLaunchd, (__bridge CFStringRef)serverId, nil, false, NULL);
+  CFErrorRef error=NULL;
+  if (SMJobRemove(kSMDomainUserLaunchd, (__bridge CFStringRef)serverId, nil, false, &error)) {
+  } else {
+    _statusImage.image = [NSImage imageNamed:@"NSStatusUnavailable"];
+    _statusLabel.stringValue = @"Failed to remove server job!";
+    NSLog(@"Failed to remove server job! %@", error);
+  }
+  if (error) {
+    CFRelease(error);
+  }
   unlink(FIFONAME);
 }
 
