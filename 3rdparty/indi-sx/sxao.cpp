@@ -212,6 +212,9 @@ bool SXAO::updateProperties() {
 
 void SXAO::ISGetProperties(const char *dev) {
   DefaultDevice::ISGetProperties(dev);
+
+  loadConfig(true, "DEVICE_PORT");
+
   return;
 }
 
