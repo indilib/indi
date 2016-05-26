@@ -730,41 +730,6 @@ bool ScopeSim::ISNewSwitch (const char *dev, const char *name, ISState *states, 
 
 bool ScopeSim::Abort()
 {
-    if (MovementNSSP.s == IPS_BUSY)
-    {
-        IUResetSwitch(&MovementNSSP);
-        MovementNSSP.s = IPS_IDLE;
-        IDSetSwitch(&MovementNSSP, NULL);
-    }
-
-    if (MovementWESP.s == IPS_BUSY)
-    {
-        MovementWESP.s = IPS_IDLE;
-        IUResetSwitch(&MovementWESP);
-        IDSetSwitch(&MovementWESP, NULL);
-    }
-
-    if (ParkSP.s == IPS_BUSY)
-    {
-        ParkSP.s       = IPS_IDLE;
-        IUResetSwitch(&ParkSP);
-        IDSetSwitch(&ParkSP, NULL);
-    }
-
-    if (EqNP.s == IPS_BUSY)
-    {
-        EqNP.s = IPS_IDLE;
-        IDSetNumber(&EqNP, NULL);
-    }
-
-
-    TrackState = SCOPE_IDLE;
-
-    AbortSP.s      = IPS_OK;
-    IUResetSwitch(&AbortSP);
-    IDSetSwitch(&AbortSP, NULL);
-    DEBUG(INDI::Logger::DBG_SESSION, "Telescope aborted.");
-
     return true;
 }
 

@@ -121,16 +121,6 @@ bool INDI::Telescope::initProperties()
     IUFillNumber(&ScopeParametersN[3],"GUIDER_FOCAL_LENGTH","Guider Focal Length (mm)","%g",100,10000,0,0.0 );
     IUFillNumberVector(&ScopeParametersNP,ScopeParametersN,4,getDeviceName(),"TELESCOPE_INFO","Scope Properties",OPTIONS_TAB,IP_RW,60,IPS_OK);
 
-    controller->mapController("MOTIONDIR", "N/S/W/E Control", INDI::Controller::CONTROLLER_JOYSTICK, "JOYSTICK_1");
-    if (nSlewRate >= 4)
-        controller->mapController("SLEWPRESET", "Slew Rate", INDI::Controller::CONTROLLER_JOYSTICK, "JOYSTICK_2");
-    if (CanAbort())
-        controller->mapController("ABORTBUTTON", "Abort", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_1");
-    if (CanPark())
-    {
-        controller->mapController("PARKBUTTON", "Park", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_2");
-        controller->mapController("UNPARKBUTTON", "UnPark", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_3");
-    }
     controller->initProperties();
 
     TrackState=SCOPE_IDLE;
@@ -200,6 +190,21 @@ bool INDI::Telescope::updateProperties()
 
     if(isConnected())
     {
+        controller->mapController("MOTIONDIR", "N/S/W/E Control", INDI::Controller::CONTROLLER_JOYSTICK, "JOYSTICK_1");
+        if (nSlewRate >= 4)
+        {
+            controller->mapController("SLEWPRESET", "Slew Rate", INDI::Controller::CONTROLLER_JOYSTICK, "JOYSTICK_2");
+            controller->mapController("SLEWPRESETUP", "Slew Rate Up", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_5");
+            controller->mapController("SLEWPRESETDOWN", "Slew Rate Down", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_6");
+        }
+        if (CanAbort())
+            controller->mapController("ABORTBUTTON", "Abort", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_1");
+        if (CanPark())
+        {
+            controller->mapController("PARKBUTTON", "Park", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_2");
+            controller->mapController("UNPARKBUTTON", "UnPark", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_3");
+        }
+
         //  Now we add our telescope specific stuff
         defineSwitch(&CoordSP);
         defineNumber(&EqNP);
@@ -784,11 +789,14 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
                     IUResetSwitch(&ParkSP);
                     ParkSP.s = IPS_ALERT;
                     IDSetSwitch(&ParkSP, NULL);
+
+                    DEBUG(INDI::Logger::DBG_SESSION, "Parking aborted.");
                 }
                 if (EqNP.s == IPS_BUSY)
                 {
                     EqNP.s = lastEqState = IPS_IDLE;
                     IDSetNumber(&EqNP, NULL);
+                    DEBUG(INDI::Logger::DBG_SESSION, "Slew/Track aborted.");
                 }
                 if (MovementWESP.s == IPS_BUSY)
                 {
@@ -1379,7 +1387,7 @@ void INDI::Telescope::processButton(const char *button_n, ISState state)
     {
         ISwitchVectorProperty *trackSW = getSwitch("TELESCOPE_TRACK_RATE");
         // Only abort if we have some sort of motion going on
-        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY || EqNP.s == IPS_BUSY || (trackSW && trackSW->s == IPS_BUSY))
+        if (ParkSP.s == IPS_BUSY || MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY || EqNP.s == IPS_BUSY || (trackSW && trackSW->s == IPS_BUSY))
         {
             // Invoke parent processing so that INDI::Telescope takes care of abort cross-check
             ISState states[1] = { ISS_ON };
@@ -1399,6 +1407,14 @@ void INDI::Telescope::processButton(const char *button_n, ISState state)
         char *names[2] = { ParkS[0].name, ParkS[1].name };
         ISNewSwitch(getDeviceName(), ParkSP.name, states, names, 2);
     }
+    else if (!strcmp(button_n, "SLEWPRESETUP"))
+    {
+       processSlewPresets(1, 270); 
+    }
+    else if (!strcmp(button_n, "SLEWPRESETDOWN"))
+    {
+       processSlewPresets(1, 90); 
+    }   
 }
 
 void INDI::Telescope::processJoystick(const char * joystick_n, double mag, double angle)

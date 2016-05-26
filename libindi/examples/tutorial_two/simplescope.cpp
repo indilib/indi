@@ -161,14 +161,8 @@ bool SimpleScope::Goto(double ra, double dec)
 ** Client is asking us to abort our motion
 ***************************************************************************************/
 bool SimpleScope::Abort()
-{
-
-    TrackState = SCOPE_IDLE;
-
-    DEBUG(INDI::Logger::DBG_SESSION, "Simple Scope stopped.");
-
+{    
     return true;
-
 }
 /**************************************************************************************
 ** Client is asking us to report telescope status

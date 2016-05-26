@@ -562,12 +562,12 @@ bool CelestronGPS::Abort()
             GuideNSTID = 0;
         }
 
-        IDMessage(getDeviceName(), "Guide aborted.");
+        DEBUG(INDI::Logger::DBG_SESSION, "Guide aborted.");
         IDSetNumber(&GuideNSNP, NULL);
         IDSetNumber(&GuideWENP, NULL);
 
         return true;
-     }
+     }    
     
     return abort_celestron(PortFD);
 }

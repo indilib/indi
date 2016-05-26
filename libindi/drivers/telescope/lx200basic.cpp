@@ -437,11 +437,6 @@ bool LX200Basic::Abort()
          return false;
      }
 
-     EqNP.s = IPS_IDLE;
-     TrackState = SCOPE_IDLE;
-     IDSetNumber(&EqNP, NULL);
-
-     DEBUG(INDI::Logger::DBG_SESSION, "Slew aborted.");
      return true;
 }
 

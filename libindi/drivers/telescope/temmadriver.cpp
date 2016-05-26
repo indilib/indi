@@ -476,7 +476,7 @@ void TemmaMount::SetDefaultPark()
 bool  TemmaMount::Abort()
 {
     char str[20];
-    int bytesWritten, bytesRead;
+    int bytesWritten;
     fprintf(stderr,"Temma::Abort()\n");
     tty_write(PortFD,"PS\r\n",4, &bytesWritten);  // Send a stop
 	//  Now lets confirm we stopped
@@ -484,7 +484,7 @@ bool  TemmaMount::Abort()
 
 	memset(str,0,20);
 	TemmaRead(str,20);
-	fprintf(stderr,"Abort returns %s\n",str);
+    DEBUGF(INDI::Logger::DBG_DEBUG,"Abort returns %s",str);
 
 	GotoInProgress=false;
 	ParkInProgress=false;

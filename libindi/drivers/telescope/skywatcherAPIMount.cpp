@@ -90,8 +90,6 @@ bool  SkywatcherAPIMount::Abort()
 {
     DEBUG(DBG_SCOPE, "SkywatcherAPIMount::Abort");
 
-    TrackState = SCOPE_IDLE;
-
     SlowStop(AXIS1);
     SlowStop(AXIS2);
 
