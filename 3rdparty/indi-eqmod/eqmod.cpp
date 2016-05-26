@@ -2406,11 +2406,7 @@ bool EQMod::Abort()
   IUResetSwitch(AutoHomeSP);
   IDSetSwitch(AutoHomeSP,NULL);
   
-  if (gotoparams.completed == false) gotoparams.completed=true;
-
-  TrackState=SCOPE_IDLE;
-  
-  DEBUG(INDI::Logger::DBG_SESSION, "Telescope Aborted.");
+  if (gotoparams.completed == false) gotoparams.completed=true;  
   
   return true;
 }
