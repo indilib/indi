@@ -26,8 +26,8 @@
 #include <indifilterinterface.h>
 #include <iostream>
 
-#include <qhyccd.h>
-#include <log4z.h>
+#include "qhyccd.h"
+#include "log4z.h"
 
 using namespace std;
 
@@ -85,10 +85,12 @@ protected:
   virtual bool SetFilterNames();
   virtual bool GetFilterNames(const char *groupName);
 
+#ifndef OSX_EMBEDED_MODE
   // Streaming
   virtual bool StartStreaming();
   virtual bool StopStreaming();
-
+#endif
+  
   ISwitch                CoolerS[2];
   ISwitchVectorProperty CoolerSP;
 
@@ -155,7 +157,9 @@ private:
   int timerID;
 
   // Thread conditions
+#ifndef OSX_EMBEDED_MODE
   int streamPredicate;
+#endif
   pthread_t primary_thread;
   bool terminateThread;
 
