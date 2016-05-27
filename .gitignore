@@ -81,3 +81,6 @@ libindi/libs/*.user*
 libindi/libs/indibase/*.user*
 libindi/libs/webcam/*.user*
 libindi/tools/*.user*
+
+# Gedit backup files
+*~
