@@ -9,7 +9,7 @@ cache: apt
 addons:
   apt:
     packages:
-    - libusb-dev
+    - libusb-1.0-dev
 
 branches:
     only:
