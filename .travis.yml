@@ -1,0 +1,22 @@
+language: cpp
+compiler: gcc
+os: linux
+
+branches:
+    only:
+        - travis
+
+before_install:
+    - echo Install dependencies
+
+install:
+    - cd build 
+    - mkdir libindi
+    - cd libindi
+    - cmake . ../../libindi/
+    - make
+    
+script:
+    - echo Test
+    
+
