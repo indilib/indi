@@ -82,5 +82,8 @@ libindi/libs/indibase/*.user*
 libindi/libs/webcam/*.user*
 libindi/tools/*.user*
 
+# Ignore build directory
+build
+
 # Gedit backup files
 *~
