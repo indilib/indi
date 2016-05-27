@@ -1,6 +1,15 @@
 language: cpp
 compiler: gcc
 os: linux
+sudo: false
+dist: trusty
+
+
+cache: apt
+addons:
+  apt:
+    packages:
+    - libusb-dev
 
 branches:
     only:
