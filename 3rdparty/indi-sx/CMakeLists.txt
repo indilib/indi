@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.4.7)
 PROJECT(indi_sx CXX C)
 
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
 set(RULES_INSTALL_DIR "/lib/udev/rules.d/")
 
 set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")

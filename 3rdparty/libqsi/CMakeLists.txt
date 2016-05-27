@@ -1,7 +1,7 @@
 PROJECT(libqsi C CXX)
 cmake_minimum_required(VERSION 2.4.7)
 
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
 
 FIND_PACKAGE(FTDI REQUIRED)
 
