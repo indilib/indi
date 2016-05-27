@@ -26,7 +26,10 @@
 #include <unistd.h>
 #include <sys/time.h>
 
-#include <stream_recorder.h>
+
+#ifndef OSX_EMBEDED_MODE
+#include "stream_recorder.h"
+#endif
 
 #include "qhy_ccd.h"
 #include "qhy_fw.h"
@@ -507,8 +510,11 @@ bool QHYCCD::Connect()
     {
         DEBUGF(INDI::Logger::DBG_SESSION, "Connected to %s.",camid);
 
+#ifdef OSX_EMBEDED_MODE
+        cap = CCD_CAN_ABORT | CCD_CAN_SUBFRAME;
+#else
         cap = CCD_CAN_ABORT | CCD_CAN_SUBFRAME | CCD_HAS_STREAMING;
-
+#endif
         ret = InitQHYCCD(camhandle);
         if(ret != QHYCCD_SUCCESS)
         {
@@ -625,8 +631,9 @@ bool QHYCCD::Connect()
 
         SetCCDCapability(cap);
 
+#ifndef OSX_EMBEDED_MODE
         pthread_create( &primary_thread, NULL, &streamVideoHelper, this);
-
+#endif
         return true;
     }
 
@@ -646,7 +653,9 @@ bool QHYCCD::Disconnect()
   }
 
   pthread_mutex_lock(&condMutex);
+#ifndef OSX_EMBEDED_MODE
   streamPredicate=1;
+#endif
   terminateThread=true;
   pthread_cond_signal(&cv);
   pthread_mutex_unlock(&condMutex);
@@ -692,9 +701,10 @@ bool QHYCCD::setupParams()
     nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
     PrimaryCCD.setFrameBufferSize(nbuf);
 
+#ifndef OSX_EMBEDED_MODE
     streamer->setPixelFormat(V4L2_PIX_FMT_GREY);
     streamer->setRecorderSize(imagew,imageh);
-
+#endif
     return true;
 }
 
@@ -721,12 +731,13 @@ bool QHYCCD::StartExposure(float duration)
 {
   int ret = QHYCCD_ERROR;
 
+#ifndef OSX_EMBEDED_MODE
   if (streamer->isBusy())
   {
       DEBUG(INDI::Logger::DBG_ERROR, "Cannot take exposure while streaming/recording is active.");
       return false;
   }
-
+#endif
   //AbortPrimaryFrame = false;
 
   if (duration < MINIMUM_CCD_EXPOSURE)
@@ -874,8 +885,9 @@ bool QHYCCD::UpdateCCDFrame(int x, int y, int w, int h)
   nbuf=(camroiwidth * camroiheight * PrimaryCCD.getBPP()/8);                 //  this is pixel count  
   PrimaryCCD.setFrameBufferSize(nbuf);
 
+#ifndef OSX_EMBEDED_MODE
   streamer->setRecorderSize(camroiwidth, camroiheight);
-
+#endif
   return true;
 }
 
@@ -1371,6 +1383,7 @@ bool QHYCCD::saveConfigItems(FILE *fp)
     return true;
 }
 
+#ifndef OSX_EMBEDED_MODE
 bool QHYCCD::StartStreaming()
 {
     if (PrimaryCCD.getBPP() != 8)
@@ -1447,6 +1460,7 @@ void* QHYCCD::streamVideo()
   pthread_mutex_unlock(&condMutex);
   return 0;
 }
+#endif
 
 void QHYCCD::debugTriggered(bool enable)
 {
