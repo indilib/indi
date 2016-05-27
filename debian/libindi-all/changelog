@@ -1,3 +1,9 @@
+indi-full (1.2) xenial; urgency=low
+
+  * Updated.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Fri, 27 May 2016 12:00:00 +0300
+ 
 indi-full (1.0) precise; urgency=low
 
   * Meta package uploaded.
