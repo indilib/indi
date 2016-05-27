@@ -2,7 +2,8 @@ cmake_minimum_required(VERSION 2.6)
 
 PROJECT(libindi-3rdparty CXX C)
 
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../cmake_modules/")
+LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
+LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../cmake_modules/")
 set(LIBRARIES_FOUND TRUE)
 
 option(WITH_EQMOD "Install EQMod Driver" On)
@@ -18,10 +19,6 @@ endif(WITH_EQMOD)
 if (WITH_SX)
 add_subdirectory(indi-sx)
 endif(WITH_SX)
-
-#if (WITH_QHY)
-#add_subdirectory(indi-qhy)
-#endif(WITH_QHY)
 
 if (WITH_MAXDOME)
 add_subdirectory(indi-maxdomeii)
@@ -46,7 +43,12 @@ option(WITH_APOGEE "Install Apogee Driver" On)
 option(WITH_FISHCAMP "Install Fishcamp Driver" On)
 option(WITH_ASICAM "Install ZWO Optics ASI Driver" On)
 option(WITH_DSI "Install Meade DSI Driver" On)
-option(WITH_QHY "Install QHY Driver" On)
+#option(WITH_QHY "Install QHY Driver" Off)
+option(WITH_GPSD "Install GPSD Driver" On)
+
+if (WITH_QHY)
+add_subdirectory(indi-qhy)
+endif(WITH_QHY)
 
 if (WITH_QSI)
 find_package(QSI)
@@ -81,6 +83,14 @@ endif(WITH_FLI)
 if (WITH_ARDUINO)
 add_subdirectory(indi-duino)
 endif (WITH_ARDUINO)
+
+if (WITH_NSE)
+add_subdirectory(indi-nexstarevo)
+endif (WITH_NSE)
+
+if (WITH_GPSD)
+add_subdirectory(indi-gpsd)
+endif (WITH_GPSD)
 
 if (WITH_APOGEE)
 find_package(APOGEE)
