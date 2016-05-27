@@ -39,7 +39,7 @@ Construction:
 -------------
 
 An INDI driver typically consists of one .c file, eg, mydriver.c, which
-#includes indiapi.h to access the reference API declarations. It is
+`#includes indiapi.h` to access the reference API declarations. It is
 compiled then linked with indidrivermain.o, eventloop.o and liblilxml.a to
 form an INDI process. These supporting files contain the implementation of
 the INDI Driver API and need not be changed in any way. Note that
