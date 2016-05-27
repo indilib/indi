@@ -10,9 +10,8 @@ before_install:
     - echo Install dependencies
 
 install:
-    - cd build 
-    - mkdir libindi
-    - cd libindi
+    - mkdir -p build/libindi
+    - cd build/libindi
     - cmake . ../../libindi/
     - make
     
