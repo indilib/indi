@@ -373,6 +373,15 @@ add_executable(indi_simulator_telescope ${telescopesimulator_SRCS})
 target_link_libraries(indi_simulator_telescope indidriver)
 install(TARGETS indi_simulator_telescope RUNTIME DESTINATION bin )
 
+########### Telescope Scripting Gateway ##############
+set(telescopescript_SRCS
+        ${CMAKE_SOURCE_DIR}/drivers/telescope/telescope_script.cpp
+   )
+
+add_executable(indi_script_telescope ${telescopescript_SRCS})
+target_link_libraries(indi_script_telescope indidriver)
+install(TARGETS indi_script_telescope RUNTIME DESTINATION bin )
+
 ########### CCD Simulator ##############
 if (CFITSIO_FOUND)
 

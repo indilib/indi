@@ -202,7 +202,7 @@ static bool initialize(libusb_device *device, int index) {
           fprintf(stderr, "Can't upload loader\n");
           return 0;
         }
-        usleep(5*1000*1000);
+        usleep(1*1000*1000);
       }
       upload(handle, uninitialized_cameras[index].firmware);
       rc = libusb_release_interface(handle, 0);
@@ -233,4 +233,5 @@ void UploadFW() {
       }
     }
   }
+  usleep(5*1000*1000);
 }
