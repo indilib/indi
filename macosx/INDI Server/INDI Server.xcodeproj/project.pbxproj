@@ -196,6 +196,10 @@
 		5934480E1CF8F2BB008AD945 /* solar800g.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447AB1CF8F2BB008AD945 /* solar800g.cpp */; };
 		5934480F1CF8F2BB008AD945 /* solar1600.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447AD1CF8F2BB008AD945 /* solar1600.cpp */; };
 		593448101CF8F2BB008AD945 /* unlockimagequeue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447AF1CF8F2BB008AD945 /* unlockimagequeue.cpp */; };
+		5934481D1CF9E4E6008AD945 /* libnova.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA422C1A8CB6920004AA95 /* libnova.dylib */; };
+		5934481E1CF9E4E6008AD945 /* libindi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A91A8CD3190004AA95 /* libindi.dylib */; };
+		593448241CF9E508008AD945 /* indi_script_telescope in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 593448231CF9E4E6008AD945 /* indi_script_telescope */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		593448271CF9E694008AD945 /* telescope_script.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593448111CF9A6B0008AD945 /* telescope_script.cpp */; };
 		5944982C1C135B3600E0E281 /* lx200pulsar2.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5944982B1C135B3600E0E281 /* lx200pulsar2.cpp */; };
 		594498351C135D8000E0E281 /* libindi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A91A8CD3190004AA95 /* libindi.dylib */; };
 		594498361C135D8000E0E281 /* libnova.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA422C1A8CB6920004AA95 /* libnova.dylib */; };
@@ -851,6 +855,27 @@
 			proxyType = 1;
 			remoteGlobalIDString = 593445B11CF8EF62008AD945;
 			remoteInfo = indi_qhy_ccd;
+		};
+		593448151CF9E4E6008AD945 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA422B1A8CB6920004AA95;
+			remoteInfo = nova;
+		};
+		593448191CF9E4E6008AD945 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA43A81A8CD3190004AA95;
+			remoteInfo = indi;
+		};
+		593448251CF9E510008AD945 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 593448131CF9E4E6008AD945;
+			remoteInfo = indi_script_ccd;
 		};
 		5944982F1C135D8000E0E281 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -2133,6 +2158,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 1;
 		};
+		5934481F1CF9E4E6008AD945 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
 		594498371C135D8000E0E281 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -2418,6 +2452,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 6;
 			files = (
+				593448241CF9E508008AD945 /* indi_script_telescope in Copy Files (33 items) (53 items) */,
 				593445D21CF8F008008AD945 /* indi_qhy_ccd in Copy Files (33 items) (53 items) */,
 				59563CCC1CF20A3800DE1A54 /* indi_ssag_ccd in Copy Files (33 items) (53 items) */,
 				59C3D6811CF07E7200974D80 /* indi_nstep_focus in Copy Files (33 items) (53 items) */,
@@ -2941,6 +2976,8 @@
 		593447AE1CF8F2BB008AD945 /* solar1600.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = solar1600.h; sourceTree = "<group>"; };
 		593447AF1CF8F2BB008AD945 /* unlockimagequeue.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = unlockimagequeue.cpp; sourceTree = "<group>"; };
 		593447B01CF8F2BB008AD945 /* unlockimagequeue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = unlockimagequeue.h; sourceTree = "<group>"; };
+		593448111CF9A6B0008AD945 /* telescope_script.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = telescope_script.cpp; sourceTree = "<group>"; };
+		593448231CF9E4E6008AD945 /* indi_script_telescope */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_script_telescope; sourceTree = BUILT_PRODUCTS_DIR; };
 		5944982A1C135A2000E0E281 /* atikconfig.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = atikconfig.h; sourceTree = "<group>"; };
 		5944982B1C135B3600E0E281 /* lx200pulsar2.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = lx200pulsar2.cpp; sourceTree = "<group>"; };
 		5944983B1C135D8000E0E281 /* indi_lynx_focus */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_lynx_focus; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -3473,6 +3510,15 @@
 				593445BF1CF8EF62008AD945 /* libcfitsio.dylib in Frameworks */,
 				593445C01CF8EF62008AD945 /* libusb.dylib in Frameworks */,
 				593445C11CF8EF62008AD945 /* libindi.dylib in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5934481C1CF9E4E6008AD945 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5934481D1CF9E4E6008AD945 /* libnova.dylib in Frameworks */,
+				5934481E1CF9E4E6008AD945 /* libindi.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -4475,6 +4521,7 @@
 				59C3D67F1CF07D8C00974D80 /* indi_nstep_focus */,
 				59563CC11CF1E8D200DE1A54 /* indi_ssag_ccd */,
 				593445C51CF8EF62008AD945 /* indi_qhy_ccd */,
+				593448231CF9E4E6008AD945 /* indi_script_telescope */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -4961,6 +5008,7 @@
 			isa = PBXGroup;
 			children = (
 				9D75D5391A8D1391008AA08A /* telescope_simulator.cpp */,
+				593448111CF9A6B0008AD945 /* telescope_script.cpp */,
 				592F6CB41BADD6A600D93DE9 /* lx200driver.cpp */,
 				9D75D5791A8D16F7008AA08A /* lx200_16.cpp */,
 				9D75D57A1A8D16F7008AA08A /* lx200ap.cpp */,
@@ -5347,6 +5395,25 @@
 			productReference = 593445C51CF8EF62008AD945 /* indi_qhy_ccd */;
 			productType = "com.apple.product-type.tool";
 		};
+		593448131CF9E4E6008AD945 /* indi_script_telescope */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 593448201CF9E4E6008AD945 /* Build configuration list for PBXNativeTarget "indi_script_telescope" */;
+			buildPhases = (
+				5934481A1CF9E4E6008AD945 /* Sources */,
+				5934481C1CF9E4E6008AD945 /* Frameworks */,
+				5934481F1CF9E4E6008AD945 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				593448141CF9E4E6008AD945 /* PBXTargetDependency */,
+				593448181CF9E4E6008AD945 /* PBXTargetDependency */,
+			);
+			name = indi_script_telescope;
+			productName = indi_simulator_ccd;
+			productReference = 593448231CF9E4E6008AD945 /* indi_script_telescope */;
+			productType = "com.apple.product-type.tool";
+		};
 		5944982D1C135D8000E0E281 /* indi_lynx_focus */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 594498381C135D8000E0E281 /* Build configuration list for PBXNativeTarget "indi_lynx_focus" */;
@@ -5572,6 +5639,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				593448261CF9E510008AD945 /* PBXTargetDependency */,
 				593445D11CF8EFFC008AD945 /* PBXTargetDependency */,
 				59563CCB1CF20A2A00DE1A54 /* PBXTargetDependency */,
 				59C3D6831CF07E7B00974D80 /* PBXTargetDependency */,
@@ -6680,6 +6748,7 @@
 				598785FA1CE71FB900DF2294 /* indi_fli_focus */,
 				59563CA11CF1E8D200DE1A54 /* indi_ssag_ccd */,
 				593445B11CF8EF62008AD945 /* indi_qhy_ccd */,
+				593448131CF9E4E6008AD945 /* indi_script_telescope */,
 			);
 		};
 /* End PBXProject section */
@@ -6906,6 +6975,14 @@
 				593447EC1CF8F2BB008AD945 /* qhy16.cpp in Sources */,
 				5934480E1CF8F2BB008AD945 /* solar800g.cpp in Sources */,
 				593448091CF8F2BB008AD945 /* qhybase.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5934481A1CF9E4E6008AD945 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				593448271CF9E694008AD945 /* telescope_script.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -7757,6 +7834,21 @@
 			isa = PBXTargetDependency;
 			target = 593445B11CF8EF62008AD945 /* indi_qhy_ccd */;
 			targetProxy = 593445D01CF8EFFC008AD945 /* PBXContainerItemProxy */;
+		};
+		593448141CF9E4E6008AD945 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA422B1A8CB6920004AA95 /* nova */;
+			targetProxy = 593448151CF9E4E6008AD945 /* PBXContainerItemProxy */;
+		};
+		593448181CF9E4E6008AD945 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA43A81A8CD3190004AA95 /* indi */;
+			targetProxy = 593448191CF9E4E6008AD945 /* PBXContainerItemProxy */;
+		};
+		593448261CF9E510008AD945 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 593448131CF9E4E6008AD945 /* indi_script_telescope */;
+			targetProxy = 593448251CF9E510008AD945 /* PBXContainerItemProxy */;
 		};
 		5944982E1C135D8000E0E281 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -8871,6 +8963,63 @@
 				);
 				MTL_ENABLE_DEBUG_INFO = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		593448211CF9E4E6008AD945 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"/Applications/Xcode-Beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include",
+					"../../../libnova-0.15.0/src",
+					"../../../libnova-0.15.0/src/libnova",
+					"../../../libusb-1.0.19/libusb",
+					../../../cfitsio,
+					../../libindi,
+					../../libindi/libs,
+					../../libindi/libs/indibase,
+				);
+				MTL_ENABLE_DEBUG_INFO = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				USER_HEADER_SEARCH_PATHS = "";
+			};
+			name = Debug;
+		};
+		593448221CF9E4E6008AD945 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"/Applications/Xcode-Beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include",
+					"../../../libnova-0.15.0/src",
+					"../../../libnova-0.15.0/src/libnova",
+					"../../../libusb-1.0.19/libusb",
+					../../../cfitsio,
+					../../libindi,
+					../../libindi/libs,
+					../../libindi/libs/indibase,
+				);
+				MTL_ENABLE_DEBUG_INFO = NO;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				USER_HEADER_SEARCH_PATHS = "";
 			};
 			name = Release;
 		};
@@ -12388,6 +12537,15 @@
 			buildConfigurations = (
 				593445C31CF8EF62008AD945 /* Debug */,
 				593445C41CF8EF62008AD945 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		593448201CF9E4E6008AD945 /* Build configuration list for PBXNativeTarget "indi_script_telescope" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				593448211CF9E4E6008AD945 /* Debug */,
+				593448221CF9E4E6008AD945 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
