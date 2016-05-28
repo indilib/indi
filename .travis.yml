@@ -13,7 +13,9 @@ branches:
 before_install:
     - echo Install dependencies
     - sudo apt-get -qq update
-    - sudo apt-get -y install libusb-1.0-0-dev libcfitsio3-dev libnova-dev libgphoto2-dev libgps-dev libjpeg-dev libopenal-dev
+    - sudo apt-get -q -y install libusb-1.0-0-dev libcfitsio3-dev libnova-dev 
+    - sudo apt-get -q -y install libgphoto2-dev libgps-dev libjpeg-dev 
+    - sudo apt-get -q -y install libopenal-dev libgsl-dev
 
 install:
     - mkdir -p build/libindi
