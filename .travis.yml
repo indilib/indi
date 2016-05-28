@@ -10,8 +10,12 @@ addons:
   apt:
     packages:
     - libusb-1.0-0-dev
-    - libcfitsio-dev
+    - libcfitsio3-dev
     - libnova-dev
+    - libgphoto2-dev
+    - libgps-dev
+    - libjpeg-dev
+    - libopenal-dev
 
 branches:
     only:
