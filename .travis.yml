@@ -28,7 +28,7 @@ install:
     - mkdir 3rdparty
     - cd 3rdparty
     - bash ../../3rdparty/make_libraries
-    - cmake -DCMAKE_INSTALL_PREFIX=/usr/local/ . ../../3rdparty/
+    - cmake -DCMAKE_INSTALL_PREFIX=/usr/local/ -DWITH_NSE:OPTION=ON . ../../3rdparty/
     - make 
     - sudo make install
     
