@@ -1,21 +1,10 @@
 language: cpp
 compiler: gcc
-os: linux
-sudo: false
+language: cpp
+sudo: required
 dist: trusty
+os: linux
 
-
-cache: apt
-addons:
-  apt:
-    packages:
-    - libusb-1.0-0-dev
-    - libcfitsio3-dev
-    - libnova-dev
-    - libgphoto2-dev
-    - libgps-dev
-    - libjpeg-dev
-    - libopenal-dev
 
 branches:
     only:
@@ -23,6 +12,8 @@ branches:
 
 before_install:
     - echo Install dependencies
+    - sudo apt-get -qq update
+    - sudo apt-get -y install libusb-1.0-0-dev libcfitsio3-dev libnova-dev libgphoto2-dev libgps-dev libjpeg-dev libopenal-dev
 
 install:
     - mkdir -p build/libindi
