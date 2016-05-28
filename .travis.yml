@@ -15,7 +15,7 @@ before_install:
     - sudo apt-get -qq update
     - sudo apt-get -q -y install libusb-1.0-0-dev libcfitsio3-dev libnova-dev 
     - sudo apt-get -q -y install libgphoto2-dev libgps-dev libjpeg-dev 
-    - sudo apt-get -q -y install libopenal-dev libgsl-dev
+    - sudo apt-get -q -y install libopenal-dev libgsl0-dev
 
 install:
     - mkdir -p build/libindi
