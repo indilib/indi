@@ -20,8 +20,19 @@ before_install:
 install:
     - mkdir -p build/libindi
     - cd build/libindi
-    - cmake . ../../libindi/
+    - cmake -DCMAKE_INSTALL_PREFIX=/usr/local/ . ../../libindi/
     - make
+    - make install
+    - cd ..
+    - mkdir 3rdparty
+    - cd 3rdparty
+    - cmake -DCMAKE_INSTALL_PREFIX=/usr/local/ . ../../3rdparty/
+    - make 
+    - make install
+    - cmake -DCMAKE_INSTALL_PREFIX=/usr/local/ . ../../3rdparty/
+    - make 
+    - make install
+    
     
 script:
     - echo Test
