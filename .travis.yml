@@ -1,0 +1,39 @@
+language: cpp
+compiler: gcc
+language: cpp
+sudo: required
+dist: trusty
+os: linux
+
+
+branches:
+    only:
+        - travis
+
+before_install:
+    - echo Install dependencies
+    - sudo apt-get -qq update
+    - sudo apt-get -q -y install libusb-1.0-0-dev libcfitsio3-dev libnova-dev 
+    - sudo apt-get -q -y install libgphoto2-dev libgps-dev libjpeg-dev 
+    - sudo apt-get -q -y install libopenal-dev libgsl0-dev libboost-dev 
+    - sudo apt-get -q -y install libboost-regex-dev libftdi-dev dcraw
+
+install:
+    - mkdir -p build/libindi
+    - cd build/libindi
+    - cmake -DCMAKE_INSTALL_PREFIX=/usr/local/ . ../../libindi/
+    - make
+    - sudo make install
+    - cd ..
+    - mkdir 3rdparty
+    - cd 3rdparty
+    - bash ../../3rdparty/make_libraries
+    - cmake -DCMAKE_INSTALL_PREFIX=/usr/local/ -DWITH_NSE:OPTION=ON . ../../3rdparty/
+    - make 
+    - sudo make install
+    
+    
+script:
+    - echo Test
+    
+
