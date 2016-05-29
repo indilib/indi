@@ -25,6 +25,9 @@
 #include <time.h>
 #include <memory>
 
+#include <sys/wait.h>
+#include <limits.h>
+
 #include "telescope_script.h"
 
 #define	POLLMS      1000
@@ -111,8 +114,8 @@ void ScopeScript::ISGetProperties (const char *dev) {
 }
 
 bool ScopeScript::RunScript(int script, char *arg1, char *arg2, char *arg3) {
-  char path[256];
-  snprintf(path, 256, "%s/%s", ScriptsT[0].text, ScriptsT[script].text);
+  char path[PATH_MAX];
+  snprintf(path, PATH_MAX, "%s/%s", ScriptsT[0].text, ScriptsT[script].text);
   //DEBUGF(INDI::Logger::DBG_SESSION, "%s %s %s", ScriptsT[script].text, arg1, arg2);
   int pid = fork();
   if (pid == -1) {
@@ -151,7 +154,7 @@ bool ScopeScript::Disconnect() {
 }
 
 bool ScopeScript::ReadScopeStatus() {
-  bool status = RunScript(SCRIPT_STATUS, STATUS_FILE, NULL, NULL);
+  bool status = RunScript(SCRIPT_STATUS, (char *) STATUS_FILE, NULL, NULL);
   if (status) {
     int parked;
     float ra, dec;
@@ -223,7 +226,7 @@ bool ScopeScript::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) {
 
 bool ScopeScript::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) {
   char _rate[] = { (char)('0' + IUFindOnSwitchIndex(&SlewRateSP)), 0 };
-  bool status = RunScript(command == MOTION_STOP ? SCRIPT_ABORT : dir == DIRECTION_NORTH ? SCRIPT_MOVE_NORTH : SCRIPT_MOVE_SOUTH, _rate, NULL, NULL);
+  bool status = RunScript(command == MOTION_STOP ? SCRIPT_ABORT : dir == DIRECTION_WEST ? SCRIPT_MOVE_WEST : SCRIPT_MOVE_EAST, _rate, NULL, NULL);
   return status;
 }
 
