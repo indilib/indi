@@ -28,7 +28,6 @@
 #include "telescope_script.h"
 
 #define	POLLMS      1000
-#define STATUS_FILE "/tmp/indi-telesope-gateway.status"
 
 enum { SCRIPT_CONNECT = 1, SCRIPT_DISCONNECT, SCRIPT_STATUS, SCRIPT_GOTO, SCRIPT_SYNC, SCRIPT_PARK, SCRIPT_UNPARK, SCRIPT_MOVE_NORTH, SCRIPT_MOVE_EAST, SCRIPT_MOVE_SOUTH, SCRIPT_MOVE_WEST, SCRIPT_ABORT } scripts;
 
@@ -79,7 +78,11 @@ const char * ScopeScript::getDefaultName() {
 bool ScopeScript::initProperties() {
   INDI::Telescope::initProperties();
   
+#ifdef OSX_EMBEDED_MODE
   IUFillText(&ScriptsT[0], "FOLDER", "Folder", "/usr/local/share/indi/scripts");
+#else
+  IUFillText(&ScriptsT[0], "FOLDER", "Folder", "/usr/share/indi/scripts");
+#endif
   IUFillText(&ScriptsT[1], "SCRIPT_CONNECT", "Connect script", "connect.py");
   IUFillText(&ScriptsT[2], "SCRIPT_DISCONNECT", "Disconnect script", "disconnect.py");
   IUFillText(&ScriptsT[3], "SCRIPT_STATUS", "Get status script", "status.py");
@@ -151,16 +154,15 @@ bool ScopeScript::Disconnect() {
 }
 
 bool ScopeScript::ReadScopeStatus() {
-  bool status = RunScript(SCRIPT_STATUS, STATUS_FILE, NULL, NULL);
+  char *name = tmpnam(NULL);
+  bool status = RunScript(SCRIPT_STATUS, name, NULL, NULL);
   if (status) {
     int parked;
     float ra, dec;
-    FILE *file = fopen(STATUS_FILE, "r");
-//    fscanf(file, "%d", &parked);
-//    fscanf(file, "%f", &ra);
-//    fscanf(file, "%f", &dec);
+    FILE *file = fopen(name, "r");
     fscanf(file, "%d %f %f", &parked, &ra, &dec);
     fclose(file);
+    unlink(name);
     if (parked != 0) {
       if (!isParked())
         SetParked(true);
