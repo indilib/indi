@@ -1,12 +1,64 @@
-libindi
-============
+# libindi
 [![Build Status](https://travis-ci.org/indilib/indi.svg?branch=master)](https://travis-ci.org/indilib/indi)
 
-The code here demonstrates the use of INDI, an Instrument-Neutral Device
-Interface protocol. See http://www.clearskyinstitute.com/INDI/INDI.pdf.
+INDI is the defacto standard for open astronomical device control. INDI Library is an Open Source POSIX implementation of the [Instrument-Neutral-Device-Interface protoco](http://www.clearskyinstitute.com/INDI/INDI.pdf). The library is composed of server, tools, and device drivers for astronomical instrumentation and auxiliary devices. Core device drivers are shipped with INDI library by default. 3rd party drivers are also availabe in the repository and maintained by their respective owners.
 
-Architecture:
--------------
+## [Features](http://indilib.org/about/features.html)
+## [Discover INDI](http://indilib.org/about/discover-indi.html)
+## [Supported Devices](http://indilib.org/devices/)
+## [Clients](http://indilib.org/about/clients.html)
+
+# Building
+
+## Install Pre-requisites
+
+On Debian/Ubuntu:
+
+```
+sudo apt-get install libnova-dev libcfitsio3-dev libusb-1.0-0-dev zlib1g-dev libgsl0-dev build-essential cmake libjpeg-dev libcurl4-gnutls-dev
+```
+
+## Build libindi
+
+```
+mkdir build
+cd build
+mkdir libindi
+cd libindi
+cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug ../../libindi
+make
+sudo make install
+```
+
+## Build 3rd party drivers
+
+You can build the all the 3rd party drivers at once (not recommended) or build the required 3rd party driver as required (recommended). Each 3rd party driver may have its own pre-requisites and requirements. For example, to build INDI EQMod driver:
+
+```
+cd build
+mkdir indi-eqmod
+cd indi-eqmod
+cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug ../../3rdparty/indi-eqmod
+make
+sudo make install
+```
+
+To build **all** 3rd party drivers, you need to run cmake and make install **twice**. First time is to install any dependencies of the 3rd party drivers (for example indi-qsi depends on libqsi), and second time to install the actual drivers themselves.
+
+```
+cd build
+mkdir 3rdparty
+cd 3rdparty
+cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug ../../3rdparty
+make
+sudo make install
+cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug ../../3rdparty
+make
+sudo make install
+```
+
+# Architecture
+
 
 Typical INDI Client / Server / Driver / Device connectivity:
 
@@ -26,85 +78,11 @@ Typical INDI Client / Server / Driver / Device connectivity:
 
 
 
-Indiserver is the public network access point where one or more INDI Clients
-may contact one or more INDI Drivers. Indiserver launches each driver
-process and arranges for it to receive the INDI protocol from Clients on
-its stdin and expects to find commands destined for Clients on the
-driver's stdout. Anything arriving from a driver process' stderr is copied
-to indiserver's stderr.
+INDI server is the public network access point where one or more INDI Clients may contact one or more INDI Drivers. indiserver launches each driver process and arranges for it to receive the INDI protocol from clients on its stdin and expects to find commands destined for clients on the driver's stdout. Anything arriving from a driver process' stderr is copied to indiserver's stderr. INDI server only provides convenient port, fork and data steering services. If desired, a client may run and connect to INDI Drivers directly.
 
-Indiserver only provides convenient port, fork and data steering services.
-If desired, a Client may run and connect to INDI Drivers directly.
+# Support
 
-Construction:
--------------
-
-An INDI driver typically consists of one .c file, eg, mydriver.c, which
-`#includes indiapi.h` to access the reference API declarations. It is
-compiled then linked with indidrivermain.o, eventloop.o and liblilxml.a to
-form an INDI process. These supporting files contain the implementation of
-the INDI Driver API and need not be changed in any way. Note that
-evenloop.[ch] provide a nice callback facility independent of INDI which
-may be used in other projects if desired.
-
-The driver implementation, again in our example mydriver.c, does not
-contain a main() but is expected to operate as an event-driver program.
-The driver must implement each ISxxx() function but never call them. The
-IS() functions are called by the reference implementation main() as messages
-arrive from Clients. Within each IS function the driver performs the
-desired tasks then may report back to the Client by calling the IDxxx()
-functions.
-
-The reference API provides IE() functions to allow the driver to add its
-own callback functions if desired. The driver can arrange for functions to
-be called when reading a file descriptor will not block; when a time
-interval has expired; or when there is no other client traffic in progress.
-
-The sample indiserver is a stand alone process that may be used to run one
-or more INDI-compliant drivers. It takes the names of each driver process
-to run in its command line args.
-
-To build indiserver type 'make indiserver';
-to build all the sample drivers type 'make drivers';
-to run the sample server with all drivers type 'make run'.
-Killing indiserver will also kill all the drivers it started.
-
-Secure remote operation:
-------------------------
-
-Suppose we want to run indiserver and its clients on a remote machine, r,
-and connect them to our favorite INDI client, XEphem, running on the
-local machine.
-
-From the local machine log onto the remote machine, r, by typing:
-
-    ssh2 -L 7624:s:7624 r
-
-after logging in, run indiserver on the remote machine:
-
-    make run
-
-Back on the local machine, start XEphem, then open Views -> Sky View ->
-Telescope -> INDI panel. XEphem will connect to the remote INDI server
-securely and automatically begin running. Sweet.
-
-Testing:
---------
-
-A low-level way to test the socket, forking and data steering abilities of
-indiserver is to use the 'hose' command from the netpipes collection
-(http://web.purplefrog.com/~thoth/netpipes/netpipes.html):
-
-1. start indiserver using UNIX' cat program as the only INDI "device":
-
-    % indiserver cat &
-
-2. use hose to connect to the "cat" device driver which just copies back:
-
-    % hose localhost 7624 --slave
-    hello world
-    hello world
-    more stuff
-    more stuff
-
+## [FAQ](http://indilib.org/support/faq.html)
+## [Forum](http://indilib.org/forum.html)
+## [Tutorials](http://indilib.org/support/tutorials.html)
 
