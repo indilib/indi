@@ -1,5 +1,6 @@
 libindi
 ============
+[![Build Status](https://travis-ci.org/indilib/indi.svg?branch=master)](https://travis-ci.org/indilib/indi)
 
 The code here demonstrates the use of INDI, an Instrument-Neutral Device
 Interface protocol. See http://www.clearskyinstitute.com/INDI/INDI.pdf.
