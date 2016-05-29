@@ -2978,6 +2978,7 @@
 		593447B01CF8F2BB008AD945 /* unlockimagequeue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = unlockimagequeue.h; sourceTree = "<group>"; };
 		593448111CF9A6B0008AD945 /* telescope_script.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = telescope_script.cpp; sourceTree = "<group>"; };
 		593448231CF9E4E6008AD945 /* indi_script_telescope */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_script_telescope; sourceTree = BUILT_PRODUCTS_DIR; };
+		593448281CFA356A008AD945 /* telescope_script.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = telescope_script.txt; sourceTree = "<group>"; };
 		5944982A1C135A2000E0E281 /* atikconfig.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = atikconfig.h; sourceTree = "<group>"; };
 		5944982B1C135B3600E0E281 /* lx200pulsar2.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = lx200pulsar2.cpp; sourceTree = "<group>"; };
 		5944983B1C135D8000E0E281 /* indi_lynx_focus */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_lynx_focus; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -5008,6 +5009,7 @@
 			isa = PBXGroup;
 			children = (
 				9D75D5391A8D1391008AA08A /* telescope_simulator.cpp */,
+				593448281CFA356A008AD945 /* telescope_script.txt */,
 				593448111CF9A6B0008AD945 /* telescope_script.cpp */,
 				592F6CB41BADD6A600D93DE9 /* lx200driver.cpp */,
 				9D75D5791A8D16F7008AA08A /* lx200_16.cpp */,
