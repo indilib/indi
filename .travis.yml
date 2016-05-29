@@ -6,10 +6,6 @@ dist: trusty
 os: linux
 
 
-branches:
-    only:
-        - travis
-
 before_install:
     - echo Install dependencies
     - sudo apt-get -qq update
