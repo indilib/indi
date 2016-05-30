@@ -1,0 +1,18 @@
+#!/bin/bash
+
+DRV_LIST="indi-nexstarevo indi-gpsd"
+SRC_DIR=`pwd`"/../"
+
+for drv in $DRV_LIST ; do
+(
+    mkdir bld_${drv}
+    cd bld_${drv}
+    cp -r ${SRC_DIR}/$drv .
+    cp -r ${SRC_DIR}/debian/$drv debian
+    cp -r ${SRC_DIR}/cmake_modules $drv/
+    fakeroot debian/rules
+)
+done
+
+ls -l
+

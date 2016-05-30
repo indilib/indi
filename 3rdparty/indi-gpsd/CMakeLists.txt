@@ -4,6 +4,7 @@ cmake_minimum_required(VERSION 2.4.7)
 
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
+include(GNUInstallDirs)
 set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
 set(DATA_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/share/indi/")
 set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
