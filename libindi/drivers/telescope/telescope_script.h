@@ -32,7 +32,8 @@ public:
   virtual bool initProperties();
   virtual bool saveConfigItems(FILE *fp);
  
-  void ISGetProperties (const char *dev);
+  void ISGetProperties(const char *dev);
+  bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
   virtual bool Connect();
   virtual bool Disconnect();
   
@@ -50,7 +51,7 @@ protected:
   
 private:
   
-  bool RunScript(int script, char *arg1, char *arg2, char *arg3);
+  bool RunScript(int script, ...);
   
   ITextVectorProperty ScriptsTP;
   IText ScriptsT[15];
