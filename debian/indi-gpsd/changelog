@@ -1,3 +1,9 @@
+indi-gpsd (0.2) UNRELEASED; urgency=medium
+
+  * Merge of astroberry gps driver
+
+ -- Paweł T. Jochym <jochym@wolf.ifj.edu.pl>  Tue, 31 May 2016 00:40:38 +0200
+
 indi-gpsd (0.1) stable; urgency=low
 
   * Initial release
