@@ -34,6 +34,8 @@ install:
     - cp -r ../../cmake_modules libindi/
     - cp -r ../../debian/libindi debian
     - fakeroot debian/rules binary
+    - cd ..
+    - ../3rdparty/make_deb_pkgs
     
 script:
     - echo Test
