@@ -28,8 +28,8 @@ install:
     - make 
     - sudo make install
     - cd ..
-    - mkdir deb
-    - cd deb
+    - mkdir deb_libindi
+    - cd deb_libindi
     - cp -r ../../libindi .
     - cp -r ../../cmake_modules libindi/
     - cp -r ../../debian/libindi debian

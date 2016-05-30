@@ -5,9 +5,9 @@ SRC_DIR=`pwd`"/../"
 
 for drv in $DRV_LIST ; do
 (
-    mkdir bld_${drv}
-    cd bld_${drv}
-    cp -r ${SRC_DIR}/$drv .
+    mkdir deb_${drv}
+    cd deb_${drv}
+    cp -r ${SRC_DIR}/3rdparty/$drv .
     cp -r ${SRC_DIR}/debian/$drv debian
     cp -r ${SRC_DIR}/cmake_modules $drv/
     fakeroot debian/rules
