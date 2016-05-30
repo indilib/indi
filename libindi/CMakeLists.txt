@@ -4,6 +4,7 @@ PROJECT(libindi C CXX)
 cmake_policy(SET CMP0003 NEW)
 #FIXME the following requires CMake v3.0
 #cmake_policy(SET CMP0042 OLD)
+include(GNUInstallDirs)
 set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
 ##################  INDI version  ################################
 set(INDI_SOVERSION "1")
@@ -25,7 +26,8 @@ ENDIF(APPLE)
 
 ##################  setup install directories  ################################
 set (LIB_SUFFIX "" CACHE STRING "Define suffix of directory name (32/64)" )
-set (LIB_DESTINATION "${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}")
+set (LIB_DESTINATION "${CMAKE_INSTALL_LIBDIR}")
+
 ## the following are directories where stuff will be installed to
 set(INCLUDE_INSTALL_DIR      "${CMAKE_INSTALL_PREFIX}/include/")
 set(PKGCONFIG_INSTALL_PREFIX "${LIB_DESTINATION}/pkgconfig/")
