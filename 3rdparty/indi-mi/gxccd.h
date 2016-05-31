@@ -1,7 +1,7 @@
 /*
  * The Moravian Instruments (MI) CCD Camera library.
  *
- * Copyright 2016, Moravian Instruments (MI) <http://www.gxccd.com>
+ * Copyright 2016, Moravian Instruments <http://www.gxccd.com, linux@gxccd.com>
  * All rights reserved.
  */
 
@@ -57,6 +57,8 @@ typedef struct camera camera_t;
   Clear, Black, 330
 
  *------------------------------------------------------------------------------
+ * "IP" and "Port" are used for ETH adapter configuration and are ignored in
+ * USB variant.
  * Values in [driver] section are used by default and therefore are optional.
  * "ConnectTimeout" is used when driver is connecting to adapter (in
  * gxccd_enumerate_eth() or gxccd_initialize_eth()).
@@ -108,8 +110,8 @@ typedef struct camera camera_t;
  * initialization. If the configuration file is not set, the code looks for
  * "gxccd.ini" or "gxccd.camera_id.ini" (for example "gxccd.1111.ini", where
  * "camera_id" is 1111) in .config directory located in current user's home
- * directory (e.g. /home/username/.config/) or in directory with application
- * executable binary.
+ * directory (e.g. /home/username/.config/gxccd.ini) or in directory with
+ * application executable binary.
  * If none of these files is found, default values (mentioned above) are used.
  */
 
@@ -146,21 +148,11 @@ void gxccd_enumerate_eth(enum_callback_t callback);
  * error.
  * "camera_id" is camera indentifier (e.g. obtained by gxccd_enumerate_*()
  * function) and is required.
- * "ini_path" is path to .ini configuration file and is optional, pass
- * NULL in case you don't need it.
- *
- * An attempt to load .ini configuration file is made during initialization.
- * If the configuration file is not set, the code looks for "gxccd.ini" or
- * "gxccd.camera_id.ini" (for example "gxccd.1111.ini", where "camera_id" is
- * 1111) in .config directory located in current user's home directory
- * (e.g. /home/username/.config/) or in directory with application executable
- * binary.
- * If none of these files is found, default values (mentioned above) are used.
  */
 /* USB variant */
-camera_t* gxccd_initialize_usb(int camera_id);
+camera_t *gxccd_initialize_usb(int camera_id);
 /* Ethernet variant */
-camera_t* gxccd_initialize_eth(int camera_id);
+camera_t *gxccd_initialize_eth(int camera_id);
 
 /*
  * Disconnects from camera and releases other resources. The memory pointed by

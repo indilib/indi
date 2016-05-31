@@ -24,6 +24,7 @@
 #include <sys/time.h>
 #include <time.h>
 #include <memory>
+#include <stdarg.h>
 
 #include <sys/wait.h>
 #include <limits.h>
@@ -31,6 +32,7 @@
 #include "telescope_script.h"
 
 #define	POLLMS      1000
+#define MAXARGS     20
 
 enum { SCRIPT_CONNECT = 1, SCRIPT_DISCONNECT, SCRIPT_STATUS, SCRIPT_GOTO, SCRIPT_SYNC, SCRIPT_PARK, SCRIPT_UNPARK, SCRIPT_MOVE_NORTH, SCRIPT_MOVE_EAST, SCRIPT_MOVE_SOUTH, SCRIPT_MOVE_WEST, SCRIPT_ABORT } scripts;
 
@@ -111,21 +113,52 @@ bool ScopeScript::saveConfigItems(FILE *fp) {
   return true;
 }
 
-void ScopeScript::ISGetProperties (const char *dev) {
+void ScopeScript::ISGetProperties(const char *dev) {
   INDI::Telescope::ISGetProperties (dev);
   defineText(&ScriptsTP);
 }
 
-bool ScopeScript::RunScript(int script, char *arg1, char *arg2, char *arg3) {
-  char path[PATH_MAX];
-  snprintf(path, PATH_MAX, "%s/%s", ScriptsT[0].text, ScriptsT[script].text);
-  //DEBUGF(INDI::Logger::DBG_SESSION, "%s %s %s", ScriptsT[script].text, arg1, arg2);
+bool ScopeScript::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) {
+  if(!strcmp(dev, getDeviceName())) {
+    if(!strcmp(name, ScriptsTP.name)) {
+      IUUpdateText(&ScriptsTP, texts, names, n);
+      IDSetText(&ScriptsTP, NULL);
+      return true;
+    }
+  }
+  return Telescope::ISNewText(dev,name,texts,names,n);
+}
+
+bool ScopeScript::RunScript(int script, ...) {
   int pid = fork();
   if (pid == -1) {
     DEBUG(INDI::Logger::DBG_ERROR, "Fork failed");
     return false;
   } else if (pid == 0) {
-    char *args[]={ path, arg1, arg2, arg3, NULL };
+    char tmp[256];
+    strcpy(tmp, ScriptsT[script].text);
+    char **args = (char **)malloc(MAXARGS*sizeof(char *));
+    int arg = 1;
+    char *p = tmp;
+    while (arg < MAXARGS) {
+      char *pp = strstr(p, " ");
+      if (pp == NULL)
+        break;
+      *pp++ = 0;
+      args[arg++] = pp;
+      p = pp;
+    }
+    va_list ap;
+    va_start(ap, script);
+    while (arg < MAXARGS) {
+      char *pp = va_arg(ap, char *);
+      args[arg++] = pp;
+      if (pp == NULL)
+        break;
+    }
+    va_end(ap);
+    char path[256];
+    snprintf(path, 256, "%s/%s", ScriptsT[0].text, tmp);
     execvp(path, args);
     DEBUGF(INDI::Logger::DBG_ERROR, "Script %s execution failed", path);
     return false;
@@ -139,7 +172,7 @@ bool ScopeScript::RunScript(int script, char *arg1, char *arg2, char *arg3) {
 bool ScopeScript::Connect() {
   if(isConnected())
     return true;
-  bool status = RunScript(SCRIPT_CONNECT, NULL, NULL, NULL);
+  bool status = RunScript(SCRIPT_CONNECT, NULL);
   if (status) {
     DEBUG(INDI::Logger::DBG_SESSION, "Succesfully connected");
     ReadScopeStatus();
@@ -149,7 +182,7 @@ bool ScopeScript::Connect() {
 }
 
 bool ScopeScript::Disconnect() {
-  bool status = RunScript(SCRIPT_DISCONNECT, NULL, NULL, NULL);
+  bool status = RunScript(SCRIPT_DISCONNECT, NULL);
   if (status) {
     DEBUG(INDI::Logger::DBG_SESSION, "Succesfully disconnected");
   }
@@ -158,7 +191,7 @@ bool ScopeScript::Disconnect() {
 
 bool ScopeScript::ReadScopeStatus() {
   char *name = tmpnam(NULL);
-  bool status = RunScript(SCRIPT_STATUS, name, NULL, NULL);
+  bool status = RunScript(SCRIPT_STATUS, name, NULL);
   if (status) {
     int parked;
     float ra, dec;
@@ -203,7 +236,7 @@ bool ScopeScript::Sync(double ra, double dec) {
 }
 
 bool ScopeScript::Park() {
-  bool status = RunScript(SCRIPT_PARK, NULL, NULL, NULL);
+  bool status = RunScript(SCRIPT_PARK, NULL);
   if (status) {
     DEBUG(INDI::Logger::DBG_SESSION, "Park succesfully executed");
     SetParked(true);
@@ -212,7 +245,7 @@ bool ScopeScript::Park() {
 }
 
 bool ScopeScript::UnPark() {
-  bool status = RunScript(SCRIPT_UNPARK, NULL, NULL, NULL);
+  bool status = RunScript(SCRIPT_UNPARK, NULL);
   if (status) {
     DEBUG(INDI::Logger::DBG_SESSION, "Unpark succesfully executed");
     SetParked(false);
@@ -233,7 +266,7 @@ bool ScopeScript::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) {
 }
 
 bool ScopeScript::Abort() {
-  bool status = RunScript(SCRIPT_ABORT, NULL, NULL, NULL);
+  bool status = RunScript(SCRIPT_ABORT, NULL);
   if (status) {
     DEBUG(INDI::Logger::DBG_SESSION, "Succesfully aborted");
   }

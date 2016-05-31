@@ -9,10 +9,10 @@ os: linux
 before_install:
     - echo Install dependencies
     - sudo apt-get -qq update
-    - sudo apt-get -q -y install libusb-1.0-0-dev libcfitsio3-dev libnova-dev 
-    - sudo apt-get -q -y install libgphoto2-dev libgps-dev libjpeg-dev 
-    - sudo apt-get -q -y install libopenal-dev libgsl0-dev libboost-dev 
-    - sudo apt-get -q -y install libboost-regex-dev libftdi-dev dcraw
+    - sudo apt-get -q -y install libusb-1.0-0-dev libcfitsio3-dev libnova-dev
+    - sudo apt-get -q -y install libgphoto2-dev libgps-dev libjpeg-dev cdbs
+    - sudo apt-get -q -y install libopenal-dev libgsl0-dev libboost-dev
+    - sudo apt-get -q -y install libboost-regex-dev libftdi-dev dcraw fakeroot
 
 install:
     - mkdir -p build/libindi
@@ -27,7 +27,15 @@ install:
     - cmake -DCMAKE_INSTALL_PREFIX=/usr/local/ -DWITH_NSE:OPTION=ON . ../../3rdparty/
     - make 
     - sudo make install
-    
+    - cd ..
+    - mkdir deb_libindi
+    - cd deb_libindi
+    - cp -r ../../libindi .
+    - cp -r ../../cmake_modules libindi/
+    - cp -r ../../debian/libindi debian
+    - fakeroot debian/rules binary
+    - cd ..
+    - ../3rdparty/make_deb_pkgs
     
 script:
     - echo Test
