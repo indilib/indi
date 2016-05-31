@@ -45,6 +45,12 @@ make
 sudo make install
 ```
 
+The complete list of system dependancies for all drivers on Debian / Ubuntu
+
+```
+sudo apt-get install libftdi-dev libgps-dev dcraw libgphoto2-dev libboost-dev libboost-regex-dev
+```
+
 To build **all** 3rd party drivers, you need to run cmake and make install **twice**. First time is to install any dependencies of the 3rd party drivers (for example indi-qsi depends on libqsi), and second time to install the actual drivers themselves.
 
 ```
