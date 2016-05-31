@@ -43,6 +43,7 @@
 /* Our driver header */
 #include "tess.h"
 #include "tess_algebra.h"
+#include "config.h"
 
 
 using namespace std;
@@ -109,6 +110,7 @@ void ISSnoopDevice (XMLEle *root)
 inditess::inditess()
 {
     IDLog("inditess driver start...\n");
+    setVersion(TESS_VERSION_MAJOR, TESS_VERSION_MINOR);
 
 }
 

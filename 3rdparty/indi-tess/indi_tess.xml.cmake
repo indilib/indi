@@ -3,7 +3,7 @@
 <devGroup group="Auxiliary">
         <device label="TESS" skel="tess_sk.xml">
                 <driver name="TESS">indi_tess</driver>
-                <version>0.1</version>
+                <version>@TESS_VERSION_MAJOR@.@TESS_VERSION_MINOR@</version>
         </device>
 </devGroup>
 </driversList>
