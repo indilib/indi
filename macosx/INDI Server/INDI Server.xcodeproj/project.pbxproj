@@ -7,6 +7,19 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		590AD2B81CFDFBE9008D5367 /* libnova.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA422C1A8CB6920004AA95 /* libnova.dylib */; };
+		590AD2B91CFDFBE9008D5367 /* libindi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A91A8CD3190004AA95 /* libindi.dylib */; };
+		590AD2C11CFDFC4A008D5367 /* skywatcherAPIMount.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 590AD2BF1CFDFC4A008D5367 /* skywatcherAPIMount.cpp */; };
+		590AD2C41CFDFCEA008D5367 /* skywatcherAPI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 590AD2C21CFDFCEA008D5367 /* skywatcherAPI.cpp */; };
+		590AD2C71CFDFD12008D5367 /* indi_skywatcherAPIMount in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 590AD2BE1CFDFBE9008D5367 /* indi_skywatcherAPIMount */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		590AD2D01CFDFDEA008D5367 /* libindi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A91A8CD3190004AA95 /* libindi.dylib */; };
+		590AD2D11CFDFDEA008D5367 /* libnova.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA422C1A8CB6920004AA95 /* libnova.dylib */; };
+		590AD2D91CFDFE17008D5367 /* smartfocus.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 590AD2D71CFDFE17008D5367 /* smartfocus.cpp */; };
+		590AD2DC1CFDFE30008D5367 /* indi_smartfocus_focus in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 590AD2D61CFDFDEA008D5367 /* indi_smartfocus_focus */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		590AD2FC1CFE0118008D5367 /* libindi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A91A8CD3190004AA95 /* libindi.dylib */; };
+		590AD3081CFE0194008D5367 /* indi_shelyakeshel_spectrograph.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 590AD3051CFE0194008D5367 /* indi_shelyakeshel_spectrograph.cpp */; };
+		590AD30B1CFE01B2008D5367 /* indi_shelyakeshel_spectrograph in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 590AD3021CFE0118008D5367 /* indi_shelyakeshel_spectrograph */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		590AD30C1CFE01D0008D5367 /* indi-shelyak.xml in Resources */ = {isa = PBXBuildFile; fileRef = 590AD3071CFE0194008D5367 /* indi-shelyak.xml */; };
 		591247651AC483F400AFC0BF /* ieqpro.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 591247631AC4836700AFC0BF /* ieqpro.cpp */; };
 		591247661AC483F400AFC0BF /* ieqprodriver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 591247641AC4836700AFC0BF /* ieqprodriver.cpp */; };
 		591991A8188FC9AD007DD2DE /* indiserver.c in Sources */ = {isa = PBXBuildFile; fileRef = 591991A7188FC9AD007DD2DE /* indiserver.c */; };
@@ -255,7 +268,7 @@
 		5944995B1C136C1F00E0E281 /* libASICamera2.lib in Frameworks */ = {isa = PBXBuildFile; fileRef = 5944994B1C13651F00E0E281 /* libASICamera2.lib */; };
 		5944995E1C136C5800E0E281 /* ser_recorder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5944995C1C136C5800E0E281 /* ser_recorder.cpp */; };
 		594499601C136C9100E0E281 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 5944995F1C136C9100E0E281 /* libz.tbd */; };
-		594499611C136CE300E0E281 /* indi_asiccd.xml in Resources */ = {isa = PBXBuildFile; fileRef = 594499471C13643F00E0E281 /* indi_asiccd.xml */; };
+		594499611C136CE300E0E281 /* indi_asi.xml in Resources */ = {isa = PBXBuildFile; fileRef = 594499471C13643F00E0E281 /* indi_asi.xml */; };
 		594499641C136E9F00E0E281 /* indi_asi_ccd in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 594499451C1363C400E0E281 /* indi_asi_ccd */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		59563CBB1CF1E8D200DE1A54 /* libcfitsio.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43181A8CC5F90004AA95 /* libcfitsio.dylib */; };
 		59563CBC1CF1E8D200DE1A54 /* libusb.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA438B1A8CCD030004AA95 /* libusb.dylib */; };
@@ -765,6 +778,62 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		590AD2B21CFDFBE9008D5367 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA422B1A8CB6920004AA95;
+			remoteInfo = nova;
+		};
+		590AD2B41CFDFBE9008D5367 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA43A81A8CD3190004AA95;
+			remoteInfo = indi;
+		};
+		590AD2C51CFDFD05008D5367 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 590AD2B01CFDFBE9008D5367;
+			remoteInfo = indi_skywatcherAPIMount;
+		};
+		590AD2CA1CFDFDEA008D5367 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA422B1A8CB6920004AA95;
+			remoteInfo = nova;
+		};
+		590AD2CC1CFDFDEA008D5367 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA43A81A8CD3190004AA95;
+			remoteInfo = indi;
+		};
+		590AD2DA1CFDFE22008D5367 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 590AD2C81CFDFDEA008D5367;
+			remoteInfo = indi_smartfocus_focus;
+		};
+		590AD2F81CFE0118008D5367 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA43A81A8CD3190004AA95;
+			remoteInfo = indi;
+		};
+		590AD3091CFE01A5008D5367 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 590AD2F41CFE0118008D5367;
+			remoteInfo = indi_shelyakeshel_spectrograph;
+		};
 		591C90CE1C13741B00FCE596 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
@@ -2140,6 +2209,33 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		590AD2BA1CFDFBE9008D5367 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		590AD2D21CFDFDEA008D5367 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		590AD2FE1CFE0118008D5367 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
 		591C90E11C13741B00FCE596 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -2452,6 +2548,9 @@
 			dstPath = "";
 			dstSubfolderSpec = 6;
 			files = (
+				590AD30B1CFE01B2008D5367 /* indi_shelyakeshel_spectrograph in Copy Files (33 items) (53 items) */,
+				590AD2DC1CFDFE30008D5367 /* indi_smartfocus_focus in Copy Files (33 items) (53 items) */,
+				590AD2C71CFDFD12008D5367 /* indi_skywatcherAPIMount in Copy Files (33 items) (53 items) */,
 				593448241CF9E508008AD945 /* indi_script_telescope in Copy Files (33 items) (53 items) */,
 				593445D21CF8F008008AD945 /* indi_qhy_ccd in Copy Files (33 items) (53 items) */,
 				59563CCC1CF20A3800DE1A54 /* indi_ssag_ccd in Copy Files (33 items) (53 items) */,
@@ -2702,6 +2801,27 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		590AD2AC1CFDF7DE008D5367 /* CMakeLists.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+		590AD2AD1CFDF92A008D5367 /* config.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
+		590AD2AE1CFDFB20008D5367 /* CMakeLists.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+		590AD2AF1CFDFBB5008D5367 /* CMakeLists.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+		590AD2BE1CFDFBE9008D5367 /* indi_skywatcherAPIMount */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_skywatcherAPIMount; sourceTree = BUILT_PRODUCTS_DIR; };
+		590AD2BF1CFDFC4A008D5367 /* skywatcherAPIMount.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = skywatcherAPIMount.cpp; sourceTree = "<group>"; };
+		590AD2C01CFDFC4A008D5367 /* skywatcherAPIMount.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = skywatcherAPIMount.h; sourceTree = "<group>"; };
+		590AD2C21CFDFCEA008D5367 /* skywatcherAPI.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = skywatcherAPI.cpp; sourceTree = "<group>"; };
+		590AD2C31CFDFCEA008D5367 /* skywatcherAPI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = skywatcherAPI.h; sourceTree = "<group>"; };
+		590AD2D61CFDFDEA008D5367 /* indi_smartfocus_focus */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_smartfocus_focus; sourceTree = BUILT_PRODUCTS_DIR; };
+		590AD2D71CFDFE17008D5367 /* smartfocus.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = smartfocus.cpp; sourceTree = "<group>"; };
+		590AD2D81CFDFE17008D5367 /* smartfocus.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = smartfocus.h; sourceTree = "<group>"; };
+		590AD2DF1CFE002B008D5367 /* config.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
+		590AD3021CFE0118008D5367 /* indi_shelyakeshel_spectrograph */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_shelyakeshel_spectrograph; sourceTree = BUILT_PRODUCTS_DIR; };
+		590AD3041CFE0194008D5367 /* CMakeLists.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+		590AD3051CFE0194008D5367 /* indi_shelyakeshel_spectrograph.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = indi_shelyakeshel_spectrograph.cpp; sourceTree = "<group>"; };
+		590AD3061CFE0194008D5367 /* indi_shelyakeshel_spectrograph.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = indi_shelyakeshel_spectrograph.h; sourceTree = "<group>"; };
+		590AD3071CFE0194008D5367 /* indi-shelyak.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = "indi-shelyak.xml"; sourceTree = "<group>"; };
+		590AD30D1CFE0201008D5367 /* CMakeLists.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+		590AD30F1CFE0243008D5367 /* config.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
+		590AD3101CFE06D1008D5367 /* ASICamera2.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ASICamera2.h; sourceTree = "<group>"; };
 		591247631AC4836700AFC0BF /* ieqpro.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ieqpro.cpp; sourceTree = "<group>"; };
 		591247641AC4836700AFC0BF /* ieqprodriver.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ieqprodriver.cpp; sourceTree = "<group>"; };
 		591991A6188FC99E007DD2DE /* indiserver-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "indiserver-Info.plist"; sourceTree = "<group>"; };
@@ -3004,14 +3124,14 @@
 		594498F21C1362A000E0E281 /* wunderground.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = wunderground.cpp; sourceTree = "<group>"; };
 		594498F51C1362A900E0E281 /* vantage.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = vantage.cpp; sourceTree = "<group>"; };
 		594499451C1363C400E0E281 /* indi_asi_ccd */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_asi_ccd; sourceTree = BUILT_PRODUCTS_DIR; };
-		594499461C13643F00E0E281 /* asi_ccd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = asi_ccd.cpp; path = "indi-asicam/asi_ccd.cpp"; sourceTree = "<group>"; };
-		594499471C13643F00E0E281 /* indi_asiccd.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = indi_asiccd.xml; path = "indi-asicam/indi_asiccd.xml"; sourceTree = "<group>"; };
-		5944994B1C13651F00E0E281 /* libASICamera2.lib */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libASICamera2.lib; path = "indi-asicam/macuni/libASICamera2.lib"; sourceTree = "<group>"; };
+		594499461C13643F00E0E281 /* asi_ccd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = asi_ccd.cpp; sourceTree = "<group>"; };
+		594499471C13643F00E0E281 /* indi_asi.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = indi_asi.xml; sourceTree = "<group>"; };
+		5944994B1C13651F00E0E281 /* libASICamera2.lib */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libASICamera2.lib; path = macuni/libASICamera2.lib; sourceTree = "<group>"; };
 		5944994E1C1365C400E0E281 /* stream_recorder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = stream_recorder.cpp; sourceTree = "<group>"; };
 		5944994F1C1365C400E0E281 /* stream_recorder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = stream_recorder.h; sourceTree = "<group>"; };
 		594499551C13677F00E0E281 /* v4l2_record.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = v4l2_record.cpp; sourceTree = "<group>"; };
 		594499561C13677F00E0E281 /* v4l2_record.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = v4l2_record.h; sourceTree = "<group>"; };
-		5944995A1C136C0400E0E281 /* config.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = config.h; path = "indi-asicam/config.h"; sourceTree = "<group>"; };
+		5944995A1C136C0400E0E281 /* config.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
 		5944995C1C136C5800E0E281 /* ser_recorder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ser_recorder.cpp; sourceTree = "<group>"; };
 		5944995D1C136C5800E0E281 /* ser_recorder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ser_recorder.h; sourceTree = "<group>"; };
 		5944995F1C136C9100E0E281 /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
@@ -3103,7 +3223,7 @@
 		59567D381A8D41640057A35A /* indi_fcusb_focuser */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_fcusb_focuser; sourceTree = BUILT_PRODUCTS_DIR; };
 		59567D4A1A8D418E0057A35A /* indi_usbfocus_focuser */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_usbfocus_focuser; sourceTree = BUILT_PRODUCTS_DIR; };
 		59567D581A8D4EA70057A35A /* README.txt */ = {isa = PBXFileReference; lastKnownFileType = text; name = README.txt; path = ../README.txt; sourceTree = "<group>"; };
-		595FA8BC1C54C0FD003869DE /* asi_ccd.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = asi_ccd.h; path = "indi-asicam/asi_ccd.h"; sourceTree = "<group>"; };
+		595FA8BC1C54C0FD003869DE /* asi_ccd.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = asi_ccd.h; sourceTree = "<group>"; };
 		596556781C4A3E530044680B /* indi_qsi_ccd */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_qsi_ccd; sourceTree = BUILT_PRODUCTS_DIR; };
 		5965568D1C4A3EF60044680B /* qsi_ccd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qsi_ccd.cpp; sourceTree = "<group>"; };
 		5965568F1C4A3F120044680B /* ConvertUTF.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ConvertUTF.c; path = ../libqsi/ConvertUTF.c; sourceTree = "<group>"; };
@@ -3483,6 +3603,32 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		590AD2B71CFDFBE9008D5367 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				590AD2B81CFDFBE9008D5367 /* libnova.dylib in Frameworks */,
+				590AD2B91CFDFBE9008D5367 /* libindi.dylib in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		590AD2CF1CFDFDEA008D5367 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				590AD2D01CFDFDEA008D5367 /* libindi.dylib in Frameworks */,
+				590AD2D11CFDFDEA008D5367 /* libnova.dylib in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		590AD2FB1CFE0118008D5367 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				590AD2FC1CFE0118008D5367 /* libindi.dylib in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		591C90DA1C13741B00FCE596 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -4082,6 +4228,17 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		590AD3031CFE0181008D5367 /* indi-shelyak */ = {
+			isa = PBXGroup;
+			children = (
+				590AD3041CFE0194008D5367 /* CMakeLists.txt */,
+				590AD3051CFE0194008D5367 /* indi_shelyakeshel_spectrograph.cpp */,
+				590AD3061CFE0194008D5367 /* indi_shelyakeshel_spectrograph.h */,
+				590AD3071CFE0194008D5367 /* indi-shelyak.xml */,
+			);
+			path = "indi-shelyak";
+			sourceTree = "<group>";
+		};
 		591991AF188FC9D3007DD2DE /* indiserver */ = {
 			isa = PBXGroup;
 			children = (
@@ -4119,6 +4276,7 @@
 		5924ACE81C8B44AB00750816 /* indi-nexstarevo */ = {
 			isa = PBXGroup;
 			children = (
+				590AD2DF1CFE002B008D5367 /* config.h */,
 				5924ACF81C8B455C00750816 /* indi_nexstarevo.xml */,
 				5924ACF91C8B455C00750816 /* NexStarAUXScope.cpp */,
 				5924ACFA1C8B455C00750816 /* NexStarAUXScope.h */,
@@ -4134,6 +4292,7 @@
 				593446321CF8F02D008AD945 /* libqhy */,
 				593445D31CF8F00C008AD945 /* firmware */,
 				593445C71CF8EFC8008AD945 /* config.h */,
+				590AD30D1CFE0201008D5367 /* CMakeLists.txt */,
 				593445C81CF8EFC8008AD945 /* indi_qhy.xml */,
 				593445C91CF8EFC8008AD945 /* qhy_ccd.cpp */,
 				593445CA1CF8EFC8008AD945 /* qhy_ccd.h */,
@@ -4405,16 +4564,18 @@
 			path = weather;
 			sourceTree = "<group>";
 		};
-		5944992F1C1363AD00E0E281 /* indi-asicam */ = {
+		5944992F1C1363AD00E0E281 /* indi-asi */ = {
 			isa = PBXGroup;
 			children = (
+				590AD3101CFE06D1008D5367 /* ASICamera2.h */,
+				590AD2AC1CFDF7DE008D5367 /* CMakeLists.txt */,
 				5944995A1C136C0400E0E281 /* config.h */,
 				595FA8BC1C54C0FD003869DE /* asi_ccd.h */,
 				594499461C13643F00E0E281 /* asi_ccd.cpp */,
-				594499471C13643F00E0E281 /* indi_asiccd.xml */,
+				594499471C13643F00E0E281 /* indi_asi.xml */,
 				5944994B1C13651F00E0E281 /* libASICamera2.lib */,
 			);
-			name = "indi-asicam";
+			path = "indi-asi";
 			sourceTree = "<group>";
 		};
 		5944994D1C13659300E0E281 /* v4l2_record */ = {
@@ -4523,6 +4684,9 @@
 				59563CC11CF1E8D200DE1A54 /* indi_ssag_ccd */,
 				593445C51CF8EF62008AD945 /* indi_qhy_ccd */,
 				593448231CF9E4E6008AD945 /* indi_script_telescope */,
+				590AD2BE1CFDFBE9008D5367 /* indi_skywatcherAPIMount */,
+				590AD2D61CFDFDEA008D5367 /* indi_smartfocus_focus */,
+				590AD3021CFE0118008D5367 /* indi_shelyakeshel_spectrograph */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -4639,13 +4803,14 @@
 		59567C081A8D325E0057A35A /* 3rd */ = {
 			isa = PBXGroup;
 			children = (
+				590AD3031CFE0181008D5367 /* indi-shelyak */,
 				593445C61CF8EF8F008AD945 /* indi-qhy */,
 				59563C9B1CF1E8A000DE1A54 /* indi-ssag */,
 				598785BE1CE71F1A00DF2294 /* indi-fli */,
 				5924ACE81C8B44AB00750816 /* indi-nexstarevo */,
 				596556621C4A3DCD0044680B /* indi-qsi */,
 				591C90C81C1373C700FCE596 /* indi-sbig */,
-				5944992F1C1363AD00E0E281 /* indi-asicam */,
+				5944992F1C1363AD00E0E281 /* indi-asi */,
 				59567CAE1A8D3D0C0057A35A /* indi-spectracyber */,
 				59567CAD1A8D3D030057A35A /* indi-maxdomeii */,
 				59567C731A8D3AF90057A35A /* indi-eqmod */,
@@ -4675,6 +4840,7 @@
 		59567C541A8D34A70057A35A /* indi-aagcloudwatcher */ = {
 			isa = PBXGroup;
 			children = (
+				590AD2AD1CFDF92A008D5367 /* config.h */,
 				59567C551A8D34C80057A35A /* CloudWatcherController.cpp */,
 				59567C561A8D34C80057A35A /* indi_aagcloudwatcher_sk.xml */,
 				59567C571A8D34C80057A35A /* indi_aagcloudwatcher.cpp */,
@@ -4714,6 +4880,7 @@
 		59567CAD1A8D3D030057A35A /* indi-maxdomeii */ = {
 			isa = PBXGroup;
 			children = (
+				590AD30F1CFE0243008D5367 /* config.h */,
 				59567CB61A8D3D570057A35A /* maxdomeii.cpp */,
 				59567CB71A8D3D570057A35A /* maxdomeiidriver.c */,
 				59567CB41A8D3D500057A35A /* indi_maxdomeii.xml */,
@@ -4971,6 +5138,7 @@
 		59E5F8C81C3F09FA008DAB80 /* alignment */ = {
 			isa = PBXGroup;
 			children = (
+				590AD2AF1CFDFBB5008D5367 /* CMakeLists.txt */,
 				59E5F8C91C3F0A54008DAB80 /* AlignmentSubsystemForDrivers.cpp */,
 				59E5F8CA1C3F0A54008DAB80 /* ClientAPIForAlignmentDatabase.cpp */,
 				59E5F8CC1C3F0A54008DAB80 /* DriverCommon.cpp */,
@@ -5001,6 +5169,8 @@
 				5944983C1C135DB400E0E281 /* focuslynx.cpp */,
 				5944983D1C135DB400E0E281 /* focuslynxbase.cpp */,
 				594498531C135EE400E0E281 /* perfectstar.cpp */,
+				590AD2D71CFDFE17008D5367 /* smartfocus.cpp */,
+				590AD2D81CFDFE17008D5367 /* smartfocus.h */,
 			);
 			path = focuser;
 			sourceTree = "<group>";
@@ -5008,6 +5178,10 @@
 		9D75D5381A8D135B008AA08A /* telescope */ = {
 			isa = PBXGroup;
 			children = (
+				590AD2BF1CFDFC4A008D5367 /* skywatcherAPIMount.cpp */,
+				590AD2C01CFDFC4A008D5367 /* skywatcherAPIMount.h */,
+				590AD2C21CFDFCEA008D5367 /* skywatcherAPI.cpp */,
+				590AD2C31CFDFCEA008D5367 /* skywatcherAPI.h */,
 				9D75D5391A8D1391008AA08A /* telescope_simulator.cpp */,
 				593448281CFA356A008AD945 /* telescope_script.txt */,
 				593448111CF9A6B0008AD945 /* telescope_script.cpp */,
@@ -5201,11 +5375,12 @@
 		9DDA43AD1A8CD3240004AA95 /* libindi */ = {
 			isa = PBXGroup;
 			children = (
+				590AD2AE1CFDFB20008D5367 /* CMakeLists.txt */,
+				9DDA440B1A8D00E10004AA95 /* drivers.xml */,
 				9DDA43BE1A8CDADD0004AA95 /* base64.c */,
 				9DDA43C71A8CECC40004AA95 /* eventloop.c */,
 				9DDA43C81A8CECC40004AA95 /* indidriver.c */,
 				9DDA43C91A8CECC40004AA95 /* indidrivermain.c */,
-				9DDA440B1A8D00E10004AA95 /* drivers.xml */,
 				9DDA43C01A8CDAE40004AA95 /* libs */,
 			);
 			name = libindi;
@@ -5337,6 +5512,62 @@
 /* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
+		590AD2B01CFDFBE9008D5367 /* indi_skywatcherAPIMount */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 590AD2BB1CFDFBE9008D5367 /* Build configuration list for PBXNativeTarget "indi_skywatcherAPIMount" */;
+			buildPhases = (
+				590AD2B51CFDFBE9008D5367 /* Sources */,
+				590AD2B71CFDFBE9008D5367 /* Frameworks */,
+				590AD2BA1CFDFBE9008D5367 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				590AD2B11CFDFBE9008D5367 /* PBXTargetDependency */,
+				590AD2B31CFDFBE9008D5367 /* PBXTargetDependency */,
+			);
+			name = indi_skywatcherAPIMount;
+			productName = indi_simulator_ccd;
+			productReference = 590AD2BE1CFDFBE9008D5367 /* indi_skywatcherAPIMount */;
+			productType = "com.apple.product-type.tool";
+		};
+		590AD2C81CFDFDEA008D5367 /* indi_smartfocus_focus */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 590AD2D31CFDFDEA008D5367 /* Build configuration list for PBXNativeTarget "indi_smartfocus_focus" */;
+			buildPhases = (
+				590AD2CD1CFDFDEA008D5367 /* Sources */,
+				590AD2CF1CFDFDEA008D5367 /* Frameworks */,
+				590AD2D21CFDFDEA008D5367 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				590AD2C91CFDFDEA008D5367 /* PBXTargetDependency */,
+				590AD2CB1CFDFDEA008D5367 /* PBXTargetDependency */,
+			);
+			name = indi_smartfocus_focus;
+			productName = indi_lxbasic;
+			productReference = 590AD2D61CFDFDEA008D5367 /* indi_smartfocus_focus */;
+			productType = "com.apple.product-type.tool";
+		};
+		590AD2F41CFE0118008D5367 /* indi_shelyakeshel_spectrograph */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 590AD2FF1CFE0118008D5367 /* Build configuration list for PBXNativeTarget "indi_shelyakeshel_spectrograph" */;
+			buildPhases = (
+				590AD2F91CFE0118008D5367 /* Sources */,
+				590AD2FB1CFE0118008D5367 /* Frameworks */,
+				590AD2FE1CFE0118008D5367 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				590AD2F71CFE0118008D5367 /* PBXTargetDependency */,
+			);
+			name = indi_shelyakeshel_spectrograph;
+			productName = indi_lxbasic;
+			productReference = 590AD3021CFE0118008D5367 /* indi_shelyakeshel_spectrograph */;
+			productType = "com.apple.product-type.tool";
+		};
 		591C90CC1C13741B00FCE596 /* indi_sbig_ccd */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 591C90E21C13741B00FCE596 /* Build configuration list for PBXNativeTarget "indi_sbig_ccd" */;
@@ -5641,6 +5872,9 @@
 			buildRules = (
 			);
 			dependencies = (
+				590AD30A1CFE01A5008D5367 /* PBXTargetDependency */,
+				590AD2DB1CFDFE22008D5367 /* PBXTargetDependency */,
+				590AD2C61CFDFD05008D5367 /* PBXTargetDependency */,
 				593448261CF9E510008AD945 /* PBXTargetDependency */,
 				593445D11CF8EFFC008AD945 /* PBXTargetDependency */,
 				59563CCB1CF20A2A00DE1A54 /* PBXTargetDependency */,
@@ -6751,6 +6985,9 @@
 				59563CA11CF1E8D200DE1A54 /* indi_ssag_ccd */,
 				593445B11CF8EF62008AD945 /* indi_qhy_ccd */,
 				593448131CF9E4E6008AD945 /* indi_script_telescope */,
+				590AD2B01CFDFBE9008D5367 /* indi_skywatcherAPIMount */,
+				590AD2C81CFDFDEA008D5367 /* indi_smartfocus_focus */,
+				590AD2F41CFE0118008D5367 /* indi_shelyakeshel_spectrograph */,
 			);
 		};
 /* End PBXProject section */
@@ -6760,6 +6997,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				590AD30C1CFE01D0008D5367 /* indi-shelyak.xml in Resources */,
 				59563CC91CF209F600DE1A54 /* indi_ssag.xml in Resources */,
 				593446031CF8F029008AD945 /* IC90A.HEX in Resources */,
 				5934461E1CF8F029008AD945 /* QHY9S.HEX in Resources */,
@@ -6768,7 +7006,7 @@
 				5934462A1CF8F029008AD945 /* QHY29.HEX in Resources */,
 				593446181CF8F029008AD945 /* QHY6.HEX in Resources */,
 				591C90EA1C13746D00FCE596 /* indi_sbig.xml in Resources */,
-				594499611C136CE300E0E281 /* indi_asiccd.xml in Resources */,
+				594499611C136CE300E0E281 /* indi_asi.xml in Resources */,
 				593446211CF8F029008AD945 /* QHY12.HEX in Resources */,
 				593446171CF8F029008AD945 /* QHY5LOADER.HEX in Resources */,
 				59567C5C1A8D34E90057A35A /* indi_aagcloudwatcher_sk.xml in Resources */,
@@ -6853,11 +7091,36 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "cd \"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/MacOS\"\n\nrm -f indi_lx200classic indi_lx200autostar indi_lx200_16 indi_lx200gps indi_lx200ap indi_lx200gemini indi_lx200zeq25 indi_lx200fs2 indi_tcfs3_focus\n\nln -s indi_lx200generic indi_lx200classic\nln -s indi_lx200generic indi_lx200autostar\nln -s indi_lx200generic indi_lx200_16\nln -s indi_lx200generic indi_lx200gps\nln -s indi_lx200generic indi_lx200ap\nln -s indi_lx200generic indi_lx200gemini\nln -s indi_lx200generic indi_lx200zeq25\nln -s indi_lx200generic indi_lx200fs2\nln -s indi_tcfs_focus indi_tcfs3_focus\n\n\n";
+			shellScript = "cd \"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/MacOS\"\n\nrm -f indi_lx200classic indi_lx200autostar indi_lx200_16 indi_lx200gps indi_lx200ap indi_lx200gemini indi_lx200zeq25 indi_lx200pulsar2 indi_lx200fs2 indi_lx200ss2000pc indi_tcfs3_focus\n\nln -s indi_lx200generic indi_lx200classic\nln -s indi_lx200generic indi_lx200autostar\nln -s indi_lx200generic indi_lx200_16\nln -s indi_lx200generic indi_lx200gps\nln -s indi_lx200generic indi_lx200ap\nln -s indi_lx200generic indi_lx200gemini\nln -s indi_lx200generic indi_lx200zeq25\nln -s indi_lx200generic indi_lx200fs2\nln -s indi_lx200generic indi_lx200pulsar2\nln -s indi_lx200generic indi_lx200ss2000pc\nln -s indi_tcfs_focus indi_tcfs3_focus\n\n\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		590AD2B51CFDFBE9008D5367 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				590AD2C11CFDFC4A008D5367 /* skywatcherAPIMount.cpp in Sources */,
+				590AD2C41CFDFCEA008D5367 /* skywatcherAPI.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		590AD2CD1CFDFDEA008D5367 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				590AD2D91CFDFE17008D5367 /* smartfocus.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		590AD2F91CFE0118008D5367 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				590AD3081CFE0194008D5367 /* indi_shelyakeshel_spectrograph.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		591C90D51C13741B00FCE596 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -7772,6 +8035,46 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		590AD2B11CFDFBE9008D5367 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA422B1A8CB6920004AA95 /* nova */;
+			targetProxy = 590AD2B21CFDFBE9008D5367 /* PBXContainerItemProxy */;
+		};
+		590AD2B31CFDFBE9008D5367 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA43A81A8CD3190004AA95 /* indi */;
+			targetProxy = 590AD2B41CFDFBE9008D5367 /* PBXContainerItemProxy */;
+		};
+		590AD2C61CFDFD05008D5367 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 590AD2B01CFDFBE9008D5367 /* indi_skywatcherAPIMount */;
+			targetProxy = 590AD2C51CFDFD05008D5367 /* PBXContainerItemProxy */;
+		};
+		590AD2C91CFDFDEA008D5367 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA422B1A8CB6920004AA95 /* nova */;
+			targetProxy = 590AD2CA1CFDFDEA008D5367 /* PBXContainerItemProxy */;
+		};
+		590AD2CB1CFDFDEA008D5367 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA43A81A8CD3190004AA95 /* indi */;
+			targetProxy = 590AD2CC1CFDFDEA008D5367 /* PBXContainerItemProxy */;
+		};
+		590AD2DB1CFDFE22008D5367 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 590AD2C81CFDFDEA008D5367 /* indi_smartfocus_focus */;
+			targetProxy = 590AD2DA1CFDFE22008D5367 /* PBXContainerItemProxy */;
+		};
+		590AD2F71CFE0118008D5367 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA43A81A8CD3190004AA95 /* indi */;
+			targetProxy = 590AD2F81CFE0118008D5367 /* PBXContainerItemProxy */;
+		};
+		590AD30A1CFE01A5008D5367 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 590AD2F41CFE0118008D5367 /* indi_shelyakeshel_spectrograph */;
+			targetProxy = 590AD3091CFE01A5008D5367 /* PBXContainerItemProxy */;
+		};
 		591C90CD1C13741B00FCE596 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 9DDA43171A8CC5F90004AA95 /* cfitsio */;
@@ -8782,6 +9085,173 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		590AD2BC1CFDFBE9008D5367 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"/Applications/Xcode-Beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include",
+					"../../../libnova-0.15.0/src",
+					"../../../libnova-0.15.0/src/libnova",
+					"../../../libusb-1.0.19/libusb",
+					../../../cfitsio,
+					../../libindi,
+					../../libindi/libs,
+					../../libindi/libs/indibase,
+				);
+				MTL_ENABLE_DEBUG_INFO = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				USER_HEADER_SEARCH_PATHS = "";
+			};
+			name = Debug;
+		};
+		590AD2BD1CFDFBE9008D5367 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"/Applications/Xcode-Beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include",
+					"../../../libnova-0.15.0/src",
+					"../../../libnova-0.15.0/src/libnova",
+					"../../../libusb-1.0.19/libusb",
+					../../../cfitsio,
+					../../libindi,
+					../../libindi/libs,
+					../../libindi/libs/indibase,
+				);
+				MTL_ENABLE_DEBUG_INFO = NO;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				USER_HEADER_SEARCH_PATHS = "";
+			};
+			name = Release;
+		};
+		590AD2D41CFDFDEA008D5367 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"/Applications/Xcode-Beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include",
+					"../../../libnova-0.15.0/src",
+					"../../../libnova-0.15.0/src/libnova",
+					"../../../libusb-1.0.19/libusb",
+					../../../cfitsio,
+					../../libindi/libs/indibase,
+					../../libindi/libs,
+					../../libindi,
+				);
+				MTL_ENABLE_DEBUG_INFO = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		590AD2D51CFDFDEA008D5367 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"/Applications/Xcode-Beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include",
+					"../../../libnova-0.15.0/src",
+					"../../../libnova-0.15.0/src/libnova",
+					"../../../libusb-1.0.19/libusb",
+					../../../cfitsio,
+					../../libindi/libs/indibase,
+					../../libindi/libs,
+					../../libindi,
+				);
+				MTL_ENABLE_DEBUG_INFO = NO;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		590AD3001CFE0118008D5367 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"/Applications/Xcode-Beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include",
+					"../../../libnova-0.15.0/src",
+					"../../../libnova-0.15.0/src/libnova",
+					"../../../libusb-1.0.19/libusb",
+					../../../cfitsio,
+					../../libindi/libs/indibase,
+					../../libindi/libs,
+					../../libindi,
+				);
+				MTL_ENABLE_DEBUG_INFO = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		590AD3011CFE0118008D5367 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"/Applications/Xcode-Beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include",
+					"../../../libnova-0.15.0/src",
+					"../../../libnova-0.15.0/src/libnova",
+					"../../../libusb-1.0.19/libusb",
+					../../../cfitsio,
+					../../libindi/libs/indibase,
+					../../libindi/libs,
+					../../libindi,
+				);
+				MTL_ENABLE_DEBUG_INFO = NO;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 		591C90E31C13741B00FCE596 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -12516,6 +12986,33 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		590AD2BB1CFDFBE9008D5367 /* Build configuration list for PBXNativeTarget "indi_skywatcherAPIMount" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				590AD2BC1CFDFBE9008D5367 /* Debug */,
+				590AD2BD1CFDFBE9008D5367 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		590AD2D31CFDFDEA008D5367 /* Build configuration list for PBXNativeTarget "indi_smartfocus_focus" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				590AD2D41CFDFDEA008D5367 /* Debug */,
+				590AD2D51CFDFDEA008D5367 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		590AD2FF1CFE0118008D5367 /* Build configuration list for PBXNativeTarget "indi_shelyakeshel_spectrograph" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				590AD3001CFE0118008D5367 /* Debug */,
+				590AD3011CFE0118008D5367 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		591C90E21C13741B00FCE596 /* Build configuration list for PBXNativeTarget "indi_sbig_ccd" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
