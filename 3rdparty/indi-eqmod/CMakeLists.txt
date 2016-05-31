@@ -21,8 +21,9 @@ option(WITH_SIMULATOR "Enable Simulator" ON)
 option(WITH_NOFMANY "Use NOFMANY switches" ON)
 option(WITH_SCOPE_LIMITS "Enable Scope limits" ON)
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 set(INDI_DATA_DIR "${CMAKE_INSTALL_PREFIX}/share/indi")
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_eqmod.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_eqmod.xml )
 
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
@@ -70,7 +71,7 @@ endif (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")
 
 install(TARGETS indi_eqmod_telescope RUNTIME DESTINATION bin )
 
-install( FILES  indi_eqmod.xml indi_eqmod_sk.xml DESTINATION ${INDI_DATA_DIR})
+install( FILES  ${CMAKE_CURRENT_BINARY_DIR}/indi_eqmod.xml indi_eqmod_sk.xml DESTINATION ${INDI_DATA_DIR})
 
 if (WITH_SIMULATOR)
   install( FILES  simulator/indi_eqmod_simulator_sk.xml DESTINATION ${INDI_DATA_DIR})
