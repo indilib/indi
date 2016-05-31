@@ -1,3 +1,9 @@
+indi-qsi (0.5.0) xenial; urgency=low
+
+  * New upstream version.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Tue, 31 May 2016 18:00:00 +0300
+
 indi-qsi (0.4.1) unstable; urgency=low
 
   * Released for debian.

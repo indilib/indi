@@ -65,6 +65,7 @@
 #include "eventloop.h"
 #include "indicom.h"
 #include "qsi_ccd.h"
+#include "config.h"
 
 void ISInit(void);
 void ISPoll(void *);
@@ -136,6 +137,8 @@ QSICCD::QSICCD()
     canChangeReadoutSpeed = false;
 
     QSICam.put_UseStructuredExceptions(true);
+
+    setVersion(QSI_VERSION_MAJOR, QSI_VERSION_MINOR);
 
 }
 
