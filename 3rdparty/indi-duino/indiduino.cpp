@@ -36,7 +36,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include <duconfig.h>
+#include <config.h>
 
 /* Our driver header */
 #include "indiduino.h"
@@ -104,7 +104,8 @@ void ISSnoopDevice (XMLEle *root)
 ***************************************************************************************/
 indiduino::indiduino()
 {
-    IDLog("Indiduino driver start...\n");
+    DEBUG(INDI::Logger::DBG_DEBUG, "Indiduino driver start...");
+    setVersion(DUINO_VERSION_MAJOR, DUINO_VERSION_MINOR);
 }
 
 /**************************************************************************************
@@ -215,9 +216,7 @@ bool indiduino::initProperties()
     
     struct stat st;
 
-    strcpy(skelFileName, DEFAULT_SKELETON_FILE);
-
-    setVersion(VERSION_MAJOR, VERSION_MINOR);
+    strcpy(skelFileName, DEFAULT_SKELETON_FILE);    
 
     char *skel = getenv("INDISKEL");
     if (skel) {

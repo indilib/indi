@@ -1,4 +1,3 @@
-install(FILES indi_duino.xml DESTINATION ${INDI_DATA_DIR})
 install(FILES various_sk.xml DESTINATION ${INDI_DATA_DIR})
 install(FILES simple_switcher_sk.xml DESTINATION ${INDI_DATA_DIR})
 install(FILES switcher_sk.xml DESTINATION ${INDI_DATA_DIR})
