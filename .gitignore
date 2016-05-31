@@ -3,6 +3,10 @@
 3rdparty/indi-aagcloudwatcher/*.user*
 3rdparty/fliusb/*.user*
 3rdparty/generic-ccd/*.user*
+3rdparty/indi-asi/*.user*
+3rdparty/indi-dsi/*.user*
+3rdparty/indi-ffmv/*.user*
+3rdparty/indi-gpsd/*.user*
 3rdparty/indi-apogee/*.user*
 3rdparty/indi-duino/*.user*
 3rdparty/indi-duino/add-on/*.user*
