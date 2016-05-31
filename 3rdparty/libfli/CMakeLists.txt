@@ -1,6 +1,7 @@
-#this is just a basic CMakeLists.txt, for more information see the cmake manpage
 cmake_minimum_required(VERSION 2.4.7)
+PROJECT(libfli CXX C)
 
+include(GNUInstallDirs)
 ADD_DEFINITIONS(-Wall -O2)
 
 set(fli_LIB_SRCS
@@ -21,4 +22,4 @@ TARGET_LINK_LIBRARIES(fli)
 #add an install target here
 INSTALL(FILES libfli.h DESTINATION include)
 
-INSTALL(TARGETS fli LIBRARY DESTINATION lib${LIB_POSTFIX})
+INSTALL(TARGETS fli LIBRARY DESTINATION lib)
