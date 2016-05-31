@@ -3,7 +3,6 @@ PROJECT(generic_ccd CXX C)
 
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
-set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
 
 include(GNUInstallDirs)
 
