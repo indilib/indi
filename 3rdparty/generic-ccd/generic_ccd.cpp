@@ -26,6 +26,7 @@
 #include <unistd.h>
 #include <sys/time.h>
 
+#include "config.h"
 #include "indidevapi.h"
 #include "eventloop.h"
 
@@ -172,6 +173,7 @@ GenericCCD::GenericCCD(DEVICE device, const char *name)
   snprintf(this->name, 32, "Generic CCD %s", name);
   setDeviceName(this->name);
 
+  setVersion(GENERIC_VERSION_MAJOR, GENERIC_VERSION_MINOR);
 }
 
 GenericCCD::~GenericCCD() {
