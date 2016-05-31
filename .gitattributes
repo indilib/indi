@@ -1,4 +1,4 @@
-* text=auto !eol
+#* text=auto !eol
 /.svnignore -text
 3rdparty/CMakeLists.txt -text
 3rdparty/README -text
