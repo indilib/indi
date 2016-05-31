@@ -3,35 +3,26 @@ cmake_minimum_required(VERSION 2.4.7)
 
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
+include(GNUInstallDirs)
+
 set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
-
 set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
-#Include (CheckCXXSourceCompiles)
-
-#SET(CMAKE_CXX_FLAGS "-Wall" )
-#SET(CMAKE_CXX_FLAGS_DEBUG "-Werror -O0 -g -DDEBUG_FITS" )
-#SET(CMAKE_C_FLAGS "-Wall" )
-#SET(CMAKE_C_FLAGS_DEBUG "-Werror -O0 -g -DDEBUG_FITS" )
-
 
 find_package(INDI REQUIRED)
 find_package(Nova REQUIRED)
 find_package(ZLIB REQUIRED)
-#find_package(Threads REQUIRED)
 
 set(EQMOD_VERSION_MAJOR 0)
 set(EQMOD_VERSION_MINOR 3)
-#include(CMakeDependentOption)
+
 option(WITH_ALIGN "Enable Alignment Subsystem" ON)
-#cmake_dependent_option(WITH_ALIGN_GEEHALEL "Enable Alignment Test" ON "NOT WITH_ALIGN" OFF)
 option(WITH_ALIGN_GEEHALEL "Enable EQMod Alignment" ON)
 option(WITH_SIMULATOR "Enable Simulator" ON)
 option(WITH_NOFMANY "Use NOFMANY switches" ON)
-#option(STOP_WHEN_MOTION_CHANGED "Stop motors when motion mode changes" ON)
 option(WITH_SCOPE_LIMITS "Enable Scope limits" ON)
+
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 set(INDI_DATA_DIR "${CMAKE_INSTALL_PREFIX}/share/indi")
-
 
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
