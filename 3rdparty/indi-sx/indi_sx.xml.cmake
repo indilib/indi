@@ -3,19 +3,19 @@
 <devGroup group="CCDs">
         <device label="SX CCD" mdpd="true">
                 <driver name="SX CCD">indi_sx_ccd</driver>
-		<version>1.12</version>
+                <version>@VERSION_MAJOR@.@VERSION_MINOR@</version>
 	</device>
 </devGroup>
 <devGroup group="Filter Wheels">
         <device label="SX Wheel">
                 <driver name="SX Wheel">indi_sx_wheel</driver>
-		<version>1.12</version>
+                <version>@VERSION_MAJOR@.@VERSION_MINOR@</version>
 	</device>
 </devGroup>
 <devGroup group="Adaptive Optics">
         <device label="SX AO">
                 <driver name="SX AO">indi_sx_ao</driver>
-		<version>1.12</version>
+                <version>@VERSION_MAJOR@.@VERSION_MINOR@</version>
 	</device>
 </devGroup>
 </driversList>

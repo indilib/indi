@@ -3,6 +3,7 @@ PROJECT(indi_sx CXX C)
 
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
+include(GNUInstallDirs)
 set(RULES_INSTALL_DIR "/lib/udev/rules.d/")
 
 set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
@@ -14,6 +15,7 @@ configure_file (
   "${CMAKE_CURRENT_SOURCE_DIR}/sxconfig.h.in"
   "${CMAKE_CURRENT_SOURCE_DIR}/sxconfig.h"
   )
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_sx.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_sx.xml )
 
 find_package(CFITSIO REQUIRED)
 find_package(USB-1 REQUIRED)
@@ -84,7 +86,7 @@ install(TARGETS indi_sx_ccd RUNTIME DESTINATION bin)
 install(TARGETS indi_sx_wheel RUNTIME DESTINATION bin)
 install(TARGETS indi_sx_ao RUNTIME DESTINATION bin)
 install(TARGETS sx_ccd_test RUNTIME DESTINATION bin)
-install(FILES indi_sx.xml DESTINATION ${INDI_DATA_DIR})
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/indi_sx.xml DESTINATION ${INDI_DATA_DIR})
 
 set (CPACK_PACKAGE_NAME "sxccd")
 set (CPACK_PACKAGE_VENDOR "CloudMakers, s. r. o.")
