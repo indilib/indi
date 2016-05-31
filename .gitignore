@@ -50,6 +50,7 @@ debian/fliusb/*.user*
 debian/indi-apogee/*.user*
 debian/indi-eqmod/*.user*
 debian/indi-fli/*.user*
+debian/indi-gpsd/*.user*
 debian/indi-gphoto/*.user*
 debian/indi-maxdomeii/*.user*
 debian/indi-qhy/*.user*
