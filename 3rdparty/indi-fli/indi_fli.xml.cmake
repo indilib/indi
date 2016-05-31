@@ -3,19 +3,19 @@
 <devGroup group="CCDs">
 	<device label="FLI CCD">
 		<driver name="FLI CCD">indi_fli_ccd</driver>
-                <version>1.1</version>
+                <version>@FLI_CCD_VERSION_MAJOR@.@FLI_CCD_VERSION_MINOR@</version>
 	</device>
 </devGroup>
 <devGroup group="Focusers">
 	<device label="FLI PDF">
                 <driver name="FLI PDF">indi_fli_focus</driver>
-		<version>1.0</version>
+                <version>@FLI_CCD_VERSION_MAJOR@.@FLI_CCD_VERSION_MINOR@</version>
 	</device>
 </devGroup>
 <devGroup group="Filter Wheels">
         <device label="FLI CFW">
                 <driver name="FLI CFW">indi_fli_wheel</driver>
-                <version>1.0</version>
+                <version>@FLI_CCD_VERSION_MAJOR@.@FLI_CCD_VERSION_MINOR@</version>
         </device>
 </devGroup>
 </driversList>
