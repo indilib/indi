@@ -1,3 +1,9 @@
+indi-eqmod (0.3) xenial; urgency=medium
+
+  * New upstream version
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Tue, 31 May 2016 11:37:36 +0300
+
 indi-eqmod (0.2) trusty; urgency=low
 
   * New upstream version.
