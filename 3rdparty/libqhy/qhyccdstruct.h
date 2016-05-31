@@ -161,7 +161,6 @@ enum CONTROL_ID
     CAM_BIN2X2MODE,         //!< check if camera has bin2x2 mode 
     CAM_BIN3X3MODE,         //!< check if camera has bin3x3 mode 
     CAM_BIN4X4MODE,         //!< check if camera has bin4x4 mode 
-
     CAM_MECHANICALSHUTTER,                   //!< mechanical shutter  
     CAM_TRIGER_INTERFACE,                    //!< triger  
     CAM_TECOVERPROTECT_INTERFACE,            //!< tec overprotect
@@ -180,7 +179,8 @@ enum CONTROL_ID
 
     QHYCCD_3A_AUTOBALANCE,
     QHYCCD_3A_AUTOEXPOSURE,
-    QHYCCD_3A_AUTOFOCUS
+    QHYCCD_3A_AUTOFOCUS,
+    CONTROL_AMPV                             //!< ccd or cmos ampv
 };
 
 /**

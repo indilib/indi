@@ -1,3 +1,9 @@
+libqhy (0.1.8) xenial; urgency=medium
+
+  * Upstream release.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Tue, 31 May 2016 18:00:00 +0300
+
 libqhy (0.1.7) vivid; urgency=medium
 
   * Upstream release.

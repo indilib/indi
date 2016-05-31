@@ -803,7 +803,7 @@ bool QHYCCD::StartExposure(float duration)
   DEBUGF(INDI::Logger::DBG_DEBUG, "SetQHYCCDResolution camroix %d camroiy %d camroiwidth %d camroiheight %d", camroix,camroiy,camroiwidth,camroiheight);
   
   // JM 2016-05-08: Some QHY cameras needs 200ms before you can exposure a frame. Asked QHY to try to minimize this!
-  usleep(200000);
+  //usleep(200000);
 
   if (sim)
       ret = QHYCCD_SUCCESS;
