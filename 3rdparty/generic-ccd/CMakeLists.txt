@@ -15,6 +15,7 @@ find_package(INDI REQUIRED)
 find_package(ZLIB REQUIRED)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_generic_ccd.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_generic_ccd.xml )
 
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
@@ -36,4 +37,4 @@ install(TARGETS indi_generic_ccd RUNTIME DESTINATION bin)
 
 endif (CFITSIO_FOUND)
 
-install(FILES indi_generic_ccd.xml DESTINATION ${INDI_DATA_DIR})
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/indi_generic_ccd.xml DESTINATION ${INDI_DATA_DIR})
