@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 2.4.7)
 
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
+include(GNUInstallDirs)
 
 FIND_PACKAGE(FTDI REQUIRED)
 
