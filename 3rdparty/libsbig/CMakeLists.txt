@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8)
-PROJECT(sbig C CXX)
+PROJECT(libsbig C CXX)
 
 set(SBIG_VERSION "2.1.0")
 set(SBIG_SOVERSION "2")
