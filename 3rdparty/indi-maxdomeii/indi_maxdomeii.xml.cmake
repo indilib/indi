@@ -3,7 +3,7 @@
 <devGroup group="Domes">
 	<device label="MaxDome II">
                 <driver name="MaxDome II">indi_maxdomeii</driver>
-                <version>1.1</version>
+                <version>@INDI_MAXDOMEII_VERSION_MAJOR@.@INDI_MAXDOMEII_VERSION_MINOR@</version>
 	</device>
 </devGroup>
 </driversList>

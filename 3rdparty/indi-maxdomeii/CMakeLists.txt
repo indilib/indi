@@ -21,6 +21,7 @@ find_package(ZLIB REQUIRED)
 FIND_PACKAGE(Nova REQUIRED)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_maxdomeii.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_maxdomeii.xml )
 
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
@@ -39,4 +40,4 @@ target_link_libraries(indi_maxdomeii ${INDI_DRIVER_LIBRARIES} ${NOVA_LIBRARIES})
 
 install(TARGETS indi_maxdomeii RUNTIME DESTINATION bin )
 
-install(FILES indi_maxdomeii.xml DESTINATION ${INDI_DATA_DIR})
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/indi_maxdomeii.xml DESTINATION ${INDI_DATA_DIR})
