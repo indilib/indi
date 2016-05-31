@@ -3,8 +3,8 @@ PROJECT(libapogee C CXX)
 
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
-set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
-set(INCLUDE_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/include")
+include(GNUInstallDirs)
+
 set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for udev rules")
 set(CONF_DIR "/etc/Apogee/camera" CACHE STRING "Configuration directory")
 
@@ -91,9 +91,9 @@ set_target_properties(apogee PROPERTIES VERSION ${APOGEE_VERSION} SOVERSION ${AP
 
 target_link_libraries(apogee ${LIBUSB_1_LIBRARIES} ${CURL_LIBRARY} ${Boost_LIBRARIES})
 
-install(TARGETS apogee LIBRARY DESTINATION lib${LIB_POSTFIX} )
+install(TARGETS apogee LIBRARY DESTINATION lib)
 
-install( FILES ApogeeCam.h Alta.h AltaF.h Ascent.h CamGen2Base.h CameraInfo.h CameraStatusRegs.h Aspen.h FindDeviceEthernet.h FindDeviceUsb.h HiC.h ApogeeFilterWheel.h Quad.h DefDllExport.h versionNo.h doc.h ApgLogger.h LoggerSyslog.h DESTINATION ${INCLUDE_INSTALL_DIR}/libapogee COMPONENT Devel)
+install( FILES ApogeeCam.h Alta.h AltaF.h Ascent.h CamGen2Base.h CameraInfo.h CameraStatusRegs.h Aspen.h FindDeviceEthernet.h FindDeviceUsb.h HiC.h ApogeeFilterWheel.h Quad.h DefDllExport.h versionNo.h doc.h ApgLogger.h LoggerSyslog.h DESTINATION include/libapogee COMPONENT Devel)
 
 install(
    CODE "
