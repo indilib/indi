@@ -7,6 +7,7 @@
 
 #include "indicom.h"
 #include "indi_shelyakeshel_spectrograph.h"
+#include "config.h"
 
 const char *SPECTROGRAPH_SETTINGS_TAB = "Spectrograph Settings";
 const char *CALIBRATION_UNIT_TAB      = "Calibration Unit";
@@ -56,6 +57,8 @@ void ISSnoopDevice (XMLEle *root)
 ShelyakEshel::ShelyakEshel()
 {
   PortFD = -1;
+
+  setVersion(SHELYAK_VERSION_MAJOR, SHELYAK_VERSION_MINOR);
 }
 
 ShelyakEshel::~ShelyakEshel()
