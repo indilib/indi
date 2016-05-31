@@ -4,6 +4,11 @@ PROJECT(indi-apogee CXX C)
 set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
+include(GNUInstallDirs)
+
+set (APOGEE_VERSION_MAJOR 1)
+set (APOGEE_VERSION_MINOR 5)
+
 set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
 
 find_package(CFITSIO REQUIRED)
@@ -11,7 +16,8 @@ find_package(INDI REQUIRED)
 find_package(APOGEE REQUIRED)
 find_package(ZLIB REQUIRED)
 
-#configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_apogee.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_apogee.xml )
 
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
@@ -30,4 +36,4 @@ target_link_libraries(indi_apogee_ccd ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARI
 
 install(TARGETS indi_apogee_ccd RUNTIME DESTINATION bin )
 
-install(FILES indi_apogee.xml DESTINATION ${INDI_DATA_DIR})
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/indi_apogee.xml DESTINATION ${INDI_DATA_DIR})

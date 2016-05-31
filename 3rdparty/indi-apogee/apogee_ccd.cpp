@@ -53,6 +53,7 @@
 #include "eventloop.h"
 #include "indicom.h"
 #include "apogee_ccd.h"
+#include "config.h"
 
 void ISInit(void);
 void ISPoll(void *);
@@ -113,6 +114,8 @@ void ISSnoopDevice (XMLEle *root)
 ApogeeCCD::ApogeeCCD()
 {
     ApgCam = NULL;
+
+    setVersion(APOGEE_VERSION_MAJOR, APOGEE_VERSION_MINOR);
 }
 
 
