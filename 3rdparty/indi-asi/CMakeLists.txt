@@ -1,11 +1,13 @@
 cmake_minimum_required(VERSION 2.8)
-PROJECT(indi_asicam CXX C)
+PROJECT(indi_asi CXX C)
 
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
-set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
-set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for udev rules")
-set(LIB_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/lib")
+include(GNUInstallDirs)
+
+#set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
+#set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for udev rules")
+
 
 set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
 
@@ -17,7 +19,9 @@ find_package(Threads REQUIRED)
 
 set(ASI_VERSION_MAJOR 0)
 set(ASI_VERSION_MINOR 5)
+
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_asi.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_asi.xml)
 
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
@@ -45,11 +49,11 @@ elseif (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "i[3-6]86")
 endif ()
 
 ########### indi_asi_ccd ###########
-set(indi_asicam_SRCS
+set(indi_asi_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/asi_ccd.cpp
    )
 
-add_executable(indi_asi_ccd ${indi_asicam_SRCS})
+add_executable(indi_asi_ccd ${indi_asi_SRCS})
 
 target_link_libraries(indi_asi_ccd ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${ASILIB} ${LIBUSB_1_LIBRARIES} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
 
@@ -58,5 +62,5 @@ target_link_libraries(indi_asi_ccd rt)
 endif (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")
 
 install(TARGETS indi_asi_ccd RUNTIME DESTINATION bin)
-install(FILES indi_asiccd.xml DESTINATION ${INDI_DATA_DIR})
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/indi_asi.xml DESTINATION ${INDI_DATA_DIR})
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/99-asi.rules DESTINATION ${UDEVRULES_INSTALL_DIR})

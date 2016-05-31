@@ -3,7 +3,7 @@
 <devGroup group="CCDs">
         <device label="ZWO CCD">
                 <driver name="ZWO CCD">indi_asi_ccd</driver>
-                <version>0.4</version>
+                <version>@ASI_VERSION_MAJOR@.@ASI_VERSION_MINOR@</version>
 	</device>
 </devGroup>
 </driversList>
