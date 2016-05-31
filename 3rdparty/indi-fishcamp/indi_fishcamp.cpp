@@ -29,6 +29,7 @@
 #include <eventloop.h>
 
 #include "indi_fishcamp.h"
+#include "config.h"
 
 #define MAX_CCD_TEMP	45		/* Max CCD temperature */
 #define MIN_CCD_TEMP	-55		/* Min CCD temperature */
@@ -175,6 +176,8 @@ FishCampCCD::FishCampCCD(int CamNum)
   IDLog("Cam #%d with name %s\n", cameraNum, name);
 
   setDeviceName(name);
+
+  setVersion(FISHCAMP_VERSION_MAJOR, FISHCAMP_VERSION_MINOR);
 
   sim = false;
 }
