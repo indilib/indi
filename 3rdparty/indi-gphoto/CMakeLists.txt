@@ -7,7 +7,6 @@ set(INDI_GPHOTO_VERSION_MINOR 5)
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
 include(GNUInstallDirs)
-set(INDI_DATA_DIR "${CMAKE_INSTALL_PREFIX}/share/indi")
 
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall" )
 SET(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -DDEBUG_FITS" )
@@ -23,6 +22,7 @@ find_package(Threads REQUIRED)
 find_package(JPEG REQUIRED)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_gphoto.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_gphoto.xml )
 
 find_program(DCRAW_EXECUTABLE NAMES dcraw
     PATHS
@@ -55,4 +55,4 @@ add_executable(indi_gphoto_ccd ${indigphoto_SRCS})
 target_link_libraries(indi_gphoto_ccd ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${GPHOTO2_LIBRARY} ${GPHOTO2_PORT_LIBRARY} ${CMAKE_THREAD_LIBS_INIT} ${JPEG_LIBRARIES} ${ZLIB_LIBRARIES})
 install(TARGETS indi_gphoto_ccd RUNTIME DESTINATION bin )
 
-install(FILES indi_gphoto.xml DESTINATION ${INDI_DATA_DIR})
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/indi_gphoto.xml DESTINATION ${INDI_DATA_DIR})
