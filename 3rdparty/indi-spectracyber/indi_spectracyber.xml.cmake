@@ -3,7 +3,7 @@
 <devGroup group="Receivers">
 	<device label="SpectraCyber">
 		<driver name='SpectraCyber'>indi_spectracyber</driver>
-		<version>1.2</version>
+                <version>@SPECTRACYBER_VERSION_MAJOR@.@SPECTRACYBER_VERSION_MINOR@</version>
 	</device>
 </devGroup>
 </driversList>

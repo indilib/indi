@@ -4,7 +4,9 @@ PROJECT(indi_spectracyber C CXX)
 set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
-set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
+
+include(GNUInstallDirs)
+
 
 find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
@@ -12,6 +14,11 @@ find_package(ZLIB REQUIRED)
 find_package(Threads REQUIRED)
 find_package(Nova REQUIRED)
 
+set (SPECTRACYBER_VERSION_MAJOR 1)
+set (SPECTRACYBER_VERSION_MINOR 2)
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_spectracyber.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_spectracyber.xml )
 
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
@@ -29,5 +36,5 @@ target_link_libraries(indi_spectracyber ${INDI_DRIVER_LIBRARIES} ${NOVA_LIBRARIE
 
 install(TARGETS indi_spectracyber RUNTIME DESTINATION bin)
 
-install(FILES indi_spectracyber.xml indi_spectracyber_sk.xml DESTINATION ${INDI_DATA_DIR})
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/indi_spectracyber.xml indi_spectracyber_sk.xml DESTINATION ${INDI_DATA_DIR})
 

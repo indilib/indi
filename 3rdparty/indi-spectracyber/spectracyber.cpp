@@ -45,6 +45,7 @@
 #include <libnova/libnova.h>
 
 #include "spectracyber.h"
+#include "config.h"
 
 #define mydev		"SpectraCyber"
 #define BASIC_GROUP	"Main Control"
@@ -132,6 +133,8 @@ SpectraCyber::SpectraCyber()
 
      // Optional: Add aux controls for configuration, debug & simulation
      addAuxControls();
+
+     setVersion(SPECTRACYBER_VERSION_MAJOR, SPECTRACYBER_VERSION_MINOR);
 
 }
 
