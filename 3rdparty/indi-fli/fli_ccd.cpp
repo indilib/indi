@@ -620,6 +620,11 @@ void FLICCD::TimerHit()
 
     if (InExposure)
     {
+        if (sim) {
+            PrimaryCCD.setExposureLeft(0);
+            InExposure = false;
+            grabImage();
+        } else {
         //timeleft=calcTimeLeft();
         if ((err = FLIGetExposureStatus(fli_dev, &timeleft)))
         {
@@ -654,7 +659,7 @@ void FLICCD::TimerHit()
             DEBUGF(INDI::Logger::DBG_DEBUG,"Exposure in progress. Time left: %ld seconds", timeleft/1000);
             PrimaryCCD.setExposureLeft(timeleft);
         }
-
+      }
     }
 
     switch (TemperatureNP.s)
