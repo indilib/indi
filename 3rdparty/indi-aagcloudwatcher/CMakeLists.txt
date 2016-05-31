@@ -5,9 +5,10 @@ set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
 
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
+include(GNUInstallDirs)
 
 set (VERSION_MAJOR 1)
-set (VERSION_MINOR 2)
+set (VERSION_MINOR 3)
 
 find_package(INDI REQUIRED)
 find_package(Threads REQUIRED)

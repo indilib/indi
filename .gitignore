@@ -1,5 +1,6 @@
 /*.user*
 3rdparty/*.user*
+3rdparty/indi-aagcloudwatcher/*.user*
 3rdparty/fliusb/*.user*
 3rdparty/generic-ccd/*.user*
 3rdparty/indi-apogee/*.user*
