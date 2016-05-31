@@ -3,8 +3,8 @@ PROJECT(indi_miccd CXX C)
 
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
-set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
-set(LIB_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/lib")
+include(GNUInstallDirs)
+
 set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for udev rules")
 
 set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
@@ -17,7 +17,9 @@ find_package(Threads REQUIRED)
 
 set(INDI_MI_VERSION_MAJOR 1)
 set(INDI_MI_VERSION_MINOR 0)
+
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_miccd.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_miccd.xml )
 
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
@@ -61,5 +63,5 @@ file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/make_mi_ccd_symlink.cmake
 
 set_target_properties(indi_mi_ccd PROPERTIES POST_INSTALL_SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_mi_ccd_symlink.cmake)
 
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/indi_miccd.xml DESTINATION ${INDI_DATA_DIR})
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/indi_miccd.xml DESTINATION ${INDI_DATA_DIR})
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/99-miccd.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
