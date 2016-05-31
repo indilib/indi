@@ -26,6 +26,7 @@
 
 /* Our driver header */
 #include "indi_aagcloudwatcher.h"
+#include "config.h"
 
 #define ABS_ZERO 273.15
 
@@ -34,9 +35,9 @@ std::unique_ptr<AAGCloudWatcher> cloudWatcher(new AAGCloudWatcher());
 
 AAGCloudWatcher::AAGCloudWatcher() {
 
-  setVersion(1, 3);
+  setVersion(AAG_VERSION_MAJOR, AAG_VERSION_MINOR);
 
-  IDLog("Initializing from AAG Cloud Watcher device...\n");
+  DEBUG(INDI::Logger::DBG_DEBUG, "Initializing from AAG Cloud Watcher device...");
 
   cwc = NULL;
 
@@ -59,7 +60,6 @@ AAGCloudWatcher::~AAGCloudWatcher() {
 ** Initialize all properties & set default values.
 **********************************************************************/
 bool AAGCloudWatcher::initProperties() {
-  IDLog("init properties\n");
   DefaultDevice::initProperties();
   buildSkeleton("indi_aagcloudwatcher_sk.xml");
   return true;
@@ -69,7 +69,6 @@ bool AAGCloudWatcher::initProperties() {
 ** Define Basic properties to clients.
 *************************************************************************/
 void AAGCloudWatcher::ISGetProperties(const char *dev) {
-  IDLog("ISGetProperties\n");
   static int configLoaded = 0;
     // Ask the default driver first to send properties.
   INDI::DefaultDevice::ISGetProperties(dev);

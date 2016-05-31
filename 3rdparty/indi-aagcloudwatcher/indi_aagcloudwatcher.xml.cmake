@@ -3,7 +3,7 @@
 <devGroup group="MeteoStations">
         <device label="AAG Cloud Watcher">
                 <driver name="AAG Cloud Watcher">indi_aagcloudwatcher</driver>
-                <version>1.3</version>
+                <version>@AAG_VERSION_MAJOR@.@AAG_VERSION_MINOR@</version>
 	</device>
 </devGroup>
 </driversList>
