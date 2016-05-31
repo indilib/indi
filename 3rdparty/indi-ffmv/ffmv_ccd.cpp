@@ -22,11 +22,13 @@
 #include <arpa/inet.h>
 #include <math.h>
 #include <sys/time.h>
-
+#include <dc1394/dc1394.h>
 #include <indiapi.h>
 #include <iostream>
+
 #include "ffmv_ccd.h"
-#include <dc1394/dc1394.h>
+#include "config.h"
+
 
 const int POLLMS = 250;
 
@@ -114,6 +116,8 @@ FFMVCCD::FFMVCCD()
 {
     InExposure = false;
     capturing = false;
+
+    setVersion(FFMV_VERSION_MAJOR, FFMV_VERSION_MINOR);
 
     SetCCDCapability(CCD_CAN_ABORT);
 }
