@@ -31,6 +31,7 @@
 #include <iostream>
 #include "dsi_ccd.h"
 #include "DsiDeviceFactory.h"
+#include "config.h"
 
 const int POLLMS = 250;
 
@@ -79,7 +80,7 @@ DSICCD::DSICCD()
     capturing = false;
     dsi = NULL;
 
-    setVersion(0, 1);
+    setVersion(DSI_VERSION_MAJOR, DSI_VERSION_MINOR);
 }
 
 /*******************************************************************************
