@@ -58,8 +58,8 @@ endif()
 install(TARGETS indi_mi_ccd RUNTIME DESTINATION bin)
 
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/make_mi_ccd_symlink.cmake
-"exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_mi_ccd \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_mi_ccd_usb)\n
- exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_mi_ccd \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_mi_ccd_eth)\n")
+"exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink ${CMAKE_INSTALL_FULL_BINDIR}/indi_mi_ccd ${CMAKE_INSTALL_FULL_BINDIR}/indi_mi_ccd_usb)\n
+ exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink ${CMAKE_INSTALL_FULL_BINDIR}/indi_mi_ccd ${CMAKE_INSTALL_FULL_BINDIR}/indi_mi_ccd_eth)\n")
 
 set_target_properties(indi_mi_ccd PROPERTIES POST_INSTALL_SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_mi_ccd_symlink.cmake)
 
