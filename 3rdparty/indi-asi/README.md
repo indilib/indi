@@ -4,7 +4,7 @@ other cameras from ZWO Optical too.
 
 COMPILING
 
-Go to the directory where  you unpacked indi_asicam sources and do:
+Go to the directory where  you unpacked indi_asi sources and do:
 
 mkdir build
 cd build

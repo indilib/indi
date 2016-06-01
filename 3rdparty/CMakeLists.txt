@@ -118,7 +118,7 @@ endif(FISHCAMP_FOUND)
 endif(WITH_FISHCAMP)
 
 if (WITH_ASICAM)
-add_subdirectory(indi-asicam)
+add_subdirectory(indi-asi)
 endif(WITH_ASICAM)
 
 if (WITH_DSI)
