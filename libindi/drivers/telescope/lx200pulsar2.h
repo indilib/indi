@@ -55,8 +55,8 @@ protected:
 //    ITextVectorProperty AzHomeTP;
 //    IText   AzHomeT[1];
 
-    ITextVectorProperty PierSideTP;
-    IText   PierSideT[1];
+    ISwitchVectorProperty PierSideSP;
+    ISwitch   PierSideS[2];
 
 private:
     

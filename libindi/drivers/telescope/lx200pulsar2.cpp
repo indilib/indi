@@ -94,7 +94,7 @@ bool LX200Pulsar2::updateProperties()
     {
 //        defineText(&AzHomeTP);
 //        defineText(&AltHomeTP);
-        defineText(&PierSideTP);
+        defineSwitch(&PierSideSP);
 
         // Delete unsupported properties
         deleteProperty(AlignmentSP.name);
@@ -112,7 +112,7 @@ bool LX200Pulsar2::updateProperties()
     {
 //        deleteProperty(AzHomeTP.name);
 //        deleteProperty(AltHomeTP.name);
-        deleteProperty(PierSideTP.name);
+        deleteProperty(PierSideSP.name);
         return true;
     }
 }
@@ -132,8 +132,9 @@ bool LX200Pulsar2::initProperties()
 //    IUFillText(&AzHomeT[0], "ParkAz", "", "");
 //    IUFillTextVector(&AzHomeTP, AzHomeT, 1, getDeviceName(), "ParkAz", "", OPTIONS_TAB, IP_RO, 0, IPS_IDLE);
 
-    IUFillText(&PierSideT[0], "Pier side", "", "");
-    IUFillTextVector(&PierSideTP, PierSideT, 1, getDeviceName(), "Pier side", "", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillSwitch(&PierSideS[0], "PIER_EAST", "East (pointing west)", ISS_ON);
+    IUFillSwitch(&PierSideS[1], "PIER_WEST", "West (pointing east)", ISS_OFF);
+    IUFillSwitchVector(&PierSideSP, PierSideS, 2, getDeviceName(), "TELESCOPE_PIER_SIDE", "Pier side", MAIN_CONTROL_TAB, IP_RO, ISR_1OFMANY, 0, IPS_IDLE);
     
     return true;
 }
@@ -151,7 +152,7 @@ void LX200Pulsar2::ISGetProperties (const char *dev)
     {
 //        defineText(&AzHomeTP);
 //        defineText(&AltHomeTP);
-        defineText(&PierSideTP);
+        defineSwitch(&PierSideSP);
     }
 }
 
@@ -603,8 +604,9 @@ void LX200Pulsar2::getBasicData()
                 }
                }
 
-            IUSaveText(&PierSideTP.tp[0], sideofpier);
-            IDSetText(&PierSideTP,NULL);
+            PierSideS[0].s = (currentPierSide == 0) ? ISS_ON : ISS_OFF;
+            PierSideS[1].s = (currentPierSide == 1) ? ISS_ON : ISS_OFF;
+            IDSetSwitch(&PierSideSP,NULL);
         }
         
     }
