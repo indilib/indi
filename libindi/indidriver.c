@@ -1436,7 +1436,8 @@ IDDefText (const ITextVectorProperty *tvp, const char *fmt, ...)
         printf ("<defTextVector\n");
         printf ("  device='%s'\n", tvp->device);
         printf ("  name='%s'\n", tvp->name);
-        printf ("  label='%s'\n", tvp->label);
+        if (tvp->label[0])
+            printf ("  label='%s'\n", tvp->label);
         printf ("  group='%s'\n", tvp->group);
         printf ("  state='%s'\n", pstateStr(tvp->s));
         printf ("  perm='%s'\n", permStr(tvp->p));
@@ -1456,7 +1457,8 @@ IDDefText (const ITextVectorProperty *tvp, const char *fmt, ...)
             IText *tp = &tvp->tp[i];
             printf ("  <defText\n");
             printf ("    name='%s'\n", tp->name);
-            printf ("    label='%s'>\n", tp->label);
+            if (tp->label[0])
+                printf ("    label='%s'>\n", tp->label);
             printf ("      %s\n", tp->text ? tp->text : "");
             printf ("  </defText>\n");
         }
@@ -1494,7 +1496,8 @@ IDDefNumber (const INumberVectorProperty *n, const char *fmt, ...)
         printf ("<defNumberVector\n");
         printf ("  device='%s'\n", n->device);
         printf ("  name='%s'\n", n->name);
-        printf ("  label='%s'\n", n->label);
+        if (n->label[0])
+            printf ("  label='%s'\n", n->label);
         printf ("  group='%s'\n", n->group);
         printf ("  state='%s'\n", pstateStr(n->s));
         printf ("  perm='%s'\n", permStr(n->p));
@@ -1519,7 +1522,8 @@ IDDefNumber (const INumberVectorProperty *n, const char *fmt, ...)
 
             printf ("  <defNumber\n");
             printf ("    name='%s'\n", np->name);
-            printf ("    label='%s'\n", np->label);
+            if (np->label[0])
+                printf ("    label='%s'\n", np->label);
             printf ("    format='%s'\n", np->format);
             printf ("    min='%.20g'\n", np->min);
             printf ("    max='%.20g'\n", np->max);
@@ -1564,7 +1568,8 @@ IDDefSwitch (const ISwitchVectorProperty *s, const char *fmt, ...)
         printf ("<defSwitchVector\n");
         printf ("  device='%s'\n", s->device);
         printf ("  name='%s'\n", s->name);
-        printf ("  label='%s'\n", s->label);
+        if (s->label[0])
+            printf ("  label='%s'\n", s->label);
         printf ("  group='%s'\n", s->group);
         printf ("  state='%s'\n", pstateStr(s->s));
         printf ("  perm='%s'\n", permStr(s->p));
@@ -1585,7 +1590,8 @@ IDDefSwitch (const ISwitchVectorProperty *s, const char *fmt, ...)
             ISwitch *sp = &s->sp[i];
             printf ("  <defSwitch\n");
             printf ("    name='%s'\n", sp->name);
-            printf ("    label='%s'>\n", sp->label);
+            if (sp->label[0])
+                printf ("    label='%s'>\n", sp->label);
             printf ("      %s\n", sstateStr(sp->s));
             printf ("  </defSwitch>\n");
         }
@@ -1621,7 +1627,8 @@ IDDefLight (const ILightVectorProperty *lvp, const char *fmt, ...)
         printf ("<defLightVector\n");
         printf ("  device='%s'\n", lvp->device);
         printf ("  name='%s'\n", lvp->name);
-        printf ("  label='%s'\n", lvp->label);
+        if (lvp->label[0])
+            printf ("  label='%s'\n", lvp->label);
         printf ("  group='%s'\n", lvp->group);
         printf ("  state='%s'\n", pstateStr(lvp->s));
         printf ("  timestamp='%s'\n", timestamp());
@@ -1639,7 +1646,8 @@ IDDefLight (const ILightVectorProperty *lvp, const char *fmt, ...)
             ILight *lp = &lvp->lp[i];
             printf ("  <defLight\n");
             printf ("    name='%s'\n", lp->name);
-            printf ("    label='%s'>\n", lp->label);
+            if (lp->label[0])
+                printf ("    label='%s'>\n", lp->label);
             printf ("      %s\n", pstateStr(lp->s));
             printf ("  </defLight>\n");
         }
@@ -1664,7 +1672,8 @@ IDDefBLOB (const IBLOBVectorProperty *b, const char *fmt, ...)
         printf ("<defBLOBVector\n");
         printf ("  device='%s'\n", b->device);
         printf ("  name='%s'\n", b->name);
-        printf ("  label='%s'\n", b->label);
+        if (b->label[0])
+            printf ("  label='%s'\n", b->label);
         printf ("  group='%s'\n", b->group);
         printf ("  state='%s'\n", pstateStr(b->s));
         printf ("  perm='%s'\n", permStr(b->p));
@@ -1684,7 +1693,8 @@ IDDefBLOB (const IBLOBVectorProperty *b, const char *fmt, ...)
     IBLOB *bp = &b->bp[i];
     printf ("  <defBLOB\n");
     printf ("    name='%s'\n", bp->name);
-    printf ("    label='%s'\n", bp->label);
+    if (bp->label[0])
+        printf ("    label='%s'\n", bp->label);
     printf ("  />\n");
   }
 
