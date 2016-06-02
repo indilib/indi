@@ -341,7 +341,7 @@ static void *stop_bulb(void *arg)
 {
 	int timeout_set = 0;
     gphoto_driver *gphoto = (gphoto_driver *) arg;
-	CameraEventType event;
+    //CameraEventType event;
 	long timeleft;
 	struct timespec timeout;
 	struct timeval curtime;
@@ -362,10 +362,10 @@ static void *stop_bulb(void *arg)
         //DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"timeout expired");
 		if (! (gphoto->command & DSLR_CMD_DONE) && (gphoto->command & DSLR_CMD_BULB_CAPTURE)) {
 			//result = gp_camera_wait_for_event(gphoto->camera, 1, &event, &data, gphoto->context);
-			switch (event) {
+            /*switch (event) {
 				//TODO: Handle unexpected events
 				default: break;
-			}
+            }*/
 			gettimeofday(&curtime, NULL);
 			timeleft = ((gphoto->bulb_end.tv_sec - curtime.tv_sec)*1000)+((gphoto->bulb_end.tv_usec - curtime.tv_usec)/1000);
             DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Time left: %ld", timeleft);
@@ -782,7 +782,7 @@ gphoto_driver *gphoto_open(const char *shutter_release_port)
     DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Camera init.  Takes about 10 seconds.");
 	result = gp_camera_init(canon, canoncontext);
 	if (result != GP_OK) {
-        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"  Retval: %d", result);
+        DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR,"Camera open error (%d): %s", result, gp_result_as_string(result));
 		return NULL;
 	}
 
@@ -792,7 +792,7 @@ gphoto_driver *gphoto_open(const char *shutter_release_port)
 
 	result = gp_camera_get_config (gphoto->camera, &gphoto->config, gphoto->context);
 	if (result < GP_OK) {
-        fprintf (stderr, "camera_get_config failed: %d", result);
+        DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "Camera_get_config failed (%d): %s", result, gp_result_as_string(result));
 		free(gphoto);
 		return NULL;
 	}
