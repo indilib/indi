@@ -90,8 +90,8 @@ protected:
   INumber               GainN[1];
   INumberVectorProperty GainNP;
 
-  ISwitch               NoiseS[3];
-  ISwitchVectorProperty NoiseSP;
+  ISwitch               ReadModeS[3];
+  ISwitchVectorProperty ReadModeSP;
 
 private:
   char name[MAXINDIDEVICE];
