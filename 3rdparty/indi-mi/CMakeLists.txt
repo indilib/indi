@@ -11,13 +11,11 @@ set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
 
 find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
-find_package(ZLIB REQUIRED)
 find_package(USB-1 REQUIRED)
 find_package(Threads REQUIRED)
 
 set(INDI_MI_VERSION_MAJOR 1)
-set(INDI_MI_VERSION_MINOR 0)
-
+set(INDI_MI_VERSION_MINOR 1)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_miccd.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_miccd.xml )
 
@@ -46,7 +44,7 @@ set(indi_miccd_SRCS
 add_executable(indi_mi_ccd ${indi_miccd_SRCS})
 
 target_link_libraries(indi_mi_ccd ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES}
-                      ${MILIB} ${ZLIB_LIBRARY} ${LIBUSB_1_LIBRARIES} rt)
+                      ${MILIB} ${LIBUSB_1_LIBRARIES} rt)
 
 if(THREADS_HAVE_PTHREAD_ARG)
   target_compile_options(indi_mi_ccd "-pthread")

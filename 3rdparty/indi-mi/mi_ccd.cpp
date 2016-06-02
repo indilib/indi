@@ -234,7 +234,7 @@ bool MICCD::initProperties()
 
     // Temp ram
     IUFillNumber(&TemperatureRampN[0], "TEMP_RAMP", "Max. dT (C/min)", "%2.0f", 0, 30, 1, 2);
-    IUFillNumberVector(&TemperatureRampNP, TemperatureRampN, 1, getDeviceName(), "CCD_TEMP_RAMP", "Temp. ramp", MAIN_CONTROL_TAB, IP_WO, 60, IPS_IDLE);
+    IUFillNumberVector(&TemperatureRampNP, TemperatureRampN, 1, getDeviceName(), "CCD_TEMP_RAMP", "Temp. Ramp", MAIN_CONTROL_TAB, IP_WO, 60, IPS_IDLE);
 
     // CCD Regulation power
     IUFillNumber(&CoolerN[0], "CCD_COOLER_VALUE", "Cooling Power (%)", "%+6.2f", 0.0, 1.0, 0.01, 0.0);
@@ -245,18 +245,18 @@ bool MICCD::initProperties()
     IUFillNumberVector(&FanNP, FanN, 1, getDeviceName(), "CCD_FAN", "Fan", MAIN_CONTROL_TAB, IP_WO, 60, IPS_IDLE);
 
     // CCD Window heating
-    IUFillNumber(&WindowHeatingN[0], "WINDOW_HEATING", "Heating intensity", "%2.0f", 0, maxHeatingValue, 1, 0);
-    IUFillNumberVector(&WindowHeatingNP, WindowHeatingN, 1, getDeviceName(), "CCD_WINDOW_HEATING", "Heating", MAIN_CONTROL_TAB, IP_WO, 60, IPS_IDLE);
+    IUFillNumber(&WindowHeatingN[0], "WINDOW_HEATING", "Heating Intensity", "%2.0f", 0, maxHeatingValue, 1, 0);
+    IUFillNumberVector(&WindowHeatingNP, WindowHeatingN, 1, getDeviceName(), "CCD_WINDOW_HEATING", "Window Heating", MAIN_CONTROL_TAB, IP_WO, 60, IPS_IDLE);
 
     // CCD Gain
     IUFillNumber(&GainN[0], "GAIN", "Gain (e-/ADU)", "%2.2f", 0, 100, 1, 0);
     IUFillNumberVector(&GainNP, GainN, 1, getDeviceName(), "CCD_GAIN", "Gain", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     // Noise mode
-    IUFillSwitch(&NoiseS[0], "NORMAL_NOISE", "Normal", ISS_ON);
-    IUFillSwitch(&NoiseS[1], "LOW_NOISE", "Low", ISS_OFF);
-    IUFillSwitch(&NoiseS[2], "ULTA_LOW_NOISE", "Ultra low", ISS_OFF);
-    IUFillSwitchVector(&NoiseSP, NoiseS, numReadModes, getDeviceName(), "CCD_NOISE", "Noise", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitch(&ReadModeS[0], "PREVIEW", "Preview", ISS_OFF);
+    IUFillSwitch(&ReadModeS[1], "LOW_NOISE", "Low noise", numReadModes == 2 ? ISS_ON : ISS_OFF);
+    IUFillSwitch(&ReadModeS[2], "ULTA_LOW_NOISE", "Ultra low noise", numReadModes == 3 ? ISS_ON : ISS_OFF);
+    IUFillSwitchVector(&ReadModeSP, ReadModeS, numReadModes, getDeviceName(), "CCD_READ_MODE", "Read Mode", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     addAuxControls();
 
@@ -277,7 +277,7 @@ void MICCD::ISGetProperties(const char *dev)
             defineNumber(&CoolerNP);
         }
 
-        defineSwitch(&NoiseSP);
+        defineSwitch(&ReadModeSP);
 
         if (maxFanValue > 0)
             defineNumber(&FanNP);
@@ -311,7 +311,7 @@ bool MICCD::updateProperties()
             temperatureID = IEAddTimer(POLLMS, MICCD::updateTemperatureHelper, this);
         }
 
-        defineSwitch(&NoiseSP);
+        defineSwitch(&ReadModeSP);
 
         if (maxFanValue > 0)
             defineNumber(&FanNP);
@@ -344,7 +344,7 @@ bool MICCD::updateProperties()
             RemoveTimer(temperatureID);
         }
 
-        deleteProperty(NoiseSP.name);
+        deleteProperty(ReadModeSP.name);
 
         if (maxFanValue > 0)
             deleteProperty(FanNP.name);
@@ -503,7 +503,6 @@ int MICCD::SetTemperature(double temperature)
 
 bool MICCD::StartExposure(float duration)
 {
-    int ret = 0;
     useShutter = true;
 
     if (duration < minExpTime)
@@ -529,9 +528,9 @@ bool MICCD::StartExposure(float duration)
         int mode, prm;
         gxccd_get_integer_parameter(cameraHandle, GIP_PREVIEW_READ_MODE, &prm);
         if (prm == 0) // preview mode == 0 means smaller G0/G1 cameras
-            mode = IUFindOnSwitchIndex(&NoiseSP);
+            mode = IUFindOnSwitchIndex(&ReadModeSP);
         else
-            mode = prm - IUFindOnSwitchIndex(&NoiseSP);
+            mode = prm - IUFindOnSwitchIndex(&ReadModeSP);
         gxccd_set_read_mode(cameraHandle, mode);
 
         gxccd_start_exposure(cameraHandle, duration, useShutter, PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
@@ -631,6 +630,7 @@ float MICCD::calcTimeLeft()
 /* Downloads the image from the CCD. */
 int MICCD::grabImage()
 {
+    int ret = 0;
     unsigned char *image = (unsigned char *) PrimaryCCD.getFrameBuffer();
 
     if (isSimulation())
@@ -646,8 +646,8 @@ int MICCD::grabImage()
     }
     else
     {
-        int ret = 0;
-        if (gxccd_read_image(cameraHandle, image, PrimaryCCD.getFrameBufferSize()) < 0)
+        ret = gxccd_read_image(cameraHandle, image, PrimaryCCD.getFrameBufferSize());
+        if (ret < 0)
         {
             char errorStr[MAX_ERROR_LEN];
             gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
@@ -655,13 +655,13 @@ int MICCD::grabImage()
         }
     }
 
-    if (ExposureRequest > POLLMS * 5)
+    if (ExposureRequest > POLLMS * 5 && !ret)
       DEBUG(INDI::Logger::DBG_SESSION, "Download complete.");
 
     downloading = false;
     ExposureComplete(&PrimaryCCD);
 
-    return 0;
+    return ret;
 }
 
 void MICCD::TimerHit()
@@ -808,11 +808,11 @@ bool MICCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char
 {
     if (strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(name, NoiseSP.name))
+        if (!strcmp(name, ReadModeSP.name))
         {
-            IUUpdateSwitch(&NoiseSP, states, names, n);
-            NoiseSP.s = IPS_OK;
-            IDSetSwitch(&NoiseSP, NULL);
+            IUUpdateSwitch(&ReadModeSP, states, names, n);
+            ReadModeSP.s = IPS_OK;
+            IDSetSwitch(&ReadModeSP, NULL);
             return true;
         }
     }
@@ -981,7 +981,7 @@ bool MICCD::saveConfigItems(FILE *fp)
     INDI::CCD::saveConfigItems(fp);
 
     IUSaveConfigNumber(fp, &TemperatureRampNP);
-    IUSaveConfigSwitch(fp, &NoiseSP);
+    IUSaveConfigSwitch(fp, &ReadModeSP);
 
     if (numFilters > 0)
     {
