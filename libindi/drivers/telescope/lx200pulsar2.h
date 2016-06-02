@@ -30,16 +30,44 @@ public:
     LX200Pulsar2();
     ~LX200Pulsar2() {}
 
-    virtual bool updateProperties();
+    bool updateProperties();
+    bool initProperties();
+    void ISGetProperties(const char *dev);
+    bool Connect();
+    
+    bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
 
 protected:
+    
+    const char *getDefaultName();
 
-    virtual const char *getDefaultName();
+    bool Goto(double,double);
+    void getBasicData();
+    bool checkConnection();
+    bool isSlewComplete();
+    bool Park();
+    bool UnPark();
+    bool updateTime(ln_date * utc, double utc_offset);
+    
+//    ITextVectorProperty AltHomeTP;
+//    IText   AltHomeT[1];
+    
+//    ITextVectorProperty AzHomeTP;
+//    IText   AzHomeT[1];
 
-    virtual bool Goto(double,double);
-    virtual void getBasicData();
-    virtual bool checkConnection();
-    virtual bool isSlewComplete();    
+    ITextVectorProperty PierSideTP;
+    IText   PierSideT[1];
+
+private:
+    
+    void cleanedOutput(char *);
+    int currentPierSide;
+    
+    bool isHomeSet();
+    bool isParked();
+    bool isParking();
+//    int setAltAzHome(int portfd, char * text, const char * name);
+//    int setPierSide(int fd, char * pierSide);
 
 };
 
