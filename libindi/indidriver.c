@@ -382,7 +382,10 @@ void IUFillSwitch(ISwitch *sp, const char *name, const char * label, ISState s)
   char *escapedLabel = escapeXML(label, MAXINDILABEL);
 
   strncpy(sp->name, escapedName, MAXINDINAME);
-  strncpy(sp->label, escapedLabel, MAXINDILABEL);
+  if (label[0])
+      strncpy(sp->label, escapedLabel, MAXINDILABEL);
+  else
+      strncpy(sp->label, escapedName, MAXINDILABEL);
   sp->s = s;
   sp->svp = NULL;
   sp->aux = NULL;
@@ -397,7 +400,10 @@ void IUFillLight(ILight *lp, const char *name, const char * label, IPState s)
   char *escapedLabel = escapeXML(label, MAXINDILABEL);
 
   strncpy(lp->name, escapedName, MAXINDINAME);
-  strncpy(lp->label, escapedLabel, MAXINDILABEL);
+  if (label[0])
+      strncpy(lp->label, escapedLabel, MAXINDILABEL);
+  else
+      strncpy(lp->label, escapedName, MAXINDILABEL);
   lp->s = s;
   lp->lvp = NULL;
   lp->aux = NULL;
@@ -413,7 +419,10 @@ void IUFillNumber(INumber *np, const char *name, const char * label, const char 
   char *escapedLabel = escapeXML(label, MAXINDILABEL);
 
   strncpy(np->name, escapedName, MAXINDINAME);
-  strncpy(np->label, escapedLabel, MAXINDILABEL);
+  if (label[0])
+      strncpy(np->label, escapedLabel, MAXINDILABEL);
+  else
+      strncpy(np->label, escapedName, MAXINDILABEL);
   strncpy(np->format, format, MAXINDIFORMAT);
   
   np->min	= min;
@@ -434,7 +443,11 @@ void IUFillText(IText *tp, const char *name, const char * label, const char *ini
   char *escapedLabel = escapeXML(label, MAXINDILABEL);
 
   strncpy(tp->name, escapedName, MAXINDINAME);
-  strncpy(tp->label, escapedLabel, MAXINDILABEL);
+
+  if (label[0])
+    strncpy(tp->label, escapedLabel, MAXINDILABEL);
+  else
+    strncpy(tp->label, escapedName, MAXINDILABEL);
   tp->text = NULL;
   tp->tvp  = NULL;
   tp->aux0 = NULL;
@@ -455,7 +468,12 @@ void IUFillBLOB(IBLOB *bp, const char *name, const char * label, const char *for
 
     memset(bp, 0, sizeof(IBLOB));
     strncpy(bp->name, escapedName, MAXINDINAME);
-    strncpy(bp->label, escapedLabel, MAXINDILABEL);
+
+    if (label[0])
+        strncpy(bp->label, escapedLabel, MAXINDILABEL);
+    else
+        strncpy(bp->label, escapedName, MAXINDILABEL);
+
     strncpy(bp->format, format, MAXINDIBLOBFMT);
     bp->blob     = 0;
     bp->bloblen  = 0;
@@ -476,7 +494,11 @@ void IUFillSwitchVector(ISwitchVectorProperty *svp, ISwitch *sp, int nsp, const 
 
   strncpy(svp->device, dev, MAXINDIDEVICE);
   strncpy(svp->name, escapedName, MAXINDINAME);
-  strncpy(svp->label, escapedLabel, MAXINDILABEL);
+
+  if (label[0])
+      strncpy(svp->label, escapedLabel, MAXINDILABEL);
+  else
+      strncpy(svp->label, escapedName, MAXINDILABEL);
   strncpy(svp->group, group, MAXINDIGROUP);
   strcpy(svp->timestamp, "");
   
@@ -499,7 +521,11 @@ void IUFillLightVector(ILightVectorProperty *lvp, ILight *lp, int nlp, const cha
 
     strncpy(lvp->device, dev, MAXINDIDEVICE);
     strncpy(lvp->name, escapedName, MAXINDINAME);
-    strncpy(lvp->label, escapedLabel, MAXINDILABEL);
+
+    if (label[0])
+        strncpy(lvp->label, escapedLabel, MAXINDILABEL);
+    else
+        strncpy(lvp->label, escapedName, MAXINDILABEL);
     strncpy(lvp->group, group, MAXINDIGROUP);
     strcpy(lvp->timestamp, "");
   
@@ -519,7 +545,11 @@ void IUFillNumberVector(INumberVectorProperty *nvp, INumber *np, int nnp, const 
 
  strncpy(nvp->device, dev, MAXINDIDEVICE);
  strncpy(nvp->name, escapedName, MAXINDINAME);
- strncpy(nvp->label, escapedLabel, MAXINDILABEL);
+
+ if (label[0])
+     strncpy(nvp->label, escapedLabel, MAXINDILABEL);
+ else
+     strncpy(nvp->label, escapedName, MAXINDILABEL);
  strncpy(nvp->group, group, MAXINDIGROUP);
  strcpy(nvp->timestamp, "");
   
@@ -542,7 +572,11 @@ void IUFillTextVector(ITextVectorProperty *tvp, IText *tp, int ntp, const char *
 
     strncpy(tvp->device, dev, MAXINDIDEVICE);
     strncpy(tvp->name, escapedName, MAXINDINAME);
-    strncpy(tvp->label, escapedLabel, MAXINDILABEL);
+
+    if (label[0])
+        strncpy(tvp->label, escapedLabel, MAXINDILABEL);
+    else
+        strncpy(tvp->label, escapedName, MAXINDILABEL);
     strncpy(tvp->group, group, MAXINDIGROUP);
     strcpy(tvp->timestamp, "");
   
@@ -564,7 +598,12 @@ void IUFillBLOBVector(IBLOBVectorProperty *bvp, IBLOB *bp, int nbp, const char *
     memset(bvp, 0, sizeof(IBLOBVectorProperty));
     strncpy(bvp->device, dev, MAXINDIDEVICE);
     strncpy(bvp->name, escapedName, MAXINDINAME);
-    strncpy(bvp->label, escapedLabel, MAXINDILABEL);
+
+    if (label[0])
+        strncpy(bvp->label, escapedLabel, MAXINDILABEL);
+    else
+        strncpy(bvp->label, escapedName, MAXINDILABEL);
+
     strncpy(bvp->group, group, MAXINDIGROUP);
     strcpy(bvp->timestamp, "");
 
@@ -1436,8 +1475,7 @@ IDDefText (const ITextVectorProperty *tvp, const char *fmt, ...)
         printf ("<defTextVector\n");
         printf ("  device='%s'\n", tvp->device);
         printf ("  name='%s'\n", tvp->name);
-        if (tvp->label[0])
-            printf ("  label='%s'\n", tvp->label);
+        printf ("  label='%s'\n", tvp->label);
         printf ("  group='%s'\n", tvp->group);
         printf ("  state='%s'\n", pstateStr(tvp->s));
         printf ("  perm='%s'\n", permStr(tvp->p));
@@ -1457,8 +1495,7 @@ IDDefText (const ITextVectorProperty *tvp, const char *fmt, ...)
             IText *tp = &tvp->tp[i];
             printf ("  <defText\n");
             printf ("    name='%s'\n", tp->name);
-            if (tp->label[0])
-                printf ("    label='%s'>\n", tp->label);
+            printf ("    label='%s'>\n", tp->label);
             printf ("      %s\n", tp->text ? tp->text : "");
             printf ("  </defText>\n");
         }
@@ -1496,8 +1533,7 @@ IDDefNumber (const INumberVectorProperty *n, const char *fmt, ...)
         printf ("<defNumberVector\n");
         printf ("  device='%s'\n", n->device);
         printf ("  name='%s'\n", n->name);
-        if (n->label[0])
-            printf ("  label='%s'\n", n->label);
+        printf ("  label='%s'\n", n->label);
         printf ("  group='%s'\n", n->group);
         printf ("  state='%s'\n", pstateStr(n->s));
         printf ("  perm='%s'\n", permStr(n->p));
@@ -1522,8 +1558,7 @@ IDDefNumber (const INumberVectorProperty *n, const char *fmt, ...)
 
             printf ("  <defNumber\n");
             printf ("    name='%s'\n", np->name);
-            if (np->label[0])
-                printf ("    label='%s'\n", np->label);
+            printf ("    label='%s'\n", np->label);
             printf ("    format='%s'\n", np->format);
             printf ("    min='%.20g'\n", np->min);
             printf ("    max='%.20g'\n", np->max);
@@ -1568,8 +1603,7 @@ IDDefSwitch (const ISwitchVectorProperty *s, const char *fmt, ...)
         printf ("<defSwitchVector\n");
         printf ("  device='%s'\n", s->device);
         printf ("  name='%s'\n", s->name);
-        if (s->label[0])
-            printf ("  label='%s'\n", s->label);
+        printf ("  label='%s'\n", s->label);
         printf ("  group='%s'\n", s->group);
         printf ("  state='%s'\n", pstateStr(s->s));
         printf ("  perm='%s'\n", permStr(s->p));
@@ -1590,8 +1624,7 @@ IDDefSwitch (const ISwitchVectorProperty *s, const char *fmt, ...)
             ISwitch *sp = &s->sp[i];
             printf ("  <defSwitch\n");
             printf ("    name='%s'\n", sp->name);
-            if (sp->label[0])
-                printf ("    label='%s'>\n", sp->label);
+            printf ("    label='%s'>\n", sp->label);
             printf ("      %s\n", sstateStr(sp->s));
             printf ("  </defSwitch>\n");
         }
@@ -1627,8 +1660,7 @@ IDDefLight (const ILightVectorProperty *lvp, const char *fmt, ...)
         printf ("<defLightVector\n");
         printf ("  device='%s'\n", lvp->device);
         printf ("  name='%s'\n", lvp->name);
-        if (lvp->label[0])
-            printf ("  label='%s'\n", lvp->label);
+        printf ("  label='%s'\n", lvp->label);
         printf ("  group='%s'\n", lvp->group);
         printf ("  state='%s'\n", pstateStr(lvp->s));
         printf ("  timestamp='%s'\n", timestamp());
@@ -1646,8 +1678,7 @@ IDDefLight (const ILightVectorProperty *lvp, const char *fmt, ...)
             ILight *lp = &lvp->lp[i];
             printf ("  <defLight\n");
             printf ("    name='%s'\n", lp->name);
-            if (lp->label[0])
-                printf ("    label='%s'>\n", lp->label);
+            printf ("    label='%s'>\n", lp->label);
             printf ("      %s\n", pstateStr(lp->s));
             printf ("  </defLight>\n");
         }
@@ -1672,8 +1703,7 @@ IDDefBLOB (const IBLOBVectorProperty *b, const char *fmt, ...)
         printf ("<defBLOBVector\n");
         printf ("  device='%s'\n", b->device);
         printf ("  name='%s'\n", b->name);
-        if (b->label[0])
-            printf ("  label='%s'\n", b->label);
+        printf ("  label='%s'\n", b->label);
         printf ("  group='%s'\n", b->group);
         printf ("  state='%s'\n", pstateStr(b->s));
         printf ("  perm='%s'\n", permStr(b->p));
@@ -1693,8 +1723,7 @@ IDDefBLOB (const IBLOBVectorProperty *b, const char *fmt, ...)
     IBLOB *bp = &b->bp[i];
     printf ("  <defBLOB\n");
     printf ("    name='%s'\n", bp->name);
-    if (bp->label[0])
-        printf ("    label='%s'\n", bp->label);
+    printf ("    label='%s'\n", bp->label);
     printf ("  />\n");
   }
 
