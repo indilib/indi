@@ -375,7 +375,7 @@ bool EQMod::loadProperties()
     DEStatusLP=getLight("DESTATUS");
     SlewSpeedsNP=getNumber("SLEWSPEEDS");
     HemisphereSP=getSwitch("HEMISPHERE");
-    PierSideSP=getSwitch("PIERSIDE");
+    PierSideSP=getSwitch("TELESCOPE_PIER_SIDE");
     TrackModeSP=getSwitch("TELESCOPE_TRACK_RATE");
     TrackDefaultSP=getSwitch("TRACKDEFAULT");
     TrackRatesNP=getNumber("TRACKRATES");
@@ -640,7 +640,7 @@ bool EQMod::ReadScopeStatus() {
   char hrlst[12];
 
   const char *datenames[]={"LST", "JULIANDATE", "UTC"};
-  const char *piersidenames[]={"EAST", "WEST"};
+  const char *piersidenames[]={"PIER_EAST", "PIER_WEST"};
   ISState piersidevalues[2];
   double periods[2];
   const char *periodsnames[]={"RAPERIOD", "DEPERIOD"};
