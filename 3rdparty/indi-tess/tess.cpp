@@ -34,7 +34,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include <duconfig.h>
+#include <config.h>
 
 #include <libnova/transform.h>
 #include <libnova/julian_day.h>
@@ -356,7 +356,7 @@ bool inditess::initProperties()
     char skelFileName[255];
     strcpy(skelFileName, DEFAULT_SKELETON_FILE);
 
-    setVersion(VERSION_MAJOR, VERSION_MINOR);
+    setVersion(TESS_VERSION_MAJOR, TESS_VERSION_MINOR);
 
     char *skel = getenv("INDISKEL");
     if (skel) {
