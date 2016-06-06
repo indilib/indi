@@ -8,6 +8,8 @@ Standards-Version: 3.9.1
 Package: indi-asi
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, libindi1
+conflicts: indi-asicam
+replaces: indi-asicam
 Description: INDI Driver for ZWO Optics ASI cameras
  Driver for ZWO Optics ASI cameras.
  .
@@ -17,7 +19,9 @@ Package: indi-asi-dbg
 Priority: extra
 Section: debug
 Architecture: any
-Depends: indi-asicam (= ${binary:Version}), ${misc:Depends}
+conflicts: indi-asicam-dbg
+replaces: indi-asicam-dbg
+Depends: indi-asi (= ${binary:Version}), ${misc:Depends}
 Description: INDI Driver for ZWO Optics ASI cameras
  Driver for ZWO Optics ASI cameras.
  .
