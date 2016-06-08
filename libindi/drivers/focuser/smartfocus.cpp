@@ -20,7 +20,11 @@
 #include "indicom.h"
 
 #include <fcntl.h>
+#ifdef __APPLE__
+#include <termios.h>
+#else
 #include <termio.h>
+#endif
 #include <unistd.h>
 
 #include <memory>
