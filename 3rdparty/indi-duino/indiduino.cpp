@@ -312,7 +312,7 @@ bool indiduino::ISNewNumber (const char *dev, const char *name, double values[],
 		IO *pin_config=(IO*)eqp->aux0;
 		if (pin_config == NULL) continue;
 	        //IDLog("%s\n",s);
-		if (pin_config->IOType=AO) {      
+		if ((pin_config->IOType=AO)||(pin_config->IOType=SERVO)) {      
 		    int pin=pin_config->pin;
 	            IUUpdateNumber(nvp, values, names, n);
 		    IDLog("Setting output %s.%s on pin %u to %f\n",nvp->name,eqp->name,pin,eqp->value);
@@ -387,7 +387,19 @@ bool indiduino::ISNewSwitch (const char *dev, const char *name, ISState *states,
 				sf->writeDigitalPin(pin,ARDUINO_LOW);
 				IDSetSwitch (svp, "%s.%s OFF\n",svp->name,sqp->name);
 			}       		
-		}
+		} else if (pin_config->IOType == SERVO) {
+      int pin=pin_config->pin;
+      IUUpdateSwitch(svp, states, names, n);
+      if (sqp->s == ISS_ON) {
+        IDLog("Switching ON %s.%s on pin %u\n",svp->name,sqp->name,pin);
+        sf->setPwmPin(pin,(int) pin_config->OnAngle);
+        IDSetSwitch (svp, "%s.%s ON\n",svp->name,sqp->name);
+      } else {
+        IDLog("Switching OFF %s.%s on pin %u\n",svp->name,sqp->name,pin);
+        sf->setPwmPin(pin,(int) pin_config->OffAngle);
+        IDSetSwitch (svp, "%s.%s OFF\n",svp->name,sqp->name);
+      }
+    }
 	}
 
     IUUpdateSwitch(svp, states, names, n);
@@ -556,9 +568,14 @@ bool indiduino::setPinModesFromSKEL()
 					return false;
 				}
 				sqp->aux=(void*) &iopin[numiopin] ;	
-				int pin=iopin[numiopin].pin;
-				IDLog("%s.%s  pin %u set as DIGITAL OUTPUT\n",svp->name,sqp->name,pin);
-				sf->setPinMode(pin,FIRMATA_MODE_OUTPUT);
+				int pin=iopin[numiopin].pin;  
+				if (iopin[numiopin].IOType==DO) {
+          IDLog("%s.%s  pin %u set as DIGITAL OUTPUT\n",svp->name,sqp->name,pin);
+          sf->setPinMode(pin,FIRMATA_MODE_OUTPUT);
+        } else if( iopin[numiopin].IOType==SERVO) {
+          IDLog("%s.%s  pin %u set as SERVO\n",svp->name,sqp->name,pin);
+          sf->setPinMode(pin,FIRMATA_MODE_SERVO);
+        }
 				IDLog("numiopin:%u\n",numiopin);
 				numiopin++;
 			}
@@ -641,7 +658,10 @@ bool indiduino::setPinModesFromSKEL()
 				} else if( iopin[numiopin].IOType==AI) {
 					IDLog("%s.%s  pin %u set as ANALOG INPUT\n",nvp->name,eqp->name,pin);
 					sf->setPinMode(pin,FIRMATA_MODE_ANALOG);
-				}
+				} else if( iopin[numiopin].IOType==SERVO) {
+          IDLog("%s.%s  pin %u set as SERVO\n",nvp->name,eqp->name,pin);
+          sf->setPinMode(pin,FIRMATA_MODE_SERVO);
+        }  
 				IDLog("numiopin:%u\n",numiopin);
 				numiopin++;
 			}
@@ -677,10 +697,23 @@ bool indiduino::readInduinoXml(XMLEle *ioep, int npin)
 			return false;
 		}
 
-
-	   	if ( !strcmp(propertyTag,"defSwitch") ) {			
-				iopin[npin].IOType=DO;     			
-		}
+    if ( !strcmp(propertyTag,"defSwitch") ) {
+      if ( !strcmp(findXMLAttValu(ioep,"type"),"servo")) {
+        iopin[npin].IOType=SERVO;
+        if (strcmp(findXMLAttValu(ioep, "onangle"),"")) {
+          iopin[npin].OnAngle = atof(findXMLAttValu(ioep, "onangle"));
+        } else {
+          iopin[npin].OnAngle = 150;
+        }
+        if (strcmp(findXMLAttValu(ioep, "offangle"),"")) {
+          iopin[npin].OffAngle = atof(findXMLAttValu(ioep, "offangle"));
+        } else {
+          iopin[npin].OffAngle = 10;
+        }
+      } else {
+        iopin[npin].IOType=DO;
+      }
+    }
 
    		if ( !strcmp(propertyTag,"defLight") ) {
 				iopin[npin].IOType=DI;      			
@@ -702,7 +735,9 @@ bool indiduino::readInduinoXml(XMLEle *ioep, int npin)
 					iopin[npin].IOType=AO;
 				} else if ( !strcmp(findXMLAttValu(ioep,"type"),"input")) {
 					iopin[npin].IOType=AI;
-				} else {
+				} else if ( !strcmp(findXMLAttValu(ioep,"type"),"servo")) {
+          iopin[npin].IOType=SERVO;
+        } else {
 	 				IDLog("induino: Setting type (input or output) is required for analogs\n");
 					return false;
 				}
