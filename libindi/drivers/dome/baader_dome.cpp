@@ -19,7 +19,7 @@
  the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
-#include "indicom.h"
+
 #include "baader_dome.h"
 
 #include <stdio.h>
@@ -85,7 +85,8 @@ void ISSnoopDevice (XMLEle *root)
     baaderDome->ISSnoopDevice(root);
 }
 
-BaaderDome::BaaderDome()
+BaaderDome::BaaderDome(INDI::TTY * inp_tty) :
+    tty(inp_tty ? inp_tty : new INDI::TTY)
 {
 
    targetAz = 0;
@@ -172,9 +173,9 @@ bool BaaderDome::Connect()
 
     sim = isSimulation();
 
-    if (!sim && (connectrc = tty_connect(PortT[0].text, 9600, 8, 0, 1, &PortFD)) != TTY_OK)
+    if (!sim && (connectrc = tty->connect(PortT[0].text, 9600, 8, 0, 1)) != INDI::TTY::OK)
     {
-        tty_error_msg(connectrc, errorMsg, MAXRBUF);
+        tty->error_msg(connectrc, errorMsg, MAXRBUF);
 
         DEBUGF(INDI::Logger::DBG_SESSION, "Failed to connect to port %s. Error: %s", PortT[0].text, errorMsg);
 
@@ -199,7 +200,7 @@ bool BaaderDome::Connect()
 bool BaaderDome::Disconnect()
 {
     if (!sim)
-        tty_disconnect(PortFD);
+        tty->disconnect();
     DEBUG(INDI::Logger::DBG_SESSION, "Dome is offline.");
     return true;
 }
@@ -355,11 +356,11 @@ bool BaaderDome::Ack()
     char resp[DOME_BUF];
     char status[DOME_BUF];
 
-    tcflush(PortFD, TCIOFLUSH);
+    tty->tcflush(TCIOFLUSH);
 
-    if (!sim && (rc = tty_write(PortFD, "d#getflap", DOME_CMD, &nbytes_written)) != TTY_OK)
+    if (!sim && (rc = tty->write("d#getflap", DOME_CMD, &nbytes_written)) != INDI::TTY::OK)
     {
-        tty_error_msg(rc, errstr, MAXRBUF);
+        tty->error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "d#getflap Ack error: %s.", errstr);
         return false;
     }
@@ -371,9 +372,9 @@ bool BaaderDome::Ack()
         strncpy(resp, "d#flapclo", DOME_BUF);
         nbytes_read=DOME_CMD;
     }
-    else if ( (rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
+    else if ( (rc = tty->read(resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != INDI::TTY::OK)
     {
-        tty_error_msg(rc, errstr, MAXRBUF);
+        tty->error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "Ack error: %s.", errstr);
         return false;
     }
@@ -401,11 +402,11 @@ bool BaaderDome::UpdateShutterStatus()
     char resp[DOME_BUF];
     char status[DOME_BUF];
 
-    tcflush(PortFD, TCIOFLUSH);
+    tty->tcflush(TCIOFLUSH);
 
-    if (!sim && (rc = tty_write(PortFD, "d#getshut", DOME_CMD, &nbytes_written)) != TTY_OK)
+    if (!sim && (rc = tty->write("d#getshut", DOME_CMD, &nbytes_written)) != TTY_OK)
     {
-        tty_error_msg(rc, errstr, MAXRBUF);
+        tty->error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "d#getshut UpdateShutterStatus error: %s.", errstr);
         return false;
     }
@@ -423,9 +424,9 @@ bool BaaderDome::UpdateShutterStatus()
             strncpy(resp, "d#shutrun", DOME_CMD);
         nbytes_read=DOME_CMD;
     }
-    else if ( (rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
+    else if ( (rc = tty->read(resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
-        tty_error_msg(rc, errstr, MAXRBUF);
+        tty->error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "UpdateShutterStatus error: %s.", errstr);
         return false;
     }
@@ -486,11 +487,11 @@ bool BaaderDome::UpdatePosition()
     char resp[DOME_BUF];
     unsigned short domeAz=0;
 
-    tcflush(PortFD, TCIOFLUSH);
+    tty->tcflush(TCIOFLUSH);
 
-    if (!sim && (rc = tty_write(PortFD, "d#getazim", DOME_CMD, &nbytes_written)) != TTY_OK)
+    if (!sim && (rc = tty->write("d#getazim", DOME_CMD, &nbytes_written)) != TTY_OK)
     {
-        tty_error_msg(rc, errstr, MAXRBUF);
+        tty->error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "d#getazim UpdatePosition error: %s.", errstr);
         return false;
     }
@@ -506,9 +507,9 @@ bool BaaderDome::UpdatePosition()
             snprintf(resp, DOME_BUF, "d#azi%04d", MountAzToDomeAz(DomeAbsPosN[0].value));
         nbytes_read=DOME_CMD;
     }
-    else if ( (rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
+    else if ( (rc = tty->read(resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
-        tty_error_msg(rc, errstr, MAXRBUF);
+        tty->error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "UpdatePosition error: %s.", errstr);
         return false;
     }
@@ -739,11 +740,11 @@ IPState BaaderDome::MoveAbs(double az)
 
     snprintf(cmd, DOME_BUF, "d#azi%04d", MountAzToDomeAz(targetAz));
 
-    tcflush(PortFD, TCIOFLUSH);
+    tty->tcflush(TCIOFLUSH);
 
-    if (!sim && (rc = tty_write(PortFD, cmd, DOME_CMD, &nbytes_written)) != TTY_OK)
+    if (!sim && (rc = tty->write(cmd, DOME_CMD, &nbytes_written)) != TTY_OK)
     {
-        tty_error_msg(rc, errstr, MAXRBUF);
+        tty->error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s MoveAbsDome error: %s.", cmd, errstr);
         return IPS_ALERT;
     }
@@ -755,9 +756,9 @@ IPState BaaderDome::MoveAbs(double az)
         strncpy(resp, "d#gotmess", DOME_CMD);
         nbytes_read=DOME_CMD;
     }
-    else if ( (rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
+    else if ( (rc = tty->read(resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
-        tty_error_msg(rc, errstr, MAXRBUF);
+        tty->error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "MoveAbsDome error: %s.", errstr);
         return IPS_ALERT;
     }
@@ -832,11 +833,11 @@ IPState BaaderDome::ControlShutter(ShutterOperation operation)
         strncpy(cmd, "d#closhut", DOME_CMD);
     }
 
-    tcflush(PortFD, TCIOFLUSH);
+    tty->tcflush(TCIOFLUSH);
 
-    if (!sim && (rc = tty_write(PortFD, cmd, DOME_CMD, &nbytes_written)) != TTY_OK)
+    if (!sim && (rc = tty->write(cmd, DOME_CMD, &nbytes_written)) != TTY_OK)
     {
-        tty_error_msg(rc, errstr, MAXRBUF);
+        tty->error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s ControlDomeShutter error: %s.", cmd, errstr);
         return IPS_ALERT;
     }
@@ -849,9 +850,9 @@ IPState BaaderDome::ControlShutter(ShutterOperation operation)
         strncpy(resp, "d#gotmess", DOME_CMD);
         nbytes_read=DOME_CMD;
     }
-    else if ( (rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
+    else if ( (rc = tty->read(resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
-        tty_error_msg(rc, errstr, MAXRBUF);
+        tty->error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "ControlDomeShutter error: %s.", errstr);
         return IPS_ALERT;
     }
@@ -925,11 +926,11 @@ int BaaderDome::ControlDomeFlap(FlapOperation operation)
         strncpy(cmd, "d#cloflap", DOME_CMD);
     }
 
-    tcflush(PortFD, TCIOFLUSH);
+    tty->tcflush(TCIOFLUSH);
 
-    if (!sim && (rc = tty_write(PortFD, cmd, DOME_CMD, &nbytes_written)) != TTY_OK)
+    if (!sim && (rc = tty->write(cmd, DOME_CMD, &nbytes_written)) != TTY_OK)
     {
-        tty_error_msg(rc, errstr, MAXRBUF);
+        tty->error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s ControlDomeFlap error: %s.", cmd, errstr);
         return -1;
     }
@@ -942,9 +943,9 @@ int BaaderDome::ControlDomeFlap(FlapOperation operation)
         strncpy(resp, "d#gotmess", DOME_CMD);
         nbytes_read=DOME_CMD;
     }
-    else if ( (rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
+    else if ( (rc = tty->read(resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
-        tty_error_msg(rc, errstr, MAXRBUF);
+        tty->error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "ControlDomeFlap error: %s.", errstr);
         return -1;
     }
@@ -974,11 +975,11 @@ bool BaaderDome::UpdateFlapStatus()
     char resp[DOME_BUF];
     char status[DOME_BUF];
 
-    tcflush(PortFD, TCIOFLUSH);
-
-    if (!sim && (rc = tty_write(PortFD, "d#getflap", DOME_CMD, &nbytes_written)) != TTY_OK)
+    tty->tcflush(TCIOFLUSH);
+    
+    if (!sim && (rc = tty->write("d#getflap", DOME_CMD, &nbytes_written)) != TTY_OK)
     {
-        tty_error_msg(rc, errstr, MAXRBUF);
+        tty->error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "d#getflap UpdateflapStatus error: %s.", errstr);
         return false;
     }
@@ -996,9 +997,9 @@ bool BaaderDome::UpdateFlapStatus()
             strncpy(resp, "d#flaprun", DOME_CMD);
         nbytes_read=DOME_CMD;
     }
-    else if ( (rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
+    else if ( (rc = tty->read(resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
-        tty_error_msg(rc, errstr, MAXRBUF);
+        tty->error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "UpdateflapStatus error: %s.", errstr);
         return false;
     }
@@ -1061,11 +1062,11 @@ bool BaaderDome::SaveEncoderPosition()
 
     strncpy(cmd, "d#encsave", DOME_CMD);
 
-    tcflush(PortFD, TCIOFLUSH);
+    tty->tcflush(TCIOFLUSH);
 
-    if (!sim && (rc = tty_write(PortFD, cmd, DOME_CMD, &nbytes_written)) != TTY_OK)
+    if (!sim && (rc = tty->write(cmd, DOME_CMD, &nbytes_written)) != TTY_OK)
     {
-        tty_error_msg(rc, errstr, MAXRBUF);
+        tty->error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s SaveEncoderPosition error: %s.", cmd, errstr);
         return false;
     }
@@ -1077,9 +1078,9 @@ bool BaaderDome::SaveEncoderPosition()
         strncpy(resp, "d#gotmess", DOME_CMD);
         nbytes_read=DOME_CMD;
     }
-    else if ( (rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
+    else if ( (rc = tty->read(resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
-        tty_error_msg(rc, errstr, MAXRBUF);
+        tty->error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "SaveEncoderPosition error: %s.", errstr);
         return false;
     }
