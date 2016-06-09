@@ -8,8 +8,9 @@ INCLUDE_DIRECTORIES ( . ${GTEST_INCLUDE_DIRS} )
 
 SET (test_baader_dome_SRC
     "${PROJECT_SOURCE_DIR}/drivers/dome/baader_dome.cpp"
-    "${PROJECT_SOURCE_DIR}/test/drivers/dome/test_baader_dome.cpp"
     "${PROJECT_SOURCE_DIR}/test/mocks/mock_indi_tty.cpp"
+    "${PROJECT_SOURCE_DIR}/test/drivers/dome/baader/getDefaultName.cpp"
+    "${PROJECT_SOURCE_DIR}/test/drivers/dome/baader/Connect.cpp"
 )
 
 #SET_PROPERTY (TARGET test_baader_dome APPEND_STRING PROPERTY COMPILE_FLAGS "-fPIC -Wall -Wextra -Wno-unused-variable -g -O3")   
@@ -17,7 +18,7 @@ SET (test_baader_dome_SRC
 ADD_LIBRARY (test_indidriver SHARED 
     ##${indimain_SRCS} 
     ${PROJECT_SOURCE_DIR}/indidriver.c
-    #${CMAKE_SOURCE_DIR}/indidrivermain.c
+    ${CMAKE_SOURCE_DIR}/indidrivermain_gbls.c
     ${PROJECT_SOURCE_DIR}/eventloop.c
     ${liblilxml_SRCS}
     ${indidriver_SRCS} 

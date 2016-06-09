@@ -49,12 +49,12 @@
 
 #define MAXRBUF 2048
 
-ROSC *roCheck;
-int nroCheck;			/* # of elements in roCheck */
+extern ROSC *roCheck;
+extern int nroCheck;		/* # of elements in roCheck */
 
-int verbose;			/* chatty */
-char *me;				/* a.out name */
-LilXML *clixml;			/* XML parser context */
+extern int verbose;             /* chatty */
+extern char *me;		/* a.out name */
+extern LilXML *clixml;  	/* XML parser context */
 
 static void  usage(void);
 

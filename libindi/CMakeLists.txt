@@ -111,6 +111,7 @@ endif()
 set (indimain_SRCS
         ${CMAKE_SOURCE_DIR}/indidriver.c
 	${CMAKE_SOURCE_DIR}/indidrivermain.c
+        ${CMAKE_SOURCE_DIR}/indidrivermain_gbls.c
 	${CMAKE_SOURCE_DIR}/eventloop.c
     )
 
