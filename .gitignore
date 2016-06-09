@@ -94,3 +94,6 @@ build
 
 # Gedit backup files
 *~
+
+# Netbeans
+nbproject/
