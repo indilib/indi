@@ -12,11 +12,21 @@ before_install:
     - sudo apt-get -q -y install libusb-1.0-0-dev libcfitsio3-dev libnova-dev
     - sudo apt-get -q -y install libgphoto2-dev libgps-dev libjpeg-dev cdbs
     - sudo apt-get -q -y install libopenal-dev libgsl0-dev libboost-dev
-    - sudo apt-get -q -y install libboost-regex-dev libftdi-dev dcraw fakeroot
+    - sudo apt-get -q -y install libboost-regex-dev libftdi-dev dcraw fakeroot wget
 
 install:
-    - mkdir -p build/libindi
-    - cd build/libindi
+    - mkdir -p build
+    - cd build
+    - git clone https://github.com/google/googletest.git
+    - cd googletest
+    - mkdir build
+    - cd build
+    - cmake ..
+    - make
+    - sudo make install
+    - cd ../..
+    - mkdir -p libindi
+    - cd libindi
     - cmake -DCMAKE_INSTALL_PREFIX=/usr/local/ . ../../libindi/
     - make
     - sudo make install
@@ -39,5 +49,7 @@ install:
     
 script:
     - echo Test
+    - pwd
+    - ctest -V
     
 
