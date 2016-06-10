@@ -16,7 +16,6 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#include "indi_test_helpers.h"
 #include "mocks/mock_indi_tty.h"
 
 #ifdef HAVE_CONFIG_H
@@ -31,12 +30,14 @@ using ::testing::StrEq;
 using ::testing::Return;
 using ::testing::Invoke;
 
-TEST(DOME_BAADER, Connect__connect_ok)
+TEST(DOME_BAADER_Connect, connect_ok)
 {
     
     MOCK_TTY *p_mock_tty = new MOCK_TTY;
     
-    INDI_CAP_STDERR_BEBIN;
+    testing::internal::CaptureStdout();
+    testing::internal::CaptureStderr();
+    //INDI_CAP_STDERR_BEBIN;
     
     EXPECT_CALL((*p_mock_tty), connect(_, 9600, 8, 0, 1))
         .Times (1)
@@ -58,15 +59,19 @@ TEST(DOME_BAADER, Connect__connect_ok)
     
     ASSERT_EQ(true, dome->Connect());
     
-    INDI_CAP_STDERR_END;
+    testing::internal::GetCapturedStderr();
+    testing::internal::GetCapturedStdout();
+    //INDI_CAP_STDERR_END;
 }
 
-TEST(DOME_BAADER, Connect__simulate_connect_failure)
+TEST(DOME_BAADER_Connect, simulate_connect_failure)
 {
     
     MOCK_TTY *p_mock_tty = new MOCK_TTY;
     
-    INDI_CAP_STDERR_BEBIN;
+    testing::internal::CaptureStdout();
+    testing::internal::CaptureStderr();
+    //INDI_CAP_STDERR_BEBIN;
     
     EXPECT_CALL((*p_mock_tty), connect(_, _, _, _, _))
         .Times (1)
@@ -83,15 +88,19 @@ TEST(DOME_BAADER, Connect__simulate_connect_failure)
     
     ASSERT_EQ(false, dome->Connect());
     
-    INDI_CAP_STDERR_END;
+    testing::internal::GetCapturedStderr();
+    testing::internal::GetCapturedStdout();
+    //INDI_CAP_STDERR_END;
 }
 
-TEST(DOME_BAADER, Connect__connect_ok_but_deliberately_fail_the_ack)
+TEST(DOME_BAADER_Connect, connect_ok_but_deliberately_fail_the_ack)
 {
     
     MOCK_TTY *p_mock_tty = new MOCK_TTY;
     
-    INDI_CAP_STDERR_BEBIN;
+    testing::internal::CaptureStdout();
+    testing::internal::CaptureStderr();
+    //INDI_CAP_STDERR_BEBIN;
     
     EXPECT_CALL((*p_mock_tty), connect(_, 9600, 8, 0, 1))
         .Times (1)
@@ -116,5 +125,7 @@ TEST(DOME_BAADER, Connect__connect_ok_but_deliberately_fail_the_ack)
     
     /* INDI_CAP_STDERR_PRINT; */
     
-    INDI_CAP_STDERR_END;
+    testing::internal::GetCapturedStderr();
+    testing::internal::GetCapturedStdout();
+    //INDI_CAP_STDERR_END;
 }
