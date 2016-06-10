@@ -94,3 +94,10 @@ INDI server is the public network access point where one or more INDI Clients ma
 ## [Forum](http://indilib.org/forum.html)
 ## [Tutorials](http://indilib.org/support/tutorials.html)
 
+# Development
+
+## [INDI API](http://www.indilib.org/api/index.html)
+## [INDI Developer Manual](http://indilib.org/develop/developer-manual.html)
+## [Tutorials](http://indilib.org/develop/tutorials.html)
+## [![Join the chat at https://gitter.im/knro/indi](https://badges.gitter.im/knro/indi.svg)](https://gitter.im/knro/indi?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
