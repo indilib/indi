@@ -1,5 +1,20 @@
+/*******************************************************************************
+ Copyright(c) 2016 Andy Kirkham. All rights reserved.
 
-
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Library General Public
+ License version 2 as published by the Free Software Foundation.
+ .
+ This library is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Library General Public License for more details.
+ .
+ You should have received a copy of the GNU Library General Public License
+ along with this library; see the file COPYING.LIB.  If not, write to
+ the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+ Boston, MA 02110-1301, USA.
+*******************************************************************************/
 
 #include "indi_test_helpers.h"
 #include "mocks/mock_indi_tty.h"
@@ -16,10 +31,6 @@ using ::testing::StrEq;
 using ::testing::Return;
 using ::testing::Invoke;
 
-/*
- * Test connects ok and acks ok.
- */
-
 TEST(DOME_BAADER, Connect__connect_ok)
 {
     
@@ -33,7 +44,7 @@ TEST(DOME_BAADER, Connect__connect_ok)
     
     EXPECT_CALL((*p_mock_tty), write(StrEq("d#getflap"), _, _))
         .Times (1)
-        .WillOnce(Return( INDI::TTY::OK));
+        .WillOnce(Return(INDI::TTY::OK));
     
     EXPECT_CALL((*p_mock_tty), read(_, _, _, _))
         .Times (1)
@@ -49,11 +60,6 @@ TEST(DOME_BAADER, Connect__connect_ok)
     
     INDI_CAP_STDERR_END;
 }
-
-
-/*
- * Test connection failure.
- */
 
 TEST(DOME_BAADER, Connect__simulate_connect_failure)
 {
@@ -80,14 +86,6 @@ TEST(DOME_BAADER, Connect__simulate_connect_failure)
     INDI_CAP_STDERR_END;
 }
 
-/*
- * Test connection ok but dome responds incorrectly on connect.
- */
-
-/*
- * Test connects ok and ack fails.
- */
-
 TEST(DOME_BAADER, Connect__connect_ok_but_deliberately_fail_the_ack)
 {
     
@@ -107,7 +105,7 @@ TEST(DOME_BAADER, Connect__connect_ok_but_deliberately_fail_the_ack)
         .Times (1)
         .WillOnce(
             Invoke([](char *buf, int nbytes, int timeout, int *nbytes_read) {
-                    *nbytes_read = snprintf(buf, nbytes, "mock_resp");
+                *nbytes_read = snprintf(buf, nbytes, "mock_resp");
                 return INDI::TTY::OK;
             })
         );    
@@ -116,7 +114,7 @@ TEST(DOME_BAADER, Connect__connect_ok_but_deliberately_fail_the_ack)
     
     ASSERT_EQ(false, dome->Connect());
     
-    //INDI_CAP_STDERR_PRINT;
+    /* INDI_CAP_STDERR_PRINT; */
     
     INDI_CAP_STDERR_END;
 }
