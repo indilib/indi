@@ -15,26 +15,10 @@ before_install:
     - sudo apt-get -q -y install libboost-regex-dev libftdi-dev dcraw fakeroot wget
 
 install:
-    - mkdir -p build
-    - cd build
-    - git clone https://github.com/google/googletest.git
-    - cd googletest
-    - mkdir build
-    - cd build
-    - cmake ..
-    - make
-    - sudo make install
-    - cd ../..
-    - mkdir -p libindi
-    - cd libindi
-    - cmake -DCMAKE_INSTALL_PREFIX=/usr/local/ . ../../libindi/
-    - make
-    - sudo make install
+    - ./travis-ci.sh 
     - cd test
     
 script:
-    - echo Test
-    - pwd
     - ctest -V
     
 
