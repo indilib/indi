@@ -6,7 +6,7 @@ if [ ! -z BUILD_INSTALL_GTEST ]; then
   mkdir -p build
   pushd build
   git clone https://github.com/google/googletest.git
-  if [ ! -d build ]; then
+  if [ ! -d googletest ]; then
     echo "Failed to get googletest.git repo"
     exit 1
   fi 
