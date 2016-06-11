@@ -2,7 +2,7 @@
 
 set -x
 
-if [ ! -z BUILD_INSTALL_GTEST ]; then
+if [ ! -z $BUILD_INSTALL_GTEST ]; then
   mkdir -p build
   pushd build
   git clone https://github.com/google/googletest.git
@@ -26,7 +26,7 @@ cmake -DCMAKE_INSTALL_PREFIX=/usr/local/ . ../../libindi/
 sudo make install
 popd
 
-if [ ! -z BUILD_THIRD_PARTY ]; then
+if [ ! -z $BUILD_THIRD_PARTY ]; then
   mkdir -p build/3rdparty
   pushd build/3rdparty
   bash ../../3rdparty/make_libraries
@@ -35,7 +35,7 @@ if [ ! -z BUILD_THIRD_PARTY ]; then
   popd
 fi
 
-if [ ! -z BUILD_DEB_PACKAGES ]; then
+if [ ! -z $BUILD_DEB_PACKAGES ]; then
   mkdir -p build/deb_libindi
   pushd build/deb_libindi
   cp -r ../../libindi .
