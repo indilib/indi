@@ -2,7 +2,7 @@
 
 set -x
 
-if [ !-z BUILD_INSTALL_GTEST ]; then
+if [ ! -z BUILD_INSTALL_GTEST ]; then
   mkdir -p build
   pushd build
   git clone https://github.com/google/googletest.git

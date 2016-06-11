@@ -16,9 +16,9 @@ before_install:
 
 install:
     - ./travis-ci.sh 
-    - cd test
     
 script:
+    - cd /home/travis/build/A-j-K/indi/build/libindi/test
     - ctest -V
     
 
