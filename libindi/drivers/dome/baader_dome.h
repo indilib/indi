@@ -21,6 +21,7 @@
 #ifndef BaaderDome_H
 #define BaaderDome_H
 
+#include "indicompp.h"
 #include "indibase/indidome.h"
 
 /*  Some headers we need */
@@ -37,7 +38,7 @@ class BaaderDome : public INDI::Dome
         typedef enum { FLAP_OPEN, FLAP_CLOSE } FlapOperation;
         typedef enum { FLAP_OPENED,  FLAP_CLOSED,  FLAP_MOVING, FLAP_UNKNOWN } FlapStatus;
 
-        BaaderDome();
+        BaaderDome(INDI::TTY *  inp_tty = NULL);
         virtual ~BaaderDome();
 
         const char *getDefaultName();
@@ -93,7 +94,7 @@ class BaaderDome : public INDI::Dome
         ShutterOperation targetShutter;
         FlapOperation targetFlap;
         double prev_az, prev_alt;
-        int PortFD;
+        INDI::TTY::ShPtr tty;
 
         bool sim;
         double simShutterTimer, simFlapTimer;

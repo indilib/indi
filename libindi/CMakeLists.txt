@@ -51,6 +51,7 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   FIND_PACKAGE(JPEG REQUIRED)
 endif ()
 
+
 if (NOT CFITSIO_FOUND OR CFITSIO_VERSION_MAJOR LESS 3)
   message(FATAL_ERROR "CFITSIO version too old, Please install cfitsio 3.x and try again. http://heasarc.gsfc.nasa.gov/fitsio/fitsio.html")
 endif (NOT CFITSIO_FOUND OR CFITSIO_VERSION_MAJOR LESS 3)
@@ -88,6 +89,7 @@ set(liblilxml_SRCS  ${CMAKE_SOURCE_DIR}/libs/lilxml.c )
 
 set(libindicom_SRCS
 	${CMAKE_SOURCE_DIR}/libs/indicom.c
+        ${CMAKE_SOURCE_DIR}/libs/indicompp.cpp
 	${CMAKE_SOURCE_DIR}/base64.c
 	)
 
@@ -109,6 +111,7 @@ endif()
 set (indimain_SRCS
         ${CMAKE_SOURCE_DIR}/indidriver.c
 	${CMAKE_SOURCE_DIR}/indidrivermain.c
+        ${CMAKE_SOURCE_DIR}/indidrivermain_gbls.c
 	${CMAKE_SOURCE_DIR}/eventloop.c
     )
 
@@ -837,3 +840,17 @@ ${CMAKE_SOURCE_DIR}/libs/webcam/jpegutils.h
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libindi.pc.cmake ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc DESTINATION ${PKGCONFIG_INSTALL_PREFIX})
+
+OPTION (INDI_BUILD_UNITTESTS "Build INDI tests" ON)
+FIND_PACKAGE (GTest)
+IF (GTEST_FOUND)
+  IF (INDI_BUILD_UNITTESTS)
+    MESSAGE (STATUS  "Building unit tests")
+    ADD_SUBDIRECTORY(test)
+  ELSE (INDI_BUILD_UNITTESTS)
+    MESSAGE (STATUS  "Not building unit tests")
+  ENDIF (INDI_BUILD_UNITTESTS)
+ELSE()
+  MESSAGE (STATUS  "GTEST  not found, not building unit tests")
+ENDIF (GTEST_FOUND)
+

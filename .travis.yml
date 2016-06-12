@@ -5,39 +5,24 @@ sudo: required
 dist: trusty
 os: linux
 
+branches:
+  only:
+    - develop
+    - master
+    - feature/unittest
 
 before_install:
     - echo Install dependencies
-    - sudo apt-get -qq update
-    - sudo apt-get -q -y install libusb-1.0-0-dev libcfitsio3-dev libnova-dev
-    - sudo apt-get -q -y install libgphoto2-dev libgps-dev libjpeg-dev cdbs
-    - sudo apt-get -q -y install libopenal-dev libgsl0-dev libboost-dev
-    - sudo apt-get -q -y install libboost-regex-dev libftdi-dev dcraw fakeroot
+    - travis-ci/deps.sh
 
 install:
-    - mkdir -p build/libindi
-    - cd build/libindi
-    - cmake -DCMAKE_INSTALL_PREFIX=/usr/local/ . ../../libindi/
-    - make
-    - sudo make install
-    - cd ..
-    - mkdir 3rdparty
-    - cd 3rdparty
-    - bash ../../3rdparty/make_libraries
-    - cmake -DCMAKE_INSTALL_PREFIX=/usr/local/ -DWITH_NSE:OPTION=ON . ../../3rdparty/
-    - make 
-    - sudo make install
-    - cd ..
-    - mkdir deb_libindi
-    - cd deb_libindi
-    - cp -r ../../libindi .
-    - cp -r ../../cmake_modules libindi/
-    - cp -r ../../debian/libindi debian
-    - fakeroot debian/rules binary
-    - cd ..
-    - ../3rdparty/make_deb_pkgs
-    
+    - echo Building INDI Core
+    - travis-ci/build-core.sh 
+    - travis-ci/build-3rdparty.sh
+    - travis-ci/build-deb-packages.sh
+
 script:
-    - echo Test
+    - cd /home/travis/build/A-j-K/indi/build/libindi/test
+    - ctest -V
     
 
