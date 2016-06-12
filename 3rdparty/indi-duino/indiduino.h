@@ -43,7 +43,8 @@ typedef enum {
 	AI,
 	AO,
 	I2C_I,
-	I2C_O
+	I2C_O,
+  SERVO
 } IOTYPEStr;
 
 typedef struct {
@@ -51,6 +52,8 @@ typedef struct {
     int pin;
     double MulScale;
     double AddScale;
+    double OnAngle;
+    double OffAngle;
 } IO;
 
 
