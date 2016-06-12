@@ -852,3 +852,4 @@ IF (GTEST_FOUND)
 ELSE()
   MESSAGE (STATUS  "GTEST  not found, not building unit tests")
 ENDIF (GTEST_FOUND)
+
