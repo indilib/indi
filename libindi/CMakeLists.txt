@@ -51,7 +51,6 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   FIND_PACKAGE(JPEG REQUIRED)
 endif ()
 
-
 if (NOT CFITSIO_FOUND OR CFITSIO_VERSION_MAJOR LESS 3)
   message(FATAL_ERROR "CFITSIO version too old, Please install cfitsio 3.x and try again. http://heasarc.gsfc.nasa.gov/fitsio/fitsio.html")
 endif (NOT CFITSIO_FOUND OR CFITSIO_VERSION_MAJOR LESS 3)
@@ -89,8 +88,8 @@ set(liblilxml_SRCS  ${CMAKE_SOURCE_DIR}/libs/lilxml.c )
 
 set(libindicom_SRCS
 	${CMAKE_SOURCE_DIR}/libs/indicom.c
-        ${CMAKE_SOURCE_DIR}/libs/indicompp.cpp
 	${CMAKE_SOURCE_DIR}/base64.c
+        ${CMAKE_SOURCE_DIR}/libs/indicompp.cpp
 	)
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
@@ -111,8 +110,8 @@ endif()
 set (indimain_SRCS
         ${CMAKE_SOURCE_DIR}/indidriver.c
 	${CMAKE_SOURCE_DIR}/indidrivermain.c
-        ${CMAKE_SOURCE_DIR}/indidrivermain_gbls.c
 	${CMAKE_SOURCE_DIR}/eventloop.c
+        ${CMAKE_SOURCE_DIR}/indidrivermain_gbls.c
     )
 
 set (indiclient_SRCS
@@ -853,4 +852,3 @@ IF (GTEST_FOUND)
 ELSE()
   MESSAGE (STATUS  "GTEST  not found, not building unit tests")
 ENDIF (GTEST_FOUND)
-
