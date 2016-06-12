@@ -9,7 +9,6 @@ branches:
   only:
     - develop
     - master
-    - feature/unittest
 
 before_install:
     - echo Install dependencies
