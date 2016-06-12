@@ -404,9 +404,8 @@ bool BaaderDome::UpdateShutterStatus()
 
     tty->tcflush(TCIOFLUSH);
 
-    if (!sim && (rc = tty->write("d#getshut", DOME_CMD, &nbytes_written)) != TTY_OK)
+    if (!sim && (rc = tty->write("d#getshut", DOME_CMD, &nbytes_written)) != INDI::TTY::OK)
     {
-        tty->error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "d#getshut UpdateShutterStatus error: %s.", errstr);
         return false;
     }
@@ -424,7 +423,7 @@ bool BaaderDome::UpdateShutterStatus()
             strncpy(resp, "d#shutrun", DOME_CMD);
         nbytes_read=DOME_CMD;
     }
-    else if ( (rc = tty->read(resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
+    else if ( (rc = tty->read(resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != INDI::TTY::OK)
     {
         tty->error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "UpdateShutterStatus error: %s.", errstr);
@@ -489,7 +488,7 @@ bool BaaderDome::UpdatePosition()
 
     tty->tcflush(TCIOFLUSH);
 
-    if (!sim && (rc = tty->write("d#getazim", DOME_CMD, &nbytes_written)) != TTY_OK)
+    if (!sim && (rc = tty->write("d#getazim", DOME_CMD, &nbytes_written)) != INDI::TTY::OK)
     {
         tty->error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "d#getazim UpdatePosition error: %s.", errstr);
@@ -507,7 +506,7 @@ bool BaaderDome::UpdatePosition()
             snprintf(resp, DOME_BUF, "d#azi%04d", MountAzToDomeAz(DomeAbsPosN[0].value));
         nbytes_read=DOME_CMD;
     }
-    else if ( (rc = tty->read(resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
+    else if ( (rc = tty->read(resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != INDI::TTY::OK)
     {
         tty->error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "UpdatePosition error: %s.", errstr);
@@ -742,7 +741,7 @@ IPState BaaderDome::MoveAbs(double az)
 
     tty->tcflush(TCIOFLUSH);
 
-    if (!sim && (rc = tty->write(cmd, DOME_CMD, &nbytes_written)) != TTY_OK)
+    if (!sim && (rc = tty->write(cmd, DOME_CMD, &nbytes_written)) != INDI::TTY::OK)
     {
         tty->error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s MoveAbsDome error: %s.", cmd, errstr);
@@ -756,7 +755,7 @@ IPState BaaderDome::MoveAbs(double az)
         strncpy(resp, "d#gotmess", DOME_CMD);
         nbytes_read=DOME_CMD;
     }
-    else if ( (rc = tty->read(resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
+    else if ( (rc = tty->read(resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != INDI::TTY::OK)
     {
         tty->error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "MoveAbsDome error: %s.", errstr);
@@ -835,7 +834,7 @@ IPState BaaderDome::ControlShutter(ShutterOperation operation)
 
     tty->tcflush(TCIOFLUSH);
 
-    if (!sim && (rc = tty->write(cmd, DOME_CMD, &nbytes_written)) != TTY_OK)
+    if (!sim && (rc = tty->write(cmd, DOME_CMD, &nbytes_written)) != INDI::TTY::OK)
     {
         tty->error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s ControlDomeShutter error: %s.", cmd, errstr);
@@ -850,7 +849,7 @@ IPState BaaderDome::ControlShutter(ShutterOperation operation)
         strncpy(resp, "d#gotmess", DOME_CMD);
         nbytes_read=DOME_CMD;
     }
-    else if ( (rc = tty->read(resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
+    else if ( (rc = tty->read(resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != INDI::TTY::OK)
     {
         tty->error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "ControlDomeShutter error: %s.", errstr);
@@ -928,7 +927,7 @@ int BaaderDome::ControlDomeFlap(FlapOperation operation)
 
     tty->tcflush(TCIOFLUSH);
 
-    if (!sim && (rc = tty->write(cmd, DOME_CMD, &nbytes_written)) != TTY_OK)
+    if (!sim && (rc = tty->write(cmd, DOME_CMD, &nbytes_written)) != INDI::TTY::OK)
     {
         tty->error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s ControlDomeFlap error: %s.", cmd, errstr);
@@ -943,7 +942,7 @@ int BaaderDome::ControlDomeFlap(FlapOperation operation)
         strncpy(resp, "d#gotmess", DOME_CMD);
         nbytes_read=DOME_CMD;
     }
-    else if ( (rc = tty->read(resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
+    else if ( (rc = tty->read(resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != INDI::TTY::OK)
     {
         tty->error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "ControlDomeFlap error: %s.", errstr);
@@ -977,7 +976,7 @@ bool BaaderDome::UpdateFlapStatus()
 
     tty->tcflush(TCIOFLUSH);
     
-    if (!sim && (rc = tty->write("d#getflap", DOME_CMD, &nbytes_written)) != TTY_OK)
+    if (!sim && (rc = tty->write("d#getflap", DOME_CMD, &nbytes_written)) != INDI::TTY::OK)
     {
         tty->error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "d#getflap UpdateflapStatus error: %s.", errstr);
@@ -997,7 +996,7 @@ bool BaaderDome::UpdateFlapStatus()
             strncpy(resp, "d#flaprun", DOME_CMD);
         nbytes_read=DOME_CMD;
     }
-    else if ( (rc = tty->read(resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
+    else if ( (rc = tty->read(resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != INDI::TTY::OK)
     {
         tty->error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "UpdateflapStatus error: %s.", errstr);
@@ -1064,7 +1063,7 @@ bool BaaderDome::SaveEncoderPosition()
 
     tty->tcflush(TCIOFLUSH);
 
-    if (!sim && (rc = tty->write(cmd, DOME_CMD, &nbytes_written)) != TTY_OK)
+    if (!sim && (rc = tty->write(cmd, DOME_CMD, &nbytes_written)) != INDI::TTY::OK)
     {
         tty->error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s SaveEncoderPosition error: %s.", cmd, errstr);
@@ -1078,7 +1077,7 @@ bool BaaderDome::SaveEncoderPosition()
         strncpy(resp, "d#gotmess", DOME_CMD);
         nbytes_read=DOME_CMD;
     }
-    else if ( (rc = tty->read(resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
+    else if ( (rc = tty->read(resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != INDI::TTY::OK)
     {
         tty->error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "SaveEncoderPosition error: %s.", errstr);
