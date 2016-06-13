@@ -3238,6 +3238,9 @@ int CCCDCamera::get_AntiBlooming(AntiBloom * pVal)
 	if (!m_bIsConnected)
 		return Error ( "Not Connected", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTCONNECTED) );
 
+    if (!m_AdvEnabledOptions.AntiBlooming)
+        return Error ( "Option not available on this model", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTSUPPORTED) );
+
 	QSI_Registry Registry;
 
 	// Attempt to get the advanced settings from registry and go to camera default on any setting that can't be retrieved
