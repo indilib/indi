@@ -1,2 +1,2 @@
-usr/lib/indi_mi_ccd usr/lib/indi_mi_ccd_usb
-usr/lib/indi_mi_ccd usr/lib/indi_mi_ccd_eth
+usr/bin/indi_mi_ccd usr/bin/indi_mi_ccd_usb
+usr/bin/indi_mi_ccd usr/bin/indi_mi_ccd_eth
