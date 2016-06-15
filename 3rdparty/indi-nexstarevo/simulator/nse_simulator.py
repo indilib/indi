@@ -45,12 +45,12 @@ async def handle_port2000(reader, writer):
     data = await reader.read(100)
     message = data.decode()
     addr = writer.get_extra_info('peername')
-    print("-> Server received %r from %r" % (message, addr))
+    print("-> Scope received %r from %r" % (message, addr))
     if message == '$$$' :
         broadcast.keep_running=False
         print('App from {0} connected. Terminating broadcast and starting main loop.'.format(addr))
         data = b'CMD\r\n'
-        print("<- Server sending: %r" % data )
+        print("<- Scope sending: %r" % data )
         writer.write(data)
         await writer.drain()
 
@@ -59,8 +59,8 @@ async def handle_port2000(reader, writer):
         data = await reader.read(256)
         message = data.decode().strip()
         addr = writer.get_extra_info('peername')
-        print("-> Server received %r from %r" % (message, addr))
-        print("<- Server sending: %r" % message)
+        print("-> Scope received %r from %r" % (message, addr))
+        print("<- Scope sending: %r" % message)
         writer.write(data)
         if message == 'exit' :
             initial = False
@@ -80,21 +80,22 @@ async def handle_port2000(reader, writer):
             addr = writer.get_extra_info('peername')
             if len(data)>1 and data[0]==0x3b :
                 for cmd in split_cmds(data):
-                    print("-> Server received %s from %r." % (print_command(cmd), addr))
+                    print("-> Scope received %s from %r." % (print_command(cmd), addr))
                     c,f,t,l,d,s=decode_command(cmd)
                     #print(c,f,t,l,d,s)
                     if c == 0xfe :
-                        data = bytes.fromhex('3b032010fecf3b071020fe070b13ecba')
+                        rpl = bytes.fromhex('3b032010fecf3b071020fe070b13ecba')
                     elif c == 0x05 :
-                        data = bytes.fromhex('3b03201005c83b0510200516852b')
+                        rpl = bytes.fromhex('3b03201005c83b0510200516852b')
                     else :
-                        data += ack_cmd(cmd)
-                    print("<- Server sending: %r" % data)
-                    writer.write(data)
+                        rpl = b';' + cmd + ack_cmd(cmd)
+                    for c in split_cmds(rpl):
+                        print("<- Scope sending:", print_command(c))
+                    writer.write(rpl)
                 await writer.drain()
             else :
                 if len(data):
-                    print("-> Server received %r from %r. IGNORE" % (data, addr))
+                    print("-> Scope received %r from %r. IGNORE" % (data, addr))
                 else :
                     print("-- Terminating connection")
                     writer.close()
