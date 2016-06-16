@@ -137,8 +137,7 @@ typedef enum ASI_CONTROL_TYPE{ //Control type//
 	ASI_HIGH_SPEED_MODE,
 	ASI_COOLER_POWER_PERC,
 	ASI_TARGET_TEMP,// not need *10
-	ASI_COOLER_ON,
-	ASI_MONO_BIN//lead to less grid at software bin mode for color camera
+	ASI_COOLER_ON
 }ASI_CONTROL_TYPE;
 
 typedef struct _ASI_CONTROL_CAPS
