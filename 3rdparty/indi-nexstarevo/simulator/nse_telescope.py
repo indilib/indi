@@ -1,7 +1,7 @@
 #!/bin/env python3
 
 import struct
-
+from math import pi
 
 # ID tables
 targets={'ANY':0x00,
@@ -148,6 +148,7 @@ class NexStarScope:
           0x0b : NexStarScope.level_start,
           0x10 : NexStarScope.set_pos_backlash,
           0x11 : NexStarScope.set_neg_backlash,
+          0x13 : NexStarScope.slew_done,
           0x17 : NexStarScope.goto_slow,
           0x18 : NexStarScope.at_index,
           0x19 : NexStarScope.seek_index,
@@ -195,11 +196,23 @@ class NexStarScope:
         except KeyError :
             trg = '???'
         if trg == 'ALT':
-            return struct.pack('!i',int(self.alt))[1:]
+            return struct.pack('!i',int(self.alt*(2**24)))[1:]
         else :
-            return struct.pack('!i',int(self.azm))[1:]
+            return struct.pack('!i',int(self.azm*(2**24)))[1:]
 
     def goto_fast(self, data, snd, rcv):
+        r=0.1
+        a=struct.unpack('!i',b'\x00'+data[:3])[0]/2**24
+        if trg_names[rcv] == 'ALT':
+            if self.alt < a :
+                self.alt_rate = r
+            else :
+                self.alt_rate = -r
+        else :
+            if self.azm < a :
+                self.azm_rate = r
+            else :
+                self.azm_rate = -r
         return b''
 
     def set_position(self,data, snd, rcv):
@@ -224,7 +237,25 @@ class NexStarScope:
         return b''
 
     def goto_slow(self, data, snd, rcv):
+        r=0.01
+        a=struct.unpack('!i',b'\x00'+data[:3])[0]/2**24
+        if trg_names[rcv] == 'ALT':
+            if self.alt < a :
+                self.alt_rate = r
+            else :
+                self.alt_rate = -r
+        else :
+            if self.azm < a :
+                self.azm_rate = r
+            else :
+                self.azm_rate = -r
         return b''
+
+    def slew_done(self, data, snd, rcv):
+        if self.alt_rate or self.azm_rate :
+            return b'\x00'
+        else :
+            return b'\xff'
 
     def at_index(self, data, snd, rcv):
         return b'\x00'
@@ -233,7 +264,7 @@ class NexStarScope:
         return b''
 
     def move_pos(self, data, snd, rcv):
-        r=int(data[0])
+        r=0.001*int(data[0])
         if trg_names[rcv] == 'ALT':
             self.alt_rate = r
         else :
@@ -241,7 +272,7 @@ class NexStarScope:
         return b''
 
     def move_neg(self, data, snd, rcv):
-        r=int(data[0])
+        r=0.001*int(data[0])
         if trg_names[rcv] == 'ALT':
             self.alt_rate = -r
         else :
@@ -297,7 +328,7 @@ class NexStarScope:
     def tick(self, interval):
         self.alt += self.alt_rate
         self.azm += self.azm_rate
-        print('Scope at: ALT: %d  AZM: %d' % (self.alt, self.azm))
+        print('Scope at: ALT: %.4f  AZM: %.4f' % (180*self.alt/pi, 180*self.azm/pi))
 
     @property
     def alt(self):
@@ -317,7 +348,7 @@ class NexStarScope:
         self.__azm=AZM
 
     def handle_cmd(self, cmd):
-        print("-> Scope received %s." % (print_command(cmd)))
+        #print("-> Scope received %s." % (print_command(cmd)))
         c,f,t,l,d,s=decode_command(cmd)
         resp=b''
         if make_checksum(cmd[:-1]) != s :
@@ -333,9 +364,10 @@ class NexStarScope:
                 r = handlers[c](self,d,f,t)
                 r = bytes((len(r)+3,t,f,c)) + r
                 resp += b';' + r + bytes((make_checksum(r),))
-                print('Response: %r' % resp)
+                #print('Response: %r' % resp)
             else :
                 print('Scope got unknown command %02x' % c)
+                print("-> Scope received %s." % (print_command(cmd)))
                 
         return resp
 
