@@ -414,6 +414,7 @@ bool ASICCD::setupParams()
       ASIGetControlCaps(m_camInfo->CameraID, j, &pCtrlCaps);
       if (pCtrlCaps.ControlType == ASI_BANDWIDTHOVERLOAD)
       {
+	         DEBUGF(INDI::Logger::DBG_ERROR, "setupParams->set USB %d", pCtrlCaps.MinValue);
           ASISetControlValue(m_camInfo->CameraID, ASI_BANDWIDTHOVERLOAD, pCtrlCaps.MinValue, ASI_FALSE);
           break;
       }
@@ -522,6 +523,7 @@ bool ASICCD::setupParams()
 
   ASIStopVideoCapture(m_camInfo->CameraID);
 
+  DEBUGF(INDI::Logger::DBG_ERROR, "setupParams ASISetROIFormat (%dx%d,  bin %d, type %d)", m_camInfo->MaxWidth, m_camInfo->MaxHeight, 1, imgType);
   ASISetROIFormat(m_camInfo->CameraID, m_camInfo->MaxWidth, m_camInfo->MaxHeight, 1, imgType);
 
   #ifndef OSX_EMBEDED_MODE
@@ -556,6 +558,7 @@ bool ASICCD::ISNewNumber (const char *dev, const char *name, double values[], ch
                 if (ControlN[i].value == oldValues[i] || (nType == ASI_BANDWIDTHOVERLOAD && ExposureRequest > 0.25))
                     continue;
 
+		              DEBUGF(INDI::Logger::DBG_ERROR, "ISNewNumber->set ctrl %d: %d", nType, ControlN[i].value);
                 if ( (errCode = ASISetControlValue(m_camInfo->CameraID, nType, ControlN[i].value, ASI_FALSE)) != ASI_SUCCESS)
                 {
                     DEBUGF(INDI::Logger::DBG_ERROR, "ASISetControlValue (%s=%g) error (%d)", ControlN[i].name, ControlN[i].value, errCode);
@@ -615,6 +618,7 @@ bool ASICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
 
                    if (swType == nType)
                    {
+			                    DEBUGF(INDI::Logger::DBG_ERROR, "ISNewSwitch->SetControlValue %d %d", nType, ControlN[j].value);
                        if ( (errCode = ASISetControlValue(m_camInfo->CameraID, nType, ControlN[j].value, swAuto )) != ASI_SUCCESS)
                        {
                            DEBUGF(INDI::Logger::DBG_ERROR, "ASISetControlValue (%s=%g) error (%d)", ControlN[j].name, ControlN[j].value, errCode);
@@ -804,6 +808,8 @@ bool ASICCD::StartExposure(float duration)
 
   PrimaryCCD.setExposureDuration(duration);
   ExposureRequest = duration;
+
+  DEBUGF(INDI::Logger::DBG_ERROR, "StartExposure->setexp : %.3fs", duration);
   ASISetControlValue(m_camInfo->CameraID, ASI_EXPOSURE, duration*1000*1000, ASI_FALSE);
 
   // Try exposure for 3 times
@@ -862,7 +868,8 @@ bool ASICCD::UpdateCCDFrame(int x, int y, int w, int h)
     DEBUGF(INDI::Logger::DBG_SESSION,  "Error: invalid height request %d", h);
     return false;
   }
-
+	
+  DEBUGF(INDI::Logger::DBG_ERROR, "UpdateCCDFrame ASISetROIFormat (%dx%d,  bin %d, type %d)", bin_width, bin_height, PrimaryCCD.getBinX(), getImageType());
   if ( (errCode = ASISetROIFormat(m_camInfo->CameraID, bin_width, bin_height, PrimaryCCD.getBinX(), getImageType())) != ASI_SUCCESS)
   {
       DEBUGF(INDI::Logger::DBG_ERROR, "ASISetROIFormat (%dx%d @ %d) error (%d)", bin_width, bin_height, PrimaryCCD.getBinX(), errCode);
@@ -1354,7 +1361,10 @@ void ASICCD::createControls(int piNumberOfControls)
 
         #ifdef LOW_USB_BANDWIDTH
         if (!strcmp(oneControlCap->Name, "BandWidth"))
+	{
+		          DEBUGF(INDI::Logger::DBG_ERROR, "createControls->set USB %d", oneControlCap->MinValue);
             ASISetControlValue(m_camInfo->CameraID, oneControlCap->ControlType, oneControlCap->MinValue, ASI_FALSE);
+	}
         #endif
 
         ASIGetControlValue(m_camInfo->CameraID, oneControlCap->ControlType, &pValue, &isAuto);
