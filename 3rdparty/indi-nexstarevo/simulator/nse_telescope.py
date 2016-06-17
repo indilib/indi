@@ -1,6 +1,7 @@
 #!/bin/env python3
 
 import struct
+import sys
 from math import pi
 
 # ID tables
@@ -116,7 +117,14 @@ def parse_pos(d):
     else :
         return u''
 
+def repr_pos(alt,azm):
+    return u'ALT:%03d°%02d\'%04.1f"  AZM:%03d°%02d\'%04.1f"' % (f2dms(alt) + f2dms(azm))
 
+def unpack_int3(d):
+    return struct.unpack('!i',b'\x00'+d[:3])[0]/2**24
+
+def pack_int3(f):
+    return struct.pack('!i',int(f*(2**24)))[1:]
 
 class NexStarScope:
     
@@ -129,10 +137,17 @@ class NexStarScope:
     def __init__(self, ALT=0.0, AZM=0.0):
         self.__alt=ALT
         self.__azm=AZM
+        self.trg_alt=self.__alt
+        self.trg_azm=self.__azm
         self.alt_rate=0
         self.azm_rate=0
         self.alt_approach=0
         self.azm_approach=0
+        self.last_cmd=''
+        self.slewing=False
+        self.guiding=False
+        self.alt_guiderate=0.0
+        self.azm_guiderate=0.0
         self._other_handlers = {
             0x10: NexStarScope.cmd_0x10,
             0x18: NexStarScope.cmd_0x18,
@@ -196,23 +211,28 @@ class NexStarScope:
         except KeyError :
             trg = '???'
         if trg == 'ALT':
-            return struct.pack('!i',int(self.alt*(2**24)))[1:]
+            return pack_int3(self.alt)
         else :
-            return struct.pack('!i',int(self.azm*(2**24)))[1:]
+            return pack_int3(self.azm)
 
     def goto_fast(self, data, snd, rcv):
-        r=0.1
-        a=struct.unpack('!i',b'\x00'+data[:3])[0]/2**24
+        self.last_cmd='GOTO_FAST'
+        self.slewing=True
+        r=0.01
+        a=unpack_int3(data)
         if trg_names[rcv] == 'ALT':
+            self.trg_alt=a
             if self.alt < a :
                 self.alt_rate = r
             else :
                 self.alt_rate = -r
         else :
-            if self.azm < a :
-                self.azm_rate = r
+            self.trg_azm=a%1.0
+            f = 1 if abs(self.azm - self.trg_azm)<0.5 else -1 
+            if self.azm < self.trg_azm :
+                self.azm_rate = f*r
             else :
-                self.azm_rate = -r
+                self.azm_rate = -f*r
         return b''
 
     def set_position(self,data, snd, rcv):
@@ -222,9 +242,21 @@ class NexStarScope:
         return bytes.fromhex('1685')
 
     def set_pos_guiderate(self, data, snd, rcv):
+        a=unpack_int3(data)
+        self.guiding = a>0
+        if trg_names[rcv] == 'ALT':
+            self.alt_guiderate=a
+        else :
+            self.azm_guiderate=a
         return b''
 
     def set_neg_guiderate(self, data, snd, rcv):
+        a=unpack_int3(data)
+        self.guiding = a>0
+        if trg_names[rcv] == 'ALT':
+            self.alt_guiderate=-a
+        else :
+            self.azm_guiderate=-a
         return b''
 
     def level_start(self, data, snd, rcv):
@@ -237,24 +269,31 @@ class NexStarScope:
         return b''
 
     def goto_slow(self, data, snd, rcv):
-        r=0.01
-        a=struct.unpack('!i',b'\x00'+data[:3])[0]/2**24
+        self.last_cmd='GOTO_SLOW'
+        self.slewing=True
+        r=0.0005
+        a=unpack_int3(data)
         if trg_names[rcv] == 'ALT':
+            self.trg_alt=a
             if self.alt < a :
                 self.alt_rate = r
             else :
                 self.alt_rate = -r
         else :
-            if self.azm < a :
-                self.azm_rate = r
+            self.trg_azm=a%1.0
+            f = 1 if abs(self.azm - self.trg_azm)<0.5 else -1 
+            if self.azm < self.trg_azm :
+                self.azm_rate = f*r
             else :
-                self.azm_rate = -r
+                self.azm_rate = -f*r
         return b''
 
     def slew_done(self, data, snd, rcv):
         if self.alt_rate or self.azm_rate :
             return b'\x00'
+            self.slewing=True
         else :
+            self.slewing=False
             return b'\xff'
 
     def at_index(self, data, snd, rcv):
@@ -264,7 +303,9 @@ class NexStarScope:
         return b''
 
     def move_pos(self, data, snd, rcv):
-        r=0.001*int(data[0])
+        self.last_cmd='MOVE_POS'
+        self.slewing=True
+        r=0.0001*int(data[0])
         if trg_names[rcv] == 'ALT':
             self.alt_rate = r
         else :
@@ -272,7 +313,9 @@ class NexStarScope:
         return b''
 
     def move_neg(self, data, snd, rcv):
-        r=0.001*int(data[0])
+        self.last_cmd='MOVE_NEG'
+        self.slewing=True
+        r=0.0001*int(data[0])
         if trg_names[rcv] == 'ALT':
             self.alt_rate = -r
         else :
@@ -325,10 +368,31 @@ class NexStarScope:
         else :
             return b''
 
+    def show_status(self):
+        mode = 'Idle'
+        if self.guiding : mode = 'Guiding'
+        if self.slewing : mode = 'Slewing'
+        print('\r%8s: %s -> %s (%+5.2f %+5.2f) CMD: %10s' % (
+                mode, repr_pos(self.alt, self.azm), 
+                repr_pos(self.trg_alt, self.trg_azm),
+                self.alt_rate*360, self.azm_rate*360,
+                self.last_cmd), end='')
+        sys.stdout.flush()
+
     def tick(self, interval):
-        self.alt += self.alt_rate
-        self.azm += self.azm_rate
-        print('Scope at: ALT: %.4f  AZM: %.4f' % (180*self.alt/pi, 180*self.azm/pi))
+        eps=1e-8
+        self.alt += (self.alt_rate + self.alt_guiderate)*interval
+        self.azm += (self.azm_rate + self.azm_guiderate)*interval
+        if self.slewing :
+            if abs(self.alt - self.trg_alt) < 2*abs(self.alt_rate*interval) :
+                self.alt_rate*=0.5
+            if abs(self.azm - self.trg_azm) < 2*abs(self.azm_rate*interval) :
+                self.azm_rate*=0.5
+        if self.azm_rate < eps and self.alt_rate < eps :
+            self.alt_rate=0
+            self.azm_rate=0
+            self.slewing=False
+        self.show_status()
 
     @property
     def alt(self):
@@ -337,7 +401,9 @@ class NexStarScope:
     @alt.setter
     def alt(self,ALT):
         self.__alt=ALT
-        
+        # Altitude movement limits
+        self.__alt = min(self.__alt,0.23)
+        self.__alt = max(self.__alt,-0.03)
         
     @property
     def azm(self):
@@ -345,11 +411,16 @@ class NexStarScope:
     
     @azm.setter
     def azm(self,AZM):
-        self.__azm=AZM
+        self.__azm=AZM % 1.0
+            
 
     def handle_cmd(self, cmd):
         #print("-> Scope received %s." % (print_command(cmd)))
-        c,f,t,l,d,s=decode_command(cmd)
+        try :
+            c,f,t,l,d,s=decode_command(cmd)
+        except IndexError :
+            print("Malformed command: %r" % (cmd,))
+            return b''
         resp=b''
         if make_checksum(cmd[:-1]) != s :
             print("Wrong checksum. Ignoring.")
