@@ -62,7 +62,7 @@ const double NexStarEvo::STEPS_PER_DEGREE = STEPS_PER_REVOLUTION / 360.0;
 const double NexStarEvo::DEFAULT_SLEW_RATE = STEPS_PER_DEGREE * 2.0;
 const long NexStarEvo::MAX_ALT = 90.0 * STEPS_PER_DEGREE;
 const long NexStarEvo::MIN_ALT = -90.0 * STEPS_PER_DEGREE;
-const double NexStarEvo::TRACK_SCALE = 80.0/60;
+const double NexStarEvo::TRACK_SCALE = 1.0;
 
 NexStarEvo::NexStarEvo() : 
     AxisStatusAZ(STOPPED), AxisDirectionAZ(FORWARD),
