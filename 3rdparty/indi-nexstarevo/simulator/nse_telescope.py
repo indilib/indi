@@ -4,6 +4,10 @@ import struct
 import sys
 from math import pi
 
+import curses
+from collections import deque
+
+
 # ID tables
 targets={'ANY':0x00,
          'MB' :0x01,
@@ -38,6 +42,7 @@ commands={
           'MC_LEVEL_START':0x0b,
           'MC_SET_POS_BACKLASH':0x10,
           'MC_SET_NEG_BACKLASH':0x11,
+          'MC_SLEW_DONE':0x13,
           'MC_GOTO_SLOW':0x17,
           'MC_AT_INDEX':0x18,
           'MC_SEEK_INDEX':0x19,
@@ -55,6 +60,19 @@ commands={
 cmd_names={value:key for key, value in commands.items()}
 
 ACK_CMDS=[0x02,0x04,0x06,0x24,]
+
+RATES = {
+    0 : 0.0,
+    1 : 1/(360*60),
+    2 : 2/(360*60),
+    3 : 5/(360*60),
+    4 : 15/(360*60),
+    5 : 30/(360*60),
+    6 : 1/360,
+    7 : 2/360,
+    8 : 5/360,
+    9 : 10/360
+}
 
 def print_command(cmd):
     if cmd[2] in (0x10, 0x20):
@@ -118,7 +136,11 @@ def parse_pos(d):
         return u''
 
 def repr_pos(alt,azm):
-    return u'ALT:%03d°%02d\'%04.1f"  AZM:%03d°%02d\'%04.1f"' % (f2dms(alt) + f2dms(azm))
+    return u'(%03d°%02d\'%04.1f", %03d°%02d\'%04.1f")' % (f2dms(alt) + f2dms(azm))
+
+def repr_angle(a):
+    return u'%03d°%02d\'%04.1f"' % f2dms(a)
+
 
 def unpack_int3(d):
     return struct.unpack('!i',b'\x00'+d[:3])[0]/2**24
@@ -134,11 +156,12 @@ class NexStarScope:
     trg=('MB', 'HC', 'UKN1', 'HC+', 'AZM', 'ALT', 'APP', 
             'GPS', 'WiFi', 'BAT', 'CHG', 'LIGHT')
     
-    def __init__(self, ALT=0.0, AZM=0.0):
-        self.__alt=ALT
-        self.__azm=AZM
-        self.trg_alt=self.__alt
-        self.trg_azm=self.__azm
+    def __init__(self, ALT=0.0, AZM=0.0, tui=True, stdscr=None):
+        self.tui=tui
+        self.alt=ALT
+        self.azm=AZM
+        self.trg_alt=self.alt
+        self.trg_azm=self.azm
         self.alt_rate=0
         self.azm_rate=0
         self.alt_approach=0
@@ -146,8 +169,10 @@ class NexStarScope:
         self.last_cmd=''
         self.slewing=False
         self.guiding=False
+        self.goto=False
         self.alt_guiderate=0.0
         self.azm_guiderate=0.0
+        self.cmd_log=deque(maxlen=30)
         self._other_handlers = {
             0x10: NexStarScope.cmd_0x10,
             0x18: NexStarScope.cmd_0x18,
@@ -180,6 +205,7 @@ class NexStarScope:
           0xfd : NexStarScope.set_approach,
           0xfe : NexStarScope.fw_version,
         }
+        if tui : self.init_dsp(stdscr)
 
     def send_ack(self, data, snd, rcv):
         return b''
@@ -218,21 +244,24 @@ class NexStarScope:
     def goto_fast(self, data, snd, rcv):
         self.last_cmd='GOTO_FAST'
         self.slewing=True
-        r=0.01
+        self.goto=True
+        self.guiding=False
+        self.alt_guiderate=0
+        self.azm_guiderate=0
+        r=5/360
         a=unpack_int3(data)
         if trg_names[rcv] == 'ALT':
             self.trg_alt=a
-            if self.alt < a :
-                self.alt_rate = r
-            else :
-                self.alt_rate = -r
+            if a-self.alt < 0 :
+                r = -r
+            self.alt_rate = r
         else :
             self.trg_azm=a%1.0
-            f = 1 if abs(self.azm - self.trg_azm)<0.5 else -1 
-            if self.azm < self.trg_azm :
-                self.azm_rate = f*r
-            else :
-                self.azm_rate = -f*r
+            if self.trg_azm - self.azm < 0 :
+                r = -r
+            if abs(self.trg_azm - self.azm) > 0.5 :
+                r = -r
+            self.azm_rate = r
         return b''
 
     def set_position(self,data, snd, rcv):
@@ -242,7 +271,7 @@ class NexStarScope:
         return bytes.fromhex('1685')
 
     def set_pos_guiderate(self, data, snd, rcv):
-        a=unpack_int3(data)
+        a=unpack_int3(data)/60 # (transform to rot/sec)
         self.guiding = a>0
         if trg_names[rcv] == 'ALT':
             self.alt_guiderate=a
@@ -251,7 +280,7 @@ class NexStarScope:
         return b''
 
     def set_neg_guiderate(self, data, snd, rcv):
-        a=unpack_int3(data)
+        a=unpack_int3(data)/60 # (transform to rot/sec)
         self.guiding = a>0
         if trg_names[rcv] == 'ALT':
             self.alt_guiderate=-a
@@ -271,7 +300,11 @@ class NexStarScope:
     def goto_slow(self, data, snd, rcv):
         self.last_cmd='GOTO_SLOW'
         self.slewing=True
-        r=0.0005
+        self.goto=True
+        self.guiding=False
+        self.alt_guiderate=0
+        self.azm_guiderate=0
+        r=0.2/360
         a=unpack_int3(data)
         if trg_names[rcv] == 'ALT':
             self.trg_alt=a
@@ -305,7 +338,8 @@ class NexStarScope:
     def move_pos(self, data, snd, rcv):
         self.last_cmd='MOVE_POS'
         self.slewing=True
-        r=0.0001*int(data[0])
+        self.goto=False
+        r=RATES[int(data[0])]
         if trg_names[rcv] == 'ALT':
             self.alt_rate = r
         else :
@@ -315,7 +349,8 @@ class NexStarScope:
     def move_neg(self, data, snd, rcv):
         self.last_cmd='MOVE_NEG'
         self.slewing=True
-        r=0.0001*int(data[0])
+        self.goto=False
+        r=RATES[int(data[0])]
         if trg_names[rcv] == 'ALT':
             self.alt_rate = -r
         else :
@@ -368,30 +403,111 @@ class NexStarScope:
         else :
             return b''
 
+    def init_dsp(self,stdscr):
+        self.scr=stdscr
+        if stdscr :
+            self.cmd_log_w=curses.newwin(self.cmd_log.maxlen+2,40,0,50)
+            self.state_w=curses.newwin(1,80,0,0)
+            self.state_w.border()
+            self.pos_w=curses.newwin(4,25,1,0)
+            self.pos_w.border()
+            self.trg_w=curses.newwin(4,25,1,25)
+            self.trg_w.border()
+            self.rate_w=curses.newwin(4,25,5,0)
+            self.guide_w=curses.newwin(4,25,5,25)
+            self.msg_w=curses.newwin(10,50,17,0)
+            stdscr.refresh()
+
+    def update_dsp(self):
+        if self.scr :
+            mode = 'Idle'
+            if self.guiding : mode = 'Guiding'
+            if self.slewing : mode = 'Slewing'
+            self.state_w.clear()
+            self.state_w.addstr(0,1,'State: %8s' % mode)
+            self.state_w.refresh()
+            self.pos_w.clear()
+            self.pos_w.border()
+            self.pos_w.addstr(0,1,'Position:')
+            self.pos_w.addstr(1,3,'Alt: ' + repr_angle(self.alt))
+            self.pos_w.addstr(2,3,'Azm: ' + repr_angle(self.azm))
+            self.pos_w.refresh()
+            self.trg_w.clear()
+            self.trg_w.border()
+            self.trg_w.addstr(0,1,'Target:')
+            self.trg_w.addstr(1,3,'Alt: ' + repr_angle(self.trg_alt))
+            self.trg_w.addstr(2,3,'Azm: ' + repr_angle(self.trg_azm))
+            self.trg_w.refresh()
+            self.rate_w.clear()
+            self.rate_w.border()
+            self.rate_w.addstr(0,1,'Move rate:')
+            self.rate_w.addstr(1,3,'Alt: %+8.4f °/s' % (self.alt_rate*360))
+            self.rate_w.addstr(2,3,'Azm: %+8.4f °/s' % (self.azm_rate*360))
+            self.rate_w.refresh()
+            self.guide_w.clear()
+            self.guide_w.border()
+            self.guide_w.addstr(0,1,'Guide rate:')
+            self.guide_w.addstr(1,3,'Alt: %+8.4f "/s' % (self.alt_guiderate*360*60*60))
+            self.guide_w.addstr(2,3,'Azm: %+8.4f "/s' % (self.azm_guiderate*360*60*60))
+            self.guide_w.refresh()
+            self.cmd_log_w.clear()
+            self.cmd_log_w.border()
+            self.cmd_log_w.addstr(0,1,'Commands log')
+            for n,cmd in enumerate(self.cmd_log) :
+                self.cmd_log_w.addstr(n+1,1,cmd)
+                pass
+            self.cmd_log_w.refresh()
+            self.msg_w.border()
+            self.msg_w.addstr(0,1,'Msg:')
+            self.msg_w.addstr(1,1,'')
+            self.msg_w.refresh()
+
     def show_status(self):
-        mode = 'Idle'
-        if self.guiding : mode = 'Guiding'
-        if self.slewing : mode = 'Slewing'
-        print('\r%8s: %s -> %s (%+5.2f %+5.2f) CMD: %10s' % (
-                mode, repr_pos(self.alt, self.azm), 
-                repr_pos(self.trg_alt, self.trg_azm),
-                self.alt_rate*360, self.azm_rate*360,
-                self.last_cmd), end='')
-        sys.stdout.flush()
+        if self.tui and self.scr:
+            self.update_dsp()
+        else :
+            mode = 'Idle'
+            if self.guiding : mode = 'Guiding'
+            if self.slewing : mode = 'Slewing'
+            print('\r%8s: %s -> %s S(%+5.2f %+5.2f) G(%+.4f %+.4f) CMD: %10s' % (
+                    mode, repr_pos(self.alt, self.azm), 
+                    repr_pos(self.trg_alt, self.trg_azm),
+                    self.alt_rate*360, self.azm_rate*360, # deg/sec
+                    self.alt_guiderate*360*60*60, self.azm_guiderate*360*60*60, # arcsec/sec
+                    self.last_cmd), end='')
+            sys.stdout.flush()
 
     def tick(self, interval):
-        eps=1e-8
+        eps=1e-6 # 0.1" precission
+        maxrate = 5/360
+        if self.last_cmd=='GOTO_FAST' :
+            eps*=100
+
+        if self.slewing and self.goto:
+            # AZM
+            r=self.trg_azm - self.azm
+            if abs(r)>0.5 :
+                r = -r
+            s=1 if r>0 else -1
+            mr=min(maxrate,abs(self.azm_rate))
+            self.azm_rate=s*min(mr,abs(r)/interval)
+                
+            # ALT
+            r=self.trg_alt - self.alt
+            s=1 if r>0 else -1
+            mr=min(maxrate,abs(self.alt_rate))
+            self.alt_rate=s*min(mr,abs(r)/interval)
+#            if abs(self.alt - self.trg_alt) < 3*abs(self.alt_rate*interval) :
+#                self.alt_rate*=0.5
+#            if abs(self.azm - self.trg_azm) < 3*abs(self.azm_rate*interval) :
+#                self.azm_rate*=0.5
         self.alt += (self.alt_rate + self.alt_guiderate)*interval
         self.azm += (self.azm_rate + self.azm_guiderate)*interval
-        if self.slewing :
-            if abs(self.alt - self.trg_alt) < 2*abs(self.alt_rate*interval) :
-                self.alt_rate*=0.5
-            if abs(self.azm - self.trg_azm) < 2*abs(self.azm_rate*interval) :
-                self.azm_rate*=0.5
-        if self.azm_rate < eps and self.alt_rate < eps :
+        if abs(self.azm_rate) < eps and abs(self.alt_rate) < eps :
             self.alt_rate=0
             self.azm_rate=0
             self.slewing=False
+            self.goto=False
         self.show_status()
 
     @property
@@ -413,6 +529,24 @@ class NexStarScope:
     def azm(self,AZM):
         self.__azm=AZM % 1.0
             
+    @property
+    def trg_alt(self):
+        return self.__trg_alt
+        
+    @trg_alt.setter
+    def trg_alt(self,ALT):
+        self.__trg_alt=ALT
+        # Altitude movement limits
+        self.__trg_alt = min(self.__trg_alt,0.24)
+        self.__trg_alt = max(self.__trg_alt,-0.01)
+        
+    @property
+    def trg_azm(self):
+        return self.__trg_azm
+    
+    @trg_azm.setter
+    def trg_azm(self,AZM):
+        self.__trg_azm=AZM % 1.0
 
     def handle_cmd(self, cmd):
         #print("-> Scope received %s." % (print_command(cmd)))
@@ -428,18 +562,34 @@ class NexStarScope:
             resp = b';' + cmd
             if t in (0x10, 0x11):
                 handlers=self._mc_handlers
+                try :
+                    s=cmd_names[c]+ ' ' + ''.join('%02x' % b for b in d)
+                except KeyError :
+                    s=('MC[%02x]' % c) + ' ' + ''.join('%02x' % b for b in d)
             else :
                 handlers=self._other_handlers
-                
+                try :
+                    s=('%s[%02x]' % (trg_names[t],c)) + ' ' + ''.join('%02x' % b for b in d)
+                except KeyError :
+                    s=('%02x[%02x]' % (t,c)) + ' ' + ''.join('%02x' % b for b in d)
+
             if c in handlers :
                 r = handlers[c](self,d,f,t)
                 r = bytes((len(r)+3,t,f,c)) + r
                 resp += b';' + r + bytes((make_checksum(r),))
                 #print('Response: %r' % resp)
             else :
-                print('Scope got unknown command %02x' % c)
-                print("-> Scope received %s." % (print_command(cmd)))
+                #print('Scope got unknown command %02x' % c)
+                #print("-> Scope received %s." % (print_command(cmd)))
+                s = '** ' + s
+                pass
                 
+            if self.cmd_log :
+                if s != self.cmd_log[-1] :
+                    self.cmd_log.append(s)
+            else :
+                self.cmd_log.append(s)
+
         return resp
 
     def handle_msg(self, msg):

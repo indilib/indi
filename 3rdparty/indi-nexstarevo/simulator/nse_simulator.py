@@ -7,10 +7,11 @@ import sys
 from socket import SOL_SOCKET, SO_BROADCAST, SO_REUSEADDR
 from nse_telescope import NexStarScope
 
-telescope = NexStarScope()
+import curses
+
+telescope=None
 
 async def broadcast(sport=2000, dport=55555, host='255.255.255.255', seconds_to_sleep=5):
-    broadcast.keep_running=True
     sck = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sck.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
     sck.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
@@ -18,16 +19,16 @@ async def broadcast(sport=2000, dport=55555, host='255.255.255.255', seconds_to_
     msg = 110*b'X'
     sck.bind(('',sport))
     print('Broadcasting to port {0}, sleeping for: {1} seconds'.format(dport,seconds_to_sleep))
-    while broadcast.keep_running :
+    while True :
         bn = sck.sendto(msg,(host,dport))
         await asyncio.sleep(seconds_to_sleep)
-    print('App connected - stopping broadcast')
+    print('\nStopping broadcast')
 
-async def timer(seconds_to_sleep=1):
-    timer.keep_running = True
-    while timer.keep_running :
+async def timer(seconds_to_sleep=1,telescope=None):
+    while True :
         await asyncio.sleep(seconds_to_sleep)
-        telescope.tick(seconds_to_sleep)
+        if telescope : 
+            telescope.tick(seconds_to_sleep)
 
 async def handle_port2000(reader, writer):
     '''
@@ -42,19 +43,14 @@ async def handle_port2000(reader, writer):
     # The $$$ should be guarded by the 1s silence.
     transparent=True
     retry = 5
+    global telescope
     # Endless comm loop.
     while True :
         data = await reader.read(1024)
         if not data :
-            if retry:
-                await asyncio.sleep(1)
-                retry -= 1
-                continue
-            else :
-                writer.close()
-                timer.keep_running = False
-                broadcast.keep_running = False
-                return
+            writer.close()
+            print('\nConnection closed. Closing server.')
+            return
         retry = 5
         addr = writer.get_extra_info('peername')
         #print("-> Scope received %r from %r." % (data, addr))
@@ -63,8 +59,7 @@ async def handle_port2000(reader, writer):
             if data[:3]==b'$$$' :
                 # Enter command mode
                 transparent = False
-                broadcast.keep_running=False
-                print('App from {0} connected. Terminating broadcast and starting main loop.'.format(addr))
+                print('\nApp from {0} connected.'.format(addr))
                 resp = b'CMD\r\n'
             else :
                 # pass it on to the scope for handling
@@ -88,14 +83,34 @@ async def handle_port2000(reader, writer):
             writer.write(resp)
             await writer.drain()
 
-def signal_handler(signal, frame):  
-    loop.stop()
-    sys.exit(0)
+#def signal_handler(signal, frame):  
+#    loop.stop()
+#    sys.exit(0)
 
-signal.signal(signal.SIGINT, signal_handler)
+#signal.signal(signal.SIGINT, signal_handler)
 
-loop = asyncio.get_event_loop()
-scope = asyncio.start_server(handle_port2000, host='', port=2000)
+def main(stdscr):
 
-loop.run_until_complete(asyncio.wait([broadcast(), timer(0.2), scope]))
-loop.close()
+    global telescope 
+    telescope = NexStarScope(stdscr=stdscr)
+    #telescope = NexStarScope(stdscr=None)
+
+    loop = asyncio.get_event_loop()
+    scope = loop.run_until_complete(asyncio.start_server(handle_port2000, host='', port=2000))
+    print('NSE simulator strted on {}. Hit CTRL-C to stop.'.format(scope.sockets[0].getsockname()))
+    asyncio.ensure_future(broadcast())
+    asyncio.ensure_future(timer(1,telescope))
+    #asyncio.ensure_future(scope)
+
+    try :
+        loop.run_forever()
+    except KeyboardInterrupt :
+        pass
+    print('Simulator shutting down')
+    scope.close()
+    loop.run_until_complete(scope.wait_closed())
+
+    #loop.run_until_complete(asyncio.wait([broadcast(), timer(0.2), scope]))
+    loop.close()
+
+curses.wrapper(main)
