@@ -483,6 +483,8 @@ class NexStarScope:
         if self.last_cmd=='GOTO_FAST' :
             eps*=100
 
+        self.alt += (self.alt_rate + self.alt_guiderate)*interval
+        self.azm += (self.azm_rate + self.azm_guiderate)*interval
         if self.slewing and self.goto:
             # AZM
             r=self.trg_azm - self.azm
@@ -490,19 +492,20 @@ class NexStarScope:
                 r = -r
             s=1 if r>0 else -1
             mr=min(maxrate,abs(self.azm_rate))
-            self.azm_rate=s*min(mr,abs(r)/interval)
+            if mr*interval > abs(r) :
+                mr/=2
+            self.azm_rate=s*min(mr,abs(r))
+            self.azm_rate=s*mr
                 
             # ALT
             r=self.trg_alt - self.alt
             s=1 if r>0 else -1
             mr=min(maxrate,abs(self.alt_rate))
-            self.alt_rate=s*min(mr,abs(r)/interval)
-#            if abs(self.alt - self.trg_alt) < 3*abs(self.alt_rate*interval) :
-#                self.alt_rate*=0.5
-#            if abs(self.azm - self.trg_azm) < 3*abs(self.azm_rate*interval) :
-#                self.azm_rate*=0.5
-        self.alt += (self.alt_rate + self.alt_guiderate)*interval
-        self.azm += (self.azm_rate + self.azm_guiderate)*interval
+            if mr*interval > abs(r) :
+                mr/=2
+            self.alt_rate=s*min(mr,abs(r))
+            self.alt_rate=s*mr
+            
         if abs(self.azm_rate) < eps and abs(self.alt_rate) < eps :
             self.alt_rate=0
             self.azm_rate=0

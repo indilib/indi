@@ -99,7 +99,7 @@ def main(stdscr):
     scope = loop.run_until_complete(asyncio.start_server(handle_port2000, host='', port=2000))
     print('NSE simulator strted on {}. Hit CTRL-C to stop.'.format(scope.sockets[0].getsockname()))
     asyncio.ensure_future(broadcast())
-    asyncio.ensure_future(timer(1,telescope))
+    asyncio.ensure_future(timer(0.1,telescope))
     #asyncio.ensure_future(scope)
 
     try :
