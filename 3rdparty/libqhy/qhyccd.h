@@ -696,8 +696,20 @@ EXPORTC uint32_t STDCALL SetQHYCCDDebayerOnOff(qhyccd_handle *h,bool onoff);
 
 EXPORTC uint32_t STDCALL SetQHYCCDFineTone(qhyccd_handle *h,uint8_t setshporshd,uint8_t shdloc,uint8_t shploc,uint8_t shwidth);
 
-EXPORTC uint32_t STDCALL QHYCCDI2C_Write(qhyccd_handle *handle, uint8_t req,uint16_t value,uint16_t addr,uint8_t* data, uint16_t length);
+EXPORTC uint32_t STDCALL SetQHYCCDGPSVCOXFreq(qhyccd_handle *handle,uint16_t i);
 
-EXPORTC uint32_t STDCALL QHYCCDI2C_Read(qhyccd_handle *handle, uint8_t req,uint16_t value,uint16_t addr,uint8_t* data, uint16_t length);
+EXPORTC uint32_t STDCALL SetQHYCCDGPSLedCalMode(qhyccd_handle *handle,uint8_t i);
+
+EXPORTC void STDCALL SetQHYCCDGPSLedCal(qhyccd_handle *handle,uint32_t pos,uint8_t width);
+
+EXPORTC void STDCALL SetQHYCCDGPSPOSA(qhyccd_handle *handle,uint8_t is_slave,uint32_t pos,uint8_t width);
+
+EXPORTC void STDCALL SetQHYCCDGPSPOSB(qhyccd_handle *handle,uint8_t is_slave,uint32_t pos,uint8_t width);
+
+EXPORTC uint32_t STDCALL SetQHYCCDGPSMasterSlave(qhyccd_handle *handle,uint8_t i);
+
+EXPORTC void STDCALL SetQHYCCDGPSSlaveModeParameter(qhyccd_handle *handle,uint32_t target_sec,uint32_t target_us,uint32_t deltaT_sec,uint32_t deltaT_us,uint32_t expTime);
+
+EXPORTC uint32_t STDCALL QHYCCDVendRequestWrite(qhyccd_handle *h,uint8_t req,uint16_t value,uint16_t index1,uint32_t length,uint8_t *data);
 
 #endif
