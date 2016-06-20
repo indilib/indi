@@ -68,6 +68,9 @@ cmd_names={value:key for key, value in commands.items()}
 
 ACK_CMDS=[0x02,0x04,0x06,0x24,]
 
+MC_ALT=0x10
+MC_AZM=0x11
+
 trg_cmds = {
     'BAT': {
         0x10:'GET_VOLTAGE',
@@ -333,7 +336,10 @@ class NexStarScope:
         self.guiding=False
         self.alt_guiderate=0
         self.azm_guiderate=0
-        r=5/360
+        if rcv==MC_ALT :
+            r=self.alt_maxrate/(360e3)
+        else :
+            r=self.azm_maxrate/(360e3)
         a=unpack_int3(data)
         if trg_names[rcv] == 'ALT':
             self.trg_alt=a
