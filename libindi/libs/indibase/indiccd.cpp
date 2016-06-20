@@ -46,7 +46,7 @@ const char *IMAGE_INFO_TAB      = "Image Info";
 const char *GUIDE_HEAD_TAB      = "Guider Head";
 const char *GUIDE_CONTROL_TAB   = "Guider Control";
 const char *RAPIDGUIDE_TAB      = "Rapid Guide";
-const char *WCS_TAB             = "WCS";
+const char *ASTROMETRY_TAB      = "Astrometry";
 
 // Create dir recursively
 static int _mkdir(const char *dir, mode_t mode)
@@ -411,30 +411,38 @@ bool INDI::CCD::initProperties()
     IUFillNumber(&TemperatureN[0], "CCD_TEMPERATURE_VALUE", "Temperature (C)", "%5.2f", -50.0, 50.0, 0., 0.);
     IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "CCD_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
-    // PRIMARY CCD Init
+    /**********************************************/
+    /**************** Primary Chip ****************/
+    /**********************************************/
 
+    // Primary CCD Region-Of-Interest (ROI)
     IUFillNumber(&PrimaryCCD.ImageFrameN[0],"X","Left ","%4.0f",0,1392.0,0,0);
     IUFillNumber(&PrimaryCCD.ImageFrameN[1],"Y","Top","%4.0f",0,1040,0,0);
     IUFillNumber(&PrimaryCCD.ImageFrameN[2],"WIDTH","Width","%4.0f",0,1392.0,0,1392.0);
     IUFillNumber(&PrimaryCCD.ImageFrameN[3],"HEIGHT","Height","%4.0f",0,1392,0,1392.0);
     IUFillNumberVector(&PrimaryCCD.ImageFrameNP,PrimaryCCD.ImageFrameN,4,getDeviceName(),"CCD_FRAME","Frame",IMAGE_SETTINGS_TAB,IP_RW,60,IPS_IDLE);
 
+    // Primary CCD Frame Type
     IUFillSwitch(&PrimaryCCD.FrameTypeS[0],"FRAME_LIGHT","Light",ISS_ON);
     IUFillSwitch(&PrimaryCCD.FrameTypeS[1],"FRAME_BIAS","Bias",ISS_OFF);
     IUFillSwitch(&PrimaryCCD.FrameTypeS[2],"FRAME_DARK","Dark",ISS_OFF);
     IUFillSwitch(&PrimaryCCD.FrameTypeS[3],"FRAME_FLAT","Flat",ISS_OFF);
     IUFillSwitchVector(&PrimaryCCD.FrameTypeSP,PrimaryCCD.FrameTypeS,4,getDeviceName(),"CCD_FRAME_TYPE","Frame Type",IMAGE_SETTINGS_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
+    // Primary CCD Exposure
     IUFillNumber(&PrimaryCCD.ImageExposureN[0],"CCD_EXPOSURE_VALUE","Duration (s)","%5.2f",0.01,3600,1.0,1.0);
     IUFillNumberVector(&PrimaryCCD.ImageExposureNP,PrimaryCCD.ImageExposureN,1,getDeviceName(),"CCD_EXPOSURE","Expose",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
 
+    // Primary CCD Abort
     IUFillSwitch(&PrimaryCCD.AbortExposureS[0],"ABORT","Abort",ISS_OFF);
     IUFillSwitchVector(&PrimaryCCD.AbortExposureSP,PrimaryCCD.AbortExposureS,1,getDeviceName(),"CCD_ABORT_EXPOSURE","Expose Abort",MAIN_CONTROL_TAB,IP_RW,ISR_ATMOST1,60,IPS_IDLE);
 
+    // Primary CCD Binning
     IUFillNumber(&PrimaryCCD.ImageBinN[0],"HOR_BIN","X","%2.0f",1,4,1,1);
     IUFillNumber(&PrimaryCCD.ImageBinN[1],"VER_BIN","Y","%2.0f",1,4,1,1);
     IUFillNumberVector(&PrimaryCCD.ImageBinNP,PrimaryCCD.ImageBinN,2,getDeviceName(),"CCD_BINNING","Binning",IMAGE_SETTINGS_TAB,IP_RW,60,IPS_IDLE);
 
+    // Primary CCD Info
     IUFillNumber(&PrimaryCCD.ImagePixelSizeN[0],"CCD_MAX_X","Resolution x","%4.0f",1,16000,0,1392.0);
     IUFillNumber(&PrimaryCCD.ImagePixelSizeN[1],"CCD_MAX_Y","Resolution y","%4.0f",1,16000,0,1392.0);
     IUFillNumber(&PrimaryCCD.ImagePixelSizeN[2],"CCD_PIXEL_SIZE","Pixel size (um)","%5.2f",1,40,0,6.45);
@@ -443,13 +451,29 @@ bool INDI::CCD::initProperties()
     IUFillNumber(&PrimaryCCD.ImagePixelSizeN[5],"CCD_BITSPERPIXEL","Bits per pixel","%3.0f",8,64,0,8);
     IUFillNumberVector(&PrimaryCCD.ImagePixelSizeNP,PrimaryCCD.ImagePixelSizeN,6,getDeviceName(),"CCD_INFO","CCD Information",IMAGE_INFO_TAB,IP_RO,60,IPS_IDLE);
 
+    // Primary CCD Compression Options
     IUFillSwitch(&PrimaryCCD.CompressS[0],"CCD_COMPRESS","Compress",ISS_OFF);
     IUFillSwitch(&PrimaryCCD.CompressS[1],"CCD_RAW","Raw",ISS_ON);
     IUFillSwitchVector(&PrimaryCCD.CompressSP,PrimaryCCD.CompressS,2,getDeviceName(),"CCD_COMPRESSION","Image",IMAGE_SETTINGS_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
     PrimaryCCD.SendCompressed = false;
 
+    // Primary CCD Chip Data Blob
     IUFillBLOB(&PrimaryCCD.FitsB,"CCD1","Image","");
     IUFillBLOBVector(&PrimaryCCD.FitsBP,&PrimaryCCD.FitsB,1,getDeviceName(),"CCD1","Image Data",IMAGE_INFO_TAB,IP_RO,60,IPS_IDLE);
+
+    // Bayer
+    IUFillText(&BayerT[0],"CFA_OFFSET_X","X Offset","0");
+    IUFillText(&BayerT[1],"CFA_OFFSET_Y","Y Offset","0");
+    IUFillText(&BayerT[2],"CFA_TYPE","Filter",NULL);
+    IUFillTextVector(&BayerTP,BayerT,3,getDeviceName(),"CCD_CFA","Bayer Info",IMAGE_INFO_TAB,IP_RW,60,IPS_IDLE);
+
+    // Reset Frame Settings
+    IUFillSwitch(&PrimaryCCD.ResetS[0], "RESET", "Reset", ISS_OFF);
+    IUFillSwitchVector(&PrimaryCCD.ResetSP, PrimaryCCD.ResetS, 1, getDeviceName(), "CCD_FRAME_RESET", "Frame Values", IMAGE_SETTINGS_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
+
+    /**********************************************/
+    /********* Primary Chip Rapid Guide  **********/
+    /**********************************************/
 
     IUFillSwitch(&PrimaryCCD.RapidGuideS[0], "ENABLE", "Enable", ISS_OFF);
     IUFillSwitch(&PrimaryCCD.RapidGuideS[1], "DISABLE", "Disable", ISS_ON);
@@ -463,13 +487,11 @@ bool INDI::CCD::initProperties()
     IUFillNumber(&PrimaryCCD.RapidGuideDataN[0],"GUIDESTAR_X","Guide star position X","%5.2f",0,1024,0,0);
     IUFillNumber(&PrimaryCCD.RapidGuideDataN[1],"GUIDESTAR_Y","Guide star position Y","%5.2f",0,1024,0,0);
     IUFillNumber(&PrimaryCCD.RapidGuideDataN[2],"GUIDESTAR_FIT","Guide star fit","%5.2f",0,1024,0,0);
-    IUFillNumberVector(&PrimaryCCD.RapidGuideDataNP,PrimaryCCD.RapidGuideDataN,3,getDeviceName(),"CCD_RAPID_GUIDE_DATA","Rapid Guide Data",RAPIDGUIDE_TAB,IP_RO,60,IPS_IDLE);
+    IUFillNumberVector(&PrimaryCCD.RapidGuideDataNP,PrimaryCCD.RapidGuideDataN,3,getDeviceName(),"CCD_RAPID_GUIDE_DATA","Rapid Guide Data",RAPIDGUIDE_TAB,IP_RO,60,IPS_IDLE);    
 
-    // Reset Frame Settings
-    IUFillSwitch(&PrimaryCCD.ResetS[0], "RESET", "Reset", ISS_OFF);
-    IUFillSwitchVector(&PrimaryCCD.ResetSP, PrimaryCCD.ResetS, 1, getDeviceName(), "CCD_FRAME_RESET", "Frame Values", IMAGE_SETTINGS_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
-
-    // GUIDER CCD Init
+    /**********************************************/
+    /***************** Guide Chip *****************/
+    /**********************************************/
 
     IUFillNumber(&GuideCCD.ImageFrameN[0],"X","Left ","%4.0f",0,1392.0,0,0);
     IUFillNumber(&GuideCCD.ImageFrameN[1],"Y","Top","%4.0f",0,1040,0,0);
@@ -509,6 +531,11 @@ bool INDI::CCD::initProperties()
     IUFillBLOB(&GuideCCD.FitsB,"CCD2","Guider Image","");
     IUFillBLOBVector(&GuideCCD.FitsBP,&GuideCCD.FitsB,1,getDeviceName(),"CCD2","Image Data",IMAGE_INFO_TAB,IP_RO,60,IPS_IDLE);
 
+
+    /**********************************************/
+    /********* Guider Chip Rapid Guide  ***********/
+    /**********************************************/
+
     IUFillSwitch(&GuideCCD.RapidGuideS[0], "ENABLE", "Enable", ISS_OFF);
     IUFillSwitch(&GuideCCD.RapidGuideS[1], "DISABLE", "Disable", ISS_ON);
     IUFillSwitchVector(&GuideCCD.RapidGuideSP, GuideCCD.RapidGuideS, 2, getDeviceName(), "GUIDER_RAPID_GUIDE", "Guider Head Rapid Guide", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
@@ -521,51 +548,82 @@ bool INDI::CCD::initProperties()
     IUFillNumber(&GuideCCD.RapidGuideDataN[0],"GUIDESTAR_X","Guide star position X","%5.2f",0,1024,0,0);
     IUFillNumber(&GuideCCD.RapidGuideDataN[1],"GUIDESTAR_Y","Guide star position Y","%5.2f",0,1024,0,0);
     IUFillNumber(&GuideCCD.RapidGuideDataN[2],"GUIDESTAR_FIT","Guide star fit","%5.2f",0,1024,0,0);
-    IUFillNumberVector(&GuideCCD.RapidGuideDataNP,GuideCCD.RapidGuideDataN,3,getDeviceName(),"GUIDER_RAPID_GUIDE_DATA","Rapid Guide Data",RAPIDGUIDE_TAB,IP_RO,60,IPS_IDLE);
+    IUFillNumberVector(&GuideCCD.RapidGuideDataNP,GuideCCD.RapidGuideDataN,3,getDeviceName(),"GUIDER_RAPID_GUIDE_DATA","Rapid Guide Data",RAPIDGUIDE_TAB,IP_RO,60,IPS_IDLE);    
 
-    // CCD Class Init    
+    /**********************************************/
+    /************** Upload Settings ***************/
+    /**********************************************/
 
-    IUFillText(&BayerT[0],"CFA_OFFSET_X","X Offset","0");
-    IUFillText(&BayerT[1],"CFA_OFFSET_Y","Y Offset","0");
-    IUFillText(&BayerT[2],"CFA_TYPE","Filter",NULL);
-    IUFillTextVector(&BayerTP,BayerT,3,getDeviceName(),"CCD_CFA","Bayer Info",IMAGE_INFO_TAB,IP_RW,60,IPS_IDLE);
-
+    // Upload Mode
     IUFillSwitch(&UploadS[0], "UPLOAD_CLIENT", "Client", ISS_ON);
     IUFillSwitch(&UploadS[1], "UPLOAD_LOCAL", "Local", ISS_OFF);
     IUFillSwitch(&UploadS[2], "UPLOAD_BOTH", "Both", ISS_OFF);
     IUFillSwitchVector(&UploadSP, UploadS, 3, getDeviceName(), "UPLOAD_MODE", "Upload", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+    // Upload Settings
     IUFillText(&UploadSettingsT[0],"UPLOAD_DIR","Dir","");
     IUFillText(&UploadSettingsT[1],"UPLOAD_PREFIX","Prefix","IMAGE_XXX");
     IUFillTextVector(&UploadSettingsTP,UploadSettingsT,2,getDeviceName(),"UPLOAD_SETTINGS","Upload Settings",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
 
+    // Upload File Path
     IUFillText(&FileNameT[0],"FILE_PATH","Path","");
-    IUFillTextVector(&FileNameTP,FileNameT,1,getDeviceName(),"CCD_FILE_PATH","Filename",IMAGE_INFO_TAB,IP_RO,60,IPS_IDLE);
+    IUFillTextVector(&FileNameTP,FileNameT,1,getDeviceName(),"CCD_FILE_PATH","Filename",IMAGE_INFO_TAB,IP_RO,60,IPS_IDLE);    
 
+    /**********************************************/
+    /**************** Astrometry ******************/
+    /**********************************************/
+
+    // Solver Enable/Disable
+    IUFillSwitch(&SolverS[0], "ASTROMETRY_SOLVER_ENABLE", "Enable", ISS_OFF);
+    IUFillSwitch(&SolverS[1], "ASTROMETRY_SOLVER_DISABLE", "Disable", ISS_ON);
+    IUFillSwitchVector(&SolverSP, SolverS, 2, getDeviceName(), "SOLVER_ENABLE", "Solver", ASTROMETRY_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    // Solver Settings
+    IUFillText(&SolverSettingsT[0], "ASTROMETRY_SETTINGS_BINARY", "Binary", "/usr/bin/solve-field");
+    IUFillText(&SolverSettingsT[1], "ASTROMETRY_SETTINGS_OPTIONS", "Options", "--no-verify --no-plots --no-fits2fits --resort --downsample 2 -O");
+    IUFillTextVector(&SolverSettingsTP, SolverSettingsT, 2, getDeviceName(), "ASTROMETRY_OPTIONS", "Options", ASTROMETRY_TAB, IP_WO, 0, IPS_IDLE);
+
+    // Solver Results
+    IUFillNumber(&SolverResultN[0], "ASTROMETRY_RESULT_ORIENTATION", "Orientation (E of N) °", "%g", -360, 360, 1, 0);
+    IUFillNumber(&SolverResultN[1], "ASTROMETRY_RESULT_J2000_RA", "RA (J2000)", "%g", 0, 24, 1, 0);
+    IUFillNumber(&SolverResultN[2], "ASTROMETRY_RESULT_J2000_DE", "DE (J2000)", "%g", -90, 90, 1, 0);
+    IUFillNumberVector(&SolverResultNP, SolverResultN, 3, getDeviceName(), "ASTROMETRY_RESULT", "Results", ASTROMETRY_TAB, IP_RO, 0, IPS_IDLE);
+
+    // WCS Enable/Disable
+    IUFillSwitch(&WorldCoordS[0], "WCS_ENABLE", "Enable", ISS_OFF);
+    IUFillSwitch(&WorldCoordS[1], "WCS_DISABLE", "Disable", ISS_ON);
+    IUFillSwitchVector(&WorldCoordSP, WorldCoordS, 2, getDeviceName(), "WCS_CONTROL", "WCS", ASTROMETRY_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    IUFillSwitch(&TelescopeTypeS[0], "TELESCOPE_PRIMARY", "Primary", ISS_ON);
+    IUFillSwitch(&TelescopeTypeS[1], "TELESCOPE_GUIDE", "Guide", ISS_OFF);
+    IUFillSwitchVector(&TelescopeTypeSP, TelescopeTypeS, 2, getDeviceName(), "TELESCOPE_TYPE", "Telescope", ASTROMETRY_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    IUFillNumber(&CCDRotationN[0],"CCD_ROTATION_VALUE","Rotation","%g",-360,360,1,0);
+    IUFillNumberVector(&CCDRotationNP,CCDRotationN,1,getDeviceName(),"CCD_ROTATION","CCD FOV", ASTROMETRY_TAB,IP_RW,60,IPS_IDLE);
+
+    /**********************************************/
+    /**************** Snooping ********************/
+    /**********************************************/
+
+    // Snooped Devices
     IUFillText(&ActiveDeviceT[0],"ACTIVE_TELESCOPE","Telescope","Telescope Simulator");
     IUFillText(&ActiveDeviceT[1],"ACTIVE_FOCUSER","Focuser","Focuser Simulator");
     IUFillText(&ActiveDeviceT[2],"ACTIVE_FILTER","Filter","CCD Simulator");
     IUFillTextVector(&ActiveDeviceTP,ActiveDeviceT,3,getDeviceName(),"ACTIVE_DEVICES","Snoop devices",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
 
-    IUFillSwitch(&WorldCoordS[0], "WCS_ENABLE", "Enable", ISS_OFF);
-    IUFillSwitch(&WorldCoordS[1], "WCS_DISABLE", "Disable", ISS_ON);
-    IUFillSwitchVector(&WorldCoordSP, WorldCoordS, 2, getDeviceName(), "WCS_CONTROL", "WCS", WCS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
-    IUFillSwitch(&TelescopeTypeS[0], "TELESCOPE_PRIMARY", "Primary", ISS_ON);
-    IUFillSwitch(&TelescopeTypeS[1], "TELESCOPE_GUIDE", "Guide", ISS_OFF);
-    IUFillSwitchVector(&TelescopeTypeSP, TelescopeTypeS, 2, getDeviceName(), "TELESCOPE_TYPE", "Telescope", WCS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
-    IUFillNumber(&CCDRotationN[0],"CCD_ROTATION_VALUE","Rotation","%g",-360,360,1,0);
-    IUFillNumberVector(&CCDRotationNP,CCDRotationN,1,getDeviceName(),"CCD_ROTATION","CCD FOV", WCS_TAB,IP_RW,60,IPS_IDLE);
-
+    // Snooped RA/DEC Property
     IUFillNumber(&EqN[0],"RA","Ra (hh:mm:ss)","%010.6m",0,24,0,0);
     IUFillNumber(&EqN[1],"DEC","Dec (dd:mm:ss)","%010.6m",-90,90,0,0);
     IUFillNumberVector(&EqNP,EqN,2,ActiveDeviceT[0].text,"EQUATORIAL_EOD_COORD","EQ Coord","Main Control",IP_RW,60,IPS_IDLE);
 
+    // Snoop properties of interest
     IDSnoopDevice(ActiveDeviceT[0].text,"EQUATORIAL_EOD_COORD");
     IDSnoopDevice(ActiveDeviceT[0].text,"TELESCOPE_INFO");
     IDSnoopDevice(ActiveDeviceT[2].text,"FILTER_SLOT");
     IDSnoopDevice(ActiveDeviceT[2].text,"FILTER_NAME");
+
+
+
 
     // Guider Interface
     initGuiderProperties(getDeviceName(), GUIDE_CONTROL_TAB);        
@@ -665,6 +723,7 @@ bool INDI::CCD::updateProperties()
           defineSwitch(&GuideCCD.RapidGuideSetupSP);
           defineNumber(&GuideCCD.RapidGuideDataNP);
         }        
+        defineSwitch(&SolverSP);
         defineSwitch(&WorldCoordSP);
         defineSwitch(&UploadSP);
 
@@ -723,6 +782,12 @@ bool INDI::CCD::updateProperties()
             deleteProperty(PrimaryCCD.ResetSP.name);
         if (HasBayer())
             deleteProperty(BayerTP.name);
+        if (SolverS[0].s == ISS_ON)
+        {
+            deleteProperty(SolverSettingsTP.name);
+            deleteProperty(SolverResultNP.name);
+        }
+        deleteProperty(SolverSP.name);
         if (WorldCoordS[0].s == ISS_ON)
         {
             deleteProperty(TelescopeTypeSP.name);
@@ -845,10 +910,18 @@ bool INDI::CCD::ISNewText (const char *dev, const char *name, char *texts[], cha
         if (!strcmp(name, UploadSettingsTP.name))
         {
             IUUpdateText(&UploadSettingsTP, texts, names, n);
+            UploadSettingsTP.s = IPS_OK;
             IDSetText(&UploadSettingsTP, NULL);
             return true;
         }
 
+        if (!strcmp(name, SolverSettingsTP.name))
+        {
+            IUUpdateText(&SolverSettingsTP, texts, names, n);
+            SolverSettingsTP.s = IPS_OK;
+            IDSetText(&SolverSettingsTP, NULL);
+            return true;
+        }
     }
 
     // Streamer
@@ -1166,6 +1239,30 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
             return true;
         }
 
+        // Astrometry Enable/Disable
+        if (!strcmp(name, SolverSP.name))
+        {
+            IUUpdateSwitch(&SolverSP, states, names, n);
+            SolverSP.s = IPS_OK;
+
+            if (SolverS[0].s == ISS_ON)
+            {
+                DEBUG(INDI::Logger::DBG_SESSION, "Astrometry solver is enabled.");
+                defineText(&SolverSettingsTP);
+                defineNumber(&SolverResultNP);
+            }
+            else
+            {
+                DEBUG(INDI::Logger::DBG_SESSION, "Astrometry solver is disabled.");
+                deleteProperty(SolverSettingsTP.name);
+                deleteProperty(SolverResultNP.name);
+            }
+
+            IDSetSwitch(&SolverSP, NULL);
+            return true;
+        }
+
+        // WCS Enable/Disable
         if (!strcmp(name, WorldCoordSP.name))
         {
             IUUpdateSwitch(&WorldCoordSP, states, names, n);
@@ -1187,7 +1284,7 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
             IDSetSwitch(&WorldCoordSP, NULL);
         }
 
-        // Reset
+        // Primary Chip Frame Reset
         if(strcmp(name,PrimaryCCD.ResetSP.name)==0)
         {
           IUResetSwitch(&PrimaryCCD.ResetSP);
@@ -1201,6 +1298,7 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
           return true;
         }
 
+        // Primary Chip Abort Expsoure
         if(strcmp(name,PrimaryCCD.AbortExposureSP.name)==0)
         {
             IUResetSwitch(&PrimaryCCD.AbortExposureSP);
@@ -1223,6 +1321,7 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
             return true;
         }
 
+        // Guide Chip Abort Exposure
         if(strcmp(name,GuideCCD.AbortExposureSP.name)==0)
         {
             IUResetSwitch(&GuideCCD.AbortExposureSP);
@@ -1245,6 +1344,7 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
             return true;
         }
 
+        // Primary Chip Compression
         if(strcmp(name,PrimaryCCD.CompressSP.name)==0)
         {
 
@@ -1262,6 +1362,7 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
             return true;
         }
 
+        // Guide Chip Compression
         if(strcmp(name,GuideCCD.CompressSP.name)==0)
         {
 
@@ -1279,6 +1380,7 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
             return true;
         }
 
+        // Primary Chip Frame Type
         if(strcmp(name,PrimaryCCD.FrameTypeSP.name)==0)
         {
             IUUpdateSwitch(&PrimaryCCD.FrameTypeSP,states,names,n);
@@ -1308,6 +1410,7 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
             return true;
         }
 
+        // Guide Chip Frame Type
         if(strcmp(name,GuideCCD.FrameTypeSP.name)==0)
         {
             //  Compression Update
@@ -1338,7 +1441,7 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
             return true;
         }
 
-
+        // Primary Chip Rapid Guide Enable/Disable
         if (strcmp(name, PrimaryCCD.RapidGuideSP.name)==0)
         {
             IUUpdateSwitch(&PrimaryCCD.RapidGuideSP, states, names, n);
@@ -1358,6 +1461,7 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
             return true;
         }
 
+        // Guide Chip Rapid Guide Enable/Disable
         if (strcmp(name, GuideCCD.RapidGuideSP.name)==0)
         {
             IUUpdateSwitch(&GuideCCD.RapidGuideSP, states, names, n);
@@ -1377,6 +1481,7 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
             return true;
         }
 
+        // Primary CCD Rapid Guide Setup
         if (strcmp(name, PrimaryCCD.RapidGuideSetupSP.name)==0)
         {
             IUUpdateSwitch(&PrimaryCCD.RapidGuideSetupSP, states, names, n);
@@ -1390,6 +1495,7 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
             return true;
         }
 
+        // Guide Chip Rapid Guide Setup
         if (strcmp(name, GuideCCD.RapidGuideSetupSP.name)==0)
         {
             IUUpdateSwitch(&GuideCCD.RapidGuideSetupSP, states, names, n);
