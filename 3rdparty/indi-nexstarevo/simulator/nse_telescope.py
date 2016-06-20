@@ -6,7 +6,7 @@ from math import pi
 
 import curses
 from collections import deque
-
+import binascii
 
 # ID tables
 targets={'ANY':0x00,
@@ -18,7 +18,7 @@ targets={'ANY':0x00,
          'ALT':0x11,
          'APP':0x20,
          'GPS':0xb0,
-         'TRG1': 0xb4,
+         'UKN2': 0xb4,
          'WiFi':0xb5,
          'BAT':0xb6,
          'CHG':0xb7,
@@ -46,10 +46,17 @@ commands={
           'MC_GOTO_SLOW':0x17,
           'MC_AT_INDEX':0x18,
           'MC_SEEK_INDEX':0x19,
-          'MC_CMD21':0x21,
-          'MC_CMD23':0x23,
+          'MC_SET_MAXRATE':0x20,
+          'MC_GET_MAXRATE':0x21,
+          'MC_ENABLE_MAXRATE':0x22,
+          'MC_MAXRATE_ENABLED':0x23,
           'MC_MOVE_POS':0x24,
           'MC_MOVE_NEG':0x25,
+          'MC_ENABLE_CORDWRAP':0x38,
+          'MC_DISABLE_CORDWRAP':0x39,
+          'MC_SET_CORDWRAP_POS':0x3a,
+          'MC_POLL_CORDWRAP':0x3b,
+          'MC_GET_CORDWRAP_POS':0x3c,
           'MC_GET_POS_BACKLASH':0x40,
           'MC_GET_NEG_BACKLASH':0x41,
           'MC_GET_AUTOGUIDE_RATE':0x47,
@@ -60,6 +67,19 @@ commands={
 cmd_names={value:key for key, value in commands.items()}
 
 ACK_CMDS=[0x02,0x04,0x06,0x24,]
+
+trg_cmds = {
+    'BAT': {
+        0x10:'GET_VOLTAGE',
+        0x18:'GET_SET_CURRENT',
+    },
+    'CHG': {
+        0x10: 'GET_SET_MODE',
+    },
+    'LIGHT': {
+        0x10:'GET_SET_LEVEL',
+    },
+}
 
 RATES = {
     0 : 0.0,
@@ -147,6 +167,14 @@ def unpack_int3(d):
 
 def pack_int3(f):
     return struct.pack('!i',int(f*(2**24)))[1:]
+    
+def unpack_int2(d):
+    return struct.unpack('!i',b'\x00\x00'+d[:2])[0]
+
+def pack_int2(v):
+    return struct.pack('!i',int(v))[-2:]
+    
+
 
 class NexStarScope:
     
@@ -172,7 +200,16 @@ class NexStarScope:
         self.goto=False
         self.alt_guiderate=0.0
         self.azm_guiderate=0.0
+        self.alt_maxrate=4000
+        self.azm_maxrate=4000
+        self.use_maxrate=False
         self.cmd_log=deque(maxlen=30)
+        self.bat_current=2468
+        self.bat_voltage=12345678
+        self.lt_logo=64
+        self.lt_tray=128
+        self.lt_wifi=255
+        self.charge=False
         self._other_handlers = {
             0x10: NexStarScope.cmd_0x10,
             0x18: NexStarScope.cmd_0x18,
@@ -192,10 +229,13 @@ class NexStarScope:
           0x17 : NexStarScope.goto_slow,
           0x18 : NexStarScope.at_index,
           0x19 : NexStarScope.seek_index,
-          0x21 : NexStarScope.cmd_0x21,
-          0x23 : NexStarScope.cmd_0x23,
+          0x20 : NexStarScope.set_maxrate,
+          0x21 : NexStarScope.get_maxrate,
+          0x22 : NexStarScope.enable_maxrate,
+          0x23 : NexStarScope.maxrate_enabled,
           0x24 : NexStarScope.move_pos,
           0x25 : NexStarScope.move_neg,
+          0x38 : NexStarScope.send_ack,
           0x39 : NexStarScope.send_ack,
           0x3a : NexStarScope.set_cordwrap_pos,
           0x40 : NexStarScope.get_pos_backlash,
@@ -210,25 +250,70 @@ class NexStarScope:
     def send_ack(self, data, snd, rcv):
         return b''
 
-    def cmd_0x21(self, data, snd, rcv):
-        return bytes.fromhex('0fa01194')
+    def set_maxrate(self, data, snd, rcv):
+        if rcv==0x10 :
+            self.alt_maxrate=unpack_int2(data)
+        else :
+            self.azm_maxrate=unpack_int2(data)
+        return b''
 
-    def cmd_0x23(self, data, snd, rcv):
-        return b'\x00'
+    def get_maxrate(self, data, snd, rcv):
+        if len(data) == 0 :
+            #return pack_int2(self.alt_maxrate) + pack_int2(self.azm_maxrate)
+            return bytes.fromhex('0fa01194')
+        else :
+            return b''
+
+    def enable_maxrate(self, data, snd, rcv):
+        self.use_maxrate=bool(data[0])
+        return b''
+
+    def maxrate_enabled(self, data, snd, rcv):
+        if self.use_maxrate :
+            return b'\x01'
+        else :
+            return b'\x00'
 
     def cmd_0x10(self, data, snd, rcv):
         if rcv == 0xbf : # LIGHT
-            return b'\xff'
+            if len(data)==2 : # Set level
+                if data[0]==0 :
+                    self.lt_tray=data[1]
+                elif data[0]==1 :
+                    self.lt_logo=data[1]
+                else :
+                    self.lt_wifi=data[1]
+                return b''
+            elif len(data)==1: # Get level
+                if data[0]==0 :
+                    return bytes([int(self.lt_tray%256)])
+                elif data[0]==1 :
+                    return bytes([int(self.lt_logo%256)])
+                else :
+                    return bytes([int(self.lt_wifi%256)])
+            else :
+                return b''
         elif rcv == 0xb7 : # CHG
-            return b'\x00'
+            if len(data):
+                self.charge = bool(data[0])
+                return b''
+            else :
+                return bytes([int(self.charge)])
         elif rcv == 0xb6 : # BAT
-            return bytes.fromhex('0102009edfe5') # ????!!!!
+            self.bat_voltage*=0.99
+            v=struct.pack('!i',int(self.bat_voltage))[1:]
+            return bytes.fromhex('010200') + v
         else :
             return b''
 
     def cmd_0x18(self, data, snd, rcv):
         if rcv == 0xb6 : # BAT
-            return b'\x07\xd0' # 2000mA ?
+            if len(data):
+                i=data[0]*256+data[1]
+                i=min(5000,i)
+                i=max(2000,i)
+                self.bat_current=i
+            return struct.pack('!i',int(self.bat_current))[-2:]
 
 
     def get_position(self, data, snd, rcv):
@@ -406,7 +491,7 @@ class NexStarScope:
     def init_dsp(self,stdscr):
         self.scr=stdscr
         if stdscr :
-            self.cmd_log_w=curses.newwin(self.cmd_log.maxlen+2,40,0,50)
+            self.cmd_log_w=curses.newwin(self.cmd_log.maxlen+2,60,0,50)
             self.state_w=curses.newwin(1,80,0,0)
             self.state_w.border()
             self.pos_w=curses.newwin(4,25,1,0)
@@ -415,6 +500,7 @@ class NexStarScope:
             self.trg_w.border()
             self.rate_w=curses.newwin(4,25,5,0)
             self.guide_w=curses.newwin(4,25,5,25)
+            self.other_w=curses.newwin(8,50,9,0)
             self.msg_w=curses.newwin(10,50,17,0)
             stdscr.refresh()
 
@@ -450,6 +536,17 @@ class NexStarScope:
             self.guide_w.addstr(1,3,'Alt: %+8.4f "/s' % (self.alt_guiderate*360*60*60))
             self.guide_w.addstr(2,3,'Azm: %+8.4f "/s' % (self.azm_guiderate*360*60*60))
             self.guide_w.refresh()
+            self.other_w.clear()
+            self.other_w.border()
+            self.other_w.addstr(0,1,'Other:')
+            self.other_w.addstr(1,3,'BAT: %9.6f V' % (self.bat_voltage/1e6))
+            self.other_w.addstr(2,3,'CHG: %5.3f A' % (self.bat_current/1e3))
+            self.other_w.addstr(3,3,'LIGHTS: Logo: %d  Tray: %d  WiFi: %d' % (self.lt_logo, self.lt_tray, self.lt_wifi))
+            self.other_w.addstr(4,3,'Charge: %s' % ('On' if self.charge else 'Auto'))
+            if self.use_maxrate : 
+                self.other_w.addstr(5,1,'*')
+            self.other_w.addstr(5,3,'Max rate ALT:%.2f  AZM:%.2f' % (self.alt_maxrate/1e3, self.azm_maxrate/1e3))
+            self.other_w.refresh()
             self.cmd_log_w.clear()
             self.cmd_log_w.border()
             self.cmd_log_w.addstr(0,1,'Commands log')
@@ -566,18 +663,19 @@ class NexStarScope:
             if t in (0x10, 0x11):
                 handlers=self._mc_handlers
                 try :
-                    s=cmd_names[c]+ ' ' + ''.join('%02x' % b for b in d)
+                    s=('%s[%s] ' % (trg_names[t], cmd_names[c])) + ''.join('%02x' % b for b in d)
                 except KeyError :
                     s=('MC[%02x]' % c) + ' ' + ''.join('%02x' % b for b in d)
             else :
                 handlers=self._other_handlers
                 try :
-                    s=('%s[%02x]' % (trg_names[t],c)) + ' ' + ''.join('%02x' % b for b in d)
+                    s=('%s[%s]' % (trg_names[t],trg_cmds[trg_names[t]][c])) + ' ' + ''.join('%02x' % b for b in d)
                 except KeyError :
                     s=('%02x[%02x]' % (t,c)) + ' ' + ''.join('%02x' % b for b in d)
-
+            sr=b''
             if c in handlers :
                 r = handlers[c](self,d,f,t)
+                sr = r
                 r = bytes((len(r)+3,t,f,c)) + r
                 resp += b';' + r + bytes((make_checksum(r),))
                 #print('Response: %r' % resp)
@@ -586,7 +684,12 @@ class NexStarScope:
                 #print("-> Scope received %s." % (print_command(cmd)))
                 s = '** ' + s
                 pass
-                
+
+            if 'MC_GET_POSITION' in s :
+                return resp
+
+            s += '-> ' + ''.join('%02x' % x for x in sr)
+
             if self.cmd_log :
                 if s != self.cmd_log[-1] :
                     self.cmd_log.append(s)

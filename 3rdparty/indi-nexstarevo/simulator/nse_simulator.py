@@ -92,8 +92,10 @@ async def handle_port2000(reader, writer):
 def main(stdscr):
 
     global telescope 
-    telescope = NexStarScope(stdscr=stdscr)
-    #telescope = NexStarScope(stdscr=None)
+    if len(sys.argv) >1 and sys.argv[1]=='t':
+        telescope = NexStarScope(stdscr=None)
+    else :
+        telescope = NexStarScope(stdscr=stdscr)
 
     loop = asyncio.get_event_loop()
     scope = loop.run_until_complete(asyncio.start_server(handle_port2000, host='', port=2000))
