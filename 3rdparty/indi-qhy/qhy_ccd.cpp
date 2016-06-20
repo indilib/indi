@@ -647,18 +647,19 @@ bool QHYCCD::Disconnect()
 {
   DEBUG(INDI::Logger::DBG_SESSION, "CCD is offline.");
 
-  if (sim == false)
-  {
-      CloseQHYCCD(camhandle);
-  }
-
   pthread_mutex_lock(&condMutex);
 #ifndef OSX_EMBEDED_MODE
-  streamPredicate=1;
+  streamPredicate=0;
 #endif
   terminateThread=true;
   pthread_cond_signal(&cv);
   pthread_mutex_unlock(&condMutex);
+
+  if (sim == false)
+  {
+      CloseQHYCCD(camhandle);
+      ReleaseQHYCCDResource();
+  }
 
   return true;
 }
@@ -1433,7 +1434,7 @@ void* QHYCCD::streamVideo()
   while (true)
   {
       while (streamPredicate == 0)
-                  pthread_cond_wait(&cv, &condMutex);
+          pthread_cond_wait(&cv, &condMutex);
 
       if (terminateThread)
           break;
@@ -1441,20 +1442,19 @@ void* QHYCCD::streamVideo()
       // release condMutex
       pthread_mutex_unlock(&condMutex);
 
-      unsigned char *targetFrame = (unsigned char *) PrimaryCCD.getFrameBuffer();
-
-      // Any wait time?
-      if ( (ret = GetQHYCCDLiveFrame(camhandle, &w, &h, &bpp, &channels, targetFrame)) != QHYCCD_SUCCESS)
+      if ( (ret = GetQHYCCDLiveFrame(camhandle, &w, &h, &bpp, &channels, PrimaryCCD.getFrameBuffer())) == QHYCCD_SUCCESS)
+          streamer->newFrame(PrimaryCCD.getFrameBuffer());
+      /*else
       {
           DEBUGF(INDI::Logger::DBG_ERROR, "Error reading video data (%d)", ret);
           streamPredicate=0;
           streamer->setStream(false);
           continue;
-      }
+      }*/
 
-      streamer->newFrame(targetFrame);
 
-      usleep(PrimaryCCD.getExposureDuration()*1000000);
+
+      //usleep(PrimaryCCD.getExposureDuration()*1000000);
   }
 
   pthread_mutex_unlock(&condMutex);
