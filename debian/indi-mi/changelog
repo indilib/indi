@@ -1,3 +1,9 @@
+indi-mi (1.1) xenial; urgency=low
+
+  * Updated release.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Mon, 13 Jun 2016 01:00:00 +0300
+
 indi-mi (0.1) xenial; urgency=low
 
   * First release.

@@ -16,6 +16,7 @@ find_package(Threads REQUIRED)
 
 set(INDI_MI_VERSION_MAJOR 1)
 set(INDI_MI_VERSION_MINOR 1)
+
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_miccd.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_miccd.xml )
 
@@ -56,8 +57,8 @@ endif()
 install(TARGETS indi_mi_ccd RUNTIME DESTINATION bin)
 
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/make_mi_ccd_symlink.cmake
-"exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink ${CMAKE_INSTALL_FULL_BINDIR}/indi_mi_ccd ${CMAKE_INSTALL_FULL_BINDIR}/indi_mi_ccd_usb)\n
- exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink ${CMAKE_INSTALL_FULL_BINDIR}/indi_mi_ccd ${CMAKE_INSTALL_FULL_BINDIR}/indi_mi_ccd_eth)\n")
+"exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink ${CMAKE_INSTALL_FULL_BINDIR}/indi_mi_ccd \$ENV{DESTDIR}${CMAKE_INSTALL_FULL_BINDIR}/indi_mi_ccd_usb)\n
+ exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink ${CMAKE_INSTALL_FULL_BINDIR}/indi_mi_ccd \$ENV{DESTDIR}${CMAKE_INSTALL_FULL_BINDIR}/indi_mi_ccd_eth)\n")
 
 set_target_properties(indi_mi_ccd PROPERTIES POST_INSTALL_SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_mi_ccd_symlink.cmake)
 

@@ -117,16 +117,16 @@ typedef struct ccdreg
 
 struct BIOREG
 {
-	uint16_t LineSize;
-	uint16_t PatchNumber;
-	uint8_t  AMPVOLTAGE;
-	uint8_t  ShortExposure;
-	uint8_t  SDRAM_MAXSIZE;
-	uint8_t  DownloadSpeed;
-	uint8_t  TransferBIT;
+    uint16_t LineSize;
+    uint16_t PatchNumber;
+    uint8_t  AMPVOLTAGE;
+    uint8_t  ShortExposure;
+    uint8_t  SDRAM_MAXSIZE;
+    uint8_t  DownloadSpeed;
+    uint8_t  TransferBIT;
     uint8_t  BIOCCD_Mode;
     uint8_t  BIOCCD_Video;
-	uint8_t  SDRAM_Bypass;
+    uint8_t  SDRAM_Bypass;
 };
 
 /**
@@ -171,16 +171,17 @@ enum CONTROL_ID
     CAM_CHIPTEMPERATURESENSOR_INTERFACE,     //!< chip temperaure sensor
     CAM_USBREADOUTSLOWEST_INTERFACE,         //!< usb readout slowest 
 
-	CAM_8BITS,                               //!< 8bit depth 
-	CAM_16BITS,                              //!< 16bit depth
-	CAM_GPS,                                 //!< check if camera has gps 
+    CAM_8BITS,                               //!< 8bit depth 
+    CAM_16BITS,                              //!< 16bit depth
+    CAM_GPS,                                 //!< check if camera has gps 
 
-	CAM_IGNOREOVERSCAN_INTERFACE,            //!< ignore overscan area 
+    CAM_IGNOREOVERSCAN_INTERFACE,            //!< ignore overscan area 
 
     QHYCCD_3A_AUTOBALANCE,
     QHYCCD_3A_AUTOEXPOSURE,
     QHYCCD_3A_AUTOFOCUS,
-    CONTROL_AMPV                             //!< ccd or cmos ampv
+    CONTROL_AMPV,                            //!< ccd or cmos ampv
+    CONTROL_VCAM                             //!< Virtual Camera on off 
 };
 
 /**

@@ -3411,6 +3411,8 @@
 		59E5F8DF1C3F0B37008DAB80 /* MathPluginManagement.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MathPluginManagement.cpp; sourceTree = "<group>"; };
 		59E5F91D1C3F17B9008DAB80 /* libobjc.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libobjc.tbd; path = usr/lib/libobjc.tbd; sourceTree = SDKROOT; };
 		59E5F9211C3F185D008DAB80 /* libgsl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libgsl.a; sourceTree = "<group>"; };
+		59F64B5B1D0F4A5500F53B3C /* config.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
+		59F64B5C1D0F4AA400F53B3C /* config.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
 		9D0B29C61A8D1E9400ED17BF /* indi_celestron_gps */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_celestron_gps; sourceTree = BUILT_PRODUCTS_DIR; };
 		9D0B29C81A8D1EC400ED17BF /* celestrongps.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = celestrongps.cpp; sourceTree = "<group>"; };
 		9D0B29DC1A8D1ED100ED17BF /* indi_temma */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_temma; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -4232,6 +4234,7 @@
 			isa = PBXGroup;
 			children = (
 				590AD3041CFE0194008D5367 /* CMakeLists.txt */,
+				59F64B5B1D0F4A5500F53B3C /* config.h */,
 				590AD3051CFE0194008D5367 /* indi_shelyakeshel_spectrograph.cpp */,
 				590AD3061CFE0194008D5367 /* indi_shelyakeshel_spectrograph.h */,
 				590AD3071CFE0194008D5367 /* indi-shelyak.xml */,
@@ -4961,6 +4964,7 @@
 			isa = PBXGroup;
 			children = (
 				596556E81C4A4A0B0044680B /* indi_qsi.xml */,
+				59F64B5C1D0F4AA400F53B3C /* config.h */,
 				596556DF1C4A46BF0044680B /* ftd2xx.h */,
 				596556B71C4A404A0044680B /* CameraID.h */,
 				596556B81C4A404A0044680B /* CCDCamera.h */,

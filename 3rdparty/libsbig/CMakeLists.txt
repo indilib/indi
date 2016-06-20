@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 PROJECT(libsbig C CXX)
 
-set(SBIG_VERSION "2.1.0")
+set(SBIG_VERSION "2.1.1")
 set(SBIG_SOVERSION "2")
 
 set(FIRMWARE_INSTALL_DIR "/lib/firmware")
