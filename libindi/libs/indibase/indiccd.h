@@ -709,9 +709,25 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         ITextVectorProperty ActiveDeviceTP;
         IText ActiveDeviceT[3];
 
+        // Astrometry
+
+        // Enable/Disable solver
+        ISwitch SolverS[2];
+        ISwitchVectorProperty SolverSP;
+
+        // Solver Settings
+        IText SolverSettingsT[2];
+        ITextVectorProperty SolverSettingsTP;
+
+        // Solver Results
+        INumber SolverResultN[3];
+        INumberVectorProperty SolverResultNP;
+
+        // WCS
         ISwitch WorldCoordS[2];
         ISwitchVectorProperty WorldCoordSP;
 
+        // WCS CCD Rotation
         INumber CCDRotationN[1];
         INumberVectorProperty CCDRotationNP;
 
