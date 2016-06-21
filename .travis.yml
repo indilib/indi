@@ -23,7 +23,6 @@ install:
 
 script:
     - pwd
-    - cd ~
-    - cd /home/travis/build/A-j-K/indi/build/libindi/test
+    - cd build/libindi/test
     - ctest -V
 

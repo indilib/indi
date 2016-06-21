@@ -41,7 +41,7 @@ TEST(CORE_BASE64, Test_to64frombits)
 	free(p_outbuf);
 }
 
-TEST(CORE_BASE64, Test_from64frombits)
+TEST(CORE_BASE64, Test_from64tobits)
 {
 	int len = 0, size = sizeof("Rk9PQkFSQkFa")-1 * 3 / 4 + 1;
 	const char convert[] = "Rk9PQkFSQkFa";
