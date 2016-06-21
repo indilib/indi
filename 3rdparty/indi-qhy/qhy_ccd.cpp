@@ -688,7 +688,7 @@ bool QHYCCD::setupParams()
             return false;
         }
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "GetQHYCCDChipInfo: chipW :%g chipH: %g imageW: %g imageH: %g pixelW: %g pixelH: %g bbp %g",
+        DEBUGF(INDI::Logger::DBG_DEBUG, "GetQHYCCDChipInfo: chipW :%g chipH: %g imageW: %d imageH: %d pixelW: %g pixelH: %g bbp %d",
                                 chipw,chiph,imagew,imageh,pixelw,pixelh,bpp);
 
         camroix = 0;
