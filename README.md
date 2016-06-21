@@ -101,3 +101,21 @@ INDI server is the public network access point where one or more INDI Clients ma
 ## [Tutorials](http://indilib.org/develop/tutorials.html)
 ## [![Join the chat at https://gitter.im/knro/indi](https://badges.gitter.im/knro/indi.svg)](https://gitter.im/knro/indi?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
+# Unit tests
+
+In order to run the unit test suite you must first install the [Google Test Framework](https://github.com/google/googletest). You will need to build and install this from source code as Google do not recommend package managers to distribute for distros (as each build system is often unique and a one size fits all approaach doesn't work too well).
+
+Once you have the Google Test Framework installed follow this alternative build sequence:-
+
+```
+mkdir -p build/libindi
+cd build/libindi
+cmake -DINDI_BUILD_UNITTESTS=ON -DCMAKE_BUILD_TYPE=Debug ../../libindi
+make
+cd test
+ctest -V
+```
+
+For more details refer to teh scripts in the tavis-ci directory.
+
+ 
