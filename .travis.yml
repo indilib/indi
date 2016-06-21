@@ -22,6 +22,8 @@ install:
     - travis-ci/build-deb-packages.sh
 
 script:
-    - cd indi/build/libindi/test
+    - pwd
+    - cd ~
+    - cd /home/travis/build/A-j-K/indi/build/libindi/test
     - ctest -V
 
