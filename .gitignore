@@ -95,3 +95,6 @@ build
 
 # Gedit backup files
 *~
+
+nbproject/
+

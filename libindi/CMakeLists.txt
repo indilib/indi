@@ -837,3 +837,20 @@ ${CMAKE_SOURCE_DIR}/libs/webcam/jpegutils.h
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libindi.pc.cmake ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc DESTINATION ${PKGCONFIG_INSTALL_PREFIX})
+
+
+OPTION (INDI_BUILD_UNITTESTS "Build INDI tests" OFF)
+FIND_PACKAGE (GTest)
+FIND_PACKAGE (GMock)
+IF (GTEST_FOUND)
+  IF (INDI_BUILD_UNITTESTS)
+    MESSAGE (STATUS  "Building unit tests")
+    ADD_SUBDIRECTORY(test)
+  ELSE (INDI_BUILD_UNITTESTS)
+    MESSAGE (STATUS  "Not building unit tests")
+  ENDIF (INDI_BUILD_UNITTESTS)
+ELSE()
+  MESSAGE (STATUS  "GTEST  not found, not building unit tests")
+ENDIF (GTEST_FOUND)
+
+
