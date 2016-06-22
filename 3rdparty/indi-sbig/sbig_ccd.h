@@ -333,7 +333,7 @@ private:
     bool  			updateFrameProperties(CCDChip *targetChip);
     int 	 			UpdateCFWProperties();
     int  			StartExposure(CCDChip *targetChip, double duration);
-    int  			StopExposure(CCDChip *targetChip);
+    int  			AbortExposure(CCDChip *targetChip);
     int	 			GetSelectedCcdChip(int &ccd_request);
     int	 			getBinningMode(CCDChip *targetChip, int &binning);
     int				getFrameType(CCDChip *targetChip, CCDChip::CCD_FRAME *frameType);

@@ -3099,6 +3099,9 @@
 		593448111CF9A6B0008AD945 /* telescope_script.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = telescope_script.cpp; sourceTree = "<group>"; };
 		593448231CF9E4E6008AD945 /* indi_script_telescope */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_script_telescope; sourceTree = BUILT_PRODUCTS_DIR; };
 		593448281CFA356A008AD945 /* telescope_script.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = telescope_script.txt; sourceTree = "<group>"; };
+		593C9B1E1D188A7D00D50266 /* stdint.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = stdint.h; sourceTree = "<group>"; };
+		593C9B401D1AF8E300D50266 /* CMakeLists.txt */ = {isa = PBXFileReference; lastKnownFileType = text; name = CMakeLists.txt; path = "indi-sbig/CMakeLists.txt"; sourceTree = "<group>"; };
+		593C9B411D1B129000D50266 /* sbig_ccd.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = sbig_ccd.h; path = "indi-sbig/sbig_ccd.h"; sourceTree = "<group>"; };
 		5944982A1C135A2000E0E281 /* atikconfig.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = atikconfig.h; sourceTree = "<group>"; };
 		5944982B1C135B3600E0E281 /* lx200pulsar2.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = lx200pulsar2.cpp; sourceTree = "<group>"; };
 		5944983B1C135D8000E0E281 /* indi_lynx_focus */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_lynx_focus; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -4268,9 +4271,11 @@
 		591C90C81C1373C700FCE596 /* indi-sbig */ = {
 			isa = PBXGroup;
 			children = (
+				593C9B401D1AF8E300D50266 /* CMakeLists.txt */,
 				591C90C91C13741700FCE596 /* config.h */,
 				591C90EC1C13752F00FCE596 /* ccvt.h */,
 				591C90CA1C13741700FCE596 /* indi_sbig.xml */,
+				593C9B411D1B129000D50266 /* sbig_ccd.h */,
 				591C90CB1C13741700FCE596 /* sbig_ccd.cpp */,
 			);
 			name = "indi-sbig";
@@ -4552,6 +4557,7 @@
 				593447AE1CF8F2BB008AD945 /* solar1600.h */,
 				593447AF1CF8F2BB008AD945 /* unlockimagequeue.cpp */,
 				593447B01CF8F2BB008AD945 /* unlockimagequeue.h */,
+				593C9B1E1D188A7D00D50266 /* stdint.h */,
 			);
 			name = libqhy;
 			path = ../../../QHYCCD_SDK_CrossPlatform/src;
@@ -9385,6 +9391,7 @@
 					"DEBUG=1",
 					"$(inherited)",
 					USELIBFTD2XX,
+					LINUX,
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
@@ -9419,6 +9426,7 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					USELIBFTD2XX,
+					LINUX,
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
