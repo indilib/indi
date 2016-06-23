@@ -558,7 +558,7 @@ bool ASICCD::ISNewNumber (const char *dev, const char *name, double values[], ch
                 if (ControlN[i].value == oldValues[i] || (nType == ASI_BANDWIDTHOVERLOAD && ExposureRequest > 0.25))
                     continue;
 
-                 DEBUGF(INDI::Logger::DBG_DEBUG, "ISNewNumber->set ctrl %d: %d", nType, ControlN[i].value);
+                 DEBUGF(INDI::Logger::DBG_DEBUG, "ISNewNumber->set ctrl %d: %.2f", nType, ControlN[i].value);
                 if ( (errCode = ASISetControlValue(m_camInfo->CameraID, nType, ControlN[i].value, ASI_FALSE)) != ASI_SUCCESS)
                 {
                     DEBUGF(INDI::Logger::DBG_ERROR, "ASISetControlValue (%s=%g) error (%d)", ControlN[i].name, ControlN[i].value, errCode);
