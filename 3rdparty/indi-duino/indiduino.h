@@ -31,6 +31,8 @@
 /* Firmata */
 #include "firmata.h"
 
+#include "indicontroller.h"
+
 /* NAMES in the xml skeleton file to 
    used to define I/O arduino mapping*/
 
@@ -54,6 +56,12 @@ typedef struct {
     double AddScale;
     double OnAngle;
     double OffAngle;
+    double buttonIncValue;
+    char* SwitchButton;
+    char* UpButton;
+    char* DownButton;
+    char* defName;
+    char* defVectorName;
 } IO;
 
 
@@ -66,20 +74,32 @@ class indiduino : public INDI::DefaultDevice
  public:
  indiduino();
  ~indiduino();
-
- virtual void ISGetProperties (const char *dev);
- virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
- virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
- virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
- virtual bool ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
-
-
-protected:
- const char *getDefaultName();
+ 
  virtual bool initProperties();
  virtual bool Connect();
  virtual bool Disconnect();
  virtual void TimerHit();
+ /** \brief Called when connected state changes, to add/remove properties */
+ virtual bool updateProperties();
+
+ virtual void ISGetProperties (const char *dev);
+ virtual bool ISSnoopDevice (XMLEle *root);
+ virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+ virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+ virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+ virtual bool ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
+ 
+ // Joystick helpers
+ static void joystickHelper(const char * joystick_n, double mag, double angle, void *context);
+ static void buttonHelper(const char * button_n, ISState state, void *context);
+ static void axisHelper(const char * axis_n, double value, void *context);
+ 
+ void processJoystick(const char * joystick_n, double mag, double angle);
+ void processButton(const char * button_n, ISState state);
+ void processAxis(const char * axis_n, double value);
+
+protected:
+ const char *getDefaultName();
 
 private:
  char skelFileName[MAX_SKELTON_FILE_NAME_LEN];
@@ -88,6 +108,7 @@ private:
  bool setPinModesFromSKEL();
  bool readInduinoXml(XMLEle *ioep,int npin);
  Firmata* sf;
+ INDI::Controller *controller;
 
 };
 

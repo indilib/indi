@@ -96,7 +96,7 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
 ***************************************************************************************/
 void ISSnoopDevice (XMLEle *root) 
 {
-  INDI_UNUSED(root);
+  indiduino_prt->ISSnoopDevice(root);
 }
 
 /**************************************************************************************
@@ -106,6 +106,10 @@ indiduino::indiduino()
 {
     DEBUG(INDI::Logger::DBG_DEBUG, "Indiduino driver start...");
     setVersion(DUINO_VERSION_MAJOR, DUINO_VERSION_MINOR);
+    controller = new INDI::Controller(this);
+    controller->setJoystickCallback(joystickHelper);
+    controller->setButtonCallback(buttonHelper);
+    controller->setAxisCallback(axisHelper);
 }
 
 /**************************************************************************************
@@ -113,7 +117,13 @@ indiduino::indiduino()
 ***************************************************************************************/
 indiduino::~indiduino()
 {
+  delete (controller);
+}
 
+bool indiduino::ISSnoopDevice (XMLEle *root) 
+{  
+  controller->ISSnoopDevice(root);
+  return INDI::DefaultDevice::ISSnoopDevice(root);
 }
 
 void indiduino::TimerHit()
@@ -131,7 +141,6 @@ void indiduino::TimerHit()
 	name=pAll->at(i)->getName();
 	label=pAll->at(i)->getLabel();
 	type=pAll->at(i)->getType();
-	//IDLog("PROP:%s\n",name);
 	//DIGITAL INPUT
         if (type == INDI_LIGHT )
         {
@@ -173,6 +182,7 @@ void indiduino::TimerHit()
 			
 	        	IO *pin_config=(IO*)eqp->aux0;
 			if (pin_config == NULL) continue;
+      
 				if (pin_config->IOType==AI) {
 					int pin=pin_config->pin;
 					if (sf->pin_info[pin].mode == FIRMATA_MODE_ANALOG) {
@@ -180,25 +190,25 @@ void indiduino::TimerHit()
 						//IDLog("%f\n",eqp->value);
 						IDSetNumber(nvp, NULL);
 					}
-        	 		} 
-            	} 
+ 	 		  }  
+    	} 
 	}
     		
 	//TEXT
-        if (type == INDI_TEXT) {     
-	        ITextVectorProperty *tvp = getText(name);
+        //if (type == INDI_TEXT) {     
+	      //  ITextVectorProperty *tvp = getText(name);
 
-	   	for (int i=0;i<tvp->ntp;i++) {
-	        	IText *eqp = &tvp->tp[i];
-        		if (!eqp)
-	        	    return;
+	   	//for (int i=0;i<tvp->ntp;i++) {
+	    //    	IText *eqp = &tvp->tp[i];
+      //  		if (!eqp)
+	    //    	    return;
 
-			if (eqp->aux0 == NULL) continue;			
-      			strcpy(eqp->text,(char*)eqp->aux0);
+			//if (eqp->aux0 == NULL) continue;			
+      //			strcpy(eqp->text,(char*)eqp->aux0);
 			//IDLog("%s.%s TEXT: %s \n",tvp->name,eqp->name,eqp->text);
-			IDSetText(tvp, NULL);
-	 	}
-    	}  
+		//	IDSetText(tvp, NULL);
+	 //	}
+    //	}  
     }
 
     SetTimer(POLLMS);
@@ -232,11 +242,42 @@ bool indiduino::initProperties()
     // Optional: Add aux controls for configuration, debug & simulation that get added in the Options tab
     //           of the driver.
     //addAuxControls();
+    
+    controller->initProperties();
 
     DefaultDevice::initProperties();
-
+    
     return true;
 
+}
+
+bool indiduino::updateProperties() {
+  if(isConnected())
+  {
+    // Mapping the controller according to the properties previously read from the XML file
+    // We only map controls for pin of type AO and SERVO
+    for(int numiopin = 0; numiopin < MAX_IO_PIN; numiopin++) {
+      if (iopin[numiopin].IOType==SERVO) {
+        if(iopin[numiopin].SwitchButton) {
+          char buffer[33];
+          sprintf(buffer, "%d", numiopin);
+          controller->mapController(buffer, iopin[numiopin].defVectorName, INDI::Controller::CONTROLLER_BUTTON, iopin[numiopin].SwitchButton);
+        }
+      } else if (iopin[numiopin].IOType==AO) {
+        if(iopin[numiopin].UpButton && iopin[numiopin].DownButton) {
+          char upBuffer[33];
+          sprintf(upBuffer, "%d", numiopin);
+          // To distinguish the up button from the down button, we add MAX_IO_PIN to the message
+          char downBuffer[33];
+          sprintf(downBuffer, "%d", numiopin + MAX_IO_PIN);
+          controller->mapController(upBuffer, iopin[numiopin].defVectorName, INDI::Controller::CONTROLLER_BUTTON, iopin[numiopin].UpButton);
+          controller->mapController(downBuffer, iopin[numiopin].defVectorName, INDI::Controller::CONTROLLER_BUTTON, iopin[numiopin].DownButton);
+        }       
+      }
+    } 
+  }
+  controller->updateProperties();
+  return true;
 }
 
 /**************************************************************************************
@@ -250,6 +291,8 @@ void indiduino::ISGetProperties(const char *dev)
     INDI::DefaultDevice::ISGetProperties(dev);
 
     configLoaded = 1;
+    
+    controller->ISGetProperties(dev);
 }
 
 /**************************************************************************************
@@ -274,6 +317,8 @@ bool indiduino::ISNewText (const char *dev, const char *name, char *texts[], cha
 
                 return true;
     }
+    
+    controller->ISNewText(dev, name, texts, names, n);
 
     return false;
 }
@@ -289,8 +334,6 @@ bool indiduino::ISNewNumber (const char *dev, const char *name, double values[],
             return false;
 
         INumberVectorProperty *nvp = getNumber(name);
-	//IDLog("%s\n",nvp->name);
-
         if (!nvp)
             return false;
 
@@ -304,15 +347,13 @@ bool indiduino::ISNewNumber (const char *dev, const char *name, double values[],
 	bool change=false;
         for (int i=0;i<n;i++) {
 	        INumber *eqp = IUFindNumber(nvp, names[i]);
-	        //IDLog("%s\n",eqp->name);
 	
 		if (!eqp)
 	            return false;
         
 		IO *pin_config=(IO*)eqp->aux0;
 		if (pin_config == NULL) continue;
-	        //IDLog("%s\n",s);
-		if ((pin_config->IOType=AO)||(pin_config->IOType=SERVO)) {      
+		if ((pin_config->IOType==AO)||(pin_config->IOType==SERVO)) {      
 		    int pin=pin_config->pin;
 	            IUUpdateNumber(nvp, values, names, n);
 		    IDLog("Setting output %s.%s on pin %u to %f\n",nvp->name,eqp->name,pin,eqp->value);
@@ -321,10 +362,9 @@ bool indiduino::ISNewNumber (const char *dev, const char *name, double values[],
 	            nvp->s = IPS_IDLE;           
 		    change=true;
 	        }
-		if (pin_config->IOType=AI) {      
+		if (pin_config->IOType==AI) {      
 		    int pin=pin_config->pin;
-	            IUUpdateNumber(nvp, values, names, n);
-		    //IDLog("%s:%f\n",eqp->name,eqp->value);  	    
+	            IUUpdateNumber(nvp, values, names, n);    
         	    nvp->s = IPS_IDLE;
 		    change=true;
         	}
@@ -336,6 +376,8 @@ bool indiduino::ISNewNumber (const char *dev, const char *name, double values[],
 	} else {
         	return false;
 	}
+ 
+   
 }
 
 /**************************************************************************************
@@ -345,7 +387,12 @@ bool indiduino::ISNewSwitch (const char *dev, const char *name, ISState *states,
 {
     int lightState=0;
     int lightIndex=0;
-
+  for (int i = 0; i < n; i++) {
+    if(states[i] == ISS_ON)
+      IDLog("State %d is on\n", i);
+    else if(states[i] == ISS_OFF)
+      IDLog("State %d is off\n", i);
+  }
 	// ignore if not ours //
             if (strcmp (dev, getDeviceName()))
             return false;
@@ -353,11 +400,7 @@ bool indiduino::ISNewSwitch (const char *dev, const char *name, ISState *states,
         if (INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n) == true)
             return true;
 
-
-
         ISwitchVectorProperty *svp = getSwitch(name);
-	//IDLog("NAME:%s\n",name);
-        //IDLog("%s\n",svp->name);
 
         if (isConnected() == false)
         {
@@ -374,7 +417,6 @@ bool indiduino::ISNewSwitch (const char *dev, const char *name, ISState *states,
                	ISwitch *sqp = &svp->sp[i];
 		IO *pin_config=(IO*)sqp->aux;
 		if (pin_config == NULL) continue;
-		//IDLog("Switching ON %s pin %u type %u %u\n",sqp->label,pin_config->pin,pin_config->IOType,pin_config->IOType==DI);
 		if (  pin_config->IOType == DO) {
 			int pin=pin_config->pin;
 			IUUpdateSwitch(svp, states, names, n);
@@ -401,6 +443,7 @@ bool indiduino::ISNewSwitch (const char *dev, const char *name, ISState *states,
       }
     }
 	}
+    controller->ISNewSwitch(dev, name, states, names, n);
 
     IUUpdateSwitch(svp, states, names, n);
     return true;
@@ -538,7 +581,7 @@ bool indiduino::setPinModesFromSKEL()
 	name=pAll->at(i)->getName();
 	label=pAll->at(i)->getLabel();
 	type=pAll->at(i)->getType();
-
+  
 	if (ep==NULL) {
 		ep = nextXMLEle (fproot, 1);
 	} else {
@@ -547,12 +590,9 @@ bool indiduino::setPinModesFromSKEL()
 	if (ep==NULL) {
 		break;
 	}	
-	//IDLog("XML ELEMENT:%s\n",findXMLAttValu(ep,"name"));
-        //IDLog("Property #%d: %s %s \n", i, name,label,type);
 	ioep == NULL;
         if (type == INDI_SWITCH) { 
 		ISwitchVectorProperty *svp = getSwitch(name);
-		//IDLog("%s\n",svp->name);
         	ioep==NULL;
 		for (int i=0;i<svp->nsp;i++) {
                 	ISwitch *sqp = &svp->sp[i];			
@@ -568,6 +608,8 @@ bool indiduino::setPinModesFromSKEL()
 					return false;
 				}
 				sqp->aux=(void*) &iopin[numiopin] ;	
+        iopin[numiopin].defVectorName = svp->name;
+        iopin[numiopin].defName = sqp->name;
 				int pin=iopin[numiopin].pin;  
 				if (iopin[numiopin].IOType==DO) {
           IDLog("%s.%s  pin %u set as DIGITAL OUTPUT\n",svp->name,sqp->name,pin);
@@ -575,6 +617,8 @@ bool indiduino::setPinModesFromSKEL()
         } else if( iopin[numiopin].IOType==SERVO) {
           IDLog("%s.%s  pin %u set as SERVO\n",svp->name,sqp->name,pin);
           sf->setPinMode(pin,FIRMATA_MODE_SERVO);
+          // Setting Servo pin to default startup angle
+          sf->setPwmPin(pin,(int)(iopin[numiopin].MulScale*iopin[numiopin].OnAngle + iopin[numiopin].AddScale));
         }
 				IDLog("numiopin:%u\n",numiopin);
 				numiopin++;
@@ -583,7 +627,6 @@ bool indiduino::setPinModesFromSKEL()
         }
 	if (type == INDI_TEXT) { 
 		ITextVectorProperty *tvp = getText(name);
-		//IDLog("%s\n",svp->name);
         	ioep==NULL;
 		for (int i=0;i<tvp->ntp;i++) {
                 	IText *tqp = &tvp->tp[i];			
@@ -601,6 +644,8 @@ bool indiduino::setPinModesFromSKEL()
 					return false;
 				}
 				tqp->aux0=(void*) &sf->string_buffer ;	
+        iopin[numiopin].defVectorName = tvp->name;
+        iopin[numiopin].defName = tqp->name;
 				IDLog("%s.%s ARDUINO TEXT\n",tvp->name,tqp->name);
 				IDLog("numiopin:%u\n",numiopin);
 			}
@@ -608,7 +653,6 @@ bool indiduino::setPinModesFromSKEL()
         }
 	if (type == INDI_LIGHT) { 
 		ILightVectorProperty *lvp = getLight(name);
-		//IDLog("%s\n",svp->name);
         	ioep==NULL;
 		for (int i=0;i<lvp->nlp;i++) {
                 	ILight *lqp = &lvp->lp[i];			
@@ -623,7 +667,9 @@ bool indiduino::setPinModesFromSKEL()
 					IDLog("Malforme <indiduino> XML\n");
 					return false;
 				}
-				lqp->aux=(void*) &iopin[numiopin] ;	
+				lqp->aux=(void*) &iopin[numiopin] ;
+        iopin[numiopin].defVectorName = lvp->name;
+        iopin[numiopin].defName = lqp->name;	
 				int pin=iopin[numiopin].pin;
 				IDLog("%s.%s  pin %u set as DIGITAL INPUT\n",lvp->name,lqp->name,pin);
 				sf->setPinMode(pin,FIRMATA_MODE_INPUT);
@@ -634,11 +680,9 @@ bool indiduino::setPinModesFromSKEL()
         }
         if (type == INDI_NUMBER) {     
 	        INumberVectorProperty *nvp = getNumber(name);
-		//IDLog("%s\n",nvp->name);
         	ioep==NULL;
 	   	for (int i=0;i<nvp->nnp;i++) {
 	        	INumber *eqp = &nvp->np[i];
-        		//IDLog("%s\n",eqp->name);
         		if (ioep==NULL) {
 				ioep = nextXMLEle (ep, 1);
 			} else {
@@ -651,6 +695,8 @@ bool indiduino::setPinModesFromSKEL()
 					return false;
 				}
 				eqp->aux0=(void*) &iopin[numiopin] ;	
+        iopin[numiopin].defVectorName = nvp->name;
+        iopin[numiopin].defName = eqp->name;
 				int pin=iopin[numiopin].pin;
 				if (iopin[numiopin].IOType==AO) {
 					IDLog("%s.%s  pin %u set as ANALOG OUTPUT\n",nvp->name,eqp->name,pin);
@@ -688,6 +734,7 @@ bool indiduino::readInduinoXml(XMLEle *ioep, int npin)
 
 	if (!strcmp(propertyTag,"defSwitch") || !strcmp(propertyTag,"defLight") || !strcmp(propertyTag,"defNumber")) {
 
+
 		pin=atoi(findXMLAttValu(ioep, "pin"));
 
 		if (pin >=1 && pin <= 40) { //19 hardware pins. 
@@ -709,6 +756,10 @@ bool indiduino::readInduinoXml(XMLEle *ioep, int npin)
           iopin[npin].OffAngle = atof(findXMLAttValu(ioep, "offangle"));
         } else {
           iopin[npin].OffAngle = 10;
+        }
+        if (strcmp(findXMLAttValu(ioep, "button"),"")) {
+          iopin[npin].SwitchButton = const_cast<char*> (findXMLAttValu(ioep, "button"));
+          IDLog("found button %s\n", iopin[npin].SwitchButton);
         }
       } else {
         iopin[npin].IOType=DO;
@@ -741,6 +792,17 @@ bool indiduino::readInduinoXml(XMLEle *ioep, int npin)
 	 				IDLog("induino: Setting type (input or output) is required for analogs\n");
 					return false;
 				}
+        if (strcmp(findXMLAttValu(ioep, "downbutton"),"")) {
+          iopin[npin].DownButton = const_cast<char*> (findXMLAttValu(ioep, "downbutton"));
+        } 
+        if (strcmp(findXMLAttValu(ioep, "upbutton"),"")) {
+          iopin[npin].UpButton = const_cast<char*> (findXMLAttValu(ioep, "upbutton"));
+        } 
+        if (strcmp(findXMLAttValu(ioep, "buttonincvalue"),"")) {
+          iopin[npin].buttonIncValue = atof(findXMLAttValu(ioep, "buttonincvalue"));
+        } else {
+          iopin[npin].buttonIncValue = 50;
+        }
 		 }	
 
 		if (false) {
@@ -753,5 +815,70 @@ bool indiduino::readInduinoXml(XMLEle *ioep, int npin)
 	return true;
 }
 
+void indiduino::joystickHelper(const char * joystick_n, double mag, double angle, void *context)
+{
+    static_cast<indiduino*>(context)->processJoystick(joystick_n, mag, angle);
+}
 
+void indiduino::buttonHelper(const char * button_n, ISState state, void *context)
+{
+    static_cast<indiduino*>(context)->processButton(button_n, state);
+}
+
+void indiduino::axisHelper(const char * axis_n, double value, void *context)
+{
+    static_cast<indiduino*>(context)->processAxis(axis_n, value);
+}
+
+void indiduino::processAxis(const char * axis_n, double value) {
+  // TO BE IMPLEMENTED
+}
+
+void indiduino::processJoystick(const char * joystick_n, double mag, double angle)
+{
+  // TO BE IMPLEMENTED
+}
+
+void indiduino::processButton(const char *button_n, ISState state)
+{
+ //ignore OFF
+  if (state == ISS_OFF)
+    return;
+
+  int numiopin;
+  numiopin = atoi(button_n);
+  
+  bool isDownAO = false;
+  // Recognizing a shifted numiopin means it is a button to decrease the value of a AO
+  if(numiopin >= MAX_IO_PIN) {
+    isDownAO = true;
+    numiopin = numiopin - MAX_IO_PIN;
+  }
+  
+  if(iopin[numiopin].IOType == AO) {    
+    char *names[1] =  {iopin[numiopin].defName};
+    char *name = iopin[numiopin].defVectorName;
+    INumberVectorProperty *nvp = getNumber(name);
+    INumber *eqp = IUFindNumber(nvp, names[0]);
+    if(isDownAO) {
+      double values[1] = {eqp->value - iopin[numiopin].buttonIncValue};
+      ISNewNumber (getDeviceName(), name, values , names, 1);
+    } else {
+      double values[1] = {eqp->value + iopin[numiopin].buttonIncValue};
+      ISNewNumber (getDeviceName(), name, values , names, 1);
+    }    
+  } else if(iopin[numiopin].IOType == SERVO) {
+    ISwitchVectorProperty *svp = getSwitch(iopin[numiopin].defVectorName);
+    // Only considering the first switch, because the servo switches must be configured with only one switch
+    ISwitch *sqp = &svp->sp[0];
+    char *names[1] = { iopin[numiopin].defName};
+    if(sqp->s == ISS_ON) {
+      ISState states[1] = {ISS_OFF};
+      ISNewSwitch(getDeviceName(), iopin[numiopin].defVectorName, states, names, 1);
+    } else {
+      ISState states[1] = {ISS_ON};
+      ISNewSwitch(getDeviceName(), iopin[numiopin].defVectorName, states, names, 1);
+    }
+  }
+}
 
