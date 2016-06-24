@@ -18,7 +18,7 @@ On
 
 <defNumberVector device="Arduino Focuser" name="TARGET_POSITION" label="POSITION" group="Main Control" state="Idle"  timeout="0" perm="rw">
 <defNumber name="TARGET_POSITION_VALUE" label="TARGET" format="%4.0f" min="-8000" max="8000" step="100">
-    <indiduino pin="5" type="output" mul="1" add="8000"/>
+    <indiduino pin="5" type="output" mul="1" add="8000" upbutton="BUTTON_3" downbutton="BUTTON_4" buttonincvalue="100"/>
 0
 </defNumber>
 </defNumberVector>
