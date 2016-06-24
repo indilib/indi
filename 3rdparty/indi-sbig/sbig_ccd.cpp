@@ -157,7 +157,7 @@ void ISSnoopDevice(XMLEle *root) {
   int SBIGCCD::OpenDriver() {
   GetDriverHandleResults gdhr;
   SetDriverHandleParams  sdhp;
-  int res = SBIGUnivDrvCommand(CC_OPEN_DRIVER, 0, 0);
+  int res = ::SBIGUnivDrvCommand(CC_OPEN_DRIVER, 0, 0);
   if (res == CE_NO_ERROR) {
     DEBUGF(INDI::Logger::DBG_DEBUG, "%s: CC_OPEN_DRIVER successfull", __FUNCTION__);
     res = ::SBIGUnivDrvCommand(CC_GET_DRIVER_HANDLE, 0, &gdhr);
@@ -167,11 +167,11 @@ void ISSnoopDevice(XMLEle *root) {
     // opened by another instance of the class so get the driver to
     // allocate a new handle and then record it.
     sdhp.handle = INVALID_HANDLE_VALUE;
-    res = SBIGUnivDrvCommand(CC_SET_DRIVER_HANDLE, &sdhp, 0);
+    res = ::SBIGUnivDrvCommand(CC_SET_DRIVER_HANDLE, &sdhp, 0);
     if (res == CE_NO_ERROR) {
-      res = SBIGUnivDrvCommand(CC_OPEN_DRIVER, 0, 0);
+      res = ::SBIGUnivDrvCommand(CC_OPEN_DRIVER, 0, 0);
       if (res == CE_NO_ERROR) {
-        res = SBIGUnivDrvCommand(CC_GET_DRIVER_HANDLE, 0, &gdhr);
+        res = ::SBIGUnivDrvCommand(CC_GET_DRIVER_HANDLE, 0, &gdhr);
       }
     }
   }
@@ -186,7 +186,7 @@ void ISSnoopDevice(XMLEle *root) {
 //==========================================================================
 
 int SBIGCCD::CloseDriver() {
-  int res = SBIGUnivDrvCommand(CC_CLOSE_DRIVER, 0, 0);
+  int res = ::SBIGUnivDrvCommand(CC_CLOSE_DRIVER, 0, 0);
   if (res == CE_NO_ERROR) {
     DEBUGF(INDI::Logger::DBG_DEBUG, "%s: CC_CLOSE_DRIVER successfull", __FUNCTION__);
     SetDriverHandle();
