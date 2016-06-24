@@ -58,7 +58,8 @@ ShelyakEshel::ShelyakEshel()
 {
   PortFD = -1;
 
-  setVersion(SHELYAK_VERSION_MAJOR, SHELYAK_VERSION_MINOR);
+  setVersion(SHELYAK_ESHEL_VERSION_MAJOR, SHELYAK_ESHEL_VERSION_MINOR);
+
 }
 
 ShelyakEshel::~ShelyakEshel()
