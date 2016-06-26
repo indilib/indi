@@ -31,10 +31,9 @@
 #include <time.h>
 #include <stdlib.h>
 
-#include "stvdriver.h"
+#include "config.h"
 
-/* Config parameters */
-#include <config.h>
+#include "stvdriver.h"
 
 #ifdef HAVE_NOVA_H
 #include <libnova.h>

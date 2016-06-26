@@ -161,6 +161,7 @@ bool WeatherMeta::updateProperties()
         deleteProperty(StationLP.name);
         deleteProperty(UpdatePeriodNP.name);
     }
+    return true;
 }
 
 bool WeatherMeta::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)

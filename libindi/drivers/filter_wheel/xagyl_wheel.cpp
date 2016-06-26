@@ -652,6 +652,8 @@ bool XAGYLWheel::saveConfigItems(FILE *fp)
     INDI::FilterWheel::saveConfigItems(fp);
 
     IUSaveConfigText(fp, &PortTP);
+
+    return true;
 }
 
 bool XAGYLWheel::getStartupData()
