@@ -1231,7 +1231,7 @@ void INDI::BaseDevice::addMessage(string msg)
         mediator->newMessage(this, messageLog.size()-1);
 }
 
-string INDI::BaseDevice::messageQueue(int index)
+string INDI::BaseDevice::messageQueue(int index) const
 {
     if (index >= messageLog.size())
         return NULL;

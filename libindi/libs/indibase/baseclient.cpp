@@ -34,7 +34,7 @@
 
 #include <errno.h>
 
-#define MAXINDIBUF 256
+#define MAXINDIBUF 2048
 
 INDI::BaseClient::BaseClient()
 {

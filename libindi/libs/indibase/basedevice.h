@@ -158,7 +158,7 @@ public:
     void doMessage (XMLEle *msg);
 
     /** \return Returns a specific message. */
-    std::string messageQueue(int index);
+    std::string messageQueue(int index) const;
 
     /** \return Returns last message message. */
     std::string lastMessage();

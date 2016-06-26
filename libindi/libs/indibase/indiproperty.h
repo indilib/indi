@@ -47,12 +47,13 @@ public:
     BaseDevice *getBaseDevice() { return dp; }
 
     // Convenience Functions
-    const char *getName();
-    const char *getLabel();
-    const char *getGroupName();
-    const char *getDeviceName();
-    IPState getState();
-    IPerm getPermission();
+    const char *getName() const;
+    const char *getLabel() const;
+    const char *getGroupName() const;
+    const char *getDeviceName() const;
+    const char *getTimestamp() const;
+    IPState getState() const;
+    IPerm getPermission() const;
 
     INumberVectorProperty *getNumber();
     ITextVectorProperty   *getText();
