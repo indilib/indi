@@ -44,12 +44,32 @@ OPTION (INDI_BUILD_QT5 "Build INDI with Qt5 backend" OFF)
 OPTION (INDI_BUILD_UNITTESTS "Build INDI tests" OFF)
 
 #####################################  Dependencies  ##############################################
+# ZLib compression Library
+FIND_PACKAGE(ZLIB REQUIRED)
+
+# libcfitsio for FITS IO
+FIND_PACKAGE(CFITSIO REQUIRED)
+
+if (NOT CFITSIO_FOUND OR CFITSIO_VERSION_MAJOR LESS 3)
+  message(FATAL_ERROR "CFITSIO version too old, Please install cfitsio 3.x and try again. http://heasarc.gsfc.nasa.gov/fitsio/fitsio.html")
+endif (NOT CFITSIO_FOUND OR CFITSIO_VERSION_MAJOR LESS 3)
+
+set_package_properties(CFITSIO PROPERTIES DESCRIPTION "A library for reading and writing data files in FITS (Flexible Image Transport System) data format" URL "http://heasarc.gsfc.nasa.gov/fitsio/fitsio.html" TYPE REQUIRED PURPOSE "Provides INDI with FITS I/O support.")
+
+# libnova for astronomical formulae
+FIND_PACKAGE(Nova REQUIRED)
+
+set_package_properties(Nova PROPERTIES DESCRIPTION "A general purpose, double precision, Celestial Mechanics, Astrometry and Astrodynamics library" URL "http://libnova.sourceforge.net" TYPE REQUIRED PURPOSE "Provides INDI with astrodynamics library.")
+
+# Build libindi Qt5 (only INDI Client Library for now)
+if (INDI_BUILD_QT5)
+    find_package(Qt5 5.4 REQUIRED COMPONENTS Core Network)
+
+# Otherwise, build libindi C++ backend
+else(INDI_BUILD_QT5)
 
 # Math Library
 FIND_LIBRARY(M_LIB m)
-
-# ZLib compression Library
-FIND_PACKAGE(ZLIB REQUIRED)
 
 # libusb 1.0+ for USB devices
 FIND_PACKAGE(USB-1 REQUIRED)
@@ -65,19 +85,7 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   FIND_PACKAGE(JPEG REQUIRED)
 endif ()
 
-# libcfitsio for FITS IO
-FIND_PACKAGE(CFITSIO REQUIRED)
-
-if (NOT CFITSIO_FOUND OR CFITSIO_VERSION_MAJOR LESS 3)
-  message(FATAL_ERROR "CFITSIO version too old, Please install cfitsio 3.x and try again. http://heasarc.gsfc.nasa.gov/fitsio/fitsio.html")
-endif (NOT CFITSIO_FOUND OR CFITSIO_VERSION_MAJOR LESS 3)
-
-set_package_properties(CFITSIO PROPERTIES DESCRIPTION "A library for reading and writing data files in FITS (Flexible Image Transport System) data format" URL "http://heasarc.gsfc.nasa.gov/fitsio/fitsio.html" TYPE REQUIRED PURPOSE "Provides INDI with FITS I/O support.")
-
-# libnova for astronomical formulae
-FIND_PACKAGE(Nova REQUIRED)
-
-set_package_properties(Nova PROPERTIES DESCRIPTION "A general purpose, double precision, Celestial Mechanics, Astrometry and Astrodynamics library" URL "http://libnova.sourceforge.net" TYPE REQUIRED PURPOSE "Provides INDI with astrodynamics library.")
+endif(INDI_BUILD_QT5)
 
 # Generate config.h from template
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
@@ -170,17 +178,6 @@ ELSE ()
 set(hidapi_SRCS ${CMAKE_SOURCE_DIR}/libs/indibase/hid_libusb.c)
 ENDIF()
 
-######################################
-########### INDI SERVER ##############
-######################################
-set(indiserver_SRCS indiserver.c fq.c)
-
-add_executable(indiserver ${indiserver_SRCS} ${liblilxml_SRCS})
-
-target_link_libraries(indiserver ${CMAKE_THREAD_LIBS_INIT})
-
-install(TARGETS indiserver RUNTIME DESTINATION bin)
-
 #################################################
 ############# INDI Shared Library ###############
 # To offer lilxml and communination routines    #
@@ -192,6 +189,28 @@ target_link_libraries(indi ${NOVA_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${CFITSIO_
 
 install(TARGETS indi LIBRARY DESTINATION ${LIB_DESTINATION})
 set_target_properties(indi PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION})
+
+##################################################
+########### INDI Client Static Library ###########
+##################################################
+add_library(indiclient STATIC ${indiclient_SRCS})
+SET_TARGET_PROPERTIES(indiclient PROPERTIES COMPILE_FLAGS "-fPIC")
+
+target_link_libraries(indiclient indi ${CMAKE_THREAD_LIBS_INIT})
+install(TARGETS indiclient ARCHIVE DESTINATION ${LIB_DESTINATION})
+
+# Do not build INDI server and drivers for Qt5 backend
+if (NOT INDI_BUILD_QT5)
+######################################
+########### INDI SERVER ##############
+######################################
+set(indiserver_SRCS indiserver.c fq.c)
+
+add_executable(indiserver ${indiserver_SRCS} ${liblilxml_SRCS})
+
+target_link_libraries(indiserver ${CMAKE_THREAD_LIBS_INIT})
+
+install(TARGETS indiserver RUNTIME DESTINATION bin)
 
 ##################################################
 ########## INDI Default Driver Library ###########
@@ -213,15 +232,6 @@ endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 set_target_properties(indidriver indidriverstatic PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
 install(TARGETS indidriver LIBRARY DESTINATION ${LIB_DESTINATION})
 install(TARGETS indidriverstatic ARCHIVE DESTINATION ${LIB_DESTINATION})
-
-##################################################
-########### INDI Client Static Library ###########
-##################################################
-add_library(indiclient STATIC ${indiclient_SRCS})
-SET_TARGET_PROPERTIES(indiclient PROPERTIES COMPILE_FLAGS "-fPIC")
-
-target_link_libraries(indiclient indi ${CMAKE_THREAD_LIBS_INIT})
-install(TARGETS indiclient ARCHIVE DESTINATION ${LIB_DESTINATION})
 
 ##################################################
 ########### INDI Alignment Subsystem #############
@@ -872,5 +882,8 @@ IF (GTEST_FOUND)
 ELSE()
   MESSAGE (STATUS  "GTEST  not found, not building unit tests")
 ENDIF (GTEST_FOUND)
+
+# TODO: Include Tests in Qt5 build later
+endif (NOT INDI_BUILD_QT5)
 
 feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)
