@@ -70,7 +70,7 @@ set_package_properties(Nova PROPERTIES DESCRIPTION "A general purpose, double pr
 
 # Build libindi Qt5 (only INDI Client Library for now)
 if (INDI_BUILD_QT5)
-    add_definitions(-DHAVE_QT5)
+    add_definitions(-DUSE_QT5_INDI)
     find_package(Qt5Core REQUIRED)
     find_package(Qt5Network REQUIRED)
     set(M_LIB "")

@@ -23,7 +23,7 @@
 #include <map>
 #include <string>
 
-#ifdef HAVE_QT5
+#ifdef USE_QT5_INDI
 #include <QTcpSocket>
 #else
 #include <pthread.h>
@@ -53,7 +53,7 @@ using namespace std;
    \author Jasem Mutlaq
 
  */
-#ifdef HAVE_QT5
+#ifdef USE_QT5_INDI
 class INDI::BaseClient : public QObject, public INDI::BaseMediator
 {
     Q_OBJECT
@@ -211,7 +211,7 @@ private:
     */
     void setDriverConnection(bool status, const char *deviceName);    
 
-    #ifdef HAVE_QT5
+    #ifdef USE_QT5_INDI
     QTcpSocket client_socket;
     #else
     pthread_t listen_thread;
@@ -238,7 +238,7 @@ private:
     LilXML *lillp;			/* XML parser context */
     uint32_t timeout_sec, timeout_us;
 
-#ifdef HAVE_QT5
+#ifdef USE_QT5_INDI
 private slots:
 
     void listenINDI();

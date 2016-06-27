@@ -57,7 +57,7 @@ INDI::BaseClient::BaseClient()
     timeout_sec=3;
     timeout_us=0;
 
-    #ifndef HAVE_QT5
+    #ifndef USE_QT5_INDI
     svrwfp = NULL;
     #endif
 }
@@ -82,7 +82,7 @@ void INDI::BaseClient::watchDevice(const char * deviceName)
 
 bool INDI::BaseClient::connectServer()
 {
-    #ifdef HAVE_QT5
+    #ifdef USE_QT5_INDI
     connect(&client_socket, SIGNAL(readyRead()), this, SLOT(listenINDI()));
     connect(&client_socket, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(processSocketError(QAbstractSocket::SocketError)));
 
@@ -259,7 +259,7 @@ bool INDI::BaseClient::disconnectServer()
 
     sConnected = false;
 
-    #ifdef HAVE_QT5
+    #ifdef USE_QT5_INDI
 
     client_socket.close();
     if (lillp)
@@ -364,7 +364,7 @@ void INDI::BaseClient::listenINDI()
     char errorMsg[MAXRBUF];
     int err_code=0;
 
-    #ifdef HAVE_QT5
+    #ifdef USE_QT5_INDI
 
     int i = 0;
     while (client_socket.bytesAvailable() > 0)
@@ -708,7 +708,7 @@ void INDI::BaseClient::sendNewText (ITextVectorProperty *tvp)
 
     tvp->s = IPS_BUSY;
 
-    #ifdef HAVE_QT5
+    #ifdef USE_QT5_INDI
 
     QString prop;
 
@@ -775,7 +775,7 @@ void INDI::BaseClient::sendNewNumber (INumberVectorProperty *nvp)
 
     nvp->s = IPS_BUSY;
 
-    #ifdef HAVE_QT5
+    #ifdef USE_QT5_INDI
 
     QString prop;
 
@@ -842,7 +842,7 @@ void INDI::BaseClient::sendNewSwitch (ISwitchVectorProperty *svp)
     svp->s = IPS_BUSY;
     ISwitch *onSwitch = IUFindOnSwitch(svp);
 
-    #ifdef HAVE_QT5
+    #ifdef USE_QT5_INDI
 
     QString prop;
 
@@ -928,7 +928,7 @@ void INDI::BaseClient::sendNewSwitch (const char *deviceName, const char *proper
 
 void INDI::BaseClient::startBlob( const char *devName, const char *propName, const char *timestamp)
 {
-    #ifdef HAVE_QT5
+    #ifdef USE_QT5_INDI
 
     QString prop;
 
@@ -949,7 +949,7 @@ void INDI::BaseClient::startBlob( const char *devName, const char *propName, con
 
 void INDI::BaseClient::sendOneBlob( const char *blobName, unsigned int blobSize, const char *blobFormat, void * blobBuffer)
 {
-    #ifdef HAVE_QT5
+    #ifdef USE_QT5_INDI
 
     QString prop;
 
@@ -979,7 +979,7 @@ void INDI::BaseClient::sendOneBlob( const char *blobName, unsigned int blobSize,
 
 void INDI::BaseClient::finishBlob()
 {
-    #ifdef HAVE_QT5
+    #ifdef USE_QT5_INDI
 
     QString prop;
     prop += QString("</newBLOBVector>\n");
@@ -995,7 +995,7 @@ void INDI::BaseClient::setBLOBMode(BLOBHandling blobH, const char *dev, const ch
     if (!dev[0])
         return;
 
-   #ifdef HAVE_QT5
+   #ifdef USE_QT5_INDI
 
     QString blobOpenTag;
     QString blobEnableTag;
