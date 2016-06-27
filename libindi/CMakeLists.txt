@@ -1,19 +1,23 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 2.8)
 PROJECT(libindi C CXX)
 
 cmake_policy(SET CMP0003 NEW)
 #FIXME the following requires CMake v3.0
 #cmake_policy(SET CMP0042 OLD)
 include(GNUInstallDirs)
+include(FeatureSummary)
 set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
-##################  INDI version  ################################
+
+#####################################  INDI version  ################################################
+
 set(INDI_SOVERSION "1")
 set(CMAKE_INDI_VERSION_MAJOR 1)
 set(CMAKE_INDI_VERSION_MINOR 2)
 set(CMAKE_INDI_VERSION_RELEASE 0)
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
 
-##################  Paths  ################################
+########################################  Paths  ###################################################
+
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../cmake_modules/")
 set(DATA_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/share/indi/")
@@ -24,7 +28,8 @@ IF(APPLE)
 set(CMAKE_SHARED_LINKER_FLAGS "-undefined dynamic_lookup")
 ENDIF(APPLE)
 
-##################  setup install directories  ################################
+##################################  Install Directories  ###########################################
+
 set (LIB_SUFFIX "" CACHE STRING "Define suffix of directory name (32/64)" )
 set (LIB_DESTINATION "${CMAKE_INSTALL_LIBDIR}")
 
@@ -33,39 +38,51 @@ set(INCLUDE_INSTALL_DIR      "${CMAKE_INSTALL_PREFIX}/include/")
 set(PKGCONFIG_INSTALL_PREFIX "${LIB_DESTINATION}/pkgconfig/")
 set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for udev rules")
 
-##################  Includes  ################################
-Include (CheckCXXSourceCompiles)
-include (MacroOptionalFindPackage)
-include (MacroLogFeature)
-include (MacroBoolTo01)
-include (CheckIncludeFiles)
+#####################################  Build Options  ##############################################
 
+OPTION (INDI_BUILD_QT5 "Build INDI with Qt5 backend" OFF)
+OPTION (INDI_BUILD_UNITTESTS "Build INDI tests" OFF)
+
+#####################################  Dependencies  ##############################################
+
+# Math Library
 FIND_LIBRARY(M_LIB m)
+
+# ZLib compression Library
 FIND_PACKAGE(ZLIB REQUIRED)
+
+# libusb 1.0+ for USB devices
 FIND_PACKAGE(USB-1 REQUIRED)
-find_package(CURL REQUIRED)
-FIND_PACKAGE(CFITSIO REQUIRED)
-FIND_PACKAGE(Nova REQUIRED)
+
+# libcurl to make web requests
+FIND_PACKAGE(CURL REQUIRED)
+
+# Phreads for multithreading
 FIND_PACKAGE(Threads REQUIRED)
+
+# libjpeg for V4L2
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   FIND_PACKAGE(JPEG REQUIRED)
 endif ()
+
+# libcfitsio for FITS IO
+FIND_PACKAGE(CFITSIO REQUIRED)
 
 if (NOT CFITSIO_FOUND OR CFITSIO_VERSION_MAJOR LESS 3)
   message(FATAL_ERROR "CFITSIO version too old, Please install cfitsio 3.x and try again. http://heasarc.gsfc.nasa.gov/fitsio/fitsio.html")
 endif (NOT CFITSIO_FOUND OR CFITSIO_VERSION_MAJOR LESS 3)
 
-macro_bool_to_01(CFITSIO_FOUND HAVE_CFITSIO_H)
-macro_log_feature(CFITSIO_FOUND "libcfitsio" "A library for reading and writing data files in FITS (Flexible Image Transport System) data format" "http://heasarc.gsfc.nasa.gov/fitsio/fitsio.html" FALSE "3.03" "Provides INDI with FITS I/O support.")
+set_package_properties(CFITSIO PROPERTIES DESCRIPTION "A library for reading and writing data files in FITS (Flexible Image Transport System) data format" URL "http://heasarc.gsfc.nasa.gov/fitsio/fitsio.html" TYPE REQUIRED PURPOSE "Provides INDI with FITS I/O support.")
 
-macro_bool_to_01(NOVA_FOUND HAVE_NOVA_H)
-macro_log_feature(NOVA_FOUND "libnova" "A general purpose, double precision, Celestial Mechanics, Astrometry and Astrodynamics library" "http://libnova.sourceforge.net" FALSE "0.12.1" "Provides INDI with astrodynamics library.")
+# libnova for astronomical formulae
+FIND_PACKAGE(Nova REQUIRED)
 
-check_include_files(linux/videodev2.h HAVE_LINUX_VIDEODEV2_H)
-check_include_files(termios.h TERMIOS_FOUND)
-macro_bool_to_01(TERMIOS_FOUND HAVE_TERMIOS_H)
+set_package_properties(Nova PROPERTIES DESCRIPTION "A general purpose, double precision, Celestial Mechanics, Astrometry and Astrodynamics library" URL "http://libnova.sourceforge.net" TYPE REQUIRED PURPOSE "Provides INDI with astrodynamics library.")
 
+# Generate config.h from template
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
+
+##################################  Include Directories  ##########################################
 
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_SOURCE_DIR})
@@ -77,12 +94,13 @@ include_directories( ${CMAKE_SOURCE_DIR}/libs/webcam)
   include_directories( ${JPEG_INCLUDE_DIR} )
 endif()
 
-if (CFITSIO_FOUND)
-  include_directories(${CFITSIO_INCLUDE_DIR})
-endif (CFITSIO_FOUND)
-
+include_directories(${CFITSIO_INCLUDE_DIR})
 include_directories(${LIBUSB_1_INCLUDE_DIRS})
 include_directories(${NOVA_INCLUDE_DIR})
+
+###################################################################################################
+########################################  Sources  ################################################
+###################################################################################################
 
 set(liblilxml_SRCS  ${CMAKE_SOURCE_DIR}/libs/lilxml.c )
 
@@ -838,8 +856,10 @@ ${CMAKE_SOURCE_DIR}/libs/webcam/jpegutils.h
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libindi.pc.cmake ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc DESTINATION ${PKGCONFIG_INSTALL_PREFIX})
 
+###################################################################################################
+#########################################  Tests  #################################################
+###################################################################################################
 
-OPTION (INDI_BUILD_UNITTESTS "Build INDI tests" OFF)
 FIND_PACKAGE (GTest)
 FIND_PACKAGE (GMock)
 IF (GTEST_FOUND)
@@ -853,4 +873,4 @@ ELSE()
   MESSAGE (STATUS  "GTEST  not found, not building unit tests")
 ENDIF (GTEST_FOUND)
 
-
+feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)
