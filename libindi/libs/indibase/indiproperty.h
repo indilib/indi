@@ -21,8 +21,6 @@
 
 #include "indibase.h"
 
-
-
 namespace INDI
 {
 

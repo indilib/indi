@@ -35,6 +35,13 @@
 #include <unistd.h>
 #endif
 
+#if defined(  _MSC_VER )
+#define snprintf _snprintf
+#pragma warning(push)
+///@todo Introduce plattform indipendent safe functions as macros to fix this
+#pragma warning(disable: 4996)
+#endif
+
 INDI::BaseDevice::BaseDevice()
 {
     mediator = NULL;
@@ -181,7 +188,6 @@ IPerm INDI::BaseDevice::getPropertyPermission(const char *name)
     INumberVectorProperty *nvp;
     ITextVectorProperty *tvp;
     ISwitchVectorProperty *svp;
-    ILightVectorProperty *lvp;
     IBLOBVectorProperty *bvp;
 
     std::vector<INDI::Property *>::iterator orderi = pAll.begin();
@@ -1395,3 +1401,7 @@ uint16_t INDI::BaseDevice::getDriverInterface()
     return 0;
 }
 
+#if defined(  _MSC_VER )
+#undef snprintf
+#pragma warning(pop)
+#endif

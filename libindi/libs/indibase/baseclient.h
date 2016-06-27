@@ -19,8 +19,6 @@
 #ifndef INDIBASECLIENT_H
 #define INDIBASECLIENT_H
 
-#include "config.h"
-
 #include <vector>
 #include <map>
 #include <string>
