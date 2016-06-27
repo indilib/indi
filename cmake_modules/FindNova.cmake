@@ -25,7 +25,7 @@ else (NOVA_INCLUDE_DIR AND NOVA_LIBRARIES)
     ${GNUWIN32_DIR}/include
   )
 
-  find_library(NOVA_LIBRARIES NAMES nova
+  find_library(NOVA_LIBRARIES NAMES nova libnova
     PATHS
     ${_obLinkDir}
     ${GNUWIN32_DIR}/lib
@@ -46,7 +46,7 @@ else (NOVA_INCLUDE_DIR AND NOVA_LIBRARIES)
     endif (NOT Nova_FIND_QUIETLY)
   else (NOVA_FOUND)
     if (Nova_FIND_REQUIRED)
-      message(FATAL_ERROR "libnova not found. Please install libnova0-devel. http://indi.sf.net")
+      message(FATAL_ERROR "libnova not found. Please install libnova development package.")
     endif (Nova_FIND_REQUIRED)
   endif (NOVA_FOUND)
 

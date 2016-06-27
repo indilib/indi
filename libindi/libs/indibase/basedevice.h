@@ -23,7 +23,6 @@
 #include <string>
 
 #include <locale.h>
-#include <pthread.h>
 
 #include "indiapi.h"
 #include "indidevapi.h"

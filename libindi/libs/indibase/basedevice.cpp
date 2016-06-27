@@ -23,7 +23,6 @@
 #include <locale.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <unistd.h>
 
 #include "config.h"
 #include "basedevice.h"
@@ -31,6 +30,10 @@
 #include "indicom.h"
 #include "base64.h"
 #include "indiproperty.h"
+
+#ifndef _WIN32
+#include <unistd.h>
+#endif
 
 INDI::BaseDevice::BaseDevice()
 {

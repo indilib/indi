@@ -29,12 +29,11 @@
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <stdarg.h>
-#include <sys/param.h>
 #include <stdint.h>
+#include <locale.h>
 
 #if defined(BSD) && !defined(__GNU__)
 #include <IOKit/serial/ioss.h>
@@ -43,7 +42,7 @@
 
 #include <config.h>
 #include <libnova.h>
-#include <locale.h>
+
 #include "indicom.h"
 #include "indidevapi.h"
 
@@ -53,16 +52,26 @@
 #endif
 
 #ifndef _WIN32
+#include <unistd.h>
 #include <termios.h>
+#include <sys/param.h>
 #define PARITY_NONE    0
 #define PARITY_EVEN    1
 #define PARITY_ODD     2
+#endif
+
+#if defined(  _MSC_VER )
+#define snprintf _snprintf
+#pragma warning(push)
+///@todo Introduce plattform indipendent safe functions as macros to fix this
+#pragma warning(disable: 4996)
 #endif
 
 #define MAXRBUF         2048
 
 int tty_debug = 0;
 
+#ifndef _WIN32
 int extractISOTime(const char *timestr, struct ln_date *iso_date)
 {
   struct tm utm;
@@ -81,6 +90,7 @@ int extractISOTime(const char *timestr, struct ln_date *iso_date)
   
   return (-1);
 }
+#endif
 
 
 /* sprint the variable a in sexagesimal format into out[].
@@ -258,8 +268,12 @@ void tty_set_debug(int debug)
 
 int tty_timeout(int fd, int timeout)
 {
- if (fd == -1)
-        return TTY_ERRNO;
+    #ifdef _WIN32
+    return TTY_ERRNO;
+    #else
+
+  if (fd == -1)
+      return TTY_ERRNO;
 
   struct timeval tv;
   fd_set readout;
@@ -285,10 +299,15 @@ int tty_timeout(int fd, int timeout)
   else 
     return TTY_TIME_OUT;
   
+#endif
 }
 
 int tty_write(int fd, const char * buf, int nbytes, int *nbytes_written)
 {
+    #ifdef _WIN32
+    return TTY_ERRNO;
+    #else
+
     if (fd == -1)
            return TTY_ERRNO;
 
@@ -316,10 +335,16 @@ int tty_write(int fd, const char * buf, int nbytes, int *nbytes_written)
   }
 
   return TTY_OK;
+
+  #endif
 }
 
 int tty_write_string(int fd, const char * buf, int *nbytes_written)
 {
+    #ifdef _WIN32
+    return TTY_ERRNO;
+    #else
+
     if (fd == -1)
            return TTY_ERRNO;
 
@@ -350,10 +375,16 @@ int tty_write_string(int fd, const char * buf, int *nbytes_written)
   }
 
   return TTY_OK;
+
+  #endif
 }
 
 int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
 {
+    #ifdef _WIN32
+    return TTY_ERRNO;
+    #else
+
     if (fd == -1)
            return TTY_ERRNO;
 
@@ -391,10 +422,16 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
   }
 
   return TTY_OK;
+
+  #endif
 }
 
 int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes_read)
 {
+    #ifdef _WIN32
+    return TTY_ERRNO;
+    #else
+
     if (fd == -1)
            return TTY_ERRNO;
 
@@ -428,6 +465,8 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
   }
 
   return TTY_TIME_OUT;
+
+ #endif
 }
 
 #if defined(BSD) && !defined(__GNU__)
@@ -1285,3 +1324,8 @@ double get_local_hour_angle(double sideral_time, double ra)
 
     return HA;
 }
+
+#if defined(  _MSC_VER )
+#undef snprintf
+#pragma warning(pop)
+#endif

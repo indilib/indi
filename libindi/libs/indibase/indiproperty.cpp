@@ -16,8 +16,6 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#include <pthread.h>
-
 #include "basedevice.h"
 #include "baseclient.h"
 #include "indicom.h"
