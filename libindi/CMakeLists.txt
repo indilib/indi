@@ -193,11 +193,12 @@ ENDIF()
 # To offer lilxml and communination routines    #
 # Mostly used by generic clients                #
 #################################################
+if (WIN32)
+add_library(indi STATIC ${libindicom_SRCS} ${liblilxml_SRCS})
+else(WIN32)
 add_library(indi SHARED ${libindicom_SRCS} ${liblilxml_SRCS})
-
-if (NOT WIN32)
 set_target_properties(indi PROPERTIES COMPILE_FLAGS "-fPIC")
-endif(NOT WIN32)
+endif(WIN32)
 
 set_target_properties(indi PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION})
 
