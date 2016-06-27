@@ -201,14 +201,21 @@ bool ShelyakAlpy::ISNewText (const char *dev, const char *name, char *texts[], c
 bool ShelyakAlpy::calibrationUnitCommand(char command, char parameter)
 {
   int rc, nbytes_written;
-  char c[2] = {parameter,command}; // Bytes 2 are command and parameter
-  c[3] = 0x0A; // last byte is '\n'
-  if ((rc = tty_write(PortFD, c, 5, &nbytes_written)) != TTY_OK) // send the bytes to the spectrograph
+//  char c[3] = {parameter,command,'\n'}; // Bytes 2 are parameter and command and last byte '\n'
+
+  //if ((rc = tty_write(PortFD, c, 3, &nbytes_written)) != TTY_OK) // send the bytes to the spectrograph
+
+char c[3] = {parameter,command,0x0a};
+if ((rc = tty_write(PortFD, c, 3, &nbytes_written)) != TTY_OK)
+
   {
     char errmsg[MAXRBUF];
     tty_error_msg(rc, errmsg, MAXRBUF);
     DEBUGF(INDI::Logger::DBG_ERROR, "error: %s.", errmsg);
     return false;
+  } else {
+      DEBUGF(INDI::Logger::DBG_SESSION, "sent on serial: %s.", c);
+
   }
   sleep(1); // wait for the calibration unit to actually flip the switch
   return true;

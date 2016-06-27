@@ -5,7 +5,7 @@
 //21\n : flat lamp on
 //31\n : dark on
 //(and the opposite, 10, 20, 30)
-//00 : shut off all
+//00\n : shut off all
 
 //
 #include <map>
