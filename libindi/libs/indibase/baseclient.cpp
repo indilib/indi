@@ -1043,6 +1043,16 @@ void INDI::BaseClient::setBLOBMode(BLOBHandling blobH, const char *dev, const ch
     #endif
 }
 
+#ifdef USE_QT5_INDI
+void INDI::BaseClient::processSocketError( QAbstractSocket::SocketError socketError )
+{
+    // TODO Handle what happens on socket failure!
+    INDI_UNUSED(socketError);
+    std::cerr << "Socket Error: " << client_socket.errorString().toLatin1().constData() << std::endl;
+}
+#endif
+
+
 #if defined(  _MSC_VER )
 #undef snprintf
 #pragma warning(pop)
