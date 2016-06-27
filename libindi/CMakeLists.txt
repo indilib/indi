@@ -877,6 +877,12 @@ endif()
 
 install( FILES drivers.xml ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/indi_tcfs_sk.xml DESTINATION ${DATA_INSTALL_DIR})
 
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libindi.pc.cmake ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc @ONLY)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc DESTINATION ${PKGCONFIG_INSTALL_PREFIX})
+
+# End Regular C++ INDI Library build
+endif (NOT INDI_BUILD_QT5)
+
 install( FILES indiapi.h indidevapi.h base64.h eventloop.h indidriver.h ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.h ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indibase.h
 ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indibasetypes.h ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.h  ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/defaultdevice.h
 ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccd.h  ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterwheel.h
@@ -894,9 +900,6 @@ ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_record/stream_recorder.h ${CMAKE_CU
 ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/jpegutils.h
  DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libindi.pc.cmake ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc @ONLY)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc DESTINATION ${PKGCONFIG_INSTALL_PREFIX})
-
 ###################################################################################################
 #########################################  Tests  #################################################
 ###################################################################################################
@@ -913,8 +916,5 @@ IF (GTEST_FOUND)
 ELSE()
   MESSAGE (STATUS  "GTEST  not found, not building unit tests")
 ENDIF (GTEST_FOUND)
-
-# TODO: Include Tests in Qt5 build later
-endif (NOT INDI_BUILD_QT5)
 
 feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)
