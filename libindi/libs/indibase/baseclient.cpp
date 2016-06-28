@@ -52,13 +52,18 @@ INDI::BaseClient::BaseClient()
     cServer = "localhost";
     cPort   = 7624;
     sConnected = false;
-    verbose = false;
+    //verbose = false;
+    verbose = true;
+    lillp=NULL;
 
     timeout_sec=3;
     timeout_us=0;
 
     #ifndef USE_QT5_INDI
     svrwfp = NULL;
+    #else
+    connect(&client_socket, SIGNAL(readyRead()), this, SLOT(listenINDI()));
+    connect(&client_socket, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(processSocketError(QAbstractSocket::SocketError)));
     #endif
 }
 
@@ -83,15 +88,19 @@ void INDI::BaseClient::watchDevice(const char * deviceName)
 bool INDI::BaseClient::connectServer()
 {
     #ifdef USE_QT5_INDI
-    connect(&client_socket, SIGNAL(readyRead()), this, SLOT(listenINDI()));
-    connect(&client_socket, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(processSocketError(QAbstractSocket::SocketError)));
-
     client_socket.connectToHost(cServer.c_str(), cPort);
 
-    if (client_socket.waitForConnected())
+    if (client_socket.waitForConnected(timeout_sec*1000) == false)
+    {
+        sConnected = false;
         return false;
+    }
 
     lillp = newLilXML();
+
+    sConnected = true;
+
+    serverConnected();
 
     char *orig = setlocale(LC_NUMERIC,"C");
     QString getProp;
@@ -116,9 +125,7 @@ bool INDI::BaseClient::connectServer()
                 std::cerr << getProp.toLatin1().constData() << std::endl;
         }
     }
-    setlocale(LC_NUMERIC,orig);
-
-    serverConnected();
+    setlocale(LC_NUMERIC,orig);    
 
     return true;
     #else
@@ -364,7 +371,17 @@ void INDI::BaseClient::listenINDI()
     char errorMsg[MAXRBUF];
     int err_code=0;
 
+    //IDLog("listen INDI\n");
+
     #ifdef USE_QT5_INDI
+
+    if (sConnected == false)
+    {
+        //IDLog("sConnected is FALSE!\n");
+        return;
+    }
+
+    //IDLog("We have %d bytes\n", client_socket.bytesAvailable());
 
     int i = 0;
     while (client_socket.bytesAvailable() > 0)
@@ -378,6 +395,9 @@ void INDI::BaseClient::listenINDI()
             XMLEle *root = readXMLEle (lillp, buffer[i], errorMsg);
             if (root)
             {
+                if (verbose)
+                    prXMLEle(stderr, root, 0);
+
                 if ( (err_code = dispatchCommand(root, errorMsg)) < 0)
                 {
                         // Silenty ignore property duplication errors
@@ -392,7 +412,7 @@ void INDI::BaseClient::listenINDI()
             }
             else if (errorMsg[0])
             {
-                fprintf (stderr, "Bad XML from %s/%d: %s\n%s\n", cServer.c_str(), cPort, errorMsg, buffer);
+                IDLog("Bad XML from %s/%d: %s\n%s\n", cServer.c_str(), cPort, errorMsg, buffer);
                 return;
             }
         }
