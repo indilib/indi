@@ -26,7 +26,6 @@
 
 #include "config.h"
 #include "basedevice.h"
-#include "baseclient.h"
 #include "indicom.h"
 #include "base64.h"
 #include "indiproperty.h"
@@ -41,6 +40,8 @@
 ///@todo Introduce plattform indipendent safe functions as macros to fix this
 #pragma warning(disable: 4996)
 #endif
+
+using namespace std;
 
 INDI::BaseDevice::BaseDevice()
 {
@@ -542,7 +543,7 @@ int INDI::BaseDevice::buildProp(XMLEle *root, char *errmsg)
 
     //if (getProperty(rname, type) != NULL)
     if (getProperty(rname) != NULL)
-        return INDI::BaseClient::INDI_PROPERTY_DUPLICATED;
+        return INDI_PROPERTY_DUPLICATED;
 
     if (strcmp (rtag, "defLightVector") && crackIPerm(findXMLAttValu(root, "perm"), &perm) < 0)
     {

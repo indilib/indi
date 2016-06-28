@@ -56,8 +56,6 @@ class INDI::BaseClientQt : public QObject, public INDI::BaseMediator
     Q_OBJECT
 
 public:
-    enum { INDI_DEVICE_NOT_FOUND=-1, INDI_PROPERTY_INVALID=-2, INDI_PROPERTY_DUPLICATED = -3, INDI_DISPATCH_ERROR=-4 };    
-
     BaseClientQt();
     virtual ~BaseClientQt();
 

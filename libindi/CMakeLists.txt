@@ -221,7 +221,7 @@ add_library(indiclient STATIC ${indiclient_SRCS})
 SET_TARGET_PROPERTIES(indiclient PROPERTIES COMPILE_FLAGS "-fPIC")
 target_link_libraries(indiclient indi ${CMAKE_THREAD_LIBS_INIT})
 install(TARGETS indiclient ARCHIVE DESTINATION ${LIB_DESTINATION})
-endif(WIN32)
+endif(NOT WIN32)
 
 ##################################################
 #### INDI Client Static Library Qt5 Backend ######
