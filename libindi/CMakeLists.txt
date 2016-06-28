@@ -68,15 +68,16 @@ FIND_PACKAGE(Nova REQUIRED)
 
 set_package_properties(Nova PROPERTIES DESCRIPTION "A general purpose, double precision, Celestial Mechanics, Astrometry and Astrodynamics library" URL "http://libnova.sourceforge.net" TYPE REQUIRED PURPOSE "Provides INDI with astrodynamics library.")
 
-# Build libindi Qt5 (only INDI Client Library for now)
+# If Qt5 based INDI build is request, build it for INDI client only for now.
 if (INDI_BUILD_QT5)
     add_definitions(-DUSE_QT5_INDI)
     find_package(Qt5Core REQUIRED)
     find_package(Qt5Network REQUIRED)
-    set(M_LIB "")
+endif(INDI_BUILD_QT5)
 
-# Otherwise, build libindi C++ backend
-else(INDI_BUILD_QT5)
+if (WIN32)
+set(M_LIB "")
+else(WIN32)
 
 # Math Library
 FIND_LIBRARY(M_LIB m)
@@ -93,9 +94,9 @@ FIND_PACKAGE(Threads REQUIRED)
 # libjpeg for V4L2
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   FIND_PACKAGE(JPEG REQUIRED)
-endif ()
+endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
-endif(INDI_BUILD_QT5)
+endif(WIN32)
 
 # Generate config.h from template
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
@@ -231,8 +232,8 @@ else(WIN32)
 install(TARGETS indiclient ARCHIVE DESTINATION ${LIB_DESTINATION})
 endif(WIN32)
 
-# Do not build INDI server and drivers for Qt5 backend
-if (NOT INDI_BUILD_QT5)
+# Do not build INDI server and drivers for Windows
+if (NOT WIN32)
 ######################################
 ########### INDI SERVER ##############
 ######################################
@@ -261,6 +262,12 @@ target_link_libraries(indidriver ${LIBUSB_1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE
 add_library(indidriverstatic STATIC ${libindicom_SRCS} ${liblilxml_SRCS} ${indimain_SRCS} ${indidriver_SRCS} ${hidapi_SRCS})
 target_link_libraries(indidriverstatic ${LIBUSB_1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY})
 endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+
+if (INDI_BUILD_QT5)
+qt5_use_modules(indidriver Network)
+qt5_use_modules(indidriverstatic Network)
+endif(INDI_BUILD_QT5)
+
 set_target_properties(indidriver indidriverstatic PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
 install(TARGETS indidriver LIBRARY DESTINATION ${LIB_DESTINATION})
 install(TARGETS indidriverstatic ARCHIVE DESTINATION ${LIB_DESTINATION})
@@ -881,8 +888,8 @@ install( FILES drivers.xml ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/indi_tcfs
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libindi.pc.cmake ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc DESTINATION ${PKGCONFIG_INSTALL_PREFIX})
 
-# End Regular C++ INDI Library build
-endif (NOT INDI_BUILD_QT5)
+# End INDI server/drivers/tools build for POSIX systems
+endif (NOT WIN32)
 
 install( FILES indiapi.h indidevapi.h base64.h eventloop.h indidriver.h ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.h ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indibase.h
 ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indibasetypes.h ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.h  ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/defaultdevice.h
