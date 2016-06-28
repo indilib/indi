@@ -216,24 +216,13 @@ endif(WIN32)
 ##################################################
 ########### INDI Client Static Library ###########
 ##################################################
-add_library(indiclient STATIC ${indiclient_SRCS})
 
 if (NOT WIN32)
+add_library(indiclient STATIC ${indiclient_SRCS})
 SET_TARGET_PROPERTIES(indiclient PROPERTIES COMPILE_FLAGS "-fPIC")
-endif(NOT WIN32)
-
 target_link_libraries(indiclient indi ${CMAKE_THREAD_LIBS_INIT})
-
-if (WIN32)
-install(TARGETS indiclient ARCHIVE DESTINATION lib)
-else(WIN32)
 install(TARGETS indiclient ARCHIVE DESTINATION ${LIB_DESTINATION})
 endif(WIN32)
-
-
-if (INDI_BUILD_QT5)
-qt5_use_modules(indiclient Network)
-endif(INDI_BUILD_QT5)
 
 ##################################################
 #### INDI Client Static Library Qt5 Backend ######
