@@ -38,7 +38,7 @@
 
 #include <errno.h>
 
-#define MAXINDIBUF 2048
+#define MAXINDIBUF 8192
 
 #if defined(  _MSC_VER )
 #define snprintf _snprintf
@@ -52,19 +52,13 @@ INDI::BaseClient::BaseClient()
     cServer = "localhost";
     cPort   = 7624;
     sConnected = false;
-    //verbose = false;
-    verbose = true;
+    verbose = false;
     lillp=NULL;
 
     timeout_sec=3;
     timeout_us=0;
 
-    #ifndef USE_QT5_INDI
-    svrwfp = NULL;
-    #else
-    connect(&client_socket, SIGNAL(readyRead()), this, SLOT(listenINDI()));
-    connect(&client_socket, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(processSocketError(QAbstractSocket::SocketError)));
-    #endif
+    svrwfp = NULL;    
 }
 
 INDI::BaseClient::~BaseClient()
@@ -87,48 +81,6 @@ void INDI::BaseClient::watchDevice(const char * deviceName)
 
 bool INDI::BaseClient::connectServer()
 {
-    #ifdef USE_QT5_INDI
-    client_socket.connectToHost(cServer.c_str(), cPort);
-
-    if (client_socket.waitForConnected(timeout_sec*1000) == false)
-    {
-        sConnected = false;
-        return false;
-    }
-
-    lillp = newLilXML();
-
-    sConnected = true;
-
-    serverConnected();
-
-    char *orig = setlocale(LC_NUMERIC,"C");
-    QString getProp;
-    if (cDeviceNames.empty())
-    {
-       getProp = QString("<getProperties version='%1'/>\n").arg(QString::number(INDIV));
-
-       client_socket.write(getProp.toLatin1());
-
-       if (verbose)
-           std::cerr << getProp.toLatin1().constData() << std::endl;
-    }
-    else
-    {
-        vector<string>::const_iterator stri;
-        for ( stri = cDeviceNames.begin(); stri != cDeviceNames.end(); stri++)
-        {
-            getProp = QString("<getProperties version='%1' device='%2'/>\n").arg(QString::number(INDIV)).arg( (*stri).c_str());
-
-            client_socket.write(getProp.toLatin1());
-            if (verbose)
-                std::cerr << getProp.toLatin1().constData() << std::endl;
-        }
-    }
-    setlocale(LC_NUMERIC,orig);    
-
-    return true;
-    #else
     struct timeval ts;
     ts.tv_sec = timeout_sec;
     ts.tv_usec =timeout_us;
@@ -255,7 +207,6 @@ bool INDI::BaseClient::connectServer()
     serverConnected();
 
     return true;
-    #endif
 }
 
 bool INDI::BaseClient::disconnectServer()
@@ -266,16 +217,6 @@ bool INDI::BaseClient::disconnectServer()
 
     sConnected = false;
 
-    #ifdef USE_QT5_INDI
-
-    client_socket.close();
-    if (lillp)
-    {
-       delLilXML(lillp);
-       lillp=NULL;
-    }
-
-    #else
     shutdown(sockfd, SHUT_RDWR);
 
     while (write(m_sendFd,"1",1) <= 0)
@@ -285,7 +226,6 @@ bool INDI::BaseClient::disconnectServer()
     if (svrwfp != NULL)
         fclose(svrwfp);
     svrwfp = NULL;
-    #endif
         
     cDevices.clear();
     cDeviceNames.clear();
@@ -369,57 +309,7 @@ void INDI::BaseClient::listenINDI()
 {
     char buffer[MAXINDIBUF];
     char errorMsg[MAXRBUF];
-    int err_code=0;
-
-    //IDLog("listen INDI\n");
-
-    #ifdef USE_QT5_INDI
-
-    if (sConnected == false)
-    {
-        //IDLog("sConnected is FALSE!\n");
-        return;
-    }
-
-    //IDLog("We have %d bytes\n", client_socket.bytesAvailable());
-
-    int i = 0;
-    while (client_socket.bytesAvailable() > 0)
-    {
-        qint64 readBytes = client_socket.read(buffer, MAXINDIBUF - 1);
-        if ( readBytes > 0 )
-            buffer[ readBytes ] = '\0';
-
-        for (; i < readBytes; i++)
-        {
-            XMLEle *root = readXMLEle (lillp, buffer[i], errorMsg);
-            if (root)
-            {
-                if (verbose)
-                    prXMLEle(stderr, root, 0);
-
-                if ( (err_code = dispatchCommand(root, errorMsg)) < 0)
-                {
-                        // Silenty ignore property duplication errors
-                        if (err_code != INDI_PROPERTY_DUPLICATED)
-                        {
-                            IDLog("Dispatch command error(%d): %s\n", err_code, errorMsg);
-                            prXMLEle (stderr, root, 0);
-                        }
-                }
-
-                delXMLEle (root);	// not yet, delete and continue
-            }
-            else if (errorMsg[0])
-            {
-                IDLog("Bad XML from %s/%d: %s\n%s\n", cServer.c_str(), cPort, errorMsg, buffer);
-                return;
-            }
-        }
-    }
-
-    #else
-    char msg[MAXRBUF];
+    int err_code=0;    
     int n=0, maxfd=0;
     fd_set rs;
 
@@ -532,8 +422,6 @@ void INDI::BaseClient::listenINDI()
     sConnected = false;
 
     pthread_exit(0);
-
-    #endif
 }
 
 int INDI::BaseClient::dispatchCommand(XMLEle *root, char * errmsg)
@@ -554,21 +442,21 @@ int INDI::BaseClient::dispatchCommand(XMLEle *root, char * errmsg)
     // FIXME REMOVE THIS
 
     // Ignore echoed newXXX
-    if (strstr(tagXMLEle(root), "new"))
+    if (strstr(tagXMLEle(root), "new") ||strstr(tagXMLEle(root), "getProperties"))
         return 0;
 
     if ((!strcmp (tagXMLEle(root), "defTextVector"))  ||
-       (!strcmp (tagXMLEle(root), "defNumberVector")) ||
-       (!strcmp (tagXMLEle(root), "defSwitchVector")) ||
-       (!strcmp (tagXMLEle(root), "defLightVector"))  ||
-       (!strcmp (tagXMLEle(root), "defBLOBVector")))
+            (!strcmp (tagXMLEle(root), "defNumberVector")) ||
+            (!strcmp (tagXMLEle(root), "defSwitchVector")) ||
+            (!strcmp (tagXMLEle(root), "defLightVector"))  ||
+            (!strcmp (tagXMLEle(root), "defBLOBVector")))
         return dp->buildProp(root, errmsg);
     else if (!strcmp (tagXMLEle(root), "setTextVector") ||
              !strcmp (tagXMLEle(root), "setNumberVector") ||
              !strcmp (tagXMLEle(root), "setSwitchVector") ||
              !strcmp (tagXMLEle(root), "setLightVector") ||
              !strcmp (tagXMLEle(root), "setBLOBVector"))
-            return dp->setValue(root, errmsg);
+        return dp->setValue(root, errmsg);
 
     return INDI_DISPATCH_ERROR;
 }
@@ -884,12 +772,16 @@ void INDI::BaseClient::sendNewSwitch (ISwitchVectorProperty *svp)
         {
             prop += QString("  <oneSwitch\n");
             prop += QString("    name='%1'>\n").arg(svp->sp[i].name);
-            prop += QString("      %s\n").arg((svp->sp[i].s == ISS_ON) ? "On" : "Off");
+            prop += QString("      %1\n").arg((svp->sp[i].s == ISS_ON) ? "On" : "Off");
             prop += QString("  </oneSwitch>\n");
         }
     }
 
+    prop += QString("</newSwitchVector>\n");
+
     client_socket.write(prop.toLatin1());
+
+    IDLog("%s\n", prop.toLatin1().constData());
 
     #else
 

@@ -47,7 +47,7 @@ set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for u
 
 #####################################  Build Options  ##############################################
 
-OPTION (INDI_BUILD_QT5 "Build INDI with Qt5 backend" OFF)
+#OPTION (INDI_BUILD_QT5 "Build INDI with Qt5 backend" OFF)
 OPTION (INDI_BUILD_UNITTESTS "Build INDI tests" OFF)
 
 #####################################  Dependencies  ##############################################
@@ -68,12 +68,8 @@ FIND_PACKAGE(Nova REQUIRED)
 
 set_package_properties(Nova PROPERTIES DESCRIPTION "A general purpose, double precision, Celestial Mechanics, Astrometry and Astrodynamics library" URL "http://libnova.sourceforge.net" TYPE REQUIRED PURPOSE "Provides INDI with astrodynamics library.")
 
-# If Qt5 based INDI build is request, build it for INDI client only for now.
-if (INDI_BUILD_QT5)
-    add_definitions(-DUSE_QT5_INDI)
-    find_package(Qt5Core REQUIRED)
-    find_package(Qt5Network REQUIRED)
-endif(INDI_BUILD_QT5)
+# To build INDI Client Qt5 backend
+FIND_PACKAGE(Qt5Network)
 
 if (WIN32)
 set(M_LIB "")
@@ -155,6 +151,12 @@ set (indiclient_SRCS
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiproperty.cpp
     )
 
+set (indiclientqt_SRCS
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclientqt.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiproperty.cpp
+    )
+
 set (indidriver_SRCS
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/defaultdevice.cpp
@@ -222,15 +224,40 @@ endif(NOT WIN32)
 
 target_link_libraries(indiclient indi ${CMAKE_THREAD_LIBS_INIT})
 
-if (INDI_BUILD_QT5)
-qt5_use_modules(indiclient Network)
-endif(INDI_BUILD_QT5)
-
 if (WIN32)
 install(TARGETS indiclient ARCHIVE DESTINATION lib)
 else(WIN32)
 install(TARGETS indiclient ARCHIVE DESTINATION ${LIB_DESTINATION})
 endif(WIN32)
+
+
+if (INDI_BUILD_QT5)
+qt5_use_modules(indiclient Network)
+endif(INDI_BUILD_QT5)
+
+##################################################
+#### INDI Client Static Library Qt5 Backend ######
+##################################################
+if (Qt5Network_FOUND)
+message(STATUS "Building INDI Client with Qt5 support")
+
+add_library(indiclientqt STATIC ${indiclientqt_SRCS})
+
+if (NOT WIN32)
+SET_TARGET_PROPERTIES(indiclientqt PROPERTIES COMPILE_FLAGS "-fPIC")
+endif(NOT WIN32)
+
+target_link_libraries(indiclientqt indi ${CMAKE_THREAD_LIBS_INIT})
+
+qt5_use_modules(indiclientqt Network)
+
+if (WIN32)
+install(TARGETS indiclientqt ARCHIVE DESTINATION lib)
+else(WIN32)
+install(TARGETS indiclientqt ARCHIVE DESTINATION ${LIB_DESTINATION})
+endif(WIN32)
+
+endif(Qt5Network_FOUND)
 
 # Do not build INDI server and drivers for Windows
 if (NOT WIN32)
@@ -891,23 +918,57 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc DESTINATION ${PKGCONFIG_INS
 # End INDI server/drivers/tools build for POSIX systems
 endif (NOT WIN32)
 
-install( FILES indiapi.h indidevapi.h base64.h eventloop.h indidriver.h ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.h ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indibase.h
-${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indibasetypes.h ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.h  ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/defaultdevice.h
-${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccd.h  ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterwheel.h
-${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifocuserinterface.h  ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifocuser.h
-${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/inditelescope.h ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclient.h ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiguiderinterface.h
-${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterinterface.h ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiproperty.h
-${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidome.h ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indigps.h
-${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indilightboxinterface.h ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidustcapinterface.h
-${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiweather.h ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.h ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiusbdevice.h
-${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indilogger.h ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indicontroller.h ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/hidapi.h
-${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/ccvt.h ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/ccvt_types.h
-${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_record/v4l2_record.h ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_record/ser_recorder.h
-${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_decode/v4l2_decode.h ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_decode/v4l2_builtin_decoder.h
-${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_record/stream_recorder.h ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/ccvt_types.h ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_colorspace.h
-${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/jpegutils.h
- DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
+install( FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/indiapi.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/indidevapi.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/base64.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/eventloop.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/indidriver.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indibase.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indibasetypes.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/defaultdevice.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccd.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterwheel.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifocuserinterface.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifocuser.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/inditelescope.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiguiderinterface.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterinterface.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiproperty.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidome.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indigps.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indilightboxinterface.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidustcapinterface.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiweather.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indilogger.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indicontroller.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiusbdevice.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/hidapi.h
+    DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
 
+if (NOT WIN32)
+    install( FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclient.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/ccvt.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/ccvt_types.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_record/v4l2_record.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_record/ser_recorder.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_decode/v4l2_decode.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_decode/v4l2_builtin_decoder.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_record/stream_recorder.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/ccvt_types.h ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_colorspace.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/jpegutils.h
+    DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
+endif(NOT WIN32)
+
+if (Qt5Network_FOUND)
+    install(FILES
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclientqt.h
+        DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
+endif(Qt5Network_FOUND)
 ###################################################################################################
 #########################################  Tests  #################################################
 ###################################################################################################
