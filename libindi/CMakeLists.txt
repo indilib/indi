@@ -47,7 +47,6 @@ set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for u
 
 #####################################  Build Options  ##############################################
 
-#OPTION (INDI_BUILD_QT5 "Build INDI with Qt5 backend" OFF)
 OPTION (INDI_BUILD_UNITTESTS "Build INDI tests" OFF)
 
 #####################################  Dependencies  ##############################################
@@ -279,10 +278,10 @@ add_library(indidriverstatic STATIC ${libindicom_SRCS} ${liblilxml_SRCS} ${indim
 target_link_libraries(indidriverstatic ${LIBUSB_1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY})
 endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
-if (INDI_BUILD_QT5)
+if (Qt5Network_FOUND)
 qt5_use_modules(indidriver Network)
 qt5_use_modules(indidriverstatic Network)
-endif(INDI_BUILD_QT5)
+endif(Qt5Network_FOUND)
 
 set_target_properties(indidriver indidriverstatic PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
 install(TARGETS indidriver LIBRARY DESTINATION ${LIB_DESTINATION})
