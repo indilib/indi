@@ -87,6 +87,7 @@ bool SSAGCCD::initProperties() {
   addDebugControl();
   SetCCDCapability(CCD_HAS_ST4_PORT | CCD_CAN_ABORT);
   SetCCDParams(WIDTH, HEIGHT, 8, 5.2, 5.2);
+  setDriverInterface(CCD_INTERFACE|GUIDER_INTERFACE);
 }
 
 bool SSAGCCD::updateProperties() {
