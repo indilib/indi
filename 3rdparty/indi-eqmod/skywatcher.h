@@ -89,6 +89,8 @@ public:
     void StartDETracking(double trackspeed) throw (EQModError);
     bool IsRARunning() throw (EQModError);
     bool IsDERunning() throw (EQModError);
+    // For AstroEQ (needs an explicit :G command at the end of gotos)
+    void ResetMotions() throw (EQModError);
 #ifdef WITH_SIMULATOR
     void setSimulation(bool);
     bool isSimulation();

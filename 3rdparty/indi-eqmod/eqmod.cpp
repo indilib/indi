@@ -798,6 +798,10 @@ bool EQMod::ReadScopeStatus() {
 	    DEBUGF(INDI::Logger::DBG_SESSION, "Iterative Goto Limit reached (%d iterations): RA diff = %4.2f arcsecs DE diff = %4.2f arcsecs",
 		   gotoparams.iterative_count, 3600 * fabs(gotoparams.ratarget - currentRA),  3600 * fabs(gotoparams.detarget - currentDEC));
 	  }
+
+	  // For AstroEQ (needs an explicit :G command at the end of gotos)
+	  mount->ResetMotions();
+	  
 	  if ((RememberTrackState == SCOPE_TRACKING) || ((sw != NULL) && (sw->s == ISS_ON))) {
 	    char *name;
 	    TrackState = SCOPE_TRACKING;
