@@ -29,14 +29,16 @@
 #include <sys/wait.h>
 #include <limits.h>
 
-#include "telescope_script.h"
+#include <indicom.h>
+
+#include "dome_script.h"
 
 #define	POLLMS      1000
 #define MAXARGS     20
 
-enum { SCRIPT_CONNECT = 1, SCRIPT_DISCONNECT, SCRIPT_STATUS, SCRIPT_GOTO, SCRIPT_SYNC, SCRIPT_PARK, SCRIPT_UNPARK, SCRIPT_MOVE_NORTH, SCRIPT_MOVE_EAST, SCRIPT_MOVE_SOUTH, SCRIPT_MOVE_WEST, SCRIPT_ABORT, SCRIPT_COUNT } scripts;
+enum { SCRIPT_CONNECT = 1, SCRIPT_DISCONNECT, SCRIPT_STATUS, SCRIPT_OPEN, SCRIPT_CLOSE, SCRIPT_PARK, SCRIPT_UNPARK, SCRIPT_GOTO, SCRIPT_MOVE_CW, SCRIPT_MOVE_CCW, SCRIPT_ABORT, SCRIPT_COUNT } scripts;
 
-std::unique_ptr<ScopeScript> scope_script(new ScopeScript());
+std::unique_ptr<DomeScript> scope_script(new DomeScript());
 
 void ISGetProperties(const char *dev) {
   scope_script->ISGetProperties(dev);
@@ -69,19 +71,19 @@ void ISSnoopDevice (XMLEle *root) {
   scope_script->ISSnoopDevice(root);
 }
 
-ScopeScript::ScopeScript() {
-  SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_ABORT, 4);
+DomeScript::DomeScript() {
+  SetDomeCapability(DOME_CAN_PARK | DOME_CAN_ABORT | DOME_CAN_ABS_MOVE | DOME_HAS_SHUTTER);
 }
 
-ScopeScript::~ScopeScript() {
+DomeScript::~DomeScript() {
 }
 
-const char * ScopeScript::getDefaultName() {
-  return (char *)"Telescope Scripting Gateway";
+const char * DomeScript::getDefaultName() {
+  return (char *)"Dome Scripting Gateway";
 }
 
-bool ScopeScript::initProperties() {
-  INDI::Telescope::initProperties();
+bool DomeScript::initProperties() {
+  INDI::Dome::initProperties();
   
 #ifdef OSX_EMBEDED_MODE
   IUFillText(&ScriptsT[0], "FOLDER", "Folder", "/usr/local/share/indi/scripts");
@@ -91,34 +93,33 @@ bool ScopeScript::initProperties() {
   IUFillText(&ScriptsT[SCRIPT_CONNECT], "SCRIPT_CONNECT", "Connect script", "connect.py");
   IUFillText(&ScriptsT[SCRIPT_DISCONNECT], "SCRIPT_DISCONNECT", "Disconnect script", "disconnect.py");
   IUFillText(&ScriptsT[SCRIPT_STATUS], "SCRIPT_STATUS", "Get status script", "status.py");
-  IUFillText(&ScriptsT[SCRIPT_GOTO], "SCRIPT_GOTO", "Goto script", "goto.py");
-  IUFillText(&ScriptsT[SCRIPT_SYNC], "SCRIPT_SYNC", "Sync script", "sync.py");
+  IUFillText(&ScriptsT[SCRIPT_OPEN], "SCRIPT_OPEN", "Open shutter script", "sync.py");
+  IUFillText(&ScriptsT[SCRIPT_CLOSE], "SCRIPT_CLOSE", "Close shutter script", "sync.py");
   IUFillText(&ScriptsT[SCRIPT_PARK], "SCRIPT_PARK", "Park script", "park.py");
   IUFillText(&ScriptsT[SCRIPT_UNPARK], "SCRIPT_UNPARK", "Unpark script", "unpark.py");
-  IUFillText(&ScriptsT[SCRIPT_MOVE_NORTH], "SCRIPT_MOVE_NORTH", "Move north script", "move_north.py");
-  IUFillText(&ScriptsT[SCRIPT_MOVE_EAST], "SCRIPT_MOVE_EAST", "Move east script", "move_east.py");
-  IUFillText(&ScriptsT[SCRIPT_MOVE_SOUTH], "SCRIPT_MOVE_SOUTH", "Move south script", "move_south.py");
-  IUFillText(&ScriptsT[SCRIPT_MOVE_WEST], "SCRIPT_MOVE_WEST", "Move west script", "move_west.py");
+  IUFillText(&ScriptsT[SCRIPT_GOTO], "SCRIPT_GOTO", "Goto script", "goto.py");
+  IUFillText(&ScriptsT[SCRIPT_MOVE_CW], "SCRIPT_MOVE_CW", "Move clockwise script", "move_cw.py");
+  IUFillText(&ScriptsT[SCRIPT_MOVE_CCW], "SCRIPT_MOVE_CCW", "Move counter clockwise script", "move_ccw.py");
   IUFillText(&ScriptsT[SCRIPT_ABORT], "SCRIPT_ABORT", "Abort motion script", "abort.py");
- IUFillTextVector(&ScriptsTP, ScriptsT, SCRIPT_COUNT, getDefaultName(), "SCRIPTS", "Scripts", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+  IUFillTextVector(&ScriptsTP, ScriptsT, SCRIPT_COUNT, getDefaultName(), "SCRIPTS", "Scripts", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
   
   addDebugControl();
   setDriverInterface(getDriverInterface());
   return true;
 }
 
-bool ScopeScript::saveConfigItems(FILE *fp) {
-  INDI::Telescope::saveConfigItems(fp);
+bool DomeScript::saveConfigItems(FILE *fp) {
+  INDI::Dome::saveConfigItems(fp);
   IUSaveConfigText(fp, &ScriptsTP);
   return true;
 }
 
-void ScopeScript::ISGetProperties(const char *dev) {
-  INDI::Telescope::ISGetProperties (dev);
+void DomeScript::ISGetProperties(const char *dev) {
+  INDI::Dome::ISGetProperties (dev);
   defineText(&ScriptsTP);
 }
 
-bool ScopeScript::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) {
+bool DomeScript::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) {
   if(!strcmp(dev, getDeviceName())) {
     if(!strcmp(name, ScriptsTP.name)) {
       IUUpdateText(&ScriptsTP, texts, names, n);
@@ -126,10 +127,10 @@ bool ScopeScript::ISNewText(const char *dev, const char *name, char *texts[], ch
       return true;
     }
   }
-  return Telescope::ISNewText(dev,name,texts,names,n);
+  return Dome::ISNewText(dev,name,texts,names,n);
 }
 
-bool ScopeScript::RunScript(int script, ...) {
+bool DomeScript::RunScript(int script, ...) {
   int pid = fork();
   if (pid == -1) {
     DEBUG(INDI::Logger::DBG_ERROR, "Fork failed");
@@ -170,19 +171,74 @@ bool ScopeScript::RunScript(int script, ...) {
   }
 }
 
-bool ScopeScript::Connect() {
+void DomeScript::TimerHit() {
+  char *name = tmpnam(NULL);
+  bool status = RunScript(SCRIPT_STATUS, name, NULL);
+  if (status) {
+    int parked = 0, shutter = 0;
+    float az = 0;
+    FILE *file = fopen(name, "r");
+    if (fscanf(file, "%d %d %f", &parked, &shutter, &az) < 3) {
+      DEBUG(INDI::Logger::DBG_ERROR, "Failed to parse status");
+      status = false;
+    }
+    fclose(file);
+    unlink(name);
+    if (status) {
+      if (parked != 0) {
+        if (!isParked()) {
+          SetParked(true);
+          DEBUG(INDI::Logger::DBG_SESSION, "Park succesfully executed");
+        }
+      } else {
+        if (isParked()) {
+          SetParked(false);
+          DEBUG(INDI::Logger::DBG_SESSION, "Unpark succesfully executed");
+        }
+      }
+      az = range360(az);
+      if (DomeAbsPosN[0].value != az) {
+        DomeAbsPosN[0].value = az;
+        DomeAbsPosNP.s = IPS_BUSY;
+        IDSetNumber(&DomeAbsPosNP, NULL);
+      } else if (DomeAbsPosNP.s == IPS_BUSY) {
+        DomeAbsPosNP.s = IPS_OK;
+        IDSetNumber(&DomeAbsPosNP, NULL);
+      }
+      if (shutterState == SHUTTER_OPEN) {
+        if (shutter == 0) {
+          shutterState = SHUTTER_CLOSED;
+          DomeShutterSP.s = IPS_OK;
+          IDSetSwitch(&DomeShutterSP, NULL);
+          DEBUG(INDI::Logger::DBG_SESSION, "Shutter was succesfully closed");
+        }
+      } else {
+        if (shutter == 1) {
+          shutterState = SHUTTER_OPENED;
+          DomeShutterSP.s = IPS_OK;
+          IDSetSwitch(&DomeShutterSP, NULL);
+          DEBUG(INDI::Logger::DBG_SESSION, "Shutter was succesfully opened");
+        }
+      }
+    }
+  } else {
+    DEBUG(INDI::Logger::DBG_ERROR, "Failed to read status");
+  }
+}
+
+bool DomeScript::Connect() {
   if(isConnected())
     return true;
   bool status = RunScript(SCRIPT_CONNECT, NULL);
   if (status) {
     DEBUG(INDI::Logger::DBG_SESSION, "Succesfully connected");
-    ReadScopeStatus();
+    ReadDomeStatus();
     SetTimer(POLLMS);
   }
   return status;
 }
 
-bool ScopeScript::Disconnect() {
+bool DomeScript::Disconnect() {
   bool status = RunScript(SCRIPT_DISCONNECT, NULL);
   if (status) {
     DEBUG(INDI::Logger::DBG_SESSION, "Succesfully disconnected");
@@ -190,90 +246,64 @@ bool ScopeScript::Disconnect() {
   return status;
 }
 
-bool ScopeScript::ReadScopeStatus() {
-  char *name = tmpnam(NULL);
-  bool status = RunScript(SCRIPT_STATUS, name, NULL);
-  if (status) {
-    int parked;
-    float ra, dec;
-    FILE *file = fopen(name, "r");
-    fscanf(file, "%d %f %f", &parked, &ra, &dec);
-    fclose(file);
-    unlink(name);
-    if (parked != 0) {
-      if (!isParked()) {
-        SetParked(true);
-        DEBUG(INDI::Logger::DBG_SESSION, "Park succesfully executed");
-      }
-    } else {
-      if (isParked()) {
-        SetParked(false);
-        DEBUG(INDI::Logger::DBG_SESSION, "Unpark succesfully executed");
-      }
-    }
-    NewRaDec(ra, dec);
-  } else {
-    DEBUG(INDI::Logger::DBG_ERROR, "Failed to read status");
-  }
-  return status;
-}
-
-bool ScopeScript::Goto(double ra, double dec) {
-  char _ra[16], _dec[16];
-  snprintf(_ra, 16, "%f", ra);
-  snprintf(_dec, 16, "%f", dec);
-  bool status = RunScript(SCRIPT_GOTO, _ra, _dec, NULL);
-  if (status) {
-    DEBUG(INDI::Logger::DBG_SESSION, "Goto succesfully executed");
-  }
-  return status;
-}
-
-bool ScopeScript::Sync(double ra, double dec) {
-  char _ra[16], _dec[16];
-  snprintf(_ra, 16, "%f", ra);
-  snprintf(_dec, 16, "%f", dec);
-  bool status = RunScript(SCRIPT_SYNC, _ra, _dec, NULL);
-  if (status) {
-    DEBUG(INDI::Logger::DBG_SESSION, "Sync succesfully executed");
-  }
-  return status;
-}
-
-bool ScopeScript::Park() {
+IPState DomeScript::Park() {
   bool status = RunScript(SCRIPT_PARK, NULL);
-  if (!status) {
-    DEBUG(INDI::Logger::DBG_ERROR, "Failed to park");
+  if (status) {
+    return IPS_BUSY;
   }
-  return status;
+  DEBUG(INDI::Logger::DBG_ERROR, "Failed to park");
+  return IPS_ALERT;
 }
 
-bool ScopeScript::UnPark() {
+IPState DomeScript::UnPark() {
   bool status = RunScript(SCRIPT_UNPARK, NULL);
-  if (!status) {
-    DEBUG(INDI::Logger::DBG_ERROR, "Failed to unpark");
+  if (status) {
+    return IPS_BUSY;
   }
-  return status;
+  DEBUG(INDI::Logger::DBG_ERROR, "Failed to unpark");
+  return IPS_ALERT;
 }
 
-bool ScopeScript::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) {
-  char _rate[] = { (char)('0' + IUFindOnSwitchIndex(&SlewRateSP)), 0 };
-  bool status = RunScript(command == MOTION_STOP ? SCRIPT_ABORT : dir == DIRECTION_NORTH ? SCRIPT_MOVE_NORTH : SCRIPT_MOVE_SOUTH, _rate, NULL, NULL);
-  return status;
+IPState DomeScript::ControlShutter(ShutterOperation operation) {
+  if (RunScript(operation == SHUTTER_OPEN ? SCRIPT_OPEN : SCRIPT_CLOSE, NULL)) {
+    return IPS_BUSY;
+  }
+  DEBUGF(INDI::Logger::DBG_ERROR, "Failed to %s shutter", operation == SHUTTER_OPEN ? "open" : "close");
+  return IPS_ALERT;
 }
 
-bool ScopeScript::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) {
-  char _rate[] = { (char)('0' + IUFindOnSwitchIndex(&SlewRateSP)), 0 };
-  bool status = RunScript(command == MOTION_STOP ? SCRIPT_ABORT : dir == DIRECTION_WEST ? SCRIPT_MOVE_WEST : SCRIPT_MOVE_EAST, _rate, NULL, NULL);
-  return status;
+IPState DomeScript::MoveAbs(double az) {
+  char _az[16];
+  snprintf(_az, 16, "%f", az);
+  bool status = RunScript(SCRIPT_GOTO, _az, NULL);
+  if (status) {
+    return IPS_BUSY;
+  }
+  return IPS_ALERT;
 }
 
-bool ScopeScript::Abort() {
+IPState DomeScript::Move(DomeDirection dir, DomeMotionCommand operation) {
+  if (operation == MOTION_START) {
+    if (RunScript(dir == DOME_CW ? SCRIPT_MOVE_CW : SCRIPT_MOVE_CCW, NULL)) {
+      DomeAbsPosNP.s = IPS_BUSY;
+    } else {
+      DomeAbsPosNP.s = IPS_ALERT;
+    }
+  } else {
+    if (RunScript(SCRIPT_ABORT, NULL)) {
+      DomeAbsPosNP.s = IPS_IDLE;
+    } else {
+      DomeAbsPosNP.s = IPS_ALERT;
+    }
+  }
+  IDSetNumber(&DomeAbsPosNP, NULL);
+  return ((operation == MOTION_START) ? IPS_BUSY : IPS_OK);  
+}
+
+bool DomeScript::Abort() {
   bool status = RunScript(SCRIPT_ABORT, NULL);
   if (status) {
     DEBUG(INDI::Logger::DBG_SESSION, "Succesfully aborted");
-  } else {
-    DEBUG(INDI::Logger::DBG_ERROR, "Failed to abort");
   }
   return status;
 }

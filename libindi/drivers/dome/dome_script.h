@@ -19,14 +19,14 @@
 #ifndef SCOPESCRIPT_H
 #define SCOPESCRIPT_H
 
-#include "indibase/inditelescope.h"
+#include "indibase/indidome.h"
 #include "indicontroller.h"
 
-class ScopeScript : public INDI::Telescope
+class DomeScript : public INDI::Dome
 {
 public:
-  ScopeScript();
-  virtual ~ScopeScript();
+  DomeScript();
+  virtual ~DomeScript();
   
   virtual const char *getDefaultName();
   virtual bool initProperties();
@@ -34,28 +34,27 @@ public:
  
   void ISGetProperties(const char *dev);
   bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+  
+protected:
   virtual bool Connect();
   virtual bool Disconnect();
   
-protected:
+  void TimerHit();
   
-  virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
-  virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
+  virtual IPState Move(DomeDirection dir, DomeMotionCommand operation);
+  virtual IPState MoveRel(double azDiff);
+  virtual IPState MoveAbs(double az);
+  virtual IPState Park();
+  virtual IPState UnPark();
+  virtual IPState ControlShutter(ShutterOperation operation);
   virtual bool Abort();
   
-  bool ReadScopeStatus();
-  bool Goto(double,double);
-  bool Sync(double ra, double dec);
-  bool Park();
-  bool UnPark();
-  
 private:
-  
-  bool RunScript(int script, ...);
-  
   ITextVectorProperty ScriptsTP;
   IText ScriptsT[15];
-
+  
+  bool ReadDomeStatus();
+  bool RunScript(int script, ...);
 };
 
 #endif // SCOPESCRIPT_H

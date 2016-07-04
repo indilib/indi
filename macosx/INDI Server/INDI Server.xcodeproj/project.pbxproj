@@ -627,6 +627,9 @@
 		9D75D5851A8D16F7008AA08A /* lx200gps.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D75D57E1A8D16F7008AA08A /* lx200gps.cpp */; };
 		9D75D5A01A8D17B1008AA08A /* indi_lx200basic in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 9D75D5551A8D1507008AA08A /* indi_lx200basic */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		9D75D5A11A8D17B1008AA08A /* indi_lx200generic in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 9D75D5771A8D1668008AA08A /* indi_lx200generic */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		9D967F6F1D2A5DA500EF200A /* libnova.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA422C1A8CB6920004AA95 /* libnova.dylib */; };
+		9D967F701D2A5DA500EF200A /* libindi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A91A8CD3190004AA95 /* libindi.dylib */; };
+		9D967F761D2A5DD900EF200A /* dome_script.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D967F651D2A5ACB00EF200A /* dome_script.cpp */; };
 		9DDA42521A8CC25F0004AA95 /* aberration.c in Sources */ = {isa = PBXBuildFile; fileRef = 9DDA42311A8CC25F0004AA95 /* aberration.c */; };
 		9DDA42531A8CC25F0004AA95 /* airmass.c in Sources */ = {isa = PBXBuildFile; fileRef = 9DDA42321A8CC25F0004AA95 /* airmass.c */; };
 		9DDA42541A8CC25F0004AA95 /* angular_separation.c in Sources */ = {isa = PBXBuildFile; fileRef = 9DDA42331A8CC25F0004AA95 /* angular_separation.c */; };
@@ -2185,6 +2188,20 @@
 			remoteGlobalIDString = 9D75D5681A8D1668008AA08A;
 			remoteInfo = indi_lx200generic;
 		};
+		9D967F691D2A5DA500EF200A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA422B1A8CB6920004AA95;
+			remoteInfo = nova;
+		};
+		9D967F6B1D2A5DA500EF200A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA43A81A8CD3190004AA95;
+			remoteInfo = indi;
+		};
 		9DDA43F31A8CFB1C0004AA95 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
@@ -2771,6 +2788,15 @@
 			runOnlyForDeploymentPostprocessing = 1;
 		};
 		9D75D5731A8D1668008AA08A /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		9D967F711D2A5DA500EF200A /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = /usr/share/man/man1/;
@@ -3458,6 +3484,12 @@
 		9D75D57D1A8D16F7008AA08A /* lx200generic.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = lx200generic.cpp; sourceTree = "<group>"; };
 		9D75D57E1A8D16F7008AA08A /* lx200gps.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = lx200gps.cpp; sourceTree = "<group>"; };
 		9D75D5971A8D1787008AA08A /* lx200fs2.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = lx200fs2.cpp; sourceTree = "<group>"; };
+		9D967F611D2A5A6500EF200A /* telescope_script.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = telescope_script.h; sourceTree = "<group>"; };
+		9D967F621D2A5AAF00EF200A /* dome_script.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = dome_script.txt; sourceTree = "<group>"; };
+		9D967F651D2A5ACB00EF200A /* dome_script.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = dome_script.cpp; sourceTree = "<group>"; };
+		9D967F661D2A5ACB00EF200A /* dome_script.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = dome_script.h; sourceTree = "<group>"; };
+		9D967F751D2A5DA500EF200A /* indi_script_dome */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_script_dome; sourceTree = BUILT_PRODUCTS_DIR; };
+		9D967F771D2A8B3400EF200A /* dome_simulator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = dome_simulator.h; sourceTree = "<group>"; };
 		9DDA422C1A8CB6920004AA95 /* libnova.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libnova.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		9DDA42311A8CC25F0004AA95 /* aberration.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = aberration.c; sourceTree = "<group>"; };
 		9DDA42321A8CC25F0004AA95 /* airmass.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = airmass.c; sourceTree = "<group>"; };
@@ -4188,6 +4220,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		9D967F6E1D2A5DA500EF200A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D967F6F1D2A5DA500EF200A /* libnova.dylib in Frameworks */,
+				9D967F701D2A5DA500EF200A /* libindi.dylib in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		9DDA42291A8CB6920004AA95 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -4696,6 +4737,7 @@
 				590AD2BE1CFDFBE9008D5367 /* indi_skywatcherAPIMount */,
 				590AD2D61CFDFDEA008D5367 /* indi_smartfocus_focus */,
 				590AD3021CFE0118008D5367 /* indi_shelyakeshel_spectrograph */,
+				9D967F751D2A5DA500EF200A /* indi_script_dome */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -4779,7 +4821,11 @@
 			children = (
 				59567B871A8D300A0057A35A /* baader_dome.cpp */,
 				5944988B1C13603B00E0E281 /* roll_off.cpp */,
+				9D967F771D2A8B3400EF200A /* dome_simulator.h */,
 				59567B881A8D300A0057A35A /* dome_simulator.cpp */,
+				9D967F621D2A5AAF00EF200A /* dome_script.txt */,
+				9D967F661D2A5ACB00EF200A /* dome_script.h */,
+				9D967F651D2A5ACB00EF200A /* dome_script.cpp */,
 			);
 			path = dome;
 			sourceTree = "<group>";
@@ -5194,6 +5240,7 @@
 				590AD2C31CFDFCEA008D5367 /* skywatcherAPI.h */,
 				9D75D5391A8D1391008AA08A /* telescope_simulator.cpp */,
 				593448281CFA356A008AD945 /* telescope_script.txt */,
+				9D967F611D2A5A6500EF200A /* telescope_script.h */,
 				593448111CF9A6B0008AD945 /* telescope_script.cpp */,
 				592F6CB41BADD6A600D93DE9 /* lx200driver.cpp */,
 				9D75D5791A8D16F7008AA08A /* lx200_16.cpp */,
@@ -6788,6 +6835,25 @@
 			productReference = 9D75D5771A8D1668008AA08A /* indi_lx200generic */;
 			productType = "com.apple.product-type.tool";
 		};
+		9D967F671D2A5DA500EF200A /* indi_script_dome */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9D967F721D2A5DA500EF200A /* Build configuration list for PBXNativeTarget "indi_script_dome" */;
+			buildPhases = (
+				9D967F6C1D2A5DA500EF200A /* Sources */,
+				9D967F6E1D2A5DA500EF200A /* Frameworks */,
+				9D967F711D2A5DA500EF200A /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9D967F681D2A5DA500EF200A /* PBXTargetDependency */,
+				9D967F6A1D2A5DA500EF200A /* PBXTargetDependency */,
+			);
+			name = indi_script_dome;
+			productName = indi_simulator_ccd;
+			productReference = 9D967F751D2A5DA500EF200A /* indi_script_dome */;
+			productType = "com.apple.product-type.tool";
+		};
 		9DDA422B1A8CB6920004AA95 /* nova */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 9DDA422D1A8CB6930004AA95 /* Build configuration list for PBXNativeTarget "nova" */;
@@ -6995,6 +7061,7 @@
 				59563CA11CF1E8D200DE1A54 /* indi_ssag_ccd */,
 				593445B11CF8EF62008AD945 /* indi_qhy_ccd */,
 				593448131CF9E4E6008AD945 /* indi_script_telescope */,
+				9D967F671D2A5DA500EF200A /* indi_script_dome */,
 				590AD2B01CFDFBE9008D5367 /* indi_skywatcherAPIMount */,
 				590AD2C81CFDFDEA008D5367 /* indi_smartfocus_focus */,
 				590AD2F41CFE0118008D5367 /* indi_shelyakeshel_spectrograph */,
@@ -7849,6 +7916,14 @@
 				592F6CB51BADD6A600D93DE9 /* lx200driver.cpp in Sources */,
 				592F6CBA1BADD78800D93DE9 /* lx200fs2.cpp in Sources */,
 				592F6CB71BADD6D100D93DE9 /* lx200gemini.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D967F6C1D2A5DA500EF200A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D967F761D2A5DD900EF200A /* dome_script.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -9049,6 +9124,16 @@
 			isa = PBXTargetDependency;
 			target = 9D75D5681A8D1668008AA08A /* indi_lx200generic */;
 			targetProxy = 9D75D59C1A8D17A1008AA08A /* PBXContainerItemProxy */;
+		};
+		9D967F681D2A5DA500EF200A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA422B1A8CB6920004AA95 /* nova */;
+			targetProxy = 9D967F691D2A5DA500EF200A /* PBXContainerItemProxy */;
+		};
+		9D967F6A1D2A5DA500EF200A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA43A81A8CD3190004AA95 /* indi */;
+			targetProxy = 9D967F6B1D2A5DA500EF200A /* PBXContainerItemProxy */;
 		};
 		9DDA43F41A8CFB1C0004AA95 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -12698,6 +12783,63 @@
 			};
 			name = Release;
 		};
+		9D967F731D2A5DA500EF200A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"/Applications/Xcode-Beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include",
+					"../../../libnova-0.15.0/src",
+					"../../../libnova-0.15.0/src/libnova",
+					"../../../libusb-1.0.19/libusb",
+					../../../cfitsio,
+					../../libindi,
+					../../libindi/libs,
+					../../libindi/libs/indibase,
+				);
+				MTL_ENABLE_DEBUG_INFO = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				USER_HEADER_SEARCH_PATHS = "";
+			};
+			name = Debug;
+		};
+		9D967F741D2A5DA500EF200A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"/Applications/Xcode-Beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include",
+					"../../../libnova-0.15.0/src",
+					"../../../libnova-0.15.0/src/libnova",
+					"../../../libusb-1.0.19/libusb",
+					../../../cfitsio,
+					../../libindi,
+					../../libindi/libs,
+					../../libindi/libs/indibase,
+				);
+				MTL_ENABLE_DEBUG_INFO = NO;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				USER_HEADER_SEARCH_PATHS = "";
+			};
+			name = Release;
+		};
 		9DDA422E1A8CB6930004AA95 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -13586,6 +13728,15 @@
 			buildConfigurations = (
 				9D75D5751A8D1668008AA08A /* Debug */,
 				9D75D5761A8D1668008AA08A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9D967F721D2A5DA500EF200A /* Build configuration list for PBXNativeTarget "indi_script_dome" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9D967F731D2A5DA500EF200A /* Debug */,
+				9D967F741D2A5DA500EF200A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
