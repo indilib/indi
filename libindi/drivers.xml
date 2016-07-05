@@ -261,6 +261,10 @@
                 <driver name="RollOff Simulator">indi_rolloff_dome</driver>
                 <version>1.0</version>
         </device>
+        <device label="Dome Scripting Gateway">
+          <driver name="Dome  Scripting Gateway">indi_script_dome</driver>
+          <version>1.0</version>
+        </device>
 </devGroup>
 <devGroup group="Weather">
         <device label="Weather Meta">
