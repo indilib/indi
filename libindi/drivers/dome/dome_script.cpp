@@ -84,7 +84,7 @@ const char * DomeScript::getDefaultName() {
 
 bool DomeScript::initProperties() {
   INDI::Dome::initProperties();
-  
+  SetParkDataType(PARK_AZ);
 #ifdef OSX_EMBEDED_MODE
   IUFillText(&ScriptsT[0], "FOLDER", "Folder", "/usr/local/share/indi/scripts");
 #else
@@ -93,8 +93,8 @@ bool DomeScript::initProperties() {
   IUFillText(&ScriptsT[SCRIPT_CONNECT], "SCRIPT_CONNECT", "Connect script", "connect.py");
   IUFillText(&ScriptsT[SCRIPT_DISCONNECT], "SCRIPT_DISCONNECT", "Disconnect script", "disconnect.py");
   IUFillText(&ScriptsT[SCRIPT_STATUS], "SCRIPT_STATUS", "Get status script", "status.py");
-  IUFillText(&ScriptsT[SCRIPT_OPEN], "SCRIPT_OPEN", "Open shutter script", "sync.py");
-  IUFillText(&ScriptsT[SCRIPT_CLOSE], "SCRIPT_CLOSE", "Close shutter script", "sync.py");
+  IUFillText(&ScriptsT[SCRIPT_OPEN], "SCRIPT_OPEN", "Open shutter script", "open.py");
+  IUFillText(&ScriptsT[SCRIPT_CLOSE], "SCRIPT_CLOSE", "Close shutter script", "close.py");
   IUFillText(&ScriptsT[SCRIPT_PARK], "SCRIPT_PARK", "Park script", "park.py");
   IUFillText(&ScriptsT[SCRIPT_UNPARK], "SCRIPT_UNPARK", "Unpark script", "unpark.py");
   IUFillText(&ScriptsT[SCRIPT_GOTO], "SCRIPT_GOTO", "Goto script", "goto.py");
@@ -102,9 +102,6 @@ bool DomeScript::initProperties() {
   IUFillText(&ScriptsT[SCRIPT_MOVE_CCW], "SCRIPT_MOVE_CCW", "Move counter clockwise script", "move_ccw.py");
   IUFillText(&ScriptsT[SCRIPT_ABORT], "SCRIPT_ABORT", "Abort motion script", "abort.py");
   IUFillTextVector(&ScriptsTP, ScriptsT, SCRIPT_COUNT, getDefaultName(), "SCRIPTS", "Scripts", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
-  
-  addDebugControl();
-  setDriverInterface(getDriverInterface());
   return true;
 }
 
@@ -115,7 +112,7 @@ bool DomeScript::saveConfigItems(FILE *fp) {
 }
 
 void DomeScript::ISGetProperties(const char *dev) {
-  INDI::Dome::ISGetProperties (dev);
+  INDI::Dome::ISGetProperties(dev);
   defineText(&ScriptsTP);
 }
 
@@ -161,7 +158,6 @@ bool DomeScript::RunScript(int script, ...) {
     char path[256];
     snprintf(path, 256, "%s/%s", ScriptsT[0].text, tmp);
     execvp(path, args);
-    DEBUGF(INDI::Logger::DBG_ERROR, "Script %s execution failed", path);
     return false;
   } else {
     int status;
@@ -171,59 +167,71 @@ bool DomeScript::RunScript(int script, ...) {
   }
 }
 
+bool DomeScript::updateProperties() {
+  INDI::Dome::updateProperties();
+  if (isConnected()) {
+    if (InitPark()) {
+      SetAxis1ParkDefault(0);
+    } else {
+      SetAxis1Park(0);
+      SetAxis1ParkDefault(0);
+    }
+    TimerHit();
+  }
+  return true;
+}
+
 void DomeScript::TimerHit() {
+  if (!isConnected())
+    return;
   char *name = tmpnam(NULL);
   bool status = RunScript(SCRIPT_STATUS, name, NULL);
   if (status) {
     int parked = 0, shutter = 0;
     float az = 0;
     FILE *file = fopen(name, "r");
-    if (fscanf(file, "%d %d %f", &parked, &shutter, &az) < 3) {
-      DEBUG(INDI::Logger::DBG_ERROR, "Failed to parse status");
-      status = false;
-    }
+    fscanf(file, "%d %d %f", &parked, &shutter, &az);
     fclose(file);
     unlink(name);
-    if (status) {
-      if (parked != 0) {
-        if (!isParked()) {
-          SetParked(true);
-          DEBUG(INDI::Logger::DBG_SESSION, "Park succesfully executed");
-        }
-      } else {
-        if (isParked()) {
-          SetParked(false);
-          DEBUG(INDI::Logger::DBG_SESSION, "Unpark succesfully executed");
-        }
+    if (parked != 0) {
+      if (getDomeState() == DOME_PARKING) {
+        SetParked(true);
+        DEBUG(INDI::Logger::DBG_SESSION, "Park succesfully executed");
       }
-      az = range360(az);
-      if (DomeAbsPosN[0].value != az) {
-        DomeAbsPosN[0].value = az;
-        DomeAbsPosNP.s = IPS_BUSY;
-        IDSetNumber(&DomeAbsPosNP, NULL);
-      } else if (DomeAbsPosNP.s == IPS_BUSY) {
-        DomeAbsPosNP.s = IPS_OK;
-        IDSetNumber(&DomeAbsPosNP, NULL);
+    } else {
+      if (getDomeState() == DOME_UNPARKING) {
+        SetParked(false);
+        DEBUG(INDI::Logger::DBG_SESSION, "Unpark succesfully executed");
       }
-      if (shutterState == SHUTTER_OPEN) {
-        if (shutter == 0) {
-          shutterState = SHUTTER_CLOSED;
-          DomeShutterSP.s = IPS_OK;
-          IDSetSwitch(&DomeShutterSP, NULL);
-          DEBUG(INDI::Logger::DBG_SESSION, "Shutter was succesfully closed");
-        }
-      } else {
-        if (shutter == 1) {
-          shutterState = SHUTTER_OPENED;
-          DomeShutterSP.s = IPS_OK;
-          IDSetSwitch(&DomeShutterSP, NULL);
-          DEBUG(INDI::Logger::DBG_SESSION, "Shutter was succesfully opened");
-        }
+    }
+    az = range360(az);
+    if (DomeAbsPosN[0].value != az) {
+      DomeAbsPosN[0].value = az;
+      DomeAbsPosNP.s = IPS_BUSY;
+      IDSetNumber(&DomeAbsPosNP, NULL);
+    } else if (DomeAbsPosNP.s == IPS_BUSY && getDomeState() != DOME_MOVING) {
+      setDomeState(DOME_SYNCED);
+      IDSetNumber(&DomeAbsPosNP, NULL);
+    }
+    if (shutterState == SHUTTER_OPEN) {
+      if (shutter == 0) {
+        shutterState = SHUTTER_CLOSED;
+        DomeShutterSP.s = IPS_OK;
+        IDSetSwitch(&DomeShutterSP, NULL);
+        DEBUG(INDI::Logger::DBG_SESSION, "Shutter was succesfully closed");
+      }
+    } else {
+      if (shutter == 1) {
+        shutterState = SHUTTER_OPENED;
+        DomeShutterSP.s = IPS_OK;
+        IDSetSwitch(&DomeShutterSP, NULL);
+        DEBUG(INDI::Logger::DBG_SESSION, "Shutter was succesfully opened");
       }
     }
   } else {
     DEBUG(INDI::Logger::DBG_ERROR, "Failed to read status");
   }
+  SetTimer(POLLMS);
 }
 
 bool DomeScript::Connect() {
@@ -232,8 +240,7 @@ bool DomeScript::Connect() {
   bool status = RunScript(SCRIPT_CONNECT, NULL);
   if (status) {
     DEBUG(INDI::Logger::DBG_SESSION, "Succesfully connected");
-    ReadDomeStatus();
-    SetTimer(POLLMS);
+    //SetTimer(POLLMS);
   }
   return status;
 }

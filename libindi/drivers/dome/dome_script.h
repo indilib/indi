@@ -34,15 +34,13 @@ public:
  
   void ISGetProperties(const char *dev);
   bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+  bool updateProperties();
   
 protected:
+  void TimerHit();
   virtual bool Connect();
   virtual bool Disconnect();
-  
-  void TimerHit();
-  
   virtual IPState Move(DomeDirection dir, DomeMotionCommand operation);
-  virtual IPState MoveRel(double azDiff);
   virtual IPState MoveAbs(double az);
   virtual IPState Park();
   virtual IPState UnPark();

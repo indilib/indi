@@ -160,7 +160,6 @@ bool ScopeScript::RunScript(int script, ...) {
     char path[256];
     snprintf(path, 256, "%s/%s", ScriptsT[0].text, tmp);
     execvp(path, args);
-    DEBUGF(INDI::Logger::DBG_ERROR, "Script %s execution failed", path);
     return false;
   } else {
     int status;

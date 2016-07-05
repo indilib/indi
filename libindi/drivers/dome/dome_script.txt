@@ -95,8 +95,8 @@ str = coordinates.readline()
 coordinates.close()
 str = str[0:3] + az
 coordinates = open('/tmp/indi-status', 'w')
-coordinates.truncate(str)
-coordinates.write()
+coordinates.truncate()
+coordinates.write(str)
 coordinates.close()
 
 sys.exit(0)
@@ -118,8 +118,8 @@ str = coordinates.readline()
 coordinates.close()
 str = str[0] + ' 1 ' + str[4:]
 coordinates = open('/tmp/indi-status', 'w')
-coordinates.truncate(str)
-coordinates.write()
+coordinates.truncate()
+coordinates.write(str)
 coordinates.close()
 
 sys.exit(0)
@@ -141,8 +141,8 @@ str = coordinates.readline()
 coordinates.close()
 str = str[0] + ' 0 ' + str[4:]
 coordinates = open('/tmp/indi-status', 'w')
-coordinates.truncate(str)
-coordinates.write()
+coordinates.truncate()
+coordinates.write(str)
 coordinates.close()
 
 sys.exit(0)

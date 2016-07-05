@@ -499,6 +499,7 @@
 		598786B81CE735FF00DF2294 /* indi_fli_ccd in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 598785E71CE71F5300DF2294 /* indi_fli_ccd */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		598786B91CE735FF00DF2294 /* indi_fli_wheel in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 598785F91CE71FAF00DF2294 /* indi_fli_wheel */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		598786BA1CE735FF00DF2294 /* indi_fli_focus in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 5987860B1CE71FB900DF2294 /* indi_fli_focus */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		598BF81E1D2AF1A900DCD8CF /* indi_script_dome in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 9D967F751D2A5DA500EF200A /* indi_script_dome */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		59C11FC319B50AEE00B21125 /* AppIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = 59C11FC219B50AEE00B21125 /* AppIcon.icns */; };
 		59C3D6791CF07D8C00974D80 /* libindi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A91A8CD3190004AA95 /* libindi.dylib */; };
 		59C3D67A1CF07D8C00974D80 /* libnova.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA422C1A8CB6920004AA95 /* libnova.dylib */; };
@@ -1803,6 +1804,13 @@
 			remoteGlobalIDString = 598785FA1CE71FB900DF2294;
 			remoteInfo = indi_fli_focuser;
 		};
+		598BF81C1D2AF19D00DCD8CF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9D967F671D2A5DA500EF200A;
+			remoteInfo = indi_script_dome;
+		};
 		59C3D6731CF07D8C00974D80 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
@@ -2565,6 +2573,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 6;
 			files = (
+				598BF81E1D2AF1A900DCD8CF /* indi_script_dome in Copy Files (33 items) (53 items) */,
 				590AD30B1CFE01B2008D5367 /* indi_shelyakeshel_spectrograph in Copy Files (33 items) (53 items) */,
 				590AD2DC1CFDFE30008D5367 /* indi_smartfocus_focus in Copy Files (33 items) (53 items) */,
 				590AD2C71CFDFD12008D5367 /* indi_skywatcherAPIMount in Copy Files (33 items) (53 items) */,
@@ -5929,6 +5938,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				598BF81D1D2AF19D00DCD8CF /* PBXTargetDependency */,
 				590AD30A1CFE01A5008D5367 /* PBXTargetDependency */,
 				590AD2DB1CFDFE22008D5367 /* PBXTargetDependency */,
 				590AD2C61CFDFD05008D5367 /* PBXTargetDependency */,
@@ -8849,6 +8859,11 @@
 			isa = PBXTargetDependency;
 			target = 598785FA1CE71FB900DF2294 /* indi_fli_focus */;
 			targetProxy = 598786BF1CE7361000DF2294 /* PBXContainerItemProxy */;
+		};
+		598BF81D1D2AF19D00DCD8CF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9D967F671D2A5DA500EF200A /* indi_script_dome */;
+			targetProxy = 598BF81C1D2AF19D00DCD8CF /* PBXContainerItemProxy */;
 		};
 		59C3D6721CF07D8C00974D80 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
