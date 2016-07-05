@@ -31,6 +31,13 @@
 #include <string.h>
 #include <ctype.h>
 
+#if defined(  _MSC_VER )
+#define snprintf _snprintf
+#pragma warning(push)
+///@todo Introduce plattform indipendent safe functions as macros to fix this
+#pragma warning(disable: 4996)
+#endif
+
 #include "lilxml.h"
 
 /* used to efficiently manage growing malloced string space */
@@ -1125,4 +1132,9 @@ main (int ac, char *av[])
 
         return (0);
 }
+#endif
+
+#if defined(  _MSC_VER )
+#undef snprintf
+#pragma warning(pop)
 #endif

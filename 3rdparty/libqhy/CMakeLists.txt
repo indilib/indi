@@ -24,6 +24,8 @@ IF(UNIX AND NOT WIN32)
  ELSEIF(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "armv7l")
  #JM 2015-04-10: Use armv6 for now until armv7 version is fixed by QHY
   exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/libqhy_armv6.bin ${CMAKE_BINARY_DIR}/libqhy.so.${LIBQHY_VERSION})
+ ELSEIF(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "aarch64")
+  exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/libqhy_armv8.bin ${CMAKE_BINARY_DIR}/libqhy.so.${LIBQHY_VERSION})
  ELSEIF(CMAKE_SIZEOF_VOID_P MATCHES "8")
   exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/libqhy_x86_64.bin ${CMAKE_BINARY_DIR}/libqhy.so.${LIBQHY_VERSION})
  ELSE()

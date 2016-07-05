@@ -142,9 +142,7 @@ void ISCallBack(void) ;
 int init_serial(char *device_name, int bit_rate, int word_size, int parity, int stop_bits) ;
 int STV_ReceivePacket( unsigned char *buf, int mode) ;
 int STV_Connect( char *device, int baud) ;
-#ifdef HAVE_NOVA_H
 int STV_SetDateTime( char *times) ;
-#endif
 double STV_SetCCDTemperature(double set_value) ;
 
 
@@ -1285,7 +1283,6 @@ void ISNewSwitch (const char *dev, const char *name, ISState *states, char *name
  
       IDMessage( mydev, "STV waits for SYNC TIME Do it! Setting time, PLEASE WAIT!") ;
 
-      #ifdef HAVE_NOVA_H
       if((res= STV_SetDateTime(NULL)) == 0) {
       
 	UTCTP.s= IPS_OK ;
@@ -1295,7 +1292,6 @@ void ISNewSwitch (const char *dev, const char *name, ISState *states, char *name
 	UTCTP.s= IPS_ALERT ;
 	IDSetText( &UTCTP, "Error setting time, check connection") ;
       }
-      #endif
 
       DownloadSP.s= IPS_OK ;
       IUResetSwitch(&DownloadSP) ;
@@ -1424,7 +1420,6 @@ void ISNewText (const char *dev, const char *name, char *texts[], char *names[],
      
     if( tp == &UTCT[0]) {    
 
-      #ifdef HAVE_NOVA_H
       if((res= STV_SetDateTime(NULL)) == 0) {
 	  
 	UTCTP.s= IPS_OK ;
@@ -1434,7 +1429,6 @@ void ISNewText (const char *dev, const char *name, char *texts[], char *names[],
 	UTCTP.s= IPS_ALERT ;
 	IDSetText( &UTCTP, "Error setting time, check connection") ;
       }
-      #endif 
     }
     res= ISRestoreTXDisplay() ;
   }  

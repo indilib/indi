@@ -1,5 +1,7 @@
 /*******************************************************************************
-  Copyright(c) 2011 Jasem Mutlaq. All rights reserved.
+  Copyright(c) 2016 Jasem Mutlaq. All rights reserved.
+
+ INDI Qt Client
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
@@ -16,14 +18,14 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef INDIBASECLIENT_H
-#define INDIBASECLIENT_H
+#ifndef INDIBASECLIENTQT_H
+#define INDIBASECLIENTQT_H
 
 #include <vector>
 #include <map>
 #include <string>
 
-#include <pthread.h>
+#include <QTcpSocket>
 
 #include "indiapi.h"
 #include "indidevapi.h"
@@ -34,11 +36,11 @@
 using namespace std;
 
 /**
- * \class INDI::BaseClient
-   \brief Class to provide basic client functionality.
+ * \class INDI::BaseClientQt
+   \brief Class to provide basic client functionality based on Qt5 toolkit
 
-   BaseClient enables accelerated development of INDI Clients by providing a framework that facilitates communication, device
-   handling, and event notification. By subclassing BaseClient, clients can quickly connect to an INDI server, and query for
+   BaseClientQt enables accelerated development of INDI Clients by providing a framework that facilitates communication, device
+   handling, and event notification. By subclassing BaseClientQt, clients can quickly connect to an INDI server, and query for
    a set of INDI::BaseDevice devices, and read and write properties seamlessly. Event driven programming is possible due to
    notifications upon reception of new devices or properties.
 
@@ -49,12 +51,13 @@ using namespace std;
    \author Jasem Mutlaq
 
  */
-class INDI::BaseClient : public INDI::BaseMediator
+class INDI::BaseClientQt : public QObject, public INDI::BaseMediator
 {
+    Q_OBJECT
 
 public:
-    BaseClient();
-    virtual ~BaseClient();
+    BaseClientQt();
+    virtual ~BaseClientQt();
 
     /** \brief Set the server host name and port
         \param hostname INDI server host name or IP address.
@@ -199,16 +202,7 @@ private:
     */
     void setDriverConnection(bool status, const char *deviceName);    
 
-    pthread_t listen_thread;
-
-    FILE *svrwfp;			/* FILE * to talk to server */
-    int sockfd;
-
-    int m_receiveFd;
-    int m_sendFd;
-
-    // Listen to INDI server and process incoming messages
-    void listenINDI();
+    QTcpSocket client_socket;
 
     vector<INDI::BaseDevice *> cDevices;
     vector<string> cDeviceNames;
@@ -223,6 +217,11 @@ private:
     LilXML *lillp;			/* XML parser context */
     uint32_t timeout_sec, timeout_us;
 
+private slots:
+
+    void listenINDI();
+    void processSocketError( QAbstractSocket::SocketError socketError );
+
 };
 
-#endif // INDIBASECLIENT_H
+#endif // INDIBaseClientQt_H

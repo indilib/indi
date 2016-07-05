@@ -16,10 +16,7 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#include <pthread.h>
-
 #include "basedevice.h"
-#include "baseclient.h"
 #include "indicom.h"
 #include "base64.h"
 #include "indiproperty.h"
@@ -41,27 +38,57 @@ INDI::Property::~Property()
         switch (pType)
         {
         case INDI_NUMBER:
-         delete ((INumberVectorProperty *) pPtr);
-         break;
+        {
+            INumberVectorProperty* p = (INumberVectorProperty *) pPtr;
+            free(p->np);
+            delete p;
+            break;
+        }
 
         case INDI_TEXT:
-        delete ((ITextVectorProperty *) pPtr);
-        break;
+        {
+            ITextVectorProperty* p = (ITextVectorProperty *) pPtr;
+            for (int i = 0; i < p->ntp; ++i)
+            {
+                free(p->tp[i].text);
+            }
+            free(p->tp);
+            delete p;
+            break;
+        }
 
         case INDI_SWITCH:
-        delete ((ISwitchVectorProperty *) pPtr);
-        break;
+        {
+            ISwitchVectorProperty* p = (ISwitchVectorProperty *) pPtr;
+            free(p->sp);
+            delete p;
+            break;
+        }
 
         case INDI_LIGHT:
-        delete ((ILightVectorProperty *) pPtr);
-        break;
+        {
+            ILightVectorProperty* p = (ILightVectorProperty *) pPtr;
+            free(p->lp);
+            delete p;
+            break;
+        }
 
         case INDI_BLOB:
-        delete ((IBLOBVectorProperty *) pPtr);
-        break;
+        {
+            IBLOBVectorProperty* p = (IBLOBVectorProperty *) pPtr;
+            for (int i = 0; i < p->nbp; ++i)
+            {
+                free(p->bp[i].blob);
+            }
+            free(p->bp);
+            delete p;
+            break;
+        }
 
+        case INDI_UNKNOWN:
+            break;
+        }
     }
-  }
 }
 
 void INDI::Property::setProperty(void *p)
@@ -91,7 +118,7 @@ void INDI::Property::setBaseDevice(BaseDevice *idp)
     dp = idp;
 }
 
-const char * INDI::Property::getName()
+const char * INDI::Property::getName() const
 {
     if (pPtr == NULL)
         return NULL;
@@ -123,7 +150,7 @@ const char * INDI::Property::getName()
   return NULL;
 }
 
-const char * INDI::Property::getLabel()
+const char * INDI::Property::getLabel() const
 {
 
     if (pPtr == NULL)
@@ -157,7 +184,7 @@ const char * INDI::Property::getLabel()
 
 }
 
-const char * INDI::Property::getGroupName()
+const char * INDI::Property::getGroupName() const
 {
     if (pPtr == NULL)
         return NULL;
@@ -190,7 +217,7 @@ const char * INDI::Property::getGroupName()
 
 }
 
-const char * INDI::Property::getDeviceName()
+const char * INDI::Property::getDeviceName() const
 {
     if (pPtr == NULL)
         return NULL;
@@ -223,7 +250,42 @@ const char * INDI::Property::getDeviceName()
 
 }
 
-IPState INDI::Property::getState()
+const char* INDI::Property::getTimestamp() const
+{
+    if (pPtr == NULL)
+        return NULL;
+
+    switch (pType)
+    {
+    case INDI_NUMBER:
+        return ((INumberVectorProperty *) pPtr)->timestamp;
+        break;
+
+    case INDI_TEXT:
+        return ((ITextVectorProperty *) pPtr)->timestamp;
+        break;
+
+    case INDI_SWITCH:
+        return ((ISwitchVectorProperty *) pPtr)->timestamp;
+        break;
+
+    case INDI_LIGHT:
+        return ((ILightVectorProperty *) pPtr)->timestamp;
+        break;
+
+    case INDI_BLOB:
+        return ((IBLOBVectorProperty *) pPtr)->timestamp;
+        break;
+
+    case INDI_UNKNOWN:
+        break;
+
+    }
+
+    return NULL;
+}
+
+IPState INDI::Property::getState() const
 {
 
     switch (pType)
@@ -254,7 +316,7 @@ IPState INDI::Property::getState()
 
 }
 
-IPerm INDI::Property::getPermission()
+IPerm INDI::Property::getPermission() const
 {
     switch (pType)
     {

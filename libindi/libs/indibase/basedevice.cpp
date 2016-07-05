@@ -23,14 +23,25 @@
 #include <locale.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <unistd.h>
 
 #include "config.h"
 #include "basedevice.h"
-#include "baseclient.h"
 #include "indicom.h"
 #include "base64.h"
 #include "indiproperty.h"
+
+#ifndef _WIN32
+#include <unistd.h>
+#endif
+
+#if defined(  _MSC_VER )
+#define snprintf _snprintf
+#pragma warning(push)
+///@todo Introduce plattform indipendent safe functions as macros to fix this
+#pragma warning(disable: 4996)
+#endif
+
+using namespace std;
 
 INDI::BaseDevice::BaseDevice()
 {
@@ -178,7 +189,6 @@ IPerm INDI::BaseDevice::getPropertyPermission(const char *name)
     INumberVectorProperty *nvp;
     ITextVectorProperty *tvp;
     ISwitchVectorProperty *svp;
-    ILightVectorProperty *lvp;
     IBLOBVectorProperty *bvp;
 
     std::vector<INDI::Property *>::iterator orderi = pAll.begin();
@@ -533,7 +543,7 @@ int INDI::BaseDevice::buildProp(XMLEle *root, char *errmsg)
 
     //if (getProperty(rname, type) != NULL)
     if (getProperty(rname) != NULL)
-        return INDI::BaseClient::INDI_PROPERTY_DUPLICATED;
+        return INDI_PROPERTY_DUPLICATED;
 
     if (strcmp (rtag, "defLightVector") && crackIPerm(findXMLAttValu(root, "perm"), &perm) < 0)
     {
@@ -1231,7 +1241,7 @@ void INDI::BaseDevice::addMessage(string msg)
         mediator->newMessage(this, messageLog.size()-1);
 }
 
-string INDI::BaseDevice::messageQueue(int index)
+string INDI::BaseDevice::messageQueue(int index) const
 {
     if (index >= messageLog.size())
         return NULL;
@@ -1392,3 +1402,7 @@ uint16_t INDI::BaseDevice::getDriverInterface()
     return 0;
 }
 
+#if defined(  _MSC_VER )
+#undef snprintf
+#pragma warning(pop)
+#endif

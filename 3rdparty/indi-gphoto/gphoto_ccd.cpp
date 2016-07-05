@@ -505,6 +505,7 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                   }
               }
           }
+
           opt->prop.sw.s = IPS_OK;
           IDSetSwitch(&opt->prop.sw, NULL);
           return true;
@@ -565,7 +566,7 @@ bool GPhotoCCD::Connect()
   char **options;
   int max_opts;
   const char *port = NULL;
-  DEBUGF(INDI::Logger::DBG_DEBUG, "Mirror lock value: %f\n", mMirrorLockN[0].value);
+  DEBUGF(INDI::Logger::DBG_DEBUG, "Mirror lock value: %f", mMirrorLockN[0].value);
 
   if(PortTP.tp[0].text && strlen(PortTP.tp[0].text)) {
       port = PortTP.tp[0].text;

@@ -58,4 +58,13 @@ typedef enum
     DIRECTION_EAST
 } INDI_DIR_WE;
 
+/*! INDI Error Types */
+typedef enum
+{
+    INDI_DEVICE_NOT_FOUND   =-1,
+    INDI_PROPERTY_INVALID   =-2,
+    INDI_PROPERTY_DUPLICATED=-3,
+    INDI_DISPATCH_ERROR     =-4
+} INDI_ERROR_TYPE;
+
 #endif // INDIBASETYPES_H

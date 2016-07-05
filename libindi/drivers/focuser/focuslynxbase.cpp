@@ -360,6 +360,7 @@ bool FocusLynxBase::RemoteConnect()
       updateProperties();
     }
   }
+  return true;
 }
 
 /************************************************************************************
@@ -387,6 +388,7 @@ bool FocusLynxBase::RemoteDisconnect()
     setConnected(false, IPS_IDLE);
     updateProperties();
   }
+  return true;
 }
 
 /************************************************************************************
@@ -2477,6 +2479,7 @@ bool FocusLynxBase::isResponseOK()
       return false;
     }
   }
+  return true;
 }
 
 /************************************************************************************

@@ -23,7 +23,6 @@
 #include <string>
 
 #include <locale.h>
-#include <pthread.h>
 
 #include "indiapi.h"
 #include "indidevapi.h"
@@ -158,7 +157,7 @@ public:
     void doMessage (XMLEle *msg);
 
     /** \return Returns a specific message. */
-    std::string messageQueue(int index);
+    std::string messageQueue(int index) const;
 
     /** \return Returns last message message. */
     std::string lastMessage();
@@ -215,6 +214,7 @@ private:
     INDI::BaseMediator *mediator;
 
     friend class INDI::BaseClient;
+    friend class INDI::BaseClientQt;
     friend class INDI::DefaultDevice;
 
 };

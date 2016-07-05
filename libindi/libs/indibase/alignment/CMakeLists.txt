@@ -48,6 +48,11 @@ target_link_libraries(AlignmentDriver dl)
 if (GSL_FOUND)
 	target_link_libraries(AlignmentDriver ${GSL_LIBRARIES})
 endif (GSL_FOUND)
+
+if (INDI_BUILD_QT5)
+qt5_use_modules(AlignmentDriver Network)
+endif(INDI_BUILD_QT5)
+
 set_target_properties(AlignmentDriver PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indiAlignmentDriver)
 install(TARGETS AlignmentDriver LIBRARY DESTINATION ${LIB_DESTINATION})
 install(FILES AlignmentSubsystemForMathPlugins.h AlignmentSubsystemForDrivers.h BasicMathPlugin.h BuiltInMathPlugin.h
@@ -66,6 +71,11 @@ set (AlignmentClient_SRCS
     )
 
 add_library(AlignmentClient STATIC ${AlignmentClient_SRCS})
+
+if (INDI_BUILD_QT5)
+qt5_use_modules(AlignmentClient Network)
+endif(INDI_BUILD_QT5)
+
 SET_TARGET_PROPERTIES(AlignmentClient PROPERTIES COMPILE_FLAGS "-fPIC")
 set_target_properties(AlignmentClient PROPERTIES OUTPUT_NAME indiAlignmentClient)
 install(TARGETS AlignmentClient ARCHIVE DESTINATION ${LIB_DESTINATION})

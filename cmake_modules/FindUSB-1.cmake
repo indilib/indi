@@ -1,7 +1,7 @@
 # - Try to find libusb-1.0
 # Once done this will define
 #
-#  LIBUSB_1_FOUND - system has libusb
+#  USB-1_FOUND - system has libusb
 #  LIBUSB_1_INCLUDE_DIRS - the libusb include directory
 #  LIBUSB_1_LIBRARIES - Link these to use libusb
 #  LIBUSB_1_DEFINITIONS - Compiler switches required for using libusb
@@ -44,7 +44,7 @@
 
 if (LIBUSB_1_LIBRARIES AND LIBUSB_1_INCLUDE_DIRS)
   # in cache already
-  set(LIBUSB_FOUND TRUE)
+  set(USB-1_FOUND TRUE)
 else (LIBUSB_1_LIBRARIES AND LIBUSB_1_INCLUDE_DIRS)
 
   find_path(LIBUSB_1_INCLUDE_DIR
@@ -76,14 +76,14 @@ else (LIBUSB_1_LIBRARIES AND LIBUSB_1_INCLUDE_DIRS)
   )
 
   if (LIBUSB_1_INCLUDE_DIRS AND LIBUSB_1_LIBRARIES)
-     set(LIBUSB_1_FOUND TRUE)
+     set(USB-1_FOUND TRUE)
   else (LIBUSB_1_INCLUDE_DIRS AND LIBUSB_1_LIBRARIES)
      find_package(PkgConfig)
      pkg_check_modules(LIBUSB_1 QUIET libusb-1.0)
      set(LIBUSB_1_DEFINITIONS ${LIBUSB_1_CFLAGS} ${LIBUSB_1_CFLAGS_OTHER})
   endif (LIBUSB_1_INCLUDE_DIRS AND LIBUSB_1_LIBRARIES)
 
-  if (LIBUSB_1_FOUND)
+  if (USB-1_FOUND)
     if (NOT USB-1_FIND_QUIETLY)
       message(STATUS "Found libusb-1.0:")
 	  message(STATUS " - Includes: ${LIBUSB_1_INCLUDE_DIRS}")
@@ -100,11 +100,11 @@ else (LIBUSB_1_LIBRARIES AND LIBUSB_1_INCLUDE_DIRS)
         message(STATUS " - 1.0.8 or older")
       endif (NOT ERROR_NAME_COMPILE)
     endif () 
-  else (LIBUSB_1_FOUND)
+  else (USB-1_FOUND)
     if (USB-1_FIND_REQUIRED)
       message(FATAL_ERROR "Could not find libusb-1.0. Please install libusb-1.0 along with the development package.")
     endif (USB-1_FIND_REQUIRED)
-  endif (LIBUSB_1_FOUND)
+  endif (USB-1_FOUND)
 
   # show the LIBUSB_1_INCLUDE_DIRS and LIBUSB_1_LIBRARIES variables only in the advanced view
   mark_as_advanced(LIBUSB_1_INCLUDE_DIRS LIBUSB_1_LIBRARIES)

@@ -282,6 +282,7 @@ bool WatchDog::saveConfigItems(FILE *fp)
     IUSaveConfigText(fp, &ActiveDeviceTP);
     IUSaveConfigSwitch(fp, &ShutdownProcedureSP);
 
+    return true;
 }
 
 void WatchDog::TimerHit()
