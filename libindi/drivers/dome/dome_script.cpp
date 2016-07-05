@@ -4,12 +4,12 @@
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
  License version 2 as published by the Free Software Foundation.
- .
+
  This library is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  Library General Public License for more details.
- .
+
  You should have received a copy of the GNU Library General Public License
  along with this library; see the file COPYING.LIB.  If not, write to
  the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
@@ -33,7 +33,7 @@
 
 #include "dome_script.h"
 
-#define	POLLMS      1000
+#define	POLLMS      2000
 #define MAXARGS     20
 
 enum { SCRIPT_CONNECT = 1, SCRIPT_DISCONNECT, SCRIPT_STATUS, SCRIPT_OPEN, SCRIPT_CLOSE, SCRIPT_PARK, SCRIPT_UNPARK, SCRIPT_GOTO, SCRIPT_MOVE_CW, SCRIPT_MOVE_CCW, SCRIPT_ABORT, SCRIPT_COUNT } scripts;
@@ -193,23 +193,24 @@ void DomeScript::TimerHit() {
     fscanf(file, "%d %d %f", &parked, &shutter, &az);
     fclose(file);
     unlink(name);
+    DomeAbsPosN[0].value = az = range360(az);;
     if (parked != 0) {
-      if (getDomeState() == DOME_PARKING) {
+      if (getDomeState() == DOME_PARKING || getDomeState() == DOME_UNPARKED) {
         SetParked(true);
+        targetAz = az;
         DEBUG(INDI::Logger::DBG_SESSION, "Park succesfully executed");
       }
     } else {
-      if (getDomeState() == DOME_UNPARKING) {
+      if (getDomeState() == DOME_UNPARKING || getDomeState() == DOME_PARKED) {
         SetParked(false);
+        targetAz = az;
         DEBUG(INDI::Logger::DBG_SESSION, "Unpark succesfully executed");
       }
     }
-    az = range360(az);
-    if (DomeAbsPosN[0].value != az) {
-      DomeAbsPosN[0].value = az;
-      DomeAbsPosNP.s = IPS_BUSY;
+    DEBUGF(INDI::Logger::DBG_SESSION, "Moving %f -> %f %d", az, targetAz, getDomeState());
+    if (targetAz != az) {
       IDSetNumber(&DomeAbsPosNP, NULL);
-    } else if (DomeAbsPosNP.s == IPS_BUSY && getDomeState() != DOME_MOVING) {
+    } else if (getDomeState() == DOME_MOVING) {
       setDomeState(DOME_SYNCED);
       IDSetNumber(&DomeAbsPosNP, NULL);
     }
@@ -284,6 +285,7 @@ IPState DomeScript::MoveAbs(double az) {
   snprintf(_az, 16, "%f", az);
   bool status = RunScript(SCRIPT_GOTO, _az, NULL);
   if (status) {
+    targetAz = az;
     return IPS_BUSY;
   }
   return IPS_ALERT;
@@ -293,6 +295,7 @@ IPState DomeScript::Move(DomeDirection dir, DomeMotionCommand operation) {
   if (operation == MOTION_START) {
     if (RunScript(dir == DOME_CW ? SCRIPT_MOVE_CW : SCRIPT_MOVE_CCW, NULL)) {
       DomeAbsPosNP.s = IPS_BUSY;
+      targetAz = -1;
     } else {
       DomeAbsPosNP.s = IPS_ALERT;
     }
