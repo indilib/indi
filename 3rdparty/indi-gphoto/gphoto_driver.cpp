@@ -641,15 +641,18 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec, int 
         // Check if we are in BULB or MANUAL or other mode. Always set it to BULB if needed
         if (gphoto->bulb_widget && gphoto->autoexposuremode_widget)
         {
-            if (gphoto->autoexposuremode_widget->value.index != 4)
+            // If it settings is not either MANAUL or BULB then warn the user.
+            if (gphoto->autoexposuremode_widget->value.index < 3 || gphoto->autoexposuremode_widget->value.index > 4)
             {
-                DEBUGFDEVICE(device, INDI::Logger::DBG_WARNING, "Camera auto exposure mode is not set to BULB (%s). Setting mode to BULB...", gphoto->autoexposuremode_widget->choices[(uint8_t)gphoto->autoexposuremode_widget->value.index]);
+                DEBUGFDEVICE(device, INDI::Logger::DBG_WARNING, "Camera auto exposure mode is not set to either BULB or MANUAL modes (%s). Please set mode to BULB for long exposures.", gphoto->autoexposuremode_widget->choices[(uint8_t)gphoto->autoexposuremode_widget->value.index]);
+                /*
                 ISState states = ISS_ON;
                 char *names = {"autoexposuremode4"};
                 ISNewSwitch(device, "autoexposuremode", &states, &names, 1);
 
                 // Update widget
                 gphoto_read_widget(gphoto->autoexposuremode_widget);
+                */
             }
         }
 
