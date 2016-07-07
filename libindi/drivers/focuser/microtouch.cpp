@@ -78,7 +78,7 @@ Microtouch::Microtouch()
 {
 
     // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
-    SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_HAS_VARIABLE_SPEED);
+    SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT /*| FOCUSER_HAS_VARIABLE_SPEED*/);
 
     lastPos = 0;
     lastTemperature = 0;
@@ -263,7 +263,8 @@ bool Microtouch::updatePosition()
 
 bool Microtouch::updateSpeed()
 {
-    int nbytes_written=0, nbytes_read=0, rc=-1;
+    // TODO
+/*    int nbytes_written=0, nbytes_read=0, rc=-1;
     char errstr[MAXRBUF];
     char resp[3];
     short speed;
@@ -303,7 +304,7 @@ bool Microtouch::updateSpeed()
         DEBUGF(INDI::Logger::DBG_ERROR, "Unknown error: focuser speed value (%s)", resp);
         return false;
     }
-
+*/
     return true;
 }
 
@@ -347,7 +348,8 @@ bool Microtouch::setTemperatureCalibration(double calibration)
 
 bool Microtouch::setTemperatureCoefficient(double coefficient)
 {
-    int nbytes_written=0, rc=-1;
+    // TODO
+/*    int nbytes_written=0, rc=-1;
     char errstr[MAXRBUF];
     char cmd[7];
 
@@ -363,7 +365,7 @@ bool Microtouch::setTemperatureCoefficient(double coefficient)
         DEBUGF(INDI::Logger::DBG_ERROR, "setTemperatureCoefficient error: %s.", errstr);
         return false;
     }
-
+*/
     return true;
 
 }
@@ -426,7 +428,7 @@ bool Microtouch::setSpeed(unsigned short speed)
 
 bool Microtouch::setTemperatureCompensation(bool enable)
 {
-    int nbytes_written=0, rc=-1;
+/*    int nbytes_written=0, rc=-1;
     char errstr[MAXRBUF];
     char cmd[4];
 
@@ -443,7 +445,7 @@ bool Microtouch::setTemperatureCompensation(bool enable)
         DEBUGF(INDI::Logger::DBG_ERROR, "setTemperatureCompensation error: %s.", errstr);
         return false;
     }
-
+*/
     return true;
 
 }
@@ -802,6 +804,8 @@ bool Microtouch::WriteCmdSetByte(char cmd, char val)
     write_buffer[0]=cmd;
     write_buffer[1]=val;
 
+
+    //    DEBUGF-Macro does not output correctly - Commented out for now
     //    DEBUGF(INDI::Logger::DBG_ERROR, "WriteCmdSetByte : %#04x.", write_buffer);
 
 
