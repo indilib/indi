@@ -264,7 +264,7 @@ bool Microtouch::updatePosition()
 bool Microtouch::updateSpeed()
 {
     // TODO
-/*    int nbytes_written=0, nbytes_read=0, rc=-1;
+    /*    int nbytes_written=0, nbytes_read=0, rc=-1;
     char errstr[MAXRBUF];
     char resp[3];
     short speed;
@@ -349,7 +349,7 @@ bool Microtouch::setTemperatureCalibration(double calibration)
 bool Microtouch::setTemperatureCoefficient(double coefficient)
 {
     // TODO
-/*    int nbytes_written=0, rc=-1;
+    /*    int nbytes_written=0, rc=-1;
     char errstr[MAXRBUF];
     char cmd[7];
 
@@ -428,7 +428,7 @@ bool Microtouch::setSpeed(unsigned short speed)
 
 bool Microtouch::setTemperatureCompensation(bool enable)
 {
-/*    int nbytes_written=0, rc=-1;
+    /*    int nbytes_written=0, rc=-1;
     char errstr[MAXRBUF];
     char cmd[4];
 
@@ -673,21 +673,21 @@ void Microtouch::TimerHit()
     bool rc = updatePosition();
     if (rc)
     {
-        //        if (fabs(lastPos - FocusAbsPosN[0].value) > 5)
-        //        {
-        IDSetNumber(&FocusAbsPosNP, NULL);
-        //            lastPos = FocusAbsPosN[0].value;
-        //        }
+        if (fabs(lastPos - FocusAbsPosN[0].value) > 5)
+        {
+            IDSetNumber(&FocusAbsPosNP, NULL);
+            lastPos = FocusAbsPosN[0].value;
+        }
     }
 
     rc = updateTemperature();
     if (rc)
     {
-        //        if (fabs(lastTemperature - TemperatureN[0].value) >= 0.5)
-        //        {
-        IDSetNumber(&TemperatureNP, NULL);
-        //            lastTemperature = TemperatureN[0].value;
-        //        }
+        if (fabs(lastTemperature - TemperatureN[0].value) >= 0.5)
+        {
+            IDSetNumber(&TemperatureNP, NULL);
+            lastTemperature = TemperatureN[0].value;
+        }
     }
 
     if (FocusTimerNP.s == IPS_BUSY)

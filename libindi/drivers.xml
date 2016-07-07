@@ -159,6 +159,10 @@
                 <driver name="MoonLite">indi_moonlite_focus</driver>
                 <version>1.0</version>
         </device>
+        <device label="Microtouch">
+                <driver name="Microtouch">indi_microtouch_focus</driver>
+                <version>0.1</version>
+        </device>
         <device label="Baader SteelDrive">
                 <driver name="Baader SteelDrive">indi_steeldrive_focus</driver>
                 <version>1.0</version>
