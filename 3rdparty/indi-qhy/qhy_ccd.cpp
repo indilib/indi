@@ -774,15 +774,21 @@ bool QHYCCD::StartExposure(float duration)
   if (sim)
       ret = QHYCCD_SUCCESS;
   else
-      ret = SetQHYCCDParam(camhandle,CONTROL_EXPOSURE,ExposureRequest * 1000 * 1000);
-
-  if(ret != QHYCCD_SUCCESS)
   {
-      DEBUGF(INDI::Logger::DBG_ERROR, "Set expose time failed (%d).", ret);
-      return false;
+      if(LastExposureRequest != ExposureRequest)
+      {
+          ret = SetQHYCCDParam(camhandle,CONTROL_EXPOSURE,ExposureRequest * 1000 * 1000);
+
+          if(ret != QHYCCD_SUCCESS)
+          {
+              DEBUGF(INDI::Logger::DBG_ERROR, "Set expose time failed (%d).", ret);
+              return false;
+          }
+
+          LastExposureRequest = ExposureRequest;
+      }
   }
 
-  // lzr: we need to call the following apis every single exposure,the usleep(200000) is important
   if (sim)
       ret = QHYCCD_SUCCESS;
   else
@@ -806,9 +812,6 @@ bool QHYCCD::StartExposure(float duration)
   }
 
   DEBUGF(INDI::Logger::DBG_DEBUG, "SetQHYCCDResolution camroix %d camroiy %d camroiwidth %d camroiheight %d", camroix,camroiy,camroiwidth,camroiheight);
-  
-  // JM 2016-05-08: Some QHY cameras needs 200ms before you can exposure a frame. Asked QHY to try to minimize this!
-  //usleep(200000);
 
   if (sim)
       ret = QHYCCD_SUCCESS;
@@ -1211,7 +1214,12 @@ bool QHYCCD::ISNewNumber (const char *dev, const char *name, double values[], ch
         if(strcmp(name,GainNP.name) == 0)
         {
             IUUpdateNumber(&GainNP, values, names, n);
-            SetQHYCCDParam(camhandle,CONTROL_GAIN,GainN[0].value);
+            GainRequest = GainN[0].value;
+            if(LastGainRequest != GainRequest)
+            {
+                SetQHYCCDParam(camhandle,CONTROL_GAIN,GainN[0].value);
+                LastGainRequest = GainRequest;
+            }
             DEBUGF(INDI::Logger::DBG_SESSION, "Current %s value %f",GainNP.name,GainN[0].value);
             GainNP.s = IPS_OK;
             IDSetNumber(&GainNP, NULL);
