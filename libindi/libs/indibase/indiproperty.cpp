@@ -16,6 +16,10 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
+#ifdef  __APPLE__
+#include <stdlib.h>
+#endif
+
 #include "basedevice.h"
 #include "indicom.h"
 #include "base64.h"

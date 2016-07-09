@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5909A8241D31803200F74CF2 /* libindi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A91A8CD3190004AA95 /* libindi.dylib */; };
+		5909A8251D31803200F74CF2 /* libnova.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA422C1A8CB6920004AA95 /* libnova.dylib */; };
+		5909A82D1D31807D00F74CF2 /* microtouch.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5909A82B1D31807D00F74CF2 /* microtouch.cpp */; };
+		5909A8301D3180AF00F74CF2 /* indi_microtouch_focus in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 5909A82A1D31803200F74CF2 /* indi_microtouch_focus */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		590AD2B81CFDFBE9008D5367 /* libnova.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA422C1A8CB6920004AA95 /* libnova.dylib */; };
 		590AD2B91CFDFBE9008D5367 /* libindi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A91A8CD3190004AA95 /* libindi.dylib */; };
 		590AD2C11CFDFC4A008D5367 /* skywatcherAPIMount.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 590AD2BF1CFDFC4A008D5367 /* skywatcherAPIMount.cpp */; };
@@ -782,6 +786,27 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		5909A81E1D31803200F74CF2 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA422B1A8CB6920004AA95;
+			remoteInfo = nova;
+		};
+		5909A8201D31803200F74CF2 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA43A81A8CD3190004AA95;
+			remoteInfo = indi;
+		};
+		5909A82E1D3180A300F74CF2 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5909A81C1D31803200F74CF2;
+			remoteInfo = indi_microtouch_focus;
+		};
 		590AD2B21CFDFBE9008D5367 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
@@ -2234,6 +2259,15 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		5909A8261D31803200F74CF2 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
 		590AD2BA1CFDFBE9008D5367 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -2573,6 +2607,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 6;
 			files = (
+				5909A8301D3180AF00F74CF2 /* indi_microtouch_focus in Copy Files (33 items) (53 items) */,
 				598BF81E1D2AF1A900DCD8CF /* indi_script_dome in Copy Files (33 items) (53 items) */,
 				590AD30B1CFE01B2008D5367 /* indi_shelyakeshel_spectrograph in Copy Files (33 items) (53 items) */,
 				590AD2DC1CFDFE30008D5367 /* indi_smartfocus_focus in Copy Files (33 items) (53 items) */,
@@ -2836,6 +2871,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		5909A82A1D31803200F74CF2 /* indi_microtouch_focus */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_microtouch_focus; sourceTree = BUILT_PRODUCTS_DIR; };
+		5909A82B1D31807D00F74CF2 /* microtouch.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = microtouch.cpp; sourceTree = "<group>"; };
+		5909A82C1D31807D00F74CF2 /* microtouch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = microtouch.h; sourceTree = "<group>"; };
 		590AD2AC1CFDF7DE008D5367 /* CMakeLists.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
 		590AD2AD1CFDF92A008D5367 /* config.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
 		590AD2AE1CFDFB20008D5367 /* CMakeLists.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
@@ -3649,6 +3687,15 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		5909A8231D31803200F74CF2 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5909A8241D31803200F74CF2 /* libindi.dylib in Frameworks */,
+				5909A8251D31803200F74CF2 /* libnova.dylib in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		590AD2B71CFDFBE9008D5367 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -4747,6 +4794,7 @@
 				590AD2D61CFDFDEA008D5367 /* indi_smartfocus_focus */,
 				590AD3021CFE0118008D5367 /* indi_shelyakeshel_spectrograph */,
 				9D967F751D2A5DA500EF200A /* indi_script_dome */,
+				5909A82A1D31803200F74CF2 /* indi_microtouch_focus */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -5222,6 +5270,8 @@
 		9D0B2A741A8D213700ED17BF /* focuser */ = {
 			isa = PBXGroup;
 			children = (
+				5909A82B1D31807D00F74CF2 /* microtouch.cpp */,
+				5909A82C1D31807D00F74CF2 /* microtouch.h */,
 				9D0B2A851A8D218000ED17BF /* focus_simulator.cpp */,
 				9D0B2A861A8D218000ED17BF /* indi_tcfs_sk.xml */,
 				9D0B2A871A8D218000ED17BF /* moonlite.cpp */,
@@ -5578,6 +5628,25 @@
 /* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
+		5909A81C1D31803200F74CF2 /* indi_microtouch_focus */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5909A8271D31803200F74CF2 /* Build configuration list for PBXNativeTarget "indi_microtouch_focus" */;
+			buildPhases = (
+				5909A8211D31803200F74CF2 /* Sources */,
+				5909A8231D31803200F74CF2 /* Frameworks */,
+				5909A8261D31803200F74CF2 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				5909A81D1D31803200F74CF2 /* PBXTargetDependency */,
+				5909A81F1D31803200F74CF2 /* PBXTargetDependency */,
+			);
+			name = indi_microtouch_focus;
+			productName = indi_lxbasic;
+			productReference = 5909A82A1D31803200F74CF2 /* indi_microtouch_focus */;
+			productType = "com.apple.product-type.tool";
+		};
 		590AD2B01CFDFBE9008D5367 /* indi_skywatcherAPIMount */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 590AD2BB1CFDFBE9008D5367 /* Build configuration list for PBXNativeTarget "indi_skywatcherAPIMount" */;
@@ -5938,6 +6007,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				5909A82F1D3180A300F74CF2 /* PBXTargetDependency */,
 				598BF81D1D2AF19D00DCD8CF /* PBXTargetDependency */,
 				590AD30A1CFE01A5008D5367 /* PBXTargetDependency */,
 				590AD2DB1CFDFE22008D5367 /* PBXTargetDependency */,
@@ -7075,6 +7145,7 @@
 				590AD2B01CFDFBE9008D5367 /* indi_skywatcherAPIMount */,
 				590AD2C81CFDFDEA008D5367 /* indi_smartfocus_focus */,
 				590AD2F41CFE0118008D5367 /* indi_shelyakeshel_spectrograph */,
+				5909A81C1D31803200F74CF2 /* indi_microtouch_focus */,
 			);
 		};
 /* End PBXProject section */
@@ -7183,6 +7254,14 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		5909A8211D31803200F74CF2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5909A82D1D31807D00F74CF2 /* microtouch.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		590AD2B51CFDFBE9008D5367 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -8130,6 +8209,21 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		5909A81D1D31803200F74CF2 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA422B1A8CB6920004AA95 /* nova */;
+			targetProxy = 5909A81E1D31803200F74CF2 /* PBXContainerItemProxy */;
+		};
+		5909A81F1D31803200F74CF2 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA43A81A8CD3190004AA95 /* indi */;
+			targetProxy = 5909A8201D31803200F74CF2 /* PBXContainerItemProxy */;
+		};
+		5909A82F1D3180A300F74CF2 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5909A81C1D31803200F74CF2 /* indi_microtouch_focus */;
+			targetProxy = 5909A82E1D3180A300F74CF2 /* PBXContainerItemProxy */;
+		};
 		590AD2B11CFDFBE9008D5367 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 9DDA422B1A8CB6920004AA95 /* nova */;
@@ -9195,6 +9289,61 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		5909A8281D31803200F74CF2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"/Applications/Xcode-Beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include",
+					"../../../libnova-0.15.0/src",
+					"../../../libnova-0.15.0/src/libnova",
+					"../../../libusb-1.0.19/libusb",
+					../../../cfitsio,
+					../../libindi/libs/indibase,
+					../../libindi/libs,
+					../../libindi,
+				);
+				MTL_ENABLE_DEBUG_INFO = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		5909A8291D31803200F74CF2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"/Applications/Xcode-Beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include",
+					"../../../libnova-0.15.0/src",
+					"../../../libnova-0.15.0/src/libnova",
+					"../../../libusb-1.0.19/libusb",
+					../../../cfitsio,
+					../../libindi/libs/indibase,
+					../../libindi/libs,
+					../../libindi,
+				);
+				MTL_ENABLE_DEBUG_INFO = NO;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 		590AD2BC1CFDFBE9008D5367 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -13171,6 +13320,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		5909A8271D31803200F74CF2 /* Build configuration list for PBXNativeTarget "indi_microtouch_focus" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5909A8281D31803200F74CF2 /* Debug */,
+				5909A8291D31803200F74CF2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		590AD2BB1CFDFBE9008D5367 /* Build configuration list for PBXNativeTarget "indi_skywatcherAPIMount" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
