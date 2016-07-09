@@ -35,6 +35,10 @@
 #include <stdint.h>
 #include <locale.h>
 
+#ifdef  __APPLE__
+#include <sys/param.h>
+#endif
+
 #if defined(BSD) && !defined(__GNU__)
 #include <IOKit/serial/ioss.h>
 #include <sys/ioctl.h>
