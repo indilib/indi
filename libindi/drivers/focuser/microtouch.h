@@ -1,5 +1,6 @@
 /*
-    Moonlite Focuser
+    Microtouch Focuser
+    Copyright (C) 2016 Marco Peters (mpeters@rzpeters.de)
     Copyright (C) 2013 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
     This library is free software; you can redistribute it and/or

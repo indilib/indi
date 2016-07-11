@@ -1,5 +1,6 @@
 /*
     Microtouch Focuser
+    Copyright (C) 2016 Marco Peters (mpeters@rzpeters.de)
     Copyright (C) 2013 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
     This library is free software; you can redistribute it and/or
@@ -243,6 +244,8 @@ bool Microtouch::updateTemperature()
     tcoeff= ((short int) resp[5] << 8 | ((short int)resp[4] & 0xff) );
     raw_coeff= ((float) tcoeff) / 16;
 
+    DEBUGF(INDI::Logger::DBG_DEBUG, "updateTemperature : RESP (%02X %02X %02X %02X %02X %02X)", resp[0],resp[1],resp[2],resp[3],resp[4],resp[5]);
+
     TemperatureN[0].value = raw_temp+raw_coeff;
     TemperatureSettingN[0].value=raw_coeff;
 
@@ -314,7 +317,7 @@ bool Microtouch::updateMotorSpeed()
 
     IUResetSwitch(&MotorSpeedSP);
 
-    DEBUGF(INDI::Logger::DBG_ERROR, "MotorSpeed: %d.", WriteCmdGetByte(CMD_GET_MOTOR_SPEED));
+    DEBUGF(INDI::Logger::DBG_DEBUG, "MotorSpeed: %d.", WriteCmdGetByte(CMD_GET_MOTOR_SPEED));
 
     if (WriteCmdGetByte(CMD_GET_MOTOR_SPEED)==8)
         MotorSpeedS[0].s = ISS_ON;
@@ -379,6 +382,8 @@ bool Microtouch::reset()
 
 bool Microtouch::MoveFocuser(unsigned int position)
 {
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "MoveFocuser to Position: %d", position);
 
     if (position < FocusAbsPosN[0].min || position > FocusAbsPosN[0].max)
     {
@@ -753,6 +758,8 @@ bool Microtouch::WriteCmd(char cmd)
 
     tcflush(PortFD, TCIOFLUSH);
 
+DEBUGF(INDI::Logger::DBG_DEBUG, "WriteCmd : %02x ", cmd);
+
     if ( (rc = tty_write(PortFD, &cmd, 1, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
@@ -790,7 +797,10 @@ char Microtouch::WriteCmdGetByte(char cmd)
     char read[2];
 
     if (WriteCmdGetResponse(cmd,read,2))
+    {
+	DEBUGF(INDI::Logger::DBG_DEBUG, "WriteCmdSetInt : %02x %02x ", read[0],read[1]);
         return read[1];
+    }
     else
         return -1;
 }
@@ -805,8 +815,7 @@ bool Microtouch::WriteCmdSetByte(char cmd, char val)
     write_buffer[1]=val;
 
 
-    //    DEBUGF-Macro does not output correctly - Commented out for now
-    //    DEBUGF(INDI::Logger::DBG_ERROR, "WriteCmdSetByte : %#04x.", write_buffer);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "WriteCmdSetByte : CMD %02x %02x ", write_buffer[0],write_buffer[1]);
 
 
     tcflush(PortFD, TCIOFLUSH);
@@ -842,7 +851,7 @@ bool Microtouch::WriteCmdSetShortInt(char cmd, short int val)
     write_buffer[1]=val & 0xFF;
     write_buffer[2]=val >> 8;
 
-    //    DEBUGF(INDI::Logger::DBG_ERROR, "WriteCmdSetShortInt : %#06x.", write_buffer);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "WriteCmdSetShortInt : %02x %02x %02x ", write_buffer[0],write_buffer[1],write_buffer[2]);
 
 
     tcflush(PortFD, TCIOFLUSH);
@@ -879,7 +888,7 @@ bool Microtouch::WriteCmdSetInt(char cmd, int val)
     write_buffer[2]=val << 8;
     write_buffer[1]=val;
 
-    //    DEBUGF(INDI::Logger::DBG_ERROR, "WriteCmdSetInt : %#010x.", write_buffer);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "WriteCmdSetInt : %02x %02x %02x %02x %02x ", write_buffer[0],write_buffer[1],write_buffer[2],write_buffer[3],write_buffer[4]);
 
 
     tcflush(PortFD, TCIOFLUSH);
@@ -906,8 +915,7 @@ bool Microtouch::WriteCmdSetIntAsDigits(char cmd, int val)
     write_buffer[3]=(val / 100) % 10;
     write_buffer[4]=(val / 1000) % 10;
 
-    //    DEBUGF(INDI::Logger::DBG_ERROR, "WriteCmdSetIntAsDigits : %.2x%.2x%.2x%.2x%.2x", write_buffer[0], write_buffer[1], write_buffer[2], write_buffer[3], write_buffer[4]);
-
+    DEBUGF(INDI::Logger::DBG_DEBUG, "WriteCmdSetIntAsDigits : CMD (%02x %02x %02x %02x %02x) ", write_buffer[0], write_buffer[1], write_buffer[2], write_buffer[3], write_buffer[4]);
 
     tcflush(PortFD, TCIOFLUSH);
 
