@@ -1,5 +1,6 @@
 /*
     Microtouch Focuser
+    Copyright (C) 2016 Marco Peters (mpeters@rzpeters.de)
     Copyright (C) 2013 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
     This library is free software; you can redistribute it and/or
@@ -242,6 +243,8 @@ bool Microtouch::updateTemperature()
 
     tcoeff= ((short int) resp[5] << 8 | ((short int)resp[4] & 0xff) );
     raw_coeff= ((float) tcoeff) / 16;
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "updateTemperature : RESP (%#02X %#02X %#02X %#02X %#02X %#02X )", resp[0],resp[1],resp[2],resp[3],resp[4],resp[5]);
 
     TemperatureN[0].value = raw_temp+raw_coeff;
     TemperatureSettingN[0].value=raw_coeff;
