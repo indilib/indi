@@ -945,10 +945,12 @@ gphoto_driver *gphoto_open(const char *shutter_release_port)
 
     DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Finding bulb widget...");
 
-    // Find Bulb widget
-    if ( (gphoto->bulb_widget = find_widget(gphoto, "bulb")) == NULL )
-        // Look for eosremoterelease widget
-        gphoto->bulb_widget = find_widget(gphoto, "eosremoterelease");
+    // Look for eosremoterelease widget first
+    if ( (gphoto->bulb_widget = find_widget(gphoto, "eosremoterelease")) == NULL)
+    {
+        // Find Bulb widget if eosremoterelease is not found
+        gphoto->bulb_widget = find_widget(gphoto, "bulb");
+    }
 
     if (gphoto->bulb_widget)
     {
