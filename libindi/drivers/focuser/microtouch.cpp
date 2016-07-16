@@ -913,7 +913,7 @@ bool Microtouch::WriteCmdSetIntAsDigits(char cmd, int val)
     write_buffer[1]=val % 10;
     write_buffer[2]=(val / 10) % 10;
     write_buffer[3]=(val / 100) % 10;
-    write_buffer[4]=(val / 1000) % 10;
+    write_buffer[4]=(val / 1000);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "WriteCmdSetIntAsDigits : CMD (%02x %02x %02x %02x %02x) ", write_buffer[0], write_buffer[1], write_buffer[2], write_buffer[3], write_buffer[4]);
 
