@@ -798,7 +798,7 @@ char Microtouch::WriteCmdGetByte(char cmd)
 
     if (WriteCmdGetResponse(cmd,read,2))
     {
-	DEBUGF(INDI::Logger::DBG_DEBUG, "WriteCmdSetInt : %02x %02x ", read[0],read[1]);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "WriteCmdGetByte : %02x %02x ", read[0],read[1]);
         return read[1];
     }
     else
