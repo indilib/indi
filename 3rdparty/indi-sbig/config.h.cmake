@@ -12,3 +12,6 @@
 
 /* Define if you have libnova.h */
 #cmakedefine   HAVE_NOVA_H 1
+
+#define VERSION_MAJOR @VERSION_MAJOR@
+#define VERSION_MINOR @VERSION_MINOR@

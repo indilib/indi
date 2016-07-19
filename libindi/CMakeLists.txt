@@ -539,6 +539,16 @@ add_executable(indi_moonlite_focus ${moonlite_SRCS})
 target_link_libraries(indi_moonlite_focus indidriver)
 install(TARGETS indi_moonlite_focus RUNTIME DESTINATION bin )
 
+################ Microtouch Focuser ################
+
+set(microtouch_SRCS
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/microtouch.cpp
+   )
+
+add_executable(indi_microtouch_focus ${microtouch_SRCS})
+target_link_libraries(indi_microtouch_focus indidriver)
+install(TARGETS indi_microtouch_focus RUNTIME DESTINATION bin )
+
 ################ Baader SteelDrive Focuser ################
 
 set(steeldrive_SRCS

@@ -149,7 +149,7 @@ private:
   // Temperature tracking
   float TemperatureRequest;
   int temperatureID;
-  bool coolerEnabled;
+  bool coolerEnabled, useSoftBin;
 
   // Exposure progress
   float ExposureRequest;

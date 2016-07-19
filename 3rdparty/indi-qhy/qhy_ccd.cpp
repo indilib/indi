@@ -583,6 +583,8 @@ bool QHYCCD::Connect()
         camxbin = 1;
         camybin = 1;
 
+        useSoftBin = false;
+
         ret = IsQHYCCDControlAvailable(camhandle,CAM_BIN1X1MODE);
         if(ret == QHYCCD_SUCCESS)
         {
@@ -599,6 +601,8 @@ bool QHYCCD::Connect()
         {
             cap |= CCD_CAN_BIN;
         }
+        else
+            useSoftBin = true;
 
         DEBUGF(INDI::Logger::DBG_DEBUG, "Binning Control: %s", cap & CCD_CAN_BIN ? "True" : "False");        
 
@@ -688,7 +692,7 @@ bool QHYCCD::setupParams()
             return false;
         }
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "GetQHYCCDChipInfo: chipW :%g chipH: %g imageW: %g imageH: %g pixelW: %g pixelH: %g bbp %g",
+        DEBUGF(INDI::Logger::DBG_DEBUG, "GetQHYCCDChipInfo: chipW :%g chipH: %g imageW: %d imageH: %d pixelW: %g pixelH: %g bbp %d",
                                 chipw,chiph,imagew,imageh,pixelw,pixelh,bpp);
 
         camroix = 0;
@@ -988,7 +992,8 @@ int QHYCCD::grabImage()
   }
 
   // Perform software binning if necessary
-  //PrimaryCCD.binFrame();
+  if (useSoftBin)
+      PrimaryCCD.binFrame();
 
   DEBUG(INDI::Logger::DBG_DEBUG, "Download complete.");
   if (ExposureRequest > POLLMS * 5)
