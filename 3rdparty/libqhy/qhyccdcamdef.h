@@ -334,25 +334,6 @@
  * Type define for QHY5IIIEND*/
 #define DEVICETYPE_QHY5IIIEND   4999
 
-/* QHYA seires */
-
-/**
- * Type define for QHY90A/IC90A */
-#define DEVICETYPE_90A          900
-
-/**
- * Type define for QHY16200A/IC16200A */
-#define DEVICETYPE_16200A       901
-
-/**
- * Type define for 695A*/
-#define DEVICETYPE_695A         916
-
-/**
- * Type define for QHY9T */
-#define DEVICETYPE_16803        906
-
-
 /**
  * Type define for QHY16 */
 #define DEVICETYPE_QHY16        16
@@ -446,6 +427,29 @@
  * Type define for SOLAR1600 */
 #define DEVICETYPE_SOLAR1600    908
 
+/* QHYA seires */
+
+/**
+ * Type define for QHY90A/IC90A */
+#define DEVICETYPE_90A          900
+
+/**
+ * Type define for QHY16200A/IC16200A */
+#define DEVICETYPE_16200A       901
+
+/**
+ * Type define for QHY814A/IC814A */
+#define DEVICETYPE_814A         903
+
+/**
+ * Type define for 16803 */
+#define DEVICETYPE_16803        906
+
+/**
+ * Type define for 695A*/
+#define DEVICETYPE_695A         916
+
+
 /**
  * Type define for QHY15GIGAE */
 #define DEVICETYPE_QHY15G       9000
@@ -471,6 +475,8 @@
 #define DEVICETYPE_QHY814G      9010
 
 #define DEVICETYPE_QHY45GX      9011
+
+#define DEVICETYPE_QHY10_FOCUS  9012
 
 /**
  * Type define for UNKNOW */
