@@ -922,7 +922,8 @@ gphoto_driver *gphoto_open(const char *shutter_release_port)
         DEBUGDEVICE(device, INDI::Logger::DBG_WARNING, "Warning: Didn't find an exposure widget! Are you sure the camera is set to Bulb mode?");
     }
 
-    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Exposure Widget: %s", gphoto->exposure_widget->name);
+    if (gphoto->exposure_widget != NULL)
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Exposure Widget: %s", gphoto->exposure_widget->name);
 
     int ret = gphoto_read_widget(gphoto->exposure_widget);
     if (ret == GP_OK)
@@ -932,7 +933,8 @@ gphoto_driver *gphoto_open(const char *shutter_release_port)
     gphoto->format = -1;
     gphoto->upload_settings = GP_UPLOAD_CLIENT;
 
-    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Image Format Widget: %s", gphoto->format_widget->name);
+    if (gphoto->format_widget != NULL)
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Image Format Widget: %s", gphoto->format_widget->name);
 
     gphoto->iso_widget = find_widget(gphoto, "iso");
     if (gphoto->iso_widget == NULL)
@@ -941,7 +943,8 @@ gphoto_driver *gphoto_open(const char *shutter_release_port)
     }
     gphoto->iso = -1;
 
-    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"ISO Widget: %s", gphoto->iso_widget->name);
+    if (gphoto->iso_widget != NULL)
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"ISO Widget: %s", gphoto->iso_widget->name);
 
     DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Finding bulb widget...");
 
