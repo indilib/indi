@@ -29,6 +29,10 @@
 #define CMD_IS_MOVING 0x82
 #define CMD_HALT 0x83
 #define CMD_GET_TEMPERATURE 0x84
+#define CMD_SET_COEFF 0x85
+#define CMD_GET_COEFF 0x86
+#define CMD_TEMPCOMP_ON 0x87
+#define CMD_TEMPCOMP_OFF 0x88
 #define CMD_UPDATE_POSITION 0x8c
 #define CMD_GET_POSITION 0x8d
 #define CMD_SET_MOTOR_SPEED 0x9d
@@ -70,6 +74,7 @@ private:
 
     void GetFocusParams();
     bool reset();
+    bool reset(double pos);
     bool updateMotorSpeed();
     bool updateTemperature();
     bool updatePosition();
@@ -88,7 +93,7 @@ private:
     bool WriteCmdGetResponse(char cmd,char* readbuffer, char numbytes);
     char WriteCmdGetByte(char cmd);
     bool WriteCmdSetByte(char cmd, char val);
-    short int WriteCmdGetShortInt(char cmd);
+    unsigned short int WriteCmdGetShortInt(char cmd);
     bool WriteCmdSetShortInt(char cmd, short int val);
     int WriteCmdGetInt(char cmd);
     bool WriteCmdSetInt(char cmd, int val);
@@ -111,6 +116,9 @@ private:
 
     ISwitch ResetS[1];
     ISwitchVectorProperty ResetSP;
+
+    INumber ResetToPosN[1];
+    INumberVectorProperty ResetToPosNP;
 
 };
 
