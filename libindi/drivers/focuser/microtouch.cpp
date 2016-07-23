@@ -112,8 +112,8 @@ bool Microtouch::initProperties()
     IUFillNumberVector(&MaxTravelNP, MaxTravelN, 1, getDeviceName(), "FOCUS_MAXTRAVEL", "Max. travel", OPTIONS_TAB, IP_RW, 0, IPS_IDLE );
 
     // Temperature Settings
-    IUFillNumber(&TemperatureSettingN[0], "Calibration", "", "%6.2f", -20, 20, 0.5, 0);
-    IUFillNumber(&TemperatureSettingN[1], "Coefficient", "", "%6.2f", -20, 20, 0.5, 0);
+    IUFillNumber(&TemperatureSettingN[0], "Calibration", "", "%6.2f", -20, 20, 0.01, 0);
+    IUFillNumber(&TemperatureSettingN[1], "Coefficient", "", "%6.2f", -20, 20, 0.01, 0);
     IUFillNumberVector(&TemperatureSettingNP, TemperatureSettingN, 2, getDeviceName(), "Temperature Settings", "", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Compensate for temperature
@@ -124,6 +124,9 @@ bool Microtouch::initProperties()
     // Reset
     IUFillSwitch(&ResetS[0], "Zero", "", ISS_OFF);
     IUFillSwitchVector(&ResetSP, ResetS, 1, getDeviceName(), "Reset", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    IUFillNumber(&ResetToPosN[0], "Position", "", "%6.0f", 0, 60000, 1, 0);
+    IUFillNumberVector(&ResetToPosNP, ResetToPosN, 1, getDeviceName(), "Reset to Position", "", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     /* Relative and absolute movement */
     FocusRelPosN[0].min = 0.;
@@ -154,6 +157,7 @@ bool Microtouch::updateProperties()
         defineNumber(&TemperatureSettingNP);
         defineSwitch(&TemperatureCompensateSP);
         defineSwitch(&ResetSP);
+        defineNumber(&ResetToPosNP);
 
         GetFocusParams();
 
@@ -170,6 +174,7 @@ bool Microtouch::updateProperties()
         deleteProperty(TemperatureSettingNP.name);
         deleteProperty(TemperatureCompensateSP.name);
         deleteProperty(ResetSP.name);
+        deleteProperty(ResetToPosNP.name);
     }
 
     return true;
@@ -218,7 +223,7 @@ const char * Microtouch::getDefaultName()
 
 bool Microtouch::Ack()
 {
-    short int pos=WriteCmdGetShortInt(CMD_GET_POSITION);
+    unsigned short int pos=WriteCmdGetShortInt(CMD_GET_POSITION);
     if (pos>-1)
     {
         FocusAbsPosN[0].value = pos;
@@ -234,27 +239,30 @@ bool Microtouch::updateTemperature()
     char resp[7];
 
     short int ttemp=0, tcoeff=0;
-    float raw_temp=0, raw_coeff=0;
+    double raw_temp=0, raw_coeff=0, tcomp_coeff=0;
 
     if (!(WriteCmdGetResponse(CMD_GET_TEMPERATURE, resp, 6)))
         return false;
     ttemp=  ((short int) resp[1] << 8 | ((short int)resp[2] & 0xff) );
-    raw_temp=((float) ttemp) / 16;
+    raw_temp=((double) ttemp) / 16;
 
     tcoeff= ((short int) resp[5] << 8 | ((short int)resp[4] & 0xff) );
-    raw_coeff= ((float) tcoeff) / 16;
+    raw_coeff= ((double) tcoeff) / 16;
+
+    tcomp_coeff=(double) (((double) WriteCmdGetInt(CMD_GET_COEFF))/128);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "updateTemperature : RESP (%02X %02X %02X %02X %02X %02X)", resp[0],resp[1],resp[2],resp[3],resp[4],resp[5]);
 
     TemperatureN[0].value = raw_temp+raw_coeff;
     TemperatureSettingN[0].value=raw_coeff;
+    TemperatureSettingN[1].value=tcomp_coeff;
 
     return true;
 }
 
 bool Microtouch::updatePosition()
 {
-    short int pos=WriteCmdGetShortInt(CMD_GET_POSITION);
+    unsigned short int pos=WriteCmdGetShortInt(CMD_GET_POSITION);
     if (pos>-1)
     {
         FocusAbsPosN[0].value = pos;
@@ -344,6 +352,7 @@ bool Microtouch::setTemperatureCalibration(double calibration)
 
     temp = (short int) (calibration*16);
 
+
     if (!(WriteCmdSetShortInt(CMD_SET_TEMP_OFFSET, temp)))
         return false;
     return true;
@@ -351,24 +360,18 @@ bool Microtouch::setTemperatureCalibration(double calibration)
 
 bool Microtouch::setTemperatureCoefficient(double coefficient)
 {
-    // TODO
-    /*    int nbytes_written=0, rc=-1;
     char errstr[MAXRBUF];
-    char cmd[7];
 
-    int coeff = coefficient * 2;
+    int tcoeff = (int) (coefficient * 128);
 
-    snprintf(cmd, 7, ":SC%02hhX#", coeff);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Setting new temperaturecoefficient  : %d.", tcoeff);
 
-    tcflush(PortFD, TCIOFLUSH);
-
-    if ( (rc = tty_write(PortFD, cmd, 6, &nbytes_written)) != TTY_OK)
+    if (!(WriteCmdSetInt(CMD_SET_COEFF, tcoeff)))
     {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "setTemperatureCoefficient error: %s.", errstr);
+        DEBUG(INDI::Logger::DBG_ERROR, "setTemperatureCoefficient error: Setting temperaturecoefficient failed.");
         return false;
     }
-*/
+
     return true;
 
 }
@@ -376,6 +379,13 @@ bool Microtouch::setTemperatureCoefficient(double coefficient)
 bool Microtouch::reset()
 {
     WriteCmdSetIntAsDigits(CMD_RESET_POSITION,0x00);
+    return true;
+
+}
+
+bool Microtouch::reset(double pos)
+{
+    WriteCmdSetIntAsDigits(CMD_RESET_POSITION,(int) pos);
     return true;
 
 }
@@ -405,7 +415,6 @@ bool Microtouch::setMotorSpeed(char speed)
     else
         WriteCmdSetByte(CMD_SET_MOTOR_SPEED,4);
 
-
     return true;
 }
 
@@ -433,26 +442,18 @@ bool Microtouch::setSpeed(unsigned short speed)
 
 bool Microtouch::setTemperatureCompensation(bool enable)
 {
-    /*    int nbytes_written=0, rc=-1;
-    char errstr[MAXRBUF];
-    char cmd[4];
 
-    tcflush(PortFD, TCIOFLUSH);
 
     if (enable)
-        strncpy(cmd, ":+#", 4);
+        if (WriteCmd(CMD_TEMPCOMP_ON))
+            return true;
+        else
+            return false;
     else
-        strncpy(cmd, ":-#", 4);
-
-    if ( (rc = tty_write(PortFD, cmd, 3, &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "setTemperatureCompensation error: %s.", errstr);
-        return false;
-    }
-*/
-    return true;
-
+        if (WriteCmd(CMD_TEMPCOMP_OFF))
+            return true;
+        else
+            return false;
 }
 
 bool Microtouch::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
@@ -557,6 +558,20 @@ bool Microtouch::ISNewNumber (const char *dev, const char *name, double values[]
 
             TemperatureSettingNP.s = IPS_OK;
             IDSetNumber(&TemperatureSettingNP, NULL);
+        }
+
+        if (!strcmp(name, ResetToPosNP.name))
+        {
+            IUUpdateNumber(&ResetToPosNP, values, names, n);
+            if (!reset(ResetToPosN[0].value))
+            {
+                ResetToPosNP.s = IPS_ALERT;
+                IDSetNumber(&ResetToPosNP, NULL);
+                return false;
+            }
+
+            ResetToPosNP.s = IPS_OK;
+            IDSetNumber(&ResetToPosNP, NULL);
         }
 
     }
@@ -678,7 +693,7 @@ void Microtouch::TimerHit()
     bool rc = updatePosition();
     if (rc)
     {
-        if (fabs(lastPos - FocusAbsPosN[0].value) > 5)
+        if (fabs(lastPos - FocusAbsPosN[0].value) > 1)
         {
             IDSetNumber(&FocusAbsPosNP, NULL);
             lastPos = FocusAbsPosN[0].value;
@@ -688,7 +703,7 @@ void Microtouch::TimerHit()
     rc = updateTemperature();
     if (rc)
     {
-        if (fabs(lastTemperature - TemperatureN[0].value) >= 0.5)
+        if (fabs(lastTemperature - TemperatureN[0].value) >= 0.01)
         {
             IDSetNumber(&TemperatureNP, NULL);
             lastTemperature = TemperatureN[0].value;
@@ -758,7 +773,7 @@ bool Microtouch::WriteCmd(char cmd)
 
     tcflush(PortFD, TCIOFLUSH);
 
-DEBUGF(INDI::Logger::DBG_DEBUG, "WriteCmd : %02x ", cmd);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "WriteCmd : %02x ", cmd);
 
     if ( (rc = tty_write(PortFD, &cmd, 1, &nbytes_written)) != TTY_OK)
     {
@@ -798,7 +813,7 @@ char Microtouch::WriteCmdGetByte(char cmd)
 
     if (WriteCmdGetResponse(cmd,read,2))
     {
-    DEBUGF(INDI::Logger::DBG_DEBUG, "WriteCmdGetByte : %02x %02x ", read[0],read[1]);
+        DEBUGF(INDI::Logger::DBG_DEBUG, "WriteCmdGetByte : %02x %02x ", read[0],read[1]);
         return read[1];
     }
     else
@@ -831,7 +846,7 @@ bool Microtouch::WriteCmdSetByte(char cmd, char val)
 }
 
 
-short int Microtouch::WriteCmdGetShortInt(char cmd)
+unsigned short int Microtouch::WriteCmdGetShortInt(char cmd)
 {
     char read[3];
 
@@ -873,7 +888,7 @@ int Microtouch::WriteCmdGetInt(char cmd)
     if (WriteCmdGetResponse(cmd,read,5))
         return ((unsigned char) read[4] << 24 | (unsigned char) read[3] << 16 | (unsigned char) read[2] << 8 | (unsigned char) read[1]);
     else
-        return -1;
+        return -100000;
 }
 
 bool Microtouch::WriteCmdSetInt(char cmd, int val)
@@ -883,10 +898,10 @@ bool Microtouch::WriteCmdSetInt(char cmd, int val)
     char write_buffer[5];
 
     write_buffer[0]=cmd;
-    write_buffer[4]=val << 24;
-    write_buffer[3]=val << 16;
-    write_buffer[2]=val << 8;
-    write_buffer[1]=val;
+    write_buffer[1]=val & 0xFF;
+    write_buffer[2]=val >> 8;
+    write_buffer[3]=val >> 16;
+    write_buffer[4]=val >> 24;
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "WriteCmdSetInt : %02x %02x %02x %02x %02x ", write_buffer[0],write_buffer[1],write_buffer[2],write_buffer[3],write_buffer[4]);
 
