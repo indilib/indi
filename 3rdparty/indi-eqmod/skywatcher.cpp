@@ -1049,6 +1049,33 @@ void Skywatcher::SetMotion(SkywatcherAxis axis, SkywatcherAxisStatus newstatus) 
   NewStatus[axis]=newstatus;
 }
 
+void Skywatcher::ResetMotions() throw (EQModError)
+{
+  char motioncmd[3];
+  SkywatcherAxisStatus newstatus;
+  
+  DEBUGF(DBG_MOUNT, "%s() ", __FUNCTION__);
+
+  motioncmd[2]='\0';
+  //set to SLEW/LOWSPEED
+  newstatus.slewmode=SLEW;
+  newstatus.speedmode=LOWSPEED;
+  motioncmd[0] ='1';
+  // Keep directions
+  CheckMotorStatus(Axis1);
+  newstatus.direction=RAStatus.direction;
+  if (RAStatus.direction == FORWARD) motioncmd[1] = '0'; else motioncmd[1] = '1';
+  dispatch_command(SetMotionMode, Axis1, motioncmd);
+  read_eqmod();
+  NewStatus[Axis1]=newstatus;
+  
+  CheckMotorStatus(Axis2);
+  newstatus.direction=DEStatus.direction;
+  if (DEStatus.direction == FORWARD) motioncmd[1] = '0'; else motioncmd[1] = '1';
+  dispatch_command(SetMotionMode, Axis2, motioncmd);
+  read_eqmod();
+  NewStatus[Axis2]=newstatus;
+}
 
 void Skywatcher::StopMotor(SkywatcherAxis axis)  throw (EQModError)
 {
