@@ -39,7 +39,7 @@
 
 using namespace std;
 
-#define MAX_FILTERS_SIZE 6
+#define MAX_FILTERS_SIZE 12
 
 
 class QSICCD : public INDI::CCD, public INDI::FilterInterface
