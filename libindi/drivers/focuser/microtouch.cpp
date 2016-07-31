@@ -883,7 +883,7 @@ bool Microtouch::WriteCmdSetShortInt(char cmd, short int val)
 
 int Microtouch::WriteCmdGetInt(char cmd)
 {
-    char read[3];
+    char read[5];
 
     if (WriteCmdGetResponse(cmd,read,5))
         return ((unsigned char) read[4] << 24 | (unsigned char) read[3] << 16 | (unsigned char) read[2] << 8 | (unsigned char) read[1]);
