@@ -826,6 +826,7 @@ bool ASICCD::StartExposure(float duration)
           usleep(100000);
           continue;
     }
+    break;
   }
 
   if (errCode != ASI_SUCCESS)
