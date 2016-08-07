@@ -1,5 +1,3 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<driversList>
 <devGroup group="Telescopes">
 	<device label="LX200 Basic" focal_length="" aperture="">
 		<driver name="LX200 Basic">indi_lx200basic</driver>
@@ -17,6 +15,10 @@
 		<driver name="LX200 Classic">indi_lx200classic</driver>
                 <version>2.0</version>
 	</device>	
+        <device label="LX200 OnStep" focal_length="" aperture="">^M
+                <driver name="LX200 OnStep">indi_lx200_OnStep</driver>^M
+                <version>0.0</version>^M
+        </device>^M
 	<device label="LX200 16" focal_length="4064" aperture="406.4">
 		<driver name="LX200 16">indi_lx200_16</driver>
 		<version>2.0</version>
@@ -109,10 +111,6 @@
                 <driver name="iEQ">indi_ieq_telescope</driver>
                 <version>1.5</version>
         </device>
-        <device label="CEM25" focal_length="" aperture="">
-                <driver name="iEQ">indi_ieq_telescope</driver>
-                <version>1.5</version>
-        </device>
         <device label="ZEQ25" focal_length="" aperture="">
                 <driver name="ZEQ25">indi_lx200zeq25</driver>
                 <version>1.0</version>
@@ -133,10 +131,6 @@
                 <driver name="Skywatcher API Mount">indi_skywatcherAPIMount</driver>
                 <version>1.0</version>
         </device>        
-        <device label="Telescope Scripting Gateway" focal_length="" aperture="">
-          <driver name="Telescope  Scripting Gateway">indi_script_telescope</driver>
-          <version>1.0</version>
-        </device>
 </devGroup>
 <devGroup group="Focusers">
         <device label="Focuser Simulator">
@@ -147,21 +141,13 @@
                 <driver name="RoboFocus">indi_robo_focus</driver>
 		<version>1.0</version>
 	</device>
-        <device label="Rigelsys NFocus">
-          <driver name="NFocus">indi_nfocus</driver>
-          <version>1.0</version>
-        </device>
-        <device label="Rigelsys NStep">
-          <driver name="NStep">indi_nstep_focus</driver>
-          <version>1.0</version>
-        </device>
+	<device label="Rigelsys NFocus">
+                <driver name="NFocus">indi_nfocus</driver>
+		<version>1.0</version>
+	</device>
         <device label="MoonLite">
                 <driver name="MoonLite">indi_moonlite_focus</driver>
                 <version>1.0</version>
-        </device>
-        <device label="Microtouch">
-                <driver name="Microtouch">indi_microtouch_focus</driver>
-                <version>0.1</version>
         </device>
         <device label="Baader SteelDrive">
                 <driver name="Baader SteelDrive">indi_steeldrive_focus</driver>
@@ -189,7 +175,7 @@
         </device>
 </devGroup>
 <devGroup group="CCDs">
-        <device label="CCD Simulator" mdpd="true">
+        <device label="CCD Simulator">
                 <driver name="CCD Simulator">indi_simulator_ccd</driver>
                 <version>1.0</version>
         </device>
@@ -265,10 +251,6 @@
                 <driver name="RollOff Simulator">indi_rolloff_dome</driver>
                 <version>1.0</version>
         </device>
-        <device label="Dome Scripting Gateway">
-          <driver name="Dome  Scripting Gateway">indi_script_dome</driver>
-          <version>1.0</version>
-        </device>
 </devGroup>
 <devGroup group="Weather">
         <device label="Weather Meta">
@@ -287,7 +269,6 @@
 <devGroup group="Agent">
     <device label="Imager Agent">
         <driver name="Imager Agent">indi_imager_agent</driver>
-        <version>1.2</version>
+        <version>1.1</version>
         </device>
 </devGroup>
-</driversList>
