@@ -401,13 +401,15 @@ int getTimeFormat(int fd, int *format)
 
   DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%s>", temp_string);
 
-  nbytes_read = sscanf(temp_string, "%d", &tMode);  //azwing remove parentheses, expect 24 or 12 as return value
+  nbytes_read = sscanf(temp_string, "(%d)", &tMode);
 
   if (nbytes_read < 1)
    return -1;
   else
    *format = tMode;
-   return 0;
+
+  return 0;
+
 }
 
 int getSiteName(int fd, char *siteName, int siteNum)
@@ -1268,22 +1270,22 @@ int selectSite(int fd, int siteNum)
   {
     case 1:
       DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":W1#");
-    if ( (error_type = tty_write_string(fd, ":W0#", &nbytes_write)) != TTY_OK)	//azwing starts with W0
+    if ( (error_type = tty_write_string(fd, ":W0#", &nbytes_write)) != TTY_OK)	//azwing index starts at 0 not 1
     	   return error_type;
       break;
     case 2:
       DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":W2#");
-    if ( (error_type = tty_write_string(fd, ":W1#", &nbytes_write)) != TTY_OK)	//azwing starts with W0
+    if ( (error_type = tty_write_string(fd, ":W1#", &nbytes_write)) != TTY_OK)	//azwing index starts at 0 not 1
     	   return error_type;
       break;
     case 3:
       DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":W3#");
-    if ( (error_type = tty_write_string(fd, ":W2#", &nbytes_write)) != TTY_OK)	//azwing starts with W0
+    if ( (error_type = tty_write_string(fd, ":W2#", &nbytes_write)) != TTY_OK)	//azwing index starts at 0 not 1
     	   return error_type;
       break;
     case 4:
       DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":W4#");
-    if ( (error_type = tty_write_string(fd, ":W3#", &nbytes_write)) != TTY_OK)	//azwing starts with W0
+    if ( (error_type = tty_write_string(fd, ":W3#", &nbytes_write)) != TTY_OK)	//azwing index starts at 0 not 1
     	   return error_type;
       break;
     default:

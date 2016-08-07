@@ -80,7 +80,7 @@ bool LX200Classic::initProperties()
     IUFillNumber(&MaxSlewRateN[0], "maxSlew", "Rate", "%g", 2.0, 9.0, 1.0, 9.0);
     IUFillNumberVector(&MaxSlewRateNP, MaxSlewRateN, 1, getDeviceName(), "Max slew Rate", "", MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
-    IUFillNumber(&ElevationLimitN[0], "minAlt", "Speed", "%+03f", -90.0, 90.0, 0.0, 0.0);	//ezwing removed double % typo
+    IUFillNumber(&ElevationLimitN[0], "minAlt", "Speed", "%+03f", -90.0, 90.0, 0.0, 0.0); //azwing removed typo double %% in fromat
     IUFillNumber(&ElevationLimitN[1], "maxAlt", "Speed", "%+03f", -90.0, 90.0, 0.0, 0.0);
     IUFillNumberVector(&ElevationLimitNP, ElevationLimitN, 1, getDeviceName(), "Slew elevation Limit", "", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
     return true;

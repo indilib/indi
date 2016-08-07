@@ -243,6 +243,11 @@ const char * LX200Generic::getDefaultName()
     return (char *)"LX200 Generic";
 }
 
+const char * LX200Generic::getDriverName()
+{
+    return LX200Generic::getDefaultName();
+}
+
 bool LX200Generic::initProperties()
 {
     /* Make sure to init parent properties first */
@@ -697,7 +702,7 @@ bool LX200Generic::Abort()
 {
      if (isSimulation() == false && abortSlew(PortFD) < 0)
      {
-         IDMessage(getDeviceName(), "Failed to abort slew.");
+         DEBUG(INDI::Logger::DBG_ERROR, "Failed to abort slew.");
          return false;
      }
 
@@ -726,26 +731,6 @@ bool LX200Generic::Abort()
         return true;
      }
 
-     IUResetSwitch(&MovementNSSP);
-     IUResetSwitch(&MovementWESP);
-     MovementNSSP.s = IPS_IDLE;
-     MovementWESP.s = IPS_IDLE;
-     EqNP.s = IPS_IDLE;
-
-     TrackState = SCOPE_IDLE;
-
-     IDSetSwitch(&MovementNSSP, NULL);
-     IDSetSwitch(&MovementWESP, NULL);
-     IDSetNumber(&EqNP, NULL);
-
-     if (CanPark())
-     {
-        IUResetSwitch(&ParkSP);
-        ParkSP.s = IPS_IDLE;
-        IDSetSwitch(&ParkSP, NULL);
-     }
-
-     IDMessage(getDeviceName(), "Slew aborted.");
      return true;
 }
 
