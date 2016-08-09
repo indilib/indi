@@ -274,7 +274,7 @@ user need to malloc and maintain the buffer.
 
 Paras£º		
 int CameraID: this is get from the camera property use the API ASIGetCameraProperty
-int iControlIndex:
+int iControlIndex: index of control, NOT control type
 ASI_CONTROL_CAPS * pControlCaps: Pointer to structure containing the property of the control
 user need to malloc the buffer
 
