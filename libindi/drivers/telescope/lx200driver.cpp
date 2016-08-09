@@ -401,7 +401,7 @@ int getTimeFormat(int fd, int *format)
 
   DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%s>", temp_string);
 
-  nbytes_read = sscanf(temp_string, "(%d)", &tMode);
+  nbytes_read = sscanf(temp_string, "%d", &tMode);
 
   if (nbytes_read < 1)
    return -1;
