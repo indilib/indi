@@ -16,7 +16,11 @@
 	<device label="LX200 Classic" focal_length="" aperture="">
 		<driver name="LX200 Classic">indi_lx200classic</driver>
                 <version>2.0</version>
-	</device>	
+	</device>
+        <device label="LX200 OnStep" focal_length="" aperture="">^M
+                <driver name="LX200 OnStep">indi_lx200_OnStep</driver>^M
+                <version>0.0</version>
+        </device>	
 	<device label="LX200 16" focal_length="4064" aperture="406.4">
 		<driver name="LX200 16">indi_lx200_16</driver>
 		<version>2.0</version>
