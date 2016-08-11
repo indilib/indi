@@ -1562,3 +1562,15 @@ void* ASICCD::streamVideo()
 }
 #endif
 
+void ASICCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
+{
+    INDI::CCD::addFITSKeywords(fptr, targetChip);
+
+    INumber *gainNP = IUFindNumber(&ControlNP, "Gain");
+
+    if (gainNP)
+    {
+        int status=0;
+        fits_update_key_s(fptr, TDOUBLE, "Gain", &(gainNP->value), "Gain", &status);
+    }
+}

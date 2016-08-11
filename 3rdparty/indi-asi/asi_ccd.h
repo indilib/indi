@@ -75,6 +75,9 @@ protected:
   virtual IPState GuideEast(float ms);
   virtual IPState GuideWest(float ms);
 
+  // ASI specific keywords
+  virtual void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip);
+
 private:
 
   /** Get image from CCD and send it to client */
