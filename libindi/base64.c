@@ -142,23 +142,12 @@ to64frombits(unsigned char *out, const unsigned char *in, int inlen)
 
 	out = (unsigned char*)wbuf;
 	if ( inlen > 0 ) {
-		int n1 = (*in & 0xfc) >> 2;
-		int n2 = (*in & 0x03) << 4;
-		if (inlen > 1 ) {
-			in++;
-			n2 |= (*in & 0xf0) >> 4;
-		}
-		*out++ = base64digits[n1];
-		*out++ = base64digits[n2];
-		if (inlen == 2) {  // 2 bytes left to encode
-			int n3 = (*in & 0x0f) << 2;
-			in++;
-			n3 |= (*in & 0xc0) >> 6;
-			*out++ = base64digits[n3];
-		}
-		if (inlen == 1) {  // 1 byte left to encode
-			*out++ = '=';
-		}
+		unsigned char fragment;
+		*out++ = base64digits[in[0] >> 2];
+		fragment = (in[0] << 4) & 0x30;
+		if (inlen > 1) fragment |= in[1] >> 4;
+		*out++ = base64digits[fragment];
+		*out++ = (inlen < 2) ? '=' : base64digits[(in[1] << 2) & 0x3c];
 		*out++ = '=';
 	}
 	*out = 0; // NULL terminate
