@@ -153,9 +153,14 @@ private:
 
   // Exposure progress
   float ExposureRequest;
+  float LastExposureRequest;
   struct timeval ExpStart;
   int timerID;
 
+  // Gain
+  float GainRequest;
+  float LastGainRequest;
+  
   // Thread conditions
 #ifndef OSX_EMBEDED_MODE
   int streamPredicate;

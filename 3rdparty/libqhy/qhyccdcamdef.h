@@ -331,6 +331,10 @@
 #define DEVICETYPE_QHY183C      4045
 
 /**
+ * Type define for QHY-DevelopDev*/
+#define DEVICETYPE_QHY5IIICOMMON 4046
+
+/**
  * Type define for QHY5IIIEND*/
 #define DEVICETYPE_QHY5IIIEND   4999
 
