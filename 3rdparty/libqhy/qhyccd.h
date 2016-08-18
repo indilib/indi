@@ -338,6 +338,7 @@ EXPORTC uint32_t STDCALL ControlQHYCCDGuide(qhyccd_handle *handle,uint32_t direc
 	  another QHYCCD_ERROR code on other failures
     */
 EXPORTC uint32_t STDCALL SendOrder2QHYCCDCFW(qhyccd_handle *handle,char *order,uint32_t length);
+
 	 /** 
 	  @fn 	uint32_t GetQHYCCDCFWStatus(qhyccd_handle *handle,char *status)
       @brief control color filter wheel port 
@@ -349,7 +350,18 @@ EXPORTC uint32_t STDCALL SendOrder2QHYCCDCFW(qhyccd_handle *handle,char *order,u
     */
 EXPORTC	uint32_t STDCALL GetQHYCCDCFWStatus(qhyccd_handle *handle,char *status);
 
-/** \fn uint32_t SetQHYCCDTrigerMode(qhyccd_handle *handle,uint32_t trigerMode)
+	 /** 
+	  @fn 	uint32_t IsQHYCCDCFWPlugged(qhyccd_handle *handle)
+      @brief control color filter wheel port 
+      @param handle camera control handle
+	  @return
+	  on success,return QHYCCD_SUCCESS \n
+	  another QHYCCD_ERROR code on other failures
+    */
+EXPORTC	uint32_t STDCALL IsQHYCCDCFWPlugged(qhyccd_handle *handle);
+
+     /** 
+      \fn   uint32_t SetQHYCCDTrigerMode(qhyccd_handle *handle,uint32_t trigerMode)
       \brief set camera triger mode
       \param handle camera control handle
       \param trigerMode triger mode
@@ -606,36 +618,6 @@ EXPORTC uint32_t STDCALL GetQHYCCDShutterStatus(qhyccd_handle *handle);
 EXPORTC uint32_t STDCALL ControlQHYCCDShutter(qhyccd_handle *handle,uint8_t status);
 
 /** 
-  @fn bool FFmpegInitAVI(char* fileName, uint32_t width, uint32_t height, uint32_t bpp, uint32_t fps, CodecID codeId)
-  @brief init avi file writer
-  @param fileName the filename to save,include path and .avi
-  @param width the image width save to avi
-  @param height the image height save to avi
-  @param bpp the image bpps save to avi
-  @param fps reserved
-  @param codeId reserved
-  @return
-  on success,return QHYCCD_SUCCESS \n
-  another QHYCCD_ERROR code on other failures
-*/
-EXPORTC bool STDCALL FFmpegInitAVI(wchar_t* fileName, uint32_t width, uint32_t height, uint32_t bpp, uint32_t fps, CodecID codeId);
-
-/** 
-  @fn void STDCALL FFmpegFreeAVI(void)
-  @brief avi file write done
-*/
-EXPORTC void STDCALL FFmpegFreeAVI(void);
-
-/** 
-  @fn uint32_t FFmpegWriteToFrame(uint8_t* data, uint32_t frameCount, uint32_t frameIndex)
-  @brief write a frame to avi file
-  @param data the raw image buffer
-  @param frameCount the image size(byte) save to avi
-  @param frameIndex reserved
-*/
-EXPORTC void STDCALL FFmpegWriteToFrame(uint8_t* data, uint32_t frameCount, uint32_t frameIndex);
-
-/** 
   @fn uint32_t GetQHYCCDHumidity(qhyccd_handle *handle,double *hd)
   @brief query cavity's humidity 
   @param handle control handle
@@ -711,5 +693,7 @@ EXPORTC uint32_t STDCALL SetQHYCCDGPSMasterSlave(qhyccd_handle *handle,uint8_t i
 EXPORTC void STDCALL SetQHYCCDGPSSlaveModeParameter(qhyccd_handle *handle,uint32_t target_sec,uint32_t target_us,uint32_t deltaT_sec,uint32_t deltaT_us,uint32_t expTime);
 
 EXPORTC uint32_t STDCALL QHYCCDVendRequestWrite(qhyccd_handle *h,uint8_t req,uint16_t value,uint16_t index1,uint32_t length,uint8_t *data);
+
+EXPORTC uint32_t STDCALL QHYCCDReadUSB_SYNC(qhyccd_handle *h,uint8_t usbep,uint32_t length,uint8_t *data,uint32_t timeout);
 
 #endif
