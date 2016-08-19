@@ -57,7 +57,7 @@ static void cleanup()
     delete cameras[i];
   }
 
-  ReleaseQHYCCDResource();
+  //ReleaseQHYCCDResource();
 }
 
 void ISInit()
@@ -223,6 +223,7 @@ QHYCCD::QHYCCD(const char *name)
 
 QHYCCD::~QHYCCD()
 {
+    ReleaseQHYCCDResource();
 }
 
 const char * QHYCCD::getDefaultName()
@@ -662,7 +663,7 @@ bool QHYCCD::Disconnect()
   if (sim == false)
   {
       CloseQHYCCD(camhandle);
-      ReleaseQHYCCDResource();
+      //ReleaseQHYCCDResource();
   }
 
   return true;
@@ -1182,7 +1183,7 @@ bool QHYCCD::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
 }
 
 
-bool QHYCCD::ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int n)
+bool QHYCCD::ISNewText( const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     if(strcmp(dev,getDeviceName())==0)
     {
