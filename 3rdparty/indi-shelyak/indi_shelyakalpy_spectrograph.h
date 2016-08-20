@@ -3,8 +3,8 @@
 //On serial connection
 //11\n : calib lamp on
 //21\n : flat lamp on
-//31\n : dark on
-//(and the opposite, 10, 20, 30)
+//if 11 ans 21 : dark on
+//(and the opposite, 10, 20)
 //00\n : shut off all
 
 //
@@ -16,7 +16,7 @@ std::map<ISState, char> COMMANDS = {
   {ISS_ON, 0x31}, {ISS_OFF, 0x30}    //"1" and "0"
 };
 std::map<std::string, char> PARAMETERS = {
-  {"DARK", 0x31}, {"ARNE", 0x32}, {"TUNGSTEN", 0x33} //"1", "2", "3"
+  {"DARK", 0x33}, {"ARNE", 0x31}, {"TUNGSTEN", 0x32} //"1", "2", "3"
 };
 
 class ShelyakAlpy : public INDI::DefaultDevice

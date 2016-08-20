@@ -86,7 +86,7 @@ bool ShelyakAlpy::initProperties()
   IUFillSwitch(&LampS[0], "DARK", "DARK", ISS_OFF);
   IUFillSwitch(&LampS[1], "ARNE", "ArNe", ISS_OFF);
   IUFillSwitch(&LampS[2], "TUNGSTEN", "Tungsten", ISS_OFF);
-  IUFillSwitchVector(&LampSP, LampS, 3, getDeviceName(), "CALIB_LAMPS", "Calibration lamps", CALIBRATION_UNIT_TAB, IP_RW, ISR_NOFMANY, 0, IPS_IDLE);
+  IUFillSwitchVector(&LampSP, LampS, 3, getDeviceName(), "CALIB_LAMPS", "Calibration lamps", CALIBRATION_UNIT_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
   //--------------------------------------------------------------------------------
   // Options
@@ -135,7 +135,7 @@ bool ShelyakAlpy::Connect()
 {
   int rc;
   char errMsg[MAXRBUF];
-  if ((rc = tty_connect(PortT[0].text, 2400, 8, 0, 1, &PortFD)) != TTY_OK)
+  if ((rc = tty_connect(PortT[0].text, 9600, 8, 0, 1, &PortFD)) != TTY_OK)
   {
     tty_error_msg(rc, errMsg, MAXRBUF);
     DEBUGF(INDI::Logger::DBG_ERROR, "Failed to connect to port %s. Error: %s", PortT[0].text, errMsg);
@@ -200,13 +200,11 @@ bool ShelyakAlpy::ISNewText (const char *dev, const char *name, char *texts[], c
  */
 bool ShelyakAlpy::calibrationUnitCommand(char command, char parameter)
 {
-  int rc, nbytes_written;
-//  char c[3] = {parameter,command,'\n'}; // Bytes 2 are parameter and command and last byte '\n'
+int rc, nbytes_written;
 
-  //if ((rc = tty_write(PortFD, c, 3, &nbytes_written)) != TTY_OK) // send the bytes to the spectrograph
-
-char c[3] = {parameter,command,0x0a};
-if ((rc = tty_write(PortFD, c, 3, &nbytes_written)) != TTY_OK)
+char reset[3] = {'0','0',0x0a};
+//clean alpy configuration. Reset all.
+if ((rc = tty_write(PortFD, reset, 3, &nbytes_written)) != TTY_OK)
 
   {
     char errmsg[MAXRBUF];
@@ -214,9 +212,55 @@ if ((rc = tty_write(PortFD, c, 3, &nbytes_written)) != TTY_OK)
     DEBUGF(INDI::Logger::DBG_ERROR, "error: %s.", errmsg);
     return false;
   } else {
-      DEBUGF(INDI::Logger::DBG_SESSION, "sent on serial: %s.", c);
+      DEBUGF(INDI::Logger::DBG_SESSION, "sent on serial: %s.", reset);
 
   }
   sleep(1); // wait for the calibration unit to actually flip the switch
-  return true;
+
+
+
+if (parameter==0x33){ //special for dark : have to put both lamps on
+    char cmd[6] = {0x31,0x31,0x0a,0x32,0x31,0x0a};//"11\n21\n" 
+    if(command==0x31){
+
+    if ((rc = tty_write(PortFD, cmd, 6, &nbytes_written)) != TTY_OK)
+
+      {
+        char errmsg[MAXRBUF];
+        tty_error_msg(rc, errmsg, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "error: %s.", errmsg);
+        return false;
+      } else {
+          DEBUGF(INDI::Logger::DBG_SESSION, "sent on serial: %s.", cmd);
+
+      }
+      sleep(1); // wait for the calibration unit to actually flip the switch
+      return true;
+    } else {
+        return true;
+    }
+
+
+} else {
+    char c[3] = {parameter,command,0x0a};
+
+    if ((rc = tty_write(PortFD, c, 3, &nbytes_written)) != TTY_OK)
+
+      {
+        char errmsg[MAXRBUF];
+        tty_error_msg(rc, errmsg, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "error: %s.", errmsg);
+        return false;
+      } else {
+          DEBUGF(INDI::Logger::DBG_SESSION, "sent on serial: %s.", c);
+
+      }
+      sleep(1); // wait for the calibration unit to actually flip the switch
+      return true;
+}
+
+  
+
+
+
 }
