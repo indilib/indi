@@ -882,8 +882,15 @@ void INDI::BaseClient::sendOneBlob( const char *blobName, unsigned int blobSize,
     fprintf(svrwfp, "    size='%ud'\n", blobSize);
     fprintf(svrwfp, "    format='%s'>\n", blobFormat);
 
-    for (unsigned i = 0; i < blobSize; i += 72)
-        fprintf(svrwfp, "    %.72s\n", ((char *) blobBuffer+i));
+	size_t written = 0;
+	size_t towrite = blobSize;
+	while (written < blobSize) {
+		size_t wr = fwrite((char*)blobBuffer + written, 1, towrite, svrwfp);
+		if (wr > 0) {
+			towrite -= wr;
+			written += wr;
+		}
+	}
 
     fprintf(svrwfp, "   </oneBLOB>\n");
     #endif

@@ -22,6 +22,7 @@
 #endif
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "base64.h"
 
@@ -50,7 +51,7 @@ TEST(CORE_BASE64, Test_from64tobits)
 	p_outbuf = (char*)calloc(1, size);
 	ASSERT_TRUE(p_outbuf);	
 
-	len = from64tobits(p_outbuf, convert);
+	len = from64tobits_fast(p_outbuf, convert, strlen(convert));
 	ASSERT_EQ(sizeof("FOOBARBAZ")-1, len);
 	ASSERT_STREQ("FOOBARBAZ", (char*)p_outbuf);
 
