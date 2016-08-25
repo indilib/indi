@@ -124,7 +124,7 @@ CCDSim::CCDSim()
 
     // Filter stuff
     FilterSlotN[0].min = 1;
-    FilterSlotN[0].max = 5;
+    FilterSlotN[0].max = 8;
 
 }
 
@@ -223,7 +223,7 @@ bool CCDSim::initProperties()
     initFilterProperties(getDeviceName(), FILTER_TAB);
 
     FilterSlotN[0].min = 1;
-    FilterSlotN[0].max = 5;
+    FilterSlotN[0].max = 8;
 
     addDebugControl();
 
@@ -1187,7 +1187,7 @@ bool CCDSim::GetFilterNames(const char* groupName)
     char filterLabel[MAXINDILABEL];
     int MaxFilter = FilterSlotN[0].max;
 
-    const char *filterDesignation[5] = { "Red", "Green", "Blue", "H_Alpha", "Luminosity" };
+    const char *filterDesignation[8] = { "Red", "Green", "Blue", "H_Alpha", "SII", "OIII", "LPR", "Luminosity" };
 
     if (FilterNameT != NULL)
         delete FilterNameT;

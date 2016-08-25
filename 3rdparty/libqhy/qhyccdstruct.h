@@ -181,7 +181,11 @@ enum CONTROL_ID
     QHYCCD_3A_AUTOEXPOSURE,
     QHYCCD_3A_AUTOFOCUS,
     CONTROL_AMPV,                            //!< ccd or cmos ampv
-    CONTROL_VCAM                             //!< Virtual Camera on off 
+    CONTROL_VCAM,                            //!< Virtual Camera on off 
+	CAM_VIEW_MODE,
+
+	CONTROL_CFWSLOTSNUM,         //!< check CFW slots number
+	IS_EXPOSING_DONE
 };
 
 /**
