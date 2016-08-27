@@ -631,10 +631,8 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec, int 
     // If exposure more than 5 seconds OR if camera already set in bulb mode, try doing a BULB exposure
     //if (exptime_msec > 5000 || (gphoto->autoexposuremode_widget != NULL && gphoto->autoexposuremode_widget->value.index == 4))
 
-    // If exposure time is larger than that supported by camera AND
-    // bulb_port (external shutter release) is set OR we have BULB widget OR we have bulb in exposure widget then do bulb
-    if (/*(exptime_msec > gphoto->max_exposure*1000) &&*/
-            (gphoto->bulb_port[0]) || (gphoto->bulb_widget != NULL))
+    // If exposure time is more than 1 second AND we have BULB widget OR we have bulb in exposure widget then do bulb
+    if ((exptime_msec > 1000) && (gphoto->bulb_port[0]) || (gphoto->bulb_widget != NULL))
     {
         //Bulb mode is supported
 

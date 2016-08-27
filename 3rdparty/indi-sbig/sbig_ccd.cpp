@@ -1772,7 +1772,7 @@ int SBIGCCD::getShutterMode(CCDChip *targetChip, int &shutter) {
     } else {
       shutter = SC_OPEN_SHUTTER;
     }
-  } else if (frameType == CCDChip::DARK_FRAME || frameType == CCDChip::FLAT_FRAME) {
+  } else if (frameType == CCDChip::DARK_FRAME || frameType == CCDChip::BIAS_FRAME) {
     if (ccd == CCD_EXT_TRACKING) {
       shutter = SC_CLOSE_EXT_SHUTTER;
     } else {
