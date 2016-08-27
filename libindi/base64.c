@@ -93,10 +93,11 @@ int from64tobits_fast(char* out, const char* in, int inlen)
 	uint8_t b1, b2, b3;
 	uint16_t s1, s2;
 	uint32_t n32;
+	int j;
 	int n = (inlen/4)-1;
 	uint16_t* inp = (uint16_t*)in;
 
-	for( int j=0; j < n; j++ ) {
+	for( j = 0; j < n; j++ ) {
 		s1 = rbase64lut[ inp[0] ];
 		s2 = rbase64lut[ inp[1] ];
 
