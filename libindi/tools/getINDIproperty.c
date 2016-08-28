@@ -560,7 +560,7 @@ oneBLOB (XMLEle *root, char *dev, char *nam, char *enam, char *p, int plen)
 
 	/* decode blob from base64 in p */
 	blob = malloc (3*plen/4);
-	bloblen = from64tobits ((char *)blob, p);
+	bloblen = from64tobits_fast ((char *)blob, p, plen);
 	if (bloblen < 0) {
 	    fprintf (stderr, "%s.%s.%s bad base64\n", dev, nam, enam);
 	    exit(2);

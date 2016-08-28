@@ -1136,9 +1136,9 @@ int INDI::BaseDevice::setBLOB(IBLOBVectorProperty *bvp, XMLEle * root, char * er
                     continue;
                 }
 
-                 blobEL->blob = (unsigned char *) realloc (blobEL->blob, 3*pcdatalenXMLEle(ep)/4);
-
-                 blobEL->bloblen = from64tobits( static_cast<char *> (blobEL->blob), pcdataXMLEle(ep));
+                 int bloblen = pcdatalenXMLEle(ep);
+                 blobEL->blob = (unsigned char *) realloc (blobEL->blob, 3*bloblen/4);
+                 blobEL->bloblen = from64tobits_fast( static_cast<char *> (blobEL->blob), pcdataXMLEle(ep), bloblen);
 
                  strncpy(blobEL->format, valuXMLAtt(fa), MAXINDIFORMAT);
 
