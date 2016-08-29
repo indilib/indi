@@ -16,7 +16,7 @@ find_package(ZLIB REQUIRED)
 find_package(GPSD REQUIRED)
 
 set(GPSD_VERSION_MAJOR 0)
-set(GPSD_VERSION_MINOR 2)
+set(GPSD_VERSION_MINOR 3)
 
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})

@@ -176,25 +176,24 @@ IPState GPSD::updateGPS()
         return IPS_ALERT;
     }
     
-    if (gpsData->status != STATUS_FIX) {
+    if (gpsData->status == STATUS_NO_FIX) {
         // cerr << "No fix.\n";
         return IPS_BUSY;
     }
 
     // detect gps fix
-    if (GPSstatusT[0].text == "NO FIX" && gpsData->fix.mode > 2)
+    if (GPSstatusT[0].text == "NO FIX")
         IDMessage(getDeviceName(), "GPS fix obtained.");
     
     // update gps fix status
-    if ( gpsData->fix.mode >= 3 ) {
+    if ( gpsData->fix.mode == MODE_3D ) {
         GPSstatusT[0].text = (char*) "3D FIX";
         GPSstatusTP.s = IPS_OK;
         IDSetText(&GPSstatusTP, NULL);
-    } else if ( gpsData->fix.mode == 2 ) {
+    } else if ( gpsData->fix.mode == MODE_2D ) {
         GPSstatusT[0].text = (char*) "2D FIX";
-        GPSstatusTP.s = IPS_BUSY;
+        GPSstatusTP.s = IPS_OK;
         IDSetText(&GPSstatusTP, NULL);
-        return IPS_BUSY;
     } else {
         GPSstatusT[0].text = (char*) "NO FIX";
         GPSstatusTP.s = IPS_BUSY;
@@ -235,11 +234,17 @@ IPState GPSD::updateGPS()
     TimeTP.s = IPS_OK;
 
     // update gps location
+    // we should have a gps fix data now
     // fprintf(stderr,"Fix: %d time: %lf\n", data->fix.mode, data->fix.time);
             
     LocationN[LOCATION_LATITUDE].value = gpsData->fix.latitude;
     LocationN[LOCATION_LONGITUDE].value = gpsData->fix.longitude;
-    LocationN[LOCATION_ELEVATION].value = gpsData->fix.altitude;
+    if ( gpsData->fix.mode == MODE_3D ) {
+        LocationN[LOCATION_ELEVATION].value = gpsData->fix.altitude;
+    } else {
+        // Presume we are at sea level if we heve no elevation data
+        LocationN[LOCATION_ELEVATION].value = 0;
+    }
     LocationNP.s = IPS_OK;
 
     // calculate Polaris HA
