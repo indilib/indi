@@ -182,7 +182,7 @@ IPState GPSD::updateGPS()
     }
 
     // detect gps fix
-    if (GPSstatusT[0].text == "NO FIX")
+    if (GPSstatusTP.s != IPS_OK)
         IDMessage(getDeviceName(), "GPS fix obtained.");
     
     // update gps fix status
