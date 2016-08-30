@@ -166,7 +166,10 @@ IPState GPSD::updateGPS()
     TimeTP.s = IPS_OK;
 
     if (!gps->waiting(100000)) {
-        IDMessage(getDeviceName(), "Waiting for gps data...");
+        if (GPSstatusTP.s != IPS_BUSY) {
+            IDMessage(getDeviceName(), "Waiting for gps data...");
+            GPSstatusTP.s = IPS_BUSY;
+        }
         return IPS_BUSY;
     }
 
@@ -177,7 +180,12 @@ IPState GPSD::updateGPS()
     }
     
     if (gpsData->status == STATUS_NO_FIX) {
-        // cerr << "No fix.\n";
+        GPSstatusT[0].text = (char*) "NO FIX";
+        if (GPSstatusTP.s == IPS_OK) {
+            IDMessage(getDeviceName(), "GPS fix lost.");
+        }
+        GPSstatusTP.s = IPS_BUSY;
+        IDSetText(&GPSstatusTP, NULL);
         return IPS_BUSY;
     }
 
