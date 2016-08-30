@@ -1,8 +1,9 @@
-indi-gpsd (0.3) UNRELEASED; urgency=medium
+indi-gpsd (0.3) stable; urgency=medium
 
   * Improve fix detection. Use 2D fixes with zero altitude.
+  * Guard against garbage position on no-fix conditions.
 
- -- Paweł T. Jochym <jochym@wolf.ifj.edu.pl>  Mon, 29 Aug 2016 20:56:42 +0200
+ -- Paweł T. Jochym <jochym@wolf.ifj.edu.pl>  Tue, 30 Aug 2016 09:13:37 +0200
 
 indi-gpsd (0.2) stable; urgency=medium
 
