@@ -16,7 +16,11 @@
 	<device label="LX200 Classic" focal_length="" aperture="">
 		<driver name="LX200 Classic">indi_lx200classic</driver>
                 <version>2.0</version>
-	</device>	
+	</device>
+        <device label="LX200 OnStep" focal_length="" aperture="">^M
+                <driver name="LX200 OnStep">indi_lx200_OnStep</driver>^M
+                <version>0.0</version>
+        </device>	
 	<device label="LX200 16" focal_length="4064" aperture="406.4">
 		<driver name="LX200 16">indi_lx200_16</driver>
 		<version>2.0</version>
@@ -159,6 +163,10 @@
                 <driver name="MoonLite">indi_moonlite_focus</driver>
                 <version>1.0</version>
         </device>
+        <device label="Microtouch">
+                <driver name="Microtouch">indi_microtouch_focus</driver>
+                <version>0.1</version>
+        </device>
         <device label="Baader SteelDrive">
                 <driver name="Baader SteelDrive">indi_steeldrive_focus</driver>
                 <version>1.0</version>
@@ -260,6 +268,10 @@
         <device label="RollOff Simulator">
                 <driver name="RollOff Simulator">indi_rolloff_dome</driver>
                 <version>1.0</version>
+        </device>
+        <device label="Dome Scripting Gateway">
+          <driver name="Dome  Scripting Gateway">indi_script_dome</driver>
+          <version>1.0</version>
         </device>
 </devGroup>
 <devGroup group="Weather">

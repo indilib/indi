@@ -80,7 +80,7 @@ bool FilterSim::Connect()
 {
     CurrentFilter=1;
     FilterSlotN[0].min = 1;
-    FilterSlotN[0].max = 5;
+    FilterSlotN[0].max = 8;
     return true;
 }
 
@@ -107,7 +107,7 @@ bool FilterSim::GetFilterNames(const char* groupName)
     char filterLabel[MAXINDILABEL];
     int MaxFilter = FilterSlotN[0].max;
 
-    const char *filterDesignation[5] = { "Red", "Green", "Blue", "H_Alpha", "Luminosity" };
+    const char *filterDesignation[8] = { "Red", "Green", "Blue", "H_Alpha", "SII", "OIII", "LPR", "Luminosity" };
 
     if (FilterNameT != NULL)
         delete FilterNameT;

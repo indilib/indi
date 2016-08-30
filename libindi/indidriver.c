@@ -1106,8 +1106,9 @@ dispatch (XMLEle *root, char msg[])
                             sizes = (int *) realloc(sizes,newsz);
                             blobsizes = (int *) realloc(blobsizes,newsz);
                         }
-                        blobs[n] = malloc (3*pcdatalenXMLEle(ep)/4);
-                        blobsizes[n] = from64tobits(blobs[n], pcdataXMLEle(ep));
+                        int bloblen = pcdatalenXMLEle(ep);
+                        blobs[n] = malloc (3*bloblen/4);
+                        blobsizes[n] = from64tobits_fast(blobs[n], pcdataXMLEle(ep), bloblen);
                         names[n] = valuXMLAtt(na);
                         formats[n] = valuXMLAtt(fa);
                         sizes[n] = atoi(valuXMLAtt(sa));
@@ -1447,11 +1448,20 @@ void IUSaveConfigBLOB (FILE *fp, const IBLOBVectorProperty *bvp)
         fprintf (fp, "    name='%s'\n", bp->name);
         fprintf (fp, "    size='%d'\n", bp->size);
         fprintf (fp, "    format='%s'>\n", bp->format);
+        fflush(fp); // need to flush - blob will be written unbuffered
 
         encblob = malloc (4*bp->bloblen/3+4);
         l = to64frombits(encblob, bp->blob, bp->bloblen);
-        for (j = 0; j < l; j += 72)
-            fprintf (fp, "%.72s\n", encblob+j);
+        int fh = fileno(fp);
+        size_t written = 0;
+        size_t towrite = l;
+        while (written < l) {
+            size_t wr = write(fh, encblob + written, towrite);
+            if (wr > 0) {
+                towrite -= wr;
+                written += wr;
+            }
+        }
         free (encblob);
 
         fprintf (fp, "  </oneBLOB>\n");
@@ -1938,11 +1948,19 @@ IDSetBLOB (const IBLOBVectorProperty *bvp, const char *fmt, ...)
             printf ("    name='%s'\n", bp->name);
             printf ("    size='%d'\n", bp->size);
             printf ("    format='%s'>\n", bp->format);
+            fflush(stdout); // need to flush - blob will be written unbuffered
 
             encblob = malloc (4*bp->bloblen/3+4);
             l = to64frombits(encblob, bp->blob, bp->bloblen);
-            for (j = 0; j < l; j += 72)
-                printf ("%.72s\n", encblob+j);
+            size_t written = 0;
+            size_t towrite = l;
+            while (written < l) {
+                size_t wr = write(1, encblob + written, towrite);
+                if (wr > 0) {
+                    towrite -= wr;
+                    written += wr;
+                }
+            }
             free (encblob);
 
             printf ("  </oneBLOB>\n");

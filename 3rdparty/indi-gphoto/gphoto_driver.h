@@ -28,6 +28,9 @@ typedef struct
 	float			step;
 } gphoto_widget;
 
+// EOS Release buttons settings
+enum { EOS_NONE, EOS_PRESS_HALF, EOS_PRESS_FULL, EOS_RELEASE_HALF, EOS_RELEASE_FULL, EOS_IMMEDIATE, EOS_PRESS_1, EOS_PRESS_2, EOS_PRESS_3, EOS_RELEASE_1, EOS_RELEASE_2, EOS_RELEASE_3 };
+
 struct _gphoto_driver;
 typedef struct _gphoto_driver gphoto_driver;
 

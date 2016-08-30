@@ -34,7 +34,7 @@
 #define	POLLMS      1000
 #define MAXARGS     20
 
-enum { SCRIPT_CONNECT = 1, SCRIPT_DISCONNECT, SCRIPT_STATUS, SCRIPT_GOTO, SCRIPT_SYNC, SCRIPT_PARK, SCRIPT_UNPARK, SCRIPT_MOVE_NORTH, SCRIPT_MOVE_EAST, SCRIPT_MOVE_SOUTH, SCRIPT_MOVE_WEST, SCRIPT_ABORT } scripts;
+enum { SCRIPT_CONNECT = 1, SCRIPT_DISCONNECT, SCRIPT_STATUS, SCRIPT_GOTO, SCRIPT_SYNC, SCRIPT_PARK, SCRIPT_UNPARK, SCRIPT_MOVE_NORTH, SCRIPT_MOVE_EAST, SCRIPT_MOVE_SOUTH, SCRIPT_MOVE_WEST, SCRIPT_ABORT, SCRIPT_COUNT } scripts;
 
 std::unique_ptr<ScopeScript> scope_script(new ScopeScript());
 
@@ -88,19 +88,19 @@ bool ScopeScript::initProperties() {
 #else
   IUFillText(&ScriptsT[0], "FOLDER", "Folder", "/usr/share/indi/scripts");
 #endif
-  IUFillText(&ScriptsT[1], "SCRIPT_CONNECT", "Connect script", "connect.py");
-  IUFillText(&ScriptsT[2], "SCRIPT_DISCONNECT", "Disconnect script", "disconnect.py");
-  IUFillText(&ScriptsT[3], "SCRIPT_STATUS", "Get status script", "status.py");
-  IUFillText(&ScriptsT[4], "SCRIPT_GOTO", "Goto script", "goto.py");
-  IUFillText(&ScriptsT[5], "SCRIPT_SYNC", "Sync script", "sync.py");
-  IUFillText(&ScriptsT[6], "SCRIPT_PARK", "Park script", "park.py");
-  IUFillText(&ScriptsT[7], "SCRIPT_UNPARK", "Unpark script", "unpark.py");
-  IUFillText(&ScriptsT[8], "SCRIPT_MOVE_NORTH", "Move north script", "move_north.py");
-  IUFillText(&ScriptsT[9], "SCRIPT_MOVE_EAST", "Move east script", "move_east.py");
-  IUFillText(&ScriptsT[10], "SCRIPT_MOVE_SOUTH", "Move south script", "move_south.py");
-  IUFillText(&ScriptsT[11], "SCRIPT_MOVE_WEST", "Move west script", "move_west.py");
-  IUFillText(&ScriptsT[12], "SCRIPT_ABORT", "Abort motion script", "abort.py");
- IUFillTextVector(&ScriptsTP, ScriptsT, 13, getDefaultName(), "SCRIPTS", "Scripts", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+  IUFillText(&ScriptsT[SCRIPT_CONNECT], "SCRIPT_CONNECT", "Connect script", "connect.py");
+  IUFillText(&ScriptsT[SCRIPT_DISCONNECT], "SCRIPT_DISCONNECT", "Disconnect script", "disconnect.py");
+  IUFillText(&ScriptsT[SCRIPT_STATUS], "SCRIPT_STATUS", "Get status script", "status.py");
+  IUFillText(&ScriptsT[SCRIPT_GOTO], "SCRIPT_GOTO", "Goto script", "goto.py");
+  IUFillText(&ScriptsT[SCRIPT_SYNC], "SCRIPT_SYNC", "Sync script", "sync.py");
+  IUFillText(&ScriptsT[SCRIPT_PARK], "SCRIPT_PARK", "Park script", "park.py");
+  IUFillText(&ScriptsT[SCRIPT_UNPARK], "SCRIPT_UNPARK", "Unpark script", "unpark.py");
+  IUFillText(&ScriptsT[SCRIPT_MOVE_NORTH], "SCRIPT_MOVE_NORTH", "Move north script", "move_north.py");
+  IUFillText(&ScriptsT[SCRIPT_MOVE_EAST], "SCRIPT_MOVE_EAST", "Move east script", "move_east.py");
+  IUFillText(&ScriptsT[SCRIPT_MOVE_SOUTH], "SCRIPT_MOVE_SOUTH", "Move south script", "move_south.py");
+  IUFillText(&ScriptsT[SCRIPT_MOVE_WEST], "SCRIPT_MOVE_WEST", "Move west script", "move_west.py");
+  IUFillText(&ScriptsT[SCRIPT_ABORT], "SCRIPT_ABORT", "Abort motion script", "abort.py");
+ IUFillTextVector(&ScriptsTP, ScriptsT, SCRIPT_COUNT, getDefaultName(), "SCRIPTS", "Scripts", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
   
   addDebugControl();
   setDriverInterface(getDriverInterface());
@@ -160,11 +160,11 @@ bool ScopeScript::RunScript(int script, ...) {
     char path[256];
     snprintf(path, 256, "%s/%s", ScriptsT[0].text, tmp);
     execvp(path, args);
-    DEBUGF(INDI::Logger::DBG_ERROR, "Script %s execution failed", path);
     return false;
   } else {
     int status;
     waitpid(pid, &status, 0);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Script %s returned %d", ScriptsT[script].text, status);
     return status == 0;
   }
 }
@@ -200,15 +200,19 @@ bool ScopeScript::ReadScopeStatus() {
     fclose(file);
     unlink(name);
     if (parked != 0) {
-      if (!isParked())
+      if (!isParked()) {
         SetParked(true);
+        DEBUG(INDI::Logger::DBG_SESSION, "Park succesfully executed");
+      }
     } else {
-      if (isParked())
+      if (isParked()) {
         SetParked(false);
+        DEBUG(INDI::Logger::DBG_SESSION, "Unpark succesfully executed");
+      }
     }
     NewRaDec(ra, dec);
   } else {
-    DEBUG(INDI::Logger::DBG_SESSION, "Failed to read status");
+    DEBUG(INDI::Logger::DBG_ERROR, "Failed to read status");
   }
   return status;
 }
@@ -237,18 +241,16 @@ bool ScopeScript::Sync(double ra, double dec) {
 
 bool ScopeScript::Park() {
   bool status = RunScript(SCRIPT_PARK, NULL);
-  if (status) {
-    DEBUG(INDI::Logger::DBG_SESSION, "Park succesfully executed");
-    SetParked(true);
+  if (!status) {
+    DEBUG(INDI::Logger::DBG_ERROR, "Failed to park");
   }
   return status;
 }
 
 bool ScopeScript::UnPark() {
   bool status = RunScript(SCRIPT_UNPARK, NULL);
-  if (status) {
-    DEBUG(INDI::Logger::DBG_SESSION, "Unpark succesfully executed");
-    SetParked(false);
+  if (!status) {
+    DEBUG(INDI::Logger::DBG_ERROR, "Failed to unpark");
   }
   return status;
 }
@@ -269,6 +271,8 @@ bool ScopeScript::Abort() {
   bool status = RunScript(SCRIPT_ABORT, NULL);
   if (status) {
     DEBUG(INDI::Logger::DBG_SESSION, "Succesfully aborted");
+  } else {
+    DEBUG(INDI::Logger::DBG_ERROR, "Failed to abort");
   }
   return status;
 }

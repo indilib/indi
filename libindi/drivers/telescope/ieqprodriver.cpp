@@ -28,6 +28,7 @@
 #include <termios.h>
 #include <fcntl.h>
 #include <time.h>
+#include <ctype.h>
 
 #include "indicom.h"
 #include "indidevapi.h"

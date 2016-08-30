@@ -108,6 +108,7 @@ bool StreamRecorder::initProperties()
      IUFillSwitch(&RecordStreamS[3], "RECORD_OFF", "Record Off", ISS_ON);
      IUFillSwitchVector(&RecordStreamSP, RecordStreamS, NARRAY(RecordStreamS), getDeviceName(), "RECORD_STREAM", "Video Record", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+     return true;
 }
 
 void StreamRecorder::ISGetProperties(const char *dev)
@@ -155,6 +156,7 @@ bool StreamRecorder::updateProperties()
 
       return true;
     }
+    return true;
 }
 
 void StreamRecorder::newFrame(unsigned char *buffer)
@@ -216,6 +218,7 @@ bool StreamRecorder::close()
 bool StreamRecorder::setPixelFormat(uint32_t format)
 {
     direct_record = recorder->setpixelformat(format);
+    return true;
 }
 
 bool StreamRecorder::uploadStream(uint8_t *buffer)
@@ -538,7 +541,7 @@ bool StreamRecorder::ISNewSwitch (const char *dev, const char *name, ISState *st
       return true;
     }
 
-
+    return true;
 }
 
 bool StreamRecorder::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
@@ -560,6 +563,7 @@ bool StreamRecorder::ISNewText (const char *dev, const char *name, char *texts[]
         IDSetText (&RecordFileTP, NULL);
         return true;
     }
+    return true;
 }
 
 bool StreamRecorder::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
@@ -601,6 +605,7 @@ bool StreamRecorder::ISNewNumber (const char *dev, const char *name, double valu
        IDSetNumber(&FramestoDropNP, NULL);
        return true;
      }*/
+     return true;
 }
 
 bool StreamRecorder::setStream(bool enable)

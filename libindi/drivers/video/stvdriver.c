@@ -31,14 +31,11 @@
 #include <time.h>
 #include <stdlib.h>
 
+#include "config.h"
+
 #include "stvdriver.h"
 
-/* Config parameters */
-#include <config.h>
-
-#ifdef HAVE_NOVA_H
 #include <libnova.h>
-#endif
     
 #ifndef _WIN32
 #include <termios.h>
@@ -1158,7 +1155,6 @@ int STV_MenueCCDTemperature( int delay) {
   return 0 ;
 }
 
-#ifdef HAVE_NOVA_H
 int STV_SetDateTime( char *times) 
 {
   int i ;
@@ -1296,7 +1292,6 @@ int STV_SetDateTime( char *times)
   res= STV_Interrupt() ;
   return 0 ;
 }
-#endif
 
 int STV_MenueDateTime( int delay) {
 

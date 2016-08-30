@@ -10,13 +10,6 @@ set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
 set(INDI_MAXDOMEII_VERSION_MAJOR 1)
 set(INDI_MAXDOMEII_VERSION_MINOR 1)
 
-Include (CheckCXXSourceCompiles)
-Include (CheckCSourceCompiles)
-include (MacroOptionalFindPackage)
-include (MacroLogFeature)
-include (MacroBoolTo01)
-include (CheckIncludeFiles)
-
 find_package(INDI REQUIRED)
 find_package(ZLIB REQUIRED)
 FIND_PACKAGE(Nova REQUIRED)

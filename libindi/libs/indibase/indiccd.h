@@ -414,6 +414,20 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
             CCD_HAS_STREAMING       = 1 << 8        /*!< Does the CCD support live video streaming?  */
         } CCDCapability;
 
+        enum
+        {
+            ASTROMETRY_SETTINGS_BINARY,
+            ASTROMETRY_SETTINGS_OPTIONS
+        };
+
+        enum
+        {
+            ASTROMETRY_RESULTS_PIXSCALE,
+            ASTROMETRY_RESULTS_ORIENTATION,
+            ASTROMETRY_RESULTS_RA,
+            ASTROMETRY_RESULTS_DE
+        };
+
         virtual bool initProperties();
         virtual bool updateProperties();
         virtual void ISGetProperties (const char *dev);
@@ -421,6 +435,8 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
         virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
         virtual bool ISSnoopDevice (XMLEle *root);
+
+        static void * runSolverHelper(void *context);
 
      protected:
 
@@ -720,7 +736,7 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         ITextVectorProperty SolverSettingsTP;
 
         // Solver Results
-        INumber SolverResultN[3];
+        INumber SolverResultN[4];
         INumberVectorProperty SolverResultNP;
 
         // WCS
@@ -754,9 +770,16 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
 
         bool ValidCCDRotation;
 
-        bool uploadFile(CCDChip * targetChip, const void *fitsData, size_t totalBytes, bool sendImage, bool saveImage);
+        bool uploadFile(CCDChip * targetChip, const void *fitsData, size_t totalBytes, bool sendImage, bool saveImage, bool useSolver=false);
         void getMinMax(double *min, double *max, CCDChip *targetChip);
         int getFileIndex(const char *dir, const char *prefix, const char *ext);
+        
+        // Run solver thread
+        void runSolver();
+    
+        // Thread for listenINDI()
+        pthread_t solverThread;
+        pthread_mutex_t lock;
 
         friend class ::StreamRecorder;
 

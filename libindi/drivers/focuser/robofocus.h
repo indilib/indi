@@ -38,7 +38,6 @@ public:
     virtual bool updateProperties();
     virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
     virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
     virtual IPState MoveAbsFocuser(uint32_t ticks);
     virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
     virtual bool AbortFocuser();
@@ -58,7 +57,7 @@ private:
     unsigned char CheckSum(char *rf_cmd);
     unsigned char CalculateSum(char *rf_cmd);
     int SendCommand(char *rf_cmd);
-    int ReadResponse(char *buf, int nbytes, int timeout);
+    int ReadResponse(char *buf);
     void GetFocusParams();
 
     int updateRFPosition(double *value);

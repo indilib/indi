@@ -45,6 +45,7 @@
 #include "lx200pulsar2.h"
 #include "lx200fs2.h"
 #include "lx200ss2000pc.h"
+#include "lx200_OnStep.h"
 					       
 // We declare an auto pointer to LX200Generic.
 std::unique_ptr<LX200Generic> telescope;
@@ -79,6 +80,14 @@ void ISInit()
      IDLog("initializing from LX200 classic device...\n");
 
      if(telescope.get() == 0) telescope.reset(new LX200Classic());
+
+
+  }
+  if (strstr(me, "indi_lx200_OnStep"))
+  {
+     IDLog("initializing from LX200 OnStep device...\n");
+
+     if(telescope.get() == 0) telescope.reset(new LX200_OnStep());
 
 
   }

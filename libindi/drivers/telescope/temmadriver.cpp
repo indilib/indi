@@ -973,6 +973,7 @@ bool TemmaMount::SetTemmaLst()
 fprintf(stderr,"SetLst : %s",str);
     tty_write(PortFD,str,strlen(str), &bytesWritten);  // get lst
 
+    return true;
 }
 
 
@@ -989,6 +990,7 @@ double TemmaMount::GetTemmaLattitude()
     }
     fprintf(stderr,"\n");
 
+    return true;
 }
 
 bool TemmaMount::SetTemmaLattitude(double lat)

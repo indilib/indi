@@ -33,8 +33,6 @@
 
 using namespace std;
 
-
-
 /**
  * \class INDI::BaseClient
    \brief Class to provide basic client functionality.
@@ -53,10 +51,8 @@ using namespace std;
  */
 class INDI::BaseClient : public INDI::BaseMediator
 {
-public:
-    enum { INDI_DEVICE_NOT_FOUND=-1, INDI_PROPERTY_INVALID=-2, INDI_PROPERTY_DUPLICATED = -3, INDI_DISPATCH_ERROR=-4 };
-    //typedef boost::shared_ptr<INDI::BaseDevice> devicePtr;
 
+public:
     BaseClient();
     virtual ~BaseClient();
 
@@ -120,7 +116,6 @@ public:
 
       If \e dev and \e prop are supplied, then the BLOB handling policy is set for this particular device and property.
       if \e prop is NULL, then the BLOB policy applies to the whole device.
-
 
       \param blobH BLOB handling policy
       \param dev name of device, required.
@@ -195,7 +190,6 @@ protected:
     /**  Process messages */
     int messageCmd (XMLEle *root, char * errmsg);
 
-
 private:
 
     /** \brief Connect/Disconnect to INDI driver
@@ -203,13 +197,18 @@ private:
          Otherwise, CONNECTION will be turned off.
         \param deviceName Name of the device to connect to.
     */
-    void setDriverConnection(bool status, const char *deviceName);
+    void setDriverConnection(bool status, const char *deviceName);    
+
+    pthread_t listen_thread;
+
+    FILE *svrwfp;			/* FILE * to talk to server */
+    int sockfd;
+
+    int m_receiveFd;
+    int m_sendFd;
 
     // Listen to INDI server and process incoming messages
     void listenINDI();
-
-    // Thread for listenINDI()
-    pthread_t listen_thread;
 
     vector<INDI::BaseDevice *> cDevices;
     vector<string> cDeviceNames;
@@ -220,13 +219,8 @@ private:
     bool verbose;
 
     // Parse & FILE buffers for IO
-    int sockfd;
+
     LilXML *lillp;			/* XML parser context */
-    FILE *svrwfp;			/* FILE * to talk to server */
-
-    int m_receiveFd;
-    int m_sendFd;
-
     uint32_t timeout_sec, timeout_us;
 
 };

@@ -1548,7 +1548,10 @@ bool QSICCD::GetFilterNames(const char* groupName)
     int maxFilters = (int) FilterSlotN[0].max;
 
     if (FilterNameT != NULL)
+    {
         delete FilterNameT;
+        FilterNameT = NULL;
+    }
 
     try
     {
