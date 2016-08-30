@@ -3,7 +3,7 @@
 <devGroup group="Auxiliary">
    <device label="GPSD">
       <driver name="GPSD">indi_gpsd</driver>
-      <version>0.3</version>
+      <version>@GPSD_VERSION_MAJOR@.@GPSD_VERSION_MINOR@</version>
    </device>
 </devGroup>
 </driversList>

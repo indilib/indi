@@ -27,6 +27,7 @@
 #include <time.h>
 
 #include "gps_driver.h"
+#include "config.h"
 
 #include <libgpsmm.h>
 
@@ -74,7 +75,7 @@ void ISSnoopDevice (XMLEle *root)
 
 GPSD::GPSD()
 {
-   setVersion(0,2);
+   setVersion(GPSD_VERSION_MAJOR,GPSD_VERSION_MINOR);
    gps=NULL;
 }
 
