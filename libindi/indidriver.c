@@ -1448,19 +1448,16 @@ void IUSaveConfigBLOB (FILE *fp, const IBLOBVectorProperty *bvp)
         fprintf (fp, "    name='%s'\n", bp->name);
         fprintf (fp, "    size='%d'\n", bp->size);
         fprintf (fp, "    format='%s'>\n", bp->format);
-        fflush(fp); // need to flush - blob will be written unbuffered
 
         encblob = malloc (4*bp->bloblen/3+4);
         l = to64frombits(encblob, bp->blob, bp->bloblen);
-        int fh = fileno(fp);
         size_t written = 0;
         size_t towrite = l;
         while (written < l) {
-            size_t wr = write(fh, encblob + written, towrite);
-            if (wr > 0) {
-                towrite -= wr;
-                written += wr;
-            }
+            towrite = ((l - written) > 72) ? 72 : l - written;
+            size_t wr = fwrite(encblob + written, 1, towrite, fp);
+            fputc('\n',fp);
+            if (wr > 0) written += wr;
         }
         free (encblob);
 
@@ -1948,18 +1945,16 @@ IDSetBLOB (const IBLOBVectorProperty *bvp, const char *fmt, ...)
             printf ("    name='%s'\n", bp->name);
             printf ("    size='%d'\n", bp->size);
             printf ("    format='%s'>\n", bp->format);
-            fflush(stdout); // need to flush - blob will be written unbuffered
 
             encblob = malloc (4*bp->bloblen/3+4);
             l = to64frombits(encblob, bp->blob, bp->bloblen);
             size_t written = 0;
             size_t towrite = l;
             while (written < l) {
-                size_t wr = write(1, encblob + written, towrite);
-                if (wr > 0) {
-                    towrite -= wr;
-                    written += wr;
-                }
+                towrite = ((l - written) > 72) ? 72 : l - written;
+                size_t wr = fwrite(encblob + written, 1, towrite, stdout);
+                fputc('\n', stdout);
+                if (wr > 0) written += wr;
             }
             free (encblob);
 
