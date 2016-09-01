@@ -201,7 +201,7 @@ NexStarAUXScope::~NexStarAUXScope(){
 }
 
 void NexStarAUXScope::initScope(char const *ip, int port){
-    fprintf(stderr,"Scope IP %s:%d", ip, port);
+    fprintf(stderr,"Preset scope IP %s:%d", ip, port);
     bzero(&addr, sizeof(addr));
     addr.sin_family = AF_INET ;
     addr.sin_addr.s_addr=inet_addr(ip);
@@ -221,6 +221,61 @@ void NexStarAUXScope::initScope() {
     sock=0;
 };
 
+bool NexStarAUXScope::detectScope(){
+    struct sockaddr_in myaddr;      /* our address */
+    struct sockaddr_in remaddr;     /* remote address */
+    socklen_t addrlen = sizeof(remaddr);            /* length of addresses */
+    int recvlen;                    /* # bytes received */
+    int fd;                         /* our socket */
+    int BUFSIZE = 2048;
+    int PORT = 55555;
+    unsigned char buf[BUFSIZE];     /* receive buffer */
+
+    /* create a UDP socket */
+
+    if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+            perror("cannot create socket\n");
+            return false;
+    }
+
+    /* Set socket timeout */
+    timeval tv;
+    tv.tv_sec=2;
+    tv.tv_usec=0;
+    setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(struct timeval));
+
+    /* bind the socket to any valid IP address and a specific port */
+
+    memset((char *)&myaddr, 0, sizeof(myaddr));
+    myaddr.sin_family = AF_INET;
+    myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    myaddr.sin_port = htons(PORT);
+
+    if (bind(fd, (struct sockaddr *)&myaddr, sizeof(myaddr)) < 0) {
+            perror("bind failed");
+            return false;
+    }
+
+    /* now loop, receiving data and printing what we received
+        wait max 20 sec
+    */
+    for (int n=0; n<10; n++) {
+            recvlen = recvfrom(fd, buf, BUFSIZE, 0, (struct sockaddr *)&remaddr, &addrlen);
+            // Scope broadcasts 110b UDP packets from port 2000 to 55555
+            // we use it for detection
+            if (ntohs(remaddr.sin_port) == 2000 && recvlen == 110) {
+                fprintf(stderr,"Detected scope IP %s:%d (%d)\n", inet_ntoa(remaddr.sin_addr), ntohs(remaddr.sin_port), recvlen);
+                addr.sin_addr.s_addr=remaddr.sin_addr.s_addr;
+                addr.sin_port = remaddr.sin_port;
+                close(fd);
+                return true;
+            }
+    }
+    /* never exits */
+    close(fd);
+    return false;
+}
+
 
 bool NexStarAUXScope::Connect(){
     fprintf(stderr,"Connecting...");
@@ -228,6 +283,12 @@ bool NexStarAUXScope::Connect(){
         // We are connected. Nothing to do!
         return true;
     }
+    
+    // Detect the scope by UDP broadcasts from port 2000 to port 55555
+    if (! detectScope()){
+        return false;
+    }
+    
     // Create client socket
     if( (sock = socket(PF_INET, SOCK_STREAM, 0)) < 0 )
     {

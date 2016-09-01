@@ -96,6 +96,7 @@ private:
     static const long STEPS_PER_REVOLUTION = 16777216; 
     void initScope(char const *ip, int port);
     void initScope();
+    bool detectScope();
     void closeConnection();
     void emulateGPS(AUXCommand *m);
     void readMsgs();
