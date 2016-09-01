@@ -40,7 +40,7 @@
 
 #include <errno.h>
 
-#define MAXINDIBUF 8192
+#define MAXINDIBUF 49152
 
 #if defined(  _MSC_VER )
 #define snprintf _snprintf
