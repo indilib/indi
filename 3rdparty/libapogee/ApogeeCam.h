@@ -1102,6 +1102,10 @@ class DLL_EXPORT ApogeeCam
          */
         std::string GetSerialNumber();
 
+
+        CamInfo::StrDb ReadStrDatabase();
+        void WriteStrDatabase(CamInfo::StrDb &info);
+
         // ****** PURE VIRTUAL INTERFACE ********
 
         /*! 
@@ -1228,6 +1232,11 @@ class DLL_EXPORT ApogeeCam
          * \exception std::runtime_error
          */
         virtual double GetTempHeatsink() = 0;
+
+        void UpdateAlta(const std::string FilenameCamCon, const std::string FilenameBufCon, const std::string FilenameFx2, const std::string FilenameGpifCamCon, const std::string FilenameGpifBufCon, const std::string FilenameGpifFifo);
+        void UpdateAscentOrAltaF(const std::string FilenameFpga, const std::string FilenameFx2, const std::string FilenameDescriptor);
+        void UpdateAspen(const std::string FilenameFpga, const std::string FilenameFx2, const std::string FilenameDescriptor, const std::string FilenameWebPage, const std::string FilenameWebServer, const std::string FilenameWebCfg);
+
         
     protected:
         ApogeeCam(CamModel::PlatformType platform) ;
@@ -1285,12 +1294,14 @@ class DLL_EXPORT ApogeeCam
 //this code removes vc++ compiler warning C4251
 //from http://www.unknownroad.com/rtfm/VisualStudio/warningC4251.html
 #ifdef WIN_OS
+#if _MSC_VER < 1600
         template class DLL_EXPORT std::tr1::shared_ptr<CameraIo>;
         template class DLL_EXPORT std::tr1::shared_ptr<PlatformData>;
         template class DLL_EXPORT std::tr1::shared_ptr<CApnCamData>;
         template class DLL_EXPORT std::tr1::shared_ptr<ModeFsm>;
         template class DLL_EXPORT std::tr1::shared_ptr<CcdAcqParams>;
         template class DLL_EXPORT std::tr1::shared_ptr<ApgTimer>;
+#endif
 #endif
 
         std::tr1::shared_ptr<CameraIo> m_CamIo;

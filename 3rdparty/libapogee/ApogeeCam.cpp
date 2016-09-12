@@ -22,6 +22,9 @@
 #include "helpers.h"
 #include "versionNo.h"
 #include "ApgTimer.h"
+#include "AscentBasedIo.h" 
+#include "AspenIo.h"  
+#include "AltaIo.h"  
 #include <sstream>
 
 namespace
@@ -252,13 +255,13 @@ void ApogeeCam::Reset()
     //log the call to reset the camera
     ApgLogger::Instance().Write(ApgLogger::LEVEL_RELEASE,"info",
         apgHelper::mkMsg( m_fileName, "Camera Reset Called", __LINE__) );
-    if( m_ImageInProgress )
+    //if( m_ImageInProgress )
     {
         // reseting camera and cancel pending image
         // transfer
         HardStopExposure( "Called from Reset()" );
     }
-    else
+    //else
     {
         m_CamIo->Reset( true );
     }
@@ -891,11 +894,34 @@ void ApogeeCam::SetShutterStrobePosition( double position )
 
         position = m_CameraConsts->m_StrobePositionMax;
     }
-	
-	uint16_t ShutterStrobePosition = static_cast<uint16_t>( (position - m_CameraConsts->m_StrobePositionMin) 
-        / m_CameraConsts->m_TimerResolution);
 
-	WriteReg(CameraRegs::SHUTTER_STROBE_POSITION, ShutterStrobePosition);
+#ifdef DEBUGGING_CAMERA
+    apgHelper::DebugMsg( "m_CameraConsts->m_StrobePositionMin = %e", m_CameraConsts->m_StrobePositionMin);
+    apgHelper::DebugMsg( "m_CameraConsts->m_StrobePositionMax = %e", m_CameraConsts->m_StrobePositionMax);
+//    apgHelper::DebugMsg( "m_CameraConsts->m_preflashTimerResolution = %e", m_CameraConsts->m_preflashTimerResolution);
+    apgHelper::DebugMsg( "m_CameraConsts->m_StrobePositionMin = %e", m_CameraConsts->m_StrobePositionMin);
+#endif
+    double temp = position - m_CameraConsts->m_StrobePositionMin;
+    temp /= m_CameraConsts->m_StrobeTimerResolution;
+#ifdef DEBUGGING_CAMERA
+    apgHelper::DebugMsg( "calculated ShutterStrobePosition as float = %e", temp);
+    if (temp > 65535.0) {
+        apgHelper::DebugMsg( "calculated ShutterStrobePosition will overflow register" );
+    }
+#endif
+    uint16_t ShutterStrobePosition = static_cast<uint16_t>(temp);
+
+#ifdef DEBUGGING_CAMERA
+    apgHelper::DebugMsg( "calculated ShutterStrobePosition as uint16_t = %d", ShutterStrobePosition);
+    uint16_t current = ReadReg(CameraRegs::SHUTTER_STROBE_POSITION);
+    apgHelper::DebugMsg( "read ShutterStrobePosition = 0x%X", current);
+#endif
+
+    WriteReg(CameraRegs::SHUTTER_STROBE_POSITION, ShutterStrobePosition);
+#ifdef DEBUGGING_CAMERA
+    current = ReadReg(CameraRegs::SHUTTER_STROBE_POSITION);
+    apgHelper::DebugMsg( "read ShutterStrobePosition = 0x%X", current);
+#endif
 }
 
 //////////////////////////// 
@@ -907,7 +933,7 @@ double ApogeeCam::GetShutterStrobePosition()
 #endif
 
     uint16_t ShutterStrobePosition =  m_CamIo->ReadMirrorReg(CameraRegs::SHUTTER_STROBE_POSITION);
-    return (  (ShutterStrobePosition*m_CameraConsts->m_TimerResolution) 
+    return (  (ShutterStrobePosition*m_CameraConsts->m_StrobeTimerResolution) 
     + m_CameraConsts->m_StrobePositionMin );
 }
 
@@ -1018,7 +1044,12 @@ void ApogeeCam::SetCoolerBackoffPoint( double point )
 #ifdef DEBUGGING_CAMERA
     apgHelper::DebugMsg( "ApogeeCam::SetCoolerBackoffPoint -> point = %f", point );
 #endif
-    
+    if (point == 0.0)
+    {
+        WriteReg( CameraRegs::TEMP_BACKOFF, 0 );
+        return;
+    }
+
 	double TempVal = point;
 
     //boundary checking
@@ -1506,6 +1537,8 @@ void ApogeeCam::ExectuePreFlash()
     // start the dark exposure
     WriteReg( CameraRegs::CMD_A, 
         CameraRegs::CMD_A_DARK_BIT );
+
+    apgHelper::ApogeeSleep( m_CamCfgData->m_MetaData.IRPreflashTime );    
 
     //wait for the image
     int32_t WaitCounter = 0;
@@ -3201,6 +3234,86 @@ Apg::FanMode ApogeeCam::DefaultGetFanMode()
     return Apg::FanMode_Off;
 }
 
+
+CamInfo::StrDb ApogeeCam::ReadStrDatabase()
+{ 
+#ifdef DEBUGGING_CAMERA
+    apgHelper::DebugMsg( "ApogeeCam::ReadStrDatabase" );
+#endif
+    if ( (m_PlatformType == CamModel::ASCENT) || (m_PlatformType == CamModel::ALTAF) )
+    {
+        return std::tr1::dynamic_pointer_cast<AscentBasedIo>(m_CamIo)->ReadStrDatabase();
+    }
+    else
+    {
+        return std::tr1::dynamic_pointer_cast<AspenIo>(m_CamIo)->ReadStrDatabase();
+    }
+}
+
+void ApogeeCam::WriteStrDatabase(CamInfo::StrDb &info)
+{ 
+#ifdef DEBUGGING_CAMERA
+    apgHelper::DebugMsg( "ApogeeCam::WriteStrDatabase" );
+#endif
+    if ( (m_PlatformType == CamModel::ASCENT) || (m_PlatformType == CamModel::ALTAF) )
+    {
+        std::tr1::dynamic_pointer_cast<AscentBasedIo>(m_CamIo)->WriteStrDatabase(info);
+    }
+    else
+    {
+        std::tr1::dynamic_pointer_cast<AspenIo>(m_CamIo)->WriteStrDatabase(info);
+    }
+}
+
+
+void ApogeeCam::UpdateAlta(const std::string FilenameCamCon, const std::string FilenameBufCon, const std::string FilenameFx2, const std::string FilenameGpifCamCon, const std::string FilenameGpifBufCon, const std::string FilenameGpifFifo)
+{
+	if ((CamModel::ALTAE != m_PlatformType) && (CamModel::ALTAU != m_PlatformType))
+    {
+        return;
+    }
+
+    std::tr1::dynamic_pointer_cast<AltaIo>(m_CamIo)->Program(
+                    FilenameCamCon,
+                    FilenameBufCon, 
+                    FilenameFx2, 
+                    FilenameGpifCamCon,
+                    FilenameGpifBufCon, 
+                    FilenameGpifFifo, 
+                    false);
+}
+
+
+void ApogeeCam::UpdateAscentOrAltaF(const std::string FilenameFpga, const std::string FilenameFx2, const std::string FilenameDescriptor)
+{
+	if ((CamModel::ASCENT != m_PlatformType) && (CamModel::ALTAF != m_PlatformType))
+    {
+        return;
+    }
+
+    std::tr1::dynamic_pointer_cast<AscentBasedIo>(m_CamIo)->Program(
+                    FilenameFpga,
+                    FilenameFx2, 
+                    FilenameDescriptor, 
+                    false);
+}
+
+void ApogeeCam::UpdateAspen(const std::string FilenameFpga, const std::string FilenameFx2, const std::string FilenameDescriptor, const std::string FilenameWebPage, const std::string FilenameWebServer, const std::string FilenameWebCfg)
+{
+	if (CamModel::ASPEN != m_PlatformType)
+    {
+        return;
+    }
+
+    std::tr1::dynamic_pointer_cast<AspenIo>(m_CamIo)->Program(
+                    FilenameFpga, 
+                    FilenameFx2, 
+                    FilenameDescriptor, 
+                    FilenameWebPage, 
+                    FilenameWebServer, 
+                    FilenameWebCfg, 
+                    false);
+}
 
 // END     OF       CLASS
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////// 

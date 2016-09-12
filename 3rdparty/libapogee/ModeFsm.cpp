@@ -31,8 +31,9 @@ ModeFsm::ModeFsm( std::tr1::shared_ptr<CameraIo> & io,
                  m_FirmwareVersion(rev),
                  m_IsBulkDownloadOn(false),
                  m_IsPipelineDownloadOn(true),
-                  m_TdiRows( 1 )
+                 m_TdiRows( 1 )
 {
+    m_CamIo->ReadOrWriteReg( CameraRegs::CMD_A, CameraRegs::CMD_A_PIPELINE_BIT );
 }
 
 //////////////////////////// 
@@ -181,7 +182,14 @@ void ModeFsm::SetPipelineDownload( bool TurnOn )
         return;
 
     }
-    
+    if( TurnOn)
+    {
+        m_CamIo->ReadOrWriteReg( CameraRegs::CMD_A, CameraRegs::CMD_A_PIPELINE_BIT );
+    }
+    else
+    {
+        m_CamIo->ReadAndWriteReg(CameraRegs::CMD_A, static_cast<uint16_t>(~CameraRegs::CMD_A_PIPELINE_BIT) );
+    }
     m_IsPipelineDownloadOn = TurnOn;
 }
 
