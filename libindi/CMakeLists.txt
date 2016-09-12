@@ -290,9 +290,7 @@ install(TARGETS indidriverstatic ARCHIVE DESTINATION ${LIB_DESTINATION})
 ##################################################
 ########### INDI Alignment Subsystem #############
 ##################################################
-if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/alignment)
-endif()
 
 #####################################
 ######## AGENT GROUP #########
