@@ -1356,7 +1356,7 @@ void ASICCD::createControls(int piNumberOfControls)
                                         oneControlCap->IsAutoSupported ? "True": "False",  oneControlCap->IsWritable ? "True" : "False" );
 
         if (oneControlCap->IsWritable == ASI_FALSE)
-            break;
+            continue;
 
         if (!strcmp(oneControlCap->Name, "Exposure"))
             continue;
