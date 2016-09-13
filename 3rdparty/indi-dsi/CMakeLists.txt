@@ -10,7 +10,7 @@ set(RULES_INSTALL_DIR "/etc/udev/rules.d")
 set(FIRMWARE_INSTALL_DIR "/lib/firmware")
 
 set (DSI_VERSION_MAJOR 0)
-set (DSI_VERSION_MINOR 1)
+set (DSI_VERSION_MINOR 2)
 
 find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
@@ -35,6 +35,7 @@ set(indidsi_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/DsiProII.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/DsiProIII.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/DsiColorII.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/DsiColorIII.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/DsiTypes.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/Util.cpp
    )

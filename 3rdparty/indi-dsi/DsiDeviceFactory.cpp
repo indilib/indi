@@ -19,6 +19,7 @@
 #include "DsiProII.h"
 #include "DsiColorII.h"
 #include "DsiProIII.h"
+#include "DsiColorIII.h"
 #include "DsiException.h"
 
 using namespace std;
@@ -56,6 +57,9 @@ DSI::DeviceFactory::getInstance(const char *devname)
 
     if (ccdChipName == "ICX285AL")
         return new DSI::DsiProIII(devname);
+
+    if (ccdChipName == "ICX285AQ")
+        return new DSI::DsiColorIII(devname);
 
     return 0;
 }
