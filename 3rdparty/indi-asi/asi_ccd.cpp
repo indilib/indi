@@ -1355,7 +1355,7 @@ void ASICCD::createControls(int piNumberOfControls)
                                       , i, oneControlCap->Name, oneControlCap->Description, oneControlCap->MinValue, oneControlCap->MaxValue, oneControlCap->DefaultValue,
                                         oneControlCap->IsAutoSupported ? "True": "False",  oneControlCap->IsWritable ? "True" : "False" );
 
-        if (oneControlCap->IsWritable == ASI_FALSE)
+        if (oneControlCap->IsWritable == ASI_FALSE || oneControlCap->ControlType == ASI_TARGET_TEMP || oneControlCap->ControlType == ASI_COOLER_ON)
             continue;
 
         if (!strcmp(oneControlCap->Name, "Exposure"))
