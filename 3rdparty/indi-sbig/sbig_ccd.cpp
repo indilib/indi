@@ -1526,7 +1526,7 @@ int	SBIGCCD::BitIo(BitIOParams *biop, BitIOResults *bior) {
   return res;
 }
 
-char *SBIGCCD::GetCameraName() {
+const char *SBIGCCD::GetCameraName() {
   if (isSimulation()) {
     return "Simulated camera";
   }
@@ -1544,7 +1544,7 @@ char *SBIGCCD::GetCameraName() {
   return gccdir.name;
 }
 
-char *SBIGCCD::GetCameraID() {
+const char *SBIGCCD::GetCameraID() {
   if (isSimulation()) {
     return "Simulated ID";
   }
@@ -2033,7 +2033,7 @@ int SBIGCCD::CFWConnect() {
     }
   }
   if (res == CE_NO_ERROR) {
-    char *name = "Unknown filterwheel";
+    const char *name = "Unknown filterwheel";
     char fw[64] = "Unknown ID";
     bool	bClear = true;
     int model = CFWr.cfwModel;
