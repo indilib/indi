@@ -9,23 +9,23 @@
 
 typedef struct
 {
-	CameraWidget		*widget;
-	CameraWidgetType	type;
-	const char		*name;
-	const char		*parent;
-	int			readonly;
-	union {
-		int		toggle;
-		char		index;
-		char		*text;
-		float		num;
-		int		date;
-	} value;
-	int			choice_cnt;
+    CameraWidget		*widget;
+    CameraWidgetType	type;
+    const char		*name;
+    const char		*parent;
+    int			readonly;
+    union {
+        int		toggle;
+        char		index;
+        char		*text;
+        float		num;
+        int		date;
+    } value;
+    int			choice_cnt;
     char        **choices;
-	float			min;
-	float			max;
-	float			step;
+    float			min;
+    float			max;
+    float			step;
 } gphoto_widget;
 
 // EOS Release buttons settings
@@ -63,6 +63,7 @@ int gphoto_get_dimensions(gphoto_driver *gphoto, int *width, int *height);
 int gphoto_auto_focus(gphoto_driver *gphoto);
 int gphoto_manual_focus (gphoto_driver *gphoto, int xx, char *errMsg);
 int gphoto_capture_preview(gphoto_driver *gphoto,  CameraFile* previewFile, char *errMsg);
+int gphoto_stop_preview(gphoto_driver *gphoto);
 void gphoto_set_debug(const char *name);
 int gphoto_mirrorlock(gphoto_driver *gphoto, int msec);
 

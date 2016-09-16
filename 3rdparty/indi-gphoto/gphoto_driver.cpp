@@ -1,20 +1,20 @@
 /*******************************************************************************
   Copyright(c) 2009 Geoffrey Hausheer. All rights reserved.
-  
+
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the Free
   Software Foundation; either version 2 of the License, or (at your option)
   any later version.
-  
+
   This program is distributed in the hope that it will be useful, but WITHOUT
   ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
   FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
   more details.
-  
+
   You should have received a copy of the GNU General Public License along with
   this program; if not, write to the Free Software Foundation, Inc., 59
   Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-  
+
   The full GNU General Public License is included in this distribution in the
   file called LICENSE.
 *******************************************************************************/
@@ -62,6 +62,7 @@ struct _gphoto_driver
     gphoto_widget	*bulb_widget;
     gphoto_widget	*autoexposuremode_widget;
     gphoto_widget	*capturetarget_widget;
+    gphoto_widget	*viewfinder_widget;
 
     char            bulb_port[256];
     int             bulb_fd;
@@ -573,7 +574,7 @@ static void download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
 }
 
 int gphoto_mirrorlock(gphoto_driver *gphoto, int msec)
-{    
+{
     // If already set to BULB, set eosremoterelease to 2, then 4, then sleep
     //if (gphoto->autoexposuremode_widget && gphoto->autoexposuremode_widget->value.index == 4)
     if (gphoto->bulb_widget && !strcmp(gphoto->bulb_widget->name, "eosremoterelease"))
@@ -632,7 +633,7 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec, int 
     //if (exptime_msec > 5000 || (gphoto->autoexposuremode_widget != NULL && gphoto->autoexposuremode_widget->value.index == 4))
 
     // If exposure time is more than 1 second AND we have BULB widget OR we have bulb in exposure widget then do bulb
-    if ((exptime_msec > 1000) && (gphoto->bulb_port[0]) || (gphoto->bulb_widget != NULL))
+    if ((exptime_msec > 1000) && ( (gphoto->bulb_port[0]) || (gphoto->bulb_widget != NULL)) )
     {
         //Bulb mode is supported
 
@@ -979,6 +980,13 @@ gphoto_driver *gphoto_open(const char *shutter_release_port)
             DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Capture Target Widget: %s", gphoto->capturetarget_widget->name);
     }
 
+    // Check viewfinder widget to force mirror down after live preview if needed
+    if ( (gphoto->viewfinder_widget = find_widget(gphoto,"viewfinder")) != NULL )
+    {
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"ViewFinder Widget: %s", gphoto->viewfinder_widget->name);
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Current ViewFinder Value: %s", (gphoto->viewfinder_widget->value.toggle == 0) ? "Off" : "On");
+    }
+
     // Check for user
     if(shutter_release_port)
     {
@@ -1036,6 +1044,8 @@ int gphoto_close(gphoto_driver *gphoto)
         widget_free(gphoto->bulb_widget);
     if (gphoto->autoexposuremode_widget)
         widget_free(gphoto->autoexposuremode_widget);
+    if (gphoto->viewfinder_widget)
+        widget_free(gphoto->viewfinder_widget);
 
     while(gphoto->widgets) {
         gphoto_widget_list *next = gphoto->widgets->next;
@@ -1279,6 +1289,18 @@ int gphoto_capture_preview(gphoto_driver *gphoto,  CameraFile* previewFile, char
     return rc;
 }
 
+int gphoto_stop_preview(gphoto_driver *gphoto)
+{
+   int rc = GP_OK;
+
+   // If viewfinder not found, nothing to do
+   if (gphoto->viewfinder_widget == NULL)
+       return rc;
+
+   rc = gphoto_set_widget_num(gphoto, gphoto->viewfinder_widget, 0);
+
+   return rc;
+}
 
 /* Manual focusing a camera...
  * xx is -3 / -2 / -1 / 0 / 1 / 2 / 3
