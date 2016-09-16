@@ -232,7 +232,7 @@ out:
     return NULL;
 }
 
-void show_widget(gphoto_widget *widget, char *prefix) {
+void show_widget(gphoto_widget *widget, const char *prefix) {
     int i;
     struct tm *tm;
     switch(widget->type) {
