@@ -7,11 +7,11 @@ include(GNUInstallDirs)
 
 set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
 
-find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
-find_package(ZLIB REQUIRED)
 find_package(USB-1 REQUIRED)
-find_package(Threads REQUIRED)
+#find_package(ZLIB REQUIRED)
+#find_package(Threads REQUIRED)
+#find_package(CFITSIO REQUIRED)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_ssag.xml ${CMAKE_CURRENT_BINARY_DIR}/indi_ssag.xml )
 
