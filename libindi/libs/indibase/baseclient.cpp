@@ -427,6 +427,9 @@ int INDI::BaseClient::dispatchCommand(XMLEle *root, char * errmsg)
         return messageCmd(root, errmsg);
     else if  (!strcmp (tagXMLEle(root), "delProperty"))
         return delPropertyCmd(root, errmsg);
+    // Just ignore any getProperties we might get
+    else if  (!strcmp (tagXMLEle(root), "getProperties"))
+        return INDI_PROPERTY_DUPLICATED;
 
     /* Get the device, if not available, create it */
     INDI::BaseDevice *dp = findDev (root, 1, errmsg);
