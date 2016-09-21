@@ -1,5 +1,6 @@
 /*******************************************************************************
   Copyright(c) 2009 Geoffrey Hausheer. All rights reserved.
+  Copyright(c) 2012-2016 Jasem Mutlaq. All rights reserved.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the Free
@@ -534,23 +535,38 @@ void gphoto_set_upload_settings(gphoto_driver *gphoto, int setting)
     gphoto->upload_settings = setting;
 }
 
-static void download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
+static int download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
 {
     int result;
     CameraFileInfo info;
 
     strncpy(gphoto->filename, fn->name, sizeof(gphoto->filename));
 
-    if (fd < 0) {
+    if (fd < 0)
+    {
         result = gp_file_new(&gphoto->camerafile);
-    } else {
-        result = gp_file_new_from_fd(&gphoto->camerafile, fd);
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"gp_file_new result: %d", result);
     }
-    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"  Retval: %d", result);
+    else
+    {
+        result = gp_file_new_from_fd(&gphoto->camerafile, fd);
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"gp_file_new_from_fd result: %d", result);
+    }
+
+
     DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Downloading %s/%s", fn->folder, fn->name);
-    result = gp_camera_file_get(gphoto->camera, fn->folder, fn->name,
-                                GP_FILE_TYPE_NORMAL, gphoto->camerafile, gphoto->context);
-    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"  Retval: %d", result);
+
+    result = gp_camera_file_get(gphoto->camera, fn->folder, fn->name, GP_FILE_TYPE_NORMAL, gphoto->camerafile, gphoto->context);
+
+    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Downloading result: %d", result);
+
+    if (result != GP_OK)
+    {
+        DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR,"Error downloading image from camera: %s", gp_result_as_string(result));
+        gp_file_free(gphoto->camerafile);
+        gphoto->camerafile = NULL;
+        return result;
+    }
 
     gp_camera_file_get_info (gphoto->camera, fn->folder, fn->name, &info, gphoto->context);
     gphoto->width = info.file.width;
@@ -571,6 +587,8 @@ static void download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
         gp_file_free(gphoto->camerafile);
         gphoto->camerafile = NULL;
     }
+
+    return GP_OK;
 }
 
 int gphoto_mirrorlock(gphoto_driver *gphoto, int msec)
@@ -754,12 +772,12 @@ int gphoto_read_exposure_fd(gphoto_driver *gphoto, int fd)
         pthread_cond_wait(&gphoto->signal, &gphoto->mutex);
     DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Exposure complete");
     if (gphoto->command & DSLR_CMD_CAPTURE) {
-        download_image(gphoto, &gphoto->camerapath, fd);
+        result = download_image(gphoto, &gphoto->camerapath, fd);
         gphoto->command = 0;
         //Set exposure back to original value
         reset_settings(gphoto);
         pthread_mutex_unlock(&gphoto->mutex);
-        return 0;
+        return result;
     }
 
     //Bulb mode
@@ -780,12 +798,12 @@ int gphoto_read_exposure_fd(gphoto_driver *gphoto, int fd)
         case GP_EVENT_FILE_ADDED:
             DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Captured an image");
             fn = (CameraFilePath*)data;
-            download_image(gphoto, fn, fd);
+            result = download_image(gphoto, fn, fd);
             //Set exposure back to original value
             reset_settings(gphoto);
 
             pthread_mutex_unlock(&gphoto->mutex);
-            return 0;
+            return result;
             break;
         case GP_EVENT_UNKNOWN:
             break;
