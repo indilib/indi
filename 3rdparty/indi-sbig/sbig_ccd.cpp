@@ -601,8 +601,8 @@ bool SBIGCCD::Connect() {
       } else {
         cap |= CCD_HAS_COOLER;
         IEAddTimer(TEMPERATURE_POLL_MS, SBIGCCD::updateTemperatureHelper, this);
-        PrimaryCCD.setMinMaxStep("CCD_BINNING", "HOR_BIN", 1, 3, 1, false);
-        PrimaryCCD.setMinMaxStep("CCD_BINNING", "VER_BIN", 1, 3, 1, false);
+        PrimaryCCD.setMinMaxStep("CCD_BINNING", "HOR_BIN", 1, 9, 1, false);
+        PrimaryCCD.setMinMaxStep("CCD_BINNING", "VER_BIN", 1, 9, 1, false);
       }
       SetCCDCapability(cap);
 #ifdef ASYNC_READOUT
@@ -959,8 +959,8 @@ bool SBIGCCD::UpdateCCDBin(int binx, int biny) {
       DEBUG(INDI::Logger::DBG_ERROR, "Failed to update main camera binning mode, use 1x1 or 2x2");
       return false;
     }
-  } else if (binx < 1 || binx > 3) {
-    DEBUG(INDI::Logger::DBG_ERROR, "Failed to update main camera binning mode, use 1x1, 2x2 or 3x3");
+  } else if (binx < 1 || binx > 9 || binx == 4 || binx == 5 || binx == 6 || binx == 7 || binx ==8 ) {
+    DEBUG(INDI::Logger::DBG_ERROR, "Failed to update main camera binning mode, use 1x1, 2x2, 3x3 or 9x9"); // expand conditions to supply 9x9 binning
     return false;
   }
   PrimaryCCD.setBin(binx, biny);
@@ -1745,7 +1745,7 @@ int SBIGCCD::getBinningMode(CCDChip *targetChip, int &binning) {
     binning = CCD_BIN_9x9_I;
   } else {
     res = CE_BAD_PARAMETER;
-    DEBUG(INDI::Logger::DBG_ERROR, "Bad CCD binning mode, use 1x1, 2x2 or 3x3");
+    DEBUG(INDI::Logger::DBG_ERROR, "Bad CCD binning mode, use 1x1, 2x2, 3x3 or 9x9");
   }
   return res;
 }
