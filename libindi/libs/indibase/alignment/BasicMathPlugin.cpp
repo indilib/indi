@@ -98,6 +98,7 @@ bool BasicMathPlugin::Initialise(InMemoryDatabase* pInMemoryDatabase)
                     DummyRaDec.ra = 0.0;
                     DummyRaDec.dec = -90.0;
                     ln_get_hrz_from_equ(&DummyRaDec, &Position, ln_get_julian_from_sys(), &DummyAltAz);
+		    DummyActualDirectionCosine2 = TelescopeDirectionVectorFromAltitudeAzimuth(DummyAltAz);
                     DummyApparentDirectionCosine2 = DummyActualDirectionCosine2;
                     break;
                 }
