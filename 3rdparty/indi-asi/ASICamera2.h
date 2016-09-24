@@ -138,7 +138,8 @@ typedef enum ASI_CONTROL_TYPE{ //Control type//
 	ASI_COOLER_POWER_PERC,
 	ASI_TARGET_TEMP,// not need *10
 	ASI_COOLER_ON,
-	ASI_MONO_BIN//lead to less grid at software bin mode for color camera
+	ASI_MONO_BIN,//lead to less grid at software bin mode for color camera
+	ASI_FAN_ON
 }ASI_CONTROL_TYPE;
 
 typedef struct _ASI_CONTROL_CAPS
@@ -337,7 +338,7 @@ ie. you need to set width to 640 and height to 480 if you want to run at 640X480
 ASI120's data size must be times of 1024 which means width*height%1024=0
 Paras£º		
 int CameraID: this is get from the camera property use the API ASIGetCameraProperty
-int iWidth,  the width of the ROI area. Make sure iWidth%4 = 0. 
+int iWidth,  the width of the ROI area. Make sure iWidth%8 = 0. 
 int iHeight,  the height of the ROI area. Make sure iHeight%2 = 0, 
 further, for USB2.0 camera ASI120, please make sure that iWidth*iHeight%1024=0. 
 int iBin,   binning method. bin1=1, bin2=2

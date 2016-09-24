@@ -40,7 +40,7 @@
 
 #include <errno.h>
 
-#define MAXINDIBUF 8192
+#define MAXINDIBUF 49152
 
 #if defined(  _MSC_VER )
 #define snprintf _snprintf
@@ -119,17 +119,17 @@ bool INDI::BaseClientQt::connectServer()
                 std::cerr << getProp.toLatin1().constData() << std::endl;
         }
     }
-    setlocale(LC_NUMERIC,orig);    
+    setlocale(LC_NUMERIC,orig);
 
-    return true;    
+    return true;
 }
 
 bool INDI::BaseClientQt::disconnectServer()
-{    
+{
     if (sConnected == false)
         return true;
 
-    sConnected = false;    
+    sConnected = false;
 
     client_socket.close();
     if (lillp)
@@ -257,7 +257,7 @@ void INDI::BaseClientQt::listenINDI()
                 return;
             }
         }
-    }    
+    }
 }
 
 int INDI::BaseClientQt::dispatchCommand(XMLEle *root, char * errmsg)
@@ -266,6 +266,9 @@ int INDI::BaseClientQt::dispatchCommand(XMLEle *root, char * errmsg)
         return messageCmd(root, errmsg);
     else if  (!strcmp (tagXMLEle(root), "delProperty"))
         return delPropertyCmd(root, errmsg);
+    // Just ignore any getProperties we might get
+    else if  (!strcmp (tagXMLEle(root), "getProperties"))
+        return INDI_PROPERTY_DUPLICATED;
 
     /* Get the device, if not available, create it */
     INDI::BaseDevice *dp = findDev (root, 1, errmsg);
@@ -466,7 +469,7 @@ void INDI::BaseClientQt::sendNewText (ITextVectorProperty *tvp)
     }
     prop += QString("</newTextVector>\n");
 
-    client_socket.write(prop.toLatin1());    
+    client_socket.write(prop.toLatin1());
 
     setlocale(LC_NUMERIC,orig);
 }
@@ -514,7 +517,7 @@ void INDI::BaseClientQt::sendNewNumber (INumberVectorProperty *nvp)
     }
     prop += QString("</newNumberVector>\n");
 
-    client_socket.write(prop.toLatin1());    
+    client_socket.write(prop.toLatin1());
 
    setlocale(LC_NUMERIC,orig);
 }
@@ -545,7 +548,7 @@ void INDI::BaseClientQt::sendNewNumber (const char *deviceName, const char *prop
 void INDI::BaseClientQt::sendNewSwitch (ISwitchVectorProperty *svp)
 {
     svp->s = IPS_BUSY;
-    ISwitch *onSwitch = IUFindOnSwitch(svp);    
+    ISwitch *onSwitch = IUFindOnSwitch(svp);
 
     QString prop;
 
@@ -609,7 +612,7 @@ void INDI::BaseClientQt::startBlob( const char *devName, const char *propName, c
     prop += QString("  name='%1'\n").arg(propName);
     prop += QString("  timestamp='%1'>\n").arg(timestamp);
 
-    client_socket.write(prop.toLatin1());    
+    client_socket.write(prop.toLatin1());
 }
 
 void INDI::BaseClientQt::sendOneBlob( const char *blobName, unsigned int blobSize, const char *blobFormat, void * blobBuffer)
@@ -625,7 +628,7 @@ void INDI::BaseClientQt::sendOneBlob( const char *blobName, unsigned int blobSiz
 
     client_socket.write(static_cast<char *>(blobBuffer), blobSize);
 
-    client_socket.write("   </oneBLOB>\n");    
+    client_socket.write("   </oneBLOB>\n");
 }
 
 void INDI::BaseClientQt::finishBlob()
@@ -634,7 +637,7 @@ void INDI::BaseClientQt::finishBlob()
 }
 
 void INDI::BaseClientQt::setBLOBMode(BLOBHandling blobH, const char *dev, const char *prop)
-{   
+{
     if (!dev[0])
         return;
 
@@ -658,7 +661,7 @@ void INDI::BaseClientQt::setBLOBMode(BLOBHandling blobH, const char *dev, const 
          break;
      }
 
-     client_socket.write(blobEnableTag.toLatin1());  
+     client_socket.write(blobEnableTag.toLatin1());
 }
 
 void INDI::BaseClientQt::processSocketError( QAbstractSocket::SocketError socketError )

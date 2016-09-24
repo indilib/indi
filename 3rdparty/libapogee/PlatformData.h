@@ -43,6 +43,7 @@ class PlatformData
 
 	    const double				m_ShutterCloseDiff;
 
+	    const double				m_StrobeTimerResolution;
 	    const double				m_StrobePositionMin;
 	    const double				m_StrobePositionMax;
 	    const double				m_StrobePositionDefault;
@@ -95,6 +96,7 @@ class PlatformData
                      const double TdiRateDefault,
                      const double VoltageResolution,
                      const double ShutterCloseDiff,
+                     const double StrobeTimerResolution,
                      const double StrobePositionMin,
                      const double StrobePositionMax,
                      const double StrobePositionDefault,

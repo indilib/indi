@@ -22,6 +22,7 @@
 #endif
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "base64.h"
 
@@ -57,3 +58,18 @@ TEST(CORE_BASE64, Test_from64tobits)
 	free(p_outbuf);
 }
 
+TEST(CORE_BASE64, Test_from64tobits_fast)
+{
+	int len = 0, size = sizeof("Rk9PQkFSQkFa")-1 * 3 / 4 + 1;
+	const char convert[] = "Rk9PQkFSQkFa";
+	char* p_outbuf = NULL;
+
+	p_outbuf = (char*)calloc(1, size);
+	ASSERT_TRUE(p_outbuf);
+
+	len = from64tobits_fast(p_outbuf, convert, strlen(convert));
+	ASSERT_EQ(sizeof("FOOBARBAZ")-1, len);
+	ASSERT_STREQ("FOOBARBAZ", (char*)p_outbuf);
+
+	free(p_outbuf);
+}

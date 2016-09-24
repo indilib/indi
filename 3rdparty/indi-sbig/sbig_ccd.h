@@ -309,8 +309,8 @@ private:
 
   // High level functions:
   bool CheckLink();
-  char *GetCameraName();
-  char *GetCameraID();
+  const char *GetCameraName();
+  const char *GetCameraID();
   int getCCDSizeInfo(int ccd, int rm, int &frmW, int &frmH, double &pixW, double &pixH);
   bool IsFanControlAvailable();
 

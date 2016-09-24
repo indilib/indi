@@ -1,3 +1,9 @@
+libapogee3 (3.0.3234) xenial; urgency=low
+
+  * New upstream release
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sun, 09 Sep 2016 09:00:00 +0300
+ 
 libapogee3 (3.0.3179) vivid; urgency=low
 
   * New upstream release

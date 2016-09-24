@@ -8,15 +8,15 @@ include(GNUInstallDirs)
 set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for udev rules")
 set(CONF_DIR "/etc/Apogee/camera" CACHE STRING "Configuration directory")
 
-set(APOGEE_VERSION "3.0.3179")
+set(APOGEE_VERSION "3.0.3234")
 set(APOGEE_SOVERSION "3")
 
 find_package(USB-1 REQUIRED)
 find_package(CURL REQUIRED)
 
-set(Boost_USE_STATIC_LIBS OFF) 
-set(Boost_USE_MULTITHREADED ON)  
-set(Boost_USE_STATIC_RUNTIME OFF) 
+set(Boost_USE_STATIC_LIBS OFF)
+set(Boost_USE_MULTITHREADED ON)
+set(Boost_USE_STATIC_RUNTIME OFF)
 find_package(Boost REQUIRED COMPONENTS regex)
 
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
@@ -84,7 +84,7 @@ set(libapogee_SRCS
    PromFx2Io.cpp
    Quad.cpp
    )
-  
+
 add_library(apogee SHARED ${libapogee_SRCS})
 
 set_target_properties(apogee PROPERTIES VERSION ${APOGEE_VERSION} SOVERSION ${APOGEE_SOVERSION})

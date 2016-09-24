@@ -887,7 +887,7 @@ int setSiteLongitude(int fd, double Long)
 
    getSexComponents(Long, &d, &m, &s);
 
-   snprintf(temp_string, sizeof( temp_string ), ":Sg%+03d:%02d#", d, m);	//azwing must be with sign
+   snprintf(temp_string, sizeof( temp_string ), ":Sg%03d:%02d#", d, m);
 
    return (setStandardProcedure(fd, temp_string));
 }

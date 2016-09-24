@@ -1,15 +1,15 @@
-/*! 
+/*!
 * This Source Code Form is subject to the terms of the Mozilla Public
 * License, v. 2.0. If a copy of the MPL was not distributed with this file,
 * You can obtain one at http://mozilla.org/MPL/2.0/.
 *
-* Copyright(c) 2010 Apogee Instruments, Inc. 
-* \class GenOneLinuxUSB 
-* \brief Usb interface for *nix systems. 
-* 
-*/ 
+* Copyright(c) 2010 Apogee Instruments, Inc.
+* \class GenOneLinuxUSB
+* \brief Usb interface for *nix systems.
+*
+*/
 
-#include "GenOneLinuxUSB.h" 
+#include "GenOneLinuxUSB.h"
 #include "ApnUsbSys.h"
 #include "apgHelper.h"
 #include "CamHelpers.h"  // for UsbFrmwr namespace
@@ -21,42 +21,42 @@
 namespace
 {
     // this sets the timeout to infinte on the libusb_bulk_transfer funtion
-    const uint32_t BULK_XFER_TIMEOUT = 0;  
-    const uint32_t TIMEOUT = 10000;  
+    const uint32_t BULK_XFER_TIMEOUT = 0;
+    const uint32_t TIMEOUT = 10000;
     const int32_t INTERFACE_NUM = 0x0;
 
 }
 
-//////////////////////////// 
+////////////////////////////
 // CTOR
 GenOneLinuxUSB::GenOneLinuxUSB(const uint16_t DeviceNum ) : m_Context( NULL ),
-																  m_Device( NULL ),
-																  m_fileName( __FILE__ ),
+                                                                  m_Device( NULL ),
+                                                                  m_fileName( __FILE__ ),
                                                                   m_ReadImgError( false ),
                                                                   m_IoError( false ),
                                                                   m_NumRegWriteRetries( 0 ),
                                                                   m_DeviceNum( DeviceNum )
 {
 
-	int32_t result = libusb_init( &m_Context );
-	if( result )
-	{
-		std::stringstream ss;
-		ss << "libusb_init failed with error = " << result;
-		apgHelper::throwRuntimeException(m_fileName, ss.str(), 
+    int32_t result = libusb_init( &m_Context );
+    if( result )
+    {
+        std::stringstream ss;
+        ss << "libusb_init failed with error = " << result;
+        apgHelper::throwRuntimeException(m_fileName, ss.str(),
             __LINE__, Apg::ErrorType_Connection );
-	}
+    }
 
-	std::string errMsg;
+    std::string errMsg;
 
-	if( !OpenDeviceHandle(DeviceNum, errMsg) )
-	{
-		//failed to find device clean up and throw
-		libusb_exit( m_Context);
+    if( !OpenDeviceHandle(DeviceNum, errMsg) )
+    {
+        //failed to find device clean up and throw
+        libusb_exit( m_Context);
 
-		apgHelper::throwRuntimeException( m_fileName,
-				errMsg, __LINE__, Apg::ErrorType_Connection );
-	}
+        apgHelper::throwRuntimeException( m_fileName,
+                errMsg, __LINE__, Apg::ErrorType_Connection );
+    }
 
     //claim the interface
     int32_t getInterface = libusb_claim_interface( m_Device, INTERFACE_NUM );
@@ -69,7 +69,7 @@ GenOneLinuxUSB::GenOneLinuxUSB(const uint16_t DeviceNum ) : m_Context( NULL ),
 
         //die
         apgHelper::throwRuntimeException( m_fileName,
-				"failed to claim usb interface", __LINE__, 
+                "failed to claim usb interface", __LINE__,
                 Apg::ErrorType_Connection );
     }
 
@@ -77,20 +77,20 @@ GenOneLinuxUSB::GenOneLinuxUSB(const uint16_t DeviceNum ) : m_Context( NULL ),
     std::stringstream ss;
     ss << "Connection to device " << m_DeviceNum << " is open.";
     ApgLogger::Instance().Write(ApgLogger::LEVEL_RELEASE,"info",
-      ss.str() ); 
+      ss.str() );
 
 }
 
 ////////////////////////////
-// DTOR 
-GenOneLinuxUSB::~GenOneLinuxUSB() 
-{ 
+// DTOR
+GenOneLinuxUSB::~GenOneLinuxUSB()
+{
     int32_t result = 0;
-    // if we are in an error state call a reset on the 
+    // if we are in an error state call a reset on the
     // the USB port
     if( m_ReadImgError ||  m_IoError )
     {
-         apgHelper::LogErrorMsg( m_fileName, 
+         apgHelper::LogErrorMsg( m_fileName,
              "Exiting in an error state.  Calling reset device to attempt to clear the USB error.", __LINE__ );
 
         result = libusb_reset_device( m_Device );
@@ -98,7 +98,7 @@ GenOneLinuxUSB::~GenOneLinuxUSB()
         if( 0 != result )
         {
             std::stringstream ss;
-			ss << "libusb_reset_device error = " << result;
+            ss << "libusb_reset_device error = " << result;
             apgHelper::LogErrorMsg( m_fileName, ss.str(), __LINE__ );
         }
         else
@@ -117,81 +117,81 @@ GenOneLinuxUSB::~GenOneLinuxUSB()
         apgHelper::LogErrorMsg( m_fileName, ss.str(), __LINE__ );
     }
 
-	libusb_close( m_Device );
+    libusb_close( m_Device );
 
-	libusb_exit( m_Context );
+    libusb_exit( m_Context );
 
     //log what device we have disconnected from
     std::stringstream ss;
     ss << "Connection to device " << m_DeviceNum << " is closed.";
     ApgLogger::Instance().Write(ApgLogger::LEVEL_RELEASE,"info",
-      ss.str() ); 
+      ss.str() );
 
-} 
+}
 
 ////////////////////////////
 //	OPEN		DEVICE		HANDLE
 bool GenOneLinuxUSB::OpenDeviceHandle(const uint16_t DeviceNum,
-		std::string & err)
+        std::string & err)
 {
-	//pointer to pointer of device, used to retrieve a list of devices
-	libusb_device **devs = NULL;
+    //pointer to pointer of device, used to retrieve a list of devices
+    libusb_device **devs = NULL;
 
-	//get the list of devices
-	const int32_t count = libusb_get_device_list(m_Context, &devs);
+    //get the list of devices
+    const int32_t count = libusb_get_device_list(m_Context, &devs);
 
-	bool result = false;
-	int32_t i=0;
-	for(; i < count; ++i)
-	{
-		libusb_device_descriptor desc;
-		int32_t r = libusb_get_device_descriptor(devs[i], &desc);
-		if (r < 0)
-		{
-			//ignore and go to the next device
-			continue;
-		}
+    bool result = false;
+    int32_t i=0;
+    for(; i < count; ++i)
+    {
+        libusb_device_descriptor desc;
+        int32_t r = libusb_get_device_descriptor(devs[i], &desc);
+        if (r < 0)
+        {
+            //ignore and go to the next device
+            continue;
+        }
 
-		//are we an apogee device
-		if( UsbFrmwr::IsApgDevice(desc.idVendor, desc.idProduct) )
-		{
-			const uint16_t num = libusb_get_device_address(devs[i]);
-			if( num == DeviceNum)
-			{
-				//we found the device we want try to open
-				//handle to it
-				int32_t notOpened = libusb_open(devs[i], &m_Device);
+        //are we an apogee device
+        if( UsbFrmwr::IsApgDevice(desc.idVendor, desc.idProduct) )
+        {
+            const uint16_t num = libusb_get_device_address(devs[i]);
+            if( num == DeviceNum)
+            {
+                //we found the device we want try to open
+                //handle to it
+                int32_t notOpened = libusb_open(devs[i], &m_Device);
 
-				if( notOpened )
-				{
-					std::stringstream ss;
-					ss << "libusb_open error = " << notOpened;
-					err = ss.str();
-					//bail out of for loop here
-					break;
-				}
+                if( notOpened )
+                {
+                    std::stringstream ss;
+                    ss << "libusb_open error = " << notOpened;
+                    err = ss.str();
+                    //bail out of for loop here
+                    break;
+                }
 
-				//save the descriptor information
-				memcpy( &m_DeviceDescriptor, &desc, sizeof(libusb_device_descriptor) );
+                //save the descriptor information
+                memcpy( &m_DeviceDescriptor, &desc, sizeof(libusb_device_descriptor) );
 
-				//set the return value and break out of for loop
-				result = true;
-				break;
+                //set the return value and break out of for loop
+                result = true;
+                break;
 
-			}
-		}
-	}
+            }
+        }
+    }
 
-	//see if we found a device
-	if( count == i )
-	{
-		err.append("No device found");
-	}
+    //see if we found a device
+    if( count == i )
+    {
+        err.append("No device found");
+    }
 
-	libusb_free_device_list(devs, 1);
+    libusb_free_device_list(devs, 1);
 
 
-	return result;
+    return result;
 
 }
 
@@ -199,33 +199,33 @@ bool GenOneLinuxUSB::OpenDeviceHandle(const uint16_t DeviceNum,
 // READ     REG
 uint16_t GenOneLinuxUSB::ReadReg(const uint16_t FpgaReg)
 {
-	uint16_t FpgaData = 0;
-	UsbRequestIn(
-				VND_APOGEE_CAMCON_REG,
-				FpgaReg,
-				0,
-				reinterpret_cast<uint8_t*>(&FpgaData),
-				sizeof(uint16_t)
-				);
+    uint16_t FpgaData = 0;
+    UsbRequestIn(
+                VND_APOGEE_CAMCON_REG,
+                FpgaReg,
+                0,
+                reinterpret_cast<uint8_t*>(&FpgaData),
+                sizeof(uint16_t)
+                );
 
-	return FpgaData;
+    return FpgaData;
 }
 
 ////////////////////////////
 // WRITE        REG
 void GenOneLinuxUSB::WriteReg(uint16_t FpgaReg,
-	const uint16_t FpgaData )
+    const uint16_t FpgaData )
 {
 
     try
     {
-	    UsbRequestOut(
-			    VND_APOGEE_CAMCON_REG,
-			    FpgaReg,
-			    0,
-			    reinterpret_cast<const uint8_t*>(&FpgaData),
-			    sizeof(uint16_t)
-			    );
+        UsbRequestOut(
+                VND_APOGEE_CAMCON_REG,
+                FpgaReg,
+                0,
+                reinterpret_cast<const uint8_t*>(&FpgaData),
+                sizeof(uint16_t)
+                );
     }
     catch( std::runtime_error & err)
     {
@@ -251,83 +251,83 @@ void GenOneLinuxUSB::WriteReg(uint16_t FpgaReg,
         else
         {
             throw;
-        }      
+        }
     }
-    
+
 }
 
 ////////////////////////////
 // GET     VENDOR      INFO
 void GenOneLinuxUSB::GetVendorInfo(uint16_t & VendorId,
-	uint16_t & ProductId, uint16_t  & DeviceId)
+    uint16_t & ProductId, uint16_t  & DeviceId)
 {
 
-	VendorId = m_DeviceDescriptor.idVendor;
-	ProductId = m_DeviceDescriptor.idProduct;
-	DeviceId = m_DeviceDescriptor.bcdDevice;
+    VendorId = m_DeviceDescriptor.idVendor;
+    ProductId = m_DeviceDescriptor.idProduct;
+    DeviceId = m_DeviceDescriptor.bcdDevice;
 
 }
 
 ////////////////////////////
 // SETUP     SINGLE          IMG         XFER
 void GenOneLinuxUSB::SetupSingleImgXfer(
-		const uint16_t Rows,
-		const uint32_t Cols)
+        const uint16_t Rows,
+        const uint32_t Cols)
 {
-	const uint32_t ImageSize = Rows*Cols;
+    const uint32_t ImageSize = Rows*Cols;
 
-	if( ImageSize <= 0 )
-	{
-		std::string errMsg("Invalid input image parameters");
-		apgHelper::throwRuntimeException( m_fileName, errMsg, 
+    if( ImageSize <= 0 )
+    {
+        std::string errMsg("Invalid input image parameters");
+        apgHelper::throwRuntimeException( m_fileName, errMsg,
             __LINE__, Apg::ErrorType_InvalidUsage );
-	}
+    }
 
-	const uint16_t Index = help::GetLowWord( ImageSize );
-	const uint16_t Value = help::GetHighWord( ImageSize );
-	UsbRequestOut(
-				VND_APOGEE_GET_IMAGE,
-				Index,
-				Value,
-				NULL,
-				0
-				);
+    const uint16_t Index = help::GetLowWord( ImageSize );
+    const uint16_t Value = help::GetHighWord( ImageSize );
+    UsbRequestOut(
+                VND_APOGEE_GET_IMAGE,
+                Index,
+                Value,
+                NULL,
+                0
+                );
 }
 
 ////////////////////////////
 // SETUP         SEQUENCE       IMG         XFER
 void GenOneLinuxUSB::SetupSequenceImgXfer(
-		const uint16_t Rows,
-		const uint16_t Cols,
-		const uint16_t NumOfImages)
+        const uint16_t Rows,
+        const uint16_t Cols,
+        const uint16_t NumOfImages)
 {
-	const uint32_t ImageSize = Rows*Cols;
+    const uint32_t ImageSize = Rows*Cols;
 
-	if( ImageSize <= 0 )
-	{
-		std::string errMsg("Invalid input image parameters");
-		apgHelper::throwRuntimeException( m_fileName, errMsg, 
+    if( ImageSize <= 0 )
+    {
+        std::string errMsg("Invalid input image parameters");
+        apgHelper::throwRuntimeException( m_fileName, errMsg,
             __LINE__, Apg::ErrorType_InvalidUsage );
-	}
+    }
 
-	if( NumOfImages <= 0 )
-	{
-		std::string errMsg("Invalid number of images");
-		apgHelper::throwRuntimeException( m_fileName, errMsg, 
+    if( NumOfImages <= 0 )
+    {
+        std::string errMsg("Invalid number of images");
+        apgHelper::throwRuntimeException( m_fileName, errMsg,
             __LINE__, Apg::ErrorType_InvalidUsage );
-	}
+    }
 
 
-	const uint8_t DeviceData[3] = { help::GetLowByte(NumOfImages),
-			help::GetHighByte(NumOfImages), 0 };
+    const uint8_t DeviceData[3] = { help::GetLowByte(NumOfImages),
+            help::GetHighByte(NumOfImages), 0 };
 
-	UsbRequestOut(
-				VND_APOGEE_GET_IMAGE,  		//request code
-				help::GetLowWord( ImageSize ),	//index
-				help::GetHighWord( ImageSize ),	//value
-				&DeviceData[0], 			//iobuffer
-				sizeof( DeviceData )		//buffer size in bytes
-				);
+    UsbRequestOut(
+                VND_APOGEE_GET_IMAGE,  		//request code
+                help::GetLowWord( ImageSize ),	//index
+                help::GetHighWord( ImageSize ),	//value
+                &DeviceData[0], 			//iobuffer
+                sizeof( DeviceData )		//buffer size in bytes
+                );
 
 }
 
@@ -345,8 +345,8 @@ void GenOneLinuxUSB::CancelImgXfer()
     if( m_ReadImgError )
     {
         const int32_t result = libusb_clear_halt(
-			m_Device, 		                        //device handle
-			UsbFrmwr::END_POINT); 		// end point
+            m_Device, 		                        //device handle
+            UsbFrmwr::END_POINT); 		// end point
 
         if( result < 0 )
         {
@@ -355,8 +355,8 @@ void GenOneLinuxUSB::CancelImgXfer()
             err << result << ".  ";
 
             m_IoError = true;
-            apgHelper::throwRuntimeException( 
-                m_fileName, err.str(), __LINE__, 
+            apgHelper::throwRuntimeException(
+                m_fileName, err.str(), __LINE__,
                 Apg::ErrorType_Critical );
         }
     }
@@ -365,29 +365,29 @@ void GenOneLinuxUSB::CancelImgXfer()
 ////////////////////////////
 // READ    IMAGE
 void GenOneLinuxUSB::ReadImage(uint16_t * ImageData,
-			   const uint32_t InSizeInBytes,
-			   uint32_t &OutSizeInBytes)
+               const uint32_t InSizeInBytes,
+               uint32_t &OutSizeInBytes)
 {
-	const int32_t result = libusb_bulk_transfer(
-			m_Device, 		//device handle
-			UsbFrmwr::END_POINT, 		// end point
-			reinterpret_cast<uint8_t*>(ImageData),  	// data pointer
-			InSizeInBytes,  // length
-			reinterpret_cast<int32_t*>(&OutSizeInBytes), // number of bytes transfered
-			BULK_XFER_TIMEOUT );		// time out
+    const int32_t result = libusb_bulk_transfer(
+            m_Device, 		//device handle
+            UsbFrmwr::END_POINT, 		// end point
+            reinterpret_cast<uint8_t*>(ImageData),  	// data pointer
+            InSizeInBytes,  // length
+            reinterpret_cast<int32_t*>(&OutSizeInBytes), // number of bytes transfered
+            BULK_XFER_TIMEOUT );		// time out
 
-	if( result < 0 )
-	{
-		std::stringstream err;
-		err << "ReadImage failed with error ";
-		err << result << ".  ";
+    if( result < 0 )
+    {
+        std::stringstream err;
+        err << "ReadImage failed with error ";
+        err << result << ".  ";
 
         //from http://libusb.sourceforge.net/api-1.0/group__syncio.html
-        // "Also check transferred when dealing with a timeout error code. 
-        // libusb may have to split your transfer into a number of chunks to 
-        // satisfy underlying O/S requirements, meaning that the timeout 
-        // may expire after the first few chunks have completed. libusb is 
-        // careful not to lose any data that may have been transferred; do not 
+        // "Also check transferred when dealing with a timeout error code.
+        // libusb may have to split your transfer into a number of chunks to
+        // satisfy underlying O/S requirements, meaning that the timeout
+        // may expire after the first few chunks have completed. libusb is
+        // careful not to lose any data that may have been transferred; do not
         // assume that timeout conditions indicate a complete lack of I/O."
         if( -7 == result )
         {
@@ -395,47 +395,47 @@ void GenOneLinuxUSB::ReadImage(uint16_t * ImageData,
         }
 
         m_ReadImgError = true;
-		apgHelper::throwRuntimeException( m_fileName, err.str(), 
+        apgHelper::throwRuntimeException( m_fileName, err.str(),
             __LINE__, Apg::ErrorType_Critical );
-	}
+    }
 
-	#ifdef ALT_BULKIO_CHECK
-		if( InSizeInBytes != OutSizeInBytes )
-		{
-			const int32_t diff = InSizeInBytes - OutSizeInBytes;
-			
-			// if the difference in size is greater than 512 bytes
-			// throw an exception
-			if( diff > 512 )
-			{
-				m_ReadImgError = true;
-				std::stringstream errMsg;
-				errMsg << "libusb_bulk_transfer error - number bytes expected = ";
-				errMsg << InSizeInBytes << ", number of bytes received = " << OutSizeInBytes;
-				apgHelper::throwRuntimeException( m_fileName, errMsg.str(), 
-					__LINE__, Apg::ErrorType_Critical );
-			}
-			
-			//log that we are missing bytes from the transfer
-			//and let the transfer proceed
-			std::stringstream warnMsg;
-			warnMsg << "libusb_bulk_transfer warning - number bytes expected = ";
-			warnMsg << InSizeInBytes << ", number of bytes received = " << OutSizeInBytes;
-							
-			apgHelper::LogWarningMsg( m_fileName, warnMsg.str() , __LINE__ );
-		}
-	#else
-		if( InSizeInBytes != OutSizeInBytes )
-		{
-			m_ReadImgError = true;
-			std::stringstream errMsg;
-			errMsg << "libusb_bulk_transfer error - number bytes expected = ";
-			errMsg << InSizeInBytes << ", number of bytes received = " << OutSizeInBytes;
-			apgHelper::throwRuntimeException( m_fileName, errMsg.str(), 
-				__LINE__, Apg::ErrorType_Critical );
-		}
-	#endif
-	
+    #ifdef ALT_BULKIO_CHECK
+        if( InSizeInBytes != OutSizeInBytes )
+        {
+            const int32_t diff = InSizeInBytes - OutSizeInBytes;
+
+            // if the difference in size is greater than 512 bytes
+            // throw an exception
+            if( diff > 512 )
+            {
+                m_ReadImgError = true;
+                std::stringstream errMsg;
+                errMsg << "libusb_bulk_transfer error - number bytes expected = ";
+                errMsg << InSizeInBytes << ", number of bytes received = " << OutSizeInBytes;
+                apgHelper::throwRuntimeException( m_fileName, errMsg.str(),
+                    __LINE__, Apg::ErrorType_Critical );
+            }
+
+            //log that we are missing bytes from the transfer
+            //and let the transfer proceed
+            std::stringstream warnMsg;
+            warnMsg << "libusb_bulk_transfer warning - number bytes expected = ";
+            warnMsg << InSizeInBytes << ", number of bytes received = " << OutSizeInBytes;
+
+            apgHelper::LogWarningMsg( m_fileName, warnMsg.str() , __LINE__ );
+        }
+    #else
+        if( InSizeInBytes != OutSizeInBytes )
+        {
+            m_ReadImgError = true;
+            std::stringstream errMsg;
+            errMsg << "libusb_bulk_transfer error - number bytes expected = ";
+            errMsg << InSizeInBytes << ", number of bytes received = " << OutSizeInBytes;
+            apgHelper::throwRuntimeException( m_fileName, errMsg.str(),
+                __LINE__, Apg::ErrorType_Critical );
+        }
+    #endif
+
     m_ReadImgError = false;
 }
 
@@ -444,37 +444,37 @@ void GenOneLinuxUSB::ReadImage(uint16_t * ImageData,
 // GET  STATUS
 void GenOneLinuxUSB::GetStatus(uint8_t * status, uint32_t NumBytes)
 {
-	UsbRequestIn( VND_APOGEE_STATUS, 0, 0, status, NumBytes );
+    UsbRequestIn( VND_APOGEE_STATUS, 0, 0, status, NumBytes );
 }
 
 
 ////////////////////////////
 // APN      USB        REQUEST      IN
 void GenOneLinuxUSB::UsbRequestIn(uint8_t RequestCode,
-		uint16_t	Index, uint16_t	Value,
-		uint8_t * ioBuf, uint32_t BufSzInBytes)
+        uint16_t	Index, uint16_t	Value,
+        uint8_t * ioBuf, uint32_t BufSzInBytes)
 {
-	const int32_t result = libusb_control_transfer(
-				m_Device,
-				LIBUSB_ENDPOINT_IN | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
-				RequestCode,
-				Value,
-				Index,
-				ioBuf,
-				BufSzInBytes,
-				TIMEOUT);
+    const int32_t result = libusb_control_transfer(
+                m_Device,
+                LIBUSB_ENDPOINT_IN | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
+                RequestCode,
+                Value,
+                Index,
+                ioBuf,
+                BufSzInBytes,
+                TIMEOUT);
 
-	if( result < 0 )
-	{
+    if( result < 0 )
+    {
         m_IoError = true;
-		std::stringstream err;
-		err << "UsbRequestIn failed with error ";
-		err << result << ".  ";
-		err << "RequestCode = " << std::hex << static_cast<int32_t>(RequestCode);
-		err << " : Index = " << Index << " : Value = " << Value;
-		apgHelper::throwRuntimeException( m_fileName, err.str(), 
+        std::stringstream err;
+        err << "UsbRequestIn failed with error ";
+        err << result << ".  ";
+        err << "RequestCode = " << std::hex << static_cast<int32_t>(RequestCode);
+        err << " : Index = " << Index << " : Value = " << Value;
+        apgHelper::throwRuntimeException( m_fileName, err.str(),
             __LINE__, Apg::ErrorType_Critical );
-	}
+    }
 
     m_IoError = false;
 }
@@ -482,30 +482,30 @@ void GenOneLinuxUSB::UsbRequestIn(uint8_t RequestCode,
 ////////////////////////////
 // APN      USB        REQUEST      OUT
 void GenOneLinuxUSB::UsbRequestOut(uint8_t RequestCode,
-		uint16_t Index, uint16_t Value,
-		const uint8_t * ioBuf, uint32_t BufSzInBytes)
+        uint16_t Index, uint16_t Value,
+        const uint8_t * ioBuf, uint32_t BufSzInBytes)
 {
-	const int32_t result = libusb_control_transfer(
-					m_Device,
-					LIBUSB_ENDPOINT_OUT | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
-					RequestCode,
-					Value,
-					Index,
-					const_cast<uint8_t*>(ioBuf),
-					BufSzInBytes,
-					TIMEOUT);
+    const int32_t result = libusb_control_transfer(
+                    m_Device,
+                    LIBUSB_ENDPOINT_OUT | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
+                    RequestCode,
+                    Value,
+                    Index,
+                    const_cast<uint8_t*>(ioBuf),
+                    BufSzInBytes,
+                    TIMEOUT);
 
-	if( result < 0 )
-	{
+    if( result < 0 )
+    {
             m_IoError = true;
-		    std::stringstream err;
-		    err << "UsbRequestOut failed with error ";
-		    err << result << ".  ";
-		    err << "RequestCode = " << std::hex << static_cast<int32_t>(RequestCode);
-		    err << " : Index = " << Index << " : Value = " << Value;
-		    apgHelper::throwRuntimeException( m_fileName, err.str(), 
+            std::stringstream err;
+            err << "UsbRequestOut failed with error ";
+            err << result << ".  ";
+            err << "RequestCode = " << std::hex << static_cast<int32_t>(RequestCode);
+            err << " : Index = " << Index << " : Value = " << Value;
+            apgHelper::throwRuntimeException( m_fileName, err.str(),
                 __LINE__, Apg::ErrorType_Critical );
-	}
+    }
 
     m_IoError = false;
 }
@@ -515,8 +515,8 @@ void GenOneLinuxUSB::UsbRequestOut(uint8_t RequestCode,
 void GenOneLinuxUSB::GetSerialNumber(int8_t * ioBuf, uint32_t BufSzInBytes)
 {
 
-	UsbRequestIn(VND_APOGEE_CAMCON_REG, 0, 1,
-			reinterpret_cast<uint8_t*>(ioBuf), BufSzInBytes);
+    UsbRequestIn(VND_APOGEE_CAMCON_REG, 0, 1,
+            reinterpret_cast<uint8_t*>(ioBuf), BufSzInBytes);
 
 }
 
@@ -524,11 +524,11 @@ void GenOneLinuxUSB::GetSerialNumber(int8_t * ioBuf, uint32_t BufSzInBytes)
 // GET  USB        FIRMWARE        VERSION
 void GenOneLinuxUSB::GetUsbFirmwareVersion(int8_t * ioBuf, uint32_t BufSzInBytes)
 {
-	UsbRequestIn(VND_APOGEE_CAMCON_REG, 0, 2,
-			reinterpret_cast<uint8_t*>(ioBuf), BufSzInBytes);
+    UsbRequestIn(VND_APOGEE_CAMCON_REG, 0, 2,
+            reinterpret_cast<uint8_t*>(ioBuf), BufSzInBytes);
 }
 
-//////////////////////////// 
+////////////////////////////
 //      GET    DRIVER   VERSION
 std::string GenOneLinuxUSB::GetDriverVersion()
 {
@@ -537,7 +537,7 @@ std::string GenOneLinuxUSB::GetDriverVersion()
     return value;
 }
 
-//////////////////////////// 
+////////////////////////////
 //      IS     ERROR
 bool GenOneLinuxUSB::IsError()
 {
@@ -547,44 +547,44 @@ bool GenOneLinuxUSB::IsError()
     return ( m_IoError ? true : false );
 }
 
-//////////////////////////// 
+////////////////////////////
 //      USB    REQ    OUT     WITH      EXTENDED        TIMEOUT
 void GenOneLinuxUSB::UsbReqOutWithExtendedTimeout(uint8_t RequestCode,
             uint16_t Index, uint16_t	Value,
             const uint8_t * ioBuf, uint32_t BufSzInBytes)
 {
 
-    const uint32_t EXTENDED_TIMEOUT = 30000;  
-	const int32_t result = libusb_control_transfer(
-					m_Device,
-					LIBUSB_ENDPOINT_OUT | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
-					RequestCode,
-					Value,
-					Index,
-					const_cast<uint8_t*>(ioBuf),
-					BufSzInBytes,
-					EXTENDED_TIMEOUT );
+    const uint32_t EXTENDED_TIMEOUT = 30000;
+    const int32_t result = libusb_control_transfer(
+                    m_Device,
+                    LIBUSB_ENDPOINT_OUT | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
+                    RequestCode,
+                    Value,
+                    Index,
+                    const_cast<uint8_t*>(ioBuf),
+                    BufSzInBytes,
+                    EXTENDED_TIMEOUT );
 
-	if( result < 0 )
-	{
+    if( result < 0 )
+    {
         m_IoError = true;
-		std::stringstream err;
-		err << "UsbRequestOut failed with error ";
-		err << result << ".  ";
-		err << "RequestCode = " << std::hex << static_cast<int32_t>(RequestCode);
-		err << " : Index = " << Index << " : Value = " << Value;
-		apgHelper::throwRuntimeException( m_fileName, err.str(), 
+        std::stringstream err;
+        err << "UsbRequestOut failed with error ";
+        err << result << ".  ";
+        err << "RequestCode = " << std::hex << static_cast<int32_t>(RequestCode);
+        err << " : Index = " << Index << " : Value = " << Value;
+        apgHelper::throwRuntimeException( m_fileName, err.str(),
             __LINE__, Apg::ErrorType_Critical );
-	}
+    }
 
     m_IoError = false;
 }
 
-//////////////////////////// 
+////////////////////////////
 //      READ      SERIAL
-void GenOneLinuxUSB::ReadSerialPort( const uint16_t PortId, uint8_t * ioBuf, 
+void GenOneLinuxUSB::ReadSerialPort( const uint16_t PortId, uint8_t * ioBuf,
                                     const uint16_t BufSzInBytes )
 {
     UsbRequestIn( VND_APOGEE_SERIAL, PortId, 0,
-			reinterpret_cast<uint8_t*>(ioBuf), BufSzInBytes );
+            reinterpret_cast<uint8_t*>(ioBuf), BufSzInBytes );
 }

@@ -1,22 +1,22 @@
-/*! 
+/*!
 * This Source Code Form is subject to the terms of the Mozilla Public
 * License, v. 2.0. If a copy of the MPL was not distributed with this file,
 * You can obtain one at http://mozilla.org/MPL/2.0/.
 *
-* Copyright(c) 2010 Apogee Instruments, Inc. 
-* \brief namespace helper for the apg library 
-* 
-*/ 
+* Copyright(c) 2010 Apogee Instruments, Inc.
+* \brief namespace helper for the apg library
+*
+*/
 
-#include "apgHelper.h" 
+#include "apgHelper.h"
 #include <sstream>
 #include <fstream>
 #include <algorithm>
 #include <stdexcept>
 #include <iomanip>
- #include <cmath> 
+ #include <cmath>
 #include <stdio.h>
-#include "ApgLogger.h" 
+#include "ApgLogger.h"
 #include "helpers.h"
 
 //CROSS-PLATFORM SLEEP
@@ -25,7 +25,7 @@
 #else
     #include <unistd.h>
     #define Sleep(x) usleep((x)*1000)
-#endif 
+#endif
 
 namespace
 {
@@ -35,8 +35,8 @@ namespace
 
 using namespace std;
 
-//////////////////////////// 
-//      DEBUG       MSG 
+////////////////////////////
+//      DEBUG       MSG
 void apgHelper::DebugMsg( const char *fmt, ... )
 {
     #ifdef DEBUGGING_CAMERA
@@ -55,14 +55,14 @@ void apgHelper::DebugMsg( const char *fmt, ... )
 #ifdef DEBUGGING_CAMERA
      // from http://stackoverflow.com/questions/69738/c-how-to-get-fprintf-results-as-a-stdstring-w-o-sprintf
     std::vector<char> buf(size);
-    
+
     // TODO - detemerine if I need to save a copy of va_list
     // to use later, ie is vsnprintf destructive???
     char *cbufPtr = &buf[0];
     int needed = vsnprintf(cbufPtr, size, fmt, ap);
 
     //handle the vsnprintf  -1 return case on microsoft compilers
-    if(needed < 0) 
+    if(needed < 0)
     {
         if( NumDebugMsgTries < MAX_NUM_DEBUG_TRIES)
         {
@@ -75,7 +75,7 @@ void apgHelper::DebugMsg( const char *fmt, ... )
              NumDebugMsgTries = 0;
 
             //bailing don't want inifitely recuring loop
-            apgHelper::throwRuntimeException( __FILE__, 
+            apgHelper::throwRuntimeException( __FILE__,
                 "in infinite loop trying to log debug message", __LINE__,
                 Apg::ErrorType_Critical );
         }
@@ -83,10 +83,10 @@ void apgHelper::DebugMsg( const char *fmt, ... )
 
     //handle the case where the number of chars are actually returned
     //by vsnprintf
-    if (needed > size ) 
+    if (needed > size )
     {
         buf.resize( needed+1 );
-        needed = vsnprintf( &buf[0], needed, fmt, ap); 
+        needed = vsnprintf( &buf[0], needed, fmt, ap);
     }
 
     //we made it - log this message
@@ -98,7 +98,7 @@ void apgHelper::DebugMsg( const char *fmt, ... )
 
 //----------------------------------------------
 //  LOG      VERBOSE       MSG
- void apgHelper::LogVerboseMsg(const std::string & fileName, 
+ void apgHelper::LogVerboseMsg(const std::string & fileName,
         const std::string & msg, const int32_t lineNum, const std::string & type)
  {
      if( ApgLogger::Instance().IsLevelVerbose() )
@@ -113,8 +113,8 @@ void apgHelper::DebugMsg( const char *fmt, ... )
   void apgHelper::LogErrorMsg(const std::string & fileName,
          const std::string & msg, const int32_t lineNum)
   {
-	 string msg2Log = mkMsg(fileName, msg, lineNum);
-	 ApgLogger::Instance().Write(ApgLogger::LEVEL_RELEASE,"error", msg2Log);
+     string msg2Log = mkMsg(fileName, msg, lineNum);
+     ApgLogger::Instance().Write(ApgLogger::LEVEL_RELEASE,"error", msg2Log);
   }
 
  //----------------------------------------------
@@ -122,13 +122,13 @@ void apgHelper::DebugMsg( const char *fmt, ... )
   void apgHelper::LogWarningMsg(const std::string & fileName,
          const std::string & msg, const int32_t lineNum)
   {
-	 string msg2Log = mkMsg(fileName, msg, lineNum);
-	 ApgLogger::Instance().Write(ApgLogger::LEVEL_RELEASE,"warn", msg2Log);
+     string msg2Log = mkMsg(fileName, msg, lineNum);
+     ApgLogger::Instance().Write(ApgLogger::LEVEL_RELEASE,"warn", msg2Log);
   }
 //----------------------------------------------
 //  MK      MSG
-string apgHelper::mkMsg( const string & fileName, 
-                       const string & errStr, 
+string apgHelper::mkMsg( const string & fileName,
+                       const string & errStr,
                        const int32_t lineNum)
 {
     stringstream ss;
@@ -138,13 +138,13 @@ string apgHelper::mkMsg( const string & fileName,
 
 //----------------------------------------------
 //  MK      MSG
-string apgHelper::mkMsg( const string & fileName, 
-                       const string & errStr, 
-                       const int32_t lineNum, 
+string apgHelper::mkMsg( const string & fileName,
+                       const string & errStr,
+                       const int32_t lineNum,
                        const Apg::ErrorType errType )
 {
     string base = apgHelper::mkMsg( fileName, errStr, lineNum );
-    
+
     stringstream ss;
     ss << ":" << errType;
     base.append( ss.str() );
@@ -154,8 +154,8 @@ string apgHelper::mkMsg( const string & fileName,
 
 //----------------------------------------------
 //  THROW       RUNTIME         EXCEPTION
-void apgHelper::throwRuntimeException( const std::string & fileName, 
-        const std::string & errStr, 
+void apgHelper::throwRuntimeException( const std::string & fileName,
+        const std::string & errStr,
         const int32_t lineNum,
         const Apg::ErrorType errType )
 {
@@ -204,7 +204,7 @@ Apg::LedState apgHelper::ConvertUShort2ApnLedState( const uint16_t value )
         case 2:
             result = Apg::LedState_Flushing;
         break;
-        
+
         case 3:
             result = Apg::LedState_ExtTriggerWaiting;
         break;
@@ -281,7 +281,7 @@ int32_t apgHelper::SizeT2Int32( const size_t value )
 
     return static_cast<int32_t>( value );
 }
- 
+
 //----------------------------------------------
 //      SIZET      2      UINT16
 uint16_t apgHelper::SizeT2Uint16( size_t value )
@@ -358,20 +358,20 @@ std::string apgHelper::GetCamCfgDir()
 std::string apgHelper::GetCfgDir()
 {
     // http://msdn.microsoft.com/en-us/library/windows/desktop/bb762181(v=vs.85).aspx
-    // MS has marked the SHGetFolderPath function depreciated, but there is 
+    // MS has marked the SHGetFolderPath function depreciated, but there is
     // no other option for XP.  Decide to go with the simpliest function here, instead doing
     // delayed dll load and such to get different behavoir for different Windoze OS's
     // need to switch this to SHGetKnownFolderPath when we drop windows XP support
     // or the function is removed from shell32.dll, which ever happens first....
     TCHAR szPath[MAX_PATH];
-    if( FAILED( SHGetFolderPath(  NULL, 
+    if( FAILED( SHGetFolderPath(  NULL,
                         CSIDL_COMMON_APPDATA,
-                        NULL, 
+                        NULL,
                         0,
                         szPath ) ) )
     {
-        apgHelper::throwRuntimeException(__FILE__, 
-        "Failed fetching the configuration file directory", 
+        apgHelper::throwRuntimeException(__FILE__,
+        "Failed fetching the configuration file directory",
         __LINE__,
         Apg::ErrorType_Configuration );
     }
