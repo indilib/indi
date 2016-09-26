@@ -83,7 +83,7 @@ CCDChip::CCDChip()
 
     BPP = 8;
     BinX = BinY = 1;
-    NAxis = 2;    
+    NAxis = 2;
 
     BinFrame = NULL;
 
@@ -242,12 +242,15 @@ const char *CCDChip::getFrameTypeName(CCD_FRAME fType)
 const char * CCDChip::getExposureStartTime()
 {
     static char ts[32];
+
+    char iso8601[32];
     struct tm *tp;
     time_t t = (time_t) startExposureTime.tv_sec;
+    int    u = startExposureTime.tv_usec / 1000.0;
 
-    //time (&t);
     tp = gmtime (&t);
-    strftime (ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", tp);
+    strftime (iso8601, sizeof(iso8601), "%Y-%m-%dT%H:%M:%S", tp);
+    snprintf(ts, 32, "%s.%03d", iso8601, u);
     return (ts);
 }
 
@@ -487,7 +490,7 @@ bool INDI::CCD::initProperties()
     IUFillNumber(&PrimaryCCD.RapidGuideDataN[0],"GUIDESTAR_X","Guide star position X","%5.2f",0,1024,0,0);
     IUFillNumber(&PrimaryCCD.RapidGuideDataN[1],"GUIDESTAR_Y","Guide star position Y","%5.2f",0,1024,0,0);
     IUFillNumber(&PrimaryCCD.RapidGuideDataN[2],"GUIDESTAR_FIT","Guide star fit","%5.2f",0,1024,0,0);
-    IUFillNumberVector(&PrimaryCCD.RapidGuideDataNP,PrimaryCCD.RapidGuideDataN,3,getDeviceName(),"CCD_RAPID_GUIDE_DATA","Rapid Guide Data",RAPIDGUIDE_TAB,IP_RO,60,IPS_IDLE);    
+    IUFillNumberVector(&PrimaryCCD.RapidGuideDataNP,PrimaryCCD.RapidGuideDataN,3,getDeviceName(),"CCD_RAPID_GUIDE_DATA","Rapid Guide Data",RAPIDGUIDE_TAB,IP_RO,60,IPS_IDLE);
 
     /**********************************************/
     /***************** Guide Chip *****************/
@@ -548,7 +551,7 @@ bool INDI::CCD::initProperties()
     IUFillNumber(&GuideCCD.RapidGuideDataN[0],"GUIDESTAR_X","Guide star position X","%5.2f",0,1024,0,0);
     IUFillNumber(&GuideCCD.RapidGuideDataN[1],"GUIDESTAR_Y","Guide star position Y","%5.2f",0,1024,0,0);
     IUFillNumber(&GuideCCD.RapidGuideDataN[2],"GUIDESTAR_FIT","Guide star fit","%5.2f",0,1024,0,0);
-    IUFillNumberVector(&GuideCCD.RapidGuideDataNP,GuideCCD.RapidGuideDataN,3,getDeviceName(),"GUIDER_RAPID_GUIDE_DATA","Rapid Guide Data",RAPIDGUIDE_TAB,IP_RO,60,IPS_IDLE);    
+    IUFillNumberVector(&GuideCCD.RapidGuideDataNP,GuideCCD.RapidGuideDataN,3,getDeviceName(),"GUIDER_RAPID_GUIDE_DATA","Rapid Guide Data",RAPIDGUIDE_TAB,IP_RO,60,IPS_IDLE);
 
     /**********************************************/
     /************** Upload Settings ***************/
@@ -567,7 +570,7 @@ bool INDI::CCD::initProperties()
 
     // Upload File Path
     IUFillText(&FileNameT[0],"FILE_PATH","Path","");
-    IUFillTextVector(&FileNameTP,FileNameT,1,getDeviceName(),"CCD_FILE_PATH","Filename",IMAGE_INFO_TAB,IP_RO,60,IPS_IDLE);    
+    IUFillTextVector(&FileNameTP,FileNameT,1,getDeviceName(),"CCD_FILE_PATH","Filename",IMAGE_INFO_TAB,IP_RO,60,IPS_IDLE);
 
     /**********************************************/
     /**************** Astrometry ******************/
@@ -624,7 +627,7 @@ bool INDI::CCD::initProperties()
     IDSnoopDevice(ActiveDeviceT[2].text,"FILTER_NAME");
 
     // Guider Interface
-    initGuiderProperties(getDeviceName(), GUIDE_CONTROL_TAB);        
+    initGuiderProperties(getDeviceName(), GUIDE_CONTROL_TAB);
 
     setDriverInterface(CCD_INTERFACE|GUIDER_INTERFACE);
 
@@ -632,7 +635,7 @@ bool INDI::CCD::initProperties()
 }
 
 void INDI::CCD::ISGetProperties (const char *dev)
-{    
+{
     DefaultDevice::ISGetProperties(dev);
 
     defineText(&ActiveDeviceTP);
@@ -720,7 +723,7 @@ bool INDI::CCD::updateProperties()
         {
           defineSwitch(&GuideCCD.RapidGuideSetupSP);
           defineNumber(&GuideCCD.RapidGuideDataNP);
-        }        
+        }
         defineSwitch(&SolverSP);
         defineText(&SolverSettingsTP);
         defineSwitch(&WorldCoordSP);
@@ -728,7 +731,7 @@ bool INDI::CCD::updateProperties()
 
         if (UploadSettingsT[0].text == NULL)
             IUSaveText(&UploadSettingsT[0], getenv("HOME"));
-        defineText(&UploadSettingsTP);                
+        defineText(&UploadSettingsTP);
     }
     else
     {
@@ -1692,7 +1695,7 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
         double decJ2000 = J2000Pos.dec;
 
         fits_update_key_s(fptr, TDOUBLE, "OBJCTRA", &raJ2000, "Object RA", &status);
-        fits_update_key_s(fptr, TDOUBLE, "OBJCTDEC", &decJ2000, "Object DEC", &status);       
+        fits_update_key_s(fptr, TDOUBLE, "OBJCTDEC", &decJ2000, "Object DEC", &status);
 
         int epoch = 2000;
 
@@ -1879,7 +1882,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
         int total = 0;
         int max = 0;
         int noiseThreshold = 0;
-        
+
         if (targetChip->getBPP() == 16) {
           unsigned short *p;
           for (int y = iy - 4; y <= iy + 4; y++) {
@@ -1927,7 +1930,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
             }
           }
         }
-        
+
         if (total > 0)
         {
           targetChip->RapidGuideDataN[0].value = ((double)sumX)/total;
@@ -1998,7 +2001,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
             for (int x = xmin; x <= xmax; x++)
               *p++ = 255;
           }
-          
+
           if (xmin > 0)
           {
             for (int y = ymin; y<= ymax; y++)
@@ -2006,7 +2009,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
               *((unsigned char *)src + y * width + xmin) = 255;
             }
           }
-          
+
           if (xmax < width - 1)
           {
             for (int y = ymin; y<= ymax; y++)
@@ -2014,14 +2017,14 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
               *((unsigned char *)src + y * width + xmax) = 255;
             }
           }
-          
+
           if (ymax < height -1)
           {
             p = (unsigned char *)src + ymax * width + xmin;
             for (int x = xmin; x <= xmax; x++)
               *p++ = 255;
           }
-          
+
         }
       }
     }
@@ -2222,7 +2225,7 @@ bool INDI::CCD::uploadFile(CCDChip * targetChip, const void *fitsData, size_t to
 
         // Save image file path
         IUSaveText(&FileNameT[0], imageFileName);
-        
+
         if (useSolver)
         {
             pthread_mutex_lock(&lock);
@@ -2230,9 +2233,9 @@ bool INDI::CCD::uploadFile(CCDChip * targetChip, const void *fitsData, size_t to
             DEBUG(INDI::Logger::DBG_SESSION, "Solving image...");
             IDSetSwitch(&SolverSP, NULL);
             pthread_mutex_unlock(&lock);
-        
+
             int result = pthread_create( &solverThread, NULL, &INDI::CCD::runSolverHelper, this);
-        
+
             if (result != 0)
             {
                 SolverSP.s = IPS_ALERT;
@@ -2244,7 +2247,7 @@ bool INDI::CCD::uploadFile(CCDChip * targetChip, const void *fitsData, size_t to
         {
             DEBUGF(INDI::Logger::DBG_SESSION, "Image saved to %s", imageFileName);
             FileNameTP.s = IPS_OK;
-            IDSetText(&FileNameTP, NULL);            
+            IDSetText(&FileNameTP, NULL);
         }
     }
 
