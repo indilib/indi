@@ -361,6 +361,15 @@ bool ASICCD::Connect()
       return false;
   }
 
+  if (sim == false)
+        errCode = ASIInitCamera(m_camInfo->CameraID);
+
+  if (errCode != ASI_SUCCESS)
+  {
+      DEBUGF(INDI::Logger::DBG_ERROR, "Error Initializing the CCD (%d)", errCode);
+      return false;
+  }
+
   TemperatureUpdateCounter = 0;
 
 #ifndef OSX_EMBEDED_MODE
