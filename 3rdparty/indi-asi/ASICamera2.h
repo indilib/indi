@@ -8,6 +8,7 @@ here is the suggested procedure to operate the camera.
 ----> ASIGetCameraProperty for each camera
 
 --> ASIOpenCamera
+--> ASIInitCamera
 --> ASIGetNumOfControls
 ----> ASIGetControlCaps for each contronl and set or get value from them
 
@@ -139,7 +140,8 @@ typedef enum ASI_CONTROL_TYPE{ //Control type//
 	ASI_TARGET_TEMP,// not need *10
 	ASI_COOLER_ON,
 	ASI_MONO_BIN,//lead to less grid at software bin mode for color camera
-	ASI_FAN_ON
+	ASI_FAN_ON,
+	ASI_PATTERN_ADJUST
 }ASI_CONTROL_TYPE;
 
 typedef struct _ASI_CONTROL_CAPS
@@ -216,7 +218,7 @@ ASICAMERA_API ASI_ERROR_CODE ASIGetCameraProperty(ASI_CAMERA_INFO *pASICameraInf
 
 /***************************************************************************
 Descriptions£º
-	open the camera before any operation to the camera, this function may take some while because it will init the camera too
+	open the camera before any operation to the camera, this will not affect the camera which is capturing
 	All APIs below need to open the camera at first.
 
 Paras£º		
@@ -229,6 +231,21 @@ ASI_ERROR_CAMERA_REMOVED: failed to find the camera, maybe camera has been remov
 
 ***************************************************************************/
 ASICAMERA_API  ASI_ERROR_CODE ASIOpenCamera(int iCameraID);
+
+/***************************************************************************
+Descriptions
+
+	Initialise the camera after open, this function may take some while, this will affect the camera which is capturing
+
+Paras£º		
+	int CameraID: this is get from the camera property use the API ASIGetCameraProperty
+
+return:
+ASI_SUCCESS : Operation is successful
+ASI_ERROR_CAMERA_CLOSED : camera didn't open
+ASI_ERROR_INVALID_ID  :no camera connected or index value out of boundary
+***************************************************************************/
+ASICAMERA_API  ASI_ERROR_CODE ASIInitCamera(int iCameraID);
 
 /***************************************************************************
 Descriptions£º
