@@ -357,13 +357,7 @@ bool ASICCD::Connect()
 
   if (errCode != ASI_SUCCESS)
   {
-      DEBUGF(INDI::Logger::DBG_ERROR, "Error open the CCD (%d)", errCode);
-      return false;
-  }
-  ASIInitCamera(m_camInfo->CameraID);
-  if (errCode != ASI_SUCCESS)
-  {
-      DEBUGF(INDI::Logger::DBG_ERROR, "Error init the CCD (%d)", errCode);
+      DEBUGF(INDI::Logger::DBG_ERROR, "Error connecting to the CCD (%d)", errCode);
       return false;
   }
 
@@ -574,7 +568,7 @@ bool ASICCD::ISNewNumber (const char *dev, const char *name, double values[], ch
                 ASI_CONTROL_TYPE nType = *((ASI_CONTROL_TYPE *) ControlN[i].aux0);
 
                 // If value didn't change or if USB bandwidth control is to change, then only continue if ExposureRequest < 250 ms
-                if (ControlN[i].value == oldValues[i] )//|| (nType == ASI_BANDWIDTHOVERLOAD && ExposureRequest > 0.25)
+                if (ControlN[i].value == oldValues[i])
                     continue;
 
                  DEBUGF(INDI::Logger::DBG_DEBUG, "ISNewNumber->set ctrl %d: %.2f", nType, ControlN[i].value);
@@ -1365,15 +1359,14 @@ void ASICCD::createControls(int piNumberOfControls)
             DEBUGF(INDI::Logger::DBG_ERROR, "ASIGetControlCaps error (%d)", errCode);
             return;
         }
-	
+
         DEBUGF(INDI::Logger::DBG_DEBUG, "Control #%d: name (%s), Descp (%s), Min (%ld), Max (%ld), Default Value (%ld), IsAutoSupported (%s), isWritale (%s) "
                                       , i, oneControlCap->Name, oneControlCap->Description, oneControlCap->MinValue, oneControlCap->MaxValue, oneControlCap->DefaultValue,
                                         oneControlCap->IsAutoSupported ? "True": "False",  oneControlCap->IsWritable ? "True" : "False" );
 
-     //   if (oneControlCap->IsWritable == ASI_FALSE)
-     //       break;
-	if (oneControlCap->IsWritable == ASI_FALSE || oneControlCap->ControlType == ASI_TARGET_TEMP || oneControlCap->ControlType == ASI_COOLER_ON)
-		continue;
+
+        if (oneControlCap->IsWritable == ASI_FALSE || oneControlCap->ControlType == ASI_TARGET_TEMP || oneControlCap->ControlType == ASI_COOLER_ON)
+            continue;
 
         if (!strcmp(oneControlCap->Name, "Exposure"))
             continue;
@@ -1383,24 +1376,22 @@ void ASICCD::createControls(int piNumberOfControls)
 
         #ifdef LOW_USB_BANDWIDTH
         if(oneControlCap->ControlType == ASI_BANDWIDTHOVERLOAD)
-	{
+        {
             DEBUGF(INDI::Logger::DBG_DEBUG, "createControls->set USB %d", oneControlCap->MinValue);
             ASISetControlValue(m_camInfo->CameraID, oneControlCap->ControlType, oneControlCap->MinValue, ASI_FALSE);
-	}
-	#else
-	if(oneControlCap->ControlType == ASI_BANDWIDTHOVERLOAD)
-	{
-		if(m_camInfo->IsUSB3Camera && !m_camInfo->IsUSB3Host)
-		{
-			DEBUGF(INDI::Logger::DBG_DEBUG, "createControls->set USB %d", 0.8 * oneControlCap->MaxValue);
-			ASISetControlValue(m_camInfo->CameraID, oneControlCap->ControlType, 0.8 * oneControlCap->MaxValue, ASI_FALSE);
-		}
-		else
-		{
-            		DEBUGF(INDI::Logger::DBG_DEBUG, "createControls->set USB %d", oneControlCap->MinValue);
-			ASISetControlValue(m_camInfo->CameraID, oneControlCap->ControlType, oneControlCap->MinValue, ASI_FALSE);
-		}
-	}
+        }
+        #else
+        if(oneControlCap->ControlType == ASI_BANDWIDTHOVERLOAD)
+        {
+            if(m_camInfo->IsUSB3Camera && !m_camInfo->IsUSB3Host)
+            {
+                DEBUGF(INDI::Logger::DBG_DEBUG, "createControls->set USB %d", 0.8 * oneControlCap->MaxValue);
+                ASISetControlValue(m_camInfo->CameraID, oneControlCap->ControlType, 0.8 * oneControlCap->MaxValue, ASI_FALSE);
+            } else {
+                DEBUGF(INDI::Logger::DBG_DEBUG, "createControls->set USB %d", oneControlCap->MinValue);
+                ASISetControlValue(m_camInfo->CameraID, oneControlCap->ControlType, oneControlCap->MinValue, ASI_FALSE);
+            }
+        }
         #endif
 
         ASIGetControlValue(m_camInfo->CameraID, oneControlCap->ControlType, &pValue, &isAuto);
