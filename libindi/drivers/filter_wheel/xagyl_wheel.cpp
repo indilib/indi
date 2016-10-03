@@ -185,7 +185,7 @@ bool XAGYLWheel::Connect()
     if (rc)
     {
         int fwver=0;
-        int fw_rc = sscanf(resp, "%d", &fwver);
+        int fw_rc = sscanf(resp, "FW %d", &fwver);
 
         if (fw_rc > 0)
         {
