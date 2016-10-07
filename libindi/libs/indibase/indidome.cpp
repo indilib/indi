@@ -49,7 +49,6 @@ INDI::Dome::Dome()
     parkDataType = PARK_NONE;
     Parkdatafile= "~/.indi/ParkData.xml";
     IsParked=false;
-    IsTelescopeParked=false;
     HaveLatLong=false;
     HaveRaDec=false;
 }
@@ -145,7 +144,6 @@ bool INDI::Dome::initProperties()
     controller->initProperties();
 
     IDSnoopDevice(ActiveDeviceT[0].text,"EQUATORIAL_EOD_COORD");
-    IDSnoopDevice(ActiveDeviceT[0].text,"TELESCOPE_PARK");
     IDSnoopDevice(ActiveDeviceT[0].text,"GEOGRAPHIC_COORD");
 
     IDSnoopDevice(ActiveDeviceT[1].text,"WEATHER_STATUS");
@@ -559,7 +557,6 @@ bool INDI::Dome::ISNewText (const char *dev, const char *name, char *texts[], ch
             IDSetText(&ActiveDeviceTP,NULL);
 
             IDSnoopDevice(ActiveDeviceT[0].text,"EQUATORIAL_EOD_COORD");
-            IDSnoopDevice(ActiveDeviceT[0].text,"TELESCOPE_PARK");
             IDSnoopDevice(ActiveDeviceT[0].text,"TARGET_EOD_COORD");
             IDSnoopDevice(ActiveDeviceT[0].text,"GEOGRAPHIC_COORD");            
             IDSnoopDevice(ActiveDeviceT[1].text,"WEATHER_STATUS");
@@ -578,8 +575,6 @@ bool INDI::Dome::ISSnoopDevice (XMLEle *root)
     XMLEle *ep=NULL;
     const char *propName = findXMLAttValu(root, "name");
 
-    //DEBUGF(INDI::Logger::DBG_DEBUG, "snooped %s", pcdataXMLEle(ep));
-            
     // Check TARGET
     if (!strcmp("TARGET_EOD_COORD", propName))
     {
@@ -702,28 +697,6 @@ bool INDI::Dome::ISSnoopDevice (XMLEle *root)
 
             return true;
         }
-    }
-
-    if (!strcmp("TELESCOPE_PARK", propName))
-    {
-	for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
-        {
-            const char *elemName = findXMLAttValu(ep, "name");
-            if (!strcmp(elemName, "PARK"))
-            {
-                if (!strcmp(pcdataXMLEle(ep), "On"))
-                {
-                    DEBUG(INDI::Logger::DBG_DEBUG, "snooped park state PARKED");
-		    IsTelescopeParked = true;
-                }
-                else
-                {
-                    DEBUG(INDI::Logger::DBG_DEBUG, "snooped park state UNPARKED");
-		    IsTelescopeParked = false;
-                }
-            }
-        }
-        return true;
     }
 
     controller->ISSnoopDevice(root);
@@ -1421,11 +1394,6 @@ void INDI::Dome::SetAxis1Park(double value)
 void INDI::Dome::SetAxis1ParkDefault(double value)
 {
   Axis1DefaultParkPosition=value;
-}
-
-bool INDI::Dome::isTelescopeParked()
-{
-  return IsTelescopeParked;
 }
 
 IPState INDI::Dome::Move(DomeDirection dir, DomeMotionCommand operation)
