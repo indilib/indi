@@ -222,6 +222,11 @@ IPState RollOff::Move(DomeDirection dir, DomeMotionCommand operation)
             DEBUG(INDI::Logger::DBG_WARNING, "Roof is already fully closed.");
             return IPS_ALERT;
         }
+        else if (dir == DOME_CCW && isTelescopeParked() == false)
+        {
+            DEBUG(INDI::Logger::DBG_WARNING, "Cannot close roof until the telescope is parked.");
+            return IPS_ALERT;
+        }
 
         fullOpenLimitSwitch   = ISS_OFF;
         fullClosedLimitSwitch = ISS_OFF;

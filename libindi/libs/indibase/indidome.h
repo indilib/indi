@@ -400,6 +400,12 @@ protected:
      */
     virtual void UpdateAutoSync();
 
+    /**
+     * @brief Returns true if the telescope is parked. False if unkown or not parked.
+     *
+     */
+    bool isTelescopeParked();
+
     double Csc(double x);
     double Sec(double x);
 
@@ -473,6 +479,7 @@ private:
 
         IPState mountState;
         IPState weatherState;
+        bool IsTelescopeParked;
 
         bool IsParked;
         const char *ParkDeviceName;
