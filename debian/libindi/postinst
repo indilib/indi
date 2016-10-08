@@ -1,0 +1,6 @@
+#!/bin/sh
+# postinst script for libindi
+
+set -e
+
+adduser $SUDO_USER dialout
