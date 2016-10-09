@@ -1,0 +1,6 @@
+#!/bin/sh
+# postinst script for indi-gphoto
+
+set -e
+
+dbus-launch --exit-with-session gsettings set org.gnome.desktop.media-handling automount false
