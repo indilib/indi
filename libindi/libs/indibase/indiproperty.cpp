@@ -16,7 +16,7 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifdef  __APPLE__
+#if defined( __APPLE__) || defined(ANDROID)
 #include <stdlib.h>
 #endif
 

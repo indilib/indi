@@ -272,7 +272,7 @@ void tty_set_debug(int debug)
 
 int tty_timeout(int fd, int timeout)
 {
-    #ifdef _WIN32
+    #if defined(_WIN32) || defined(ANDROID)
     return TTY_ERRNO;
     #else
 
