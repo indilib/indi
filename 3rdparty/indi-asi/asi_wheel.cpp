@@ -1,7 +1,7 @@
 /*
  ASI Filter Wheel INDI Driver
 
- Copyright (c) 2016 by Rumen G.Bogdanovski.
+ Copyright (c) 2016 by Rumen G.Bogdanovski and Hans Lambermont.
  All Rights Reserved.
 
  Code is based on SX Filter Wheel INDI Driver by Gerry Rozema
@@ -67,15 +67,17 @@ void ISSnoopDevice(XMLEle *root) {
 }
 
 ASIWHEEL::ASIWHEEL() {
+	DEBUG(INDI::Logger::DBG_DEBUG, "Entering ASIWHEEL::ASIWHEEL");
 	FilterSlotN[0].min = 1;
 	FilterSlotN[0].max = -1;
 	CurrentFilter = 1;
-	fw_id = 0;
+	fw_id = -1;
 	setDeviceName(getDefaultName());
 	setVersion(ASI_VERSION_MAJOR, ASI_VERSION_MINOR);
 }
 
 ASIWHEEL::~ASIWHEEL() {
+	DEBUG(INDI::Logger::DBG_DEBUG, "Entering ASIWHEEL::~ASIWHEEL");
 	if (isSimulation()) {
 		IDMessage(getDeviceName(), "simulation: disconnected");
 	} else { 
@@ -111,27 +113,66 @@ bool ASIWHEEL::GetFilterNames(const char* groupName) {
 }
 
 bool ASIWHEEL::Connect() {
+	DEBUG(INDI::Logger::DBG_SESSION, "Entering ASIWHEEL::Connect");
 	if (isSimulation()) {
 		IDMessage(getDeviceName(), "simulation: connected");
-		fw_id = 1;
-	} else if(!fw_id) {
-		// MORE TODO!!!
-		EFWOpen(0);
+		fw_id = 0;
+	} else if (fw_id<0) {
+		int EFW_count = EFWGetNum();
+		if (EFW_count <= 0) {
+			DEBUG(INDI::Logger::DBG_SESSION, "ASIWHEEL::Connect no filter wheels found");
+			return false;
+		}
+		DEBUG(INDI::Logger::DBG_DEBUG, "Entering ASIWHEEL::Connect EFWOpen");
+		if (EFWOpen(0) != EFW_SUCCESS) {
+			DEBUG(INDI::Logger::DBG_SESSION, "ASIWHEEL::Connect cannot EFWOpen");
+			return false;
+		}
+		DEBUG(INDI::Logger::DBG_DEBUG, "Entering ASIWHEEL::Connect EFWGetID");
 		EFWGetID(0, &fw_id);
-		SelectFilter(CurrentFilter);
+		if (fw_id < 0) {
+			DEBUG(INDI::Logger::DBG_SESSION, "ASIWHEEL::Connect cannot EFWGetID");
+			return false;
+		}
+		DEBUGF(INDI::Logger::DBG_SESSION, "ASIWHEEL::Connect id %d", fw_id);
+
+		// get number of filter slots
+		DEBUG(INDI::Logger::DBG_DEBUG, "Entering ASIWHEEL::Connect EFWGetProperty");
+		EFW_INFO EFWInfo;
+		EFW_ERROR_CODE err;
+		while (1) {
+			err = EFWGetProperty(fw_id, &EFWInfo);
+			if (err != EFW_ERROR_MOVING )
+				break;
+			usleep(500);
+		}
+		DEBUGF(INDI::Logger::DBG_SESSION, "ASIWHEEL::Connect %d filter slots", EFWInfo.slotNum);
+		FilterSlotN[0].max = EFWInfo.slotNum;
+
+		// get current filter
+		DEBUG(INDI::Logger::DBG_DEBUG, "Entering ASIWHEEL::Connect EFWGetPosition");
+		int currentSlot;
+		while (1) {
+			err = EFWGetPosition(fw_id, &currentSlot);
+			if(err != EFW_SUCCESS || currentSlot != -1 )
+				break;
+			usleep(500);
+		}
+		CurrentFilter = currentSlot; // Note: not + 1
+		DEBUGF(INDI::Logger::DBG_SESSION, "ASIWHEEL::Connect current filter position %d", CurrentFilter);
 	}
-	// ERROR checking
 	return true;
 }
 
 bool ASIWHEEL::Disconnect() {
+	DEBUG(INDI::Logger::DBG_SESSION, "Entering ASIWHEEL::Disconnect\n");
 	if (isSimulation()) {
 		IDMessage(getDeviceName(), "simulation: disconnected");
-	} else if(fw_id) {
+	} else if(fw_id >= 0) {
 		// MORE TODO!!!
 		EFWClose(fw_id);
 	}
-	fw_id = 0;
+	fw_id = -1;
 	return true;
 }
 
@@ -148,29 +189,51 @@ void ASIWHEEL::ISGetProperties(const char *dev) {
 }
 
 int ASIWHEEL::QueryFilter() {
-	if (!isSimulation() && fw_id)
+	DEBUG(INDI::Logger::DBG_DEBUG, "Entering ASIWHEEL::QueryFilter");
+	if (!isSimulation() && fw_id >= 0)
 		// MORE TODO!!!
 		EFWGetPosition(fw_id, &CurrentFilter);
 	return CurrentFilter;
 }
 
 bool ASIWHEEL::SelectFilter(int f) {
+	DEBUGF(INDI::Logger::DBG_SESSION,"Entering ASIWHEEL::SelectFilter target %d", f);
 	TargetFilter = f;
 	if (isSimulation()) {
 		CurrentFilter = TargetFilter;
-	} else if(fw_id) {
-		// MORE TODO!!!
-		EFWSetPosition(fw_id, f);
+	} else if (fw_id >= 0) {
+		EFW_ERROR_CODE err;
+		err = EFWSetPosition(fw_id, f);
+		if (err == EFW_SUCCESS) {
+			DEBUG(INDI::Logger::DBG_DEBUG,"ASIWHEEL::SelectFilter Moving...");
+			SetTimer(3500);
+			while (1) {
+				err = EFWGetPosition(fw_id, &CurrentFilter);
+				if (err != EFW_SUCCESS || CurrentFilter != -1)
+					break;
+				DEBUG(INDI::Logger::DBG_DEBUG,"ASIWHEEL::SelectFilter Still Moving");
+				sleep(1);
+			}
+			DEBUGF(INDI::Logger::DBG_SESSION, "ASIWHEEL::SelectFilter Done moving to %d", CurrentFilter);
+			// Note: no need to set CurrentFilter = TargetFilter as EFWGetPosition already did that
+		} else {
+			DEBUG(INDI::Logger::DBG_SESSION,"ASIWHEEL::SelectFilter EFWSetPosition error");
+			return false;
+		}
+	} else {
+		DEBUG(INDI::Logger::DBG_SESSION,"ASIWHEEL::SelectFilter no fw_id");
+		return false;
 	}
-	SetTimer(250);
 	return true;
 }
 
 void ASIWHEEL::TimerHit() {
+	DEBUG(INDI::Logger::DBG_DEBUG, "Entering ASIWHEEL::TimerHit");
 	QueryFilter();
 	if (CurrentFilter != TargetFilter) {
-		SetTimer(250);
+		SetTimer(3500);
 	} else {
 		SelectFilterDone(CurrentFilter);
 	}
 }
+
