@@ -67,7 +67,7 @@ void ISSnoopDevice(XMLEle *root) {
 }
 
 ASIWHEEL::ASIWHEEL() {
-	//DEBUG(INDI::Logger::DBG_SESSION, "Entering ASIWHEEL::ASIWHEEL");
+	DEBUG(INDI::Logger::DBG_DEBUG, "Entering ASIWHEEL::ASIWHEEL");
 	FilterSlotN[0].min = 1;
 	FilterSlotN[0].max = -1;
 	CurrentFilter = 1;
@@ -77,6 +77,7 @@ ASIWHEEL::ASIWHEEL() {
 }
 
 ASIWHEEL::~ASIWHEEL() {
+	DEBUG(INDI::Logger::DBG_DEBUG, "Entering ASIWHEEL::~ASIWHEEL");
 	if (isSimulation()) {
 		IDMessage(getDeviceName(), "simulation: disconnected");
 	} else { 
@@ -122,16 +123,43 @@ bool ASIWHEEL::Connect() {
 			DEBUG(INDI::Logger::DBG_SESSION, "ASIWHEEL::Connect no filter wheels found");
 			return false;
 		}
+		DEBUG(INDI::Logger::DBG_DEBUG, "Entering ASIWHEEL::Connect EFWOpen");
 		if (EFWOpen(0) != EFW_SUCCESS) {
 			DEBUG(INDI::Logger::DBG_SESSION, "ASIWHEEL::Connect cannot EFWOpen");
 			return false;
 		}
+		DEBUG(INDI::Logger::DBG_DEBUG, "Entering ASIWHEEL::Connect EFWGetID");
 		EFWGetID(0, &fw_id);
 		if (fw_id < 0) {
 			DEBUG(INDI::Logger::DBG_SESSION, "ASIWHEEL::Connect cannot EFWGetID");
 			return false;
 		}
-		SelectFilter(CurrentFilter);
+		DEBUGF(INDI::Logger::DBG_SESSION, "ASIWHEEL::Connect id %d", fw_id);
+
+		// get number of filter slots
+		DEBUG(INDI::Logger::DBG_DEBUG, "Entering ASIWHEEL::Connect EFWGetProperty");
+		EFW_INFO EFWInfo;
+		EFW_ERROR_CODE err;
+		while (1) {
+			err = EFWGetProperty(fw_id, &EFWInfo);
+			if (err != EFW_ERROR_MOVING )
+				break;
+			usleep(500);
+		}
+		DEBUGF(INDI::Logger::DBG_SESSION, "ASIWHEEL::Connect %d filter slots", EFWInfo.slotNum);
+		FilterSlotN[0].max = EFWInfo.slotNum;
+
+		// get current filter
+		DEBUG(INDI::Logger::DBG_DEBUG, "Entering ASIWHEEL::Connect EFWGetPosition");
+		int currentSlot;
+		while (1) {
+			err = EFWGetPosition(fw_id, &currentSlot);
+			if(err != EFW_SUCCESS || currentSlot != -1 )
+				break;
+			usleep(500);
+		}
+		CurrentFilter = currentSlot; // Note: not + 1
+		DEBUGF(INDI::Logger::DBG_SESSION, "ASIWHEEL::Connect current filter position %d", CurrentFilter);
 	}
 	return true;
 }
@@ -161,7 +189,7 @@ void ASIWHEEL::ISGetProperties(const char *dev) {
 }
 
 int ASIWHEEL::QueryFilter() {
-    //	DEBUG(INDI::Logger::DBG_SESSION, "Entering ASIWHEEL::QueryFilter");
+	DEBUG(INDI::Logger::DBG_DEBUG, "Entering ASIWHEEL::QueryFilter");
 	if (!isSimulation() && fw_id >= 0)
 		// MORE TODO!!!
 		EFWGetPosition(fw_id, &CurrentFilter);
@@ -169,7 +197,7 @@ int ASIWHEEL::QueryFilter() {
 }
 
 bool ASIWHEEL::SelectFilter(int f) {
-	DEBUG(INDI::Logger::DBG_SESSION,"Entering ASIWHEEL::SelectFilter");
+	DEBUGF(INDI::Logger::DBG_SESSION,"Entering ASIWHEEL::SelectFilter target %d", f);
 	TargetFilter = f;
 	if (isSimulation()) {
 		CurrentFilter = TargetFilter;
@@ -177,17 +205,17 @@ bool ASIWHEEL::SelectFilter(int f) {
 		EFW_ERROR_CODE err;
 		err = EFWSetPosition(fw_id, f);
 		if (err == EFW_SUCCESS) {
-			DEBUG(INDI::Logger::DBG_SESSION,"ASIWHEEL::SelectFilter Moving...");
+			DEBUG(INDI::Logger::DBG_DEBUG,"ASIWHEEL::SelectFilter Moving...");
 			SetTimer(3500);
 			while (1) {
 				err = EFWGetPosition(fw_id, &CurrentFilter);
 				if (err != EFW_SUCCESS || CurrentFilter != -1)
 					break;
-				DEBUG(INDI::Logger::DBG_SESSION,"ASIWHEEL::SelectFilter Still Moving");
+				DEBUG(INDI::Logger::DBG_DEBUG,"ASIWHEEL::SelectFilter Still Moving");
 				sleep(1);
 			}
-			DEBUG(INDI::Logger::DBG_SESSION,"ASIWHEEL::SelectFilter Done Moving");
-            // Note: no need to set CurrentFilter = TargetFilter as EFWGetPosition already did that
+			DEBUGF(INDI::Logger::DBG_SESSION, "ASIWHEEL::SelectFilter Done moving to %d", CurrentFilter);
+			// Note: no need to set CurrentFilter = TargetFilter as EFWGetPosition already did that
 		} else {
 			DEBUG(INDI::Logger::DBG_SESSION,"ASIWHEEL::SelectFilter EFWSetPosition error");
 			return false;
@@ -200,7 +228,7 @@ bool ASIWHEEL::SelectFilter(int f) {
 }
 
 void ASIWHEEL::TimerHit() {
-	DEBUG(INDI::Logger::DBG_SESSION, "Entering ASIWHEEL::TimerHit");
+	DEBUG(INDI::Logger::DBG_DEBUG, "Entering ASIWHEEL::TimerHit");
 	QueryFilter();
 	if (CurrentFilter != TargetFilter) {
 		SetTimer(3500);
