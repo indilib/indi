@@ -1,7 +1,7 @@
 /*
  ASI Filter Wheel INDI Driver
 
- Copyright (c) 2016 by Rumen G.Bogdanovski and Hans Lambermont.
+ Copyright (c) 2016 by Rumen G.Bogdanovski.
  All Rights Reserved.
 
  Code is based on SX Filter Wheel INDI Driver by Gerry Rozema
