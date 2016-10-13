@@ -1,7 +1,7 @@
 /*
  ASI Filter Wheel INDI Driver
 
- Copyright (c) 2016 by Rumen G.Bogdanovski and Hans Lambermont.
+ Copyright (c) 2016 by Rumen G.Bogdanovski.
  All Rights Reserved.
 
  Code is based on SX Filter Wheel INDI Driver by Gerry Rozema
@@ -158,7 +158,7 @@ bool ASIWHEEL::Connect() {
 				break;
 			usleep(500);
 		}
-		CurrentFilter = currentSlot; // Note: not + 1
+		CurrentFilter = currentSlot + 1; // Note: + 1
 		DEBUGF(INDI::Logger::DBG_SESSION, "ASIWHEEL::Connect current filter position %d", CurrentFilter);
 	}
 	return true;
@@ -193,7 +193,7 @@ int ASIWHEEL::QueryFilter() {
 	if (!isSimulation() && fw_id >= 0)
 		// MORE TODO!!!
 		EFWGetPosition(fw_id, &CurrentFilter);
-	return CurrentFilter;
+	return ++CurrentFilter;
 }
 
 bool ASIWHEEL::SelectFilter(int f) {
@@ -203,7 +203,7 @@ bool ASIWHEEL::SelectFilter(int f) {
 		CurrentFilter = TargetFilter;
 	} else if (fw_id >= 0) {
 		EFW_ERROR_CODE err;
-		err = EFWSetPosition(fw_id, f);
+		err = EFWSetPosition(fw_id, f - 1);
 		if (err == EFW_SUCCESS) {
 			DEBUG(INDI::Logger::DBG_DEBUG,"ASIWHEEL::SelectFilter Moving...");
 			SetTimer(3500);
@@ -214,7 +214,7 @@ bool ASIWHEEL::SelectFilter(int f) {
 				DEBUG(INDI::Logger::DBG_DEBUG,"ASIWHEEL::SelectFilter Still Moving");
 				sleep(1);
 			}
-			DEBUGF(INDI::Logger::DBG_SESSION, "ASIWHEEL::SelectFilter Done moving to %d", CurrentFilter);
+			DEBUGF(INDI::Logger::DBG_SESSION, "ASIWHEEL::SelectFilter Done moving to %d", ++CurrentFilter);
 			// Note: no need to set CurrentFilter = TargetFilter as EFWGetPosition already did that
 		} else {
 			DEBUG(INDI::Logger::DBG_SESSION,"ASIWHEEL::SelectFilter EFWSetPosition error");
