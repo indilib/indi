@@ -184,9 +184,9 @@ bool RollOff::ISNewSwitch (const char *dev, const char *name, ISState *states, c
             ParkableWhenScopeUnparkedSP.s = IPS_OK;
 
             if (ParkableWhenScopeUnparkedS[0].s == ISS_ON)
-                DEBUG(INDI::Logger::DBG_WARNING, "Scope park aware is disabled. Roof can close when scope unparked or unknown. Only enable this option is parking the dome at any time will not cause damage to any equipment.");
+                DEBUG(INDI::Logger::DBG_WARNING, "Scope park aware is enabled. Roof will not close when a snooped unparked telescope exists");
             else
-                DEBUG(INDI::Logger::DBG_SESSION, "Scope park aware is enabled. Roof will not close when a snooped unparked telescope exists");
+                DEBUG(INDI::Logger::DBG_SESSION, "Scope park aware is disabled. Roof can close when scope unparked or unknown. Only enable this option is parking the dome at any time will not cause damage to any equipment.");
 
             IDSetSwitch(&ParkableWhenScopeUnparkedSP, NULL);
 
