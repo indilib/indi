@@ -4,6 +4,10 @@
  Copyright (c) 2016 by Rumen G.Bogdanovski.
  All Rights Reserved.
 
+ Contributors:
+ Yang Zhou
+ Hans Lambermont
+
  Code is based on SX Filter Wheel INDI Driver by Gerry Rozema
  Copyright(c) 2010 Gerry Rozema.
  All rights reserved.
