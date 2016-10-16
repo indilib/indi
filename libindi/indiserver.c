@@ -1174,7 +1174,11 @@ readFromDriver (DvrInfo *dp)
     char buf[MAXRBUF];
     int shutany = 0;
     ssize_t i, nr;
-
+    char err[1024];
+    XMLEle **nodes;
+    XMLEle *root;
+    int inode=0;
+    
     /* read driver */
     nr = read (dp->rfd, buf, sizeof(buf));
     if (nr <= 0) {
@@ -1188,98 +1192,11 @@ readFromDriver (DvrInfo *dp)
         return (-1);
     }
 
-    /* process XML, sending when find closure */
-    for (i = 0; i < nr; i++)
-    {
-        char err[1024];
-        XMLEle *root = readXMLEle (dp->lp, buf[i], err);
-        if (root)
-        {
-        char *roottag = tagXMLEle(root);
-        const char *dev = findXMLAttValu (root, "device");
-        const char *name = findXMLAttValu (root, "name");
-        int isblob = !strcmp (tagXMLEle(root), "setBLOBVector");
-        Msg *mp;
+    /* process XML chunk */
+    nodes=parseXMLChunk(dp->lp, buf, nr, err);
 
-        if (verbose > 2)
-        {
-            fprintf(stderr, "%s: Driver %s: read ", indi_tstamp(0),dp->name);
-            traceMsg (root);
-        } else if (verbose > 1) {
-            fprintf (stderr, "%s: Driver %s: read <%s device='%s' name='%s'>\n",
-                    indi_tstamp(NULL), dp->name, tagXMLEle(root),
-                    findXMLAttValu (root, "device"),
-                    findXMLAttValu (root, "name"));
-        }
-
-
-        /* that's all if driver is just registering a snoop */
-        /* JM 2016-05-18: Send getProperties to upstream chained servers as well.*/
-        if (!strcmp (roottag, "getProperties"))
-        {
-            addSDevice (dp, dev, name);
-            mp = newMsg();
-            /* send to interested chained servers upstream */
-            if (q2Servers(NULL, mp, root) < 0)
-                shutany++;
-            if (mp->count > 0)
-                setMsgXMLEle (mp, root);
-            else
-                freeMsg (mp);
-            delXMLEle (root);
-            continue;
-        }
-
-        /* that's all if driver is just registering a BLOB mode */
-        if (!strcmp (roottag, "enableBLOB"))
-        {
-                    Property *sp = findSDevice (dp, dev, name);
-            if (sp)
-            crackBLOB (pcdataXMLEle (root), &sp->blob);
-            delXMLEle (root);
-
-            continue;
-        }
-
-        /* Found a new device? Let's add it to driver info */
-        if (dev[0] && isDeviceInDriver(dev, dp) == 0)
-        {
-            dp->dev = (char **) realloc(dp->dev, (dp->ndev+1) * sizeof(char *));
-            dp->dev[dp->ndev] = (char *) malloc(MAXINDIDEVICE * sizeof(char));
-
-            strncpy (dp->dev[dp->ndev], dev, MAXINDIDEVICE-1);
-            dp->dev[dp->ndev][MAXINDIDEVICE-1] = '\0';
-
-#ifdef OSX_EMBEDED_MODE
-            if (!dp->ndev)
-              fprintf(stderr, "STARTED \"%s\"\n", dp->name); fflush(stderr);
-#endif
-
-            dp->ndev++;
-        }
-
-        /* log messages if any and wanted */
-        if (ldir)
-            logDMsg (root, dev);
-
-        /* build a new message -- set content iff anyone cares */
-        mp = newMsg();
-
-        /* send to interested clients */
-         if (q2Clients (NULL, isblob, dev, name, mp, root) < 0)
-            shutany++;
-
-        /* send to snooping drivers */
-        q2SDrivers (isblob, dev, name, mp, root);
-
-        /* set message content if anyone cares else forget it */
-        if (mp->count > 0)
-            setMsgXMLEle (mp, root);
-        else
-            freeMsg (mp);
-        delXMLEle (root);
-
-        } else if (err[0]) {
+    if (!nodes) {
+      if (err[0]) {
         char *ts = indi_tstamp(NULL);
         fprintf (stderr, "%s: Driver %s: XML error: %s\n", ts,
                                 dp->name, err);
@@ -1288,7 +1205,100 @@ readFromDriver (DvrInfo *dp)
                 shutdownDvr (dp, 1);
         return (-1);
         }
+      return -1;
     }
+    root=nodes[inode];
+    while (root)
+    {
+      char *roottag = tagXMLEle(root);
+      const char *dev = findXMLAttValu (root, "device");
+      const char *name = findXMLAttValu (root, "name");
+      int isblob = !strcmp (tagXMLEle(root), "setBLOBVector");
+      Msg *mp;
+
+      if (verbose > 2)
+        {
+	  fprintf(stderr, "%s: Driver %s: read ", indi_tstamp(0),dp->name);
+	  traceMsg (root);
+        } else
+	if (verbose > 1) {
+	  fprintf (stderr, "%s: Driver %s: read <%s device='%s' name='%s'>\n",
+		   indi_tstamp(NULL), dp->name, tagXMLEle(root),
+		   findXMLAttValu (root, "device"),
+		   findXMLAttValu (root, "name"));
+	}
+      
+
+      /* that's all if driver is just registering a snoop */
+      /* JM 2016-05-18: Send getProperties to upstream chained servers as well.*/
+      if (!strcmp (roottag, "getProperties"))
+        {
+	  addSDevice (dp, dev, name);
+	  mp = newMsg();
+	  /* send to interested chained servers upstream */
+	  if (q2Servers(NULL, mp, root) < 0)
+	    shutany++;
+	  if (mp->count > 0)
+	    setMsgXMLEle (mp, root);
+	  else
+	    freeMsg (mp);
+	  delXMLEle (root);
+	  inode++; root=nodes[inode];
+	  continue;
+        }
+
+      /* that's all if driver is just registering a BLOB mode */
+      if (!strcmp (roottag, "enableBLOB"))
+        {
+	  Property *sp = findSDevice (dp, dev, name);
+	  if (sp)
+            crackBLOB (pcdataXMLEle (root), &sp->blob);
+	  delXMLEle (root);
+	  inode++; root=nodes[inode];
+	  continue;
+        }
+
+      /* Found a new device? Let's add it to driver info */
+      if (dev[0] && isDeviceInDriver(dev, dp) == 0)
+        {
+	  dp->dev = (char **) realloc(dp->dev, (dp->ndev+1) * sizeof(char *));
+	  dp->dev[dp->ndev] = (char *) malloc(MAXINDIDEVICE * sizeof(char));
+	  
+	  strncpy (dp->dev[dp->ndev], dev, MAXINDIDEVICE-1);
+	  dp->dev[dp->ndev][MAXINDIDEVICE-1] = '\0';
+	  
+#ifdef OSX_EMBEDED_MODE
+	  if (!dp->ndev)
+	    fprintf(stderr, "STARTED \"%s\"\n", dp->name); fflush(stderr);
+#endif
+	  
+	  dp->ndev++;
+        }
+
+      /* log messages if any and wanted */
+      if (ldir)
+	logDMsg (root, dev);
+      
+      /* build a new message -- set content iff anyone cares */
+      mp = newMsg();
+      
+      /* send to interested clients */
+      if (q2Clients (NULL, isblob, dev, name, mp, root) < 0)
+	shutany++;
+      
+      /* send to snooping drivers */
+      q2SDrivers (isblob, dev, name, mp, root);
+      
+      /* set message content if anyone cares else forget it */
+      if (mp->count > 0)
+	setMsgXMLEle (mp, root);
+      else
+	freeMsg (mp);
+      delXMLEle (root);
+      inode++; root=nodes[inode];
+    }
+
+    free(nodes);
 
     return (shutany ? -1 : 0);
 }

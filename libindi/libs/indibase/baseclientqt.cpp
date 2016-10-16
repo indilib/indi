@@ -221,6 +221,10 @@ void INDI::BaseClientQt::listenINDI()
     char buffer[MAXINDIBUF];
     char errorMsg[MAXRBUF];
     int err_code=0;
+    
+    XMLEle **nodes;
+    XMLEle *root;
+    int inode=0;
 
     if (sConnected == false)
         return;
@@ -230,33 +234,38 @@ void INDI::BaseClientQt::listenINDI()
         qint64 readBytes = client_socket.read(buffer, MAXINDIBUF - 1);
         if ( readBytes > 0 )
             buffer[ readBytes ] = '\0';
-
-        for (int i = 0; i < readBytes; i++)
-        {
-            XMLEle *root = readXMLEle (lillp, buffer[i], errorMsg);
-            if (root)
-            {
-                if (verbose)
-                    prXMLEle(stderr, root, 0);
-
-                if ( (err_code = dispatchCommand(root, errorMsg)) < 0)
-                {
-                        // Silenty ignore property duplication errors
-                        if (err_code != INDI_PROPERTY_DUPLICATED)
-                        {
-                            IDLog("Dispatch command error(%d): %s\n", err_code, errorMsg);
-                            prXMLEle (stderr, root, 0);
-                        }
-                }
-
-                delXMLEle (root);	// not yet, delete and continue
-            }
-            else if (errorMsg[0])
-            {
-                IDLog("Bad XML from %s/%d: %s\n%s\n", cServer.c_str(), cPort, errorMsg, buffer);
-                return;
-            }
-        }
+	
+	nodes=parseXMLChunk(lillp, buffer, readBytes, errorMsg);
+	if (!nodes) {
+	  if (errorMsg[0])
+	    {
+	      fprintf (stderr, "Bad XML from %s/%d: %s\n%s\n", cServer.c_str(), cPort, errorMsg, buffer);
+	      return;
+	    }
+	  return;
+	}
+	root=nodes[inode];
+	while (root)
+	  {
+	    if (verbose)
+	      prXMLEle(stderr, root, 0);
+	    
+	    if ( (err_code = dispatchCommand(root, errorMsg)) < 0)
+	      {
+		// Silenty ignore property duplication errors
+		if (err_code != INDI_PROPERTY_DUPLICATED)
+		  {
+		    IDLog("Dispatch command error(%d): %s\n", err_code, errorMsg);
+		    prXMLEle (stderr, root, 0);
+		  }
+	      }
+	    
+	    
+	    delXMLEle (root);	// not yet, delete and continue
+	    inode++; root=nodes[inode];
+	  }
+	free(nodes);
+	inode=0;
     }
 }
 

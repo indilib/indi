@@ -1944,10 +1944,12 @@ IDSetBLOB (const IBLOBVectorProperty *bvp, const char *fmt, ...)
             printf ("  <oneBLOB\n");
             printf ("    name='%s'\n", bp->name);
             printf ("    size='%d'\n", bp->size);
-            printf ("    format='%s'>\n", bp->format);
+            //printf ("    format='%s'>\n", bp->format);
 
             encblob = malloc (4*bp->bloblen/3+4);
             l = to64frombits(encblob, bp->blob, bp->bloblen);
+	    printf ("    enclen='%d'\n", l);
+	    printf ("    format='%s'>\n", bp->format);
             size_t written = 0;
             size_t towrite = l;
             while (written < l) {

@@ -53,6 +53,7 @@ set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for u
 #####################################  Build Options  ##############################################
 
 OPTION (INDI_BUILD_UNITTESTS "Build INDI tests" OFF)
+OPTION (INDI_FAST_BLOB "Build INDI with Fast BLOB support" ON)
 
 #####################################  Dependencies  ##############################################
 # ZLib compression Library
@@ -980,6 +981,14 @@ if (Qt5Network_FOUND)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclientqt.h
         DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
 endif(Qt5Network_FOUND)
+
+###################################################################################################
+#########################################  Fast Blob  #############################################
+###################################################################################################
+IF (INDI_FAST_BLOB)
+add_definitions(-DWITH_ENCLEN)
+ENDIF(INDI_FAST_BLOB)
+
 ###################################################################################################
 #########################################  Tests  #################################################
 ###################################################################################################

@@ -52,8 +52,8 @@ INDI::BaseClient::BaseClient()
 
 INDI::BaseClient::~BaseClient()
 {
-   // close(m_sendFd);
-   // close(m_receiveFd);
+    // close(m_sendFd);
+    // close(m_receiveFd);
 }
 
 
@@ -103,17 +103,17 @@ bool INDI::BaseClient::connectServer()
     //set socket nonblocking flag
     int flags = 0;
     if ( (flags = fcntl(sockfd, F_GETFL, 0)) < 0)
-       return false;
+        return false;
 
-     if(fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) < 0)
-            return false;
+    if(fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) < 0)
+        return false;
 
-     //clear out descriptor sets for select
-     //add socket to the descriptor sets
-     fd_set  rset, wset;
-     FD_ZERO(&rset);
-     FD_SET(sockfd, &rset);
-     wset = rset;    //structure assignment okok
+    //clear out descriptor sets for select
+    //add socket to the descriptor sets
+    fd_set  rset, wset;
+    FD_ZERO(&rset);
+    FD_SET(sockfd, &rset);
+    wset = rset;    //structure assignment okok
 
     /* connect */
     if ( (ret = ::connect (sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr))) <0)
@@ -130,15 +130,15 @@ bool INDI::BaseClient::connectServer()
     if (ret != 0)
     {
         //we are waiting for connect to complete now
-         if( (ret = select(sockfd + 1, &rset, &wset, NULL, &ts)) < 0)
-                return false;
-            //we had a timeout
-            if(ret == 0)
-            {
-                errno = ETIMEDOUT;
-                perror("select timeout");
-                return false;
-            }
+        if( (ret = select(sockfd + 1, &rset, &wset, NULL, &ts)) < 0)
+            return false;
+        //we had a timeout
+        if(ret == 0)
+        {
+            errno = ETIMEDOUT;
+            perror("select timeout");
+            return false;
+        }
     }
 
     /* we had a positivite return so a descriptor is ready */
@@ -148,8 +148,8 @@ bool INDI::BaseClient::connectServer()
     {
         if(getsockopt(sockfd, SOL_SOCKET, SO_ERROR, &error, &len) < 0)
         {
-               perror("getsockopt");
-               return false;
+            perror("getsockopt");
+            return false;
         }
     }
     else
@@ -212,16 +212,16 @@ bool INDI::BaseClient::disconnectServer()
 
     while (write(m_sendFd,"1",1) <= 0)
 
-    if (svrwfp != NULL)
-        fclose(svrwfp);
-   svrwfp = NULL;
+        if (svrwfp != NULL)
+            fclose(svrwfp);
+    svrwfp = NULL;
 
-   cDevices.clear();
-   cDeviceNames.clear();
+    cDevices.clear();
+    cDeviceNames.clear();
 
-   pthread_join(listen_thread, NULL);
+    pthread_join(listen_thread, NULL);
 
-   return true;
+    return true;
 }
 
 void INDI::BaseClient::connectDevice(const char *deviceName)
@@ -231,7 +231,7 @@ void INDI::BaseClient::connectDevice(const char *deviceName)
 
 void INDI::BaseClient::disconnectDevice(const char *deviceName)
 {
-        setDriverConnection(false, deviceName);
+    setDriverConnection(false, deviceName);
 }
 
 
@@ -294,8 +294,8 @@ INDI::BaseDevice * INDI::BaseClient::getDevice(const char * deviceName)
 
 void * INDI::BaseClient::listenHelper(void *context)
 {
-  (static_cast<INDI::BaseClient *> (context))->listenINDI();
-  return NULL;
+    (static_cast<INDI::BaseClient *> (context))->listenINDI();
+    return NULL;
 }
 
 void INDI::BaseClient::listenINDI()
@@ -306,13 +306,17 @@ void INDI::BaseClient::listenINDI()
     int n=0, err_code=0;
     int maxfd=0;
     fd_set rs;
-
+    
+    XMLEle **nodes;
+    XMLEle *root;
+    int inode=0;
+    
     char *orig = setlocale(LC_NUMERIC,"C");
     if (cDeviceNames.empty())
     {
-       fprintf(svrwfp, "<getProperties version='%g'/>\n", INDIV);
-       if (verbose)
-           fprintf(stderr, "<getProperties version='%g'/>\n", INDIV);
+        fprintf(svrwfp, "<getProperties version='%g'/>\n", INDIV);
+        if (verbose)
+            fprintf(stderr, "<getProperties version='%g'/>\n", INDIV);
     }
     else
     {
@@ -378,36 +382,39 @@ void INDI::BaseClient::listenINDI()
                     continue;
             }
 
-            for (int i=0; i < n; i++)
-            {
-               XMLEle *root = readXMLEle (lillp, buffer[i], msg);
 
-                if (root)
+            nodes=parseXMLChunk(lillp, buffer, n, msg);
+
+            if (!nodes) {
+                if (msg[0])
                 {
-                    if (verbose)
-                        prXMLEle(stderr, root, 0);
-
-                    if ( (err_code = dispatchCommand(root, msg)) < 0)
-                    {
-                         // Silenty ignore property duplication errors
-                         if (err_code != INDI_PROPERTY_DUPLICATED)
-                         {
-                             IDLog("Dispatch command error(%d): %s\n", err_code, msg);
-                             prXMLEle (stderr, root, 0);
-                         }
-                    }
-
-
-                   delXMLEle (root);	// not yet, delete and continue
+                    fprintf (stderr, "Bad XML from %s/%d: %s\n%s\n", cServer.c_str(), cPort, msg, buffer);
+                    return;
                 }
-                else if (msg[0])
-                {
-                   fprintf (stderr, "Bad XML from %s/%d: %s\n%s\n", cServer.c_str(), cPort, msg, buffer);
-                   return;
-                }
+                return;
             }
+            root=nodes[inode];
+            while (root)
+            {
+                if (verbose)
+                    prXMLEle(stderr, root, 0);
+
+                if ( (err_code = dispatchCommand(root, msg)) < 0)
+                {
+                    // Silenty ignore property duplication errors
+                    if (err_code != INDI_PROPERTY_DUPLICATED)
+                    {
+                        IDLog("Dispatch command error(%d): %s\n", err_code, msg);
+                        prXMLEle (stderr, root, 0);
+                    }
+                }
 
 
+                delXMLEle (root);	// not yet, delete and continue
+                inode++; root=nodes[inode];
+            }
+            free(nodes);
+            inode=0;
         }
 
     }
@@ -446,17 +453,17 @@ int INDI::BaseClient::dispatchCommand(XMLEle *root, char * errmsg)
         return 0;
 
     if ((!strcmp (tagXMLEle(root), "defTextVector"))  ||
-       (!strcmp (tagXMLEle(root), "defNumberVector")) ||
-       (!strcmp (tagXMLEle(root), "defSwitchVector")) ||
-       (!strcmp (tagXMLEle(root), "defLightVector"))  ||
-       (!strcmp (tagXMLEle(root), "defBLOBVector")))
+            (!strcmp (tagXMLEle(root), "defNumberVector")) ||
+            (!strcmp (tagXMLEle(root), "defSwitchVector")) ||
+            (!strcmp (tagXMLEle(root), "defLightVector"))  ||
+            (!strcmp (tagXMLEle(root), "defBLOBVector")))
         return dp->buildProp(root, errmsg);
     else if (!strcmp (tagXMLEle(root), "setTextVector") ||
              !strcmp (tagXMLEle(root), "setNumberVector") ||
              !strcmp (tagXMLEle(root), "setSwitchVector") ||
              !strcmp (tagXMLEle(root), "setLightVector") ||
              !strcmp (tagXMLEle(root), "setBLOBVector"))
-            return dp->setValue(root, errmsg);
+        return dp->setValue(root, errmsg);
 
     return INDI_DISPATCH_ERROR;
 }
@@ -501,15 +508,15 @@ int INDI::BaseClient::deleteDevice( const char * devName, char * errmsg )
     for (devicei =cDevices.begin(); devicei != cDevices.end();)
     {
 
-      if (!strcmp(devName, (*devicei)->getDeviceName()))
-      {
-          removeDevice(*devicei);
-          delete *devicei;
-          devicei = cDevices.erase(devicei);
-          return 0;
-      }
-      else
-          ++devicei;
+        if (!strcmp(devName, (*devicei)->getDeviceName()))
+        {
+            removeDevice(*devicei);
+            delete *devicei;
+            devicei = cDevices.erase(devicei);
+            return 0;
+        }
+        else
+            ++devicei;
     }
 
     snprintf(errmsg, MAXRBUF, "Device %s not found", devName);
@@ -524,7 +531,7 @@ INDI::BaseDevice * INDI::BaseClient::findDev( const char * devName, char * errms
     for (devicei = cDevices.begin(); devicei != cDevices.end(); devicei++)
     {
         if (!strcmp(devName, (*devicei)->getDeviceName()))
-         return (*devicei);
+            return (*devicei);
 
     }
 
@@ -655,7 +662,7 @@ void INDI::BaseClient::sendNewText (const char * deviceName, const char * proper
 
 void INDI::BaseClient::sendNewNumber (INumberVectorProperty *nvp)
 {
-   char *orig = setlocale(LC_NUMERIC,"C");
+    char *orig = setlocale(LC_NUMERIC,"C");
 
     nvp->s = IPS_BUSY;
 
@@ -672,9 +679,9 @@ void INDI::BaseClient::sendNewNumber (INumberVectorProperty *nvp)
     }
     fprintf(svrwfp, "</newNumberVector>\n");
 
-   fflush(svrwfp);
+    fflush(svrwfp);
 
-   setlocale(LC_NUMERIC,orig);
+    setlocale(LC_NUMERIC,orig);
 }
 
 void INDI::BaseClient::sendNewNumber (const char *deviceName, const char *propertyName, const char* elementName, double value)
@@ -792,10 +799,10 @@ void INDI::BaseClient::setBLOBMode(BLOBHandling blobH, const char *dev, const ch
     if (!dev[0])
         return;
 
-   if (prop != NULL)
-           snprintf(blobOpenTag, MAXRBUF, "<enableBLOB device='%s' name='%s'>", dev, prop);
-   else
-          snprintf(blobOpenTag, MAXRBUF, "<enableBLOB device='%s'>", dev);
+    if (prop != NULL)
+        snprintf(blobOpenTag, MAXRBUF, "<enableBLOB device='%s' name='%s'>", dev, prop);
+    else
+        snprintf(blobOpenTag, MAXRBUF, "<enableBLOB device='%s'>", dev);
 
     switch (blobH)
     {
