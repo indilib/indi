@@ -193,7 +193,7 @@ void DomeScript::TimerHit() {
     fscanf(file, "%d %d %f", &parked, &shutter, &az);
     fclose(file);
     unlink(name);
-    DomeAbsPosN[0].value = az = range360(az);;
+    DomeAbsPosN[0].value = az = round(range360(az) * 10) / 10;
     if (parked != 0) {
       if (getDomeState() == DOME_PARKING || getDomeState() == DOME_UNPARKED) {
         SetParked(true);
@@ -207,8 +207,8 @@ void DomeScript::TimerHit() {
         DEBUG(INDI::Logger::DBG_SESSION, "Unpark succesfully executed");
       }
     }
-    DEBUGF(INDI::Logger::DBG_SESSION, "Moving %f -> %f %d", az, targetAz, getDomeState());
-    if (targetAz != az) {
+    if (round(az * 10) != round(targetAz * 10)) {
+      DEBUGF(INDI::Logger::DBG_SESSION, "Moving %g -> %g %d", round(az * 10) / 10, round(targetAz * 10) / 10, getDomeState());
       IDSetNumber(&DomeAbsPosNP, NULL);
     } else if (getDomeState() == DOME_MOVING) {
       setDomeState(DOME_SYNCED);
@@ -282,7 +282,7 @@ IPState DomeScript::ControlShutter(ShutterOperation operation) {
 
 IPState DomeScript::MoveAbs(double az) {
   char _az[16];
-  snprintf(_az, 16, "%f", az);
+  snprintf(_az, 16, "%f", round(az * 10) / 10);
   bool status = RunScript(SCRIPT_GOTO, _az, NULL);
   if (status) {
     targetAz = az;

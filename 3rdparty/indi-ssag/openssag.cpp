@@ -14,7 +14,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef OSX_EMBEDED_MODE
+#include <libusb.h>
+#else
 #include <libusb-1.0/libusb.h>
+#endif
 #include <time.h>
 #include <unistd.h>
 
