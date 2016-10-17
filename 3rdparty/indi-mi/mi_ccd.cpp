@@ -627,17 +627,35 @@ float MICCD::calcTimeLeft()
     return ExposureRequest - timesince / 1000.0;
 }
 
+static void mirror_image(void* buf, size_t w, size_t d)
+{
+  size_t w2 = w * 2;
+  size_t half_d = d / 2;
+
+  for (size_t line = 1; line <= half_d; line++) {
+    uint16_t* sa = (uint16_t *)((char *) buf + (line - 1) * w2);
+    uint16_t* da = (uint16_t *)((char *) buf + (d - line) * w2);
+    for (size_t index = 1; index <= w; index++) {
+      uint16_t tmp = *sa;
+      *sa = *da;
+      *da = tmp;
+      ++sa;
+      ++da;
+    }
+  }
+}
+
 /* Downloads the image from the CCD. */
 int MICCD::grabImage()
 {
     int ret = 0;
     unsigned char *image = (unsigned char *) PrimaryCCD.getFrameBuffer();
 
+    int width  = PrimaryCCD.getSubW() / PrimaryCCD.getBinX();
+    int height = PrimaryCCD.getSubH() / PrimaryCCD.getBinY();
+
     if (isSimulation())
     {
-        int height = PrimaryCCD.getSubH() / PrimaryCCD.getBinY();
-        int width  = PrimaryCCD.getSubW() / PrimaryCCD.getBinX();
-
         uint16_t *buffer = (uint16_t *) image;
 
         for (int i = 0; i < height; i++)
@@ -652,6 +670,8 @@ int MICCD::grabImage()
             char errorStr[MAX_ERROR_LEN];
             gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
             DEBUGF(INDI::Logger::DBG_ERROR, "Error getting image: %s.", errorStr);
+        } else {
+            mirror_image(image, width, height);
         }
     }
 
@@ -669,12 +689,12 @@ void MICCD::TimerHit()
     if (!isConnected())
         return;  // No need to reset timer if we are not connected anymore
 
-    if (InExposure || downloading)
+    if (InExposure)
     {
-        long timeleft = calcTimeLeft();
+        float timeleft = calcTimeLeft();
         bool ready = false;
 
-        if (gxccd_image_ready(cameraHandle, &ready) < 0)
+        if (!downloading && (gxccd_image_ready(cameraHandle, &ready) < 0))
         {
             char errorStr[MAX_ERROR_LEN];
             gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
@@ -683,17 +703,6 @@ void MICCD::TimerHit()
         }
         if (ready)
         {
-            // grab and save image
-            grabImage();
-        }
-        // camera may need some time for image download -> update client only for positive values
-        else if (timeleft >= 0)
-        {
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Exposure in progress: Time left %ld", timeleft);
-            PrimaryCCD.setExposureLeft(timeleft);
-        }
-        else if (!downloading)
-        {
             PrimaryCCD.setExposureLeft(0);
             InExposure = false;
             downloading = true;
@@ -701,6 +710,15 @@ void MICCD::TimerHit()
             // Don't spam the session log unless it is a long exposure > 5 seconds
             if (ExposureRequest > POLLMS * 5)
                 DEBUG(INDI::Logger::DBG_SESSION, "Exposure done, downloading image...");
+
+            // grab and save image
+            grabImage();
+        }
+        // camera may need some time for image download -> update client only for positive values
+        else if (timeleft >= 0)
+        {
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Exposure in progress: Time left %.2fs", timeleft);
+            PrimaryCCD.setExposureLeft(timeleft);
         }
     }
 
