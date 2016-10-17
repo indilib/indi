@@ -2201,10 +2201,10 @@ bool INDI::CCD::uploadFile(CCDChip * targetChip, const void *fitsData, size_t to
 
             if (maxIndex > 0)
             {
-                char indexString[4];
-                snprintf(indexString, 4, "%03d", maxIndex);
+                char indexString[8];
+                snprintf(indexString, 8, "%03d", maxIndex);
                 std::string prefixIndex = indexString;
-                prefix.replace(prefix.find("XXX"), 3, prefixIndex);
+                prefix.replace(prefix.find("XXX"), std::string::npos, prefixIndex);
             }
 
             snprintf(imageFileName, MAXRBUF, "%s/%s%s", UploadSettingsT[0].text, prefix.c_str(), targetChip->FitsB.format);
