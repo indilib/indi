@@ -577,7 +577,7 @@ bool GPhotoCCD::Connect()
   }
   if (sim == false && ! (gphotodrv = gphoto_open(port)))
   {
-      DEBUG(INDI::Logger::DBG_ERROR, "Can not open camera: Power OK?");
+      DEBUG(INDI::Logger::DBG_ERROR, "Can not open camera: Power OK? If camera is auto-mounted as external disk storage, please unmount it and disable auto-mount.");
       return false;
   }
 
