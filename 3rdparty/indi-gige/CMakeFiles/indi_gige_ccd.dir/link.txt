@@ -1,0 +1,1 @@
+/usr/bin/c++      CMakeFiles/indi_gige_ccd.dir/indi_gige.o  -o indi_gige_ccd -rdynamic -lindidriver -lcfitsio -lm -lz 
