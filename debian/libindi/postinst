@@ -3,4 +3,4 @@
 
 set -e
 
-adduser $SUDO_USER dialout
+adduser $SUDO_USER dialout || true
