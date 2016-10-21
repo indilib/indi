@@ -46,6 +46,7 @@ option(WITH_ASICAM "Install ZWO Optics ASI Driver" On)
 option(WITH_DSI "Install Meade DSI Driver" On)
 #option(WITH_QHY "Install QHY Driver" Off)
 option(WITH_GPSD "Install GPSD Driver" On)
+option(WITH_GIGE "Install GiGE machine vision Driver" On)
 
 if (WITH_QHY)
 add_subdirectory(indi-qhy)
@@ -92,6 +93,10 @@ endif (WITH_NSE)
 if (WITH_GPSD)
 add_subdirectory(indi-gpsd)
 endif (WITH_GPSD)
+
+if (WITH_GIGE)
+add_subdirectory(indi-gige)
+endif (WITH_GIGE)
 
 if (WITH_APOGEE)
 find_package(APOGEE)
