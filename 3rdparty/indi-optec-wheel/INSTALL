@@ -1,0 +1,12 @@
+QSI INSTALL
+============
+
+You must have CMake >= 2.4.7 in order to build this package.
+
+1) $ mkdir ~/Projects
+1) $ mkdir build/indi_optec_wheel
+2) $ cd build/indi_optec_wheel
+3) $ cmake -DCMAKE_INSTALL_PREFIX=/usr . ../indi_optec_wheel
+4) $ make
+5) $ su -c 'make install' or sudo make install
+
