@@ -122,6 +122,11 @@ class Logger
         static std::string logFile_;
 
         /**
+         * \brief Directory where log file is stored. it is created under ~/.indi/logs/[DATE]/[DRIVER_EXEC]
+         */
+        static std::string logDir_;
+
+        /**
          * \brief Current configuration of the logger.
          * Variable to know if logging on file and on screen are enabled.
          * Note that if the log on file is enabled, it means that the

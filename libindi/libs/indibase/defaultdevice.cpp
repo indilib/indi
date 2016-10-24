@@ -650,9 +650,7 @@ bool INDI::DefaultDevice::initProperties()
     INDI::Logger::initProperties(this);
 
     // Ready the logger
-    std::string logFile;
-    logFile += "/tmp/";
-    logFile += getDriverExec();
+    std::string logFile = getDriverExec();
 
     DEBUG_CONF(logFile,  Logger::file_off|Logger::screen_on, Logger::defaultlevel, Logger::defaultlevel);
 
