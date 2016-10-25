@@ -656,6 +656,16 @@ add_executable(indi_simulator_wheel ${filtersimulator_SRCS})
 target_link_libraries(indi_simulator_wheel indidriver)
 install(TARGETS indi_simulator_wheel RUNTIME DESTINATION bin )
 
+########## Optec Wheel IFW ############
+set(optecwheel_SRCS
+        ${indimain_SRCS}
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/filter_wheel/ifwoptec.cpp
+   )
+
+add_executable(indi_optec_wheel ${optecwheel_SRCS})
+target_link_libraries(indi_optec_wheel indidriver)
+install(TARGETS indi_optec_wheel RUNTIME DESTINATION bin )
+
 #################################################################################
 
 #####################################
