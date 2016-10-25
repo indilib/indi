@@ -69,7 +69,7 @@
 #define MAXSBUF         512
 #define	MAXRBUF         49152	/* max read buffering here */
 #define	MAXWSIZ         49152	/* max bytes/write */
-#define	DEFMAXQSIZ      64		/* default max q behind, MB */
+#define	DEFMAXQSIZ      128		/* default max q behind, MB */
 #define DEFMAXRESTART   10      /* default max restarts */
 
 #ifdef OSX_EMBEDED_MODE
