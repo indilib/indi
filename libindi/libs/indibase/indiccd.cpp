@@ -2042,6 +2042,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
           long naxes[naxis];
           int nelements=0;
           std::string bit_depth;
+          char error_status[MAXRBUF];
 
           fitsfile *fptr=NULL;
 
@@ -2069,7 +2070,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
                   break;
 
                default:
-                  DEBUGF(Logger::DBG_WARNING, "Unsupported bits per pixel value %d\n", targetChip->getBPP() );
+                  DEBUGF(Logger::DBG_ERROR, "Unsupported bits per pixel value %d", targetChip->getBPP() );
                   return false;
                   break;
           }
@@ -2092,11 +2093,13 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
               DEBUGF(INDI::Logger::DBG_ERROR, "Error: failed to allocate memory: %lu",(unsigned long)memsize);
           }
 
-          fits_create_memfile(&fptr,&memptr,&memsize,2880,realloc,&status);
+          fits_create_memfile(&fptr,&memptr,&memsize,2880,realloc,&status);                    
 
           if(status)
           {
             fits_report_error(stderr, status);  /* print out any error messages */
+            fits_get_errstatus(status, error_status);
+            DEBUGF(INDI::Logger::DBG_ERROR, "FITS Error: %s", error_status);
             return false;
           }
 
@@ -2105,6 +2108,8 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
           if (status)
           {
             fits_report_error(stderr, status);  /* print out any error messages */
+            fits_get_errstatus(status, error_status);
+            DEBUGF(INDI::Logger::DBG_ERROR, "FITS Error: %s", error_status);
             return false;
           }
 
@@ -2115,6 +2120,8 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
           if (status)
           {
             fits_report_error(stderr, status);  /* print out any error messages */
+            fits_get_errstatus(status, error_status);
+            DEBUGF(INDI::Logger::DBG_ERROR, "FITS Error: %s", error_status);
             return false;
           }
 
@@ -2174,6 +2181,9 @@ bool INDI::CCD::uploadFile(CCDChip * targetChip, const void *fitsData, size_t to
 {
     unsigned char *compressedData = NULL;
     uLongf compressedBytes=0;
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Uploading file. Ext: %s, Size: %d, sendImage? %s, saveImage? %s, useSolver? %s", targetChip->getImageExtension(), totalBytes,
+           sendImage ? "Yes" : "No", saveImage ? "Yes": "No", useSolver ? "Yes" : "No");
 
     if (saveImage)
     {
@@ -2290,6 +2300,8 @@ bool INDI::CCD::uploadFile(CCDChip * targetChip, const void *fitsData, size_t to
 
     if (compressedData)
         free (compressedData);
+
+    DEBUG(INDI::Logger::DBG_DEBUG, "Upload complete");
 
     return true;
 }

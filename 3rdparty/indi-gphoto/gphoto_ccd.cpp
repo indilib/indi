@@ -971,6 +971,8 @@ bool GPhotoCCD::grabImage()
         // If subframing is requested
         if (frameInitialized && (PrimaryCCD.getSubH() < PrimaryCCD.getYRes() || PrimaryCCD.getSubW() < PrimaryCCD.getXRes()))
         {
+            DEBUG(INDI::Logger::DBG_DEBUG, "Subframing...");
+
             int subFrameSize  = PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * bpp/8 * ((naxis == 3) ? 3 : 1);
             int oneFrameSize  = PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * bpp/8;
             uint8_t *subframeBuf = (uint8_t *) malloc(subFrameSize);
