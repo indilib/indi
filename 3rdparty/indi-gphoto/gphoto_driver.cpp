@@ -77,6 +77,9 @@ struct _gphoto_driver
     int             format;
     int             upload_settings;
 
+    char            *model;
+    char            *manufacturer;
+
     gphoto_widget_list	*widgets;
     gphoto_widget_list	*iter;
 
@@ -639,8 +642,8 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec, int 
     // Set Capture Target
     if (gphoto->capturetarget_widget)
     {
-        // Use RAM
-        if (gphoto->upload_settings == GP_UPLOAD_CLIENT)
+        // Use RAM but NOT on Nikon as it can only work when saving to SD Card
+        if (gphoto->upload_settings == GP_UPLOAD_CLIENT && (strstr(gphoto->manufacturer, "Nikon") == NULL) )
             gphoto_set_widget_num(gphoto, gphoto->capturetarget_widget, 0);
         else
         // Store in SD Card in Camera
@@ -948,6 +951,8 @@ gphoto_driver *gphoto_open(const char *shutter_release_port)
 
     gphoto->format_widget = find_widget(gphoto, "imageformat");
     gphoto->format = -1;
+    gphoto->manufacturer = NULL;
+    gphoto->model = NULL;
     gphoto->upload_settings = GP_UPLOAD_CLIENT;
 
     if (gphoto->format_widget != NULL)
@@ -1003,6 +1008,20 @@ gphoto_driver *gphoto_open(const char *shutter_release_port)
     {
         DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"ViewFinder Widget: %s", gphoto->viewfinder_widget->name);
         DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Current ViewFinder Value: %s", (gphoto->viewfinder_widget->value.toggle == 0) ? "Off" : "On");
+    }    
+
+    // Find Manufacturer
+    if ( (widget = find_widget(gphoto,"manufacturer")) != NULL )
+    {
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Manufacturer: %s", widget->value.text);
+        gphoto->manufacturer = widget->value.text;
+    }
+
+    // Find Model
+    if ( (widget = find_widget(gphoto,"cameramodel")) != NULL )
+    {
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Model: %s", widget->value.text);
+        gphoto->model = widget->value.text;
     }
 
     // Check for user
@@ -1021,7 +1040,7 @@ gphoto_driver *gphoto_open(const char *shutter_release_port)
 
     gphoto->bulb_fd = -1;
 
-    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"GPhoto initialized.");
+    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"GPhoto initialized.");    
 
     pthread_mutex_init(&gphoto->mutex, NULL);
     pthread_cond_init(&gphoto->signal, NULL);
@@ -1438,6 +1457,15 @@ out:
     return ret;
 }
 
+const char *gphoto_get_manufacturer(gphoto_driver *gphoto)
+{
+    return gphoto->manufacturer;
+}
+
+const char *gphoto_get_model(gphoto_driver *gphoto)
+{
+    return gphoto->model;
+}
 
 #ifdef GPHOTO_TEST
 #include <getopt.h>

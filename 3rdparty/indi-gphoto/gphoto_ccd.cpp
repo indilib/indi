@@ -252,10 +252,8 @@ void GPhotoCCD::ISGetProperties(const char *dev)
 
       ShowExtendedOptions();
 
-      ITextVectorProperty *modelTP = getText("model");
-      if (modelTP && !strcmp(modelTP->label, "model") && strstr(modelTP->tp[0].text, "Canon"))
+      if (strstr(gphoto_get_manufacturer(gphotodrv), "Canon"))
           defineNumber(&mMirrorLockNP);
-
   }
 
   // Add Debug, Simulator, and Configuration controls
@@ -285,7 +283,7 @@ bool GPhotoCCD::updateProperties()
       imageB=imageBP->bp;
 
       // Dummy values until first capture is done
-      SetCCDParams(1280, 1024, 8, 5.4, 5.4);
+      //SetCCDParams(1280, 1024, 8, 5.4, 5.4);
 
     if (sim == false)
     {
@@ -653,6 +651,9 @@ bool GPhotoCCD::Connect()
   mIsoSP.nsp = max_opts;
 
   DEBUGF(INDI::Logger::DBG_SESSION, "%s is online.", getDeviceName());
+
+  if (!sim && gphoto_get_manufacturer(gphotodrv) && gphoto_get_model(gphotodrv))
+      DEBUGF(INDI::Logger::DBG_SESSION,"Detected %s Model %s.", gphoto_get_manufacturer(gphotodrv), gphoto_get_model(gphotodrv));
 
   frameInitialized = false;
 
