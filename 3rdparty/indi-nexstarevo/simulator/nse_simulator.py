@@ -18,11 +18,12 @@ async def broadcast(sport=2000, dport=55555, host='255.255.255.255', seconds_to_
     # Fake msg. The app does not care for the payload
     msg = 110*b'X'
     sck.bind(('',sport))
-    print('Broadcasting to port {0}, sleeping for: {1} seconds'.format(dport,seconds_to_sleep))
+    telescope.print_msg('Broadcasting to port {0}'.format(dport))
+    telescope.print_msg('sleeping for: {0} seconds'.format(seconds_to_sleep))
     while True :
         bn = sck.sendto(msg,(host,dport))
         await asyncio.sleep(seconds_to_sleep)
-    print('\nStopping broadcast')
+    telescope.print_msg('Stopping broadcast')
 
 async def timer(seconds_to_sleep=1,telescope=None):
     while True :
@@ -45,12 +46,16 @@ async def handle_port2000(reader, writer):
     retry = 5
     global telescope
     # Endless comm loop.
+    connected=False
     while True :
         data = await reader.read(1024)
         if not data :
             writer.close()
-            print('\nConnection closed. Closing server.')
+            telescope.print_msg('Connection closed. Closing server.')
             return
+        elif not connected :
+            telescope.print_msg('App from {0} connected.'.format(writer.get_extra_info('peername')))
+            connected=True
         retry = 5
         addr = writer.get_extra_info('peername')
         #print("-> Scope received %r from %r." % (data, addr))
@@ -59,7 +64,7 @@ async def handle_port2000(reader, writer):
             if data[:3]==b'$$$' :
                 # Enter command mode
                 transparent = False
-                print('\nApp from {0} connected.'.format(addr))
+                telescope.print_msg('App from {0} connected.'.format(addr))
                 resp = b'CMD\r\n'
             else :
                 # pass it on to the scope for handling
@@ -99,7 +104,8 @@ def main(stdscr):
 
     loop = asyncio.get_event_loop()
     scope = loop.run_until_complete(asyncio.start_server(handle_port2000, host='', port=2000))
-    print('NSE simulator strted on {}. Hit CTRL-C to stop.'.format(scope.sockets[0].getsockname()))
+    telescope.print_msg('NSE simulator strted on {}.'.format(scope.sockets[0].getsockname()))
+    telescope.print_msg('Hit CTRL-C to stop.')
     asyncio.ensure_future(broadcast())
     asyncio.ensure_future(timer(0.1,telescope))
     #asyncio.ensure_future(scope)
@@ -108,7 +114,7 @@ def main(stdscr):
         loop.run_forever()
     except KeyboardInterrupt :
         pass
-    print('Simulator shutting down')
+    telescope.print_msg('Simulator shutting down')
     scope.close()
     loop.run_until_complete(scope.wait_closed())
 

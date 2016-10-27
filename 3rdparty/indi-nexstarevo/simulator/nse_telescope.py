@@ -207,6 +207,7 @@ class NexStarScope:
         self.azm_maxrate=4000
         self.use_maxrate=False
         self.cmd_log=deque(maxlen=30)
+        self.msg_log=deque(maxlen=10)
         self.bat_current=2468
         self.bat_voltage=12345678
         self.lt_logo=64
@@ -507,7 +508,7 @@ class NexStarScope:
             self.rate_w=curses.newwin(4,25,5,0)
             self.guide_w=curses.newwin(4,25,5,25)
             self.other_w=curses.newwin(8,50,9,0)
-            self.msg_w=curses.newwin(10,50,17,0)
+            self.msg_w=curses.newwin(self.msg_log.maxlen+2,50,17,0)
             stdscr.refresh()
 
     def update_dsp(self):
@@ -558,11 +559,11 @@ class NexStarScope:
             self.cmd_log_w.addstr(0,1,'Commands log')
             for n,cmd in enumerate(self.cmd_log) :
                 self.cmd_log_w.addstr(n+1,1,cmd)
-                pass
             self.cmd_log_w.refresh()
             self.msg_w.border()
             self.msg_w.addstr(0,1,'Msg:')
-            self.msg_w.addstr(1,1,'')
+            for n,cmd in enumerate(self.msg_log) :
+                self.msg_w.addstr(n+1,1,cmd)
             self.msg_w.refresh()
 
     def show_status(self):
@@ -703,6 +704,15 @@ class NexStarScope:
                 self.cmd_log.append(s)
 
         return resp
+
+    def print_msg(self, msg):
+        if self.msg_log :
+            if msg != self.msg_log[-1] :
+                self.msg_log.append(msg)
+        else :
+            self.msg_log.append(msg)
+
+
 
     def handle_msg(self, msg):
         '''
