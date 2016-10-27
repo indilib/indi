@@ -387,7 +387,7 @@ bool FilterIFW::ISNewText (const char *dev, const char *name, char *texts[], cha
         if (!strcmp(FilterNameTP->name, name))
         {
             // Only these chars are allowed to be able to the IFW display to show names correctly
-            regex rx("^[A-Z0-9=.\#/% -]{1,8}$");
+            regex rx("^[A-Z0-9=.#/%[:space:]-]{1,8}$");
 
             bool match = true;
             //Check only if user allowed chars restriction
@@ -725,7 +725,7 @@ bool FilterIFW::GetFilterNames(const char* groupName)
                 IUFillText(&FilterNameT[i], filterName, filterLabel, filterNameIFW[i]);
             }
 
-            IUFillTextVector(FilterNameTP, FilterNameT, maxFilter, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW, 0, IPS_OK);
+            IUFillTextVector(FilterNameTP, FilterNameT, maxFilter, getDeviceName(), "FILTER_NAME", "Filters", groupName, IP_RW, 0, IPS_OK);
             defineText(FilterNameTP);
 
             // filterList only use for purpose information
