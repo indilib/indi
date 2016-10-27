@@ -290,9 +290,7 @@ bool GPhotoCCD::updateProperties()
         ShowExtendedOptions();
         DEBUG(INDI::Logger::DBG_SESSION, "Please update the camera pixel size in the Image Info section. The camera resolution will be updated after the first exposure is complete.");
 
-        // Only show mirror lock if the camera is canon
-        ITextVectorProperty *modelTP = getText("model");
-        if (modelTP && !strcmp(modelTP->label, "model") && strstr(modelTP->tp[0].text, "Canon"))
+        if (strstr(gphoto_get_manufacturer(gphotodrv), "Canon"))
             defineNumber(&mMirrorLockNP);
     }
 
