@@ -1354,23 +1354,32 @@ bool GPhotoCCD::saveConfigItems(FILE *fp)
 {
     // First save Device Port
     IUSaveConfigText(fp, &PortTP);
+
     // Second save the CCD Info property
     IUSaveConfigNumber(fp, PrimaryCCD.getCCDInfo());
 
+    // Save regular CCD properties
     INDI::CCD::saveConfigItems(fp);
 
+    // Mirror Locking
     IUSaveConfigNumber(fp, &mMirrorLockNP);
+
+    // ISO Settings
     if (mIsoSP.nsp > 0)
           IUSaveConfigSwitch(fp, &mIsoSP);
+
+    // Format Settings
     if (mFormatSP.nsp > 0)
         IUSaveConfigSwitch(fp, &mFormatSP);
+
+    // Transfer Format
+    IUSaveConfigSwitch(fp, &transferFormatSP);
 
     return true;
 }
 
 void GPhotoCCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
 {
-
     INDI::CCD::addFITSKeywords(fptr, targetChip);
 
     int status=0;
