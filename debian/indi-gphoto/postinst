@@ -1,7 +1,14 @@
 #!/bin/sh
 # postinst script for indi-gphoto
 
-set -e
+if [ -f "/usr/share/gvfs/mounts/gphoto2.mount" ] ;
+then
+    echo "Removing GVFS GPhoto2 mount files which conflict with INDI GPhoto driver. You need to restart your system for this to take effect."
+    rm -f "/usr/share/gvfs/mounts/gphoto2.mount" 2> /dev/null
+    rm -f "/usr/share/dbus-1/services/org.gtk.Private.GPhoto2VolumeMonitor.service" 2> /dev/null
+    rm -f "/usr/share/gvfs/remote-volume-monitors/gphoto2.monitor" 2> /dev/null
+    rm -f "/usr/lib/gvfs/gvfs-gphoto2-volume-monitor" 2> /dev/null
+fi
 
 #2016-10-20: Disable this until we find a better way to turn this off on all kind of systems
 #dbus-launch --exit-with-session gsettings set org.gnome.desktop.media-handling automount false
